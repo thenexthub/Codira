@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language
+enum TestType {
+    case foo
+    case bar(Bool, (a: String, (b: String, (String, (c: String, Bool), String), String)))
+}
+
+fn test(type: TestType) -> String {
+    immutable str: String = {
+        switch type {
+        case .foo:
+            return ""
+        case .bar(_, (_, (_, (_, (immutable c, _), _), _))):
+            return c
+        }
+    }()
+    
+    return str
+}

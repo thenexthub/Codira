@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the \c ConstraintGraph class, which describes the
@@ -24,9 +25,9 @@
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/CSTrail.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/SaveAndRestore.h"
 #include <algorithm>
 #include <memory>
 #include <numeric>
@@ -172,7 +173,7 @@ void ConstraintGraphNode::removeConstraint(Constraint *constraint) {
 }
 
 void ConstraintGraphNode::notifyReferencingVars(
-    llvm::function_ref<void(ConstraintGraphNode &,
+    toolchain::function_ref<void(ConstraintGraphNode &,
                             Constraint *)> notification) const {
   SmallVector<TypeVariableType *, 4> stack;
 
@@ -232,7 +233,7 @@ void ConstraintGraphNode::notifyReferencingVars(
 }
 
 void ConstraintGraphNode::notifyReferencedVars(
-    llvm::function_ref<void(ConstraintGraphNode &)> notification) const {
+    toolchain::function_ref<void(ConstraintGraphNode &)> notification) const {
   for (auto *referencedVar : getReferencedVars()) {
     auto *repr = referencedVar->getImpl().getRepresentative(/*record=*/nullptr);
     if (!repr->getImpl().getFixedType(/*record=*/nullptr))
@@ -257,36 +258,40 @@ void ConstraintGraphNode::truncateEquivalenceClass(unsigned prevSize) {
 void ConstraintGraphNode::addReferencedVar(TypeVariableType *typeVar) {
   bool inserted = References.insert(typeVar);
   if (!inserted) {
-    llvm::errs() << "$T" << TypeVar->getImpl().getID() << " already "
-                 << "references $T" << typeVar->getImpl().getID() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "$T" << TypeVar->getImpl().getID() << " already "
+          << "references $T" << typeVar->getImpl().getID();
+    });
   }
 }
 
 void ConstraintGraphNode::addReferencedBy(TypeVariableType *typeVar) {
   bool inserted = ReferencedBy.insert(typeVar);
   if (!inserted) {
-    llvm::errs() << "$T" << TypeVar->getImpl().getID() << " already "
-                 << "referenced by $T" << typeVar->getImpl().getID() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "$T" << TypeVar->getImpl().getID() << " already "
+          << "referenced by $T" << typeVar->getImpl().getID();
+    });
   }
 }
 
 void ConstraintGraphNode::removeReference(TypeVariableType *typeVar) {
   auto removed = References.remove(typeVar);
   if (!removed) {
-    llvm::errs() << "$T" << TypeVar->getImpl().getID() << " does not "
-                 << "reference $T" << typeVar->getImpl().getID() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "$T" << TypeVar->getImpl().getID() << " does not "
+          << "reference $T" << typeVar->getImpl().getID();
+    });
   }
 }
 
 void ConstraintGraphNode::removeReferencedBy(TypeVariableType *typeVar) {
   auto removed = ReferencedBy.remove(typeVar);
   if (!removed) {
-    llvm::errs() << "$T" << TypeVar->getImpl().getID() << " not "
-                 << "referenced by $T" << typeVar->getImpl().getID() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "$T" << TypeVar->getImpl().getID() << " not "
+          << "referenced by $T" << typeVar->getImpl().getID();
+    });
   }
 }
 
@@ -506,7 +511,7 @@ void ConstraintGraph::bindTypeVariable(TypeVariableType *typeVar, Type fixed) {
 
   auto &node = (*this)[typeVar];
 
-  llvm::SmallPtrSet<TypeVariableType *, 4> referencedVars;
+  toolchain::SmallPtrSet<TypeVariableType *, 4> referencedVars;
   fixed->getTypeVariables(referencedVars);
 
   for (auto otherTypeVar : referencedVars) {
@@ -551,9 +556,9 @@ void ConstraintGraph::retractBindings(TypeVariableType *typeVar,
 static void depthFirstSearch(
     ConstraintGraph &cg,
     TypeVariableType *typeVar,
-    llvm::SmallPtrSet<TypeVariableType *, 4> &typeVars,
-    llvm::TinyPtrVector<Constraint *> &constraints,
-    llvm::SmallPtrSet<Constraint *, 8> &visitedConstraints) {
+    toolchain::SmallPtrSet<TypeVariableType *, 4> &typeVars,
+    toolchain::TinyPtrVector<Constraint *> &constraints,
+    toolchain::SmallPtrSet<Constraint *, 8> &visitedConstraints) {
   // If we're not looking at this type variable right now because we're
   // solving a conjunction element, don't consider its adjacencies.
   if (!cg.getConstraintSystem().isActiveTypeVariable(typeVar))
@@ -597,22 +602,22 @@ static void depthFirstSearch(
   visitAdjacencies(node.getReferencedVars());
 }
 
-llvm::TinyPtrVector<Constraint *> ConstraintGraph::gatherAllConstraints(
+toolchain::TinyPtrVector<Constraint *> ConstraintGraph::gatherAllConstraints(
     TypeVariableType *typeVar) {
-  llvm::TinyPtrVector<Constraint *> constraints;
-  llvm::SmallPtrSet<TypeVariableType *, 4> typeVars;
-  llvm::SmallPtrSet<Constraint *, 8> visitedConstraints;
+  toolchain::TinyPtrVector<Constraint *> constraints;
+  toolchain::SmallPtrSet<TypeVariableType *, 4> typeVars;
+  toolchain::SmallPtrSet<Constraint *, 8> visitedConstraints;
 
   depthFirstSearch(*this, typeVar, typeVars, constraints, visitedConstraints);
   return constraints;
 }
 
-llvm::TinyPtrVector<Constraint *> ConstraintGraph::gatherNearbyConstraints(
+toolchain::TinyPtrVector<Constraint *> ConstraintGraph::gatherNearbyConstraints(
     TypeVariableType *typeVar, 
-    llvm::function_ref<bool(Constraint *)> acceptConstraintFn) {
-  llvm::TinyPtrVector<Constraint *> constraints;
-  llvm::SmallPtrSet<TypeVariableType *, 4> typeVars;
-  llvm::SmallPtrSet<Constraint *, 8> visitedConstraints;
+    toolchain::function_ref<bool(Constraint *)> acceptConstraintFn) {
+  toolchain::TinyPtrVector<Constraint *> constraints;
+  toolchain::SmallPtrSet<TypeVariableType *, 4> typeVars;
+  toolchain::SmallPtrSet<Constraint *, 8> visitedConstraints;
 
   // Local function to add constraints.
   auto addTypeVarConstraints = [&](TypeVariableType *adjTypeVar) {
@@ -686,7 +691,7 @@ namespace {
         return flatComponents;
 
       // Mapping from representatives to components.
-      llvm::SmallDenseMap<TypeVariableType *, Component> components;
+      toolchain::SmallDenseMap<TypeVariableType *, Component> components;
       SmallVector<TypeVariableType *, 4> representativeTypeVars;
 
       // Capture the type variables of each component.
@@ -952,7 +957,7 @@ bool ConstraintGraph::contractEdges() {
 
     if (CS.isDebugMode()) {
       auto indent = CS.solverState ? CS.solverState->getCurrentIndent() : 0;
-      auto &log = llvm::errs().indent(indent);
+      auto &log = toolchain::errs().indent(indent);
 
       log << "Contracting constraint ";
       constraint->print(log.indent(indent), &CS.getASTContext().SourceMgr,
@@ -975,7 +980,7 @@ void ConstraintGraph::optimize() {
 }
 
 void ConstraintGraph::incrementConstraintsPerContractionCounter() {
-  SWIFT_FUNC_STAT;
+  LANGUAGE_FUNC_STAT;
   auto &context = CS.getASTContext();
   if (auto *Stats = context.Stats) {
     ++Stats->getFrontendCounters()
@@ -985,8 +990,8 @@ void ConstraintGraph::incrementConstraintsPerContractionCounter() {
 
 #pragma mark Debugging output
 
-void ConstraintGraphNode::print(llvm::raw_ostream &out, unsigned indent,
-                                PrintOptions PO) const {
+void ConstraintGraphNode::print(toolchain::raw_ostream &out, unsigned indent,
+                                const PrintOptions &PO) const {
   out.indent(indent);
   Type(TypeVar).print(out, PO);
   out << ":\n";
@@ -1049,11 +1054,11 @@ void ConstraintGraphNode::print(llvm::raw_ostream &out, unsigned indent,
 void ConstraintGraphNode::dump() const {
   PrintOptions PO;
   PO.PrintTypesForDebugging = true;
-  print(llvm::dbgs(), 0, PO);
+  print(toolchain::dbgs(), 0, PO);
 }
 
 void ConstraintGraph::print(ArrayRef<TypeVariableType *> typeVars,
-                            llvm::raw_ostream &out) {
+                            toolchain::raw_ostream &out) {
   PrintOptions PO;
   PO.PrintTypesForDebugging = true;
 
@@ -1065,23 +1070,23 @@ void ConstraintGraph::print(ArrayRef<TypeVariableType *> typeVars,
 }
 
 void ConstraintGraph::dump() {
-  dump(llvm::dbgs());
+  dump(toolchain::dbgs());
 }
 
-void ConstraintGraph::dump(llvm::raw_ostream &out) {
+void ConstraintGraph::dump(toolchain::raw_ostream &out) {
   print(CS.getTypeVariables(), out);
 }
 
 void ConstraintGraph::printConnectedComponents(
     ArrayRef<TypeVariableType *> typeVars,
-    llvm::raw_ostream &out) {
+    toolchain::raw_ostream &out) {
   auto components = computeConnectedComponents(typeVars);
   PrintOptions PO;
   PO.PrintTypesForDebugging = true;
   for (const auto& component : components) {
     out.indent((CS.solverState ? CS.solverState->getCurrentIndent() : 0) + 2);
     out << component.solutionIndex << ": ";
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       out << '\n';
     };
 
@@ -1097,7 +1102,7 @@ void ConstraintGraph::printConnectedComponents(
 }
 
 void ConstraintGraph::dumpConnectedComponents() {
-  printConnectedComponents(CS.getTypeVariables(), llvm::dbgs());
+  printConnectedComponents(CS.getTypeVariables(), toolchain::dbgs());
 }
 
 #pragma mark Verification of graph invariants
@@ -1124,29 +1129,29 @@ static void _require(bool condition, const Twine &complaint,
     return;
 
   // Complain
-  llvm::dbgs() << "Constraint graph verification failed: " << complaint << '\n';
+  toolchain::dbgs() << "Constraint graph verification failed: " << complaint << '\n';
   if (extraContext)
     extraContext();
 
   // Print the graph.
   // FIXME: Highlight the offending node/constraint/etc.
-  cg.dump(llvm::dbgs());
+  cg.dump(toolchain::dbgs());
 
   abort();
 }
 
 /// Print a type variable value.
-static void printValue(llvm::raw_ostream &os, TypeVariableType *typeVar) {
+static void printValue(toolchain::raw_ostream &os, TypeVariableType *typeVar) {
   typeVar->print(os);
 }
 
 /// Print a constraint value.
-static void printValue(llvm::raw_ostream &os, Constraint *constraint) {
+static void printValue(toolchain::raw_ostream &os, Constraint *constraint) {
   constraint->print(os, nullptr);
 }
 
 /// Print an unsigned value.
-static void printValue(llvm::raw_ostream &os, unsigned value) {
+static void printValue(toolchain::raw_ostream &os, unsigned value) {
   os << value;
 }
 
@@ -1156,11 +1161,11 @@ void ConstraintGraphNode::verify(ConstraintGraph &cg) {
   _require(condition, complaint, cg, this, context)
 #define requireSameValue(value1, value2, complaint)             \
   _require(value1 == value2, complaint, cg, this, [&] {         \
-    llvm::dbgs() << "  ";                                       \
-    printValue(llvm::dbgs(), value1);                           \
-    llvm::dbgs() << " != ";                                     \
-    printValue(llvm::dbgs(), value2);                           \
-    llvm::dbgs() << '\n';                                       \
+    toolchain::dbgs() << "  ";                                       \
+    printValue(toolchain::dbgs(), value1);                           \
+    toolchain::dbgs() << " != ";                                     \
+    printValue(toolchain::dbgs(), value2);                           \
+    toolchain::dbgs() << '\n';                                       \
   })
 
   // Verify that the constraint map/vector haven't gotten out of sync.
@@ -1183,11 +1188,11 @@ void ConstraintGraph::verify() {
   _require(condition, complaint, *this, nullptr, context)
 #define requireSameValue(value1, value2, complaint)             \
   _require(value1 == value2, complaint, *this, nullptr, [&] {   \
-    llvm::dbgs() << "  ";                                       \
-    printValue(llvm::dbgs(), value1);                           \
-    llvm::dbgs() << " != ";                                     \
-    printValue(llvm::dbgs(), value2);                           \
-    llvm::dbgs() << '\n';                                       \
+    toolchain::dbgs() << "  ";                                       \
+    printValue(toolchain::dbgs(), value1);                           \
+    toolchain::dbgs() << " != ";                                     \
+    printValue(toolchain::dbgs(), value2);                           \
+    toolchain::dbgs() << '\n';                                       \
   })
 
   // Verify that the type variables are either representatives or represented
@@ -1221,7 +1226,7 @@ void ConstraintGraph::verify() {
   }
 
   // Collect all of the constraints known to the constraint graph.
-  llvm::SmallPtrSet<Constraint *, 4> knownConstraints;
+  toolchain::SmallPtrSet<Constraint *, 4> knownConstraints;
   for (auto typeVar : CS.TypeVariables) {
     for (auto constraint : (*this)[typeVar].getConstraints())
       knownConstraints.insert(constraint);
@@ -1236,9 +1241,9 @@ void ConstraintGraph::verify() {
                         referencedTypeVars.empty()),
                        "constraint graph doesn't know about constraint",
                        [&] {
-                         llvm::dbgs() << "constraint = ";
-                         printValue(llvm::dbgs(), &constraint);
-                         llvm::dbgs() << "\n";
+                         toolchain::dbgs() << "constraint = ";
+                         printValue(toolchain::dbgs(), &constraint);
+                         toolchain::dbgs() << "\n";
                        });
 
     // Make sure each of the type variables referenced knows about this
@@ -1248,11 +1253,11 @@ void ConstraintGraph::verify() {
       requireWithContext(nodePtr,
                          "type variable in constraint not known",
                          [&] {
-                           llvm::dbgs() << "type variable = ";
-                           printValue(llvm::dbgs(), typeVar);
-                           llvm::dbgs() << ", constraint = ";
-                           printValue(llvm::dbgs(), &constraint);
-                           llvm::dbgs() << "\n";
+                           toolchain::dbgs() << "type variable = ";
+                           printValue(toolchain::dbgs(), typeVar);
+                           toolchain::dbgs() << ", constraint = ";
+                           printValue(toolchain::dbgs(), &constraint);
+                           toolchain::dbgs() << "\n";
                          });
 
       auto &node = *nodePtr;
@@ -1260,11 +1265,11 @@ void ConstraintGraph::verify() {
       requireWithContext(constraintPos != node.ConstraintIndex.end(),
                          "type variable doesn't know about constraint",
                          [&] {
-                           llvm::dbgs() << "type variable = ";
-                           printValue(llvm::dbgs(), typeVar);
-                           llvm::dbgs() << ", constraint = ";
-                           printValue(llvm::dbgs(), &constraint);
-                           llvm::dbgs() << "\n";
+                           toolchain::dbgs() << "type variable = ";
+                           printValue(toolchain::dbgs(), typeVar);
+                           toolchain::dbgs() << ", constraint = ";
+                           printValue(toolchain::dbgs(), &constraint);
+                           toolchain::dbgs() << "\n";
                          });
     }
   }

@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftIRGen STATIC
+add_language_host_library(languageIRGen STATIC
   AllocStackHoisting.cpp
   APIGen.cpp
   ClassLayout.cpp
@@ -63,27 +63,27 @@ add_swift_host_library(swiftIRGen STATIC
   Outlining.cpp
   PackMetadataMarkerInserter.cpp
   StructLayout.cpp
-  SwiftTargetInfo.cpp
+  CodiraTargetInfo.cpp
   TBDGen.cpp
   TBDGenRequests.cpp
   TypeLayout.cpp
   TypeLayoutDumper.cpp
   TypeLayoutVerifier.cpp
 
-  LLVM_LINK_COMPONENTS
+  TOOLCHAIN_LINK_COMPONENTS
     target
     targetparser
     transformutils
     irprinter
 )
-target_link_libraries(swiftIRGen INTERFACE
+target_link_libraries(languageIRGen INTERFACE
   clangCodeGen
   clangAST)
-target_link_libraries(swiftIRGen PRIVATE
-  swiftAST
-  swiftLLVMPasses
-  swiftSIL
-  swiftSILGen
-  swiftSILOptimizer)
+target_link_libraries(languageIRGen PRIVATE
+  languageAST
+  languageLLVMPasses
+  languageSIL
+  languageSILGen
+  languageSILOptimizer)
 
-set_swift_llvm_is_available(swiftIRGen)
+set_language_toolchain_is_available(languageIRGen)

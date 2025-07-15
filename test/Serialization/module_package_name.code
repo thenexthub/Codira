@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -module-name Logging -package-name MyLoggingPkg %t/File.code -emit-module -emit-module-path %t/Logging.codemodule
+// RUN: test -f %t/Logging.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/Logging.codemodule | %FileCheck %s -check-prefix CHECK-BLOB
+// CHECK-BLOB: <MODULE_PACKAGE_NAME abbrevid=5/> blob data = 'MyLoggingPkg'
+
+// RUN: %target-language-frontend -module-name Logging -package-name MyLoggingPkg %t/File.code -emit-module -emit-module-interface-path %t/Logging.codeinterface -emit-private-module-interface-path %t/Logging.private.codeinterface -language-version 5 -enable-library-evolution -I %t
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Logging.codeinterface) -I %t
+// RUN: %FileCheck %s --check-prefix=CHECK-PUBLIC < %t/Logging.codeinterface
+// CHECK-PUBLIC: -module-name Logging
+// CHECK-PUBLIC: -package-name
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Logging.private.codeinterface) -module-name Logging -I %t
+// RUN: %FileCheck %s --check-prefix=CHECK-PRIVATE < %t/Logging.private.codeinterface
+// CHECK-PRIVATE: -module-name Logging
+// CHECK-PRIVATE: -package-name MyLoggingPkg
+
+//--- File.code
+public fn log(level: Int) {}

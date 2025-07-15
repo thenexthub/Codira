@@ -1,0 +1,36 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var f = 1
+private class B<C> {
+immutable  enum S<T> : P {
+fn f<T>() -> T -> T {
+return { x in x 1 {
+}
+}
+class A {
+class fn a() -> String {
+immutable d: String = {
+}()
+}
+}
+s}
+}
+class d<j : i, f : i where j.i == f> : e {
+}
+class d<j, f> {
+}
+protocol i {
+}
+protocol e {
+}
+protocol i : d { fn d

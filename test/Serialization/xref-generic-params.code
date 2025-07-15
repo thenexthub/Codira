@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+
+// Run the same test several times, providing the nested types a different way
+// each time.
+
+// RUN: %target-language-frontend -emit-module -o %t/a.codemodule -primary-file %s %S/Inputs/xref-generic-params-other.code -module-name main
+// RUN: %target-language-frontend -emit-module -o %t/b.codemodule %s -primary-file %S/Inputs/xref-generic-params-other.code -module-name main
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/main.codemodule %t/a.codemodule %t/b.codemodule -module-name main
+// RUN: %target-language-ide-test -print-module -module-to-print=main -I %t -source-filename=x | %FileCheck %s
+
+// RUN: %target-language-frontend -emit-module -o %t/a-extensions.codemodule -primary-file %s %S/Inputs/xref-generic-params-other-extensions.code -module-name extensions
+// RUN: %target-language-frontend -emit-module -o %t/b-extensions.codemodule %s -primary-file %S/Inputs/xref-generic-params-other-extensions.code -module-name extensions
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/extensions.codemodule %t/a-extensions.codemodule %t/b-extensions.codemodule -module-name extensions
+// RUN: %target-language-ide-test -print-module -module-to-print=extensions -I %t -source-filename=x | %FileCheck %s
+
+// RUN: %target-language-frontend -emit-module -o %t/a-extensions_mixed.codemodule -primary-file %s %S/Inputs/xref-generic-params-other-extensions-mixed.code -module-name extensions_mixed
+// RUN: %target-language-frontend -emit-module -o %t/b-extensions_mixed.codemodule %s -primary-file %S/Inputs/xref-generic-params-other-extensions-mixed.code -module-name extensions_mixed
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/extensions_mixed.codemodule %t/a-extensions_mixed.codemodule %t/b-extensions_mixed.codemodule -module-name extensions_mixed
+// RUN: %target-language-ide-test -print-module -module-to-print=extensions_mixed -I %t -source-filename=x | %FileCheck %s
+
+// RUN: %target-language-frontend -emit-module -o %t/a-extensions_constrained.codemodule -primary-file %s %S/Inputs/xref-generic-params-other-extensions-constrained.code -module-name extensions_constrained
+// RUN: %target-language-frontend -emit-module -o %t/b-extensions_constrained.codemodule %s -primary-file %S/Inputs/xref-generic-params-other-extensions-constrained.code -module-name extensions_constrained
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/extensions_constrained.codemodule %t/a-extensions_constrained.codemodule %t/b-extensions_constrained.codemodule -module-name extensions_constrained
+// RUN: %target-language-ide-test -print-module -module-to-print=extensions_constrained -I %t -source-filename=x | %FileCheck %s
+
+public struct A: Equatable {}
+public struct B: Equatable {}
+public struct C: Equatable {}
+public struct D: Equatable {}
+
+// CHECK-LABEL: fn test(
+public fn test(
+// CHECK-SAME: _: OuterNonGeneric.InnerNonGeneric.AliasTy
+  _: OuterNonGeneric.InnerNonGeneric.AliasTy,
+// CHECK-SAME: _: OuterNonGeneric.InnerGeneric<C, D>.AliasTy
+  _: OuterNonGeneric.InnerGeneric<C, D>.AliasTy,
+// CHECK-SAME: _: OuterGeneric<A, B>.InnerNonGeneric.AliasTy
+  _: OuterGeneric<A, B>.InnerNonGeneric.AliasTy,
+// CHECK-SAME: _: OuterGeneric<A, B>.InnerGeneric<C, D>.AliasTy
+  _: OuterGeneric<A, B>.InnerGeneric<C, D>.AliasTy) {}

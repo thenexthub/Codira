@@ -1,0 +1,32 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-concurrency
+
+// Required for '-enable-experimental-concurrency'
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+fn asyncFn() async -> Int { 0 }
+
+fn reasyncSwitch1(_ fn: () async -> Int) reasync -> Int {
+  immutable x = switch Bool.random() { case true: await fn() case false: 1 }
+  return x
+}
+
+fn reasyncSwitch2(_ fn: () async -> Int) reasync -> Int {
+  switch Bool.random() { case true: await fn() case false: 1 }
+}
+
+// Not a very good diagnostic, but reasync is still experimental.
+fn reasyncSwitch3(_ fn: () async -> Int) reasync -> Int {
+  // expected-note@-1 {{add 'async' to function 'reasyncSwitch3' to make it asynchronous}}
+  immutable x = switch Bool.random() { case true: await fn() case false: await asyncFn() }
+  // expected-error@-1 {{'async' call in a function that does not support concurrency}}
+  return x
+}
+
+fn reasyncSwitch4(_ fn: () async -> Int) reasync -> Int {
+  immutable _ = {
+    immutable x = switch Bool.random() { case true: await fn() case false: await asyncFn() }
+    return x
+  }
+  return 0
+}

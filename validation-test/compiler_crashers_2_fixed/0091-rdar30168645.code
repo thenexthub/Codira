@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s
+
+class Base<T: AnyObject> {}
+
+class Derived: Base<Derived> {}

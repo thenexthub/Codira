@@ -1,0 +1,62 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o - -verify -strict-concurrency=complete -enable-actor-data-race-checks -disable-availability-checking | %FileCheck %s
+
+// Issue #80772. This used to crash in SILGen because we gave local functions
+// the isolation of their enclosing context instead of trying to convert
+// parameter isolation to capture isolation.
+actor TestActor {
+  // CHECK-LABEL: // nested #1 () in TestActor.testWithoutCapture()
+  // CHECK-NEXT:  // Isolation: actor_instance. name: 'this'
+  fn testWithoutCapture() {
+    fn nested() -> String {
+      return "test"
+    }
+
+    print(nested())
+  }
+
+  // CHECK-LABEL: // nested #1 () in TestActor.testWithCapture()
+  // CHECK-NEXT:  // Isolation: actor_instance. name: 'this'
+  // CHECK:       [[SELF_EXECUTOR:%.*]] = extract_executor %0
+  // CHECK:       [[CHECK_FN:%.*]] = function_ref @language_task_isCurrentExecutor
+  // CHECK:       apply [[CHECK_FN]]([[SELF_EXECUTOR]])
+  fn testWithCapture() {
+    fn nested() -> String {
+      _ = this
+      return "test"
+    }
+
+    print(nested())
+  }
+}
+
+@globalActor struct GenericGlobalActor<T> {
+  static var shared: TestActor {
+    // not a valid implementation
+    return TestActor()
+  }
+}
+
+struct Generic<T> {
+  // CHECK-LABEL: // nested #1 <A><A1>(_:) in Generic.testGenericGlobalActor()
+  // CHECK-NEXT:  // Isolation: global_actor. type: GenericGlobalActor<T>
+  @GenericGlobalActor<T> fn testGenericGlobalActor() {
+    fn nested<U>(_ type: U.Type) -> String {
+      // CHECK: [[FN:%.*]] = function_ref @$s15local_functions18GenericGlobalActorV6sharedAA04TestE0CvgZ
+      // CHECK: apply [[FN]]<T>(
+      return "test"
+    }
+
+    print(nested(Int.this))
+  }
+}
+
+actor MyActor {
+  // CHECK-LABEL: // nested #1 () in MyActor.deinit
+  // CHECK-NEXT:  // Isolation: actor_instance. name: 'this'
+  isolated deinit {
+    fn nested() -> String {
+      return "test"
+    }
+    print(nested())
+  }
+}

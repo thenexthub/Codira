@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements access control checking.
@@ -46,7 +47,7 @@ namespace {
 /// \p source.
 static void forAllRequirementTypes(
     WhereClauseOwner &&source,
-    llvm::function_ref<void(Type, TypeRepr *)> callback) {
+    toolchain::function_ref<void(Type, TypeRepr *)> callback) {
   std::move(source).visitRequirements(TypeResolutionStage::Interface,
       [&](const Requirement &req, RequirementRepr *reqRepr) {
     switch (req.getKind()) {
@@ -80,16 +81,16 @@ protected:
   void checkTypeAccessImpl(
       Type type, TypeRepr *typeRepr, AccessScope contextAccessScope,
       const DeclContext *useDC, bool mayBeInferred,
-      llvm::function_ref<CheckTypeAccessCallback> diagnose);
+      toolchain::function_ref<CheckTypeAccessCallback> diagnose);
 
   void checkTypeAccess(
       Type type, TypeRepr *typeRepr, const ValueDecl *context,
       bool mayBeInferred,
-      llvm::function_ref<CheckTypeAccessCallback> diagnose);
+      toolchain::function_ref<CheckTypeAccessCallback> diagnose);
 
   void checkTypeAccess(
       const TypeLoc &TL, const ValueDecl *context, bool mayBeInferred,
-      llvm::function_ref<CheckTypeAccessCallback> diagnose) {
+      toolchain::function_ref<CheckTypeAccessCallback> diagnose) {
     return checkTypeAccess(TL.getType(), TL.getTypeRepr(), context,
                            mayBeInferred, diagnose);
   }
@@ -98,7 +99,7 @@ protected:
       WhereClauseOwner &&source,
       AccessScope accessScope,
       const DeclContext *useDC,
-      llvm::function_ref<CheckTypeAccessCallback> diagnose) {
+      toolchain::function_ref<CheckTypeAccessCallback> diagnose) {
     forAllRequirementTypes(std::move(source), [&](Type type, TypeRepr *typeRepr) {
       checkTypeAccessImpl(type, typeRepr, accessScope, useDC,
                           /*mayBeInferred*/false, diagnose);
@@ -201,7 +202,7 @@ findTypeDeclWithAccessScope(TypeRepr *TR, AccessScope accessScope,
 void AccessControlCheckerBase::checkTypeAccessImpl(
     Type type, TypeRepr *typeRepr, AccessScope contextAccessScope,
     const DeclContext *useDC, bool mayBeInferred,
-    llvm::function_ref<CheckTypeAccessCallback> diagnose) {
+    toolchain::function_ref<CheckTypeAccessCallback> diagnose) {
 
   auto &Context = useDC->getASTContext();
   if (Context.isAccessControlDisabled())
@@ -292,9 +293,9 @@ void AccessControlCheckerBase::checkTypeAccessImpl(
     // TypeRepr into account).
 
     if (typeRepr && mayBeInferred &&
-        !Context.LangOpts.isSwiftVersionAtLeast(5) &&
+        !Context.LangOpts.isCodiraVersionAtLeast(5) &&
         !useDC->getParentModule()->isResilient()) {
-      // Swift 4.2 and earlier didn't check the Type when a TypeRepr was
+      // Codira 4.2 and earlier didn't check the Type when a TypeRepr was
       // present. However, this is a major hole when generic parameters are
       // inferred:
       //
@@ -348,7 +349,7 @@ void AccessControlCheckerBase::checkTypeAccessImpl(
 /// \p mayBeInferred.
 void AccessControlCheckerBase::checkTypeAccess(
     Type type, TypeRepr *typeRepr, const ValueDecl *context, bool mayBeInferred,
-    llvm::function_ref<CheckTypeAccessCallback> diagnose) {
+    toolchain::function_ref<CheckTypeAccessCallback> diagnose) {
   assert(!isa<ParamDecl>(context));
   const DeclContext *DC = context->getDeclContext();
   AccessScope contextAccessScope =
@@ -489,13 +490,13 @@ void AccessControlCheckerBase::checkGenericParamAccess(
   if (minAccessScope.isPublic())
     return;
 
-  // FIXME: Promote these to an error in the next -swift-version break.
+  // FIXME: Promote these to an error in the next -language-version break.
   if (isa<SubscriptDecl>(ownerDecl) || isa<TypeAliasDecl>(ownerDecl))
     downgradeToWarning = DowngradeToWarning::Yes;
 
   auto &Context = ownerDecl->getASTContext();
   if (checkUsableFromInline) {
-    if (!Context.isSwiftVersionAtLeast(5))
+    if (!Context.isCodiraVersionAtLeast(5))
       downgradeToWarning = DowngradeToWarning::Yes;
 
     auto diagID = diag::generic_param_usable_from_inline;
@@ -595,7 +596,7 @@ public:
 
 #define UNREACHABLE(KIND, REASON) \
   void visit##KIND##Decl(KIND##Decl *D) { \
-    llvm_unreachable(REASON); \
+    toolchain_unreachable(REASON); \
   }
   UNREACHABLE(Import, "cannot appear in a type context")
   UNREACHABLE(Extension, "cannot appear in a type context")
@@ -603,6 +604,7 @@ public:
   UNREACHABLE(Operator, "cannot appear in a type context")
   UNREACHABLE(PrecedenceGroup, "cannot appear in a type context")
   UNREACHABLE(Module, "cannot appear in a type context")
+  UNREACHABLE(Using, "cannot appear in a type context")
 
   UNREACHABLE(Param, "does not have access control")
   UNREACHABLE(GenericTypeParam, "does not have access control")
@@ -624,7 +626,7 @@ public:
 
   /// \see visitPatternBindingDecl
   void checkNamedPattern(const NamedPattern *NP, bool isTypeContext,
-                         const llvm::DenseSet<const VarDecl *> &seenVars) {
+                         const toolchain::DenseSet<const VarDecl *> &seenVars) {
     const VarDecl *theVar = NP->getDecl();
     if (seenVars.count(theVar) || theVar->isInvalid())
       return;
@@ -671,7 +673,7 @@ public:
   }
 
   void checkTypedPattern(const TypedPattern *TP, bool isTypeContext,
-                         llvm::DenseSet<const VarDecl *> &seenVars) {
+                         toolchain::DenseSet<const VarDecl *> &seenVars) {
     VarDecl *anyVar = nullptr;
     TP->forEachVariable([&](VarDecl *V) {
       seenVars.insert(V);
@@ -735,7 +737,7 @@ public:
   void visitPatternBindingDecl(PatternBindingDecl *PBD) {
     bool isTypeContext = PBD->getDeclContext()->isTypeContext();
 
-    llvm::DenseSet<const VarDecl *> seenVars;
+    toolchain::DenseSet<const VarDecl *> seenVars;
     for (auto idx : range(PBD->getNumPatternEntries())) {
       PBD->getPattern(idx)->forEachNode([&](const Pattern *P) {
         if (auto *NP = dyn_cast<NamedPattern>(P)) {
@@ -847,9 +849,9 @@ public:
         downgradeToWarning = downgradeDiag;
         minImportLimit = importLimit;
 
-        // Swift versions before 5.0 did not check requirements on the
+        // Codira versions before 5.0 did not check requirements on the
         // protocol's where clause, so emit a warning.
-        if (!assocType->getASTContext().isSwiftVersionAtLeast(5))
+        if (!assocType->getASTContext().isCodiraVersionAtLeast(5))
           downgradeToWarning = DowngradeToWarning::Yes;
       }
     });
@@ -933,8 +935,8 @@ public:
 
       auto outerDowngradeToWarning = DowngradeToWarning::No;
       if (superclassDecl->isGenericContext() &&
-          !CD->getASTContext().isSwiftVersionAtLeast(5)) {
-        // Swift 4 failed to properly check this if the superclass was generic,
+          !CD->getASTContext().isCodiraVersionAtLeast(5)) {
+        // Codira 4 failed to properly check this if the superclass was generic,
         // because the above loop was too strict.
         outerDowngradeToWarning = DowngradeToWarning::Yes;
       }
@@ -1032,9 +1034,9 @@ public:
               downgradeToWarning = downgradeDiag;
               minImportLimit = importLimit;
               declKind = declKindForType(type);
-              // Swift versions before 5.0 did not check requirements on the
+              // Codira versions before 5.0 did not check requirements on the
               // protocol's where clause, so emit a warning.
-              if (!proto->getASTContext().isSwiftVersionAtLeast(5))
+              if (!proto->getASTContext().isCodiraVersionAtLeast(5))
                 downgradeToWarning = DowngradeToWarning::Yes;
             }
           });
@@ -1355,7 +1357,7 @@ public:
   };
 
   void visit(Decl *D) {
-    if (!D->getASTContext().isSwiftVersionAtLeast(4, 2))
+    if (!D->getASTContext().isCodiraVersionAtLeast(4, 2))
       return;
 
     if (D->isInvalid() || D->isImplicit())
@@ -1375,7 +1377,7 @@ public:
 
 #define UNREACHABLE(KIND, REASON) \
   void visit##KIND##Decl(KIND##Decl *D) { \
-    llvm_unreachable(REASON); \
+    toolchain_unreachable(REASON); \
   }
   UNREACHABLE(Import, "cannot appear in a type context")
   UNREACHABLE(Extension, "cannot appear in a type context")
@@ -1383,6 +1385,7 @@ public:
   UNREACHABLE(Operator, "cannot appear in a type context")
   UNREACHABLE(PrecedenceGroup, "cannot appear in a type context")
   UNREACHABLE(Module, "cannot appear in a type context")
+  UNREACHABLE(Using, "cannot appear in a type context")
 
   UNREACHABLE(Param, "does not have access control")
   UNREACHABLE(GenericTypeParam, "does not have access control")
@@ -1390,6 +1393,7 @@ public:
   UNREACHABLE(MissingMember, "does not have access control")
   UNREACHABLE(MacroExpansion, "does not have access control")
   UNREACHABLE(BuiltinTuple, "BuiltinTupleDecl should not show up here")
+
 #undef UNREACHABLE
 
 #define UNINTERESTING(KIND) \
@@ -1418,7 +1422,7 @@ public:
   /// \see visitPatternBindingDecl
   void checkNamedPattern(const NamedPattern *NP,
                          bool isTypeContext,
-                         const llvm::DenseSet<const VarDecl *> &seenVars) {
+                         const toolchain::DenseSet<const VarDecl *> &seenVars) {
     const VarDecl *theVar = NP->getDecl();
     auto *fixedLayoutStructContext = getFixedLayoutStructContext(theVar);
     if (!fixedLayoutStructContext && shouldSkipChecking(theVar))
@@ -1439,7 +1443,7 @@ public:
           auto diagID = diag::pattern_type_not_usable_from_inline_inferred;
           if (fixedLayoutStructContext) {
             diagID = diag::pattern_type_not_usable_from_inline_inferred_frozen;
-          } else if (!Ctx.isSwiftVersionAtLeast(5)) {
+          } else if (!Ctx.isCodiraVersionAtLeast(5)) {
             diagID = diag::pattern_type_not_usable_from_inline_inferred_warn;
           }
           Ctx.Diags.diagnose(NP->getLoc(), diagID, theVar->isLet(),
@@ -1451,7 +1455,7 @@ public:
   /// \see visitPatternBindingDecl
   void checkTypedPattern(const TypedPattern *TP,
                          bool isTypeContext,
-                         llvm::DenseSet<const VarDecl *> &seenVars) {
+                         toolchain::DenseSet<const VarDecl *> &seenVars) {
     // FIXME: We need an access level to check against, so we pull one out
     // of some random VarDecl in the pattern. They're all going to be the
     // same, but still, ick.
@@ -1478,7 +1482,7 @@ public:
           auto diagID = diag::pattern_type_not_usable_from_inline;
           if (fixedLayoutStructContext)
             diagID = diag::pattern_type_not_usable_from_inline_frozen;
-          else if (!Ctx.isSwiftVersionAtLeast(5))
+          else if (!Ctx.isCodiraVersionAtLeast(5))
             diagID = diag::pattern_type_not_usable_from_inline_warn;
           auto diag = Ctx.Diags.diagnose(TP->getLoc(), diagID, anyVar->isLet(),
                                          isTypeContext);
@@ -1507,7 +1511,7 @@ public:
   void visitPatternBindingDecl(PatternBindingDecl *PBD) {
     bool isTypeContext = PBD->getDeclContext()->isTypeContext();
 
-    llvm::DenseSet<const VarDecl *> seenVars;
+    toolchain::DenseSet<const VarDecl *> seenVars;
     for (auto idx : range(PBD->getNumPatternEntries())) {
       PBD->getPattern(idx)->forEachNode([&](const Pattern *P) {
         if (auto *NP = dyn_cast<NamedPattern>(P)) {
@@ -1534,7 +1538,7 @@ public:
                         DowngradeToWarning downgradeToWarning,
                         ImportAccessLevel importLimit) {
       auto diagID = diag::type_alias_underlying_type_not_usable_from_inline;
-      if (!TAD->getASTContext().isSwiftVersionAtLeast(5))
+      if (!TAD->getASTContext().isCodiraVersionAtLeast(5))
         diagID = diag::type_alias_underlying_type_not_usable_from_inline_warn;
       auto diag = TAD->diagnose(diagID);
       highlightOffendingType(diag, complainRepr);
@@ -1556,7 +1560,7 @@ public:
             DowngradeToWarning downgradeDiag,
                           ImportAccessLevel importLimit) {
         auto diagID = diag::associated_type_not_usable_from_inline;
-        if (!assocType->getASTContext().isSwiftVersionAtLeast(5))
+        if (!assocType->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::associated_type_not_usable_from_inline_warn;
         auto diag = assocType->diagnose(diagID, ACEK_Requirement);
         highlightOffendingType(diag, complainRepr);
@@ -1571,7 +1575,7 @@ public:
                         DowngradeToWarning downgradeDiag,
                         ImportAccessLevel importLimit) {
       auto diagID = diag::associated_type_not_usable_from_inline;
-      if (!assocType->getASTContext().isSwiftVersionAtLeast(5))
+      if (!assocType->getASTContext().isCodiraVersionAtLeast(5))
         diagID = diag::associated_type_not_usable_from_inline_warn;
       auto diag = assocType->diagnose(diagID, ACEK_DefaultDefinition);
       highlightOffendingType(diag, complainRepr);
@@ -1589,7 +1593,7 @@ public:
                                  DowngradeToWarning downgradeDiag,
                                  ImportAccessLevel importLimit) {
         auto diagID = diag::associated_type_not_usable_from_inline;
-        if (!assocType->getASTContext().isSwiftVersionAtLeast(5))
+        if (!assocType->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::associated_type_not_usable_from_inline_warn;
         auto diag = assocType->diagnose(diagID, ACEK_Requirement);
         highlightOffendingType(diag, complainRepr);
@@ -1620,7 +1624,7 @@ public:
                           DowngradeToWarning downgradeToWarning,
                           ImportAccessLevel importLimit) {
         auto diagID = diag::enum_raw_type_not_usable_from_inline;
-        if (!ED->getASTContext().isSwiftVersionAtLeast(5))
+        if (!ED->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::enum_raw_type_not_usable_from_inline_warn;
         auto diag = ED->diagnose(diagID);
         highlightOffendingType(diag, complainRepr);
@@ -1665,7 +1669,7 @@ public:
                           DowngradeToWarning downgradeToWarning,
                           ImportAccessLevel importLimit) {
         auto diagID = diag::class_super_not_usable_from_inline;
-        if (!CD->getASTContext().isSwiftVersionAtLeast(5))
+        if (!CD->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::class_super_not_usable_from_inline_warn;
         auto diag = CD->diagnose(diagID, superclassLocIter->getTypeRepr() !=
                                              complainRepr);
@@ -1689,7 +1693,7 @@ public:
                           DowngradeToWarning downgradeDiag,
                           ImportAccessLevel importLimit) {
         auto diagID = diag::protocol_usable_from_inline;
-        if (!proto->getASTContext().isSwiftVersionAtLeast(5))
+        if (!proto->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::protocol_usable_from_inline_warn;
         auto diag = proto->diagnose(diagID, PCEK_Refine);
         highlightOffendingType(diag, complainRepr);
@@ -1708,7 +1712,7 @@ public:
                                  DowngradeToWarning downgradeDiag,
                                  ImportAccessLevel importLimit) {
         auto diagID = diag::protocol_usable_from_inline;
-        if (!proto->getASTContext().isSwiftVersionAtLeast(5))
+        if (!proto->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::protocol_usable_from_inline_warn;
         auto diag = proto->diagnose(diagID, PCEK_Requirement);
         highlightOffendingType(diag, complainRepr);
@@ -1727,7 +1731,7 @@ public:
               DowngradeToWarning downgradeDiag,
               ImportAccessLevel importLimit) {
             auto diagID = diag::subscript_type_usable_from_inline;
-            if (!SD->getASTContext().isSwiftVersionAtLeast(5))
+            if (!SD->getASTContext().isCodiraVersionAtLeast(5))
               diagID = diag::subscript_type_usable_from_inline_warn;
             auto diag = SD->diagnose(diagID, /*problemIsElement=*/false);
             highlightOffendingType(diag, complainRepr);
@@ -1742,7 +1746,7 @@ public:
                         DowngradeToWarning downgradeDiag,
                         ImportAccessLevel importLimit) {
       auto diagID = diag::subscript_type_usable_from_inline;
-      if (!SD->getASTContext().isSwiftVersionAtLeast(5))
+      if (!SD->getASTContext().isCodiraVersionAtLeast(5))
         diagID = diag::subscript_type_usable_from_inline_warn;
       auto diag = SD->diagnose(diagID, /*problemIsElement=*/true);
       highlightOffendingType(diag, complainRepr);
@@ -1778,7 +1782,7 @@ public:
                   DowngradeToWarning downgradeDiag,
                   ImportAccessLevel importLimit) {
                 auto diagID = diag::function_type_usable_from_inline;
-                if (!fn->getASTContext().isSwiftVersionAtLeast(5))
+                if (!fn->getASTContext().isCodiraVersionAtLeast(5))
                   diagID = diag::function_type_usable_from_inline_warn;
                 auto diag = fn->diagnose(diagID, functionKind,
                                          /*problemIsResult=*/false,
@@ -1795,7 +1799,7 @@ public:
               DowngradeToWarning downgradeDiag,
               ImportAccessLevel importLimit) {
             auto diagID = diag::function_type_usable_from_inline;
-            if (!fn->getASTContext().isSwiftVersionAtLeast(5))
+            if (!fn->getASTContext().isCodiraVersionAtLeast(5))
               diagID = diag::function_type_usable_from_inline_warn;
             auto diag = fn->diagnose(diagID, functionKind,
                                      /*problemIsResult=*/false,
@@ -1813,7 +1817,7 @@ public:
                           DowngradeToWarning downgradeDiag,
                           ImportAccessLevel importLimit) {
         auto diagID = diag::function_type_usable_from_inline;
-        if (!fn->getASTContext().isSwiftVersionAtLeast(5))
+        if (!fn->getASTContext().isCodiraVersionAtLeast(5))
           diagID = diag::function_type_usable_from_inline_warn;
         auto diag = fn->diagnose(diagID, functionKind,
                                  /*problemIsResult=*/true,
@@ -1838,7 +1842,7 @@ public:
               DowngradeToWarning downgradeToWarning,
               ImportAccessLevel importLimit) {
             auto diagID = diag::enum_case_usable_from_inline;
-            if (!EED->getASTContext().isSwiftVersionAtLeast(5))
+            if (!EED->getASTContext().isCodiraVersionAtLeast(5))
               diagID = diag::enum_case_usable_from_inline_warn;
             auto diag = EED->diagnose(diagID);
             highlightOffendingType(diag, complainRepr);
@@ -1936,9 +1940,9 @@ bool isFragileClangNode(const ClangNode &node) {
 /// Returns the kind of origin, implementation-only import or SPI declaration,
 /// that restricts exporting \p decl from the given file and context.
 ///
-/// Local variant to swift::getDisallowedOriginKind for downgrade to warnings.
+/// Local variant to language::getDisallowedOriginKind for downgrade to warnings.
 DisallowedOriginKind
-swift::getDisallowedOriginKind(const Decl *decl,
+language::getDisallowedOriginKind(const Decl *decl,
                                const ExportContext &where,
                                DowngradeToWarning &downgradeToWarning) {
   downgradeToWarning = DowngradeToWarning::No;
@@ -1957,16 +1961,16 @@ swift::getDisallowedOriginKind(const Decl *decl,
     if (where.isSPI() && howImported == RestrictedImportKind::SPIOnly)
       return DisallowedOriginKind::None;
 
-    // Before Swift 6, implicit imports were not reported unless an
+    // Before Codira 6, implicit imports were not reported unless an
     // implementation-only import was also present. Downgrade to a warning
     // just in this case.
     if (howImported == RestrictedImportKind::MissingImport &&
-        !SF->getASTContext().isSwiftVersionAtLeast(6) &&
+        !SF->getASTContext().isCodiraVersionAtLeast(6) &&
         !SF->hasImportsWithFlag(ImportFlags::ImplementationOnly)) {
       downgradeToWarning = DowngradeToWarning::Yes;
     }
 
-    // Even if the current module is @_implementationOnly, Swift should
+    // Even if the current module is @_implementationOnly, Codira should
     // not report an error in the cases where the decl is also exported from
     // a non @_implementationOnly module. Thus, we check to see if there is
     // a visible access path to the Clang decl, and only error out in case
@@ -2012,7 +2016,7 @@ swift::getDisallowedOriginKind(const Decl *decl,
     case RestrictedImportKind::ImplementationOnly:
       return DisallowedOriginKind::ImplementationOnly;
     default:
-      llvm_unreachable("RestrictedImportKind isn't handled");
+      toolchain_unreachable("RestrictedImportKind isn't handled");
     }
   } else if ((decl->isSPI() || decl->isAvailableAsSPI()) && !where.isSPI()) {
     if (decl->isAvailableAsSPI() && !decl->isSPI()) {
@@ -2045,7 +2049,7 @@ swift::getDisallowedOriginKind(const Decl *decl,
            ->getAsDecl()
            ->getModuleContext()
            ->getUnderlyingModuleIfOverlay() &&
-      decl->hasClangNode() && !decl->getModuleContext()->isSwiftShimsModule() &&
+      decl->hasClangNode() && !decl->getModuleContext()->isCodiraShimsModule() &&
       isFragileClangNode(decl->getClangNode()) &&
       !SF->getASTContext().LangOpts.hasFeature(
           Feature::AssumeResilientCxxTypes))
@@ -2086,20 +2090,20 @@ class DeclAvailabilityChecker : public DeclVisitor<DeclAvailabilityChecker> {
   /// Identify the AsyncSequence.flatMap set of functions from the
   /// _Concurrency module.
   static bool isAsyncSequenceFlatMap(const GenericContext *gc) {
-    auto func = dyn_cast<FuncDecl>(gc);
-    if (!func)
+    auto fn = dyn_cast<FuncDecl>(gc);
+    if (!fn)
       return false;
 
-    auto proto = func->getDeclContext()->getSelfProtocolDecl();
+    auto proto = fn->getDeclContext()->getSelfProtocolDecl();
     if (!proto ||
         !proto->isSpecificProtocol(KnownProtocolKind::AsyncSequence))
       return false;
 
     ASTContext &ctx = proto->getASTContext();
-    if (func->getModuleContext()->getName() != ctx.Id_Concurrency)
+    if (fn->getModuleContext()->getName() != ctx.Id_Concurrency)
       return false;
 
-    return !func->getName().isSimpleName("flatMap");
+    return !fn->getName().isSimpleName("flatMap");
   }
 
   void checkGenericParams(const GenericContext *ownerCtx,
@@ -2167,12 +2171,13 @@ public:
 
 #define UNREACHABLE(KIND, REASON) \
   void visit##KIND##Decl(KIND##Decl *D) { \
-    llvm_unreachable(REASON); \
+    toolchain_unreachable(REASON); \
   }
   UNREACHABLE(Import, "not applicable")
   UNREACHABLE(TopLevelCode, "not applicable")
   UNREACHABLE(Module, "not applicable")
   UNREACHABLE(Missing, "not applicable")
+  UNREACHABLE(Using, "not applicable")
 
   UNREACHABLE(Param, "handled by the enclosing declaration")
   UNREACHABLE(GenericTypeParam, "handled by the enclosing declaration")
@@ -2197,7 +2202,7 @@ public:
 
   /// \see visitPatternBindingDecl
   void checkNamedPattern(const NamedPattern *NP,
-                         const llvm::DenseSet<const VarDecl *> &seenVars) {
+                         const toolchain::DenseSet<const VarDecl *> &seenVars) {
     const VarDecl *theVar = NP->getDecl();
 
     // Only check the type of individual variables if we didn't check an
@@ -2216,7 +2221,7 @@ public:
   /// \see visitPatternBindingDecl
   void checkTypedPattern(PatternBindingDecl *PBD,
                          const TypedPattern *TP,
-                         llvm::DenseSet<const VarDecl *> &seenVars) {
+                         toolchain::DenseSet<const VarDecl *> &seenVars) {
     // FIXME: We need to figure out if this is a stored or computed property,
     // so we pull out some random VarDecl in the pattern. They're all going to
     // be the same, but still, ick.
@@ -2245,7 +2250,7 @@ public:
   }
 
   void visitPatternBindingDecl(PatternBindingDecl *PBD) {
-    llvm::DenseSet<const VarDecl *> seenVars;
+    toolchain::DenseSet<const VarDecl *> seenVars;
     for (auto idx : range(PBD->getNumPatternEntries())) {
       PBD->getPattern(idx)->forEachNode([&](const Pattern *P) {
         if (auto *NP = dyn_cast<NamedPattern>(P)) {
@@ -2292,7 +2297,7 @@ public:
     DeclAvailabilityFlags flags =
         DeclAvailabilityFlag::AllowPotentiallyUnavailableProtocol;
 
-    // Allow the `AnyColorBox` class in SwiftUI to inherit from a less available
+    // Allow the `AnyColorBox` class in CodiraUI to inherit from a less available
     // super class as a one-off source compatibility exception. Availability
     // checking generally doesn't support a more available class deriving from
     // a less available base class in a library evolution enabled module, even
@@ -2300,8 +2305,8 @@ public:
     // declaration slipped in when the compiler wasn't able to diagnose it and
     // can't be changed.
     if (nominal->getName().is("AnyColorBox") &&
-        (nominal->getModuleContext()->getName().is("SwiftUI") ||
-         nominal->getModuleContext()->getName().is("SwiftUICore")))
+        (nominal->getModuleContext()->getName().is("CodiraUI") ||
+         nominal->getModuleContext()->getName().is("CodiraUICore")))
       flags |= DeclAvailabilityFlag::
           AllowPotentiallyUnavailableAtOrBelowDeploymentTarget;
 
@@ -2422,7 +2427,7 @@ public:
 
     // 2) If the extension contains exported members, the as-written
     // extended type should be exportable.
-    bool hasExportedMembers = llvm::any_of(ED->getMembers(),
+    bool hasExportedMembers = toolchain::any_of(ED->getMembers(),
                                            [](const Decl *member) -> bool {
       auto *valueMember = dyn_cast<ValueDecl>(member);
       if (!valueMember)
@@ -2498,12 +2503,12 @@ public:
   }
 
   void visitPrecedenceGroupDecl(PrecedenceGroupDecl *PGD) {
-    llvm::for_each(PGD->getLowerThan(),
+    toolchain::for_each(PGD->getLowerThan(),
                    [&](const PrecedenceGroupDecl::Relation &relation) {
       checkPrecedenceGroup(relation.Group, PGD, PGD->getLowerThanLoc(),
                            relation.NameLoc);
     });
-    llvm::for_each(PGD->getHigherThan(),
+    toolchain::for_each(PGD->getHigherThan(),
                    [&](const PrecedenceGroupDecl::Relation &relation) {
       checkPrecedenceGroup(relation.Group, PGD, PGD->getHigherThanLoc(),
                            relation.NameLoc);
@@ -2525,7 +2530,7 @@ static void checkExtensionGenericParamAccess(const ExtensionDecl *ED) {
     assert((ED->isInvalid() ||
             ED->getDeclContext()->isModuleScopeContext()) &&
            "non-top-level extensions make 'private' != 'fileprivate'");
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case AccessLevel::FilePrivate: {
     const DeclContext *DC = ED->getModuleScopeContext();
     bool isPrivate = (userSpecifiedAccess == AccessLevel::Private);
@@ -2548,13 +2553,13 @@ static void checkExtensionGenericParamAccess(const ExtensionDecl *ED) {
       ED, ED, desiredAccessScope, userSpecifiedAccess);
 }
 
-DisallowedOriginKind swift::getDisallowedOriginKind(const Decl *decl,
+DisallowedOriginKind language::getDisallowedOriginKind(const Decl *decl,
                                                     const ExportContext &where) {
   auto downgradeToWarning = DowngradeToWarning::No;
   return getDisallowedOriginKind(decl, where, downgradeToWarning);
 }
 
-void swift::recordRequiredImportAccessLevelForDecl(
+void language::recordRequiredImportAccessLevelForDecl(
     const Decl *decl, const DeclContext *dc, AccessLevel accessLevel,
     RequiredImportAccessLevelCallback remark) {
   auto sf = dc->getParentSourceFile();
@@ -2583,7 +2588,7 @@ void swift::recordRequiredImportAccessLevelForDecl(
   }
 }
 
-void swift::diagnoseUnnecessaryPublicImports(SourceFile &SF) {
+void language::diagnoseUnnecessaryPublicImports(SourceFile &SF) {
   ASTContext &ctx = SF.getASTContext();
   if (ctx.TypeCheckerOpts.SkipFunctionBodies != FunctionBodySkipping::None)
     return;
@@ -2635,7 +2640,7 @@ void registerPackageAccessForPackageExtendedType(ExtensionDecl *ED) {
   if (!extendedType)
     return;
 
-  bool hasPackageMembers = llvm::any_of(ED->getMembers(),
+  bool hasPackageMembers = toolchain::any_of(ED->getMembers(),
                                         [](const Decl *member) -> bool {
     auto *VD = dyn_cast<ValueDecl>(member);
     if (!VD)
@@ -2664,7 +2669,7 @@ void registerPackageAccessForPackageExtendedType(ExtensionDecl *ED) {
       });
 }
 
-void swift::checkAccessControl(Decl *D) {
+void language::checkAccessControl(Decl *D) {
   if (isa<ValueDecl>(D) || isa<PatternBindingDecl>(D)) {
     bool allowInlineable =
         D->getDeclContext()->isInSpecializeExtensionContext();

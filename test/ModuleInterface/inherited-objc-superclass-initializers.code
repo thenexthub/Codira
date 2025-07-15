@@ -1,0 +1,21 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -I %S/Inputs/inherited-objc-initializers/ -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -I %S/Inputs/inherited-objc-initializers/ -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+
+// REQUIRES: objc_interop
+
+import InheritedObjCInits
+
+// CHECK: @objc @_inheritsConvenienceInitializers public class Subclass2 : InheritedObjCInits.HasAvailableInit {
+public class Subclass2: HasAvailableInit {
+  // CHECK-NEXT: @objc override dynamic public init(unavailable: InheritedObjCInits.UnavailableInCodira)
+  // CHECK-NEXT: @objc override dynamic public init()
+  // CHECK-NEXT: @objc deinit
+} // CHECK-NEXT:{{^}$}}
+
+// CHECK: @objc @_inheritsConvenienceInitializers public class Subclass1 : InheritedObjCInits.HasUnavailableInit {
+public class Subclass1: HasUnavailableInit {
+  // CHECK-NOT: InheritedObjCInits.UnavailableInCodira
+  // CHECK-NEXT: @objc override dynamic public init()
+  // CHECK-NEXT: @objc deinit
+} // CHECK-NEXT:{{^}$}}

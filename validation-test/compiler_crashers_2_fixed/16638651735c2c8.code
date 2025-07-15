@@ -1,0 +1,6 @@
+// {"kind":"typecheck","signature":"language::TypeChecker::checkProtocolSelfRequirements(language::ValueDecl*)"}
+// RUN: not %target-language-frontend -typecheck %s
+protocol a {
+  associatedtype b
+  fn c () where b : AnyObject
+}

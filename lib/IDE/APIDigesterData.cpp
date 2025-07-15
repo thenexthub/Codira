@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/MemoryBuffer.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/JSONSerialization.h"
 #include "language/IDE/APIDigesterData.h"
@@ -27,20 +28,20 @@ using namespace language;
 using namespace ide;
 using namespace api;
 
-raw_ostream &swift::ide::api::
+raw_ostream &language::ide::api::
 operator<<(raw_ostream &Out, const SDKNodeKind Value) {
   switch (Value) {
 #define NODE_KIND(Name, Value) case SDKNodeKind::Name: return Out << #Value;
 #include "language/IDE/DigesterEnums.def"
   }
-  llvm_unreachable("Undefined SDK node kind.");
+  toolchain_unreachable("Undefined SDK node kind.");
 }
 
-raw_ostream &swift::ide::api::
+raw_ostream &language::ide::api::
 operator<<(raw_ostream &Out, const NodeAnnotation Value) {
 #define NODE_ANNOTATION(X) if (Value == NodeAnnotation::X) { return Out << #X; }
 #include "language/IDE/DigesterEnums.def"
-  llvm_unreachable("Undefined SDK node kind.");
+  toolchain_unreachable("Undefined SDK node kind.");
 }
 
 static StringRef getDeclKindStrRaw(const DeclKind Value)  {
@@ -48,10 +49,10 @@ static StringRef getDeclKindStrRaw(const DeclKind Value)  {
 #define DECL(X, PARENT) case DeclKind::X: return #X;
 #include "language/AST/DeclNodes.def"
   } 
-  llvm_unreachable("Unhandled DeclKind in switch.");
+  toolchain_unreachable("Unhandled DeclKind in switch.");
 }
 
-StringRef swift::ide::api::getDeclKindStr(const DeclKind Value, bool lower) {
+StringRef language::ide::api::getDeclKindStr(const DeclKind Value, bool lower) {
   if (lower) {
     switch (Value) {
 #define DECL(X, PARENT) case DeclKind::X: {                                   \
@@ -60,39 +61,39 @@ StringRef swift::ide::api::getDeclKindStr(const DeclKind Value, bool lower) {
     }
 #include "language/AST/DeclNodes.def"
     }
-    llvm_unreachable("Unhandled DeclKind in switch.");
+    toolchain_unreachable("Unhandled DeclKind in switch.");
   } else {
     return getDeclKindStrRaw(Value);
   }
 }
 
-raw_ostream &swift::ide::api::operator<<(raw_ostream &Out, const DeclKind Value) {
+raw_ostream &language::ide::api::operator<<(raw_ostream &Out, const DeclKind Value) {
   return Out << getDeclKindStrRaw(Value);
 }
 
 std::optional<SDKNodeKind>
-swift::ide::api::parseSDKNodeKind(StringRef Content) {
-  return llvm::StringSwitch<std::optional<SDKNodeKind>>(Content)
+language::ide::api::parseSDKNodeKind(StringRef Content) {
+  return toolchain::StringSwitch<std::optional<SDKNodeKind>>(Content)
 #define NODE_KIND(NAME, VALUE) .Case(#VALUE, SDKNodeKind::NAME)
 #include "language/IDE/DigesterEnums.def"
       .Default(std::nullopt);
 }
 
-NodeAnnotation swift::ide::api::parseSDKNodeAnnotation(StringRef Content) {
-  return llvm::StringSwitch<NodeAnnotation>(Content)
+NodeAnnotation language::ide::api::parseSDKNodeAnnotation(StringRef Content) {
+  return toolchain::StringSwitch<NodeAnnotation>(Content)
 #define NODE_ANNOTATION_CHANGE_KIND(NAME) .Case(#NAME, NodeAnnotation::NAME)
 #include "language/IDE/DigesterEnums.def"
   ;
 }
 
-SpecialCaseId swift::ide::api::parseSpecialCaseId(StringRef Content) {
-  return llvm::StringSwitch<SpecialCaseId>(Content)
+SpecialCaseId language::ide::api::parseSpecialCaseId(StringRef Content) {
+  return toolchain::StringSwitch<SpecialCaseId>(Content)
 #define SPECIAL_CASE_ID(NAME) .Case(#NAME, SpecialCaseId::NAME)
 #include "language/IDE/DigesterEnums.def"
   ;
 }
 
-swift::ide::api::CommonDiffItem::
+language::ide::api::CommonDiffItem::
 CommonDiffItem(SDKNodeKind NodeKind, NodeAnnotation DiffKind,
                StringRef ChildIndex, StringRef LeftUsr, StringRef RightUsr,
                StringRef LeftComment, StringRef RightComment,
@@ -101,17 +102,17 @@ CommonDiffItem(SDKNodeKind NodeKind, NodeAnnotation DiffKind,
                  RightUsr(RightUsr), LeftComment(LeftComment),
                  RightComment(RightComment), ModuleName(ModuleName) {
   assert(!ChildIndex.empty() && "Child index is empty.");
-  llvm::SmallVector<StringRef, 4> Pieces;
+  toolchain::SmallVector<StringRef, 4> Pieces;
   ChildIndex.split(Pieces, ":");
-  llvm::transform(Pieces, std::back_inserter(ChildIndexPieces),
+  toolchain::transform(Pieces, std::back_inserter(ChildIndexPieces),
                   [](StringRef Piece) { return std::stoi(Piece.str()); });
 }
 
-StringRef swift::ide::api::CommonDiffItem::head() {
+StringRef language::ide::api::CommonDiffItem::head() {
   return "SDK_CHANGE";
 }
 
-bool swift::ide::api::CommonDiffItem::operator<(CommonDiffItem Other) const {
+bool language::ide::api::CommonDiffItem::operator<(CommonDiffItem Other) const {
   if (auto UsrCompare = LeftUsr.compare(Other.LeftUsr))
       return UsrCompare < 0;
   if (NodeKind != Other.NodeKind)
@@ -123,7 +124,7 @@ bool swift::ide::api::CommonDiffItem::operator<(CommonDiffItem Other) const {
   return false;
 }
 
-void swift::ide::api::CommonDiffItem::describe(llvm::raw_ostream &os) {
+void language::ide::api::CommonDiffItem::describe(toolchain::raw_ostream &os) {
   os << "#ifndef " << head() << "\n";
   os << "#define " << head() << "(NODE_KIND, DIFF_KIND, CHILD_INDEX, LEFT_USR, "
                                 "RIGHT_USR, LEFT_COMMENT, RIGHT_COMMENT, "
@@ -131,23 +132,23 @@ void swift::ide::api::CommonDiffItem::describe(llvm::raw_ostream &os) {
   os << "#endif\n";
 }
 
-void swift::ide::api::CommonDiffItem::undef(llvm::raw_ostream &os) {
+void language::ide::api::CommonDiffItem::undef(toolchain::raw_ostream &os) {
   os << "#undef " << head() << "\n";
 }
 
-void swift::ide::api::CommonDiffItem::streamDef(llvm::raw_ostream &S) const {
+void language::ide::api::CommonDiffItem::streamDef(toolchain::raw_ostream &S) const {
   S << head() << "(" << NodeKind << ", " << DiffKind << ", \"" << ChildIndex
     << "\", \"" << LeftUsr << "\", \"" << RightUsr << "\", \""
     << LeftComment << "\", \"" << RightComment
     << "\", \"" << ModuleName << "\")";
 }
 
-StringRef swift::ide::api::TypeMemberDiffItem::head() {
+StringRef language::ide::api::TypeMemberDiffItem::head() {
   return "SDK_CHANGE_TYPE_MEMBER";
 }
 
 TypeMemberDiffItemSubKind
-swift::ide::api::TypeMemberDiffItem::getSubKind() const {
+language::ide::api::TypeMemberDiffItem::getSubKind() const {
   DeclNameViewer OldName = getOldName();
   DeclNameViewer NewName = getNewName();
   if (!OldName.isFunction()) {
@@ -162,7 +163,7 @@ swift::ide::api::TypeMemberDiffItem::getSubKind() const {
   if (selfIndex) {
     if (removedIndex) {
       if (ToProperty)
-        llvm_unreachable("unknown situation");
+        toolchain_unreachable("unknown situation");
       else {
         assert(NewName.argSize() + 2 == OldName.argSize());
         return TypeMemberDiffItemSubKind::HoistSelfAndRemoveParam;
@@ -191,18 +192,18 @@ swift::ide::api::TypeMemberDiffItem::getSubKind() const {
   }
 }
 
-void swift::ide::api::TypeMemberDiffItem::describe(llvm::raw_ostream &os) {
+void language::ide::api::TypeMemberDiffItem::describe(toolchain::raw_ostream &os) {
   os << "#ifndef " << head() << "\n";
   os << "#define " << head() << "(USR, NEW_TYPE_NAME, NEW_PRINTED_NAME, "
                                 "SELF_INDEX, OLD_PRINTED_NAME)\n";
   os << "#endif\n";
 }
 
-void swift::ide::api::TypeMemberDiffItem::undef(llvm::raw_ostream &os) {
+void language::ide::api::TypeMemberDiffItem::undef(toolchain::raw_ostream &os) {
   os << "#undef " << head() << "\n";
 }
 
-void swift::ide::api::TypeMemberDiffItem::streamDef(llvm::raw_ostream &os) const {
+void language::ide::api::TypeMemberDiffItem::streamDef(toolchain::raw_ostream &os) const {
   std::string IndexContent = selfIndex.has_value() ?
     std::to_string(selfIndex.value()) : "";
   os << head() << "("
@@ -214,64 +215,64 @@ void swift::ide::api::TypeMemberDiffItem::streamDef(llvm::raw_ostream &os) const
      << ")";
 }
 
-bool swift::ide::api::TypeMemberDiffItem::
+bool language::ide::api::TypeMemberDiffItem::
 operator<(TypeMemberDiffItem Other) const {
   return usr.compare(Other.usr) < 0;
 }
 
-StringRef swift::ide::api::NoEscapeFuncParam::head() {
+StringRef language::ide::api::NoEscapeFuncParam::head() {
   return "NOESCAPE_FUNC_PARAM";
 }
 
-void swift::ide::api::NoEscapeFuncParam::describe(llvm::raw_ostream &os) {
+void language::ide::api::NoEscapeFuncParam::describe(toolchain::raw_ostream &os) {
   os << "#ifndef " << head() << "\n";
   os << "#define " << head() << "(USR, Index)\n";
   os << "#endif\n";
 }
 
-void swift::ide::api::NoEscapeFuncParam::undef(llvm::raw_ostream &os) {
+void language::ide::api::NoEscapeFuncParam::undef(toolchain::raw_ostream &os) {
   os << "#undef " << head() << "\n";
 }
 
-void swift::ide::api::NoEscapeFuncParam::
-streamDef(llvm::raw_ostream &os) const {
+void language::ide::api::NoEscapeFuncParam::
+streamDef(toolchain::raw_ostream &os) const {
   os << head() << "(" << "\"" << Usr << "\"" << ", "
      << "\"" << Index << "\"" << ")";
 }
 
-bool swift::ide::api::NoEscapeFuncParam::
+bool language::ide::api::NoEscapeFuncParam::
 operator<(NoEscapeFuncParam Other) const {
   if (Usr != Other.Usr)
     return Usr.compare(Other.Usr) < 0;
   return Index < Other.Index;
 }
 
-StringRef swift::ide::api::OverloadedFuncInfo::head() {
+StringRef language::ide::api::OverloadedFuncInfo::head() {
   return "OVERLOAD_FUNC_TRAILING_CLOSURE";
 }
 
-void swift::ide::api::OverloadedFuncInfo::describe(llvm::raw_ostream &os) {
+void language::ide::api::OverloadedFuncInfo::describe(toolchain::raw_ostream &os) {
   os << "#ifndef " << head() << "\n";
   os << "#define " << head() << "(USR)\n";
   os << "#endif\n";
 }
 
-void swift::ide::api::OverloadedFuncInfo::undef(llvm::raw_ostream &os) {
+void language::ide::api::OverloadedFuncInfo::undef(toolchain::raw_ostream &os) {
   os << "#undef " << head() << "\n";
 }
 
-void swift::ide::api::OverloadedFuncInfo::
-streamDef(llvm::raw_ostream &os) const {
+void language::ide::api::OverloadedFuncInfo::
+streamDef(toolchain::raw_ostream &os) const {
   os << head() << "(" << "\"" << Usr << "\"" << ")";
 }
 
-bool swift::ide::api::OverloadedFuncInfo::
+bool language::ide::api::OverloadedFuncInfo::
 operator<(OverloadedFuncInfo Other) const {
   return Usr.compare(Other.Usr) < 0;
 }
 
 #define DIFF_ITEM_KIND(NAME)                                                   \
-bool swift::ide::api::NAME::classof(const APIDiffItem *D) {                    \
+bool language::ide::api::NAME::classof(const APIDiffItem *D) {                    \
   return D->getKind() == APIDiffItemKind::ADK_##NAME;                          \
 }
 #include "language/IDE/DigesterEnums.def"
@@ -299,7 +300,7 @@ bool APIDiffItem::operator==(const APIDiffItem &Other) const {
   case APIDiffItemKind::ADK_SpecialCaseDiffItem:
     return true;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 namespace {
@@ -313,35 +314,35 @@ static const char* getKeyContent(DiffItemKeyKind KK) {
 #define DIFF_ITEM_KEY_KIND(NAME) case DiffItemKeyKind::KK_##NAME: return #NAME;
 #include "language/IDE/DigesterEnums.def"
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 static DiffItemKeyKind parseKeyKind(StringRef Content) {
-  return llvm::StringSwitch<DiffItemKeyKind>(Content)
+  return toolchain::StringSwitch<DiffItemKeyKind>(Content)
 #define DIFF_ITEM_KEY_KIND(NAME) .Case(#NAME, DiffItemKeyKind::KK_##NAME)
 #include "language/IDE/DigesterEnums.def"
   ;
 }
 
 static APIDiffItemKind parseDiffItemKind(StringRef Content) {
-  return llvm::StringSwitch<APIDiffItemKind>(Content)
+  return toolchain::StringSwitch<APIDiffItemKind>(Content)
 #define DIFF_ITEM_KIND(NAME) .Case(#NAME, APIDiffItemKind::ADK_##NAME)
 #include "language/IDE/DigesterEnums.def"
   ;
 }
 
-static StringRef getScalarString(llvm::yaml::Node *N) {
-  auto WithQuote = cast<llvm::yaml::ScalarNode>(N)->getRawValue();
+static StringRef getScalarString(toolchain::yaml::Node *N) {
+  auto WithQuote = cast<toolchain::yaml::ScalarNode>(N)->getRawValue();
   return WithQuote.substr(1, WithQuote.size() - 2);
 }
 
-static int getScalarInt(llvm::yaml::Node *N) {
-  return std::stoi(cast<llvm::yaml::ScalarNode>(N)->getRawValue().str());
+static int getScalarInt(toolchain::yaml::Node *N) {
+  return std::stoi(cast<toolchain::yaml::ScalarNode>(N)->getRawValue().str());
 }
 
 static APIDiffItem*
-serializeDiffItem(llvm::BumpPtrAllocator &Alloc,
-                  llvm::yaml::MappingNode* Node) {
+serializeDiffItem(toolchain::BumpPtrAllocator &Alloc,
+                  toolchain::yaml::MappingNode* Node) {
 #define DIFF_ITEM_KEY_KIND_STRING(NAME) StringRef NAME;
 #define DIFF_ITEM_KEY_KIND_INT(NAME) std::optional<int> NAME;
 #include "language/IDE/DigesterEnums.def"
@@ -386,7 +387,7 @@ serializeDiffItem(llvm::BumpPtrAllocator &Alloc,
       SpecialCaseDiffItem(Usr, SpecialCaseId);
   }
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 } // end anonymous namespace
 
@@ -467,7 +468,7 @@ struct ObjectTraits<APIDiffItem*> {
       return;
     }
     case APIDiffItemKind::ADK_SpecialCaseDiffItem:
-      llvm_unreachable("This entry should be authored only.");
+      toolchain_unreachable("This entry should be authored only.");
     }
   }
 };
@@ -503,23 +504,23 @@ struct ArrayTraits<ArrayRef<NameCorrectionInfo>> {
 } // namespace json
 } // namespace language
 
-void swift::ide::api::APIDiffItemStore::
-serialize(llvm::raw_ostream &os, ArrayRef<APIDiffItem*> Items) {
+void language::ide::api::APIDiffItemStore::
+serialize(toolchain::raw_ostream &os, ArrayRef<APIDiffItem*> Items) {
   json::Output yout(os);
   yout << Items;
 }
 
-void swift::ide::api::APIDiffItemStore::
-serialize(llvm::raw_ostream &os, ArrayRef<NameCorrectionInfo> Items) {
+void language::ide::api::APIDiffItemStore::
+serialize(toolchain::raw_ostream &os, ArrayRef<NameCorrectionInfo> Items) {
   json::Output yout(os);
   yout << Items;
 }
 
-struct swift::ide::api::APIDiffItemStore::Implementation {
+struct language::ide::api::APIDiffItemStore::Implementation {
 private:
   DiagnosticEngine &Diags;
-  llvm::SmallVector<std::unique_ptr<llvm::MemoryBuffer>, 2> AllBuffer;
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::SmallVector<std::unique_ptr<toolchain::MemoryBuffer>, 2> AllBuffer;
+  toolchain::BumpPtrAllocator Allocator;
 
   static bool shouldInclude(APIDiffItem *Item) {
     if (auto *CI = dyn_cast<CommonDiffItem>(Item)) {
@@ -538,14 +539,14 @@ private:
 
 public:
   Implementation(DiagnosticEngine &Diags): Diags(Diags) {}
-  llvm::StringMap<std::vector<APIDiffItem*>> Data;
+  toolchain::StringMap<std::vector<APIDiffItem*>> Data;
   bool PrintUsr;
   std::vector<APIDiffItem*> AllItems;
-  llvm::StringSet<> PrintedUsrs;
+  toolchain::StringSet<> PrintedUsrs;
   void addStorePath(StringRef FileName) {
-    llvm::MemoryBuffer *pMemBuffer = nullptr;
+    toolchain::MemoryBuffer *pMemBuffer = nullptr;
     {
-      auto FileBufOrErr = llvm::MemoryBuffer::getFileOrSTDIN(FileName);
+      auto FileBufOrErr = toolchain::MemoryBuffer::getFileOrSTDIN(FileName);
       if (!FileBufOrErr) {
         Diags.diagnose(SourceLoc(), diag::cannot_find_migration_script,
           FileName);
@@ -556,13 +557,13 @@ public:
     }
     assert(pMemBuffer);
     StringRef Buffer = pMemBuffer->getBuffer();
-    llvm::SourceMgr SM;
-    llvm::yaml::Stream Stream(Buffer, SM);
+    toolchain::SourceMgr SM;
+    toolchain::yaml::Stream Stream(Buffer, SM);
     for (auto DI = Stream.begin(); DI != Stream.end(); ++ DI) {
-      auto Array = cast<llvm::yaml::SequenceNode>(DI->getRoot());
+      auto Array = cast<toolchain::yaml::SequenceNode>(DI->getRoot());
       for (auto It = Array->begin(); It != Array->end(); ++ It) {
         APIDiffItem *Item = serializeDiffItem(Allocator,
-          cast<llvm::yaml::MappingNode>(&*It));
+          cast<toolchain::yaml::MappingNode>(&*It));
         auto &Bag = Data[Item->getKey()];
         if (shouldInclude(Item) && std::find_if(Bag.begin(), Bag.end(),
             [&](APIDiffItem* I) { return *Item == *I; }) == Bag.end()) {
@@ -574,27 +575,27 @@ public:
   }
 };
 
-ArrayRef<APIDiffItem*> swift::ide::api::APIDiffItemStore::
+ArrayRef<APIDiffItem*> language::ide::api::APIDiffItemStore::
 getDiffItems(StringRef Key) const {
   if (Impl.PrintUsr && !Impl.PrintedUsrs.count(Key)) {
-    llvm::outs() << Key << "\n";
+    toolchain::outs() << Key << "\n";
     Impl.PrintedUsrs.insert(Key);
   }
   return Impl.Data[Key];
 }
 
-ArrayRef<APIDiffItem*> swift::ide::api::APIDiffItemStore::
+ArrayRef<APIDiffItem*> language::ide::api::APIDiffItemStore::
 getAllDiffItems() const { return Impl.AllItems; }
 
-swift::ide::api::APIDiffItemStore::APIDiffItemStore(DiagnosticEngine &Diags) :
+language::ide::api::APIDiffItemStore::APIDiffItemStore(DiagnosticEngine &Diags) :
   Impl(*new Implementation(Diags)) {}
 
-swift::ide::api::APIDiffItemStore::~APIDiffItemStore() { delete &Impl; }
+language::ide::api::APIDiffItemStore::~APIDiffItemStore() { delete &Impl; }
 
-void swift::ide::api::APIDiffItemStore::addStorePath(StringRef Path) {
+void language::ide::api::APIDiffItemStore::addStorePath(StringRef Path) {
   Impl.addStorePath(Path);
 }
 
-void swift::ide::api::APIDiffItemStore::printIncomingUsr(bool print) {
+void language::ide::api::APIDiffItemStore::printIncomingUsr(bool print) {
   Impl.PrintUsr = print;
 }

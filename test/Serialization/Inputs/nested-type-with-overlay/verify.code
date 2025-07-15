@@ -1,0 +1,12 @@
+import main
+import HasOverlay
+
+fn test() {
+  var a = getShadowedFromClang()
+  a = main.shadowedFromClang // okay
+  a = HasOverlay.shadowedFromCodira // expected-error {{cannot assign}}
+
+  var b = HasOverlay.shadowedFromCodira
+  b = main.shadowedFromCodira // okay
+  b = getShadowedFromClang() // expected-error {{cannot assign}}
+}

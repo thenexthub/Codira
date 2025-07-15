@@ -1,0 +1,58 @@
+// RUN: %target-typecheck-verify-language
+
+do {
+  enum E: String, CaseIterable {
+    static var allCases: [E] {
+      [.one, .two]
+    }
+
+    case one
+    case two
+
+    fn test(id: String) {
+      for c in Self.allCases where id == "\(c)" { // Ok
+      }
+    }
+  }
+}
+
+do {
+  struct Data {
+    var text: String
+
+    static fn fn(_: (inout Data) -> Void) {}
+    static fn fn(_: (inout Int) -> Void) {}
+  }
+
+  fn test<T>(_: @autoclosure () -> T) {
+  }
+
+  test((1...3).map { number in Data.fn { $0.text = "\(number)" } })
+
+  fn test_multi<T>(_: () -> T) {
+  }
+
+  test_multi {
+    immutable x = 1...3
+    _ = x.map { number in
+      Data.fn {
+        if $0.text == "\(number)" {
+          $0.text = "\(x)"
+        }
+      }
+    }
+  }
+}
+
+// This case is (currently) interesting because "\(query)" is type-checked
+// separately as part of ~= operator application.
+fn test_interpolation_in_case(query: String) {
+  _ = { (request: String) in
+    switch request {
+    case "\(query)": // Ok
+      break
+    default:
+      break
+    }
+  }
+}

@@ -150,9 +150,9 @@ Marks the end of the string
 The next `count` bytes are included in the string verbatim.
 Additionally, all path prefixes of this string data will be added to
 the current prefix table.  For instance, if the string data is
-`/swift/linux/x86_64/libfoo.so`, then the prefix `/swift` will be
-assigned the next available code, `/swift/linux` the code after that,
-and `/swift/linux/x86_64` the code following that one.
+`/language/linux/x86_64/libfoo.so`, then the prefix `/language` will be
+assigned the next available code, `/language/linux` the code after that,
+and `/language/linux/x86_64` the code following that one.
 
 #### `framewk`
 
@@ -203,7 +203,7 @@ Let's say we wish to encode the following strings:
     /System/Library/Frameworks/Photos.framework/Versions/A/Photos
     /usr/lib/libobjc.A.dylib
     /usr/lib/libz.1.dylib
-    /usr/lib/swift/libswiftCore.dylib
+    /usr/lib/language/liblanguageCore.dylib
     /usr/lib/libSystem.B.dylib
     /usr/lib/libc++.1.dylib
 
@@ -219,9 +219,9 @@ Next we have
 
     <81> <10> /libobjc.A.dylib <00>
     <81> <0d> /libz.1.dylib <00>
-    <81> <19> /swift/libswiftCore.dylib <00>
+    <81> <19> /language/liblanguageCore.dylib <00>
 
-assigning code 32 to `/swift`, then
+assigning code 32 to `/language`, then
 
     <81> <12> /libSystem.B.dylib <00>
     <81> <0f> /libc++.1.dylib <00>

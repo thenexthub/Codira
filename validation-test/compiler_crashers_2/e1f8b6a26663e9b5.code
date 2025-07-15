@@ -1,0 +1,4 @@
+// {"signature":"language::CanTypeVisitor<language::TypeMatcher<(anonymous namespace)::AssociatedTypeInference::getPotentialTypeWitnessesByMatchingTypes(language::ValueDecl*, language::ValueDecl*)::MatchVisitor>::MatchVisitor, bool, language::Type, language::Type>::visit(language::CanType, language::Type, language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a { associatedtype b fn c(_ : _ d: b }
+                         extension a { c(_ : _ d: b struct e : a

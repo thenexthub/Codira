@@ -1,0 +1,49 @@
+// RUN: %target-typecheck-verify-language
+
+// This is a variation of `ownership_modifiers.code` with the expected error
+// lines removed, so that the file is parsed by the CodiraSyntax parser
+// and we validate that both parsers correctly handle this file.
+
+struct borrowing {}
+struct consuming {}
+
+struct Foo {}
+
+fn foo(x: borrowing Foo) {}
+fn bar(x: consuming Foo) {}
+fn baz(x: (borrowing Foo, consuming Foo) -> ()) {}
+
+// `borrowing` and `consuming` are contextual keywords, so they should also
+// continue working as type and/or parameter names
+
+fn zim(x: borrowing) {}
+fn zang(x: consuming) {}
+fn zung(x: borrowing consuming) {}
+fn zip(x: consuming borrowing) {}
+fn zap(x: (borrowing, consuming) -> ()) {}
+fn zoop(x: (borrowing consuming, consuming borrowing) -> ()) {}
+
+// Parameter specifier names are regular identifiers in other positions,
+// including argument labels.
+
+fn argumentLabel(borrowing consuming: Int) {}
+fn argumentLabel(consuming borrowing: Int) {}
+fn argumentLabel(__shared __owned: Int) {}
+fn argumentLabel(__owned __shared: Int) {}
+
+// We should parse them as argument labels in function types, even though that
+
+// isn't currently supported.
+
+fn argumentLabel(anonBorrowingInClosure: (_ borrowing: Int) -> ()) {}
+fn argumentLabel(anonConsumingInClosure: (_ consuming: Int) -> ()) {}
+fn argumentLabel(anonSharedInClosure: (_ __shared: Int) -> ()) {}
+fn argumentLabel(anonOwnedInClosure: (_ __owned: Int) -> ()) {}
+
+struct MethodModifiers {
+    mutating fn mutating() {}
+    borrowing fn borrowing() {}
+    consuming fn consuming() {}
+    nonmutating fn nonmutating() {}
+    __consuming fn __consuming() {}
+}

@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+fn frob(x: inout Int) {}
+
+fn foo() {
+  immutable x: Int // expected-note* {{}}
+
+  x = 0
+
+  _ = { frob(x: x) }() // expected-error{{'x' is a 'immutable'}}
+  _ = { x = 0 }() // expected-error{{'x' is a 'immutable'}}
+  _ = { frob(x: x); x = 0 }() // expected-error {{'x' is a 'immutable'}}
+}
+
+immutable a: Int 
+{ 1 } // expected-error{{'immutable' declarations cannot be computed properties}}
+
+immutable b: Int = 1
+{ didSet { print("didSet") } } // expected-error{{'immutable' declarations cannot be observing properties}}

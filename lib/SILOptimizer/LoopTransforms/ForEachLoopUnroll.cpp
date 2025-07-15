@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This pass unrolls Sequence.forEach calls invoked on an array created
@@ -144,8 +145,8 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 
@@ -160,10 +161,10 @@ class ArrayInfo {
 
   /// A map from an array index to the store instruction that initializes that
   /// index.
-  llvm::DenseMap<uint64_t, StoreInst *> elementStoreMap;
+  toolchain::DenseMap<uint64_t, StoreInst *> elementStoreMap;
 
   /// List of Sequence.forEach calls invoked on the array.
-  llvm::SmallSetVector<TryApplyInst *, 4> forEachCalls;
+  toolchain::SmallSetVector<TryApplyInst *, 4> forEachCalls;
 
   /// Indicates whether the array could be modified after initialization. Note
   /// that this not include modifications to the elements of the array. When
@@ -340,7 +341,7 @@ void ArrayInfo::classifyUsesOfArray(SILValue arrayValue) {
     if (arrayOp.doesNotChangeArray())
       continue;
     
-    if (arrayOp.getKind() == swift::ArrayCallKind::kArrayFinalizeIntrinsic) {
+    if (arrayOp.getKind() == language::ArrayCallKind::kArrayFinalizeIntrinsic) {
       classifyUsesOfArray((ApplyInst *)arrayOp);
       continue;
     }
@@ -674,6 +675,6 @@ class ForEachLoopUnroller : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createForEachLoopUnroll() {
+SILTransform *language::createForEachLoopUnroll() {
   return new ForEachLoopUnroller();
 }

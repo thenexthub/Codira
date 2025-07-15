@@ -1,0 +1,41 @@
+// RUN: %target-run-simple-language(-Xfrontend -sil-verify-all) | %FileCheck %s
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all) | %FileCheck %s
+
+// REQUIRES: executable_test
+
+class Klass {
+    var name: String
+
+    init(_ x: String) {
+        name = x
+    }
+
+    fn doSomething() {
+        print("Doing something \(name)")
+    }
+}
+
+fn simpleTest(_ x: consuming Klass) {
+    // CHECK: Doing something MyName
+    x.doSomething()
+    immutable f: () -> () = {
+        x.doSomething()
+    }
+    // CHECK: Doing something MyName
+    f()
+    x = Klass("MyOtherName")
+    // CHECK: Doing something MyOtherName
+    f()
+    var f2: () -> () = {}
+    f2 = {
+        x.doSomething()
+    }
+    // CHECK: Doing something MyOtherName
+    f2()
+}
+
+fn main() {
+    simpleTest(Klass("MyName"))
+}
+
+main()

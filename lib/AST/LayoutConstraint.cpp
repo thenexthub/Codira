@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements APIs for layout constraints.
@@ -91,11 +92,11 @@ StringRef LayoutConstraintInfo::getName(LayoutConstraintKind Kind, bool internal
     return "_TrivialStride";
   }
 
-  llvm_unreachable("Unhandled LayoutConstraintKind in switch.");
+  toolchain_unreachable("Unhandled LayoutConstraintKind in switch.");
 }
 
 /// Uniquing for the LayoutConstraintInfo.
-void LayoutConstraintInfo::Profile(llvm::FoldingSetNodeID &ID,
+void LayoutConstraintInfo::Profile(toolchain::FoldingSetNodeID &ID,
                                    LayoutConstraintKind Kind,
                                    unsigned SizeInBits,
                                    unsigned Alignment) {
@@ -369,9 +370,9 @@ LayoutConstraint::getLayoutConstraint(LayoutConstraintKind Kind) {
   case LayoutConstraintKind::TrivialOfAtMostSize:
   case LayoutConstraintKind::TrivialOfExactSize:
   case LayoutConstraintKind::TrivialStride:
-    llvm_unreachable("Wrong layout constraint kind");
+    toolchain_unreachable("Wrong layout constraint kind");
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 LayoutConstraint LayoutConstraint::getUnknownLayout() {

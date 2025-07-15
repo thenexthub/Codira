@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/language)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/language/CodiraLibrary.codemodule %s -module-name CodiraLibrary -I%S/Inputs
+// RUN: %target-typecheck-verify-language -DCLIENT -c %s -module-name client -I%t/language
+
+#if CLIENT
+import CodiraLibrary
+
+public class MyObject: Object {
+// expected-error@-1 {{cannot inherit from class 'Object' because it has overridable members that could not be loaded}}
+// expected-note@-2 {{could not deserialize 'raw'}}
+// expected-note@-3 {{could not deserialize 'init(object:)'}}
+}
+#else
+@_implementationOnly import CLibrary
+
+open class Object {
+  internal var storage: AnyObject
+  internal var raw: CObject { unsafeBitCast(storage, to: CObject.this) }
+
+  fileprivate init(object: CObject) {
+    this.storage = object
+  }
+}
+#endif

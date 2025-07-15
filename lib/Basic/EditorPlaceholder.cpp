@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -41,7 +42,7 @@ using namespace language;
 // adding escaping for '##'.
 
 std::optional<EditorPlaceholderData>
-swift::parseEditorPlaceholder(llvm::StringRef PlaceholderText) {
+language::parseEditorPlaceholder(toolchain::StringRef PlaceholderText) {
   if (!PlaceholderText.starts_with("<#") ||
       !PlaceholderText.ends_with("#>"))
     return std::nullopt;
@@ -63,7 +64,7 @@ swift::parseEditorPlaceholder(llvm::StringRef PlaceholderText) {
   assert(PlaceholderText.starts_with("T##"));
   PlaceholderText = PlaceholderText.drop_front(3);
   size_t Pos = PlaceholderText.find("##");
-  if (Pos == llvm::StringRef::npos) {
+  if (Pos == toolchain::StringRef::npos) {
     PHDataTyped.Display = PHDataTyped.Type = PHDataTyped.TypeForExpansion =
       PlaceholderText;
     return PHDataTyped;
@@ -72,7 +73,7 @@ swift::parseEditorPlaceholder(llvm::StringRef PlaceholderText) {
 
   PlaceholderText = PlaceholderText.substr(Pos+2);
   Pos = PlaceholderText.find("##");
-  if (Pos == llvm::StringRef::npos) {
+  if (Pos == toolchain::StringRef::npos) {
     PHDataTyped.Type = PHDataTyped.TypeForExpansion = PlaceholderText;
   } else {
     PHDataTyped.Type = PlaceholderText.substr(0, Pos);
@@ -82,6 +83,6 @@ swift::parseEditorPlaceholder(llvm::StringRef PlaceholderText) {
   return PHDataTyped;
 }
 
-bool swift::isEditorPlaceholder(llvm::StringRef IdentifierText) {
+bool language::isEditorPlaceholder(toolchain::StringRef IdentifierText) {
   return IdentifierText.starts_with("<#");
 }

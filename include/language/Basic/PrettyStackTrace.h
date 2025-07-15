@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PRETTYSTACKTRACE_H
-#define SWIFT_BASIC_PRETTYSTACKTRACE_H
+#ifndef LANGUAGE_BASIC_PRETTYSTACKTRACE_H
+#define LANGUAGE_BASIC_PRETTYSTACKTRACE_H
 
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/ADT/StringRef.h"
 
-namespace llvm {
+namespace toolchain {
   class MemoryBuffer;
 }
 
@@ -29,41 +30,30 @@ namespace language {
 ///
 /// The message is:
 ///   While <action> "<string>"\n
-class PrettyStackTraceStringAction : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceStringAction : public toolchain::PrettyStackTraceEntry {
   const char *Action;
-  llvm::StringRef TheString;
+  toolchain::StringRef TheString;
 public:
-  PrettyStackTraceStringAction(const char *action, llvm::StringRef string)
+  PrettyStackTraceStringAction(const char *action, toolchain::StringRef string)
     : Action(action), TheString(string) {}
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
 
 /// A PrettyStackTraceEntry to dump the contents of a file.
-class PrettyStackTraceFileContents : public llvm::PrettyStackTraceEntry {
-  const llvm::MemoryBuffer &Buffer;
+class PrettyStackTraceFileContents : public toolchain::PrettyStackTraceEntry {
+  const toolchain::MemoryBuffer &Buffer;
 public:
-  explicit PrettyStackTraceFileContents(const llvm::MemoryBuffer &buffer)
+  explicit PrettyStackTraceFileContents(const toolchain::MemoryBuffer &buffer)
     : Buffer(buffer) {}
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
 
 /// A PrettyStackTraceEntry to print the version of the compiler.
-class PrettyStackTraceSwiftVersion : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceCodiraVersion : public toolchain::PrettyStackTraceEntry {
 public:
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
-
-/// Aborts the program, printing a given message to a PrettyStackTrace frame
-/// before exiting.
-[[noreturn]]
-void abortWithPrettyStackTraceMessage(
-    llvm::function_ref<void(llvm::raw_ostream &)> message);
-
-/// Aborts the program, printing a given message to a PrettyStackTrace frame
-/// before exiting.
-[[noreturn]]
-void abortWithPrettyStackTraceMessage(llvm::StringRef message);
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_PRETTYSTACKTRACE_H
+#endif // LANGUAGE_BASIC_PRETTYSTACKTRACE_H

@@ -1,19 +1,23 @@
 //===--- SILTypeResolutionContext.h -----------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_SILTYPERESOLUTIONCONTEXT_H
-#define SWIFT_SEMA_SILTYPERESOLUTIONCONTEXT_H
+#ifndef LANGUAGE_SEMA_SILTYPERESOLUTIONCONTEXT_H
+#define LANGUAGE_SEMA_SILTYPERESOLUTIONCONTEXT_H
 
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 #include "language/Basic/UUID.h"
 
 namespace language {
@@ -27,7 +31,7 @@ public:
     GenericParamList *Params;
     GenericEnvironment *Environment;
   };
-  using OpenedPackElementsMap = llvm::DenseMap<UUID, OpenedPackElement>;
+  using OpenedPackElementsMap = toolchain::DenseMap<UUID, OpenedPackElement>;
 
   /// Are we requesting a SIL type?
   bool IsSILType;

@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name PlatformAgnostic -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name PlatformAgnostic -I %t -pretty-print -output-dir %t
+
+// RUN: %FileCheck %s --input-file %t/PlatformAgnostic.symbols.json --check-prefix CHECK-FS
+// RUN: %FileCheck %s --input-file %t/PlatformAgnostic.symbols.json --check-prefix CHECK-FP
+// RUN: %FileCheck %s --input-file %t/PlatformAgnostic.symbols.json --check-prefix CHECK-SO
+
+// CHECK-FS: FutureCodira
+@available(language 99)
+public struct FutureCodira {}
+
+// CHECK-FP: FuturePackage
+@available(_PackageDescription 99)
+public struct FuturePackage {}
+
+// CHECK-SO: CodiraObsolete
+@available(language, obsoleted: 1.0)
+public struct CodiraObsolete {}

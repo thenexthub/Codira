@@ -1,0 +1,6 @@
+extension Undeclared {
+  fn foo() {}
+}
+
+// RUN: %sourcekitd-test -req=cursor -pos=2:8 %s -- %s
+// CHECK: <Declaration>fn foo()

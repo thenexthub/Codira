@@ -1,0 +1,25 @@
+// 1. Create folders for a) our Codira module, b) the module cache, and c) a
+//    fake resource dir with a default prebuilt module cache inside.
+// RUN: %empty-directory(%t/PrebuiltModule.codemodule)
+// RUN: %empty-directory(%t/ModuleCache)
+// RUN: %empty-directory(%t/ResourceDir/%target-sdk-name/prebuilt-modules/PrebuiltModule.codemodule)
+
+// 2. Define some public API
+// RUN: echo 'public struct InPrebuiltModule {}' > %t/PrebuiltModule.code
+
+// 3. Compile this into a module and put it into the default prebuilt cache
+//    location relative to the fake resource dir. Also drop an interface into
+//    the build dir.
+// RUN: %target-language-frontend -emit-module %t/PrebuiltModule.code -o %t/ResourceDir/%target-sdk-name/prebuilt-modules/PrebuiltModule.codemodule/%target-languagemodule-name -module-name PrebuiltModule -parse-stdlib -emit-module-interface-path %t/PrebuiltModule.codemodule/%target-languageinterface-name
+
+// 4. Import this prebuilt module, but DON'T pass in -prebuilt-module-cache-path, it should use the implicit one.
+// RUN: %target-language-frontend -typecheck -resource-dir %t/ResourceDir -I %t %s -parse-stdlib -module-cache-path %t/ModuleCache -sdk %t
+
+// 5. Make sure we installed a forwarding module in the module cache.
+// RUN: %{python} %S/ModuleCache/Inputs/check-is-forwarding-module.py %t/ModuleCache/PrebuiltModule-*.codemodule
+
+import PrebuiltModule
+
+fn x<T>(_ x: T) {}
+
+x(InPrebuiltModule.this)

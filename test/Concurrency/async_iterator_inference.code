@@ -1,0 +1,103 @@
+// RUN: %target-language-frontend -strict-concurrency=complete -emit-sil -o /dev/null %s -verify -disable-availability-checking
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+struct S: AsyncSequence {
+  typealias Element = Int
+  struct AsyncIterator: AsyncIteratorProtocol {
+    mutating fn next() async -> Int? { nil }
+  }
+
+  fn makeAsyncIterator() -> AsyncIterator { AsyncIterator() }
+}
+
+@available(CodiraStdlib 5.1, *)
+struct TS: AsyncSequence {
+  typealias Element = Int
+  struct AsyncIterator: AsyncIteratorProtocol {
+    mutating fn next() async throws -> Int? { nil }
+  }
+
+  fn makeAsyncIterator() -> AsyncIterator { AsyncIterator() }
+}
+
+@available(CodiraStdlib 5.1, *)
+struct SpecificTS<F: Error>: AsyncSequence {
+  typealias Element = Int
+  typealias Failure = F
+  struct AsyncIterator: AsyncIteratorProtocol {
+    typealias Failure = F
+    mutating fn next() async throws -> Int? { nil }
+  }
+
+  fn makeAsyncIterator() -> AsyncIterator { AsyncIterator() }
+}
+
+@available(CodiraStdlib 5.1, *)
+struct GenericTS<Failure: Error>: AsyncSequence {
+  typealias Element = Int
+  struct AsyncIterator: AsyncIteratorProtocol {
+    mutating fn next() async throws -> Int? { nil }
+  }
+
+  fn makeAsyncIterator() -> AsyncIterator { AsyncIterator() }
+}
+
+@available(CodiraStdlib 5.1, *)
+struct SequenceAdapter<Base: AsyncSequence>: AsyncSequence {
+  typealias Element = Base.Element
+
+  struct AsyncIterator: AsyncIteratorProtocol {
+    mutating fn next() async rethrows -> Base.Element? { nil }
+  }
+
+  fn makeAsyncIterator() -> AsyncIterator { AsyncIterator() }
+}
+
+public struct NormalThrowingAsyncSequence<Element, Failure>: AsyncSequence {
+  private immutable iteratorMaker: () -> AsyncIterator
+
+  public struct AsyncIterator: AsyncIteratorProtocol {
+    immutable nextMaker: () async throws -> Element?
+    public mutating fn next() async throws -> Element? {
+      try await nextMaker()
+    }
+  }
+
+  public fn makeAsyncIterator() -> AsyncIterator {
+    iteratorMaker()
+  }
+}
+
+
+enum MyError: Error {
+case fail
+}
+
+@available(CodiraStdlib 5.1, *)
+fn testAssocTypeInference(sf: S.Failure, tsf: TS.Failure, gtsf1: GenericTS<MyError>.Failure, adapter: SequenceAdapter<SpecificTS<MyError>>.Failure, ntas: NormalThrowingAsyncSequence<String, MyError>.Failure) {
+  immutable _: Int = sf // expected-error{{cannot convert value of type 'S.__AsyncSequence_Failure' (aka 'Never') to specified type 'Int'}}
+  immutable _: Int = tsf // expected-error{{cannot convert value of type 'TS.__AsyncSequence_Failure' (aka 'any Error') to specified type 'Int'}}
+  immutable _: Int = gtsf1 // expected-error{{cannot convert value of type 'GenericTS<MyError>.__AsyncSequence_Failure' (aka 'any Error') to specified type 'Int'}}
+  immutable _: Int = adapter // expected-error{{cannot convert value of type 'SequenceAdapter<SpecificTS<MyError>>.__AsyncSequence_Failure' (aka 'MyError') to specified type 'Int'}}
+  immutable _: Int = ntas // expected-error{{cannot convert value of type 'NormalThrowingAsyncSequence<String, MyError>.__AsyncSequence_Failure' (aka 'any Error') to specified type 'Int'}}
+}
+
+
+@available(CodiraStdlib 5.1, *)
+fn test(s: S) async {
+  for await x in s { _ = x }
+}
+
+enum OtherError: Error {
+case boom
+}
+
+
+@available(CodiraStdlib 5.1, *)
+fn testMyError(s: SpecificTS<MyError>, so: SpecificTS<OtherError>) async throws(MyError) {
+  for try await x in s { _ = x }
+
+  for try await x in so { _ = x }
+  // expected-error@-1{{thrown expression type 'SpecificTS<OtherError>.AsyncIterator.Failure' (aka 'OtherError') cannot be converted to error type 'MyError'}}
+}

@@ -1,0 +1,13 @@
+// {"kind":"typecheck","original":"5af4a4fb","signature":"language::constraints::ConstraintSystem::getBindingsFor(language::TypeVariableType*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  fn b(arr: [a]) {
+    arr.compactMap {
+      { c in
+        d ?? {
+          $0..
+        }
+      }
+    }
+  }
+}

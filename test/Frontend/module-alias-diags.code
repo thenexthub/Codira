@@ -1,0 +1,121 @@
+/// Test diagnostics with module aliasing.
+///
+/// Module 'Lib' imports module 'XLogging', and 'XLogging' is aliased 'AppleLogging'.
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+/// Create AppleLogging.codemodule by aliasing XLogging
+// RUN: %target-language-frontend -module-name AppleLogging -module-alias XLogging=AppleLogging %t/FileLogging.code -emit-module -emit-module-path %t/AppleLogging.codemodule
+// RUN: test -f %t/AppleLogging.codemodule
+
+/// 1. Pass: load and reference a module with module aliasing
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: %target-language-frontend -module-name LibA %t/FileLib.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibA.codemodule -Rmodule-loading 2> %t/result-LibA.output
+// RUN: test -f %t/LibA.codemodule
+// RUN: %FileCheck %s -input-file %t/result-LibA.output -check-prefix CHECK-LOAD
+// CHECK-LOAD: remark: loaded module {{.*}}AppleLogging.codemodule
+
+/// 2. Fail: trying to access a non-member of a module (with module aliasing) should fail with the module alias in the diags
+/// Try building module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: not %target-language-frontend -module-name LibB %t/FileLibNoSuchMember.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibB.codemodule 2> %t/result-LibB.output
+// RUN: %FileCheck %s -input-file %t/result-LibB.output -check-prefix CHECK-NO-MEMBER
+// CHECK-NO-MEMBER: error: module 'XLogging' has no member named 'setupErr'
+
+/// 3. Fail: importing the real module name that's being aliased should fail
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: not %target-language-frontend -module-name LibC %t/FileLibImportRealName.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibC.codemodule 2> %t/result-LibC.output
+// RUN: %FileCheck %s -input-file %t/result-LibC.output -check-prefix CHECK-NOT-IMPORT
+// CHECK-NOT-IMPORT: error: cannot refer to module as 'AppleLogging' because it has been aliased; use 'XLogging' instead
+
+/// 4-1. Fail: referencing the real module name that's aliased should fail
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: not %target-language-frontend -module-name LibD %t/FileLibRefRealName1.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibD.codemodule 2> %t/result-LibD.output
+// RUN: %FileCheck %s -input-file %t/result-LibD.output -check-prefix CHECK-NOT-REF1
+// CHECK-NOT-REF1: error: cannot find 'AppleLogging' in scope
+
+/// 4-2. Fail: referencing the real module name that's aliased should fail
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: not %target-language-frontend -module-name LibE %t/FileLibRefRealName2.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibE.codemodule 2> %t/result-LibE.output
+// RUN: %FileCheck %s -input-file %t/result-LibE.output -check-prefix CHECK-NOT-REF2
+// CHECK-NOT-REF2: error: cannot find type 'AppleLogging' in scope
+
+/// 4-3. Fail: referencing the real module name that's aliased should fail
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: not %target-language-frontend -module-name LibF %t/FileLibRefRealName3.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibF.codemodule 2> %t/result-LibF.output
+// RUN: %FileCheck %s -input-file %t/result-LibF.output -check-prefix CHECK-NOT-REF3
+// CHECK-NOT-REF3: error: cannot find type 'AppleLogging' in scope
+
+/// 4-4. Fail: referencing the real module name that's aliased should fail
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: not %target-language-frontend -module-name LibG %t/FileLibRefRealName4.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/LibG.codemodule 2> %t/result-LibG.output
+// RUN: %FileCheck %s -input-file %t/result-LibG.output -check-prefix CHECK-NOT-REF4
+// CHECK-NOT-REF4: error: cannot find type 'AppleLogging' in scope
+
+
+// BEGIN FileLogging.code
+public protocol Loggable {
+  var verbosity: Int { get }
+}
+
+public struct Logger {
+  public init() {}
+}
+
+public fn setup() -> XLogging.Logger? {
+  return Logger()
+}
+
+// BEGIN FileLib.code
+import XLogging
+
+public fn start() {
+  _ = XLogging.setup()
+}
+
+// BEGIN FileLibNoSuchMember.code
+import XLogging
+
+public fn start() {
+  _ = XLogging.setupErr()
+}
+
+// BEGIN FileLibImportRealName.code
+import XLogging
+import AppleLogging
+
+public fn start() {
+  _ = XLogging.setup()
+}
+
+// BEGIN FileLibRefRealName1.code
+import XLogging
+
+public fn start() {
+  _ = AppleLogging.setup()
+}
+
+// BEGIN FileLibRefRealName2.code
+import XLogging
+
+public struct MyStruct: AppleLogging.Loggable {
+  public var verbosity: Int {
+    return 3
+  }
+}
+
+// BEGIN FileLibRefRealName3.code
+import XLogging
+
+public struct MyStruct<T> where T: AppleLogging.Loggable {
+  fn log<T>(_ arg: T) {
+  }
+}
+
+// BEGIN FileLibRefRealName4.code
+import XLogging
+
+public struct MyStruct {
+  fn log<T: AppleLogging.Loggable>(_ arg: T) {
+  }
+}

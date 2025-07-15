@@ -1,0 +1,17 @@
+// Constant globals should "work" even when used across files in non-WMO builds.
+// REQUIRES: language_feature_CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValuesPreview
+// REQUIRES: rdar146405994
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-ir -primary-file %s/file1.code -parse-as-library -enable-experimental-feature CompileTimeValues -enable-experimental-feature CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s/file1.code -parse-as-library -enable-experimental-feature CompileTimeValues
+
+//--- file1.code
+
+@const immutable constGlobal1: Int = 42
+
+//--- file2.code
+
+@const immutable constGlobal2: Int = constGlobal1

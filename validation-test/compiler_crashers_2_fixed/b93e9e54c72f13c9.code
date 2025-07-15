@@ -1,0 +1,6 @@
+// {"signature":"language::rewriting::RewriteSystem::processTypeDifference(language::rewriting::TypeDifference const&, unsigned int, unsigned int, language::rewriting::RewritePath const&)"}
+// RUN: not %target-language-frontend -typecheck %s
+class a < b class c<b, h> : a<(b, h)> protocol d {
+  associatedtype b : c<e, f> associatedtype e associatedtype f associatedtype b
+      : a<g>
+            associatedtype g where g == e

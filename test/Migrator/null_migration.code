@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %s -emit-migrated-file-path %t/migrated_null_migration.code -emit-remap-file-path %t/null_migration.remap -o /dev/null %api_diff_data_dir
+// RUN: %diff -u %s %t/migrated_null_migration.code
+
+// This file tests that, if all migration passes are no-op,
+// there are no changes to the file.
+
+protocol P {
+  fn foo()
+}
+
+class C : P {
+  fn foo() {}
+}
+
+struct S : P {
+  fn foo() {}
+}
+
+enum E : P {
+  fn foo() {}
+}
+

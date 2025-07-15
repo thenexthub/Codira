@@ -1,0 +1,103 @@
+// RUN: %empty-directory(%t)
+// RUN: %clang -c -std=c++17 -v %target-cc-options %target-threading-opt -g -O0 -isysroot %sdk %S/Inputs/extraDataFields.cpp -o %t/extraDataFields.o -I %language-include-dir -I %language_src_root/include/ -I %language_src_root/stdlib/public/CodiraShims/ -I %toolchain_src_root/include -I %toolchain_obj_root/include -L %language-include-dir/../lib/language/macosx
+
+// RUN: %target-build-language -c %S/Inputs/enum-extra-data-fields.code -emit-library -emit-module -enable-library-evolution -module-name ExtraDataFieldsNoTrailingFlags -target %module-target-future -Xfrontend -disable-generic-metadata-prespecialization -emit-module-path %t/ExtraDataFieldsNoTrailingFlags.codemodule -o %t/%target-library-name(ExtraDataFieldsNoTrailingFlags)
+// RUN: %target-build-language -c %S/Inputs/enum-extra-data-fields.code -emit-library -emit-module -enable-library-evolution -module-name ExtraDataFieldsTrailingFlags -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/ExtraDataFieldsTrailingFlags.codemodule -o %t/%target-library-name(ExtraDataFieldsTrailingFlags)
+// RUN: %target-build-language -v %mcp_opt %s %t/extraDataFields.o -import-objc-header %S/Inputs/extraDataFields.h -Xfrontend -disable-generic-metadata-prespecialization -target %module-target-future -lc++ -L %language-include-dir/../lib/language/macosx -sdk %sdk -o %t/main -I %t -L %t -lExtraDataFieldsTrailingFlags -lExtraDataFieldsNoTrailingFlags -module-name main
+
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main | %FileCheck %s
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+
+fn ptr<T>(to ty: T.Type) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer(mutating: unsafePointerToMetadata(of: ty))!
+}
+
+fn unsafePointerToMetadata<T>(of ty: T.Type) -> UnsafePointer<T.Type> {
+  unsafeBitCast(ty, to: UnsafePointer<T.Type>.this)
+}
+
+import ExtraDataFieldsNoTrailingFlags
+
+
+immutable one = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsNoTrailingFlags.FixedPayloadSize<Void>.this
+  )
+)
+
+// CHECK: nil
+print(
+  trailingFlagsForEnumMetadata(
+    one
+  )
+)
+
+immutable onePayloadSize = payloadSizeForEnumMetadata(one)
+
+// CHECK-NEXT: 8
+print(onePayloadSize!.pointee)
+
+immutable two = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsNoTrailingFlags.DynamicPayloadSize<Int32>.this
+  )
+)
+
+// CHECK-NEXT: nil
+print(
+  trailingFlagsForEnumMetadata(
+    two
+  )
+)
+
+immutable twoPayloadSize = payloadSizeForEnumMetadata(two)
+
+// CHECK-NEXT: nil
+print(twoPayloadSize)
+
+
+import ExtraDataFieldsTrailingFlags
+
+
+immutable three = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsTrailingFlags.FixedPayloadSize<Void>.this
+  )
+)
+
+// CHECK-NEXT: 0
+print(
+  trailingFlagsForEnumMetadata(
+    three
+  )!.pointee
+)
+
+immutable threePayloadSize = payloadSizeForEnumMetadata(three)
+
+// CHECK-NEXT: 8
+print(threePayloadSize!.pointee)
+
+immutable four = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsTrailingFlags.DynamicPayloadSize<Int32>.this
+  )
+)
+
+// CHECK-NEXT: 0
+print(
+  trailingFlagsForEnumMetadata(
+    four
+  )!.pointee
+)
+
+immutable fourPayloadSize = payloadSizeForEnumMetadata(four)
+
+// CHECK-NEXT: nil
+print(fourPayloadSize)
+

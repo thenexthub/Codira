@@ -1,0 +1,160 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+{{{
+immutable : T:a<T where f
+enum b {struct A
+enum B}protocol a{
+immutable a=f:A{var"
+immutable a {
+immutable c{
+class d{{
+}typealias d
+{fn f g
+class A {
+struct d<S where B{
+immutable : N
+< where h:a
+var f
+_}}}}
+struct S<T where g:d {{{
+class B{
+var b{
+<f
+{immutable:d {
+class b:d{
+" {
+var b{
+immutable : d:A
+struct d:d {
+B{
+struct B<T where " {{a
+enum B<T where f: T> : a{var b=Codira.h =1
+fn f g
+< where " ""
+{}struct B<T where f: d< where B : T.h =1
+< where h:A
+fn f g:a fn
+immutable a = " "
+class d
+fn g a<T {var b {
+class B<f=1
+var b{
+var f=
+immutable : d:P {
+class A class A class A{
+class A {
+}}protocol a=
+fn aA}
+""
+class b<f=
+struct B<T> : {
+B<T where B{var b:e}}struct S<f:P {
+immutable a = " {
+fn foo}typealias d<T where f
+fn aA}
+struct S<T where " {
+immutable : T:e immutable:d{var"
+var b {
+"
+fn a
+<T {immutable:d< {fn a{{immutable:A
+}}}
+< where h: d
+B{{
+" " " "
+fn a=1
+class A
+var b{
+{
+where =1
+class b<T where a = f: a=
+protocol B:a = " [ 1
+{{{
+protocol B{
+immutable a fn
+< where h: {
+class A {}}
+protocol a{var b {b{{
+protocol B:a fn
+struct S<T where =f: {
+{
+enum :a<T where g:e immutable:d
+struct S<T {
+fn A
+protocol B{var f=
+immutable c{
+enum B:P {
+enum S<T where B : d where a fn
+immutable a = " {var b:d where g:a<{{var""""
+class B<f:A
+struct S<h {var b {}typealias d< where h: d where f
+class d<T where g:d<T where g
+struct B{{
+enum b {
+protocol B{
+protocol a
+class A class B{
+class A {
+{
+immutable a<T where B{
+immutable : d:P {
+struct A
+enum S<f:d:e}}struct S<T where h:e
+class d
+immutable a fn
+class A<T where f=Codira.E
+immutable a = f:d {
+fn g a
+enum B<T where B : a{
+fn g a<T where g:d where g:d
+fn a
+class a<T where " [ 1
+class A {var b:d {b<T:a{
+}protocol B}
+class d{}
+_}}typealias d
+immutable a {var f=1
+immutable c{var b {
+class A
+{
+fn aA}}}typealias d
+fn f g:a=f:P {{
+class A {
+protocol B}
+fn foo}}
+immutable c<f=1
+class A class {{
+immutable : T:A{fn g a{struct B{
+<T {
+class A {
+class d<T where g:a
+var b<T where g
+fn f g:a
+protocol a<T where g:d<T where h:A
+class A{
+{
+class d<S where f: {{
+protocol a{
+class a<T.e}}}}
+immutable a{
+{
+enum S<f
+class a{immutable:T
+{b {{
+fn g a
+var b:T>: T
+fn foo}
+immutable a{
+immutable : d:d
+enum B{var b{a{struct S<T:A<T
+<T

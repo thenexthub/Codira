@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides an implementation of C11 aligned_alloc(3) for platforms
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_MALLOC_H
-#define SWIFT_BASIC_MALLOC_H
+#ifndef LANGUAGE_BASIC_MALLOC_H
+#define LANGUAGE_BASIC_MALLOC_H
 
 #include <cassert>
 #if defined(_WIN32)
@@ -61,4 +62,4 @@ inline void AlignedFree(void *p) {
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_MALLOC_H
+#endif // LANGUAGE_BASIC_MALLOC_H

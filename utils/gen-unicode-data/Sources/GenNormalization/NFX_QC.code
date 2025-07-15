@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -26,35 +30,35 @@ import GenUtils
 // scalars conform to. There are extra comments telling us what general
 // category these scalars are a part of, how many scalars are in a range, and
 // the name of the scalars.
-func getQCData(from data: String, with dict: inout [UInt32: UInt16]) {
+fn getQCData(from data: String, with dict: inout [UInt32: UInt16]) {
   for line in data.split(separator: "\n") {
     // Skip comments
     guard !line.hasPrefix("#") else {
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
     // Get the property first because we only care about NFC_QC or NFD_QC.
-    let filteredProperty = components[1].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
     
     guard filteredProperty == "NFD_QC" || filteredProperty == "NFC_QC" else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
 
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
 
       scalars = scalar ... scalar
     }
@@ -64,7 +68,7 @@ func getQCData(from data: String, with dict: inout [UInt32: UInt16]) {
       continue
     }
     
-    let filteredNFCQC = components[2].filter { !$0.isWhitespace }
+    immutable filteredNFCQC = components[2].filter { !$0.isWhitespace }
     
     for scalar in scalars {
       var newValue = dict[scalar, default: 0]

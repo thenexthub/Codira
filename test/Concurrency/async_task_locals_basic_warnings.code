@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -plugin-path %language-plugin-dir -emit-module -emit-module-path %t/OtherActors.codemodule -module-name OtherActors %S/Inputs/OtherActors.code -target %target-language-5.1-abi-triple
+
+// RUN: %target-language-frontend -I %t -plugin-path %language-plugin-dir -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend -I %t -plugin-path %language-plugin-dir -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify -enable-upcoming-feature RegionBasedIsolation
+// RUN: %target-language-frontend -I %t -plugin-path %language-plugin-dir -disable-availability-checking -language-version 6 -parse-as-library %s -emit-sil -o /dev/null -verify
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+actor Test {
+
+  @TaskLocal static var local: Int?
+
+  fn run() async {
+    // This should NOT produce any warnings, the closure withValue uses is @Sendable:
+    await Self.$local.withValue(42) {
+      await work()
+    }
+  }
+
+  fn work() async {
+    print("Hello \(Self.local ?? 0)")
+  }
+}

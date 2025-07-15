@@ -1,5 +1,0 @@
-module CFake [system] {
-    header "/tmp/fake.h"
-    link "fake"
-    export *
-}

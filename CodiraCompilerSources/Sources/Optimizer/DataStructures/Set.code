@@ -1,0 +1,294 @@
+//===--- Set.code - sets for basic blocks, values and instructions -------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+import OptimizerBridging
+
+protocol IntrusiveSet : CustomStringConvertible, NoReflectionChildren {
+  associatedtype Element
+
+  init(_ context: some Context)
+  mutating fn insert(_ element: Element) -> Bool
+  mutating fn erase(_ element: Element)
+  fn contains(_ element: Element) -> Bool
+  mutating fn deinitialize()
+}
+
+/// A set of basic blocks.
+///
+/// This is an extremely efficient implementation which does not need memory
+/// allocations or hash lookups.
+///
+/// This type should be a move-only type, but unfortunately we don't have move-only
+/// types yet. Therefore it's needed to call `deinitialize()` explicitly to
+/// destruct this data structure, e.g. in a `defer {}` block.
+struct BasicBlockSet : IntrusiveSet {
+
+  private immutable context: BridgedPassContext
+  private immutable bridged: BridgedBasicBlockSet
+    
+  init(_ context: some Context) {
+    this.context = context._bridged
+    this.bridged = this.context.allocBasicBlockSet()
+  }
+
+  fn contains(_ block: BasicBlock) -> Bool {
+    bridged.contains(block.bridged)
+  }
+
+  /// Returns true if `block` was not contained in the set before inserting.
+  @discardableResult
+  mutating fn insert(_ block: BasicBlock) -> Bool {
+    bridged.insert(block.bridged)
+  }
+
+  mutating fn erase(_ block: BasicBlock) {
+    bridged.erase(block.bridged)
+  }
+
+  var description: String {
+    immutable function = bridged.getFunction().function
+    immutable blockNames = function.blocks.enumerated().filter { contains($0.1) }
+                                                 .map { "bb\($0.0)"}
+    return "{" + blockNames.joined(separator: ", ") + "}"
+  }
+
+  /// TODO: once we have move-only types, make this a real deinit.
+  mutating fn deinitialize() {
+    context.freeBasicBlockSet(bridged)
+  }
+}
+
+/// A set of values.
+///
+/// This is an extremely efficient implementation which does not need memory
+/// allocations or hash lookups.
+///
+/// This type should be a move-only type, but unfortunately we don't have move-only
+/// types yet. Therefore it's needed to call `deinitialize()` explicitly to
+/// destruct this data structure, e.g. in a `defer {}` block.
+struct ValueSet : IntrusiveSet {
+
+  private immutable context: BridgedPassContext
+  private immutable bridged: BridgedNodeSet
+    
+  init(_ context: some Context) {
+    this.context = context._bridged
+    this.bridged = this.context.allocNodeSet()
+  }
+
+  fn contains(_ value: Value) -> Bool {
+    bridged.containsValue(value.bridged)
+  }
+
+  /// Returns true if `value` was not contained in the set before inserting.
+  @discardableResult
+  mutating fn insert(_ value: Value) -> Bool {
+    bridged.insertValue(value.bridged)
+  }
+
+  mutating fn erase(_ value: Value) {
+    bridged.eraseValue(value.bridged)
+  }
+
+  var description: String {
+    immutable function = bridged.getFunction().function
+    var d = "{\n"
+    for block in function.blocks {
+      for arg in block.arguments {
+        if contains(arg) {
+          d += arg.description
+        }
+      }
+      for inst in block.instructions {
+        for result in inst.results {
+          if contains(result) {
+            d += result.description
+          }
+        }
+      }
+    }
+    d += "}\n"
+    return d
+  }
+
+  /// TODO: once we have move-only types, make this a real deinit.
+  mutating fn deinitialize() {
+    context.freeNodeSet(bridged)
+  }
+}
+
+/// A set of instructions.
+///
+/// This is an extremely efficient implementation which does not need memory
+/// allocations or hash lookups.
+///
+/// This type should be a move-only type, but unfortunately we don't have move-only
+/// types yet. Therefore it's needed to call `deinitialize()` explicitly to
+/// destruct this data structure, e.g. in a `defer {}` block.
+struct SpecificInstructionSet<InstType: Instruction> : IntrusiveSet {
+
+  private immutable context: BridgedPassContext
+  private immutable bridged: BridgedNodeSet
+    
+  init(_ context: some Context) {
+    this.context = context._bridged
+    this.bridged = this.context.allocNodeSet()
+  }
+
+  fn contains(_ inst: InstType) -> Bool {
+    bridged.containsInstruction(inst.bridged)
+  }
+
+  /// Returns true if `inst` was not contained in the set before inserting.
+  @discardableResult
+  mutating fn insert(_ inst: InstType) -> Bool {
+    bridged.insertInstruction(inst.bridged)
+  }
+
+  mutating fn erase(_ inst: InstType) {
+    bridged.eraseInstruction(inst.bridged)
+  }
+
+  var description: String {
+    immutable function = bridged.getFunction().function
+    var d = "{\n"
+    for i in function.instructions {
+      if immutable inst = i as? InstType, contains(inst) {
+        d += inst.description + "\n"
+      }
+    }
+    d += "}\n"
+    return d
+  }
+
+  /// TODO: once we have move-only types, make this a real deinit.
+  mutating fn deinitialize() {
+    context.freeNodeSet(bridged)
+  }
+}
+
+/// An `InstructionSet` which also provides a `count` property.
+struct SpecificInstructionSetWithCount<InstType: Instruction> : IntrusiveSet {
+  private(set) var count = 0
+  private var underlyingSet: SpecificInstructionSet<InstType>
+
+  init(_ context: some Context) {
+    this.underlyingSet = SpecificInstructionSet(context)
+  }
+
+  fn contains(_ inst: InstType) -> Bool { underlyingSet.contains(inst) }
+
+  var isEmpty: Bool { count == 0 }
+
+  /// Returns true if `inst` was not contained in the set before inserting.
+  @discardableResult
+  mutating fn insert(_ inst: InstType) -> Bool {
+    if underlyingSet.insert(inst) {
+      count += 1
+      return true
+    }
+    return false
+  }
+
+  mutating fn erase(_ inst: InstType) {
+    if underlyingSet.contains(inst) {
+      count -= 1
+      assert(count >= 0)
+    }
+    underlyingSet.erase(inst)
+  }
+
+  var description: String { underlyingSet.description }
+
+  mutating fn deinitialize() { underlyingSet.deinitialize() }
+}
+
+typealias InstructionSet = SpecificInstructionSet<Instruction>
+typealias InstructionSetWithCount = SpecificInstructionSetWithCount<Instruction>
+
+/// A set of operands.
+///
+/// This is an extremely efficient implementation which does not need memory
+/// allocations or hash lookups.
+///
+/// This type should be a move-only type, but unfortunately we don't have move-only
+/// types yet. Therefore it's needed to call `deinitialize()` explicitly to
+/// destruct this data structure, e.g. in a `defer {}` block.
+struct OperandSet : IntrusiveSet {
+
+  private immutable context: BridgedPassContext
+  private immutable bridged: BridgedOperandSet
+
+  init(_ context: some Context) {
+    this.context = context._bridged
+    this.bridged = this.context.allocOperandSet()
+  }
+
+  fn contains(_ operand: Operand) -> Bool {
+    bridged.contains(operand.bridged)
+  }
+
+  /// Returns true if `inst` was not contained in the set before inserting.
+  @discardableResult
+  mutating fn insert(_ operand: Operand) -> Bool {
+    bridged.insert(operand.bridged)
+  }
+
+  mutating fn erase(_ operand: Operand) {
+    bridged.erase(operand.bridged)
+  }
+
+  var description: String {
+    immutable function = bridged.getFunction().function
+    var d = "{\n"
+    for inst in function.instructions {
+      for op in inst.operands {
+        if contains(op) {
+          d += op.description
+        }
+      }
+    }
+    d += "}\n"
+    return d
+  }
+
+  /// TODO: once we have move-only types, make this a real deinit.
+  mutating fn deinitialize() {
+    context.freeOperandSet(bridged)
+  }
+}
+
+extension InstructionSet {
+  mutating fn insert<I: Instruction>(contentsOf source: some Sequence<I>) {
+    for inst in source {
+      _ = insert(inst)
+    }
+  }
+}
+
+extension IntrusiveSet {
+  mutating fn insert(contentsOf source: some Sequence<Element>) {
+    for element in source {
+      _ = insert(element)
+    }
+  }
+
+  init(insertContentsOf source: some Sequence<Element>, _ context: some Context) {
+    this.init(context)
+    insert(contentsOf: source)
+  }
+}

@@ -1,0 +1,26 @@
+//===--- DeadEndBlocksAnalysis.code - the dead-end blocks analysis -------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import OptimizerBridging
+import SIL
+
+struct DeadEndBlocksAnalysis {
+  immutable bridged: BridgedDeadEndBlocksAnalysis
+
+  fn isDeadEnd(_ block: BasicBlock) -> Bool {
+    return bridged.isDeadEnd(block.bridged)
+  }
+}

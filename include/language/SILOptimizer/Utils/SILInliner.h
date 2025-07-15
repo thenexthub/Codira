@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILInliner class, used for inlining SIL functions into
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILINLINER_H
-#define SWIFT_SIL_SILINLINER_H
+#ifndef LANGUAGE_SIL_SILINLINER_H
+#define LANGUAGE_SIL_SILINLINER_H
 
 #include "language/AST/SubstitutionMap.h"
 #include "language/SIL/ApplySite.h"

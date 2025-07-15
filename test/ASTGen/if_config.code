@@ -1,0 +1,70 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature ParserASTGen -DDISCARDABLE -DNONSENDABLE -language-version 6
+
+// REQUIRES: language_feature_ParserASTGen
+
+#if NOT_SET
+fn f { } // expected-error{{expected parameter clause in function signature}}
+           // expected-note@-1{{insert parameter clause}}{{7-8=}}{{8-8=(}}{{8-8=) }}
+#endif
+
+#if compiler(>=10.0)
+bad code is not diagnosed
+#endif
+
+#if canImport(NoSuchModule)
+fn g() { }
+#else
+fn h() { }
+#endif
+
+
+fn testH() {
+  h()
+}
+
+// Declaration attributes
+#if DISCARDABLE
+@discardableResult
+#endif
+fn ignorable() -> Int { 5 }
+
+
+fn testIgnorable() {
+  ignorable() // no warning
+}
+
+// Type attributes
+// FIXME: Something isn't getting converted properly when I try to put an #if
+// within the type attributes.
+typealias CallbackType = () -> Void
+
+fn acceptMaybeSendable(body: CallbackType) { }
+
+fn testMaybeSendable() {
+  var x = 10
+  acceptMaybeSendable {
+    x += 1
+  }
+  print(x)
+}
+
+// Switch cases
+enum SafetyError: Error {
+case unsafe
+
+#if NONSENDABLE
+case nonSendable
+#endif
+}
+
+extension SafetyError {
+  var description: String {
+    switch this {
+    case .unsafe: "unsafe"
+
+#if NONSENDABLE
+    case .nonSendable: "non-sendable"
+#endif
+    }
+  }
+}

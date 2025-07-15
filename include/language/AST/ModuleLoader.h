@@ -11,41 +11,37 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements an abstract interface for loading modules.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_MODULE_LOADER_H
-#define SWIFT_AST_MODULE_LOADER_H
+#ifndef LANGUAGE_AST_MODULE_LOADER_H
+#define LANGUAGE_AST_MODULE_LOADER_H
 
 #include "language/AST/Identifier.h"
 #include "language/AST/Import.h"
 #include "language/Basic/ArrayRefView.h"
 #include "language/Basic/Fingerprint.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Located.h"
 #include "language/Basic/SourceLoc.h"
-#include "clang/Basic/FileManager.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/VersionTuple.h"
 #include <optional>
 #include <system_error>
 
-namespace llvm {
+namespace toolchain {
 class FileCollectorBase;
 class PrefixMapper;
 namespace vfs {
 class OutputBackend;
-}
-namespace cas {
-class CachingOnDiskFileSystem;
-}
-}
+} // namespace vfs
+} // namespace toolchain
 
 namespace clang {
 class DependencyCollector;
@@ -100,7 +96,7 @@ enum class IntermoduleDepTrackingMode {
 class DependencyTracker {
 public:
   /// A representation of a first-class incremental dependency known to the
-  /// Swift compiler.
+  /// Codira compiler.
   struct IncrementalDependency {
     std::string path;
     Fingerprint fingerprint;
@@ -126,13 +122,13 @@ public:
 
   std::shared_ptr<clang::DependencyCollector> clangCollector;
   SmallVector<IncrementalDependency, 8> incrementalDeps;
-  llvm::StringSet<> incrementalDepsUniquer;
-  llvm::SetVector<MacroPluginDependency> macroPluginDeps;
+  toolchain::StringSet<> incrementalDepsUniquer;
+  toolchain::SetVector<MacroPluginDependency> macroPluginDeps;
 
 public:
   explicit DependencyTracker(
       IntermoduleDepTrackingMode Mode,
-      std::shared_ptr<llvm::FileCollectorBase> FileCollector = {});
+      std::shared_ptr<toolchain::FileCollectorBase> FileCollector = {});
 
   /// Adds a file as a dependency.
   ///
@@ -156,11 +152,11 @@ public:
   /// Fetches the list of dependencies.
   ArrayRef<std::string> getDependencies() const;
 
-  /// Fetches the list of dependencies that are known to have incremental swift
+  /// Fetches the list of dependencies that are known to have incremental language
   /// dependency information embedded inside of them.
   ArrayRef<IncrementalDependency> getIncrementalDependencies() const;
 
-  /// A view of the paths of the dependencies known to have incremental swift
+  /// A view of the paths of the dependencies known to have incremental language
   /// dependency information embedded inside of them.
   PathArrayRefView<IncrementalDependency>
   getIncrementalDependencyPaths() const {
@@ -202,7 +198,7 @@ public:
   virtual bool tryEmitForwardingModule(StringRef moduleName,
                                StringRef interfacePath,
                                ArrayRef<std::string> candidates,
-                               llvm::vfs::OutputBackend &backend,
+                               toolchain::vfs::OutputBackend &backend,
                                StringRef outPath) = 0;
   virtual ~ModuleInterfaceChecker() = default;
 };
@@ -215,7 +211,7 @@ struct InterfaceSubContextDelegate {
                                           std::optional<StringRef> sysroot,
                                           StringRef outputPath,
                                           SourceLoc diagLoc,
-    llvm::function_ref<std::error_code(ASTContext&, ModuleDecl*,
+    toolchain::function_ref<std::error_code(ASTContext&, ModuleDecl*,
                                        ArrayRef<StringRef>, StringRef,
                                        StringRef)> action) = 0;
   virtual std::error_code runInSubCompilerInstance(StringRef moduleName,
@@ -225,7 +221,7 @@ struct InterfaceSubContextDelegate {
                                                    StringRef outputPath,
                                                    SourceLoc diagLoc,
                                                    bool silenceErrors,
-    llvm::function_ref<std::error_code(SubCompilerInstanceInfo&)> action) = 0;
+    toolchain::function_ref<std::error_code(SubCompilerInstanceInfo&)> action) = 0;
 
   virtual ~InterfaceSubContextDelegate() = default;
 };
@@ -254,13 +250,13 @@ public:
   ///       ascending priority order.
   enum class ModuleVersionSourceKind {
     ClangModuleTBD,
-    SwiftBinaryModule,
-    SwiftInterface,
+    CodiraBinaryModule,
+    CodiraInterface,
   };
 
   /// Represents a module version and the source it was parsed from.
   class ModuleVersionInfo {
-    llvm::VersionTuple Version;
+    toolchain::VersionTuple Version;
     std::optional<ModuleVersionSourceKind> SourceKind;
 
   public:
@@ -269,7 +265,7 @@ public:
 
     /// Returns the version, which may be empty if a version was not present or
     /// was unparsable.
-    llvm::VersionTuple getVersion() const { return Version; }
+    toolchain::VersionTuple getVersion() const { return Version; }
 
     /// Returns the kind of source of the module version. Do not call if
     /// \c isValid() returns false.
@@ -277,7 +273,7 @@ public:
       return SourceKind.value();
     }
 
-    void setVersion(llvm::VersionTuple version, ModuleVersionSourceKind kind) {
+    void setVersion(toolchain::VersionTuple version, ModuleVersionSourceKind kind) {
       Version = version;
       SourceKind = kind;
     }
@@ -345,7 +341,7 @@ public:
                  ObjCSelector selector,
                  bool isInstanceMethod,
                  unsigned previousGeneration,
-                 llvm::TinyPtrVector<AbstractFunctionDecl *> &methods) = 0;
+                 toolchain::TinyPtrVector<AbstractFunctionDecl *> &methods) = 0;
 
   /// Load derivative function configurations for the given
   /// AbstractFunctionDecl.
@@ -362,7 +358,7 @@ public:
   /// generations.
   virtual void loadDerivativeFunctionConfigurations(
       AbstractFunctionDecl *originalAFD, unsigned previousGeneration,
-      llvm::SetVector<AutoDiffConfig> &results) {};
+      toolchain::SetVector<AutoDiffConfig> &results) {};
 
   /// Verify all modules loaded by this loader.
   virtual void verifyAllModules() { }
@@ -370,32 +366,21 @@ public:
   /// Discover overlays declared alongside this file and add information about
   /// them to it.
   void findOverlayFiles(SourceLoc diagLoc, ModuleDecl *module, FileUnit *file);
-
-  /// Retrieve the dependencies for the given, named module, or \c None
-  /// if no such module exists.
-  virtual llvm::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>
-  getModuleDependencies(Identifier moduleName,
-                        StringRef moduleOutputPath, StringRef sdkModuleOutputPath,
-                        const llvm::DenseSet<clang::tooling::dependencies::ModuleID> &alreadySeenClangModules,
-                        clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-                        InterfaceSubContextDelegate &delegate,
-                        llvm::PrefixMapper *mapper = nullptr,
-                        bool isTestableImport = false) = 0;
 };
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 template <>
-struct DenseMapInfo<swift::DependencyTracker::MacroPluginDependency> {
-  using MacroPluginDependency = swift::DependencyTracker::MacroPluginDependency;
+struct DenseMapInfo<language::DependencyTracker::MacroPluginDependency> {
+  using MacroPluginDependency = language::DependencyTracker::MacroPluginDependency;
 
   static MacroPluginDependency getEmptyKey() {
-    return {DenseMapInfo<swift::Identifier>::getEmptyKey(), ""};
+    return {DenseMapInfo<language::Identifier>::getEmptyKey(), ""};
   }
 
   static MacroPluginDependency getTombstoneKey() {
-    return {DenseMapInfo<swift::Identifier>::getTombstoneKey(), ""};
+    return {DenseMapInfo<language::Identifier>::getTombstoneKey(), ""};
   }
 
   static unsigned getHashValue(MacroPluginDependency Val) {
@@ -407,6 +392,6 @@ struct DenseMapInfo<swift::DependencyTracker::MacroPluginDependency> {
     return LHS.moduleName == RHS.moduleName && LHS.path == RHS.path;
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
 #endif

@@ -1,0 +1,7 @@
+// RUN: %sourcekitd-test -req=syntax-map %s | %sed_clean > %t.response
+// RUN: %diff -u %s.response %t.response
+
+immutable image = #imageLiteral(resourceName: "cloud.png")
+immutable color = #colorLiteral(red: 1, blue: 0, green: 1, alpha: 1)
+immutable file = #fileLiteral(resourceName: "test.txt")
+

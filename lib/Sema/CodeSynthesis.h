@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a typechecker-internal interface to a bunch of
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPECHECKING_CODESYNTHESIS_H
-#define SWIFT_TYPECHECKING_CODESYNTHESIS_H
+#ifndef LANGUAGE_TYPECHECKING_CODESYNTHESIS_H
+#define LANGUAGE_TYPECHECKING_CODESYNTHESIS_H
 
 #include "language/AST/ASTWalker.h"
 #include "language/AST/ForeignErrorConvention.h"
 #include "language/Basic/ExternalUnion.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include <optional>
 
 namespace language {

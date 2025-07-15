@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 %/s 2>&1 | %FileCheck %s -check-prefix=BASIC
+// BASIC: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code"], output: {object: "[[OBJECT:.*\.o]]"}
+// BASIC: # "x86_64-apple-macosx10.9" - "ld{{(.exe)?}}", inputs: ["[[OBJECT]]"], output: {image: "bindings"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 - 2>&1 | %FileCheck %s -check-prefix=STDIN
+// STDIN: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["-"], output: {object: "[[OBJECT:.*\.o]]"}
+// STDIN: # "x86_64-apple-macosx10.9" - "ld{{(.exe)?}}", inputs: ["[[OBJECT]]"], output: {image: "main"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 %/S/Inputs/invalid-module-name.code 2>&1 | %FileCheck %s -check-prefix=INVALID-NAME-SINGLE-FILE
+// INVALID-NAME-SINGLE-FILE: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}/Inputs/invalid-module-name.code"], output: {object: "[[OBJECT:.*\.o]]"}
+// INVALID-NAME-SINGLE-FILE: # "x86_64-apple-macosx10.9" - "ld{{(.exe)?}}", inputs: ["[[OBJECT]]"], output: {image: "invalid-module-name"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -o NamedOutput %/s 2>&1 | %FileCheck %s -check-prefix=NAMEDIMG
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -module-name NamedOutput %/s 2>&1 | %FileCheck %s -check-prefix=NAMEDIMG
+// NAMEDIMG: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code"], output: {object: "[[OBJECT:.*\.o]]"}
+// NAMEDIMG: # "x86_64-apple-macosx10.9" - "ld{{(.exe)?}}", inputs: ["[[OBJECT]]"], output: {image: "NamedOutput"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -c %/s 2>&1 | %FileCheck %s -check-prefix=OBJ
+// OBJ: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code"], output: {object: "bindings.o"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -c %/s -o /build/bindings.o 2>&1 | %FileCheck %s -check-prefix=NAMEDOBJ
+// NAMEDOBJ: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code"], output: {object: "/build/bindings.o"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -emit-sil %/s 2>&1 | %FileCheck %s -check-prefix=SIL
+// SIL: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code"], output: {sil: "-"}
+
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -emit-ir %S/Inputs/empty.sil 2>&1 | %FileCheck %s -check-prefix=SIL-INPUT
+// SIL-INPUT: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}empty.sil"], output: {toolchain-ir: "-"}
+
+// RUN: echo '{"%/s": {"object": "objroot/bindings.o"}}' > %t/map.json
+// RUN: %languagec_driver -driver-print-bindings -output-file-map %t/map.json -target x86_64-apple-macosx10.9 %/s 2>&1 | %FileCheck %s -check-prefix=MAP
+// MAP: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code"], output: {object: "objroot/bindings.o"}
+
+// RUN: echo '{"": {"object": "objroot/bindings.o"}}' > %t/map.json
+// RUN: %languagec_driver -driver-print-bindings -output-file-map %t/map.json -whole-module-optimization -target x86_64-apple-macosx10.9 %/s %S/Inputs/lib.code 2>&1 | %FileCheck %s -check-prefix=MAP-WFO
+// MAP-WFO: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}bindings.code", "{{.*}}lib.code"], output: {object: "objroot/bindings.o"}
+
+// RUN: touch %t/a.o %t/b.o
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 %t/a.o %t/b.o -o main 2>&1 | %FileCheck %s -check-prefix=LINK-ONLY
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -g %t/a.o %t/b.o -o main 2>&1 | %FileCheck %s -check-prefix=LINK-ONLY
+// LINK-ONLY: # "x86_64-apple-macosx10.9" - "ld{{(.exe)?}}", inputs: ["{{.*}}/a.o", "{{.*}}/b.o"], output: {image: "main"}
+
+// RUN: touch %t/a.codemodule %t/b.codemodule
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -g %t/a.o %t/b.o %t/a.codemodule %t/b.codemodule -o main 2>&1 | %FileCheck %s -check-prefix=DEBUG-LINK-ONLY
+// DEBUG-LINK-ONLY-NOT: "language"
+// DEBUG-LINK-ONLY: # "x86_64-apple-macosx10.9" - "ld{{(.exe)?}}", inputs: ["{{.*}}/a.o", "{{.*}}/b.o", "{{.*}}/a.codemodule", "{{.*}}/b.codemodule"], output: {image: "main"}

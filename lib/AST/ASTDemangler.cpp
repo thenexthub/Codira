@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines a builder concept for the TypeDecoder and MetadataReader which builds
@@ -38,11 +39,11 @@
 #include "language/Basic/Defer.h"
 #include "language/Demangling/Demangler.h"
 #include "language/Demangling/ManglingMacros.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/StringSwitch.h"
 
 using namespace language;
 
-Type swift::Demangle::getTypeForMangling(ASTContext &ctx,
+Type language::Demangle::getTypeForMangling(ASTContext &ctx,
                                          StringRef mangling,
                                          GenericSignature genericSig) {
   Demangle::Context Dem;
@@ -54,7 +55,7 @@ Type swift::Demangle::getTypeForMangling(ASTContext &ctx,
   return builder.decodeMangledType(node);
 }
 
-TypeDecl *swift::Demangle::getTypeDeclForMangling(ASTContext &ctx,
+TypeDecl *language::Demangle::getTypeDeclForMangling(ASTContext &ctx,
                                                   StringRef mangling,
                                                   GenericSignature genericSig) {
   Demangle::Context Dem;
@@ -66,7 +67,7 @@ TypeDecl *swift::Demangle::getTypeDeclForMangling(ASTContext &ctx,
   return builder.createTypeDecl(node);
 }
 
-TypeDecl *swift::Demangle::getTypeDeclForUSR(ASTContext &ctx,
+TypeDecl *language::Demangle::getTypeDeclForUSR(ASTContext &ctx,
                                              StringRef usr,
                                              GenericSignature genericSig) {
   if (!usr.starts_with("s:"))
@@ -79,7 +80,7 @@ TypeDecl *swift::Demangle::getTypeDeclForUSR(ASTContext &ctx,
 }
 
 Type ASTBuilder::decodeMangledType(NodePointer node, bool forRequirement) {
-  return swift::Demangle::decodeMangledType(*this, node, forRequirement)
+  return language::Demangle::decodeMangledType(*this, node, forRequirement)
       .getType();
 }
 
@@ -402,7 +403,7 @@ Type ASTBuilder::createFunctionType(
 
   bool hasIsolatedParameter = false;
 
-  llvm::SmallVector<AnyFunctionType::Param, 8> funcParams;
+  toolchain::SmallVector<AnyFunctionType::Param, 8> funcParams;
   for (const auto &param : params) {
     auto type = param.getType();
 
@@ -428,8 +429,8 @@ Type ASTBuilder::createFunctionType(
 
   FunctionTypeRepresentation representation;
   switch (flags.getConvention()) {
-  case FunctionMetadataConvention::Swift:
-    representation = FunctionTypeRepresentation::Swift;
+  case FunctionMetadataConvention::Codira:
+    representation = FunctionTypeRepresentation::Codira;
     break;
   case FunctionMetadataConvention::Block:
     representation = FunctionTypeRepresentation::Block;
@@ -467,7 +468,7 @@ Type ASTBuilder::createFunctionType(
   }
 
   auto noescape =
-    (representation == FunctionTypeRepresentation::Swift
+    (representation == FunctionTypeRepresentation::Codira
      || representation == FunctionTypeRepresentation::Block)
     && !flags.isEscaping();
 
@@ -514,7 +515,7 @@ getParameterConvention(ImplParameterConvention conv) {
   case Demangle::ImplParameterConvention::Pack_Inout:
     return ParameterConvention::Pack_Inout;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 static std::optional<SILParameterInfo::Options>
@@ -529,6 +530,16 @@ getParameterOptions(ImplParameterInfoOptions implOptions) {
   if (implOptions.contains(ImplParameterInfoFlags::Sending)) {
     implOptions -= ImplParameterInfoFlags::Sending;
     result |= SILParameterInfo::Sending;
+  }
+
+  if (implOptions.contains(ImplParameterInfoFlags::Isolated)) {
+    implOptions -= ImplParameterInfoFlags::Isolated;
+    result |= SILParameterInfo::Isolated;
+  }
+
+  if (implOptions.contains(ImplParameterInfoFlags::ImplicitLeading)) {
+    implOptions -= ImplParameterInfoFlags::ImplicitLeading;
+    result |= SILParameterInfo::ImplicitLeading;
   }
 
   // If we did not handle all flags in implOptions, this code was not updated
@@ -554,7 +565,7 @@ static ResultConvention getResultConvention(ImplResultConvention conv) {
   case Demangle::ImplResultConvention::Pack:
     return ResultConvention::Pack;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 static std::optional<SILResultInfo::Options>
@@ -591,7 +602,7 @@ getCoroutineKind(ImplCoroutineKind kind) {
   case ImplCoroutineKind::YieldMany:
     return SILCoroutineKind::YieldMany;
   }
-  llvm_unreachable("unknown coroutine kind");
+  toolchain_unreachable("unknown coroutine kind");
 }
 
 Type ASTBuilder::createImplFunctionType(
@@ -637,11 +648,11 @@ Type ASTBuilder::createImplFunctionType(
     break;
   }
 
-  swift::DifferentiabilityKind diffKind;
+  language::DifferentiabilityKind diffKind;
   switch (flags.getDifferentiabilityKind()) {
   #define SIMPLE_CASE(CASE) \
       case ImplFunctionDifferentiabilityKind::CASE: \
-        diffKind = swift::DifferentiabilityKind::CASE; break;
+        diffKind = language::DifferentiabilityKind::CASE; break;
   SIMPLE_CASE(NonDifferentiable)
   SIMPLE_CASE(Forward)
   SIMPLE_CASE(Reverse)
@@ -658,9 +669,9 @@ Type ASTBuilder::createImplFunctionType(
   // occur in well-formed programs.
   bool unimplementable = false;
 
-  llvm::SmallVector<SILParameterInfo, 8> funcParams;
-  llvm::SmallVector<SILYieldInfo, 8> funcYields;
-  llvm::SmallVector<SILResultInfo, 8> funcResults;
+  toolchain::SmallVector<SILParameterInfo, 8> funcParams;
+  toolchain::SmallVector<SILYieldInfo, 8> funcYields;
+  toolchain::SmallVector<SILResultInfo, 8> funcResults;
   std::optional<SILResultInfo> funcErrorResult;
 
   for (const auto &param : params) {
@@ -751,7 +762,7 @@ getMetatypeRepresentation(ImplMetatypeRepresentation repr) {
   case Demangle::ImplMetatypeRepresentation::ObjC:
     return MetatypeRepresentation::ObjC;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 Type ASTBuilder::createExistentialMetatypeType(
@@ -770,65 +781,88 @@ Type ASTBuilder::createExistentialMetatypeType(
 Type ASTBuilder::createConstrainedExistentialType(
     Type base, ArrayRef<BuiltRequirement> constraints,
     ArrayRef<BuiltInverseRequirement> inverseRequirements) {
-  Type constrainedBase;
+  toolchain::SmallDenseMap<AssociatedTypeDecl *, Type> primaryAssociatedTypes;
+  toolchain::SmallDenseSet<AssociatedTypeDecl *> claimed;
 
-  if (auto baseTy = base->getAs<ProtocolType>()) {
-    auto baseDecl = baseTy->getDecl();
-    llvm::SmallDenseMap<Identifier, Type> cmap;
-    for (const auto &req : constraints) {
-      switch (req.getKind()) {
-      case RequirementKind::SameShape:
-        llvm_unreachable("Same-shape requirement not supported here");
-      case RequirementKind::Conformance:
-      case RequirementKind::Superclass:
-      case RequirementKind::Layout:
-        continue;
+  for (const auto &req : constraints) {
+    switch (req.getKind()) {
+    case RequirementKind::SameShape:
+    case RequirementKind::Conformance:
+    case RequirementKind::Superclass:
+    case RequirementKind::Layout:
+      break;
 
-      case RequirementKind::SameType:
-        if (auto *DMT = req.getFirstType()->getAs<DependentMemberType>())
-          cmap[DMT->getName()] = req.getSecondType();
+    case RequirementKind::SameType: {
+      if (auto *memberTy = req.getFirstType()->getAs<DependentMemberType>()) {
+        if (memberTy->getBase()->is<GenericTypeParamType>()) {
+          // This is the only case we understand so far.
+          primaryAssociatedTypes[memberTy->getAssocType()] = req.getSecondType();
+          continue;
+        }
       }
+      break;
     }
-    llvm::SmallVector<Type, 4> args;
-    for (auto *assocTy : baseDecl->getPrimaryAssociatedTypes()) {
-      auto argTy = cmap.find(assocTy->getName());
-      if (argTy == cmap.end()) {
-        return Type();
-      }
-      args.push_back(argTy->getSecond());
+    }
+
+    // If we end here, we didn't recognize this requirement.
+    return Type();
+  }
+
+  auto maybeFormParameterizedProtocolType = [&](ProtocolType *protoTy) -> Type {
+    auto *proto = protoTy->getDecl();
+
+    toolchain::SmallVector<Type, 4> args;
+    for (auto *assocTy : proto->getPrimaryAssociatedTypes()) {
+      auto found = primaryAssociatedTypes.find(assocTy);
+      if (found == primaryAssociatedTypes.end())
+        return protoTy;
+      args.push_back(found->second);
+      claimed.insert(found->first);
     }
 
     // We may not have any arguments because the constrained existential is a
     // plain protocol with an inverse requirement.
-    if (args.empty()) {
-      constrainedBase =
-          ProtocolType::get(baseDecl, baseTy, base->getASTContext());
-    } else {
-      constrainedBase =
-          ParameterizedProtocolType::get(base->getASTContext(), baseTy, args);
-    }
-  } else if (base->isAny()) {
-    // The only other case should be that we got an empty PCT, which is equal to
-    // the Any type. The other constraints should have been encoded in the
-    // existential's generic signature (and arrive as BuiltInverseRequirement).
-    constrainedBase = base;
+    if (args.empty())
+      return protoTy;
+
+    return ParameterizedProtocolType::get(Ctx, protoTy, args);
+  };
+
+  SmallVector<Type, 2> members;
+  bool hasExplicitAnyObject = false;
+  InvertibleProtocolSet inverses;
+
+  // We're given either a single protocol type, or a composition of protocol
+  // types. Transform each protocol type to add arguments, if necessary.
+  if (auto protoTy = base->getAs<ProtocolType>()) {
+    members.push_back(maybeFormParameterizedProtocolType(protoTy));
   } else {
-    return Type();
+    auto compositionTy = base->castTo<ProtocolCompositionType>();
+    hasExplicitAnyObject = compositionTy->hasExplicitAnyObject();
+    ASSERT(compositionTy->getInverses().empty());
+
+    for (auto member : compositionTy->getMembers()) {
+      if (auto *protoTy = member->getAs<ProtocolType>()) {
+        members.push_back(maybeFormParameterizedProtocolType(protoTy));
+        continue;
+      }
+      ASSERT(member->getClassOrBoundGenericClass());
+      members.push_back(member);
+    }
   }
 
-  assert(constrainedBase);
+  // Make sure that all arguments were actually used.
+  ASSERT(claimed.size() == primaryAssociatedTypes.size());
 
   // Handle inverse requirements.
   if (!inverseRequirements.empty()) {
-    InvertibleProtocolSet inverseSet;
     for (const auto &inverseReq : inverseRequirements) {
-      inverseSet.insert(inverseReq.getKind());
+      inverses.insert(inverseReq.getKind());
     }
-    constrainedBase = ProtocolCompositionType::get(
-        Ctx, { constrainedBase }, inverseSet, /*hasExplicitAnyObject=*/false);
   }
 
-  return ExistentialType::get(constrainedBase);
+  return ExistentialType::get(ProtocolCompositionType::get(
+      Ctx, members, inverses, hasExplicitAnyObject));
 }
 
 Type ASTBuilder::createSymbolicExtendedExistentialType(NodePointer shapeNode,
@@ -965,7 +999,7 @@ Type ASTBuilder::createSILBoxTypeWithLayout(
   if (!genericTypeParams.empty()) {
     SmallVector<BuiltRequirement, 2> RequirementsVec(Requirements);
     appendInversesAsRequirements(InverseRequirements, RequirementsVec);
-    signature = swift::buildGenericSignature(Ctx,
+    signature = language::buildGenericSignature(Ctx,
                                              signature,
                                              genericTypeParams,
                                              std::move(RequirementsVec),
@@ -1164,7 +1198,7 @@ ASTBuilder::createTypeDecl(NodePointer node,
   return dyn_cast<GenericTypeDecl>(DC);
 }
 
-llvm::ArrayRef<ModuleDecl *>
+toolchain::ArrayRef<ModuleDecl *>
 ASTBuilder::findPotentialModules(NodePointer node) {
   assert(node->getKind() == Demangle::Node::Kind::Module);
   const auto moduleName = node->getText();
@@ -1193,7 +1227,7 @@ ASTBuilder::getForeignModuleKind(NodePointer node) {
   if (node->getKind() != Demangle::Node::Kind::Module)
     return std::nullopt;
 
-  return llvm::StringSwitch<std::optional<ForeignModuleKind>>(node->getText())
+  return toolchain::StringSwitch<std::optional<ForeignModuleKind>>(node->getText())
       .Case(MANGLING_MODULE_OBJC, ForeignModuleKind::Imported)
       .Case(MANGLING_MODULE_CLANG_IMPORTER,
             ForeignModuleKind::SynthesizedByImporter)
@@ -1239,7 +1273,7 @@ CanGenericSignature ASTBuilder::demangleGenericSignature(
       ValueParameters.emplace_back(tuple);
     }
   }
-  SWIFT_DEFER { popGenericParams(); };
+  LANGUAGE_DEFER { popGenericParams(); };
 
   // Constrained extensions mangle the subset of requirements not satisfied
   // by the nominal's generic signature.
@@ -1478,7 +1512,7 @@ ASTBuilder::findTypeDecl(DeclContext *dc,
   }
 
   // If we looked into the standard library module, but didn't find anything,
-  // try the _Concurrency module, which is also mangled into the Swift module.
+  // try the _Concurrency module, which is also mangled into the Codira module.
   if (!result && !dc->getParent() && module->isStdlibModule()) {
     ASTContext &ctx = module->getASTContext();
     if (auto concurrencyModule = ctx.getLoadedModule(ctx.Id_Concurrency)) {

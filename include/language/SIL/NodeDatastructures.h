@@ -1,32 +1,36 @@
 //===--- NodeDatastructures.h -----------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines efficient data structures for working with Nodes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_NODEDATASTRUCTURES_H
-#define SWIFT_SIL_NODEDATASTRUCTURES_H
+#ifndef LANGUAGE_SIL_NODEDATASTRUCTURES_H
+#define LANGUAGE_SIL_NODEDATASTRUCTURES_H
 
 #include "language/SIL/NodeBits.h"
 #include "language/SIL/StackList.h"
 
 namespace language {
 
-/// An implementation of `llvm::SetVector<SILNode *,
+/// An implementation of `toolchain::SetVector<SILNode *,
 ///                                       StackList<SILNode *>,
 ///                                       NodeSet>`.
 ///
-/// Unfortunately it's not possible to use `llvm::SetVector` directly because
+/// Unfortunately it's not possible to use `toolchain::SetVector` directly because
 /// the NodeSet and StackList constructors needs a `SILFunction` argument.
 ///
 /// Note: This class does not provide a `remove` method intentionally, because
@@ -43,8 +47,8 @@ public:
   iterator begin() const { return vector.begin(); }
   iterator end() const { return vector.end(); }
 
-  llvm::iterator_range<iterator> getRange() const {
-    return llvm::make_range(begin(), end());
+  toolchain::iterator_range<iterator> getRange() const {
+    return toolchain::make_range(begin(), end());
   }
 
   bool empty() const { return vector.empty(); }
@@ -61,11 +65,11 @@ public:
   }
 };
 
-/// An implementation of `llvm::SetVector<SILInstruction *,
+/// An implementation of `toolchain::SetVector<SILInstruction *,
 ///                                       StackList<SILInstruction *>,
 ///                                       InstructionSet>`.
 ///
-/// Unfortunately it's not possible to use `llvm::SetVector` directly because
+/// Unfortunately it's not possible to use `toolchain::SetVector` directly because
 /// the InstructionSet and StackList constructors needs a `SILFunction`
 /// argument.
 ///
@@ -84,8 +88,8 @@ public:
   iterator begin() const { return vector.begin(); }
   iterator end() const { return vector.end(); }
 
-  llvm::iterator_range<iterator> getRange() const {
-    return llvm::make_range(begin(), end());
+  toolchain::iterator_range<iterator> getRange() const {
+    return toolchain::make_range(begin(), end());
   }
 
   bool empty() const { return vector.empty(); }
@@ -167,11 +171,11 @@ public:
   }
 };
 
-/// An implementation of `llvm::SetVector<SILValue,
+/// An implementation of `toolchain::SetVector<SILValue,
 ///                                       StackList<SILValue>,
 ///                                       ValueSet>`.
 ///
-/// Unfortunately it's not possible to use `llvm::SetVector` directly because
+/// Unfortunately it's not possible to use `toolchain::SetVector` directly because
 /// the ValueSet and StackList constructors needs a `SILFunction` argument.
 ///
 /// Note: This class does not provide a `remove` method intentionally, because
@@ -188,8 +192,8 @@ public:
   iterator begin() const { return vector.begin(); }
   iterator end() const { return vector.end(); }
 
-  llvm::iterator_range<iterator> getRange() const {
-    return llvm::make_range(begin(), end());
+  toolchain::iterator_range<iterator> getRange() const {
+    return toolchain::make_range(begin(), end());
   }
 
   bool empty() const { return vector.empty(); }

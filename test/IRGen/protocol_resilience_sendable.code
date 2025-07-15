@@ -1,0 +1,60 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -enable-library-evolution -emit-module-path=%t/resilient_protocol.codemodule -module-name=resilient_protocol %S/../Inputs/resilient_protocol.code
+// RUN: %target-language-frontend -emit-module -emit-module-path=%t/non_resilient_protocol.codemodule -module-name=non_resilient_protocol %S/../Inputs/non_resilient_protocol.code
+
+// RUN: %target-language-frontend -I %t -emit-ir %s -target %target-cpu-apple-macos14.0 | %FileCheck %s -DINT=i%target-ptrsize -check-prefix=CHECK-USAGE -check-prefix=CHECK-USAGE-BEFORE
+// RUN: %target-language-frontend -I %t -emit-ir %s -target %target-cpu-apple-macos15.0 | %FileCheck %s -DINT=i%target-ptrsize -check-prefix=CHECK-USAGE -check-prefix=CHECK-USAGE-AFTER
+
+// RUN: %target-language-frontend -I %t -emit-ir %s -target %target-cpu-apple-macos14.0 -enable-library-evolution | %FileCheck %s -DINT=i%target-ptrsize -check-prefix=CHECK-USAGE -check-prefix=CHECK-USAGE-BEFORE
+// RUN: %target-language-frontend -I %t -emit-ir %s -target %target-cpu-apple-macos15.0 -enable-library-evolution | %FileCheck %s -DINT=i%target-ptrsize -check-prefix=CHECK-USAGE -check-prefix=CHECK-USAGE-AFTER
+
+// REQUIRES: OS=macosx
+// UNSUPPORTED: CPU=arm64e
+
+import resilient_protocol
+import non_resilient_protocol
+
+// CHECK-USAGE: @"$s28protocol_resilience_sendable9LocalTypeVAA0D11SubProtocolAAWP" = hidden constant [3 x ptr] [
+// CHECK-USAGE-SAME: ptr @"$s28protocol_resilience_sendable9LocalTypeVAA0D11SubProtocolAAMc",
+// CHECK-USAGE-SAME: ptr @"$s28protocol_resilience_sendable9LocalTypeVAA0D8ProtocolAAWP",
+// CHECK-USAGE-SAME: ptr @"$s28protocol_resilience_sendable9LocalTypeVAA0D11SubProtocolA2aDP9subMethodyyFTW"
+public protocol LocalProtocol: Sendable {
+  fn method()
+}
+
+protocol LocalSubProtocol: Sendable, LocalProtocol {
+  fn subMethod()
+}
+
+struct LocalType: Sendable, LocalSubProtocol {
+  fn method() { }
+  fn subMethod() { }
+}
+
+fn acceptLocalProtocol<T: LocalProtocol>(_: T.Type) { }
+fn testLocalType() {
+  acceptLocalProtocol(LocalType.this)
+}
+
+
+fn acceptResilientSendableBase<T: ResilientSendableBase>(_: T.Type) { }
+
+// CHECK-USAGE: define{{.*}}languagecc void @"$s28protocol_resilience_sendable25passResilientSendableBaseyyF"()
+fn passResilientSendableBase() {
+  // CHECK-USAGE-NOT: ret
+  // CHECK-USAGE: [[METATYPE:%.*]] = extractvalue
+  // CHECK-USAGE-BEFORE: [[WITNESS_TABLE:%.*]] = call ptr @"$s18resilient_protocol27ConformsToResilientSendableVAcA0eF4BaseAAWl"()
+  // CHECK-USAGE-BEFORE-NEXT: call languagecc void @"$s28protocol_resilience_sendable27acceptResilientSendableBaseyyxm010resilient_A00efG0RzlF"(ptr [[METATYPE]], ptr [[METATYPE]], ptr [[WITNESS_TABLE]])
+  // CHECK-USAGE-AFTER-NEXT: call languagecc void @"$s28protocol_resilience_sendable27acceptResilientSendableBaseyyxm010resilient_A00efG0RzlF"(ptr [[METATYPE]], ptr [[METATYPE]], ptr @"$s18resilient_protocol27ConformsToResilientSendableVAA0eF4BaseAAWP")
+  acceptResilientSendableBase(ConformsToResilientSendable.this)
+}
+
+fn acceptNonResilientSendableBase<T: NonResilientSendableBase>(_: T.Type) { }
+
+// CHECK-USAGE: define{{.*}}languagecc void @"$s28protocol_resilience_sendable28passNonResilientSendableBaseyyF"()
+fn passNonResilientSendableBase() {
+  // CHECK-USAGE-NOT: ret
+  // CHECK-USAGE: call languagecc void @"$s28protocol_resilience_sendable30acceptNonResilientSendableBaseyyxm014non_resilient_A00efgH0RzlF"(ptr @"$s22non_resilient_protocol30ConformsToNonResilientSendableVN", ptr @"$s22non_resilient_protocol30ConformsToNonResilientSendableVN", ptr @"$s22non_resilient_protocol30ConformsToNonResilientSendableVAA0fgH4BaseAAWP")
+  acceptNonResilientSendableBase(ConformsToNonResilientSendable.this)
+}

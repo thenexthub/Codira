@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_INDENTING_H
-#define SWIFT_INDENTING_H
+#ifndef LANGUAGE_INDENTING_H
+#define LANGUAGE_INDENTING_H
 
 namespace language {
 namespace ide {
@@ -104,4 +105,4 @@ std::pair<LineRange, std::string> reformat(LineRange Range,
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_INDENTING_H
+#endif // LANGUAGE_INDENTING_H

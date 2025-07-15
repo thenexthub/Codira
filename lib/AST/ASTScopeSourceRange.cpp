@@ -1,4 +1,4 @@
-//===--- ASTScopeSourceRange.cpp - Swift Object-Oriented AST Scope --------===//
+//===--- ASTScopeSourceRange.cpp - Codira Object-Oriented AST Scope --------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements the source range queries for the ASTScopeImpl ontology.
@@ -34,7 +35,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include <algorithm>
 
 using namespace language;
@@ -79,7 +80,7 @@ void ASTScopeImpl::checkSourceRangeBeforeAddingChild(ASTScopeImpl *child,
   auto childCharRange = child->getCharSourceRangeOfScope(sourceMgr);
 
   if (!containedInParent(childCharRange)) {
-    abortWithVerificationError([&](llvm::raw_ostream &out) {
+    abortWithVerificationError([&](toolchain::raw_ostream &out) {
       out << "child not contained in its parent:\n";
       child->print(out);
       out << "\n***Parent node***\n";
@@ -93,7 +94,7 @@ void ASTScopeImpl::checkSourceRangeBeforeAddingChild(ASTScopeImpl *child,
         sourceMgr).End;
 
     if (!sourceMgr.isAtOrBefore(endOfPreviousChild, childCharRange.Start)) {
-      abortWithVerificationError([&](llvm::raw_ostream &out) {
+      abortWithVerificationError([&](toolchain::raw_ostream &out) {
         out << "child overlaps previous child:\n";
         child->print(out);
         out << "\n***Previous child\n";

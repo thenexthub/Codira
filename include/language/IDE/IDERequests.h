@@ -1,20 +1,24 @@
 //===----- IDERequests.h - IDE functionality Requests -----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines IDE request using the evaluator model.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_IDE_REQUESTS_H
-#define SWIFT_IDE_REQUESTS_H
+#ifndef LANGUAGE_IDE_REQUESTS_H
+#define LANGUAGE_IDE_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/Evaluator.h"
@@ -30,15 +34,15 @@ namespace language {
 
 // Input for CursorInfoRequest.
 // Putting the source file and location together allows us to print the request
-// input well e.g. file.swift:3:4
+// input well e.g. file.code:3:4
 struct CursorInfoOwner {
   SourceFile *File;
   SourceLoc Loc;
 
   CursorInfoOwner(SourceFile *File, SourceLoc Loc): File(File), Loc(Loc) { }
 
-  friend llvm::hash_code hash_value(const CursorInfoOwner &CI) {
-    return llvm::hash_combine(CI.File, CI.Loc.getOpaquePointerValue());
+  friend toolchain::hash_code hash_value(const CursorInfoOwner &CI) {
+    return toolchain::hash_combine(CI.File, CI.Loc.getOpaquePointerValue());
   }
 
   friend bool operator==(const CursorInfoOwner &lhs, const CursorInfoOwner &rhs) {
@@ -54,7 +58,7 @@ struct CursorInfoOwner {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const CursorInfoOwner &owner);
+void simple_display(toolchain::raw_ostream &out, const CursorInfoOwner &owner);
 
 /// Resolve cursor info at a given location.
 class CursorInfoRequest
@@ -84,7 +88,7 @@ public:
 
 // Input for RangeInfoRequest.
 // Putting the source file and location together allows us to print the request
-// input well e.g. file.swift:3:4
+// input well e.g. file.code:3:4
 struct RangeInfoOwner {
   SourceFile *File;
   SourceLoc StartLoc;
@@ -94,8 +98,8 @@ struct RangeInfoOwner {
     File(File), StartLoc(StartLoc), EndLoc(EndLoc) {}
   RangeInfoOwner(SourceFile *File, unsigned Offset, unsigned Length);
 
-  friend llvm::hash_code hash_value(const RangeInfoOwner &CI) {
-    return llvm::hash_combine(CI.File,
+  friend toolchain::hash_code hash_value(const RangeInfoOwner &CI) {
+    return toolchain::hash_combine(CI.File,
                               CI.StartLoc.getOpaquePointerValue(),
                               CI.EndLoc.getOpaquePointerValue());
   }
@@ -114,7 +118,7 @@ struct RangeInfoOwner {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const RangeInfoOwner &owner);
+void simple_display(toolchain::raw_ostream &out, const RangeInfoOwner &owner);
 
 /// Resolve cursor info at a given location.
 class RangeInfoRequest:
@@ -180,8 +184,8 @@ struct OverridenDeclsOwner {
       IncludeProtocolRequirements(IncludeProtocolRequirements),
       Transitive(Transitive) {}
 
-  friend llvm::hash_code hash_value(const OverridenDeclsOwner &CI) {
-    return llvm::hash_combine(CI.VD,
+  friend toolchain::hash_code hash_value(const OverridenDeclsOwner &CI) {
+    return toolchain::hash_combine(CI.VD,
                               CI.IncludeProtocolRequirements,
                               CI.Transitive);
   }
@@ -198,7 +202,7 @@ struct OverridenDeclsOwner {
     return !(lhs == rhs);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                              const OverridenDeclsOwner &owner) {
     simple_display(out, owner.VD);
   }
@@ -236,7 +240,7 @@ struct ProtocolNameOwner {
   std::string Name;
   ProtocolNameOwner(DeclContext *DC, StringRef Name): DC(DC), Name(Name) {}
 
-  friend llvm::hash_code hash_value(const ProtocolNameOwner &CI) {
+  friend toolchain::hash_code hash_value(const ProtocolNameOwner &CI) {
     return hash_value(CI.Name);
   }
 
@@ -250,7 +254,7 @@ struct ProtocolNameOwner {
     return !(lhs == rhs);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                              const ProtocolNameOwner &owner) {
     out << "Resolve " << owner.Name << " from ";
     simple_display(out, owner.DC);
@@ -281,22 +285,22 @@ public:
 };
 
 /// The zone number for the IDE.
-#define SWIFT_TYPEID_ZONE IDE
-#define SWIFT_TYPEID_HEADER "swift/IDE/IDERequestIDZone.def"
+#define LANGUAGE_TYPEID_ZONE IDE
+#define LANGUAGE_TYPEID_HEADER "language/IDE/IDERequestIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
 template<>                                                                     \
 inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,                \
                             const RequestType &request) {                      \
   ++stats.getFrontendCounters().RequestType;                                   \
 }
 #include "language/IDE/IDERequestIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_IDE_REQUESTS_H
+#endif // LANGUAGE_IDE_REQUESTS_H

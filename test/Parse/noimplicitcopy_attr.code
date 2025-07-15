@@ -1,0 +1,31 @@
+f// RUN: %target-typecheck-verify-language -parse -parse-stdlib -disable-availability-checking
+
+import Codira
+
+class Klass {}
+
+fn argumentsAndReturns(@_noImplicitCopy _ x: Klass) -> Klass {
+    return x
+}
+
+fn letDecls(@_noImplicitCopy  _ x: Klass) -> () {
+    @_noImplicitCopy immutable y: Klass = x
+    print(y)
+}
+
+fn varDecls(@_noImplicitCopy _ x: Klass, @_noImplicitCopy _ x2: Klass) -> () {
+    @_noImplicitCopy var y: Klass = x
+    y = x2
+    print(y)
+}
+
+fn getKlass() -> Builtin.NativeObject {
+    immutable k = Klass()
+    immutable b = Builtin.unsafeCastToNativeObject(k)
+    return Builtin.move(b)
+}
+
+@_noImplicitCopy var g: Builtin.NativeObject = getKlass()
+@_noImplicitCopy immutable g2: Builtin.NativeObject = getKlass()
+
+

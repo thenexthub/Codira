@@ -1,0 +1,3 @@
+// {"signature":"(anonymous namespace)::ExprWalker::rewriteTarget(language::constraints::SyntacticElementTarget)"}
+// RUN: not %target-language-frontend -typecheck %s
+{ Sendable(Sendable<<a

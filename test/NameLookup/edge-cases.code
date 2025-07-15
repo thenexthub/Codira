@@ -1,0 +1,21 @@
+// RUN: %target-typecheck-verify-language
+
+struct A {}
+struct B {}
+
+fn other() -> A {}
+
+fn takesB(_: B) {}
+
+fn multipleLocalResults1() {
+  fn other() -> B {}
+  immutable result = other()
+  takesB(result)
+}
+
+fn multipleLocalResults2() {
+  fn other() -> B {}
+  immutable result = other()
+  takesB(result)
+  immutable other: Int = 123 // expected-warning {{never used}}
+}

@@ -1,12 +1,12 @@
-//===--- Bridging/DiagnosticsBridging.cpp.cpp -----------------------------===//
+//===--- Bridging/DiagnosticsBridging.cpp -----------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,6 +15,7 @@
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsCommon.h"
 #include "language/Basic/Assertions.h"
+#include "language/Basic/SourceManager.h"
 
 using namespace language;
 
@@ -25,7 +26,7 @@ using namespace language;
 static_assert(sizeof(BridgedDiagnosticArgument) >= sizeof(DiagnosticArgument),
               "BridgedDiagnosticArgument has wrong size");
 
-BridgedDiagnosticArgument::BridgedDiagnosticArgument(SwiftInt i)
+BridgedDiagnosticArgument::BridgedDiagnosticArgument(CodiraInt i)
     : BridgedDiagnosticArgument(DiagnosticArgument((int)i)) {}
 
 BridgedDiagnosticArgument::BridgedDiagnosticArgument(BridgedStringRef s)
@@ -34,8 +35,8 @@ BridgedDiagnosticArgument::BridgedDiagnosticArgument(BridgedStringRef s)
 static_assert(sizeof(BridgedDiagnosticFixIt) >= sizeof(DiagnosticInfo::FixIt),
               "BridgedDiagnosticFixIt has wrong size");
 
-const swift::DiagnosticInfo::FixIt &unbridge(const BridgedDiagnosticFixIt &fixit) {
-  return *reinterpret_cast<const swift::DiagnosticInfo::FixIt *>(&fixit.storage);
+const language::DiagnosticInfo::FixIt &unbridge(const BridgedDiagnosticFixIt &fixit) {
+  return *reinterpret_cast<const language::DiagnosticInfo::FixIt *>(&fixit.storage);
 }
 
 BridgedDiagnosticFixIt::BridgedDiagnosticFixIt(BridgedSourceLoc start,
@@ -43,19 +44,17 @@ BridgedDiagnosticFixIt::BridgedDiagnosticFixIt(BridgedSourceLoc start,
                                                BridgedStringRef text) {
   DiagnosticInfo::FixIt fixit(
           CharSourceRange(start.unbridged(), length), text.unbridged(),
-          llvm::ArrayRef<DiagnosticArgument>());
-  *reinterpret_cast<swift::DiagnosticInfo::FixIt *>(&storage) = fixit;
+          toolchain::ArrayRef<DiagnosticArgument>());
+  *reinterpret_cast<language::DiagnosticInfo::FixIt *>(&storage) = fixit;
 }
 
 void BridgedDiagnosticEngine_diagnose(
-    BridgedDiagnosticEngine bridgedEngine, BridgedSourceLoc loc,
-    BridgedDiagID bridgedDiagID,
+    BridgedDiagnosticEngine bridgedEngine, BridgedSourceLoc loc, DiagID diagID,
     BridgedArrayRef /*BridgedDiagnosticArgument*/ bridgedArguments,
     BridgedSourceLoc highlightStart, uint32_t hightlightLength,
     BridgedArrayRef /*BridgedDiagnosticFixIt*/ bridgedFixIts) {
   auto *D = bridgedEngine.unbridged();
 
-  auto diagID = static_cast<DiagID>(bridgedDiagID);
   SmallVector<DiagnosticArgument, 2> arguments;
   for (auto arg : bridgedArguments.unbridged<BridgedDiagnosticArgument>()) {
     arguments.push_back(arg.unbridged());
@@ -78,13 +77,21 @@ void BridgedDiagnosticEngine_diagnose(
   }
 }
 
+BridgedSourceLoc BridgedDiagnostic_getLocationFromExternalSource(
+    BridgedDiagnosticEngine bridgedEngine, BridgedStringRef path,
+    CodiraInt line, CodiraInt column) {
+  auto *d = bridgedEngine.unbridged();
+  auto loc = d->SourceMgr.getLocFromExternalSource(path.unbridged(), line, column);
+  return BridgedSourceLoc(loc.getOpaquePointerValue());
+}
+
 bool BridgedDiagnosticEngine_hadAnyError(
     BridgedDiagnosticEngine bridgedEngine) {
   return bridgedEngine.unbridged()->hadAnyError();
 }
 
 struct BridgedDiagnostic::Impl {
-  typedef llvm::MallocAllocator Allocator;
+  typedef toolchain::MallocAllocator Allocator;
 
   InFlightDiagnostic inFlight;
   std::vector<StringRef> textBlobs;
@@ -109,7 +116,7 @@ struct BridgedDiagnostic::Impl {
 
 BridgedDiagnostic BridgedDiagnostic_create(BridgedSourceLoc cLoc,
                                            BridgedStringRef cText,
-                                           BridgedDiagnosticSeverity severity,
+                                           DiagnosticKind severity,
                                            BridgedDiagnosticEngine cDiags) {
   StringRef origText = cText.unbridged();
   BridgedDiagnostic::Impl::Allocator alloc;
@@ -119,19 +126,16 @@ BridgedDiagnostic BridgedDiagnostic_create(BridgedSourceLoc cLoc,
 
   Diag<StringRef> diagID;
   switch (severity) {
-  case BridgedDiagnosticSeverity::BridgedError:
+  case DiagnosticKind::Error:
     diagID = diag::bridged_error;
     break;
-  case BridgedDiagnosticSeverity::BridgedFatalError:
-    diagID = diag::bridged_fatal_error;
-    break;
-  case BridgedDiagnosticSeverity::BridgedNote:
+  case DiagnosticKind::Note:
     diagID = diag::bridged_note;
     break;
-  case BridgedDiagnosticSeverity::BridgedRemark:
+  case DiagnosticKind::Remark:
     diagID = diag::bridged_remark;
     break;
-  case BridgedDiagnosticSeverity::BridgedWarning:
+  case DiagnosticKind::Warning:
     diagID = diag::bridged_warning;
     break;
   }

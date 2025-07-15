@@ -1,4 +1,4 @@
-//===--- IRBuilder.h - Swift IR Builder -------------------------*- C++ -*-===//
+//===--- IRBuilder.h - Codira IR Builder -------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines Swift's specialization of llvm::IRBuilder.
+// This file defines Codira's specialization of toolchain::IRBuilder.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRBUILDER_H
-#define SWIFT_IRGEN_IRBUILDER_H
+#ifndef LANGUAGE_IRGEN_IRBUILDER_H
+#define LANGUAGE_IRGEN_IRBUILDER_H
 
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/InlineAsm.h"
-#include "language/Basic/LLVM.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/IR/IRBuilder.h"
+#include "toolchain/IR/InlineAsm.h"
+#include "language/Basic/Toolchain.h"
 #include "Address.h"
 #include "IRGen.h"
 
@@ -32,11 +33,11 @@ namespace irgen {
 class FunctionPointer;
 class IRGenModule;
 
-using IRBuilderBase = llvm::IRBuilder<>;
+using IRBuilderBase = toolchain::IRBuilder<>;
 
 class IRBuilder : public IRBuilderBase {
 public:
-  // Without this, it keeps resolving to llvm::IRBuilderBase because
+  // Without this, it keeps resolving to toolchain::IRBuilderBase because
   // of the injected class name.
   using IRBuilderBase = irgen::IRBuilderBase;
 
@@ -44,7 +45,7 @@ private:
   /// The block containing the insertion point when the insertion
   /// point was last cleared.  Used only for preserving block
   /// ordering.
-  llvm::BasicBlock *ClearedIP;
+  toolchain::BasicBlock *ClearedIP;
   unsigned NumTrapBarriers = 0;
 
 #ifndef NDEBUG
@@ -55,7 +56,7 @@ private:
   // Set calling convention of the call instruction using
   // the same calling convention as the callee function.
   // This ensures that they are always compatible.
-  void setCallingConvUsingCallee(llvm::CallBase *Call) {
+  void setCallingConvUsingCallee(toolchain::CallBase *Call) {
     auto CalleeFn = Call->getCalledFunction();
     if (CalleeFn) {
       auto CC = CalleeFn->getCallingConv();
@@ -64,7 +65,7 @@ private:
   }
 
 public:
-  IRBuilder(llvm::LLVMContext &Context, bool DebugInfo)
+  IRBuilder(toolchain::LLVMContext &Context, bool DebugInfo)
     : IRBuilderBase(Context), ClearedIP(nullptr)
 #ifndef NDEBUG
     , DebugInfo(DebugInfo)
@@ -100,23 +101,23 @@ public:
     IRBuilderBase::ClearInsertionPoint();
   }
 
-  void SetInsertPoint(llvm::BasicBlock *BB) {
+  void SetInsertPoint(toolchain::BasicBlock *BB) {
     ClearedIP = nullptr;
     IRBuilderBase::SetInsertPoint(BB);
   }
   
-  void SetInsertPoint(llvm::BasicBlock *BB, llvm::BasicBlock::iterator before) {
+  void SetInsertPoint(toolchain::BasicBlock *BB, toolchain::BasicBlock::iterator before) {
     ClearedIP = nullptr;
     IRBuilderBase::SetInsertPoint(BB, before);
   }
 
-  void SetInsertPoint(llvm::Instruction *I) {
+  void SetInsertPoint(toolchain::Instruction *I) {
     ClearedIP = nullptr;
     IRBuilderBase::SetInsertPoint(I);
   }
 
   /// Return the LLVM module we're inserting into.
-  llvm::Module *getModule() const {
+  toolchain::Module *getModule() const {
     if (auto BB = GetInsertBlock())
       return BB->getModule();
     assert(ClearedIP && "IRBuilder has no active or cleared insertion block");
@@ -124,84 +125,84 @@ public:
   }
 
   using IRBuilderBase::CreateAnd;
-  llvm::Value *CreateAnd(llvm::Value *LHS, llvm::Value *RHS,
+  toolchain::Value *CreateAnd(toolchain::Value *LHS, toolchain::Value *RHS,
                          const Twine &Name = "") {
-    if (auto *RC = dyn_cast<llvm::Constant>(RHS))
-      if (isa<llvm::ConstantInt>(RC) &&
-          cast<llvm::ConstantInt>(RC)->isMinusOne())
+    if (auto *RC = dyn_cast<toolchain::Constant>(RHS))
+      if (isa<toolchain::ConstantInt>(RC) &&
+          cast<toolchain::ConstantInt>(RC)->isMinusOne())
         return LHS;  // LHS & -1 -> LHS
      return IRBuilderBase::CreateAnd(LHS, RHS, Name);
   }
-  llvm::Value *CreateAnd(llvm::Value *LHS, const APInt &RHS,
+  toolchain::Value *CreateAnd(toolchain::Value *LHS, const APInt &RHS,
                          const Twine &Name = "") {
-    return CreateAnd(LHS, llvm::ConstantInt::get(LHS->getType(), RHS), Name);
+    return CreateAnd(LHS, toolchain::ConstantInt::get(LHS->getType(), RHS), Name);
   }
-  llvm::Value *CreateAnd(llvm::Value *LHS, uint64_t RHS, const Twine &Name = "") {
-    return CreateAnd(LHS, llvm::ConstantInt::get(LHS->getType(), RHS), Name);
+  toolchain::Value *CreateAnd(toolchain::Value *LHS, uint64_t RHS, const Twine &Name = "") {
+    return CreateAnd(LHS, toolchain::ConstantInt::get(LHS->getType(), RHS), Name);
   }
 
   using IRBuilderBase::CreateOr;
-  llvm::Value *CreateOr(llvm::Value *LHS, llvm::Value *RHS,
+  toolchain::Value *CreateOr(toolchain::Value *LHS, toolchain::Value *RHS,
                         const Twine &Name = "") {
-    if (auto *RC = dyn_cast<llvm::Constant>(RHS))
+    if (auto *RC = dyn_cast<toolchain::Constant>(RHS))
       if (RC->isNullValue())
         return LHS;  // LHS | 0 -> LHS
     return IRBuilderBase::CreateOr(LHS, RHS, Name);
   }
-  llvm::Value *CreateOr(llvm::Value *LHS, const APInt &RHS,
+  toolchain::Value *CreateOr(toolchain::Value *LHS, const APInt &RHS,
                         const Twine &Name = "") {
-    return CreateOr(LHS, llvm::ConstantInt::get(LHS->getType(), RHS), Name);
+    return CreateOr(LHS, toolchain::ConstantInt::get(LHS->getType(), RHS), Name);
   }
-  llvm::Value *CreateOr(llvm::Value *LHS, uint64_t RHS,
+  toolchain::Value *CreateOr(toolchain::Value *LHS, uint64_t RHS,
                         const Twine &Name = "") {
-    return CreateOr(LHS, llvm::ConstantInt::get(LHS->getType(), RHS), Name);
+    return CreateOr(LHS, toolchain::ConstantInt::get(LHS->getType(), RHS), Name);
   }
 
   /// Don't create allocas this way; you'll get a dynamic alloca.
   /// Use IGF::createAlloca or IGF::emitDynamicAlloca.
-  llvm::Value *CreateAlloca(llvm::Type *type, llvm::Value *arraySize,
-                            const llvm::Twine &name = "") = delete;
+  toolchain::Value *CreateAlloca(toolchain::Type *type, toolchain::Value *arraySize,
+                            const toolchain::Twine &name = "") = delete;
 
-  llvm::LoadInst *CreateLoad(llvm::Value *addr, llvm::Type *elementType,
-                             Alignment align, const llvm::Twine &name = "") {
-    llvm::LoadInst *load = IRBuilderBase::CreateLoad(elementType, addr, name);
-    load->setAlignment(llvm::MaybeAlign(align.getValue()).valueOrOne());
+  toolchain::LoadInst *CreateLoad(toolchain::Value *addr, toolchain::Type *elementType,
+                             Alignment align, const toolchain::Twine &name = "") {
+    toolchain::LoadInst *load = IRBuilderBase::CreateLoad(elementType, addr, name);
+    load->setAlignment(toolchain::MaybeAlign(align.getValue()).valueOrOne());
     return load;
   }
-  llvm::LoadInst *CreateLoad(Address addr, const llvm::Twine &name = "") {
+  toolchain::LoadInst *CreateLoad(Address addr, const toolchain::Twine &name = "") {
     return CreateLoad(addr.getAddress(), addr.getElementType(),
                       addr.getAlignment(), name);
   }
 
-  llvm::StoreInst *CreateStore(llvm::Value *value, llvm::Value *addr,
+  toolchain::StoreInst *CreateStore(toolchain::Value *value, toolchain::Value *addr,
                                Alignment align) {
-    llvm::StoreInst *store = IRBuilderBase::CreateStore(value, addr);
-    store->setAlignment(llvm::MaybeAlign(align.getValue()).valueOrOne());
+    toolchain::StoreInst *store = IRBuilderBase::CreateStore(value, addr);
+    store->setAlignment(toolchain::MaybeAlign(align.getValue()).valueOrOne());
     return store;
   }
-  llvm::StoreInst *CreateStore(llvm::Value *value, Address addr) {
+  toolchain::StoreInst *CreateStore(toolchain::Value *value, Address addr) {
     return CreateStore(value, addr.getAddress(), addr.getAlignment());
   }
 
   // These are deleted because we want to force the caller to specify
   // an alignment.
-  llvm::LoadInst *CreateLoad(llvm::Value *addr,
-                             const llvm::Twine &name = "") = delete;
-  llvm::StoreInst *CreateStore(llvm::Value *value, llvm::Value *addr) = delete;
+  toolchain::LoadInst *CreateLoad(toolchain::Value *addr,
+                             const toolchain::Twine &name = "") = delete;
+  toolchain::StoreInst *CreateStore(toolchain::Value *value, toolchain::Value *addr) = delete;
   
   using IRBuilderBase::CreateStructGEP;
   Address CreateStructGEP(Address address, unsigned index, Size offset,
-                          const llvm::Twine &name = "") {
-    assert(isa<llvm::StructType>(address.getElementType()) ||
-           isa<llvm::ArrayType>(address.getElementType()));
+                          const toolchain::Twine &name = "") {
+    assert(isa<toolchain::StructType>(address.getElementType()) ||
+           isa<toolchain::ArrayType>(address.getElementType()));
 
-    llvm::Value *addr = CreateStructGEP(address.getElementType(),
+    toolchain::Value *addr = CreateStructGEP(address.getElementType(),
                                         address.getAddress(), index, name);
-    llvm::Type *elementType = nullptr;
-    if (auto *structTy = dyn_cast<llvm::StructType>(address.getElementType())) {
+    toolchain::Type *elementType = nullptr;
+    if (auto *structTy = dyn_cast<toolchain::StructType>(address.getElementType())) {
       elementType = structTy->getElementType(index);
     } else if (auto *arrTy =
-                   dyn_cast<llvm::ArrayType>(address.getElementType())) {
+                   dyn_cast<toolchain::ArrayType>(address.getElementType())) {
       elementType = arrTy->getElementType();
     }
 
@@ -209,8 +210,8 @@ public:
                    address.getAlignment().alignmentAtOffset(offset));
   }
   Address CreateStructGEP(Address address, unsigned index,
-                          const llvm::StructLayout *layout,
-                          const llvm::Twine &name = "") {
+                          const toolchain::StructLayout *layout,
+                          const toolchain::Twine &name = "") {
     Size offset = Size(layout->getElementOffset(index));
     return CreateStructGEP(address, index, offset, name);
   }
@@ -218,7 +219,7 @@ public:
   /// Given a pointer to an array element, GEP to the array element
   /// N elements past it.  The type is not changed.
   Address CreateConstArrayGEP(Address base, unsigned index, Size eltSize,
-                              const llvm::Twine &name = "") {
+                              const toolchain::Twine &name = "") {
     auto addr = CreateConstInBoundsGEP1_32(base.getElementType(),
                                            base.getAddress(), index, name);
     return Address(addr, base.getElementType(),
@@ -227,8 +228,8 @@ public:
 
   /// Given a pointer to an array element, GEP to the array element
   /// N elements past it.  The type is not changed.
-  Address CreateArrayGEP(Address base, llvm::Value *index, Size eltSize,
-                         const llvm::Twine &name = "") {
+  Address CreateArrayGEP(Address base, toolchain::Value *index, Size eltSize,
+                         const toolchain::Twine &name = "") {
     auto addr = CreateInBoundsGEP(base.getElementType(),
                                   base.getAddress(), index, name);
     // Given that Alignment doesn't remember offset alignment,
@@ -240,7 +241,7 @@ public:
 
   /// Given an i8*, GEP to N bytes past it.
   Address CreateConstByteArrayGEP(Address base, Size offset,
-                                  const llvm::Twine &name = "") {
+                                  const toolchain::Twine &name = "") {
     auto addr = CreateConstInBoundsGEP1_32(
         base.getElementType(), base.getAddress(), offset.getValue(), name);
     return Address(addr, base.getElementType(),
@@ -251,8 +252,8 @@ public:
 
   /// Cast the given address to be a pointer to the given element type,
   /// preserving the original address space.
-  Address CreateElementBitCast(Address address, llvm::Type *type,
-                               const llvm::Twine &name = "") {
+  Address CreateElementBitCast(Address address, toolchain::Type *type,
+                               const toolchain::Twine &name = "") {
     // Do nothing if the type doesn't change.
     if (address.getElementType() == type) {
       return address;
@@ -268,77 +269,77 @@ public:
 
   /// Insert the given basic block after the IP block and move the
   /// insertion point to it.  Only valid if the IP is valid.
-  void emitBlock(llvm::BasicBlock *BB);
+  void emitBlock(toolchain::BasicBlock *BB);
 
   using IRBuilderBase::CreateMemCpy;
-  llvm::CallInst *CreateMemCpy(Address dest, Address src, Size size) {
+  toolchain::CallInst *CreateMemCpy(Address dest, Address src, Size size) {
     return CreateMemCpy(
-        dest.getAddress(), llvm::MaybeAlign(dest.getAlignment().getValue()),
-        src.getAddress(), llvm::MaybeAlign(src.getAlignment().getValue()),
+        dest.getAddress(), toolchain::MaybeAlign(dest.getAlignment().getValue()),
+        src.getAddress(), toolchain::MaybeAlign(src.getAlignment().getValue()),
         size.getValue());
   }
 
-  llvm::CallInst *CreateMemCpy(Address dest, Address src, llvm::Value *size) {
+  toolchain::CallInst *CreateMemCpy(Address dest, Address src, toolchain::Value *size) {
     return CreateMemCpy(dest.getAddress(),
-                        llvm::MaybeAlign(dest.getAlignment().getValue()),
+                        toolchain::MaybeAlign(dest.getAlignment().getValue()),
                         src.getAddress(),
-                        llvm::MaybeAlign(src.getAlignment().getValue()), size);
+                        toolchain::MaybeAlign(src.getAlignment().getValue()), size);
   }
 
   using IRBuilderBase::CreateMemSet;
-  llvm::CallInst *CreateMemSet(Address dest, llvm::Value *value, Size size) {
+  toolchain::CallInst *CreateMemSet(Address dest, toolchain::Value *value, Size size) {
     return CreateMemSet(dest.getAddress(), value, size.getValue(),
-                        llvm::MaybeAlign(dest.getAlignment().getValue()));
+                        toolchain::MaybeAlign(dest.getAlignment().getValue()));
   }
-  llvm::CallInst *CreateMemSet(Address dest, llvm::Value *value,
-                               llvm::Value *size) {
+  toolchain::CallInst *CreateMemSet(Address dest, toolchain::Value *value,
+                               toolchain::Value *size) {
     return CreateMemSet(dest.getAddress(), value, size,
-                        llvm::MaybeAlign(dest.getAlignment().getValue()));
+                        toolchain::MaybeAlign(dest.getAlignment().getValue()));
   }
   
   using IRBuilderBase::CreateLifetimeStart;
-  llvm::CallInst *CreateLifetimeStart(Address buf, Size size) {
+  toolchain::CallInst *CreateLifetimeStart(Address buf, Size size) {
     return CreateLifetimeStart(buf.getAddress(),
-                   llvm::ConstantInt::get(Context, APInt(64, size.getValue())));
+                   toolchain::ConstantInt::get(Context, APInt(64, size.getValue())));
   }
   
   using IRBuilderBase::CreateLifetimeEnd;
-  llvm::CallInst *CreateLifetimeEnd(Address buf, Size size) {
+  toolchain::CallInst *CreateLifetimeEnd(Address buf, Size size) {
     return CreateLifetimeEnd(buf.getAddress(),
-                   llvm::ConstantInt::get(Context, APInt(64, size.getValue())));
+                   toolchain::ConstantInt::get(Context, APInt(64, size.getValue())));
   }
 
   // We're intentionally not allowing direct use of
-  // llvm::IRBuilder::CreateCall in order to push code towards using
+  // toolchain::IRBuilder::CreateCall in order to push code towards using
   // FunctionPointer.
 
-  bool isTrapIntrinsic(llvm::Value *Callee) {
+  bool isTrapIntrinsic(toolchain::Value *Callee) {
     return Callee ==
-           llvm::Intrinsic::getDeclaration(getModule(), llvm::Intrinsic::trap);
+           toolchain::Intrinsic::getDeclaration(getModule(), toolchain::Intrinsic::trap);
   }
-  bool isTrapIntrinsic(llvm::Intrinsic::ID intrinsicID) {
-    return intrinsicID == llvm::Intrinsic::trap;
+  bool isTrapIntrinsic(toolchain::Intrinsic::ID intrinsicID) {
+    return intrinsicID == toolchain::Intrinsic::trap;
   }
 
-  llvm::CallInst *CreateCall(llvm::Value *Callee, ArrayRef<llvm::Value *> Args,
+  toolchain::CallInst *CreateCall(toolchain::Value *Callee, ArrayRef<toolchain::Value *> Args,
                              const Twine &Name = "",
-                             llvm::MDNode *FPMathTag = nullptr) = delete;
+                             toolchain::MDNode *FPMathTag = nullptr) = delete;
 
-  llvm::CallInst *CreateCall(llvm::FunctionType *FTy, llvm::Constant *Callee,
-                             ArrayRef<llvm::Value *> Args,
+  toolchain::CallInst *CreateCall(toolchain::FunctionType *FTy, toolchain::Constant *Callee,
+                             ArrayRef<toolchain::Value *> Args,
                              const Twine &Name = "",
-                             llvm::MDNode *FPMathTag = nullptr) {
+                             toolchain::MDNode *FPMathTag = nullptr) {
     assert((!DebugInfo || getCurrentDebugLocation()) && "no debugloc on call");
     assert(!isTrapIntrinsic(Callee) && "Use CreateNonMergeableTrap");
     auto Call = IRBuilderBase::CreateCall(FTy, Callee, Args, Name, FPMathTag);
     setCallingConvUsingCallee(Call);
     return Call;
   }
-  llvm::CallInst *CreateCallWithoutDbgLoc(llvm::FunctionType *FTy,
-                                          llvm::Constant *Callee,
-                                          ArrayRef<llvm::Value *> Args,
+  toolchain::CallInst *CreateCallWithoutDbgLoc(toolchain::FunctionType *FTy,
+                                          toolchain::Constant *Callee,
+                                          ArrayRef<toolchain::Value *> Args,
                                           const Twine &Name = "",
-                                          llvm::MDNode *FPMathTag = nullptr) {
+                                          toolchain::MDNode *FPMathTag = nullptr) {
     // assert((!DebugInfo || getCurrentDebugLocation()) && "no debugloc on
     // call");
     assert(!isTrapIntrinsic(Callee) && "Use CreateNonMergeableTrap");
@@ -347,10 +348,10 @@ public:
     return Call;
   }
 
-  llvm::InvokeInst *
-  createInvoke(llvm::FunctionType *fTy, llvm::Constant *callee,
-               ArrayRef<llvm::Value *> args, llvm::BasicBlock *invokeNormalDest,
-               llvm::BasicBlock *invokeUnwindDest, const Twine &name = "") {
+  toolchain::InvokeInst *
+  createInvoke(toolchain::FunctionType *fTy, toolchain::Constant *callee,
+               ArrayRef<toolchain::Value *> args, toolchain::BasicBlock *invokeNormalDest,
+               toolchain::BasicBlock *invokeUnwindDest, const Twine &name = "") {
     assert((!DebugInfo || getCurrentDebugLocation()) && "no debugloc on call");
     auto call = IRBuilderBase::CreateInvoke(fTy, callee, invokeNormalDest,
                                             invokeUnwindDest, args, name);
@@ -358,77 +359,77 @@ public:
     return call;
   }
 
-  llvm::CallBase *CreateCallOrInvoke(const FunctionPointer &fn,
-                                     ArrayRef<llvm::Value *> args,
-                                     llvm::BasicBlock *invokeNormalDest,
-                                     llvm::BasicBlock *invokeUnwindDest);
+  toolchain::CallBase *CreateCallOrInvoke(const FunctionPointer &fn,
+                                     ArrayRef<toolchain::Value *> args,
+                                     toolchain::BasicBlock *invokeNormalDest,
+                                     toolchain::BasicBlock *invokeUnwindDest);
 
-  llvm::CallInst *CreateCall(const FunctionPointer &fn,
-                             ArrayRef<llvm::Value *> args);
+  toolchain::CallInst *CreateCall(const FunctionPointer &fn,
+                             ArrayRef<toolchain::Value *> args);
 
-  llvm::CallInst *CreateCall(const FunctionPointer &fn,
-                             ArrayRef<llvm::Value *> args, const Twine &Name) {
+  toolchain::CallInst *CreateCall(const FunctionPointer &fn,
+                             ArrayRef<toolchain::Value *> args, const Twine &Name) {
     auto c = CreateCall(fn, args);
     c->setName(Name);
     return c;
   }
 
-  llvm::CallInst *CreateAsmCall(llvm::InlineAsm *asmBlock,
-                                ArrayRef<llvm::Value *> args) {
+  toolchain::CallInst *CreateAsmCall(toolchain::InlineAsm *asmBlock,
+                                ArrayRef<toolchain::Value *> args) {
     return IRBuilderBase::CreateCall(asmBlock, args);
   }
 
   /// Call an intrinsic with no type arguments.
-  llvm::CallInst *CreateIntrinsicCall(llvm::Intrinsic::ID intrinsicID,
-                                      ArrayRef<llvm::Value *> args,
+  toolchain::CallInst *CreateIntrinsicCall(toolchain::Intrinsic::ID intrinsicID,
+                                      ArrayRef<toolchain::Value *> args,
                                       const Twine &name = "") {
     assert(!isTrapIntrinsic(intrinsicID) && "Use CreateNonMergeableTrap");
     auto intrinsicFn =
-      llvm::Intrinsic::getDeclaration(getModule(), intrinsicID);
+      toolchain::Intrinsic::getDeclaration(getModule(), intrinsicID);
     return CreateCallWithoutDbgLoc(
-        cast<llvm::FunctionType>(intrinsicFn->getValueType()), intrinsicFn,
+        cast<toolchain::FunctionType>(intrinsicFn->getValueType()), intrinsicFn,
         args, name);
   }
 
   /// Call an intrinsic with type arguments.
-  llvm::CallInst *CreateIntrinsicCall(llvm::Intrinsic::ID intrinsicID,
-                                      ArrayRef<llvm::Type*> typeArgs,
-                                      ArrayRef<llvm::Value *> args,
+  toolchain::CallInst *CreateIntrinsicCall(toolchain::Intrinsic::ID intrinsicID,
+                                      ArrayRef<toolchain::Type*> typeArgs,
+                                      ArrayRef<toolchain::Value *> args,
                                       const Twine &name = "") {
     assert(!isTrapIntrinsic(intrinsicID) && "Use CreateNonMergeableTrap");
     auto intrinsicFn =
-      llvm::Intrinsic::getDeclaration(getModule(), intrinsicID, typeArgs);
+      toolchain::Intrinsic::getDeclaration(getModule(), intrinsicID, typeArgs);
     return CreateCallWithoutDbgLoc(
-        cast<llvm::FunctionType>(intrinsicFn->getValueType()), intrinsicFn,
+        cast<toolchain::FunctionType>(intrinsicFn->getValueType()), intrinsicFn,
         args, name);
   }
   
   /// Create an expect intrinsic call.
-  llvm::CallInst *CreateExpect(llvm::Value *value,
-                               llvm::Value *expected,
+  toolchain::CallInst *CreateExpect(toolchain::Value *value,
+                               toolchain::Value *expected,
                                const Twine &name = "") {
-    return CreateIntrinsicCall(llvm::Intrinsic::expect,
+    return CreateIntrinsicCall(toolchain::Intrinsic::expect,
                                {value->getType()},
                                {value, expected},
                                name);
   }
 
-  // Creates an @llvm.expect.i1 call, where the value should be an i1 type.
-  llvm::CallInst *CreateExpectCond(IRGenModule &IGM,
-                                   llvm::Value *value,
+  // Creates an @toolchain.expect.i1 call, where the value should be an i1 type.
+  toolchain::CallInst *CreateExpectCond(IRGenModule &IGM,
+                                   toolchain::Value *value,
                                    bool expectedValue, const Twine &name = "");
 
   /// Call the trap intrinsic. If optimizations are enabled, an inline asm
   /// gadget is emitted before the trap. The gadget inhibits transforms which
   /// merge trap calls together, which makes debugging crashes easier.
-  llvm::CallInst *CreateNonMergeableTrap(IRGenModule &IGM, StringRef failureMsg);
+  toolchain::CallInst *CreateNonMergeableTrap(IRGenModule &IGM, StringRef failureMsg);
 
   /// Split a first-class aggregate value into its component pieces.
   template <unsigned N>
-  std::array<llvm::Value *, N> CreateSplit(llvm::Value *aggregate) {
-    assert(isa<llvm::StructType>(aggregate->getType()));
-    assert(cast<llvm::StructType>(aggregate->getType())->getNumElements() == N);
-    std::array<llvm::Value *, N> results;
+  std::array<toolchain::Value *, N> CreateSplit(toolchain::Value *aggregate) {
+    assert(isa<toolchain::StructType>(aggregate->getType()));
+    assert(cast<toolchain::StructType>(aggregate->getType())->getNumElements() == N);
+    std::array<toolchain::Value *, N> results;
     for (unsigned i = 0; i != N; ++i) {
       results[i] = CreateExtractValue(aggregate, i);
     }
@@ -436,10 +437,10 @@ public:
   }
 
   /// Combine the given values into a first-class aggregate.
-  llvm::Value *CreateCombine(llvm::StructType *aggregateType,
-                             ArrayRef<llvm::Value*> values) {
+  toolchain::Value *CreateCombine(toolchain::StructType *aggregateType,
+                             ArrayRef<toolchain::Value*> values) {
     assert(aggregateType->getNumElements() == values.size());
-    llvm::Value *result = llvm::UndefValue::get(aggregateType);
+    toolchain::Value *result = toolchain::UndefValue::get(aggregateType);
     for (unsigned i = 0, e = values.size(); i != e; ++i) {
       result = CreateInsertValue(result, values[i], i);
     }
@@ -456,7 +457,7 @@ public:
 /// so it has the same insertion point at end of scope.
 class IRBuilder::SavedInsertionPointRAII {
   IRBuilder &builder;
-  PointerUnion<llvm::Instruction *, llvm::BasicBlock *> savedInsertionPoint;
+  PointerUnion<toolchain::Instruction *, toolchain::BasicBlock *> savedInsertionPoint;
 
 public:
   /// Constructor that saves a Builder's insertion point without changing the
@@ -466,7 +467,7 @@ public:
     // If our builder does not have a valid insertion point, just put nullptr
     // into SavedIP.
     if (!builder.hasValidIP()) {
-      savedInsertionPoint = static_cast<llvm::BasicBlock *>(nullptr);
+      savedInsertionPoint = static_cast<toolchain::BasicBlock *>(nullptr);
       return;
     }
 
@@ -481,18 +482,18 @@ public:
     savedInsertionPoint = i;
   }
 
-  SavedInsertionPointRAII(IRBuilder &b, llvm::Instruction *newInsertionPoint)
+  SavedInsertionPointRAII(IRBuilder &b, toolchain::Instruction *newInsertionPoint)
       : SavedInsertionPointRAII(b) {
     builder.SetInsertPoint(newInsertionPoint);
   }
 
-  SavedInsertionPointRAII(IRBuilder &b, llvm::BasicBlock *block,
-                          llvm::BasicBlock::iterator iter)
+  SavedInsertionPointRAII(IRBuilder &b, toolchain::BasicBlock *block,
+                          toolchain::BasicBlock::iterator iter)
       : SavedInsertionPointRAII(b) {
     builder.SetInsertPoint(block, iter);
   }
 
-  SavedInsertionPointRAII(IRBuilder &b, llvm::BasicBlock *insertionBlock)
+  SavedInsertionPointRAII(IRBuilder &b, toolchain::BasicBlock *insertionBlock)
       : SavedInsertionPointRAII(b) {
     builder.SetInsertPoint(insertionBlock);
   }
@@ -505,10 +506,10 @@ public:
   ~SavedInsertionPointRAII() {
     if (savedInsertionPoint.isNull()) {
       builder.ClearInsertionPoint();
-    } else if (savedInsertionPoint.is<llvm::Instruction *>()) {
-      builder.SetInsertPoint(savedInsertionPoint.get<llvm::Instruction *>());
+    } else if (savedInsertionPoint.is<toolchain::Instruction *>()) {
+      builder.SetInsertPoint(savedInsertionPoint.get<toolchain::Instruction *>());
     } else {
-      builder.SetInsertPoint(savedInsertionPoint.get<llvm::BasicBlock *>());
+      builder.SetInsertPoint(savedInsertionPoint.get<toolchain::BasicBlock *>());
     }
   }
 };

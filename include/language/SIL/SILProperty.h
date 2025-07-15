@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILProperty class, which is used to capture the
@@ -19,14 +20,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILPROPERTY_H
-#define SWIFT_SIL_SILPROPERTY_H
+#ifndef LANGUAGE_SIL_SILPROPERTY_H
+#define LANGUAGE_SIL_SILPROPERTY_H
 
 #include "language/AST/GenericSignature.h"
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/ADT/ilist.h"
 
 namespace language {
 
@@ -34,7 +35,7 @@ class SILPrintContext;
   
 /// A descriptor for a public property or subscript that can be resiliently
 /// referenced from key paths in external modules.
-class SILProperty : public llvm::ilist_node<SILProperty>,
+class SILProperty : public toolchain::ilist_node<SILProperty>,
                     public SILAllocated<SILProperty>
 {
 private:
@@ -84,16 +85,16 @@ public:
   
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILProperty
 //===----------------------------------------------------------------------===//
 
 template <>
-struct ilist_traits<::swift::SILProperty>
-    : public ilist_node_traits<::swift::SILProperty> {
-  using SILProperty = ::swift::SILProperty;
+struct ilist_traits<::language::SILProperty>
+    : public ilist_node_traits<::language::SILProperty> {
+  using SILProperty = ::language::SILProperty;
 
 public:
   static void deleteNode(SILProperty *VT) { VT->~SILProperty(); }
@@ -102,6 +103,6 @@ private:
   void createNode(const SILProperty &);
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 #endif

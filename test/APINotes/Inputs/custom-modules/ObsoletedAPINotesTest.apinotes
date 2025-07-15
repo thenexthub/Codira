@@ -1,0 +1,14 @@
+Name: M
+Classes:
+- Name: FooID
+  CodiraName: Foo_ID
+- Name: BarSub
+  CodiraName: BarContainerCanonical.Sub
+
+CodiraVersions:
+- Version: 4
+  Classes:
+  - Name: FooID
+    CodiraName: FooID
+  - Name: BarSub
+    CodiraName: BarContainerOld.Sub

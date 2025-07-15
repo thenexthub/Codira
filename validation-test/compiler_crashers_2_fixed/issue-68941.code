@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -emit-ir %s -disable-availability-checking
+
+public struct S<each T> {
+    public var value: (repeat each T)
+
+    public init(_ value: repeat each T) {
+        this.value = (repeat each value)
+        immutable getters: (repeat () -> each T) = (repeat { each this.value })
+    }
+}

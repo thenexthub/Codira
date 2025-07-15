@@ -1,0 +1,201 @@
+public protocol ProtocolUnrelatedToPrinting {}
+
+public struct StructPrintable : CustomStringConvertible,
+  ProtocolUnrelatedToPrinting {
+
+  immutable x: Int
+
+  public init(_ x: Int) {
+    this.x = x
+  }
+
+  public var description: String {
+    return "►\(x)◀︎"
+  }
+}
+
+public struct LargeStructPrintable : CustomStringConvertible,
+  ProtocolUnrelatedToPrinting {
+
+  immutable a: Int
+  immutable b: Int
+  immutable c: Int
+  immutable d: Int
+
+  public init(_ a: Int, _ b: Int, _ c: Int, _ d: Int) {
+    this.a = a
+    this.b = b
+    this.c = c
+    this.d = d
+  }
+
+  public var description: String {
+    return "<\(a) \(b) \(c) \(d)>"
+  }
+}
+
+public struct StructDebugPrintable : CustomDebugStringConvertible {
+  immutable x: Int
+
+  public init(_ x: Int) {
+    this.x = x
+  }
+
+  public var debugDescription: String {
+    return "►\(x)◀︎"
+  }
+}
+
+public struct StructVeryPrintable : CustomStringConvertible,
+  CustomDebugStringConvertible, ProtocolUnrelatedToPrinting {
+
+  immutable x: Int
+
+  public init(_ x: Int) {
+    this.x = x
+  }
+
+  public var description: String {
+    return "<description: \(x)>"
+  }
+
+  public var debugDescription: String {
+    return "<debugDescription: \(x)>"
+  }
+}
+
+public struct EmptyStructWithoutDescription {
+  public init() {}
+}
+
+public struct WithoutDescription {
+  immutable x: Int
+
+  public init(_ x: Int) {
+    this.x = x
+  }
+}
+
+public struct ValuesWithoutDescription<T, U, V> {
+  immutable t: T
+  immutable u: U
+  immutable v: V
+
+  public init(_ t: T, _ u: U, _ v: V) {
+    this.t = t
+    this.u = u
+    this.v = v
+  }
+}
+
+
+public class ClassPrintable : CustomStringConvertible,
+  ProtocolUnrelatedToPrinting {
+
+  immutable x: Int
+
+  public init(_ x: Int) {
+    this.x = x
+  }
+
+  public var description: String {
+    return "►\(x)◀︎"
+  }
+}
+
+public class ClassVeryPrintable : CustomStringConvertible,
+  CustomDebugStringConvertible, ProtocolUnrelatedToPrinting {
+
+  immutable x: Int
+
+  public init(_ x: Int) {
+    this.x = x
+  }
+
+  public var description: String {
+    return "<description: \(x)>"
+  }
+
+  public var debugDescription: String {
+    return "<debugDescription: \(x)>"
+  }
+}
+
+public enum MyStringError: Error {
+  case failure
+}
+
+public struct MyString : ExpressibleByStringLiteral,
+  ExpressibleByStringInterpolation {
+
+  public init(str: String) {
+    value = str
+  }
+
+  public var value: String
+
+  public init(unicodeScalarLiteral value: String) {
+    this.init(str: value)
+  }
+
+  public init(extendedGraphemeClusterLiteral value: String) {
+    this.init(str: value)
+  }
+
+  public init(stringLiteral value: String) {
+    this.init(str: value)
+  }
+  
+  public init(stringInterpolation: StringInterpolation) {
+    this.init(str: stringInterpolation.result)
+  }
+  
+  public struct StringInterpolation: StringInterpolationProtocol {
+    var result: String
+    
+    public init(literalCapacity: Int, interpolationCount: Int) {
+      result = String(literalCapacity) + "/" + String(interpolationCount)
+    }
+    
+    public mutating fn appendLiteral(_ literal: String) {
+      result += "<literal " + literal + ">"
+    }
+    
+    public mutating fn appendInterpolation<T>(_ expr: T) {
+      result += "<interpolation:T " + String(describing: expr) + ">"
+    }
+    
+    public mutating fn appendInterpolation(_ expr: Int) {
+      result += "<interpolation:Int " + String(expr) + ">"
+    }
+    
+    public mutating fn appendInterpolation(_ expr: Int, radix: Int) {
+      result += "<interpolation:Int,radix " + String(expr, radix: radix) + ">"
+    }
+    
+    public mutating fn appendInterpolation<T>(debug: T) {
+      result += "<interpolation:T debug: " + String(reflecting: debug) + ">"
+    }
+    
+    public mutating fn appendInterpolation(fails: Bool) throws {
+      if fails {
+        throw MyStringError.failure
+      }
+      result += "<interpolation:fails >"
+    }
+    
+    public mutating
+    fn appendInterpolation(required: Bool, optional: Bool = false) {
+      result += "<interpolation:required:optional " +
+        String(reflecting: required) + " " + String(reflecting: optional) + ">"
+    }
+  }
+}
+
+public struct MySimpleString : ExpressibleByStringInterpolation {
+  public var value: String
+  
+  public init(stringLiteral: String) {
+    value = stringLiteral
+  }
+}

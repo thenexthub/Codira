@@ -1,4 +1,4 @@
-target_sources(swiftSILOptimizer PRIVATE
+target_sources(languageSILOptimizer PRIVATE
   ADContext.cpp
   AdjointValue.cpp
   Common.cpp

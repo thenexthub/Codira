@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_BLOTMAPVECTOR_H
-#define SWIFT_BASIC_BLOTMAPVECTOR_H
+#ifndef LANGUAGE_BASIC_BLOTMAPVECTOR_H
+#define LANGUAGE_BASIC_BLOTMAPVECTOR_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Range.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 #include <optional>
 #include <vector>
 
@@ -32,7 +33,7 @@ bool compareKeyAgainstDefaultKey(const std::pair<KeyT, ValueT> &Pair) {
 /// An associative container with fast insertion-order (deterministic)
 /// iteration over its elements. Plus the special blot operation.
 template <typename KeyT, typename ValueT,
-          typename MapT = llvm::DenseMap<KeyT, size_t>,
+          typename MapT = toolchain::DenseMap<KeyT, size_t>,
           typename VectorT =
               std::vector<std::optional<std::pair<KeyT, ValueT>>>>
 class BlotMapVector {
@@ -54,10 +55,10 @@ public:
   const_iterator end() const { return Vector.end(); }
 
   iterator_range<iterator> getItems() {
-    return swift::make_range(begin(), end());
+    return language::make_range(begin(), end());
   }
   iterator_range<const_iterator> getItems() const {
-    return swift::make_range(begin(), end());
+    return language::make_range(begin(), end());
   }
 
   ValueT &operator[](const KeyT &Arg) {
@@ -164,9 +165,9 @@ public:
 };
 
 template <typename KeyT, typename ValueT, unsigned N,
-          typename MapT = llvm::SmallDenseMap<KeyT, size_t, N>,
+          typename MapT = toolchain::SmallDenseMap<KeyT, size_t, N>,
           typename VectorT =
-              llvm::SmallVector<std::optional<std::pair<KeyT, ValueT>>, N>>
+              toolchain::SmallVector<std::optional<std::pair<KeyT, ValueT>>, N>>
 class SmallBlotMapVector : public BlotMapVector<KeyT, ValueT, MapT, VectorT> {
 public:
   SmallBlotMapVector() {}
@@ -174,4 +175,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_BLOTMAPVECTOR_H
+#endif // LANGUAGE_BASIC_BLOTMAPVECTOR_H

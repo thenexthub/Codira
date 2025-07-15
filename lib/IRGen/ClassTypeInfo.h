@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file contains layout information for class types.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_CLASSTYPEINFO_H
-#define SWIFT_IRGEN_CLASSTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_CLASSTYPEINFO_H
+#define LANGUAGE_IRGEN_CLASSTYPEINFO_H
 
 #include "ClassLayout.h"
 #include "HeapTypeInfo.h"
@@ -31,7 +32,7 @@ namespace irgen {
 /// Layout information for class types.
 class ClassTypeInfo : public HeapTypeInfo<ClassTypeInfo> {
   ClassDecl *TheClass;
-  mutable llvm::StructType *classLayoutType;
+  mutable toolchain::StructType *classLayoutType;
 
   // The resilient layout of the class, without making any assumptions
   // that violate resilience boundaries. This is used to allocate
@@ -41,7 +42,7 @@ class ClassTypeInfo : public HeapTypeInfo<ClassTypeInfo> {
   // A completely fragile layout, used for metadata emission.
   mutable std::optional<ClassLayout> FragileLayout;
 
-  /// Can we use swift reference-counting, or do we have to use
+  /// Can we use language reference-counting, or do we have to use
   /// objc_retain/release?
   const ReferenceCounting Refcount;
 
@@ -49,9 +50,9 @@ class ClassTypeInfo : public HeapTypeInfo<ClassTypeInfo> {
                              bool forBackwardDeployment) const;
 
 public:
-  ClassTypeInfo(llvm::PointerType *irType, Size size, SpareBitVector spareBits,
+  ClassTypeInfo(toolchain::PointerType *irType, Size size, SpareBitVector spareBits,
                 Alignment align, ClassDecl *theClass,
-                ReferenceCounting refcount, llvm::StructType *classLayoutType)
+                ReferenceCounting refcount, toolchain::StructType *classLayoutType)
       : HeapTypeInfo(refcount, irType, size, std::move(spareBits), align),
         TheClass(theClass), classLayoutType(classLayoutType),
         Refcount(refcount) {}
@@ -60,7 +61,7 @@ public:
 
   ClassDecl *getClass() const { return TheClass; }
 
-  llvm::Type *getClassLayoutType() const { return classLayoutType; }
+  toolchain::Type *getClassLayoutType() const { return classLayoutType; }
 
   const ClassLayout &getClassLayout(IRGenModule &IGM, SILType type,
                                     bool forBackwardDeployment) const;
@@ -68,7 +69,7 @@ public:
   StructLayout *createLayoutWithTailElems(IRGenModule &IGM, SILType classType,
                                           ArrayRef<SILType> tailTypes) const;
 
-  void emitScalarRelease(IRGenFunction &IGF, llvm::Value *value,
+  void emitScalarRelease(IRGenFunction &IGF, toolchain::Value *value,
                          Atomicity atomicity) const override {
     if (getReferenceCounting() == ReferenceCounting::Custom) {
       auto releaseFn =
@@ -85,7 +86,7 @@ public:
     HeapTypeInfo::emitScalarRelease(IGF, value, atomicity);
   }
 
-  void emitScalarRetain(IRGenFunction &IGF, llvm::Value *value,
+  void emitScalarRetain(IRGenFunction &IGF, toolchain::Value *value,
                         Atomicity atomicity) const override {
     if (getReferenceCounting() == ReferenceCounting::Custom) {
       auto retainFn =
@@ -107,7 +108,7 @@ public:
     assert(getReferenceCounting() == ReferenceCounting::Custom &&
            "only supported for custom ref-counting");
 
-    llvm::Value *value = e.claimNext();
+    toolchain::Value *value = e.claimNext();
     auto retainFn =
         evaluateOrDefault(
             getClass()->getASTContext().evaluator,
@@ -136,7 +137,7 @@ public:
     assert(getReferenceCounting() == ReferenceCounting::Custom &&
            "only supported for custom ref-counting");
 
-    llvm::Value *value = e.claimNext();
+    toolchain::Value *value = e.claimNext();
     auto releaseFn =
         evaluateOrDefault(
             getClass()->getASTContext().evaluator,

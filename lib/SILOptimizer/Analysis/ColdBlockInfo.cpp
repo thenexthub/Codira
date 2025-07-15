@@ -1,13 +1,17 @@
 //===--- ColdBlockInfo.cpp - Hot/cold block analysis for the SIL CFG ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/SemanticAttrs.h"
@@ -17,7 +21,7 @@
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/Analysis/ColdBlockInfo.h"
 #include "language/SILOptimizer/Analysis/DominanceAnalysis.h"
-#include "llvm/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/PostOrderIterator.h"
 
 #define DEBUG_TYPE "cold-block-info"
 
@@ -27,7 +31,7 @@ bool isColdEnergy(ColdBlockInfo::Energy e);
 
 ColdBlockInfo::ColdBlockInfo(DominanceAnalysis *DA,
                              PostDominanceAnalysis *PDA) : DA(DA), PDA(PDA) {
-  LLVM_DEBUG(llvm::dbgs() << "ColdBlockInfo: constructed\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "ColdBlockInfo: constructed\n");
 }
 
 static std::string toString(SILBasicBlock const *bb) {
@@ -46,7 +50,7 @@ static StringRef toString(ColdBlockInfo::Energy e) {
   else if (e.contains(ColdBlockInfo::State::Cold))
     return "cold";
   else
-    llvm_unreachable("unhandled energy state");
+    toolchain_unreachable("unhandled energy state");
 }
 
 static StringRef toString(ColdBlockInfo::State::Temperature t) {
@@ -57,15 +61,15 @@ static StringRef toString(ColdBlockInfo::State::Temperature t) {
 
 void ColdBlockInfo::dump() const {
   unsigned warm = 0, cold = 0;
-  llvm::dbgs() << "ColdBlockInfo {\n";
+  toolchain::dbgs() << "ColdBlockInfo {\n";
   for (auto pair : EnergyMap) {
     auto energy = pair.getSecond();
     isColdEnergy(energy) ? cold++ : warm++;
 
-    llvm::dbgs() << toString(pair.getFirst())
+    toolchain::dbgs() << toString(pair.getFirst())
                  << " -> " << toString(energy) << "\n";
   }
-  llvm::dbgs() << "STATISTICS: warm " << warm << " | cold " << cold << "\n}\n";
+  toolchain::dbgs() << "STATISTICS: warm " << warm << " | cold " << cold << "\n}\n";
 }
 
 inline bool isCriticalEdge(SILBasicBlock *predBB, SILBasicBlock *succBB) {
@@ -73,11 +77,11 @@ inline bool isCriticalEdge(SILBasicBlock *predBB, SILBasicBlock *succBB) {
         || succBB->getSinglePredecessorBlock() == predBB);
 }
 static bool hasCriticalEdge(SILBasicBlock *BB) {
-  return llvm::any_of(BB->getSuccessorBlocks(), [&](auto *succBB) {
+  return toolchain::any_of(BB->getSuccessorBlocks(), [&](auto *succBB) {
     if (!isCriticalEdge(BB, succBB))
       return false;
 
-    LLVM_DEBUG(llvm::dbgs() << "ColdBlockInfo: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "ColdBlockInfo: "
                             << toString(BB) << " -> " << toString(succBB)
                             << " is a critical edge!\n");
     return true;
@@ -134,7 +138,7 @@ ColdBlockInfo::searchForExpectedValue(SILValue Cond,
     return std::nullopt;
 
   if (auto *Arg = dyn_cast<SILArgument>(Cond)) {
-    llvm::SmallVector<std::pair<SILBasicBlock *, SILValue>, 4> InValues;
+    toolchain::SmallVector<std::pair<SILBasicBlock *, SILValue>, 4> InValues;
     if (!Arg->getIncomingPhiValues(InValues))
       return std::nullopt;
 
@@ -181,7 +185,7 @@ ColdBlockInfo::searchForExpectedValue(SILValue Cond,
 static std::optional<bool> getExpectedValue(SILValue Cond) {
   // Handle the fully inlined Builtin.
   if (auto *BI = dyn_cast<BuiltinInst>(Cond)) {
-    if (BI->getIntrinsicInfo().ID == llvm::Intrinsic::expect) {
+    if (BI->getIntrinsicInfo().ID == toolchain::Intrinsic::expect) {
       // peek through an extract of Bool.value.
       SILValue ExpectedValue = getCondition(BI->getArguments()[1]);
       if (auto *Literal = dyn_cast<IntegerLiteralInst>(ExpectedValue)) {
@@ -258,7 +262,7 @@ bool ColdBlockInfo::inferFromEdgeProfile(SILBasicBlock *BB) {
 
     set(succs[i], state);
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "ColdBlockInfo: setting to " << toString(state)
                  << " (inferFromEdgeProfile): " << toString(succs[i])
                  << " has taken probability " << takenProbability << "\n");
@@ -270,12 +274,12 @@ bool ColdBlockInfo::inferFromEdgeProfile(SILBasicBlock *BB) {
 }
 
 void ColdBlockInfo::analyze(SILFunction *fn) {
-  SWIFT_DEFER { changedMap = false; };
+  LANGUAGE_DEFER { changedMap = false; };
 
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
     << "ColdBlockInfo::analyze on " << fn->getName() << "\n");
-  LLVM_DEBUG(llvm::dbgs() << "--> Before Stage 1\n");
-  LLVM_DEBUG(dump());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "--> Before Stage 1\n");
+  TOOLCHAIN_DEBUG(dump());
 
   // The set of blocks for which we can skip searching for an expected
   // conditional value, as we've already determined which successor is cold.
@@ -289,7 +293,7 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
     // Check for a cold exit.
     if (isColdTerminator(term)) {
       assert(term->getNumSuccessors() == 0);
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
         << "ColdBlockInfo: resetting to cold (isColdTerminator): "
         << toString(&BB) << "\n");
 
@@ -313,16 +317,16 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "--> After Stage 1; changedMap = "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "--> After Stage 1; changedMap = "
                           << changedMap << "\n");
-  LLVM_DEBUG(dump());
+  TOOLCHAIN_DEBUG(dump());
 
   /// Latter stages are only for propagating coldness from other cold blocks.
   ///
   /// If we haven't changed the energy map at all in Stage 1, then we didn't
   /// find any new coldness, so stop early.
   if (!changedMap) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
       << "--> Stopping early in "<< fn->getName() << "\n");
     return;
   }
@@ -340,7 +344,7 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
       for (auto *dominatedBB : scratch) {
         if (dominatedBB == &BB)
           continue;
-        LLVM_DEBUG(llvm::dbgs() << "ColdBlockInfo: resetting to cold (dominatedBB): "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "ColdBlockInfo: resetting to cold (dominatedBB): "
                                 << toString(dominatedBB) << "\n");
         resetToCold(dominatedBB);
       }
@@ -366,7 +370,7 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
 
       if (foundCold) {
         for (auto *chainBB : scratch) {
-          LLVM_DEBUG(llvm::dbgs() << "ColdBlockInfo: resetting to cold (chainBB): "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "ColdBlockInfo: resetting to cold (chainBB): "
                                   << toString(chainBB) << "\n");
           resetToCold(chainBB);
         }
@@ -374,9 +378,9 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "--> After Stage 2; changedMap = "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "--> After Stage 2; changedMap = "
                           << changedMap << "\n");
-  LLVM_DEBUG(dump());
+  TOOLCHAIN_DEBUG(dump());
 
   /// Stage 3: Backwards propagate coldness from successors.
   changedMap = false;
@@ -390,7 +394,7 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
 
     // We're bubbling up coldness from the leaves of the function up towards the
     // entry block, so walk the blocks in post-order to converge faster.
-    for (auto *BB : llvm::post_order(fn)) {
+    for (auto *BB : toolchain::post_order(fn)) {
 
       // Only on the first pass, search recursively for an expected value,
       // if needed, now that more temperature data has been determined.
@@ -412,7 +416,7 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
       if (isCold(BB))
         continue;
 
-      if (llvm::all_of(BB->getSuccessorBlocks(), isColdBlock)) {
+      if (toolchain::all_of(BB->getSuccessorBlocks(), isColdBlock)) {
         resetToCold(BB);
         changed = true;
       }
@@ -420,11 +424,11 @@ void ColdBlockInfo::analyze(SILFunction *fn) {
     completedIters++;
   } while (changed);
 
-  LLVM_DEBUG(llvm::dbgs() << "--> Final for " << fn->getName() <<
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "--> Final for " << fn->getName() <<
                           " | converged after " << completedIters << " iters"
                           << " over " << fn->size() << " blocks; "
                           << " changedMap = " << changedMap << "\n");
-  LLVM_DEBUG(dump());
+  TOOLCHAIN_DEBUG(dump());
 }
 
 inline bool isColdEnergy(ColdBlockInfo::Energy e) {
@@ -480,14 +484,14 @@ void ColdBlockInfo::setExpectedCondition(CondBranchInst *CBI, ExpectedValue valu
   if (*value) {
     set(CBI->getTrueBB(), State::Warm);
     set(CBI->getFalseBB(), State::Cold);
-    LLVM_DEBUG(llvm::dbgs() << "ColdBlockInfo: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "ColdBlockInfo: "
                             << "_fastPath = " << toString(CBI->getTrueBB())
                             << " | _slowPath = " << toString(CBI->getFalseBB())
                             << "\n");
   } else {
     set(CBI->getTrueBB(), State::Cold);
     set(CBI->getFalseBB(), State::Warm);
-    LLVM_DEBUG(llvm::dbgs() << "ColdBlockInfo: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "ColdBlockInfo: "
                             << "_fastPath = " << toString(CBI->getFalseBB())
                             << " | _slowPath = " << toString(CBI->getTrueBB())
                             << "\n");

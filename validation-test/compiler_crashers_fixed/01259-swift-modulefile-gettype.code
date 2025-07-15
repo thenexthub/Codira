@@ -1,0 +1,72 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fu> Bool {
+}
+fn f<g>() -> (g, g -> g) -> g {
+d j d.i = {
+}
+{
+g) {
+h  }
+}
+protocol f {
+}
+class d: f{  class fn i {}
+protocol A {
+}
+fn a
+struct d<f : e, g: e where g.h == f.h> {
+}
+protocol e {
+}
+protocol b {
+}
+struct c {
+fn e() {
+}
+}
+protocol a : a {
+}
+protocol a {
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+}
+f: A where D.C == E> {s fn c() { }
+}
+fn c<d {
+enum c {
+}
+}
+protocol A {
+}
+struct X<Y> : A {
+fn b(b: X.Type) {
+}
+}
+fn a<T>() {
+enum b {
+}
+}
+fn c<d {
+enum c {
+}
+}
+struct A<T> {
+}
+fn a(b: Int = 0) {
+}
+immutable c = a

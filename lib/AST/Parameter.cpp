@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Parameter class, the ParameterList class and support
@@ -94,8 +95,8 @@ ParameterList *ParameterList::clone(const ASTContext &C,
     // If the argument isn't named, give the parameter a name so that
     // silgen will produce a value for it.
     if (decl->getName().empty() && (options & NamedArguments)) {
-      llvm::SmallString<16> s;
-      { llvm::raw_svector_ostream(s) << "__argument" << ++i; }
+      toolchain::SmallString<16> s;
+      { toolchain::raw_svector_ostream(s) << "__argument" << ++i; }
       decl->setName(C.getIdentifier(s));
     }
   }

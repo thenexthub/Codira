@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines diagnostics emitted during IR generation.
@@ -23,7 +24,7 @@
 #define DEFINE_DIAGNOSTIC_MACROS
 #include "DefineDiagnosticMacros.h"
 
-ERROR(no_llvm_target,none,
+ERROR(no_toolchain_target,none,
       "error loading LLVM target for triple '%0': %1", (StringRef, StringRef))
 ERROR(error_codegen_init_fail,none,
       "cannot initialize code generation passes for target", ())
@@ -42,7 +43,7 @@ ERROR(type_to_verify_dependent,none,
 ERROR(too_few_output_filenames,none,
       "too few output file names specified", ())
 ERROR(no_input_files_for_mt,none,
-      "no swift input files for multi-threaded compilation", ())
+      "no language input files for multi-threaded compilation", ())
 
 ERROR(alignment_dynamic_type_layout_unsupported,none,
       "'@_alignment' is not supported on types with dynamic layout", ())

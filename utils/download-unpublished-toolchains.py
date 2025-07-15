@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -15,12 +15,13 @@ Utility to download unpublished toolchains
 
 import argparse
 import os
+import re
 import sys
 import tarfile
 import urllib.request
 
 
-_CI_URL_ = "https://ci.swift.org/job/oss-swift-package-"
+_CI_URL_ = "https://ci.code.org/job/oss-language-package-"
 
 
 def get_build_url(platform, arch):
@@ -38,7 +39,7 @@ def get_latest_toolchain_url(build_url):
     lines = body.split('\n')
     toolchain = [x for x in lines if 'Toolchain:' in x]
     if len(toolchain) > 0:
-        toolchain_url = toolchain[0].removeprefix('Toolchain: ')
+        toolchain_url = re.sub(r'.+Toolchain: (.+)$', r'\1', toolchain[0])
     return toolchain_url
 
 
@@ -90,6 +91,12 @@ def parse_args():
         help="Untar the toolchain in the output directory",
     )
 
+    parser.add_argument(
+        "--dry-run",
+        default=False,
+        action='store_true',
+        help="Infer the toolchain URL but don't download it")
+
     return parser.parse_args()
 
 
@@ -105,13 +112,15 @@ def main():
     if not toolchain_url:
         print(f"Error: Unable to find toolchain for {args.platform}.")
         return -1
-    print(f"[Downloading] {toolchain_url}")
-    output_path = download_toolchain(toolchain_url, args.output_dir)
-    print(f"[Toolchain] {output_path}")
+    print(f"[Toolchain URL] {toolchain_url}")
 
-    if args.untar:
-        untar_toolchain(args.output_dir, output_path)
-        print(f"[Extracted] {args.output_dir}/usr")
+    if not args.dry_run:
+        output_path = download_toolchain(toolchain_url, args.output_dir)
+        print(f"[Toolchain] {output_path}")
+
+        if args.untar:
+            untar_toolchain(args.output_dir, output_path)
+            print(f"[Extracted] {args.output_dir}/usr")
 
 
 if __name__ == "__main__":

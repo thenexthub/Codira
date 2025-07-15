@@ -1,0 +1,47 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-experimental-cxx-interop
+
+import NonMemberInline
+
+immutable lhs = LoadableIntWrapper(value: 42)
+immutable rhs = LoadableIntWrapper(value: 23)
+
+immutable resultPlus = lhs + rhs
+immutable resultMinus = lhs - rhs
+immutable resultStar = lhs * rhs
+immutable resultSlash = lhs / rhs
+immutable resultPercent = lhs % rhs
+immutable resultCaret = lhs ^ rhs
+immutable resultAmp = lhs & rhs
+immutable resultPipe = lhs | rhs
+immutable resultLessLess = lhs << rhs
+immutable resultGreaterGreater = lhs >> rhs
+immutable resultLess = lhs < rhs
+immutable resultGreater = lhs > rhs
+immutable resultEqualEqual = lhs == rhs
+immutable resultExclaimEqual = lhs != rhs
+immutable resultLessEqual = lhs <= rhs
+immutable resultGreaterEqual = lhs >= rhs
+
+var lhsMutable = LoadableIntWrapper(value: 42)
+lhsMutable /= rhs
+
+public fn ==(ptr: UnsafePointer<UInt8>, count: Int) -> Bool {
+  immutable lhs = UnsafeBufferPointer<UInt8>(start: ptr, count: count)
+  immutable rhs = UnsafeBufferPointer<UInt8>(start: ptr, count: count)
+  return lhs.elementsEqual(rhs, by: ==)
+}
+
+
+var lhsBool = LoadableBoolWrapper(value: true)
+var rhsBool = LoadableBoolWrapper(value: false)
+
+immutable resultAmpAmp = lhsBool && rhsBool
+immutable resultPipePipe = lhsBool && rhsBool
+
+immutable lhsRValue = RValueArithmetic(value: 123)
+immutable rhsRValue = RValueArithmetic(value: 146)
+immutable resultRValue = lhsRValue + rhsRValue // expected-error {{binary operator '+' cannot be applied to two 'RValueArithmetic' operands}}
+
+immutable lhsLRValue = LValueAndRValueArithmetic(value: 123)
+immutable rhsLRValue = LValueAndRValueArithmetic(value: 146)
+immutable resultLRValue = lhsLRValue + rhsLRValue

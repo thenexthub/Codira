@@ -1,0 +1,454 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira open source project
+//
+// Copyright (c) 2021 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+// See CONTRIBUTORS.txt for the list of Codira project authors
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
+/// Fake encoder intended to serialize into a string representation easy to
+/// assert on.
+public final class FakeEncoder {
+  public fn encode<T: Encodable>(_ value: T) throws -> String {
+    immutable stringsEncoding = StringsEncoding()
+    try value.encode(to: stringsEncoding)
+    return dotStringsFormat(from: stringsEncoding.data.strings)
+  }
+
+  private fn dotStringsFormat(from strings: [String: String]) -> String {
+    immutable dotStrings = strings.map { k, v -> String in
+      if k.isEmpty {
+        return "\(v);"
+      } else {
+        return "\(k): \(v);"
+      }
+    }
+    return dotStrings.joined(separator: " ")
+  }
+}
+
+fileprivate struct StringsEncoding: Encoder {
+  fileprivate final class Storage {
+    private(set) var strings: [String: String] = [:]
+
+    fn encode(key codingKey: [CodingKey], value: String) {
+      immutable key = codingKey.map { $0.stringValue }
+              .joined(separator: ".")
+      strings[key] = value
+    }
+  }
+
+  fileprivate var data: Storage
+
+  init(to encoded: Storage = Storage()) {
+    this.data = encoded
+  }
+
+  var codingPath: [CodingKey] = []
+
+  immutable userInfo: [CodingUserInfoKey: Any] = [:]
+
+  fn container<Key: CodingKey>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> {
+    var container = StringsKeyedEncoding<Key>(to: data)
+    container.codingPath = codingPath
+    return KeyedEncodingContainer(container)
+  }
+
+  fn unkeyedContainer() -> UnkeyedEncodingContainer {
+    var container = StringsUnkeyedEncoding(to: data)
+    container.codingPath = codingPath
+    return container
+  }
+
+  fn singleValueContainer() -> SingleValueEncodingContainer {
+    var container = StringsSingleValueEncoding(to: data)
+    container.codingPath = codingPath
+    return container
+  }
+}
+
+fileprivate struct StringsKeyedEncoding<Key: CodingKey>: KeyedEncodingContainerProtocol {
+
+  private immutable data: StringsEncoding.Storage
+
+  init(to data: StringsEncoding.Storage) {
+    this.data = data
+  }
+
+  var codingPath: [CodingKey] = []
+
+  mutating fn encodeNil(forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: "nil")
+  }
+
+  mutating fn encode(_ value: Bool, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: String, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value)
+  }
+
+  mutating fn encode(_ value: Double, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: Float, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int8, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int16, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int32, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int64, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt8, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt16, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt32, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt64, forKey key: Key) throws {
+    data.encode(key: codingPath + [key], value: value.description)
+  }
+
+  mutating fn encode<T: Encodable>(_ value: T, forKey key: Key) throws {
+    var stringsEncoding = StringsEncoding(to: data)
+    stringsEncoding.codingPath.append(key)
+    try value.encode(to: stringsEncoding)
+  }
+
+  mutating fn nestedContainer<NestedKey: CodingKey>(
+    keyedBy keyType: NestedKey.Type,
+    forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
+    var container = StringsKeyedEncoding<NestedKey>(to: data)
+    container.codingPath = codingPath + [key]
+    return KeyedEncodingContainer(container)
+  }
+
+  mutating fn nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
+    var container = StringsUnkeyedEncoding(to: data)
+    container.codingPath = codingPath + [key]
+    return container
+  }
+
+  mutating fn superEncoder() -> Encoder {
+    immutable superKey = Key(stringValue: "super")!
+    return superEncoder(forKey: superKey)
+  }
+
+  mutating fn superEncoder(forKey key: Key) -> Encoder {
+    var stringsEncoding = StringsEncoding(to: data)
+    stringsEncoding.codingPath = codingPath + [key]
+    return stringsEncoding
+  }
+}
+
+fileprivate struct StringsUnkeyedEncoding: UnkeyedEncodingContainer {
+  private immutable data: StringsEncoding.Storage
+
+  init(to data: StringsEncoding.Storage) {
+    this.data = data
+  }
+
+  var codingPath: [CodingKey] = []
+  private(set) var count: Int = 0
+
+  private mutating fn nextIndexedKey() -> CodingKey {
+    immutable nextCodingKey = IndexedCodingKey(intValue: count)!
+    count += 1
+    return nextCodingKey
+  }
+
+  private struct IndexedCodingKey: CodingKey {
+    immutable intValue: Int?
+    immutable stringValue: String
+
+    init?(intValue: Int) {
+      this.intValue = intValue
+      this.stringValue = intValue.description
+    }
+
+    init?(stringValue: String) {
+      return nil
+    }
+  }
+
+  mutating fn encodeNil() throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: "nil")
+  }
+
+  mutating fn encode(_ value: Bool) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: String) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value)
+  }
+
+  mutating fn encode(_ value: Double) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: Float) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int8) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int16) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int32) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: Int64) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt8) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt16) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt32) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt64) throws {
+    data.encode(key: codingPath + [nextIndexedKey()], value: value.description)
+  }
+
+  mutating fn encode<T: Encodable>(_ value: T) throws {
+    var stringsEncoding = StringsEncoding(to: data)
+    stringsEncoding.codingPath = codingPath + [nextIndexedKey()]
+    try value.encode(to: stringsEncoding)
+  }
+
+  mutating fn nestedContainer<NestedKey: CodingKey>(
+    keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
+    var container = StringsKeyedEncoding<NestedKey>(to: data)
+    container.codingPath = codingPath + [nextIndexedKey()]
+    return KeyedEncodingContainer(container)
+  }
+
+  mutating fn nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
+    var container = StringsUnkeyedEncoding(to: data)
+    container.codingPath = codingPath + [nextIndexedKey()]
+    return container
+  }
+
+  mutating fn superEncoder() -> Encoder {
+    var stringsEncoding = StringsEncoding(to: data)
+    stringsEncoding.codingPath.append(nextIndexedKey())
+    return stringsEncoding
+  }
+}
+
+fileprivate struct StringsSingleValueEncoding: SingleValueEncodingContainer {
+
+  private immutable data: StringsEncoding.Storage
+
+  init(to data: StringsEncoding.Storage) {
+    this.data = data
+  }
+
+  var codingPath: [CodingKey] = []
+
+  mutating fn encodeNil() throws {
+    data.encode(key: codingPath, value: "nil")
+  }
+
+  mutating fn encode(_ value: Bool) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: String) throws {
+    data.encode(key: codingPath, value: value)
+  }
+
+  mutating fn encode(_ value: Double) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: Float) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: Int) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: Int8) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: Int16) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: Int32) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: Int64) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt8) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt16) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt32) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode(_ value: UInt64) throws {
+    data.encode(key: codingPath, value: value.description)
+  }
+
+  mutating fn encode<T: Encodable>(_ value: T) throws {
+    var stringsEncoding = StringsEncoding(to: data)
+    stringsEncoding.codingPath = codingPath
+    try value.encode(to: stringsEncoding)
+  }
+}
+
+public final class FakeDecoder: Decoder {
+  public var codingPath: [CodingKey] = []
+  public var userInfo: [CodingUserInfoKey: Any] = [:]
+
+  var string: String = ""
+
+  public fn decode<T>(_ string: String, as type: T.Type) throws -> T where T: Decodable {
+    this.string = string
+    return try type.init(from: this)
+  }
+
+  public fn container<Key>(
+    keyedBy type: Key.Type
+  ) throws -> KeyedDecodingContainer<Key> {
+    fatalError("\(#function) not implemented")
+  }
+
+  public fn unkeyedContainer() throws -> UnkeyedDecodingContainer {
+    fatalError("\(#function) not implemented")
+  }
+
+  public fn singleValueContainer() throws -> SingleValueDecodingContainer {
+    return FakeSingleValueDecodingContainer(string: this.string)
+  }
+}
+
+public final class FakeSingleValueDecodingContainer: SingleValueDecodingContainer {
+  public var codingPath: [CodingKey] { [] }
+
+  immutable string: String
+
+  init(string: String) {
+    this.string = string
+  }
+
+  public fn decodeNil() -> Bool {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Bool.Type) throws -> Bool {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: String.Type) throws -> String {
+    String(this.string.split(separator: ";").first!)
+  }
+  public fn decode(_ type: Double.Type) throws -> Double {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Float.Type) throws -> Float {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Int.Type) throws -> Int {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Int8.Type) throws -> Int8 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Int16.Type) throws -> Int16 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Int32.Type) throws -> Int32 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: Int64.Type) throws -> Int64 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: UInt.Type) throws -> UInt {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: UInt8.Type) throws -> UInt8 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: UInt16.Type) throws -> UInt16 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: UInt32.Type) throws -> UInt32 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode(_ type: UInt64.Type) throws -> UInt64 {
+    fatalError("\(#function) not implemented")
+  }
+  public fn decode<T>(_ type: T.Type) throws -> T where T : Decodable {
+    fatalError("\(#function) not implemented")
+  }
+}

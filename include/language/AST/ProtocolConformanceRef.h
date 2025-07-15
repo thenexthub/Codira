@@ -11,41 +11,42 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ProtocolConformanceRef type.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_PROTOCOLCONFORMANCEREF_H
-#define SWIFT_AST_PROTOCOLCONFORMANCEREF_H
+#ifndef LANGUAGE_AST_PROTOCOLCONFORMANCEREF_H
+#define LANGUAGE_AST_PROTOCOLCONFORMANCEREF_H
 
 #include "language/AST/ProtocolConformanceRef.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
 #include <optional>
 
 namespace language {
 class AbstractConformance;
 }
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 
 template <>
-struct PointerLikeTypeTraits<swift::AbstractConformance *> {
+struct PointerLikeTypeTraits<language::AbstractConformance *> {
 public:
-  static inline void *getAsVoidPointer(swift::AbstractConformance *ptr) {
+  static inline void *getAsVoidPointer(language::AbstractConformance *ptr) {
     return ptr;
   }
-  static inline swift::AbstractConformance *getFromVoidPointer(void *ptr) {
-    return (swift::AbstractConformance *)ptr;
+  static inline language::AbstractConformance *getFromVoidPointer(void *ptr) {
+    return (language::AbstractConformance *)ptr;
   }
-  enum { NumLowBitsAvailable = swift::TypeAlignInBits };
+  enum { NumLowBitsAvailable = language::TypeAlignInBits };
 };
 }
 
@@ -73,7 +74,7 @@ enum class EffectKind : uint8_t;
 /// even when the conformance is abstract.
 class ProtocolConformanceRef {
 public:
-  using UnionType = llvm::PointerUnion<AbstractConformance *,
+  using UnionType = toolchain::PointerUnion<AbstractConformance *,
                                        ProtocolConformance *,
                                        PackConformance *>;
 
@@ -143,6 +144,7 @@ public:
   }
 
   AbstractConformance *getAbstract() const {
+    ASSERT(isAbstract());
     return Union.get<AbstractConformance *>();
   }
 
@@ -165,14 +167,14 @@ public:
   /// \returns \c true if any invocation of \c fn returned true,
   /// \c false otherwise.
   bool forEachMissingConformance(
-      llvm::function_ref<bool(BuiltinProtocolConformance *missing)> fn) const;
+      toolchain::function_ref<bool(BuiltinProtocolConformance *missing)> fn) const;
 
   /// Enumerate all of the isolated conformances in the given conformance.
   ///
   /// The given `body` will be called on each isolated conformance. If it ever
   /// returns `true`, this function will abort the search and return `true`.
   bool forEachIsolatedConformance(
-      llvm::function_ref<bool(ProtocolConformanceRef)> body
+      toolchain::function_ref<bool(ProtocolConformanceRef)> body
   ) const;
 
   using OpaqueValue = void*;
@@ -219,11 +221,11 @@ public:
   ProtocolConformanceRef
   getAssociatedConformance(Type dependentType, ProtocolDecl *requirement) const;
 
-  SWIFT_DEBUG_DUMP;
-  void dump(llvm::raw_ostream &out, unsigned indent = 0,
+  LANGUAGE_DEBUG_DUMP;
+  void dump(toolchain::raw_ostream &out, unsigned indent = 0,
             bool details = true) const;
 
-  void print(llvm::raw_ostream &out) const;
+  void print(toolchain::raw_ostream &out) const;
 
   bool operator==(ProtocolConformanceRef other) const {
     return Union == other.Union;
@@ -232,8 +234,8 @@ public:
     return Union != other.Union;
   }
 
-  friend llvm::hash_code hash_value(ProtocolConformanceRef conformance) {
-    return llvm::hash_value(conformance.Union.getOpaqueValue());
+  friend toolchain::hash_code hash_value(ProtocolConformanceRef conformance) {
+    return toolchain::hash_value(conformance.Union.getOpaqueValue());
   }
 
   Type getTypeWitnessByName(Identifier name) const;
@@ -259,27 +261,27 @@ public:
   bool hasEffect(EffectKind kind) const;
 };
 
-void simple_display(llvm::raw_ostream &out, ProtocolConformanceRef conformanceRef);
+void simple_display(toolchain::raw_ostream &out, ProtocolConformanceRef conformanceRef);
 SourceLoc extractNearestSourceLoc(const ProtocolConformanceRef conformanceRef);
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 
 template <>
-struct PointerLikeTypeTraits<swift::ProtocolConformanceRef>
-  : PointerLikeTypeTraits<swift::ProtocolConformanceRef::UnionType>
+struct PointerLikeTypeTraits<language::ProtocolConformanceRef>
+  : PointerLikeTypeTraits<language::ProtocolConformanceRef::UnionType>
 {
 public:
-  static inline void *getAsVoidPointer(swift::ProtocolConformanceRef ref) {
+  static inline void *getAsVoidPointer(language::ProtocolConformanceRef ref) {
     return ref.getOpaqueValue();
   }
-  static inline swift::ProtocolConformanceRef getFromVoidPointer(void *ptr) {
-    return swift::ProtocolConformanceRef::getFromOpaqueValue(ptr);
+  static inline language::ProtocolConformanceRef getFromVoidPointer(void *ptr) {
+    return language::ProtocolConformanceRef::getFromOpaqueValue(ptr);
   }
 };
 
 }
 
-#endif // LLVM_SWIFT_AST_PROTOCOLCONFORMANCEREF_H
+#endif // TOOLCHAIN_LANGUAGE_AST_PROTOCOLCONFORMANCEREF_H

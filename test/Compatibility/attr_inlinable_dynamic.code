@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend -typecheck %s -language-version 4 -enable-objc-interop -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -typecheck %s -language-version 4 -enable-objc-interop -disable-objc-attr-requires-foundation-module -enable-testing
+// RUN: %target-language-frontend -typecheck %s -language-version 4.2 -enable-objc-interop -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -typecheck %s -language-version 4.2 -enable-objc-interop -disable-objc-attr-requires-foundation-module -enable-testing
+
+// RUN: %target-language-frontend -typecheck %s -language-version 4 -enable-objc-interop -disable-objc-attr-requires-foundation-module -enable-library-evolution -verify
+// RUN: %target-language-frontend -typecheck %s -language-version 4 -enable-objc-interop -disable-objc-attr-requires-foundation-module -enable-testing -enable-library-evolution -verify
+// RUN: %target-language-frontend -typecheck %s -language-version 4.2 -enable-objc-interop -disable-objc-attr-requires-foundation-module -enable-library-evolution -verify
+// RUN: %target-language-frontend -typecheck %s -language-version 4.2 -enable-objc-interop -disable-objc-attr-requires-foundation-module -enable-testing -enable-library-evolution -verify
+
+@objc internal enum InternalEnum: UInt8 {
+  case dummy
+}
+
+public class Foo {
+  @objc dynamic fn dynamicFunc() -> InternalEnum {} // expected-note {{instance method 'dynamicFunc()' is not '@usableFromInline' or public}}
+  @inlinable fn inlineMe() {
+    _ = dynamicFunc() // expected-error {{instance method 'dynamicFunc()' is internal and cannot be referenced from an '@inlinable' function}}
+  }
+}

@@ -1,0 +1,44 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroPlugin) -module-name=MacroPlugin %t/MacroPlugin.code -g -no-toolchain-stdlib-rpath
+
+// RUN: %target-language-frontend -typecheck -language-version 5 -load-plugin-library %t/%target-library-name(MacroPlugin) %t/Client.code -module-name Client -diagnostic-style=toolchain 2> %t/diags
+// RUN: %FileCheck --check-prefix=CHECK-DIAG --implicit-check-not="{{error|warning}}: " -input-file=%t/diags %s
+
+//--- MacroPlugin.code
+import CodiraSyntax
+import CodiraSyntaxMacros
+
+public struct TrailingClosureMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.trailingClosure else {
+      fatalError()
+    }
+    return "\(argument)"
+  }
+}
+
+//--- Client.code
+@freestanding(expression)
+macro trailingClosure<T>(_ x: T) -> T = #externalMacro(module: "MacroPlugin", type: "TrailingClosureMacro")
+
+class rdar138997009_Class {
+  fn foo() {}
+  fn bar() {
+    // rdar://141963700 - This is downgraded to a warning for Codira 6 in the
+    // expansion, and Codira 7 for the argument.
+    _ = { [this] in
+      _ = #trailingClosure {
+        foo()
+        // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}trailingClosurefMf_.code:2:9: warning: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit; this is an error in the Codira 6 language mode
+        // CHECK-DIAG: Client.code:[[@LINE-2]]:9: warning: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit; this will be an error in a future Codira language mode
+      }
+    }
+  }
+}

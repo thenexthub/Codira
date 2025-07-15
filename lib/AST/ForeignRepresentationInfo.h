@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FOREIGNREPRESENTATIONINFO_H
-#define SWIFT_FOREIGNREPRESENTATIONINFO_H
+#ifndef LANGUAGE_FOREIGNREPRESENTATIONINFO_H
+#define LANGUAGE_FOREIGNREPRESENTATIONINFO_H
 
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/PointerEmbeddedInt.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 namespace language {
 
@@ -27,7 +28,7 @@ class ProtocolConformance;
 
 class ForeignRepresentationInfo {
   using PayloadTy =
-    llvm::PointerEmbeddedInt<uintptr_t, sizeof(uintptr_t) * CHAR_BIT - 3>;
+    toolchain::PointerEmbeddedInt<uintptr_t, sizeof(uintptr_t) * CHAR_BIT - 3>;
 
   /// The low three bits store a ForeignRepresentableKind.
   ///
@@ -36,7 +37,7 @@ class ForeignRepresentationInfo {
   /// When it's Bridged, it's the conformance that describes the bridging.
   /// When it's Trivial, it's simply a flag stating whether Optional is
   /// supported.
-  llvm::PointerIntPair<PayloadTy, 3, ForeignRepresentableKind> Storage;
+  toolchain::PointerIntPair<PayloadTy, 3, ForeignRepresentableKind> Storage;
 
 public:
   /// Retrieve a cache entry for a non-foreign-representable type.
@@ -64,7 +65,7 @@ public:
   // Retrieve a cache entry for a bridged representable type.
   static ForeignRepresentationInfo
   forBridged(ProtocolConformance *conformance) {
-    using PayloadTraits = llvm::PointerLikeTypeTraits<PayloadTy>;
+    using PayloadTraits = toolchain::PointerLikeTypeTraits<PayloadTy>;
     ForeignRepresentationInfo result;
     result.Storage = {PayloadTraits::getFromVoidPointer(conformance),
                       ForeignRepresentableKind::Bridged};
@@ -95,24 +96,24 @@ public:
   ProtocolConformance *getConformance() const {
     switch (getKind()) {
     case ForeignRepresentableKind::None:
-      llvm_unreachable("this type is not representable");
+      toolchain_unreachable("this type is not representable");
 
     case ForeignRepresentableKind::Trivial:
     case ForeignRepresentableKind::BridgedError:
       return nullptr;
 
     case ForeignRepresentableKind::Bridged: {
-      using PayloadTraits = llvm::PointerLikeTypeTraits<PayloadTy>;
+      using PayloadTraits = toolchain::PointerLikeTypeTraits<PayloadTy>;
       auto payload = PayloadTraits::getAsVoidPointer(Storage.getPointer());
       return static_cast<ProtocolConformance *>(payload);
     }
 
     case ForeignRepresentableKind::Object:
     case ForeignRepresentableKind::StaticBridged:
-      llvm_unreachable("unexpected kind in ForeignRepresentableCacheEntry");
+      toolchain_unreachable("unexpected kind in ForeignRepresentableCacheEntry");
     }
 
-    llvm_unreachable("Unhandled ForeignRepresentableKind in switch.");
+    toolchain_unreachable("Unhandled ForeignRepresentableKind in switch.");
   }
 
   /// Returns true if the optional version of this type is also representable.
@@ -121,4 +122,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_FOREIGNREPRESENTATIONINFO_H
+#endif // LANGUAGE_FOREIGNREPRESENTATIONINFO_H

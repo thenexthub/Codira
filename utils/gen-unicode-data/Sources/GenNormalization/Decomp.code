@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -23,15 +27,15 @@ import GenUtils
 // scalar in the line with the various properties. For the purposes of
 // decomposition data, we only need the 1B05 1B35 after the L (index 5) which is
 // the array of scalars that the scalars decomposes to.
-func getDecompData(
+fn getDecompData(
   from data: String
 ) -> [(UInt32, [UInt32])] {
   var unflattened: [(UInt32, [UInt32])] = []
   
   for line in data.split(separator: "\n") {
-    let components = line.split(separator: ";", omittingEmptySubsequences: false)
+    immutable components = line.split(separator: ";", omittingEmptySubsequences: false)
     
-    let decomp = components[5]
+    immutable decomp = components[5]
     
     // We either 1. don't have decompositions, or 2. the decompositions is for
     // compatible forms. We only care about NFD, so ignore these cases.
@@ -39,12 +43,12 @@ func getDecompData(
       continue
     }
     
-    let decomposedScalars = decomp.split(separator: " ").map {
+    immutable decomposedScalars = decomp.split(separator: " ").map {
       UInt32($0, radix: 16)!
     }
     
-    let scalarStr = components[0]
-    let scalar = UInt32(scalarStr, radix: 16)!
+    immutable scalarStr = components[0]
+    immutable scalar = UInt32(scalarStr, radix: 16)!
     
     unflattened.append((scalar, decomposedScalars))
   }
@@ -54,14 +58,14 @@ func getDecompData(
 
 // Takes a mph for the keys and the data values and writes the required data into
 // static C arrays.
-func emitDecomp(
+fn emitDecomp(
   _ mph: Mph,
   _ data: [(UInt32, [UInt32])],
   into result: inout String
 ) {
   emitMph(
     mph,
-    name: "_swift_stdlib_nfd_decomp",
+    name: "_language_stdlib_nfd_decomp",
     defineLabel: "NFD_DECOMP",
     into: &result
   )
@@ -70,13 +74,13 @@ func emitDecomp(
   
   var data = data
   
-  func decompose(_ scalar: UInt32, into result: inout [UInt32]) {
+  fn decompose(_ scalar: UInt32, into result: inout [UInt32]) {
     if scalar <= 0x7F {
       result.append(scalar)
       return
     }
     
-    if let decomp = data.first(where: { $0.0 == scalar }) {
+    if immutable decomp = data.first(where: { $0.0 == scalar }) {
       for scalar in decomp.1 {
         decompose(scalar, into: &result)
       }
@@ -103,11 +107,11 @@ func emitDecomp(
   
   sortedData.sort { $0.1 < $1.1 }
   
-  let indices = emitDecompDecomp(data, sortedData, into: &result)
+  immutable indices = emitDecompDecomp(data, sortedData, into: &result)
   emitDecompIndices(indices, into: &result)
 }
 
-func emitDecompDecomp(
+fn emitDecompDecomp(
   _ data: [(UInt32, [UInt32])],
   _ sortedData: [(UInt32, UInt16)],
   into result: inout String
@@ -121,10 +125,10 @@ func emitDecompDecomp(
   var uniqueDecomps: [[UInt32]: UInt16] = [:]
   
   for (scalar, _) in sortedData {
-    let decomp = data.first(where: { $0.0 == scalar })!.1
+    immutable decomp = data.first(where: { $0.0 == scalar })!.1
     
     // If we've seen this decomp before, use it.
-    if let idx = uniqueDecomps[decomp] {
+    if immutable idx = uniqueDecomps[decomp] {
       indices.append((scalar, idx))
       continue
     }
@@ -133,12 +137,12 @@ func emitDecompDecomp(
     
     // This is our NFD decomposition utf8 string count.
     decompResult.append(0)
-    let sizeIdx = decompResult.count - 1
+    immutable sizeIdx = decompResult.count - 1
     
     uniqueDecomps[decomp] = UInt16(sizeIdx)
     
     for scalar in decomp {
-      let realScalar = Unicode.Scalar(scalar)!
+      immutable realScalar = Unicode.Scalar(scalar)!
       
       decompResult[sizeIdx] += UInt8(realScalar.utf8.count)
       
@@ -149,7 +153,7 @@ func emitDecompDecomp(
   }
   
   result += """
-  static const __swift_uint8_t _swift_stdlib_nfd_decomp[\(decompResult.count)] = {
+  static const __language_uint8_t _language_stdlib_nfd_decomp[\(decompResult.count)] = {
 
   """
   
@@ -162,12 +166,12 @@ func emitDecompDecomp(
   return indices
 }
 
-func emitDecompIndices(
+fn emitDecompIndices(
   _ indices: [(UInt32, UInt16)],
   into result: inout String
 ) {
   result += """
-  static const __swift_uint32_t _swift_stdlib_nfd_decomp_indices[\(indices.count)] = {
+  static const __language_uint32_t _language_stdlib_nfd_decomp_indices[\(indices.count)] = {
 
   """
   

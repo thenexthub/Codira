@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -28,16 +29,16 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_PROGRAMTERMINATIONANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_PROGRAMTERMINATIONANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_PROGRAMTERMINATIONANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_PROGRAMTERMINATIONANALYSIS_H
 
 #include "language/SILOptimizer/Analysis/ARCAnalysis.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 namespace language {
 
 class ProgramTerminationFunctionInfo {
-  llvm::SmallPtrSet<const SILBasicBlock *, 4> ProgramTerminatingBlocks;
+  toolchain::SmallPtrSet<const SILBasicBlock *, 4> ProgramTerminatingBlocks;
 
 public:
   ProgramTerminationFunctionInfo(const SILFunction *F) {
@@ -53,6 +54,6 @@ public:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import os
@@ -12,11 +12,11 @@ import platform
 import sys
 import unittest
 
-from build_swift import argparse
-from build_swift import constants
-from build_swift import driver_arguments
-from build_swift import migration
-from build_swift.presets import PresetParser
+from build_language import argparse
+from build_language import constants
+from build_language import driver_arguments
+from build_language import migration
+from build_language.presets import PresetParser
 
 from .test_presets import PRESET_DEFAULTS
 from .. import expected_options as eo
@@ -45,7 +45,7 @@ def _load_all_presets(preset_files):
     presets = dict()
     for name in preset_names:
         preset = parser.get_preset(name, vars=PRESET_DEFAULTS)
-        args = migration.migrate_swift_sdks(preset.args)
+        args = migration.migrate_language_sdks(preset.args)
 
         presets[name] = args
 
@@ -395,7 +395,7 @@ class TestDriverArgumentParser(
         """Test that we are exhaustively testing all options accepted by the
         parser. If this test if failing then the parser accepts more options
         than currently being tested, meaning the EXPECTED_OPTIONS list in
-        build_swift/tests/expected_options.py should be updated to include
+        build_language/tests/expected_options.py should be updated to include
         the missing options.
         """
 
@@ -466,8 +466,8 @@ class TestDriverArgumentParser(
         with self.assertRaises(ParserError):
             self.parse_default_args([option_string, '0.0.0.0.1'])
 
-    def test_option_swift_compiler_version(self):
-        option_string = '--swift-compiler-version'
+    def test_option_language_compiler_version(self):
+        option_string = '--language-compiler-version'
 
         self.parse_default_args([option_string, '4.1'])
         self.parse_default_args([option_string, '4.0.1'])
@@ -487,8 +487,8 @@ class TestDriverArgumentParser(
         with self.assertRaises(ParserError):
             self.parse_default_args([option_string, 'foo'])
 
-    def test_option_swift_user_visible_version(self):
-        option_string = '--swift-user-visible-version'
+    def test_option_language_user_visible_version(self):
+        option_string = '--language-user-visible-version'
 
         self.parse_default_args([option_string, '4.1'])
         self.parse_default_args([option_string, '4.0.1'])
@@ -515,6 +515,10 @@ class TestDriverArgumentParser(
         with self.assertRaises(ValueError):
             self.parse_default_args(['--watchos-all'])
 
+    def test_language_stdlib_strict_availability(self):
+        self.parse_default_args('--language-stdlib-strict-availability')
+        self.parse_default_args('--no-language-stdlib-strict-availability')
+
     # -------------------------------------------------------------------------
     # Implied defaults tests
 
@@ -522,9 +526,9 @@ class TestDriverArgumentParser(
         namespace = self.parse_default_args(['--assertions'])
 
         self.assertTrue(namespace.cmark_assertions)
-        self.assertTrue(namespace.llvm_assertions)
-        self.assertTrue(namespace.swift_assertions)
-        self.assertTrue(namespace.swift_stdlib_assertions)
+        self.assertTrue(namespace.toolchain_assertions)
+        self.assertTrue(namespace.code_assertions)
+        self.assertTrue(namespace.code_stdlib_assertions)
 
     def test_implied_defaults_cmark_build_variant(self):
         namespace = self.parse_default_args(['--debug-cmark'])
@@ -542,11 +546,12 @@ class TestDriverArgumentParser(
 
         self.assertEqual(namespace.cmark_build_variant, 'Debug')
         self.assertEqual(namespace.foundation_build_variant, 'Debug')
+        self.assertEqual(namespace.foundation_tests_build_variant, 'Debug')
         self.assertEqual(namespace.libdispatch_build_variant, 'Debug')
         self.assertEqual(namespace.lldb_build_variant, 'Debug')
-        self.assertEqual(namespace.llvm_build_variant, 'Debug')
-        self.assertEqual(namespace.swift_build_variant, 'Debug')
-        self.assertEqual(namespace.swift_stdlib_build_variant, 'Debug')
+        self.assertEqual(namespace.toolchain_build_variant, 'Debug')
+        self.assertEqual(namespace.code_build_variant, 'Debug')
+        self.assertEqual(namespace.code_stdlib_build_variant, 'Debug')
 
     def test_implied_defaults_skip_build_ios(self):
         namespace = self.parse_default_args(['--skip-build-ios'])
@@ -587,13 +592,13 @@ class TestDriverArgumentParser(
         namespace = self.parse_default_args(['--test-optimize-for-size'])
         self.assertTrue(namespace.test)
 
-    def test_implied_defaults_test_early_swift_driver(self):
+    def test_implied_defaults_test_early_language_driver(self):
         namespace = self.parse_default_args(['--test'])
-        self.assertTrue(namespace.test_early_swift_driver)
+        self.assertTrue(namespace.test_early_language_driver)
 
-    def test_implied_defaults_test_no_early_swift_driver(self):
-        namespace = self.parse_default_args(['--test --skip-early-swift-driver'])
-        self.assertTrue(namespace.test_early_swift_driver is None)
+    def test_implied_defaults_test_no_early_language_driver(self):
+        namespace = self.parse_default_args(['--test --skip-early-language-driver'])
+        self.assertTrue(namespace.test_early_language_driver is None)
 
     def test_implied_defaults_test_optimize_none_with_implicit_dynamic(self):
         namespace = self.parse_default_args(
@@ -645,6 +650,6 @@ class TestDriverArgumentParser(
         self.assertFalse(namespace.test_watchos_host)
         self.assertFalse(namespace.test_android_host)
 
-    def test_implied_defaults_swift_disable_dead_stripping(self):
-        namespace = self.parse_default_args(['--swift-disable-dead-stripping'])
-        self.assertTrue(namespace.swift_disable_dead_stripping)
+    def test_implied_defaults_language_disable_dead_stripping(self):
+        namespace = self.parse_default_args(['--language-disable-dead-stripping'])
+        self.assertTrue(namespace.code_disable_dead_stripping)

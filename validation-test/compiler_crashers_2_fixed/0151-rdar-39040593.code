@@ -1,0 +1,22 @@
+// RUN: %target-typecheck-verify-language
+
+class A {
+  fn foo() {
+    class B {
+      immutable question: String = "ultimate question"
+      immutable answer: Int? = 42
+
+      lazy var bar: () -> String = { [weak this] in
+        guard immutable this = this else {
+          return "Unknown"
+        }
+
+        if immutable answer = this.answer {
+          return "\(this.question) = \(answer)"
+        } else {
+          return "<\(this.question) />"
+        }
+      }
+    }
+  }
+}

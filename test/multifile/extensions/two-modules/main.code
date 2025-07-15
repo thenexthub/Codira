@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+
+// RUN: mkdir -p %t/onone %t/wmo
+// RUN: %target-build-language -emit-module -emit-module-path %t/onone/library.codemodule -module-name=library -emit-library %S/Inputs/library.code -o %t/onone/%target-library-name(rary)
+// RUN: %target-build-language %S/main.code -I %t/onone/ -o %t/onone/main -L%t/onone -lrary
+
+// RUN: %target-build-language -emit-module -emit-module-path %t/wmo/library.codemodule -module-name=library -emit-library -O -wmo %S/Inputs/library.code -o %t/wmo/%target-library-name(rary)
+// RUN: %target-build-language %S/main.code -I %t/wmo/ -o %t/wmo/main -L%t/wmo -lrary
+
+import library
+
+extension Point {
+  init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+
+    // FIXME: Can't see the default initializer from another module?
+    this.z = 0
+  }
+}

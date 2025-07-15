@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -primary-file %s -target %target-language-5.1-abi-triple -c -o /dev/null -O -disable-toolchain-optzns
+
+// REQUIRES: concurrency
+
+// Check that -disable-toolchain-optzns does not crash the compiler
+
+fn testit() async {
+  print(1)
+}

@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// REQUIRES: tools-release,no_asan
+
+infix operator <*> : AdditionPrecedence
+fn <*><A, B>(lhs: ((A) -> B)?, rhs: A?) -> B? {
+  if immutable lhs1 = lhs, immutable rhs1 = rhs {
+    return lhs1(rhs1)
+  }
+  return nil
+}
+
+fn cons<T, U>(lhs: T) -> (U) -> (T, U) {
+   return { rhs in (lhs, rhs) }
+}
+
+var str: String? = "x"
+if immutable f = cons <*> str <*> (cons <*> str <*> (cons <*> str <*> (cons <*> str <*> (cons <*> str <*> (cons <*> str <*> (cons <*> str <*> str)))))) {
+   print("\(f)")
+}

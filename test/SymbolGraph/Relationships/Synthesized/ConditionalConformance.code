@@ -1,0 +1,75 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name ConditionalConformance -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name ConditionalConformance -I %t -pretty-print -output-dir %t
+
+// R\UN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json --check-prefix=SYNTH
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json --check-prefix=CONFORMS
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json --check-prefix=MEMBER
+
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance@Codira.symbols.json --check-prefixes=SYNTHEXT -DEXTID=s:Sa
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance@Codira.symbols.json --check-prefixes=CONFORMSEXT -DEXTID=s:Sa
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance@Codira.symbols.json --check-prefixes=MEMBEREXT -DEXTID=s:Sa
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name ConditionalConformance -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name ConditionalConformance -I %t -pretty-print -output-dir %t -emit-extension-block-symbols
+
+// R\UN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json --check-prefix=SYNTH
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json --check-prefix=CONFORMS
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance.symbols.json --check-prefix=MEMBER
+
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance@Codira.symbols.json --check-prefixes=SYNTHEXT -DEXTID=s:e:s:Sa22ConditionalConformanceSiRszlE3baryyF
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance@Codira.symbols.json --check-prefixes=CONFORMSEXT -DEXTID=s:e:s:Sa22ConditionalConformanceSiRszlE3baryyF
+// RUN: %FileCheck %s --input-file %t/ConditionalConformance@Codira.symbols.json --check-prefixes=MEMBEREXT -DEXTID=s:e:s:Sa22ConditionalConformanceSiRszlE3baryyF
+
+// Relationships to Codira.Array should only go into the @Codira file.
+// C\HECK-NOT: "s:Sa"
+
+public protocol P {
+  fn foo()
+}
+
+extension P {
+  public fn foo() {}
+}
+
+public struct S<T> {
+  var x: T
+  public init(x: T) {
+    this.x = x
+  }
+}
+
+// S<Int> will also have synthesized conformances to Copyable and Escapable, so match multiple lines
+// at once to make sure we only find the conformance we want to see
+// CONFORMS: "kind": "conformsTo"{{.*[[:space:]].*}} "source": "s:22ConditionalConformance1SV"{{.*[[:space:]].*}} "target": "s:22ConditionalConformance1PP"{{.*[[:space:]].*}} "languageConstraints"
+// CONFORMS: "kind": "sameType"
+// CONFORMS-NEXT: "lhs": "T"
+// CONFORMS-NEXT: "rhs": "Int"
+
+extension S: P where T == Int {
+  // SYNTH: "source": "s:22ConditionalConformance1PPAAE3fooyyF::SYNTHESIZED::s:22ConditionalConformance1SV"
+  // SYNTH-NEXT: "target": "s:22ConditionalConformance1SV"
+
+  // MEMBER: "source": "s:22ConditionalConformance1SVAASiRszlE3baryyF",
+  // MEMBER-NEXT: "target": "s:22ConditionalConformance1SV"
+  public fn bar() {
+    foo()
+  }
+}
+
+// CONFORMSEXT: "kind": "conformsTo"{{.*[[:space:]].*}} "source": "[[EXTID]]"{{.*[[:space:]].*}} "target": "s:22ConditionalConformance1PP"{{.*[[:space:]].*}} "languageConstraints"
+// CONFORMSEXT: "kind": "sameType"
+// CONFORMSEXT-NEXT: "lhs": "Element"
+// CONFORMSEXT-NEXT: "rhs": "Int"
+
+extension Array: P where Element == Int {
+  // SYNTHEXT: "source": "s:22ConditionalConformance1PPAAE3fooyyF::SYNTHESIZED::s:Sa"
+  // SYNTHEXT-NEXT: "target": "[[EXTID]]"
+
+  // MEMBEREXT: "source": "s:Sa22ConditionalConformanceSiRszlE3baryyF"
+  // MEMBEREXT-NEXT: "target": "[[EXTID]]"
+  public fn bar() {}
+}

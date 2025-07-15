@@ -1,4 +1,4 @@
-//===--- TypeLowering.h - Swift Type Lowering for Reflection ----*- C++ -*-===//
+//===--- TypeLowering.h - Codira Type Lowering for Reflection ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements logic for computing in-memory layouts from TypeRefs loaded from
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_TYPELOWERING_H
-#define SWIFT_REFLECTION_TYPELOWERING_H
+#ifndef LANGUAGE_REFLECTION_TYPELOWERING_H
+#define LANGUAGE_REFLECTION_TYPELOWERING_H
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/Support/Casting.h"
 #include "language/Remote/MetadataReader.h"
 #include "language/Remote/TypeInfoProvider.h"
 #include "language/RemoteInspection/BitMask.h"
@@ -34,8 +35,8 @@
 namespace language {
 namespace reflection {
 
-using llvm::cast;
-using llvm::dyn_cast;
+using toolchain::cast;
+using toolchain::dyn_cast;
 using remote::RemoteRef;
 
 class TypeConverter;
@@ -69,13 +70,13 @@ enum class EnumKind : unsigned {
 enum class RecordKind : unsigned {
   Invalid,
 
-  // A Swift tuple type.
+  // A Codira tuple type.
   Tuple,
 
-  // A Swift struct type.
+  // A Codira struct type.
   Struct,
 
-  // A Swift-native function is always a function pointer followed by a
+  // A Codira-native function is always a function pointer followed by a
   // retainable, nullable context pointer.
   ThickFunction,
 
@@ -376,10 +377,10 @@ public:
 class TypeConverter {
   TypeRefBuilder &Builder;
   std::vector<std::unique_ptr<const TypeInfo>> Pool;
-  llvm::DenseMap<std::pair<const TypeRef *, remote::TypeInfoProvider::IdType>,
-                 const TypeInfo *> Cache;
-  llvm::DenseSet<const TypeRef *> RecursionCheck;
-  llvm::DenseMap<std::pair<unsigned, unsigned>,
+  using KeyT = std::pair<const TypeRef *, remote::TypeInfoProvider::IdType>;
+  toolchain::DenseMap<KeyT, const TypeInfo *> Cache;
+  toolchain::DenseSet<const TypeRef *> RecursionCheck;
+  toolchain::DenseMap<std::pair<unsigned, unsigned>,
                  const ReferenceTypeInfo *> ReferenceCache;
 
   const TypeRef *RawPointerTR = nullptr;
@@ -394,8 +395,24 @@ class TypeConverter {
   const TypeInfo *DefaultActorStorageTI = nullptr;
   const TypeInfo *EmptyTI = nullptr;
 
+  /// Used for lightweight error handling. We don't have access to
+  /// toolchain::Expected<> here, so TypeConverter just stores a pointer to the last
+  /// encountered error instead that is stored in the cache.
+  using TCError = std::pair<const char *, const TypeRef *>;
+  TCError LastError = {nullptr, nullptr};
+  std::unique_ptr<toolchain::DenseMap<KeyT, TCError>> ErrorCache;
+
 public:
   explicit TypeConverter(TypeRefBuilder &Builder) : Builder(Builder) {}
+
+  /// Called by LLDB.
+  void enableErrorCache() {
+    ErrorCache = std::make_unique<toolchain::DenseMap<KeyT, TCError>>();
+  }
+  void setError(const char *msg, const TypeRef *TR) { LastError = {msg, TR}; }
+
+  /// Retreive the error and reset it.
+  std::string takeLastError();
 
   TypeRefBuilder &getBuilder() { return Builder; }
 
@@ -426,10 +443,10 @@ public:
   }
 
 private:
-  friend class swift::reflection::LowerType;
-  friend class swift::reflection::EnumTypeInfoBuilder;
-  friend class swift::reflection::RecordTypeInfoBuilder;
-  friend class swift::reflection::ExistentialTypeInfoBuilder;
+  friend class language::reflection::LowerType;
+  friend class language::reflection::EnumTypeInfoBuilder;
+  friend class language::reflection::RecordTypeInfoBuilder;
+  friend class language::reflection::ExistentialTypeInfoBuilder;
 
   const ReferenceTypeInfo *
   getReferenceTypeInfo(ReferenceKind Kind,
@@ -477,8 +494,10 @@ public:
     : TC(TC), Size(0), Alignment(1), NumExtraInhabitants(0),
       BitwiseTakable(true), Kind(Kind), Empty(true), Invalid(false) {}
 
-  bool isInvalid() const {
-    return Invalid;
+  bool isInvalid() const { return Invalid; }
+  void markInvalid(const char *msg, const TypeRef *TR = nullptr) {
+    Invalid = true;
+    TC.setError(msg, TR);
   }
 
   unsigned addField(unsigned fieldSize, unsigned fieldAlignment,

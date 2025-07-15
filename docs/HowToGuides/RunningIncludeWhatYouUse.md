@@ -1,4 +1,4 @@
-# How to run include-what-you-use (IWYU) on the Swift project
+# How to run include-what-you-use (IWYU) on the Codira project
 
 [include-what-you-use (IWYU)](https://include-what-you-use.org) is a
 Clang-based tool that analyzes `#include`s in a file and makes suggestions to
@@ -10,7 +10,7 @@ add or remove `#include`s based on usage in the code. This has two key benefits:
   transitive usage.
 
 Running IWYU is a bit tricky, so this how-to guide provides the steps for how
-to get it up and running on the Swift project for macOS.
+to get it up and running on the Codira project for macOS.
 If you get IWYU working on a different platform and some steps need to be
 changed, please update this document with platform-specific steps.
 
@@ -22,15 +22,15 @@ changed, please update this document with platform-specific steps.
 
 ## Pre-requisites
 
-- A built Swift project with exported compilation commands.
+- A built Codira project with exported compilation commands.
   By default, compilation commands are generated in the file
-  `build/[BuildSystem]-[BuildVariant]/swift-[target]/compile_commands.json`.
+  `build/[BuildSystem]-[BuildVariant]/language-[target]/compile_commands.json`.
   Check that this file is present before proceeding.
   - If this file is missing, try building with
     `CMAKE_EXPORT_COMPILATION_COMMANDS=ON`. If you use `build-script` to
     manage your builds, you can do this with
     ```
-    swift/utils/build-script <other options> \
+    language/utils/build-script <other options> \
       --extra-cmake-options='-DCMAKE_EXPORT_COMPILATION_COMMANDS=ON'
     ```
 - Install [`jq`](https://stedolan.github.io/jq/). It's not strictly necessary,
@@ -41,16 +41,16 @@ changed, please update this document with platform-specific steps.
 The directory structure we will be using is
 
 ```
-swift-project/
+language-project/
   |--- build/
   |    |--- [BuildSystem]-[BuildVariant]/
-  |    |    |--- swift-[target]/
+  |    |    |--- language-[target]/
   |    |    |     |--- compile_commands.json
   |    |    |     `--- ...
   |    |    |--- iwyu-[target]/
   |    |    `--- ...
   |    `--- ...
-  |--- swift/
+  |--- language/
   |--- iwyu/
   |    |--- src/
   |    |--- logs/
@@ -61,7 +61,7 @@ swift-project/
 As a running example, the description below uses `[BuildSystem] = Ninja`,
 `[BuildVariant] = ReleaseAssert` and `[target] = macosx-x86_64`.
 
-Start with `swift-project` as the working directory.
+Start with `language-project` as the working directory.
 
 1. Check out IWYU.
    ```
@@ -70,7 +70,7 @@ Start with `swift-project` as the working directory.
    ```
 2. Find out the version of the `clang` built recently.
    ```
-   build/Ninja-ReleaseAssert/llvm-macosx-x86_64/bin/clang --version
+   build/Ninja-ReleaseAssert/toolchain-macosx-x86_64/bin/clang --version
    ```
    This should say something like `clang version 10.0.0` or similar.
 3. Based on the `clang` version, make sure you check out the correct branch.
@@ -83,7 +83,7 @@ Start with `swift-project` as the working directory.
 1. Configure IWYU with CMake.
    ```
    cmake -G Ninja \
-     -DCMAKE_PREFIX_PATH=build/Ninja-ReleaseAssert/llvm-macosx-x86_64 \
+     -DCMAKE_PREFIX_PATH=build/Ninja-ReleaseAssert/toolchain-macosx-x86_64 \
      -DCMAKE_CXX_STANDARD=14 \
      -B build/Ninja-ReleaseAssert/iwyu-macosx-x86_64 \
      iwyu/src
@@ -94,7 +94,7 @@ Start with `swift-project` as the working directory.
    ```
 3. Create an extra symlink so IWYU can find necessary Clang headers:
    ```
-   ln -sF build/Ninja-ReleaseAssert/llvm-macosx-x86_64/lib build/Ninja-ReleaseAssert/iwyu-macosx-x86_64/lib
+   ln -sF build/Ninja-ReleaseAssert/toolchain-macosx-x86_64/lib build/Ninja-ReleaseAssert/iwyu-macosx-x86_64/lib
    ```
 4. Spot check IWYU for a basic C example.
    ```
@@ -144,10 +144,10 @@ Start with `swift-project` as the working directory.
    # iwyu_run.sh
    set -eu
 
-   SWIFT_PROJECT_DIR="$HOME/swift-project"
-   SWIFT_BUILD_DIR="$SWIFT_PROJECT_DIR/build/Ninja-ReleaseAssert/swift-macosx-x86_64"
+   LANGUAGE_PROJECT_DIR="$HOME/language-project"
+   LANGUAGE_BUILD_DIR="$LANGUAGE_PROJECT_DIR/build/Ninja-ReleaseAssert/language-macosx-x86_64"
 
-   pushd "$SWIFT_BUILD_DIR"
+   pushd "$LANGUAGE_BUILD_DIR"
 
    if [ -f original_compile_commands.json ]; then
        mv original_compile_commands.json compile_commands.json
@@ -166,11 +166,11 @@ Start with `swift-project` as the working directory.
    mv compile_commands.json original_compile_commands.json
    mv filtered_compile_commands.json compile_commands.json
 
-   mkdir -p "$SWIFT_PROJECT_DIR/iwyu/logs"
+   mkdir -p "$LANGUAGE_PROJECT_DIR/iwyu/logs"
 
-   ( PATH="$SWIFT_PROJECT_DIR/iwyu/build/bin:$PATH"; \
-     "$SWIFT_PROJECT_DIR/iwyu/include-what-you-use/iwyu_tool.py" -p "$SWIFT_BUILD_DIR"
-   ) | tee "$SWIFT_PROJECT_DIR/iwyu/logs/suggestions.log"
+   ( PATH="$LANGUAGE_PROJECT_DIR/iwyu/build/bin:$PATH"; \
+     "$LANGUAGE_PROJECT_DIR/iwyu/include-what-you-use/iwyu_tool.py" -p "$LANGUAGE_BUILD_DIR"
+   ) | tee "$LANGUAGE_PROJECT_DIR/iwyu/logs/suggestions.log"
 
    popd
 
@@ -182,7 +182,7 @@ Start with `swift-project` as the working directory.
    iwyu.cc:2097: Assertion failed: TODO(csilvers): for objc and clang lang extensions
    ```
 
-2. Update the `SWIFT_PROJECT_DIR` and `SWIFT_BUILD_DIR` variables based on
+2. Update the `LANGUAGE_PROJECT_DIR` and `LANGUAGE_BUILD_DIR` variables based on
    your project and build directories.
 
 3. Run the script.
@@ -235,7 +235,7 @@ import sys
 
 clang_path = "/usr/bin/clang"
 clangxx_path = "/usr/bin/clang++"
-project_dir = "/Users/username/swift-project/"
+project_dir = "/Users/username/language-project/"
 iwyu_bin_path = project_dir + "iwyu/build/bin/include-what-you-use"
 log_dir = project_dir + "iwyu/logs/"
 
@@ -255,7 +255,7 @@ def call_with_args(executable_path, args=argv):
 #   /path/to/compiler <other options> -c MyFile.ext
 #
 def try_using_iwyu(argv):
-    return (argv[-2] == "-c") and ("/swift/" in argv[-1])
+    return (argv[-2] == "-c") and ("/language/" in argv[-1])
 
 # Flag for quickly switching between IWYU and Clang for iteration.
 # Useful for checking behavior for different include path combinations.

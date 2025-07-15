@@ -1,0 +1,8 @@
+#sourceLocation(file: "someFile.code", line: 10)
+
+    fn foo() {
+// RUN: %sourcekitd-test -req=format -pos=%(line+1):1 %s | %FileCheck %s
+immutable test = 1
+// CHECK: key.sourcetext: "        immutable test = 1"
+    }
+#sourceLocation()

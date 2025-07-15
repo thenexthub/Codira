@@ -15,7 +15,7 @@ form of access markers. `begin_access` identifies the address of the
 formal access and `end_access` delimits the scope of the access. At
 the language level, a formal access is an access to a local variable
 or class property. For details, see
-[SE-0176: Enforce Exclusive Access to Memory](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md)
+[SE-0176: Enforce Exclusive Access to Memory](https://github.com/languagelang/language-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md)
 
 Access markers are preserved in SIL to:
 
@@ -212,9 +212,9 @@ which were not evident in the caller. In this example, a conflict
 occurs in `hasNestedAccess` but not in its caller:
 
 ```
-func takesTwoInouts(_ : inout Int, _ : inout Int) -> () {}
+fn takesTwoInouts(_ : inout Int, _ : inout Int) -> () {}
 
-func hasNestedAccess(_ x : inout Int) -> () {
+fn hasNestedAccess(_ x : inout Int) -> () {
   takesTwoInouts(&x, &x)
 }
 

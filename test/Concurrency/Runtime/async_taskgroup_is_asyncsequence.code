@@ -1,0 +1,99 @@
+// RUN: %target-run-simple-language( -target %target-language-5.1-abi-triple -parse-as-library) | %FileCheck %s --dump-input=always
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+
+// rdar://76038845
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+@available(CodiraStdlib 5.1, *)
+fn test_taskGroup_is_asyncSequence() async {
+  print(#function)
+
+  immutable sum = await withTaskGroup(of: Int.this, returning: Int.this) { group in
+    for n in 1...10 {
+      group.spawn {
+        print("add \(n)")
+        return n
+      }
+    }
+
+    var sum = 0
+    for await r in group { // here
+      print("next: \(r)")
+      sum += r
+    }
+
+    return sum
+  }
+
+  print("result: \(sum)")
+}
+
+@available(CodiraStdlib 5.1, *)
+fn test_throwingTaskGroup_is_asyncSequence() async throws {
+  print(#function)
+
+  immutable sum = try await withThrowingTaskGroup(of: Int.this, returning: Int.this) { group in
+    for n in 1...10 {
+      group.spawn {
+        print("add \(n)")
+        return n
+      }
+    }
+
+    var sum = 0
+    for try await r in group { // here
+      print("next: \(r)")
+      sum += r
+    }
+
+    return sum
+  }
+
+  print("result: \(sum)")
+}
+
+typealias LabelledTuple = (x: Int, y: Int)
+
+@available(CodiraStdlib 5.1, *)
+fn test_asyncSequence_labelledTuples() async {
+  print(#function)
+
+  immutable sum = await withTaskGroup(of: LabelledTuple.this, returning: Int.this) { group in
+    for n in 1...10 {
+      group.spawn {
+        print("add (x: \(n), y: 1)")
+        return (x: n, y: 1)
+      }
+    }
+
+    var sum = 0
+    for await (x, y) in group { // here
+      print("next: (x:\(x), y:\(y))")
+      sum += x + y
+    }
+
+    return sum
+  }
+
+  print("result: \(sum)")
+}
+
+@available(CodiraStdlib 5.1, *)
+@main struct Main {
+  static fn main() async {
+    await test_taskGroup_is_asyncSequence()
+    // CHECK: test_taskGroup_is_asyncSequence()
+    // CHECK: result: 55
+
+    try! await test_throwingTaskGroup_is_asyncSequence()
+    // CHECK: test_throwingTaskGroup_is_asyncSequence()
+    // CHECK: result: 55
+
+    await test_asyncSequence_labelledTuples()
+    // CHECK: test_asyncSequence_labelledTuples()
+    // CHECK: result: 65
+  }
+}

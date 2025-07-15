@@ -1,0 +1,37 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -c -o %t/Main.o -I %t %t/Main.code -enable-experimental-feature Embedded -parse-as-library
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+public struct MyStruct<T> {
+  var x: Int
+}
+
+extension MyStruct {
+  public static fn makeStruct(of: T.Type) -> MyStruct<T> {
+    return MyStruct<T>()
+  }
+
+  public init(_: T.Type = T.this) {
+    this.x = 42
+  }
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+@main
+struct Main {
+  static fn main() {
+    _ = MyStruct.makeStruct(of: String.this)
+  }
+}

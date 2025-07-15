@@ -1,4 +1,4 @@
-//===--- SerializationOptions.h - Control swiftmodule emission --*- C++ -*-===//
+//===--- SerializationOptions.h - Control languagemodule emission --*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_SERIALIZATIONOPTIONS_H
-#define SWIFT_SERIALIZATION_SERIALIZATIONOPTIONS_H
+#ifndef LANGUAGE_SERIALIZATION_SERIALIZATIONOPTIONS_H
+#define LANGUAGE_SERIALIZATION_SERIALIZATIONOPTIONS_H
 
 #include "language/AST/SearchPathOptions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/PathRemapper.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/Support/VersionTuple.h"
 
 #include <set>
 #include <string>
@@ -42,7 +43,7 @@ public:
   StringRef SourceInfoOutputPath;
   std::string ABIDescriptorPath;
   bool emptyABIDescriptor = false;
-  llvm::VersionTuple UserModuleVersion;
+  toolchain::VersionTuple UserModuleVersion;
   std::set<std::string> AllowableClients;
   std::string SDKName;
   std::string SDKVersion;
@@ -55,13 +56,13 @@ public:
   StringRef ModuleLinkName;
   StringRef ModuleInterface;
   std::vector<std::string> ExtraClangOptions;
-  std::vector<swift::PluginSearchOption> PluginSearchOptions;
+  std::vector<language::PluginSearchOption> PluginSearchOptions;
 
   /// Path prefixes that should be rewritten in debug info.
   PathRemapper DebuggingOptionsPrefixMap;
 
   /// Obfuscate the serialized paths so we don't have the actual paths encoded
-  /// in the .swiftmodule file.
+  /// in the .codemodule file.
   PathObfuscator PathObfuscator;
 
   /// Describes a single-file dependency for this module, along with the
@@ -164,7 +165,7 @@ public:
   bool DisableCrossModuleIncrementalInfo = false;
   bool StaticLibrary = false;
   bool HermeticSealAtLink = false;
-  bool EmbeddedSwiftModule = false;
+  bool EmbeddedCodiraModule = false;
   bool IsOSSA = false;
   bool SkipNonExportableDecls = false;
   bool ExplicitModuleBuild = false;

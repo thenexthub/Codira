@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a data structure which stores a map whose keys are
@@ -34,15 +35,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PREFIXMAP_H
-#define SWIFT_BASIC_PREFIXMAP_H
+#ifndef LANGUAGE_BASIC_PREFIXMAP_H
+#define LANGUAGE_BASIC_PREFIXMAP_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/type_traits.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <iterator>
 
@@ -423,7 +424,7 @@ public:
       Further,
       // We remove the node from the stack when visiting its right subtree.
     };
-    using NodeAndPosition = llvm::PointerIntPair<Node*, 1, Position>;
+    using NodeAndPosition = toolchain::PointerIntPair<Node*, 1, Position>;
     SmallVector<NodeAndPosition, 8> Stack;
   public:
     const_iterator() {}
@@ -644,7 +645,7 @@ public:
                          [&]() -> const ValueType & { return value; });
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs()); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs()); }
   void print(raw_ostream &out) const {
     printOpaquePrefixMap(out, Root,
                          [](raw_ostream &out, void *_node) {
@@ -690,4 +691,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_PREFIXMAP_H
+#endif // LANGUAGE_BASIC_PREFIXMAP_H

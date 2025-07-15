@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // This analysis collects a set of nominal types (classes, structs, and enums)
 // that conform to a protocol during whole module compilation. We only track
@@ -88,7 +89,7 @@ void ProtocolConformanceAnalysis::populateConformanceCacheIfNecessary() {
   SmallVector<Decl *, 32> Decls;
 
   // Find all top level declarations.
-  M->getSwiftModule()->getTopLevelDecls(Decls);
+  M->getCodiraModule()->getTopLevelDecls(Decls);
 
   /// This operation is quadratic and should only be performed
   /// in whole module compilation!

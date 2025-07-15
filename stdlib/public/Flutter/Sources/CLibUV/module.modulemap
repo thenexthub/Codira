@@ -1,4 +1,0 @@
-module CLibUV {
-    umbrella header "CLibUV.h"
-    link "uv1"
-}

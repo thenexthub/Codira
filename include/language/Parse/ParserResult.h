@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSER_PARSER_RESULT_H
-#define SWIFT_PARSER_PARSER_RESULT_H
+#ifndef LANGUAGE_PARSER_PARSER_RESULT_H
+#define LANGUAGE_PARSER_PARSER_RESULT_H
 
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include "language/AST/ParameterList.h"
 #include <type_traits>
 
@@ -35,7 +36,7 @@ class ParserStatus;
 /// If you want to return an AST node pointer in the Parser, consider using
 /// ParserResult instead.
 template <typename T> class ParserResult {
-  llvm::PointerIntPair<T *, 2> PtrAndBits;
+  toolchain::PointerIntPair<T *, 2> PtrAndBits;
 
   enum {
     IsError = 0x1,
@@ -253,5 +254,5 @@ template <typename T> ParserResult<T>::ParserResult(ParserStatus Status) {
 
 } // namespace language
 
-#endif // LLVM_SWIFT_PARSER_PARSER_RESULT_H
+#endif // TOOLCHAIN_LANGUAGE_PARSER_PARSER_RESULT_H
 

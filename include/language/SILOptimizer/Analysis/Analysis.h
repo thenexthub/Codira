@@ -1,4 +1,4 @@
-//===--- Analysis.h  - Swift Analysis ---------------------------*- C++ -*-===//
+//===--- Analysis.h  - Codira Analysis ---------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_ANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_ANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_ANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_ANALYSIS_H
 
 #include "language/Basic/NullablePtr.h"
 #include "language/SIL/Notifications.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/Casting.h"
 
 namespace language {
 
@@ -192,7 +193,7 @@ public:
 /// ```
 template <typename FunctionInfoTy>
 class FunctionAnalysisBase : public SILAnalysis {
-  using StorageTy = llvm::DenseMap<SILFunction *,
+  using StorageTy = toolchain::DenseMap<SILFunction *,
                                    std::unique_ptr<FunctionInfoTy>>;
 
   /// Maps functions to their analysis provider.
@@ -319,16 +320,16 @@ public:
 /// function info for subsequent requests.
 template <class AnalysisTy, class FunctionInfoTy>
 class LazyFunctionInfo {
-  SILFunction *func;
+  SILFunction *fn;
   AnalysisTy *analysis;
   NullablePtr<FunctionInfoTy> funcInfo;
 
 public:
-  LazyFunctionInfo(SILFunction *func, AnalysisTy *analysis) : func(func), analysis(analysis), funcInfo() {}
+  LazyFunctionInfo(SILFunction *fn, AnalysisTy *analysis) : fn(fn), analysis(analysis), funcInfo() {}
 
   operator FunctionInfoTy *() {
     if (funcInfo.isNull()) {
-      funcInfo = analysis->get(func);
+      funcInfo = analysis->get(fn);
     }
 
     return funcInfo.get();

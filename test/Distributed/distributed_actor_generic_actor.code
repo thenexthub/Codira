@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -enable-experimental-distributed -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+distributed actor Worker<Work: Sendable & Codable> {
+  typealias ActorSystem = FakeActorSystem
+
+  distributed fn echo(item: Work) -> Work {
+    item
+  }
+
+  distributed fn echo(items: [Work]) -> [Work] {
+    items
+  }
+
+  distributed fn other<Other: Codable & Sendable>(other: Other) -> Other {
+    other
+  }
+
+  distributed fn others<Other: Codable & Sendable>(other: Other) -> [Other] {
+    [other]
+  }
+}

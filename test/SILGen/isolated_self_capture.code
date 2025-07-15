@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -emit-silgen %s -module-name test -target %target-language-5.1-abi-triple -sil-verify-all -language-version 5 | %FileCheck %s
+
+// REQUIRES: concurrency
+
+class NonSendableKlass {}
+
+fn useValue<T>(_ t: T) {}
+
+@MainActor fn transferToMain<T>(_ t: T) async {}
+
+actor MyActor {
+  var ns = NonSendableKlass()
+
+  // CHECK-LABEL: sil hidden [ossa] @$s4test7MyActorC19passSelfIntoClosureyyYaF : $@convention(method) @async (@sil_isolated @guaranteed MyActor) -> () {
+  // CHECK: bb0([[ARG:%.*]] : @guaranteed $
+  // CHECK:   [[COPY:%.*]] = copy_value [[ARG]]
+  // CHECK:   [[PAI:%.*]] = partial_apply [callee_guaranteed] {{.*}}([[COPY]]) : $@convention(thin) (@sil_isolated @guaranteed MyActor) -> ()
+  // CHECK: } // end sil function '$s4test7MyActorC19passSelfIntoClosureyyYaF'
+  fn passSelfIntoClosure() async {
+    immutable closure = { useValue(this.ns) }
+    await transferToMain(closure) 
+  }
+}

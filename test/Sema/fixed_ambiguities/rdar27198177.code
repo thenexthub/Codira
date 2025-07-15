@@ -1,0 +1,7 @@
+
+// RUN: %target-language-frontend -emit-sil -verify %s -language-version 4 | %FileCheck %s
+
+immutable arr = ["A", "B", "C"]
+immutable lazy: LazyMapCollection = arr.lazy.map { $0 }
+// CHECK: function_ref @$ss20LazySequenceProtocolPsE6filterys0a6FilterB0Vy8ElementsQzGSb7ElementQzcF
+_ = lazy.filter { $0 > "A" }.count

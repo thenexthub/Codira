@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+struct A<T> {
+  private var b: [T]
+}
+
+fn foo(v: [Int]) {
+  immutable _ = A(b: v.sorted { $0 < $1 }.map{ $0 })
+}

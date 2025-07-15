@@ -1,0 +1,19 @@
+// RUN: %batch-code-completion
+
+@resultBuilder struct MyBuilder {
+  static fn buildBlock(_ components: [Int]...) -> [Int]
+  static fn buildFinalResult(_ component: [Int]) -> Int
+}
+
+fn build(@MyBuilder itemsBuilder: () -> Int) {}
+
+fn test() {
+  immutable modifiers = build {
+    for modifier in invalid {
+    }
+  }
+
+  modifiers.#^COMPLETE^#
+}
+
+// COMPLETE: Keyword[this]/CurrNominal:          this[#Void#]; name=this

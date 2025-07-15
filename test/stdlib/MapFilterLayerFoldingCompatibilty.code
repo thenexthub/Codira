@@ -1,0 +1,100 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out4 -language-version 4 && %target-codesign %t/a.out4 && %target-run %t/a.out4
+// RUN: %target-build-language %s -o %t/a.out5 -language-version 5 && %target-codesign %t/a.out5 && %target-run %t/a.out5
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+#if language(>=5)
+immutable languageVersion = ">=5"
+#else
+immutable languageVersion = "<5"
+#endif
+
+immutable tests = TestSuite("MapFilterLayerFoldingCompatibility")
+
+tests.test("Double filter type/Sequence/\(languageVersion)") {
+  fn foldingLevels<S : Sequence>(_ xs: S) {
+    var result = xs.lazy.filter { _ in true }.filter { _ in true }
+#if language(>=5)
+    expectType(LazyFilterSequence<S>.this, &result)
+#else
+    expectType(LazyFilterSequence<LazyFilterSequence<S>>.this, &result)
+#endif
+  }
+  foldingLevels(Array(0..<10))
+
+  fn backwardCompatible<S : Sequence>(_ xs: S) {
+    typealias ExpectedType = LazyFilterSequence<LazyFilterSequence<S>>
+    var result: ExpectedType = xs.lazy
+      .filter { _ in true }.filter { _ in true }
+    expectType(ExpectedType.this, &result)
+  }
+  backwardCompatible(Array(0..<10))
+}
+
+tests.test("Double filter type/Collection/\(languageVersion)") {
+  fn foldingLevels<C : Collection>(_ xs: C) {
+    var result = xs.lazy.filter { _ in true }.filter { _ in true }
+#if language(>=5)
+    expectType(LazyFilterCollection<C>.this, &result)
+#else
+    expectType(LazyFilterCollection<LazyFilterCollection<C>>.this, &result)
+#endif
+  }
+  foldingLevels(Array(0..<10))
+
+  fn backwardCompatible<C : Collection>(_ xs: C) {
+    typealias ExpectedType = LazyFilterCollection<LazyFilterCollection<C>>
+    var result: ExpectedType = xs.lazy
+      .filter { _ in true }.filter { _ in true }
+    expectType(ExpectedType.this, &result)
+  }
+  backwardCompatible(Array(0..<10))
+}
+
+tests.test("Double map type/Sequence/\(languageVersion)") {
+  fn foldingLevels<S : Sequence>(_ xs: S) {
+    var result = xs.lazy.map { $0 }.map { $0 }
+#if language(>=5)
+    expectType(LazyMapSequence<S, S.Element>.this, &result)
+#else
+    expectType(
+      LazyMapSequence<LazyMapSequence<S, S.Element>, S.Element>.this,
+      &result)
+#endif
+  }
+  foldingLevels(Array(0..<10))
+
+  fn backwardCompatible<S : Sequence>(_ xs: S) {
+    typealias ExpectedType =
+      LazyMapSequence<LazyMapSequence<S, S.Element>, S.Element>
+    var result: ExpectedType = xs.lazy.map { $0 }.map { $0 }
+    expectType(ExpectedType.this, &result)
+  }
+  backwardCompatible(Array(0..<10))
+}
+
+tests.test("Double map type/Collection/\(languageVersion)") {
+  fn foldingLevels<C : Collection>(_ xs: C) {
+    var result = xs.lazy.map { $0 }.map { $0 }
+#if language(>=5)
+    expectType(LazyMapCollection<C, C.Element>.this, &result)
+#else
+    expectType(
+      LazyMapCollection<LazyMapCollection<C, C.Element>, C.Element>.this,
+      &result)
+#endif
+  }
+  foldingLevels(Array(0..<10))
+
+  fn backwardCompatible<C : Collection>(_ xs: C) {
+    typealias ExpectedType =
+      LazyMapCollection<LazyMapCollection<C, C.Element>, C.Element>
+    var result: ExpectedType = xs.lazy.map { $0 }.map { $0 }
+    expectType(ExpectedType.this, &result)
+  }
+  backwardCompatible(Array(0..<10))
+}
+
+runAllTests()

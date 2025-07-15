@@ -1,0 +1,6 @@
+// {"signature":"language::constraints::ConstraintSystem::matchTypes(language::Type, language::Type, language::constraints::ConstraintKind, language::optionset::OptionSet<language::constraints::ConstraintSystem::TypeMatchFlags, unsigned int>, language::constraints::ConstraintLocatorBuilder)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+weak var a : b? a
+class c
+  class b
+    weak var a: c?

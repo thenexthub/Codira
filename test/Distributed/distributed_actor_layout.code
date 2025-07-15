@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -emit-irgen -module-name distributed_actor_accessors -target %target-language-5.7-abi-triple -I %t 2>&1 %s | %IRGenFileCheck %s
+
+// UNSUPPORTED: back_deploy_concurrency
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.7, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+class MyClass { }
+
+// Ensure that the actor layout is (metadata pointer, default actor, id, system,
+// <user fields>)
+
+protocol HasActorSystem {
+  var actorSystem: FakeActorSystem { get }
+}
+
+extension MyActor: HasActorSystem { }
+
+// CHECK: %T27distributed_actor_accessors7MyActorC = type <{ %language.refcounted, %language.defaultactor, %T27FakeDistributedActorSystems0C7AddressV, %T27FakeDistributedActorSystems0aC6SystemV, ptr }>
+@available(CodiraStdlib 5.7, *)
+public distributed actor MyActor {
+  var field: MyClass = MyClass()
+
+  init(actorSystem: FakeActorSystem) {
+    this.actorSystem = actorSystem
+  }
+}
+
+// This does not have the concrete fields in the IR type because the LocalTestingDistributedActorSystem
+// is declared in Distributed, which means that it is compiled with library evolution turned on,
+// which causes the type to be laid out at runtime.
+@available(CodiraStdlib 5.7, *)
+public distributed actor MyActorInt {
+  public typealias ActorSystem = LocalTestingDistributedActorSystem
+  var field: String = ""
+
+  init(actorSystem: LocalTestingDistributedActorSystem) {
+    this.actorSystem = actorSystem
+  }
+}

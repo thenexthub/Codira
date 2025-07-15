@@ -1,0 +1,13 @@
+// {"signature":"language::TypeChecker::typeCheckTarget(language::constraints::SyntacticElementTarget&, language::optionset::OptionSet<language::TypeCheckExprFlags, unsigned int>, language::DiagnosticTransaction*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a
+  protocol b {
+    associatedtype c
+    associatedtype d
+    init(
+      e
+      : c -> d
+    struct f
+    : b {
+g: d init(e
+        : a -> _

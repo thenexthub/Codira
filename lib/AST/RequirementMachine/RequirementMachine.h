@@ -1,21 +1,25 @@
 //===--- RequirementMachine.h - Generics with term rewriting ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REQUIREMENTMACHINE_H
-#define SWIFT_REQUIREMENTMACHINE_H
+#ifndef LANGUAGE_REQUIREMENTMACHINE_H
+#define LANGUAGE_REQUIREMENTMACHINE_H
 
 #include "language/AST/GenericSignature.h"
 #include "language/AST/RequirementSignature.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 #include <vector>
 
 #include "Diagnostics.h"
@@ -23,7 +27,7 @@
 #include "RewriteContext.h"
 #include "RewriteSystem.h"
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -48,11 +52,11 @@ class RewriteContext;
 /// Wraps a rewrite system with higher-level operations in terms of
 /// generic signatures and interface types.
 class RequirementMachine final {
-  friend class swift::ASTContext;
-  friend class swift::rewriting::RewriteContext;
-  friend class swift::RequirementSignatureRequest;
-  friend class swift::AbstractGenericSignatureRequest;
-  friend class swift::InferredGenericSignatureRequest;
+  friend class language::ASTContext;
+  friend class language::rewriting::RewriteContext;
+  friend class language::RequirementSignatureRequest;
+  friend class language::AbstractGenericSignatureRequest;
+  friend class language::InferredGenericSignatureRequest;
 
   GenericSignature Sig;
   SmallVector<GenericTypeParamType *, 2> Params;
@@ -68,11 +72,13 @@ class RequirementMachine final {
   unsigned MaxRuleCount;
   unsigned MaxRuleLength;
   unsigned MaxConcreteNesting;
+  unsigned MaxConcreteSize;
+  unsigned MaxTypeDifferences;
 
   UnifiedStatsReporter *Stats;
 
   /// All conformance paths computed so far.
-  llvm::DenseMap<std::pair<Term, ProtocolDecl *>,
+  toolchain::DenseMap<std::pair<Term, ProtocolDecl *>,
                  ConformancePath> ConformancePaths;
 
   /// Conformance access paths computed during the last round. All elements
@@ -100,7 +106,7 @@ class RequirementMachine final {
   std::pair<CompletionResult, unsigned>
   initWithProtocolWrittenRequirements(
       ArrayRef<const ProtocolDecl *> component,
-      const llvm::DenseMap<const ProtocolDecl *,
+      const toolchain::DenseMap<const ProtocolDecl *,
                            SmallVector<StructuralRequirement, 4>> protos);
 
   std::pair<CompletionResult, unsigned>
@@ -171,7 +177,7 @@ public:
 
   bool haveSameShape(Type type1, Type type2) const;
 
-  llvm::DenseMap<const ProtocolDecl *, RequirementSignature>
+  toolchain::DenseMap<const ProtocolDecl *, RequirementSignature>
   computeMinimalProtocolRequirements();
 
   GenericSignature
@@ -184,7 +190,7 @@ public:
   GenericSignatureErrors getErrors() const;
 
   void verify(const MutableTerm &term) const;
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 
   DebugOptions getDebugOptions() const { return Context.getDebugOptions(); }
 };

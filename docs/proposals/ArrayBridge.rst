@@ -1,19 +1,19 @@
 :orphan:
 
-.. ===-- ArrayBridge.rst - Proposal for Bridging Swift Array and NSArray --===..
+.. ===-- ArrayBridge.rst - Proposal for Bridging Codira Array and NSArray --===..
 ..
-.. This source file is part of the Swift.org open source project
+.. This source file is part of the Codira.org open source project
 ..
-.. Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+.. Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 .. Licensed under Apache License v2.0 with Runtime Library Exception
 ..
-.. See https://swift.org/LICENSE.txt for license information
-.. See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+.. See https://language.org/LICENSE.txt for license information
+.. See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ..
 .. ===---------------------------------------------------------------------===..
 
 =====================================
- Bridging Swift Arrays to/from Cocoa
+ Bridging Codira Arrays to/from Cocoa
 =====================================
 
 :Authors: Chris Lattner, Joe Groff, Dave Abrahams
@@ -34,13 +34,13 @@ Being "great for Cocoa" means this must work and be efficient::
   var a = [cocoaObject1, cocoaObject2]
   someCocoaObject.takesAnNSArray(a)
 
-  func processViews(_ views: [AnyObject]) { ... }
+  fn processViews(_ views: [AnyObject]) { ... }
   var b = someNSWindow.views // views is an NSArray
   processViews(b)
 
   var c: [AnyObject] = someNSWindow.views
 
-Being "great For C" means that an array created in Swift must have
+Being "great For C" means that an array created in Codira must have
 C-like performance and be representable as a base pointer and
 length, for interaction with C APIs, at zero cost.
 
@@ -111,7 +111,7 @@ Other Approaches Considered
 ===========================
 
 We considered an approach where conversions between ``NSArray`` and
-native Swift ``Array`` were entirely manual and quickly ruled it out
+native Codira ``Array`` were entirely manual and quickly ruled it out
 as failing to satisfy the requirements.
 
 We considered another promising proposal that would make ``[T]`` a
@@ -128,7 +128,7 @@ here, tuning the criteria by which we'd decide to optimize for a
 ---------
 
 .. [#copy] Value semantics dictates that when bridging an ``NSArray``
-   into Swift, we invoke its ``copy`` method.  Calling ``copy`` on an
+   into Codira, we invoke its ``copy`` method.  Calling ``copy`` on an
    immutable ``NSArray`` can be almost cost-free, but a mutable
    ``NSArray`` *will* be physically copied.  We accept that copy as
    the cost of doing business.

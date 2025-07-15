@@ -1,218 +1,99 @@
-set(swift_platform_sources
-    Platform.swift
-    TiocConstants.swift)
-set(swift_platform_gyb_sources
-    tgmath.swift.gyb)
+set(language_platform_sources
+    Platform.code
+    TiocConstants.code)
+set(language_platform_gyb_sources
+    tgmath.code.gyb)
 
-set(darwin_depends)
-if(NOT BUILD_STANDALONE)
-  # This is overly conservative, but we have so few API notes files that
-  # haven't migrated to the Swift repo that it's probably fine in practice.
-  list(APPEND darwin_depends copy_apinotes)
+set(language_platform_compile_flags)
+if(LANGUAGE_ENABLE_REFLECTION)
+  list(APPEND language_platform_compile_flags "-DLANGUAGE_ENABLE_REFLECTION")
 endif()
 
-set(swift_platform_compile_flags)
-if(SWIFT_ENABLE_REFLECTION)
-  list(APPEND swift_platform_compile_flags "-DSWIFT_ENABLE_REFLECTION")
+set(languageGlibc_target_sdks CYGWIN FREEBSD OPENBSD LINUX HAIKU)
+if(LANGUAGE_FREESTANDING_FLAVOR STREQUAL "linux")
+  set(languageGlibc_target_sdks CYGWIN FREEBSD OPENBSD LINUX HAIKU FREESTANDING)
 endif()
-
-set(swiftDarwin_target_sdks ALL_APPLE_PLATFORMS)
-if(SWIFT_FREESTANDING_FLAVOR STREQUAL "apple" AND NOT SWIFT_FREESTANDING_IS_DARWIN)
-  set(swiftDarwin_target_sdks ALL_APPLE_PLATFORMS FREESTANDING)
-endif()
-
-set(swiftDarwin_common_options
-      IS_SDK_OVERLAY
-      ${swift_platform_sources}
-      POSIXError.swift
-      MachError.swift
-
-      "${SWIFT_SOURCE_DIR}/stdlib/linker-support/magic-symbols-for-install-name.c"
-
-      GYB_SOURCES
-        ${swift_platform_gyb_sources}
-        Darwin.swift.gyb
-
-      SWIFT_COMPILE_FLAGS
-        ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-        ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
-        -Xfrontend -disable-objc-attr-requires-foundation-module
-        ${swift_platform_compile_flags}
-      LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
-      DEPENDS ${darwin_depends})
-
-
-if(BOOTSTRAPPING_MODE STREQUAL "BOOTSTRAPPING" AND
-   SWIFT_HOST_VARIANT_SDK IN_LIST SWIFT_DARWIN_PLATFORMS)
-
-  set(swiftDarwin_common_bootstrapping_options
-      ${swiftDarwin_common_options}
-      SHARED
-      IS_STDLIB
-      SDK ${SWIFT_HOST_VARIANT_SDK}
-      ARCHITECTURE ${SWIFT_HOST_VARIANT_ARCH}
-      INSTALL_IN_COMPONENT "never_install")
-
-  set(b0_deps swiftCore-bootstrapping0)
-  set(b1_deps swiftCore-bootstrapping1)
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(b0_deps ${b0_deps} swiftSwiftOnoneSupport-bootstrapping0)
-    set(b1_deps ${b1_deps} swiftSwiftOnoneSupport-bootstrapping1)
-  endif()
-
-  add_swift_target_library_single(swiftDarwin-bootstrapping0 swiftDarwin
-      ${swiftDarwin_common_bootstrapping_options}
-      FILE_DEPENDS ${b0_deps}
-      BOOTSTRAPPING 0)
-
-  add_swift_target_library_single(swiftDarwin-bootstrapping1 swiftDarwin
-      ${swiftDarwin_common_bootstrapping_options}
-      FILE_DEPENDS ${b1_deps}
-      BOOTSTRAPPING 1)
-endif()
-
-add_swift_target_library(swiftDarwin ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES}
-    ${swiftDarwin_common_options}
-    TARGET_SDKS "${swiftDarwin_target_sdks}"
-    INSTALL_IN_COMPONENT sdk-overlay
-    MACCATALYST_BUILD_FLAVOR "zippered"
-    INSTALL_BINARY_SWIFTMODULE FALSE)
-
-if(SWIFT_SHOULD_BUILD_EMBEDDED_STDLIB)
-  set(SWIFT_ENABLE_REFLECTION OFF)
-
-  add_custom_target(embedded-darwin)
-  add_dependencies(embedded-libraries embedded-darwin)
-  foreach(entry ${EMBEDDED_STDLIB_TARGET_TRIPLES})
-    string(REGEX REPLACE "[ \t]+" ";" list "${entry}")
-    list(GET list 0 arch)
-    list(GET list 1 mod)
-    list(GET list 2 triple)
-
-    if(NOT "${mod}" MATCHES "-macos$")
-      continue()
-    endif()
-
-    set(SWIFT_SDK_embedded_ARCH_${arch}_MODULE "${mod}")
-    set(SWIFT_SDK_embedded_LIB_SUBDIR "embedded")
-    set(SWIFT_SDK_embedded_ARCH_${arch}_TRIPLE "${triple}")
-    set(SWIFT_SDK_embedded_PATH ${SWIFT_SDK_OSX_PATH})
-    set(SWIFT_SDK_embedded_ARCH_${arch}_PATH ${SWIFT_SDK_OSX_PATH})
-    set(SWIFT_SDK_embedded_USE_ISYSROOT TRUE)
-    add_swift_target_library_single(
-      embedded-darwin-${mod}
-      swiftDarwin
-      ONLY_SWIFTMODULE
-      IS_SDK_OVERLAY IS_FRAGILE
-
-      Platform.swift
-      TiocConstants.swift
-      POSIXError.swift
-      MachError.swift
-
-      GYB_SOURCES
-        tgmath.swift.gyb
-        Darwin.swift.gyb
-      
-      SWIFT_COMPILE_FLAGS
-        -Xcc -ffreestanding -enable-experimental-feature Embedded
-      C_COMPILE_FLAGS
-        -ffreestanding
-      MODULE_DIR "${CMAKE_BINARY_DIR}/lib/swift/embedded"
-      SDK "embedded"
-      ARCHITECTURE "${arch}"
-      DEPENDS embedded-stdlib-${mod}
-      INSTALL_IN_COMPONENT stdlib
-      )
-    add_dependencies(embedded-darwin embedded-darwin-${mod})
-  endforeach()
-endif()
-
-set(swiftGlibc_target_sdks CYGWIN FREEBSD OPENBSD LINUX HAIKU)
-if(SWIFT_FREESTANDING_FLAVOR STREQUAL "linux")
-  set(swiftGlibc_target_sdks CYGWIN FREEBSD OPENBSD LINUX HAIKU FREESTANDING)
-endif()
-add_swift_target_library(swiftGlibc ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
-    ${swift_platform_sources}
-    POSIXError.swift
+add_language_target_library(languageGlibc ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
+    ${language_platform_sources}
+    POSIXError.code
 
     GYB_SOURCES
-      ${swift_platform_gyb_sources}
-      Glibc.swift.gyb
+      ${language_platform_gyb_sources}
+      Glibc.code.gyb
 
-    SWIFT_COMPILE_FLAGS
-      ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-      ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
-      ${swift_platform_compile_flags}
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
-    TARGET_SDKS "${swiftGlibc_target_sdks}"
+    LANGUAGE_COMPILE_FLAGS
+      ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS}
+      ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
+      ${language_platform_compile_flags}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
+    TARGET_SDKS "${languageGlibc_target_sdks}"
     INSTALL_IN_COMPONENT sdk-overlay
     DEPENDS glibc_modulemap)
 
-add_swift_target_library(swiftMusl ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
-    ${swift_platform_sources}
-    POSIXError.swift
+add_language_target_library(languageMusl ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
+    ${language_platform_sources}
+    POSIXError.code
 
     GYB_SOURCES
-      ${swift_platform_gyb_sources}
-      Musl.swift.gyb
+      ${language_platform_gyb_sources}
+      Musl.code.gyb
 
-    SWIFT_COMPILE_FLAGS
-      ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-      ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
-      ${swift_platform_compile_flags}
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+    LANGUAGE_COMPILE_FLAGS
+      ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS}
+      ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
+      ${language_platform_compile_flags}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
     TARGET_SDKS LINUX_STATIC
     INSTALL_IN_COMPONENT sdk-overlay
     DEPENDS musl_modulemap)
 
-add_swift_target_library(swiftWASILibc ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
-    ${swift_platform_sources}
-    POSIXError.swift
+add_language_target_library(languageWASILibc ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
+    ${language_platform_sources}
+    POSIXError.code
 
     GYB_SOURCES
-      ${swift_platform_gyb_sources}
-      WASILibc.swift.gyb
+      ${language_platform_gyb_sources}
+      WASILibc.code.gyb
 
-    SWIFT_COMPILE_FLAGS
-      ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-      ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
-      ${swift_platform_compile_flags}
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+    LANGUAGE_COMPILE_FLAGS
+      ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS}
+      ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
+      ${language_platform_compile_flags}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
     TARGET_SDKS WASI
     INSTALL_IN_COMPONENT sdk-overlay
     DEPENDS wasilibc_modulemap)
 
-add_swift_target_library(swiftCRT ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
-    ucrt.swift
-    ${swift_platform_sources}
-    POSIXError.swift
+add_language_target_library(languageCRT ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
+    ucrt.code
+    ${language_platform_sources}
+    POSIXError.code
 
     GYB_SOURCES
-      ${swift_platform_gyb_sources}
+      ${language_platform_gyb_sources}
 
-    SWIFT_COMPILE_FLAGS
-      ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-      ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+    LANGUAGE_COMPILE_FLAGS
+      ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS}
+      ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
       -Xcc -D_USE_MATH_DEFINES
-      ${swift_platform_compile_flags}
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+      ${language_platform_compile_flags}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
     TARGET_SDKS WINDOWS
     INSTALL_IN_COMPONENT sdk-overlay)
 
-foreach(sdk ${SWIFT_SDKS})
+foreach(sdk ${LANGUAGE_SDKS})
   # Add more platforms supporting Musl to these checks,
   if(NOT "${sdk}" STREQUAL "LINUX_STATIC")
     continue()
   endif()
 
   set(musl_modulemap "musl.modulemap")
-  set(musl_header "SwiftMusl.h")
+  set(musl_header "CodiraMusl.h")
 
-  foreach(arch ${SWIFT_SDK_${sdk}_ARCHITECTURES})
-    set(arch_subdir "${SWIFT_SDK_${sdk}_LIB_SUBDIR}/${arch}")
-    set(module_dir "${SWIFTLIB_DIR}/${arch_subdir}")
-    set(module_dir_static "${SWIFTSTATICLIB_DIR}/${arch_subdir}")
+  foreach(arch ${LANGUAGE_SDK_${sdk}_ARCHITECTURES})
+    set(arch_subdir "${LANGUAGE_SDK_${sdk}_LIB_SUBDIR}/${arch}")
+    set(module_dir "${LANGUAGELIB_DIR}/${arch_subdir}")
+    set(module_dir_static "${LANGUAGESTATICLIB_DIR}/${arch_subdir}")
 
     set(musl_modulemap_out "${module_dir}/${musl_modulemap}")
     set(musl_modulemap_out_static "${module_dir_static}/${musl_modulemap}")
@@ -236,7 +117,7 @@ foreach(sdk ${SWIFT_SDKS})
 
     list(APPEND musl_modulemap_target_list ${copy_musl_modulemap})
 
-    if(SWIFT_BUILD_STATIC_STDLIB OR SWIFT_SDK_${sdk}_STATIC_ONLY)
+    if(LANGUAGE_BUILD_STATIC_STDLIB OR LANGUAGE_SDK_${sdk}_STATIC_ONLY)
       add_custom_command_target(
         copy_musl_modulemap_static
         COMMAND
@@ -254,19 +135,19 @@ foreach(sdk ${SWIFT_SDKS})
 
       list(APPEND musl_modulemap_target_list ${copy_musl_modulemap_static})
 
-      swift_install_in_component(FILES "${musl_modulemap_out_static}"
-                                 DESTINATION "lib/swift_static/${arch_subdir}"
+      language_install_in_component(FILES "${musl_modulemap_out_static}"
+                                 DESTINATION "lib/language_static/${arch_subdir}"
                                  COMPONENT sdk-overlay)
-      swift_install_in_component(FILES "${musl_header_out_static}"
-                                 DESTINATION "lib/swift_static/${arch_subdir}"
+      language_install_in_component(FILES "${musl_header_out_static}"
+                                 DESTINATION "lib/language_static/${arch_subdir}"
                                  COMPONENT sdk-overlay)
     endif()
 
-    swift_install_in_component(FILES "${musl_modulemap_out}"
-                               DESTINATION "lib/swift/${arch_subdir}"
+    language_install_in_component(FILES "${musl_modulemap_out}"
+                               DESTINATION "lib/language/${arch_subdir}"
                                COMPONENT sdk-overlay)
-    swift_install_in_component(FILES "${musl_header_out}"
-                               DESTINATION "lib/swift/${arch_subdir}"
+    language_install_in_component(FILES "${musl_header_out}"
+                               DESTINATION "lib/language/${arch_subdir}"
                                COMPONENT sdk-overlay)
   endforeach()
 endforeach()
@@ -276,37 +157,37 @@ add_dependencies(sdk-overlay musl_modulemap)
 
 # Add a system 'math' module overlay, which applies only to platforms that
 # have a top level '_math' module.
-add_swift_target_library(swift_math ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
-    Math.swift
+add_language_target_library(language_math ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
+    Math.code
 
-    SWIFT_COMPILE_FLAGS
-      ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-      ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
-      ${swift_platform_compile_flags}
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+    LANGUAGE_COMPILE_FLAGS
+      ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS}
+      ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
+      ${language_platform_compile_flags}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
     TARGET_SDKS "ANDROID"
     INSTALL_IN_COMPONENT sdk-overlay
     DEPENDS android_modulemap)
 
-add_swift_target_library(swiftAndroid ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
-    Android.swift
-    ${swift_platform_sources}
-    POSIXError.swift
+add_language_target_library(languageAndroid ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_SDK_OVERLAY
+    Android.code
+    ${language_platform_sources}
+    POSIXError.code
 
     GYB_SOURCES
-      ${swift_platform_gyb_sources}
+      ${language_platform_gyb_sources}
 
-    SWIFT_COMPILE_FLAGS
-      ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS}
-      ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
-      ${swift_platform_compile_flags}
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+    LANGUAGE_COMPILE_FLAGS
+      ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS}
+      ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
+      ${language_platform_compile_flags}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
     TARGET_SDKS "ANDROID"
     INSTALL_IN_COMPONENT sdk-overlay
     DEPENDS android_modulemap)
 
 set(glibc_modulemap_target_list)
-foreach(sdk ${SWIFT_SDKS})
+foreach(sdk ${LANGUAGE_SDKS})
   if(NOT "${sdk}" STREQUAL "LINUX" AND
      NOT "${sdk}" STREQUAL "FREEBSD" AND
      NOT "${sdk}" STREQUAL "OPENBSD" AND
@@ -315,10 +196,10 @@ foreach(sdk ${SWIFT_SDKS})
     continue()
   endif()
 
-  foreach(arch ${SWIFT_SDK_${sdk}_ARCHITECTURES})
-    set(arch_subdir "${SWIFT_SDK_${sdk}_LIB_SUBDIR}/${arch}")
-    set(module_dir "${SWIFTLIB_DIR}/${arch_subdir}")
-    set(module_dir_static "${SWIFTSTATICLIB_DIR}/${arch_subdir}")
+  foreach(arch ${LANGUAGE_SDK_${sdk}_ARCHITECTURES})
+    set(arch_subdir "${LANGUAGE_SDK_${sdk}_LIB_SUBDIR}/${arch}")
+    set(module_dir "${LANGUAGELIB_DIR}/${arch_subdir}")
+    set(module_dir_static "${LANGUAGESTATICLIB_DIR}/${arch_subdir}")
 
     set(glibc_modulemap_source "glibc.modulemap.gyb")
     set(glibc_modulemap_out "${module_dir}/glibc.modulemap")
@@ -336,15 +217,15 @@ foreach(sdk ${SWIFT_SDKS})
 
     list(APPEND glibc_modulemap_target_list ${glibc_modulemap_target})
 
-    set(glibc_header_out "${module_dir}/SwiftGlibc.h")
-    set(glibc_header_out_static "${module_dir_static}/SwiftGlibc.h")
+    set(glibc_header_out "${module_dir}/CodiraGlibc.h")
+    set(glibc_header_out_static "${module_dir_static}/CodiraGlibc.h")
     handle_gyb_source_single(glibc_header_target
-        SOURCE "SwiftGlibc.h.gyb"
+        SOURCE "CodiraGlibc.h.gyb"
         OUTPUT "${glibc_header_out}"
         FLAGS "-DCMAKE_SDK=${sdk}")
     list(APPEND glibc_modulemap_target_list ${glibc_header_target})
 
-    if(SWIFT_BUILD_STATIC_STDLIB OR SWIFT_SDK_${sdk}_STATIC_ONLY)
+    if(LANGUAGE_BUILD_STATIC_STDLIB OR LANGUAGE_SDK_${sdk}_STATIC_ONLY)
       add_custom_command_target(
         copy_glibc_modulemap_header_static
         COMMAND
@@ -367,7 +248,7 @@ foreach(sdk ${SWIFT_SDKS})
 
     # If this SDK is a target for a non-native host, create a native modulemap
     # without a sysroot prefix. This is the one we'll install instead.
-    if(NOT "${SWIFT_SDK_${SWIFT_HOST_VARIANT_SDK}_ARCH_${arch}_PATH}" STREQUAL "/")
+    if(NOT "${LANGUAGE_SDK_${LANGUAGE_HOST_VARIANT_SDK}_ARCH_${arch}_PATH}" STREQUAL "/")
       set(glibc_sysroot_relative_modulemap_out "${module_dir}/sysroot-relative-modulemaps/glibc.modulemap")
 
       handle_gyb_source_single(glibc_modulemap_native_target
@@ -384,19 +265,19 @@ foreach(sdk ${SWIFT_SDKS})
     #        It is not relocatable to the target platform itself.
     #        This affects any cross-compiled targets that use glibc.modulemap.
 
-    swift_install_in_component(FILES "${glibc_modulemap_out}"
-                               DESTINATION "lib/swift/${arch_subdir}"
+    language_install_in_component(FILES "${glibc_modulemap_out}"
+                               DESTINATION "lib/language/${arch_subdir}"
                                COMPONENT sdk-overlay)
-    swift_install_in_component(FILES "${glibc_header_out}"
-                               DESTINATION "lib/swift/${arch_subdir}"
+    language_install_in_component(FILES "${glibc_header_out}"
+                               DESTINATION "lib/language/${arch_subdir}"
                                COMPONENT sdk-overlay)
 
-    if(SWIFT_BUILD_STATIC_STDLIB OR SWIFT_SDK_${sdk}_STATIC_ONLY)
-      swift_install_in_component(FILES "${glibc_modulemap_out}"
-                                 DESTINATION "lib/swift_static/${arch_subdir}"
+    if(LANGUAGE_BUILD_STATIC_STDLIB OR LANGUAGE_SDK_${sdk}_STATIC_ONLY)
+      language_install_in_component(FILES "${glibc_modulemap_out}"
+                                 DESTINATION "lib/language_static/${arch_subdir}"
                                  COMPONENT sdk-overlay)
-      swift_install_in_component(FILES "${glibc_header_out}"
-                                 DESTINATION "lib/swift_static/${arch_subdir}"
+      language_install_in_component(FILES "${glibc_header_out}"
+                                 DESTINATION "lib/language_static/${arch_subdir}"
                                  COMPONENT sdk-overlay)
     endif()
   endforeach()
@@ -406,15 +287,15 @@ set_property(TARGET glibc_modulemap PROPERTY FOLDER "Miscellaneous")
 add_dependencies(sdk-overlay glibc_modulemap)
 
 set(android_modulemap_target_list)
-if("ANDROID" IN_LIST SWIFT_SDKS)
+if("ANDROID" IN_LIST LANGUAGE_SDKS)
   set(android_modulemap_source "android.modulemap")
-  set(android_ndk_header_source "SwiftAndroidNDK.h")
-  set(android_bionic_header_source "SwiftBionic.h")
+  set(android_ndk_header_source "CodiraAndroidNDK.h")
+  set(android_bionic_header_source "CodiraBionic.h")
 
-  foreach(arch ${SWIFT_SDK_ANDROID_ARCHITECTURES})
-    set(arch_subdir "${SWIFT_SDK_ANDROID_LIB_SUBDIR}/${arch}")
-    set(module_dir "${SWIFTLIB_DIR}/${arch_subdir}")
-    set(module_dir_static "${SWIFTSTATICLIB_DIR}/${arch_subdir}")
+  foreach(arch ${LANGUAGE_SDK_ANDROID_ARCHITECTURES})
+    set(arch_subdir "${LANGUAGE_SDK_ANDROID_LIB_SUBDIR}/${arch}")
+    set(module_dir "${LANGUAGELIB_DIR}/${arch_subdir}")
+    set(module_dir_static "${LANGUAGESTATICLIB_DIR}/${arch_subdir}")
 
     add_custom_command_target(
       copy_android_modulemap_resource
@@ -460,16 +341,16 @@ if("ANDROID" IN_LIST SWIFT_SDKS)
                                               ${copy_android_ndk_header_resource}
                                               ${copy_android_bionic_header_resource})
 
-    swift_install_in_component(FILES "${android_modulemap_source}"
+    language_install_in_component(FILES "${android_modulemap_source}"
                                      "${android_ndk_header_source}"
                                      "${android_bionic_header_source}"
-                               DESTINATION "lib/swift/${arch_subdir}"
+                               DESTINATION "lib/language/${arch_subdir}"
                                COMPONENT sdk-overlay)
-    if(SWIFT_BUILD_STATIC_STDLIB)
-      swift_install_in_component(FILES "${android_modulemap_source}"
+    if(LANGUAGE_BUILD_STATIC_STDLIB)
+      language_install_in_component(FILES "${android_modulemap_source}"
                                        "${android_ndk_header_source}"
                                        "${android_bionic_header_source}"
-                                 DESTINATION "lib/swift_static/${arch_subdir}"
+                                 DESTINATION "lib/language_static/${arch_subdir}"
                                  COMPONENT sdk-overlay)
     endif()
   endforeach()
@@ -477,20 +358,20 @@ if("ANDROID" IN_LIST SWIFT_SDKS)
   add_custom_command_target(
     copy_android_posix_filesystem_apinotes_resource
     COMMAND
-      ${CMAKE_COMMAND} -E make_directory "${SWIFTLIB_DIR}/apinotes"
+      ${CMAKE_COMMAND} -E make_directory "${LANGUAGELIB_DIR}/apinotes"
     COMMAND
-      ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/posix_filesystem.apinotes" "${SWIFTLIB_DIR}/apinotes"
+      ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/posix_filesystem.apinotes" "${LANGUAGELIB_DIR}/apinotes"
     COMMAND
-      ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/spawn.apinotes" "${SWIFTLIB_DIR}/apinotes"
+      ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/spawn.apinotes" "${LANGUAGELIB_DIR}/apinotes"
     OUTPUT
-      "${SWIFTLIB_DIR}/apinotes/posix_filesystem.apinotes"
-      "${SWIFTLIB_DIR}/apinotes/spawn.apinotes"
+      "${LANGUAGELIB_DIR}/apinotes/posix_filesystem.apinotes"
+      "${LANGUAGELIB_DIR}/apinotes/spawn.apinotes"
     COMMENT
       "Copying Android API Notes to resource directories")
   add_dependencies(sdk-overlay ${copy_android_posix_filesystem_apinotes_resource})
   list(APPEND android_modulemap_target_list ${copy_android_posix_filesystem_apinotes_resource})
-  swift_install_in_component(FILES posix_filesystem.apinotes spawn.apinotes
-                             DESTINATION "lib/swift/apinotes"
+  language_install_in_component(FILES posix_filesystem.apinotes spawn.apinotes
+                             DESTINATION "lib/language/apinotes"
                              COMPONENT sdk-overlay)
 endif()
 add_custom_target(android_modulemap DEPENDS ${android_modulemap_target_list})
@@ -498,12 +379,12 @@ set_property(TARGET android_modulemap PROPERTY FOLDER "Miscellaneous")
 add_dependencies(sdk-overlay android_modulemap)
 
 set(wasilibc_modulemap_target_list)
-if("WASI" IN_LIST SWIFT_SDKS)
+if("WASI" IN_LIST LANGUAGE_SDKS)
   set(wasilibc_modulemap_source "wasi-libc.modulemap")
-  foreach(arch ${SWIFT_SDK_WASI_ARCHITECTURES})
-    set(arch_subdir "${SWIFT_SDK_WASI_LIB_SUBDIR}/${arch}")
-    set(module_dir "${SWIFTLIB_DIR}/${arch_subdir}")
-    set(module_dir_static "${SWIFTSTATICLIB_DIR}/${arch_subdir}")
+  foreach(arch ${LANGUAGE_SDK_WASI_ARCHITECTURES})
+    set(arch_subdir "${LANGUAGE_SDK_WASI_LIB_SUBDIR}/${arch}")
+    set(module_dir "${LANGUAGELIB_DIR}/${arch_subdir}")
+    set(module_dir_static "${LANGUAGESTATICLIB_DIR}/${arch_subdir}")
 
     add_custom_command_target(
       copy_wasilibc_modulemap_resource
@@ -520,39 +401,39 @@ if("WASI" IN_LIST SWIFT_SDKS)
     add_dependencies(sdk-overlay ${copy_wasilibc_modulemap_resource})
     list(APPEND wasilibc_modulemap_target_list ${copy_wasilibc_modulemap_resource})
 
-    swift_install_in_component(FILES "${wasilibc_modulemap_source}"
-                               DESTINATION "lib/swift/${arch_subdir}"
+    language_install_in_component(FILES "${wasilibc_modulemap_source}"
+                               DESTINATION "lib/language/${arch_subdir}"
                                COMPONENT sdk-overlay)
-    if(SWIFT_BUILD_STATIC_STDLIB)
-      swift_install_in_component(FILES "${wasilibc_modulemap_source}"
-                                 DESTINATION "lib/swift_static/${arch_subdir}"
+    if(LANGUAGE_BUILD_STATIC_STDLIB)
+      language_install_in_component(FILES "${wasilibc_modulemap_source}"
+                                 DESTINATION "lib/language_static/${arch_subdir}"
                                  COMPONENT sdk-overlay)
     endif()
 
-    set(wasilibc_apinotes_source "SwiftWASILibc.apinotes")
+    set(wasilibc_apinotes_source "CodiraWASILibc.apinotes")
     add_custom_command_target(
       copy_wasilibc_apinotes_resource
       COMMAND
-        "${CMAKE_COMMAND}" "-E" "make_directory" ${SWIFTLIB_DIR}/apinotes ${SWIFTSTATICLIB_DIR}/apinotes
+        "${CMAKE_COMMAND}" "-E" "make_directory" ${LANGUAGELIB_DIR}/apinotes ${LANGUAGESTATICLIB_DIR}/apinotes
       COMMAND
         "${CMAKE_COMMAND}" "-E" "copy_if_different"
-          "${CMAKE_CURRENT_SOURCE_DIR}/${wasilibc_apinotes_source}" ${SWIFTLIB_DIR}/apinotes
+          "${CMAKE_CURRENT_SOURCE_DIR}/${wasilibc_apinotes_source}" ${LANGUAGELIB_DIR}/apinotes
       COMMAND
         "${CMAKE_COMMAND}" "-E" "copy_if_different"
-          "${CMAKE_CURRENT_SOURCE_DIR}/${wasilibc_apinotes_source}" ${SWIFTSTATICLIB_DIR}/apinotes
+          "${CMAKE_CURRENT_SOURCE_DIR}/${wasilibc_apinotes_source}" ${LANGUAGESTATICLIB_DIR}/apinotes
       OUTPUT
-        ${SWIFTLIB_DIR}/apinotes/${wasilibc_apinotes_source}
-        ${SWIFTSTATICLIB_DIR}/apinotes/${wasilibc_apinotes_source}
+        ${LANGUAGELIB_DIR}/apinotes/${wasilibc_apinotes_source}
+        ${LANGUAGESTATICLIB_DIR}/apinotes/${wasilibc_apinotes_source}
       COMMENT "Copying WASILibc API notes to resource directories")
 
     list(APPEND wasilibc_modulemap_target_list ${copy_wasilibc_apinotes_resource})
     add_dependencies(sdk-overlay ${copy_wasilibc_apinotes_resource})
-    swift_install_in_component(FILES "${wasilibc_apinotes_source}"
-                               DESTINATION "lib/swift/apinotes"
+    language_install_in_component(FILES "${wasilibc_apinotes_source}"
+                               DESTINATION "lib/language/apinotes"
                                COMPONENT sdk-overlay)
-    if(SWIFT_BUILD_STATIC_STDLIB)
-      swift_install_in_component(FILES "${wasilibc_apinotes_source}"
-                                 DESTINATION "lib/swift_static/apinotes"
+    if(LANGUAGE_BUILD_STATIC_STDLIB)
+      language_install_in_component(FILES "${wasilibc_apinotes_source}"
+                                 DESTINATION "lib/language_static/apinotes"
                                  COMPONENT sdk-overlay)
     endif()
 
@@ -562,8 +443,8 @@ add_custom_target(wasilibc_modulemap DEPENDS ${wasilibc_modulemap_target_list})
 set_property(TARGET wasilibc_modulemap PROPERTY FOLDER "Miscellaneous")
 add_dependencies(sdk-overlay wasilibc_modulemap)
 
-if(WINDOWS IN_LIST SWIFT_SDKS)
-  swift_install_in_component(FILES
+if(WINDOWS IN_LIST LANGUAGE_SDKS)
+  language_install_in_component(FILES
       ucrt.modulemap
       vcruntime.apinotes
       vcruntime.modulemap

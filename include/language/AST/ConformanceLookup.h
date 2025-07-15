@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CONFORMANCELOOKUP_H
-#define SWIFT_AST_CONFORMANCELOOKUP_H
+#ifndef LANGUAGE_AST_CONFORMANCELOOKUP_H
+#define LANGUAGE_AST_CONFORMANCELOOKUP_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <optional>
 
 namespace language {
@@ -92,10 +93,10 @@ ProtocolConformanceRef lookupExistentialConformance(Type type,
 
 /// Collect the conformances of \c fromType to each of the protocols of an
 /// existential type's layout.
-llvm::ArrayRef<ProtocolConformanceRef>
+toolchain::ArrayRef<ProtocolConformanceRef>
 collectExistentialConformances(CanType fromType, CanType existential,
                                bool allowMissing = false);
 
 }
 
-#endif // SWIFT_AST_CONFORMANCELOOKUP_H
+#endif // LANGUAGE_AST_CONFORMANCELOOKUP_H

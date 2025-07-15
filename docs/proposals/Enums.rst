@@ -1,6 +1,6 @@
 :orphan:
 
-Swift supports what type theory calls "algebraic data types", or ADTs, which
+Codira supports what type theory calls "algebraic data types", or ADTs, which
 are an amalgam of two familiar C-family language features, enums and unions.
 They are similar to enums in that they allow collections of independent symbolic
 values to be collected into a type and switched over::
@@ -75,13 +75,13 @@ switch over it so the compiler can check exhaustiveness for you. We've extended
 and one that happens to be dual to the concept of enums with payload. In the
 whitepaper, we introduce pattern matching by starting from the familiar C case
 of switching over an integer and gradually introduce the new capabilities of
-Swift's switch. If all ADTs are 'enums', this lets us introduce both features
+Codira's switch. If all ADTs are 'enums', this lets us introduce both features
 to C programmers organically, starting from the familiar case that looks like
 C::
 
   enum Foo { case A, B, C, D }
 
-  func use(_ x:Foo) {
+  fn use(_ x:Foo) {
     switch x {
     case .A:
     case .B:
@@ -95,7 +95,7 @@ together::
 
   enum Foo { case A, B, C, D, Other(String) }
 
-  func use(_ x:Foo) {
+  fn use(_ x:Foo) {
     switch x {
     case .A:
     case .B:
@@ -132,7 +132,7 @@ convention of 'First_*' and 'Last_*' sigils::
 
 which is really crying out for a nested ADT representation::
 
-  // Swift
+  // Codira
   enum Reptile { case Lizard, Snake }
   enum Mammal { case Cat, Dog }
   enum Pet {
@@ -155,7 +155,7 @@ and a 'user-defined' range::
 
 which again is better represented as an ADT::
 
-  // Swift
+  // Codira
   enum Language {
     case C89, C99, Cplusplus98, Cplusplus11
     case UserDefined(UInt16)
@@ -212,7 +212,7 @@ structs, including nested types, methods, constructors, and properties::
       this = .Int(0)
     }
 
-    func min(_ x:IntOrInfinity) -> IntOrInfinity {
+    fn min(_ x:IntOrInfinity) -> IntOrInfinity {
       switch (self, x) {
       case (.NegInfinity, _):
       case (_, .NegInfinity):
@@ -256,13 +256,13 @@ models the traditional relationship between a C enum and its raw type::
     /// Convert the conforming type to its raw type.
     /// Every valid value of the conforming type should map to a unique
     /// raw value.
-    func toRaw() -> RawType
+    fn toRaw() -> RawType
 
     /// Convert a value of raw type to the corresponding value of the
     /// conforming type.
     /// Returns None if the raw value has no corresponding conforming type
     /// value.
-    class func fromRaw(_:RawType) -> Self?
+    class fn fromRaw(_:RawType) -> Self?
   }
 
 Any type may manually conform to the RawRepresentable protocol following the above
@@ -319,7 +319,7 @@ methods. The NSChangeDictionaryKey definition behaves as if defined::
     case NSKeyValueChangeNewKey
     case NSKeyValueChangeOldKey
 
-    func toRaw() -> String {
+    fn toRaw() -> String {
       switch self {
       case .NSKeyValueChangeKindKey:
         return "NSKeyValueChangeKindKey"
@@ -330,7 +330,7 @@ methods. The NSChangeDictionaryKey definition behaves as if defined::
       }
     }
 
-    static func fromRaw(_ s:String) -> NSChangeDictionaryKey? {
+    static fn fromRaw(_ s:String) -> NSChangeDictionaryKey? {
       switch s {
       case "NSKeyValueChangeKindKey":
         return .NSKeyValueChangeKindKey

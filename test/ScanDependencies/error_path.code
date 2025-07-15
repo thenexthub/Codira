@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// REQUIRES: objc_interop
+// RUN: %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -emit-dependencies -emit-dependencies-path %t/deps.d -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4 2>&1 | %FileCheck %s
+
+import P
+
+// CHECK:      {{.*}}{{/|\\}}Z.codeinterface:3:8: error: unable to resolve module dependency: 'missing_module'
+// CHECK-NEXT: 1 | // language-interface-format-version: 1.0
+// CHECK-NEXT: 2 | // language-module-flags: -module-name Z
+// CHECK-NEXT: 3 | import missing_module
+// CHECK-NEXT:   |        |- error: unable to resolve module dependency: 'missing_module'
+// CHECK-NEXT:   |        |- note: a dependency of Codira module 'Z': '{{.*}}{{/|\\}}Z.codeinterface'
+// CHECK-NEXT:   |        |- note: a dependency of Codira module 'Y': '{{.*}}{{/|\\}}Y.codeinterface'
+// CHECK-NEXT:   |        |- note: a dependency of Codira module 'P': '{{.*}}{{/|\\}}P.codeinterface'
+// CHECK-NEXT:   |        `- note: a dependency of main module 'deps'
+// CHECK-NEXT: 4 | public fn funcZ() { }

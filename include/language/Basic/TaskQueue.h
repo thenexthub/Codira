@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_TASKQUEUE_H
-#define SWIFT_BASIC_TASKQUEUE_H
+#ifndef LANGUAGE_BASIC_TASKQUEUE_H
+#define LANGUAGE_BASIC_TASKQUEUE_H
 
 #include "language/Basic/JSONSerialization.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Config/config.h"
-#include "llvm/Support/Program.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Config/config.h"
+#include "toolchain/Support/Program.h"
 
 #include <functional>
 #include <memory>
@@ -36,7 +37,7 @@ namespace sys {
 
 class Task; // forward declared to allow for platform-specific implementations
 
-using ProcessId = llvm::sys::procid_t;
+using ProcessId = toolchain::sys::procid_t;
 
 /// Indicates how a TaskQueue should respond to the task finished event.
 enum class TaskFinishedResponse {
@@ -54,7 +55,7 @@ enum class TaskFinishedResponse {
 /// resources like CPU time or memory the process used in the system. How ever,
 /// this could differ from platform to platform and is therefore optional.
 
-/// One process could handle multiple tasks in some modes of the Swift compiler
+/// One process could handle multiple tasks in some modes of the Codira compiler
 /// (multifile, WMO). To not break existing tools, the driver does use unique
 /// identifiers for the tasks that are not the process identifier. To still be
 /// able to reason about tasks that ran in the same process the
@@ -63,7 +64,7 @@ enum class TaskFinishedResponse {
 /// therefore not guaranteed to be unique over all tasks. The ProcessUsage
 /// contains optional usage information about the operating system process. It
 /// could be used by tools that take those information as input for analyzing
-/// the Swift compiler on a process-level. It will be `None` if the execution
+/// the Codira compiler on a process-level. It will be `None` if the execution
 /// has been skipped or one of the following symbols are not available on the
 /// system: `rusage`, `wait4`.
 struct TaskProcessInformation {
@@ -291,4 +292,4 @@ template <> struct ObjectTraits<sys::TaskProcessInformation::ResourceUsage> {
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_TASKQUEUE_H
+#endif // LANGUAGE_BASIC_TASKQUEUE_H

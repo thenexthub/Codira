@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "performance-diagnostics"
@@ -23,14 +24,14 @@
 #include "language/SILOptimizer/Analysis/BasicCalleeAnalysis.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 namespace {
 
 class PrettyStackTracePerformanceDiagnostics
-  : public llvm::PrettyStackTraceEntry {
+  : public toolchain::PrettyStackTraceEntry {
   const SILNode *node;
   const char *action;
 
@@ -38,7 +39,7 @@ public:
   PrettyStackTracePerformanceDiagnostics(const char *action, SILNodePointer node)
     : node(node), action(action) {}
 
-  virtual void print(llvm::raw_ostream &OS) const override {
+  virtual void print(toolchain::raw_ostream &OS) const override {
     OS << "While " << action << " -- visiting node ";
     node->print(OS);
     
@@ -50,7 +51,7 @@ public:
 };
 
 class PrettyStackTraceSILGlobal
-  : public llvm::PrettyStackTraceEntry {
+  : public toolchain::PrettyStackTraceEntry {
   const SILGlobalVariable *node;
   const char *action;
 
@@ -58,7 +59,7 @@ public:
     PrettyStackTraceSILGlobal(const char *action, SILGlobalVariable *node)
     : node(node), action(action) {}
 
-  virtual void print(llvm::raw_ostream &OS) const override {
+  virtual void print(toolchain::raw_ostream &OS) const override {
     OS << "While " << action << " -- visiting node ";
     node->print(OS);
   }
@@ -85,7 +86,7 @@ class PerformanceDiagnostics {
 
   SILModule &module;
   BasicCalleeAnalysis *bca;
-  llvm::DenseMap<SILFunction *, PerformanceConstraints> visitedFuncs;
+  toolchain::DenseMap<SILFunction *, PerformanceConstraints> visitedFuncs;
 
 public:
   PerformanceDiagnostics(SILModule &module, BasicCalleeAnalysis *bca) :
@@ -171,9 +172,9 @@ bool PerformanceDiagnostics::visitFunction(SILFunction *function,
           auto demangledName = Demangle::demangleSymbolAsString(
               inst.getFunction()->getName(),
               Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
-          llvm::errs() << "in function " << demangledName << "\n";
+          toolchain::errs() << "in function " << demangledName << "\n";
         }
-        LLVM_DEBUG(llvm::dbgs() << inst << *inst.getFunction());
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << inst << *inst.getFunction());
         return true;
       }
 
@@ -354,7 +355,7 @@ static bool metatypeUsesAreNotRelevant(MetatypeInst *mt) {
     }
     if (auto *apply = dyn_cast<ApplyInst>(use->getUser())) {
       if (auto *callee = apply->getReferencedFunctionOrNull()) {
-        // Exclude `Swift._diagnoseUnexpectedEnumCaseValue<A, B>(type: A.Type, rawValue: B) -> Swift.Never`
+        // Exclude `Codira._diagnoseUnexpectedEnumCaseValue<A, B>(type: A.Type, rawValue: B) -> Codira.Never`
         // It's a fatal error function, used for imported C enums.
         if (callee->getName() == "$ss32_diagnoseUnexpectedEnumCaseValue4type03rawE0s5NeverOxm_q_tr0_lF") {
           continue;
@@ -445,7 +446,7 @@ bool PerformanceDiagnostics::visitInst(SILInstruction *inst,
     case SILInstructionKind::MetatypeInst:
       if (metatypeUsesAreNotRelevant(cast<MetatypeInst>(inst)))
         return false;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     default:
       // We didn't recognize the instruction, so try to give an error message
       // based on the involved type.
@@ -658,6 +659,6 @@ private:
 
 } // end anonymous namespace
 
-SILTransform *swift::createPerformanceDiagnostics() {
+SILTransform *language::createPerformanceDiagnostics() {
   return new PerformanceDiagnosticsPass();
 }

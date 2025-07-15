@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements the runtime support for dynamically tracking exclusivity.
@@ -28,7 +29,7 @@
 
 #include "language/Runtime/Exclusivity.h"
 #include "language/shims/Visibility.h"
-#include "languageTLSContext.h"
+#include "CodiraTLSContext.h"
 #include "language/Basic/Lazy.h"
 #include "language/Runtime/Config.h"
 #include "language/Runtime/Debug.h"
@@ -56,7 +57,7 @@
 using namespace language;
 using namespace language::runtime;
 
-bool swift::_swift_disableExclusivityChecking = false;
+bool language::_language_disableExclusivityChecking = false;
 
 static const char *getAccessName(ExclusivityFlags flags) {
   switch (flags) {
@@ -67,18 +68,18 @@ static const char *getAccessName(ExclusivityFlags flags) {
 }
 
 // In asserts builds if the environment variable
-// SWIFT_DEBUG_RUNTIME_EXCLUSIVITY_LOGGING is set, emit logging information.
+// LANGUAGE_DEBUG_RUNTIME_EXCLUSIVITY_LOGGING is set, emit logging information.
 #ifndef NDEBUG
 
 static inline bool isExclusivityLoggingEnabled() {
-  return runtime::environment::SWIFT_DEBUG_RUNTIME_EXCLUSIVITY_LOGGING();
+  return runtime::environment::LANGUAGE_DEBUG_RUNTIME_EXCLUSIVITY_LOGGING();
 }
 
 static inline void _flockfile_stderr() {
 #if defined(_WIN32)
   _lock_file(stderr);
 #elif defined(__wasi__)
-  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/swift/issues/54533).
+  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/language/issues/54533).
 #else
   flockfile(stderr);
 #endif
@@ -88,26 +89,26 @@ static inline void _funlockfile_stderr() {
 #if defined(_WIN32)
   _unlock_file(stderr);
 #elif defined(__wasi__)
-  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/swift/issues/54533).
+  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/language/issues/54533).
 #else
   funlockfile(stderr);
 #endif
 }
 
 /// Used to ensure that logging printfs are deterministic.
-static inline void withLoggingLock(std::function<void()> func) {
+static inline void withLoggingLock(std::function<void()> fn) {
   assert(isExclusivityLoggingEnabled() &&
          "Should only be called if exclusivity logging is enabled!");
 
   _flockfile_stderr();
-  func();
+  fn();
   fflush(stderr);
   _funlockfile_stderr();
 }
 
 #endif
 
-SWIFT_ALWAYS_INLINE
+LANGUAGE_ALWAYS_INLINE
 static void reportExclusivityConflict(ExclusivityFlags oldAction, void *oldPC,
                                       ExclusivityFlags newFlags, void *newPC,
                                       void *pointer) {
@@ -135,7 +136,7 @@ static void reportExclusivityConflict(ExclusivityFlags oldAction, void *oldPC,
   snprintf(newAccess, sizeof(newAccess), "Current access (a %s) started at",
            getAccessName(getAccessAction(newFlags)));
   fprintf(stderr, "%s:\n", newAccess);
-  // The top frame is in swift_beginAccess, don't print it.
+  // The top frame is in language_beginAccess, don't print it.
   constexpr unsigned framesToSkip = 1;
   printCurrentBacktrace(framesToSkip);
 
@@ -158,7 +159,7 @@ static void reportExclusivityConflict(ExclusivityFlags oldAction, void *oldPC,
     .numNotes = 0,
     .notes = nullptr,
   };
-  _swift_reportToDebugger(RuntimeErrorFlagFatal, message, &details);
+  _language_reportToDebugger(RuntimeErrorFlagFatal, message, &details);
 }
 
 bool AccessSet::insert(Access *access, void *pc, void *pointer,
@@ -203,7 +204,7 @@ bool AccessSet::insert(Access *access, void *pc, void *pointer,
   if (isExclusivityLoggingEnabled()) {
     withLoggingLock([&]() {
       fprintf(stderr, "  Tracking!\n");
-      swift_dumpTrackedAccesses();
+      language_dumpTrackedAccesses();
     });
   }
 #endif
@@ -234,12 +235,12 @@ void AccessSet::remove(Access *access) {
     }
   }
 
-  swift_unreachable("access not found in set");
+  language_unreachable("access not found in set");
 }
 
 #ifndef NDEBUG
 /// Only available with asserts. Intended to be used with
-/// swift_dumpTrackedAccess().
+/// language_dumpTrackedAccess().
 void AccessSet::forEach(std::function<void(Access *)> action) {
   for (auto *iter = Head; iter != nullptr; iter = iter->getNext()) {
     action(iter);
@@ -254,7 +255,7 @@ void AccessSet::forEach(std::function<void(Access *)> action) {
 ///
 /// This may cause a runtime failure if an incompatible access is
 /// already underway.
-void swift::swift_beginAccess(void *pointer, ValueBuffer *buffer,
+void language::language_beginAccess(void *pointer, ValueBuffer *buffer,
                               ExclusivityFlags flags, void *pc) {
   assert(pointer && "beginning an access on a null pointer?");
 
@@ -262,7 +263,7 @@ void swift::swift_beginAccess(void *pointer, ValueBuffer *buffer,
 
   // If exclusivity checking is disabled, record in the access buffer that we
   // didn't track anything. pc is currently undefined in this case.
-  if (_swift_disableExclusivityChecking) {
+  if (_language_disableExclusivityChecking) {
     access->Pointer = nullptr;
     return;
   }
@@ -272,12 +273,12 @@ void swift::swift_beginAccess(void *pointer, ValueBuffer *buffer,
   if (!pc)
     pc = get_return_address();
 
-  if (!SwiftTLSContext::get().accessSet.insert(access, pc, pointer, flags))
+  if (!CodiraTLSContext::get().accessSet.insert(access, pc, pointer, flags))
     access->Pointer = nullptr;
 }
 
 /// End tracking a dynamic access.
-void swift::swift_endAccess(ValueBuffer *buffer) {
+void language::language_endAccess(ValueBuffer *buffer) {
   Access *access = reinterpret_cast<Access*>(buffer);
   auto pointer = access->Pointer;
 
@@ -287,7 +288,7 @@ void swift::swift_endAccess(ValueBuffer *buffer) {
     return;
   }
 
-  SwiftTLSContext::get().accessSet.remove(access);
+  CodiraTLSContext::get().accessSet.remove(access);
 }
 
 #ifndef NDEBUG
@@ -295,8 +296,8 @@ void swift::swift_endAccess(ValueBuffer *buffer) {
 // Dump the accesses that are currently being tracked by the runtime.
 //
 // This is only intended to be used in the debugger.
-void swift::swift_dumpTrackedAccesses() {
-  auto &accessSet = SwiftTLSContext::get().accessSet;
+void language::language_dumpTrackedAccesses() {
+  auto &accessSet = CodiraTLSContext::get().accessSet;
   if (!accessSet) {
     fprintf(stderr, "        No Accesses.\n");
     return;

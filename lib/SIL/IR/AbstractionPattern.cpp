@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines routines relating to abstraction patterns.
@@ -38,8 +39,8 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/PrettyPrinter.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 using namespace language;
 using namespace language::Lowering;
@@ -91,24 +92,24 @@ TypeConverter::getAbstractionPattern(VarDecl *var, bool isNonObjC) {
   if (auto *packExpansionType = interfaceType->getAs<PackExpansionType>())
     interfaceType = packExpansionType->getPatternType();
 
-  auto swiftType = sig.getReducedType(interfaceType);
+  auto languageType = sig.getReducedType(interfaceType);
 
   if (isNonObjC)
-    return AbstractionPattern(sig, swiftType);
+    return AbstractionPattern(sig, languageType);
 
   if (auto clangDecl = var->getClangDecl()) {
     auto clangType = getClangType(clangDecl);
-    auto contextType = var->getDeclContext()->mapTypeIntoContext(swiftType);
-    swiftType =
-        getLoweredBridgedType(AbstractionPattern(sig, swiftType, clangType),
+    auto contextType = var->getDeclContext()->mapTypeIntoContext(languageType);
+    languageType =
+        getLoweredBridgedType(AbstractionPattern(sig, languageType, clangType),
                               contextType, getClangDeclBridgeability(clangDecl),
                               SILFunctionTypeRepresentation::CFunctionPointer,
                               TypeConverter::ForMemory)
             ->getCanonicalType();
-    return AbstractionPattern(sig, swiftType, clangType);
+    return AbstractionPattern(sig, languageType, clangType);
   }
 
-  return AbstractionPattern(sig, swiftType);
+  return AbstractionPattern(sig, languageType);
 }
 
 AbstractionPattern TypeConverter::getAbstractionPattern(EnumElementDecl *decl) {
@@ -185,7 +186,7 @@ AbstractionPattern
 AbstractionPattern::getOptional(AbstractionPattern object) {
   switch (object.getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::Tuple:
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
@@ -199,7 +200,7 @@ AbstractionPattern::getOptional(AbstractionPattern object) {
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("cannot add optionality to non-type abstraction");
+    toolchain_unreachable("cannot add optionality to non-type abstraction");
   case Kind::Opaque:
     return AbstractionPattern::getOpaque();
   case Kind::ClangType:
@@ -220,7 +221,7 @@ AbstractionPattern::getOptional(AbstractionPattern object) {
                               OptionalType::get(object.getType())
                                 ->getCanonicalType());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 bool AbstractionPattern::isConcreteType() const {
@@ -364,7 +365,7 @@ bool AbstractionPattern::conformsToKnownProtocol(
     return true;
   
   case Kind::Invalid:
-    llvm_unreachable("asking invalid abstraction pattern");
+    toolchain_unreachable("asking invalid abstraction pattern");
   }
 }
 
@@ -379,7 +380,7 @@ bool AbstractionPattern::isEscapable(CanType substTy) const {
 bool AbstractionPattern::matchesTuple(CanType substType) const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -402,7 +403,7 @@ bool AbstractionPattern::matchesTuple(CanType substType) const {
       return true;
     if (!isa<TupleType>(getType()))
       return false;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case Kind::Tuple: {
     if (doesTupleVanish()) {
       // TODO: recurse into elements.
@@ -437,7 +438,7 @@ bool AbstractionPattern::matchesTuple(CanType substType) const {
     return nextSubstIndex == substTupleType->getNumElements();
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static const clang::FunctionType *
@@ -481,7 +482,7 @@ AbstractionPattern
 AbstractionPattern::getTupleElementType(unsigned index) const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -493,7 +494,7 @@ AbstractionPattern::getTupleElementType(unsigned index) const {
   case Kind::PartialCurriedCXXMethodType:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
-    llvm_unreachable("function types are not tuples");
+    toolchain_unreachable("function types are not tuples");
   case Kind::Opaque:
     return *this;
   case Kind::Tuple:
@@ -505,7 +506,7 @@ AbstractionPattern::getTupleElementType(unsigned index) const {
                               getCanTupleElementType(getType(), index),
                               getClangArrayElementType(getClangType(), index));
   case Kind::Discard:
-    llvm_unreachable("operation not needed on discarded abstractions yet");
+    toolchain_unreachable("operation not needed on discarded abstractions yet");
   case Kind::Type:
     if (isTypeParameterOrOpaqueArchetype())
       return AbstractionPattern::getOpaque();
@@ -533,13 +534,13 @@ AbstractionPattern::getTupleElementType(unsigned index) const {
   }
     
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 bool AbstractionPattern::doesTupleContainPackExpansionType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::Opaque:
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
@@ -552,10 +553,10 @@ bool AbstractionPattern::doesTupleContainPackExpansionType() const {
   case Kind::PartialCurriedCXXMethodType:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
-    llvm_unreachable("pattern is not a tuple");
+    toolchain_unreachable("pattern is not a tuple");
   case Kind::Tuple: {
     for (auto &elt :
-         llvm::ArrayRef(OrigTupleElements, getNumTupleElements_Stored())) {
+         toolchain::ArrayRef(OrigTupleElements, getNumTupleElements_Stored())) {
       if (elt.isPackExpansion())
         return true;
     }
@@ -567,7 +568,7 @@ bool AbstractionPattern::doesTupleContainPackExpansionType() const {
   case Kind::ClangType:
     return cast<TupleType>(getType()).containsPackExpansionType();
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 bool AbstractionPattern::doesTupleVanish() const {
@@ -635,7 +636,7 @@ AbstractionPattern::getVanishingTupleElementPatternType() const {
 }
 
 void AbstractionPattern::forEachTupleElement(CanType substType,
-      llvm::function_ref<void(TupleElementGenerator &)> handleElement) const {
+      toolchain::function_ref<void(TupleElementGenerator &)> handleElement) const {
   TupleElementGenerator elt(*this, substType);
   for (; !elt.isFinished(); elt.advance()) {
     handleElement(elt);
@@ -658,7 +659,7 @@ TupleElementGenerator::TupleElementGenerator(
 }
 
 void AbstractionPattern::forEachExpandedTupleElement(CanType substType,
-                      llvm::function_ref<void(AbstractionPattern origEltType,
+                      toolchain::function_ref<void(AbstractionPattern origEltType,
                                               CanType substEltType,
                                               const TupleTypeElt &elt)>
                         handleElement) const {
@@ -720,7 +721,7 @@ AbstractionPattern
 AbstractionPattern::getPackElementPackType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -735,11 +736,11 @@ AbstractionPattern::getPackElementPackType() const {
   case Kind::ClangType:
   case Kind::Tuple:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("not a pack type");
+    toolchain_unreachable("not a pack type");
   case Kind::Opaque:
     return *this;
   case Kind::Discard:
-    llvm_unreachable("operation not needed on discarded abstractions yet");
+    toolchain_unreachable("operation not needed on discarded abstractions yet");
   case Kind::Type:
     if (isTypeParameterOrOpaqueArchetype())
       return AbstractionPattern::getOpaque();
@@ -747,7 +748,7 @@ AbstractionPattern::getPackElementPackType() const {
                               getGenericSignature(),
                               cast<PackElementType>(getType()).getPackType());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static CanType getCanPackElementType(CanType type, unsigned index) {
@@ -769,7 +770,7 @@ AbstractionPattern
 AbstractionPattern::getPackElementType(unsigned index) const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -784,11 +785,11 @@ AbstractionPattern::getPackElementType(unsigned index) const {
   case Kind::ClangType:
   case Kind::Tuple:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("not a pack type");
+    toolchain_unreachable("not a pack type");
   case Kind::Opaque:
     return *this;
   case Kind::Discard:
-    llvm_unreachable("operation not needed on discarded abstractions yet");
+    toolchain_unreachable("operation not needed on discarded abstractions yet");
   case Kind::Type:
     if (isTypeParameterOrOpaqueArchetype())
       return AbstractionPattern::getOpaque();
@@ -796,13 +797,13 @@ AbstractionPattern::getPackElementType(unsigned index) const {
                               getGenericSignature(),
                               getAnyCanPackElementType(getType(), index)); 
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 bool AbstractionPattern::matchesPack(CanPackType substType) const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -830,11 +831,11 @@ bool AbstractionPattern::matchesPack(CanPackType substType) const {
     return false;
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void AbstractionPattern::forEachPackElement(CanPackType substType,
-      llvm::function_ref<void(PackElementGenerator &)> handleElement) const {
+      toolchain::function_ref<void(PackElementGenerator &)> handleElement) const {
   PackElementGenerator elt(*this, substType);
   for (; !elt.isFinished(); elt.advance()) {
     handleElement(elt);
@@ -843,7 +844,7 @@ void AbstractionPattern::forEachPackElement(CanPackType substType,
 }
 
 void AbstractionPattern::forEachExpandedPackElement(CanPackType substPackType,
-                      llvm::function_ref<void(AbstractionPattern origEltType,
+                      toolchain::function_ref<void(AbstractionPattern origEltType,
                                               CanType substEltType)>
                         handleElement) const {
   assert(matchesPack(substPackType));
@@ -917,7 +918,7 @@ static CanType getPackExpansionPatternType(CanType type) {
 AbstractionPattern AbstractionPattern::getPackExpansionPatternType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::ObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedObjCMethodType:
@@ -932,7 +933,7 @@ AbstractionPattern AbstractionPattern::getPackExpansionPatternType() const {
   case Kind::OpaqueDerivativeFunction:
   case Kind::ObjCCompletionHandlerArgumentsType:
   case Kind::ClangType:
-    llvm_unreachable("pattern for function or tuple cannot be for "
+    toolchain_unreachable("pattern for function or tuple cannot be for "
                      "pack expansion type");
 
   case Kind::Opaque:
@@ -950,7 +951,7 @@ AbstractionPattern AbstractionPattern::getPackExpansionPatternType() const {
         getGenericSubstitutions(), getGenericSignature(),
         ::getPackExpansionPatternType(getType()));
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static CanType getPackExpansionCountType(CanType type) {
@@ -960,7 +961,7 @@ static CanType getPackExpansionCountType(CanType type) {
 AbstractionPattern AbstractionPattern::getPackExpansionCountType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::ObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedObjCMethodType:
@@ -975,7 +976,7 @@ AbstractionPattern AbstractionPattern::getPackExpansionCountType() const {
   case Kind::OpaqueDerivativeFunction:
   case Kind::ObjCCompletionHandlerArgumentsType:
   case Kind::ClangType:
-    llvm_unreachable("pattern for function or tuple cannot be for "
+    toolchain_unreachable("pattern for function or tuple cannot be for "
                      "pack expansion type");
 
   case Kind::Opaque:
@@ -993,7 +994,7 @@ AbstractionPattern AbstractionPattern::getPackExpansionCountType() const {
         getGenericSubstitutions(), getGenericSignature(),
         ::getPackExpansionCountType(getType()));
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 size_t AbstractionPattern::getNumPackExpandedComponents() const {
@@ -1044,7 +1045,7 @@ AbstractionPattern::getParameterizedProtocolArgType(unsigned argIndex) const {
 AbstractionPattern AbstractionPattern::removingMoveOnlyWrapper() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -1056,15 +1057,15 @@ AbstractionPattern AbstractionPattern::removingMoveOnlyWrapper() const {
   case Kind::PartialCurriedCXXMethodType:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
-    llvm_unreachable("function types can not be move only");
+    toolchain_unreachable("function types can not be move only");
   case Kind::ClangType:
-    llvm_unreachable("clang types can not be move only yet");
+    toolchain_unreachable("clang types can not be move only yet");
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("not handled yet");
+    toolchain_unreachable("not handled yet");
   case Kind::Discard:
-    llvm_unreachable("operation not needed on discarded abstractions yet");
+    toolchain_unreachable("operation not needed on discarded abstractions yet");
   case Kind::Tuple:
-    llvm_unreachable("cannot apply move-only wrappers to open-coded patterns");
+    toolchain_unreachable("cannot apply move-only wrappers to open-coded patterns");
   case Kind::Opaque:
     // Opaque is opaque. We do not remove anything.
     return *this;
@@ -1076,13 +1077,13 @@ AbstractionPattern AbstractionPattern::removingMoveOnlyWrapper() const {
     return *this;
   }
 
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 AbstractionPattern AbstractionPattern::addingMoveOnlyWrapper() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -1094,15 +1095,15 @@ AbstractionPattern AbstractionPattern::addingMoveOnlyWrapper() const {
   case Kind::PartialCurriedCXXMethodType:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
-    llvm_unreachable("function types can not be move only");
+    toolchain_unreachable("function types can not be move only");
   case Kind::ClangType:
-    llvm_unreachable("clang types can not be move only yet");
+    toolchain_unreachable("clang types can not be move only yet");
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("not handled yet");
+    toolchain_unreachable("not handled yet");
   case Kind::Discard:
-    llvm_unreachable("operation not needed on discarded abstractions yet");
+    toolchain_unreachable("operation not needed on discarded abstractions yet");
   case Kind::Tuple:
-    llvm_unreachable("cannot add move only wrapper to open-coded pattern");
+    toolchain_unreachable("cannot add move only wrapper to open-coded pattern");
   case Kind::Opaque:
   case Kind::Type:
     if (isa<SILMoveOnlyWrappedType>(getType()))
@@ -1112,7 +1113,7 @@ AbstractionPattern AbstractionPattern::addingMoveOnlyWrapper() const {
                               SILMoveOnlyWrappedType::get(getType()));
   }
 
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /// Return a pattern corresponding to the 'self' parameter of the given
@@ -1181,10 +1182,10 @@ static CanType getResultType(CanType type) {
 AbstractionPattern AbstractionPattern::getFunctionResultType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::ObjCCompletionHandlerArgumentsType:
   case Kind::Tuple:
-    llvm_unreachable("abstraction pattern for tuple cannot be function");
+    toolchain_unreachable("abstraction pattern for tuple cannot be function");
   case Kind::Opaque:
     return *this;
   case Kind::Type:
@@ -1194,7 +1195,7 @@ AbstractionPattern AbstractionPattern::getFunctionResultType() const {
                               getGenericSignatureForFunctionComponent(),
                               getResultType(getType()));
   case Kind::Discard:
-    llvm_unreachable("don't need to discard function abstractions yet");
+    toolchain_unreachable("don't need to discard function abstractions yet");
   case Kind::ClangType:
   case Kind::CFunctionAsMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType: {
@@ -1311,17 +1312,17 @@ AbstractionPattern AbstractionPattern::getFunctionResultType() const {
                                                        getOpaqueFunction()};
     return getTuple(elements);
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 std::optional<AbstractionPattern>
 AbstractionPattern::getFunctionThrownErrorType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::ObjCCompletionHandlerArgumentsType:
   case Kind::Tuple:
-    llvm_unreachable("abstraction pattern for tuple cannot be function");
+    toolchain_unreachable("abstraction pattern for tuple cannot be function");
   case Kind::Opaque:
     return *this;
   case Kind::Type: {
@@ -1337,7 +1338,7 @@ AbstractionPattern::getFunctionThrownErrorType() const {
     return std::nullopt;
   }
   case Kind::Discard:
-    llvm_unreachable("don't need to discard function abstractions yet");
+    toolchain_unreachable("don't need to discard function abstractions yet");
   case Kind::ClangType:
   case Kind::CFunctionAsMethodType:
   case Kind::PartialCurriedCFunctionAsMethodType:
@@ -1348,12 +1349,12 @@ AbstractionPattern::getFunctionThrownErrorType() const {
   case Kind::CurriedCXXMethodType:
   case Kind::PartialCurriedObjCMethodType:
   case Kind::ObjCMethodType:
-    llvm_unreachable("implement me");
+    toolchain_unreachable("implement me");
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
     return std::nullopt;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 std::optional<std::pair<AbstractionPattern, CanType>>
@@ -1391,7 +1392,7 @@ CanType AbstractionPattern::getEffectiveThrownErrorType() const {
 
 AbstractionPattern
 AbstractionPattern::getObjCMethodAsyncCompletionHandlerType(
-                                     CanType swiftCompletionHandlerType) const {
+                                     CanType languageCompletionHandlerType) const {
   switch (getKind()) {
   case Kind::PartialCurriedObjCMethodType:
   case Kind::ObjCMethodType: {
@@ -1410,14 +1411,14 @@ AbstractionPattern::getObjCMethodAsyncCompletionHandlerType(
     }
     
     return AbstractionPattern(patternSig,
-                              swiftCompletionHandlerType, callbackParamTy);
+                              languageCompletionHandlerType, callbackParamTy);
   }
   case Kind::Opaque:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
   case Kind::Type:
     return AbstractionPattern(getGenericSignature(),
-                              swiftCompletionHandlerType);
+                              languageCompletionHandlerType);
   case Kind::Invalid:
   case Kind::Tuple:
   case Kind::Discard:
@@ -1430,9 +1431,9 @@ AbstractionPattern::getObjCMethodAsyncCompletionHandlerType(
   case Kind::CurriedCFunctionAsMethodType:
   case Kind::CurriedCXXMethodType:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    swift_unreachable("not appropriate for this kind");
+    language_unreachable("not appropriate for this kind");
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 
@@ -1447,7 +1448,7 @@ CanType AbstractionPattern::getObjCMethodAsyncCompletionHandlerForeignType(
   // normally get abstracted away by the importer.
   auto completionHandlerNativeOrigTy = getObjCMethodAsyncCompletionHandlerType(nativeCHTy);
   
-  // Bridge the Swift completion handler type back to its
+  // Bridge the Codira completion handler type back to its
   // foreign representation.
   auto foreignCHTy = TC.getLoweredBridgedType(completionHandlerNativeOrigTy,
                                     nativeCHTy,
@@ -1485,7 +1486,7 @@ unsigned AbstractionPattern::getLoweredParamIndex(unsigned formalIndex) const {
     // It's definitely doable, but it's currently unnecessary given the
     // limited situations in which we use this method.  I'm very sorry
     // if you hit this time bomb.
-    llvm_unreachable("not yet implemented");
+    toolchain_unreachable("not yet implemented");
   }
 }
 
@@ -1642,7 +1643,7 @@ AbstractionPattern::getFunctionParamType(unsigned index) const {
   case Kind::OpaqueDerivativeFunction:
     return getOpaque();
   default:
-    llvm_unreachable("does not have function parameters");
+    toolchain_unreachable("does not have function parameters");
   }
 }
 
@@ -1657,7 +1658,7 @@ AbstractionPattern::isFunctionParamAddressable(unsigned index) const {
   switch (getKind()) {
   case Kind::Invalid:
   case Kind::Tuple:
-    llvm_unreachable("not any kind of function!");
+    toolchain_unreachable("not any kind of function!");
   case Kind::Opaque:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
@@ -1690,7 +1691,7 @@ AbstractionPattern::isFunctionParamAddressable(unsigned index) const {
     return fnTy.getParams()[index].getParameterFlags().isAddressable();
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 ArrayRef<LifetimeDependenceInfo>
@@ -1698,7 +1699,7 @@ AbstractionPattern::getLifetimeDependencies() const {
   switch (getKind()) {
   case Kind::Invalid:
   case Kind::Tuple:
-    llvm_unreachable("not any kind of function!");
+    toolchain_unreachable("not any kind of function!");
   case Kind::Opaque:
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
@@ -1730,7 +1731,7 @@ AbstractionPattern::getLifetimeDependencies() const {
     return fnTy->getExtInfo().getLifetimeDependencies();
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 unsigned AbstractionPattern::getNumFunctionParams() const {
@@ -1740,7 +1741,7 @@ unsigned AbstractionPattern::getNumFunctionParams() const {
 void AbstractionPattern::
 forEachFunctionParam(AnyFunctionType::CanParamArrayRef substParams,
                      bool ignoreFinalOrigParam,
-    llvm::function_ref<void(FunctionParamGenerator &param)> function) const {
+    toolchain::function_ref<void(FunctionParamGenerator &param)> function) const {
   FunctionParamGenerator generator(*this, substParams, ignoreFinalOrigParam);
   for (; !generator.isFinished(); generator.advance()) {
     function(generator);
@@ -1777,7 +1778,7 @@ static CanType getOptionalObjectType(CanType type) {
 AbstractionPattern AbstractionPattern::getOptionalObjectType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::ObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedObjCMethodType:
@@ -1791,7 +1792,7 @@ AbstractionPattern AbstractionPattern::getOptionalObjectType() const {
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("pattern for function or tuple cannot be for optional");
+    toolchain_unreachable("pattern for function or tuple cannot be for optional");
 
   case Kind::Opaque:
     return *this;
@@ -1815,13 +1816,13 @@ AbstractionPattern AbstractionPattern::getOptionalObjectType() const {
                               ::getOptionalObjectType(getType()),
                               getClangType());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 AbstractionPattern AbstractionPattern::getReferenceStorageReferentType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::Opaque:
   case Kind::ObjCMethodType:
   case Kind::CurriedObjCMethodType:
@@ -1852,7 +1853,7 @@ AbstractionPattern AbstractionPattern::getReferenceStorageReferentType() const {
                               getType().getReferenceStorageReferent(),
                               getClangType());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static CanType getExistentialConstraintType(CanType type) {
@@ -1866,7 +1867,7 @@ static CanType getExistentialConstraintType(CanType type) {
 AbstractionPattern AbstractionPattern::getExistentialConstraintType() const {
   switch (getKind()) {
   case Kind::Invalid:
-    llvm_unreachable("querying invalid abstraction pattern!");
+    toolchain_unreachable("querying invalid abstraction pattern!");
   case Kind::ObjCMethodType:
   case Kind::CurriedObjCMethodType:
   case Kind::PartialCurriedObjCMethodType:
@@ -1880,7 +1881,7 @@ AbstractionPattern AbstractionPattern::getExistentialConstraintType() const {
   case Kind::OpaqueFunction:
   case Kind::OpaqueDerivativeFunction:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("pattern for function or tuple cannot be for optional");
+    toolchain_unreachable("pattern for function or tuple cannot be for optional");
 
   case Kind::Opaque:
     return *this;
@@ -1904,12 +1905,12 @@ AbstractionPattern AbstractionPattern::getExistentialConstraintType() const {
                               ::getExistentialConstraintType(getType()),
                               getClangType());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void AbstractionPattern::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
+  print(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 static void printGenerics(raw_ostream &out, const AbstractionPattern &pattern) {
@@ -2058,7 +2059,7 @@ void AbstractionPattern::print(raw_ostream &out) const {
     out << ")";
     return;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 bool AbstractionPattern::hasSameBasicTypeStructure(CanType l, CanType r) {
@@ -2132,20 +2133,20 @@ const {
 
   switch (getKind()) {
   case Kind::Opaque:
-    llvm_unreachable("should be handled by isTypeParameter");
+    toolchain_unreachable("should be handled by isTypeParameter");
   case Kind::Invalid:
-    llvm_unreachable("called on invalid abstraction pattern");
+    toolchain_unreachable("called on invalid abstraction pattern");
   case Kind::Tuple:
-    llvm_unreachable("should not have a tuple pattern matching a struct/enum "
+    toolchain_unreachable("should not have a tuple pattern matching a struct/enum "
                      "type");
   case Kind::OpaqueFunction:
-    llvm_unreachable("should not have an opaque function pattern matching a "
+    toolchain_unreachable("should not have an opaque function pattern matching a "
                      "struct/enum type");
   case Kind::OpaqueDerivativeFunction:
-    llvm_unreachable("should not have an opaque derivative function pattern "
+    toolchain_unreachable("should not have an opaque derivative function pattern "
                      "matching a struct/enum type");
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("should not have a completion handler argument pattern "
+    toolchain_unreachable("should not have a completion handler argument pattern "
                      "matching a struct/enum type");
   case Kind::PartialCurriedObjCMethodType:
   case Kind::CurriedObjCMethodType:
@@ -2167,7 +2168,7 @@ const {
                               getGenericSignature(),
                               memberTy);
   }
-  llvm_unreachable("invalid abstraction pattern kind");
+  toolchain_unreachable("invalid abstraction pattern kind");
 }
 
 AbstractionPattern AbstractionPattern::getAutoDiffDerivativeFunctionType(
@@ -2190,7 +2191,7 @@ AbstractionPattern AbstractionPattern::getAutoDiffDerivativeFunctionType(
   case Kind::Opaque:
     return getOpaqueDerivativeFunction();
   default:
-    llvm_unreachable("called on unsupported abstraction pattern kind");
+    toolchain_unreachable("called on unsupported abstraction pattern kind");
   }
 }
 
@@ -2231,7 +2232,7 @@ AbstractionPattern::getResultConvention(TypeConverter &TC) const {
   case Kind::Invalid:
   case Kind::Tuple:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("should not get here");
+    toolchain_unreachable("should not get here");
   }
 }
 
@@ -2272,7 +2273,7 @@ AbstractionPattern::getParameterConvention(TypeConverter &TC) const {
   case Kind::Invalid:
   case Kind::Tuple:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("should not get here");
+    toolchain_unreachable("should not get here");
   }
 }
 
@@ -2306,7 +2307,7 @@ AbstractionPattern::getErrorConvention(TypeConverter &TC) const {
   case Kind::PartialCurriedCXXMethodType:
   case Kind::Invalid:
   case Kind::ObjCCompletionHandlerArgumentsType:
-    llvm_unreachable("should not get here");
+    toolchain_unreachable("should not get here");
   }
 }
 
@@ -2426,7 +2427,8 @@ public:
       paramKind = GenericTypeParamKind::Pack;
     }
 
-    auto gp = GenericTypeParamType::get(paramKind, 0, paramIndex, Type(),
+    auto gp = GenericTypeParamType::get(paramKind, /*depth=*/0, paramIndex,
+                                        /*weight=*/0, /*valueType=*/Type(),
                                         TC.Context);
     substGenericParams.push_back(gp);
 
@@ -2725,12 +2727,12 @@ public:
 
   CanType visitPackExpansionType(CanPackExpansionType pack,
                                  AbstractionPattern pattern) {
-    llvm_unreachable("shouldn't encounter pack expansion by itself");
+    toolchain_unreachable("shouldn't encounter pack expansion by itself");
   }
 
   CanType visitPackElementType(CanPackElementType packElement,
                                AbstractionPattern pattern) {
-    llvm_unreachable("shouldn't encounter pack element by itself");
+    toolchain_unreachable("shouldn't encounter pack element by itself");
   }
 
   CanType handlePackExpansion(AbstractionPattern origExpansion,
@@ -2742,7 +2744,7 @@ public:
     // Remember that we're within an expansion.
     ++packExpansionLevel;
 
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       --packExpansionLevel;
     };
 
@@ -2879,7 +2881,7 @@ public:
     return CanType(TupleType::get(tupleElts, TC.Context));
   }
   
-  CanType handleUnabstractedFunctionType(CanAnyFunctionType func,
+  CanType handleUnabstractedFunctionType(CanAnyFunctionType fn,
                                          AbstractionPattern pattern,
                                          CanType yieldType,
                                          AbstractionPattern yieldPattern) {
@@ -2890,7 +2892,7 @@ public:
           /*internal label*/ Identifier()));
     };
 
-    pattern.forEachFunctionParam(func.getParams(), /*ignore self*/ false,
+    pattern.forEachFunctionParam(fn.getParams(), /*ignore self*/ false,
                                  [&](FunctionParamGenerator &param) {
       if (param.isUnimplementablePackExpansion()) {
         unimplementable = true;
@@ -2916,18 +2918,18 @@ public:
 
     CanType newErrorType;
 
-    if (auto optPair = pattern.getFunctionThrownErrorType(func)) {
+    if (auto optPair = pattern.getFunctionThrownErrorType(fn)) {
       auto errorPattern = optPair->first;
       auto errorType = optPair->second;
       newErrorType = visit(errorType, errorPattern);
     }
 
-    auto newResultTy = visit(func.getResult(),
+    auto newResultTy = visit(fn.getResult(),
                              pattern.getFunctionResultType());
 
     std::optional<FunctionType::ExtInfo> extInfo;
-    if (func->hasExtInfo())
-      extInfo = func->getExtInfo();
+    if (fn->hasExtInfo())
+      extInfo = fn->getExtInfo();
 
     if (newErrorType) {
       if (!extInfo)
@@ -2939,9 +2941,9 @@ public:
                                 newResultTy, extInfo);
   }
   
-  CanType visitFunctionType(CanFunctionType func,
+  CanType visitFunctionType(CanFunctionType fn,
                             AbstractionPattern pattern) {
-    return handleUnabstractedFunctionType(func, pattern,
+    return handleUnabstractedFunctionType(fn, pattern,
                                           CanType(),
                                           AbstractionPattern::getInvalid());
   }

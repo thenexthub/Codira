@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/inputs)
+// RUN: %empty-directory(%t/test-sdk)
+// RUN: %empty-directory(%t/test-sdk/usr/lib/language)
+// RUN: %empty-directory(%t/test-sdk/usr/lib/Foo.codemodule)
+// RUN: %empty-directory(%t/test-sdk/usr/lib/Bar.codemodule)
+// RUN: %empty-directory(%t/test-sdk/usr/lib/_Foo_Bar.codemodule)
+// RUN: %empty-directory(%t/test-sdk/usr/lib/Foo.codecrossimport)
+// RUN: cp -r %platform-module-dir/Codira.codemodule %t/test-sdk/usr/lib/language/Codira.codemodule
+
+// RUN: split-file %s %t
+
+// --- Precompile interfaces from the "SDK" into binary modules distributed elsewhere
+// RUN: %target-language-frontend(mock-sdk: -sdk %t/test-sdk) -compile-module-from-interface -module-name Foo %t/test-sdk/usr/lib/Foo.codemodule/Foo.codeinterface -o %t/inputs/Foo.codemodule
+// RUN: %target-language-frontend(mock-sdk: -sdk %t/test-sdk) -compile-module-from-interface -module-name Bar %t/test-sdk/usr/lib/Bar.codemodule/Bar.codeinterface -o %t/inputs/Bar.codemodule
+// RUN: %target-language-frontend(mock-sdk: -sdk %t/test-sdk) -compile-module-from-interface -module-name _Foo_Bar %t/test-sdk/usr/lib/_Foo_Bar.codemodule/_Foo_Bar.codeinterface -o %t/inputs/_Foo_Bar.codemodule
+
+// --- Verify that the client is able to resolve the cross-import overlay from the defining interface SDK location
+// RUN: %target-language-frontend(mock-sdk: -sdk %t/test-sdk) -typecheck %t/Test.code -enable-cross-import-overlays -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -I %t/inputs -Rmodule-loading &> %t/module_remarks.txt
+// RUN: cat %t/module_remarks.txt | %FileCheck %s
+// CHECK: remark: loaded module '_Foo_Bar'
+
+//--- test-sdk/usr/lib/Foo.codemodule/Foo.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name Foo
+public fn foo()
+
+//--- test-sdk/usr/lib/Bar.codemodule/Bar.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name Bar
+public fn bar()
+
+//--- test-sdk/usr/lib/_Foo_Bar.codemodule/_Foo_Bar.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name _Foo_Bar
+public fn foo_bar()
+
+//--- test-sdk/usr/lib/Foo.codecrossimport/Bar.codeoverlay
+---
+version: 1
+modules:
+  - name: _Foo_Bar
+
+//--- Test.code
+import Foo
+import Bar
+public fn baz() { foo_bar() }

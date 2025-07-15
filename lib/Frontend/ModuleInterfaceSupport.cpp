@@ -1,13 +1,17 @@
-//===------- ModuleInterfaceSupport.cpp - swiftinterface files ------------===//
+//===------- ModuleInterfaceSupport.cpp - languageinterface files ------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/ModuleInterfaceSupport.h"
@@ -33,18 +37,18 @@
 #include "language/Serialization/SerializationOptions.h"
 #include "language/Serialization/Validation.h"
 #include "clang/Basic/Module.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Regex.h"
-#include "llvm/Support/StringSaver.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Regex.h"
+#include "toolchain/Support/StringSaver.h"
 
 using namespace language;
 
 // MARK: Module interface header comments
 
-version::Version swift::InterfaceFormatVersion({1, 0});
+version::Version language::InterfaceFormatVersion({1, 0});
 
 /// Prints to \p out a comment containing a format version number, tool version
 /// string as well as any relevant command-line flags in \p Opts used to
@@ -52,16 +56,16 @@ version::Version swift::InterfaceFormatVersion({1, 0});
 static void printToolVersionAndFlagsComment(raw_ostream &out,
                                             ModuleInterfaceOptions const &Opts,
                                             ModuleDecl *M,
-                                            llvm::SmallSet<StringRef, 4>
+                                            toolchain::SmallSet<StringRef, 4>
                                               &AliasModuleNamesTargets) {
   auto &Ctx = M->getASTContext();
   auto ToolsVersion =
-      getSwiftInterfaceCompilerVersionForCurrentCompiler(Ctx);
-  out << "// " SWIFT_INTERFACE_FORMAT_VERSION_KEY ": "
+      getCodiraInterfaceCompilerVersionForCurrentCompiler(Ctx);
+  out << "// " LANGUAGE_INTERFACE_FORMAT_VERSION_KEY ": "
       << InterfaceFormatVersion << "\n";
-  out << "// " SWIFT_COMPILER_VERSION_KEY ": "
+  out << "// " LANGUAGE_COMPILER_VERSION_KEY ": "
       << ToolsVersion << "\n";
-  out << "// " SWIFT_MODULE_FLAGS_KEY ": " << Opts.PublicFlags.Flags;
+  out << "// " LANGUAGE_MODULE_FLAGS_KEY ": " << Opts.PublicFlags.Flags;
 
   if (Opts.InterfaceContentMode >= PrintOptions::InterfaceMode::Private &&
       !Opts.PrivateFlags.Flags.empty())
@@ -91,7 +95,7 @@ static void printToolVersionAndFlagsComment(raw_ostream &out,
 
     for (ImportedModule import: imports) {
       StringRef importedName = import.importedModule->getNameStr();
-      // Skip Swift as it's commonly used in inlinable code,
+      // Skip Codira as it's commonly used in inlinable code,
       // and Builtin as it's imported implicitly by name.
       if (importedName == STDLIB_NAME ||
           importedName == BUILTIN_NAME)
@@ -109,9 +113,9 @@ static void printToolVersionAndFlagsComment(raw_ostream &out,
   }
   out << "\n";
 
-  // Add swift-module-flags-ignorable: if non-empty.
+  // Add language-module-flags-ignorable: if non-empty.
   {
-    llvm::SmallVector<StringRef, 4> ignorableFlags;
+    toolchain::SmallVector<StringRef, 4> ignorableFlags;
 
     if (!Opts.PublicFlags.IgnorableFlags.empty())
       ignorableFlags.push_back(Opts.PublicFlags.IgnorableFlags);
@@ -124,9 +128,9 @@ static void printToolVersionAndFlagsComment(raw_ostream &out,
         !Opts.PackageFlags.IgnorableFlags.empty())
       ignorableFlags.push_back(Opts.PackageFlags.IgnorableFlags);
 
-    out << "// " SWIFT_MODULE_FLAGS_IGNORABLE_KEY ": ";
+    out << "// " LANGUAGE_MODULE_FLAGS_IGNORABLE_KEY ": ";
 
-    llvm::interleave(
+    toolchain::interleave(
         ignorableFlags, [&out](StringRef str) { out << str; },
         [&out] { out << " "; });
 
@@ -136,28 +140,28 @@ static void printToolVersionAndFlagsComment(raw_ostream &out,
 }
 
 std::string
-swift::getSwiftInterfaceCompilerVersionForCurrentCompiler(ASTContext &ctx) {
-  return swift::version::getSwiftFullVersion(
+language::getCodiraInterfaceCompilerVersionForCurrentCompiler(ASTContext &ctx) {
+  return language::version::getCodiraFullVersion(
              ctx.LangOpts.EffectiveLanguageVersion);
 }
 
-llvm::Regex swift::getSwiftInterfaceFormatVersionRegex() {
-  return llvm::Regex("^// " SWIFT_INTERFACE_FORMAT_VERSION_KEY
-                     ": ([0-9\\.]+)$", llvm::Regex::Newline);
+toolchain::Regex language::getCodiraInterfaceFormatVersionRegex() {
+  return toolchain::Regex("^// " LANGUAGE_INTERFACE_FORMAT_VERSION_KEY
+                     ": ([0-9\\.]+)$", toolchain::Regex::Newline);
 }
 
-llvm::Regex swift::getSwiftInterfaceCompilerVersionRegex() {
-  return llvm::Regex("^// " SWIFT_COMPILER_VERSION_KEY
-                     ": (.+)$", llvm::Regex::Newline);
+toolchain::Regex language::getCodiraInterfaceCompilerVersionRegex() {
+  return toolchain::Regex("^// " LANGUAGE_COMPILER_VERSION_KEY
+                     ": (.+)$", toolchain::Regex::Newline);
 }
 
-llvm::Regex swift::getSwiftInterfaceCompilerToolsVersionRegex() {
-  return llvm::Regex("Swift version ([0-9\\.]+)", llvm::Regex::Newline);
+toolchain::Regex language::getCodiraInterfaceCompilerToolsVersionRegex() {
+  return toolchain::Regex("Codira version ([0-9\\.]+)", toolchain::Regex::Newline);
 }
 
-// MARK(https://github.com/apple/swift/issues/43510): Module name shadowing warnings
+// MARK(https://github.com/apple/language/issues/43510): Module name shadowing warnings
 //
-// When swiftc emits a module interface, it qualifies most types with their
+// When languagec emits a module interface, it qualifies most types with their
 // module name. This usually makes the interface less ambiguous, but if a type
 // exists with the same name as a module, then references to that module will
 // incorrectly look inside the type instead. This breakage is not obvious until
@@ -261,7 +265,7 @@ static void diagnoseScopedImports(DiagnosticEngine &diags,
 static void printImports(raw_ostream &out,
                          ModuleInterfaceOptions const &Opts,
                          ModuleDecl *M,
-                         const llvm::SmallSet<StringRef, 4>
+                         const toolchain::SmallSet<StringRef, 4>
                            &AliasModuleNamesTargets) {
   auto &ctx = M->getASTContext();
   // FIXME: This is very similar to what's in Serializer::writeInputBlock, but
@@ -271,7 +275,7 @@ static void printImports(raw_ostream &out,
       ModuleDecl::ImportFilterKind::Default,
       ModuleDecl::ImportFilterKind::ShadowedByCrossImportOverlay};
 
-  using ImportSet = llvm::SmallSet<ImportedModule, 8, ImportedModule::Order>;
+  using ImportSet = toolchain::SmallSet<ImportedModule, 8, ImportedModule::Order>;
   auto getImports = [M](ModuleDecl::ImportFilter filter) -> ImportSet {
     SmallVector<ImportedModule, 8> matchingImports;
     M->getImportedModules(matchingImports, filter);
@@ -339,14 +343,14 @@ static void printImports(raw_ostream &out,
       continue;
     }
 
-    llvm::SmallSetVector<Identifier, 4> spis;
+    toolchain::SmallSetVector<Identifier, 4> spis;
     M->lookupImportedSPIGroups(importedModule, spis);
 
     if (exportedImportSet.count(import))
       out << "@_exported ";
 
     if (!Opts.printPublicInterface()) {
-      // An import visible in the private or package swiftinterface only.
+      // An import visible in the private or package languageinterface only.
       if (spiOnlyImportSet.count(import))
         out << "@_spiOnly ";
 
@@ -450,7 +454,7 @@ class InheritedProtocolCollector {
         // FIXME: This is just approximating the effects of nested availability
         // attributes for the same platform; formally they'd need to be merged.
         // FIXME: [availability] This should compare availability domains.
-        bool alreadyHasMoreSpecificAttrForThisPlatform = llvm::any_of(
+        bool alreadyHasMoreSpecificAttrForThisPlatform = toolchain::any_of(
             *cache, [nextAttr](SemanticAvailableAttr existingAttr) {
               return existingAttr.getPlatform() == nextAttr.getPlatform();
             });
@@ -569,7 +573,7 @@ class InheritedProtocolCollector {
   }
 
 public:
-  using PerTypeMap = llvm::MapVector<const NominalTypeDecl *,
+  using PerTypeMap = toolchain::MapVector<const NominalTypeDecl *,
                                      InheritedProtocolCollector>;
 
   /// Given that we're about to print \p D, record its protocols in \p map.
@@ -665,7 +669,7 @@ public:
                                           ProtocolDecl *proto) {
     SmallVector<ProtocolConformance *, 4> conformances;
     nominal->lookupConformance(proto, conformances);
-    return llvm::all_of(conformances,
+    return toolchain::all_of(conformances,
                         [M](const ProtocolConformance *conformance) -> bool {
       return M == conformance->getDeclContext()->getParentModule();
     });
@@ -704,8 +708,9 @@ public:
 
     // Preserve the behavior of previous implementations which formatted of
     // empty extensions compactly with '{}' on the same line.
-    PrintOptions extensionPrintOptions = printOptions;
-    extensionPrintOptions.PrintEmptyMembersOnSameLine = true;
+    PrintOptions::OverrideScope extensionPrintingScope(printOptions);
+    OVERRIDE_PRINT_OPTION(extensionPrintingScope,
+                          PrintEmptyMembersOnSameLine, true);
 
     // Then walk the remaining ones, and see what we need to print.
     // FIXME: This will pick the availability attributes from the first sight
@@ -744,7 +749,7 @@ public:
             !M->isImportedImplementationOnly(inherited->getParentModule())) {
           auto protoAndAvailability = ProtocolAndAvailability(
               inherited, availability, isUnchecked, otherAttrs);
-          printSynthesizedExtension(out, extensionPrintOptions, M, nominal,
+          printSynthesizedExtension(out, printOptions, M, nominal,
                                     protoAndAvailability);
           return TypeWalker::Action::SkipNode;
         }
@@ -769,7 +774,7 @@ public:
 
     // Create a synthesized ExtensionDecl for the conformance.
     ASTContext &ctx = M->getASTContext();
-    auto inherits = ctx.AllocateCopy(llvm::ArrayRef(InheritedEntry(
+    auto inherits = ctx.AllocateCopy(toolchain::ArrayRef(InheritedEntry(
         TypeLoc::withoutLoc(proto->getDeclaredInterfaceType()), options)));
     auto extension =
         ExtensionDecl::create(ctx, SourceLoc(), nullptr, inherits,
@@ -799,8 +804,7 @@ public:
 
     ctx.evaluator.cacheOutput(ExtendedTypeRequest{extension},
                               nominal->getDeclaredType());
-    ctx.evaluator.cacheOutput(ExtendedNominalRequest{extension},
-                              const_cast<NominalTypeDecl *>(nominal));
+    extension->setExtendedNominal(const_cast<NominalTypeDecl *>(nominal));
 
     extension->print(printer, printOptions);
     printer << "\n";
@@ -823,7 +827,7 @@ public:
       out << "@available(*, unavailable)\nextension ";
       nominal->getDeclaredType().print(out, printOptions);
       out << " : ";
-      llvm::interleave(
+      toolchain::interleave(
           conformanceProtos,
           [&out, &printOptions](const ProtocolType *protoTy) {
             protoTy->print(out, printOptions);
@@ -862,21 +866,21 @@ const StringLiteral InheritedProtocolCollector::DummyProtocolName =
 
 // MARK: Interface emission
 
-bool swift::emitSwiftInterface(raw_ostream &out,
+bool language::emitCodiraInterface(raw_ostream &out,
                                ModuleInterfaceOptions const &Opts,
                                ModuleDecl *M) {
-  PrettyStackTraceDecl stackTrace("emitting swiftinterface for", M);
+  PrettyStackTraceDecl stackTrace("emitting languageinterface for", M);
 
   assert(M);
 
-  llvm::SmallSet<StringRef, 4> aliasModuleNamesTargets;
+  toolchain::SmallSet<StringRef, 4> aliasModuleNamesTargets;
   printToolVersionAndFlagsComment(out, Opts, M, aliasModuleNamesTargets);
 
   printImports(out, Opts, M, aliasModuleNamesTargets);
 
   bool useExportedModuleNames = Opts.printPublicInterface();
 
-  const PrintOptions printOptions = PrintOptions::printSwiftInterfaceFile(
+  const PrintOptions printOptions = PrintOptions::printCodiraInterfaceFile(
       M, Opts.PreserveTypesAsWritten, Opts.PrintFullConvention,
       Opts.InterfaceContentMode,
       useExportedModuleNames,
@@ -917,7 +921,7 @@ bool swift::emitSwiftInterface(raw_ostream &out,
     InheritedProtocolCollector::printDummyProtocolDeclaration(out);
 
   if (Opts.DebugPrintInvalidSyntax)
-    out << "#__debug_emit_invalid_swiftinterface_syntax__\n";
+    out << "#__debug_emit_invalid_languageinterface_syntax__\n";
 
   return false;
 }

@@ -1,0 +1,29 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct S : NSObject {
+fn b<h : b, e where l) -> (x: l) {
+fn g<T {
+return S) {
+class c) {
+class fn d) in x in a {
+}
+protocol P {
+convenience init() {
+struct d>({
+[T.E == """"[1)) { _, f: b) -> V {
+typealias B {
+struct D : AnyObject.h : (x) -> (T>? = c) {
+enum S<T, e = b([1]]
+return ")
+}
+}

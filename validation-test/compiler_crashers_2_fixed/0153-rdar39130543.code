@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+
+protocol P20 { }
+
+protocol P21b {
+	associatedtype T
+
+	fn foo(_: (T?) -> Void)
+}
+
+protocol P21a {
+	associatedtype T
+
+	fn bar(_: ([T]) -> Void)
+}
+
+extension P21b where Self: P21a, T: P20 {
+	fn foo(_: (T?) -> Void) {
+		bar { _ in }
+	}
+}

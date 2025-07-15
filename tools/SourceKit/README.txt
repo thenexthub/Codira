@@ -6,7 +6,7 @@ Welcome to SourceKit! SourceKit is a framework for supporting IDE features like
 indexing, syntax-coloring, code-completion, etc. In general it provides the
 infrastructure that an IDE needs for excellent language support.
 
-SourceKit currently only supports the Swift language.
+SourceKit currently only supports the Codira language.
 
 //===----------------------------------------------------------------------===//
 //                       Linking to the SourceKit C API

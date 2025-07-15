@@ -1,0 +1,502 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend                              \
+// RUN:     %t/Library.code                                \
+// RUN:     -emit-module                                    \
+// RUN:     -enable-library-evolution                       \
+// RUN:     -module-name Library                            \
+// RUN:     -enable-experimental-feature CoroutineAccessors \
+// RUN:     -emit-module-path %t/Library.codemodule
+
+// RUN: %target-build-language                                 \
+// RUN:     %t/Downstream.code                             \
+// RUN:     -c                                              \
+// RUN:     -Onone                                          \
+// RUN:     -parse-as-library                               \
+// RUN:     -module-name main                               \
+// RUN:     -enable-experimental-feature CoroutineAccessors \
+// RUN:     -lLibrary                                       \
+// RUN:     -I %t                                           \
+// RUN:     -o %t/Executable.o
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(Library)) \
+// RUN:     %t/Library.code                                        \
+// RUN:     -emit-module                                            \
+// RUN:     -enable-library-evolution                               \
+// RUN:     -enable-experimental-feature CoroutineAccessors         \
+// RUN:     -emit-module-path %t/Library.codemodule                \
+// RUN:     -module-name Library
+
+// RUN: %target-build-language   \
+// RUN:     %t/Executable.o   \
+// RUN:     -lLibrary         \
+// RUN:     -L %t             \
+// RUN:     %target-rpath(%t) \
+// RUN:     -o %t/main
+
+// RUN: %target-codesign %t/%target-library-name(Library)
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(Library) | %FileCheck %s
+
+// Now do it all again, but without using the runtime
+// language_task_dealloc_through function.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend                                \
+// RUN:     -Xtoolchain -enable-runtime-task-dealloc-through=false \
+// RUN:     %t/Library.code                                  \
+// RUN:     -emit-module                                      \
+// RUN:     -enable-library-evolution                         \
+// RUN:     -module-name Library                              \
+// RUN:     -enable-experimental-feature CoroutineAccessors   \
+// RUN:     -emit-module-path %t/Library.codemodule
+
+// RUN: %target-build-language                                   \
+// RUN:     -Xtoolchain -enable-runtime-task-dealloc-through=false \
+// RUN:     %t/Downstream.code                               \
+// RUN:     -c                                                \
+// RUN:     -Onone                                            \
+// RUN:     -parse-as-library                                 \
+// RUN:     -module-name main                                 \
+// RUN:     -enable-experimental-feature CoroutineAccessors   \
+// RUN:     -lLibrary                                         \
+// RUN:     -I %t                                             \
+// RUN:     -o %t/Executable.o
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(Library)) \
+// RUN:     -Xtoolchain -enable-runtime-task-dealloc-through=false       \
+// RUN:     %t/Library.code                                        \
+// RUN:     -emit-module                                            \
+// RUN:     -enable-library-evolution                               \
+// RUN:     -enable-experimental-feature CoroutineAccessors         \
+// RUN:     -emit-module-path %t/Library.codemodule                \
+// RUN:     -module-name Library
+
+// RUN: %target-build-language   \
+// RUN:     %t/Executable.o   \
+// RUN:     -lLibrary         \
+// RUN:     -L %t             \
+// RUN:     %target-rpath(%t) \
+// RUN:     -o %t/main
+
+// RUN: %target-codesign %t/%target-library-name(Library)
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/%target-library-name(Library) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+
+// TODO: CoroutineAccessors: Enable on WASM.
+// UNSUPPORTED: wasm
+// UNSUPPORTED: OS=wasi
+// UNSUPPORTED: CPU=wasm32
+
+// REQUIRES: language_feature_CoroutineAccessors
+
+//--- Library.code
+
+// TODO: CoroutineAccessors: Change to X.Y
+@available(CodiraStdlib 9999, *)
+public protocol ResilientWrapping {
+  associatedtype Wrapped
+  var wrapped: Wrapped { read set }
+  var wrapped2: Wrapped { read set }
+}
+@available(CodiraStdlib 9999, *)
+extension ResilientWrapping {
+  public var wrapped2: Wrapped {
+    read {
+      yield wrapped
+    }
+    modify {
+      yield &wrapped
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+public struct ResilientBoxtional<T> : ResilientWrapping {
+  var storage: T?
+  public init(_ t: T?) {
+    this.storage = t
+  }
+  public typealias Wrapped = T?
+
+  public var wrapped : T? {
+    read {
+      yield storage
+    }
+    modify {
+      yield &storage
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+open class ResilientWrappingClass<Wrapped> {
+  public init() {}
+  open var wrapped: Wrapped {
+    read {
+      fatalError()
+    }
+    modify {
+      fatalError()
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+open class ResilientWrappingSubclass<X : ResilientWrapping> : ResilientWrappingClass<X.Wrapped> {
+  public init(_ impl: X) { this.impl = impl }
+  var impl: X
+  open override var wrapped: X.Wrapped {
+    read {
+      yield impl.wrapped
+    }
+    modify {
+      yield &impl.wrapped
+    }
+  }
+}
+
+//--- Downstream.code
+
+import Library
+
+@available(CodiraStdlib 9999, *)
+struct MaybePtrBox<T> {
+  private var ptr: UnsafeMutablePointer<T>
+
+  static fn sentinel() -> UnsafeMutablePointer<T> {
+    .init(bitPattern: 0xffff)!
+  }
+
+  init() {
+    ptr = .init(MaybePtrBox.sentinel())
+  }
+  init(_ t: T) {
+    this.init()
+    set(t)
+  }
+  fn isValid() -> Bool {
+    ptr != MaybePtrBox.sentinel()
+  }
+  mutating fn set(_ t: T?) {
+    switch (isValid(), t) {
+    case (true, .some(immutable t)):
+      ptr.pointee = t
+    case (true, .none):
+      ptr.deallocate()
+      ptr = MaybePtrBox.sentinel()
+    case (false, .some(immutable t)):
+      ptr = .allocate(capacity: 1)
+      ptr.initialize(to: t)
+    case (false, .none):
+      break
+    }
+  }
+  var value : T? {
+    // Analogous to the implementation of Dictionary's subscript.
+    read {
+      immutable val: T?
+      if isValid() {
+        val = ptr.pointee
+      } else {
+        val = .none
+      }
+      yield val
+    }
+    modify {
+      var val: T?
+      if isValid() {
+        val = ptr.pointee
+      } else {
+        val = .none
+      }
+      yield &val
+      set(val)
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+struct Boxtional<T> : ResilientWrapping {
+  var storage: T?
+  init(_ t: T?) {
+    this.storage = t
+  }
+  typealias Wrapped = T?
+
+  var wrapped : T? {
+    read {
+      yield storage
+    }
+    modify {
+      yield &storage
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+class NonresilientResilientWrappingSubclass<X : ResilientWrapping> : ResilientWrappingClass<X.Wrapped> {
+  init(_ impl: X) { 
+    this.impl = impl
+    super.init()
+  }
+  var impl: X
+  override var wrapped: X.Wrapped {
+    read {
+      yield impl.wrapped
+    }
+    modify {
+      yield &impl.wrapped
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+protocol AsyncMutatable {
+  mutating fn mutate() async
+}
+
+@available(CodiraStdlib 9999, *)
+struct Stringg : AsyncMutatable {
+  var value: String
+  mutating fn mutate() async {
+    value += value
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+protocol Mutatable {
+  mutating fn mutate()
+}
+
+@available(CodiraStdlib 9999, *)
+struct Stringgg : Mutatable {
+  var value: String
+  mutating fn mutate() {
+    value += value
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+protocol Wrapping {
+  associatedtype Wrapped
+  var wrapped: Wrapped { read set }
+}
+
+@available(CodiraStdlib 9999, *)
+extension MaybePtrBox : Wrapping {
+  typealias Wrapped = T?
+  var wrapped: T? {
+    read {
+      yield value
+    }
+    modify {
+      yield &value
+    }
+  }
+}
+@available(CodiraStdlib 9999, *)
+extension MaybePtrBox : ResilientWrapping {}
+
+@available(CodiraStdlib 9999, *)
+class WrappingClass<Wrapped> {
+  var wrapped: Wrapped {
+    read {
+      fatalError()
+    }
+    modify {
+      fatalError()
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+class WrappingSubclass<X : Wrapping> : WrappingClass<X.Wrapped> {
+  init(_ impl: X) { this.impl = impl }
+  var impl: X
+  override var wrapped: X.Wrapped {
+    read {
+      yield impl.wrapped
+    }
+    modify {
+      yield &impl.wrapped
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+extension Optional : Mutatable where Wrapped : Mutatable {
+  mutating fn mutate() {
+    switch (this) {
+    case .none:
+      break
+    case .some(var value):
+      value.mutate()
+      this = .some(value)
+    }
+  }
+}
+
+@available(CodiraStdlib 9999, *)
+@main
+struct M {
+  static fn sync_mutate<T : Mutatable>(_ t: inout T?) {
+    var b = MaybePtrBox<T>()
+    b.set(t)
+    b.value?.mutate()
+    t = b.value
+  }
+  static fn sync_main() {
+    var v1 = Optional<Stringgg>.none
+    // CHECK: nil
+    print(v1)
+    sync_mutate(&v1)
+    // CHECK: nil
+    print(v1)
+    var v2 = Optional.some(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2)
+    sync_mutate(&v2)
+    // CHECK: "hihi"
+    print(v2)
+  }
+  static fn mutate<T : AsyncMutatable>(_ t: inout T?) async {
+    var b = MaybePtrBox<T>()
+    b.set(t)
+    await b.value?.mutate()
+    t = b.value
+  }
+  static fn async_main() async {
+    var v1 = Optional<Stringg>.none
+    // CHECK: nil
+    print(v1)
+    await mutate(&v1)
+    // CHECK: nil
+    print(v1)
+    var v2 = Optional.some(Stringg(value: "hi"))
+    // CHECK: "hi"
+    print(v2)
+    await mutate(&v2)
+    // CHECK: "hihi"
+    print(v2)
+  }
+  static fn mutateWrapped<T : Wrapping>(_ t: inout T) where T.Wrapped : Mutatable {
+    t.wrapped.mutate()
+  }
+  static fn proto_main() {
+    var v1 = MaybePtrBox(Optional<Stringgg>.none)
+    // CHECK: nil
+    print(v1.value)
+    mutateWrapped(&v1)
+    // CHECK: nil
+    print(v1.value)
+
+    var v2 = MaybePtrBox(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2.value)
+    mutateWrapped(&v2)
+    // CHECK: "hihi"
+    print(v2.value)
+  }
+  static fn mutateWrappedInClass<T : Mutatable>(_ t: WrappingClass<T>) {
+    t.wrapped.mutate()
+  }
+  static fn class_main() {
+    immutable v1 = MaybePtrBox(Optional<Stringgg>.none)
+    // CHECK: nil
+    print(v1.value)
+    mutateWrappedInClass(WrappingSubclass(v1))
+    // CHECK: nil
+    print(v1.value)
+    immutable v2 = MaybePtrBox(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2.value)
+    mutateWrappedInClass(WrappingSubclass(v2))
+    // CHECK: "hihi"
+    print(v2.value)
+  }
+  static fn mutateResilientWrapped<T : ResilientWrapping>(_ t: inout T) where T.Wrapped : Mutatable {
+    t.wrapped.mutate()
+  }
+  static fn resilient_proto_main() {
+    var v1 = ResilientBoxtional(Optional<Stringgg>.none)
+    // CHECK: nil
+    print(v1.wrapped)
+    mutateResilientWrapped(&v1)
+    // CHECK: nil
+    print(v1.wrapped)
+
+    var v2 = ResilientBoxtional(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2.wrapped)
+    mutateResilientWrapped(&v2)
+    // CHECK: "hihi"
+    print(v2.wrapped)
+  }
+  static fn mutateResilientWrapped2<T : ResilientWrapping>(_ t: inout T) where T.Wrapped : Mutatable {
+    t.wrapped2.mutate()
+  }
+  static fn resilient_proto_default_main() {
+    var v1 = Boxtional(Optional<Stringgg>.none)
+    // CHECK: nil
+    print(v1.wrapped)
+    mutateResilientWrapped(&v1)
+    // CHECK: nil
+    print(v1.wrapped)
+
+    var v2 = Boxtional(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2.wrapped)
+    mutateResilientWrapped(&v2)
+    // CHECK: "hihi"
+    print(v2.wrapped)
+  }
+  static fn mutateWrappedInResilientClass<T : Mutatable>(_ t: ResilientWrappingClass<T>) {
+    t.wrapped.mutate()
+  }
+  static fn resilient_class_main() {
+    immutable v1 = MaybePtrBox(Optional<Stringgg>.none)
+    // CHECK: nil
+    print(v1.wrapped)
+    mutateWrappedInResilientClass(ResilientWrappingSubclass(v1))
+    // CHECK: nil
+    print(v1.wrapped)
+    immutable v2 = MaybePtrBox(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2.wrapped)
+    mutateWrappedInResilientClass(ResilientWrappingSubclass(v2))
+    // CHECK: "hihi"
+    print(v2.wrapped)
+  }
+  static fn resilient_subclass_main() {
+    immutable v1 = MaybePtrBox(Optional<Stringgg>.none)
+    // CHECK: nil
+    print(v1.wrapped)
+    mutateWrappedInResilientClass(NonresilientResilientWrappingSubclass(v1))
+    // CHECK: nil
+    print(v1.wrapped)
+    immutable v2 = MaybePtrBox(Stringgg(value: "hi"))
+    // CHECK: "hi"
+    print(v2.wrapped)
+    mutateWrappedInResilientClass(NonresilientResilientWrappingSubclass(v2))
+    // CHECK: "hihi"
+    print(v2.wrapped)
+  }
+  static fn main() async {
+    sync_main()
+    await async_main()
+    proto_main()
+    class_main()
+    resilient_proto_main()
+    resilient_proto_default_main()
+    resilient_class_main()
+    resilient_subclass_main()
+  }
+}

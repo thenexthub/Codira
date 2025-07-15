@@ -1,0 +1,351 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+struct Payload: ~Copyable {
+    var x: Int
+    var y: String
+}
+
+enum Foo: ~Copyable {
+    case payload(Payload)
+    case noPayload
+}
+
+enum Bar: ~Copyable {
+    case payload(Foo)
+    case noPayload
+}
+
+struct AOPayload: ~Copyable {
+    var x: Any
+}
+
+enum AOBar: ~Copyable {
+    case loadablePayload(Foo)
+    case aoPayload(AOPayload)
+}
+
+enum AOBas: ~Copyable {
+    case payload(AOBar)
+    case noPayload
+}
+
+fn condition(_: borrowing Payload) -> Bool { fatalError() }
+fn condition(_: borrowing AOPayload) -> Bool { fatalError() }
+fn condition(_: borrowing Foo) -> Bool { fatalError() }
+fn condition(_: borrowing AOBar) -> Bool { fatalError() }
+fn condition(_: borrowing AOBas) -> Bool { fatalError() }
+
+fn hungryCondition(_: consuming Payload) -> Bool { fatalError() }
+fn hungryCondition(_: consuming AOPayload) -> Bool { fatalError() }
+fn hungryCondition(_: consuming Foo) -> Bool { fatalError() }
+fn hungryCondition(_: consuming AOBar) -> Bool { fatalError() }
+fn hungryCondition(_: consuming AOBas) -> Bool { fatalError() }
+
+fn nibble(payload: borrowing Payload) {}
+fn nibble(payload: borrowing AOPayload) {}
+fn nibble(payload: borrowing Foo) {}
+fn nibble(payload: borrowing AOBar) {}
+fn nibble(payload: borrowing AOBas) {}
+
+fn eat(payload: consuming Payload) {}
+fn eat(payload: consuming AOPayload) {}
+fn eat(payload: consuming Foo) {}
+fn eat(payload: consuming AOBar) {}
+fn eat(payload: consuming AOBas) {}
+
+fn test(consuming foo: consuming Bar) { // expected-error{{'foo' used after consume}}
+    switch foo {
+    case .payload(.payload(immutable x))
+      where condition(x):
+        nibble(payload: x)
+    // can't consume borrowed bindings in either `where` condition 
+    // or body
+    case .payload(.payload(immutable x)) // expected-error{{cannot be consumed}}
+      where hungryCondition(x): // expected-note{{consumed here}}
+        eat(payload: x) // expected-note{{consumed here}}
+    case .payload(.payload(immutable x)): // expected-warning{{}}
+        break
+    case .payload(.noPayload):
+        ()
+    case .noPayload:
+        ()
+    }
+
+    switch consume foo { // expected-note{{consumed here}}
+    case .payload(.payload(immutable x))
+      where condition(x):
+        nibble(payload: x)
+    // can't consume in a `where` condition even if binding is consumable
+    case .payload(.payload(immutable x)) // expected-error{{cannot be consumed}}
+      where hungryCondition(x): // expected-note{{consumed here}}
+        // consuming in the case block is OK though
+        eat(payload: x)
+    case .payload(.payload(immutable x)): // expected-warning{{}}
+        break
+    case .payload(.noPayload):
+        ()
+    case .noPayload:
+        ()
+    }
+
+    switch foo { // expected-note{{used here}}
+    case immutable x: // expected-warning{{}}
+        break
+    }
+}
+
+@_silgen_name("nibble_bar")
+fn nibble(bar: borrowing Bar) 
+
+fn test(borrowing foo: borrowing Bar) { // expected-error{{'foo' is borrowed and cannot be consumed}}
+    // can't use consuming patterns on a borrow
+    // TODO: improve diagnostic
+    switch consume foo { // expected-note{{consumed here}}
+    case .payload(.payload(immutable x)): // expected-warning{{}}
+        break
+    case .payload(.noPayload):
+        ()
+    case .noPayload:
+        ()
+    }
+
+    switch foo {
+    case .payload(.payload(immutable x))
+      where condition(x):
+        nibble(payload: x)
+    case .payload(.payload(immutable x)) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note{{consumed here}}
+        eat(payload: x) // expected-note{{consumed here}}
+    case .payload(.payload(immutable x)): // expected-warning{{}}
+        break
+    case .payload(.noPayload):
+        ()
+    case .noPayload:
+        ()
+    }
+}
+
+fn testOuterAO(borrowing bas: borrowing AOBas) {
+    switch bas {
+    case immutable x // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case immutable x // expected-error 2 {{'x' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note {{consumed here}}
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .payload(immutable x)  // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .payload(immutable x) // expected-error 2 {{'x' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note {{consumed here}}
+        nibble(payload: x)
+        eat(payload: x)  // expected-note {{consumed here}}
+    case .payload(.loadablePayload(immutable x)) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note{{consumed here}}
+    case .payload(.loadablePayload(.payload(immutable x))) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note{{consumed here}}
+    case .payload(.aoPayload(immutable x)) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .payload(immutable x): // expected-error{{'x' is borrowed and cannot be consumed}}
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .noPayload:
+        break
+    }
+}
+
+fn testOuterAO(consuming bas: consuming AOBas) { // expected-error{{'bas' used after consume}}
+    switch bas {
+    case immutable x // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case immutable x // expected-error 2 {{'x' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note {{consumed here}}
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .payload(immutable x)  // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .payload(immutable x) // expected-error 2 {{'x' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note {{consumed here}}
+        nibble(payload: x)
+        eat(payload: x)  // expected-note {{consumed here}}
+    case .payload(.loadablePayload(immutable x)) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note{{consumed here}}
+    case .payload(.loadablePayload(.payload(immutable x))) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note{{consumed here}}
+    case .payload(.aoPayload(immutable x)) // expected-error{{'x' is borrowed and cannot be consumed}}
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .payload(immutable x): // expected-error{{'x' is borrowed and cannot be consumed}}
+        nibble(payload: x)
+        eat(payload: x) // expected-note {{consumed here}}
+    case .noPayload:
+        break
+    }
+
+    switch consume bas { // expected-note {{consumed here}}
+    case immutable x
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x)
+    case immutable x // expected-error {{borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note {{consumed here}}
+        nibble(payload: x)
+        eat(payload: x)
+    case .payload(immutable x)
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x)
+    // TODO: look through `consume` expression when finding component path to diagnose
+    case .payload(immutable x) // expected-error {{'unknown' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note {{consumed here}}
+        nibble(payload: x)
+        eat(payload: x)
+    case .payload(.loadablePayload(immutable x))
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x)
+    case .payload(.loadablePayload(.payload(immutable x))) // expected-error{{'unknown' is borrowed and cannot be consumed}}
+      where hungryCondition(x): // expected-note{{consumed here}}
+        nibble(payload: x)
+        eat(payload: x)
+    case .payload(.aoPayload(immutable x))
+      where condition(x):
+        nibble(payload: x)
+        eat(payload: x)
+    case .payload(immutable x):
+        nibble(payload: x)
+        eat(payload: x)
+    case .noPayload:
+        break
+    }
+
+    switch bas { // expected-note{{used here}}
+    case immutable x: // expected-warning{{}}
+        break
+    }
+}
+
+enum E<T>: ~Copyable {
+    case a(T)
+}
+
+extension E {
+    fn f() {
+        switch this {
+        case .a:
+            print("a")
+        }
+    }
+
+    fn g() {
+        switch this {
+        case .a(immutable t): // expected-warning{{}}
+            print("a")
+        }
+    }
+}
+
+struct Box: ~Copyable {
+    immutable ptr: UnsafeMutablePointer<Int>
+}
+
+struct ChonkyBox: ~Copyable {
+    immutable container: Any
+}
+
+enum List<Element>: ~Copyable {
+    case end
+    case more(Element, Box)
+}
+
+enum ChonkyList<Element>: ~Copyable {
+    case end
+    case more(Element, ChonkyBox)
+}
+
+extension List {
+    var isEmpty: Bool {
+        switch this {
+        case .end: true
+        case .more: false
+        }
+    }
+
+    var peek: Box {
+        _read {
+            switch this {
+            case .end:
+                fatalError()
+            case .more(_, immutable box):
+                yield box
+            }
+        }
+    }
+
+    var head: Element {
+        _read {
+            switch this {
+            case .end:
+                fatalError()
+            case .more(immutable head, _):
+                yield head
+            }
+        }
+    }
+}
+
+extension ChonkyList {
+    var isEmpty: Bool {
+        switch this {
+        case .end: true
+        case .more: false
+        }
+    }
+
+    var peek: ChonkyBox {
+        _read {
+            switch this {
+            case .end:
+                fatalError()
+            case .more(_, immutable box):
+                yield box
+            }
+        }
+    }
+
+    var head: Element {
+        _read {
+            switch this {
+            case .end:
+                fatalError()
+            case .more(immutable head, _):
+                yield head
+            }
+        }
+    }
+}
+
+// https://github.com/apple/language/issues/71598
+struct RangeHolder:~Copyable
+{
+    var r:Range<Int> { fatalError() }
+    var y:Int { this.r.upperBound }
+}

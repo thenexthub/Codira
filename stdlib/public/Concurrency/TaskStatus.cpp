@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Routines for maintaining and interacting with the current state of a
@@ -53,8 +54,8 @@ ActiveTaskStatus::getStatusRecordParent(TaskStatusRecord *ptr) {
 /// RMW loop and so much be idempotent.
 static void withStatusRecordLock(
     AsyncTask *task, ActiveTaskStatus status,
-    llvm::function_ref<void(ActiveTaskStatus)> fn,
-    llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus &)>
+    toolchain::function_ref<void(ActiveTaskStatus)> fn,
+    toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus &)>
         statusUpdate = nullptr) {
   // We need to acquire the lock AND set the is-locked bit in the status so that
   // other threads attempting lockless operations can atomically check whether
@@ -70,7 +71,19 @@ static void withStatusRecordLock(
   // see that the is-locked bit is now set, and then wait for the lock.
   task->_private().statusLock.lock();
 
-  bool alreadyLocked = status.isStatusRecordLocked();
+  bool alreadyLocked = false;
+
+  // `status` was loaded before we acquired the lock. If its is-locked bit is
+  // not set, then we know that this thread doesn't already hold the lock.
+  // However, if the is-locked bit is set, then we don't know if this thread
+  // held the lock or another thread did. In that case, we reload the status
+  // after acquiring the lock. If the reloaded status still has the is-locked
+  // bit set, then we know it's this thread. If it doesn't, then we know it was
+  // a different thread.
+  if (status.isStatusRecordLocked()) {
+    status = task->_private()._status().load(std::memory_order_relaxed);
+    alreadyLocked = status.isStatusRecordLocked();
+  }
 
   // If it's already locked then this thread is the thread that locked it, and
   // we can leave that bit alone here.
@@ -83,7 +96,7 @@ static void withStatusRecordLock(
       // record's memory is visible to this thread.
       if (task->_private()._status().compare_exchange_weak(
               status, newStatus,
-              /*success*/ SWIFT_MEMORY_ORDER_CONSUME,
+              /*success*/ LANGUAGE_MEMORY_ORDER_CONSUME,
               /*failure*/ std::memory_order_relaxed)) {
         status = newStatus;
         status.traceStatusChanged(task, false);
@@ -134,7 +147,7 @@ static void withStatusRecordLock(
 template <class Fn>
 static void withStatusRecordLock(
     AsyncTask *task, Fn &&fn,
-    llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus &)>
+    toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus &)>
         statusUpdate = nullptr) {
   ActiveTaskStatus status = task->_private()._status().load(std::memory_order_relaxed);
   withStatusRecordLock(
@@ -146,12 +159,12 @@ static void withStatusRecordLock(
 /*************************** RECORD MANAGEMENT ****************************/
 /**************************************************************************/
 
-SWIFT_CC(swift)
-bool swift::addStatusRecord(AsyncTask *task, TaskStatusRecord *newRecord,
+LANGUAGE_CC(language)
+bool language::addStatusRecord(AsyncTask *task, TaskStatusRecord *newRecord,
     ActiveTaskStatus& oldStatus,
-    llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> shouldAddRecord) {
+    toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> shouldAddRecord) {
 
-  SWIFT_TASK_DEBUG_LOG("Adding %p record to task %p", newRecord, task);
+  LANGUAGE_TASK_DEBUG_LOG("Adding %p record to task %p", newRecord, task);
   while (true) {
     if (oldStatus.isStatusRecordLocked()) {
       // If the record is locked, then acquire the lock and emplace the new
@@ -183,7 +196,7 @@ bool swift::addStatusRecord(AsyncTask *task, TaskStatusRecord *newRecord,
     if (shouldAddRecord(oldStatus, newStatus)) {
       // We have to use a release on success to make the initialization of
       // the new record visible to another thread reading the new record.
-      _swift_tsan_release(task);
+      _language_tsan_release(task);
       if (task->_private()._status().compare_exchange_weak(oldStatus, newStatus,
               /*success*/ std::memory_order_release,
               /*failure*/ std::memory_order_relaxed)) {
@@ -198,24 +211,24 @@ bool swift::addStatusRecord(AsyncTask *task, TaskStatusRecord *newRecord,
   }
 }
 
-SWIFT_CC(swift)
-bool swift::addStatusRecord(AsyncTask *task, TaskStatusRecord *newRecord,
-    llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> shouldAddRecord) {
+LANGUAGE_CC(language)
+bool language::addStatusRecord(AsyncTask *task, TaskStatusRecord *newRecord,
+    toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> shouldAddRecord) {
   auto oldStatus = task->_private()._status().load(std::memory_order_relaxed);
 
   return addStatusRecord(task, newRecord, oldStatus, shouldAddRecord);
 }
 
-SWIFT_CC(swift)
-bool swift::addStatusRecordToSelf(TaskStatusRecord *record,
-     llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord) {
-  return addStatusRecord(swift_task_getCurrent(), record, testAddRecord);
+LANGUAGE_CC(language)
+bool language::addStatusRecordToSelf(TaskStatusRecord *record,
+     toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord) {
+  return addStatusRecord(language_task_getCurrent(), record, testAddRecord);
 }
 
-SWIFT_CC(swift)
-bool swift::addStatusRecordToSelf(TaskStatusRecord *record, ActiveTaskStatus &status,
-     llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord) {
-  return addStatusRecord(swift_task_getCurrent(), record, status, testAddRecord);
+LANGUAGE_CC(language)
+bool language::addStatusRecordToSelf(TaskStatusRecord *record, ActiveTaskStatus &status,
+     toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord) {
+  return addStatusRecord(language_task_getCurrent(), record, status, testAddRecord);
 }
 
 // Remove a status record that is not the innermost record. The status record
@@ -243,12 +256,12 @@ static void removeNonInnermostStatusRecordLocked(ActiveTaskStatus status,
 
 // For when we are trying to remove a record and also optionally trying to
 // modify some flags in the ActiveTaskStatus at the same time.
-SWIFT_CC(swift)
-void swift::removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
+LANGUAGE_CC(language)
+void language::removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
      ActiveTaskStatus& oldStatus,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
 
-  SWIFT_TASK_DEBUG_LOG("remove status record = %p, from task = %p",
+  LANGUAGE_TASK_DEBUG_LOG("remove status record = %p, from task = %p",
                        record, task);
 
   while (true) {
@@ -304,14 +317,14 @@ void swift::removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
 
 // For when we are trying to remove a record and also optionally trying to
 // modify some flags in the ActiveTaskStatus at the same time.
-SWIFT_CC(swift)
-void swift::removeStatusRecordWhere(
+LANGUAGE_CC(language)
+void language::removeStatusRecordWhere(
      AsyncTask *task,
      ActiveTaskStatus& oldStatus,
-     llvm::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)> updateStatus) {
+     toolchain::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)> updateStatus) {
   assert(condition && "condition is required");
-  SWIFT_TASK_DEBUG_LOG("remove status record where(), from task = %p",
+  LANGUAGE_TASK_DEBUG_LOG("remove status record where(), from task = %p",
                        task);
 
   // We're expected to look at the contents of the records, so we must hold the
@@ -354,8 +367,8 @@ void swift::removeStatusRecordWhere(
 }
 
 template <typename TaskStatusRecordT>
-SWIFT_CC(swift)
-TaskStatusRecordT* swift::popStatusRecordOfType(AsyncTask *task) {
+LANGUAGE_CC(language)
+TaskStatusRecordT* language::popStatusRecordOfType(AsyncTask *task) {
   TaskStatusRecordT *record = nullptr;
   bool alreadyRemovedRecord = false;
   removeStatusRecordWhere(task, [&](ActiveTaskStatus s, TaskStatusRecord *r) {
@@ -375,43 +388,43 @@ TaskStatusRecordT* swift::popStatusRecordOfType(AsyncTask *task) {
 
 // Convenience wrapper for when client hasn't already done the load of the
 // status
-SWIFT_CC(swift)
-void swift::removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
+LANGUAGE_CC(language)
+void language::removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
   auto oldStatus = task->_private()._status().load(std::memory_order_relaxed);
   return removeStatusRecord(task, record, oldStatus, fn);
 }
 
 
-SWIFT_CC(swift)
-void swift::removeStatusRecordWhere(
+LANGUAGE_CC(language)
+void language::removeStatusRecordWhere(
     AsyncTask *task,
-    llvm::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
-    llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>updateStatus) {
+    toolchain::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
+    toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>updateStatus) {
   auto status = task->_private()._status().load(std::memory_order_relaxed);
   return removeStatusRecordWhere(task, status, condition, updateStatus);
 }
 
 // Convenience wrapper for modifications on current task
-SWIFT_CC(swift)
-void swift::removeStatusRecordFromSelf(TaskStatusRecord *record, ActiveTaskStatus &status,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
-  return removeStatusRecord(swift_task_getCurrent(), record, status, fn);
+LANGUAGE_CC(language)
+void language::removeStatusRecordFromSelf(TaskStatusRecord *record, ActiveTaskStatus &status,
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
+  return removeStatusRecord(language_task_getCurrent(), record, status, fn);
 }
 
-SWIFT_CC(swift)
-void swift::removeStatusRecordFromSelf(TaskStatusRecord *record,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
-  return removeStatusRecord(swift_task_getCurrent(), record, fn);
+LANGUAGE_CC(language)
+void language::removeStatusRecordFromSelf(TaskStatusRecord *record,
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
+  return removeStatusRecord(language_task_getCurrent(), record, fn);
 }
 
-SWIFT_CC(swift)
-void swift::updateStatusRecord(AsyncTask *task, TaskStatusRecord *record,
-     llvm::function_ref<void()>updateRecord,
+LANGUAGE_CC(language)
+void language::updateStatusRecord(AsyncTask *task, TaskStatusRecord *record,
+     toolchain::function_ref<void()>updateRecord,
      ActiveTaskStatus& status,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn) {
 
-  SWIFT_TASK_DEBUG_LOG("Updating status record %p of task %p", record, task);
+  LANGUAGE_TASK_DEBUG_LOG("Updating status record %p of task %p", record, task);
   withStatusRecordLock(task, status, [&](ActiveTaskStatus lockedStatus) {
 #ifndef NDEBUG
     bool foundRecord = false;
@@ -427,9 +440,9 @@ void swift::updateStatusRecord(AsyncTask *task, TaskStatusRecord *record,
   }, fn);
 }
 
-SWIFT_CC(swift)
-static bool swift_task_hasTaskGroupStatusRecordImpl() {
-  auto task = swift_task_getCurrent();
+LANGUAGE_CC(language)
+static bool language_task_hasTaskGroupStatusRecordImpl() {
+  auto task = language_task_getCurrent();
 
   // a group must be in a task, so if we're not in a task...
   // then, we certainly are not in a group either!
@@ -480,27 +493,27 @@ TaskExecutorRef AsyncTask::getPreferredTaskExecutor(bool assumeHasRecord) {
   return preference;
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static TaskExecutorRef
-swift_task_getPreferredTaskExecutorImpl() {
-  if (auto task = swift_task_getCurrent()) {
+language_task_getPreferredTaskExecutorImpl() {
+  if (auto task = language_task_getCurrent()) {
     return task->getPreferredTaskExecutor();
   }
 
   return TaskExecutorRef::undefined(); // "no executor preference"
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static TaskExecutorPreferenceStatusRecord *
-swift_task_pushTaskExecutorPreferenceImpl(TaskExecutorRef taskExecutor) {
-  auto task = swift_task_getCurrent();
+language_task_pushTaskExecutorPreferenceImpl(TaskExecutorRef taskExecutor) {
+  auto task = language_task_getCurrent();
   if (!task) {
     // we cannot push a preference if we're not in a task (including in
     // compatibility tests), so we return eagerly.
     return nullptr;
   }
 
-  void *allocation = _swift_task_alloc_specific(
+  void *allocation = _language_task_alloc_specific(
       task, sizeof(class TaskExecutorPreferenceStatusRecord));
   auto record =
       ::new (allocation) TaskExecutorPreferenceStatusRecord(
@@ -511,9 +524,9 @@ swift_task_pushTaskExecutorPreferenceImpl(TaskExecutorRef taskExecutor) {
           // as well. In contrast, unstructured task creation always retains
           // the executor.
           /*retainedExecutor=*/false);
-  SWIFT_TASK_DEBUG_LOG("[TaskExecutorPreference] Create task executor "
-                       "preference record %p for task:%p",
-                       allocation, task);
+  LANGUAGE_TASK_DEBUG_LOG("[TaskExecutorPreference] Create task executor "
+                       "preference record:%p taskExecutor:%p for task:%p",
+                       allocation, taskExecutor.getIdentity(), task);
 
 
   addStatusRecord(task, record,
@@ -530,17 +543,17 @@ swift_task_pushTaskExecutorPreferenceImpl(TaskExecutorRef taskExecutor) {
   return record;
 }
 
-SWIFT_CC(swift)
-static void swift_task_popTaskExecutorPreferenceImpl(
+LANGUAGE_CC(language)
+static void language_task_popTaskExecutorPreferenceImpl(
     TaskExecutorPreferenceStatusRecord *record) {
-  SWIFT_TASK_DEBUG_LOG("[TaskExecutorPreference] Remove task executor "
+  LANGUAGE_TASK_DEBUG_LOG("[TaskExecutorPreference] Remove task executor "
                        "preference record %p from task:%p",
-                       record, swift_task_getCurrent());
+                       record, language_task_getCurrent());
   // We keep count of how many records there are because if there is more than
   // one, it means the task status flag should still be "has task preference".
   int preferenceRecordsCount = 0;
 
-  auto task = swift_task_getCurrent();
+  auto task = language_task_getCurrent();
   if (!task)
     return;
 
@@ -565,23 +578,23 @@ static void swift_task_popTaskExecutorPreferenceImpl(
         }
       });
 
-  swift_task_dealloc(record);
+  language_task_dealloc(record);
 }
 
 // Since the header would have incomplete declarations, we instead instantiate a concrete version of the function here
-template SWIFT_CC(swift)
-CancellationNotificationStatusRecord* swift::popStatusRecordOfType<CancellationNotificationStatusRecord>(AsyncTask *);
+template LANGUAGE_CC(language)
+CancellationNotificationStatusRecord* language::popStatusRecordOfType<CancellationNotificationStatusRecord>(AsyncTask *);
 
 void AsyncTask::pushInitialTaskExecutorPreference(
     TaskExecutorRef preferredExecutor, bool owned) {
-  void *allocation = _swift_task_alloc_specific(
+  void *allocation = _language_task_alloc_specific(
       this, sizeof(class TaskExecutorPreferenceStatusRecord));
   auto record =
       ::new (allocation) TaskExecutorPreferenceStatusRecord(
           preferredExecutor, /*ownsExecutor=*/owned);
-  SWIFT_TASK_DEBUG_LOG("[InitialTaskExecutorPreference] Create a task "
-                       "preference record %p for task:%p",
-                       record, this);
+  LANGUAGE_TASK_DEBUG_LOG("[InitialTaskExecutorPreference] Create a task "
+                       "preference record:%p taskExecutor:%p for task:%p",
+                       record, preferredExecutor.getIdentity(), this);
 
   addStatusRecord(this, record,
                   [&](ActiveTaskStatus oldStatus, ActiveTaskStatus &newStatus) {
@@ -599,7 +612,7 @@ void AsyncTask::pushInitialTaskExecutorPreference(
 // preference. In all other situations prefer a balanced "push / pop" pair of
 // calls.
 void AsyncTask::dropInitialTaskExecutorPreferenceRecord() {
-  SWIFT_TASK_DEBUG_LOG("[InitialTaskExecutorPreference] Drop initial task "
+  LANGUAGE_TASK_DEBUG_LOG("[InitialTaskExecutorPreference] Drop initial task "
                        "preference record from task:%p",
                        this);
   assert(hasInitialTaskExecutorPreferenceRecord());
@@ -617,17 +630,17 @@ void AsyncTask::dropInitialTaskExecutorPreferenceRecord() {
     // This should not be done for withTaskExecutorPreference executors,
     // however in that case, we would not enter this function here to clean up.
     //
-    // NOTE: This MUST NOT assume that the object is a swift object (and use
-    // swift_release), because a dispatch_queue_t conforms to TaskExecutor,
-    // and may be passed in here; in which case swift_releasing it would be
+    // NOTE: This MUST NOT assume that the object is a language object (and use
+    // language_release), because a dispatch_queue_t conforms to TaskExecutor,
+    // and may be passed in here; in which case language_releasing it would be
     // incorrect.
     HeapObject *executorIdentityToRelease =
         record->getPreferredExecutor().getIdentity();
-    SWIFT_TASK_DEBUG_LOG("Destroying executor %p", executorIdentityToRelease);
-    swift_unknownObjectRelease(executorIdentityToRelease);
+    LANGUAGE_TASK_DEBUG_LOG("Destroying executor %p", executorIdentityToRelease);
+    language_unknownObjectRelease(executorIdentityToRelease);
   }
 
-  _swift_task_dealloc_specific(this, record);
+  _language_task_dealloc_specific(this, record);
 }
 
 /******************************************************************************/
@@ -638,19 +651,24 @@ void AsyncTask::pushInitialTaskName(const char* _taskName) {
   assert(_taskName && "Task name must not be null!");
   assert(hasInitialTaskNameRecord() && "Attempted pushing name but task has no initial task name flag!");
 
-  void *allocation = _swift_task_alloc_specific(
+  void *allocation = _language_task_alloc_specific(
       this, sizeof(class TaskNameStatusRecord));
 
-  // TODO: Copy the string maybe into the same allocation at an offset or retain the swift string?
+  // TODO: Copy the string maybe into the same allocation at an offset or retain the language string?
   auto taskNameLen = strlen(_taskName);
   char* taskNameCopy = reinterpret_cast<char*>(
-      _swift_task_alloc_specific(this, taskNameLen + 1/*null terminator*/));
+      _language_task_alloc_specific(this, taskNameLen + 1/*null terminator*/));
+#if defined(_WIN32)
+  static_cast<void>(strncpy_s(taskNameCopy, taskNameLen + 1,
+                              _taskName, _TRUNCATE));
+#else
   (void) strncpy(/*dst=*/taskNameCopy, /*src=*/_taskName, taskNameLen);
   taskNameCopy[taskNameLen] = '\0'; // make sure we null-terminate
+#endif
 
   auto record =
       ::new (allocation) TaskNameStatusRecord(taskNameCopy);
-  SWIFT_TASK_DEBUG_LOG("[TaskName] Create initial task name record %p "
+  LANGUAGE_TASK_DEBUG_LOG("[TaskName] Create initial task name record %p "
                        "for task:%p, name:%s", record, this, taskNameCopy);
 
   addStatusRecord(this, record,
@@ -664,7 +682,7 @@ void AsyncTask::dropInitialTaskNameRecord() {
     return;
   }
 
-  SWIFT_TASK_DEBUG_LOG("[TaskName] Drop initial task name record for task:%p", this);
+  LANGUAGE_TASK_DEBUG_LOG("[TaskName] Drop initial task name record for task:%p", this);
   TaskNameStatusRecord *record =
       popStatusRecordOfType<TaskNameStatusRecord>(this);
   assert(record &&
@@ -672,8 +690,8 @@ void AsyncTask::dropInitialTaskNameRecord() {
   // Since we first allocated the record, and then the string copy, deallocate
   // in LIFO order.
   char *name = const_cast<char *>(record->getName());
-  _swift_task_dealloc_specific(this, name);
-  _swift_task_dealloc_specific(this, record);
+  _language_task_dealloc_specific(this, name);
+  _language_task_dealloc_specific(this, record);
 }
 
 const char*
@@ -714,14 +732,14 @@ AsyncTask::getTaskName() {
 /// When called to link a child into a parent directly, this does not hold the
 /// parent's task status record lock. When called to link a child into a task
 /// group, this holds the parent's task status record lock.
-SWIFT_CC(swift)
-void swift::updateNewChildWithParentAndGroupState(AsyncTask *child,
+LANGUAGE_CC(language)
+void language::updateNewChildWithParentAndGroupState(AsyncTask *child,
                                                   ActiveTaskStatus parentStatus,
                                                   TaskGroup *group) {
   // We can take the fast path of just modifying the ActiveTaskStatus in the
   // child task since we know that it won't have any task status records and
   // cannot be accessed by anyone else since it hasn't been linked in yet.
-  // Avoids the extra logic in `swift_task_cancel` and `swift_task_escalate`
+  // Avoids the extra logic in `language_task_cancel` and `language_task_escalate`
   auto oldChildTaskStatus =
       child->_private()._status().load(std::memory_order_relaxed);
   assert(oldChildTaskStatus.getInnermostRecord() == NULL);
@@ -740,8 +758,8 @@ void swift::updateNewChildWithParentAndGroupState(AsyncTask *child,
   child->_private()._status().store(newChildTaskStatus, std::memory_order_relaxed);
 }
 
-SWIFT_CC(swift)
-static void swift_taskGroup_attachChildImpl(TaskGroup *group,
+LANGUAGE_CC(language)
+static void language_taskGroup_attachChildImpl(TaskGroup *group,
                                             AsyncTask *child) {
 
   // We are always called from the context of the parent
@@ -750,7 +768,7 @@ static void swift_taskGroup_attachChildImpl(TaskGroup *group,
   // concurrent cancellation or escalation as we're adding new tasks to the
   // group.
   auto parent = child->childFragment()->getParent();
-  assert(parent == swift_task_getCurrent());
+  assert(parent == language_task_getCurrent());
 
   withStatusRecordLock(parent, [&](ActiveTaskStatus parentStatus) {
     group->addChildTask(child);
@@ -767,7 +785,7 @@ static void swift_taskGroup_attachChildImpl(TaskGroup *group,
   });
 }
 
-void swift::_swift_taskGroup_detachChild(TaskGroup *group,
+void language::_language_taskGroup_detachChild(TaskGroup *group,
                                          AsyncTask *child) {
   // We are called synchronously from the perspective of the owning task.
   // That doesn't necessarily mean the owning task *is* the current task,
@@ -783,7 +801,7 @@ void swift::_swift_taskGroup_detachChild(TaskGroup *group,
 ///
 /// The caller must guarantee that this is called while holding the owning
 /// task's status record lock.
-void swift::_swift_taskGroup_cancel(TaskGroup *group) {
+void language::_language_taskGroup_cancel(TaskGroup *group) {
   (void) group->statusCancel();
 
   // Because only the owning task of the task group can modify the
@@ -791,13 +809,13 @@ void swift::_swift_taskGroup_cancel(TaskGroup *group) {
   // while holding the owning task's status record lock, we do not need
   // any additional synchronization within this function.
   for (auto childTask : group->getTaskRecord()->children())
-    swift_task_cancel(childTask);
+    language_task_cancel(childTask);
 }
 
 /// Cancel the task group and all the child tasks that belong to `group`.
 ///
 /// The caller must guarantee that this is called from the owning task.
-void swift::_swift_taskGroup_cancel_unlocked(TaskGroup *group,
+void language::_language_taskGroup_cancel_unlocked(TaskGroup *group,
                                                         AsyncTask *owningTask) {
   // Early out. If there are no children, there's nothing to do. We can safely
   // check this without locking, since this can only be concurrently mutated
@@ -806,7 +824,7 @@ void swift::_swift_taskGroup_cancel_unlocked(TaskGroup *group,
     return;
 
   withStatusRecordLock(owningTask, [&group](ActiveTaskStatus status) {
-    _swift_taskGroup_cancel(group);
+    _language_taskGroup_cancel(group);
   });
 }
 
@@ -821,7 +839,7 @@ static void performCancellationAction(TaskStatusRecord *record) {
   case TaskStatusRecordKind::ChildTask: {
     auto childRecord = cast<ChildTaskStatusRecord>(record);
     for (AsyncTask *child: childRecord->children())
-      swift_task_cancel(child);
+      language_task_cancel(child);
     return;
   }
 
@@ -830,7 +848,7 @@ static void performCancellationAction(TaskStatusRecord *record) {
   // under the synchronous control of the task that owns the group.
   case TaskStatusRecordKind::TaskGroup: {
     auto groupRecord = cast<TaskGroupTaskStatusRecord>(record);
-    _swift_taskGroup_cancel(groupRecord->getGroup());
+    _language_taskGroup_cancel(groupRecord->getGroup());
     return;
   }
 
@@ -867,9 +885,9 @@ static void performCancellationAction(TaskStatusRecord *record) {
   // FIXME: allow dynamic extension/correction?
 }
 
-SWIFT_CC(swift)
-static void swift_task_cancelImpl(AsyncTask *task) {
-  SWIFT_TASK_DEBUG_LOG("cancel task = %p", task);
+LANGUAGE_CC(language)
+static void language_task_cancelImpl(AsyncTask *task) {
+  LANGUAGE_TASK_DEBUG_LOG("cancel task = %p", task);
 
   auto oldStatus = task->_private()._status().load(std::memory_order_relaxed);
   auto newStatus = oldStatus;
@@ -883,9 +901,9 @@ static void swift_task_cancelImpl(AsyncTask *task) {
 
     // consume here pairs with the release in addStatusRecord.
     if (task->_private()._status().compare_exchange_weak(oldStatus, newStatus,
-            /*success*/ SWIFT_MEMORY_ORDER_CONSUME,
+            /*success*/ LANGUAGE_MEMORY_ORDER_CONSUME,
             /*failure*/ std::memory_order_relaxed)) {
-      _swift_tsan_consume(task);
+      _language_tsan_consume(task);
       break;
     }
   }
@@ -920,13 +938,13 @@ static void performEscalationAction(TaskStatusRecord *record,
   case TaskStatusRecordKind::ChildTask: {
     auto childRecord = cast<ChildTaskStatusRecord>(record);
     for (AsyncTask *child: childRecord->children())
-      swift_task_escalate(child, newPriority);
+      language_task_escalate(child, newPriority);
     return;
   }
   case TaskStatusRecordKind::TaskGroup: {
     auto childRecord = cast<TaskGroupTaskStatusRecord>(record);
     for (AsyncTask *child: childRecord->children())
-      swift_task_escalate(child, newPriority);
+      language_task_escalate(child, newPriority);
     return;
   }
 
@@ -934,7 +952,7 @@ static void performEscalationAction(TaskStatusRecord *record,
   case TaskStatusRecordKind::EscalationNotification:  {
     auto notification =
       cast<EscalationNotificationStatusRecord>(record);
-    SWIFT_TASK_DEBUG_LOG("[Dependency] Trigger task escalation handler record %p, escalate from %#x to %#x",
+    LANGUAGE_TASK_DEBUG_LOG("[Dependency] Trigger task escalation handler record %p, escalate from %#x to %#x",
                          record, oldPriority, newPriority);
     notification->run(oldPriority, newPriority);
     return;
@@ -942,7 +960,7 @@ static void performEscalationAction(TaskStatusRecord *record,
 
   case TaskStatusRecordKind::TaskDependency: {
     auto dependencyRecord = cast<TaskDependencyStatusRecord>(record);
-    SWIFT_TASK_DEBUG_LOG("[Dependency] Escalating a task dependency record %p from %#x to %#x",
+    LANGUAGE_TASK_DEBUG_LOG("[Dependency] Escalating a task dependency record %p from %#x to %#x",
                     record, oldPriority, newPriority);
     dependencyRecord->performEscalationAction(oldPriority, newPriority);
     return;
@@ -966,10 +984,10 @@ static void performEscalationAction(TaskStatusRecord *record,
   // FIXME: allow dynamic extension/correction?
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 JobPriority
-static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
-  SWIFT_TASK_DEBUG_LOG("Escalating %p to %#zx priority", task, newPriority);
+static language_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
+  LANGUAGE_TASK_DEBUG_LOG("Escalating %p to %#zx priority", task, newPriority);
   auto oldStatus = task->_private()._status().load(std::memory_order_relaxed);
   auto oldPriority = oldStatus.getStoredPriority();
   auto newStatus = oldStatus;
@@ -981,7 +999,7 @@ static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
     // Fast path: check that the stored priority is already at least
     // as high as the desired priority.
     if (oldPriority >= newPriority) {
-      SWIFT_TASK_DEBUG_LOG("Task is already at %#zx priority", oldPriority);
+      LANGUAGE_TASK_DEBUG_LOG("Task is already at %#zx priority", oldPriority);
       return oldPriority;
     }
 
@@ -991,7 +1009,7 @@ static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
       newStatus = oldStatus.withEscalatedPriority(newPriority);
     } else if (oldStatus.isComplete()) {
       // We raced with concurrent completion, nothing to escalate
-      SWIFT_TASK_DEBUG_LOG("Escalated a task %p which had completed, do nothing", task);
+      LANGUAGE_TASK_DEBUG_LOG("Escalated a task %p which had completed, do nothing", task);
       return oldStatus.getStoredPriority();
     } else {
       // Task is suspended.
@@ -1000,15 +1018,15 @@ static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
 
     // consume here pairs with the release in addStatusRecord.
     if (task->_private()._status().compare_exchange_weak(oldStatus, newStatus,
-            /* success */ SWIFT_MEMORY_ORDER_CONSUME,
+            /* success */ LANGUAGE_MEMORY_ORDER_CONSUME,
             /* failure */ std::memory_order_relaxed)) {
-      _swift_tsan_consume(task);
+      _language_tsan_consume(task);
       break;
     }
   }
 
   if (newStatus.isRunning()) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     // The task is running, escalate the thread that is running it.
     ActiveTaskStatus *taskStatus;
     dispatch_lock_t *executionLock;
@@ -1016,10 +1034,10 @@ static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
     taskStatus = (ActiveTaskStatus *) &task->_private()._status();
     executionLock = (dispatch_lock_t *) ((char*)taskStatus + ActiveTaskStatus::executionLockOffset());
 
-    SWIFT_TASK_DEBUG_LOG("[Override] Escalating %p which is running on %#x from %#x to %#x",
+    LANGUAGE_TASK_DEBUG_LOG("[Override] Escalating %p which is running on %#x from %#x to %#x",
                          task, newStatus.currentExecutionLockOwner(),
                          oldPriority, newPriority);
-    swift_dispatch_lock_override_start_with_debounce(
+    language_dispatch_lock_override_start_with_debounce(
         executionLock, newStatus.currentExecutionLockOwner(), (qos_class_t) newPriority);
 #endif
   } else if (newStatus.isEnqueued()) {
@@ -1031,7 +1049,7 @@ static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
     //
     // TODO (rokhinip): Add a signpost to flag that this is a potential
     //  priority inversion
-    SWIFT_TASK_DEBUG_LOG("[Override] Escalating %p which is enqueued", task);
+    LANGUAGE_TASK_DEBUG_LOG("[Override] Escalating %p which is enqueued", task);
 
   }
 
@@ -1039,7 +1057,7 @@ static swift_task_escalateImpl(AsyncTask *task, JobPriority newPriority) {
     return newStatus.getStoredPriority();
   }
 
-  SWIFT_TASK_DEBUG_LOG("[Override] Escalating %p which is suspended from %#x to %#x",
+  LANGUAGE_TASK_DEBUG_LOG("[Override] Escalating %p which is suspended from %#x to %#x",
                        task, oldPriority, newPriority);
   // We must have at least one record - the task dependency one.
   assert(newStatus.getInnermostRecord() != NULL);
@@ -1059,14 +1077,14 @@ void TaskDependencyStatusRecord::performEscalationAction(
     JobPriority oldPriority, JobPriority newPriority) {
   switch (this->DependencyKind) {
     case WaitingOnTask:
-      SWIFT_TASK_DEBUG_LOG("[Dependency] Escalate dependent task %p noted in %p record",
+      LANGUAGE_TASK_DEBUG_LOG("[Dependency] Escalate dependent task %p noted in %p record",
         this->DependentOn.Task, this);
-      swift_task_escalate(this->DependentOn.Task, newPriority);
+      language_task_escalate(this->DependentOn.Task, newPriority);
       break;
     case WaitingOnContinuation:
       // We can't do anything meaningful to escalate this since we don't know
       // who will resume the continuation
-      SWIFT_TASK_DEBUG_LOG("[Dependency] Escalate dependent continuation %p noted in %p record -- do nothing",
+      LANGUAGE_TASK_DEBUG_LOG("[Dependency] Escalate dependent continuation %p noted in %p record -- do nothing",
         this->DependentOn.Continuation, this);
       break;
     case WaitingOnTaskGroup:
@@ -1074,13 +1092,13 @@ void TaskDependencyStatusRecord::performEscalationAction(
       // should also have a TaskGroupTaskStatusRecord and the escalation
       // action on that record should do the needful to propagate the
       // escalation to the child tasks. We can short-circuit here.
-      SWIFT_TASK_DEBUG_LOG("[Dependency] Escalate dependent taskgroup %p noted in %p record -- do nothing",
+      LANGUAGE_TASK_DEBUG_LOG("[Dependency] Escalate dependent taskgroup %p noted in %p record -- do nothing",
         this->DependentOn.TaskGroup, this);
       break;
     case EnqueuedOnExecutor:
-      SWIFT_TASK_DEBUG_LOG("[Dependency] Escalate dependent executor %p noted in %p record from %#x to %#x",
+      LANGUAGE_TASK_DEBUG_LOG("[Dependency] Escalate dependent executor %p noted in %p record from %#x to %#x",
         this->DependentOn.Executor, this, oldPriority, newPriority);
-      swift_executor_escalate(this->DependentOn.Executor, this->WaitingTask, newPriority);
+      language_executor_escalate(this->DependentOn.Executor, this->WaitingTask, newPriority);
       break;
   }
 }

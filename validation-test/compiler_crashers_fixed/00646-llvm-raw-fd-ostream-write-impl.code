@@ -1,0 +1,44 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol C {
+deinit {
+struct e == { x in a {
+return [unowned this.e {
+class A {
+fn compose<U : e where A? = B<C> {
+override init(b.init() -> {
+var f: B) {
+}
+}
+}
+immutable t: C {
+typealias R = { c: String = {
+}
+}
+}
+}
+}
+protocol P {
+}
+}
+static immutable i: NSObject {
+}
+}
+e : U : H) -> {
+}
+typealias e = compose<T! {
+}
+immutable a {
+}
+}
+typealias e : e,

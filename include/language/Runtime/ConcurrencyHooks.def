@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Hooks for concurrency
@@ -19,56 +20,56 @@
 
 // To use this file, define the following macros:
 //
-//   SWIFT_CONCURRENCY_HOOK(returnType, name, ...)
-//   SWIFT_CONCURRENCY_HOOK0(returnType, name)
-//   SWIFT_CONCURRENCY_HOOK_OVERRIDE0(returnType, name)
+//   LANGUAGE_CONCURRENCY_HOOK(returnType, name, ...)
+//   LANGUAGE_CONCURRENCY_HOOK0(returnType, name)
+//   LANGUAGE_CONCURRENCY_HOOK_OVERRIDE0(returnType, name)
 //
 // Then include the file somewhere.
 
-#ifndef SWIFT_CONCURRENCY_HOOK
-#define SWIFT_CONCURRENCY_HOOK(returnType, name, ...)
+#ifndef LANGUAGE_CONCURRENCY_HOOK
+#define LANGUAGE_CONCURRENCY_HOOK(returnType, name, ...)
 #endif
 
-#ifndef SWIFT_CONCURRENCY_HOOK0
-#define SWIFT_CONCURRENCY_HOOK0(returnType, name)
+#ifndef LANGUAGE_CONCURRENCY_HOOK0
+#define LANGUAGE_CONCURRENCY_HOOK0(returnType, name)
 #endif
 
 // .............................................................................
 
-SWIFT_CONCURRENCY_HOOK(void, swift_task_enqueueGlobal, Job *job);
+LANGUAGE_CONCURRENCY_HOOK(void, language_task_enqueueGlobal, Job *job);
 
-SWIFT_CONCURRENCY_HOOK(void, swift_task_enqueueGlobalWithDelay,
+LANGUAGE_CONCURRENCY_HOOK(void, language_task_enqueueGlobalWithDelay,
                  unsigned long long delay, Job *job);
 
-SWIFT_CONCURRENCY_HOOK(void, swift_task_enqueueGlobalWithDeadline,
+LANGUAGE_CONCURRENCY_HOOK(void, language_task_enqueueGlobalWithDeadline,
     long long sec,
     long long nsec,
     long long tsec,
     long long tnsec,
     int clock, Job *job);
 
-SWIFT_CONCURRENCY_HOOK(void, swift_task_checkIsolated,
+LANGUAGE_CONCURRENCY_HOOK(void, language_task_checkIsolated,
     SerialExecutorRef executor);
 
-SWIFT_CONCURRENCY_HOOK(bool, swift_task_isIsolatingCurrentContext,
+LANGUAGE_CONCURRENCY_HOOK(int8_t, language_task_isIsolatingCurrentContext,
     SerialExecutorRef executor);
 
-SWIFT_CONCURRENCY_HOOK(bool, swift_task_isOnExecutor,
+LANGUAGE_CONCURRENCY_HOOK(bool, language_task_isOnExecutor,
     HeapObject *executor,
     const Metadata *selfType,
     const SerialExecutorWitnessTable *wtable);
 
-SWIFT_CONCURRENCY_HOOK(void, swift_task_enqueueMainExecutor, Job *job);
+LANGUAGE_CONCURRENCY_HOOK(void, language_task_enqueueMainExecutor, Job *job);
 
-SWIFT_CONCURRENCY_HOOK0(SerialExecutorRef, swift_task_getMainExecutor);
+LANGUAGE_CONCURRENCY_HOOK0(SerialExecutorRef, language_task_getMainExecutor);
 
-SWIFT_CONCURRENCY_HOOK(bool, swift_task_isMainExecutor, SerialExecutorRef);
+LANGUAGE_CONCURRENCY_HOOK(bool, language_task_isMainExecutor, SerialExecutorRef);
 
-SWIFT_CONCURRENCY_HOOK(void, swift_task_donateThreadToGlobalExecutorUntil,
+LANGUAGE_CONCURRENCY_HOOK(void, language_task_donateThreadToGlobalExecutorUntil,
                        bool (*condition)(void *), void *context);
 
 // .............................................................................
 
-#undef SWIFT_CONCURRENCY_HOOK
-#undef SWIFT_CONCURRENCY_HOOK0
-#undef SWIFT_CONCURRENCY_HOOK_OVERRIDE0
+#undef LANGUAGE_CONCURRENCY_HOOK
+#undef LANGUAGE_CONCURRENCY_HOOK0
+#undef LANGUAGE_CONCURRENCY_HOOK_OVERRIDE0

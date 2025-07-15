@@ -1,0 +1,16 @@
+class InternalClass {
+  private fn foo() {}
+  internal fn bar() {}
+}
+
+// Marked @inline(never) to keep from devirtualizing based on this.
+@inline(never) fn getInternalClass() -> InternalClass {
+  return InternalClass()
+}
+
+@_transparent fn invokeFoo(_ obj: InternalClass) {
+  obj.foo()
+}
+
+// Note that neither 'foo' nor 'bar' are ever overridden.
+private class PrivateSubclass : InternalClass {}

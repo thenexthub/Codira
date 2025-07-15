@@ -1,0 +1,77 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/language-class-virtual-method-dispatch.code -module-name Class -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/class.h -enable-library-evolution
+// RUN: %FileCheck %s < %t/class.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/class.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+// note: implemented in language-class-virtual-method-dispatch.code
+
+// CHECK: LANGUAGE_EXTERN void $s5Class04BaseA0C13virtualMethodyyF(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // virtualMethod()
+// CHECK-NEXT: LANGUAGE_EXTERN void $s5Class04BaseA0C13virtualMethodyyFTj(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // dispatch thunk for virtualMethod()
+
+// CHECK: LANGUAGE_EXTERN ptrdiff_t $s5Class04BaseA0C19virtualComputedPropSivg(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: LANGUAGE_EXTERN ptrdiff_t $s5Class04BaseA0C19virtualComputedPropSivgTj(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // dispatch thunk for
+
+// CHECK:      void BaseClass::virtualMethod() {
+// CHECK-NEXT: _impl::$s5Class04BaseA0C13virtualMethodyyFTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:  }
+
+// CHECK:      language::Int BaseClass::virtualMethodIntInt(language::Int x) {
+// CHECK-NEXT: return Class::_impl::$s5Class04BaseA0C016virtualMethodIntE0yS2iFTj(x, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:   }
+
+// CHECK:        language::Int BaseClass::finalMethodInBase(language::Int x) {
+// CHECK-NEXT:   return Class::_impl::$s5Class04BaseA0C013finalMethodInB0yS2iF(x, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:   }
+
+// CHECK:         language::Int BaseClass::getVirtualComputedProp() {
+// CHECK-NEXT:    _impl::$s5Class04BaseA0C19virtualComputedPropSivgTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:         int64_t BaseClass::getVirtualComputedGetSet() {
+// CHECK-NEXT:    _impl::$s5Class04BaseA0C21virtualComputedGetSets5Int64VvgTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:         void BaseClass::setVirtualComputedGetSet(int64_t newValue) {
+// CHECK-NEXT:    _impl::$s5Class04BaseA0C21virtualComputedGetSets5Int64VvsTj(newValue, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:         language::Int BaseClass::getStoredProp() {
+// CHECK-NEXT:    _impl::$s5Class04BaseA0C10storedPropSivgTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:         void BaseClass::setStoredProp(language::Int value) {
+// CHECK-NEXT:    _impl::$s5Class04BaseA0C10storedPropSivsTj(value, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:           language::Int BaseClass::operator [](language::Int i) const
+// CHECK-NEXT:      return Class::_impl::$s5Class04BaseA0CyS2icigTj(i, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:        void DerivedClass::virtualMethod() {
+// CHECK-NEXT:   _impl::$s5Class04BaseA0C13virtualMethodyyFTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:   }
+
+// CHECK:        language::Int DerivedClass::virtualMethodIntInt(language::Int x) {
+// CHECK-NEXT:   return Class::_impl::$s5Class04BaseA0C016virtualMethodIntE0yS2iFTj(x, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:   }
+
+// CHECK:        BaseClass DerivedClass::virtualMethodInDerived(const BaseClass& x) {
+// CHECK-NEXT:   return _impl::_impl_BaseClass::makeRetained(Class::_impl::$s5Class07DerivedA0C015virtualMethodInB0yAA04BaseA0CAFFTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(x), ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this)));
+// CHECK-NEXT:   }
+
+// CHECK:         language::Int DerivedClass::getVirtualComputedProp() {
+// CHECK-NEXT:   Class::_impl::$s5Class04BaseA0C19virtualComputedPropSivgTj(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+
+// CHECK:        void DerivedDerivedClass::virtualMethod() {
+// CHECK-NEXT:     _impl::$s5Class07DerivedbA0C13virtualMethodyyF(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:     }
+
+// CHECK:        BaseClass DerivedDerivedClass::virtualMethodInDerived(const BaseClass& x) {
+// CHECK-NEXT:     return _impl::_impl_BaseClass::makeRetained(Class::_impl::$s5Class07DerivedbA0C015virtualMethodInB0yAA04BaseA0CAFF(::language::_impl::_impl_RefCountedClass::getOpaquePointer(x), ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this)));
+// CHECK-NEXT:     }
+
+// CHECK:        void DerivedDerivedClass::methodInDerivedDerived() {
+// CHECK-NEXT:     _impl::$s5Class07DerivedbA0C08methodInbB0yyF(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT:     }
+
+// CHECK:         language::Int DerivedDerivedClass::getStoredProp() {
+// CHECK-NEXT:     return Class::_impl::$s5Class07DerivedbA0C10storedPropSivg(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+
+// CHECK:          language::Int DerivedDerivedClass::getComputedPropInDerivedDerived() {
+// CHECK-NEXT:     return Class::_impl::$s5Class07DerivedbA0C014computedPropInbB0Sivg(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));

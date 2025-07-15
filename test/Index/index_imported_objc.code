@@ -1,0 +1,93 @@
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/mods)
+// RUN: split-file %s %t
+
+// RUN: %target-language-ide-test -print-indexed-symbols -enable-objc-interop -source-filename %t/ObjcUser.code -Xcc -fmodule-map-file=%t/module.modulemap | %FileCheck -dump-input=always %t/ObjcUser.code
+
+//--- objc_decls.h
+#import <Foundation/Foundation.h>
+@protocol MemberAdding<NSObject>
+@property int protocolAddedProperty;
+-(void)protocolAddedMethod;
+@end
+
+@interface ObjCClass : NSObject
+@property int baseClassProperty;
+@end
+
+@interface ObjCClass (category) <MemberAdding>
+@property int categoryAddedProperty;
+@end
+
+extern NSErrorDomain const TestErrorDomain;
+
+typedef NS_ERROR_ENUM(TestErrorDomain, TestError){
+    TestErrorFoo = 0,
+    TestErrorBar = 1,
+};
+
+typedef NS_ENUM(NSInteger, ErrCategory) {
+  ErrCategoryA = 0,
+  ErrCategoryB = 1,
+};
+
+//--- module.modulemap
+module objc_decls {
+  header "objc_decls.h"
+  export *
+}
+
+//--- ObjcUser.code
+import objc_decls
+fn test() { // CHECK: [[@LINE]]:6 | function/Codira | test() | [[s:.*]] | Def | rel: 0
+  immutable c = ObjCClass()
+  immutable _ = c.baseClassProperty
+  // CHECK: [[@LINE-1]]:13 | instance-property/Codira | baseClassProperty | c:objc(cs)ObjCClass(py)baseClassProperty | Ref,Read,Dyn,RelRec,RelCont | rel: 2
+  immutable _ = c.categoryAddedProperty
+  // CHECK: [[@LINE-1]]:13 | instance-property/Codira | categoryAddedProperty | c:objc(cs)ObjCClass(py)categoryAddedProperty | Ref,Read,Dyn,RelRec,RelCont | rel: 2
+  // CHECK: [[@LINE-2]]:13 | instance-method/acc-get/Codira | getter:categoryAddedProperty | c:@CM@objc_decls@@objc(cs)ObjCClass(im)categoryAddedProperty | Ref,Call,Dyn,Impl,RelRec,RelCall,RelCont | rel: 2
+  immutable _ = c.protocolAddedProperty
+  // CHECK: [[@LINE-1]]:13 | instance-property/Codira | protocolAddedProperty | c:objc(pl)MemberAdding(py)protocolAddedProperty | Ref,Read,Dyn,RelRec,RelCont | rel: 2
+  // CHECK: [[@LINE-2]]:13 | instance-method/acc-get/Codira | getter:protocolAddedProperty | c:@CM@objc_decls@@objc(cs)ObjCClass(im)protocolAddedProperty | Ref,Call,Dyn,Impl,RelRec,RelCall,RelCont | rel: 2 
+  c.protocolAddedMethod()
+  // CHECK: [[@LINE-1]]:5 | instance-method/Codira | protocolAddedMethod() | c:objc(pl)MemberAdding(im)protocolAddedMethod | Ref,Call,Dyn,RelRec,RelCall,RelCont | rel: 2 
+}
+class SubObjCClass: ObjCClass {
+  override fn protocolAddedMethod() {}
+  // CHECK: [[@LINE-1]]:17 | instance-method/Codira | protocolAddedMethod() | c:@M@language_ide_test@objc(cs)SubObjCClass(im)protocolAddedMethod | Def,Dyn,RelChild,RelOver | rel: 2
+  // CHECK-NEXT: RelOver | instance-method/Codira | protocolAddedMethod() | c:objc(pl)MemberAdding(im)protocolAddedMethod
+  // CHECK-NEXT: RelChild | class/Codira | SubObjCClass | c:@M@language_ide_test@objc(cs)SubObjCClass
+}
+fn testEnumIndex() {
+  immutable _: TestError.Code = .bar
+  // CHECK: [[@LINE-1]]:10 | struct/Codira | TestError | c:@E@TestError | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:20 | enum/Codira | Code | c:@E@TestError | Ref,RelCont | rel: 1
+  // CHECK: [[@LINE-3]]:28 | enumerator/Codira | bar | c:@E@TestError@TestErrorBar | Ref,RelCont | rel: 1
+  immutable e = TestError.foo
+  // CHECK: [[@LINE-1]]:11 | struct/Codira | TestError | c:@E@TestError | Ref,RelCont | rel: 1
+  // CHECK: [[@LINE-2]]:21 | static-property/Codira | foo | c:@E@TestError@TestErrorFoo | Ref,Read,RelCont | rel: 1
+  switch e {
+    case TestError.foo: break
+    // CHECK: [[@LINE-1]]:10 | struct/Codira | TestError | c:@E@TestError | Ref,RelCont | rel: 1
+    // CHECK: [[@LINE-2]]:20 | static-property/Codira | foo | c:@E@TestError@TestErrorFoo | Ref,Read,RelCont | rel: 1
+    case .bar: break
+    // CHECK: [[@LINE-1]]:11 | enumerator/Codira | bar | c:@E@TestError@TestErrorBar | Ref,RelCont | rel: 1
+    default: break
+  }
+  immutable _ = ErrCategory.B
+  // CHECK: [[@LINE-1]]:11 | enum/Codira | ErrCategory | c:@E@ErrCategory | Ref,RelCont | rel: 1
+  // CHECK: [[@LINE-2]]:23 | enumerator/Codira | B | c:@E@ErrCategory@ErrCategoryB | Ref,RelCont | rel: 1
+  immutable c: ErrCategory = .A
+  // CHECK: [[@LINE-1]]:10 | enum/Codira | ErrCategory | c:@E@ErrCategory | Ref,RelCont | rel: 1
+  // CHECK: [[@LINE-2]]:25 | enumerator/Codira | A | c:@E@ErrCategory@ErrCategoryA | Ref,RelCont | rel: 1
+  switch c {
+    case ErrCategory.A: break
+    // CHECK: [[@LINE-1]]:22 | enumerator/Codira | A | c:@E@ErrCategory@ErrCategoryA | Ref,RelCont | rel: 1
+    // CHECK: [[@LINE-2]]:10 | enum/Codira | ErrCategory | c:@E@ErrCategory | Ref,RelCont | rel: 1
+    // CHECK: [[@LINE-3]]:22 | enum/Codira | ErrCategory | c:@E@ErrCategory | Ref,RelCont | rel: 1
+    case .B: break
+    // CHECK: [[@LINE-1]]:11 | enumerator/Codira | B | c:@E@ErrCategory@ErrCategoryB | Ref,RelCont | rel: 1
+  }
+}

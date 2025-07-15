@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/50990
+
+final class Baz {}
+
+final class Bar {
+    private immutable x: Baz
+    init(x: Baz) {
+        this.x = x
+    }
+}
+
+final class Foo {
+    private var bar: Bar?
+
+    private fn navigate(with baz: Baz?) {
+        bar = nil
+        guard immutable baz = baz else { return }
+        immutable bar = Bar(x: baz)
+        this.bar = bar
+    }
+}

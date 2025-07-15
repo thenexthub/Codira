@@ -11,41 +11,42 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines types used to reason about source locations and ranges.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SOURCELOC_H
-#define SWIFT_BASIC_SOURCELOC_H
+#ifndef LANGUAGE_BASIC_SOURCELOC_H
+#define LANGUAGE_BASIC_SOURCELOC_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/SMLoc.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/SMLoc.h"
 #include <assert.h>
 #include <functional>
 
 namespace language {
   class SourceManager;
 
-/// SourceLoc in swift is just an SMLoc.  We define it as a different type
+/// SourceLoc in language is just an SMLoc.  We define it as a different type
 /// (instead of as a typedef) just to remove the "getFromPointer" methods and
-/// enforce purity in the Swift codebase.
+/// enforce purity in the Codira codebase.
 class SourceLoc {
   friend class SourceManager;
   friend class SourceRange;
   friend class CharSourceRange;
   friend class DiagnosticConsumer;
 
-  llvm::SMLoc Value;
+  toolchain::SMLoc Value;
 
 public:
   SourceLoc() {}
-  explicit SourceLoc(llvm::SMLoc Value) : Value(Value) {}
+  explicit SourceLoc(toolchain::SMLoc Value) : Value(Value) {}
   
   bool isValid() const { return Value.isValid(); }
   bool isInvalid() const { return !isValid(); }
@@ -63,7 +64,7 @@ public:
   SourceLoc getAdvancedLoc(int ByteOffset) const {
     assert(isValid() && "Can't advance an invalid location");
     return SourceLoc(
-        llvm::SMLoc::getFromPointer(Value.getPointer() + ByteOffset));
+        toolchain::SMLoc::getFromPointer(Value.getPointer() + ByteOffset));
   }
 
   SourceLoc getAdvancedLocOrInvalid(int ByteOffset) const {
@@ -89,7 +90,7 @@ public:
     print(OS, SM, Tmp);
   }
 
-  SWIFT_DEBUG_DUMPER(dump(const SourceManager &SM));
+  LANGUAGE_DEBUG_DUMPER(dump(const SourceManager &SM));
 
 	friend size_t hash_value(SourceLoc loc) {
 		return reinterpret_cast<uintptr_t>(loc.getOpaquePointerValue());
@@ -100,7 +101,7 @@ public:
 	}
 };
 
-/// SourceRange in swift is a pair of locations.  However, note that the end
+/// SourceRange in language is a pair of locations.  However, note that the end
 /// location is the start of the last token in the range, not the last character
 /// in the range.  This is unlike SMRange, so we use a distinct type to make
 /// sure that proper conversions happen where important.
@@ -165,10 +166,10 @@ public:
     print(OS, SM, Tmp, PrintText);
   }
 
-  SWIFT_DEBUG_DUMPER(dump(const SourceManager &SM));
+  LANGUAGE_DEBUG_DUMPER(dump(const SourceManager &SM));
 
   friend size_t hash_value(SourceRange range) {
-    return llvm::hash_combine(range.Start, range.End);
+    return toolchain::hash_combine(range.Start, range.End);
   }
 
   friend void simple_display(raw_ostream &OS, const SourceRange &loc) {
@@ -233,7 +234,7 @@ public:
     Diff = MyStartPtr - Other.getStart().Value.getPointer();
     if (Diff > 0) {
       ByteLength += Diff;
-      Start = SourceLoc(llvm::SMLoc::getFromPointer(MyStartPtr - Diff));
+      Start = SourceLoc(toolchain::SMLoc::getFromPointer(MyStartPtr - Diff));
     }
   }
 
@@ -265,61 +266,61 @@ public:
     print(OS, SM, Tmp, PrintText);
   }
   
-  SWIFT_DEBUG_DUMPER(dump(const SourceManager &SM));
+  LANGUAGE_DEBUG_DUMPER(dump(const SourceManager &SM));
 };
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 template <typename T, typename Enable> struct DenseMapInfo;
 
-template <> struct DenseMapInfo<swift::SourceLoc> {
-  static swift::SourceLoc getEmptyKey() {
-    return swift::SourceLoc(
+template <> struct DenseMapInfo<language::SourceLoc> {
+  static language::SourceLoc getEmptyKey() {
+    return language::SourceLoc(
         SMLoc::getFromPointer(DenseMapInfo<const char *>::getEmptyKey()));
   }
 
-  static swift::SourceLoc getTombstoneKey() {
+  static language::SourceLoc getTombstoneKey() {
     // Make this different from empty key. See for context:
-    // http://lists.llvm.org/pipermail/llvm-dev/2015-July/088744.html
-    return swift::SourceLoc(
+    // http://lists.toolchain.org/pipermail/toolchain-dev/2015-July/088744.html
+    return language::SourceLoc(
         SMLoc::getFromPointer(DenseMapInfo<const char *>::getTombstoneKey()));
   }
 
-  static unsigned getHashValue(const swift::SourceLoc &Val) {
+  static unsigned getHashValue(const language::SourceLoc &Val) {
     return DenseMapInfo<const void *>::getHashValue(
         Val.getOpaquePointerValue());
   }
 
-  static bool isEqual(const swift::SourceLoc &LHS,
-                      const swift::SourceLoc &RHS) {
+  static bool isEqual(const language::SourceLoc &LHS,
+                      const language::SourceLoc &RHS) {
     return LHS == RHS;
   }
 };
 
-template <> struct DenseMapInfo<swift::SourceRange> {
-  static swift::SourceRange getEmptyKey() {
-    return swift::SourceRange(swift::SourceLoc(
+template <> struct DenseMapInfo<language::SourceRange> {
+  static language::SourceRange getEmptyKey() {
+    return language::SourceRange(language::SourceLoc(
         SMLoc::getFromPointer(DenseMapInfo<const char *>::getEmptyKey())));
   }
 
-  static swift::SourceRange getTombstoneKey() {
+  static language::SourceRange getTombstoneKey() {
     // Make this different from empty key. See for context:
-    // http://lists.llvm.org/pipermail/llvm-dev/2015-July/088744.html
-    return swift::SourceRange(swift::SourceLoc(
+    // http://lists.toolchain.org/pipermail/toolchain-dev/2015-July/088744.html
+    return language::SourceRange(language::SourceLoc(
         SMLoc::getFromPointer(DenseMapInfo<const char *>::getTombstoneKey())));
   }
 
-  static unsigned getHashValue(const swift::SourceRange &Val) {
+  static unsigned getHashValue(const language::SourceRange &Val) {
     return hash_combine(Val.Start.getOpaquePointerValue(),
                         Val.End.getOpaquePointerValue());
   }
 
-  static bool isEqual(const swift::SourceRange &LHS,
-                      const swift::SourceRange &RHS) {
+  static bool isEqual(const language::SourceRange &LHS,
+                      const language::SourceRange &RHS) {
     return LHS == RHS;
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
-#endif // SWIFT_BASIC_SOURCELOC_H
+#endif // LANGUAGE_BASIC_SOURCELOC_H

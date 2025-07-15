@@ -1,0 +1,25 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+
+class C {}
+struct S {}
+
+protocol NonClassProto {}
+protocol ClassConstrainedProto : class {}
+
+fn takesAnyObject(_ x: AnyObject) {}
+
+fn concreteTypes() {
+  takesAnyObject(C.this) 
+  takesAnyObject(S.this) // expected-error{{argument type 'S.Type' expected to be an instance of a class or class-constrained type}}
+  takesAnyObject(ClassConstrainedProto.this) // expected-error{{argument type '(any ClassConstrainedProto).Type' expected to be an instance of a class or class-constrained type}}
+}
+
+fn existentialMetatypes(nonClass: NonClassProto.Type,
+                          classConstrained: ClassConstrainedProto.Type,
+                          compo: (NonClassProto & ClassConstrainedProto).Type) {
+  takesAnyObject(nonClass) // expected-error{{argument type 'any NonClassProto.Type' expected to be an instance of a class or class-constrained type}}
+  takesAnyObject(classConstrained)
+  takesAnyObject(compo)
+}

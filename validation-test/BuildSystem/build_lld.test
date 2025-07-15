@@ -1,0 +1,9 @@
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --cmake %cmake --build-lld 2>&1 | %FileCheck %s
+
+# REQUIRES: standalone_build
+
+# Check that lld is in TOOLCHAIN_ENABLE_PROJECTS of the toolchain-project/toolchain build
+
+# CHECK: '-DTOOLCHAIN_ENABLE_PROJECTS={{[^']*}}lld{{[^']*}}'{{.*}}toolchain-project/toolchain{{$}}

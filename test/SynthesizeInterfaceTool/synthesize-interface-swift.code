@@ -1,0 +1,23 @@
+// Emit the Codira module.
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name MyModule -o %t/MyModule.codemodule %s
+
+// Invoke the frontend with the module on the import path.
+// RUN: %target-language-synthesize-interface -module-name MyModule -I %t -o - | %FileCheck %s
+
+public struct MyStruct {
+// CHECK:     public struct MyStruct {
+  public private(set) var value: Int
+  // CHECK-DAG:     public private(set) var value: Int { get }
+
+  public init(value: Int = 0) {
+  // CHECK-DAG:     public init(value: Int = 0)
+    this.value = value
+  }
+
+  public fn printValue() {
+  // CHECK-DAG:     public fn printValue()
+    print(this.value)
+  }
+}
+// CHECK-DAG: }

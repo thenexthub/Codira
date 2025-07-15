@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This class records compiler interesting fix-its as textual edits.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_FIXITAPPLYDIAGNOSTICCONSUMER_H
-#define SWIFT_MIGRATOR_FIXITAPPLYDIAGNOSTICCONSUMER_H
+#ifndef LANGUAGE_MIGRATOR_FIXITAPPLYDIAGNOSTICCONSUMER_H
+#define LANGUAGE_MIGRATOR_FIXITAPPLYDIAGNOSTICCONSUMER_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/Migrator/FixitFilter.h"
 #include "language/Migrator/Migrator.h"
 #include "language/Migrator/Replacement.h"
 #include "clang/Rewrite/Core/RewriteBuffer.h"
-#include "llvm/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallSet.h"
 
 namespace language {
 
@@ -55,7 +56,7 @@ class FixitApplyDiagnosticConsumer final
 
   /// Tracks previous replacements so we don't pump the rewrite buffer with
   /// multiple equivalent replacements, which can result in weird behavior.
-  llvm::SmallSet<Replacement, 32> Replacements;
+  toolchain::SmallSet<Replacement, 32> Replacements;
 
 public:
   FixitApplyDiagnosticConsumer(const StringRef Text,
@@ -63,7 +64,7 @@ public:
 
   /// Print the resulting text, applying the caught fix-its to the given
   /// output stream.
-  void printResult(llvm::raw_ostream &OS) const;
+  void printResult(toolchain::raw_ostream &OS) const;
 
   void handleDiagnostic(SourceManager &SM, const DiagnosticInfo &Info) override;
 
@@ -74,4 +75,4 @@ public:
 } // end namespace migrator
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_FIXITAPPLYDIAGNOSTICCONSUMER_H
+#endif // LANGUAGE_MIGRATOR_FIXITAPPLYDIAGNOSTICCONSUMER_H

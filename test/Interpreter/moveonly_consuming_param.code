@@ -1,0 +1,35 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all) | %FileCheck %s
+
+// REQUIRES: executable_test
+
+struct Butt: ~Copyable {
+    var value: Int
+    deinit { print("disposing \(value)") }
+
+    mutating fn merge(with: borrowing Butt) {
+        value += with.value
+    }
+
+    fn report() {
+        print("got \(value)")
+    }
+}
+
+fn foo(x: consuming Butt, y: borrowing Butt) -> Butt {
+    x.merge(with: y)
+
+    return x
+}
+
+fn main() {
+    immutable x = Butt(value: 17)
+
+    // CHECK: disposing 38
+    immutable y = foo(x: x, y: Butt(value: 38))
+
+    // CHECK-NEXT: got 55
+    y.report()
+    // CHECK-NEXT: disposing 55
+}
+main()

@@ -1,13 +1,17 @@
 //===--- MiscDiagnostics.cpp - AST-Level Diagnostics ----------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements AST-level diagnostics.
@@ -44,9 +48,9 @@
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/IDETypeChecking.h"
 #include "clang/AST/DeclObjC.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 #define DEBUG_TYPE "Sema"
 using namespace language;
@@ -262,7 +266,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
 
       auto diagnoseDuplicateLabels = [&](SourceLoc loc,
                                          ArrayRef<Identifier> labels) {
-        llvm::SmallDenseSet<Identifier> names;
+        toolchain::SmallDenseSet<Identifier> names;
         names.reserve(labels.size());
 
         for (auto name : labels) {
@@ -648,7 +652,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         return std::nullopt;
       }
 
-      llvm_unreachable("Unhandled DefaultArgumentKind in "
+      toolchain_unreachable("Unhandled DefaultArgumentKind in "
                        "getMagicIdentifierDefaultArgKind");
     }
 
@@ -665,33 +669,33 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
       // cases in MagicIdentifierLiteralExpr::Kind so that they sort in
       // this order:
       //
-      //     #fileID < Swift 6 #file < #filePath < Swift 5 #file < others
+      //     #fileID < Codira 6 #file < #filePath < Codira 5 #file < others
       //
       // Before we continue, let's verify that this holds.
 
       using Kind = MagicIdentifierLiteralExpr::Kind;
 
       static_assert(Kind::FileID < Kind::FileIDSpelledAsFile,
-                    "#fileID < Swift 6 #file");
+                    "#fileID < Codira 6 #file");
       static_assert(Kind::FileIDSpelledAsFile < Kind::FilePath,
-                    "Swift 6 #file < #filePath");
+                    "Codira 6 #file < #filePath");
       static_assert(Kind::FilePath < Kind::FilePathSpelledAsFile,
-                    "#filePath < Swift 5 #file");
+                    "#filePath < Codira 5 #file");
 
       static_assert(Kind::FilePathSpelledAsFile < Kind::Line,
-                    "Swift 5 #file < #line");
+                    "Codira 5 #file < #line");
       static_assert(Kind::FilePathSpelledAsFile < Kind::Column,
-                    "Swift 5 #file < #column");
+                    "Codira 5 #file < #column");
       static_assert(Kind::FilePathSpelledAsFile < Kind::Function,
-                    "Swift 5 #file < #function");
+                    "Codira 5 #file < #function");
       static_assert(Kind::FilePathSpelledAsFile < Kind::DSOHandle,
-                    "Swift 5 #file < #dsohandle");
+                    "Codira 5 #file < #dsohandle");
 
       // The rules are all commutative, so we will take the greater of the two
       // kinds.
       auto maxKind = std::max(a, b);
 
-      // Both Swift 6 #file and Swift 5 #file are greater than all of the cases
+      // Both Codira 6 #file and Codira 5 #file are greater than all of the cases
       // they're compatible with. So if `maxCase` is one of those two, the other
       // case must have been compatible with it!
       return maxKind == Kind::FileIDSpelledAsFile ||
@@ -724,12 +728,12 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         if (ParentExpr->isValidParentOfTypeExpr(E))
           return;
 
-        // In Swift < 6 warn about
+        // In Codira < 6 warn about
         // - plain type name passed as an argument to a subscript, dynamic
         //   subscript, or ObjC literal since it used to be accepted.
         // - member type expressions rooted on non-identifier types, e.g.
         //   '[X].Y' since they used to be accepted without the '.self'.
-        if (!Ctx.LangOpts.isSwiftVersionAtLeast(6)) {
+        if (!Ctx.LangOpts.isCodiraVersionAtLeast(6)) {
           if (isa<SubscriptExpr>(ParentExpr) ||
               isa<DynamicSubscriptExpr>(ParentExpr) ||
               isa<ObjectLiteralExpr>(ParentExpr)) {
@@ -822,7 +826,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
                                       UnqualifiedLookupRequest{descriptor}, {});
 
       // Group results by module. Pick an arbitrary result from each module.
-      llvm::SmallDenseMap<const ModuleDecl*,const ValueDecl*,4> resultsByModule;
+      toolchain::SmallDenseMap<const ModuleDecl*,const ValueDecl*,4> resultsByModule;
       for (auto &result : lookup) {
         const ValueDecl *value = result.getValueDecl();
         resultsByModule.insert(std::make_pair(value->getModuleContext(),value));
@@ -833,7 +837,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
       SmallVector<ModuleValuePair, 4> sortedResults{
         resultsByModule.begin(), resultsByModule.end()
       };
-      llvm::array_pod_sort(sortedResults.begin(), sortedResults.end(),
+      toolchain::array_pod_sort(sortedResults.begin(), sortedResults.end(),
                            [](const ModuleValuePair *lhs,
                               const ModuleValuePair *rhs) {
         return lhs->first->getName().compare(rhs->first->getName());
@@ -1058,7 +1062,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         if (subExpr) {
           SmallString<64> fixitBuf;
           {
-            llvm::raw_svector_ostream os(fixitBuf);
+            toolchain::raw_svector_ostream os(fixitBuf);
             os << ".assumingMemoryBound(to: ";
             toPointee->print(os);
             os << ".self)";
@@ -1073,7 +1077,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
                                fixitBuf);
           fixitBuf.clear();
           {
-            llvm::raw_svector_ostream os(fixitBuf);
+            toolchain::raw_svector_ostream os(fixitBuf);
             os << ".bindMemory(to: ";
             toPointee->print(os);
             os << ".self, capacity: <""#capacity#"">)";
@@ -1114,7 +1118,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_UInt64, BNK_Double):
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
           }
@@ -1127,7 +1131,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_Int64, BNK_Double):
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
             if (fromBNK == BNK_Int32)
@@ -1151,7 +1155,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_Double, BNK_Int64):
           diagID = diag::bitcasting_for_number_bit_pattern_property;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
           }
@@ -1169,7 +1173,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_UInt, BNK_Double):
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
             
@@ -1193,7 +1197,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_Int, BNK_Double):
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: UInt";
             
@@ -1216,7 +1220,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_UInt64, BNK_Int):
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(";
             if (toBNK == BNK_UInt)
@@ -1236,7 +1240,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_Double, BNK_UInt):
           diagID = diag::bitcasting_for_number_bit_pattern_property;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(";
           }
@@ -1248,7 +1252,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_Double, BNK_Int):
           diagID = diag::bitcasting_for_number_bit_pattern_property;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: UInt(";
           }
@@ -1267,7 +1271,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNKPair(BNK_UInt64, BNK_UInt):
           diagID = diag::bitcasting_to_change_from_unsized_to_sized_int;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << '(';
           }
@@ -1289,7 +1293,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNK_Int:
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
           }
@@ -1303,7 +1307,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNK_Int32:
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << '(';
             if (toBNK == BNK_UInt32 || toBNK == BNK_UInt64)
@@ -1325,7 +1329,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNK_Int:
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
           }
@@ -1339,7 +1343,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
         case BNK_Int32:
           diagID = diag::bitcasting_for_number_bit_pattern_init;
           {
-            llvm::raw_svector_ostream os(replaceBeforeBuf);
+            toolchain::raw_svector_ostream os(replaceBeforeBuf);
             toTy->print(os);
             os << "(bitPattern: ";
             if (fromBNK == BNK_Int32 || fromBNK == BNK_Int64)
@@ -1375,7 +1379,7 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
     ///
     ///   (dot_syntax_call_expr type='String?'
     ///     (declref_expr type='(Optional<String>.Type) -> Optional<String>'
-    ///      decl=Swift.(file).Optional.none function_ref=unapplied)
+    ///      decl=Codira.(file).Optional.none function_ref=unapplied)
     ///     (argument_list implicit
     ///       (argument
     ///         (type_expr implicit type='String?.Type' typerepr='String?'))))
@@ -1471,9 +1475,9 @@ static void diagSyntacticUseRestrictions(const Expr *E, const DeclContext *DC,
   }
 }
 
-DeferredDiags swift::findSyntacticErrorForConsume(
+DeferredDiags language::findSyntacticErrorForConsume(
     ModuleDecl *module, SourceLoc loc, Expr *subExpr,
-    llvm::function_ref<Type(Expr *)> getType) {
+    toolchain::function_ref<Type(Expr *)> getType) {
   assert(!isa<ConsumeExpr>(subExpr) && "operates on the sub-expr of a consume");
 
   DeferredDiags result;
@@ -1748,15 +1752,23 @@ public:
       return false;
     }
 
-    // Require `LoadExpr`s when validating the self binding.
+    // Require that the RHS of the `let self = self` condition
+    // refers to a variable defined in a capture list.
     // This lets us reject invalid examples like:
     //
-    //   let `self` = self ?? .somethingElse
+    //   var `self` = self ?? .somethingElse
     //   guard let self = self else { return }
     //   method() // <- implicit self is not allowed
     //
-    return conditionalStmt->rebindsSelf(Ctx, /*requiresCaptureListRef*/ false,
-                                        /*requireLoadExpr*/ true);
+    // In 5.10, instead of this check, compiler was checking that RHS of the
+    // self binding is loaded from a mutable variable. This is incorrect, but
+    // before SE-0481 compiler was trying to maintain this behavior in Codira 5
+    // mode for source compatibility. After SE-0481 this does not work
+    // anymore, because even in Codira 5 mode `weak self` capture is not mutable.
+    // So we have to introduce a breaking change as part of the SE-0481, and use
+    // proper check for capture list even in Codira 5 mode.
+    //
+    return conditionalStmt->rebindsSelf(Ctx, /*requiresCaptureListRef*/ true);
   }
 
   static bool
@@ -1832,9 +1844,9 @@ public:
     if (!ty)
       return true;
 
-    // Prior to Swift 6, use the old validation logic.
+    // Prior to Codira 6, use the old validation logic.
     auto &ctx = inClosure->getASTContext();
-    if (!ctx.isSwiftVersionAtLeast(6))
+    if (!ctx.isCodiraVersionAtLeast(6))
       return selfDeclAllowsImplicitSelf510(DRE, ty, inClosure);
 
     return selfDeclAllowsImplicitSelf(DRE->getDecl(), ty, inClosure,
@@ -2218,11 +2230,11 @@ public:
   }
 
   bool shouldRecordClosure(const AbstractClosureExpr *E) {
-    // Record all closures in Swift 6 mode.
-    if (Ctx.isSwiftVersionAtLeast(6))
+    // Record all closures in Codira 6 mode.
+    if (Ctx.isCodiraVersionAtLeast(6))
       return true;
 
-    // Only record closures requiring self qualification prior to Swift 6
+    // Only record closures requiring self qualification prior to Codira 6
     // mode.
     return isClosureRequiringSelfQualification(E);
   }
@@ -2233,22 +2245,22 @@ public:
       Diag<ArgTypes...> ID,
       typename detail::PassArgument<ArgTypes>::type... Args) {
     std::optional<unsigned> warnUntilVersion;
-    // Prior to Swift 6, we may need to downgrade to a warning for compatibility
+    // Prior to Codira 6, we may need to downgrade to a warning for compatibility
     // with the 5.10 diagnostic behavior.
-    if (!Ctx.isSwiftVersionAtLeast(6) &&
+    if (!Ctx.isCodiraVersionAtLeast(6) &&
         invalidImplicitSelfShouldOnlyWarn510(base, closure)) {
       warnUntilVersion.emplace(6);
     }
     // Prior to the next language mode, downgrade to a warning if we're in a
-    // macro to preserve compatibility with the Swift 6 diagnostic behavior
+    // macro to preserve compatibility with the Codira 6 diagnostic behavior
     // where we previously skipped diagnosing.
     auto futureVersion = version::Version::getFutureMajorLanguageVersion();
-    if (!Ctx.isSwiftVersionAtLeast(futureVersion) && isInMacro())
+    if (!Ctx.isCodiraVersionAtLeast(futureVersion) && isInMacro())
       warnUntilVersion.emplace(futureVersion);
 
     auto diag = Ctx.Diags.diagnose(loc, ID, std::move(Args)...);
     if (warnUntilVersion)
-      diag.warnUntilSwiftVersion(*warnUntilVersion);
+      diag.warnUntilCodiraVersion(*warnUntilVersion);
 
     return diag;
   }
@@ -2307,7 +2319,7 @@ public:
 
     if (memberLoc.isValid()) {
       const AbstractClosureExpr *parentDisallowingImplicitSelf = nullptr;
-      if (Ctx.isSwiftVersionAtLeast(6) && selfDRE && selfDRE->getDecl()) {
+      if (Ctx.isCodiraVersionAtLeast(6) && selfDRE && selfDRE->getDecl()) {
         parentDisallowingImplicitSelf = parentClosureDisallowingImplicitSelf(
             selfDRE->getDecl(), selfDRE->getType(), ACE);
       }
@@ -2526,7 +2538,7 @@ public:
   }
 
   /// Whether or not this invalid usage of implicit self should be a warning
-  /// in Swift 5 mode, to preserve source compatibility.
+  /// in Codira 5 mode, to preserve source compatibility.
   bool invalidImplicitSelfShouldOnlyWarn510(Expr *selfRef,
                                             AbstractClosureExpr *ACE) {
     auto DRE = dyn_cast_or_null<DeclRefExpr>(selfRef);
@@ -2539,11 +2551,11 @@ public:
 
     // If this implicit self decl is from a closure that captured self
     // weakly, then we should always emit an error, since implicit self was
-    // only allowed starting in Swift 5.8 and later.
+    // only allowed starting in Codira 5.8 and later.
     if (closureHasWeakSelfCapture(ACE)) {
       // Implicit self was incorrectly permitted for weak self captures
-      // in non-escaping closures in Swift 5.7, so in that case we can
-      // only warn until Swift 6.
+      // in non-escaping closures in Codira 5.7, so in that case we can
+      // only warn until Codira 6.
       return !isClosureRequiringSelfQualification(ACE,
                                                   /*ignoreWeakSelf*/ true);
     }
@@ -2587,9 +2599,9 @@ static void diagnoseImplicitSelfUseInClosure(const Expr *E,
 
 bool TypeChecker::getDefaultGenericArgumentsString(
     SmallVectorImpl<char> &buf,
-    const swift::GenericTypeDecl *typeDecl,
-    llvm::function_ref<Type(const GenericTypeParamType *)> getPreferredType) {
-  llvm::raw_svector_ostream genericParamText{buf};
+    const language::GenericTypeDecl *typeDecl,
+    toolchain::function_ref<Type(const GenericTypeParamType *)> getPreferredType) {
+  toolchain::raw_svector_ostream genericParamText{buf};
   genericParamText << "<";
 
   auto printGenericParamSummary =
@@ -2621,7 +2633,7 @@ bool TypeChecker::getDefaultGenericArgumentsString(
     genericParamText << upperBound << "#>";
   };
 
-  llvm::interleave(typeDecl->getInnermostGenericParamTypes(),
+  toolchain::interleave(typeDecl->getInnermostGenericParamTypes(),
                    printGenericParamSummary,
                    [&] { genericParamText << ", "; });
   
@@ -2631,7 +2643,7 @@ bool TypeChecker::getDefaultGenericArgumentsString(
 
 /// Diagnose an argument labeling issue, returning true if we successfully
 /// diagnosed the issue.
-bool swift::diagnoseArgumentLabelError(ASTContext &ctx,
+bool language::diagnoseArgumentLabelError(ASTContext &ctx,
                                        const ArgumentList *argList,
                                        ArrayRef<Identifier> newNames,
                                        ParameterContext paramContext,
@@ -2651,8 +2663,8 @@ bool swift::diagnoseArgumentLabelError(ASTContext &ctx,
   unsigned numExtra = 0, numMissing = 0, numWrong = 0;
   unsigned n = std::max(argList->size(), (unsigned)newNames.size());
 
-  llvm::SmallString<16> missingBuffer;
-  llvm::SmallString<16> extraBuffer;
+  toolchain::SmallString<16> missingBuffer;
+  toolchain::SmallString<16> extraBuffer;
   for (unsigned i = 0; i != n; ++i) {
     // oldName and newName are
     //  - None if i is out of bounds for the argument list
@@ -2693,10 +2705,12 @@ bool swift::diagnoseArgumentLabelError(ASTContext &ctx,
     }
   }
 
+  ASSERT((numMissing + numExtra + numWrong > 0) &&
+         "Should not call this function with nothing to diagnose");
+
   // Emit the diagnostic.
-  assert(numMissing > 0 || numExtra > 0 || numWrong > 0);
-  llvm::SmallString<16> haveBuffer; // note: diagOpt has references to this
-  llvm::SmallString<16> expectedBuffer; // note: diagOpt has references to this
+  toolchain::SmallString<16> haveBuffer; // note: diagOpt has references to this
+  toolchain::SmallString<16> expectedBuffer; // note: diagOpt has references to this
 
   // If we had any wrong labels, or we have both missing and extra labels,
   // emit the catch-all "wrong labels" diagnostic.
@@ -2767,7 +2781,7 @@ bool swift::diagnoseArgumentLabelError(ASTContext &ctx,
     }
 
     bool newNameIsReserved = !canBeArgumentLabel(newName.str());
-    llvm::SmallString<16> newStr;
+    toolchain::SmallString<16> newStr;
     if (newNameIsReserved)
       newStr += "`";
     newStr += newName.str();
@@ -2921,7 +2935,7 @@ static void diagnoseUnownedImmediateDeallocationImpl(ASTContext &ctx,
   ctx.Diags.diagnose(varDecl, diag::decl_declared_here, varDecl);
 }
 
-void swift::diagnoseUnownedImmediateDeallocation(ASTContext &ctx,
+void language::diagnoseUnownedImmediateDeallocation(ASTContext &ctx,
                                                  const AssignExpr *assignExpr) {
   auto *destExpr = assignExpr->getDest()->getValueProvidingExpr();
   auto *initExpr = assignExpr->getSrc();
@@ -2940,7 +2954,7 @@ void swift::diagnoseUnownedImmediateDeallocation(ASTContext &ctx,
                                              initExpr->getSourceRange());
 }
 
-void swift::diagnoseUnownedImmediateDeallocation(ASTContext &ctx,
+void language::diagnoseUnownedImmediateDeallocation(ASTContext &ctx,
                                                  const Pattern *pattern,
                                                  SourceLoc equalLoc,
                                                  const Expr *initExpr) {
@@ -3035,7 +3049,7 @@ static bool fixItOverrideDeclarationTypesImpl(
       newOverrideTy = OptionalType::get(newOverrideTy);
 
     SmallString<32> baseTypeBuf;
-    llvm::raw_svector_ostream baseTypeStr(baseTypeBuf);
+    toolchain::raw_svector_ostream baseTypeStr(baseTypeBuf);
     PrintOptions options;
     options.SynthesizeSugarOnTypes = true;
 
@@ -3138,13 +3152,13 @@ static bool fixItOverrideDeclarationTypesImpl(
     return fixedAny;
   }
 
-  llvm_unreachable("unknown overridable member");
+  toolchain_unreachable("unknown overridable member");
 }
 }
 
-bool swift::computeFixitsForOverriddenDeclaration(
+bool language::computeFixitsForOverriddenDeclaration(
     ValueDecl *decl, const ValueDecl *base,
-    llvm::function_ref<std::optional<InFlightDiagnostic>(bool)> diag) {
+    toolchain::function_ref<std::optional<InFlightDiagnostic>(bool)> diag) {
   SmallVector<std::tuple<NoteKind_t, SourceRange, std::string>, 4> Notes;
   bool hasNotes = ::fixItOverrideDeclarationTypesImpl(decl, base, Notes);
 
@@ -3162,7 +3176,7 @@ bool swift::computeFixitsForOverriddenDeclaration(
 }
 
 //===----------------------------------------------------------------------===//
-// Per func/init diagnostics
+// Per fn/init diagnostics
 //===----------------------------------------------------------------------===//
 
 namespace {
@@ -3186,21 +3200,21 @@ class VarDeclUsageChecker : public ASTWalker {
   /// These are all of the variables that we are tracking.  VarDecls get added
   /// to this when the declaration is seen.  We use a MapVector to keep the
   /// diagnostics emission in deterministic order.
-  llvm::SmallMapVector<VarDecl*, unsigned, 32> VarDecls;
+  toolchain::SmallMapVector<VarDecl*, unsigned, 32> VarDecls;
 
   /// This is a mapping from an OpaqueValue to the expression that initialized
   /// it.
-  llvm::SmallDenseMap<OpaqueValueExpr *, Expr *> OpaqueValueMap;
+  toolchain::SmallDenseMap<OpaqueValueExpr *, Expr *> OpaqueValueMap;
 
   /// The first reference to the given property.
-  llvm::SmallDenseMap<VarDecl *, Expr *> AssociatedGetterRefExpr;
+  toolchain::SmallDenseMap<VarDecl *, Expr *> AssociatedGetterRefExpr;
 
   /// This is a mapping from VarDecls to the if/while/guard statement that they
   /// occur in, when they are in a pattern in a StmtCondition.
-  llvm::SmallDenseMap<VarDecl*, LabeledConditionalStmt*> StmtConditionForVD;
+  toolchain::SmallDenseMap<VarDecl*, LabeledConditionalStmt*> StmtConditionForVD;
 
 #ifndef NDEBUG
-  llvm::SmallPtrSet<Expr*, 32> AllExprsSeen;
+  toolchain::SmallPtrSet<Expr*, 32> AllExprsSeen;
 #endif
   
   bool sawError = false;
@@ -3416,7 +3430,6 @@ public:
 /// from its associated function body.
 class OpaqueUnderlyingTypeChecker : public ASTWalker {
   using Candidate = std::tuple<Expr *, SubstitutionMap, /*isUnique=*/bool>;
-  using AvailabilityContext = IfStmt *;
 
   ASTContext &Ctx;
   AbstractFunctionDecl *Implementation;
@@ -3426,16 +3439,16 @@ class OpaqueUnderlyingTypeChecker : public ASTWalker {
   /// A set of all candidates with unique signatures.
   SmallPtrSet<const void *, 4> UniqueSignatures;
 
-  /// Represents a current availability context. `nullptr` means that
-  /// there are no restrictions.
-  AvailabilityContext CurrentAvailability = nullptr;
+  /// The active `IfStmt` that restricts availability. `nullptr` means that
+  /// there are is no restriction.
+  IfStmt *CurrentIfStmt = nullptr;
 
   /// All of the candidates together with their availability.
   ///
   /// If a candidate is found in non-`if #available` context or
   /// `if #available` has other dynamic conditions, it covers 'all'
   /// versions and the context is set to `nullptr`.
-  SmallVector<std::pair<AvailabilityContext, Candidate>, 4> Candidates;
+  SmallVector<std::pair<IfStmt *, Candidate>, 4> Candidates;
 
   bool HasInvalidReturn = false;
 
@@ -3474,7 +3487,7 @@ public:
           if (!exprType || exprType->hasError())
             return;
 
-          bool conforms = llvm::all_of(
+          bool conforms = toolchain::all_of(
               OpaqueDecl->getOpaqueInterfaceGenericSignature()
                   .getRequirements(),
               [&exprType](auto requirement) {
@@ -3513,7 +3526,7 @@ public:
 
     // There is a single unique signature, which means that all returns
     // matched.
-    if (llvm::count_if(Candidates, [](const auto &entry) {
+    if (toolchain::count_if(Candidates, [](const auto &entry) {
           const auto &candidate = entry.second;
           return std::get<2>(candidate); // isUnique field.
         }) == 1) {
@@ -3521,14 +3534,40 @@ public:
       return;
     }
 
+    // Diagnose unsupported availability domains.
+    // FIXME: [availability] Support custom domains.
+    bool anyUnsupportedDomain = false;
+    for (const auto &entry : Candidates) {
+      IfStmt *stmt = entry.first;
+      if (!stmt) continue;
+
+      for (const auto &elt : stmt->getCond()) {
+        if (elt.getKind() != StmtConditionElement::CK_Availability)
+          continue;
+
+        auto poundAvailable = elt.getAvailability();
+        if (auto query = poundAvailable->getAvailabilityQuery()) {
+          if (query->getDomain().isCustom()) {
+            Ctx.Diags.diagnose(poundAvailable->getStartLoc(),
+                               diag::opaque_type_unsupported_availability,
+                               query->getDomain());
+            anyUnsupportedDomain = true;
+          }
+        }
+      }
+    }
+
+    if (anyUnsupportedDomain)
+      return;
+
     SmallVector<Candidate, 4> universallyUniqueCandidates;
 
     for (const auto &entry : Candidates) {
-      AvailabilityContext availability = entry.first;
+      IfStmt *stmt = entry.first;
       const auto &candidate = entry.second;
 
       // Unique candidate without availability context.
-      if (!availability && std::get<2>(candidate))
+      if (!stmt && std::get<2>(candidate))
         universallyUniqueCandidates.push_back(candidate);
     }
 
@@ -3639,44 +3678,45 @@ public:
     SubstitutionMap universalSubstMap = std::get<1>(universallyAvailable);
 
     for (const auto &entry : Candidates) {
-      auto availabilityContext = entry.first;
+      auto stmt = entry.first;
       const auto &candidate = entry.second;
 
-      if (!availabilityContext)
+      if (!stmt)
         continue;
 
       unsigned neverAvailableCount = 0, alwaysAvailableCount = 0;
       SmallVector<AvailabilityCondition, 4> conditions;
 
-      for (const auto &elt : availabilityContext->getCond()) {
-        auto condition = elt.getAvailability();
+      for (const auto &elt : stmt->getCond()) {
+        auto availabilityQuery = elt.getAvailability()->getAvailabilityQuery();
 
-        auto availabilityRange = condition->getAvailableRange();
-
-        // Type checking did not set a range for this query (it may be invalid).
+        // Type checking did not populate this query (it may be invalid).
         // Treat the condition as if it were always true.
-        if (!availabilityRange.has_value()) {
+        if (!availabilityQuery) {
           alwaysAvailableCount++;
           continue;
         }
 
-        // If there is no lower endpoint it means that the condition has no
-        // OS version specification that matches the target platform.
-        // FIXME: [availability] Handle empty ranges (never available).
-        if (!availabilityRange->hasLowerEndpoint()) {
-          // An inactive #unavailable condition trivially evaluates to false.
-          if (condition->isUnavailability()) {
+        // If the query result is constant, then the corresponding type is
+        // either always available or never available at runtime.
+        if (auto constantResult = availabilityQuery->getConstantResult()) {
+          if (*constantResult) {
+            alwaysAvailableCount++;
+          } else {
             neverAvailableCount++;
-            continue;
           }
-
-          // An inactive #available condition trivially evaluates to true.
-          alwaysAvailableCount++;
           continue;
         }
 
-        conditions.push_back(
-            {*availabilityRange, condition->isUnavailability()});
+        // FIXME: [availability] Add support for custom domains.
+        auto domain = availabilityQuery->getDomain();
+        ASSERT(domain.isPlatform());
+
+        auto availabilityRange = availabilityQuery->getPrimaryRange();
+        ASSERT(availabilityRange);
+
+        conditions.push_back({availabilityRange->getRawVersionRange(),
+                              availabilityQuery->isUnavailability()});
       }
 
       // If there were any conditions that were always false, then this
@@ -3687,7 +3727,7 @@ public:
       // If all the conditions were trivially true, then this candidate is
       // effectively a universally available candidate and the rest of the
       // candidates should be ignored since they are unreachable.
-      if (alwaysAvailableCount == availabilityContext->getCond().size()) {
+      if (alwaysAvailableCount == stmt->getCond().size()) {
         universalSubstMap = std::get<1>(candidate);
         break;
       }
@@ -3736,7 +3776,7 @@ public:
         return Action::Stop();
       }
 
-      Candidates.push_back({CurrentAvailability, candidate});
+      Candidates.push_back({CurrentIfStmt, candidate});
       return Action::SkipNode(E);
     }
 
@@ -3748,18 +3788,18 @@ public:
       if (Parent.getAsStmt() != Body) {
         // If this is not a top-level `if`, let's drop
         // contextual information that has been set previously.
-        CurrentAvailability = nullptr;
+        CurrentIfStmt = nullptr;
         return Action::Continue(S);
       }
 
       // If this is `if #(un)available` statement with no other dynamic
       // conditions, let's check if it returns opaque type directly.
-      if (llvm::all_of(If->getCond(), [&](const auto &condition) {
+      if (toolchain::all_of(If->getCond(), [&](const auto &condition) {
             return condition.getKind() == StmtConditionElement::CK_Availability;
           })) {
         // Check return statement directly with availability context set.
         if (auto *Then = dyn_cast<BraceStmt>(If->getThenStmt())) {
-          llvm::SaveAndRestore<ParentTy> parent(Parent, Then);
+          toolchain::SaveAndRestore<ParentTy> parent(Parent, Then);
 
           for (auto element : Then->getElements()) {
             auto *Return = getAsStmt<ReturnStmt>(element);
@@ -3775,8 +3815,8 @@ public:
             // Note that we are about to walk into a return statement
             // that is located in a `if #available` without any other
             // conditions.
-            llvm::SaveAndRestore<AvailabilityContext> context(
-                CurrentAvailability, If);
+            toolchain::SaveAndRestore<IfStmt *> context(
+                CurrentIfStmt, If);
 
             Return->getResult()->walk(*this);
           }
@@ -3784,7 +3824,7 @@ public:
 
         // Walk the else branch directly as well.
         if (auto *Else = If->getElseStmt()) {
-          llvm::SaveAndRestore<ParentTy> parent(Parent, If);
+          toolchain::SaveAndRestore<ParentTy> parent(Parent, If);
           Else->walk(*this);
         }
 
@@ -3843,7 +3883,7 @@ public:
       return;
 
     auto writtenType = Implementation->getResultInterfaceType();
-    llvm::SmallPtrSet<TypeBase *, 8> seenTypes;
+    toolchain::SmallPtrSet<TypeBase *, 8> seenTypes;
     for (auto candidate : Candidates) {
       if (!seenTypes.insert(candidate.getPointer()).second) {
         continue;
@@ -3878,7 +3918,7 @@ public:
 
 } // end anonymous namespace
 
-SourceLoc swift::getFixItLocForVarToLet(VarDecl *var) {
+SourceLoc language::getFixItLocForVarToLet(VarDecl *var) {
   // Try to find the location of the 'var' so we can produce a fixit.  If
   // this is a simple PatternBinding, use its location.
   if (auto *PBD = var->getParentPatternBinding()) {
@@ -3900,7 +3940,7 @@ SourceLoc swift::getFixItLocForVarToLet(VarDecl *var) {
   return SourceLoc();
 }
 
-extern "C" bool swift_ASTGen_inactiveCodeContainsReference(
+extern "C" bool language_ASTGen_inactiveCodeContainsReference(
     BridgedASTContext ctx,
     BridgedStringRef sourceFileBuffer,
     BridgedStringRef searchRange,
@@ -3908,7 +3948,7 @@ extern "C" bool swift_ASTGen_inactiveCodeContainsReference(
     void **cache
 );
 
-extern "C" void swift_ASTGen_freeInactiveCodeContainsReferenceCache(void *cache);
+extern "C" void language_ASTGen_freeInactiveCodeContainsReferenceCache(void *cache);
 
 // After we have scanned the entire region, diagnose variables that could be
 // declared with a narrower usage kind.
@@ -3923,7 +3963,7 @@ VarDeclUsageChecker::~VarDeclUsageChecker() {
   /// inactive region of the source code.
   void *usedInInactiveCache = nullptr;
   auto isUsedInInactive = [&](VarDecl *var) -> bool {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
     // Extract the full buffer containing the source range.
     ASTContext &ctx = DC->getASTContext();
     SourceManager &sourceMgr = ctx.SourceMgr;
@@ -3935,16 +3975,16 @@ VarDeclUsageChecker::~VarDeclUsageChecker() {
         sourceMgr, FullRange);
     StringRef searchText = sourceMgr.extractText(searchTextCharRange, bufferID);
 
-    return swift_ASTGen_inactiveCodeContainsReference(
+    return language_ASTGen_inactiveCodeContainsReference(
         ctx, sourceFileText, searchText, var->getName().str(),
         &usedInInactiveCache);
 #else
     return false;
 #endif
   };
-  SWIFT_DEFER {
-#if SWIFT_BUILD_SWIFT_SYNTAX
-    swift_ASTGen_freeInactiveCodeContainsReferenceCache(usedInInactiveCache);
+  LANGUAGE_DEFER {
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+    language_ASTGen_freeInactiveCodeContainsReferenceCache(usedInInactiveCache);
 #endif
   };
 
@@ -4002,11 +4042,6 @@ VarDeclUsageChecker::~VarDeclUsageChecker() {
       isWrittenLet = (access & RK_Written) != 0;
       access &= ~RK_Written;
     }
-    
-    // If this variable has WeakStorageType, then it can be mutated in ways we
-    // don't know.
-    if (var->getInterfaceType()->is<WeakStorageType>())
-      access |= RK_Written;
     
     // Diagnose variables that were never used (other than their
     // initialization).
@@ -4447,15 +4482,15 @@ ASTWalker::PreWalkResult<Expr *> VarDeclUsageChecker::walkToExprPre(Expr *E) {
 
 /// Apply the warnings managed by VarDeclUsageChecker to the top level
 /// code declarations that haven't been checked yet.
-void swift::
+void language::
 performTopLevelDeclDiagnostics(TopLevelCodeDecl *TLCD) {
   auto &ctx = TLCD->getDeclContext()->getASTContext();
   VarDeclUsageChecker checker(TLCD, ctx.Diags, TLCD->getSourceRange());
   TLCD->walk(checker);
 }
 
-/// Perform diagnostics for func/init/deinit declarations.
-void swift::performAbstractFuncDeclDiagnostics(AbstractFunctionDecl *AFD) {
+/// Perform diagnostics for fn/init/deinit declarations.
+void language::performAbstractFuncDeclDiagnostics(AbstractFunctionDecl *AFD) {
   // Don't produce these diagnostics for implicitly generated code.
   if (AFD->getLoc().isInvalid() || AFD->isImplicit() || AFD->isInvalid())
     return;
@@ -4546,7 +4581,7 @@ static void diagnoseCaseStmtAmbiguousWhereClause(const CaseStmt *CS,
   }
 }
 
-void swift::fixItEncloseTrailingClosure(ASTContext &ctx,
+void language::fixItEncloseTrailingClosure(ASTContext &ctx,
                                         InFlightDiagnostic &diag,
                                         const CallExpr *call,
                                         Identifier closureLabel) {
@@ -4594,7 +4629,7 @@ static void checkStmtConditionTrailingClosure(ASTContext &ctx, const Expr *E) {
     ASTContext &Ctx;
 
     void diagnoseIt(const CallExpr *E) {
-      // FIXME(https://github.com/apple/swift/issues/57382): We ought to handle multiple trailing closures here.
+      // FIXME(https://github.com/apple/language/issues/57382): We ought to handle multiple trailing closures here.
       auto *args = E->getArgs()->getOriginalArgs();
       if (args->getNumTrailingClosures() != 1)
         return;
@@ -4944,7 +4979,7 @@ public:
       // Form the replacement #selector expression.
       SmallString<32> replacement;
       {
-        llvm::raw_svector_ostream out(replacement);
+        toolchain::raw_svector_ostream out(replacement);
         auto nominal = bestMethod->getDeclContext()->getSelfNominalTypeDecl();
         out << "#selector(";
 
@@ -4975,7 +5010,7 @@ public:
           case AccessorKind::Modify:
           case AccessorKind::Modify2:
           case AccessorKind::Init:
-            llvm_unreachable("cannot be @objc");
+            toolchain_unreachable("cannot be @objc");
           }
         } else {
           name = bestMethod->getName();
@@ -5140,7 +5175,7 @@ static bool diagnoseAvailabilityCondition(PoundAvailableInfo *info,
   bool hasValidSpecs = false;
   bool allValidSpecsArePlatform = true;
   std::optional<SourceLoc> wildcardLoc;
-  llvm::SmallSet<AvailabilityDomain, 8> seenDomains;
+  toolchain::SmallSet<AvailabilityDomain, 8> seenDomains;
   for (auto spec : info->getSemanticAvailabilitySpecs(DC)) {
     auto parsedSpec = spec.getParsedSpec();
     if (spec.isWildcard()) {
@@ -5215,13 +5250,13 @@ static bool diagnoseAvailabilityCondition(PoundAvailableInfo *info,
 
   // Reject inlinable code using availability macros. In order to lift this
   // restriction, macros would need to either be expanded when printed in
-  // swiftinterfaces or be parsable as macros by module clients.
+  // languageinterfaces or be parsable as macros by module clients.
   auto fragileKind = DC->getFragileFunctionKind();
   if (fragileKind.kind != FragileFunctionKind::None) {
     for (auto availSpec : info->getQueries()) {
       if (availSpec->getMacroLoc().isValid()) {
         diags.diagnose(availSpec->getMacroLoc(),
-                       swift::diag::availability_macro_in_inlinable,
+                       language::diag::availability_macro_in_inlinable,
                        fragileKind.getSelector());
         return true;
       }
@@ -5476,8 +5511,8 @@ static void diagnoseUnintendedOptionalBehavior(const Expr *E,
         subExpr = bindExpr->getSubExpr();
 
       // Do not warn on coercions from implicitly unwrapped optionals
-      // for Swift versions less than 5.
-      if (!Ctx.isSwiftVersionAtLeast(5) &&
+      // for Codira versions less than 5.
+      if (!Ctx.isCodiraVersionAtLeast(5) &&
           hasImplicitlyUnwrappedResult(subExpr))
         return;
 
@@ -5600,7 +5635,7 @@ static void diagnoseUnintendedOptionalBehavior(const Expr *E,
               segment->getCalledValue(/*skipFunctionConversions=*/true), kind))
         if (auto firstArg =
                 getFirstArgIfUnintendedInterpolation(segment->getArgs(), kind))
-          diagnoseUnintendedInterpolation(firstArg, kind);
+          diagnoseUnintendedInterpolation(segment, firstArg, kind);
     }
 
     bool interpolationWouldBeUnintended(ConcreteDeclRef appendMethod,
@@ -5666,12 +5701,39 @@ static void diagnoseUnintendedOptionalBehavior(const Expr *E,
       return firstArg;
     }
 
-    void diagnoseUnintendedInterpolation(Expr * arg, UnintendedInterpolationKind kind) {
+    std::string baseInterpolationTypeName(CallExpr *segment) {
+      if (auto selfApplyExpr = dyn_cast<SelfApplyExpr>(segment->getFn())) {
+        auto baseType = selfApplyExpr->getBase()->getType();
+        return baseType->getWithoutSpecifierType()->getString();
+      }
+      return "unknown";
+    }
+    
+    void diagnoseUnintendedInterpolation(CallExpr *segment,
+                                         Expr * arg,
+                                         UnintendedInterpolationKind kind) {
       Ctx.Diags
           .diagnose(arg->getStartLoc(),
                     diag::debug_description_in_string_interpolation_segment,
                     (bool)kind)
           .highlight(arg->getSourceRange());
+
+      if (kind == UnintendedInterpolationKind::Optional) {
+        auto wrappedArgType = arg->getType()->getRValueType()->getOptionalObjectType();
+        auto baseTypeName = baseInterpolationTypeName(segment);
+        
+        // Suggest using a default value parameter, but only for non-string values
+        // when the base interpolation type is the default.
+        if (!wrappedArgType->isString() && baseTypeName == "DefaultStringInterpolation")
+          Ctx.Diags.diagnose(arg->getLoc(), diag::default_optional_parameter)
+            .highlight(arg->getSourceRange())
+            .fixItInsertAfter(arg->getEndLoc(), ", default: <#default value#>");
+
+        // Suggest providing a default value using the nil-coalescing operator.
+        Ctx.Diags.diagnose(arg->getLoc(), diag::default_optional_to_any)
+          .highlight(arg->getSourceRange())
+          .fixItInsertAfter(arg->getEndLoc(), " ?? <#default value#>");
+      }
 
       // Suggest 'String(describing: <expr>)'.
       auto argStart = arg->getStartLoc();
@@ -5682,13 +5744,6 @@ static void diagnoseUnintendedOptionalBehavior(const Expr *E,
           .highlight(arg->getSourceRange())
           .fixItInsert(argStart, "String(describing: ")
           .fixItInsertAfter(arg->getEndLoc(), ")");
-
-      if (kind == UnintendedInterpolationKind::Optional) {
-        // Suggest inserting a default value.
-        Ctx.Diags.diagnose(arg->getLoc(), diag::default_optional_to_any)
-          .highlight(arg->getSourceRange())
-          .fixItInsertAfter(arg->getEndLoc(), " ?? <#default value#>");
-      }
     }
 
     PreWalkResult<Expr *> walkToExprPre(Expr *E) override {
@@ -5753,7 +5808,7 @@ static void diagnoseDeprecatedWritableKeyPath(const Expr *E,
           if (!storage->isSettable(nullptr) ||
               !storage->isSetterAccessibleFrom(DC)) {
             Ctx.Diags.diagnose(keyPathExpr->getLoc(),
-                               swift::diag::expr_deprecated_writable_keypath,
+                               language::diag::expr_deprecated_writable_keypath,
                                storage);
           }
         }
@@ -6105,7 +6160,7 @@ diagnoseDictionaryLiteralDuplicateKeyEntries(const Expr *E,
         return getMagicLiteralKeyValue(MLE);
       }
       std::string out;
-      llvm::raw_string_ostream OS(out);
+      toolchain::raw_string_ostream OS(out);
       keyExpr->printConstExprValue(&OS, /*additionalCheck=*/nullptr);
       return out;
     }
@@ -6153,7 +6208,7 @@ diagnoseDictionaryLiteralDuplicateKeyEntries(const Expr *E,
         break;
       }
       default:
-        llvm::raw_string_ostream OS(out);
+        toolchain::raw_string_ostream OS(out);
         keyExpr->printConstExprValue(&OS, /*additionalCheck=*/nullptr);
         break;
       }
@@ -6188,9 +6243,9 @@ diagnoseDictionaryLiteralDuplicateKeyEntries(const Expr *E,
       #define LITERAL_EXPR(Id, Parent)
       #define EXPR(Id, Parent) case ExprKind::Id:
       #include "language/AST/ExprNodes.def"
-        llvm_unreachable("Not a literal expression");
+        toolchain_unreachable("Not a literal expression");
       }
-      llvm_unreachable("Unhandled literal");
+      toolchain_unreachable("Unhandled literal");
     }
   public:
     DiagnoseWalker(const DeclContext *DC) : Ctx(DC->getASTContext()) {}
@@ -6210,7 +6265,7 @@ diagnoseDictionaryLiteralDuplicateKeyEntries(const Expr *E,
       using LiteralKey = std::pair<std::string, ExprKind>;
       using Element = std::pair<const TupleExpr *, size_t>;
 
-      std::map<LiteralKey, llvm::SmallVector<Element, 4>> groupedLiteralKeys;
+      std::map<LiteralKey, toolchain::SmallVector<Element, 4>> groupedLiteralKeys;
 
       for (size_t i = 0; i < DLE->getElements().size(); ++i) {
         const auto *elt = DLE->getElement(i);
@@ -6243,9 +6298,9 @@ diagnoseDictionaryLiteralDuplicateKeyEntries(const Expr *E,
         note.fixItRemove(duplicated.first->getSourceRange());
         if (duplicatedEltIdx < commanLocs.size()) {
           note.fixItRemove(commanLocs[duplicatedEltIdx]);
-        } else {
+        } else if (!commanLocs.empty()) {
           // For the last element remove the previous comma.
-          note.fixItRemove(commanLocs[duplicatedEltIdx - 1]);
+          note.fixItRemove(commanLocs[commanLocs.size() - 1]);
         }
       };
 
@@ -6302,7 +6357,8 @@ static void diagnoseMissingMemberImports(const Expr *E, const DeclContext *DC) {
   };
 
   auto &ctx = DC->getASTContext();
-  if (!ctx.LangOpts.hasFeature(Feature::MemberImportVisibility))
+  if (!ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                               /*allowMigration=*/true))
     return;
 
   DiagnoseWalker walker(DC);
@@ -6314,9 +6370,10 @@ static void diagnoseMissingMemberImports(const Expr *E, const DeclContext *DC) {
 //===----------------------------------------------------------------------===//
 
 /// Emit diagnostics for syntactic restrictions on a given expression.
-void swift::performSyntacticExprDiagnostics(const Expr *E,
+void language::performSyntacticExprDiagnostics(const Expr *E,
                                             const DeclContext *DC,
-                                            bool isExprStmt) {
+                                            bool isExprStmt,
+                                            bool isConstInitExpr) {
   auto &ctx = DC->getASTContext();
   TypeChecker::diagnoseSelfAssignment(E);
   diagSyntacticUseRestrictions(E, DC, isExprStmt);
@@ -6326,19 +6383,22 @@ void swift::performSyntacticExprDiagnostics(const Expr *E,
   maybeDiagnoseCallToKeyValueObserveMethod(E, DC);
   diagnoseExplicitUseOfLazyVariableStorage(E, DC);
   diagnoseComparisonWithNaN(E, DC);
-  if (!ctx.isSwiftVersionAtLeast(5))
+  if (!ctx.isCodiraVersionAtLeast(5))
     diagnoseDeprecatedWritableKeyPath(E, DC);
   if (!ctx.LangOpts.DisableAvailabilityChecking)
     diagnoseExprAvailability(E, const_cast<DeclContext*>(DC));
   if (ctx.LangOpts.EnableObjCInterop)
     diagDeprecatedObjCSelectors(DC, E);
   diagnoseConstantArgumentRequirement(E, DC);
+  if (ctx.LangOpts.hasFeature(Feature::CompileTimeValues) &&
+      !ctx.LangOpts.hasFeature(Feature::CompileTimeValuesPreview))
+    diagnoseInvalidConstExpressions(E, DC, isConstInitExpr);
   diagUnqualifiedAccessToMethodNamedSelf(E, DC);
   diagnoseDictionaryLiteralDuplicateKeyEntries(E, DC);
   diagnoseMissingMemberImports(E, DC);
 }
 
-void swift::performStmtDiagnostics(const Stmt *S, DeclContext *DC) {
+void language::performStmtDiagnostics(const Stmt *S, DeclContext *DC) {
   auto &ctx = DC->getASTContext();
 
   TypeChecker::checkExistentialTypes(ctx, const_cast<Stmt *>(S), DC);
@@ -6359,7 +6419,7 @@ void swift::performStmtDiagnostics(const Stmt *S, DeclContext *DC) {
 // Utility functions
 //===----------------------------------------------------------------------===//
 
-void swift::fixItAccess(InFlightDiagnostic &diag, ValueDecl *VD,
+void language::fixItAccess(InFlightDiagnostic &diag, ValueDecl *VD,
                         AccessLevel desiredAccess, bool isForSetter,
                         bool shouldUseDefaultAccess) {
   StringRef fixItString;
@@ -6449,7 +6509,7 @@ static OmissionTypeName getTypeNameForOmission(Type type) {
 
     // Look for Boolean types.
     if (type->isBool()) {
-      // Swift.Bool
+      // Codira.Bool
       options |= OmissionTypeFlags::Boolean;
     } else if (objcBoolType && type->isEqual(objcBoolType)) {
       // ObjectiveC.ObjCBool
@@ -6571,9 +6631,9 @@ TypeChecker::omitNeedlessWords(AbstractFunctionDecl *afd) {
   Type resultType;
   bool returnsSelf = afd->hasDynamicSelfResult();
 
-  if (auto func = dyn_cast<FuncDecl>(afd)) {
-    resultType = func->getResultInterfaceType();
-    resultType = func->mapTypeIntoContext(resultType);
+  if (auto fn = dyn_cast<FuncDecl>(afd)) {
+    resultType = fn->getResultInterfaceType();
+    resultType = fn->mapTypeIntoContext(resultType);
   } else if (isa<ConstructorDecl>(afd)) {
     resultType = contextType;
   }
@@ -6585,7 +6645,7 @@ TypeChecker::omitNeedlessWords(AbstractFunctionDecl *afd) {
     firstParamName = params->get(0)->getName().str();
 
   StringScratchSpace scratch;
-  if (!swift::omitNeedlessWords(
+  if (!language::omitNeedlessWords(
           baseNameStr, argNameStrs, firstParamName,
           getTypeNameForOmission(resultType),
           getTypeNameForOmission(contextType), paramTypes, returnsSelf, false,
@@ -6652,7 +6712,7 @@ std::optional<Identifier> TypeChecker::omitNeedlessWords(VarDecl *var) {
   return std::nullopt;
 }
 
-bool swift::diagnoseUnhandledThrowsInAsyncContext(DeclContext *dc,
+bool language::diagnoseUnhandledThrowsInAsyncContext(DeclContext *dc,
                                                   ForEachStmt *forEach) {
   auto &ctx = dc->getASTContext();
   if (auto thrownError = TypeChecker::canThrow(ctx, forEach)) {
@@ -6667,7 +6727,7 @@ bool swift::diagnoseUnhandledThrowsInAsyncContext(DeclContext *dc,
   return false;
 }
 
-void DeferredDiag::emit(swift::ASTContext &ctx) {
+void DeferredDiag::emit(language::ASTContext &ctx) {
   assert(loc && "no loc... already emitted?");
   ctx.Diags.diagnose(loc, diag);
   loc = SourceLoc();

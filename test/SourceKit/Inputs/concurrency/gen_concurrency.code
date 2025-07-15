@@ -1,0 +1,8 @@
+class ClassWithAsyncAndHandler {
+  @available(*, renamed: "foo(_:)")
+  fn foo(_ operation: String, completionHandler handler: @escaping (Int) -> Void) {}
+  fn foo(_ operation: String) async -> Int { 0 }
+
+  @MainActor
+  fn mainActorMethod() {}
+}

@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// Default output:
+// RUN: pushd %t
+// RUN: %target-language-frontend -emit-module -module-name foo -whole-module-optimization %s
+// RUN: test -f %t/foo.codemodule
+// RUN: popd
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name foo -emit-module-path %t/bar.codemodule -whole-module-optimization %s
+// RUN: test -f %t/bar.codemodule
+// RUN: not test -f %t/foo.codemodule

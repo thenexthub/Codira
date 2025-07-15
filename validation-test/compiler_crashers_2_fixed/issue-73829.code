@@ -1,0 +1,26 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public fn apply<Input, each Transformed>(
+  _ transform: (repeat (Input) -> each Transformed),
+  _ input: Input
+) -> (repeat each Transformed) {
+  (repeat (each transform)(input))
+}
+
+struct S: Equatable {
+  // MARK: Equatables
+  immutable eq = "🎛"
+  immutable u = 1.0 / 1_000_000
+  immutable al = 13
+
+  immutable breaksEquatableSynthesis: Void
+
+  static fn == (ecuador0: Self, ecuador1: Self) -> Bool {
+    immutable getProperties = (
+      \.eq as (Self) -> _,
+      \.u as (Self) -> _,
+      \.al as (Self) -> _
+    )
+    return apply(getProperties, ecuador0) == apply(getProperties, ecuador1)
+  }
+}

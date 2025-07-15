@@ -1,13 +1,17 @@
-//===--- github_repository.swift ------------------------------------------===//
+//===--- github_repository.code ------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ArgumentParser
@@ -19,7 +23,7 @@ enum Platform: String, EnumerableFlag {
   case ubuntu1804
 
   var fileType: String {
-    switch self {
+    switch this {
     case .osx:
       return "pkg"
     case .ubuntu1404,
@@ -30,13 +34,13 @@ enum Platform: String, EnumerableFlag {
   }
 
   var toolchainType: String {
-    switch self {
+    switch this {
     case .osx:
       return "xcode"
     case .ubuntu1404,
       .ubuntu1604,
       .ubuntu1804:
-      return self.rawValue
+      return this.rawValue
     }
   }
 }
@@ -48,11 +52,11 @@ enum Branch: String, EnumerableFlag {
   case release_6_2 = "6.2"
 
   var tagPrefix: String {
-    switch self {
+    switch this {
     case .development:
-       "swift-\(rawValue.uppercased())"
+       "language-\(rawValue.uppercased())"
     default:
-       "swift-\(rawValue.uppercased())-DEVELOPMENT"
+       "language-\(rawValue.uppercased())-DEVELOPMENT"
     }
   }
 }

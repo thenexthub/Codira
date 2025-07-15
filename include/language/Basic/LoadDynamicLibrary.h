@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_LOADDYNAMICLIBRARY_H
-#define SWIFT_BASIC_LOADDYNAMICLIBRARY_H
+#ifndef LANGUAGE_BASIC_LOADDYNAMICLIBRARY_H
+#define LANGUAGE_BASIC_LOADDYNAMICLIBRARY_H
 
 #include <string>
 
@@ -23,4 +24,4 @@ void *loadLibrary(const char *path, std::string *err);
 void *getAddressOfSymbol(void *handle, const char *symbol);
 } // end namespace language
 
-#endif // SWIFT_BASIC_LOADDYNAMICLIBRARY_H
+#endif // LANGUAGE_BASIC_LOADDYNAMICLIBRARY_H

@@ -1,4 +1,0 @@
-BasedOnStyle: LLVM
-SortIncludes: false
-BinPackParameters: false
-IndentWidth: 2

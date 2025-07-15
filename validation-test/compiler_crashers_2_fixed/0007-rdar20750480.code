@@ -1,0 +1,15 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+protocol X {
+    typealias R
+}
+
+extension Array : X {
+}
+
+immutable xs = [1,2,3]
+
+fn z<A: X>(A) {
+}
+
+immutable ys = z(xs)

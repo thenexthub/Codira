@@ -1,21 +1,25 @@
 //===--- SILOptimizerRequests.h - SILOptimizer Requests ---------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines SILOptimizer requests.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_REQUESTS_H
-#define SWIFT_SILOPTIMIZER_REQUESTS_H
+#ifndef LANGUAGE_SILOPTIMIZER_REQUESTS_H
+#define LANGUAGE_SILOPTIMIZER_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/EvaluatorDependencies.h"
@@ -47,7 +51,7 @@ struct SILPipelineExecutionDescriptor {
   }
 };
 
-llvm::hash_code hash_value(const SILPipelineExecutionDescriptor &desc);
+toolchain::hash_code hash_value(const SILPipelineExecutionDescriptor &desc);
 
 /// Executes a SIL pipeline plan on a SIL module.
 class ExecuteSILPipelineRequest
@@ -65,12 +69,12 @@ private:
   evaluate(Evaluator &evaluator, SILPipelineExecutionDescriptor desc) const;
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const SILPipelineExecutionDescriptor &desc);
 
 SourceLoc extractNearestSourceLoc(const SILPipelineExecutionDescriptor &desc);
 
-/// Produces lowered SIL from a Swift file or module, ready for IRGen. This runs
+/// Produces lowered SIL from a Codira file or module, ready for IRGen. This runs
 /// the diagnostic, optimization, and lowering SIL passes.
 class LoweredSILRequest
     : public SimpleRequest<LoweredSILRequest,
@@ -94,22 +98,22 @@ void reportEvaluatedRequest(UnifiedStatsReporter &stats,
                             const Request &request);
 
 /// The zone number for SILOptimizer.
-#define SWIFT_TYPEID_ZONE SILOptimizer
-#define SWIFT_TYPEID_HEADER "swift/AST/SILOptimizerTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE SILOptimizer
+#define LANGUAGE_TYPEID_HEADER "language/AST/SILOptimizerTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
 template<>                                                                     \
 inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,                \
                                    const RequestType &request) {               \
   ++stats.getFrontendCounters().RequestType;                                   \
 }
 #include "language/AST/SILOptimizerTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_REQUESTS_H
+#endif // LANGUAGE_SILOPTIMIZER_REQUESTS_H

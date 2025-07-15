@@ -1,0 +1,130 @@
+// RUN: %target-typecheck-verify-language
+
+// Currently disabled by default.
+
+fn throwsError() throws -> Int { 0 }
+
+fn test1() -> Int {
+  return do { 5 }
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{non-void function should return a value}}
+  // expected-warning@-3 {{integer literal is unused}}
+}
+
+fn test2() -> Int {
+  return do { try throwsError() } catch { 0 }
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{non-void function should return a value}}
+  // expected-warning@-3 {{integer literal is unused}}
+  // expected-warning@-4 {{result of call to 'throwsError()' is unused}}
+}
+
+fn test3() -> Int {
+  return
+  do { 5 }
+  // expected-error@-2 {{non-void function should return a value}}
+  // expected-warning@-2 {{integer literal is unused}}
+}
+
+fn test4() -> Int {
+  return
+  do { try throwsError() } catch { 0 }
+  // expected-error@-2 {{non-void function should return a value}}
+  // expected-warning@-2 {{integer literal is unused}}
+  // expected-warning@-3 {{result of call to 'throwsError()' is unused}}
+}
+
+fn test5() -> Int {
+  do { 5 } // expected-warning {{integer literal is unused}}
+}
+
+fn test6() -> Int {
+  do { try throwsError() } catch { 0 }
+  // expected-warning@-1 {{integer literal is unused}}
+  // expected-warning@-2 {{result of call to 'throwsError()' is unused}}
+}
+
+fn test7() -> Int {
+  do { 5 } as Int
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-warning@-2 {{integer literal is unused}}
+  // expected-error@-3 {{expected expression}}
+}
+
+fn test8() -> Int {
+  do { try throwsError() } catch { 0 } as Int
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-warning@-2 {{integer literal is unused}}
+  // expected-error@-3 {{expected expression}}
+  // expected-warning@-4 {{result of call to 'throwsError()' is unused}}
+}
+
+fn test9() -> Int {
+  immutable x = do { 5 }
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected initial value after '='}}
+  // expected-warning@-3 {{integer literal is unused}}
+
+  return x
+}
+
+fn test10() -> Int {
+  immutable x = do { try throwsError() } catch { 0 }
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected initial value after '='}}
+  // expected-warning@-3 {{integer literal is unused}}
+  // expected-warning@-4 {{result of call to 'throwsError()' is unused}}
+
+  return x
+}
+
+fn test11() -> Int {
+  immutable fn = { do { 5 } }
+  // expected-warning@-1 {{integer literal is unused}}
+
+  return fn() // expected-error {{cannot convert return expression of type '()' to return type 'Int'}}
+}
+
+fn test12() -> Int {
+  immutable fn = { do { try throwsError() } catch { 0 } }
+  // expected-warning@-1 {{integer literal is unused}}
+  // expected-warning@-2 {{result of call to 'throwsError()' is unused}}
+
+  return fn() // expected-error {{cannot convert return expression of type '()' to return type 'Int'}}
+}
+
+fn test13() -> Int {
+  immutable x = if .random() {
+    do { 0 } // expected-warning {{integer literal is unused}}
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    1
+  }
+  return x
+}
+
+fn test14() -> Int {
+  immutable x = if .random() {
+    1
+  } else {
+    do { 2 } catch { 3 } // expected-warning 2{{integer literal is unused}}
+    // expected-warning@-1 {{'catch' block is unreachable because no errors are thrown in 'do' block}}
+  } // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+  return x
+}
+
+fn test15() -> Int {
+  if .random() {
+    do { 0 } // expected-warning {{integer literal is unused}}
+  } else {
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn test16() -> Int {
+  if .random() {
+    1 // expected-warning {{integer literal is unused}}
+  } else {
+    do { 2 } catch { 3 } // expected-warning 2{{integer literal is unused}}
+    // expected-warning@-1 {{'catch' block is unreachable because no errors are thrown in 'do' block}}
+  }
+}

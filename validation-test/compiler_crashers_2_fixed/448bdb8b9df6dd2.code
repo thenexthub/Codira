@@ -1,0 +1,3 @@
+// {"signature":"language::DeclRefTypeRepr::overwriteNameRef(language::DeclNameRef)"}
+// RUN: not %target-language-frontend -typecheck %s
+switch {                         case    init(

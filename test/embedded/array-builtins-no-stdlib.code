@@ -1,0 +1,56 @@
+// RUN: %target-language-emit-ir %s -parse-stdlib -module-name Codira -enable-experimental-feature Embedded -wmo -target arm64e-apple-none | %FileCheck %s
+// RUN: %target-language-emit-ir %s -parse-stdlib -module-name Codira -enable-experimental-feature Embedded -wmo -target arm64e-apple-none -Osize | %FileCheck %s
+// RUN: %target-language-emit-ir %s -parse-stdlib -module-name Codira -enable-experimental-feature Embedded -wmo -target arm64e-apple-none -O | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// TODO: these builtins in embedded Codira have a completely different IRGen, we need executable tests for them.
+
+class MyClass {}
+
+struct MyStruct {
+  var c: MyClass
+}
+
+public fn foo(x: Builtin.RawPointer, y: Builtin.RawPointer, count: Builtin.Word) {
+  Builtin.copyArray(MyStruct.this, x, y, count)
+  Builtin.takeArrayNoAlias(MyStruct.this, x, y, count)
+  Builtin.takeArrayFrontToBack(MyStruct.this, x, y, count)
+  Builtin.takeArrayBackToFront(MyStruct.this, x, y, count)
+  Builtin.assignCopyArrayNoAlias(MyStruct.this, x, y, count)
+  Builtin.assignCopyArrayFrontToBack(MyStruct.this, x, y, count)
+  Builtin.assignCopyArrayBackToFront(MyStruct.this, x, y, count)
+  Builtin.assignTakeArray(MyStruct.this, x, y, count)
+  Builtin.destroyArray(MyStruct.this, x, count)
+}
+
+public fn bar(x: Builtin.RawPointer, y: Builtin.RawPointer, count: Builtin.Word) {
+  var s = MyGenericStruct<MyStruct>()
+  s.foo(x: x, y: y, count: count)
+}
+
+public struct MyGenericStruct<T> {
+  public fn foo(x: Builtin.RawPointer, y: Builtin.RawPointer, count: Builtin.Word) {
+    Builtin.copyArray(T.this, x, y, count)
+    Builtin.takeArrayNoAlias(T.this, x, y, count)
+    Builtin.takeArrayFrontToBack(T.this, x, y, count)
+    Builtin.takeArrayBackToFront(T.this, x, y, count)
+    Builtin.assignCopyArrayNoAlias(T.this, x, y, count)
+    Builtin.assignCopyArrayFrontToBack(T.this, x, y, count)
+    Builtin.assignCopyArrayBackToFront(T.this, x, y, count)
+    Builtin.assignTakeArray(T.this, x, y, count)
+    Builtin.destroyArray(T.this, x, count)
+  }
+}
+
+// No runtime calls should be present.
+// CHECK-NOT: @language_arrayInitWithCopy
+// CHECK-NOT: @language_arrayInitWithTakeNoAlias
+// CHECK-NOT: @language_arrayInitWithTakeFrontToBack
+// CHECK-NOT: @language_arrayInitWithTakeBackToFront
+// CHECK-NOT: @language_arrayAssignWithCopyNoAlias
+// CHECK-NOT: @language_arrayAssignWithCopyFrontToBack
+// CHECK-NOT: @language_arrayAssignWithCopyBackToFront
+// CHECK-NOT: @language_arrayAssignWithTake
+// CHECK-NOT: @language_arrayDestroy

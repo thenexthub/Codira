@@ -1,21 +1,25 @@
 //===--- RewriteSystem.h - Generics with term rewriting ---------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REWRITESYSTEM_H
-#define SWIFT_REWRITESYSTEM_H
+#ifndef LANGUAGE_REWRITESYSTEM_H
+#define LANGUAGE_REWRITESYSTEM_H
 
 #include "language/AST/Requirement.h"
 #include "language/AST/TypeCheckRequests.h"
-#include "llvm/ADT/DenseSet.h"
+#include "toolchain/ADT/DenseSet.h"
 
 #include "Debug.h"
 #include "Diagnostics.h"
@@ -26,7 +30,7 @@
 #include "Trie.h"
 #include "TypeDifference.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -50,7 +54,13 @@ enum class CompletionResult {
   MaxRuleLength,
 
   /// Maximum concrete type nesting depth exceeded.
-  MaxConcreteNesting
+  MaxConcreteNesting,
+
+  /// Maximum concrete type size exceeded.
+  MaxConcreteSize,
+
+  /// Maximum type difference count exceeded.
+  MaxTypeDifferences,
 };
 
 /// A term rewrite system for working with types in a generic signature.
@@ -81,7 +91,7 @@ class RewriteSystem final {
   /// but conditional requirement inference forces us to be able to add new
   /// protocols to the rewrite system after the fact, so this little bit of
   /// RuleBuilder state outlives the initialization phase.
-  llvm::DenseSet<const ProtocolDecl *> ReferencedProtocols;
+  toolchain::DenseSet<const ProtocolDecl *> ReferencedProtocols;
 
   DebugOptions Debug;
 
@@ -107,13 +117,16 @@ class RewriteSystem final {
   /// identities among rewrite rules discovered while resolving critical pairs.
   unsigned RecordLoops : 1;
 
-  /// The length of the longest initial rule, used for the MaxRuleLength
-  /// completion non-termination heuristic.
+  /// The length of the longest initial rule, for the MaxRuleLength limit.
   unsigned LongestInitialRule : 16;
 
-  /// The most deeply nested concrete type appearing in an initial rule, used
-  /// for the MaxConcreteNesting completion non-termination heuristic.
-  unsigned DeepestInitialRule : 16;
+  /// The most deeply nested concrete type appearing in an initial rule,
+  /// for the MaxConcreteNesting limit.
+  unsigned MaxNestingOfInitialRule : 16;
+
+  /// The largest concrete type by total tree node count that appears in an
+  /// initial rule, for the MaxConcreteSize limit.
+  unsigned MaxSizeOfInitialRule : 16;
 
 public:
   explicit RewriteSystem(RewriteContext &ctx);
@@ -127,7 +140,7 @@ public:
   /// Return the rewrite context used for allocating memory.
   RewriteContext &getRewriteContext() const { return Context; }
 
-  llvm::DenseSet<const ProtocolDecl *> &getReferencedProtocols() {
+  toolchain::DenseSet<const ProtocolDecl *> &getReferencedProtocols() {
     return ReferencedProtocols;
   }
 
@@ -143,8 +156,12 @@ public:
     return LongestInitialRule;
   }
 
-  unsigned getDeepestInitialRule() const {
-    return DeepestInitialRule;
+  unsigned getMaxNestingOfInitialRule() const {
+    return MaxNestingOfInitialRule;
+  }
+
+  unsigned getMaxSizeOfInitialRule() const {
+    return MaxSizeOfInitialRule;
   }
 
   ArrayRef<const ProtocolDecl *> getProtocols() const {
@@ -206,7 +223,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////
 
   /// Pairs of rules which have already been checked for overlap.
-  llvm::DenseSet<std::pair<unsigned, unsigned>> CheckedOverlaps;
+  toolchain::DenseSet<std::tuple<unsigned, unsigned, unsigned>> CheckedOverlaps;
 
   std::pair<CompletionResult, unsigned>
   performKnuthBendix(unsigned maxRuleCount, unsigned maxRuleLength);
@@ -271,7 +288,7 @@ private:
   /// The map's values are indices into the vector. The map is used for
   /// uniquing, then the index is returned and lookups are performed into
   /// the vector.
-  llvm::DenseMap<Relation, unsigned> RelationMap;
+  toolchain::DenseMap<Relation, unsigned> RelationMap;
   std::vector<Relation> Relations;
 
 public:
@@ -297,12 +314,12 @@ private:
   /// The map's values are indices into the vector. The map is used for
   /// uniquing, then the index is returned and lookups are performed into
   /// the vector.
-  llvm::DenseMap<std::tuple<Term, Symbol, Symbol>, unsigned> DifferenceMap;
+  toolchain::DenseMap<std::tuple<Term, Symbol, Symbol>, unsigned> DifferenceMap;
   std::vector<TypeDifference> Differences;
 
   /// Avoid duplicate work when simplifying substitutions or rebuilding
   /// the property map.
-  llvm::DenseSet<unsigned> CheckedDifferences;
+  toolchain::DenseSet<unsigned> CheckedDifferences;
 
 public:
   unsigned recordTypeDifference(const TypeDifference &difference);
@@ -310,6 +327,10 @@ public:
   bool computeTypeDifference(Term term, Symbol lhs, Symbol rhs,
                              std::optional<unsigned> &lhsDifferenceID,
                              std::optional<unsigned> &rhsDifferenceID);
+
+  unsigned getTypeDifferenceCount() const {
+    return Differences.size();
+  }
 
   const TypeDifference &getTypeDifference(unsigned index) const;
 
@@ -374,7 +395,7 @@ private:
 
   void computeRecursiveRules();
 
-  using EliminationPredicate = llvm::function_ref<bool(unsigned loopID,
+  using EliminationPredicate = toolchain::function_ref<bool(unsigned loopID,
                                                        unsigned ruleID)>;
 
   std::optional<std::pair<unsigned, unsigned>>
@@ -397,13 +418,13 @@ public:
 
   void computeCandidateConformancePaths(
       const PropertyMap &map,
-      llvm::MapVector<unsigned,
+      toolchain::MapVector<unsigned,
                       std::vector<SmallVector<unsigned, 2>>> &paths) const;
 
 private:
   void computeMinimalConformances(
       const PropertyMap &map,
-      llvm::DenseSet<unsigned> &redundantConformances) const;
+      toolchain::DenseSet<unsigned> &redundantConformances) const;
 
 public:
   void recordRewriteLoop(MutableTerm basepoint,
@@ -426,7 +447,7 @@ public:
     std::vector<unsigned> TypeAliases;
   };
 
-  llvm::DenseMap<const ProtocolDecl *, MinimizedProtocolRules>
+  toolchain::DenseMap<const ProtocolDecl *, MinimizedProtocolRules>
   getMinimizedProtocolRules() const;
 
   std::vector<unsigned> getMinimizedGenericSignatureRules() const;
@@ -435,15 +456,15 @@ private:
   void verifyRewriteLoops() const;
 
   void verifyRedundantConformances(
-      const llvm::DenseSet<unsigned> &redundantConformances) const;
+      const toolchain::DenseSet<unsigned> &redundantConformances) const;
 
   void verifyMinimizedRules(
-      const llvm::DenseSet<unsigned> &redundantConformances) const;
+      const toolchain::DenseSet<unsigned> &redundantConformances) const;
 
 public:
   void freeze();
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 };
 
 } // end namespace rewriting

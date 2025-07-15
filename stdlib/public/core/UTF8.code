@@ -1,4 +1,4 @@
-//===--- UTF8.swift -------------------------------------------------------===//
+//===--- UTF8.code -------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
   public enum UTF8: Sendable {
-  case _swift3Buffer(Unicode.UTF8.ForwardParser)
+  case _language3Buffer(Unicode.UTF8.ForwardParser)
   }
 }
 
@@ -28,13 +29,13 @@ extension Unicode.UTF8 {
   /// to 4 code units. The first code unit is designated a *lead* byte and the
   /// rest are *continuation* bytes.
   ///
-  ///     let anA: Unicode.Scalar = "A"
+  ///     immutable anA: Unicode.Scalar = "A"
   ///     print(anA.value)
   ///     // Prints "65"
   ///     print(UTF8.width(anA))
   ///     // Prints "1"
   ///
-  ///     let anApple: Unicode.Scalar = "🍎"
+  ///     immutable anApple: Unicode.Scalar = "🍎"
   ///     print(anApple.value)
   ///     // Prints "127822"
   ///     print(UTF8.width(anApple))
@@ -43,7 +44,7 @@ extension Unicode.UTF8 {
   /// - Parameter x: A Unicode scalar value.
   /// - Returns: The width of `x` when encoded in UTF-8, from `1` to `4`.
   @_alwaysEmitIntoClient
-  public static func width(_ x: Unicode.Scalar) -> Int {
+  public static fn width(_ x: Unicode.Scalar) -> Int {
     switch x.value {
       case 0..<0x80: return 1
       case 0x80..<0x0800: return 2
@@ -64,37 +65,37 @@ extension Unicode.UTF8: _UnicodeEncoding {
 
   @inline(__always)
   @inlinable
-  public static func _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Bool {
     return isASCII(x)
   }
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
   @inline(__always)
-  public static func isASCII(_ x: CodeUnit) -> Bool {
+  public static fn isASCII(_ x: CodeUnit) -> Bool {
     return x & 0b1000_0000 == 0
   }
 
   @inline(__always)
   @inlinable
-  public static func decode(_ source: EncodedScalar) -> Unicode.Scalar {
+  public static fn decode(_ source: EncodedScalar) -> Unicode.Scalar {
     switch source.count {
     case 1:
       return Unicode.Scalar(_unchecked: source._biasedBits &- 0x01)
     case 2:
-      let bits = source._biasedBits &- 0x0101
+      immutable bits = source._biasedBits &- 0x0101
       var value = (bits & 0b0_______________________11_1111__0000_0000) &>> 8
       value    |= (bits & 0b0________________________________0001_1111) &<< 6
       return Unicode.Scalar(_unchecked: value)
     case 3:
-      let bits = source._biasedBits &- 0x010101
+      immutable bits = source._biasedBits &- 0x010101
       var value = (bits & 0b0____________11_1111__0000_0000__0000_0000) &>> 16
       value    |= (bits & 0b0_______________________11_1111__0000_0000) &>> 2
       value    |= (bits & 0b0________________________________0000_1111) &<< 12
       return Unicode.Scalar(_unchecked: value)
     default:
       _internalInvariant(source.count == 4)
-      let bits = source._biasedBits &- 0x01010101
+      immutable bits = source._biasedBits &- 0x01010101
       var value = (bits & 0b0_11_1111__0000_0000__0000_0000__0000_0000) &>> 24
       value    |= (bits & 0b0____________11_1111__0000_0000__0000_0000) &>> 10
       value    |= (bits & 0b0_______________________11_1111__0000_0000) &<< 4
@@ -105,7 +106,7 @@ extension Unicode.UTF8: _UnicodeEncoding {
 
   @inline(__always)
   @inlinable
-  public static func encode(
+  public static fn encode(
     _ source: Unicode.Scalar
   ) -> EncodedScalar? {
     var c = source.value
@@ -134,11 +135,11 @@ extension Unicode.UTF8: _UnicodeEncoding {
 
   @inlinable
   @inline(__always)
-  public static func transcode<FromEncoding: _UnicodeEncoding>(
+  public static fn transcode<FromEncoding: _UnicodeEncoding>(
     _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
   ) -> EncodedScalar? {
-    if _fastPath(FromEncoding.self == UTF16.self) {
-      let c = _identityCast(content, to: UTF16.EncodedScalar.self)
+    if _fastPath(FromEncoding.this == UTF16.this) {
+      immutable c = _identityCast(content, to: UTF16.EncodedScalar.this)
       var u0 = UInt16(truncatingIfNeeded: c._storage)
       if _fastPath(u0 < 0x80) {
         return EncodedScalar(_containing: UInt8(truncatingIfNeeded: u0))
@@ -158,8 +159,8 @@ extension Unicode.UTF8: _UnicodeEncoding {
           _biasedBits: (UInt32(u0) | r) &+ 0b0__1000_0001__1000_0001__1110_0001)
       }
     }
-    else if _fastPath(FromEncoding.self == UTF8.self) {
-      return _identityCast(content, to: UTF8.EncodedScalar.self)
+    else if _fastPath(FromEncoding.this == UTF8.this) {
+      return _identityCast(content, to: UTF8.EncodedScalar.this)
     }
     return encode(FromEncoding.decode(content))
   }
@@ -191,19 +192,19 @@ extension UTF8.ReverseParser: Unicode.Parser, _UTFParser {
   public typealias Encoding = Unicode.UTF8
   @inline(__always)
   @inlinable
-  public func _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
     _internalInvariant(_buffer._storage & 0x80 != 0) // this case handled elsewhere
     if _buffer._storage                & 0b0__1110_0000__1100_0000
                                       == 0b0__1100_0000__1000_0000 {
       // 2-byte sequence.  Top 4 bits of decoded result must be nonzero
-      let top4Bits =  _buffer._storage & 0b0__0001_1110__0000_0000
+      immutable top4Bits =  _buffer._storage & 0b0__0001_1110__0000_0000
       if _fastPath(top4Bits != 0) { return (true, 2*8) }
     }
     else if _buffer._storage     & 0b0__1111_0000__1100_0000__1100_0000
                                 == 0b0__1110_0000__1000_0000__1000_0000 {
       // 3-byte sequence. The top 5 bits of the decoded result must be nonzero
       // and not a surrogate
-      let top5Bits = _buffer._storage & 0b0__1111__0010_0000__0000_0000
+      immutable top5Bits = _buffer._storage & 0b0__1111__0010_0000__0000_0000
       if _fastPath(
         top5Bits != 0 &&    top5Bits != 0b0__1101__0010_0000__0000_0000) {
         return (true, 3*8)
@@ -212,7 +213,7 @@ extension UTF8.ReverseParser: Unicode.Parser, _UTFParser {
     else if _buffer._storage & 0b0__1111_1000__1100_0000__1100_0000__1100_0000
                             == 0b0__1111_0000__1000_0000__1000_0000__1000_0000 {
       // Make sure the top 5 bits of the decoded result would be in range
-      let top5bits = _buffer._storage
+      immutable top5bits = _buffer._storage
                                   & 0b0__0111__0011_0000__0000_0000__0000_0000
       if _fastPath(
         top5bits != 0
@@ -226,12 +227,12 @@ extension UTF8.ReverseParser: Unicode.Parser, _UTFParser {
   /// buffer.
   @inline(never)
   @usableFromInline
-  internal func _invalidLength() -> UInt8 {
+  internal fn _invalidLength() -> UInt8 {
     if _buffer._storage                 & 0b0__1111_0000__1100_0000
                                        == 0b0__1110_0000__1000_0000 {
       // 2-byte prefix of 3-byte sequence. The top 5 bits of the decoded result
       // must be nonzero and not a surrogate
-      let top5Bits = _buffer._storage        & 0b0__1111__0010_0000
+      immutable top5Bits = _buffer._storage        & 0b0__1111__0010_0000
       if top5Bits != 0 &&          top5Bits != 0b0__1101__0010_0000 { return 2 }
     }
     else if _buffer._storage               & 0b1111_1000__1100_0000
@@ -239,14 +240,14 @@ extension UTF8.ReverseParser: Unicode.Parser, _UTFParser {
     {
       // 2-byte prefix of 4-byte sequence
       // Make sure the top 5 bits of the decoded result would be in range
-      let top5bits =        _buffer._storage & 0b0__0111__0011_0000
+      immutable top5bits =        _buffer._storage & 0b0__0111__0011_0000
       if top5bits != 0 &&          top5bits <= 0b0__0100__0000_0000 { return 2 }
     }
     else if _buffer._storage & 0b0__1111_1000__1100_0000__1100_0000
                             == 0b0__1111_0000__1000_0000__1000_0000 {
       // 3-byte prefix of 4-byte sequence
       // Make sure the top 5 bits of the decoded result would be in range
-      let top5bits = _buffer._storage & 0b0__0111__0011_0000__0000_0000
+      immutable top5bits = _buffer._storage & 0b0__0111__0011_0000__0000_0000
       if top5bits != 0 &&   top5bits <= 0b0__0100__0000_0000__0000_0000 {
         return 3
       }
@@ -256,9 +257,9 @@ extension UTF8.ReverseParser: Unicode.Parser, _UTFParser {
 
   @inline(__always)
   @inlinable
-  public func _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
-    let x = UInt32(truncatingIfNeeded: _buffer._storage.byteSwapped)
-    let shift = 32 &- bitCount
+  public fn _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
+    immutable x = UInt32(truncatingIfNeeded: _buffer._storage.byteSwapped)
+    immutable shift = 32 &- bitCount
     return Encoding.EncodedScalar(_biasedBits: (x &+ 0x01010101) &>> shift)
   }
 }
@@ -268,7 +269,7 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
 
   @inline(__always)
   @inlinable
-  public func _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
     _internalInvariant(_buffer._storage & 0x80 != 0) // this case handled elsewhere
 
     if _buffer._storage & 0b0__1100_0000__1110_0000
@@ -281,7 +282,7 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
                                     == 0b0__1000_0000__1000_0000__1110_0000 {
       // 3-byte sequence. The top 5 bits of the decoded result must be nonzero
       // and not a surrogate
-      let top5Bits =          _buffer._storage & 0b0___0010_0000__0000_1111
+      immutable top5Bits =          _buffer._storage & 0b0___0010_0000__0000_1111
       if _fastPath(top5Bits != 0 && top5Bits != 0b0___0010_0000__0000_1101) {
         return (true, 3*8)
       }
@@ -290,7 +291,7 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
                             == 0b0__1000_0000__1000_0000__1000_0000__1111_0000 {
       // 4-byte sequence.  The top 5 bits of the decoded result must be nonzero
       // and no greater than 0b0__0100_0000
-      let top5bits = UInt16(_buffer._storage       & 0b0__0011_0000__0000_0111)
+      immutable top5bits = UInt16(_buffer._storage       & 0b0__0011_0000__0000_0111)
       if _fastPath(
         top5bits != 0
         && top5bits.byteSwapped                   <= 0b0__0000_0100__0000_0000
@@ -303,12 +304,12 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
   /// buffer.
   @inline(never)
   @usableFromInline
-  internal func _invalidLength() -> UInt8 {
+  internal fn _invalidLength() -> UInt8 {
     if _buffer._storage               & 0b0__1100_0000__1111_0000
                                      == 0b0__1000_0000__1110_0000 {
       // 2-byte prefix of 3-byte sequence. The top 5 bits of the decoded result
       // must be nonzero and not a surrogate
-      let top5Bits = _buffer._storage & 0b0__0010_0000__0000_1111
+      immutable top5Bits = _buffer._storage & 0b0__0010_0000__0000_1111
       if top5Bits != 0 && top5Bits   != 0b0__0010_0000__0000_1101 { return 2 }
     }
     else if _buffer._storage                & 0b0__1100_0000__1111_1000
@@ -316,7 +317,7 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
     {
       // Prefix of 4-byte sequence. The top 5 bits of the decoded result
       // must be nonzero and no greater than 0b0__0100_0000
-      let top5bits = UInt16(_buffer._storage & 0b0__0011_0000__0000_0111)
+      immutable top5bits = UInt16(_buffer._storage & 0b0__0011_0000__0000_0111)
       if top5bits != 0 && top5bits.byteSwapped <= 0b0__0000_0100__0000_0000 {
         return _buffer._storage   & 0b0__1100_0000__0000_0000__0000_0000
                                  == 0b0__1000_0000__0000_0000__0000_0000 ? 3 : 2
@@ -326,8 +327,8 @@ extension Unicode.UTF8.ForwardParser: Unicode.Parser, _UTFParser {
   }
 
   @inlinable
-  public func _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
-    let x = UInt32(_buffer._storage) &+ 0x01010101
+  public fn _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
+    immutable x = UInt32(_buffer._storage) &+ 0x01010101
     return _ValidUTF8Buffer(_biasedBits: x & ._lowBits(bitCount))
   }
 }

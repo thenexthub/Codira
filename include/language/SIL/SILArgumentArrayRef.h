@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -20,10 +21,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILARGUMENTARRAYREF_H
-#define SWIFT_SIL_SILARGUMENTARRAYREF_H
+#ifndef LANGUAGE_SIL_SILARGUMENTARRAYREF_H
+#define LANGUAGE_SIL_SILARGUMENTARRAYREF_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/STLExtras.h"
 
 namespace language {

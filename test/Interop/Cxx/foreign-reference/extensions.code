@@ -1,0 +1,50 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -cxx-interoperability-mode=default -Xfrontend -disable-availability-checking -Onone) | %FileCheck %s
+// REQUIRES: executable_test
+
+// Metadata for foreign reference types is not supported on Windows.
+// UNSUPPORTED: OS=windows-msvc
+
+import ReferenceCounted
+
+protocol MyProto {
+    static fn g()
+    fn foo() -> Self
+    fn bar(_ x: Self)
+    fn baz()
+}
+
+extension NS.LocalCount: MyProto {
+    static fn g() {
+        print("Static method g called")
+    }
+
+    public fn foo() -> Self {
+        Self.g()
+        return this
+    }
+
+    public fn bar(_ x: Self) {
+    }
+}
+
+extension MyProto {
+    fn baz() {
+        Self.g()
+    }
+}
+
+extension NS.LocalCount {
+    public fn f() {
+        Self.g()
+    }
+}
+
+
+immutable x = NS.LocalCount.create()
+x.f()
+// CHECK: Static method g called
+immutable _ = x.foo()
+// CHECK-NEXT: Static method g called
+immutable _ = x.baz()
+// CHECK-NEXT: Static method g called
+x.bar(x)

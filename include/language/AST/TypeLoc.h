@@ -1,4 +1,4 @@
-//===--- TypeLoc.h - Swift Language Type Locations --------------*- C++ -*-===//
+//===--- TypeLoc.h - Codira Language Type Locations --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the TypeLoc struct and related structs.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPELOC_H
-#define SWIFT_TYPELOC_H
+#ifndef LANGUAGE_TYPELOC_H
+#define LANGUAGE_TYPELOC_H
 
 #include "language/Basic/SourceLoc.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeAlignments.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 namespace language {
 
@@ -67,8 +68,8 @@ public:
 
   void setType(Type Ty);
 
-  friend llvm::hash_code hash_value(const TypeLoc &owner) {
-    return llvm::hash_combine(owner.Ty.getPointer(), owner.TyR);
+  friend toolchain::hash_code hash_value(const TypeLoc &owner) {
+    return toolchain::hash_combine(owner.Ty.getPointer(), owner.TyR);
   }
 
   friend bool operator==(const TypeLoc &lhs,
@@ -83,6 +84,6 @@ public:
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

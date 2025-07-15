@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPEWALKER_H
-#define SWIFT_AST_TYPEWALKER_H
+#ifndef LANGUAGE_AST_TYPEWALKER_H
+#define LANGUAGE_AST_TYPEWALKER_H
 
 #include "language/AST/Type.h"
 

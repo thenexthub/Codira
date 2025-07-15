@@ -1,4 +1,4 @@
-//===--- AvailabilityDomain.h - Swift Availability Domains ------*- C++ -*-===//
+//===--- AvailabilityDomain.h - Codira Availability Domains ------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the AvailabilityDomain class, which represents a domain
@@ -18,28 +19,29 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AVAILABILITY_DOMAIN_H
-#define SWIFT_AST_AVAILABILITY_DOMAIN_H
+#ifndef LANGUAGE_AST_AVAILABILITY_DOMAIN_H
+#define LANGUAGE_AST_AVAILABILITY_DOMAIN_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/AvailabilityRange.h"
 #include "language/AST/Identifier.h"
-#include "language/AST/PlatformKind.h"
+#include "language/AST/PlatformKindUtils.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/PointerEmbeddedInt.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 namespace language {
 class ASTContext;
 class CustomAvailabilityDomain;
 class Decl;
 class DeclContext;
+class FuncDecl;
 class ModuleDecl;
 
-/// Represents a dimension of availability (e.g. macOS platform or Swift
+/// Represents a dimension of availability (e.g. macOS platform or Codira
 /// language mode).
 class AvailabilityDomain final {
 public:
@@ -48,13 +50,13 @@ public:
     /// universally unavailable or deprecated, for example.
     Universal,
 
-    /// Represents availability with respect to Swift language mode.
-    SwiftLanguage,
+    /// Represents availability with respect to Codira language mode.
+    CodiraLanguage,
 
     /// Represents PackageDescription availability.
     PackageDescription,
 
-    /// Represents Embedded Swift availability.
+    /// Represents Embedded Codira availability.
     Embedded,
 
     /// Represents availability for a specific operating system platform.
@@ -66,8 +68,8 @@ public:
   };
 
 private:
-  friend struct llvm::PointerLikeTypeTraits<AvailabilityDomain>;
-  friend struct llvm::DenseMapInfo<AvailabilityDomain>;
+  friend struct toolchain::PointerLikeTypeTraits<AvailabilityDomain>;
+  friend struct toolchain::DenseMapInfo<AvailabilityDomain>;
 
   /// For a subset of domain kinds, all the information needed to represent the
   /// domain can be encapsulated inline in this class.
@@ -102,9 +104,9 @@ private:
   };
 
   using InlineDomainPtr =
-      llvm::PointerEmbeddedInt<uint32_t, InlineDomain::ReprBits>;
+      toolchain::PointerEmbeddedInt<uint32_t, InlineDomain::ReprBits>;
   using Storage =
-      llvm::PointerUnion<const CustomAvailabilityDomain *, InlineDomainPtr>;
+      toolchain::PointerUnion<const CustomAvailabilityDomain *, InlineDomainPtr>;
   Storage storage;
 
   AvailabilityDomain(Kind kind)
@@ -140,8 +142,8 @@ public:
     return AvailabilityDomain(platformKind);
   }
 
-  static AvailabilityDomain forSwiftLanguage() {
-    return AvailabilityDomain(Kind::SwiftLanguage);
+  static AvailabilityDomain forCodiraLanguage() {
+    return AvailabilityDomain(Kind::CodiraLanguage);
   }
 
   static AvailabilityDomain forPackageDescription() {
@@ -182,7 +184,7 @@ public:
 
   bool isPlatform() const { return getKind() == Kind::Platform; }
 
-  bool isSwiftLanguage() const { return getKind() == Kind::SwiftLanguage; }
+  bool isCodiraLanguage() const { return getKind() == Kind::CodiraLanguage; }
 
   bool isPackageDescription() const {
     return getKind() == Kind::PackageDescription;
@@ -212,10 +214,14 @@ public:
   /// version ranges.
   bool isVersioned() const;
 
+  /// Returns true if the given version is a valid version number for this
+  /// domain. It is an error to call this on an un-versioned domain.
+  bool isVersionValid(const toolchain::VersionTuple &version) const;
+
   /// Returns true if availability of the domain can be refined using
   /// `@available` attributes and `if #available` queries. If not, then the
   /// domain's availability is fixed by compilation settings. For example,
-  /// macOS platform availability supports contextual refinement, whereas Swift
+  /// macOS platform availability supports contextual refinement, whereas Codira
   /// language availability does not.
   bool supportsContextRefinement() const;
 
@@ -232,18 +238,18 @@ public:
 
   /// Returns the domain's minimum available range for type checking. For
   /// example, for the domain of the platform that compilation is targeting,
-  /// this version is specified with the `-target` option. For the Swift
-  /// language domain, it is specified with the `-swift-version` option. Returns
+  /// this version is specified with the `-target` option. For the Codira
+  /// language domain, it is specified with the `-language-version` option. Returns
   /// `std::nullopt` for domains which have don't have a "deployment target".
   std::optional<AvailabilityRange>
   getDeploymentRange(const ASTContext &ctx) const;
 
   /// Returns the string to use in diagnostics to identify the domain. May
   /// return an empty string.
-  llvm::StringRef getNameForDiagnostics() const;
+  toolchain::StringRef getNameForDiagnostics() const;
 
   /// Returns the string to use when printing an `@available` attribute.
-  llvm::StringRef getNameForAttributePrinting() const;
+  toolchain::StringRef getNameForAttributePrinting() const;
 
   /// Returns the decl that represents the domain, or `nullptr` if the domain
   /// does not have a decl.
@@ -266,6 +272,20 @@ public:
   /// descendants of the iOS domain.
   AvailabilityDomain getRootDomain() const;
 
+  /// Returns the canonical domain that versions in this domain must be remapped
+  /// to before making availability comparisons in the current compilation
+  /// context. Sets \p didRemap to `true` if a remap was required.
+  const AvailabilityDomain getRemappedDomain(const ASTContext &ctx,
+                                             bool &didRemap) const;
+
+  /// Returns the canonical domain that versions in this domain must be remapped
+  /// to before making availability comparisons in the current compilation
+  /// context.
+  const AvailabilityDomain getRemappedDomain(const ASTContext &ctx) const {
+    bool unused;
+    return getRemappedDomain(ctx, unused);
+  }
+
   bool operator==(const AvailabilityDomain &other) const {
     return storage.getOpaqueValue() == other.storage.getOpaqueValue();
   }
@@ -279,11 +299,11 @@ public:
     return lhs.storage.getOpaqueValue() < rhs.storage.getOpaqueValue();
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     ID.AddPointer(getOpaqueValue());
   }
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
 private:
   friend class AvailabilityDomainOrIdentifier;
@@ -291,7 +311,7 @@ private:
   AvailabilityDomain copy(ASTContext &ctx) const;
 };
 
-inline void simple_display(llvm::raw_ostream &os,
+inline void simple_display(toolchain::raw_ostream &os,
                            const AvailabilityDomain &domain) {
   domain.print(os);
 }
@@ -305,7 +325,7 @@ struct StableAvailabilityDomainComparator {
 };
 
 /// Represents an availability domain that has been defined in a module.
-class CustomAvailabilityDomain : public llvm::FoldingSetNode {
+class CustomAvailabilityDomain : public toolchain::FoldingSetNode {
 public:
   enum class Kind {
     /// A domain that is known to be enabled at compile time.
@@ -321,13 +341,15 @@ private:
   Kind kind;
   ModuleDecl *mod;
   Decl *decl;
+  FuncDecl *predicateFunc;
 
   CustomAvailabilityDomain(Identifier name, Kind kind, ModuleDecl *mod,
-                           Decl *decl);
+                           Decl *decl, FuncDecl *predicateFunc);
 
 public:
   static const CustomAvailabilityDomain *get(StringRef name, Kind kind,
                                              ModuleDecl *mod, Decl *decl,
+                                             FuncDecl *predicateFunc,
                                              const ASTContext &ctx);
 
   Identifier getName() const { return name; }
@@ -335,22 +357,27 @@ public:
   ModuleDecl *getModule() const { return mod; }
   Decl *getDecl() const { return decl; }
 
+  /// Returns the function that should be called at runtime to determine whether
+  /// the domain is available, or `nullptr` if the domain's availability is not
+  /// determined at runtime.
+  FuncDecl *getPredicateFunc() const { return predicateFunc; }
+
   /// Uniquing for `ASTContext`.
-  static void Profile(llvm::FoldingSetNodeID &ID, Identifier name,
+  static void Profile(toolchain::FoldingSetNodeID &ID, Identifier name,
                       ModuleDecl *mod);
 
-  void Profile(llvm::FoldingSetNodeID &ID) const { Profile(ID, name, mod); }
+  void Profile(toolchain::FoldingSetNodeID &ID) const { Profile(ID, name, mod); }
 };
 
 /// Represents either a resolved availability domain or an identifier written
 /// in source that has not yet been resolved to a domain.
 class AvailabilityDomainOrIdentifier {
-  friend struct llvm::PointerLikeTypeTraits<AvailabilityDomainOrIdentifier>;
+  friend struct toolchain::PointerLikeTypeTraits<AvailabilityDomainOrIdentifier>;
 
-  using DomainOrIdentifier = llvm::PointerUnion<AvailabilityDomain, Identifier>;
+  using DomainOrIdentifier = toolchain::PointerUnion<AvailabilityDomain, Identifier>;
 
   /// Stores an extra bit representing whether the domain has been resolved.
-  using Storage = llvm::PointerIntPair<DomainOrIdentifier, 1, bool>;
+  using Storage = toolchain::PointerIntPair<DomainOrIdentifier, 1, bool>;
   Storage storage;
 
   AvailabilityDomainOrIdentifier(Storage storage) : storage(storage) {}
@@ -420,25 +447,39 @@ public:
 
   void *getOpaqueValue() const { return storage.getOpaqueValue(); }
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
+};
+
+/// Represents an `AvailabilityRange` paired with the `AvailabilityDomain` that
+/// the range applies to.
+class AvailabilityDomainAndRange {
+  AvailabilityDomain domain;
+  AvailabilityRange range;
+
+public:
+  AvailabilityDomainAndRange(AvailabilityDomain domain, AvailabilityRange range)
+      : domain(domain), range(range) {};
+
+  AvailabilityDomain getDomain() const { return domain; }
+  AvailabilityRange getRange() const { return range; }
 };
 
 } // end namespace language
 
-namespace llvm {
-using swift::AvailabilityDomain;
-using swift::AvailabilityDomainOrIdentifier;
+namespace toolchain {
+using language::AvailabilityDomain;
+using language::AvailabilityDomainOrIdentifier;
 
 // An AvailabilityDomain is "pointer like".
 template <typename T>
 struct PointerLikeTypeTraits;
 template <>
-struct PointerLikeTypeTraits<swift::AvailabilityDomain> {
+struct PointerLikeTypeTraits<language::AvailabilityDomain> {
 public:
   static inline void *getAsVoidPointer(AvailabilityDomain domain) {
     return domain.storage.getOpaqueValue();
   }
-  static inline swift::AvailabilityDomain getFromVoidPointer(void *P) {
+  static inline language::AvailabilityDomain getFromVoidPointer(void *P) {
     return AvailabilityDomain::fromOpaque(P);
   }
   enum {
@@ -469,12 +510,12 @@ struct DenseMapInfo<AvailabilityDomain> {
 template <typename T>
 struct PointerLikeTypeTraits;
 template <>
-struct PointerLikeTypeTraits<swift::AvailabilityDomainOrIdentifier> {
+struct PointerLikeTypeTraits<language::AvailabilityDomainOrIdentifier> {
 public:
   static inline void *getAsVoidPointer(AvailabilityDomainOrIdentifier value) {
     return value.storage.getOpaqueValue();
   }
-  static inline swift::AvailabilityDomainOrIdentifier
+  static inline language::AvailabilityDomainOrIdentifier
   getFromVoidPointer(void *P) {
     return AvailabilityDomainOrIdentifier::fromOpaque(P);
   }
@@ -484,6 +525,6 @@ public:
   };
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

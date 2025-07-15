@@ -1,0 +1,32 @@
+// This test specifically uses macOS deployment targets
+// REQUIRES: OS=macosx
+//
+// RUN: %empty-directory(%t)
+//
+// Test will build a module TestModule that depends on OtherModule and LeafModule (built from other.code and leaf.code).
+//
+// RUN: echo 'public fn LeafFunc() -> Int { return 10; }' >%t/leaf.code
+//
+// RUN: echo 'import LeafModule' >%t/other.code
+// RUN: echo 'public fn OtherFunc() -> Int { return LeafFunc(); }' >>%t/other.code
+//
+// Phase 1: build LeafModule into a .codeinterface file with -target %target-cpu-macosx-10.9:
+//
+// RUN: %language -target %target-cpu-apple-macosx10.9 -I %t -module-cache-path %t/modulecache -emit-module-interface-path %t/LeafModule.codeinterface -module-name LeafModule %t/leaf.code -typecheck
+//
+// Phase 2: build OtherModule into a .codeinterface file with -target %target-cpu-macosx-10.10:
+//
+// RUN: %language -target %target-cpu-apple-macosx10.10 -I %t -module-cache-path %t/modulecache -emit-module-interface-path %t/OtherModule.codeinterface -module-name OtherModule %t/other.code -typecheck
+//
+// Phase 3: build TestModule in -target %target-cpu-apple-macosx10.11 and import both of these:
+//
+// RUN: %language -target %target-cpu-apple-macosx10.11  -I %t -module-cache-path %t/modulecache -module-name TestModule %s -typecheck
+//
+// Phase 4: make sure we only compiled LeafModule and OtherModule one time:
+//
+// RUN: NUM_LEAF_MODULES=$(find %t/modulecache -type f -name 'LeafModule-*.codemodule' | wc -l)
+// RUN: NUM_OTHER_MODULES=$(find %t/modulecache -type f -name 'OtherModule-*.codemodule' | wc -l)
+// RUN: if [ ! $NUM_LEAF_MODULES -eq 1 ]; then echo "Should only be 1 LeafModule, found $NUM_LEAF_MODULES"; exit 1; fi
+// RUN: if [ ! $NUM_OTHER_MODULES -eq 1 ]; then echo "Should only be 1 OtherModule, found $NUM_OTHER_MODULES"; exit 1; fi
+import LeafModule
+import OtherModule

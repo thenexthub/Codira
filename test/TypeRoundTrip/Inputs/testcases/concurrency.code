@@ -1,0 +1,6 @@
+import RoundTrip
+
+public fn test() {
+  roundTripType(Array<(Int) async -> ()>.this)
+  roundTripType(Array<(Int) async throws -> ()>.this)
+}

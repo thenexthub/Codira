@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This header file declares utility functions for simplifying and
@@ -18,10 +19,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_LOOPUTILS_H
-#define SWIFT_SILOPTIMIZER_UTILS_LOOPUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_LOOPUTILS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_LOOPUTILS_H
 
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -69,7 +70,7 @@ class SILLoopVisitorGroup : public SILLoopVisitor {
   ///
   /// This is set to 3, since currently the only place this is used will have at
   /// most 3 such visitors.
-  llvm::SmallVector<SILLoopVisitor *, 3> Visitors;
+  toolchain::SmallVector<SILLoopVisitor *, 3> Visitors;
 
 public:
   SILLoopVisitorGroup(SILFunction *Func, SILLoopInfo *LInfo)
@@ -93,6 +94,6 @@ public:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

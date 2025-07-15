@@ -1,0 +1,115 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn b=l
+immutable:b}struct B{class a=l
+fn a<I fn a}}}struct X<T:T.a
+var f=("
+class d<T enum S<h{
+typealias F>("
+class A{{d
+enum B{
+enum S<T where g: d = [ 1 )
+class c{{
+protocol A{class d{
+{class A{d{
+class c<T where g:{}typealias d<I fn b{
+class A{{class A{
+typealias d
+class A{{{
+var _=b{}}}struct S{class S<
+enum a}b
+fn b
+{}typealias F>(b=1
+var f{class a}}}b}}}struct S<B<H.h=F=b{enum a}struct B{
+{class b{immutable f{
+enum S
+if true{class B{class b<T where h.g=a{
+}}typealias F=F>(b<
+var f=1
+immutable f=1
+{
+}}}struct S{{
+fn b<I fn a<H.h{{class b<T where h.g=a{
+class c{{enum a{class b=c{class b{
+immutable a enum b=("
+typealias d<I fn a{class a{class S<I fn b<T where h.g=a{
+class B{
+fn g:d<
+class
+fn g:e{class c<T where g:e{class c,case
+struct g mb:d<h{class d<a}}class b<T{
+import a{class a enum b{class A{class d} Int] g mb:b:e{class A{class d:d<T where g: AnyObject
+fn a}struct g : AnyObject
+typealias d<T where g{{{class a {class A{class A{{{ {
+var f{
+class B{class a = d:{fn b<immutable a = [ 1 )
+fn g:{b {
+if true{var b
+{class A{< }}enum a<T where g:Int a
+immutable:{{{
+}struct X<T:T.a
+enum S<I fn a<I : d = [ 1 )
+}struct Q<T{{ {{< }}enum a<T where g:Int a
+var f{
+}struct B<T enum b{{class A{class d
+fn g{{class d{< }}enum a<T where g:Int a
+class S<T where g:e{}struct B{{}}}struct Q<T where H{
+var _=(b{class A{immutable f=(b{class b<T where h.g=a{
+class d:{{
+fn g: AnyObject
+class a}class a}}}struct B<T{immutable a {class a=c,case
+fn a{{
+class d<T where g:e{
+}struct S<B{class b=("
+immutable f{class b
+typealias d<T where g:d:d} Int] g : d = d} Int] g : f {class a{
+class S<I : d = d<T where g:d
+fn b{class a{b {struct Q<
+class b{}
+class c{class d} Int] g mb:{class A{
+fn p{fn p{
+class A{class b<T where h.g=a{
+}}class a enum S
+case c{class A{
+enum b{struct g : d = [ 1 )
+fn a<T where g: d where g: d where g: d = d:{
+fn a}protocol A{fn a{var f{
+protocol A{
+class a{struct S{
+class A{d
+}
+protocol A{
+immutable : AnyObject
+class b=c,case
+if true{
+fn a{{fn a{
+{
+fn b
+immutable:b
+struct B{
+if true{class c{
+{
+fn a}struct S
+class
+var f{struct S
+struct Q<T{
+class A{fn a<T enum S<T where g:d
+struct X<T:T.a
+class A{
+protocol a<T where g:{class d:d} Int] g mb:{fn g:e{
+enum S<T{fn b<T where h.g=a{
+immutable f{class d:e{}struct S<T where g: f {class b{class d<
+immutable f{class d
+fn a{class d
+class a{
+enum S<I fn a{class a}struct B{class A{{{class b<T where h.g=a{

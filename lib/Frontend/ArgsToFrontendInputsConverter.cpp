@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgsToFrontendInputsConverter.h"
@@ -23,16 +24,16 @@
 #include "language/Option/Options.h"
 #include "language/Parse/Lexer.h"
 #include "language/Strings.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/LineIterator.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/LineIterator.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 ArgsToFrontendInputsConverter::ArgsToFrontendInputsConverter(
     DiagnosticEngine &diags, const ArgList &args)
@@ -43,8 +44,8 @@ ArgsToFrontendInputsConverter::ArgsToFrontendInputsConverter(
         args.getLastArg(options::OPT_bad_file_descriptor_retry_count)) {}
 
 std::optional<FrontendInputsAndOutputs> ArgsToFrontendInputsConverter::convert(
-    SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> *buffers) {
-  SWIFT_DEFER {
+    SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> *buffers) {
+  LANGUAGE_DEFER {
     if (buffers) {
       std::move(ConfigurationFileBuffers.begin(),
                 ConfigurationFileBuffers.end(),
@@ -120,7 +121,7 @@ bool ArgsToFrontendInputsConverter::readInputFilesFromFilelist() {
 }
 
 bool ArgsToFrontendInputsConverter::forAllFilesInFilelist(
-    Arg const *const pathArg, llvm::function_ref<void(StringRef)> fn) {
+    Arg const *const pathArg, toolchain::function_ref<void(StringRef)> fn) {
   if (!pathArg)
     return false;
   StringRef path = pathArg->getValue();
@@ -136,9 +137,9 @@ bool ArgsToFrontendInputsConverter::forAllFilesInFilelist(
     return true;
   }
 
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> filelistBufferOrError = nullptr;
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> filelistBufferOrError = nullptr;
   for (unsigned I = 0; I < RetryCount + 1; ++I) {
-    filelistBufferOrError = llvm::MemoryBuffer::getFile(path);
+    filelistBufferOrError = toolchain::MemoryBuffer::getFile(path);
     if (filelistBufferOrError)
       break;
     if (filelistBufferOrError.getError().value() != EBADF)
@@ -150,8 +151,8 @@ bool ArgsToFrontendInputsConverter::forAllFilesInFilelist(
     return true;
   }
   for (auto file :
-       llvm::make_range(llvm::line_iterator(*filelistBufferOrError->get()),
-                        llvm::line_iterator()))
+       toolchain::make_range(toolchain::line_iterator(*filelistBufferOrError->get()),
+                        toolchain::line_iterator()))
     fn(file);
   ConfigurationFileBuffers.push_back(std::move(*filelistBufferOrError));
   return false;
@@ -203,7 +204,7 @@ ArgsToFrontendInputsConverter::createInputFilesConsumingPrimaries(
 bool ArgsToFrontendInputsConverter::diagnoseUnusedPrimaryFiles(
     std::set<StringRef> primaryFiles) {
   for (auto &file : primaryFiles) {
-    // Catch "swiftc -frontend -c -filelist foo -primary-file
+    // Catch "languagec -frontend -c -filelist foo -primary-file
     // some-file-not-in-foo".
     assert(FilelistPathArg && "Unused primary with no filelist");
     Diags.diagnose(SourceLoc(), diag::error_primary_file_not_found, file,

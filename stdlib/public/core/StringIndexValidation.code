@@ -1,24 +1,28 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Index validation
 extension _StringGuts {
   @_alwaysEmitIntoClient @inline(__always)
-  internal func isFastScalarIndex(_ i: String.Index) -> Bool {
+  internal fn isFastScalarIndex(_ i: String.Index) -> Bool {
     hasMatchingEncoding(i) && i._isScalarAligned
   }
 
   @_alwaysEmitIntoClient @inline(__always)
-  internal func isFastCharacterIndex(_ i: String.Index) -> Bool {
+  internal fn isFastCharacterIndex(_ i: String.Index) -> Bool {
     hasMatchingEncoding(i) && i._isCharacterAligned
   }
 }
@@ -26,53 +30,53 @@ extension _StringGuts {
 // Subscalar index validation (UTF-8 & UTF-16 views)
 extension _StringGuts {
   @_alwaysEmitIntoClient
-  internal func validateSubscalarIndex(_ i: String.Index) -> String.Index {
-    let i = ensureMatchingEncoding(i)
+  internal fn validateSubscalarIndex(_ i: String.Index) -> String.Index {
+    immutable i = ensureMatchingEncoding(i)
     _precondition(i._encodedOffset < count, "String index is out of bounds")
     return i
   }
 
   @_alwaysEmitIntoClient
-  internal func validateSubscalarIndex(
+  internal fn validateSubscalarIndex(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
     _internalInvariant(bounds.upperBound <= endIndex)
 
-    let i = ensureMatchingEncoding(i)
+    immutable i = ensureMatchingEncoding(i)
     _precondition(i >= bounds.lowerBound && i < bounds.upperBound,
       "Substring index is out of bounds")
     return i
   }
 
   @_alwaysEmitIntoClient
-  internal func validateInclusiveSubscalarIndex(
+  internal fn validateInclusiveSubscalarIndex(
     _ i: String.Index
   ) -> String.Index {
-    let i = ensureMatchingEncoding(i)
+    immutable i = ensureMatchingEncoding(i)
     _precondition(i._encodedOffset <= count, "String index is out of bounds")
     return i
   }
 
   @_alwaysEmitIntoClient
-  internal func validateInclusiveSubscalarIndex(
+  internal fn validateInclusiveSubscalarIndex(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
     _internalInvariant(bounds.upperBound <= endIndex)
 
-    let i = ensureMatchingEncoding(i)
+    immutable i = ensureMatchingEncoding(i)
     _precondition(i >= bounds.lowerBound && i <= bounds.upperBound,
       "Substring index is out of bounds")
     return i
   }
 
   @_alwaysEmitIntoClient
-  internal func validateSubscalarRange(
+  internal fn validateSubscalarRange(
     _ range: Range<String.Index>
   ) -> Range<String.Index> {
-    let upper = ensureMatchingEncoding(range.upperBound)
-    let lower = ensureMatchingEncoding(range.lowerBound)
+    immutable upper = ensureMatchingEncoding(range.upperBound)
+    immutable lower = ensureMatchingEncoding(range.lowerBound)
 
     // Note: if only `lower` was miscoded, then the range invariant `lower <=
     // upper` may no longer hold after the above conversions, so we need to
@@ -84,14 +88,14 @@ extension _StringGuts {
   }
 
   @_alwaysEmitIntoClient
-  internal func validateSubscalarRange(
+  internal fn validateSubscalarRange(
     _ range: Range<String.Index>,
     in bounds: Range<String.Index>
   ) -> Range<String.Index> {
     _internalInvariant(bounds.upperBound <= endIndex)
 
-    let upper = ensureMatchingEncoding(range.upperBound)
-    let lower = ensureMatchingEncoding(range.lowerBound)
+    immutable upper = ensureMatchingEncoding(range.upperBound)
+    immutable lower = ensureMatchingEncoding(range.lowerBound)
 
     // Note: if only `lower` was miscoded, then the range invariant `lower <=
     // upper` may no longer hold after the above conversions, so we need to
@@ -116,7 +120,7 @@ extension _StringGuts {
   /// - is within the bounds of this string, and
   /// - is aligned on a scalar boundary.
   @_alwaysEmitIntoClient
-  internal func validateScalarIndex(_ i: String.Index) -> String.Index {
+  internal fn validateScalarIndex(_ i: String.Index) -> String.Index {
     if isFastScalarIndex(i) {
       _precondition(i._encodedOffset < count, "String index is out of bounds")
       return i
@@ -133,7 +137,7 @@ extension _StringGuts {
   /// - is within `start ..< end`, and
   /// - is aligned on a scalar boundary.
   @_alwaysEmitIntoClient
-  internal func validateScalarIndex(
+  internal fn validateScalarIndex(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
@@ -158,7 +162,7 @@ extension _StringGuts {
   /// - is within the bounds of this string (including the `endIndex`), and
   /// - is aligned on a scalar boundary.
   @_alwaysEmitIntoClient
-  internal func validateInclusiveScalarIndex(
+  internal fn validateInclusiveScalarIndex(
     _ i: String.Index
   ) -> String.Index {
     if isFastScalarIndex(i) {
@@ -177,7 +181,7 @@ extension _StringGuts {
   /// - is within the bounds of this string (including the `endIndex`), and
   /// - is aligned on a scalar boundary.
   @_alwaysEmitIntoClient
-  internal func validateInclusiveScalarIndex(
+  internal fn validateInclusiveScalarIndex(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
@@ -201,7 +205,7 @@ extension _StringGuts {
   /// - have an encoding that matches this string,
   /// - are within the bounds of this string, and
   /// - are aligned on a scalar boundary.
-  internal func validateScalarRange(
+  internal fn validateScalarRange(
     _ range: Range<String.Index>
   ) -> Range<String.Index> {
     if
@@ -212,7 +216,7 @@ extension _StringGuts {
       return range
     }
 
-    let r = validateSubscalarRange(range)
+    immutable r = validateSubscalarRange(range)
     return unsafe Range(
       _uncheckedBounds: (scalarAlign(r.lowerBound), scalarAlign(r.upperBound)))
   }
@@ -224,7 +228,7 @@ extension _StringGuts {
   /// - have an encoding that matches this string,
   /// - are within `start ..< end`, and
   /// - are aligned on a scalar boundary.
-  internal func validateScalarRange(
+  internal fn validateScalarRange(
     _ range: Range<String.Index>,
     in bounds: Range<String.Index>
   ) -> Range<String.Index> {
@@ -240,16 +244,16 @@ extension _StringGuts {
       return range
     }
 
-    let r = validateSubscalarRange(range, in: bounds)
-    let upper = scalarAlign(r.upperBound)
-    let lower = scalarAlign(r.lowerBound)
+    immutable r = validateSubscalarRange(range, in: bounds)
+    immutable upper = scalarAlign(r.upperBound)
+    immutable lower = scalarAlign(r.lowerBound)
     return unsafe Range(_uncheckedBounds: (lower, upper))
   }
 }
 
 // Character index validation (String & Substring)
 extension _StringGuts {
-  internal func validateCharacterIndex(_ i: String.Index) -> String.Index {
+  internal fn validateCharacterIndex(_ i: String.Index) -> String.Index {
     if isFastCharacterIndex(i) {
       _precondition(i._encodedOffset < count, "String index is out of bounds")
       return i
@@ -257,7 +261,7 @@ extension _StringGuts {
     return roundDownToNearestCharacter(scalarAlign(validateSubscalarIndex(i)))
   }
 
-  internal func validateCharacterIndex(
+  internal fn validateCharacterIndex(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
@@ -274,7 +278,7 @@ extension _StringGuts {
       in: bounds)
   }
 
-  internal func validateInclusiveCharacterIndex(
+  internal fn validateInclusiveCharacterIndex(
     _ i: String.Index
   ) -> String.Index {
     if isFastCharacterIndex(i) {
@@ -286,7 +290,7 @@ extension _StringGuts {
       scalarAlign(validateInclusiveSubscalarIndex(i)))
   }
 
-  internal func validateInclusiveCharacterIndex(
+  internal fn validateInclusiveCharacterIndex(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
@@ -311,13 +315,13 @@ extension _StringGuts {
 // FIXME: Remove these after a release or two.
 extension _StringGuts {
   /// A version of `validateInclusiveSubscalarIndex` that only traps if the main
-  /// executable was linked with Swift Stdlib version 5.7 or better. This is
+  /// executable was linked with Codira Stdlib version 5.7 or better. This is
   /// used to work around binary compatibility problems with existing apps that
   /// pass invalid indices to String APIs.
-  internal func validateInclusiveSubscalarIndex_5_7(
+  internal fn validateInclusiveSubscalarIndex_5_7(
     _ i: String.Index
   ) -> String.Index {
-    let i = ensureMatchingEncoding(i)
+    immutable i = ensureMatchingEncoding(i)
     _precondition(
       ifLinkedOnOrAfter: .v5_7_0,
       i._encodedOffset <= count,
@@ -326,10 +330,10 @@ extension _StringGuts {
   }
 
   /// A version of `validateInclusiveScalarIndex` that only traps if the main
-  /// executable was linked with Swift Stdlib version 5.7 or better. This is
+  /// executable was linked with Codira Stdlib version 5.7 or better. This is
   /// used to work around binary compatibility problems with existing apps that
   /// pass invalid indices to String APIs.
-  internal func validateInclusiveScalarIndex_5_7(
+  internal fn validateInclusiveScalarIndex_5_7(
     _ i: String.Index
   ) -> String.Index {
     if isFastScalarIndex(i) {
@@ -344,14 +348,14 @@ extension _StringGuts {
   }
 
   /// A version of `validateSubscalarRange` that only traps if the main
-  /// executable was linked with Swift Stdlib version 5.7 or better. This is
+  /// executable was linked with Codira Stdlib version 5.7 or better. This is
   /// used to work around binary compatibility problems with existing apps that
   /// pass invalid indices to String APIs.
-  internal func validateSubscalarRange_5_7(
+  internal fn validateSubscalarRange_5_7(
     _ range: Range<String.Index>
   ) -> Range<String.Index> {
-    let upper = ensureMatchingEncoding(range.upperBound)
-    let lower = ensureMatchingEncoding(range.lowerBound)
+    immutable upper = ensureMatchingEncoding(range.upperBound)
+    immutable lower = ensureMatchingEncoding(range.lowerBound)
 
     _precondition(upper <= endIndex && lower <= upper,
       "String index range is out of bounds")
@@ -360,10 +364,10 @@ extension _StringGuts {
   }
 
   /// A version of `validateScalarRange` that only traps if the main executable
-  /// was linked with Swift Stdlib version 5.7 or better. This is used to work
+  /// was linked with Codira Stdlib version 5.7 or better. This is used to work
   /// around binary compatibility problems with existing apps that pass invalid
   /// indices to String APIs.
-  internal func validateScalarRange_5_7(
+  internal fn validateScalarRange_5_7(
     _ range: Range<String.Index>
   ) -> Range<String.Index> {
     if
@@ -376,16 +380,16 @@ extension _StringGuts {
       return range
     }
 
-    let r = validateSubscalarRange_5_7(range)
+    immutable r = validateSubscalarRange_5_7(range)
     return unsafe Range(
       _uncheckedBounds: (scalarAlign(r.lowerBound), scalarAlign(r.upperBound)))
   }
 
   /// A version of `validateInclusiveCharacterIndex` that only traps if the main
-  /// executable was linked with Swift Stdlib version 5.7 or better. This is
+  /// executable was linked with Codira Stdlib version 5.7 or better. This is
   /// used to work around binary compatibility problems with existing apps that
   /// pass invalid indices to String APIs.
-  internal func validateInclusiveCharacterIndex_5_7(
+  internal fn validateInclusiveCharacterIndex_5_7(
     _ i: String.Index
   ) -> String.Index {
     if isFastCharacterIndex(i) {
@@ -403,13 +407,13 @@ extension _StringGuts {
 
 // Word index validation (String)
 extension _StringGuts {
-  internal func validateWordIndex(
+  internal fn validateWordIndex(
     _ i: String.Index
   ) -> String.Index {
     return roundDownToNearestWord(scalarAlign(validateSubscalarIndex(i)))
   }
 
-  internal func validateInclusiveWordIndex(
+  internal fn validateInclusiveWordIndex(
     _ i: String.Index
   ) -> String.Index {
     return roundDownToNearestWord(

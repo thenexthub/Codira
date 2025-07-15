@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file Provides STL-style algorithms for convenience.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_STLEXTRAS_H
-#define SWIFT_BASIC_STLEXTRAS_H
+#ifndef LANGUAGE_BASIC_STLEXTRAS_H
+#define LANGUAGE_BASIC_STLEXTRAS_H
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/Casting.h"
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -233,7 +234,7 @@ public:
 
   /// Returns an iterator range starting from the given pointer and
   /// running until it reaches a null pointer.
-  static llvm::iterator_range<LinkedListIterator> rangeBeginning(T *pointer) {
+  static toolchain::iterator_range<LinkedListIterator> rangeBeginning(T *pointer) {
     return {pointer, nullptr};
   }
 
@@ -265,7 +266,7 @@ public:
 /// An iterator that transforms the result of an underlying bidirectional
 /// iterator with a given operation.
 ///
-/// Slightly different semantics from llvm::map_iterator, but we should
+/// Slightly different semantics from toolchain::map_iterator, but we should
 /// probably figure out how to merge them eventually.
 ///
 /// \tparam Iterator the underlying iterator.
@@ -529,8 +530,8 @@ template<typename Subclass>
 struct DowncastAsOptional {
   template <typename Superclass>
   auto operator()(Superclass &value) const
-      -> std::optional<decltype(llvm::cast<Subclass>(value))> {
-    if (auto result = llvm::dyn_cast<Subclass>(value))
+      -> std::optional<decltype(toolchain::cast<Subclass>(value))> {
+    if (auto result = toolchain::dyn_cast<Subclass>(value))
       return result;
 
     return std::nullopt;
@@ -538,8 +539,8 @@ struct DowncastAsOptional {
 
   template <typename Superclass>
   auto operator()(const Superclass &value) const
-      -> std::optional<decltype(llvm::cast<Subclass>(value))> {
-    if (auto result = llvm::dyn_cast<Subclass>(value))
+      -> std::optional<decltype(toolchain::cast<Subclass>(value))> {
+    if (auto result = toolchain::dyn_cast<Subclass>(value))
       return result;
 
     return std::nullopt;
@@ -798,4 +799,4 @@ auto transform(const std::optional<OptionalElement> &value,
 }
 } // end namespace language
 
-#endif // SWIFT_BASIC_STLEXTRAS_H
+#endif // LANGUAGE_BASIC_STLEXTRAS_H

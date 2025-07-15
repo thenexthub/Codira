@@ -7,7 +7,7 @@
 - [Designated initializers](#designated-initializers)
 - [Description of the problem](#description-of-the-problem)
 - [Possible solutions](#possible-solutions)
-- [Proposed solution -- pure Swift case](#proposed-solution----pure-swift-case)
+- [Proposed solution -- pure Codira case](#proposed-solution----pure-language-case)
 - [Proposed solution -- Objective-C case](#proposed-solution----objective-c-case)
 - [Implementation](#implementation)
 
@@ -32,10 +32,10 @@ Some terminology used below:
 -   **releasing** refers to giving up a reference, which will result in
     running the destructor and deallocation of the object if this was
     the last reference.
--   A **destructor** is a Swift-generated entry point which call the
+-   A **destructor** is a Codira-generated entry point which call the
     user-defined deinitializer, then releases all stored properties.
 -   A **deinitializer** is an optional user-defined entry point in a
-    Swift class which handles any necessary cleanup beyond releasing
+    Codira class which handles any necessary cleanup beyond releasing
     stored properties.
 -   A **slice** of an object is the set of stored properties defined in
     one particular class forming the superclass chain of the instance.
@@ -93,7 +93,7 @@ At this point, the self value looks like this:
 
 In order to fail out of the constructor without leaking memory, we have
 to destroy the initialized stored properties only without calling any
-Swift deinit methods, then deallocate the object itself.
+Codira deinit methods, then deallocate the object itself.
 
 There is a further complication once we take Objective-C
 interoperability into account. Objective-C classes can override `-alloc`,
@@ -101,7 +101,7 @@ to get the object from a memory pool, for example. Also, they can
 override `-retain` and `-release` to implement their own reference counting.
 This means that if our class has `@objc` ancestry, we have to release it
 with `-release` even if it is partially initialized -- since this will
-result in Swift destructors being called, they have to know to skip the
+result in Codira destructors being called, they have to know to skip the
 uninitialized parts of the object.
 
 There is an issue we need to sort out, tracked by rdar://18720947.
@@ -130,7 +130,7 @@ single `Error`. But this would ripple changes throughout various SIL
 analyses, and require IRGen to encode the pair return value in an
 efficient way.
 
-## Proposed solution -- pure Swift case
+## Proposed solution -- pure Codira case
 
 A simpler approach seems to be to introduce a new `partialDeinit` entry
 point, referenced through a special kind of `SILDeclRef`. This entry point
@@ -176,7 +176,7 @@ story becomes more complicated. In order to undo any custom logic
 implemented in an Objective-C override of `-alloc` or `-retain`, we have
 to free the partially-initialized object using `-release`.
 
-To ensure we don't double-free any Swift stored properties, we will add
+To ensure we don't double-free any Codira stored properties, we will add
 a new hidden stored property to each class that directly defines failing
 initializers. The bit is set if this slice of the instance has been
 initialized.
@@ -198,7 +198,7 @@ instead of deallocating it.
 
 A possible optimization would be not generate the bit if all stored
 properties are POD, or retainable pointers. In the latter case, all zero
-bits is a valid representation (all the `swift_retain`/`release entry`
+bits is a valid representation (all the `language_retain`/`release entry`
 points in the runtime check for null pointers, at least for now).
 However, we do not have to do this optimization right away.
 

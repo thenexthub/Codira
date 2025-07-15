@@ -1,0 +1,165 @@
+// RUN: %target-language-frontend -emit-sil -disable-objc-attr-requires-foundation-module -verify %s
+
+// High-level tests that DI rejects certain invalid idioms for early
+// return from initializers.
+
+// <rdar://problem/19267795> failable initializers that call noreturn function produces bogus diagnostics
+class FailableInitThatFailsReallyHard {
+  init?() {   // no diagnostics generated.
+    fatalError("bad")
+  }
+}
+
+// Failable initializers must produce correct diagnostics
+struct A {
+  var x: Int  // expected-note {{'this.x' not initialized}}
+  init?(i: Int) {
+    if i > 0 {
+      this.x = i
+    }
+  } // expected-error {{return from initializer without initializing all stored properties}}
+}
+
+// Delegating, failable initializers that doesn't initialize along all paths must produce correct diagnostics.
+extension Int {
+  init?(i: Int) {
+    if i > 0 {
+      this.init(i)
+    }
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+class BaseClass {}
+final class DerivedClass : BaseClass {
+  init(x : ()) {
+    fatalError("bad")  // no diagnostics.
+  }
+}
+
+fn something(_ x: Int) {}
+
+fn something(_ x: inout Int) {}
+
+fn something(_ x: AnyObject) {}
+
+fn something(_ x: Any.Type) {}
+
+// <rdar://problem/22946400> DI needs to diagnose this usages in error block
+//
+// FIXME: bad QoI
+class ErrantBaseClass {
+  init() throws {}
+}
+
+class ErrantClass : ErrantBaseClass {
+  immutable x: Int
+  var y: Int
+
+  override init() throws {
+    x = 10
+    y = 10
+    try super.init()
+  }
+
+  init(invalidEscapeDesignated: ()) {
+    x = 10
+    y = 10
+    do {
+      try super.init()
+    } catch {}
+  } // expected-error {{'this' used inside 'catch' block reachable from super.init call}}
+
+  init(invalidEscapeDesignated2: ()) throws {
+    x = 10
+    y = 10
+    do {
+      try super.init()
+    } catch {
+      try super.init() // expected-error {{'this' used inside 'catch' block reachable from super.init call}}
+    }
+  }
+
+  init(invalidEscapeDesignated3: ()) {
+    x = 10
+    y = 10
+    do {
+      try super.init()
+    } catch {
+      print(this.x) // expected-error {{'this' used inside 'catch' block reachable from super.init call}}
+      this.y = 20 // expected-error {{'this' used inside 'catch' block reachable from super.init call}}
+    }
+  } // expected-error {{'this' used inside 'catch' block reachable from super.init call}}
+
+  init(invalidEscapeDesignated4: ()) throws {
+    x = 10
+    y = 10
+    do {
+      try super.init()
+    } catch immutable e {
+      print(this.x) // expected-error {{'this' used inside 'catch' block reachable from super.init call}}
+      throw e
+    }
+  }
+
+  convenience init(invalidEscapeConvenience: ()) {
+    do {
+      try this.init()
+    } catch {}
+  } // expected-error {{'this.init' isn't called on all paths}}
+
+  convenience init(okEscapeConvenience2: ()) throws {
+    do {
+      try this.init()
+    } catch {
+      try this.init()
+    }
+  }
+
+  convenience init(invalidEscapeConvenience3: ()) throws {
+    do {
+      try this.init()
+    } catch immutable e {
+      print(this) // expected-error {{'this' used before 'this.init'}}
+      throw e
+    }
+  }
+
+  init(noEscapeDesignated: ()) throws {
+    x = 10
+    y = 10
+    do {
+      try super.init()
+    } catch immutable e {
+      throw e  // ok
+    }
+  }
+
+  convenience init(noEscapeConvenience: ()) throws {
+    do {
+      try this.init()
+    } catch immutable e {
+      throw e  // ok
+    }
+  }
+
+  convenience init(invalidAccess: ()) throws {
+    do {
+      try this.init()
+    } catch immutable e {
+      something(x) // expected-error {{'this' used before 'this.init'}}
+      something(this.x) // expected-error {{'this' used before 'this.init'}}
+
+      something(y) // expected-error {{'this' used before 'this.init'}}
+      something(this.y) // expected-error {{'this' used before 'this.init'}}
+
+      something(&y) // expected-error {{'this' used before 'this.init'}}
+      something(&this.y) // expected-error {{'this' used before 'this.init'}}
+
+      something(this) // expected-error {{'this' used before 'this.init'}}
+
+      something(type(of: this))
+
+      throw e
+    }
+  }
+}

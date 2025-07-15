@@ -1,0 +1,4 @@
+framework module Alpha [system] {
+  header "Alpha-Codira.h"
+  requires objc
+}

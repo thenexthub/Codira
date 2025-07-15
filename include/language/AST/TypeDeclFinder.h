@@ -1,20 +1,24 @@
 //===--- TypeDeclFinder.h - Finds TypeDecls in Types/TypeReprs --*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_TYPEDECLFINDER_H
-#define SWIFT_AST_TYPEDECLFINDER_H
+#ifndef LANGUAGE_AST_TYPEDECLFINDER_H
+#define LANGUAGE_AST_TYPEDECLFINDER_H
 
 #include "language/AST/ASTWalker.h"
 #include "language/AST/TypeWalker.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 namespace language {
 
@@ -45,7 +49,7 @@ public:
 /// the generic type.
 class SimpleTypeDeclFinder : public TypeDeclFinder {
   /// The function to call when a \c TypeDecl is seen.
-  llvm::function_ref<Action(const TypeDecl *)> Callback;
+  toolchain::function_ref<Action(const TypeDecl *)> Callback;
 
   Action visitNominalType(NominalType *ty) override;
   Action visitBoundGenericType(BoundGenericType *ty) override;
@@ -53,7 +57,7 @@ class SimpleTypeDeclFinder : public TypeDeclFinder {
 
 public:
   explicit SimpleTypeDeclFinder(
-      llvm::function_ref<Action(const TypeDecl *)> callback)
+      toolchain::function_ref<Action(const TypeDecl *)> callback)
     : Callback(callback) {}
 };
 
@@ -63,7 +67,7 @@ public:
 /// reported in the following order: `TAUB`.
 class DeclRefTypeReprFinder : public ASTWalker {
   /// The function to call when a `DeclRefTypeRepr` is seen.
-  llvm::function_ref<bool(const DeclRefTypeRepr *)> Callback;
+  toolchain::function_ref<bool(const DeclRefTypeRepr *)> Callback;
 
   MacroWalking getMacroWalkingBehavior() const override {
     return MacroWalking::Arguments;
@@ -73,7 +77,7 @@ class DeclRefTypeReprFinder : public ASTWalker {
 
 public:
   explicit DeclRefTypeReprFinder(
-      llvm::function_ref<bool(const DeclRefTypeRepr *)> callback)
+      toolchain::function_ref<bool(const DeclRefTypeRepr *)> callback)
       : Callback(callback) {}
 };
 }

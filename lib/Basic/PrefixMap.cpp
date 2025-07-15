@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/PrefixMap.h"
 #include "language/Basic/QuotedString.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/Compiler.h"
 
 using namespace language;
 
-#if __has_attribute(may_alias) || LLVM_GNUC_PREREQ(3, 0, 0)
-#define LLVM_MAY_ALIAS __attribute__((may_alias))
+#if __has_attribute(may_alias) || TOOLCHAIN_GNUC_PREREQ(3, 0, 0)
+#define TOOLCHAIN_MAY_ALIAS __attribute__((may_alias))
 #else
-#define LLVM_MAY_ALIAS
+#define TOOLCHAIN_MAY_ALIAS
 #endif
 
 namespace {
@@ -38,19 +39,19 @@ enum class ChildKind { Left, Right, Further, Root };
 // is technically an aliasing violation, but we can just tell the compilers
 // that actually use TBAA that this is okay.
 typedef struct _Node Node;
-struct LLVM_MAY_ALIAS _Node {
+struct TOOLCHAIN_MAY_ALIAS _Node {
   // If you change the layout in the header, you'll need to change it here.
   // (This comment is repeated there.)
   Node *Left, *Right, *Further;
 };
 
 class TreePrinter {
-  llvm::raw_ostream &Out;
-  void (&PrintNodeData)(llvm::raw_ostream &out, void *node);
+  toolchain::raw_ostream &Out;
+  void (&PrintNodeData)(toolchain::raw_ostream &out, void *node);
   SmallString<40> Indent;
 public:
-  TreePrinter(llvm::raw_ostream &out,
-              void (&printNodeData)(llvm::raw_ostream &out, void *node))
+  TreePrinter(toolchain::raw_ostream &out,
+              void (&printNodeData)(toolchain::raw_ostream &out, void *node))
     : Out(out), PrintNodeData(printNodeData) {}
 
   struct IndentScope {
@@ -109,7 +110,7 @@ public:
 
 } // end anonymous namespace
 
-void swift::printOpaquePrefixMap(raw_ostream &out, void *_root,
+void language::printOpaquePrefixMap(raw_ostream &out, void *_root,
                          void (*printNodeData)(raw_ostream &out, void *node)) {
   auto root = reinterpret_cast<Node*>(_root);
   if (!root) {

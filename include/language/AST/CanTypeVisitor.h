@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines CanTypeVisitor, a specialized version of
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CANTYPEVISITOR_H
-#define SWIFT_AST_CANTYPEVISITOR_H
+#ifndef LANGUAGE_AST_CANTYPEVISITOR_H
+#define LANGUAGE_AST_CANTYPEVISITOR_H
 
 #include "language/AST/Types.h"
 
 namespace language {
 
-/// This is a specialization of swift::TypeVisitor which:
+/// This is a specialization of language::TypeVisitor which:
 ///   - works only on canonical and fully-checked types and
 ///   - preserves the canonicality of the visited types in the
 ///     static (C++) type.
@@ -38,7 +39,7 @@ public:
     case TypeKind::CLASS:
 #define TYPE(CLASS, PARENT)
 #include "language/AST/TypeNodes.def"
-      llvm_unreachable("non-canonical type");
+      toolchain_unreachable("non-canonical type");
 
 #define SUGARED_TYPE(CLASS, PARENT)
 #define TYPE(CLASS, PARENT)                                  \
@@ -48,7 +49,7 @@ public:
                              ::std::forward<Args>(args)...);
 #include "language/AST/TypeNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
   
   // Provide default implementations of abstract "visit" implementations that
@@ -68,7 +69,7 @@ public:
   // handling them.
 #define UNCHECKED_TYPE(CLASS, PARENT)                          \
   RetTy visit##CLASS##Type(Can##CLASS##Type T, Args... args) { \
-     llvm_unreachable("unchecked type");                       \
+     toolchain_unreachable("unchecked type");                       \
   }
 #include "language/AST/TypeNodes.def"
 };

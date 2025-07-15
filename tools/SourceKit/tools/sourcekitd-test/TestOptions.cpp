@@ -11,28 +11,29 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "TestOptions.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/raw_ostream.h"
 
-using namespace llvm::opt;
+using namespace toolchain::opt;
 using namespace sourcekitd_test;
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace {
 
 // Create enum with OPT_xxx values for each option in Options.td.
 enum Opt {
   OPT_INVALID = 0,
-#define OPTION(...) LLVM_MAKE_OPT_ID(__VA_ARGS__),
+#define OPTION(...) TOOLCHAIN_MAKE_OPT_ID(__VA_ARGS__),
 #include "Options.inc"
   LastOption
 #undef OPTION
@@ -40,21 +41,21 @@ enum Opt {
 
 // Create prefix string literals used in Options.td.
 #define PREFIX(NAME, VALUE)                                                    \
-  constexpr llvm::StringLiteral NAME##_init[] = VALUE;                         \
-  constexpr llvm::ArrayRef<llvm::StringLiteral> NAME(                          \
+  constexpr toolchain::StringLiteral NAME##_init[] = VALUE;                         \
+  constexpr toolchain::ArrayRef<toolchain::StringLiteral> NAME(                          \
       NAME##_init, std::size(NAME##_init) - 1);
 #include "Options.inc"
 #undef PREFIX
 
 // Create table mapping all options defined in Options.td.
-static const llvm::opt::OptTable::Info InfoTable[] = {
-#define OPTION(...) LLVM_CONSTRUCT_OPT_INFO(__VA_ARGS__),
+static const toolchain::opt::OptTable::Info InfoTable[] = {
+#define OPTION(...) TOOLCHAIN_CONSTRUCT_OPT_INFO(__VA_ARGS__),
 #include "Options.inc"
 #undef OPTION
 };
 
 // Create OptTable class for parsing actual command line arguments
-class TestOptTable : public llvm::opt::GenericOptTable {
+class TestOptTable : public toolchain::opt::GenericOptTable {
 public:
   TestOptTable() : GenericOptTable(InfoTable) {}
 };
@@ -65,27 +66,27 @@ static std::pair<unsigned, unsigned> parseLineCol(StringRef LineCol) {
   unsigned Line, Col;
   size_t ColonIdx = LineCol.find(':');
   if (ColonIdx == StringRef::npos) {
-    llvm::errs() << "wrong pos format, it should be '<line>:<column>'\n";
+    toolchain::errs() << "wrong pos format, it should be '<line>:<column>'\n";
     exit(1);
   }
   if (LineCol.substr(0, ColonIdx).getAsInteger(10, Line)) {
-    llvm::errs() << "wrong pos format, it should be '<line>:<column>'\n";
+    toolchain::errs() << "wrong pos format, it should be '<line>:<column>'\n";
     exit(1);
   }
   if (LineCol.substr(ColonIdx+1).getAsInteger(10, Col)) {
-    llvm::errs() << "wrong pos format, it should be '<line>:<column>'\n";
+    toolchain::errs() << "wrong pos format, it should be '<line>:<column>'\n";
     exit(1);
   }
 
   if (Line == 0 || Col == 0) {
-    llvm::errs() << "wrong pos format, line/col should start from 1\n";
+    toolchain::errs() << "wrong pos format, line/col should start from 1\n";
     exit(1);
   }
 
   return { Line, Col };
 }
 
-bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
+bool TestOptions::parseArgs(toolchain::ArrayRef<const char *> Args) {
   if (Args.empty())
     return false;
 
@@ -93,10 +94,10 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
   TestOptTable Table;
   unsigned MissingIndex;
   unsigned MissingCount;
-  llvm::opt::InputArgList ParsedArgs =
+  toolchain::opt::InputArgList ParsedArgs =
       Table.ParseArgs(Args, MissingIndex, MissingCount);
   if (MissingCount) {
-    llvm::errs() << "error: missing argument value for '"
+    toolchain::errs() << "error: missing argument value for '"
         << ParsedArgs.getArgString(MissingIndex) << "', expected "
         << MissingCount << " argument(s)\n";
     return true;
@@ -105,7 +106,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
   for (auto InputArg : ParsedArgs) {
     switch (InputArg->getOption().getID()) {
     case OPT_req:
-      Request = llvm::StringSwitch<SourceKitRequest>(InputArg->getValue())
+      Request = toolchain::StringSwitch<SourceKitRequest>(InputArg->getValue())
         .Case("version", SourceKitRequest::ProtocolVersion)
         .Case("compiler-version", SourceKitRequest::CompilerVersion)
         .Case("demangle", SourceKitRequest::DemangleNames)
@@ -161,7 +162,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
         .Default(SourceKitRequest::None);
 
       if (Request == SourceKitRequest::None) {
-        llvm::errs() << "error: invalid request '" << InputArg->getValue()
+        toolchain::errs() << "error: invalid request '" << InputArg->getValue()
                      << "'\nexpected one of "
                      << "- version\n"
                      << "- compiler-version\n"
@@ -222,7 +223,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
     case OPT_offset: {
       unsigned offset;
       if (StringRef(InputArg->getValue()).getAsInteger(10, offset)) {
-        llvm::errs() << "error: expected integer for 'offset'\n";
+        toolchain::errs() << "error: expected integer for 'offset'\n";
         return true;
       }
 
@@ -232,7 +233,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
 
     case OPT_length:
       if (StringRef(InputArg->getValue()).getAsInteger(10, Length)) {
-        llvm::errs() << "error: expected integer for 'length'\n";
+        toolchain::errs() << "error: expected integer for 'length'\n";
         return true;
       }
       break;
@@ -251,13 +252,13 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
       break;
     }
 
-    case OPT_using_swift_args: {
-      UsingSwiftArgs = true;
+    case OPT_using_language_args: {
+      UsingCodiraArgs = true;
       break;
     }
 
-    case OPT_swift_version:
-      SwiftVersion = InputArg->getValue();
+    case OPT_language_version:
+      CodiraVersion = InputArg->getValue();
       break;
 
     case OPT_pass_version_as_string:
@@ -266,7 +267,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
 
     case OPT_line:
       if (StringRef(InputArg->getValue()).getAsInteger(10, Line)) {
-        llvm::errs() << "error: expected integer for 'line'\n";
+        toolchain::errs() << "error: expected integer for 'line'\n";
         return true;
       }
       Col = 1;
@@ -371,8 +372,8 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
       CollectActionables = true;
       break;
 
-    case OPT_swift_name:
-      SwiftName = InputArg->getValue();
+    case OPT_language_name:
+      CodiraName = InputArg->getValue();
       break;
 
     case OPT_objc_name:
@@ -390,7 +391,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
     case OPT_cancel_on_subsequent_request:
       unsigned Cancel;
       if (StringRef(InputArg->getValue()).getAsInteger(10, Cancel)) {
-        llvm::errs() << "error: expected integer for 'cancel-on-subsequent-request'\n";
+        toolchain::errs() << "error: expected integer for 'cancel-on-subsequent-request'\n";
         return true;
       }
       CancelOnSubsequentRequest = Cancel;
@@ -406,10 +407,10 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
 
     case OPT_repeat_request:
       if (StringRef(InputArg->getValue()).getAsInteger(10, repeatRequest)) {
-        llvm::errs() << "error: expected integer for 'cancel-on-subsequent-request'\n";
+        toolchain::errs() << "error: expected integer for 'cancel-on-subsequent-request'\n";
         return true;
       } else if (repeatRequest < 1) {
-        llvm::errs() << "error: repeat-request must be >= 1\n";
+        toolchain::errs() << "error: repeat-request must be >= 1\n";
         return true;
       }
       break;
@@ -419,8 +420,8 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
       for (const char *vfsFile : InputArg->getValues()) {
         StringRef name, target;
         std::tie(name, target) = StringRef(vfsFile).split('=');
-        llvm::SmallString<64> nativeName;
-        llvm::sys::path::native(name, nativeName);
+        toolchain::SmallString<64> nativeName;
+        toolchain::sys::path::native(name, nativeName);
         bool passAsSourceText = target.consume_front("@");
         VFSFiles.try_emplace(nativeName.str(), VFSFile(target.str(), passAsSourceText));
       }
@@ -445,7 +446,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
     case OPT_simulate_long_request:
       unsigned SimulatedDuration;
       if (StringRef(InputArg->getValue()).getAsInteger(10, SimulatedDuration)) {
-        llvm::errs() << "error: expected integer for 'simulate-long-request'\n";
+        toolchain::errs() << "error: expected integer for 'simulate-long-request'\n";
         return true;
       }
       SimulateLongRequest = SimulatedDuration;
@@ -468,7 +469,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
       break;
 
     case OPT_UNKNOWN:
-      llvm::errs() << "error: unknown argument: "
+      toolchain::errs() << "error: unknown argument: "
                    << InputArg->getAsString(ParsedArgs) << '\n'
                    << "Use -h or -help for assistance" << '\n';
       return true;
@@ -476,7 +477,7 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
   }
 
   if (Request == SourceKitRequest::InterfaceGenOpen && isAsyncRequest) {
-    llvm::errs()
+    toolchain::errs()
         << "error: cannot use -async with interface-gen-open request\n";
     return true;
   }
@@ -486,13 +487,13 @@ bool TestOptions::parseArgs(llvm::ArrayRef<const char *> Args) {
 
 void TestOptions::printHelp(bool ShowHidden) const {
 
-  // Based off of swift/lib/Driver/Driver.cpp, at Driver::printHelp
+  // Based off of language/lib/Driver/Driver.cpp, at Driver::printHelp
   // FIXME: should we use IncludedFlagsBitmask and ExcludedFlagsBitmask?
   // Maybe not for modes such as Interactive, Batch, AutolinkExtract, etc,
   // as in Driver.cpp. But could be useful for extra info, like HelpHidden.
 
   TestOptTable Table;
 
-  Table.printHelp(llvm::outs(), "sourcekitd-test [options] <inputs>",
+  Table.printHelp(toolchain::outs(), "sourcekitd-test [options] <inputs>",
                   "SourceKit Testing Tool", ShowHidden);
 }

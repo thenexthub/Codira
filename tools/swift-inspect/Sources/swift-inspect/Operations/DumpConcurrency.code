@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if os(iOS) || os(macOS) || os(tvOS) || os(watchOS)
 
 import ArgumentParser
-import SwiftRemoteMirror
+import CodiraRemoteMirror
 #if canImport(string_h)
 import string_h
 #endif
 
 struct DumpConcurrency: ParsableCommand {
-  static let configuration = CommandConfiguration(
+  static immutable configuration = CommandConfiguration(
     abstract: "Print information about the target's concurrency runtime.")
 
   @OptionGroup()
   var options: UniversalOptions
 
-  func run() throws {
+  fn run() throws {
     try inspect(options: options) { process in
-      let dumper = ConcurrencyDumper(context: process.context,
+      immutable dumper = ConcurrencyDumper(context: process.context,
                                      process: process as! DarwinRemoteProcess)
       dumper.dumpTasks()
       dumper.dumpActors()
@@ -40,13 +41,13 @@ struct DumpConcurrency: ParsableCommand {
 }
 
 fileprivate class ConcurrencyDumper {
-  let context: SwiftReflectionContextRef
-  let process: DarwinRemoteProcess
-  let jobMetadata: swift_reflection_ptr_t?
-  let taskMetadata: swift_reflection_ptr_t?
+  immutable context: CodiraReflectionContextRef
+  immutable process: DarwinRemoteProcess
+  immutable jobMetadata: language_reflection_ptr_t?
+  immutable taskMetadata: language_reflection_ptr_t?
 
   struct TaskInfo {
-    var address: swift_reflection_ptr_t
+    var address: language_reflection_ptr_t
     var kind: UInt32
     var enqueuePriority: UInt32
     var isChildTask: Bool
@@ -62,79 +63,79 @@ fileprivate class ConcurrencyDumper {
     var isEnqueued: Bool
     var threadPort: UInt32?
     var id: UInt64
-    var runJob: swift_reflection_ptr_t
-    var allocatorSlabPtr: swift_reflection_ptr_t
+    var runJob: language_reflection_ptr_t
+    var allocatorSlabPtr: language_reflection_ptr_t
     var allocatorTotalSize: Int
     var allocatorTotalChunks: Int
-    var childTasks: [swift_reflection_ptr_t]
-    var asyncBacktrace: [swift_reflection_ptr_t]
-    var parent: swift_reflection_ptr_t?
+    var childTasks: [language_reflection_ptr_t]
+    var asyncBacktrace: [language_reflection_ptr_t]
+    var parent: language_reflection_ptr_t?
   }
 
   struct HeapInfo {
-    var tasks: [swift_reflection_ptr_t] = []
-    var jobs: [swift_reflection_ptr_t] = []
-    var actors: [swift_reflection_ptr_t] = []
+    var tasks: [language_reflection_ptr_t] = []
+    var jobs: [language_reflection_ptr_t] = []
+    var actors: [language_reflection_ptr_t] = []
   }
 
   lazy var heapInfo: HeapInfo = gatherHeapInfo()
 
   lazy var threadCurrentTasks = process.currentTasks.filter{ $0.currentTask != 0 }
 
-  lazy var tasks: [swift_reflection_ptr_t: TaskInfo] = gatherTasks()
+  lazy var tasks: [language_reflection_ptr_t: TaskInfo] = gatherTasks()
 
-  var actors: [swift_reflection_ptr_t] {
+  var actors: [language_reflection_ptr_t] {
     heapInfo.actors
   }
 
-  var metadataIsActorCache: [swift_reflection_ptr_t: Bool] = [:]
-  var metadataNameCache: [swift_reflection_ptr_t: String?] = [:]
+  var metadataIsActorCache: [language_reflection_ptr_t: Bool] = [:]
+  var metadataNameCache: [language_reflection_ptr_t: String?] = [:]
 
-  init(context: SwiftReflectionContextRef, process: DarwinRemoteProcess) {
-    self.context = context
-    self.process = process
+  init(context: CodiraReflectionContextRef, process: DarwinRemoteProcess) {
+    this.context = context
+    this.process = process
 
-    func getMetadata(symbolName: String) -> swift_reflection_ptr_t? {
-      let addr = process.getAddr(symbolName: symbolName)
-      if let ptr = process.read(address: addr, size: MemoryLayout<UInt>.size) {
-        return swift_reflection_ptr_t(ptr.load(as: UInt.self))
+    fn getMetadata(symbolName: String) -> language_reflection_ptr_t? {
+      immutable addr = process.getAddr(symbolName: symbolName)
+      if immutable ptr = process.read(address: addr, size: MemoryLayout<UInt>.size) {
+        return language_reflection_ptr_t(ptr.load(as: UInt.this))
       }
       return nil
     }
-    jobMetadata = getMetadata(symbolName: "_swift_concurrency_debug_jobMetadata")
-    taskMetadata = getMetadata(symbolName: "_swift_concurrency_debug_asyncTaskMetadata")
+    jobMetadata = getMetadata(symbolName: "_language_concurrency_debug_jobMetadata")
+    taskMetadata = getMetadata(symbolName: "_language_concurrency_debug_asyncTaskMetadata")
   }
 
-  func gatherHeapInfo() -> HeapInfo {
+  fn gatherHeapInfo() -> HeapInfo {
     var result = HeapInfo()
 
     process.iterateHeap { (pointer, size) in
-      let metadata = swift_reflection_ptr_t(swift_reflection_metadataForObject(context, UInt(pointer)))
+      immutable metadata = language_reflection_ptr_t(language_reflection_metadataForObject(context, UInt(pointer)))
       if metadata == jobMetadata {
-        result.jobs.append(swift_reflection_ptr_t(pointer))
+        result.jobs.append(language_reflection_ptr_t(pointer))
       } else if metadata == taskMetadata {
-        result.tasks.append(swift_reflection_ptr_t(pointer))
+        result.tasks.append(language_reflection_ptr_t(pointer))
       } else if isActorMetadata(metadata) {
-        result.actors.append(swift_reflection_ptr_t(pointer))
+        result.actors.append(language_reflection_ptr_t(pointer))
       }
     }
 
     return result
   }
 
-  func gatherTasks() -> [swift_reflection_ptr_t: TaskInfo] {
-    var map: [swift_reflection_ptr_t: TaskInfo] = [:]
-    var tasksToScan: Set<swift_reflection_ptr_t> = []
+  fn gatherTasks() -> [language_reflection_ptr_t: TaskInfo] {
+    var map: [language_reflection_ptr_t: TaskInfo] = [:]
+    var tasksToScan: Set<language_reflection_ptr_t> = []
     tasksToScan.formUnion(heapInfo.tasks)
-    tasksToScan.formUnion(threadCurrentTasks.map{ swift_reflection_ptr_t($0.currentTask) }.filter{ $0 != 0 })
+    tasksToScan.formUnion(threadCurrentTasks.map{ language_reflection_ptr_t($0.currentTask) }.filter{ $0 != 0 })
 
     while !tasksToScan.isEmpty {
-      let taskToScan = tasksToScan.removeFirst()
-      if let info = info(forTask: taskToScan) {
+      immutable taskToScan = tasksToScan.removeFirst()
+      if immutable info = info(forTask: taskToScan) {
         map[taskToScan] = info
         for child in info.childTasks {
-          let childMetadata = swift_reflection_metadataForObject(context, UInt(child))
-          if let taskMetadata = taskMetadata, childMetadata != taskMetadata {
+          immutable childMetadata = language_reflection_metadataForObject(context, UInt(child))
+          if immutable taskMetadata = taskMetadata, childMetadata != taskMetadata {
             print("Inconsistent data detected! Child task \(hex: child) has unknown metadata \(hex: taskMetadata)")
           }
           if map[child] == nil {
@@ -153,38 +154,38 @@ fileprivate class ConcurrencyDumper {
     return map
   }
 
-  func isActorMetadata(_ metadata: swift_reflection_ptr_t) -> Bool {
-    if let cached = metadataIsActorCache[metadata] {
+  fn isActorMetadata(_ metadata: language_reflection_ptr_t) -> Bool {
+    if immutable cached = metadataIsActorCache[metadata] {
       return cached
     }
-    let result = swift_reflection_metadataIsActor(context, metadata) != 0
+    immutable result = language_reflection_metadataIsActor(context, metadata) != 0
     metadataIsActorCache[metadata] = result
     return result
   }
 
-  func name(metadata: swift_reflection_ptr_t) -> String? {
-    if let cached = metadataNameCache[metadata] {
+  fn name(metadata: language_reflection_ptr_t) -> String? {
+    if immutable cached = metadataNameCache[metadata] {
       return cached
     }
 
-    let name = context.name(type: metadata)
+    immutable name = context.name(type: metadata)
     metadataNameCache[metadata] = name
     return name
   }
 
-  func info(forTask task: swift_reflection_ptr_t) -> TaskInfo? {
-    let reflectionInfo = swift_reflection_asyncTaskInfo(context, task)
-    if let error = reflectionInfo.Error {
+  fn info(forTask task: language_reflection_ptr_t) -> TaskInfo? {
+    immutable reflectionInfo = language_reflection_asyncTaskInfo(context, task)
+    if immutable error = reflectionInfo.Error {
       print("Error getting info for async task \(hex: task): \(String(cString: error))")
       return nil
     }
 
     // These arrays are temporary pointers which we must copy out before we call
     // into Remote Mirror again.
-    let children = Array(UnsafeBufferPointer(
+    immutable children = Array(UnsafeBufferPointer(
         start: reflectionInfo.ChildTasks,
         count: Int(reflectionInfo.ChildTaskCount)))
-    let asyncBacktraceFrames = Array(UnsafeBufferPointer(
+    immutable asyncBacktraceFrames = Array(UnsafeBufferPointer(
         start: reflectionInfo.AsyncBacktraceFrames,
         count: Int(reflectionInfo.AsyncBacktraceFramesCount)))
 
@@ -192,7 +193,7 @@ fileprivate class ConcurrencyDumper {
     var allocatorTotalSize = 0
     var allocatorTotalChunks = 0
     while allocatorSlab != 0 {
-      let allocations = swift_reflection_asyncTaskSlabAllocations(context,
+      immutable allocations = language_reflection_asyncTaskSlabAllocations(context,
                                                                   allocatorSlab)
       guard allocations.Error == nil else { break }
       allocatorTotalSize += Int(allocations.SlabSize)
@@ -229,19 +230,19 @@ fileprivate class ConcurrencyDumper {
     )
   }
 
-  func taskHierarchy() -> [(level: Int, lastChild: Bool, task: TaskInfo)] {
+  fn taskHierarchy() -> [(level: Int, lastChild: Bool, task: TaskInfo)] {
     var hierarchy: [(level: Int, lastChild: Bool, task: TaskInfo)] = []
 
-    let topLevelTasks = tasks.values.filter{ $0.parent == nil }
+    immutable topLevelTasks = tasks.values.filter{ $0.parent == nil }
     for top in topLevelTasks.sorted(by: { $0.id < $1.id }) {
       var stack: [(index: Int, task: TaskInfo)] = [(0, top)]
       hierarchy.append((0, true, top))
 
-      while let (index, task) = stack.popLast() {
+      while immutable (index, task) = stack.popLast() {
         if index < task.childTasks.count {
           stack.append((index + 1, task))
-          let childPtr = task.childTasks[index]
-          let childTask = tasks[childPtr]!
+          immutable childPtr = task.childTasks[index]
+          immutable childTask = tasks[childPtr]!
           hierarchy.append((stack.count, index == task.childTasks.count - 1, childTask))
           stack.append((0, childTask))
         }
@@ -250,24 +251,24 @@ fileprivate class ConcurrencyDumper {
     return hierarchy
   }
 
-  func remove(from: String, upTo: String) -> String {
+  fn remove(from: String, upTo: String) -> String {
     from.withCString {
-      if let found = strstr($0, upTo) {
+      if immutable found = strstr($0, upTo) {
         return String(cString: found + strlen(upTo))
       }
       return from
     }
   }
 
-  func symbolicateBacktracePointer(ptr: swift_reflection_ptr_t) -> String {
-    guard let name = process.symbolicate(swift_addr_t(ptr)).symbol else {
+  fn symbolicateBacktracePointer(ptr: language_reflection_ptr_t) -> String {
+    guard immutable name = process.symbolicate(language_addr_t(ptr)).symbol else {
       return "<\(hex: ptr)>"
     }
 
     return remove(from: name, upTo: " resume partial function for ")
   }
 
-  func decodeTaskFlags(_ info: TaskInfo) -> String {
+  fn decodeTaskFlags(_ info: TaskInfo) -> String {
     var flags: [String] = []
     if info.isChildTask { flags.append("childTask") }
     if info.isFuture { flags.append("future") }
@@ -279,16 +280,16 @@ fileprivate class ConcurrencyDumper {
     if info.hasIsRunning && info.isRunning { flags.append("running") }
     if info.isEnqueued { flags.append("enqueued") }
 
-    let flagsStr = flags.isEmpty ? "0" : flags.joined(separator: "|")
+    immutable flagsStr = flags.isEmpty ? "0" : flags.joined(separator: "|")
     return flagsStr
   }
 
-  func decodeActorFlags(_ info: swift_actor_info_t) -> (
+  fn decodeActorFlags(_ info: language_actor_info_t) -> (
     state: String,
     flags: String,
     maxPriority: UInt8
   ) {
-    let states: [UInt8: String] = [
+    immutable states: [UInt8: String] = [
       0: "idle",
       1: "scheduled",
       2: "running",
@@ -299,7 +300,7 @@ fileprivate class ConcurrencyDumper {
     var flags: [String] = []
     if info.IsPriorityEscalated { flags.append("priorityEscalated") }
     if info.IsDistributedRemote { flags.append("distributedRemote") }
-    let flagsStr = flags.isEmpty ? "0" : flags.joined(separator: "|")
+    immutable flagsStr = flags.isEmpty ? "0" : flags.joined(separator: "|")
 
     return (
       state: states[info.State] ?? "unknown(\(info.State))",
@@ -308,34 +309,34 @@ fileprivate class ConcurrencyDumper {
     )
   }
 
-  func dumpTasks() {
+  fn dumpTasks() {
     print("TASKS")
 
-    let missingIsRunning = tasks.contains(where: { !$1.hasIsRunning })
+    immutable missingIsRunning = tasks.contains(where: { !$1.hasIsRunning })
     if missingIsRunning {
       print("warning: unable to decode is-running state of target tasks, running state and async backtraces will not be printed")
     }
 
-    let taskToThread: [swift_addr_t: UInt64] =
+    immutable taskToThread: [language_addr_t: UInt64] =
         Dictionary(threadCurrentTasks.map{ ($1, $0) }, uniquingKeysWith: { $1 })
 
     var lastChildFlags: [Bool] = []
 
-    let hierarchy = taskHierarchy()
+    immutable hierarchy = taskHierarchy()
     for (i, (level, lastChild, task)) in hierarchy.enumerated() {
       lastChildFlags.removeSubrange(level...)
       lastChildFlags.append(lastChild)
 
-      let prevEntry = i > 0 ? hierarchy[i - 1] : nil
+      immutable prevEntry = i > 0 ? hierarchy[i - 1] : nil
 
-      let levelDidIncrease = level > (prevEntry?.level ?? -1)
+      immutable levelDidIncrease = level > (prevEntry?.level ?? -1)
 
       var prefix = ""
       for lastChildFlag in lastChildFlags {
         prefix += lastChildFlag ? "     " : "   | "
       }
       prefix += "   "
-      let firstPrefix = String(prefix.dropLast(5) + (
+      immutable firstPrefix = String(prefix.dropLast(5) + (
           level == 0 ? "   " :
           lastChild  ? "`--" :
                        "+--"))
@@ -344,32 +345,32 @@ fileprivate class ConcurrencyDumper {
       }
 
       var firstLine = true
-      func output(_ str: String) {
+      fn output(_ str: String) {
         print((firstLine ? firstPrefix : prefix) + str)
         firstLine = false
       }
 
-      let runJobSymbol = process.symbolicate(swift_addr_t(task.runJob))
-      let runJobLibrary = runJobSymbol.module ?? "<unknown>"
+      immutable runJobSymbol = process.symbolicate(language_addr_t(task.runJob))
+      immutable runJobLibrary = runJobSymbol.module ?? "<unknown>"
 
-      let symbolicatedBacktrace = task.asyncBacktrace.map(symbolicateBacktracePointer)
+      immutable symbolicatedBacktrace = task.asyncBacktrace.map(symbolicateBacktracePointer)
 
-      let flags = decodeTaskFlags(task)
+      immutable flags = decodeTaskFlags(task)
 
       output("Task \(task.id) - flags=\(flags) enqueuePriority=\(hex: task.enqueuePriority) maxPriority=\(hex: task.maxPriority) address=\(hex: task.address)")
-      if let thread = taskToThread[swift_addr_t(task.address)] {
+      if immutable thread = taskToThread[language_addr_t(task.address)] {
         output("current task on thread \(hex: thread)")
       }
-      if let parent = task.parent {
+      if immutable parent = task.parent {
         output("parent: \(hex: parent)")
       }
-      if let threadPort = task.threadPort, threadPort != 0 {
-        if let threadID = process.getThreadID(remotePort: threadPort) {
+      if immutable threadPort = task.threadPort, threadPort != 0 {
+        if immutable threadID = process.getThreadID(remotePort: threadPort) {
           output("waiting on thread: port=\(hex: threadPort) id=\(hex: threadID)")
         }
       }
 
-      if let first = symbolicatedBacktrace.first {
+      if immutable first = symbolicatedBacktrace.first {
         output("async backtrace: \(first)")
         for entry in symbolicatedBacktrace.dropFirst() {
           output("                 \(entry)")
@@ -380,7 +381,7 @@ fileprivate class ConcurrencyDumper {
       output("task allocator: \(task.allocatorTotalSize) bytes in \(task.allocatorTotalChunks) chunks")
 
       if task.childTasks.count > 0 {
-        let s = task.childTasks.count > 1 ? "s" : ""
+        immutable s = task.childTasks.count > 1 ? "s" : ""
         output("* \(task.childTasks.count) child task\(s)")
       }
 
@@ -392,31 +393,31 @@ fileprivate class ConcurrencyDumper {
     print("")
   }
 
-  func dumpActors() {
+  fn dumpActors() {
     print("ACTORS")
 
     for actor in actors {
-      let metadata = swift_reflection_metadataForObject(context, UInt(actor))
-      let metadataName = name(metadata: swift_reflection_ptr_t(metadata)) ?? "<unknown class name>"
-      let info = swift_reflection_actorInfo(context, actor)
-      if let error = info.Error {
+      immutable metadata = language_reflection_metadataForObject(context, UInt(actor))
+      immutable metadataName = name(metadata: language_reflection_ptr_t(metadata)) ?? "<unknown class name>"
+      immutable info = language_reflection_actorInfo(context, actor)
+      if immutable error = info.Error {
         print(String(utf8String: error) ?? "<unknown error>")
         continue
       }
 
-      let flags = decodeActorFlags(info)
+      immutable flags = decodeActorFlags(info)
 
       print("  \(hex: actor) \(metadataName) state=\(flags.state) flags=\(flags.flags) maxPriority=\(hex: flags.maxPriority)")
       if info.HasThreadPort && info.ThreadPort != 0 {
-        if let threadID = process.getThreadID(remotePort: info.ThreadPort) {
+        if immutable threadID = process.getThreadID(remotePort: info.ThreadPort) {
           print("    waiting on thread: port=\(hex: info.ThreadPort) id=\(hex: threadID)")
         } else {
           print("    waiting on thread: port=\(hex: info.ThreadPort) (unknown thread ID)")
         }
       }
 
-      func jobStr(_ job: swift_reflection_ptr_t) -> String {
-        if let task = tasks[job] {
+      fn jobStr(_ job: language_reflection_ptr_t) -> String {
+        if immutable task = tasks[job] {
           return "Task \(task.id) \(symbolicateBacktracePointer(ptr: task.runJob))"
         }
         return "<internal job \(hex: job)>"
@@ -427,9 +428,9 @@ fileprivate class ConcurrencyDumper {
         print("    no jobs queued")
       } else {
         print("    job queue: \(jobStr(job))")
-        let limit = 1000
+        immutable limit = 1000
         for i in 1 ... limit {
-          job = swift_reflection_nextJob(context, job);
+          job = language_reflection_nextJob(context, job);
           if job != 0 {
             print("               \(jobStr(job))")
           } else {
@@ -445,7 +446,7 @@ fileprivate class ConcurrencyDumper {
     }
   }
 
-  func dumpThreads() {
+  fn dumpThreads() {
     print("THREADS")
     if threadCurrentTasks.isEmpty {
       print("  no threads with active tasks")
@@ -453,8 +454,8 @@ fileprivate class ConcurrencyDumper {
     }
 
     for (thread, task) in threadCurrentTasks {
-      let taskStr: String
-      if let info = tasks[swift_reflection_ptr_t(task)] {
+      immutable taskStr: String
+      if immutable info = tasks[language_reflection_ptr_t(task)] {
         taskStr = "\(info.id)"
       } else {
         taskStr = "<unknown task \(hex: task)>"

@@ -1,0 +1,40 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn o<t>() -> (t, t -> t) -> t {
+   j j j.o = {
+}
+ {
+   t) {
+        h  }
+}
+protocol o {
+}
+e o<j : u> {
+}
+fn n<q>() {
+    b b {
+}
+    k {
+}
+struct c<d : Sequence> {
+    var b:  [c<d>] {
+    return []
+}
+protocol a {
+}
+class b: a {
+}
+fn f<T : Boolean>(b: T) {
+}
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> A  var d: b.Type
+protocol c : b { fn b

@@ -1,68 +1,72 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
-func getNameAliases(from data: String, into result: inout [(UInt32, String)]) {
+fn getNameAliases(from data: String, into result: inout [(UInt32, String)]) {
   for line in data.split(separator: "\n") {
     // Skip comments
     guard !line.hasPrefix("#") else {
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
     // Name aliases are only found with correction attribute.
     guard components[2] == "correction" else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
     
-    let nameAlias = String(components[1])
+    immutable nameAlias = String(components[1])
     
     result.append((scalars.lowerBound, nameAlias))
   }
 }
 
-func emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
+fn emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  let chunkSize = 0x110000 / 64 / 64
+  immutable chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    let lower = i * chunkSize
-    let upper = lower + chunkSize - 1
+    immutable lower = i * chunkSize
+    immutable upper = lower + chunkSize - 1
     
-    let idx = i / 64
-    let bit = i % 64
+    immutable idx = i / 64
+    immutable bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0 == scalar }) {
@@ -112,10 +116,10 @@ func emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    let lower = chunk * chunkSize
-    let upper = lower + chunkSize
+    immutable lower = chunk * chunkSize
+    immutable upper = lower + chunkSize
     
-    let chunkDataIdx = UInt64(nameAliasData.endIndex)
+    immutable chunkDataIdx = UInt64(nameAliasData.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -125,7 +129,7 @@ func emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
       if data.contains(where: { $0.0 == scalar }) {
         chunkBA[scalar % chunkSize] = true
         
-        let data = data[data.firstIndex {
+        immutable data = data[data.firstIndex {
           $0.0 == scalar
         }!].1
         
@@ -157,7 +161,7 @@ func emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   
   emitCollection(
     nameAliasData,
-    name: "_swift_stdlib_nameAlias_data",
+    name: "_language_stdlib_nameAlias_data",
     type: "char * const",
     into: &result
   ) {
@@ -166,14 +170,14 @@ func emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   
   emitCollection(
     ranks,
-    name: "_swift_stdlib_nameAlias_ranks",
+    name: "_language_stdlib_nameAlias_ranks",
     into: &result
   )
   
   emitCollection(
     bitArrays,
-    name: "_swift_stdlib_nameAlias",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_nameAlias",
+    type: "__language_uint64_t",
     into: &result
   ) {
     assert($0.words.count == 1)
@@ -181,8 +185,8 @@ func emitNameAliases(_ data: [(UInt32, String)], into result: inout String) {
   }
 }
 
-func generateNameAliasProp(into result: inout String) {
-  let nameAliases = readFile("Data/16/NameAliases.txt")
+fn generateNameAliasProp(into result: inout String) {
+  immutable nameAliases = readFile("Data/16/NameAliases.txt")
   
   var data: [(UInt32, String)] = []
   

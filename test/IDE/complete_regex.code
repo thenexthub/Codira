@@ -1,0 +1,10 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-ide-test -enable-bare-slash-regex -batch-code-completion -source-filename %s -filecheck %raw-FileCheck -completion-output-dir %t
+
+fn testLiteral() {
+  /foo/.#^RE_LITERAL_MEMBER^#
+// RE_LITERAL_MEMBER-DAG: Keyword[this]/CurrNominal:          this[#Regex<Substring>#];
+}
+

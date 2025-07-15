@@ -1,0 +1,52 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/module-cache)
+// RUN: %empty-directory(%t/inputs)
+// RUN: split-file %s %t
+// RUN: not %target-language-frontend -scan-dependencies -module-cache-path %t/module-cache %t/test.code -o %t/deps.json -I %t/inputs -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -module-name CycleKit  &> %t/out.txt
+// RUN: %FileCheck %s < %t/out.txt
+
+// CHECK: error: module dependency cycle: 'CycleKit (Source Target) -> A.codeinterface -> CycleKit.codeinterface'
+// CHECK: note: Codira Overlay dependency of 'A' on 'CycleKit' via Clang module dependency: 'A.codeinterface -> A.pcm -> B.pcm -> CycleKit.pcm'
+
+//--- test.code
+import A
+
+//--- inputs/CycleKit.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name CycleKit -enable-library-evolution
+
+public fn CycleKitFunc() {}
+
+//--- inputs/A.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name A -enable-library-evolution
+@_exported import A
+public fn AFunc() {}
+
+//--- inputs/A.h
+#import <B.h>
+void funcA(void);
+
+//--- inputs/B.h
+#import <CycleKit.h>
+void funcA(void);
+
+//--- inputs/CycleKit.h
+void funcCycleKit(void);
+
+//--- inputs/module.modulemap
+module A {
+  header "A.h"
+  export *
+}
+
+module B {
+  header "B.h"
+  export *
+}
+
+module CycleKit {
+  header "CycleKit.h"
+  export *
+}

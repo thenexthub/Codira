@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/DiagnosticArgument.h"
@@ -105,7 +106,7 @@ DiagnosticArgument::DiagnosticArgument(const AvailabilityRange &range)
     : Kind(DiagnosticArgumentKind::AvailabilityRange),
       AvailabilityRangeVal(range) {}
 
-DiagnosticArgument::DiagnosticArgument(llvm::VersionTuple version)
+DiagnosticArgument::DiagnosticArgument(toolchain::VersionTuple version)
     : Kind(DiagnosticArgumentKind::VersionTuple), VersionVal(version) {}
 
 DiagnosticArgument::DiagnosticArgument(LayoutConstraint L)
@@ -228,7 +229,7 @@ const AvailabilityRange DiagnosticArgument::getAsAvailabilityRange() const {
   return AvailabilityRangeVal;
 }
 
-llvm::VersionTuple DiagnosticArgument::getAsVersionTuple() const {
+toolchain::VersionTuple DiagnosticArgument::getAsVersionTuple() const {
   ASSERT(Kind == DiagnosticArgumentKind::VersionTuple);
   return VersionVal;
 }

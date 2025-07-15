@@ -1,20 +1,20 @@
 # -*- python -*-
-# test_toolchain.py - Unit tests for swift_build_support.toolchain
+# test_toolchain.py - Unit tests for language_build_support.toolchain
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import os
 import platform
 import unittest
 
-from swift_build_support import toolchain
-from swift_build_support.toolchain import host_toolchain
+from language_build_support import toolchain
+from language_build_support.toolchain import host_toolchain
 
 
 def get_suffix(path, prefix):
@@ -37,17 +37,17 @@ class ToolchainTestCase(unittest.TestCase):
             os.path.isabs(tc.cxx) and
             os.path.basename(tc.cxx).startswith(self._platform_cxx_name()))
 
-    def test_llvm_tools(self):
+    def test_toolchain_tools(self):
         tc = host_toolchain()
 
         self.assertTrue(
-            tc.llvm_profdata is None or
-            os.path.isabs(tc.llvm_profdata) and
-            os.path.basename(tc.llvm_profdata).startswith('llvm-profdata'))
+            tc.toolchain_profdata is None or
+            os.path.isabs(tc.toolchain_profdata) and
+            os.path.basename(tc.toolchain_profdata).startswith('toolchain-profdata'))
         self.assertTrue(
-            tc.llvm_cov is None or
-            os.path.isabs(tc.llvm_cov) and
-            os.path.basename(tc.llvm_cov).startswith('llvm-cov'))
+            tc.toolchain_cov is None or
+            os.path.isabs(tc.toolchain_cov) and
+            os.path.basename(tc.toolchain_cov).startswith('toolchain-cov'))
 
     def test_misc_tools(self):
         tc = host_toolchain()
@@ -94,20 +94,20 @@ class ToolchainTestCase(unittest.TestCase):
         cxx_suffix = get_suffix(tc.cxx, self._platform_cxx_name())
         self.assertEqual(cc_suffix, cxx_suffix)
 
-    def test_tools_llvm_suffix(self):
+    def test_tools_toolchain_suffix(self):
         tc = host_toolchain()
 
         cov_suffix = None
         profdata_suffix = None
-        if tc.llvm_cov:
-            cov_suffix = get_suffix(tc.llvm_cov, 'llvm-cov')
-        if tc.llvm_profdata:
-            profdata_suffix = get_suffix(tc.llvm_profdata, 'llvm-profdata')
+        if tc.toolchain_cov:
+            cov_suffix = get_suffix(tc.toolchain_cov, 'toolchain-cov')
+        if tc.toolchain_profdata:
+            profdata_suffix = get_suffix(tc.toolchain_profdata, 'toolchain-profdata')
 
         if profdata_suffix is not None and cov_suffix is not None:
             self.assertEqual(profdata_suffix, cov_suffix)
 
-        # If we have suffixed clang, llvm tools must have the same suffix.
+        # If we have suffixed clang, toolchain tools must have the same suffix.
         cc_suffix = get_suffix(tc.cc, self._platform_cc_name())
         if cc_suffix != '':
             if cov_suffix is not None:

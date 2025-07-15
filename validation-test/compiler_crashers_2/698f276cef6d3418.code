@@ -1,0 +1,4 @@
+// {"signature":"language::DefaultAndMaxAccessLevelRequest::cacheResult(std::__1::pair<language::AccessLevel, language::AccessLevel>) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < b extension a where b : c, d == a {
+  protocol c struct a

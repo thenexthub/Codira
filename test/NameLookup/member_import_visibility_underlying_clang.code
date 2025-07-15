@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -primary-file %t/Primary.code %t/Other.code -I %S/Inputs/MemberImportVisibility -module-name Underlying -verify -language-version 5
+// RUN: %target-language-frontend -typecheck -primary-file %t/Primary.code %t/Other.code -I %S/Inputs/MemberImportVisibility -module-name Underlying -verify -language-version 6
+// RUN: %target-language-frontend -typecheck -primary-file %t/Primary.code %t/Other.code -I %S/Inputs/MemberImportVisibility -module-name Underlying -verify -language-version 5 -enable-upcoming-feature MemberImportVisibility
+
+// REQUIRES: language_feature_MemberImportVisibility
+
+//--- Other.code
+@_exported import Underlying
+
+//--- Primary.code
+
+fn test(_ s: UnderlyingStruct) {
+  _ = s.a
+}

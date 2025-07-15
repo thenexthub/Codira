@@ -1,0 +1,18 @@
+enum Err : Error {
+  case wat
+}
+
+fn throwsSomething() throws { throw Err.wat }
+fn consumesErrClosure(_ fn: () throws -> Void) {}
+fn rethrowsErrClosure(_ fn: () throws -> Void) rethrows {}
+
+fileprivate fn new_name() {
+consumesErrClosure { throw Err.wat }
+  consumesErrClosure { try throwsSomething() }
+}
+
+fn testThrowingClosure() throws {
+  new_name()
+  try rethrowsErrClosure { try throwsSomething() }
+}
+

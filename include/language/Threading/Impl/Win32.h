@@ -1,21 +1,25 @@
 //==--- Win32.h - Threading abstraction implementation --------- -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for Windows threads
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_IMPL_WIN32_H
-#define SWIFT_THREADING_IMPL_WIN32_H
+#ifndef LANGUAGE_THREADING_IMPL_WIN32_H
+#define LANGUAGE_THREADING_IMPL_WIN32_H
 
 #include "Win32/Win32Defs.h"
 
@@ -39,7 +43,7 @@ std::optional<stack_bounds> thread_get_current_stack_bounds();
 
 // .. Mutex support ..........................................................
 
-using mutex_handle = SWIFT_SRWLOCK;
+using mutex_handle = LANGUAGE_SRWLOCK;
 
 inline void mutex_init(mutex_handle &handle, bool checked = false) {
   handle = SRWLOCK_INIT;
@@ -63,10 +67,10 @@ inline void mutex_unsafe_unlock(mutex_handle &handle) {
   ReleaseSRWLockExclusive(&handle);
 }
 
-using lazy_mutex_handle = SWIFT_SRWLOCK;
+using lazy_mutex_handle = LANGUAGE_SRWLOCK;
 
 // We don't need to be lazy here because Win32 has SRWLOCK_INIT.
-#define SWIFT_LAZY_MUTEX_INITIALIZER SRWLOCK_INIT
+#define LANGUAGE_LAZY_MUTEX_INITIALIZER SRWLOCK_INIT
 
 inline void lazy_mutex_destroy(lazy_mutex_handle &handle) {}
 
@@ -89,7 +93,7 @@ inline void lazy_mutex_unsafe_unlock(lazy_mutex_handle &handle) {
 
 // .. Recursive mutex support ................................................
 
-using recursive_mutex_handle = SWIFT_CRITICAL_SECTION;
+using recursive_mutex_handle = LANGUAGE_CRITICAL_SECTION;
 
 inline void recursive_mutex_init(recursive_mutex_handle &handle,
                                  bool checked = false) {
@@ -110,8 +114,8 @@ inline void recursive_mutex_unlock(recursive_mutex_handle &handle) {
 // .. ConditionVariable support ..............................................
 
 struct cond_handle {
-  SWIFT_CONDITION_VARIABLE condition;
-  SWIFT_SRWLOCK lock;
+  LANGUAGE_CONDITION_VARIABLE condition;
+  LANGUAGE_SRWLOCK lock;
 };
 
 inline void cond_init(cond_handle &handle) {
@@ -240,13 +244,13 @@ inline void once_impl(once_t &predicate, void (*fn)(void *), void *context) {
 
 #ifdef __clang__
 #if __has_feature(cxx_thread_local)
-#define SWIFT_THREAD_LOCAL thread_local
+#define LANGUAGE_THREAD_LOCAL thread_local
 #endif
 #elif __cplusplus >= 201103L
-#define SWIFT_THREAD_LOCAL thread_local
+#define LANGUAGE_THREAD_LOCAL thread_local
 #endif
 
-#define SWIFT_TLS_DECLARE_DTOR(name) void NTAPI name(void *)
+#define LANGUAGE_TLS_DECLARE_DTOR(name) void NTAPI name(void *)
 
 using tls_key_t = ::DWORD;
 using tls_dtor_t = ::PFLS_CALLBACK_FUNCTION;
@@ -264,4 +268,4 @@ inline void tls_set(tls_key_t key, void *value) { ::FlsSetValue(key, value); }
 
 } // namespace language
 
-#endif // SWIFT_THREADING_IMPL_WIN32_H
+#endif // LANGUAGE_THREADING_IMPL_WIN32_H

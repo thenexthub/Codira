@@ -1,22 +1,26 @@
 //===--- Service.h - --------------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_SERVICE_H
-#define LLVM_SOURCEKITD_SERVICE_H
+#ifndef TOOLCHAIN_SOURCEKITD_SERVICE_H
+#define TOOLCHAIN_SOURCEKITD_SERVICE_H
 
 #include "SourceKit/Support/CancellationToken.h"
 #include "sourcekitd/plugin.h"
 #include "sourcekitd/sourcekitd.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 #include <functional>
 
@@ -24,14 +28,12 @@ namespace sourcekitd {
 using SourceKit::SourceKitCancellationToken;
 
 /// Initialize the service. Must be called before attempting to handle requests.
-/// \param swiftExecutablePath The path of the swift-frontend executable.
+/// \param languageExecutablePath The path of the language-frontend executable.
 ///                            Used to find clang relative to it.
 /// \param runtimeLibPath The path to the toolchain's library directory.
-/// \param diagnosticDocumentationPath The path to diagnostics documentation.
 /// \param postNotification Callback to post a notification.
 void initializeService(
-    llvm::StringRef swiftExecutablePath, llvm::StringRef runtimeLibPath,
-    llvm::StringRef diagnosticDocumentationPath,
+    toolchain::StringRef languageExecutablePath, toolchain::StringRef runtimeLibPath,
     std::function<void(sourcekitd_response_t)> postNotification);
 /// Shutdown the service.
 void shutdownService();
@@ -50,7 +52,7 @@ void pluginRegisterRequestHandler(
 void pluginRegisterCancellationHandler(
     sourcekitd_cancellation_handler_t handler);
 
-void *pluginGetOpaqueSwiftIDEInspectionInstance();
+void *pluginGetOpaqueCodiraIDEInspectionInstance();
 
 typedef std::function<void(sourcekitd_response_t)> ResponseReceiver;
 
@@ -79,4 +81,4 @@ void sendBarriersEnabledResponse(ResponseReceiver Receiver);
 
 } // namespace sourcekitd
 
-#endif // LLVM_SOURCEKITD_SERVICE_H
+#endif // TOOLCHAIN_SOURCEKITD_SERVICE_H

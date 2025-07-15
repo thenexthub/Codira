@@ -1,0 +1,42 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<r>() -> (r, r -> r) -> r {
+   f r f.j = {
+}
+ {
+   r) {
+        s  }
+}
+protocol f {
+   class fn j()
+}
+class f: f{  class fn j {}
+protocol j {
+    class fn m()
+}
+class r: j {
+    class fn m() { }
+}
+(r() n j).p.m()
+j=k n j=k
+protocol r {
+    class fn q()
+}
+s m {
+    m f: r.q
+    fn q() {
+        f.q()
+    }
+(l, () -> ())
+}
+fn f<l : o>(r: l)

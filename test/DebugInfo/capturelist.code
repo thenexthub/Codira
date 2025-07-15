@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend %s -emit-ir -g -o - | %FileCheck %s
+class C {
+  fn withClosure(_ : () -> ()) -> () {}
+
+  fn f() {
+    // CHECK-LABEL: define{{.*}}$s11capturelist1CC1fyyFyyXEfU_
+    // There should not be a local weak variable "this" shadowing the
+    // implicit this argument.
+    // immutable this
+    // CHECK: #dbg_
+    // immutable s
+    // CHECK: #dbg_
+    // var weak this
+    // CHECK-NOT: #dbg_
+    // CHECK-LABEL: ret void
+    withClosure { [weak this] in
+      guard immutable s = this else { return }
+    }
+  }
+}

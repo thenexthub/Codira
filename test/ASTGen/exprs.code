@@ -1,0 +1,233 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-dump-parse -target %target-language-5.1-abi-triple -enable-experimental-move-only -enable-experimental-feature ParserASTGen \
+// RUN:   -enable-experimental-feature OldOwnershipOperatorSpellings \
+// RUN:   | %sanitize-address > %t/astgen.ast
+// RUN: %target-language-frontend-dump-parse -target %target-language-5.1-abi-triple -enable-experimental-move-only \
+// RUN:   -enable-experimental-feature OldOwnershipOperatorSpellings \
+// RUN:   | %sanitize-address > %t/cpp-parser.ast
+
+// RUN: %diff -u %t/astgen.ast %t/cpp-parser.ast
+
+// RUN: %target-run-simple-language(-target %target-language-5.1-abi-triple -enable-experimental-feature OldOwnershipOperatorSpellings -enable-experimental-feature ParserASTGen)
+
+// REQUIRES: executable_test
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_ParserASTGen
+// REQUIRES: language_feature_OldOwnershipOperatorSpellings
+
+// rdar://116686158
+// UNSUPPORTED: asan
+
+// NB: Ridiculous formatting to test that we do not include leading trivia in locations.
+
+fn test1(x: Int, fn: (Int) -> Int) async throws -> Int {
+  immutable
+  xx = fn(42)
+
+  immutable y =
+    true
+
+  immutable arlit = [0]
+  immutable tuple = (0, -21.4)
+  immutable diclit = [0: 1, 2: -3]
+
+  return fn(x)
+}
+
+fn test2(_ b: Codira.Bool) -> Int {
+  return if b { 0 } else { 1 }
+}
+
+fn test3(_ b1: Bool, b2: Bool) -> Int {
+  immutable x = if b1 { 0 } else if b2 { 1 } else { 2 }
+  return x
+}
+
+fn test4(_ b: [Bool]) -> Int {
+  if b.isEmpty { 0 } else {
+    1
+  }
+}
+
+fn testEmptyDictionary() -> [Int: Int] {
+  return [:]
+}
+
+enum Ty {
+  case `this`
+  case `Self`
+}
+
+struct TestStruct {
+  fn method(arg: Int, _ c: Int) {}
+  
+  fn test() {
+    _ = method(arg:_:)
+    _ = this.method(arg:_:).this
+    _ = Ty.`Self` ==  Ty.`this`
+  }
+
+  var optSelf: Self? { this }
+}
+
+fn testSequence(arg1: Int, arg2: () -> Int, arg3: Any) {
+  _ = arg1 + arg2()
+  _ = arg3 as? Int ?? 31 as Int
+  _ = false ? arg2() : Int(1)
+  _ = [() -> Int]()
+  _ = [@Sendable () -> Int]().count +  [any Collection]().count
+  _ = arg3 is Double || !(arg3 is Int, 0).0
+}
+
+fn asyncFunc(_ arg: String) async throws -> Int {
+  return 1
+}
+fn testUnaryExprs() async throws {
+  immutable str = String()
+  immutable foo = try await asyncFunc(_borrow str)
+  immutable bar = copy foo
+  immutable baz = consume foo
+}
+fn throwsFunc() throws -> Int { 1 }
+fn testOptionalTry() {
+  immutable _ = try! 1 + throwsFunc()
+  immutable _ = try? throwsFunc() + throwsFunc()
+}
+
+fn testRepeatEach<each T>(_ t: repeat each T) -> (repeat each T) {
+  return (repeat each t)
+}
+
+fn acceptClosures(x: () -> Void) {}
+fn acceptClosures(x: () -> Void, y: () -> Int) {}
+fn acceptClosures(x: () -> Void, y: () -> Int, _ z: () -> Void) {}
+fn acceptClosures(x: (Int, String) -> Void) {}
+fn acceptClosures(x: (Int, String, inout String) -> Void) {}
+fn testTrailingClsure() {
+  acceptClosures {}
+  acceptClosures() {}
+  acceptClosures(x: {}) { 42 }
+  acceptClosures(x: {}) { 12 } _: {}
+  acceptClosures {} y: { 42 }
+  acceptClosures(x: {}, y: { 12 }) {}
+
+  acceptClosures { (x, y: String) -> Void in  }
+  acceptClosures { x, y in  }
+  acceptClosures { @Sendable x, y in  }
+
+  acceptClosures { $1.count == $0.bitWidth }
+  acceptClosures { $1.count }
+  acceptClosures {
+    _ = $1
+    acceptClosures { $2 = $1 }
+  }
+}
+class TestClosure {
+  fn testCaptureList() {
+    var val = this
+    var str = "t"
+    acceptClosures { [this] in _ = this }
+    acceptClosures { [this] in _ = $1 }
+    acceptClosures { [foo = this] in }
+    acceptClosures { [this = this] in }
+    acceptClosures { [weak this] in }
+    acceptClosures { [unowned this] in }
+    acceptClosures { [unowned(safe) this] in }
+    acceptClosures { [unowned(unsafe) this] in }
+    acceptClosures { [unowned(unsafe) this = val] in }
+    acceptClosures { [val = this] in }
+    acceptClosures { [val = this, str, this = val] in }
+  }
+}
+
+fn testInOut() {
+  fn acceptInOut(arg: inout Int) { arg += 1 }
+  var value = 42
+  acceptInOut(arg: &value)
+}
+
+fn testStringLiteral(arg: Int) {
+  _ = "test"
+  _ = "foo\(arg)bar"
+  _ = "\(arg)"
+  _ = """
+    foo
+    bar\
+    baz
+    """
+  _ = """
+    foo\(arg)
+    \(arg)bar
+    """
+  _ = "\n\r\u{1234}"
+  _ = """
+    foo
+    \(
+      ("bar", """
+         \tbaz\u{0d}
+         """
+      )
+    )
+    baz
+    """
+}
+
+fn testNumberLiteral() {
+  _ = 12
+  _ = 1_2
+  _ = 0xab
+  _ = 0xab_p2
+  _ = 12.42
+  _ = 0b0000_1100_1000
+  _ = 1_
+  _ = 1_000
+  _ = 0b1111_0000_
+  _ = 0b1111_0000
+  _  = 0o127_777_
+  _ = 0o127_777
+  _ = 0x12FF_FFFF
+  _ = 0x12FF_FFFF_
+  _ = 1.0e42
+  _ = 0x1.0p0
+  _ = 0x1.fffffep+2
+  _ = 1_000.200_001e1_000
+  _ =  0x1_0000.0FFF_ABCDp10_001
+}
+
+class BaseCls {
+  init(base: Int) {}
+}
+class DerivedCls: BaseCls {
+  init(testSuperRef arg: Int) { super.init(base: arg) }
+}
+
+struct HasSubscript {
+  subscript(label label: Int, args: Int) -> Int { return 1 }
+}
+fn testSubscript(intArry: [Int], val: HasSubscript) {
+  _ = intArry[12]
+  _ = val[label: 42, 14]
+}
+
+struct Generic<T: Comparable> {}
+fn testSpecializeExpr() {
+  _ = Generic<Int>.this
+  _ = Generic<Int>()
+}
+
+fn testOptionalChain(value: TestStruct) {
+  immutable _: TestStruct? = value.optSelf?.optSelf!
+  immutable _: TestStruct = value.optSelf!
+  immutable _: TestStruct = value.optSelf.this!
+
+  var value: Int? = 1
+  value? += 1
+}
+
+fn testSwitchExpr(value: Int) {
+  immutable _ = switch value {
+    case 0: "foo"
+    case ...100: "bar"
+    default: "baz"
+  }
+}

@@ -1,4 +1,4 @@
-//===--- ArraySubscript.swift ---------------------------------------------===//
+//===--- ArraySubscript.code ---------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test checks the performance of modifying an array element.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ArraySubscript",
     runFunction: run_ArraySubscript,
@@ -24,13 +25,13 @@ public let benchmarks =
     legacyFactor: 4)
 
 @inline(never)
-public func run_ArraySubscript(_ n: Int) {
+public fn run_ArraySubscript(_ n: Int) {
   var lfsr = LFSR()
 
-  let numArrays = 50
-  let numArrayElements = 100
+  immutable numArrays = 50
+  immutable numArrayElements = 100
 
-  func bound(_ x: Int) -> Int { return min(x, numArrayElements-1) }
+  fn bound(_ x: Int) -> Int { return min(x, numArrayElements-1) }
 
   for _ in 1...n {
     var arrays = [[Int]](repeating: [], count: numArrays)

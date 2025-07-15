@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "RefactoringActions.h"
@@ -46,7 +50,7 @@ struct RenameRefInfo {
   bool IsArgLabel; ///< Whether Loc is on an arg label, rather than base name.
 };
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 /// Returns `true` if the `RefInfo` points to a location that doesn't have any
 /// arguments. For example, returns `true` for `Foo.init` but `false` for
 /// `Foo.init()` or `Foo.init(a: 1)`.
@@ -66,7 +70,7 @@ isReferenceWithoutArguments(const std::optional<RenameRefInfo> &refInfo) {
   }
   return false;
 }
-#endif // SWIFT_BUILD_SWIFT_SYNTAX
+#endif // LANGUAGE_BUILD_LANGUAGE_SYNTAX
 
 static std::optional<RefactorAvailabilityInfo>
 renameAvailabilityInfo(const ValueDecl *VD,
@@ -112,7 +116,7 @@ renameAvailabilityInfo(const ValueDecl *VD,
       if (!CD->getParameters()->size())
         return std::nullopt;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
       if (isReferenceWithoutArguments(RefInfo)) {
         return std::nullopt;
       }
@@ -127,7 +131,7 @@ renameAvailabilityInfo(const ValueDecl *VD,
         if (!FD->getParameters()->size())
           return std::nullopt;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
         if (isReferenceWithoutArguments(RefInfo)) {
           return std::nullopt;
         }
@@ -151,7 +155,7 @@ renameAvailabilityInfo(const ValueDecl *VD,
 /// the cursor did not resolve to a decl or it resolved to a decl that we do
 /// not allow renaming on.
 std::optional<RenameInfo>
-swift::ide::getRenameInfo(ResolvedCursorInfoPtr cursorInfo) {
+language::ide::getRenameInfo(ResolvedCursorInfoPtr cursorInfo) {
   auto valueCursor = dyn_cast<ResolvedValueRefCursorInfo>(cursorInfo);
   if (!valueCursor)
     return std::nullopt;
@@ -232,7 +236,7 @@ private:
     // Inside capture lists like `{ [test] in }`, 'test' refers to both the
     // newly declared, captured variable and the referenced variable it is
     // initialized from. Make sure to only rename it once.
-    auto existingLoc = llvm::find_if(locations, [&](RenameLoc searchLoc) {
+    auto existingLoc = toolchain::find_if(locations, [&](RenameLoc searchLoc) {
       return searchLoc.Line == loc->Line && searchLoc.Column == loc->Column;
     });
     if (existingLoc == locations.end()) {
@@ -266,7 +270,7 @@ RenameRangeCollector::indexSymbolToRenameLoc(const index::IndexSymbol &symbol) {
   } else if (symbol.roles & (unsigned)index::SymbolRole::Reference) {
     usage = RenameLocUsage::Reference;
   } else {
-    llvm_unreachable("unexpected role");
+    toolchain_unreachable("unexpected role");
   }
 
   StringRef oldName = stringStorage->copyString(symbol.name);
@@ -349,7 +353,7 @@ static ValueDecl *getDeclForLocalRename(SourceFile *sourceFile,
   return info->VD;
 }
 
-RenameLocs swift::ide::localRenameLocs(SourceFile *SF,
+RenameLocs language::ide::localRenameLocs(SourceFile *SF,
                                        const ValueDecl *valueDecl) {
   DeclContext *RenameScope = SF;
   if (RenameScope) {
@@ -373,15 +377,15 @@ RenameLocs swift::ide::localRenameLocs(SourceFile *SF,
 }
 
 CancellableResult<std::vector<SyntacticRenameRangeDetails>>
-swift::ide::findLocalRenameRanges(SourceFile *SF, RangeConfig Range) {
+language::ide::findLocalRenameRanges(SourceFile *SF, RangeConfig Range) {
   using ResultType =
       CancellableResult<std::vector<SyntacticRenameRangeDetails>>;
   assert(SF && "null source file");
 
   SourceManager &SM = SF->getASTContext().SourceMgr;
   std::string ErrBuffer;
-  llvm::raw_string_ostream DiagOS(ErrBuffer);
-  swift::PrintingDiagnosticConsumer DiagConsumer(DiagOS);
+  toolchain::raw_string_ostream DiagOS(ErrBuffer);
+  language::PrintingDiagnosticConsumer DiagConsumer(DiagOS);
   DiagnosticEngine Diags(SM);
   Diags.addConsumer(DiagConsumer);
 

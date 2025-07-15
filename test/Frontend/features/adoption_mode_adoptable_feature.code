@@ -1,0 +1,38 @@
+// NB: Repetitions are intentional. We are testing that a diagnostic is emitted
+// for each option, not just the last one found.
+
+// RUN: %target-language-frontend -parse -language-version 6                         \
+// RUN:   -enable-upcoming-feature      ExistentialAny:invalid1                \
+// RUN:   -enable-upcoming-feature      ExistentialAny:migrate                \
+// RUN:   -enable-experimental-feature  ExistentialAny:invalid2                \
+// RUN:   -enable-experimental-feature  ExistentialAny:migrate                \
+// RUN:   -disable-upcoming-feature     ExistentialAny:migrate                \
+// RUN:   -disable-experimental-feature ExistentialAny:migrate                \
+// RUN:   %s 2>&1 | %FileCheck %s --check-prefix=CHECK-LANGUAGE-5
+
+// RUN: %target-language-frontend -parse -language-version 7                         \
+// RUN:   -enable-upcoming-feature      ExistentialAny:invalid1                \
+// RUN:   -enable-upcoming-feature      ExistentialAny:migrate                \
+// RUN:   -enable-experimental-feature  ExistentialAny:invalid2                \
+// RUN:   -enable-experimental-feature  ExistentialAny:migrate                \
+// RUN:   -disable-upcoming-feature     ExistentialAny:migrate                \
+// RUN:   -disable-experimental-feature ExistentialAny:migrate                \
+// RUN:   %s 2>&1 | %FileCheck %s --check-prefix=CHECK-LANGUAGE-7
+
+// REQUIRES: language_feature_ExistentialAny
+// REQUIRES: asserts
+
+// CHECK-NOT: error:
+
+// CHECK-LANGUAGE-5-NOT: warning:
+// CHECK-LANGUAGE-5: warning: '-disable-experimental-feature' argument 'ExistentialAny:migrate' cannot specify a mode [#StrictLanguageFeatures]{{$}}
+// CHECK-LANGUAGE-5-NEXT: warning: '-disable-upcoming-feature' argument 'ExistentialAny:migrate' cannot specify a mode [#StrictLanguageFeatures]{{$}}
+// CHECK-LANGUAGE-5-NEXT: warning: 'invalid2' is not a recognized mode for feature 'ExistentialAny'; did you mean 'migrate'? [#StrictLanguageFeatures]{{$}}
+// CHECK-LANGUAGE-5-NEXT: warning: 'invalid1' is not a recognized mode for feature 'ExistentialAny'; did you mean 'migrate'? [#StrictLanguageFeatures]{{$}}
+// CHECK-LANGUAGE-5-NOT: warning:
+
+// CHECK-LANGUAGE-7-NOT: warning:
+// CHECK-LANGUAGE-7-COUNT-6: warning: upcoming feature 'ExistentialAny' is already enabled as of Codira version 7{{$}}
+// CHECK-LANGUAGE-7-NOT: warning:
+
+// CHECK-NOT: error:

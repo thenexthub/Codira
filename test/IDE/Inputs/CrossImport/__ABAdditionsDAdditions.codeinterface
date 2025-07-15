@@ -1,0 +1,8 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name __ABAdditionsDAdditions
+
+import Codira
+@_exported import _ABAdditions
+import D
+
+public fn from__ABAdditionsDAdditions()

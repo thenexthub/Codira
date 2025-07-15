@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This header provides target-independent information about class
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_CLASS_H
-#define SWIFT_ABI_CLASS_H
+#ifndef LANGUAGE_ABI_CLASS_H
+#define LANGUAGE_ABI_CLASS_H
 
 #include <stdint.h>
 
@@ -73,4 +74,4 @@ inline ObjCClassFlags operator|(ObjCClassFlags lhs, ObjCClassFlags rhs) {
 
 }
 
-#endif // SWIFT_ABI_CLASS_H
+#endif // LANGUAGE_ABI_CLASS_H

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "FeatureSet.h"
@@ -31,7 +32,7 @@ using namespace language;
 /// Does the interface of this declaration use a type for which the
 /// given predicate returns true?
 static bool usesTypeMatching(const Decl *decl,
-                             llvm::function_ref<bool(Type)> fn) {
+                             toolchain::function_ref<bool(Type)> fn) {
   if (auto value = dyn_cast<ValueDecl>(decl)) {
     if (Type type = value->getInterfaceType()) {
       return type.findIf(fn);
@@ -94,7 +95,6 @@ UNINTERESTING_FEATURE(OldOwnershipOperatorSpellings)
 UNINTERESTING_FEATURE(MoveOnlyEnumDeinits)
 UNINTERESTING_FEATURE(MoveOnlyTuples)
 UNINTERESTING_FEATURE(MoveOnlyPartialReinitialization)
-UNINTERESTING_FEATURE(LayoutPrespecialization)
 UNINTERESTING_FEATURE(AccessLevelOnImport)
 UNINTERESTING_FEATURE(AllowNonResilientAccessInPackage)
 UNINTERESTING_FEATURE(ClientBypassResilientAccessInPackage)
@@ -112,7 +112,6 @@ UNINTERESTING_FEATURE(UnqualifiedLookupValidation)
 UNINTERESTING_FEATURE(ImplicitSome)
 UNINTERESTING_FEATURE(ParserASTGen)
 UNINTERESTING_FEATURE(BuiltinMacros)
-UNINTERESTING_FEATURE(ImportSymbolicCXXDecls)
 UNINTERESTING_FEATURE(GenerateBindingsForThrowingFunctionsInCXX)
 UNINTERESTING_FEATURE(ReferenceBindings)
 UNINTERESTING_FEATURE(BuiltinModule)
@@ -129,12 +128,17 @@ UNINTERESTING_FEATURE(StructLetDestructuring)
 UNINTERESTING_FEATURE(MacrosOnImports)
 UNINTERESTING_FEATURE(NonisolatedNonsendingByDefault)
 UNINTERESTING_FEATURE(KeyPathWithMethodMembers)
+UNINTERESTING_FEATURE(SendableProhibitsMainActorInference)
+UNINTERESTING_FEATURE(ImportMacroAliases)
+
+// TODO: Return true for inlinable function bodies with module selectors in them
+UNINTERESTING_FEATURE(ModuleSelector)
 
 static bool usesFeatureNonescapableTypes(Decl *decl) {
   auto containsNonEscapable =
       [](SmallVectorImpl<InverseRequirement> &inverseReqs) {
         auto foundIt =
-            llvm::find_if(inverseReqs, [](InverseRequirement inverseReq) {
+            toolchain::find_if(inverseReqs, [](InverseRequirement inverseReq) {
               if (inverseReq.getKind() == InvertibleProtocolKind::Escapable) {
                 return true;
               }
@@ -218,7 +222,7 @@ static bool usesFeatureSendingArgsAndResults(Decl *decl) {
       if (fnType->hasExtInfo() && fnType->hasSendingResult())
         return true;
 
-      return llvm::any_of(fnType->getParams(),
+      return toolchain::any_of(fnType->getParams(),
                           [](AnyFunctionType::Param param) {
                             return param.getParameterFlags().isSending();
                           });
@@ -238,7 +242,7 @@ static bool usesFeatureSendingArgsAndResults(Decl *decl) {
 
   if (auto *fDecl = dyn_cast<AbstractFunctionDecl>(decl)) {
     // First check for param decl results.
-    if (llvm::any_of(fDecl->getParameters()->getArray(), [](ParamDecl *pd) {
+    if (toolchain::any_of(fDecl->getParameters()->getArray(), [](ParamDecl *pd) {
           return usesFeatureSendingArgsAndResults(pd);
         }))
       return true;
@@ -259,10 +263,36 @@ static bool usesFeatureSendingArgsAndResults(Decl *decl) {
   return false;
 }
 
+static bool findUnderscoredLifetimeAttr(Decl *decl) {
+  auto hasUnderscoredLifetimeAttr = [](Decl *decl) {
+    if (!decl->getAttrs().hasAttribute<LifetimeAttr>()) {
+      return false;
+    }
+    // Since we ban mixing @lifetime and @_lifetime on the same decl, checking
+    // any one LifetimeAttr on the decl is sufficient.
+    // FIXME: Implement the ban.
+    return decl->getAttrs().getAttribute<LifetimeAttr>()->isUnderscored();
+  };
+
+  switch (decl->getKind()) {
+  case DeclKind::Var: {
+    auto *var = cast<VarDecl>(decl);
+    return toolchain::any_of(var->getAllAccessors(), hasUnderscoredLifetimeAttr);
+  }
+  default:
+    return hasUnderscoredLifetimeAttr(decl);
+  }
+}
+
 static bool usesFeatureLifetimeDependence(Decl *decl) {
   if (decl->getAttrs().hasAttribute<LifetimeAttr>()) {
+    if (findUnderscoredLifetimeAttr(decl)) {
+      // Experimental feature Lifetimes will guard the decl.
+      return false;
+    }
     return true;
   }
+
   if (auto *afd = dyn_cast<AbstractFunctionDecl>(decl)) {
     return afd->getInterfaceType()
       ->getAs<AnyFunctionType>()
@@ -272,6 +302,10 @@ static bool usesFeatureLifetimeDependence(Decl *decl) {
     return !varDecl->getTypeInContext()->isEscapable();
   }
   return false;
+}
+
+static bool usesFeatureLifetimes(Decl *decl) {
+  return findUnderscoredLifetimeAttr(decl);
 }
 
 static bool usesFeatureInoutLifetimeDependence(Decl *decl) {
@@ -290,7 +324,7 @@ static bool usesFeatureInoutLifetimeDependence(Decl *decl) {
   switch (decl->getKind()) {
   case DeclKind::Var: {
     auto *var = cast<VarDecl>(decl);
-    return llvm::any_of(var->getAllAccessors(), hasInoutLifetimeDependence);
+    return toolchain::any_of(var->getAllAccessors(), hasInoutLifetimeDependence);
   }
   default:
     return hasInoutLifetimeDependence(decl);
@@ -302,14 +336,25 @@ static bool usesFeatureLifetimeDependenceMutableAccessors(Decl *decl) {
     return false;
   }
   auto var = cast<VarDecl>(decl);
-  if (!var->isGetterMutating()) {
+  return var->isGetterMutating() && !var->getTypeInContext()->isEscapable();
+}
+
+static bool usesFeatureNonescapableAccessorOnTrivial(Decl *decl) {
+  if (!isa<VarDecl>(decl)) {
     return false;
   }
-  if (auto dc = var->getDeclContext()) {
-    if (auto nominal = dc->getSelfNominalTypeDecl()) {
-      auto sig = nominal->getGenericSignature();
-      return !var->getInterfaceType()->isEscapable(sig);
-    }
+  auto var = cast<VarDecl>(decl);
+  if (!var->hasParsedAccessors()) {
+    return false;
+  }
+  // Check for properties that are both non-Copyable and non-Escapable
+  // (MutableSpan).
+  if (var->getTypeInContext()->isNoncopyable()
+      && !var->getTypeInContext()->isEscapable()) {
+    auto selfTy = var->getDeclContext()->getSelfTypeInContext();
+    // Consider 'self' trivial if it is BitwiseCopyable and Escapable
+    // (UnsafeMutableBufferPointer).
+    return selfTy->isBitwiseCopyable() && selfTy->isEscapable();
   }
   return false;
 }
@@ -391,7 +436,7 @@ static ABIAttr *getABIAttr(Decl *decl) {
   return decl->getAttrs().getAttribute<ABIAttr>();
 }
 
-static bool usesFeatureABIAttribute(Decl *decl) {
+static bool usesFeatureABIAttributeSE0479(Decl *decl) {
   return getABIAttr(decl) != nullptr;
 }
 
@@ -407,6 +452,10 @@ static bool usesFeatureConcurrencySyntaxSugar(Decl *decl) {
 static bool usesFeatureCompileTimeValues(Decl *decl) {
   return decl->getAttrs().hasAttribute<ConstValAttr>() ||
          decl->getAttrs().hasAttribute<ConstInitializedAttr>();
+}
+
+static bool usesFeatureCompileTimeValuesPreview(Decl *decl) {
+  return false;
 }
 
 static bool usesFeatureClosureBodyMacro(Decl *decl) {
@@ -455,15 +504,7 @@ UNINTERESTING_FEATURE(SuppressCXXForeignReferenceTypeInitializers)
 UNINTERESTING_FEATURE(CoroutineAccessorsUnwindOnCallerError)
 UNINTERESTING_FEATURE(AllowRuntimeSymbolDeclarations)
 
-static bool usesFeatureSwiftSettings(const Decl *decl) {
-  // We just need to guard `#SwiftSettings`.
-  auto *macro = dyn_cast<MacroDecl>(decl);
-  return macro && macro->isStdlibDecl() &&
-         macro->getMacroRoles().contains(MacroRole::Declaration) &&
-         macro->getBaseIdentifier().is("SwiftSettings");
-}
-
-bool swift::usesFeatureIsolatedDeinit(const Decl *decl) {
+bool language::usesFeatureIsolatedDeinit(const Decl *decl) {
   if (auto cd = dyn_cast<ClassDecl>(decl)) {
     return cd->getFormalAccess() == AccessLevel::Open &&
            usesFeatureIsolatedDeinit(cd->getDestructor());
@@ -515,14 +556,14 @@ static bool usesFeatureValueGenericsNameLookup(Decl *decl) {
   // as having used this feature. It's a little difficult to fine grain this
   // check because the following:
   //
-  // func a() -> Int {
+  // fn a() -> Int {
   //   A<123>.n
   // }
   //
   // Would appear to have the same expression as something like:
   //
   // extension A where n == 123 {
-  //   func b() -> Int {
+  //   fn b() -> Int {
   //     n
   //   }
   // }
@@ -551,7 +592,7 @@ static bool usesFeatureCoroutineAccessors(Decl *decl) {
   switch (decl->getKind()) {
   case DeclKind::Var: {
     auto *var = cast<VarDecl>(decl);
-    return llvm::any_of(var->getAllAccessors(),
+    return toolchain::any_of(var->getAllAccessors(),
                         accessorDeclUsesFeatureCoroutineAccessors);
   }
   case DeclKind::Accessor: {
@@ -562,6 +603,8 @@ static bool usesFeatureCoroutineAccessors(Decl *decl) {
     return false;
   }
 }
+
+UNINTERESTING_FEATURE(GeneralizedIsSameMetaTypeBuiltin)
 
 static bool usesFeatureCustomAvailability(Decl *decl) {
   for (auto attr : decl->getSemanticAvailableAttrs()) {
@@ -614,7 +657,7 @@ static bool usesFeatureAsyncExecutionBehaviorAttributes(Decl *decl) {
 
   // Check if any parameters that have `nonisolated(nonsending)` attribute.
   if (auto *PL = VD->getParameterList()) {
-    if (llvm::any_of(*PL, [&](const ParamDecl *P) {
+    if (toolchain::any_of(*PL, [&](const ParamDecl *P) {
           return hasCallerIsolatedAttr(P->getTypeRepr());
         }))
       return true;
@@ -626,6 +669,34 @@ static bool usesFeatureAsyncExecutionBehaviorAttributes(Decl *decl) {
 
   return false;
 }
+
+static bool usesFeatureNonexhaustiveAttribute(Decl *decl) {
+  return decl->getAttrs().hasAttribute<NonexhaustiveAttr>();
+}
+
+static bool usesFeatureAlwaysInheritActorContext(Decl *decl) {
+  auto *VD = dyn_cast<ValueDecl>(decl);
+  if (!VD)
+    return false;
+
+  if (auto *PL = VD->getParameterList()) {
+    return toolchain::any_of(*PL, [&](const ParamDecl *P) {
+      auto *attr = P->getAttrs().getAttribute<InheritActorContextAttr>();
+      return attr && attr->isAlways();
+    });
+  }
+
+  return false;
+}
+
+static bool usesFeatureDefaultIsolationPerFile(Decl *D) {
+  return isa<UsingDecl>(D);
+}
+
+UNINTERESTING_FEATURE(BuiltinSelect)
+UNINTERESTING_FEATURE(BuiltinInterleave)
+UNINTERESTING_FEATURE(BuiltinVectorsExternC)
+UNINTERESTING_FEATURE(AddressOfProperty)
 
 // ----------------------------------------------------------------------------
 // MARK: - FeatureSet
@@ -704,7 +775,7 @@ void FeatureSet::collectFeaturesUsed(Decl *decl, InsertOrRemove operation) {
 #undef CHECK_ARG
 }
 
-FeatureSet swift::getUniqueFeaturesUsed(Decl *decl) {
+FeatureSet language::getUniqueFeaturesUsed(Decl *decl) {
   // Add all the features used by this declaration.
   FeatureSet features;
   features.collectFeaturesUsed(decl, FeatureSet::Insert);

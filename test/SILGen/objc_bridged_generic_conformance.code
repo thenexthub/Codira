@@ -1,0 +1,7 @@
+// RUN: %target-language-emit-silgen(mock-sdk: %clang-importer-sdk) %s -enable-objc-interop -import-objc-header %S/Inputs/objc_bridged_generic_conformance.h -verify
+
+protocol P { fn test() }
+
+extension Thingy: P {
+  @objc fn test() {}
+}

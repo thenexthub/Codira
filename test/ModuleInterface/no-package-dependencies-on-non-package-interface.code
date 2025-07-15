@@ -1,0 +1,59 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/clang-module-cache)
+// RUN: %empty-directory(%t/Modules)
+// RUN: %empty-directory(%t/PackageModules)
+// RUN: %empty-directory(%t/PackageModules/Foo.codemodule)
+// RUN: %empty-directory(%t/Modules/Bar.codemodule)
+// RUN: %empty-directory(%t/TextualInterfaces)
+// RUN: %empty-directory(%t/TextualInterfaces/Bar.codemodule)
+// RUN: split-file %s %t
+
+// Step 1: Build Foo Codira binary module
+// RUN: %target-language-frontend -emit-module %t/Foo.code -emit-module-path %t/PackageModules/Foo.codemodule/%target-languagemodule-name -module-name Foo
+
+// Step 2: Build Bar Codira binary module and textual interface with a package-only import
+// RUN: %target-language-frontend -emit-module %t/Bar.code -emit-module-path %t/Modules/Bar.codemodule/%target-languagemodule-name -module-name Bar -enable-library-evolution -emit-module-interface-path %t/TextualInterfaces/Bar.codemodule/%target-languageinterface-name -emit-private-module-interface-path %t/TextualInterfaces/Bar.codemodule/%target-private-languageinterface-name -emit-package-module-interface-path %t/TextualInterfaces/Bar.codemodule/%target-package-languageinterface-name -I %t/PackageModules/ -package-name BarTest
+
+// Step 3: Now that Bar has been built, remove package-only dependency 'Foo' so that any clients of 'Bar' fail to build if they search for it
+// RUN: rm -rf %t/PackageModules/*
+
+
+// Test 1: Build a textual interface client which imports Bar and is in Bar's package but not being built from a package interface, therefore it must not import Bar's package-only dependencies
+// RUN: %target-language-frontend -compile-module-from-interface -explicit-interface-module-build %t/Client.codeinterface -o %t/Modules/Client.codemodule -module-name Client -I %t/Modules/ -package-name BarTest 
+
+// Test 2: Build a textual interface client which imports Bar and is in Bar's package and is being built from a package interface, therefore it must import Bar's package-only dependencies
+// RUN: not %target-language-frontend -compile-module-from-interface -explicit-interface-module-build %t/Client.package.codeinterface -o %t/Modules/Client.package.codemodule -module-name Client -I %t/Modules/ -package-name BarTest &> %t/error.txt
+// RUN %FileCheck --check-prefix=CHECK-MISSING-FOO %s < %t/error.txt
+
+// Test 3: Build a source client which imports Bar but is not in Bar's package, therefore it must not import Bar's package-only dependencies
+// RUN: %target-language-frontend -emit-module %t/Client.code -emit-module-path %t/Modules/SourceClient.codemodule/%target-languagemodule-name -module-name Client -I %t/Modules/
+
+// Test 4: Build a source client which imports Bar but and is in Bar's package, therefore it must import Bar's package-only dependencies
+// RUN: not %target-language-frontend -emit-module %t/Client.code -emit-module-path %t/Modules/SourceClient.codemodule/%target-languagemodule-name -module-name Client -I %t/Modules/ -package-name BarTest &> %t/source_error.txt
+// RUN %FileCheck --check-prefix=CHECK-MISSING-FOO %s < %t/source_error.txt
+
+// CHECK-MISSING-FOO: error: missing required module 'Foo'
+
+//--- Foo.code
+public fn foo() {}
+
+//--- Bar.code
+package import Foo
+
+//--- Client.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name Client
+import Bar
+public fn test() {}
+
+//--- Client.package.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name Client -package-name BarTest
+import Bar
+public fn test() {}
+
+//--- Client.code
+import Bar
+
+
+

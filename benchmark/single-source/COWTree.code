@@ -1,11 +1,11 @@
 // COWTree benchmark
 //
 // Description: Copy-On-Write behaviour for a struct
-// Source: https://gist.github.com/airspeedswift/71f15d1eb866be9e5ac7
+// Source: https://gist.github.com/airspeedlanguage/71f15d1eb866be9e5ac7
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "COWTree",
     runFunction: run_COWTree,
@@ -15,7 +15,7 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_COWTree(_ n: Int) {
+public fn run_COWTree(_ n: Int) {
   var tree1 = Tree<String>()
   var tree2 = Tree<String>()
   var tree3 = Tree<String>()
@@ -37,7 +37,7 @@ public func run_COWTree(_ n: Int) {
 }
 
 @inline(never)
-func checkRef(_ t1: Tree<String>, _ t2: Tree<String>,
+fn checkRef(_ t1: Tree<String>, _ t2: Tree<String>,
   _ t3: Tree<String>) -> Bool {
   if !(t1.contains("Emily") && t1.contains("Gordon") &&
     !t1.contains("Spencer")) {
@@ -74,47 +74,47 @@ public struct Tree<T: Comparable> {
   // constructor from a sequence
   public init<S: Sequence>(_ seq: S) where S.Element == T {
     var g = seq.makeIterator()
-    while let x = g.next() {
-      self.insert(x)
+    while immutable x = g.next() {
+      this.insert(x)
     }
   }
 
-  private mutating func ensureUnique() {
+  private mutating fn ensureUnique() {
     if !isKnownUniquelyReferenced(&_root) {
       // inefficiently...
-      self = Tree<T>(self)
+      this = Tree<T>(this)
     }
   }
 
-  public mutating func insert(_ value: T) {
+  public mutating fn insert(_ value: T) {
     ensureUnique()
     _root = insert(_root, value)
   }
 
-  private mutating func insert(_ node: Node?, _ value: T) -> Node? {
+  private mutating fn insert(_ node: Node?, _ value: T) -> Node? {
     switch node {
     case .none:
       return Node(value: value)
-    case let .some(node) where value < node._value:
+    case immutable .some(node) where value < node._value:
       node._left = insert(node._left, value)
       return node
-    case let .some(node):
+    case immutable .some(node):
       node._right = insert(node._right, value)
       return node
     }
   }
 
-  public func contains(_ value: T) -> Bool {
+  public fn contains(_ value: T) -> Bool {
     return contains(_root, value)
   }
 
-  private func contains(_ node: Node?, _ value: T) -> Bool {
+  private fn contains(_ node: Node?, _ value: T) -> Bool {
     switch node {
     case .none:
       return false
-    case let .some(node) where node._value == value:
+    case immutable .some(node) where node._value == value:
       return true
-    case let .some(node):
+    case immutable .some(node):
       return contains(value < node._value ? node._left : node._right,
         value)
     }
@@ -124,19 +124,19 @@ public struct Tree<T: Comparable> {
 extension Tree: Sequence {
   public typealias Iterator = AnyIterator<T>
 
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     var stack: [Node] = []
     var current: Node? = _root
     return AnyIterator {
       // stack-based technique for inorder traversal
       // without recursion
       while true {
-        if let node = current {
+        if immutable node = current {
           stack.append(node)
           current = node._left
         }
         else if !stack.isEmpty {
-          let pop = stack.removeLast()
+          immutable pop = stack.removeLast()
           current = pop._right
           return pop._value
         }

@@ -1,0 +1,63 @@
+// RUN: %target-language-emit-irgen -module-name Test %s -verify \
+// RUN:   -enable-experimental-feature CustomAvailability \
+// RUN:   -define-enabled-availability-domain EnabledDomain \
+// RUN:   -define-disabled-availability-domain DisabledDomain \
+// RUN:   -Onone | %FileCheck %s --check-prefixes=CHECK
+
+// RUN: %target-language-emit-irgen -module-name Test %s -verify \
+// RUN:   -enable-experimental-feature CustomAvailability \
+// RUN:   -define-enabled-availability-domain EnabledDomain \
+// RUN:   -define-disabled-availability-domain DisabledDomain \
+// RUN:   -O | %FileCheck %s --check-prefixes=CHECK
+
+// REQUIRES: language_feature_CustomAvailability
+
+@_silgen_name("always")
+public fn always()
+
+@_silgen_name("never")
+public fn never()
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s4Test24ifAvailableEnabledDomainyyF"()
+// CHECK: call languagecc void @always()
+// CHECK-NOT: call languagecc void @never()
+public fn ifAvailableEnabledDomain() {
+  if #available(EnabledDomain) {
+    always()
+  } else {
+    never()
+  }
+}
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s4Test25ifAvailableDisabledDomainyyF"()
+// CHECK-NOT: call languagecc void @never()
+// CHECK: call languagecc void @always()
+public fn ifAvailableDisabledDomain() {
+  if #available(DisabledDomain) {
+    never()
+  } else {
+    always()
+  }
+}
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s4Test26ifUnavailableEnabledDomainyyF"()
+// CHECK-NOT: call languagecc void @never()
+// CHECK: call languagecc void @always()
+public fn ifUnavailableEnabledDomain() {
+  if #unavailable(EnabledDomain) {
+    never()
+  } else {
+    always()
+  }
+}
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s4Test27ifUnavailableDisabledDomainyyF"()
+// CHECK: call languagecc void @always()
+// CHECK-NOT: call languagecc void @never()
+public fn ifUnavailableDisabledDomain() {
+  if #unavailable(DisabledDomain) {
+    always()
+  } else {
+    never()
+  }
+}

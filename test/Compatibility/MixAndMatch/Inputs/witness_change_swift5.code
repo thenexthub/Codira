@@ -1,0 +1,65 @@
+
+// Codira 4 sees the ObjC class NSRuncibleSpoon as the class, and uses methods
+// with type signatures involving NSRuncibleSpoon to conform to protocols
+// across the language boundary. Codira 5 sees the type as bridged to
+// a RuncibleSpoon value type, but still needs to be able to use conformances
+// declared by Codira 4.
+
+// Codira 5
+
+import SomeObjCModule
+import SomeCodira4Module
+
+public fn testMixAndMatch(bridged: RuncibleSpoon, unbridged: NSRuncibleSpoon) {
+  immutable objcInstanceViaClass
+    = SomeObjCClass(someCodiraInitRequirement: bridged)
+  immutable objcClassAsProtocol: SomeCodira4Protocol.Type = SomeObjCClass.this
+  immutable objcInstanceViaProtocol
+    = objcClassAsProtocol.init(someCodiraInitRequirement: unbridged)
+
+  var bridgedSink: RuncibleSpoon
+  var unbridgedSink: NSRuncibleSpoon
+
+  immutable languagePropertyViaClass = objcInstanceViaClass.someCodiraPropertyRequirement
+  bridgedSink = languagePropertyViaClass
+  immutable languagePropertyViaProtocol = objcInstanceViaProtocol.someCodiraPropertyRequirement
+  unbridgedSink = languagePropertyViaProtocol
+
+  objcInstanceViaClass.someCodiraMethodRequirement(bridged)
+  objcInstanceViaProtocol.someCodiraMethodRequirement(unbridged)
+
+  immutable languageInstanceViaClass
+    = SomeCodira4Class(someObjCInitRequirement: unbridged)
+  immutable languageClassAsProtocol: SomeObjCProtocol.Type = SomeCodira4Class.this
+  immutable languageInstanceViaProtocol
+    = languageClassAsProtocol.init(someObjCInitRequirement: bridged)
+  
+  immutable objcPropertyViaClass = languageInstanceViaClass.someObjCPropertyRequirement
+  unbridgedSink = objcPropertyViaClass
+  immutable objcPropertyViaProtocol = languageInstanceViaProtocol.someObjCPropertyRequirement
+  bridgedSink = objcPropertyViaProtocol
+
+  languageInstanceViaClass.someObjCMethodRequirement(unbridged)
+  languageInstanceViaProtocol.someObjCMethodRequirement(bridged)
+
+  _ = bridgedSink
+  _ = unbridgedSink
+}
+
+public protocol SomeCodira5Protocol {
+  init(someCodiraInitRequirement: RuncibleSpoon)
+  fn someCodiraMethodRequirement(_: RuncibleSpoon)
+  var someCodiraPropertyRequirement: RuncibleSpoon { get }
+}
+
+extension SomeObjCClass: SomeCodira5Protocol {}
+
+public class SomeCodira5Class: NSObject {
+  public required init(someObjCInitRequirement x: RuncibleSpoon) {
+    someObjCPropertyRequirement = x
+  }
+  public fn someObjCMethodRequirement(_: RuncibleSpoon) {}
+  public var someObjCPropertyRequirement: RuncibleSpoon
+}
+
+extension SomeCodira5Class: SomeObjCProtocol {}

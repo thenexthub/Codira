@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the supporting functions for writing instrumenters of
-//  the Swift AST.
+//  the Codira AST.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_DIAGNOSTIC_SUPPRESSION_H
-#define SWIFT_AST_DIAGNOSTIC_SUPPRESSION_H
+#ifndef LANGUAGE_AST_DIAGNOSTIC_SUPPRESSION_H
+#define LANGUAGE_AST_DIAGNOSTIC_SUPPRESSION_H
 
 #include <vector>
 
@@ -44,4 +45,4 @@ public:
 };
 
 }
-#endif // SWIFT_AST_DIAGNOSTIC_SUPPRESSION_H
+#endif // LANGUAGE_AST_DIAGNOSTIC_SUPPRESSION_H

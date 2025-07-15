@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// Validate that we're not looking into typealises across files / modules which leads to an assertion
+
+// RUN: %target-language-frontend -index-store-path %t/idx -o %t/file.o -typecheck -primary-file %t/file2.code %t/file1.code -verify
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %t/file2.code %t/file1.code > %t/output.txt
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %t/file1.code %t/file2.code >> %t/output.txt
+// RUN: %FileCheck %s < %t/output.txt
+
+//--- file1.code
+
+typealias Bar = [Int] // CHECK: 2:11 | type-alias/Codira | Bar | [[Bar_USR:.*]] | Def | rel: 0
+
+//--- file2.code
+
+fn foo() -> Bar { [] } // CHECK: 2:15 | type-alias/Codira | Bar | [[Bar_USR]] | Ref,RelCont | rel: 1
+extension Optional where Wrapped == Bar {} // CHECK: 3:37 | type-alias/Codira | Bar | [[Bar_USR]] | Ref | rel: 0

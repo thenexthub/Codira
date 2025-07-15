@@ -1,0 +1,11 @@
+// language-interface-format-version: 1.0
+// language-compiler-version: Apple Codira version 5.2
+// language-module-flags: -target arm64e-apple-tvos13.0 -enable-library-evolution -language-version 5 -module-name PtrAuthFramework
+import Codira
+
+// Intentionally incompatible
+#if _ptrauth(_arm64e)
+public immutable tvOSPtrAuth: Bool = true
+#else
+public immutable tvOSNotPtrAuth: Bool = true
+#endif

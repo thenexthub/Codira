@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+
+/// By default, -package-name is printed in all interfaces.
+// RUN: env LANGUAGE_USE_OLD_DRIVER=1 %target-build-language \
+// RUN:   -emit-module %s -I %t \
+// RUN:   -module-name Bar -package-name barpkg \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -emit-module-interface-path %t/Bar.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Bar.private.codeinterface \
+// RUN:   -emit-package-module-interface-path %t/Bar.package.codeinterface
+
+// RUN: %FileCheck %s < %t/Bar.codeinterface
+// RUN: %FileCheck %s < %t/Bar.private.codeinterface
+// RUN: %FileCheck %s < %t/Bar.package.codeinterface
+
+// CHECK: -enable-library-evolution -package-name barpkg -language-version 6 -module-name Bar
+
+/// Building modules from non-package interfaces with package-name (default mode) should succeed.
+// RUN: %target-language-frontend -compile-module-from-interface %t/Bar.codeinterface -o %t/Bar.codemodule -module-name Bar
+// RUN: rm -rf %t/Bar.codemodule
+// RUN: %target-language-frontend -compile-module-from-interface %t/Bar.private.codeinterface -o %t/Bar.codemodule -module-name Bar
+// RUN: rm -rf %t/Bar.codemodule
+// RUN: %target-language-frontend -compile-module-from-interface %t/Bar.package.codeinterface -o %t/Bar.codemodule -module-name Bar
+
+public struct PubStruct {}
+@_spi(bar) public struct SPIStruct {}
+
+package struct PkgStruct {}

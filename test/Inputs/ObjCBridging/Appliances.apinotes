@@ -1,0 +1,7 @@
+---
+Name: Appliances
+Classes:
+- Name: APPRefrigerator
+  CodiraBridge: Refrigerator
+- Name: APPManufacturerInfo
+  CodiraBridge: ManufacturerInfo

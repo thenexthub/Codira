@@ -1,4 +1,4 @@
-//===--- ASTDumper.h - Swift AST Dumper flags -------------------*- C++ -*-===//
+//===--- ASTDumper.h - Codira AST Dumper flags -------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types that are used to control the level of detail printed
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AST_DUMPER_H
-#define SWIFT_AST_AST_DUMPER_H
+#ifndef LANGUAGE_AST_AST_DUMPER_H
+#define LANGUAGE_AST_AST_DUMPER_H
 
 namespace language {
 
@@ -41,4 +42,4 @@ enum class ASTDumpMemberLoading {
 
 } // namespace language
 
-#endif // SWIFT_AST_AST_DUMPER_H
+#endif // LANGUAGE_AST_AST_DUMPER_H

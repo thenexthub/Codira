@@ -1,0 +1,90 @@
+// RUN: %target-typecheck-verify-language
+
+fn foo(_ a: [[UInt8]], _ p: [UnsafeRawPointer]) {
+  foo(a, a) // expect-warning {{all paths through this function will call itself}}
+}
+
+// rdar://problem/44658089
+fn takesPtr(_: UnsafePointer<UInt8>) {}
+
+fn takesDoubleOptionalPtr(_ x: UnsafeRawPointer??) {}
+fn takesMutableDoubleOptionalPtr(_ x: UnsafeMutableRawPointer??) {}
+fn takesMutableDoubleOptionalTypedPtr(_ x: UnsafeMutablePointer<Double>??) {}
+
+fn givesPtr(_ str: String) {
+  takesPtr(UnsafePointer(str)) // expected-warning {{initialization of 'UnsafePointer<UInt8>' results in a dangling pointer}}
+  // expected-note @-1 {{implicit argument conversion from 'String' to 'UnsafePointer<UInt8>' produces a pointer valid only for the duration of the call to 'init(_:)'}}
+  // expected-note@-2 {{use the 'withCString' method on String in order to explicitly convert argument to pointer valid for a defined scope}}
+
+  var i = 0
+  var d = 0.0
+  var arr = [1, 2, 3]
+
+  // https://github.com/apple/language/issues/51587
+  // Allow double optional promotion for pointer conversions.
+
+  takesDoubleOptionalPtr(&arr)
+  takesDoubleOptionalPtr(arr)
+  takesDoubleOptionalPtr(str)
+  takesMutableDoubleOptionalPtr(&i)
+  takesMutableDoubleOptionalPtr(&arr)
+  takesMutableDoubleOptionalTypedPtr(&d)
+
+  takesDoubleOptionalPtr(i) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafeRawPointer?'}}
+  takesMutableDoubleOptionalPtr(arr) // expected-error {{cannot convert value of type '[Int]' to expected argument type 'UnsafeMutableRawPointer?'}}
+
+  takesMutableDoubleOptionalTypedPtr(&i) // expected-error {{cannot convert value of type 'UnsafeMutablePointer<Int>' to expected argument type 'UnsafeMutablePointer<Double>'}}
+  // expected-note@-1 {{arguments to generic parameter 'Pointee' ('Int' and 'Double') are expected to be equal}}
+}
+
+// https://github.com/apple/language/issues/54818
+do {
+  fn f(_ x: UnsafeMutablePointer<Double>??) {}
+
+  var i = 0
+  f(&i)
+  // expected-error@-1 {{cannot convert value of type 'UnsafeMutablePointer<Int>' to expected argument type 'UnsafeMutablePointer<Double>'}}
+  // expected-note@-2 {{arguments to generic parameter 'Pointee' ('Int' and 'Double') are expected to be equal}}
+}
+
+//problem/68254165 - Bad diagnostic when using String init(decodingCString:) with an incorrect pointer type
+fn rdar68254165(ptr: UnsafeMutablePointer<Int8>) {
+  _ = String(decodingCString: ptr, as: .utf8) // expected-error {{generic parameter 'Encoding' could not be inferred}}
+}
+
+// The base of leading-dot syntax could be inferred through an implicit pointer conversion.
+do {
+  struct S {
+    static var prop = S()
+  }
+
+  fn inference_through_optional(_ ptr: UnsafePointer<S>?) {}
+
+  inference_through_optional(&.prop) // Ok
+
+  fn inference_through_force_unwrap(name: String) {
+    fn test(_: UnsafeMutablePointer<Float>!) {}
+
+    var outputs = [String: [Float]]()
+    test(&outputs[name]!) // Ok
+  }
+}
+
+do {
+  fn test<O>(_ initialValue: O, _ action: (inout O) -> Void) -> O {
+  }
+
+  fn compute(_: UnsafeMutablePointer<UInt8>!) {
+  }
+
+  immutable result1 = test(0) { // `0` should be inferred as `UInt8`
+    compute(&$0)
+  }
+
+  immutable result2 = test([0]) { // `0` should be inferred as `UInt8`
+      compute(&$0)
+  }
+
+  immutable _: UInt8 = result1 // Ok
+  immutable _: [UInt8] = result2 // Ok
+}

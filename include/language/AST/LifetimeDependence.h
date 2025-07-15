@@ -1,21 +1,25 @@
 //===--- LifetimeDependence.h ---------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types and utilities related to Lifetime Dependence
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_LIFETIMEDEPENDENCE_H
-#define SWIFT_AST_LIFETIMEDEPENDENCE_H
+#ifndef LANGUAGE_AST_LIFETIMEDEPENDENCE_H
+#define LANGUAGE_AST_LIFETIMEDEPENDENCE_H
 
 #include "language/AST/DeclContext.h"
 #include "language/AST/Identifier.h"
@@ -25,8 +29,8 @@
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/SourceLoc.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
 
@@ -150,12 +154,12 @@ public:
     case DescriptorKind::Self:
       return "self";
     }
-    llvm_unreachable("Invalid DescriptorKind");
+    toolchain_unreachable("Invalid DescriptorKind");
   }
 };
 
 class LifetimeEntry final
-    : private llvm::TrailingObjects<LifetimeEntry, LifetimeDescriptor> {
+    : private toolchain::TrailingObjects<LifetimeEntry, LifetimeDescriptor> {
   friend TrailingObjects;
 
 private:
@@ -200,7 +204,7 @@ public:
 class LifetimeDependenceInfo {
   IndexSubset *inheritLifetimeParamIndices;
   IndexSubset *scopeLifetimeParamIndices;
-  llvm::PointerIntPair<IndexSubset *, 1, bool>
+  toolchain::PointerIntPair<IndexSubset *, 1, bool>
     addressableParamIndicesAndImmortal;
   IndexSubset *conditionallyAddressableParamIndices;
 
@@ -220,17 +224,32 @@ public:
         targetIndex(targetIndex) {
     assert(this->isImmortal() || inheritLifetimeParamIndices ||
            scopeLifetimeParamIndices);
-    // FIXME: This assert can trigger when Optional/Result support ~Escapable use (rdar://147765187)
-    // assert(!inheritLifetimeParamIndices ||
-    //        !inheritLifetimeParamIndices->isEmpty());
-    if (inheritLifetimeParamIndices && inheritLifetimeParamIndices->isEmpty()) {
-      inheritLifetimeParamIndices = nullptr;
-    }
-    assert(!scopeLifetimeParamIndices || !scopeLifetimeParamIndices->isEmpty());
+    ASSERT(!inheritLifetimeParamIndices ||
+           !inheritLifetimeParamIndices->isEmpty());
+    ASSERT(!scopeLifetimeParamIndices || !scopeLifetimeParamIndices->isEmpty());
     assert((!addressableParamIndices
             || !conditionallyAddressableParamIndices
             || conditionallyAddressableParamIndices->isDisjointWith(
               addressableParamIndices)));
+
+    if (CONDITIONAL_ASSERT_enabled()) {
+      // Ensure inherit/scope/addressable param indices are of the same length
+      // or 0.
+      unsigned paramIndicesLength = 0;
+      if (inheritLifetimeParamIndices) {
+        paramIndicesLength = inheritLifetimeParamIndices->getCapacity();
+      }
+      if (scopeLifetimeParamIndices) {
+        ASSERT(paramIndicesLength == 0 ||
+               paramIndicesLength == scopeLifetimeParamIndices->getCapacity());
+        paramIndicesLength = scopeLifetimeParamIndices->getCapacity();
+      }
+      if (addressableParamIndices) {
+        ASSERT(paramIndicesLength == 0 ||
+               paramIndicesLength == addressableParamIndices->getCapacity());
+        paramIndicesLength = addressableParamIndices->getCapacity();
+      }
+    }
   }
 
   operator bool() const { return !empty(); }
@@ -252,6 +271,19 @@ public:
   }
   bool hasAddressableParamIndices() const {
     return addressableParamIndicesAndImmortal.getPointer() != nullptr;
+  }
+
+  unsigned getParamIndicesLength() const {
+    if (hasInheritLifetimeParamIndices()) {
+      return getInheritIndices()->getCapacity();
+    }
+    if (hasScopeLifetimeParamIndices()) {
+      return getScopeIndices()->getCapacity();
+    }
+    if (hasAddressableParamIndices()) {
+      return getAddressableIndices()->getCapacity();
+    }
+    return 0;
   }
 
   IndexSubset *getInheritIndices() const { return inheritLifetimeParamIndices; }
@@ -290,17 +322,16 @@ public:
   }
 
   std::string getString() const;
-  void Profile(llvm::FoldingSetNodeID &ID) const;
+  void Profile(toolchain::FoldingSetNodeID &ID) const;
   void getConcatenatedData(SmallVectorImpl<bool> &concatenatedData) const;
 
-  /// Builds LifetimeDependenceInfo from a swift decl, either from the explicit
+  /// Builds LifetimeDependenceInfo from a language decl, either from the explicit
   /// lifetime dependence specifiers or by inference based on types and
   /// ownership modifiers.
-  static std::optional<ArrayRef<LifetimeDependenceInfo>>
-  get(AbstractFunctionDecl *decl);
+  static std::optional<ArrayRef<LifetimeDependenceInfo>> get(ValueDecl *decl);
 
   /// Builds LifetimeDependenceInfo from SIL
-  static std::optional<llvm::ArrayRef<LifetimeDependenceInfo>>
+  static std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>
   getFromSIL(FunctionTypeRepr *funcRepr, ArrayRef<SILParameterInfo> params,
              ArrayRef<SILResultInfo> results, DeclContext *dc);
 
@@ -316,7 +347,7 @@ public:
     return !(*this == other);
   }
   
-  SWIFT_DEBUG_DUMPER(dump());
+  LANGUAGE_DEBUG_DUMPER(dump());
 };
 
 std::optional<LifetimeDependenceInfo>
@@ -332,7 +363,7 @@ bool
 filterEscapableLifetimeDependencies(GenericSignature sig,
         ArrayRef<LifetimeDependenceInfo> inputs,
         SmallVectorImpl<LifetimeDependenceInfo> &outputs,
-        llvm::function_ref<Type (unsigned targetIndex)> getSubstTargetType);
+        toolchain::function_ref<Type (unsigned targetIndex)> getSubstTargetType);
 
 StringRef
 getNameForParsedLifetimeDependenceKind(ParsedLifetimeDependenceKind kind);

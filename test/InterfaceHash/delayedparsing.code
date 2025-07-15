@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/a.code 2> %t/a.hash
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/b.code 2> %t/b.hash
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/a.code -experimental-skip-all-function-bodies 2> %t/c.hash
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/b.code -experimental-skip-all-function-bodies 2> %t/d.hash
+// RUN: cmp %t/a.hash %t/b.hash
+// RUN: cmp %t/a.hash %t/c.hash
+// RUN: cmp %t/a.hash %t/d.hash
+
+// Make sure "interface hash" doesn't change after modifying type members, and 
+
+// BEGIN a.code
+class C {
+  fn foo() {}
+}
+
+// BEGIN b.code
+class C {
+  fn foo() {}
+  fn bar() {}
+}

@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple
+
+do {
+  protocol P {}
+  struct S<each T> {}
+
+  fn foo<T: P>(_: T, _: Optional<S<T>> = nil) {}
+
+  immutable p: any P
+  foo(p) // OK
+}

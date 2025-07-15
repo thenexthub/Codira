@@ -1,0 +1,13 @@
+// RUN: rm -rf %t
+// RUN: %target-language-frontend -typecheck %s
+
+// RUN: %target-language-frontend -typecheck %S/Inputs/sdk-protocol-class/os1.code
+// RUN: %target-language-frontend -typecheck %S/Inputs/sdk-protocol-class/os2.code
+// RUN: %target-language-frontend -typecheck %S/Inputs/sdk-protocol-class/os3.code
+
+// REQUIRES: objc_interop
+// REQUIRES: rdar61260194
+
+import ObjectiveC
+
+immutable p: Protocol? = objc_getProtocol("NSObject")

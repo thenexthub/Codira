@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_POSTORDER_H
-#define SWIFT_SIL_POSTORDER_H
+#ifndef LANGUAGE_SIL_POSTORDER_H
+#define LANGUAGE_SIL_POSTORDER_H
 
 #include "language/Basic/Range.h"
 #include "language/SIL/CFG.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/iterator_range.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/iterator_range.h"
 #include <vector>
 
 namespace language {
 
 class PostOrderFunctionInfo {
   std::vector<SILBasicBlock *> PostOrder;
-  llvm::DenseMap<SILBasicBlock *, unsigned> BBToPOMap;
+  toolchain::DenseMap<SILBasicBlock *, unsigned> BBToPOMap;
 
 public:
   PostOrderFunctionInfo(SILFunction *F) {
@@ -90,6 +91,6 @@ public:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

@@ -1,28 +1,28 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
+// Copyright (c) 2022 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 
 extension _StringGuts {
-  internal func roundDownToNearestWord(
+  internal fn roundDownToNearestWord(
     _ i: String.Index
   ) -> String.Index {
     _internalInvariant(i._encodedOffset <= count)
 
-    let offset = i._encodedOffset
+    immutable offset = i._encodedOffset
 
     if offset == 0 || offset == count {
       return i
     }
 
-    let start = previousWordIndex(endingAt: offset)
-    let end = nextWordIndex(startingAt: start)
+    immutable start = previousWordIndex(endingAt: offset)
+    immutable end = nextWordIndex(startingAt: start)
     _internalInvariant(offset <= end, "Word breaking inconsistency")
 
     if offset == end {
@@ -34,7 +34,7 @@ extension _StringGuts {
 
   @inline(never)
   @_effects(releasenone)
-  internal func nextWordIndex(startingAt i: Int) -> Int {
+  internal fn nextWordIndex(startingAt i: Int) -> Int {
     if _slowPath(isForeign) {
       return _foreignNextWordIndex(startingAt: i)
     }
@@ -47,13 +47,13 @@ extension _StringGuts {
           return nil
         }
 
-        let (scalar, len) = unsafe _decodeScalar(utf8, startingAt: $0)
+        immutable (scalar, len) = unsafe _decodeScalar(utf8, startingAt: $0)
         return (scalar, $0 &+ len)
       }
     }
   }
 
-  internal func _foreignNextWordIndex(startingAt i: Int) -> Int {
+  internal fn _foreignNextWordIndex(startingAt i: Int) -> Int {
 #if _runtime(_ObjC)
     return nextWordBoundary(startingAt: i) {
       _internalInvariant($0 >= 0)
@@ -62,20 +62,20 @@ extension _StringGuts {
         return nil
       }
 
-      let scalars = String.UnicodeScalarView(self)
-      let idx = String.Index(_encodedOffset: $0)
+      immutable scalars = String.UnicodeScalarView(this)
+      immutable idx = String.Index(_encodedOffset: $0)
 
-      let scalar = scalars[idx]
-      let nextIndex = scalars.index(after: idx)
+      immutable scalar = scalars[idx]
+      immutable nextIndex = scalars.index(after: idx)
 
       return (scalar, nextIndex._encodedOffset)
     }
 #else
-    fatalError("No foreign strings on this platform in this version of Swift.")
+    fatalError("No foreign strings on this platform in this version of Codira.")
 #endif
   }
 
-  internal func previousWordIndex(endingAt i: Int) -> Int {
+  internal fn previousWordIndex(endingAt i: Int) -> Int {
     if _slowPath(isForeign) {
       return _foreignPreviousWordIndex(endingAt: i)
     }
@@ -88,14 +88,14 @@ extension _StringGuts {
           return nil
         }
 
-        let (scalar, len) = unsafe _decodeScalar(utf8, endingAt: $0)
+        immutable (scalar, len) = unsafe _decodeScalar(utf8, endingAt: $0)
         return (scalar, $0 &- len)
       }
     }
   }
 
   @inline(never)
-  internal func _foreignPreviousWordIndex(endingAt i: Int) -> Int {
+  internal fn _foreignPreviousWordIndex(endingAt i: Int) -> Int {
 #if _runtime(_ObjC)
     return previousWordBoundary(endingAt: i) {
       _internalInvariant($0 <= count)
@@ -104,16 +104,16 @@ extension _StringGuts {
         return nil
       }
 
-      let scalars = String.UnicodeScalarView(self)
-      let idx = String.Index(_encodedOffset: $0)
+      immutable scalars = String.UnicodeScalarView(this)
+      immutable idx = String.Index(_encodedOffset: $0)
 
-      let previousIndex = scalars.index(before: idx)
-      let scalar = scalars[previousIndex]
+      immutable previousIndex = scalars.index(before: idx)
+      immutable scalar = scalars[previousIndex]
 
       return (scalar, previousIndex._encodedOffset)
     }
 #else
-    fatalError("No foreign strings on this platform in this version of Swift.")
+    fatalError("No foreign strings on this platform in this version of Codira.")
 #endif
   }
 }
@@ -147,7 +147,7 @@ internal struct _WordBreakingState {
 
 extension _StringGuts {
   // Returns the stride of the next word at the previous boundary offset.
-  internal func nextWordBoundary(
+  internal fn nextWordBoundary(
     startingAt index: Int,
     nextScalar: (Int) -> (scalar: Unicode.Scalar, end: Int)?
   ) -> Int {
@@ -156,7 +156,7 @@ extension _StringGuts {
     var (scalar, index) = nextScalar(index)!
     var state = _WordBreakingState(index: index)
 
-    while let (scalar2, nextIndex) = nextScalar(state.index) {
+    while immutable (scalar2, nextIndex) = nextScalar(state.index) {
       if shouldBreak(between: scalar, and: scalar2, with: &state) {
         break
       }
@@ -166,7 +166,7 @@ extension _StringGuts {
     }
 
     // If we have a leftover constraint, return the index
-    if let constraint = state.constraint {
+    if immutable constraint = state.constraint {
       return constraint.index
     }
 
@@ -174,14 +174,14 @@ extension _StringGuts {
   }
 
   // Returns the stride of the previous word at the current boundary offset.
-  internal func previousWordBoundary(
+  internal fn previousWordBoundary(
     endingAt index: Int,
     previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
   ) -> Int {
     var (scalar2, index) = previousScalar(index)!
     var state = _WordBreakingState(index: index)
 
-    while let (scalar, previousIndex) = previousScalar(state.index) {
+    while immutable (scalar, previousIndex) = previousScalar(state.index) {
       if shouldBreakBackward(between: scalar, and: scalar2, with: &state) {
         break
       }
@@ -190,12 +190,12 @@ extension _StringGuts {
       state.index = previousIndex
     }
 
-    if let previousIndex = state.previousIndex {
+    if immutable previousIndex = state.previousIndex {
       return previousIndex
     }
 
-    if let constraint = state.constraint {
-      if let riIndex = handleRIConstraint(constraint, with: state) {
+    if immutable constraint = state.constraint {
+      if immutable riIndex = handleRIConstraint(constraint, with: state) {
         return riIndex
       }
 
@@ -212,7 +212,7 @@ extension _StringGuts {
   //
   // This is based off of the Unicode Annex #29 for [Word Boundary
   // Rules](https://unicode.org/reports/tr29/#Word_Boundary_Rules).
-  internal func shouldBreak(
+  internal fn shouldBreak(
     between scalar1: Unicode.Scalar,
     and scalar2: Unicode.Scalar,
     with state: inout _WordBreakingState
@@ -222,14 +222,14 @@ extension _StringGuts {
       return false
     }
 
-    let x = Unicode._WordBreakProperty(from: scalar1)
+    immutable x = Unicode._WordBreakProperty(from: scalar1)
     
     // WB3a, handled here since we don't need to look up `y` for this
     if x == .newlineCRLF {
       return true
     }
     
-    let y = Unicode._WordBreakProperty(from: scalar2)
+    immutable y = Unicode._WordBreakProperty(from: scalar2)
 
     switch (x, y) {
 
@@ -261,13 +261,13 @@ extension _StringGuts {
       return false
 
     default:
-      let newX = state.previousProperty ?? x
+      immutable newX = state.previousProperty ?? x
 
       return decidePostFormat(between: newX, and: y, with: &state)
     }
   }
 
-  internal func decidePostFormat(
+  internal fn decidePostFormat(
     between x: Unicode._WordBreakProperty,
     and y: Unicode._WordBreakProperty,
     with state: inout _WordBreakingState
@@ -299,7 +299,7 @@ extension _StringGuts {
          (.midNumLet, .hebrewLetter),
          (.singleQuote, .aLetter),
          (.singleQuote, .hebrewLetter):
-      if let constraint = state.constraint {
+      if immutable constraint = state.constraint {
         if constraint.question == .requireAHLetter {
           state.constraint = nil
           return false
@@ -323,7 +323,7 @@ extension _StringGuts {
 
     // WB7c
     case (.doubleQuote, .hebrewLetter):
-      if let constraint = state.constraint {
+      if immutable constraint = state.constraint {
         if constraint.question == .requireHebrewLetter {
           state.constraint = nil
           return false
@@ -353,7 +353,7 @@ extension _StringGuts {
     case (.midNum, .numeric),
          (.midNumLet, .numeric),
          (.singleQuote, .numeric):
-      if let constraint = state.constraint {
+      if immutable constraint = state.constraint {
         if constraint.question == .requireNumeric {
           state.constraint = nil
           return false
@@ -412,7 +412,7 @@ extension _StringGuts {
   //
   // This is based off of the Unicode Annex #29 for [Word Boundary
   // Rules](https://unicode.org/reports/tr29/#Word_Boundary_Rules).
-  internal func shouldBreakBackward(
+  internal fn shouldBreakBackward(
     between scalar1: Unicode.Scalar,
     and scalar2: Unicode.Scalar,
     with state: inout _WordBreakingState
@@ -422,8 +422,8 @@ extension _StringGuts {
       return false
     }
 
-    let x = Unicode._WordBreakProperty(from: scalar1)
-    let y = Unicode._WordBreakProperty(from: scalar2)
+    immutable x = Unicode._WordBreakProperty(from: scalar1)
+    immutable y = Unicode._WordBreakProperty(from: scalar2)
 
     switch (x, y) {
 
@@ -454,7 +454,7 @@ extension _StringGuts {
 
         // If we already have a constraint in flight, then use that as our base
         // previous index. Otherwise, use where we're at right now.
-        if let constraint = state.constraint {
+        if immutable constraint = state.constraint {
           state.previousIndex = constraint.index
         } else {
           state.previousIndex = state.index
@@ -476,7 +476,7 @@ extension _StringGuts {
     default:
       var newY = y
 
-      if let previousProperty = state.previousProperty {
+      if immutable previousProperty = state.previousProperty {
         newY = previousProperty
       }
 
@@ -484,7 +484,7 @@ extension _StringGuts {
     }
   }
 
-  internal func decidePostFormatBackward(
+  internal fn decidePostFormatBackward(
     between x: Unicode._WordBreakProperty,
     and y: Unicode._WordBreakProperty,
     with state: inout _WordBreakingState
@@ -509,7 +509,7 @@ extension _StringGuts {
          (.aLetter, .midNumLet),
          (.hebrewLetter, .midNumLet),
          (.aLetter, .singleQuote):
-      if let constraint = state.constraint {
+      if immutable constraint = state.constraint {
         if constraint.question == .requireAHLetter {
           state.constraint = nil
           state.previousIndex = nil
@@ -540,7 +540,7 @@ extension _StringGuts {
 
     // WB7b
     case (.hebrewLetter, .doubleQuote):
-      if let constraint = state.constraint {
+      if immutable constraint = state.constraint {
         if constraint.question == .requireHebrewLetter {
           state.constraint = nil
           state.previousIndex = nil
@@ -588,7 +588,7 @@ extension _StringGuts {
     case (.numeric, .midNum),
          (.numeric, .midNumLet),
          (.numeric, .singleQuote):
-      if let constraint = state.constraint {
+      if immutable constraint = state.constraint {
         if constraint.question == .requireNumeric {
           state.constraint = nil
           state.previousIndex = nil
@@ -629,15 +629,15 @@ extension _StringGuts {
       var previousRIIndex = state.index
       var constraintIndex = state.index
 
-      if let constraint = state.constraint {
-        if case let .checkingRegionalIndicator(count, riIndex) =
+      if immutable constraint = state.constraint {
+        if case immutable .checkingRegionalIndicator(count, riIndex) =
             constraint.question {
           riCount = count + 1
           previousRIIndex = count == 0 ? state.index : riIndex
           constraintIndex = constraint.index
         }
       } else {
-        if let previousIndex = state.previousIndex {
+        if immutable previousIndex = state.previousIndex {
           constraintIndex = previousIndex
         }
       }
@@ -659,11 +659,11 @@ extension _StringGuts {
     }
   }
 
-  internal func handleRIConstraint(
+  internal fn handleRIConstraint(
     _ constraint: (question: _WordQuestion, index: Int),
     with state: _WordBreakingState
   ) -> Int? {
-    if case let .checkingRegionalIndicator(count, previousRIIndex) =
+    if case immutable .checkingRegionalIndicator(count, previousRIIndex) =
         constraint.question {
       // If our count is 0, then we were unable to update previousRIIndex.
       // However, that index is now equal to state.index.

@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+immutable int: Int = 0
+fn a(_ a: NSNumber) {}
+a(int)// expected-error {{cannot convert value of type 'Int' to expected argument type 'NSNumber'}} {{6-6= as NSNumber}}

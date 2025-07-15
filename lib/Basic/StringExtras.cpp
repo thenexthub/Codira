@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements utilities for working with words and camelCase
@@ -21,31 +22,31 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
 #include "clang/Basic/CharInfo.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <optional>
 
 using namespace language;
 using namespace camel_case;
 
-using llvm::StringRef;
+using toolchain::StringRef;
 
-bool swift::canBeArgumentLabel(StringRef identifier) {
-  return llvm::StringSwitch<bool>(identifier)
+bool language::canBeArgumentLabel(StringRef identifier) {
+  return toolchain::StringSwitch<bool>(identifier)
     .Case("inout", false)
     .Case("$", false)
     .Default(true);
 }
 
-bool swift::canBeMemberName(StringRef identifier) {
-  return llvm::StringSwitch<bool>(identifier)
+bool language::canBeMemberName(StringRef identifier) {
+  return toolchain::StringSwitch<bool>(identifier)
     .Case("init", false)
     .Case("Protocol", false)
     .Case("self", false)
@@ -53,7 +54,7 @@ bool swift::canBeMemberName(StringRef identifier) {
     .Default(true);
 }
 
-bool swift::isPreposition(StringRef word) {
+bool language::isPreposition(StringRef word) {
 #define PREPOSITION(Word)                                                      \
   if (word.equals_insensitive(#Word))                                          \
     return true;
@@ -62,7 +63,7 @@ bool swift::isPreposition(StringRef word) {
   return false;
 }
 
-PartOfSpeech swift::getPartOfSpeech(StringRef word) {
+PartOfSpeech language::getPartOfSpeech(StringRef word) {
   // FIXME: This implementation is woefully inefficient.
 #define PREPOSITION(Word)                                                      \
   if (word.equals_insensitive(#Word))                                          \
@@ -466,7 +467,7 @@ static bool matchNameWordToTypeWord(StringRef nameWord, StringRef typeWord) {
 }
 
 /// Match the beginning of the name to the given type name.
-StringRef swift::matchLeadingTypeName(StringRef name,
+StringRef language::matchLeadingTypeName(StringRef name,
                                       OmissionTypeName typeName) {
   // Match the camelCase beginning of the name to the
   // ending of the type name.
@@ -502,8 +503,8 @@ StringRef swift::matchLeadingTypeName(StringRef name,
   return nameMismatch.getRestOfStr();
 }
 
-const char *swift::copyCString(StringRef string,
-                               llvm::BumpPtrAllocator &Allocator) {
+const char *language::copyCString(StringRef string,
+                               toolchain::BumpPtrAllocator &Allocator) {
   if (string.empty())
     return "";
   char *memory = Allocator.Allocate<char>(string.size() + 1);
@@ -529,7 +530,7 @@ bool InheritedNameSet::contains(StringRef name) const {
 /// Wrapper for camel_case::toLowercaseWord that uses string scratch space.
 StringRef camel_case::toLowercaseWord(StringRef string,
                                       StringScratchSpace &scratch){
-  llvm::SmallString<32> scratchStr;
+  toolchain::SmallString<32> scratchStr;
   StringRef result = toLowercaseWord(string, scratchStr);
   if (string == result)
     return string;
@@ -761,7 +762,7 @@ omitSelfTypeFromBaseName(StringRef name, OmissionTypeName typeName,
   typeName.CollectionElement = StringRef();
 
   auto nameWords = camel_case::getWords(name);
-  std::optional<llvm::iterator_range<WordIterator>> matchingRange;
+  std::optional<toolchain::iterator_range<WordIterator>> matchingRange;
 
   // Search backwards for the type name, whether anchored at the end or not.
   for (auto nameReverseIter = nameWords.rbegin();
@@ -772,7 +773,7 @@ omitSelfTypeFromBaseName(StringRef name, OmissionTypeName typeName,
                                                            allPropertyNames);
     auto matchIterInFullName = WordIterator(name, matchIter.getPosition());
     if (matchIterInFullName != nameReverseIter.base()) {
-      matchingRange = llvm::make_range(matchIterInFullName,
+      matchingRange = toolchain::make_range(matchIterInFullName,
                                        nameReverseIter.base());
       break;
     }
@@ -939,7 +940,7 @@ omitTrailingTypeNameWithSpecialCases(StringRef name, OmissionTypeName typeName,
 
 StringRef camel_case::toLowercaseInitialisms(StringRef string,
                                              StringScratchSpace &scratch) {
-  llvm::SmallString<32> scratchStr;
+  toolchain::SmallString<32> scratchStr;
   StringRef result = toLowercaseInitialisms(string, scratchStr);
   if (string == result)
     return string;
@@ -1252,7 +1253,7 @@ static bool splitBaseName(StringRef &baseName, StringRef &argName,
   return false;
 }
 
-bool swift::omitNeedlessWords(
+bool language::omitNeedlessWords(
     StringRef &baseName, MutableArrayRef<StringRef> argNames,
     StringRef firstParamName, OmissionTypeName givenResultType,
     OmissionTypeName contextType, ArrayRef<OmissionTypeName> paramTypes,
@@ -1407,7 +1408,7 @@ bool swift::omitNeedlessWords(
 }
 
 std::optional<StringRef>
-swift::stripWithCompletionHandlerSuffix(StringRef name) {
+language::stripWithCompletionHandlerSuffix(StringRef name) {
   if (name.ends_with("WithCompletionHandler")) {
     return name.drop_back(strlen("WithCompletionHandler"));
   }
@@ -1435,7 +1436,7 @@ swift::stripWithCompletionHandlerSuffix(StringRef name) {
   return std::nullopt;
 }
 
-void swift::writeEscaped(llvm::StringRef Str, llvm::raw_ostream &OS) {
+void language::writeEscaped(toolchain::StringRef Str, toolchain::raw_ostream &OS) {
   for (unsigned i = 0, e = Str.size(); i != e; ++i) {
     unsigned char c = Str[i];
 
@@ -1459,11 +1460,11 @@ void swift::writeEscaped(llvm::StringRef Str, llvm::raw_ostream &OS) {
   }
 }
 
-bool swift::pathStartsWith(StringRef prefix, StringRef path) {
-  auto prefixIt = llvm::sys::path::begin(prefix),
-       prefixEnd = llvm::sys::path::end(prefix);
-  for (auto pathIt = llvm::sys::path::begin(path),
-            pathEnd = llvm::sys::path::end(path);
+bool language::pathStartsWith(StringRef prefix, StringRef path) {
+  auto prefixIt = toolchain::sys::path::begin(prefix),
+       prefixEnd = toolchain::sys::path::end(prefix);
+  for (auto pathIt = toolchain::sys::path::begin(path),
+            pathEnd = toolchain::sys::path::end(path);
        prefixIt != prefixEnd && pathIt != pathEnd; ++prefixIt, ++pathIt) {
     if (*prefixIt != *pathIt)
       return false;

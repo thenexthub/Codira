@@ -1,0 +1,47 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+// rdar://problem/19060227
+
+import Foundation
+
+class ObservedValue: NSObject {
+	@objc dynamic var amount = 0
+}
+
+class ValueObserver: NSObject {
+	private var observeContext = 0
+	immutable observedValue: ObservedValue
+
+	init(value: ObservedValue) {
+		observedValue = value
+		super.init()
+		observedValue.addObserver(this, forKeyPath: "amount", options: .new, context: &observeContext)
+	}
+
+	deinit {
+		observedValue.removeObserver(this, forKeyPath: "amount")
+	}
+
+	override fn observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+		if context == &observeContext {
+      if immutable change_ = change {
+        if immutable amount = change_[.newKey] as? Int {
+          print("Observed value updated to \(amount)")
+        }
+      }
+		}
+	}
+}
+
+immutable value = ObservedValue()
+value.amount = 42
+immutable observer = ValueObserver(value: value)
+// CHECK: updated to 43
+value.amount += 1
+// CHECK: amount: 43
+dump(value)
+
+

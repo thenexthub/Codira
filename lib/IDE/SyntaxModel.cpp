@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/SyntaxModel.h"
@@ -33,8 +34,8 @@
 #include "language/Config.h"
 #include "language/Subsystems.h"
 #include "clang/Basic/CharInfo.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/MemoryBuffer.h"
 #include <vector>
 #include <regex>
 
@@ -137,12 +138,12 @@ SyntaxModelContext::SyntaxModelContext(SourceFile &SrcFile)
     std::optional<unsigned> Length;
     if (AttrLoc.isValid()) {
       // This token is following @, see if it's a known attribute name.
-      // Type attribute, decl attribute, or '@unknown' for swift case statement.
+      // Type attribute, decl attribute, or '@unknown' for language case statement.
       if (TypeAttribute::getAttrKindFromString(Tok.getText()).has_value() ||
           DeclAttribute::getAttrKindFromString(Tok.getText()).has_value() ||
           Tok.getText() == "unknown") {
         // It's a known attribute, so treat it as a syntactic attribute node for
-        // syntax coloring. If swift gets user attributes then all identifiers
+        // syntax coloring. If language gets user attributes then all identifiers
         // will be treated as syntactic attribute nodes.
         Loc = AttrLoc;
         Length = SM.getByteDistance(Loc, Tok.getLoc()) + Tok.getLength();
@@ -356,7 +357,7 @@ class ModelASTWalker : public ASTWalker {
 
   std::optional<SyntaxNode> parseFieldNode(StringRef Text, StringRef OrigText,
                                            SourceLoc OrigLoc);
-  llvm::DenseSet<ASTNode> NodesVisitedBefore;
+  toolchain::DenseSet<ASTNode> NodesVisitedBefore;
   /// When non-zero, we should avoid passing tokens as syntax nodes since a parent of several tokens
   /// is considered as one, e.g. object literal expression.
   uint8_t AvoidPassingSyntaxToken = 0;
@@ -664,7 +665,7 @@ ASTWalker::PreWalkResult<Expr *> ModelASTWalker::walkToExprPre(Expr *E) {
       if (!seenExpr.insert(subExpr).second) {
         continue;
       }
-      llvm::SaveAndRestore<ASTWalker::ParentTy> SetParent(Parent, E);
+      toolchain::SaveAndRestore<ASTWalker::ParentTy> SetParent(Parent, E);
       subExpr->walk(*this);
     }
     // We already visited the children.
@@ -673,7 +674,7 @@ ASTWalker::PreWalkResult<Expr *> ModelASTWalker::walkToExprPre(Expr *E) {
     // Don't visit the child expressions directly. Instead visit the arguments
     // of each appendStringLiteral/appendInterpolation CallExpr so we don't
     // try to output structure nodes for those calls.
-    llvm::SaveAndRestore<ASTWalker::ParentTy> SetParent(Parent, E);
+    toolchain::SaveAndRestore<ASTWalker::ParentTy> SetParent(Parent, E);
     ISL->forEachSegment(Ctx, [&](bool isInterpolation, CallExpr *CE) {
       if (isInterpolation) {
         for (auto arg : *CE->getArgs())
@@ -1086,7 +1087,7 @@ ASTWalker::PreWalkAction ModelASTWalker::walkToDeclPre(Decl *D) {
   return Action::Continue();
 }
 
-ASTWalker::PostWalkAction ModelASTWalker::walkToDeclPost(swift::Decl *D) {
+ASTWalker::PostWalkAction ModelASTWalker::walkToDeclPost(language::Decl *D) {
   while (!SubStructureStack.empty() &&
       SubStructureStack.back().ASTNode.getAsDecl() == D)
     popStructureNode();
@@ -1383,7 +1384,7 @@ bool ModelASTWalker::pushStructureNode(const SyntaxStructureNode &Node,
 bool ModelASTWalker::popStructureNode() {
   assert(!SubStructureStack.empty());
   SyntaxStructureNode Node = SubStructureStack.back().StructureNode;
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     if (shouldTreatAsSingleToken(Node, SM)) {
       assert(AvoidPassingSyntaxToken);
       AvoidPassingSyntaxToken --;
@@ -1547,7 +1548,7 @@ class DocFieldParser {
     ++ptr;
     return true;
   }
-  bool advanceIf(llvm::function_ref<bool(char)> predicate) {
+  bool advanceIf(toolchain::function_ref<bool(char)> predicate) {
     if (ptr == end || !predicate(*ptr))
       return false;
     ++ptr;
@@ -1590,7 +1591,7 @@ public:
       if (ident.equals_insensitive("parameters") && numSpaces > 1)
         return std::nullopt;
       auto lowerIdent = ident.lower();
-      bool isField = llvm::StringSwitch<bool>(lowerIdent)
+      bool isField = toolchain::StringSwitch<bool>(lowerIdent)
 #define MARKUP_SIMPLE_FIELD(Id, Keyword, XMLKind) .Case(#Keyword, true)
 #include "language/Markup/SimpleFields.def"
                          .Case("parameters", true)
@@ -1652,7 +1653,7 @@ bool ModelASTWalker::findFieldsInDocCommentBlock(SyntaxNode Node) {
   if (Text.empty())
     return true;
 
-  llvm::SmallVector<StringRef, 8> RawLines;
+  toolchain::SmallVector<StringRef, 8> RawLines;
   Text.split(RawLines, '\n');
   auto FirstNewLine = std::find_if(RawLines.begin(), RawLines.end(),
     [](StringRef Line) { return !Line.trim().empty(); });

@@ -1,0 +1,5 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name XWithTarget  -target x86_64-apple-macosx10.9
+import Codira
+@_exported import X
+public fn overlayFuncX() { }

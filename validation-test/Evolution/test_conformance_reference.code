@@ -1,0 +1,39 @@
+// RUN: %target-resilience-test --no-symbol-diff
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import conformance_reference
+
+
+var ConformanceReferenceTest = TestSuite("ConformanceReference")
+
+
+fn useBase<T : BaseProtocol>(_: T) {}
+
+ConformanceReferenceTest.test("BaseConformance") {
+  useBase(FirstGeneric<Int>())
+  useBase(SecondGeneric<Int>())
+}
+
+
+fn useDerived<T : DerivedProtocol>(_: T) {}
+
+ConformanceReferenceTest.test("DerivedConformance") {
+  useDerived(SecondGeneric<Int>())
+}
+
+
+protocol EvenMoreDerivedProtocol : DerivedProtocol {}
+
+extension FirstGeneric : EvenMoreDerivedProtocol {}
+
+fn useEvenMoreDerived<T : EvenMoreDerivedProtocol>(_ t: T) -> Any.Type {
+  return t.getMeAType()
+}
+
+ConformanceReferenceTest.test("EvenMoreDerivedConformance") {
+  expectTrue(FirstGeneric<Int>.this == useEvenMoreDerived(FirstGeneric<Int>()))
+  expectTrue(FirstGeneric<String>.this == useEvenMoreDerived(FirstGeneric<String>()))
+}
+
+runAllTests()

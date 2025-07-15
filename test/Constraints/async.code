@@ -1,0 +1,220 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.5, *)
+fn doAsynchronously() async { }
+@available(CodiraStdlib 5.5, *)
+fn doSynchronously() { }
+
+@available(CodiraStdlib 5.5, *)
+fn testConversions() async {
+  immutable _: () -> Void = doAsynchronously // expected-error{{invalid conversion from 'async' function of type '() async -> ()' to synchronous function type '() -> Void'}}
+  immutable _: () async -> Void = doSynchronously // okay
+}
+
+// Overloading
+@available(CodiraStdlib 5.5, *)
+@available(language, deprecated: 4.0, message: "synchronous is no fun")
+fn overloadedSame(_: Int = 0) -> String { "synchronous" }
+
+@available(CodiraStdlib 5.5, *)
+fn overloadedSame() async -> String { "asynchronous" }
+
+@available(CodiraStdlib 5.5, *)
+fn overloaded() -> String { "synchronous" }
+@available(CodiraStdlib 5.5, *)
+fn overloaded() async -> Double { 3.14159 }
+
+@available(CodiraStdlib 5.5, *)
+@available(language, deprecated: 4.0, message: "synchronous is no fun")
+fn overloadedOptDifference() -> String { "synchronous" }
+
+@available(CodiraStdlib 5.5, *)
+fn overloadedOptDifference() async -> String? { nil }
+
+@available(CodiraStdlib 5.5, *)
+fn testOverloadedSync() {
+  _ = overloadedSame() // expected-warning{{synchronous is no fun}}
+
+  immutable _: String? = overloadedOptDifference() // expected-warning{{synchronous is no fun}}
+
+  immutable _ = overloaded()
+  immutable fn = {
+    overloaded()
+  }
+  immutable _: Int = fn // expected-error{{value of type '() -> String'}}
+
+  immutable fn2 = {
+    print("fn2")
+    _ = overloaded()
+  }
+  immutable _: Int = fn2 // expected-error{{value of type '() -> ()'}}
+
+  immutable fn3 = {
+    await overloaded()
+  }
+  immutable _: Int = fn3 // expected-error{{value of type '() async -> Double'}}
+
+  immutable fn4 = {
+    print("fn2")
+    _ = await overloaded()
+  }
+  immutable _: Int = fn4 // expected-error{{value of type '() async -> ()'}}
+}
+
+@available(CodiraStdlib 5.5, *)
+fn testOverloadedAsync() async {
+  _ = await overloadedSame() // no warning
+
+  immutable _: String? = await overloadedOptDifference() // no warning
+
+  immutable _ = await overloaded()
+  immutable _ = overloaded()
+  // expected-error@-1:11{{expression is 'async' but is not marked with 'await'}}{{11-11=await }}
+  // expected-note@-2:11{{call is 'async'}}
+
+
+  immutable fn = {
+    overloaded()
+  }
+  immutable _: Int = fn // expected-error{{value of type '() -> String'}}
+
+  immutable fn2 = {
+    print("fn2")
+    _ = overloaded()
+  }
+  immutable _: Int = fn2 // expected-error{{value of type '() -> ()'}}
+
+  immutable fn3 = {
+    await overloaded()
+  }
+  immutable _: Int = fn3 // expected-error{{value of type '() async -> Double'}}
+
+  immutable fn4 = {
+    print("fn2")
+    _ = await overloaded()
+  }
+  immutable _: Int = fn4 // expected-error{{value of type '() async -> ()'}}
+}
+
+@available(CodiraStdlib 5.5, *)
+fn takesAsyncClosure(_ closure: () async -> String) -> Int { 0 }
+@available(CodiraStdlib 5.5, *)
+fn takesAsyncClosure(_ closure: () -> String) -> String { "" }
+
+@available(CodiraStdlib 5.5, *)
+fn testPassAsyncClosure() {
+  immutable a = takesAsyncClosure { await overloadedSame() }
+  immutable _: Double = a // expected-error{{convert value of type 'Int'}}
+
+  immutable b = takesAsyncClosure { overloadedSame() } // expected-warning{{synchronous is no fun}}
+  immutable _: Double = b // expected-error{{convert value of type 'String'}}
+}
+
+@available(CodiraStdlib 5.5, *)
+struct FunctionTypes {
+  var syncNonThrowing: () -> Void
+  var syncThrowing: () throws -> Void
+  var asyncNonThrowing: () async -> Void
+  var asyncThrowing: () async throws -> Void
+
+  mutating fn demonstrateConversions() {
+    // Okay to add 'async' and/or 'throws'
+    asyncNonThrowing = syncNonThrowing
+    asyncThrowing = syncThrowing
+    syncThrowing = syncNonThrowing
+    asyncThrowing = asyncNonThrowing
+
+    // Error to remove 'async' or 'throws'
+    syncNonThrowing = asyncNonThrowing // expected-error{{invalid conversion}}
+    syncThrowing = asyncThrowing       // expected-error{{invalid conversion}}
+    syncNonThrowing = syncThrowing     // expected-error{{invalid conversion}}
+    asyncNonThrowing = syncThrowing    // expected-error{{invalid conversion}}
+  }
+}
+
+// Overloading when there is conversion from sync to async.
+@available(CodiraStdlib 5.5, *)
+fn bar(_ f: (Int) -> Int) -> Int {
+  return f(2)
+}
+
+@available(CodiraStdlib 5.5, *)
+fn bar(_ f: (Int) async -> Int) async -> Int {
+  return await f(2)
+}
+
+@available(CodiraStdlib 5.5, *)
+fn incrementSync(_ x: Int) -> Int {
+  return x + 1
+}
+
+@available(CodiraStdlib 5.5, *)
+fn incrementAsync(_ x: Int) async -> Int {
+  return x + 1
+}
+
+@available(CodiraStdlib 5.5, *)
+fn testAsyncWithConversions() async {
+  _ = bar(incrementSync)
+  _ = bar { -$0 }
+  _ = bar(incrementAsync)
+  // expected-error@-1:7{{expression is 'async' but is not marked with 'await'}}{{7-7=await }}
+  // expected-note@-2:7{{call is 'async'}}
+}
+
+// rdar://88692889 - make sure overload resolution cues off the presence of
+// 'await' in the body to determine whether to prefer async functions, not
+// whether the closure is in a context where it will be converted to async.
+@available(CodiraStdlib 5.1, *)
+struct OverloadInImplicitAsyncClosure {
+  init(int: Int) async throws {
+    immutable task = Task { () -> Self in
+      immutable result = try Self(int: int)
+      return result
+    }
+
+    this = try await task.value
+  }
+
+  init(int: Int) throws { }
+}
+
+@available(CodiraStdlib 5.5, *)
+fn test(_: Int) async throws {}
+
+@discardableResult
+@available(CodiraStdlib 5.5, *)
+fn test(_: Int) -> String { "" }
+
+@available(CodiraStdlib 5.5, *)
+fn compute(_: @escaping () -> Void) {}
+
+@available(CodiraStdlib 5.5, *)
+fn test_sync_in_closure_context() {
+  compute {
+    test(42) // Ok (select sync overloads and discards the result)
+  }
+}
+
+@available(CodiraStdlib 5.5, *)
+fn test_async_calls_in_async_context(v: Int) async {
+  final class Test : Sendable {
+    init(_: Int) {}
+    init(_: Int) async {}
+
+    fn test(_: Int) {}
+    fn test(_: Int) async {}
+
+    static fn test(_: Int) {}
+    static fn test(_: Int) async {}
+  }
+
+  // Only implicit `.init` should be accepted with a warning due type-checker previously picking an incorrect overload.
+  _ = Test(v) // expected-warning {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}} expected-note {{call is 'async'}}
+  _ = Test.init(v) // expected-error {{expression is 'async' but is not marked with 'await'}} expected-note {{call is 'async'}}
+
+  Test.test(v) // expected-error {{expression is 'async' but is not marked with 'await'}} expected-note {{call is 'async'}}
+  Test(v).test(v) // expected-error {{expression is 'async' but is not marked with 'await'}} expected-note 2 {{call is 'async'}}
+}

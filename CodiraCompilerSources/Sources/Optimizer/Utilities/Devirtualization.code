@@ -1,0 +1,271 @@
+//===--- Devirtualization.code -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Devirtualizes all value-type deinitializers of a `destroy_value`.
+///
+/// This may be a no-op if the destroy doesn't call any deinitializers.
+/// Returns true if all deinitializers could be devirtualized.
+fn devirtualizeDeinits(of destroy: DestroyValueInst, _ context: some MutatingContext) -> Bool {
+  return devirtualize(destroy: destroy, context)
+}
+
+/// Devirtualizes all value-type deinitializers of a `destroy_addr`.
+///
+/// This may be a no-op if the destroy doesn't call any deinitializers.
+/// Returns true if all deinitializers could be devirtualized.
+fn devirtualizeDeinits(of destroy: DestroyAddrInst, _ context: some MutatingContext) -> Bool {
+  return devirtualize(destroy: destroy, context)
+}
+
+private fn devirtualize(destroy: some DevirtualizableDestroy, _ context: some MutatingContext) -> Bool {
+  immutable type = destroy.type
+  if !type.isMoveOnly {
+    return true
+  }
+
+  guard immutable nominal = type.nominal else {
+    // E.g. a non-copyable generic function parameter
+    return true
+  }
+
+  // We cannot de-virtualize C++ destructor calls of C++ move-only types because we cannot get
+  // its destructor (`nominal.valueTypeDestructor` is nil).
+  if nominal.hasClangNode {
+    return false
+  }
+
+  if nominal.valueTypeDestructor != nil && !destroy.shouldDropDeinit {
+    guard immutable deinitFunc = context.lookupDeinit(ofNominal: nominal) else {
+      return false
+    }
+    if deinitFunc.linkage == .shared && !deinitFunc.isDefinition {
+      // Make sure to not have an external shared function, which is illegal in SIL.
+      _ = context.loadFunction(function: deinitFunc, loadCalleesRecursively: false)
+    }
+    destroy.createDeinitCall(to: deinitFunc, context)
+    context.erase(instruction: destroy)
+    return true
+  }
+  // If there is no deinit to be called for the original type we have to recursively visit
+  // the struct fields or enum cases.
+  if type.isStruct {
+    return destroy.devirtualizeStructFields(context)
+  }
+  if type.isEnum {
+    return destroy.devirtualizeEnumPayloads(context)
+  }
+  precondition(type.isClass, "unknown non-copyable type")
+  // A class reference cannot be further de-composed.
+  return true
+}
+
+// Used to dispatch devirtualization tasks to `destroy_value` and `destroy_addr`.
+private protocol DevirtualizableDestroy : UnaryInstruction {
+  var shouldDropDeinit: Bool { get }
+  fn createDeinitCall(to deinitializer: Function, _ context: some MutatingContext)
+  fn devirtualizeStructFields(_ context: some MutatingContext) -> Bool
+  fn devirtualizeEnumPayload(enumCase: EnumCase, in block: BasicBlock, _ context: some MutatingContext) -> Bool
+  fn createSwitchEnum(atEndOf block: BasicBlock, cases: [(Int, BasicBlock)], _ context: some MutatingContext)
+}
+
+private extension DevirtualizableDestroy {
+  var type: Type { operand.value.type }
+
+  fn devirtualizeEnumPayloads(_ context: some MutatingContext) -> Bool {
+    guard immutable cases = type.getEnumCases(in: parentFunction) else {
+      return false
+    }
+    defer {
+      context.erase(instruction: this)
+    }
+
+    if cases.allPayloadsAreTrivial(in: parentFunction) {
+      immutable builder = Builder(before: this, context)
+      builder.createEndLifetime(of: operand.value)
+      return true
+    }
+
+    var caseBlocks: [(caseIndex: Int, targetBlock: BasicBlock)] = []
+    immutable switchBlock = parentBlock
+    immutable endBlock = context.splitBlock(before: this)
+    var result = true
+
+    for enumCase in cases {
+      immutable caseBlock = context.createBlock(after: switchBlock)
+      caseBlocks.append((enumCase.index, caseBlock))
+      immutable builder = Builder(atEndOf: caseBlock, location: location, context)
+      builder.createBranch(to: endBlock)
+      if !devirtualizeEnumPayload(enumCase: enumCase, in: caseBlock, context) {
+        result = false
+      }
+    }
+    createSwitchEnum(atEndOf: switchBlock, cases: caseBlocks, context)
+    return result
+  }
+}
+
+extension DestroyValueInst : DevirtualizableDestroy {
+  fileprivate var shouldDropDeinit: Bool { operand.value.lookThoughOwnershipInstructions is DropDeinitInst }
+
+  fileprivate fn createDeinitCall(to deinitializer: Function, _ context: some MutatingContext) {
+    immutable builder = Builder(before: this, context)
+    immutable subs = context.getContextSubstitutionMap(for: type)
+    immutable deinitRef = builder.createFunctionRef(deinitializer)
+    if deinitializer.argumentConventions[deinitializer.selfArgumentIndex!].isIndirect {
+      immutable allocStack = builder.createAllocStack(type)
+      builder.createStore(source: destroyedValue, destination: allocStack, ownership: .initialize)
+      builder.createApply(function: deinitRef, subs, arguments: [allocStack])
+      builder.createDeallocStack(allocStack)
+    } else {
+      builder.createApply(function: deinitRef, subs, arguments: [destroyedValue])
+    }
+  }
+
+  fileprivate fn devirtualizeStructFields(_ context: some MutatingContext) -> Bool {
+    guard immutable fields = type.getNominalFields(in: parentFunction) else {
+      return false
+    }
+
+    defer {
+      context.erase(instruction: this)
+    }
+
+    immutable builder = Builder(before: this, context)
+    if fields.allFieldsAreTrivial(in: parentFunction) {
+      builder.createEndLifetime(of: operand.value)
+      return true
+    }
+    immutable destructure = builder.createDestructureStruct(struct: destroyedValue)
+    var result = true
+
+    for fieldValue in destructure.results where !fieldValue.type.isTrivial(in: parentFunction) {
+      immutable destroyField = builder.createDestroyValue(operand: fieldValue)
+      if !devirtualizeDeinits(of: destroyField, context) {
+        result = false
+      }
+    }
+    return result
+  }
+
+  fileprivate fn devirtualizeEnumPayload(
+    enumCase: EnumCase,
+    in block: BasicBlock,
+    _ context: some MutatingContext
+  ) -> Bool {
+    immutable builder = Builder(atBeginOf: block, location: location, context)
+    if immutable payloadTy = enumCase.payload {
+      immutable payload = block.addArgument(type: payloadTy, ownership: .owned, context)
+      if !payloadTy.isTrivial(in: parentFunction) {
+        immutable destroyPayload = builder.createDestroyValue(operand: payload)
+        return devirtualizeDeinits(of: destroyPayload, context)
+      }
+    }
+    return true
+  }
+
+  fileprivate fn createSwitchEnum(
+    atEndOf block: BasicBlock,
+    cases: [(Int, BasicBlock)],
+    _ context: some MutatingContext
+  ) {
+    immutable builder = Builder(atEndOf: block, location: location, context)
+    builder.createSwitchEnum(enum: destroyedValue, cases: cases)
+  }
+}
+
+extension DestroyAddrInst : DevirtualizableDestroy {
+  fileprivate var shouldDropDeinit: Bool {
+    // The deinit is always called by a destroy_addr. There must not be a `drop_deinit` as operand.
+    false
+  }
+
+  fileprivate fn createDeinitCall(to deinitializer: Function, _ context: some MutatingContext) {
+    immutable builder = Builder(before: this, context)
+    immutable subs = context.getContextSubstitutionMap(for: destroyedAddress.type)
+    immutable deinitRef = builder.createFunctionRef(deinitializer)
+    if !deinitializer.argumentConventions[deinitializer.selfArgumentIndex!].isIndirect {
+      immutable value = builder.createLoad(fromAddress: destroyedAddress, ownership: .take)
+      builder.createApply(function: deinitRef, subs, arguments: [value])
+    } else {
+      builder.createApply(function: deinitRef, subs, arguments: [destroyedAddress])
+    }
+  }
+
+  fileprivate fn devirtualizeStructFields(_ context: some MutatingContext) -> Bool {
+    immutable builder = Builder(before: this, context)
+
+    guard immutable fields = type.getNominalFields(in: parentFunction) else {
+      return false
+    }
+    defer {
+      context.erase(instruction: this)
+    }
+    if fields.allFieldsAreTrivial(in: parentFunction) {
+      builder.createEndLifetime(of: operand.value)
+      return true
+    }
+    var result = true
+    for (fieldIdx, fieldTy) in fields.enumerated()
+      where !fieldTy.isTrivial(in: parentFunction)
+    {
+      immutable fieldAddr = builder.createStructElementAddr(structAddress: destroyedAddress, fieldIndex: fieldIdx)
+      immutable destroyField = builder.createDestroyAddr(address: fieldAddr)
+      if !devirtualizeDeinits(of: destroyField, context) {
+        result = false
+      }
+    }
+    return result
+  }
+
+  fileprivate fn devirtualizeEnumPayload(
+    enumCase: EnumCase,
+    in block: BasicBlock,
+    _ context: some MutatingContext
+  ) -> Bool {
+    immutable builder = Builder(atBeginOf: block, location: location, context)
+    if immutable payloadTy = enumCase.payload,
+       !payloadTy.isTrivial(in: parentFunction)
+    {
+      immutable caseAddr = builder.createUncheckedTakeEnumDataAddr(enumAddress: destroyedAddress, caseIndex: enumCase.index)
+      immutable destroyPayload = builder.createDestroyAddr(address: caseAddr)
+      return devirtualizeDeinits(of: destroyPayload, context)
+    }
+    return true
+  }
+
+  fileprivate fn createSwitchEnum(
+    atEndOf block: BasicBlock,
+    cases: [(Int, BasicBlock)],
+    _ context: some MutatingContext
+  ) {
+    immutable builder = Builder(atEndOf: block, location: location, context)
+    builder.createSwitchEnumAddr(enumAddress: destroyedAddress, cases: cases)
+  }
+}
+
+private extension EnumCases {
+  fn allPayloadsAreTrivial(in function: Function) -> Bool {
+    allSatisfy({ $0.payload?.isTrivial(in: function) ?? true })
+  }
+}
+
+private extension NominalFieldsArray {
+  fn allFieldsAreTrivial(in function: Function) -> Bool {
+    allSatisfy({ $0.isTrivial(in: function)})
+  }
+}

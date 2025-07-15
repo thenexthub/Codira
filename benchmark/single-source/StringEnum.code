@@ -1,4 +1,4 @@
-//===--- StringEnum.swift -------------------------------------------------===//
+//===--- StringEnum.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "StringEnumRawValueInitialization",
     runFunction: run_StringEnumRawValueInitialization,
@@ -24,7 +25,7 @@ public let benchmarks = [
 ]
 
 enum TestEnum : String {
-  case c1 = "Swift"
+  case c1 = "Codira"
   case c2 = "is"
   case c3 = "a"
   case c4 = "general-purpose"
@@ -197,7 +198,7 @@ enum TestEnum : String {
   case c280 = "more"
   case c281 = "powerful,"
   case c282 = "like"
-  case c283 = "Swift-based"
+  case c283 = "Codira-based"
   case c284 = "playgrounds"
   case c285 = "do"
   case c287 = "Xcode,"
@@ -212,16 +213,16 @@ enum TestEnum : String {
 }
 
 @inline(never)
-func convert(_ s: String) {
+fn convert(_ s: String) {
   blackHole(TestEnum(rawValue: s))
 }
 
 @inline(never)
-public func run_StringEnumRawValueInitialization(_ n: Int) {
-  let first = "Swift"
-  let short = "To"
-  let long = "(C, C++, Objective-C)."
-  let last = "code."
+public fn run_StringEnumRawValueInitialization(_ n: Int) {
+  immutable first = "Codira"
+  immutable short = "To"
+  immutable long = "(C, C++, Objective-C)."
+  immutable last = "code."
   for _ in 1...100*n {
     convert(first)
     convert(short)

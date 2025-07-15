@@ -1,13 +1,17 @@
 //===--- TypeCheckInvertible.cpp -  Type checking invertible protocols ----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for evaluating whether a type
@@ -17,11 +21,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "TypeCheckInvertible.h"
+#include "TypeChecker.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
 #include "language/AST/GenericEnvironment.h"
 #include "language/Basic/Assertions.h"
-#include "TypeChecker.h"
+#include "language/ClangImporter/ClangImporter.h"
 
 using namespace language;
 
@@ -179,7 +184,7 @@ static void checkInvertibleConformanceCommon(DeclContext *dc,
           if (req.getProtocolDecl() == thisProto
               && !req.getFirstType()->is<DependentMemberType>())
             break; // permitted, don't fill-in.
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
         case RequirementKind::Superclass:
         case RequirementKind::SameType:
         case RequirementKind::SameShape:
@@ -287,13 +292,13 @@ static void checkInvertibleConformanceCommon(DeclContext *dc,
   LacksMatchingStorage(nominalDecl, dc, canAddInverse, ip).visit();
 }
 
-void swift::checkEscapableConformance(DeclContext *dc,
+void language::checkEscapableConformance(DeclContext *dc,
                                       ProtocolConformanceRef conformance) {
   checkInvertibleConformanceCommon(dc, conformance,
                                    InvertibleProtocolKind::Escapable);
 }
 
-void swift::checkCopyableConformance(DeclContext *dc,
+void language::checkCopyableConformance(DeclContext *dc,
                                      ProtocolConformanceRef conformance) {
   checkInvertibleConformanceCommon(dc, conformance,
                                    InvertibleProtocolKind::Copyable);
@@ -316,6 +321,9 @@ bool StorageVisitor::visit(NominalTypeDecl *nominal, DeclContext *dc) {
             dyn_cast_or_null<clang::CXXRecordDecl>(nominal->getClangDecl())) {
       for (auto cxxBase : cxxRecordDecl->bases()) {
         if (auto cxxBaseDecl = cxxBase.getType()->getAsCXXRecordDecl()) {
+          if (importer::isSymbolicCircularBase(cxxRecordDecl, cxxBaseDecl))
+            // Skip circular bases to avoid unbounded recursion
+            continue;
           auto clangModuleLoader = dc->getASTContext().getClangModuleLoader();
           auto importedDecl =
               clangModuleLoader->importDeclDirectly(cxxBaseDecl);

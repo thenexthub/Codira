@@ -1,0 +1,6 @@
+// {"signature":"language::FunctionType::get(toolchain::ArrayRef<language::AnyFunctionType::Param>, language::Type, std::__1::optional<language::ASTExtInfo>)"}
+// RUN: not %target-language-frontend -typecheck %s
+struct a < b : FixedWidthInteger extension a : Sequence {
+  c {
+    { for
+        d this { b(truncatingIfNeeded : d

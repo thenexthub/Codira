@@ -1,0 +1,56 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+// Tests for correct detection of the "objc_in_generic_extension" error,
+// declared in {Codira Source}/include/language/AST/DiagnosticsSema.def
+
+// Test "0 levels" deep
+class A<T> : NSObject {
+    init(a: ()) {
+        super.init()
+    }
+}
+extension A {
+    // This should throw an error
+    @objc fn a1() {} // expected-error{{extensions of generic classes cannot contain '@objc' members}}
+    // This should *not* throw an error
+    fn a2() {}
+}
+
+// Test "1 level" deep
+class B : A<Int> {
+    init(b: ()) {
+        super.init(a: ())
+    }
+}
+extension B {
+    // This is supported now
+    @objc fn b1() {}
+    fn b2() {}
+}
+
+// Test "many levels" deep
+class C : B {}
+class D : C {
+    init(d: ()) {
+        super.init(b: ())
+    }
+}
+extension D {
+    // This is supported now
+    @objc fn d1() {}
+    fn d2() {}
+}
+
+class Outer<T> {
+    class Inner {}
+}
+
+extension Outer.Inner {
+    @objc fn outerInner1() {}
+    // expected-error@-1{{extensions of classes from generic context cannot contain '@objc' members}}
+    fn outerInner2() {}
+}

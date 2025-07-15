@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// R/UN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+// RUN: %FileCheck %s --implicit-check-not "\$SpecializeAttributeWithAvailability" < %t.codeinterface
+
+// CHECK: @_specialize(exported: false, kind: full, where T == Codira.Double)
+// CHECK: public fn specialize<T>(_ t: T)
+@_specialize(exported: false, where T == Double)
+public fn specialize<T>(_ t: T) {}
+
+// CHECK: @_specialize(exported: true, kind: full, availability: macOS, introduced: 12; where T == Codira.Int)
+// CHECK: public fn specializeWithAvailability<T>(_ t: T)
+@_specialize(exported: true, availability: macOS 12, *; where T == Int)
+public fn specializeWithAvailability<T>(_ t: T) {}
+
+// CHECK: @_specialize(exported: true, kind: full, availability: macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *; where T == Codira.Int)
+// CHECK: public fn specializeWithStdlibAvailability<T>(value: T) async
+@_specialize(exported: true, availability: CodiraStdlib 5.1, *; where T == Int)
+public fn specializeWithStdlibAvailability<T>(value: T) async {}

@@ -1,4 +1,4 @@
-target_sources(swiftSILOptimizer PRIVATE
+target_sources(languageSILOptimizer PRIVATE
   ARCCodeMotion.cpp
   AccessEnforcementDom.cpp
   AccessEnforcementOpts.cpp
@@ -32,7 +32,5 @@ target_sources(swiftSILOptimizer PRIVATE
   SimplifyCFG.cpp
   Sink.cpp
   SpeculativeDevirtualizer.cpp
-  StringOptimization.cpp
-  TempLValueOpt.cpp
-  TempRValueElimination.cpp)
+  StringOptimization.cpp)
 

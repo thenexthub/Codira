@@ -1,0 +1,21 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -verify -plugin-path %language-plugin-dir
+
+extension DefaultStringInterpolation {
+  fileprivate fn appendInterpolation(custom: Int) {}
+  fileprivate fn appendInterpolation<A, B>(_ a: A, _ b: B) {}
+}
+
+@DebugDescription
+struct MyStruct1 {
+  // expected-error @+1 {{unsupported custom string interpolation expression}}
+  var debugDescription: String { "\(custom: 30)" }
+}
+
+@DebugDescription
+struct MyStruct2 {
+  // expected-error @+1 {{unsupported custom string interpolation expression}}
+  var debugDescription: String { "\(30, true)" }
+}

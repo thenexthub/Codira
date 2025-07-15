@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains utility methods for creating compile job cache keys.
@@ -18,28 +19,28 @@
 //===----------------------------------------------------------------------===//
 
 #include "language/Option/Options.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/CAS/CASReference.h"
-#include "llvm/CAS/HierarchicalTreeBuilder.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/CAS/TreeEntry.h"
-#include "llvm/CAS/TreeSchema.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/OptTable.h"
-#include "llvm/Support/Endian.h"
-#include "llvm/Support/EndianStream.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
-#include <llvm/ADT/SmallString.h>
-#include <swift/Basic/Version.h>
-#include <swift/Frontend/CompileJobCacheKey.h>
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/CAS/CASReference.h"
+#include "toolchain/CAS/HierarchicalTreeBuilder.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/CAS/TreeEntry.h"
+#include "toolchain/CAS/TreeSchema.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/OptTable.h"
+#include "toolchain/Support/Endian.h"
+#include "toolchain/Support/EndianStream.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
+#include <toolchain/ADT/SmallString.h>
+#include <language/Basic/Version.h>
+#include <language/Frontend/CompileJobCacheKey.h>
 
 using namespace language;
 
 // TODO: Rewrite this into CASNodeSchema.
-llvm::Expected<llvm::cas::ObjectRef> swift::createCompileJobBaseCacheKey(
-    llvm::cas::ObjectStore &CAS, ArrayRef<const char *> Args) {
+toolchain::Expected<toolchain::cas::ObjectRef> language::createCompileJobBaseCacheKey(
+    toolchain::cas::ObjectStore &CAS, ArrayRef<const char *> Args) {
   // Don't count the `-frontend` in the first location since only frontend
   // invocation can have a cache key.
   if (Args.size() > 1 && StringRef(Args.front()) == "-frontend")
@@ -47,8 +48,8 @@ llvm::Expected<llvm::cas::ObjectRef> swift::createCompileJobBaseCacheKey(
 
   unsigned MissingIndex;
   unsigned MissingCount;
-  std::unique_ptr<llvm::opt::OptTable> Table = createSwiftOptTable();
-  llvm::opt::InputArgList ParsedArgs = Table->ParseArgs(
+  std::unique_ptr<toolchain::opt::OptTable> Table = createCodiraOptTable();
+  toolchain::opt::InputArgList ParsedArgs = Table->ParseArgs(
       Args, MissingIndex, MissingCount, options::FrontendOption);
 
   SmallString<256> CommandLine;
@@ -60,9 +61,9 @@ llvm::Expected<llvm::cas::ObjectRef> swift::createCompileJobBaseCacheKey(
       continue;
 
     if (Opt.hasFlag(options::ArgumentIsFileList)) {
-      auto FileList = llvm::MemoryBuffer::getFile(Arg->getValue());
+      auto FileList = toolchain::MemoryBuffer::getFile(Arg->getValue());
       if (!FileList)
-        return llvm::errorCodeToError(FileList.getError());
+        return toolchain::errorCodeToError(FileList.getError());
       CommandLine.append(Opt.getRenderName());
       CommandLine.push_back(0);
       CommandLine.append((*FileList)->getBuffer());
@@ -74,18 +75,18 @@ llvm::Expected<llvm::cas::ObjectRef> swift::createCompileJobBaseCacheKey(
     CommandLine.push_back(0);
   }
 
-  llvm::cas::HierarchicalTreeBuilder Builder;
+  toolchain::cas::HierarchicalTreeBuilder Builder;
   auto CMD = CAS.storeFromString(std::nullopt, CommandLine);
   if (!CMD)
     return CMD.takeError();
-  Builder.push(*CMD, llvm::cas::TreeEntry::Regular, "command-line");
+  Builder.push(*CMD, toolchain::cas::TreeEntry::Regular, "command-line");
 
   // FIXME: The version is maybe insufficient...
   auto Version =
-      CAS.storeFromString(std::nullopt, version::getSwiftFullVersion());
+      CAS.storeFromString(std::nullopt, version::getCodiraFullVersion());
   if (!Version)
     return Version.takeError();
-  Builder.push(*Version, llvm::cas::TreeEntry::Regular, "version");
+  Builder.push(*Version, toolchain::cas::TreeEntry::Regular, "version");
 
   if (auto Out = Builder.create(CAS))
     return Out->getRef();
@@ -93,46 +94,46 @@ llvm::Expected<llvm::cas::ObjectRef> swift::createCompileJobBaseCacheKey(
     return Out.takeError();
 }
 
-llvm::Expected<llvm::cas::ObjectRef>
-swift::createCompileJobCacheKeyForOutput(llvm::cas::ObjectStore &CAS,
-                                         llvm::cas::ObjectRef BaseKey,
+toolchain::Expected<toolchain::cas::ObjectRef>
+language::createCompileJobCacheKeyForOutput(toolchain::cas::ObjectStore &CAS,
+                                         toolchain::cas::ObjectRef BaseKey,
                                          unsigned InputIndex) {
   std::string InputInfo;
-  llvm::raw_string_ostream OS(InputInfo);
+  toolchain::raw_string_ostream OS(InputInfo);
 
   // CacheKey is the index of the producting input + the base key.
   // Encode the unsigned value as little endian in the field.
-  llvm::support::endian::write<uint32_t>(OS, InputIndex,
-                                         llvm::endianness::little);
+  toolchain::support::endian::write<uint32_t>(OS, InputIndex,
+                                         toolchain::endianness::little);
 
   return CAS.storeFromString({BaseKey}, OS.str());
 }
 
-llvm::Error swift::printCompileJobCacheKey(llvm::cas::ObjectStore &CAS,
-                                           llvm::cas::ObjectRef Key,
-                                           llvm::raw_ostream &OS) {
+toolchain::Error language::printCompileJobCacheKey(toolchain::cas::ObjectStore &CAS,
+                                           toolchain::cas::ObjectRef Key,
+                                           toolchain::raw_ostream &OS) {
   auto Proxy = CAS.getProxy(Key);
   if (!Proxy)
     return Proxy.takeError();
 
   if (Proxy->getData().size() != sizeof(uint32_t))
-    return llvm::createStringError("incorrect size for cache key node");
+    return toolchain::createStringError("incorrect size for cache key node");
   if (Proxy->getNumReferences() != 1)
-    return llvm::createStringError("incorrect child number for cache key node");
+    return toolchain::createStringError("incorrect child number for cache key node");
 
-  uint32_t InputIndex = llvm::support::endian::read<uint32_t>(
-      Proxy->getData().data(), llvm::endianness::little);
+  uint32_t InputIndex = toolchain::support::endian::read<uint32_t>(
+      Proxy->getData().data(), toolchain::endianness::little);
 
   auto Base = Proxy->getReference(0);
-  llvm::cas::TreeSchema Schema(CAS);
+  toolchain::cas::TreeSchema Schema(CAS);
   auto Tree = Schema.load(Base);
   if (!Tree)
     return Tree.takeError();
 
   std::string BaseStr;
-  llvm::raw_string_ostream BaseOS(BaseStr);
+  toolchain::raw_string_ostream BaseOS(BaseStr);
   auto Err = Tree->forEachEntry(
-      [&](const llvm::cas::NamedTreeEntry &Entry) -> llvm::Error {
+      [&](const toolchain::cas::NamedTreeEntry &Entry) -> toolchain::Error {
         auto Ref = Entry.getRef();
         auto DataProxy = CAS.getProxy(Ref);
         if (!DataProxy)
@@ -144,15 +145,15 @@ llvm::Error swift::printCompileJobCacheKey(llvm::cas::ObjectStore &CAS,
           std::tie(Line, Remain) = Remain.split(0);
           BaseOS.indent(4) << Line << "\n";
         }
-        return llvm::Error::success();
+        return toolchain::Error::success();
       });
   if (Err)
     return Err;
 
-  llvm::outs() << "Cache Key " << CAS.getID(Key).toString() << "\n";
-  llvm::outs() << "Swift Compiler Invocation Info:\n";
-  llvm::outs() << BaseStr;
-  llvm::outs() << "Input index: " << InputIndex << "\n";
+  toolchain::outs() << "Cache Key " << CAS.getID(Key).toString() << "\n";
+  toolchain::outs() << "Codira Compiler Invocation Info:\n";
+  toolchain::outs() << BaseStr;
+  toolchain::outs() << "Input index: " << InputIndex << "\n";
 
-  return llvm::Error::success();
+  return toolchain::Error::success();
 }

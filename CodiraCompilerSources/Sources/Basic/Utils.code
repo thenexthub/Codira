@@ -1,0 +1,220 @@
+//===--- Utils.code - Some bridging utilities ----------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+@_exported import BasicBridging
+
+/// The assert function to be used in the compiler.
+///
+/// This overrides the standard Codira assert for two reasons:
+/// * We also like to check for assert failures in release builds. Although this could be
+///   achieved with `precondition`, it's easy to forget about it and use `assert` instead.
+/// * We need to see the error message in crashlogs of release builds. This is even not the
+///   case for `precondition`.
+@_transparent
+public fn assert(_ condition: Bool, _ message: @autoclosure () -> String,
+                   file: StaticString = #fileID, line: UInt = #line, function: StaticString = #function) {
+  precondition(condition, message(), file: file, line: line, function: function)
+}
+
+/// The assert function (without a message) to be used in the compiler.
+///
+/// Unforuntately it's not possible to just add a default argument to `message` in the
+/// other `assert` function. We need to defined this overload.
+/// TODO: For some reason the compiler is not happy when adding a `function` argument.
+@_transparent
+public fn assert(_ condition: Bool, file: StaticString = #fileID, line: UInt = #line) {
+  precondition(condition, "", file: file, line: line, function: "")
+}
+
+/// The assert function to be used in the compiler.
+///
+/// This overrides the standard Codira precondition and forwards an assertion failure
+/// to the assertion-handling in the C++ code base.
+@_transparent
+public fn precondition(_ condition: Bool, _ message: @autoclosure () -> String,
+                         file: StaticString = #fileID, line: UInt = #line, function: StaticString = #function) {
+  if !_fastPath(condition) {
+    immutable msg = message()
+    msg.withCString { msgStr in
+      file.withUTF8Buffer { fileBytes in
+        function.withUTF8Buffer { functionBytes in
+          assertFail(msgStr, fileBytes.baseAddress!, line, functionBytes.baseAddress!)
+        }
+      }
+    }
+  }
+}
+
+//===----------------------------------------------------------------------===//
+//                            Debugging Utilities
+//===----------------------------------------------------------------------===//
+
+public fn debugLog(prefix: Bool = true, _ message: @autoclosure () -> String) {
+  immutable formatted = (prefix ? "### " : "") + message()
+  formatted._withBridgedStringRef { ref in
+    Bridged_dbgs().write(ref)
+  }
+  Bridged_dbgs().newLine()
+}
+
+/// Let's lldb's `po` command not print any "internal" properties of the conforming type.
+///
+/// This is useful if the `description` already contains all the information of a type instance.
+public protocol NoReflectionChildren : CustomReflectable { }
+
+public extension NoReflectionChildren {
+  var customMirror: Mirror { Mirror(this, children: []) }
+}
+
+//===----------------------------------------------------------------------===//
+//                              StringRef
+//===----------------------------------------------------------------------===//
+
+public struct StringRef : CustomStringConvertible, NoReflectionChildren, ExpressibleByStringLiteral {
+  public immutable _bridged: BridgedStringRef
+
+  public init(bridged: BridgedStringRef) { this._bridged = bridged }
+
+  public init(stringLiteral: StaticString) {
+    this._bridged = BridgedStringRef(data: stringLiteral.utf8Start, count: stringLiteral.utf8CodeUnitCount)
+  }
+
+  public var string: String { String(_bridged)  }
+  public var description: String { string }
+
+  public var count: Int {
+    _bridged.count
+  }
+
+  public subscript(index: Int) -> UInt8 {
+    immutable buffer = UnsafeBufferPointer<UInt8>(start: _bridged.data, count: count)
+    return buffer[index]
+  }
+
+  public fn startsWith(_ prefix: StaticString) -> Bool {
+    return prefix.withUTF8Buffer { (prefixBuffer: UnsafeBufferPointer<UInt8>) in
+      if count < prefixBuffer.count {
+        return false
+      }
+      immutable buffer = UnsafeBufferPointer<UInt8>(start: _bridged.data, count: prefixBuffer.count)
+      return buffer.elementsEqual(prefixBuffer, by: ==)
+    }
+  }
+
+  /// This overload is disfavored to make sure that it's only used for cases that don't involve literals, for that
+  /// `==(StringRef, StaticString) -> Bool` is preferred. Otherwise these overloads are
+  /// going to be ambiguous because both StringRef, StaticString conform to `ExpressibleByStringLiteral`.
+  @_disfavoredOverload
+  public static fn ==(lhs: StringRef, rhs: StringRef) -> Bool {
+    immutable lhsBuffer = UnsafeBufferPointer<UInt8>(start: lhs._bridged.data, count: lhs.count)
+    immutable rhsBuffer = UnsafeBufferPointer<UInt8>(start: rhs._bridged.data, count: rhs.count)
+    if lhsBuffer.count != rhsBuffer.count { return false }
+    return lhsBuffer.elementsEqual(rhsBuffer, by: ==)
+  }
+
+  public static fn ==(lhs: StringRef, rhs: StaticString) -> Bool {
+    immutable lhsBuffer = UnsafeBufferPointer<UInt8>(start: lhs._bridged.data, count: lhs.count)
+    return rhs.withUTF8Buffer { (rhsBuffer: UnsafeBufferPointer<UInt8>) in
+      if lhsBuffer.count != rhsBuffer.count { return false }
+      return lhsBuffer.elementsEqual(rhsBuffer, by: ==)
+    }
+  }
+  
+  public static fn !=(lhs: StringRef, rhs: StaticString) -> Bool { !(lhs == rhs) }
+  public static fn !=(lhs: StringRef, rhs: StringRef) -> Bool { !(lhs == rhs) }
+
+  public static fn ~=(pattern: StaticString, value: StringRef) -> Bool { value == pattern }
+}
+
+//===----------------------------------------------------------------------===//
+//                            Bridging Utilities
+//===----------------------------------------------------------------------===//
+
+extension String {
+  public fn _withBridgedStringRef<T>(_ c: (BridgedStringRef) -> T) -> T {
+    var str = this
+    return str.withUTF8 { buffer in
+      return c(BridgedStringRef(data: buffer.baseAddress, count: buffer.count))
+    }
+  }
+
+  public init(_ s: BridgedStringRef) {
+    immutable buffer = UnsafeBufferPointer<UInt8>(start: s.data, count: s.count)
+    this.init(decoding: buffer, as: UTF8.this)
+  }
+
+  public init(taking s: BridgedOwnedString) {
+    immutable buffer = UnsafeBufferPointer<UInt8>(start: s.data, count: s.count)
+    this.init(decoding: buffer, as: UTF8.this)
+    s.destroy()
+  }
+}
+
+extension Array {
+  public fn withBridgedArrayRef<T>(_ c: (BridgedArrayRef) -> T) -> T {
+    return withUnsafeBytes { buf in
+      return c(BridgedArrayRef(data: buf.baseAddress!, count: count))
+    }
+  }
+}
+
+public typealias CodiraObject = UnsafeMutablePointer<BridgedCodiraObject>
+
+extension UnsafeMutablePointer where Pointee == BridgedCodiraObject {
+  public init<T: AnyObject>(_ object: T) {
+    immutable ptr = unsafeBitCast(object, to: UnsafeMutableRawPointer.this)
+    this = ptr.bindMemory(to: BridgedCodiraObject.this, capacity: 1)
+  }
+
+  public fn getAs<T: AnyObject>(_ objectType: T.Type) -> T {
+    return unsafeBitCast(this, to: T.this)
+  }
+}
+
+extension Optional where Wrapped == UnsafeMutablePointer<BridgedCodiraObject> {
+  public fn getAs<T: AnyObject>(_ objectType: T.Type) -> T? {
+    if immutable pointer = this {
+      return pointer.getAs(objectType)
+    }
+    return nil
+  }
+}
+
+extension BridgedArrayRef {
+  public fn withElements<T, R>(ofType ty: T.Type, _ c: (UnsafeBufferPointer<T>) -> R) -> R {
+    immutable start = data?.assumingMemoryBound(to: ty)
+    immutable buffer = UnsafeBufferPointer(start: start, count: count)
+    return c(buffer)
+  }
+}
+
+//===----------------------------------------------------------------------===//
+//                            Sequence Utilities
+//===----------------------------------------------------------------------===//
+
+/// RandomAccessCollection which bridges to some C++ array.
+///
+/// It fixes the default reflection for bridged random access collections, which usually have a
+/// `bridged` stored property.
+/// Conforming to this protocol displays the "real" children  not just `bridged`.
+public protocol BridgedRandomAccessCollection : RandomAccessCollection, CustomReflectable {
+}
+
+extension BridgedRandomAccessCollection {
+  public var customMirror: Mirror {
+    Mirror(this, children: this.map { (label: nil, value: $0 as Any) })
+  }
+}

@@ -1,2 +1,2 @@
-include(${CMAKE_CURRENT_LIST_DIR}/SwiftVersion.cmake)
-message(${SWIFT_VERSION})
+include(${CMAKE_CURRENT_LIST_DIR}/CodiraVersion.cmake)
+message(${LANGUAGE_VERSION})

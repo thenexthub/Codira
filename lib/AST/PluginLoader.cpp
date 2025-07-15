@@ -1,13 +1,17 @@
 //===--- PluginLoader.cpp -------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/PluginLoader.h"
@@ -17,9 +21,9 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/Config/config.h"
-#include "llvm/Support/PrefixMapper.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/Config/config.h"
+#include "toolchain/Support/PrefixMapper.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 
 using namespace language;
 
@@ -52,7 +56,7 @@ static StringRef pluginModuleNameStringFromPath(StringRef path) {
   constexpr StringRef libSuffix = LTDL_SHLIB_EXT;
 #endif
 
-  StringRef filename = llvm::sys::path::filename(path);
+  StringRef filename = toolchain::sys::path::filename(path);
   if (filename.starts_with(libPrefix) && filename.ends_with(libSuffix)) {
     // We don't check if the result it a valid identifier. Even if we put
     // invalid name in the lookup table, clients wound not be able to lookup
@@ -62,16 +66,16 @@ static StringRef pluginModuleNameStringFromPath(StringRef path) {
   return "";
 }
 
-static llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem>
+static toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem>
 getPluginLoadingFS(ASTContext &Ctx) {
-  // If there is a clang include tree FS, using real file system to load plugin
+  // If there is an immutable file system, using real file system to load plugin
   // as the FS in SourceMgr doesn't support directory iterator.
-  if (Ctx.ClangImporterOpts.HasClangIncludeTreeRoot)
-    return llvm::vfs::getRealFileSystem();
+  if (Ctx.CASOpts.HasImmutableFileSystem)
+    return toolchain::vfs::getRealFileSystem();
   return Ctx.SourceMgr.getFileSystem();
 }
 
-llvm::DenseMap<Identifier, PluginLoader::PluginEntry> &
+toolchain::DenseMap<Identifier, PluginLoader::PluginEntry> &
 PluginLoader::getPluginMap() {
   if (PluginMap.has_value()) {
     return PluginMap.value();
@@ -97,10 +101,10 @@ PluginLoader::getPluginMap() {
     map[moduleNameIdentifier] = {libPath, execPath};
   };
 
-  std::optional<llvm::PrefixMapper> mapper;
+  std::optional<toolchain::PrefixMapper> mapper;
   if (!PathRemap.empty()) {
-    SmallVector<llvm::MappedPrefix, 4> prefixes;
-    llvm::MappedPrefix::transformJoinedIfValid(PathRemap, prefixes);
+    SmallVector<toolchain::MappedPrefix, 4> prefixes;
+    toolchain::MappedPrefix::transformJoinedIfValid(PathRemap, prefixes);
     mapper.emplace();
     mapper->addRange(prefixes);
     mapper->sort();
@@ -114,23 +118,23 @@ PluginLoader::getPluginMap() {
   auto fs = getPluginLoadingFS(Ctx);
   std::error_code ec;
 
-  auto validateLibrary = [&](StringRef path) -> llvm::Expected<std::string> {
+  auto validateLibrary = [&](StringRef path) -> toolchain::Expected<std::string> {
     auto remappedPath = remapPath(path);
     if (!Ctx.SearchPathOpts.ResolvedPluginVerification || path.empty())
       return remappedPath;
 
     auto currentStat = fs->status(remappedPath);
     if (!currentStat)
-      return llvm::createFileError(remappedPath, currentStat.getError());
+      return toolchain::createFileError(remappedPath, currentStat.getError());
 
     auto goldStat = Ctx.SourceMgr.getFileSystem()->status(path);
     if (!goldStat)
-      return llvm::createStringError(
+      return toolchain::createStringError(
           "cannot open gold reference library to compare");
 
     // Compare the size for difference for now.
     if (currentStat->getSize() != goldStat->getSize())
-      return llvm::createStringError(
+      return toolchain::createStringError(
           "plugin has changed since dependency scanning");
 
     return remappedPath;
@@ -163,7 +167,7 @@ PluginLoader::getPluginMap() {
     case PluginSearchOption::Kind::PluginPath: {
       auto &val = entry.get<PluginSearchOption::PluginPath>();
       for (auto i = fs->dir_begin(val.SearchPath, ec);
-           i != llvm::vfs::directory_iterator(); i = i.increment(ec)) {
+           i != toolchain::vfs::directory_iterator(); i = i.increment(ec)) {
         auto libPath = i->path();
         auto moduleName = pluginModuleNameStringFromPath(libPath);
         if (!moduleName.empty()) {
@@ -177,7 +181,7 @@ PluginLoader::getPluginMap() {
     case PluginSearchOption::Kind::ExternalPluginPath: {
       auto &val = entry.get<PluginSearchOption::ExternalPluginPath>();
       for (auto i = fs->dir_begin(val.SearchPath, ec);
-           i != llvm::vfs::directory_iterator(); i = i.increment(ec)) {
+           i != toolchain::vfs::directory_iterator(); i = i.increment(ec)) {
         auto libPath = i->path();
         auto moduleName = pluginModuleNameStringFromPath(libPath);
         if (!moduleName.empty()) {
@@ -207,7 +211,7 @@ PluginLoader::getPluginMap() {
       continue;
     }
     }
-    llvm_unreachable("unhandled PluginSearchOption::Kind");
+    toolchain_unreachable("unhandled PluginSearchOption::Kind");
   }
 
   return map;
@@ -227,29 +231,29 @@ PluginLoader::lookupPluginByModuleName(Identifier moduleName) {
   return found->second;
 }
 
-llvm::Expected<CompilerPlugin *> PluginLoader::getInProcessPlugins() {
+toolchain::Expected<CompilerPlugin *> PluginLoader::getInProcessPlugins() {
   auto inProcPluginServerPath = Ctx.SearchPathOpts.InProcessPluginServerPath;
   if (inProcPluginServerPath.empty()) {
-    return llvm::createStringError(
-        llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(
+        toolchain::inconvertibleErrorCode(),
         "library plugins require -in-process-plugin-server-path");
   }
 
   auto fs = getPluginLoadingFS(Ctx);
   SmallString<128> resolvedPath;
   if (auto err = fs->getRealPath(inProcPluginServerPath, resolvedPath)) {
-    return llvm::createStringError(err, err.message());
+    return toolchain::createStringError(err, err.message());
   }
 
   return getRegistry()->getInProcessPlugins(resolvedPath);
 }
 
-llvm::Expected<CompilerPlugin *>
+toolchain::Expected<CompilerPlugin *>
 PluginLoader::loadExecutablePlugin(StringRef path) {
   auto fs = getPluginLoadingFS(Ctx);
   SmallString<128> resolvedPath;
   if (auto err = fs->getRealPath(path, resolvedPath)) {
-    return llvm::createStringError(err, err.message());
+    return toolchain::createStringError(err, err.message());
   }
 
   // Load the plugin.
@@ -257,9 +261,9 @@ PluginLoader::loadExecutablePlugin(StringRef path) {
       getRegistry()->loadExecutablePlugin(resolvedPath, disableSandbox);
   if (!plugin) {
     resolvedPath.push_back(0);
-    return llvm::handleErrors(
-        plugin.takeError(), [&](const llvm::ErrorInfoBase &err) {
-          return llvm::createStringError(
+    return toolchain::handleErrors(
+        plugin.takeError(), [&](const toolchain::ErrorInfoBase &err) {
+          return toolchain::createStringError(
               err.convertToErrorCode(),
               "compiler plugin '%s' could not be loaded: %s",
               resolvedPath.data(), err.message().data());

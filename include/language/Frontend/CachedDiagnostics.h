@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the CachedDiagnosticConsumer class, which
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CACHEDDIAGNOSTICS_H
-#define SWIFT_CACHEDDIAGNOSTICS_H
+#ifndef LANGUAGE_CACHEDDIAGNOSTICS_H
+#define LANGUAGE_CACHEDDIAGNOSTICS_H
 
-#include "llvm/Support/Error.h"
+#include "toolchain/Support/Error.h"
 
 namespace language {
 
@@ -41,10 +42,10 @@ public:
   void endDiagnosticCapture();
 
   /// Emit serialized diagnostics into output stream.
-  llvm::Error serializeEmittedDiagnostics(llvm::raw_ostream &os);
+  toolchain::Error serializeEmittedDiagnostics(toolchain::raw_ostream &os);
 
   /// Used to replay the previously cached diagnostics, after a cache hit.
-  llvm::Error replayCachedDiagnostics(llvm::StringRef Buffer);
+  toolchain::Error replayCachedDiagnostics(toolchain::StringRef Buffer);
 
 private:
   class Implementation;

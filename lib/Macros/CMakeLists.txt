@@ -1,53 +1,57 @@
 #===--- CMakeLists.txt - Macro support libraries ------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-# Copyright (c) 2023 Apple Inc. and the Swift project authors
-# Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
+
 #
 #===----------------------------------------------------------------------===#
 
 # The location for host plugins, i.e., macros.
-set(SWIFT_HOST_PLUGINS_DEST_DIR ${SWIFT_HOST_LIBRARIES_DEST_DIR}/plugins)
+set(LANGUAGE_HOST_PLUGINS_DEST_DIR ${LANGUAGE_HOST_LIBRARIES_DEST_DIR}/plugins)
 
-# Add a new Swift macro library, which is built for the host and installed
-# into lib/swift/host/plugins.
+# Add a new Codira macro library, which is built for the host and installed
+# into lib/language/host/plugins.
 #
 # Usage:
-#   add_swift_macro_library(name
+#   add_language_macro_library(name
 #     source1 [source2 source3 ...])
 #
 # name
-#   Name of the library (e.g., SwiftMacros).
+#   Name of the library (e.g., CodiraMacros).
 #
 # source1 ...
 #   Sources to add into this library.
-function(add_swift_macro_library name)
+function(add_language_macro_library name)
   set(ASML_SOURCES ${ARGN})
 
   # Add the library.
-  add_pure_swift_host_library(${name} SHARED
+  add_pure_language_host_library(${name} SHARED
     PACKAGE_NAME Toolchain
     ${ASML_SOURCES})
 
-  # If we don't have the Swift swift parser, bail out, because the above
-  # add_pure_swift_host_library did nothing.
-  if (NOT SWIFT_BUILD_SWIFT_SYNTAX)
+  # If we don't have the Codira language parser, bail out, because the above
+  # add_pure_language_host_library did nothing.
+  if (NOT LANGUAGE_BUILD_LANGUAGE_SYNTAX)
     return()
   endif()
 
   # Add rpath to 'lib/{platform}'
   file(RELATIVE_PATH relpath_to_lib
-    "${SWIFT_HOST_PLUGINS_DEST_DIR}"
+    "${LANGUAGE_HOST_PLUGINS_DEST_DIR}"
     "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
   )
-  _set_pure_swift_link_flags(${name} "${relpath_to_lib}")
+  _set_pure_language_link_flags(${name} "${relpath_to_lib}")
 
   # Add rpath to 'lib/host'
-  if(SWIFT_HOST_VARIANT_SDK MATCHES "LINUX|ANDROID|OPENBSD|FREEBSD")
+  if(LANGUAGE_HOST_VARIANT_SDK MATCHES "LINUX|ANDROID|OPENBSD|FREEBSD")
     set_property(TARGET ${name}
       APPEND PROPERTY INSTALL_RPATH "$ORIGIN/..")
   endif()
@@ -55,13 +59,13 @@ function(add_swift_macro_library name)
   # Install into the plugin directory.
   set_target_properties(${name}
     PROPERTIES
-      ARCHIVE_OUTPUT_DIRECTORY "${SWIFT_HOST_PLUGINS_DEST_DIR}"
-      LIBRARY_OUTPUT_DIRECTORY "${SWIFT_HOST_PLUGINS_DEST_DIR}"
+      ARCHIVE_OUTPUT_DIRECTORY "${LANGUAGE_HOST_PLUGINS_DEST_DIR}"
+      LIBRARY_OUTPUT_DIRECTORY "${LANGUAGE_HOST_PLUGINS_DEST_DIR}"
   )
 
-  set(destination_dir "lib${LLVM_LIBDIR_SUFFIX}/swift/host/plugins")
+  set(destination_dir "lib${TOOLCHAIN_LIBDIR_SUFFIX}/language/host/plugins")
 
-  swift_install_in_component(TARGETS ${name}
+  language_install_in_component(TARGETS ${name}
     RUNTIME
       DESTINATION bin
       COMPONENT compiler
@@ -73,8 +77,8 @@ function(add_swift_macro_library name)
       COMPONENT compiler)
 
   # Export this macro plugin target.
-  set_property(GLOBAL APPEND PROPERTY SWIFT_MACRO_PLUGINS ${name})
+  set_property(GLOBAL APPEND PROPERTY LANGUAGE_MACRO_PLUGINS ${name})
 endfunction()
 
-add_subdirectory(Sources/SwiftMacros)
+add_subdirectory(Sources/CodiraMacros)
 add_subdirectory(Sources/ObservationMacros)

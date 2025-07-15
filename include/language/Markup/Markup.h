@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MARKUP_MARKUP_H
-#define SWIFT_MARKUP_MARKUP_H
+#ifndef LANGUAGE_MARKUP_MARKUP_H
+#define LANGUAGE_MARKUP_MARKUP_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Markup/AST.h"
 #include "language/Markup/LineList.h"
@@ -32,7 +33,7 @@ namespace markup {
 class LineList;
 
 class MarkupContext final {
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
 public:
   void *allocate(unsigned long Bytes, unsigned Alignment) {
@@ -56,11 +57,11 @@ public:
 
   StringRef allocateCopy(StringRef Str) {
     ArrayRef<char> Result =
-        allocateCopy(llvm::ArrayRef(Str.data(), Str.size()));
+        allocateCopy(toolchain::ArrayRef(Str.data(), Str.size()));
     return StringRef(Result.data(), Result.size());
   }
 
-  LineList getLineList(swift::RawComment RC);
+  LineList getLineList(language::RawComment RC);
 };
 
 Document *parseDocument(MarkupContext &MC, StringRef String);
@@ -69,4 +70,4 @@ Document *parseDocument(MarkupContext &MC, LineList &LL);
 } // namespace markup
 } // namespace language
 
-#endif // SWIFT_MARKUP_MARKUP_H
+#endif // LANGUAGE_MARKUP_MARKUP_H

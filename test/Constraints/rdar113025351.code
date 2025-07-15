@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language
+
+struct S {
+  enum E: Error {
+    case e(Int)
+    case f
+  }
+}
+
+fn foo() throws {}
+
+// rdar://113025351: Avoid emitting a separate diagnostic complaining that a
+// 'immutable' cannot be nested in an expression, as it just adds noise.
+fn bar() throws {
+  do {
+    try foo()
+  } catch S.E(immutable x) {} // expected-error {{'S.E' cannot be constructed because it has no accessible initializers}}
+}
+
+fn baz(_ x: S.E) {
+  if case S.E(immutable y) = x {} // expected-error {{'S.E' cannot be constructed because it has no accessible initializers}}
+  if case S.E(S.E.e(immutable y)) = x {} // expected-error {{'S.E' cannot be constructed because it has no accessible initializers}}
+}

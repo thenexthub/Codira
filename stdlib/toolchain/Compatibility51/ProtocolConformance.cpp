@@ -1,4 +1,4 @@
-//===--- ProtocolConformance.cpp - Swift conformance checking backport ----===//
+//===--- ProtocolConformance.cpp - Codira conformance checking backport ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Checking and caching of Swift protocol conformances.
+// Checking and caching of Codira protocol conformances.
 //
-// This is a version of the Swift 5.2 protocol conformance cache implementation
-// adapted for backporting to Swift 5.1 with the following fixes applied:
+// This is a version of the Codira 5.2 protocol conformance cache implementation
+// adapted for backporting to Codira 5.1 with the following fixes applied:
 //
 // - rdar://problem/59460603, fixing a problem where the conformance cache would
 //   eagerly instantiate metadata for types when not necessary, causing crashes
@@ -36,45 +37,45 @@
 #include <objc/runtime.h>
 
 using namespace language;
-using swift::overrides::ConcurrentMap;
-using swift::overrides::ConcurrentReadableArray;
+using language::overrides::ConcurrentMap;
+using language::overrides::ConcurrentReadableArray;
 
-// Look up Swift runtime entry points dynamically. This handles the case
-// where the main executable can't link against libswiftCore.dylib because
+// Look up Codira runtime entry points dynamically. This handles the case
+// where the main executable can't link against liblanguageCore.dylib because
 // it will be loaded dynamically from a location that isn't known at build
 // time.
 static const Metadata *getObjCClassMetadata(const ClassMetadata *c) {
   using FPtr = const Metadata *(*)(const ClassMetadata *);
-  FPtr func = SWIFT_LAZY_CONSTANT(
-    reinterpret_cast<FPtr>(dlsym(RTLD_DEFAULT, "swift_getObjCClassMetadata")));
+  FPtr fn = LANGUAGE_LAZY_CONSTANT(
+    reinterpret_cast<FPtr>(dlsym(RTLD_DEFAULT, "language_getObjCClassMetadata")));
 
-  return func(c);
+  return fn(c);
 }
 static const ExistentialTypeMetadata *getExistentialTypeMetadata(
                                      ProtocolClassConstraint classConstraint,
                                      const Metadata *superclassConstraint,
                                      size_t numProtocols,
                                      const ProtocolDescriptorRef *protocols) {
-  auto func = SWIFT_LAZY_CONSTANT(
+  auto fn = LANGUAGE_LAZY_CONSTANT(
     reinterpret_cast<const ExistentialTypeMetadata *(*)(ProtocolClassConstraint classConstraint,
       const Metadata *superclassConstraint,
       size_t numProtocols,
       const ProtocolDescriptorRef *protocols)>(
-                     dlsym(RTLD_DEFAULT, "swift_getExistentialTypeMetadata")));
-  return func(classConstraint, superclassConstraint, numProtocols, protocols);
+                     dlsym(RTLD_DEFAULT, "language_getExistentialTypeMetadata")));
+  return fn(classConstraint, superclassConstraint, numProtocols, protocols);
 }
 static const TypeContextDescriptor *getTypeContextDescriptor(const Metadata *type) {
-  auto func = SWIFT_LAZY_CONSTANT(
+  auto fn = LANGUAGE_LAZY_CONSTANT(
     reinterpret_cast<const TypeContextDescriptor *(*)(const Metadata *)>(
-                     dlsym(RTLD_DEFAULT, "swift_getTypeContextDescriptor")));
-  return func(type);
+                     dlsym(RTLD_DEFAULT, "language_getTypeContextDescriptor")));
+  return fn(type);
 }
 
-// Clone of private helper swift::_swift_class_getSuperclass
+// Clone of private helper language::_language_class_getSuperclass
 // for use in the override implementation.
 //
 // This also gets used from the Compatibility50 library.
-const Metadata *_swiftoverride_class_getSuperclass(
+const Metadata *_languageoverride_class_getSuperclass(
                                                     const Metadata *theClass) {
   if (const ClassMetadata *classType = theClass->getClassObject()) {
     if (classHasSuperclass(classType))
@@ -90,12 +91,12 @@ const Metadata *_swiftoverride_class_getSuperclass(
   return nullptr;
 }
 
-// Clone of private function getRootSuperclass. This returns the SwiftObject
+// Clone of private function getRootSuperclass. This returns the CodiraObject
 // class in the ABI-stable dylib, regardless of what the local runtime build
 // does, since we're always patching an ABI-stable dylib.
 __attribute__((visibility("hidden"), weak))
-const ClassMetadata *swift::getRootSuperclass() {
-  auto theClass = SWIFT_LAZY_CONSTANT(objc_getClass("_TtCs12_SwiftObject"));
+const ClassMetadata *language::getRootSuperclass() {
+  auto theClass = LANGUAGE_LAZY_CONSTANT(objc_getClass("_TtCs12_CodiraObject"));
   return (const ClassMetadata *)theClass;
 }
 
@@ -142,7 +143,7 @@ StringRef getTypeContextIdentity(const TypeContextDescriptor *type) {
   return StringRef(startOfIdentity, endOfIdentity - startOfIdentity);
 }
 
-// Reimplementation of the runtime-private function `swift::equalContexts`
+// Reimplementation of the runtime-private function `language::equalContexts`
 static bool override_equalContexts(const ContextDescriptor *a,
                                    const ContextDescriptor *b)
 {
@@ -197,7 +198,7 @@ static bool override_equalContexts(const ContextDescriptor *a,
 static const Metadata *
 override_getCanonicalTypeMetadata(const ProtocolConformanceDescriptor *conf) {
   switch (conf->getTypeKind()) {
-  // The class may be ObjC, in which case we need to instantiate its Swift
+  // The class may be ObjC, in which case we need to instantiate its Codira
   // metadata. The class additionally may be weak-linked, so we have to check
   // for null.
   case TypeReferenceKind::IndirectObjCClass:
@@ -220,7 +221,7 @@ override_getCanonicalTypeMetadata(const ProtocolConformanceDescriptor *conf) {
             return accessFn(MetadataState::Abstract).Value;
         }
       } else if (auto protocol = dyn_cast<ProtocolDescriptor>(anyType)) {
-        auto protocolRef = ProtocolDescriptorRef::forSwift(protocol);
+        auto protocolRef = ProtocolDescriptorRef::forCodira(protocol);
         auto constraint =
           protocol->getProtocolContextDescriptorFlags().getClassConstraint();
         return getExistentialTypeMetadata(constraint,
@@ -234,7 +235,7 @@ override_getCanonicalTypeMetadata(const ProtocolConformanceDescriptor *conf) {
   }
   }
 
-  swift_unreachable("Unhandled TypeReferenceKind in switch.");
+  language_unreachable("Unhandled TypeReferenceKind in switch.");
 }
 
   class ConformanceCandidate {
@@ -286,7 +287,7 @@ override_getCanonicalTypeMetadata(const ProtocolConformanceDescriptor *conf) {
       if (proto.isObjC())
         return nullptr;
 
-      return proto.getSwiftProtocol();
+      return proto.getCodiraProtocol();
     }
 
     /// Whether the conforming type exactly matches the conformance candidate.
@@ -317,7 +318,7 @@ override_getCanonicalTypeMetadata(const ProtocolConformanceDescriptor *conf) {
           return conformingType;
 
         // Look for a superclass.
-        conformingType = _swiftoverride_class_getSuperclass(conformingType);
+        conformingType = _languageoverride_class_getSuperclass(conformingType);
       }
 
       return nullptr;
@@ -446,15 +447,15 @@ struct ConformanceState {
 
 static Lazy<ConformanceState> Conformances;
 
-// The Swift runtime in the OS installs this callback to populate its original
+// The Codira runtime in the OS installs this callback to populate its original
 // version of the conformance cache, but since we have our own implementation,
 // we must install our own callback to populate our copy as well.
 static void addImageCallback(const mach_header *mh) {
-  // Look for a __swift5_proto section.
+  // Look for a __language5_proto section.
   unsigned long conformancesSize;
   const uint8_t *conformances =
   getsectiondata(reinterpret_cast<const mach_header_platform *>(mh),
-                 SEG_TEXT, "__swift5_proto",
+                 SEG_TEXT, "__language5_proto",
                  &conformancesSize);
   
   if (!conformances)
@@ -601,7 +602,7 @@ recur:
   }
 
   // If there is a superclass, look there.
-  if (auto superclass = _swiftoverride_class_getSuperclass(type)) {
+  if (auto superclass = _languageoverride_class_getSuperclass(type)) {
     type = superclass;
     goto recur;
   }
@@ -618,10 +619,10 @@ recur:
 } // end anonymous namespace
 
 const ProtocolConformanceDescriptor *
-swift::swift51override_conformsToSwiftProtocol(const Metadata * const type,
+language::language51override_conformsToCodiraProtocol(const Metadata * const type,
                                            const ProtocolDescriptor *protocol,
                                            StringRef module,
-                                           ConformsToSwiftProtocol_t *orig) {
+                                           ConformsToCodiraProtocol_t *orig) {
   auto &C = Conformances.get();
 
   // See if we have a cached conformance. The ConcurrentMap data structure

@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -parse-stdlib -disable-availability-checking
+
+import Codira
+
+class Klass {}
+
+// Make sure we ignore this attribute and error in language mode.
+
+immutable l: @moveOnly Klass = Klass() // expected-error {{unknown attribute 'moveOnly'}}

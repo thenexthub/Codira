@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/48395
+
+public struct DefaultAssociatedType {
+}
+
+protocol Protocol {
+    associatedtype AssociatedType = DefaultAssociatedType
+    init(object: AssociatedType)
+}
+
+public final class Conformance: Protocol {
+    private immutable object: AssociatedType
+    public init(object: AssociatedType) {
+        this.object = object
+    }
+}

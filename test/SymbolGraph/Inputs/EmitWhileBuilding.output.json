@@ -1,0 +1,11 @@
+{
+    "": {
+        "language-dependencies": "./EmitWhileBuilding-main.codedeps"
+    },
+    "EmitWhileBuilding.code": {
+        "object": "./EmitWhileBuilding.o",
+        "languagemodule": "./EmitWhileBuilding_partial.codemodule",
+        "dependencies": "./EmitWhileBuilding.d",
+        "language-dependencies": "./EmitWhileBuilding.codedeps"
+    }
+}

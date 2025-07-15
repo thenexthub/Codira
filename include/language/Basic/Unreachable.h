@@ -1,4 +1,4 @@
-//===--- Unreachable.h - Implements swift_unreachable ---*- C++ -*-===//
+//===--- Unreachable.h - Implements language_unreachable ---*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines swift_unreachable, which provides the
-//  functionality of llvm_unreachable without necessarily depending on
+//  This file defines language_unreachable, which provides the
+//  functionality of toolchain_unreachable without necessarily depending on
 //  the LLVM support libraries.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_UNREACHABLE_H
-#define SWIFT_BASIC_UNREACHABLE_H
+#ifndef LANGUAGE_BASIC_UNREACHABLE_H
+#define LANGUAGE_BASIC_UNREACHABLE_H
 
-#ifdef SWIFT_LLVM_SUPPORT_IS_AVAILABLE
+#ifdef LANGUAGE_TOOLCHAIN_SUPPORT_IS_AVAILABLE
 
 // The implementation when LLVM is available.
 
-#include "llvm/Support/ErrorHandling.h"
-#define swift_unreachable llvm_unreachable
+#include "toolchain/Support/ErrorHandling.h"
+#define language_unreachable toolchain_unreachable
 
 #else
 
@@ -38,10 +39,10 @@
 
 #include "language/Runtime/Config.h"
 
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_ALWAYS_INLINE
-inline static void swift_unreachable(const char *msg) {
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_ALWAYS_INLINE
+inline static void language_unreachable(const char *msg) {
   (void)msg;
-  SWIFT_RUNTIME_BUILTIN_TRAP;
+  LANGUAGE_RUNTIME_BUILTIN_TRAP;
 }
 
 #endif

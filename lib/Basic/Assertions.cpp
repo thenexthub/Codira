@@ -11,24 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines implementation details of include/swift/Basic/Assertions.h.
+// This file defines implementation details of include/language/Basic/Assertions.h.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "language/Basic/Assertions.h"
 #include <iostream>
 
-llvm::cl::opt<bool> AssertContinue(
-    "assert-continue", llvm::cl::init(false),
-    llvm::cl::desc("Do not stop on an assertion failure"));
+toolchain::cl::opt<bool> AssertContinue(
+    "assert-continue", toolchain::cl::init(false),
+    toolchain::cl::desc("Do not stop on an assertion failure"));
 
-llvm::cl::opt<bool> AssertHelp(
-    "assert-help", llvm::cl::init(false),
-    llvm::cl::desc("Print help for managing assertions"));
+toolchain::cl::opt<bool> AssertHelp(
+    "assert-help", toolchain::cl::init(false),
+    toolchain::cl::desc("Print help for managing assertions"));
 
 int CONDITIONAL_ASSERT_Global_enable_flag =
 #ifdef NDEBUG
@@ -37,7 +40,28 @@ int CONDITIONAL_ASSERT_Global_enable_flag =
   1; // Default to `on` in debug builds
 #endif
 
-void ASSERT_failure(const char *expr, const char *filename, int line, const char *func) {
+static void ASSERT_help(toolchain::raw_ostream &out) {
+  static int ASSERT_help_shown = 0;
+  if (ASSERT_help_shown) {
+    return;
+  }
+  ASSERT_help_shown = 1;
+
+  if (!AssertHelp) {
+    out << "(to display assertion configuration options: -Xtoolchain -assert-help)\n";
+    return;
+  }
+
+  out << "\n";
+  out << "Control assertion behavior with one or more of the following options:\n\n";
+  out << " -Xtoolchain -assert-continue\n";
+  out << "     Continue after any failed assertion\n\n";
+}
+
+[[noreturn]]
+static inline void _abortWithMessage(toolchain::StringRef message);
+
+void ASSERT_failure(const char *expr, const char *filename, int line, const char *fn) {
   // Find the last component of `filename`
   // Needed on Windows MSVC, which lacks __FILE_NAME__
   // so we have to use __FILE__ instead:
@@ -48,39 +72,24 @@ void ASSERT_failure(const char *expr, const char *filename, int line, const char
     }
   }
 
-  llvm::errs()
-    << "Assertion failed: "
-    << "(" << expr << "), "
-    << "function " << func << " at "
-    << filename << ":"
-    << line << ".\n";
+  toolchain::SmallString<0> message;
+  toolchain::raw_svector_ostream out(message);
 
-  ASSERT_help();
+  out << "Assertion failed: "
+      << "(" << expr << "), "
+      << "function " << fn << " at "
+      << filename << ":"
+      << line << ".\n";
+
+  ASSERT_help(out);
 
   if (AssertContinue) {
-    llvm::errs() << "Continuing after failed assertion (-Xllvm -assert-continue)\n";
+    toolchain::errs() << message;
+    toolchain::errs() << "Continuing after failed assertion (-Xtoolchain -assert-continue)\n";
     return;
   }
 
-  abort();
-}
-
-void ASSERT_help() {
-  static int ASSERT_help_shown = 0;
-  if (ASSERT_help_shown) {
-    return;
-  }
-  ASSERT_help_shown = 1;
-
-  if (!AssertHelp) {
-    llvm::errs() << "(to display assertion configuration options: -Xllvm -assert-help)\n";
-    return;
-  }
-
-  llvm::errs() << "\n";
-  llvm::errs() << "Control assertion behavior with one or more of the following options:\n\n";
-  llvm::errs() << " -Xllvm -assert-continue\n";
-  llvm::errs() << "     Continue after any failed assertion\n\n";
+  _abortWithMessage(message);
 }
 
 // This has to be callable in the same way as the macro version,
@@ -88,4 +97,55 @@ void ASSERT_help() {
 #undef CONDITIONAL_ASSERT_enabled
 int CONDITIONAL_ASSERT_enabled() {
   return (CONDITIONAL_ASSERT_Global_enable_flag != 0);
+}
+
+// MARK: ABORT
+
+namespace {
+/// Similar to PrettyStackTraceString, but formats multi-line strings for
+/// the stack trace.
+class PrettyStackTraceMultilineString : public toolchain::PrettyStackTraceEntry {
+  toolchain::StringRef Str;
+
+public:
+  PrettyStackTraceMultilineString(toolchain::StringRef str) : Str(str) {}
+  void print(toolchain::raw_ostream &OS) const override {
+    // For each line, add a leading character and indentation to better match
+    // the formatting of the stack trace.
+    for (auto c : Str.rtrim('\n')) {
+      OS << c;
+      if (c == '\n')
+        OS << "| \t";
+    }
+    OS << '\n';
+  }
+};
+} // end anonymous namespace
+
+static void _abortWithMessage(toolchain::StringRef message) {
+  // Use a pretty stack trace to ensure the message gets picked up the
+  // crash reporter.
+  PrettyStackTraceMultilineString trace(message);
+
+  // Also dump to stderr in case pretty backtracing is disabled, and to
+  // allow the message to be seen while attached with a debugger.
+  toolchain::errs() << message << '\n';
+
+  abort();
+}
+
+void _ABORT(const char *file, int line, const char *fn,
+            toolchain::function_ref<void(toolchain::raw_ostream &)> message) {
+  toolchain::SmallString<0> errorStr;
+  toolchain::raw_svector_ostream out(errorStr);
+  out << "Abort: " << "function " << fn << " at "
+      << file << ":" << line << "\n";
+  message(out);
+
+  _abortWithMessage(errorStr);
+}
+
+void _ABORT(const char *file, int line, const char *fn,
+            toolchain::StringRef message) {
+  _ABORT(file, line, fn, [&](auto &out) { out << message; });
 }

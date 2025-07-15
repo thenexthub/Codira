@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t/src)
+// RUN: %empty-directory(%t/sdk)
+// RUN: split-file %s %t/src
+
+// RUN: %target-language-frontend -emit-module %t/src/A.code \
+// RUN:   -module-name A -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/A.codemodule
+
+// RUN: %target-language-frontend -emit-module %t/src/B.code \
+// RUN:   -I %t -module-name B -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/B.codemodule
+
+// RUN: %target-language-frontend -typecheck %t/src/main.code \
+// RUN:   -module-name main -I %t -verify
+
+// https://github.com/apple/language/issues/67799
+
+//--- A.code
+public final class S<T> {
+  public init(t: T) {
+  }
+
+  public fn test() {}
+  public static fn staticFn() {}
+}
+
+//--- B.code
+public final class S<T> {
+  public init(t: T) {
+  }
+
+  public fn test() {}
+  public static fn staticFn() {}
+}
+
+//--- main.code
+import A
+import B
+
+fn test() {
+  _ = S<Int>(t: 42) // expected-error {{ambiguous use of 'init(t:)'}}
+
+  S<Int>(t: 42).test() // expected-error {{ambiguous use of 'init(t:)'}}
+
+  S<Int>.staticFn()
+  // expected-error@-1 {{ambiguous use of 'staticFn()'}}
+}

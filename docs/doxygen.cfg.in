@@ -17,7 +17,7 @@
 # The PROJECT_NAME tag is a single word (or a sequence of words surrounded
 # by quotes) that should identify the project.
 
-PROJECT_NAME           = swift
+PROJECT_NAME           = language
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number.
 # This could be handy for archiving the generated documentation or
@@ -609,7 +609,7 @@ COLS_IN_ALPHA_INDEX    = 4
 # The IGNORE_PREFIX tag can be used to specify one or more prefixes that
 # should be ignored while generating the index headers.
 
-IGNORE_PREFIX          = swift::
+IGNORE_PREFIX          = language::
 
 #---------------------------------------------------------------------------
 # configuration options related to the HTML output
@@ -1248,6 +1248,6 @@ SEARCHENGINE_URL       = @searchengine_url@
 
 EXTERNAL_SEARCH        = @enable_external_search@
 
-EXTERNAL_SEARCH_ID     = swift
+EXTERNAL_SEARCH_ID     = language
 
 EXTRA_SEARCH_MAPPINGS  = @extra_search_mappings@

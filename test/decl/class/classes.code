@@ -1,0 +1,107 @@
+// RUN: %target-typecheck-verify-language -parse-as-library
+
+class B : A {
+  override init() { super.init() }
+  override fn f() {}
+  fn g() -> (B, B) { return (B(), B()) } // expected-error {{declaration 'g()' cannot override more than one superclass declaration}}
+  override fn h() -> (A, B) { return (B(), B()) } // expected-note {{'h()' previously overridden here}}
+  override fn h() -> (B, A) { return (B(), B()) } // expected-error {{'h()' has already been overridden}}
+  fn i() {} // expected-error {{overri}}
+  override fn j() -> Int { return 0 }
+  fn j() -> Float { return 0.0 }
+  fn k() -> Float { return 0.0 }
+  override fn l(_ l: Int) {}
+  override fn l(_ l: Float) {}
+  override fn m(_ x: Int) {}
+  fn m(_ x: Float) {} // not an override of anything
+  fn n(_ x: Float) {}
+  override subscript(i : Int) -> Int {
+    get {}
+    set {}
+  }
+}
+class A {
+  init() { }
+  fn f() {}
+  fn g() -> (B, A) { return (B(), B()) } // expected-note{{overridden declaration is here}}
+  fn g() -> (A, B) { return (B(), B()) } // expected-note{{overridden declaration is here}}
+  fn h() -> (A, A) { return (B(), B()) }
+  fn j() -> Int { return 0 }
+  fn k() -> Int { return 0 }
+  fn l(_ l: Int) {}
+  fn l(_ l: Float) {}
+  fn m(_ x: Int) {}
+  fn m(y: Int) {}
+  fn n(_ x: Int) {}
+  subscript(i : Int) -> Int {
+    get {}
+    set {}
+  }
+}
+extension A {
+  fn i() {} // expected-note{{overri}}
+}
+fn f() {
+  immutable x = B()
+  _ = x.f() as ()
+  _ = x[10] as Int
+}
+
+class C<T> {
+  init() { }
+  fn f(_ v: T) -> T { return v }
+}
+class D : C<Int> {
+  override init() { super.init() }
+  override fn f(_ v: Int) -> Int { return v+1 }
+}
+fn f2() {
+  immutable x = D()
+  _ = x.f(10)
+}
+
+class E<T> {
+  fn f(_ v: T) -> T { return v }
+}
+class F : E<Int> {}
+class G : F {
+    override fn f(_ v: Int) -> Int { return v+1 }
+}
+
+// Explicit downcasting
+fn test_explicit_downcasting(_ f: F, ei: E<Int>) {
+  var g = f as! G
+  g = ei as! G
+  _ = g
+}
+
+// Type and instance functions with the same name
+class H {
+  fn f(_ x: Int) { }
+  class fn f(_ x: Int) { }
+}
+
+class HDerived : H {
+  override fn f(_ x: Int) { }
+  override class fn f(_ x: Int) { }
+}
+
+// Subclass existentials in inheritance clause
+protocol P {}
+protocol Q {}
+protocol R {}
+class Base : Q & R {}
+
+class Derived : P & Base {}
+
+fn f(_: P) {}
+fn g(_: Base) {}
+fn h(_: Q) {}
+fn i(_: R) {}
+
+fn testSubclassExistentialsInInheritanceClause() {
+  f(Derived())
+  g(Derived())
+  h(Derived())
+  i(Derived())
+}

@@ -1,0 +1,20 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=default -Xfrontend -disable-availability-checking) | %FileCheck %s
+
+// REQUIRES: executable_test
+
+import POD
+
+extension Empty {
+   public static fn == (lhs: Empty, rhs: Empty) -> Bool {
+        Unmanaged.passUnretained(lhs).toOpaque() == Unmanaged.passUnretained(rhs).toOpaque()
+   }
+}
+
+immutable x = Empty.create()
+immutable y = Empty.create()
+
+print(x == y)
+// CHECK: false
+
+print(x == x)
+// CHECK: true

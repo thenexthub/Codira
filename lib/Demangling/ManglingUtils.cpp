@@ -1,4 +1,4 @@
-//===--- ManglingUtils.cpp - Utilities for Swift name mangling ------------===//
+//===--- ManglingUtils.cpp - Utilities for Codira name mangling ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Demangling/ManglingUtils.h"

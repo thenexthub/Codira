@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_IRGEN_TBDGEN_H
-#define SWIFT_IRGEN_TBDGEN_H
+#ifndef LANGUAGE_IRGEN_TBDGEN_H
+#define LANGUAGE_IRGEN_TBDGEN_H
 
 #include "language/Basic/Version.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringSet.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringSet.h"
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -97,8 +98,8 @@ struct TBDGenOptions {
     return !(lhs == rhs);
   }
 
-  friend llvm::hash_code hash_value(const TBDGenOptions &opts) {
-    using namespace llvm;
+  friend toolchain::hash_code hash_value(const TBDGenOptions &opts) {
+    using namespace toolchain;
     return hash_combine(
         opts.HasMultipleIGMs, opts.IsInstallAPI, opts.LinkerDirectivesOnly,
         opts.PublicOrPackageSymbolsOnly, opts.VirtualFunctionElimination,
@@ -113,10 +114,10 @@ struct TBDGenOptions {
 
 std::vector<std::string> getPublicSymbols(TBDGenDescriptor desc);
 
-void writeTBDFile(ModuleDecl *M, llvm::raw_ostream &os,
+void writeTBDFile(ModuleDecl *M, toolchain::raw_ostream &os,
                   const TBDGenOptions &opts);
 
-void writeAPIJSONFile(ModuleDecl *M, llvm::raw_ostream &os, bool PrettyPrint);
+void writeAPIJSONFile(ModuleDecl *M, toolchain::raw_ostream &os, bool PrettyPrint);
 
 } // end namespace language
 

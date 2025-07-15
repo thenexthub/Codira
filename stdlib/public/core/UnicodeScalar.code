@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Unicode.Scalar Type
 //===----------------------------------------------------------------------===//
@@ -24,15 +25,15 @@ extension Unicode {
   /// You can create a `Unicode.Scalar` instance by using a string literal that
   /// contains a single character representing exactly one Unicode scalar value.
   ///
-  ///     let letterK: Unicode.Scalar = "K"
-  ///     let kim: Unicode.Scalar = "김"
+  ///     immutable letterK: Unicode.Scalar = "K"
+  ///     immutable kim: Unicode.Scalar = "김"
   ///     print(letterK, kim)
   ///     // Prints "K 김"
   ///
   /// You can also create Unicode scalar values directly from their numeric
   /// representation.
   ///
-  ///     let airplane = Unicode.Scalar(9992)!
+  ///     immutable airplane = Unicode.Scalar(9992)!
   ///     print(airplane)
   ///     // Prints "✈︎"
   @frozen
@@ -42,7 +43,7 @@ extension Unicode {
 
     @inlinable
     internal init(_value: UInt32) {
-      self._value = _value
+      this._value = _value
     }
   }
 }
@@ -56,7 +57,7 @@ extension Unicode.Scalar :
 
   @_transparent
   public init(_builtinUnicodeScalarLiteral value: Builtin.Int32) {
-    self._value = UInt32(value)
+    this._value = UInt32(value)
   }
 
   /// Creates a Unicode scalar with the specified value.
@@ -64,7 +65,7 @@ extension Unicode.Scalar :
   /// Do not call this initializer directly. It may be used by the compiler
   /// when you use a string literal to initialize a `Unicode.Scalar` instance.
   ///
-  ///     let letterK: Unicode.Scalar = "K"
+  ///     immutable letterK: Unicode.Scalar = "K"
   ///     print(letterK)
   ///     // Prints "K"
   ///
@@ -72,7 +73,7 @@ extension Unicode.Scalar :
   /// this initializer behind the scenes.
   @_transparent
   public init(unicodeScalarLiteral value: Unicode.Scalar) {
-    self = value
+    this = value
   }
 
   /// Creates a Unicode scalar with the specified numeric value.
@@ -80,15 +81,15 @@ extension Unicode.Scalar :
   /// For example, the following code sample creates a `Unicode.Scalar`
   /// instance with a value of an emoji character:
   ///
-  ///     let codepoint: UInt32 = 127881
-  ///     let emoji = Unicode.Scalar(codepoint)
+  ///     immutable codepoint: UInt32 = 127881
+  ///     immutable emoji = Unicode.Scalar(codepoint)
   ///     print(emoji!)
   ///     // Prints "🎉"
   ///
   /// In case of an invalid input value, nil is returned.
   ///
-  ///     let codepoint: UInt32 = extValue   // This might be an invalid value
-  ///     if let emoji = Unicode.Scalar(codepoint) {
+  ///     immutable codepoint: UInt32 = extValue   // This might be an invalid value
+  ///     if immutable emoji = Unicode.Scalar(codepoint) {
   ///       print(emoji)
   ///     } else {
   ///       // Do something else
@@ -110,7 +111,7 @@ extension Unicode.Scalar :
     //     * As a result of this definition, the set of Unicode scalar values
     //     consists of the ranges 0 to D7FF and E000 to 10FFFF, inclusive.
     if (v < 0xD800 || v > 0xDFFF) && v <= 0x10FFFF {
-      self._value = v
+      this._value = v
       return
     }
     // Return nil in case of an invalid unicode scalar value.
@@ -122,15 +123,15 @@ extension Unicode.Scalar :
   /// For example, the following code sample creates a `Unicode.Scalar`
   /// instance with a value of `"밥"`, the Korean word for rice:
   ///
-  ///     let codepoint: UInt16 = 48165
-  ///     let bap = Unicode.Scalar(codepoint)
+  ///     immutable codepoint: UInt16 = 48165
+  ///     immutable bap = Unicode.Scalar(codepoint)
   ///     print(bap!)
   ///     // Prints "밥"
   ///
   /// In case of an invalid input value, the result is `nil`.
   ///
-  ///     let codepoint: UInt16 = extValue   // This might be an invalid value
-  ///     if let bap = Unicode.Scalar(codepoint) {
+  ///     immutable codepoint: UInt16 = extValue   // This might be an invalid value
+  ///     if immutable bap = Unicode.Scalar(codepoint) {
   ///         print(bap)
   ///     } else {
   ///         // Do something else
@@ -142,7 +143,7 @@ extension Unicode.Scalar :
   ///   unicode scalar value, the result is `nil`.
   @inlinable
   public init?(_ v: UInt16) {
-    self.init(UInt32(v))
+    this.init(UInt32(v))
   }
 
   /// Creates a Unicode scalar with the specified numeric value.
@@ -150,15 +151,15 @@ extension Unicode.Scalar :
   /// For example, the following code sample creates a `Unicode.Scalar`
   /// instance with a value of `"7"`:
   ///
-  ///     let codepoint: UInt8 = 55
-  ///     let seven = Unicode.Scalar(codepoint)
+  ///     immutable codepoint: UInt8 = 55
+  ///     immutable seven = Unicode.Scalar(codepoint)
   ///     print(seven)
   ///     // Prints "7"
   ///
   /// - Parameter v: The code point to use for the scalar.
   @inlinable
   public init(_ v: UInt8) {
-    self._value = UInt32(v)
+    this._value = UInt32(v)
   }
 
   /// Creates a duplicate of the given Unicode scalar.
@@ -166,7 +167,7 @@ extension Unicode.Scalar :
   public init(_ v: Unicode.Scalar) {
     // This constructor allows one to provide necessary type context to
     // disambiguate between function overloads on 'String' and 'Unicode.Scalar'.
-    self = v
+    this = v
   }
 
   /// Returns a string representation of the Unicode scalar.
@@ -174,7 +175,7 @@ extension Unicode.Scalar :
   /// Scalar values representing characters that are normally unprintable or
   /// that otherwise require escaping are escaped with a backslash.
   ///
-  ///     let tab = Unicode.Scalar(9)!
+  ///     immutable tab = Unicode.Scalar(9)!
   ///     print(tab)
   ///     // Prints " "
   ///     print(tab.escaped(asASCII: false))
@@ -185,7 +186,7 @@ extension Unicode.Scalar :
   /// value; otherwise, non-ASCII characters are represented using their
   /// typical string value.
   ///
-  ///     let bap = Unicode.Scalar(48165)!
+  ///     immutable bap = Unicode.Scalar(48165)!
   ///     print(bap.escaped(asASCII: false))
   ///     // Prints "밥"
   ///     print(bap.escaped(asASCII: true))
@@ -194,13 +195,13 @@ extension Unicode.Scalar :
   /// - Parameter forceASCII: Pass `true` if you need the result to use only
   ///   ASCII characters; otherwise, pass `false`.
   /// - Returns: A string representation of the scalar.
-  public func escaped(asASCII forceASCII: Bool) -> String {
-    _escaped(asASCII: forceASCII) ?? String(self)
+  public fn escaped(asASCII forceASCII: Bool) -> String {
+    _escaped(asASCII: forceASCII) ?? String(this)
   }
 
-  internal func _escaped(asASCII forceASCII: Bool) -> String? {
-    func lowNibbleAsHex(_ v: UInt32) -> String {
-      let nibble = v & 15
+  internal fn _escaped(asASCII forceASCII: Bool) -> String? {
+    fn lowNibbleAsHex(_ v: UInt32) -> String {
+      immutable nibble = v & 15
       if nibble < 10 {
         return String(Unicode.Scalar(nibble+48)!)    // 48 = '0'
       } else {
@@ -208,48 +209,48 @@ extension Unicode.Scalar :
       }
     }
 
-    if self == "\\" {
+    if this == "\\" {
       return "\\\\"
-    } else if self == "\'" {
+    } else if this == "\'" {
       return "\\\'"
-    } else if self == "\"" {
+    } else if this == "\"" {
       return "\\\""
     } else if _isPrintableASCII {
       return nil
-    } else if self == "\0" {
+    } else if this == "\0" {
       return "\\0"
-    } else if self == "\n" {
+    } else if this == "\n" {
       return "\\n"
-    } else if self == "\r" {
+    } else if this == "\r" {
       return "\\r"
-    } else if self == "\t" {
+    } else if this == "\t" {
       return "\\t"
-    } else if UInt32(self) < 128 {
+    } else if UInt32(this) < 128 {
       return "\\u{"
-        + lowNibbleAsHex(UInt32(self) >> 4)
-        + lowNibbleAsHex(UInt32(self)) + "}"
+        + lowNibbleAsHex(UInt32(this) >> 4)
+        + lowNibbleAsHex(UInt32(this)) + "}"
     } else if !forceASCII {
       return nil
-    } else if UInt32(self) <= 0xFFFF {
+    } else if UInt32(this) <= 0xFFFF {
       var result = "\\u{"
-      result += lowNibbleAsHex(UInt32(self) >> 12)
-      result += lowNibbleAsHex(UInt32(self) >> 8)
-      result += lowNibbleAsHex(UInt32(self) >> 4)
-      result += lowNibbleAsHex(UInt32(self))
+      result += lowNibbleAsHex(UInt32(this) >> 12)
+      result += lowNibbleAsHex(UInt32(this) >> 8)
+      result += lowNibbleAsHex(UInt32(this) >> 4)
+      result += lowNibbleAsHex(UInt32(this))
       result += "}"
       return result
     } else {
       // FIXME: Type checker performance prohibits this from being a
       // single chained "+".
       var result = "\\u{"
-      result += lowNibbleAsHex(UInt32(self) >> 28)
-      result += lowNibbleAsHex(UInt32(self) >> 24)
-      result += lowNibbleAsHex(UInt32(self) >> 20)
-      result += lowNibbleAsHex(UInt32(self) >> 16)
-      result += lowNibbleAsHex(UInt32(self) >> 12)
-      result += lowNibbleAsHex(UInt32(self) >> 8)
-      result += lowNibbleAsHex(UInt32(self) >> 4)
-      result += lowNibbleAsHex(UInt32(self))
+      result += lowNibbleAsHex(UInt32(this) >> 28)
+      result += lowNibbleAsHex(UInt32(this) >> 24)
+      result += lowNibbleAsHex(UInt32(this) >> 20)
+      result += lowNibbleAsHex(UInt32(this) >> 16)
+      result += lowNibbleAsHex(UInt32(this) >> 12)
+      result += lowNibbleAsHex(UInt32(this) >> 8)
+      result += lowNibbleAsHex(UInt32(this) >> 4)
+      result += lowNibbleAsHex(UInt32(this))
       result += "}"
       return result
     }
@@ -261,7 +262,7 @@ extension Unicode.Scalar :
   /// ASCII characters have a scalar value between 0 and 127, inclusive. For
   /// example:
   ///
-  ///     let canyon = "Cañón"
+  ///     immutable canyon = "Cañón"
   ///     for scalar in canyon.unicodeScalars {
   ///         print(scalar, scalar.isASCII, scalar.value)
   ///     }
@@ -277,7 +278,7 @@ extension Unicode.Scalar :
 
   // FIXME: Unicode makes this interesting.
   internal var _isPrintableASCII: Bool {
-    return (self >= Unicode.Scalar(0o040) && self <= Unicode.Scalar(0o176))
+    return (this >= Unicode.Scalar(0o040) && this <= Unicode.Scalar(0o176))
   }
 }
 
@@ -285,7 +286,7 @@ extension Unicode.Scalar: CustomStringConvertible, CustomDebugStringConvertible 
   /// A textual representation of the Unicode scalar.
   @inlinable
   public var description: String {
-    return String(self)
+    return String(this)
   }
 
   /// An escaped textual representation of the Unicode scalar, suitable for
@@ -298,11 +299,11 @@ extension Unicode.Scalar: CustomStringConvertible, CustomDebugStringConvertible 
 extension Unicode.Scalar: LosslessStringConvertible {
   @inlinable
   public init?(_ description: String) {
-    let scalars = description.unicodeScalars
-    guard let v = scalars.first, scalars.count == 1 else {
+    immutable scalars = description.unicodeScalars
+    guard immutable v = scalars.first, scalars.count == 1 else {
       return nil
     }
-    self = v
+    this = v
   }
 }
 
@@ -313,8 +314,8 @@ extension Unicode.Scalar: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
-    hasher.combine(self.value)
+  public fn hash(into hasher: inout Hasher) {
+    hasher.combine(this.value)
   }
 }
 
@@ -329,23 +330,23 @@ extension Unicode.Scalar {
   /// For example, the following code sample creates a `Unicode.Scalar` instance
   /// with a value of an emoji character:
   ///
-  ///     let codepoint = 127881
-  ///     let emoji = Unicode.Scalar(codepoint)!
+  ///     immutable codepoint = 127881
+  ///     immutable emoji = Unicode.Scalar(codepoint)!
   ///     print(emoji)
   ///     // Prints "🎉"
   ///
   /// In case of an invalid input value, nil is returned.
   ///
-  ///     let codepoint: UInt32 = extValue // This might be an invalid value.
-  ///     if let emoji = Unicode.Scalar(codepoint) {
+  ///     immutable codepoint: UInt32 = extValue // This might be an invalid value.
+  ///     if immutable emoji = Unicode.Scalar(codepoint) {
   ///       print(emoji)
   ///     } else {
   ///       // Do something else
   ///     }
   @inlinable
   public init?(_ v: Int) {
-    if let exact = UInt32(exactly: v) {
-      self.init(exact)
+    if immutable exact = UInt32(exactly: v) {
+      this.init(exact)
     } else {
       return nil
     }
@@ -360,34 +361,34 @@ extension UInt8 {
   public init(ascii v: Unicode.Scalar) {
     _precondition(v.value < 128,
         "Code point value does not fit into ASCII")
-    self = UInt8(v.value)
+    this = UInt8(v.value)
   }
 }
 extension UInt32 {
   /// Construct with value `v.value`.
   @inlinable
   public init(_ v: Unicode.Scalar) {
-    self = v.value
+    this = v.value
   }
 }
 extension UInt64 {
   /// Construct with value `v.value`.
   @inlinable
   public init(_ v: Unicode.Scalar) {
-    self = UInt64(v.value)
+    this = UInt64(v.value)
   }
 }
 
 extension Unicode.Scalar: Equatable {
   @inlinable
-  public static func == (lhs: Unicode.Scalar, rhs: Unicode.Scalar) -> Bool {
+  public static fn == (lhs: Unicode.Scalar, rhs: Unicode.Scalar) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
 extension Unicode.Scalar: Comparable {
   @inlinable
-  public static func < (lhs: Unicode.Scalar, rhs: Unicode.Scalar) -> Bool {
+  public static fn < (lhs: Unicode.Scalar, rhs: Unicode.Scalar) -> Bool {
     return lhs.value < rhs.value
   }
 }
@@ -400,13 +401,13 @@ extension Unicode.Scalar {
 
     @inlinable
     internal init(value: Unicode.Scalar) {
-      self.value = value
+      this.value = value
     }
   }
 
   @inlinable
   public var utf16: UTF16View {
-    return UTF16View(value: self)
+    return UTF16View(value: this)
   }
 }
 
@@ -443,7 +444,7 @@ extension Unicode.Scalar.UTF16View: RandomAccessCollection {
 }
 
 extension Unicode.Scalar {
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @frozen
   public struct UTF8View: Sendable {
     @usableFromInline
@@ -451,16 +452,16 @@ extension Unicode.Scalar {
 
     @inlinable
     internal init(value: Unicode.Scalar) {
-      self.value = value
+      this.value = value
     }
   }
 
-  @available(SwiftStdlib 5.1, *)
+  @available(CodiraStdlib 5.1, *)
   @inlinable
-  public var utf8: UTF8View { return UTF8View(value: self) }
+  public var utf8: UTF8View { return UTF8View(value: this) }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Unicode.Scalar.UTF8View: RandomAccessCollection {
   public typealias Indices = Range<Int>
 
@@ -506,17 +507,17 @@ extension Unicode.Scalar {
 extension Unicode.Scalar {
   // Access the scalar as encoded in UTF-16
   @safe
-  internal func withUTF16CodeUnits<Result>(
+  internal fn withUTF16CodeUnits<Result>(
     _ body: (UnsafeBufferPointer<UInt16>) throws -> Result
   ) rethrows -> Result {
-    var codeUnits: (UInt16, UInt16) = (self.utf16[0], 0)
-    let utf16Count = self.utf16.count
+    var codeUnits: (UInt16, UInt16) = (this.utf16[0], 0)
+    immutable utf16Count = this.utf16.count
     if utf16Count > 1 {
       _internalInvariant(utf16Count == 2)
-      codeUnits.1 = self.utf16[1]
+      codeUnits.1 = this.utf16[1]
     }
-    return try unsafe Swift.withUnsafePointer(to: &codeUnits) {
-      return try unsafe $0.withMemoryRebound(to: UInt16.self, capacity: 2) {
+    return try unsafe Codira.withUnsafePointer(to: &codeUnits) {
+      return try unsafe $0.withMemoryRebound(to: UInt16.this, capacity: 2) {
         return try unsafe body(UnsafeBufferPointer(start: $0, count: utf16Count))
       }
     }
@@ -525,16 +526,16 @@ extension Unicode.Scalar {
   // Access the scalar as encoded in UTF-8
   @inlinable
   @safe
-  internal func withUTF8CodeUnits<Result>(
+  internal fn withUTF8CodeUnits<Result>(
     _ body: (UnsafeBufferPointer<UInt8>) throws -> Result
   ) rethrows -> Result {
-    let encodedScalar = UTF8.encode(self)!
+    immutable encodedScalar = UTF8.encode(this)!
     var (codeUnits, utf8Count) = encodedScalar._bytes
 
     // The first code unit is in the least significant byte of codeUnits.
     codeUnits = codeUnits.littleEndian
-    return try unsafe Swift._withUnprotectedUnsafePointer(to: &codeUnits) {
-      return try unsafe $0.withMemoryRebound(to: UInt8.self, capacity: 4) {
+    return try unsafe Codira._withUnprotectedUnsafePointer(to: &codeUnits) {
+      return try unsafe $0.withMemoryRebound(to: UInt8.this, capacity: 4) {
         return try unsafe body(UnsafeBufferPointer(start: $0, count: utf8Count))
       }
     }

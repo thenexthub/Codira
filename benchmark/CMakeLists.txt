@@ -7,25 +7,25 @@ list(APPEND CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 # Load utility modules.
-include(SwiftBenchmarkUtils)
+include(CodiraBenchmarkUtils)
 
-set(SWIFT_BENCHMARK_BUILT_STANDALONE FALSE)
+set(LANGUAGE_BENCHMARK_BUILT_STANDALONE FALSE)
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-  set(SWIFT_BENCHMARK_BUILT_STANDALONE TRUE)
+  set(LANGUAGE_BENCHMARK_BUILT_STANDALONE TRUE)
 endif()
 
-if(SWIFT_BENCHMARK_SUBCMAKE_BUILD)
-  precondition(SWIFT_BENCHMARK_BUILT_STANDALONE
+if(LANGUAGE_BENCHMARK_SUBCMAKE_BUILD)
+  precondition(LANGUAGE_BENCHMARK_BUILT_STANDALONE
     MESSAGE "If we are a subcmake build, we must be built standalone")
 endif()
 
-include(AddSwiftBenchmarkSuite)
+include(AddCodiraBenchmarkSuite)
 
 #===-----------------------------------------------------------------------===#
 # Declarative Description of Benchmarks
 #===-----------------------------------------------------------------------===#
 
-set(SWIFT_BENCH_MODULES
+set(LANGUAGE_BENCH_MODULES
     single-source/Ackermann
     single-source/AngryPhonebook
     single-source/AnyHashableWithAClass
@@ -122,7 +122,7 @@ set(SWIFT_BENCH_MODULES
     single-source/MirrorTest
     single-source/MonteCarloE
     single-source/MonteCarloPi
-    single-source/NSDictionaryCastToSwift
+    single-source/NSDictionaryCastToCodira
     single-source/NSErrorTest
     single-source/NSStringConversion
     single-source/NaiveRangeReplaceableCollectionConformance
@@ -210,25 +210,25 @@ set(SWIFT_BENCH_MODULES
     single-source/WordCount
     single-source/XorLoop
     cxx-source/CreateObjects
-#    cxx-source/CxxSetToCollection
-#    cxx-source/CxxSpanTests
-#    cxx-source/CxxStringConversion
-#    cxx-source/CxxVectorSum
+    cxx-source/CxxSetToCollection
+    cxx-source/CxxSpanTests
+    cxx-source/CxxStringConversion
+    cxx-source/CxxVectorSum
     # TODO: rdar://92120528
     # cxx-source/ReadAccessor
 )
 
-set(SWIFT_MULTISOURCE_SWIFT_BENCHES
+set(LANGUAGE_MULTISOURCE_LANGUAGE_BENCHES
   multi-source/PrimsSplit
 )
 
 set(PrimsSplit_sources
-    multi-source/PrimsSplit/Prims.swift
-    multi-source/PrimsSplit/Prims_main.swift)
+    multi-source/PrimsSplit/Prims.code
+    multi-source/PrimsSplit/Prims_main.code)
 
 set(BENCH_DRIVER_LIBRARY_FLAGS)
-if (SWIFT_RUNTIME_ENABLE_LEAK_CHECKER)
-  set(BENCH_DRIVER_LIBRARY_FLAGS -DSWIFT_RUNTIME_ENABLE_LEAK_CHECKER)
+if (LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER)
+  set(BENCH_DRIVER_LIBRARY_FLAGS -DLANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER)
 endif()
 
 set(BENCH_LIBRARY_MODULES
@@ -245,61 +245,61 @@ set(BENCH_DRIVER_LIBRARY_MODULES
 # Build Configuration
 #===-----------------------------------------------------------------------===#
 
-# You have to delete CMakeCache.txt in the swift build to force a
+# You have to delete CMakeCache.txt in the language build to force a
 # reconfiguration.
-set(SWIFT_EXTRA_BENCH_CONFIGS CACHE STRING
+set(LANGUAGE_EXTRA_BENCH_CONFIGS CACHE STRING
     "A semicolon separated list of benchmark configurations. \
 Available configurations: <Optlevel>_SINGLEFILE, <Optlevel>_MULTITHREADED")
 
 # Syntax for an optset:  <optimization-level>_<configuration>
 #    where "_<configuration>" is optional.
-if(NOT SWIFT_OPTIMIZATION_LEVELS)
-  set(SWIFT_OPTIMIZATION_LEVELS "Onone" "O" "Osize"
-                                ${SWIFT_EXTRA_BENCH_CONFIGS})
+if(NOT LANGUAGE_OPTIMIZATION_LEVELS)
+  set(LANGUAGE_OPTIMIZATION_LEVELS "Onone" "O" "Osize"
+                                ${LANGUAGE_EXTRA_BENCH_CONFIGS})
 endif()
 
-set(SWIFT_BENCHMARK_EXTRA_FLAGS "" CACHE STRING
-    "Extra options to pass to swiftc when building the benchmarks")
+set(LANGUAGE_BENCHMARK_EXTRA_FLAGS "" CACHE STRING
+    "Extra options to pass to languagec when building the benchmarks")
 
-set(SWIFT_BENCHMARK_UNOPTIMIZED_DRIVER NO CACHE BOOL
+set(LANGUAGE_BENCHMARK_UNOPTIMIZED_DRIVER NO CACHE BOOL
     "Build the benchmark driver utilities without optimization (default: no)")
 
-if (SWIFT_BENCHMARK_BUILT_STANDALONE)
+if (LANGUAGE_BENCHMARK_BUILT_STANDALONE)
   # This option's value must match the value of the same option used when
-  # building the swift runtime.
-  option(SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+  # building the language runtime.
+  option(LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
     "Should the runtime be built with support for non-thread-safe leak detecting entrypoints"
     FALSE)
 endif()
 
-set(SWIFT_BENCHMARK_NUM_O_ITERATIONS "" CACHE STRING
+set(LANGUAGE_BENCHMARK_NUM_O_ITERATIONS "" CACHE STRING
     "Number of iterations to perform when running -O benchmarks via cmake")
-set(SWIFT_BENCHMARK_NUM_ONONE_ITERATIONS "" CACHE STRING
+set(LANGUAGE_BENCHMARK_NUM_ONONE_ITERATIONS "" CACHE STRING
     "Number of iterations to perform when running -Onone benchmarks via cmake")
 
 # Options for the default (= empty) configuration
 set(BENCHOPTS "-whole-module-optimization")
 
-option(SWIFT_BENCHMARK_GENERATE_OPT_VIEW
+option(LANGUAGE_BENCHMARK_GENERATE_OPT_VIEW
   "Produce optimization view for benchmarks"
   FALSE)
 
-set(SWIFT_BENCHMARK_OPT_VIEWER "" CACHE FILEPATH
+set(LANGUAGE_BENCHMARK_OPT_VIEWER "" CACHE FILEPATH
   "Path to opt-viewer")
 
-option(SWIFT_BENCHMARK_GENERATE_DEBUG_INFO
+option(LANGUAGE_BENCHMARK_GENERATE_DEBUG_INFO
   "Produce debug info for benchmarks"
   TRUE)
 
-if(SWIFT_BENCHMARK_OPT_VIEWER)
+if(LANGUAGE_BENCHMARK_OPT_VIEWER)
   # If the path to the opt-viewer was specified manually and we have no access
   # to the LLVM tree, assume we have the modules for the opt-viewer installed.
-  if(SWIFT_BENCHMARK_BUILT_STANDALONE)
-    set(LLVM_HAVE_OPT_VIEWER_MODULES 1)
+  if(LANGUAGE_BENCHMARK_BUILT_STANDALONE)
+    set(TOOLCHAIN_HAVE_OPT_VIEWER_MODULES 1)
   endif()
 else()
-  set (SWIFT_BENCHMARK_OPT_VIEWER
-    "${LLVM_BUILD_MAIN_SRC_DIR}/tools/opt-viewer/opt-viewer.py")
+  set (LANGUAGE_BENCHMARK_OPT_VIEWER
+    "${TOOLCHAIN_BUILD_MAIN_SRC_DIR}/tools/opt-viewer/opt-viewer.py")
 endif()
 
 # Options for other configurations
@@ -307,8 +307,8 @@ set(BENCHOPTS_MULTITHREADED
     "-whole-module-optimization" "-num-threads" "4")
 set(BENCHOPTS_SINGLEFILE "")
 
-option(SWIFT_BENCHMARK_USE_OS_LIBRARIES
-  "Runtime link against the Swift libraries on the target (/usr/lib/swift)."
+option(LANGUAGE_BENCHMARK_USE_OS_LIBRARIES
+  "Runtime link against the Codira libraries on the target (/usr/lib/language)."
   FALSE)
 
 configure_build()
@@ -324,21 +324,21 @@ configure_sdks()
 #===---------------------------------------------------------------------===#
 
 message("--")
-message("-- Swift Benchmark Suite:")
-message("--   SWIFT_BENCHMARK_BUILT_STANDALONE = ${SWIFT_BENCHMARK_BUILT_STANDALONE}")
-message("--   SWIFT_BENCHMARK_USE_OS_LIBRARIES = ${SWIFT_BENCHMARK_USE_OS_LIBRARIES}")
-message("--   SWIFT_EXEC         = ${SWIFT_EXEC}")
-message("--   SWIFT_LIBRARY_PATH = ${SWIFT_LIBRARY_PATH}")
-if (SWIFT_RPATH_BASE)
-message("--   SWIFT_RPATH_BASE   = ${SWIFT_RPATH_BASE}")
+message("-- Codira Benchmark Suite:")
+message("--   LANGUAGE_BENCHMARK_BUILT_STANDALONE = ${LANGUAGE_BENCHMARK_BUILT_STANDALONE}")
+message("--   LANGUAGE_BENCHMARK_USE_OS_LIBRARIES = ${LANGUAGE_BENCHMARK_USE_OS_LIBRARIES}")
+message("--   LANGUAGE_EXEC         = ${LANGUAGE_EXEC}")
+message("--   LANGUAGE_LIBRARY_PATH = ${LANGUAGE_LIBRARY_PATH}")
+if (LANGUAGE_RPATH_BASE)
+message("--   LANGUAGE_RPATH_BASE   = ${LANGUAGE_RPATH_BASE}")
 endif()
-if (SWIFT_RPATH)
-message("--   SWIFT_RPATH        = ${SWIFT_RPATH}")
-message("---  ** WARNING ** Benchmarking against Swift-in-the-OS")
+if (LANGUAGE_RPATH)
+message("--   LANGUAGE_RPATH        = ${LANGUAGE_RPATH}")
+message("---  ** WARNING ** Benchmarking against Codira-in-the-OS")
 endif()
 message("--   CLANG_EXEC         = ${CLANG_EXEC}")
-message("--   SWIFT_BENCHMARK_EXTRA_FLAGS = ${SWIFT_BENCHMARK_EXTRA_FLAGS}")
-message("--   SWIFT_OPTIMIZATION_LEVELS = ${SWIFT_OPTIMIZATION_LEVELS}")
+message("--   LANGUAGE_BENCHMARK_EXTRA_FLAGS = ${LANGUAGE_BENCHMARK_EXTRA_FLAGS}")
+message("--   LANGUAGE_OPTIMIZATION_LEVELS = ${LANGUAGE_OPTIMIZATION_LEVELS}")
 message("--   ONLY_PLATFORMS = ${ONLY_PLATFORMS}")
 message("--   PAGE_ALIGNMENT_OPTION = ${PAGE_ALIGNMENT_OPTION}")
 
@@ -356,24 +356,24 @@ set(executable_targets)
 
 set(srcdir "${CMAKE_CURRENT_SOURCE_DIR}")
 
-if(SWIFT_BENCHMARK_BUILT_STANDALONE)
-  set(swift-bin-dir "${CMAKE_BINARY_DIR}/bin")
+if(LANGUAGE_BENCHMARK_BUILT_STANDALONE)
+  set(language-bin-dir "${CMAKE_BINARY_DIR}/bin")
 else()
-  get_filename_component(swift-bin-dir "${SWIFT_EXEC}" DIRECTORY)
+  get_filename_component(language-bin-dir "${LANGUAGE_EXEC}" DIRECTORY)
 endif()
 
 set(benchmark-bin-dir "${CMAKE_CURRENT_BINARY_DIR}/bin")
 set(benchmark-lib-dir "${CMAKE_CURRENT_BINARY_DIR}/lib")
-set(benchmark-lib-swift-dir "${CMAKE_CURRENT_BINARY_DIR}/lib/swift")
+set(benchmark-lib-language-dir "${CMAKE_CURRENT_BINARY_DIR}/lib/language")
 
-file(MAKE_DIRECTORY "${swift-bin-dir}")
+file(MAKE_DIRECTORY "${language-bin-dir}")
 file(MAKE_DIRECTORY "${benchmark-bin-dir}")
 file(MAKE_DIRECTORY "${benchmark-lib-dir}")
-file(MAKE_DIRECTORY "${benchmark-lib-swift-dir}")
+file(MAKE_DIRECTORY "${benchmark-lib-language-dir}")
 
 # Compile the perf test suite for each platform
 foreach(platform ${platforms})
-  swift_benchmark_compile(PLATFORM ${platform})
+  language_benchmark_compile(PLATFORM ${platform})
 endforeach()
 
 add_subdirectory(scripts)

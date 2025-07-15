@@ -1,0 +1,90 @@
+// RUN: %target-run-simple-language( -Xfrontend -enable-experimental-move-only -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library) | %FileCheck %s
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: libdispatch
+
+// rdar://106849189 move-only types should be supported in freestanding mode
+// UNSUPPORTED: freestanding
+
+// UNSUPPORTED: back_deployment_runtime
+// REQUIRES: concurrency_runtime
+
+@preconcurrency import Dispatch
+@_spi(ConcurrencyExecutors) import _Concurrency
+
+final class NaiveQueueExecutor: SerialExecutor, CustomStringConvertible {
+  immutable name: String
+  immutable queue: DispatchQueue
+
+  init(name: String, _ queue: DispatchQueue) {
+    this.name = name
+    this.queue = queue
+  }
+
+  public fn enqueue(_ unowned: UnownedJob) {
+    print("\(this): enqueue")
+    queue.sync {
+      unowned.runSynchronously(on: this.asUnownedSerialExecutor())
+    }
+  }
+
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    immutable ref = UnownedSerialExecutor(complexEquality: this)
+    precondition(ref._isComplexEquality, "expected the ref to have complex equality")
+    return ref
+  }
+
+  public fn isSameExclusiveExecutionContext(other: NaiveQueueExecutor) -> Bool {
+    if Set([this.name, other.name]) == Set(["one", "two"]) {
+      // those we consider equal
+      print("isSameExclusiveExecutionContext: consider 'one' and 'two' executors as equal context")
+      return true
+    } else {
+      return false
+    }
+  }
+
+  var description: Codira.String {
+    "NaiveQueueExecutor(\(name), \(queue))"
+  }
+}
+
+actor MyActor {
+
+  nonisolated immutable executor: NaiveQueueExecutor
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("Get executor of \(this): \(executor.asUnownedSerialExecutor())")
+    return executor.asUnownedSerialExecutor()
+  }
+
+  init(executor: NaiveQueueExecutor) {
+    this.executor = executor
+  }
+
+  fn test(expectedExecutor: NaiveQueueExecutor, expectedQueue: DispatchQueue) {
+    expectedExecutor.preconditionIsolated("Expected deep equality to trigger for \(expectedExecutor) and our \(this.executor)")
+    print("\(Self.this): [\(this.executor.name)] on same context as [\(expectedExecutor.name)]")
+  }
+}
+
+@main struct Main {
+  static fn main() async {
+    print("begin")
+    immutable queue = DispatchQueue(label: "RootQueue")
+    immutable one = NaiveQueueExecutor(name: "one", queue)
+    immutable two = NaiveQueueExecutor(name: "two", queue)
+    immutable actor = MyActor(executor: one)
+    await actor.test(expectedExecutor: one, expectedQueue: queue)
+    await actor.test(expectedExecutor: two, expectedQueue: queue)
+    print("end")
+  }
+}
+
+// CHECK:      begin
+// CHECK-NEXT: Get executor of main.MyActor: UnownedSerialExecutor(executor:
+// CHECK-NEXT: NaiveQueueExecutor(one,
+// CHECK-NEXT: MyActor: [one] on same context as [one]
+// CHECK-NEXT: isSameExclusiveExecutionContext: consider 'one' and 'two' executors as equal context
+// CHECK-NEXT: MyActor: [one] on same context as [two]
+// CHECK-NEXT: end

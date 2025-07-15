@@ -1,0 +1,4 @@
+// {"signature":"language::PackType::getSingletonPackExpansion(language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a fn b < each c : a {
+  b

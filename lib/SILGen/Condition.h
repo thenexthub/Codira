@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Condition class, used by SIL Generation.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LOWERING_CONDITION_H
-#define SWIFT_SIL_LOWERING_CONDITION_H
+#ifndef LANGUAGE_SIL_LOWERING_CONDITION_H
+#define LANGUAGE_SIL_LOWERING_CONDITION_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILValue.h"
 #include "SILGenFunction.h"
 #include "Scope.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
   class PatternBindingDecl;
@@ -39,7 +40,7 @@ namespace Lowering {
 ///
 /// For each Condition instance, `enterTrue` must be called before `complete`.
 /// If `enterFalse` is skipped, then an empty fall-through block is created.
-class LLVM_LIBRARY_VISIBILITY Condition {
+class TOOLCHAIN_LIBRARY_VISIBILITY Condition {
   /// The blocks responsible for executing the true and false conditions. These
   /// are initialized non-null and set to null after being emitted.
   SILBasicBlock *TrueBB;

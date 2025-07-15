@@ -1,0 +1,23 @@
+// RUN: %target-language-emit-ir -verify %s -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public fn sink<T>(t: T) {}
+
+public fn test() -> Int {
+  immutable metatype = Int.this
+  sink(t: metatype)
+  return 42
+}
+
+fn castToExistential<T>(x: T) {
+  if x is any FixedWidthInteger {    // expected-error {{cannot do dynamic casting in embedded Codira}}
+  }
+}
+
+public fn callCastToExistential() {
+  castToExistential(x: 42)    // expected-note {{generic specialization called here}}
+}
+

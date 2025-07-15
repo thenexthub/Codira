@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name TypeProperty -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name TypeProperty -I %t -pretty-print -output-dir %t
+// RUN: %FileCheck %s --input-file %t/TypeProperty.symbols.json
+
+public struct S {
+  // CHECK: "identifier": "language.type.property"
+  // CHECK-NEXT: "displayName": "Type Property"
+  // CHECK: pathComponents
+  // CHECK-NEXT: "S"
+  // CHECK-NEXT: "y"
+  public static immutable y = 2
+}

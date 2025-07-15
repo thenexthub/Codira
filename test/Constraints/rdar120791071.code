@@ -1,0 +1,14 @@
+// RUN: %target-typecheck-verify-language
+
+struct S<A> {
+  immutable v:any P<A>
+  fn map<B> (_ f:(A) -> B) -> S<B> {
+    v.map(f).k()
+  }
+}
+
+protocol P<A> {
+  associatedtype A
+  fn map<D> (_ g:(A) -> D) -> any P<D>
+  fn k() -> S<A>
+}

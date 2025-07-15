@@ -1,0 +1,60 @@
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -verify %t/main.code -I %t/include -module-name main
+// RUN: %target-language-frontend -typecheck -verify %t/main.code -I %t/include -module-name main -cxx-interoperability-mode=default
+// REQUIRES: objc_interop
+
+//--- include/module.modulemap
+module ObjCModule {
+    header "header.h"
+}
+
+//--- include/header.h
+#include <Foundation/Foundation.h>
+
+#define UNAVAILABLE API_UNAVAILABLE(macos)
+
+UNAVAILABLE
+typedef NS_ENUM(NSUInteger, MyUnavailableEnum) {
+    MyUnavailableEnumCase1 = 0,
+    MyUnavailableEnumCase2,
+};
+
+UNAVAILABLE
+void unavailableParam(MyUnavailableEnum e);
+
+UNAVAILABLE
+MyUnavailableEnum unavailableReturn(void);
+
+struct UNAVAILABLE UnavailableStruct {
+  MyUnavailableEnum field;
+};
+
+UNAVAILABLE
+@interface UnavailableClass
+@property (nonatomic, readonly) MyUnavailableEnum prop;
+@end
+
+UNAVAILABLE
+__attribute__((language_name("getter:UnavailableStruct.iProp(this:)")))
+inline MyUnavailableEnum getUnavailableInjProp(struct UnavailableStruct s) {
+  return MyUnavailableEnumCase1;
+}
+
+//--- main.code
+import Foundation
+import ObjCModule
+
+@available(*, unavailable)
+fn useParam(_ e: MyUnavailableEnum) { unavailableParam(e) }
+
+@available(*, unavailable)
+fn useReturn() -> MyUnavailableEnum { return unavailableReturn() }
+
+@available(*, unavailable)
+fn useField(_ o: UnavailableStruct) -> MyUnavailableEnum { return o.field }
+
+@available(*, unavailable)
+fn useIProp(_ o: UnavailableStruct) -> MyUnavailableEnum { return o.iProp }
+
+@available(*, unavailable)
+fn useProp(_ o: UnavailableClass) -> MyUnavailableEnum { return o.prop }

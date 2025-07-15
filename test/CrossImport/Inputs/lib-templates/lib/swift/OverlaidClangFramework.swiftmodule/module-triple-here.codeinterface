@@ -1,0 +1,7 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name OverlaidClangFramework
+
+import Codira
+@_exported import OverlaidClangFramework
+
+public fn fromOverlaidClangFrameworkOverlay()

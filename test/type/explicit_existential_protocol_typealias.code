@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple -enable-upcoming-feature ExistentialAny
+
+// REQUIRES: language_feature_ExistentialAny
+
+protocol P {
+  typealias PAlias1 = P
+
+  fn f1() -> any PAlias1
+  fn g1<T>(_: T) -> any PAlias1
+}
+extension P {
+  typealias PAlias2 = P
+
+  fn f2() -> any PAlias2 {}
+  fn g2<T>(_: T) -> any PAlias2 {}
+}

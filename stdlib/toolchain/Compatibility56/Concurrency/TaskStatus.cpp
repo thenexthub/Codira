@@ -254,14 +254,14 @@ void AsyncTask::flagAsSuspended_slow() {
   });
 }
 
-JobPriority swift_task_escalateBackdeploy56(AsyncTask *task,
+JobPriority language_task_escalateBackdeploy56(AsyncTask *task,
                                                    JobPriority newPriority) {
   const auto task_escalate =
       reinterpret_cast<JobPriority (*)(AsyncTask *, JobPriority)>(
-          SWIFT_LAZY_CONSTANT(dlsym(RTLD_DEFAULT, "swift_task_escalate")));
+          LANGUAGE_LAZY_CONSTANT(dlsym(RTLD_DEFAULT, "language_task_escalate")));
   if (task_escalate)
     return task_escalate(task, newPriority);
-  // We don't have swift_task_escalate, link against swift_Concurrency
+  // We don't have language_task_escalate, link against language_Concurrency
   abort();
 }
 

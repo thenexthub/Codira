@@ -1,0 +1,3 @@
+// {"signature":"matchCallArguments(language::constraints::ConstraintSystem&, language::FunctionType*, language::ArgumentList*, toolchain::ArrayRef<language::AnyFunctionType::Param>, toolchain::ArrayRef<language::AnyFunctionType::Param>, language::constraints::ConstraintKind, language::constraints::ConstraintLocatorBuilder, std::__1::optional<language::constraints::TrailingClosureMatching>, toolchain::SmallVectorImpl<std::__1::pair<language::TypeVariableType*, language::ExistentialArchetypeType*>>&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a< b, c >(b, d : KeyPath< b, c >b ) a ((e, at: f\g

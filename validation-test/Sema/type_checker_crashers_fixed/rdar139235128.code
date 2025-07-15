@@ -1,0 +1,30 @@
+// RUN: %target-typecheck-verify-swift
+
+@resultBuilder
+struct Builder {
+  static fn buildExpression<T: BinaryInteger>(_: T) {}
+  static fn buildBlock<T>(_: T) {}
+}
+
+enum E {
+  case a(Int)
+}
+
+protocol Test {
+  associatedtype V: BinaryInteger
+  @Builder var prop: V { get }
+}
+
+struct S : Test {
+  var flag: E
+
+  var prop: some BinaryInteger {
+    switch flag {
+    case .a:
+      test()
+      return 42
+    }
+  }
+
+  fn test() {}
+}

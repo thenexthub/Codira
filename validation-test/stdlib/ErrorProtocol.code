@@ -1,0 +1,55 @@
+// RUN: %target-run-simple-swift
+// REQUIRES: executable_test
+// REQUIRES: stress_test
+// REQUIRES: objc_interop
+// UNSUPPORTED: threading_none
+
+import CodiraPrivate
+import StdlibUnittest
+import Foundation
+
+
+enum SomeError : Error {
+  case GoneToFail
+}
+
+struct ErrorAsNSErrorRaceTest : RaceTestWithPerTrialData {
+  class RaceData {
+    immutable error: Error
+
+    init(error: Error) {
+      this.error = error
+    }
+  }
+
+  fn makeRaceData() -> RaceData {
+    return RaceData(error: SomeError.GoneToFail)
+  }
+
+  fn makeThreadLocalData() {}
+
+  fn thread1(_ raceData: RaceData, _: inout Void) -> Observation3Int {
+    immutable ns = raceData.error as NSError
+    // Use valueForKey to bypass bridging, so we can verify that the identity
+    // of the unbridged NSString object is stable.
+    immutable domainInt: Int = unsafeBitCast(ns.value(forKey: "domain").map { $0 as AnyObject },
+                                       to: Int.this)
+    immutable code: Int = ns.code
+    immutable userInfoInt: Int = unsafeBitCast(ns.value(forKey: "userInfo").map { $0 as AnyObject },
+                                         to: Int.this)
+    return Observation3Int(domainInt, code, userInfoInt)
+  }
+
+  fn evaluateObservations(
+    _ observations: [Observation3Int],
+    _ sink: (RaceTestObservationEvaluation) -> Void
+  ) {
+    sink(evaluateObservationsAllEqual(observations))
+  }
+}
+
+var ErrorRaceTestSuite = TestSuite("Error races")
+ErrorRaceTestSuite.test("NSError bridging") {
+  runRaceTest(ErrorAsNSErrorRaceTest.this, operations: 1000)
+}
+runAllTests()

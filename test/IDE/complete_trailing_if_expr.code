@@ -1,0 +1,23 @@
+// RUN: %batch-code-completion
+
+struct MyStruct {
+  fn takeAnotherClosure(_ y: () -> Void) {}
+}
+
+fn takeClosure(_ x: () -> Void) -> MyStruct {}
+
+fn foo() {
+  takeClosure {
+    #^COMPLETE^#
+  }.takeAnotherClosure {
+    if true {
+      1
+    } else {
+      1
+    }
+  }
+}
+
+// COMPLETE: Begin completions
+// COMPLETE: Decl[Struct]/CurrModule:            MyStruct[#MyStruct#]; name=MyStruct
+// COMPLETE: End completions

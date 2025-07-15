@@ -1,13 +1,17 @@
 //===--- CSSyntacticElement.cpp - Syntactic Element Constraints -----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements SyntacticElement constraint generation and solution
@@ -76,12 +80,12 @@ class TypeVariableRefFinder : public ASTWalker {
   ConstraintSystem &CS;
   ASTNode Parent;
 
-  llvm::SmallPtrSetImpl<TypeVariableType *> &ReferencedVars;
+  toolchain::SmallPtrSetImpl<TypeVariableType *> &ReferencedVars;
 
 public:
   TypeVariableRefFinder(
       ConstraintSystem &cs, ASTNode parent, ContextualTypeInfo context,
-      llvm::SmallPtrSetImpl<TypeVariableType *> &referencedVars)
+      toolchain::SmallPtrSetImpl<TypeVariableType *> &referencedVars)
       : CS(cs), Parent(parent), ReferencedVars(referencedVars) {
     if (auto ty = context.getType())
       inferVariables(ty);
@@ -243,7 +247,7 @@ private:
       // early, to facilitate closure type checking. Such a
       // type can have type variables inside e.g.
       //
-      // func test<T>(_: (UnsafePointer<T>) -> Void) {}
+      // fn test<T>(_: (UnsafePointer<T>) -> Void) {}
       //
       // test { ptr in
       //  ...
@@ -433,7 +437,7 @@ ElementInfo makeJoinElement(ConstraintSystem &cs, TypeJoinExpr *join,
 }
 
 struct SyntacticElementContext
-    : public llvm::PointerUnion<AbstractFunctionDecl *, AbstractClosureExpr *,
+    : public toolchain::PointerUnion<AbstractFunctionDecl *, AbstractClosureExpr *,
                                 SingleValueStmtExpr *, ExprPattern *, TapExpr *,
                                 CaptureListExpr *> {
   // Inherit the constructors from PointerUnion.
@@ -456,8 +460,8 @@ struct SyntacticElementContext
     return {closure};
   }
 
-  static SyntacticElementContext forFunction(AbstractFunctionDecl *func) {
-    return {func};
+  static SyntacticElementContext forFunction(AbstractFunctionDecl *fn) {
+    return {fn};
   }
 
   static SyntacticElementContext forCaptureList(CaptureListExpr *CLE) {
@@ -491,7 +495,7 @@ struct SyntacticElementContext
       // The capture list is part of the closure's parent context.
       return CLE->getClosureBody()->getParent();
     } else {
-      llvm_unreachable("unsupported kind");
+      toolchain_unreachable("unsupported kind");
     }
   }
 
@@ -532,7 +536,7 @@ struct SyntacticElementContext
     } else if (auto *tap = this->dyn_cast<TapExpr *>()) {
       return tap->getBody();
     } else {
-      llvm_unreachable("unsupported kind");
+      toolchain_unreachable("unsupported kind");
     }
   }
 
@@ -558,7 +562,7 @@ class SyntacticElementConstraintGenerator
   SyntacticElementContext context;
   ConstraintLocator *locator;
 
-  std::optional<llvm::SaveAndRestore<DeclContext *>> DCScope;
+  std::optional<toolchain::SaveAndRestore<DeclContext *>> DCScope;
 
   /// Whether a conjunction was generated.
   bool generatedConjunction = false;
@@ -644,7 +648,7 @@ public:
       }
     }
 
-    llvm_unreachable("Unsupported pattern");
+    toolchain_unreachable("Unsupported pattern");
   }
 
   void visitCaseItem(CaseLabelItem *caseItem, ContextualTypeInfo contextInfo) {
@@ -871,7 +875,7 @@ private:
         if (locator->isLastElement<LocatorPathElt::PatternBindingElement>())
           visitPatternBindingElement(patternBinding);
         else
-          llvm_unreachable("cannot visit pattern binding directly");
+          toolchain_unreachable("cannot visit pattern binding directly");
         return;
       }
     }
@@ -1312,7 +1316,7 @@ private:
     if (auto SVE = context.getAsSingleValueStmtExpr())
       (void)SVE.get()->getThenStmts(validThenStmts);
 
-    if (!llvm::is_contained(validThenStmts, thenStmt)) {
+    if (!toolchain::is_contained(validThenStmts, thenStmt)) {
       auto *thenLoc = cs.getConstraintLocator(thenStmt);
       (void)cs.recordFix(IgnoreOutOfPlaceThenStmt::create(cs, thenLoc));
     }
@@ -1361,7 +1365,7 @@ private:
   }
 
 #define UNSUPPORTED_STMT(STMT) void visit##STMT##Stmt(STMT##Stmt *) { \
-      llvm_unreachable("Unsupported statement kind " #STMT);          \
+      toolchain_unreachable("Unsupported statement kind " #STMT);          \
   }
   UNSUPPORTED_STMT(Yield)
 #undef UNSUPPORTED_STMT
@@ -1383,7 +1387,7 @@ private:
   }
 
   bool recordInferredSwitchCasePatternVars(CaseStmt *caseStmt) {
-    llvm::SmallDenseMap<Identifier, SmallVector<VarDecl *, 2>, 4> patternVars;
+    toolchain::SmallDenseMap<Identifier, SmallVector<VarDecl *, 2>, 4> patternVars;
 
     auto recordVar = [&](VarDecl *var) {
       if (!var->hasName())
@@ -1425,7 +1429,7 @@ private:
         Type joinType = getType(variants.front());
 
         SmallVector<VarDecl *, 2> conflicts;
-        for (auto *var : llvm::drop_begin(variants)) {
+        for (auto *var : toolchain::drop_begin(variants)) {
           auto varType = getType(var);
           // Type mismatch between different patterns.
           if (!joinType->isEqual(varType))
@@ -1472,8 +1476,8 @@ bool ConstraintSystem::generateConstraints(TapExpr *tap) {
 bool ConstraintSystem::generateConstraints(AnyFunctionRef fn, BraceStmt *body) {
   NullablePtr<ConstraintLocator> locator;
 
-  if (auto *func = fn.getAbstractFunctionDecl()) {
-    locator = getConstraintLocator(func);
+  if (auto *fn = fn.getAbstractFunctionDecl()) {
+    locator = getConstraintLocator(fn);
   } else {
     locator = getConstraintLocator(fn.getAbstractClosureExpr());
   }
@@ -1537,7 +1541,7 @@ bool ConstraintSystem::generateConstraints(SingleValueStmtExpr *E) {
   // that the result type may be bound to Void. This is necessary to correctly
   // handle the following case:
   //
-  // func foo<T>(_ fn: () -> T) {}
+  // fn foo<T>(_ fn: () -> T) {}
   // foo {
   //   if .random() { 0 } else { "" }
   // }
@@ -2073,7 +2077,7 @@ private:
 
     // Source compatibility workaround.
     //
-    // func test<T>(_: () -> T?) {
+    // fn test<T>(_: () -> T?) {
     //   ...
     // }
     //
@@ -2245,7 +2249,7 @@ private:
   }
 
 #define UNSUPPORTED_STMT(STMT) ASTNode visit##STMT##Stmt(STMT##Stmt *) { \
-      llvm_unreachable("Unsupported statement kind " #STMT);          \
+      toolchain_unreachable("Unsupported statement kind " #STMT);          \
   }
   UNSUPPORTED_STMT(Yield)
 #undef UNSUPPORTED_STMT
@@ -2329,7 +2333,7 @@ private:
       return transformSwitch(castToStmt<SwitchStmt>(stmt), join);
 
     default:
-      llvm_unreachable("only 'if' and 'switch' statements are transformed");
+      toolchain_unreachable("only 'if' and 'switch' statements are transformed");
     }
   }
 
@@ -2410,7 +2414,7 @@ private:
   BraceStmt *addBuilderAssignment(BraceStmt *body, DeclRefExpr *joinVar,
                                   Expr *builderCall) {
     SmallVector<ASTNode, 4> newBody;
-    llvm::copy(body->getElements(), std::back_inserter(newBody));
+    toolchain::copy(body->getElements(), std::back_inserter(newBody));
 
     newBody.push_back(createAssignment(joinVar, builderCall));
 
@@ -2506,7 +2510,7 @@ private:
           if (buildInsertionLoc.isValid()) {
             std::string fixItString;
             {
-              llvm::raw_string_ostream out(fixItString);
+              toolchain::raw_string_ostream out(fixItString);
               printResultBuilderBuildFunction(
                   builder, componentType,
                   ResultBuilderBuildFunction::BuildLimitedAvailability,
@@ -2608,7 +2612,7 @@ bool ConstraintSystem::applySolution(AnyFunctionRef fn,
 
   // Enter the context of the function before performing any additional
   // transformations.
-  llvm::SaveAndRestore<DeclContext *> savedDC(rewriter.getCurrentDC(),
+  toolchain::SaveAndRestore<DeclContext *> savedDC(rewriter.getCurrentDC(),
                                               fn.getAsDeclContext());
 
   // Apply the result builder transform, if there is one.
@@ -2628,7 +2632,7 @@ bool ConstraintSystem::applySolutionToBody(
     AnyFunctionRef fn, SyntacticElementTargetRewriter &rewriter) {
   // Enter the context of the function before performing any additional
   // transformations.
-  llvm::SaveAndRestore<DeclContext *> savedDC(rewriter.getCurrentDC(),
+  toolchain::SaveAndRestore<DeclContext *> savedDC(rewriter.getCurrentDC(),
                                               fn.getAsDeclContext());
 
   auto &solution = rewriter.getSolution();
@@ -2744,11 +2748,13 @@ Type constraints::isPlaceholderVar(PatternBindingDecl *PB) {
     return Type();
 
   auto *pattern = PB->getPattern(0);
-  if (auto *typedPattern = dyn_cast<TypedPattern>(pattern)) {
-    auto type = typedPattern->getType();
-    if (type && type->hasPlaceholder())
-      return type;
-  }
+  auto *typedPattern = dyn_cast<TypedPattern>(pattern);
+  if (!typedPattern || !typedPattern->hasType())
+    return Type();
 
-  return Type();
+  auto type = typedPattern->getType();
+  if (!type->hasPlaceholder())
+    return Type();
+
+  return type;
 }

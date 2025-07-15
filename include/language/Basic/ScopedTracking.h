@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some miscellaneous utilities that are useful when
@@ -19,10 +20,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SCOPEDTRACKING_H
-#define SWIFT_BASIC_SCOPEDTRACKING_H
+#ifndef LANGUAGE_BASIC_SCOPEDTRACKING_H
+#define LANGUAGE_BASIC_SCOPEDTRACKING_H
 
-namespace llvm {
+namespace toolchain {
 template <class K, class V, class T, class A>
 class ScopedHashTable;
 template <class K, class V, class T, class A>
@@ -37,8 +38,8 @@ template <class Tracker>
 struct ScopedTrackingTraits;
 
 template <class K, class V, class T, class A>
-struct ScopedTrackingTraits<llvm::ScopedHashTable<K,V,T,A>> {
-  using scope_type = llvm::ScopedHashTableScope<K,V,T,A>;
+struct ScopedTrackingTraits<toolchain::ScopedHashTable<K,V,T,A>> {
+  using scope_type = toolchain::ScopedHashTableScope<K,V,T,A>;
 };
 
 /// A class which stores scopes for multiple trackers.  Can be

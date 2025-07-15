@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_MODULE_INTERFACE_PRINTING_H
-#define SWIFT_IDE_MODULE_INTERFACE_PRINTING_H
+#ifndef LANGUAGE_IDE_MODULE_INTERFACE_PRINTING_H
+#define LANGUAGE_IDE_MODULE_INTERFACE_PRINTING_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
 
 #include <optional>
@@ -41,11 +42,14 @@ namespace ide {
 /// Flags used when traversing a module for printing.
 enum class ModuleTraversal : unsigned {
   /// Visit modules even if their contents wouldn't be visible to name lookup.
-  VisitHidden     = 0x01,
+  VisitHidden = 0x01,
   /// Visit submodules.
   VisitSubmodules = 0x02,
-  /// Skip the declarations in a Swift overlay module.
-  SkipOverlay     = 0x04,
+  /// Skip the declarations in a Codira overlay module.
+  SkipOverlay = 0x04,
+  /// Visit exported modules where their public module name matches the current
+  /// module.
+  VisitMatchingExported = 0x08,
 };
 
 /// Options used to describe the traversal of a module for printing.
@@ -72,16 +76,16 @@ void printHeaderInterface(StringRef Filename, ASTContext &Ctx,
                           ASTPrinter &Printer, const PrintOptions &Options);
 
 
-/// Print the interface for a given swift source file.
-void printSwiftSourceInterface(SourceFile &File, ASTPrinter &Printer,
+/// Print the interface for a given language source file.
+void printCodiraSourceInterface(SourceFile &File, ASTPrinter &Printer,
                                const PrintOptions &Options);
 
-/// Print the symbolic Swift interface for a given imported clang module.
-void printSymbolicSwiftClangModuleInterface(ModuleDecl *M, ASTPrinter &Printer,
+/// Print the symbolic Codira interface for a given imported clang module.
+void printSymbolicCodiraClangModuleInterface(ModuleDecl *M, ASTPrinter &Printer,
                                             const clang::Module *clangModule);
 
 } // namespace ide
 
 } // namespace language
 
-#endif // SWIFT_IDE_MODULE_INTERFACE_PRINTING_H
+#endif // LANGUAGE_IDE_MODULE_INTERFACE_PRINTING_H

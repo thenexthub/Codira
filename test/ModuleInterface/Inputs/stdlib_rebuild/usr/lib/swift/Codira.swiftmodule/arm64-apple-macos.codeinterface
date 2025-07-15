@@ -1,0 +1,4 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -disable-objc-attr-requires-foundation-module -target arm64-apple-macosx15.0 -enable-objc-interop -enable-library-evolution -module-link-name languageCore -parse-stdlib -language-version 5 -O -library-level api -enforce-exclusivity=unchecked -enable-experimental-concise-pound-file -target-min-inlining-version min -module-name Codira
+
+public struct Int {}

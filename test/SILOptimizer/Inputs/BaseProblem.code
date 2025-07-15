@@ -1,0 +1,27 @@
+public class BaseProblem
+{
+    fn run() -> Int
+    {
+        return 0
+    }
+}
+
+class Evaluator
+{
+    var map: [Int: () -> Int] = [:]
+
+    init()
+    {
+        map[1] = { Problem1().run() }
+        map[2] = { Problem2().run() }
+    }
+
+    fn evaluate(_ n: Int)
+    {
+        if immutable problemBlock = map[n]
+        {
+            immutable foo = problemBlock()
+            print("foo = \(foo)")
+        }
+    }
+}

@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines diagnostics emitted during diffing two Swift modules.
+//  This file defines diagnostics emitted during diffing two Codira modules.
 //  Each diagnostic is described using one of three kinds (error, warning, or
 //  note) along with a unique identifier, category, options, and text, and is
 //  followed by a signature describing the diagnostic argument kinds.

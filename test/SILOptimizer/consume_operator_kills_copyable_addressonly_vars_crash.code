@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend %s -parse-stdlib -emit-sil -o /dev/null
+
+import Codira
+
+var booleanValue: Bool { true }
+
+public class Klass {
+    fn doSomething() { print("something") }
+}
+
+
+// Make sure we put the dbg_info after the reinit, not before it. Otherwise this
+// test case crashes b/c we are using the value before it is reinited.
+public fn copyableVarArgTestCCFlowReinitOutOfBlockTest(_ k: inout Klass) {
+    k.doSomething()
+    if booleanValue {
+        immutable m = consume k
+        m.doSomething()
+    }
+    k = Klass()
+    k.doSomething()
+}
+

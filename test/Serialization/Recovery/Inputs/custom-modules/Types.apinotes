@@ -1,0 +1,41 @@
+Name: Types
+Classes:
+- Name: RenamedClass
+  CodiraName: RenamedClass
+- Name: RenamedGenericClass
+  CodiraName: RenamedGenericClass
+Typedefs:
+- Name: RenamedTypedef
+  CodiraName: RenamedTypedef
+- Name: RenamedWrappedTypedef
+  CodiraName: RenamedWrappedTypedef
+Tags:
+- Name: RenamedStruct
+  CodiraName: RenamedStruct
+- Name: RenamedEnum
+  CodiraName: RenamedEnum
+Protocols:
+- Name: RenamedProtocol
+  CodiraName: RenamedProtocol
+CodiraVersions:
+- Version: 4
+  Classes:
+  - Name: RenamedClass
+    CodiraName: Codira4RenamedClass
+  - Name: RenamedGenericClass
+    CodiraName: Codira4RenamedGenericClass
+  Typedefs:
+  - Name: RenamedTypedef
+    CodiraName: Codira4RenamedTypedef
+  - Name: NewlyWrappedTypedef
+    CodiraWrapper: none
+  - Name: RenamedWrappedTypedef
+    CodiraName: Codira4RenamedWrappedTypedef
+  Tags:
+  - Name: RenamedStruct
+    CodiraName: Codira4RenamedStruct
+  - Name: RenamedEnum
+    CodiraName: Codira4RenamedEnum
+  Protocols:
+  - Name: RenamedProtocol
+    CodiraName: Codira4RenamedProtocol

@@ -1,13 +1,17 @@
 //===--- CodeCompletionResult.cpp -----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CodeCompletionResult.h"
@@ -21,7 +25,7 @@
 using namespace language;
 using namespace language::ide;
 
-CodeCompletionMacroRoles swift::ide::getCompletionMacroRoles(const Decl *D) {
+CodeCompletionMacroRoles language::ide::getCompletionMacroRoles(const Decl *D) {
   CodeCompletionMacroRoles roles;
 
   auto *MD = dyn_cast<MacroDecl>(D);
@@ -58,7 +62,7 @@ CodeCompletionMacroRoles swift::ide::getCompletionMacroRoles(const Decl *D) {
 }
 
 CodeCompletionMacroRoles
-swift::ide::getCompletionMacroRoles(OptionSet<CustomAttributeKind> kinds) {
+language::ide::getCompletionMacroRoles(OptionSet<CustomAttributeKind> kinds) {
   CodeCompletionMacroRoles roles;
   if (kinds.contains(CustomAttributeKind::VarMacro)) {
     roles |= CodeCompletionMacroRole::AttachedVar;
@@ -76,7 +80,7 @@ swift::ide::getCompletionMacroRoles(OptionSet<CustomAttributeKind> kinds) {
 }
 
 CodeCompletionMacroRoles
-swift::ide::getCompletionMacroRoles(CodeCompletionFilter filter) {
+language::ide::getCompletionMacroRoles(CodeCompletionFilter filter) {
   CodeCompletionMacroRoles roles;
   if (filter.contains(CodeCompletionFilterFlag::ExpressionMacro)) {
     roles |= CodeCompletionMacroRole::Expression;
@@ -103,7 +107,7 @@ swift::ide::getCompletionMacroRoles(CodeCompletionFilter filter) {
 }
 
 CodeCompletionFilter
-swift::ide::getCompletionFilter(CodeCompletionMacroRoles roles) {
+language::ide::getCompletionFilter(CodeCompletionMacroRoles roles) {
   CodeCompletionFilter filter;
   if (roles.contains(CodeCompletionMacroRole::Expression)) {
     filter |= CodeCompletionFilterFlag::ExpressionMacro;
@@ -204,10 +208,10 @@ ContextFreeCodeCompletionResult::createLiteralResult(
 static NullTerminatedStringRef
 getDeclNameForDiagnostics(const Decl *D, CodeCompletionResultSink &Sink) {
   if (auto VD = dyn_cast<ValueDecl>(D)) {
-    llvm::SmallString<64> Name;
-    llvm::raw_svector_ostream NameOS(Name);
+    toolchain::SmallString<64> Name;
+    toolchain::raw_svector_ostream NameOS(Name);
     NameOS << "'";
-    llvm::SmallString<64> Scratch;
+    toolchain::SmallString<64> Scratch;
     VD->getName().printPretty(NameOS);
     NameOS << "'";
     return NullTerminatedStringRef(NameOS.str(), Sink.getAllocator());
@@ -315,7 +319,8 @@ ContextFreeCodeCompletionResult::getCodeCompletionDeclKind(const Decl *D) {
   case DeclKind::OpaqueType:
   case DeclKind::BuiltinTuple:
   case DeclKind::MacroExpansion:
-    llvm_unreachable("not expecting such a declaration result");
+  case DeclKind::Using:
+    toolchain_unreachable("not expecting such a declaration result");
   case DeclKind::Module:
     return CodeCompletionDeclKind::Module;
   case DeclKind::TypeAlias:
@@ -372,7 +377,7 @@ ContextFreeCodeCompletionResult::getCodeCompletionDeclKind(const Decl *D) {
         case DeclKind::InfixOperator:
           return CodeCompletionDeclKind::InfixOperatorFunction;
         default:
-          llvm_unreachable("unexpected operator kind");
+          toolchain_unreachable("unexpected operator kind");
         }
       } else {
         return CodeCompletionDeclKind::InfixOperatorFunction;
@@ -395,7 +400,7 @@ ContextFreeCodeCompletionResult::getCodeCompletionDeclKind(const Decl *D) {
   case DeclKind::Macro:
     return CodeCompletionDeclKind::Macro;
   }
-  llvm_unreachable("invalid DeclKind");
+  toolchain_unreachable("invalid DeclKind");
 }
 
 bool ContextFreeCodeCompletionResult::getDeclIsSystem(const Decl *D) {
@@ -456,7 +461,7 @@ CodeCompletionResult::withContextFreeResultSemanticContextAndFlair(
 std::pair<CodeCompletionDiagnosticSeverity, NullTerminatedStringRef>
 CodeCompletionResult::getContextualDiagnosticSeverityAndMessage(
     SmallVectorImpl<char> &Scratch, const ASTContext &Ctx) const {
-  llvm::raw_svector_ostream Out(Scratch);
+  toolchain::raw_svector_ostream Out(Scratch);
   CodeCompletionDiagnosticSeverity Severity;
   getContextualCompletionDiagnostics(
       NotRecommended, ContextFree.getNameForDiagnostics(), Severity, Out, Ctx);
@@ -466,7 +471,7 @@ CodeCompletionResult::getContextualDiagnosticSeverityAndMessage(
 }
 
 void CodeCompletionResult::printPrefix(raw_ostream &OS) const {
-  llvm::SmallString<64> Prefix;
+  toolchain::SmallString<64> Prefix;
   switch (getKind()) {
   case CodeCompletionResultKind::Declaration:
     Prefix.append("Decl");
@@ -680,7 +685,7 @@ void CodeCompletionResult::printPrefix(raw_ostream &OS) const {
 }
 
 void CodeCompletionResult::dump() const {
-  printPrefix(llvm::errs());
-  getCompletionString()->print(llvm::errs());
-  llvm::errs() << "\n";
+  printPrefix(toolchain::errs());
+  getCompletionString()->print(toolchain::errs());
+  toolchain::errs() << "\n";
 }

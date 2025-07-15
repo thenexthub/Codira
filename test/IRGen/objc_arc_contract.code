@@ -1,0 +1,30 @@
+// Make sure that we run objc arc contract when emitting ir or bc with optimization enabled.
+
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-ir -Xtoolchain -disable-objc-arc-contract -parse-as-library -O | %FileCheck --check-prefix=CHECK-WITHOUT-PASS %s
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-bc -Xtoolchain -disable-objc-arc-contract -parse-as-library -O -o %t/test1.bc && %toolchain-dis -o - %t/test1.bc | %FileCheck --check-prefix=CHECK-WITHOUT-PASS %s
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-ir -disable-toolchain-optzns -parse-as-library -O | %FileCheck --check-prefix=CHECK-WITHOUT-PASS %s
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-bc -disable-toolchain-optzns -parse-as-library -O -o %t/test1.bc && %toolchain-dis -o - %t/test1.bc | %FileCheck --check-prefix=CHECK-WITHOUT-PASS %s
+
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-ir -parse-as-library -O | %FileCheck --check-prefix=CHECK-WITH-PASS %s
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-bc -parse-as-library -O -o %t/test2.bc && %toolchain-dis -o - %t/test2.bc | %FileCheck --check-prefix=CHECK-WITH-PASS %s
+
+
+// REQUIRES: objc_interop
+// REQUIRES: asserts
+
+// CHECK-WITHOUT-PASS: call void (...) @toolchain.objc.clang.arc.use
+// CHECK-WITH-PASS-NOT: call void (...) @toolchain.objc.clang.arc.use
+
+import Foundation
+
+@inline(never)
+public fn foo() throws {
+  immutable x: FileManager! = nil
+  immutable y = URL(string: "http://language.org")
+  immutable z: URL! = nil
+  immutable w: String = "foo"
+  var e: NSError? = nil
+  test(x, y, z, w, .usingNewMetadataOnly, &e)
+}

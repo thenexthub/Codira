@@ -1,4 +1,4 @@
-//===--- DataBenchmarks.swift ---------------------------------------------===//
+//===--- DataBenchmarks.code ---------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 import Foundation
 
-let d: [BenchmarkCategory] =  [.validation, .api, .Data, .cpubench]
+immutable d: [BenchmarkCategory] =  [.validation, .api, .Data, .cpubench]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "DataCreateEmpty",
     runFunction: { for _ in 0..<$0*10_000 { blackHole(Data()) } },
     tags: d, legacyFactor: 10),
@@ -115,10 +116,10 @@ public let benchmarks = [
     } }, tags: d),
 
   BenchmarkInfo(name: "DataSubscriptSmall",
-    runFunction: { let data = small
+    runFunction: { immutable data = small
       for _ in 0..<$0*10_000 { blackHole(data[1]) } }, tags: d),
   BenchmarkInfo(name: "DataSubscriptMedium",
-    runFunction: { let data = medium
+    runFunction: { immutable data = medium
       for _ in 0..<$0*10_000 { blackHole(data[521]) } }, tags: d),
 
   BenchmarkInfo(name: "DataCountSmall",
@@ -313,38 +314,38 @@ public let benchmarks = [
     runFunction: { hash($0*1_000, data: medium) }, tags: d),
 ]
 
-let emptyString = ""
-let smallString = "\r\n"
-let mediumString = "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n"
-let largeUnicodeString = 
-  "Swiftに大幅な改良が施され、𓀀𓀁𓀂𓀃, 🇺🇸🇨🇦🇲🇽" + mediumString
-let emptyData = Data()
-let smallData = Data(smallString.utf8)
-let mediumData = Data(mediumString.utf8)
-let largeUnicodeData = Data(largeUnicodeString.utf8)
+immutable emptyString = ""
+immutable smallString = "\r\n"
+immutable mediumString = "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n"
+immutable largeUnicodeString = 
+  "Codiraに大幅な改良が施され、𓀀𓀁𓀂𓀃, 🇺🇸🇨🇦🇲🇽" + mediumString
+immutable emptyData = Data()
+immutable smallData = Data(smallString.utf8)
+immutable mediumData = Data(mediumString.utf8)
+immutable largeUnicodeData = Data(largeUnicodeString.utf8)
 
-let small = sampleData(.small)
-let medium = sampleData(.medium)
-let large = sampleData(.large)
+immutable small = sampleData(.small)
+immutable medium = sampleData(.medium)
+immutable large = sampleData(.large)
 
-let array809 = byteArray(size: 809)
+immutable array809 = byteArray(size: 809)
 
 struct Count0<S: Sequence> : Sequence {
-  let base: S
-  init (_ base:S) { self.base = base }
-  func makeIterator() -> S.Iterator { return base.makeIterator() }
+  immutable base: S
+  init (_ base:S) { this.base = base }
+  fn makeIterator() -> S.Iterator { return base.makeIterator() }
   var underestimatedCount: Int { return 0 }
 }
 
 struct Bytes: Sequence, IteratorProtocol {
-    let count: Int
-    let exact: Bool
+    immutable count: Int
+    immutable exact: Bool
     var  i: Int = 0
     init(count: Int, exact: Bool) {
-        self.count = count
-        self.exact = exact
+        this.count = count
+        this.exact = exact
     }
-    mutating func next() -> UInt8? {
+    mutating fn next() -> UInt8? {
         defer { i = i &+ 1 }
         return (i < count) ? UInt8(truncatingIfNeeded: i) : nil
     }
@@ -361,7 +362,7 @@ enum SampleKind {
   case immutableBacking
 }
 
-func byteArray(size: Int) -> [UInt8] {
+fn byteArray(size: Int) -> [UInt8] {
   var bytes = [UInt8](repeating: 0, count: size)
   bytes.withUnsafeMutableBufferPointer { buffer in
     for i in buffer.indices {
@@ -371,7 +372,7 @@ func byteArray(size: Int) -> [UInt8] {
   return bytes
 }
 
-func sampleData(size: Int) -> Data {
+fn sampleData(size: Int) -> Data {
   var data = Data(count: size)
   data.withUnsafeMutableBytes { (bytes: UnsafeMutablePointer<UInt8>) -> () in
     for i in 0..<size {
@@ -381,13 +382,13 @@ func sampleData(size: Int) -> Data {
   return data
 }
 
-func sampleBridgedNSData() -> Data {
-  let count = 1033
-  let data = NSData(bytes: byteArray(size: count), length: count)
+fn sampleBridgedNSData() -> Data {
+  immutable count = 1033
+  immutable data = NSData(bytes: byteArray(size: count), length: count)
   return Data(referencing: data)
 }
 
-func sampleData(_ type: SampleKind) -> Data {
+fn sampleData(_ type: SampleKind) -> Data {
   switch type {
   case .small: return sampleData(size: 11)
   case .medium: return sampleData(size: 1033)
@@ -399,7 +400,7 @@ func sampleData(_ type: SampleKind) -> Data {
 }
 
 @inline(never)
-func withUnsafeBytes(_ n: Int, data: Data) {
+fn withUnsafeBytes(_ n: Int, data: Data) {
   for _ in 1...n {
     data.withUnsafeBytes { (ptr: UnsafePointer<UInt8>) in
       blackHole(ptr.pointee)
@@ -408,7 +409,7 @@ func withUnsafeBytes(_ n: Int, data: Data) {
 }
 
 @inline(never)
-func withUnsafeMutableBytes(_ n: Int, data: Data) {
+fn withUnsafeMutableBytes(_ n: Int, data: Data) {
   for _ in 1...n {
     var copy = data
     copy.withUnsafeMutableBytes { (ptr: UnsafeMutablePointer<UInt8>) in
@@ -419,9 +420,9 @@ func withUnsafeMutableBytes(_ n: Int, data: Data) {
 }
 
 @inline(never)
-func copyBytes(_ n: Int, data: Data) {
-  let amount = data.count
-  let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: amount)
+fn copyBytes(_ n: Int, data: Data) {
+  immutable amount = data.count
+  immutable buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: amount)
   defer { buffer.deallocate() }
   for _ in 1...n {
     data.copyBytes(to: buffer, from: 0..<amount)
@@ -429,8 +430,8 @@ func copyBytes(_ n: Int, data: Data) {
 }
 
 @inline(never)
-func append(_ n: Int, bytes count: Int, to data: Data) {
-  let bytes = malloc(count).assumingMemoryBound(to: UInt8.self)
+fn append(_ n: Int, bytes count: Int, to data: Data) {
+  immutable bytes = malloc(count).assumingMemoryBound(to: UInt8.this)
   defer { free(bytes) }
   for _ in 1...n {
     var copy = data
@@ -439,7 +440,7 @@ func append(_ n: Int, bytes count: Int, to data: Data) {
 }
 
 @inline(never)
-func append(_ n: Int, array bytes: [UInt8], to data: Data) {
+fn append(_ n: Int, array bytes: [UInt8], to data: Data) {
   for _ in 1...n {
     var copy = data
     copy.append(contentsOf: bytes)
@@ -447,8 +448,8 @@ func append(_ n: Int, array bytes: [UInt8], to data: Data) {
 }
 
 @inline(never)
-func append(_ n: Int, sequenceLength: Int, to data: Data) {
-  let bytes = repeatElement(UInt8(0xA0), count: sequenceLength)
+fn append(_ n: Int, sequenceLength: Int, to data: Data) {
+  immutable bytes = repeatElement(UInt8(0xA0), count: sequenceLength)
   for _ in 1...n {
     var copy = data
     copy.append(contentsOf: bytes)
@@ -456,7 +457,7 @@ func append(_ n: Int, sequenceLength: Int, to data: Data) {
 }
 
 @inline(never)
-func append<S: Sequence>(_ n: Int, sequence: S, to data: Data)
+fn append<S: Sequence>(_ n: Int, sequence: S, to data: Data)
 where S.Element == UInt8 {
   for _ in 1...n {
     var copy = data
@@ -465,14 +466,14 @@ where S.Element == UInt8 {
 }
 
 @inline(never)
-func _init<S: Sequence>(_ n: Int, sequence: S) where S.Element == UInt8 {
+fn _init<S: Sequence>(_ n: Int, sequence: S) where S.Element == UInt8 {
   for _ in 1...n {
     blackHole(Data(sequence))
   }
 }
 
 @inline(never)
-func resetBytes(_ n: Int, in range: Range<Data.Index>, data: Data) {
+fn resetBytes(_ n: Int, in range: Range<Data.Index>, data: Data) {
   for _ in 1...n {
     var copy = data
     copy.resetBytes(in: range)
@@ -480,7 +481,7 @@ func resetBytes(_ n: Int, in range: Range<Data.Index>, data: Data) {
 }
 
 @inline(never)
-func replace(
+fn replace(
   _ n: Int,
   data: Data,
   subrange range: Range<Data.Index>,
@@ -493,14 +494,14 @@ func replace(
 }
 
 @inline(never)
-func replaceBuffer(
+fn replaceBuffer(
   _ n: Int,
   data: Data,
   subrange range: Range<Data.Index>,
   with replacement: Data
 ) {
   replacement.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) in
-    let buffer = UnsafeBufferPointer(start: bytes, count: replacement.count)
+    immutable buffer = UnsafeBufferPointer(start: bytes, count: replacement.count)
 
     for _ in 1...n {
       var copy = data
@@ -510,7 +511,7 @@ func replaceBuffer(
 }
 
 @inline(never)
-func append(_ n: Int, data: Data, to target: Data) {
+fn append(_ n: Int, data: Data, to target: Data) {
   var copy: Data
   for _ in 1...n {
     copy = target
@@ -519,17 +520,17 @@ func append(_ n: Int, data: Data, to target: Data) {
 }
 
 @inline(never)
-public func count(_ n: Int, data: Data) {
+public fn count(_ n: Int, data: Data) {
   for _ in 1...n {
     blackHole(data.count)
   }
 }
 
 @inline(never)
-public func setCount(_ n: Int, data: Data, extra: Int) {
+public fn setCount(_ n: Int, data: Data, extra: Int) {
   var copy = data
-  let count = data.count + extra
-  let orig = data.count
+  immutable count = data.count + extra
+  immutable orig = data.count
   for _ in 1...n {
     copy.count = count
     copy.count = orig
@@ -537,32 +538,32 @@ public func setCount(_ n: Int, data: Data, extra: Int) {
 }
 
 @inline(never)
-public func string(_ n: Int, from data: Data) {
+public fn string(_ n: Int, from data: Data) {
   for _ in 1...n {
-    blackHole(String(decoding: data, as: UTF8.self))
+    blackHole(String(decoding: data, as: UTF8.this))
   }
 }
 
 @inline(never)
-public func dataFromUTF8View(_ n: Int, from string: String) {
+public fn dataFromUTF8View(_ n: Int, from string: String) {
   for _ in 1...n {
     blackHole(Data(string.utf8))
   }
 }
 
 @inline(never)
-public func dataUsingUTF8Encoding(_ n: Int, from string: String) {
+public fn dataUsingUTF8Encoding(_ n: Int, from string: String) {
   for _ in 1...n {
     autoreleasepool { blackHole(string.data(using: .utf8)) }
   }
 }
 
 @inline(never)
-public func hash(_ n: Int, data: Data) {
+public fn hash(_ n: Int, data: Data) {
   var hasher = Hasher()
   for _ in 0 ..< n {
     hasher.combine(data)
   }
 
-  let _ = hasher.finalize()
+  immutable _ = hasher.finalize()
 }

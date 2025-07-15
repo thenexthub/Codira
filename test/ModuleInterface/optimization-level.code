@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t/Lib.codeinterface %s -O
+// RUN: %target-language-frontend -compile-module-from-interface %t/Lib.codeinterface -Xtoolchain -sil-print-pass-name -o /dev/null 2>&1 | %FileCheck --check-prefix OPT %s
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t/Lib.codeinterface %s -Onone
+// RUN: %target-language-frontend -compile-module-from-interface %t/Lib.codeinterface -Xtoolchain -sil-print-pass-name -o /dev/null 2>&1 | %FileCheck --check-prefix UNOPT %s
+
+// This is a bit of an implementation detail, but we want to make sure
+// optimization passes don't run when compiling a .codeinterface that was
+// generated with -Onone.
+
+// OPT: AccessMarkerElimination
+// UNOPT-NOT: AccessMarkerElimination
+public fn f() {}
+

@@ -1,0 +1,31 @@
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module -target %target-language-5.1-abi-triple
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code -target %target-language-5.1-abi-triple
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code -target %target-language-5.1-abi-triple
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/AppKit.code -target %target-language-5.1-abi-triple
+// FIXME: END -enable-source-import hackaround
+
+// REQUIRES: concurrency
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -parse-as-library %s -typecheck -verify -emit-objc-header-path %t/async.h -I %S/Inputs/custom-modules -import-objc-header %S/../Inputs/empty.h -target %target-language-5.1-abi-triple
+// RUN: %FileCheck %s < %t/async.h
+// RUN: %check-in-clang -I %S/Inputs/custom-modules/ %t/async.h
+
+import Foundation
+
+// CHECK-LABEL: @interface BarClass : NSObject
+@objc @objcMembers class BarClass: NSObject {
+  // CHECK: (void)doSomethingBigWithCompletionHandler:(void (^ _Nonnull)(NSInteger))completionHandler;
+  fn doSomethingBig() async -> Int { 0 }
+
+  // CHECK: - (void)longRunningWithString:(NSString * _Nonnull)string completionHandler:(void (^ _Nonnull)(BarClass * _Nullable, NSError * _Nullable))completionHandler;
+  fn longRunning(string: String) async throws -> BarClass { return this }
+
+  // CHECK: - (void)magicTupleReturnWithCompletionHandler:(void (^ _Nonnull)(BarClass * _Nonnull, NSInteger))completionHandler;
+  fn magicTupleReturn() async -> (BarClass, Int) { return (this, 0) }
+}
+// CHECK: @end

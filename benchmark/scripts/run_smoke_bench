@@ -3,13 +3,16 @@
 
 # ===--- run_smoke_bench -------------------------------------------------===//
 #
-#  This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-#  Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-#  Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-#  See https://swift.org/LICENSE.txt for license information
-#  See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
 #
 # ===---------------------------------------------------------------------===//
 #
@@ -53,7 +56,7 @@ class DriverArgs(object):
         self.tests = os.path.join(benchmark_dir, "bin")
         self.optimization = optimization
         self.architecture = architecture
-        self.libdir = os.path.join(benchmark_dir, "lib", "swift", platform)
+        self.libdir = os.path.join(benchmark_dir, "lib", "language", platform)
 
 
 def log(msg):
@@ -183,7 +186,7 @@ def test_opt_levels(args):
 
     if not args.skip_code_size:
         if report_code_size(
-            "swiftlibs",
+            "languagelibs",
             args.oldbuilddir[0],
             args.newbuilddir[0],
             args.arch,
@@ -274,8 +277,8 @@ def test_performance(
 
 
 def report_code_size(opt_level, old_dir, new_dir, architecture, platform, output_file):
-    if opt_level == "swiftlibs":
-        p = os.path.join(old_dir, "lib", "swift", platform, architecture, "*.dylib")
+    if opt_level == "languagelibs":
+        p = os.path.join(old_dir, "lib", "language", platform, architecture, "*.dylib")
         files = glob.glob(p)
     else:
         files = glob.glob(

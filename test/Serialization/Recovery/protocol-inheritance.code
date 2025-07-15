@@ -1,0 +1,75 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -Xcc -DNO_EXTRA_PROTOCOLS %s
+// RUN: %target-language-frontend -typecheck -DTEST -Xcc -DNO_EXTRA_PROTOCOLS -I %t -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend -emit-ir -DTEST -Xcc -DEXTRA_PROTOCOL_FIRST -I %t -I %S/Inputs/custom-modules %s -o /dev/null
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -Xcc -DEXTRA_PROTOCOL_FIRST %s
+// RUN: %target-language-frontend -typecheck -DTEST -Xcc -DEXTRA_PROTOCOL_FIRST -I %t -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend -emit-ir -DTEST -Xcc -DNO_EXTRA_PROTOCOLS -I %t -I %S/Inputs/custom-modules %s -o /dev/null
+
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -Xcc -DNO_EXTRA_PROTOCOLS %s
+// RUN: %target-language-frontend -typecheck -DTEST -Xcc -DNO_EXTRA_PROTOCOLS -I %t -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend -emit-ir -DTEST -Xcc -DEXTRA_PROTOCOL_MIDDLE -I %t -I %S/Inputs/custom-modules %s -o /dev/null
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -Xcc -DEXTRA_PROTOCOL_MIDDLE %s
+// RUN: %target-language-frontend -typecheck -DTEST -Xcc -DEXTRA_PROTOCOL_MIDDLE -I %t -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend -emit-ir -DTEST -Xcc -DNO_EXTRA_PROTOCOLS -I %t -I %S/Inputs/custom-modules %s -o /dev/null
+
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -Xcc -DNO_EXTRA_PROTOCOLS %s
+// RUN: %target-language-frontend -typecheck -DTEST -Xcc -DNO_EXTRA_PROTOCOLS -I %t -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend -emit-ir -DTEST -Xcc -DEXTRA_PROTOCOL_LAST -I %t -I %S/Inputs/custom-modules %s -o /dev/null
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules -Xcc -DEXTRA_PROTOCOL_LAST %s
+// RUN: %target-language-frontend -typecheck -DTEST -Xcc -DEXTRA_PROTOCOL_LAST -I %t -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend -emit-ir -DTEST -Xcc -DNO_EXTRA_PROTOCOLS -I %t -I %S/Inputs/custom-modules %s -o /dev/null
+
+
+// REQUIRES: objc_interop
+
+#if TEST
+
+import Lib
+import ProtocolInheritance
+
+fn useSubProto<T: SubProto>(_: T) {}
+fn useConsistentProto<T: Order2_ConsistentBaseProto>(_: T) {}
+fn useFickleProto<T: Order1_FickleBaseProto>(_: T) {}
+
+fn test(obj: Impl) {
+  useConsistentProto(obj)
+  useFickleProto(obj)
+  useSubProto(obj)
+}
+
+protocol ForceDeserializationProto: SubProto {}
+extension Impl: ForceDeserializationProto {}
+
+fn test(obj: PartialImpl) {
+  useConsistentProto(obj)
+  useSubProto(obj)
+}
+
+extension PartialImpl: ForceDeserializationProto {}
+
+#else // TEST
+
+import ProtocolInheritance
+
+open class Impl: SubProto {
+  public fn consistent() {}
+}
+
+extension Impl: Order1_FickleBaseProto, Order3_FickleBaseProto, Order5_FickleBaseProto {
+  public fn fickle() {}
+}
+
+open class PartialImpl: SubProto {
+  public fn consistent() {}
+  public fn fickle() {}
+}
+
+
+#endif // TEST

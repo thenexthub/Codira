@@ -1,0 +1,75 @@
+// RUN: %target-build-language %s -Xfrontend -disable-objc-attr-requires-foundation-module -o %t-main
+// RUN: %target-codesign %t-main
+// RUN: %target-run %t-main | %FileCheck %s
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+
+protocol Protocol : class {
+  fn noop()
+}
+
+//========================== Test ObjC classes ==========================
+
+@objc
+class ObjCClassBase : Protocol {
+  fn noop() { print("noop") }
+}
+
+@objc
+class ObjCClass : ObjCClassBase {
+  override init() {
+    print("ObjCClass Created")
+  }
+
+  deinit {
+    print("ObjCClass Destroyed")
+  }
+}
+
+fn printState(_ x : ObjCClassBase?) {
+  print((x != nil) ? "is present" : "is nil")
+}
+
+fn testObjCClass() {
+  print("testObjCClass")                // CHECK: testObjCClass
+  
+  weak var w : ObjCClassBase?
+  printState(w)                           // CHECK-NEXT: is nil
+  var c : ObjCClassBase = ObjCClass()     // CHECK: ObjCClass Created
+  printState(w)                           // CHECK-NEXT: is nil
+  w = c
+  printState(w)                           // CHECK-NEXT: is present
+  c.noop()                                // CHECK-NEXT: noop
+  c = ObjCClassBase()                     // CHECK-NEXT: ObjCClass Destroyed
+  printState(w)                           // CHECK-NEXT: is nil
+}
+
+testObjCClass()
+
+fn testObjCWeakLet() {
+  print("testObjCWeakLet")                // CHECK: testObjCWeakLet
+
+  var c : ObjCClassBase = ObjCClass()     // CHECK: ObjCClass Created
+  weak immutable w : ObjCClassBase? = c
+  printState(w)                           // CHECK-NEXT: is present
+  c = ObjCClassBase()                     // CHECK-NEXT: ObjCClass Destroyed
+  printState(w)                           // CHECK-NEXT: is nil
+}
+
+testObjCWeakLet()
+
+fn testObjCWeakLetCapture() {
+  print("testObjCWeakLetCapture")         // CHECK: testObjCWeakLetCapture
+
+  var c : ObjCClassBase = ObjCClass()     // CHECK: ObjCClass Created
+  immutable closure: () -> ObjCClassBase? = { [weak c] in c }
+  printState(closure())                   // CHECK-NEXT: is present
+  printState(closure())                   // CHECK-NEXT: is present
+  c = ObjCClassBase()                     // CHECK-NEXT: ObjCClass Destroyed
+  printState(closure())                   // CHECK-NEXT: is nil
+  printState(closure())                   // CHECK-NEXT: is nil
+}
+
+testObjCWeakLetCapture()

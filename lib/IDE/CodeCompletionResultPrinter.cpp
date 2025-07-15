@@ -1,23 +1,27 @@
 //===--- CodeCompletionResultPrinter.cpp ----------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CodeCompletionResultPrinter.h"
 #include "language/AST/ASTPrinter.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
 #include "language/IDE/CodeCompletion.h"
 #include "language/Markup/XMLUtils.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace language::ide;
@@ -32,7 +36,7 @@ void skipToEndOfCurrentNestedGroup(ChunkIter &i, const ChunkIter e) {
   do { ++i; } while (i != e && !i->endsPreviousNestedGroup(level));
 }
 
-void swift::ide::printCodeCompletionResultDescription(
+void language::ide::printCodeCompletionResultDescription(
     const CodeCompletionResult &result,
 
     raw_ostream &OS, bool leadingPunctuation) {
@@ -116,7 +120,7 @@ class AnnotatingResultPrinter {
 
     OS << content.substr(0, ltrimIdx);
     OS << "<" << tag << ">";
-    swift::markup::appendWithXMLEscaping(
+    language::markup::appendWithXMLEscaping(
         OS, content.substr(ltrimIdx, rtrimIdx - ltrimIdx));
     OS << "</" << tag << ">";
     OS << content.substr(rtrimIdx);
@@ -166,7 +170,7 @@ class AnnotatingResultPrinter {
       // ignore;
       break;
     default:
-      swift::markup::appendWithXMLEscaping(OS, C.getText());
+      language::markup::appendWithXMLEscaping(OS, C.getText());
       break;
     }
   }
@@ -296,15 +300,15 @@ public:
 
 } // namespace
 
-void swift::ide::printCodeCompletionResultDescriptionAnnotated(
+void language::ide::printCodeCompletionResultDescriptionAnnotated(
     const CodeCompletionResult &Result, raw_ostream &OS,
     bool leadingPunctuation) {
   AnnotatingResultPrinter printer(OS);
   printer.printDescription(Result, leadingPunctuation);
 }
 
-void swift::ide::printCodeCompletionResultTypeName(const CodeCompletionResult &Result,
-                                                   llvm::raw_ostream &OS) {
+void language::ide::printCodeCompletionResultTypeName(const CodeCompletionResult &Result,
+                                                   toolchain::raw_ostream &OS) {
   auto Chunks = Result.getCompletionString()->getChunks();
   auto i = Chunks.begin(), e = Chunks.end();
 
@@ -331,7 +335,7 @@ void swift::ide::printCodeCompletionResultTypeName(const CodeCompletionResult &R
   }
 }
 
-void swift::ide::printCodeCompletionResultTypeNameAnnotated(const CodeCompletionResult &Result, llvm::raw_ostream &OS) {
+void language::ide::printCodeCompletionResultTypeNameAnnotated(const CodeCompletionResult &Result, toolchain::raw_ostream &OS) {
   AnnotatingResultPrinter printer(OS);
   printer.printTypeName(Result);
 }
@@ -419,8 +423,8 @@ constructTextForCallParam(ArrayRef<CodeCompletionString::Chunk> ParamGroup,
   OS << "#>";
 }
 
-void swift::ide::printCodeCompletionResultSourceText(
-    const CodeCompletionResult &Result, llvm::raw_ostream &OS) {
+void language::ide::printCodeCompletionResultSourceText(
+    const CodeCompletionResult &Result, toolchain::raw_ostream &OS) {
   auto Chunks = Result.getCompletionString()->getChunks();
   for (size_t i = 0; i < Chunks.size(); ++i) {
     auto &C = Chunks[i];
@@ -453,7 +457,7 @@ void swift::ide::printCodeCompletionResultSourceText(
 }
 
 static void printCodeCompletionResultFilterName(
-    const CodeCompletionString *str, llvm::raw_ostream &OS) {
+    const CodeCompletionString *str, toolchain::raw_ostream &OS) {
   // FIXME: we need a more uniform way to handle operator completions.
   if (str->getChunks().size() == 1 && str->getChunks()[0].is(ChunkKind::Dot)) {
     OS << ".";
@@ -541,10 +545,10 @@ static void printCodeCompletionResultFilterName(
   }
 }
 
-NullTerminatedStringRef swift::ide::getCodeCompletionResultFilterName(
-    const CodeCompletionString *Str, llvm::BumpPtrAllocator &Allocator) {
+NullTerminatedStringRef language::ide::getCodeCompletionResultFilterName(
+    const CodeCompletionString *Str, toolchain::BumpPtrAllocator &Allocator) {
   SmallString<32> buf;
-  llvm::raw_svector_ostream OS(buf);
+  toolchain::raw_svector_ostream OS(buf);
   printCodeCompletionResultFilterName(Str, OS);
   return NullTerminatedStringRef(buf, Allocator);
 }

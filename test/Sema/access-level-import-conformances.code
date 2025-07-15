@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/ConformanceBaseTypes.code -o %t
+// RUN: %target-language-frontend -emit-module %t/ConformanceDefinition.code -o %t -I %t
+
+/// Check diagnostics.
+// RUN: %target-language-frontend -typecheck -verify %t/Client.code -I %t
+
+//--- ConformanceBaseTypes.code
+public protocol Proto {}
+public struct ConformingType {
+    public init () {}
+}
+
+//--- ConformanceDefinition.code
+import ConformanceBaseTypes
+extension ConformingType : Proto  {}
+
+//--- Client.code
+public import ConformanceBaseTypes
+internal import ConformanceDefinition // expected-note 2 {{extension of struct 'ConformingType' imported as 'internal' from 'ConformanceDefinition' here}}
+
+public fn useInAPI(a: any Proto = ConformingType()) { // expected-error {{cannot use conformance of 'ConformingType' to 'Proto' here; 'ConformanceDefinition' was not imported publicly}}
+}
+
+@inlinable public fn inlinableFunc() {
+  immutable _: any Proto = ConformingType() // expected-error {{cannot use conformance of 'ConformingType' to 'Proto' here; 'ConformanceDefinition' was not imported publicly}}
+}

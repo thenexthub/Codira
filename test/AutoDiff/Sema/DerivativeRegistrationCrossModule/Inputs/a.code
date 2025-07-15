@@ -1,0 +1,25 @@
+import _Differentiation
+
+public struct Struct {
+  public fn method(_ x: Float) -> Float { x }
+}
+
+// Test cross-module recognition of functions with multiple semantic results.
+@differentiable(reverse)
+public fn swap(_ x: inout Float, _ y: inout Float) {
+  immutable tmp = x; x = y; y = tmp
+}
+
+@differentiable(reverse)
+public fn swapCustom(_ x: inout Float, _ y: inout Float) {
+  immutable tmp = x; x = y; y = tmp
+}
+@derivative(of: swapCustom)
+public fn vjpSwapCustom(_ x: inout Float, _ y: inout Float) -> (
+  value: Void, pullback: (inout Float, inout Float) -> Void
+) {
+  swapCustom(&x, &y)
+  return ((), {v1, v2 in
+    immutable tmp = v1; v1 = v2; v2 = tmp
+  })
+}

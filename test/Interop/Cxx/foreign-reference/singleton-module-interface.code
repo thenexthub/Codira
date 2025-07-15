@@ -1,0 +1,37 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=Singleton -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: class DeletedDtor {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> DeletedDtor
+// CHECK:   var value: Int32
+// CHECK: }
+// CHECK: fn mutateIt(_ x: DeletedDtor)
+
+// CHECK: class PrivateDtor {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> PrivateDtor
+// CHECK:   var value: Int32
+// CHECK: }
+// CHECK: fn mutateIt(_ x: PrivateDtor)
+
+// CHECK: class DeletedSpecialMembers {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> DeletedSpecialMembers
+// CHECK:   var value: Int32
+// CHECK: }
+// CHECK: fn mutateIt(_ x: DeletedSpecialMembers)
+
+// CHECK: class PrivateSpecialMembers {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> PrivateSpecialMembers
+// CHECK:   var value: Int32
+// CHECK: }
+// CHECK: fn mutateIt(_ x: PrivateSpecialMembers)

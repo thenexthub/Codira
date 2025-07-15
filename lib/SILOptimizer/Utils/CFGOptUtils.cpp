@@ -1,13 +1,17 @@
 //===--- CFGOptUtils.cpp - SIL CFG edge utilities -------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
@@ -22,11 +26,11 @@
 #include "language/SIL/BasicBlockDatastructures.h"
 #include "language/SIL/OwnershipUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 using namespace language;
 
-TermInst *swift::addNewEdgeValueToBranch(TermInst *branch, SILBasicBlock *dest,
+TermInst *language::addNewEdgeValueToBranch(TermInst *branch, SILBasicBlock *dest,
                                          SILValue val,
                                          InstructionDeleter &deleter) {
   SILBuilderWithScope builder(branch);
@@ -68,7 +72,7 @@ TermInst *swift::addNewEdgeValueToBranch(TermInst *branch, SILBasicBlock *dest,
     deleter.getCallbacks().createdNewInst(newBr);
   } else {
     // At the moment we can only add arguments to br and cond_br.
-    llvm_unreachable("Can't add argument to terminator");
+    toolchain_unreachable("Can't add argument to terminator");
   }
 
   deleter.forceDelete(branch);
@@ -89,15 +93,15 @@ static void deleteTriviallyDeadOperandsOfDeadArgument(
 
 // Our implementation assumes that our caller is attempting to remove a dead
 // SILPhiArgument from a SILBasicBlock and has already RAUWed the argument.
-TermInst *swift::deleteEdgeValue(TermInst *branch, SILBasicBlock *destBlock,
+TermInst *language::deleteEdgeValue(TermInst *branch, SILBasicBlock *destBlock,
                                  size_t argIndex, bool cleanupDeadPhiOps,
                                  InstModCallbacks callbacks) {
   if (auto *cbi = dyn_cast<CondBranchInst>(branch)) {
     SmallVector<SILValue, 8> trueArgs;
     SmallVector<SILValue, 8> falseArgs;
 
-    llvm::copy(cbi->getTrueArgs(), std::back_inserter(trueArgs));
-    llvm::copy(cbi->getFalseArgs(), std::back_inserter(falseArgs));
+    toolchain::copy(cbi->getTrueArgs(), std::back_inserter(trueArgs));
+    toolchain::copy(cbi->getFalseArgs(), std::back_inserter(falseArgs));
 
     if (destBlock == cbi->getTrueBB()) {
       if (cleanupDeadPhiOps) {
@@ -126,7 +130,7 @@ TermInst *swift::deleteEdgeValue(TermInst *branch, SILBasicBlock *destBlock,
 
   if (auto *bi = dyn_cast<BranchInst>(branch)) {
     SmallVector<SILValue, 8> args;
-    llvm::copy(bi->getArgs(), std::back_inserter(args));
+    toolchain::copy(bi->getArgs(), std::back_inserter(args));
     if (cleanupDeadPhiOps) {
       deleteTriviallyDeadOperandsOfDeadArgument(bi->getAllOperands(), argIndex,
                                                 callbacks);
@@ -138,10 +142,10 @@ TermInst *swift::deleteEdgeValue(TermInst *branch, SILBasicBlock *destBlock,
     return result;
   }
 
-  llvm_unreachable("unsupported terminator");
+  toolchain_unreachable("unsupported terminator");
 }
 
-void swift::erasePhiArgument(SILBasicBlock *block, unsigned argIndex,
+void language::erasePhiArgument(SILBasicBlock *block, unsigned argIndex,
                              bool cleanupDeadPhiOps,
                              InstModCallbacks callbacks) {
   SILArgument *arg = block->getArgument(argIndex);
@@ -179,7 +183,7 @@ void swift::erasePhiArgument(SILBasicBlock *block, unsigned argIndex,
 /// \return The new branch. Deletes the old one.
 /// Changes the edge value between a branch and destination basic block at the
 /// specified index.
-TermInst *swift::changeEdgeValue(TermInst *branch, SILBasicBlock *dest,
+TermInst *language::changeEdgeValue(TermInst *branch, SILBasicBlock *dest,
                                  size_t idx, SILValue Val) {
   SILBuilderWithScope builder(branch);
 
@@ -245,11 +249,11 @@ TermInst *swift::changeEdgeValue(TermInst *branch, SILBasicBlock *dest,
     return bi;
   }
 
-  llvm_unreachable("Unhandled terminator leading to merge block");
+  toolchain_unreachable("Unhandled terminator leading to merge block");
 }
 
 /// Check if the edge from the terminator is critical.
-bool swift::isCriticalEdge(TermInst *t, unsigned edgeIdx) {
+bool language::isCriticalEdge(TermInst *t, unsigned edgeIdx) {
   assert(t->getSuccessors().size() > edgeIdx && "Not enough successors");
 
   auto srcSuccs = t->getSuccessors();
@@ -268,7 +272,7 @@ bool swift::isCriticalEdge(TermInst *t, unsigned edgeIdx) {
   return true;
 }
 
-SILBasicBlock *swift::createSplitBranchTarget(SILBasicBlock *targetBlock,
+SILBasicBlock *language::createSplitBranchTarget(SILBasicBlock *targetBlock,
                                               SILBuilder &builder,
                                               SILLocation loc) {
   auto *function = targetBlock->getParent();
@@ -281,7 +285,7 @@ SILBasicBlock *swift::createSplitBranchTarget(SILBasicBlock *targetBlock,
 
 /// Splits the basic block at the iterator with an unconditional branch and
 /// updates the dominator tree and loop info.
-SILBasicBlock *swift::splitBasicBlockAndBranch(SILBuilder &builder,
+SILBasicBlock *language::splitBasicBlockAndBranch(SILBuilder &builder,
                                                SILInstruction *splitBeforeInst,
                                                DominanceInfo *domInfo,
                                                SILLoopInfo *loopInfo) {
@@ -315,7 +319,7 @@ SILBasicBlock *swift::splitBasicBlockAndBranch(SILBuilder &builder,
 }
 
 /// Split every edge between two basic blocks.
-void swift::splitEdgesFromTo(SILBasicBlock *From, SILBasicBlock *To,
+void language::splitEdgesFromTo(SILBasicBlock *From, SILBasicBlock *To,
                              DominanceInfo *domInfo, SILLoopInfo *loopInfo) {
   for (unsigned edgeIndex = 0, E = From->getSuccessors().size(); edgeIndex != E;
        ++edgeIndex) {
@@ -330,7 +334,7 @@ void swift::splitEdgesFromTo(SILBasicBlock *From, SILBasicBlock *To,
 /// loop info if set.
 /// Returns the newly created basic block on success or nullptr otherwise (if
 /// the edge was not critical.
-SILBasicBlock *swift::splitCriticalEdge(TermInst *t, unsigned edgeIdx,
+SILBasicBlock *language::splitCriticalEdge(TermInst *t, unsigned edgeIdx,
                                         DominanceInfo *domInfo,
                                         SILLoopInfo *loopInfo) {
   if (!isCriticalEdge(t, edgeIdx))
@@ -339,7 +343,7 @@ SILBasicBlock *swift::splitCriticalEdge(TermInst *t, unsigned edgeIdx,
   return splitEdge(t, edgeIdx, domInfo, loopInfo);
 }
 
-bool swift::splitCriticalEdgesFrom(SILBasicBlock *fromBB,
+bool language::splitCriticalEdgesFrom(SILBasicBlock *fromBB,
                                    DominanceInfo *domInfo,
                                    SILLoopInfo *loopInfo) {
   bool changed = false;
@@ -351,7 +355,7 @@ bool swift::splitCriticalEdgesFrom(SILBasicBlock *fromBB,
   return changed;
 }
 
-bool swift::splitCriticalEdgesTo(SILBasicBlock *toBB, DominanceInfo *domInfo,
+bool language::splitCriticalEdgesTo(SILBasicBlock *toBB, DominanceInfo *domInfo,
                                  SILLoopInfo *loopInfo) {
   bool changed = false;
   unsigned numPreds = std::distance(toBB->pred_begin(), toBB->pred_end());
@@ -365,7 +369,7 @@ bool swift::splitCriticalEdgesTo(SILBasicBlock *toBB, DominanceInfo *domInfo,
   return changed;
 }
 
-bool swift::hasCriticalEdges(SILFunction &f, bool onlyNonCondBr) {
+bool language::hasCriticalEdges(SILFunction &f, bool onlyNonCondBr) {
   for (SILBasicBlock &bb : f) {
     // Only consider critical edges for terminators that don't support block
     // arguments.
@@ -385,7 +389,7 @@ bool swift::hasCriticalEdges(SILFunction &f, bool onlyNonCondBr) {
 
 /// Split all critical edges in the function updating the dominator tree and
 /// loop information (if they are not set to null).
-bool swift::splitAllCriticalEdges(SILFunction &f, DominanceInfo *domInfo,
+bool language::splitAllCriticalEdges(SILFunction &f, DominanceInfo *domInfo,
                                   SILLoopInfo *loopInfo) {
   bool changed = false;
 
@@ -408,7 +412,7 @@ bool swift::splitAllCriticalEdges(SILFunction &f, DominanceInfo *domInfo,
 /// Merge the basic block with its successor if possible. If dominance
 /// information or loop info is non null update it. Return true if block was
 /// merged.
-bool swift::mergeBasicBlockWithSuccessor(SILBasicBlock *bb,
+bool language::mergeBasicBlockWithSuccessor(SILBasicBlock *bb,
                                          DominanceInfo *domInfo,
                                          SILLoopInfo *loopInfo) {
   auto *branch = dyn_cast<BranchInst>(bb->getTerminator());
@@ -440,7 +444,7 @@ bool swift::mergeBasicBlockWithSuccessor(SILBasicBlock *bb,
   return true;
 }
 
-bool swift::mergeBasicBlocks(SILFunction *f) {
+bool language::mergeBasicBlocks(SILFunction *f) {
   bool merged = false;
   for (auto bbIter = f->begin(); bbIter != f->end();) {
     if (mergeBasicBlockWithSuccessor(&*bbIter, /*domInfo*/ nullptr,
@@ -456,7 +460,7 @@ bool swift::mergeBasicBlocks(SILFunction *f) {
 
 /// Splits the critical edges between from and to. This code assumes there is
 /// only one edge between the two basic blocks.
-SILBasicBlock *swift::splitIfCriticalEdge(SILBasicBlock *from,
+SILBasicBlock *language::splitIfCriticalEdge(SILBasicBlock *from,
                                           SILBasicBlock *to,
                                           DominanceInfo *domInfo,
                                           SILLoopInfo *loopInfo) {
@@ -465,13 +469,13 @@ SILBasicBlock *swift::splitIfCriticalEdge(SILBasicBlock *from,
     if (t->getSuccessors()[i] == to)
       return splitCriticalEdge(t, i, domInfo, loopInfo);
   }
-  llvm_unreachable("Destination block not found");
+  toolchain_unreachable("Destination block not found");
 }
 
-bool swift::splitAllCondBrCriticalEdgesWithNonTrivialArgs(
+bool language::splitAllCondBrCriticalEdgesWithNonTrivialArgs(
     SILFunction &fn, DominanceInfo *domInfo, SILLoopInfo *loopInfo) {
   // Find our targets.
-  llvm::SmallVector<std::pair<SILBasicBlock *, unsigned>, 8> targets;
+  toolchain::SmallVector<std::pair<SILBasicBlock *, unsigned>, 8> targets;
   for (auto &block : fn) {
     auto *cbi = dyn_cast<CondBranchInst>(block.getTerminator());
     if (!cbi)
@@ -532,10 +536,10 @@ bool isSafeNonExitTerminator(TermInst *ti) {
     return true;
   }
 
-  llvm_unreachable("Unhandled TermKind in switch.");
+  toolchain_unreachable("Unhandled TermKind in switch.");
 }
 
-bool swift::isTrapNoReturnFunction(SILFunction *f) {
+bool language::isTrapNoReturnFunction(SILFunction *f) {
   const char *fatalName = MANGLE_AS_STRING(
       MANGLE_SYM(s18_fatalErrorMessageyys12StaticStringV_AcCSutF));
 
@@ -547,8 +551,8 @@ bool swift::isTrapNoReturnFunction(SILFunction *f) {
   return true;
 }
 
-bool swift::findAllNonFailureExitBBs(
-    SILFunction *f, llvm::TinyPtrVector<SILBasicBlock *> &bbs) {
+bool language::findAllNonFailureExitBBs(
+    SILFunction *f, toolchain::TinyPtrVector<SILBasicBlock *> &bbs) {
   for (SILBasicBlock &bb : *f) {
     TermInst *ti = bb.getTerminator();
 

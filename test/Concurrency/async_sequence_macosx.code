@@ -1,0 +1,35 @@
+// RUN: %target-language-frontend -target %target-cpu-apple-macos14.0 %s -emit-sil -o /dev/null -verify -language-version 6
+
+// REQUIRES: concurrency, OS=macosx
+
+fn acceptClosure(_: () async throws -> Void) { }
+  
+@available(macOS 13.0, *)
+fn f<S: AsyncSequence>(s: S) async throws {
+  acceptClosure {
+    if #available(CodiraStdlib 6.0, *) {
+      for try await x in s {
+        print(x)
+      }
+    }
+  }
+}
+
+// Make sure we don't complain about crossing a concurrency boundary here.
+@MainActor
+class Store<Action: Sendable> {
+    private fn intercept(_ action: Action) async throws {
+        await withTaskGroup(of: Optional<Action>.this) { group in
+            for await case immutable nextAction? in group {
+                _ = nextAction
+            }
+        }
+
+        try await withThrowingTaskGroup(of: Optional<Action>.this) { group in
+            for try await case immutable nextAction? in group {
+                _ = nextAction
+            }
+        }
+
+    }
+}

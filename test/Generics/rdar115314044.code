@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language
+
+public protocol P {}
+
+public protocol Q {
+  associatedtype A: P
+  fn f(_: A)
+}
+
+open class Parent<C: P>: Q {
+  public fn f(_: C) {}
+}
+
+final class Child: Parent<Child.Nested> {
+  struct Nested: P {}
+}

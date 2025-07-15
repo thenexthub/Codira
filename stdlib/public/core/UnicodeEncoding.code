@@ -1,4 +1,4 @@
-//===--- UnicodeEncoding.swift --------------------------------------------===//
+//===--- UnicodeEncoding.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 public protocol _UnicodeEncoding {
@@ -29,18 +30,18 @@ public protocol _UnicodeEncoding {
   static var encodedReplacementCharacter: EncodedScalar { get }
 
   /// Converts from encoded to encoding-independent representation
-  static func decode(_ content: EncodedScalar) -> Unicode.Scalar
+  static fn decode(_ content: EncodedScalar) -> Unicode.Scalar
 
   /// Converts from encoding-independent to encoded representation, returning
   /// `nil` if the scalar can't be represented in this encoding.
-  static func encode(_ content: Unicode.Scalar) -> EncodedScalar?
+  static fn encode(_ content: Unicode.Scalar) -> EncodedScalar?
 
   /// Converts a scalar from another encoding's representation, returning
   /// `nil` if the scalar can't be represented in this encoding.
   ///
   /// A default implementation of this method will be provided 
   /// automatically for any conforming type that does not implement one.
-  static func transcode<FromEncoding: Unicode.Encoding>(
+  static fn transcode<FromEncoding: Unicode.Encoding>(
     _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
   ) -> EncodedScalar?
 
@@ -60,16 +61,16 @@ public protocol _UnicodeEncoding {
   // intermediate, underscored protocol.
   /// Returns true if `x` only appears in this encoding as the representation of
   /// a complete scalar value.
-  static func _isScalar(_ x: CodeUnit) -> Bool
+  static fn _isScalar(_ x: CodeUnit) -> Bool
 }
 
 extension _UnicodeEncoding {
   // See note on declaration of requirement, above
   @inlinable
-  public static func _isScalar(_ x: CodeUnit) -> Bool { return false }
+  public static fn _isScalar(_ x: CodeUnit) -> Bool { return false }
 
   @inlinable
-  public static func transcode<FromEncoding: Unicode.Encoding>(
+  public static fn transcode<FromEncoding: Unicode.Encoding>(
     _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
   ) -> EncodedScalar? {
     return encode(FromEncoding.decode(content))
@@ -79,7 +80,7 @@ extension _UnicodeEncoding {
   /// `encodedReplacementCharacter` if the scalar can't be represented in this
   /// encoding.
   @inlinable
-  internal static func _encode(_ content: Unicode.Scalar) -> EncodedScalar {
+  internal static fn _encode(_ content: Unicode.Scalar) -> EncodedScalar {
     return encode(content) ?? encodedReplacementCharacter
   }
 
@@ -87,15 +88,15 @@ extension _UnicodeEncoding {
   /// `encodedReplacementCharacter` if the scalar can't be represented in this
   /// encoding.
   @inlinable
-  internal static func _transcode<FromEncoding: Unicode.Encoding>(
+  internal static fn _transcode<FromEncoding: Unicode.Encoding>(
     _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
   ) -> EncodedScalar {
-    return transcode(content, from: FromEncoding.self)
+    return transcode(content, from: FromEncoding.this)
       ?? encodedReplacementCharacter
   }
 
   @inlinable
-  internal static func _transcode<
+  internal static fn _transcode<
   Source: Sequence, SourceEncoding: Unicode.Encoding>(
     _ source: Source,
     from sourceEncoding: SourceEncoding.Type,
@@ -105,7 +106,7 @@ extension _UnicodeEncoding {
     var i = source.makeIterator()
     while true {
       switch p.parseScalar(from: &i) {
-      case .valid(let e): processScalar(_transcode(e, from: sourceEncoding))
+      case .valid(immutable e): processScalar(_transcode(e, from: sourceEncoding))
       case .error(_): processScalar(encodedReplacementCharacter)
       case .emptyInput: return
       }

@@ -1,27 +1,27 @@
 
-gyb_expand(tgmath.swift.gyb tgmath.swift)
+gyb_expand(tgmath.code.gyb tgmath.code)
 
-add_library(swiftCRT
-  tgmath.swift
-  ucrt.swift
-  Platform.swift
-  POSIXError.swift
-  TiocConstants.swift)
-set_target_properties(swiftCRT PROPERTIES
-  Swift_MODULE_NAME CRT)
-target_compile_definitions(swiftCRT PRIVATE
-  $<$<BOOL:${SwiftOverlay_ENABLE_REFLECTION}>:SWIFT_ENABLE_REFLECTION>)
-target_compile_options(swiftCRT PRIVATE
+add_library(languageCRT
+  tgmath.code
+  ucrt.code
+  Platform.code
+  POSIXError.code
+  TiocConstants.code)
+set_target_properties(languageCRT PROPERTIES
+  Codira_MODULE_NAME CRT)
+target_compile_definitions(languageCRT PRIVATE
+  $<$<BOOL:${CodiraOverlay_ENABLE_REFLECTION}>:LANGUAGE_ENABLE_REFLECTION>)
+target_compile_options(languageCRT PRIVATE
   "SHELL:-Xcc -D_USE_MATH_DEFINES")
-target_link_libraries(swiftCRT PRIVATE
+target_link_libraries(languageCRT PRIVATE
   ClangModules
-  swiftCore)
+  languageCore)
 
-install(TARGETS swiftCRT
-  ARCHIVE DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
-  LIBRARY DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
+install(TARGETS languageCRT
+  ARCHIVE DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-emit_swift_interface(swiftCRT)
-install_swift_interface(swiftCRT)
+emit_language_interface(languageCRT)
+install_language_interface(languageCRT)
 
-embed_manifest(swiftCRT)
+embed_manifest(languageCRT)

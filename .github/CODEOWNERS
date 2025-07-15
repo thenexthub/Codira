@@ -1,0 +1,325 @@
+# Lines starting with '#' are comments.
+# Each line is a case-sensitive file pattern followed by one or more owners.
+# Order is important. The last matching pattern has the most precedence.
+# More information: https://docs.github.com/en/articles/about-code-owners
+#
+# Please mirror the repository's file hierarchy in case-sensitive lexicographic
+# order.
+
+# TODO: /.clang-format
+
+/.clang-tidy      @egorzhdan
+
+/.dir-locals.el   @al45tair
+/.editorconfig    @hamishknight
+# TODO: /.flake8
+/.gitattributes   @shahmishal
+
+# .github
+/.github/                                 @shahmishal
+/.github/CODEOWNERS                       @AnthonyLatsis @shahmishal
+/.github/ISSUE_TEMPLATE/                  @AnthonyLatsis @hborla @shahmishal @xedin
+/.github/PULL_REQUEST_TEMPLATE.md         @AnthonyLatsis @hborla @shahmishal @xedin
+
+/.gitignore           @shahmishal
+# TODO: /.mailmap
+# TODO: /Brewfile
+/CHANGELOG.md         @hborla
+# TODO: /CMakeLists.txt
+/CODE_OF_CONDUCT.md   @languagelang/core-team
+/CODE_OWNERS.TXT      @languagelang/core-team
+/CONTRIBUTING.md      @AnthonyLatsis @xedin
+/LICENSE.txt          @languagelang/core-team
+# TODO: /README.md
+
+# Runtimes
+/Runtimes/**/*.cmake                                    @etcwilde @compnerd @edymtt @justice-adams-apple
+/Runtimes/**/CMakeLists.txt                             @etcwilde @compnerd @edymtt @justice-adams-apple
+/Runtimes/Core/cmake/caches/Vendors/Apple/              @etcwilde @shahmishal @edymtt @justice-adams-apple
+/Runtimes/Core/cmake/modules/ExperimentalFeatures.cmake @tshortli @etcwilde @compnerd @edymtt @justice-adams-apple
+
+# CodiraCompilerSources
+/CodiraCompilerSources                     @eeckstein
+
+# apinotes
+# TODO: /apinotes
+
+# benchmark
+/benchmark                                @eeckstein
+
+# bindings
+# TODO: /bindings
+
+# cmake
+/cmake/**/*Windows*                       @compnerd
+
+# docs
+/docs/ABI/                                @rjmccall
+/docs/ABI/*Mangling*                      @eeckstein
+/docs/ABI/GenericSignature.md             @slavapestov
+/docs/ABI/KeyPaths.md                     @jckarter
+/docs/ABI/RegisterUsage.md                @al45tair
+/docs/CrossCompilationModel.md            @MaxDesiatov
+/docs/Generics                            @slavapestov
+/docs/HowToGuides/                        @AnthonyLatsis @xedin
+/docs/Optimizer*                          @eeckstein
+/docs/SIL*                                @jckarter
+/docs/Windows*                            @compnerd
+
+# include
+/include/language-c/DependencyScan/                   @artemcm @cachemeifyoucan
+/include/language/*Demangl*/                          @rjmccall
+/include/language/AST/                                @hborla @slavapestov @xedin
+/include/language/AST/*Availability*                  @tshortli
+/include/language/AST/*Conformance*                   @slavapestov
+/include/language/AST/*Demangl*                       @rjmccall
+/include/language/AST/*Distributed*                   @ktoso
+/include/language/AST/*Generic*                       @hborla @slavapestov
+/include/language/AST/*Protocol*                      @hborla @slavapestov
+/include/language/AST/*Requirement*                   @hborla @slavapestov
+/include/language/AST/*Substitution*                  @slavapestov
+/include/language/AST/DiagnosticGroup*                @DougGregor
+/include/language/AST/DiagnosticsClangImporter.def    @zoecarver @egorzhdan @beccadax @ian-twilightcoder @Xazax-hun @j-hui @fahadnayyar @susmonteiro
+/include/language/AST/DiagnosticsDriver.def           @artemcm
+/include/language/AST/DiagnosticsFrontend.def         @artemcm @tshortli
+/include/language/AST/DiagnosticsIDE.def              @bnbarham @hamishknight @rintaro
+/include/language/AST/DiagnosticsIRGen.def            @rjmccall
+/include/language/AST/DiagnosticsModuleDiffer.def     @nkcsgexi
+/include/language/AST/DiagnosticsParse.def            @bnbarham @CodaFi @DougGregor @hamishknight @rintaro
+/include/language/AST/DiagnosticsRefactoring.def      @bnbarham @hamishknight @rintaro
+/include/language/AST/DiagnosticsSIL.def              @jckarter
+/include/language/AST/Evaluator*                      @CodaFi @slavapestov
+/include/language/Basic/                              @DougGregor
+/include/language/Basic/Features.def                  @DougGregor @hborla
+/include/language/ClangImporter                       @zoecarver @egorzhdan @beccadax @ian-twilightcoder @Xazax-hun @j-hui @fahadnayyar @susmonteiro
+/include/language/DependencyScan                      @artemcm @cachemeifyoucan
+/include/language/Driver*/                            @artemcm
+/include/language/Frontend*/                          @artemcm @tshortli
+/include/language/IDE/                                @bnbarham @hamishknight @rintaro
+/include/language/IRGen/                              @rjmccall
+/include/language/Index/                              @bnbarham @hamishknight @rintaro
+/include/language/Markup/                             @nkcsgexi
+/include/language/Migrator/                           @nkcsgexi
+/include/language/Option/*Options*                    @tshortli
+/include/language/Parse/                              @bnbarham @CodaFi @DougGregor @hamishknight @rintaro
+/include/language/PrintAsClang                        @zoecarver @egorzhdan @Xazax-hun @j-hui @fahadnayyar @susmonteiro
+/include/language/Refactoring                         @bnbarham @hamishknight @rintaro
+/include/language/Runtime/                            @rjmccall @compnerd
+/include/language/SIL/                                @jckarter
+/include/language/SIL/*Coverage*                      @bnbarham @hamishknight @rintaro
+/include/language/SIL/*DebugInfo*                     @adrian-prantl
+/include/language/SIL/SILDebug*                       @adrian-prantl
+/include/language/SIL/SILProfiler.h                   @bnbarham @hamishknight @rintaro
+/include/language/SILOptimizer/                       @eeckstein
+/include/language/SILOptimizer/Utils/Distributed*     @ktoso
+/include/language/Sema/                               @hborla @slavapestov @xedin
+/include/language/Sema/CS*                            @hborla @xedin
+/include/language/Sema/Constraint*                    @hborla @xedin
+/include/language/Serialization/                      @xymus
+/include/language/Serialization/SerializedModuleLoader* @artemcm
+/include/language/CodiraRemoteMirror/                  @slavapestov
+/include/language/SymbolGraphGen/                     @QuietMisdreavus
+/include/language/Threading                           @al45tair
+
+# lib
+/lib/*Demangl*/                                     @rjmccall
+/lib/AST/                                           @hborla @slavapestov @xedin
+/lib/AST/*Availability*                             @tshortli
+/lib/AST/*Conformance*                              @slavapestov
+/lib/AST/*Demangl*                                  @rjmccall
+/lib/AST/*Generic*                                  @hborla @slavapestov
+/lib/AST/*Requirement*                              @hborla @slavapestov
+/lib/AST/*Substitution                              @slavapestov
+/lib/AST/ASTPrinter.cpp                             @hborla @slavapestov @xedin @tshortli
+/lib/AST/Evaluator*                                 @CodaFi @slavapestov
+/lib/AST/ModuleLoader.cpp                           @artemcm
+/lib/AST/RequirementMachine/                        @slavapestov
+/lib/ASTGen/                                        @bnbarham @CodaFi @hamishknight @rintaro
+/lib/Basic/                                         @DougGregor
+/lib/Basic/Windows                                  @compnerd
+/lib/ClangImporter                                  @zoecarver @egorzhdan @beccadax @ian-twilightcoder @Xazax-hun @j-hui @fahadnayyar @susmonteiro
+/lib/ClangImporter/DWARFImporter*                   @adrian-prantl
+/lib/DependencyScan                                 @artemcm @cachemeifyoucan
+/lib/Driver*/                                       @artemcm
+/lib/DriverTool/autolink_extract_main.cpp           @MaxDesiatov @etcwilde
+/lib/DriverTool/sil*                                @jckarter
+/lib/DriverTool/sil_opt*                            @eeckstein
+/lib/DriverTool/language_symbolgraph_extract_main.cpp  @QuietMisdreavus
+/lib/Frontend*/                                     @artemcm @tshortli
+/lib/IDE/                                           @bnbarham @hamishknight @rintaro
+/lib/IDETool/                                       @bnbarham @hamishknight @rintaro
+/lib/IRGen/                                         @rjmccall
+/lib/IRGen/*Coverage*                               @bnbarham @hamishknight @rintaro
+/lib/IRGen/*Debug*                                  @adrian-prantl
+/lib/IRGen/*Distributed*                            @ktoso
+/lib/Index/                                         @bnbarham @hamishknight @rintaro
+/lib/Macros/Sources/CodiraMacros/Codiraify*           @hnrklssn @Xazax-hun
+/lib/Markup/                                        @nkcsgexi
+/lib/Migrator/                                      @nkcsgexi
+/lib/Parse/                                         @bnbarham @CodaFi @DougGregor @hamishknight @rintaro
+/lib/PrintAsClang                                   @zoecarver @egorzhdan @Xazax-hun @j-hui @fahadnayyar @susmonteiro
+/lib/Refactoring/                                   @bnbarham @hamishknight @rintaro
+/lib/SIL/                                           @jckarter
+/lib/SIL/**/*DebugInfo*                             @adrian-prantl
+/lib/SIL/IR/*Coverage*                              @bnbarham @hamishknight @rintaro
+/lib/SIL/IR/SILDebug*                               @adrian-prantl
+/lib/SIL/IR/SILLocation*                            @adrian-prantl
+/lib/SIL/IR/SILProfiler.cpp                         @bnbarham @hamishknight @rintaro
+/lib/SILGen/                                        @jckarter
+/lib/SILGen/*Availability*                          @tshortli
+/lib/SILGen/*Distributed*                           @ktoso
+/lib/SILOptimizer/                                  @eeckstein
+/lib/SILOptimizer/**/*DebugInfo*                    @adrian-prantl
+/lib/SILOptimizer/Mandatory/ConsumeOperator*        @kavon
+/lib/SILOptimizer/Mandatory/FlowIsolation.cpp       @kavon
+/lib/SILOptimizer/Mandatory/MoveOnly*               @kavon
+/lib/SILOptimizer/Utils/Distributed*                @ktoso
+/lib/Sema/                                          @hborla @slavapestov @xedin
+/lib/Sema/*Availability*                            @tshortli
+/lib/Sema/CS*                                       @hborla @xedin
+/lib/Sema/CodeSynthesisDistributed*                 @hborla @ktoso
+/lib/Sema/Constraint*                               @hborla @xedin
+/lib/Sema/DerivedConformance*                       @slavapestov
+/lib/Sema/DerivedConformanceDistributed*            @ktoso @slavapestov
+/lib/Sema/OpenedExistentials*                       @AnthonyLatsis @slavapestov
+/lib/Sema/TypeCheckDistributed*                     @hborla @ktoso @xedin
+/lib/Sema/TypeCheckProtocol*                        @AnthonyLatsis @hborla @slavapestov
+/lib/Sema/TypeCheckType*                            @AnthonyLatsis @hborla @slavapestov @xedin
+/lib/Serialization/                                 @xymus
+/lib/Serialization/SerializedModuleLoader*          @artemcm
+/lib/CodiraRemoteMirror/                             @slavapestov
+/lib/SymbolGraphGen                                 @QuietMisdreavus
+/lib/Threading                                      @al45tair
+
+# localization
+# TODO: /localization
+
+# stdlib
+/stdlib/                                  @languagelang/standard-librarians
+/stdlib/private/*Runtime*/                @rjmccall
+/stdlib/private/DifferentiationUnittest/  @asl
+/stdlib/private/CodiraReflectionTest/      @slavapestov
+/stdlib/public/core/Codiraify*             @hnrklssn @Xazax-hun
+/stdlib/public/*Demangl*/                 @rjmccall
+/stdlib/public/Concurrency/               @ktoso
+/stdlib/public/Cxx/                       @zoecarver @egorzhdan @Xazax-hun @j-hui @fahadnayyar @susmonteiro
+/stdlib/public/Differentiation/           @asl
+/stdlib/public/Distributed/               @ktoso
+/stdlib/public/Observation/               @phausler
+/stdlib/public/RuntimeModule/             @al45tair @mikeash
+/stdlib/public/CodiraRemoteMirror/         @slavapestov
+/stdlib/public/Threading/                 @al45tair
+/stdlib/public/Windows/                   @compnerd
+/stdlib/public/libexec/language-backtrace/   @al45tair
+/stdlib/public/runtime/                   @mikeash @al45tair
+/stdlib/tools/language-reflection-test/      @slavapestov
+
+# test
+/test/*Demangl*/                                    @rjmccall
+/test/Availability/                                 @tshortli
+/test/ASTGen/                                       @bnbarham @CodaFi @hamishknight @rintaro
+/test/AutoDiff/                                     @asl
+/test/Concurrency/                                  @ktoso
+/test/Constraints/                                  @hborla @xedin
+/test/DebugInfo/                                    @adrian-prantl
+/test/Distributed/                                  @ktoso
+/test/Driver/                                       @artemcm
+/test/Driver/static*                                @MaxDesiatov @etcwilde
+/test/Frontend/                                     @artemcm @tshortli
+/test/Generics/                                     @hborla @slavapestov
+/test/Generics/inverse*                             @kavon
+/test/IDE/                                          @bnbarham @hamishknight @rintaro
+/test/IRGen/                                        @AnthonyLatsis @rjmccall
+/test/Index/                                        @bnbarham @hamishknight @rintaro
+/test/Interop/                                      @zoecarver @egorzhdan @Xazax-hun @j-hui @fahadnayyar @susmonteiro @hnrklssn
+/test/Macros/CodiraifyImport                         @hnrklssn @Xazax-hun
+/test/Migrator/                                     @nkcsgexi
+/test/Parse/                                        @bnbarham @CodaFi @DougGregor @hamishknight @rintaro
+/test/Profiler                                      @bnbarham @hamishknight @rintaro
+/test/Reflection/                                   @slavapestov
+/test/Runtime/                                      @rjmccall
+/test/SIL/                                          @jckarter
+/test/SILGen/                                       @jckarter
+/test/SILOptimizer/                                 @eeckstein
+/test/SILOptimizer/moveonly*                        @kavon
+/test/SILOptimizer/noimplicitcopy*                  @kavon
+/test/ScanDependencies/                             @artemcm
+/test/Sema/                                         @hborla @slavapestov @xedin
+/test/Sema/moveonly*                                @kavon
+/test/Serialization/                                @xymus
+/test/SourceKit/                                    @bnbarham @hamishknight @rintaro
+/test/SymbolGraph/                                  @QuietMisdreavus
+/test/abi/                                          @languagelang/standard-librarians
+/test/decl/                                         @hborla @slavapestov
+/test/decl/protocol/                                @AnthonyLatsis @hborla @slavapestov
+# FIXME: This file could have a dedicated directory.
+/test/decl/protocol/special/DistributedActor.code  @ktoso
+/test/expr/                                         @hborla @slavapestov @xedin
+/test/refactoring/                                  @bnbarham @hamishknight @rintaro
+/test/sil*                                          @jckarter
+/test/sil-opt*                                      @eeckstein
+/test/stdlib/                                       @languagelang/standard-librarians
+/test/stmt/                                         @hborla @xedin
+/test/type/                                         @hborla @slavapestov @xedin
+
+# tools
+# TODO: /tools
+/tools/*reflection/                                 @slavapestov
+/tools/SourceKit                                    @bnbarham @hamishknight @rintaro
+/tools/driver/                                      @artemcm
+/tools/lldb-moduleimport-test/                      @adrian-prantl
+/tools/language-demangle*                              @rjmccall
+/tools/language-ide-test                               @bnbarham @hamishknight @rintaro
+/tools/language-inspect                                @mikeash @al45tair @compnerd
+/tools/language-refactor                               @bnbarham @hamishknight @rintaro
+
+# unittests
+/unittests/*Demangl*/                     @rjmccall
+/unittests/AST/                           @hborla @slavapestov @xedin
+/unittests/AST/*Evaluator*                @CodaFi @slavapestov
+/unittests/DependencyScan/                @artemcm @cachemeifyoucan
+/unittests/Frontend*/                     @artemcm @tshortli
+/unittests/Parse/                         @bnbarham @CodaFi @DougGregor @hamishknight @rintaro
+/unittests/Reflection/                    @slavapestov
+/unittests/SIL/                           @jckarter
+/unittests/Sema/                          @hborla @xedin
+/unittests/SourceKit/                     @bnbarham @rintaro @hamishknight
+/unittests/runtime/                       @rjmccall
+
+# userdocs
+# TODO: /userdocs
+
+# utils
+/utils/*windows*                                              @compnerd
+/utils/build.ps1                                              @compnerd
+/utils/build_language/                                           @etcwilde @justice-adams-apple @shahmishal
+/utils/generate-xcode                                         @hamishknight
+/utils/gyb_sourcekit_support/                                 @bnbarham @hamishknight @rintaro
+/utils/sourcekit_fuzzer/                                      @bnbarham @hamishknight @rintaro
+/utils/language-xcodegen/                                        @hamishknight
+/utils/language_build_support/                                   @etcwilde @justice-adams-apple @shahmishal
+/utils/language_build_support/products/earlylanguagesyntax.py       @bnbarham @hamishknight @rintaro
+/utils/language_build_support/products/skstresstester.py         @bnbarham @hamishknight @rintaro
+/utils/language_build_support/products/sourcekitlsp.py           @bnbarham @hamishknight @rintaro
+/utils/language_build_support/products/languageformat.py            @allevato @bnbarham @hamishknight @rintaro
+/utils/language_build_support/products/languagesyntax.py            @bnbarham @hamishknight @rintaro
+/utils/language_build_support/products/wasm*                     @bnbarham @MaxDesiatov @kateinoigakukun
+/utils/language_build_support/products/wasi*                     @bnbarham @MaxDesiatov @kateinoigakukun
+/utils/update-checkout*                                       @etcwilde @justice-adams-apple @shahmishal
+/utils/update_checkout/                                       @etcwilde @justice-adams-apple @shahmishal
+/utils/update_checkout/update-checkout-config.json            @shahmishal
+/utils/vim/                                                   @compnerd
+
+# validation-test
+/validation-test/Driver/                  @artemcm
+/validation-test/IDE/                     @bnbarham @rintaro @hamishknight
+/validation-test/IRGen/                   @rjmccall
+/validation-test/Parse/                   @bnbarham @CodaFi @DougGregor @hamishknight @rintaro
+/validation-test/Reflection/              @slavapestov
+/validation-test/Runtime/                 @rjmccall
+/validation-test/SIL/                     @jckarter
+/validation-test/SILGen/                  @jckarter
+/validation-test/SILOptimizer/            @eeckstein
+/validation-test/Sema/                    @hborla @slavapestov @xedin
+/validation-test/Serialization/           @xymus
+/validation-test/stdlib/                  @languagelang/standard-librarians

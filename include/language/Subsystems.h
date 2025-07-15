@@ -1,4 +1,4 @@
-//===--- Subsystems.h - Swift Compiler Subsystem Entrypoints ----*- C++ -*-===//
+//===--- Subsystems.h - Codira Compiler Subsystem Entrypoints ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,30 +11,31 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file declares the main entrypoints to the various subsystems.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SUBSYSTEMS_H
-#define SWIFT_SUBSYSTEMS_H
+#ifndef LANGUAGE_SUBSYSTEMS_H
+#define LANGUAGE_SUBSYSTEMS_H
 
 #include "language/AST/TBDGenRequests.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/PrimarySpecificPaths.h"
 #include "language/Basic/Version.h"
 #include "language/Frontend/Frontend.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/Mutex.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/Mutex.h"
 
 #include <memory>
 
-namespace llvm {
+namespace toolchain {
   class raw_pwrite_stream;
   class GlobalVariable;
   class MemoryBuffer;
@@ -214,7 +215,7 @@ namespace language {
   /// SIL of all files in the module is present in the SILModule.
   std::unique_ptr<SILModule>
   performASTLowering(CompilerInstance &CI,
-                     llvm::SmallVector<SymbolSource, 1> Sources);
+                     toolchain::SmallVector<SymbolSource, 1> Sources);
 
   /// Turn a source file into SIL IR.
   std::unique_ptr<SILModule>
@@ -239,17 +240,17 @@ namespace language {
   /// exactly what was written.
   void serializeToBuffers(ModuleOrSourceFile DC,
                           const SerializationOptions &opts,
-                          std::unique_ptr<llvm::MemoryBuffer> *moduleBuffer,
-                          std::unique_ptr<llvm::MemoryBuffer> *moduleDocBuffer,
-                          std::unique_ptr<llvm::MemoryBuffer> *moduleSourceInfoBuffer,
+                          std::unique_ptr<toolchain::MemoryBuffer> *moduleBuffer,
+                          std::unique_ptr<toolchain::MemoryBuffer> *moduleDocBuffer,
+                          std::unique_ptr<toolchain::MemoryBuffer> *moduleSourceInfoBuffer,
                           const SILModule *M = nullptr);
 
   /// Get the CPU, subtarget feature options, and triple to use when emitting code.
-  std::tuple<llvm::TargetOptions, std::string, std::vector<std::string>,
+  std::tuple<toolchain::TargetOptions, std::string, std::vector<std::string>,
              std::string>
   getIRTargetOptions(const IRGenOptions &Opts, ASTContext &Ctx);
 
-  /// Turn the given Swift module into LLVM IR and return the generated module.
+  /// Turn the given Codira module into LLVM IR and return the generated module.
   /// To compile and output the generated code, call \c performLLVM.
   GeneratedModule
   performIRGeneration(ModuleDecl *M, const IRGenOptions &Opts,
@@ -257,9 +258,9 @@ namespace language {
                       std::unique_ptr<SILModule> SILMod,
                       StringRef ModuleName, const PrimarySpecificPaths &PSPs,
                       ArrayRef<std::string> parallelOutputFilenames,
-                      llvm::GlobalVariable **outModuleHash = nullptr);
+                      toolchain::GlobalVariable **outModuleHash = nullptr);
 
-  /// Turn the given Swift file into LLVM IR and return the generated module.
+  /// Turn the given Codira file into LLVM IR and return the generated module.
   /// To compile and output the generated code, call \c performLLVM.
   GeneratedModule
   performIRGeneration(FileUnit *file, const IRGenOptions &Opts, 
@@ -267,36 +268,36 @@ namespace language {
                       std::unique_ptr<SILModule> SILMod,
                       StringRef ModuleName, const PrimarySpecificPaths &PSPs,
                       StringRef PrivateDiscriminator,
-                      llvm::GlobalVariable **outModuleHash = nullptr);
+                      toolchain::GlobalVariable **outModuleHash = nullptr);
 
   /// Given an already created LLVM module, construct a pass pipeline and run
-  /// the Swift LLVM Pipeline upon it. This will include the emission of LLVM IR
+  /// the Codira LLVM Pipeline upon it. This will include the emission of LLVM IR
   /// if requested (\out is not null).
   void performLLVMOptimizations(const IRGenOptions &Opts,
                                 DiagnosticEngine &Diags,
-                                llvm::sys::Mutex *DiagMutex,
-                                llvm::Module *Module,
-                                llvm::TargetMachine *TargetMachine,
-                                llvm::raw_pwrite_stream *out);
+                                toolchain::sys::Mutex *DiagMutex,
+                                toolchain::Module *Module,
+                                toolchain::TargetMachine *TargetMachine,
+                                toolchain::raw_pwrite_stream *out);
 
   /// Compiles and writes the given LLVM module into an output stream in the
   /// format specified in the \c IRGenOptions.
-  bool compileAndWriteLLVM(llvm::Module *module,
-                           llvm::TargetMachine *targetMachine,
+  bool compileAndWriteLLVM(toolchain::Module *module,
+                           toolchain::TargetMachine *targetMachine,
                            const IRGenOptions &opts,
                            UnifiedStatsReporter *stats, DiagnosticEngine &diags,
-                           llvm::raw_pwrite_stream &out,
-                           llvm::sys::Mutex *diagMutex = nullptr,
-                           llvm::raw_pwrite_stream *casid = nullptr);
+                           toolchain::raw_pwrite_stream &out,
+                           toolchain::sys::Mutex *diagMutex = nullptr,
+                           toolchain::raw_pwrite_stream *casid = nullptr);
 
-  /// Wrap a serialized module inside a swift AST section in an object file.
-  void createSwiftModuleObjectFile(SILModule &SILMod, StringRef Buffer,
+  /// Wrap a serialized module inside a language AST section in an object file.
+  void createCodiraModuleObjectFile(SILModule &SILMod, StringRef Buffer,
                                    StringRef OutputPath);
 
   /// Turn the given LLVM module into native code and return true on error.
   bool performLLVM(const IRGenOptions &Opts,
                    ASTContext &Ctx,
-                   llvm::Module *Module,
+                   toolchain::Module *Module,
                    StringRef OutputFilename);
 
   bool writeEmptyOutputFilesFor(
@@ -317,22 +318,22 @@ namespace language {
   /// \param Backend OutputBackend for writing output.
   bool performLLVM(const IRGenOptions &Opts,
                    DiagnosticEngine &Diags,
-                   llvm::sys::Mutex *DiagMutex,
-                   llvm::GlobalVariable *HashGlobal,
-                   llvm::Module *Module,
-                   llvm::TargetMachine *TargetMachine,
+                   toolchain::sys::Mutex *DiagMutex,
+                   toolchain::GlobalVariable *HashGlobal,
+                   toolchain::Module *Module,
+                   toolchain::TargetMachine *TargetMachine,
                    StringRef OutputFilename,
-                   llvm::vfs::OutputBackend &Backend,
+                   toolchain::vfs::OutputBackend &Backend,
                    UnifiedStatsReporter *Stats);
 
   /// Dump YAML describing all fixed-size types imported from the given module.
   bool performDumpTypeInfo(const IRGenOptions &Opts, SILModule &SILMod);
 
   /// Dump DeclContext hierarchy of the all nodes in \c SF .
-  void dumpDeclContextHierarchy(llvm::raw_ostream &OS, SourceFile &SF);
+  void dumpDeclContextHierarchy(toolchain::raw_ostream &OS, SourceFile &SF);
 
   /// Creates a TargetMachine from the IRGen opts and AST Context.
-  std::unique_ptr<llvm::TargetMachine>
+  std::unique_ptr<toolchain::TargetMachine>
   createTargetMachine(const IRGenOptions &Opts, ASTContext &Ctx);
 
   /// A convenience wrapper for Parser functionality.
@@ -431,4 +432,4 @@ namespace language {
 
 } // end namespace language
 
-#endif // SWIFT_SUBSYSTEMS_H
+#endif // LANGUAGE_SUBSYSTEMS_H

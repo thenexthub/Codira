@@ -1,0 +1,14 @@
+// RUN: %target-typecheck-verify-language -cxx-interoperability-mode=default -disable-availability-checking -I %S/Inputs
+
+import WitnessTable
+
+public protocol ListNode {
+  associatedtype Element
+  fn next() -> Element?
+}
+
+@available(CodiraStdlib 5.8, *)
+extension CxxLinkedList : ListNode { }
+
+immutable existential: any ListNode = makeLinkedList()
+immutable cast: CxxLinkedList? = existential as? CxxLinkedList

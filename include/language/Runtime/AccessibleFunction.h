@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The runtime interface for functions accessible by name.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_ACCESSIBLE_FUNCTION_H
-#define SWIFT_RUNTIME_ACCESSIBLE_FUNCTION_H
+#ifndef LANGUAGE_RUNTIME_ACCESSIBLE_FUNCTION_H
+#define LANGUAGE_RUNTIME_ACCESSIBLE_FUNCTION_H
 
 #include "language/ABI/Metadata.h"
 
@@ -27,9 +28,9 @@
 namespace language {
 namespace runtime {
 
-SWIFT_RUNTIME_STDLIB_SPI
+LANGUAGE_RUNTIME_STDLIB_SPI
 const AccessibleFunctionRecord *
-swift_findAccessibleFunction(const char *targetNameStart,
+language_findAccessibleFunction(const char *targetNameStart,
                              size_t targetNameLength);
 
 } // end namespace runtime

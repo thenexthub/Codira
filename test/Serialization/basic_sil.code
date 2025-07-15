@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -Xtoolchain -sil-disable-pass=simplification -emit-module -Xfrontend -disable-diagnostic-passes -whole-module-optimization -Xfrontend -enable-objc-interop -o %t/def_basic.codemodule %S/Inputs/def_basic.sil
+// RUN: toolchain-bcanalyzer %t/def_basic.codemodule | %FileCheck %s
+// RUN: %target-build-language -Xtoolchain -sil-print-types -emit-sil -I %t %s -o %t/basic_sil.sil
+// RUN: %target-sil-opt -sil-print-types -parse-serialized-sil -I %t %t/basic_sil.sil -performance-linker | %FileCheck %S/Inputs/def_basic.sil
+
+// This test currently is written such that no optimizations are assumed.
+// REQUIRES: language_test_mode_optimize_none
+
+// CHECK-NOT: UnknownCode
+
+// Inputs/def_basic.sil is based on basic.sil under test/SIL/Parser.
+
+import def_basic
+
+fn test_all() {
+  serialize_all()
+}

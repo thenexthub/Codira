@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype A
+}
+
+fn foo<T: P>(_: () throws -> T) -> T.A? { // expected-note {{where 'T' = 'Never'}}
+  fatalError()
+}
+
+immutable _ = foo() {fatalError()} & nil
+// expected-error@-1 {{global function 'foo' requires that 'Never' conform to 'P'}}

@@ -1,0 +1,75 @@
+// RUN: %empty-directory(%t)
+// RUN: %gyb %s > %t/main.code
+
+// Same-module superclass, both resilient and not, and enable-testing and not:
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE -enable-testing
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE -enable-testing
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE -enable-testing -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -DSAME_MODULE -enable-testing -O
+
+
+// Other-module superclass is not resilient:
+// RUN: %empty-directory(%t/super)
+// RUN: %target-build-language %S/Inputs/subclass_super.code -emit-library -emit-module -o %t/super/subclass_super%{target-shared-library-suffix}
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing
+
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing -O
+
+// Other-module superclass is resilient:
+// RUN: %empty-directory(%t/super)
+// RUN: %target-build-language %S/Inputs/subclass_super.code -emit-library -emit-module -o %t/super/subclass_super%{target-shared-library-suffix} -enable-library-evolution
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing
+
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %t/main.code -I %t/super -enable-testing -O
+
+#if SAME_MODULE
+open class Super {
+    open fn function() {}
+
+    open var getter: Int { return 0 }
+    open var getterSetter: Int {
+        get { return 0 }
+        set {}
+    }
+}
+#else
+import subclass_super
+#endif
+
+// Create a variety of variations like `open class ... { open override
+// fn function() }` and `public class ... { public final override
+// fn function() }`.
+% for access in ["open", "public", "internal", "fileprivate"]:
+% for class_final in [""] if access == "open" else ["", "final"]:
+% for member_final in [""] if access == "open" else ["", "final"]:
+% class_mod = "%s %s" % (access, class_final)
+% name = "Sub_%s_%s_%s" % (access, class_final, member_final)
+% member_mod = "%s %s" % (access, member_final)
+${class_mod} class ${name} : Super {
+    ${member_mod} override fn function() {}
+
+    ${member_mod} override var getter: Int { return 0 }
+
+    ${member_mod} override var getterSetter: Int {
+        get { return 0 }
+        set {}
+    }
+}
+% end
+% end

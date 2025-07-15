@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for performing top-level name lookup into a
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_MODULE_NAME_LOOKUP_H
-#define SWIFT_AST_MODULE_NAME_LOOKUP_H
+#ifndef LANGUAGE_AST_MODULE_NAME_LOOKUP_H
+#define LANGUAGE_AST_MODULE_NAME_LOOKUP_H
 
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Module.h"
 #include "language/Basic/SourceLoc.h"
@@ -45,7 +46,7 @@ enum class ResolutionKind {
   MacrosOnly,
 };
 
-void simple_display(llvm::raw_ostream &out, ResolutionKind kind);
+void simple_display(toolchain::raw_ostream &out, ResolutionKind kind);
 
 /// Performs a lookup into the given module and it's imports.
 ///

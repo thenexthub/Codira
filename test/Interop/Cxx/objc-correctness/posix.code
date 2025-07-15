@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=language-5.9 %s
+// REQUIRES: objc_interop
+
+import MockPOSIX
+
+immutable _ = in_addr(s_addr: INADDR_ANY)

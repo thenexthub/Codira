@@ -1,0 +1,5 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t/Hello.codeinterface -module-name Hello -module-abi-name Goodbye %s
+// RUN: %FileCheck %s < %t/Hello.codeinterface
+
+// CHECK: -module-abi-name Goodbye

@@ -1,3 +1,0 @@
-Name: Dependency
-Cflags: -I/path/to/dependency/include
-Libs: -L/path/to/dependency/lib

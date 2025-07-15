@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+
+// Check if fragile Codira interface with struct extensions can be reparsed:
+// RUN: %target-language-frontend -language-version 5 -typecheck -emit-module-interface-path %t/UsesCxxStruct.codeinterface %s -I %S/Inputs -language-version 5 -cxx-interoperability-mode=default %S/Inputs/namespace-extension-lib.code
+// RUN: %target-language-frontend -language-version 5 -typecheck-module-from-interface  %t/UsesCxxStruct.codeinterface -I %S/Inputs -cxx-interoperability-mode=default
+// RUN: %FileCheck --input-file=%t/UsesCxxStruct.codeinterface %s
+
+// The textual module interface should not contain the C++ interop flag, but it
+// should record the C++ interop version it was built with (the formal version):
+// CHECK-NOT: -enable-experimental-cxx-interop
+// CHECK-NOT: -cxx-interoperability-mode
+// CHECK:     -formal-cxx-interoperability-mode=
+
+// Check if resilient Codira interface with builtin type extensions can be reparsed:
+// RUN: %target-language-emit-module-interface(%t/ResilientStruct.codeinterface) %s -I %S/Inputs -enable-library-evolution -language-version 5 -cxx-interoperability-mode=default %S/Inputs/namespace-extension-lib.code -DRESILIENT
+// RUN: %target-language-typecheck-module-from-interface(%t/ResilientStruct.codeinterface) -I %S/Inputs -DRESILIENT -cxx-interoperability-mode=default
+// RUN: %FileCheck --input-file=%t/ResilientStruct.codeinterface %s
+
+import Namespaces
+
+var x: Namespace.Parent? = nil

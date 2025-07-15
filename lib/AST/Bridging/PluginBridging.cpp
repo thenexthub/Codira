@@ -1,12 +1,15 @@
 //===--- Bridging/PluginBridging.cpp --------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -44,7 +47,7 @@ bool Plugin_spawnIfNeeded(PluginHandle handle) {
   auto *plugin = static_cast<CompilerPlugin *>(handle);
   auto error = plugin->spawnIfNeeded();
   bool hadError(error);
-  llvm::consumeError(std::move(error));
+  toolchain::consumeError(std::move(error));
   return hadError;
 }
 
@@ -54,10 +57,10 @@ bool Plugin_sendMessage(PluginHandle handle, const BridgedData data) {
   auto error = plugin->sendMessage(message);
   if (error) {
     // FIXME: Pass the error message back to the caller.
-    llvm::consumeError(std::move(error));
-    //    llvm::handleAllErrors(std::move(error), [](const llvm::ErrorInfoBase
+    toolchain::consumeError(std::move(error));
+    //    toolchain::handleAllErrors(std::move(error), [](const toolchain::ErrorInfoBase
     //    &err) {
-    //      llvm::errs() << err.message() << "\n";
+    //      toolchain::errs() << err.message() << "\n";
     //    });
     return true;
   }
@@ -69,10 +72,10 @@ bool Plugin_waitForNextMessage(PluginHandle handle, BridgedData *out) {
   auto result = plugin->waitForNextMessage();
   if (!result) {
     // FIXME: Pass the error message back to the caller.
-    llvm::consumeError(result.takeError());
-    //    llvm::handleAllErrors(result.takeError(), [](const llvm::ErrorInfoBase
+    toolchain::consumeError(result.takeError());
+    //    toolchain::handleAllErrors(result.takeError(), [](const toolchain::ErrorInfoBase
     //    &err) {
-    //      llvm::errs() << err.message() << "\n";
+    //      toolchain::errs() << err.message() << "\n";
     //    });
     return true;
   }

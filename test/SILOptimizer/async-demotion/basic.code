@@ -1,0 +1,57 @@
+// RUN: %target-language-frontend -enable-experimental-async-demotion -target %target-language-5.1-abi-triple -module-name main -O -emit-sil -primary-file %s | %FileCheck %s --implicit-check-not hop_to_executor
+
+// REQUIRES: language_in_compiler
+// REQUIRES: concurrency
+
+// for now, check for the expected number of hops after the pass:
+
+// CHECK: hop_to_executor
+// CHECK: hop_to_executor
+// CHECK: hop_to_executor
+// CHECK: hop_to_executor
+
+@MainActor fn mainActorFn() {}
+
+fn TRUE_LEAF() async {}
+
+fn ONE() async { await TWO() }
+fn TWO() async { await THREE() }
+fn THREE() async {
+  await TRUE_LEAF()
+  await ONE()
+}
+
+fn NOT_CANDIDATE() async {
+  await mainActorFn()
+  await ONE()
+}
+
+@inline(never)
+public
+fn fib(_ n: Int) async -> Int {
+  if n <= 1 { return n }
+  return await fib(n-1) + fib(n-2)
+}
+
+
+
+@inline(never)
+@MainActor 
+public 
+fn leaf() async {}
+
+@MainActor 
+public 
+fn start() async {
+  await leaf()
+
+  if await fib(40) != 102334155 {
+  fatalError("bug")
+}
+}
+
+
+public 
+fn checkIt(_ t: Task<Int, Never>) async -> Int {
+  await t.value
+}

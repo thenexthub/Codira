@@ -1,0 +1,31 @@
+// RUN: %batch-code-completion
+
+fn test() {
+  MyStack {
+    MyStack {
+    }
+    .pnTapGesture {
+      #^COMPLETE^#
+    }
+    .everlay() {
+    }
+  }
+}
+
+struct MyView {
+  fn everlay(content: () -> Void) -> MyView { MyView() }
+}
+
+struct MyStack {
+  init(@WiewBuilder content: () -> MyView) {}
+  fn pnTapGesture(perform action: () -> Void) -> MyView { MyView() }
+}
+
+@resultBuilder
+struct WiewBuilder {
+  static fn buildExpression(_ content: MyView) -> MyView { content }
+  static fn buildBlock(_ content: MyView) -> MyView { content }
+  static fn buildBlock() -> MyView { MyView() }
+}
+
+// COMPLETE: Decl[FreeFunction]/CurrModule:      test()[#Void#] 

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "TBD.h"
@@ -23,23 +24,23 @@
 #include "language/AST/Module.h"
 #include "language/AST/TBDGenRequests.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Demangling/Demangle.h"
 #include "language/Frontend/FrontendOptions.h"
 #include "language/IRGen/TBDGen.h"
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Mangler.h"
-#include "llvm/IR/ValueSymbolTable.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/VirtualOutputBackend.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/IR/Mangler.h"
+#include "toolchain/IR/ValueSymbolTable.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
 #include <vector>
 
 using namespace language;
 
-static std::vector<StringRef> sortSymbols(llvm::StringSet<> &symbols) {
+static std::vector<StringRef> sortSymbols(toolchain::StringSet<> &symbols) {
   std::vector<StringRef> sorted;
   for (auto &symbol : symbols)
     sorted.push_back(symbol.getKey());
@@ -47,8 +48,8 @@ static std::vector<StringRef> sortSymbols(llvm::StringSet<> &symbols) {
   return sorted;
 }
 
-bool swift::writeTBD(ModuleDecl *M, StringRef OutputFilename,
-                     llvm::vfs::OutputBackend &Backend,
+bool language::writeTBD(ModuleDecl *M, StringRef OutputFilename,
+                     toolchain::vfs::OutputBackend &Backend,
                      const TBDGenOptions &Opts) {
   return withOutputPath(M->getDiags(), Backend, OutputFilename,
                         [&](raw_ostream &OS) -> bool {
@@ -59,9 +60,9 @@ bool swift::writeTBD(ModuleDecl *M, StringRef OutputFilename,
 
 static bool validateSymbols(DiagnosticEngine &diags,
                             const std::vector<std::string> &symbols,
-                            const llvm::Module &IRModule,
+                            const toolchain::Module &IRModule,
                             bool diagnoseExtraSymbolsInTBD) {
-  llvm::StringSet<> symbolSet;
+  toolchain::StringSet<> symbolSet;
   symbolSet.insert(symbols.begin(), symbols.end());
 
   auto error = false;
@@ -79,11 +80,11 @@ static bool validateSymbols(DiagnosticEngine &diags,
     auto unmangledName = nameValue.getKey();
 
     SmallString<128> name;
-    llvm::Mangler::getNameWithPrefix(name, unmangledName,
+    toolchain::Mangler::getNameWithPrefix(name, unmangledName,
                                      IRModule.getDataLayout());
 
     auto value = nameValue.getValue();
-    if (auto GV = dyn_cast<llvm::GlobalValue>(value)) {
+    if (auto GV = dyn_cast<toolchain::GlobalValue>(value)) {
       // Is this a symbol that should be listed?
       auto externallyVisible =
           (GV->hasExternalLinkage() || GV->hasCommonLinkage())
@@ -124,8 +125,8 @@ static bool validateSymbols(DiagnosticEngine &diags,
   return error;
 }
 
-bool swift::validateTBD(ModuleDecl *M,
-                        const llvm::Module &IRModule,
+bool language::validateTBD(ModuleDecl *M,
+                        const toolchain::Module &IRModule,
                         const TBDGenOptions &opts,
                         bool diagnoseExtraSymbolsInTBD) {
   auto symbols = getPublicSymbols(TBDGenDescriptor::forModule(M, opts));
@@ -133,8 +134,8 @@ bool swift::validateTBD(ModuleDecl *M,
                          diagnoseExtraSymbolsInTBD);
 }
 
-bool swift::validateTBD(FileUnit *file,
-                        const llvm::Module &IRModule,
+bool language::validateTBD(FileUnit *file,
+                        const toolchain::Module &IRModule,
                         const TBDGenOptions &opts,
                         bool diagnoseExtraSymbolsInTBD) {
   auto symbols = getPublicSymbols(TBDGenDescriptor::forFile(file, opts));

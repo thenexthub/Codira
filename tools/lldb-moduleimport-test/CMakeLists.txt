@@ -1,11 +1,13 @@
-add_swift_host_tool(lldb-moduleimport-test
+add_language_host_tool(lldb-moduleimport-test
   lldb-moduleimport-test.cpp
-  SWIFT_COMPONENT testsuite-tools
+  LANGUAGE_COMPONENT testsuite-tools
+  HAS_LANGUAGE_MODULES
 )
 target_link_libraries(lldb-moduleimport-test
                       PRIVATE
-                        swiftAST
-                        swiftASTSectionImporter
-                        swiftClangImporter
-                        swiftFrontend)
+                        languageAST
+                        languageASTSectionImporter
+                        languageClangImporter
+                        languageFrontend
+                        languageCompilerModules)
 

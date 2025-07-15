@@ -1,7 +1,7 @@
 :orphan:
 
-.. warning:: This document was used in planning Swift 1.0; it has not been kept
-  up to date and does not describe the current or planned behavior of Swift.
+.. warning:: This document was used in planning Codira 1.0; it has not been kept
+  up to date and does not describe the current or planned behavior of Codira.
 
 Mutable Namespace-Scope Variable Declarations
 =============================================
@@ -20,7 +20,7 @@ some sort.
 Given that there can be many of these variables in an address space, and very
 few of them may be dynamically used by any particular actor, it doesn't make
 sense to allocate space for all of the variables and run all of the initializers
-for the variables at actor-startup-time.  Instead, swift should handle these as
+for the variables at actor-startup-time.  Instead, language should handle these as
 "actor associated data" (stored in a hashtable that the actor has a pointer to)
 and should be lazily initialized (in the absence of 'top level code', see
 below).
@@ -28,7 +28,7 @@ below).
 This means that if you write code like this (optionally we could require an
 attribute to make it clear that the value is actor local)::
 
-  func foo(_ a : int) -> int { print(a) return 0 }
+  fn foo(_ a : int) -> int { print(a) return 0 }
 
   var x = foo(1)
   var y = foo(2)
@@ -40,7 +40,7 @@ particular actor.
 Top Level Code
 --------------
 
-One goal of swift is to provide a very "progressive disclosure" model of writing
+One goal of language is to provide a very "progressive disclosure" model of writing
 code and learning how to write code.  Therefore, it is desirable that someone be
 able to start out with::
 
@@ -56,7 +56,7 @@ Top level code is useful for a number of other things: many scripts written by
 unix hackers (in perl, bourne shell, ruby, etc) are really just simple command
 line apps that may have a few helper functions and some code that runs.  While
 not essential, it is a great secondary goal to make these sorts of simple apps
-easy to write in Swift as well.
+easy to write in Codira as well.
 
 Top-Level code and lazily evaluated variable initializers don't mix well, nor
 does top level code and multiple actors.  As such, the logical semantics are:
@@ -79,7 +79,7 @@ does top level code and multiple actors.  As such, the logical semantics are:
 On "Not Having Headers"
 -----------------------
 
-One intentional design decision in swift is to not have header files, even for
+One intentional design decision in language is to not have header files, even for
 public API.  This is a design point like Java, but unlike C or Objective-C.
 Having header files for public API is nice for a couple of reasons:
 
@@ -102,13 +102,13 @@ On the other hand, headers have a number of disadvantages including:
    etc.
 2. If the prototype and implementation get out of synch, it is caught by the
    compiler, but this isn't true for API comments.
-3. Swift natively won't "need" headers, so we'd have to specifically add this
+3. Codira natively won't "need" headers, so we'd have to specifically add this
    capability, making the language more complicated.
-4. The implementation of a framework may not be in swift.  If you're talking to
+4. The implementation of a framework may not be in language.  If you're talking to
    a C or C++ framework, showing a C or C++ header when "jumping to definition"
    is not particularly helpful.  We'd prefer to show you the synthesized API
-   that swift code should be using.
-5. In Swift, the implementation of some datatype can be split across different
+   that language code should be using.
+5. In Codira, the implementation of some datatype can be split across different
    files.  Forcing all their declarations to be next to each other lexically is
    an arbitrary restriction.
 
@@ -118,10 +118,10 @@ To address the disadvantages of not having headers, we think that we should:
    Mistakes using it should be diagnosed by the compiler.  It should be a
    warning for public API to not have comments.
 2. There needs to be an API that dumps out the public interface for a compiled
-   module/domain in swift syntax, slicing on a declaration.  When used on a
+   module/domain in language syntax, slicing on a declaration.  When used on a
    type, for example, this would show the type definition and the declaration of
    all of the methods on it.
-3. The API dumper should always dump in swift syntax, even when run on a Clang
+3. The API dumper should always dump in language syntax, even when run on a Clang
    C/C++/ObjC module.  It should make it very clear what the API maps to in
-   swift syntax, so it is obvious how to use it.
+   language syntax, so it is obvious how to use it.
 4. Not having headers forces us to have really great tools support/integration.

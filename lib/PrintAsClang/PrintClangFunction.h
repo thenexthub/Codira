@@ -1,28 +1,32 @@
 //===--- PrintClangFunction.h - Printer for C/C++ functions -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PRINTASCLANG_PRINTCLANGFUNCTION_H
-#define SWIFT_PRINTASCLANG_PRINTCLANGFUNCTION_H
+#ifndef LANGUAGE_PRINTASCLANG_PRINTCLANGFUNCTION_H
+#define LANGUAGE_PRINTASCLANG_PRINTCLANGFUNCTION_H
 
 #include "OutputLanguageMode.h"
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/GenericRequirement.h"
 #include "language/IRGen/IRABIDetailsProvider.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 namespace language {
@@ -38,7 +42,7 @@ class LoweredFunctionSignature;
 class ParamDecl;
 class ParameterList;
 class PrimitiveTypeMapping;
-class SwiftToClangInteropContext;
+class CodiraToClangInteropContext;
 class DeclAndTypePrinter;
 
 struct ClangRepresentation {
@@ -46,11 +50,11 @@ struct ClangRepresentation {
 
   ClangRepresentation(Kind kind) : kind(kind) {}
 
-  /// Returns true if the given Swift node is unsupported in Clang in any
+  /// Returns true if the given Codira node is unsupported in Clang in any
   /// language mode.
   bool isUnsupported() const { return kind == unsupported; }
 
-  /// Returns true if the given Swift node is only supported in
+  /// Returns true if the given Codira node is only supported in
   /// Objective C++ mode.
   bool isObjCxxOnly() const { return kind == objcxxonly; }
 
@@ -66,18 +70,18 @@ private:
   Kind kind;
 };
 
-/// Responsible for printing a Swift function decl or type in C or C++ mode, to
-/// be included in a Swift module's generated clang header.
+/// Responsible for printing a Codira function decl or type in C or C++ mode, to
+/// be included in a Codira module's generated clang header.
 class DeclAndTypeClangFunctionPrinter {
 public:
   DeclAndTypeClangFunctionPrinter(raw_ostream &os, raw_ostream &cPrologueOS,
                                   PrimitiveTypeMapping &typeMapping,
-                                  SwiftToClangInteropContext &interopContext,
+                                  CodiraToClangInteropContext &interopContext,
                                   DeclAndTypePrinter &declPrinter)
       : os(os), cPrologueOS(cPrologueOS), typeMapping(typeMapping),
         interopContext(interopContext), declPrinter(declPrinter) {}
 
-  /// What kind of function signature should be emitted for the given Swift
+  /// What kind of function signature should be emitted for the given Codira
   /// function.
   enum class FunctionSignatureKind {
     /// Emit a signature for the C function prototype.
@@ -113,22 +117,22 @@ public:
       FunctionSignatureModifiers modifiers = {});
 
   /// Print the body of the inline C++ function thunk that calls the underlying
-  /// Swift function.
+  /// Codira function.
   void printCxxThunkBody(
       const AbstractFunctionDecl *FD, const LoweredFunctionSignature &signature,
-      StringRef swiftSymbolName, const NominalTypeDecl *typeDeclContext,
+      StringRef languageSymbolName, const NominalTypeDecl *typeDeclContext,
       const ModuleDecl *moduleContext, Type resultTy,
       const ParameterList *params, bool hasThrows = false,
       const AnyFunctionType *funcType = nullptr, bool isStaticMethod = false,
       std::optional<IRABIDetailsProvider::MethodDispatchInfo> dispatchInfo =
           std::nullopt);
 
-  /// Print the Swift method as C++ method declaration/definition, including
+  /// Print the Codira method as C++ method declaration/definition, including
   /// constructors.
   void printCxxMethod(
       DeclAndTypePrinter &declAndTypePrinter,
       const NominalTypeDecl *typeDeclContext, const AbstractFunctionDecl *FD,
-      const LoweredFunctionSignature &signature, StringRef swiftSymbolName,
+      const LoweredFunctionSignature &signature, StringRef languageSymbolName,
       Type resultTy, bool isStatic, bool isDefinition,
       std::optional<IRABIDetailsProvider::MethodDispatchInfo> dispatchInfo);
 
@@ -136,7 +140,7 @@ public:
   void printCxxPropertyAccessorMethod(
       DeclAndTypePrinter &declAndTypePrinter,
       const NominalTypeDecl *typeDeclContext, const AccessorDecl *accessor,
-      const LoweredFunctionSignature &signature, StringRef swiftSymbolName,
+      const LoweredFunctionSignature &signature, StringRef languageSymbolName,
       Type resultTy, bool isStatic, bool isDefinition,
       std::optional<IRABIDetailsProvider::MethodDispatchInfo> dispatchInfo);
 
@@ -144,22 +148,22 @@ public:
   void printCxxSubscriptAccessorMethod(
       DeclAndTypePrinter &declAndTypePrinter,
       const NominalTypeDecl *typeDeclContext, const AccessorDecl *accessor,
-      const LoweredFunctionSignature &signature, StringRef swiftSymbolName,
+      const LoweredFunctionSignature &signature, StringRef languageSymbolName,
       Type resultTy, bool isDefinition,
       std::optional<IRABIDetailsProvider::MethodDispatchInfo> dispatchInfo);
 
-  /// Print Swift type as C/C++ type, as the return type of a C/C++ function.
+  /// Print Codira type as C/C++ type, as the return type of a C/C++ function.
   ClangRepresentation printClangFunctionReturnType(
       raw_ostream &stream, Type ty, OptionalTypeKind optKind,
       ModuleDecl *moduleContext, OutputLanguageMode outputLang);
 
   static void printGenericReturnSequence(
       raw_ostream &os, const GenericTypeParamType *gtpt,
-      llvm::function_ref<void(StringRef)> invocationPrinter,
+      toolchain::function_ref<void(StringRef)> invocationPrinter,
       std::optional<StringRef> initializeWithTakeFromValue = std::nullopt);
 
   using PrinterTy =
-      llvm::function_ref<void(llvm::MapVector<Type, std::string> &)>;
+      toolchain::function_ref<void(toolchain::MapVector<Type, std::string> &)>;
 
   /// Print generated C++ helper function
   void printCustomCxxFunction(const SmallVector<Type> &neededTypes,
@@ -172,7 +176,7 @@ public:
 
   static ClangRepresentation
   getTypeRepresentation(PrimitiveTypeMapping &typeMapping,
-                        SwiftToClangInteropContext &interopContext,
+                        CodiraToClangInteropContext &interopContext,
                         DeclAndTypePrinter &declPrinter,
                         const ModuleDecl *emittedModule, Type ty);
 
@@ -187,7 +191,7 @@ private:
                                        bool isSelf);
 
   // Print out the full type specifier that refers to the
-  // _impl::_impl_<typename> C++ class for the given Swift type.
+  // _impl::_impl_<typename> C++ class for the given Codira type.
   void printTypeImplTypeSpecifier(Type type, const ModuleDecl *moduleContext);
 
   bool hasKnownOptionalNullableCxxMapping(Type type);
@@ -195,7 +199,7 @@ private:
   raw_ostream &os;
   raw_ostream &cPrologueOS;
   PrimitiveTypeMapping &typeMapping;
-  SwiftToClangInteropContext &interopContext;
+  CodiraToClangInteropContext &interopContext;
   DeclAndTypePrinter &declPrinter;
 };
 

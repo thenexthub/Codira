@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,11 +19,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PRIMITIVEPARSING_H
-#define SWIFT_BASIC_PRIMITIVEPARSING_H
+#ifndef LANGUAGE_BASIC_PRIMITIVEPARSING_H
+#define LANGUAGE_BASIC_PRIMITIVEPARSING_H
 
-#include "llvm/ADT/StringRef.h"
-#include "language/Basic/LLVM.h"
+#include "toolchain/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
 
@@ -47,5 +48,5 @@ static inline void splitIntoLines(StringRef Text,
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_PRIMITIVEPARSING_H
+#endif // LANGUAGE_BASIC_PRIMITIVEPARSING_H
 

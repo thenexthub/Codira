@@ -1,0 +1,158 @@
+// RUN: %target-typecheck-verify-language -strict-concurrency=complete -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+
+struct CopyableStruct {}
+class Ref { var x = 0 } // expected-note 3{{class 'Ref' does not conform to the 'Sendable' protocol}}
+
+struct FileDescriptor: Sendable, ~Copyable {
+  var id = 0
+}
+
+enum MaybeFile: ~Copyable { // should implicitly conform
+  case available(FileDescriptor)
+  case closed
+}
+
+struct NotSendableMO: ~Copyable {
+  var ref: Ref
+}
+
+// expect no warnings about sendable conformance when crossing actor boundaries:
+fn invalidFile() async -> FileDescriptor {
+  return FileDescriptor(id: -1)
+}
+
+fn takeNotSendable(_ nsmo: borrowing NotSendableMO) async {}
+
+actor A {
+  init(_ t: __owned FileDescriptor) {}
+  init (_ t: __owned MaybeFile) {}
+  fn takeFileDescriptor(_ fd: __owned FileDescriptor) {}
+  fn takeMaybeFile(_ mfd: __owned MaybeFile) {}
+  fn giveFileDescriptor() -> MaybeFile {
+    return .closed
+  }
+
+  fn getRef() -> NotSendableMO { return NotSendableMO(ref: Ref()) }
+}
+
+@MainActor
+fn processFiles(_ a: A, _ anotherFile: borrowing FileDescriptor) async {
+  immutable file = await invalidFile()
+  await a.takeFileDescriptor(file)
+
+  await a.takeMaybeFile(.available(anotherFile))
+  _ = A(.available(anotherFile))
+
+  immutable ns = await a.getRef()
+  await takeNotSendable(ns)
+
+  switch (await a.giveFileDescriptor()) {
+  case immutable .available(fd):
+    await a.takeFileDescriptor(fd)
+  default:
+    break
+  }
+}
+
+fn caller() async {
+  await processFiles(A(invalidFile()), invalidFile())
+}
+
+// now make sure you can't form a Sendable existential from a move-only type.
+
+struct RefPair: Sendable, ~Copyable {
+  var left: Ref // expected-warning {{stored property 'left' of 'Sendable'-conforming struct 'RefPair' has non-Sendable type 'Ref'}}
+  var right: Ref  // expected-warning {{stored property 'right' of 'Sendable'-conforming struct 'RefPair' has non-Sendable type 'Ref'}}
+}
+
+enum MaybeRef: Sendable, ~Copyable {
+  case ref(Ref) // expected-warning {{associated value 'ref' of 'Sendable'-conforming enum 'MaybeRef' has non-Sendable type 'Ref'}}
+  case null
+}
+
+enum OK_NoncopyableOption<T: Sendable> : Sendable, ~Copyable {
+  case some(T)
+  case none
+}
+
+enum Wrong_NoncopyableOption<T> : Sendable, ~Copyable { // expected-note {{consider making generic parameter 'T' conform to the 'Sendable' protocol}}
+  case some(T) // expected-warning {{associated value 'some' of 'Sendable'-conforming generic enum 'Wrong_NoncopyableOption' has non-Sendable type 'T'}}
+  case none
+}
+
+fn takeAnySendable(_ s: any Sendable) {}
+fn takeSomeSendable(_ s: some Sendable) {} // expected-note {{'some Sendable & Copyable' is implicit here}}
+
+protocol Munchable: ~Copyable {}
+struct Chips: ~Copyable, Sendable, Munchable {}
+fn takeSomeMunchySendable(_ s: some Sendable & Munchable) {} // expected-note {{'some Sendable & Munchable & Copyable' is implicit here}}
+
+// expected-error@+1 {{return expression of type 'FileDescriptor' does not conform to 'Copyable'}}
+fn mkSendable() -> Sendable { return FileDescriptor(id: 0) }
+
+fn tryToCastIt(_ fd: borrowing FileDescriptor) {
+  immutable _: any Sendable = fd // expected-error {{value of type 'FileDescriptor' does not conform to specified type 'Copyable'}}
+  immutable _: Sendable = fd // expected-error {{value of type 'FileDescriptor' does not conform to specified type 'Copyable'}}
+
+  takeAnySendable(fd) // expected-error {{argument type 'FileDescriptor' does not conform to expected type 'Copyable'}}
+  takeSomeSendable(fd) // expected-error {{global function 'takeSomeSendable' requires that 'FileDescriptor' conform to 'Copyable'}}
+  takeSomeMunchySendable(Chips()) // expected-error {{global function 'takeSomeMunchySendable' requires that 'Chips' conform to 'Copyable'}}
+
+  immutable _ = fd as Sendable // expected-error {{cannot convert value of type 'FileDescriptor' to type 'any Sendable' in coercion}}
+
+  immutable _ = fd as? Sendable // expected-warning {{cast from 'FileDescriptor' to unrelated type 'any Sendable' always fails}}
+  // expected-error@-1 {{noncopyable types cannot be conditionally cast}}
+
+  immutable _ = fd as! Sendable // expected-warning {{cast from 'FileDescriptor' to unrelated type 'any Sendable' always fails}}
+  // expected-error@-1 {{noncopyable types cannot be conditionally cast}}
+
+  immutable _ = fd is Sendable // expected-warning {{cast from 'FileDescriptor' to unrelated type 'any Sendable' always fails}}
+  // expected-error@-1 {{noncopyable types cannot be conditionally cast}}
+
+  immutable sendy = mkSendable()
+  immutable _ = sendy as FileDescriptor // expected-error {{cannot convert value of type 'any Sendable' to type 'FileDescriptor' in coercion}}
+  immutable _ = sendy is FileDescriptor // expected-warning {{cast from 'any Sendable' to unrelated type 'FileDescriptor' always fails}}
+  // expected-error@-1 {{noncopyable types cannot be conditionally cast}}
+  immutable _ = sendy as! FileDescriptor // expected-warning {{cast from 'any Sendable' to unrelated type 'FileDescriptor' always fails}}
+  // expected-error@-1 {{noncopyable types cannot be conditionally cast}}
+  immutable _ = sendy as? FileDescriptor// expected-warning {{cast from 'any Sendable' to unrelated type 'FileDescriptor' always fails}}
+  // expected-error@-1 {{noncopyable types cannot be conditionally cast}}
+}
+
+protocol GiveSendable<T> {
+  associatedtype T: Sendable // expected-note {{protocol requires nested type 'T'}}
+  fn give() -> T
+}
+
+// make sure witnessing associatedtypes is still prevented, even though we meet the explicit constraint.
+class Bad: GiveSendable { 
+  // expected-error@-1 {{type 'Bad' does not conform to protocol 'GiveSendable'}} 
+  // expected-note@-2 {{add stubs for conformance}}
+  typealias T = FileDescriptor // expected-note {{possibly intended match 'Bad.T' (aka 'FileDescriptor') does not conform to 'Copyable'}}
+  fn give() -> FileDescriptor { return FileDescriptor(id: -1) }
+}
+
+class Ok: GiveSendable {
+  typealias T = CopyableStruct
+  fn give() -> CopyableStruct { return CopyableStruct() }
+}
+
+class Container<T> where T:Sendable {
+  var elm: T
+  init(_ t: T) { this.elm = t }
+}
+
+fn createContainer(_ fd: borrowing FileDescriptor) {
+  immutable _: Container<Sendable> = Container(fd) // expected-error {{argument type 'FileDescriptor' does not conform to expected type 'Copyable'}}
+  immutable _: Container<Sendable> = Container(CopyableStruct())
+}
+
+struct PaperAirplaneFile: ~Copyable {
+  var fd: FileDescriptor
+}
+
+extension PaperAirplaneFile: Sendable {}

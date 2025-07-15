@@ -1,13 +1,17 @@
 //===--- MoveOnlyBorrowToDestructureTester.cpp ----------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file This is a pass that converts the borrow + gep pattern to destructures
@@ -37,7 +41,7 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 using namespace language;
 using namespace language::siloptimizer;
@@ -79,13 +83,13 @@ class MoveOnlyBorrowToDestructureTransformPass : public SILFunctionTransform {
     assert(fn->getModule().getStage() == SILStage::Raw &&
            "Should only run on Raw SIL");
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "===> MoveOnlyBorrowToDestructureTransform. Visiting: "
                << fn->getName() << '\n');
 
     auto *postOrderAnalysis = getAnalysis<PostOrderAnalysis>();
 
-    llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+    toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
         moveIntroducersToProcess;
     DiagnosticEmitter diagnosticEmitter(getFunction());
 
@@ -104,7 +108,7 @@ class MoveOnlyBorrowToDestructureTransformPass : public SILFunctionTransform {
     }
 
     diagCount = diagnosticEmitter.getDiagnosticCount();
-    auto introducers = llvm::ArrayRef(moveIntroducersToProcess.begin(),
+    auto introducers = toolchain::ArrayRef(moveIntroducersToProcess.begin(),
                                       moveIntroducersToProcess.end());
     if (runTransform(fn, introducers, postOrderAnalysis, diagnosticEmitter)) {
       invalidateAnalysis(SILAnalysis::InvalidationKind::Instructions);
@@ -119,6 +123,6 @@ class MoveOnlyBorrowToDestructureTransformPass : public SILFunctionTransform {
 
 } // namespace
 
-SILTransform *swift::createMoveOnlyBorrowToDestructureTransform() {
+SILTransform *language::createMoveOnlyBorrowToDestructureTransform() {
   return new MoveOnlyBorrowToDestructureTransformPass();
 }

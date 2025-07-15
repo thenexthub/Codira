@@ -1,0 +1,14 @@
+{
+  'version': 0,
+  'use-external-names': false,
+  'roots': [
+    {
+      'name': 'OUT_DIR', 'type': 'directory',
+      'contents': [
+        { 'name': 'triple-mapped-language-file.code', 'type': 'file',
+          'external-contents': 'INPUT_DIR/vfs/triple-mapped-language-file'
+        },
+      ]
+    },
+  ]
+}

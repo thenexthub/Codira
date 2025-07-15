@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %t/Library.code -module-name Library
+// RUN: rm -f %t/Library.codemodule
+// RUN: %target-language-frontend -I %t -typecheck -verify %t/test.code
+
+
+//--- Library.code
+
+public struct Hello<T: ~Copyable> {
+  public init() {}
+}
+
+//--- test.code
+import Library
+
+struct NC: ~Copyable {}
+
+immutable x: Hello<NC> = .init()

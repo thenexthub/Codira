@@ -1,4 +1,4 @@
-Backtracing support in Swift
+Backtracing support in Codira
 ============================
 
 When things go wrong, it's always useful to be able to get a backtrace showing
@@ -11,19 +11,19 @@ namely:
   * Runtime errors
   * Specific user-defined program events
 
-Historically, Swift has tended to lean on operating system crash catching
+Historically, Codira has tended to lean on operating system crash catching
 support for the first two of these, and hasn't really provided any built-in
 support for the latter.  This is fine for Darwin, where the operating system
 provides a comprehensive system-wide crash catching facility; it's just about OK
 on Windows, which also has system-wide crash logging; but it isn't great
-elsewhere, in particular on Linux where a lot of server-side Swift programs
+elsewhere, in particular on Linux where a lot of server-side Codira programs
 currently rely on a separate package to provide them with some level of
 backtrace support when errors happen.
 
-What does Swift now support?
+What does Codira now support?
 ----------------------------
 
-Swift now supports:
+Codira now supports:
 
   * Automatic crash catching and backtrace generation out of the box.
   * Built-in symbolication.
@@ -35,8 +35,8 @@ crash reporters you might be using.
 How do I configure backtracing?
 -------------------------------
 
-There is an environment variable, ``SWIFT_BACKTRACE``, that can be used to
-configure Swift's crash catching and backtracing support.  The variable should
+There is an environment variable, ``LANGUAGE_BACKTRACE``, that can be used to
+configure Codira's crash catching and backtracing support.  The variable should
 contain a ``,``-separated list of ``key=value`` pairs.  Supported keys are as
 follows:
 
@@ -108,10 +108,10 @@ follows:
 |                 |         | Full means to look up source locations and       |
 |                 |         | inline frames.  Fast just does symbol lookup.    |
 +-----------------+---------+--------------------------------------------------+
-| swift-backtrace |         | If specified, gives the full path to the         |
-|                 |         | swift-backtrace binary to use for crashes.       |
-|                 |         | Otherwise, Swift will locate the binary relative |
-|                 |         | to the runtime library, or using ``SWIFT_ROOT``. |
+| language-backtrace |         | If specified, gives the full path to the         |
+|                 |         | language-backtrace binary to use for crashes.       |
+|                 |         | Otherwise, Codira will locate the binary relative |
+|                 |         | to the runtime library, or using ``LANGUAGE_ROOT``. |
 +-----------------+---------+--------------------------------------------------+
 | warnings        | enabled | Set to ``suppressed`` to disable warning output  |
 |                 |         | related to the state of the backtracer.  This is |
@@ -172,10 +172,10 @@ And with ``limit`` set to 5 and ``top`` to 4 or above, you would see::
   2
   1
 
-What is the swift-backtrace binary?
+What is the language-backtrace binary?
 -----------------------------------
 
-``swift-backtrace`` is a program that gets invoked when your program crashes.
+``language-backtrace`` is a program that gets invoked when your program crashes.
 We do this because when a program crashes, it is potentially in an invalid state
 and there is very little that is safe for us to do.  By executing an external
 helper program, we ensure that we do not interfere with the way the program was
@@ -184,7 +184,7 @@ correct information), and we are also able to use any functionality we need to
 generate a decent backtrace, including symbolication (which might in general
 require memory allocation, fetching and reading remote files and so on).
 
-You shouldn't try to run ``swift-backtrace`` yourself; it has unusual
+You shouldn't try to run ``language-backtrace`` yourself; it has unusual
 requirements, which vary from platform to platform.  Instead, it will be
 triggered automatically by the runtime.
 
@@ -217,7 +217,7 @@ writing, this is installed for the following signals:
 +----+---------+--------------------------+-------------------------------------+
 
 If crash catching is enabled, the signal handler will be installed for any
-process that links the Swift runtime.  If you replace the handlers for any of
+process that links the Codira runtime.  If you replace the handlers for any of
 these signals, your program will no longer produce backtraces for program
 failures that lead to the handler you have replaced.
 
@@ -233,7 +233,7 @@ macOS
 ^^^^^
 
 The backtracer is not active by default on macOS.  You can enable it by setting
-``SWIFT_BACKTRACE`` to ``enable=yes``, which is sufficient if you build your
+``LANGUAGE_BACKTRACE`` to ``enable=yes``, which is sufficient if you build your
 programs using Xcode.  If you are using some other build tool to build your
 program, you will need to sign the program with the entitlement
 ``com.apple.security.get-task-allow`` in order for the backtracer to work.  This
@@ -289,45 +289,45 @@ backtraces.
 
 If you wish to get a more complete backtrace, at a small cost in performance,
 you can add the compiler flags ``-Xcc -fno-omit-frame-pointer`` when building
-your Swift program.
+your Codira program.
 
 Static Linking Support
 """"""""""""""""""""""
 
-For users who statically link their binaries and do not wish to ship the Swift
+For users who statically link their binaries and do not wish to ship the Codira
 runtime library alongside them, there is a statically linked copy of
-``swift-backtrace``, named ``swift-backtrace-static`` , in the ``libexec``
-directory alongside the normal ``swift-backtrace`` binary.
+``language-backtrace``, named ``language-backtrace-static`` , in the ``libexec``
+directory alongside the normal ``language-backtrace`` binary.
 
-By default, to locate ``swift-backtrace``, the runtime will attempt to look in
+By default, to locate ``language-backtrace``, the runtime will attempt to look in
 the following locations::
 
-    <swift-root>/libexec/swift/<platform>
-    <swift-root>/libexec/swift/<platform>/<arch>
-    <swift-root>/libexec/swift
-    <swift-root>/libexec/swift/<arch>
-    <swift-root>/bin
-    <swift-root>/bin/<arch>
-    <swift-root>
+    <language-root>/libexec/language/<platform>
+    <language-root>/libexec/language/<platform>/<arch>
+    <language-root>/libexec/language
+    <language-root>/libexec/language/<arch>
+    <language-root>/bin
+    <language-root>/bin/<arch>
+    <language-root>
 
-where ``<swift-root>`` by default is determined from the path to the runtime
-library, ``libswiftCore``, ``<platform>`` is the name Swift gives to the platform
-(in this case most likely ``linux``) and ``<arch>`` is the name Swift uses for
+where ``<language-root>`` by default is determined from the path to the runtime
+library, ``liblanguageCore``, ``<platform>`` is the name Codira gives to the platform
+(in this case most likely ``linux``) and ``<arch>`` is the name Codira uses for
 the CPU architecture (e.g. ``x86_64``, ``arm64`` and so on).
 
 When the runtime is statically linked with _your_ binary, the runtime will
-instead determine ``<swift-root>`` in the above patterns relative to *your
+instead determine ``<language-root>`` in the above patterns relative to *your
 binary*.  For example, if your binary is installed in e.g. ``/usr/bin``,
-``<swift-root>`` would be ``/usr``.
+``<language-root>`` would be ``/usr``.
 
-You will therefore need to install a copy of ``swift-backtrace-static``, renamed
-to ``swift-backtrace``, in one of the locations above; the simplest option will
+You will therefore need to install a copy of ``language-backtrace-static``, renamed
+to ``language-backtrace``, in one of the locations above; the simplest option will
 often be to put it in the same directory as your own binary.
 
-You can also explicitly specify the value of ``<swift-root>`` using the
-environment variable ``SWIFT_ROOT``, or you can explicitly specify the location
+You can also explicitly specify the value of ``<language-root>`` using the
+environment variable ``LANGUAGE_ROOT``, or you can explicitly specify the location
 of the backtracer using
-``SWIFT_BACKTRACE=swift-backtrace=<path-to-swift-backtrace>``.
+``LANGUAGE_BACKTRACE=language-backtrace=<path-to-language-backtrace>``.
 
 If the runtime is unable to locate the backtracer, it will allow your program to
 crash as it would have done anyway.
@@ -485,7 +485,7 @@ following additional information:
 +===================+========================================================+
 | inlined           | ``true`` if this frame is inlined, omitted otherwise.  |
 +-------------------+--------------------------------------------------------+
-| runtimeFailure    | ``true`` if this frame represents a Swift runtime      |
+| runtimeFailure    | ``true`` if this frame represents a Codira runtime      |
 |                   | failure, omitted otherwise.                            |
 +-------------------+--------------------------------------------------------+
 | thunk             | ``true`` if this frame is a compiler-generated thunk   |

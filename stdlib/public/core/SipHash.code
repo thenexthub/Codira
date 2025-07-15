@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 /// This file implements SipHash-2-4 and SipHash-1-3
 /// (https://131002.net/siphash/).
@@ -50,12 +51,12 @@ extension Hasher {
 
 extension Hasher._State {
   @inline(__always)
-  private static func _rotateLeft(_ x: UInt64, by amount: UInt64) -> UInt64 {
+  private static fn _rotateLeft(_ x: UInt64, by amount: UInt64) -> UInt64 {
     return (x &<< amount) | (x &>> (64 - amount))
   }
 
   @inline(__always)
-  private mutating func _round() {
+  private mutating fn _round() {
     v0 = v0 &+ v1
     v1 = Hasher._State._rotateLeft(v1, by: 13)
     v1 ^= v0
@@ -73,21 +74,21 @@ extension Hasher._State {
   }
 
   @inline(__always)
-  private func _extract() -> UInt64 {
+  private fn _extract() -> UInt64 {
     return v0 ^ v1 ^ v2 ^ v3
   }
 }
 
 extension Hasher._State {
   @inline(__always)
-  internal mutating func compress(_ m: UInt64) {
+  internal mutating fn compress(_ m: UInt64) {
     v3 ^= m
     _round()
     v0 ^= m
   }
 
   @inline(__always)
-  internal mutating func finalize(tailAndByteCount: UInt64) -> UInt64 {
+  internal mutating fn finalize(tailAndByteCount: UInt64) -> UInt64 {
     compress(tailAndByteCount)
     v2 ^= 0xff
     for _ in 0..<3 {
@@ -100,16 +101,16 @@ extension Hasher._State {
 extension Hasher._State {
   @inline(__always)
   internal init() {
-    self.init(rawSeed: Hasher._executionSeed)
+    this.init(rawSeed: Hasher._executionSeed)
   }
 
   @inline(__always)
   internal init(seed: Int) {
-    let executionSeed = Hasher._executionSeed
+    immutable executionSeed = Hasher._executionSeed
     // Prevent sign-extending the supplied seed; this makes testing slightly
     // easier.
-    let seed = UInt(bitPattern: seed)
-    self.init(rawSeed: (
+    immutable seed = UInt(bitPattern: seed)
+    this.init(rawSeed: (
         executionSeed.0 ^ UInt64(truncatingIfNeeded: seed),
         executionSeed.1))
   }

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines swift::Lowering::ASTVisitor.
+// This file defines language::Lowering::ASTVisitor.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_ASTVISITOR_H
-#define SWIFT_LOWERING_ASTVISITOR_H
+#ifndef LANGUAGE_LOWERING_ASTVISITOR_H
+#define LANGUAGE_LOWERING_ASTVISITOR_H
 
 #include "language/AST/ASTVisitor.h"
 
@@ -26,7 +27,7 @@ namespace language {
 namespace Lowering {
   
 /// Lowering::ASTVisitor - This is a specialization of
-/// swift::ASTVisitor which works only on resolved nodes and
+/// language::ASTVisitor which works only on resolved nodes and
 /// which automatically ignores certain AST node kinds.
 template<typename ImplClass,
          typename ExprRetTy = void,
@@ -34,7 +35,7 @@ template<typename ImplClass,
          typename DeclRetTy = void,
          typename PatternRetTy = void,
          typename... Args>
-class ASTVisitor : public swift::ASTVisitor<ImplClass,
+class ASTVisitor : public language::ASTVisitor<ImplClass,
                                             ExprRetTy,
                                             StmtRetTy,
                                             DeclRetTy,
@@ -47,20 +48,20 @@ public:
 #define EXPR(Id, Parent)
 #define UNCHECKED_EXPR(Id, Parent) \
   ExprRetTy visit##Id##Expr(Id##Expr *E, Args...AA) { \
-    llvm_unreachable(#Id "Expr should not survive to SILGen"); \
+    toolchain_unreachable(#Id "Expr should not survive to SILGen"); \
   }
 #include "language/AST/ExprNodes.def"
   
   ExprRetTy visitErrorExpr(ErrorExpr *E, Args...AA) {
-    llvm_unreachable("expression kind should not survive to SILGen");
+    toolchain_unreachable("expression kind should not survive to SILGen");
   }
 
   ExprRetTy visitCodeCompletionExpr(CodeCompletionExpr *E, Args...AA) {
-    llvm_unreachable("expression kind should not survive to SILGen");
+    toolchain_unreachable("expression kind should not survive to SILGen");
   }
 
   ExprRetTy visitDefaultArgumentExpr(DefaultArgumentExpr *E, Args...AA) {
-    llvm_unreachable("DefaultArgumentExpr should not appear in this position");
+    toolchain_unreachable("DefaultArgumentExpr should not appear in this position");
   }
 
   ExprRetTy visitVarargExpansionExpr(VarargExpansionExpr *E, Args... AA) {

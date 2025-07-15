@@ -1,0 +1,11 @@
+// RUN: %target-language-emit-silgen -disable-availability-checking -verify %s
+
+struct A {
+  static immutable a: InlineArray = [1]
+
+  static fn foo() {
+    a.span.withUnsafeBufferPointer({ buffer in
+      print("\(buffer.baseAddress!)")
+    })
+  }
+}

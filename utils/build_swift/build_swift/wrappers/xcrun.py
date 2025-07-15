@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -37,11 +37,11 @@ def _catch_return_none(exceptions):
     """Decorator used to catch exceptions and return None.
     """
 
-    def decorator(func):
-        @functools.wraps(func)
+    def decorator(fn):
+        @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             try:
-                return func(*args, **kwargs)
+                return fn(*args, **kwargs)
             except exceptions:
                 return None
 
@@ -49,12 +49,12 @@ def _catch_return_none(exceptions):
     return decorator
 
 
-def _prepend_sdk_and_toolchain(func):
+def _prepend_sdk_and_toolchain(fn):
     """Method decorator used to prepend the sdk and toolchain arguments to the
     final command passed to xcrun.
     """
 
-    @functools.wraps(func)
+    @functools.wraps(fn)
     def wrapper(self, args, sdk=None, toolchain=None, **kwargs):
         if isinstance(args, (str,)):
             args = shlex.split(args)
@@ -63,7 +63,7 @@ def _prepend_sdk_and_toolchain(func):
         if sdk:
             args = ['--sdk', sdk] + args
 
-        return func(self, args, **kwargs)
+        return fn(self, args, **kwargs)
     return wrapper
 
 

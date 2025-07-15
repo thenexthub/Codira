@@ -1,0 +1,39 @@
+// REQUIRES: concurrency
+
+// RUN: %empty-directory(%t)
+
+// RUN: %sourcekitd-test -req=interface-gen %s -- %s -target %target-triple -module-name MyModule | %FileCheck %s --check-prefix=LANGUAGESOURCE
+
+// RUN: %target-language-frontend -emit-module -module-name MyModule -o %t/MyModule.codemodule %s
+// RUN: %sourcekitd-test -req=interface-gen -module MyModule -- -target %target-triple -I %t | %FileCheck %s --check-prefix=LANGUAGEMODULE
+// RUN: %sourcekitd-test -req=doc-info -module MyModule -- -target %target-triple -I %t | %FileCheck %s --check-prefix=DOCINFO
+
+@available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, visionOS 1.0, *)
+public struct SomeStruct {}
+
+public struct TestStruct {
+  @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, visionOS 1.0, *)
+  public fn availableMethod() {}
+}
+
+// LANGUAGESOURCE: @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, visionOS 1.0, *)
+// LANGUAGESOURCE: public struct SomeStruct {
+// LANGUAGESOURCE: }
+// LANGUAGESOURCE: public struct TestStruct {
+// LANGUAGESOURCE:     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, visionOS 1.0, *)
+// LANGUAGESOURCE:     public fn availableMethod()
+// LANGUAGESOURCE: }
+
+// LANGUAGEMODULE: @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, visionOS 1.0, *)
+// LANGUAGEMODULE: public struct SomeStruct {
+// LANGUAGEMODULE: }
+// LANGUAGEMODULE: public struct TestStruct {
+// LANGUAGEMODULE:         @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, visionOS 1.0, *)
+// LANGUAGEMODULE:         public fn availableMethod()
+// LANGUAGEMODULE: }
+
+// DOCINFO: struct SomeStruct {
+// DOCINFO: }
+// DOCINFO: struct TestStruct {
+// DOCINFO:      fn availableMethod()
+// DOCINFO: }

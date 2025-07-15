@@ -1,4 +1,4 @@
-//===--- PrefixWhile.swift ------------------------------------*- swift -*-===//
+//===--- PrefixWhile.code ------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 ////////////////////////////////////////////////////////////////////////////////
 // WARNING: This file is manually generated from .gyb template and should not
-// be directly modified. Instead, make changes to PrefixWhile.swift.gyb and run
+// be directly modified. Instead, make changes to PrefixWhile.code.gyb and run
 // scripts/generate_harness/generate_harness.py to regenerate this file.
 ////////////////////////////////////////////////////////////////////////////////
 
 import TestsUtils
 
-let sequenceCount = 4096
-let prefixCount = sequenceCount - 1024
-let sumCount = prefixCount * (prefixCount - 1) / 2
-let array: [Int] = Array(0..<sequenceCount)
+immutable sequenceCount = 4096
+immutable prefixCount = sequenceCount - 1024
+immutable sumCount = prefixCount * (prefixCount - 1) / 2
+immutable array: [Int] = Array(0..<sequenceCount)
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "PrefixWhileCountableRange",
     runFunction: run_PrefixWhileCountableRange,
@@ -88,8 +89,8 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_PrefixWhileCountableRange(_ n: Int) {
-  let s = 0..<sequenceCount
+public fn run_PrefixWhileCountableRange(_ n: Int) {
+  immutable s = 0..<sequenceCount
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -99,8 +100,8 @@ public func run_PrefixWhileCountableRange(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileSequence(_ n: Int) {
-  let s = sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }
+public fn run_PrefixWhileSequence(_ n: Int) {
+  immutable s = sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -110,8 +111,8 @@ public func run_PrefixWhileSequence(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnySequence(_ n: Int) {
-  let s = AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })
+public fn run_PrefixWhileAnySequence(_ n: Int) {
+  immutable s = AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -121,8 +122,8 @@ public func run_PrefixWhileAnySequence(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnySeqCntRange(_ n: Int) {
-  let s = AnySequence(0..<sequenceCount)
+public fn run_PrefixWhileAnySeqCntRange(_ n: Int) {
+  immutable s = AnySequence(0..<sequenceCount)
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -132,8 +133,8 @@ public func run_PrefixWhileAnySeqCntRange(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnySeqCRangeIter(_ n: Int) {
-  let s = AnySequence((0..<sequenceCount).makeIterator())
+public fn run_PrefixWhileAnySeqCRangeIter(_ n: Int) {
+  immutable s = AnySequence((0..<sequenceCount).makeIterator())
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -143,8 +144,8 @@ public func run_PrefixWhileAnySeqCRangeIter(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnyCollection(_ n: Int) {
-  let s = AnyCollection(0..<sequenceCount)
+public fn run_PrefixWhileAnyCollection(_ n: Int) {
+  immutable s = AnyCollection(0..<sequenceCount)
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -154,8 +155,8 @@ public func run_PrefixWhileAnyCollection(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileArray(_ n: Int) {
-  let s = array
+public fn run_PrefixWhileArray(_ n: Int) {
+  immutable s = array
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -165,8 +166,8 @@ public func run_PrefixWhileArray(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileCountableRangeLazy(_ n: Int) {
-  let s = (0..<sequenceCount).lazy
+public fn run_PrefixWhileCountableRangeLazy(_ n: Int) {
+  immutable s = (0..<sequenceCount).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -176,8 +177,8 @@ public func run_PrefixWhileCountableRangeLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileSequenceLazy(_ n: Int) {
-  let s = (sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }).lazy
+public fn run_PrefixWhileSequenceLazy(_ n: Int) {
+  immutable s = (sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -187,8 +188,8 @@ public func run_PrefixWhileSequenceLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnySequenceLazy(_ n: Int) {
-  let s = (AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })).lazy
+public fn run_PrefixWhileAnySequenceLazy(_ n: Int) {
+  immutable s = (AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -198,8 +199,8 @@ public func run_PrefixWhileAnySequenceLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnySeqCntRangeLazy(_ n: Int) {
-  let s = (AnySequence(0..<sequenceCount)).lazy
+public fn run_PrefixWhileAnySeqCntRangeLazy(_ n: Int) {
+  immutable s = (AnySequence(0..<sequenceCount)).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -209,8 +210,8 @@ public func run_PrefixWhileAnySeqCntRangeLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnySeqCRangeIterLazy(_ n: Int) {
-  let s = (AnySequence((0..<sequenceCount).makeIterator())).lazy
+public fn run_PrefixWhileAnySeqCRangeIterLazy(_ n: Int) {
+  immutable s = (AnySequence((0..<sequenceCount).makeIterator())).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -220,8 +221,8 @@ public func run_PrefixWhileAnySeqCRangeIterLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileAnyCollectionLazy(_ n: Int) {
-  let s = (AnyCollection(0..<sequenceCount)).lazy
+public fn run_PrefixWhileAnyCollectionLazy(_ n: Int) {
+  immutable s = (AnyCollection(0..<sequenceCount)).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {
@@ -231,8 +232,8 @@ public func run_PrefixWhileAnyCollectionLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_PrefixWhileArrayLazy(_ n: Int) {
-  let s = (array).lazy
+public fn run_PrefixWhileArrayLazy(_ n: Int) {
+  immutable s = (array).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.prefix(while: {$0 < prefixCount} ) {

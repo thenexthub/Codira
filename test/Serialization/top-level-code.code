@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %s -module-name Test
+// RUN: toolchain-bcanalyzer %t/Test.codemodule | %FileCheck %s
+
+// RUN: cp %s %t/main.code
+// RUN: %target-language-frontend -typecheck -verify %t/main.code -primary-file %S/Inputs/top-level-code-other.code
+
+// CHECK-NOT: UnknownCode
+
+immutable a: Int? = 1 // expected-note {{'a' declared here}}
+guard immutable b = a else {
+  fatalError()
+}

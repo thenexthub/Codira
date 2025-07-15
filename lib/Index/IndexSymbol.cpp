@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Index/IndexSymbol.h"
@@ -114,16 +115,16 @@ static void setFuncSymbolInfo(const FuncDecl *FD, SymbolInfo &sym) {
   if (auto *op = FD->getOperatorDecl()) {
     switch (op->getKind()) {
       case DeclKind::PrefixOperator:
-        sym.SubKind = SymbolSubKind::SwiftPrefixOperator;
+        sym.SubKind = SymbolSubKind::CodiraPrefixOperator;
         return;
       case DeclKind::PostfixOperator:
-        sym.SubKind = SymbolSubKind::SwiftPostfixOperator;
+        sym.SubKind = SymbolSubKind::CodiraPostfixOperator;
         return;
       case DeclKind::InfixOperator:
-        sym.SubKind = SymbolSubKind::SwiftInfixOperator;
+        sym.SubKind = SymbolSubKind::CodiraInfixOperator;
         return;
       default:
-        llvm_unreachable("unexpected operator kind");
+        toolchain_unreachable("unexpected operator kind");
     }
   }
 }
@@ -146,23 +147,23 @@ SymbolInfo index::getSymbolInfoForModule(ModuleEntity Mod) {
   info.Kind = SymbolKind::Module;
   info.SubKind = SymbolSubKind::None;
   info.Properties = SymbolPropertySet();
-  if (auto *D = Mod.getAsSwiftModule()) {
-    if (!D->isNonSwiftModule()) {
-      info.Lang = SymbolLanguage::Swift;
+  if (auto *D = Mod.getAsCodiraModule()) {
+    if (!D->isNonCodiraModule()) {
+      info.Lang = SymbolLanguage::Codira;
     } else {
       info.Lang = SymbolLanguage::C;
     }
   } else if (Mod.getAsClangModule()) {
     info.Lang = SymbolLanguage::C;
   } else {
-    llvm_unreachable("unexpected module kind");
+    toolchain_unreachable("unexpected module kind");
   }
   return info;
 }
 
 SymbolInfo index::getSymbolInfoForDecl(const Decl *D) {
   SymbolInfo info{ SymbolKind::Unknown, SymbolSubKind::None,
-                   SymbolLanguage::Swift, SymbolPropertySet() };
+                   SymbolLanguage::Codira, SymbolPropertySet() };
   switch (D->getKind()) {
     case DeclKind::Enum:
       info.Kind = SymbolKind::Enum;
@@ -185,31 +186,31 @@ SymbolInfo index::getSymbolInfoForDecl(const Decl *D) {
       if (!NTD)
         break;
       if (isa<StructDecl>(NTD))
-        info.SubKind = SymbolSubKind::SwiftExtensionOfStruct;
+        info.SubKind = SymbolSubKind::CodiraExtensionOfStruct;
       else if (auto *CD = dyn_cast<ClassDecl>(NTD)) {
-        info.SubKind = SymbolSubKind::SwiftExtensionOfClass;
+        info.SubKind = SymbolSubKind::CodiraExtensionOfClass;
         if (isUnitTestCase(CD))
           info.Properties |= SymbolProperty::UnitTest;
       } else if (isa<EnumDecl>(NTD))
-        info.SubKind = SymbolSubKind::SwiftExtensionOfEnum;
+        info.SubKind = SymbolSubKind::CodiraExtensionOfEnum;
       else if (isa<ProtocolDecl>(NTD))
-        info.SubKind = SymbolSubKind::SwiftExtensionOfProtocol;
+        info.SubKind = SymbolSubKind::CodiraExtensionOfProtocol;
       assert(info.SubKind != SymbolSubKind::None);
       break;
     }
     case DeclKind::TypeAlias:        info.Kind = SymbolKind::TypeAlias; break;
     case DeclKind::AssociatedType:
       info.Kind = SymbolKind::TypeAlias;
-      info.SubKind = SymbolSubKind::SwiftAssociatedType;
+      info.SubKind = SymbolSubKind::CodiraAssociatedType;
       break;
     case DeclKind::GenericTypeParam:
       info.Kind = SymbolKind::TypeAlias;
-      info.SubKind = SymbolSubKind::SwiftGenericTypeParam;
+      info.SubKind = SymbolSubKind::CodiraGenericTypeParam;
       break;
     case DeclKind::EnumElement:      info.Kind = SymbolKind::EnumConstant; break;
     case DeclKind::Subscript:
       info.Kind = SymbolKind::InstanceProperty;
-      info.SubKind = SymbolSubKind::SwiftSubscript;
+      info.SubKind = SymbolSubKind::CodiraSubscript;
       break;
     case DeclKind::Constructor:      info.Kind = SymbolKind::Constructor; break;
     case DeclKind::Destructor:       info.Kind = SymbolKind::Destructor; break;
@@ -251,6 +252,7 @@ SymbolInfo index::getSymbolInfoForDecl(const Decl *D) {
     case DeclKind::OpaqueType:
     case DeclKind::BuiltinTuple:
     case DeclKind::MacroExpansion:
+    case DeclKind::Using:
       break;
   }
 
@@ -260,7 +262,7 @@ SymbolInfo index::getSymbolInfoForDecl(const Decl *D) {
 
   if (auto *FD = dyn_cast<AbstractFunctionDecl>(D)) {
     if (FD->hasAsync())
-      info.Properties |= SymbolProperty::SwiftAsync;
+      info.Properties |= SymbolProperty::CodiraAsync;
   }
 
   return info;
@@ -271,22 +273,22 @@ SymbolSubKind index::getSubKindForAccessor(AccessorKind AK) {
   case AccessorKind::Get:    return SymbolSubKind::AccessorGetter;
   case AccessorKind::DistributedGet:    return SymbolSubKind::AccessorGetter;
   case AccessorKind::Set:    return SymbolSubKind::AccessorSetter;
-  case AccessorKind::WillSet:   return SymbolSubKind::SwiftAccessorWillSet;
-  case AccessorKind::DidSet:    return SymbolSubKind::SwiftAccessorDidSet;
-  case AccessorKind::Address: return SymbolSubKind::SwiftAccessorAddressor;
+  case AccessorKind::WillSet:   return SymbolSubKind::CodiraAccessorWillSet;
+  case AccessorKind::DidSet:    return SymbolSubKind::CodiraAccessorDidSet;
+  case AccessorKind::Address: return SymbolSubKind::CodiraAccessorAddressor;
   case AccessorKind::MutableAddress:
-    return SymbolSubKind::SwiftAccessorMutableAddressor;
-  case AccessorKind::Read:      return SymbolSubKind::SwiftAccessorRead;
-  case AccessorKind::Read2:     return SymbolSubKind::SwiftAccessorRead;
-  case AccessorKind::Modify:    return SymbolSubKind::SwiftAccessorModify;
-  case AccessorKind::Modify2:   return SymbolSubKind::SwiftAccessorModify;
-  case AccessorKind::Init:      return SymbolSubKind::SwiftAccessorInit;
+    return SymbolSubKind::CodiraAccessorMutableAddressor;
+  case AccessorKind::Read:      return SymbolSubKind::CodiraAccessorRead;
+  case AccessorKind::Read2:     return SymbolSubKind::CodiraAccessorRead;
+  case AccessorKind::Modify:    return SymbolSubKind::CodiraAccessorModify;
+  case AccessorKind::Modify2:   return SymbolSubKind::CodiraAccessorModify;
+  case AccessorKind::Init:      return SymbolSubKind::CodiraAccessorInit;
   }
 
-  llvm_unreachable("Unhandled AccessorKind in switch.");
+  toolchain_unreachable("Unhandled AccessorKind in switch.");
 }
 
-bool index::isLocalSymbol(const swift::Decl *D) {
+bool index::isLocalSymbol(const language::Decl *D) {
   return D->getDeclContext()->getLocalContext() &&
     (!isa<ParamDecl>(D) || cast<ParamDecl>(D)->getArgumentNameLoc().isValid() ||
      D->getDeclContext()->getContextKind() == DeclContextKind::AbstractClosureExpr);

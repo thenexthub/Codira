@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILInstruction.h"
@@ -22,13 +23,13 @@
 #include "language/SILOptimizer/Analysis/LoopAnalysis.h"
 #include "language/SILOptimizer/Utils/ConstantFolding.h"
 #include "language/SILOptimizer/Utils/SILInliner.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/CommandLine.h"
 
 
 using namespace language;
 
-extern llvm::cl::opt<bool> EnableSILInliningOfGenerics;
+extern toolchain::cl::opt<bool> EnableSILInliningOfGenerics;
 
 namespace language {
 class BasicCalleeAnalysis;
@@ -80,7 +81,7 @@ bool isNestedSemanticCall(FullApplySite apply);
 //
 // Returns a nullptr if `val` is not a function conversion instruction.
 SILValue stripFunctionConversions(SILValue val);
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 //                               ConstantTracker
@@ -117,7 +118,7 @@ class ConstantTracker {
   // The key is a load instruction, the value is the corresponding store
   // instruction which stores the loaded value. Both, key and value can also
   // be copy_addr instructions.
-  llvm::DenseMap<SILInstruction *, SILInstruction *> links;
+  toolchain::DenseMap<SILInstruction *, SILInstruction *> links;
   
   // The current stored values at memory addresses.
   // The key is the base address of the memory (after skipping address
@@ -125,10 +126,10 @@ class ConstantTracker {
   // store the current value.
   // This is only an estimation, because e.g. it does not consider potential
   // aliasing.
-  llvm::DenseMap<SILValue, SILInstruction *> memoryContent;
+  toolchain::DenseMap<SILValue, SILInstruction *> memoryContent;
   
   // Cache for evaluated constants.
-  llvm::SmallDenseMap<BuiltinInst *, IntConst> constCache;
+  toolchain::SmallDenseMap<BuiltinInst *, IntConst> constCache;
 
   // The caller/callee function which is tracked.
   SILFunction *F;
@@ -346,7 +347,7 @@ private:
 
   SILFunction *F;
   SILLoopInfo *LI;
-  llvm::DenseMap<const SILBasicBlock *, BlockInfo *> BlockInfos;
+  toolchain::DenseMap<const SILBasicBlock *, BlockInfo *> BlockInfos;
   std::vector<BlockInfo> BlockInfoStorage;
   bool valid = false;
 
@@ -409,11 +410,11 @@ private:
   /// Analyze \p Loop and all its inner loops.
   void analyzeLoopsRecursively(SILLoop *Loop, int LoopDepth);
 
-  void printFunction(llvm::raw_ostream &OS);
+  void printFunction(toolchain::raw_ostream &OS);
 
-  void printLoop(llvm::raw_ostream &OS, SILLoop *Loop, int LoopDepth);
+  void printLoop(toolchain::raw_ostream &OS, SILLoop *Loop, int LoopDepth);
 
-  void printBlockInfo(llvm::raw_ostream &OS, SILBasicBlock *BB, int LoopDepth);
+  void printBlockInfo(toolchain::raw_ostream &OS, SILBasicBlock *BB, int LoopDepth);
 
 public:
   ShortestPathAnalysis(SILFunction *F, SILLoopInfo *LI) : F(F), LI(LI) { }

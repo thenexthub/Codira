@@ -1,0 +1,44 @@
+// RUN: %target-typecheck-verify-language  -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+
+fn test() async {
+  async immutable x = 1 // okay
+  _ = await x
+}
+
+struct X {
+  async immutable x = 1 // expected-error{{'async immutable' can only be used on local declarations}}
+}
+
+fn testAsyncFunc() async {
+  async immutable (z1, z2) = (2, 3)
+  async immutable (_, _) = (2, 3)
+  async immutable x2 = 1
+
+  async var x = 17 // expected-error{{'async' can only be used with 'immutable' declarations}}{{9-12=immutable}}
+  async immutable (_, _) = (1, 2), y2 = 7 // expected-error{{'async immutable' requires at least one named variable}}
+  async immutable y: Int // expected-error{{'async immutable' binding requires an initializer expression}}
+  _ = await x
+  _ = y
+  _ = await z1
+  _ = await z2
+  _ = await x2
+  await x = 1
+  _ = y2
+}
+
+// Cooking example
+fn chopVegetables() async throws -> [String] { [] }
+fn marinateMeat() async -> String { "MEAT" }
+
+fn cook() async throws {
+  async immutable veggies = try await chopVegetables(), meat = await marinateMeat()
+  _ = try await veggies
+  _ = await meat
+}
+
+fn testInterpolation() async {
+  async immutable y = "\(12345)"
+  _ = await y
+}

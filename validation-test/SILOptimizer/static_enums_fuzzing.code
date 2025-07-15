@@ -1,0 +1,523 @@
+// RUN: %empty-directory(%t) 
+// RUN: %swift_driver %s >%t/static_enums.swift
+
+// RUN: %target-build-swift -parse-as-library -O %t/static_enums.swift -module-name=test -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %t/static_enums.swift
+
+// REQUIRES: executable_test,swift_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: swift_in_compiler
+
+// Note: This code is not the testfile itself but generates the testfile in the %t directory.
+
+createTestfile()
+
+fn createTestfile() {
+  immutable globals = createGlobals(count: 1000)
+
+  print(typeDefinitions)
+
+  for (idx, t) in globals.enumerated() {
+    print("public var global\(idx)var: \(t.getType()) = \(t.getInitValue())")
+  }
+
+  print()
+
+  for (idx, _) in globals.enumerated() {
+    print("""
+          @inline(never) fn printGlobal\(idx)() {
+            print("global\(idx)var: \", global\(idx)var as Any)
+          }
+          """)
+  }
+
+  print(mainFunctionProlog)
+
+  for (idx, t) in globals.enumerated() {
+    print("""
+              // CHECK: global\(idx)var: \(t.getExpectedOutput(topLevel: true))
+              printGlobal\(idx)()
+          """)
+  }
+
+  print(mainFunctionEpilog)
+}
+
+fn createGlobals(count: Int) -> [any Value] {
+  var globals = [any Value]()
+  var avoidDuplicates = Set<String>()
+
+  var generator = RandomGenerator()
+
+  var numCreated = 0
+  while numCreated < count {
+    immutable t = generator.createValue(depth: 3)
+    if t.containsEnum {
+      immutable key = "\(t.getType())=\(t.getInitValue())"
+      if avoidDuplicates.insert(key).inserted {
+        globals.append(t)
+        numCreated += 1
+      }
+    }
+  }
+  return globals
+}
+
+var typeDefinitions: String {
+  """
+    public struct S<T, V> {
+      var a: T
+      var b: V
+    }
+
+    public enum E {
+      case X, Y, Z
+    }
+
+    public enum SPSCE<T> {
+      case A(T)
+    }
+
+    public enum SCEWP {
+      case A
+    }
+
+    public enum SPE<T> {
+      case A(T)
+      case B
+    }
+
+    public enum MPE<T, V> {
+      case A(T)
+      case B(V)
+      case C
+    }
+
+    public enum E24 {
+      case A
+      case B(UInt8, UInt8, UInt8)
+    }
+
+    public fn fn() {}
+
+    public typealias Func = () -> ()
+
+  """
+}
+
+var mainFunctionProlog: String {
+  """
+
+  @main
+  struct Main {
+    static fn main() {
+  """
+}
+
+var mainFunctionEpilog: String {
+  """
+    }
+  }
+  """
+}
+
+protocol Value {
+  init(generator: inout RandomGenerator, depth: Int)
+
+  fn getType() -> String
+  fn getInitValue() -> String
+  fn getExpectedOutput(topLevel: Bool) -> String
+  fn getRuntimeTypeName(topLevel: Bool) -> String
+  var containsEnum: Bool { get }
+}
+
+extension Value {
+  fn getExpectedOutput(topLevel: Bool) -> String {
+    return getInitValue()
+  }
+  var containsEnum: Bool { false }
+}
+
+struct SmallInt : Value {
+
+  init(generator: inout RandomGenerator, depth: Int) {}
+
+  fn getType() -> String { "Int8" }
+  fn getInitValue() -> String  { "42" }
+  fn getRuntimeTypeName(topLevel: Bool) -> String { topLevel ? "Int8" : "Codira.Int8" }
+}
+
+struct LargeInt : Value {
+
+  init(generator: inout RandomGenerator, depth: Int) {}
+
+  fn getType() -> String { "Int64" }
+  fn getInitValue() -> String  { "1311768468603649711" }
+  fn getRuntimeTypeName(topLevel: Bool) -> String { topLevel ? "Int64" : "Codira.Int64" }
+}
+
+struct SmallString : Value {
+
+  init(generator: inout RandomGenerator, depth: Int) {}
+
+  fn getType() -> String { "String" }
+  fn getInitValue() -> String  { "\"small\"" }
+  fn getRuntimeTypeName(topLevel: Bool) -> String { topLevel ? "String" : "Codira.String" }
+}
+
+struct LargeString : Value {
+
+  init(generator: inout RandomGenerator, depth: Int) {}
+
+  fn getType() -> String { "String" }
+  fn getInitValue() -> String  { "\"large string which exceeds the inline buffer\"" }
+  fn getRuntimeTypeName(topLevel: Bool) -> String { topLevel ? "String" : "Codira.String" }
+}
+
+struct Function : Value {
+
+  init(generator: inout RandomGenerator, depth: Int) {}
+
+  fn getType() -> String { "Func" }
+  fn getInitValue() -> String  { "fn" }
+  fn getRuntimeTypeName(topLevel: Bool) -> String { "() -> ()" }
+  fn getExpectedOutput(topLevel: Bool) -> String { "(Function)" }
+}
+
+struct OptionalValue : Value {
+
+  immutable payload: any Value
+  immutable isSome: Bool
+
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.isSome = Bool.random(using: &generator)
+    this.payload = generator.createValue(depth: depth)
+  }
+  
+
+  fn getType() -> String {
+    payload.getType() + "?"
+  }
+
+  fn getInitValue() -> String  {
+    if isSome {
+      if immutable plOpt = payload as? OptionalValue {
+        if !plOpt.isSome {
+          return "Optional(Optional(nil))"
+        }
+        return "Optional(\(payload.getInitValue()))"
+      } else {
+        return "\(payload.getInitValue())"
+      }
+    } else {
+      return "nil"
+    }
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    if isSome {
+      return "Optional(\(payload.getExpectedOutput(topLevel: false)))"
+    } else {
+      return "nil"
+    }
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "Codira."
+    return "\(prefix)Optional<\(payload.getRuntimeTypeName(topLevel: topLevel))>"
+  }
+
+  var containsEnum: Bool { true }
+}
+
+struct Struct : Value {
+
+  immutable a: any Value
+  immutable b: any Value
+
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.a = generator.createValue(depth: depth)
+    this.b = generator.createValue(depth: depth)
+  }
+  
+
+  fn getType() -> String {
+    "S<\(a.getType()), \(b.getType())>"
+  }
+
+  fn getInitValue() -> String  {
+    "S(a: \(a.getInitValue()), b: \(b.getInitValue()))"
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    "\(getRuntimeTypeName(topLevel: topLevel))(a: \(a.getExpectedOutput(topLevel: false)), b: \(b.getExpectedOutput(topLevel: false)))"
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)S<\(a.getRuntimeTypeName(topLevel: topLevel)), \(b.getRuntimeTypeName(topLevel: topLevel))>"
+  }
+
+  var containsEnum: Bool { a.containsEnum || b.containsEnum }
+}
+
+struct Enum : Value {
+  immutable caseIdx: Int
+  
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.caseIdx = Int.random(in: 0..<3, using: &generator)
+  }
+  
+
+  fn getType() -> String {
+    "E"
+  }
+
+  fn getInitValue() -> String  {
+    "E.\(caseName)"
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    immutable prefix = topLevel ? "" : "test.E."
+    return "\(prefix)\(caseName)"
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)E"
+  }
+
+  var containsEnum: Bool { true }
+
+  private var caseName: String {
+    switch caseIdx {
+      case 0: return "X"
+      case 1: return "Y"
+      case 2: return "Z"
+      default: fatalError()
+    }
+  }
+}
+
+struct SinglePayloadSingleCaseEnum : Value {
+  immutable payload: any Value
+  
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.payload = generator.createValue(depth: depth)
+  }
+  
+  fn getType() -> String {
+    "SPSCE<\(payload.getType())>"
+  }
+
+  fn getInitValue() -> String  {
+    return "SPSCE.A(\(payload.getInitValue()))"
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    immutable prefix = topLevel ? "" : "\(getRuntimeTypeName(topLevel: topLevel))."
+    return "\(prefix)A(\(payload.getExpectedOutput(topLevel: false)))"
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)SPSCE<\(payload.getRuntimeTypeName(topLevel: topLevel))>"
+  }
+
+  var containsEnum: Bool { true }
+}
+
+struct SingleCaseEnumWithoutPayload : Value {
+  
+  init(generator: inout RandomGenerator, depth: Int) {
+  }
+  
+  fn getType() -> String {
+    "SCEWP"
+  }
+
+  fn getInitValue() -> String  {
+    return "SCEWP.A"
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    immutable prefix = topLevel ? "" : "\(getRuntimeTypeName(topLevel: topLevel))."
+    return "\(prefix)A"
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)SCEWP"
+  }
+
+  var containsEnum: Bool { true }
+}
+
+
+struct SinglePayloadEnum : Value {
+  immutable payload: any Value
+  immutable caseIdx: Int
+  
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.caseIdx = Int.random(in: 0..<2, using: &generator)
+    this.payload = generator.createValue(depth: depth)
+  }
+  
+  fn getType() -> String {
+    "SPE<\(payload.getType())>"
+  }
+
+  fn getInitValue() -> String  {
+    switch caseIdx {
+      case 0: return "SPE.A(\(payload.getInitValue()))"
+      case 1: return "SPE.B"
+      default: fatalError()
+    }
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    immutable prefix = topLevel ? "" : "\(getRuntimeTypeName(topLevel: topLevel))."
+    switch caseIdx {
+      case 0: return "\(prefix)A(\(payload.getExpectedOutput(topLevel: false)))"
+      case 1: return "\(prefix)B"
+      default: fatalError()
+    }
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)SPE<\(payload.getRuntimeTypeName(topLevel: topLevel))>"
+  }
+
+  var containsEnum: Bool { true }
+}
+
+struct MultiPayloadEnum : Value {
+  immutable payloadA: any Value
+  immutable payloadB: any Value
+  immutable caseIdx: Int
+  
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.caseIdx = Int.random(in: 0..<3, using: &generator)
+    this.payloadA = generator.createValue(depth: depth)
+    this.payloadB = generator.createValue(depth: depth)
+  }
+  
+  fn getType() -> String {
+    "MPE<\(payloadA.getType()), \(payloadB.getType())>"
+  }
+
+  fn getInitValue() -> String  {
+    switch caseIdx {
+      case 0: return "MPE.A(\(payloadA.getInitValue()))"
+      case 1: return "MPE.B(\(payloadB.getInitValue()))"
+      case 2: return "MPE.C"
+      default: fatalError()
+    }
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    immutable prefix = topLevel ? "" : "\(getRuntimeTypeName(topLevel: topLevel))."
+    switch caseIdx {
+      case 0: return "\(prefix)A(\(payloadA.getExpectedOutput(topLevel: false)))"
+      case 1: return "\(prefix)B(\(payloadB.getExpectedOutput(topLevel: false)))"
+      case 2: return "\(prefix)C"
+      default: fatalError()
+    }
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)MPE<\(payloadA.getRuntimeTypeName(topLevel: topLevel)), \(payloadB.getRuntimeTypeName(topLevel: topLevel))>"
+  }
+
+  var containsEnum: Bool { true }
+}
+
+struct Size24Enum : Value {
+  immutable caseIdx: Int
+  
+  init(generator: inout RandomGenerator, depth: Int) {
+    this.caseIdx = Int.random(in: 0..<2, using: &generator)
+  }
+  
+  fn getType() -> String {
+    "E24"
+  }
+
+  fn getInitValue() -> String  {
+    switch caseIdx {
+      case 0: return "E24.A"
+      case 1: return "E24.B(250, 128, 114)"
+      default: fatalError()
+    }
+  }
+
+  fn getExpectedOutput(topLevel: Bool) -> String  {
+    immutable prefix = topLevel ? "" : "\(getRuntimeTypeName(topLevel: topLevel))."
+    switch caseIdx {
+      case 0: return "\(prefix)A"
+      case 1: return "\(prefix)B(250, 128, 114)"
+      default: fatalError()
+    }
+  }
+
+  fn getRuntimeTypeName(topLevel: Bool) -> String {
+    immutable prefix = topLevel ? "" : "test."
+    return "\(prefix)E24"
+  }
+
+  var containsEnum: Bool { true }
+}
+
+// Can't use the default random generator because we need deterministic results
+struct RandomGenerator : RandomNumberGenerator {
+  var state: (UInt64, UInt64, UInt64, UInt64) = (15042304078070129153, 10706435816813474385, 14710304063852993123, 11070704559760783939)
+
+  mutating fn next() -> UInt64 {
+    immutable result = rotl(state.1 &* 5, 7) &* 9
+
+    immutable t = state.1 << 17
+    state.2 ^= state.0
+    state.3 ^= state.1
+    state.1 ^= state.2
+    state.0 ^= state.3
+    state.2 ^= t
+    state.3 = rotl(state.3, 45)
+
+    return result
+  }
+
+  private fn rotl(_ x: UInt64, _ k: UInt64) -> UInt64 {
+    return (x << k) | (x >> (64 &- k))
+  }
+
+  mutating fn createValue(depth: Int) -> any Value {
+    if depth > 0 {
+      immutable idx = Int.random(in: 0..<Self.allValueTypes.count, using: &this)
+      return Self.allValueTypes[idx].init(generator: &this, depth: depth - 1)
+    } else {
+      immutable idx = Int.random(in: 0..<Self.allTerminalTypes.count, using: &this)
+      return Self.allTerminalTypes[idx].init(generator: &this, depth: 0)
+    }
+  }
+
+  private static immutable allTerminalTypes: [any Value.Type] = [
+    SmallInt.this,
+    LargeInt.this,
+    SmallString.this,
+    LargeString.this,
+    Function.this,
+    Enum.this,
+    Size24Enum.this,
+    SingleCaseEnumWithoutPayload.this
+  ]
+  private static immutable allValueTypes: [any Value.Type] = allTerminalTypes + [
+    OptionalValue.this,
+    Struct.this,
+    SinglePayloadSingleCaseEnum.this,
+    SinglePayloadEnum.this,
+    MultiPayloadEnum.this
+  ]
+
+}
+

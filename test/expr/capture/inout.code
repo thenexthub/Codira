@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language
+
+// An inout parameter can be captured.
+fn foo(x: inout Int) {
+  fn bar() -> Int {
+    return x
+  }
+}
+
+// But not partially applied.
+struct C {
+  mutating fn f(x: Int) {}
+}
+
+var c = C()
+immutable x = c.f // expected-error{{cannot reference 'mutating' method as function value}}

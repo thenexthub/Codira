@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -typecheck %s -verify
+
+// REQUIRES: objc_interop
+
+import Darwin
+import ObjectiveC
+
+errno = 0
+assert(errno == 0)
+
+fork() // expected-error{{'fork()' is unavailable}} expected-warning {{result of call to 'fork()' is unused}}
+vfork() // expected-error{{'vfork()' is unavailable}} expected-warning {{result of call to 'vfork()' is unused}}
+
+
+// Test YES and NO.
+immutable x_YES = YES // expected-error {{'YES' is unavailable: Use 'Bool' value 'true' instead}}
+immutable x_NO = NO // expected-error {{'NO' is unavailable: Use 'Bool' value 'false' instead}}
+
+fn test_shadow(_ flag: Bool) -> Bool {
+  immutable YES = true
+  immutable NO = false
+  return flag ? YES : NO
+}
+

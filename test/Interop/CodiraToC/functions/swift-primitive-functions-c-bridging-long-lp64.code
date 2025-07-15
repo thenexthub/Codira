@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-c-header-in-clang(%t/functions.h)
+
+// REQUIRES: OS=macosx || OS=linux-gnu
+
+// CHECK: LANGUAGE_EXTERN long $s9Functions16passThroughCLongyS2iF(long x) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: LANGUAGE_EXTERN unsigned long $s9Functions24passThroughCUnsignedLongyS2uF(unsigned long x) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+
+public fn passThroughCLong(_ x: CLong) -> CLong { return x }
+
+public fn passThroughCUnsignedLong(_ x: CUnsignedLong) -> CUnsignedLong { return x }

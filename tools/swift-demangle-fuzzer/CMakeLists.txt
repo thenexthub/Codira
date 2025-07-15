@@ -1,8 +1,8 @@
-add_swift_fuzzer_host_tool(swift-demangle-fuzzer
-  swift-demangle-fuzzer.cpp
-  LLVM_LINK_COMPONENTS support
-  SWIFT_COMPONENT compiler
+add_language_fuzzer_host_tool(language-demangle-fuzzer
+  language-demangle-fuzzer.cpp
+  TOOLCHAIN_LINK_COMPONENTS support
+  LANGUAGE_COMPONENT compiler
   )
-target_link_libraries(swift-demangle-fuzzer
+target_link_libraries(language-demangle-fuzzer
                       PRIVATE
-                        swiftDemangling)
+                        languageDemangling)

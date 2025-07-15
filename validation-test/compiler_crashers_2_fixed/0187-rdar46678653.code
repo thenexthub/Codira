@@ -1,0 +1,15 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+protocol P: class { }
+
+protocol Q {
+  fn g()
+}
+
+protocol P { }
+
+struct S : Q {
+  @_implements(P, g())
+  fn h() {}
+}
+

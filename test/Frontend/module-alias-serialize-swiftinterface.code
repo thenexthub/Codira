@@ -1,0 +1,58 @@
+/// Test a serialized interface contains the module real names when -module-alias flag is passed.
+///
+/// 'Lib' imports module 'XLogging', and 'XLogging' is aliased 'AppleLogging'.
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+/// 1. AppleLogging
+/// Create AppleLogging.codemodule by aliasing XLogging via -module-alias XLogging=AppleLogging
+// RUN: %target-language-frontend -module-name AppleLogging -module-alias XLogging=AppleLogging %t/FileLogging.code -emit-module -emit-module-path %t/AppleLogging.codemodule -enable-library-evolution
+
+/// Check AppleLogging.codemodule is created
+// RUN: test -f %t/AppleLogging.codemodule
+// RUN: not test -f %t/XLogging.codemodule
+
+/// Check AppleLogging.codemodule correctly contains AppleLogging as module name in the binary
+// RUN: toolchain-bcanalyzer --dump %t/AppleLogging.codemodule | %FileCheck %s -check-prefix=BCANALYZER-FOUND
+// BCANALYZER-FOUND: MODULE_NAME{{.*}}AppleLogging
+
+// RUN: toolchain-bcanalyzer --dump %t/AppleLogging.codemodule | not grep XLogging
+
+/// 2. Lib
+/// Create an interface for Lib that imports XLogging with -module-alias XLogging=AppleLogging
+// RUN: %target-language-frontend -module-name Lib %t/FileLib.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-interface-path %t/Lib.codeinterface -language-version 5 -enable-library-evolution -I %t -Rmodule-loading 2> %t/result-Lib.output
+
+/// Check Lib.codeinterface is created
+// RUN: test -f %t/Lib.codeinterface
+// RUN: test -f %t/AppleLogging.codemodule
+// RUN: not test -f %t/XLogging.codemodule
+
+/// Check AppleLogging.codemodule is loaded
+// RUN: %FileCheck %s -input-file %t/result-Lib.output -check-prefix CHECK-LOAD
+// CHECK-LOAD: remark: loaded module {{.*}}AppleLogging.codemodule
+// RUN: not %FileCheck %s -input-file %t/result-Lib.output -check-prefix CHECK-NOT-LOAD1
+// CHECK-NOT-LOAD1: remark: loaded module {{.*}}XLogging.codemodule
+
+/// Check imported modules contain AppleLogging, not XLogging
+// RUN: %FileCheck %s -input-file %t/Lib.codeinterface -check-prefix CHECK-IMPORT
+// CHECK-IMPORT: -module-alias XLogging=AppleLogging
+// CHECK-IMPORT: import AppleLogging
+// RUN: not %FileCheck %s -input-file %t/Lib.codeinterface -check-prefix CHECK-NOT-IMPORT
+// CHECK-NOT-IMPORT: import XLogging
+
+
+// BEGIN FileLogging.code
+public struct Logger {
+  public init() {}
+}
+public fn setup() -> XLogging.Logger? {
+  return Logger()
+}
+
+// BEGIN FileLib.code
+import XLogging
+
+public fn start() {
+  _ = XLogging.setup()
+}

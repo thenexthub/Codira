@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the existential type generalization algorithm,
@@ -24,7 +25,7 @@
 #include "language/AST/Requirement.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 using namespace language;
 
@@ -36,8 +37,8 @@ class Generalizer : public CanTypeVisitor<Generalizer, Type> {
 
   ASTContext &ctx;
 
-  llvm::DenseMap<CanType, Type> substTypes;
-  llvm::DenseMap<std::pair<CanType, ProtocolDecl*>,
+  toolchain::DenseMap<CanType, Type> substTypes;
+  toolchain::DenseMap<std::pair<CanType, ProtocolDecl*>,
                  ProtocolConformanceRef> substConformances;
 
   SmallVector<GenericTypeParamType *, 2> addedParameters;
@@ -71,10 +72,11 @@ public:
       assert(it != substTypes.end());
       return it->second;
     };
-    auto lookupConformance = [&](CanType dependentType,
-                                 Type conformingReplacementType,
+    auto lookupConformance = [&](InFlightSubstitution &IFS,
+                                 Type dependentType,
                                  ProtocolDecl *conformedProtocol) {
-      auto it = substConformances.find({dependentType, conformedProtocol});
+      auto it = substConformances.find(
+          {dependentType->getCanonicalType(), conformedProtocol});
       assert(it != substConformances.end());
       return it->second;
     };
@@ -154,7 +156,7 @@ private:
   // them out.
 #define NO_PRESERVABLE_STRUCTURE(ID)                           \
   Type visit##ID##Type(Can##ID##Type origType) {               \
-    llvm_unreachable(#ID "Type has no structure to preserve"); \
+    toolchain_unreachable(#ID "Type has no structure to preserve"); \
   }
   NO_PRESERVABLE_STRUCTURE(Archetype)
   NO_PRESERVABLE_STRUCTURE(Builtin)
@@ -170,7 +172,7 @@ private:
   // These types simply shouldn't appear in types that we generalize at all.
 #define INVALID_TO_GENERALIZE(ID)                                       \
   Type visit##ID##Type(Can##ID##Type origType) {                        \
-    llvm_unreachable(#ID "type should not be found by generalization"); \
+    toolchain_unreachable(#ID "type should not be found by generalization"); \
   }
   INVALID_TO_GENERALIZE(DynamicSelf)
   INVALID_TO_GENERALIZE(Error)

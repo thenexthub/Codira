@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Threading/Errors.h"
@@ -18,13 +19,13 @@
 
 #include "Error.h"
 
-// swift::fatalError is not exported from libswiftCore and not shared, so define another
+// language::fatalError is not exported from liblanguageCore and not shared, so define another
 // internal function instead.
-SWIFT_NORETURN
-SWIFT_VFORMAT(2)
-void swift::swift_Concurrency_fatalErrorv(uint32_t flags, const char *format,
+LANGUAGE_NORETURN
+LANGUAGE_VFORMAT(2)
+void language::language_Concurrency_fatalErrorv(uint32_t flags, const char *format,
                                           va_list val) {
-#if !SWIFT_CONCURRENCY_EMBEDDED
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
   vfprintf(stderr, format, val);
 #else
   vprintf(format, val);
@@ -32,12 +33,12 @@ void swift::swift_Concurrency_fatalErrorv(uint32_t flags, const char *format,
   abort();
 }
 
-SWIFT_NORETURN
-SWIFT_FORMAT(2, 3)
-void swift::swift_Concurrency_fatalError(uint32_t flags, const char *format,
+LANGUAGE_NORETURN
+LANGUAGE_FORMAT(2, 3)
+void language::language_Concurrency_fatalError(uint32_t flags, const char *format,
                                          ...) {
   va_list val;
 
   va_start(val, format);
-  swift_Concurrency_fatalErrorv(flags, format, val);
+  language_Concurrency_fatalErrorv(flags, format, val);
 }

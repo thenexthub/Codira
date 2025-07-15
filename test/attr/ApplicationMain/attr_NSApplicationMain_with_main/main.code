@@ -1,0 +1,11 @@
+// expected-note{{top-level code defined in this source file}}
+// expected-note@-1{{pass '-parse-as-library' to compiler invocation if this is intentional}}
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s %S/delegate.code
+
+// Serialized partial AST support:
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module-path %t.codemodule -primary-file %s %S/delegate.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -parse-as-library -typecheck %t.codemodule -primary-file %S/delegate.code -verify
+
+// REQUIRES: objc_interop
+
+hi()

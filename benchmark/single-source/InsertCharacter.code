@@ -1,4 +1,4 @@
-//===--- InsertCharacter.swift --------------------------------------------===//
+//===--- InsertCharacter.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-let t: [BenchmarkCategory] = [.validation, .api, .String]
+immutable t: [BenchmarkCategory] = [.validation, .api, .String]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "InsertCharacterEndIndex",
     runFunction: run_InsertCharacterEndIndex, tags: t,
     setUpFunction: buildWorkload),
@@ -38,16 +39,16 @@ public let benchmarks = [
     setUpFunction: buildWorkload)
 ]
 
-let str = String(repeating: "A very long ASCII string.", count: 200)
+immutable str = String(repeating: "A very long ASCII string.", count: 200)
 
-func buildWorkload() {
+fn buildWorkload() {
   blackHole(str)
 }
 
 // Insert towards end index
 
 @inline(__always)
-func insertTowardsEndIndex(_ c: Character, in string: String, count: Int) {
+fn insertTowardsEndIndex(_ c: Character, in string: String, count: Int) {
   var workload = string
   var index = workload.endIndex
   for i in 0..<count {
@@ -60,19 +61,19 @@ func insertTowardsEndIndex(_ c: Character, in string: String, count: Int) {
 }
 
 @inline(never)
-func run_InsertCharacterTowardsEndIndex(_ n: Int) {
+fn run_InsertCharacterTowardsEndIndex(_ n: Int) {
   insertTowardsEndIndex("s", in: str, count: n * 3000)
 }
 
 @inline(never)
-func run_InsertCharacterTowardsEndIndexNonASCII(_ n: Int) {
+fn run_InsertCharacterTowardsEndIndexNonASCII(_ n: Int) {
   insertTowardsEndIndex("👩🏼‍💻", in: str, count: n * 1000)
 }
 
 // Insert at end index
 
 @inline(__always)
-func insertAtEndIndex(_ c: Character, in string: String, count: Int) {
+fn insertAtEndIndex(_ c: Character, in string: String, count: Int) {
   var workload = string
   for _ in 0..<count {
     workload.insert(identity(c), at: workload.endIndex)
@@ -81,19 +82,19 @@ func insertAtEndIndex(_ c: Character, in string: String, count: Int) {
 }
 
 @inline(never)
-func run_InsertCharacterEndIndex(_ n: Int) {
+fn run_InsertCharacterEndIndex(_ n: Int) {
   insertAtEndIndex("s", in: str, count: n * 3000)
 }
 
 @inline(never)
-func run_InsertCharacterEndIndexNonASCII(_ n: Int) {
+fn run_InsertCharacterEndIndexNonASCII(_ n: Int) {
   insertAtEndIndex("👩🏾‍🏫", in: str, count: n * 1000)
 }
 
 // Insert at start index
 
 @inline(__always)
-func insertAtStartIndex(
+fn insertAtStartIndex(
   _ c: Character, in string: String, count: Int, insertions: Int) {
   var workload = str
   for _ in 0..<count {
@@ -106,11 +107,11 @@ func insertAtStartIndex(
 }
 
 @inline(never)
-func run_InsertCharacterStartIndex(_ n: Int) {
+fn run_InsertCharacterStartIndex(_ n: Int) {
   insertAtStartIndex("w", in: str, count: n * 15, insertions: 50)
 }
 
 @inline(never)
-func run_InsertCharacterStartIndexNonASCII(_ n: Int) {
+fn run_InsertCharacterStartIndexNonASCII(_ n: Int) {
   insertAtStartIndex("👩🏾‍🏫", in: str, count: n * 75, insertions: 25)
 }

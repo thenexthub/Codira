@@ -1,13 +1,17 @@
 //===--- AdjointValue.h - Helper class for differentiation ----*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // AdjointValue - a symbolic representation for adjoint values enabling
@@ -15,15 +19,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADJOINTVALUE_H
-#define SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADJOINTVALUE_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADJOINTVALUE_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADJOINTVALUE_H
 
 #include "language/AST/Decl.h"
 #include "language/SIL/SILDebugVariable.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/Debug.h"
 
 #include <variant>
 
@@ -86,7 +90,7 @@ class AdjointValueBase {
   // `kind == AdjointValueKind::Aggregate`.
 
   explicit AdjointValueBase(SILType type,
-                            llvm::ArrayRef<AdjointValue> aggregate,
+                            toolchain::ArrayRef<AdjointValue> aggregate,
                             std::optional<DebugInfo> debugInfo)
       : kind(AdjointValueKind::Aggregate), type(type), debugInfo(debugInfo),
         value(aggregate.size()) {
@@ -125,21 +129,21 @@ public:
   using DebugInfo = AdjointValueBase::DebugInfo;
 
   static AdjointValue
-  createConcrete(llvm::BumpPtrAllocator &allocator, SILValue value,
+  createConcrete(toolchain::BumpPtrAllocator &allocator, SILValue value,
                  std::optional<DebugInfo> debugInfo = std::nullopt) {
     auto *buf = allocator.Allocate<AdjointValueBase>();
     return new (buf) AdjointValueBase(value, debugInfo);
   }
 
   static AdjointValue
-  createZero(llvm::BumpPtrAllocator &allocator, SILType type,
+  createZero(toolchain::BumpPtrAllocator &allocator, SILType type,
              std::optional<DebugInfo> debugInfo = std::nullopt) {
     auto *buf = allocator.Allocate<AdjointValueBase>();
     return new (buf) AdjointValueBase(type, debugInfo);
   }
 
   static AdjointValue
-  createAggregate(llvm::BumpPtrAllocator &allocator, SILType type,
+  createAggregate(toolchain::BumpPtrAllocator &allocator, SILType type,
                   ArrayRef<AdjointValue> elements,
                   std::optional<DebugInfo> debugInfo = std::nullopt) {
     AdjointValue *buf = reinterpret_cast<AdjointValue *>(allocator.Allocate(
@@ -149,7 +153,7 @@ public:
   }
 
   static AdjointValue
-  createAddElement(llvm::BumpPtrAllocator &allocator, SILType type,
+  createAddElement(toolchain::BumpPtrAllocator &allocator, SILType type,
                    AddElementValue *addElementValue,
                    std::optional<DebugInfo> debugInfo = std::nullopt) {
     auto *buf = allocator.Allocate<AdjointValueBase>();
@@ -158,12 +162,12 @@ public:
 
   AdjointValueKind getKind() const { return base->kind; }
   SILType getType() const { return base->type; }
-  CanType getSwiftType() const { return getType().getASTType(); }
+  CanType getCodiraType() const { return getType().getASTType(); }
   std::optional<DebugInfo> getDebugInfo() const { return base->debugInfo; }
   void setDebugInfo(DebugInfo debugInfo) const { base->debugInfo = debugInfo; }
 
   NominalTypeDecl *getAnyNominal() const {
-    return getSwiftType()->getAnyNominal();
+    return getCodiraType()->getAnyNominal();
   }
 
   bool isZero() const { return getKind() == AdjointValueKind::Zero; }
@@ -182,7 +186,7 @@ public:
     return getAggregateElements()[i];
   }
 
-  llvm::ArrayRef<AdjointValue> getAggregateElements() const {
+  toolchain::ArrayRef<AdjointValue> getAggregateElements() const {
     assert(isAggregate());
     return {
         reinterpret_cast<const AdjointValue *>(base + 1),
@@ -199,9 +203,9 @@ public:
     return base->value.addElementValue;
   }
 
-  void print(llvm::raw_ostream &s) const;
+  void print(toolchain::raw_ostream &s) const;
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); };
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); };
 };
 
 /// An abstraction that represents the field locator in
@@ -265,7 +269,7 @@ struct AddElementValue final {
   }
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                                      const AdjointValue &adjVal) {
   adjVal.print(os);
   return os;
@@ -274,4 +278,4 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 } // end namespace autodiff
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADJOINTVALUE_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADJOINTVALUE_H

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -22,8 +23,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SILGENBUILDER_H
-#define SWIFT_SILGEN_SILGENBUILDER_H
+#ifndef LANGUAGE_SILGEN_SILGENBUILDER_H
+#define LANGUAGE_SILGEN_SILGENBUILDER_H
 
 #include "Cleanup.h"
 #include "JumpDest.h"
@@ -248,7 +249,7 @@ public:
   /// \return an empty value if the buffer was taken from the context.
   ManagedValue bufferForExpr(SILLocation loc, SILType ty,
                              const TypeLowering &lowering, SGFContext context,
-                             llvm::function_ref<void(SILValue)> rvalueEmitter);
+                             toolchain::function_ref<void(SILValue)> rvalueEmitter);
 
   using SILBuilder::createUncheckedEnumData;
   ManagedValue createUncheckedEnumData(SILLocation loc, ManagedValue operand,
@@ -307,19 +308,19 @@ public:
   ManagedValue
   formalAccessBufferForExpr(SILLocation loc, SILType ty,
                             const TypeLowering &lowering, SGFContext context,
-                            llvm::function_ref<void(SILValue)> rvalueEmitter);
+                            toolchain::function_ref<void(SILValue)> rvalueEmitter);
 
   using SILBuilder::createUnconditionalCheckedCast;
   ManagedValue createUnconditionalCheckedCast(
       SILLocation loc,
-      CastingIsolatedConformances isolatedConformances,
+      CheckedCastInstOptions options,
       ManagedValue op,
       SILType destLoweredTy,
       CanType destFormalTy);
 
   using SILBuilder::createCheckedCastBranch;
   void createCheckedCastBranch(SILLocation loc, bool isExact,
-                               CastingIsolatedConformances isolatedConformances,
+                               CheckedCastInstOptions options,
                                ManagedValue op,
                                CanType sourceFormalTy,
                                SILType destLoweredTy,
@@ -455,7 +456,7 @@ public:
   /// as managed value one by one with an index to the closure.
   void emitDestructureValueOperation(
       SILLocation loc, ManagedValue value,
-      function_ref<void(unsigned, ManagedValue)> func);
+      function_ref<void(unsigned, ManagedValue)> fn);
   void emitDestructureValueOperation(
       SILLocation loc, ManagedValue value,
       SmallVectorImpl<ManagedValue> &destructuredValues);
@@ -463,15 +464,15 @@ public:
   using SILBuilder::emitDestructureAddressOperation;
   void emitDestructureAddressOperation(
       SILLocation loc, ManagedValue value,
-      function_ref<void(unsigned, ManagedValue)> func);
+      function_ref<void(unsigned, ManagedValue)> fn);
 
   using SILBuilder::emitDestructureOperation;
   void
   emitDestructureOperation(SILLocation loc, ManagedValue value,
-                           function_ref<void(unsigned, ManagedValue)> func) {
+                           function_ref<void(unsigned, ManagedValue)> fn) {
     if (value.getType().isObject())
-      return emitDestructureValueOperation(loc, value, func);
-    return emitDestructureAddressOperation(loc, value, func);
+      return emitDestructureValueOperation(loc, value, fn);
+    return emitDestructureAddressOperation(loc, value, fn);
   }
 
   using SILBuilder::createProjectBox;

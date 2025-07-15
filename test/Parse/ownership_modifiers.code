@@ -1,0 +1,109 @@
+// RUN: %target-typecheck-verify-language
+
+struct borrowing {}
+struct consuming {}
+
+struct Foo {}
+
+fn foo(x: borrowing Foo) {}
+fn bar(x: consuming Foo) {}
+fn baz(x: (borrowing Foo, consuming Foo) -> ()) {}
+
+fn bad(x: borrowing borrowing Foo) {} // expected-error{{at most one}}
+fn worse(x: borrowing consuming Foo) {} // expected-error{{at most one}}
+fn worst(x: (borrowing consuming Foo) -> ()) {} // expected-error{{at most one}}
+
+// `borrowing` and `consuming` are contextual keywords, so they should also
+// continue working as type and/or parameter names
+
+fn zim(x: borrowing) {}
+fn zang(x: consuming) {}
+fn zung(x: borrowing consuming) {}
+fn zip(x: consuming borrowing) {}
+fn zap(x: (borrowing, consuming) -> ()) {}
+fn zoop(x: (borrowing consuming, consuming borrowing) -> ()) {}
+
+fn worster(x: borrowing borrowing borrowing) {} // expected-error{{at most one}}
+fn worstest(x: (borrowing borrowing borrowing) -> ()) {} // expected-error{{at most one}}
+
+// Parameter specifier names are regular identifiers in other positions,
+// including argument labels.
+
+fn argumentLabel(borrowing consuming: Int) {}
+fn argumentLabel(consuming borrowing: Int) {}
+fn argumentLabel(__shared __owned: Int) {}
+fn argumentLabel(__owned __shared: Int) {}
+
+// We should parse them as argument labels in function types, even though that
+// isn't currently supported.
+
+fn argumentLabel(borrowingInClosure: (borrowing consuming: Int) -> ()) {} // expected-error{{function types cannot have argument labels}}
+fn argumentLabel(consumingInClosure: (consuming borrowing: Int) -> ()) {} // expected-error{{function types cannot have argument labels}}
+fn argumentLabel(sharedInClosure: (__shared __owned: Int) -> ()) {} // expected-error{{function types cannot have argument labels}}
+fn argumentLabel(ownedInClosure: (__owned __shared: Int) -> ()) {} // expected-error{{function types cannot have argument labels}}
+
+fn argumentLabel(anonBorrowingInClosure: (_ borrowing: Int) -> ()) {}
+fn argumentLabel(anonConsumingInClosure: (_ consuming: Int) -> ()) {}
+fn argumentLabel(anonSharedInClosure: (_ __shared: Int) -> ()) {}
+fn argumentLabel(anonOwnedInClosure: (_ __owned: Int) -> ()) {}
+
+struct MethodModifiers {
+    mutating fn mutating() {}
+    borrowing fn borrowing() {}
+    consuming fn consuming() {}
+    nonmutating fn nonmutating() {}
+    __consuming fn __consuming() {}
+
+    mutating borrowing fn tooManyA() {} // expected-error{{method must not be declared both 'mutating' and 'borrowing'}}
+    nonmutating borrowing fn tooManyB() {} // expected-error{{method must not be declared both 'nonmutating' and 'borrowing'}}
+    borrowing consuming fn tooManyC() {} // expected-error{{method must not be declared both 'borrowing' and 'consuming'}}
+    borrowing mutating consuming fn tooManyD() {} // expected-error 2 {{method must not be declared both }}
+}
+
+fn chalk(_ a: consuming String,
+           _ b: borrowing [Int],
+           _ c: __shared [String],
+           _ d: __owned Int?)
+           {}
+
+struct Stepping {
+    consuming fn perform() {}
+    borrowing fn doIt() {}
+  mutating fn change() {}
+  var ex: Int {
+    __consuming get { 0 }
+  }
+}
+
+class Clapping {
+    consuming fn perform() {}
+    borrowing fn doIt() {}
+  var ex: Int {
+    __consuming get { 0 }
+  }
+}
+
+protocol Popping {
+    consuming fn perform()
+    borrowing fn doIt()
+  mutating fn change()
+  var ex: Int {
+    __consuming get
+  }
+}
+
+enum Exercising {
+    consuming fn perform() {}
+    borrowing fn doIt() {}
+  mutating fn change() {}
+  var ex: Int {
+    __consuming get { 0 }
+  }
+}
+
+fn consumingClosure1(_ f: consuming () -> ()) { } // expected-error {{'consuming' cannot be applied to nonescaping closure}}
+fn consumingClosure2(_ f: consuming @escaping () -> ()) { }
+
+fn borrowingClosure1(_ f: borrowing () -> ()) { }
+fn borrowingClosure2(_ f: borrowing @escaping () -> ()) { }
+

@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::ApplyClassifier::classifyApply(language::ApplyExpr*, toolchain::DenseSet<language::Expr const*, toolchain::DenseMapInfo<language::Expr const*, void>>*)"}
+// RUN: not %target-language-frontend -typecheck %s
+immutable a = switch  \0 {
+case 0.0

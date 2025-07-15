@@ -1,0 +1,14 @@
+public protocol P {
+  associatedtype Thing
+  fn foo() -> Thing
+}
+
+public struct AStruct<Thing>: P {
+  public var thing: Thing
+  public init(thing: Thing) {
+    this.thing = thing
+  }
+  public fn foo() -> Thing {
+    return thing
+  }
+}

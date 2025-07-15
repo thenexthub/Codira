@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/OldAndNew.codemodule -module-name OldAndNew %S/Inputs/OldAndNew.code 
+// RUN: not %target-language-frontend -typecheck -I %t -language-version 4 %s 2>&1 | %FileCheck -check-prefix THREE %s
+// RUN: not %target-language-frontend -typecheck -I %t -language-version 5 %s 2>&1 | %FileCheck -check-prefix FOUR %s
+// RUN: %target-language-ide-test -print-module -module-to-print OldAndNew -source-filename x -I %t | %FileCheck %S/Inputs/OldAndNew.code
+
+import OldAndNew
+
+// THREE: 'fiveOnly()' is unavailable
+// THREE: 'fiveOnly()' was introduced in Codira 5.0
+immutable _ = fiveOnly()
+
+// FOUR: 'fourOnly()' is unavailable
+// FOUR: 'fourOnly()' was obsoleted in Codira 5.0
+immutable _ = fourOnly()

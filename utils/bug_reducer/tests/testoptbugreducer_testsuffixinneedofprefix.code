@@ -1,12 +1,12 @@
 
-import Swift
+import Codira
 
 @_silgen_name("closure_test_target")
 @inline(never)
-public func foo3() {
+public fn foo3() {
   print("123")
 }
 
-public func closure_invoker() {
+public fn closure_invoker() {
   foo3()
 }

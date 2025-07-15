@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_RUNTIME_METADATACACHE_H
-#define SWIFT_RUNTIME_METADATACACHE_H
+#ifndef LANGUAGE_RUNTIME_METADATACACHE_H
+#define LANGUAGE_RUNTIME_METADATACACHE_H
 
 #include "language/Runtime/AtomicWaitQueue.h"
 #include "language/Runtime/Concurrent.h"
@@ -22,25 +23,25 @@
 
 #include "language/shims/Visibility.h"
 
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <optional>
 #include <tuple>
 
-#ifndef SWIFT_DEBUG_RUNTIME
-#define SWIFT_DEBUG_RUNTIME 0
+#ifndef LANGUAGE_DEBUG_RUNTIME
+#define LANGUAGE_DEBUG_RUNTIME 0
 #endif
 
 namespace language {
 
 RelativeWitnessTable *lookThroughOptionalConditionalWitnessTable(const RelativeWitnessTable *);
 
-#if !SWIFT_STDLIB_PASSTHROUGH_METADATA_ALLOCATOR
+#if !LANGUAGE_STDLIB_PASSTHROUGH_METADATA_ALLOCATOR
 
-class MetadataAllocator : public llvm::AllocatorBase<MetadataAllocator> {
+class MetadataAllocator : public toolchain::AllocatorBase<MetadataAllocator> {
 private:
   uint16_t Tag;
 
@@ -55,7 +56,7 @@ public:
   /// pool, the return values are NULL, 0.
   static std::tuple<const void *, size_t> InitialPoolLocation();
 
-  SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
+  LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
   void *Allocate(size_t size, size_t alignment);
   using AllocatorBase<MetadataAllocator>::Allocate;
 
@@ -79,12 +80,12 @@ public:
   static std::tuple<const void *, size_t> InitialPoolLocation() {
     return {nullptr, 0};
   }
-  SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
+  LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
   void *Allocate(size_t size, size_t alignment) {
     if (alignment < sizeof(void*)) alignment = sizeof(void*);
     void *ptr = nullptr;
-    if (SWIFT_UNLIKELY(posix_memalign(&ptr, alignment, size) != 0 || !ptr)) {
-      swift::crash("Could not allocate memory for type metadata.");
+    if (LANGUAGE_UNLIKELY(posix_memalign(&ptr, alignment, size) != 0 || !ptr)) {
+      language::crash("Could not allocate memory for type metadata.");
     }
     return ptr;
   }
@@ -145,12 +146,12 @@ inline bool satisfies(PrivateMetadataState state, MetadataState requirement) {
   case MetadataState::Complete:
     return state >= PrivateMetadataState::Complete;
   }
-  swift_unreachable("unsupported requirement kind");
+  language_unreachable("unsupported requirement kind");
 }
 inline MetadataState getAccomplishedRequestState(PrivateMetadataState state) {
   switch (state) {
   case PrivateMetadataState::Allocating:
-    swift_unreachable("cannot call on allocating state");
+    language_unreachable("cannot call on allocating state");
   case PrivateMetadataState::Abstract:
     return MetadataState::Abstract;
   case PrivateMetadataState::LayoutComplete:
@@ -160,7 +161,7 @@ inline MetadataState getAccomplishedRequestState(PrivateMetadataState state) {
   case PrivateMetadataState::Complete:
     return MetadataState::Complete;
   }
-  swift_unreachable("bad state");
+  language_unreachable("bad state");
 }
 
 struct MetadataStateWithDependency {
@@ -416,7 +417,7 @@ public:
   template <class... ArgTys>
   Status beginInitialization(WaitQueue::Worker &worker,
                              ArgTys &&...args) {
-    swift_unreachable("beginAllocation always short-circuits");
+    language_unreachable("beginAllocation always short-circuits");
   }
 };
 
@@ -526,7 +527,7 @@ public:
                                     const WitnessTable *bwt) {
     if (awt == bwt)
       return true;
-#if SWIFT_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
+#if LANGUAGE_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
     auto *aDescription = lookThroughOptionalConditionalWitnessTable(
       reinterpret_cast<const RelativeWitnessTable*>(awt))->getDescription();
     auto *bDescription = lookThroughOptionalConditionalWitnessTable(
@@ -712,7 +713,7 @@ public:
 
   const GenericSignatureLayout<InProcess> &layout() const { return Layout; }
 
-  friend llvm::hash_code hash_value(const MetadataCacheKey &key) {
+  friend toolchain::hash_code hash_value(const MetadataCacheKey &key) {
     return key.Hash;
   }
 
@@ -781,10 +782,10 @@ private:
 /// including the key.
 template <class Impl, class... Objects>
 struct ConcurrentMapTrailingObjectsEntry
-    : swift::ABI::TrailingObjects<Impl, Objects...> {
+    : language::ABI::TrailingObjects<Impl, Objects...> {
 protected:
   using TrailingObjects =
-      swift::ABI::TrailingObjects<Impl, Objects...>;
+      language::ABI::TrailingObjects<Impl, Objects...>;
 
   Impl &asImpl() { return static_cast<Impl &>(*this); }
   const Impl &asImpl() const { return static_cast<const Impl &>(*this); }
@@ -972,7 +973,7 @@ public:
   }
 
   bool satisfies(MetadataState requirement) {
-    return swift::satisfies(getState(), requirement);
+    return language::satisfies(getState(), requirement);
   }
 
   enum CheckResult {
@@ -1024,7 +1025,7 @@ public:
       // Otherwise, we should return that the request is unsatisfied.
       return Unsatisfied;
     }
-    swift_unreachable("bad state");
+    language_unreachable("bad state");
   }
 };
 
@@ -1034,7 +1035,7 @@ inline bool shouldBlockInitialization(PrivateMetadataState currentState,
                                       MetadataRequest request) {
   switch (currentState) {
   case PrivateMetadataState::Allocating:
-    swift_unreachable("initialization hasn't allocated?");
+    language_unreachable("initialization hasn't allocated?");
   case PrivateMetadataState::Complete:
     return false;
   case PrivateMetadataState::Abstract:
@@ -1044,7 +1045,7 @@ inline bool shouldBlockInitialization(PrivateMetadataState currentState,
       return false;
     return request.isBlocking();
   }
-  swift_unreachable("bad state");
+  language_unreachable("bad state");
 }
 
 /// Block until the dependency is satisfied.
@@ -1607,7 +1608,7 @@ public:
     return Hash;
   }
 
-  friend llvm::hash_code hash_value(const VariadicMetadataCacheEntryBase<Impl, Objects...> &value) {
+  friend toolchain::hash_code hash_value(const VariadicMetadataCacheEntryBase<Impl, Objects...> &value) {
     return hash_value(value.getKey());
   }
 
@@ -1624,4 +1625,4 @@ class MetadataCache :
 
 } // namespace language
 
-#endif // SWIFT_RUNTIME_METADATACACHE_H
+#endif // LANGUAGE_RUNTIME_METADATACACHE_H

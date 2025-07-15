@@ -1,0 +1,5 @@
+// {"signature":"language::CallerSideDefaultArgExprRequest::evaluate(language::Evaluator&, language::DefaultArgumentExpr*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@expression macro a (() =
+#b)
+#a

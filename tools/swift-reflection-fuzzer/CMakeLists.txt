@@ -1,8 +1,8 @@
-add_swift_fuzzer_host_tool(swift-reflection-fuzzer
-  swift-reflection-fuzzer.cpp
-  LLVM_LINK_COMPONENTS support
-  SWIFT_COMPONENT testsuite-tools
+add_language_fuzzer_host_tool(language-reflection-fuzzer
+  language-reflection-fuzzer.cpp
+  TOOLCHAIN_LINK_COMPONENTS support
+  LANGUAGE_COMPONENT testsuite-tools
   )
-target_link_libraries(swift-reflection-fuzzer
+target_link_libraries(language-reflection-fuzzer
                       PRIVATE
-                        swiftRemoteInspection)
+                        languageRemoteInspection)

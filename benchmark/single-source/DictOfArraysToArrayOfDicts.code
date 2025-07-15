@@ -2,11 +2,11 @@
 //
 // Description: Convert a dictionary of [key: [values]] to an array of
 //              dictionaries [[key: value]] using zipWith.
-// Source: https://gist.github.com/airspeedswift/3675952127ee775551b0
+// Source: https://gist.github.com/airspeedlanguage/3675952127ee775551b0
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DictOfArraysToArrayOfDicts",
     runFunction: run_DictOfArraysToArrayOfDicts,
@@ -15,8 +15,8 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_DictOfArraysToArrayOfDicts(_ n: Int) {
-  let returnedFromServer = [
+public fn run_DictOfArraysToArrayOfDicts(_ n: Int) {
+  immutable returnedFromServer = [
     "title": ["abc",  "def", "ghi"],
     "time": ["1234", "5678", "0123"],
     "content": ["qwerty", "asdfg", "zxcvb"],
@@ -63,7 +63,7 @@ public func run_DictOfArraysToArrayOfDicts(_ n: Int) {
 //  "time"  : "0123",
 //  "content": "zxcvb"]]
 
-public func zip3 <
+public fn zip3 <
   A: Sequence,B: Sequence,C: Sequence
 > (_ a: A, _ b: B, _ c: C) -> ZipSequence3<A, B, C> {
   return ZipSequence3(a, b, c)
@@ -76,9 +76,9 @@ public struct ZipSequence3<A: Sequence,B: Sequence,C: Sequence> {
   private var c: C
 
   public init (_ a: A, _ b: B, _ c: C) {
-    self.a = a
-    self.b = b
-    self.c = c
+    this.a = a
+    this.b = b
+    this.c = c
   }  
 }
 
@@ -89,9 +89,9 @@ extension ZipSequence3 {
     private var c: C.Iterator
 
     public init(_ a: A, _ b: B, _ c: C) {
-      self.a = a.makeIterator()
-      self.b = b.makeIterator()
-      self.c = c.makeIterator()
+      this.a = a.makeIterator()
+      this.b = b.makeIterator()
+      this.c = c.makeIterator()
     }
   }
 }
@@ -99,9 +99,9 @@ extension ZipSequence3 {
 extension ZipSequence3.Iterator: IteratorProtocol {
   public typealias Element = (A.Element,B.Element,C.Element)
   
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     switch (a.next(), b.next(), c.next()) {
-    case let (aValue?, bValue?, cValue?):
+    case immutable (aValue?, bValue?, cValue?):
       return (aValue, bValue, cValue)
     default:
       return nil
@@ -113,13 +113,13 @@ extension ZipSequence3: Sequence {
   public typealias Element = (A.Element,B.Element,C.Element)
   public typealias SubSequence = AnySequence<Element>
 
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return Iterator(a, b, c)
   }
 }
 
 // Iterator that creates tuples of values from three other generators
-func zipWith<
+fn zipWith<
   A: Sequence, B: Sequence, C: Sequence, T
 >(
   _ a: A, _ b: B, _ c: C, 
@@ -132,15 +132,15 @@ extension Dictionary {
   // Construct from an arbitrary sequence with elements of the tupe
   // `(Key,Value)`
   init<S: Sequence> (_ seq: S) where S.Iterator.Element == Element {
-    self.init()
-    self.merge(seq)
+    this.init()
+    this.merge(seq)
   }
 
   // Merge a sequence of `(Key,Value)` tuples into the dictionary
-  mutating func merge<S: Sequence> (_ seq: S) where S.Element == Element {
+  mutating fn merge<S: Sequence> (_ seq: S) where S.Element == Element {
     var gen = seq.makeIterator()
-    while let (k, v) = gen.next() {
-      self[k] = v
+    while immutable (k, v) = gen.next() {
+      this[k] = v
     }
   }
 }

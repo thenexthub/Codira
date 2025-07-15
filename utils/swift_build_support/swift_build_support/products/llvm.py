@@ -1,12 +1,12 @@
-# swift_build_support/products/llvm.py --------------------------*- python -*-
+# language_build_support/products/toolchain.py --------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -31,11 +31,11 @@ class LLVM(cmake_product.CMakeProduct):
 
         # Add the cmake option for enabling or disabling assertions.
         self.cmake_options.define(
-            'LLVM_ENABLE_ASSERTIONS:BOOL', args.llvm_assertions)
+            'TOOLCHAIN_ENABLE_ASSERTIONS:BOOL', args.toolchain_assertions)
 
-        # Add the cmake option for LLVM_TARGETS_TO_BUILD.
+        # Add the cmake option for TOOLCHAIN_TARGETS_TO_BUILD.
         self.cmake_options.define(
-            'LLVM_TARGETS_TO_BUILD', args.llvm_targets_to_build)
+            'TOOLCHAIN_TARGETS_TO_BUILD', args.toolchain_targets_to_build)
 
         # Add the cmake options for vendors
         self.cmake_options.extend(self._compiler_vendor_flags)
@@ -72,7 +72,7 @@ class LLVM(cmake_product.CMakeProduct):
 
         return [
             ('CLANG_VENDOR', 'Apple'),
-            ('CLANG_VENDOR_UTI', 'com.apple.compilers.llvm.clang'),
+            ('CLANG_VENDOR_UTI', 'com.apple.compilers.toolchain.clang'),
             # This is safe since we always provide a default.
             ('PACKAGE_VERSION', str(self.args.clang_user_visible_version))
         ]
@@ -96,7 +96,7 @@ class LLVM(cmake_product.CMakeProduct):
     def get_dependencies(cls):
         return [cmark.CMark]
 
-    def llvm_c_flags(self, platform, arch):
+    def toolchain_c_flags(self, platform, arch):
         result = self.common_cross_c_flags(platform, arch, include_arch=True)
         if self.is_debug_info():
             if self.args.lto_type:
@@ -141,7 +141,7 @@ class LLVM(cmake_product.CMakeProduct):
                                                      'lib', 'darwin')
                 print('copying compiler-rt embedded builtins from {}'
                       ' into the local clang build directory {}.'.format(
-                          host_cxx_builtins_dir, dest_builtins_dir))
+                          host_cxx_builtins_dir, dest_builtins_dir), flush=True)
 
                 for _os in ['ios', 'watchos', 'tvos', 'xros']:
                     # Copy over the device .a when necessary
@@ -234,29 +234,31 @@ class LLVM(cmake_product.CMakeProduct):
 
         (platform, arch) = host_target.split('-')
 
-        llvm_cmake_options, _, relevant_options = self.host_cmake_options(host_target)
-        llvm_cmake_options.extend_raw(self.args.llvm_cmake_options)
+        toolchain_cmake_options, _, relevant_options = self.host_cmake_options(host_target)
+        toolchain_cmake_options.extend_raw(self.args.toolchain_cmake_options)
 
         # TODO: handle cross compilation
-        llvm_cmake_options.define('CMAKE_INSTALL_PREFIX:PATH', self.args.install_prefix)
-        llvm_cmake_options.define('INTERNAL_INSTALL_PREFIX', 'local')
+        toolchain_cmake_options.define('CMAKE_INSTALL_PREFIX:PATH', self.args.install_prefix)
+        toolchain_cmake_options.define('INTERNAL_INSTALL_PREFIX', 'local')
 
         if host_target.startswith('linux'):
-            toolchain_file = self.generate_linux_toolchain_file(platform, arch)
-            llvm_cmake_options.define('CMAKE_TOOLCHAIN_FILE:PATH', toolchain_file)
+            toolchain_file = self.generate_linux_toolchain_file(
+                platform, arch,
+                crosscompiling=self.is_cross_compile_target(host_target))
+            toolchain_cmake_options.define('CMAKE_TOOLCHAIN_FILE:PATH', toolchain_file)
             if not self.is_release():
                 # On Linux build LLVM and subprojects with -gsplit-dwarf which is more
                 # space/time efficient than -g on that platform.
-                llvm_cmake_options.define('LLVM_USE_SPLIT_DWARF:BOOL', 'YES')
+                toolchain_cmake_options.define('TOOLCHAIN_USE_SPLIT_DWARF:BOOL', 'YES')
 
-        if not self.args._build_llvm:
+        if not self.args._build_toolchain:
             # Indicating we don't want to build LLVM at all should
             # override everything.
             build_targets = []
-        elif self.args.skip_build or not self.args.build_llvm:
+        elif self.args.skip_build or not self.args.build_toolchain:
             # We can't skip the build completely because the standalone
-            # build of Swift depends on these.
-            build_targets = ['llvm-tblgen', 'clang-resource-headers',
+            # build of Codira depends on these.
+            build_targets = ['toolchain-tblgen', 'clang-resource-headers',
                              'intrinsics_gen', 'clang-tablegen-targets']
 
             # If we are not performing a toolchain-only build, then we
@@ -265,135 +267,126 @@ class LLVM(cmake_product.CMakeProduct):
                 build_targets.extend([
                     'FileCheck',
                     'not',
-                    'llvm-nm',
-                    'llvm-size'
+                    'toolchain-nm',
+                    'toolchain-size'
                 ])
         else:
             build_targets = ['all']
 
-            if self.args.llvm_ninja_targets_for_cross_compile_hosts and \
+            if self.args.toolchain_ninja_targets_for_cross_compile_hosts and \
                self.is_cross_compile_target(host_target):
-                build_targets = (self.args.llvm_ninja_targets_for_cross_compile_hosts)
-            elif self.args.llvm_ninja_targets:
-                build_targets = (self.args.llvm_ninja_targets)
+                build_targets = (self.args.toolchain_ninja_targets_for_cross_compile_hosts)
+            elif self.args.toolchain_ninja_targets:
+                build_targets = (self.args.toolchain_ninja_targets)
 
         if self.args.host_libtool:
-            llvm_cmake_options.define('CMAKE_LIBTOOL', self.args.host_libtool)
+            toolchain_cmake_options.define('CMAKE_LIBTOOL', self.args.host_libtool)
 
         # Note: we set the variable:
         #
-        # LLVM_TOOL_SWIFT_BUILD
+        # TOOLCHAIN_TOOL_LANGUAGE_BUILD
         #
-        # below because this script builds swift separately, and people
-        # often have reasons to symlink the swift directory into
-        # llvm/tools, e.g. to build LLDB.
+        # below because this script builds language separately, and people
+        # often have reasons to symlink the language directory into
+        # toolchain/tools, e.g. to build LLDB.
 
-        llvm_c_flags = ' '.join(self.llvm_c_flags(platform, arch))
-        llvm_cmake_options.define('CMAKE_C_FLAGS', llvm_c_flags)
-        llvm_cmake_options.define('CMAKE_CXX_FLAGS', llvm_c_flags)
-        llvm_cmake_options.define('CMAKE_C_FLAGS_RELWITHDEBINFO', '-O2 -DNDEBUG')
-        llvm_cmake_options.define('CMAKE_CXX_FLAGS_RELWITHDEBINFO', '-O2 -DNDEBUG')
-        llvm_cmake_options.define('CMAKE_BUILD_TYPE:STRING',
-                                  self.args.llvm_build_variant)
-        llvm_cmake_options.define('LLVM_TOOL_SWIFT_BUILD:BOOL', 'FALSE')
-        llvm_cmake_options.define('LLVM_TOOL_LLD_BUILD:BOOL', 'TRUE')
-        llvm_cmake_options.define('LLVM_INCLUDE_DOCS:BOOL', 'TRUE')
-        llvm_cmake_options.define('LLVM_ENABLE_LTO:STRING', self.args.lto_type)
-        llvm_cmake_options.define('COMPILER_RT_INTERCEPT_LIBDISPATCH', 'ON')
-        # Swift expects the old layout for the runtime directory
+        toolchain_c_flags = ' '.join(self.toolchain_c_flags(platform, arch))
+        toolchain_cmake_options.define('CMAKE_C_FLAGS', toolchain_c_flags)
+        toolchain_cmake_options.define('CMAKE_CXX_FLAGS', toolchain_c_flags)
+        toolchain_cmake_options.define('CMAKE_C_FLAGS_RELWITHDEBINFO', '-O2 -DNDEBUG')
+        toolchain_cmake_options.define('CMAKE_CXX_FLAGS_RELWITHDEBINFO', '-O2 -DNDEBUG')
+        toolchain_cmake_options.define('CMAKE_BUILD_TYPE:STRING',
+                                  self.args.toolchain_build_variant)
+        toolchain_cmake_options.define('TOOLCHAIN_TOOL_LANGUAGE_BUILD:BOOL', 'FALSE')
+        toolchain_cmake_options.define('TOOLCHAIN_TOOL_LLD_BUILD:BOOL', 'TRUE')
+        toolchain_cmake_options.define('TOOLCHAIN_INCLUDE_DOCS:BOOL', 'TRUE')
+        toolchain_cmake_options.define('TOOLCHAIN_ENABLE_LTO:STRING', self.args.lto_type)
+        toolchain_cmake_options.define('COMPILER_RT_INTERCEPT_LIBDISPATCH', 'ON')
+        # Codira expects the old layout for the runtime directory
         # updating this in tracked in #80180
-        llvm_cmake_options.define('LLVM_ENABLE_PER_TARGET_RUNTIME_DIR', 'OFF')
+        toolchain_cmake_options.define('TOOLCHAIN_ENABLE_PER_TARGET_RUNTIME_DIR', 'OFF')
         if host_target.startswith('linux'):
             # This preserves the behaviour we had when using
-            # LLVM_BUILD_EXTERNAL COMPILER_RT --
-            # that is, having the linker not complaing if symbols used
+            # TOOLCHAIN_BUILD_EXTERNAL COMPILER_RT --
+            # that is, having the linker not complaining if symbols used
             # by TSan are undefined (namely the ones for Blocks Runtime)
             # In the long term, we want to remove this and
             # build Blocks Runtime before LLVM
-            llvm_cmake_options.define(
-                'SANITIZER_COMMON_LINK_FLAGS:STRING', '-Wl,-z,undefs')
+            if ("-DCLANG_DEFAULT_LINKER=gold" in toolchain_cmake_options
+                or "-DCLANG_DEFAULT_LINKER:STRING=gold" in toolchain_cmake_options):
+                print("Assuming just built clang will use a gold linker -- "
+                      "if that's not the case, please adjust the value of "
+                      "`SANITIZER_COMMON_LINK_FLAGS` in `extra-toolchain-cmake-options`",
+                      flush=True)
+                toolchain_cmake_options.define(
+                    'SANITIZER_COMMON_LINK_FLAGS:STRING',
+                    '-Wl,--unresolved-symbols,ignore-in-object-files')
+            else:
+                print("Assuming just built clang will use a non gold linker -- "
+                      "if that's not the case, please adjust the value of "
+                      "`SANITIZER_COMMON_LINK_FLAGS` in `extra-toolchain-cmake-options`",
+                      flush=True)
+                toolchain_cmake_options.define(
+                    'SANITIZER_COMMON_LINK_FLAGS:STRING', '-Wl,-z,undefs')
 
-        builtins_runtimes_target_for_darwin = 'arm64-apple-darwin'
+        builtins_runtimes_target_for_darwin = f'{arch}-apple-darwin'
         if system() == "Darwin":
-            llvm_cmake_options.define(
+            toolchain_cmake_options.define(
                 f'BUILTINS_{builtins_runtimes_target_for_darwin}_'
                 'CMAKE_OSX_SYSROOT',
                 relevant_options['CMAKE_OSX_SYSROOT'])
-            llvm_cmake_options.define(
+            toolchain_cmake_options.define(
                 f'RUNTIMES_{builtins_runtimes_target_for_darwin}_'
                 'CMAKE_OSX_SYSROOT',
                 relevant_options['CMAKE_OSX_SYSROOT'])
-            llvm_cmake_options.define(
-                'LLVM_BUILTIN_TARGETS', builtins_runtimes_target_for_darwin)
-            llvm_cmake_options.define(
-                'LLVM_RUNTIME_TARGETS', builtins_runtimes_target_for_darwin)
-            llvm_cmake_options.define('RUNTIMES_BUILD_ALLOW_DARWIN', 'ON')
+            toolchain_cmake_options.define(
+                'TOOLCHAIN_BUILTIN_TARGETS', builtins_runtimes_target_for_darwin)
+            toolchain_cmake_options.define(
+                'TOOLCHAIN_RUNTIME_TARGETS', builtins_runtimes_target_for_darwin)
+            toolchain_cmake_options.define('RUNTIMES_BUILD_ALLOW_DARWIN', 'ON')
             # Build all except rtsan
-            llvm_cmake_options.define(
+            toolchain_cmake_options.define(
                 f'RUNTIMES_{builtins_runtimes_target_for_darwin}_'
                 'COMPILER_RT_SANITIZERS_TO_BUILD',
                 'asan;dfsan;msan;hwasan;tsan;safestack;cfi;scudo_standalone;'
                 'ubsan_minimal;gwp_asan;nsan;asan_abi')
 
         if self.args.build_embedded_stdlib and system() == "Darwin":
-            # Ask for Mach-O cross-compilation builtins (for Embedded Swift)
-            llvm_cmake_options.define(
-                'COMPILER_RT_FORCE_BUILD_BAREMETAL_MACHO_BUILTINS_ARCHS:STRING',
-                'armv6 armv6m armv7 armv7m armv7em')
-            llvm_cmake_options.define(
+            # Ask for Mach-O cross-compilation builtins (for Embedded Codira)
+            toolchain_cmake_options.define(
                 f'BUILTINS_{builtins_runtimes_target_for_darwin}_'
                 'COMPILER_RT_FORCE_BUILD_BAREMETAL_MACHO_BUILTINS_ARCHS:'
                 'STRING', 'armv6 armv6m armv7 armv7m armv7em')
 
-        llvm_enable_projects = ['clang']
-        llvm_enable_runtimes = []
+        toolchain_enable_projects = ['clang']
+        toolchain_enable_runtimes = []
 
         if self.args.build_compiler_rt and \
                 not self.is_cross_compile_target(host_target):
-            if self.args.llvm_build_compiler_rt_with_use_runtimes:
-                llvm_enable_runtimes.append('compiler-rt')
-                # This accounts for previous incremental runs that may have set
-                # those in the LLVM CMakeCache.txt
-                llvm_cmake_options.undefine('LLVM_TOOL_COMPILER_RT_BUILD')
-                llvm_cmake_options.undefine('LLVM_BUILD_EXTERNAL_COMPILER_RT')
-            else:
-                # No need to unset anything,
-                # since we set LLVM_ENABLE_RUNTIMES explicitly
-                llvm_enable_projects.append('compiler-rt')
-                llvm_cmake_options.define(
-                    'LLVM_TOOL_COMPILER_RT_BUILD:BOOL', 'TRUE')
-                llvm_cmake_options.define(
-                    'LLVM_BUILD_EXTERNAL_COMPILER_RT:BOOL', 'TRUE')
-        else:
-            if not self.args.llvm_build_compiler_rt_with_use_runtimes:
-                # No need to unset anything,
-                # since we set LLVM_ENABLE_RUNTIMES explicitly
-                llvm_cmake_options.define(
-                    'LLVM_TOOL_COMPILER_RT_BUILD:BOOL', 'FALSE')
-                llvm_cmake_options.define(
-                    'LLVM_BUILD_EXTERNAL_COMPILER_RT:BOOL', 'FALSE')
+            toolchain_enable_runtimes.append('compiler-rt')
+
+        # This accounts for previous incremental runs using the old
+        # way of build compiler_rt that may have set
+        # those in the LLVM CMakeCache.txt
+        toolchain_cmake_options.undefine('TOOLCHAIN_TOOL_COMPILER_RT_BUILD')
+        toolchain_cmake_options.undefine('TOOLCHAIN_BUILD_EXTERNAL_COMPILER_RT')
 
         if self.args.build_clang_tools_extra:
-            llvm_enable_projects.append('clang-tools-extra')
+            toolchain_enable_projects.append('clang-tools-extra')
 
         # Building lld is on by default -- on non-Darwin so we can always have a
-        # linker that is compatible with the swift we are using to
-        # compile the stdlib, but on Darwin too for Embedded Swift use cases.
+        # linker that is compatible with the language we are using to
+        # compile the stdlib, but on Darwin too for Embedded Codira use cases.
         #
         # This makes it easier to build target stdlibs on systems that
         # have old toolchains without more modern linker features.
         if self.args.build_lld:
-            llvm_enable_projects.append('lld')
+            toolchain_enable_projects.append('lld')
 
-        if self.args.test:
-            # LLVMTestingSupport is not built at part of `all`
-            # and is required by some Swift tests
-            build_targets.append('LLVMTestingSupport')
-
-        llvm_cmake_options.define('LLVM_ENABLE_PROJECTS',
-                                  ';'.join(llvm_enable_projects))
-        llvm_cmake_options.define('LLVM_ENABLE_RUNTIMES',
-                                  ';'.join(llvm_enable_runtimes))
+        toolchain_cmake_options.define('TOOLCHAIN_ENABLE_PROJECTS',
+                                  ';'.join(toolchain_enable_projects))
+        toolchain_cmake_options.define('TOOLCHAIN_ENABLE_RUNTIMES',
+                                  ';'.join(toolchain_enable_runtimes))
 
         # NOTE: This is not a dead option! It is relied upon for certain
         # bots/build-configs!
@@ -404,64 +397,71 @@ class LLVM(cmake_product.CMakeProduct):
         if self.args.build_toolchain_only:
             clang_tool_driver_build = CMakeOptions.true_false(
                 not self.args.build_runtime_with_host_compiler)
-            llvm_cmake_options.define('LLVM_BUILD_TOOLS', 'NO')
-            llvm_cmake_options.define('LLVM_INSTALL_TOOLCHAIN_ONLY', 'YES')
-            llvm_cmake_options.define('LLVM_INCLUDE_TESTS', 'NO')
-            llvm_cmake_options.define('CLANG_INCLUDE_TESTS', 'NO')
-            llvm_cmake_options.define('LLVM_INCLUDE_UTILS', 'NO')
-            llvm_cmake_options.define('LLVM_TOOL_LLI_BUILD', 'NO')
-            llvm_cmake_options.define('LLVM_TOOL_LLVM_AR_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_CLANG_CHECK_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_ARCMT_TEST_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_C_ARCMT_TEST_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_C_INDEX_TEST_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_DRIVER_BUILD',
+            toolchain_cmake_options.define('TOOLCHAIN_BUILD_TOOLS', 'NO')
+            toolchain_cmake_options.define('TOOLCHAIN_INSTALL_TOOLCHAIN_ONLY', 'YES')
+            toolchain_cmake_options.define('TOOLCHAIN_INCLUDE_TESTS', 'NO')
+            toolchain_cmake_options.define('CLANG_INCLUDE_TESTS', 'NO')
+            toolchain_cmake_options.define('TOOLCHAIN_INCLUDE_UTILS', 'NO')
+            toolchain_cmake_options.define('TOOLCHAIN_TOOL_LLI_BUILD', 'NO')
+            toolchain_cmake_options.define('TOOLCHAIN_TOOL_TOOLCHAIN_AR_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_CLANG_CHECK_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_ARCMT_TEST_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_C_ARCMT_TEST_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_C_INDEX_TEST_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_DRIVER_BUILD',
                                       clang_tool_driver_build)
-            llvm_cmake_options.define('CLANG_TOOL_DIAGTOOL_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_SCAN_BUILD_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_SCAN_VIEW_BUILD', 'NO')
-            llvm_cmake_options.define('CLANG_TOOL_CLANG_FORMAT_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_DIAGTOOL_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_SCAN_BUILD_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_SCAN_VIEW_BUILD', 'NO')
+            toolchain_cmake_options.define('CLANG_TOOL_CLANG_FORMAT_BUILD', 'NO')
 
-        if not self.args.llvm_include_tests:
-            llvm_cmake_options.define('LLVM_INCLUDE_TESTS', 'NO')
-            llvm_cmake_options.define('CLANG_INCLUDE_TESTS', 'NO')
+        if not self.args.toolchain_include_tests:
+            toolchain_cmake_options.define('TOOLCHAIN_INCLUDE_TESTS', 'NO')
+            toolchain_cmake_options.define('CLANG_INCLUDE_TESTS', 'NO')
+
+        if ("-DTOOLCHAIN_INCLUDE_TESTS=NO" not in toolchain_cmake_options
+            and "-DTOOLCHAIN_INCLUDE_TESTS:BOOL=FALSE" not in toolchain_cmake_options):
+            # This supports scenarios where tests are run
+            # outside of `build-script` (e.g. with `run-test`)
+            build_targets.append('LLVMTestingSupport')
 
         build_root = os.path.dirname(self.build_dir)
         host_machine_target = targets.StdlibDeploymentTarget.host_target().name
-        host_build_dir = os.path.join(build_root, 'llvm-{}'.format(
+        host_build_dir = os.path.join(build_root, 'toolchain-{}'.format(
             host_machine_target))
 
         if self.is_cross_compile_target(host_target):
             build_root = os.path.dirname(self.build_dir)
             host_machine_target = targets.StdlibDeploymentTarget.host_target().name
-            host_build_dir = os.path.join(build_root, 'llvm-{}'.format(
+            host_build_dir = os.path.join(build_root, 'toolchain-{}'.format(
                 host_machine_target))
-            llvm_tblgen = os.path.join(host_build_dir, 'bin', 'llvm-tblgen')
-            llvm_cmake_options.define('LLVM_TABLEGEN', llvm_tblgen)
+            toolchain_tblgen = os.path.join(host_build_dir, 'bin', 'toolchain-tblgen')
+            toolchain_cmake_options.define('TOOLCHAIN_TABLEGEN', toolchain_tblgen)
             clang_tblgen = os.path.join(host_build_dir, 'bin', 'clang-tblgen')
-            llvm_cmake_options.define('CLANG_TABLEGEN', clang_tblgen)
+            toolchain_cmake_options.define('CLANG_TABLEGEN', clang_tblgen)
             confusable_chars_gen = os.path.join(host_build_dir, 'bin',
                                                 'clang-tidy-confusable-chars-gen')
-            llvm_cmake_options.define('CLANG_TIDY_CONFUSABLE_CHARS_GEN',
+            toolchain_cmake_options.define('CLANG_TIDY_CONFUSABLE_CHARS_GEN',
                                       confusable_chars_gen)
             pseudo_gen = os.path.join(host_build_dir, 'bin', 'clang-pseudo-gen')
-            llvm_cmake_options.define('CLANG_PSEUDO_GEN', pseudo_gen)
-            llvm = os.path.join(host_build_dir, 'llvm')
-            llvm_cmake_options.define('LLVM_NATIVE_BUILD', llvm)
+            toolchain_cmake_options.define('CLANG_PSEUDO_GEN', pseudo_gen)
+            toolchain = os.path.join(host_build_dir, 'toolchain')
+            toolchain_cmake_options.define('TOOLCHAIN_NATIVE_BUILD', toolchain)
 
         host_config = HostSpecificConfiguration(host_target, self.args)
 
         self.cmake_options.extend(host_config.cmake_options)
-        self.cmake_options.extend(llvm_cmake_options)
+        self.cmake_options.extend(toolchain_cmake_options)
+        self.cmake_options.extend_raw(self.args.extra_toolchain_cmake_options)
 
         self._handle_cxx_headers(host_target, platform)
 
-        self.build_with_cmake(build_targets, self.args.llvm_build_variant, [])
+        self.build_with_cmake(build_targets, self.args.toolchain_build_variant, [])
 
         # copy over the compiler-rt builtins for iOS/tvOS/watchOS to ensure
-        # that Swift's stdlib can use compiler-rt builtins when targeting
+        # that Codira's stdlib can use compiler-rt builtins when targeting
         # iOS/tvOS/watchOS.
-        if self.args.build_llvm and system() == 'Darwin':
+        if self.args.build_toolchain and system() == 'Darwin':
             self.copy_embedded_compiler_rt_builtins_from_darwin_host_toolchain(
                 self.build_dir)
 
@@ -470,8 +470,8 @@ class LLVM(cmake_product.CMakeProduct):
         # to do this before building LLVM since compiler-rt depends on being
         # built with the just built clang compiler. These are normally put into
         # place during the cmake step of LLVM's build when libcxx is in
-        # tree... but we are not building llvm with libcxx in tree when we build
-        # swift. So we need to do configure's work here.
+        # tree... but we are not building toolchain with libcxx in tree when we build
+        # language. So we need to do configure's work here.
         if system() == 'Darwin':
             # We don't need this for Darwin since libcxx is present in SDKs present
             # in Xcode 12.5 and onward (build-script requires Xcode 13.0 at a minimum),
@@ -505,7 +505,7 @@ class LLVM(cmake_product.CMakeProduct):
                 platform == "openbsd":
             toolchain_file = self.get_openbsd_toolchain_file()
             if toolchain_file:
-                self.llvm_cmake_options.define('CMAKE_TOOLCHAIN_FILE:PATH',
+                self.toolchain_cmake_options.define('CMAKE_TOOLCHAIN_FILE:PATH',
                                                toolchain_file)
 
         # Find the path in which the local clang build is expecting to find
@@ -541,7 +541,7 @@ class LLVM(cmake_product.CMakeProduct):
         Whether or not this product should be installed with the given
         arguments.
         """
-        return self.args.install_llvm
+        return self.args.install_toolchain
 
     def install(self, host_target):
         """
@@ -553,14 +553,13 @@ class LLVM(cmake_product.CMakeProduct):
 
         host_install_destdir = self.host_install_destdir(host_target)
         install_targets = ['install']
-        if self.args.llvm_install_components and \
-           self.args.llvm_install_components != 'all':
+        if self.args.toolchain_install_components and \
+           self.args.toolchain_install_components != 'all':
             install_targets = []
-            components = self.args.llvm_install_components.split(';')
-            if self.args.llvm_build_compiler_rt_with_use_runtimes and \
-               'compiler-rt' in components:
+            components = self.args.toolchain_install_components.split(';')
+            if 'compiler-rt' in components:
                 # This is a courtesy fallback to avoid breaking downstream presets
-                # we are not aware of
+                # that are still using the old compiler-rt install component
                 components.remove('compiler-rt')
                 components.append('builtins')
                 components.append('runtimes')
@@ -571,7 +570,7 @@ class LLVM(cmake_product.CMakeProduct):
             for component in components:
                 if self.is_cross_compile_target(host_target) \
                    or not self.args.build_compiler_rt:
-                    if component in ['compiler-rt', 'builtins', 'runtimes']:
+                    if component in ['builtins', 'runtimes']:
                         continue
                 install_targets.append('install-{}'.format(component))
 
@@ -580,6 +579,6 @@ class LLVM(cmake_product.CMakeProduct):
         clang_dest_dir = '{}{}'.format(host_install_destdir,
                                        self.args.install_prefix)
 
-        if self.args.llvm_install_components and system() == 'Darwin':
+        if self.args.toolchain_install_components and system() == 'Darwin':
             self.copy_embedded_compiler_rt_builtins_from_darwin_host_toolchain(
                 clang_dest_dir)

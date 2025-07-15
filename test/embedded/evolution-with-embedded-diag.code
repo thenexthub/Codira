@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend -emit-ir %s -enable-library-evolution -enable-experimental-feature Embedded -wmo 2>&1 | %FileCheck %s
+// RUN: not %target-language-frontend -emit-ir %s -enable-resilience -enable-experimental-feature Embedded -wmo 2>&1 | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// CHECK: error: Library evolution cannot be enabled with embedded Codira.

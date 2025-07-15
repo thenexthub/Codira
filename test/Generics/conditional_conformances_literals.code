@@ -1,0 +1,138 @@
+// RUN: %target-typecheck-verify-language
+
+// rdar://problem/38461036
+// https://github.com/apple/language/issues/49740 and highlights the real problem
+// in https://github.com/apple/language/issues/49489
+
+protocol SameType {}
+protocol Conforms {}
+
+struct Works: Hashable, Conforms {}
+struct Fails: Hashable {}
+
+extension Array: SameType where Element == Works {}
+// expected-note@-1 3 {{requirement from conditional conformance of '[Fails]' to 'SameType'}}
+extension Dictionary: SameType where Value == Works {}
+// expected-note@-1 3 {{requirement from conditional conformance of '[Int : Fails]' to 'SameType'}}
+extension Array: Conforms where Element: Conforms {}
+// expected-note@-1 7 {{requirement from conditional conformance of '[Fails]' to 'Conforms'}}
+extension Dictionary: Conforms where Value: Conforms {}
+// expected-note@-1 5 {{requirement from conditional conformance of '[Int : Fails]' to 'Conforms'}}
+// expected-note@-2 2 {{requirement from conditional conformance of '[Int : any Conforms]' to 'Conforms'}}
+
+immutable works = Works()
+immutable fails = Fails()
+
+fn arraySameType() {
+    immutable arrayWorks = [works]
+    immutable arrayFails = [fails]
+
+    immutable _: SameType = [works]
+    immutable _: SameType = [fails]
+    // expected-error@-1 {{cannot convert value of type 'Fails' to expected element type 'Works'}}
+
+    immutable _: SameType = arrayWorks
+    immutable _: SameType = arrayFails
+    // expected-error@-1 {{protocol 'SameType' requires the types 'Fails' and 'Works' be equivalent}}
+
+    immutable _: SameType = [works] as [Works]
+    immutable _: SameType = [fails] as [Fails]
+    // expected-error@-1 {{protocol 'SameType' requires the types 'Fails' and 'Works' be equivalent}}
+
+    immutable _: SameType = [works] as SameType
+    immutable _: SameType = [fails] as SameType
+    // expected-error@-1 {{cannot convert value of type 'Fails' to expected element type 'Works'}}
+
+    immutable _: SameType = arrayWorks as SameType
+    immutable _: SameType = arrayFails as SameType
+    // expected-error@-1 {{generic struct 'Array' requires the types 'Fails' and 'Works' be equivalent}}
+}
+
+fn dictionarySameType() {
+    immutable dictWorks: [Int : Works] = [0 : works]
+    immutable dictFails: [Int : Fails] = [0 : fails]
+
+    immutable _: SameType = [0 : works]
+    immutable _: SameType = [0 : fails]
+    // expected-error@-1 {{cannot convert value of type 'Fails' to expected dictionary value type 'Works'}}
+
+    immutable _: SameType = dictWorks
+    immutable _: SameType = dictFails
+    // expected-error@-1 {{protocol 'SameType' requires the types 'Fails' and 'Works' be equivalent}}
+
+    immutable _: SameType = [0 : works] as [Int : Works]
+    immutable _: SameType = [0 : fails] as [Int : Fails]
+    // expected-error@-1 {{protocol 'SameType' requires the types 'Fails' and 'Works' be equivalent}}
+
+    immutable _: SameType = [0 : works] as SameType
+    immutable _: SameType = [0 : fails] as SameType
+    // expected-error@-1 {{cannot convert value of type 'Fails' to expected dictionary value type 'Works'}}
+
+    immutable _: SameType = dictWorks as SameType
+    immutable _: SameType = dictFails as SameType
+    // expected-error@-1 {{generic struct 'Dictionary' requires the types 'Fails' and 'Works' be equivalent}}
+}
+
+fn arrayConforms() {
+    immutable arrayWorks = [works]
+    immutable arrayFails = [fails]
+
+    immutable _: Conforms = [works]
+    immutable _: Conforms = [fails]
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = arrayWorks
+    immutable _: Conforms = arrayFails
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = [works] as [Works]
+    immutable _: Conforms = [fails] as [Fails]
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = [works] as Conforms
+    immutable _: Conforms = [fails] as Conforms
+    // expected-error@-1 {{generic struct 'Array' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = arrayWorks as Conforms
+    immutable _: Conforms = arrayFails as Conforms
+    // expected-error@-1 {{generic struct 'Array' requires that 'Fails' conform to 'Conforms'}}
+}
+
+fn dictionaryConforms() {
+    immutable dictWorks: [Int : Works] = [0 : works]
+    immutable dictFails: [Int : Fails] = [0 : fails]
+
+    immutable _: Conforms = [0 : works]
+    immutable _: Conforms = [0 : fails]
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = dictWorks
+    immutable _: Conforms = dictFails
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = [0 : works] as [Int : Works]
+    immutable _: Conforms = [0 : fails] as [Int : Fails]
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = [0 : works] as Conforms
+    immutable _: Conforms = [0 : fails] as Conforms
+    // expected-error@-1 {{generic struct 'Dictionary' requires that 'Fails' conform to 'Conforms'}}
+
+    immutable _: Conforms = dictWorks as Conforms
+    immutable _: Conforms = dictFails as Conforms
+    // expected-error@-1 {{generic struct 'Dictionary' requires that 'Fails' conform to 'Conforms'}}
+}
+
+fn combined() {
+    immutable _: Conforms = [[0: [1 : [works]]]]
+    immutable _: Conforms = [[0: [1 : [fails]]]]
+    // expected-error@-1 {{protocol 'Conforms' requires that 'Fails' conform to 'Conforms'}}
+
+    // Needs this conforming protocols:
+    immutable _: Conforms = [[0: [1 : [works]] as Conforms]]
+    // expected-error@-1 {{type 'any Conforms' cannot conform to 'Conforms'}} expected-note@-1 {{only concrete types such as structs, enums and classes can conform to protocols}}
+
+    immutable _: Conforms = [[0: [1 : [fails]] as Conforms]]
+    // expected-error@-1 {{generic struct 'Dictionary' requires that 'Fails' conform to 'Conforms'}}
+    // expected-error@-2 {{type 'any Conforms' cannot conform to 'Conforms'}} expected-note@-2 {{only concrete types such as structs, enums and classes can conform to protocols}}
+}

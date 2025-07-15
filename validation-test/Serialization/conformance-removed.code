@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-swift -emit-module -emit-module-path %t/CodiraLib.swiftmodule -I %S/Inputs/conformance-removed/ %S/Inputs/conformance-removed/CodiraLib.swift -Xcc -DUSE_PROTO
+// RUN: not grep SomeProto %t/CodiraLib.swiftmodule
+// RUN: %target-build-swift -typecheck -I %t -I %S/Inputs/custom-modules/ %s
+
+// REQUIRES: objc_interop
+
+import CodiraLib
+class Rdar28282310: Sub {}

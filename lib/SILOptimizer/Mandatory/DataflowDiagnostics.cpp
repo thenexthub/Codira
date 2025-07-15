@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
@@ -59,7 +60,7 @@ static void diagnoseMissingReturn(const UnreachableInst *UI,
     ResTy = CE->getResultType();
     BS = CE->getBody();
   } else {
-    llvm_unreachable("unhandled case in MissingReturn");
+    toolchain_unreachable("unhandled case in MissingReturn");
   }
 
   SILLocation L = UI->getLoc();
@@ -248,7 +249,7 @@ static void diagnoseUnspecializedPolymorphicBuiltins(SILInstruction *inst) {
   // happen if we specialize the generic type in the builtin /after/ constant
   // propagation runs at -Onone but before dataflow diagnostics. This is an
   // error in implementation, so we assert.
-  llvm_unreachable("Found generic builtin with known static overload that it "
+  toolchain_unreachable("Found generic builtin with known static overload that it "
                    "could be transformed to. Did this builtin get its generic "
                    "type specialized /after/ constant propagation?");
 }
@@ -286,6 +287,6 @@ class EmitDFDiagnostics : public SILFunctionTransform {
 } // end anonymous namespace
 
 
-SILTransform *swift::createEmitDFDiagnostics() {
+SILTransform *language::createEmitDFDiagnostics() {
   return new EmitDFDiagnostics();
 }

@@ -1,0 +1,9 @@
+fn throwingFunc() throws -> [Int] {
+    return []
+}
+for num in try! throwingFunc() {
+    immutable _ = num
+}
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -convert-to-do-catch -source-filename %s -pos=4:14 > %t.result/L5.code
+// RUN: diff -u %S/Outputs/for_loop/L5.code.expected %t.result/L5.code

@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -parse-as-library -o %t %s
+// RUN: toolchain-bcanalyzer %t/global_init.codemodule | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-sil-opt -enable-sil-verify-all %t/global_init.codemodule | %FileCheck %s
+
+// BCANALYZER-NOT: UnknownCode
+
+// Codira globals are not currently serialized. However, addressor
+// declarations are serialized when all these three flags are present:
+// -emit-module -parse-as-library -sil-serialize-all
+//
+// The only way to inspect the serialized module is sil-opt. The language
+// driver will only output the SIL that it deserializes.
+
+fn initFunc() -> Int { return 42 }
+
+@usableFromInline
+immutable MyConst = initFunc()
+@usableFromInline
+var MyVar = 3
+
+// CHECK: immutable MyConst: Int
+// CHECK: var MyVar: Int
+
+// CHECK-DAG: sil [global_init] [canonical] @$s11global_init7MyConstSivau : $@convention(thin) () -> Builtin.RawPointer
+// CHECK-DAG: sil [global_init] [canonical] @$s11global_init5MyVarSivau : $@convention(thin) () -> Builtin.RawPointer
+
+@inlinable
+@usableFromInline
+fn getGlobals() -> Int {
+  return MyVar + MyConst
+}

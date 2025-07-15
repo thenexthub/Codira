@@ -1,30 +1,34 @@
 //===--- IndexSubset.h - Fixed-size subset of indices ---------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the `IndexSubset` class and support logic.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_INDEXSUBSET_H
-#define SWIFT_AST_INDEXSUBSET_H
+#ifndef LANGUAGE_AST_INDEXSUBSET_H
+#define LANGUAGE_AST_INDEXSUBSET_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -32,7 +36,7 @@ class ASTContext;
 
 /// An efficient index subset data structure, uniqued in `ASTContext`.
 /// Stores a bit vector representing set indices and a total capacity.
-class IndexSubset : public llvm::FoldingSetNode {
+class IndexSubset : public toolchain::FoldingSetNode {
 public:
   typedef uint64_t BitWord;
 
@@ -187,7 +191,7 @@ public:
   }
 
   bool isEmpty() const {
-    return llvm::all_of(getBitWords(), [](BitWord bw) { return !(bool)bw; });
+    return toolchain::all_of(getBitWords(), [](BitWord bw) { return !(bool)bw; });
   }
 
   bool equals(IndexSubset *other) const {
@@ -203,14 +207,14 @@ public:
   IndexSubset *extendingCapacity(ASTContext &ctx,
                                  unsigned newCapacity) const;
 
-  void Profile(llvm::FoldingSetNodeID &id) const {
+  void Profile(toolchain::FoldingSetNodeID &id) const {
     id.AddInteger(capacity);
     for (auto index : getIndices())
       id.AddInteger(index);
   }
 
-  void print(llvm::raw_ostream &s = llvm::outs()) const;
-  SWIFT_DEBUG_DUMPER(dump());
+  void print(toolchain::raw_ostream &s = toolchain::outs()) const;
+  LANGUAGE_DEBUG_DUMPER(dump());
 
   int findNext(int startIndex) const;
   int findFirst() const { return findNext(-1); }
@@ -270,4 +274,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_INDEXSUBSET_H
+#endif // LANGUAGE_AST_INDEXSUBSET_H

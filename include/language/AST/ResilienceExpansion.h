@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_RESILIENCE_EXPANSION_H
-#define SWIFT_AST_RESILIENCE_EXPANSION_H
+#ifndef LANGUAGE_AST_RESILIENCE_EXPANSION_H
+#define LANGUAGE_AST_RESILIENCE_EXPANSION_H
 
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
@@ -50,7 +51,7 @@ enum class ResilienceExpansion : unsigned {
   Last_ResilienceExpansion = Maximal
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                                      ResilienceExpansion expansion) {
   switch (expansion) {
   case ResilienceExpansion::Minimal:
@@ -58,10 +59,10 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
   case ResilienceExpansion::Maximal:
     return os << "Maximal";
   }
-  llvm_unreachable("Unhandled ResilienceExpansion in switch");
+  toolchain_unreachable("Unhandled ResilienceExpansion in switch");
 }
 
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_CAPTURE_INFO_H
+#endif // TOOLCHAIN_LANGUAGE_AST_CAPTURE_INFO_H
 

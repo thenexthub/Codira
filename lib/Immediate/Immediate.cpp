@@ -1,4 +1,4 @@
-//===--- Immediate.cpp - the swift immediate mode -------------------------===//
+//===--- Immediate.cpp - the language immediate mode -------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This is the implementation of the swift interpreter, which takes a
+// This is the implementation of the language interpreter, which takes a
 // source file and JITs it.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/Immediate/Immediate.h"
 #include "ImmediateImpl.h"
-#include "language/Immediate/SwiftMaterializationUnit.h"
+#include "language/Immediate/CodiraMaterializationUnit.h"
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/DiagnosticsFrontend.h"
@@ -30,29 +31,29 @@
 #include "language/AST/SILGenRequests.h"
 #include "language/AST/TBDGenRequests.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Frontend/Frontend.h"
 #include "language/IRGen/IRGenPublic.h"
 #include "language/Runtime/Config.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Config/config.h"
-#include "llvm/ExecutionEngine/Orc/DebugUtils.h"
-#include "llvm/ExecutionEngine/Orc/EPCIndirectionUtils.h"
-#include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
-#include "llvm/ExecutionEngine/Orc/LLJIT.h"
-#include "llvm/ExecutionEngine/Orc/ObjectTransformLayer.h"
-#include "llvm/ExecutionEngine/Orc/TargetProcess/TargetExecutionUtils.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Transforms/IPO.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Config/config.h"
+#include "toolchain/ExecutionEngine/Orc/DebugUtils.h"
+#include "toolchain/ExecutionEngine/Orc/EPCIndirectionUtils.h"
+#include "toolchain/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
+#include "toolchain/ExecutionEngine/Orc/LLJIT.h"
+#include "toolchain/ExecutionEngine/Orc/ObjectTransformLayer.h"
+#include "toolchain/ExecutionEngine/Orc/TargetProcess/TargetExecutionUtils.h"
+#include "toolchain/IR/LLVMContext.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Transforms/IPO.h"
 
 // TODO: Replace pass manager
 //       Removed in: d623b2f95fd559901f008a0588dddd0949a8db01
-/* #include "llvm/Transforms/IPO/PassManagerBuilder.h" */
+/* #include "toolchain/Transforms/IPO/PassManagerBuilder.h" */
 
-#define DEBUG_TYPE "swift-immediate"
+#define DEBUG_TYPE "language-immediate"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -76,8 +77,8 @@ static void *loadRuntimeLib(StringRef runtimeLibPathWithName) {
 static void *loadRuntimeLibAtPath(StringRef sharedLibName,
                                   StringRef runtimeLibPath) {
   // FIXME: Need error-checking.
-  llvm::SmallString<128> Path = runtimeLibPath;
-  llvm::sys::path::append(Path, sharedLibName);
+  toolchain::SmallString<128> Path = runtimeLibPath;
+  toolchain::sys::path::append(Path, sharedLibName);
   return loadRuntimeLib(Path);
 }
 
@@ -90,31 +91,31 @@ static void *loadRuntimeLib(StringRef sharedLibName,
   return nullptr;
 }
 
-void *swift::immediate::loadSwiftRuntime(ArrayRef<std::string>
+void *language::immediate::loadCodiraRuntime(ArrayRef<std::string>
                                          runtimeLibPaths) {
 #if defined(_WIN32)
-  return loadRuntimeLib("swiftCore" LTDL_SHLIB_EXT, runtimeLibPaths);
+  return loadRuntimeLib("languageCore" LTDL_SHLIB_EXT, runtimeLibPaths);
 #elif (defined(__linux__) || defined(_WIN64) || defined(__FreeBSD__))
-  return loadRuntimeLib("libswiftCore" LTDL_SHLIB_EXT, runtimeLibPaths);
+  return loadRuntimeLib("liblanguageCore" LTDL_SHLIB_EXT, runtimeLibPaths);
 #else
-  return loadRuntimeLib("libswiftCore" LTDL_SHLIB_EXT, {"/usr/lib/swift"});
+  return loadRuntimeLib("liblanguageCore" LTDL_SHLIB_EXT, {"/usr/lib/language"});
 #endif
 }
 
 static bool tryLoadLibrary(LinkLibrary linkLib,
                            SearchPathOptions searchPathOpts) {
-  llvm::SmallString<128> path = linkLib.getName();
+  toolchain::SmallString<128> path = linkLib.getName();
 
   // If we have an absolute or relative path, just try to load it now.
-  if (llvm::sys::path::has_parent_path(path.str())) {
+  if (toolchain::sys::path::has_parent_path(path.str())) {
     return loadRuntimeLib(path);
   }
 
   bool success = false;
   switch (linkLib.getKind()) {
   case LibraryKind::Library: {
-    llvm::SmallString<32> stem;
-    if (llvm::sys::path::has_extension(path.str())) {
+    toolchain::SmallString<32> stem;
+    if (toolchain::sys::path::has_extension(path.str())) {
       stem = std::move(path);
     } else {
       // FIXME: Try the appropriate extension for the current platform?
@@ -126,7 +127,7 @@ static bool tryLoadLibrary(LinkLibrary linkLib,
     // Try user-provided library search paths first.
     for (auto &libDir : searchPathOpts.LibrarySearchPaths) {
       path = libDir;
-      llvm::sys::path::append(path, stem.str());
+      toolchain::sys::path::append(path, stem.str());
       success = loadRuntimeLib(path);
       if (success)
         break;
@@ -144,15 +145,15 @@ static bool tryLoadLibrary(LinkLibrary linkLib,
   case LibraryKind::Framework: {
     // If we have a framework, mangle the name to point to the framework
     // binary.
-    llvm::SmallString<64> frameworkPart{std::move(path)};
+    toolchain::SmallString<64> frameworkPart{std::move(path)};
     frameworkPart += ".framework";
-    llvm::sys::path::append(frameworkPart, linkLib.getName());
+    toolchain::sys::path::append(frameworkPart, linkLib.getName());
 
     // Try user-provided framework search paths first; frameworks contain
     // binaries as well as modules.
     for (const auto &frameworkDir : searchPathOpts.getFrameworkSearchPaths()) {
       path = frameworkDir.Path;
-      llvm::sys::path::append(path, frameworkPart.str());
+      toolchain::sys::path::append(path, frameworkPart.str());
       success = loadRuntimeLib(path);
       if (success)
         break;
@@ -168,7 +169,7 @@ static bool tryLoadLibrary(LinkLibrary linkLib,
   return success;
 }
 
-bool swift::immediate::tryLoadLibraries(ArrayRef<LinkLibrary> LinkLibraries,
+bool language::immediate::tryLoadLibraries(ArrayRef<LinkLibrary> LinkLibraries,
                                         SearchPathOptions SearchPathOpts,
                                         DiagnosticEngine &Diags) {
   SmallVector<bool, 4> LoadedLibraries;
@@ -203,27 +204,27 @@ bool swift::immediate::tryLoadLibraries(ArrayRef<LinkLibrary> LinkLibraries,
 /// FIXME: JITLink should emulate the Darwin linker's handling of ld$previous
 /// mappings so this is handled automatically.
 static void addMergedLibraries(SmallVectorImpl<LinkLibrary> &AllLinkLibraries,
-                               const llvm::Triple &Target) {
+                               const toolchain::Triple &Target) {
   assert(Target.isMacOSX());
 
   struct MergedLibrary {
     StringRef OldLibrary;
-    llvm::VersionTuple MovedIn;
+    toolchain::VersionTuple MovedIn;
   };
 
-  using VersionTuple = llvm::VersionTuple;
+  using VersionTuple = toolchain::VersionTuple;
 
-  static const llvm::StringMap<MergedLibrary> MergedLibs = {
+  static const toolchain::StringMap<MergedLibrary> MergedLibs = {
     // Merged in macOS 14.0
-    {"AppKit", {"libswiftAppKit.dylib", VersionTuple{14}}},
-    {"HealthKit", {"libswiftHealthKit.dylib", VersionTuple{14}}},
-    {"Network", {"libswiftNetwork.dylib", VersionTuple{14}}},
-    {"Photos", {"libswiftPhotos.dylib", VersionTuple{14}}},
-    {"PhotosUI", {"libswiftPhotosUI.dylib", VersionTuple{14}}},
-    {"SoundAnalysis", {"libswiftSoundAnalysis.dylib", VersionTuple{14}}},
-    {"Virtualization", {"libswiftVirtualization.dylib", VersionTuple{14}}},
+    {"AppKit", {"liblanguageAppKit.dylib", VersionTuple{14}}},
+    {"HealthKit", {"liblanguageHealthKit.dylib", VersionTuple{14}}},
+    {"Network", {"liblanguageNetwork.dylib", VersionTuple{14}}},
+    {"Photos", {"liblanguagePhotos.dylib", VersionTuple{14}}},
+    {"PhotosUI", {"liblanguagePhotosUI.dylib", VersionTuple{14}}},
+    {"SoundAnalysis", {"liblanguageSoundAnalysis.dylib", VersionTuple{14}}},
+    {"Virtualization", {"liblanguageVirtualization.dylib", VersionTuple{14}}},
     // Merged in macOS 13.0
-    {"Foundation", {"libswiftFoundation.dylib", VersionTuple{13}}},
+    {"Foundation", {"liblanguageFoundation.dylib", VersionTuple{13}}},
   };
 
   SmallVector<StringRef> NewLibs;
@@ -238,7 +239,7 @@ static void addMergedLibraries(SmallVectorImpl<LinkLibrary> &AllLinkLibraries,
         NewLib, LibraryKind::Library, /*static=*/false);
 }
 
-bool swift::immediate::autolinkImportedModules(ModuleDecl *M,
+bool language::immediate::autolinkImportedModules(ModuleDecl *M,
                                                const IRGenOptions &IRGenOpts) {
   // Perform autolinking.
   SmallVector<LinkLibrary, 4> AllLinkLibraries(IRGenOpts.LinkLibraries);
@@ -258,25 +259,25 @@ bool swift::immediate::autolinkImportedModules(ModuleDecl *M,
 }
 
 /// Log a compilation error to standard error
-static void logError(llvm::Error Err) {
-  logAllUnhandledErrors(std::move(Err), llvm::errs(), "");
+static void logError(toolchain::Error Err) {
+  logAllUnhandledErrors(std::move(Err), toolchain::errs(), "");
 }
 
-int swift::RunImmediately(CompilerInstance &CI, const ProcessCmdLine &CmdLine,
+int language::RunImmediately(CompilerInstance &CI, const ProcessCmdLine &CmdLine,
                           const IRGenOptions &IRGenOpts,
                           const SILOptions &SILOpts,
                           std::unique_ptr<SILModule> &&SM) {
 
   auto &Context = CI.getASTContext();
 
-  // Load libSwiftCore to setup process arguments.
+  // Load libCodiraCore to setup process arguments.
   //
   // This must be done here, before any library loading has been done, to avoid
   // racing with the static initializers in user code.
   // Setup interpreted process arguments.
-  using ArgOverride = void (*SWIFT_CC(swift))(const char **, int);
+  using ArgOverride = void (*LANGUAGE_CC(language))(const char **, int);
 #if defined(_WIN32)
-  auto stdlib = loadSwiftRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
+  auto stdlib = loadCodiraRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
   if (!stdlib) {
     CI.getDiags().diagnose(SourceLoc(),
                            diag::error_immediate_mode_missing_stdlib);
@@ -284,20 +285,20 @@ int swift::RunImmediately(CompilerInstance &CI, const ProcessCmdLine &CmdLine,
   }
   auto module = static_cast<HMODULE>(stdlib);
   auto emplaceProcessArgs = reinterpret_cast<ArgOverride>(
-      GetProcAddress(module, "_swift_stdlib_overrideUnsafeArgvArgc"));
+      GetProcAddress(module, "_language_stdlib_overrideUnsafeArgvArgc"));
   if (emplaceProcessArgs == nullptr)
     return -1;
 #else
-  // In case the compiler is built with swift modules, it already has the stdlib
+  // In case the compiler is built with language modules, it already has the stdlib
   // linked to. First try to lookup the symbol with the standard library
   // resolving.
   auto emplaceProcessArgs =
-      (ArgOverride)dlsym(RTLD_DEFAULT, "_swift_stdlib_overrideUnsafeArgvArgc");
+      (ArgOverride)dlsym(RTLD_DEFAULT, "_language_stdlib_overrideUnsafeArgvArgc");
 
   if (dlerror()) {
-    // If this does not work (= the Swift modules are not linked to the tool),
+    // If this does not work (= the Codira modules are not linked to the tool),
     // we have to explicitly load the stdlib.
-    auto stdlib = loadSwiftRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
+    auto stdlib = loadCodiraRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
     if (!stdlib) {
       CI.getDiags().diagnose(SourceLoc(),
                              diag::error_immediate_mode_missing_stdlib);
@@ -305,7 +306,7 @@ int swift::RunImmediately(CompilerInstance &CI, const ProcessCmdLine &CmdLine,
     }
     dlerror();
     emplaceProcessArgs =
-        (ArgOverride)dlsym(stdlib, "_swift_stdlib_overrideUnsafeArgvArgc");
+        (ArgOverride)dlsym(stdlib, "_language_stdlib_overrideUnsafeArgvArgc");
     if (dlerror())
       return -1;
   }
@@ -319,28 +320,28 @@ int swift::RunImmediately(CompilerInstance &CI, const ProcessCmdLine &CmdLine,
 
   (*emplaceProcessArgs)(argBuf.data(), CmdLine.size());
 
-  auto *swiftModule = CI.getMainModule();
-  if (autolinkImportedModules(swiftModule, IRGenOpts))
+  auto *languageModule = CI.getMainModule();
+  if (autolinkImportedModules(languageModule, IRGenOpts))
     return -1;
 
-  auto JIT = SwiftJIT::Create(CI);
+  auto JIT = CodiraJIT::Create(CI);
   if (auto Err = JIT.takeError()) {
     logError(std::move(Err));
     return -1;
   }
 
-  auto MU = std::make_unique<EagerSwiftMaterializationUnit>(
+  auto MU = std::make_unique<EagerCodiraMaterializationUnit>(
       **JIT, CI, IRGenOpts, std::move(SM));
-  if (auto Err = (*JIT)->addSwift((*JIT)->getMainJITDylib(), std::move(MU))) {
+  if (auto Err = (*JIT)->addCodira((*JIT)->getMainJITDylib(), std::move(MU))) {
     logError(std::move(Err));
     return -1;
   }
 
   auto Result = (*JIT)->runMain(CmdLine);
 
-  // It is not safe to unmap memory that has been registered with the swift or
+  // It is not safe to unmap memory that has been registered with the language or
   // objc runtime. Currently the best way to avoid that is to leak the JIT.
-  // FIXME: Replace with "detach" llvm/llvm-project#56714.
+  // FIXME: Replace with "detach" toolchain/toolchain-project#56714.
   (void)JIT->release();
 
   if (!Result) {
@@ -350,7 +351,7 @@ int swift::RunImmediately(CompilerInstance &CI, const ProcessCmdLine &CmdLine,
   return *Result;
 }
 
-int swift::RunImmediatelyFromAST(CompilerInstance &CI) {
+int language::RunImmediatelyFromAST(CompilerInstance &CI) {
   CI.performSema();
   auto &Context = CI.getASTContext();
   if (Context.hadError()) {
@@ -362,14 +363,14 @@ int swift::RunImmediatelyFromAST(CompilerInstance &CI) {
   const ProcessCmdLine &CmdLine = ProcessCmdLine(
       FrontendOpts.ImmediateArgv.begin(), FrontendOpts.ImmediateArgv.end());
 
-  // Load libSwiftCore to setup process arguments.
+  // Load libCodiraCore to setup process arguments.
   //
   // This must be done here, before any library loading has been done, to avoid
   // racing with the static initializers in user code.
   // Setup interpreted process arguments.
-  using ArgOverride = void (*SWIFT_CC(swift))(const char **, int);
+  using ArgOverride = void (*LANGUAGE_CC(language))(const char **, int);
 #if defined(_WIN32)
-  auto stdlib = loadSwiftRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
+  auto stdlib = loadCodiraRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
   if (!stdlib) {
     CI.getDiags().diagnose(SourceLoc(),
                            diag::error_immediate_mode_missing_stdlib);
@@ -377,20 +378,20 @@ int swift::RunImmediatelyFromAST(CompilerInstance &CI) {
   }
   auto module = static_cast<HMODULE>(stdlib);
   auto emplaceProcessArgs = reinterpret_cast<ArgOverride>(
-      GetProcAddress(module, "_swift_stdlib_overrideUnsafeArgvArgc"));
+      GetProcAddress(module, "_language_stdlib_overrideUnsafeArgvArgc"));
   if (emplaceProcessArgs == nullptr)
     return -1;
 #else
-  // In case the compiler is built with swift modules, it already has the stdlib
+  // In case the compiler is built with language modules, it already has the stdlib
   // linked to. First try to lookup the symbol with the standard library
   // resolving.
   auto emplaceProcessArgs =
-      (ArgOverride)dlsym(RTLD_DEFAULT, "_swift_stdlib_overrideUnsafeArgvArgc");
+      (ArgOverride)dlsym(RTLD_DEFAULT, "_language_stdlib_overrideUnsafeArgvArgc");
 
   if (dlerror()) {
-    // If this does not work (= the Swift modules are not linked to the tool),
+    // If this does not work (= the Codira modules are not linked to the tool),
     // we have to explicitly load the stdlib.
-    auto stdlib = loadSwiftRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
+    auto stdlib = loadCodiraRuntime(Context.SearchPathOpts.RuntimeLibraryPaths);
     if (!stdlib) {
       CI.getDiags().diagnose(SourceLoc(),
                              diag::error_immediate_mode_missing_stdlib);
@@ -398,7 +399,7 @@ int swift::RunImmediatelyFromAST(CompilerInstance &CI) {
     }
     dlerror();
     emplaceProcessArgs =
-        (ArgOverride)dlsym(stdlib, "_swift_stdlib_overrideUnsafeArgvArgc");
+        (ArgOverride)dlsym(stdlib, "_language_stdlib_overrideUnsafeArgvArgc");
     if (dlerror())
       return -1;
   }
@@ -412,14 +413,14 @@ int swift::RunImmediatelyFromAST(CompilerInstance &CI) {
 
   (*emplaceProcessArgs)(argBuf.data(), CmdLine.size());
 
-  auto *swiftModule = CI.getMainModule();
+  auto *languageModule = CI.getMainModule();
   const auto &IRGenOpts = Invocation.getIRGenOptions();
-  if (autolinkImportedModules(swiftModule, IRGenOpts))
+  if (autolinkImportedModules(languageModule, IRGenOpts))
     return -1;
 
-  auto &Target = swiftModule->getASTContext().LangOpts.Target;
+  auto &Target = languageModule->getASTContext().LangOpts.Target;
   assert(Target.isMacOSX());
-  auto JIT = SwiftJIT::Create(CI);
+  auto JIT = CodiraJIT::Create(CI);
   if (auto Err = JIT.takeError()) {
     logError(std::move(Err));
     return -1;
@@ -428,8 +429,8 @@ int swift::RunImmediatelyFromAST(CompilerInstance &CI) {
   // We're compiling functions lazily, so need to rename
   // symbols defining functions for lazy reexports
   (*JIT)->addRenamer();
-  auto MU = LazySwiftMaterializationUnit::Create(**JIT, CI);
-  if (auto Err = (*JIT)->addSwift((*JIT)->getMainJITDylib(), std::move(MU))) {
+  auto MU = LazyCodiraMaterializationUnit::Create(**JIT, CI);
+  if (auto Err = (*JIT)->addCodira((*JIT)->getMainJITDylib(), std::move(MU))) {
     logError(std::move(Err));
     return -1;
   }

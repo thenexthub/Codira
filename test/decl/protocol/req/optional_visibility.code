@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language -enable-objc-interop -language-version 5
+
+@objc protocol Opt {
+  @objc optional fn f(callback: @escaping () -> ())
+}
+
+class Conforms : Opt {
+  private fn f(callback: () -> ()) {}
+  // expected-error@-1 {{method 'f(callback:)' must be declared internal because it matches a requirement in internal protocol 'Opt'}}
+  // expected-note@-2 {{mark the instance method as 'internal' to satisfy the requirement}}
+}
+
+fn g(x: Conforms) {
+  x.f(callback: {})
+}

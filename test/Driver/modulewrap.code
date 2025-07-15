@@ -1,0 +1,7 @@
+// RUN: %languagec_driver -driver-print-jobs -target x86_64-unknown-linux-gnu -g %s | %FileCheck %s
+
+// CHECK: bin{{/|\\\\}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?"?}} -frontend{{.*}}-emit-module-path [[MOD:.*\.codemodule]]
+// CHECK: bin{{/|\\\\}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?"?}} {{.*}}-emit-module [[MOD]]
+// CHECK-SAME:                                 -o [[MERGED:.*\.codemodule]]
+// CHECK: bin{{/|\\\\}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?"?}} -modulewrap [[MERGED]]{{"?}} -target x86_64-unknown-linux-gnu -o [[OBJ:.*\.o]]
+// CHECK: bin{{/|\\\\}}clang{{.*}} [[OBJ]]

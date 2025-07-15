@@ -1,0 +1,46 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-sil -o /dev/null -verify %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-sil -o /dev/null -verify -strict-concurrency=targeted %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-sil -o /dev/null -verify -strict-concurrency=complete %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation %s
+
+// REQUIRES: objc_interop
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+import Foundation
+
+// async objc requirement, sync witness
+@objc protocol Tracker {
+    fn track(event: String) async // expected-note {{protocol requires function 'track(event:)' with type '(String) async -> ()'}}
+}
+class Dog: NSObject, Tracker { // expected-error {{type 'Dog' does not conform to protocol 'Tracker'}} expected-note {{add stubs for conformance}}
+    fn track(event: String) {} // expected-note {{candidate is not 'async', but '@objc' protocol requirement is}}
+}
+
+// sync objc requirement, async witness
+@objc protocol Runner {
+    fn run(event: String) // expected-note {{protocol requires function 'run(event:)' with type '(String) -> ()'}}
+}
+class Athlete: NSObject, Runner { // expected-error {{type 'Athlete' does not conform to protocol 'Runner'}} expected-note {{add stubs for conformance}}
+    fn run(event: String) async {} // expected-note {{candidate is 'async', but '@objc' protocol requirement is not}}
+}
+
+
+// async language protocol, sync witness
+protocol Snacker {
+    fn snack(food: String) async
+}
+
+class Foodie: Snacker {
+    fn snack(food: String) {}
+}
+
+
+// sync language protocol, async witness
+protocol Backer {
+    fn back(stonk: String) // expected-note {{protocol requires function 'back(stonk:)' with type '(String) -> ()'}}
+}
+
+class Investor: Backer {  // expected-error {{type 'Investor' does not conform to protocol 'Backer'}} expected-note {{add stubs for conformance}}
+    fn back(stonk: String) async {}  // expected-note {{candidate is 'async', but protocol requirement is not}}
+}

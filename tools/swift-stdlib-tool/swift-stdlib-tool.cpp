@@ -10,14 +10,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 const char *usage =
-    "  swift-stdlib-tool --print [options...]\n"
-    "    Find and print the Swift libraries required by an app.\n"
+    "  language-stdlib-tool --print [options...]\n"
+    "    Find and print the Codira libraries required by an app.\n"
     "\n"
-    "  swift-stdlib-tool --copy [options...]\n"
-    "    Copy the Swift libraries into an app bundle, and optionally sign them.\n"
+    "  language-stdlib-tool --copy [options...]\n"
+    "    Copy the Codira libraries into an app bundle, and optionally sign them.\n"
     "\n"
     "  --verbose\n"
     "      Print progress.\n"
@@ -28,24 +29,24 @@ const char *usage =
     "\n"
     "  Options for lookup:\n"
     "  --scan-executable <path>\n"
-    "      Scan the executable at <path> for references to Swift libraries.\n"
+    "      Scan the executable at <path> for references to Codira libraries.\n"
     "      This option may be set multiple times.\n"
     "  --scan-folder <path>\n"
-    "      Scan any executables inside <path> for references to Swift libraries.\n"
+    "      Scan any executables inside <path> for references to Codira libraries.\n"
     "      This option may be set multiple times.\n"
     "  --platform <macosx|iphoneos|iphonesimulator>\n"
-    "      Use the Swift libraries for <platform>.\n"
+    "      Use the Codira libraries for <platform>.\n"
     "  --source-libraries <path>\n"
-    "      Search <path> for Swift libraries.\n"
-    "      The default is /path/to/swift-stdlib-tool/../../lib/swift/<platform>/\n"
+    "      Search <path> for Codira libraries.\n"
+    "      The default is /path/to/language-stdlib-tool/../../lib/language/<platform>/\n"
     "\n"
     "  Options for copying and signing:\n"
     "  --destination <path>\n"
-    "      Copy Swift libraries into <path>.\n"
+    "      Copy Codira libraries into <path>.\n"
     "  --unsigned-destination <path>\n"
-    "      Copy Swift libraries into <path> without signing them.\n"
+    "      Copy Codira libraries into <path> without signing them.\n"
     "  --sign <identity>\n"
-    "      Sign copied Swift libraries using <identity>.\n"
+    "      Sign copied Codira libraries using <identity>.\n"
     "  --keychain <keychain>\n"
     "      Search <keychain> for the code signing identity.\n"
     "  --Xcodesign <option>\n"
@@ -59,11 +60,11 @@ const char *usage =
     "      Copy <library> and its dependencies as resources without signing\n"
     "      them. These copies are in addition to any libraries copied as a result\n"
     "      of the --scan-executable option.\n"
-    "      Any library in the Swift library search path can be specified for\n"
+    "      Any library in the Codira library search path can be specified for\n"
     "      <library>.\n"
     "      This option may be set multiple times.\n"
     "  --resource-destination <path>\n"
-    "      The <path> to copy Swift resource libraries to.\n"
+    "      The <path> to copy Codira resource libraries to.\n"
     "\n";
 
 #include <copyfile.h>
@@ -550,7 +551,7 @@ int parse_macho(int fd, uint32_t offset, uint32_t size,
         log_vv("  loads %.*s", (int)name_len, name);
 
 #define PREPREFIX "@rpath/"
-#define PREFIX PREPREFIX "libswift"
+#define PREFIX PREPREFIX "liblanguage"
         if (0 == strncmp(name, PREFIX, strlen(PREFIX))) {
           dylibVisitor(name + strlen(PREPREFIX));
         }
@@ -956,7 +957,7 @@ std::vector<uint8_t> query_code_signature(std::string file) {
 }
 
 template <typename F>
-void listDirectoryContents(std::string directory, F &&func) {
+void listDirectoryContents(std::string directory, F &&fn) {
   DIR *dir = opendir(directory.c_str());
   if (dir == NULL) {
     return;
@@ -964,13 +965,13 @@ void listDirectoryContents(std::string directory, F &&func) {
 
   struct dirent *entry;
   while ((entry = readdir(dir))) {
-    func(directory + "/" + entry->d_name);
+    fn(directory + "/" + entry->d_name);
   }
   closedir(dir);
 }
 
 template <typename F>
-void recursivelyListFiles(std::string directory, F &&func) {
+void recursivelyListFiles(std::string directory, F &&fn) {
   DIR *dir = opendir(directory.c_str());
   if (dir == NULL) {
     return;
@@ -981,7 +982,7 @@ void recursivelyListFiles(std::string directory, F &&func) {
   while ((entry = readdir(dir)) != NULL) {
     std::string path = directory + "/" + entry->d_name;
     if (entry->d_type == DT_REG) {
-      func(path);
+      fn(path);
     } else if (entry->d_type == DT_DIR) {
       // check if . or ..
       if (strncmp(entry->d_name, "..", entry->d_namlen) == 0) {
@@ -992,12 +993,12 @@ void recursivelyListFiles(std::string directory, F &&func) {
   }
   closedir(dir);
   for (const auto &path : subpaths) {
-    recursivelyListFiles(path, func);
+    recursivelyListFiles(path, fn);
   }
 }
 
 int main(int argc, const char *argv[]) {
-  // Executables to scan for Swift references.
+  // Executables to scan for Codira references.
   // --scan-executable
   std::vector<std::string> executables;
 
@@ -1012,7 +1013,7 @@ int main(int argc, const char *argv[]) {
 
   // Copy source.
   // --source-libraries
-  // or /path/to/swift-stdlib-tool/../../lib/swift/<--platform>
+  // or /path/to/language-stdlib-tool/../../lib/language/<--platform>
   std::vector<std::string> src_dirs;
 
   // Copy destinations, signed and unsigned.
@@ -1088,13 +1089,13 @@ int main(int argc, const char *argv[]) {
         parentPath(parentPath(self_executable)) + "/" + "lib";
 
     listDirectoryContents(root_path, [&](std::string entry) {
-      if (filename(entry).compare(0, strlen("swift-"), "swift-") == 0) {
+      if (filename(entry).compare(0, strlen("language-"), "language-") == 0) {
         src_dirs.push_back(entry + "/" + platform);
       }
     });
 
     if (src_dirs.empty()) {
-      fail("Couldn't discover Swift library directories in: %s",
+      fail("Couldn't discover Codira library directories in: %s",
            root_path.c_str());
     }
   } else if (platform.empty()) {
@@ -1135,11 +1136,11 @@ int main(int argc, const char *argv[]) {
     });
   }
 
-  // Collect Swift library names from the input files.
+  // Collect Codira library names from the input files.
   // If the library does not exist in src_dirs then assume the user wrote
-  // their own library named libswift* and is handling it elsewhere.
+  // their own library named liblanguage* and is handling it elsewhere.
   __block std::unordered_map<std::string, std::unordered_set<std::string>>
-      swiftLibs;
+      languageLibs;
   for (const auto &path : executables) {
     process(
         path,
@@ -1147,7 +1148,7 @@ int main(int argc, const char *argv[]) {
           for (const auto &src_dir : src_dirs) {
             const auto linkedSrc = src_dir + "/" + linkedLib;
             if (access(linkedSrc.c_str(), F_OK) == 0) {
-              swiftLibs[linkedSrc] = std::unordered_set<std::string>();
+              languageLibs[linkedSrc] = std::unordered_set<std::string>();
               break;
             }
           }
@@ -1155,11 +1156,11 @@ int main(int argc, const char *argv[]) {
         NULL);
   }
 
-  // Collect more Swift library names from the Swift libraries themselves.
-  // Also collect the Swift libraries' UUIDs.
+  // Collect more Codira library names from the Codira libraries themselves.
+  // Also collect the Codira libraries' UUIDs.
   __block std::vector<std::string> worklist;
-  worklist.reserve(swiftLibs.size());
-  for (const auto &pair : swiftLibs) {
+  worklist.reserve(languageLibs.size());
+  for (const auto &pair : languageLibs) {
     worklist.push_back(pair.first);
   }
   while (worklist.size()) {
@@ -1170,35 +1171,35 @@ int main(int argc, const char *argv[]) {
         ^(const std::string &linkedLib) {
           for (const auto &src_dir : src_dirs) {
             const auto linkedSrc = src_dir + "/" + linkedLib;
-            if (swiftLibs.count(linkedSrc) == 0 &&
+            if (languageLibs.count(linkedSrc) == 0 &&
                 access(linkedSrc.c_str(), F_OK) == 0) {
-              swiftLibs[linkedSrc] = std::unordered_set<std::string>();
+              languageLibs[linkedSrc] = std::unordered_set<std::string>();
               worklist.push_back(linkedSrc);
               break;
             }
           }
         },
         ^(const uuid_t uuid) {
-          swiftLibs[path].insert(uuidString(uuid));
+          languageLibs[path].insert(uuidString(uuid));
         });
   }
 
-  // Collect all the Swift libraries that the user requested
+  // Collect all the Codira libraries that the user requested
   // with --resource-library.
   __block std::unordered_map<std::string, std::unordered_set<std::string>>
-      swiftLibsForResources;
+      languageLibsForResources;
   for (const auto &lib : resourceLibraries) {
     for (const auto &src_dir : src_dirs) {
       const auto libSrc = src_dir + "/" + lib;
       if (access(libSrc.c_str(), F_OK) == 0) {
-        swiftLibsForResources[libSrc] = std::unordered_set<std::string>();
+        languageLibsForResources[libSrc] = std::unordered_set<std::string>();
       }
     }
   }
 
   // Collect dependencies of --resource-library libs.
   worklist.clear();
-  for (const auto &pair : swiftLibsForResources) {
+  for (const auto &pair : languageLibsForResources) {
     worklist.push_back(pair.first);
   }
   while (worklist.size()) {
@@ -1209,48 +1210,48 @@ int main(int argc, const char *argv[]) {
         ^(const std::string &linkedLib) {
           for (const auto &src_dir : src_dirs) {
             const auto linkedSrc = src_dir + "/" + linkedLib;
-            if (swiftLibsForResources.count(linkedSrc) == 0 &&
+            if (languageLibsForResources.count(linkedSrc) == 0 &&
                 access(linkedSrc.c_str(), F_OK) == 0) {
-              swiftLibsForResources[linkedSrc] =
+              languageLibsForResources[linkedSrc] =
                   std::unordered_set<std::string>();
               worklist.push_back(linkedSrc);
             }
           }
         },
         ^(const uuid_t uuid) {
-          swiftLibsForResources[path].insert(uuidString(uuid));
+          languageLibsForResources[path].insert(uuidString(uuid));
         });
   }
 
-  // Print the Swift libraries (full path to toolchain's copy)
+  // Print the Codira libraries (full path to toolchain's copy)
   if (print) {
-    for (const auto &lib : swiftLibs) {
+    for (const auto &lib : languageLibs) {
       printf("%s\n", lib.first.c_str());
     }
   }
 
-  // Copy the Swift libraries to $build_dir/$frameworks
+  // Copy the Codira libraries to $build_dir/$frameworks
   // and $build_dir/$unsigned_frameworks
   if (copy) {
-    copyLibraries(dst_dir, swiftLibs, stripBitcode);
+    copyLibraries(dst_dir, languageLibs, stripBitcode);
     if (!unsigned_dst_dir.empty()) {
       // Never strip bitcode from the unsigned libraries.
       // Their existing signatures must be preserved.
-      copyLibraries(unsigned_dst_dir, swiftLibs, false);
+      copyLibraries(unsigned_dst_dir, languageLibs, false);
     }
 
     if (!resource_dst_dir.empty()) {
       // Never strip bitcode from resources libraries, for
       // the same reason as the libraries copied to
       // unsigned_dst_dir.
-      copyLibraries(resource_dst_dir, swiftLibsForResources, false);
+      copyLibraries(resource_dst_dir, languageLibsForResources, false);
     }
   }
 
-  // Codesign the Swift libraries in $build_dir/$frameworks
+  // Codesign the Codira libraries in $build_dir/$frameworks
   // but not the libraries in $build_dir/$unsigned_frameworks.
   if (!ident.empty()) {
-    // Swift libraries that are up-to-date get codesigned anyway
+    // Codira libraries that are up-to-date get codesigned anyway
     // (in case options changed or a previous build was incomplete).
     // We do employ an optimization, however, if resigning the dylib
     // results in getting the same signing identity and credentials
@@ -1260,7 +1261,7 @@ int main(int argc, const char *argv[]) {
     __block bool signedOne = false;
     std::mutex signingLock;
 
-    for (const auto &pair : swiftLibs) {
+    for (const auto &pair : languageLibs) {
       const auto &lib = pair.first;
       // Work around authentication UI problems
       // by signing one synchronously and then signing the rest.

@@ -1,13 +1,13 @@
-" This source file is part of the Swift.org open source project
+" This source file is part of the Codira.org open source project
 "
-" Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+" Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 " Licensed under Apache License v2.0 with Runtime Library Exception
 "
-" See https://swift.org/LICENSE.txt for license information
-" See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+" See https://language.org/LICENSE.txt for license information
+" See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 "
 " Vim syntax file
-" Language: swift
+" Language: language
 " Maintainer: Joe Groff <jgroff@apple.com>
 " Last Change: 2018 Jan 21
 
@@ -15,7 +15,7 @@ if exists("b:current_syntax")
     finish
 endif
 
-syn keyword swiftKeyword
+syn keyword languageKeyword
       \ await
       \ break
       \ case
@@ -37,17 +37,17 @@ syn keyword swiftKeyword
       \ try
       \ where
       \ while
-syn match swiftMultiwordKeyword
+syn match languageMultiwordKeyword
       \ "indirect case"
 
-syn keyword swiftCoreTypes
+syn keyword languageCoreTypes
       \ Any
       \ AnyObject
 
-syn keyword swiftImport skipwhite skipempty nextgroup=swiftImportModule
+syn keyword languageImport skipwhite skipempty nextgroup=languageImportModule
       \ import
 
-syn keyword swiftDefinitionModifier
+syn keyword languageDefinitionModifier
       \ async
       \ convenience
       \ dynamic
@@ -68,31 +68,31 @@ syn keyword swiftDefinitionModifier
       \ throws
       \ weak
 
-syn keyword swiftInOutKeyword skipwhite skipempty nextgroup=swiftTypeName
+syn keyword languageInOutKeyword skipwhite skipempty nextgroup=languageTypeName
       \ inout
 
-syn keyword swiftIdentifierKeyword
+syn keyword languageIdentifierKeyword
       \ Self
       \ metatype
       \ self
       \ super
 
-syn keyword swiftFuncKeywordGeneral skipwhite skipempty nextgroup=swiftTypeParameters
+syn keyword languageFuncKeywordGeneral skipwhite skipempty nextgroup=languageTypeParameters
       \ init
 
-syn keyword swiftFuncKeyword
+syn keyword languageFuncKeyword
       \ deinit
       \ subscript
 
-syn keyword swiftScope
+syn keyword languageScope
       \ autoreleasepool
 
-syn keyword swiftMutating skipwhite skipempty nextgroup=swiftFuncDefinition
+syn keyword languageMutating skipwhite skipempty nextgroup=languageFuncDefinition
       \ mutating
-syn keyword swiftFuncDefinition skipwhite skipempty nextgroup=swiftTypeName,swiftOperator
-      \ func
+syn keyword languageFuncDefinition skipwhite skipempty nextgroup=languageTypeName,languageOperator
+      \ fn
 
-syn keyword swiftTypeDefinition skipwhite skipempty nextgroup=swiftTypeName
+syn keyword languageTypeDefinition skipwhite skipempty nextgroup=languageTypeName
       \ class
       \ enum
       \ extension
@@ -101,185 +101,185 @@ syn keyword swiftTypeDefinition skipwhite skipempty nextgroup=swiftTypeName
       \ protocol
       \ struct
 
-syn keyword swiftTypeAliasDefinition skipwhite skipempty nextgroup=swiftTypeAliasName
+syn keyword languageTypeAliasDefinition skipwhite skipempty nextgroup=languageTypeAliasName
       \ associatedtype
       \ typealias
 
-syn match swiftMultiwordTypeDefinition skipwhite skipempty nextgroup=swiftTypeName
+syn match languageMultiwordTypeDefinition skipwhite skipempty nextgroup=languageTypeName
       \ "indirect enum"
 
-syn keyword swiftVarDefinition skipwhite skipempty nextgroup=swiftVarName
+syn keyword languageVarDefinition skipwhite skipempty nextgroup=languageVarName
       \ let
       \ var
 
-syn keyword swiftLabel
+syn keyword languageLabel
       \ get
       \ set
       \ didSet
       \ willSet
 
-syn keyword swiftBoolean
+syn keyword languageBoolean
       \ false
       \ true
 
-syn keyword swiftNil
+syn keyword languageNil
       \ nil
 
-syn match swiftImportModule contained nextgroup=swiftImportComponent
+syn match languageImportModule contained nextgroup=languageImportComponent
       \ /\<[A-Za-z_][A-Za-z_0-9]*\>/
-syn match swiftImportComponent contained nextgroup=swiftImportComponent
+syn match languageImportComponent contained nextgroup=languageImportComponent
       \ /\.\<[A-Za-z_][A-Za-z_0-9]*\>/
 
-syn match swiftTypeAliasName contained skipwhite skipempty nextgroup=swiftTypeAliasValue
+syn match languageTypeAliasName contained skipwhite skipempty nextgroup=languageTypeAliasValue
       \ /\<[A-Za-z_][A-Za-z_0-9]*\>/
-syn match swiftTypeName contained skipwhite skipempty nextgroup=swiftTypeParameters
+syn match languageTypeName contained skipwhite skipempty nextgroup=languageTypeParameters
       \ /\<[A-Za-z_][A-Za-z_0-9\.]*\>/
-syn match swiftVarName contained skipwhite skipempty nextgroup=swiftTypeDeclaration
+syn match languageVarName contained skipwhite skipempty nextgroup=languageTypeDeclaration
       \ /\<[A-Za-z_][A-Za-z_0-9]*\>/
-syn match swiftImplicitVarName
+syn match languageImplicitVarName
       \ /\$\<[A-Za-z_0-9]\+\>/
 
 " TypeName[Optionality]?
-syn match swiftType contained skipwhite skipempty nextgroup=swiftTypeParameters
+syn match languageType contained skipwhite skipempty nextgroup=languageTypeParameters
       \ /\<[A-Za-z_][A-Za-z_0-9\.]*\>[!?]\?/
 " [Type:Type] (dictionary) or [Type] (array)
-syn region swiftType contained contains=swiftTypePair,swiftType
+syn region languageType contained contains=languageTypePair,languageType
       \ matchgroup=Delimiter start=/\[/ end=/\]/
-syn match swiftTypePair contained skipwhite skipempty nextgroup=swiftTypeParameters,swiftTypeDeclaration
+syn match languageTypePair contained skipwhite skipempty nextgroup=languageTypeParameters,languageTypeDeclaration
       \ /\<[A-Za-z_][A-Za-z_0-9\.]*\>[!?]\?/
 " (Type[, Type]) (tuple)
-" FIXME: we should be able to use skip="," and drop swiftParamDelim
-syn region swiftType contained contains=swiftType,swiftParamDelim
+" FIXME: we should be able to use skip="," and drop languageParamDelim
+syn region languageType contained contains=languageType,languageParamDelim
       \ matchgroup=Delimiter start="[^@]\?(" end=")" matchgroup=NONE skip=","
-syn match swiftParamDelim contained
+syn match languageParamDelim contained
       \ /,/
 " <Generic Clause> (generics)
-syn region swiftTypeParameters contained contains=swiftVarName,swiftConstraint
+syn region languageTypeParameters contained contains=languageVarName,languageConstraint
       \ matchgroup=Delimiter start="<" end=">" matchgroup=NONE skip=","
-syn keyword swiftConstraint contained
+syn keyword languageConstraint contained
       \ where
 
-syn match swiftTypeAliasValue skipwhite skipempty nextgroup=swiftType
+syn match languageTypeAliasValue skipwhite skipempty nextgroup=languageType
       \ /=/
-syn match swiftTypeDeclaration skipwhite skipempty nextgroup=swiftType,swiftInOutKeyword
+syn match languageTypeDeclaration skipwhite skipempty nextgroup=languageType,languageInOutKeyword
       \ /:/
-syn match swiftTypeDeclaration skipwhite skipempty nextgroup=swiftType
+syn match languageTypeDeclaration skipwhite skipempty nextgroup=languageType
       \ /->/
 
-syn match swiftKeyword
+syn match languageKeyword
       \ /\<case\>/
-syn region swiftCaseLabelRegion
-      \ matchgroup=swiftKeyword start=/\<case\>/ matchgroup=Delimiter end=/:/ oneline contains=TOP
-syn region swiftDefaultLabelRegion
-      \ matchgroup=swiftKeyword start=/\<default\>/ matchgroup=Delimiter end=/:/ oneline
+syn region languageCaseLabelRegion
+      \ matchgroup=languageKeyword start=/\<case\>/ matchgroup=Delimiter end=/:/ oneline contains=TOP
+syn region languageDefaultLabelRegion
+      \ matchgroup=languageKeyword start=/\<default\>/ matchgroup=Delimiter end=/:/ oneline
 
-syn region swiftParenthesisRegion contains=TOP
+syn region languageParenthesisRegion contains=TOP
       \ matchgroup=NONE start=/(/ end=/)/
 
-syn region swiftString contains=swiftInterpolationRegion
+syn region languageString contains=languageInterpolationRegion
       \ start=/"/ skip=/\\\\\|\\"/ end=/"/
-syn region swiftInterpolationRegion contained contains=TOP
-      \ matchgroup=swiftInterpolation start=/\\(/ end=/)/
-syn region swiftComment contains=swiftComment,swiftTodo
+syn region languageInterpolationRegion contained contains=TOP
+      \ matchgroup=languageInterpolation start=/\\(/ end=/)/
+syn region languageComment contains=languageComment,languageTodo
       \ start="/\*" end="\*/"
-syn region swiftLineComment contains=swiftTodo
+syn region languageLineComment contains=languageTodo
       \ start="//" end="$"
 
-syn match swiftDecimal
+syn match languageDecimal
       \ /[+\-]\?\<\([0-9][0-9_]*\)\([.][0-9_]*\)\?\([eE][+\-]\?[0-9][0-9_]*\)\?\>/
-syn match swiftHex
+syn match languageHex
       \ /[+\-]\?\<0x[0-9A-Fa-f][0-9A-Fa-f_]*\(\([.][0-9A-Fa-f_]*\)\?[pP][+\-]\?[0-9][0-9_]*\)\?\>/
-syn match swiftOct
+syn match languageOct
       \ /[+\-]\?\<0o[0-7][0-7_]*\>/
-syn match swiftBin
+syn match languageBin
       \ /[+\-]\?\<0b[01][01_]*\>/
 
-syn match swiftOperator skipwhite skipempty nextgroup=swiftTypeParameters
+syn match languageOperator skipwhite skipempty nextgroup=languageTypeParameters
       \ "\.\@<!\.\.\.\@!\|[/=\-+*%<>!&|^~]\@<!\(/[/*]\@![/=\-+*%<>!&|^~]*\|*/\@![/=\-+*%<>!&|^~]*\|->\@![/=\-+*%<>!&|^~]*\|[=+%<>!&|^~][/=\-+*%<>!&|^~]*\)"
-syn match swiftOperator skipwhite skipempty nextgroup=swiftTypeParameters
+syn match languageOperator skipwhite skipempty nextgroup=languageTypeParameters
       \ "\.\.[<.]"
 
-syn match swiftChar
+syn match languageChar
       \ /'\([^'\\]\|\\\(["'tnr0\\]\|x[0-9a-fA-F]\{2}\|u[0-9a-fA-F]\{4}\|U[0-9a-fA-F]\{8}\)\)'/
 
-syn match swiftTupleIndexNumber contains=swiftDecimal
+syn match languageTupleIndexNumber contains=languageDecimal
       \ /\.[0-9]\+/
-syn match swiftDecimal contained
+syn match languageDecimal contained
       \ /[0-9]\+/
 
 " This is a superset of the Preproc macros below, so it must come FIRST
-syn match swiftFreestandingMacro
+syn match languageFreestandingMacro
       \ /#\<[A-Za-z_][A-Za-z_0-9]*\>/
-syn match swiftPreproc
+syn match languagePreproc
       \ /#\(\<column\>\|\<dsohandle\>\|\<file\>\|\<line\>\|\<function\>\)/
-syn match swiftPreproc
+syn match languagePreproc
       \ /^\s*#\(\<if\>\|\<else\>\|\<elseif\>\|\<endif\>\|\<error\>\|\<warning\>\)/
-syn region swiftPreprocFalse
+syn region languagePreprocFalse
       \ start="^\s*#\<if\>\s\+\<false\>" end="^\s*#\(\<else\>\|\<elseif\>\|\<endif\>\)"
 
-syn match swiftAttribute
-      \ /@\<\w\+\>/ skipwhite skipempty nextgroup=swiftType,swiftTypeDefinition
+syn match languageAttribute
+      \ /@\<\w\+\>/ skipwhite skipempty nextgroup=languageType,languageTypeDefinition
 
-syn keyword swiftTodo MARK TODO FIXME contained
+syn keyword languageTodo MARK TODO FIXME contained
 
-syn match swiftCastOp skipwhite skipempty nextgroup=swiftType,swiftCoreTypes
+syn match languageCastOp skipwhite skipempty nextgroup=languageType,languageCoreTypes
       \ "\<is\>"
-syn match swiftCastOp skipwhite skipempty nextgroup=swiftType,swiftCoreTypes
+syn match languageCastOp skipwhite skipempty nextgroup=languageType,languageCoreTypes
       \ "\<as\>[!?]\?"
 
-syn match swiftNilOps
+syn match languageNilOps
       \ "??"
 
-syn region swiftReservedIdentifier oneline
+syn region languageReservedIdentifier oneline
       \ start=/`/ end=/`/
 
-hi def link swiftImport Include
-hi def link swiftImportModule Title
-hi def link swiftImportComponent Identifier
-hi def link swiftKeyword Statement
-hi def link swiftCoreTypes Type
-hi def link swiftMultiwordKeyword Statement
-hi def link swiftTypeDefinition Define
-hi def link swiftMultiwordTypeDefinition Define
-hi def link swiftType Type
-hi def link swiftTypePair Type
-hi def link swiftTypeAliasName Identifier
-hi def link swiftTypeName Function
-hi def link swiftConstraint Special
-hi def link swiftFuncDefinition Define
-hi def link swiftDefinitionModifier Operator
-hi def link swiftInOutKeyword Define
-hi def link swiftFuncKeyword Function
-hi def link swiftFuncKeywordGeneral Function
-hi def link swiftTypeAliasDefinition Define
-hi def link swiftVarDefinition Define
-hi def link swiftVarName Identifier
-hi def link swiftImplicitVarName Identifier
-hi def link swiftIdentifierKeyword Identifier
-hi def link swiftTypeAliasValue Delimiter
-hi def link swiftTypeDeclaration Delimiter
-hi def link swiftTypeParameters Delimiter
-hi def link swiftBoolean Boolean
-hi def link swiftString String
-hi def link swiftInterpolation Special
-hi def link swiftComment Comment
-hi def link swiftLineComment Comment
-hi def link swiftDecimal Number
-hi def link swiftHex Number
-hi def link swiftOct Number
-hi def link swiftBin Number
-hi def link swiftOperator Function
-hi def link swiftChar Character
-hi def link swiftLabel Operator
-hi def link swiftMutating Statement
-hi def link swiftPreproc PreCondit
-hi def link swiftPreprocFalse Comment
-hi def link swiftFreestandingMacro Macro
-hi def link swiftAttribute Type
-hi def link swiftTodo Todo
-hi def link swiftNil Constant
-hi def link swiftCastOp Operator
-hi def link swiftNilOps Operator
-hi def link swiftScope PreProc
+hi def link languageImport Include
+hi def link languageImportModule Title
+hi def link languageImportComponent Identifier
+hi def link languageKeyword Statement
+hi def link languageCoreTypes Type
+hi def link languageMultiwordKeyword Statement
+hi def link languageTypeDefinition Define
+hi def link languageMultiwordTypeDefinition Define
+hi def link languageType Type
+hi def link languageTypePair Type
+hi def link languageTypeAliasName Identifier
+hi def link languageTypeName Function
+hi def link languageConstraint Special
+hi def link languageFuncDefinition Define
+hi def link languageDefinitionModifier Operator
+hi def link languageInOutKeyword Define
+hi def link languageFuncKeyword Function
+hi def link languageFuncKeywordGeneral Function
+hi def link languageTypeAliasDefinition Define
+hi def link languageVarDefinition Define
+hi def link languageVarName Identifier
+hi def link languageImplicitVarName Identifier
+hi def link languageIdentifierKeyword Identifier
+hi def link languageTypeAliasValue Delimiter
+hi def link languageTypeDeclaration Delimiter
+hi def link languageTypeParameters Delimiter
+hi def link languageBoolean Boolean
+hi def link languageString String
+hi def link languageInterpolation Special
+hi def link languageComment Comment
+hi def link languageLineComment Comment
+hi def link languageDecimal Number
+hi def link languageHex Number
+hi def link languageOct Number
+hi def link languageBin Number
+hi def link languageOperator Function
+hi def link languageChar Character
+hi def link languageLabel Operator
+hi def link languageMutating Statement
+hi def link languagePreproc PreCondit
+hi def link languagePreprocFalse Comment
+hi def link languageFreestandingMacro Macro
+hi def link languageAttribute Type
+hi def link languageTodo Todo
+hi def link languageNil Constant
+hi def link languageCastOp Operator
+hi def link languageNilOps Operator
+hi def link languageScope PreProc
 
-let b:current_syntax = "swift"
+let b:current_syntax = "language"

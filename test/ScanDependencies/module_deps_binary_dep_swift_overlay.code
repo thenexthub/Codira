@@ -1,0 +1,52 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/clang-module-cache)
+// RUN: %empty-directory(%t/DependencyModules)
+// RUN: split-file --leading-lines %s %t
+
+// Emit a binary module dependency
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/DependencyModules/BinaryModuleDep.codemodule -module-cache-path %t/clang-module-cache %t/BinaryModuleDepSource.code -module-name BinaryModuleDep -I %S/Inputs/CHeaders -I %S/Inputs/Codira
+
+// Scan the client and ensure both the Client and BinaryModuleDep modules have a Codira overlay dependency on 'F' as imported by 'ClangModuleWithOverlayedDep'
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -I %t/DependencyModules
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+//--- BinaryModuleDepSource.code
+import ClangModuleWithOverlayedDep
+
+//--- Client.code
+import BinaryModuleDep
+
+// CHECK:         "language": "deps"
+// CHECK:         "directDependencies": [
+// CHECK-DAG:          "language": "Codira"
+// CHECK-DAG:          "language": "CodiraOnoneSupport"
+// CHECK-DAG:          "language": "_Concurrency"
+// CHECK-DAG:          "clang": "_CodiraConcurrencyShims"
+// CHECK-DAG:          "language": "_StringProcessing"
+// CHECK-DAG:          "clang": "ClangModuleWithOverlayedDep"
+// CHECK-DAG:          "languagePrebuiltExternal": "BinaryModuleDep"
+// CHECK-DAG:          "language": "F"
+// CHECK:          ],
+// CHECK:          "languageOverlayDependencies": [
+// CHECK-NEXT:       {
+// CHECK-NEXT:         "language": "F"
+// CHECK-NEXT:       }
+// CHECK-NEXT:     ]
+
+// CHECK:      "languagePrebuiltExternal": "BinaryModuleDep"
+// CHECK:         "directDependencies": [
+// CHECK-DAG:          "language": "Codira"
+// CHECK-DAG:          "language": "CodiraOnoneSupport"
+// CHECK-DAG:          "language": "_Concurrency"
+// CHECK-DAG:          "clang": "_CodiraConcurrencyShims"
+// CHECK-DAG:          "language": "_StringProcessing"
+// CHECK-DAG:          "clang": "ClangModuleWithOverlayedDep"
+// CHECK-DAG:          "language": "F"
+// CHECK:          ],
+// CHECK:          "languageOverlayDependencies": [
+// CHECK-NEXT:       {
+// CHECK-NEXT:         "language": "F"
+// CHECK-NEXT:       }
+// CHECK-NEXT:     ]

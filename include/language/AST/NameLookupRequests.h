@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines name-lookup requests.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_NAME_LOOKUP_REQUESTS_H
-#define SWIFT_NAME_LOOKUP_REQUESTS_H
+#ifndef LANGUAGE_NAME_LOOKUP_REQUESTS_H
+#define LANGUAGE_NAME_LOOKUP_REQUESTS_H
 
 #include "language/AST/SimpleRequest.h"
 #include "language/AST/ASTTypeIDs.h"
@@ -27,9 +28,9 @@
 #include "language/AST/NameLookup.h"
 #include "language/AST/TypeOrExtensionDecl.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -57,12 +58,12 @@ enum class ResolutionKind;
 
 /// Display a nominal type or extension thereof.
 void simple_display(
-    llvm::raw_ostream &out,
-    const llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> &value);
+    toolchain::raw_ostream &out,
+    const toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> &value);
 
 /// Describes a set of type declarations that are "direct" referenced by
 /// a particular type in the AST.
-using DirectlyReferencedTypeDecls = std::pair<llvm::TinyPtrVector<TypeDecl *>,
+using DirectlyReferencedTypeDecls = std::pair<toolchain::TinyPtrVector<TypeDecl *>,
                                               InvertibleProtocolSet>;
 
 /// Request the set of declarations directly referenced by the an "inherited"
@@ -87,7 +88,7 @@ class InheritedDeclsReferencedRequest
     : public SimpleRequest<
           InheritedDeclsReferencedRequest,
           DirectlyReferencedTypeDecls(
-              llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *>,
+              toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *>,
               unsigned),
           RequestFlags::Uncached> // FIXME: Cache these
 {
@@ -100,7 +101,7 @@ private:
   // Evaluation.
   DirectlyReferencedTypeDecls
   evaluate(Evaluator &evaluator,
-           llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+           toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
            unsigned index) const;
 
 public:
@@ -270,7 +271,7 @@ public:
 /// Request the nominal declaration extended by a given extension declaration.
 class ExtendedNominalRequest
     : public SimpleRequest<
-          ExtendedNominalRequest, NominalTypeDecl *(ExtensionDecl *),
+          ExtendedNominalRequest, NominalTypeDecl *(ExtensionDecl *, bool),
           RequestFlags::SeparatelyCached | RequestFlags::DependencySink> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -279,8 +280,8 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  NominalTypeDecl *
-  evaluate(Evaluator &evaluator, ExtensionDecl *ext) const;
+  NominalTypeDecl * evaluate(Evaluator &evaluator, ExtensionDecl *ext,
+                             bool excludeMacroExpansions) const;
 
 public:
   // Separate caching.
@@ -295,7 +296,7 @@ public:
 };
 
 struct SelfBounds {
-  llvm::TinyPtrVector<NominalTypeDecl *> decls;
+  toolchain::TinyPtrVector<NominalTypeDecl *> decls;
   InvertibleProtocolSet inverses;
   bool anyObject = false;
 };
@@ -304,7 +305,7 @@ struct SelfBounds {
 /// constraints in the "where" clause of a protocol extension.
 class SelfBoundsFromWhereClauseRequest
     : public SimpleRequest<SelfBoundsFromWhereClauseRequest,
-                           SelfBounds(llvm::PointerUnion<
+                           SelfBounds(toolchain::PointerUnion<
                                       const TypeDecl *, const ExtensionDecl *>),
                            RequestFlags::Uncached> {
 public:
@@ -316,7 +317,7 @@ private:
   // Evaluation.
   SelfBounds
   evaluate(Evaluator &evaluator,
-           llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *>) const;
+           toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *>) const;
 };
 
 /// Request the nominal types that occur as the right-hand side of "Self: Foo"
@@ -430,8 +431,8 @@ public:
                               LookupOptions options = {})
       : Name(name), DC(dc), Loc(loc), Options(options) { }
 
-  friend llvm::hash_code hash_value(const UnqualifiedLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.Name, desc.DC, desc.Loc,
+  friend toolchain::hash_code hash_value(const UnqualifiedLookupDescriptor &desc) {
+    return toolchain::hash_combine(desc.Name, desc.DC, desc.Loc,
                               desc.Options.toRaw());
   }
 
@@ -447,7 +448,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const UnqualifiedLookupDescriptor &desc);
 
 SourceLoc extractNearestSourceLoc(const UnqualifiedLookupDescriptor &desc);
@@ -590,8 +591,8 @@ public:
                          LookupOptions options = {})
       : DC(dc), Name(name), Options(options) {}
 
-  friend llvm::hash_code hash_value(const DirectLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.Name, desc.DC, desc.Options.toRaw());
+  friend toolchain::hash_code hash_value(const DirectLookupDescriptor &desc) {
+    return toolchain::hash_combine(desc.Name, desc.DC, desc.Options.toRaw());
   }
 
   friend bool operator==(const DirectLookupDescriptor &lhs,
@@ -606,7 +607,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const DirectLookupDescriptor &desc);
+void simple_display(toolchain::raw_ostream &out, const DirectLookupDescriptor &desc);
 
 SourceLoc extractNearestSourceLoc(const DirectLookupDescriptor &desc);
 
@@ -632,7 +633,7 @@ public:
 
 class OperatorLookupDescriptor final {
 public:
-  using Storage = llvm::PointerUnion<FileUnit *, ModuleDecl *>;
+  using Storage = toolchain::PointerUnion<FileUnit *, ModuleDecl *>;
   Storage fileOrModule;
   Identifier name;
 
@@ -657,8 +658,8 @@ public:
     return fileOrModule.get<FileUnit *>();
   }
 
-  friend llvm::hash_code hash_value(const OperatorLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.fileOrModule, desc.name);
+  friend toolchain::hash_code hash_value(const OperatorLookupDescriptor &desc) {
+    return toolchain::hash_combine(desc.fileOrModule, desc.name);
   }
 
   friend bool operator==(const OperatorLookupDescriptor &lhs,
@@ -682,7 +683,7 @@ public:
   static OperatorLookupDescriptor forDC(const DeclContext *DC, Identifier name);
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const OperatorLookupDescriptor &desc);
 
 SourceLoc extractNearestSourceLoc(const OperatorLookupDescriptor &desc);
@@ -741,8 +742,8 @@ public:
 
   LookupConformanceDescriptor(Type Ty, ProtocolDecl *PD) : Ty(Ty), PD(PD) {}
 
-  friend llvm::hash_code hash_value(const LookupConformanceDescriptor &desc) {
-    return llvm::hash_combine(desc.Ty.getPointer(), desc.PD);
+  friend toolchain::hash_code hash_value(const LookupConformanceDescriptor &desc) {
+    return toolchain::hash_combine(desc.Ty.getPointer(), desc.PD);
   }
 
   friend bool operator==(const LookupConformanceDescriptor &lhs,
@@ -756,7 +757,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const LookupConformanceDescriptor &desc);
 
 SourceLoc extractNearestSourceLoc(const LookupConformanceDescriptor &desc);
@@ -974,7 +975,7 @@ public:
 };
 
 using ObjCCategoryNameMap =
-  llvm::DenseMap<Identifier, llvm::TinyPtrVector<ExtensionDecl *>>;
+  toolchain::DenseMap<Identifier, toolchain::TinyPtrVector<ExtensionDecl *>>;
 
 /// Generate a map of all known extensions of the given class that have an
 /// explicit category name. This request does not force clang categories that
@@ -1007,7 +1008,7 @@ public:
 };
 
 struct DeclABIRoleInfoResult {
-  llvm::PointerIntPair<Decl *, 2, uint8_t> storage;
+  toolchain::PointerIntPair<Decl *, 2, uint8_t> storage;
   DeclABIRoleInfoResult(Decl *counterpart, uint8_t roleValue)
     : storage(counterpart, roleValue) {}
 };
@@ -1032,26 +1033,26 @@ public:
   bool isCached() const { return true; }
 };
 
-#define SWIFT_TYPEID_ZONE NameLookup
-#define SWIFT_TYPEID_HEADER "swift/AST/NameLookupTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE NameLookup
+#define LANGUAGE_TYPEID_HEADER "language/AST/NameLookupTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
 template<typename Request>
 void reportEvaluatedRequest(UnifiedStatsReporter &stats,
                             const Request &request);
 
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
   template <>                                                                  \
   inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,              \
                                      const RequestType &request) {             \
     ++stats.getFrontendCounters().RequestType;                                 \
   }
 #include "language/AST/NameLookupTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_NAME_LOOKUP_REQUESTS
+#endif // LANGUAGE_NAME_LOOKUP_REQUESTS

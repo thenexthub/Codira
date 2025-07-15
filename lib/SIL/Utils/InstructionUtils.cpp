@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-inst-utils"
@@ -30,15 +31,15 @@
 #include "language/SIL/SILVisitor.h"
 
 #include "clang/AST/DeclObjC.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool> EnableExpandAll("enable-expand-all",
-                                           llvm::cl::init(false));
+static toolchain::cl::opt<bool> EnableExpandAll("enable-expand-all",
+                                           toolchain::cl::init(false));
 
 
-SILValue swift::lookThroughOwnershipInsts(SILValue v) {
+SILValue language::lookThroughOwnershipInsts(SILValue v) {
   while (true) {
     switch (v->getKind()) {
     default:
@@ -51,7 +52,7 @@ SILValue swift::lookThroughOwnershipInsts(SILValue v) {
   }
 }
 
-bool swift::visitNonOwnershipUses(SILValue value,
+bool language::visitNonOwnershipUses(SILValue value,
                                   function_ref<bool(Operand *)> visitor) {
   // All ownership insts have a single operand, so a recursive walk is
   // sufficient and cannot revisit operands.
@@ -75,7 +76,7 @@ bool swift::visitNonOwnershipUses(SILValue value,
   return true;
 }
 
-SILValue swift::lookThroughCopyValueInsts(SILValue val) {
+SILValue language::lookThroughCopyValueInsts(SILValue val) {
   while (auto *cvi =
              dyn_cast_or_null<CopyValueInst>(val->getDefiningInstruction())) {
     val = cvi->getOperand();
@@ -87,7 +88,7 @@ SILValue swift::lookThroughCopyValueInsts(SILValue val) {
 /// nothing left to strip.
 ///
 /// FIXME: Why don't we strip projections after stripping indexes?
-SILValue swift::getUnderlyingObject(SILValue v) {
+SILValue language::getUnderlyingObject(SILValue v) {
   while (true) {
     SILValue v2 = stripCasts(v);
     v2 = stripAddressProjections(v2);
@@ -109,7 +110,7 @@ SILValue swift::getUnderlyingObject(SILValue v) {
 
 /// Return the underlying SILValue after stripping off identity SILArguments if
 /// we belong to a BB with one predecessor.
-SILValue swift::stripSinglePredecessorArgs(SILValue V) {
+SILValue language::stripSinglePredecessorArgs(SILValue V) {
   while (true) {
     auto *A = dyn_cast<SILArgument>(V);
     if (!A)
@@ -151,7 +152,7 @@ SILValue swift::stripSinglePredecessorArgs(SILValue V) {
   }
 }
 
-SILValue swift::stripCastsWithoutMarkDependence(SILValue v) {
+SILValue language::stripCastsWithoutMarkDependence(SILValue v) {
   while (true) {
     v = stripSinglePredecessorArgs(v);
     if (isa<MarkDependenceInst>(v))
@@ -169,7 +170,7 @@ SILValue swift::stripCastsWithoutMarkDependence(SILValue v) {
   }
 }
 
-SILValue swift::stripCasts(SILValue v) {
+SILValue language::stripCasts(SILValue v) {
   while (true) {
     v = stripSinglePredecessorArgs(v);
     if (auto *svi = dyn_cast<SingleValueInstruction>(v)) {
@@ -190,7 +191,7 @@ SILValue swift::stripCasts(SILValue v) {
   }
 }
 
-SILValue swift::stripUpCasts(SILValue v) {
+SILValue language::stripUpCasts(SILValue v) {
   assert(v->getType().isClassOrClassMetatype() &&
          "Expected class or class metatype!");
   
@@ -211,7 +212,7 @@ SILValue swift::stripUpCasts(SILValue v) {
   }
 }
 
-SILValue swift::stripClassCasts(SILValue v) {
+SILValue language::stripClassCasts(SILValue v) {
   while (true) {
     if (auto *ui = dyn_cast<UpcastInst>(v)) {
       v = ui->getOperand();
@@ -233,7 +234,7 @@ SILValue swift::stripClassCasts(SILValue v) {
   }
 }
 
-SILValue swift::stripAddressProjections(SILValue V) {
+SILValue language::stripAddressProjections(SILValue V) {
   while (true) {
     V = stripSinglePredecessorArgs(V);
     if (!Projection::isAddressProjection(V))
@@ -242,7 +243,7 @@ SILValue swift::stripAddressProjections(SILValue V) {
   }
 }
 
-SILValue swift::lookThroughAddressToAddressProjections(SILValue v) {
+SILValue language::lookThroughAddressToAddressProjections(SILValue v) {
   while (true) {
     v = stripSinglePredecessorArgs(v);
     if (!Projection::isAddressToAddressProjection(v))
@@ -251,7 +252,7 @@ SILValue swift::lookThroughAddressToAddressProjections(SILValue v) {
   }
 }
 
-SILValue swift::stripValueProjections(SILValue V) {
+SILValue language::stripValueProjections(SILValue V) {
   while (true) {
     V = stripSinglePredecessorArgs(V);
     if (!Projection::isObjectProjection(V))
@@ -260,7 +261,7 @@ SILValue swift::stripValueProjections(SILValue V) {
   }
 }
 
-SILValue swift::lookThroughAddressAndValueProjections(SILValue V) {
+SILValue language::lookThroughAddressAndValueProjections(SILValue V) {
   while (true) {
     V = stripSinglePredecessorArgs(V);
     if (!Projection::isObjectProjection(V) &&
@@ -270,7 +271,7 @@ SILValue swift::lookThroughAddressAndValueProjections(SILValue V) {
   }
 }
 
-SILValue swift::stripIndexingInsts(SILValue V) {
+SILValue language::stripIndexingInsts(SILValue V) {
   while (true) {
     if (!isa<IndexingInst>(V))
       return V;
@@ -278,16 +279,16 @@ SILValue swift::stripIndexingInsts(SILValue V) {
   }
 }
 
-SILValue swift::stripExpectIntrinsic(SILValue V) {
+SILValue language::stripExpectIntrinsic(SILValue V) {
   auto *BI = dyn_cast<BuiltinInst>(V);
   if (!BI)
     return V;
-  if (BI->getIntrinsicInfo().ID != llvm::Intrinsic::expect)
+  if (BI->getIntrinsicInfo().ID != toolchain::Intrinsic::expect)
     return V;
   return BI->getArguments()[0];
 }
 
-SILValue swift::stripBorrow(SILValue V) {
+SILValue language::stripBorrow(SILValue V) {
   if (auto *BBI = dyn_cast<BeginBorrowInst>(V))
     return BBI->getOperand();
   return V;
@@ -298,7 +299,7 @@ SILValue swift::stripBorrow(SILValue V) {
 //
 // This is guaranteed to handle all function-type conversions: ThinToThick,
 // ConvertFunction, and ConvertEscapeToNoEscapeInst.
-SingleValueInstruction *swift::getSingleValueCopyOrCast(SILInstruction *I) {
+SingleValueInstruction *language::getSingleValueCopyOrCast(SILInstruction *I) {
   if (auto convert = ConversionOperation(I))
     return *convert;
 
@@ -316,7 +317,7 @@ SingleValueInstruction *swift::getSingleValueCopyOrCast(SILInstruction *I) {
   }
 }
 
-bool swift::isBeginScopeMarker(SILInstruction *user) {
+bool language::isBeginScopeMarker(SILInstruction *user) {
   switch (user->getKind()) {
   default:
     return false;
@@ -326,7 +327,7 @@ bool swift::isBeginScopeMarker(SILInstruction *user) {
   }
 }
 
-bool swift::isEndOfScopeMarker(SILInstruction *user) {
+bool language::isEndOfScopeMarker(SILInstruction *user) {
   switch (user->getKind()) {
   default:
     return false;
@@ -336,13 +337,13 @@ bool swift::isEndOfScopeMarker(SILInstruction *user) {
   }
 }
 
-bool swift::isIncidentalUse(SILInstruction *user) {
+bool language::isIncidentalUse(SILInstruction *user) {
   return isEndOfScopeMarker(user) || user->isDebugInstruction() ||
          isa<FixLifetimeInst>(user) || isa<EndLifetimeInst>(user) ||
          isa<IgnoredUseInst>(user);
 }
 
-bool swift::isMoveOnlyWrapperUse(SILInstruction *user) {
+bool language::isMoveOnlyWrapperUse(SILInstruction *user) {
   switch (user->getKind()) {
   case SILInstructionKind::MoveOnlyWrapperToCopyableValueInst:
   case SILInstructionKind::MoveOnlyWrapperToCopyableBoxInst:
@@ -355,7 +356,7 @@ bool swift::isMoveOnlyWrapperUse(SILInstruction *user) {
   }
 }
 
-bool swift::onlyAffectsRefCount(SILInstruction *user) {
+bool language::onlyAffectsRefCount(SILInstruction *user) {
   switch (user->getKind()) {
   default:
     return false;
@@ -381,12 +382,12 @@ bool swift::onlyAffectsRefCount(SILInstruction *user) {
   }
 }
 
-bool swift::mayCheckRefCount(SILInstruction *User) {
+bool language::mayCheckRefCount(SILInstruction *User) {
   return isa<IsUniqueInst>(User) || isa<DestroyNotEscapedClosureInst>(User) ||
          isa<BeginCOWMutationInst>(User);
 }
 
-bool swift::isSanitizerInstrumentation(SILInstruction *Instruction) {
+bool language::isSanitizerInstrumentation(SILInstruction *Instruction) {
   auto *BI = dyn_cast<BuiltinInst>(Instruction);
   if (!BI)
     return false;
@@ -401,7 +402,7 @@ bool swift::isSanitizerInstrumentation(SILInstruction *Instruction) {
 // Instrumentation instructions should not affect the correctness of the
 // program. That is, they should not affect the observable program state.
 // The constant evaluator relies on this property to skip instructions.
-bool swift::isInstrumentation(SILInstruction *Instruction) {
+bool language::isInstrumentation(SILInstruction *Instruction) {
   if (isSanitizerInstrumentation(Instruction))
     return true;
 
@@ -411,7 +412,7 @@ bool swift::isInstrumentation(SILInstruction *Instruction) {
   return false;
 }
 
-SILValue swift::isPartialApplyOfReabstractionThunk(PartialApplyInst *PAI) {
+SILValue language::isPartialApplyOfReabstractionThunk(PartialApplyInst *PAI) {
   // A partial_apply of a reabstraction thunk either has a single capture
   // (a function) or two captures (function and dynamic Self type).
   if (PAI->getNumArguments() != 1 &&
@@ -442,7 +443,7 @@ SILValue swift::isPartialApplyOfReabstractionThunk(PartialApplyInst *PAI) {
   return Arg;
 }
 
-bool swift::onlyUsedByAssignByWrapper(PartialApplyInst *PAI) {
+bool language::onlyUsedByAssignByWrapper(PartialApplyInst *PAI) {
   bool usedByAssignByWrapper = false;
   for (Operand *Op : PAI->getUses()) {
     SILInstruction *User = Op->getUser();
@@ -457,7 +458,7 @@ bool swift::onlyUsedByAssignByWrapper(PartialApplyInst *PAI) {
   return usedByAssignByWrapper;
 }
 
-bool swift::onlyUsedByAssignOrInit(PartialApplyInst *PAI) {
+bool language::onlyUsedByAssignOrInit(PartialApplyInst *PAI) {
   bool usedByAssignOrInit = false;
   for (Operand *Op : PAI->getUses()) {
     SILInstruction *user = Op->getUser();
@@ -478,7 +479,7 @@ bool swift::onlyUsedByAssignOrInit(PartialApplyInst *PAI) {
 
 static RuntimeEffect metadataEffect(SILType ty) {
   ClassDecl *cl = ty.getClassOrBoundGenericClass();
-  if (cl && !cl->hasKnownSwiftImplementation())
+  if (cl && !cl->hasKnownCodiraImplementation())
     return RuntimeEffect::MetaData | RuntimeEffect::ObjectiveC;
   return RuntimeEffect::MetaData;
 }
@@ -486,10 +487,10 @@ static RuntimeEffect metadataEffect(SILType ty) {
 /// Whether this particular SIL function is known a prior not to use the
 /// generic metadata it is given.
 static bool knownToNotUseGenericMetadata(SILFunction &f) {
-  // swift_willThrowTypedImpl only uses the generic metadata when a global
+  // language_willThrowTypedImpl only uses the generic metadata when a global
   // hook has been installed, so we treat it as if the generic metadata is
   // unused.
-  if (f.getName() == "swift_willThrowTypedImpl")
+  if (f.getName() == "language_willThrowTypedImpl")
     return true;
 
   return false;
@@ -504,7 +505,7 @@ static bool knownToNotUseGenericMetadata(ApplySite &as) {
   return false;
 }
 
-RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType) {
+RuntimeEffect language::getRuntimeEffect(SILInstruction *inst, SILType &impactType) {
   auto ifNonTrivial = [&](SILType type, RuntimeEffect effect) -> RuntimeEffect {
     // Nonescaping closures are modeled with ownership to track borrows, but
     // copying and destroying them has no actual runtime effect since they
@@ -584,6 +585,7 @@ RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType)
   case SILInstructionKind::TupleExtractInst:
   case SILInstructionKind::StructInst:
   case SILInstructionKind::StructExtractInst:
+  case SILInstructionKind::VectorBaseAddrInst:
   case SILInstructionKind::RefElementAddrInst:
   case SILInstructionKind::EnumInst:
   case SILInstructionKind::UncheckedEnumDataInst:
@@ -631,6 +633,7 @@ RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType)
   case SILInstructionKind::DifferentiabilityWitnessFunctionInst:
   case SILInstructionKind::IncrementProfilerCounterInst:
   case SILInstructionKind::EndCOWMutationInst:
+  case SILInstructionKind::EndCOWMutationAddrInst:
   case SILInstructionKind::HasSymbolInst:
   case SILInstructionKind::DynamicPackIndexInst:
   case SILInstructionKind::PackPackIndexInst:
@@ -720,7 +723,7 @@ RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType)
 
   case SILInstructionKind::InitExistentialRefInst:
     impactType = cast<InitExistentialRefInst>(inst)->getType();
-    // Make sure to get a diagnostic error in embedded swift for class existentials
+    // Make sure to get a diagnostic error in embedded language for class existentials
     // where not all protocols of a composition are class bound. For example:
     //   let existential: any ClassBound & NotClassBound = MyClass()
     // In future we might support this case and then we can remove this check.
@@ -922,7 +925,7 @@ RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType)
     case ExistentialRepresentation::None:
       return RuntimeEffect::NoEffect;
     }
-    llvm_unreachable("Bad existential representation");
+    toolchain_unreachable("Bad existential representation");
   }
   case SILInstructionKind::StrongRetainInst:
   case SILInstructionKind::UnmanagedRetainValueInst:
@@ -1016,7 +1019,7 @@ RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType)
           }
         }
       }
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case SILFunctionTypeRepresentation::Block:
       rt |= RuntimeEffect::ObjectiveC | RuntimeEffect::MetaData;
       break;
@@ -1124,7 +1127,7 @@ RuntimeEffect swift::getRuntimeEffect(SILInstruction *inst, SILType &impactType)
 }
 
 /// Given a block used as a noescape function argument, attempt to find all
-/// Swift closures that invoking the block will call. The StoredClosures may not
+/// Codira closures that invoking the block will call. The StoredClosures may not
 /// actually be partial_apply instructions. They may be copied, block arguments,
 /// or conversions. The caller must continue searching up the use-def chain.
 static SILValue findClosureStoredIntoBlock(SILValue V) {
@@ -1184,7 +1187,7 @@ static SILValue findClosureStoredIntoBlock(SILValue V) {
 /// `funcVal` may be either a function type or an Optional function type. This
 /// might be called on a directly applied value or on a call argument, which may
 /// in turn be applied within the callee.
-void swift::findClosuresForFunctionValue(
+void language::findClosuresForFunctionValue(
     SILValue funcVal, TinyPtrVector<PartialApplyInst *> &results) {
 
   SILType funcTy = funcVal->getType();
@@ -1195,7 +1198,7 @@ void swift::findClosuresForFunctionValue(
 
   SmallVector<SILValue, 4> worklist;
   // Avoid exponential path exploration and prevent duplicate results.
-  llvm::SmallDenseSet<SILValue, 8> visited;
+  toolchain::SmallDenseSet<SILValue, 8> visited;
   auto worklistInsert = [&](SILValue V) {
     if (visited.insert(V).second)
       worklist.push_back(V);
@@ -1270,7 +1273,7 @@ bool PolymorphicBuiltinSpecializedOverloadInfo::init(
     SILFunction *fn, BuiltinValueKind builtinKind,
     ArrayRef<SILType> oldOperandTypes, SILType oldResultType) {
   assert(!isInitialized && "Expected uninitialized info");
-  SWIFT_DEFER { isInitialized = true; };
+  LANGUAGE_DEFER { isInitialized = true; };
   if (!isPolymorphicBuiltin(builtinKind))
     return false;
 
@@ -1340,7 +1343,7 @@ bool PolymorphicBuiltinSpecializedOverloadInfo::init(
 
 bool PolymorphicBuiltinSpecializedOverloadInfo::init(BuiltinInst *bi) {
   assert(!isInitialized && "Can not init twice?!");
-  SWIFT_DEFER { isInitialized = true; };
+  LANGUAGE_DEFER { isInitialized = true; };
 
   // First quickly make sure we have a /real/ BuiltinValueKind, not an intrinsic
   // or None.
@@ -1357,7 +1360,7 @@ bool PolymorphicBuiltinSpecializedOverloadInfo::init(BuiltinInst *bi) {
 }
 
 SILValue
-swift::getStaticOverloadForSpecializedPolymorphicBuiltin(BuiltinInst *bi) {
+language::getStaticOverloadForSpecializedPolymorphicBuiltin(BuiltinInst *bi) {
 
   PolymorphicBuiltinSpecializedOverloadInfo info;
   if (!info.init(bi))
@@ -1415,8 +1418,8 @@ swift::getStaticOverloadForSpecializedPolymorphicBuiltin(BuiltinInst *bi) {
 //                          Exploded Tuple Visitors
 //===----------------------------------------------------------------------===//
 
-bool swift::visitExplodedTupleType(SILType inputType,
-                                   llvm::function_ref<bool(SILType)> callback) {
+bool language::visitExplodedTupleType(SILType inputType,
+                                   toolchain::function_ref<bool(SILType)> callback) {
   auto tupType = inputType.getAs<TupleType>();
   if (!tupType || tupType.containsPackExpansionType()) {
     return callback(inputType);
@@ -1432,9 +1435,9 @@ bool swift::visitExplodedTupleType(SILType inputType,
   return true;
 }
 
-bool swift::visitExplodedTupleValue(
+bool language::visitExplodedTupleValue(
     SILValue inputValue,
-    llvm::function_ref<SILValue(SILValue, std::optional<unsigned>)> callback) {
+    toolchain::function_ref<SILValue(SILValue, std::optional<unsigned>)> callback) {
   SILType inputType = inputValue->getType();
   auto tupType = inputType.getAs<TupleType>();
   if (!tupType || tupType.containsPackExpansionType()) {
@@ -1451,7 +1454,7 @@ bool swift::visitExplodedTupleValue(
 }
 
 std::pair<SILFunction *, SILWitnessTable *>
-swift::lookUpFunctionInWitnessTable(WitnessMethodInst *wmi,
+language::lookUpFunctionInWitnessTable(WitnessMethodInst *wmi,
                                     SILModule::LinkingMode linkingMode) {
   SILModule &mod = wmi->getModule();
   return mod.lookUpFunctionInWitnessTable(wmi->getConformance(), wmi->getMember(),
@@ -1462,7 +1465,7 @@ swift::lookUpFunctionInWitnessTable(WitnessMethodInst *wmi,
 //
 // False if expanding a type is invalid. For example, expanding a
 // struct-with-deinit drops the deinit.
-bool swift::shouldExpand(SILModule &module, SILType ty) {
+bool language::shouldExpand(SILModule &module, SILType ty) {
   // FIXME: Expansion
   auto expansion = TypeExpansionContext::minimal();
 

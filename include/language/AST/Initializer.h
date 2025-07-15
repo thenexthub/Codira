@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Initializer class, which is a kind of
@@ -20,12 +21,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_INITIALIZER_H
-#define SWIFT_INITIALIZER_H
+#ifndef LANGUAGE_INITIALIZER_H
+#define LANGUAGE_INITIALIZER_H
 
 #include "language/AST/DeclContext.h"
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -218,7 +219,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out, Initializer *init);
+void simple_display(toolchain::raw_ostream &out, Initializer *init);
 
 } // end namespace language
 

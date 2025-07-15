@@ -1,0 +1,12 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+// rdar://problem/23719809&23720006
+
+fn ~=() {}
+fn ~=(_: Int) {}
+fn ~=(_: () -> ()) {}
+
+switch 0 {
+case 0:
+    break
+}

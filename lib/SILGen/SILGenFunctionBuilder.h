@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SILGENFUNCTIONBUILDER_H
-#define SWIFT_SILGEN_SILGENFUNCTIONBUILDER_H
+#ifndef LANGUAGE_SILGEN_SILGENFUNCTIONBUILDER_H
+#define LANGUAGE_SILGEN_SILGENFUNCTIONBUILDER_H
 
 #include "language/SIL/SILFunctionBuilder.h"
 
 namespace language {
 namespace Lowering {
 
-class LLVM_LIBRARY_VISIBILITY SILGenFunctionBuilder {
+class TOOLCHAIN_LIBRARY_VISIBILITY SILGenFunctionBuilder {
   SILFunctionBuilder builder;
 
 public:

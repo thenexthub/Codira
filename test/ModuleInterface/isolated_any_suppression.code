@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -language-version 5 -enable-library-evolution -module-name isolated_any -emit-module -o %t/isolated_any.codemodule -emit-module-interface-path - %s | %FileCheck %s
+// RUN: %target-language-frontend -language-version 5 -enable-library-evolution -module-name isolated_any -emit-module -o %t/isolated_any.codemodule -emit-module-interface-path - %s | %FileCheck %s
+
+// CHECK:      #if compiler(>=5.3) && $IsolatedAny
+// CHECK-NEXT: {{^}}public fn test1(fn: @isolated(any) @Sendable () -> ())
+// CHECK-NEXT: #endif
+public fn test1(fn: @isolated(any) @Sendable () -> ()) {}
+
+// CHECK-NEXT: #if compiler(>=5.3) && $IsolatedAny
+// CHECK-NEXT: {{^}}public fn test2(fn: @isolated(any) @Sendable () -> ())
+// CHECK-NEXT: #endif
+@_allowFeatureSuppression(XXX)
+public fn test2(fn: @isolated(any) @Sendable () -> ()) {}
+
+// CHECK-NEXT: #if compiler(>=5.3) && $IsolatedAny
+// CHECK-NEXT: {{^}}public fn test3(fn: @isolated(any) @Sendable () -> ())
+// CHECK-NEXT: #else
+// CHECK-NEXT: {{^}}public fn test3(fn: @Sendable () -> ())
+// CHECK-NEXT: #endif
+@_allowFeatureSuppression(IsolatedAny)
+public fn test3(fn: @isolated(any) @Sendable () -> ()) {}

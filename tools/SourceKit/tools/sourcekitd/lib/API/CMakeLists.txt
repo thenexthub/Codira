@@ -1,4 +1,4 @@
-set(LLVM_OPTIONAL_SOURCES
+set(TOOLCHAIN_OPTIONAL_SOURCES
   sourcekitdAPI-XPC.cpp
   sourcekitdAPI-InProc.cpp)
 
@@ -18,13 +18,13 @@ add_sourcekit_library(sourcekitdAPI
 target_compile_definitions(sourcekitdAPI PRIVATE
   sourcekitd_EXPORTS)
 target_link_libraries(sourcekitdAPI PRIVATE
-  swiftBasic
+  languageBasic
   SourceKitSupport)
 
 if(APPLE AND HAVE_XPC_H)
   target_sources(sourcekitdAPI PRIVATE
     sourcekitdAPI-XPC.cpp)
-elseif(SWIFT_SOURCEKIT_USE_INPROC_LIBRARY)
+elseif(LANGUAGE_SOURCEKIT_USE_INPROC_LIBRARY)
   target_sources(sourcekitdAPI PRIVATE
     sourcekitdAPI-InProc.cpp)
 endif()

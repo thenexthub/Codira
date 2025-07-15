@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftIDE STATIC
+add_language_host_library(languageIDE STATIC
   AfterPoundExprCompletion.cpp
   APIDigesterData.cpp
   ArgumentCompletion.cpp
@@ -32,24 +32,24 @@ add_swift_host_library(swiftIDE STATIC
   REPLCodeCompletion.cpp
   SelectedOverloadInfo.cpp
   SourceEntityWalker.cpp
-  SwiftSourceDocInfo.cpp
+  CodiraSourceDocInfo.cpp
   SyntaxModel.cpp
   TypeCheckCompletionCallback.cpp
   TypeContextInfo.cpp
   UnresolvedMemberCompletion.cpp
   Utils.cpp
   )
-target_link_libraries(swiftIDE PRIVATE
-  swiftAST
-  swiftClangImporter
-  swiftDriver
-  swiftParse
-  swiftSema)
+target_link_libraries(languageIDE PRIVATE
+  languageAST
+  languageClangImporter
+  languageDriver
+  languageParse
+  languageSema)
 
-if (SWIFT_BUILD_SWIFT_SYNTAX)
-  target_link_libraries(swiftIDE PRIVATE
-    swiftIDEUtilsBridging
+if (LANGUAGE_BUILD_LANGUAGE_SYNTAX)
+  target_link_libraries(languageIDE PRIVATE
+    languageIDEUtilsBridging
   )
 endif()
 
-set_swift_llvm_is_available(swiftIDE)
+set_language_toolchain_is_available(languageIDE)

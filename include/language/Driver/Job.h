@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_JOB_H
-#define SWIFT_DRIVER_JOB_H
+#ifndef LANGUAGE_DRIVER_JOB_H
+#define LANGUAGE_DRIVER_JOB_H
 
 #include "language/Basic/Debug.h"
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OutputFileMap.h"
 #include "language/Driver/Action.h"
 #include "language/Driver/Util.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/Program.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/Program.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 #include <memory>
@@ -122,7 +123,7 @@ class CommandOutput {
   /// phases (eg. autolink-extract and link both operate on the same .o file),
   /// so Jobs cannot _just_ rely on the presence of a primary output in the
   /// DerivedOutputFileMap.
-  llvm::SmallSet<file_types::ID, 4> AdditionalOutputTypes;
+  toolchain::SmallSet<file_types::ID, 4> AdditionalOutputTypes;
 
   /// The list of inputs for this \c CommandOutput. Each input in the list has
   /// two names (often but not always the same), of which the second (\c
@@ -237,10 +238,10 @@ public:
   StringRef getBaseInput(size_t Index) const;
 
   /// Write a file map naming the outputs for each primary input.
-  void writeOutputFileMap(llvm::raw_ostream &out) const;
+  void writeOutputFileMap(toolchain::raw_ostream &out) const;
 
   void print(raw_ostream &Stream) const;
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   /// For use in assertions: check the CommandOutput's state is consistent with
   /// its invariants.
@@ -280,7 +281,7 @@ public:
 
   using EnvironmentVector = std::vector<std::pair<const char *, const char *>>;
 
-  /// If positive, contains llvm::ProcessID for a real Job on the host OS. If
+  /// If positive, contains toolchain::ProcessID for a real Job on the host OS. If
   /// negative, contains a quasi-PID, which identifies a Job that's a member of
   /// a BatchJob _without_ denoting an operating system process.
   using PID = int64_t;
@@ -288,7 +289,7 @@ public:
 private:
   /// The action which caused the creation of this Job, and the conditions
   /// under which it must be run.
-  llvm::PointerIntPair<const JobAction *, 2, Condition> SourceAndCondition;
+  toolchain::PointerIntPair<const JobAction *, 2, Condition> SourceAndCondition;
 
   /// The list of other Jobs which are inputs to this Job.
   SmallVector<const Job *, 4> Inputs;
@@ -303,7 +304,7 @@ private:
   /// which will be the Executable).
   ///
   /// These argument strings must be kept alive as long as the Job is alive.
-  llvm::opt::ArgStringList Arguments;
+  toolchain::opt::ArgStringList Arguments;
 
   /// Additional variables to set in the process environment when running.
   ///
@@ -318,13 +319,13 @@ private:
   std::optional<ResponseFileInfo> ResponseFile;
 
   /// The modification time of the main input file, if any.
-  llvm::sys::TimePoint<> InputModTime = llvm::sys::TimePoint<>::max();
+  toolchain::sys::TimePoint<> InputModTime = toolchain::sys::TimePoint<>::max();
 
 
 public:
   Job(const JobAction &Source, SmallVectorImpl<const Job *> &&Inputs,
       std::unique_ptr<CommandOutput> Output, const char *Executable,
-      llvm::opt::ArgStringList Arguments,
+      toolchain::opt::ArgStringList Arguments,
       EnvironmentVector ExtraEnvironment = {},
       std::vector<FilelistInfo> Infos = {},
       std::optional<ResponseFileInfo> ResponseFile = std::nullopt)
@@ -347,7 +348,7 @@ public:
   }
 
   const char *getExecutable() const { return Executable; }
-  const llvm::opt::ArgStringList &getArguments() const { return Arguments; }
+  const toolchain::opt::ArgStringList &getArguments() const { return Arguments; }
   ArrayRef<const char *> getResponseFileArg() const {
     assert(hasResponseFile());
     return ResponseFile->argString;
@@ -365,11 +366,11 @@ public:
     SourceAndCondition.setInt(Cond);
   }
 
-  void setInputModTime(llvm::sys::TimePoint<> time) {
+  void setInputModTime(toolchain::sys::TimePoint<> time) {
     InputModTime = time;
   }
 
-  llvm::sys::TimePoint<> getInputModTime() const {
+  toolchain::sys::TimePoint<> getInputModTime() const {
     return InputModTime;
   }
 
@@ -392,71 +393,25 @@ public:
                                       StringRef Terminator = "\n") const;
 
   /// Call the provided Callback with any Jobs (and their possibly-quasi-PIDs)
-  /// contained within this Job; if this job is not a BatchJob, just pass \c
-  /// this and the provided \p OSPid back to the Callback.
+  /// contained within this Job;
   virtual void forEachContainedJobAndPID(
-      llvm::sys::procid_t OSPid,
-      llvm::function_ref<void(const Job *, Job::PID)> Callback) const {
+      toolchain::sys::procid_t OSPid,
+      toolchain::function_ref<void(const Job *, Job::PID)> Callback) const {
     Callback(this, static_cast<Job::PID>(OSPid));
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   static void printArguments(raw_ostream &Stream,
-                             const llvm::opt::ArgStringList &Args);
+                             const toolchain::opt::ArgStringList &Args);
 
   bool hasResponseFile() const { return ResponseFile.has_value(); }
 
   bool writeArgsToResponseFile() const;
 
-  /// Assumes that, if a compile job, has one primary swift input
+  /// Assumes that, if a compile job, has one primary language input
   /// May return empty if none.
-  StringRef getFirstSwiftPrimaryInput() const;
-};
-
-/// A BatchJob comprises a _set_ of jobs, each of which is sufficiently similar
-/// to the others that the whole set can be combined into a single subprocess
-/// (and thus run potentially more-efficiently than running each Job in the set
-/// individually).
-///
-/// Not all Jobs can be combined into a BatchJob: at present, only those Jobs
-/// that come from CompileJobActions, and which otherwise have the exact same
-/// input file list and arguments as one another, aside from their primary-file.
-/// See ToolChain::jobsAreBatchCombinable for details.
-
-class BatchJob : public Job {
-
-  /// The set of constituents making up the batch.
-  const SmallVector<const Job *, 4> CombinedJobs;
-
-  /// A negative number to use as the base value for assigning quasi-PID to Jobs
-  /// in the \c CombinedJobs array. Quasi-PIDs count _down_ from this value.
-  const Job::PID QuasiPIDBase;
-
-public:
-  BatchJob(const JobAction &Source, SmallVectorImpl<const Job *> &&Inputs,
-           std::unique_ptr<CommandOutput> Output, const char *Executable,
-           llvm::opt::ArgStringList Arguments,
-           EnvironmentVector ExtraEnvironment, std::vector<FilelistInfo> Infos,
-           ArrayRef<const Job *> Combined, Job::PID &NextQuasiPID,
-           std::optional<ResponseFileInfo> ResponseFile = std::nullopt);
-
-  ArrayRef<const Job*> getCombinedJobs() const {
-    return CombinedJobs;
-  }
-
-  /// Call the provided callback for each Job in the batch, passing the
-  /// corresponding quasi-PID with each Job.
-  void forEachContainedJobAndPID(
-      llvm::sys::procid_t OSPid,
-      llvm::function_ref<void(const Job *, Job::PID)> Callback) const override {
-    Job::PID QPid = QuasiPIDBase;
-    assert(QPid < 0);
-    for (auto const *J : CombinedJobs) {
-      assert(QPid != std::numeric_limits<Job::PID>::min());
-      Callback(J, QPid--);
-    }
-  }
+  StringRef getFirstCodiraPrimaryInput() const;
 };
 
 } // end namespace driver

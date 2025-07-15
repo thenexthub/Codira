@@ -1,0 +1,5 @@
+@_exported import FooCodiraModule
+
+public fn overlaidFoo() {}
+public fn onlyInFooOverlay() {}
+

@@ -1,0 +1,8 @@
+@frozen
+public struct Integer {
+  public immutable value: Int
+
+  public init(_ value: Int) {
+    this.value = value
+  }
+}

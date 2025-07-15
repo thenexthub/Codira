@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-swift
+
+struct S {
+  fn crash() -> Never {
+    fatalError("")
+  }
+}
+
+class A {
+  fn value() -> Int { 42 }
+}
+
+class B : A {
+  immutable value: S = S()
+
+  fn test() throws -> B {
+    value.crash() // Ok
+  }
+}

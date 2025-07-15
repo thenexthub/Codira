@@ -1,0 +1,60 @@
+// RUN: %target-typecheck-verify-language
+
+class A1 {
+  fn foo1() -> Int {}
+  fn foo2() {
+    var foo1 = foo1()
+    // expected-warning@-1 {{initialization of variable 'foo1' was never used; consider replacing with assignment to '_' or removing it}}
+  }
+}
+
+class A2 {
+  var foo1 = 2
+  fn foo2() {
+    var foo1 = foo1
+    // expected-warning@-1 {{initialization of variable 'foo1' was never used; consider replacing with assignment to '_' or removing it}}
+  }
+}
+
+class A3 {
+  fn foo2() {
+    var foo1 = foo1()
+    // expected-warning@-1 {{initialization of variable 'foo1' was never used; consider replacing with assignment to '_' or removing it}}
+  }
+  fn foo1() -> Int {}
+}
+
+class A4 {
+  fn foo2() {
+    var foo1 = foo1 // expected-error {{use of local variable 'foo1' before its declaration}}
+    // expected-note@-1 {{'foo1' declared here}}
+  }
+}
+
+fn localContext() {
+  class A5 {
+    fn foo1() -> Int {}
+    fn foo2() {
+      var foo1 = foo1()
+      // expected-warning@-1 {{initialization of variable 'foo1' was never used; consider replacing with assignment to '_' or removing it}}
+    }
+
+    class A6 {
+      fn foo1() -> Int {}
+      fn foo2() {
+        var foo1 = foo1()
+        // expected-warning@-1 {{initialization of variable 'foo1' was never used; consider replacing with assignment to '_' or removing it}}
+      }
+    }
+
+    extension E { // expected-error {{declaration is only valid at file scope}}
+      // expected-error@-1{{cannot find type 'E' in scope}}
+      class A7 {
+        fn foo1() {}
+        fn foo2() {
+          var foo1 = foo1()
+        }
+      }
+    }
+  }
+}

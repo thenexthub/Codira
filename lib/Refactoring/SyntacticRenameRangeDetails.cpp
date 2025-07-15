@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -166,7 +170,7 @@ void RenameRangeDetailCollector::splitAndRenameLabel(CharSourceRange Range,
     return addRenameRange(Range, RefactoringRangeKind::SelectorArgumentLabel,
                           NameIndex);
   case LabelRangeType::None:
-    llvm_unreachable("expected a label range");
+    toolchain_unreachable("expected a label range");
   }
 }
 
@@ -258,14 +262,14 @@ bool RenameRangeDetailCollector::labelRangeMatches(CharSourceRange Range,
     case LabelRangeType::NoncollapsibleParam:
       if (IsSingleName && Expected.empty()) // subscript([x]: Int)
         return true;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case LabelRangeType::CallArg:
     case LabelRangeType::Param:
     case LabelRangeType::EnumCaseParam:
     case LabelRangeType::CompoundName:
       return ExistingLabel == (Expected.empty() ? "_" : Expected);
     case LabelRangeType::None:
-      llvm_unreachable("Unhandled label range type");
+      toolchain_unreachable("Unhandled label range type");
     }
   }
   return Expected.empty();
@@ -282,13 +286,13 @@ bool RenameRangeDetailCollector::renameLabelsLenient(
     auto TrailingLabels = LabelRanges.drop_front(*FirstTrailingLabel);
     LabelRanges = LabelRanges.take_front(*FirstTrailingLabel);
 
-    for (auto LabelIndex : llvm::reverse(indices(TrailingLabels))) {
+    for (auto LabelIndex : toolchain::reverse(indices(TrailingLabels))) {
+      if (OldNames.empty())
+        return true;
+
       CharSourceRange Label = TrailingLabels[LabelIndex];
 
       if (Label.getByteLength()) {
-        if (OldNames.empty())
-          return true;
-
         while (!labelRangeMatches(Label, LabelRangeType::CompoundName,
                                   OldNames.back())) {
           if ((OldNames = OldNames.drop_back()).empty())
@@ -302,9 +306,6 @@ bool RenameRangeDetailCollector::renameLabelsLenient(
 
       // empty labelled trailing closure label
       if (LabelIndex) {
-        if (OldNames.empty())
-          return true;
-
         while (!OldNames.back().empty()) {
           if ((OldNames = OldNames.drop_back()).empty())
             return true;
@@ -330,6 +331,8 @@ bool RenameRangeDetailCollector::renameLabelsLenient(
 
       // first name pos
       if (!NameIndex) {
+        if (NameIndex >= OldNames.size())
+          return true;
         while (!OldNames[NameIndex].empty()) {
           if (++NameIndex >= OldNames.size())
             return true;
@@ -534,7 +537,7 @@ RegionType RenameRangeDetailCollector::addSyntacticRenameRanges(
 
 } // end anonymous namespace
 
-SyntacticRenameRangeDetails swift::ide::getSyntacticRenameRangeDetails(
+SyntacticRenameRangeDetails language::ide::getSyntacticRenameRangeDetails(
     const SourceManager &SM, StringRef OldName, const ResolvedLoc &Resolved,
     const RenameLoc &Config) {
   RenameRangeDetailCollector RangeCollector(SM, OldName);

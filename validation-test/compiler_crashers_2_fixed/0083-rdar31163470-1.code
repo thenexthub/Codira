@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir
+
+struct First<T> {}
+struct Second<T> {}
+
+struct Node<T> {
+  fn create<U>() where T == First<U> { }
+  fn create<U>() where T == Second<U> { }
+}

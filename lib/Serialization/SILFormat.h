@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file Contains various constants and helper types to deal with serialized
@@ -18,8 +19,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_SILFORMAT_H
-#define SWIFT_SERIALIZATION_SILFORMAT_H
+#ifndef LANGUAGE_SERIALIZATION_SILFORMAT_H
+#define LANGUAGE_SERIALIZATION_SILFORMAT_H
 
 #include "ModuleFormat.h"
 
@@ -666,8 +667,8 @@ namespace sil_block {
 
   using SILInstIncrementProfilerCounterLayout = BCRecordLayout<
     SIL_INST_INCREMENT_PROFILER_COUNTER,
-    IdentifierIDField,       // PGO func name
-    IdentifierIDField,       // PGO func hash
+    IdentifierIDField,       // PGO fn name
+    IdentifierIDField,       // PGO fn hash
     BCVBR<8>,                // counter index
     BCVBR<8>                 // num counters
   >;

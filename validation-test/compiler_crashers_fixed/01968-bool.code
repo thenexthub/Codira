@@ -1,0 +1,53 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class A {
+fn a<h: a {
+protocol e = {
+class a {
+case .c == B<h : String {
+}
+}
+}
+class a<T> {
+}
+for b {
+}
+struct Q<T]() {
+}
+fn g: AnyObject.init() {
+}
+public var b : U) {
+d>() -> Any {
+struct S {
+fn i<T -> String {
+typealias b {
+fn f.<H : Int -> {
+}
+}
+}
+}
+}
+d<T>: d where Optional<T) {
+}
+public var e: U -> Void>(() {
+fn e: [unowned this.d(f(AnyObject> {
+}
+}
+protocol b {
+}
+private class b: T> T> {
+var f: U.e = { _, g = B)
+protocol P {
+import Foundation
+}
+}

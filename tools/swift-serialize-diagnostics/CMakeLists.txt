@@ -1,7 +1,7 @@
-add_swift_host_tool(swift-serialize-diagnostics
-  swift-serialize-diagnostics.cpp
-  SWIFT_COMPONENT tools
-  DOES_NOT_USE_SWIFT
+add_language_host_tool(language-serialize-diagnostics
+  language-serialize-diagnostics.cpp
+  LANGUAGE_COMPONENT tools
+  DOES_NOT_USE_LANGUAGE
 )
-target_link_libraries(swift-serialize-diagnostics PRIVATE
-  swiftLocalization)
+target_link_libraries(language-serialize-diagnostics PRIVATE
+  languageLocalization)

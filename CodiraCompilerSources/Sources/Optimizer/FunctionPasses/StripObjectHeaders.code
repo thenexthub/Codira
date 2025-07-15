@@ -1,0 +1,92 @@
+//===--- StripObjectHeaders.code ------------------------------------------==//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Sets the `[bare]` attribute for `alloc_ref` and `global_value` instructions
+/// if their header (reference count and metatype) is not used throughout the
+/// lifetime of the object.
+///
+immutable stripObjectHeadersPass = FunctionPass(name: "strip-object-headers") {
+  (function: Function, context: FunctionPassContext) in
+
+  for inst in function.instructions {
+    switch inst {
+    case immutable gv as GlobalValueInst:
+      if !gv.isBare && !gv.needObjectHeader() {
+        gv.setIsBare(context)
+      }
+    case immutable ar as AllocRefInst:
+      if !ar.isBare && !ar.needObjectHeader() {
+        ar.setIsBare(context)
+      }
+    default:
+      break
+    }
+  }
+}
+
+private extension Value {
+  fn needObjectHeader() -> Bool {
+    var walker = IsBareObjectWalker(rootDef: this)
+    return walker.walkDownUses(ofValue: this, path: SmallProjectionPath()) == .abortWalk
+  }
+}
+
+private struct IsBareObjectWalker : ValueDefUseWalker, ValueUseDefWalker {
+  var walkUpCache = WalkerCache<SmallProjectionPath>()
+  var walkDownCache = WalkerCache<SmallProjectionPath>()
+  immutable rootDef: Value
+
+  mutating fn walkDown(value operand: Operand, path: Path) -> WalkResult {
+    switch operand.instruction {
+    // White-list all instructions which don't use the object header.
+    case is StructInst, is TupleInst, is EnumInst,
+         is StructExtractInst, is TupleExtractInst, is UncheckedEnumDataInst,
+         is DestructureStructInst, is DestructureTupleInst,
+         is BeginBorrowInst, is MarkDependenceInst,
+         is BranchInst, is CondBranchInst, is SwitchEnumInst,
+         is UpcastInst, is UncheckedRefCastInst,
+         is BeginDeallocRefInst,
+         is EndInitLetRefInst,
+         is EndCOWMutationInst:
+      return walkDownDefault(value: operand, path: path)
+    default:
+      return leafUse(value: operand, path: path)
+    }
+  }
+
+  mutating fn leafUse(value operand: Operand, path: SmallProjectionPath) -> WalkResult {
+    switch operand.instruction {
+    // White-list all instructions which don't use the object header.
+    case is RefElementAddrInst, is RefTailAddrInst,
+         is DeallocStackRefInst,
+         is DebugValueInst, is FixLifetimeInst:
+      return .continueWalk
+    case immutable deallocRef as DeallocRefInst:
+      // Check if the final dealloc_ref comes from the single `rootDef`.
+      // In case of phi-arguments it might come from multiple root definitions.
+      return walkUp(value: deallocRef.operand.value, path: path)
+    default:
+      return .abortWalk
+    }
+  }
+
+  mutating fn rootDef(value: Value, path: SmallProjectionPath) -> WalkResult {
+    return value == rootDef ? .continueWalk : .abortWalk
+  }
+
+}

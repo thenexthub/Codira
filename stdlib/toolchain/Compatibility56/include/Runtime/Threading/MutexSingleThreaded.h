@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // No-op implementation of locks for single-threaded environments.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_MUTEX_SINGLE_THREADED_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_MUTEX_SINGLE_THREADED_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_MUTEX_SINGLE_THREADED_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_MUTEX_SINGLE_THREADED_BACKDEPLOY56_H
 
 #include <cstdint>
 #include "language/Runtime/Debug.h"
@@ -30,9 +31,9 @@ typedef void* ConditionMutexHandle;
 typedef void* MutexHandle;
 typedef void* ReadWriteLockHandle;
 
-#define SWIFT_CONDITION_SUPPORTS_CONSTEXPR 1
-#define SWIFT_MUTEX_SUPPORTS_CONSTEXPR 1
-#define SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR 1
 
 struct ConditionPlatformHelper {
   static constexpr ConditionHandle staticInit() {
@@ -74,4 +75,4 @@ struct ReadWriteLockPlatformHelper {
 };
 }
 
-#endif // SWIFT_RUNTIME_MUTEX_SINGLE_THREADED_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_MUTEX_SINGLE_THREADED_BACKDEPLOY56_H

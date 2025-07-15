@@ -1,0 +1,25 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol j {
+    typealias E
+}
+struct c<m : j> {
+    : i, j: i k j.m == d.m> {
+}
+protocol i {
+}
+enum f<m> : l {
+    fn d<m>() -> m -> m {
+}
+protocol l {
+    fn d<m>()(

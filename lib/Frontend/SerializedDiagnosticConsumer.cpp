@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the SerializedDiagnosticConsumer class.
@@ -23,25 +24,25 @@
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticsFrontend.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Bitstream/BitstreamWriter.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Bitstream/BitstreamWriter.h"
 
 using namespace language;
 using namespace clang::serialized_diags;
 
 namespace {
 class AbbreviationMap {
-  llvm::DenseMap<unsigned, unsigned> Abbrevs;
+  toolchain::DenseMap<unsigned, unsigned> Abbrevs;
 public:
   AbbreviationMap() {}
 
@@ -61,17 +62,17 @@ public:
 using RecordData = SmallVector<uint64_t, 64>;
 using RecordDataImpl = SmallVectorImpl<uint64_t>;
 
-struct SharedState : llvm::RefCountedBase<SharedState> {
+struct SharedState : toolchain::RefCountedBase<SharedState> {
   SharedState(StringRef serializedDiagnosticsPath)
       : Stream(Buffer),
         SerializedDiagnosticsPath(serializedDiagnosticsPath),
         EmittedAnyDiagBlocks(false) {}
 
   /// The byte buffer for the serialized content.
-  llvm::SmallString<1024> Buffer;
+  toolchain::SmallString<1024> Buffer;
 
   /// The BitStreamWriter for the serialized diagnostics.
-  llvm::BitstreamWriter Stream;
+  toolchain::BitstreamWriter Stream;
 
   /// The path of the diagnostics file.
   std::string SerializedDiagnosticsPath;
@@ -83,16 +84,16 @@ struct SharedState : llvm::RefCountedBase<SharedState> {
   RecordData Record;
 
   /// A text buffer for rendering diagnostic text.
-  llvm::SmallString<256> diagBuf;
+  toolchain::SmallString<256> diagBuf;
 
   /// The collection of files used.
-  llvm::DenseMap<const char *, unsigned> Files;
+  toolchain::DenseMap<const char *, unsigned> Files;
 
   /// The collection of categories used.
-  llvm::DenseMap<const char *, unsigned> Categories;
+  toolchain::DenseMap<const char *, unsigned> Categories;
 
   /// The collection of flags used.
-  llvm::StringMap<unsigned> Flags;
+  toolchain::StringMap<unsigned> Flags;
 
   /// Whether we have already started emission of any DIAG blocks. Once
   /// this becomes \c true, we never close a DIAG block until we know that we're
@@ -103,7 +104,7 @@ struct SharedState : llvm::RefCountedBase<SharedState> {
 /// Diagnostic consumer that serializes diagnostics to a stream.
 class SerializedDiagnosticConsumer : public DiagnosticConsumer {
   /// State shared among the various clones of this diagnostic consumer.
-  llvm::IntrusiveRefCntPtr<SharedState> State;
+  toolchain::IntrusiveRefCntPtr<SharedState> State;
   bool EmitMacroExpansionFiles = false;
   bool CalledFinishProcessing = false;
   bool CompilationWasComplete = true;
@@ -126,7 +127,7 @@ public:
     CalledFinishProcessing = true;
 
     // NOTE: clang also does check for shared instances.  We don't
-    // have these yet in Swift, but if we do we need to add an extra
+    // have these yet in Codira, but if we do we need to add an extra
     // check here.
 
     // Finish off any diagnostic we were in the process of emitting.
@@ -135,9 +136,9 @@ public:
 
     // Write the generated bitstream to the file.
     std::error_code EC;
-    std::unique_ptr<llvm::raw_fd_ostream> OS;
-    OS.reset(new llvm::raw_fd_ostream(State->SerializedDiagnosticsPath, EC,
-                                      llvm::sys::fs::OF_None));
+    std::unique_ptr<toolchain::raw_fd_ostream> OS;
+    OS.reset(new toolchain::raw_fd_ostream(State->SerializedDiagnosticsPath, EC,
+                                      toolchain::sys::fs::OF_None));
     if (EC) {
       // Create a temporary diagnostics engine to print the error to stderr.
       SourceManager dummyMgr;
@@ -388,7 +389,7 @@ void SerializedDiagnosticConsumer::addRangeToRecord(CharSourceRange Range,
   addLocToRecord(Range.getEnd(), SM, Filename, Record);
 }
 
-/// Map a Swift DiagnosticKind to the diagnostic level expected
+/// Map a Codira DiagnosticKind to the diagnostic level expected
 /// for serialized diagnostics.
 static clang::serialized_diags::Level getDiagnosticLevel(DiagnosticKind Kind) {
   switch (Kind) {
@@ -402,7 +403,7 @@ static clang::serialized_diags::Level getDiagnosticLevel(DiagnosticKind Kind) {
     return clang::serialized_diags::Remark;
   }
 
-  llvm_unreachable("Unhandled DiagnosticKind in switch.");
+  toolchain_unreachable("Unhandled DiagnosticKind in switch.");
 }
 
 void SerializedDiagnosticConsumer::emitPreamble() {
@@ -416,7 +417,7 @@ void SerializedDiagnosticConsumer::emitPreamble() {
 
 
 void SerializedDiagnosticConsumer::emitMetaBlock() {
-  llvm::BitstreamWriter &Stream = State->Stream;
+  toolchain::BitstreamWriter &Stream = State->Stream;
   RecordData &Record = State->Record;
   AbbreviationMap &Abbrevs = State->Abbrevs;
 
@@ -431,11 +432,11 @@ void SerializedDiagnosticConsumer::emitMetaBlock() {
 
 /// Emits a block ID in the BLOCKINFO block.
 static void emitBlockID(unsigned ID, const char *Name,
-                        llvm::BitstreamWriter &Stream,
+                        toolchain::BitstreamWriter &Stream,
                         RecordDataImpl &Record) {
   Record.clear();
   Record.push_back(ID);
-  Stream.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETBID, Record);
+  Stream.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETBID, Record);
 
   // Emit the block name if present.
   if (Name == nullptr || Name[0] == 0)
@@ -446,12 +447,12 @@ static void emitBlockID(unsigned ID, const char *Name,
   while (*Name)
     Record.push_back(*Name++);
 
-  Stream.EmitRecord(llvm::bitc::BLOCKINFO_CODE_BLOCKNAME, Record);
+  Stream.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_BLOCKNAME, Record);
 }
 
 /// Emits a record ID in the BLOCKINFO block.
 static void emitRecordID(unsigned ID, const char *Name,
-                         llvm::BitstreamWriter &Stream,
+                         toolchain::BitstreamWriter &Stream,
                          RecordDataImpl &Record) {
   Record.clear();
   Record.push_back(ID);
@@ -459,13 +460,13 @@ static void emitRecordID(unsigned ID, const char *Name,
   while (*Name)
     Record.push_back(*Name++);
 
-  Stream.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETRECORDNAME, Record);
+  Stream.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETRECORDNAME, Record);
 }
 
 /// Emit bitcode for abbreviation for source locations.
 static void
-addSourceLocationAbbrev(std::shared_ptr<llvm::BitCodeAbbrev> Abbrev) {
-  using namespace llvm;
+addSourceLocationAbbrev(std::shared_ptr<toolchain::BitCodeAbbrev> Abbrev) {
+  using namespace toolchain;
   Abbrev->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 5));    // File ID.
   Abbrev->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 32)); // Line.
   Abbrev->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 32)); // Column.
@@ -474,7 +475,7 @@ addSourceLocationAbbrev(std::shared_ptr<llvm::BitCodeAbbrev> Abbrev) {
 
 /// Emit bitcode for abbreviation for source ranges.
 static void
-addRangeLocationAbbrev(std::shared_ptr<llvm::BitCodeAbbrev> Abbrev) {
+addRangeLocationAbbrev(std::shared_ptr<toolchain::BitCodeAbbrev> Abbrev) {
   addSourceLocationAbbrev(Abbrev);
   addSourceLocationAbbrev(Abbrev);
 }
@@ -482,8 +483,8 @@ addRangeLocationAbbrev(std::shared_ptr<llvm::BitCodeAbbrev> Abbrev) {
 void SerializedDiagnosticConsumer::emitBlockInfoBlock() {
   State->Stream.EnterBlockInfoBlock();
 
-  using namespace llvm;
-  llvm::BitstreamWriter &Stream = State->Stream;
+  using namespace toolchain;
+  toolchain::BitstreamWriter &Stream = State->Stream;
   RecordData &Record = State->Record;
   AbbreviationMap &Abbrevs = State->Abbrevs;
 
@@ -588,7 +589,7 @@ emitDiagnosticMessage(SourceManager &SM,
                       const DiagnosticInfo &Info) {
 
   // Emit the diagnostic to bitcode.
-  llvm::BitstreamWriter &Stream = State->Stream;
+  toolchain::BitstreamWriter &Stream = State->Stream;
   RecordData &Record = State->Record;
   AbbreviationMap &Abbrevs = State->Abbrevs;
 
@@ -671,9 +672,9 @@ void SerializedDiagnosticConsumer::handleDiagnostic(
     enterDiagBlock();
 
   // Actually substitute the diagnostic arguments into the diagnostic text.
-  llvm::SmallString<256> Text;
+  toolchain::SmallString<256> Text;
   {
-    llvm::raw_svector_ostream Out(Text);
+    toolchain::raw_svector_ostream Out(Text);
     DiagnosticEngine::formatDiagnosticText(Out, Info.FormatString,
                                            Info.FormatArgs);
   }

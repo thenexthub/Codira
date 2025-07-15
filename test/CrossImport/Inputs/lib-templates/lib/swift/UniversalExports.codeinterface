@@ -1,0 +1,11 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name UniversalExports
+
+import Codira
+
+// This is also a clang overlay:
+@_exported import UniversalExports
+
+@_exported import AlwaysImported
+import NeverImported
+import MI6    // @_exported imports NeverImported

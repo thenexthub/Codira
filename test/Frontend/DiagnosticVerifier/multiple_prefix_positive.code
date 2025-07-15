@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend %s -verify -emit-sil -o /dev/null
+// RUN: %target-language-frontend %s -verify -verify-additional-prefix first- -DFIRST -emit-sil -o /dev/null
+// RUN: %target-language-frontend %s -verify -verify-additional-prefix second- -DSECOND  -emit-sil -o /dev/null
+// RUN: %target-language-frontend %s -verify -verify-additional-prefix first-  -verify-additional-prefix second- -DFIRST -DSECOND -emit-sil -o /dev/null
+
+fn test() {
+  immutable x = 5 // expected-warning {{}}
+
+  #if FIRST
+  immutable y = 5 // expected-first-warning {{}}
+  #endif
+
+  #if SECOND
+  immutable z = 5 // expected-second-warning {{}}
+  #endif
+}

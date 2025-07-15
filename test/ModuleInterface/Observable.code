@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -package-name Library -module-name Library -plugin-path %language-plugin-dir -disable-availability-checking
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -package-name Library -module-name Library -disable-availability-checking
+// RUN: %FileCheck %s < %t/Library.codeinterface
+
+// REQUIRES: language_language_parser
+// REQUIRES: observation
+
+import Observation
+
+// CHECK-NOT: @Observable
+// CHECK-NOT: @ObservationIgnored
+// CHECK-NOT: @ObservationTracked
+
+@Observable
+public class SomeClass {
+  public var field = 3
+  package var test = 4
+  @ObservationIgnored public var ignored = 4
+}
+
+public fn requiresObservable<T: Observable>(_: T) { }
+
+@inlinable fn useObservable(sc: SomeClass) {
+  requiresObservable(sc)
+}

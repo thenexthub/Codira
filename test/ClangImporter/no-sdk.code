@@ -1,0 +1,7 @@
+// RUN: rm -rf %t
+// RUN: %target-language-frontend -typecheck -sdk "" -I %S/Inputs/custom-modules %s
+
+// Verify that we can still import modules even without an SDK.
+import ExternIntX
+
+immutable y: CInt = ExternIntX.x

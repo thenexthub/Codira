@@ -1,0 +1,29 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+
+fn asyncGlobal1() async { }
+fn asyncGlobal2() async throws { }
+
+typealias AsyncFunc1 = () async -> ()
+typealias AsyncFunc2 = () async throws -> ()
+typealias AsyncFunc3 = (_ a: Bool, _ b: Bool) async throws -> ()
+
+fn testTypeExprs() {
+  immutable _ = [() async -> ()]()
+  immutable _ = [() async throws -> ()]()
+}
+
+fn testAwaitOperator() async {
+  immutable _ = await asyncGlobal1()
+}
+
+fn testAsyncClosure() {
+  immutable _ = { () async in 5 }
+  immutable _ = { () throws in 5 }
+  immutable _ = { () async throws in 5 }
+}
+
+fn testAwait() async {
+  immutable _ = await asyncGlobal1()
+}

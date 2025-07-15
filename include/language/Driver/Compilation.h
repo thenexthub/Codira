@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // TODO: Document me
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_COMPILATION_H
-#define SWIFT_DRIVER_COMPILATION_H
+#ifndef LANGUAGE_DRIVER_COMPILATION_H
+#define LANGUAGE_DRIVER_COMPILATION_H
 
 #include "language/Basic/ArrayRefView.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/LangOptions.h"
 #include "language/Basic/NullablePtr.h"
 #include "language/Basic/OutputFileMap.h"
@@ -29,13 +30,13 @@
 #include "language/Driver/Driver.h"
 #include "language/Driver/Job.h"
 #include "language/Driver/Util.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Chrono.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Chrono.h"
 
 #include <memory>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 namespace opt {
   class InputArgList;
   class DerivedArgList;
@@ -77,7 +78,7 @@ enum class PreserveOnSignal : bool {
   Yes
 };
 
-using CommandSet = llvm::SmallPtrSet<const Job *, 16>;
+using CommandSet = toolchain::SmallPtrSet<const Job *, 16>;
 
 class Compilation {
 public:
@@ -111,11 +112,11 @@ private:
   DiagnosticEngine &Diags;
 
   /// The ToolChain this Compilation was built with, that it may reuse to build
-  /// subsequent BatchJobs.
+  /// subsequent Jobs.
   const ToolChain &TheToolChain;
 
   /// The OutputInfo, which the Compilation stores a copy of upon
-  /// construction, and which it may use to build subsequent batch
+  /// construction, and which it may use to build subsequent
   /// jobs itself.
   OutputInfo TheOutputInfo;
 
@@ -149,42 +150,26 @@ private:
   ///
   /// This is only here for lifetime management. Any inspection of
   /// command-line arguments should use #getArgs().
-  std::unique_ptr<llvm::opt::InputArgList> RawInputArgs;
+  std::unique_ptr<toolchain::opt::InputArgList> RawInputArgs;
 
   /// The translated input arg list.
-  std::unique_ptr<llvm::opt::DerivedArgList> TranslatedArgs;
+  std::unique_ptr<toolchain::opt::DerivedArgList> TranslatedArgs;
 
   /// A list of input files and their associated types.
   InputFileList InputFilesWithTypes;
 
-  /// When non-null, a temporary file containing all input .swift files.
+  /// When non-null, a temporary file containing all input .code files.
   /// Used for large compilations to avoid overflowing argv.
   const char *AllSourceFilesPath = nullptr;
 
   /// Temporary files that should be cleaned up after the compilation finishes.
   ///
   /// These apply whether the compilation succeeds or fails. If the
-  llvm::StringMap<PreserveOnSignal> TempFilePaths;
+  toolchain::StringMap<PreserveOnSignal> TempFilePaths;
 
   /// Indicates whether this Compilation should continue execution of subtasks
   /// even if they returned an error status.
   bool ContinueBuildingAfterErrors = false;
-
-  /// Indicates whether groups of parallel frontend jobs should be merged
-  /// together and run in composite "batch jobs" when possible, to reduce
-  /// redundant work.
-  const bool EnableBatchMode;
-
-  /// Provides a randomization seed to batch-mode partitioning, for debugging.
-  const unsigned BatchSeed;
-
-  /// Overrides parallelism level and \c BatchSizeLimit, sets exact
-  /// count of batches, if in batch-mode.
-  const std::optional<unsigned> BatchCount;
-
-  /// Overrides maximum batch size, if in batch-mode and not overridden
-  /// by \c BatchCount.
-  const std::optional<unsigned> BatchSizeLimit;
 
   /// True if temporary files should not be deleted.
   const bool SaveTemps;
@@ -243,14 +228,10 @@ public:
   Compilation(DiagnosticEngine &Diags, const ToolChain &TC,
               OutputInfo const &OI,
               OutputLevel Level,
-              std::unique_ptr<llvm::opt::InputArgList> InputArgs,
-              std::unique_ptr<llvm::opt::DerivedArgList> TranslatedArgs,
+              std::unique_ptr<toolchain::opt::InputArgList> InputArgs,
+              std::unique_ptr<toolchain::opt::DerivedArgList> TranslatedArgs,
               InputFileList InputsWithTypes,
               size_t FilelistThreshold,
-              bool EnableBatchMode = false,
-              unsigned BatchSeed = 0,
-              std::optional<unsigned> BatchCount = std::nullopt,
-              std::optional<unsigned> BatchSizeLimit = std::nullopt,
               bool SaveTemps = false,
               bool ShowDriverTimeCompilation = false,
               std::unique_ptr<UnifiedStatsReporter> Stats = nullptr,
@@ -271,7 +252,7 @@ public:
   }
 
   UnwrappedArrayView<const Action> getActions() const {
-    return llvm::ArrayRef(Actions);
+    return toolchain::ArrayRef(Actions);
   }
 
   template <typename SpecificAction, typename... Args>
@@ -281,7 +262,7 @@ public:
     return newAction;
   }
 
-  UnwrappedArrayView<const Job> getJobs() const { return llvm::ArrayRef(Jobs); }
+  UnwrappedArrayView<const Job> getJobs() const { return toolchain::ArrayRef(Jobs); }
 
   /// To send job list to places that don't truck in fancy array views.
   std::vector<const Job *> getJobsSimply() const {
@@ -297,16 +278,12 @@ public:
     return TempFilePaths.count(file);
   }
 
-  const llvm::opt::DerivedArgList &getArgs() const { return *TranslatedArgs; }
+  const toolchain::opt::DerivedArgList &getArgs() const { return *TranslatedArgs; }
   ArrayRef<InputPair> getInputFiles() const { return InputFilesWithTypes; }
 
   OutputFileMap &getDerivedOutputFileMap() { return DerivedOutputFileMap; }
   const OutputFileMap &getDerivedOutputFileMap() const {
     return DerivedOutputFileMap;
-  }
-
-  bool getBatchModeEnabled() const {
-    return EnableBatchMode;
   }
 
   bool getContinueBuildingAfterErrors() const {
@@ -355,21 +332,13 @@ public:
     return Level;
   }
 
-  unsigned getBatchSeed() const {
-    return BatchSeed;
-  }
-
-  std::optional<unsigned> getBatchCount() const { return BatchCount; }
-
-  std::optional<unsigned> getBatchSizeLimit() const { return BatchSizeLimit; }
-
   /// Requests the path to a file containing all input source files. This can
   /// be shared across jobs.
   ///
   /// If this is never called, the Compilation does not bother generating such
   /// a file.
   ///
-  /// \sa types::isPartOfSwiftCompilation
+  /// \sa types::isPartOfCodiraCompilation
   const char *getAllSourcesPath() const;
 
   /// Asks the Compilation to perform the Jobs which it knows about.
@@ -396,13 +365,13 @@ public:
     }
   }
 
-  /// How many .swift input files?
-  unsigned countSwiftInputs() const;
+  /// How many .code input files?
+  unsigned countCodiraInputs() const;
 
-  /// Unfortunately the success or failure of a Swift compilation is currently
+  /// Unfortunately the success or failure of a Codira compilation is currently
   /// sensitive to the order in which files are processed, at least in terms of
   /// the order of processing extensions (and likely other ways we haven't
-  /// discovered yet). So long as this is true, we need to make sure any batch
+  /// discovered yet). So long as this is true, we need to make sure any
   /// job we build names its inputs in an order that's a subsequence of the
   /// sequence of inputs the driver was initially invoked with.
   ///

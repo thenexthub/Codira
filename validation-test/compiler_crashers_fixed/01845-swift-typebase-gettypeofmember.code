@@ -1,0 +1,28 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol a {
+class fn e> {
+this.init()"a(T] = e> (T
+class B {
+}
+typealias e() { }
+class A(Any)
+var f : AnyObject> e: d = D> {
+typealias d>(f<T : [0.f = B? = ")
+extension NSData {
+class B {
+}
+immutable foo as String) -> : T> String {
+}
+}
+fn e(e?) -> (A: A<T>Bool)

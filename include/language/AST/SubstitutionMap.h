@@ -1,4 +1,4 @@
-//===--- SubstitutionMap.h - Swift Substitution Map ASTs --------*- C++ -*-===//
+//===--- SubstitutionMap.h - Codira Substitution Map ASTs --------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SubstitutionMap class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_SUBSTITUTION_MAP_H
-#define SWIFT_AST_SUBSTITUTION_MAP_H
+#ifndef LANGUAGE_AST_SUBSTITUTION_MAP_H
+#define LANGUAGE_AST_SUBSTITUTION_MAP_H
 
 #include "language/AST/GenericSignature.h"
 #include "language/AST/ProtocolConformanceRef.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeExpansionContext.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMapInfo.h"
 #include <optional>
 
-namespace llvm {
+namespace toolchain {
   class FoldingSetNodeID;
 }
 
@@ -184,12 +185,6 @@ public:
   /// subsystem.
   SubstitutionMap subst(InFlightSubstitution &subs) const;
 
-  /// Apply type expansion lowering to all types in the substitution map. Opaque
-  /// archetypes will be lowered to their underlying types if the type expansion
-  /// context allows.
-  SubstitutionMap mapIntoTypeExpansionContext(
-      TypeExpansionContext context) const;
-
   /// Create a substitution map for a protocol conformance.
   static SubstitutionMap
   getProtocolSubstitutions(ProtocolConformanceRef conformance);
@@ -228,13 +223,13 @@ public:
   /// (on a single line).
   enum class DumpStyle { Minimal, Full };
   /// Dump the contents of this substitution map for debugging purposes.
-  void dump(llvm::raw_ostream &out, DumpStyle style = DumpStyle::Full,
+  void dump(toolchain::raw_ostream &out, DumpStyle style = DumpStyle::Full,
             unsigned indent = 0) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   /// Profile the substitution map, for use with LLVM's FoldingSet.
-  void profile(llvm::FoldingSetNodeID &id) const;
+  void profile(toolchain::FoldingSetNodeID &id) const;
 
   const void *getOpaqueValue() const { return storage; }
 
@@ -244,12 +239,12 @@ public:
 
   static SubstitutionMap getEmptyKey() {
     return SubstitutionMap(
-             (Storage *)llvm::DenseMapInfo<void*>::getEmptyKey());
+             (Storage *)toolchain::DenseMapInfo<void*>::getEmptyKey());
   }
 
   static SubstitutionMap getTombstoneKey() {
     return SubstitutionMap(
-               (Storage *)llvm::DenseMapInfo<void*>::getTombstoneKey());
+               (Storage *)toolchain::DenseMapInfo<void*>::getTombstoneKey());
   }
 
   friend bool operator ==(SubstitutionMap lhs, SubstitutionMap rhs) {
@@ -272,7 +267,7 @@ private:
   Type lookupSubstitution(GenericTypeParamType *type) const;
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                      const SubstitutionMap &subs) {
   subs.dump(OS);
   return OS;
@@ -303,13 +298,12 @@ public:
   explicit LookUpConformanceInSubstitutionMap(SubstitutionMap Subs)
     : Subs(Subs) {}
 
-  ProtocolConformanceRef operator()(CanType dependentType,
-                                    Type conformingReplacementType,
-                                    ProtocolDecl *conformedProtocol) const;
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type dependentType,
+                                    ProtocolDecl *proto) const;
 };
 
 struct OverrideSubsInfo {
-  ASTContext &Ctx;
   unsigned BaseDepth;
   unsigned OrigDepth;
   SubstitutionMap BaseSubMap;
@@ -336,8 +330,8 @@ struct LookUpConformanceInOverrideSubs {
   explicit LookUpConformanceInOverrideSubs(const OverrideSubsInfo &info)
     : info(info) {}
 
-  ProtocolConformanceRef operator()(CanType type,
-                                    Type substType,
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type dependentType,
                                     ProtocolDecl *proto) const;
 };
 
@@ -347,23 +341,22 @@ struct OuterSubstitutions {
   SubstitutionMap subs;
   unsigned depth;
 
-  bool isUnsubstitutedTypeParameter(Type type) const;
   Type operator()(SubstitutableType *type) const;
-  ProtocolConformanceRef operator()(CanType dependentType,
-                                    Type conformingReplacementType,
-                                    ProtocolDecl *conformedProtocol) const;
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type dependentType,
+                                    ProtocolDecl *proto) const;
 };
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
   template <>
-  struct PointerLikeTypeTraits<swift::SubstitutionMap> {
-    static void *getAsVoidPointer(swift::SubstitutionMap map) {
+  struct PointerLikeTypeTraits<language::SubstitutionMap> {
+    static void *getAsVoidPointer(language::SubstitutionMap map) {
       return const_cast<void *>(map.getOpaqueValue());
     }
-    static swift::SubstitutionMap getFromVoidPointer(const void *ptr) {
-      return swift::SubstitutionMap::getFromOpaqueValue(ptr);
+    static language::SubstitutionMap getFromVoidPointer(const void *ptr) {
+      return language::SubstitutionMap::getFromOpaqueValue(ptr);
     }
 
     /// Note: Assuming storage is at least 4-byte aligned.
@@ -371,18 +364,18 @@ namespace llvm {
   };
 
   // Substitution maps hash just like pointers.
-  template<> struct DenseMapInfo<swift::SubstitutionMap> {
-    static swift::SubstitutionMap getEmptyKey() {
-      return swift::SubstitutionMap::getEmptyKey();
+  template<> struct DenseMapInfo<language::SubstitutionMap> {
+    static language::SubstitutionMap getEmptyKey() {
+      return language::SubstitutionMap::getEmptyKey();
     }
-    static swift::SubstitutionMap getTombstoneKey() {
-      return swift::SubstitutionMap::getTombstoneKey();
+    static language::SubstitutionMap getTombstoneKey() {
+      return language::SubstitutionMap::getTombstoneKey();
     }
-    static unsigned getHashValue(swift::SubstitutionMap map) {
+    static unsigned getHashValue(language::SubstitutionMap map) {
       return DenseMapInfo<void*>::getHashValue(map.getOpaqueValue());
     }
-    static bool isEqual(swift::SubstitutionMap lhs,
-                        swift::SubstitutionMap rhs) {
+    static bool isEqual(language::SubstitutionMap lhs,
+                        language::SubstitutionMap rhs) {
       return lhs.getOpaqueValue() == rhs.getOpaqueValue();
     }
   };

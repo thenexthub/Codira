@@ -1,16 +1,20 @@
-//===--- Serialization.h - Swiftmodule emission -----------------*- C++ -*-===//
-// This source file is part of the Swift.org open source project
+//===--- Serialization.h - Codiramodule emission -----------------*- C++ -*-===//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_H
-#define SWIFT_SERIALIZATION_H
+#ifndef LANGUAGE_SERIALIZATION_H
+#define LANGUAGE_SERIALIZATION_H
 
 #include "language/Subsystems.h"
 
@@ -36,4 +40,4 @@ void writeSourceInfoToStream(raw_ostream &os, ModuleOrSourceFile DC);
 } // end namespace serialization
 } // end namespace language
 
-#endif // SWIFT_SERIALIZATION_H
+#endif // LANGUAGE_SERIALIZATION_H

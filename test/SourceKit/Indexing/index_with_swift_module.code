@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %language -emit-module -o %t/test_module.codemodule %S/Inputs/test_module.code -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import
+
+// RUN: %sourcekitd-test -req=index %s -- %s -I %t -Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import | %FileCheck %s
+
+// RUN: %sourcekitd-test -req=index %t/test_module.codemodule -- -Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import | %sed_clean > %t.response
+// RUN: %diff -u %S/Inputs/test_module.index.response %t.response
+
+import test_module
+
+fn foo(a: TwoInts) {
+}
+
+// CHECK:      key.kind: source.lang.code.import.module.code
+// CHECK-NEXT: key.name: "Codira"
+// CHECK-NEXT: key.filepath: "{{.*[/\\]Codira[.]languagemodule([/\\].+[.]languagemodule)?}}"
+
+// CHECK:      key.kind: source.lang.code.import.module.code
+// CHECK-NEXT: key.name: "test_module"
+// CHECK-NEXT: key.filepath: "{{.*[/\\]}}test_module.codemodule"
+
+// CHECK:      key.kind: source.lang.code.ref.module
+// CHECK-NEXT: key.name: "test_module"
+// CHECK-NEXT: key.usr: "c:@M@test_module"
+
+// CHECK:      key.kind: source.lang.code.ref.class
+// CHECK-NEXT: key.name: "TwoInts"
+// CHECK-NEXT: key.usr: "s:11test_module7TwoIntsC"
+
+// RUN: %sourcekitd-test -req=index %S/Inputs/Codira.codemodule | %FileCheck %s -check-prefix=CHECK-LANGUAGE1
+// CHECK-LANGUAGE1-DAG: key.groupname: "Bool"
+// CHECK-LANGUAGE1-DAG: key.groupname: "Collection"

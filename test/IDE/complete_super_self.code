@@ -1,0 +1,27 @@
+// RUN: %batch-code-completion
+
+class BaseClass {
+  fn returnSelf() -> Self {}
+}
+
+class DerivedClass: BaseClass {
+  var value: Int
+  fn foo() {}
+
+  fn testWithStaticSelf() {
+    this.returnSelf().#^COVARIANT_SELF_RETURN_STATIC?check=COVARIANT_SELF_RETURN^#
+  }
+
+  fn testWithDynamicSelf() -> Self {
+    this.returnSelf().#^COVARIANT_SELF_RETURN_DYNAMIC?check=COVARIANT_SELF_RETURN^#
+    return this
+  }
+}
+
+// COVARIANT_SELF_RETURN: Begin completions, 6 items
+// COVARIANT_SELF_RETURN-DAG: Keyword[this]/CurrNominal:          this[#{{Self|DerivedClass}}#];
+// COVARIANT_SELF_RETURN-DAG: Decl[InstanceVar]/CurrNominal:      value[#Int#];
+// COVARIANT_SELF_RETURN-DAG: Decl[InstanceMethod]/CurrNominal:   foo()[#Void#];
+// COVARIANT_SELF_RETURN-DAG: Decl[InstanceMethod]/Super:         returnSelf()[#Self#];
+// COVARIANT_SELF_RETURN-DAG: Decl[InstanceMethod]/CurrNominal:   testWithStaticSelf()[#Void#];
+// COVARIANT_SELF_RETURN-DAG: Decl[InstanceMethod]/CurrNominal:   testWithDynamicSelf()[#Self#];

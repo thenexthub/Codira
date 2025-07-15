@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -typecheck -F %S/Inputs/frameworks -DOLD -verify %s -Xcc -w
+// RUN: %target-language-frontend -typecheck -F %S/Inputs/frameworks -DNEW -verify %s -Xcc -w
+
+import PrivateAsSubmodule.Private
+
+#if OLD
+import PrivateAsParallel.Private
+#elseif NEW
+import PrivateAsParallel_Private
+#else
+#error("OLD or NEW must be defined")
+#endif
+
+immutable _: Bool = PSGlobal // expected-error {{type 'Int32' cannot be used as a boolean}}
+immutable _: Bool = PSPrivateGlobal // expected-error {{type 'Int32' cannot be used as a boolean}}
+immutable _: Bool = PPGlobal // expected-error {{type 'Int32' cannot be used as a boolean}}
+immutable _: Bool = PPPrivateGlobal // expected-error {{type 'Int32' cannot be used as a boolean}}

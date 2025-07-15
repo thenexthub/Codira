@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing tasks.
+// Codira ABI describing tasks.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASK_H
-#define SWIFT_ABI_TASK_H
+#ifndef LANGUAGE_ABI_TASK_H
+#define LANGUAGE_ABI_TASK_H
 
 #include "language/ABI/Executor.h"
 #include "language/ABI/HeapObject.h"
@@ -33,22 +34,22 @@
 #include "queue" // TODO: remove and replace with our own mpsc
 
 // Does the runtime provide priority escalation support?
-#ifndef SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
-#if SWIFT_CONCURRENCY_ENABLE_DISPATCH && \
-    __has_include(<dispatch/swift_concurrency_private.h>) && __APPLE__ && \
+#ifndef LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_DISPATCH && \
+    __has_include(<dispatch/language_concurrency_private.h>) && __APPLE__ && \
     (defined(__arm64__) || defined(__x86_64__))
-#define SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION 1
+#define LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION 1
 #else
-#define SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION 0
+#define LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION 0
 #endif
-#endif /* SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
+#endif /* LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
 
 namespace language {
 class AsyncTask;
 class AsyncContext;
 class Job;
 struct OpaqueValue;
-struct SwiftError;
+struct CodiraError;
 class TaskStatusRecord;
 class TaskDependencyStatusRecord;
 class TaskExecutorPreferenceStatusRecord;
@@ -58,8 +59,8 @@ class ContinuationAsyncContext;
 
 // lldb knows about some of these internals. If you change things that lldb
 // knows about (or might know about in the future, as a future lldb might be
-// inspecting a process running an older Swift runtime), increment
-// _swift_concurrency_debug_internal_layout_version and add a comment describing
+// inspecting a process running an older Codira runtime), increment
+// _language_concurrency_debug_internal_layout_version and add a comment describing
 // the new version.
 
 extern const HeapMetadata *jobHeapMetadataPtr;
@@ -114,10 +115,10 @@ public:
   // common case.
   union {
     // A function to run a job that isn't an AsyncTask.
-    JobInvokeFunction * __ptrauth_swift_job_invoke_function RunJob;
+    JobInvokeFunction * __ptrauth_language_job_invoke_function RunJob;
 
     // A function to resume an AsyncTask.
-    TaskContinuationFunction * __ptrauth_swift_task_resume_function ResumeTask;
+    TaskContinuationFunction * __ptrauth_language_task_resume_function ResumeTask;
   };
 
   Job(JobFlags flags, JobInvokeFunction *invoke,
@@ -147,7 +148,7 @@ public:
     assert(isAsyncTask() && "wrong constructor for a non-task job");
   }
 
-  ~Job() { swift_voucher_release(Voucher); }
+  ~Job() { language_voucher_release(Voucher); }
 
   bool isAsyncTask() const {
     return Flags.isAsyncTask();
@@ -157,27 +158,31 @@ public:
     return Flags.getPriority();
   }
 
+  void setPriority(JobPriority priority) {
+    Flags.setPriority(priority);
+  }
+
   uint32_t getJobId() const {
     return Id;
   }
 
   /// Given that we've fully established the job context in the current
   /// thread, actually start running this job.  To establish the context
-  /// correctly, call swift_job_run or runJobInExecutorContext.
-  SWIFT_CC(swiftasync)
+  /// correctly, call language_job_run or runJobInExecutorContext.
+  LANGUAGE_CC(languageasync)
   void runInFullyEstablishedContext();
 
   /// Given that we've fully established the job context in the
   /// current thread, and that the job is a simple (non-task) job,
   /// actually start running this job.
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   void runSimpleInFullyEstablishedContext() {
     return RunJob(this); // 'return' forces tail call
   }
 };
 
 // The compiler will eventually assume these.
-#if SWIFT_POINTER_IS_8_BYTES
+#if LANGUAGE_POINTER_IS_8_BYTES
 static_assert(sizeof(Job) == 8 * sizeof(void*),
               "Job size is wrong");
 #else
@@ -190,7 +195,7 @@ static_assert(alignof(Job) == 2 * alignof(void*),
 class NullaryContinuationJob : public Job {
 
 private:
-  SWIFT_ATTRIBUTE_UNUSED AsyncTask *Task;
+  LANGUAGE_ATTRIBUTE_UNUSED AsyncTask *Task;
   AsyncTask *Continuation;
 
 public:
@@ -198,7 +203,7 @@ public:
     : Job({JobKind::NullaryContinuation, priority}, &process),
       Task(task), Continuation(continuation) {}
 
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   static void process(Job *job);
 
   static bool classof(const Job *job) {
@@ -207,16 +212,16 @@ public:
 };
 
 /// Describes type information and offers value methods for an arbitrary concrete
-/// type in a way that's compatible with regular Swift and embedded Swift. In
-/// regular Swift, just holds a Metadata pointer and dispatches to the value
-/// witness table. In embedded Swift, because we do not have any value witness
+/// type in a way that's compatible with regular Codira and embedded Codira. In
+/// regular Codira, just holds a Metadata pointer and dispatches to the value
+/// witness table. In embedded Codira, because we do not have any value witness
 /// tables present at runtime, the witnesses are stored and referenced directly.
 ///
-/// This structure is created from swift_task_create, where in regular Swift, the
-/// compiler provides the Metadata pointer, and in embedded Swift, a
+/// This structure is created from language_task_create, where in regular Codira, the
+/// compiler provides the Metadata pointer, and in embedded Codira, a
 /// TaskOptionRecord is used to provide the witnesses.
 struct ResultTypeInfo {
-#if !SWIFT_CONCURRENCY_EMBEDDED
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
   const Metadata *metadata = nullptr;
   bool isNull() {
     return metadata == nullptr;
@@ -302,9 +307,9 @@ public:
   /// We can't protect the data in the context from being overwritten
   /// by attackers, but we can at least sign the context pointer to
   /// prevent it from being corrupted in flight.
-  AsyncContext * __ptrauth_swift_task_resume_context ResumeContext;
+  AsyncContext * __ptrauth_language_task_resume_context ResumeContext;
 
-#if SWIFT_POINTER_IS_8_BYTES
+#if LANGUAGE_POINTER_IS_8_BYTES
   void *Reserved64;
 #endif
 
@@ -312,7 +317,7 @@ public:
 
   /// Private storage for the use of the runtime.
   struct alignas(2 * alignof(void*)) OpaquePrivateStorage {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
     static constexpr size_t ActiveTaskStatusSize = 4 * sizeof(void *);
 #else
     static constexpr size_t ActiveTaskStatusSize = 2 * sizeof(void *);
@@ -392,9 +397,9 @@ public:
 
   /// Given that we've already fully established the job context
   /// in the current thread, start running this task.  To establish
-  /// the job context correctly, call swift_job_run or
+  /// the job context correctly, call language_job_run or
   /// runInExecutorContext.
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   void runInFullyEstablishedContext() {
     return ResumeTask(ResumeContext); // 'return' forces tail call
   }
@@ -476,8 +481,8 @@ public:
   TaskExecutorRef getPreferredTaskExecutor(bool assumeHasRecord = false);
 
   /// WARNING: Only to be used during task creation, in other situations prefer
-  /// to use `swift_task_pushTaskExecutorPreference` and
-  /// `swift_task_popTaskExecutorPreference`.
+  /// to use `language_task_pushTaskExecutorPreference` and
+  /// `language_task_popTaskExecutorPreference`.
   ///
   /// The `owned` parameter indicates if the executor is owned by the task,
   /// and must be released when the task completes.
@@ -493,8 +498,8 @@ public:
   /// api.
   ///
   /// All other situations from user code should be using the
-  /// `swift_task_pushTaskExecutorPreference`, and
-  /// `swift_task_popTaskExecutorPreference(record)` method pair.
+  /// `language_task_pushTaskExecutorPreference`, and
+  /// `language_task_popTaskExecutorPreference(record)` method pair.
   void dropInitialTaskExecutorPreferenceRecord();
 
   // ==== Task Local Values ----------------------------------------------------
@@ -673,7 +678,7 @@ public:
     /// The type of the result that will be produced by the future.
     ResultTypeInfo resultType;
 
-    SwiftError *error = nullptr;
+    CodiraError *error = nullptr;
 
     // Trailing storage for the result itself. The storage will be
     // uninitialized, contain an instance of \c resultType.
@@ -716,7 +721,7 @@ public:
     }
 
     /// Retrieve the error.
-    SwiftError *&getError() { return error; }
+    CodiraError *&getError() { return error; }
 
     /// Determine the size of the future fragment given the result type
     /// of the future.
@@ -790,7 +795,7 @@ static_assert(offsetof(AsyncTask, Id) == 4 * sizeof(void *) + 4,
               "AsyncTask::Id offset is wrong");
 #pragma clang diagnostic pop
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 inline void Job::runInFullyEstablishedContext() {
   if (auto task = dyn_cast<AsyncTask>(this))
     return task->runInFullyEstablishedContext(); // 'return' forces tail call
@@ -807,7 +812,7 @@ inline void Job::runInFullyEstablishedContext() {
 class alignas(MaximumAlignment) AsyncContext {
 public:
   /// The parent context.
-  AsyncContext * __ptrauth_swift_async_context_parent Parent;
+  AsyncContext * __ptrauth_language_async_context_parent Parent;
 
   /// The function to call to resume running in the parent context.
   /// Generally this means a semantic return, but for some temporary
@@ -817,7 +822,7 @@ public:
   /// which need to be passed to the parent.  For now, arguments
   /// are always written into the context, and so the type is
   /// always the same.
-  TaskContinuationFunction * __ptrauth_swift_async_context_resume
+  TaskContinuationFunction * __ptrauth_language_async_context_resume
     ResumeParent;
 
   AsyncContext(TaskContinuationFunction *resumeParent,
@@ -830,7 +835,7 @@ public:
   /// Perform a return from this context.
   ///
   /// Generally this should be tail-called.
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   void resumeParent() {
     // TODO: destroy context before returning?
     // FIXME: force tail call
@@ -843,7 +848,7 @@ class YieldingAsyncContext : public AsyncContext {
 public:
   /// The function to call to temporarily resume running in the
   /// parent context.  Generally this means a semantic yield.
-  TaskContinuationFunction * __ptrauth_swift_async_context_yield
+  TaskContinuationFunction * __ptrauth_language_async_context_yield
     YieldToParent;
 
   YieldingAsyncContext(TaskContinuationFunction *resumeParent,
@@ -889,7 +894,7 @@ public:
   /// This should be null-initialized when setting up the continuation.
   /// Throwing resumers must overwrite this with a non-null value.
   /// Public ABI.
-  SwiftError *ErrorResult;
+  CodiraError *ErrorResult;
 
   /// A pointer to the normal result value of the continuation.
   /// Normal resumers must initialize this before resuming.
@@ -900,7 +905,7 @@ public:
   /// Public ABI.
   SerialExecutorRef ResumeToExecutor;
 
-#if defined(SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY)
+#if defined(LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY)
   /// In a task-to-thread model, instead of voluntarily descheduling the task
   /// from the thread, we will block the thread (and therefore task).
   /// This condition variable is lazily allocated on the stack only if the
@@ -910,7 +915,7 @@ public:
   ConditionVariable *Cond;
 #endif
 
-  void setErrorResult(SwiftError *error) {
+  void setErrorResult(CodiraError *error) {
     ErrorResult = error;
   }
 
@@ -932,42 +937,42 @@ public:
 
 /// This matches the ABI of a closure `() async throws -> ()`
 using AsyncVoidClosureEntryPoint =
-  SWIFT_CC(swiftasync)
-  void (SWIFT_ASYNC_CONTEXT AsyncContext *, SWIFT_CONTEXT void *);
+  LANGUAGE_CC(languageasync)
+  void (LANGUAGE_ASYNC_CONTEXT AsyncContext *, LANGUAGE_CONTEXT void *);
 
 /// This matches the ABI of a closure `<T>() async throws -> T`
 using AsyncGenericClosureEntryPoint =
-    SWIFT_CC(swiftasync)
+    LANGUAGE_CC(languageasync)
     void(OpaqueValue *,
-         SWIFT_ASYNC_CONTEXT AsyncContext *, SWIFT_CONTEXT void *);
+         LANGUAGE_ASYNC_CONTEXT AsyncContext *, LANGUAGE_CONTEXT void *);
 
 /// This matches the ABI of the resume function of a closure
 ///  `() async throws -> ()`.
 using AsyncVoidClosureResumeEntryPoint =
-  SWIFT_CC(swiftasync)
-  void(SWIFT_ASYNC_CONTEXT AsyncContext *, SWIFT_CONTEXT SwiftError *);
+  LANGUAGE_CC(languageasync)
+  void(LANGUAGE_ASYNC_CONTEXT AsyncContext *, LANGUAGE_CONTEXT CodiraError *);
 
 class AsyncContextPrefix {
 public:
   // Async closure entry point adhering to compiler calling conv (e.g directly
   // passing the closure context instead of via the async context)
-  AsyncVoidClosureEntryPoint *__ptrauth_swift_task_resume_function
+  AsyncVoidClosureEntryPoint *__ptrauth_language_task_resume_function
       asyncEntryPoint;
   void *closureContext;
-  SwiftError *errorResult;
+  CodiraError *errorResult;
 };
 
 /// Storage that is allocated before the AsyncContext to be used by an adapter
-/// of Swift's async convention and the ResumeTask interface.
+/// of Codira's async convention and the ResumeTask interface.
 class FutureAsyncContextPrefix {
 public:
   OpaqueValue *indirectResult;
   // Async closure entry point adhering to compiler calling conv (e.g directly
   // passing the closure context instead of via the async context)
-  AsyncGenericClosureEntryPoint *__ptrauth_swift_task_resume_function
+  AsyncGenericClosureEntryPoint *__ptrauth_language_task_resume_function
       asyncEntryPoint;
   void *closureContext;
-  SwiftError *errorResult;
+  CodiraError *errorResult;
 };
 
 } // end namespace language

@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_INDEX_INDEXSYMBOL_H
-#define SWIFT_INDEX_INDEXSYMBOL_H
+#ifndef LANGUAGE_INDEX_INDEXSYMBOL_H
+#define LANGUAGE_INDEX_INDEXSYMBOL_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "clang/Index/IndexSymbol.h"
 
 namespace language {
@@ -91,4 +92,4 @@ using clang::index::printSymbolProperties;
 } // end namespace index
 } // end namespace language
 
-#endif // SWIFT_INDEX_INDEXSYMBOL_H
+#endif // LANGUAGE_INDEX_INDEXSYMBOL_H

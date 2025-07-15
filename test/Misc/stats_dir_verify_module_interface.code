@@ -1,0 +1,3 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/foo.codeinterface) %s -module-name foo
+// RUN: %target-language-frontend -typecheck-module-from-interface %t/foo.codeinterface -stats-output-dir %t

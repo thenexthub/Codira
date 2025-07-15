@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %S/Inputs/use-cxx-stdlib-impl-only.code -I %S/Inputs/ -module-name UseCxxStdlibImplOnly -emit-module -emit-module-path %t/UseCxxStdlibImplOnly.codemodule -cxx-interoperability-mode=default -enable-library-evolution
+
+// RUN: %target-language-frontend %s -typecheck -module-name TestMod -I %t -I %S/Inputs
+
+// REQUIRES: OS=macosx || OS=linux-gnu
+
+import UseCxxStdlibImplOnly
+
+public fn testCallsAPI() {
+    testUsesCxxStdlib()
+}

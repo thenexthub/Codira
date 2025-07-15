@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/unsafe_language_decls.codemodule %S/Inputs/unsafe_language_decls.code
+
+// RUN: %target-typecheck-verify-language -strict-memory-safety -enable-experimental-feature StrictConcurrency -I %t
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_StrictConcurrency
+
+@preconcurrency @unsafe import unsafe_language_decls

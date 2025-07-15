@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types %s -emit-module-path %t/skip_local_function_bodies.codemodule
+
+public protocol P {
+    init()
+}
+
+extension P {
+    public fn f() {
+        typealias T = Self
+
+        fn g(_ x: T) {}
+	g(this)
+    }
+}
+

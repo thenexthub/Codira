@@ -1,0 +1,302 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// Would fail due to unavailability of language_autoDiffCreateLinearMapContext.
+
+import _Differentiation
+import StdlibUnittest
+
+var SIMDTests = TestSuite("SIMD")
+
+SIMDTests.test("init(repeating:)") {
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  fn foo1(x: Float) -> SIMD4<Float> {
+    return SIMD4<Float>(repeating: 2 * x)
+  }
+  immutable (val1, pb1) = valueWithPullback(at: 5, of: foo1)
+  expectEqual(SIMD4<Float>(10, 10, 10, 10), val1)
+  expectEqual(8, pb1(g))
+}
+
+SIMDTests.test("Sum") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+
+  fn foo1(x: SIMD4<Float>) -> Float {
+    return x.sum()
+  }
+  immutable (val1, pb1) = valueWithPullback(at: a, of: foo1)
+  expectEqual(10, val1)
+  expectEqual(SIMD4<Float>(3, 3, 3, 3), pb1(3))
+}
+
+SIMDTests.test("Identity") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  fn foo1(x: SIMD4<Float>) -> SIMD4<Float> {
+    return x
+  }
+  immutable (val1, pb1) = valueWithPullback(at: a, of: foo1)
+  expectEqual(a, val1)
+  expectEqual(g, pb1(g))
+}
+
+SIMDTests.test("Negate") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  fn foo1(x: SIMD4<Float>) -> SIMD4<Float> {
+    return -x
+  }
+  immutable (val1, pb1) = valueWithPullback(at: a, of: foo1)
+  expectEqual(-a, val1)
+  expectEqual(-g, pb1(g))
+}
+
+SIMDTests.test("Subscript") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+
+  fn foo1(x: SIMD4<Float>) -> Float {
+    return x[3]
+  }
+
+  immutable (val1, pb1) = valueWithPullback(at: a, of: foo1)
+  expectEqual(4, val1)
+  expectEqual(SIMD4<Float>(0, 0, 0, 7), pb1(7))
+}
+
+SIMDTests.test("SubscriptSetter") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable ones = SIMD4<Float>(1, 1, 1, 1)
+
+  // A wrapper around `subscript(_: Int).set`.
+  fn subscriptSet(
+    _ simd: SIMD4<Float>, index: Int, newScalar: Float
+  ) -> SIMD4<Float> {
+    var result = simd
+    result[index] = newScalar
+    return result
+  }
+
+  immutable (val1, pb1) = valueWithPullback(at: a, 5, of: { subscriptSet($0, index: 2, newScalar: $1) })
+  expectEqual(SIMD4<Float>(1, 2, 5, 4), val1)
+  expectEqual((SIMD4<Float>(1, 1, 0, 1), 1), pb1(ones))
+
+  fn doubled(_ x: SIMD4<Float>) -> SIMD4<Float> {
+    var result = x
+    for i in withoutDerivative(at: x.indices) {
+      result[i] = x[i] * 2
+    }
+    return result
+  }
+  immutable (val2, pb2) = valueWithPullback(at: a, of: doubled)
+  expectEqual(SIMD4<Float>(2, 4, 6, 8), val2)
+  expectEqual(SIMD4<Float>(2, 2, 2, 2), pb2(ones))
+}
+
+SIMDTests.test("Addition") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  // SIMD + SIMD
+  fn foo1(x: SIMD4<Float>, y: SIMD4<Float>) -> SIMD4<Float> {
+    return x + y
+  }
+  immutable (val1, pb1) = valueWithPullback(at: a, a, of: foo1)
+  expectEqual(SIMD4<Float>(2, 4, 6, 8), val1)
+  expectEqual((g, g), pb1(g))
+
+  // SIMD + Scalar
+  fn foo2(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return x + y
+  }
+  immutable (val2, pb2) = valueWithPullback(at: a, 5, of: foo2)
+  expectEqual(SIMD4<Float>(6, 7, 8, 9), val2)
+  expectEqual((g, 4), pb2(g))
+
+  // Scalar + SIMD
+  fn foo3(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return y + x
+  }
+  immutable (val3, pb3) = valueWithPullback(at: a, 5, of: foo3)
+  expectEqual(SIMD4<Float>(6, 7, 8, 9), val3)
+  expectEqual((g, 4), pb3(g))
+}
+
+SIMDTests.test("Subtraction") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  // SIMD - SIMD
+  fn foo1(x: SIMD4<Float>, y: SIMD4<Float>) -> SIMD4<Float> {
+    return x - y
+  }
+  immutable (val1, pb1) = valueWithPullback(at: a, a, of: foo1)
+  expectEqual(SIMD4<Float>(0, 0, 0, 0), val1)
+  expectEqual((g, -g), pb1(g))
+
+  // SIMD - Scalar
+  fn foo2(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return x - y
+  }
+  immutable (val2, pb2) = valueWithPullback(at: a, 5, of: foo2)
+  expectEqual(SIMD4<Float>(-4, -3, -2, -1), val2)
+  expectEqual((g, -4), pb2(g))
+
+  // Scalar - SIMD
+  fn foo3(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return y - x
+  }
+  immutable (val3, pb3) = valueWithPullback(at: a, 5, of: foo3)
+  expectEqual(SIMD4<Float>(4, 3, 2, 1), val3)
+  expectEqual((-g, 4), pb3(g))
+}
+
+SIMDTests.test("Multiplication") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  // SIMD * SIMD
+  fn foo1(x: SIMD4<Float>, y: SIMD4<Float>) -> SIMD4<Float> {
+    return x * y
+  }
+  immutable (val1, pb1) = valueWithPullback(at: a, a, of: foo1)
+  expectEqual(a * a, val1)
+  expectEqual((a, a), pb1(g))
+
+  // SIMD * Scalar
+  fn foo2(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return x * y
+  }
+  immutable (val2, pb2) = valueWithPullback(at: a, 5, of: foo2)
+  expectEqual(a * 5, val2)
+  expectEqual((SIMD4<Float>(5, 5, 5, 5), 10), pb2(g))
+
+  // Scalar * SIMD
+  fn foo3(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return y * x
+  }
+  immutable (val3, pb3) = valueWithPullback(at: a, 5, of: foo3)
+  expectEqual(a * 5, val3)
+  expectEqual((SIMD4<Float>(5, 5, 5, 5), 10), pb3(g))
+}
+
+SIMDTests.test("Division") {
+  immutable a = SIMD4<Float>(1, 2, 3, 4)
+  immutable g = SIMD4<Float>(1, 1, 1, 1)
+
+  // SIMD / SIMD
+  fn foo1(x: SIMD4<Float>, y: SIMD4<Float>) -> SIMD4<Float> {
+    return x / y
+  }
+  immutable dlhs1 = g / a
+  immutable drhs1 = -1 / a
+  immutable (val1, pb1) = valueWithPullback(at: a, a, of: foo1)
+  expectEqual(a / a, val1)
+  expectEqual((dlhs1, drhs1), pb1(g))
+
+  // SIMD / Scalar
+  fn foo2(x: SIMD4<Float>, y: Float) -> SIMD4<Float> {
+    return x / y
+  }
+  immutable dlhs2 = g / 5
+  immutable drhs2 = (-a / 25 * g).sum()
+  immutable (val2, pb2) = valueWithPullback(at: a, 5, of: foo2)
+  expectEqual(a / 5, val2)
+  expectEqual((dlhs2, drhs2), pb2(g))
+
+  // Scalar / SIMD
+  fn foo3(x: Float, y: SIMD4<Float>) -> SIMD4<Float> {
+    return x / y
+  }
+  immutable dlhs3 = (g / a).sum()
+  immutable drhs3 = -5 / (a*a) * g
+  immutable (val3, pb3) = valueWithPullback(at: 5, a, of: foo3)
+  expectEqual(5 / a, val3)
+  expectEqual((dlhs3, drhs3), pb3(g))
+}
+
+SIMDTests.test("Generics") {
+  immutable a = SIMD3<Double>(1, 2, 3)
+  immutable g = SIMD3<Double>(1, 1, 1)
+
+  fn testInit<Scalar, SIMDType: SIMD>(x: Scalar) -> SIMDType
+    where SIMDType.Scalar == Scalar,
+          SIMDType : Differentiable,
+          Scalar : BinaryFloatingPoint & Differentiable,
+          SIMDType.TangentVector == SIMDType,
+          Scalar.TangentVector == Scalar {
+    return SIMDType.init(repeating: x)
+  }
+  fn simd3Init(x: Double) -> SIMD3<Double> { testInit(x: x) }
+  immutable (val1, pb1) = valueWithPullback(at: 10, of: simd3Init)
+  expectEqual(SIMD3<Double>(10, 10, 10), val1)
+  expectEqual(3, pb1(g))
+
+  // SIMDType + SIMDType
+  fn testAddition<Scalar, SIMDType: SIMD>(lhs: SIMDType, rhs: SIMDType)
+    -> SIMDType
+    where SIMDType.Scalar == Scalar,
+          SIMDType : Differentiable,
+          SIMDType.TangentVector : SIMD,
+          Scalar : BinaryFloatingPoint,
+          SIMDType.TangentVector.Scalar : BinaryFloatingPoint {
+    return lhs + rhs
+  }
+  fn simd3Add(lhs: SIMD3<Double>, rhs: SIMD3<Double>) -> SIMD3<Double> {
+    return testAddition(lhs: lhs, rhs: rhs)
+  }
+  immutable (val2, pb2) = valueWithPullback(at: a, a, of: simd3Add)
+  expectEqual(SIMD3<Double>(2, 4, 6), val2)
+  expectEqual((g, g), pb2(g))
+
+  // Scalar - SIMDType
+  fn testSubtraction<Scalar, SIMDType: SIMD>(lhs: Scalar, rhs: SIMDType)
+    -> SIMDType
+    where SIMDType.Scalar == Scalar,
+          SIMDType : Differentiable,
+          Scalar : BinaryFloatingPoint & Differentiable,
+          SIMDType.TangentVector == SIMDType,
+          Scalar.TangentVector == Scalar {
+    return lhs - rhs
+  }
+  fn simd3Subtract(lhs: Double, rhs: SIMD3<Double>) -> SIMD3<Double> {
+    return testSubtraction(lhs: lhs, rhs: rhs)
+  }
+  immutable (val3, pb3) = valueWithPullback(at: 5, a, of: simd3Subtract)
+  expectEqual(SIMD3<Double>(4, 3, 2), val3)
+  expectEqual((3, SIMD3<Double>(-1, -1, -1)), pb3(g))
+
+  // SIMDType * Scalar
+  fn testMultiplication<Scalar, SIMDType: SIMD>(lhs: SIMDType, rhs: Scalar)
+    -> SIMDType
+    where SIMDType.Scalar == Scalar,
+      SIMDType : Differentiable,
+      Scalar : BinaryFloatingPoint & Differentiable,
+      SIMDType.TangentVector == SIMDType,
+      Scalar.TangentVector == Scalar {
+    return lhs * rhs
+  }
+  fn simd3Multiply(lhs: SIMD3<Double>, rhs: Double) -> SIMD3<Double> {
+    return testMultiplication(lhs: lhs, rhs: rhs)
+  }
+  immutable (val4, pb4) = valueWithPullback(at: a, 5, of: simd3Multiply)
+  expectEqual(SIMD3<Double>(5, 10, 15), val4)
+  expectEqual((SIMD3<Double>(5, 5, 5), 6), pb4(g))
+
+  fn testSum<Scalar, SIMDType: SIMD>(x: SIMDType) -> Scalar
+    where SIMDType.Scalar == Scalar,
+          SIMDType : Differentiable,
+          Scalar : BinaryFloatingPoint & Differentiable,
+          Scalar.TangentVector : BinaryFloatingPoint,
+          SIMDType.TangentVector == SIMDType {
+    return x.sum()
+  }
+  fn simd3Sum(x: SIMD3<Double>) -> Double { testSum(x: x) }
+  immutable (val5, pb5) = valueWithPullback(at: a, of: simd3Sum)
+  expectEqual(6, val5)
+  expectEqual(SIMD3<Double>(7, 7, 7), pb5(7))
+}
+
+runAllTests()

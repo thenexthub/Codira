@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-clang-importer-objc-overlays
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -module-name generic_compat_alias -I %S/Inputs/custom-modules -typecheck -verify %s
+
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+import ObjectiveC
+import Foundation
+import ObjCIRExtras
+
+fn foo(_: CodiraConstrGenericNameAlias<String>) {
+// expected-error@-1 {{'CodiraConstrGenericNameAlias' requires that 'String' inherit from 'NSNumber'}}
+// TODO: validate node in imported Obj-C header.
+}
+
+fn faz(_: CodiraGenericNameAlias<Int>) {
+// expected-error@-1 {{'CodiraGenericNameAlias' requires that 'Int' be a class type}}
+// TODO: validate node in imported Obj-C header.
+}
+
+fn bar(_: CodiraGenericNameAlias<NSNumber>) {} // Ok
+fn baz<T: AnyObject>(_: CodiraGenericNameAlias<T>) {} // Ok

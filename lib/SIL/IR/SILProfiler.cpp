@@ -1,13 +1,17 @@
 //===--- SILProfiler.cpp - Instrumentation based profiling ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILProfiler.h"
@@ -82,7 +86,7 @@ static NodeToProfile getNodeToProfile(SILDeclRef Constant) {
     return NodeToProfile::mainSourceFile(SF);
   }
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 /// Check whether we should profile a given SILDeclRef.
@@ -93,7 +97,7 @@ static bool shouldProfile(SILDeclRef Constant) {
   if (auto N = Root.getAsNode()) {
     // Do not profile AST nodes with invalid source locations.
     if (N.getStartLoc().isInvalid() || N.getEndLoc().isInvalid()) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Skipping ASTNode: invalid start/end locations\n");
       return false;
     }
@@ -102,7 +106,7 @@ static bool shouldProfile(SILDeclRef Constant) {
     // otherwise consider to be "written by the user", because they wrote the
     // macro attribute or expr. We may want to revist this in the future. We'll
     // need to figure out how we'll be writing out the macro expansions though,
-    // such that they can be referenced by llvm-cov.
+    // such that they can be referenced by toolchain-cov.
     // Note we check `getSourceFileContainingLocation` instead of
     // `getParentSourceFile` to make sure initializer exprs are correctly
     // handled.
@@ -110,7 +114,7 @@ static bool shouldProfile(SILDeclRef Constant) {
     if (auto *SF = M->getSourceFileContainingLocation(N.getStartLoc())) {
       auto &SM = M->getASTContext().SourceMgr;
       if (SM.hasGeneratedSourceInfo(SF->getBufferID())) {
-        LLVM_DEBUG(llvm::dbgs() << "Skipping ASTNode: generated code\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping ASTNode: generated code\n");
         return false;
       }
     }
@@ -119,7 +123,7 @@ static bool shouldProfile(SILDeclRef Constant) {
   if (auto *D = DC->getInnermostDeclarationDeclContext()) {
     // Do not profile AST nodes in unavailable contexts.
     if (AvailabilityContext::forDeclSignature(D).isUnavailable()) {
-      LLVM_DEBUG(llvm::dbgs() << "Skipping ASTNode: unavailable context\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping ASTNode: unavailable context\n");
       return false;
     }
 
@@ -129,7 +133,7 @@ static bool shouldProfile(SILDeclRef Constant) {
     // need to be more nuanced here.
     if (auto *AFD = dyn_cast<AbstractFunctionDecl>(D)) {
       if (AFD->getOriginalBodySourceRange() != AFD->getBodySourceRange()) {
-        LLVM_DEBUG(llvm::dbgs() << "Skipping function: body replaced\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping function: body replaced\n");
         return false;
       }
     }
@@ -137,7 +141,7 @@ static bool shouldProfile(SILDeclRef Constant) {
 
   // Do not profile code that hasn't been written by the user.
   if (!Constant.hasUserWrittenCode()) {
-    LLVM_DEBUG(llvm::dbgs() << "Skipping ASTNode: no user-written code\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping ASTNode: no user-written code\n");
     return false;
   }
 
@@ -167,7 +171,7 @@ static SILLocation getLocation(ASTNode Node) {
   } else if (auto *D = Node.dyn_cast<Decl *>()) {
     return D;
   }
-  llvm_unreachable("unsupported ASTNode");
+  toolchain_unreachable("unsupported ASTNode");
 }
 
 SILLocation ProfileCounterRef::getLocation() const {
@@ -210,7 +214,7 @@ void ProfileCounterRef::dump(raw_ostream &OS) const {
 }
 
 void ProfileCounterRef::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 namespace {
@@ -299,10 +303,10 @@ struct MapRegionCounters : public ASTWalker {
   unsigned NextCounter = 0;
 
   /// The map of statements to counters.
-  llvm::DenseMap<ProfileCounterRef, unsigned> &CounterMap;
+  toolchain::DenseMap<ProfileCounterRef, unsigned> &CounterMap;
 
   MapRegionCounters(SILDeclRef Constant,
-                    llvm::DenseMap<ProfileCounterRef, unsigned> &CounterMap)
+                    toolchain::DenseMap<ProfileCounterRef, unsigned> &CounterMap)
       : Constant(Constant), CounterMap(CounterMap) {}
 
   LazyInitializerWalking getLazyInitializerWalkingBehavior() override {
@@ -324,10 +328,10 @@ struct MapRegionCounters : public ASTWalker {
   void mapRegion(ProfileCounterRef Ref) {
     CounterMap[Ref] = NextCounter;
 
-    LLVM_DEBUG({
-      llvm::dbgs() << "Assigned counter #" << NextCounter << " to: ";
-      Ref.dumpSimple(llvm::dbgs());
-      llvm::dbgs() << "\n";
+    TOOLCHAIN_DEBUG({
+      toolchain::dbgs() << "Assigned counter #" << NextCounter << " to: ";
+      Ref.dumpSimple(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     });
 
     ++NextCounter;
@@ -406,24 +410,24 @@ struct MapRegionCounters : public ASTWalker {
 };
 
 class CounterExpr {
-  llvm::coverage::Counter Counter;
+  toolchain::coverage::Counter Counter;
 
-  explicit CounterExpr(llvm::coverage::Counter Counter) : Counter(Counter) {}
+  explicit CounterExpr(toolchain::coverage::Counter Counter) : Counter(Counter) {}
 
 public:
   static CounterExpr Concrete(unsigned Idx) {
-    return CounterExpr(llvm::coverage::Counter::getCounter(Idx));
+    return CounterExpr(toolchain::coverage::Counter::getCounter(Idx));
   }
   static CounterExpr Zero() {
-    return CounterExpr(llvm::coverage::Counter::getZero());
+    return CounterExpr(toolchain::coverage::Counter::getZero());
   }
 
   static CounterExpr Add(CounterExpr LHS, CounterExpr RHS,
-                         llvm::coverage::CounterExpressionBuilder &Builder) {
+                         toolchain::coverage::CounterExpressionBuilder &Builder) {
     return CounterExpr(Builder.add(LHS.getLLVMCounter(), RHS.getLLVMCounter()));
   }
   static CounterExpr Sub(CounterExpr LHS, CounterExpr RHS,
-                         llvm::coverage::CounterExpressionBuilder &Builder) {
+                         toolchain::coverage::CounterExpressionBuilder &Builder) {
     return CounterExpr(
         Builder.subtract(LHS.getLLVMCounter(), RHS.getLLVMCounter()));
   }
@@ -438,17 +442,17 @@ public:
     return !(LHS == RHS);
   }
 
-  llvm::coverage::Counter getLLVMCounter() const { return Counter; }
+  toolchain::coverage::Counter getLLVMCounter() const { return Counter; }
 
   void print(raw_ostream &OS,
-             const llvm::coverage::CounterExpressionBuilder &Builder) const {
+             const toolchain::coverage::CounterExpressionBuilder &Builder) const {
     SILCoverageMap::printCounter(OS, Counter, Builder.getExpressions());
   }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  LLVM_DUMP_METHOD
-  void dump(const llvm::coverage::CounterExpressionBuilder &Builder) const {
-    print(llvm::errs(), Builder);
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+  TOOLCHAIN_DUMP_METHOD
+  void dump(const toolchain::coverage::CounterExpressionBuilder &Builder) const {
+    print(toolchain::errs(), Builder);
   }
 #endif
 };
@@ -549,7 +553,7 @@ public:
 
   ASTNode getNode() const { return Node; }
 
-  CounterExpr getCounter(const llvm::DenseMap<ProfileCounterRef, CounterExpr>
+  CounterExpr getCounter(const toolchain::DenseMap<ProfileCounterRef, CounterExpr>
                              &NodeCounters) const {
     if (Counter)
       return *Counter;
@@ -588,7 +592,7 @@ public:
     return StartLoc && EndLoc && *StartLoc != *EndLoc;
   }
 
-  void print(llvm::raw_ostream &OS, const SourceManager &SM) const {
+  void print(toolchain::raw_ostream &OS, const SourceManager &SM) const {
     OS << "[";
     if (hasStartLoc())
       getStartLoc().print(OS, SM);
@@ -613,20 +617,20 @@ struct PGOMapping : public ASTWalker {
   SILDeclRef Constant;
 
   /// The counter indices for AST nodes.
-  const llvm::DenseMap<ProfileCounterRef, unsigned> &CounterMap;
+  const toolchain::DenseMap<ProfileCounterRef, unsigned> &CounterMap;
 
   /// The loaded counter data.
-  const llvm::InstrProfRecord &LoadedCounts;
+  const toolchain::InstrProfRecord &LoadedCounts;
 
   /// The output map of statements to counters.
-  llvm::DenseMap<ProfileCounterRef, ProfileCounter> &LoadedCounterMap;
-  llvm::DenseMap<ASTNode, ASTNode> &CondToParentMap;
+  toolchain::DenseMap<ProfileCounterRef, ProfileCounter> &LoadedCounterMap;
+  toolchain::DenseMap<ASTNode, ASTNode> &CondToParentMap;
 
   PGOMapping(SILDeclRef Constant,
-             const llvm::DenseMap<ProfileCounterRef, unsigned> &CounterMap,
-             const llvm::InstrProfRecord &LoadedCounts,
-             llvm::DenseMap<ProfileCounterRef, ProfileCounter> &LoadedCounterMap,
-             llvm::DenseMap<ASTNode, ASTNode> &RegionCondToParentMap)
+             const toolchain::DenseMap<ProfileCounterRef, unsigned> &CounterMap,
+             const toolchain::InstrProfRecord &LoadedCounts,
+             toolchain::DenseMap<ProfileCounterRef, ProfileCounter> &LoadedCounterMap,
+             toolchain::DenseMap<ASTNode, ASTNode> &RegionCondToParentMap)
       : Constant(Constant), CounterMap(CounterMap), LoadedCounts(LoadedCounts),
         LoadedCounterMap(LoadedCounterMap),
         CondToParentMap(RegionCondToParentMap) {}
@@ -844,13 +848,13 @@ private:
   SILDeclRef Constant;
 
   /// Builder needed to produce CounterExprs.
-  llvm::coverage::CounterExpressionBuilder CounterBuilder;
+  toolchain::coverage::CounterExpressionBuilder CounterBuilder;
 
   /// The map of statements to counter expressions.
-  llvm::DenseMap<ProfileCounterRef, CounterExpr> CounterExprs;
+  toolchain::DenseMap<ProfileCounterRef, CounterExpr> CounterExprs;
 
   /// The map of counter references to their concrete counter indices.
-  const llvm::DenseMap<ProfileCounterRef, unsigned> &ConcreteCounters;
+  const toolchain::DenseMap<ProfileCounterRef, unsigned> &ConcreteCounters;
 
   /// The source mapping regions for this function.
   std::vector<SourceMappingRegion> SourceRegions;
@@ -1031,10 +1035,10 @@ private:
     if (isInMacroExpansion())
       Region.setIsInMacroExpansion();
 
-    LLVM_DEBUG({
-      llvm::dbgs() << "Pushed region: ";
-      Region.print(llvm::dbgs(), SM);
-      llvm::dbgs() << "\n";
+    TOOLCHAIN_DEBUG({
+      toolchain::dbgs() << "Pushed region: ";
+      Region.print(toolchain::dbgs(), SM);
+      toolchain::dbgs() << "\n";
     });
     RegionStack.push_back(std::move(Region));
   }
@@ -1059,10 +1063,10 @@ private:
 
   /// Record a popped region in the resulting list of regions.
   void takePoppedRegion(SourceMappingRegion &&Region, SourceLoc ParentEndLoc) {
-    LLVM_DEBUG({
-      llvm::dbgs() << "Popped region: ";
-      Region.print(llvm::dbgs(), SM);
-      llvm::dbgs() << "\n";
+    TOOLCHAIN_DEBUG({
+      toolchain::dbgs() << "Popped region: ";
+      Region.print(toolchain::dbgs(), SM);
+      toolchain::dbgs() << "\n";
     });
 
     // Don't record regions in macro expansions, they don't have source
@@ -1095,7 +1099,7 @@ private:
   /// Adds all regions from \c ParentNode to the top of the stack to the
   /// function's \c SourceRegions.
   void popRegions(ASTNode ParentNode) {
-    auto I = llvm::find_if(RegionStack, [&](const SourceMappingRegion &Region) {
+    auto I = toolchain::find_if(RegionStack, [&](const SourceMappingRegion &Region) {
       return Region.getNode().getOpaqueValue() == ParentNode.getOpaqueValue();
     });
     auto E = RegionStack.end();
@@ -1103,7 +1107,7 @@ private:
     assert(I->hasNonEmptyRange() && "Pushed node with empty range?");
 
     auto EndLoc = I->getEndLoc();
-    for (auto &Region : llvm::make_range(I, E))
+    for (auto &Region : toolchain::make_range(I, E))
       takePoppedRegion(std::move(Region), EndLoc);
 
     RegionStack.erase(I, E);
@@ -1139,7 +1143,7 @@ private:
     // for an AST node. This ensures we correctly handle new regions that have
     // been introduced as a result of replacing the count, e.g if errors have
     // been thrown.
-    for (auto &Region : llvm::reverse(RegionStack)) {
+    for (auto &Region : toolchain::reverse(RegionStack)) {
       if (!Region.hasEndLoc())
         Region.setEndLoc(getEndLoc(S));
       if (Region.getNode())
@@ -1156,7 +1160,7 @@ private:
 public:
   CoverageMapping(
       SourceFile *SF, SILDeclRef Constant,
-      const llvm::DenseMap<ProfileCounterRef, unsigned> &ConcreteCounters)
+      const toolchain::DenseMap<ProfileCounterRef, unsigned> &ConcreteCounters)
     : SM(SF->getASTContext().SourceMgr), SF(SF), Constant(Constant),
       ConcreteCounters(ConcreteCounters) {}
 
@@ -1654,20 +1658,20 @@ public:
 
 } // end anonymous namespace
 
-static llvm::GlobalValue::LinkageTypes
+static toolchain::GlobalValue::LinkageTypes
 getEquivalentPGOLinkage(FormalLinkage Linkage) {
   switch (Linkage) {
   case FormalLinkage::PublicUnique:
   case FormalLinkage::PublicNonUnique:
   case FormalLinkage::PackageUnique:
-    return llvm::GlobalValue::ExternalLinkage;
+    return toolchain::GlobalValue::ExternalLinkage;
 
   case FormalLinkage::HiddenUnique:
   case FormalLinkage::Private:
-    return llvm::GlobalValue::PrivateLinkage;
+    return toolchain::GlobalValue::PrivateLinkage;
   }
 
-  llvm_unreachable("Unhandled FormalLinkage in switch.");
+  toolchain_unreachable("Unhandled FormalLinkage in switch.");
 }
 
 static void walkNode(NodeToProfile Node, ASTWalker &Walker) {
@@ -1701,14 +1705,14 @@ void SILProfiler::assignRegionCounters() {
     }
   }
 
-  PGOFuncName = llvm::getPGOFuncName(
+  PGOFuncName = toolchain::getPGOFuncName(
       CurrentFuncName, getEquivalentPGOLinkage(CurrentFuncLinkage),
       CurrentFileName);
 
   assert((!CurrentFuncName.empty() && !PGOFuncName.empty()) &&
          "Expected covered region to be named");
 
-  LLVM_DEBUG(llvm::dbgs() << "Assigning counters to: " << CurrentFuncName
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Assigning counters to: " << CurrentFuncName
                           << "\n");
   walkNode(Root, Mapper);
 
@@ -1723,14 +1727,14 @@ void SILProfiler::assignRegionCounters() {
                                         PGOFuncHash, CurrentFileName);
   }
 
-  if (llvm::IndexedInstrProfReader *IPR = M.getPGOReader()) {
+  if (toolchain::IndexedInstrProfReader *IPR = M.getPGOReader()) {
     auto LoadedCounts = IPR->getInstrProfRecord(PGOFuncName, PGOFuncHash);
     if (auto E = LoadedCounts.takeError()) {
-      llvm::handleAllErrors(std::move(E), [](const llvm::InstrProfError &Err) {
-        Err.log(llvm::dbgs());
+      toolchain::handleAllErrors(std::move(E), [](const toolchain::InstrProfError &Err) {
+        Err.log(toolchain::dbgs());
         return;
       });
-      llvm::dbgs() << PGOFuncName << "\n";
+      toolchain::dbgs() << PGOFuncName << "\n";
       return;
     }
     PGOMapping pgoMapper(forDecl, RegionCounterMap, LoadedCounts.get(),

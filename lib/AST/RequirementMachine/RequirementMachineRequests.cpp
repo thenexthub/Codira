@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the main entry points for computing minimized generic
@@ -135,7 +136,7 @@ static bool shouldSplitConcreteEquivalenceClasses(
 /// Same as the above, but with the requirements of a protocol connected
 /// component.
 static bool shouldSplitConcreteEquivalenceClasses(
-    const llvm::DenseMap<const ProtocolDecl *, RequirementSignature> &protos,
+    const toolchain::DenseMap<const ProtocolDecl *, RequirementSignature> &protos,
     const RequirementMachine *machine) {
   for (const auto &pair : protos) {
     if (shouldSplitConcreteEquivalenceClasses(pair.second.getRequirements(),
@@ -166,21 +167,22 @@ static void splitConcreteEquivalenceClasses(
       ctx.LangOpts.RequirementMachineMaxSplitConcreteEquivClassAttempts;
 
   if (attempt >= maxAttempts) {
-    llvm::errs() << "Splitting concrete equivalence classes did not "
-                 << "reach fixed point after " << attempt << " attempts.\n";
-    llvm::errs() << "Last attempt produced these requirements:\n";
-    for (auto req : requirements) {
-      req.dump(llvm::errs());
-      llvm::errs() << "\n";
-    }
-    machine->dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Splitting concrete equivalence classes did not "
+          << "reach fixed point after " << attempt << " attempts.\n";
+      out << "Last attempt produced these requirements:\n";
+      for (auto req : requirements) {
+        req.dump(out);
+        out << "\n";
+      }
+      machine->dump(out);
+    });
   }
 
   splitRequirements.clear();
 
   if (debug) {
-    llvm::dbgs() << "\n# Splitting concrete equivalence classes:\n";
+    toolchain::dbgs() << "\n# Splitting concrete equivalence classes:\n";
   }
 
   for (auto req : requirements) {
@@ -196,11 +198,11 @@ static void splitConcreteEquivalenceClasses(
       splitRequirements.push_back({secondReq, SourceLoc()});
 
       if (debug) {
-        llvm::dbgs() << "- First split: ";
-        firstReq.dump(llvm::dbgs());
-        llvm::dbgs() << "\n- Second split: ";
-        secondReq.dump(llvm::dbgs());
-        llvm::dbgs() << "\n";
+        toolchain::dbgs() << "- First split: ";
+        firstReq.dump(toolchain::dbgs());
+        toolchain::dbgs() << "\n- Second split: ";
+        secondReq.dump(toolchain::dbgs());
+        toolchain::dbgs() << "\n";
       }
       continue;
     }
@@ -208,9 +210,9 @@ static void splitConcreteEquivalenceClasses(
     splitRequirements.push_back({req, SourceLoc()});
 
     if (debug) {
-      llvm::dbgs() << "- Not split: ";
-      req.dump(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "- Not split: ";
+      req.dump(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     }
   }
 }
@@ -219,9 +221,9 @@ static void splitConcreteEquivalenceClasses(
 /// component.
 static void splitConcreteEquivalenceClasses(
     ASTContext &ctx,
-    const llvm::DenseMap<const ProtocolDecl *, RequirementSignature> &protos,
+    const toolchain::DenseMap<const ProtocolDecl *, RequirementSignature> &protos,
     const RequirementMachine *machine,
-    llvm::DenseMap<const ProtocolDecl *,
+    toolchain::DenseMap<const ProtocolDecl *,
                    SmallVector<StructuralRequirement, 4>> &splitProtos,
     unsigned &attempt) {
   for (const auto &pair : protos) {
@@ -236,7 +238,7 @@ static void splitConcreteEquivalenceClasses(
 
 /// Builds the requirement signatures for each protocol in this strongly
 /// connected component.
-llvm::DenseMap<const ProtocolDecl *, RequirementSignature>
+toolchain::DenseMap<const ProtocolDecl *, RequirementSignature>
 RequirementMachine::computeMinimalProtocolRequirements() {
   auto protos = System.getProtocols();
 
@@ -246,8 +248,8 @@ RequirementMachine::computeMinimalProtocolRequirements() {
   System.minimizeRewriteSystem(Map);
 
   if (Dump) {
-    llvm::dbgs() << "Minimized rewrite system:\n";
-    dump(llvm::dbgs());
+    toolchain::dbgs() << "Minimized rewrite system:\n";
+    dump(toolchain::dbgs());
   }
 
   auto rules = System.getMinimizedProtocolRules();
@@ -257,7 +259,7 @@ RequirementMachine::computeMinimalProtocolRequirements() {
   // Note that we build 'result' by iterating over 'protos' rather than
   // 'rules'; this is intentional, so that even if a protocol has no
   // rules, we still end up creating an entry for it in 'result'.
-  llvm::DenseMap<const ProtocolDecl *, RequirementSignature> result;
+  toolchain::DenseMap<const ProtocolDecl *, RequirementSignature> result;
   for (const auto *proto : protos) {
     auto genericParams = proto->getGenericSignature().getGenericParams();
 
@@ -308,7 +310,7 @@ RequirementSignatureRequest::evaluate(Evaluator &evaluator,
   // component at the same time.
   auto component = rewriteCtx.startComputingRequirementSignatures(proto);
 
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     rewriteCtx.finishComputingRequirementSignatures(proto);
   };
 
@@ -316,7 +318,7 @@ RequirementSignatureRequest::evaluate(Evaluator &evaluator,
 
   // Collect user-written requirements from the protocols in this connected
   // component.
-  llvm::DenseMap<const ProtocolDecl *,
+  toolchain::DenseMap<const ProtocolDecl *,
                  SmallVector<StructuralRequirement, 4>> protos;
   for (const auto *proto : component) {
     auto &requirements = protos[proto];
@@ -328,19 +330,19 @@ RequirementSignatureRequest::evaluate(Evaluator &evaluator,
 
   if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
     rewriteCtx.beginTimer("RequirementSignatureRequest");
-    llvm::dbgs() << "[";
+    toolchain::dbgs() << "[";
     for (auto *proto : component)
-      llvm::dbgs() << " " << proto->getName();
-    llvm::dbgs() << " ]\n";
+      toolchain::dbgs() << " " << proto->getName();
+    toolchain::dbgs() << " ]\n";
   }
 
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
       rewriteCtx.endTimer("RequirementSignatureRequest");
-      llvm::dbgs() << "[";
+      toolchain::dbgs() << "[";
       for (auto *proto : component)
-        llvm::dbgs() << " " << proto->getName();
-      llvm::dbgs() << " ]\n";
+        toolchain::dbgs() << " " << proto->getName();
+      toolchain::dbgs() << " ]\n";
     }
   };
 
@@ -418,7 +420,7 @@ RequirementSignatureRequest::evaluate(Evaluator &evaluator,
     std::optional<RequirementSignature> result;
 
     if (debug) {
-      llvm::dbgs() << "\nRequirement signatures:\n";
+      toolchain::dbgs() << "\nRequirement signatures:\n";
     }
 
     // Cache the requirement signatures for all other protocols in this
@@ -429,7 +431,7 @@ RequirementSignatureRequest::evaluate(Evaluator &evaluator,
 
       // Dump the result if requested.
       if (debug) {
-        llvm::dbgs() << "- Protocol " << otherProto->getName() << ": ";
+        toolchain::dbgs() << "- Protocol " << otherProto->getName() << ": ";
 
         auto sig = GenericSignature::get(
             otherProto->getGenericSignature().getGenericParams(),
@@ -437,8 +439,8 @@ RequirementSignatureRequest::evaluate(Evaluator &evaluator,
 
         PrintOptions opts;
         opts.ProtocolQualifiedDependentMemberTypes = true;
-        sig.print(llvm::dbgs(), opts);
-        llvm::dbgs() << "\n";
+        sig.print(toolchain::dbgs(), opts);
+        toolchain::dbgs() << "\n";
       }
 
       // Don't call setRequirementSignature() on the original proto; the
@@ -501,8 +503,8 @@ RequirementMachine::computeMinimalGenericSignature(
   System.minimizeRewriteSystem(Map);
 
   if (Dump) {
-    llvm::dbgs() << "Minimized rewrite system:\n";
-    dump(llvm::dbgs());
+    toolchain::dbgs() << "Minimized rewrite system:\n";
+    dump(toolchain::dbgs());
   }
 
   auto rules = System.getMinimizedGenericSignatureRules();
@@ -674,14 +676,15 @@ AbstractGenericSignatureRequest::evaluate(
 
   SmallVector<StructuralRequirement, 2> defaults;
   InverseRequirement::expandDefaults(ctx, paramsAsTypes, defaults);
-  applyInverses(ctx, paramsAsTypes, inverses, defaults, errors);
+  applyInverses(ctx, paramsAsTypes, inverses, requirements,
+                defaults, errors);
   requirements.append(defaults);
 
   auto &rewriteCtx = ctx.getRewriteContext();
 
   if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
     rewriteCtx.beginTimer("AbstractGenericSignatureRequest");
-    llvm::dbgs() << "\n";
+    toolchain::dbgs() << "\n";
   }
 
   unsigned attempt = 0;
@@ -744,7 +747,7 @@ AbstractGenericSignatureRequest::evaluate(
 
     if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
       rewriteCtx.endTimer("AbstractGenericSignatureRequest");
-      llvm::dbgs() << result << "\n";
+      toolchain::dbgs() << result << "\n";
     }
 
     return GenericSignatureWithError(result, errorFlags);
@@ -823,7 +826,7 @@ InferredGenericSignatureRequest::evaluate(
     // The generic parameter lists must appear from innermost to outermost.
     // We walk them backwards to order outer parameters before inner
     // parameters.
-    for (auto *gpList : llvm::reverse(gpLists)) {
+    for (auto *gpList : toolchain::reverse(gpLists)) {
       ASSERT(gpList->size() > 0 &&
              "Parsed an empty generic parameter list?");
 
@@ -873,7 +876,7 @@ InferredGenericSignatureRequest::evaluate(
   // inferred same-type requirements when building the generic signature of
   // an extension whose extended type is a generic typealias.
   for (const auto &req : addedRequirements)
-    requirements.push_back({req, SourceLoc()});
+    requirements.push_back({req, loc});
 
   desugarRequirements(requirements, inverses, errors);
 
@@ -887,14 +890,15 @@ InferredGenericSignatureRequest::evaluate(
 
   SmallVector<StructuralRequirement, 2> defaults;
   InverseRequirement::expandDefaults(ctx, paramTypes, defaults);
-  applyInverses(ctx, paramTypes, inverses, defaults, errors);
+  applyInverses(ctx, paramTypes, inverses, requirements,
+                defaults, errors);
   
   // Any remaining implicit defaults in a conditional inverse requirement
   // extension must be made explicit.
   if (forExtension) {
     auto invertibleProtocol = forExtension->isAddingConformanceToInvertible();
     // FIXME: to workaround a reverse condfail, always infer the requirements if
-    //  the extension is in a swiftinterface file. This is temporary and should
+    //  the extension is in a languageinterface file. This is temporary and should
     //  be removed soon. (rdar://130424971)
     if (auto *sf = forExtension->getOutermostParentSourceFile()) {
       if (sf->Kind == SourceFileKind::Interface
@@ -957,10 +961,10 @@ InferredGenericSignatureRequest::evaluate(
   if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
     rewriteCtx.beginTimer("InferredGenericSignatureRequest");
 
-    llvm::dbgs() << "@ ";
+    toolchain::dbgs() << "@ ";
     auto &sourceMgr = ctx.SourceMgr;
-    loc.print(llvm::dbgs(), sourceMgr);
-    llvm::dbgs() << "\n";
+    loc.print(toolchain::dbgs(), sourceMgr);
+    toolchain::dbgs() << "\n";
   }
 
   unsigned attempt = 0;
@@ -1000,7 +1004,7 @@ InferredGenericSignatureRequest::evaluate(
 
       if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
         rewriteCtx.endTimer("InferredGenericSignatureRequest");
-        llvm::dbgs() << result << "\n";
+        toolchain::dbgs() << result << "\n";
       }
 
       return GenericSignatureWithError(
@@ -1062,12 +1066,12 @@ InferredGenericSignatureRequest::evaluate(
         if (reduced->isTypeParameter()) {
           ctx.Diags.diagnose(loc, diag::requires_generic_params_made_equal,
                              genericParam, result->getSugaredType(reduced))
-            .warnUntilSwiftVersion(6);
+            .warnUntilCodiraVersion(6);
         } else {
           ctx.Diags.diagnose(loc,
                              diag::requires_generic_param_made_equal_to_concrete,
                              genericParam)
-            .warnUntilSwiftVersion(6);
+            .warnUntilCodiraVersion(6);
         }
       }
     }
@@ -1079,7 +1083,7 @@ InferredGenericSignatureRequest::evaluate(
 
     if (rewriteCtx.getDebugOptions().contains(DebugFlags::Timers)) {
       rewriteCtx.endTimer("InferredGenericSignatureRequest");
-      llvm::dbgs() << result << "\n";
+      toolchain::dbgs() << result << "\n";
     }
 
     return GenericSignatureWithError(result, errorFlags);

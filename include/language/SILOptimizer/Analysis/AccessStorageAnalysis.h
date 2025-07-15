@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements an interprocedural analysis pass that summarizes the
@@ -23,8 +24,8 @@
 // accesses within the function have Unidentified AccessStorage.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_ACCESSED_STORAGE_ANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_ACCESSED_STORAGE_ANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_ACCESSED_STORAGE_ANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_ACCESSED_STORAGE_ANALYSIS_H
 
 #include "language/SIL/MemAccessUtils.h"
 #include "language/SIL/SILFunction.h"
@@ -99,31 +100,31 @@ public:
 };
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 // Use the same DenseMapInfo for StorageAccessInfo as for AccessStorage. None
 // of the subclass bitfields participate in the Key.
-template <> struct DenseMapInfo<swift::StorageAccessInfo> {
-  static swift::StorageAccessInfo getEmptyKey() {
-    auto key = DenseMapInfo<swift::AccessStorage>::getEmptyKey();
-    return static_cast<swift::StorageAccessInfo &>(key);
+template <> struct DenseMapInfo<language::StorageAccessInfo> {
+  static language::StorageAccessInfo getEmptyKey() {
+    auto key = DenseMapInfo<language::AccessStorage>::getEmptyKey();
+    return static_cast<language::StorageAccessInfo &>(key);
   }
 
-  static swift::StorageAccessInfo getTombstoneKey() {
-    auto key = DenseMapInfo<swift::AccessStorage>::getTombstoneKey();
-    return static_cast<swift::StorageAccessInfo &>(key);
+  static language::StorageAccessInfo getTombstoneKey() {
+    auto key = DenseMapInfo<language::AccessStorage>::getTombstoneKey();
+    return static_cast<language::StorageAccessInfo &>(key);
   }
-  static unsigned getHashValue(swift::StorageAccessInfo storage) {
-    return DenseMapInfo<swift::AccessStorage>::getHashValue(storage);
+  static unsigned getHashValue(language::StorageAccessInfo storage) {
+    return DenseMapInfo<language::AccessStorage>::getHashValue(storage);
   }
-  static bool isEqual(swift::StorageAccessInfo LHS,
-                      swift::StorageAccessInfo RHS) {
-    return DenseMapInfo<swift::AccessStorage>::isEqual(LHS, RHS);
+  static bool isEqual(language::StorageAccessInfo LHS,
+                      language::StorageAccessInfo RHS) {
+    return DenseMapInfo<language::AccessStorage>::isEqual(LHS, RHS);
   }
 };
 }
 
 namespace language {
-using AccessStorageSet = llvm::SmallDenseSet<StorageAccessInfo, 8>;
+using AccessStorageSet = toolchain::SmallDenseSet<StorageAccessInfo, 8>;
 
 /// Records each unique AccessStorage in a set of StorageAccessInfo
 /// objects. Hashing and equality only sees the AccessedStorage data. The
@@ -376,10 +377,10 @@ class AccessStorageAnalysis : public BottomUpIPAnalysis {
   };
 
   /// All the function effect information for the whole module.
-  llvm::DenseMap<SILFunction *, FunctionInfo *> functionInfoMap;
+  toolchain::DenseMap<SILFunction *, FunctionInfo *> functionInfoMap;
 
   /// The allocator for the map of values in FunctionInfoMap.
-  llvm::SpecificBumpPtrAllocator<FunctionInfo> allocator;
+  toolchain::SpecificBumpPtrAllocator<FunctionInfo> allocator;
 
   /// Callee analysis, used for determining the callees at call sites.
   BasicCalleeAnalysis *BCA;
@@ -468,4 +469,4 @@ private:
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_ANALYSIS_ACCESSED_STORAGE_ANALYSIS_H
+#endif // LANGUAGE_SILOPTIMIZER_ANALYSIS_ACCESSED_STORAGE_ANALYSIS_H

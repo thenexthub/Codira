@@ -1,0 +1,6 @@
+// language-interface-format-version: 1.0
+// language-tools-version: Apple Codira version 5.1 (languagelang-1100.0.38 clang-1100.0.20.14)
+// language-module-flags: -target arm64-apple-macos10.14 -enable-objc-interop -enable-library-evolution -language-version 5 -enforce-exclusivity=checked -O -module-name CodiraFoo -parse-stdlib
+public class AddedClass {
+  @objc deinit
+}

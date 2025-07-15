@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 
-// FIXME swift-ci linux tests do not support std::span
+// FIXME language-ci linux tests do not support std::span
 #ifndef __linux__
 #include <span>
 #endif

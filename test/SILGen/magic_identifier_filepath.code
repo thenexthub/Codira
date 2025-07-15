@@ -1,0 +1,30 @@
+// Check that we generate the right strings.
+// RUN: %target-language-emit-silgen -module-name Foo %/s | %FileCheck %s
+
+// Even if concise #file is not available, we now allow you to write #filePath.
+// Check that we don't diagnose any errors in this file.
+// RUN: %target-typecheck-verify-language -module-name Foo
+
+// #filePath should appear in languageinterfaces with this change.
+// RUN: %target-language-frontend-typecheck -module-name Foo -emit-module-interface-path %t.codeinterface %s
+// RUN: %FileCheck -check-prefix LANGUAGEINTERFACE %s < %t.codeinterface
+
+// FIXME: Once this feature has been fully staged in, we should duplicate
+// existing #file tests and delete this file.
+
+fn directUse() {
+  print(#filePath)
+
+// CHECK-LABEL: sil {{.*}} @$s3Foo9directUseyyF
+// CHECK: string_literal utf8 "SOURCE_DIR/test/SILGen/magic_identifier_filepath.code"
+}
+
+fn indirectUse() {
+  functionWithFilePathDefaultArgument()
+
+// CHECK-LABEL: sil {{.*}} @$s3Foo11indirectUseyyF
+// CHECK: string_literal utf8 "SOURCE_DIR/test/SILGen/magic_identifier_filepath.code"
+}
+
+public fn functionWithFilePathDefaultArgument(file: String = #filePath) {}
+// LANGUAGEINTERFACE: public fn functionWithFilePathDefaultArgument(file: Codira.String = #filePath)

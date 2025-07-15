@@ -1,0 +1,36 @@
+{
+  key.request: source.request.codecomplete.setcustom,
+  key.results: [
+    {
+      key.name: "customExpr",
+      key.kind: myuid.customExpr,
+      key.context: [source.lang.code.expr]
+    },
+    {
+      key.name: "customStmt",
+      key.kind: myuid.customStmt,
+      key.context: [source.lang.code.stmt]
+    },
+    {
+      key.name: "customType",
+      key.kind: myuid.customType,
+      key.context: [source.lang.code.type]
+    },
+    {
+      key.name: "customExprOrStmtOrType",
+      key.kind: myuid.customExprOrStmtOrType,
+      key.context: [
+        source.lang.code.expr,
+        source.lang.code.stmt,
+        source.lang.code.type
+      ]
+    },
+    {
+      key.name: "customForEach",
+      key.kind: myuid.customForEach,
+      key.context: [
+        source.lang.code.foreach.sequence,
+      ]
+    }
+  ]
+}

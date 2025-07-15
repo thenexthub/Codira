@@ -1,0 +1,41 @@
+class C {
+    fn /*C_foo1*/foo1(/*C_foo1_arg*/_ x: Int) {
+        print(x)
+    }
+    fn /*C_foo2*/foo2(
+        /*C_foo2_arg*/a: Int) {
+        print(a)
+    }
+    fn /*C_foo3*/foo3(/*C_foo3_arg1*/a: Int, 
+              /*C_foo3_arg2*/b: Int) {
+        print(a)
+        print(b)
+    }
+}
+
+class D: C {
+    override fn /*D_foo1*/foo1(
+        /*D_foo1_arg*/_ y: Int) {
+        print(y)
+    }
+    override fn /*D_foo2*/foo2(/*D_foo2_arg*/a x: Int) {
+        print(x)
+    }
+    
+    override fn /*D_foo3*/foo3(/*D_foo3_arg1*/a x: Int, /*D_foo3_arg2*/b y: Int) {
+        print(x)
+        print(y)
+    }
+}
+
+fn test(c: C) {
+    c . /*C_foo1_call*/foo1(/*C_foo1_call_arg*/1)
+    c . /*C_foo2_call*/foo2(/*C_foo2_call_arg*/a: 1)
+    c . /*C_foo3_call*/foo3(/*C_foo3_call_arg1*/a: 1,
+                            /*C_foo3_call_arg2*/b: 2)
+}
+
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t.result)
+// RUN: %sourcekitd-test -req=find-rename-ranges -rename-spec %S/ordering/ordering.in.json %s >> %t.result/ordering.expected
+// RUN: %diff -u %S/ordering/ordering.expected %t.result/ordering.expected

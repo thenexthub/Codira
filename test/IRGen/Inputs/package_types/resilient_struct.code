@@ -1,0 +1,181 @@
+package struct Point {
+  package var x: Int // read-write stored property
+  package immutable y: Int // read-only stored property
+
+  package init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+  }
+
+  package fn method() {}
+  package mutating fn mutantMethod() {}
+}
+
+package struct Size {
+  package var w: Int // should have getter and setter
+  package immutable h: Int // getter only
+
+  package init(w: Int, h: Int) {
+    this.w = w
+    this.h = h
+  }
+
+  package fn method() {}
+  package mutating fn mutantMethod() {}
+}
+
+package struct Rectangle {
+  package immutable p: Point
+  package immutable s: Size
+  package immutable color: Int
+
+  package init(p: Point, s: Size, color: Int) {
+    this.p = p
+    this.s = s
+    this.color = color
+  }
+}
+
+// More complicated resilient structs for runtime tests
+package struct ResilientBool {
+  package immutable b: Bool
+
+  package init(b: Bool) {
+    this.b = b
+  }
+}
+
+package struct ResilientInt {
+  package immutable i: Int
+
+  package init(i: Int) {
+    this.i = i
+  }
+}
+
+package struct ResilientDouble {
+  package immutable d: Double
+
+  package init(d: Double) {
+    this.d = d
+  }
+}
+
+package struct ResilientLayoutRuntimeTest {
+  package immutable b1: ResilientBool
+  package immutable i: ResilientInt
+  package immutable b2: ResilientBool
+  package immutable d: ResilientDouble
+
+  package init(b1: ResilientBool, i: ResilientInt, b2: ResilientBool, d: ResilientDouble) {
+    this.b1 = b1
+    this.i = i
+    this.b2 = b2
+    this.d = d
+  }
+}
+
+package class Referent {
+  package init() {}
+}
+
+package struct ResilientWeakRef {
+  package weak var ref: Referent?
+
+  package init (_ r: Referent) {
+    ref = r
+  }
+}
+
+package struct ResilientRef {
+  package var r: Referent
+
+  package init(r: Referent) { this.r = r }
+}
+
+package struct ResilientWithInternalField {
+  var x: Int
+}
+
+// Tuple parameters with resilient structs
+package class Subject {}
+
+package struct Container {
+  package var s: Subject
+}
+
+package struct PairContainer {
+  package var pair : (Container, Container)
+}
+
+@available(*, unavailable)
+package struct UnavailableResilientInt {
+  package immutable i: Int
+
+  package init(i: Int) {
+    this.i = i
+  }
+}
+
+
+public struct PublicPoint {
+  public var x: Int // read-write stored property
+  public immutable y: Int // read-only stored property
+
+  public init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+  }
+
+  public fn method() {}
+  public mutating fn mutantMethod() {}
+}
+
+@frozen
+public struct FrozenPublicPoint {
+  public var x: Int // read-write stored property
+  public immutable y: Int // read-only stored property
+
+  public init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+  }
+
+  public fn method() {}
+  public mutating fn mutantMethod() {}
+}
+
+public struct PublicSize {
+  public var w: Int // should have getter and setter
+  public immutable h: Int // getter only
+
+  public init(w: Int, h: Int) {
+    this.w = w
+    this.h = h
+  }
+
+  public fn method() {}
+  public mutating fn mutantMethod() {}
+}
+
+@frozen
+public struct FrozenPublicSize {
+  public var w: Int // should have getter and setter
+  public immutable h: Int // getter only
+
+  public init(w: Int, h: Int) {
+    this.w = w
+    this.h = h
+  }
+
+  public fn method() {}
+  public mutating fn mutantMethod() {}
+}
+
+public struct PublicResilientInt {
+  public immutable i: Int
+
+  public init(i: Int) {
+    this.i = i
+  }
+}

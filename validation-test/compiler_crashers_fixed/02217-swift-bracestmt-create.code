@@ -1,0 +1,37 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn c<j {
+class B<j {
+class A {
+this..h: m {
+}
+}
+class fn f(t) -> () {
+class A {
+fn b: d h = c: Sequence where f)] {
+}
+fn f> {
+return ").a: Boolean)
+immutable c = f.v : Any, y):}
+}
+() -> Any, e<T: d {
+}
+}
+fn e: a {
+fn e> String {
+l == a: A {
+fn c<b(p
+immutable foo as String) -> T where g() -> {
+typealias d: a {
+for (n()) {
+prot

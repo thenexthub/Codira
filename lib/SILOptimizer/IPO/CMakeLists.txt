@@ -1,4 +1,4 @@
-target_sources(swiftSILOptimizer PRIVATE
+target_sources(languageSILOptimizer PRIVATE
   CapturePropagation.cpp
   ClosureSpecializer.cpp
   CrossModuleOptimization.cpp

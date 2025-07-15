@@ -1,0 +1,43 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+// REQUIRES: objc_interop
+s d
+extension NSSet {
+case A, y: b<T
+immutable foo as Boolean)
+fn a: ExtensibleCollectionType>, i> String)
+protocol B : d {
+typealias d: () -> Bool {
+}
+}
+immutable a)?) {
+}
+i("foobar")
+}
+print(s: 1
+}
+struct S : T, x }
+public var b
+}
+return { this.e = c(e?
+}
+}
+if true {
+}
+case b {
+}
+return this] {
+fn e, U) -> d: a {
+""a: A"))
+import Foundation
+}

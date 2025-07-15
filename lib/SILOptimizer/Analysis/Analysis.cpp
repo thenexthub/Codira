@@ -1,4 +1,4 @@
-//===--- Analysis.cpp - Swift Analysis ------------------------------------===//
+//===--- Analysis.cpp - Codira Analysis ------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-analysis"
@@ -28,8 +29,8 @@
 #include "language/SILOptimizer/Analysis/PostOrderAnalysis.h"
 #include "language/SILOptimizer/Analysis/ProtocolConformanceAnalysis.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -38,34 +39,34 @@ void SILAnalysis::verifyFunction(SILFunction *F) {
   assert(F->isDefinition() && "Can't analyze external functions");
 }
 
-SILAnalysis *swift::createDominanceAnalysis(SILModule *) {
+SILAnalysis *language::createDominanceAnalysis(SILModule *) {
   return new DominanceAnalysis();
 }
 
-SILAnalysis *swift::createPostDominanceAnalysis(SILModule *) {
+SILAnalysis *language::createPostDominanceAnalysis(SILModule *) {
   return new PostDominanceAnalysis();
 }
 
-SILAnalysis *swift::createInductionVariableAnalysis(SILModule *M) {
+SILAnalysis *language::createInductionVariableAnalysis(SILModule *M) {
   return new IVAnalysis(M);
 }
 
-SILAnalysis *swift::createPostOrderAnalysis(SILModule *M) {
+SILAnalysis *language::createPostOrderAnalysis(SILModule *M) {
   return new PostOrderAnalysis();
 }
 
-SILAnalysis *swift::createClassHierarchyAnalysis(SILModule *M) {
+SILAnalysis *language::createClassHierarchyAnalysis(SILModule *M) {
   return new ClassHierarchyAnalysis(M);
 }
 
-SILAnalysis *swift::createBasicCalleeAnalysis(SILModule *M) {
+SILAnalysis *language::createBasicCalleeAnalysis(SILModule *M) {
   return new BasicCalleeAnalysis(M);
 }
 
-SILAnalysis *swift::createProtocolConformanceAnalysis(SILModule *M) {
+SILAnalysis *language::createProtocolConformanceAnalysis(SILModule *M) {
   return new ProtocolConformanceAnalysis(M);
 }
 
-SILAnalysis *swift::createNonLocalAccessBlockAnalysis(SILModule *M) {
+SILAnalysis *language::createNonLocalAccessBlockAnalysis(SILModule *M) {
   return new NonLocalAccessBlockAnalysis();
 }

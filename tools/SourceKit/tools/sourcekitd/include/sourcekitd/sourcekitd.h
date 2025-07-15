@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_SOURCEKITD_H
-#define LLVM_SOURCEKITD_SOURCEKITD_H
+#ifndef TOOLCHAIN_SOURCEKITD_SOURCEKITD_H
+#define TOOLCHAIN_SOURCEKITD_SOURCEKITD_H
 
 #include <stddef.h>
 #include <stdint.h>

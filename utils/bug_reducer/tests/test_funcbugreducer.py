@@ -1,12 +1,12 @@
 # ==--- opt_bug_reducer_test.py ------------------------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ==----------------------------------------------------------------------===#
 
@@ -19,7 +19,7 @@ import subprocess
 import unittest
 
 
-import bug_reducer.swift_tools as swift_tools
+import bug_reducer.code_tools as language_tools
 
 
 @unittest.skipUnless(platform.system() == 'Darwin',
@@ -33,7 +33,7 @@ class FuncBugReducerTestCase(unittest.TestCase):
         self.reducer = os.path.join(os.path.dirname(self.file_dir),
                                     'bug_reducer', 'bug_reducer.py')
         self.build_dir = os.path.abspath(
-            os.environ['BUGREDUCE_TEST_SWIFT_OBJ_ROOT'])
+            os.environ['BUGREDUCE_TEST_LANGUAGE_OBJ_ROOT'])
 
         (root, _) = os.path.splitext(os.path.abspath(__file__))
         self.root_basename = ''.join(os.path.basename(root).split('_'))
@@ -46,7 +46,7 @@ class FuncBugReducerTestCase(unittest.TestCase):
         self.sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx',
                                             '--toolchain', 'Default',
                                             '--show-sdk-path']).strip("\n")
-        self.tools = swift_tools.SwiftTools(self.build_dir)
+        self.tools = language_tools.CodiraTools(self.build_dir)
         self.passes = ['--pass=-bug-reducer-tester']
 
         if os.access(self.tmp_dir, os.F_OK):
@@ -56,23 +56,23 @@ class FuncBugReducerTestCase(unittest.TestCase):
 
     def _get_test_file_path(self, module_name):
         return os.path.join(self.file_dir,
-                            '{}_{}.swift'.format(
+                            '{}_{}.code'.format(
                                 self.root_basename, module_name))
 
     def _get_sib_file_path(self, filename):
         (root, ext) = os.path.splitext(filename)
         return os.path.join(self.tmp_dir, os.path.basename(root) + '.sib')
 
-    def run_swiftc_command(self, name):
+    def run_languagec_command(self, name):
         input_file_path = self._get_test_file_path(name)
         sib_path = self._get_sib_file_path(input_file_path)
-        args = [self.tools.swiftc,
+        args = [self.tools.codec,
                 '-module-cache-path', self.module_cache,
                 '-sdk', self.sdk,
                 '-Onone', '-parse-as-library',
                 '-module-name', name,
                 '-emit-sib',
-                '-resource-dir', os.path.join(self.build_dir, 'lib', 'swift'),
+                '-resource-dir', os.path.join(self.build_dir, 'lib', 'language'),
                 '-o', sib_path,
                 input_file_path]
         return self.run_check_call(args)
@@ -95,11 +95,11 @@ class FuncBugReducerTestCase(unittest.TestCase):
 
     def test_basic(self):
         name = 'testbasic'
-        result_code = self.run_swiftc_command(name)
+        result_code = self.run_languagec_command(name)
         assert result_code == 0, "Failed initial compilation"
         args = [
             self.reducer,
-            'func',
+            'fn',
             self.build_dir,
             self._get_sib_file_path(self._get_test_file_path(name)),
             '--sdk=%s' % self.sdk,
@@ -107,7 +107,7 @@ class FuncBugReducerTestCase(unittest.TestCase):
             '--module-name=%s' % name,
             '--work-dir=%s' % self.tmp_dir,
             ('--extra-silopt-arg='
-             '-bug-reducer-tester-target-func=__TF_test_target'),
+             '-bug-reducer-tester-target-fn=__TF_test_target'),
             '--extra-silopt-arg=-bug-reducer-tester-failure-kind=opt-crasher'
         ]
         args.extend(self.passes)

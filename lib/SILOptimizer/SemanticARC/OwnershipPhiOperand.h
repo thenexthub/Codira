@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_SEMANTICARC_OWNERSHIPPHIOPERAND_H
-#define SWIFT_SILOPTIMIZER_SEMANTICARC_OWNERSHIPPHIOPERAND_H
+#ifndef LANGUAGE_SILOPTIMIZER_SEMANTICARC_OWNERSHIPPHIOPERAND_H
+#define LANGUAGE_SILOPTIMIZER_SEMANTICARC_OWNERSHIPPHIOPERAND_H
 
 #include "language/Basic/STLExtras.h"
 #include "language/SIL/SILArgument.h"
@@ -29,7 +30,7 @@ namespace semanticarc {
 /// The operand of a "phi" in the induced ownership graph of a def-use graph.
 ///
 /// Some examples: br, struct, tuple.
-class LLVM_LIBRARY_VISIBILITY OwnershipPhiOperand {
+class TOOLCHAIN_LIBRARY_VISIBILITY OwnershipPhiOperand {
 public:
   enum Kind {
     Branch,
@@ -63,7 +64,7 @@ public:
     case SILInstructionKind::TupleInst:
       return Kind::Tuple;
     default:
-      llvm_unreachable("unhandled case?!");
+      toolchain_unreachable("unhandled case?!");
     }
   }
 
@@ -92,7 +93,7 @@ public:
     case Kind::Struct:
       return false;
     }
-    llvm_unreachable("unhandled operand kind!");
+    toolchain_unreachable("unhandled operand kind!");
   }
 
   bool operator<(const OwnershipPhiOperand &other) const {
@@ -112,17 +113,17 @@ public:
     case Kind::Branch: {
       auto *br = cast<BranchInst>(getInst());
       unsigned opNum = getOperandNumber();
-      return llvm::all_of(
+      return toolchain::all_of(
           br->getSuccessorBlocks(), [&](SILBasicBlock *succBlock) {
             return visitor(succBlock->getSILPhiArguments()[opNum]);
           });
     }
     }
-    llvm_unreachable("unhandled operand kind!");
+    toolchain_unreachable("unhandled operand kind!");
   }
 };
 
 } // namespace semanticarc
 } // namespace language
 
-#endif // SWIFT_SILOPTIMIZER_SEMANTICARC_OWNERSHIPPHIOPERAND_H
+#endif // LANGUAGE_SILOPTIMIZER_SEMANTICARC_OWNERSHIPPHIOPERAND_H

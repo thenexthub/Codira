@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains routines which analyze chains of computations.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_VALUETRACKING_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_VALUETRACKING_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_VALUETRACKING_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_VALUETRACKING_H
 
 #include "language/SIL/MemAccessUtils.h"
 #include "language/SIL/SILArgument.h"
@@ -92,7 +93,7 @@ IsZeroKind isZeroValue(SILValue Value);
 /// ComputeSignBit in LLVM's value tracking implementation.
 /// It is planned to extend this approach to track all bits of a value.
 /// Therefore it can be considered to be the beginning of a range analysis
-/// infrastructure for the Swift compiler.
+/// infrastructure for the Codira compiler.
 std::optional<bool> computeSignBit(SILValue Value);
 
 /// Check if execution of a given builtin instruction can result in overflows.
@@ -101,4 +102,4 @@ bool canOverflow(BuiltinInst *BI);
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_ANALYSIS_VALUETRACKING_H
+#endif // LANGUAGE_SILOPTIMIZER_ANALYSIS_VALUETRACKING_H

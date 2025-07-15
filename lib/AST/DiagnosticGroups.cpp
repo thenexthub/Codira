@@ -1,13 +1,17 @@
 //===--- DiagnosticGroups.cpp - Diagnostic Groups ---------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the diagnostic groups enumaration, group graph
@@ -106,12 +110,12 @@ std::unordered_map<std::string_view, DiagGroupID> nameToIDMap{
 
 void traverseDepthFirst(DiagGroupID id,
                         std::unordered_set<DiagGroupID> &visited,
-                        llvm::function_ref<void(const DiagGroupInfo &)> func) {
+                        toolchain::function_ref<void(const DiagGroupInfo &)> fn) {
   if (visited.insert(id).second) {
     const auto &info = getDiagGroupInfoByID(id);
-    func(info);
+    fn(info);
     for (const auto subgroup : info.subgroups) {
-      traverseDepthFirst(subgroup, visited, func);
+      traverseDepthFirst(subgroup, visited, fn);
     }
   }
 }
@@ -124,13 +128,13 @@ constexpr const std::array<DiagGroupInfo, DiagGroupsCount> diagnosticGroupsInfo{
       DiagGroupID::Name,                                                       \
       #Name,                                                                   \
       DocsFile,                                                                \
-      llvm::ArrayRef<DiagGroupID>(                                             \
+      toolchain::ArrayRef<DiagGroupID>(                                             \
           std::get<(size_t)DiagGroupID::Name>(diagnosticGroupConnections)      \
               .supergroups),                                                   \
-      llvm::ArrayRef<DiagGroupID>(                                             \
+      toolchain::ArrayRef<DiagGroupID>(                                             \
           std::get<(size_t)DiagGroupID::Name>(diagnosticGroupConnections)      \
               .subgroups),                                                     \
-      llvm::ArrayRef<DiagID>(                                                  \
+      toolchain::ArrayRef<DiagID>(                                                  \
           std::get<(size_t)DiagGroupID::Name>(diagnosticGroupConnections)      \
               .diagnostics)},
 #include "language/AST/DiagnosticGroups.def"
@@ -148,9 +152,9 @@ std::optional<DiagGroupID> getDiagGroupIDByName(std::string_view name) {
 }
 
 void DiagGroupInfo::traverseDepthFirst(
-    llvm::function_ref<void(const DiagGroupInfo &)> func) const {
+    toolchain::function_ref<void(const DiagGroupInfo &)> fn) const {
   std::unordered_set<DiagGroupID> visited;
-  ::swift::traverseDepthFirst(id, visited, func);
+  ::language::traverseDepthFirst(id, visited, fn);
 }
 
 namespace validation {

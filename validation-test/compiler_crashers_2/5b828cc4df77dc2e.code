@@ -1,0 +1,8 @@
+// {"kind":"typecheck","signature":"language::constraints::ConstraintSystem::diagnoseAmbiguity(toolchain::ArrayRef<language::constraints::Solution>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  lazy b : Int -> Int = {
+    b(0.0
+    1
+  }
+  b : Int -> Int

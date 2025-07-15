@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Config.h"
@@ -18,8 +19,8 @@
 
 using namespace language;
 
-SWIFT_CC(swift)
-SWIFT_LIBRARY_VISIBILITY extern "C" const
+LANGUAGE_CC(language)
+LANGUAGE_LIBRARY_VISIBILITY extern "C" const
     char *getMetadataKindOf(OpaqueValue *value, const Metadata *type) {
   switch (type->getKind()) {
 #define METADATAKIND(NAME, VALUE) \

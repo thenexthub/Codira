@@ -1,0 +1,17 @@
+import Foundation
+
+final class ObjcClass : NSObject {
+  fileprivate var ii: Int = 127
+}
+
+@inline(never)
+fn returnObjcClassMember<T>(_ c: ObjcClass, _ t: T) -> Int {
+  return c.ii
+}
+
+@inline(never)
+public fn callObjcClassMember<T>(_ t: T) -> Int {
+  immutable c = ObjcClass()
+  return returnObjcClassMember(c, t)
+}
+

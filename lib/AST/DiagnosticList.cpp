@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines all of the diagnostics emitted by Swift.
+//  This file defines all of the diagnostics emitted by Codira.
 //
 //===----------------------------------------------------------------------===//
 

@@ -1,0 +1,142 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+k)
+fn yx<jih>() -> (jih, jih -> jih) -> jih {
+   cb n cb.x = {
+}
+ {
+   jih) {
+        vu  }
+}
+protocol yx {
+   class fn x()
+}
+class cb: yx{  class fn x {}
+ih k<ut> {
+    po vu(ut, () -> ())
+}
+fn n<cb {
+    ih n {
+        fn k
+        ml _ = k
+    }
+}
+class dcb {
+    typealias po = po
+}
+fn dcb<ut>() {
+    v> : jih {
+    fn po(po: ji.ay) {
+    }
+}
+fn dcb<k: kji, ut ts qp<ut> == k.s.n>(w : k) -> ut? {
+    wv (po : ut?) in w {
+        rq immutable cb = po {
+            u cb
+        }
+    }
+    u cb
+}
+immutable w : [r?] = [cb, ihg, cb]
+xw(dcb(w))
+fn yx<ut : sr>(po: ut) {
+}
+yx(l dc sr)
+fn dcb(po: r = hg) {
+}
+immutable n = dcb
+n()
+on n<cb : kji> {
+    ml po: cb
+}
+fn dcb<cb>() -> [n<cb>] {
+    u []
+}
+protocol jih {
+    typealias nm
+}
+class vu<lk> {
+    edc <jih: jih ts jih.nm == lk>(k: jih.nm) {
+    }
+}
+fn x(n: () -> ()) {
+}
+class dcb {
+    ml _ = x() {
+    }
+}
+protocol jih {
+    typealias gfe
+}
+on nm<ut : jih> {
+    immutable vu: ut
+    immutable x: ut.gfe
+}
+protocol vu {
+    typealias ba
+    fn jih<ut ts ut.gfe == ba>(yx: nm<ut>)
+}
+on lk : vu {
+    typealias ba = r
+    fn jih<ut ts ut.gfe == ba>(yx: nm<ut>) {
+    }
+}
+class jih: jih {
+}
+class nm : vu {
+}
+typealias vu = nm
+fn ^(dcb: sr, o) -> o {
+    u !(dcb)
+}
+fn dcb(cb: ed, ut: ed) -> (((ed, ed) -> ed) -> ed) {
+    u {
+        (gfe: (ed, ed) -> ed) -> ed in
+        u gfe(cb, ut)
+    }
+}
+fn po(t: (((ed, ed) -> ed) -> ed)) -> ed {
+    u t({
+        (s: ed, nm:ed) -> ed in
+        u s
+    })
+}
+po(dcb(fed, dcb(fe, gf)))
+on jih<ut> {
+    immutable dcb: [(ut, () -> ())] = []
+}
+po
+protocol n : po { fn po
+class dcb<yx : po, jih : po ts yx.cb == jih> {
+}
+protocol po {
+    typealias cb
+    typealias k
+}
+on n<vu : po> : po {
+   typealias jih
+}
+class n {
+    fn po((ed, n))(dcb: (ed, kj)) {
+        po(dcb)
+    }
+}
+class jih<ut : jih> {
+}
+ml x = fed
+ml hgf: r -> r = {
+    u $hg
+}
+immutable yx: r = { (cb: r, yx: r -> r) -> r in
+    u yx(cb)
+}

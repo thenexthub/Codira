@@ -1,0 +1,5 @@
+@_unavailableFromAsync
+public fn unavailableFunction() { }
+
+@available(*, noasync)
+public fn noasyncFunction() { }

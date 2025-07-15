@@ -5,30 +5,30 @@ import os
 import subprocess
 
 
-def perform_build(args, swiftbuild_path):
-    swiftbuild_args = [
-        swiftbuild_path,
+def perform_build(args, languagebuild_path):
+    languagebuild_args = [
+        languagebuild_path,
         "--package-path",
         args.package_path,
         "--build-path",
         args.build_path,
         "--configuration",
         args.configuration,
-        "-Xswiftc",
+        "-Xlanguagec",
         "-I",
-        "-Xswiftc",
-        os.path.join(args.toolchain, 'usr', 'include', 'swift'),
-        "-Xswiftc",
+        "-Xlanguagec",
+        os.path.join(args.toolchain, 'usr', 'include', 'language'),
+        "-Xlanguagec",
         "-L",
-        "-Xswiftc",
-        os.path.join(args.toolchain, 'usr', 'lib', 'swift', 'macosx'),
-        "-Xswiftc",
-        "-lswiftRemoteMirror"
+        "-Xlanguagec",
+        os.path.join(args.toolchain, 'usr', 'lib', 'language', 'macosx'),
+        "-Xlanguagec",
+        "-llanguageRemoteMirror"
     ]
     if args.verbose:
-        swiftbuild_args.append("--verbose")
-    print(' '.join(swiftbuild_args))
-    subprocess.call(swiftbuild_args)
+        languagebuild_args.append("--verbose")
+    print(' '.join(languagebuild_args))
+    subprocess.call(languagebuild_args)
 
 
 def main():
@@ -47,8 +47,8 @@ def main():
     if not os.path.isdir(bin_dir):
         os.makedirs(bin_dir)
 
-    swiftbuild_path = os.path.join(args.toolchain, "usr", "bin", "swift-build")
-    perform_build(args, swiftbuild_path)
+    languagebuild_path = os.path.join(args.toolchain, "usr", "bin", "language-build")
+    perform_build(args, languagebuild_path)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/inputs
+
+// RUN: echo "[{" > %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"A\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%/S/Inputs/CHeaders/module.modulemap\"" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/stdlib_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/ononesupport_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_Concurrency\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/concurrency_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_StringProcessing\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/string_processing_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Foo.codemodule -module-cache-path %t.module-cache -explicit-language-module-map-file %t/inputs/map.json %s
+
+import A
+
+fn callA() {
+  funcA()
+}

@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Config.h"
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #import <objc/runtime.h>
 #import <objc/NSObject.h>
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_API
-bool _swift_stdlib_NSObject_isKindOfClass(
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_API
+bool _language_stdlib_NSObject_isKindOfClass(
     id _Nonnull object,
     char * _Nonnull className) {
   Class cls = objc_lookUpClass(className);

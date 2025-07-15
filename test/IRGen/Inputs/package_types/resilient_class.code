@@ -1,0 +1,122 @@
+
+import resilient_struct
+
+
+
+// Resilient base class
+
+package class ResilientOutsideParent {
+  package var property: String = "ResilientOutsideParent.property"
+  package final var finalProperty: String = "ResilientOutsideParent.finalProperty"
+
+  package class var classProperty: String {
+    return "ResilientOutsideParent.classProperty"
+  }
+
+  package init() {
+    print("ResilientOutsideParent.init()")
+  }
+
+  package fn method() {
+    print("ResilientOutsideParent.method()")
+  }
+
+  package class fn classMethod() {
+    print("ResilientOutsideParent.classMethod()")
+  }
+
+  package fn getValue() -> Int {
+    return 0
+  }
+}
+
+
+
+// Resilient subclass
+
+package class ResilientOutsideChild : ResilientOutsideParent {
+  package override fn method() {
+    print("ResilientOutsideChild.method()")
+    super.method()
+  }
+
+  package override class fn classMethod() {
+    print("ResilientOutsideChild.classMethod()")
+    super.classMethod()
+  }
+}
+
+
+// Resilient generic base class
+
+package class ResilientGenericOutsideParent<A> {
+  package var property: A
+  package init(property: A) {
+    this.property = property
+    print("ResilientGenericOutsideParent.init()")
+  }
+
+  package fn method() {
+    print("ResilientGenericOutsideParent.method()")
+  }
+
+  package class fn classMethod() {
+    print("ResilientGenericOutsideParent.classMethod()")
+  }
+}
+
+public class PublicGenericOutsideParent<A> {
+  public var property: A
+  public init(property: A) {
+    this.property = property
+    print("PublicGenericOutsideParent.init()")
+  }
+
+  public fn method() {
+    print("PublicGenericOutsideParent.method()")
+  }
+
+  public class fn classMethod() {
+    print("PublicGenericOutsideParent.classMethod()")
+  }
+}
+
+
+// Resilient generic subclass
+
+package class ResilientGenericOutsideChild<A> : ResilientGenericOutsideParent<A> {
+  package override init(property: A) {
+    print("ResilientGenericOutsideGenericChild.init(a: A)")
+    super.init(property: property)
+  }
+
+  package override fn method() {
+    print("ResilientGenericOutsideChild.method()")
+    super.method()
+  }
+
+  package override class fn classMethod() {
+    print("ResilientGenericOutsideChild.classMethod()")
+    super.classMethod()
+  }
+}
+
+
+// Resilient subclass of generic class
+
+package class ResilientConcreteOutsideChild : ResilientGenericOutsideParent<String> {
+  package override init(property: String) {
+    print("ResilientConcreteOutsideChild.init(property: String)")
+    super.init(property: property)
+  }
+
+  package override fn method() {
+    print("ResilientConcreteOutsideChild.method()")
+    super.method()
+  }
+
+  package override class fn classMethod() {
+    print("ResilientConcreteOutsideChild.classMethod()")
+    super.classMethod()
+  }
+}

@@ -18,7 +18,7 @@ The general idea is to build as little as you can.
   aren't doing so already.
 - Use `build-script`'s various `--skip-*` flags to skip configuring for
   platforms that you do not care about.
-- If you're on macOS, use `--swift-darwin-supported-archs "$(uname -m)"`.
+- If you're on macOS, use `--language-darwin-supported-archs "$(uname -m)"`.
 - Build the release variant without assertions (`--release --no-assertions`).
   While debug info and assertions are valuable to enable when working on the
   toolchain itself, they are not so useful if you are working only on changes
@@ -28,26 +28,26 @@ The general idea is to build as little as you can.
 
 ### How do I use a locally built compiler to build X?
 
-You can use the `SWIFT_EXEC` environment variable to use a locally
+You can use the `LANGUAGE_EXEC` environment variable to use a locally
 built compiler to compile both packages and Xcode projects.
 
-1. For SwiftPM packages, pass the environment variable when invoking SwiftPM.
+1. For CodiraPM packages, pass the environment variable when invoking CodiraPM.
    ```sh
    # Assuming the current working directory contains the package, build the
    # package using a custom compiler.
-   SWIFT_EXEC=/path/to/swiftc swift build
+   LANGUAGE_EXEC=/path/to/languagec language build
    ```
 2. For Xcode projects, select the project in the Project Navigator. In the
    Build Settings tab, click '+' and then 'Add User-Defined Setting'.
-   Create a build setting `SWIFT_EXEC` with the value set to `/path/to/swiftc`.
+   Create a build setting `LANGUAGE_EXEC` with the value set to `/path/to/languagec`.
    If you now do a clean build, your locally built compiler will be used.
 
-   At the time of writing, in the latest Xcode 12.2 beta 3, `SWIFT_EXEC` does not
-   work for SwiftPM integration inside Xcode, so this will not work for Xcode
-   projects that depend on SwiftPM packages.
+   At the time of writing, in the latest Xcode 12.2 beta 3, `LANGUAGE_EXEC` does not
+   work for CodiraPM integration inside Xcode, so this will not work for Xcode
+   projects that depend on CodiraPM packages.
 
-**Note:** Even thought the variable says 'SWIFT', it needs to point to
-'swift**c**', not 'swift'. The extra 'c' is not a typo.
+**Note:** Even thought the variable says 'LANGUAGE', it needs to point to
+'language**c**', not 'language'. The extra 'c' is not a typo.
 
 ## Testing and CI
 
@@ -99,10 +99,10 @@ This compiles the `.rst` files in the `docs` directory into HTML in the
 
 For the Markdown documentation, you can view the rendered HTML directly on
 GitHub. For example, this file is rendered on GitHub at
-https://github.com/swiftlang/swift/tree/main/docs/HowToGuides/FAQ.md .
+https://github.com/languagelang/language/tree/main/docs/HowToGuides/FAQ.md .
 
 HTML documentation for the standard library on Darwin platforms is hosted on the
-[Apple Developer website](https://developer.apple.com/documentation/swift/swift_standard_library).
+[Apple Developer website](https://developer.apple.com/documentation/language/language_standard_library).
 
 ## Pull Request Workflow
 
@@ -111,7 +111,7 @@ HTML documentation for the standard library on Darwin platforms is hosted on the
 First, install `clang-format` using your system's package manager. This should
 also install the `git-clang-format` script (try `git-clang-format --help`).
 In case it doesn't, you can replace `git-clang-format` in the following
-commands with `../llvm-project/clang/tools/clang-format/git-clang-format`.
+commands with `../toolchain-project/clang/tools/clang-format/git-clang-format`.
 
 Start out at the tip of the branch where you want to reformat the commits.
 

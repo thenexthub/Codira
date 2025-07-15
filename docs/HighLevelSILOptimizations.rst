@@ -10,9 +10,9 @@ High-Level Optimizations in SIL
 Abstract
 --------
 
-This document describes the high-level abstraction of built-in Swift
+This document describes the high-level abstraction of built-in Codira
 data structures in SIL that is used by the optimizer. You need to read
-this document if you wish to understand the early stages of the Swift
+this document if you wish to understand the early stages of the Codira
 optimizer or if you are working on one of the containers in the
 standard library.
 
@@ -20,19 +20,19 @@ standard library.
 Why do we need high-level optimizations?
 -----------------------------------------
 
-Swift containers are implemented in the Swift standard library in Swift code.
+Codira containers are implemented in the Codira standard library in Codira code.
 Traditional compiler optimizations can remove some of the redundancy that is
-found in high-level code, but not all of it. Without knowledge of the Swift
+found in high-level code, but not all of it. Without knowledge of the Codira
 language the optimizer can't perform high-level optimizations on the built-in
 containers. For example::
 
   Dict["a"] = 1
   Dict["a"] = 2
 
-Any Swift developer could identify the redundancy in the code sample above.
+Any Codira developer could identify the redundancy in the code sample above.
 Storing two values into the same key in the dictionary is inefficient.
 However, optimizing compilers are unaware of the special semantics that the
-Swift dictionary has and can't perform this optimization. Traditional
+Codira dictionary has and can't perform this optimization. Traditional
 compilers would start optimizing this code by inlining the subscript
 function call and try to analyze the sequence of load/store instructions.
 This approach is not very effective because the compiler has to be very
@@ -40,15 +40,15 @@ conservative when optimizing general code with pointers.
 
 On the other hand, compilers for high-level languages usually have special
 bytecode instructions that allow them to perform high-level optimizations.
-However, unlike high-level languages such as JavaScript or Python, Swift
-containers are implemented in Swift itself. Moreover, it is beneficial to
+However, unlike high-level languages such as JavaScript or Python, Codira
+containers are implemented in Codira itself. Moreover, it is beneficial to
 be able to inline code from the container into the user program and optimize
 them together, especially for code that uses Generics.
 
 In order to perform both high-level optimizations, that are common in
 high-level languages, and low-level optimizations we annotate parts of the
 standard library and describe the semantics of a domain-specific high-level
-operations on data types in the Swift standard library.
+operations on data types in the Codira standard library.
 
 Annotation of code in the standard library
 ------------------------------------------
@@ -61,17 +61,17 @@ attributes.
 This is an example of the ``@_semantics`` attribute::
 
   @public @_semantics("array.count")
-  func getCount() -> Int {
+  fn getCount() -> Int {
     return _buffer.count
    }
 
-In this example we annotate a member of the Swift array struct with the tag
+In this example we annotate a member of the Codira array struct with the tag
 ``array.count``. This tag informs the optimizer that this method reads the
 size of the array.
 
 
 The ``@_semantics`` attribute allows us to define "builtin" SIL-level
-operations implemented in Swift code. In SIL code they are encoded as
+operations implemented in Codira code. In SIL code they are encoded as
 apply instructions, but the optimizer can operate on them as atomic
 instructions. The semantic annotations don't necessarily need to be on
 public APIs. For example, the Array subscript operator may invoke two
@@ -86,18 +86,18 @@ getElement instruction::
       return getElement(index)
      }
 
-  @_semantics("array.check_subscript") func checkSubscript(_ index: Int) {
+  @_semantics("array.check_subscript") fn checkSubscript(_ index: Int) {
     ...
   }
 
-  @_semantics("array.get_element") func getElement(_ index: Int) -> Element {
+  @_semantics("array.get_element") fn getElement(_ index: Int) -> Element {
     return _buffer[index]
   }
 
 
-Swift optimizations
+Codira optimizations
 -------------------
-The Swift optimizer can access the information that is provided by the
+The Codira optimizer can access the information that is provided by the
 ``@_semantics`` attribute to perform high-level optimizations. In the early
 stages of the optimization pipeline the optimizer does not inline functions
 with special semantics in order to allow the early high-level optimization
@@ -116,7 +116,7 @@ in the standard library and the axioms that the optimizer uses.
 Cloning code from the standard library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Swift compiler can copy code from the standard library into the
+The Codira compiler can copy code from the standard library into the
 application for functions marked @inlinable. This allows the optimizer to
 inline calls from the stdlib and improve the performance of code that uses
 common operators such as '+=' or basic containers such as Array. However,
@@ -322,7 +322,7 @@ that is provided by the attribute.
 
 Usage:
 
-  @_effects(readonly) func foo() { .. }
+  @_effects(readonly) fn foo() { .. }
 
 
 The @_effects attribute supports the following tags:
@@ -364,22 +364,22 @@ releasenone
     }
 
     @_effects(releasenone)
-    func validReleaseNoneFunction(x: Int) -> Int {
+    fn validReleaseNoneFunction(x: Int) -> Int {
       global.x = 5
       return x + 2
     }
 
     @_effects(releasenone)
-    func validReleaseNoneFunction(x: Int) -> Int {
+    fn validReleaseNoneFunction(x: Int) -> Int {
       var notExternallyVisibleObject = SomeObject()
       return x +  notExternallyVisibleObject.x
     }
 
-    func notAReleaseNoneFunction(x: Int, y: SomeObject) -> Int {
+    fn notAReleaseNoneFunction(x: Int, y: SomeObject) -> Int {
       return x + y.x
     }
 
-    func notAReleaseNoneFunction(x: Int) -> Int {
+    fn notAReleaseNoneFunction(x: Int) -> Int {
       var releaseExternallyVisible = SomeOtherObject()
       return x + releaseExternallyVisible.x
     }

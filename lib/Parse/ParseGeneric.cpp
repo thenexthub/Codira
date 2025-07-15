@@ -1,4 +1,4 @@
-//===--- ParseGeneric.cpp - Swift Language Parser for Generics ------------===//
+//===--- ParseGeneric.cpp - Codira Language Parser for Generics ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Generic Parsing and AST Building
@@ -251,7 +252,7 @@ Parser::diagnoseWhereClauseInGenericParamList(const GenericParamList *
                                   GenericParams->getWhereClauseSourceRange());
 
   SmallString<64> Buffer;
-  llvm::raw_svector_ostream WhereClauseText(Buffer);
+  toolchain::raw_svector_ostream WhereClauseText(Buffer);
   WhereClauseText << SourceMgr.extractText(Tok.is(tok::kw_where)
                                            ? WhereCharRange
                                            : RemoveWhereRange);
@@ -354,6 +355,8 @@ ParserStatus Parser::parseGenericWhereClause(
         if (!AllowLayoutConstraints && !isInSILMode()) {
           diagnose(LayoutLoc,
                    diag::layout_constraints_only_inside_specialize_attr);
+          Status.setIsParseError();
+          break;
         } else {
           // Add the layout requirement.
           Requirements.push_back(RequirementRepr::getLayoutConstraint(

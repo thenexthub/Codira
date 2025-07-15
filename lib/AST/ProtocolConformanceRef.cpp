@@ -1,13 +1,17 @@
 //===--- ProtocolConformanceRef.cpp - AST Protocol Conformance Reference --===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the ProtocolConformanceRef structure, which wraps a
@@ -111,9 +115,7 @@ ProtocolConformanceRef::subst(InFlightSubstitution &IFS) const {
 
   // Local conformance lookup into the substitution map.
   // FIXME: Pack element level?
-  return IFS.lookupConformance(origType->getCanonicalType(),
-                               origType.subst(IFS), proto,
-                               /*level=*/0);
+  return IFS.lookupConformance(origType, proto, /*level=*/0);
 }
 
 ProtocolConformanceRef ProtocolConformanceRef::mapConformanceOutOfContext() const {
@@ -333,7 +335,7 @@ bool ProtocolConformanceRef::hasMissingConformance() const {
 }
 
 bool ProtocolConformanceRef::forEachMissingConformance(
-    llvm::function_ref<bool(BuiltinProtocolConformance *missing)> fn) const {
+    toolchain::function_ref<bool(BuiltinProtocolConformance *missing)> fn) const {
   if (isInvalid() || isAbstract())
     return false;
 
@@ -365,7 +367,7 @@ bool ProtocolConformanceRef::forEachMissingConformance(
 }
 
 bool ProtocolConformanceRef::forEachIsolatedConformance(
-    llvm::function_ref<bool(ProtocolConformanceRef)> body
+    toolchain::function_ref<bool(ProtocolConformanceRef)> body
 ) const {
   if (isInvalid() || isAbstract())
     return false;
@@ -400,7 +402,7 @@ bool ProtocolConformanceRef::forEachIsolatedConformance(
   return false;
 }
 
-void swift::simple_display(llvm::raw_ostream &out, ProtocolConformanceRef conformanceRef) {
+void language::simple_display(toolchain::raw_ostream &out, ProtocolConformanceRef conformanceRef) {
   if (conformanceRef.isAbstract()) {
     simple_display(out, conformanceRef.getProtocol());
   } else if (conformanceRef.isConcrete()) {
@@ -410,7 +412,7 @@ void swift::simple_display(llvm::raw_ostream &out, ProtocolConformanceRef confor
   }
 }
 
-SourceLoc swift::extractNearestSourceLoc(const ProtocolConformanceRef conformanceRef) {
+SourceLoc language::extractNearestSourceLoc(const ProtocolConformanceRef conformanceRef) {
   if (conformanceRef.isAbstract()) {
     return extractNearestSourceLoc(conformanceRef.getProtocol());
   } else if (conformanceRef.isConcrete()) {

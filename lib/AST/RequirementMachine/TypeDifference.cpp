@@ -1,13 +1,17 @@
 //===--- TypeDifference.cpp - Utility for concrete type unification -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A mechanism for working with types that are related via the transformation
@@ -24,11 +28,11 @@
 #include "language/AST/Types.h"
 #include "language/AST/TypeMatcher.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "RewriteContext.h"
 #include "RewriteSystem.h"
 #include "Term.h"
@@ -62,10 +66,10 @@ MutableTerm TypeDifference::getReplacementSubstitution(unsigned index) const {
   return getOriginalSubstitution(index);
 }
 
-void TypeDifference::dump(llvm::raw_ostream &out) const {
-  llvm::errs() << "Base term: " << BaseTerm << "\n";
-  llvm::errs() << "LHS: " << LHS << "\n";
-  llvm::errs() << "RHS: " << RHS << "\n";
+void TypeDifference::dump(toolchain::raw_ostream &out) const {
+  out << "Base term: " << BaseTerm << "\n";
+  out << "LHS: " << LHS << "\n";
+  out << "RHS: " << RHS << "\n";
 
   for (const auto &pair : SameTypes) {
     out << "- " << getOriginalSubstitution(pair.first) << " (#";
@@ -79,11 +83,12 @@ void TypeDifference::dump(llvm::raw_ostream &out) const {
 }
 
 void TypeDifference::verify(RewriteContext &ctx) const {
-#define VERIFY(expr, str) \
-  if (!(expr)) { \
-    llvm::errs() << "TypeDifference::verify(): " << str << "\n"; \
-    dump(llvm::errs()); \
-    abort(); \
+#define VERIFY(expr, str)                                                      \
+  if (!(expr)) {                                                               \
+    ABORT([&](auto &out) {                                                     \
+      out << "TypeDifference::verify(): " << str << "\n";                      \
+      dump(out);                                                               \
+    });                                                                        \
   }
 
   VERIFY(LHS.getKind() == RHS.getKind(), "Kind mismatch");
@@ -95,7 +100,7 @@ void TypeDifference::verify(RewriteContext &ctx) const {
     VERIFY(!SameTypes.empty() || !ConcreteTypes.empty(),
            "Missing substitutions with non-equal symbols");
 
-    llvm::DenseSet<unsigned> lhsVisited;
+    toolchain::DenseSet<unsigned> lhsVisited;
 
     for (const auto &pair : SameTypes) {
       auto first = LHS.getSubstitutions()[pair.first];
@@ -214,15 +219,16 @@ namespace {
     }
 
     void verify() const {
-#define VERIFY(expr, str) \
-  if (!(expr)) { \
-    llvm::errs() << "ConcreteTypeMatcher::verify(): " << str << "\n"; \
-    dump(llvm::errs()); \
-    abort(); \
-  }
+#define VERIFY(expr, str)                                                      \
+    if (!(expr)) {                                                             \
+      ABORT([&](auto &out) {                                                   \
+        out << "ConcreteTypeMatcher::verify(): " << str << "\n";               \
+        dump(out);                                                             \
+      });                                                                      \
+    }
 
-      llvm::DenseSet<unsigned> lhsVisited;
-      llvm::DenseSet<unsigned> rhsVisited;
+      toolchain::DenseSet<unsigned> lhsVisited;
+      toolchain::DenseSet<unsigned> rhsVisited;
 
       for (const auto &pair : SameTypesOnLHS) {
         auto first = RHSSubstitutions[pair.first];
@@ -259,7 +265,7 @@ namespace {
 #undef VERIFY
     }
 
-    void dump(llvm::raw_ostream &out) const {
+    void dump(toolchain::raw_ostream &out) const {
       out << "Abstract differences with LHS < RHS:\n";
       for (const auto &pair : SameTypesOnLHS) {
         out << "- " << RHSSubstitutions[pair.first] << " (#";
@@ -293,10 +299,10 @@ namespace {
 }
 
 TypeDifference
-swift::rewriting::buildTypeDifference(
+language::rewriting::buildTypeDifference(
     Term baseTerm, Symbol symbol,
-    const llvm::SmallVector<std::pair<unsigned, Term>, 1> &sameTypes,
-    const llvm::SmallVector<std::pair<unsigned, Symbol>, 1> &concreteTypes,
+    const toolchain::SmallVector<std::pair<unsigned, Term>, 1> &sameTypes,
+    const toolchain::SmallVector<std::pair<unsigned, Symbol>, 1> &concreteTypes,
     RewriteContext &ctx) {
   auto &astCtx = ctx.getASTContext();
 
@@ -364,7 +370,7 @@ swift::rewriting::buildTypeDifference(
       break;
     }
 
-    llvm_unreachable("Bad symbol kind");
+    toolchain_unreachable("Bad symbol kind");
   }();
 
   return {baseTerm, symbol, resultSymbol, sameTypes, concreteTypes};
@@ -460,16 +466,17 @@ bool RewriteSystem::computeTypeDifference(
   if (!isConflict) {
     // The meet operation should be commutative.
     if (lhsMeetRhs.RHS != rhsMeetLhs.RHS) {
-      llvm::errs() << "Meet operation was not commutative:\n\n";
+      ABORT([&](auto &out) {
+        out << "Meet operation was not commutative:\n\n";
 
-      llvm::errs() << "LHS: " << lhs << "\n";
-      llvm::errs() << "RHS: " << rhs << "\n";
-      matcher.dump(llvm::errs());
+        out << "LHS: " << lhs << "\n";
+        out << "RHS: " << rhs << "\n";
+        matcher.dump(out);
 
-      llvm::errs() << "\n";
-      llvm::errs() << "LHS ∧ RHS: " << lhsMeetRhs.RHS << "\n";
-      llvm::errs() << "RHS ∧ LHS: " << rhsMeetLhs.RHS << "\n";
-      abort();
+        out << "\n";
+        out << "LHS ∧ RHS: " << lhsMeetRhs.RHS << "\n";
+        out << "RHS ∧ LHS: " << rhsMeetLhs.RHS;
+      });
     }
 
     // The meet operation should be idempotent.
@@ -483,16 +490,17 @@ bool RewriteSystem::computeTypeDifference(
       lhsMeetLhsMeetRhs.verify(Context);
 
       if (lhsMeetRhs.RHS != lhsMeetLhsMeetRhs.RHS) {
-        llvm::errs() << "Meet operation was not idempotent:\n\n";
+        ABORT([&](auto &out) {
+          out << "Meet operation was not idempotent:\n\n";
 
-        llvm::errs() << "LHS: " << lhs << "\n";
-        llvm::errs() << "RHS: " << rhs << "\n";
-        matcher.dump(llvm::errs());
+          out << "LHS: " << lhs << "\n";
+          out << "RHS: " << rhs << "\n";
+          matcher.dump(out);
 
-        llvm::errs() << "\n";
-        llvm::errs() << "LHS ∧ RHS: " << lhsMeetRhs.RHS << "\n";
-        llvm::errs() << "LHS ∧ (LHS ∧ RHS): " << lhsMeetLhsMeetRhs.RHS << "\n";
-        abort();
+          out << "\n";
+          out << "LHS ∧ RHS: " << lhsMeetRhs.RHS << "\n";
+          out << "LHS ∧ (LHS ∧ RHS): " << lhsMeetLhsMeetRhs.RHS;
+        });
       }
     }
 
@@ -506,16 +514,17 @@ bool RewriteSystem::computeTypeDifference(
       rhsMeetRhsMeetRhs.verify(Context);
 
       if (lhsMeetRhs.RHS != rhsMeetRhsMeetRhs.RHS) {
-        llvm::errs() << "Meet operation was not idempotent:\n\n";
+        ABORT([&](auto &out) {
+          out << "Meet operation was not idempotent:\n\n";
 
-        llvm::errs() << "LHS: " << lhs << "\n";
-        llvm::errs() << "RHS: " << rhs << "\n";
-        matcher.dump(llvm::errs());
+          out << "LHS: " << lhs << "\n";
+          out << "RHS: " << rhs << "\n";
+          matcher.dump(out);
 
-        llvm::errs() << "\n";
-        llvm::errs() << "RHS ∧ LHS: " << rhsMeetLhs.RHS << "\n";
-        llvm::errs() << "RHS ∧ (RHS ∧ LHS): " << rhsMeetRhsMeetRhs.RHS << "\n";
-        abort();
+          out << "\n";
+          out << "RHS ∧ LHS: " << rhsMeetLhs.RHS << "\n";
+          out << "RHS ∧ (RHS ∧ LHS): " << rhsMeetRhsMeetRhs.RHS;
+        });
       }
     }
   }

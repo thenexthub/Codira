@@ -1,4 +1,4 @@
-add_swift_host_library(swiftRefactoring STATIC
+add_language_host_library(languageRefactoring STATIC
   AddEquatableConformance.cpp
   AddExplicitCodableImplementation.cpp
   Async/AsyncConverter.cpp
@@ -41,18 +41,18 @@ add_swift_host_library(swiftRefactoring STATIC
   Utils.cpp
 )
 
-target_link_libraries(swiftRefactoring PRIVATE
-  swiftAST
-  swiftClangImporter
-  swiftIDE
-  swiftIndex
-  swiftParse
-  swiftSema)
+target_link_libraries(languageRefactoring PRIVATE
+  languageAST
+  languageClangImporter
+  languageIDE
+  languageIndex
+  languageParse
+  languageSema)
 
-if(SWIFT_BUILD_SWIFT_SYNTAX)
-  target_link_libraries(swiftRefactoring PRIVATE
-    swiftIDEUtilsBridging
+if(LANGUAGE_BUILD_LANGUAGE_SYNTAX)
+  target_link_libraries(languageRefactoring PRIVATE
+    languageIDEUtilsBridging
   )
 endif()
 
-set_swift_llvm_is_available(swiftRefactoring)
+set_language_toolchain_is_available(languageRefactoring)

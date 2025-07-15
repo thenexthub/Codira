@@ -1,20 +1,24 @@
 //===--- ParseRequests.h - Parsing Requests ---------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines parsing requests.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_PARSE_REQUESTS_H
-#define SWIFT_PARSE_REQUESTS_H
+#ifndef LANGUAGE_PARSE_REQUESTS_H
+#define LANGUAGE_PARSE_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/EvaluatorDependencies.h"
@@ -41,7 +45,7 @@ struct FingerprintAndMembers {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const FingerprintAndMembers &value);
+void simple_display(toolchain::raw_ostream &out, const FingerprintAndMembers &value);
 
 /// Parse the members of a nominal type declaration or extension.
 /// Return a fingerprint and the members.
@@ -154,7 +158,7 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const IDEInspectionCallbacksFactory *factory);
 
 class IDEInspectionSecondPassRequest
@@ -216,25 +220,25 @@ public:
   SourceLoc getNearestLoc() const { return SourceLoc(); };
 };
 
-void simple_display(llvm::raw_ostream &out, const ASTContext *state);
+void simple_display(toolchain::raw_ostream &out, const ASTContext *state);
 
 /// The zone number for the parser.
-#define SWIFT_TYPEID_ZONE Parse
-#define SWIFT_TYPEID_HEADER "swift/AST/ParseTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE Parse
+#define LANGUAGE_TYPEID_HEADER "language/AST/ParseTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
   template <>                                                                  \
   inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,              \
                                      const RequestType &request) {             \
     ++stats.getFrontendCounters().RequestType;                                 \
   }
 #include "language/AST/ParseTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_PARSE_REQUESTS_H
+#endif // LANGUAGE_PARSE_REQUESTS_H

@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interfaces(%t/Foo.codeinterface, %t/Foo.private.codeinterface) -parse-as-library %s -library-level api
+
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo.codeinterface -o %t/Foo.public.codemodule -module-name Foo
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo.private.codeinterface -o %t/Foo.private.codemodule -module-name Foo
+// RUN: %FileCheck %s --check-prefix=CHECK-PUBLIC < %t/Foo.codeinterface
+// RUN: %FileCheck %s --check-prefix=CHECK-PRIVATE < %t/Foo.private.codeinterface
+
+@_spi_available(macOS 10.10, tvOS 14.0, *)
+@available(iOS 8.0, *)
+public class SPIClass {}
+
+// RUN: %FileCheck %s -check-prefix CHECK-PUBLIC < %t/Foo.codeinterface
+// RUN: %FileCheck %s -check-prefix CHECK-PRIVATE < %t/Foo.private.codeinterface
+
+// CHECK-PUBLIC: @available(macOS, unavailable)
+// CHECK-PUBLIC: @available(tvOS, unavailable)
+
+// CHECK-PRIVATE: @_spi_available(macOS, introduced: 10.10)
+// CHECK-PRIVATE: @_spi_available(tvOS, introduced: 14.0)

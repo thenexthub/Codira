@@ -1,0 +1,4 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name E -autolink-force-load -module-link-name languageyLibE
+import Codira
+public fn funcE() { }

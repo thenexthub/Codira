@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Concurrency tracing implemented with the os_signpost API.
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_STDLIB_CONCURRENCY_TRACING
+#if LANGUAGE_STDLIB_CONCURRENCY_TRACING
 
 #include "TracingSignpost.h"
 #include <stdio.h>
 
-#define SWIFT_LOG_CONCURRENCY_SUBSYSTEM "com.apple.swift.concurrency"
-#define SWIFT_LOG_ACTOR_CATEGORY "Actor"
-#define SWIFT_LOG_TASK_CATEGORY "Task"
+#define LANGUAGE_LOG_CONCURRENCY_SUBSYSTEM "com.apple.code.concurrency"
+#define LANGUAGE_LOG_ACTOR_CATEGORY "Actor"
+#define LANGUAGE_LOG_TASK_CATEGORY "Task"
 
 namespace language {
 namespace concurrency {
@@ -32,20 +33,20 @@ namespace trace {
 
 os_log_t ActorLog;
 os_log_t TaskLog;
-swift::once_t LogsToken;
+language::once_t LogsToken;
 bool TracingEnabled;
 
 void setupLogs(void *unused) {
-  if (!swift::runtime::trace::shouldEnableTracing()) {
+  if (!language::runtime::trace::shouldEnableTracing()) {
     TracingEnabled = false;
     return;
   }
 
   TracingEnabled = true;
-  ActorLog = os_log_create(SWIFT_LOG_CONCURRENCY_SUBSYSTEM,
-                           SWIFT_LOG_ACTOR_CATEGORY);
-  TaskLog = os_log_create(SWIFT_LOG_CONCURRENCY_SUBSYSTEM,
-                          SWIFT_LOG_TASK_CATEGORY);
+  ActorLog = os_log_create(LANGUAGE_LOG_CONCURRENCY_SUBSYSTEM,
+                           LANGUAGE_LOG_ACTOR_CATEGORY);
+  TaskLog = os_log_create(LANGUAGE_LOG_CONCURRENCY_SUBSYSTEM,
+                          LANGUAGE_LOG_TASK_CATEGORY);
 }
 
 } // namespace trace

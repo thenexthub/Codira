@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Verify AccessPath computation. For the address of every memory operation in
@@ -36,7 +37,7 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -44,10 +45,10 @@ namespace {
 
 /// Verify access path and uses of each access.
 class AccessPathVerification : public SILModuleTransform {
-  llvm::DenseMap<Operand *, AccessPath> useToPathMap;
+  toolchain::DenseMap<Operand *, AccessPath> useToPathMap;
 
   // Transient uses
-  llvm::SmallVector<Operand *, 64> uses;
+  toolchain::SmallVector<Operand *, 64> uses;
 
 public:
   void verifyAccessPath(Operand *operand) {
@@ -61,12 +62,12 @@ public:
     if (!iterAndInserted.second) {
       auto collectedFromPath = iterAndInserted.first->second;
       if (collectedFromPath != accessPath) {
-        llvm::errs() << "Address use: " << *operand->getUser()
+        toolchain::errs() << "Address use: " << *operand->getUser()
                      << "  collected from path\n  ";
-        collectedFromPath.print(llvm::errs());
-        llvm::errs() << "  has different path\n  ";
-        accessPath.print(llvm::errs());
-        operand->getUser()->getFunction()->print(llvm::errs());
+        collectedFromPath.print(toolchain::errs());
+        toolchain::errs() << "  has different path\n  ";
+        accessPath.print(toolchain::errs());
+        operand->getUser()->getFunction()->print(toolchain::errs());
         assert(false && "computed path does not match collected path");
       }
       return;
@@ -83,21 +84,21 @@ public:
       }
       auto iterAndInserted = useToPathMap.try_emplace(use, accessPath);
       if (!iterAndInserted.second) {
-        llvm::errs() << "Address use: " << *operand->getUser()
+        toolchain::errs() << "Address use: " << *operand->getUser()
                      << "  with path...\n";
-        accessPath.print(llvm::errs());
-        llvm::errs() << "  was not collected for: " << *use->getUser();
-        llvm::errs() << "  with path...\n";
+        accessPath.print(toolchain::errs());
+        toolchain::errs() << "  was not collected for: " << *use->getUser();
+        toolchain::errs() << "  with path...\n";
         auto computedPath = iterAndInserted.first->second;
-        computedPath.print(llvm::errs());
-        use->getUser()->getFunction()->print(llvm::errs());
+        computedPath.print(toolchain::errs());
+        use->getUser()->getFunction()->print(toolchain::errs());
         assert(false && "missing collected use");
       }
     }
     if (!foundOperandUse && !accessPath.hasUnknownOffset()) {
-      llvm::errs() << "Address use: " << *operand->getUser()
+      toolchain::errs() << "Address use: " << *operand->getUser()
                    << "  is not a use of path\n  ";
-      accessPath.print(llvm::errs());
+      accessPath.print(toolchain::errs());
       assert(false && "not a user of its own computed path ");
     }
     uses.clear();
@@ -124,6 +125,6 @@ public:
 
 } // end anonymous namespace
 
-SILTransform *swift::createAccessPathVerification() {
+SILTransform *language::createAccessPathVerification() {
   return new AccessPathVerification();
 }

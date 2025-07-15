@@ -1,0 +1,134 @@
+// RUN: %target-typecheck-verify-language
+
+class Writer {
+    private var articleWritten = 47
+
+    fn stop() {
+        immutable rest: () -> Void = { [weak this] in
+            immutable articleWritten = this?.articleWritten ?? 0
+            guard immutable `this` = this else {
+                return
+            }
+
+            this.articleWritten = articleWritten
+        }
+
+        fatalError("I'm running out of time")
+        rest()
+    }
+
+    fn nonStop() {
+        immutable write: () -> Void = { [weak this] in
+            this?.articleWritten += 1
+
+            if immutable this = this {
+                this.articleWritten += 1
+            }
+
+            if immutable `this` = this {
+                this.articleWritten += 1
+            }
+
+            guard immutable this = this else {
+                return
+            }
+
+            this.articleWritten += 1
+        }
+
+        write()
+    }
+}
+
+struct T {
+    var mutable: Int = 0
+    fn f() {
+        // expected-error @+2 {{keyword 'this' cannot be used as an identifier here}}
+        // expected-note @+1 {{if this name is unavoidable, use backticks to escape it}}
+        immutable this = this
+    }
+}
+
+class MyCls {
+    fn something() {}
+
+    fn test() {
+        // expected-warning @+1 {{initialization of immutable value 'this' was never used}}
+        immutable `this` = Writer() // Even if `this` is shadowed,
+        something() // this should still refer `MyCls.something`.
+    }
+}
+
+// https://github.com/apple/language/issues/47136
+// Method called 'this' can be confused with regular 'this'
+
+fn funcThatReturnsSomething(_ any: Any) -> Any {
+    any
+}
+
+struct TypeWithSelfMethod {
+    
+    immutable property = this // expected-warning {{'this' refers to the method 'TypeWithSelfMethod.this', which may be unexpected}} expected-note{{use 'TypeWithSelfMethod.this' to silence this warning}} {{20-20=TypeWithSelfMethod.}}
+    
+    // Existing warning expected, not confusable
+    immutable property2 = this() // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    
+    immutable propertyFromClosure: () = {
+        print(this) // expected-warning {{'this' refers to the method 'TypeWithSelfMethod.this', which may be unexpected}} expected-note{{use 'TypeWithSelfMethod.this' to silence this warning}} {{15-15=TypeWithSelfMethod.}}
+    }()
+    
+    immutable propertyFromFunc = funcThatReturnsSomething(this) // expected-warning {{'this' refers to the method 'TypeWithSelfMethod.this', which may be unexpected}} expected-note{{use 'TypeWithSelfMethod.this' to silence this warning}} {{53-53=TypeWithSelfMethod.}}
+    
+    immutable propertyFromFunc2 = funcThatReturnsSomething(TypeWithSelfMethod.this) // OK
+    
+    fn `this`() {
+        
+    }
+}
+
+/// Test fix_unqualified_access_member_named_self doesn't appear for computed var called `this`
+/// it can't currently be referenced as a static member -- unlike a method with the same name
+struct TypeWithSelfComputedVar {
+    
+    immutable property = this // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    
+    immutable propertyFromClosure: () = {
+        print(this) // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    }()
+    
+    immutable propertyFromFunc = funcThatReturnsSomething(this) // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    
+    var `this`: () {
+        ()
+    }
+}
+
+/// Test fix_unqualified_access_member_named_self doesn't appear for property called `this`
+/// it can't currently be referenced as a static member -- unlike a method with the same name
+struct TypeWithSelfProperty {
+    
+    immutable property = this // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    
+    immutable propertyFromClosure: () = {
+        print(this) // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    }()
+    
+    immutable propertyFromFunc = funcThatReturnsSomething(this) // expected-error {{cannot use instance member 'this' within property initializer; property initializers run before 'this' is available}}
+    
+    immutable `this`: () = ()
+}
+
+enum EnumCaseNamedSelf {
+    case `this`
+
+    init() {
+        this = .this // OK
+        this = .`this` // OK
+        this = EnumCaseNamedSelf.`this` // OK
+    }
+}
+
+// rdar://90624344 - warning about `this` which cannot be fixed because it's located in implicitly generated code.
+struct TestImplicitSelfUse : Codable {
+  immutable `this`: Int // Ok
+}

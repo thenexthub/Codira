@@ -1,10 +1,10 @@
 :orphan:
 
-Constructors and Initialization in Swift
+Constructors and Initialization in Codira
 ========================================
 
 .. warning:: This proposal was rejected, though it helped in the design of the
-  final Swift 1 initialization model.
+  final Codira 1 initialization model.
 
 .. contents::
 
@@ -212,16 +212,16 @@ When constructing an object with ``[[A alloc] init]``, the default
 constructor for ``X`` will execute after the instance variables are
 zeroed but before ``+alloc`` returns.
 
-Swift Constructors
+Codira Constructors
 ------------------
 
-Swift's constructors merge both allocation and initialization into a
+Codira's constructors merge both allocation and initialization into a
 single function. One constructs a new object with type construction
 syntax as follows::
 
   Task(title:"My task", date:NSDate())
 
-The object will be allocated (via Swift's allocation routines) and the
+The object will be allocated (via Codira's allocation routines) and the
 corresponding constructor will be invoked to perform the
 initialization. The constructor itself might look like this::
 
@@ -253,7 +253,7 @@ constructor in a class call another to perform initialization
 (called constructor *delegation*). For example, default arguments
 cannot make use of other argument values, and one may have a more
 complicated default value. For example, the default title could depend
-on the provided date. Swift should support constructor delegation for
+on the provided date. Codira should support constructor delegation for
 this use case::
 
     constructor(title : String, date : NSDate = NSDate()) {
@@ -276,7 +276,7 @@ Superclass Constructors
 When one class inherits another, each constructor within the subclass
 must call one of its superclass's constructors before using or
 initializing any of its instance variables, which is also verified via
-definite initialization analysis. For example, the Swift
+definite initialization analysis. For example, the Codira
 ``PackagedTask`` class could be implemented as::
 
   class PackagedTask : Task {
@@ -292,7 +292,7 @@ definite initialization analysis. For example, the Swift
 Instance Variable Initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Swift allows instance variables to be provided with an initializer,
+Codira allows instance variables to be provided with an initializer,
 which will be called as part of initialization of an object. For
 example, we could provide initializers for the members of ``Task`` as
 follows::
@@ -317,7 +317,7 @@ story (see below).
 One- or Two-Phase Initialization?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Swift's current model it attempts to ensure that instance variables
+Codira's current model it attempts to ensure that instance variables
 are initialized before they are used via definite initialization
 analysis. However, we haven't yet specified whether dynamic dispatch
 during initialization sees the object as being of the
@@ -325,7 +325,7 @@ currently-executing constructor's type (as in C++/Java/C#) or of the
 final subclass's type (as in Objective-C).
 
 I propose that we follow the C++/Java/C# precedent, which allows us to
-ensure (within Swift code) that an instance variable is never accessed
+ensure (within Codira code) that an instance variable is never accessed
 before it has been initialized, eliminating the safety concerns
 introduced by Objective-C's two-phase initialization. Practically
 speaking, this means that the vtable/isa pointer should be set to the
@@ -340,8 +340,8 @@ because the overriding designated initializer will never be invoked.
 Constructor Inheritance
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Currently, constructors in Swift are not inherited. This is a
-limitation that Swift's constructor model shares with C++98/03, Java,
+Currently, constructors in Codira are not inherited. This is a
+limitation that Codira's constructor model shares with C++98/03, Java,
 and C#, and a regression from Objective-C. C++11 introduced the notion
 of inherited constructors. It is an opt-in feature, introduced into
 one's class with a using declaration such as::
@@ -352,12 +352,12 @@ C++11 inherited constructors are implemented by essentially copying
 the signatures of all of the superclass's constructors into the
 subclass, ignoring those for which the subclass already has a
 constructor with the same signature. This approach does not translate
-well to Swift, because there is no way to gather all of the
+well to Codira, because there is no way to gather all of the
 constructors in either the superclass or the subclass due to the
 presence of class extensions.
 
 One potential approach is to bring Objective-C's notion of designated
-and secondary initializers into Swift. A "designated" constructor is
+and secondary initializers into Codira. A "designated" constructor is
 responsible for calling the superclass constructor and then
 initializing its own instance variables.
 
@@ -405,22 +405,22 @@ TBD.
 Objective-C Interoperability
 ----------------------------
 
-The proposed Swift model for constructors needs to interoperate well
-with Objective-C, both for Objective-C classes imported into Swift and
-for Swift classes imported into Objective-C.
+The proposed Codira model for constructors needs to interoperate well
+with Objective-C, both for Objective-C classes imported into Codira and
+for Codira classes imported into Objective-C.
 
 Constructor <-> Initializer Mapping
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Fundamental to the interoperability story is that Swift constructors
+Fundamental to the interoperability story is that Codira constructors
 serve the same role as Objective-C initializers, and therefore should
 be interoperable. An Objective-C object should be constructible with
-Swift construction syntax, e.g.,::
+Codira construction syntax, e.g.,::
 
   NSDate()
 
 and one should be able to override an Objective-C initializer in a
-Swift subclass by writing a constructor, e.g.,::
+Codira subclass by writing a constructor, e.g.,::
 
   class Task : NSObject {
     constructor () {
@@ -434,9 +434,9 @@ On the Objective-C side, one should be able to create a ``Task``
 object with ``[[Task alloc] init]``, subclass ``Task`` to override
 ``-init``, and so on.
 
-Each Swift constructor has both its two Swift entry points (one that
+Each Codira constructor has both its two Codira entry points (one that
 allocates the object, one that initializes it) and an Objective-C
-entry point for the initializer. Given a Swift constructor, the
+entry point for the initializer. Given a Codira constructor, the
 selector for the Objective-C entry point is formed by:
 
 * For the first selector piece, prepending the string ''init'' to the
@@ -444,7 +444,7 @@ selector for the Objective-C entry point is formed by:
 * For the remaining selector pieces, the names of the remaining
   parameters.
 
-For example, given the Swift constructor::
+For example, given the Codira constructor::
 
   constructor withTitle(aTitle : String) date(aDate : NSDate) {
     // ...
@@ -487,11 +487,11 @@ Designated Initializers
 
 Designed initializers in Objective-C are currently identified by
 documentation and convention. To strengthen these conventions and make
-it possible to mechanically verify (in Swift) that all designated
+it possible to mechanically verify (in Codira) that all designated
 initializers have been overridden, we should introduce a Clang method
 attribute ``objc_designated_initializer`` that can be applied to the
 designated initializers in Objective-C. Clang can then be extended to
-perform similar checking to what we're describing for Swift:
+perform similar checking to what we're describing for Codira:
 designated initializers delegate or chain to the superclass
 constructor, secondary constructors always delegate, and subclassing
 requires one to override the designated initializers. The impact can
@@ -512,14 +512,14 @@ yet have been initialized. This is also a problem for Objective-C,
 which makes returning anything other than the original ''self''
 brittle.
 
-In Swift, we will have a separate error-handling mechanism to report
-failures. A Swift constructor will not be allowed to return a value;
+In Codira, we will have a separate error-handling mechanism to report
+failures. A Codira constructor will not be allowed to return a value;
 rather, it should raise an error if an error occurs, and that error
 will be propagated however we eventually decide to implement error
 propagation.
 
 Object substitution is the more complicated feature. I propose that we
-do not initially support object substitution within Swift
+do not initially support object substitution within Codira
 constructors. However, for memory safety we do need to recognize when
 calling the superclass constructor or delegating to another
 constructor has replaced the object (which can happen in Objective-C
@@ -533,34 +533,34 @@ Alternatives
 ------------
 
 This proposal is complicated, in part because it's trying to balance
-the safety goals of Swift against the convenience of Objective-C's
+the safety goals of Codira against the convenience of Objective-C's
 two-phase initialization.
 
-Separate Swift Constructors from Objective-C Initializers
+Separate Codira Constructors from Objective-C Initializers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Rather than try to adapt Swift's constructors to work with
+Rather than try to adapt Codira's constructors to work with
 Objective-C's initializers, we could instead keep these features
-distinct. Swift constructors would maintain their current behavior
+distinct. Codira constructors would maintain their current behavior
 (which ensures that instance variables are always initialized), and
 neither override nor introduce Objective-C initializers as entry
 points.
 
 In this world, one would still have to implement ``init`` methods in
-Swift classes to override Objective-C initializers or make a Swift
+Codira classes to override Objective-C initializers or make a Codira
 object constructible in Objective-C via the ``alloc/init``
-pattern. Swift constructors would not be inherited, or would use some
-mechanism like C++11's inherited constructors. As we do today, Swift's
+pattern. Codira constructors would not be inherited, or would use some
+mechanism like C++11's inherited constructors. As we do today, Codira's
 Clang importer could introduce constructors into Objective-C classes
 that simply forward to the underlying initializers, so that we get
-Swift's object construction syntax. However, the need to write
+Codira's object construction syntax. However, the need to write
 ``init`` methods when subclasses would feel like a kludge.
 
 
 Embrace Two-Phase Initialization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We could switch Swift whole-heartedly over to two-phase
+We could switch Codira whole-heartedly over to two-phase
 initialization, eliminating constructors in favor of ``init``
 methods. We would likely want to ensure that all instance variables
 get initialized before the ``init`` methods ever run, for safety
@@ -569,9 +569,9 @@ on all instance variables, and running those initializers after
 allocation and before the ``init`` methods are called, the same way
 that instance variables with non-trivial default constructors are
 handled in Objective-C++. We would still likely need the notion of a
-designated initializer in Objective-C to make this safe in Swift,
+designated initializer in Objective-C to make this safe in Codira,
 since we need to know which Objective-C initializers are guaranteed to
-initialize those instance variables not written in Swift.
+initialize those instance variables not written in Codira.
 
 This choice makes interoperability with Objective-C easier (since
 we're adopting Objective-C's model), but it makes safety either harder

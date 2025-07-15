@@ -1,4 +1,4 @@
-//===--- Config.h - Swift Language Platform Configuration -------*- C++ -*-===//
+//===--- Config.h - Codira Language Platform Configuration -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,96 +11,97 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Definitions of common interest in Swift.
+// Definitions of common interest in Codira.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_CONFIG_H
-#define SWIFT_RUNTIME_CONFIG_H
+#ifndef LANGUAGE_RUNTIME_CONFIG_H
+#define LANGUAGE_RUNTIME_CONFIG_H
 
 #include "language/Basic/Compiler.h"
 #include "language/Runtime/CMakeConfig.h"
 
-/// SWIFT_RUNTIME_WEAK_IMPORT - Marks a symbol for weak import.
+/// LANGUAGE_RUNTIME_WEAK_IMPORT - Marks a symbol for weak import.
 #if (__has_attribute(weak_import))
-#define SWIFT_RUNTIME_WEAK_IMPORT __attribute__((weak_import))
+#define LANGUAGE_RUNTIME_WEAK_IMPORT __attribute__((weak_import))
 #else
-#define SWIFT_RUNTIME_WEAK_IMPORT
+#define LANGUAGE_RUNTIME_WEAK_IMPORT
 #endif
 
-/// SWIFT_RUNTIME_WEAK_CHECK - Tests if a potentially weakly linked function
+/// LANGUAGE_RUNTIME_WEAK_CHECK - Tests if a potentially weakly linked function
 /// is linked into the runtime.  This is useful on Apple platforms where it is
 /// possible that system functions are only available on newer versions.
 #ifdef __clang__
-#define SWIFT_RUNTIME_WEAK_CHECK(x)                                     \
+#define LANGUAGE_RUNTIME_WEAK_CHECK(x)                                     \
   _Pragma("clang diagnostic push")                                      \
   _Pragma("clang diagnostic ignored \"-Wunguarded-availability\"")      \
   _Pragma("clang diagnostic ignored \"-Wunguarded-availability-new\"")  \
   (&x)                                                                  \
   _Pragma("clang diagnostic pop")
 #else
-#define SWIFT_RUNTIME_WEAK_CHECK(x) &x
+#define LANGUAGE_RUNTIME_WEAK_CHECK(x) &x
 #endif
 
-/// SWIFT_RUNTIME_WEAK_USE - Use a potentially weakly imported symbol.
+/// LANGUAGE_RUNTIME_WEAK_USE - Use a potentially weakly imported symbol.
 #ifdef __clang__
-#define SWIFT_RUNTIME_WEAK_USE(x)                                       \
+#define LANGUAGE_RUNTIME_WEAK_USE(x)                                       \
   _Pragma("clang diagnostic push")                                      \
   _Pragma("clang diagnostic ignored \"-Wunguarded-availability\"")      \
   _Pragma("clang diagnostic ignored \"-Wunguarded-availability-new\"")  \
   (x)                                                                   \
   _Pragma("clang diagnostic pop")
 #else
-#define SWIFT_RUNTIME_WEAK_USE(x) x
+#define LANGUAGE_RUNTIME_WEAK_USE(x) x
 #endif
 
-/// SWIFT_RUNTIME_LIBRARY_VISIBILITY - If a class marked with this attribute is
+/// LANGUAGE_RUNTIME_LIBRARY_VISIBILITY - If a class marked with this attribute is
 /// linked into a shared library, then the class should be private to the
 /// library and not accessible from outside it.  Can also be used to mark
 /// variables and functions, making them private to any shared library they are
 /// linked into.
 /// On PE/COFF targets, library visibility is the default, so this isn't needed.
-#if (__has_attribute(visibility) || SWIFT_GNUC_PREREQ(4, 0, 0)) &&    \
+#if (__has_attribute(visibility) || LANGUAGE_GNUC_PREREQ(4, 0, 0)) &&    \
     !defined(__MINGW32__) && !defined(__CYGWIN__) && !defined(_WIN32)
-#define SWIFT_RUNTIME_LIBRARY_VISIBILITY __attribute__ ((visibility("hidden")))
+#define LANGUAGE_RUNTIME_LIBRARY_VISIBILITY __attribute__ ((visibility("hidden")))
 #else
-#define SWIFT_RUNTIME_LIBRARY_VISIBILITY
+#define LANGUAGE_RUNTIME_LIBRARY_VISIBILITY
 #endif
 
-#define SWIFT_RUNTIME_ATTRIBUTE_NOINLINE SWIFT_ATTRIBUTE_NOINLINE
-#define SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE SWIFT_ATTRIBUTE_ALWAYS_INLINE
-#define SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_ATTRIBUTE_NORETURN
+#define LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE LANGUAGE_ATTRIBUTE_NOINLINE
+#define LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE LANGUAGE_ATTRIBUTE_ALWAYS_INLINE
+#define LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_ATTRIBUTE_NORETURN
 
-/// SWIFT_RUNTIME_BUILTIN_TRAP - On compilers which support it, expands to an expression
+/// LANGUAGE_RUNTIME_BUILTIN_TRAP - On compilers which support it, expands to an expression
 /// which causes the program to exit abnormally.
-#if __has_builtin(__builtin_trap) || SWIFT_GNUC_PREREQ(4, 3, 0)
-# define SWIFT_RUNTIME_BUILTIN_TRAP __builtin_trap()
+#if __has_builtin(__builtin_trap) || LANGUAGE_GNUC_PREREQ(4, 3, 0)
+# define LANGUAGE_RUNTIME_BUILTIN_TRAP __builtin_trap()
 #elif defined(_MSC_VER)
 // The __debugbreak intrinsic is supported by MSVC, does not require forward
 // declarations involving platform-specific typedefs (unlike RaiseException),
 // results in a call to vectored exception handlers, and encodes to a short
 // instruction that still causes the trapping behavior we want.
-# define SWIFT_RUNTIME_BUILTIN_TRAP __debugbreak()
+# define LANGUAGE_RUNTIME_BUILTIN_TRAP __debugbreak()
 #else
-# define SWIFT_RUNTIME_BUILTIN_TRAP *(volatile int*)0x11 = 0
+# define LANGUAGE_RUNTIME_BUILTIN_TRAP *(volatile int*)0x11 = 0
 #endif
 
-/// Does the current Swift platform support "unbridged" interoperation
+/// Does the current Codira platform support "unbridged" interoperation
 /// with Objective-C?  If so, the implementations of various types must
 /// implicitly handle Objective-C pointers.
 ///
 /// Apple platforms support this by default.
-#ifndef SWIFT_OBJC_INTEROP
+#ifndef LANGUAGE_OBJC_INTEROP
 #ifdef __APPLE__
-#define SWIFT_OBJC_INTEROP 1
+#define LANGUAGE_OBJC_INTEROP 1
 #else
-#define SWIFT_OBJC_INTEROP 0
+#define LANGUAGE_OBJC_INTEROP 0
 #endif
 #endif
 
-/// Does the current Swift platform allow information other than the
+/// Does the current Codira platform allow information other than the
 /// class pointer to be stored in the isa field?  If so, when deriving
 /// the class pointer of an object, we must apply a
 /// dynamically-determined mask to the value loaded from the first
@@ -108,59 +109,59 @@
 ///
 /// According to the Objective-C ABI, this is true only for 64-bit
 /// platforms.
-#ifndef SWIFT_HAS_ISA_MASKING
-#if SWIFT_OBJC_INTEROP && __POINTER_WIDTH__ == 64
-#define SWIFT_HAS_ISA_MASKING 1
+#ifndef LANGUAGE_HAS_ISA_MASKING
+#if LANGUAGE_OBJC_INTEROP && __POINTER_WIDTH__ == 64
+#define LANGUAGE_HAS_ISA_MASKING 1
 #else
-#define SWIFT_HAS_ISA_MASKING 0
+#define LANGUAGE_HAS_ISA_MASKING 0
 #endif
 #endif
 
-/// Does the current Swift platform have ISA pointers which should be opaque
-/// to anyone outside the Swift runtime?  Similarly to the ISA_MASKING case
+/// Does the current Codira platform have ISA pointers which should be opaque
+/// to anyone outside the Codira runtime?  Similarly to the ISA_MASKING case
 /// above, information other than the class pointer could be contained in the
 /// ISA.
-#ifndef SWIFT_HAS_OPAQUE_ISAS
+#ifndef LANGUAGE_HAS_OPAQUE_ISAS
 #if defined(__arm__) && __ARM_ARCH_7K__ >= 2
-#define SWIFT_HAS_OPAQUE_ISAS 1
+#define LANGUAGE_HAS_OPAQUE_ISAS 1
 #else
-#define SWIFT_HAS_OPAQUE_ISAS 0
+#define LANGUAGE_HAS_OPAQUE_ISAS 0
 #endif
 #endif
 
-#if SWIFT_HAS_OPAQUE_ISAS && SWIFT_HAS_ISA_MASKING
+#if LANGUAGE_HAS_OPAQUE_ISAS && LANGUAGE_HAS_ISA_MASKING
 #error Masking ISAs are incompatible with opaque ISAs
 #endif
 
-#if defined(__APPLE__) && defined(__LP64__) && __has_include(<malloc_type_private.h>) && SWIFT_STDLIB_HAS_DARWIN_LIBMALLOC
+#if defined(__APPLE__) && defined(__LP64__) && __has_include(<malloc_type_private.h>) && LANGUAGE_STDLIB_HAS_DARWIN_LIBMALLOC
 # include <TargetConditionals.h>
 # if TARGET_OS_IOS && !TARGET_OS_SIMULATOR
-#  define SWIFT_STDLIB_HAS_MALLOC_TYPE 1
+#  define LANGUAGE_STDLIB_HAS_MALLOC_TYPE 1
 # endif
 #endif
-#ifndef SWIFT_STDLIB_HAS_MALLOC_TYPE
-# define SWIFT_STDLIB_HAS_MALLOC_TYPE 0
+#ifndef LANGUAGE_STDLIB_HAS_MALLOC_TYPE
+# define LANGUAGE_STDLIB_HAS_MALLOC_TYPE 0
 #endif
 
-/// Which bits in the class metadata are used to distinguish Swift classes
+/// Which bits in the class metadata are used to distinguish Codira classes
 /// from ObjC classes?
-#ifndef SWIFT_CLASS_IS_SWIFT_MASK
+#ifndef LANGUAGE_CLASS_IS_LANGUAGE_MASK
 
-// Compatibility hook libraries cannot rely on the "is swift" bit being either
+// Compatibility hook libraries cannot rely on the "is language" bit being either
 // value, since they must work with both OS and Xcode versions of the libraries.
 // Generate a reference to a nonexistent symbol so that we get obvious linker
 // errors if we try.
-# if SWIFT_COMPATIBILITY_LIBRARY
-extern uintptr_t __COMPATIBILITY_LIBRARIES_CANNOT_CHECK_THE_IS_SWIFT_BIT_DIRECTLY__;
-#  define SWIFT_CLASS_IS_SWIFT_MASK __COMPATIBILITY_LIBRARIES_CANNOT_CHECK_THE_IS_SWIFT_BIT_DIRECTLY__
+# if LANGUAGE_COMPATIBILITY_LIBRARY
+extern uintptr_t __COMPATIBILITY_LIBRARIES_CANNOT_CHECK_THE_IS_LANGUAGE_BIT_DIRECTLY__;
+#  define LANGUAGE_CLASS_IS_LANGUAGE_MASK __COMPATIBILITY_LIBRARIES_CANNOT_CHECK_THE_IS_LANGUAGE_BIT_DIRECTLY__
 
 // Apple platforms always use 2
 # elif defined(__APPLE__)
-#  define SWIFT_CLASS_IS_SWIFT_MASK 2ULL
+#  define LANGUAGE_CLASS_IS_LANGUAGE_MASK 2ULL
 
 // Non-Apple platforms always use 1.
 # else
-#  define SWIFT_CLASS_IS_SWIFT_MASK 1ULL
+#  define LANGUAGE_CLASS_IS_LANGUAGE_MASK 1ULL
 
 # endif
 #endif
@@ -168,14 +169,14 @@ extern uintptr_t __COMPATIBILITY_LIBRARIES_CANNOT_CHECK_THE_IS_SWIFT_BIT_DIRECTL
 // We try to avoid global constructors in the runtime as much as possible.
 // These macros delimit allowed global ctors.
 #if __clang__
-# define SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN \
+# define LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN \
     _Pragma("clang diagnostic push") \
     _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"")
-# define SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_END \
+# define LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_END \
     _Pragma("clang diagnostic pop")
 #else
-# define SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
-# define SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_END
+# define LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
+# define LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_END
 #endif
 
 // Bring in visibility attribute macros
@@ -183,214 +184,218 @@ extern uintptr_t __COMPATIBILITY_LIBRARIES_CANNOT_CHECK_THE_IS_SWIFT_BIT_DIRECTL
 
 // Temporary definitions to allow compilation on clang-15.
 #if defined(__cplusplus)
-#define SWIFT_EXTERN_C extern "C"
+#define LANGUAGE_EXTERN_C extern "C"
 #else
-#define SWIFT_EXTERN_C
+#define LANGUAGE_EXTERN_C
 #endif
-#define SWIFT_RUNTIME_EXPORT_ATTRIBUTE SWIFT_EXPORT_FROM_ATTRIBUTE(swiftCore)
+#define LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE LANGUAGE_EXPORT_FROM_ATTRIBUTE(languageCore)
 
 // Define mappings for calling conventions.
 
 // Annotation for specifying a calling convention of
 // a runtime function. It should be used with declarations
 // of runtime functions like this:
-// void runtime_function_name() SWIFT_CC(swift)
-#define SWIFT_CC(CC) SWIFT_CC_##CC
+// void runtime_function_name() LANGUAGE_CC(language)
+#define LANGUAGE_CC(CC) LANGUAGE_CC_##CC
 
-// SWIFT_CC(c) is the C calling convention.
-#define SWIFT_CC_c
+// LANGUAGE_CC(c) is the C calling convention.
+#define LANGUAGE_CC_c
 
-// SWIFT_CC(swift) is the Swift calling convention.
+// LANGUAGE_CC(language) is the Codira calling convention.
 // FIXME: the next comment is false.
 // Functions outside the stdlib or runtime that include this file may be built
-// with a compiler that doesn't support swiftcall; don't define these macros
+// with a compiler that doesn't support languagecall; don't define these macros
 // in that case so any incorrect usage is caught.
-#if __has_attribute(swiftcall)
-#define SWIFT_CC_swift __attribute__((swiftcall))
-#define SWIFT_CONTEXT __attribute__((swift_context))
-#define SWIFT_ERROR_RESULT __attribute__((swift_error_result))
-#define SWIFT_INDIRECT_RESULT __attribute__((swift_indirect_result))
+#if __has_attribute(languagecall)
+#define LANGUAGE_CC_language __attribute__((languagecall))
+#define LANGUAGE_CONTEXT __attribute__((language_context))
+#define LANGUAGE_ERROR_RESULT __attribute__((language_error_result))
+#define LANGUAGE_INDIRECT_RESULT __attribute__((language_indirect_result))
 #else
-#define SWIFT_CC_swift
-#define SWIFT_CONTEXT
-#define SWIFT_ERROR_RESULT
-#define SWIFT_INDIRECT_RESULT
+#define LANGUAGE_CC_language
+#define LANGUAGE_CONTEXT
+#define LANGUAGE_ERROR_RESULT
+#define LANGUAGE_INDIRECT_RESULT
 #endif
 
-#if __has_attribute(swift_async_context)
-#define SWIFT_ASYNC_CONTEXT __attribute__((swift_async_context))
+#if __has_attribute(language_async_context)
+#define LANGUAGE_ASYNC_CONTEXT __attribute__((language_async_context))
 #else
-#define SWIFT_ASYNC_CONTEXT
+#define LANGUAGE_ASYNC_CONTEXT
 #endif
 
-// SWIFT_CC(swiftasync) is the Swift async calling convention.
+// LANGUAGE_CC(languageasync) is the Codira async calling convention.
 // We assume that it supports mandatory tail call elimination.
-#if __has_attribute(swiftasynccall)
-# if __has_feature(swiftasynccc) || __has_extension(swiftasynccc)
-#  define SWIFT_CC_swiftasync __attribute__((swiftasynccall))
+#if __has_attribute(languageasynccall)
+# if __has_feature(languageasynccc) || __has_extension(languageasynccc)
+#  define LANGUAGE_CC_languageasync __attribute__((languageasynccall))
 # else
-#  define SWIFT_CC_swiftasync SWIFT_CC_swift
+#  define LANGUAGE_CC_languageasync LANGUAGE_CC_language
 # endif
 #else
-#define SWIFT_CC_swiftasync SWIFT_CC_swift
+#define LANGUAGE_CC_languageasync LANGUAGE_CC_language
 #endif
 
-// SWIFT_CC(PreserveMost) is used in the runtime implementation to prevent
+// LANGUAGE_CC(PreserveMost) is used in the runtime implementation to prevent
 // register spills on the hot path.
 // It is not safe to use for external calls; the loader's lazy function
 // binding may not save all of the registers required for this convention.
 #if __has_attribute(preserve_most) &&                                          \
     (defined(__aarch64__) || defined(__x86_64__))
-#define SWIFT_CC_PreserveMost __attribute__((preserve_most))
+#define LANGUAGE_CC_PreserveMost __attribute__((preserve_most))
 #else
-#define SWIFT_CC_PreserveMost
+#define LANGUAGE_CC_PreserveMost
 #endif
 
 // This is the DefaultCC value used by the compiler.
 // FIXME: the runtime's code does not honor DefaultCC
 // so changing this value is not sufficient.
-#define SWIFT_DEFAULT_LLVM_CC llvm::CallingConv::C
+#define LANGUAGE_DEFAULT_TOOLCHAIN_CC toolchain::CallingConv::C
 
 /// Should we use absolute function pointers instead of relative ones?
 /// WebAssembly target uses it by default.
-#ifndef SWIFT_COMPACT_ABSOLUTE_FUNCTION_POINTER
+#ifndef LANGUAGE_COMPACT_ABSOLUTE_FUNCTION_POINTER
 # if defined(__wasm__)
-#  define SWIFT_COMPACT_ABSOLUTE_FUNCTION_POINTER 1
+#  define LANGUAGE_COMPACT_ABSOLUTE_FUNCTION_POINTER 1
 # else
-#  define SWIFT_COMPACT_ABSOLUTE_FUNCTION_POINTER 0
+#  define LANGUAGE_COMPACT_ABSOLUTE_FUNCTION_POINTER 0
 # endif
 #endif
 
 // Pointer authentication.
 #if __has_feature(ptrauth_calls)
-#define SWIFT_PTRAUTH 1
+#define LANGUAGE_PTRAUTH 1
 #include <ptrauth.h>
-#define __ptrauth_swift_runtime_function_entry \
+#define __ptrauth_language_runtime_function_entry \
   __ptrauth(ptrauth_key_function_pointer, 1, \
             SpecialPointerAuthDiscriminators::RuntimeFunctionEntry)
-#define __ptrauth_swift_runtime_function_entry_with_key(__key) \
+#define __ptrauth_language_runtime_function_entry_with_key(__key) \
   __ptrauth(ptrauth_key_function_pointer, 1, __key)
-#define __ptrauth_swift_runtime_function_entry_strip(__fn) \
+#define __ptrauth_language_runtime_function_entry_strip(__fn) \
   ptrauth_strip(__fn, ptrauth_key_function_pointer)
-#define __ptrauth_swift_type_descriptor \
+#define __ptrauth_language_type_descriptor \
   __ptrauth(ptrauth_key_process_independent_data, 1, \
             SpecialPointerAuthDiscriminators::TypeDescriptor)
-#define __ptrauth_swift_dynamic_replacement_key                                \
+#define __ptrauth_language_protocol_conformance_descriptor \
+  __ptrauth(ptrauth_key_process_independent_data, 1, \
+            SpecialPointerAuthDiscriminators::ProtocolConformanceDescriptor)
+#define __ptrauth_language_dynamic_replacement_key                                \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
             SpecialPointerAuthDiscriminators::DynamicReplacementKey)
-#define __ptrauth_swift_job_invoke_function                                    \
+#define __ptrauth_language_job_invoke_function                                    \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::JobInvokeFunction)
-#define __ptrauth_swift_task_resume_function                                   \
+#define __ptrauth_language_task_resume_function                                   \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::TaskResumeFunction)
-#define __ptrauth_swift_task_resume_context                                    \
+#define __ptrauth_language_task_resume_context                                    \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
             SpecialPointerAuthDiscriminators::TaskResumeContext)
-#define __ptrauth_swift_async_context_parent                                   \
+#define __ptrauth_language_async_context_parent                                   \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
             SpecialPointerAuthDiscriminators::AsyncContextParent)
-#define __ptrauth_swift_async_context_resume                                   \
+#define __ptrauth_language_async_context_resume                                   \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::AsyncContextResume)
-#define __ptrauth_swift_async_context_yield                                    \
+#define __ptrauth_language_async_context_yield                                    \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::AsyncContextYield)
-#define __ptrauth_swift_cancellation_notification_function                     \
+#define __ptrauth_language_cancellation_notification_function                     \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::CancellationNotificationFunction)
-#define __ptrauth_swift_escalation_notification_function                       \
+#define __ptrauth_language_escalation_notification_function                       \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::EscalationNotificationFunction)
-#define __ptrauth_swift_dispatch_invoke_function                               \
+#define __ptrauth_language_dispatch_invoke_function                               \
   __ptrauth(ptrauth_key_process_independent_code, 1,                           \
             SpecialPointerAuthDiscriminators::DispatchInvokeFunction)
-#define __ptrauth_swift_accessible_function_record                             \
+#define __ptrauth_language_accessible_function_record                             \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
             SpecialPointerAuthDiscriminators::AccessibleFunctionRecord)
-#define __ptrauth_swift_objc_superclass                                        \
+#define __ptrauth_language_objc_superclass                                        \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
-            swift::SpecialPointerAuthDiscriminators::ObjCSuperclass)
-#define __ptrauth_swift_nonunique_extended_existential_type_shape              \
+            language::SpecialPointerAuthDiscriminators::ObjCSuperclass)
+#define __ptrauth_language_nonunique_extended_existential_type_shape              \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
             SpecialPointerAuthDiscriminators::NonUniqueExtendedExistentialTypeShape)
-#define swift_ptrauth_sign_opaque_read_resume_function(__fn, __buffer)         \
+#define language_ptrauth_sign_opaque_read_resume_function(__fn, __buffer)         \
   ptrauth_auth_and_resign(__fn, ptrauth_key_function_pointer, 0,               \
                           ptrauth_key_process_independent_code,                \
                           ptrauth_blend_discriminator(__buffer,                \
             SpecialPointerAuthDiscriminators::OpaqueReadResumeFunction))
-#define swift_ptrauth_sign_opaque_modify_resume_function(__fn, __buffer)       \
+#define language_ptrauth_sign_opaque_modify_resume_function(__fn, __buffer)       \
   ptrauth_auth_and_resign(__fn, ptrauth_key_function_pointer, 0,               \
                           ptrauth_key_process_independent_code,                \
                           ptrauth_blend_discriminator(__buffer,                \
             SpecialPointerAuthDiscriminators::OpaqueModifyResumeFunction))
-#define __ptrauth_swift_type_layout_string                                     \
+#define __ptrauth_language_type_layout_string                                     \
   __ptrauth(ptrauth_key_process_independent_data, 1,                           \
             SpecialPointerAuthDiscriminators::TypeLayoutString)
-#define __ptrauth_swift_deinit_work_function                                   \
+#define __ptrauth_language_deinit_work_function                                   \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::DeinitWorkFunction)
-#define __ptrauth_swift_is_global_actor_function                               \
+#define __ptrauth_language_is_global_actor_function                               \
   __ptrauth(ptrauth_key_function_pointer, 1,                                   \
             SpecialPointerAuthDiscriminators::IsCurrentGlobalActorFunction)
 
 #if __has_attribute(ptrauth_struct)
-#define swift_ptrauth_struct(key, discriminator)                               \
+#define language_ptrauth_struct(key, discriminator)                               \
   __attribute__((ptrauth_struct(key, discriminator)))
 #else
-#define swift_ptrauth_struct(key, discriminator)
+#define language_ptrauth_struct(key, discriminator)
 #endif
 // Set ptrauth_struct to the same scheme as the ptrauth_struct on `from`, but
 // with a modified discriminator.
-#define swift_ptrauth_struct_derived(from)                                     \
-  swift_ptrauth_struct(__builtin_ptrauth_struct_key(from),                     \
+#define language_ptrauth_struct_derived(from)                                     \
+  language_ptrauth_struct(__builtin_ptrauth_struct_key(from),                     \
                        __builtin_ptrauth_struct_disc(from) + 1)
 #else
-#define SWIFT_PTRAUTH 0
-#define __ptrauth_swift_function_pointer(__typekey)
-#define __ptrauth_swift_class_method_pointer(__declkey)
-#define __ptrauth_swift_protocol_witness_function_pointer(__declkey)
-#define __ptrauth_swift_value_witness_function_pointer(__key)
-#define __ptrauth_swift_type_metadata_instantiation_function
-#define __ptrauth_swift_job_invoke_function
-#define __ptrauth_swift_task_resume_function
-#define __ptrauth_swift_task_resume_context
-#define __ptrauth_swift_async_context_parent
-#define __ptrauth_swift_async_context_resume
-#define __ptrauth_swift_async_context_yield
-#define __ptrauth_swift_cancellation_notification_function
-#define __ptrauth_swift_escalation_notification_function
-#define __ptrauth_swift_dispatch_invoke_function
-#define __ptrauth_swift_accessible_function_record
-#define __ptrauth_swift_objc_superclass
-#define __ptrauth_swift_runtime_function_entry
-#define __ptrauth_swift_runtime_function_entry_with_key(__key)
-#define __ptrauth_swift_runtime_function_entry_strip(__fn) (__fn)
-#define __ptrauth_swift_heap_object_destructor
-#define __ptrauth_swift_type_descriptor
-#define __ptrauth_swift_nonunique_extended_existential_type_shape
-#define __ptrauth_swift_dynamic_replacement_key
-#define swift_ptrauth_sign_opaque_read_resume_function(__fn, __buffer) (__fn)
-#define swift_ptrauth_sign_opaque_modify_resume_function(__fn, __buffer) (__fn)
-#define __ptrauth_swift_type_layout_string
-#define __ptrauth_swift_deinit_work_function
-#define __ptrauth_swift_is_global_actor_function
-#define swift_ptrauth_struct(key, discriminator)
-#define swift_ptrauth_struct_derived(from)
+#define LANGUAGE_PTRAUTH 0
+#define __ptrauth_language_function_pointer(__typekey)
+#define __ptrauth_language_class_method_pointer(__declkey)
+#define __ptrauth_language_protocol_witness_function_pointer(__declkey)
+#define __ptrauth_language_value_witness_function_pointer(__key)
+#define __ptrauth_language_type_metadata_instantiation_function
+#define __ptrauth_language_job_invoke_function
+#define __ptrauth_language_task_resume_function
+#define __ptrauth_language_task_resume_context
+#define __ptrauth_language_async_context_parent
+#define __ptrauth_language_async_context_resume
+#define __ptrauth_language_async_context_yield
+#define __ptrauth_language_cancellation_notification_function
+#define __ptrauth_language_escalation_notification_function
+#define __ptrauth_language_dispatch_invoke_function
+#define __ptrauth_language_accessible_function_record
+#define __ptrauth_language_objc_superclass
+#define __ptrauth_language_runtime_function_entry
+#define __ptrauth_language_runtime_function_entry_with_key(__key)
+#define __ptrauth_language_runtime_function_entry_strip(__fn) (__fn)
+#define __ptrauth_language_heap_object_destructor
+#define __ptrauth_language_type_descriptor
+#define __ptrauth_language_protocol_conformance_descriptor
+#define __ptrauth_language_nonunique_extended_existential_type_shape
+#define __ptrauth_language_dynamic_replacement_key
+#define language_ptrauth_sign_opaque_read_resume_function(__fn, __buffer) (__fn)
+#define language_ptrauth_sign_opaque_modify_resume_function(__fn, __buffer) (__fn)
+#define __ptrauth_language_type_layout_string
+#define __ptrauth_language_deinit_work_function
+#define __ptrauth_language_is_global_actor_function
+#define language_ptrauth_struct(key, discriminator)
+#define language_ptrauth_struct_derived(from)
 #endif
 
 #ifdef __cplusplus
 
-#define swift_ptrauth_struct_context_descriptor(name)                          \
-  swift_ptrauth_struct(ptrauth_key_process_dependent_data,                     \
+#define language_ptrauth_struct_context_descriptor(name)                          \
+  language_ptrauth_struct(ptrauth_key_process_dependent_data,                     \
                        ptrauth_string_discriminator(#name))
 
 /// Copy an address-discriminated signed code pointer from the source
 /// to the destination.
 template <class T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline void
-swift_ptrauth_copy(T *dest, const T *src, unsigned extra, bool allowNull) {
-#if SWIFT_PTRAUTH
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline void
+language_ptrauth_copy(T *dest, const T *src, unsigned extra, bool allowNull) {
+#if LANGUAGE_PTRAUTH
   if (allowNull && *src == nullptr) {
     *dest = nullptr;
     return;
@@ -409,10 +414,10 @@ swift_ptrauth_copy(T *dest, const T *src, unsigned extra, bool allowNull) {
 /// Copy an address-discriminated signed data pointer from the source
 /// to the destination.
 template <class T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
-static inline void swift_ptrauth_copy_data(T *dest, const T *src,
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+static inline void language_ptrauth_copy_data(T *dest, const T *src,
                                            unsigned extra, bool allowNull) {
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
   if (allowNull && *src == nullptr) {
     *dest = nullptr;
     return;
@@ -431,13 +436,13 @@ static inline void swift_ptrauth_copy_data(T *dest, const T *src,
 /// Copy an address-discriminated signed pointer from the source
 /// to the destination.
 template <class T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline void
-swift_ptrauth_copy_code_or_data(T *dest, const T *src, unsigned extra,
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline void
+language_ptrauth_copy_code_or_data(T *dest, const T *src, unsigned extra,
                                 bool isCode, bool allowNull) {
   if (isCode) {
-    return swift_ptrauth_copy(dest, src, extra, allowNull);
+    return language_ptrauth_copy(dest, src, extra, allowNull);
   } else {
-    return swift_ptrauth_copy_data(dest, src, extra, allowNull);
+    return language_ptrauth_copy_data(dest, src, extra, allowNull);
   }
 }
 
@@ -445,10 +450,10 @@ swift_ptrauth_copy_code_or_data(T *dest, const T *src, unsigned extra,
 /// function pointer.  This does not authenticate the source value, so be
 /// careful about how you construct it.
 template <class T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
-static inline void swift_ptrauth_init(T *dest, T value, unsigned extra) {
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+static inline void language_ptrauth_init(T *dest, T value, unsigned extra) {
   // FIXME: assert that T is not a function-pointer type?
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
   *dest = ptrauth_sign_unauthenticated(value,
                                   ptrauth_key_function_pointer,
                                   ptrauth_blend_discriminator(dest, extra));
@@ -461,10 +466,10 @@ static inline void swift_ptrauth_init(T *dest, T value, unsigned extra) {
 /// data pointer.  This does not authenticate the source value, so be
 /// careful about how you construct it.
 template <class T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
-static inline void swift_ptrauth_init_data(T *dest, T value, unsigned extra) {
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+static inline void language_ptrauth_init_data(T *dest, T value, unsigned extra) {
   // FIXME: assert that T is not a function-pointer type?
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
   *dest = ptrauth_sign_unauthenticated(value,
                                   ptrauth_key_process_independent_data,
                                   ptrauth_blend_discriminator(dest, extra));
@@ -477,19 +482,19 @@ static inline void swift_ptrauth_init_data(T *dest, T value, unsigned extra) {
 /// pointer.  This does not authenticate the source value, so be
 /// careful about how you construct it.
 template <class T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline void
-swift_ptrauth_init_code_or_data(T *dest, T value, unsigned extra, bool isCode) {
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline void
+language_ptrauth_init_code_or_data(T *dest, T value, unsigned extra, bool isCode) {
   if (isCode) {
-    return swift_ptrauth_init(dest, value, extra);
+    return language_ptrauth_init(dest, value, extra);
   } else {
-    return swift_ptrauth_init_data(dest, value, extra);
+    return language_ptrauth_init_data(dest, value, extra);
   }
 }
 
 template <typename T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
-static inline T swift_auth_data_non_address(T value, unsigned extra) {
-#if SWIFT_PTRAUTH
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+static inline T language_auth_data_non_address(T value, unsigned extra) {
+#if LANGUAGE_PTRAUTH
   // Cast to void* using a union to avoid implicit ptrauth operations when T
   // points to a type with the ptrauth_struct attribute.
   union {
@@ -507,9 +512,9 @@ static inline T swift_auth_data_non_address(T value, unsigned extra) {
 }
 
 template <typename T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
-static inline T swift_sign_data_non_address(T value, unsigned extra) {
-#if SWIFT_PTRAUTH
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+static inline T language_sign_data_non_address(T value, unsigned extra) {
+#if LANGUAGE_PTRAUTH
   // Cast from void* using a union to avoid implicit ptrauth operations when T
   // points to a type with the ptrauth_struct attribute.
   union {
@@ -525,9 +530,9 @@ static inline T swift_sign_data_non_address(T value, unsigned extra) {
 }
 
 template <typename T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
-static inline T swift_strip_data(T value) {
-#if SWIFT_PTRAUTH
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+static inline T language_strip_data(T value) {
+#if LANGUAGE_PTRAUTH
   // Cast to void* using a union to avoid implicit ptrauth operations when T
   // points to a type with the ptrauth_struct attribute.
   union {
@@ -543,22 +548,11 @@ static inline T swift_strip_data(T value) {
 }
 
 template <typename T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline T
-swift_auth_code(T value, unsigned extra) {
-#if SWIFT_PTRAUTH
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline T
+language_auth_code(T value, unsigned extra) {
+#if LANGUAGE_PTRAUTH
   return (T)ptrauth_auth_function((void *)value,
                                   ptrauth_key_process_independent_code, extra);
-#else
-  return value;
-#endif
-}
-
-template <typename T>
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE static inline T
-swift_auth_code_function(T value, unsigned extra) {
-#if SWIFT_PTRAUTH
-  return (T)ptrauth_auth_function((void *)value,
-                                  ptrauth_key_function_pointer, extra);
 #else
   return value;
 #endif
@@ -568,30 +562,30 @@ swift_auth_code_function(T value, unsigned extra) {
 #ifdef __APPLE__
 #  include <TargetConditionals.h>
 #  if TARGET_OS_OSX
-#    define SWIFT_BACKTRACE_ON_CRASH_SUPPORTED 1
-#    define SWIFT_BACKTRACE_SECTION "__DATA,swift5_backtrace"
+#    define LANGUAGE_BACKTRACE_ON_CRASH_SUPPORTED 1
+#    define LANGUAGE_BACKTRACE_SECTION "__DATA,language5_backtrace"
 #  else
-#    define SWIFT_BACKTRACE_ON_CRASH_SUPPORTED 0
+#    define LANGUAGE_BACKTRACE_ON_CRASH_SUPPORTED 0
 #  endif
 #elif defined(_WIN32)
-#  define SWIFT_BACKTRACE_ON_CRASH_SUPPORTED 0
-#  define SWIFT_BACKTRACE_SECTION ".sw5bckt"
+#  define LANGUAGE_BACKTRACE_ON_CRASH_SUPPORTED 0
+#  define LANGUAGE_BACKTRACE_SECTION ".sw5bckt"
 #elif defined(__linux__) && (defined(__aarch64__) || defined(__x86_64__))
-#  define SWIFT_BACKTRACE_ON_CRASH_SUPPORTED 1
-#  define SWIFT_BACKTRACE_SECTION "swift5_backtrace"
+#  define LANGUAGE_BACKTRACE_ON_CRASH_SUPPORTED 1
+#  define LANGUAGE_BACKTRACE_SECTION "language5_backtrace"
 #else
-#  define SWIFT_BACKTRACE_ON_CRASH_SUPPORTED 0
+#  define LANGUAGE_BACKTRACE_ON_CRASH_SUPPORTED 0
 #endif
 
 /// What is the system page size?
 #if defined(__APPLE__) && defined(__arm64__)
   // Apple Silicon systems use a 16KB page size
-  #define SWIFT_PAGE_SIZE 16384
+  #define LANGUAGE_PAGE_SIZE 16384
 #else
   // Everything else uses 4KB pages
-  #define SWIFT_PAGE_SIZE 4096
+  #define LANGUAGE_PAGE_SIZE 4096
 #endif
 
 #endif
 
-#endif // SWIFT_RUNTIME_CONFIG_H
+#endif // LANGUAGE_RUNTIME_CONFIG_H

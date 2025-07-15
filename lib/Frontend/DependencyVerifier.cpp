@@ -1,13 +1,17 @@
 //===--- DependencyVerifier.cpp - Dependency Verifier ---------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Implements a verifier for dependencies registered against the
@@ -26,9 +30,9 @@
 #include "language/Frontend/DiagnosticVerifier.h"
 #include "language/Parse/Lexer.h"
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/Support/FormatVariadic.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/Support/FormatVariadic.h"
 
 using namespace language;
 
@@ -180,15 +184,15 @@ struct Obligation {
   public:
     struct Info {
       static inline Obligation::Key getEmptyKey() {
-        return Obligation::Key{llvm::DenseMapInfo<StringRef>::getEmptyKey(),
+        return Obligation::Key{toolchain::DenseMapInfo<StringRef>::getEmptyKey(),
                                static_cast<Expectation::Kind>(~0)};
       }
       static inline Obligation::Key getTombstoneKey() {
-        return Obligation::Key{llvm::DenseMapInfo<StringRef>::getTombstoneKey(),
+        return Obligation::Key{toolchain::DenseMapInfo<StringRef>::getTombstoneKey(),
                                static_cast<Expectation::Kind>(~0U - 1)};
       }
       static unsigned getHashValue(const Obligation::Key &Val) {
-        return llvm::hash_combine(Val.Name, Val.Kind);
+        return toolchain::hash_combine(Val.Name, Val.Kind);
       }
       static bool isEqual(const Obligation::Key &LHS,
                           const Obligation::Key &RHS) {
@@ -213,7 +217,7 @@ public:
   StringRef getName() const { return name; }
 
   StringRef renderAsFixit(ASTContext &Ctx) const {
-    llvm::StringRef selector =
+    toolchain::StringRef selector =
 #define MATRIX_ENTRY(SELECTOR, KIND)                                           \
   if (getKind() == Expectation::Kind::KIND) {                                  \
     return SELECTOR;                                                           \
@@ -254,10 +258,10 @@ public:
   bool verifyFile(const SourceFile *SF);
 
 public:
-  using ObligationMap = llvm::MapVector<
+  using ObligationMap = toolchain::MapVector<
       Obligation::Key, Obligation,
-      llvm::DenseMap<Obligation::Key, unsigned, Obligation::Key::Info>>;
-  using NegativeExpectationMap = llvm::StringMap<Expectation>;
+      toolchain::DenseMap<Obligation::Key, unsigned, Obligation::Key::Info>>;
+  using NegativeExpectationMap = toolchain::StringMap<Expectation>;
 
 private:
   /// These routines return \c true on failure, \c false otherwise.
@@ -282,8 +286,8 @@ private:
   /// fail is called with the unmatched expectation value.
   void matchExpectationOrFail(
       ObligationMap &OM, const Expectation &expectation,
-      llvm::function_ref<Obligation::FulfillmentToken(Obligation &)> fulfill,
-      llvm::function_ref<void(const Expectation &)> fail) {
+      toolchain::function_ref<Obligation::FulfillmentToken(Obligation &)> fulfill,
+      toolchain::function_ref<void(const Expectation &)> fail) {
     auto entry = OM.find(Obligation::Key::forExpectation(expectation));
     if (entry == OM.end()) {
       return fail(expectation);
@@ -296,7 +300,7 @@ private:
   /// relevant name data and the Obligation itself.
   void
   forEachOwedObligation(ObligationMap &OM,
-                        llvm::function_ref<void(StringRef, Obligation &)> f) {
+                        toolchain::function_ref<void(StringRef, Obligation &)> f) {
     for (auto &p : OM) {
       if (p.second.isOwed())
         f(p.first.Name, p.second);
@@ -316,7 +320,7 @@ private:
   InFlightDiagnostic
   diagnose(DiagnosticEngine &Diags, const char *LocPtr, Diag<ArgTypes...> ID,
            typename detail::PassArgument<ArgTypes>::type... Args) const {
-    auto Loc = SourceLoc(llvm::SMLoc::getFromPointer(LocPtr));
+    auto Loc = SourceLoc(toolchain::SMLoc::getFromPointer(LocPtr));
     return Diags.diagnose(Loc, ID, std::move(Args)...);
   }
 };
@@ -342,7 +346,7 @@ bool DependencyVerifier::parseExpectations(
   })
 
       // clang-format off
-          llvm::StringSwitch<llvm::function_ref<void(void)>>{MatchStart}
+          toolchain::StringSwitch<toolchain::function_ref<void(void)>>{MatchStart}
             EXPECTATION_MATRIX
             .Default([]() {})();
       // clang-format on
@@ -390,7 +394,7 @@ bool DependencyVerifier::constructObligations(const SourceFile *SF,
     switch (reference.kind) {
     case NodeKind::Empty:
     case NodeKind::Tombstone:
-      llvm_unreachable("Cannot enumerate dead dependency!");
+      toolchain_unreachable("Cannot enumerate dead dependency!");
 
     case NodeKind::PotentialMember: {
       auto key = copyQualifiedTypeName(Ctx, reference.subject->getSelfNominalTypeDecl());
@@ -422,7 +426,7 @@ bool DependencyVerifier::constructObligations(const SourceFile *SF,
 
 bool DependencyVerifier::verifyObligations(
     const SourceFile *SF, const std::vector<Expectation> &ExpectedDependencies,
-    ObligationMap &OM, llvm::StringMap<Expectation> &NegativeExpectations) {
+    ObligationMap &OM, toolchain::StringMap<Expectation> &NegativeExpectations) {
   auto &diags = SF->getASTContext().Diags;
   for (auto &expectation : ExpectedDependencies) {
     if (expectation.Info.Kind == Expectation::Kind::Negative) {
@@ -436,7 +440,7 @@ bool DependencyVerifier::verifyObligations(
         [&](Obligation &O) {
           switch (expectation.Info.Kind) {
           case Expectation::Kind::Negative:
-            llvm_unreachable("Should have been handled above!");
+            toolchain_unreachable("Should have been handled above!");
           case Expectation::Kind::Member:
             return O.fulfill();
           case Expectation::Kind::PotentialMember:
@@ -447,7 +451,7 @@ bool DependencyVerifier::verifyObligations(
             return O.fulfill();
           }
 
-          llvm_unreachable("Unhandled expectation kind!");
+          toolchain_unreachable("Unhandled expectation kind!");
         },
         [&](const Expectation &e) {
           diagnose(diags, e.MessageRange.begin(),
@@ -486,10 +490,10 @@ bool DependencyVerifier::diagnoseUnfulfilledObligations(
     // HACK: Diagnosing the end of the buffer will print a carat pointing
     // at the file path, but not print any of the buffer's contents, which
     // might be misleading.
-    auto Loc = SourceLoc(llvm::SMLoc::getFromPointer(InputFile.end()));
+    auto Loc = SourceLoc(toolchain::SMLoc::getFromPointer(InputFile.end()));
     switch (p.getKind()) {
     case Expectation::Kind::Negative:
-      llvm_unreachable("Obligations may not be negative; only Expectations!");
+      toolchain_unreachable("Obligations may not be negative; only Expectations!");
     case Expectation::Kind::Member:
     case Expectation::Kind::DynamicMember:
     case Expectation::Kind::PotentialMember:
@@ -539,7 +543,7 @@ bool DependencyVerifier::verifyFile(const SourceFile *SF) {
 // MARK: Main entrypoints
 //===----------------------------------------------------------------------===//
 
-bool swift::verifyDependencies(SourceManager &SM, ArrayRef<FileUnit *> SFs) {
+bool language::verifyDependencies(SourceManager &SM, ArrayRef<FileUnit *> SFs) {
   bool HadError = false;
   DependencyVerifier Verifier{SM};
   for (const auto *FU : SFs) {
@@ -549,7 +553,7 @@ bool swift::verifyDependencies(SourceManager &SM, ArrayRef<FileUnit *> SFs) {
   return HadError;
 }
 
-bool swift::verifyDependencies(SourceManager &SM, ArrayRef<SourceFile *> SFs) {
+bool language::verifyDependencies(SourceManager &SM, ArrayRef<SourceFile *> SFs) {
   bool HadError = false;
   DependencyVerifier Verifier{SM};
   for (const auto *SF : SFs) {

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # remote-run - Runs a command on another machine, for testing -----*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2018 Apple Inc. and the Swift project authors
+# Copyright (c) 2018 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -203,7 +203,7 @@ class RemoteCommandRunner(CommandRunner):
                 [quote(arg) for arg in command])
 
     def rsync_invocation(self, source, dest):
-        return ['/usr/bin/rsync', '-arRz', '--files-from=-',
+        return ['rsync', '-arRz', '--files-from=-',
                 '-e', ' '.join([quote(x) for x in
                                 ['/usr/bin/ssh'] +
                                 self.common_options(port_flag='-p')]),
@@ -221,7 +221,7 @@ class LocalCommandRunner(CommandRunner):
         return command
 
     def rsync_invocation(self, source, dest):
-        return ['/usr/bin/rsync', '-arz', '--files-from=-', source, dest]
+        return ['rsync', '-arz', '--files-from=-', source, dest]
 
     def rsync_from_invocation(self, source, dest):
         return self.rsync_invocation(source, dest)

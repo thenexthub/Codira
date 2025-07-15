@@ -1,0 +1,79 @@
+// RUN: %empty-directory(%t)
+
+// We compile with -O (optimizations) and -disable-access-control (which
+// allows use to "call" methods that are removed by dead code elimination).
+// RUN: %target-build-language -parse-as-library %S/Inputs/report_dead_method_call/main.code %s -O -Xfrontend -disable-access-control -target %target-language-5.1-abi-triple -o %t/report_dead_method_call
+
+// The private, unused methods are optimized away. The test calls these
+// methods anyway (since it has overridden the access control), so we
+// expect them to produce "Fatal error: Call of deleted method" when run.
+// RUN: %target-codesign %t/report_dead_method_call
+// RUN: %target-run %t/report_dead_method_call
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// UNSUPPORTED: freestanding
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+// WebAssembly support only in-process testing for now.
+// UNSUPPORTED: CPU=wasm32
+
+// UNSUPPORTED: language_test_mode_optimize_none_with_implicit_dynamic
+// UNSUPPORTED: language_test_mode_optimize_with_implicit_dynamic
+
+private protocol PrivateProto {
+	fn abc()
+	fn abcAsync() async
+}
+
+struct PrivateStructC : PrivateProto {
+	fn abc() {}
+	fn abcAsync() async {}
+}
+
+struct Container {
+
+	private var p: PrivateProto = PrivateStructC()
+}
+
+@inline(never)
+fn callProto() {
+	testProto(Container())
+}
+
+@inline(never)
+fn callProtoAsync() async {
+	await testProtoAsync(Container())
+}
+
+private class Base {
+	fn def() {}
+	fn defAsync() async {}
+}
+
+private class Derived : Base {
+	override fn def() {}
+	override fn defAsync() async {}
+}
+
+struct ClassContainer {
+
+	private var p: Base = Derived()
+}
+
+@inline(never)
+fn callClass() {
+	testClass(ClassContainer())
+}
+
+@inline(never)
+fn callClassAsync() async {
+	await testClassAsync(ClassContainer())
+}
+
+public class PublicBase {
+	private fn ghi() { }
+
+  private fn ghiAsync() async {}
+}
+

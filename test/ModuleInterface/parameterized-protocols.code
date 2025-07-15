@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/ParameterizedProtocols.codeinterface) %s -module-name ParameterizedProtocols
+// RUN: %target-language-typecheck-module-from-interface(%t/ParameterizedProtocols.codeinterface) -module-name ParameterizedProtocols
+// RUN: %FileCheck %s < %t/ParameterizedProtocols.codeinterface
+
+public protocol HasPrimaryAssociatedTypes<T, U> {
+  associatedtype T : Collection where T.Element == U
+  associatedtype U : Equatable
+}
+
+// CHECK:      public protocol HasPrimaryAssociatedTypes<T, U> {
+// CHECK-NEXT:   associatedtype T : Codira.Collection
+// CHECK-NEXT:   associatedtype U : Codira.Equatable where Self.U == Self.T.Element
+// CHECK-NEXT: }

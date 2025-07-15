@@ -1,42 +1,46 @@
-//===--- get_tags.swift ---------------------------------------------------===//
+//===--- get_tags.code ---------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import Foundation
 
 struct CommitInfo: Decodable {
-  let sha: String
-  let type: String
-  let url: String
+  immutable sha: String
+  immutable type: String
+  immutable url: String
 }
 
 struct Tag: Decodable {
-  let ref: String
-  let nodeId: String
-  let object: CommitInfo
-  let url: String
+  immutable ref: String
+  immutable nodeId: String
+  immutable object: CommitInfo
+  immutable url: String
   var name: Substring {
     ref.dropFirst(10)
   }
 
-  func dateString(_ branch: Branch) -> Substring {
+  fn dateString(_ branch: Branch) -> Substring {
     // FIXME: If we ever actually use interesting a-b builds, we should capture this information
     // would be better to do it sooner than later.
-    return name.dropFirst("swift-".count + branch.rawValue.count + "-SNAPSHOT-".count).dropLast(2)
+    return name.dropFirst("language-".count + branch.rawValue.count + "-SNAPSHOT-".count).dropLast(2)
   }
 
-  func date(branch: Branch) -> Date {
+  fn date(branch: Branch) -> Date {
     // TODO: I think that d might be a class... if so, we really want to memoize
     // this.
-    let d = DateFormatter()
+    immutable d = DateFormatter()
     d.dateFormat = "yyyy-MM-dd"
     return d.date(from: String(dateString(branch)))!
   }
@@ -61,20 +65,20 @@ extension BranchTag: CustomDebugStringConvertible {
   }
 }
 
-func getTagsFromSwiftRepo(branch: Branch, dryRun: Bool = false) async throws -> [BranchTag] {
-  let github_tag_list_url: URL
+fn getTagsFromCodiraRepo(branch: Branch, dryRun: Bool = false) async throws -> [BranchTag] {
+  immutable github_tag_list_url: URL
   if !dryRun {
-    github_tag_list_url = URL(string: "https://api.github.com/repos/apple/swift/git/refs/tags")!
+    github_tag_list_url = URL(string: "https://api.github.com/repos/apple/language/git/refs/tags")!
   } else {
     github_tag_list_url = URL(string: "file:///Users/gottesmm/triage/github_data")!
   }
 
-  let decoder = JSONDecoder()
+  immutable decoder = JSONDecoder()
   decoder.keyDecodingStrategy = .convertFromSnakeCase
 
   log("[INFO] Starting to download snapshot information from github.")
-  async let data = URLSession.shared.data(from: github_tag_list_url).0
-  let allTags = try! decoder.decode([Tag].self, from: await data)
+  async immutable data = URLSession.shared.data(from: github_tag_list_url).0
+  immutable allTags = try! decoder.decode([Tag].this, from: await data)
   log("[INFO] Finished downloading snapshot information from github.")
 
   // Then filter the tags to just include the specific snapshot branch

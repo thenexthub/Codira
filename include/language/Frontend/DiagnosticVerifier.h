@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file exposes support for the diagnostic verifier, which is used to
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_DIAGNOSTIC_VERIFIER_H
-#define SWIFT_FRONTEND_DIAGNOSTIC_VERIFIER_H
+#ifndef LANGUAGE_FRONTEND_DIAGNOSTIC_VERIFIER_H
+#define LANGUAGE_FRONTEND_DIAGNOSTIC_VERIFIER_H
 
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 #include "language/AST/DiagnosticConsumer.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
 class DependencyTracker;
@@ -67,7 +68,7 @@ public:
 };
 
 struct CapturedDiagnosticInfo {
-  llvm::SmallString<128> Message;
+  toolchain::SmallString<128> Message;
   std::optional<unsigned> SourceBufferID;
   DiagnosticKind Classification;
   SourceLoc Loc;
@@ -76,7 +77,7 @@ struct CapturedDiagnosticInfo {
   SmallVector<CapturedFixItInfo, 2> FixIts;
   std::string CategoryDocFile;
 
-  CapturedDiagnosticInfo(llvm::SmallString<128> Message,
+  CapturedDiagnosticInfo(toolchain::SmallString<128> Message,
                          std::optional<unsigned> SourceBufferID,
                          DiagnosticKind Classification, SourceLoc Loc,
                          unsigned Line, unsigned Column,
@@ -127,7 +128,7 @@ private:
     bool HadUnexpectedDiag;
   };
 
-  void printDiagnostic(const llvm::SMDiagnostic &Diag) const;
+  void printDiagnostic(const toolchain::SMDiagnostic &Diag) const;
 
   bool
   verifyUnknown(std::vector<CapturedDiagnosticInfo> &CapturedDiagnostics) const;

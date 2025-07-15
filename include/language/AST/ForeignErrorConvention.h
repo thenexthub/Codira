@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ForeignErrorConvention structure, which
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FOREIGN_ERROR_CONVENTION_H
-#define SWIFT_FOREIGN_ERROR_CONVENTION_H
+#ifndef LANGUAGE_FOREIGN_ERROR_CONVENTION_H
+#define LANGUAGE_FOREIGN_ERROR_CONVENTION_H
 
 #include "language/AST/Type.h"
 
@@ -201,7 +202,7 @@ public:
     case NonNilError:
       return false;
     }
-    llvm_unreachable("unhandled foreign error kind!");
+    toolchain_unreachable("unhandled foreign error kind!");
   }
 
   bool operator==(ForeignErrorConvention other) const {

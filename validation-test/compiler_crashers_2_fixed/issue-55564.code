@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/55564
+
+public struct S<T : Codable> : Codable {
+  var s: [T]!
+}

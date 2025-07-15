@@ -1,0 +1,10 @@
+// {"kind":"typecheck","signature":"language::AbstractStorageDecl::getValueInterfaceType() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a {
+}
+{
+  lazy var b = {
+    c
+  }
+  var c = a
+}

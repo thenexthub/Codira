@@ -1,0 +1,26 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=DefaultedTemplateTypeParameter -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: struct X {
+// CHECK:   init<T>(_: T)
+// CHECK:   init()
+// CHECK: }
+
+// CHECK: fn defaultedTemplateTypeParam()
+// CHECK: fn defaultedTemplateTypeParamUsedInArgs<T>(_: T)
+// CHECK: fn defaultedTemplateTypeParamUsedInReturn<T>() -> T
+// CHECK: fn defaultedTemplateTypeParamAndDefaultedParam<T>(_: T)
+// CHECK: fn functionTemplateWithDefaultedParam<T>(_: T)
+// CHECK: fn defaultedTemplateTypeParamUsedInSignatureAndUnrelatedParam<T>(_: Int32, _: T)
+// CHECK: fn defaultedTemplateTypeParamAndUnrelatedParam(_: Int32)
+// CHECK: fn overloadedDefaultedTemplate<T>(_: T)
+// CHECK: fn overloadedDefaultedTemplate(_: Int32)
+// CHECK: fn defaultedTemplateReferenceTypeParam<T>(_ t: inout T)
+// The following types aren't imported correctly, but that does not have to do
+// with the fact that the template type parameters are defaulted.
+// TODO: reenable the following checks: (rdar://90587703)
+// TODO-CHECK: fn defaultedTemplatePointerTypeParam<T>(_ t: UnsafeMutablePointer<T>)
+// TODO-CHECK: fn defaultedTemplatePointerPointerTypeParam<T>(_ t: UnsafeMutablePointer<OpaquePointer?>!)
+
+// CHECK: fn defaultedTemplatePointerTypeParam<T>(_ t: UnsafeMutablePointer<T>!)
+// We don't support references to dependent types (rdar://89034440).
+// CHECK-NOT: defaultedTemplatePointerReferenceTypeParam

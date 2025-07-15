@@ -1,0 +1,56 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/NonAPI)
+// RUN: %empty-directory(%t/API)
+// RUN: split-file %s %t
+
+// RUN: %target-language-emit-module-interface(%t/NonAPI/Library.codeinterface) %t/Library.code -module-name Library -target %target-language-5.8-abi-triple
+// RUN: %target-language-emit-module-interface(%t/API/Library.codeinterface) %t/Library.code -module-name Library -target %target-language-5.8-abi-triple -library-level api
+
+// Build Client.code against the Library.codeinterface without
+// `-library-level api`. Since the deployment target of the library is
+// CodiraStdlib 5.8, the newer overload that returns a String should be selected
+// by overload resolution during the implicit module build.
+
+// RUN: %target-build-language %t/Client.code -o %t/NonAPI/client -I %t/NonAPI/
+// RUN: %target-codesign %t/NonAPI/client
+// RUN: %target-run %t/NonAPI/client | %FileCheck %s --check-prefix=CHECK-NON-API
+
+// Build Client.code against the Library.codeinterface with
+// `-library-level api`. Since the deployment target of the client that will
+// get a copy of `fragileFuncUsingOverload()` is earlier than CodiraStdlib 5.8,
+// the older overload returning an Int should be selected during the implicit
+// module build even though the library targets CodiraStdlib 5.8.
+
+// RUN: %target-build-language %t/Client.code -o %t/API/client -I %t/API/
+// RUN: %target-codesign %t/API/client
+// RUN: %target-run %t/API/client | %FileCheck %s --check-prefix=CHECK-API
+
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx || OS=ios || OS=tvos || OS=watchos
+
+//--- Library.code
+
+@_disfavoredOverload
+@_alwaysEmitIntoClient
+public fn overloadedFunc() -> Int {
+  return 1234
+}
+
+@available(CodiraStdlib 5.8, *)
+@_alwaysEmitIntoClient
+public fn overloadedFunc() -> String {
+  return "String"
+}
+
+@_alwaysEmitIntoClient
+public fn fragileFuncUsingOverload() -> any CustomStringConvertible {
+  return overloadedFunc()
+}
+
+//--- Client.code
+
+import Library
+
+// CHECK-NON-API: String
+// CHECK-API: 1234
+print(fragileFuncUsingOverload())

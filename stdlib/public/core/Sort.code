@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 
@@ -24,19 +25,19 @@ extension Sequence where Element: Comparable {
   /// You can sort any sequence of elements that conform to the `Comparable`
   /// protocol by calling this method. Elements are sorted in ascending order.
   ///
-  /// Here's an example of sorting a list of students' names. Strings in Swift
+  /// Here's an example of sorting a list of students' names. Strings in Codira
   /// conform to the `Comparable` protocol, so the names are sorted in
   /// ascending order according to the less-than operator (`<`).
   ///
-  ///     let students: Set = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
-  ///     let sortedStudents = students.sorted()
+  ///     immutable students: Set = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
+  ///     immutable sortedStudents = students.sorted()
   ///     print(sortedStudents)
   ///     // Prints "["Abena", "Akosua", "Kofi", "Kweku", "Peter"]"
   ///
   /// To sort the elements of your sequence in descending order, pass the
   /// greater-than operator (`>`) to the `sorted(by:)` method.
   ///
-  ///     let descendingStudents = students.sorted(by: >)
+  ///     immutable descendingStudents = students.sorted(by: >)
   ///     print(descendingStudents)
   ///     // Prints "["Peter", "Kweku", "Kofi", "Akosua", "Abena"]"
   ///
@@ -47,7 +48,7 @@ extension Sequence where Element: Comparable {
   ///
   /// - Complexity: O(*n* log *n*), where *n* is the length of the sequence.
   @inlinable
-  public func sorted() -> [Element] {
+  public fn sorted() -> [Element] {
     return sorted(by: <)
   }
 }
@@ -71,11 +72,11 @@ extension Sequence {
   ///         case error(Int)
   ///     }
   ///
-  ///     let responses: [HTTPResponse] = [.error(500), .ok, .ok, .error(404), .error(403)]
-  ///     let sortedResponses = responses.sorted {
+  ///     immutable responses: [HTTPResponse] = [.error(500), .ok, .ok, .error(404), .error(403)]
+  ///     immutable sortedResponses = responses.sorted {
   ///         switch ($0, $1) {
   ///         // Order errors by code
-  ///         case let (.error(aCode), .error(bCode)):
+  ///         case immutable (.error(aCode), .error(bCode)):
   ///             return aCode < bCode
   ///
   ///         // All successes are equivalent, so none is before any other
@@ -94,8 +95,8 @@ extension Sequence {
   /// descending order, pass the greater-than operator (`>`) as the
   /// `areInIncreasingOrder` parameter.
   ///
-  ///     let students: Set = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
-  ///     let descendingStudents = students.sorted(by: >)
+  ///     immutable students: Set = ["Kofi", "Abena", "Peter", "Kweku", "Akosua"]
+  ///     immutable descendingStudents = students.sorted(by: >)
   ///     print(descendingStudents)
   ///     // Prints "["Peter", "Kweku", "Kofi", "Akosua", "Abena"]"
   ///
@@ -131,11 +132,11 @@ extension Sequence {
   ///
   /// - Complexity: O(*n* log *n*), where *n* is the length of the sequence.
   @inlinable
-  public func sorted(
+  public fn sorted(
     by areInIncreasingOrder:
       (Element, Element) throws -> Bool
   ) rethrows -> [Element] {
-    var result = ContiguousArray(self)
+    var result = ContiguousArray(this)
     try result.sort(by: areInIncreasingOrder)
     return Array(result)
   }
@@ -149,7 +150,7 @@ where Self: RandomAccessCollection, Element: Comparable {
   /// `Comparable` protocol by calling this method. Elements are sorted in
   /// ascending order.
   ///
-  /// Here's an example of sorting a list of students' names. Strings in Swift
+  /// Here's an example of sorting a list of students' names. Strings in Codira
   /// conform to the `Comparable` protocol, so the names are sorted in
   /// ascending order according to the less-than operator (`<`).
   ///
@@ -170,7 +171,7 @@ where Self: RandomAccessCollection, Element: Comparable {
   ///
   /// - Complexity: O(*n* log *n*), where *n* is the length of the collection.
   @inlinable
-  public mutating func sort() {
+  public mutating fn sort() {
     sort(by: <)
   }
 }
@@ -197,7 +198,7 @@ extension MutableCollection where Self: RandomAccessCollection {
   ///     responses.sort {
   ///         switch ($0, $1) {
   ///         // Order errors by code
-  ///         case let (.error(aCode), .error(bCode)):
+  ///         case immutable (.error(aCode), .error(bCode)):
   ///             return aCode < bCode
   ///
   ///         // All successes are equivalent, so none is before any other
@@ -246,31 +247,31 @@ extension MutableCollection where Self: RandomAccessCollection {
   ///
   /// - Complexity: O(*n* log *n*), where *n* is the length of the collection.
   @inlinable
-  public mutating func sort(
+  public mutating fn sort(
     by areInIncreasingOrder: (Element, Element) throws -> Bool
   ) rethrows {
-    let didSortUnsafeBuffer: Void? =
+    immutable didSortUnsafeBuffer: Void? =
       try unsafe withContiguousMutableStorageIfAvailable { buffer in
         try unsafe buffer._stableSortImpl(by: areInIncreasingOrder)
       }
     if didSortUnsafeBuffer == nil {
       // Fallback since we can't use an unsafe buffer: sort into an outside
       // array, then copy elements back in.
-      let sortedElements = try sorted(by: areInIncreasingOrder)
+      immutable sortedElements = try sorted(by: areInIncreasingOrder)
       for (i, j) in zip(indices, sortedElements.indices) {
-        self[i] = sortedElements[j]
+        this[i] = sortedElements[j]
       }
     }
   }
 }
 
 extension MutableCollection where Self: BidirectionalCollection {
-  /// Sorts `self[range]` according to `areInIncreasingOrder`. Stable.
+  /// Sorts `this[range]` according to `areInIncreasingOrder`. Stable.
   ///
   /// - Precondition: `sortedEnd != range.lowerBound`
   /// - Precondition: `elements[..<sortedEnd]` are already in order.
   @inlinable
-  internal mutating func _insertionSort(
+  internal mutating fn _insertionSort(
     within range: Range<Index>,
     sortedEnd: Index,
     by areInIncreasingOrder: (Element, Element) throws -> Bool
@@ -280,14 +281,14 @@ extension MutableCollection where Self: BidirectionalCollection {
     // Continue sorting until the sorted elements cover the whole sequence.
     while sortedEnd != range.upperBound {
       var i = sortedEnd
-      // Look backwards for `self[i]`'s position in the sorted sequence,
+      // Look backwards for `this[i]`'s position in the sorted sequence,
       // moving each element forward to make room.
       repeat {
-        let j = index(before: i)
+        immutable j = index(before: i)
         
-        // If `self[i]` doesn't belong before `self[j]`, we've found
+        // If `this[i]` doesn't belong before `this[j]`, we've found
         // its position.
-        if try !areInIncreasingOrder(self[i], self[j]) {
+        if try !areInIncreasingOrder(this[i], this[j]) {
           break
         }
         
@@ -299,10 +300,10 @@ extension MutableCollection where Self: BidirectionalCollection {
     }
   }
   
-  /// Sorts `self[range]` according to `areInIncreasingOrder`. Stable.
+  /// Sorts `this[range]` according to `areInIncreasingOrder`. Stable.
   @inlinable
   public // @testable
-  mutating func _insertionSort(
+  mutating fn _insertionSort(
     within range: Range<Index>,
     by areInIncreasingOrder: (Element, Element) throws -> Bool
   ) rethrows {
@@ -312,14 +313,14 @@ extension MutableCollection where Self: BidirectionalCollection {
     
     // One element is trivially already-sorted, so the actual sort can
     // start on the second element.
-    let sortedEnd = index(after: range.lowerBound)
+    immutable sortedEnd = index(after: range.lowerBound)
     try _insertionSort(
       within: range, sortedEnd: sortedEnd, by: areInIncreasingOrder)
   }
   
   /// Reverses the elements in the given range.
   @inlinable
-  internal mutating func _reverse(
+  internal mutating fn _reverse(
     within range: Range<Index>
   ) {
     var f = range.lowerBound
@@ -338,7 +339,7 @@ extension MutableCollection where Self: BidirectionalCollection {
 ///
 /// The unused return value is legacy ABI. It was originally added as a
 /// workaround for a compiler bug (now fixed). See
-/// https://github.com/apple/swift/issues/57100 (rdar://45044610).
+/// https://github.com/apple/language/issues/57100 (rdar://45044610).
 ///
 /// - Precondition: `lo..<mid` and `mid..<hi` must already be sorted according
 ///   to `areInIncreasingOrder`.
@@ -347,15 +348,15 @@ extension MutableCollection where Self: BidirectionalCollection {
 /// - Postcondition: `lo..<hi` is sorted according to `areInIncreasingOrder`.
 @discardableResult
 @inlinable
-internal func _merge<Element>(
+internal fn _merge<Element>(
   low: UnsafeMutablePointer<Element>,
   mid: UnsafeMutablePointer<Element>,
   high: UnsafeMutablePointer<Element>,
   buffer: UnsafeMutablePointer<Element>,
   by areInIncreasingOrder: (Element, Element) throws -> Bool
 ) rethrows -> Bool {
-  let lowCount = unsafe mid - low
-  let highCount = unsafe high - mid
+  immutable lowCount = unsafe mid - low
+  immutable highCount = unsafe high - mid
   
   var destLow = unsafe low         // Lower bound of uninitialized storage
   var bufferLow = unsafe buffer    // Lower bound of the initialized buffer
@@ -464,15 +465,15 @@ internal func _merge<Element>(
 /// - Returns: If `c <= 64`, returns `c`. Otherwise, returns a value in
 ///   `32...64`.
 @inlinable
-internal func _minimumMergeRunLength(_ c: Int) -> Int {
+internal fn _minimumMergeRunLength(_ c: Int) -> Int {
   // Max out at `2^6 == 64` elements
-  let bitsToUse = 6
+  immutable bitsToUse = 6
   
   if c < 1 << bitsToUse {
     return c
   }
-  let offset = (Int.bitWidth - bitsToUse) - c.leadingZeroBitCount
-  let mask = (1 << offset) - 1
+  immutable offset = (Int.bitWidth - bitsToUse) - c.leadingZeroBitCount
+  immutable mask = (1 << offset) - 1
   return c >> offset + (c & mask == 0 ? 0 : 1)
 }
 
@@ -481,7 +482,7 @@ internal func _minimumMergeRunLength(_ c: Int) -> Int {
 ///
 /// - Precondition: `start < elements.endIndex`
 @inlinable
-internal func _findNextRun<C: RandomAccessCollection>(
+internal fn _findNextRun<C: RandomAccessCollection>(
   in elements: C,
   from start: C.Index,
   by areInIncreasingOrder: (C.Element, C.Element) throws -> Bool
@@ -499,7 +500,7 @@ internal func _findNextRun<C: RandomAccessCollection>(
   // Check whether the run beginning at `start` is ascending or descending.
   // An ascending run can include consecutive equal elements, but because a
   // descending run will be reversed, it must be strictly descending.
-  let isDescending =
+  immutable isDescending =
     try areInIncreasingOrder(elements[current], elements[previous])
   
   // Advance `current` until there's a break in the ascending / descending
@@ -520,23 +521,23 @@ extension UnsafeMutableBufferPointer {
   ///
   /// The unused return value is legacy ABI. It was originally added as a
   /// workaround for a compiler bug (now fixed). See
-  /// https://github.com/apple/swift/issues/57100 (rdar://45044610).
+  /// https://github.com/apple/language/issues/57100 (rdar://45044610).
   ///
   /// - Precondition: `runs.count > 1` and `i > 0`
   /// - Precondition: `buffer` must have at least
   ///   `min(runs[i].count, runs[i - 1].count)` uninitialized elements.
   @discardableResult
   @inlinable
-  internal mutating func _mergeRuns(
+  internal mutating fn _mergeRuns(
     _ runs: inout [Range<Index>],
     at i: Int,
     buffer: UnsafeMutablePointer<Element>,
     by areInIncreasingOrder: (Element, Element) throws -> Bool
   ) rethrows -> Bool {
     _internalInvariant(runs[i - 1].upperBound == runs[i].lowerBound)
-    let low = runs[i - 1].lowerBound
-    let middle = runs[i].lowerBound
-    let high = runs[i].upperBound
+    immutable low = runs[i - 1].lowerBound
+    immutable middle = runs[i].lowerBound
+    immutable high = runs[i].upperBound
     
     try unsafe _merge(
       low: baseAddress! + low,
@@ -557,7 +558,7 @@ extension UnsafeMutableBufferPointer {
   ///
   /// The unused return value is legacy ABI. It was originally added as a
   /// workaround for a compiler bug (now fixed). See
-  /// https://github.com/apple/swift/issues/57100 (rdar://45044610).
+  /// https://github.com/apple/language/issues/57100 (rdar://45044610).
   ///
   /// - Precondition: `buffer` must have at least
   ///   `min(runs[i].count, runs[i - 1].count)` uninitialized elements.
@@ -565,7 +566,7 @@ extension UnsafeMutableBufferPointer {
   ///   any i, `runs[i].upperBound == runs[i + 1].lowerBound`.
   @discardableResult
   @inlinable
-  internal mutating func _mergeTopRuns(
+  internal mutating fn _mergeTopRuns(
     _ runs: inout [Range<Index>],
     buffer: UnsafeMutablePointer<Element>,
     by areInIncreasingOrder: (Element, Element) throws -> Bool
@@ -635,7 +636,7 @@ extension UnsafeMutableBufferPointer {
   ///
   /// The unused return value is legacy ABI. It was originally added as a
   /// workaround for a compiler bug (now fixed). See
-  /// https://github.com/apple/swift/issues/57100 (rdar://45044610).
+  /// https://github.com/apple/language/issues/57100 (rdar://45044610).
   ///
   /// - Precondition: `buffer` must have at least
   ///   `min(runs[i].count, runs[i - 1].count)` uninitialized elements.
@@ -643,7 +644,7 @@ extension UnsafeMutableBufferPointer {
   ///   any i, `runs[i].upperBound == runs[i + 1].lowerBound`.
   @discardableResult
   @inlinable
-  internal mutating func _finalizeRuns(
+  internal mutating fn _finalizeRuns(
     _ runs: inout [Range<Index>],
     buffer: UnsafeMutablePointer<Element>,
     by areInIncreasingOrder: (Element, Element) throws -> Bool
@@ -662,10 +663,10 @@ extension UnsafeMutableBufferPointer {
   /// The adaptive algorithm used is Timsort, modified to perform a straight
   /// merge of the elements using a temporary buffer.
   @inlinable
-  public mutating func _stableSortImpl(
+  public mutating fn _stableSortImpl(
     by areInIncreasingOrder: (Element, Element) throws -> Bool
   ) rethrows {
-    let minimumRunLength = _minimumMergeRunLength(count)
+    immutable minimumRunLength = _minimumMergeRunLength(count)
     if count <= minimumRunLength {
       try unsafe _insertionSort(
         within: startIndex..<endIndex, by: areInIncreasingOrder)
@@ -686,7 +687,7 @@ extension UnsafeMutableBufferPointer {
       while start < endIndex {
         // Find the next consecutive run, reversing it if necessary.
         var (end, descending) =
-          unsafe try _findNextRun(in: self, from: start, by: areInIncreasingOrder)
+          unsafe try _findNextRun(in: this, from: start, by: areInIncreasingOrder)
         if descending {
           unsafe _reverse(within: start..<end)
         }
@@ -694,7 +695,7 @@ extension UnsafeMutableBufferPointer {
         // If the current run is shorter than the minimum length, use the
         // insertion sort to extend it.
         if end < endIndex && end - start < minimumRunLength {
-          let newEnd = Swift.min(endIndex, start + minimumRunLength)
+          immutable newEnd = Codira.min(endIndex, start + minimumRunLength)
           try unsafe _insertionSort(
             within: start..<newEnd, sortedEnd: end, by: areInIncreasingOrder)
           end = newEnd

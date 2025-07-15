@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Pass order dependencies:
@@ -94,8 +95,8 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SCCIterator.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SCCIterator.h"
 
 using namespace language;
 
@@ -151,7 +152,7 @@ public:
 
   void dump() const {
     AccessStorage::dump();
-    llvm::dbgs() << "  access index: " << getAccessIndex() << " <"
+    toolchain::dbgs() << "  access index: " << getAccessIndex() << " <"
                  << (seenNestedConflict() ? "" : "no ") << "conflict> <"
                  << (seenIdenticalStorage() ? "" : "not ") << "seen identical>"
                  << "\n";
@@ -165,7 +166,7 @@ namespace {
 /// Reachability results are stored here because very few accesses are
 /// typically in-progress at a particular program point,
 /// particularly at block boundaries.
-using DenseAccessSet = llvm::SmallSetVector<BeginAccessInst *, 4>;
+using DenseAccessSet = toolchain::SmallSetVector<BeginAccessInst *, 4>;
 
 // Tracks the local data flow result for a basic block
 struct RegionState {
@@ -174,7 +175,7 @@ struct RegionState {
 
 public:
   RegionState(unsigned size) {
-    // FIXME: llvm::SetVector should have a reserve API.
+    // FIXME: toolchain::SetVector should have a reserve API.
     // inScopeConflictFreeAccesses.reserve(size);
     // outOfScopeConflictFreeAccesses.reserve(size);
   }
@@ -241,14 +242,14 @@ public:
 // %3 = begin_access X // %1 reaches %3 -> we can merge
 class AccessConflictAndMergeAnalysis {
 public:
-  using AccessMap = llvm::SmallDenseMap<BeginAccessInst *, AccessInfo, 32>;
-  using AccessStorageSet = llvm::SmallDenseSet<AccessStorage, 8>;
+  using AccessMap = toolchain::SmallDenseMap<BeginAccessInst *, AccessInfo, 32>;
+  using AccessStorageSet = toolchain::SmallDenseSet<AccessStorage, 8>;
   using LoopRegionToAccessStorage =
-      llvm::SmallDenseMap<unsigned, AccessStorageResult>;
-  using RegionIDToLocalStateMap = llvm::DenseMap<unsigned, RegionState>;
+      toolchain::SmallDenseMap<unsigned, AccessStorageResult>;
+  using RegionIDToLocalStateMap = toolchain::DenseMap<unsigned, RegionState>;
   // Instruction pairs we can merge from dominating instruction to dominated
   using MergeablePairs =
-      llvm::SmallVector<std::pair<BeginAccessInst *, BeginAccessInst *>, 64>;
+      toolchain::SmallVector<std::pair<BeginAccessInst *, BeginAccessInst *>, 64>;
   // This result of this analysis is a map from all BeginAccessInst in this
   // function to AccessInfo.
   struct Result {
@@ -312,9 +313,9 @@ protected:
 
   void
   propagateAccessSetsBottomUp(LoopRegionToAccessStorage &regionToStorageMap,
-                              const llvm::SmallVector<unsigned, 16> &worklist);
+                              const toolchain::SmallVector<unsigned, 16> &worklist);
 
-  void calcBottomUpOrder(llvm::SmallVectorImpl<unsigned> &worklist);
+  void calcBottomUpOrder(toolchain::SmallVectorImpl<unsigned> &worklist);
 
   void visitBeginAccess(BeginAccessInst *beginAccess, RegionState &state);
 
@@ -356,15 +357,15 @@ void AccessConflictAndMergeAnalysis::recordInScopeConflicts(
     SILAccessKind currKind) {
   // It is tempting to combine this loop with the loop in removeConflicts, which
   // also checks isDistinctFrom for each element. However, since SetVector does
-  // not support 'llvm::erase_if', it is actually more efficient to do the
+  // not support 'toolchain::erase_if', it is actually more efficient to do the
   // removal in a separate 'remove_if' loop.
-  llvm::for_each(state.inScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
+  toolchain::for_each(state.inScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
     auto &accessInfo = result.getAccessInfo(bai);
     if (accessKindMayConflict(currKind, bai->getAccessKind())
         && !accessInfo.isDistinctFrom(currStorage)) {
 
       accessInfo.setSeenNestedConflict();
-      LLVM_DEBUG(llvm::dbgs() << "  may conflict with:\n"; accessInfo.dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  may conflict with:\n"; accessInfo.dump());
     }
   });
 }
@@ -383,10 +384,10 @@ bool AccessConflictAndMergeAnalysis::removeConflicts(
 
 void AccessConflictAndMergeAnalysis::recordUnknownConflict(RegionState &state) {
   // Mark all open scopes as having a nested conflict.
-  llvm::for_each(state.inScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
+  toolchain::for_each(state.inScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
     auto &accessInfo = result.getAccessInfo(bai);
     accessInfo.setSeenNestedConflict();
-    LLVM_DEBUG(llvm::dbgs() << "  may conflict with:\n"; accessInfo.dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  may conflict with:\n"; accessInfo.dump());
   });
   // Clear data flow.
   state.reset();
@@ -432,7 +433,7 @@ BeginAccessInst *AccessConflictAndMergeAnalysis::findMergeableOutOfScopeAccess(
   auto currStorageInfo = result.getAccessInfo(beginAccess);
 
   // Before removing any conflicting accesses, find one with identical storage.
-  auto identicalStorageIter = llvm::find_if(
+  auto identicalStorageIter = toolchain::find_if(
       state.outOfScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
         auto storageInfo = result.getAccessInfo(bai);
         return storageInfo.hasIdenticalStorage(currStorageInfo);
@@ -456,7 +457,7 @@ BeginAccessInst *AccessConflictAndMergeAnalysis::findMergeableOutOfScopeAccess(
   // do not and simply avoid merging whenever 'B' and 'C' overlap. It is not
   // important to optimize the case in which 'A' and 'B' overlap because
   // potential conflicts like that are unlikely.
-  if (llvm::any_of(state.outOfScopeConflictFreeAccesses,
+  if (toolchain::any_of(state.outOfScopeConflictFreeAccesses,
                    [&](BeginAccessInst *bai) {
                      auto storageInfo = result.getAccessInfo(bai);
                      return !storageInfo.isDistinctFrom(currStorageInfo);
@@ -484,11 +485,11 @@ void AccessConflictAndMergeAnalysis::insertOutOfScopeAccess(
     AccessInfo &currStorageInfo) {
 
   if (!currStorageInfo.seenIdenticalStorage()) {
-    LLVM_DEBUG(llvm::dbgs() << "Ignoring unmergeable access: " << *beginAccess);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Ignoring unmergeable access: " << *beginAccess);
     return;
   }
 
-  auto identicalStorageIter = llvm::find_if(
+  auto identicalStorageIter = toolchain::find_if(
       state.outOfScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
         auto storageInfo = result.getAccessInfo(bai);
         return storageInfo.hasIdenticalStorage(currStorageInfo);
@@ -506,21 +507,21 @@ void AccessConflictAndMergeAnalysis::insertOutOfScopeAccess(
 // Returns true if the analysis succeeded.
 bool AccessConflictAndMergeAnalysis::analyze() {
   if (!identifyBeginAccesses()) {
-    LLVM_DEBUG(llvm::dbgs() << "Skipping AccessConflictAndMergeAnalysis...\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping AccessConflictAndMergeAnalysis...\n");
     return false;
   }
   LoopRegionToAccessStorage accessSetsOfRegions;
   // Populate a worklist of regions such that the top of the worklist is the
   // innermost loop and the bottom of the worklist is the entry block.
-  llvm::SmallVector<unsigned, 16> worklist;
+  toolchain::SmallVector<unsigned, 16> worklist;
   calcBottomUpOrder(worklist);
   propagateAccessSetsBottomUp(accessSetsOfRegions, worklist);
 
-  LLVM_DEBUG(llvm::dbgs() << "Processing Function: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing Function: "
                           << LRFI->getFunction()->getName() << "\n");
   while (!worklist.empty()) {
     auto regionID = worklist.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "Processing Sub-Region: " << regionID << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing Sub-Region: " << regionID << "\n");
     auto *region = LRFI->getRegion(regionID);
     RegionIDToLocalStateMap localRegionStates;
     // This is RPO order of the sub-regions
@@ -560,7 +561,7 @@ bool AccessConflictAndMergeAnalysis::identifyBeginAccesses() {
   // storage to another reachable access. The earlier access must be marked
   // because this analysis does forward data flow to find conflicts.
   for (auto *BB : PO->getPostOrder()) {
-    for (auto &I : llvm::reverse(*BB)) {
+    for (auto &I : toolchain::reverse(*BB)) {
       auto *beginAccess = dyn_cast<BeginAccessInst>(&I);
       if (!beginAccess)
         continue;
@@ -608,7 +609,7 @@ bool AccessConflictAndMergeAnalysis::identifyBeginAccesses() {
 // Propagates access sets bottom-up from nested regions
 void AccessConflictAndMergeAnalysis::propagateAccessSetsBottomUp(
     LoopRegionToAccessStorage &regionToStorageMap,
-    const llvm::SmallVector<unsigned, 16> &worklist) {
+    const toolchain::SmallVector<unsigned, 16> &worklist) {
   for (unsigned regionID : reverse(worklist)) {
     auto *region = LRFI->getRegion(regionID);
     auto iterAndInserted =
@@ -646,7 +647,7 @@ void AccessConflictAndMergeAnalysis::propagateAccessSetsBottomUp(
 
 // Helper function for calcBottomUpOrder
 static void calcBottomUpOrderRecurse(LoopRegion *region,
-                                     llvm::SmallVectorImpl<unsigned> &worklist,
+                                     toolchain::SmallVectorImpl<unsigned> &worklist,
                                      LoopRegionFunctionInfo *LRFI) {
   worklist.push_back(region->getID());
   for (auto regionIndex : region->getReverseSubregions()) {
@@ -659,7 +660,7 @@ static void calcBottomUpOrderRecurse(LoopRegion *region,
 
 // Returns a worklist of loop IDs is bottom-up order.
 void AccessConflictAndMergeAnalysis::calcBottomUpOrder(
-    llvm::SmallVectorImpl<unsigned> &worklist) {
+    toolchain::SmallVectorImpl<unsigned> &worklist) {
   auto *topRegion = LRFI->getTopLevelRegion();
   calcBottomUpOrderRecurse(topRegion, worklist, LRFI);
 }
@@ -700,7 +701,7 @@ void AccessConflictAndMergeAnalysis::visitBeginAccess(
   // end_access %x
   if (BeginAccessInst *mergeableAccess =
           findMergeableOutOfScopeAccess(state, beginAccess)) {
-    LLVM_DEBUG(llvm::dbgs() << "Found mergeable pair: " << *mergeableAccess
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found mergeable pair: " << *mergeableAccess
                             << "  with " << *beginAccess << "\n");
     result.mergePairs.emplace_back(mergeableAccess, beginAccess);
   }
@@ -716,7 +717,7 @@ void AccessConflictAndMergeAnalysis::visitEndAccess(EndAccessInst *endAccess,
 
   // Remove the corresponding in-scope access (it is no longer in-scope).
   if (state.inScopeConflictFreeAccesses.remove(beginAccess)) {
-    LLVM_DEBUG(llvm::dbgs() << "No conflict on one path from " << *beginAccess
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "No conflict on one path from " << *beginAccess
                             << " to " << *endAccess);
   }
 
@@ -735,7 +736,7 @@ void AccessConflictAndMergeAnalysis::visitFullApply(FullApplySite fullApply,
   FunctionAccessStorage callSiteAccesses;
   ASA->getCallSiteEffects(callSiteAccesses, fullApply);
 
-  LLVM_DEBUG(llvm::dbgs() << "Visiting: " << *fullApply.getInstruction()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting: " << *fullApply.getInstruction()
                           << "  call site accesses:\n";
              callSiteAccesses.dump());
   recordConflicts(state, callSiteAccesses.getResult());
@@ -743,10 +744,10 @@ void AccessConflictAndMergeAnalysis::visitFullApply(FullApplySite fullApply,
 
 void AccessConflictAndMergeAnalysis::visitMayRelease(SILInstruction *instr,
                                                      RegionState &state) {
-  // TODO Introduce "Pure Swift" deinitializers
+  // TODO Introduce "Pure Codira" deinitializers
   // We can then make use of alias information for instr's operands
   // If they don't alias - we might get away with not recording a conflict
-  LLVM_DEBUG(llvm::dbgs() << "MayRelease Instruction: " << *instr);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "MayRelease Instruction: " << *instr);
 
   // This is similar to recordUnknownConflict, but only class and global
   // accesses can be affected by a deinitializer.
@@ -754,11 +755,11 @@ void AccessConflictAndMergeAnalysis::visitMayRelease(SILInstruction *instr,
     return accessKind == AccessStorage::Class || accessKind == AccessStorage::Global;
   };
   // Mark the in-scope accesses as having a nested conflict
-  llvm::for_each(state.inScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
+  toolchain::for_each(state.inScopeConflictFreeAccesses, [&](BeginAccessInst *bai) {
     auto &accessInfo = result.getAccessInfo(bai);
     if (isHeapAccess(accessInfo.getKind())) {
       accessInfo.setSeenNestedConflict();
-      LLVM_DEBUG(llvm::dbgs() << "  may conflict with:\n"; accessInfo.dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  may conflict with:\n"; accessInfo.dump());
     }
   });
 
@@ -877,7 +878,7 @@ foldNonNestedAccesses(AccessConflictAndMergeAnalysis::AccessMap &accessMap) {
     // Optimize this begin_access by setting [no_nested_conflict].
     beginAccess->setNoNestedConflict(true);
     changed = true;
-    LLVM_DEBUG(llvm::dbgs() << "Folding " << *beginAccess);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Folding " << *beginAccess);
   }
   return changed;
 }
@@ -917,7 +918,7 @@ removeLocalNonNestedAccess(const AccessConflictAndMergeAnalysis::Result &result,
     // [no_nested_conflict]. Now check FunctionAccessStorage to determine if
     // that is true for all access to the same storage.
     if (functionAccess.hasNoNestedConflict(info)) {
-      LLVM_DEBUG(llvm::dbgs() << "Disabling dead access " << *beginAccess);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Disabling dead access " << *beginAccess);
       beginAccess->setEnforcement(SILAccessEnforcement::Static);
       changed = true;
     }
@@ -946,10 +947,10 @@ static void mergeEndAccesses(BeginAccessInst *parentIns,
                              BeginAccessInst *childIns) {
   auto *endP = getSingleEndAccess(parentIns);
   if (!endP)
-    llvm_unreachable("not supported");
+    toolchain_unreachable("not supported");
   auto *endC = getSingleEndAccess(childIns);
   if (!endC)
-    llvm_unreachable("not supported");
+    toolchain_unreachable("not supported");
 
   endC->setOperand(parentIns);
   endP->eraseFromParent();
@@ -970,7 +971,7 @@ static bool canMergeEnd(BeginAccessInst *parentIns, BeginAccessInst *childIns) {
 // TODO: support other merge patterns
 static bool
 canMergeBegin(PostDominanceInfo *postDomTree,
-              const llvm::DenseMap<SILBasicBlock *, SCCInfo> &blockToSCCMap,
+              const toolchain::DenseMap<SILBasicBlock *, SCCInfo> &blockToSCCMap,
               BeginAccessInst *parentIns, BeginAccessInst *childIns) {
   if (!postDomTree->properlyDominates(childIns, parentIns)) {
     return false;
@@ -995,7 +996,7 @@ canMergeBegin(PostDominanceInfo *postDomTree,
 
 static bool
 canMerge(PostDominanceInfo *postDomTree,
-         const llvm::DenseMap<SILBasicBlock *, SCCInfo> &blockToSCCMap,
+         const toolchain::DenseMap<SILBasicBlock *, SCCInfo> &blockToSCCMap,
          BeginAccessInst *parentIns, BeginAccessInst *childIns) {
   // A [read] access cannot be converted to a [modify] without potentially
   // introducing new conflicts that were previously ignored. Merging read/modify
@@ -1036,7 +1037,7 @@ mergeAccesses(SILFunction *F, PostDominanceInfo *postDomTree,
               DeadEndBlocks &deBlocks) {
 
   if (mergePairs.empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "Skipping SCC Analysis...\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping SCC Analysis...\n");
     return false;
   }
 
@@ -1044,7 +1045,7 @@ mergeAccesses(SILFunction *F, PostDominanceInfo *postDomTree,
 
   // Compute a map from each block to its SCC -
   // For now we can't merge cross SCC boundary
-  llvm::DenseMap<SILBasicBlock *, SCCInfo> blockToSCCMap;
+  toolchain::DenseMap<SILBasicBlock *, SCCInfo> blockToSCCMap;
   SCCInfo info;
   info.id = 0;
   for (auto sccIt = scc_begin(F); !sccIt.isAtEnd(); ++sccIt) {
@@ -1068,7 +1069,7 @@ mergeAccesses(SILFunction *F, PostDominanceInfo *postDomTree,
   // so the second pair in the result list points to a to-be-deleted
   // begin_access instruction. We store (begin_access %2 -> begin_access %1)
   // to re-map a merged begin_access to it's replaced instruction.
-  llvm::DenseMap<BeginAccessInst *, BeginAccessInst *> oldToNewMap;
+  toolchain::DenseMap<BeginAccessInst *, BeginAccessInst *> oldToNewMap;
   InstructionDeleter deleter;
 
   while (!workPairs.empty()) {
@@ -1089,7 +1090,7 @@ mergeAccesses(SILFunction *F, PostDominanceInfo *postDomTree,
     if (!extendOwnership(parentIns, childIns, deleter, deBlocks))
       continue;
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Merging " << *childIns << " into " << *parentIns << "\n");
 
     // Change the no nested conflict of parent if the child has a nested
@@ -1128,7 +1129,7 @@ struct AccessEnforcementOpts : public SILFunctionTransform {
     if (F->empty())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "Running local AccessEnforcementOpts on "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Running local AccessEnforcementOpts on "
                             << F->getName() << "\n");
 
     LoopRegionFunctionInfo *LRFI = getAnalysis<LoopRegionAnalysis>()->get(F);
@@ -1173,6 +1174,6 @@ struct AccessEnforcementOpts : public SILFunctionTransform {
 };
 } // namespace
 
-SILTransform *swift::createAccessEnforcementOpts() {
+SILTransform *language::createAccessEnforcementOpts() {
   return new AccessEnforcementOpts();
 }

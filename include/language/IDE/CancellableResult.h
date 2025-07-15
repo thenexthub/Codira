@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CANCELLABLE_RESULT_H
-#define SWIFT_IDE_CANCELLABLE_RESULT_H
+#ifndef LANGUAGE_IDE_CANCELLABLE_RESULT_H
+#define LANGUAGE_IDE_CANCELLABLE_RESULT_H
 
 #include <string>
 
@@ -38,7 +39,7 @@ enum class CancellableResultKind { Success, Failure, Cancelled };
 /// }
 /// \endcode
 ///
-/// The implementation is inspired by llvm::optional_detail::OptionalStorage
+/// The implementation is inspired by toolchain::optional_detail::OptionalStorage
 template <typename ResultType>
 class CancellableResult {
   CancellableResultKind Kind;
@@ -154,11 +155,11 @@ public:
   /// \p Transform might also invoke the callback synchronously.
   template <typename NewResultType>
   void
-  mapAsync(llvm::function_ref<
+  mapAsync(toolchain::function_ref<
                void(const ResultType &,
-                    llvm::function_ref<void(CancellableResult<NewResultType>)>)>
+                    toolchain::function_ref<void(CancellableResult<NewResultType>)>)>
                Transform,
-           llvm::function_ref<void(CancellableResult<NewResultType>)> Handle) {
+           toolchain::function_ref<void(CancellableResult<NewResultType>)> Handle) {
     switch (getKind()) {
     case CancellableResultKind::Success:
       Transform(getResult(), [&](CancellableResult<NewResultType> NewResult) {
@@ -181,7 +182,7 @@ public:
   /// modification.
   template <typename NewResultType>
   CancellableResult<NewResultType>
-  map(llvm::function_ref<NewResultType(const ResultType &)> Transform) {
+  map(toolchain::function_ref<NewResultType(const ResultType &)> Transform) {
     switch (getKind()) {
     case CancellableResultKind::Success:
       return CancellableResult<NewResultType>::success(Transform(getResult()));
@@ -196,4 +197,4 @@ public:
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_CANCELLABLE_RESULT_H
+#endif // LANGUAGE_IDE_CANCELLABLE_RESULT_H

@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-interop-build-clangxx -std=c++20 -c %t/use-language-cxx-types.cpp -I %t -o %t/language-cxx-execution.o
+// RUN: not %target-interop-build-language %t/use-cxx-types.code -o %t/language-cxx-execution -Xlinker %t/language-cxx-execution.o -module-name UseCxx -Xfrontend -entry-point-function-name -Xfrontend languageMain -I %t -O -Xfrontend -disable-availability-checking 2> %t/out
+
+// RUN: cat %t/out | %FileCheck %s
+
+//--- header.h
+
+class SharedFRT {
+public:
+    int x;
+} __attribute__((language_attr("import_reference")))
+__attribute__((language_attr("retain:retainShared")))
+__attribute__((language_attr("release:releaseShared")));
+
+inline void retainShared(SharedFRT *r) { }
+inline void releaseShared(SharedFRT *r) { }
+
+//--- use-language-cxx-types.cpp
+#include "header.h"
+
+int main() {}
+
+//--- module.modulemap
+module CxxTest {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- use-cxx-types.code
+import CxxTest
+
+public fn consumeSharedFRT(_ x: consuming SharedFRT) {}
+public fn takeSharedFRT(_ x: SharedFRT) {
+    consumeSharedFRT(consume x)
+    // CHECK: error: 'consume' applied to value that the compiler does not support. This is a compiler bug. Please file a bug with a small example of the bug
+    x.x = 10
+}

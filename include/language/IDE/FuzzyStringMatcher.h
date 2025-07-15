@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_FUZZYSTRINGMATCHER_H
-#define SWIFT_IDE_FUZZYSTRINGMATCHER_H
+#ifndef LANGUAGE_IDE_FUZZYSTRINGMATCHER_H
+#define LANGUAGE_IDE_FUZZYSTRINGMATCHER_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/BitVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/BitVector.h"
 #include <string>
 
 namespace language {
@@ -35,7 +36,7 @@ class FuzzyStringMatcher {
   std::string lowercasePattern;
   double maxScore; ///< The maximum possible raw score for this pattern.
   /// If (and only if) c is in pattern, charactersInPattern[c] == 1
-  llvm::BitVector charactersInPattern;
+  toolchain::BitVector charactersInPattern;
 
 public:
   bool normalize = false; ///< Whether to normalize scores to [0, 1].
@@ -56,4 +57,4 @@ public:
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_FUZZYSTRINGMATCHER_H
+#endif // LANGUAGE_IDE_FUZZYSTRINGMATCHER_H

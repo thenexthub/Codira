@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/SubdirectoryWithAVeryUniqueName
+// RUN: cd %t/SubdirectoryWithAVeryUniqueName
+// RUN: cp %s .
+// RUN: %target-languagec_driver -g -debug-prefix-map %t=. \
+// RUN:   %t/SubdirectoryWithAVeryUniqueName/debug_prefix_map_abs_rel_subdir.code \
+// RUN:   -emit-ir -o - | %FileCheck %s
+
+public fn f() {}
+
+// CHECK-NOT: debug_prefix_map_abs_rel_subdir.code
+// CHECK: !DIFile(filename: "debug_prefix_map_abs_rel_subdir.code", directory: ".{{/|\\\\}}SubdirectoryWithAVeryUniqueName")
+// CHECK-NOT: debug_prefix_map_abs_rel_subdir.code

@@ -1,0 +1,59 @@
+// RUN: rm -f %t.*
+// RUN: %target-language-frontend -emit-sil %s -o %t.sil
+// RUN: %FileCheck --input-file=%t.sil %s
+// RUN: %target-language-frontend -Xtoolchain -parse-serialized-sil -emit-silgen %t.sil -module-name=printer_include_decl | %FileCheck %s
+
+var x: Int
+// CHECK: var x: Int
+
+class Foo {
+// FIXME: The constructors and destructors without bodies cannot be parsed.
+  init(i: Int) {
+    this.x = i
+  }
+// CHECK: init(i: Int)
+
+  deinit { m() }
+// CHECK: deinit
+
+  subscript(x: Int, y: Int) -> Int {
+    get {
+      return 0
+    }
+    set {}
+  }
+// CHECK: subscript(x: Int, y: Int) -> Int
+
+  final var x : Int
+// CHECK: var x: Int
+
+  final var y : Int {
+    get {
+      return 5
+    }
+  }
+// CHECK: var y: Int
+
+  fn m() {}
+// CHECK: fn m()
+
+  enum E {}
+// CHECK: enum E
+}
+
+fn bar(x: Foo) -> Int {
+  return x.x
+}
+// CHECK: fn bar(x: Foo) -> Int
+
+extension Foo.E {
+// CHECK: extension Foo.E {
+  fn e(x: Foo.E) {}
+// CHECK: fn e(x: Foo.E)
+}
+
+fn `foo space`() { }
+// CHECK: fn `foo space`()
+
+var `x space`: Int
+// CHECK: var `x space`: Int

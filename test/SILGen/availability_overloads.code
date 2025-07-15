@@ -1,0 +1,70 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/availability_overloads_other.codemodule -emit-module -primary-file %S/Inputs/availability_overloads_other.code
+
+// RUN: %target-language-emit-silgen -language-version 4 -I %t -primary-file %s
+// RUN: %target-language-emit-ir -language-version 4 -I %t %s
+
+// RUN: %target-language-emit-silgen -language-version 5 -I %t -primary-file %s
+// RUN: %target-language-emit-ir -language-version 5 -I %t %s
+
+// RUN: %target-language-frontend -language-version 4 -I %t -emit-module -emit-module-path /dev/null -primary-file %s
+// RUN: %target-language-frontend -language-version 5 -I %t -emit-module -emit-module-path /dev/null -primary-file %s
+
+// This is a "don't crash with duplicate definition errors" test.
+// We care about being able to express each of these "redeclarations" when the
+// availability doesn't overlap.
+
+import availability_overloads_other
+
+// FIXME: What about method overrides and protocol witnesses?
+
+public class BeforeAndAfter {
+  @available(language, obsoleted: 4.0)
+  public init(foo: ()) {}
+
+  @available(language 4.0)
+  public init?(foo: ()) {}
+
+  @available(language, obsoleted: 4.0)
+  public init() {}
+
+  @available(language 4.0)
+  public init() throws {}
+
+  @available(language, obsoleted: 4.0)
+  public static fn foo() {}
+
+  @available(language 4.0)
+  public static fn foo() throws {}
+
+  @available(language 4.0)
+  public var computed: Int16 { get { return 0 } set { } }
+
+  @available(language, obsoleted: 4.0)
+  public var computed: Int8 { get { return 0 } set { } }
+
+  @available(language 4.0)
+  public static var computed: Int16 { get { return 0 } set { } }
+
+  @available(language, obsoleted: 4.0)
+  public static var computed: Int8 { get { return 0 } set { } }
+}
+
+
+// Make sure we can generate calls to these overloads, too
+_ = BeforeAndAfter(foo: ())
+_ = try BeforeAndAfter()
+_ = try BeforeAndAfter.foo()
+_ = BeforeAndAfter.computed
+BeforeAndAfter.computed = 10
+_ = try BeforeAndAfter().computed
+try BeforeAndAfter().computed = 10
+
+// Same thing but in a different module
+_ = BeforeAndAfterOther(foo: ())
+_ = try BeforeAndAfterOther()
+_ = try BeforeAndAfterOther.foo()
+_ = BeforeAndAfterOther.computed
+BeforeAndAfterOther.computed = 10
+_ = try BeforeAndAfterOther().computed
+try BeforeAndAfterOther().computed = 10

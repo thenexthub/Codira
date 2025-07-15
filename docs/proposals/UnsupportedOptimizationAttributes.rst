@@ -8,7 +8,7 @@ Unsupported Optimization Attributes
 
 The following attributes are experimental optimizer directives. The attribute
 names are underscored because they are internal compiler directives. These are
-not supported language features, have not gone through the Swift Evolution
+not supported language features, have not gone through the Codira Evolution
 process, and future versions of the compiler are likely to drop support,
 requiring manual intervention of the source maintainer.
 
@@ -36,13 +36,13 @@ about 10 times.
 ::
 
   /// ---------------
-  /// Framework.swift
+  /// Framework.code
 
-  public protocol Pingable { func ping() -> Self }
-  public protocol Playable { func play() }
+  public protocol Pingable { fn ping() -> Self }
+  public protocol Playable { fn play() }
 
   extension Int : Pingable {
-    public func ping() -> Int { return self + 1 }
+    public fn ping() -> Int { return self + 1 }
   }
 
   public class Game<T : Pingable> : Playable {
@@ -51,13 +51,13 @@ about 10 times.
     public init (_ v : T) {t = v}
 
     @_specialize(where T == Int)
-    public func play() {
+    public fn play() {
       for _ in 0...100_000_000 { t = t.ping() }
     }
   }
 
   /// -----------------
-  /// Application.swift
+  /// Application.code
 
   Game(10).play()
 

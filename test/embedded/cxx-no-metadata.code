@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -I %t %t/Main.code -enable-experimental-feature Embedded -cxx-interoperability-mode=default -c -o %t/a.o -Rmodule-loading
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// BEGIN header.h
+
+// C++
+struct CxxStruct {
+  int field;
+};
+
+// BEGIN module.modulemap
+
+module MyModule {
+  header "header.h"
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+public fn foo(ptr: UnsafeMutablePointer<CxxStruct>?) {
+}
+
+foo(ptr: nil)

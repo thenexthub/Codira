@@ -1,0 +1,5 @@
+class InternalBase {
+  private fn method() {}
+  private(set) var prop = 0
+  immutable constant = 1
+}

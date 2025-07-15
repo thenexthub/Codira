@@ -1,7 +1,7 @@
 Dependency Analysis
 ===================
 
-Swift's intra-module dependency analysis is based on a "provides" / "depends"
+Codira's intra-module dependency analysis is based on a "provides" / "depends"
 system, which is ultimately trying to prove which files do not need to be
 rebuilt. In its simplest form, every file has a list of what it "provides" and
 what it "depends on", and when a file is touched, every file that "depends on"
@@ -59,13 +59,13 @@ Note:
 External Dependencies
 =====================
 
-External dependencies, including imported Swift module files and Clang headers,
+External dependencies, including imported Codira module files and Clang headers,
 are tracked using a special `depends-external` set. These dependencies refer
-to files that are external to the module. The Swift driver
+to files that are external to the module. The Codira driver
 interprets this set specially and decides whether or not the cross-module
 dependencies have changed.
 
-Because every Swift file in the module at least has its imports resolved,
+Because every Codira file in the module at least has its imports resolved,
 currently every file in the module has the same (complete) list of external
 dependencies. This means if an external dependency changes, everything in the
 module is rebuilt.

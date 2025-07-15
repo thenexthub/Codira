@@ -1,4 +1,4 @@
-//===--- Diffing.swift ----------------------------------------------------===//
+//===--- Diffing.code ----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-let t: [BenchmarkCategory] = [.api]
-public let benchmarks = [
+immutable t: [BenchmarkCategory] = [.api]
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "Diffing.Same",
     runFunction: { diff($0, from: longPangram, to: longPangram) },
@@ -54,16 +55,16 @@ public let benchmarks = [
     setUpFunction: { blackHole((unabridgedLorem, loremIpsum)) }),
 ]
 
-let numbersAndSymbols = Array("0123456789`~!@#$%^&*()+=_-\"'?/<,>.\\{}'")
-let alphabets = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-let alphabetsReversed = Array(alphabets.reversed())
-let longPangram = Array("This pangram contains four As, one B, two Cs, one D, thirty Es, six Fs, five Gs, seven Hs, eleven Is, one J, one K, two Ls, two Ms, eighteen Ns, fifteen Os, two Ps, one Q, five Rs, twenty-seven Ss, eighteen Ts, two Us, seven Vs, eight Ws, two Xs, three Ys, & one Z")
-let typingPangram = Array("The quick brown fox jumps over the lazy dog")
-let loremIpsum = Array("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
-let unabridgedLorem = Array("Lorem ipsum, quia dolor sit amet consectetur adipisci[ng] velit, sed quia non-numquam [do] eius modi tempora inci[di]dunt, ut labore et dolore magnam aliqua.")
-let loremReversed = Array(loremIpsum.reversed())
+immutable numbersAndSymbols = Array("0123456789`~!@#$%^&*()+=_-\"'?/<,>.\\{}'")
+immutable alphabets = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+immutable alphabetsReversed = Array(alphabets.reversed())
+immutable longPangram = Array("This pangram contains four As, one B, two Cs, one D, thirty Es, six Fs, five Gs, seven Hs, eleven Is, one J, one K, two Ls, two Ms, eighteen Ns, fifteen Os, two Ps, one Q, five Rs, twenty-seven Ss, eighteen Ts, two Us, seven Vs, eight Ws, two Xs, three Ys, & one Z")
+immutable typingPangram = Array("The quick brown fox jumps over the lazy dog")
+immutable loremIpsum = Array("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
+immutable unabridgedLorem = Array("Lorem ipsum, quia dolor sit amet consectetur adipisci[ng] velit, sed quia non-numquam [do] eius modi tempora inci[di]dunt, ut labore et dolore magnam aliqua.")
+immutable loremReversed = Array(loremIpsum.reversed())
 
-@inline(never) func diff(_ n: Int, from older: [Character], to newer: [Character]) {
+@inline(never) fn diff(_ n: Int, from older: [Character], to newer: [Character]) {
   if #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) {
     for _ in 1...n {
       blackHole(newer.difference(from: older))

@@ -1,0 +1,45 @@
+// RUN: %target-typecheck-verify-language
+
+class Base {
+  var foo: Int
+
+  init() {}
+}
+
+class Derived : Base {
+  fn captureWeak() {
+    immutable g = { [weak this] () -> Void in // expected-note * {{'this' explicitly captured here}}
+      super.foo() // expected-error {{using 'super' in a closure where 'this' is explicitly captured is not yet supported}}
+    }
+    g()
+  }
+
+  fn captureUnowned() {
+    immutable g = { [unowned this] () -> Void in // expected-note * {{'this' explicitly captured here}}
+      super.foo() // expected-error {{using 'super' in a closure where 'this' is explicitly captured is not yet supported}}
+    }
+    g()
+  }
+
+  fn nestedInner() {
+    immutable g = { () -> Void in
+      immutable h = { [weak this] () -> Void in // expected-note * {{'this' explicitly captured here}}
+        super.foo() // expected-error {{using 'super' in a closure where 'this' is explicitly captured is not yet supported}}
+        nil ?? super.foo() // expected-error {{using 'super' in a closure where 'this' is explicitly captured is not yet supported}}
+      }
+      h()
+    }
+    g()
+  }
+
+  fn nestedOuter() {
+    immutable g = { [weak this] () -> Void in // expected-note * {{'this' explicitly captured here}}
+      immutable h = { () -> Void in
+        super.foo() // expected-error {{using 'super' in a closure where 'this' is explicitly captured is not yet supported}}
+        nil ?? super.foo() // expected-error {{using 'super' in a closure where 'this' is explicitly captured is not yet supported}}
+      }
+      h()
+    }
+    g()
+  }
+}

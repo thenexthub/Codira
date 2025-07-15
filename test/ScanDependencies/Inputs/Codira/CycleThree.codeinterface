@@ -1,0 +1,5 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name CycleThree
+import Codira
+import CycleOne
+

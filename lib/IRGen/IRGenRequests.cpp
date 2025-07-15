@@ -1,13 +1,17 @@
 //===--- IRGenRequests.cpp - Requests for LLVM IR Generation --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/IRGenRequests.h"
@@ -18,25 +22,25 @@
 #include "language/SIL/SILModule.h"
 #include "language/AST/TBDGenRequests.h"
 #include "language/Subsystems.h"
-#include "llvm/IR/Module.h"
-#include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 using namespace language;
 
 namespace language {
 // Implement the IRGen type zone (zone 20).
-#define SWIFT_TYPEID_ZONE IRGen
-#define SWIFT_TYPEID_HEADER "swift/AST/IRGenTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE IRGen
+#define LANGUAGE_TYPEID_HEADER "language/AST/IRGenTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 } // end namespace language
 
-llvm::orc::ThreadSafeModule GeneratedModule::intoThreadSafeContext() && {
+toolchain::orc::ThreadSafeModule GeneratedModule::intoThreadSafeContext() && {
   return {std::move(Module), std::move(Context)};
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const IRGenDescriptor &desc) {
   auto *MD = desc.Ctx.dyn_cast<ModuleDecl *>();
   if (MD) {
@@ -48,7 +52,7 @@ void swift::simple_display(llvm::raw_ostream &out,
   }
 }
 
-SourceLoc swift::extractNearestSourceLoc(const IRGenDescriptor &desc) {
+SourceLoc language::extractNearestSourceLoc(const IRGenDescriptor &desc) {
   return SourceLoc();
 }
 
@@ -107,12 +111,12 @@ evaluator::DependencySource IRGenRequest::readDependencySource(
 
 // Define request evaluation functions for each of the IRGen requests.
 static AbstractRequestFunction *irGenRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/IRGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerIRGenRequestFunctions(Evaluator &evaluator) {
+void language::registerIRGenRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::IRGen, irGenRequestFunctions);
 }

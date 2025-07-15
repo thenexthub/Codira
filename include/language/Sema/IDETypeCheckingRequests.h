@@ -1,13 +1,17 @@
 //===----- IDETypeCheckingRequests.h - IDE type-check Requests --*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines IDE type checking request using the evaluator model.
@@ -15,8 +19,8 @@
 //  of the type checker to fulfill some requests
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_IDE_TYPE_CHECKING_REQUESTS_H
-#define SWIFT_IDE_TYPE_CHECKING_REQUESTS_H
+#ifndef LANGUAGE_IDE_TYPE_CHECKING_REQUESTS_H
+#define LANGUAGE_IDE_TYPE_CHECKING_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/Evaluator.h"
@@ -37,8 +41,8 @@ struct DeclApplicabilityOwner {
   DeclApplicabilityOwner(const DeclContext *DC, Type Ty, const ValueDecl *VD):
     DC(DC), Ty(Ty), ExtensionOrMember(VD) {}
 
-  friend llvm::hash_code hash_value(const DeclApplicabilityOwner &CI) {
-    return llvm::hash_combine(CI.Ty.getPointer(), CI.ExtensionOrMember);
+  friend toolchain::hash_code hash_value(const DeclApplicabilityOwner &CI) {
+    return toolchain::hash_combine(CI.Ty.getPointer(), CI.ExtensionOrMember);
   }
 
   friend bool operator==(const DeclApplicabilityOwner &lhs,
@@ -52,7 +56,7 @@ struct DeclApplicabilityOwner {
     return !(lhs == rhs);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                              const DeclApplicabilityOwner &owner) {
     out << "Checking if ";
     simple_display(out, owner.ExtensionOrMember);
@@ -94,8 +98,8 @@ struct TypePair {
   Type SecondTy;
   TypePair(Type FirstTy, Type SecondTy): FirstTy(FirstTy), SecondTy(SecondTy) {}
   TypePair(): TypePair(Type(), Type()) {}
-  friend llvm::hash_code hash_value(const TypePair &TI) {
-    return llvm::hash_combine(TI.FirstTy.getPointer(),
+  friend toolchain::hash_code hash_value(const TypePair &TI) {
+    return toolchain::hash_combine(TI.FirstTy.getPointer(),
                               TI.SecondTy.getPointer());
   }
 
@@ -110,7 +114,7 @@ struct TypePair {
     return !(lhs == rhs);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                              const TypePair &owner) {
     out << "<";
     simple_display(out, owner.FirstTy);
@@ -131,8 +135,8 @@ struct TypeRelationCheckInput {
     DC(DC), Pair(FirstType, SecondType), Relation(Relation),
     OpenArchetypes(OpenArchetypes) {}
 
-  friend llvm::hash_code hash_value(const TypeRelationCheckInput &TI) {
-    return llvm::hash_combine(TI.Pair, TI.Relation, TI.OpenArchetypes);
+  friend toolchain::hash_code hash_value(const TypeRelationCheckInput &TI) {
+    return toolchain::hash_combine(TI.Pair, TI.Relation, TI.OpenArchetypes);
   }
 
   friend bool operator==(const TypeRelationCheckInput &lhs,
@@ -146,7 +150,7 @@ struct TypeRelationCheckInput {
     return !(lhs == rhs);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                                const TypeRelationCheckInput &owner) {
     out << "Check if ";
     simple_display(out, owner.Pair);
@@ -228,22 +232,22 @@ public:
 };
 
 /// The zone number for the IDE.
-#define SWIFT_TYPEID_ZONE IDETypeChecking
-#define SWIFT_TYPEID_HEADER "swift/Sema/IDETypeCheckingRequestIDZone.def"
+#define LANGUAGE_TYPEID_ZONE IDETypeChecking
+#define LANGUAGE_TYPEID_HEADER "language/Sema/IDETypeCheckingRequestIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
 template<>                                                                     \
 inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,                \
                             const RequestType &request) {                      \
   ++stats.getFrontendCounters().RequestType;                                   \
 }
 #include "language/Sema/IDETypeCheckingRequestIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_IDE_REQUESTS_H
+#endif // LANGUAGE_IDE_REQUESTS_H

@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language
+
+fn foo(x: Int = 0) {}
+immutable bar = foo  // expected-note {{'bar' declared here}}
+bar() // expected-error {{missing argument for parameter #1}}
+
+fn foo2(_ x: Int = 0) {}
+immutable baz = foo2 // expected-note {{'baz' declared here}}
+baz() // expected-error {{missing argument for parameter #1}}

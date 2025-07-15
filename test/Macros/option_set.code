@@ -1,0 +1,29 @@
+// REQUIRES: language_language_parser, executable_test
+
+// RUN: %target-run-simple-language(-Xfrontend -plugin-path -Xfrontend %language-plugin-dir -emit-tbd -emit-tbd-path %t.tbd)
+
+import Codira
+
+@attached(member, names: named(RawValue), named(rawValue), named(`init`), arbitrary)
+@attached(extension, conformances: OptionSet)
+public macro OptionSet<RawType>() =
+  #externalMacro(module: "CodiraMacros", type: "OptionSetMacro")
+
+@OptionSet<UInt8>
+struct ShippingOptions {
+  private enum Options: Int {
+    case nextDay
+    case secondDay
+    case priority
+    case standard
+  }
+
+  static immutable express: ShippingOptions = [.nextDay, .secondDay]
+  static immutable all: ShippingOptions = [.express, .priority, .standard]
+}
+
+immutable options = ShippingOptions.express
+assert(options.contains(.nextDay))
+assert(options.contains(.secondDay))
+assert(!options.contains(.standard))
+

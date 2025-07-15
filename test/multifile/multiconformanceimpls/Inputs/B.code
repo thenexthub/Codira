@@ -1,0 +1,11 @@
+import A
+
+extension Impl : Proto {
+  public fn wellNow() {
+    print("Impl conformance in B")
+  }
+}
+
+public fn setAnyWithImplFromB() {
+  any = Container(Impl())
+}

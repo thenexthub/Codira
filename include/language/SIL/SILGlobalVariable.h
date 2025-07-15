@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILGlobalVariable class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILGLOBALVARIABLE_H
-#define SWIFT_SIL_SILGLOBALVARIABLE_H
+#ifndef LANGUAGE_SIL_SILGLOBALVARIABLE_H
+#define LANGUAGE_SIL_SILGLOBALVARIABLE_H
 
-#include "language/Basic/SwiftObjectHeader.h"
+#include "language/Basic/LanguageObjectHeader.h"
 #include "language/SIL/SILLinkage.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/ADT/ilist.h"
 
 namespace language {
 
@@ -38,11 +39,11 @@ class VarDecl;
   
 /// A global variable that has been referenced in SIL.
 class SILGlobalVariable
-  : public llvm::ilist_node<SILGlobalVariable>,
+  : public toolchain::ilist_node<SILGlobalVariable>,
     public SILAllocated<SILGlobalVariable>,
-    public SwiftObjectHeader
+    public LanguageObjectHeader
 {
-  static SwiftMetatype registeredMetatype;
+  static CodiraMetatype registeredMetatype;
     
 public:
   using iterator = SILBasicBlock::iterator;
@@ -105,7 +106,7 @@ private:
                     VarDecl *decl);
 
 public:
-  static void registerBridgedMetatype(SwiftMetatype metatype) {
+  static void registerBridgedMetatype(CodiraMetatype metatype) {
     registeredMetatype = metatype;
   }
 
@@ -245,7 +246,7 @@ public:
   /// Pretty-print the variable.
   ///
   /// This is a separate entry point for ease of debugging.
-  void dump() const LLVM_ATTRIBUTE_USED;
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED;
 
   /// Pretty-print the variable to the designated stream as a 'sil_global'
   /// definition.
@@ -260,24 +261,24 @@ public:
   ASTContext &getASTContext() const;
 };
   
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                      const SILGlobalVariable &F) {
   F.print(OS);
   return OS;
 }
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILGlobalVariable
 //===----------------------------------------------------------------------===//
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct ilist_traits<::swift::SILGlobalVariable> :
-public ilist_node_traits<::swift::SILGlobalVariable> {
-  using SILGlobalVariable = ::swift::SILGlobalVariable;
+struct ilist_traits<::language::SILGlobalVariable> :
+public ilist_node_traits<::language::SILGlobalVariable> {
+  using SILGlobalVariable = ::language::SILGlobalVariable;
 
 public:
   static void deleteNode(SILGlobalVariable *V) { V->~SILGlobalVariable(); }
@@ -286,7 +287,7 @@ private:
   void createNode(const SILGlobalVariable &);
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 //===----------------------------------------------------------------------===//
 // Utilities for verification and optimization.

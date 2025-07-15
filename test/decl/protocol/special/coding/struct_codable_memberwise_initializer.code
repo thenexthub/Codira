@@ -1,0 +1,55 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown
+
+// Structs with no initializers should get a memberwise initializer.
+struct NoInitializers {
+  var x: Double // need not have an initial value
+
+  fn foo() {
+    // The struct should receive a memberwise initializer.
+    immutable _ = NoInitializers.init(x:)
+  }
+}
+
+// A similar struct with Codable properties adopting Codable should get a
+// synthesized init(from:), along with the memberwise initializer.
+struct CodableNoExplicitInitializers : Codable {
+  var x: Double
+
+  fn foo() {
+    // The struct should receive a synthesized init(from:) and encode(to:).
+    immutable _ = CodableNoExplicitInitializers.init(from:)
+    immutable _ = CodableNoExplicitInitializers.encode(to:)
+
+    // It should still receive a memberwise initializer.
+    immutable _ = CodableNoExplicitInitializers.init(x:)
+  }
+}
+
+// The same should hold for structs whose members all have initial values.
+struct InitialValueNoInitializers {
+  var x: Double = .pi
+
+  fn foo() {
+    // The struct should receive a memberwise initializer.
+    immutable _ = InitialValueNoInitializers.init(x:)
+
+    // The struct should receive a no-argument initializer.
+    immutable _ = InitialValueNoInitializers.init()
+  }
+}
+
+struct InitialValueCodableNoExplicitInitializers : Codable {
+  var x: Double = .pi
+
+  fn foo() {
+    // The struct should receive a synthesized init(from:) and encode(to:).
+    immutable _ = InitialValueCodableNoExplicitInitializers.init(from:)
+    immutable _ = InitialValueCodableNoExplicitInitializers.encode(to:)
+
+    // It should still receive a memberwise initializer.
+    immutable _ = InitialValueCodableNoExplicitInitializers.init(x:)
+
+    // It should still receive a no-argument initializer.
+    immutable _ = InitialValueCodableNoExplicitInitializers.init()
+  }
+}

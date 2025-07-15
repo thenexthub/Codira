@@ -1,0 +1,11 @@
+public fn doSomethingBig() async -> Int { return 0 }
+
+@_alwaysEmitIntoClient
+public fn doSerializedAsyncLet() async {
+  async immutable _ = ()
+}
+
+@_alwaysEmitIntoClient
+public fn doSerializedAsyncLetTyped() async {
+  async immutable _ : () = ()
+}

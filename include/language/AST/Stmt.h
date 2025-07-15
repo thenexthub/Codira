@@ -1,4 +1,4 @@
-//===--- Stmt.h - Swift Language Statement ASTs -----------------*- C++ -*-===//
+//===--- Stmt.h - Codira Language Statement ASTs -----------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,17 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Stmt class and subclasses.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_STMT_H
-#define SWIFT_AST_STMT_H
+#ifndef LANGUAGE_AST_STMT_H
+#define LANGUAGE_AST_STMT_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/ASTNode.h"
+#include "language/AST/AvailabilityQuery.h"
 #include "language/AST/AvailabilityRange.h"
 #include "language/AST/ConcreteDeclRef.h"
 #include "language/AST/IfConfigClause.h"
@@ -30,7 +32,7 @@
 #include "language/AST/TypeLoc.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/NullablePtr.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <optional>
 
 namespace language {
@@ -64,7 +66,7 @@ enum class StmtKind {
 enum : unsigned { NumStmtKindBits =
   countBitsUsed(static_cast<unsigned>(StmtKind::Last_Stmt)) };
 
-/// Stmt - Base class for all statements in swift.
+/// Stmt - Base class for all statements in language.
 class alignas(8) Stmt : public ASTAllocated<Stmt> {
   Stmt(const Stmt&) = delete;
   Stmt& operator=(const Stmt&) = delete;
@@ -73,7 +75,7 @@ protected:
   // clang-format off
   union { uint64_t OpaqueBits;
 
-  SWIFT_INLINE_BITFIELD_BASE(Stmt, bitmax(NumStmtKindBits,8) + 1,
+  LANGUAGE_INLINE_BITFIELD_BASE(Stmt, bitmax(NumStmtKindBits,8) + 1,
     /// Kind - The subclass of Stmt that this is.
     Kind : bitmax(NumStmtKindBits,8),
 
@@ -81,35 +83,35 @@ protected:
     Implicit : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(BraceStmt, Stmt, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(BraceStmt, Stmt, 32,
     : NumPadBits,
     NumElements : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(CaseStmt, Stmt, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(CaseStmt, Stmt, 32,
     : NumPadBits,
     NumPatterns : 32
   );
 
-  SWIFT_INLINE_BITFIELD_EMPTY(LabeledStmt, Stmt);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(LabeledStmt, Stmt);
 
-  SWIFT_INLINE_BITFIELD_FULL(DoCatchStmt, LabeledStmt, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(DoCatchStmt, LabeledStmt, 32,
     : NumPadBits,
     NumCatches : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(SwitchStmt, LabeledStmt, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(SwitchStmt, LabeledStmt, 32,
     : NumPadBits,
     CaseCount : 32
   );
     
-  SWIFT_INLINE_BITFIELD(ReturnStmt, Stmt, 1,
+  LANGUAGE_INLINE_BITFIELD(ReturnStmt, Stmt, 1,
     /// Whether the result is an implied return, e.g for an implicit single
     /// expression return.
     IsImplied : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(YieldStmt, Stmt, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(YieldStmt, Stmt, 32,
     : NumPadBits,
     NumYields : 32
   );
@@ -165,14 +167,14 @@ public:
   Stmt *walk(ASTWalker &walker);
   Stmt *walk(ASTWalker &&walker) { return walk(walker); }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, const ASTContext *Ctx = nullptr, unsigned Indent = 0) const;
 };
 
 /// BraceStmt - A brace enclosed sequence of expressions, stmts, or decls, like
 /// { var x = 10; print(10) }.
 class BraceStmt final : public Stmt,
-    private llvm::TrailingObjects<BraceStmt, ASTNode> {
+    private toolchain::TrailingObjects<BraceStmt, ASTNode> {
   friend TrailingObjects;
 
   SourceLoc LBLoc;
@@ -305,7 +307,7 @@ public:
 /// but the parentheses are.
 ///    yield 42
 class YieldStmt final
-    : public Stmt, private llvm::TrailingObjects<YieldStmt, Expr*> {
+    : public Stmt, private toolchain::TrailingObjects<YieldStmt, Expr*> {
   friend TrailingObjects;
 
   SourceLoc YieldLoc;
@@ -383,7 +385,7 @@ public:
 /// The AST representation for a defer statement is a bit weird.  We model this
 /// as if they wrote:
 ///
-///    func tmpClosure() { body }
+///    fn tmpClosure() { body }
 ///    tmpClosure()   // This is emitted on each path that needs to run this.
 ///
 /// As such, the body of the 'defer' is actually type checked within the
@@ -411,7 +413,7 @@ class DeferStmt : public Stmt {
 public:
   /// Create a 'defer' statement. This automatically creates the "temp decl" and
   /// the call expression. It's the caller's responsibility to populate the
-  /// body of the func decl.
+  /// body of the fn decl.
   static DeferStmt *create(DeclContext *dc, SourceLoc deferLoc);
 
   SourceLoc getDeferLoc() const { return DeferLoc; }
@@ -473,27 +475,18 @@ public:
 /// configuration supports a given API, e.g.,
 /// #available(OSX >= 10.9, iOS >= 7.0).
 class alignas(8) PoundAvailableInfo final :
-    private llvm::TrailingObjects<PoundAvailableInfo, AvailabilitySpec *> {
+    private toolchain::TrailingObjects<PoundAvailableInfo, AvailabilitySpec *> {
   friend TrailingObjects;
 
   SourceLoc PoundLoc;
   SourceLoc LParenLoc;
   SourceLoc RParenLoc;
 
-  // The number of queries tail allocated after this object.
+  /// The number of queries tail allocated after this object.
   unsigned NumQueries;
-  
-  /// The version range when this query will return true. This value is
-  /// filled in by Sema.
-  std::optional<VersionRange> AvailableRange;
 
-  /// For zippered builds, this is the version range for the target variant
-  /// that must hold for the query to return true. For example, when
-  /// compiling with target x86_64-macosx10.15 and target-variant
-  /// x86_64-ios13.0 a query of #available(macOS 10.22, iOS 20.0, *) will
-  /// have a variant range of [20.0, +inf).
-  /// This is filled in by Sema.
-  std::optional<VersionRange> VariantAvailableRange;
+  /// The type-checked availability query information.
+  std::optional<const AvailabilityQuery> Query;
 
   struct {
     unsigned isInvalid : 1;
@@ -507,8 +500,7 @@ class alignas(8) PoundAvailableInfo final :
                      ArrayRef<AvailabilitySpec *> queries, SourceLoc RParenLoc,
                      bool isUnavailability)
       : PoundLoc(PoundLoc), LParenLoc(LParenLoc), RParenLoc(RParenLoc),
-        NumQueries(queries.size()), AvailableRange(VersionRange::empty()),
-        VariantAvailableRange(VersionRange::empty()), Flags() {
+        NumQueries(queries.size()), Flags() {
     Flags.isInvalid = false;
     Flags.isUnavailability = isUnavailability;
     std::uninitialized_copy(queries.begin(), queries.end(),
@@ -526,7 +518,7 @@ public:
   void setInvalid() { Flags.isInvalid = true; }
 
   ArrayRef<AvailabilitySpec *> getQueries() const {
-    return llvm::ArrayRef(getTrailingObjects<AvailabilitySpec *>(), NumQueries);
+    return toolchain::ArrayRef(getTrailingObjects<AvailabilitySpec *>(), NumQueries);
   }
 
   /// Returns an iterator for the statement's type-checked availability specs.
@@ -542,16 +534,11 @@ public:
   SourceRange getSourceRange() const { return SourceRange(getStartLoc(),
                                                           getEndLoc()); }
 
-  std::optional<VersionRange> getAvailableRange() const {
-    return AvailableRange;
+  std::optional<const AvailabilityQuery> getAvailabilityQuery() const {
+    return Query;
   }
-  void setAvailableRange(const VersionRange &Range) { AvailableRange = Range; }
-
-  std::optional<VersionRange> getVariantAvailableRange() const {
-    return VariantAvailableRange;
-  }
-  void setVariantAvailableRange(const VersionRange &Range) {
-    VariantAvailableRange = Range;
+  void setAvailabilityQuery(const AvailabilityQuery &query) {
+    Query.emplace(query);
   }
 
   bool isUnavailability() const { return Flags.isUnavailability; }
@@ -615,7 +602,7 @@ public:
 ///
 class alignas(1 << PatternAlignInBits) StmtConditionElement {
 private:
-  llvm::PointerUnion<Expr *, ConditionalPatternBindingInfo *,
+  toolchain::PointerUnion<Expr *, ConditionalPatternBindingInfo *,
                      PoundAvailableInfo *, PoundHasSymbolInfo *>
       Condition;
 
@@ -730,10 +717,7 @@ public:
   /// or `let self = self` condition.
   ///  - If `requiresCaptureListRef` is `true`, additionally requires that the
   ///    RHS of the self condition references a var defined in a capture list.
-  ///  - If `requireLoadExpr` is `true`, additionally requires that the RHS of
-  ///    the self condition is a `LoadExpr`.
-  bool rebindsSelf(ASTContext &Ctx, bool requiresCaptureListRef = false,
-                   bool requireLoadExpr = false) const;
+  bool rebindsSelf(ASTContext &Ctx, bool requiresCaptureListRef = false) const;
 
   SourceLoc getStartLoc() const;
   SourceLoc getEndLoc() const;
@@ -778,7 +762,7 @@ public:
   ///
   /// The nice, consistent language rule is that unlabeled "break" and
   /// "continue" leave the innermost loop.  We have to include
-  /// "switch" (for "break") for consistency with C: Swift doesn't
+  /// "switch" (for "break") for consistency with C: Codira doesn't
   /// require "break" to leave a switch case, but it's still way too
   /// similar to C's switch to allow different behavior for "break".
   bool requiresLabelOnJump() const;
@@ -842,10 +826,7 @@ public:
   /// or `let self = self` condition.
   ///  - If `requiresCaptureListRef` is `true`, additionally requires that the
   ///    RHS of the self condition references a var defined in a capture list.
-  ///  - If `requireLoadExpr` is `true`, additionally requires that the RHS of
-  ///    the self condition is a `LoadExpr`.
-  bool rebindsSelf(ASTContext &Ctx, bool requiresCaptureListRef = false,
-                   bool requireLoadExpr = false) const;
+  bool rebindsSelf(ASTContext &Ctx, bool requiresCaptureListRef = false) const;
 
   static bool classof(const Stmt *S) {
     return S->getKind() >= StmtKind::First_LabeledConditionalStmt &&
@@ -1113,9 +1094,9 @@ class alignas(1 << PatternAlignInBits) CaseLabelItem {
     Default,
   };
 
-  llvm::PointerIntPair<Pattern *, 1, bool> CasePatternAndResolved;
+  toolchain::PointerIntPair<Pattern *, 1, bool> CasePatternAndResolved;
   SourceLoc WhereLoc;
-  llvm::PointerIntPair<Expr *, 1, Kind> GuardExprAndKind;
+  toolchain::PointerIntPair<Expr *, 1, Kind> GuardExprAndKind;
 
   CaseLabelItem(Kind kind, Pattern *casePattern, SourceLoc whereLoc,
                 Expr *guardExpr)
@@ -1227,7 +1208,7 @@ enum CaseParentKind { Switch, DoCatch };
 ///
 class CaseStmt final
     : public Stmt,
-      private llvm::TrailingObjects<CaseStmt, FallthroughStmt *,
+      private toolchain::TrailingObjects<CaseStmt, FallthroughStmt *,
                                     CaseLabelItem> {
   friend TrailingObjects;
 
@@ -1237,7 +1218,7 @@ class CaseStmt final
   SourceLoc ItemTerminatorLoc;
   CaseParentKind ParentKind;
 
-  llvm::PointerIntPair<BraceStmt *, 1, bool> BodyAndHasFallthrough;
+  toolchain::PointerIntPair<BraceStmt *, 1, bool> BodyAndHasFallthrough;
 
   std::optional<MutableArrayRef<VarDecl *>> CaseBodyVariables;
 
@@ -1348,7 +1329,7 @@ public:
       return SourceRange(getLoc(), getLoc());
     }
     }
-    llvm_unreachable("invalid parent kind");
+    toolchain_unreachable("invalid parent kind");
   }
 
   bool isDefault() { return getCaseLabelItems()[0].isDefault(); }
@@ -1413,7 +1394,7 @@ public:
 
 /// Switch statement.
 class SwitchStmt final : public LabeledStmt,
-                         private llvm::TrailingObjects<SwitchStmt, CaseStmt *> {
+                         private toolchain::TrailingObjects<SwitchStmt, CaseStmt *> {
   friend TrailingObjects;
 
   SourceLoc SwitchLoc, LBraceLoc, RBraceLoc;
@@ -1482,7 +1463,7 @@ public:
 /// DoCatchStmt - do statement with trailing 'catch' clauses.
 class DoCatchStmt final
     : public LabeledStmt,
-      private llvm::TrailingObjects<DoCatchStmt, CaseStmt *> {
+      private toolchain::TrailingObjects<DoCatchStmt, CaseStmt *> {
   friend TrailingObjects;
   friend class ExplicitCaughtTypeRequest;
 
@@ -1763,7 +1744,7 @@ class PoundAssertStmt : public Stmt {
 
 SourceLoc extractNearestSourceLoc(const Stmt *stmt);
 
-inline void simple_display(llvm::raw_ostream &out, const Stmt *S) {
+inline void simple_display(toolchain::raw_ostream &out, const Stmt *S) {
   if (S)
     out << Stmt::getKindName(S->getKind());
   else
@@ -1772,4 +1753,4 @@ inline void simple_display(llvm::raw_ostream &out, const Stmt *S) {
 
 } // end namespace language
 
-#endif // SWIFT_AST_STMT_H
+#endif // LANGUAGE_AST_STMT_H

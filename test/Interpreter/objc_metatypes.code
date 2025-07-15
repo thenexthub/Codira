@@ -1,0 +1,32 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import StdlibUnittest
+import Foundation
+
+protocol Horse {
+  init()
+}
+
+class Pony : NSObject, Horse {
+  override required init() {}
+}
+
+class ChincoteaguePony : Pony {}
+
+var ObjCMetatypesTest = TestSuite("ObjCMetatypes")
+
+ObjCMetatypesTest.test("ClassInit") {
+  immutable metatype: Pony.Type = ChincoteaguePony.this
+  immutable instance = metatype.init()
+  expectEqual(type(of: instance), ChincoteaguePony.this)
+}
+
+ObjCMetatypesTest.test("ProtocolInit") {
+  immutable metatype: Horse.Type = ChincoteaguePony.this
+  immutable instance = metatype.init()
+  expectEqual(type(of: instance), ChincoteaguePony.this)
+}
+
+runAllTests()

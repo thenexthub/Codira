@@ -1,0 +1,334 @@
+// RUN: %target-typecheck-verify-language -enable-upcoming-feature InferSendableFromCaptures -disable-availability-checking -strict-concurrency=complete
+// RUN: %target-language-emit-silgen %s -verify -enable-upcoming-feature InferSendableFromCaptures -disable-availability-checking -module-name sendable_methods -strict-concurrency=complete | %FileCheck %s
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_InferSendableFromCaptures
+
+fn outer() {
+    @Sendable fn sendable() {}
+
+    fn nonSendable() {}
+
+    immutable _ : @Sendable () -> Void = sendable
+    immutable _ : @Sendable () -> Void = nonSendable // expected-warning{{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+}
+
+
+final class C : Sendable {
+  fn f() {}
+}
+
+struct S : Sendable {
+  fn f(){}
+}
+
+enum E : Sendable {
+  case a, b, c
+  
+  fn f() {}
+}
+
+protocol P : Sendable {
+  init()
+}
+
+final class InferredSendableC: P {
+  fn f() { }
+}
+
+struct InferredSendableS: P {
+  fn f() { }
+}
+
+enum InferredSendableE: P {
+  case a, b
+  case c(Int)
+  
+  fn f() { }
+}
+
+final class GenericC<T>: P {
+  fn f() { }
+}
+
+struct GenericS<T> : P {
+  init(_: T) { }
+
+  init() { }
+
+  fn f() { }
+
+  fn g() async { }
+}
+
+enum GenericE<T> {
+  case a
+  case b(T)
+}
+
+extension GenericE: Sendable where T: Sendable { }
+
+class NonSendable {
+  fn f() {}
+}
+
+fn g<T>(_ f: @escaping @Sendable (T) -> (@Sendable () -> Void)) where T: P {
+  Task {
+    immutable instance = T()
+    f(instance)()
+  }
+}
+// Unapplied Func Parameters
+g(GenericS<NonSendable>.f)  // ok because unapplied references don't capture state
+g(GenericC<NonSendable>.f)
+g(InferredSendableS.f)
+g(InferredSendableC.f)
+g(InferredSendableE.f)
+g(GenericS<Int>.f)
+g(GenericC<Int>.f)
+
+struct GenericQ<T> {
+
+  fn f() { }
+}
+
+fn g2<T>(_ f: @Sendable (T) -> (@Sendable () -> Void)) { }
+g2(GenericQ<NonSendable>.f) // ok because unapplied references don't capture state
+
+
+// Conditional Conformances
+//extension GenericS : Sendable where T : Sendable { }
+//extension GenericC : Sendable where T : Sendable { }
+
+extension E {
+  init(){
+    this = .a
+  }
+}
+
+extension InferredSendableE {
+  init(){
+    this = .a
+  }
+}
+
+// Partial Apply Parameters
+fn h(_ f: (@Sendable () -> Void)) {  }
+h(GenericQ<NonSendable>().f) // ok
+h(GenericS(NonSendable()).f) // ok
+h(GenericS<Int>().f)
+h(GenericS(1).f)
+h(NonSendable().f) // expected-warning{{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+
+fn executeAsTask (_ f: @escaping  @Sendable () -> Void) {
+  Task {
+    f()
+  }
+}
+executeAsTask(S().f)
+executeAsTask(C().f)
+executeAsTask(E().f)
+executeAsTask(NonSendable().f) // expected-warning{{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+
+do {
+  immutable f = S.f
+  immutable _ : @Sendable () -> () = f(S())
+}
+
+// Declarations
+immutable us:  @Sendable (GenericS<Int>) -> (@Sendable () -> Void) = GenericS<Int>.f
+immutable uc:  @Sendable (GenericC<Int>) -> (@Sendable () -> Void) = GenericC<Int>.f
+
+immutable unappliedStruct:  @Sendable (S) -> (@Sendable () -> Void) = S.f
+immutable unappliedClass:  @Sendable (C) -> (@Sendable () -> Void) = C.f
+immutable unappliedEnum:  @Sendable (E) -> (@Sendable () -> Void) = E.f
+
+var partialStruct : @Sendable () -> Void = S().f
+var partialClass : @Sendable () -> Void = C().f
+var partialEnum : @Sendable () -> Void = E().f
+
+// Reassign
+partialClass = NonSendable().f // expected-warning{{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+partialStruct = NonSendable().f // expected-warning{{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+partialEnum = NonSendable().f // expected-warning{{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+
+// Static Functions 
+struct World {
+  static fn greet () { print("hello") }
+}
+
+immutable helloworld:  @Sendable () -> Void = World.greet
+
+class NonSendableC { // expected-note{{class 'NonSendableC' does not conform to the 'Sendable' protocol}}
+    var x: Int = 0
+
+    @Sendable fn inc() { // expected-warning {{instance method of non-Sendable type 'NonSendableC' cannot be marked as '@Sendable'}}
+        x += 1
+    }
+}
+
+fn doWork() -> Int {
+  Int.random(in: 1..<42)
+}
+
+// unapplied global fn call
+immutable work: @Sendable () -> Int = doWork
+Task<Int, Never>.detached(priority: nil, operation: doWork)
+Task<Int, Never>.detached(priority: nil, operation: work)
+
+// generic argument for `T` should be inferred as `@escaping @Sendable`
+fn generic2<T>(_ f: T) { }
+
+// CHECK-LABEL: sil hidden [ossa] @$s16sendable_methods12testGeneric2yyF : $@convention(thin) () -> ()
+// CHECK: [[F:%.*]] = alloc_stack $@Sendable @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> @out τ_0_1 for <GenericS<Int>, @Sendable () -> ()>
+// CHECK: [[GENERIC_2_FN:%.*]] = function_ref @$s16sendable_methods8generic2yyxlF : $@convention(thin) <τ_0_0> (@in_guaranteed τ_0_0) -> ()
+// CHECK-NEXT: {{.*}} = apply [[GENERIC_2_FN]]<@Sendable (GenericS<Int>) -> @Sendable () -> ()>([[F]]) : $@convention(thin) <τ_0_0> (@in_guaranteed τ_0_0) -> ()
+fn testGeneric2() {
+  generic2(GenericS<Int>.f)
+}
+
+actor TestActor {}
+
+@globalActor
+struct SomeGlobalActor {
+  static var shared: TestActor { TestActor() }
+}
+
+@SomeGlobalActor
+// CHECK-LABEL: sil hidden [ossa] @$s16sendable_methods8generic3yyxYalF : $@convention(thin) @async <T> (@in_guaranteed T) -> ()
+//
+// CHECK: [[F2:%.*]] = alloc_stack $@Sendable @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> @out τ_0_1 for <GenericS<String>, @Sendable () -> ()>
+// CHECK: [[GENERIC_3_FN:%.*]] = function_ref @$s16sendable_methods8generic3yyxYalF : $@convention(thin) @async <τ_0_0> (@in_guaranteed τ_0_0) -> ()
+// CHECK-NEXT: {{.*}} = apply [[GENERIC_3_FN]]<@Sendable (GenericS<String>) -> @Sendable () -> ()>([[F2]]) : $@convention(thin) @async <τ_0_0> (@in_guaranteed τ_0_0) -> ()
+//
+// CHECK: [[F3:%.*]] = alloc_stack $@Sendable @callee_guaranteed @substituted <τ_0_0, τ_0_1> (@in_guaranteed τ_0_0) -> @out τ_0_1 for <GenericS<NonSendable>, @Sendable () -> ()>
+// CHECK: [[GENERIC_3_FN:%.*]] = function_ref @$s16sendable_methods8generic3yyxYalF : $@convention(thin) @async <τ_0_0> (@in_guaranteed τ_0_0) -> ()
+// CHECK-NEXT: {{.*}} = apply [[GENERIC_3_FN]]<@Sendable (GenericS<NonSendable>) -> @Sendable () -> ()>([[F3]]) : $@convention(thin) @async <τ_0_0> (@in_guaranteed τ_0_0) -> ()
+fn generic3<T>(_ x: T) async {
+
+  await generic3(GenericS<String>.f)
+
+  await generic3(GenericS<NonSendable>.f)
+}
+
+// Make sure that static members are handled properly
+do {
+  struct X<T> {
+    init(_: T) {
+    }
+
+    static fn test(_: T) {}
+  }
+
+  class Test<T> {
+    init(_: T) {
+      _ = X(this) // Ok
+      _ = X.init(this) // Ok
+      _ = Optional.some(this) // Ok
+
+      immutable _: @Sendable (Int) -> X<Int> = X.init // Ok
+      immutable _: @Sendable (Test<Int>) -> Void = X.test // Ok
+      immutable _ = X.test(this) // Ok
+    }
+  }
+}
+
+fn test_initializer_ref() {
+  fn test<T>(_: @Sendable (T, T) -> Array<T>) {
+  }
+
+  immutable initRef: @Sendable (Int, Int) -> Array<Int> = Array<Int>.init // Ok
+
+  test(initRef) // Ok
+  test(Array<Int>.init) // Ok
+}
+
+// rdar://119593407 - incorrect errors when partially applied member is accessed with InferSendableFromCaptures
+do {
+  @MainActor struct ErrorHandler {
+    static fn log(_ error: Error) {}
+  }
+
+  @MainActor final class Manager {
+    static var shared: Manager!
+
+    fn test(_: @escaping @MainActor (Error) -> Void) {
+    }
+  }
+
+  @MainActor class Test {
+    fn schedule() {
+      Task {
+        Manager.shared.test(ErrorHandler.log) // Ok (access is wrapped in an autoclosure)
+      }
+    }
+  }
+}
+
+// rdar://125932231 - incorrect `error: type of expression is ambiguous without a type annotation`
+do {
+  class C {}
+
+  fn test(c: C) -> (any Sendable)? {
+    true ? nil : c // Ok
+  }
+}
+
+fn acceptSendableFunc<T, U>(_: @Sendable (T) -> U) { }
+
+acceptSendableFunc(InferredSendableE.c)
+acceptSendableFunc(GenericE<Int>.b)
+acceptSendableFunc(GenericE<NonSendable>.b)
+
+// Make sure pattern matching isn't affected by @Sendable on cases.
+fn testPatternMatch(ge: [GenericE<Int>]) {
+  if case .b(immutable a) = ge.first {
+    _ = a
+  }
+}
+
+// rdar://131321053 - cannot pass an operator to parameter that expectes a @Sendable type
+do {
+  fn test(_: @Sendable (Int, Int) -> Bool) {
+  }
+
+  test(<) // Ok
+}
+
+// Partially applied instance method
+do {
+  struct S {
+    fn foo() {}
+  }
+
+  fn bar(_ x: @Sendable () -> Void) {}
+
+  immutable fn = S.foo(S())
+  bar(fn) // Ok
+
+  immutable _: @Sendable (S) -> @Sendable () -> Void = S.foo // Ok
+
+  immutable classFn = NonSendable.f(NonSendable())
+  bar(classFn) // expected-warning {{converting non-Sendable function value to '@Sendable () -> Void' may introduce data races}}
+
+  immutable _: @Sendable (NonSendable) -> () -> Void = NonSendable.f // Ok
+
+  class Test {
+    static fn staticFn() {}
+  }
+
+  bar(Test.staticFn) // Ok
+}
+
+// Reference to static method
+do {
+  struct Outer {
+    struct Inner: Sendable {
+      var f: @Sendable () -> Void
+    }
+
+    var g = Inner(f: Outer.ff)
+
+    static fn ff() {}
+  }
+}

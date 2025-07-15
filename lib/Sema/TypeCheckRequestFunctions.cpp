@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 #include "TypeChecker.h"
 #include "TypeCheckType.h"
@@ -32,7 +33,7 @@ using namespace language;
 
 InheritedTypeResult InheritedTypeRequest::evaluate(
     Evaluator &evaluator,
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
     unsigned index, TypeResolutionStage stage) const {
   // Figure out how to resolve types.
   DeclContext *dc;
@@ -317,7 +318,7 @@ static Type inferResultBuilderType(ValueDecl *decl)  {
       case DynamicReplacement:
         return dynamicReplacement->getName();
       }
-      llvm_unreachable("unhandled decl name kind!");
+      toolchain_unreachable("unhandled decl name kind!");
     }
   };
 
@@ -489,12 +490,12 @@ Type ResultBuilderTypeRequest::evaluate(Evaluator &evaluator,
   return type->mapTypeOutOfContext();
 }
 
-Type GenericTypeParamDeclGetValueTypeRequest::evaluate(Evaluator &evaluator,
-                                             GenericTypeParamDecl *decl) const {
-  if (!decl->isValue())
-    return Type();
+Type GenericTypeParamDeclGetValueTypeRequest::evaluate(
+    Evaluator &evaluator, const GenericTypeParamDecl *decl) const {
+  ASSERT(decl->isValue());
 
-  if (decl->getInherited().size() == 0) {
+  auto inherited = decl->getInherited();
+  if (inherited.empty()) {
     decl->diagnose(diag::missing_value_generic_type, decl->getName());
     return Type();
   }
@@ -505,23 +506,22 @@ Type GenericTypeParamDeclGetValueTypeRequest::evaluate(Evaluator &evaluator,
   //
   // We should have 1 inherited type for 'N', 'Int', and have a 2nd generic
   // parameter called 'Bool'.
-  ASSERT(decl->getInherited().size() == 1);
+  ASSERT(inherited.size() == 1);
 
   // The value type of a generic parameter should never rely on the generic
   // signature of the generic parameter itself or any of the outside context.
-  return decl->getInherited().getResolvedType(0,
-                                              TypeResolutionStage::Structural);
+  return inherited.getResolvedType(0, TypeResolutionStage::Structural);
 }
 
 // Define request evaluation functions for each of the type checker requests.
 static AbstractRequestFunction *typeCheckerRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/TypeCheckerTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerTypeCheckerRequestFunctions(Evaluator &evaluator) {
+void language::registerTypeCheckerRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::TypeChecker,
                                      typeCheckerRequestFunctions);
 }

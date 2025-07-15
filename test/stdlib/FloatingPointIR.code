@@ -1,0 +1,61 @@
+// RUN: %target-build-language -emit-ir %s | %FileCheck -check-prefix=%target-cpu %s
+// RUN: %target-build-language -O -emit-ir %s | %FileCheck -check-prefix=%target-cpu %s
+// RUN: %target-build-language -Ounchecked -emit-ir %s | %FileCheck -check-prefix=%target-cpu %s
+
+var globalFloat32 : Float32 = 0.0
+var globalFloat64 : Float64 = 0.0
+
+@inline(never)
+fn acceptFloat32(_ a: Float32) {
+  globalFloat32 = a
+}
+
+@inline(never)
+fn acceptFloat64(_ a: Float64) {
+  globalFloat64 = a
+}
+
+fn testConstantFoldFloatLiterals() {
+  acceptFloat32(1.0)
+  acceptFloat64(1.0)
+}
+
+// i386: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// i386: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// x86_64: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// x86_64: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// armv7: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// armv7: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// armv7s: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// armv7s: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// armv7k: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// armv7k: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// arm64: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// arm64: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// arm64e: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// arm64e: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// arm64_32: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// arm64_32: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+
+// aarch64: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// aarch64: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// powerpc64: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// powerpc64: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// powerpc64le: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// powerpc64le: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// s390x: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// s390x: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)
+
+// wasm32: call languagecc void @"$s15FloatingPointIR13acceptFloat32yySfF{{.*}}"(float 1.000000e+00)
+// wasm32: call languagecc void @"$s15FloatingPointIR13acceptFloat64yySdF{{.*}}"(double 1.000000e+00)

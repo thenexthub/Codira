@@ -1,4 +1,4 @@
-//===--- swift-dependency-tool.cpp - Convert binary swiftdeps to YAML -----===//
+//===--- language-dependency-tool.cpp - Convert binary languagedeps to YAML -----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/FileSystem.h"
@@ -19,12 +20,12 @@
 #include "language/AST/FineGrainedDependencyFormat.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/SourceManager.h"
-#include "language/Basic/LLVMInitialize.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/VirtualOutputBackends.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "language/Basic/ToolchainInitializer.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
 
 using namespace language;
 using namespace fine_grained_dependencies;
@@ -36,24 +37,24 @@ using namespace fine_grained_dependencies;
 // This introduces a redefinition wherever std::is_same_t<size_t, uint64_t>
 // holds.
 #if !(defined(__linux__) || defined(_WIN64) || defined(__FreeBSD__))
-LLVM_YAML_DECLARE_SCALAR_TRAITS(size_t, QuotingType::None)
+TOOLCHAIN_YAML_DECLARE_SCALAR_TRAITS(size_t, QuotingType::None)
 #endif
-LLVM_YAML_DECLARE_ENUM_TRAITS(swift::fine_grained_dependencies::NodeKind)
-LLVM_YAML_DECLARE_ENUM_TRAITS(swift::fine_grained_dependencies::DeclAspect)
-LLVM_YAML_DECLARE_MAPPING_TRAITS(
-    swift::fine_grained_dependencies::DependencyKey)
-LLVM_YAML_DECLARE_MAPPING_TRAITS(swift::fine_grained_dependencies::DepGraphNode)
+TOOLCHAIN_YAML_DECLARE_ENUM_TRAITS(language::fine_grained_dependencies::NodeKind)
+TOOLCHAIN_YAML_DECLARE_ENUM_TRAITS(language::fine_grained_dependencies::DeclAspect)
+TOOLCHAIN_YAML_DECLARE_MAPPING_TRAITS(
+    language::fine_grained_dependencies::DependencyKey)
+TOOLCHAIN_YAML_DECLARE_MAPPING_TRAITS(language::fine_grained_dependencies::DepGraphNode)
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 template <>
 struct MappingContextTraits<
-    swift::fine_grained_dependencies::SourceFileDepGraphNode,
-    swift::fine_grained_dependencies::SourceFileDepGraph> {
+    language::fine_grained_dependencies::SourceFileDepGraphNode,
+    language::fine_grained_dependencies::SourceFileDepGraph> {
   using SourceFileDepGraphNode =
-      swift::fine_grained_dependencies::SourceFileDepGraphNode;
+      language::fine_grained_dependencies::SourceFileDepGraphNode;
   using SourceFileDepGraph =
-      swift::fine_grained_dependencies::SourceFileDepGraph;
+      language::fine_grained_dependencies::SourceFileDepGraph;
 
   static void mapping(IO &io, SourceFileDepGraphNode &node,
                       SourceFileDepGraph &g);
@@ -61,23 +62,23 @@ struct MappingContextTraits<
 
 template <>
 struct SequenceTraits<
-    std::vector<swift::fine_grained_dependencies::SourceFileDepGraphNode *>> {
+    std::vector<language::fine_grained_dependencies::SourceFileDepGraphNode *>> {
   using SourceFileDepGraphNode =
-      swift::fine_grained_dependencies::SourceFileDepGraphNode;
+      language::fine_grained_dependencies::SourceFileDepGraphNode;
   using NodeVec = std::vector<SourceFileDepGraphNode *>;
   static size_t size(IO &, NodeVec &vec);
   static SourceFileDepGraphNode &element(IO &, NodeVec &vec, size_t index);
 };
 
-template <> struct ScalarTraits<swift::Fingerprint> {
-  static void output(const swift::Fingerprint &fp, void *c, raw_ostream &os) {
+template <> struct ScalarTraits<language::Fingerprint> {
+  static void output(const language::Fingerprint &fp, void *c, raw_ostream &os) {
     os << fp.getRawValue();
   }
-  static StringRef input(StringRef s, void *, swift::Fingerprint &fp) {
-    if (auto convertedFP = swift::Fingerprint::fromString(s))
+  static StringRef input(StringRef s, void *, language::Fingerprint &fp) {
+    if (auto convertedFP = language::Fingerprint::fromString(s))
       fp = convertedFP.value();
     else {
-      llvm::errs() << "Failed to convert fingerprint '" << s << "'\n";
+      toolchain::errs() << "Failed to convert fingerprint '" << s << "'\n";
       exit(1);
     }
     return StringRef();
@@ -86,12 +87,12 @@ template <> struct ScalarTraits<swift::Fingerprint> {
 };
 
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
-LLVM_YAML_DECLARE_MAPPING_TRAITS(
-    swift::fine_grained_dependencies::SourceFileDepGraph)
+TOOLCHAIN_YAML_DECLARE_MAPPING_TRAITS(
+    language::fine_grained_dependencies::SourceFileDepGraph)
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 // This introduces a redefinition wherever std::is_same_t<size_t, uint64_t>
 // holds.
@@ -106,9 +107,9 @@ StringRef ScalarTraits<size_t>::input(StringRef scalar, void *ctxt,
 }
 #endif
 
-void ScalarEnumerationTraits<swift::fine_grained_dependencies::NodeKind>::
-    enumeration(IO &io, swift::fine_grained_dependencies::NodeKind &value) {
-  using NodeKind = swift::fine_grained_dependencies::NodeKind;
+void ScalarEnumerationTraits<language::fine_grained_dependencies::NodeKind>::
+    enumeration(IO &io, language::fine_grained_dependencies::NodeKind &value) {
+  using NodeKind = language::fine_grained_dependencies::NodeKind;
   io.enumCase(value, "topLevel", NodeKind::topLevel);
   io.enumCase(value, "nominal", NodeKind::nominal);
   io.enumCase(value, "potentialMember", NodeKind::potentialMember);
@@ -119,14 +120,14 @@ void ScalarEnumerationTraits<swift::fine_grained_dependencies::NodeKind>::
 }
 
 void ScalarEnumerationTraits<DeclAspect>::enumeration(
-    IO &io, swift::fine_grained_dependencies::DeclAspect &value) {
-  using DeclAspect = swift::fine_grained_dependencies::DeclAspect;
+    IO &io, language::fine_grained_dependencies::DeclAspect &value) {
+  using DeclAspect = language::fine_grained_dependencies::DeclAspect;
   io.enumCase(value, "interface", DeclAspect::interface);
   io.enumCase(value, "implementation", DeclAspect::implementation);
 }
 
 void MappingTraits<DependencyKey>::mapping(
-    IO &io, swift::fine_grained_dependencies::DependencyKey &key) {
+    IO &io, language::fine_grained_dependencies::DependencyKey &key) {
   io.mapRequired("kind", key.kind);
   io.mapRequired("aspect", key.aspect);
   io.mapRequired("context", key.context);
@@ -134,7 +135,7 @@ void MappingTraits<DependencyKey>::mapping(
 }
 
 void MappingTraits<DepGraphNode>::mapping(
-    IO &io, swift::fine_grained_dependencies::DepGraphNode &node) {
+    IO &io, language::fine_grained_dependencies::DepGraphNode &node) {
   io.mapRequired("key", node.key);
   io.mapOptional("fingerprint", node.fingerprint);
 }
@@ -171,7 +172,7 @@ void MappingTraits<SourceFileDepGraph>::mapping(IO &io, SourceFileDepGraph &g) {
   io.mapRequired("allNodes", g.allNodes, g);
 }
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
 enum class ActionType : unsigned {
   None,
@@ -179,86 +180,86 @@ enum class ActionType : unsigned {
   YAMLToBinary
 };
 
-int swift_dependency_tool_main(ArrayRef<const char *> argv, void *MainAddr) {
+int language_dependency_tool_main(ArrayRef<const char *> argv, void *MainAddr) {
   INITIALIZE_LLVM();
 
-  llvm::cl::OptionCategory Category("swift-dependency-tool Options");
+  toolchain::cl::OptionCategory Category("language-dependency-tool Options");
 
-  llvm::cl::opt<std::string>
+  toolchain::cl::opt<std::string>
   InputFilename("input-filename",
-                llvm::cl::desc("Name of the input file"),
-                llvm::cl::cat(Category));
+                toolchain::cl::desc("Name of the input file"),
+                toolchain::cl::cat(Category));
 
-  llvm::cl::opt<std::string>
+  toolchain::cl::opt<std::string>
   OutputFilename("output-filename",
-                 llvm::cl::desc("Name of the output file"),
-                 llvm::cl::cat(Category));
+                 toolchain::cl::desc("Name of the output file"),
+                 toolchain::cl::cat(Category));
 
-  llvm::cl::opt<ActionType>
-  Action(llvm::cl::desc("Mode:"), llvm::cl::init(ActionType::None),
-         llvm::cl::cat(Category),
-         llvm::cl::values(
+  toolchain::cl::opt<ActionType>
+  Action(toolchain::cl::desc("Mode:"), toolchain::cl::init(ActionType::None),
+         toolchain::cl::cat(Category),
+         toolchain::cl::values(
              clEnumValN(ActionType::BinaryToYAML,
-                        "to-yaml", "Convert new binary .swiftdeps format to YAML"),
+                        "to-yaml", "Convert new binary .codedeps format to YAML"),
              clEnumValN(ActionType::YAMLToBinary,
-                        "from-yaml", "Convert YAML to new binary .swiftdeps format")));
+                        "from-yaml", "Convert YAML to new binary .codedeps format")));
 
-  llvm::cl::HideUnrelatedOptions(Category);
-  llvm::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Swift Dependency Tool\n");
+  toolchain::cl::HideUnrelatedOptions(Category);
+  toolchain::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Codira Dependency Tool\n");
 
   SourceManager sourceMgr;
   DiagnosticEngine diags(sourceMgr);
-  llvm::vfs::OnDiskOutputBackend outputBackend;
+  toolchain::vfs::OnDiskOutputBackend outputBackend;
 
   switch (Action) {
   case ActionType::None: {
-    llvm::errs() << "action required\n";
-    llvm::cl::PrintHelpMessage();
+    toolchain::errs() << "action required\n";
+    toolchain::cl::PrintHelpMessage();
     return 1;
   }
 
   case ActionType::BinaryToYAML: {
     auto fg = SourceFileDepGraph::loadFromPath(InputFilename, true);
     if (!fg) {
-      llvm::errs() << "Failed to read dependency file\n";
+      toolchain::errs() << "Failed to read dependency file\n";
       return 1;
     }
 
     bool hadError =
       withOutputPath(diags, outputBackend, OutputFilename,
-        [&](llvm::raw_pwrite_stream &out) {
+        [&](toolchain::raw_pwrite_stream &out) {
           out << "# Fine-grained v0\n";
-          llvm::yaml::Output yamlWriter(out);
+          toolchain::yaml::Output yamlWriter(out);
           yamlWriter << *fg;
           return false;
         });
 
     if (hadError) {
-      llvm::errs() << "Failed to write YAML swiftdeps\n";
+      toolchain::errs() << "Failed to write YAML languagedeps\n";
     }
     break;
   }
 
   case ActionType::YAMLToBinary: {
-    auto bufferOrError = llvm::MemoryBuffer::getFile(InputFilename);
+    auto bufferOrError = toolchain::MemoryBuffer::getFile(InputFilename);
     if (!bufferOrError) {
-      llvm::errs() << "Failed to read dependency file\n";
+      toolchain::errs() << "Failed to read dependency file\n";
       return 1;
     }
 
     auto &buffer = *bufferOrError.get();
 
     SourceFileDepGraph fg;
-    llvm::yaml::Input yamlReader(llvm::MemoryBufferRef(buffer), nullptr);
+    toolchain::yaml::Input yamlReader(toolchain::MemoryBufferRef(buffer), nullptr);
     yamlReader >> fg;
     if (yamlReader.error()) {
-      llvm::errs() << "Failed to parse YAML swiftdeps\n";
+      toolchain::errs() << "Failed to parse YAML languagedeps\n";
       return 1;
     }
 
     if (writeFineGrainedDependencyGraphToPath(
             diags, outputBackend, OutputFilename, fg)) {
-      llvm::errs() << "Failed to write binary swiftdeps\n";
+      toolchain::errs() << "Failed to write binary languagedeps\n";
       return 1;
     }
 

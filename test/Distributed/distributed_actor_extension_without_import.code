@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -verify-ignore-unknown -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// On purpose missing 'import Distributed'
+import FakeDistributedActorSystems
+
+extension FakeRoundtripActorSystemDistributedActor {
+  // expected-error@+1{{}}
+  distributed fn echo(name: String) -> String {
+    return "Echo: \(name)"
+  }
+}

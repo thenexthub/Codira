@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// InstModCallbacks: callbacks for instruction modification.
@@ -55,8 +56,8 @@
 #include "language/SIL/SILInstruction.h"
 #include <functional>
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_INSTMODCALLBACKS_H
-#define SWIFT_SILOPTIMIZER_UTILS_INSTMODCALLBACKS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_INSTMODCALLBACKS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_INSTMODCALLBACKS_H
 
 namespace language {
 
@@ -143,7 +144,7 @@ struct InstModCallbacks {
   InstModCallbacks(const InstModCallbacks &) = default;
 
   /// Return a copy of self with deleteInstFunc set to \p newDeleteInstFunc.
-  LLVM_ATTRIBUTE_UNUSED InstModCallbacks
+  TOOLCHAIN_ATTRIBUTE_UNUSED InstModCallbacks
   onDelete(decltype(deleteInstFunc) newDeleteInstFunc) const {
     InstModCallbacks result = *this;
     result.deleteInstFunc = newDeleteInstFunc;
@@ -152,7 +153,7 @@ struct InstModCallbacks {
 
   /// Return a copy of self with createdNewInstFunc set to \p
   /// newCreatedNewInstFunc.
-  LLVM_ATTRIBUTE_UNUSED InstModCallbacks
+  TOOLCHAIN_ATTRIBUTE_UNUSED InstModCallbacks
   onCreateNewInst(decltype(createdNewInstFunc) newCreatedNewInstFunc) const {
     InstModCallbacks result = *this;
     result.createdNewInstFunc = newCreatedNewInstFunc;
@@ -160,7 +161,7 @@ struct InstModCallbacks {
   }
 
   /// Return a copy of self with setUseValueFunc set to \p newSetUseValueFunc.
-  LLVM_ATTRIBUTE_UNUSED InstModCallbacks
+  TOOLCHAIN_ATTRIBUTE_UNUSED InstModCallbacks
   onSetUseValue(decltype(setUseValueFunc) newSetUseValueFunc) const {
     InstModCallbacks result = *this;
     result.setUseValueFunc = newSetUseValueFunc;
@@ -169,7 +170,7 @@ struct InstModCallbacks {
 
   /// Return a copy of self with notifyWillBeDeletedFunc set to \p
   /// newNotifyWillBeDeletedFunc.
-  LLVM_ATTRIBUTE_UNUSED
+  TOOLCHAIN_ATTRIBUTE_UNUSED
   InstModCallbacks onNotifyWillBeDeleted(
       decltype(notifyWillBeDeletedFunc) newNotifyWillBeDeletedFunc) const {
     InstModCallbacks result = *this;

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Map each non-escaping closure SILFunction to a set of SILFunctions
@@ -50,16 +51,16 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_CLOSURESCOPE_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_CLOSURESCOPE_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_CLOSURESCOPE_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_CLOSURESCOPE_H
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/BlotSetVector.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/iterator.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/iterator.h"
 
 namespace language {
 
@@ -82,7 +83,7 @@ inline bool isNonEscapingClosure(CanSILFunctionType funcTy) {
     return paramInfo.getConvention()
     == ParameterConvention::Indirect_InoutAliasable;
   };
-  return llvm::any_of(funcTy->getParameters(), isInoutAliasable);
+  return toolchain::any_of(funcTy->getParameters(), isInoutAliasable);
 }
 
 class ClosureGraph;
@@ -185,7 +186,7 @@ public:
     return closureCycleHeads.contains(function);
   }
 
-  SWIFT_ASSERT_ONLY_DECL(void dump());
+  LANGUAGE_ASSERT_ONLY_DECL(void dump());
 
 protected:
   ClosureFunctionOrder(const ClosureFunctionOrder &) = delete;

@@ -1,0 +1,144 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/textual)
+// RUN: %empty-directory(%t/binary)
+
+// RUN: echo "public fn foo() {}" > %t/Foo.code
+// RUN: %target-language-frontend -emit-module %t/Foo.code -module-name Foo -language-version 5 -disable-implicit-concurrency-module-import -user-module-version 113.330.1.2.3 -emit-module-interface-path %t/textual/Foo.codeinterface -enable-library-evolution -emit-module-path %t/binary/Foo.codemodule
+
+// RUN: %target-typecheck-verify-language -disable-implicit-concurrency-module-import -I %t/textual
+// RUN: %target-typecheck-verify-language -disable-implicit-concurrency-module-import -I %t/binary
+
+import Foo
+
+fn canImportVersioned() {
+#if canImport(Foo, _version: 0)
+  immutable majorZero = 1 // expected-warning {{initialization of immutable value 'majorZero' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: 112)
+  immutable majorSmaller = 1 // expected-warning {{initialization of immutable value 'majorSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+  
+#if canImport(Foo, _version: 113)
+  immutable majorEqual = 1 // expected-warning {{initialization of immutable value 'majorEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: 114)
+  immutable majorLarger = 1
+#endif
+  
+#if canImport(Foo, _version: 113.329)
+  immutable minorSmaller = 1 // expected-warning {{initialization of immutable value 'minorSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: 113.330)
+  immutable minorEqual = 1 // expected-warning {{initialization of immutable value 'minorEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: 113.331)
+  immutable minorLarger = 1
+#endif
+  
+#if canImport(Foo, _version: 113.330.0)
+  immutable patchSmaller = 1 // expected-warning {{initialization of immutable value 'patchSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: 113.330.1)
+  immutable patchEqual = 1 // expected-warning {{initialization of immutable value 'patchEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+  
+#if canImport(Foo, _version: 113.330.2)
+  immutable patchLarger = 1
+#endif
+
+#if canImport(Foo, _version: 113.330.1.1)
+  immutable buildSmaller = 1 // expected-warning {{initialization of immutable value 'buildSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: 113.330.1.2)
+  immutable buildEqual = 1 // expected-warning {{initialization of immutable value 'buildEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+  
+#if canImport(Foo, _version: 113.330.1.3)
+  immutable buildLarger = 1
+#endif
+  
+#if canImport(Foo, _version: 113.330.1.2.0) // expected-warning {{trailing components of version '113.330.1.2' are ignored}}
+  immutable extraComponent = 1 // expected-warning {{initialization of immutable value 'extraComponent' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _underlyingVersion: 113.33) // expected-warning {{cannot find user version number for Clang module 'Foo'; version number ignored}}
+  // TODO(ParserValidation): expected-warning@-1 *{{cannot find user version number for Clang module 'Foo'; version number ignored}}
+  // Foo is a Codira module with no underlying clang module.
+  immutable underlyingMinorSmaller = 1 // expected-warning {{initialization of immutable value 'underlyingMinorSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo)
+  immutable noVersion = 1 // expected-warning {{initialization of immutable value 'noVersion' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+}
+
+/// Test versions specified as string literals.
+fn canImportVersionedString() {
+#if canImport(Foo, _version: "0")
+  immutable majorZero = 1 // expected-warning {{initialization of immutable value 'majorZero' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: "112")
+  immutable majorSmaller = 1 // expected-warning {{initialization of immutable value 'majorSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+  
+#if canImport(Foo, _version: "113")
+  immutable majorEqual = 1 // expected-warning {{initialization of immutable value 'majorEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: "114")
+  immutable majorLarger = 1
+#endif
+  
+#if canImport(Foo, _version: "113.329")
+  immutable minorSmaller = 1 // expected-warning {{initialization of immutable value 'minorSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: "113.330")
+  immutable minorEqual = 1 // expected-warning {{initialization of immutable value 'minorEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: "113.331")
+  immutable minorLarger = 1
+#endif
+  
+#if canImport(Foo, _version: "113.330.0")
+  immutable patchSmaller = 1 // expected-warning {{initialization of immutable value 'patchSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: "113.330.1")
+  immutable patchEqual = 1 // expected-warning {{initialization of immutable value 'patchEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+  
+#if canImport(Foo, _version: "113.330.2")
+  immutable patchLarger = 1
+#endif
+
+#if canImport(Foo, _version: "113.330.1.1")
+  immutable buildSmaller = 1 // expected-warning {{initialization of immutable value 'buildSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _version: "113.330.1.2")
+  immutable buildEqual = 1 // expected-warning {{initialization of immutable value 'buildEqual' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+  
+#if canImport(Foo, _version: "113.330.1.3")
+  immutable buildLarger = 1
+#endif
+
+#if canImport(Foo, _version: "113.330.1.2.0") // expected-warning {{trailing components of version '113.330.1.2' are ignored}}
+  immutable extraComponent = 1 // expected-warning {{initialization of immutable value 'extraComponent' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(Foo, _underlyingVersion: "113.33") // expected-warning {{cannot find user version number for Clang module 'Foo'; version number ignored}}
+  // TODO(ParserValidation): expected-warning@-1 *{{cannot find user version number for Clang module 'Foo'; version number ignored}}
+  // Foo is a Codira module with no underlying clang module.
+  immutable underlyingMinorSmaller = 1 // expected-warning {{initialization of immutable value 'underlyingMinorSmaller' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+}

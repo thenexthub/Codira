@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILVTable class, which is used to map dynamically
@@ -26,8 +27,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILVTABLE_H
-#define SWIFT_SIL_SILVTABLE_H
+#ifndef LANGUAGE_SIL_SILVTABLE_H
+#define LANGUAGE_SIL_SILVTABLE_H
 
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILDeclRef.h"
@@ -50,7 +51,7 @@ class SILVTableEntry {
   SILDeclRef Method;
 
   /// The function which implements the method for the class and the entry kind.
-  llvm::PointerIntPair<SILFunction *, 2, unsigned> ImplAndKind;
+  toolchain::PointerIntPair<SILFunction *, 2, unsigned> ImplAndKind;
 
   bool IsNonOverridden;
 
@@ -86,7 +87,7 @@ public:
   SILFunction *getImplementation() const { return ImplAndKind.getPointer(); }
   void setImplementation(SILFunction *f);
   
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
   
   bool operator==(const SILVTableEntry &e) const {
     return Method == e.Method
@@ -104,7 +105,7 @@ public:
 /// SILFunction that implements the method for that class.
 /// Note that dead methods are completely removed from the vtable.
 class SILVTable final : public SILAllocated<SILVTable>,
-                        llvm::TrailingObjects<SILVTable, SILVTableEntry> {
+                        toolchain::TrailingObjects<SILVTable, SILVTableEntry> {
   friend TrailingObjects;
 
 public:
@@ -214,25 +215,25 @@ public:
   void verify(const SILModule &M) const;
 
   /// Print the vtable.
-  void print(llvm::raw_ostream &OS, bool Verbose = false) const;
+  void print(toolchain::raw_ostream &OS, bool Verbose = false) const;
   void dump() const;
 
 private:
   void removeFromVTableCache(Entry &entry);
 };
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILVTable
 //===----------------------------------------------------------------------===//
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct ilist_traits<::swift::SILVTable> :
-public ilist_node_traits<::swift::SILVTable> {
-  using SILVTable = ::swift::SILVTable;
+struct ilist_traits<::language::SILVTable> :
+public ilist_node_traits<::language::SILVTable> {
+  using SILVTable = ::language::SILVTable;
 
   static void deleteNode(SILVTable *VT) { VT->~SILVTable(); }
 
@@ -240,6 +241,6 @@ private:
   void createNode(const SILVTable &);
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 #endif

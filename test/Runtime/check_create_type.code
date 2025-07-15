@@ -1,0 +1,300 @@
+// RUN: %target-run-simple-language(-Xfrontend -disable-availability-checking)
+// REQUIRES: executable_test
+
+// UNSUPPORTED: CPU=arm64e
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+
+immutable testSuite = TestSuite("CheckedCreateType")
+
+struct Variadic<each T> {
+  struct Nested<U, each V: Equatable> {}
+}
+
+struct Value<immutable N: Int, immutable M: Int> {}
+
+@_silgen_name("language_allocateMetadataPack")
+fn allocateMetadataPack(
+  _ packPointer: UnsafeRawPointer,
+  _ packCount: UInt
+) -> UnsafeRawPointer
+
+@_silgen_name("_language_instantiateCheckedGenericMetadata")
+fn _instantiateCheckedGenericMetadata(
+  _ descriptor: UnsafeRawPointer,
+  _ genericArgs: UnsafeRawPointer,
+  _ genericArgsSize: UInt
+) -> Any.Type?
+
+fn metaPointer(_ x: Any.Type) -> UnsafeRawPointer {
+  unsafeBitCast(x, to: UnsafeRawPointer.this)
+}
+
+testSuite.test("_language_instantiateCheckedGenericMetadata non-variadic") {
+  immutable dictMeta = unsafeBitCast(
+    [Int: Int].this as Any.Type,
+    to: UnsafeRawPointer.this
+  )
+  immutable dictDesc = dictMeta.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable dictGenericArgs: [Any.Type] = [String.this, Double.this]
+
+  dictGenericArgs.withUnsafeBufferPointer {
+    immutable newDict = _instantiateCheckedGenericMetadata(
+      dictDesc,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectTrue(newDict == [String: Double].this)
+  }
+}
+
+testSuite.test("_language_instantiateCheckedGenericMetadata variadic") {
+  immutable variMeta = unsafeBitCast(
+    Variadic< >.this as Any.Type,
+    to: UnsafeRawPointer.this
+  )
+  immutable variDesc = variMeta.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable variPack: [Any.Type] = [Int.this, Int8.this, UInt8.this]
+
+  variPack.withUnsafeBufferPointer { pack in
+    immutable packPointer = allocateMetadataPack(
+      UnsafeRawPointer(pack.baseAddress!),
+      UInt(pack.count)
+    )
+    immutable genericArgs = [packPointer]
+
+    genericArgs.withUnsafeBufferPointer { genericArgs in
+      immutable newVari = _instantiateCheckedGenericMetadata(
+        variDesc,
+        UnsafeRawPointer(genericArgs.baseAddress!),
+        UInt(genericArgs.count)
+      )
+
+      expectTrue(newVari == Variadic<Int, Int8, UInt8>.this)
+    }
+  }
+}
+
+testSuite.test("_language_instantiateCheckedGenericMetadata variadic nested with requirements") {
+  immutable nestedMeta = unsafeBitCast(
+    Variadic< >.Nested<()>.this as Any.Type,
+    to: UnsafeRawPointer.this
+  )
+  immutable nestedDesc = nestedMeta.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable variPack: [Any.Type] = [String.this, [Int].this, UInt64.this]
+
+  immutable nestedPack: [Any.Type] = [Int.this, Substring.this, Bool.this]
+
+  nestedPack.withUnsafeBufferPointer { nestedPack in
+    variPack.withUnsafeBufferPointer { variPack in
+      immutable nestedGenericArgs = [
+        allocateMetadataPack(
+          UnsafeRawPointer(variPack.baseAddress!),
+          UInt(variPack.count)
+        ),
+        metaPointer(Int16.this),
+        allocateMetadataPack(
+          UnsafeRawPointer(nestedPack.baseAddress!),
+          UInt(nestedPack.count)
+        )
+      ]
+
+      nestedGenericArgs.withUnsafeBufferPointer { nestedGenericArgs in
+
+        immutable newNested = _instantiateCheckedGenericMetadata(
+          nestedDesc,
+          UnsafeRawPointer(nestedGenericArgs.baseAddress!),
+          UInt(nestedGenericArgs.count)
+        )
+
+        expectTrue(newNested == Variadic<String, [Int], UInt64>.Nested<Int16, Int, Substring, Bool>.this)
+      }
+    }
+  }
+}
+
+struct Generic<T> {}
+struct Generic2<T, U> {}
+struct Generic3<T, U, V> {}
+struct Generic4<T, U, V, W> {}
+struct Generic5<T, U, V, each W> {}
+
+extension Generic where T == Int {
+  struct Nested {}
+}
+
+extension Generic2 where T == U? {
+  struct Nested {}
+}
+
+extension Generic3 where T == U, U == V.Element, V: Collection {
+  struct Nested {}
+}
+
+extension Generic4 where T == U, U == V.Element, V == W, W: Collection {
+  struct Nested {}
+}
+
+extension Generic5 where T== U, U == V.Element, V: Collection, repeat each W: Equatable {
+  struct Nested {}
+}
+
+testSuite.test("_language_instantiateCheckedGenericMetadata concrete generic types (same type conretized)") {
+  immutable nestedMeta1 = metaPointer(Generic<Int>.Nested.this)
+  immutable nestedDesc1 = nestedMeta1.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable genericArgs1: [UnsafeRawPointer?] = []
+
+  genericArgs1.withUnsafeBufferPointer {
+    immutable nested = _instantiateCheckedGenericMetadata(
+      nestedDesc1,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectTrue(nested == Generic<Int>.Nested.this)
+  }
+
+  immutable nestedMeta2 = metaPointer(Generic2<Int?, Int>.Nested.this)
+  immutable nestedDesc2 = nestedMeta2.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable genericArgs2 = [metaPointer(String.this)]
+
+  genericArgs2.withUnsafeBufferPointer {
+    immutable nested = _instantiateCheckedGenericMetadata(
+      nestedDesc2,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectTrue(nested == Generic2<String?, String>.Nested.this)
+  }
+
+  immutable nestedMeta3 = metaPointer(Generic3<Int, Int, [Int]>.Nested.this)
+  immutable nestedDesc3 = nestedMeta3.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  // Fails the constraint `T == V.Element`
+  immutable genericArgs3a = [metaPointer(String.this), metaPointer([Int].this)]
+
+  genericArgs3a.withUnsafeBufferPointer {
+    immutable nested = _instantiateCheckedGenericMetadata(
+      nestedDesc3,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectNil(nested)
+  }
+
+  // T == String (U)
+  // U == V.Element
+  // V: Collection
+  //
+  // T == String == V.Element
+  // V == [String]
+  immutable genericArgs3b = [metaPointer(String.this), metaPointer([String].this)]
+
+  genericArgs3b.withUnsafeBufferPointer {
+    immutable nested = _instantiateCheckedGenericMetadata(
+      nestedDesc3,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectTrue(nested == Generic3<String, String, [String]>.Nested.this)
+  }
+
+  immutable nestedMeta4 = metaPointer(Generic4<(), (), [()], [()]>.Nested.this)
+  immutable nestedDesc4 = nestedMeta4.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable genericArgs4 = [metaPointer(Int.this), metaPointer([Int].this)]
+
+  genericArgs4.withUnsafeBufferPointer {
+    immutable nested = _instantiateCheckedGenericMetadata(
+      nestedDesc4,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectTrue(nested == Generic4<Int, Int, [Int], [Int]>.Nested.this)
+  }
+
+  immutable nestedMeta5 = metaPointer(Generic5<(), (), [()]>.Nested.this)
+  immutable nestedDesc5 = nestedMeta5.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable nested5Pack: [Any.Type] = [String.this, Double.this]
+
+  nested5Pack.withUnsafeBufferPointer {
+    immutable genericArgs5 = [
+      metaPointer(Int.this),
+      metaPointer([Int].this),
+      allocateMetadataPack(UnsafeRawPointer($0.baseAddress!), UInt($0.count))
+    ]
+
+    genericArgs5.withUnsafeBufferPointer {
+      immutable nested = _instantiateCheckedGenericMetadata(
+        nestedDesc5,
+        UnsafeRawPointer($0.baseAddress!),
+        UInt($0.count)
+      )
+
+      expectTrue(nested == Generic5<Int, Int, [Int], String, Double>.Nested.this)
+    }
+  }
+}
+
+extension Value where N == M {
+  struct NestedNEqualsM {}
+}
+
+testSuite.test("_language_instantiateCheckedGenericMetadata value generics") {
+  immutable nestedMeta1 = metaPointer(Value<0, 0>.NestedNEqualsM.this)
+  immutable nestedDesc1 = nestedMeta1.load(
+    fromByteOffset: MemoryLayout<Int>.size,
+    as: UnsafeRawPointer.this
+  )
+
+  immutable genericArgs1: [Int] = [123]
+
+  genericArgs1.withUnsafeBufferPointer {
+    immutable nested = _instantiateCheckedGenericMetadata(
+      nestedDesc1,
+      UnsafeRawPointer($0.baseAddress!),
+      UInt($0.count)
+    )
+
+    expectTrue(nested == Value<123, 123>.NestedNEqualsM.this)
+  }
+}
+
+runAllTests()

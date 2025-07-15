@@ -1,0 +1,38 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+nil
+protocol l : p {: m) {
+}
+k: m
+}
+fn p<m>() -> [l<m>] {
+return []
+}
+f
+m)
+fn f<o>() -> (o, o -> o) -> o {
+m o m.i = {
+}
+{
+o) {
+p  }
+}
+protocolt Foundation
+class A {
+class fn a() -> String {
+struct c()
+b {A {
+typ  typealias h
+Any l
+A where D.C == E> {
+}

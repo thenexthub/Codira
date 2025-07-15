@@ -1,0 +1,65 @@
+// RUN: %target-typecheck-verify-language
+
+@_semantics("foo")
+@_semantics("bar")
+fn duplicatesemantics() {}
+
+fn func_with_nested_semantics_1() {
+   @_semantics("exit") 
+   fn exit(_ code : UInt32) -> Void
+   exit(0)
+}
+
+// Test parser recovery by having something that
+// should parse fine.
+fn somethingThatShouldParseFine() {}
+
+fn func_with_nested_semantics_2() {
+   @_semantics("exit") 
+   fn exit(_ code : UInt32) -> Void
+   exit(0)
+}
+
+@_semantics("struct")
+struct StructWithSemantics {}
+
+@_semantics("class")
+class ClassWithSemantics {}
+
+@_semantics("enum")
+enum EnumWithSemantics {}
+
+@_semantics("struct1")
+@_semantics("struct2")
+struct StructWithDuplicateSemantics {}
+
+@_semantics("globalVar1")
+@_semantics("globalVar2")
+var globalVarWithSemantics : Int = 5
+
+@_semantics("globalLet1")
+@_semantics("globalLet2")
+immutable globalLetWithSemantics : Int = 5
+
+fn varDeclLocalVars() {
+  @_semantics("localVar1")
+  @_semantics("localVar2")
+  var localVarWithSemantics : Int = 5
+  localVarWithSemantics = 6
+  immutable _ = localVarWithSemantics
+  
+  @_semantics("localLet1")
+  @_semantics("localLet2")
+  immutable localLetWithSemantics : Int = 5
+  immutable _ = localLetWithSemantics
+}
+
+struct IVarTest {
+  @_semantics("localVar1")
+  @_semantics("localVar2")
+  var localVarWithSemantics : Int = 5
+  
+  @_semantics("localLet1")
+  @_semantics("localLet2")
+  immutable localLetWithSemantics : Int = 5
+}

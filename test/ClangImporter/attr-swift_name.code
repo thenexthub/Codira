@@ -1,0 +1,44 @@
+// RUN: %empty-directory(%t.mcp)
+// RUN: not %target-language-frontend(mock-sdk: %clang-importer-sdk) -I %S/Inputs/custom-modules -Xcc -w -typecheck %s -diagnostic-style toolchain -module-cache-path %t.mcp 2>&1 | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+// CHECK-NOT: warning:
+
+import ObjCIRExtras
+
+fn test(_ i: Int) {
+  immutable t = CodiraNameTest()
+  
+  t.theMethod(number: i)
+
+  _ = t.renamedSomeProp
+  _ = type(of: t).renamedClassProp
+
+  _ = circularFriends(_:_:)
+
+  // We only see these five warnings because Clang can catch the other invalid
+  // cases, and marks the attribute as invalid ahead of time.
+  
+  // CHECK: warning: too few parameters in language_name attribute (expected 2; got 1) [#ClangDeclarationImport]
+  // CHECK: + (instancetype)g:(id)x outParam:(int *)foo LANGUAGE_NAME(init(g:));
+  // CHECK-NOT: warning:
+  // CHECK: note: please report this issue to the owners of 'ObjCIRExtras'
+  // CHECK-NOT: warning:
+
+  // CHECK: warning: cycle detected while resolving 'CircularName' in language_name attribute for 'CircularName' [#ClangDeclarationImport]
+  // CHECK: LANGUAGE_NAME(CircularName.Inner) @interface CircularName : NSObject @end
+  // CHECK-NOT: {{warning|note}}:
+  // CHECK: note: please report this issue to the owners of 'ObjCIRExtras'
+  // CHECK-NOT: warning:
+
+  // CHECK: warning: cycle detected while resolving 'MutuallyCircularNameB' in language_name attribute for 'MutuallyCircularNameA' [#ClangDeclarationImport]
+  // CHECK: LANGUAGE_NAME(MutuallyCircularNameB.Inner) @interface MutuallyCircularNameA : NSObject @end
+  // CHECK-NOT: {{warning|note}}:
+  // CHECK: note: while resolving 'MutuallyCircularNameA' in language_name attribute for 'MutuallyCircularNameB'
+  // CHECK: LANGUAGE_NAME(MutuallyCircularNameA.Inner) @interface MutuallyCircularNameB : NSObject @end
+  // CHECK-NOT: {{warning|note}}:
+  // CHECK: note: please report this issue to the owners of 'ObjCIRExtras'
+  // CHECK-NOT: {{warning|note}}:
+  // CHECK: LANGUAGE_NAME(MutuallyCircularNameB.Inner) @interface MutuallyCircularNameA : NSObject @end
+}

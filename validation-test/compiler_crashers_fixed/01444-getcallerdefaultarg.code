@@ -1,0 +1,41 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class c {
+deinit {
+class B == j> Any) -> {
+fn a(true {
+}
+var e> {
+f = {
+extension NSSet {
+}
+}
+class fn g: String) {
+}
+class fn a: A {
+return {
+}
+immutable v: A {
+}
+}
+class A, i : P {
+}
+protocol a {
+typealias b where Optional<f == .b(n: Int>(.a(bytes: d = B(p: () -> (f, V, A: NSObject {
+}(").C(f: e: b: 1
+0] {
+}
+}
+}
+}
+fn a"\(e: 1))"ab""

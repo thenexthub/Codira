@@ -1,6 +1,6 @@
-# Error Handling in Swift 2.0
+# Error Handling in Codira 2.0
 
-As a tentpole feature for Swift 2.0, we are introducing a new
+As a tentpole feature for Codira 2.0, we are introducing a new
 first-class error handling model. This feature provides standardized
 syntax and language affordances for throwing, propagating, catching, and
 manipulating recoverable error conditions.
@@ -81,7 +81,7 @@ Notably, the approach preserves these advantages of this convention:
     unwinding process.
 -   Cocoa APIs using standard `NSError` patterns can be imported into
     this world automatically. Other common patterns (e.g. `CFError`,
-    `errno`) can be added to the model in future versions of Swift.
+    `errno`) can be added to the model in future versions of Codira.
 
 In addition, we feel that this design improves on Objective-C's error
 handling approach in a number of ways:
@@ -91,7 +91,7 @@ handling approach in a number of ways:
 -   The syntax for error handling will feel familiar to people used to
     exception handling in other languages.
 -   Defining custom error types is simple and ties in elegantly with
-    Swift enums.
+    Codira enums.
 
 As to basic syntax, we decided to stick with the familiar language of
 exception handling. We considered intentionally using different terms
@@ -125,20 +125,20 @@ context which handles all errors.
 A function can be declared to throw by writing `throws` on the function
 declaration or type:
 
-```swift
-func foo() -> Int {          // This function is not permitted to throw.
-func bar() throws -> Int {   // This function is permitted to throw.
+```language
+fn foo() -> Int {          // This function is not permitted to throw.
+fn bar() throws -> Int {   // This function is permitted to throw.
 ```
 
 `throws` is written before the arrow to give a sensible and consistent
 grammar for function types and implicit `()` result types, e.g.:
 
-```swift
-func baz() throws {
+```language
+fn baz() throws {
 
 // Takes a 'callback' function that can throw.
 // 'fred' itself can also throw.
-func fred(_ callback: (UInt8) throws -> ()) throws {
+fn fred(_ callback: (UInt8) throws -> ()) throws {
 
 // These are distinct types.
 let a : () -> () -> ()
@@ -150,8 +150,8 @@ let d : () throws -> () throws -> ()
 For curried functions, `throws` only applies to the innermost function.
 This function has type `(Int) -> (Int) throws -> Int`:
 
-```swift
-func jerry(_ i: Int)(j: Int) throws -> Int {
+```language
+fn jerry(_ i: Int)(j: Int) throws -> Int {
 ```
 
 `throws` is tracked as part of the type system: a function value must
@@ -159,9 +159,9 @@ also declare whether it can throw. Functions that cannot throw are a
 subtype of functions that can, so you can use a function that can't
 throw anywhere you could use a function that can:
 
-```swift
-func rachel() -> Int { return 12 }
-func donna(_ generator: () throws -> Int) -> Int { ... }
+```language
+fn rachel() -> Int { return 12 }
+fn donna(_ generator: () throws -> Int) -> Int { ... }
 
 donna(rachel)
 ```
@@ -175,9 +175,9 @@ allowed to throw is rejected by the compiler.
 It isn't possible to overload functions solely based on whether the
 functions throw. That is, this is not legal:
 
-```swift
-func foo() {
-func foo() throws {
+```language
+fn foo() {
+fn foo() throws {
 ```
 
 A throwing method cannot override a non-throwing method or satisfy a
@@ -187,9 +187,9 @@ override a throwing method or satisfy a throwing protocol requirement.
 It is valuable to be able to overload higher-order functions based on
 whether an argument function throws, so this is allowed:
 
-```swift
-func foo(_ callback: () throws -> Bool) {
-func foo(_ callback: () -> Bool) {
+```language
+fn foo(_ callback: () throws -> Bool) {
+fn foo(_ callback: () -> Bool) {
 ```
 
 ### `rethrows`
@@ -197,9 +197,9 @@ func foo(_ callback: () -> Bool) {
 Functions which take a throwing function argument (including as an
 autoclosure) can be marked as `rethrows`:
 
-```swift
+```language
 extension Array {
-    func map<U>(_ fn: ElementType throws -> U) rethrows -> [U]
+    fn map<U>(_ fn: ElementType throws -> U) rethrows -> [U]
 }
 ```
 
@@ -227,7 +227,7 @@ a direct call to a `rethrows` function is considered to not throw if it
 is fully applied and none of the function arguments can throw. For
 example:
 
-```swift
+```language
 // This call to map is considered not to throw because its
 // argument function does not throw.
 let absolutePaths = paths.map { "/" + $0 }
@@ -256,7 +256,7 @@ The `throw` statement begins the propagation of an error. It always
 takes an argument, which can be any value that conforms to the `Error`
 protocol (described below).
 
-```swift
+```language
 if timeElapsed > timeThreshold {
     throw HomeworkError.Overworked
 }
@@ -271,7 +271,7 @@ marked `throws` is a static compiler error.
 
 A `catch` clause includes an optional pattern that matches the error.
 This pattern can use any of the standard pattern-matching tools provided
-by `switch` statements in Swift, including boolean `where` conditions.
+by `switch` statements in Codira, including boolean `where` conditions.
 The pattern can be omitted; if so, a `where` condition is still
 permitted. If the pattern is omitted, or if it does not bind a different
 name to the error, the name `error` is automatically bound to the error
@@ -281,7 +281,7 @@ The `try` keyword is used for other purposes which it seems to fit far
 better (see below), so `catch` clauses are instead attached to a
 generalized `do` statement:
 
-```swift
+```language
 // Simple do statement (without a trailing while condition),
 // just provides a scope for variables defined inside of it.
 do {
@@ -300,7 +300,7 @@ do {
 }
 ```
 
-As with `switch` statements, Swift makes an effort to understand whether
+As with `switch` statements, Codira makes an effort to understand whether
 catch clauses are exhaustive. If it can determine it is, then the
 compiler considers the error to be handled. If not, the error
 automatically propagates out of scope, either to a lexically enclosing
@@ -311,11 +311,11 @@ We expect to refine the `catch` syntax with usage experience.
 
 ## `Error`
 
-The Swift standard library will provide `Error`, a protocol with a very
+The Codira standard library will provide `Error`, a protocol with a very
 small interface (which is not described in this proposal). The standard
 pattern should be to define the conformance of an `enum` to the type:
 
-```swift
+```language
 enum HomeworkError : Error {
     case Overworked
     case Impossible
@@ -335,14 +335,14 @@ system error domains as enums that follow this approach and implement
 
 The physical representation (still being nailed down) will make it
 efficient to embed an `NSError` as an `Error` and vice-versa. It should
-be possible to turn an arbitrary Swift `enum` that conforms to `Error`
+be possible to turn an arbitrary Codira `enum` that conforms to `Error`
 into an `NSError` by using the qualified type name as the domain key,
 the enumerator as the error code, and turning the payload into user
 data.
 
 ## Automatic, marked, propagation of errors
 
-Once an error is thrown, Swift will automatically propagate it out of
+Once an error is thrown, Codira will automatically propagate it out of
 scopes (that permit it), rather than relying on the programmer to
 manually check for errors and do their own control flow. This is just a
 lot less boilerplate for common error handling tasks. However, doing
@@ -351,12 +351,12 @@ it difficult to reason about the function's behavior. This is a serious
 maintenance problem and has traditionally been a considerable source of
 bugs in languages that heavily use exceptions.
 
-Therefore, while Swift automatically propagates errors, it requires that
+Therefore, while Codira automatically propagates errors, it requires that
 statements and expressions that can implicitly throw be marked with the
 `try` keyword. For example:
 
-```swift
-func readStuff() throws {
+```language
+fn readStuff() throws {
     // loadFile can throw an error.  If so, it propagates out of readStuff.
     try loadFile("mystuff.txt")
 
@@ -383,7 +383,7 @@ func readStuff() throws {
 Developers can choose to "scope" the `try` very tightly by writing it
 within parentheses or on a specific argument or list element:
 
-```swift
+```language
 // Ok.
 let x = (try stream.readInt()) + (try stream.readInt())
 
@@ -423,7 +423,7 @@ when synchronizing a future) and can be more convenient or natural for
 specific use cases (e.g. handling a specific call differently within a
 context that otherwise allows propagation).
 
-As such, the Swift standard library should provide a standard Rust-like
+As such, the Codira standard library should provide a standard Rust-like
 `Result<T>` enum, along with API for working with it, e.g.:
 
 -   A function to evaluate an error-producing closure and capture the
@@ -439,7 +439,7 @@ reviewed, as well as the basic operations on the type.
 
 ## `defer`
 
-Swift should provide a `defer` statement that sets up an *ad hoc*
+Codira should provide a `defer` statement that sets up an *ad hoc*
 clean-up action to be run when the current scope is exited. This
 replicates the functionality of a Java-style `finally`, but more cleanly
 and with less nesting.
@@ -457,7 +457,7 @@ or with `return`, `break`, or `continue`.
 
 Example:
 
-```swift
+```language
 if exists(filename) {
     let file = open(filename, O_READ)
     defer close(file)
@@ -473,7 +473,7 @@ if exists(filename) {
 If there are multiple defer statements in a scope, they are guaranteed
 to be executed in reverse order of appearance. That is:
 
-```swift
+```language
 let file1 = open("hello.txt")
 defer close(file1)
 let file2 = open("world.txt")
@@ -490,7 +490,7 @@ based on real-world usage experience.
 
 ## Importing Cocoa
 
-If possible, Swift's error-handling model should transparently work
+If possible, Codira's error-handling model should transparently work
 with the SDK with a minimal amount of effort from framework owners.
 
 We believe that we can cover the vast majority of Objective-C APIs with
@@ -506,8 +506,8 @@ from `NSAttributedString`:
 
 would be imported as:
 
-```swift
-func dataFromRange(
+```language
+fn dataFromRange(
     _ range: NSRange,
     documentAttributes dict: NSDictionary
 ) throws -> NSData
@@ -562,13 +562,13 @@ error. For example:
 We should also provide a Clang attribute which specifies that the
 correct way to test for an error is to check the out-parameter. Both of
 these attributes could potentially be used by the static analyzer, not
-just Swift. (For example, they could try to detect an invalid error
+just Codira. (For example, they could try to detect an invalid error
 check.)
 
 Cases that do not match the automatically imported patterns and that
 lack an attribute would be left unmodified (i.e., they'd keep their
 NSErrorPointer argument) and considered "not awesome" in the SDK
-auditing tool. These will still be usable in Swift: callers will get the
+auditing tool. These will still be usable in Codira: callers will get the
 NSError back like they do today, and have to throw the result manually.
 
 For initializers, importing an initializer as throwing takes precedence
@@ -594,7 +594,7 @@ APIs in the public API:
     ```
 
     Fortunately, these delegate methods were all deprecated in Lion, and
-    are thus unavailable in Swift.
+    are thus unavailable in Codira.
 
 -   `NSFileCoordinator` has half a dozen methods where the `error:`
     clause is second-to-last, followed by a block argument. These
@@ -609,8 +609,8 @@ The above translation rule would import methods like this one from
 
 like so:
 
-```swift
-func duplicateAndReturnError() throws -> NSDocument
+```language
+fn duplicateAndReturnError() throws -> NSDocument
 ```
 
 The `AndReturnError` bit is common but far from universal; consider this
@@ -622,8 +622,8 @@ method from `NSManagedObject`:
 
 This would be imported as:
 
-```swift
-func validateForDelete() throws
+```language
+fn validateForDelete() throws
 ```
 
 This is a really nice import, and it's somewhat unfortunate that we
@@ -632,9 +632,9 @@ can't import `duplicateAndReturnError:` as `duplicate()`.
 ## Potential future extensions to this model
 
 We believe that the proposal above is sufficient to provide a huge step
-forward in error handling in Swift programs, but there is always more to
+forward in error handling in Codira programs, but there is always more to
 consider in the future. Some specific things we've discussed (and may
-come back to in the future) but don't consider to be core to the Swift
+come back to in the future) but don't consider to be core to the Codira
 2.0 model are:
 
 ### Higher-order polymorphism
@@ -645,8 +645,8 @@ be done in a fairly simple way: a function can declare that it throws if
 any of a set of named arguments do. As an example (using strawman
 syntax):
 
-```swift
-func map<T, U>(_ array: [T], fn: T -> U) throwsIf(fn) -> [U] {
+```language
+fn map<T, U>(_ array: [T], fn: T -> U) throwsIf(fn) -> [U] {
     ...
 }
 ```
@@ -656,7 +656,7 @@ for normal higher-order stuff.
 
 This feature is highly desired (e.g. it would allow many otherwise
 redundant overloads to be collapsed into a single definition), but it
-may or may not make it into Swift 2.0 based on schedule limitations.
+may or may not make it into Codira 2.0 based on schedule limitations.
 
 ### Generic polymorphism
 
@@ -668,7 +668,7 @@ can throw. This would allow the writing of generic algorithms, e.g. over
 implementation).
 
 However, this would be a very complex feature, yet to be designed, and
-it is far out-of-scope for Swift 2.0. In the meantime, most standard
+it is far out-of-scope for Codira 2.0. In the meantime, most standard
 protocols will be written to not allow throwing conformances, so as to
 not burden the use of common generic algorithms with spurious
 error-handling code.
@@ -678,7 +678,7 @@ error-handling code.
 Some functions are designed to take trailing closures that feel like
 sub-statements. For example, `autoreleasepool` can be used this way:
 
-```swift
+```language
 autoreleasepool {
     foo()
 }
@@ -695,7 +695,7 @@ marked within the closure with `try`. However, from the compiler's
 perspective, the call to `autoreleasepool` is also a call that can
 throw, and so it must also be marked with `try`:
 
-```swift
+```language
 try autoreleasepool {              // 'try' is required here...
     let string = try parseString() // ...and here.
     ...
@@ -728,14 +728,14 @@ CF APIs use `CFErrorRef` pretty reliably, but there are several problems
 here: 1) the memory management rules for CFErrors are unclear and
 potentially inconsistent. 2) we need to know when an error is raised.
 
-In principle, we could import POSIX functions into Swift as throwing
+In principle, we could import POSIX functions into Codira as throwing
 functions, filling in the error from `errno`. It's nearly impossible to
 imagine doing this with an automatic import rule, however; much more
 likely, we'd need to wrap them all in an overlay.
 
-In both cases, it is possible to pull these into the Swift error
+In both cases, it is possible to pull these into the Codira error
 handling model, but because this is likely to require massive SDK
-annotations it is considered out of scope for iOS 9/OS X 10.11 & Swift
+annotations it is considered out of scope for iOS 9/OS X 10.11 & Codira
 2.0.
 
 ### Unexpected and universal errors
@@ -744,4 +744,4 @@ As discussed above, we believe that we can extend our current model to
 support untyped propagation for universal errors. Doing this well, and
 in particular doing it without completely sacrificing code size and
 performance, will take a significant amount of planning and insight. For
-this reason, it is considered well out of scope for Swift 2.0.
+this reason, it is considered well out of scope for Codira 2.0.

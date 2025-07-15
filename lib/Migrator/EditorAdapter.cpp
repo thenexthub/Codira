@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/SourceLoc.h"
@@ -24,18 +25,18 @@ using namespace language;
 using namespace language::migrator;
 
 std::pair<unsigned, unsigned>
-EditorAdapter::getLocInfo(swift::SourceLoc Loc) const {
-  auto SwiftBufferID = SwiftSrcMgr.findBufferContainingLoc(Loc);
-  auto Offset = SwiftSrcMgr.getLocOffsetInBuffer(Loc, SwiftBufferID);
-  return { SwiftBufferID, Offset };
+EditorAdapter::getLocInfo(language::SourceLoc Loc) const {
+  auto CodiraBufferID = CodiraSrcMgr.findBufferContainingLoc(Loc);
+  auto Offset = CodiraSrcMgr.getLocOffsetInBuffer(Loc, CodiraBufferID);
+  return { CodiraBufferID, Offset };
 }
 
 bool
 EditorAdapter::cacheReplacement(CharSourceRange Range, StringRef Text) const {
   if (!CacheEnabled)
     return false;
-  unsigned SwiftBufferID, Offset;
-  std::tie(SwiftBufferID, Offset) = getLocInfo(Range.getStart());
+  unsigned CodiraBufferID, Offset;
+  std::tie(CodiraBufferID, Offset) = getLocInfo(Range.getStart());
   Replacement R{Offset, Range.getByteLength(), Text.str()};
   if (Replacements.count(R)) {
     return true;
@@ -46,52 +47,52 @@ EditorAdapter::cacheReplacement(CharSourceRange Range, StringRef Text) const {
 }
 
 clang::FileID
-EditorAdapter::getClangFileIDForSwiftBufferID(unsigned BufferID) const {
+EditorAdapter::getClangFileIDForCodiraBufferID(unsigned BufferID) const {
   /// Check if we already have a mapping for this BufferID.
-  auto Found = SwiftToClangBufferMap.find(BufferID);
-  if (Found != SwiftToClangBufferMap.end()) {
+  auto Found = CodiraToClangBufferMap.find(BufferID);
+  if (Found != CodiraToClangBufferMap.end()) {
     return Found->getSecond();
   }
 
   // If we don't copy the corresponding buffer's text into a new buffer
   // that the ClangSrcMgr can understand.
-  auto Text = SwiftSrcMgr.getEntireTextForBuffer(BufferID);
-  auto NewBuffer = llvm::MemoryBuffer::getMemBufferCopy(Text);
+  auto Text = CodiraSrcMgr.getEntireTextForBuffer(BufferID);
+  auto NewBuffer = toolchain::MemoryBuffer::getMemBufferCopy(Text);
   auto NewFileID = ClangSrcMgr.createFileID(std::move(NewBuffer));
 
-  SwiftToClangBufferMap.insert({BufferID, NewFileID});
+  CodiraToClangBufferMap.insert({BufferID, NewFileID});
 
   return NewFileID;
 }
 
 clang::SourceLocation
-EditorAdapter::translateSourceLoc(SourceLoc SwiftLoc) const {
-  unsigned SwiftBufferID, Offset;
-  std::tie(SwiftBufferID, Offset) = getLocInfo(SwiftLoc);
+EditorAdapter::translateSourceLoc(SourceLoc CodiraLoc) const {
+  unsigned CodiraBufferID, Offset;
+  std::tie(CodiraBufferID, Offset) = getLocInfo(CodiraLoc);
 
-  auto ClangFileID = getClangFileIDForSwiftBufferID(SwiftBufferID);
+  auto ClangFileID = getClangFileIDForCodiraBufferID(CodiraBufferID);
   return ClangSrcMgr.getLocForStartOfFile(ClangFileID).getLocWithOffset(Offset);
 }
 
 clang::SourceRange
-EditorAdapter::translateSourceRange(SourceRange SwiftSourceRange) const {
-  auto Start = translateSourceLoc(SwiftSourceRange.Start);
-  auto End = translateSourceLoc(SwiftSourceRange.End);
+EditorAdapter::translateSourceRange(SourceRange CodiraSourceRange) const {
+  auto Start = translateSourceLoc(CodiraSourceRange.Start);
+  auto End = translateSourceLoc(CodiraSourceRange.End);
   return clang::SourceRange { Start, End };
 }
 
 clang::CharSourceRange EditorAdapter::
-translateCharSourceRange(CharSourceRange SwiftSourceSourceRange) const {
-  auto ClangStartLoc = translateSourceLoc(SwiftSourceSourceRange.getStart());
-  auto ClangEndLoc = translateSourceLoc(SwiftSourceSourceRange.getEnd());
+translateCharSourceRange(CharSourceRange CodiraSourceSourceRange) const {
+  auto ClangStartLoc = translateSourceLoc(CodiraSourceSourceRange.getStart());
+  auto ClangEndLoc = translateSourceLoc(CodiraSourceSourceRange.getEnd());
   return clang::CharSourceRange::getCharRange(ClangStartLoc, ClangEndLoc);
 }
 
 bool EditorAdapter::insert(SourceLoc Loc, StringRef Text, bool AfterToken,
                            bool BeforePreviousInsertions) {
-  // We don't have tokens on the clang side, so handle AfterToken in Swift
+  // We don't have tokens on the clang side, so handle AfterToken in Codira
   if (AfterToken)
-    Loc = Lexer::getLocForEndOfToken(SwiftSrcMgr, Loc);
+    Loc = Lexer::getLocForEndOfToken(CodiraSrcMgr, Loc);
 
   if (cacheReplacement(CharSourceRange { Loc, 0 }, Text)) {
     return true;
@@ -104,12 +105,12 @@ bool EditorAdapter::insert(SourceLoc Loc, StringRef Text, bool AfterToken,
 bool EditorAdapter::insertFromRange(SourceLoc Loc, CharSourceRange Range,
                                     bool AfterToken,
                                     bool BeforePreviousInsertions) {
-  // We don't have tokens on the clang side, so handle AfterToken in Swift
+  // We don't have tokens on the clang side, so handle AfterToken in Codira
   if (AfterToken)
-    Loc = Lexer::getLocForEndOfToken(SwiftSrcMgr, Loc);
+    Loc = Lexer::getLocForEndOfToken(CodiraSrcMgr, Loc);
 
   if (cacheReplacement(CharSourceRange { Loc, 0 },
-                       SwiftSrcMgr.extractText(Range))) {
+                       CodiraSrcMgr.extractText(Range))) {
     return true;
   }
 
@@ -146,7 +147,7 @@ bool EditorAdapter::replace(CharSourceRange Range, StringRef Text) {
 bool EditorAdapter::replaceWithInner(CharSourceRange Range,
                                      CharSourceRange InnerRange) {
 
-  if (cacheReplacement(Range, SwiftSrcMgr.extractText(InnerRange))) {
+  if (cacheReplacement(Range, CodiraSrcMgr.extractText(InnerRange))) {
     return true;
   }
   auto ClangRange = translateCharSourceRange(Range);
@@ -156,7 +157,7 @@ bool EditorAdapter::replaceWithInner(CharSourceRange Range,
 
 bool EditorAdapter::replaceText(SourceLoc Loc, StringRef Text,
                                 StringRef ReplacementText) {
-  auto Range = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr,
+  auto Range = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr,
     { Loc, Loc.getAdvancedLoc(Text.size())});
   if (cacheReplacement(Range, Text)) {
     return true;
@@ -169,40 +170,40 @@ bool EditorAdapter::replaceText(SourceLoc Loc, StringRef Text,
 bool EditorAdapter::insertFromRange(SourceLoc Loc, SourceRange TokenRange,
                      bool AfterToken,
                      bool BeforePreviousInsertions) {
-  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr, TokenRange);
+  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr, TokenRange);
   return insertFromRange(Loc, CharRange,
                          AfterToken, BeforePreviousInsertions);
 }
 
 bool EditorAdapter::insertWrap(StringRef Before, SourceRange TokenRange,
                                StringRef After) {
-  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr, TokenRange);
+  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr, TokenRange);
   return insertWrap(Before, CharRange, After);
 }
 
 bool EditorAdapter::remove(SourceLoc TokenLoc) {
-  return remove(Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr,
+  return remove(Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr,
                                                          TokenLoc));
 }
 
 bool EditorAdapter::remove(SourceRange TokenRange) {
-  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr, TokenRange);
+  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr, TokenRange);
   return remove(CharRange);
 }
 
 bool EditorAdapter::replace(SourceRange TokenRange, StringRef Text) {
-  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr,TokenRange);
+  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr,TokenRange);
   return replace(CharRange, Text);
 }
 
 bool EditorAdapter::replaceWithInner(SourceRange TokenRange,
                                      SourceRange TokenInnerRange) {
-  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr, TokenRange);
-  auto CharInnerRange = Lexer::getCharSourceRangeFromSourceRange(SwiftSrcMgr, TokenInnerRange);
+  auto CharRange = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr, TokenRange);
+  auto CharInnerRange = Lexer::getCharSourceRangeFromSourceRange(CodiraSrcMgr, TokenInnerRange);
   return replaceWithInner(CharRange, CharInnerRange);
 }
 
 bool EditorAdapter::replaceToken(SourceLoc TokenLoc, StringRef Text) {
-  return replace(Lexer::getTokenAtLocation(SwiftSrcMgr, TokenLoc).getRange(),
+  return replace(Lexer::getTokenAtLocation(CodiraSrcMgr, TokenLoc).getRange(),
     Text);
 }

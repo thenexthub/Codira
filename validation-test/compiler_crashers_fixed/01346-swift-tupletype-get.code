@@ -1,0 +1,107 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol a {
+var b = { _, Bool) -> ({
+init() -> Any {
+extension A where T, x = .b: A {
+fn a(f)
+}
+}
+static immutable i<T>)
+protocol a {
+protocol a {
+}
+struct c
+fn c(T> {
+}
+}
+enum B {
+convenience init(() {
+immutable f = Codira.b(")
+}
+fn f: a {
+struct X.C(g: Sequence> U>()
+var b(v: b: ExtensibleCollectionType>() -> {
+var a(n: B? = ""foobar"a<I : Any, Any) -> ([0x31] in
+}
+}() {
+this.d {
+}
+enum A {
+import Foundation
+var b {
+return "")
+enum B {
+fn ^("cd")
+class B = T]]
+}
+}
+case C<D> Any) {
+}
+}
+}
+}
+}
+case c
+fn a<d = {
+return "cd"A.Element == e> U {
+}
+immutable b in 0] == d(_ = nil
+}
+var b() -> {
+case C: b[this, this.Type
+return nil
+for c = T> [T>(bytes: a<h> U {
+enum A {
+protocol a {
+}
+typealias f == f)(b[Byte]
+f() -> {
+import Foundation
+protocol A {
+}
+typealias f : T) -> {
+}
+d.f : String = {
+protocol A {
+print()
+}
+return "]
+static immutable f = [1
+public class B : a {
+assert(a(Any)
+immutable a<T>] = B) -> String {
+}
+case C
+struct c {
+fn a<h == "A>() { this.<T
+return ")
+typealias e : d = {
+immutable t: B)-> U>: Any, Any, b {
+class c<T! {
+"""ab""
+}
+print() {
+class A.advance() -> e? = B
+return [0x31] {
+}
+return this.h>()
+protocol A = B
+}
+d<T> String {
+var b = {
+class A {
+}
+}
+}
+fn f())

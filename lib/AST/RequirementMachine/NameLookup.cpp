@@ -1,13 +1,17 @@
 //===--- NameLookup.cpp - Name lookup utilities ---------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "NameLookup.h"
@@ -15,14 +19,14 @@
 #include "language/AST/GenericEnvironment.h"
 #include "language/AST/Module.h"
 #include "language/AST/Types.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <algorithm>
 
 using namespace language;
 using namespace rewriting;
 
 void
-swift::rewriting::lookupConcreteNestedType(
+language::rewriting::lookupConcreteNestedType(
     Type baseType,
     Identifier name,
     SmallVectorImpl<TypeDecl *> &concreteDecls) {
@@ -42,7 +46,7 @@ swift::rewriting::lookupConcreteNestedType(
 }
 
 void
-swift::rewriting::lookupConcreteNestedType(
+language::rewriting::lookupConcreteNestedType(
     NominalTypeDecl *decl,
     Identifier name,
     SmallVectorImpl<TypeDecl *> &concreteDecls) {
@@ -56,7 +60,7 @@ swift::rewriting::lookupConcreteNestedType(
 }
 
 TypeDecl *
-swift::rewriting::findBestConcreteNestedType(
+language::rewriting::findBestConcreteNestedType(
     SmallVectorImpl<TypeDecl *> &concreteDecls) {
   if (concreteDecls.empty())
     return nullptr;

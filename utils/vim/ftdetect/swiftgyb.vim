@@ -1,9 +1,9 @@
-" This source file is part of the Swift.org open source project
+" This source file is part of the Codira.org open source project
 "
-" Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+" Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 " Licensed under Apache License v2.0 with Runtime Library Exception
 "
-" See https://swift.org/LICENSE.txt for license information
-" See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+" See https://language.org/LICENSE.txt for license information
+" See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
-au BufNewFile,BufRead *.swift.gyb set ft=swiftgyb
+au BufNewFile,BufRead *.code.gyb set ft=languagegyb

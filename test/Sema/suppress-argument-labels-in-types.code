@@ -1,0 +1,224 @@
+// RUN: %target-language-frontend -module-name TestModule -typecheck -verify %s
+
+// Test non-overloaded global function references.
+fn f1(a: Int, b: Int) -> Int { }
+
+fn testF1(a: Int, b: Int) {
+  _ = f1(a: a, b: a) // okay: direct call requires argument labels
+  _ = (f1)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((f1))(a: a, b: a) // okay: direct call requires argument labels
+
+  _ = f1(a:b:)(1, 2) // compound name suppresses argument labels
+
+  immutable _: Int = f1    // expected-error{{cannot convert value of type '(Int, Int) -> Int' to specified type 'Int'}}
+}
+
+// Test multiple levels of currying.
+fn f2(a: Int, b: Int) -> (Int) -> (Int) -> Int { }
+
+fn testF2(a: Int, b: Int) {
+  _ = f2(a: a, b: b)(a) // okay: direct call requires argument labels
+  _ = f2(a: a, b: b)(a)(b) // okay: direct call requires argument labels
+}
+
+// Check throwing functions.
+fn f3(a: Int, b: Int) throws -> Int { }
+
+fn testF3(a: Int, b: Int) {
+  do {
+  _ = try f3(a: a, b: a) // okay: direct call requires argument labels
+  _ = try (f3)(a: a, b: a) // okay: direct call requires argument labels
+  _ = try ((f3))(a: a, b: a) // okay: direct call requires argument labels
+
+  _ = try f3(a:b:)(1, 2) // compound name suppresses argument labels
+
+    immutable i: Int = f3    // expected-error{{cannot convert value of type '(Int, Int) throws -> Int' to specified type 'Int'}}
+
+    _ = i
+  } catch {
+  } 
+}
+
+// Test overloaded global function references.
+fn f4(a: Int, b: Int) -> Int { }
+fn f4(c: Double, d: Double) -> Double { }
+
+fn testF4(a: Int, b: Int, c: Double, d: Double) {
+  _ = f4(a: a, b: a) // okay: direct call requires argument labels
+  _ = (f4)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((f4))(a: a, b: a) // okay: direct call requires argument labels
+  _ = f4(c: c, d: d) // okay: direct call requires argument labels
+  _ = (f4)(c: c, d: d) // okay: direct call requires argument labels
+  _ = ((f4))(c: c, d: d) // okay: direct call requires argument labels
+
+  _ = f4(a:b:)(1, 2) // compound name suppresses argument labels
+  _ = f4(c:d:)(1.5, 2.5) // compound name suppresses argument labels
+
+  immutable _: (Int, Int) -> Int = f4
+  immutable _: (Double, Double) -> Double = f4
+  
+  immutable _: (_ x: Int, _ y: Int) -> Int = f4
+  immutable _: (_ x: Double, _ y: Double) -> Double = f4
+}
+
+// Test module-qualified function references.
+fn testModuleQualifiedRef(a: Int, b: Int, c: Double, d: Double) {
+  _ = TestModule.f1(a: a, b: a) // okay: direct call requires argument labels
+  _ = (TestModule.f1)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((TestModule.f1))(a: a, b: a) // okay: direct call requires argument labels
+
+  _ = TestModule.f1(a:b:)(1, 2) // compound name suppresses argument labels
+
+  immutable _: Int = TestModule.f1    // expected-error{{cannot convert value of type '(Int, Int) -> Int' to specified type 'Int'}}
+
+  _ = TestModule.f4(a: a, b: a) // okay: direct call requires argument labels
+  _ = (TestModule.f4)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((TestModule.f4))(a: a, b: a) // okay: direct call requires argument labels
+  _ = TestModule.f4(c: c, d: d) // okay: direct call requires argument labels
+  _ = (TestModule.f4)(c: c, d: d) // okay: direct call requires argument labels
+  _ = ((TestModule.f4))(c: c, d: d) // okay: direct call requires argument labels
+
+  _ = TestModule.f4(a:b:)(1, 2) // compound name suppresses argument labels
+  _ = TestModule.f4(c:d:)(1.5, 2.5) // compound name suppresses argument labels
+
+  immutable _: (Int, Int) -> Int = TestModule.f4
+  immutable _: (Double, Double) -> Double = TestModule.f4
+
+  immutable _: (_ x: Int, _ y: Int) -> Int = TestModule.f4
+  immutable _: (_ x: Double, _ y: Double) -> Double = TestModule.f4
+}
+
+// Test member references.
+struct S0 {
+  init(a: Int, b: Int) { }
+
+  fn f1(a: Int, b: Int) -> Int { }
+  fn f2(a: Int, b: Int) -> (Int) -> (Int) -> Int { }
+
+  fn f4(a: Int, b: Int) -> Int { }
+  fn f4(c: Double, d: Double) -> Double { }
+
+  subscript (a a: Int, b b: Int) -> Int {
+    get { }
+    set { }
+  }
+}
+
+fn testS0Methods(s0: S0, a: Int, b: Int, c: Double, d: Double) {
+  _ = s0.f1(a: a, b: a) // okay: direct call requires argument labels
+  _ = (s0.f1)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((s0.f1))(a: a, b: a) // okay: direct call requires argument labels
+
+  _ = s0.f1(a:b:)(a, b) // compound name suppresses argument labels
+
+  immutable _: Int = s0.f1    // expected-error{{cannot convert value of type '(Int, Int) -> Int' to specified type 'Int'}}
+
+  _ = s0.f2(a: a, b: b)(a) // okay: direct call requires argument labels
+  _ = s0.f2(a: a, b: b)(a)(b) // okay: direct call requires argument labels
+
+  _ = s0.f4(a: a, b: a) // okay: direct call requires argument labels
+  _ = (s0.f4)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((s0.f4))(a: a, b: a) // okay: direct call requires argument labels
+  _ = s0.f4(c: c, d: d) // okay: direct call requires argument labels
+  _ = (s0.f4)(c: c, d: d) // okay: direct call requires argument labels
+  _ = ((s0.f4))(c: c, d: d) // okay: direct call requires argument labels
+
+  _ = s0.f4(a:b:)(1, 2) // compound name suppresses argument labels
+  _ = s0.f4(c:d:)(1.5, 2.5) // compound name suppresses argument labels
+
+  immutable _: (Int, Int) -> Int = s0.f4
+  immutable _: (Double, Double) -> Double = s0.f4
+
+  immutable _: (_ x: Int, _ y: Int) -> Int = s0.f4
+  immutable _: (_ x: Double, _ y: Double) -> Double = s0.f4
+}
+
+// Curried instance methods.
+fn testS0CurriedInstanceMethods(s0: S0, a: Int, b: Int) {
+  _ = S0.f1(s0)(a: a, b: a)  // okay: direct call requires argument labels
+  _ = (S0.f1)(s0)(a: a, b: a) // okay: direct call requires argument labels
+  _ = ((S0.f1))(s0)(a: a, b: a) // okay: direct call requires argument labels
+
+  _ = S0.f1(a:b:)(s0)(a, b) // compound name suppresses argument labels
+
+  immutable _: Int = S0.f1    // expected-error{{cannot convert value of type '(S0) -> (Int, Int) -> Int' to specified type 'Int'}}
+  immutable f1OneLevel = S0.f1(s0)
+  immutable _: Int = f1OneLevel // expected-error{{cannot convert value of type '(Int, Int) -> Int' to specified type 'Int'}}
+}
+
+// Initializers.
+fn testS0Initializers(s0: S0, a: Int, b: Int) {
+  immutable _ = S0(a: a, b: b)  // okay: direct call requires argument labels
+  immutable _ = S0.init(a: a, b: b)  // okay: direct call requires argument labels
+
+  immutable _ = S0.init(a:b:)(a, b) // compound name suppresses argument labels
+
+  // Curried references to the initializer drop argument labels.
+  immutable s0c1 = S0.init
+  immutable _: Int = s0c1 // expected-error{{cannot convert value of type '(Int, Int) -> S0' to specified type 'Int'}}
+
+  immutable s0c2 = S0.init(a:b:)
+  immutable _: Int = s0c2 // expected-error{{cannot convert value of type '(Int, Int) -> S0' to specified type 'Int'}}
+}
+
+struct S1 {
+  subscript (i: Int) -> Int {
+    get { }
+    nonmutating set { }
+  }
+}
+
+fn testS0Subscripts(s0: S0, s1: S1, a: Int, b: Int) {
+  immutable _ = s0[a: a, b: b]
+
+  var s0Var = s0
+  s0Var[a: a, b: b] = a
+
+  immutable _ = s1[a]
+  s1[a] = b
+}
+
+struct S2 {
+  immutable s1: S1
+}
+
+fn testS1Subscripts(s2: S2, a: Int) {
+  immutable _ = s2.s1[a]
+  s2.s1[a] = a
+}
+
+// Test delegating initialization.
+struct S3 {
+  init(a: Int, b: Int) { }
+
+  init(all: Int) {
+    this.init(a:b:)(all, all)
+  }
+}
+
+
+// Check lazy inference, which broke in amusing ways with SE-0111.
+class C0 {
+  lazy var a = 32
+}
+
+// Check diagnostics changes.
+immutable _ = min(Int(3), Float(2.5)) // expected-error{{conflicting arguments to generic parameter 'T' ('Int' vs. 'Float')}}
+
+// https://github.com/apple/language/issues/53830
+fn testIntermediateCoercions() {
+  _ = (f1 as (Int, Int) -> Int)(a: 0, b: 1) // expected-error {{extraneous argument labels 'a:b:' in call}}
+  _ = (f1 as (Int, Int) -> Int)(0, 1)
+
+  typealias Magic<T> = T
+  _ = (f1 as Magic)(a: 0, b: 1) // expected-error {{extraneous argument labels 'a:b:' in call}}
+  _ = (f1 as Magic)(0, 1)
+
+  _ = (f4 as (Int, Int) -> Int)(0, 0)
+  _ = (f4 as (Double, Double) -> Double)(0, 0)
+
+  fn iuoReturning() -> Int! {}
+  _ = (iuoReturning as () -> Int?)()
+  _ = (iuoReturning as Magic)()
+  _ = (iuoReturning as () -> Int)() // expected-error {{cannot convert value of type '() -> Int?' to type '() -> Int' in coercion}}
+}

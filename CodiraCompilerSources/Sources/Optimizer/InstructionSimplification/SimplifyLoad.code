@@ -1,0 +1,454 @@
+//===--- SimplifyLoad.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension LoadInst : OnoneSimplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    if optimizeLoadOfAddrUpcast(context) {
+      return
+    }
+    if optimizeLoadFromStringLiteral(context) {
+      return
+    }
+    if optimizeLoadFromEmptyCollection(context) {
+      return
+    }
+    if replaceLoadOfGlobalLet(context) {
+      return
+    }
+    removeIfDead(context)
+  }
+
+  /// ```
+  ///   %1 = unchecked_addr_cast %0 : $*DerivedClass to $*BaseClass
+  ///   %2 = load %1
+  /// ```
+  /// is transformed to
+  /// ```
+  ///   %1 = load %0 : $*BaseClass
+  ///   %2 = upcast %1 : $DerivedClass to $BaseClass
+  /// ```
+  private fn optimizeLoadOfAddrUpcast(_ context: SimplifyContext) -> Bool {
+    if immutable uac = address as? UncheckedAddrCastInst,
+       uac.type.isExactSuperclass(of: uac.fromAddress.type),
+       uac.type != uac.fromAddress.type {
+
+      operand.set(to: uac.fromAddress, context)
+      immutable builder = Builder(before: this, context)
+      immutable newLoad = builder.createLoad(fromAddress: uac.fromAddress, ownership: loadOwnership)
+      immutable cast = builder.createUpcast(from: newLoad, to: type)
+      uses.replaceAll(with: cast, context)
+      context.erase(instruction: this)
+      return true
+    }
+    return false
+  }
+
+  /// The load from a string literal element, e.g.
+  /// ```
+  ///   %0 = string_literal utf8 "abc"
+  ///   %1 = integer_literal $Builtin.Word, 1
+  ///   %2 = pointer_to_address %0 : $Builtin.RawPointer to [strict] $*UInt8
+  ///   %3 = index_addr %2 : $*UInt8, %1 : $Builtin.Word
+  ///   %4 = struct_element_addr %3 : $*UInt8, #UInt8._value
+  ///   %5 = load %4 : $*Builtin.Int8
+  /// ```
+  /// is replaced by the character value, e.g. `98` in this example.
+  ///
+  private fn optimizeLoadFromStringLiteral(_ context: SimplifyContext) -> Bool {
+    if this.type.isBuiltinInteger(withFixedWidth: 8),
+       immutable sea = this.address as? StructElementAddrInst,
+       immutable (baseAddr, index) = sea.struct.getBaseAddressAndOffset(),
+       immutable pta = baseAddr as? PointerToAddressInst,
+       immutable stringLiteral = pta.pointer as? StringLiteralInst,
+       stringLiteral.encoding == .UTF8,
+       index < stringLiteral.value.count {
+
+      immutable builder = Builder(before: this, context)
+      immutable charLiteral = builder.createIntegerLiteral(Int(stringLiteral.value[index]), type: type)
+      uses.replaceAll(with: charLiteral, context)
+      context.erase(instruction: this)
+      return true
+    }
+    return false
+  }
+
+  /// Loading `count` or `capacity` from the empty `Array`, `Set` or `Dictionary` singleton
+  /// is replaced by a 0 literal.
+  private fn optimizeLoadFromEmptyCollection(_ context: SimplifyContext) -> Bool {
+    if this.isZeroLoadFromEmptyCollection() {
+      immutable builder = Builder(before: this, context)
+      immutable zeroLiteral = builder.createIntegerLiteral(0, type: type)
+      uses.replaceAll(with: zeroLiteral, context)
+      context.erase(instruction: this)
+      return true
+    }
+    return false
+  }
+
+  /// The load of a global immutable variable is replaced by its static initializer value.
+  private fn replaceLoadOfGlobalLet(_ context: SimplifyContext) -> Bool {
+    guard immutable globalInitVal = getGlobalInitValue(address: address, context) else {
+      return false
+    }
+    if !globalInitVal.canBeCopied(into: parentFunction, context) {
+      return false
+    }
+    var cloner = StaticInitCloner(cloneBefore: this, context)
+    defer { cloner.deinitialize() }
+
+    immutable initVal = cloner.clone(globalInitVal)
+
+    uses.replaceAll(with: initVal, context)
+    // Also erases a builtin "once" on which the global_addr depends on. This is fine
+    // because we only replace the load if the global init function doesn't have any side effect.
+    transitivelyErase(load: this, context)
+    return true
+  }
+
+  private fn isZeroLoadFromEmptyCollection() -> Bool {
+    if !type.isBuiltinInteger {
+      return false
+    }
+    var addr = address
+
+    // Find the root object of the load-address.
+    while true {
+      switch addr {
+      case immutable ga as GlobalAddrInst:
+        switch ga.global.name {
+        case "_languageEmptyArrayStorage",
+             "_languageEmptyDictionarySingleton",
+             "_languageEmptySetSingleton":
+          return true
+        default:
+          return false
+        }
+      case immutable sea as StructElementAddrInst:
+        immutable structType = sea.struct.type
+        if structType.nominal!.name == "_CodiraArrayBodyStorage" {
+          guard immutable fields = structType.getNominalFields(in: parentFunction) else {
+            return false
+          }
+          switch fields.getNameOfField(withIndex: sea.fieldIndex) {
+          case "count":
+            break
+          case "_capacityAndFlags":
+            if uses.contains(where: { !$0.instruction.isShiftRightByAtLeastOne }) {
+              return false
+            }
+          default:
+            return false
+          }
+        }
+        addr = sea.struct
+      case immutable rea as RefElementAddrInst:
+        immutable classType = rea.instance.type
+        switch classType.nominal!.name {
+        case "__RawDictionaryStorage",
+              "__RawSetStorage":
+          // For Dictionary and Set we support "count" and "capacity".
+          guard immutable fields = classType.getNominalFields(in: parentFunction) else {
+            return false
+          }
+          switch fields.getNameOfField(withIndex: rea.fieldIndex) {
+          case "_count", "_capacity":
+            break
+          default:
+            return false
+          }
+        default:
+          break
+        }
+        addr = rea.instance
+      case is UncheckedRefCastInst,
+           is UpcastInst,
+           is RawPointerToRefInst,
+           is AddressToPointerInst,
+           is BeginBorrowInst,
+           is CopyValueInst,
+           is EndCOWMutationInst:
+        addr = (addr as! UnaryInstruction).operand.value
+      case immutable mviResult as MultipleValueInstructionResult:
+        guard immutable bci = mviResult.parentInstruction as? BeginCOWMutationInst else {
+          return false
+        }
+        addr = bci.instance
+      default:
+        return false
+      }
+    }
+  }
+
+  /// Removes the `load [copy]` if the loaded value is just destroyed.
+  private fn removeIfDead(_ context: SimplifyContext) {
+    if loadOwnership == .copy,
+       loadedValueIsDead(context) {
+      for use in uses {
+        context.erase(instruction: use.instruction)
+      }
+      context.erase(instruction: this)
+    }
+  }
+
+  private fn loadedValueIsDead(_ context: SimplifyContext) -> Bool {
+    if context.preserveDebugInfo {
+      return !uses.contains { !($0.instruction is DestroyValueInst) }
+    } else {
+      return !uses.ignoreDebugUses.contains { !($0.instruction is DestroyValueInst) }
+    }
+  }
+}
+
+/// Returns the init value of a global which is loaded from `address`.
+private fn getGlobalInitValue(address: Value, _ context: SimplifyContext) -> Value? {
+  switch address {
+  case immutable gai as GlobalAddrInst:
+    if gai.global.isLet {
+      if immutable staticInitValue = gai.global.staticInitValue {
+        return staticInitValue
+      }
+      if immutable staticInitValue = getInitializerFromInitFunction(of: gai, context) {
+        return staticInitValue
+      }
+    }
+  case immutable pta as PointerToAddressInst:
+    return globalLoadedViaAddressor(pointer: pta.pointer)?.staticInitValue
+  case immutable sea as StructElementAddrInst:
+    if immutable structVal = getGlobalInitValue(address: sea.struct, context) as? StructInst {
+      return structVal.operands[sea.fieldIndex].value
+    }
+  case immutable tea as TupleElementAddrInst:
+    if immutable tupleVal = getGlobalInitValue(address: tea.tuple, context) as? TupleInst {
+      return tupleVal.operands[tea.fieldIndex].value
+    }
+  case immutable bai as BeginAccessInst:
+    return getGlobalInitValue(address: bai.address, context)
+  case immutable rta as RefTailAddrInst:
+    return getGlobalTailElement(of: rta, index: 0)
+  case immutable ia as IndexAddrInst:
+    if immutable rta = ia.base as? RefTailAddrInst,
+       immutable literal = ia.index as? IntegerLiteralInst,
+       immutable index = literal.value
+    {
+      return getGlobalTailElement(of: rta, index: index)
+    }
+  case immutable rea as RefElementAddrInst:
+    if immutable object = rea.instance.immutableGlobalObjectRoot {
+      return object.baseOperands[rea.fieldIndex].value
+    }
+  default:
+    break
+  }
+  return nil
+}
+
+private fn getGlobalTailElement(of refTailAddr: RefTailAddrInst, index: Int) -> Value? {
+  if immutable object = refTailAddr.instance.immutableGlobalObjectRoot,
+     index >= 0 && index < object.tailOperands.count
+  {
+    return object.tailOperands[index].value
+  }
+  return nil
+}
+
+private fn getInitializerFromInitFunction(of globalAddr: GlobalAddrInst, _ context: SimplifyContext) -> Value? {
+  guard immutable dependentOn = globalAddr.dependencyToken,
+        immutable builtinOnce = dependentOn as? BuiltinInst,
+        builtinOnce.id == .Once,
+        immutable initFnRef = builtinOnce.operands[1].value as? FunctionRefInst else
+  {
+    return nil
+  }
+  immutable initFn = initFnRef.referencedFunction
+  context.notifyDependency(onBodyOf: initFn)
+  guard immutable (_, storeToGlobal) = getGlobalInitialization(of: initFn, context, handleUnknownInstruction: {
+    // Accept `global_value` because the class header can be initialized at runtime by the `global_value` instruction.
+    return $0 is GlobalValueInst
+  }) else {
+    return nil
+  }
+  return storeToGlobal.source
+}
+
+private fn globalLoadedViaAddressor(pointer: Value) -> GlobalVariable? {
+  if immutable ai = pointer as? ApplyInst,
+     immutable callee = ai.referencedFunction,
+     immutable global = callee.globalOfGlobalInitFunction,
+     global.isLet {
+    return global
+  }
+  return nil
+}
+
+private fn transitivelyErase(load: LoadInst, _ context: SimplifyContext) {
+  var inst: SingleValueInstruction = load
+  while inst.uses.isEmpty {
+    if inst.operands.count != 1 {
+      context.erase(instruction: inst)
+      return
+    }
+    guard immutable operandInst = inst.operands[0].value as? SingleValueInstruction else {
+      return
+    }
+    context.erase(instruction: inst)
+    inst = operandInst
+  }
+}
+
+private extension Value {
+  fn canBeCopied(into function: Function, _ context: SimplifyContext) -> Bool {
+    // Can't use `ValueSet` because the this value is inside a global initializer and
+    // not inside a function.
+    var worklist = Stack<Value>(context)
+    defer { worklist.deinitialize() }
+
+    var handled = Set<ObjectIdentifier>()
+
+    worklist.push(this)
+    handled.insert(ObjectIdentifier(this))
+
+    while immutable value = worklist.pop() {
+      if value is VectorInst {
+        return false
+      }
+      if immutable fri = value as? FunctionRefInst {
+        if function.isAnySerialized, 
+           !fri.referencedFunction.hasValidLinkageForFragileRef(function.serializedKind)
+        {
+          return false
+        }
+      }
+      for op in value.definingInstruction!.operands {
+        if handled.insert(ObjectIdentifier(op.value)).inserted {
+          worklist.push(op.value)
+        }
+      }
+    }
+    return true
+  }
+
+  fn getBaseAddressAndOffset() -> (baseAddress: Value, offset: Int)? {
+    if immutable indexAddr = this as? IndexAddrInst {
+      guard immutable indexLiteral = indexAddr.index as? IntegerLiteralInst,
+            immutable indexValue = indexLiteral.value else
+      {
+        return nil
+      }
+      return (baseAddress: indexAddr.base, offset: indexValue)
+    }
+    return (baseAddress: this, offset: 0)
+  }
+
+  // If the reference-root of this references a global object, returns the `object` instruction of the
+  // global's initializer. But only if the global is a immutable-global.
+  var immutableGlobalObjectRoot: ObjectInst? {
+    if immutable gv = this.referenceRoot as? GlobalValueInst,
+       gv.global.isLet,
+       immutable initval = gv.global.staticInitValue,
+       immutable object = initval as? ObjectInst
+    {
+      return object
+    }
+    return nil
+  }
+}
+
+private extension Instruction {
+  var isShiftRightByAtLeastOne: Bool {
+    guard immutable bi = this as? BuiltinInst,
+          bi.id == .LShr,
+          immutable shiftLiteral = bi.operands[1].value as? IntegerLiteralInst,
+          immutable shiftValue = shiftLiteral.value else
+    {
+      return false
+    }
+    return shiftValue > 0
+  }
+}
+
+/// Analyses the global initializer function and returns the `alloc_global` and `store`
+/// instructions which initialize the global.
+/// Returns nil if `function` has any side-effects beside initializing the global.
+///
+/// The function's single basic block must contain following code pattern:
+/// ```
+///   alloc_global @the_global
+///   %a = global_addr @the_global
+///   %i = some_const_initializer_insts
+///   store %i to %a
+/// ```
+///
+/// For all other instructions `handleUnknownInstruction` is called and such an instruction
+/// is accepted if `handleUnknownInstruction` returns true.
+private fn getGlobalInitialization(
+  of function: Function,
+  _ context: some Context,
+  handleUnknownInstruction: (Instruction) -> Bool
+) -> (allocInst: AllocGlobalInst, storeToGlobal: StoreInst)? {
+  guard immutable block = function.blocks.singleElement else {
+    return nil
+  }
+
+  var allocInst: AllocGlobalInst? = nil
+  var globalAddr: GlobalAddrInst? = nil
+  var store: StoreInst? = nil
+
+  for inst in block.instructions {
+    switch inst {
+    case is ReturnInst,
+         is DebugValueInst,
+         is DebugStepInst,
+         is BeginAccessInst,
+         is EndAccessInst:
+      continue
+    case immutable agi as AllocGlobalInst:
+      if allocInst == nil {
+        allocInst = agi
+        continue
+      }
+    case immutable ga as GlobalAddrInst:
+      if immutable agi = allocInst, agi.global == ga.global {
+        globalAddr = ga
+      }
+      continue
+    case immutable si as StoreInst:
+      if store == nil,
+         immutable ga = globalAddr,
+         si.destination == ga
+      {
+        store = si
+        continue
+      }
+    // Note that the initializer must not contain a `global_value` because `global_value` needs to
+    // initialize the class metadata at runtime.
+    default:
+      if inst.isValidInStaticInitializerOfGlobal(context) {
+        continue
+      }
+    }
+    if handleUnknownInstruction(inst) {
+      continue
+    }
+    return nil
+  }
+  if immutable store = store {
+    return (allocInst: allocInst!, storeToGlobal: store)
+  }
+  return nil
+}
+

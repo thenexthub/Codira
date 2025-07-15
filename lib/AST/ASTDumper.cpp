@@ -1,4 +1,4 @@
-//===--- ASTDumper.cpp - Swift Language AST Dumper ------------------------===//
+//===--- ASTDumper.cpp - Codira Language AST Dumper ------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements dumping for the Swift ASTs.
+//  This file implements dumping for the Codira ASTs.
 //
 //===----------------------------------------------------------------------===//
 
@@ -44,15 +45,15 @@
 #include "language/Basic/SourceManager.h"
 #include "language/Basic/StringExtras.h"
 #include "clang/AST/Type.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APFloat.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 //
@@ -79,12 +80,12 @@
 using namespace language;
 
 struct TerminalColor {
-  llvm::raw_ostream::Colors Color;
+  toolchain::raw_ostream::Colors Color;
   bool Bold;
 };
 
 #define DEF_COLOR(NAME, COLOR, BOLD) \
-static const TerminalColor NAME##Color = { llvm::raw_ostream::COLOR, BOLD };
+static const TerminalColor NAME##Color = { toolchain::raw_ostream::COLOR, BOLD };
 
 DEF_COLOR(Func, YELLOW, false)
 DEF_COLOR(Range, YELLOW, false)
@@ -251,8 +252,8 @@ std::string declUSR(const Decl *D) {
   }
 
   std::string usr;
-  llvm::raw_string_ostream os(usr);
-  if (swift::ide::printDeclUSR(D, os))
+  toolchain::raw_string_ostream os(usr);
+  if (language::ide::printDeclUSR(D, os))
     return "";
   return usr;
 }
@@ -271,8 +272,8 @@ std::string typeUSR(Type type) {
   }
 
   std::string usr;
-  llvm::raw_string_ostream os(usr);
-  if (swift::ide::printTypeUSR(type, os))
+  toolchain::raw_string_ostream os(usr);
+  if (language::ide::printTypeUSR(type, os))
     return "";
   return usr;
 }
@@ -284,8 +285,8 @@ std::string declTypeUSR(const ValueDecl *D) {
     return "";
 
   std::string usr;
-  llvm::raw_string_ostream os(usr);
-  if (swift::ide::printDeclTypeUSR(D, os))
+  toolchain::raw_string_ostream os(usr);
+  if (language::ide::printDeclTypeUSR(D, os))
     return "";
   return usr;
 }
@@ -314,7 +315,7 @@ static StringRef getDumpString(SILFunctionType::Representation value) {
     return "keypath_accessor_hash";
   }
 
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 static StringRef getDumpString(ReadImplKind kind) {
@@ -332,7 +333,7 @@ static StringRef getDumpString(ReadImplKind kind) {
   case ReadImplKind::Read2:
     return "read2_coroutine";
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static StringRef getDumpString(WriteImplKind kind) {
@@ -354,7 +355,7 @@ static StringRef getDumpString(WriteImplKind kind) {
   case WriteImplKind::Modify2:
     return "modify2_coroutine";
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static StringRef getDumpString(ReadWriteImplKind kind) {
@@ -376,7 +377,7 @@ static StringRef getDumpString(ReadWriteImplKind kind) {
   case ReadWriteImplKind::InheritedWithDidSet:
     return "inherited_with_didset";
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static StringRef getDumpString(ImportKind value) {
@@ -388,10 +389,10 @@ static StringRef getDumpString(ImportKind value) {
   case ImportKind::Enum: return "enum";
   case ImportKind::Protocol: return "protocol";
   case ImportKind::Var: return "var";
-  case ImportKind::Func: return "func";
+  case ImportKind::Func: return "fn";
   }
   
-  llvm_unreachable("Unhandled ImportKind in switch.");
+  toolchain_unreachable("Unhandled ImportKind in switch.");
 }
 
 static StringRef getDumpString(ForeignErrorConvention::Kind value) {
@@ -403,7 +404,7 @@ static StringRef getDumpString(ForeignErrorConvention::Kind value) {
   case ForeignErrorConvention::NonNilError: return "NonNilError";
   }
 
-  llvm_unreachable("Unhandled ForeignErrorConvention in switch.");
+  toolchain_unreachable("Unhandled ForeignErrorConvention in switch.");
 }
 static StringRef getDumpString(DefaultArgumentKind value) {
   switch (value) {
@@ -421,7 +422,7 @@ static StringRef getDumpString(DefaultArgumentKind value) {
     return "expression macro";
   }
 
-  llvm_unreachable("Unhandled DefaultArgumentKind in switch.");
+  toolchain_unreachable("Unhandled DefaultArgumentKind in switch.");
 }
 static StringRef getDumpString(ObjCSelectorExpr::ObjCSelectorKind value) {
   switch (value) {
@@ -430,7 +431,7 @@ static StringRef getDumpString(ObjCSelectorExpr::ObjCSelectorKind value) {
     case ObjCSelectorExpr::Setter: return "setter";
   }
 
-  llvm_unreachable("Unhandled ObjCSelectorExpr in switch.");
+  toolchain_unreachable("Unhandled ObjCSelectorExpr in switch.");
 }
 static StringRef getDumpString(AccessSemantics value) {
   switch (value) {
@@ -440,7 +441,7 @@ static StringRef getDumpString(AccessSemantics value) {
     case AccessSemantics::DistributedThunk: return "distributed_thunk";
   }
 
-  llvm_unreachable("Unhandled AccessSemantics in switch.");
+  toolchain_unreachable("Unhandled AccessSemantics in switch.");
 }
 static StringRef getDumpString(MetatypeRepresentation value) {
   switch (value) {
@@ -449,7 +450,7 @@ static StringRef getDumpString(MetatypeRepresentation value) {
     case MetatypeRepresentation::ObjC: return "@objc";
   }
 
-  llvm_unreachable("Unhandled MetatypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled MetatypeRepresentation in switch.");
 }
 static StringRef getDumpString(StringLiteralExpr::Encoding value) {
   switch (value) {
@@ -457,7 +458,7 @@ static StringRef getDumpString(StringLiteralExpr::Encoding value) {
     case StringLiteralExpr::OneUnicodeScalar: return "unicodeScalar";
   }
 
-  llvm_unreachable("Unhandled StringLiteral in switch.");
+  toolchain_unreachable("Unhandled StringLiteral in switch.");
 }
 static StringRef getDumpString(CtorInitializerKind value) {
   switch (value) {
@@ -467,7 +468,7 @@ static StringRef getDumpString(CtorInitializerKind value) {
     case CtorInitializerKind::Factory: return "factory";
   }
 
-  llvm_unreachable("Unhandled CtorInitializerKind in switch.");
+  toolchain_unreachable("Unhandled CtorInitializerKind in switch.");
 }
 static StringRef getDumpString(Associativity value) {
   switch (value) {
@@ -476,7 +477,7 @@ static StringRef getDumpString(Associativity value) {
     case Associativity::Right: return "right";
   }
 
-  llvm_unreachable("Unhandled Associativity in switch.");
+  toolchain_unreachable("Unhandled Associativity in switch.");
 }
 static StringRef getDumpString(CheckedCastKind kind) {
   return getCheckedCastKindName(kind);
@@ -497,7 +498,7 @@ static StringRef getDumpString(LifetimeAnnotation lifetime) {
     return "";
   }
   
-  llvm_unreachable("Unhandled LifetimeAnnotation in switch.");
+  toolchain_unreachable("Unhandled LifetimeAnnotation in switch.");
 }
 static StringRef getDumpString(AccessorKind kind) {
   return getAccessorKindString(kind);
@@ -523,20 +524,20 @@ static StringRef getDumpString(ValueOwnership ownership) {
       return "inout";
   }
 
-  llvm_unreachable("Unhandled ValueOwnership in switch.");
+  toolchain_unreachable("Unhandled ValueOwnership in switch.");
 }
 static StringRef getDumpString(PlatformKind kind) {
   return platformString(kind);
 }
 static StringRef getDumpString(ForeignErrorConvention::IsOwned_t owned) {
   switch (owned) {
-  case swift::ForeignErrorConvention::IsNotOwned:
+  case language::ForeignErrorConvention::IsNotOwned:
     return "unowned";
-  case swift::ForeignErrorConvention::IsOwned:
+  case language::ForeignErrorConvention::IsOwned:
     return "owned";
   }
 
-  llvm_unreachable("Unhandled ForeignErrorConvention::IsOwned_t in switch.");
+  toolchain_unreachable("Unhandled ForeignErrorConvention::IsOwned_t in switch.");
 }
 static StringRef getDumpString(RequirementKind kind) {
   switch (kind) {
@@ -547,7 +548,7 @@ static StringRef getDumpString(RequirementKind kind) {
     case RequirementKind::SameType: return "same_type";
   }
 
-  llvm_unreachable("Unhandled RequirementKind in switch.");
+  toolchain_unreachable("Unhandled RequirementKind in switch.");
 }
 static StringRef getDumpString(RequirementReprKind kind) {
   switch (kind) {
@@ -556,7 +557,7 @@ static StringRef getDumpString(RequirementReprKind kind) {
   case RequirementReprKind::LayoutConstraint: return "layout_constraint";
   }
 
-  llvm_unreachable("Unhandled RequirementKind in switch.");
+  toolchain_unreachable("Unhandled RequirementKind in switch.");
 }
 static StringRef getDumpString(ClangImporterSynthesizedTypeAttr::Kind kind) {
   switch (kind) {
@@ -565,7 +566,7 @@ static StringRef getDumpString(ClangImporterSynthesizedTypeAttr::Kind kind) {
   case ClangImporterSynthesizedTypeAttr::Kind::NSErrorWrapperAnon:
     return "NSErrorWrapperAnon";
   }
-  llvm_unreachable("unhandled ClangImporterSynthesizedTypeAttr::Kind");
+  toolchain_unreachable("unhandled ClangImporterSynthesizedTypeAttr::Kind");
 }
 static StringRef getDumpString(ExternKind kind) {
   switch (kind) {
@@ -574,7 +575,7 @@ static StringRef getDumpString(ExternKind kind) {
   case ExternKind::Wasm:
     return "Wasm";
   }
-  llvm_unreachable("unhandled ExternKind");
+  toolchain_unreachable("unhandled ExternKind");
 }
 static StringRef getDumpString(InlineKind kind) {
   switch (kind) {
@@ -583,7 +584,7 @@ static StringRef getDumpString(InlineKind kind) {
   case InlineKind::Never:
     return "never";
   }
-  llvm_unreachable("unhandled InlineKind");
+  toolchain_unreachable("unhandled InlineKind");
 }
 static StringRef getDumpString(MacroRole role) {
   return getMacroRoleString(role);
@@ -603,7 +604,7 @@ static StringRef getDumpString(EffectsKind kind) {
   case EffectsKind::Custom:
     return "Custom";
   }
-  llvm_unreachable("unhandled EffectsKind");
+  toolchain_unreachable("unhandled EffectsKind");
 }
 static StringRef getDumpString(ExclusivityAttr::Mode mode) {
   switch (mode) {
@@ -612,7 +613,7 @@ static StringRef getDumpString(ExclusivityAttr::Mode mode) {
   case ExclusivityAttr::Mode::Unchecked:
     return "unchecked";
   }
-  llvm_unreachable("unhandled ExclusivityAttr::Mode");
+  toolchain_unreachable("unhandled ExclusivityAttr::Mode");
 }
 static StringRef getDumpString(OptimizationMode mode) {
   switch (mode) {
@@ -667,7 +668,7 @@ static StringRef getDumpString(ConformanceEntryKind kind) {
   case ConformanceEntryKind::Implied:
     return "implied";
   }
-  llvm_unreachable("unhandled ConformanceEntryKind");
+  toolchain_unreachable("unhandled ConformanceEntryKind");
 }
 static StringRef getDumpString(StringRef s) {
   return s;
@@ -699,7 +700,7 @@ static Type defaultGetTypeOfKeyPathComponent(KeyPathExpr *E, unsigned index) {
   return E->getComponents()[index].getComponentType();
 }
 
-using VisitedConformances = llvm::SmallPtrSetImpl<const ProtocolConformance *>;
+using VisitedConformances = toolchain::SmallPtrSetImpl<const ProtocolConformance *>;
 
 namespace {
   /// Represents a label attached to some data in the AST being dumped.
@@ -743,7 +744,7 @@ namespace {
   };
 
   /// Defines the interface for low-level printing operations that take place
-  /// when dumping a Swift AST.
+  /// when dumping a Codira AST.
   class PrintWriterBase {
   protected:
     /// Only used by the S-expression writer to change the dumper to use
@@ -785,19 +786,19 @@ namespace {
 
     /// Print a field with a short keyword-style value, printing the value by
     /// passing a closure that takes a \c raw_ostream.
-    virtual void printFieldRaw(std::function<void(llvm::raw_ostream &)> body,
+    virtual void printFieldRaw(std::function<void(toolchain::raw_ostream &)> body,
                                Label label, TerminalColor color) = 0;
 
     /// Print a field with a long value that will be automatically quoted and
     /// escaped, printing the value by passing a closure that takes a
     /// \c raw_ostream.
     virtual void printFieldQuotedRaw(
-        std::function<void(llvm::raw_ostream &)> body, Label name,
+        std::function<void(toolchain::raw_ostream &)> body, Label name,
         TerminalColor color) = 0;
 
     /// Print a simple boolean value, printing the value by passing a closure
     /// that takes a \c raw_ostream.
-    virtual void printFlagRaw(std::function<void(llvm::raw_ostream &)> body,
+    virtual void printFlagRaw(std::function<void(toolchain::raw_ostream &)> body,
                               TerminalColor color) = 0;
 
     /// Print a field containing a node's source location.
@@ -807,8 +808,6 @@ namespace {
     /// Print a field containing a node's source range.
     virtual void printSourceRange(const SourceRange R, const ASTContext *Ctx,
                                   Label label) = 0;
-
-    virtual bool hasNonStandardOutput() const = 0;
 
     /// Indicates whether the output format is meant to be parsable. Parsable
     /// output should use structure rather than stringification to convey
@@ -862,18 +861,18 @@ namespace {
       PrintWithColorRAII(OS, ParenthesisColor) << ')';
     }
 
-    void printFieldRaw(std::function<void(llvm::raw_ostream &)> body,
+    void printFieldRaw(std::function<void(toolchain::raw_ostream &)> body,
                        Label label, TerminalColor color) override {
       OS << " ";
       if (!label.isOptional() && !label.empty())
         PrintWithColorRAII(OS, color) << label.text() << "=";
       std::string value;
-      llvm::raw_string_ostream SOS(value);
+      toolchain::raw_string_ostream SOS(value);
       body(SOS);
       PrintWithColorRAII(OS, color) << value;
     }
 
-    void printFieldQuotedRaw(std::function<void(llvm::raw_ostream &)> body,
+    void printFieldQuotedRaw(std::function<void(toolchain::raw_ostream &)> body,
                              Label name, TerminalColor color) override {
       printFieldRaw([&](raw_ostream &OS) {
         OS << Quote;
@@ -882,7 +881,7 @@ namespace {
       }, name, color);
     }
 
-    void printFlagRaw(std::function<void(llvm::raw_ostream &)> body,
+    void printFlagRaw(std::function<void(toolchain::raw_ostream &)> body,
                       TerminalColor color) override {
       printFieldRaw(body, Label::always(""), color);
     }
@@ -903,16 +902,12 @@ namespace {
       }, label, RangeColor);
     }
 
-    bool hasNonStandardOutput() const override {
-      return &OS != &llvm::errs() && &OS != &llvm::dbgs();
-    }
-
     bool isParsable() const override { return false; }
   };
 
   /// Implements JSON formatted output for `-ast-dump`.
   class JSONWriter : public PrintWriterBase {
-    llvm::json::OStream OS;
+    toolchain::json::OStream OS;
     std::vector<bool> InObjectStack;
 
   public:
@@ -957,10 +952,10 @@ namespace {
       OS.objectEnd();
     }
 
-    void printFieldRaw(std::function<void(llvm::raw_ostream &)> body,
+    void printFieldRaw(std::function<void(toolchain::raw_ostream &)> body,
                        Label label, TerminalColor color) override {
       std::string value;
-      llvm::raw_string_ostream SOS(value);
+      toolchain::raw_string_ostream SOS(value);
       body(SOS);
       // The label is ignored if we're not printing inside an object (meaning
       // we must be in an array).
@@ -971,17 +966,17 @@ namespace {
       }
     }
 
-    void printFieldQuotedRaw(std::function<void(llvm::raw_ostream &)> body,
+    void printFieldQuotedRaw(std::function<void(toolchain::raw_ostream &)> body,
                              Label label, TerminalColor color) override {
       // No need to do special quoting for complex values; the JSON output
       // stream will do this for us.
       printFieldRaw(body, label, color);
     }
 
-    void printFlagRaw(std::function<void(llvm::raw_ostream &)> body,
+    void printFlagRaw(std::function<void(toolchain::raw_ostream &)> body,
                       TerminalColor color) override {
       std::string flag;
-      llvm::raw_string_ostream SOS(flag);
+      toolchain::raw_string_ostream SOS(flag);
       body(SOS);
       OS.attribute(flag, true);
     }
@@ -1017,8 +1012,6 @@ namespace {
       OS.attributeEnd();
     }
 
-    bool hasNonStandardOutput() const override { return true; }
-
     bool isParsable() const override { return true; }
   };
 
@@ -1032,26 +1025,22 @@ namespace {
     PrintWriterBase &Writer;
   public:
     ASTDumpMemberLoading MemberLoading;
-    llvm::function_ref<Type(Expr *)> GetTypeOfExpr;
-    llvm::function_ref<Type(TypeRepr *)> GetTypeOfTypeRepr;
-    llvm::function_ref<Type(KeyPathExpr *E, unsigned index)>
+    toolchain::function_ref<Type(Expr *)> GetTypeOfExpr;
+    toolchain::function_ref<Type(TypeRepr *)> GetTypeOfTypeRepr;
+    toolchain::function_ref<Type(KeyPathExpr *E, unsigned index)>
         GetTypeOfKeyPathComponent;
     char quote = '"';
 
     explicit PrintBase(
         PrintWriterBase &writer,
         ASTDumpMemberLoading memberLoading = ASTDumpMemberLoading::None,
-        llvm::function_ref<Type(Expr *)> getTypeOfExpr = defaultGetTypeOfExpr,
-        llvm::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr = nullptr,
-        llvm::function_ref<Type(KeyPathExpr *E, unsigned index)>
+        toolchain::function_ref<Type(Expr *)> getTypeOfExpr = defaultGetTypeOfExpr,
+        toolchain::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr = nullptr,
+        toolchain::function_ref<Type(KeyPathExpr *E, unsigned index)>
             getTypeOfKeyPathComponent = defaultGetTypeOfKeyPathComponent)
         : Writer(writer), MemberLoading(memberLoading),
           GetTypeOfExpr(getTypeOfExpr), GetTypeOfTypeRepr(getTypeOfTypeRepr),
           GetTypeOfKeyPathComponent(getTypeOfKeyPathComponent) {}
-
-    bool hasNonStandardOutput() {
-      return Writer.hasNonStandardOutput();
-    }
 
     bool isTypeChecked() const {
       return MemberLoading == ASTDumpMemberLoading::TypeChecked;
@@ -1137,13 +1126,13 @@ namespace {
           [&](Label label) {
             printHead("availability_spec", PatternColor, label);
             printFieldRaw(
-                [&](llvm::raw_ostream &OS) {
+                [&](toolchain::raw_ostream &OS) {
                   Spec->getDomainOrIdentifier().print(OS);
                 },
                 Label::always("domain"));
             if (!Spec->getRawVersion().empty())
               printFieldRaw(
-                  [&](llvm::raw_ostream &OS) { OS << Spec->getRawVersion(); },
+                  [&](toolchain::raw_ostream &OS) { OS << Spec->getRawVersion(); },
                   Label::always("version"));
             printFoot();
           },
@@ -1735,7 +1724,8 @@ namespace {
     /// Prints a type as a field. If writing a parsable output format, the
     /// `PrintOptions` are ignored and the type is written as a USR; otherwise,
     /// the type is stringified using the `PrintOptions`.
-    void printTypeField(Type Ty, Label label, PrintOptions opts = PrintOptions(),
+    void printTypeField(Type Ty, Label label,
+                        const PrintOptions &opts = PrintOptions(),
                         TerminalColor Color = TypeColor) {
       if (Writer.isParsable()) {
         printField(typeUSR(Ty), label, Color);
@@ -1873,15 +1863,15 @@ namespace {
       case ValueOwnership::Default:
         break;
       case ValueOwnership::Shared:
-        printFieldRaw([](llvm::raw_ostream &os) { os << "borrowing"; },
+        printFieldRaw([](toolchain::raw_ostream &os) { os << "borrowing"; },
                       Label::always("ownership"));
         break;
       case ValueOwnership::InOut:
-        printFieldRaw([](llvm::raw_ostream &os) { os << "mutating"; },
+        printFieldRaw([](toolchain::raw_ostream &os) { os << "mutating"; },
                       Label::always("ownership"));
         break;
       case ValueOwnership::Owned:
-        printFieldRaw([](llvm::raw_ostream &os) { os << "consuming"; },
+        printFieldRaw([](toolchain::raw_ostream &os) { os << "consuming"; },
                       Label::always("ownership"));
         break;
       }
@@ -2081,7 +2071,7 @@ namespace {
             Inherited.getEntries(),
             [&](InheritedEntry Super) {
               std::string value;
-              llvm::raw_string_ostream SOS(value);
+              toolchain::raw_string_ostream SOS(value);
               Super.dump(SOS);
               return value;
             },
@@ -2127,6 +2117,11 @@ namespace {
 
       printImportPath(ID, Label::always("module"));
       printFoot();
+    }
+
+    void visitUsingDecl(UsingDecl *UD, Label label) {
+      printCommon(UD, "using_decl", label);
+      printFieldQuoted(UD->getSpecifierName(), Label::always("specifier"));
     }
 
     void visitExtensionDecl(ExtensionDecl *ED, Label label) {
@@ -2252,7 +2247,7 @@ namespace {
           }, Label::always("requirement_signature"));
         } else {
           std::string reqSigStr;
-          llvm::raw_string_ostream out(reqSigStr);
+          toolchain::raw_string_ostream out(reqSigStr);
           reqSig.print(PD, out);
 
           printFieldQuoted(out.str(), Label::always("requirement_signature"));
@@ -2344,7 +2339,7 @@ namespace {
                 return declUSR(overridden);
               }
               std::string value;
-              llvm::raw_string_ostream SOS(value);
+              toolchain::raw_string_ostream SOS(value);
               overridden->dumpRef(SOS);
               return value;
             },
@@ -2460,11 +2455,11 @@ namespace {
         // so that they can use it to determine their compatibility with the
         // output.
         printRecArbitrary([&](Label label) {
-          auto version = version::getSwiftNumericVersion();
+          auto version = version::getCodiraNumericVersion();
           printHead("compiler_version", FieldLabelColor, label);
           printField(version.first, Label::always("major"));
           printField(version.second, Label::always("minor"));
-          printFieldQuoted(version::getSwiftFullVersion(
+          printFieldQuoted(version::getCodiraFullVersion(
                                version::Version::getCurrentLanguageVersion()),
                            Label::always("full"));
           printFoot();
@@ -2910,7 +2905,7 @@ namespace {
 
     void visitModuleDecl(ModuleDecl *MD, Label label) {
       printCommon(MD, "module", label);
-      printFlag(MD->isNonSwiftModule(), "non_swift");
+      printFlag(MD->isNonCodiraModule(), "non_language");
       printAttributes(MD);
       printFoot();
     }
@@ -2951,8 +2946,8 @@ namespace {
 } // end anonymous namespace
 
 void ParameterList::dump() const {
-  dump(llvm::errs(), 0);
-  llvm::errs() << '\n';
+  dump(toolchain::errs(), 0);
+  toolchain::errs() << '\n';
 }
 
 void ParameterList::dump(raw_ostream &OS, unsigned Indent) const {
@@ -2962,13 +2957,13 @@ void ParameterList::dump(raw_ostream &OS, unsigned Indent) const {
 }
 
 void Decl::dump() const {
-  dump(llvm::errs(), 0);
+  dump(toolchain::errs(), 0);
 }
 
 void Decl::dump(const char *filename) const {
   std::error_code ec;
-  llvm::raw_fd_ostream stream(filename, ec, llvm::sys::fs::FA_Read |
-                              llvm::sys::fs::FA_Write);
+  toolchain::raw_fd_ostream stream(filename, ec, toolchain::sys::fs::FA_Read |
+                              toolchain::sys::fs::FA_Write);
   // In assert builds, we blow up. Otherwise, we just return.
   assert(!ec && "Failed to open file for dumping?!");
   if (ec)
@@ -2983,7 +2978,7 @@ void Decl::dump(raw_ostream &OS, unsigned Indent) const {
 }
 
 /// Print the given declaration context (with its parents).
-void swift::printContext(raw_ostream &os, DeclContext *dc) {
+void language::printContext(raw_ostream &os, DeclContext *dc) {
   if (auto parent = dc->getParent()) {
     printContext(os, parent);
     os << '.';
@@ -3017,11 +3012,6 @@ void swift::printContext(raw_ostream &os, DeclContext *dc) {
       PrintWithColorRAII(os, DiscriminatorColor)
         << "autoclosure discriminator=";
     }
-
-    // If we aren't printing to standard error or the debugger output stream,
-    // this client expects to see the computed discriminator. Compute it now.
-    if (&os != &llvm::errs() && &os != &llvm::dbgs())
-      (void)ACE->getDiscriminator();
 
     PrintWithColorRAII(os, DiscriminatorColor) << ACE->getRawDiscriminator();
     break;
@@ -3072,7 +3062,7 @@ void swift::printContext(raw_ostream &os, DeclContext *dc) {
 
 std::string ValueDecl::printRef() const {
   std::string result;
-  llvm::raw_string_ostream os(result);
+  toolchain::raw_string_ostream os(result);
   dumpRef(os);
   return os.str();
 }
@@ -3101,30 +3091,30 @@ void ValueDecl::dumpRef(raw_ostream &os) const {
   }
 }
 
-void LLVM_ATTRIBUTE_USED ValueDecl::dumpRef() const {
-  dumpRef(llvm::errs());
-  llvm::errs() << "\n";
+void TOOLCHAIN_ATTRIBUTE_USED ValueDecl::dumpRef() const {
+  dumpRef(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 void SourceFile::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
-void SourceFile::dump(llvm::raw_ostream &OS,
+void SourceFile::dump(toolchain::raw_ostream &OS,
                       ASTDumpMemberLoading memberLoading) const {
   DefaultWriter writer(OS, /*indent*/ 0);
   PrintDecl(writer, memberLoading).visitSourceFile(*this);
-  llvm::errs() << '\n';
+  toolchain::errs() << '\n';
 }
 
-void SourceFile::dumpJSON(llvm::raw_ostream &OS,
+void SourceFile::dumpJSON(toolchain::raw_ostream &OS,
                           ASTDumpMemberLoading memberLoading) const {
   JSONWriter writer(OS, /*indent*/ 0);
   PrintDecl(writer, memberLoading).visitSourceFile(*this);
 }
 
 void Pattern::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void Pattern::dump(raw_ostream &OS, unsigned Indent) const {
@@ -3148,9 +3138,9 @@ public:
   PrintStmt(
       PrintWriterBase &writer, const ASTContext *ctx,
       ASTDumpMemberLoading memberLoading = ASTDumpMemberLoading::None,
-      llvm::function_ref<Type(Expr *)> getTypeOfExpr = defaultGetTypeOfExpr,
-      llvm::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr = nullptr,
-      llvm::function_ref<Type(KeyPathExpr *E, unsigned index)>
+      toolchain::function_ref<Type(Expr *)> getTypeOfExpr = defaultGetTypeOfExpr,
+      toolchain::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr = nullptr,
+      toolchain::function_ref<Type(KeyPathExpr *E, unsigned index)>
           getTypeOfKeyPathComponent = defaultGetTypeOfKeyPathComponent)
       : PrintBase(writer, memberLoading, getTypeOfExpr, getTypeOfTypeRepr,
                   getTypeOfKeyPathComponent),
@@ -3308,15 +3298,15 @@ public:
           case ValueOwnership::Default:
             break;
           case ValueOwnership::Shared:
-            printFieldRaw([](llvm::raw_ostream &os) { os << "borrowing"; },
+            printFieldRaw([](toolchain::raw_ostream &os) { os << "borrowing"; },
                           Label::always("ownership"));
             break;
           case ValueOwnership::InOut:
-            printFieldRaw([](llvm::raw_ostream &os) { os << "mutating"; },
+            printFieldRaw([](toolchain::raw_ostream &os) { os << "mutating"; },
                           Label::always("ownership"));
             break;
           case ValueOwnership::Owned:
-            printFieldRaw([](llvm::raw_ostream &os) { os << "consuming"; },
+            printFieldRaw([](toolchain::raw_ostream &os) { os << "consuming"; },
                           Label::always("ownership"));
             break;
           }
@@ -3370,8 +3360,8 @@ public:
 } // end anonymous namespace
 
 void Stmt::dump() const {
-  dump(llvm::errs());
-  llvm::errs() << '\n';
+  dump(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 void Stmt::dump(raw_ostream &OS, const ASTContext *Ctx, unsigned Indent) const {
@@ -4097,16 +4087,15 @@ public:
     printFoot();
   }
 
-  void printClosure(AbstractClosureExpr *E, char const *name,
-                                  Label label) {
+  void printClosure(AbstractClosureExpr *E, char const *name, Label label) {
     printCommon(E, name, label);
 
-    // If we aren't printing to standard error or the debugger output stream,
-    // this client expects to see the computed discriminator. Compute it now.
-    if (hasNonStandardOutput())
-      (void)E->getDiscriminator();
+    // If we're dumping the type-checked AST, compute the discriminator if
+    // needed. Otherwise, print the cached discriminator.
+    auto discriminator = isTypeChecked() ? E->getDiscriminator()
+                                         : E->getRawDiscriminator();
 
-    printField(E->getRawDiscriminator(), Label::always("discriminator"),
+    printField(discriminator, Label::always("discriminator"),
                DiscriminatorColor);
     printIsolation(E->getActorIsolation());
 
@@ -4565,13 +4554,13 @@ public:
 } // end anonymous namespace
 
 void Expr::dump() const {
-  dump(llvm::errs());
-  llvm::errs() << "\n";
+  dump(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
-void Expr::dump(raw_ostream &OS, llvm::function_ref<Type(Expr *)> getTypeOfExpr,
-                llvm::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr,
-                llvm::function_ref<Type(KeyPathExpr *E, unsigned index)>
+void Expr::dump(raw_ostream &OS, toolchain::function_ref<Type(Expr *)> getTypeOfExpr,
+                toolchain::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr,
+                toolchain::function_ref<Type(KeyPathExpr *E, unsigned index)>
                     getTypeOfKeyPathComponent,
                 unsigned Indent) const {
   DefaultWriter writer(OS, Indent);
@@ -4587,15 +4576,15 @@ void Expr::dump(raw_ostream &OS, unsigned Indent) const {
 
 void Expr::print(ASTPrinter &Printer, const PrintOptions &Opts) const {
   // FIXME: Fully use the ASTPrinter.
-  llvm::SmallString<128> Str;
-  llvm::raw_svector_ostream OS(Str);
+  toolchain::SmallString<128> Str;
+  toolchain::raw_svector_ostream OS(Str);
   dump(OS);
   Printer << OS.str();
 }
 
 void ArgumentList::dump() const {
-  dump(llvm::errs(), 0);
-  llvm::errs() << '\n';
+  dump(toolchain::errs(), 0);
+  toolchain::errs() << '\n';
 }
 
 void ArgumentList::dump(raw_ostream &OS, unsigned Indent) const {
@@ -4721,7 +4710,7 @@ public:
 
     if (T->hasElementNames()) {
       printFieldQuotedRaw([&](raw_ostream &OS) {
-        llvm::interleave(T->getElements(), OS,
+        toolchain::interleave(T->getElements(), OS,
                          [&](const TupleTypeReprElement &Elt) {
           auto name = Elt.Name;
           if (Elt.UnderscoreLoc.isValid())
@@ -4920,9 +4909,9 @@ public:
   PrintAttribute(
       PrintWriterBase &writer, const ASTContext *ctx, DeclContext *dc,
       ASTDumpMemberLoading memberLoading = ASTDumpMemberLoading::None,
-      llvm::function_ref<Type(Expr *)> getTypeOfExpr = defaultGetTypeOfExpr,
-      llvm::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr = nullptr,
-      llvm::function_ref<Type(KeyPathExpr *E, unsigned index)>
+      toolchain::function_ref<Type(Expr *)> getTypeOfExpr = defaultGetTypeOfExpr,
+      toolchain::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr = nullptr,
+      toolchain::function_ref<Type(KeyPathExpr *E, unsigned index)>
           getTypeOfKeyPathComponent = defaultGetTypeOfKeyPathComponent)
       : PrintBase(writer, memberLoading, getTypeOfExpr, getTypeOfTypeRepr,
                   getTypeOfKeyPathComponent),
@@ -4997,7 +4986,6 @@ public:
   TRIVIAL_ATTR_PRINTER(ImplicitSelfCapture, implicit_self_capture)
   TRIVIAL_ATTR_PRINTER(Indirect, indirect)
   TRIVIAL_ATTR_PRINTER(Infix, infix)
-  TRIVIAL_ATTR_PRINTER(InheritActorContext, inherit_actor_context)
   TRIVIAL_ATTR_PRINTER(InheritsConvenienceInitializers,
                        inherits_convenience_initializers)
   TRIVIAL_ATTR_PRINTER(Inlinable, inlinable)
@@ -5063,7 +5051,7 @@ public:
   TRIVIAL_ATTR_PRINTER(Used, used)
   TRIVIAL_ATTR_PRINTER(WarnUnqualifiedAccess, warn_unqualified_access)
   TRIVIAL_ATTR_PRINTER(WeakLinked, weak_linked)
-  TRIVIAL_ATTR_PRINTER(Extensible, extensible)
+  TRIVIAL_ATTR_PRINTER(Nonexhaustive, nonexhaustive)
   TRIVIAL_ATTR_PRINTER(Concurrent, concurrent)
 
 #undef TRIVIAL_ATTR_PRINTER
@@ -5108,15 +5096,15 @@ public:
     }
 
     switch (Attr->getKind()) {
-    case swift::AvailableAttr::Kind::Default:
+    case language::AvailableAttr::Kind::Default:
       break;
-    case swift::AvailableAttr::Kind::Deprecated:
+    case language::AvailableAttr::Kind::Deprecated:
       printFlag("deprecated");
       break;
-    case swift::AvailableAttr::Kind::Unavailable:
+    case language::AvailableAttr::Kind::Unavailable:
       printFlag("unavailable");
       break;
-    case swift::AvailableAttr::Kind::NoAsync:
+    case language::AvailableAttr::Kind::NoAsync:
       printFlag("noasync");
       break;
     }
@@ -5292,7 +5280,7 @@ public:
     } else {
       printFieldQuotedRaw(
           [&](auto &out) {
-            llvm::interleave(
+            toolchain::interleave(
                 Attr->getNames(), out,
                 [&](const MacroIntroducedDeclName &name) {
                   out << getMacroIntroducedDeclNameString(name.getKind());
@@ -5319,6 +5307,12 @@ public:
     printCommon(Attr, "nonisolated_attr", label);
     printFlag(Attr->isUnsafe(), "unsafe");
     printFlag(Attr->isNonSending(), "nonsending");
+    printFoot();
+  }
+  void visitInheritActorContextAttr(InheritActorContextAttr *Attr,
+                                    Label label) {
+    printCommon(Attr, "inherit_actor_context_attr", label);
+    printFlag(Attr->isAlways(), "always");
     printFoot();
   }
   void visitObjCAttr(ObjCAttr *Attr, Label label) {
@@ -5445,7 +5439,16 @@ public:
     printFoot();
   }
   void visitSpecializeAttr(SpecializeAttr *Attr, Label label) {
-    printCommon(Attr, "specialize_attr", label);
+    visitAbstractSpecializeAttr(Attr, label);
+  }
+
+  void visitSpecializedAttr(SpecializedAttr *Attr, Label label) {
+    visitAbstractSpecializeAttr(Attr, label);
+  }
+
+  void visitAbstractSpecializeAttr(AbstractSpecializeAttr *Attr, Label label) {
+    printCommon(Attr, Attr->isPublic() ? "specialized_attr" :
+                  "specialize_attr", label);
     printFlag(Attr->isExported(), "exported");
     printFlag(Attr->isFullSpecialization(), "full");
     printFlag(Attr->isPartialSpecialization(), "partial");
@@ -5478,9 +5481,9 @@ public:
                          Label::always("accesses"));
     printFoot();
   }
-  void visitSwiftNativeObjCRuntimeBaseAttr(SwiftNativeObjCRuntimeBaseAttr *Attr,
+  void visitCodiraNativeObjCRuntimeBaseAttr(CodiraNativeObjCRuntimeBaseAttr *Attr,
                                            Label label) {
-    printCommon(Attr, "swift_native_objc_runtime_base", label);
+    printCommon(Attr, "language_native_objc_runtime_base", label);
     printFieldQuoted(Attr->BaseClassName, Label::always("base_class_name"));
     printFoot();
   }
@@ -5522,22 +5525,22 @@ public:
 } // end anonymous namespace
 
 void DeclAttribute::dump(const ASTContext &ctx) const {
-  dump(llvm::errs(), ctx);
-  llvm::errs() << '\n';
+  dump(toolchain::errs(), ctx);
+  toolchain::errs() << '\n';
 }
 
-void DeclAttribute::dump(llvm::raw_ostream &os, const ASTContext &ctx) const {
+void DeclAttribute::dump(toolchain::raw_ostream &os, const ASTContext &ctx) const {
   DefaultWriter writer(os, /*indent=*/0);
   PrintAttribute(writer, &ctx, nullptr)
     .visit(const_cast<DeclAttribute*>(this), Label::optional(""));
 }
 
 void DeclAttribute::dump(const DeclContext *dc) const {
-  dump(llvm::errs(), dc);
-  llvm::errs() << '\n';
+  dump(toolchain::errs(), dc);
+  toolchain::errs() << '\n';
 }
 
-void DeclAttribute::dump(llvm::raw_ostream &os, const DeclContext *dc) const {
+void DeclAttribute::dump(toolchain::raw_ostream &os, const DeclContext *dc) const {
   DefaultWriter writer(os, /*indent=*/0);
   PrintAttribute(writer, &dc->getASTContext(), const_cast<DeclContext*>(dc))
     .visit(const_cast<DeclAttribute*>(this), Label::optional(""));
@@ -5546,15 +5549,15 @@ void DeclAttribute::dump(llvm::raw_ostream &os, const DeclContext *dc) const {
 
 void DeclAttributes::dump(const ASTContext &ctx) const {
   for (auto attr : *this) {
-    attr->dump(llvm::errs(), ctx);
-    llvm::errs() << '\n';
+    attr->dump(toolchain::errs(), ctx);
+    toolchain::errs() << '\n';
   }
 }
 
 void DeclAttributes::dump(const DeclContext *dc) const {
   for (auto attr : *this) {
-    attr->dump(llvm::errs(), dc);
-    llvm::errs() << '\n';
+    attr->dump(toolchain::errs(), dc);
+    toolchain::errs() << '\n';
   }
 }
 
@@ -5635,8 +5638,8 @@ void PrintBase::printRec(const DeclAttribute *Attr, const ASTContext *Ctx,
 }
 
 void TypeRepr::dump() const {
-  dump(llvm::errs());
-  llvm::errs() << '\n';
+  dump(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 void TypeRepr::dump(raw_ostream &os, unsigned indent) const {
   DefaultWriter writer(os, indent);
@@ -5855,11 +5858,11 @@ public:
     char quote = Writer.quote();
     if (style == SubstitutionMap::DumpStyle::Minimal)
       Writer.setQuote('\'');
-    SWIFT_DEFER { Writer.setQuote(quote); };
+    LANGUAGE_DEFER { Writer.setQuote(quote); };
 
     auto genericSig = map.getGenericSignature();
     printHead("substitution_map", ASTNodeColor, label);
-    SWIFT_DEFER { printFoot(); };
+    LANGUAGE_DEFER { printFoot(); };
 
     if (genericSig.isNull()) {
       printFlag("null_generic_signature");
@@ -5958,13 +5961,13 @@ void PrintBase::printRec(const ProtocolConformance *conformance,
 } // end anonymous namespace
 
 void ProtocolConformanceRef::dump() const {
-  dump(llvm::errs());
-  llvm::errs() << '\n';
+  dump(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
-void ProtocolConformanceRef::dump(llvm::raw_ostream &out, unsigned indent,
+void ProtocolConformanceRef::dump(toolchain::raw_ostream &out, unsigned indent,
                                   bool details) const {
-  llvm::SmallPtrSet<const ProtocolConformance *, 8> visited;
+  toolchain::SmallPtrSet<const ProtocolConformance *, 8> visited;
   if (!details && isConcrete())
     visited.insert(getConcrete());
 
@@ -5973,44 +5976,44 @@ void ProtocolConformanceRef::dump(llvm::raw_ostream &out, unsigned indent,
                                                        Label::optional(""));
 }
 
-void ProtocolConformanceRef::print(llvm::raw_ostream &out) const {
-  llvm::SmallPtrSet<const ProtocolConformance *, 8> visited;
+void ProtocolConformanceRef::print(toolchain::raw_ostream &out) const {
+  toolchain::SmallPtrSet<const ProtocolConformance *, 8> visited;
   DefaultWriter writer(out, /*indent=*/ 0);
   PrintConformance(writer).visitProtocolConformanceRef(*this, visited,
                                                        Label::optional(""));
 }
 
 void ProtocolConformance::dump() const {
-  auto &out = llvm::errs();
+  auto &out = toolchain::errs();
   dump(out);
   out << '\n';
 }
 
-void ProtocolConformance::dump(llvm::raw_ostream &out, unsigned indent) const {
-  llvm::SmallPtrSet<const ProtocolConformance *, 8> visited;
+void ProtocolConformance::dump(toolchain::raw_ostream &out, unsigned indent) const {
+  toolchain::SmallPtrSet<const ProtocolConformance *, 8> visited;
   DefaultWriter writer(out, indent);
   PrintConformance(writer).visitProtocolConformance(this, visited,
                                                     Label::optional(""));
 }
 
-void PackConformance::dump(llvm::raw_ostream &out, unsigned indent) const {
-  llvm::SmallPtrSet<const ProtocolConformance *, 8> visited;
+void PackConformance::dump(toolchain::raw_ostream &out, unsigned indent) const {
+  toolchain::SmallPtrSet<const ProtocolConformance *, 8> visited;
   DefaultWriter writer(out, indent);
   PrintConformance(writer).visitPackConformance(this, visited,
                                                 Label::optional(""));
 }
 
-void SubstitutionMap::dump(llvm::raw_ostream &out, DumpStyle style,
+void SubstitutionMap::dump(toolchain::raw_ostream &out, DumpStyle style,
                            unsigned indent) const {
-  llvm::SmallPtrSet<const ProtocolConformance *, 8> visited;
+  toolchain::SmallPtrSet<const ProtocolConformance *, 8> visited;
   DefaultWriter writer(out, indent);
   PrintConformance(writer).visitSubstitutionMap(*this, style, visited,
                                                 Label::optional(""));
 }
 
 void SubstitutionMap::dump() const {
-  dump(llvm::errs());
-  llvm::errs() << "\n";
+  dump(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 //===----------------------------------------------------------------------===//
@@ -6288,7 +6291,7 @@ namespace {
     void visitModuleType(ModuleType *T, Label label) {
       printCommon("module_type", label);
       printDeclName(T->getModule(), Label::always("module"));
-      printFlag(T->getModule()->isNonSwiftModule(), "foreign");
+      printFlag(T->getModule()->isNonCodiraModule(), "foreign");
       printFoot();
     }
 
@@ -6467,7 +6470,7 @@ namespace {
         if (T->isDifferentiable()) {
           switch (T->getDifferentiabilityKind()) {
           default:
-            llvm_unreachable("unexpected differentiability kind");
+            toolchain_unreachable("unexpected differentiability kind");
           case DifferentiabilityKind::Reverse:
             printFlag("@differentiable(reverse)");
             break;
@@ -6709,7 +6712,7 @@ namespace {
 } // end anonymous namespace
 
 void Type::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void Type::dump(raw_ostream &os, unsigned indent) const {
@@ -6743,22 +6746,22 @@ void GenericEnvironment::dump(raw_ostream &os) const {
 }
 
 void GenericEnvironment::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
-StringRef swift::getAccessorKindString(AccessorKind value) {
+StringRef language::getAccessorKindString(AccessorKind value) {
   switch (value) {
-#define ACCESSOR(ID)
+#define ACCESSOR(ID, KEYWORD)
 #define SINGLETON_ACCESSOR(ID, KEYWORD) \
   case AccessorKind::ID: return #KEYWORD;
 #include "language/AST/AccessorKinds.def"
   }
 
-  llvm_unreachable("Unhandled AccessorKind in switch.");
+  toolchain_unreachable("Unhandled AccessorKind in switch.");
 }
 
 void StableSerializationPath::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 static StringRef getExternalPathComponentKindString(
@@ -6775,13 +6778,13 @@ static StringRef getExternalPathComponentKindString(
   CASE(ObjCProtocol, "@protocol")
 #undef CASE
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
-void StableSerializationPath::dump(llvm::raw_ostream &os) const {
-  if (isSwiftDecl()) {
+void StableSerializationPath::dump(toolchain::raw_ostream &os) const {
+  if (isCodiraDecl()) {
     os << "clang decl of:\n";
-    getSwiftDecl()->dump(os, 2);
+    getCodiraDecl()->dump(os, 2);
   } else {
     auto &path = getExternalPath();
     using ExternalPath = StableSerializationPath::ExternalPath;
@@ -6799,31 +6802,31 @@ void StableSerializationPath::dump(llvm::raw_ostream &os) const {
 }
 
 void RequirementRepr::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
+  print(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 
 void GenericParamList::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 void LayoutConstraint::dump() const {
   if (!*this) {
-    llvm::errs() << "(null)\n";
+    toolchain::errs() << "(null)\n";
     return;
   }
-  getPointer()->print(llvm::errs());
+  getPointer()->print(toolchain::errs());
 }
 
 void GenericSignature::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 void Requirement::dump() const {
-  dump(llvm::errs());
-  llvm::errs() << '\n';
+  dump(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 void Requirement::dump(raw_ostream &out) const {
   DefaultWriter writer(out, /*indent=*/ 0);
@@ -6832,16 +6835,16 @@ void Requirement::dump(raw_ostream &out) const {
 
 void SILParameterInfo::dump() const {
   // TODO: Fix LifetimeDependenceInfo printing here.
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 void SILResultInfo::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
-void InheritedEntry::dump(llvm::raw_ostream &os) const {
+void InheritedEntry::dump(toolchain::raw_ostream &os) const {
   if (isPreconcurrency())
     os << "@preconcurrency ";
   if (isRetroactive())
@@ -6855,4 +6858,4 @@ void InheritedEntry::dump(llvm::raw_ostream &os) const {
   getType().print(os);
 }
 
-void InheritedEntry::dump() const { dump(llvm::errs()); }
+void InheritedEntry::dump() const { dump(toolchain::errs()); }

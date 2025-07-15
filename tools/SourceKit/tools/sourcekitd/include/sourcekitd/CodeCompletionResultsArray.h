@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_CODECOMPLETION_RESULTS_ARRAY_H
-#define LLVM_SOURCEKITD_CODECOMPLETION_RESULTS_ARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_CODECOMPLETION_RESULTS_ARRAY_H
+#define TOOLCHAIN_SOURCEKITD_CODECOMPLETION_RESULTS_ARRAY_H
 
 #include "sourcekitd/Internal.h"
 
@@ -27,15 +28,15 @@ public:
   CodeCompletionResultsArrayBuilder();
   ~CodeCompletionResultsArrayBuilder();
 
-  void add(SourceKit::UIdent Kind, llvm::StringRef Name,
-           llvm::StringRef Description, llvm::StringRef SourceText,
-           llvm::StringRef TypeName, std::optional<llvm::StringRef> ModuleName,
-           std::optional<llvm::StringRef> DocBrief,
-           std::optional<llvm::StringRef> AssocUSRs,
+  void add(SourceKit::UIdent Kind, toolchain::StringRef Name,
+           toolchain::StringRef Description, toolchain::StringRef SourceText,
+           toolchain::StringRef TypeName, std::optional<toolchain::StringRef> ModuleName,
+           std::optional<toolchain::StringRef> DocBrief,
+           std::optional<toolchain::StringRef> AssocUSRs,
            SourceKit::UIdent SemanticContext, SourceKit::UIdent TypeRelation,
            bool NotRecommended, bool IsSystem, unsigned NumBytesToErase);
 
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer();
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer();
 
 private:
   struct Implementation;

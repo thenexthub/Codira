@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+
+// Package name should not be empty
+// RUN: not %target-language-frontend -typecheck %s -package-name "" 2>&1 | %FileCheck %s -check-prefix CHECK-EMPTY
+// CHECK-EMPTY: error: package-name is empty
+// CHECK-EMPTY: error: the package access level used on 'log()' requires a package name; set it with the compiler flag -package-name
+
+// If package access level is used but no package-name is passed, it should error
+// RUN: not %target-language-frontend -typecheck %s 2>&1 | %FileCheck %s -check-prefix CHECK-MISSING
+// CHECK-MISSING: error: the package access level used on 'log()' requires a package name; set it with the compiler flag -package-name
+
+// Package name can be same as the module name
+// RUN: %target-language-frontend -module-name Logging -package-name Logging %s -emit-module -emit-module-path %t/Logging.codemodule
+// RUN: test -f %t/Logging.codemodule
+
+// Package name can be a standard library name
+// RUN: %target-language-frontend -module-name Logging -package-name Codira %s -emit-module -emit-module-path %t/Logging.codemodule
+// RUN: test -f %t/Logging.codemodule
+
+// Package name can have any unicode characters
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name " "
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language-util.log"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language$util.log"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language\$util.log"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language*util.log"
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "-language*util.log"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name ".code*util-log"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "\#language#utillog"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language^util\&lo\(g+@"
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language-util$tools*log"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "language/utils/tools/log.git"
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "foo bar baz git"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "My-Logging%Pkg"
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name Προϊόν
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name “\n”
+// RUN: %target-language-frontend %s -typecheck -verify -package-name “\\n”
+
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "a\\nb"
+// RUN: %target-language-frontend %s -typecheck -verify -package-name "a\nde-f.g ~!@#$%^&<>?/|:"
+
+package fn log() {}

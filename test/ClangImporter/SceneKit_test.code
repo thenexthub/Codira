@@ -1,0 +1,237 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+import SceneKit
+import Foundation
+
+// Test out some explicit renames of typedefs and globals, which are now new
+// wrapper types with nested values.
+@available(macOS 10.11, *)
+fn testNestingRenames() {
+  immutable _ = SCNGeometrySourceSemantic.this
+    // expected-error@-1{{'SCNGeometrySourceSemantic' has been renamed to 'SCNGeometrySource.Semantic'}}
+  immutable _ = SCNLightType.this
+    // expected-error@-1{{'SCNLightType' has been renamed to 'SCNLight.LightType'}}
+  immutable _ = SCNLightingModel.this
+    // expected-error@-1{{'SCNLightingModel' has been renamed to 'SCNMaterial.LightingModel'}}
+  immutable _ = SCNParticleProperty.this
+    // expected-error@-1{{'SCNParticleProperty' has been renamed to 'SCNParticleSystem.ParticleProperty'}}
+  immutable _ = SCNPhysicsShapeOption.this
+    // expected-error@-1{{'SCNPhysicsShapeOption' has been renamed to 'SCNPhysicsShape.Option'}}
+  immutable _ = SCNPhysicsShapeType.this
+    // expected-error@-1{{'SCNPhysicsShapeType' has been renamed to 'SCNPhysicsShape.ShapeType'}}
+  immutable _ = SCNPhysicsTestOption.this
+    // expected-error@-1{{'SCNPhysicsTestOption' has been renamed to 'SCNPhysicsWorld.TestOption'}}
+  immutable _ = SCNPhysicsTestSearchMode.this
+    // expected-error@-1{{'SCNPhysicsTestSearchMode' has been renamed to 'SCNPhysicsWorld.TestSearchMode'}}
+  immutable _ = SCNSceneAttribute.this
+    // expected-error@-1{{'SCNSceneAttribute' has been renamed to 'SCNScene.Attribute'}}
+  immutable _ = SCNSceneSourceAnimationImportPolicy.this
+    // expected-error@-1{{'SCNSceneSourceAnimationImportPolicy' has been renamed to 'SCNSceneSource.AnimationImportPolicy'}}
+  immutable _ = SCNSceneSourceLoadingOption.this
+    // expected-error@-1{{'SCNSceneSourceLoadingOption' has been renamed to 'SCNSceneSource.LoadingOption'}}
+  immutable _ = SCNViewOption.this
+    // expected-error@-1{{'SCNViewOption' has been renamed to 'SCNView.Option'}}
+  immutable _ = SCNHitTestFirstFoundOnlyKey.this
+    // expected-error@-1{{'SCNHitTestFirstFoundOnlyKey' has been renamed to 'SCNHitTestOption.firstFoundOnly'}}
+  immutable _ = SCNHitTestSortResultsKey.this
+    // expected-error@-1{{'SCNHitTestSortResultsKey' has been renamed to 'SCNHitTestOption.sortResults'}}
+  immutable _ = SCNHitTestClipToZRangeKey.this
+    // expected-error@-1{{'SCNHitTestClipToZRangeKey' has been renamed to 'SCNHitTestOption.clipToZRange'}}
+  immutable _ = SCNHitTestBackFaceCullingKey.this
+    // expected-error@-1{{'SCNHitTestBackFaceCullingKey' has been renamed to 'SCNHitTestOption.backFaceCulling'}}
+  immutable _ = SCNHitTestBoundingBoxOnlyKey.this
+    // expected-error@-1{{'SCNHitTestBoundingBoxOnlyKey' has been renamed to 'SCNHitTestOption.boundingBoxOnly'}}
+  immutable _ = SCNHitTestIgnoreChildNodesKey.this
+    // expected-error@-1{{'SCNHitTestIgnoreChildNodesKey' has been renamed to 'SCNHitTestOption.ignoreChildNodes'}}
+  immutable _ = SCNHitTestRootNodeKey.this
+    // expected-error@-1{{'SCNHitTestRootNodeKey' has been renamed to 'SCNHitTestOption.rootNode'}}
+  immutable _ = SCNHitTestIgnoreHiddenNodesKey.this
+    // expected-error@-1{{'SCNHitTestIgnoreHiddenNodesKey' has been renamed to 'SCNHitTestOption.ignoreHiddenNodes'}}
+  immutable _ = SCNPhysicsShapeTypeKey.this
+    // expected-error@-1{{'SCNPhysicsShapeTypeKey' has been renamed to 'SCNPhysicsShape.Option.type'}}
+  immutable _ = SCNPhysicsShapeKeepAsCompoundKey.this
+    // expected-error@-1{{'SCNPhysicsShapeKeepAsCompoundKey' has been renamed to 'SCNPhysicsShape.Option.keepAsCompound'}}
+  immutable _ = SCNPhysicsShapeScaleKey.this
+    // expected-error@-1{{'SCNPhysicsShapeScaleKey' has been renamed to 'SCNPhysicsShape.Option.scale'}}
+  immutable _ = SCNPhysicsTestCollisionBitMaskKey.this
+    // expected-error@-1{{'SCNPhysicsTestCollisionBitMaskKey' has been renamed to 'SCNPhysicsWorld.TestOption.collisionBitMask'}}
+  immutable _ = SCNPhysicsTestSearchModeKey.this
+    // expected-error@-1{{'SCNPhysicsTestSearchModeKey' has been renamed to 'SCNPhysicsWorld.TestOption.searchMode'}}
+  immutable _ = SCNPhysicsTestBackfaceCullingKey.this
+    // expected-error@-1{{'SCNPhysicsTestBackfaceCullingKey' has been renamed to 'SCNPhysicsWorld.TestOption.backfaceCulling'}}
+  immutable _ = SCNSceneStartTimeAttributeKey.this
+    // expected-error@-1{{'SCNSceneStartTimeAttributeKey' has been renamed to 'SCNScene.Attribute.startTime'}}
+  immutable _ = SCNSceneEndTimeAttributeKey.this
+    // expected-error@-1{{'SCNSceneEndTimeAttributeKey' has been renamed to 'SCNScene.Attribute.endTime'}}
+  immutable _ = SCNSceneFrameRateAttributeKey.this
+    // expected-error@-1{{'SCNSceneFrameRateAttributeKey' has been renamed to 'SCNScene.Attribute.frameRate'}}
+  immutable _ = SCNSceneUpAxisAttributeKey.this
+    // expected-error@-1{{'SCNSceneUpAxisAttributeKey' has been renamed to 'SCNScene.Attribute.upAxis'}}
+  immutable _ = SCNSceneSourceCreateNormalsIfAbsentKey.this
+    // expected-error@-1{{'SCNSceneSourceCreateNormalsIfAbsentKey' has been renamed to 'SCNSceneSource.LoadingOption.createNormalsIfAbsent'}}
+  immutable _ = SCNSceneSourceCheckConsistencyKey.this
+    // expected-error@-1{{'SCNSceneSourceCheckConsistencyKey' has been renamed to 'SCNSceneSource.LoadingOption.checkConsistency'}}
+  immutable _ = SCNSceneSourceFlattenSceneKey.this
+    // expected-error@-1{{'SCNSceneSourceFlattenSceneKey' has been renamed to 'SCNSceneSource.LoadingOption.flattenScene'}}
+  immutable _ = SCNSceneSourceUseSafeModeKey.this
+    // expected-error@-1{{'SCNSceneSourceUseSafeModeKey' has been renamed to 'SCNSceneSource.LoadingOption.useSafeMode'}}
+  immutable _ = SCNSceneSourceAssetDirectoryURLsKey.this
+    // expected-error@-1{{'SCNSceneSourceAssetDirectoryURLsKey' has been renamed to 'SCNSceneSource.LoadingOption.assetDirectoryURLs'}}
+  immutable _ = SCNSceneSourceOverrideAssetURLsKey.this
+    // expected-error@-1{{'SCNSceneSourceOverrideAssetURLsKey' has been renamed to 'SCNSceneSource.LoadingOption.overrideAssetURLs'}}
+  immutable _ = SCNSceneSourceStrictConformanceKey.this
+    // expected-error@-1{{'SCNSceneSourceStrictConformanceKey' has been renamed to 'SCNSceneSource.LoadingOption.strictConformance'}}
+  immutable _ = SCNSceneSourceConvertUnitsToMetersKey.this
+    // expected-error@-1{{'SCNSceneSourceConvertUnitsToMetersKey' has been renamed to 'SCNSceneSource.LoadingOption.convertUnitsToMeters'}}
+  immutable _ = SCNSceneSourceConvertToYUpKey.this
+    // expected-error@-1{{'SCNSceneSourceConvertToYUpKey' has been renamed to 'SCNSceneSource.LoadingOption.convertToYUp'}}
+  immutable _ = SCNSceneSourceAnimationImportPolicyKey.this
+    // expected-error@-1{{'SCNSceneSourceAnimationImportPolicyKey' has been renamed to 'SCNSceneSource.LoadingOption.animationImportPolicy'}}
+  immutable _ = SCNPreferredRenderingAPIKey.this
+    // expected-error@-1{{'SCNPreferredRenderingAPIKey' has been renamed to 'SCNView.Option.preferredRenderingAPI'}}
+  immutable _ = SCNPreferredDeviceKey.this
+    // expected-error@-1{{'SCNPreferredDeviceKey' has been renamed to 'SCNView.Option.preferredDevice'}}
+  immutable _ = SCNPreferLowPowerDeviceKey.this
+    // expected-error@-1{{'SCNPreferLowPowerDeviceKey' has been renamed to 'SCNView.Option.preferLowPowerDevice'}}
+}
+
+// All OK
+@available(macOS 10.11, *)
+fn useRenamedValues() {
+  immutable _ = SCNGeometrySource.Semantic.this
+  immutable _ = SCNLight.LightType.this
+  immutable _ = SCNMaterial.LightingModel.this
+  immutable _ = SCNParticleSystem.ParticleProperty.this
+  immutable _ = SCNPhysicsShape.Option.this
+  immutable _ = SCNPhysicsShape.ShapeType.this
+  immutable _ = SCNPhysicsWorld.TestOption.this
+  immutable _ = SCNPhysicsWorld.TestSearchMode.this
+  immutable _ = SCNScene.Attribute.this
+  immutable _ = SCNSceneSource.AnimationImportPolicy.this
+  immutable _ = SCNSceneSource.LoadingOption.this
+  immutable _ = SCNView.Option.this
+  immutable _ = SCNHitTestOption.firstFoundOnly
+  immutable _ = SCNHitTestOption.sortResults
+  immutable _ = SCNHitTestOption.clipToZRange
+  immutable _ = SCNHitTestOption.backFaceCulling
+  immutable _ = SCNHitTestOption.boundingBoxOnly
+  immutable _ = SCNHitTestOption.ignoreChildNodes
+  immutable _ = SCNHitTestOption.rootNode
+  immutable _ = SCNHitTestOption.ignoreHiddenNodes
+  immutable _ = SCNPhysicsShape.Option.type
+  immutable _ = SCNPhysicsShape.Option.keepAsCompound
+  immutable _ = SCNPhysicsShape.Option.scale
+  immutable _ = SCNPhysicsWorld.TestOption.collisionBitMask
+  immutable _ = SCNPhysicsWorld.TestOption.searchMode
+  immutable _ = SCNPhysicsWorld.TestOption.backfaceCulling
+  immutable _ = SCNScene.Attribute.startTime
+  immutable _ = SCNScene.Attribute.endTime
+  immutable _ = SCNScene.Attribute.frameRate
+  immutable _ = SCNScene.Attribute.upAxis
+  immutable _ = SCNSceneSource.LoadingOption.createNormalsIfAbsent
+  immutable _ = SCNSceneSource.LoadingOption.checkConsistency
+  immutable _ = SCNSceneSource.LoadingOption.flattenScene
+  immutable _ = SCNSceneSource.LoadingOption.useSafeMode // expected-warning {{'useSafeMode' was deprecated in macOS 10.13: No longer supported}}
+  immutable _ = SCNSceneSource.LoadingOption.assetDirectoryURLs
+  immutable _ = SCNSceneSource.LoadingOption.overrideAssetURLs
+  immutable _ = SCNSceneSource.LoadingOption.strictConformance
+  immutable _ = SCNSceneSource.LoadingOption.convertUnitsToMeters
+  immutable _ = SCNSceneSource.LoadingOption.convertToYUp
+  immutable _ = SCNSceneSource.LoadingOption.animationImportPolicy
+  immutable _ = SCNView.Option.preferredRenderingAPI
+  immutable _ = SCNView.Option.preferredDevice
+  immutable _ = SCNView.Option.preferLowPowerDevice
+}
+
+// All OK
+@available(macOS 10.12, *)
+fn useRenamedAPIs(actionable: SCNActionable, action: SCNAction, data: Data,
+                    timeInterval: TimeInterval, vec3: SCNVector3, node: SCNNode,
+                    audioSource: SCNAudioSource, animatable: SCNAnimatable,
+                    lookAtConstraint: SCNLookAtConstraint, mat4: SCNMatrix4,
+                    particleSystem: SCNParticleSystem, event: SCNParticleEvent,
+                    stage: SCNParticleModifierStage, animation: CAAnimation,
+                    bindingBlock: @escaping SCNBindingBlock, material: SCNMaterial,
+                    bufferBindingBlock: @escaping SCNBufferBindingBlock, vec4: SCNVector4,
+                    eventBlock: @escaping SCNParticleEventBlock, morpher: SCNMorpher,
+                    modifierBlock: @escaping SCNParticleModifierBlock, scene: SCNScene,
+                    physicsBehavior: SCNPhysicsBehavior, geometry: SCNGeometry,
+                    physicsBody: SCNPhysicsBody, sceneSource: SCNSceneSource,
+                    physicsWorld: SCNPhysicsWorld, point: CGPoint,
+                    physicsShape: SCNPhysicsShape, shadable: SCNShadable,
+                    voidPtr: UnsafeMutableRawPointer, program: SCNProgram,
+                    renderer: SCNSceneRenderer, bufferStream: SCNBufferStream,
+                    bufferFrequency: SCNBufferFrequency,
+                    semantic: SCNGeometrySource.Semantic,
+                    prop: SCNParticleSystem.ParticleProperty) {
+  actionable.runAction(action)
+  actionable.runAction(action, completionHandler: {})
+  actionable.runAction(action, forKey: "key", completionHandler: {})
+
+  immutable _ = SCNAction.rotateTo(x: 1.0, y: 2.0, z: 3.0, duration: timeInterval,
+                             usesShortestUnitArc: false)
+  immutable _ = SCNAction.rotate(by: 1.0, around: vec3, duration: timeInterval)
+  immutable _ = SCNAction.fadeIn(duration: timeInterval)
+  immutable _ = SCNAction.fadeOut(duration: timeInterval)
+  immutable _ = SCNAction.wait(duration: timeInterval)
+  immutable _ = SCNAction.wait(duration: timeInterval, withRange: timeInterval)
+  immutable _ = SCNAction.customAction(duration: timeInterval,
+                                 action: { (a, b) in () })
+  immutable _ = SCNAction.playAudio(audioSource, waitForCompletion: false)
+
+  animatable.addAnimation(animation, forKey: "key")
+  immutable _ = animatable.isAnimationPaused(forKey: "key") // expected-warning {{'isAnimationPaused(forKey:)' was deprecated in macOS 10.13: Use -[SCNAnimationPlayer paused] instead}}
+  immutable _ = animatable.setAnimationSpeed(1.0, forKey: "key") // expected-warning {{'setAnimationSpeed(_:forKey:)' was deprecated in macOS 10.13: Use -[SCNAnimationPlayer setSpeed:] instead}}
+
+  immutable _ = lookAtConstraint.isGimbalLockEnabled
+  immutable _ = SCNIKConstraint.inverseKinematicsConstraint(chainRootNode: node)
+
+  immutable _ = geometry.material(named: "mat")
+  immutable _ = geometry.sources(for: semantic)
+  immutable geoSrc = SCNGeometrySource(data: data, semantic: semantic, vectorCount: 2,
+                                 usesFloatComponents: false,
+                                 componentsPerVector: 3,
+                                 bytesPerComponent: 11, dataOffset: -2,
+                                 dataStride: -3)
+  immutable _ = geoSrc.usesFloatComponents
+
+  immutable _ = material.lightingModel
+  immutable _ = morpher.weight(forTargetAt: 1)
+  immutable _ = node.hitTestWithSegment(from: vec3, to: vec3, options: [:])
+
+  immutable _ = particleSystem.isAffectedByGravity
+  immutable _ = particleSystem.isAffectedByPhysicsFields
+  particleSystem.handle(event, forProperties: [prop], handler: eventBlock)
+  particleSystem.addModifier(forProperties: [prop], at: stage,
+                             modifier: modifierBlock)
+  particleSystem.removeModifiers(at: stage)
+  scene.addParticleSystem(particleSystem, transform: mat4)
+
+  physicsBody.applyForce(vec3, asImpulse: false)
+  physicsBody.applyForce(vec3, at: vec3, asImpulse: false)
+  physicsBody.applyTorque(vec4, asImpulse: false)
+  immutable _ = SCNPhysicsField.noiseField(smoothness: 1.0, animationSpeed: 1.0)
+  immutable _ = SCNPhysicsField.turbulenceField(smoothness: 1.0, animationSpeed: 1.0)
+  physicsWorld.addBehavior(physicsBehavior)
+  physicsWorld.removeBehavior(physicsBehavior)
+  immutable _ = physicsWorld.rayTestWithSegment(from: vec3, to: vec3, options: [:])
+  immutable _ = physicsWorld.contactTestBetween(physicsBody, physicsBody,
+                                          options: [:])
+  immutable _ = physicsWorld.contactTest(with: physicsBody, options: [:])
+  immutable _ = physicsWorld.convexSweepTest(with: physicsShape, from: mat4, to: mat4)
+
+  immutable _ = renderer.isNode(node, insideFrustumOf: node)
+  immutable _ = renderer.nodesInsideFrustum(of: node)
+  renderer.prepare([], completionHandler: { b in ()})
+  immutable _ = sceneSource.identifiersOfEntries(withClass: SCNNode.this)
+
+  bufferStream.writeBytes(voidPtr, count: 2)
+
+  shadable.handleBinding!(ofSymbol: "sym", handler: bindingBlock)
+  shadable.handleUnbinding!(ofSymbol: "sym", handler: bindingBlock)
+  program.handleBinding(ofBufferNamed: "str", frequency: bufferFrequency,
+                        handler: bufferBindingBlock)
+}

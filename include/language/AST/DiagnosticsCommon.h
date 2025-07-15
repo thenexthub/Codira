@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -19,11 +20,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICSCOMMON_H
-#define SWIFT_DIAGNOSTICSCOMMON_H
+#ifndef LANGUAGE_DIAGNOSTICSCOMMON_H
+#define LANGUAGE_DIAGNOSTICSCOMMON_H
 
 #include "language/AST/DiagnosticEngine.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Config.h"
 
 namespace language {
@@ -58,6 +59,7 @@ namespace language {
   } // end namespace detail
 
   enum class StaticSpellingKind : uint8_t;
+  enum class ForeignLanguage : uint8_t;
 
   namespace diag {
 

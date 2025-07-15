@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_IDETYPECHECKING_H
-#define SWIFT_SEMA_IDETYPECHECKING_H
+#ifndef LANGUAGE_SEMA_IDETYPECHECKING_H
+#define LANGUAGE_SEMA_IDETYPECHECKING_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/Identifier.h"
@@ -78,7 +79,7 @@ namespace language {
   bool isSubtypeOf(Type T1, Type T2, DeclContext *DC);
 
   void collectDefaultImplementationForProtocolMembers(ProtocolDecl *PD,
-                        llvm::SmallDenseMap<ValueDecl*, ValueDecl*> &DefaultMap);
+                        toolchain::SmallDenseMap<ValueDecl*, ValueDecl*> &DefaultMap);
 
   enum InterestedMemberKind : uint8_t {
     Viable,
@@ -106,7 +107,7 @@ namespace language {
 
   /// Look up a member with the given name in the given type.
   ///
-  /// Unlike other member lookup functions, \c swift::resolveValueMember()
+  /// Unlike other member lookup functions, \c language::resolveValueMember()
   /// should be used when you want to look up declarations with the same name as
   /// one you already have.
   ResolvedMemberResult resolveValueMember(DeclContext &DC, Type BaseTy,
@@ -144,7 +145,7 @@ namespace language {
                              SourceLoc TargetLoc);
 
   /// Thunk around \c TypeChecker::typeCheckForCodeCompletion to make it
-  /// available to \c swift::ide.
+  /// available to \c language::ide.
   /// Type check the given expression and provide results back to code
   /// completion via specified callback.
   ///
@@ -157,10 +158,10 @@ namespace language {
   /// types for code completion, `false` otherwise.
   bool typeCheckForCodeCompletion(
       constraints::SyntacticElementTarget &target, bool needsPrecheck,
-      llvm::function_ref<void(const constraints::Solution &)> callback);
+      toolchain::function_ref<void(const constraints::Solution &)> callback);
 
   /// Thunk around \c TypeChecker::resolveDeclRefExpr to make it available to
-  /// \c swift::ide
+  /// \c language::ide
   Expr *resolveDeclRefExpr(UnresolvedDeclRefExpr *UDRE, DeclContext *Context);
 
   LookupResult
@@ -179,7 +180,7 @@ namespace language {
   /// work happened to have synthesized them.
   void getTopLevelDeclsForDisplay(
       ModuleDecl *M, SmallVectorImpl<Decl *> &Results,
-      llvm::function_ref<void(ModuleDecl *, SmallVectorImpl<Decl *> &)>
+      toolchain::function_ref<void(ModuleDecl *, SmallVectorImpl<Decl *> &)>
           getDisplayDeclsForModule);
 
   struct ExtensionInfo {
@@ -193,14 +194,14 @@ namespace language {
   };
 
   using ExtensionGroupOperation =
-      llvm::function_ref<void(ArrayRef<ExtensionInfo>)>;
+      toolchain::function_ref<void(ArrayRef<ExtensionInfo>)>;
 
   class SynthesizedExtensionAnalyzer {
     struct Implementation;
     Implementation &Impl;
   public:
     SynthesizedExtensionAnalyzer(NominalTypeDecl *Target,
-                                 PrintOptions Options,
+                                 PrintOptions &&Options,
                                  bool IncludeUnconditional = true);
     ~SynthesizedExtensionAnalyzer();
 
@@ -242,7 +243,7 @@ namespace language {
   ArrayRef<ExpressionTypeInfo> collectExpressionType(
       SourceFile &SF, ArrayRef<const char *> ExpectedProtocols,
       std::vector<ExpressionTypeInfo> &scratch, bool FullyQualified,
-      bool CanonicalType, llvm::raw_ostream &OS);
+      bool CanonicalType, toolchain::raw_ostream &OS);
 
   /// Resolve a list of mangled names to accessible protocol decls from
   /// the decl context.
@@ -274,7 +275,7 @@ namespace language {
   void collectVariableType(SourceFile &SF, SourceRange Range,
                            bool FullyQualified,
                            std::vector<VariableTypeInfo> &VariableTypeInfos,
-                           llvm::raw_ostream &OS);
+                           toolchain::raw_ostream &OS);
 
   /// Returns the root type and result type of the keypath type in a keypath
   /// dynamic member lookup subscript, or \c None if it cannot be determined.
@@ -326,20 +327,20 @@ namespace language {
                                        Type componentType,
                                        ResultBuilderBuildFunction function,
                                        std::optional<std::string> stubIndent,
-                                       llvm::raw_ostream &out);
+                                       toolchain::raw_ostream &out);
 
   /// Compute the insertion location, indentation string, and component type
   /// for a Fix-It that adds a new build* function to a result builder.
   std::tuple<SourceLoc, std::string, Type>
   determineResultBuilderBuildFixItInfo(NominalTypeDecl *builder);
 
-  /// Just a proxy to swift::contextUsesConcurrencyFeatures() from lib/IDE code.
+  /// Just a proxy to language::contextUsesConcurrencyFeatures() from lib/IDE code.
   bool completionContextUsesConcurrencyFeatures(const DeclContext *dc);
 
   /// Determine the isolation of a particular closure.
   ActorIsolation determineClosureActorIsolation(
-      AbstractClosureExpr *closure, llvm::function_ref<Type(Expr *)> getType,
-      llvm::function_ref<ActorIsolation(AbstractClosureExpr *)>
+      AbstractClosureExpr *closure, toolchain::function_ref<Type(Expr *)> getType,
+      toolchain::function_ref<ActorIsolation(AbstractClosureExpr *)>
           getClosureActorIsolation);
 
   /// If the capture list shadows any declarations using shorthand syntax, i.e.

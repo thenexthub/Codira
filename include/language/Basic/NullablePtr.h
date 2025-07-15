@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines and implements the NullablePtr class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_NULLABLEPTR_H
-#define SWIFT_BASIC_NULLABLEPTR_H
+#ifndef LANGUAGE_BASIC_NULLABLEPTR_H
+#define LANGUAGE_BASIC_NULLABLEPTR_H
 
 #include <cassert>
 #include <cstddef>
 #include <type_traits>
-#include "llvm/Support/PointerLikeTypeTraits.h"
+#include "toolchain/Support/PointerLikeTypeTraits.h"
 
 namespace language {
 /// NullablePtr pointer wrapper - NullablePtr is used for APIs where a
@@ -85,19 +86,19 @@ public:
   
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 template <typename T> struct PointerLikeTypeTraits;
-template <typename T> struct PointerLikeTypeTraits<swift::NullablePtr<T>> {
+template <typename T> struct PointerLikeTypeTraits<language::NullablePtr<T>> {
 public:
-  static inline void *getAsVoidPointer(swift::NullablePtr<T> ptr) {
+  static inline void *getAsVoidPointer(language::NullablePtr<T> ptr) {
     return static_cast<void *>(ptr.getPtrOrNull());
   }
-  static inline swift::NullablePtr<T> getFromVoidPointer(void *ptr) {
-    return swift::NullablePtr<T>(static_cast<T*>(ptr));
+  static inline language::NullablePtr<T> getFromVoidPointer(void *ptr) {
+    return language::NullablePtr<T>(static_cast<T*>(ptr));
   }
   enum { NumLowBitsAvailable = PointerLikeTypeTraits<T *>::NumLowBitsAvailable };
 };
 
 }
 
-#endif // SWIFT_BASIC_NULLABLEPTR_H
+#endif // LANGUAGE_BASIC_NULLABLEPTR_H

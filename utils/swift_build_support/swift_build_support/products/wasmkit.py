@@ -1,12 +1,12 @@
-# swift_build_support/products/wasmkit.py ------------------------------------
+# language_build_support/products/wasmkit.py ------------------------------------
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -14,13 +14,14 @@ import os
 import shutil
 
 from . import product
+from . import languagepm
 from .. import shell
 
 
 class WasmKit(product.Product):
     """
     A product for WasmKit, which is a WebAssembly runtime implementation
-    written in Swift.
+    written in Codira.
     """
 
     @classmethod
@@ -37,7 +38,7 @@ class WasmKit(product.Product):
 
     @classmethod
     def get_dependencies(cls):
-        return []
+        return [languagepm.CodiraPM]
 
     def should_build(self, host_target):
         return self.args.build_wasmkit
@@ -46,18 +47,23 @@ class WasmKit(product.Product):
         return False
 
     def should_install(self, host_target):
-        # Currently, it's only used for testing stdlib.
-        return False
+        return self.args.install_wasmkit
 
     def install(self, host_target):
-        pass
+        """
+        Install WasmKit to the target location
+        """
+        install_destdir = self.host_install_destdir(host_target)
+        build_toolchain_path = install_destdir + self.args.install_prefix + '/bin'
+        bin_path = run_language_build(host_target, self, 'wasmkit-cli', set_installation_rpath=True)
+        shutil.copy(bin_path, build_toolchain_path + '/wasmkit')
 
     def build(self, host_target):
-        bin_path = run_swift_build(host_target, self, 'wasmkit-cli')
-        print("Built wasmkit-cli at: " + bin_path)
+        bin_path = run_language_build(host_target, self, 'wasmkit-cli')
+        print("Built wasmkit-cli at: " + bin_path, flush=True)
         # Copy the built binary to ./bin
         dest_bin_path = self.__class__.cli_file_path(self.build_dir)
-        print("Copying wasmkit-cli to: " + dest_bin_path)
+        print("Copying wasmkit-cli to: " + dest_bin_path, flush=True)
         os.makedirs(os.path.dirname(dest_bin_path), exist_ok=True)
         shutil.copy(bin_path, dest_bin_path)
 
@@ -66,28 +72,42 @@ class WasmKit(product.Product):
         return os.path.join(build_dir, 'bin', 'wasmkit-cli')
 
 
-def run_swift_build(host_target, product, swpft_package_product_name):
-    # Building with the host toolchain's SwiftPM
-    swiftc_path = os.path.abspath(product.toolchain.swiftc)
-    toolchain_path = os.path.dirname(os.path.dirname(swiftc_path))
-    swift_build = os.path.join(toolchain_path, 'bin', 'swift-build')
+def run_language_build(host_target, product, languagepm_package_product_name, set_installation_rpath=False):
+    if product.args.build_runtime_with_host_compiler:
+      language_build = product.toolchain.code_build
+    else:
+      # Building with the freshly-built CodiraPM
+      language_build = os.path.join(product.install_toolchain_path(host_target), "bin", "language-build")
+
+    if host_target.startswith('macos'):
+        # Universal binary on macOS
+        platform_args = ['--arch', 'x86_64', '--arch', 'arm64']
+    elif set_installation_rpath:
+        # Library rpath for language, dispatch, Foundation, etc. when installing
+        build_os = host_target.split('-')[0]
+        platform_args = [
+            '--disable-local-rpath', '-Xlanguagec', '-no-toolchain-stdlib-rpath',
+            '-Xlinker', '-rpath', '-Xlinker', '$ORIGIN/../lib/language/' + build_os
+        ]
+    else:
+        platform_args = []
 
     build_args = [
-        swift_build,
-        '--product', swpft_package_product_name,
+        language_build,
+        '--product', languagepm_package_product_name,
         '--package-path', os.path.join(product.source_dir),
         '--build-path', product.build_dir,
         '--configuration', 'release',
-    ]
+    ] + platform_args
 
     if product.args.verbose_build:
         build_args.append('--verbose')
 
     env = dict(os.environ)
-    env['SWIFTCI_USE_LOCAL_DEPS'] = '1'
+    env['LANGUAGECI_USE_LOCAL_DEPS'] = '1'
 
     shell.call(build_args, env=env)
 
     bin_dir_path = shell.capture(
         build_args + ['--show-bin-path'], dry_run=False, echo=False).rstrip()
-    return os.path.join(bin_dir_path, swpft_package_product_name)
+    return os.path.join(bin_dir_path, languagepm_package_product_name)

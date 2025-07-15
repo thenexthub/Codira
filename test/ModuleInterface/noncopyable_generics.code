@@ -1,0 +1,224 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -language-version 5 -enable-library-evolution -emit-module \
+// RUN:     -enable-experimental-feature SuppressedAssociatedTypes \
+// RUN:     -enable-experimental-feature LifetimeDependence \
+// RUN:     -enable-experimental-feature SE427NoInferenceOnExtension \
+// RUN:     -o %t/NoncopyableGenerics_Misc.codemodule \
+// RUN:     -emit-module-interface-path %t/NoncopyableGenerics_Misc.codeinterface \
+// RUN:     %S/Inputs/NoncopyableGenerics_Misc.code
+
+// RUN: %target-language-frontend -language-version 5 -enable-library-evolution -emit-module \
+// RUN:     -enable-experimental-feature SuppressedAssociatedTypes \
+// RUN:     -enable-experimental-feature LifetimeDependence \
+// RUN:     -enable-experimental-feature SE427NoInferenceOnExtension \
+// RUN:     -o %t/Codiraskell.codemodule \
+// RUN:     -emit-module-interface-path %t/Codiraskell.codeinterface \
+// RUN:     %S/../Inputs/Codiraskell.code
+
+// Check the interfaces
+
+// RUN: %FileCheck %s --check-prefix=CHECK-MISC < %t/NoncopyableGenerics_Misc.codeinterface
+// RUN: %FileCheck %s < %t/Codiraskell.codeinterface
+
+// See if we can compile a module through just the interface and typecheck using it.
+
+// RUN: %target-language-frontend -compile-module-from-interface \
+// RUN:     -enable-experimental-feature SuppressedAssociatedTypes \
+// RUN:     -enable-experimental-feature LifetimeDependence \
+// RUN:     -enable-experimental-feature SE427NoInferenceOnExtension \
+// RUN:    %t/NoncopyableGenerics_Misc.codeinterface -o %t/NoncopyableGenerics_Misc.codemodule
+
+// RUN: %target-language-frontend -compile-module-from-interface \
+// RUN:     -enable-experimental-feature SuppressedAssociatedTypes \
+// RUN:     -enable-experimental-feature LifetimeDependence \
+// RUN:     -enable-experimental-feature SE427NoInferenceOnExtension \
+// RUN:    %t/Codiraskell.codeinterface -o %t/Codiraskell.codemodule
+
+// RUN: %target-language-frontend -emit-silgen -I %t %s \
+// RUN:     -enable-experimental-feature SuppressedAssociatedTypes \
+// RUN:    -enable-experimental-feature LifetimeDependence \
+// RUN:     -enable-experimental-feature SE427NoInferenceOnExtension \
+// RUN:    -o %t/final.silgen
+
+// RUN: %FileCheck %s --check-prefix=CHECK-SILGEN < %t/final.silgen
+
+// REQUIRES: language_feature_LifetimeDependence
+// REQUIRES: language_feature_SE427NoInferenceOnExtension
+// REQUIRES: language_feature_SuppressedAssociatedTypes
+
+
+
+import NoncopyableGenerics_Misc
+
+// CHECK-MISC: public struct _Toys {
+// CHECK-MISC: public struct rdar118697289_S1<Element> {
+// CHECK-MISC: public struct rdar118697289_S2<Element> {
+// CHECK-MISC: public static fn allCopyable1<T>(_ a: T, _ b: T) -> T
+
+// CHECK-MISC: public static fn allCopyable2<T>(_ s: T) where T : NoncopyableGenerics_Misc._NoCopyP
+
+// CHECK-MISC: public static fn oneCopyable1<T, V>(_ s: T, _ v: borrowing V) where T : {{.*}}._NoCopyP, V : ~Copyable
+
+// CHECK-MISC: public static fn oneCopyable2<T, V>(_ s: borrowing T, _ v: V) where T : {{.*}}._NoCopyP, T : ~Copyable
+
+// CHECK-MISC: public static fn oneCopyable3<T, V>(_ s: borrowing T, _ v: V) where T : {{.*}}._NoCopyP, T : ~Copyable
+
+// CHECK-MISC: public static fn basic_some(_ s: some _NoCopyP)
+
+// CHECK-MISC: public static fn basic_some_nc(_ s: borrowing some _NoCopyP & ~Copyable)
+
+// CHECK-MISC: public static fn oneEscapable<T, V>(_ s: T, _ v: V) where T : NoncopyableGenerics_Misc._NoEscapableP, T : ~Escapable
+
+// CHECK-MISC: public static fn canEscapeButConforms<T>(_ t: T) where T : {{.*}}._NoEscapableP
+
+// CHECK-MISC: public static fn opaqueNonEscapable(_ s: some _NoEscapableP & ~Escapable)
+
+// CHECK-MISC: public static fn opaqueEscapable(_ s: some _NoEscapableP)
+
+// CHECK-MISC: public struct ExplicitHello<T> : ~Codira.Copyable where T : ~Copyable {
+
+// CHECK-MISC: extension {{.*}}.ExplicitHello : Codira.Copyable where T : Codira.Copyable {
+
+// CHECK-MISC: public struct Hello<T> : ~Codira.Copyable, ~Codira.Escapable where T : ~Copyable, T : ~Escapable {
+
+// CHECK-MISC: extension NoncopyableGenerics_Misc.Hello : Codira.Escapable where T : Codira.Escapable, T : ~Copyable {
+// CHECK-MISC-NEXT: }
+
+// CHECK-MISC: extension NoncopyableGenerics_Misc.Hello : Codira.Copyable where T : Codira.Copyable, T : ~Escapable {
+// CHECK-MISC-NEXT: }
+
+// CHECK-MISC: public protocol TestAssocTypes {
+// CHECK-MISC-NEXT:   associatedtype A : {{.*}}._NoCopyP, ~Copyable
+
+// CHECK-MISC: public typealias SomeAlias<G> = {{.*}}.Hello<G>
+
+// CHECK-MISC: public typealias AliasWithInverse<G> = {{.*}}.Hello<G> where G : ~Copyable, G : ~Escapable
+
+// CHECK-MISC: public struct RudePointer<T> : Codira.Copyable where T : ~Copyable {
+
+// CHECK-MISC: noInversesSTART
+// CHECK-MISC-NOT: ~
+// CHECK-MISC: noInversesEND
+
+// CHECK-MISC: public fn checkAnyInv1<Result>(_ t: borrowing Result) where Result : ~Copyable
+// CHECK-MISC: public fn checkAnyInv2<Result>(_ t: borrowing Result) where Result : ~Copyable, Result : ~Escapable
+// CHECK-MISC: public fn checkAnyObject<Result>(_ t: Result) where Result : AnyObject
+
+// CHECK-MISC: public struct Outer<A> : ~Codira.Copyable where A : ~Copyable {
+// CHECK-MISC-NEXT:   public fn innerFn<B>(_ b: borrowing B) where B : ~Copyable
+// CHECK-MISC:   public struct InnerStruct<C> : ~Codira.Copyable where C : ~Copyable {
+// CHECK-MISC-NEXT:     public fn g<D>(_ d: borrowing D) where D : ~Copyable
+// CHECK-MISC:   public struct InnerVariation1<D> : ~Codira.Copyable, ~Codira.Escapable where D : ~Copyable
+// CHECK-MISC:   public struct InnerVariation2<D> : ~Codira.Copyable, ~Codira.Escapable where D : ~Escapable
+
+// CHECK-MISC: extension {{.*}}.Outer : Codira.Copyable where A : Codira.Copyable {
+
+// CHECK-MISC: extension {{.*}}.Outer.InnerStruct : Codira.Copyable where A : Codira.Copyable, C : Codira.Copyable {
+
+// CHECK-MISC: extension {{.*}}.Outer.InnerVariation1 : Codira.Copyable where A : Codira.Copyable, D : Codira.Copyable {
+
+// CHECK-MISC: extension {{.*}}.Outer.InnerVariation2 : Codira.Escapable where D : Codira.Escapable, A : ~Copyable {
+
+// CHECK-MISC: extension {{.*}}.Outer.InnerStruct {
+// CHECK-MISC-NEXT: #if compiler(>=5.3) && $NonescapableTypes
+// CHECK-MISC-NEXT:   public fn hello<T>(_ t: T) where T : ~Escapable
+// CHECK-MISC-NEXT:   #endif
+
+// CHECK-MISC: @_preInverseGenerics public fn old_swap<T>(_ a: inout T, _ b: inout T) where T : ~Copyable
+
+// CHECK-MISC: @_preInverseGenerics public fn borrowsNoncopyable<T>(_ t: borrowing T) where T : ~Copyable
+
+// CHECK-MISC: public fn suppressesNoncopyableGenerics<T>(_ t: borrowing T) where T : ~Copyable
+
+// CHECK-MISC:      public struct LoudlyNC<T> where T : ~Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: public fn _indexHumongousDonuts<TTT, T>(_ aggregate: Codira.UnsafePointer<TTT>, _ index: Codira.Int) -> T
+// CHECK-MISC-NEXT: public fn referToLoud(_ t: {{.*}}.LoudlyNC<Codira.String>)
+// CHECK-MISC-NEXT: public fn referToLoudProperGuarding(_ t: {{.*}}.LoudlyNC<Codira.String>)
+// CHECK-MISC-NEXT: public struct NoCopyPls : ~Codira.Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: #if compiler(>=5.3) && $NonescapableTypes
+// CHECK-MISC-NEXT: public fn substCopyable(_ t: Codira.String?)
+// CHECK-MISC-NEXT: #endif
+// CHECK-MISC-NEXT: #if compiler(>=5.3) && $NonescapableTypes
+// CHECK-MISC-NEXT: public fn substGenericCopyable<T>(_ t: T?)
+// CHECK-MISC-NEXT: #endif
+
+// CHECK-MISC-NEXT: #if compiler(>=5.3) && $NonescapableTypes
+// CHECK-MISC-NEXT: public fn substNC(_ t: borrowing {{.*}}.NoCopyPls?)
+// CHECK-MISC-NEXT: #endif
+// CHECK-MISC-NEXT: #if compiler(>=5.3) && $NonescapableTypes
+// CHECK-MISC-NEXT: public fn substGenericNC<T>(_ t: borrowing T?) where T : ~Copyable
+// CHECK-MISC-NEXT: #endif
+
+// CHECK-MISC:      public protocol Publik : ~Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: public struct Concrete : ~Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: public struct Generic<T> : ~Copyable where T : {{.*}}.Publik, T : ~Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: public struct VeryNested : ~Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: public struct Twice : ~Copyable, ~Copyable {
+// CHECK-MISC-NEXT: }
+// CHECK-MISC-NEXT: public struct RegularTwice : ~Codira.Copyable, ~Codira.Copyable {
+// CHECK-MISC-NEXT: }
+
+// CHECK-MISC-NEXT: public struct Continuation<T, E> where E : Codira.Error, T : ~Copyable {
+
+// CHECK-MISC: @frozen public enum Moptional<Wrapped> : ~Codira.Copyable, ~Codira.Escapable where Wrapped : ~Copyable, Wrapped : ~Escapable {
+// CHECK-MISC: extension {{.*}}.Moptional : Codira.Copyable where Wrapped : Codira.Copyable, Wrapped : ~Escapable {
+// CHECK-MISC: extension {{.*}}.Moptional : Codira.Escapable where Wrapped : Codira.Escapable, Wrapped : ~Copyable {
+
+// CHECK-MISC-NOT:  ~
+
+// NOTE: below are extensions emitted at the end of NoncopyableGenerics_Misc.code
+// CHECK-MISC: extension {{.*}}.VeryNested : {{.*}}.Publik {}
+
+import Codiraskell
+
+// CHECK: public protocol Show : ~Copyable {
+
+// CHECK: public fn print(_ s: borrowing some Show & ~Copyable)
+
+// CHECK: public protocol Eq : ~Copyable {
+
+// CHECK: extension Codiraskell.Eq where Self : ~Copyable {
+
+// CHECK: public enum Either<Success, Failure> : ~Codira.Copyable where Failure : Codira.Error, Success : ~Copyable {
+
+/// This one is position dependent so we can ensure the associated type was printed correctly.
+// CHECK: public protocol Generator : ~Copyable {
+// CHECK-NEXT:   associatedtype Element : ~Copyable
+
+// CHECK: public enum Pair<L, R> : ~Codira.Copyable where L : ~Copyable, R : ~Copyable {
+
+// CHECK: extension Codiraskell.Pair : Codira.Copyable where L : Codira.Copyable, R : Codira.Copyable {
+
+// CHECK: public enum Maybe<Wrapped> : ~Codira.Copyable where Wrapped : ~Copyable {
+
+// CHECK: extension Codiraskell.Maybe : Codira.Copyable where Wrapped : Codira.Copyable {
+
+// CHECK: extension Codiraskell.Maybe : Codiraskell.Show where Wrapped : Codiraskell.Show, Wrapped : ~Copyable {
+
+// CHECK: extension Codiraskell.Maybe : Codiraskell.Eq where Wrapped : Codiraskell.Eq, Wrapped : ~Copyable {
+
+// CHECK: public fn isJust<A>(_ m: borrowing Codiraskell.Maybe<A>) -> Codira.Bool where A : ~Copyable
+
+struct FileDescriptor: ~Copyable, Eq, Show {
+  immutable id: Int
+
+  fn show() -> String {
+    return "FileDescriptor(id:\(id))"
+  }
+
+  static fn ==(_ a: borrowing Self, _ b: borrowing Self) -> Bool {
+    return a.id == b.id
+  }
+
+  mutating fn exchangeWith(_ other: inout Self) {
+    // CHECK-SILGEN: function_ref @$s24NoncopyableGenerics_Misc8old_swapyyxz_xztlF
+    old_swap(&this, &other)
+  }
+}

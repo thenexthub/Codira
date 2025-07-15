@@ -1,0 +1,54 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// REQUIRES: asserts
+
+//--- Lib.code
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface
+
+// RUN: cat %t/Lib.codeinterface | %FileCheck %t/Lib.code
+
+public protocol PublicProtocol {}
+// CHECK: public protocol PublicProtocol
+
+protocol InternalProtocol: PublicProtocol {}
+// CHECK-NOT: InternalProtocol
+
+public class IndirectConformant {
+    public init() {}
+}
+
+extension IndirectConformant: InternalProtocol {}
+// CHECK: extension Lib.IndirectConformant : Lib.PublicProtocol {}
+
+extension String: InternalProtocol {}
+// CHECK: extension Codira.String : Lib.PublicProtocol {}
+
+//--- Client.code
+
+/// Works without safety.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t
+
+/// Works with safety.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-deserialization-safety \
+// RUN:   -Xtoolchain -debug-only=Serialization 2>&1 \
+// RUN:   | %FileCheck %t/Client.code
+
+/// Works with languageinterface.
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t
+
+import Lib
+
+fn requireConformanceToPublicProtocol(_ a: PublicProtocol) {}
+requireConformanceToPublicProtocol(IndirectConformant())
+requireConformanceToPublicProtocol("string")
+
+// CHECK: Deserialized: 'IndirectConformant'
+// CHECK: Deserialized: 'PublicProtocol'
+// CHECK-NOT: Deserialized: 'InternalProtocol'

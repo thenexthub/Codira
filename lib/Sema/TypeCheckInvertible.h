@@ -1,5 +1,5 @@
-#ifndef SWIFT_SEMA_TYPECHECKINVERTIBLE_H
-#define SWIFT_SEMA_TYPECHECKINVERTIBLE_H
+#ifndef LANGUAGE_SEMA_TYPECHECKINVERTIBLE_H
+#define LANGUAGE_SEMA_TYPECHECKINVERTIBLE_H
 
 #include "language/AST/TypeCheckRequests.h"
 #include "language/AST/ProtocolConformance.h"
@@ -41,4 +41,4 @@ void checkEscapableConformance(DeclContext *dc,
 }
 
 
-#endif // SWIFT_SEMA_TYPECHECKINVERTIBLE_H
+#endif // LANGUAGE_SEMA_TYPECHECKINVERTIBLE_H

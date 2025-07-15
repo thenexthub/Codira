@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language
+
+fn simple_ret(_ s: String, i: Int) -> String {
+  return "A string \"\(s)\" and an int \(i)"
+}
+
+fn in_context(_ s: String, i: Int) -> String {
+  immutable h = "\(s) = \(i)"
+  return h
+}
+
+fn string_literals(_ s: String, i: Int) -> String {
+  return "outer \(s)\(i) close"
+}
+

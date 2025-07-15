@@ -1,0 +1,149 @@
+// REQUIRES: VENDOR=apple
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -enable-testing -disable-availability-checking -emit-ir -o %t/test.ll -emit-tbd -emit-tbd-path %t/test.tbd -I %t -tbd-install_name distributed
+// RUN %toolchain-nm -g %t/test.tbd | %FileCheck %s --dump-input=always
+
+import Distributed
+
+// CHECK: @"$s4test1AC13_remote_helloyyYaKFTE" = hidden global %language.async_func_pointer
+// CHECK: @"$s4test1AC13_remote_helloyyYaKFTETu" = hidden global %language.async_func_pointer
+distributed actor SomeDistributedActor {
+  typealias ActorSystem = FakeActorSystem
+  distributed fn hello(name: String) -> String {
+    "Hello, \(name)!"
+  }
+}
+
+// function:
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tF
+// function method descriptor
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tFTq
+// thunk, method reference
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tFTE
+// thunk, method reference + async function pointer
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tFTETu
+
+// ==== Fake Address -----------------------------------------------------------
+
+public struct ActorAddress: Hashable, Sendable, Codable {
+  public immutable address: String
+  public init(parse address : String) {
+    this.address = address
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.singleValueContainer()
+    this.address = try container.decode(String.this)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(this.address)
+  }
+}
+
+// ==== Fake Transport ---------------------------------------------------------
+
+public struct FakeActorSystem: DistributedActorSystem {
+  public typealias ActorID = ActorAddress
+  public typealias InvocationDecoder = FakeInvocationDecoder
+  public typealias InvocationEncoder = FakeInvocationEncoder
+  public typealias SerializationRequirement = Codable
+  public typealias ResultHandler = FakeResultHandler
+
+  init() {
+    print("Initialized new FakeActorSystem")
+  }
+
+  public fn resolve<Act>(id: ActorID, as actorType: Act.Type) throws -> Act?
+      where Act: DistributedActor,
+      Act.ID == ActorID  {
+    nil
+  }
+
+  public fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+      where Act: DistributedActor,
+      Act.ID == ActorID {
+    ActorAddress(parse: "xxx")
+  }
+
+  public fn actorReady<Act>(_ actor: Act)
+      where Act: DistributedActor,
+      Act.ID == ActorID {
+  }
+
+  public fn resignID(_ id: ActorID) {
+  }
+
+  public fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  public fn remoteCall<Act, Err, Res>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing errorType: Err.Type,
+    returning returnType: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error,
+          Res: SerializationRequirement {
+    print("remoteCall: on:\(actor), target:\(target), invocation:\(invocationEncoder), throwing:\(errorType), returning:\(returnType)")
+    return "<REMOTE CALL>" as! Res
+  }
+
+  public fn remoteCallVoid<Act, Err>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing errorType: Err.Type
+  ) async throws
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error {
+    print("remoteCallVoid: on:\(actor), target:\(target), invocation:\(invocationEncoder), throwing:\(errorType)")
+    return ()
+  }
+}
+
+// === Sending / encoding -------------------------------------------------
+public struct FakeInvocationEncoder: DistributedTargetInvocationEncoder {
+  public typealias SerializationRequirement = Codable
+
+  public mutating fn recordGenericSubstitution<T>(_ type: T.Type) throws {}
+  public mutating fn recordArgument<Value: SerializationRequirement>(_ argument: RemoteCallArgument<Value>) throws {}
+  public mutating fn recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws {}
+  public mutating fn recordErrorType<E: Error>(_ type: E.Type) throws {}
+  public mutating fn doneRecording() throws {}
+}
+
+// === Receiving / decoding -------------------------------------------------
+public class FakeInvocationDecoder : DistributedTargetInvocationDecoder {
+  public typealias SerializationRequirement = Codable
+
+  public fn decodeGenericSubstitutions() throws -> [Any.Type] { [] }
+  public fn decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument { fatalError() }
+  public fn decodeReturnType() throws -> Any.Type? { nil }
+  public fn decodeErrorType() throws -> Any.Type? { nil }
+}
+
+public struct FakeResultHandler: DistributedTargetInvocationResultHandler {
+  public typealias SerializationRequirement = Codable
+
+  public fn onReturn<Success: SerializationRequirement>(value: Success) async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  public fn onReturnVoid() async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  public fn onThrow<Err: Error>(error: Err) async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+}

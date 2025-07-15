@@ -1,10 +1,10 @@
 // RangeReplaceablePlusDefault benchmark
 //
-// Source: https://gist.github.com/airspeedswift/392599e7eeeb74b481a7
+// Source: https://gist.github.com/airspeedlanguage/392599e7eeeb74b481a7
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "RangeReplaceableCollectionPlusDefault",
     runFunction: run_RangeReplaceableCollectionPlusDefault,
@@ -13,16 +13,16 @@ public let benchmarks =
   )
 
 @inline(never)
-public func run_RangeReplaceableCollectionPlusDefault(_ n: Int) {
-  let stringsRef = [1, 2, 3]
-  let strings = ["1", "2", "3"]
-  let toInt = { (s: String) -> Int? in Int(s) }
+public fn run_RangeReplaceableCollectionPlusDefault(_ n: Int) {
+  immutable stringsRef = [1, 2, 3]
+  immutable strings = ["1", "2", "3"]
+  immutable toInt = { (s: String) -> Int? in Int(s) }
   var a = [Int]()
   var b = [Int]()
 
   for _ in 1...250*n {
-    let a2: Array = mapSome(strings, toInt)
-    let b2 = mapSome(strings, toInt)
+    immutable a2: Array = mapSome(strings, toInt)
+    immutable b2 = mapSome(strings, toInt)
     a = a2
     b = b2
 
@@ -34,18 +34,18 @@ public func run_RangeReplaceableCollectionPlusDefault(_ n: Int) {
   check(compareRef(a, b, stringsRef))
 }
 
-func compareRef(_ a: [Int], _ b: [Int], _ ref: [Int]) -> Bool {
+fn compareRef(_ a: [Int], _ b: [Int], _ ref: [Int]) -> Bool {
   return ref == a && ref == b
 }
 
 // This algorithm returns a generic placeholder
 // that can be any kind of range-replaceable collection:
-func mapSome
+fn mapSome
 <S: Sequence, C: RangeReplaceableCollection>
 (_ source: S, _ transform: (S.Element)->C.Element?) -> C {
   var result = C()
   for x in source {
-    if let y = transform(x) {
+    if immutable y = transform(x) {
       result.append(y)
     }
   }
@@ -54,7 +54,7 @@ func mapSome
 
 // If you write a second version that returns an array,
 // you can call the more general version for implementation:
-func mapSome<S: Sequence,U>(_ source: S, _ transform: (S.Element)->U?)->[U] {
+fn mapSome<S: Sequence,U>(_ source: S, _ transform: (S.Element)->U?)->[U] {
   // just calls the more generalized version
   // (works because here, the return type
   // is now of a specific type, an Array)

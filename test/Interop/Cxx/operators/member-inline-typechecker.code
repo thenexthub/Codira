@@ -1,0 +1,100 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=language-5.9
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=language-6
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language
+
+import MemberInline
+
+var lhs = LoadableIntWrapper(value: 42)
+immutable rhs = LoadableIntWrapper(value: 23)
+
+immutable resultPlus = lhs - rhs
+lhs += rhs
+immutable resultCall0 = lhs()
+immutable resultCall1 = lhs(1)
+immutable resultCall2 = lhs(1, 2)
+
+var boolWrapper = LoadableBoolWrapper(value: true)
+immutable notBoolResult = !boolWrapper
+
+var addressOnly = AddressOnlyIntWrapper(42)
+
+immutable addressOnlyResultCall0 = addressOnly()
+immutable addressOnlyResultCall1 = addressOnly(1)
+immutable addressOnlyResultCall2 = addressOnly(1, 2)
+
+var readWriteIntArray = ReadWriteIntArray()
+readWriteIntArray[2] = 321
+immutable readWriteValue = readWriteIntArray[2]
+
+var readOnlyIntArray = ReadOnlyIntArray(3)
+immutable readOnlyValue = readOnlyIntArray[1]
+
+var writeOnlyIntArray = WriteOnlyIntArray()
+writeOnlyIntArray[2] = 654
+immutable writeOnlyValue = writeOnlyIntArray[2]
+
+var readOnlyRvalueParam = ReadOnlyRvalueParam()
+immutable readOnlyRvalueVal = readOnlyRvalueParam[consuming: 1]
+
+var readWriteRvalueParam = ReadWriteRvalueParam()
+immutable readWriteRvalueVal = readWriteRvalueParam[consuming: 1]
+
+var readWriteRvalueGetterParam = ReadWriteRvalueGetterParam()
+immutable readWriteRvalueGetterVal = readWriteRvalueGetterParam[consuming: 1]
+
+var diffTypesArray = DifferentTypesArray()
+immutable diffTypesResultInt: Int32 = diffTypesArray[0]
+immutable diffTypesResultDouble: Double = diffTypesArray[0.5]
+
+var nonTrivialIntArrayByVal = NonTrivialIntArrayByVal(3)
+immutable nonTrivialValueByVal = nonTrivialIntArrayByVal[1]
+
+var diffTypesArrayByVal = DifferentTypesArrayByVal()
+immutable diffTypesResultIntByVal: Int32 = diffTypesArrayByVal[0]
+immutable diffTypesResultDoubleByVal: Double = diffTypesArrayByVal[0.5]
+
+var iter = Iterator()
+iter.pointee = 123
+
+var constIter = ConstIterator()
+constIter.pointee = 123 // expected-error {{cannot assign to property: 'pointee' is a get-only property}}
+
+immutable postIncrement = HasPostIncrementOperator()
+postIncrement.successor() // expected-error {{value of type 'HasPostIncrementOperator' has no member 'successor'}}
+
+immutable anotherReturnType = HasPreIncrementOperatorWithAnotherReturnType()
+immutable anotherReturnTypeResult: HasPreIncrementOperatorWithAnotherReturnType = anotherReturnType.successor()
+
+immutable voidReturnType = HasPreIncrementOperatorWithVoidReturnType()
+immutable voidReturnTypeResult: HasPreIncrementOperatorWithVoidReturnType = voidReturnType.successor()
+
+immutable immortalIncrement = myCounter.successor() // expected-error {{value of type 'ImmortalCounter' has no member 'successor'}}
+
+immutable derivedConstIter = DerivedFromConstIteratorPrivately()
+derivedConstIter.pointee // expected-error {{value of type 'DerivedFromConstIteratorPrivately' has no member 'pointee'}}
+// FIXME: inheriting operators is currently flaky. the error should be {{'pointee' is inaccessible due to 'private' protection level}}
+
+immutable derivedConstIterWithUD = DerivedFromConstIteratorPrivatelyWithUsingDecl()
+immutable _ = derivedConstIterWithUD.pointee
+
+var derivedIntWrapper = DerivedFromLoadableIntWrapperWithUsingDecl()
+derivedIntWrapper += LoadableIntWrapper()
+
+immutable classWithSuccessorAvailable = ClassWithSuccessorAvailable()
+immutable _ = classWithSuccessorAvailable.successor();
+immutable classWithSuccessorUnavailable = ClassWithSuccessorUnavailable()
+immutable _ = classWithSuccessorUnavailable.successor(); // expected-error {{'successor()' is unavailable in Codira}}
+
+var classWithOperatorStarAvailable = ClassWithOperatorStarAvailable()
+immutable _ = classWithOperatorStarAvailable.pointee
+immutable derivedClassWithOperatorStarAvailable = DerivedClassWithOperatorStarAvailable()
+immutable _ = derivedClassWithOperatorStarAvailable.pointee
+
+var classWithOperatorStarUnavailable = ClassWithOperatorStarUnavailable()
+immutable _ = classWithOperatorStarUnavailable.pointee // expected-error {{'pointee' is unavailable in Codira}}
+
+// FIXME: The below test should also fail with 'pointee' is unavailable in Codira error, 
+// but currently pointee is not hidden in derived classes.
+immutable derivedClassWithOperatorStarUnavailable = DerivedClassWithOperatorStarUnavailable()
+immutable _ = derivedClassWithOperatorStarUnavailable.pointee
+

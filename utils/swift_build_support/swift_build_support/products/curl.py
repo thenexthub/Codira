@@ -1,12 +1,12 @@
-# swift_build_support/products/curl.py ---------------------------------------
+# language_build_support/products/curl.py ---------------------------------------
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -114,8 +114,8 @@ class LibCurl(cmake_product.CMakeProduct):
         self.cmake_options.define('ENABLE_UNIX_SOCKETS', 'NO')
         self.cmake_options.define('ENABLE_THREADED_RESOLVER', 'NO')
         self.cmake_options.define('USE_ECH', 'NO')
-        self.cmake_options.deifne('USE_HTTPSRR', 'NO')
-        self.cmake_options.deifne('USE_OPENSSL_QUIC', 'NO')
+        self.cmake_options.define('USE_HTTPSRR', 'NO')
+        self.cmake_options.define('USE_OPENSSL_QUIC', 'NO')
 
         self.generate_toolchain_file_for_darwin_or_linux(host_target)
 
@@ -123,4 +123,4 @@ class LibCurl(cmake_product.CMakeProduct):
             # If we're building zlib, make cmake search in the built toolchain
             toolchain_path = self.host_install_destdir(host_target)
             self.cmake_options.define('CMAKE_FIND_ROOT_PATH', toolchain_path)
-        self.build_with_cmake(['libcurl'], self.args.curl_build_variant, [])
+        self.build_with_cmake(['libcurl_static'], self.args.curl_build_variant, [])

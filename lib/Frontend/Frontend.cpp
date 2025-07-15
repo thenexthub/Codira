@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains utility methods for parsing and performing semantic
@@ -47,21 +48,21 @@
 #include "language/Strings.h"
 #include "language/Subsystems.h"
 #include "clang/AST/ASTContext.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/CAS/ActionCache.h"
-#include "llvm/CAS/BuiltinUnifiedCASDatabases.h"
-#include "llvm/CAS/CASFileSystem.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/ThreadPool.h"
-#include "llvm/Support/VirtualOutputBackends.h"
-#include "llvm/TargetParser/Triple.h"
-#include <llvm/ADT/StringExtras.h>
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/CAS/ActionCache.h"
+#include "toolchain/CAS/BuiltinUnifiedCASDatabases.h"
+#include "toolchain/CAS/CASFileSystem.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/ThreadPool.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
+#include "toolchain/TargetParser/Triple.h"
+#include <toolchain/ADT/StringExtras.h>
 
 using namespace language;
 
@@ -69,7 +70,7 @@ CompilerInstance::CompilerInstance() = default;
 CompilerInstance::~CompilerInstance() = default;
 
 std::string CompilerInvocation::getPCHHash() const {
-  using llvm::hash_combine;
+  using toolchain::hash_combine;
 
   auto Code = hash_combine(LangOpts.getPCHHashComponents(),
                            FrontendOpts.getPCHHashComponents(),
@@ -80,11 +81,11 @@ std::string CompilerInvocation::getPCHHash() const {
                            IRGenOpts.getPCHHashComponents(),
                            CASOpts.getPCHHashComponents());
 
-  return llvm::toString(llvm::APInt(64, Code), 36, /*Signed=*/false);
+  return toolchain::toString(toolchain::APInt(64, Code), 36, /*Signed=*/false);
 }
 
 std::string CompilerInvocation::getModuleScanningHash() const {
-  using llvm::hash_combine;
+  using toolchain::hash_combine;
 
   auto Code = hash_combine(LangOpts.getModuleScanningHashComponents(),
                            FrontendOpts.getModuleScanningHashComponents(),
@@ -95,7 +96,7 @@ std::string CompilerInvocation::getModuleScanningHash() const {
                            IRGenOpts.getModuleScanningHashComponents(),
                            CASOpts.getModuleScanningHashComponents());
 
-  return llvm::toString(llvm::APInt(64, Code), 36, /*Signed=*/false);
+  return toolchain::toString(toolchain::APInt(64, Code), 36, /*Signed=*/false);
 }
 
 const PrimarySpecificPaths &
@@ -210,12 +211,11 @@ SerializationOptions CompilerInvocation::computeSerializationOptions(
   serializationOpts.ModuleLinkName = opts.ModuleLinkName;
   serializationOpts.UserModuleVersion = opts.UserModuleVersion;
   serializationOpts.AllowableClients = opts.AllowableClients;
-  serializationOpts.SerializeDebugInfoSIL = opts.SerializeDebugInfoSIL;
 
   serializationOpts.PublicDependentLibraries =
       getIRGenOptions().PublicLinkLibraries;
   serializationOpts.SDKName = getLangOptions().SDKName;
-  serializationOpts.SDKVersion = swift::getSDKBuildVersion(
+  serializationOpts.SDKVersion = language::getSDKBuildVersion(
                                           getSearchPathOptions().getSDKPath());
   serializationOpts.ABIDescriptorPath = outs.ABIDescriptorOutputPath.c_str();
   serializationOpts.emptyABIDescriptor = opts.emptyABIDescriptor;
@@ -268,8 +268,20 @@ SerializationOptions CompilerInvocation::computeSerializationOptions(
 
   serializationOpts.HermeticSealAtLink = opts.HermeticSealAtLink;
 
-  serializationOpts.EmbeddedSwiftModule =
+  serializationOpts.EmbeddedCodiraModule =
       LangOpts.hasFeature(Feature::Embedded);
+
+  serializationOpts.SerializeDebugInfoSIL = opts.SerializeDebugInfoSIL;
+
+  // Enable serialization of debug info in embedded mode.
+  // This is important to get diagnostics for errors which are located in imported modules.
+  // Such errors can sometimes only be detected when building the client module, because
+  // the error can be in a generic function which is specialized in the client module.
+  if (serializationOpts.EmbeddedCodiraModule &&
+      // Except for the stdlib core. We don't want to get error locations inside stdlib internals.
+      !getParseStdlib()) {
+    serializationOpts.SerializeDebugInfoSIL = true;
+  }
 
   serializationOpts.IsOSSA = getSILOptions().EnableOSSAModules;
 
@@ -389,11 +401,11 @@ void CompilerInstance::setupStatsReporter() {
   const std::string &OutFile =
       FEOpts.InputsAndOutputs.lastInputProducingOutput().outputFilename();
   auto Reporter = std::make_unique<UnifiedStatsReporter>(
-      "swift-frontend",
+      "language-frontend",
       FEOpts.ModuleName,
       FEOpts.InputsAndOutputs.getStatsFileMangledInputName(),
       LangOpts.Target.normalize(),
-      llvm::sys::path::extension(OutFile),
+      toolchain::sys::path::extension(OutFile),
       silOptModeArgStr(SILOpts.OptMode),
       StatsOutputDir,
       &getSourceMgr(),
@@ -457,9 +469,9 @@ bool CompilerInstance::setupCASIfNeeded(ArrayRef<const char *> Args) {
     return false;
 
   const auto &Opts = getInvocation().getCASOptions();
-  auto MaybeDB= Opts.CASOpts.getOrCreateDatabases();
+  auto MaybeDB = Opts.CASOpts.getOrCreateDatabases();
   if (!MaybeDB) {
-    Diagnostics.diagnose(SourceLoc(), diag::error_cas,
+    Diagnostics.diagnose(SourceLoc(), diag::error_cas_initialization,
                          toString(MaybeDB.takeError()));
     return true;
   }
@@ -469,6 +481,7 @@ bool CompilerInstance::setupCASIfNeeded(ArrayRef<const char *> Args) {
   auto BaseKey = createCompileJobBaseCacheKey(*CAS, Args);
   if (!BaseKey) {
     Diagnostics.diagnose(SourceLoc(), diag::error_cas,
+                         "creating base cache key",
                          toString(BaseKey.takeError()));
     return true;
   }
@@ -482,12 +495,12 @@ void CompilerInstance::setupOutputBackend() {
     return;
 
   OutputBackend =
-      llvm::makeIntrusiveRefCnt<llvm::vfs::OnDiskOutputBackend>();
+      toolchain::makeIntrusiveRefCnt<toolchain::vfs::OnDiskOutputBackend>();
 
   // Mirror the output into CAS.
   if (supportCaching()) {
     auto &InAndOuts = Invocation.getFrontendOptions().InputsAndOutputs;
-    CASOutputBackend = createSwiftCachingOutputBackend(
+    CASOutputBackend = createCodiraCachingOutputBackend(
         *CAS, *ResultCache, *CompileJobBaseKey, InAndOuts,
         Invocation.getFrontendOptions(),
         Invocation.getFrontendOptions().RequestedAction);
@@ -499,31 +512,31 @@ void CompilerInstance::setupOutputBackend() {
           std::make_move_iterator(OutputFiles.end()));
       // Filter the object file output if MCCAS is enabled, we do not want to
       // store the object file itself, but store the MCCAS CASID instead.
-      auto FilterBackend = llvm::vfs::makeFilteringOutputBackend(
+      auto FilterBackend = toolchain::vfs::makeFilteringOutputBackend(
           CASOutputBackend,
           [&, OutputFileSet](StringRef Path,
-                             std::optional<llvm::vfs::OutputConfig> Config) {
+                             std::optional<toolchain::vfs::OutputConfig> Config) {
             if (InAndOuts.getPrincipalOutputType() != file_types::ID::TY_Object)
               return true;
             return !(OutputFileSet.find(Path.str()) != OutputFileSet.end());
           });
       OutputBackend =
-          llvm::vfs::makeMirroringOutputBackend(OutputBackend, FilterBackend);
+          toolchain::vfs::makeMirroringOutputBackend(OutputBackend, FilterBackend);
       return;
     }
 
     OutputBackend =
-        llvm::vfs::makeMirroringOutputBackend(OutputBackend, CASOutputBackend);
+        toolchain::vfs::makeMirroringOutputBackend(OutputBackend, CASOutputBackend);
   }
 
   // Setup verification backend.
   // Create a mirroring outputbackend to produce hash for output files.
-  // We cannot skip disk here since swift compiler is expecting to read back
+  // We cannot skip disk here since language compiler is expecting to read back
   // some output file in later stages.
   if (Invocation.getFrontendOptions().DeterministicCheck) {
-    HashBackend = llvm::makeIntrusiveRefCnt<HashBackendTy>();
+    HashBackend = toolchain::makeIntrusiveRefCnt<HashBackendTy>();
     OutputBackend =
-        llvm::vfs::makeMirroringOutputBackend(OutputBackend, HashBackend);
+        toolchain::vfs::makeMirroringOutputBackend(OutputBackend, HashBackend);
   }
 }
 
@@ -632,14 +645,12 @@ bool CompilerInstance::setUpVirtualFileSystemOverlays() {
   }
 
   if (Invocation.getCASOptions().requireCASFS()) {
-    if (!CASOpts.CASFSRootIDs.empty() || !CASOpts.ClangIncludeTrees.empty() ||
-        !CASOpts.ClangIncludeTreeFileList.empty()) {
+    if (Invocation.getCASOptions().HasImmutableFileSystem) {
       // Set up CASFS as BaseFS.
-      auto FS = createCASFileSystem(*CAS, CASOpts.CASFSRootIDs,
-                                    CASOpts.ClangIncludeTrees,
+      auto FS = createCASFileSystem(*CAS, CASOpts.ClangIncludeTree,
                                     CASOpts.ClangIncludeTreeFileList);
       if (!FS) {
-        Diagnostics.diagnose(SourceLoc(), diag::error_cas,
+        Diagnostics.diagnose(SourceLoc(), diag::error_cas_fs_creation,
                              toString(FS.takeError()));
         return true;
       }
@@ -647,8 +658,8 @@ bool CompilerInstance::setUpVirtualFileSystemOverlays() {
     }
 
     // If we need to load any files from CAS, try load it now and overlay it.
-    llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> MemFS =
-        new llvm::vfs::InMemoryFileSystem();
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::InMemoryFileSystem> MemFS =
+        new toolchain::vfs::InMemoryFileSystem();
     const auto &ClangOpts = getInvocation().getClangImporterOptions();
 
     if (!CASOpts.BridgingHeaderPCHCacheKey.empty()) {
@@ -673,7 +684,7 @@ bool CompilerInstance::setUpVirtualFileSystemOverlays() {
         auto InputPath = Invocation.getFrontendOptions()
                              .InputsAndOutputs.getFilenameOfFirstInput();
         auto Type = file_types::lookupTypeFromFilename(
-            llvm::sys::path::filename(InputPath));
+            toolchain::sys::path::filename(InputPath));
         if (auto loadedBuffer = loadCachedCompileResultFromCacheKey(
                 getObjectStore(), getActionCache(), Diagnostics,
                 CASOpts.InputFileKey, Type, InputPath))
@@ -683,9 +694,9 @@ bool CompilerInstance::setUpVirtualFileSystemOverlays() {
                                InputPath);
       }
     }
-    llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayVFS =
-        new llvm::vfs::OverlayFileSystem(SourceMgr.getFileSystem());
-    OverlayVFS->pushOverlay(MemFS);
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::OverlayFileSystem> OverlayVFS =
+        new toolchain::vfs::OverlayFileSystem(MemFS);
+    OverlayVFS->pushOverlay(SourceMgr.getFileSystem());
     SourceMgr.setFileSystem(std::move(OverlayVFS));
   }
 
@@ -693,8 +704,8 @@ bool CompilerInstance::setUpVirtualFileSystemOverlays() {
       Invocation.getSearchPathOptions().makeOverlayFileSystem(
           SourceMgr.getFileSystem());
   if (!ExpectedOverlay) {
-    llvm::handleAllErrors(
-        ExpectedOverlay.takeError(), [&](const llvm::FileError &FE) {
+    toolchain::handleAllErrors(
+        ExpectedOverlay.takeError(), [&](const toolchain::FileError &FE) {
           if (FE.convertToErrorCode() == std::errc::no_such_file_or_directory) {
             Diagnostics.diagnose(SourceLoc(), diag::cannot_open_file,
                                  FE.getFileName(), FE.messageWithoutFileInfo());
@@ -712,19 +723,19 @@ bool CompilerInstance::setUpVirtualFileSystemOverlays() {
 
 void CompilerInstance::setUpLLVMArguments() {
   // Dependency scanning has no need for LLVM options, and
-  // must not use `llvm::cl::` utilities operating on global state
+  // must not use `toolchain::cl::` utilities operating on global state
   // since dependency scanning is multi-threaded.
   if (Invocation.getFrontendOptions().RequestedAction !=
       FrontendOptions::ActionType::ScanDependencies) {
-    // Honor -Xllvm.
+    // Honor -Xtoolchain.
     if (!Invocation.getFrontendOptions().LLVMArgs.empty()) {
-      llvm::SmallVector<const char *, 4> Args;
-      Args.push_back("swift (LLVM option parsing)");
+      toolchain::SmallVector<const char *, 4> Args;
+      Args.push_back("language (LLVM option parsing)");
       for (unsigned i = 0, e = Invocation.getFrontendOptions().LLVMArgs.size();
            i != e; ++i)
         Args.push_back(Invocation.getFrontendOptions().LLVMArgs[i].c_str());
       Args.push_back(nullptr);
-      llvm::cl::ParseCommandLineOptions(Args.size()-1, Args.data());
+      toolchain::cl::ParseCommandLineOptions(Args.size()-1, Args.data());
     }
   }
 }
@@ -744,20 +755,52 @@ void CompilerInstance::setUpDiagnosticOptions() {
 //    Ideally, we'd get rid of it.
 // 2. MemoryBufferSerializedModuleLoader: This is used by LLDB, because it might
 //    already have the module available in memory.
-// 3. ExplicitSwiftModuleLoader: Loads a serialized module if it can, provided
+// 3. ExplicitCodiraModuleLoader: Loads a serialized module if it can, provided
 //    this modules was specified as an explicit input to the compiler.
-// 4. ModuleInterfaceLoader: Tries to find an up-to-date swiftmodule. If it
+// 4. ModuleInterfaceLoader: Tries to find an up-to-date languagemodule. If it
 //    succeeds, it issues a particular "error" (see
 //    [NOTE: ModuleInterfaceLoader-defer-to-ImplicitSerializedModuleLoader]),
 //    which is interpreted by the overarching loader as a command to use the
-//    ImplicitSerializedModuleLoader. If we failed to find a .swiftmodule,
+//    ImplicitSerializedModuleLoader. If we failed to find a .codemodule,
 //    this falls back to using an interface. Actual errors lead to diagnostics.
 // 5. ImplicitSerializedModuleLoader: Loads a serialized module if it can.
 //    Used for implicit loading of modules from the compiler's search paths.
-// 6. ClangImporter: This must come after all the Swift module loaders because
+// 6. ClangImporter: This must come after all the Codira module loaders because
 //    in the presence of overlays and mixed-source frameworks, we want to prefer
 //    the overlay or framework module over the underlying Clang module.
 bool CompilerInstance::setUpModuleLoaders() {
+  auto ModuleCachePathFromInvocation = getInvocation().getClangModuleCachePath();
+  auto &FEOpts = Invocation.getFrontendOptions();
+  auto MLM = Invocation.getSearchPathOptions().ModuleLoadMode;
+  auto IgnoreSourceInfoFile = Invocation.getFrontendOptions().IgnoreCodiraSourceInfo;
+  ModuleInterfaceLoaderOptions LoaderOpts(FEOpts);
+
+  // Dependency scanning sub-invocations only require the loaders necessary
+  // for locating textual and binary Codira modules.
+  if (Invocation.getFrontendOptions().DependencyScanningSubInvocation) {
+    Context->addModuleInterfaceChecker(
+        std::make_unique<ModuleInterfaceCheckerImpl>(
+            *Context, ModuleCachePathFromInvocation, FEOpts.PrebuiltModuleCachePath,
+            FEOpts.BackupModuleInterfaceDir, LoaderOpts,
+            RequireOSSAModules_t(Invocation.getSILOptions())));
+
+    if (MLM != ModuleLoadingMode::OnlySerialized) {
+      // We only need ModuleInterfaceLoader for implicit modules.
+      auto PIML = ModuleInterfaceLoader::create(
+          *Context, *static_cast<ModuleInterfaceCheckerImpl*>(Context
+            ->getModuleInterfaceChecker()), getDependencyTracker(), MLM,
+          FEOpts.PreferInterfaceForModules, IgnoreSourceInfoFile);
+      Context->addModuleLoader(std::move(PIML), false, false, true);
+    }
+    std::unique_ptr<ImplicitSerializedModuleLoader> ISML =
+    ImplicitSerializedModuleLoader::create(*Context, getDependencyTracker(), MLM,
+                                   IgnoreSourceInfoFile);
+    this->DefaultSerializedLoader = ISML.get();
+    Context->addModuleLoader(std::move(ISML));
+
+    return false;
+  }
+
   if (hasSourceImport()) {
     bool enableLibraryEvolution =
       Invocation.getFrontendOptions().EnableLibraryEvolution;
@@ -765,9 +808,7 @@ bool CompilerInstance::setUpModuleLoaders() {
                                                   enableLibraryEvolution,
                                                   getDependencyTracker()));
   }
-  auto MLM = Invocation.getSearchPathOptions().ModuleLoadMode;
-  auto IgnoreSourceInfoFile =
-    Invocation.getFrontendOptions().IgnoreSwiftSourceInfo;
+
   if (Invocation.getLangOptions().EnableMemoryBufferImporter) {
     auto MemoryBufferLoader = MemoryBufferSerializedModuleLoader::create(
         *Context, getDependencyTracker(), MLM, IgnoreSourceInfoFile);
@@ -775,26 +816,27 @@ bool CompilerInstance::setUpModuleLoaders() {
     Context->addModuleLoader(std::move(MemoryBufferLoader));
   }
 
-  // If using `-explicit-swift-module-map-file`, create the explicit loader
+  // If using `-explicit-language-module-map-file`, create the explicit loader
   // before creating `ClangImporter` because the entries in the map influence
   // the Clang flags. The loader is added to the context below.
   std::unique_ptr<SerializedModuleLoaderBase> ESML = nullptr;
   bool ExplicitModuleBuild =
       Invocation.getFrontendOptions().DisableImplicitModules;
   if (ExplicitModuleBuild ||
-      !Invocation.getSearchPathOptions().ExplicitSwiftModuleMapPath.empty() ||
-      !Invocation.getSearchPathOptions().ExplicitSwiftModuleInputs.empty()) {
-    if (Invocation.getCASOptions().EnableCaching)
+      !Invocation.getSearchPathOptions().ExplicitCodiraModuleMapPath.empty() ||
+      !Invocation.getSearchPathOptions().ExplicitCodiraModuleInputs.empty()) {
+    if (Invocation.getCASOptions().EnableCaching ||
+        Invocation.getCASOptions().ImportModuleFromCAS)
       ESML = ExplicitCASModuleLoader::create(
           *Context, getObjectStore(), getActionCache(), getDependencyTracker(),
-          MLM, Invocation.getSearchPathOptions().ExplicitSwiftModuleMapPath,
-          Invocation.getSearchPathOptions().ExplicitSwiftModuleInputs,
+          MLM, Invocation.getSearchPathOptions().ExplicitCodiraModuleMapPath,
+          Invocation.getSearchPathOptions().ExplicitCodiraModuleInputs,
           IgnoreSourceInfoFile);
     else
-      ESML = ExplicitSwiftModuleLoader::create(
+      ESML = ExplicitCodiraModuleLoader::create(
           *Context, getDependencyTracker(), MLM,
-          Invocation.getSearchPathOptions().ExplicitSwiftModuleMapPath,
-          Invocation.getSearchPathOptions().ExplicitSwiftModuleInputs,
+          Invocation.getSearchPathOptions().ExplicitCodiraModuleMapPath,
+          Invocation.getSearchPathOptions().ExplicitCodiraModuleInputs,
           IgnoreSourceInfoFile);
   }
 
@@ -810,13 +852,10 @@ bool CompilerInstance::setUpModuleLoaders() {
   }
 
   // Configure ModuleInterfaceChecker for the ASTContext.
-  auto CacheFromInvocation = getInvocation().getClangModuleCachePath();
   auto const &Clang = clangImporter->getClangInstance();
-  std::string ModuleCachePath = CacheFromInvocation.empty()
+  std::string ModuleCachePath = ModuleCachePathFromInvocation.empty()
                                     ? getModuleCachePathFromClang(Clang)
-                                    : CacheFromInvocation.str();
-  auto &FEOpts = Invocation.getFrontendOptions();
-  ModuleInterfaceLoaderOptions LoaderOpts(FEOpts);
+                                    : ModuleCachePathFromInvocation.str();
   Context->addModuleInterfaceChecker(
       std::make_unique<ModuleInterfaceCheckerImpl>(
           *Context, ModuleCachePath, FEOpts.PrebuiltModuleCachePath,
@@ -864,14 +903,6 @@ bool CompilerInstance::setUpModuleLoaders() {
         FEOpts.SerializeModuleInterfaceDependencyHashes,
         FEOpts.shouldTrackSystemDependencies(),
         RequireOSSAModules_t(Invocation.getSILOptions()));
-    auto mainModuleName = Context->getIdentifier(FEOpts.ModuleName);
-    std::unique_ptr<PlaceholderSwiftModuleScanner> PSMS =
-        std::make_unique<PlaceholderSwiftModuleScanner>(
-            *Context, MLM, mainModuleName,
-            Context->SearchPathOpts.PlaceholderDependencyModuleMap, ASTDelegate,
-            getInvocation().getFrontendOptions().ExplicitModulesOutputPath,
-            getInvocation().getFrontendOptions().ExplicitSDKModulesOutputPath);
-    Context->addModuleLoader(std::move(PSMS));
   }
 
   return false;
@@ -911,7 +942,7 @@ SourceFile *CompilerInstance::getIDEInspectionFile() const {
     if (SF->getParentModule() == mod)
       return SF;
   }
-  llvm_unreachable("Couldn't find IDE inspection file?");
+  toolchain_unreachable("Couldn't find IDE inspection file?");
 }
 
 std::string CompilerInstance::getBridgingHeaderPath() const {
@@ -933,10 +964,10 @@ std::string CompilerInstance::getBridgingHeaderPath() const {
 }
 
 bool CompilerInstance::setUpInputs() {
-  // There is no input file when building PCM using ClangIncludeTree.
+  // There is no input file when building PCM using Caching.
   if (Invocation.getFrontendOptions().RequestedAction ==
           FrontendOptions::ActionType::EmitPCM &&
-      Invocation.getClangImporterOptions().HasClangIncludeTreeRoot)
+      Invocation.getCASOptions().EnableCaching)
     return false;
 
   // Adds to InputSourceCodeBufferIDs, so may need to happen before the
@@ -987,8 +1018,8 @@ CompilerInstance::getRecordedBufferID(const InputFile &input,
 
   // Recover by dummy buffer if requested.
   if (!buffers.has_value() && shouldRecover &&
-      input.getType() == file_types::TY_Swift) {
-    buffers = ModuleBuffers(llvm::MemoryBuffer::getMemBuffer(
+      input.getType() == file_types::TY_Codira) {
+    buffers = ModuleBuffers(toolchain::MemoryBuffer::getMemBuffer(
         "// missing file\n", input.getFileName()));
   }
 
@@ -1015,16 +1046,16 @@ CompilerInstance::getRecordedBufferID(const InputFile &input,
 std::optional<ModuleBuffers>
 CompilerInstance::getInputBuffersIfPresent(const InputFile &input) {
   if (auto b = input.getBuffer()) {
-    return ModuleBuffers(llvm::MemoryBuffer::getMemBufferCopy(b->getBuffer(),
+    return ModuleBuffers(toolchain::MemoryBuffer::getMemBufferCopy(b->getBuffer(),
                                                               b->getBufferIdentifier()));
   }
   // FIXME: Working with filenames is fragile, maybe use the real path
   // or have some kind of FileManager.
-  using FileOrError = llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>;
+  using FileOrError = toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>;
   // Avoid memory-mapping when the compiler is run for IDE inspection,
   // since that would prevent the user from saving the file.
   FileOrError inputFileOrErr =
-    swift::vfs::getFileOrSTDIN(getFileSystem(), input.getFileName(),
+    language::vfs::getFileOrSTDIN(getFileSystem(), input.getFileName(),
                               /*FileSize*/-1,
                               /*RequiresNullTerminator*/true,
                               /*IsVolatile*/getInvocation().isIDEInspection(),
@@ -1039,46 +1070,46 @@ CompilerInstance::getInputBuffersIfPresent(const InputFile &input) {
   if (!serialization::isSerializedAST((*inputFileOrErr)->getBuffer()))
     return ModuleBuffers(std::move(*inputFileOrErr));
 
-  auto swiftdoc = openModuleDoc(input);
+  auto languagedoc = openModuleDoc(input);
   auto sourceinfo = openModuleSourceInfo(input);
   return ModuleBuffers(std::move(*inputFileOrErr),
-                       swiftdoc.has_value() ? std::move(swiftdoc.value()) : nullptr,
+                       languagedoc.has_value() ? std::move(languagedoc.value()) : nullptr,
                        sourceinfo.has_value() ? std::move(sourceinfo.value()) : nullptr);
 }
 
-std::optional<std::unique_ptr<llvm::MemoryBuffer>>
+std::optional<std::unique_ptr<toolchain::MemoryBuffer>>
 CompilerInstance::openModuleSourceInfo(const InputFile &input) {
-  llvm::SmallString<128> pathWithoutProjectDir(input.getFileName());
-  llvm::sys::path::replace_extension(pathWithoutProjectDir,
-                  file_types::getExtension(file_types::TY_SwiftSourceInfoFile));
-  llvm::SmallString<128> pathWithProjectDir = pathWithoutProjectDir.str();
-  StringRef fileName = llvm::sys::path::filename(pathWithoutProjectDir);
-  llvm::sys::path::remove_filename(pathWithProjectDir);
-  llvm::sys::path::append(pathWithProjectDir, "Project");
-  llvm::sys::path::append(pathWithProjectDir, fileName);
-  if (auto sourceInfoFileOrErr = swift::vfs::getFileOrSTDIN(getFileSystem(),
+  toolchain::SmallString<128> pathWithoutProjectDir(input.getFileName());
+  toolchain::sys::path::replace_extension(pathWithoutProjectDir,
+                  file_types::getExtension(file_types::TY_CodiraSourceInfoFile));
+  toolchain::SmallString<128> pathWithProjectDir = pathWithoutProjectDir.str();
+  StringRef fileName = toolchain::sys::path::filename(pathWithoutProjectDir);
+  toolchain::sys::path::remove_filename(pathWithProjectDir);
+  toolchain::sys::path::append(pathWithProjectDir, "Project");
+  toolchain::sys::path::append(pathWithProjectDir, fileName);
+  if (auto sourceInfoFileOrErr = language::vfs::getFileOrSTDIN(getFileSystem(),
                                                             pathWithProjectDir))
     return std::move(*sourceInfoFileOrErr);
-  if (auto sourceInfoFileOrErr = swift::vfs::getFileOrSTDIN(getFileSystem(),
+  if (auto sourceInfoFileOrErr = language::vfs::getFileOrSTDIN(getFileSystem(),
                                                             pathWithoutProjectDir))
     return std::move(*sourceInfoFileOrErr);
   return std::nullopt;
 }
 
-std::optional<std::unique_ptr<llvm::MemoryBuffer>>
+std::optional<std::unique_ptr<toolchain::MemoryBuffer>>
 CompilerInstance::openModuleDoc(const InputFile &input) {
-  llvm::SmallString<128> moduleDocFilePath(input.getFileName());
-  llvm::sys::path::replace_extension(
+  toolchain::SmallString<128> moduleDocFilePath(input.getFileName());
+  toolchain::sys::path::replace_extension(
       moduleDocFilePath,
-      file_types::getExtension(file_types::TY_SwiftModuleDocFile));
-  using FileOrError = llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>;
+      file_types::getExtension(file_types::TY_CodiraModuleDocFile));
+  using FileOrError = toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>;
   FileOrError moduleDocFileOrErr =
-      swift::vfs::getFileOrSTDIN(getFileSystem(), moduleDocFilePath);
+      language::vfs::getFileOrSTDIN(getFileSystem(), moduleDocFilePath);
   if (moduleDocFileOrErr)
     return std::move(*moduleDocFileOrErr);
 
   if (moduleDocFileOrErr.getError() == std::errc::no_such_file_or_directory)
-    return std::unique_ptr<llvm::MemoryBuffer>();
+    return std::unique_ptr<toolchain::MemoryBuffer>();
 
   Diagnostics.diagnose(SourceLoc(), diag::error_open_input_file,
                        moduleDocFilePath,
@@ -1086,15 +1117,15 @@ CompilerInstance::openModuleDoc(const InputFile &input) {
   return std::nullopt;
 }
 
-/// Enable Swift concurrency on a per-target basis
-static bool shouldImportConcurrencyByDefault(const llvm::Triple &target) {
+/// Enable Codira concurrency on a per-target basis
+static bool shouldImportConcurrencyByDefault(const toolchain::Triple &target) {
   if (target.isOSDarwin())
     return true;
   if (target.isOSWindows())
     return true;
   if (target.isOSLinux())
     return true;
-#if SWIFT_IMPLICIT_CONCURRENCY_IMPORT
+#if LANGUAGE_IMPLICIT_CONCURRENCY_IMPORT
   if (target.isOSWASI())
     return true;
   if (target.isOSOpenBSD())
@@ -1105,25 +1136,25 @@ static bool shouldImportConcurrencyByDefault(const llvm::Triple &target) {
   return false;
 }
 
-bool CompilerInvocation::shouldImportSwiftConcurrency() const {
+bool CompilerInvocation::shouldImportCodiraConcurrency() const {
   return shouldImportConcurrencyByDefault(getLangOptions().Target) &&
       !getLangOptions().DisableImplicitConcurrencyModuleImport &&
       getFrontendOptions().InputMode !=
-        FrontendOptions::ParseInputMode::SwiftModuleInterface;
+        FrontendOptions::ParseInputMode::CodiraModuleInterface;
 }
 
-bool CompilerInvocation::shouldImportSwiftStringProcessing() const {
+bool CompilerInvocation::shouldImportCodiraStringProcessing() const {
   return getLangOptions().EnableExperimentalStringProcessing &&
       !getLangOptions().DisableImplicitStringProcessingModuleImport &&
       getFrontendOptions().InputMode !=
-        FrontendOptions::ParseInputMode::SwiftModuleInterface;
+        FrontendOptions::ParseInputMode::CodiraModuleInterface;
 }
 
 bool CompilerInvocation::shouldImportCxx() const {
   // C++ Interop is disabled
   if (!getLangOptions().EnableCXXInterop)
     return false;
-  // Avoid C++ stdlib when building Swift stdlib
+  // Avoid C++ stdlib when building Codira stdlib
   if (getImplicitStdlibKind() == ImplicitStdlibKind::Builtin)
     return false;
   // Avoid importing Cxx when building Cxx itself
@@ -1139,11 +1170,11 @@ bool CompilerInvocation::shouldImportCxx() const {
   return true;
 }
 
-/// Implicitly import the SwiftOnoneSupport module in non-optimized
+/// Implicitly import the CodiraOnoneSupport module in non-optimized
 /// builds. This allows for use of popular specialized functions
 /// from the standard library, which makes the non-optimized builds
 /// execute much faster.
-bool CompilerInvocation::shouldImportSwiftONoneSupport() const {
+bool CompilerInvocation::shouldImportCodiraONoneSupport() const {
   if (getImplicitStdlibKind() != ImplicitStdlibKind::Stdlib)
     return false;
   if (getSILOptions().shouldOptimize())
@@ -1152,14 +1183,14 @@ bool CompilerInvocation::shouldImportSwiftONoneSupport() const {
     return false;
 
   // If we are not executing an action that has a dependency on
-  // SwiftOnoneSupport, don't load it.
+  // CodiraOnoneSupport, don't load it.
   //
-  // FIXME: Knowledge of SwiftOnoneSupport loading in the Frontend is a layering
+  // FIXME: Knowledge of CodiraOnoneSupport loading in the Frontend is a layering
   // violation. However, SIL currently does not have a way to express this
   // dependency itself for the benefit of autolinking.  In the mean time, we
   // will be conservative and say that actions like -emit-silgen and
   // -emit-sibgen - that don't really involve the optimizer - have a
-  // strict dependency on SwiftOnoneSupport.
+  // strict dependency on CodiraOnoneSupport.
   //
   // This optimization is disabled by -track-system-dependencies to preserve
   // the explicit dependency.
@@ -1169,38 +1200,38 @@ bool CompilerInvocation::shouldImportSwiftONoneSupport() const {
 }
 
 void CompilerInstance::verifyImplicitConcurrencyImport() {
-  if (Invocation.shouldImportSwiftConcurrency() &&
-      !canImportSwiftConcurrency()) {
+  if (Invocation.shouldImportCodiraConcurrency() &&
+      !canImportCodiraConcurrency()) {
     Diagnostics.diagnose(SourceLoc(),
                          diag::warn_implicit_concurrency_import_failed);
   }
 }
 
-bool CompilerInstance::canImportSwiftConcurrency() const {
+bool CompilerInstance::canImportCodiraConcurrency() const {
   ImportPath::Module::Builder builder(
-      getASTContext().getIdentifier(SWIFT_CONCURRENCY_NAME));
+      getASTContext().getIdentifier(LANGUAGE_CONCURRENCY_NAME));
   auto modulePath = builder.get();
   return getASTContext().testImportModule(modulePath);
 }
 
-bool CompilerInstance::canImportSwiftConcurrencyShims() const {
+bool CompilerInstance::canImportCodiraConcurrencyShims() const {
   ImportPath::Module::Builder builder(
-      getASTContext().getIdentifier(SWIFT_CONCURRENCY_SHIMS_NAME));
+      getASTContext().getIdentifier(LANGUAGE_CONCURRENCY_SHIMS_NAME));
   auto modulePath = builder.get();
   return getASTContext().testImportModule(modulePath);
 }
 
 void CompilerInstance::verifyImplicitStringProcessingImport() {
-  if (Invocation.shouldImportSwiftStringProcessing() &&
-      !canImportSwiftStringProcessing()) {
+  if (Invocation.shouldImportCodiraStringProcessing() &&
+      !canImportCodiraStringProcessing()) {
     Diagnostics.diagnose(SourceLoc(),
                          diag::warn_implicit_string_processing_import_failed);
   }
 }
 
-bool CompilerInstance::canImportSwiftStringProcessing() const {
+bool CompilerInstance::canImportCodiraStringProcessing() const {
   ImportPath::Module::Builder builder(
-      getASTContext().getIdentifier(SWIFT_STRING_PROCESSING_NAME));
+      getASTContext().getIdentifier(LANGUAGE_STRING_PROCESSING_NAME));
   auto modulePath = builder.get();
   return getASTContext().testImportModule(modulePath);
 }
@@ -1216,7 +1247,7 @@ bool CompilerInstance::canImportCxxShim() const {
   ImportPath::Module::Builder builder(
       getASTContext().getIdentifier(CXX_SHIM_NAME));
   auto modulePath = builder.get();
-  // Currently, Swift interfaces are not to expose their
+  // Currently, Codira interfaces are not to expose their
   // C++ dependencies. Which means that when scanning them we should not
   // bring in such dependencies, including CxxShims.
   return getASTContext().testImportModule(modulePath) &&
@@ -1267,37 +1298,37 @@ ImplicitImportInfo CompilerInstance::getImplicitImportInfo() const {
                                            : ImportOptions());
   }
 
-  if (Invocation.shouldImportSwiftONoneSupport()) {
-    pushImport(SWIFT_ONONE_SUPPORT);
+  if (Invocation.shouldImportCodiraONoneSupport()) {
+    pushImport(LANGUAGE_ONONE_SUPPORT);
   }
 
   // FIXME: The canImport check is required for compatibility
   // with older SDKs. Longer term solution is to have the driver make
   // the decision on the implicit import: rdar://76996377
-  if (Invocation.shouldImportSwiftConcurrency()) {
+  if (Invocation.shouldImportCodiraConcurrency()) {
     switch (imports.StdlibKind) {
     case ImplicitStdlibKind::Builtin:
     case ImplicitStdlibKind::None:
       break;
 
     case ImplicitStdlibKind::Stdlib:
-      if (canImportSwiftConcurrency())
-        pushImport(SWIFT_CONCURRENCY_NAME);
-      if (canImportSwiftConcurrencyShims())
-        pushImport(SWIFT_CONCURRENCY_SHIMS_NAME);
+      if (canImportCodiraConcurrency())
+        pushImport(LANGUAGE_CONCURRENCY_NAME);
+      if (canImportCodiraConcurrencyShims())
+        pushImport(LANGUAGE_CONCURRENCY_SHIMS_NAME);
       break;
     }
   }
 
-  if (Invocation.shouldImportSwiftStringProcessing()) {
+  if (Invocation.shouldImportCodiraStringProcessing()) {
     switch (imports.StdlibKind) {
     case ImplicitStdlibKind::Builtin:
     case ImplicitStdlibKind::None:
       break;
 
     case ImplicitStdlibKind::Stdlib:
-      if (canImportSwiftStringProcessing())
-        pushImport(SWIFT_STRING_PROCESSING_NAME);
+      if (canImportCodiraStringProcessing())
+        pushImport(LANGUAGE_STRING_PROCESSING_NAME);
       break;
     }
   }
@@ -1322,35 +1353,35 @@ ImplicitImportInfo CompilerInstance::getImplicitImportInfo() const {
 static std::optional<SourceFileKind>
 tryMatchInputModeToSourceFileKind(FrontendOptions::ParseInputMode mode) {
   switch (mode) {
-  case FrontendOptions::ParseInputMode::SwiftLibrary:
-      // A Swift file in -parse-as-library mode is a library file.
+  case FrontendOptions::ParseInputMode::CodiraLibrary:
+      // A Codira file in -parse-as-library mode is a library file.
     return SourceFileKind::Library;
   case FrontendOptions::ParseInputMode::SIL:
-      // A Swift file in -parse-sil mode is a SIL file.
+      // A Codira file in -parse-sil mode is a SIL file.
     return SourceFileKind::SIL;
-  case FrontendOptions::ParseInputMode::SwiftModuleInterface:
+  case FrontendOptions::ParseInputMode::CodiraModuleInterface:
     return SourceFileKind::Interface;
-  case FrontendOptions::ParseInputMode::Swift:
+  case FrontendOptions::ParseInputMode::Codira:
     return SourceFileKind::Main;
   }
-  llvm::outs() << (unsigned)mode;
-  llvm_unreachable("Unhandled input parsing mode!");
+  toolchain::outs() << (unsigned)mode;
+  toolchain_unreachable("Unhandled input parsing mode!");
 }
 
 SourceFile *
 CompilerInstance::computeMainSourceFileForModule(ModuleDecl *mod) const {
-  // Swift libraries cannot have a 'main'.
+  // Codira libraries cannot have a 'main'.
   const auto &FOpts = getInvocation().getFrontendOptions();
   const auto &Inputs = FOpts.InputsAndOutputs.getAllInputs();
-  if (FOpts.InputMode == FrontendOptions::ParseInputMode::SwiftLibrary) {
+  if (FOpts.InputMode == FrontendOptions::ParseInputMode::CodiraLibrary) {
     return nullptr;
   }
 
-  // Try to pull out a file called 'main.swift'.
+  // Try to pull out a file called 'main.code'.
   auto MainInputIter =
       std::find_if(Inputs.begin(), Inputs.end(), [](const InputFile &input) {
-        return input.getType() == file_types::TY_Swift &&
-               llvm::sys::path::filename(input.getFileName()) == "main.swift";
+        return input.getType() == file_types::TY_Codira &&
+               toolchain::sys::path::filename(input.getFileName()) == "main.code";
       });
 
   std::optional<unsigned> MainBufferID = std::nullopt;
@@ -1358,7 +1389,7 @@ CompilerInstance::computeMainSourceFileForModule(ModuleDecl *mod) const {
     MainBufferID =
         getSourceMgr().getIDForBufferIdentifier(MainInputIter->getFileName());
   } else if (InputSourceCodeBufferIDs.size() == 1) {
-    // Barring that, just nominate a single Swift file as the main file.
+    // Barring that, just nominate a single Codira file as the main file.
     MainBufferID.emplace(InputSourceCodeBufferIDs.front());
   }
 
@@ -1410,11 +1441,11 @@ bool CompilerInstance::createFilesForMainModule(
 static void configureAvailabilityDomains(const ASTContext &ctx,
                                          const FrontendOptions &opts,
                                          ModuleDecl *mainModule) {
-  llvm::SmallDenseMap<Identifier, const CustomAvailabilityDomain *> domainMap;
+  toolchain::SmallDenseMap<Identifier, const CustomAvailabilityDomain *> domainMap;
   auto createAndInsertDomain = [&](const std::string &name,
                                    CustomAvailabilityDomain::Kind kind) {
-    auto *domain =
-        CustomAvailabilityDomain::get(name, kind, mainModule, nullptr, ctx);
+    auto *domain = CustomAvailabilityDomain::get(name, kind, mainModule,
+                                                 nullptr, nullptr, ctx);
     bool inserted = domainMap.insert({domain->getName(), domain}).second;
     ASSERT(inserted); // Domains must be unique.
   };
@@ -1463,7 +1494,7 @@ ModuleDecl *CompilerInstance::getMainModule() const {
     }
     if (Invocation.getFrontendOptions().EnableLibraryEvolution)
       MainModule->setResilienceStrategy(ResilienceStrategy::Resilient);
-    if (Invocation.getLangOptions().isSwiftVersionAtLeast(6))
+    if (Invocation.getLangOptions().isCodiraVersionAtLeast(6))
       MainModule->setIsConcurrencyChecked(true);
     if (Invocation.getLangOptions().EnableCXXInterop &&
         Invocation.getLangOptions()
@@ -1482,10 +1513,10 @@ ModuleDecl *CompilerInstance::getMainModule() const {
                                  Invocation.getFrontendOptions(), MainModule);
 
     if (!Invocation.getFrontendOptions()
-             .SwiftInterfaceCompilerVersion.empty()) {
+             .CodiraInterfaceCompilerVersion.empty()) {
       auto compilerVersion =
-          Invocation.getFrontendOptions().SwiftInterfaceCompilerVersion;
-      MainModule->setSwiftInterfaceCompilerVersion(compilerVersion);
+          Invocation.getFrontendOptions().CodiraInterfaceCompilerVersion;
+      MainModule->setCodiraInterfaceCompilerVersion(compilerVersion);
     }
 
     // Register the main module with the AST context.
@@ -1526,7 +1557,7 @@ bool CompilerInstance::performParseAndResolveImportsOnly() {
     auto accessNotesPath = Invocation.getFrontendOptions().AccessNotesPath;
 
     auto bufferOrError =
-        swift::vfs::getFileOrSTDIN(getFileSystem(), accessNotesPath);
+        language::vfs::getFileOrSTDIN(getFileSystem(), accessNotesPath);
     if (bufferOrError) {
       int sourceID =
           SourceMgr.addNewSourceBuffer(std::move(bufferOrError.get()));
@@ -1563,7 +1594,7 @@ void CompilerInstance::performSema() {
 }
 
 bool CompilerInstance::loadStdlibIfNeeded() {
-  if (!FrontendOptions::doesActionRequireSwiftStandardLibrary(
+  if (!FrontendOptions::doesActionRequireCodiraStandardLibrary(
           Invocation.getFrontendOptions().RequestedAction)) {
     return false;
   }
@@ -1622,7 +1653,7 @@ bool CompilerInstance::loadPartialModulesAndImplicitImports(
 }
 
 bool CompilerInstance::forEachFileToTypeCheck(
-    llvm::function_ref<bool(SourceFile &)> fn) {
+    toolchain::function_ref<bool(SourceFile &)> fn) {
   if (isWholeModuleCompilation()) {
     for (auto fileName : getMainModule()->getFiles()) {
       auto *SF = dyn_cast<SourceFile>(fileName);
@@ -1642,7 +1673,7 @@ bool CompilerInstance::forEachFileToTypeCheck(
 }
 
 bool CompilerInstance::forEachSourceFile(
-    llvm::function_ref<bool(SourceFile &)> fn) {
+    toolchain::function_ref<bool(SourceFile &)> fn) {
   for (auto fileName : getMainModule()->getFiles()) {
     auto *SF = dyn_cast<SourceFile>(fileName);
     if (!SF) {
@@ -1711,7 +1742,7 @@ CompilerInstance::getSourceFileParsingOptions(bool forPrimary) const {
   //     - Same as IDE inspection, this is meant to be a very fast operation.
   //       Don't slow it down
   //   - skipped function bodies
-  //     - Swift parser doesn't support function body skipping yet, so this
+  //     - Codira parser doesn't support function body skipping yet, so this
   //       would result in verification failures when bodies have errors
   if (!isEffectivelyPrimary || SourceMgr.hasIDEInspectionTargetBuffer() ||
       frontendOpts.RequestedAction == ActionType::ScanDependencies ||
@@ -1793,7 +1824,7 @@ static void performSILOptimizations(CompilerInvocation &Invocation,
   } else {
     runSILOptimizationPasses(*SM);
   }
-  // When building SwiftOnoneSupport.o verify all expected ABI symbols.
+  // When building CodiraOnoneSupport.o verify all expected ABI symbols.
   if (Invocation.getFrontendOptions().CheckOnoneSupportCompleteness
        // TODO: handle non-ObjC based stdlib builds, e.g. on linux.
       && Invocation.getLangOptions().EnableObjCInterop

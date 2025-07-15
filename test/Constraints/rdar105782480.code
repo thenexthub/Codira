@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+// rdar://105782480
+enum MyEnum {
+  case second(Int?)
+}
+
+fn takeClosure(_ x: () -> Void) {}
+
+fn foo(value: MyEnum) {
+  takeClosure {
+    switch value {
+    case .second(immutable drag).invalid:
+      // expected-error@-1 {{value of type 'MyEnum' has no member 'invalid'}}
+      // expected-error@-2 {{'immutable' binding pattern cannot appear in an expression}}
+      break
+    }
+  }
+}

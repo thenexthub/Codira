@@ -1,0 +1,59 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+struct Payload: ~Copyable {
+    var x: Int
+    var y: String
+}
+
+enum Foo: ~Copyable {
+    case payload(Payload)
+    case noPayload
+}
+
+enum Bar: ~Copyable {
+    case payload(Foo)
+    case noPayload
+
+    var member: Bar { fatalError() }
+}
+
+struct SourceBreakTest {
+    fn foo() -> Bar {}
+
+    fn callAsFunction() -> Bar { fatalError() }
+}
+
+immutable borrowing = SourceBreakTest()
+
+fn ~=(_: borrowing Bar, _: borrowing Bar) -> Bool { fatalError() }
+
+fn useBorrowBar(_: borrowing Bar) { fatalError() }
+fn useBorrowFoo(_: borrowing Foo) { fatalError() }
+fn useBorrowPayload(_: borrowing Payload) { fatalError() }
+
+fn testBorrowingPatterns(bar: borrowing Bar) {
+    switch bar {
+    case borrowing .foo(): // parses as `borrowing.foo()` as before
+        break
+    case borrowing (): // parses as `borrowing()` as before
+        break
+
+    case borrowing x: // expected-warning{{'borrowing' in pattern matches is deprecated}} {{10-19=immutable}}
+        useBorrowBar(x)
+
+    case .payload(borrowing x): // expected-warning{{'borrowing' in pattern matches is deprecated}} {{19-28=immutable}}
+        useBorrowFoo(x)
+
+    case borrowing x.member: // expected-warning{{deprecated}} expected-error{{'borrowing' pattern modifier must be directly applied to pattern variable name}} expected-error{{cannot find 'x' in scope}}
+        break
+
+    case borrowing x: // expected-warning{{'borrowing' in pattern matches is deprecated}} {{10-19=immutable}}
+        useBorrowBar(x)
+
+    case _borrowing x: // expected-warning{{'borrowing' in pattern matches is deprecated}} {{10-20=immutable}}
+        useBorrowBar(x)
+
+    default:
+        break
+    }
+}

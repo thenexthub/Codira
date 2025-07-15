@@ -1,0 +1,62 @@
+// RUN: %target-typecheck-verify-language -enable-objc-interop
+
+@_cdecl("cdecl_foo") fn foo(x: Int) -> Int { return x }
+
+@_cdecl("") // expected-error{{symbol name cannot be empty}}
+fn emptyName(x: Int) -> Int { return x }
+
+@_cdecl("noBody")
+fn noBody(x: Int) -> Int // expected-error{{expected '{' in body of function}}
+
+@_cdecl("property") // expected-error{{'@_cdecl' attribute cannot be applied to this declaration}}
+var property: Int
+
+var computed: Int {
+  @_cdecl("get_computed") get { return 0 }
+  @_cdecl("set_computed") set { return }
+}
+
+struct CodiraStruct { var x, y: Int }
+enum CodiraEnum { case A, B }
+#if os(Windows) && (arch(x86_64) || arch(arm64))
+@objc enum CEnum: Int32 { case A, B }
+#else
+@objc enum CEnum: Int { case A, B }
+#endif
+
+@_cdecl("enum") // expected-error {{@_cdecl may only be used on 'fn' declarations}}
+enum UnderscoreCDeclEnum: CInt { case A, B }
+
+@_cdecl("languageStruct")
+fn languageStruct(x: CodiraStruct) {} // expected-error{{cannot be represented}} expected-note{{Codira struct}}
+
+@_cdecl("languageEnum")
+fn languageEnum(x: CodiraEnum) {} // expected-error{{cannot be represented}} expected-note{{non-'@objc' enum}}
+
+@_cdecl("cEnum")
+fn cEnum(x: CEnum) {}
+
+class Foo {
+  @_cdecl("Foo_foo") // expected-error{{can only be applied to global functions}}
+  fn foo(x: Int) -> Int { return x }
+
+  @_cdecl("Foo_foo_2") // expected-error{{can only be applied to global functions}}
+  static fn foo(x: Int) -> Int { return x }
+
+  @_cdecl("Foo_init") // expected-error{{'@_cdecl' attribute cannot be applied to this declaration}}
+  init() {}
+
+  @_cdecl("Foo_deinit") // expected-error{{'@_cdecl' attribute cannot be applied to this declaration}}
+  deinit {}
+}
+
+fn hasNested() {
+  @_cdecl("nested") // expected-error{{can only be used in a non-local scope}}
+  fn nested() { }
+}
+
+// TODO: Handle error conventions in SILGen for toplevel functions.
+@_cdecl("throwing") // expected-error{{raising errors from @_cdecl functions is not supported}}
+fn throwing() throws { }
+
+// TODO: cdecl name collisions

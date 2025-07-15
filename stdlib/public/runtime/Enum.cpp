@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime functions in support of enums.
+// Codira runtime functions in support of enums.
 //
 //===----------------------------------------------------------------------===//
 
@@ -33,9 +34,9 @@ using namespace language;
 
 // So remote inspection/debugging tools can obtain
 // information about this process.
-SWIFT_RUNTIME_STDLIB_SPI
-const uint64_t _swift_debug_multiPayloadEnumPointerSpareBitsMask
-  = _swift_abi_SwiftSpareBitsMask;
+LANGUAGE_RUNTIME_STDLIB_SPI
+const uint64_t _language_debug_multiPayloadEnumPointerSpareBitsMask
+  = _language_abi_CodiraSpareBitsMask;
 
 static EnumValueWitnessTable *getMutableVWTableForInit(EnumMetadata *self,
                                                        EnumLayoutFlags flags) {
@@ -56,7 +57,7 @@ static EnumValueWitnessTable *getMutableVWTableForInit(EnumMetadata *self,
 }
 
 void
-swift::swift_initEnumMetadataSingleCase(EnumMetadata *self,
+language::language_initEnumMetadataSingleCase(EnumMetadata *self,
                                         EnumLayoutFlags layoutFlags,
                                         const TypeLayout *payloadLayout) {
   auto vwtable = getMutableVWTableForInit(self, layoutFlags);
@@ -70,7 +71,7 @@ swift::swift_initEnumMetadataSingleCase(EnumMetadata *self,
   vwtable->publishLayout(layout);
 }
 
-static void swift_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
+static void language_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
     EnumMetadata *self, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType) {
   assert(self->hasLayoutString());
@@ -84,13 +85,13 @@ static void swift_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
   layout.flags = payloadLayout->flags.withEnumWitnesses(true);
   layout.extraInhabitantCount = payloadLayout->getNumExtraInhabitants();
 
-  auto refCountBytes = _swift_refCountBytesForMetatype(payloadType);
+  auto refCountBytes = _language_refCountBytesForMetatype(payloadType);
   const size_t fixedLayoutStringSize =
       layoutStringHeaderSize + sizeof(uint64_t);
 
   uint8_t *layoutStr =
       (uint8_t *)MetadataAllocator(LayoutStringTag)
-          .Allocate(llvm::alignTo(fixedLayoutStringSize + refCountBytes,
+          .Allocate(toolchain::alignTo(fixedLayoutStringSize + refCountBytes,
                                   sizeof(void *)),
                     alignof(uint8_t));
 
@@ -100,7 +101,7 @@ static void swift_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
   size_t previousFieldOffset = 0;
   LayoutStringFlags flags = LayoutStringFlags::Empty;
 
-  _swift_addRefCountStringForMetatype(writer, flags, payloadType, fullOffset,
+  _language_addRefCountStringForMetatype(writer, flags, payloadType, fullOffset,
                                       previousFieldOffset);
 
   writer.writeBytes((uint64_t)previousFieldOffset);
@@ -118,15 +119,15 @@ static void swift_cvw_initEnumMetadataSingleCaseWithLayoutStringImpl(
   vwtable->publishLayout(layout);
 }
 
-void swift::swift_initEnumMetadataSingleCaseWithLayoutString(
+void language::language_initEnumMetadataSingleCaseWithLayoutString(
     EnumMetadata *self, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType) {
-  swift_cvw_initEnumMetadataSingleCaseWithLayoutString(self, layoutFlags,
+  language_cvw_initEnumMetadataSingleCaseWithLayoutString(self, layoutFlags,
                                                        payloadType);
 }
 
 void
-swift::swift_initEnumMetadataSinglePayload(EnumMetadata *self,
+language::language_initEnumMetadataSinglePayload(EnumMetadata *self,
                                            EnumLayoutFlags layoutFlags,
                                            const TypeLayout *payloadLayout,
                                            unsigned emptyCases) {
@@ -160,13 +161,13 @@ swift::swift_initEnumMetadataSinglePayload(EnumMetadata *self,
           .withInlineStorage(
               ValueWitnessTable::isValueInline(isBT, size, align));
   layout.extraInhabitantCount = unusedExtraInhabitants;
-  auto rawStride = llvm::alignTo(size, align);
+  auto rawStride = toolchain::alignTo(size, align);
   layout.stride = rawStride == 0 ? 1 : rawStride;
   
   // Substitute in better common value witnesses if we have them.
   // If the payload type is a single-refcounted pointer, and the enum has
   // a single empty case, then we can borrow the witnesses of the single
-  // refcounted pointer type, since swift_retain and objc_retain are both
+  // refcounted pointer type, since language_retain and objc_retain are both
   // nil-aware. Most single-refcounted types will use the standard
   // value witness tables for NativeObject or AnyObject. This isn't
   // foolproof but should catch the common case of optional class types.
@@ -174,7 +175,7 @@ swift::swift_initEnumMetadataSinglePayload(EnumMetadata *self,
   auto payloadVWT = payload->getValueWitnesses();
   if (emptyCases == 1
       && (payloadVWT == &VALUE_WITNESS_SYM(Bo)
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
           || payloadVWT == &VALUE_WITNESS_SYM(BO)
 #endif
           )) {
@@ -224,7 +225,7 @@ XIElement findXIElement(const Metadata *type) {
 }
 } // namespace
 
-static void swift_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
+static void language_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
     EnumMetadata *self, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType, unsigned emptyCases) {
   assert(self->hasLayoutString());
@@ -259,12 +260,12 @@ static void swift_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
   layout.flags = payloadLayout->flags.withEnumWitnesses(true).withInlineStorage(
       ValueWitnessTable::isValueInline(isBT, size, align));
   layout.extraInhabitantCount = unusedExtraInhabitants;
-  auto rawStride = llvm::alignTo(size, align);
+  auto rawStride = toolchain::alignTo(size, align);
   layout.stride = rawStride == 0 ? 1 : rawStride;
 
   auto xiElement = findXIElement(payloadType);
 
-  size_t payloadRefCountBytes = _swift_refCountBytesForMetatype(payloadType);
+  size_t payloadRefCountBytes = _language_refCountBytesForMetatype(payloadType);
   size_t refCountBytes = payloadRefCountBytes +
                          sizeof(uint64_t) +  // tag + offset
                          sizeof(uint64_t) +  // extra tag bytes + XI offset
@@ -279,7 +280,7 @@ static void swift_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
 
   uint8_t *layoutStr =
       (uint8_t *)MetadataAllocator(LayoutStringTag)
-          .Allocate(llvm::alignTo(fixedLayoutStringSize + refCountBytes,
+          .Allocate(toolchain::alignTo(fixedLayoutStringSize + refCountBytes,
                                   sizeof(void *)),
                     alignof(uint8_t));
 
@@ -308,7 +309,7 @@ static void swift_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
   size_t previousFieldOffset = 0;
   LayoutStringFlags flags = LayoutStringFlags::Empty;
 
-  _swift_addRefCountStringForMetatype(writer, flags, payloadType, fullOffset,
+  _language_addRefCountStringForMetatype(writer, flags, payloadType, fullOffset,
                                       previousFieldOffset);
 
   writer.writeBytes((uint64_t)previousFieldOffset + extraTagBytes);
@@ -327,14 +328,14 @@ static void swift_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
   // Substitute in better common value witnesses if we have them.
   // If the payload type is a single-refcounted pointer, and the enum has
   // a single empty case, then we can borrow the witnesses of the single
-  // refcounted pointer type, since swift_retain and objc_retain are both
+  // refcounted pointer type, since language_retain and objc_retain are both
   // nil-aware. Most single-refcounted types will use the standard
   // value witness tables for NativeObject or AnyObject. This isn't
   // foolproof but should catch the common case of optional class types.
 #if OPTIONAL_OBJECT_OPTIMIZATION
   auto payloadVWT = payload->getValueWitnesses();
   if (emptyCases == 1 && (payloadVWT == &VALUE_WITNESS_SYM(Bo)
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
                           || payloadVWT == &VALUE_WITNESS_SYM(BO)
 #endif
                               )) {
@@ -353,15 +354,15 @@ static void swift_cvw_initEnumMetadataSinglePayloadWithLayoutStringImpl(
   vwtable->publishLayout(layout);
 }
 
-void swift::swift_initEnumMetadataSinglePayloadWithLayoutString(
+void language::language_initEnumMetadataSinglePayloadWithLayoutString(
     EnumMetadata *self, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType, unsigned emptyCases) {
-  return swift_cvw_initEnumMetadataSinglePayloadWithLayoutString(
+  return language_cvw_initEnumMetadataSinglePayloadWithLayoutString(
       self, layoutFlags, payloadType, emptyCases);
 }
 
 unsigned
-swift::swift_getEnumTagSinglePayloadGeneric(const OpaqueValue *value,
+language::language_getEnumTagSinglePayloadGeneric(const OpaqueValue *value,
                                             unsigned emptyCases,
                                             const Metadata *payloadType,
                                getExtraInhabitantTag_t *getExtraInhabitantTag) {
@@ -372,7 +373,7 @@ swift::swift_getEnumTagSinglePayloadGeneric(const OpaqueValue *value,
                                      getExtraInhabitantTag);
 }
 
-void swift::swift_storeEnumTagSinglePayloadGeneric(OpaqueValue *value,
+void language::language_storeEnumTagSinglePayloadGeneric(OpaqueValue *value,
                                                    unsigned whichCase,
                                                    unsigned emptyCases,
                                                    const Metadata *payloadType,
@@ -384,7 +385,7 @@ void swift::swift_storeEnumTagSinglePayloadGeneric(OpaqueValue *value,
 }
 
 void
-swift::swift_initEnumMetadataMultiPayload(EnumMetadata *enumType,
+language::language_initEnumMetadataMultiPayload(EnumMetadata *enumType,
                                      EnumLayoutFlags layoutFlags,
                                      unsigned numPayloads,
                                      const TypeLayout * const *payloadLayouts) {
@@ -438,14 +439,14 @@ swift::swift_initEnumMetadataMultiPayload(EnumMetadata *enumType,
   // Unconditionally overwrite the enum-tag witnesses.
   // The compiler does not generate meaningful enum-tag witnesses for
   // enums in this state.
-  vwtable->getEnumTagSinglePayload = swift_getMultiPayloadEnumTagSinglePayload;
+  vwtable->getEnumTagSinglePayload = language_getMultiPayloadEnumTagSinglePayload;
   vwtable->storeEnumTagSinglePayload =
-      swift_storeMultiPayloadEnumTagSinglePayload;
+      language_storeMultiPayloadEnumTagSinglePayload;
 
   vwtable->publishLayout(layout);
 }
 
-static void swift_cvw_initEnumMetadataMultiPayloadWithLayoutStringImpl(
+static void language_cvw_initEnumMetadataMultiPayloadWithLayoutStringImpl(
     EnumMetadata *enumType, EnumLayoutFlags layoutFlags, unsigned numPayloads,
     const Metadata *const *payloadLayouts) {
   assert(enumType->hasLayoutString());
@@ -463,7 +464,7 @@ static void swift_cvw_initEnumMetadataMultiPayloadWithLayoutStringImpl(
     isPOD &= payloadLayout->flags.isPOD();
     isBT &= payloadLayout->flags.isBitwiseTakable();
 
-    payloadRefCountBytes += _swift_refCountBytesForMetatype(payloadLayouts[i]);
+    payloadRefCountBytes += _language_refCountBytesForMetatype(payloadLayouts[i]);
     // NUL terminator
     payloadRefCountBytes += sizeof(uint64_t);
   }
@@ -500,7 +501,7 @@ static void swift_cvw_initEnumMetadataMultiPayloadWithLayoutStringImpl(
 
     uint8_t *layoutStr =
         (uint8_t *)MetadataAllocator(LayoutStringTag)
-            .Allocate(llvm::alignTo(allocationSize, sizeof(void *)),
+            .Allocate(toolchain::alignTo(allocationSize, sizeof(void *)),
                       alignof(uint8_t));
 
     LayoutStringWriter writer{layoutStr, sizeof(uint64_t)};
@@ -532,7 +533,7 @@ static void swift_cvw_initEnumMetadataMultiPayloadWithLayoutStringImpl(
       size_t layoutStrOffsetBefore = writer.offset;
       size_t previousFieldOffset = 0;
       size_t fullOffset = 0;
-      _swift_addRefCountStringForMetatype(writer, flags, payloadType,
+      _language_addRefCountStringForMetatype(writer, flags, payloadType,
                                           fullOffset, previousFieldOffset);
 
       // NUL terminator
@@ -571,17 +572,17 @@ static void swift_cvw_initEnumMetadataMultiPayloadWithLayoutStringImpl(
   // Unconditionally overwrite the enum-tag witnesses.
   // The compiler does not generate meaningful enum-tag witnesses for
   // enums in this state.
-  vwtable->getEnumTagSinglePayload = swift_getMultiPayloadEnumTagSinglePayload;
+  vwtable->getEnumTagSinglePayload = language_getMultiPayloadEnumTagSinglePayload;
   vwtable->storeEnumTagSinglePayload =
-      swift_storeMultiPayloadEnumTagSinglePayload;
+      language_storeMultiPayloadEnumTagSinglePayload;
 
   vwtable->publishLayout(layout);
 }
 
-void swift::swift_initEnumMetadataMultiPayloadWithLayoutString(
+void language::language_initEnumMetadataMultiPayloadWithLayoutString(
     EnumMetadata *enumType, EnumLayoutFlags layoutFlags, unsigned numPayloads,
     const Metadata *const *payloadLayouts) {
-  swift_cvw_initEnumMetadataMultiPayloadWithLayoutString(
+  language_cvw_initEnumMetadataMultiPayloadWithLayoutString(
       enumType, layoutFlags, numPayloads, payloadLayouts);
 }
 
@@ -636,7 +637,7 @@ static unsigned loadMultiPayloadValue(const OpaqueValue *value,
   return loadEnumElement(bytes, layout.payloadSize);
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static unsigned getMultiPayloadExtraInhabitantTag(const OpaqueValue *value,
                                                   unsigned enumNumXI,
                                                   const Metadata *enumType) {
@@ -648,7 +649,7 @@ static unsigned getMultiPayloadExtraInhabitantTag(const OpaqueValue *value,
   return index + 1;
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static void storeMultiPayloadExtraInhabitantTag(OpaqueValue *value,
                                                 unsigned tag,
                                                 unsigned enumNumXI,
@@ -658,7 +659,7 @@ static void storeMultiPayloadExtraInhabitantTag(OpaqueValue *value,
 }
 
 uint32_t
-swift::swift_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
+language::language_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
                                                  uint32_t numExtraCases,
                                                  const Metadata *enumType) {
   return getEnumTagSinglePayloadImpl(value, numExtraCases, enumType,
@@ -667,7 +668,7 @@ swift::swift_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
                                      getMultiPayloadExtraInhabitantTag);
 }
 
-void swift::swift_storeMultiPayloadEnumTagSinglePayload(
+void language::language_storeMultiPayloadEnumTagSinglePayload(
     OpaqueValue *value, uint32_t index, uint32_t numExtraCases,
     const Metadata *enumType) {
   storeEnumTagSinglePayloadImpl(value, index, numExtraCases, enumType,
@@ -677,7 +678,7 @@ void swift::swift_storeMultiPayloadEnumTagSinglePayload(
 }
 
 void
-swift::swift_storeEnumTagMultiPayload(OpaqueValue *value,
+language::language_storeEnumTagMultiPayload(OpaqueValue *value,
                                       const EnumMetadata *enumType,
                                       unsigned whichCase) {
   auto layout = getMultiPayloadLayout(enumType);
@@ -704,7 +705,7 @@ swift::swift_storeEnumTagMultiPayload(OpaqueValue *value,
 }
 
 unsigned
-swift::swift_getEnumCaseMultiPayload(const OpaqueValue *value,
+language::language_getEnumCaseMultiPayload(const OpaqueValue *value,
                                      const EnumMetadata *enumType) {
   auto layout = getMultiPayloadLayout(enumType);
   unsigned numPayloads = enumType->getDescription()->getNumPayloadCases();

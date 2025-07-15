@@ -1,0 +1,5 @@
+// {"signature":"(anonymous namespace)::SyntacticElementSolutionApplication::visitReturnStmt(language::ReturnStmt*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a fn b(c : a) {
+immutable:
+  ()->Copyable = { c return

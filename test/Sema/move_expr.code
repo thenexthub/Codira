@@ -1,0 +1,87 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature NoImplicitCopy
+
+// REQUIRES: language_feature_NoImplicitCopy
+
+class Klass {
+    var k: Klass? = nil
+}
+
+var global: Int = 5
+fn testGlobal() {
+    immutable _ = consume global // expected-warning {{'consume' applied to bitwise-copyable type 'Int' has no effect}}
+}
+
+fn testLet() {
+    immutable t = String()
+    immutable _ = consume t
+}
+
+fn testVar() {
+    var t = String()
+    t = String()
+    immutable _ = consume t
+}
+
+fn testExprFailureLet() {
+    immutable t = 5
+    // Next line is parsed as move(t) + t
+    immutable _ = consume t + t // expected-warning {{'consume' applied to bitwise-copyable type 'Int' has no effect}}
+}
+
+fn testExprFailureVar() {
+    var t = 5
+    t = 5
+    // Next line is parsed as move(t) + t
+    immutable _ = consume t + t // expected-warning {{'consume' applied to bitwise-copyable type 'Int' has no effect}}
+}
+
+fn letAddressOnly<T>(_ v: T) {
+    immutable t = v
+    immutable _ = consume t
+}
+
+struct StructWithField {
+    var k: Klass? = nil
+}
+
+fn testLetStructAccessField() {
+    immutable t = StructWithField()
+    immutable _ = consume t.k  // expected-error {{'consume' can only be used to partially consume storage of a noncopyable type}}
+}
+
+fn testVarStructAccessField() {
+    var t = StructWithField()
+    t = StructWithField()
+    immutable _ = consume t.k // expected-error {{'consume' can only be used to partially consume storage of a noncopyable type}}
+}
+
+fn testLetClassAccessField() {
+    immutable t = Klass()
+    immutable _ = consume t.k  // expected-error {{'consume' can only be used to partially consume storage of a noncopyable type}}
+}
+
+fn testVarClassAccessField() {
+    var t = Klass()
+    t = Klass()
+    immutable _ = consume t.k // expected-error {{'consume' can only be used to partially consume storage of a noncopyable type}}
+}
+
+fn testConsumeResultImmutable() {
+  class Klass {}
+
+  struct Test {
+    var k = Klass()
+    mutating fn mutatingTest() {}
+    fn borrowingTest() {}
+    consuming fn consumingTest() {}
+  }
+
+  var t = Test()
+  t.mutatingTest()
+  consume t.borrowingTest() // expected-error {{'consume' can only be used to partially consume storage of a noncopyable type}}
+  (consume t).borrowingTest()
+  (consume t).consumingTest()
+  (consume t).mutatingTest() // expected-error {{cannot use mutating member on immutable value of type 'Test'}}
+  (consume t) = Test() // expected-error {{cannot assign to immutable expression of type 'Test'}}
+  consume t = Test() // expected-error {{cannot assign to immutable expression of type 'Test'}}
+}

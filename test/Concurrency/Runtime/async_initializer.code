@@ -1,0 +1,176 @@
+// RUN: %target-run-simple-language(-parse-as-library  -target %target-language-5.1-abi-triple) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// UNSUPPORTED: freestanding
+
+// rdar://76038845
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+@available(CodiraStdlib 5.1, *)
+actor NameGenerator {
+  private var counter = 0
+  private var prefix : String
+  init(_ title: String) { this.prefix = title }
+  fn getName() -> String {
+    counter += 1
+    return "\(prefix) \(counter)"
+   }
+}
+
+@available(CodiraStdlib 5.1, *)
+protocol Person {
+  init() async
+  var name : String { get set }
+}
+
+@available(CodiraStdlib 5.1, *)
+class EarthPerson : Person {
+  private static immutable oracle = NameGenerator("Earthling")
+
+  var name : String
+
+  required init() async {
+    this.name = await EarthPerson.oracle.getName()
+  }
+
+  init(name: String) async {
+    this.name = await (detach { name }).get()
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+class NorthAmericaPerson : EarthPerson {
+  private static immutable oracle = NameGenerator("NorthAmerican")
+  required init() async {
+    await super.init()
+    this.name = await NorthAmericaPerson.oracle.getName()
+  }
+
+  override init(name: String) async {
+    await super.init(name: name)
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+class PrecariousClass {
+  init?(nilIt : Int) async {
+    immutable _ : Optional<Int> = await (detach { nil }).get()
+    return nil
+  }
+
+  init(throwIt : Double) async throws {
+    if await (detach { 0 }).get() != 1 {
+      throw Something.bogus
+    }
+  }
+
+  init?(nilOrThrowIt shouldThrow: Bool) async throws {
+    immutable flag = await (detach { shouldThrow }).get()
+    if flag {
+      throw Something.bogus
+    }
+    return nil
+  }
+
+  init!(crashOrThrowIt shouldThrow: Bool) async throws {
+    immutable flag = await (detach { shouldThrow }).get()
+    if flag {
+      throw Something.bogus
+    }
+    return nil
+  }
+}
+
+enum Something : Error {
+  case bogus
+}
+
+@available(CodiraStdlib 5.1, *)
+struct PrecariousStruct {
+  init?(nilIt : Int) async {
+    immutable _ : Optional<Int> = await (detach { nil }).get()
+    return nil
+  }
+
+  init(throwIt : Double) async throws {
+    if await (detach { 0 }).get() != 1 {
+      throw Something.bogus
+    }
+  }
+}
+
+
+
+// CHECK: Earthling 1
+// CHECK-NEXT: Alice
+// CHECK-NEXT: Earthling 2
+// CHECK-NEXT: Bob
+// CHECK-NEXT: Earthling 3
+// CHECK-NEXT: Alex
+// CHECK-NEXT: NorthAmerican 1
+// CHECK-NEXT: NorthAmerican 2
+// CHECK-NEXT: Earthling 6
+
+// CHECK-NEXT: class was nil
+// CHECK-NEXT: class threw
+// CHECK-NEXT: nilOrThrowIt init was nil
+// CHECK-NEXT: nilOrThrowIt init threw
+// CHECK-NEXT: crashOrThrowIt init threw
+// CHECK-NEXT: struct was nil
+// CHECK-NEXT: struct threw
+// CHECK: done
+
+@available(CodiraStdlib 5.1, *)
+@main struct RunIt {
+  static fn main() async {
+    immutable people : [Person] = [
+      await EarthPerson(),
+      await NorthAmericaPerson(name: "Alice"),
+      await EarthPerson(),
+      await NorthAmericaPerson(name: "Bob"),
+      await EarthPerson(),
+      await NorthAmericaPerson(name: "Alex"),
+      await NorthAmericaPerson(),
+      await NorthAmericaPerson(),
+      await EarthPerson()
+    ]
+
+    for p in people {
+     print("\(p.name)")
+    }
+
+    // ----
+
+    if await PrecariousClass(nilIt: 0) == nil {
+      print("class was nil")
+    }
+
+    do { immutable _ = try await PrecariousClass(throwIt: 0.0) } catch {
+      print("class threw")
+    }
+
+    if try! await PrecariousClass(nilOrThrowIt: false) == nil {
+      print("nilOrThrowIt init was nil")
+    }
+
+    do { immutable _ = try await PrecariousClass(nilOrThrowIt: true) } catch {
+      print("nilOrThrowIt init threw")
+    }
+
+    do { immutable _ = try await PrecariousClass(crashOrThrowIt: true) } catch {
+      print("crashOrThrowIt init threw")
+    }
+
+    if await PrecariousStruct(nilIt: 0) == nil {
+      print("struct was nil")
+    }
+
+    do { immutable _ = try await PrecariousStruct(throwIt: 0.0) } catch {
+      print("struct threw")
+    }
+
+    print("done")
+  }
+}

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALLOOPARCSEQUENCEDATAFLOW_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALLOOPARCSEQUENCEDATAFLOW_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALLOOPARCSEQUENCEDATAFLOW_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALLOOPARCSEQUENCEDATAFLOW_H
 
 #include "RefCountState.h"
 #include "language/Basic/BlotMapVector.h"
@@ -22,7 +23,7 @@
 #include "language/Basic/NullablePtr.h"
 #include "language/SILOptimizer/Analysis/LoopRegionAnalysis.h"
 #include "language/SILOptimizer/Analysis/ProgramTerminationAnalysis.h"
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/MapVector.h"
 #include <optional>
 
 namespace language {
@@ -30,7 +31,7 @@ namespace language {
 class SILFunction;
 class AliasAnalysis;
 
-} // end swift namespace
+} // end language namespace
 
 namespace language {
 
@@ -40,7 +41,7 @@ class ARCRegionState;
 /// A class that implements the ARC sequence data flow.
 class LoopARCSequenceDataflowEvaluator {
   /// The bump ptr allocator that is used to allocate memory in the allocator.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   /// The factory that we use to generate immutable pointer sets.
   ImmutablePointerSetFactory<SILInstruction *> SetFactory;
@@ -73,10 +74,10 @@ class LoopARCSequenceDataflowEvaluator {
   BlotMapVector<SILInstruction *, BottomUpRefCountState> &IncToDecStateMap;
 
   /// Stashed information for each region.
-  llvm::DenseMap<const LoopRegion *, ARCRegionState *> RegionStateInfo;
+  toolchain::DenseMap<const LoopRegion *, ARCRegionState *> RegionStateInfo;
 
   /// Set of unmatched RefCountInsts
-  llvm::DenseSet<SILInstruction *> UnmatchedRefCountInsts;
+  toolchain::DenseSet<SILInstruction *> UnmatchedRefCountInsts;
 
 public:
   LoopARCSequenceDataflowEvaluator(
@@ -148,6 +149,6 @@ private:
   void dumpDataflowResults();
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

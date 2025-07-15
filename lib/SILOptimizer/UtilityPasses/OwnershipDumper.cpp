@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -34,13 +35,13 @@ using namespace language;
 //===----------------------------------------------------------------------===//
 
 static void dumpInstruction(SILInstruction &ii) {
-  llvm::outs() << "Visiting: " << ii;
+  toolchain::outs() << "Visiting: " << ii;
 
   auto ops = ii.getAllOperands();
   if (!ops.empty()) {
-    llvm::outs() << "Ownership Constraint:\n";
+    toolchain::outs() << "Ownership Constraint:\n";
     for (const auto &op : ops) {
-      llvm::outs() << "Op #: " << op.getOperandNumber() << "\n"
+      toolchain::outs() << "Op #: " << op.getOperandNumber() << "\n"
                       "Constraint: " << op.getOwnershipConstraint() << "\n";
     }
   }
@@ -48,11 +49,11 @@ static void dumpInstruction(SILInstruction &ii) {
   // If the instruction doesn't have any results, bail.
   auto results = ii.getResults();
   if (!results.empty()) {
-    llvm::outs() << "Results Ownership Kinds:\n";
+    toolchain::outs() << "Results Ownership Kinds:\n";
     for (auto v : results) {
       auto kind = v->getOwnershipKind();
-      llvm::outs() << "Result: " << v;
-      llvm::outs() << "Kind: " << kind << "\n";
+      toolchain::outs() << "Result: " << v;
+      toolchain::outs() << "Kind: " << kind << "\n";
     }
   }
 }
@@ -66,7 +67,7 @@ namespace {
 class OwnershipDumper : public SILFunctionTransform {
   void run() override {
     SILFunction *f = getFunction();
-    llvm::outs() << "*** Dumping Function: '" << f->getName() << "'\n";
+    toolchain::outs() << "*** Dumping Function: '" << f->getName() << "'\n";
     for (auto &bb : *f) {
       // We only dump instructions right now.
       for (auto &ii : bb) {
@@ -78,4 +79,4 @@ class OwnershipDumper : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createOwnershipDumper() { return new OwnershipDumper(); }
+SILTransform *language::createOwnershipDumper() { return new OwnershipDumper(); }

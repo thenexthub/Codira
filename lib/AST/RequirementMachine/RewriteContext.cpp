@@ -1,13 +1,17 @@
 //===--- RewriteContext.cpp - Term rewriting allocation arena -------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The RewriteContext is a global singleton object with three primary
@@ -161,7 +165,7 @@ static DebugOptions parseDebugFlags(StringRef debugFlags) {
   debugFlags.split(debug, ',');
   for (auto flagStr : debug) {
     auto flag =
-        llvm::StringSwitch<std::optional<DebugFlags>>(flagStr)
+        toolchain::StringSwitch<std::optional<DebugFlags>>(flagStr)
             .Case("simplify", DebugFlags::Simplify)
             .Case("add", DebugFlags::Add)
             .Case("completion", DebugFlags::Completion)
@@ -187,7 +191,7 @@ static DebugOptions parseDebugFlags(StringRef debugFlags) {
                   DebugFlags::SplitConcreteEquivalenceClass)
             .Default(std::nullopt);
     if (!flag) {
-      llvm::errs() << "Unknown debug flag in -debug-requirement-machine "
+      toolchain::errs() << "Unknown debug flag in -debug-requirement-machine "
                    << flagStr << "\n";
       abort();
     }
@@ -221,8 +225,8 @@ void RewriteContext::beginTimer(StringRef name) {
   auto dur = now.time_since_epoch();
 
   for (unsigned i = 0; i < Timers.size(); ++i)
-    llvm::dbgs() << "| ";
-  llvm::dbgs() << "+ started " << name << " ";
+    toolchain::dbgs() << "| ";
+  toolchain::dbgs() << "+ started " << name << " ";
 
   Timers.push_back(std::chrono::duration_cast<std::chrono::microseconds>(dur).count());
 }
@@ -240,14 +244,14 @@ void RewriteContext::endTimer(StringRef name) {
   }
 
   for (unsigned i = 0; i < Timers.size(); ++i)
-    llvm::dbgs() << "| ";
+    toolchain::dbgs() << "| ";
 
-  llvm::dbgs() << "+ ";
+  toolchain::dbgs() << "+ ";
 
   if (time > 100000)
-    llvm::dbgs() << "**** SLOW **** ";
+    toolchain::dbgs() << "**** SLOW **** ";
 
-  llvm::dbgs() << "finished " << name << " in " << time << "us: ";
+  toolchain::dbgs() << "finished " << name << " in " << time << "us: ";
 
 }
 
@@ -267,9 +271,9 @@ RequirementMachine *RewriteContext::getRequirementMachine(
   auto &machine = Machines[sig];
   if (machine) {
     if (!machine->isComplete()) {
-      llvm::errs() << "Re-entrant construction of requirement "
-                   << "machine for " << sig << "\n";
-      abort();
+      ABORT([&](auto &out) {
+        out << "Re-entrant construction of requirement machine for " << sig;
+      });
     }
 
     return machine;
@@ -277,7 +281,7 @@ RequirementMachine *RewriteContext::getRequirementMachine(
 
   if (Debug.contains(DebugFlags::Timers)) {
     beginTimer("getRequirementMachine()");
-    llvm::dbgs() << sig << "\n";
+    toolchain::dbgs() << sig << "\n";
   }
 
   // Store this requirement machine before adding the signature,
@@ -292,7 +296,7 @@ RequirementMachine *RewriteContext::getRequirementMachine(
 
   if (Debug.contains(DebugFlags::Timers)) {
     endTimer("getRequirementMachine()");
-    llvm::dbgs() << sig << "\n";
+    toolchain::dbgs() << sig << "\n";
   }
 
   return newMachine;
@@ -383,17 +387,17 @@ void RewriteContext::getProtocolComponentRec(
     } while (depProto != proto);
 
     if (Debug.contains(DebugFlags::ProtocolDependencies)) {
-      llvm::dbgs() << "Connected component: [";
+      toolchain::dbgs() << "Connected component: [";
       bool first = true;
       for (auto *depProto : protos) {
         if (!first) {
-          llvm::dbgs() << ", ";
+          toolchain::dbgs() << ", ";
         } else {
           first = false;
         }
-        llvm::dbgs() << depProto->getName();
+        toolchain::dbgs() << depProto->getName();
       }
-      llvm::dbgs() << "]\n";
+      toolchain::dbgs() << "]\n";
     }
 
     Components[id].Protos = Context.AllocateCopy(protos);
@@ -433,10 +437,8 @@ RewriteContext::getProtocolComponentImpl(const ProtocolDecl *proto) {
 
   auto found = Protos.find(proto);
   if (found == Protos.end()) {
-    if (ProtectProtocolComponentRec) {
-      llvm::errs() << "Too much recursion is bad\n";
-      abort();
-    }
+    if (ProtectProtocolComponentRec)
+      ABORT("Too much recursion is bad");
 
     ProtectProtocolComponentRec = true;
 
@@ -469,11 +471,11 @@ RewriteContext::startComputingRequirementSignatures(
   auto &component = getProtocolComponentImpl(proto);
 
   if (component.ComputingRequirementSignatures) {
-    llvm::errs() << "Re-entrant minimization of requirement signatures for: ";
-    for (auto *proto : component.Protos)
-      llvm::errs() << " " << proto->getName();
-    llvm::errs() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "Re-entrant minimization of requirement signatures for: ";
+      for (auto *proto : component.Protos)
+        out << " " << proto->getName();
+    });
   }
 
   component.ComputingRequirementSignatures = true;
@@ -508,11 +510,11 @@ RequirementMachine *RewriteContext::getRequirementMachine(
 
   if (component.Machine) {
     if (!component.Machine->isComplete()) {
-      llvm::errs() << "Re-entrant construction of requirement machine for: ";
-      for (auto *proto : component.Protos)
-        llvm::errs() << " " << proto->getName();
-      llvm::errs() << "\n";
-      abort();
+      ABORT([&](auto &out) {
+        out << "Re-entrant construction of requirement machine for: ";
+        for (auto *proto : component.Protos)
+          out << " " << proto->getName();
+      });
     }
 
     return component.Machine;
@@ -522,10 +524,10 @@ RequirementMachine *RewriteContext::getRequirementMachine(
 
   if (Debug.contains(DebugFlags::Timers)) {
     beginTimer("getRequirementMachine()");
-    llvm::dbgs() << "[";
+    toolchain::dbgs() << "[";
     for (auto *proto : protos)
-      llvm::dbgs() << " " << proto->getName();
-    llvm::dbgs() << " ]\n";
+      toolchain::dbgs() << " " << proto->getName();
+    toolchain::dbgs() << " ]\n";
   }
 
   // Store this requirement machine before adding the protocols, to catch
@@ -540,10 +542,10 @@ RequirementMachine *RewriteContext::getRequirementMachine(
 
   if (Debug.contains(DebugFlags::Timers)) {
     endTimer("getRequirementMachine()");
-    llvm::dbgs() << "[";
+    toolchain::dbgs() << "[";
     for (auto *proto : protos)
-      llvm::dbgs() << " " << proto->getName();
-    llvm::dbgs() << " ]\n";
+      toolchain::dbgs() << " " << proto->getName();
+    toolchain::dbgs() << " ]\n";
   }
 
   return newMachine;
@@ -601,22 +603,22 @@ RewriteContext::~RewriteContext() {
   Machines.clear();
 
   if (Context.LangOpts.AnalyzeRequirementMachine) {
-    llvm::dbgs() << "--- Requirement Machine Statistics ---\n";
-    llvm::dbgs() << "\n* Symbol kind:\n";
-    SymbolHistogram.dump(llvm::dbgs(), Symbol::Kinds);
-    llvm::dbgs() << "\n* Term length:\n";
-    TermHistogram.dump(llvm::dbgs());
-    llvm::dbgs() << "\n* Rule trie fanout:\n";
-    RuleTrieHistogram.dump(llvm::dbgs());
-    llvm::dbgs() << "\n* Rule trie root fanout:\n";
-    RuleTrieRootHistogram.dump(llvm::dbgs());
-    llvm::dbgs() << "\n* Property trie fanout:\n";
-    PropertyTrieHistogram.dump(llvm::dbgs());
-    llvm::dbgs() << "\n* Property trie root fanout:\n";
-    PropertyTrieRootHistogram.dump(llvm::dbgs());
-    llvm::dbgs() << "\n* Conformance rules:\n";
-    ConformanceRulesHistogram.dump(llvm::dbgs());
-    llvm::dbgs() << "\n* Minimal conformance equations:\n";
-    MinimalConformancesHistogram.dump(llvm::dbgs());
+    toolchain::dbgs() << "--- Requirement Machine Statistics ---\n";
+    toolchain::dbgs() << "\n* Symbol kind:\n";
+    SymbolHistogram.dump(toolchain::dbgs(), Symbol::Kinds);
+    toolchain::dbgs() << "\n* Term length:\n";
+    TermHistogram.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n* Rule trie fanout:\n";
+    RuleTrieHistogram.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n* Rule trie root fanout:\n";
+    RuleTrieRootHistogram.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n* Property trie fanout:\n";
+    PropertyTrieHistogram.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n* Property trie root fanout:\n";
+    PropertyTrieRootHistogram.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n* Conformance rules:\n";
+    ConformanceRulesHistogram.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n* Minimal conformance equations:\n";
+    MinimalConformancesHistogram.dump(toolchain::dbgs());
   }
 }

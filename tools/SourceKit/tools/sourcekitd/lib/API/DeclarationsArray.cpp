@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/DeclarationsArray.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/UIdent.h"
 #include "sourcekitd/CompactArray.h"
 #include "sourcekitd/DictionaryKeys.h"
 
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace SourceKit;
 using namespace sourcekitd;
@@ -41,7 +42,7 @@ void DeclarationsArrayBuilder::add(UIdent Kind, unsigned Offset,
 
 bool DeclarationsArrayBuilder::empty() const { return Impl.Builder.empty(); }
 
-std::unique_ptr<llvm::MemoryBuffer> DeclarationsArrayBuilder::createBuffer() {
+std::unique_ptr<toolchain::MemoryBuffer> DeclarationsArrayBuilder::createBuffer() {
   return Impl.Builder.createBuffer(CustomBufferKind::DeclarationsArray);
 }
 

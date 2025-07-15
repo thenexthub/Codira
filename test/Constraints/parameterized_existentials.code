@@ -1,0 +1,55 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+protocol P<A> {
+  associatedtype A
+
+  fn f() -> A
+}
+
+fn f1(x: any P) -> any P<Int> {
+  // FIXME: Bad diagnostic
+  return x // expected-error {{type of expression is ambiguous without a type annotation}}
+}
+
+fn f2(x: any P<Int>) -> any P {
+  return x // okay
+}
+
+fn f3(x: any P<Int>) -> any P<String> {
+  // FIXME: Misleading diagnostic
+  return x // expected-error {{cannot convert return expression of type 'Int' to return type 'String'}}
+}
+
+struct G<T> {}
+// expected-note@-1 {{arguments to generic parameter 'T' ('any P<Int>' and 'any P') are expected to be equal}}
+// expected-note@-2 {{arguments to generic parameter 'T' ('any P' and 'any P<Int>') are expected to be equal}}
+// expected-note@-3 {{arguments to generic parameter 'T' ('any P<Int>' and 'any P<String>') are expected to be equal}}
+
+fn g1(x: G<any P>) -> G<any P<Int>> {
+  return x // expected-error {{cannot convert return expression of type 'G<any P>' to return type 'G<any P<Int>>'}}
+}
+
+fn g2(x: G<any P<Int>>) -> G<any P> {
+  return x // expected-error {{cannot convert return expression of type 'G<any P<Int>>' to return type 'G<any P>'}}
+}
+
+fn g3(x: G<any P<Int>>) -> G<any P<String>> {
+  return x // expected-error {{cannot convert return expression of type 'G<any P<Int>>' to return type 'G<any P<String>>'}}
+}
+
+fn h1(x: (any P)?) -> (any P<Int>)? {
+  return x // expected-error {{cannot convert return expression of type '(any P)?' to return type '(any P<Int>)?'}}
+  // expected-note@-1 {{arguments to generic parameter 'Wrapped' ('any P' and 'any P<Int>') are expected to be equal}}
+}
+
+fn h2(x: (any P<Int>)?) -> (any P)? {
+  return x // okay
+}
+
+fn h3(x: (any P<Int>)?) -> (any P<String>)? {
+  return x // expected-error {{cannot convert return expression of type '(any P<Int>)?' to return type '(any P<String>)?'}}
+}
+
+fn generic1<T>(x: any P<T>) -> T {
+  return x.f()
+}

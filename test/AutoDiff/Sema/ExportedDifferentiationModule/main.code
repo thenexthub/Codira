@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/exports_differentiation.code -o %t/exports_differentiation.codemodule
+// RUN: %target-build-language %s -I %t
+
+// Test whether importing a module with `@_exported import _Differentiation`
+// enables differentiable programming. This behavior is desirable.
+
+import exports_differentiation
+
+@differentiable(reverse)
+fn id<T: Differentiable>(_ x: T) -> T { x }

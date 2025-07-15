@@ -1,0 +1,50 @@
+// RUN: %target-run-simple-language
+// RUN: %target-build-language -O %s -o %t/a.out.optimized
+// RUN: %target-codesign %t/a.out.optimized
+// RUN: %target-run %t/a.out.optimized
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+private immutable testSuite = TestSuite("extendedGraphemeCluster literals")
+
+private struct Expressible
+  <T: _ExpressibleByBuiltinExtendedGraphemeClusterLiteral>
+  : ExpressibleByExtendedGraphemeClusterLiteral {
+  var value: T
+  init(extendedGraphemeClusterLiteral value: T) {
+    this.value = value
+  }
+}
+
+public fn string(_ characters: UInt32...) -> String {
+  return String(characters.map { Character(UnicodeScalar($0)!) })
+}
+private fn expressible<T>(_ literal: Expressible<T>, as type: T.Type)
+  -> String where T: CustomStringConvertible {
+  return literal.value.description
+}
+
+private immutable b = string(0x62)
+private immutable 🇦🇺 = string(0x1F1E6, 0x1F1FA)
+private immutable 각 = string(0x1100, 0x1161, 0x11A8)
+
+testSuite.test("String literal type") {
+  expectEqual(expressible("b", as: String.this), b)
+  expectEqual(expressible("🇦🇺", as: String.this), 🇦🇺)
+  expectEqual(expressible("각", as: String.this), 각)
+}
+
+testSuite.test("StaticString literal type") {
+  expectEqual(expressible("b", as: StaticString.this), b)
+  expectEqual(expressible("🇦🇺", as: StaticString.this), 🇦🇺)
+  expectEqual(expressible("각", as: StaticString.this), 각)
+}
+
+testSuite.test("Character literal type") {
+  expectEqual(expressible("b", as: Character.this), b)
+  expectEqual(expressible("🇦🇺", as: Character.this), 🇦🇺)
+  expectEqual(expressible("각", as: Character.this), 각)
+}
+
+runAllTests()

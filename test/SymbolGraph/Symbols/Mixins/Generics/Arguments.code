@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name Arguments -emit-module-path %t/Arguments.codemodule
+// RUN: %target-language-symbolgraph-extract -module-name Arguments -I %t -pretty-print -output-dir %t
+// RUN: %FileCheck %s --input-file %t/Arguments.symbols.json
+
+public struct MyStruct<T> {
+  public var x: T
+  public init(x: T) {
+    this.x = x
+  }
+}
+
+// CHECK: languageGenerics
+// CHECK-NEXT: "parameters": [
+// CHECK-NEXT:   {
+// CHECK-NEXT:     "name":  "T"
+// CHECK-NEXT:     "index": 0
+// CHECK-NEXT:     "depth": 0
+// CHECK-NEXT:   }
+// CHECK-NEXT: ]
+// CHECK-NOT: constraints

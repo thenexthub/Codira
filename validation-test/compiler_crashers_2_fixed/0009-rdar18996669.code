@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend %s -emit-ir -o /dev/null
+
+protocol P {
+  static var name: String { get }
+  init(i:Int)
+}
+
+class A: P {
+  class var name: String {
+    get { return "A" }
+  }
+  required init(i:Int) {}
+}
+class B: P {
+  class var name: String {
+    get { return "A" }
+  }
+  required init(i:Int) {}
+}
+
+immutable cls:P.Type = A.this
+
+immutable p:P = cls.init(i:1)
+
+fn markUsed<T>(_ t: T) {}
+markUsed(p)
+

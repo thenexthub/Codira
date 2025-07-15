@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILARGUMENT_H
-#define SWIFT_SIL_SILARGUMENT_H
+#ifndef LANGUAGE_SIL_SILARGUMENT_H
+#define LANGUAGE_SIL_SILARGUMENT_H
 
 #include "language/AST/LifetimeAnnotation.h"
 #include "language/Basic/Compiler.h"
@@ -495,7 +496,7 @@ inline bool SILArgument::isPhi() const {
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 /// Return non-null if \p value is a terminator result.
@@ -514,7 +515,7 @@ inline bool SILArgument::isTerminatorResult() const {
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline SILValue
@@ -525,7 +526,7 @@ SILArgument::getIncomingPhiValue(SILBasicBlock *predBlock) const {
   case SILArgumentKind::SILFunctionArgument:
     return SILValue();
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline bool SILArgument::getIncomingPhiValues(
@@ -536,7 +537,7 @@ inline bool SILArgument::getIncomingPhiValues(
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline bool SILArgument::getIncomingPhiValues(
@@ -549,7 +550,7 @@ inline bool SILArgument::getIncomingPhiValues(
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline bool SILArgument::getSingleTerminatorOperands(
@@ -561,7 +562,7 @@ inline bool SILArgument::getSingleTerminatorOperands(
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline bool SILArgument::getSingleTerminatorOperands(
@@ -574,7 +575,7 @@ inline bool SILArgument::getSingleTerminatorOperands(
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline TermInst *SILArgument::getSingleTerminator() const {
@@ -584,7 +585,7 @@ inline TermInst *SILArgument::getSingleTerminator() const {
   case SILArgumentKind::SILFunctionArgument:
     return nullptr;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline TermInst *SILArgument::getTerminatorForResult() const {
@@ -594,7 +595,7 @@ inline TermInst *SILArgument::getTerminatorForResult() const {
   case SILArgumentKind::SILFunctionArgument:
     return nullptr;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline bool SILArgument::getIncomingPhiOperands(
@@ -606,7 +607,7 @@ inline bool SILArgument::getIncomingPhiOperands(
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
 inline bool SILArgument::visitIncomingPhiOperands(
@@ -617,9 +618,9 @@ inline bool SILArgument::visitIncomingPhiOperands(
   case SILArgumentKind::SILFunctionArgument:
     return false;
   }
-  llvm_unreachable("Covered switch is not covered?!");
+  toolchain_unreachable("Covered switch is not covered?!");
 }
 
-} // end swift namespace
+} // end language namespace
 
 #endif

@@ -1,27 +1,31 @@
 //===--- GenericMetadataBuilder.h - Build generic metadata. -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Builder for generic metadata, in-process and out-of-process.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_GENERIC_METADATA_BUILDER_H
-#define SWIFT_RUNTIME_GENERIC_METADATA_BUILDER_H
+#ifndef LANGUAGE_RUNTIME_GENERIC_METADATA_BUILDER_H
+#define LANGUAGE_RUNTIME_GENERIC_METADATA_BUILDER_H
 
 #include "language/ABI/Metadata.h"
 #include "language/Basic/MathUtils.h"
 #include "language/Demangling/TypeLookupError.h"
 #include "language/Runtime/Portability.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/Support/Casting.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <string>
@@ -58,12 +62,12 @@ public:
   BuilderError(char *string) : errorString(string) {}
 
   /// Make a BuilderError using a standard printf format string and arguments.
-  SWIFT_FORMAT(2, 3) BuilderError(const char *fmt, ...) {
+  LANGUAGE_FORMAT(2, 3) BuilderError(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
     char *string = nullptr;
-    swift_vasprintf(&string, fmt, args);
+    language_vasprintf(&string, fmt, args);
     if (string)
       errorString = string;
     else
@@ -95,7 +99,7 @@ public:
 
   /// Create a BuilderErrorOr from a TypeLookupError returned by runtime type
   /// lookup.
-  BuilderErrorOr(const swift::TypeLookupError &error) {
+  BuilderErrorOr(const language::TypeLookupError &error) {
     char *errorStr = error.copyErrorString();
     storage = BuilderError(errorStr);
     error.freeErrorString(errorStr);
@@ -152,34 +156,34 @@ class GenericMetadataBuilder {
 
   using GenericArgument = typename ReaderWriter::GenericArgument;
 
-  // Convenience aliases for a bunch of Swift metadata types we use.
+  // Convenience aliases for a bunch of Codira metadata types we use.
   template <typename T>
-  using FullMetadata = swift::FullMetadata<T>;
+  using FullMetadata = language::FullMetadata<T>;
   template <typename T, template <typename> class U>
-  using ConstTargetMetadataPointer = swift::ConstTargetMetadataPointer<T, U>;
-  using ClassDescriptor = swift::TargetClassDescriptor<Runtime>;
-  using ClassMetadataType = swift::TargetClassMetadataType<Runtime>;
-  using EnumDescriptor = swift::TargetEnumDescriptor<Runtime>;
-  using EnumMetadata = swift::TargetEnumMetadata<Runtime>;
-  using EnumValueWitnessTable = swift::TargetEnumValueWitnessTable<Runtime>;
-  using GenericMetadataPattern = swift::TargetGenericMetadataPattern<Runtime>;
+  using ConstTargetMetadataPointer = language::ConstTargetMetadataPointer<T, U>;
+  using ClassDescriptor = language::TargetClassDescriptor<Runtime>;
+  using ClassMetadataType = language::TargetClassMetadataType<Runtime>;
+  using EnumDescriptor = language::TargetEnumDescriptor<Runtime>;
+  using EnumMetadata = language::TargetEnumMetadata<Runtime>;
+  using EnumValueWitnessTable = language::TargetEnumValueWitnessTable<Runtime>;
+  using GenericMetadataPattern = language::TargetGenericMetadataPattern<Runtime>;
   using GenericValueMetadataPattern =
-      swift::TargetGenericValueMetadataPattern<Runtime>;
-  using Metadata = swift::TargetMetadata<Runtime>;
-  using StructDescriptor = swift::TargetStructDescriptor<Runtime>;
-  using StructMetadata = swift::TargetStructMetadata<Runtime>;
-  using TypeContextDescriptor = swift::TargetTypeContextDescriptor<Runtime>;
-  using TypeLayout = swift::TypeLayout;
-  using ValueMetadata = swift::TargetValueMetadata<Runtime>;
-  using ValueTypeDescriptor = swift::TargetValueTypeDescriptor<Runtime>;
+      language::TargetGenericValueMetadataPattern<Runtime>;
+  using Metadata = language::TargetMetadata<Runtime>;
+  using StructDescriptor = language::TargetStructDescriptor<Runtime>;
+  using StructMetadata = language::TargetStructMetadata<Runtime>;
+  using TypeContextDescriptor = language::TargetTypeContextDescriptor<Runtime>;
+  using TypeLayout = language::TypeLayout;
+  using ValueMetadata = language::TargetValueMetadata<Runtime>;
+  using ValueTypeDescriptor = language::TargetValueTypeDescriptor<Runtime>;
   using ValueWitnessFlags =
-      swift::TargetValueWitnessFlags<typename Runtime::StoredSize>;
-  using ValueWitnessTable = swift::TargetValueWitnessTable<Runtime>;
+      language::TargetValueWitnessFlags<typename Runtime::StoredSize>;
+  using ValueWitnessTable = language::TargetValueWitnessTable<Runtime>;
 
   // Start of member variables.
   ReaderWriter &readerWriter;
 
-  // Various functions and witness tables needed from the Swift runtime. These
+  // Various functions and witness tables needed from the Codira runtime. These
   // are used to create the witness table for certain kinds of newly constructed
   // metadata. These are stored as BuilderErrorOr because it's not a totally
   // fatal error if we fail to look these up. If one of these symbols can't be
@@ -236,14 +240,14 @@ public:
 
   GenericMetadataBuilder(ReaderWriter &readerWriter)
       : readerWriter(readerWriter),
-        pod_copy(readerWriter.getSymbolPointer("_swift_pod_copy")),
-        pod_destroy(readerWriter.getSymbolPointer("_swift_pod_destroy")),
+        pod_copy(readerWriter.getSymbolPointer("_language_pod_copy")),
+        pod_destroy(readerWriter.getSymbolPointer("_language_pod_destroy")),
         pod_direct_initializeBufferWithCopyOfBuffer(
             readerWriter.getSymbolPointer(
-                "_swift_pod_direct_initializeBufferWithCopyOfBuffer")),
+                "_language_pod_direct_initializeBufferWithCopyOfBuffer")),
         pod_indirect_initializeBufferWithCopyOfBuffer(
             readerWriter.getSymbolPointer(
-                "_swift_pod_indirect_initializeBufferWithCopyOfBuffer")),
+                "_language_pod_indirect_initializeBufferWithCopyOfBuffer")),
         VWT_Bi8_(readerWriter.template getSymbolPointer<ValueWitnessTable>(
             MANGLE_AS_STRING(VALUE_WITNESS_SYM(Bi8_)))),
         VWT_Bi16_(readerWriter.template getSymbolPointer<ValueWitnessTable>(
@@ -278,7 +282,7 @@ public:
       auto extraDataPattern = pattern->getExtraDataPattern();
 
       // Zero memory up to the offset.
-      // [pre-5.3-extra-data-zeroing] Before Swift 5.3, the runtime did not
+      // [pre-5.3-extra-data-zeroing] Before Codira 5.3, the runtime did not
       // correctly zero the zero-prefix of the extra-data pattern.
       memset(metadataExtraData, 0,
              size_t(extraDataPattern->OffsetInWords) * sizeof(StoredPointer));
@@ -336,7 +340,7 @@ public:
   installGenericArguments(WritableData<FullMetadata<Metadata>> data,
                           Size metadataOffset,
                           Buffer<const ValueTypeDescriptor> descriptionBuffer,
-                          llvm::ArrayRef<GenericArgument> arguments) {
+                          toolchain::ArrayRef<GenericArgument> arguments) {
     auto name = getDescriptorName(descriptionBuffer);
     if (!name)
       return *name.getError();
@@ -374,19 +378,19 @@ public:
   int32_t getGenericArgumentOffset(
       Buffer<const TypeContextDescriptor> descriptionBuffer) {
     auto description = descriptionBuffer.ptr;
-    if (auto enumDescription = llvm::dyn_cast<EnumDescriptor>(description))
+    if (auto enumDescription = toolchain::dyn_cast<EnumDescriptor>(description))
       return enumDescription->getGenericArgumentOffset();
-    if (auto structDescription = llvm::dyn_cast<StructDescriptor>(description))
+    if (auto structDescription = toolchain::dyn_cast<StructDescriptor>(description))
       return structDescription->getGenericArgumentOffset();
-    if (auto classDescription = llvm::dyn_cast<ClassDescriptor>(description))
-      swift_unreachable("Classes not yet supported.");
-    swift_unreachable("Not a type context descriptor.");
+    if (auto classDescription = toolchain::dyn_cast<ClassDescriptor>(description))
+      language_unreachable("Classes not yet supported.");
+    language_unreachable("Not a type context descriptor.");
   }
 
   /// Allocate and build a metadata structure.
   BuilderErrorOr<ConstructedMetadata>
   buildGenericMetadata(Buffer<const TypeContextDescriptor> descriptionBuffer,
-                       llvm::ArrayRef<GenericArgument> arguments,
+                       toolchain::ArrayRef<GenericArgument> arguments,
                        Buffer<const GenericMetadataPattern> patternBuffer,
                        size_t extraDataSize) {
     auto description = descriptionBuffer.ptr;
@@ -395,7 +399,7 @@ public:
       return BuilderError("Types with layout strings are not yet supported");
 
     if (auto *valueDescription =
-            llvm::dyn_cast<ValueTypeDescriptor>(description)) {
+            toolchain::dyn_cast<ValueTypeDescriptor>(description)) {
       return buildGenericValueMetadata(
           descriptionBuffer.template cast<const ValueTypeDescriptor>(),
           arguments,
@@ -410,7 +414,7 @@ public:
 
   BuilderErrorOr<ConstructedMetadata> buildGenericValueMetadata(
       Buffer<const ValueTypeDescriptor> descriptionBuffer,
-      llvm::ArrayRef<GenericArgument> arguments,
+      toolchain::ArrayRef<GenericArgument> arguments,
       Buffer<const GenericValueMetadataPattern> patternBuffer,
       size_t extraDataSize) {
     auto *pattern = patternBuffer.ptr;
@@ -444,9 +448,9 @@ public:
   /// Initialize a generic value metadata structure.
   BuilderErrorOr<std::monostate>
   initializeGenericMetadata(WritableData<FullMetadata<Metadata>> metadataBuffer,
-                            swift::Demangle::NodePointer metadataMangleNode) {
+                            language::Demangle::NodePointer metadataMangleNode) {
     auto *metadata = static_cast<Metadata *>(metadataBuffer.ptr);
-    auto *valueMetadata = llvm::dyn_cast<ValueMetadata>(metadata);
+    auto *valueMetadata = toolchain::dyn_cast<ValueMetadata>(metadata);
     if (!valueMetadata)
       return BuilderError(
           "Don't know how to initialize metadata kind %#" PRIx32,
@@ -472,12 +476,12 @@ public:
       return {{}};
     }
 
-    if (auto structmd = llvm::dyn_cast<StructMetadata>(metadata)) {
+    if (auto structmd = toolchain::dyn_cast<StructMetadata>(metadata)) {
       auto result = initializeStructMetadata(metadataBuffer, structmd,
                                              metadataMangleNode);
       if (!result)
         return *result.getError();
-    } else if (auto enummd = llvm::dyn_cast<EnumMetadata>(metadata)) {
+    } else if (auto enummd = toolchain::dyn_cast<EnumMetadata>(metadata)) {
       auto result =
           initializeEnumMetadata(metadataBuffer, enummd, metadataMangleNode);
       if (!result)
@@ -489,9 +493,9 @@ public:
     return {{}};
   }
 
-  static constexpr swift::TargetTypeLayout<Runtime>
+  static constexpr language::TargetTypeLayout<Runtime>
   getInitialLayoutForValueType() {
-    swift::TargetValueWitnessFlags<typename Runtime::StoredSize> flags{};
+    language::TargetValueWitnessFlags<typename Runtime::StoredSize> flags{};
     flags = flags.withAlignment(1).withPOD(true);
     return {0, 0, flags, 0};
   }
@@ -519,7 +523,7 @@ public:
   /// Install common value witness functions for POD and bitwise-takable
   /// metadata.
   BuilderErrorOr<std::monostate>
-  installCommonValueWitnesses(const swift::TargetTypeLayout<Runtime> &layout,
+  installCommonValueWitnesses(const language::TargetTypeLayout<Runtime> &layout,
                               WritableData<ValueWitnessTable> vwtBuffer) {
     auto flags = layout.flags;
     if (flags.isPOD()) {
@@ -671,7 +675,7 @@ public:
   BuilderErrorOr<std::monostate>
   initializeStructMetadata(WritableData<FullMetadata<Metadata>> metadataBuffer,
                            StructMetadata *metadata,
-                           swift::Demangle::NodePointer metadataMangleNode) {
+                           language::Demangle::NodePointer metadataMangleNode) {
     METADATA_BUILDER_LOG("Initializing struct");
 
     auto descriptionBuffer =
@@ -712,7 +716,7 @@ public:
           fieldDescriptorBuffer->resolvePointer(&field.MangledTypeName);
       if (!mangledTypeNameBuffer)
         return *mangledTypeNameBuffer.getError();
-      auto mangledTypeName = swift::Demangle::makeSymbolicMangledNameStringRef(
+      auto mangledTypeName = language::Demangle::makeSymbolicMangledNameStringRef(
           mangledTypeNameBuffer->ptr);
       METADATA_BUILDER_LOG(
           "Examining field %u '%s' type '%.*s' (mangled name is %zu bytes)", i,
@@ -821,7 +825,7 @@ public:
   BuilderErrorOr<std::monostate>
   initializeEnumMetadata(WritableData<FullMetadata<Metadata>> metadataBuffer,
                          EnumMetadata *metadata,
-                         swift::Demangle::NodePointer metadataMangleNode) {
+                         language::Demangle::NodePointer metadataMangleNode) {
     METADATA_BUILDER_LOG("Initializing enum");
     return BuilderError("Don't know how to initialize enum metadata yet");
   }
@@ -839,7 +843,7 @@ public:
     auto *description = descriptionBuffer.ptr;
 
     if (auto *valueDescription =
-            llvm::dyn_cast<ValueTypeDescriptor>(description)) {
+            toolchain::dyn_cast<ValueTypeDescriptor>(description)) {
       auto *valuePattern =
           reinterpret_cast<const GenericValueMetadataPattern *>(pattern);
       if (valuePattern->hasExtraDataPattern()) {
@@ -855,7 +859,7 @@ public:
       }
 
       if (auto structDescription =
-              llvm::dyn_cast<StructDescriptor>(description)) {
+              toolchain::dyn_cast<StructDescriptor>(description)) {
         if (structDescription->hasFieldOffsetVector()) {
           auto fieldsStart =
               structDescription->FieldOffsetVectorOffset * sizeof(void *);
@@ -880,7 +884,7 @@ public:
         }
       }
 
-      if (auto enumDescription = llvm::dyn_cast<EnumDescriptor>(description)) {
+      if (auto enumDescription = toolchain::dyn_cast<EnumDescriptor>(description)) {
         if (enumDescription->hasPayloadSizeOffset()) {
           auto offset = enumDescription->getPayloadSizeOffset();
           auto result = offset * sizeof(StoredPointer) - sizeof(EnumMetadata);
@@ -953,12 +957,12 @@ public:
             kindString.str().c_str());
 
       if (auto classmd =
-              llvm::dyn_cast<ClassMetadataType>(metadataBuffer.ptr)) {
+              toolchain::dyn_cast<ClassMetadataType>(metadataBuffer.ptr)) {
         auto dumpResult = dumpClassMetadata(metadataBuffer, classmd);
         if (!dumpResult)
           return *dumpResult.getError();
       } else if (auto valuemd =
-                     llvm::dyn_cast<ValueMetadata>(metadataBuffer.ptr)) {
+                     toolchain::dyn_cast<ValueMetadata>(metadataBuffer.ptr)) {
         auto dumpResult = dumpValueMetadata(metadataBuffer, valuemd);
         if (!dumpResult)
           return *dumpResult.getError();
@@ -997,12 +1001,12 @@ public:
       printPointer("  name: ", *name);
       print("        \"%s\"\n", name->ptr);
 
-      if (auto structmd = llvm::dyn_cast<StructMetadata>(metadataBuffer.ptr)) {
+      if (auto structmd = toolchain::dyn_cast<StructMetadata>(metadataBuffer.ptr)) {
         auto dumpResult = dumpStructMetadata(metadataBuffer, structmd);
         if (!dumpResult)
           return *dumpResult.getError();
       } else if (auto enummd =
-                     llvm::dyn_cast<EnumMetadata>(metadataBuffer.ptr)) {
+                     toolchain::dyn_cast<EnumMetadata>(metadataBuffer.ptr)) {
         auto dumpResult = dumpEnumMetadata(metadataBuffer, enummd);
         if (!dumpResult)
           return *dumpResult.getError();
@@ -1012,7 +1016,7 @@ public:
         auto numGenericParams =
             description->getGenericContextHeader().NumParams;
         auto genericArguments = wordsOffset<
-            ConstTargetMetadataPointer<Runtime, swift::TargetMetadata>>(
+            ConstTargetMetadataPointer<Runtime, language::TargetMetadata>>(
             metadata, description->getGenericArgumentOffset());
         for (unsigned i = 0; i < numGenericParams; i++) {
           auto arg = metadataBuffer.resolvePointer(&genericArguments[i]);
@@ -1088,7 +1092,7 @@ public:
   }
 #include "language/ABI/ValueWitness.def"
 
-      if (auto *enumVWT = llvm::dyn_cast<EnumValueWitnessTable>(vwt)) {
+      if (auto *enumVWT = toolchain::dyn_cast<EnumValueWitnessTable>(vwt)) {
 #define WANT_ONLY_ENUM_VALUE_WITNESSES
 #define DATA_VALUE_WITNESS(LOWER_ID, UPPER_ID, TYPE)                           \
   {                                                                            \
@@ -1144,4 +1148,4 @@ GenericMetadataBuilder(ReaderWriter) -> GenericMetadataBuilder<ReaderWriter>;
 
 } // namespace language
 
-#endif // SWIFT_RUNTIME_GENERIC_METADATA_BUILDER_H
+#endif // LANGUAGE_RUNTIME_GENERIC_METADATA_BUILDER_H

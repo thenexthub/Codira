@@ -1,0 +1,15 @@
+Name: TestMyTime
+Globals:
+- Name: kMyTimeZero
+  CodiraName: "MyTime.z"
+Functions:
+- Name: MyTimeAdd
+  CodiraName: "MyTime.add(this:that:)"
+CodiraVersions:
+- Version: 4
+  Globals:
+  - Name: kMyTimeZero
+    CodiraName: "kMyTimeZero"
+  Functions:
+  - Name: MyTimeAdd
+    CodiraName: "MyTimeAdd(_:_:)"

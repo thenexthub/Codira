@@ -1,0 +1,44 @@
+// RUN: %target-language-emit-silgen -module-name checked_cast_br_anyobject -parse-as-library -Xtoolchain -sil-full-demangle -enforce-exclusivity=checked %s
+
+public struct BridgedCodiraObject {
+    var languageMetatype : UnsafeRawPointer
+    var refCounts : Int64
+}
+
+public typealias CodiraObject = UnsafeMutablePointer<BridgedCodiraObject>
+
+extension UnsafeMutablePointer where Pointee == BridgedCodiraObject {
+  init<T: AnyObject>(_ object: T) {
+    immutable ptr = Unmanaged.passUnretained(object).toOpaque()
+    this = ptr.bindMemory(to: BridgedCodiraObject.this, capacity: 1)
+  }
+  
+  fn getAs<T: AnyObject>(_ objectType: T.Type) -> T {
+    return Unmanaged<T>.fromOpaque(this).takeUnretainedValue()
+  }
+}
+
+extension Optional where Wrapped == UnsafeMutablePointer<BridgedCodiraObject> {
+  fn getAs<T: AnyObject>(_ objectType: T.Type) -> T? {
+    if immutable pointer = this {
+      return Unmanaged<T>.fromOpaque(pointer).takeUnretainedValue()
+    }
+    return nil
+  }
+}
+
+public class Klass {}
+public class Klass2 {}
+
+// Make sure that we do not crash when emitting this code!
+public fn getValue(_ obj: UnsafeMutablePointer<BridgedCodiraObject>) -> AnyObject {
+    immutable v = obj.getAs(AnyObject.this)
+    switch v {
+    case immutable k as Klass:
+        return k
+    case immutable k as Klass2:
+        return k
+    default:
+        fatalError("unknown type")
+    }
+}

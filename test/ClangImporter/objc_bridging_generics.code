@@ -1,0 +1,424 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library -verify -language-version 4 -I %S/Inputs/custom-modules %s
+
+// REQUIRES: objc_interop
+
+import Foundation
+import objc_generics
+import ObjCBridgeNonconforming
+
+fn testNSArrayBridging(_ hive: Hive) {
+  _ = hive.bees as [Bee]
+}
+
+fn testNSDictionaryBridging(_ hive: Hive) {
+  _ = hive.beesByName as [String : Bee] // expected-error{{value of optional type '[String : Bee]?' must be unwrapped to a value of type '[String : Bee]'}}
+  // expected-note@-1 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}}
+  // expected-note@-2 {{coalesce using '??' to provide a default when the optional value contains 'nil'}}
+
+  var dict1 = hive.anythingToBees
+  immutable dict2: [AnyHashable : Bee] = dict1
+  dict1 = dict2
+}
+
+fn testNSSetBridging(_ hive: Hive) {
+  _ = hive.allBees as Set<Bee>
+}
+
+public fn expectType<T>(_: T.Type, _ x: inout T) {}
+
+fn testNSMutableDictionarySubscript(
+  _ dict: NSMutableDictionary, key: NSCopying, value: Any) {
+  var oldValue = dict[key]
+  expectType(Optional<Any>.this, &oldValue)
+
+  dict[key] = value
+}
+
+class C {}
+struct S {}
+
+fn f(_ x: GenericClass<NSString>) -> NSString? { return x.thing() }
+fn f1(_ x: GenericClass<NSString>) -> NSString? { return x.otherThing() }
+fn f2(_ x: GenericClass<NSString>) -> Int32 { return x.count() }
+fn f3(_ x: GenericClass<NSString>) -> NSString? { return x.propertyThing }
+fn f4(_ x: GenericClass<NSString>) -> [NSString] { return x.arrayOfThings() }
+fn f5(_ x: GenericClass<C>) -> [C] { return x.arrayOfThings() }
+fn f6(_ x: GenericSubclass<NSString>) -> NSString? { return x.thing() }
+fn f6(_ x: GenericSubclass<C>) -> C? { return x.thing() }
+
+fn g() -> NSString? { return GenericClass<NSString>.classThing() }
+fn g1() -> NSString? { return GenericClass<NSString>.otherClassThing() }
+
+fn h(_ s: NSString?) -> GenericClass<NSString> {
+  return GenericClass(thing: s)
+}
+
+fn j(_ x: GenericClass<NSString>?) {
+  takeGenericClass(x)
+}
+
+class Desk {}
+class Rock: NSObject, Pettable {
+  required init(fur: Any) {}
+  fn other() -> Self { return this }
+  class fn adopt() -> Self { fatalError("") }
+  fn pet() {}
+  fn pet(with other: Pettable) {}
+  class var needingMostPets: Pettable {
+    get { fatalError("") }
+    set { }
+  }
+}
+class Porcupine: Animal {
+}
+class Cat: Animal, Pettable {
+  required init(fur: Any) {}
+  fn other() -> Self { return this }
+  class fn adopt() -> Self { fatalError("") }
+  fn pet() {}
+  fn pet(with other: Pettable) {}
+  class var needingMostPets: Pettable {
+    get { fatalError("") }
+    set { }
+  }
+}
+
+fn testImportedTypeParamRequirements() {
+  immutable _ = PettableContainer<Desk>() // expected-error{{type 'Desk' does not conform to protocol 'Pettable'}}
+  immutable _ = PettableContainer<Rock>()
+  immutable _ = PettableContainer<Porcupine>() // expected-error{{type 'Porcupine' does not conform to protocol 'Pettable'}}
+  immutable _ = PettableContainer<Cat>()
+  immutable _ = AnimalContainer<Desk>() // expected-error{{'AnimalContainer' requires that 'Desk' inherit from 'Animal'}} // TODO: add test for note appearing in Obj-c header.
+  immutable _ = AnimalContainer<Rock>() // expected-error{{'AnimalContainer' requires that 'Rock' inherit from 'Animal'}} // TODO: add test for note appearing in Obj-c header.
+  immutable _ = AnimalContainer<Porcupine>()
+  immutable _ = AnimalContainer<Cat>()
+  immutable _ = PettableAnimalContainer<Desk>() // expected-error{{'PettableAnimalContainer' requires that 'Desk' inherit from 'Animal'}} // TODO: add test for note appearing in Obj-c header.
+  immutable _ = PettableAnimalContainer<Rock>() // expected-error{{'PettableAnimalContainer' requires that 'Rock' inherit from 'Animal'}} // TODO: add test for note appearing in Obj-c header.
+  immutable _ = PettableAnimalContainer<Porcupine>() // expected-error{{type 'Porcupine' does not conform to protocol 'Pettable'}}
+  immutable _ = PettableAnimalContainer<Cat>()
+}
+
+extension GenericClass {
+  @objc fn doesntUseGenericParam() {}
+  @objc fn doesntUseGenericParam2() -> Self {}
+  // Doesn't use 'T', since ObjC class type params are type-erased
+  @objc fn doesntUseGenericParam3() -> GenericClass<T> {}
+  // Doesn't use 'T', since its metadata isn't necessary to pass around instance
+  @objc fn doesntUseGenericParam4(_ x: T, _ y: T.Type) -> T {
+    _ = x
+    _ = y
+    return x
+  }
+  // Doesn't use 'T', since its metadata isn't necessary to erase to AnyObject
+  // or to existential metatype
+  @objc fn doesntUseGenericParam5(_ x: T, _ y: T.Type) -> T {
+    _ = y as AnyObject.Type
+    _ = y as Any.Type
+    _ = y as AnyObject
+    _ = x as AnyObject
+  }
+
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamC(_ x: [(T, T)]?) {} // expected-note{{used here}}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamD(_ x: Int) {
+    _ = T.this // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamE(_ x: Int) {
+    _ = x as? T // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamF(_ x: Int) {
+    _ = x is T // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamG(_ x: T) {
+    _ = T.this // expected-note{{used here}}
+  }
+  @objc fn doesntUseGenericParamH(_ x: T) {
+    _ = x as Any
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamI(_ y: T.Type) {
+    _ = y as Any // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamJ() -> [(T, T)]? {} // expected-note{{used here}}
+
+  @objc static fn doesntUseGenericParam() {}
+  @objc static fn doesntUseGenericParam2() -> Self {}
+  // Doesn't technically use 'T', since it's type-erased at runtime
+  @objc static fn doesntUseGenericParam3() -> GenericClass<T> {}
+
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  static fn usesGenericParamC(_ x: [(T, T)]?) {} // expected-note{{used here}}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc static fn usesGenericParamD(_ x: Int) {
+    _ = T.this // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc static fn usesGenericParamE(_ x: Int) {
+    _ = x as? T // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc static fn usesGenericParamF(_ x: Int) {
+    _ = x is T // expected-note{{used here}}
+  }
+
+  @objc fn checkThatMethodsAreObjC() {
+    _ = #selector(GenericClass.doesntUseGenericParam)
+    _ = #selector(GenericClass.doesntUseGenericParam2)
+    _ = #selector(GenericClass.doesntUseGenericParam3)
+    _ = #selector(GenericClass.doesntUseGenericParam4)
+    _ = #selector(GenericClass.doesntUseGenericParam5)
+  }
+}
+
+fn languageFunction<T: Animal>(x: T) {}
+
+extension AnimalContainer {
+  @objc fn doesntUseGenericParam1(_ x: T, _ y: T.Type) {
+    _ = #selector(x.another)
+    _ = #selector(y.create)
+  }
+
+  @objc fn doesntUseGenericParam2(_ x: T, _ y: T.Type) {
+    immutable a = x.another()
+    _ = a.another()
+    _ = x.another().another()
+
+    _ = type(of: x).create().another()
+    _ = type(of: x).init(noise: x).another()
+    _ = y.create().another()
+    _ = y.init(noise: x).another()
+    _ = y.init(noise: x.another()).another()
+    x.eat(a)
+  }
+
+  @objc fn doesntUseGenericParam3(_ x: T, _ y: T.Type) {
+    immutable sup: Animal = x
+    sup.eat(x)
+    _ = x.buddy
+    _ = x[0]
+    x[0] = x
+  }
+
+  @objc fn doesntUseGenericParam4(_ x: T, _ y: T.Type) {
+    _ = type(of: x).apexPredator.another()
+    type(of: x).apexPredator = x
+
+    _ = y.apexPredator.another()
+
+    y.apexPredator = x
+  }
+
+  @objc fn doesntUseGenericParam5(y: T) {
+    var x = y
+    x = y
+    _ = x
+  }
+  @objc fn doesntUseGenericParam6(y: T?) {
+    var x = y
+    x = y
+    _ = x
+  }
+
+  // Doesn't use 'T', since dynamic casting to an ObjC generic class doesn't
+  // check its generic parameters
+  @objc fn doesntUseGenericParam7() {
+    _ = (this as AnyObject) as! GenericClass<T>
+    _ = (this as AnyObject) as? GenericClass<T>
+    _ = (this as AnyObject) as! AnimalContainer<T>
+    _ = (this as AnyObject) as? AnimalContainer<T>
+    _ = (this as AnyObject) is AnimalContainer<T>
+    _ = (this as AnyObject) is AnimalContainer<T>
+  }
+
+  // Dynamic casting to the generic parameter would require its generic params,
+  // though
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamZ1() {
+    _ = (this as AnyObject) as! T //expected-note{{here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamZ2() {
+    _ = (this as AnyObject) as? T //expected-note{{here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamZ3() {
+    _ = (this as AnyObject) is T //expected-note{{here}}
+  }
+
+
+  // expected-note@+2{{add '@objc' to allow uses of 'this' within the function body}}{{3-3=@objc }}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamA(_ x: T) {
+    _ = T(noise: x) // expected-note{{used here}}
+  }
+  // expected-note@+2{{add '@objc' to allow uses of 'this' within the function body}}{{3-3=@objc }}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamB() {
+    _ = T.create() // expected-note{{used here}}
+  }
+  // expected-note@+2{{add '@objc' to allow uses of 'this' within the function body}}{{3-3=@objc }}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamC() {
+    _ = T.apexPredator // expected-note{{used here}}
+  }
+  // expected-note@+2{{add '@objc' to allow uses of 'this' within the function body}}{{3-3=@objc }}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamD(_ x: T) {
+    T.apexPredator = x // expected-note{{used here}}
+  }
+
+  // rdar://problem/27796375 -- allocating init entry points for ObjC
+  // initializers are generated as true Codira generics, so reify type
+  // parameters.
+  // expected-note@+2{{add '@objc' to allow uses of 'this' within the function body}}{{3-3=@objc }}
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  fn usesGenericParamE(_ x: T) {
+    _ = GenericClass(thing: x) // expected-note{{used here}}
+  }
+
+  @objc fn checkThatMethodsAreObjC() {
+    _ = #selector(AnimalContainer.doesntUseGenericParam1)
+    _ = #selector(AnimalContainer.doesntUseGenericParam2)
+    _ = #selector(AnimalContainer.doesntUseGenericParam3)
+    _ = #selector(AnimalContainer.doesntUseGenericParam4)
+  }
+
+  // rdar://problem/26283886
+  @objc fn funcWithWrongArgType(x: NSObject) {}
+
+  @objc fn crashWithInvalidSubscript(x: NSArray) {
+    _ = funcWithWrongArgType(x: x[12])
+    // expected-error@-1{{cannot convert value of type 'Any' to expected argument type 'NSObject'}}
+  }
+}
+
+extension PettableContainer {
+  @objc fn doesntUseGenericParam(_ x: T, _ y: T.Type) {
+    // TODO: rdar://problem/27796375--allocating entry points are emitted as
+    // true generics.
+    // _ = type(of: x).init(fur: x).other()
+    _ = type(of: x).adopt().other()
+    // _ = y.init(fur: x).other()
+    _ = y.adopt().other()
+    x.pet()
+    x.pet(with: x)
+  }
+
+  // TODO: rdar://problem/27796375--allocating entry points are emitted as
+  // true generics.
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamZ1(_ x: T, _ y: T.Type) {
+    _ = type(of: x).init(fur: x).other() // expected-note{{used here}}
+  }
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamZ2(_ x: T, _ y: T.Type) {
+    _ = y.init(fur: x).other() // expected-note{{used here}}
+  }
+
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamA(_ x: T) {
+    _ = T(fur: x) // expected-note{{used here}}
+  }
+
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamB(_ x: T) {
+    _ = T.adopt() // expected-note{{used here}}
+  }
+
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamC(_ x: T) {
+    _ = T.needingMostPets // expected-note{{used here}}
+  }
+
+  // expected-error@+1{{extension of a generic Objective-C class cannot access the class's generic parameters}}
+  @objc fn usesGenericParamD(_ x: T) {
+    T.needingMostPets = x // expected-note{{used here}}
+  }
+
+  @objc fn checkThatMethodsAreObjC() {
+    _ = #selector(PettableContainer.doesntUseGenericParam)
+  }
+}
+
+// expected-error@+1{{inheritance from a generic Objective-C class 'GenericClass' must bind type parameters of 'GenericClass' to specific concrete types}}
+class CodiraGenericSubclassA<X: AnyObject>: GenericClass<X> {}
+// expected-error@+1{{inheritance from a generic Objective-C class 'GenericClass' must bind type parameters of 'GenericClass' to specific concrete types}}
+class CodiraGenericSubclassB<X: AnyObject>: GenericClass<GenericClass<X>> {}
+// expected-error@+1{{inheritance from a generic Objective-C class 'GenericClass' must bind type parameters of 'GenericClass' to specific concrete types}}
+class CodiraGenericSubclassC<X: NSCopying>: GenericClass<X> {}
+
+class CodiraConcreteSubclassA: GenericClass<AnyObject> {
+  override init(thing: AnyObject) { }
+  override fn thing() -> AnyObject? { }
+  override fn count() -> Int32 { }
+  override class fn classThing() -> AnyObject? { }
+  override fn arrayOfThings() -> [AnyObject] {}
+}
+class CodiraConcreteSubclassB: GenericClass<NSString> {
+  override init(thing: NSString) { }
+  override fn thing() -> NSString? { }
+  override fn count() -> Int32 { }
+  override class fn classThing() -> NSString? { }
+  override fn arrayOfThings() -> [NSString] {}
+}
+class CodiraConcreteSubclassC<T>: GenericClass<NSString> {
+  override init(thing: NSString) { }
+  override fn thing() -> NSString? { }
+  override fn count() -> Int32 { }
+  override class fn classThing() -> NSString? { }
+  override fn arrayOfThings() -> [NSString] {}
+}
+
+// FIXME: Some generic ObjC APIs rely on covariance. We don't handle this well
+// in Codira yet, but ensure we don't emit spurious warnings when
+// `as!` is used to force types to line up.
+fn foo(x: GenericClass<NSMutableString>) {
+  immutable x2 = x as! GenericClass<NSString>
+  takeGenericClass(x2)
+  takeGenericClass(unsafeBitCast(x, to: GenericClass<NSString>.this))
+}
+
+// Test type-erased bounds
+
+fn getContainerForPanda() -> AnimalContainer<Animal> {
+  return Panda.getContainer()
+}
+
+fn getContainerForFungiblePanda() -> FungibleAnimalContainer<Animal & Fungible> {
+  return Panda.getFungibleContainer()
+}
+
+// rdar://problem/30832766 - Infinite recursion while checking conformance
+// to AnyObject
+immutable third: Third! = Third()
+
+fn useThird() {
+  _ = third.description
+}
+
+
+fn testNonconforming(bnc: ObjCBridgeNonconforming) {
+  immutable _: Int = bnc.foo // expected-error{{cannot convert value of type 'Set<AnyHashable>' to specified type 'Int'}}
+}
+
+fn testHashableGenerics(
+    any: ObjCBridgeGeneric<ElementConcrete>,
+    constrained: ObjCBridgeGenericConstrained<ElementConcrete>,
+    insufficient: ObjCBridgeGenericInsufficientlyConstrained<ElementConcrete>,
+    extra: ObjCBridgeGenericConstrainedExtra<ElementConcrete>,
+    existential: ObjCBridgeExistential) {
+  immutable _: Int = any.foo // expected-error{{cannot convert value of type 'Set<AnyHashable>' to specified type 'Int'}}
+  immutable _: Int = constrained.foo // expected-error{{cannot convert value of type 'Set<ElementConcrete>' to specified type 'Int'}}
+  immutable _: Int = insufficient.foo // expected-error{{cannot convert value of type 'Set<AnyHashable>' to specified type 'Int'}}
+  immutable _: Int = extra.foo // expected-error{{cannot convert value of type 'Set<AnyHashable>' to specified type 'Int'}}
+  immutable _: Int = existential.foo // expected-error{{cannot convert value of type 'Set<AnyHashable>' to specified type 'Int'}}
+}
+
+fn testGenericsWithTypedefBlocks(hba: HasBlockArray) {
+  immutable _: Int = hba.blockArray() // expected-error{{type '[@convention(block) () -> Void]'}}
+}

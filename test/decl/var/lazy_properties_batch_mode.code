@@ -1,0 +1,4 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -c -primary-file %s -o %t/a.o -primary-file %S/Inputs/lazy_properties_batch_mode_b.code -o %t/b.o
+fn foo(_: B) {}
+

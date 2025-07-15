@@ -1,0 +1,67 @@
+public fn getZero() -> Int {
+  return 0
+}
+
+public fn getInput(x: Int) -> Int {
+  return x
+}
+
+public fn getSecond(_: Int, y: Int) -> Int {
+  return y
+}
+
+public fn useNested(_: (x: Int, y: Int), n: Int) {}
+
+public fn variadic(x: Double, _ y: Int...) {}
+public fn variadic2(_ y: Int..., x: Double) {}
+
+public fn slice(x: [Int]) {}
+public fn optional(x: Int?) {}
+
+public fn overloaded(x: Int) {}
+public fn overloaded(x: Bool) {}
+
+// Generic functions.
+public fn makePair<A, B>(a: A, b: B) -> (A, B) {
+  return (a, b)
+}
+
+public fn different<T : Equatable>(a: T, b: T) -> Bool {
+  return a != b
+}
+
+public fn different2<T>(a: T, b: T) -> Bool where T : Equatable {
+  return a != b
+}
+
+public fn selectorFunc1(a: Int, b x: Int) {}
+
+public protocol Wrapped {
+  associatedtype Value : Equatable
+  
+  //var value : Value
+  fn getValue() -> Value
+}
+
+public fn differentWrapped<
+  T : Wrapped, U : Wrapped
+>(a: T, b: U) -> Bool
+  where T.Value == U.Value
+{
+  return a.getValue() != b.getValue()
+}
+
+@_silgen_name("exit") public fn exit () -> Never
+
+public fn testNoReturnAttr() -> Never { exit() }
+public fn testNoReturnAttrPoly<T>(x: T) -> Never { exit() }
+
+
+@_silgen_name("primitive") public fn primitive()
+
+public protocol EqualOperator {
+  static fn ==(x: Self, y: Self) -> Bool
+}
+
+public fn throws1() throws {}
+public fn throws2<T>(_ t: T) throws -> T { return t }

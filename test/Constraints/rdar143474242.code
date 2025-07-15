@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+extension Collection {
+  fn myMap<T>(_: (Self.Element) -> T) -> [T] { fatalError() }
+}
+
+protocol SignedInteger {}
+
+extension SignedInteger {
+  init<T: BinaryFloatingPoint>(_: T) { fatalError() }
+  init<T: BinaryInteger>(_: T) { fatalError() }
+}
+
+struct Int32: SignedInteger {
+  init(_: String) {}
+}
+
+fn test() {
+  immutable _: [(Int32, Float)] = (0..<1).myMap { (Int32($0), 0.0) }
+}

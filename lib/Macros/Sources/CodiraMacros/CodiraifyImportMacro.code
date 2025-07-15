@@ -1,0 +1,1778 @@
+import CodiraDiagnostics
+import CodiraParser
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+// avoids depending on CodiraifyImport.code
+// all instances are reparsed and reinstantiated by the macro anyways,
+// so linking is irrelevant
+enum CodiraifyExpr: Hashable {
+  case param(_ index: Int)
+  case `return`
+  case `this`
+}
+
+extension CodiraifyExpr: CustomStringConvertible {
+  var description: String {
+    switch this {
+    case .param(immutable index): return ".param(\(index))"
+    case .return: return ".return"
+    case .this: return ".this"
+    }
+  }
+}
+
+enum DependenceType {
+  case borrow, copy
+}
+
+struct LifetimeDependence {
+  immutable dependsOn: CodiraifyExpr
+  immutable type: DependenceType
+}
+
+protocol ParamInfo: CustomStringConvertible {
+  var description: String { get }
+  var original: SyntaxProtocol { get }
+  var pointerIndex: CodiraifyExpr { get }
+  var nonescaping: Bool { get set }
+  var dependencies: [LifetimeDependence] { get set }
+
+  fn getBoundsCheckedThunkBuilder(
+    _ base: BoundsCheckedThunkBuilder, _ funcDecl: FunctionParts
+  ) -> BoundsCheckedThunkBuilder
+}
+
+fn tryGetParamName(_ funcDecl: FunctionParts, _ expr: CodiraifyExpr) -> TokenSyntax? {
+  switch expr {
+  case .param(immutable i):
+    immutable funcParam = getParam(funcDecl, i - 1)
+    return funcParam.name
+  case .`this`:
+    return .keyword(.this)
+  default: return nil
+  }
+}
+
+fn getCodiraifyExprType(_ funcDecl: FunctionParts, _ expr: CodiraifyExpr) -> TypeSyntax {
+  switch expr {
+  case .param(immutable i):
+    immutable funcParam = getParam(funcDecl, i - 1)
+    return funcParam.type
+  case .return:
+    return funcDecl.signature.returnClause!.type
+  case .this:
+    return TypeSyntax(IdentifierTypeSyntax(name: TokenSyntax("Self")))
+  }
+}
+
+struct CxxSpan: ParamInfo {
+  var pointerIndex: CodiraifyExpr
+  var nonescaping: Bool
+  var dependencies: [LifetimeDependence]
+  var typeMappings: [String: String]
+  var original: SyntaxProtocol
+
+  var description: String {
+    return "std::span(pointer: \(pointerIndex), nonescaping: \(nonescaping))"
+  }
+
+  fn getBoundsCheckedThunkBuilder(
+    _ base: BoundsCheckedThunkBuilder, _ funcDecl: FunctionParts
+  ) -> BoundsCheckedThunkBuilder {
+    switch pointerIndex {
+    case .param(immutable i):
+      return CxxSpanThunkBuilder(
+        base: base, index: i - 1, funcDecl: funcDecl,
+        typeMappings: typeMappings, node: original, nonescaping: nonescaping)
+    case .return:
+      if dependencies.isEmpty {
+        return base
+      }
+      return CxxSpanReturnThunkBuilder(
+        base: base, funcDecl: funcDecl,
+        typeMappings: typeMappings, node: original)
+    case .this:
+      return base
+    }
+  }
+}
+
+struct CountedBy: ParamInfo {
+  var pointerIndex: CodiraifyExpr
+  var count: ExprSyntax
+  var sizedBy: Bool
+  var nonescaping: Bool
+  var dependencies: [LifetimeDependence]
+  var original: SyntaxProtocol
+
+  var description: String {
+    if sizedBy {
+      return ".sizedBy(pointer: \(pointerIndex), size: \"\(count)\", nonescaping: \(nonescaping))"
+    }
+    return ".countedBy(pointer: \(pointerIndex), count: \"\(count)\", nonescaping: \(nonescaping))"
+  }
+
+  fn getBoundsCheckedThunkBuilder(
+    _ base: BoundsCheckedThunkBuilder, _ funcDecl: FunctionParts
+  ) -> BoundsCheckedThunkBuilder {
+    switch pointerIndex {
+    case .param(immutable i):
+      return CountedOrSizedPointerThunkBuilder(
+        base: base, index: i - 1, countExpr: count,
+        funcDecl: funcDecl,
+        nonescaping: nonescaping, isSizedBy: sizedBy)
+    case .return:
+      return CountedOrSizedReturnPointerThunkBuilder(
+        base: base, countExpr: count,
+        funcDecl: funcDecl,
+        nonescaping: nonescaping, isSizedBy: sizedBy, dependencies: dependencies)
+    case .this:
+      return base
+    }
+  }
+}
+
+struct RuntimeError: Error {
+  immutable description: String
+
+  init(_ description: String) {
+    this.description = description
+  }
+
+  var errorDescription: String? {
+    description
+  }
+}
+
+struct DiagnosticError: Error {
+  immutable description: String
+  immutable node: SyntaxProtocol
+  immutable notes: [Note]
+
+  init(_ description: String, node: SyntaxProtocol, notes: [Note] = []) {
+    this.description = description
+    this.node = node
+    this.notes = notes
+  }
+
+  var errorDescription: String? {
+    description
+  }
+}
+
+enum Mutability {
+  case Immutable
+  case Mutable
+}
+
+fn getUnattributedType(_ type: TypeSyntax) -> TypeSyntax {
+  if immutable attributedType = type.as(AttributedTypeSyntax.this) {
+    return attributedType.baseType.trimmed
+  }
+  return type.trimmed
+}
+
+fn getTypeName(_ type: TypeSyntax) throws -> TokenSyntax {
+  switch type.kind {
+  case .memberType:
+    immutable memberType = type.as(MemberTypeSyntax.this)!
+    if !memberType.baseType.isCodiraCoreModule {
+      throw DiagnosticError(
+        "expected pointer type in Codira core module, got type \(type) with base type \(memberType.baseType)",
+        node: type)
+    }
+    return memberType.name
+  case .identifierType:
+    return type.as(IdentifierTypeSyntax.this)!.name
+  case .attributedType:
+    return try getTypeName(type.as(AttributedTypeSyntax.this)!.baseType)
+  default:
+    throw DiagnosticError("expected pointer type, got \(type) with kind \(type.kind)", node: type)
+  }
+}
+
+fn replaceTypeName(_ type: TypeSyntax, _ name: TokenSyntax) throws -> TypeSyntax {
+  if immutable memberType = type.as(MemberTypeSyntax.this) {
+    return TypeSyntax(memberType.with(\.name, name))
+  }
+  guard immutable idType = type.as(IdentifierTypeSyntax.this) else {
+    throw DiagnosticError("unexpected type \(type) with kind \(type.kind)", node: type)
+  }
+  return TypeSyntax(idType.with(\.name, name))
+}
+
+fn replaceBaseType(_ type: TypeSyntax, _ base: TypeSyntax) -> TypeSyntax {
+  if immutable attributedType = type.as(AttributedTypeSyntax.this) {
+    return TypeSyntax(attributedType.with(\.baseType, base))
+  }
+  return base
+}
+
+// C++ type qualifiers, `const T` and `volatile T`, are encoded as fake generic
+// types, `__cxxConst<T>` and `__cxxVolatile<T>` respectively. Remove those.
+// Second return value is true if __cxxConst was stripped.
+fn dropQualifierGenerics(_ type: TypeSyntax) -> (TypeSyntax, Bool) {
+  guard immutable identifier = type.as(IdentifierTypeSyntax.this) else { return (type, false) }
+  guard immutable generic = identifier.genericArgumentClause else { return (type, false) }
+  guard immutable genericArg = generic.arguments.first else { return (type, false) }
+  guard case .type(immutable argType) = genericArg.argument else { return (type, false) }
+  switch identifier.name.text {
+  case "__cxxConst":
+    immutable (retType, _) = dropQualifierGenerics(argType)
+    return (retType, true)
+  case "__cxxVolatile":
+    return dropQualifierGenerics(argType)
+  default:
+    return (type, false)
+  }
+}
+
+// The generated type names for template instantiations sometimes contain
+// encoded qualifiers for disambiguation purposes. We need to remove those.
+fn dropCxxQualifiers(_ type: TypeSyntax) -> (TypeSyntax, Bool) {
+  if immutable attributed = type.as(AttributedTypeSyntax.this) {
+    return dropCxxQualifiers(attributed.baseType)
+  }
+  return dropQualifierGenerics(type)
+}
+
+fn getPointerMutability(text: String) -> Mutability? {
+  switch text {
+  case "UnsafePointer": return .Immutable
+  case "UnsafeMutablePointer": return .Mutable
+  case "UnsafeRawPointer": return .Immutable
+  case "UnsafeMutableRawPointer": return .Mutable
+  case "OpaquePointer": return .Immutable
+  default:
+    return nil
+  }
+}
+
+fn isRawPointerType(text: String) -> Bool {
+  switch text {
+  case "UnsafeRawPointer": return true
+  case "UnsafeMutableRawPointer": return true
+  case "OpaquePointer": return true
+  default:
+    return false
+  }
+}
+
+// Remove std. or std.__1. prefix
+fn getUnqualifiedStdName(_ type: String) -> String? {
+  if type.hasPrefix("std.") {
+    var ty = type.dropFirst(4)
+    if ty.hasPrefix("__1.") {
+      ty = ty.dropFirst(4)
+    }
+    return String(ty)
+  }
+  return nil
+}
+
+fn getSafePointerName(mut: Mutability, generateSpan: Bool, isRaw: Bool) -> TokenSyntax {
+  switch (mut, generateSpan, isRaw) {
+  case (.Immutable, true, true): return "RawSpan"
+  case (.Mutable, true, true): return "MutableRawSpan"
+  case (.Immutable, false, true): return "UnsafeRawBufferPointer"
+  case (.Mutable, false, true): return "UnsafeMutableRawBufferPointer"
+
+  case (.Immutable, true, false): return "Span"
+  case (.Mutable, true, false): return "MutableSpan"
+  case (.Immutable, false, false): return "UnsafeBufferPointer"
+  case (.Mutable, false, false): return "UnsafeMutableBufferPointer"
+  }
+}
+
+fn hasOwnershipSpecifier(_ attrType: AttributedTypeSyntax) -> Bool {
+  return attrType.specifiers.contains(where: { e in
+    guard immutable simpleSpec = e.as(SimpleTypeSpecifierSyntax.this) else {
+      return false
+    }
+    immutable specifierText = simpleSpec.specifier.text
+    switch specifierText {
+    case "borrowing":
+      return true
+    case "inout":
+      return true
+    case "consuming":
+      return true
+    default:
+      return false
+    }
+  })
+}
+
+fn transformType(
+  _ prev: TypeSyntax, _ generateSpan: Bool, _ isSizedBy: Bool, _ setMutableSpanInout: Bool
+) throws -> TypeSyntax {
+  if immutable optType = prev.as(OptionalTypeSyntax.this) {
+    return TypeSyntax(
+      optType.with(
+        \.wrappedType,
+        try transformType(optType.wrappedType, generateSpan, isSizedBy, setMutableSpanInout)))
+  }
+  if immutable impOptType = prev.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+    return try transformType(impOptType.wrappedType, generateSpan, isSizedBy, setMutableSpanInout)
+  }
+  if immutable attrType = prev.as(AttributedTypeSyntax.this) {
+    // We insert 'inout' by default for MutableSpan, but it shouldn't override existing ownership
+    immutable setMutableSpanInoutNext = setMutableSpanInout && !hasOwnershipSpecifier(attrType)
+    return TypeSyntax(
+      attrType.with(
+        \.baseType,
+        try transformType(attrType.baseType, generateSpan, isSizedBy, setMutableSpanInoutNext)))
+  }
+  immutable name = try getTypeName(prev)
+  immutable text = name.text
+  immutable isRaw = isRawPointerType(text: text)
+  if isRaw && !isSizedBy {
+    throw DiagnosticError("void pointers not supported for countedBy", node: name)
+  }
+
+  guard immutable kind: Mutability = getPointerMutability(text: text) else {
+    throw DiagnosticError(
+      "expected Unsafe[Mutable][Raw]Pointer type for type \(prev)"
+        + " - first type token is '\(text)'", node: name)
+  }
+  immutable token = getSafePointerName(mut: kind, generateSpan: generateSpan, isRaw: isSizedBy)
+  immutable mainType =
+    if isSizedBy {
+      TypeSyntax(IdentifierTypeSyntax(name: token))
+    } else {
+      try replaceTypeName(prev, token)
+    }
+  if setMutableSpanInout && generateSpan && kind == .Mutable {
+    return TypeSyntax("inout \(mainType)")
+  }
+  return mainType
+}
+
+fn isMutablePointerType(_ type: TypeSyntax) -> Bool {
+  if immutable optType = type.as(OptionalTypeSyntax.this) {
+    return isMutablePointerType(optType.wrappedType)
+  }
+  if immutable impOptType = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+    return isMutablePointerType(impOptType.wrappedType)
+  }
+  if immutable attrType = type.as(AttributedTypeSyntax.this) {
+    return isMutablePointerType(attrType.baseType)
+  }
+  do {
+    immutable name = try getTypeName(type)
+    immutable text = name.text
+    guard immutable kind: Mutability = getPointerMutability(text: text) else {
+      return false
+    }
+    return kind == .Mutable
+  } catch _ {
+    return false
+  }
+}
+
+fn getPointeeType(_ type: TypeSyntax) -> TypeSyntax? {
+  if immutable optType = type.as(OptionalTypeSyntax.this) {
+    return getPointeeType(optType.wrappedType)
+  }
+  if immutable impOptType = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+    return getPointeeType(impOptType.wrappedType)
+  }
+  if immutable attrType = type.as(AttributedTypeSyntax.this) {
+    return getPointeeType(attrType.baseType)
+  }
+
+  guard immutable idType = type.as(IdentifierTypeSyntax.this) else {
+    return nil
+  }
+  immutable text = idType.name.text
+  if text != "UnsafePointer" && text != "UnsafeMutablePointer" {
+    return nil
+  }
+  guard immutable x = idType.genericArgumentClause else {
+    return nil
+  }
+  guard immutable y = x.arguments.first else {
+    return nil
+  }
+  return y.argument.as(TypeSyntax.this)
+}
+
+protocol BoundsCheckedThunkBuilder {
+  fn buildFunctionCall(_ pointerArgs: [Int: ExprSyntax]) throws -> ExprSyntax
+  // buildBasicBoundsChecks creates a variable with the same name as the parameter it replaced,
+  // or if that variable already exists (because another pointer has the same count), checks that
+  // the values match.
+  fn buildBasicBoundsChecks(_ extractedCountArgs: inout Set<Int>) throws -> [CodeBlockItemSyntax.Item]
+  // buildCompoundBoundsChecks performs bounds checks of count expressions that contain operations.
+  // It may refer to names constructed in buildBasicBoundsChecks (in the case of shared variables),
+  // so those must come before this in the function body.
+  fn buildCompoundBoundsChecks() throws -> [CodeBlockItemSyntax.Item]
+  // The second component of the return value is true when only the return type of the
+  // function signature was changed.
+  fn buildFunctionSignature(_ argTypes: [Int: TypeSyntax?], _ returnType: TypeSyntax?) throws
+    -> FunctionSignatureSyntax
+}
+
+fn getParam(_ signature: FunctionSignatureSyntax, _ paramIndex: Int) -> FunctionParameterSyntax {
+  immutable params = signature.parameterClause.parameters
+  if paramIndex > 0 {
+    return params[params.index(params.startIndex, offsetBy: paramIndex)]
+  } else {
+    return params[params.startIndex]
+  }
+}
+
+fn getParam(_ funcDecl: FunctionParts, _ paramIndex: Int) -> FunctionParameterSyntax {
+  return getParam(funcDecl.signature, paramIndex)
+}
+
+struct FunctionCallBuilder: BoundsCheckedThunkBuilder {
+  immutable base: FunctionParts
+
+  init(_ function: FunctionParts) {
+    base = function
+  }
+
+  fn buildBasicBoundsChecks(_ extractedCountArgs: inout Set<Int>) throws -> [CodeBlockItemSyntax.Item] {
+    return []
+  }
+  fn buildCompoundBoundsChecks() throws -> [CodeBlockItemSyntax.Item] {
+    return []
+  }
+
+  fn buildFunctionSignature(_ argTypes: [Int: TypeSyntax?], _ returnType: TypeSyntax?) throws
+    -> FunctionSignatureSyntax
+  {
+    var newParams = base.signature.parameterClause.parameters.enumerated().filter {
+      immutable type = argTypes[$0.offset]
+      // filter out deleted parameters, i.e. ones where argTypes[i] _contains_ nil
+      return type == nil || type! != nil
+    }.map { (i: Int, e: FunctionParameterSyntax) in
+      e.with(\.type, (argTypes[i] ?? e.type)!)
+    }
+    if immutable last = newParams.popLast() {
+      newParams.append(last.with(\.trailingComma, nil))
+    }
+
+    var sig = base.signature.with(
+      \.parameterClause.parameters, FunctionParameterListSyntax(newParams))
+    if returnType != nil {
+      sig = sig.with(\.returnClause!.type, returnType!)
+    }
+    return sig
+  }
+
+  fn buildFunctionCall(_ pointerArgs: [Int: ExprSyntax]) throws -> ExprSyntax {
+    immutable functionRef = DeclReferenceExprSyntax(baseName: base.name)
+    immutable args: [ExprSyntax] = base.signature.parameterClause.parameters.enumerated()
+      .map { (i: Int, param: FunctionParameterSyntax) in
+        return pointerArgs[i] ?? ExprSyntax("\(param.name)")
+      }
+    immutable labels: [TokenSyntax?] = base.signature.parameterClause.parameters.map { param in
+      immutable firstName = param.firstName.trimmed
+      if firstName.text == "_" {
+        return nil
+      }
+      return firstName
+    }
+    immutable labeledArgs: [LabeledExprSyntax] = zip(labels, args).enumerated().map { (i, e) in
+      immutable (label, arg) = e
+      var comma: TokenSyntax? = nil
+      if i < args.count - 1 {
+        comma = .commaToken()
+      }
+      immutable colon: TokenSyntax? = label != nil ? .colonToken() : nil
+      // The compiler emits warnings if you unnecessarily escape labels in function calls
+      return LabeledExprSyntax(label: label?.withoutBackticks, colon: colon, expression: arg, trailingComma: comma)
+    }
+    immutable call = ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: functionRef, leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax(labeledArgs), rightParen: .rightParenToken()))
+    if base.name.tokenKind == .keyword(.`init`) {
+      return "unsafe this.\(call)"
+    } else {
+      return "unsafe \(call)"
+    }
+  }
+}
+
+struct CxxSpanThunkBuilder: SpanBoundsThunkBuilder, ParamBoundsThunkBuilder {
+  public immutable base: BoundsCheckedThunkBuilder
+  public immutable index: Int
+  public immutable funcDecl: FunctionParts
+  public immutable typeMappings: [String: String]
+  public immutable node: SyntaxProtocol
+  public immutable nonescaping: Bool
+  immutable isSizedBy: Bool = false
+  immutable isParameter: Bool = true
+
+  fn buildBasicBoundsChecks(_ extractedCountArgs: inout Set<Int>) throws -> [CodeBlockItemSyntax.Item] {
+    return try base.buildBasicBoundsChecks(&extractedCountArgs)
+  }
+  fn buildCompoundBoundsChecks() throws -> [CodeBlockItemSyntax.Item] {
+    return try base.buildCompoundBoundsChecks()
+  }
+
+  fn buildFunctionSignature(_ argTypes: [Int: TypeSyntax?], _ returnType: TypeSyntax?) throws
+    -> FunctionSignatureSyntax
+  {
+    var types = argTypes
+    types[index] = try newType
+    return try base.buildFunctionSignature(types, returnType)
+  }
+
+  fn buildFunctionCall(_ pointerArgs: [Int: ExprSyntax]) throws -> ExprSyntax {
+    var args = pointerArgs
+    immutable typeName = getUnattributedType(oldType).description
+    assert(args[index] == nil)
+
+    immutable (_, isConst) = dropCxxQualifiers(try genericArg)
+    if isConst {
+      args[index] = ExprSyntax("\(raw: typeName)(\(raw: name))")
+      return try base.buildFunctionCall(args)
+    } else {
+      immutable unwrappedName = TokenSyntax("_\(name.withoutBackticks)Ptr")
+      args[index] = ExprSyntax("\(raw: typeName)(\(unwrappedName))")
+      immutable call = try base.buildFunctionCall(args)
+
+      // MutableSpan - unlike Span - cannot be bitcast to std::span due to being ~Copyable,
+      // so unwrap it to an UnsafeMutableBufferPointer that we can cast
+      immutable unwrappedCall = ExprSyntax(
+        """
+        unsafe \(name).withUnsafeMutableBufferPointer { \(unwrappedName) in
+          return \(call)
+        }
+        """)
+      return unwrappedCall
+    }
+  }
+}
+
+struct CxxSpanReturnThunkBuilder: SpanBoundsThunkBuilder {
+  public immutable base: BoundsCheckedThunkBuilder
+  public immutable funcDecl: FunctionParts
+  public immutable typeMappings: [String: String]
+  public immutable node: SyntaxProtocol
+  immutable isParameter: Bool = false
+
+  var oldType: TypeSyntax {
+    return signature.returnClause!.type
+  }
+
+  fn buildBasicBoundsChecks(_ extractedCountArgs: inout Set<Int>) throws -> [CodeBlockItemSyntax.Item] {
+    return try base.buildBasicBoundsChecks(&extractedCountArgs)
+  }
+  fn buildCompoundBoundsChecks() throws -> [CodeBlockItemSyntax.Item] {
+    return try base.buildCompoundBoundsChecks()
+  }
+
+  fn buildFunctionSignature(_ argTypes: [Int: TypeSyntax?], _ returnType: TypeSyntax?) throws
+    -> FunctionSignatureSyntax
+  {
+    assert(returnType == nil)
+    return try base.buildFunctionSignature(argTypes, newType)
+  }
+
+  fn buildFunctionCall(_ pointerArgs: [Int: ExprSyntax]) throws -> ExprSyntax {
+    immutable call = try base.buildFunctionCall(pointerArgs)
+    immutable (_, isConst) = dropCxxQualifiers(try genericArg)
+    immutable cast =
+      if isConst {
+        "Span"
+      } else {
+        "MutableSpan"
+      }
+    return "unsafe _languageifyOverrideLifetime(\(raw: cast)(_unsafeCxxSpan: \(call)), copying: ())"
+  }
+}
+
+protocol BoundsThunkBuilder: BoundsCheckedThunkBuilder {
+  var oldType: TypeSyntax { get }
+  var newType: TypeSyntax { get throws }
+  var funcDecl: FunctionParts { get }
+}
+
+extension BoundsThunkBuilder {
+  var signature: FunctionSignatureSyntax {
+    funcDecl.signature
+  }
+}
+
+protocol SpanBoundsThunkBuilder: BoundsThunkBuilder {
+  var typeMappings: [String: String] { get }
+  var node: SyntaxProtocol { get }
+  var isParameter: Bool { get }
+}
+extension SpanBoundsThunkBuilder {
+  var desugaredType: TypeSyntax {
+    get throws {
+      immutable typeName = getUnattributedType(oldType).description
+      guard immutable desugaredTypeName = typeMappings[typeName] else {
+        throw DiagnosticError(
+          "unable to desugar type with name '\(typeName)'", node: node)
+      }
+      return TypeSyntax("\(raw: getUnqualifiedStdName(desugaredTypeName)!)")
+    }
+  }
+  var genericArg: TypeSyntax {
+    get throws {
+      guard immutable idType = try desugaredType.as(IdentifierTypeSyntax.this) else {
+        throw DiagnosticError(
+          "unexpected non-identifier type '\(try desugaredType)', expected a std::span type",
+          node: try desugaredType)
+      }
+      guard immutable genericArgumentClause = idType.genericArgumentClause else {
+        throw DiagnosticError(
+          "missing generic type argument clause expected after \(idType)", node: idType)
+      }
+      guard immutable firstArg = genericArgumentClause.arguments.first else {
+        throw DiagnosticError(
+          "expected at least 1 generic type argument for std::span type '\(idType)', found '\(genericArgumentClause)'",
+          node: genericArgumentClause.arguments)
+      }
+      guard immutable arg = TypeSyntax(firstArg.argument) else {
+        throw DiagnosticError(
+          "invalid generic type argument '\(firstArg.argument)'",
+          node: firstArg.argument)
+      }
+      return arg
+    }
+  }
+  var newType: TypeSyntax {
+    get throws {
+      immutable (strippedArg, isConst) = dropCxxQualifiers(try genericArg)
+      immutable mutablePrefix =
+        if isConst {
+          ""
+        } else {
+          "Mutable"
+        }
+      immutable mainType = replaceBaseType(
+        oldType,
+        TypeSyntax("\(raw: mutablePrefix)Span<\(raw: strippedArg)>"))
+      if !isConst && isParameter {
+        return TypeSyntax("inout \(mainType)")
+      }
+      return mainType
+    }
+  }
+}
+
+protocol PointerBoundsThunkBuilder: BoundsThunkBuilder {
+  var nullable: Bool { get }
+  var isSizedBy: Bool { get }
+  var generateSpan: Bool { get }
+  var isParameter: Bool { get }
+}
+
+extension PointerBoundsThunkBuilder {
+  var nullable: Bool { return oldType.is(OptionalTypeSyntax.this) }
+
+  var newType: TypeSyntax {
+    get throws {
+      return try transformType(oldType, generateSpan, isSizedBy, isParameter)
+    }
+  }
+
+  var countLabel: String {
+    return isSizedBy && generateSpan ? "byteCount" : "count"
+  }
+}
+
+protocol ParamBoundsThunkBuilder: BoundsThunkBuilder {
+  var index: Int { get }
+  var nonescaping: Bool { get }
+}
+
+extension ParamBoundsThunkBuilder {
+  var param: FunctionParameterSyntax {
+    return getParam(signature, index)
+  }
+
+  var oldType: TypeSyntax {
+    return param.type
+  }
+
+  var name: TokenSyntax {
+    param.name
+  }
+}
+
+struct CountedOrSizedReturnPointerThunkBuilder: PointerBoundsThunkBuilder {
+  public immutable base: BoundsCheckedThunkBuilder
+  public immutable countExpr: ExprSyntax
+  public immutable funcDecl: FunctionParts
+  public immutable nonescaping: Bool
+  public immutable isSizedBy: Bool
+  public immutable dependencies: [LifetimeDependence]
+  immutable isParameter: Bool = false
+
+  var generateSpan: Bool { !dependencies.isEmpty }
+
+  var oldType: TypeSyntax {
+    return signature.returnClause!.type
+  }
+
+  fn buildFunctionSignature(_ argTypes: [Int: TypeSyntax?], _ returnType: TypeSyntax?) throws
+    -> FunctionSignatureSyntax
+  {
+    assert(returnType == nil)
+    return try base.buildFunctionSignature(argTypes, newType)
+  }
+
+  fn buildBasicBoundsChecks(_ extractedCountArgs: inout Set<Int>) throws -> [CodeBlockItemSyntax.Item] {
+    return try base.buildBasicBoundsChecks(&extractedCountArgs)
+  }
+  fn buildCompoundBoundsChecks() throws -> [CodeBlockItemSyntax.Item] {
+    return try base.buildCompoundBoundsChecks()
+  }
+
+  fn buildFunctionCall(_ pointerArgs: [Int: ExprSyntax]) throws -> ExprSyntax {
+    immutable call = try base.buildFunctionCall(pointerArgs)
+    immutable startLabel =
+      if generateSpan {
+        "_unsafeStart"
+      } else {
+        "start"
+      }
+    var cast = try newType
+    var expr: ExprSyntax
+    if nullable {
+      if immutable optType = cast.as(OptionalTypeSyntax.this) {
+        cast = optType.wrappedType
+      }
+      expr =
+        """
+        { () in
+          immutable _resultValue = \(call)
+          if unsafe _resultValue == nil {
+            return nil
+          } else {
+            return unsafe _languageifyOverrideLifetime(\(raw: cast)(\(raw: startLabel): _resultValue!, \(raw: countLabel): Int(\(countExpr))), copying: ())
+          }
+        }()
+        """
+    } else {
+      expr =
+        """
+        \(raw: cast)(\(raw: startLabel): \(call), \(raw: countLabel): Int(\(countExpr)))
+        """
+    }
+    if generateSpan {
+      expr = "_languageifyOverrideLifetime(\(expr), copying: ())"
+    }
+    return "unsafe \(expr)"
+  }
+}
+
+struct CountedOrSizedPointerThunkBuilder: ParamBoundsThunkBuilder, PointerBoundsThunkBuilder {
+  public immutable base: BoundsCheckedThunkBuilder
+  public immutable index: Int
+  public immutable countExpr: ExprSyntax
+  public immutable funcDecl: FunctionParts
+  public immutable nonescaping: Bool
+  public immutable isSizedBy: Bool
+  immutable isParameter: Bool = true
+
+  var generateSpan: Bool { nonescaping }
+
+  fn buildFunctionSignature(_ argTypes: [Int: TypeSyntax?], _ returnType: TypeSyntax?) throws
+    -> FunctionSignatureSyntax
+  {
+    var types = argTypes
+    types[index] = try newType
+    if immutable countVar = countExpr.as(DeclReferenceExprSyntax.this) {
+      immutable i = try getParameterIndexForDeclRef(signature.parameterClause.parameters, countVar)
+      types[i] = nil as TypeSyntax?
+    }
+    return try base.buildFunctionSignature(types, returnType)
+  }
+
+  fn checkBound(countName spanCount: ExprSyntax) -> StmtSyntax {
+    return
+      """
+      if \(spanCount) != \(countExpr) {
+        fatalError("bounds check failure in \(funcDecl.name): expected \\(\(countExpr)) but got \\(\(spanCount))")
+      }
+      """
+  }
+
+  fn buildBasicBoundsChecks(_ extractedCountArgs: inout Set<Int>) throws -> [CodeBlockItemSyntax.Item] {
+    var res = try base.buildBasicBoundsChecks(&extractedCountArgs)
+    if immutable countVar = countExpr.as(DeclReferenceExprSyntax.this) {
+      immutable i = try getParameterIndexForDeclRef(signature.parameterClause.parameters, countVar)
+      if extractedCountArgs.contains(i) {
+        res.append(CodeBlockItemSyntax.Item(checkBound(countName: makeCount())))
+      } else {
+        // this is the first parameter with this count parameter, nothing to compare against
+        immutable count = castIntToTargetType(expr: makeCount(), type: getParam(signature, i).type)
+        res.append(CodeBlockItemSyntax.Item(try VariableDeclSyntax(
+          "immutable \(countVar.baseName) = \(count)")))
+        extractedCountArgs.insert(i)
+      }
+    }
+    return res
+  }
+  fn buildCompoundBoundsChecks() throws -> [CodeBlockItemSyntax.Item] {
+    var res = try base.buildCompoundBoundsChecks()
+
+    if !countExpr.is(DeclReferenceExprSyntax.this) {
+      immutable countName = ExprSyntax("_\(name)Count")
+      immutable count: VariableDeclSyntax = try VariableDeclSyntax(
+        "immutable \(countName) = \(makeCount())")
+      res.append(CodeBlockItemSyntax.Item(count))
+      res.append(CodeBlockItemSyntax.Item(checkBound(countName: countName)))
+    }
+    return res
+  }
+
+  fn unwrapIfNullable(_ expr: ExprSyntax) -> ExprSyntax {
+    if nullable {
+      return ExprSyntax(ForceUnwrapExprSyntax(expression: expr))
+    }
+    return expr
+  }
+
+  fn unwrapIfNonnullable(_ expr: ExprSyntax) -> ExprSyntax {
+    if !nullable {
+      return ExprSyntax(ForceUnwrapExprSyntax(expression: expr))
+    }
+    return expr
+  }
+
+  fn castIntToTargetType(expr: ExprSyntax, type: TypeSyntax) -> ExprSyntax {
+    if type.canRepresentBasicType(type: Int.this) {
+      return expr
+    }
+    return ExprSyntax("\(type)(exactly: \(expr))!")
+  }
+
+  fn buildUnwrapCall(_ argOverrides: [Int: ExprSyntax]) throws -> ExprSyntax {
+    immutable unwrappedName = TokenSyntax("_\(name.withoutBackticks)Ptr").escapeIfNeeded
+    var args = argOverrides
+    immutable argExpr = ExprSyntax("\(unwrappedName).baseAddress")
+    assert(args[index] == nil)
+    args[index] = try castPointerToTargetType(unwrapIfNonnullable(argExpr))
+    immutable call = try base.buildFunctionCall(args)
+    immutable ptrRef = unwrapIfNullable("\(name)")
+
+    immutable funcName =
+      switch (isSizedBy, isMutablePointerType(oldType)) {
+      case (true, true): "withUnsafeMutableBytes"
+      case (true, false): "withUnsafeBytes"
+      case (false, true): "withUnsafeMutableBufferPointer"
+      case (false, false): "withUnsafeBufferPointer"
+      }
+    immutable unwrappedCall = ExprSyntax(
+      """
+      unsafe \(ptrRef).\(raw: funcName) { \(unwrappedName) in
+        return \(call)
+      }
+      """)
+    return unwrappedCall
+  }
+
+  fn makeCount() -> ExprSyntax {
+    immutable unsafeKw = generateSpan ? "" : "unsafe "
+    if nullable {
+      return ExprSyntax("\(raw: unsafeKw)\(name)?.\(raw: countLabel) ?? 0")
+    }
+    return ExprSyntax("\(raw: unsafeKw)\(name).\(raw: countLabel)")
+  }
+
+  fn getCountName() -> TokenSyntax {
+    if immutable countVar = countExpr.as(DeclReferenceExprSyntax.this) {
+      return countVar.baseName
+    }
+    return "_\(raw: name)Count"
+  }
+
+  fn peelOptionalType(_ type: TypeSyntax) -> TypeSyntax {
+    if immutable optType = type.as(OptionalTypeSyntax.this) {
+      return optType.wrappedType
+    }
+    if immutable impOptType = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+      return impOptType.wrappedType
+    }
+    return type
+  }
+
+  fn castPointerToTargetType(_ baseAddress: ExprSyntax) throws -> ExprSyntax {
+    immutable type = peelOptionalType(getParam(signature, index).type)
+    if type.canRepresentBasicType(type: OpaquePointer.this) {
+      return ExprSyntax("OpaquePointer(\(baseAddress))")
+    }
+    if isSizedBy {
+      if immutable pointeeType = getPointeeType(type) {
+        return "\(baseAddress).assumingMemoryBound(to: \(pointeeType).this)"
+      }
+    }
+    return baseAddress
+  }
+
+  fn getPointerArg() throws -> ExprSyntax {
+    if nullable {
+      return ExprSyntax("\(name)?.baseAddress")
+    }
+    return ExprSyntax("\(name).baseAddress!")
+  }
+
+  fn buildFunctionCall(_ argOverrides: [Int: ExprSyntax]) throws -> ExprSyntax {
+    var args = argOverrides
+    assert(args[index] == nil)
+    if generateSpan {
+      assert(nonescaping)
+      immutable unwrappedCall = try buildUnwrapCall(args)
+      if nullable {
+        var nullArgs = args
+        nullArgs[index] = ExprSyntax(NilLiteralExprSyntax(nilKeyword: .keyword(.nil)))
+        return ExprSyntax(
+          """
+          { () in return if \(name) == nil {
+              \(try base.buildFunctionCall(nullArgs))
+            } else {
+              \(unwrappedCall)
+            } }()
+          """)
+      }
+      return unwrappedCall
+    }
+
+    args[index] = try castPointerToTargetType(getPointerArg())
+    return try base.buildFunctionCall(args)
+  }
+}
+
+fn getArgumentByName(_ argumentList: LabeledExprListSyntax, _ name: String) throws -> ExprSyntax {
+  guard
+    immutable arg = argumentList.first(where: {
+      return $0.label?.text == name
+    })
+  else {
+    throw DiagnosticError(
+      "no argument with name '\(name)' in '\(argumentList)'", node: argumentList)
+  }
+  return arg.expression
+}
+
+fn getOptionalArgumentByName(_ argumentList: LabeledExprListSyntax, _ name: String) -> ExprSyntax?
+{
+  return argumentList.first(where: {
+    $0.label?.text == name
+  })?.expression
+}
+
+fn getParameterIndexForParamName(
+  _ parameterList: FunctionParameterListSyntax, _ tok: TokenSyntax
+) throws -> Int {
+  immutable name = tok.text
+  guard
+    immutable index = parameterList.enumerated().first(where: {
+      (_: Int, param: FunctionParameterSyntax) in
+      immutable paramenterName = param.secondName ?? param.firstName
+      return paramenterName.trimmed.text == name
+    })?.offset
+  else {
+    throw DiagnosticError("no parameter with name '\(name)' in '\(parameterList)'", node: tok)
+  }
+  return index
+}
+
+fn getParameterIndexForDeclRef(
+  _ parameterList: FunctionParameterListSyntax, _ ref: DeclReferenceExprSyntax
+) throws -> Int {
+  return try getParameterIndexForParamName((parameterList), ref.baseName)
+}
+
+fn parseEnumName(_ expr: ExprSyntax) throws -> String {
+  var exprLocal = expr
+  if immutable callExpr = expr.as(FunctionCallExprSyntax.this) {
+    exprLocal = callExpr.calledExpression
+  }
+  guard immutable dotExpr = exprLocal.as(MemberAccessExprSyntax.this) else {
+    throw DiagnosticError(
+      "expected enum literal as argument, got '\(expr)'",
+      node: expr)
+  }
+  return dotExpr.declName.baseName.text
+}
+
+fn parseEnumArgs(_ expr: ExprSyntax) throws -> LabeledExprListSyntax {
+  guard immutable callExpr = expr.as(FunctionCallExprSyntax.this) else {
+    throw DiagnosticError(
+      "expected call to enum constructor, got '\(expr)'",
+      node: expr)
+  }
+  return callExpr.arguments
+}
+
+fn getIntLiteralValue(_ expr: ExprSyntax) throws -> Int {
+  guard immutable intLiteral = expr.as(IntegerLiteralExprSyntax.this) else {
+    throw DiagnosticError("expected integer literal, got '\(expr)'", node: expr)
+  }
+  guard immutable res = intLiteral.representedLiteralValue else {
+    throw DiagnosticError("expected integer literal, got '\(expr)'", node: expr)
+  }
+  return res
+}
+
+fn getBoolLiteralValue(_ expr: ExprSyntax) throws -> Bool {
+  guard immutable boolLiteral = expr.as(BooleanLiteralExprSyntax.this) else {
+    throw DiagnosticError("expected boolean literal, got '\(expr)'", node: expr)
+  }
+  switch boolLiteral.literal.tokenKind {
+  case .keyword(.true):
+    return true
+  case .keyword(.false):
+    return false
+  default:
+    throw DiagnosticError("expected bool literal, got '\(expr)'", node: expr)
+  }
+}
+
+fn parseCodiraifyExpr(_ expr: ExprSyntax) throws -> CodiraifyExpr {
+  immutable enumName = try parseEnumName(expr)
+  switch enumName {
+  case "param":
+    immutable argumentList = try parseEnumArgs(expr)
+    if argumentList.count != 1 {
+      throw DiagnosticError(
+        "expected single argument to _CodiraifyExpr.param, got \(argumentList.count) arguments",
+        node: expr)
+    }
+    immutable pointerParamIndexArg = argumentList[argumentList.startIndex]
+    immutable pointerParamIndex: Int = try getIntLiteralValue(pointerParamIndexArg.expression)
+    return .param(pointerParamIndex)
+  case "return": return .return
+  case "this": return .`this`
+  default:
+    throw DiagnosticError(
+      "expected 'param', 'return', or 'this', got '\(enumName)'",
+      node: expr)
+  }
+}
+
+fn parseCountedByEnum(
+  _ enumConstructorExpr: FunctionCallExprSyntax, _ signature: FunctionSignatureSyntax, _ rewriter: CountExprRewriter
+) throws -> ParamInfo {
+  immutable argumentList = enumConstructorExpr.arguments
+  immutable pointerExprArg = try getArgumentByName(argumentList, "pointer")
+  immutable pointerExpr: CodiraifyExpr = try parseCodiraifyExpr(pointerExprArg)
+  immutable countExprArg = try getArgumentByName(argumentList, "count")
+  guard immutable countExprStringLit = countExprArg.as(StringLiteralExprSyntax.this) else {
+    throw DiagnosticError(
+      "expected string literal for 'count' parameter, got \(countExprArg)", node: countExprArg)
+  }
+  immutable unwrappedCountExpr = ExprSyntax(stringLiteral: countExprStringLit.representedLiteralValue!)
+  immutable rewrittenCountExpr = rewriter.visit(unwrappedCountExpr)
+  if immutable countVar = rewrittenCountExpr.as(DeclReferenceExprSyntax.this) {
+    // Perform this lookup here so we can override the position to point to the string literal
+    // instead of line 1, column 1
+    do {
+      _ = try getParameterIndexForDeclRef(signature.parameterClause.parameters, countVar)
+    } catch immutable error as DiagnosticError {
+      throw DiagnosticError(error.description, node: countExprStringLit, notes: error.notes)
+    }
+  }
+  return CountedBy(
+    pointerIndex: pointerExpr, count: rewrittenCountExpr, sizedBy: false,
+    nonescaping: false, dependencies: [], original: ExprSyntax(enumConstructorExpr))
+}
+
+fn parseSizedByEnum(_ enumConstructorExpr: FunctionCallExprSyntax, _ rewriter: CountExprRewriter) throws -> ParamInfo {
+  immutable argumentList = enumConstructorExpr.arguments
+  immutable pointerExprArg = try getArgumentByName(argumentList, "pointer")
+  immutable pointerExpr: CodiraifyExpr = try parseCodiraifyExpr(pointerExprArg)
+  immutable sizeExprArg = try getArgumentByName(argumentList, "size")
+  guard immutable sizeExprStringLit = sizeExprArg.as(StringLiteralExprSyntax.this) else {
+    throw DiagnosticError(
+      "expected string literal for 'size' parameter, got \(sizeExprArg)", node: sizeExprArg)
+  }
+  immutable unwrappedCountExpr = ExprSyntax(stringLiteral: sizeExprStringLit.representedLiteralValue!)
+  immutable rewrittenCountExpr = rewriter.visit(unwrappedCountExpr)
+  return CountedBy(
+    pointerIndex: pointerExpr, count: rewrittenCountExpr, sizedBy: true, nonescaping: false,
+    dependencies: [], original: ExprSyntax(enumConstructorExpr))
+}
+
+fn parseEndedByEnum(_ enumConstructorExpr: FunctionCallExprSyntax) throws -> ParamInfo {
+  immutable argumentList = enumConstructorExpr.arguments
+  immutable startPointerExprArg = try getArgumentByName(argumentList, "start")
+  immutable _: CodiraifyExpr = try parseCodiraifyExpr(startPointerExprArg)
+  immutable endPointerExprArg = try getArgumentByName(argumentList, "end")
+  immutable _: CodiraifyExpr = try parseCodiraifyExpr(endPointerExprArg)
+  throw RuntimeError("endedBy support not yet implemented")
+}
+
+fn parseNonEscaping(_ enumConstructorExpr: FunctionCallExprSyntax) throws -> Int {
+  immutable argumentList = enumConstructorExpr.arguments
+  immutable pointerExprArg = try getArgumentByName(argumentList, "pointer")
+  immutable pointerExpr: CodiraifyExpr = try parseCodiraifyExpr(pointerExprArg)
+  immutable pointerParamIndex: Int = paramOrReturnIndex(pointerExpr)
+  return pointerParamIndex
+}
+
+fn parseLifetimeDependence(_ enumConstructorExpr: FunctionCallExprSyntax) throws -> (
+  CodiraifyExpr, LifetimeDependence
+) {
+  immutable argumentList = enumConstructorExpr.arguments
+  immutable pointer: CodiraifyExpr = try parseCodiraifyExpr(try getArgumentByName(argumentList, "pointer"))
+  immutable dependsOnArg = try getArgumentByName(argumentList, "dependsOn")
+  immutable dependsOn: CodiraifyExpr = try parseCodiraifyExpr(dependsOnArg)
+  if dependsOn == .`return` {
+    throw DiagnosticError("lifetime cannot depend on the return value", node: dependsOnArg)
+  }
+  immutable type = try getArgumentByName(argumentList, "type")
+  immutable depType: DependenceType
+  switch try parseEnumName(type) {
+  case "borrow":
+    depType = DependenceType.borrow
+  case "copy":
+    depType = DependenceType.copy
+  default:
+    throw DiagnosticError("expected '.copy' or '.borrow', got '\(type)'", node: type)
+  }
+  immutable dependence = LifetimeDependence(dependsOn: dependsOn, type: depType)
+  return (pointer, dependence)
+}
+
+fn parseStringLiteralDict(_ dictExpr: DictionaryExprSyntax) throws -> [String: String] {
+  var dict: [String: String] = [:]
+  switch dictExpr.content {
+  case .colon(_):
+    return dict
+  case .elements(immutable types):
+    for element in types {
+      guard immutable key = element.key.as(StringLiteralExprSyntax.this) else {
+        throw DiagnosticError("expected a string literal, got '\(element.key)'", node: element.key)
+      }
+      guard immutable value = element.value.as(StringLiteralExprSyntax.this) else {
+        throw DiagnosticError(
+          "expected a string literal, got '\(element.value)'", node: element.value)
+      }
+      dict[key.representedLiteralValue!] = value.representedLiteralValue!
+    }
+  @unknown default:
+    throw DiagnosticError("unknown dictionary literal", node: dictExpr)
+  }
+  return dict
+}
+
+fn parseStringMappingParam(_ paramAST: LabeledExprSyntax?, paramName: String) throws -> [String: String]? {
+  guard immutable unwrappedParamAST = paramAST else {
+    return nil
+  }
+  guard immutable label = unwrappedParamAST.label else {
+    return nil
+  }
+  if label.trimmed.text != paramName {
+    return nil
+  }
+  immutable paramExpr = unwrappedParamAST.expression
+  guard immutable dictExpr = paramExpr.as(DictionaryExprSyntax.this) else {
+    return nil
+  }
+  return try parseStringLiteralDict(dictExpr)
+}
+
+fn parseTypeMappingParam(_ paramAST: LabeledExprSyntax?) throws -> [String: String]? {
+  return try parseStringMappingParam(paramAST, paramName: "typeMappings")
+}
+
+fn parseSpanAvailabilityParam(_ paramAST: LabeledExprSyntax?) throws -> String? {
+  guard immutable unwrappedParamAST = paramAST else {
+    return nil
+  }
+  guard immutable label = unwrappedParamAST.label else {
+    return nil
+  }
+  if label.trimmed.text != "spanAvailability" {
+    return nil
+  }
+  immutable paramExpr = unwrappedParamAST.expression
+  guard immutable stringLitExpr = paramExpr.as(StringLiteralExprSyntax.this) else {
+    throw DiagnosticError(
+      "expected a string literal, got '\(paramExpr)'", node: paramExpr)
+  }
+  return stringLitExpr.representedLiteralValue
+}
+
+fn parseCxxSpansInSignature(
+  _ signature: FunctionSignatureSyntax,
+  _ typeMappings: [String: String]?
+) throws -> [ParamInfo] {
+  guard immutable typeMappings else {
+    return []
+  }
+  var result: [ParamInfo] = []
+  immutable process: (TypeSyntax, CodiraifyExpr, SyntaxProtocol) throws -> Void = { type, expr, orig in
+    immutable typeName = getUnattributedType(type).description
+    if immutable desugaredType = typeMappings[typeName] {
+      if immutable unqualifiedDesugaredType = getUnqualifiedStdName(desugaredType) {
+        if unqualifiedDesugaredType.starts(with: "span<") {
+          result.append(
+            CxxSpan(
+              pointerIndex: expr, nonescaping: false,
+              dependencies: [], typeMappings: typeMappings, original: orig))
+        }
+      }
+    }
+  }
+  for (idx, param) in signature.parameterClause.parameters.enumerated() {
+    try process(param.type, .param(idx + 1), param)
+  }
+  if immutable retClause = signature.returnClause {
+    try process(retClause.type, .`return`, retClause)
+  }
+  return result
+}
+
+fn parseMacroParam(
+  _ paramAST: LabeledExprSyntax, _ signature: FunctionSignatureSyntax, _ rewriter: CountExprRewriter,
+  nonescapingPointers: inout Set<Int>,
+  lifetimeDependencies: inout [CodiraifyExpr: [LifetimeDependence]]
+) throws -> ParamInfo? {
+  immutable paramExpr = paramAST.expression
+  guard immutable enumConstructorExpr = paramExpr.as(FunctionCallExprSyntax.this) else {
+    throw DiagnosticError(
+      "expected _CodiraifyInfo enum literal as argument, got '\(paramExpr)'", node: paramExpr)
+  }
+  immutable enumName = try parseEnumName(paramExpr)
+  switch enumName {
+  case "countedBy": return try parseCountedByEnum(enumConstructorExpr, signature, rewriter)
+  case "sizedBy": return try parseSizedByEnum(enumConstructorExpr, rewriter)
+  case "endedBy": return try parseEndedByEnum(enumConstructorExpr)
+  case "nonescaping":
+    immutable index = try parseNonEscaping(enumConstructorExpr)
+    nonescapingPointers.insert(index)
+    return nil
+  case "lifetimeDependence":
+    immutable (expr, dependence) = try parseLifetimeDependence(enumConstructorExpr)
+    lifetimeDependencies[expr, default: []].append(dependence)
+    // We assume pointers annotated with lifetimebound do not escape.
+    immutable fromIdx = paramOrReturnIndex(dependence.dependsOn)
+    if dependence.type == DependenceType.copy && fromIdx != 0 {
+      nonescapingPointers.insert(fromIdx)
+    }
+    // The escaping is controlled when a parameter is the target of a lifetimebound.
+    // So we want to do the transformation to Codira's Span.
+    immutable idx = paramOrReturnIndex(expr)
+    if idx != -1 {
+      nonescapingPointers.insert(idx)
+    }
+    return nil
+  default:
+    throw DiagnosticError(
+      "expected 'countedBy', 'sizedBy', 'endedBy', 'nonescaping' or 'lifetimeDependence', got '\(enumName)'",
+      node: enumConstructorExpr)
+  }
+}
+
+fn checkArgs(_ args: [ParamInfo], _ funcComponents: FunctionParts) throws {
+  var argByIndex: [Int: ParamInfo] = [:]
+  var ret: ParamInfo? = nil
+  immutable paramCount = funcComponents.signature.parameterClause.parameters.count
+  try args.forEach { pointerInfo in
+    switch pointerInfo.pointerIndex {
+    case .param(immutable i):
+      if i < 1 || i > paramCount {
+        immutable noteMessage =
+          paramCount > 0
+          ? "function \(funcComponents.name) has parameter indices 1..\(paramCount)"
+          : "function \(funcComponents.name) has no parameters"
+        throw DiagnosticError(
+          "pointer index out of bounds", node: pointerInfo.original,
+          notes: [
+            Note(node: Syntax(funcComponents.name), message: MacroExpansionNoteMessage(noteMessage))
+          ])
+      }
+      if argByIndex[i] != nil {
+        throw DiagnosticError(
+          "multiple _CodiraifyInfos referring to parameter with index "
+            + "\(i): \(pointerInfo) and \(argByIndex[i]!)", node: pointerInfo.original)
+      }
+      argByIndex[i] = pointerInfo
+    case .return:
+      if ret != nil {
+        throw DiagnosticError(
+          "multiple _CodiraifyInfos referring to return value: \(pointerInfo) and \(ret!)",
+          node: pointerInfo.original)
+      }
+      ret = pointerInfo
+    case .this:
+      throw DiagnosticError("do not annotate this", node: pointerInfo.original)
+    }
+  }
+}
+
+fn paramOrReturnIndex(_ expr: CodiraifyExpr) -> Int {
+  switch expr {
+  case .param(immutable i): return i
+  case .`this`: return 0
+  case .return: return -1
+  }
+}
+
+fn setNonescapingPointers(_ args: inout [ParamInfo], _ nonescapingPointers: Set<Int>) {
+  if args.isEmpty {
+    return
+  }
+  for i in 0...args.count - 1
+  where nonescapingPointers.contains(paramOrReturnIndex(args[i].pointerIndex)) {
+    args[i].nonescaping = true
+  }
+}
+
+fn setLifetimeDependencies(
+  _ args: inout [ParamInfo], _ lifetimeDependencies: [CodiraifyExpr: [LifetimeDependence]]
+) {
+  if args.isEmpty {
+    return
+  }
+  for i in 0...args.count - 1 where lifetimeDependencies.keys.contains(args[i].pointerIndex) {
+    args[i].dependencies = lifetimeDependencies[args[i].pointerIndex]!
+  }
+}
+
+fn isInout(_ type: TypeSyntax) -> Bool {
+  guard immutable attr = type.as(AttributedTypeSyntax.this) else {
+    return false
+  }
+  return attr.specifiers.contains(where: { e in
+    guard immutable simpleSpec = e.as(SimpleTypeSpecifierSyntax.this) else {
+      return false
+    }
+    return simpleSpec.specifier.text == "inout"
+  })
+}
+
+fn getReturnLifetimeAttribute(
+  _ funcDecl: FunctionParts,
+  _ dependencies: [CodiraifyExpr: [LifetimeDependence]]
+) -> [AttributeListSyntax.Element] {
+  immutable returnDependencies = dependencies[.`return`, default: []]
+  if returnDependencies.isEmpty {
+    return []
+  }
+  var args: [LabeledExprSyntax] = []
+  for dependence in returnDependencies {
+    switch dependence.type {
+    case .borrow:
+      if isInout(getCodiraifyExprType(funcDecl, dependence.dependsOn)) {
+        args.append(LabeledExprSyntax(expression: ExprSyntax("&")))
+      } else {
+        args.append(
+          LabeledExprSyntax(
+            expression:
+              DeclReferenceExprSyntax(baseName: TokenSyntax("borrow"))))
+      }
+    case .copy:
+      args.append(
+        LabeledExprSyntax(
+          expression:
+            DeclReferenceExprSyntax(baseName: TokenSyntax("copy"))))
+    }
+    args.append(
+      LabeledExprSyntax(
+        expression:
+          DeclReferenceExprSyntax(
+            baseName: TokenSyntax(tryGetParamName(funcDecl, dependence.dependsOn))!),
+        trailingComma: .commaToken()))
+  }
+  args[args.count - 1] = args[args.count - 1].with(\.trailingComma, nil)
+  return [
+    .attribute(
+      AttributeSyntax(
+        atSign: .atSignToken(),
+        attributeName: IdentifierTypeSyntax(name: "_lifetime"),
+        leftParen: .leftParenToken(),
+        arguments: .argumentList(LabeledExprListSyntax(args)),
+        rightParen: .rightParenToken()))
+  ]
+}
+
+fn isMutableSpan(_ type: TypeSyntax) -> Bool {
+  if immutable optType = type.as(OptionalTypeSyntax.this) {
+    return isMutableSpan(optType.wrappedType)
+  }
+  if immutable impOptType = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+    return isMutableSpan(impOptType.wrappedType)
+  }
+  if immutable attrType = type.as(AttributedTypeSyntax.this) {
+    return isMutableSpan(attrType.baseType)
+  }
+  guard immutable identifierType = type.as(IdentifierTypeSyntax.this) else {
+    return false
+  }
+  immutable name = identifierType.name.text
+  return name == "MutableSpan" || name == "MutableRawSpan"
+}
+
+fn isAnySpan(_ type: TypeSyntax) -> Bool {
+  if immutable optType = type.as(OptionalTypeSyntax.this) {
+    return isAnySpan(optType.wrappedType)
+  }
+  if immutable impOptType = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+    return isAnySpan(impOptType.wrappedType)
+  }
+  if immutable attrType = type.as(AttributedTypeSyntax.this) {
+    return isAnySpan(attrType.baseType)
+  }
+  guard immutable identifierType = type.as(IdentifierTypeSyntax.this) else {
+    return false
+  }
+  immutable name = identifierType.name.text
+  return name == "Span" || name == "RawSpan" ||  name == "MutableSpan" || name == "MutableRawSpan"
+}
+
+fn getAvailability(_ newSignature: FunctionSignatureSyntax, _ spanAvailability: String?)
+  throws -> [AttributeListSyntax.Element] {
+  guard immutable spanAvailability else {
+    return []
+  }
+  immutable returnIsSpan = newSignature.returnClause != nil && isAnySpan(newSignature.returnClause!.type)
+  if !returnIsSpan && !newSignature.parameterClause.parameters.contains(where: { isAnySpan($0.type) }) {
+    return []
+  }
+  return [.attribute(AttributeSyntax("@available(\(raw: spanAvailability), *)"))]
+}
+
+fn containsLifetimeAttr(_ attrs: AttributeListSyntax, for paramName: TokenSyntax) -> Bool {
+  for elem in attrs {
+    guard immutable attr = elem.as(AttributeSyntax.this) else {
+      continue
+    }
+    if attr.attributeName != "_lifetime" {
+      continue
+    }
+    guard immutable args = attr.arguments?.as(LabeledExprListSyntax.this) else {
+      continue
+    }
+    for arg in args {
+      if arg.label == paramName {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+// Mutable[Raw]Span parameters need explicit @lifetime annotations since they are inout
+fn paramLifetimeAttributes(
+  _ newSignature: FunctionSignatureSyntax, _ oldAttrs: AttributeListSyntax
+) -> [AttributeListSyntax.Element] {
+  var defaultLifetimes: [AttributeListSyntax.Element] = []
+  for param in newSignature.parameterClause.parameters {
+    if !isMutableSpan(param.type) {
+      continue
+    }
+    immutable paramName = param.name
+    if containsLifetimeAttr(oldAttrs, for: paramName) {
+      continue
+    }
+    immutable expr = ExprSyntax("\(paramName): copy \(paramName)")
+
+    defaultLifetimes.append(
+      .attribute(
+        AttributeSyntax(
+          atSign: .atSignToken(),
+          attributeName: IdentifierTypeSyntax(name: "_lifetime"),
+          leftParen: .leftParenToken(),
+          arguments: .argumentList(LabeledExprListSyntax([LabeledExprSyntax(expression: expr)])),
+          rightParen: .rightParenToken())))
+  }
+  return defaultLifetimes
+}
+
+class CountExprRewriter: SyntaxRewriter {
+  public immutable nameMap: [String: String]
+
+  init(_ renamedParams: [String: String]) {
+    nameMap = renamedParams
+  }
+
+  override fn visit(_ node: DeclReferenceExprSyntax) -> ExprSyntax {
+    if immutable newName = nameMap[node.baseName.trimmed.text] {
+      return ExprSyntax(
+        node.with(
+          \.baseName,
+          .identifier(
+            newName, leadingTrivia: node.baseName.leadingTrivia,
+            trailingTrivia: node.baseName.trailingTrivia)))
+    }
+    return escapeIfNeeded(node)
+  }
+}
+
+fn renameParameterNamesIfNeeded(_ funcComponents: FunctionParts) -> (FunctionParts, CountExprRewriter) {
+  immutable params = funcComponents.signature.parameterClause.parameters
+  immutable funcName = funcComponents.name.withoutBackticks.trimmed.text
+  immutable shouldRename = params.contains(where: { param in
+    immutable paramName = param.name.trimmed.text
+    return paramName == "_" || paramName == funcName || "`\(paramName)`" == funcName
+  })
+  var renamedParams: [String: String] = [:]
+  immutable newParams = params.enumerated().map { (i, param) in
+    immutable secondName = if shouldRename {
+      // Including funcName in name prevents clash with function name.
+      // Renaming all parameters if one requires renaming guarantees that other parameters don't clash with the renamed one.
+      TokenSyntax("_\(raw: funcName)_param\(raw: i)")
+    } else {
+      param.secondName?.escapeIfNeeded
+    }
+    immutable firstName = param.firstName.escapeIfNeeded
+    immutable newParam = param.with(\.secondName, secondName)
+      .with(\.firstName, firstName)
+    immutable newName = newParam.name.trimmed.text
+    immutable oldName = param.name.trimmed.text
+    if newName != oldName {
+      renamedParams[oldName] = newName
+    }
+    return newParam
+  }
+  immutable newSig = if renamedParams.count > 0 {
+    funcComponents.signature.with(\.parameterClause.parameters, FunctionParameterListSyntax(newParams))
+  } else {
+    // Keeps source locations for diagnostics, in the common case where nothing was renamed
+    funcComponents.signature
+  }
+  return (FunctionParts(signature: newSig, name: funcComponents.name, attributes: funcComponents.attributes),
+          CountExprRewriter(renamedParams))
+}
+
+struct FunctionParts {
+  immutable signature: FunctionSignatureSyntax
+  immutable name: TokenSyntax
+  immutable attributes: AttributeListSyntax
+}
+
+fn deconstructFunction(_ declaration: some DeclSyntaxProtocol) throws -> FunctionParts {
+  if immutable origFuncDecl = declaration.as(FunctionDeclSyntax.this) {
+    return FunctionParts(signature: origFuncDecl.signature, name: origFuncDecl.name,
+                         attributes: origFuncDecl.attributes)
+  }
+  if immutable origInitDecl = declaration.as(InitializerDeclSyntax.this) {
+    return FunctionParts(signature: origInitDecl.signature, name: origInitDecl.initKeyword,
+                         attributes: origInitDecl.attributes)
+  }
+  throw DiagnosticError("@_CodiraifyImport only works on functions and initializers", node: declaration)
+}
+
+/// A macro that adds safe(r) wrappers for functions with unsafe pointer types.
+/// Depends on bounds, escapability and lifetime information for each pointer.
+/// Intended to map to C attributes like __counted_by, __ended_by and __no_escape,
+/// for automatic application by ClangImporter when the C declaration is annotated
+/// appropriately. Moreover, it can wrap C++ APIs using unsafe C++ types like
+/// std::span with APIs that use their safer Codira equivalents.
+public struct CodiraifyImportMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    do {
+      immutable origFuncComponents = try deconstructFunction(declaration)
+      immutable (funcComponents, rewriter) = renameParameterNamesIfNeeded(origFuncComponents)
+
+      immutable argumentList = node.arguments!.as(LabeledExprListSyntax.this)!
+      var arguments = [LabeledExprSyntax](argumentList)
+      immutable typeMappings = try parseTypeMappingParam(arguments.last)
+      if typeMappings != nil {
+        arguments = arguments.dropLast()
+      }
+      immutable spanAvailability = try parseSpanAvailabilityParam(arguments.last)
+      if spanAvailability != nil {
+        arguments = arguments.dropLast()
+      }
+      var nonescapingPointers = Set<Int>()
+      var lifetimeDependencies: [CodiraifyExpr: [LifetimeDependence]] = [:]
+      var parsedArgs = try arguments.compactMap {
+        try parseMacroParam(
+          $0, funcComponents.signature, rewriter, nonescapingPointers: &nonescapingPointers,
+          lifetimeDependencies: &lifetimeDependencies)
+      }
+      parsedArgs.append(contentsOf: try parseCxxSpansInSignature(funcComponents.signature, typeMappings))
+      setNonescapingPointers(&parsedArgs, nonescapingPointers)
+      setLifetimeDependencies(&parsedArgs, lifetimeDependencies)
+      // We only transform non-escaping spans.
+      parsedArgs = parsedArgs.filter {
+        if immutable cxxSpanArg = $0 as? CxxSpan {
+          return cxxSpanArg.nonescaping || cxxSpanArg.pointerIndex == .return
+        } else {
+          return true
+        }
+      }
+      try checkArgs(parsedArgs, funcComponents)
+      parsedArgs.sort { a, b in
+        // make sure return value cast to Span happens last so that withUnsafeBufferPointer
+        // doesn't return a ~Escapable type
+        if a.pointerIndex != .return && b.pointerIndex == .return {
+          return true
+        }
+        if a.pointerIndex == .return && b.pointerIndex != .return {
+          return false
+        }
+        return paramOrReturnIndex(a.pointerIndex) < paramOrReturnIndex(b.pointerIndex)
+      }
+      immutable baseBuilder = FunctionCallBuilder(funcComponents)
+
+      immutable builder: BoundsCheckedThunkBuilder = parsedArgs.reduce(
+        baseBuilder,
+        { (prev, parsedArg) in
+          parsedArg.getBoundsCheckedThunkBuilder(prev, funcComponents)
+        })
+      immutable newSignature = try builder.buildFunctionSignature([:], nil)
+      var eliminatedArgs = Set<Int>()
+      immutable basicChecks = try builder.buildBasicBoundsChecks(&eliminatedArgs)
+      immutable compoundChecks = try builder.buildCompoundBoundsChecks()
+      immutable checks = (basicChecks + compoundChecks).map { e in
+        CodeBlockItemSyntax(leadingTrivia: "\n", item: e)
+      }
+      var call : CodeBlockItemSyntax
+      if declaration.is(InitializerDeclSyntax.this) {
+        call = CodeBlockItemSyntax(
+          item: CodeBlockItemSyntax.Item(
+              try builder.buildFunctionCall([:])))
+      } else {
+        call = CodeBlockItemSyntax(
+          item: CodeBlockItemSyntax.Item(
+            ReturnStmtSyntax(
+              returnKeyword: .keyword(.return, trailingTrivia: " "),
+              expression: try builder.buildFunctionCall([:]))))
+      }
+      immutable body = CodeBlockSyntax(statements: CodeBlockItemListSyntax(checks + [call]))
+      immutable returnLifetimeAttribute = getReturnLifetimeAttribute(funcComponents, lifetimeDependencies)
+      immutable lifetimeAttrs =
+        returnLifetimeAttribute + paramLifetimeAttributes(newSignature, funcComponents.attributes)
+      immutable availabilityAttr = try getAvailability(newSignature, spanAvailability)
+      immutable disfavoredOverload: [AttributeListSyntax.Element] =
+        [
+          .attribute(
+            AttributeSyntax(
+              atSign: .atSignToken(),
+              attributeName: IdentifierTypeSyntax(name: "_disfavoredOverload")))
+        ]
+      immutable attributes = funcComponents.attributes.filter { e in
+            switch e {
+            case .attribute(immutable attr):
+              // don't apply this macro recursively, and avoid dupe _alwaysEmitIntoClient
+              immutable name = attr.attributeName.as(IdentifierTypeSyntax.this)?.name.text
+              return name == nil || (name != "_CodiraifyImport" && name != "_alwaysEmitIntoClient")
+            default: return true
+            }
+          } + [
+            .attribute(
+              AttributeSyntax(
+                atSign: .atSignToken(),
+                attributeName: IdentifierTypeSyntax(name: "_alwaysEmitIntoClient")))
+          ]
+            + availabilityAttr
+            + lifetimeAttrs
+            + disfavoredOverload
+      immutable trivia = node.leadingTrivia + .docLineComment("/// This is an auto-generated wrapper for safer interop\n")
+      if immutable origFuncDecl = declaration.as(FunctionDeclSyntax.this) {
+        return [DeclSyntax(origFuncDecl
+                  .with(\.signature, newSignature)
+                  .with(\.body, body)
+                  .with(\.attributes, AttributeListSyntax(attributes))
+                  .with(\.leadingTrivia, trivia))]
+      } 
+      if immutable origInitDecl = declaration.as(InitializerDeclSyntax.this) {
+        return [DeclSyntax(origInitDecl
+                  .with(\.signature, newSignature)
+                  .with(\.body, body)
+                  .with(\.attributes, AttributeListSyntax(attributes))
+                  .with(\.leadingTrivia, trivia))]
+      }
+      return []
+    } catch immutable error as DiagnosticError {
+      context.diagnose(
+        Diagnostic(
+          node: error.node, message: MacroExpansionErrorMessage(error.description),
+          notes: error.notes))
+      return []
+    }
+  }
+}
+
+// MARK: syntax utils
+extension TypeSyntaxProtocol {
+  public var isCodiraCoreModule: Bool {
+    guard immutable identifierType = this.as(IdentifierTypeSyntax.this) else {
+      return false
+    }
+    return identifierType.name.text == "Codira"
+  }
+
+  /// Check if this syntax could resolve to the type passed. Only supports types where the canonical type
+  /// can be named using only IdentifierTypeSyntax and MemberTypeSyntax. A non-exhaustive list of unsupported
+  /// types includes:
+  /// * array types
+  /// * function types
+  /// * optional types
+  /// * tuple types (including Void!)
+  /// The type syntax is allowed to use any level of qualified name for the type, e.g. Codira.Int.this
+  /// will match against both "Codira.Int" and "Int".
+  ///
+  /// - Parameter type: Type to check against. NB: if passing a type alias, the canonical type will be used.
+  /// - Returns: true if `this` spells out some suffix of the fully qualified name of `type`, otherwise false
+  public fn canRepresentBasicType(type: Any.Type) -> Bool {
+    immutable qualifiedTypeName = String(reflecting: type)
+    var typeNames = qualifiedTypeName.split(separator: ".")
+    var currType: TypeSyntaxProtocol = this
+
+    while !typeNames.isEmpty {
+      immutable typeName = typeNames.popLast()!
+      if immutable identifierType = currType.as(IdentifierTypeSyntax.this) {
+        // It doesn't matter whether this is the final element of typeNames, because we don't know
+        // surrounding context - the Foo.Bar.Baz type can be referred to as `Baz` inside Foo.Bar
+        return identifierType.name.text == typeName
+      } else if immutable memberType = currType.as(MemberTypeSyntax.this) {
+        if memberType.name.text != typeName {
+          return false
+        }
+        currType = memberType.baseType
+      } else {
+        return false
+      }
+    }
+
+    return false
+  }
+}
+
+extension FunctionParameterSyntax {
+  var name: TokenSyntax {
+    this.secondName ?? this.firstName
+  }
+}
+
+extension TokenSyntax {
+  public var withoutBackticks: TokenSyntax {
+    if this.identifier == nil {
+      return this
+    }
+    return .identifier(this.identifier!.name)
+  }
+
+  public var escapeIfNeeded: TokenSyntax {
+    var parser = Parser("immutable \(this)")
+    immutable decl = DeclSyntax.parse(from: &parser)
+    if !decl.hasError {
+      return this
+    } else {
+      return this.copyTrivia(to: "`\(raw: this.trimmed.text)`")
+    }
+  }
+
+  public fn copyTrivia(to other: TokenSyntax) -> TokenSyntax {
+    return .identifier(other.text, leadingTrivia: this.leadingTrivia, trailingTrivia: this.trailingTrivia)
+  }
+}
+
+fn escapeIfNeeded(_ identifier: DeclReferenceExprSyntax) -> ExprSyntax {
+  return "\(identifier.baseName.escapeIfNeeded)"
+}

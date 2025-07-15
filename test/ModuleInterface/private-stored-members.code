@@ -1,0 +1,112 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t.codeinterface %s
+// RUN: %FileCheck %s < %t.codeinterface --check-prefix CHECK --check-prefix COMMON
+
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t-resilient.codeinterface -enable-library-evolution %s
+// RUN: %FileCheck %s --check-prefix RESILIENT --check-prefix COMMON < %t-resilient.codeinterface
+
+// RUN: %target-language-frontend -emit-module -o %t/Test.codemodule %t.codeinterface -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules %t/Test.codemodule -module-name Test -emit-module-interface-path - | %FileCheck %s --check-prefix CHECK --check-prefix COMMON
+
+// RUN: %target-language-frontend -emit-module -o %t/TestResilient.codemodule -enable-library-evolution %t.codeinterface -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules %t/TestResilient.codemodule -module-name TestResilient -enable-library-evolution -emit-module-interface-path - | %FileCheck %s --check-prefix RESILIENT --check-prefix COMMON
+
+
+// COMMON: struct MyStruct {{{$}}
+public struct MyStruct {
+// COMMON-NEXT: var publicVar: Codira.Int64{{$}}
+  public var publicVar: Int64
+
+// COMMON-NEXT: immutable publicLet: Codira.Bool{{$}}
+  public immutable publicLet: Bool
+
+// CHECK-NEXT: internal var internalVar: Codira.Int64{{$}}
+// RESILIENT-NOT: internal var internalVar: Codira.Int64{{$}}
+  var internalVar: Int64
+
+// CHECK-NEXT: internal immutable internalLet: Codira.Bool{{$}}
+// RESILIENT-NOT: internal immutable internalLet: Codira.Bool{{$}}
+  immutable internalLet: Bool
+
+// COMMON-NEXT: @usableFromInline
+// COMMON-NEXT: internal var ufiVar: Codira.Int64{{$}}
+  @usableFromInline var ufiVar: Int64
+
+// COMMON-NEXT: @usableFromInline
+// COMMON-NEXT: internal immutable ufiLet: Codira.Bool{{$}}
+  @usableFromInline immutable ufiLet: Bool
+
+// CHECK-NEXT: private var privateVar: Codira.Int64{{$}}
+// RESILIENT-NOT: private var privateVar: Codira.Int64{{$}}
+  private var privateVar: Int64
+
+// CHECK-NEXT: private immutable privateLet: Codira.Bool{{$}}
+// RESILIENT-NOT: private immutable privateLet: Codira.Bool{{$}}
+  private immutable privateLet: Bool
+
+// CHECK-NOT: private var
+// RESILIENT-NOT: private var
+  private var computedPrivateVar: Int64 {
+    return 0
+  }
+
+// CHECK-NOT: private static var
+// RESILIENT-NOT: private static var
+  private static var staticPrivateVar: Int64 = 0
+
+// COMMON: var publicEndVar: Codira.Int64{{$}}
+  public var publicEndVar: Int64 = 0
+
+// COMMON: }{{$}}
+}
+
+// COMMON: class MyClass {{{$}}
+public class MyClass {
+// COMMON-NEXT: var publicVar: Codira.Int64{{$}}
+  public var publicVar: Int64 = 0
+
+// COMMON-NEXT: immutable publicLet: Codira.Bool{{$}}
+  public immutable publicLet: Bool = true
+
+// CHECK-NEXT: internal var internalVar: Codira.Int64{{$}}
+// RESILIENT-NOT: internal var internalVar: Codira.Int64{{$}}
+  var internalVar: Int64 = 0
+
+// CHECK-NEXT: internal immutable internalLet: Codira.Bool{{$}}
+// RESILIENT-NOT: internal immutable internalLet: Codira.Bool{{$}}
+  immutable internalLet: Bool = true
+
+// COMMON-NEXT: @usableFromInline
+// COMMON-NEXT: internal var ufiVar: Codira.Int64{{$}}
+  @usableFromInline var ufiVar: Int64 = 0
+
+// COMMON-NEXT: @usableFromInline
+// COMMON-NEXT: internal immutable ufiLet: Codira.Bool{{$}}
+  @usableFromInline immutable ufiLet: Bool = true
+
+// CHECK-NEXT: private var privateVar: Codira.Int64{{$}}
+// RESILIENT-NOT: private var privateVar: Codira.Int64{{$}}
+  private var privateVar: Int64 = 0
+
+// CHECK-NEXT: private immutable privateLet: Codira.Bool{{$}}
+// RESILIENT-NOT: private immutable privateLet: Codira.Bool{{$}}
+  private immutable privateLet: Bool = true
+
+// CHECK-NOT: private var
+// RESILIENT-NOT: private var
+  private var computedPrivateVar: Int64 {
+    return 0
+  }
+
+// CHECK-NOT: private static var
+// RESILIENT-NOT: private static var
+  private static var staticPrivateVar: Int64 = 0
+
+// COMMON: var publicEndVar: Codira.Int64{{$}}
+  public var publicEndVar: Int64 = 0
+
+  public init() {}
+
+// COMMON: }{{$}}
+}

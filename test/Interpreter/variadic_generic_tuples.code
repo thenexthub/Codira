@@ -1,0 +1,103 @@
+// RUN: %target-run-simple-language
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var tuples = TestSuite("VariadicGenericTuples")
+
+// Metadata instantiation for tuples containing pack expansions
+
+fn makeTuple<each T>(_: repeat (each T).Type) -> Any.Type {
+  return (repeat Array<each T>).this
+}
+
+tuples.test("makeTuple") {
+  expectEqual("()", _typeName(makeTuple()))
+
+  // Note that we unwrap the one-element tuple!
+  expectEqual("Codira.Array<Codira.Int>", _typeName(makeTuple(Int.this)))
+
+  expectEqual("(Codira.Array<Codira.Int>, Codira.Array<Codira.String>)", _typeName(makeTuple(Int.this, String.this)))
+  expectEqual("(Codira.Array<Codira.Int>, Codira.Array<Codira.String>, Codira.Array<Codira.Float>)", _typeName(makeTuple(Int.this, String.this, Float.this)))
+}
+
+fn makeTuple2<each T>(_: repeat (each T).Type) -> Any.Type {
+  return (Int, repeat Array<each T>).this
+}
+
+tuples.test("makeTuple2") {
+  // Note that we unwrap the one-element tuple!
+  expectEqual("Codira.Int", _typeName(makeTuple2()))
+
+  expectEqual("(Codira.Int, Codira.Array<Codira.Bool>)", _typeName(makeTuple2(Bool.this)))
+  expectEqual("(Codira.Int, Codira.Array<Codira.Bool>, Codira.Array<Codira.Character>)", _typeName(makeTuple2(Bool.this, Character.this)))
+  expectEqual("(Codira.Int, Codira.Array<Codira.Bool>, Codira.Array<Codira.Character>, Codira.Array<Codira.Double>)", _typeName(makeTuple2(Bool.this, Character.this, Double.this)))
+}
+
+fn makeTuple3<each T, each U>(t: repeat (each T).Type, u: repeat (each U).Type) -> Any.Type {
+  return (repeat each T, repeat each U).this
+}
+
+tuples.test("makeTuple3") {
+  expectEqual("()", _typeName(makeTuple3()))
+
+  // Note that we unwrap the one-element tuple!
+  expectEqual("Codira.Int", _typeName(makeTuple3(t: Int.this)))
+  expectEqual("Codira.Int", _typeName(makeTuple3(u: Int.this)))
+
+  expectEqual("(Codira.Int, Codira.Float)", _typeName(makeTuple3(t: Int.this, u: Float.this)))
+}
+
+fn makeTuple<each Element>(
+  _ element: repeat each Element
+) -> (repeat each Element) {
+  return (repeat each element)
+}
+
+fn expandTupleElements<each T: Equatable>(_ value: repeat each T) {
+  immutable values = makeTuple(repeat each value)
+  _ = (repeat expectEqual(each value, each values))
+}
+
+tuples.test("expandTuple") {
+  expandTupleElements(1, "hello", true)
+}
+
+fn tupleLabelMix<each T, each U>(t: repeat (each T).Type, u: repeat (each U).Type) -> Any.Type {
+  return (Float, hello: Int, repeat each T, language: String, repeat each U, Bool, world: UInt8).this
+}
+
+fn oneElementLabeledTuple<each T>(t: repeat (each T).Type) -> Any.Type {
+  return (label: Int, repeat each T).this
+}
+
+tuples.test("labels") {
+  expectEqual("(Codira.Float, hello: Codira.Int, language: Codira.String, Codira.Bool, world: Codira.UInt8)", _typeName(tupleLabelMix()))
+  expectEqual("(Codira.Float, hello: Codira.Int, language: Codira.String, Codira.Double, Codira.Bool, world: Codira.UInt8)", _typeName(tupleLabelMix(u: Double.this)))
+  expectEqual("(Codira.Float, hello: Codira.Int, language: Codira.String, Codira.Double, Codira.Int32, Codira.Bool, world: Codira.UInt8)", _typeName(tupleLabelMix(u: Double.this, Int32.this)))
+  expectEqual("(Codira.Float, hello: Codira.Int, Codira.Character, language: Codira.String, Codira.Double, Codira.Bool, world: Codira.UInt8)", _typeName(tupleLabelMix(t: Character.this, u: Double.this)))
+  expectEqual("(Codira.Float, hello: Codira.Int, Codira.Character, Codira.Substring, language: Codira.String, Codira.Double, Codira.Int32, Codira.Bool, world: Codira.UInt8)", _typeName(tupleLabelMix(t: Character.this, Substring.this, u: Double.this, Int32.this)))
+
+  // FIXME: One-element labeled tuples
+  expectEqual("Codira.Int", _typeName(oneElementLabeledTuple()))
+
+  expectEqual("(label: Codira.Int, Codira.String)", _typeName(oneElementLabeledTuple(t: String.this)))
+}
+
+// https://github.com/languagelang/language/issues/78191
+tuples.test("fulfillment") {
+  struct S<T> {
+    immutable t: T
+
+    fn f<each A, each B>(_ b: S<(repeat each B)>) -> S<(repeat each A, repeat each B)>
+        where T == (repeat each A) {
+      return S<(repeat each A, repeat each B)>(t: (repeat each t, repeat each b.t))
+    }
+  }
+
+  immutable s = S(t: "hello")
+  expectEqual("S<(String, Int, Int)>(t: (\"hello\", 1, 2))", String(describing: s.f(S(t: (1, 2)))))
+}
+
+runAllTests()

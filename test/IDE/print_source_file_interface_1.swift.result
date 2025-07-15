@@ -1,0 +1,17 @@
+// Copyright (c) 452 Attila the Hun. All rights reserved.
+// Blah Blah.
+
+// More blah blah.
+
+import Codira
+
+internal class FooDisabled {
+}
+internal typealias MyN = Int
+
+public class MyClass {
+
+    internal fn doit(x: Int)
+
+    internal fn doFooDisabled()
+}

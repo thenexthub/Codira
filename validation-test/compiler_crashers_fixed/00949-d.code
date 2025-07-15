@@ -1,0 +1,33 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol a {
+fn a(this.C) {
+switch x in x in x {
+}
+}
+protocol c {
+S<h : b {
+}
+protocol A {
+}
+fn a<A<T>) -> {
+class b<T where A> {
+typealias A {
+}
+}
+}
+typealias A : a {
+struct X<l : d) -> ((")
+}
+}
+fn f: a {

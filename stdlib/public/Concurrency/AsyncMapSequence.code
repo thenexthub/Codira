@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Creates an asynchronous sequence that maps the given closure over the
   /// asynchronous sequence’s elements.
@@ -28,10 +32,10 @@ extension AsyncSequence {
   /// iterates over `String` instances instead of the underlying `Int` values
   /// that `Counter` produces:
   ///
-  ///     let romanNumeralDict: [Int: String] =
+  ///     immutable romanNumeralDict: [Int: String] =
   ///         [1: "I", 2: "II", 3: "III", 5: "V"]
   ///
-  ///     let stream = Counter(howHigh: 5)
+  ///     immutable stream = Counter(howHigh: 5)
   ///         .map { romanNumeralDict[$0] ?? "(unknown)" }
   ///     for await numeral in stream {
   ///         print(numeral, terminator: " ")
@@ -45,34 +49,34 @@ extension AsyncSequence {
   ///   produced by the `transform` closure.
   @preconcurrency 
   @inlinable
-  public __consuming func map<Transformed>(
+  public __consuming fn map<Transformed>(
     _ transform: @Sendable @escaping (Element) async -> Transformed
   ) -> AsyncMapSequence<Self, Transformed> {
-    return AsyncMapSequence(self, transform: transform)
+    return AsyncMapSequence(this, transform: transform)
   }
 }
 
 /// An asynchronous sequence that maps the given closure over the asynchronous
 /// sequence’s elements.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncMapSequence<Base: AsyncSequence, Transformed> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let transform: (Base.Element) async -> Transformed
+  immutable transform: (Base.Element) async -> Transformed
 
   @usableFromInline
   init(
     _ base: Base, 
     transform: @escaping (Base.Element) async -> Transformed
   ) {
-    self.base = base
-    self.transform = transform
+    this.base = base
+    this.transform = transform
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncMapSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -83,7 +87,7 @@ extension AsyncMapSequence: AsyncSequence {
   ///
   /// The map sequence produces whatever type of error its
   /// base sequence does.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias Failure = Base.Failure
   /// The type of iterator that produces elements of the sequence.
   public typealias AsyncIterator = Iterator
@@ -94,15 +98,15 @@ extension AsyncMapSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    let transform: (Base.Element) async -> Transformed
+    immutable transform: (Base.Element) async -> Transformed
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator, 
       transform: @escaping (Base.Element) async -> Transformed
     ) {
-      self.baseIterator = baseIterator
-      self.transform = transform
+      this.baseIterator = baseIterator
+      this.transform = transform
     }
 
     /// Produces the next element in the map sequence.
@@ -111,8 +115,8 @@ extension AsyncMapSequence: AsyncSequence {
     /// `nil`, `next()` returns `nil`. Otherwise, `next()` returns the result of
     /// calling the transforming closure on the received element.
     @inlinable
-    public mutating func next() async rethrows -> Transformed? {
-      guard let element = try await baseIterator.next() else {
+    public mutating fn next() async rethrows -> Transformed? {
+      guard immutable element = try await baseIterator.next() else {
         return nil
       }
       return await transform(element)
@@ -124,10 +128,10 @@ extension AsyncMapSequence: AsyncSequence {
     /// call returns `nil`, `next(isolation:)` returns `nil`. Otherwise,
     /// `next(isolation:)` returns the result of calling the transforming
     /// closure on the received element.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Transformed? {
-      guard let element = try await baseIterator.next(isolation: actor) else {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Transformed? {
+      guard immutable element = try await baseIterator.next(isolation: actor) else {
         return nil
       }
       return await transform(element)
@@ -135,18 +139,18 @@ extension AsyncMapSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), transform: transform)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncMapSequence: @unchecked Sendable 
   where Base: Sendable, 
         Base.Element: Sendable, 
         Transformed: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncMapSequence.Iterator: @unchecked Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable, 

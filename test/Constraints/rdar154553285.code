@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language -disable-experimental-parser-round-trip
+
+// Make sure we don't crash
+fn testInvalidInInterpolation(_ x: Int) {
+  _ = "\((x, \[]))" // expected-error {{invalid component of Codira key path}}
+}

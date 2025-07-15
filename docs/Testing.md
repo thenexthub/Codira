@@ -1,19 +1,19 @@
-# Testing Swift
+# Testing Codira
 
-This document describes how we test the Swift compiler, the Swift runtime, and
-the Swift standard library.
+This document describes how we test the Codira compiler, the Codira runtime, and
+the Codira standard library.
 
 ## Testing approaches
 
-We use multiple approaches to test the Swift toolchain.
+We use multiple approaches to test the Codira toolchain.
 
 * LLVM lit-based testsuites for the compiler, runtime and the standard library.
 * Unit tests for sub-tools.
-* A selection of open source projects written in Swift.
+* A selection of open source projects written in Codira.
 
 ## The LLVM lit-based testsuite
 
-**Purpose**: primary testsuites for the Swift toolchain.
+**Purpose**: primary testsuites for the Codira toolchain.
 
 **Contents**: Functional and regression tests for all toolchain components.
 
@@ -30,15 +30,15 @@ We use multiple approaches to test the Swift toolchain.
 
 The testsuite is split into five subsets:
 
-* Primary testsuite, located under ``swift/test``.
-* Validation testsuite, located under ``swift/validation-test``.
-* Unit tests, located under ``swift/unittests``.
+* Primary testsuite, located under ``language/test``.
+* Validation testsuite, located under ``language/validation-test``.
+* Unit tests, located under ``language/unittests``.
 * Long tests, which are marked with ``REQUIRES: long_test``.
 * Stress tests, which are marked with ``REQUIRES: stress_test``.
 
 ### Running the LLVM lit-based testsuite
 
-The simplest way to run the Swift test suite is with the ``--test`` switch to
+The simplest way to run the Codira test suite is with the ``--test`` switch to
 ``utils/build-script``. This will run the primary test suite. The buildbot runs
 validation tests, so if those are accidentally broken, it should not go
 unnoticed.
@@ -58,10 +58,10 @@ instead of invoking `lit.py` directly as described in the next section.
 
 Here is an example of running the `test/Parse` tests:
 ```
-    % ${swift_SOURCE_ROOT}/utils/run-test --build-dir ${SWIFT_BUILD_DIR} ${swift_SOURCE_ROOT}/test/Parse
+    % ${language_SOURCE_ROOT}/utils/run-test --build-dir ${LANGUAGE_BUILD_DIR} ${language_SOURCE_ROOT}/test/Parse
 ```
-Note that one example of a valid `${SWIFT_BUILD_DIR}` is 
-`{swift_SOURCE_ROOT}/../build/Ninja-DebugAssert/swift-linux-x86_64`.  
+Note that one example of a valid `${LANGUAGE_BUILD_DIR}` is 
+`{language_SOURCE_ROOT}/../build/Ninja-DebugAssert/language-linux-x86_64`.  
 It differs based on your build options and on which directory you invoke the script from.
 
 For full help options, pass `-h` to `utils/run-test` utility.
@@ -73,7 +73,7 @@ development cycle. To invoke LLVM's `lit.py` script directly, it must be
 configured to use your local build directory. For example:
 
 ```
-    % ${LLVM_SOURCE_ROOT}/utils/lit/lit.py -sv ${SWIFT_BUILD_DIR}/test-macosx-x86_64/Parse/
+    % ${TOOLCHAIN_SOURCE_ROOT}/utils/lit/lit.py -sv ${LANGUAGE_BUILD_DIR}/test-macosx-x86_64/Parse/
 ```
 
 This runs the tests in the 'test/Parse/' directory targeting 64-bit macOS.
@@ -89,7 +89,7 @@ testing configuration explicitly, which then allows you to test files
 regardless of location.
 
 ```
-    % ${LLVM_SOURCE_ROOT}/utils/lit/lit.py -sv --param swift_site_config=${SWIFT_BUILD_DIR}/test-macosx-x86_64/lit.site.cfg ${SWIFT_SOURCE_ROOT}/test/Parse/
+    % ${TOOLCHAIN_SOURCE_ROOT}/utils/lit/lit.py -sv --param language_site_config=${LANGUAGE_BUILD_DIR}/test-macosx-x86_64/lit.site.cfg ${LANGUAGE_SOURCE_ROOT}/test/Parse/
 ```
 
 For more complicated configuration, copy the invocation from one of the build
@@ -120,16 +120,16 @@ out with ``lit.py -h``. We document some of the more useful ones below:
 * ``--max-failures=<MAXFAILURES>`` stops execution after ``MAXFAILURES`` number
   of failures.
 
-##### Swift-specific testing options
+##### Codira-specific testing options
 
 * ``--param gmalloc`` will run all tests under Guard Malloc (macOS only). See
   ``man libgmalloc`` for more information.
-* ``--param swift-version=<MAJOR>`` overrides the default Swift language
-  version used by swift/swiftc and swift-ide-test.
+* ``--param language-version=<MAJOR>`` overrides the default Codira language
+  version used by language/languagec and language-ide-test.
 * ``--param interpret`` is an experimental option for running execution tests
-  using Swift's interpreter rather than compiling them first. Note that this
+  using Codira's interpreter rather than compiling them first. Note that this
   does not affect all substitutions.
-* ``--param swift_test_mode=<MODE>`` drives the various suffix variations
+* ``--param language_test_mode=<MODE>`` drives the various suffix variations
   mentioned above. Again, it's best to get the invocation from the existing
   build system targets and modify it rather than constructing it yourself.
 * ``--param use_os_stdlib`` will run all tests with the standard libraries
@@ -158,41 +158,41 @@ out with ``lit.py -h``. We document some of the more useful ones below:
 
 Although it is not recommended for day-to-day contributions, it is also
 technically possible to execute the tests directly via CMake. For example, if you have
-built Swift products at the directory ``build/Ninja-ReleaseAssert/swift-macosx-x86_64``,
+built Codira products at the directory ``build/Ninja-ReleaseAssert/language-macosx-x86_64``,
 you may run the entire test suite directly using the following command:
 
 ```
-  cmake --build build/Ninja-ReleaseAssert/swift-macosx-x86_64 -- check-swift-macosx-x86_64
+  cmake --build build/Ninja-ReleaseAssert/language-macosx-x86_64 -- check-language-macosx-x86_64
 ```
 
-Note that ``check-swift`` is suffixed with a target operating system and architecture.
-Besides ``check-swift``, other targets are also available. Here's the full list:
+Note that ``check-language`` is suffixed with a target operating system and architecture.
+Besides ``check-language``, other targets are also available. Here's the full list:
 
-* ``check-swift``: Runs tests from the ``${SWIFT_SOURCE_ROOT}/test`` directory.
-* ``check-swift-only_validation``: Runs tests from the ``${SWIFT_SOURCE_ROOT}/validation-test`` directory.
-* ``check-swift-validation``: Runs the primary and validation tests, without the long tests or stress tests.
-* ``check-swift-only_long``: Runs long tests only.
-* ``check-swift-only_stress``: Runs stress tests only.
-* ``check-swift-all``: Runs all tests (primary, validation, and long).
-* ``SwiftUnitTests``: Builds all unit tests.  Executables are located under
-  ``${SWIFT_BUILD_DIR}/unittests`` and must be run individually.
+* ``check-language``: Runs tests from the ``${LANGUAGE_SOURCE_ROOT}/test`` directory.
+* ``check-language-only_validation``: Runs tests from the ``${LANGUAGE_SOURCE_ROOT}/validation-test`` directory.
+* ``check-language-validation``: Runs the primary and validation tests, without the long tests or stress tests.
+* ``check-language-only_long``: Runs long tests only.
+* ``check-language-only_stress``: Runs stress tests only.
+* ``check-language-all``: Runs all tests (primary, validation, and long).
+* ``CodiraUnitTests``: Builds all unit tests.  Executables are located under
+  ``${LANGUAGE_BUILD_DIR}/unittests`` and must be run individually.
 
 For every target above, there are variants for different optimizations:
 
-* the target itself (e.g., ``check-swift``) -- runs all tests from the primary
+* the target itself (e.g., ``check-language``) -- runs all tests from the primary
   testsuite.  The execution tests are run in ``-Onone`` mode.
-* the target with ``-optimize`` suffix (e.g., ``check-swift-optimize``) -- runs
+* the target with ``-optimize`` suffix (e.g., ``check-language-optimize``) -- runs
   execution tests in ``-O`` mode.  This target will only run tests marked as
   ``executable_test``.
 * the target with ``-optimize_unchecked`` suffix (e.g.,
-  ``check-swift-optimize_unchecked``) -- runs execution tests in
+  ``check-language-optimize_unchecked``) -- runs execution tests in
   ``-Ounchecked`` mode. This target will only run tests marked as
   ``executable_test``.
 * the target with ``-only_executable`` suffix (e.g.,
-  ``check-swift-only_executable-iphoneos-arm64``) -- runs tests marked with
+  ``check-language-only_executable-iphoneos-arm64``) -- runs tests marked with
   ``executable_test`` in ``-Onone`` mode.
 * the target with ``-only_non_executable`` suffix (e.g.,
-  ``check-swift-only_non_executable-iphoneos-arm64``) -- runs tests not marked
+  ``check-language-only_non_executable-iphoneos-arm64``) -- runs tests not marked
   with ``executable_test`` in ``-Onone`` mode.
 
 ### Writing tests
@@ -207,7 +207,7 @@ is only remotely related to the purpose of the new tests.
 Don't limit a test to a certain platform or hardware configuration just because
 this makes the test slightly easier to write.  This sometimes means a little
 bit more work when adding the test, but the payoff from the increased testing
-is significant.  We heavily rely on portable tests to port Swift to other
+is significant.  We heavily rely on portable tests to port Codira to other
 platforms.
 
 Avoid using unstable language features in tests which test something else (for
@@ -249,28 +249,28 @@ Every long test must also include ``REQUIRES: nonexecutable_test`` or
 Substitutions that start with ``%target`` configure the compiler for building
 code for the target that is not the build machine:
 
-* ``%target-typecheck-verify-swift``: parse and type check the current Swift file
-  for the target platform and verify diagnostics, like ``swift -frontend -typecheck -verify
+* ``%target-typecheck-verify-language``: parse and type check the current Codira file
+  for the target platform and verify diagnostics, like ``language -frontend -typecheck -verify
   %s``. For further explanation of `-verify` mode, see [Diagnostics.md](Diagnostics.md).
 
   Use this substitution for testing semantic analysis in the compiler.
 
-* ``%target-swift-frontend``: run ``swift -frontend`` for the target.
+* ``%target-language-frontend``: run ``language -frontend`` for the target.
 
   Use this substitution (with extra arguments) for tests that don't fit any
   other pattern.
 
-* ``%target-swift-frontend(mock-sdk:`` *mock sdk arguments* ``)`` *other
-  arguments*: like ``%target-swift-frontend``, but allows to specify command
+* ``%target-language-frontend(mock-sdk:`` *mock sdk arguments* ``)`` *other
+  arguments*: like ``%target-language-frontend``, but allows to specify command
   line parameters (typically ``-sdk`` and ``-I``) to use a mock SDK and SDK
   overlay that would take precedence over the target SDK.
 
-* ``%target-build-swift``: compile and link a Swift program for the target.
+* ``%target-build-language``: compile and link a Codira program for the target.
 
   Use this substitution only when you intend to run the program later in the
   test.
 
-* ``%target-run-simple-swift``: build a one-file Swift program and run it on
+* ``%target-run-simple-language``: build a one-file Codira program and run it on
   the target machine.
 
   Use this substitution for executable tests that don't require special
@@ -278,13 +278,13 @@ code for the target that is not the build machine:
 
   Add ``REQUIRES: executable_test`` to the test.
 
-* ``%target-run-simple-swift(`` *compiler arguments* ``)``: like
-  ``%target-run-simple-swift``, but enables specifying compiler arguments when
-  compiling the Swift program.
+* ``%target-run-simple-language(`` *compiler arguments* ``)``: like
+  ``%target-run-simple-language``, but enables specifying compiler arguments when
+  compiling the Codira program.
 
   Add ``REQUIRES: executable_test`` to the test.
 
-* ``%target-run-simple-swiftgyb``: build a one-file Swift `.gyb` program and
+* ``%target-run-simple-languagegyb``: build a one-file Codira `.gyb` program and
   run it on the target machine.
 
   Use this substitution for executable tests that don't require special
@@ -292,66 +292,66 @@ code for the target that is not the build machine:
 
   Add ``REQUIRES: executable_test`` to the test.
 
-* ``%target-run-simple-swiftgyb(`` *compiler arguments* ``)``: like
-  ``%target-run-simple-swiftgyb``, but enables specifying compiler arguments
-  when compiling the Swift program.
+* ``%target-run-simple-languagegyb(`` *compiler arguments* ``)``: like
+  ``%target-run-simple-languagegyb``, but enables specifying compiler arguments
+  when compiling the Codira program.
 
   Add ``REQUIRES: executable_test`` to the test.
 
-* ``%target-run-stdlib-swift``: like ``%target-run-simple-swift`` with
+* ``%target-run-stdlib-language``: like ``%target-run-simple-language`` with
   ``-parse-stdlib -Xfrontend -disable-access-control``.
 
-  This is sometimes useful for testing the Swift standard library.
+  This is sometimes useful for testing the Codira standard library.
 
   Add ``REQUIRES: executable_test`` to the test.
 
-* ``%target-repl-run-simple-swift``: run a Swift program in a REPL on the
+* ``%target-repl-run-simple-language``: run a Codira program in a REPL on the
   target machine.
 
 * ``%target-run``: run a command on the target machine.
 
   Add ``REQUIRES: executable_test`` to the test.
 
-* ``%target-jit-run``: run a Swift program on the target machine using a JIT
+* ``%target-jit-run``: run a Codira program on the target machine using a JIT
   compiler.
 
-* ``%target-swiftc_driver``: run ``swiftc`` for the target.
+* ``%target-languagec_driver``: run ``languagec`` for the target.
 
 * ``%target-sil-opt``: run ``sil-opt`` for the target.
 
-* ``%target-sil-func-extractor``: run ``sil-func-extractor`` for the target.
+* ``%target-sil-fn-extractor``: run ``sil-fn-extractor`` for the target.
 
-* ``%target-swift-ide-test``: run ``swift-ide-test`` for the target.
+* ``%target-language-ide-test``: run ``language-ide-test`` for the target.
 
-* ``%target-swift-ide-test(mock-sdk:`` *mock sdk arguments* ``)`` *other
-  arguments*: like ``%target-swift-ide-test``, but allows to specify command
+* ``%target-language-ide-test(mock-sdk:`` *mock sdk arguments* ``)`` *other
+  arguments*: like ``%target-language-ide-test``, but allows to specify command
   line parameters to use a mock SDK.
 
-* ``%target-swift-autolink-extract``: run ``swift-autolink-extract`` for the
+* ``%target-language-autolink-extract``: run ``language-autolink-extract`` for the
   target to extract its autolink flags on platforms that support them (when the
   autolink-extract feature flag is set)
   
-* ``%target-swift-emit-module-interface(`` *swift interface path* ``)``
-  *other arguments*: run ``swift-frontend`` for the target, emitting a
-  swiftinterface to the given path and passing additional default flags
+* ``%target-language-emit-module-interface(`` *language interface path* ``)``
+  *other arguments*: run ``language-frontend`` for the target, emitting a
+  languageinterface to the given path and passing additional default flags
   appropriate for resilient frameworks.
 
-* ``%target-swift-emit-module-interfaces(`` *swift interface path*,
-  *swift private interface path* ``)`` *other arguments*:
-  run ``swift-frontend`` for the target, emitting both swiftinterfaces
+* ``%target-language-emit-module-interfaces(`` *language interface path*,
+  *language private interface path* ``)`` *other arguments*:
+  run ``language-frontend`` for the target, emitting both languageinterfaces
   to the given paths and passing additional default flags appropriate for
   resilient frameworks.
 
-* ``%target-swift-typecheck-module-from-interface(`` *swift interface path*
-  ``)`` *other arguments*: run ``swift-frontend`` for the target, verifying
-  the swiftinterface at the given path and passing additional default flags
+* ``%target-language-typecheck-module-from-interface(`` *language interface path*
+  ``)`` *other arguments*: run ``language-frontend`` for the target, verifying
+  the languageinterface at the given path and passing additional default flags
   appropriate for resilient frameworks. Designed to be used in combination with
-  ``%target-swift-emit-module-interface()``.
+  ``%target-language-emit-module-interface()``.
 
 * ``%target-clang``: run the system's ``clang++`` for the target.
 
   If you want to run the ``clang`` executable that was built alongside
-  Swift, use ``%clang`` instead.
+  Codira, use ``%clang`` instead.
 
 * ``%target-ld``: run ``ld`` configured with flags pointing to the standard
   library directory for the target.
@@ -378,13 +378,13 @@ code for the target that is not the build machine:
 * ``%target-object-format``: the platform's object format (``elf``, ``macho``,
   ``coff``).
 
-* ``%target-runtime``: the platform's Swift runtime (objc, native).
+* ``%target-runtime``: the platform's Codira runtime (objc, native).
 
 * ``%target-ptrsize``: the pointer size of the target (32, 64).
 
-* ``%target-swiftmodule-name`` and ``%target-swiftdoc-name``: the basename of
-  swiftmodule and swiftdoc files for a framework compiled for the target (for
-  example, ``arm64.swiftmodule`` and ``arm64.swiftdoc``).
+* ``%target-languagemodule-name`` and ``%target-languagedoc-name``: the basename of
+  languagemodule and languagedoc files for a framework compiled for the target (for
+  example, ``arm64.codemodule`` and ``arm64.codedoc``).
 
 * ``%target-sdk-name``: only for Apple platforms: ``xcrun``-style SDK name
   (``macosx``, ``iphoneos``, ``iphonesimulator``).
@@ -394,50 +394,50 @@ code for the target that is not the build machine:
   Add ``REQUIRES: static_stdlib`` to the test.
 
 * ``%target-rtti-opt``: the ``-frtti`` or ``-fno-rtti`` option required to
-  link with the Swift libraries on the target platform.
+  link with the Codira libraries on the target platform.
 
 * ``%target-cxx-lib``: the argument to add to the command line when using
-  ``swiftc`` and linking in a C++ object file.  Typically ``-lc++`` or
+  ``languagec`` and linking in a C++ object file.  Typically ``-lc++`` or
   ``-lstdc++`` depending on platform.
 
 * ``%target-msvc-runtime-opt``: for Windows, the MSVC runtime option, e.g.
-  ``-MD``, to use when building C/C++ code to link with Swift.
+  ``-MD``, to use when building C/C++ code to link with Codira.
 
 Always use ``%target-*`` substitutions unless you have a good reason.  For
 example, an exception would be a test that checks how the compiler handles
 mixing module files for incompatible platforms (that test would need to compile
-Swift code for two different platforms that are known to be incompatible).
+Codira code for two different platforms that are known to be incompatible).
 
 When you can't use ``%target-*`` substitutions, you can use:
 
-* ``%swift_driver_plain``: run ``swift`` for the build machine.
+* ``%language_driver_plain``: run ``language`` for the build machine.
 
-* ``%swift_driver``: like ``%swift_driver_plain`` with ``-module-cache-path``
+* ``%language_driver``: like ``%language_driver_plain`` with ``-module-cache-path``
   set to a temporary directory used by the test suite, and using the
-  ``SWIFT_TEST_OPTIONS`` environment variable if available.
+  ``LANGUAGE_TEST_OPTIONS`` environment variable if available.
 
-* ``%swiftc_driver``: like ``%target-swiftc_driver`` for the build machine.
+* ``%languagec_driver``: like ``%target-languagec_driver`` for the build machine.
 
-* ``%swiftc_driver_plain``: like ``%swiftc_driver``, but does not set the
+* ``%languagec_driver_plain``: like ``%languagec_driver``, but does not set the
   ``-module-cache-path`` to a temporary directory used by the test suite,
-  and does not respect the ``SWIFT_TEST_OPTIONS`` environment variable.
+  and does not respect the ``LANGUAGE_TEST_OPTIONS`` environment variable.
 
 * ``%sil-opt``: like ``%target-sil-opt`` for the build machine.
 
-* ``%sil-func-extractor``: run ``%target-sil-func-extractor`` for the build machine.
+* ``%sil-fn-extractor``: run ``%target-sil-fn-extractor`` for the build machine.
 
 * ``%lldb-moduleimport-test``: run ``lldb-moduleimport-test`` for the build
   machine in order simulate importing LLDB importing modules from the
   ``__apple_ast`` section in Mach-O files. See
   ``tools/lldb-moduleimport-test/`` for details.
 
-* ``%swift-ide-test``: like ``%target-swift-ide-test`` for the build machine.
+* ``%language-ide-test``: like ``%target-language-ide-test`` for the build machine.
 
-* ``%swift-ide-test_plain``: like ``%swift-ide-test``, but does not set the
+* ``%language-ide-test_plain``: like ``%language-ide-test``, but does not set the
   ``-module-cache-path`` or ``-completion-cache-path`` to temporary directories
   used by the test suite.
 
-* ``%swift``: like ``%target-swift-frontend`` for the build machine.
+* ``%language``: like ``%target-language-frontend`` for the build machine.
 
 * ``%clang``: run the locally-built ``clang``. To run ``clang++`` for the
   target, use ``%target-clang``.
@@ -452,7 +452,7 @@ Other substitutions:
 * ``%clang_apinotes``: run ``clang -cc1apinotes`` using the locally-built
   clang.
 
-* ``%sdk``: only for Apple platforms: the ``SWIFT_HOST_VARIANT_SDK`` specified
+* ``%sdk``: only for Apple platforms: the ``LANGUAGE_HOST_VARIANT_SDK`` specified
   by tools/build-script. Possible values include ``IOS`` or ``TVOS_SIMULATOR``.
 
 * ``%gyb``: run ``gyb``, a boilerplate generation script. For details see
@@ -460,12 +460,12 @@ Other substitutions:
 
 * ``%platform-module-dir``: absolute path of the directory where the standard
   library module file for the target platform is stored.  For example,
-  ``/.../lib/swift/macosx``.
+  ``/.../lib/language/macosx``.
 
 * ``%platform-sdk-overlay-dir``: absolute path of the directory where the SDK
   overlay module files for the target platform are stored.
 
-* ``%swift_src_root``: absolute path of the directory where the Swift source
+* ``%language_src_root``: absolute path of the directory where the Codira source
   code is stored.
 
 * ``%{python}``: run the same Python interpreter that's being used to run the
@@ -484,13 +484,13 @@ Other substitutions:
 * ``%host_sdk%``, ``%host_triple%``: Host SDK path and triple for '-target'.
   These can be used for build host tools/libraries in test cases.
 
-* ``%host-swift-build``: Build swift tools/libraries for the host.
+* ``%host-language-build``: Build language tools/libraries for the host.
 
 When writing a test where output (or IR, SIL) depends on the bitness of the
 target CPU, use this pattern::
 
 ```
-  // RUN: %target-swift-frontend ... | %FileCheck --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize %s
+  // RUN: %target-language-frontend ... | %FileCheck --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize %s
 
   // CHECK: common line
   // CHECK-32: only for 32-bit
@@ -508,7 +508,7 @@ When writing a test where output (or IR, SIL) depends on the target CPU itself,
 use this pattern::
 
 ```
-  // RUN: %target-swift-frontend ... | %FileCheck --check-prefix=CHECK --check-prefix=CHECK-%target-cpu %s
+  // RUN: %target-language-frontend ... | %FileCheck --check-prefix=CHECK --check-prefix=CHECK-%target-cpu %s
 
   // CHECK: common line
   // CHECK-i386:        only for i386
@@ -523,28 +523,28 @@ use this pattern::
 
 FIXME: full list.
 
-* ``swift_ast_verifier``: present if the AST verifier is enabled in this build.
+* ``language_ast_verifier``: present if the AST verifier is enabled in this build.
 
 * When writing a test specific to x86, if possible, prefer ``REQUIRES:
   CPU=i386 || CPU=x86_64`` to ``REQUIRES: CPU=x86_64``.
 
-* ``swift_test_mode_optimize[_unchecked|none]`` and
-  ``swift_test_mode_optimize[_unchecked|none]_<CPUNAME>``: specify a test mode
+* ``language_test_mode_optimize[_unchecked|none]`` and
+  ``language_test_mode_optimize[_unchecked|none]_<CPUNAME>``: specify a test mode
   plus cpu configuration.
 
 * ``optimized_stdlib_<CPUNAME>``: an optimized stdlib plus cpu configuration.
 
-* ``SWIFT_VERSION=<MAJOR>``: restricts a test to Swift 3, Swift 4, Swift 5. If you
+* ``LANGUAGE_VERSION=<MAJOR>``: restricts a test to Codira 3, Codira 4, Codira 5. If you
   need to use this, make sure to add a test for the other version as well
-  unless you are specifically testing ``-swift-version``-related functionality.
+  unless you are specifically testing ``-language-version``-related functionality.
 
 * ``XFAIL: linux``: tests that need to be adapted for Linux, for example parts
   that depend on Objective-C interop need to be split out.
 
-#### Features ``REQUIRES: swift_feature_...``
+#### Features ``REQUIRES: language_feature_...``
 
-Each of the Swift compiler features defined in `include/swift/Basic/Features.def`
-will get a LLVM Lit feature prefixing `swift_feature_` to the feature name
+Each of the Codira compiler features defined in `include/language/Basic/Features.def`
+will get a LLVM Lit feature prefixing `language_feature_` to the feature name
 automatically. The LLVM Lit features will be available only in those
 configurations where the compiler supports the given feature, and will not be
 available when the compiler does not support the feature. This means that
@@ -553,13 +553,13 @@ while experimental features will only be available when the compiler supports
 them.
 
 For every test that uses `--enable-experimental-feature` or
-`--enable-upcoming-feature` add a `REQUIRES: swift_feature_...` for each of the
-used features. The `Misc/verify-swift-feature-testing.test-sh` will check that
+`--enable-upcoming-feature` add a `REQUIRES: language_feature_...` for each of the
+used features. The `Misc/verify-language-feature-testing.test-sh` will check that
 every test with those command line arguments have the necessary `REQUIRES:` and
 fail otherwise.
 
 Do NOT add `REQUIRES: asserts` for experimental features anymore. The correct
-usage of `REQUIRES: swift_feature_...` will take care of testing the feature as
+usage of `REQUIRES: language_feature_...` will take care of testing the feature as
 it evolves from experimental, to upcoming, to language feature.
 
 #### Feature ``REQUIRES: executable_test``
@@ -596,7 +596,7 @@ library ``autoreleasepool`` function. For example::
   assert(CanaryCount == 1, "canary was not released")
 ```
 
-Memory management tests should be performed in a local scope because Swift does
+Memory management tests should be performed in a local scope because Codira does
 not guarantee the destruction of global variables. Code that needs to
 interoperate with Objective-C may put references in the autorelease pool, so
 code that uses an ``if true {}`` or similar no-op scope instead of
@@ -607,16 +607,16 @@ true {}``, but those assumptions should be commented in the test.
 
 #### Enabling/disabling the lldb test allowlist
 
-It's possible to enable a allowlist of swift-specific lldb tests to run during
+It's possible to enable a allowlist of language-specific lldb tests to run during
 PR smoke testing. Note that the default set of tests which run (which includes
-tests not in the allowlist) already only includes swift-specific tests.
+tests not in the allowlist) already only includes language-specific tests.
 
-Enabling the allowlist is an option of last-resort to unblock swift PR testing
+Enabling the allowlist is an option of last-resort to unblock language PR testing
 in the event that lldb test failures cannot be resolved in a timely way. If
 this becomes necessary, be sure to double-check that enabling the allowlist
 actually unblocks PR testing by running the smoke test build preset locally.
 
-To enable the lldb test allowlist, add `-G swiftpr` to the
+To enable the lldb test allowlist, add `-G languagepr` to the
 `LLDB_TEST_CATEGORIES` variable in `utils/build-script-impl`. Disable it by
 removing that option.
 

@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_COMPILEJOBCACHERESULT_H
-#define SWIFT_FRONTEND_COMPILEJOBCACHERESULT_H
+#ifndef LANGUAGE_FRONTEND_COMPILEJOBCACHERESULT_H
+#define LANGUAGE_FRONTEND_COMPILEJOBCACHERESULT_H
 
 #include "language/Basic/FileTypes.h"
-#include "llvm/CAS/CASNodeSchema.h"
-#include "llvm/CAS/ObjectStore.h"
+#include "toolchain/CAS/CASNodeSchema.h"
+#include "toolchain/CAS/ObjectStore.h"
 
 namespace language::cas {
 
 class CompileJobResultSchema;
-class CompileJobCacheResult : public llvm::cas::ObjectProxy {
+class CompileJobCacheResult : public toolchain::cas::ObjectProxy {
 public:
   /// A single output file or stream.
   struct Output {
     /// The CAS object for this output.
-    llvm::cas::ObjectRef Object;
+    toolchain::cas::ObjectRef Object;
     /// The output kind.
     file_types::ID Kind;
 
@@ -38,14 +39,14 @@ public:
   };
 
   /// Retrieves each \c Output from this result.
-  llvm::Error
-  forEachOutput(llvm::function_ref<llvm::Error(Output)> Callback) const;
+  toolchain::Error
+  forEachOutput(toolchain::function_ref<toolchain::Error(Output)> Callback) const;
 
   /// Loads all outputs concurrently and passes the resulting \c ObjectProxy
   /// objects to \p Callback. If there was an error during loading then the
   /// callback will not be invoked.
-  llvm::Error forEachLoadedOutput(
-      llvm::function_ref<llvm::Error(Output, std::optional<ObjectProxy>)>
+  toolchain::Error forEachLoadedOutput(
+      toolchain::function_ref<toolchain::Error(Output, std::optional<ObjectProxy>)>
           Callback);
 
   size_t getNumOutputs() const;
@@ -56,7 +57,7 @@ public:
   std::optional<Output> getOutput(file_types::ID Kind) const;
 
   /// Print this result to \p OS.
-  llvm::Error print(llvm::raw_ostream &OS);
+  toolchain::Error print(toolchain::raw_ostream &OS);
 
   /// Helper to build a \c CompileJobCacheResult from individual outputs.
   class Builder {
@@ -67,13 +68,13 @@ public:
     /// they will have kind \c Unknown.
     void addKindMap(file_types::ID Kind, StringRef Path);
     /// Add an output with an explicit \p Kind.
-    void addOutput(file_types::ID Kind, llvm::cas::ObjectRef Object);
+    void addOutput(file_types::ID Kind, toolchain::cas::ObjectRef Object);
     /// Add an output for the given \p Path. There must be a a kind map for it.
-    llvm::Error addOutput(StringRef Path, llvm::cas::ObjectRef Object);
+    toolchain::Error addOutput(StringRef Path, toolchain::cas::ObjectRef Object);
     /// Build a single \c ObjectRef representing the provided outputs. The
     /// result can be used with \c CompileJobResultSchema to retrieve the
     /// original outputs.
-    llvm::Expected<llvm::cas::ObjectRef> build(llvm::cas::ObjectStore &CAS);
+    toolchain::Expected<toolchain::cas::ObjectRef> build(toolchain::cas::ObjectStore &CAS);
 
   private:
     struct PrivateImpl;
@@ -81,10 +82,10 @@ public:
   };
 
 private:
-  llvm::cas::ObjectRef getOutputObject(size_t I) const;
-  llvm::cas::ObjectRef getPathsListRef() const;
+  toolchain::cas::ObjectRef getOutputObject(size_t I) const;
+  toolchain::cas::ObjectRef getPathsListRef() const;
   file_types::ID getOutputKind(size_t I) const;
-  llvm::Expected<llvm::cas::ObjectRef> getOutputPath(size_t I) const;
+  toolchain::Expected<toolchain::cas::ObjectRef> getOutputPath(size_t I) const;
 
 private:
   friend class CompileJobResultSchema;
@@ -92,24 +93,24 @@ private:
 };
 
 class CompileJobResultSchema
-    : public llvm::RTTIExtends<CompileJobResultSchema, llvm::cas::NodeSchema> {
+    : public toolchain::RTTIExtends<CompileJobResultSchema, toolchain::cas::NodeSchema> {
 public:
   static char ID;
 
-  CompileJobResultSchema(llvm::cas::ObjectStore &CAS);
+  CompileJobResultSchema(toolchain::cas::ObjectStore &CAS);
 
   /// Attempt to load \p Ref as a \c CompileJobCacheResult if it matches the
   /// schema.
-  llvm::Expected<CompileJobCacheResult> load(llvm::cas::ObjectRef Ref) const;
+  toolchain::Expected<CompileJobCacheResult> load(toolchain::cas::ObjectRef Ref) const;
 
   bool isRootNode(const CompileJobCacheResult::ObjectProxy &Node) const final;
   bool isNode(const CompileJobCacheResult::ObjectProxy &Node) const final;
 
   /// Get this schema's marker node.
-  llvm::cas::ObjectRef getKindRef() const { return KindRef; }
+  toolchain::cas::ObjectRef getKindRef() const { return KindRef; }
 
 private:
-  llvm::cas::ObjectRef KindRef;
+  toolchain::cas::ObjectRef KindRef;
 };
 
 } // namespace language::cas

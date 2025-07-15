@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LINKER_H
-#define SWIFT_SIL_LINKER_H
+#ifndef LANGUAGE_SIL_LINKER_H
+#define LANGUAGE_SIL_LINKER_H
 
 #include "language/SIL/SILDebugScope.h"
 #include "language/SIL/SILVisitor.h"
@@ -81,12 +82,12 @@ class SILLinkerVisitor : public SILInstructionVisitor<SILLinkerVisitor, void> {
   SILModule &Mod;
 
   /// Break cycles visiting recursive protocol conformances.
-  llvm::DenseSet<ProtocolConformance *> VisitedConformances;
+  toolchain::DenseSet<ProtocolConformance *> VisitedConformances;
 
   /// Worklist of SILFunctions we are processing.
-  llvm::SmallVector<SILFunction *, 128> Worklist;
+  toolchain::SmallVector<SILFunction *, 128> Worklist;
 
-  llvm::SmallVector<SILFunction *, 32> toVerify;
+  toolchain::SmallVector<SILFunction *, 32> toVerify;
 
   /// The current linking mode.
   LinkingMode Mode;
@@ -155,7 +156,7 @@ private:
   /// Is the current mode link all? Link all implies we should try and link
   /// everything, not just transparent/shared functions.
   bool isLinkAll() const {
-    return Mode == LinkingMode::LinkAll || Mod.getOptions().EmbeddedSwift;
+    return Mode == LinkingMode::LinkAll || Mod.getOptions().EmbeddedCodira;
   }
 
   void linkInVTable(ClassDecl *D);

@@ -1,4 +1,4 @@
-//===--- HeapObject.cpp - Swift Language ABI Allocation Support -----------===//
+//===--- HeapObject.cpp - Codira Language ABI Allocation Support -----------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Allocation ABI Shims While the Language is Bootstrapped
@@ -38,15 +39,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <new>
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 # include <objc/NSObject.h>
 # include <objc/runtime.h>
 # include <objc/message.h>
 # include <objc/objc.h>
-# include "swift/Runtime/ObjCBridge.h"
+# include "language/Runtime/ObjCBridge.h"
 # include <dlfcn.h>
 #endif
-#if SWIFT_STDLIB_HAS_MALLOC_TYPE
+#if LANGUAGE_STDLIB_HAS_MALLOC_TYPE
 # include <malloc_type_private.h>
 #endif
 #include "Leaks.h"
@@ -54,19 +55,19 @@
 using namespace language;
 
 // Check to make sure the runtime is being built with a compiler that
-// supports the Swift calling convention.
+// supports the Codira calling convention.
 //
-// If the Swift calling convention is not in use, functions such as
-// swift_allocBox and swift_makeBoxUnique that rely on their return value
-// being passed in a register to be compatible with Swift may miscompile on
+// If the Codira calling convention is not in use, functions such as
+// language_allocBox and language_makeBoxUnique that rely on their return value
+// being passed in a register to be compatible with Codira may miscompile on
 // some platforms and silently fail.
-#if !__has_attribute(swiftcall)
-#error "The runtime must be built with a compiler that supports swiftcall."
+#if !__has_attribute(languagecall)
+#error "The runtime must be built with a compiler that supports languagecall."
 #endif
 
 /// Returns true if the pointer passed to a native retain or release is valid.
 /// If false, the operation should immediately return.
-SWIFT_ALWAYS_INLINE
+LANGUAGE_ALWAYS_INLINE
 static inline bool isValidPointerForNativeRetain(const void *p) {
 #if defined(__arm64__) && (__POINTER_WIDTH__ == 32)
   // arm64_32 is special since it has 32-bit pointers but __arm64__ is true.
@@ -97,24 +98,24 @@ static inline bool isValidPointerForNativeRetain(const void *p) {
 // NOTE: the memcpy and asm("") naming shenanigans are to convince the compiler
 // not to emit a bunch of ptrauth instructions just to perform the comparison.
 // We only want to authenticate the function pointer if we actually call it.
-SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
-static HeapObject *_swift_allocObject_(HeapMetadata const *metadata,
+LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
+static HeapObject *_language_allocObject_(HeapMetadata const *metadata,
                                        size_t requiredSize,
                                        size_t requiredAlignmentMask)
-                                       asm("__swift_allocObject_");
-static HeapObject *_swift_retain_(HeapObject *object) asm("__swift_retain_");
-static HeapObject *_swift_retain_n_(HeapObject *object, uint32_t n)
-  asm("__swift_retain_n_");
-static void _swift_release_(HeapObject *object) asm("__swift_release_");
-static void _swift_release_n_(HeapObject *object, uint32_t n)
-  asm("__swift_release_n_");
-static HeapObject *_swift_tryRetain_(HeapObject *object)
-  asm("__swift_tryRetain_");
+                                       asm("__language_allocObject_");
+static HeapObject *_language_retain_(HeapObject *object) asm("__language_retain_");
+static HeapObject *_language_retain_n_(HeapObject *object, uint32_t n)
+  asm("__language_retain_n_");
+static void _language_release_(HeapObject *object) asm("__language_release_");
+static void _language_release_n_(HeapObject *object, uint32_t n)
+  asm("__language_release_n_");
+static HeapObject *_language_tryRetain_(HeapObject *object)
+  asm("__language_tryRetain_");
 
-#ifdef SWIFT_STDLIB_OVERRIDABLE_RETAIN_RELEASE
+#ifdef LANGUAGE_STDLIB_OVERRIDABLE_RETAIN_RELEASE
 
 #define CALL_IMPL(name, args) do { \
-  if (SWIFT_UNLIKELY(_swift_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly.load(std::memory_order_relaxed))) \
+  if (LANGUAGE_UNLIKELY(_language_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly.load(std::memory_order_relaxed))) \
     return _ ## name args; \
   return _ ## name ## _ args; \
 } while(0)
@@ -123,10 +124,10 @@ static HeapObject *_swift_tryRetain_(HeapObject *object)
   void *fptr; \
   memcpy(&fptr, (void *)&_ ## name, sizeof(fptr)); \
   extern char _ ## name ## _as_char asm("__" #name "_"); \
-  fptr = __ptrauth_swift_runtime_function_entry_strip(fptr); \
-  if (SWIFT_UNLIKELY(fptr != &_ ## name ## _as_char)) { \
-    if (SWIFT_UNLIKELY(!_swift_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly.load(std::memory_order_relaxed))) { \
-      _swift_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly.store(true, std::memory_order_relaxed); \
+  fptr = __ptrauth_language_runtime_function_entry_strip(fptr); \
+  if (LANGUAGE_UNLIKELY(fptr != &_ ## name ## _as_char)) { \
+    if (LANGUAGE_UNLIKELY(!_language_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly.load(std::memory_order_relaxed))) { \
+      _language_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly.store(true, std::memory_order_relaxed); \
     } \
     return _ ## name args; \
   } \
@@ -143,7 +144,7 @@ static HeapObject *_swift_tryRetain_(HeapObject *object)
 
 #endif
 
-#if SWIFT_STDLIB_HAS_MALLOC_TYPE
+#if LANGUAGE_STDLIB_HAS_MALLOC_TYPE
 static malloc_type_summary_t
 computeMallocTypeSummary(const HeapMetadata *heapMetadata) {
   assert(isHeapMetadataKind(heapMetadata->getKind()));
@@ -153,7 +154,7 @@ computeMallocTypeSummary(const HeapMetadata *heapMetadata) {
   if (classMetadata && classMetadata->isPureObjC())
     return {.type_kind = MALLOC_TYPE_KIND_OBJC};
 
-  return {.type_kind = MALLOC_TYPE_KIND_SWIFT};
+  return {.type_kind = MALLOC_TYPE_KIND_LANGUAGE};
 }
 
 static malloc_type_id_t getMallocTypeId(const HeapMetadata *heapMetadata) {
@@ -167,50 +168,50 @@ static malloc_type_id_t getMallocTypeId(const HeapMetadata *heapMetadata) {
 
   return desc.type_id;
 }
-#endif // SWIFT_STDLIB_HAS_MALLOC_TYPE
+#endif // LANGUAGE_STDLIB_HAS_MALLOC_TYPE
 
-#ifdef SWIFT_STDLIB_OVERRIDABLE_RETAIN_RELEASE
+#ifdef LANGUAGE_STDLIB_OVERRIDABLE_RETAIN_RELEASE
 
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_allocObject)(
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_allocObject)(
     HeapMetadata const *metadata, size_t requiredSize,
-    size_t requiredAlignmentMask) = _swift_allocObject_;
+    size_t requiredAlignmentMask) = _language_allocObject_;
 
-SWIFT_RUNTIME_EXPORT
-std::atomic<bool> _swift_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly = false;
+LANGUAGE_RUNTIME_EXPORT
+std::atomic<bool> _language_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly = false;
 
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_retain)(HeapObject *object) =
-    _swift_retain_;
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_retain)(HeapObject *object) =
+    _language_retain_;
 
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_retain_n)(
-    HeapObject *object, uint32_t n) = _swift_retain_n_;
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_retain_n)(
+    HeapObject *object, uint32_t n) = _language_retain_n_;
 
-SWIFT_RUNTIME_EXPORT
-void (*SWIFT_RT_DECLARE_ENTRY _swift_release)(HeapObject *object) =
-    _swift_release_;
+LANGUAGE_RUNTIME_EXPORT
+void (*LANGUAGE_RT_DECLARE_ENTRY _language_release)(HeapObject *object) =
+    _language_release_;
 
-SWIFT_RUNTIME_EXPORT
-void (*SWIFT_RT_DECLARE_ENTRY _swift_release_n)(HeapObject *object,
-                                                uint32_t n) = _swift_release_n_;
+LANGUAGE_RUNTIME_EXPORT
+void (*LANGUAGE_RT_DECLARE_ENTRY _language_release_n)(HeapObject *object,
+                                                uint32_t n) = _language_release_n_;
 
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_tryRetain)(HeapObject *object) =
-    _swift_tryRetain_;
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_tryRetain)(HeapObject *object) =
+    _language_tryRetain_;
 
-#endif // SWIFT_STDLIB_OVERRIDABLE_RETAIN_RELEASE
+#endif // LANGUAGE_STDLIB_OVERRIDABLE_RETAIN_RELEASE
 
-static HeapObject *_swift_allocObject_(HeapMetadata const *metadata,
+static HeapObject *_language_allocObject_(HeapMetadata const *metadata,
                                        size_t requiredSize,
                                        size_t requiredAlignmentMask) {
   assert(isAlignmentMask(requiredAlignmentMask));
-#if SWIFT_STDLIB_HAS_MALLOC_TYPE
-  auto object = reinterpret_cast<HeapObject *>(swift_slowAllocTyped(
+#if LANGUAGE_STDLIB_HAS_MALLOC_TYPE
+  auto object = reinterpret_cast<HeapObject *>(language_slowAllocTyped(
       requiredSize, requiredAlignmentMask, getMallocTypeId(metadata)));
 #else
   auto object = reinterpret_cast<HeapObject *>(
-      swift_slowAlloc(requiredSize, requiredAlignmentMask));
+      language_slowAlloc(requiredSize, requiredAlignmentMask));
 #endif
 
   // NOTE: this relies on the C++17 guaranteed semantics of no null-pointer
@@ -219,26 +220,26 @@ static HeapObject *_swift_allocObject_(HeapMetadata const *metadata,
   ::new (object) HeapObject(metadata);
 
   // If leak tracking is enabled, start tracking this object.
-  SWIFT_LEAKS_START_TRACKING_OBJECT(object);
+  LANGUAGE_LEAKS_START_TRACKING_OBJECT(object);
 
-  SWIFT_RT_TRACK_INVOCATION(object, swift_allocObject);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_allocObject);
 
   return object;
 }
 
-HeapObject *swift::swift_allocObject(HeapMetadata const *metadata,
+HeapObject *language::language_allocObject(HeapMetadata const *metadata,
                                      size_t requiredSize,
                                      size_t requiredAlignmentMask) {
-  CALL_IMPL_CHECK(swift_allocObject, (metadata, requiredSize, requiredAlignmentMask));
+  CALL_IMPL_CHECK(language_allocObject, (metadata, requiredSize, requiredAlignmentMask));
 }
 
 HeapObject *
-swift::swift_initStackObject(HeapMetadata const *metadata,
+language::language_initStackObject(HeapMetadata const *metadata,
                              HeapObject *object) {
   object->metadata = metadata;
   object->refCounts.initForNotFreeing();
 
-  SWIFT_RT_TRACK_INVOCATION(object, swift_initStackObject);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_initStackObject);
   return object;
 }
 
@@ -250,17 +251,17 @@ struct InitStaticObjectContext {
 // TODO: We could generate inline code for the fast-path, i.e. the metadata
 // pointer is already set. That would be a performance/codesize tradeoff.
 HeapObject *
-swift::swift_initStaticObject(HeapMetadata const *metadata,
+language::language_initStaticObject(HeapMetadata const *metadata,
                               HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_initStaticObject);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_initStaticObject);
   // The token is located at a negative offset from the object header.
-  swift_once_t *token = ((swift_once_t *)object) - 1;
+  language_once_t *token = ((language_once_t *)object) - 1;
 
   // We have to initialize the header atomically. Otherwise we could reset the
   // refcount to 1 while another thread already incremented it - and would
   // decrement it to 0 afterwards.
   InitStaticObjectContext Ctx = { object, metadata };
-  swift::once(
+  language::once(
       *token,
       [](void *OpaqueCtx) {
         InitStaticObjectContext *Ctx = (InitStaticObjectContext *)OpaqueCtx;
@@ -273,40 +274,40 @@ swift::swift_initStaticObject(HeapMetadata const *metadata,
 }
 
 void
-swift::swift_verifyEndOfLifetime(HeapObject *object) {
+language::language_verifyEndOfLifetime(HeapObject *object) {
   if (object->refCounts.getCount() != 0)
-    swift::fatalError(/* flags = */ 0,
+    language::fatalError(/* flags = */ 0,
                       "Fatal error: Stack object escaped\n");
 
   if (object->refCounts.getUnownedCount() != 1)
-    swift::fatalError(/* flags = */ 0,
+    language::fatalError(/* flags = */ 0,
                       "Fatal error: Unowned reference to stack object\n");
 
   if (object->refCounts.getWeakCount() != 0)
-    swift::fatalError(/* flags = */ 0,
+    language::fatalError(/* flags = */ 0,
                       "Fatal error: Weak reference to stack object\n");
 }
 
 /// Allocate a reference-counted object on the heap that
 /// occupies <size> bytes of maximally-aligned storage.  The object is
 /// uninitialized except for its header.
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_SPI
-HeapObject* swift_bufferAllocate(
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
+HeapObject* language_bufferAllocate(
   HeapMetadata const* bufferType, size_t size, size_t alignMask)
 {
-  return swift::swift_allocObject(bufferType, size, alignMask);
+  return language::language_allocObject(bufferType, size, alignMask);
 }
 
 namespace {
-/// Heap object destructor for a generic box allocated with swift_allocBox.
-static SWIFT_CC(swift) void destroyGenericBox(SWIFT_CONTEXT HeapObject *o) {
+/// Heap object destructor for a generic box allocated with language_allocBox.
+static LANGUAGE_CC(language) void destroyGenericBox(LANGUAGE_CONTEXT HeapObject *o) {
   auto metadata = static_cast<const GenericBoxHeapMetadata *>(o->metadata);
   // Destroy the object inside.
   auto *value = metadata->project(o);
   metadata->BoxedType->vw_destroy(value);
 
   // Deallocate the box.
-  swift_deallocObject(o, metadata->getAllocSize(),
+  language_deallocObject(o, metadata->getAllocSize(),
                       metadata->getAllocAlignMask());
 }
 
@@ -328,8 +329,8 @@ public:
 
   bool matchesKey(const Metadata *type) const { return type == Data.BoxedType; }
 
-  friend llvm::hash_code hash_value(const BoxCacheEntry &value) {
-    return llvm::hash_value(value.Data.BoxedType);
+  friend toolchain::hash_code hash_value(const BoxCacheEntry &value) {
+    return toolchain::hash_value(value.Data.BoxedType);
   }
 
   static size_t getExtraAllocationSize(const Metadata *key) {
@@ -344,13 +345,13 @@ public:
 
 static SimpleGlobalCache<BoxCacheEntry, BoxesTag> Boxes;
 
-BoxPair swift::swift_makeBoxUnique(OpaqueValue *buffer, const Metadata *type,
+BoxPair language::language_makeBoxUnique(OpaqueValue *buffer, const Metadata *type,
                                     size_t alignMask) {
   auto *inlineBuffer = reinterpret_cast<ValueBuffer*>(buffer);
   HeapObject *box = reinterpret_cast<HeapObject *>(inlineBuffer->PrivateData[0]);
 
-  if (!swift_isUniquelyReferenced_nonNull_native(box)) {
-    auto refAndObjectAddr = BoxPair(swift_allocBox(type));
+  if (!language_isUniquelyReferenced_nonNull_native(box)) {
+    auto refAndObjectAddr = BoxPair(language_allocBox(type));
     // Compute the address of the old object.
     auto headerOffset = sizeof(HeapObject) + alignMask & ~alignMask;
     auto *oldObjectAddr = reinterpret_cast<OpaqueValue *>(
@@ -359,7 +360,7 @@ BoxPair swift::swift_makeBoxUnique(OpaqueValue *buffer, const Metadata *type,
     type->vw_initializeWithCopy(refAndObjectAddr.buffer, oldObjectAddr);
     inlineBuffer->PrivateData[0] = refAndObjectAddr.object;
     // Release ownership of the old box.
-    swift_release(box);
+    language_release(box);
     return refAndObjectAddr;
   } else {
     auto headerOffset = sizeof(HeapObject) + alignMask & ~alignMask;
@@ -369,27 +370,27 @@ BoxPair swift::swift_makeBoxUnique(OpaqueValue *buffer, const Metadata *type,
   }
 }
 
-BoxPair swift::swift_allocBox(const Metadata *type) {
+BoxPair language::language_allocBox(const Metadata *type) {
   // Get the heap metadata for the box.
   auto metadata = &Boxes.getOrInsert(type).first->Data;
 
   // Allocate and project the box.
-  auto allocation = swift_allocObject(metadata, metadata->getAllocSize(),
+  auto allocation = language_allocObject(metadata, metadata->getAllocSize(),
                                       metadata->getAllocAlignMask());
   auto projection = metadata->project(allocation);
 
   return BoxPair{allocation, projection};
 }
 
-void swift::swift_deallocBox(HeapObject *o) {
+void language::language_deallocBox(HeapObject *o) {
   auto metadata = static_cast<const GenericBoxHeapMetadata *>(o->metadata);
   // Move the object to the deallocating state (+1 -> +0).
   o->refCounts.decrementFromOneNonAtomic();
-  swift_deallocObject(o, metadata->getAllocSize(),
+  language_deallocObject(o, metadata->getAllocSize(),
                       metadata->getAllocAlignMask());
 }
 
-OpaqueValue *swift::swift_projectBox(HeapObject *o) {
+OpaqueValue *language::language_projectBox(HeapObject *o) {
   // The compiler will use a nil reference as a way to avoid allocating memory
   // for boxes of empty type. The address of an empty value is always undefined,
   // so we can just return nil back in this case.
@@ -401,14 +402,14 @@ OpaqueValue *swift::swift_projectBox(HeapObject *o) {
 
 namespace { // Begin anonymous namespace.
 
-struct _SwiftEmptyBoxStorage {
+struct _CodiraEmptyBoxStorage {
   HeapObject header;
 };
 
-swift::HeapLocalVariableMetadata _emptyBoxStorageMetadata;
+language::HeapLocalVariableMetadata _emptyBoxStorageMetadata;
 
 /// The singleton empty box storage object.
-_SwiftEmptyBoxStorage _EmptyBoxStorage = {
+_CodiraEmptyBoxStorage _EmptyBoxStorage = {
  // HeapObject header;
   {
     &_emptyBoxStorageMetadata,
@@ -417,19 +418,19 @@ _SwiftEmptyBoxStorage _EmptyBoxStorage = {
 
 } // End anonymous namespace.
 
-HeapObject *swift::swift_allocEmptyBox() {
+HeapObject *language::language_allocEmptyBox() {
   auto heapObject = reinterpret_cast<HeapObject*>(&_EmptyBoxStorage);
-  swift_retain(heapObject);
+  language_retain(heapObject);
   return heapObject;
 }
 
-// Forward-declare this, but define it after swift_release.
-extern "C" SWIFT_LIBRARY_VISIBILITY SWIFT_NOINLINE SWIFT_USED void
-_swift_release_dealloc(HeapObject *object);
+// Forward-declare this, but define it after language_release.
+extern "C" LANGUAGE_LIBRARY_VISIBILITY LANGUAGE_NOINLINE LANGUAGE_USED void
+_language_release_dealloc(HeapObject *object);
 
-SWIFT_ALWAYS_INLINE
-static HeapObject *_swift_retain_(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_retain);
+LANGUAGE_ALWAYS_INLINE
+static HeapObject *_language_retain_(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_retain);
   if (isValidPointerForNativeRetain(object)) {
     // Return the result of increment() to make the eventual call to
     // incrementSlow a tail call, which avoids pushing a stack frame on the fast
@@ -439,109 +440,109 @@ static HeapObject *_swift_retain_(HeapObject *object) {
   return object;
 }
 
-HeapObject *swift::swift_retain(HeapObject *object) {
-#ifdef SWIFT_THREADING_NONE
-  return swift_nonatomic_retain(object);
+HeapObject *language::language_retain(HeapObject *object) {
+#ifdef LANGUAGE_THREADING_NONE
+  return language_nonatomic_retain(object);
 #else
-  CALL_IMPL(swift_retain, (object));
+  CALL_IMPL(language_retain, (object));
 #endif
 }
 
-CUSTOM_RR_ENTRYPOINTS_DEFINE_ENTRYPOINTS(swift_retain)
+CUSTOM_RR_ENTRYPOINTS_DEFINE_ENTRYPOINTS(language_retain)
 
-HeapObject *swift::swift_nonatomic_retain(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_retain);
+HeapObject *language::language_nonatomic_retain(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_retain);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.incrementNonAtomic(1);
   return object;
 }
 
-SWIFT_ALWAYS_INLINE
-static HeapObject *_swift_retain_n_(HeapObject *object, uint32_t n) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_retain_n);
+LANGUAGE_ALWAYS_INLINE
+static HeapObject *_language_retain_n_(HeapObject *object, uint32_t n) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_retain_n);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.increment(n);
   return object;
 }
 
-HeapObject *swift::swift_retain_n(HeapObject *object, uint32_t n) {
-#ifdef SWIFT_THREADING_NONE
-  return swift_nonatomic_retain_n(object, n);
+HeapObject *language::language_retain_n(HeapObject *object, uint32_t n) {
+#ifdef LANGUAGE_THREADING_NONE
+  return language_nonatomic_retain_n(object, n);
 #else
-  CALL_IMPL(swift_retain_n, (object, n));
+  CALL_IMPL(language_retain_n, (object, n));
 #endif
 }
 
-HeapObject *swift::swift_nonatomic_retain_n(HeapObject *object, uint32_t n) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_retain_n);
+HeapObject *language::language_nonatomic_retain_n(HeapObject *object, uint32_t n) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_retain_n);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.incrementNonAtomic(n);
   return object;
 }
 
-SWIFT_ALWAYS_INLINE
-static void _swift_release_(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_release);
+LANGUAGE_ALWAYS_INLINE
+static void _language_release_(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_release);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.decrementAndMaybeDeinit(1);
 }
 
-void swift::swift_release(HeapObject *object) {
-#ifdef SWIFT_THREADING_NONE
-  swift_nonatomic_release(object);
+void language::language_release(HeapObject *object) {
+#ifdef LANGUAGE_THREADING_NONE
+  language_nonatomic_release(object);
 #else
-  CALL_IMPL(swift_release, (object));
+  CALL_IMPL(language_release, (object));
 #endif
 }
 
-CUSTOM_RR_ENTRYPOINTS_DEFINE_ENTRYPOINTS(swift_release)
+CUSTOM_RR_ENTRYPOINTS_DEFINE_ENTRYPOINTS(language_release)
 
-void swift::swift_nonatomic_release(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_release);
+void language::language_nonatomic_release(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_release);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.decrementAndMaybeDeinitNonAtomic(1);
 }
 
-SWIFT_ALWAYS_INLINE
-static void _swift_release_n_(HeapObject *object, uint32_t n) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_release_n);
+LANGUAGE_ALWAYS_INLINE
+static void _language_release_n_(HeapObject *object, uint32_t n) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_release_n);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.decrementAndMaybeDeinit(n);
 }
 
-void swift::swift_release_n(HeapObject *object, uint32_t n) {
-#ifdef SWIFT_THREADING_NONE
-  swift_nonatomic_release_n(object, n);
+void language::language_release_n(HeapObject *object, uint32_t n) {
+#ifdef LANGUAGE_THREADING_NONE
+  language_nonatomic_release_n(object, n);
 #else
-  CALL_IMPL(swift_release_n, (object, n));
+  CALL_IMPL(language_release_n, (object, n));
 #endif
 }
 
-void swift::swift_nonatomic_release_n(HeapObject *object, uint32_t n) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_release_n);
+void language::language_nonatomic_release_n(HeapObject *object, uint32_t n) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_release_n);
   if (isValidPointerForNativeRetain(object))
     object->refCounts.decrementAndMaybeDeinitNonAtomic(n);
 }
 
-size_t swift::swift_retainCount(HeapObject *object) {
+size_t language::language_retainCount(HeapObject *object) {
   if (isValidPointerForNativeRetain(object))
     return object->refCounts.getCount();
   return 0;
 }
 
-size_t swift::swift_unownedRetainCount(HeapObject *object) {
+size_t language::language_unownedRetainCount(HeapObject *object) {
   return object->refCounts.getUnownedCount();
 }
 
-size_t swift::swift_weakRetainCount(HeapObject *object) {
+size_t language::language_weakRetainCount(HeapObject *object) {
   return object->refCounts.getWeakCount();
 }
 
-HeapObject *swift::swift_unownedRetain(HeapObject *object) {
-#ifdef SWIFT_THREADING_NONE
-  return static_cast<HeapObject *>(swift_nonatomic_unownedRetain(object));
+HeapObject *language::language_unownedRetain(HeapObject *object) {
+#ifdef LANGUAGE_THREADING_NONE
+  return static_cast<HeapObject *>(language_nonatomic_unownedRetain(object));
 #else
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRetain);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRetain);
   if (!isValidPointerForNativeRetain(object))
     return object;
 
@@ -550,29 +551,37 @@ HeapObject *swift::swift_unownedRetain(HeapObject *object) {
 #endif
 }
 
-void swift::swift_unownedRelease(HeapObject *object) {
-#ifdef SWIFT_THREADING_NONE
-  swift_nonatomic_unownedRelease(object);
+// Assert that the metadata is a class or ErrorObject, for unowned operations.
+// Other types of metadata are not supposed to be used with unowned.
+static void checkMetadataForUnownedRR(HeapObject *object) {
+  assert(object->metadata->isClassObject() ||
+         object->metadata->getKind() == MetadataKind::ErrorObject);
+  if (object->metadata->isClassObject())
+    assert(
+        static_cast<const ClassMetadata *>(object->metadata)->isTypeMetadata());
+}
+
+void language::language_unownedRelease(HeapObject *object) {
+#ifdef LANGUAGE_THREADING_NONE
+  language_nonatomic_unownedRelease(object);
 #else
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRelease);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRelease);
   if (!isValidPointerForNativeRetain(object))
     return;
 
-  // Only class objects can be unowned-retained and unowned-released.
-  assert(object->metadata->isClassObject());
-  assert(static_cast<const ClassMetadata*>(object->metadata)->isTypeMetadata());
+  checkMetadataForUnownedRR(object);
 
   if (object->refCounts.decrementUnownedShouldFree(1)) {
     auto classMetadata = static_cast<const ClassMetadata*>(object->metadata);
 
-    swift_slowDealloc(object, classMetadata->getInstanceSize(),
+    language_slowDealloc(object, classMetadata->getInstanceSize(),
                       classMetadata->getInstanceAlignMask());
   }
 #endif
 }
 
-void *swift::swift_nonatomic_unownedRetain(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_unownedRetain);
+void *language::language_nonatomic_unownedRetain(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_unownedRetain);
   if (!isValidPointerForNativeRetain(object))
     return object;
 
@@ -580,28 +589,26 @@ void *swift::swift_nonatomic_unownedRetain(HeapObject *object) {
   return object;
 }
 
-void swift::swift_nonatomic_unownedRelease(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_unownedRelease);
+void language::language_nonatomic_unownedRelease(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_unownedRelease);
   if (!isValidPointerForNativeRetain(object))
     return;
 
-  // Only class objects can be unowned-retained and unowned-released.
-  assert(object->metadata->isClassObject());
-  assert(static_cast<const ClassMetadata*>(object->metadata)->isTypeMetadata());
+  checkMetadataForUnownedRR(object);
 
   if (object->refCounts.decrementUnownedShouldFreeNonAtomic(1)) {
     auto classMetadata = static_cast<const ClassMetadata*>(object->metadata);
 
-    swift_slowDealloc(object, classMetadata->getInstanceSize(),
+    language_slowDealloc(object, classMetadata->getInstanceSize(),
                        classMetadata->getInstanceAlignMask());
   }
 }
 
-HeapObject *swift::swift_unownedRetain_n(HeapObject *object, int n) {
-#ifdef SWIFT_THREADING_NONE
-  return swift_nonatomic_unownedRetain_n(object, n);
+HeapObject *language::language_unownedRetain_n(HeapObject *object, int n) {
+#ifdef LANGUAGE_THREADING_NONE
+  return language_nonatomic_unownedRetain_n(object, n);
 #else
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRetain_n);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRetain_n);
   if (!isValidPointerForNativeRetain(object))
     return object;
 
@@ -610,28 +617,26 @@ HeapObject *swift::swift_unownedRetain_n(HeapObject *object, int n) {
 #endif
 }
 
-void swift::swift_unownedRelease_n(HeapObject *object, int n) {
-#ifdef SWIFT_THREADING_NONE
-  swift_nonatomic_unownedRelease_n(object, n);
+void language::language_unownedRelease_n(HeapObject *object, int n) {
+#ifdef LANGUAGE_THREADING_NONE
+  language_nonatomic_unownedRelease_n(object, n);
 #else
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRelease_n);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRelease_n);
   if (!isValidPointerForNativeRetain(object))
     return;
 
-  // Only class objects can be unowned-retained and unowned-released.
-  assert(object->metadata->isClassObject());
-  assert(static_cast<const ClassMetadata*>(object->metadata)->isTypeMetadata());
+  checkMetadataForUnownedRR(object);
 
   if (object->refCounts.decrementUnownedShouldFree(n)) {
     auto classMetadata = static_cast<const ClassMetadata*>(object->metadata);
-    swift_slowDealloc(object, classMetadata->getInstanceSize(),
+    language_slowDealloc(object, classMetadata->getInstanceSize(),
                       classMetadata->getInstanceAlignMask());
   }
 #endif
 }
 
-HeapObject *swift::swift_nonatomic_unownedRetain_n(HeapObject *object, int n) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_unownedRetain_n);
+HeapObject *language::language_nonatomic_unownedRetain_n(HeapObject *object, int n) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_unownedRetain_n);
   if (!isValidPointerForNativeRetain(object))
     return object;
 
@@ -639,29 +644,27 @@ HeapObject *swift::swift_nonatomic_unownedRetain_n(HeapObject *object, int n) {
   return object;
 }
 
-void swift::swift_nonatomic_unownedRelease_n(HeapObject *object, int n) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRelease_n);
+void language::language_nonatomic_unownedRelease_n(HeapObject *object, int n) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRelease_n);
   if (!isValidPointerForNativeRetain(object))
     return;
 
-  // Only class objects can be unowned-retained and unowned-released.
-  assert(object->metadata->isClassObject());
-  assert(static_cast<const ClassMetadata*>(object->metadata)->isTypeMetadata());
+  checkMetadataForUnownedRR(object);
 
   if (object->refCounts.decrementUnownedShouldFreeNonAtomic(n)) {
     auto classMetadata = static_cast<const ClassMetadata*>(object->metadata);
-    swift_slowDealloc(object, classMetadata->getInstanceSize(),
+    language_slowDealloc(object, classMetadata->getInstanceSize(),
                       classMetadata->getInstanceAlignMask());
   }
 }
 
-SWIFT_ALWAYS_INLINE
-static HeapObject *_swift_tryRetain_(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_tryRetain);
+LANGUAGE_ALWAYS_INLINE
+static HeapObject *_language_tryRetain_(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_tryRetain);
   if (!isValidPointerForNativeRetain(object))
     return nullptr;
 
-#ifdef SWIFT_THREADING_NONE
+#ifdef LANGUAGE_THREADING_NONE
   if (object->refCounts.tryIncrementNonAtomic()) return object;
   else return nullptr;
 #else
@@ -670,61 +673,61 @@ static HeapObject *_swift_tryRetain_(HeapObject *object) {
 #endif
 }
 
-HeapObject *swift::swift_tryRetain(HeapObject *object) {
-  CALL_IMPL(swift_tryRetain, (object));
+HeapObject *language::language_tryRetain(HeapObject *object) {
+  CALL_IMPL(language_tryRetain, (object));
 }
 
-bool swift::swift_isDeallocating(HeapObject *object) {
+bool language::language_isDeallocating(HeapObject *object) {
   if (!isValidPointerForNativeRetain(object))
     return false;
   return object->refCounts.isDeiniting();
 }
 
-void swift::swift_setDeallocating(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_setDeallocating);
+void language::language_setDeallocating(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_setDeallocating);
   object->refCounts.decrementFromOneNonAtomic();
 }
 
-HeapObject *swift::swift_unownedRetainStrong(HeapObject *object) {
-#ifdef SWIFT_THREADING_NONE
-  return swift_nonatomic_unownedRetainStrong(object);
+HeapObject *language::language_unownedRetainStrong(HeapObject *object) {
+#ifdef LANGUAGE_THREADING_NONE
+  return language_nonatomic_unownedRetainStrong(object);
 #else
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRetainStrong);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRetainStrong);
   if (!isValidPointerForNativeRetain(object))
     return object;
   assert(object->refCounts.getUnownedCount() &&
          "object is not currently unowned-retained");
 
   if (! object->refCounts.tryIncrement())
-    swift::swift_abortRetainUnowned(object);
+    language::language_abortRetainUnowned(object);
   return object;
 #endif
 }
 
-HeapObject *swift::swift_nonatomic_unownedRetainStrong(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_unownedRetainStrong);
+HeapObject *language::language_nonatomic_unownedRetainStrong(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_unownedRetainStrong);
   if (!isValidPointerForNativeRetain(object))
     return object;
   assert(object->refCounts.getUnownedCount() &&
          "object is not currently unowned-retained");
 
   if (! object->refCounts.tryIncrementNonAtomic())
-    swift::swift_abortRetainUnowned(object);
+    language::language_abortRetainUnowned(object);
   return object;
 }
 
-void swift::swift_unownedRetainStrongAndRelease(HeapObject *object) {
-#ifdef SWIFT_THREADING_NONE
-  swift_nonatomic_unownedRetainStrongAndRelease(object);
+void language::language_unownedRetainStrongAndRelease(HeapObject *object) {
+#ifdef LANGUAGE_THREADING_NONE
+  language_nonatomic_unownedRetainStrongAndRelease(object);
 #else
-  SWIFT_RT_TRACK_INVOCATION(object, swift_unownedRetainStrongAndRelease);
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_unownedRetainStrongAndRelease);
   if (!isValidPointerForNativeRetain(object))
     return;
   assert(object->refCounts.getUnownedCount() &&
          "object is not currently unowned-retained");
 
   if (! object->refCounts.tryIncrement())
-    swift::swift_abortRetainUnowned(object);
+    language::language_abortRetainUnowned(object);
 
   // This should never cause a deallocation.
   bool dealloc = object->refCounts.decrementUnownedShouldFree(1);
@@ -733,15 +736,15 @@ void swift::swift_unownedRetainStrongAndRelease(HeapObject *object) {
 #endif
 }
 
-void swift::swift_nonatomic_unownedRetainStrongAndRelease(HeapObject *object) {
-  SWIFT_RT_TRACK_INVOCATION(object, swift_nonatomic_unownedRetainStrongAndRelease);
+void language::language_nonatomic_unownedRetainStrongAndRelease(HeapObject *object) {
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_nonatomic_unownedRetainStrongAndRelease);
   if (!isValidPointerForNativeRetain(object))
     return;
   assert(object->refCounts.getUnownedCount() &&
          "object is not currently unowned-retained");
 
   if (! object->refCounts.tryIncrementNonAtomic())
-    swift::swift_abortRetainUnowned(object);
+    language::language_abortRetainUnowned(object);
 
   // This should never cause a deallocation.
   bool dealloc = object->refCounts.decrementUnownedShouldFreeNonAtomic(1);
@@ -749,39 +752,39 @@ void swift::swift_nonatomic_unownedRetainStrongAndRelease(HeapObject *object) {
   (void) dealloc;
 }
 
-void swift::swift_unownedCheck(HeapObject *object) {
+void language::language_unownedCheck(HeapObject *object) {
   if (!isValidPointerForNativeRetain(object)) return;
   assert(object->refCounts.getUnownedCount() &&
          "object is not currently unowned-retained");
 
   if (object->refCounts.isDeiniting())
-    swift::swift_abortRetainUnowned(object);
+    language::language_abortRetainUnowned(object);
 }
 
-void _swift_release_dealloc(HeapObject *object) {
+void _language_release_dealloc(HeapObject *object) {
   asFullMetadata(object->metadata)->destroy(object);
 }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 /// Perform the root -dealloc operation for a class instance.
-void swift::swift_rootObjCDealloc(HeapObject *self) {
+void language::language_rootObjCDealloc(HeapObject *self) {
   auto metadata = self->metadata;
   assert(metadata->isClassObject());
   auto classMetadata = static_cast<const ClassMetadata*>(metadata);
   assert(classMetadata->isTypeMetadata());
-  swift_deallocClassInstance(self, classMetadata->getInstanceSize(),
+  language_deallocClassInstance(self, classMetadata->getInstanceSize(),
                              classMetadata->getInstanceAlignMask());
 }
 #endif
 
-void swift::swift_deallocClassInstance(HeapObject *object,
+void language::language_deallocClassInstance(HeapObject *object,
                                        size_t allocatedSize,
                                        size_t allocatedAlignMask) {
-  size_t retainCount = swift_retainCount(object);
-  if (SWIFT_UNLIKELY(retainCount > 1)) {
+  size_t retainCount = language_retainCount(object);
+  if (LANGUAGE_UNLIKELY(retainCount > 1)) {
     auto descriptor = object->metadata->getTypeContextDescriptor();
 
-    swift::fatalError(0,
+    language::fatalError(0,
                       "Object %p of class %s deallocated with non-zero retain "
                       "count %zd. This object's deinit, or something called "
                       "from it, may have created a strong reference to self "
@@ -792,7 +795,7 @@ void swift::swift_deallocClassInstance(HeapObject *object,
                       retainCount);
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   // We need to let the ObjC runtime clean up any associated objects or weak
   // references associated with this object.
 #if TARGET_OS_SIMULATOR && (__x86_64__ || __i386__)
@@ -801,16 +804,16 @@ void swift::swift_deallocClassInstance(HeapObject *object,
   const bool fastDeallocSupported = true;
 #endif
 
-  if (!fastDeallocSupported || !object->refCounts.getPureSwiftDeallocation()) {
+  if (!fastDeallocSupported || !object->refCounts.getPureCodiraDeallocation()) {
     objc_destructInstance((id)object);
   }
 #endif
 
-  swift_deallocObject(object, allocatedSize, allocatedAlignMask);
+  language_deallocObject(object, allocatedSize, allocatedAlignMask);
 }
 
 /// Variant of the above used in constructor failure paths.
-void swift::swift_deallocPartialClassInstance(HeapObject *object,
+void language::language_deallocPartialClassInstance(HeapObject *object,
                                               HeapMetadata const *metadata,
                                               size_t allocatedSize,
                                               size_t allocatedAlignMask) {
@@ -818,10 +821,10 @@ void swift::swift_deallocPartialClassInstance(HeapObject *object,
     return;
 
   // Destroy ivars
-  auto *classMetadata = _swift_getClassOfAllocated(object)->getClassObject();
+  auto *classMetadata = _language_getClassOfAllocated(object)->getClassObject();
   assert(classMetadata && "Not a class?");
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   // If the object's class is already pure ObjC class, just release it and move
   // on. There are no ivar destroyers. This avoids attempting to mutate
   // placeholder objects statically created in read-only memory.
@@ -832,7 +835,7 @@ void swift::swift_deallocPartialClassInstance(HeapObject *object,
 #endif
 
   while (classMetadata != metadata) {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     // If we have hit a pure Objective-C class, we won't see another ivar
     // destroyer.
     if (classMetadata->isPureObjC()) {
@@ -853,10 +856,10 @@ void swift::swift_deallocPartialClassInstance(HeapObject *object,
     assert(classMetadata && "Given metatype not a superclass of object type?");
   }
 
-#if SWIFT_OBJC_INTEROP
-  // If this class doesn't use Swift-native reference counting, use
+#if LANGUAGE_OBJC_INTEROP
+  // If this class doesn't use Codira-native reference counting, use
   // objc_release instead.
-  if (!usesNativeSwiftReferenceCounting(classMetadata)) {
+  if (!usesNativeCodiraReferenceCounting(classMetadata)) {
     // Find the pure Objective-C superclass.
     while (!classMetadata->isPureObjC())
       classMetadata = classMetadata->Superclass->getClassObject();
@@ -875,10 +878,10 @@ void swift::swift_deallocPartialClassInstance(HeapObject *object,
   bool shouldDeallocate = object->refCounts.decrementShouldDeinit(1);
   assert(shouldDeallocate);
   (void) shouldDeallocate;
-  swift_deallocClassInstance(object, allocatedSize, allocatedAlignMask);
+  language_deallocClassInstance(object, allocatedSize, allocatedAlignMask);
 }
 
-#if !defined(__APPLE__) && SWIFT_RUNTIME_CLOBBER_FREED_OBJECTS
+#if !defined(__APPLE__) && LANGUAGE_RUNTIME_CLOBBER_FREED_OBJECTS
 static inline void memset_pattern8(void *b, const void *pattern8, size_t len) {
   char *ptr = static_cast<char *>(b);
   while (len >= 8) {
@@ -890,7 +893,7 @@ static inline void memset_pattern8(void *b, const void *pattern8, size_t len) {
 }
 #endif
 
-static inline void swift_deallocObjectImpl(HeapObject *object,
+static inline void language_deallocObjectImpl(HeapObject *object,
                                            size_t allocatedSize,
                                            size_t allocatedAlignMask,
                                            bool isDeiniting) {
@@ -900,29 +903,29 @@ static inline void swift_deallocObjectImpl(HeapObject *object,
     object->refCounts.decrementFromOneNonAtomic();
   }
   assert(object->refCounts.isDeiniting());
-  SWIFT_RT_TRACK_INVOCATION(object, swift_deallocObject);
-#if SWIFT_RUNTIME_CLOBBER_FREED_OBJECTS
+  LANGUAGE_RT_TRACK_INVOCATION(object, language_deallocObject);
+#if LANGUAGE_RUNTIME_CLOBBER_FREED_OBJECTS
   memset_pattern8((uint8_t *)object + sizeof(HeapObject),
                   "\xF0\xEF\xBE\xAD\xDE\xED\xFE\x0F", // 0x0ffeeddeadbeeff0
                   allocatedSize - sizeof(HeapObject));
 #endif
 
   // If we are tracking leaks, stop tracking this object.
-  SWIFT_LEAKS_STOP_TRACKING_OBJECT(object);
+  LANGUAGE_LEAKS_STOP_TRACKING_OBJECT(object);
 
 
   // Drop the initial weak retain of the object.
   //
   // If the outstanding weak retain count is 1 (i.e. only the initial
-  // weak retain), we can immediately call swift_slowDealloc.  This is
+  // weak retain), we can immediately call language_slowDealloc.  This is
   // useful both as a way to eliminate an unnecessary atomic
-  // operation, and as a way to avoid calling swift_unownedRelease on an
+  // operation, and as a way to avoid calling language_unownedRelease on an
   // object that might be a class object, which simplifies the logic
-  // required in swift_unownedRelease for determining the size of the
+  // required in language_unownedRelease for determining the size of the
   // object.
   //
   // If we see that there is an outstanding weak retain of the object,
-  // we need to fall back on swift_release, because it's possible for
+  // we need to fall back on language_release, because it's possible for
   // us to race against a weak retain or a weak release.  But if the
   // outstanding weak retain count is 1, then anyone attempting to
   // increase the weak reference count is inherently racing against
@@ -973,75 +976,75 @@ static inline void swift_deallocObjectImpl(HeapObject *object,
   // Note that it is okay for there to be a race involving a weak
   // *release* which happens after the strong reference count drops to
   // 0.  However, this is harmless: if our load fails to see the
-  // release, we will fall back on swift_unownedRelease, which does an
+  // release, we will fall back on language_unownedRelease, which does an
   // atomic decrement (and has the ability to reconstruct
   // allocatedSize and allocatedAlignMask).
   //
   // Note: This shortcut is NOT an optimization.
-  // Some allocations passed to swift_deallocObject() are not compatible
-  // with swift_unownedRelease() because they do not have ClassMetadata.
+  // Some allocations passed to language_deallocObject() are not compatible
+  // with language_unownedRelease() because they do not have ClassMetadata.
 
   if (object->refCounts.canBeFreedNow()) {
     // object state DEINITING -> DEAD
-    swift_slowDealloc(object, allocatedSize, allocatedAlignMask);
+    language_slowDealloc(object, allocatedSize, allocatedAlignMask);
   } else {
     // object state DEINITING -> DEINITED
-    swift_unownedRelease(object);
+    language_unownedRelease(object);
   }
 }
 
-void swift::swift_deallocObject(HeapObject *object, size_t allocatedSize,
+void language::language_deallocObject(HeapObject *object, size_t allocatedSize,
                                 size_t allocatedAlignMask) {
-  swift_deallocObjectImpl(object, allocatedSize, allocatedAlignMask, true);
+  language_deallocObjectImpl(object, allocatedSize, allocatedAlignMask, true);
 }
 
-void swift::swift_deallocUninitializedObject(HeapObject *object,
+void language::language_deallocUninitializedObject(HeapObject *object,
                                              size_t allocatedSize,
                                              size_t allocatedAlignMask) {
-  swift_deallocObjectImpl(object, allocatedSize, allocatedAlignMask, false);
+  language_deallocObjectImpl(object, allocatedSize, allocatedAlignMask, false);
 }
 
-WeakReference *swift::swift_weakInit(WeakReference *ref, HeapObject *value) {
+WeakReference *language::language_weakInit(WeakReference *ref, HeapObject *value) {
   ref->nativeInit(value);
   return ref;
 }
 
-WeakReference *swift::swift_weakAssign(WeakReference *ref, HeapObject *value) {
+WeakReference *language::language_weakAssign(WeakReference *ref, HeapObject *value) {
   ref->nativeAssign(value);
   return ref;
 }
 
-HeapObject *swift::swift_weakLoadStrong(WeakReference *ref) {
+HeapObject *language::language_weakLoadStrong(WeakReference *ref) {
   return ref->nativeLoadStrong();
 }
 
-HeapObject *swift::swift_weakTakeStrong(WeakReference *ref) {
+HeapObject *language::language_weakTakeStrong(WeakReference *ref) {
   return ref->nativeTakeStrong();
 }
 
-void swift::swift_weakDestroy(WeakReference *ref) {
+void language::language_weakDestroy(WeakReference *ref) {
   ref->nativeDestroy();
 }
 
-WeakReference *swift::swift_weakCopyInit(WeakReference *dest,
+WeakReference *language::language_weakCopyInit(WeakReference *dest,
                                          WeakReference *src) {
   dest->nativeCopyInit(src);
   return dest;
 }
 
-WeakReference *swift::swift_weakTakeInit(WeakReference *dest,
+WeakReference *language::language_weakTakeInit(WeakReference *dest,
                                          WeakReference *src) {
   dest->nativeTakeInit(src);
   return dest;
 }
 
-WeakReference *swift::swift_weakCopyAssign(WeakReference *dest,
+WeakReference *language::language_weakCopyAssign(WeakReference *dest,
                                            WeakReference *src) {
   dest->nativeCopyAssign(src);
   return dest;
 }
 
-WeakReference *swift::swift_weakTakeAssign(WeakReference *dest,
+WeakReference *language::language_weakTakeAssign(WeakReference *dest,
                                            WeakReference *src) {
   dest->nativeTakeAssign(src);
   return dest;
@@ -1052,8 +1055,8 @@ WeakReference *swift::swift_weakTakeAssign(WeakReference *dest,
 /// Returns true if the "immutable" flag is set on \p object.
 ///
 /// Used for runtime consistency checking of COW buffers.
-SWIFT_RUNTIME_EXPORT
-bool _swift_isImmutableCOWBuffer(HeapObject *object) {
+LANGUAGE_RUNTIME_EXPORT
+bool _language_isImmutableCOWBuffer(HeapObject *object) {
   return object->refCounts.isImmutableCOWBuffer();
 }
 
@@ -1061,8 +1064,8 @@ bool _swift_isImmutableCOWBuffer(HeapObject *object) {
 /// value of the flag.
 ///
 /// Used for runtime consistency checking of COW buffers.
-SWIFT_RUNTIME_EXPORT
-bool _swift_setImmutableCOWBuffer(HeapObject *object, bool immutable) {
+LANGUAGE_RUNTIME_EXPORT
+bool _language_setImmutableCOWBuffer(HeapObject *object, bool immutable) {
   return object->refCounts.setIsImmutableCOWBuffer(immutable);
 }
 
@@ -1075,7 +1078,7 @@ void HeapObject::dump() const {
   printf("Weak Ref Count: %d.\n", Self->refCounts.getWeakCount());
   if (Self->metadata->getKind() == MetadataKind::Class) {
     printf("Uses Native Retain: %s.\n",
-           (objectUsesNativeSwiftReferenceCounting(Self) ? "true" : "false"));
+           (objectUsesNativeCodiraReferenceCounting(Self) ? "true" : "false"));
   } else {
     printf("Uses Native Retain: Not a class. N/A.\n");
   }

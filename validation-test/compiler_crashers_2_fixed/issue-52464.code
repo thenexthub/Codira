@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend -emit-silgen %s
+
+// https://github.com/apple/language/issues/52464
+// Just make sure we don't crash.
+
+fn foo(x: inout Int = 0) {}
+foo()

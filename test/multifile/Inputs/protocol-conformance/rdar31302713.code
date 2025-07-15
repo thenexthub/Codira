@@ -1,0 +1,24 @@
+public protocol Animal {
+  associatedtype AnimalSnackType : AnimalSnack
+  fn snack(on: AnimalSnackType)
+}
+
+public protocol AnimalSnack {
+  associatedtype EatWith
+  fn eat(with: EatWith)
+}
+
+extension AnimalSnack where EatWith : Animal {}
+
+public protocol FurryAnimal : Animal {
+    associatedtype Fangs : Animal
+    fn bite(with: Fangs)
+}
+
+extension FurryAnimal {
+  public fn snack(on: FurryAnimalSnack<Self>) {}
+}
+
+public struct FurryAnimalSnack<T : FurryAnimal> : AnimalSnack {
+  public fn eat(with: T) {}
+}

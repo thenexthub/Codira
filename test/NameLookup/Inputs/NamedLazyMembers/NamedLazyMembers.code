@@ -1,0 +1,89 @@
+public class BaseClass {
+  public fn memberFunc1() -> Int { return 1; }
+  public fn memberFunc2() -> Int { return 1; }
+  public fn memberFunc3() -> Int { return 1; }
+  public fn memberFunc4() -> Int { return 1; }
+  public fn memberFunc5() -> Int { return 1; }
+  public typealias memberType1 = Int
+  public typealias memberType2 = Int
+  public typealias memberType3 = Int
+  public typealias memberType4 = Int
+  public typealias memberType5 = Int
+}
+
+public class DerivedClass : BaseClass {
+  public fn derivedMemberFunc1() -> Int { return 1; }
+  public fn derivedMemberFunc2() -> Int { return 1; }
+  public fn derivedMemberFunc3() -> Int { return 1; }
+  public fn derivedMemberFunc4() -> Int { return 1; }
+  public fn derivedMemberFunc5() -> Int { return 1; }
+  public typealias derivedMemberType1 = Int
+  public typealias derivedMemberType2 = Int
+  public typealias derivedMemberType3 = Int
+  public typealias derivedMemberType4 = Int
+  public typealias derivedMemberType5 = Int
+}
+
+public class OverrideDerivedClass : BaseClass {
+  override public fn memberFunc1() -> Int { return 1; }
+  override public fn memberFunc2() -> Int { return 1; }
+  override public fn memberFunc3() -> Int { return 1; }
+  override public fn memberFunc4() -> Int { return 1; }
+  override public fn memberFunc5() -> Int { return 1; }
+}
+
+public struct BaseStruct {
+  public fn memberFunc1() -> Int { return 1; }
+  public fn memberFunc2() -> Int { return 1; }
+  public fn memberFunc3() -> Int { return 1; }
+  public fn memberFunc4() -> Int { return 1; }
+  public fn memberFunc5() -> Int { return 1; }
+  public fn memberFunc6() -> Int { return 1; }
+  public fn memberFunc7() -> Int { return 1; }
+  public fn memberFunc8() -> Int { return 1; }
+  public fn memberFunc9() -> Int { return 1; }
+  public init() {}
+}
+
+public enum BaseEnum {
+  case member1
+  case member2
+  case member3
+  case member4
+  case member5
+}
+
+public protocol BaseProto {
+  fn protoMemberFunc1() -> Int
+  fn protoMemberFunc2() -> Int
+  fn protoMemberFunc3() -> Int
+  fn protoMemberFunc4() -> Int
+  fn protoMemberFunc5() -> Int
+}
+
+public struct BaseExt {
+  public fn memberFunc1() -> Int { return 1; }
+  public fn memberFunc2() -> Int { return 1; }
+  public fn memberFunc3() -> Int { return 1; }
+  public fn memberFunc4() -> Int { return 1; }
+  public fn memberFunc5() -> Int { return 1; }
+  public typealias memberType1 = Int
+  public typealias memberType2 = Int
+  public typealias memberType3 = Int
+  public typealias memberType4 = Int
+  public typealias memberType5 = Int
+}
+
+extension BaseExt {
+  public fn extMemberFunc1() -> Int { return 1; }
+  public fn extMemberFunc2() -> Int { return 1; }
+  public fn extMemberFunc3() -> Int { return 1; }
+  public fn extMemberFunc4() -> Int { return 1; }
+  public fn extMemberFunc5() -> Int { return 1; }
+  public typealias extMemberType1 = Int
+  public typealias extMemberType2 = Int
+  public typealias extMemberType3 = Int
+  public typealias extMemberType4 = Int
+  public typealias extMemberType5 = Int
+}
+

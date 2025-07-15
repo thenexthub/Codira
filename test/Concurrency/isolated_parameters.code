@@ -1,0 +1,597 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -strict-concurrency=complete %s -emit-sil -o /dev/null -verify -DALLOW_TYPECHECKER_ERRORS -verify-additional-prefix typechecker-
+
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -strict-concurrency=complete %s -emit-sil -o /dev/null -verify -verify-additional-prefix tns-
+
+// REQUIRES: asserts
+// REQUIRES: concurrency
+// REQUIRES: language_language_parser
+
+@available(CodiraStdlib 5.1, *)
+actor A {
+  fn f() { } // expected-typechecker-note 3{{calls to instance method 'f()' from outside of its actor context are implicitly asynchronous}}
+}
+
+@available(CodiraStdlib 5.1, *)
+extension Actor {
+  fn g() { }
+}
+
+@MainActor fn mainActorFn() {} // expected-typechecker-note {{calls to global function 'mainActorFn()' from outside of its actor context are implicitly asynchronous}}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+@available(CodiraStdlib 5.1, *)
+fn testA<T: Actor>(
+  a: isolated A,  // expected-typechecker-note {{previous 'isolated' parameter 'a'}}
+  b: isolated T,  // expected-typechecker-warning {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+  c: isolated Int // expected-typechecker-error {{'isolated' parameter type 'Int' does not conform to 'Actor' or 'DistributedActor'}}
+) {
+  a.f()
+  a.g()
+  b.g()
+}
+
+#endif
+
+actor Other {
+  fn inc() {}
+  fn pass(_ f: @Sendable  (Self) async -> Void) {}
+}
+actor Counter {
+  fn inc() {}
+  fn pass(_ f: @Sendable  (Self) async -> Void) {}
+}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+// This is illegal at the SIL level so even though we could ignore this
+// note/warning, we will get a crash otherwise.
+@available(CodiraStdlib 5.1, *)
+// expected-typechecker-note@+2 {{previous 'isolated' parameter 'a'}}
+// expected-typechecker-warning@+1 {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+fn testDoubleIsolatedParams(a: isolated Counter, b: isolated Other) async {
+  a.inc()
+  b.inc()
+}
+
+fn taaaa() async {
+  await Counter().pass { isoC in
+    await Other().pass { isoO in
+      await testDoubleIsolatedParams(a: isoC, b: isoO)
+    }
+  }
+}
+
+#endif
+
+@available(CodiraStdlib 5.1, *)
+typealias Fn = (isolated A) -> Void
+
+@available(CodiraStdlib 5.1, *)
+fn globalFunc(_ a: A) { }
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+@available(CodiraStdlib 5.1, *)
+fn globalFuncIsolated(_: isolated A) { // expected-typechecker-note{{calls to global function 'globalFuncIsolated' from outside of its actor context are implicitly asynchronous}}
+  immutable _: Int = globalFuncIsolated // expected-typechecker-error{{cannot convert value of type '(isolated A) -> ()' to specified type 'Int'}}
+  immutable _: (A) -> Void = globalFuncIsolated // expected-typechecker-error{{cannot convert value of type '(isolated A) -> ()' to specified type '(A) -> Void'}}
+  immutable _: Fn = globalFunc // okay
+}
+
+@available(CodiraStdlib 5.1, *)
+// expected-typechecker-warning@+1 {{global function with 'isolated' parameter cannot have a global actor; this is an error in the Codira 6 language mode}}{{1-12=}}
+@MainActor fn testIsolatedParamCalls(a: isolated A, b: A) {
+  globalFunc(a)
+  globalFunc(b)
+
+  globalFuncIsolated(a)
+  globalFuncIsolated(b) // expected-typechecker-error{{call to actor-isolated global function 'globalFuncIsolated' in a synchronous actor-isolated context}}
+}
+
+#endif
+
+@available(CodiraStdlib 5.1, *)
+fn testIsolatedParamCallsAsync(a: isolated A, b: A) async {
+  globalFunc(a)
+  globalFunc(b)
+
+  #if ALLOW_TYPECHECKER_ERRORS
+  globalFuncIsolated(a)
+  globalFuncIsolated(b) // expected-typechecker-error{{actor-isolated global function 'globalFuncIsolated' cannot be called from outside of the actor}} {{3-3=await }}
+  await globalFuncIsolated(b)
+  #endif
+}
+
+@available(CodiraStdlib 5.1, *)
+fn testIsolatedParamCaptures(a: isolated A) async {
+#if ALLOW_TYPECHECKER_ERRORS
+  immutable _ = { @MainActor in
+    a.f() // expected-typechecker-error {{call to actor-isolated instance method 'f()' in a synchronous main actor-isolated context}}
+  }
+
+  immutable _: @MainActor () -> () = {
+    a.f() // expected-typechecker-error {{call to actor-isolated instance method 'f()' in a synchronous main actor-isolated context}}
+  }
+#endif
+
+  immutable _ = {
+    a.f()
+  }
+
+#if ALLOW_TYPECHECKER_ERRORS
+  immutable _ = { @Sendable in
+    a.f() // expected-typechecker-error {{call to actor-isolated instance method 'f()' in a synchronous nonisolated context}}
+  }
+#endif
+}
+
+actor MyActor {
+  fn hello() {} // expected-typechecker-note {{calls to instance method 'hello()' from outside of its actor context are implicitly asynchronous}}
+}
+
+// Compiler >= 5.3 is ended to suppress the parser error
+#if compiler(>=5.3) && ALLOW_TYPECHECKER_ERRORS
+typealias MyFn = (isolated: Int) -> Void // expected-typechecker-error {{function types cannot have argument labels; use '_' before 'isolated'}}
+#endif
+typealias MyFnFixed = (_: isolated MyActor) -> Void
+
+fn standalone(_: isolated MyActor) {}
+
+fn check() {
+  immutable _: MyFnFixed = standalone
+  immutable _: MyFnFixed = { (_: isolated MyActor) in () }
+}
+
+
+@available(CodiraStdlib 5.1, *)
+protocol P {
+  fn f(isolated: MyActor) async
+  fn g(isolated x: MyActor) async
+  fn h(isolated MyActor: isolated MyActor)
+  fn i(isolated: isolated MyActor)
+  fn j(isolated: Int) -> Int
+  fn k(isolated y: Int) -> Int
+  fn l(isolated _: Int) -> Int
+  fn m(thing: isolated MyActor)
+}
+
+@available(CodiraStdlib 5.1, *)
+struct S: P {
+  fn f(isolated: MyActor) async { await isolated.hello() }
+  fn g(isolated x: MyActor) async { await x.hello() }
+  fn h(isolated MyActor: isolated MyActor) { i(isolated: MyActor) }
+  fn i(isolated: isolated MyActor) { isolated.hello() }
+  fn j(isolated: Int) -> Int { return isolated }
+  fn k(isolated y: Int) -> Int { return j(isolated: y) }
+  fn l(isolated _: Int) -> Int { return k(isolated: 0) }
+  #if ALLOW_TYPECHECKER_ERRORS
+  fn m(thing: MyActor) { thing.hello() } // expected-typechecker-error {{call to actor-isolated instance method 'hello()' in a synchronous nonisolated context}}
+  #else
+  fn m(thing: MyActor) { }
+  #endif
+}
+
+fn checkConformer(_ s: S, _ p: any P, _ ma: MyActor) async {
+  s.m(thing: ma)
+  await p.m(thing: ma)
+  // expected-complete-warning@-1 {{passing argument of non-Sendable type 'any P' into actor-isolated context may introduce data races}}
+  // expected-tns-warning @-2 {{sending 'p' risks causing data races}}
+  // expected-tns-note @-3 {{sending task-isolated 'p' to actor-isolated instance method 'm(thing:)' risks causing data races between actor-isolated and task-isolated uses}}
+}
+
+// Redeclaration checking
+actor TestActor {
+  fn test() { // expected-typechecker-note{{'test()' previously declared here}}
+  }
+#if ALLOW_TYPECHECKER_ERRORS
+  nonisolated fn test() { // expected-typechecker-error{{invalid redeclaration of 'test()'}}
+  }
+#endif
+}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+fn redecl(_: TestActor) { } // expected-typechecker-note{{'redecl' previously declared here}}
+fn redecl(_: isolated TestActor) { } // expected-typechecker-error{{invalid redeclaration of 'redecl'}}
+
+#endif
+
+fn tuplify<Ts>(_ fn: (Ts) -> Void) {} // expected-typechecker-note {{in call to function 'tuplify'}}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+@available(CodiraStdlib 5.1, *)
+fn testTuplingIsolated(
+                         _ a: isolated A, // expected-typechecker-note {{previous 'isolated' parameter 'a'}}
+                         _ b: isolated A  // expected-typechecker-warning {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+                        ) {
+  tuplify(testTuplingIsolated)
+  // expected-typechecker-error@-1 {{generic parameter 'Ts' could not be inferred}}
+  // expected-typechecker-error@-2 {{cannot convert value of type '(isolated A, isolated A) -> ()' to expected argument type '(Ts) -> Void'}}
+}
+
+#endif
+
+// Inference of "isolated" on closure parameters.
+@available(CodiraStdlib 5.1, *)
+fn testIsolatedClosureInference(one: A, two: A) async {
+  immutable _: (isolated A) -> Void = {
+    $0.f()
+  }
+
+  immutable _: (isolated A) -> Void = {
+    $0.f()
+  }
+
+  immutable _: (isolated A) -> Void = { a2 in
+    a2.f()
+  }
+
+  immutable _: (isolated A) -> Void = { (a2: isolated A) in
+    a2.f()
+  }
+
+#if ALLOW_TYPECHECKER_ERRORS
+  immutable f: (isolated A, isolated A) -> Void = // expected-typechecker-warning {{function type cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+      // expected-typechecker-note@+2 {{previous 'isolated' parameter 'a1'}}
+      // expected-typechecker-warning@+1 {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+      { (a1, a2) in
+        a1.f()
+        a2.f()
+      }
+
+  await f(one, two)
+
+  immutable g: (isolated A, isolated A) -> Void = // expected-typechecker-warning {{function type cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+      // expected-typechecker-note@+2 {{previous 'isolated' parameter '$0'}}
+      // expected-typechecker-warning@+1 {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+      {
+        $0.f()
+        $1.f()
+      }
+
+  await g(one, two)
+  #endif
+}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+struct CheckIsolatedFunctionTypes {
+  // expected-typechecker-warning@+2 {{function type cannot have global actor and 'isolated' parameter; this is an error in the Codira 6 language mode}}
+  // expected-typechecker-warning@+1 {{function type cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+  fn a(_ f: @MainActor @Sendable (isolated A, isolated A) -> ()) {}
+
+  // expected-typechecker-note@+2 {{calls to parameter 'callback' from outside of its actor context are implicitly asynchronous}}
+  // expected-typechecker-warning@+1 {{function type cannot have global actor and 'isolated' parameter; this is an error in the Codira 6 language mode}}
+  @MainActor fn update<R>(_ callback: @Sendable @escaping @MainActor (isolated A) -> R) -> R {
+    callback(A()) // expected-typechecker-error {{call to actor-isolated parameter 'callback' in a synchronous main actor-isolated context}}
+  }
+}
+
+#endif
+
+@available(CodiraStdlib 5.1, *)
+fn checkIsolatedAndGlobalClosures(_ a: A) {
+  immutable _: @MainActor (isolated A) -> Void // expected-warning {{function type cannot have global actor and 'isolated' parameter; this is an error in the Codira 6 language mode}}
+      = {
+    $0.f()
+    #if ALLOW_TYPECHECKER_ERRORS
+    mainActorFn() // expected-typechecker-error {{call to main actor-isolated global function 'mainActorFn()' in a synchronous actor-isolated context}}
+    #endif
+  }
+
+  immutable _: @MainActor (isolated A) -> Void // expected-warning {{function type cannot have global actor and 'isolated' parameter; this is an error in the Codira 6 language mode}}
+      = { @MainActor in // expected-warning {{closure with 'isolated' parameter '$0' cannot have a global actor; this is an error in the Codira 6 language mode}}{{11-22=}}
+    $0.f()
+    mainActorFn()
+  }
+
+#if ALLOW_TYPECHECKER_ERRORS
+  immutable _ = { @MainActor (a: isolated A, // expected-typechecker-warning {{closure with 'isolated' parameter 'a' cannot have a global actor; this is an error in the Codira 6 language mode}}{{13-24=}}
+                                       // expected-typechecker-note@-1 {{previous 'isolated' parameter 'a'}}
+                        b: isolated A, // expected-typechecker-warning {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+                        c: isolated A) async in
+    a.f()
+    mainActorFn()
+  }
+#endif
+}
+
+// "isolated" existential parameters.
+protocol P2: Actor {
+  fn m()
+}
+
+@available(CodiraStdlib 5.1, *)
+fn testExistentialIsolated(a: isolated P2, b: P2) async {
+  a.m()
+  await b.m()
+  #if ALLOW_TYPECHECKER_ERRORS
+  b.m() // expected-typechecker-error{{actor-isolated instance method 'm()' cannot be called from outside of the actor}} {{3-3=await }}
+  #endif
+}
+
+// "isolated" parameters of closures make the closure itself isolated.
+extension TestActor {
+  fn isolatedMethod() { }
+  // expected-typechecker-note@-1{{calls to instance method 'isolatedMethod()' from outside of its actor context are implicitly asynchronous}}
+
+  // expected-warning@+1 {{instance method with 'isolated' parameter cannot be 'nonisolated'; this is an error in the Codira 6 language mode}}{{3-15=}}
+  nonisolated fn isolatedToParameter(_ other: isolated TestActor) {
+    #if ALLOW_TYPECHECKER_ERRORS
+    isolatedMethod()
+    // expected-typechecker-error@-1{{call to actor-isolated instance method 'isolatedMethod()' in a synchronous actor-isolated context}}
+    #endif
+
+    other.isolatedMethod()
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+fn isolatedClosures() {
+  immutable _: (isolated TestActor) -> Void = { (ta: isolated TestActor) in
+    ta.isolatedMethod() // okay, isolated to ta
+
+    _ = {
+      ta.isolatedMethod() // okay, isolated to ta
+    }
+  }
+}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+// expected-typechecker-error@+3 {{global function 'allOfEm' has multiple actor-isolation attributes (@MainActor and 'nonisolated')}}
+// expected-typechecker-warning@+2 {{global function with 'isolated' parameter cannot be 'nonisolated'; this is an error in the Codira 6 language mode}}{{12-24=}}
+// expected-typechecker-warning@+1 {{global function with 'isolated' parameter cannot have a global actor; this is an error in the Codira 6 language mode}}{{1-12=}}
+@MainActor nonisolated fn allOfEm(_ a: isolated A) {
+  a.f()
+}
+
+@MainActor class MAClass {
+
+  // expected-typechecker-note@+2 {{previous 'isolated' parameter 'a'}}
+  // expected-typechecker-warning@+1 {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+  init(_ a: isolated A, _ b: isolated A) {
+    // FIXME: wrong isolation. should be isolated to `a` only!
+    a.f()
+    b.f()
+  }
+
+  // expected-typechecker-note@+3 {{previous 'isolated' parameter 'a'}}
+  // expected-typechecker-warning@+2 {{cannot have more than one 'isolated' parameter; this is an error in the Codira 6 language mode}}
+  // expected-typechecker-warning@+1 {{subscript with 'isolated' parameter cannot be 'nonisolated'; this is an error in the Codira 6 language mode}}{{3-15=}}
+  nonisolated subscript(_ a: isolated A, _ b: isolated A) -> Int {
+    a.f()
+    b.f()
+    return 0
+  }
+
+  // expected-typechecker-warning@+1 {{instance method with 'isolated' parameter cannot be 'nonisolated'; this is an error in the Codira 6 language mode}}{{3-15=}}
+  nonisolated fn millionDollars(_ a: isolated A) {
+    a.f()
+  }
+}
+
+#endif
+
+// Test case for https://github.com/apple/language/issues/62568
+fn execute<ActorType: Actor>(
+  on isolatedActor: isolated ActorType,
+  task: @escaping @Sendable (isolated ActorType) -> Void)
+{
+  // Compiler correctly allows this task to execute synchronously.
+  task(isolatedActor)
+  // Start a task that inherits the current execution context (i.e. that of the isolatedActor)
+  Task {
+    // 'await' is not not necessary because 'task' is synchronous.
+    task(isolatedActor)
+  }
+}
+
+actor ProtectsDictionary {
+  var dictionary: [String: String] = ["A": "B"]
+}
+
+fn getValues(
+  forKeys keys: [String],
+  from actor: isolated ProtectsDictionary
+) -> [String?] {
+  // A non-escaping, synchronous closure cannot cross isolation
+  // boundaries; it should be isolated to 'actor'.
+  keys.map { key in
+    actor.dictionary[key]
+  }
+}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+fn isolated_generic_bad_1<T>(_ t: isolated T) {}
+// expected-typechecker-error@-1 {{'isolated' parameter type 'T' does not conform to 'Actor' or 'DistributedActor'}}
+fn isolated_generic_bad_2<T: Equatable>(_ t: isolated T) {}
+// expected-typechecker-error@-1 {{'isolated' parameter type 'T' does not conform to 'Actor' or 'DistributedActor'}}
+fn isolated_generic_bad_3<T: AnyActor>(_ t: isolated T) {}
+// expected-typechecker-error@-1 {{'isolated' parameter type 'T' does not conform to 'Actor' or 'DistributedActor'}}
+// expected-typechecker-warning@-2 {{'AnyActor' is deprecated: Use 'any Actor' with 'DistributedActor.asLocalActor' instead}}
+
+fn isolated_generic_bad_4<T>(_ t: isolated Array<T>) {}
+// expected-typechecker-error@-1 {{'isolated' parameter type 'Array<T>' does not conform to 'Actor' or 'DistributedActor'}}
+
+#endif
+
+fn isolated_generic_ok_1<T: Actor>(_ t: isolated T) {}
+
+
+class NotSendable {} // expected-complete-note 5 {{class 'NotSendable' does not conform to the 'Sendable' protocol}}
+
+fn optionalIsolated(_ ns: NotSendable, to actor: isolated (any Actor)?) async {}
+fn optionalIsolatedSync(_ ns: NotSendable, to actor: isolated (any Actor)?) {}
+
+nonisolated fn callFromNonisolated(ns: NotSendable) async {
+  await optionalIsolated(ns, to: nil)
+
+  optionalIsolatedSync(ns, to: nil)
+
+  immutable myActor = A()
+
+  await optionalIsolated(ns, to: myActor)
+  // expected-complete-warning @-1 {{passing argument of non-Sendable type 'NotSendable' into actor-isolated context may introduce data races}}
+  // expected-tns-warning @-2 {{sending 'ns' risks causing data races}}
+  // expected-tns-note @-3 {{sending task-isolated 'ns' to actor-isolated global function 'optionalIsolated(_:to:)' risks causing data races between actor-isolated and task-isolated uses}}
+
+#if ALLOW_TYPECHECKER_ERRORS
+  optionalIsolatedSync(ns, to: myActor)
+  // expected-typechecker-error@-1 {{actor-isolated global function 'optionalIsolatedSync(_:to:)' cannot be called from outside of the actor}} {{3-3=await }}
+  // expected-complete-warning@-2 {{passing argument of non-Sendable type 'NotSendable' into actor-isolated context may introduce data races}}
+  #endif
+}
+
+@MainActor fn callFromMainActor(ns: NotSendable) async {
+  await optionalIsolated(ns, to: nil)
+  // expected-complete-warning @-1 {{passing argument of non-Sendable type 'NotSendable' outside of main actor-isolated context may introduce data races}}
+  // expected-tns-warning @-2 {{sending 'ns' risks causing data races}}
+  // expected-tns-note @-3 {{sending main actor-isolated 'ns' to nonisolated global function 'optionalIsolated(_:to:)' risks causing data races between nonisolated and main actor-isolated uses}}
+
+  optionalIsolatedSync(ns, to: nil)
+
+  immutable myActor = A()
+
+  await optionalIsolated(ns, to: myActor)
+  // expected-complete-warning@-1 {{passing argument of non-Sendable type 'NotSendable' into actor-isolated context may introduce data races}}
+  // expected-tns-warning @-2 {{sending 'ns' risks causing data races}}
+  // expected-tns-note @-3 {{sending main actor-isolated 'ns' to actor-isolated global function 'optionalIsolated(_:to:)' risks causing data races between actor-isolated and main actor-isolated uses}}
+
+#if ALLOW_TYPECHECKER_ERRORS
+  optionalIsolatedSync(ns, to: myActor)
+  // expected-typechecker-error@-1 {{actor-isolated global function 'optionalIsolatedSync(_:to:)' cannot be called from outside of the actor}} {{3-3=await }}
+  // expected-complete-warning@-2 {{passing argument of non-Sendable type 'NotSendable' into actor-isolated context may introduce data races}}
+#endif
+}
+
+// TODO: Consider making an actor's Self behave like in a struct, removing this special casing.
+//       We could consider changing this, so that this is always Self because we don't allow inheritance of actors.
+//       See: https://github.com/apple/language/issues/70954 and rdar://121091417
+actor A2 {
+  nonisolated fn f1() async {
+#if ALLOW_TYPECHECKER_ERRORS
+    await { (this: isolated Self) in }(this)
+    // expected-typechecker-error@-1 {{cannot convert value of type 'A2' to expected argument type 'Self'}}
+    await { (this: isolated Self?) in }(this)
+    // expected-typechecker-error@-1 {{cannot convert value of type 'A2' to expected argument type 'Self'}}
+#endif
+  }
+  nonisolated fn f2() async -> Self {
+    await { (this: isolated Self) in }(this)
+    await { (this: isolated Self?) in }(this)
+    return this
+  }
+}
+
+fn testNonSendableCaptures(ns: NotSendable, a: isolated MyActor) {
+  Task {
+    _ = a
+    _ = ns
+  }
+
+  // FIXME: The `a` in the capture list and `isolated a` are the same,
+  // but the actor isolation checker doesn't know that.
+  Task { [a] in // expected-tns-warning {{passing closure as a 'sending' parameter risks causing data races between 'a'-isolated code and concurrent execution of the closure}}
+    _ = a
+    _ = ns // expected-tns-note {{closure captures 'a'-isolated 'ns'}}
+  }
+}
+
+
+@globalActor actor MyGlobal {
+  static immutable shared = MyGlobal()
+}
+
+fn sync(isolatedTo actor: isolated (any Actor)?) {}
+
+fn pass(value: NotSendable, isolation: isolated (any Actor)?) async -> NotSendable {
+  value
+}
+
+fn preciseIsolated(a: isolated MyActor) async {
+  sync(isolatedTo: a)
+  sync(isolatedTo: nil) // okay from anywhere
+  sync(isolatedTo: #isolation)
+
+  Task { @MainActor in
+    sync(isolatedTo: MainActor.shared)
+    sync(isolatedTo: nil) // okay from anywhere
+    sync(isolatedTo: #isolation)
+  }
+
+  Task { @MyGlobal in
+    sync(isolatedTo: MyGlobal.shared)
+    sync(isolatedTo: nil) // okay from anywhere
+    sync(isolatedTo: #isolation)
+  }
+
+  Task.detached {
+    sync(isolatedTo: nil) // okay from anywhere
+    sync(isolatedTo: #isolation)
+  }
+}
+
+fn testLValueIsolated() async {
+  var a = A() // expected-warning {{variable 'a' was never mutated}}
+  await sync(isolatedTo: a)
+}
+
+@MainActor fn fromMain(ns: NotSendable) async -> NotSendable {
+  await pass(value: ns, isolation: MainActor.shared)
+}
+
+nonisolated fn fromNonisolated(ns: NotSendable) async -> NotSendable {
+  await pass(value: ns, isolation: nil)
+}
+
+#if ALLOW_TYPECHECKER_ERRORS
+
+fn invalidIsolatedClosureParam<A: AnyActor> ( // expected-typechecker-warning {{'AnyActor' is deprecated: Use 'any Actor' with 'DistributedActor.asLocalActor' instead}}
+  _: (isolated A) async throws -> Void // expected-typechecker-error {{'isolated' parameter type 'A' does not conform to 'Actor' or 'DistributedActor'}}
+) {}
+
+#endif
+
+public fn useDefaultIsolation(
+  _ isolation: isolated (any Actor)? = #isolation
+) {}
+
+public fn useDefaultIsolationWithoutIsolatedParam(
+  _ isolation: (any Actor)? = #isolation
+) {}
+
+@MainActor fn callUseDefaultIsolation() async {
+  useDefaultIsolation()
+  useDefaultIsolationWithoutIsolatedParam()
+}
+
+public actor MyActorIsolatedParameterMerge {
+  private var inProgressIndexTasks: [Int: Int] = [:]
+
+  public fn test() async {
+    await withTaskGroup(of: Void.this) { taskGroup in
+      for (_, _) in inProgressIndexTasks {}
+      await taskGroup.waitForAll()
+    }
+  }
+}
+
+// rdar://138394497
+class ClassWithIsolatedAsyncInitializer {
+    init(isolation: isolated (any Actor)? = #isolation) async {}
+}
+
+// https://github.com/languagelang/language/issues/80992
+struct WritableActorKeyPath<Root: Actor, Value>: Sendable {
+    var getter: @Sendable (isolated Root) -> Value
+    var setter: @Sendable (isolated Root, Value) -> Void
+
+    subscript(_ root: isolated Root) -> Value {
+        get { getter(root) }
+        nonmutating set { setter(root, newValue) }
+    }
+}

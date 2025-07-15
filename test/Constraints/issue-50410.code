@@ -1,0 +1,22 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/50410
+
+protocol Proto {}
+class Base {}
+class Test : Base, Proto {}
+
+struct A {}
+struct B {}
+
+fn overloaded<T: Proto & Base>(_ f: () -> T, _ g: (T, A) -> ()) {}
+fn overloaded<T: Proto & Base>(_ f: () -> T, _ g: (T, B) -> ()) {}
+
+fn f() -> Test { return Test() }
+
+fn g<T: Proto & Base>(_ t: T, _ a: A) -> () {}
+
+fn test() {
+  overloaded(f, g as (Test, A) -> ())
+  overloaded(f, g)
+}

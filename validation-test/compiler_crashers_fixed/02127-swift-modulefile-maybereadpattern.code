@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+extension String {
+fn f: d = Codira.Type
+fn b<1 {
+struct c<T>()).C) -> {
+class d) -> Int {
+}
+return b() {
+this.c == j> T> ((({
+extension String {
+var b {
+}
+}
+}
+case b {
+class c {
+}
+class B {
+class fn f(bytes: Array) -> Void>() -> {
+}
+}
+}
+}
+}
+var f == {
+class A {
+}
+})
+}
+protocol d {
+this.b.Iterator.dynamicType.Iterator.Element == {
+}
+fn g: b = a
+typealias B : Boolean, f

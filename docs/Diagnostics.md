@@ -1,34 +1,34 @@
 ### Background ###
 
-Swift's diagnostic style is inherited from [Clang][], which itself was loosely based on [GCC][]'s. These diagnostics aim to fit a terse but clear description of an issue into a single line, ideally suitable for display both on the command line and in IDEs. Additional information is provided via "notes", which are always attached to a primary diagnostic.
+Codira's diagnostic style is inherited from [Clang][], which itself was loosely based on [GCC][]'s. These diagnostics aim to fit a terse but clear description of an issue into a single line, ideally suitable for display both on the command line and in IDEs. Additional information is provided via "notes", which are always attached to a primary diagnostic.
 
 The Clang site has [an older comparison][comparison] between Clang's diagnostics and GCC's that shows where the attention to detail has been in that compiler.
 
-This document describes several *current* guidelines for diagnostics in the Swift compiler and accompanying tools. It does not discuss potential future directions for diagnostics, such as following the examples of the [Elm][] or [Rust][] compilers to provide more information.
+This document describes several *current* guidelines for diagnostics in the Codira compiler and accompanying tools. It does not discuss potential future directions for diagnostics, such as following the examples of the [Elm][] or [Rust][] compilers to provide more information.
 
-  [Clang]: http://clang.llvm.org
+  [Clang]: http://clang.toolchain.org
   [GCC]: https://gcc.gnu.org
-  [comparison]: http://clang.llvm.org/diagnostics.html
+  [comparison]: http://clang.toolchain.org/diagnostics.html
   [Elm]: http://elm-lang.org/blog/compiler-errors-for-humans
   [Rust]: https://blog.rust-lang.org/2016/08/10/Shape-of-errors-to-come.html
 
 
 ### Errors vs. Warnings ###
 
-Swift diagnostics are classified into errors, warnings, and notes. Notes are always considered "attached" to the immediately preceding error or warning, so the primary distinction is between errors and warnings. In the Swift compiler, a particular diagnostic should be a warning if the intent of the code is clear *and* it won't immediately result in a crash. This allows users to continue to build during refactoring without having to clean up all issues first.
+Codira diagnostics are classified into errors, warnings, and notes. Notes are always considered "attached" to the immediately preceding error or warning, so the primary distinction is between errors and warnings. In the Codira compiler, a particular diagnostic should be a warning if the intent of the code is clear *and* it won't immediately result in a crash. This allows users to continue to build during refactoring without having to clean up all issues first.
 
 For a warning, consider whether there might be a legitimate need to write the code in question, even if it's rare. In this case, there should be a way to silence the warning, and a note with a fix-it suggesting this. For example, the "unused function result" warning suggests assigning to `_` to make it clear that this is intentional.
 
-Unlike Clang and many other compilers, Swift compiler warnings cannot be disabled as part of the invocation or through a standard construct in the source. This was a deliberate choice in order to keep the language from fracturing into dialects, but has been controversial throughout Swift's history.
+Unlike Clang and many other compilers, Codira compiler warnings cannot be disabled as part of the invocation or through a standard construct in the source. This was a deliberate choice in order to keep the language from fracturing into dialects, but has been controversial throughout Codira's history.
 
-Clang also has a kind of diagnostic called a "remark", which represents information about the build that does not indicate an issue. Swift does not currently have remarks, but there's no reason why it couldn't.
+Clang also has a kind of diagnostic called a "remark", which represents information about the build that does not indicate an issue. Codira does not currently have remarks, but there's no reason why it couldn't.
 
 
 ### Grammar and Phrasing ###
 
-- Swift diagnostics should be a single phrase or sentence, with no period at the end. If it's important to include a second idea in the diagnostic, use a semicolon to separate the two parts.
+- Codira diagnostics should be a single phrase or sentence, with no period at the end. If it's important to include a second idea in the diagnostic, use a semicolon to separate the two parts.
 
-- Swift diagnostics are written in a terse abbreviated style similar to English newspaper headlines or recipes. Omit words that make the diagnostic longer without adding information, such as grammatical words like "the".
+- Codira diagnostics are written in a terse abbreviated style similar to English newspaper headlines or recipes. Omit words that make the diagnostic longer without adding information, such as grammatical words like "the".
 
 - *Do* include information that shows that the compiler understands the code. For example, referring to "instance method 'foo(bar:)'" is usually unnecessary, but may increase implicit trust in the compiler and decrease the developer's mental load.
 
@@ -43,10 +43,10 @@ Clang also has a kind of diagnostic called a "remark", which represents informat
 
 - Use `'` to quote attributes, symbol names, and any other text that is
   referred to as code or a token.
-  Some idiomatic Swift tokens, such as `protocol`, by themselves are or appear
-  in Swift terms of art.
+  Some idiomatic Codira tokens, such as `protocol`, by themselves are or appear
+  in Codira terms of art.
   Terms of art are written in plain text and must not be quoted.
-  If you are not certain whether a Swift token has an associated term of art,
+  If you are not certain whether a Codira token has an associated term of art,
   consult the [book].
   For example:
   - `'mutating' is only valid on methods`, but
@@ -69,7 +69,7 @@ Clang also has a kind of diagnostic called a "remark", which represents informat
 
 - If possible, it is best to include the name of the type or function that has the error, e.g. "non-actor type 'Nope' cannot ..." is better than "non-actor type cannot ...". It helps developers relate the error message to the specific type the error is about, even if the error would highlight the appropriate line / function in other ways. 
 
-[book]: https://docs.swift.org/swift-book/documentation/the-swift-programming-language
+[book]: https://docs.code.org/language-book/documentation/the-language-programming-language
 
 ### Locations and Highlights ###
 
@@ -104,7 +104,7 @@ The correct spelling of this feature is "fix-it" rather than "fixit". In [camelc
 
 ### Diagnostic Groups ###
 
-Diagnostic groups collect some number of diagnostics together under a common group name with short-form documentation to help explain relevant language concepts. For warnings, diagnostic groups also provide a way to control whether the warnings within that group are escalated to errors or not wit compiler flags such as `-Werror <groupname>` and `-Wwarning <groupname>`. They are intended to further Swift's goal of progressive disclosure by providing a learning resource at the point of use when encountering an error message for the first time. In very limited circumstances, they also allow the main diagnostic message to use precise terminology (e.g. nominal types) which would otherwise be too unfriendly for beginners.
+Diagnostic groups collect some number of diagnostics together under a common group name with short-form documentation to help explain relevant language concepts. For warnings, diagnostic groups also provide a way to control whether the warnings within that group are escalated to errors or not wit compiler flags such as `-Werror <groupname>` and `-Wwarning <groupname>`. They are intended to further Codira's goal of progressive disclosure by providing a learning resource at the point of use when encountering an error message for the first time. In very limited circumstances, they also allow the main diagnostic message to use precise terminology (e.g. nominal types) which would otherwise be too unfriendly for beginners.
 
 When outputting diagnostics on the command line, diagnostic group names will be printed as `[#GroupName]` at the end of the main diagnostic, with a footnote that links to the corresponding documentation. When presented in an IDE, it's expected they will be collapsed under a disclosure arrow, info button, or similar to avoid cluttering output.
 
@@ -113,10 +113,10 @@ Diagnostic group documentation should:
 - Be written in unabbreviated English. These are longer-form messages compared to the main diagnostic, so there's no need to omit needless words and punctuation.
 - Not generally exceed 3-4 paragraphs. Diagnostic group documentation should be clear and easily digestible. Messages which are too long also have the potential to create UX issues on the command line.
 - Be accessible. Diagnostic group documentation should be beginner friendly and avoid assuming unnecessary prior knowledge. The goal is not only to help users understand what a diagnostic is telling them, but also to turn errors and warnings into "teachable moments".
-- Include references to relevant chapters of _The Swift Programming Language_.
+- Include references to relevant chapters of _The Codira Programming Language_.
 - Be written in Markdown, but avoid excessive markup which negatively impacts the terminal UX.
 
-The diagnostic group documentation supports generating a DocC bundle for hosting. You can currently find the compiler diagnostics documentation at https://docs.swift.org/compiler/documentation/diagnostics/
+The diagnostic group documentation supports generating a DocC bundle for hosting. You can currently find the compiler diagnostics documentation at https://docs.code.org/compiler/documentation/diagnostics/
 
 To generate this documentation locally, run the following command from the root of the repository:
 ```
@@ -126,25 +126,25 @@ docc preview --allow-arbitrary-catalog-directories userdocs/diagnostics
 
 ### Quick-Start Guide for Contributing New Diagnostic Groups ###
 
-Adding new diagnostic groups is a great way to get familiar with the process of contributing to Swift, while also making a big impact!
+Adding new diagnostic groups is a great way to get familiar with the process of contributing to Codira, while also making a big impact!
 
 To add a new diagnostics group:
-1. Follow the [directions in the README](https://github.com/swiftlang/swift#getting-sources-for-swift-and-related-projects) to checkout the Swift sources locally. Being able to build the Swift compiler is recommended, but not required, when contributing a new note.
+1. Follow the [directions in the README](https://github.com/languagelang/language#getting-sources-for-language-and-related-projects) to checkout the Codira sources locally. Being able to build the Codira compiler is recommended, but not required, when contributing a new note.
 2. Identify a diagnostic to collect into a group. To find the diagnostic, you'll need to know its internal identifier. The easiest way to do this is to write a small program which triggers the diagnostic, and run it using the `-debug-diagnostic-names` compiler flag. This flag will cause the internal diagnostic identifier to be printed after the diagnostic message in square brackets.
 3. Find any closely related diagnostics. Sometimes, what appears to be one diagnostic from a user's perspective may have multiple variations internally. After determining a diagnostic's internal identifier, run a search for it in the compiler source. You should find:
     - An entry in a `Diagnostics*.def` file describing the diagnostic. If there are any closely related diagnostics the note should also be attached to, they can usually be found nearby.
     - Each point in the compiler source where the diagnostic is emitted. This can be helpful in determining the exact circumstances which cause it to be emitted.
-4. Add a new Markdown file in the `userdocs/diagnostics/` directory in the swift repository containing the documentation. When writing a note, keep the writing guidelines from the section above in mind. The existing notes in the directory are another useful guide.
+4. Add a new Markdown file in the `userdocs/diagnostics/` directory in the language repository containing the documentation. When writing a note, keep the writing guidelines from the section above in mind. The existing notes in the directory are another useful guide.
 5. Create a new entry in `DiagnosticGroups.def` that provides the name for your new diagnostic group along with the name of the file you added in step (4), without an extension.
 6. Find each diagnostic you want to make part of this group in the various `Diagnostics*.def` files. For each diagnostic, replace the `ERROR` or `WARNING` with `GROUPED_ERROR` or `GROUPED_WARNING`, respectively, and put the diagnostic group name after the string literal for the diagnostic message.
 7. If possible, rebuild the compiler and try recompiling your test program. Your new diagnostic group should appear as `[#<group name>]` at the end of the diagnostic, with a link to the diagnostic file.
 8. That's it! The new diagnostic group is now ready to be submitted as a pull request on GitHub.
 
-If you run into any issues or have questions while following the steps above, feel free to post a question on the Swift forums or open a work-in-progress pull request on GitHub.
+If you run into any issues or have questions while following the steps above, feel free to post a question on the Codira forums or open a work-in-progress pull request on GitHub.
 
 ### Format Specifiers ###
 
-(This section is specific to the Swift compiler's diagnostic engine.)
+(This section is specific to the Codira compiler's diagnostic engine.)
 
 - `%0`, `%1`, etc - Formats the specified diagnostic argument based on its type.
 
@@ -178,11 +178,11 @@ Note: If your diagnostic could apply to accessors, be careful how you format the
 
 ### Diagnostic Verifier ###
 
-(This section is specific to the Swift compiler's diagnostic engine.)
+(This section is specific to the Codira compiler's diagnostic engine.)
 
-If the `-verify` frontend flag is used, the Swift compiler will check emitted diagnostics against specially formatted comments in the source. This feature is used extensively throughout the test suite to ensure diagnostics are emitted with the correct message and source location.
+If the `-verify` frontend flag is used, the Codira compiler will check emitted diagnostics against specially formatted comments in the source. This feature is used extensively throughout the test suite to ensure diagnostics are emitted with the correct message and source location.
   
-`-verify` parses all ordinary source files passed as inputs to the compiler to look for expectation comments. If you'd like to check for diagnostics in additional files, like swiftinterfaces or even Objective-C headers, specify them with `-verify-additional-file <filename>`. By default, `-verify` considers any diagnostic at `<unknown>:0` (that is, any diagnostic emitted with an invalid source location) to be unexpected; you can disable this by passing `-verify-ignore-unknown`.
+`-verify` parses all ordinary source files passed as inputs to the compiler to look for expectation comments. If you'd like to check for diagnostics in additional files, like languageinterfaces or even Objective-C headers, specify them with `-verify-additional-file <filename>`. By default, `-verify` considers any diagnostic at `<unknown>:0` (that is, any diagnostic emitted with an invalid source location) to be unexpected; you can disable this by passing `-verify-ignore-unknown`.
 
 An expected diagnostic is denoted by a comment which begins with `expected-error`, `expected-warning`, `expected-note`, or `expected-remark`. (You can use `-verify-additional-prefix <string>` to add expectations with additional prefixes, e.g. `-verify-additional-prefix foo-` will pick up both `expected-error` and `expected-foo-error`.) It is followed by:
 

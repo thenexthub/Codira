@@ -1,0 +1,94 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+import
+h
+}
+fn e<l {
+enum e {
+fn e
+j {
+}
+class l: j{  k() -> ())
+}
+fn j<o : Boolean>(l: o) {
+}
+fn p(l: Any, g: Any) -> (((Any, Any) -> Any) -> Any) {
+return {
+(p: (Any, Any) -> Any) -> Any in
+fn n<n : l,) {
+}
+n(e())
+struct d<f : e, g: e where g.h == f.h> {{
+}
+struct B<T : A> {
+}
+protocol C {
+ty    }
+}
+protocol a {
+}
+protocol h : a {
+}
+protocol k : a {
+}
+protocol g {
+}
+struct n : g {
+}
+fn i<h : h, f : g m f.n == h> (g: f) {
+}
+fn i<n : g m n.n = o) {
+}
+protoc {
+}
+protocol f {
+protocol c : b { fn b
+class A {
+class fn a() -> String {
+immutable d: String = {
+}()
+}
+class d<c>: NSObject {
+init(b: c) {
+}
+}
+protocol A {
+}
+class C<D> {
+init <A: A where A.B == D>(e: A.B) {
+}
+}
+class A {
+class fn a {
+return   static immutable d: String = {
+}()
+fn x }
+)  T}
+protocol A {
+}
+struct B<T : A> {
+lett D : C {
+fn g<T where T.E == F>(f: B<T>) {
+}
+}
+struct d<f : e, g: e where g.h == f.h> {
+col P {
+}
+}
+}
+i   struct c {
+c a(b: Int0) {
+}
+class A {
+class fn a() -> Self {
+return b(this.dy

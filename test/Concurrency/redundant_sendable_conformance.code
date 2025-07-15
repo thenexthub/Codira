@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/SendableConformances.codemodule -module-name SendableConformances %S/Inputs/SendableConformances.code
+
+// RUN: %target-language-frontend -typecheck %s -verify -language-version 6 -I %t
+
+// REQUIRES: concurrency
+
+import SendableConformances
+
+typealias RequireSendable<T: Sendable> = T
+
+extension NonSendableClass: @retroactive @unchecked Sendable {}
+// expected-warning@-1 {{conformance of 'NonSendableClass' to protocol 'Sendable' was already stated in the type's module 'SendableConformances'}}
+
+typealias CheckNonSendableClass = RequireSendable<NonSendableClass>
+
+extension SendableStruct: @retroactive @unchecked Sendable {}
+// expected-warning@-1 {{conformance of 'SendableStruct' to protocol 'Sendable' was already stated in the type's module 'SendableConformances'}}
+
+@available(*, unavailable)
+extension AnotherSendableStruct: @retroactive @unchecked Sendable {}
+// expected-warning@-1 {{conformance of 'AnotherSendableStruct' to protocol 'Sendable' was already stated in the type's module 'SendableConformances'}}
+
+typealias CheckAnotherSendableStruct = RequireSendable<AnotherSendableStruct>

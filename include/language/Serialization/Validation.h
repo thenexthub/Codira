@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_VALIDATION_H
-#define SWIFT_SERIALIZATION_VALIDATION_H
+#ifndef LANGUAGE_SERIALIZATION_VALIDATION_H
+#define LANGUAGE_SERIALIZATION_VALIDATION_H
 
 #include "language/AST/Identifier.h"
 #include "language/Basic/CXXStdlibKind.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Basic/Version.h"
 #include "language/Parse/ParseVersion.h"
 #include "language/Serialization/SerializationOptions.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
 
-namespace llvm {
+namespace toolchain {
 class Triple;
 }
 
@@ -107,7 +108,7 @@ struct ValidationInfo {
   StringRef shortVersion = {};
   StringRef miscVersion = {};
   version::Version compatibilityVersion = {};
-  llvm::VersionTuple userModuleVersion;
+  toolchain::VersionTuple userModuleVersion;
   StringRef sdkName = {};
   StringRef sdkVersion = {};
   StringRef problematicRevision = {};
@@ -136,13 +137,13 @@ class ExtendedValidationInfo {
   StringRef ExportAsName;
   StringRef PublicModuleName;
   CXXStdlibKind CXXStdlib;
-  version::Version SwiftInterfaceCompilerVersion;
+  version::Version CodiraInterfaceCompilerVersion;
   struct {
     unsigned ArePrivateImportsEnabled : 1;
     unsigned IsSIB : 1;
     unsigned IsStaticLibrary : 1;
     unsigned HasHermeticSealAtLink : 1;
-    unsigned IsEmbeddedSwiftModule : 1;
+    unsigned IsEmbeddedCodiraModule : 1;
     unsigned IsTestable : 1;
     unsigned ResilienceStrategy : 2;
     unsigned IsImplicitDynamicEnabled : 1;
@@ -200,9 +201,9 @@ public:
   void setHasHermeticSealAtLink(bool val) {
     Bits.HasHermeticSealAtLink = val;
   }
-  bool isEmbeddedSwiftModule() const { return Bits.IsEmbeddedSwiftModule; }
-  void setIsEmbeddedSwiftModule(bool val) {
-    Bits.IsEmbeddedSwiftModule = val;
+  bool isEmbeddedCodiraModule() const { return Bits.IsEmbeddedCodiraModule; }
+  void setIsEmbeddedCodiraModule(bool val) {
+    Bits.IsEmbeddedCodiraModule = val;
   }
   bool isTestable() const { return Bits.IsTestable; }
   void setIsTestable(bool val) {
@@ -266,13 +267,13 @@ public:
   CXXStdlibKind getCXXStdlibKind() const { return CXXStdlib; }
   void setCXXStdlibKind(CXXStdlibKind kind) { CXXStdlib = kind; }
 
-  version::Version getSwiftInterfaceCompilerVersion() const {
-    return SwiftInterfaceCompilerVersion;
+  version::Version getCodiraInterfaceCompilerVersion() const {
+    return CodiraInterfaceCompilerVersion;
   }
-  void setSwiftInterfaceCompilerVersion(StringRef version) {
+  void setCodiraInterfaceCompilerVersion(StringRef version) {
     if (auto genericVersion = VersionParser::parseVersionString(
             version, SourceLoc(), /*Diags=*/nullptr))
-      SwiftInterfaceCompilerVersion = genericVersion.value();
+      CodiraInterfaceCompilerVersion = genericVersion.value();
   }
 };
 
@@ -348,8 +349,8 @@ void diagnoseSerializedASTLoadFailureTransitive(
 
 /// Determine whether two triples are considered to be compatible for module
 /// serialization purposes.
-bool areCompatible(const llvm::Triple &moduleTarget,
-                   const llvm::Triple &ctxTarget);
+bool areCompatible(const toolchain::Triple &moduleTarget,
+                   const toolchain::Triple &ctxTarget);
 
 } // end namespace serialization
 } // end namespace language

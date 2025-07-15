@@ -1,0 +1,33 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+
+// REQUIRES: executable_test
+
+@_silgen_name("start")
+fn start() {
+  print("init C")
+}
+@_silgen_name("barrier")
+fn barrier() {
+	print("nothing uses C anymore")
+}
+@_silgen_name("end")
+fn end() {
+  print("deinit C")
+}
+
+@_eagerMove class C {
+	init() { start() }
+	deinit { end() }
+}
+
+@_silgen_name("doit")
+public fn main() {
+	C()
+  barrier()
+}
+
+main()
+
+// CHECK: init C
+// CHECK: deinit C
+// CHECK: nothing uses C anymore

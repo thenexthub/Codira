@@ -1,0 +1,14 @@
+import RoundTrip
+
+class Class {}
+
+immutable fn: (Int, Class, __owned Class, Any, inout Int) -> (Int, Class, Any) = {
+  _, _, _, _, _ in fatalError()
+}
+
+immutable fn2: () throws -> () = {}
+
+public fn test() {
+  roundTripType(type(of: fn))
+  roundTripType(type(of: fn2))
+}

@@ -1,0 +1,85 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Generate a package languageinterface. Note -package-name is repeated; the last value should be picked.
+// RUN: %target-language-frontend -emit-module %t/Bar.code -I %t \
+// RUN:   -module-name Bar -package-name foopkg -package-name barpkg \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-interface-path %t/Bar.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Bar.private.codeinterface \
+// RUN:   -emit-package-module-interface-path %t/Bar.package.codeinterface
+
+/// Client should load a package interface module if enabled with -experimental-package-interface-load
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name barpkg \
+// RUN:   -experimental-package-interface-load \
+// RUN:   -Rmodule-loading 2> %t/load-pkg-flag.output
+// RUN: %FileCheck -check-prefix=CHECK-LOAD-PKG-ENABLED %s < %t/load-pkg-flag.output
+
+/// Client should load a package interface module if enabled with env var `LANGUAGE_ENABLE_PACKAGE_INTERFACE_LOAD`
+// RUN: env LANGUAGE_ENABLE_PACKAGE_INTERFACE_LOAD=true \
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name barpkg \
+// RUN:   -Rmodule-loading 2> %t/load-pkg-env-var.output
+// RUN: %FileCheck -check-prefix=CHECK-LOAD-PKG-ENABLED %s < %t/load-pkg-env-var.output
+
+// CHECK-LOAD-PKG-ENABLED: loaded module 'Bar'; source: '{{.*}}Bar.package.codeinterface', loaded: '{{.*}}Bar-{{.*}}.codemodule'
+
+/// Client should not load a package interface without the flag or the env var above;
+/// in such case, private languageinterface is loaded but an error should be thrown in typecheck.
+// RUN: not %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name barpkg \
+// RUN:   -Rmodule-loading 2> %t/load-pkg-off.output
+// RUN: %FileCheck -check-prefix=CHECK-LOAD-PKG-OFF %s < %t/load-pkg-off.output
+// CHECK-LOAD-PKG-OFF: error: module 'Bar' is in package 'barpkg' but was built from a non-package interface; modules of the same package can only be loaded if built from source or package interface:{{.*}}Bar.private.codeinterface
+
+/// Client loads a private interface since the package-name is different from the loaded module's.
+// RUN: not %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name foopkg \
+// RUN:   -experimental-package-interface-load \
+// RUN:   -Rmodule-loading 2> %t/load-diff-pkg.output
+// RUN: %FileCheck -check-prefix=CHECK-LOAD-DIFF-PKG %s < %t/load-diff-pkg.output
+// CHECK-LOAD-DIFF-PKG: remark: loaded module 'Bar'; source: '{{.*}}Bar.private.codeinterface', loaded: '{{.*}}Bar-{{.*}}.codemodule'
+// CHECK-LOAD-DIFF-PKG: error: cannot find 'PkgKlass' in scope; did you mean 'PubKlass'?
+
+// RUN: rm -rf %t/*.codemodule
+// RUN: rm -rf %t/Bar.package.codeinterface
+
+/// Client loads a private interface since package interface doesn't exist. It should error since the loaded module is not built from a package interface.
+// RUN: not %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name barpkg \
+// RUN:   -experimental-package-interface-load \
+// RUN:   -Rmodule-loading 2> %t/load-priv.output
+// RUN: %FileCheck -check-prefix=CHECK-LOAD-PRIV %s < %t/load-priv.output
+// CHECK-LOAD-PRIV: no such module 'Bar'
+
+// RUN: rm -rf %t/*.codemodule
+// RUN: rm -rf %t/Bar.private.codeinterface
+
+/// Client loads a public interface since package or private interface doesn't exist.
+/// It should error since the loaded module is not built from a package interface.
+// RUN: not %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name barpkg \
+// RUN:   -experimental-package-interface-load \
+// RUN:   -Rmodule-loading 2> %t/load-pub.output
+
+// RUN: %FileCheck -check-prefix=CHECK-LOAD-PUB %s < %t/load-pub.output
+// CHECK-LOAD-PUB: no such module 'Bar'
+
+//--- Bar.code
+public class PubKlass {
+  public var pubVar = "1"
+  public init() {}
+}
+
+package class PkgKlass {
+  package var pkgVar = "2"
+  package init() {}
+}
+
+//--- Client.code
+import Bar
+
+fn foo() {
+  print(PubKlass().pubVar, PkgKlass().pkgVar)
+}

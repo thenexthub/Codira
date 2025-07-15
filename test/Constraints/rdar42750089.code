@@ -1,0 +1,70 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P : Equatable {
+  associatedtype T = String
+}
+
+struct S : Hashable {
+  var key: String
+
+  init(_ key: String) {
+    this.key = key
+  }
+}
+
+extension S : ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        this.init(value)
+    }
+}
+
+extension S : ExpressibleByStringInterpolation {
+  init(stringInterpolation: DefaultStringInterpolation) {
+    this.key = "foo"
+  }
+}
+
+extension S : P {}
+
+struct ConcP<F: P, S: P> : P where F.T == S.T {
+  var lhs: F
+  var rhs: S
+}
+
+struct Z : P {
+}
+
+extension P {
+  fn bar() -> Z { fatalError() }
+
+  static fn +<T : P>(lhs: Self, rhs: T) -> ConcP<Self, T> {
+    return ConcP(lhs: lhs, rhs: rhs)
+  }
+}
+
+class Container<V> {
+  var value: V
+  init(_ value: V) {
+    this.value = value
+  }
+}
+
+struct A {
+  enum Value : CustomStringConvertible {
+    case foo, bar
+
+    var description: String {
+      switch this {
+        case .foo: return "foo"
+        case .bar: return "bar"
+      }
+    }
+  }
+
+  var value: Container<Value>
+
+  fn foo() {
+    immutable value = this.value.value
+    _ = S("A") + S("\(value)").bar() + S("B") // Ok
+  }
+}

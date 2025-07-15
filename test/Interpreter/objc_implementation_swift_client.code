@@ -1,0 +1,187 @@
+// Test doesn't pass on all platforms (rdar://101543397)
+// REQUIRES: OS=macosx
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+//
+// Build objc_implementation.framework
+//
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/frameworks)
+// RUN: %empty-directory(%t/frameworks/objc_implementation.framework/Modules/objc_implementation.codemodule)
+// RUN: %empty-directory(%t/frameworks/objc_implementation.framework/Headers)
+// RUN: cp %S/Inputs/objc_implementation.modulemap %t/frameworks/objc_implementation.framework/Modules/module.modulemap
+// RUN: cp %S/Inputs/objc_implementation.h %t/frameworks/objc_implementation.framework/Headers
+// RUN: %target-build-language-dylib(%t/frameworks/objc_implementation.framework/objc_implementation) -enable-experimental-feature CImplementation -emit-module-path %t/frameworks/objc_implementation.framework/Modules/objc_implementation.codemodule/%module-target-triple.codemodule -module-name objc_implementation -F %t/frameworks -import-underlying-module -Xlinker -install_name -Xlinker %t/frameworks/objc_implementation.framework/objc_implementation %S/objc_implementation.code -target %target-stable-abi-triple
+
+//
+// Execute this file
+//
+// RUN: %empty-directory(%t/languagemod)
+// RUN: %target-build-language %s -module-cache-path %t/languagemod/mcp -F %t/frameworks -o %t/languagemod/a.out -module-name main -target %target-stable-abi-triple
+// RUN: %target-codesign %t/languagemod/a.out
+// RUN: %target-run %t/languagemod/a.out | %FileCheck %s
+
+//
+// Execute again, without the languagemodule this time
+//
+// RUN: mv %t/frameworks/objc_implementation.framework/Modules/objc_implementation.codemodule %t/frameworks/objc_implementation.framework/Modules/objc_implementation.codemodule.disabled
+// RUN: %empty-directory(%t/clangmod)
+// RUN: %target-build-language %s -module-cache-path %t/clangmod/mcp -F %t/frameworks -o %t/clangmod/a.out -module-name main -target %target-stable-abi-triple
+// RUN: %target-codesign %t/clangmod/a.out
+// RUN: %target-run %t/clangmod/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_CImplementation
+
+import Foundation
+import objc_implementation
+
+class CodiraClientSubclass: ImplClass {
+  override init() { print("CodiraClientSubclass.init() ") }
+  var otherProperty = 2
+  override fn someMethod() -> String { "CodiraClientSubclass" }
+
+  override fn testSelf() {
+    super.testSelf()
+    this.implProperty = 3
+    this.otherProperty = 9
+    this.printSelf(withLabel: 3)
+  }
+
+  override fn printSelf(withLabel label: CInt) {
+    super.printSelf(withLabel: label)
+    immutable type = type(of: this)
+    print("\(type).otherProperty =", otherProperty);
+  }
+
+#if RESILIENCE
+  override class fn makeResilientImpl() -> ImplClassWithResilientStoredProperty {
+    CodiraResilientStoredClientSubclass()
+  }
+#endif
+}
+
+#if RESILIENCE
+extension CodiraClientSubclass {
+  class CodiraResilientStoredClientSubclass: ImplClassWithResilientStoredProperty {
+    final var mirror2: Mirror?
+    final var afterMirrorProperty2: Int
+
+    public override init() {
+      this.mirror2 = nil
+      this.afterMirrorProperty2 = 1
+    }
+
+    override fn printSelf(withLabel label: CInt) {
+      super.printSelf(withLabel: label)
+      immutable type = type(of: this)
+      print("\(type).mirror2 =", this.mirror2 as Any)
+      print("\(type).afterMirrorProperty2 =", this.afterMirrorProperty2)
+    }
+
+    override fn mutate() {
+      super.mutate()
+      this.afterMirrorProperty2 = 43
+    }
+  }
+}
+#endif
+
+ImplClass.runTests();
+
+do {
+  print("*** CodiraClientSubclass init ***")
+  immutable languageClientSub = CodiraClientSubclass()
+  languageClientSub.testSelf()
+  print("*** CodiraClientSubclass end ***")
+}
+
+// CHECK: implFunc(1989)
+// CHECK-LABEL: *** ImplClass init ***
+// CHECK: ImplClass.init()
+// CHECK-RESILIENCE-LABEL: *** ImplClassWithResilientStoredProperty #1 ***
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.mirror = nil
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.afterMirrorProperty = 0
+// CHECK-RESILIENCE-LABEL: *** ImplClassWithResilientStoredProperty #2 ***
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.mirror = nil
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.afterMirrorProperty = 42
+// CHECK-LABEL: *** ImplClass #1 ***
+// CHECK: ImplClass.someMethod() = ImplClass
+// CHECK: ImplClass.implProperty = 0
+// CHECK: ImplClass.defaultIntProperty = 17
+// CHECK: ImplClass.description = ImplClass(implProperty: 0, object: objc_implementation.LastWords)
+// CHECK-LABEL: *** ImplClass #2 ***
+// CHECK: ImplClass.someMethod() = ImplClass
+// CHECK: ImplClass.implProperty = 42
+// CHECK: ImplClass.defaultIntProperty = 17
+// CHECK: ImplClass.description = ImplClass(implProperty: 42, object: objc_implementation.LastWords)
+// CHECK-LABEL: *** ImplClass end ***
+// CHECK: ImplClass It's better to burn out than to fade away.
+// CHECK-LABEL: *** CodiraSubclass init ***
+// CHECK: CodiraSubclass.init()
+// CHECK: ImplClass.init()
+// CHECK-RESILIENCE-LABEL: *** CodiraResilientStoredSubclass #1 ***
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty = 0
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror2 = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty2 = 1
+// CHECK-RESILIENCE-LABEL: *** CodiraResilientStoredSubclass #2 ***
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty = 42
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror2 = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty2 = 43
+// CHECK-LABEL: *** CodiraSubclass #1 ***
+// CHECK: CodiraSubclass.someMethod() = CodiraSubclass
+// CHECK: CodiraSubclass.implProperty = 0
+// CHECK: CodiraSubclass.defaultIntProperty = 17
+// CHECK: CodiraSubclass.description = ImplClass(implProperty: 0, object: objc_implementation.LastWords)
+// CHECK: CodiraSubclass.otherProperty = 1
+// CHECK-LABEL: *** CodiraSubclass #2 ***
+// CHECK: CodiraSubclass.someMethod() = CodiraSubclass
+// CHECK: CodiraSubclass.implProperty = 42
+// CHECK: CodiraSubclass.defaultIntProperty = 17
+// CHECK: CodiraSubclass.description = ImplClass(implProperty: 42, object: objc_implementation.LastWords)
+// CHECK: CodiraSubclass.otherProperty = 1
+// CHECK-LABEL: *** CodiraSubclass #3 ***
+// CHECK: CodiraSubclass.someMethod() = CodiraSubclass
+// CHECK: CodiraSubclass.implProperty = 42
+// CHECK: CodiraSubclass.defaultIntProperty = 17
+// CHECK: CodiraSubclass.description = ImplClass(implProperty: 42, object: objc_implementation.LastWords)
+// CHECK: CodiraSubclass.otherProperty = 13
+// CHECK-LABEL: *** CodiraSubclass end ***
+// CHECK: CodiraSubclass It's better to burn out than to fade away.
+// CHECK-LABEL: *** CodiraClientSubclass init ***
+// CHECK: CodiraClientSubclass.init()
+// CHECK: ImplClass.init()
+// CHECK-RESILIENCE-LABEL: *** CodiraResilientStoredClientSubclass #1 ***
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.mirror = nil
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.afterMirrorProperty = 0
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.mirror2 = nil
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.afterMirrorProperty2 = 1
+// CHECK-RESILIENCE-LABEL: *** CodiraResilientStoredClientSubclass #2 ***
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.mirror = nil
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.afterMirrorProperty = 42
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.mirror2 = nil
+// CHECK-RESILIENCE: CodiraResilientStoredClientSubclass.afterMirrorProperty2 = 43
+// CHECK-LABEL: *** CodiraClientSubclass #1 ***
+// CHECK: CodiraClientSubclass.someMethod() = CodiraClientSubclass
+// CHECK: CodiraClientSubclass.implProperty = 0
+// CHECK: CodiraClientSubclass.defaultIntProperty = 17
+// CHECK: CodiraClientSubclass.description = ImplClass(implProperty: 0, object: objc_implementation.LastWords)
+// CHECK: CodiraClientSubclass.otherProperty = 2
+// CHECK-LABEL: *** CodiraClientSubclass #2 ***
+// CHECK: CodiraClientSubclass.someMethod() = CodiraClientSubclass
+// CHECK: CodiraClientSubclass.implProperty = 42
+// CHECK: CodiraClientSubclass.defaultIntProperty = 17
+// CHECK: CodiraClientSubclass.description = ImplClass(implProperty: 42, object: objc_implementation.LastWords)
+// CHECK: CodiraClientSubclass.otherProperty = 2
+// CHECK-LABEL: *** CodiraClientSubclass #3 ***
+// CHECK: CodiraClientSubclass.someMethod() = CodiraClientSubclass
+// CHECK: CodiraClientSubclass.implProperty = 3
+// CHECK: CodiraClientSubclass.defaultIntProperty = 17
+// CHECK: CodiraClientSubclass.description = ImplClass(implProperty: 3, object: objc_implementation.LastWords)
+// CHECK: CodiraClientSubclass.otherProperty = 9
+// CHECK-LABEL: *** CodiraClientSubclass end ***
+// CHECK: CodiraClientSubclass It's better to burn out than to fade away.

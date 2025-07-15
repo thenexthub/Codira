@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ConcreteDeclRef class, which provides a reference to
 // a declaration that is potentially specialized.
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CONCRETEDECLREF_H
-#define SWIFT_AST_CONCRETEDECLREF_H
+#ifndef LANGUAGE_AST_CONCRETEDECLREF_H
+#define LANGUAGE_AST_CONCRETEDECLREF_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/AST/SubstitutionMap.h"
 #include "language/AST/TypeAlignments.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/Support/Compiler.h"
 #include <cstring>
 
 namespace language {
@@ -88,7 +89,7 @@ public:
   
   /// Dump a debug representation of this reference.
   void dump(raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 } // end namespace language

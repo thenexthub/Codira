@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the CallEmitter class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_CALLEMISSION_H
-#define SWIFT_IRGEN_CALLEMISSION_H
+#ifndef LANGUAGE_IRGEN_CALLEMISSION_H
+#define LANGUAGE_IRGEN_CALLEMISSION_H
 
 #include "Address.h"
 #include "Callee.h"
 #include "Explosion.h"
 #include "Temporary.h"
 
-namespace llvm {
+namespace toolchain {
   class CallSite;
 }
 
@@ -46,10 +47,10 @@ public:
   IRGenFunction &IGF;
 
 protected:
-  llvm::Value *selfValue;
+  toolchain::Value *selfValue;
 
   /// The builtin/special arguments to pass to the call.
-  SmallVector<llvm::Value*, 8> Args;
+  SmallVector<toolchain::Value*, 8> Args;
 
   /// Temporaries required by the call.
   TemporarySet Temporaries;
@@ -89,12 +90,12 @@ protected:
 
   /// The basic block to which the call to a potentially throwing foreign
   /// function should jump to continue normal execution of the program.
-  llvm::BasicBlock *invokeNormalDest = nullptr;
+  toolchain::BasicBlock *invokeNormalDest = nullptr;
 
   /// The basic block to which the call to a potentially throwing foreign
   /// function should jump to in case an exception has been thrown during the
   /// invocation of the call.
-  llvm::BasicBlock *invokeUnwindDest = nullptr;
+  toolchain::BasicBlock *invokeUnwindDest = nullptr;
 
   unsigned IndirectTypedErrorArgIdx = 0;
 
@@ -103,16 +104,16 @@ protected:
   virtual void setFromCallee();
   void emitToUnmappedMemory(Address addr);
   void emitToUnmappedExplosion(Explosion &out);
-  virtual void emitCallToUnmappedExplosion(llvm::CallBase *call,
+  virtual void emitCallToUnmappedExplosion(toolchain::CallBase *call,
                                            Explosion &out) = 0;
   void emitYieldsToExplosion(Explosion &out);
   void setKeyPathAccessorArguments(Explosion &in, bool isOutlined,
                                    Explosion &out);
   virtual FunctionPointer getCalleeFunctionPointer() = 0;
-  llvm::CallBase *emitCallSite();
+  toolchain::CallBase *emitCallSite();
 
-  virtual llvm::CallBase *createCall(const FunctionPointer &fn,
-                                     ArrayRef<llvm::Value *> args) = 0;
+  virtual toolchain::CallBase *createCall(const FunctionPointer &fn,
+                                     ArrayRef<toolchain::Value *> args) = 0;
 
   void externalizeArguments(IRGenFunction &IGF, const Callee &callee,
                                    Explosion &in, Explosion &out,
@@ -121,10 +122,10 @@ protected:
 
   bool mayReturnTypedErrorDirectly() const;
   void emitToUnmappedExplosionWithDirectTypedError(SILType resultType,
-                                                   llvm::Value *result,
+                                                   toolchain::Value *result,
                                                    Explosion &out);
 
-  CallEmission(IRGenFunction &IGF, llvm::Value *selfValue, Callee &&callee)
+  CallEmission(IRGenFunction &IGF, toolchain::Value *selfValue, Callee &&callee)
       : IGF(IGF), selfValue(selfValue), CurCallee(std::move(callee)) {}
 
 public:
@@ -155,17 +156,17 @@ public:
                        WitnessMetadata *witnessMetadata);
   virtual Address getCalleeErrorSlot(SILType errorType, bool isCalleeAsync) = 0;
 
-  void addFnAttribute(llvm::Attribute::AttrKind Attr);
+  void addFnAttribute(toolchain::Attribute::AttrKind Attr);
 
   void setIndirectReturnAddress(Address addr) { indirectReturnAddress = addr; }
 
-  void addParamAttribute(unsigned ParamIndex, llvm::Attribute::AttrKind Attr);
+  void addParamAttribute(unsigned ParamIndex, toolchain::Attribute::AttrKind Attr);
 
   void emitToMemory(Address addr, const LoadableTypeInfo &substResultTI,
                     bool isOutlined);
   void emitToExplosion(Explosion &out, bool isOutlined);
 
-  llvm::CallBase *emitCoroutineAsOrdinaryFunction() {
+  toolchain::CallBase *emitCoroutineAsOrdinaryFunction() {
     assert(IsCoroutine);
     IsCoroutine = false;
 
@@ -182,13 +183,13 @@ public:
     return result;
   }
 
-  virtual llvm::Value *getResumeFunctionPointer() = 0;
-  virtual llvm::Value *getAsyncContext() = 0;
+  virtual toolchain::Value *getResumeFunctionPointer() = 0;
+  virtual toolchain::Value *getAsyncContext() = 0;
 
   virtual StackAddress getCoroStaticFrame() = 0;
-  virtual llvm::Value *getCoroAllocator() = 0;
+  virtual toolchain::Value *getCoroAllocator() = 0;
 
-  void setIndirectTypedErrorResultSlot(llvm::Value *addr) {
+  void setIndirectTypedErrorResultSlot(toolchain::Value *addr) {
     Args[IndirectTypedErrorArgIdx] = addr;
   }
 
@@ -199,7 +200,7 @@ public:
 };
 
 std::unique_ptr<CallEmission>
-getCallEmission(IRGenFunction &IGF, llvm::Value *selfValue, Callee &&callee);
+getCallEmission(IRGenFunction &IGF, toolchain::Value *selfValue, Callee &&callee);
 
 } // end namespace irgen
 } // end namespace language

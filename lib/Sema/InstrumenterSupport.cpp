@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the supporting functions for writing instrumenters of
-//  the Swift AST.
+//  the Codira AST.
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,7 +23,7 @@
 #include "language/AST/DiagnosticSuppression.h"
 #include "language/AST/SourceFile.h"
 #include "language/Demangling/Punycode.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
 using namespace language::instrumenter_support;
@@ -41,12 +42,12 @@ public:
   ~ErrorGatherer() override { diags.takeConsumers(); }
   void handleDiagnostic(SourceManager &SM,
                         const DiagnosticInfo &Info) override {
-    if (Info.Kind == swift::DiagnosticKind::Error) {
+    if (Info.Kind == language::DiagnosticKind::Error) {
       error = true;
     }
-    DiagnosticEngine::formatDiagnosticText(llvm::errs(), Info.FormatString,
+    DiagnosticEngine::formatDiagnosticText(toolchain::errs(), Info.FormatString,
                                            Info.FormatArgs);
-    llvm::errs() << "\n";
+    toolchain::errs() << "\n";
   }
   bool hadError() { return error; }
 };
@@ -101,7 +102,7 @@ InstrumenterBase::InstrumenterBase(ASTContext &C, DeclContext *DC)
 
   // Setup File identifier
   StringRef filePath = TypeCheckDC->getParentSourceFile()->getFilename();
-  StringRef fileName = llvm::sys::path::stem(filePath);
+  StringRef fileName = toolchain::sys::path::stem(filePath);
 
   std::string filePunycodeName;
   Punycode::encodePunycodeUTF8(fileName, filePunycodeName, true);

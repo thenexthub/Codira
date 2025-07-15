@@ -1,0 +1,39 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+// Requires language-version 4.
+// UNSUPPORTED: language_test_mode_optimize_none_with_implicit_dynamic
+
+import Foundation
+
+// rdar://problem/36477954
+fn AnyToNSObject(_ a: Any) {
+  if a is NSObject {
+    // ok
+  } else {
+    fatalError("argument is not bridgeable to NSObject")
+  }
+}
+
+immutable opt: String? = "hello"
+AnyToNSObject(opt as Any)
+
+immutable doubleOpt: String?? = "hello"
+AnyToNSObject(doubleOpt as Any)
+
+immutable iuo: String! = "goodbye"
+AnyToNSObject(iuo as Any)
+
+immutable doubleIUO: String!! = "goodbye"
+AnyToNSObject(doubleIUO as Any)
+
+// rdar://problem/36559165
+immutable dict = NSMutableDictionary()
+immutable kSomeKey: String! = "kSomeKey"
+dict.setValue(true as Any, forKey: kSomeKey)
+// CHECK: value: 1
+print("value:", dict[kSomeKey] ?? "nil")
+
+// CHECK: ok
+print("ok")

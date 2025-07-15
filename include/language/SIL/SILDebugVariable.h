@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILDEBUGVARIABLE_H
-#define SWIFT_SIL_SILDEBUGVARIABLE_H
+#ifndef LANGUAGE_SIL_SILDEBUGVARIABLE_H
+#define LANGUAGE_SIL_SILDEBUGVARIABLE_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILDebugInfoExpression.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -30,13 +31,13 @@ class AllocationInst;
 /// arguments that are needed by DebugValueInst, AllocStackInst,
 /// and AllocBoxInst.
 struct SILDebugVariable;
-inline llvm::hash_code hash_value(const SILDebugVariable &P);
+inline toolchain::hash_code hash_value(const SILDebugVariable &P);
 
 /// Holds common debug information about local variables and function
 /// arguments that are needed by DebugValueInst, AllocStackInst,
 /// and AllocBoxInst.
 struct SILDebugVariable {
-  friend llvm::hash_code hash_value(const SILDebugVariable &P);
+  friend toolchain::hash_code hash_value(const SILDebugVariable &P);
 
   StringRef Name;
   unsigned ArgNo : 16;
@@ -69,7 +70,7 @@ struct SILDebugVariable {
                    std::optional<SILType> AuxType = {},
                    std::optional<SILLocation> DeclLoc = {},
                    const SILDebugScope *DeclScope = nullptr,
-                   llvm::ArrayRef<SILDIExprElement> ExprElements = {})
+                   toolchain::ArrayRef<SILDIExprElement> ExprElements = {})
       : Name(Name), ArgNo(ArgNo), Constant(Constant),
         isDenseMapSingleton(0), Type(AuxType), Loc(DeclLoc), Scope(DeclScope),
         DIExpr(ExprElements) {}
@@ -103,8 +104,8 @@ struct SILDebugVariable {
 };
 
 /// Returns the hashcode for the new projection path.
-inline llvm::hash_code hash_value(const SILDebugVariable &P) {
-  return llvm::hash_combine(P.ArgNo, P.Constant, P.Name,
+inline toolchain::hash_code hash_value(const SILDebugVariable &P) {
+  return toolchain::hash_combine(P.ArgNo, P.Constant, P.Name,
                             P.isDenseMapSingleton, P.Type, P.Loc, P.Scope,
                             P.DIExpr);
 }

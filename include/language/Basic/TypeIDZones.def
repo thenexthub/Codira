@@ -11,34 +11,35 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This definition file describes the zones for TypeID.
 //
 //===----------------------------------------------------------------------===//
 
-SWIFT_TYPEID_ZONE(C, 0)
-SWIFT_TYPEID_ZONE(AST, 1)
+LANGUAGE_TYPEID_ZONE(C, 0)
+LANGUAGE_TYPEID_ZONE(AST, 1)
 
-SWIFT_TYPEID_ZONE(Parse, 8)
-SWIFT_TYPEID_ZONE(NameLookup, 9)
+LANGUAGE_TYPEID_ZONE(Parse, 8)
+LANGUAGE_TYPEID_ZONE(NameLookup, 9)
 
-SWIFT_TYPEID_ZONE(TypeChecker, 10)
-SWIFT_TYPEID_ZONE(AccessControl, 11)
-SWIFT_TYPEID_ZONE(SILGen, 12)
-SWIFT_TYPEID_ZONE(SILOptimizer, 13)
-SWIFT_TYPEID_ZONE(TBDGen, 14)
+LANGUAGE_TYPEID_ZONE(TypeChecker, 10)
+LANGUAGE_TYPEID_ZONE(AccessControl, 11)
+LANGUAGE_TYPEID_ZONE(SILGen, 12)
+LANGUAGE_TYPEID_ZONE(SILOptimizer, 13)
+LANGUAGE_TYPEID_ZONE(TBDGen, 14)
 
-SWIFT_TYPEID_ZONE(IRGen, 20)
+LANGUAGE_TYPEID_ZONE(IRGen, 20)
 
-SWIFT_TYPEID_ZONE(IDETypeChecking, 97)
+LANGUAGE_TYPEID_ZONE(IDETypeChecking, 97)
 
-SWIFT_TYPEID_ZONE(IDETypes, 136)
-SWIFT_TYPEID_ZONE(IDE, 137)
+LANGUAGE_TYPEID_ZONE(IDETypes, 136)
+LANGUAGE_TYPEID_ZONE(IDE, 137)
 
-SWIFT_TYPEID_ZONE(ClangImporter, 139)
+LANGUAGE_TYPEID_ZONE(ClangImporter, 139)
 
-SWIFT_TYPEID_ZONE(ConstExtract, 140)
+LANGUAGE_TYPEID_ZONE(ConstExtract, 140)
 
 // N.B. This is not a formal zone and exists solely to support the unit tests.
-SWIFT_TYPEID_ZONE(ArithmeticEvaluator, 255)
+LANGUAGE_TYPEID_ZONE(ArithmeticEvaluator, 255)

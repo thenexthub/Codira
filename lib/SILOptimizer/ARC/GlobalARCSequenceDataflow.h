@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALARCSEQUENCEDATAFLOW_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALARCSEQUENCEDATAFLOW_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALARCSEQUENCEDATAFLOW_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_GLOBALARCSEQUENCEDATAFLOW_H
 
 #include "RefCountState.h"
 #include "language/Basic/BlotMapVector.h"
 #include "language/Basic/NullablePtr.h"
 #include "language/SILOptimizer/Analysis/PostOrderAnalysis.h"
 #include "language/SILOptimizer/Analysis/ProgramTerminationAnalysis.h"
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/MapVector.h"
 #include <optional>
 
 namespace language {
@@ -29,7 +30,7 @@ namespace language {
 class SILFunction;
 class AliasAnalysis;
 
-} // end swift namespace
+} // end language namespace
 
 namespace language {
 
@@ -66,7 +67,7 @@ private:
   /// The map from dataflow terminating increment -> decrement dataflow state.
   BlotMapVector<SILInstruction *, BottomUpRefCountState> &IncToDecStateMap;
 
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
   ImmutablePointerSetFactory<SILInstruction *> SetFactory;
 
   /// Stashed BB information.
@@ -115,6 +116,6 @@ private:
   void dumpDataflowResults();
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

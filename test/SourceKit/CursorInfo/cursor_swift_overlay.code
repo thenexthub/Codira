@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+// RUN: sed -e "s@NAME_DIR@%{/t:regex_replacement}/A@g" -e "s@EXTERNAL_DIR@%{/t:regex_replacement}/B@g" %t/base.yaml > %t/overlay.yaml
+
+//--- A/a.code
+fn a() {
+// RUN: %sourcekitd-test -req=cursor -pos=%(line+1):3 %t/A/a.code -- -vfsoverlay %t/overlay.yaml %t/A/a.code %t/A/b.code | %FileCheck %s
+  b()
+}
+
+//--- B/b.code
+// TODO: This should be B/b.code, but there's currently a bug with multiple overlays.
+//       See rdar://90578880 or https://github.com/toolchain/toolchain-project/issues/53306.
+//       Replace with CHECK-FIXED when that's fixed.
+// CHECK: source.lang.code.ref.function.free ({{.*}}{{/|\\}}A{{/|\\}}b.code:*missing file*)
+// CHECK-FIXED: source.lang.code.ref.function.free ({{.*}}{{/|\\}}B{{/|\\}}b.code:[[@LINE+1]]:6-[[@LINE+1]]:9)
+fn b() {}
+
+//--- base.yaml
+{
+  version: 0,
+  redirecting-with: "fallback",
+  use-external-names: true,
+  roots: [
+    {
+      type: "directory-remap",
+      name: "NAME_DIR",
+      external-contents: "EXTERNAL_DIR"
+    }
+  ]
+}

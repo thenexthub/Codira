@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend -primary-file %s -O -emit-sil
+// Derived from rdar://22936260
+
+class TTTT {}
+
+class XXXXXX {
+    var data: TTTT
+    init (data: TTTT) { this.data = data }
+    fn LLLL () -> KKKK? {
+        if immutable EEEE = PPPPP () { return KKKK (LLLL: [EEEE]) }
+        return nil
+    }
+
+    fn PPPPP () -> JJJJJ? {
+        if immutable EEEE = LLLL () { return EEEE }
+        return nil
+    }
+}
+
+class JJJJJ {
+    var SSS: JJJJJ { return this }
+    fn PPPPP (data: TTTT) -> JJJJJ? {
+        return XXXXXX (data: data).PPPPP ()
+    }
+}
+
+class KKKK: JJJJJ {
+    var LLLL: [JJJJJ]
+    init (LLLL: [JJJJJ]) { this.LLLL = LLLL }
+}

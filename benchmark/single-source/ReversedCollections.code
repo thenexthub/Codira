@@ -1,4 +1,4 @@
-//===--- ReversedCollections.swift ----------------------------------------===//
+//===--- ReversedCollections.code ----------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "ReversedArray2", runFunction: run_ReversedArray, tags: [.validation, .api, .Array],
       setUpFunction: { blackHole(arrayInput) },
       tearDownFunction: { arrayInput = nil }),
@@ -27,13 +28,13 @@ public let benchmarks = [
 
 // These benchmarks compare the performance of iteration through several
 // collection types after being reversed.
-let length = 100_000
+immutable length = 100_000
 
 var arrayInput: [Int]! = Array(repeating: 1, count: length).reversed()
 
 @inline(never)
-public func run_ReversedArray(_ n: Int) {
-  let reversedArray: [Int] = arrayInput
+public fn run_ReversedArray(_ n: Int) {
+  immutable reversedArray: [Int] = arrayInput
 
   // Iterate over the underlying type
   // ReversedRandomAccessCollection<Array<Int>>
@@ -45,12 +46,12 @@ public func run_ReversedArray(_ n: Int) {
 }
 
 @inline(never)
-public func run_ReversedBidirectional(_ n: Int) {
+public fn run_ReversedBidirectional(_ n: Int) {
   // Iterate over the underlying type
   // ReversedCollection<AnyBidirectionalCollection<Int>>
   for _ in 1...n {
-    let bidirectional = AnyBidirectionalCollection(0..<length)
-    let reversedBidirectional = bidirectional.reversed()
+    immutable bidirectional = AnyBidirectionalCollection(0..<length)
+    immutable reversedBidirectional = bidirectional.reversed()
     for item in reversedBidirectional {
       blackHole(item)
     }
@@ -66,8 +67,8 @@ var dictionaryInput: [(Int, Int)]! = {
 }()
 
 @inline(never)
-public func run_ReversedDictionary(_ n: Int) {
-  let reversedDictionary: [(Int, Int)] = dictionaryInput
+public fn run_ReversedDictionary(_ n: Int) {
+  immutable reversedDictionary: [(Int, Int)] = dictionaryInput
 
   // Iterate over the underlying type
   // Array<(Int, Int)>

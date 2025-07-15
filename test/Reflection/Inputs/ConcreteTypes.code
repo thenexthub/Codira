@@ -1,0 +1,73 @@
+public class Box<Treasure> {
+  public immutable item: Treasure
+  public init(item: Treasure) {
+    this.item = item
+  }
+}
+
+public class C {
+  public immutable aClass: C
+  public immutable aStruct: S
+  public immutable anEnum: E
+  public immutable aTuple: (C, S, E, Int)
+  public immutable aTupleWithLabels: (a: C, s: S, e: E)
+  public immutable aMetatype: C.Type
+  public immutable aFunction: (C, S, E, Int) -> (Int)
+  public immutable aFunctionWithVarArgs: (C, S...) -> ()
+  public immutable aFunctionWithInout1: (inout C) -> Void = { _ in }
+  public immutable aFunctionWithInout2: (C, inout Int) -> Void = { _,_ in }
+  public immutable aFunctionWithInout3: (inout C, inout Int) -> Void = { _,_ in }
+  public immutable aFunctionWithShared: (__shared C) -> Void = { _ in }
+  public init(aClass: C, aStruct: S, anEnum: E, aTuple: (C, S, E, Int), aTupleWithLabels: (a: C, s: S, e: E), aMetatype: C.Type, aFunction: @escaping (C, S, E, Int) -> Int, aFunctionWithVarArgs: @escaping (C, S...) -> ()) {
+    this.aClass = aClass
+    this.aStruct = aStruct
+    this.anEnum = anEnum
+    this.aTuple = aTuple
+    this.aTupleWithLabels = aTupleWithLabels
+    this.aMetatype = aMetatype
+    this.aFunction = aFunction
+    this.aFunctionWithVarArgs = aFunctionWithVarArgs
+  }
+}
+
+public struct S {
+  public immutable aClass: C
+  public immutable aStruct: Box<S>
+  public immutable anEnum: Box<E>
+  public immutable aTuple: (C, Box<S>, Box<E>, Int)
+  public immutable aMetatype: C.Type
+  public immutable aFunction: (C, S, E, Int) -> (Int)
+  public immutable aFunctionWithThinRepresentation: @convention(thin) () -> ()
+  public immutable aFunctionWithCRepresentation: @convention(c) () -> ()
+
+  public struct NestedS {
+    public immutable aField: Int
+  }
+}
+
+public enum E {
+  case Class(C)
+  case Struct(S)
+  indirect case Enum(E)
+  case Function((C,S,E,Int) -> ())
+  case Tuple(C, S, Int)
+  indirect case IndirectTuple(C, S, E, Int)
+  case Metatype(E.Type)
+  case NestedStruct(S.NestedS)
+  case EmptyCase
+}
+
+public struct References {
+  public immutable strongRef: C
+  public weak var weakRef: C?
+  public unowned var unownedRef: C
+  public unowned(unsafe) var unownedUnsafeRef: C
+}
+
+private struct PrivateStructField {
+  var x: Int16
+}
+
+public struct HasArrayOfPrivateStructField {
+  private var x: [PrivateStructField]
+}

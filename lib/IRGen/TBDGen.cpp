@@ -1,4 +1,4 @@
-//===--- TBDGen.cpp - Swift TBD Generation --------------------------------===//
+//===--- TBDGen.cpp - Codira TBD Generation --------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the entrypoints into TBD file generation.
@@ -30,7 +31,7 @@
 #include "language/AST/TBDGenRequests.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceManager.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/IRGenPublic.h"
@@ -44,17 +45,17 @@
 #include "language/SIL/SILWitnessVisitor.h"
 #include "language/SIL/TypeLowering.h"
 #include "clang/Basic/TargetInfo.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/IR/Mangler.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/TextAPI/InterfaceFile.h"
-#include "llvm/TextAPI/Symbol.h"
-#include "llvm/TextAPI/TextAPIReader.h"
-#include "llvm/TextAPI/TextAPIWriter.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/IR/Mangler.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/TextAPI/InterfaceFile.h"
+#include "toolchain/TextAPI/Symbol.h"
+#include "toolchain/TextAPI/TextAPIReader.h"
+#include "toolchain/TextAPI/TextAPIWriter.h"
 
 #include "APIGen.h"
 #include "TBDGenVisitor.h"
@@ -62,10 +63,10 @@
 using namespace language;
 using namespace language::irgen;
 using namespace language::tbdgen;
-using namespace llvm::yaml;
-using StringSet = llvm::StringSet<>;
-using EncodeKind = llvm::MachO::EncodeKind;
-using SymbolFlags = llvm::MachO::SymbolFlags;
+using namespace toolchain::yaml;
+using StringSet = toolchain::StringSet<>;
+using EncodeKind = toolchain::MachO::EncodeKind;
+using SymbolFlags = toolchain::MachO::SymbolFlags;
 
 TBDGenVisitor::TBDGenVisitor(const TBDGenDescriptor &desc,
                              APIRecorder &recorder)
@@ -80,7 +81,7 @@ void TBDGenVisitor::addSymbolInternal(StringRef name, EncodeKind kind,
 #ifndef NDEBUG
   if (kind == EncodeKind::GlobalSymbol) {
     if (!DuplicateSymbolChecker.insert(name).second) {
-      llvm::dbgs() << "TBDGen duplicate symbol: " << name << '\n';
+      toolchain::dbgs() << "TBDGen duplicate symbol: " << name << '\n';
       assert(false && "TBDGen symbol appears twice");
     }
   }
@@ -111,11 +112,11 @@ static StringRef getLinkerPlatformName(LinkerPlatformId Id) {
 #define LD_PLATFORM(Name, Id) case LinkerPlatformId::Name: return #Name;
 #include "ldPlatformKinds.def"
   }
-  llvm_unreachable("unrecognized platform id");
+  toolchain_unreachable("unrecognized platform id");
 }
 
 static std::optional<LinkerPlatformId> getLinkerPlatformId(StringRef Platform) {
-  return llvm::StringSwitch<std::optional<LinkerPlatformId>>(Platform)
+  return toolchain::StringSwitch<std::optional<LinkerPlatformId>>(Platform)
 #define LD_PLATFORM(Name, Id) .Case(#Name, LinkerPlatformId::Name)
 #include "ldPlatformKinds.def"
       .Default(std::nullopt);
@@ -204,15 +205,15 @@ TBDGenVisitor::parsePreviousModuleInstallNameMap() {
   // Nothing to parse.
   if (FileName.empty())
     return nullptr;
-  namespace yaml = llvm::yaml;
-  ASTContext &Ctx = SwiftModule->getASTContext();
+  namespace yaml = toolchain::yaml;
+  ASTContext &Ctx = CodiraModule->getASTContext();
   std::unique_ptr<std::map<std::string, InstallNameStore>> pResult(
     new std::map<std::string, InstallNameStore>());
   auto &AllInstallNames = *pResult;
 
   // Load the input file.
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
-    llvm::MemoryBuffer::getFile(FileName);
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
+    toolchain::MemoryBuffer::getFile(FileName);
   if (!FileBufOrErr) {
     Ctx.Diags.diagnose(SourceLoc(), diag::previous_installname_map_missing,
                        FileName);
@@ -223,7 +224,7 @@ TBDGenVisitor::parsePreviousModuleInstallNameMap() {
   // Use a new source manager instead of the one from ASTContext because we
   // don't want the Json file to be persistent.
   SourceManager SM;
-  yaml::Stream Stream(llvm::MemoryBufferRef(Buffer, FileName),
+  yaml::Stream Stream(toolchain::MemoryBufferRef(Buffer, FileName),
                       SM.getLLVMSourceMgr());
   for (auto DI = Stream.begin(); DI != Stream.end(); ++ DI) {
     assert(DI != Stream.end() && "Failed to read a document");
@@ -246,36 +247,38 @@ getLinkerPlatformId(OriginallyDefinedInAttr::ActiveVersion Ver,
   bool isSimulator = target ? target->isSimulatorEnvironment() : false;
 
   switch(Ver.Platform) {
-  case swift::PlatformKind::none:
-    llvm_unreachable("cannot find platform kind");
-  case swift::PlatformKind::OpenBSD:
-    llvm_unreachable("not used for this platform");
-  case swift::PlatformKind::Windows:
-    llvm_unreachable("not used for this platform");
-  case swift::PlatformKind::iOS:
-  case swift::PlatformKind::iOSApplicationExtension:
+  case language::PlatformKind::none:
+    toolchain_unreachable("cannot find platform kind");
+  case language::PlatformKind::FreeBSD:
+    toolchain_unreachable("not used for this platform");
+  case language::PlatformKind::OpenBSD:
+    toolchain_unreachable("not used for this platform");
+  case language::PlatformKind::Windows:
+    toolchain_unreachable("not used for this platform");
+  case language::PlatformKind::iOS:
+  case language::PlatformKind::iOSApplicationExtension:
     if (target && target->isMacCatalystEnvironment())
       return LinkerPlatformId::macCatalyst;
     return isSimulator ? LinkerPlatformId::iOS_sim : LinkerPlatformId::iOS;
-  case swift::PlatformKind::tvOS:
-  case swift::PlatformKind::tvOSApplicationExtension:
+  case language::PlatformKind::tvOS:
+  case language::PlatformKind::tvOSApplicationExtension:
     return isSimulator ? LinkerPlatformId::tvOS_sim : LinkerPlatformId::tvOS;
-  case swift::PlatformKind::watchOS:
-  case swift::PlatformKind::watchOSApplicationExtension:
+  case language::PlatformKind::watchOS:
+  case language::PlatformKind::watchOSApplicationExtension:
     return isSimulator ? LinkerPlatformId::watchOS_sim
                        : LinkerPlatformId::watchOS;
-  case swift::PlatformKind::macOS:
-  case swift::PlatformKind::macOSApplicationExtension:
+  case language::PlatformKind::macOS:
+  case language::PlatformKind::macOSApplicationExtension:
     return LinkerPlatformId::macOS;
-  case swift::PlatformKind::macCatalyst:
-  case swift::PlatformKind::macCatalystApplicationExtension:
+  case language::PlatformKind::macCatalyst:
+  case language::PlatformKind::macCatalystApplicationExtension:
     return LinkerPlatformId::macCatalyst;
-  case swift::PlatformKind::visionOS:
-  case swift::PlatformKind::visionOSApplicationExtension:
+  case language::PlatformKind::visionOS:
+  case language::PlatformKind::visionOSApplicationExtension:
     return isSimulator ? LinkerPlatformId::xrOS_sim:
                          LinkerPlatformId::xrOS;
   }
-  llvm_unreachable("invalid platform kind");
+  toolchain_unreachable("invalid platform kind");
 }
 
 static StringRef
@@ -286,7 +289,7 @@ getLinkerPlatformName(OriginallyDefinedInAttr::ActiveVersion Ver,
 
 /// Find the most relevant introducing version of the decl stack we have visited
 /// so far.
-static std::optional<llvm::VersionTuple>
+static std::optional<toolchain::VersionTuple>
 getInnermostIntroVersion(ArrayRef<Decl *> DeclStack, PlatformKind Platform) {
   for (auto It = DeclStack.rbegin(); It != DeclStack.rend(); ++ It) {
     if (auto Result = (*It)->getIntroducedOSVersion(Platform))
@@ -299,17 +302,17 @@ getInnermostIntroVersion(ArrayRef<Decl *> DeclStack, PlatformKind Platform) {
 /// linkage path isn't sufficient. This is because the executable can be deployed
 /// to OS versions that were before the symbol was introduced. When that happens,
 /// strictly using the introductory version can lead to NOT redirecting.
-static llvm::VersionTuple calculateLdPreviousVersionStart(ASTContext &ctx,
-                                                llvm::VersionTuple introVer) {
+static toolchain::VersionTuple calculateLdPreviousVersionStart(ASTContext &ctx,
+                                                toolchain::VersionTuple introVer) {
   auto minDep = ctx.LangOpts.getMinPlatformVersion();
   if (minDep < introVer)
-    return llvm::VersionTuple(1, 0);
+    return toolchain::VersionTuple(1, 0);
   return introVer;
 }
 
 void TBDGenVisitor::addLinkerDirectiveSymbolsLdPrevious(
-    StringRef name, llvm::MachO::EncodeKind kind) {
-  if (kind != llvm::MachO::EncodeKind::GlobalSymbol)
+    StringRef name, toolchain::MachO::EncodeKind kind) {
+  if (kind != toolchain::MachO::EncodeKind::GlobalSymbol)
     return;
   if(DeclStack.empty())
     return;
@@ -342,8 +345,8 @@ void TBDGenVisitor::addLinkerDirectiveSymbolsLdPrevious(
                          Ver.LinkerModuleName, getLinkerPlatformName(Ver, Ctx));
       continue;
     }
-    llvm::SmallString<64> Buffer;
-    llvm::raw_svector_ostream OS(Buffer);
+    toolchain::SmallString<64> Buffer;
+    toolchain::raw_svector_ostream OS(Buffer);
     // Empty compatible version indicates using the current compatible version.
     StringRef ComptibleVersion = "";
     OS << "$ld$previous$";
@@ -363,8 +366,8 @@ void TBDGenVisitor::addLinkerDirectiveSymbolsLdPrevious(
 }
 
 void TBDGenVisitor::addLinkerDirectiveSymbolsLdHide(
-    StringRef name, llvm::MachO::EncodeKind kind) {
-  if (kind != llvm::MachO::EncodeKind::GlobalSymbol)
+    StringRef name, toolchain::MachO::EncodeKind kind) {
+  if (kind != toolchain::MachO::EncodeKind::GlobalSymbol)
     return;
   if (DeclStack.empty())
     return;
@@ -400,8 +403,8 @@ void TBDGenVisitor::addLinkerDirectiveSymbolsLdHide(
     if (CurMaj == Major[1])
       MinRange[1] = Minor[1];
     for (auto CurMin = MinRange[0]; CurMin != MinRange[1]; ++ CurMin) {
-      llvm::SmallString<64> Buffer;
-      llvm::raw_svector_ostream OS(Buffer);
+      toolchain::SmallString<64> Buffer;
+      toolchain::raw_svector_ostream OS(Buffer);
       OS << "$ld$hide$os" << CurMaj << "." << CurMin << "$" << name;
       addSymbolInternal(OS.str(), EncodeKind::GlobalSymbol,
                         SymbolSource::forLinkerDirective(), SymbolFlags::Data);
@@ -419,8 +422,8 @@ void TBDGenVisitor::addSymbol(StringRef name, SymbolSource source,
     mangled = name;
   } else {
     if (!DataLayout)
-      DataLayout = llvm::DataLayout(DataLayoutDescription);
-    llvm::Mangler::getNameWithPrefix(mangled, name, *DataLayout);
+      DataLayout = toolchain::DataLayout(DataLayoutDescription);
+    toolchain::Mangler::getNameWithPrefix(mangled, name, *DataLayout);
   }
 
   addSymbolInternal(mangled, kind, source, flags);
@@ -467,7 +470,7 @@ void TBDGenVisitor::addGlobalVar(VarDecl *VD) {
 
 void TBDGenVisitor::addLinkEntity(LinkEntity entity) {
   auto linkage =
-      LinkInfo::get(UniversalLinkInfo, SwiftModule, entity, ForDefinition);
+      LinkInfo::get(UniversalLinkInfo, CodiraModule, entity, ForDefinition);
 
   SymbolFlags flags = entity.isData() ? SymbolFlags::Data : SymbolFlags::Text;
   addSymbol(linkage.getName(), SymbolSource::forIRLinkEntity(entity), flags);
@@ -528,33 +531,33 @@ void TBDGenVisitor::visit(const TBDGenDescriptor &desc) {
   opts.VirtualFunctionElimination = Opts.VirtualFunctionElimination;
   opts.FragileResilientProtocols = Opts.FragileResilientProtocols;
 
-  auto silVisitorCtx = SILSymbolVisitorContext(SwiftModule, opts);
+  auto silVisitorCtx = SILSymbolVisitorContext(CodiraModule, opts);
   auto visitorCtx = IRSymbolVisitorContext{UniversalLinkInfo, silVisitorCtx};
 
   // Add any autolinking force_load symbols.
   addFirstFileSymbols();
   
   if (auto *singleFile = desc.getSingleFile()) {
-    assert(SwiftModule == singleFile->getParentModule() &&
+    assert(CodiraModule == singleFile->getParentModule() &&
            "mismatched file and module");
     visitFile(singleFile, visitorCtx);
     return;
   }
 
-  llvm::SmallVector<ModuleDecl*, 4> Modules;
-  Modules.push_back(SwiftModule);
+  toolchain::SmallVector<ModuleDecl*, 4> Modules;
+  Modules.push_back(CodiraModule);
 
-  auto &ctx = SwiftModule->getASTContext();
+  auto &ctx = CodiraModule->getASTContext();
   for (auto Name: Opts.embedSymbolsFromModules) {
     if (auto *MD = ctx.getModuleByName(Name)) {
       // If it is a clang module, the symbols should be collected by TAPI.
-      if (!MD->isNonSwiftModule()) {
+      if (!MD->isNonCodiraModule()) {
         Modules.push_back(MD);
         continue;
       }
     }
     // Diagnose module name that cannot be found
-    ctx.Diags.diagnose(SourceLoc(), diag::unknown_swift_module_name, Name);
+    ctx.Diags.diagnose(SourceLoc(), diag::unknown_language_module_name, Name);
   }
 
   // Collect symbols in each module.
@@ -581,13 +584,13 @@ enum DylibVersionKind_t: unsigned {
 /// If an individual component is greater than the highest number that can be
 /// represented in its alloted space, it will be truncated to the maximum value
 /// that fits in the alloted space, which matches the behavior of the linker.
-static std::optional<llvm::MachO::PackedVersion>
+static std::optional<toolchain::MachO::PackedVersion>
 parsePackedVersion(DylibVersionKind_t kind, StringRef versionString,
                    ASTContext &ctx) {
   if (versionString.empty())
     return std::nullopt;
 
-  llvm::MachO::PackedVersion version;
+  toolchain::MachO::PackedVersion version;
   auto result = version.parse64(versionString);
   if (!result.first) {
     ctx.Diags.diagnose(SourceLoc(), diag::tbd_err_invalid_version,
@@ -604,8 +607,8 @@ parsePackedVersion(DylibVersionKind_t kind, StringRef versionString,
 static bool isApplicationExtensionSafe(const LangOptions &LangOpts) {
   // Existing linkers respect these flags to determine app extension safety.
   return LangOpts.EnableAppExtensionRestrictions ||
-         llvm::sys::Process::GetEnv("LD_NO_ENCRYPT") ||
-         llvm::sys::Process::GetEnv("LD_APPLICATION_EXTENSION_SAFE");
+         toolchain::sys::Process::GetEnv("LD_NO_ENCRYPT") ||
+         toolchain::sys::Process::GetEnv("LD_APPLICATION_EXTENSION_SAFE");
 }
 
 TBDFile GenerateTBDRequest::evaluate(Evaluator &evaluator,
@@ -614,12 +617,12 @@ TBDFile GenerateTBDRequest::evaluate(Evaluator &evaluator,
   auto &opts = desc.getOptions();
   auto &ctx = M->getASTContext();
 
-  llvm::MachO::InterfaceFile file;
-  file.setFileType(llvm::MachO::FileType::TBD_V5);
+  toolchain::MachO::InterfaceFile file;
+  file.setFileType(toolchain::MachO::FileType::TBD_V5);
   file.setApplicationExtensionSafe(isApplicationExtensionSafe(ctx.LangOpts));
   file.setInstallName(opts.InstallName);
   file.setTwoLevelNamespace();
-  file.setSwiftABIVersion(irgen::getSwiftABIVersion());
+  file.setCodiraABIVersion(irgen::getCodiraABIVersion());
 
   if (auto packed = parsePackedVersion(CurrentVersion,
                                        opts.CurrentVersion, ctx)) {
@@ -631,12 +634,12 @@ TBDFile GenerateTBDRequest::evaluate(Evaluator &evaluator,
     file.setCompatibilityVersion(*packed);
   }
 
-  llvm::MachO::Target target(ctx.LangOpts.Target);
+  toolchain::MachO::Target target(ctx.LangOpts.Target);
   file.addTarget(target);
-  llvm::MachO::TargetList targets{target};
+  toolchain::MachO::TargetList targets{target};
   // Add target variant
   if (ctx.LangOpts.TargetVariant.has_value()) {
-    llvm::MachO::Target targetVar(*ctx.LangOpts.TargetVariant);
+    toolchain::MachO::Target targetVar(*ctx.LangOpts.TargetVariant);
     file.addTarget(targetVar);
     targets.push_back(targetVar);
   }
@@ -661,8 +664,8 @@ PublicSymbolsRequest::evaluate(Evaluator &evaluator,
       symbols.push_back(symbol.str());
     // TextAPI ObjC Class Kinds represents two symbols.
     else if (kind == EncodeKind::ObjectiveCClass) {
-      symbols.push_back((llvm::MachO::ObjC2ClassNamePrefix + symbol).str());
-      symbols.push_back((llvm::MachO::ObjC2MetaClassNamePrefix + symbol).str());
+      symbols.push_back((toolchain::MachO::ObjC2ClassNamePrefix + symbol).str());
+      symbols.push_back((toolchain::MachO::ObjC2MetaClassNamePrefix + symbol).str());
     }
   };
   SimpleAPIRecorder recorder(addSymbol);
@@ -671,16 +674,16 @@ PublicSymbolsRequest::evaluate(Evaluator &evaluator,
   return symbols;
 }
 
-std::vector<std::string> swift::getPublicSymbols(TBDGenDescriptor desc) {
+std::vector<std::string> language::getPublicSymbols(TBDGenDescriptor desc) {
   auto &evaluator = desc.getParentModule()->getASTContext().evaluator;
   return evaluateOrFatal(evaluator, PublicSymbolsRequest{desc});
 }
-void swift::writeTBDFile(ModuleDecl *M, llvm::raw_ostream &os,
+void language::writeTBDFile(ModuleDecl *M, toolchain::raw_ostream &os,
                          const TBDGenOptions &opts) {
   auto &evaluator = M->getASTContext().evaluator;
   auto desc = TBDGenDescriptor::forModule(M, opts);
   auto file = evaluateOrFatal(evaluator, GenerateTBDRequest{desc});
-  llvm::cantFail(llvm::MachO::TextAPIWriter::writeToStream(os, file),
+  toolchain::cantFail(toolchain::MachO::TextAPIWriter::writeToStream(os, file),
                  "TBD writing should be error-free");
 }
 
@@ -711,6 +714,9 @@ public:
     apigen::APIAvailability availability;
     auto access = apigen::APIAccess::Public;
     if (decl) {
+      if (!shouldRecordDecl(decl))
+        return;
+
       availability = getAvailability(decl);
       if (isSPI(decl))
         access = apigen::APIAccess::Private;
@@ -736,6 +742,9 @@ public:
     auto access = apigen::APIAccess::Public;
     auto decl = method.hasDecl() ? method.getDecl() : nullptr;
     if (decl) {
+      if (!shouldRecordDecl(decl))
+        return;
+
       availability = getAvailability(decl);
       if (decl->getDescriptiveKind() == DescriptiveDeclKind::ClassMethod)
         isInstanceMethod = false;
@@ -755,7 +764,7 @@ public:
   }
 
 private:
-  apigen::APILoc getAPILocForDecl(const Decl *decl) {
+  apigen::APILoc getAPILocForDecl(const Decl *decl) const {
     if (!decl)
       return defaultLoc;
 
@@ -771,10 +780,19 @@ private:
     return apigen::APILoc(std::string(displayName), line, col);
   }
 
+  bool shouldRecordDecl(const Decl *decl) const {
+    // We cannot reason about API access for Clang declarations from header
+    // files as we don't know the header group. API records for header
+    // declarations should be deferred to Clang tools.
+    if (getAPILocForDecl(decl).getFilename().ends_with_insensitive(".h"))
+      return false;
+    return true;
+  }
+
   /// Follow the naming schema that IRGen uses for Categories (see
   /// ClassDataBuilder).
   using CategoryNameKey = std::pair<const ClassDecl *, const ModuleDecl *>;
-  llvm::DenseMap<CategoryNameKey, unsigned> CategoryCounts;
+  toolchain::DenseMap<CategoryNameKey, unsigned> CategoryCounts;
 
   apigen::APIAvailability getAvailability(const Decl *decl) {
     std::optional<bool> unavailable;
@@ -808,10 +826,13 @@ private:
       else if (isa<DestructorDecl>(methodOrCtorOrDtor))
         return "dealloc";
     }
-    llvm_unreachable("cannot get selector name from decl");
+    toolchain_unreachable("cannot get selector name from decl");
   }
 
   apigen::ObjCInterfaceRecord *addOrGetObjCInterface(const ClassDecl *decl) {
+    if (!shouldRecordDecl(decl))
+      return nullptr;
+
     auto entry = classMap.find(decl);
     if (entry != classMap.end())
       return entry->second;
@@ -837,7 +858,7 @@ private:
 
   void buildCategoryName(const ExtensionDecl *ext, const ClassDecl *cls,
                          SmallVectorImpl<char> &s) {
-    llvm::raw_svector_ostream os(s);
+    toolchain::raw_svector_ostream os(s);
     if (!ext->getObjCCategoryName().empty()) {
       os << ext->getObjCCategoryName();
       return;
@@ -850,6 +871,9 @@ private:
   }
 
   apigen::ObjCCategoryRecord *addOrGetObjCCategory(const ExtensionDecl *decl) {
+    if (!shouldRecordDecl(decl))
+      return nullptr;
+
     auto entry = categoryMap.find(decl);
     if (entry != categoryMap.end())
       return entry->second;
@@ -877,8 +901,8 @@ private:
   ModuleDecl *module;
   apigen::APILoc defaultLoc;
 
-  llvm::DenseMap<const ClassDecl*, apigen::ObjCInterfaceRecord*> classMap;
-  llvm::DenseMap<const ExtensionDecl *, apigen::ObjCCategoryRecord *>
+  toolchain::DenseMap<const ClassDecl*, apigen::ObjCInterfaceRecord*> classMap;
+  toolchain::DenseMap<const ExtensionDecl *, apigen::ObjCCategoryRecord *>
       categoryMap;
 };
 
@@ -894,7 +918,7 @@ apigen::API APIGenRequest::evaluate(Evaluator &evaluator,
   return api;
 }
 
-void swift::writeAPIJSONFile(ModuleDecl *M, llvm::raw_ostream &os,
+void language::writeAPIJSONFile(ModuleDecl *M, toolchain::raw_ostream &os,
                              bool PrettyPrint) {
   TBDGenOptions opts;
   auto &evaluator = M->getASTContext().evaluator;

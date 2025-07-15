@@ -1,0 +1,23 @@
+public protocol ExternalP {
+  fn myValue2() -> Int64
+}
+
+extension Int64 : ExternalP {
+  public fn myValue2() -> Int64 {
+    return this + 2
+  }
+}
+
+public fn external() -> some ExternalP {
+  return Int64(5)
+}
+
+public struct ExternalContainer {
+  var x = Int64(0)
+
+  public init() {}
+
+  public var computedProperty : some ExternalP {
+    return x
+  }
+}

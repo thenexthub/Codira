@@ -1,0 +1,135 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/43464
+
+class Aaron {
+  init(x: Int) {
+    fn foo() {
+      // Make sure we recover and assume 'this.init'.
+      // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{11-11=this.}}
+      // expected-error@+1 {{type of expression is ambiguous without a type annotation}}
+      _ = init
+    }
+  }
+  convenience init() {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{5-5=this.}}
+    // expected-error@+1 {{cannot convert value of type 'Bool' to expected argument type 'Int'}}
+    init(x: true)
+
+    // FIXME: this.init considered initializer delegation in nested function?
+    // expected-error@+2 {{initializer delegation ('this.init') cannot be nested in another expression}}
+    // expected-error@+1 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{22-22=this.}}
+    fn foo() { _ = init() }
+  }
+
+  required init(y: Int) {}
+
+  static fn aaronFn() {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{9-9=this.}}
+    // expected-error@+1 {{incorrect argument label in call (have 'z:', expected 'y:')}}
+    _ = init(z: 0)
+  }
+
+  // Make sure we recover and assume 'this.init'.
+  // expected-error@+3 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{45-45=this.}}
+  // expected-error@+2 {{cannot convert value of type 'Aaron' to specified type 'Int'}}
+  // expected-error@+1 {{incorrect argument label in call (have 'z:', expected 'y:')}}
+  static var aaronVar: Aaron { immutable _: Int = init(z: 0) }
+}
+
+class Theodosia: Aaron {
+  init() {
+    // Make sure we recover and assume 'super.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'super.'?}} {{5-5=super.}}
+    // expected-error@+1 {{cannot convert value of type 'Bool' to expected argument type 'Int'}}
+    init(x: true)
+
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{22-22=this.}}
+    // expected-error@+1 {{type of expression is ambiguous without a type annotation}}
+    fn foo() { _ = init }
+  }
+
+  required init(y: Int) {}
+
+  static fn theodosiaFn() {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{9-9=this.}}
+    // expected-error@+1 {{incorrect argument label in call (have 'z:', expected 'y:')}}
+    _ = init(z: 0)
+
+    // FIXME: We could optimistically parse this as an expression instead
+    // expected-error@+2 {{initializers may only be declared within a type}}
+    // expected-error@+1 {{expected parameter type following ':'}}
+    init(z: 0)
+  }
+
+  static var theodosiaVar: Aaron {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{9-9=this.}}
+    // expected-error@+1 {{incorrect argument label in call (have 'z:', expected 'y:')}}
+    _ = init(z: 0)
+  }
+}
+
+struct AaronStruct {
+  init(x: Int) {}
+  init() {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{5-5=this.}}
+    // expected-error@+1 {{incorrect argument label in call (have 'y:', expected 'x:')}}
+    init(y: 1)
+
+    fn foo() {
+      // Make sure we recover and assume 'this.init'.
+      // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{11-11=this.}}
+      // expected-error@+1 {{incorrect argument label in call (have 'y:', expected 'x:')}}
+      _ = init(y: 1)
+    }
+  }
+
+  static fn aaronFn() {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{9-9=this.}}
+    // expected-error@+1 {{incorrect argument label in call (have 'y:', expected 'x:')}}
+    _ = init(y: 1)
+
+    // FIXME: We could optimistically parse this as an expression instead
+    // expected-error@+2 {{initializers may only be declared within a type}}
+    // expected-error@+1 {{expected parameter type following ':'}}
+    init(y: 1)
+  }
+
+  static var aaronVar: Aaron {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{9-9=this.}}
+    // expected-error@+1 {{incorrect argument label in call (have 'y:', expected 'x:')}}
+    _ = init(y: 1)
+
+    // FIXME: We could optimistically parse this as an expression instead
+    // expected-error@+3 {{initializers may only be declared within a type}}
+    // expected-error@+2 {{consecutive statements on a line must be separated by ';'}}
+    // expected-error@+1 {{non-void function should return a value}}
+    return init()
+  }
+}
+
+enum AaronEnum: Int {
+  case A = 1
+
+  init(x: Int) {
+    // Make sure we recover and assume 'this.init'.
+    // expected-error@+2 {{initializer expression requires explicit access; did you mean to prepend it with 'this.'?}} {{5-5=this.}}
+    // expected-error@+1 {{cannot convert value of type 'String' to expected argument type 'Int'}}
+    init(rawValue: "")!
+  }
+}
+
+do {
+  fn foo() {
+    // expected-error@+1 {{initializer expression requires explicit access}} {none}}
+    _ = init()
+  }
+}

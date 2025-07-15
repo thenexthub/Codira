@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/languagelang/language/issues/79444
+class C {
+  fn foo() {
+    _ = { [x = "\(this)"] in } // expected-warning {{capture 'x' was never used}}
+    _ = { [x = "\(this)"] in x }
+    _ = { [x = "\(this)"] in 
+      immutable y = x
+      return y 
+    }
+    _ = { [x = "\(this)"] in
+      immutable fn = { [y = "\(x)"] in
+        immutable z = y
+        return z 
+      }
+      return fn() 
+    }
+  }
+}

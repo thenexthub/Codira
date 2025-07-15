@@ -1,0 +1,8 @@
+// RUN: %sourcekitd-test -req=cursor -pos=1:8 %S/Inputs/multiple_ast1.code -- %S/Inputs/multiple_ast1.code == \
+// RUN:       -req=cursor -pos=1:8 %S/Inputs/multiple_ast2.code -- %S/Inputs/multiple_ast2.code | %FileCheck -check-prefix=CHECK %s
+
+// CHECK:      source.lang.code.decl.function.free (1:6-1:20)
+// CHECK-NEXT: foo1
+
+// CHECK:      source.lang.code.decl.function.free (1:6-1:20)
+// CHECK-NEXT: foo2

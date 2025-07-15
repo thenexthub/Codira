@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides support for reasoning about CF types
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_IMPORTER_CFTYPEINFO_H
-#define SWIFT_IMPORTER_CFTYPEINFO_H
+#ifndef LANGUAGE_IMPORTER_CFTYPEINFO_H
+#define LANGUAGE_IMPORTER_CFTYPEINFO_H
 
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace clang {
   class RecordDecl;
@@ -33,7 +34,7 @@ namespace importer {
 class CFPointeeInfo {
   bool IsValid;
   bool IsConst;
-  llvm::PointerUnion<const clang::RecordDecl *, const clang::TypedefNameDecl *>
+  toolchain::PointerUnion<const clang::RecordDecl *, const clang::TypedefNameDecl *>
       Decl;
   CFPointeeInfo() = default;
 
@@ -80,7 +81,7 @@ class CFPointeeInfo {
 public:
   static CFPointeeInfo classifyTypedef(const clang::TypedefNameDecl *decl);
 
-  static bool isKnownCFTypeName(llvm::StringRef name);
+  static bool isKnownCFTypeName(toolchain::StringRef name);
 
   bool isValid() const { return IsValid; }
   explicit operator bool() const { return isValid(); }
@@ -113,4 +114,4 @@ public:
 }
 }
 
-#endif // SWIFT_IMPORTER_CFTYPEINFO_H
+#endif // LANGUAGE_IMPORTER_CFTYPEINFO_H

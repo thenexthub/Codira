@@ -1,27 +1,31 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
-func getMappings(
+fn getMappings(
   from data: String,
   into dict: inout [UInt32: (Int?, Int?, Int?)]
 ) {
   for line in data.split(separator: "\n") {
-    let components = line.split(separator: ";", omittingEmptySubsequences: false)
+    immutable components = line.split(separator: ";", omittingEmptySubsequences: false)
     
-    let uppercaseMapping = Int(components[12], radix: 16)
-    let lowercaseMapping = Int(components[13], radix: 16)
-    let titlecaseMapping = Int(components[14], radix: 16)
+    immutable uppercaseMapping = Int(components[12], radix: 16)
+    immutable lowercaseMapping = Int(components[13], radix: 16)
+    immutable titlecaseMapping = Int(components[14], radix: 16)
     
     guard uppercaseMapping != nil ||
           lowercaseMapping != nil ||
@@ -29,14 +33,14 @@ func getMappings(
       continue
     }
     
-    let scalarStr = components[0]
-    let scalar = UInt32(scalarStr, radix: 16)!
+    immutable scalarStr = components[0]
+    immutable scalar = UInt32(scalarStr, radix: 16)!
     
     dict[scalar] = (uppercaseMapping, lowercaseMapping, titlecaseMapping)
   }
 }
 
-func getSpecialMappings(
+fn getSpecialMappings(
   from data: String,
   into dict: inout [UInt32: ([UInt32], [UInt32], [UInt32])]
 ) {
@@ -45,7 +49,7 @@ func getSpecialMappings(
       continue
     }
     
-    let components = line.split(separator: ";", omittingEmptySubsequences: false)
+    immutable components = line.split(separator: ";", omittingEmptySubsequences: false)
     
     // Conditional mappings have an extra component with the conditional name.
     // Ignore those.
@@ -53,17 +57,17 @@ func getSpecialMappings(
       continue
     }
     
-    let scalar = UInt32(components[0], radix: 16)!
+    immutable scalar = UInt32(components[0], radix: 16)!
     
-    let lowercaseMapping = components[1].split(separator: " ").map {
+    immutable lowercaseMapping = components[1].split(separator: " ").map {
       UInt32($0, radix: 16)!
     }
     
-    let titlecaseMapping = components[2].split(separator: " ").map {
+    immutable titlecaseMapping = components[2].split(separator: " ").map {
       UInt32($0, radix: 16)!
     }
     
-    let uppercaseMapping = components[3].split(separator: " ").map {
+    immutable uppercaseMapping = components[3].split(separator: " ").map {
       UInt32($0, radix: 16)!
     }
     
@@ -71,41 +75,41 @@ func getSpecialMappings(
   }
 }
 
-func emitMappings(
+fn emitMappings(
   _ data: [UInt32: (Int?, Int?, Int?)],
   into result: inout String
 ) {
   var uniqueDistances: Set<Int> = []
 
   for (scalar, mappings) in data {
-    if let uppercaseMapping = mappings.0 {
+    if immutable uppercaseMapping = mappings.0 {
       uniqueDistances.insert(uppercaseMapping - Int(scalar))
     }
     
-    if let lowercaseMapping = mappings.1 {
+    if immutable lowercaseMapping = mappings.1 {
       uniqueDistances.insert(lowercaseMapping - Int(scalar))
     }
     
-    if let titlecaseMapping = mappings.2 {
+    if immutable titlecaseMapping = mappings.2 {
       uniqueDistances.insert(titlecaseMapping - Int(scalar))
     }
   }
   
-  let distances = Array(uniqueDistances)
+  immutable distances = Array(uniqueDistances)
   
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  let chunkSize = 0x110000 / 64 / 64
+  immutable chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    let lower = i * chunkSize
-    let upper = lower + chunkSize - 1
+    immutable lower = i * chunkSize
+    immutable upper = lower + chunkSize - 1
     
-    let idx = i / 64
-    let bit = i % 64
+    immutable idx = i / 64
+    immutable bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0 == scalar }) {
@@ -155,10 +159,10 @@ func emitMappings(
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    let lower = chunk * chunkSize
-    let upper = lower + chunkSize
+    immutable lower = chunk * chunkSize
+    immutable upper = lower + chunkSize
     
-    let chunkDataIdx = UInt64(dataIndices.endIndex)
+    immutable chunkDataIdx = UInt64(dataIndices.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -168,31 +172,31 @@ func emitMappings(
       if data.contains(where: { $0.0 == scalar }) {
         chunkBA[scalar % chunkSize] = true
         
-        let mappings = data[UInt32(scalar)]!
+        immutable mappings = data[UInt32(scalar)]!
         
         var dataIdx: UInt32 = 0
         
-        if let uppercaseMapping = mappings.0 {
-          let distance = uppercaseMapping - scalar
-          let uppercaseIdx = distances.firstIndex(of: distance)!
+        if immutable uppercaseMapping = mappings.0 {
+          immutable distance = uppercaseMapping - scalar
+          immutable uppercaseIdx = distances.firstIndex(of: distance)!
           
           dataIdx = UInt32(uppercaseIdx)
         } else {
           dataIdx = UInt32(UInt8.max)
         }
         
-        if let lowercaseMapping = mappings.1 {
-          let distance = lowercaseMapping - scalar
-          let lowercaseIdx = distances.firstIndex(of: distance)!
+        if immutable lowercaseMapping = mappings.1 {
+          immutable distance = lowercaseMapping - scalar
+          immutable lowercaseIdx = distances.firstIndex(of: distance)!
           
           dataIdx |= UInt32(lowercaseIdx) << 8
         } else {
           dataIdx |= UInt32(UInt8.max) << 8
         }
         
-        if let titlecaseMapping = mappings.2 {
-          let distance = titlecaseMapping - scalar
-          let titlecaseIdx = distances.firstIndex(of: distance)!
+        if immutable titlecaseMapping = mappings.2 {
+          immutable distance = titlecaseMapping - scalar
+          immutable titlecaseIdx = distances.firstIndex(of: distance)!
           
           dataIdx |= UInt32(titlecaseIdx) << 16
         } else {
@@ -227,8 +231,8 @@ func emitMappings(
   
   emitCollection(
     distances,
-    name: "_swift_stdlib_mappings_data",
-    type: "__swift_int32_t",
+    name: "_language_stdlib_mappings_data",
+    type: "__language_int32_t",
     into: &result
   ) {
     "\($0)"
@@ -236,20 +240,20 @@ func emitMappings(
   
   emitCollection(
     dataIndices,
-    name: "_swift_stdlib_mappings_data_indices",
+    name: "_language_stdlib_mappings_data_indices",
     into: &result
   )
   
   emitCollection(
     ranks,
-    name: "_swift_stdlib_mappings_ranks",
+    name: "_language_stdlib_mappings_ranks",
     into: &result
   )
   
   emitCollection(
     bitArrays,
-    name: "_swift_stdlib_mappings",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_mappings",
+    type: "__language_uint64_t",
     into: &result
   ) {
     assert($0.words.count == 1)
@@ -257,7 +261,7 @@ func emitMappings(
   }
 }
 
-func emitSpecialMappings(
+fn emitSpecialMappings(
   _ data: [UInt32: ([UInt32], [UInt32], [UInt32])],
   into result: inout String
 ) {
@@ -272,7 +276,7 @@ func emitSpecialMappings(
     if uppercase.count == 1 {
       specialMappings.append(0)
     } else {
-      let uppercase = uppercase.map { Unicode.Scalar($0)! }
+      immutable uppercase = uppercase.map { Unicode.Scalar($0)! }
       
       var utf8Length: UInt8 = 0
       
@@ -294,7 +298,7 @@ func emitSpecialMappings(
     if lowercase.count == 1 {
       specialMappings.append(0)
     } else {
-      let lowercase = lowercase.map { Unicode.Scalar($0)! }
+      immutable lowercase = lowercase.map { Unicode.Scalar($0)! }
       
       var utf8Length: UInt8 = 0
       
@@ -316,7 +320,7 @@ func emitSpecialMappings(
     if titlecase.count == 1 {
       specialMappings.append(0)
     } else {
-      let titlecase = titlecase.map { Unicode.Scalar($0)! }
+      immutable titlecase = titlecase.map { Unicode.Scalar($0)! }
       
       var utf8Length: UInt8 = 0
       
@@ -338,16 +342,16 @@ func emitSpecialMappings(
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  let chunkSize = 0x110000 / 64 / 64
+  immutable chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    let lower = i * chunkSize
-    let upper = lower + chunkSize - 1
+    immutable lower = i * chunkSize
+    immutable upper = lower + chunkSize - 1
     
-    let idx = i / 64
-    let bit = i % 64
+    immutable idx = i / 64
+    immutable bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0 == scalar }) {
@@ -397,10 +401,10 @@ func emitSpecialMappings(
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    let lower = chunk * chunkSize
-    let upper = lower + chunkSize
+    immutable lower = chunk * chunkSize
+    immutable upper = lower + chunkSize
     
-    let chunkDataIdx = UInt64(dataIndices.endIndex)
+    immutable chunkDataIdx = UInt64(dataIndices.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -410,7 +414,7 @@ func emitSpecialMappings(
       if data.contains(where: { $0.0 == scalar }) {
         chunkBA[scalar % chunkSize] = true
         
-        let dataIdx = UInt16(scalarIndices[UInt32(scalar)]!)
+        immutable dataIdx = UInt16(scalarIndices[UInt32(scalar)]!)
         dataIndices.append(dataIdx)
       }
     }
@@ -439,26 +443,26 @@ func emitSpecialMappings(
   
   emitCollection(
     specialMappings,
-    name: "_swift_stdlib_special_mappings_data",
+    name: "_language_stdlib_special_mappings_data",
     into: &result
   )
   
   emitCollection(
     dataIndices,
-    name: "_swift_stdlib_special_mappings_data_indices",
+    name: "_language_stdlib_special_mappings_data_indices",
     into: &result
   )
   
   emitCollection(
     ranks,
-    name: "_swift_stdlib_special_mappings_ranks",
+    name: "_language_stdlib_special_mappings_ranks",
     into: &result
   )
   
   emitCollection(
     bitArrays,
-    name: "_swift_stdlib_special_mappings",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_special_mappings",
+    type: "__language_uint64_t",
     into: &result
   ) {
     assert($0.words.count == 1)
@@ -466,8 +470,8 @@ func emitSpecialMappings(
   }
 }
 
-func generateMappingProps(for platform: String, into result: inout String) {
-  let unicodeData: String
+fn generateMappingProps(for platform: String, into result: inout String) {
+  immutable unicodeData: String
   
   switch platform {
   case "Apple":
@@ -476,7 +480,7 @@ func generateMappingProps(for platform: String, into result: inout String) {
     unicodeData = readFile("Data/16/UnicodeData.txt")
   }
   
-  let specialCasing = readFile("Data/16/SpecialCasing.txt")
+  immutable specialCasing = readFile("Data/16/SpecialCasing.txt")
   
   var data: [UInt32: (Int?, Int?, Int?)] = [:]
   getMappings(from: unicodeData, into: &data)

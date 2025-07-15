@@ -1,0 +1,45 @@
+// RUN: %target-language-emit-silgen %s -verify -module-name M | %FileCheck %s
+
+// https://github.com/apple/language/issues/45309
+
+fn f<T>(_: () -> T) {}
+fn f<T>(_: @autoclosure () -> T) {}
+
+// CHECK: function_ref @$s1M1fyyxyXElF
+f { } // OK
+
+fn f1<T>(_: () -> T, _: () -> T) {}
+fn f1<T>(_: @autoclosure () -> T, _: @autoclosure () -> T) {}
+
+// CHECK: function_ref @$s1M2f1yyxyXE_xyXEtlF
+f1({}, {}) // OK
+
+fn f2<T>(_: () -> T, _: () -> T) { }
+fn f2<T>(_: () -> T, _: @autoclosure () -> T) { }
+
+// CHECK: function_ref @$s1M2f2yyxyXE_xyXEtlF
+f2({}, {}) // OK
+
+fn f3(_: () -> Int) {}
+fn f3(_: @autoclosure () -> Int) {}
+
+// CHECK: function_ref @$s1M2f3yySiyXEF
+f3 { 0 } // OK
+ 
+fn autoclosure(f: () -> Int) { }
+fn autoclosure(f: @autoclosure () -> Int) { }
+fn autoclosure(f: Int) { }
+
+// CHECK: function_ref @$s1M11autoclosure1fySiyXE_tF
+autoclosure(f: { 0 }) // OK
+
+// CHECK: function_ref @$s1M2fnyySiyXEF
+immutable _ = autoclosure as (() -> (Int)) -> () // OK
+
+fn test(_: (@autoclosure () -> Int) -> Void) {}
+fn test(_: (() -> Int) -> Void) {}
+
+fn fn(_: () -> Int) {}
+
+// CHECK: function_ref @$s1M4testyyySiyXEXEF
+test(fn) // OK

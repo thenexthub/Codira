@@ -1,8 +1,8 @@
-add_swift_host_tool(swift-demangle-yamldump
-  swift-demangle-yamldump.cpp
-  LLVM_LINK_COMPONENTS support
-  SWIFT_COMPONENT testsuite-tools
+add_language_host_tool(language-demangle-yamldump
+  language-demangle-yamldump.cpp
+  TOOLCHAIN_LINK_COMPONENTS support
+  LANGUAGE_COMPONENT testsuite-tools
   )
-target_link_libraries(swift-demangle-yamldump
+target_link_libraries(language-demangle-yamldump
                       PRIVATE
-                        swiftDemangling)
+                        languageDemangling)

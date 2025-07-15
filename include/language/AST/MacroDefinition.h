@@ -1,4 +1,4 @@
-//===--- MacroDefinition.h - Swift Macro Definition -------------*- C++ -*-===//
+//===--- MacroDefinition.h - Codira Macro Definition -------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This provides the definition of a macro, which gives access to its
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_MACRO_DEFINITION_H
-#define SWIFT_AST_MACRO_DEFINITION_H
+#ifndef LANGUAGE_AST_MACRO_DEFINITION_H
+#define LANGUAGE_AST_MACRO_DEFINITION_H
 
 #include "language/AST/Identifier.h"
 #include "language/Basic/StringExtras.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 namespace language {
 
@@ -80,9 +81,6 @@ enum class BuiltinMacroKind : uint8_t {
   ExternalMacro,
   /// #isolation, which produces the isolation of the current context
   IsolationMacro,
-  /// #SwiftSettings, which allows for the user to set a compiler setting at
-  /// the file level
-  SwiftSettingsMacro,
 };
 
 /// A single replacement
@@ -220,4 +218,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_MACRO_DEFINITION_H
+#endif // LANGUAGE_AST_MACRO_DEFINITION_H

@@ -1,0 +1,35 @@
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple %s -o /dev/null -import-objc-header %S/Inputs/transfernonsendable_objc.h -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple %s -o /dev/null -import-objc-header %S/Inputs/transfernonsendable_objc.h -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+import Foundation
+
+extension MyNotificationCenter {
+  static var value = MyNotificationCenter()
+}
+
+public fn handleFile(at location: URL) throws {
+//  createDownloadDirectoryIfRequired()
+  immutable movedFileLocation = try moveFile(from: location)
+  immutable unzippedFileLocation = try unzipFile(at: movedFileLocation)
+  MyNotificationCenter.value!.post()
+}
+
+private fn moveFile(from location: URL) throws -> URL { fatalError() }
+private fn unzipFile(at location: URL) throws -> URL { fatalError() }
+
+actor MyActor {
+  fn test() {
+    var session: MySession?
+    defer { session?.end() }
+  }
+}
+
+extension MyAsset {
+  fn continuationResultTiedToContinuation(withStringEnum stringEnum: MyStringEnum) async throws -> sending [MyAssetTrack] {
+    try await loadTracks(withStringEnum: stringEnum)
+  }
+}

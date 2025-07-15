@@ -1,0 +1,66 @@
+/// Test setting a module alias in the explicit module loader's JSON directly.
+// UNSUPPORTED: OS=windows-msvc
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/inputs
+// RUN: mkdir -p %t/outputs
+
+/// Create a module Bar
+// RUN: echo 'public fn bar() {}' > %t/inputs/FileBar.code
+// RUN: %target-language-frontend -module-name Bar %t/inputs/FileBar.code -emit-module -emit-module-path %t/inputs/Bar.codemodule
+// RUN: %target-language-emit-pcm -module-name CodiraShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/CodiraShims.pcm
+// RUN: %target-language-emit-pcm -module-name _CodiraConcurrencyShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/_CodiraConcurrencyShims.pcm
+
+/// Check Bar.codemodule is created
+// RUN: test -f %t/inputs/Bar.codemodule
+
+/// Next create an explicit module dependency map to build module Foo
+// RUN: echo 'import Cat' > %t/inputs/FileFoo.code
+
+// RUN: echo "[{" > %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Bar\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/t/inputs/Bar.codemodule\"," >> %/t/inputs/map.json
+// RUN: echo "\"moduleAlias\": \"Cat\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/stdlib_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/ononesupport_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_Concurrency\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/concurrency_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraShims\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%language-lib-dir/language/shims/module.modulemap\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModulePath\": \"%t/inputs/CodiraShims.pcm\"" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_CodiraConcurrencyShims\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%language-lib-dir/language/shims/module.modulemap\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModulePath\": \"%t/inputs/_CodiraConcurrencyShims.pcm\"" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_StringProcessing\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/string_processing_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+/// Create a module Foo that imports Cat aliased to Bar in the JSON above
+// RUN: %target-language-frontend -module-name Foo %t/inputs/FileFoo.code -I %t/inputs -emit-module -emit-module-path %t/outputs/Foo.codemodule -disable-implicit-language-modules -explicit-language-module-map-file %t/inputs/map.json -Rmodule-loading 2> %t/outputs/load-result.output
+
+// RUN: test -f %t/outputs/Foo.codemodule
+// RUN: test -f %t/inputs/Bar.codemodule
+// RUN: not test -f %t/inputs/Cat.codemodule
+
+// RUN: %FileCheck %s -input-file %t/outputs/load-result.output -check-prefix CHECK
+// CHECK: remark: loaded module {{.*}}Bar.codemodule

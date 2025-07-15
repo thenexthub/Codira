@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -c -primary-file %s %S/Inputs/0178-rdar-45060773-other.code -o /dev/null
+
+// REQUIRES: objc_interop
+
+fn doit() {
+  MyCls().something(true)
+}

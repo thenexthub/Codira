@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides functions for working with declarations of distributed
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DECL_DISTRIBUTEDDECL_H
-#define SWIFT_DECL_DISTRIBUTEDDECL_H
+#ifndef LANGUAGE_DECL_DISTRIBUTEDDECL_H
+#define LANGUAGE_DECL_DISTRIBUTEDDECL_H
 
 #include "language/AST/ConcreteDeclRef.h"
 #include "language/AST/DiagnosticEngine.h"
@@ -149,7 +150,7 @@ bool
 getDistributedSerializationRequirements(
     NominalTypeDecl *decl,
     ProtocolDecl *protocol,
-    llvm::SmallPtrSetImpl<ProtocolDecl *> &requirementProtos);
+    toolchain::SmallPtrSetImpl<ProtocolDecl *> &requirementProtos);
 
 /// Retrieve the declaration of DistributedActorSystem.remoteCall(Void)(...).
 ///
@@ -217,4 +218,4 @@ FuncDecl *
 getDoneRecordingOnDistributedInvocationEncoder(NominalTypeDecl *nominal);
 }
 
-#endif /* SWIFT_DECL_DISTRIBUTEDDECL_H */
+#endif /* LANGUAGE_DECL_DISTRIBUTEDDECL_H */

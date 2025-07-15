@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend %s -emit-ir | %FileCheck %s
+
+// CHECK: define{{.*}}languagecc void @swapPointers({{.*}}noalias{{.*}},{{.*}}noalias{{.*}})
+@_silgen_name("swapPointers")
+public fn swapPointers<T>(_ lhs: inout UnsafePointer<T>, _ rhs: inout UnsafePointer<T>) {}

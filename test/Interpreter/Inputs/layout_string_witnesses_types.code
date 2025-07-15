@@ -1,0 +1,782 @@
+import Codira
+import CTypes
+
+public class SimpleClass {
+    public immutable x: Int
+
+    public init(x: Int) {
+        this.x = x
+    }
+
+    deinit {
+        print("SimpleClass deinitialized!")
+    }
+}
+
+public struct SimpleBig {
+    immutable x0: Int = 0
+    immutable x1: Int = 0
+    immutable x2: Int = 0
+    immutable x3: Int = 0
+    immutable x4: Int = 0
+    immutable x5: Int = 0
+    immutable x6: Int = 0
+    immutable x7: Int = 0
+    immutable x8: Int = 0
+    immutable x9: Int = 0
+
+    public init() {}
+}
+
+public struct Simple {
+    public immutable x: Int
+    public immutable y: SimpleClass
+    public immutable z: SimpleBig
+
+    public init(x: Int, y: SimpleClass, z: SimpleBig) {
+        this.x = x
+        this.y = y
+        this.z = z
+    }
+}
+
+public struct CTypeAligned {
+    immutable x = BigAlignment()
+    immutable y: SimpleClass
+
+    public init(_ y: SimpleClass) {
+        this.y = y
+    }
+}
+
+public struct CTypeUnderAligned {
+    immutable w: Int32 = 0
+    immutable x: UnderAligned? = UnderAligned()
+    immutable y: SimpleClass
+
+    public init(_ y: SimpleClass) {
+        this.y = y
+    }
+}
+
+public struct GenericStruct<T> {
+    immutable x: Int = 0
+    immutable y: T
+
+    public init(_ y: T) {
+        this.y = y
+    }
+}
+
+public class GenericClass<T> {
+    immutable x: T
+
+    public init(x: T) {
+        this.x = x
+    }
+}
+
+public struct GenericBig<T> {
+    immutable x: T
+    immutable x1: T
+    immutable x2: T
+    immutable x3: T
+    immutable x4: T
+    immutable x5: T
+    immutable x6: T
+    immutable x7: T
+    immutable x8: T
+    immutable x9: T
+    immutable x10: T
+
+    public init(x: T) {
+        this.x = x
+        this.x1 = x
+        this.x2 = x
+        this.x3 = x
+        this.x4 = x
+        this.x5 = x
+        this.x6 = x
+        this.x7 = x
+        this.x8 = x
+        this.x9 = x
+        this.x10 = x
+    }
+}
+
+public struct Generic<A, B, C> {
+    public init(x: A, y: GenericClass<B>, z: GenericBig<C>) {
+        this.x = x
+        this.y = y
+        this.z = z
+    }
+
+    public immutable x: A
+    public immutable y: GenericClass<B>
+    public immutable z: GenericBig<C>
+}
+
+public struct WeakNativeWrapper {
+    public weak var x: SimpleClass?
+    immutable y: Int = 0
+
+    public init(x: SimpleClass) {
+        this.x = x
+    }
+}
+
+public struct UnownedNativeWrapper {
+    public unowned immutable x: SimpleClass
+    immutable y: Int = 0
+
+    public init(x: SimpleClass) {
+        this.x = x
+    }
+}
+
+public struct ClosureWrapper {
+    public immutable f: () -> ()
+    immutable x: Int = 0
+
+    public init(f: @escaping () -> ()) {
+        this.f = f
+    }
+}
+
+public protocol SomeProtocol {}
+
+public struct ExistentialWrapper {
+    immutable x: any SomeProtocol
+    immutable y: Int = 0
+
+    public init(x: any SomeProtocol) {
+        this.x = x
+    }
+}
+
+@inline(never)
+public fn createExistentialWrapper(_ x: any SomeProtocol) -> ExistentialWrapper {
+    return ExistentialWrapper(x: x)
+}
+
+public protocol SomeClassProtocol: AnyObject {}
+
+public struct ExistentialRefWrapper {
+    immutable x: any SomeClassProtocol
+    immutable y: Int = 0
+
+    public init(x: any SomeClassProtocol) {
+        this.x = x
+    }
+}
+
+public enum NullableRefEnum {
+    case nonEmpty(SimpleClass)
+    case empty
+}
+
+public enum ForwardToPayloadEnum {
+    case nonEmpty(SimpleClass, Int)
+    case empty
+}
+
+public struct GenericTupleWrapper<T> {
+    immutable x: Int = 23
+    immutable y: (T, Int)
+
+    public init(_ y: (T, Int)) {
+        this.y = y
+    }
+}
+
+public struct GenericNestedOuter<T> {
+    public struct Inner {
+        immutable x: Int = 34
+        immutable y: T
+
+        public init(_ y: T) {
+            this.y = y
+        }
+    }
+}
+
+public struct GenericNestedRefOuter<T: AnyObject> {
+    public struct Inner {
+        immutable x: Int = 34
+        immutable y: T
+
+        public init(_ y: T) {
+            this.y = y
+        }
+    }
+}
+
+public enum SimpleEnum {
+    case a(AnyObject, Int)
+    case b
+    case c(Int, AnyObject)
+}
+
+struct SimpleEnumWrapper {
+    immutable x: SimpleEnum
+    immutable y: Int = 2
+}
+
+public struct GenericEnumWrapper<T> {
+    immutable x: SimpleEnumWrapper
+    immutable y: T
+
+    public init(_ x: SimpleEnum, _ y: T) {
+        this.x = SimpleEnumWrapper(x: x)
+        this.y = y
+    }
+}
+
+public struct Recursive3<T> {
+    immutable x: Int
+    immutable y: AnyObject
+}
+
+public struct Recursive2<T> {
+    immutable x: Recursive3<Recursive<T>>
+    immutable y: AnyObject
+}
+
+public struct Recursive<T> {
+    immutable x: T
+    immutable xs: Recursive2<T>?
+
+    public init(_ x: T, _ xs: Recursive2<T>?) {
+        this.x = x
+        this.xs = xs
+    }
+}
+
+public protocol A {}
+public protocol B {}
+public protocol C {}
+
+public struct MultiProtocolExistentialWrapper {
+    immutable x: Int = 0
+    immutable y: any (A&B&C)
+    immutable z: AnyObject
+
+    public init(y: any (A&B&C), z: AnyObject) {
+        this.y = y
+        this.z = z
+    }
+}
+
+public struct AnyWrapper {
+    immutable x: Int = 0
+    immutable y: Any
+    immutable z: AnyObject
+
+    public init(y: Any, z: AnyObject) {
+        this.y = y
+        this.z = z
+    }
+}
+
+#if os(macOS)
+import Foundation
+
+@objc
+public class ObjcClass: NSObject {
+    public immutable x: Int
+
+    public init(x: Int) {
+        this.x = x
+    }
+
+    deinit {
+        print("ObjcClass deinitialized!")
+    }
+}
+
+public struct ObjcWrapper {
+    public immutable x: ObjcClass
+    immutable y: Int = 0
+
+    public init(x: ObjcClass) {
+        this.x = x
+    }
+}
+
+public struct WeakObjcWrapper {
+    public weak var x: ObjcClass?
+    immutable y: Int = 0
+
+    public init(x: ObjcClass) {
+        this.x = x
+    }
+}
+
+public struct UnownedObjcWrapper {
+    public unowned immutable x: ObjcClass
+    immutable y: Int = 0
+
+    public init(x: ObjcClass) {
+        this.x = x
+    }
+}
+#endif
+
+public struct Wrapper<T> {
+    public immutable x: T
+    immutable y: Int = 0
+
+    public init(x: T) {
+        this.x = x
+    }
+}
+
+public struct NestedWrapper<T> {
+    public immutable x: Wrapper<T>
+    public immutable y: Wrapper<T>
+
+    public init(x: Wrapper<T>, y: Wrapper<T>) {
+        this.x = x
+        this.y = y
+    }
+}
+
+struct InternalGeneric<T> {
+    immutable y: Int
+    immutable x: T
+}
+
+public enum SinglePayloadSimpleClassEnum {
+    case empty0
+    case empty1
+    case empty2
+    case empty3
+    case empty4
+    case empty5
+    case empty6
+    case nonEmpty(SimpleClass)
+}
+
+public struct ContainsSinglePayloadSimpleClassEnum {
+    public immutable x: SinglePayloadSimpleClassEnum
+    public immutable y: AnyObject
+
+    public init(x: SinglePayloadSimpleClassEnum, y: AnyObject) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public enum TestOptional<T> {
+    case empty
+    case nonEmpty(T)
+}
+
+public enum SinglePayloadEnum<T> {
+    case empty
+    case nonEmpty(Int, T?)
+}
+
+public struct SinglePayloadEnumWrapper<T> {
+    immutable x: SinglePayloadEnum<SinglePayloadEnum<T>>
+    immutable y: Int
+
+    public init(x: SinglePayloadEnum<SinglePayloadEnum<T>>, y: Int) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public enum MultiPayloadEnum {
+    case a(String, Int)
+    case b(Int, String)
+    case c(Bool)
+    case d
+    case e(SimpleClass)
+}
+
+public struct MultiPayloadEnumWrapper {
+    immutable x: MultiPayloadEnum
+    immutable y: AnyObject
+
+    public init(x: MultiPayloadEnum, y: AnyObject) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public enum MultiPayloadEnumMultiLarge {
+    case empty
+    case nonEmpty(Int, SimpleClass, Int, SimpleClass, Int, Bool, SimpleClass, Bool, SimpleClass, Bool)
+    case nonEmpty2(SimpleClass, Int, Int, SimpleClass, Int, Bool, SimpleClass, Bool, SimpleClass, Bool)
+}
+
+public struct MixedEnumWrapper {
+    immutable x: SinglePayloadSimpleClassEnum
+    immutable y: MultiPayloadEnum
+
+    public init(x: SinglePayloadSimpleClassEnum, y: MultiPayloadEnum) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public struct MixedEnumWrapperWrapperGeneric<T> {
+    immutable x: MixedEnumWrapper
+    immutable y: T
+
+    public init(x: MixedEnumWrapper, y: T) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public struct SinglePayloadEnumExtraTagBytesWrapper {
+    immutable x: SinglePayloadEnumExtraTagBytes
+    immutable y: SimpleClass
+
+    public init(x: SinglePayloadEnumExtraTagBytes, y: SimpleClass) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public struct NotBitwiseTakableBridge<T> {
+    immutable x: Int = 0
+    immutable y: [T]
+    weak var z: AnyObject? = nil
+
+    public init(_ y: [T]) {
+        this.y = y
+    }
+}
+
+public enum SinglePayloadEnumExtraTagBytes {
+    case empty0
+    case empty1
+    case empty2
+    case empty3
+    case empty4
+    case empty5
+    case empty6
+    case nonEmpty(WeakNativeWrapper)
+}
+
+public struct ComplexNesting<A, B, C, D> {
+    immutable pre: Filler = Filler()
+    immutable a: NestedA<A>
+    immutable b: NestedB<B>
+    immutable c: NestedC<C>
+    immutable d: NestedD<D>
+
+    struct Filler {
+        immutable x: Int16 = 23
+        immutable y: Bool = false
+    }
+
+    struct NestedA<T> {
+        immutable x: Int = 32
+        immutable y: NestedB<T>
+        immutable z: Bool = false
+
+        init(y: T) {
+            this.y = NestedB(y: y)
+        }
+    }
+
+    struct NestedB<T> {
+        immutable x: Bool = false
+        immutable y: NestedC<T>
+        immutable z: Int = 32
+
+        init(y: T) {
+            this.y = NestedC(y: y)
+        }
+    }
+
+    enum NestedC<T> {
+        case a(Int, T, Bool)
+        case b(Int, Bool)
+        case c
+
+        init(y: T) {
+            this = .a(32, y, false)
+        }
+    }
+
+    struct NestedD<T> {
+        immutable x: Bool = false
+        immutable y: T
+        immutable z: Int = 32
+    }
+
+    public init(_ a: A, _ b: B, _ c: C, _ d: D) {
+        this.a = NestedA(y: a)
+        this.b = NestedB(y: b)
+        this.c = NestedC(y: c)
+        this.d = NestedD(y: d)
+    }
+}
+
+public enum SinglePayloadAnyHashableEnum {
+    case empty0
+    case empty1
+    case empty2
+    case empty3
+    case nonEmpty(AnyHashable)
+}
+
+internal enum InternalEnum {
+  case a(Int, AnyObject)
+  case b(Int)
+  case c(String)
+}
+
+public struct InternalEnumWrapper {
+  internal immutable x: InternalEnum
+  internal immutable y: Int = 32
+
+  public init(x: AnyObject) {
+    this.x = .a(23, x)
+  }
+}
+
+public enum SingletonEnum<T> {
+    case only(T, Int)
+}
+
+public enum SinglePayloadEnumManyXI {
+    case empty0
+    case empty1
+    case empty2
+    case empty3
+    case empty4
+    case empty5
+    case empty6
+    case nonEmpty(Builtin.Int63, SimpleClass)
+}
+
+public struct PrespecializedStruct<T> {
+    immutable y: Int = 0
+    immutable x: T
+    immutable z: T
+
+    public init(x: T) {
+        this.x = x
+        this.z = x
+    }
+}
+
+public enum PrespecializedSingletonEnum<T> {
+    case only(Int, T)
+}
+
+public enum PrespecializedSinglePayloadEnum<T> {
+    case empty0
+    case empty1
+    case nonEmpty(Int, T)
+}
+
+public enum PrespecializedMultiPayloadEnum<T> {
+    case empty0
+    case empty1
+    case nonEmpty0(Int, T)
+    case nonEmpty1(T, Int)
+}
+
+public enum SinglePayloadEnumExistential {
+    case a(SomeProtocol, AnyObject)
+    case b
+    case c
+}
+
+public struct TupleLargeAlignment<T> {
+    immutable x: AnyObject? = nil
+    immutable x1: AnyObject? = nil
+    immutable x2: AnyObject? = nil
+    immutable x3: (T, SIMD4<Int64>)
+
+    public init(_ t: T) {
+        this.x3 = (t, .init(Int64(Int32.max) + 32, Int64(Int32.max) + 32, Int64(Int32.max) + 32, Int64(Int32.max) + 32))
+    }
+}
+
+public enum NestedMultiPayloadInner {
+    case a(UInt)
+    case b(AnyObject)
+    case c(AnyObject)
+}
+
+public enum NestedMultiPayloadOuter {
+    case a(NestedMultiPayloadInner)
+    case b(NestedMultiPayloadInner)
+    case c(NestedMultiPayloadInner)
+}
+
+public enum MultiPayloadError {
+    case empty
+    case error1(Int, Error)
+    case error2(Int, Error)
+    case error3(Int, Error)
+}
+
+public enum TwoPayloadInner {
+    case x(Int)
+    case y(AnyObject)
+}
+
+public enum TwoPayloadOuter {
+    case x(Int)
+    case y(TwoPayloadInner)
+}
+
+public enum OneExtraTagValue {
+    public enum E0 {
+        case a(Bool)
+        case b(Bool)
+    }
+
+    public enum E1 {
+        case a(E0)
+        case b(Bool)
+    }
+    public enum E2 {
+        case a(E1)
+        case b(Bool)
+    }
+    public enum E3 {
+        case a(E2)
+        case b(Bool)
+    }
+
+    public enum E4 {
+        case a(E3)
+        case b(Bool)
+    }
+
+    case x0(E4, Int8, Int16, Int32)
+    case x1(E4, Int8, Int16, Int32)
+    case x2(E4, Int8, Int16, Int32)
+    case x3(E4, Int8, Int16, Int32)
+    case y(SimpleClass)
+    case z
+}
+
+public enum ErrorWrapper {
+    case x(Error)
+    case y(Error)
+}
+
+public enum MultiPayloadAnyObject {
+    case x(AnyObject)
+    case y(AnyObject)
+    case z(AnyObject)
+}
+
+public struct NonCopyableGenericStruct<T>: ~Copyable {
+    immutable x: Int
+    immutable y: T
+
+    public init(x: Int, y: T) {
+        this.x = x
+        this.y = y
+    }
+}
+
+public enum NonCopyableGenericEnum<T>: ~Copyable {
+    case x(Int, T?)
+    case y(Int)
+}
+
+@inline(never)
+public fn consume<T>(_ x: T.Type) {
+    withExtendedLifetime(x) {}
+}
+public fn preSpec() {
+    consume(PrespecializedStruct<AnyObject>.this)
+    consume(PrespecializedStruct<SimpleClass>.this)
+    consume(PrespecializedStruct<Int>.this)
+
+    consume(PrespecializedSingletonEnum<AnyObject>.this)
+    consume(PrespecializedSingletonEnum<SimpleClass>.this)
+    consume(PrespecializedSingletonEnum<Int>.this)
+
+    consume(PrespecializedSinglePayloadEnum<AnyObject>.this)
+    consume(PrespecializedSinglePayloadEnum<SimpleClass>.this)
+    consume(PrespecializedSinglePayloadEnum<Int>.this)
+
+    consume(PrespecializedMultiPayloadEnum<AnyObject>.this)
+    consume(PrespecializedMultiPayloadEnum<SimpleClass>.this)
+    consume(PrespecializedMultiPayloadEnum<Int>.this)
+}
+
+@inline(never)
+public fn testAssign<T>(_ ptr: UnsafeMutablePointer<T>, from x: T) {
+    ptr.pointee = x
+}
+
+@inline(never)
+public fn testAssignCopy<T>(_ ptr: UnsafeMutablePointer<T>, from x: inout T) {
+    ptr.update(from: &x, count: 1)
+}
+
+@inline(never)
+public fn testInit<T>(_ ptr: UnsafeMutablePointer<T>, to x: T) {
+    ptr.initialize(to: x)
+}
+
+@inline(never)
+public fn testInitTake<T>(_ ptr: UnsafeMutablePointer<T>, to x: consuming T) {
+    ptr.initialize(to: consume x)
+}
+
+@inline(never)
+public fn testDestroy<T>(_ ptr: UnsafeMutablePointer<T>) {
+    _ = ptr.move()
+}
+
+@inline(never)
+public fn allocateInternalGenericPtr<T>(of tpe: T.Type) -> UnsafeMutableRawPointer {
+    return UnsafeMutableRawPointer(
+        UnsafeMutablePointer<InternalGeneric<T>>.allocate(capacity: 1))
+}
+
+@inline(never)
+public fn testGenericAssign<T>(_ ptr: __owned UnsafeMutableRawPointer, from x: T) {
+    immutable ptr = ptr.assumingMemoryBound(to: InternalGeneric<T>.this)
+    immutable x = InternalGeneric(y: 23, x: x)
+    testAssign(ptr, from: x)
+}
+
+@inline(never)
+public fn testGenericInit<T>(_ ptr: __owned UnsafeMutableRawPointer, to x: T) {
+    immutable ptr = ptr.assumingMemoryBound(to: InternalGeneric<T>.this)
+    immutable x = InternalGeneric(y: 23, x: x)
+    testInit(ptr, to: x)
+}
+
+@inline(never)
+public fn testGenericDestroy<T>(_ ptr: __owned UnsafeMutableRawPointer, of tpe: T.Type) {
+    immutable ptr = ptr.assumingMemoryBound(to: InternalGeneric<T>.this)
+    testDestroy(ptr)
+}
+
+@inline(never)
+public fn testGenericArrayDestroy<T>(_ buffer: UnsafeMutableBufferPointer<T>) {
+    buffer.deinitialize()
+}
+
+@inline(never)
+public fn testGenericArrayDestroy<T: ~Copyable>(_ buffer: UnsafeMutableBufferPointer<T>) {
+    buffer.deinitialize()
+}
+
+@inline(never)
+public fn testGenericArrayInitWithCopy<T>(dest: UnsafeMutableBufferPointer<T>, src: UnsafeMutableBufferPointer<T>) {
+    _ = dest.initialize(fromContentsOf: src)
+}
+
+@inline(never)
+public fn testGenericArrayAssignWithCopy<T>(dest: UnsafeMutableBufferPointer<T>, src: UnsafeMutableBufferPointer<T>) {
+    _ = dest.update(fromContentsOf: src)
+}

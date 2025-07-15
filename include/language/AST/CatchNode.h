@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CATCHNODE_H
-#define SWIFT_AST_CATCHNODE_H
+#ifndef LANGUAGE_AST_CATCHNODE_H
+#define LANGUAGE_AST_CATCHNODE_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Expr.h"
 #include "language/AST/Stmt.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include <optional>
 
 namespace language {
 
 /// An AST node that represents a point where a thrown error can be caught and
 /// or rethrown, which includes functions do...catch statements.
-class CatchNode: public llvm::PointerUnion<
+class CatchNode: public toolchain::PointerUnion<
     AbstractFunctionDecl *, ClosureExpr *, DoCatchStmt *, AnyTryExpr *
   > {
 public:
@@ -53,16 +54,16 @@ public:
   /// be used for dumping.
   std::optional<Type> getCachedExplicitCaughtType(ASTContext &ctx) const;
 
-  friend llvm::hash_code hash_value(CatchNode catchNode) {
-    using llvm::hash_value;
+  friend toolchain::hash_code hash_value(CatchNode catchNode) {
+    using toolchain::hash_value;
     return hash_value(catchNode.getOpaqueValue());
   }
 };
 
-void simple_display(llvm::raw_ostream &out, CatchNode catchNode);
+void simple_display(toolchain::raw_ostream &out, CatchNode catchNode);
 
 SourceLoc extractNearestSourceLoc(CatchNode catchNode);
 
 } // end namespace language
 
-#endif // SWIFT_AST_CATCHNODE_H
+#endif // LANGUAGE_AST_CATCHNODE_H

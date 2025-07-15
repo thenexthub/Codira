@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SILGenDynamicCast.h"
@@ -41,7 +42,7 @@ namespace {
       Scalar,
     };
     CastStrategy Strategy;
-    CastingIsolatedConformances IsolatedConformances;
+    CheckedCastInstOptions Options;
 
   public:
     CheckedCastEmitter(SILGenFunction &SGF, SILLocation loc,
@@ -49,7 +50,7 @@ namespace {
       : SGF(SGF), Loc(loc), SourceType(sourceType->getCanonicalType()),
         TargetType(targetType->getCanonicalType()),
         Strategy(computeStrategy()),
-        IsolatedConformances(computedIsolatedConformances()) {
+        Options(computedOptions()) {
     }
 
     bool isOperandIndirect() const {
@@ -97,7 +98,7 @@ namespace {
       if (Strategy == CastStrategy::Address) {
         SILValue resultBuffer =
           createAbstractResultBuffer(hasAbstraction, origTargetTL, ctx);
-        SGF.B.createUnconditionalCheckedCastAddr(Loc, IsolatedConformances,
+        SGF.B.createUnconditionalCheckedCastAddr(Loc, Options,
                                              operand.forward(SGF), SourceType,
                                              resultBuffer, TargetType);
         return RValue(SGF, Loc, TargetType,
@@ -106,7 +107,7 @@ namespace {
       }
 
       ManagedValue result =
-        SGF.B.createUnconditionalCheckedCast(Loc, IsolatedConformances,
+        SGF.B.createUnconditionalCheckedCast(Loc, Options,
                                              operand,
                                              origTargetTL.getLoweredType(),
                                              TargetType);
@@ -120,8 +121,8 @@ namespace {
     void emitConditional(
         ManagedValue operand,
         CastConsumptionKind consumption, SGFContext ctx,
-        llvm::function_ref<void(ManagedValue)> handleTrue,
-        llvm::function_ref<void(std::optional<ManagedValue>)> handleFalse,
+        toolchain::function_ref<void(ManagedValue)> handleTrue,
+        toolchain::function_ref<void(std::optional<ManagedValue>)> handleFalse,
         ProfileCounter TrueCount = ProfileCounter(),
         ProfileCounter FalseCount = ProfileCounter()) {
       // The cast instructions don't know how to work with anything
@@ -144,7 +145,7 @@ namespace {
         resultBuffer =
             createAbstractResultBuffer(hasAbstraction, origTargetTL, ctx);
         SGF.B.createCheckedCastAddrBranch(
-            Loc, IsolatedConformances, consumption, operand.forward(SGF),
+            Loc, Options, consumption, operand.forward(SGF),
             SourceType, resultBuffer, TargetType, trueBB, falseBB,
             TrueCount, FalseCount);
       } else {
@@ -161,7 +162,7 @@ namespace {
           operandValue = operandValue.borrow(SGF, Loc);
         }
         SGF.B.createCheckedCastBranch(Loc, /*exact*/ false,
-                                      IsolatedConformances, operandValue,
+                                      Options, operandValue,
                                       SourceType, origTargetTL.getLoweredType(),
                                       TargetType, trueBB, falseBB, TrueCount,
                                       FalseCount);
@@ -306,6 +307,11 @@ namespace {
       return CastStrategy::Address;
     }
 
+    CheckedCastInstOptions computedOptions() const {
+      return CheckedCastInstOptions()
+        .withIsolatedConformances(computedIsolatedConformances());
+    }
+    
     CastingIsolatedConformances computedIsolatedConformances() const {
       // Non-existential types don't carry conformances, so we always allow
       // isolated conformances.
@@ -340,8 +346,8 @@ namespace {
 
 void SILGenFunction::emitCheckedCastBranch(
     SILLocation loc, Expr *source, Type targetType, SGFContext ctx,
-    llvm::function_ref<void(ManagedValue)> handleTrue,
-    llvm::function_ref<void(std::optional<ManagedValue>)> handleFalse,
+    toolchain::function_ref<void(ManagedValue)> handleTrue,
+    toolchain::function_ref<void(std::optional<ManagedValue>)> handleFalse,
     ProfileCounter TrueCount, ProfileCounter FalseCount) {
   CheckedCastEmitter emitter(*this, loc, source->getType(), targetType);
   ManagedValue operand = emitter.emitOperand(source);
@@ -352,8 +358,8 @@ void SILGenFunction::emitCheckedCastBranch(
 void SILGenFunction::emitCheckedCastBranch(
     SILLocation loc, ConsumableManagedValue src, Type sourceType,
     CanType targetType, SGFContext ctx,
-    llvm::function_ref<void(ManagedValue)> handleTrue,
-    llvm::function_ref<void(std::optional<ManagedValue>)> handleFalse,
+    toolchain::function_ref<void(ManagedValue)> handleTrue,
+    toolchain::function_ref<void(std::optional<ManagedValue>)> handleFalse,
     ProfileCounter TrueCount, ProfileCounter FalseCount) {
   CheckedCastEmitter emitter(*this, loc, sourceType, targetType);
   emitter.emitConditional(src.getFinalManagedValue(), src.getFinalConsumption(),
@@ -388,7 +394,7 @@ static RValue emitCollectionDowncastExpr(SILGenFunction &SGF,
            ? SGF.SGM.getSetDownCastConditional(loc)
            : SGF.SGM.getSetDownCast(loc));
   } else {
-    llvm_unreachable("unsupported collection upcast kind");
+    toolchain_unreachable("unsupported collection upcast kind");
   }
 
   return SGF.emitCollectionConversion(loc, fn, fromCollection, toCollection,

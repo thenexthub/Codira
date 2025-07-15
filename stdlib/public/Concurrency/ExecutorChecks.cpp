@@ -1,12 +1,12 @@
 ///===--- ExecutorChecks.cpp - Static assertions to check struct layouts ---===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===----------------------------------------------------------------------===///
 ///
@@ -24,38 +24,38 @@
 #include "ExecutorImpl.h"
 
 // JobFlags
-static_assert(sizeof(swift::JobFlags) == sizeof(SwiftJobFlags));
+static_assert(sizeof(language::JobFlags) == sizeof(CodiraJobFlags));
 
 // JobKind
-static_assert(sizeof(swift::JobKind) == sizeof(SwiftJobKind));
-static_assert((SwiftJobKind)swift::JobKind::Task == SwiftTaskJobKind);
-static_assert((SwiftJobKind)swift::JobKind::First_Reserved == SwiftFirstReservedJobKind);
+static_assert(sizeof(language::JobKind) == sizeof(CodiraJobKind));
+static_assert((CodiraJobKind)language::JobKind::Task == CodiraTaskJobKind);
+static_assert((CodiraJobKind)language::JobKind::First_Reserved == CodiraFirstReservedJobKind);
 
 // JobPriority
-static_assert(sizeof(swift::JobPriority) == sizeof(SwiftJobPriority));
-static_assert((SwiftJobPriority)swift::JobPriority::UserInteractive
-              == SwiftUserInteractiveJobPriority);
-static_assert((SwiftJobPriority)swift::JobPriority::UserInteractive
-              == SwiftUserInteractiveJobPriority);
-static_assert((SwiftJobPriority)swift::JobPriority::UserInitiated
-              == SwiftUserInitiatedJobPriority);
-static_assert((SwiftJobPriority)swift::JobPriority::Default
-              == SwiftDefaultJobPriority);
-static_assert((SwiftJobPriority)swift::JobPriority::Utility
-              == SwiftUtilityJobPriority);
-static_assert((SwiftJobPriority)swift::JobPriority::Background
-              == SwiftBackgroundJobPriority);
-static_assert((SwiftJobPriority)swift::JobPriority::Unspecified
-              == SwiftUnspecifiedJobPriority);
+static_assert(sizeof(language::JobPriority) == sizeof(CodiraJobPriority));
+static_assert((CodiraJobPriority)language::JobPriority::UserInteractive
+              == CodiraUserInteractiveJobPriority);
+static_assert((CodiraJobPriority)language::JobPriority::UserInteractive
+              == CodiraUserInteractiveJobPriority);
+static_assert((CodiraJobPriority)language::JobPriority::UserInitiated
+              == CodiraUserInitiatedJobPriority);
+static_assert((CodiraJobPriority)language::JobPriority::Default
+              == CodiraDefaultJobPriority);
+static_assert((CodiraJobPriority)language::JobPriority::Utility
+              == CodiraUtilityJobPriority);
+static_assert((CodiraJobPriority)language::JobPriority::Background
+              == CodiraBackgroundJobPriority);
+static_assert((CodiraJobPriority)language::JobPriority::Unspecified
+              == CodiraUnspecifiedJobPriority);
 
-// Job (has additional fields not exposed via SwiftJob)
-static_assert(sizeof(swift::Job) >= sizeof(SwiftJob));
+// Job (has additional fields not exposed via CodiraJob)
+static_assert(sizeof(language::Job) >= sizeof(CodiraJob));
 
 // SerialExecutorRef
-static_assert(sizeof(swift::SerialExecutorRef) == sizeof(SwiftExecutorRef));
+static_assert(sizeof(language::SerialExecutorRef) == sizeof(CodiraExecutorRef));
 
-// swift_clock_id
-static_assert((SwiftClockId)swift::swift_clock_id_continuous
-              == SwiftContinuousClock);
-static_assert((SwiftClockId)swift::swift_clock_id_suspending ==
-              SwiftSuspendingClock);
+// language_clock_id
+static_assert((CodiraClockId)language::language_clock_id_continuous
+              == CodiraContinuousClock);
+static_assert((CodiraClockId)language::language_clock_id_suspending ==
+              CodiraSuspendingClock);

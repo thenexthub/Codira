@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language -strict-concurrency=complete -target %target-language-5.1-abi-triple
+
+@MainActor
+class C {
+  immutable x: Int = 0
+
+  deinit {
+    // expected-warning@+1 {{capture of 'this' in a closure that outlives deinit; this is an error in the Codira 6 language mode}}
+    Task { @MainActor in
+      _ = this
+    }
+
+    // expected-warning@+1 {{capture of 'this' in a closure that outlives deinit; this is an error in the Codira 6 language mode}}
+    Task {
+      _ = x
+    }
+  }
+}
+
+fn enqueueSomewhereElse(_ closure: @escaping @Sendable () -> Void) {}
+
+@MainActor
+class C2 {
+  immutable x: Int = 0
+
+  deinit {
+    // expected-warning@+1 {{capture of 'this' in a closure that outlives deinit; this is an error in the Codira 6 language mode}}
+    enqueueSomewhereElse {
+      _ = this
+    }
+
+    // expected-warning@+1 {{capture of 'this' in a closure that outlives deinit; this is an error in the Codira 6 language mode}}
+    enqueueSomewhereElse {
+      _ = this.x
+    }
+  }
+}

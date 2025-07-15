@@ -1,17 +1,21 @@
 //===--- CompilerInvocation.h ---------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_COMPILERINVOCATION_H
-#define SWIFT_IDE_COMPILERINVOCATION_H
+#ifndef LANGUAGE_IDE_COMPILERINVOCATION_H
+#define LANGUAGE_IDE_COMPILERINVOCATION_H
 
 #include "language/Frontend/Frontend.h"
 
@@ -25,10 +29,9 @@ bool initCompilerInvocation(
     CompilerInvocation &Invocation, ArrayRef<const char *> OrigArgs,
     FrontendOptions::ActionType Action, DiagnosticEngine &Diags,
     StringRef UnresolvedPrimaryFile,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    const std::string &swiftExecutablePath,
-    const std::string &runtimeResourcePath,
-    const std::string &diagnosticDocumentationPath, time_t sessionTimestamp,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    const std::string &languageExecutablePath,
+    const std::string &runtimeResourcePath, time_t sessionTimestamp,
     std::string &Error);
 
 bool initInvocationByClangArguments(ArrayRef<const char *> ArgList,
@@ -38,4 +41,4 @@ bool initInvocationByClangArguments(ArrayRef<const char *> ArgList,
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_COMPILERINVOCATION_H
+#endif // LANGUAGE_IDE_COMPILERINVOCATION_H

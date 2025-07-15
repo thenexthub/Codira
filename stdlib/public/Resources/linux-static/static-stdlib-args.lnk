@@ -1,6 +1,6 @@
 -ldl
 -lpthread
--lswiftCore
+-llanguageCore
 -ldispatch -lBlocksRuntime
 -lc++
 -lm

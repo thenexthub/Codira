@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/FunctionReplacement.h"
-#include "languageTLSContext.h"
+#include "CodiraTLSContext.h"
 
 using namespace language;
 using namespace language::runtime;
 
-char *swift::swift_getFunctionReplacement(char **ReplFnPtr, char *CurrFn) {
+char *language::language_getFunctionReplacement(char **ReplFnPtr, char *CurrFn) {
   char *ReplFn = *ReplFnPtr;
   char *RawReplFn = ReplFn;
 
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
   RawReplFn = ptrauth_strip(RawReplFn, ptrauth_key_function_pointer);
 #endif
   if (RawReplFn == CurrFn)
     return nullptr;
 
-  auto &ctx = SwiftTLSContext::get();
+  auto &ctx = CodiraTLSContext::get();
   if (ctx.CallOriginalOfReplacedFunction) {
     ctx.CallOriginalOfReplacedFunction = false;
     return nullptr;
@@ -37,8 +38,8 @@ char *swift::swift_getFunctionReplacement(char **ReplFnPtr, char *CurrFn) {
   return ReplFn;
 }
 
-char *swift::swift_getOrigOfReplaceable(char **OrigFnPtr) {
+char *language::language_getOrigOfReplaceable(char **OrigFnPtr) {
   char *OrigFn = *OrigFnPtr;
-  SwiftTLSContext::get().CallOriginalOfReplacedFunction = true;
+  CodiraTLSContext::get().CallOriginalOfReplacedFunction = true;
   return OrigFn;
 }

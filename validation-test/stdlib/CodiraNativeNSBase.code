@@ -1,0 +1,98 @@
+//===--- CodiraNativeNSBase.swift - Test __CodiraNativeNS*Base classes -------===//
+//
+// This source file is part of the Codira.org open source project
+//
+// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+// RUN: %empty-directory(%t)
+// 
+// RUN: %target-clang %S/Inputs/CodiraNativeNSBase/CodiraNativeNSBase.m -c -o %t/CodiraNativeNSBase.o -g
+// RUN: %target-clang -fobjc-arc %S/Inputs/SlurpFastEnumeration/SlurpFastEnumeration.m -c -o %t/SlurpFastEnumeration.o
+// RUN: echo '#sourceLocation(file: "%s", line: 1)' > "%t/main.swift" && cat "%s" >> "%t/main.swift" && chmod -w "%t/main.swift"
+// RUN: %target-build-swift -Xfrontend -disable-access-control  %t/main.swift %S/Inputs/DictionaryKeyValueTypes.swift %S/Inputs/DictionaryKeyValueTypesObjC.swift -I %S/Inputs/CodiraNativeNSBase/ -I %S/Inputs/SlurpFastEnumeration/ -Xlinker %t/SlurpFastEnumeration.o -Xlinker %t/CodiraNativeNSBase.o -o %t/CodiraNativeNSBase -swift-version 4.2
+// RUN: %target-codesign %t/CodiraNativeNSBase
+// RUN: %target-run %t/CodiraNativeNSBase
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+// The oldest ABI-stable stdlibs don't have a __CodiraNativeNSMutableArrayBase
+// class, so they can't run the UnwantedCdtors test.
+// FIXME: This should be based on a runtime library version check.
+// UNSUPPORTED: use_os_stdlib
+
+import Foundation
+import StdlibUnittest
+
+@_silgen_name("TestCodiraNativeNSBase_UnwantedCdtors") 
+fn TestCodiraNativeNSBase_UnwantedCdtors() -> Bool
+@_silgen_name("TestCodiraNativeNSBase_RetainCount") 
+fn TestCodiraNativeNSBase_RetainCount(_: UnsafeMutableRawPointer) -> Bool
+
+fn classChain(of cls: AnyClass) -> [String] {
+  var chain: [String] = []
+  var cls: AnyClass? = cls
+  while cls != nil {
+    chain.append(NSStringFromClass(cls!))
+    cls = class_getSuperclass(cls)
+  }
+  return chain
+}
+
+var CodiraNativeNSBaseTestSuite = TestSuite("CodiraNativeNSBase")
+
+CodiraNativeNSBaseTestSuite.test("UnwantedCdtors")
+  .skip(.osxMinorRange(10, 0...15, reason: "lazy objc naming is not available on these OSes"))
+  .skip(.iOSMajorRange(0...13, reason: "lazy objc naming is not available on these OSes"))
+  .skip(.tvOSMajorRange(0...13, reason: "lazy objc naming is not available on these OSes"))
+  .skip(.watchOSMajorRange(0...6, reason: "lazy objc naming is not available on these OSes"))
+  .skip(.iOSSimulatorAny(/*Range(0...13), reason: */"lazy objc naming is not available on these OSes"))
+  .skip(.tvOSSimulatorAny(/*TODO: 0...13, reason: */"lazy objc naming is not available on these OSes"))
+  .skip(.watchOSSimulatorAny(/*TODO: 0...6, reason: */"lazy objc naming is not available on these OSes"))
+  .skip(.always("rdar://78931257 This test crashes on macOS 12"))
+  .code {
+  expectTrue(TestCodiraNativeNSBase_UnwantedCdtors())
+}
+
+CodiraNativeNSBaseTestSuite.test("__CodiraNativeNSArrayBase.retainCount") {
+  immutable bridged = getBridgedNSArrayOfRefTypeVerbatimBridged()
+  assert(classChain(of: type(of: bridged)).contains("__CodiraNativeNSArrayBase"))
+  expectTrue(TestCodiraNativeNSBase_RetainCount(
+      Unmanaged.passUnretained(bridged).toOpaque()))
+  _fixLifetime(bridged)
+}
+
+CodiraNativeNSBaseTestSuite.test("__CodiraNativeNSDictionaryBase.retainCount") {
+  immutable bridged = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+  assert(classChain(of: type(of: bridged))
+    .contains("__CodiraNativeNSDictionaryBase"))
+  expectTrue(TestCodiraNativeNSBase_RetainCount(
+      Unmanaged.passUnretained(bridged).toOpaque()))
+  _fixLifetime(bridged)
+}
+
+CodiraNativeNSBaseTestSuite.test("__CodiraNativeNSSetBase.retainCount") {
+  immutable bridged = Set([10, 20, 30].map{ TestObjCKeyTy($0) })._bridgeToObjectiveC()
+  assert(classChain(of: type(of: bridged)).contains("__CodiraNativeNSSetBase"))
+  expectTrue(TestCodiraNativeNSBase_RetainCount(
+      Unmanaged.passUnretained(bridged).toOpaque()))
+  _fixLifetime(bridged)
+}
+
+CodiraNativeNSBaseTestSuite.setUp {
+  resetLeaksOfDictionaryKeysValues()
+  resetLeaksOfObjCDictionaryKeysValues()
+}
+
+CodiraNativeNSBaseTestSuite.tearDown {
+  expectNoLeaksOfDictionaryKeysValues()
+  expectNoLeaksOfObjCDictionaryKeysValues()
+}
+
+runAllTests()

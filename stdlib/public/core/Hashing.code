@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 //
 // This file implements helpers for hashing collections.
 //
 
-import SwiftShims
+import CodiraShims
 
 /// The inverse of the default hash table load factor.  Factored out so that it
 /// can be used in multiple places in the implementation and stay consistent.
@@ -32,8 +33,8 @@ internal var _hashContainerDefaultMaxLoadFactorInverse: Double {
 ///
 /// This function is part of the runtime because `Bool` type is bridged to
 /// `ObjCBool`, which is in Foundation overlay.
-@_silgen_name("swift_stdlib_NSObject_isEqual")
-internal func _stdlib_NSObject_isEqual(_ lhs: AnyObject, _ rhs: AnyObject) -> Bool
+@_silgen_name("language_stdlib_NSObject_isEqual")
+internal fn _stdlib_NSObject_isEqual(_ lhs: AnyObject, _ rhs: AnyObject) -> Bool
 #endif
 
 
@@ -48,26 +49,26 @@ internal struct _UnmanagedAnyObjectArray {
   internal var value: UnsafeMutableRawPointer
 
   internal init(_ up: UnsafeMutablePointer<AnyObject>) {
-    unsafe self.value = UnsafeMutableRawPointer(up)
+    unsafe this.value = UnsafeMutableRawPointer(up)
   }
 
   internal init?(_ up: UnsafeMutablePointer<AnyObject>?) {
-    guard let unwrapped = unsafe up else { return nil }
-    unsafe self.init(unwrapped)
+    guard immutable unwrapped = unsafe up else { return nil }
+    unsafe this.init(unwrapped)
   }
 
   internal subscript(i: Int) -> AnyObject {
     get {
-      let unmanaged = unsafe value.load(
+      immutable unmanaged = unsafe value.load(
         fromByteOffset: i * MemoryLayout<AnyObject>.stride,
-        as: Unmanaged<AnyObject>.self)
+        as: Unmanaged<AnyObject>.this)
       return unsafe unmanaged.takeUnretainedValue()
     }
     nonmutating set(newValue) {
-      let unmanaged = unsafe Unmanaged.passUnretained(newValue)
+      immutable unmanaged = unsafe Unmanaged.passUnretained(newValue)
       unsafe value.storeBytes(of: unmanaged,
         toByteOffset: i * MemoryLayout<AnyObject>.stride,
-        as: Unmanaged<AnyObject>.self)
+        as: Unmanaged<AnyObject>.this)
     }
   }
 }
@@ -75,24 +76,24 @@ internal struct _UnmanagedAnyObjectArray {
 #if _runtime(_ObjC)
 /// An NSEnumerator implementation returning zero elements. This is useful when
 /// a concrete element type is not recoverable from the empty singleton.
-// NOTE: older runtimes called this class _SwiftEmptyNSEnumerator. The two
+// NOTE: older runtimes called this class _CodiraEmptyNSEnumerator. The two
 // must coexist without conflicting ObjC class names, so it was
 // renamed. The old name must not be used in the new runtime.
-final internal class __SwiftEmptyNSEnumerator
-  : __SwiftNativeNSEnumerator, _NSEnumerator {
+final internal class __CodiraEmptyNSEnumerator
+  : __CodiraNativeNSEnumerator, _NSEnumerator {
   internal override required init() {
     super.init()
     _internalInvariant(_orphanedFoundationSubclassesReparented)
   }
 
   @objc
-  internal func nextObject() -> AnyObject? {
+  internal fn nextObject() -> AnyObject? {
     return nil
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>,
     count: Int
   ) -> Int {
@@ -129,41 +130,41 @@ internal final class __BridgingHashBuffer
     internal var hashTable: _HashTable
 
     init(owner: AnyObject, hashTable: _HashTable) {
-      unsafe self.owner = owner
-      unsafe self.hashTable = unsafe hashTable
+      unsafe this.owner = owner
+      unsafe this.hashTable = unsafe hashTable
     }
   }
 
-  internal static func allocate(
+  internal static fn allocate(
     owner: AnyObject,
     hashTable: _HashTable
   ) -> __BridgingHashBuffer {
-    let buffer = unsafe self.create(minimumCapacity: hashTable.bucketCount) { _ in
+    immutable buffer = unsafe this.create(minimumCapacity: hashTable.bucketCount) { _ in
       unsafe Header(owner: owner, hashTable: hashTable)
     }
-    return unsafe unsafeDowncast(buffer, to: __BridgingHashBuffer.self)
+    return unsafe unsafeDowncast(buffer, to: __BridgingHashBuffer.this)
   }
 
   deinit {
     for unsafe bucket in unsafe header.hashTable {
       unsafe (firstElementAddress + bucket.offset).deinitialize(count: 1)
     }
-    unsafe _fixLifetime(self)
+    unsafe _fixLifetime(this)
   }
 
   internal subscript(bucket: _HashTable.Bucket) -> AnyObject {
     @inline(__always) get {
       unsafe _internalInvariant(header.hashTable.isOccupied(bucket))
-      defer { unsafe _fixLifetime(self) }
+      defer { unsafe _fixLifetime(this) }
       return unsafe firstElementAddress[bucket.offset]
     }
   }
 
   @inline(__always)
-  internal func initialize(at bucket: _HashTable.Bucket, to object: AnyObject) {
+  internal fn initialize(at bucket: _HashTable.Bucket, to object: AnyObject) {
     unsafe _internalInvariant(header.hashTable.isOccupied(bucket))
     unsafe (firstElementAddress + bucket.offset).initialize(to: object)
-    unsafe _fixLifetime(self)
+    unsafe _fixLifetime(this)
   }
 }
 #endif

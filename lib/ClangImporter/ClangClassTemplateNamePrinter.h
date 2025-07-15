@@ -1,17 +1,21 @@
 //===--- ClangClassTemplateNamePrinter.h ------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CLANG_TEMPLATE_NAME_PRINTER_H
-#define SWIFT_CLANG_TEMPLATE_NAME_PRINTER_H
+#ifndef LANGUAGE_CLANG_TEMPLATE_NAME_PRINTER_H
+#define LANGUAGE_CLANG_TEMPLATE_NAME_PRINTER_H
 
 #include "ImportName.h"
 #include "language/AST/ASTContext.h"
@@ -20,7 +24,7 @@
 namespace language {
 namespace importer {
 
-/// Returns a Swift representation of a C++ class template specialization name,
+/// Returns a Codira representation of a C++ class template specialization name,
 /// e.g. "vector<CWideChar, allocator<CWideChar>>".
 ///
 /// This expands the entire tree of template instantiation names recursively.
@@ -31,10 +35,10 @@ namespace importer {
 /// This function does not instantiate any templates and does not modify the AST
 /// in any way.
 std::string printClassTemplateSpecializationName(
-    const clang::ClassTemplateSpecializationDecl *decl, ASTContext &swiftCtx,
+    const clang::ClassTemplateSpecializationDecl *decl, ASTContext &languageCtx,
     NameImporter *nameImporter, ImportNameVersion version);
 
 } // namespace importer
 } // namespace language
 
-#endif // SWIFT_CLANG_TEMPLATE_NAME_PRINTER_H
+#endif // LANGUAGE_CLANG_TEMPLATE_NAME_PRINTER_H

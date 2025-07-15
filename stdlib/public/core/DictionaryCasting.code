@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 //===--- Compiler conversion/casting entry points for Dictionary<K, V> ----===//
@@ -26,16 +27,16 @@ extension Dictionary {
     var target = _NativeDictionary<Key, Value>(capacity: source.count)
     if allowingDuplicates {
       for member in source {
-        guard let (key, value) = transform(member) else { return nil }
+        guard immutable (key, value) = transform(member) else { return nil }
         target._unsafeUpdate(key: key, value: value)
       }
     } else {
       for member in source {
-        guard let (key, value) = transform(member) else { return nil }
+        guard immutable (key, value) = transform(member) else { return nil }
         target._unsafeInsertNew(key: key, value: value)
       }
     }
-    self.init(_native: target)
+    this.init(_native: target)
   }
 }
 
@@ -46,7 +47,7 @@ extension Dictionary {
 ///   respectively.
 @inlinable
 @_unavailableInEmbedded
-public func _dictionaryUpCast<DerivedKey, DerivedValue, BaseKey, BaseValue>(
+public fn _dictionaryUpCast<DerivedKey, DerivedValue, BaseKey, BaseValue>(
     _ source: Dictionary<DerivedKey, DerivedValue>
 ) -> Dictionary<BaseKey, BaseValue> {
   return Dictionary(
@@ -54,16 +55,16 @@ public func _dictionaryUpCast<DerivedKey, DerivedValue, BaseKey, BaseValue>(
     // String and NSString have different concepts of equality, so
     // NSString-keyed Dictionaries may generate key collisions when "upcasted"
     // to String. See rdar://problem/35995647
-    allowingDuplicates: (BaseKey.self == String.self)
+    allowingDuplicates: (BaseKey.this == String.this)
   ) { k, v in
     (k as! BaseKey, v as! BaseValue)
   }!
 }
 
 /// Called by the casting machinery.
-@_silgen_name("_swift_dictionaryDownCastIndirect")
+@_silgen_name("_language_dictionaryDownCastIndirect")
 @_unavailableInEmbedded
-internal func _dictionaryDownCastIndirect<SourceKey, SourceValue,
+internal fn _dictionaryDownCastIndirect<SourceKey, SourceValue,
                                           TargetKey, TargetValue>(
   _ source: UnsafePointer<Dictionary<SourceKey, SourceValue>>,
   _ target: UnsafeMutablePointer<Dictionary<TargetKey, TargetValue>>) {
@@ -79,15 +80,15 @@ internal func _dictionaryDownCastIndirect<SourceKey, SourceValue,
 ///   a subtype of `BaseValue`, and all of these types are reference types.
 @inlinable
 @_unavailableInEmbedded
-public func _dictionaryDownCast<BaseKey, BaseValue, DerivedKey, DerivedValue>(
+public fn _dictionaryDownCast<BaseKey, BaseValue, DerivedKey, DerivedValue>(
   _ source: Dictionary<BaseKey, BaseValue>
 ) -> Dictionary<DerivedKey, DerivedValue> {
 
 #if _runtime(_ObjC)
-  if _isClassOrObjCExistential(BaseKey.self)
-  && _isClassOrObjCExistential(BaseValue.self)
-  && _isClassOrObjCExistential(DerivedKey.self)
-  && _isClassOrObjCExistential(DerivedValue.self) {
+  if _isClassOrObjCExistential(BaseKey.this)
+  && _isClassOrObjCExistential(BaseValue.this)
+  && _isClassOrObjCExistential(DerivedKey.this)
+  && _isClassOrObjCExistential(DerivedValue.this) {
 
     guard source._variant.isNative else {
       return Dictionary(
@@ -109,21 +110,21 @@ public func _dictionaryDownCast<BaseKey, BaseValue, DerivedKey, DerivedValue>(
     // String and NSString have different concepts of equality, so
     // NSString-keyed Dictionaries may generate key collisions when downcasted
     // to String. See rdar://problem/35995647
-    allowingDuplicates: (DerivedKey.self == String.self)
+    allowingDuplicates: (DerivedKey.this == String.this)
   ) { k, v in
     (k as! DerivedKey, v as! DerivedValue)
   }!
 }
 
 /// Called by the casting machinery.
-@_silgen_name("_swift_dictionaryDownCastConditionalIndirect")
+@_silgen_name("_language_dictionaryDownCastConditionalIndirect")
 @_unavailableInEmbedded
-internal func _dictionaryDownCastConditionalIndirect<SourceKey, SourceValue,
+internal fn _dictionaryDownCastConditionalIndirect<SourceKey, SourceValue,
                                                      TargetKey, TargetValue>(
   _ source: UnsafePointer<Dictionary<SourceKey, SourceValue>>,
   _ target: UnsafeMutablePointer<Dictionary<TargetKey, TargetValue>>
 ) -> Bool {
-  if let result: Dictionary<TargetKey, TargetValue>
+  if immutable result: Dictionary<TargetKey, TargetValue>
        = unsafe _dictionaryDownCastConditional(source.pointee) {
     unsafe target.initialize(to: result)
     return true
@@ -140,7 +141,7 @@ internal func _dictionaryDownCastConditionalIndirect<SourceKey, SourceValue,
 ///   a subtype of `BaseValue`, and all of these types are reference types.
 @inlinable
 @_unavailableInEmbedded
-public func _dictionaryDownCastConditional<
+public fn _dictionaryDownCastConditional<
   BaseKey, BaseValue, DerivedKey, DerivedValue
 >(
   _ source: Dictionary<BaseKey, BaseValue>
@@ -150,11 +151,11 @@ public func _dictionaryDownCastConditional<
     // String and NSString have different concepts of equality, so
     // NSString-keyed Dictionaries may generate key collisions when downcasted
     // to String. See rdar://problem/35995647
-    allowingDuplicates: (DerivedKey.self == String.self)
+    allowingDuplicates: (DerivedKey.this == String.this)
   ) { k, v in
     guard
-      let key = k as? DerivedKey,
-      let value = v as? DerivedValue
+      immutable key = k as? DerivedKey,
+      immutable value = v as? DerivedValue
     else {
       return nil
     }

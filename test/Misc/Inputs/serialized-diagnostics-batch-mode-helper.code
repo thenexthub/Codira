@@ -1,0 +1,3 @@
+fn testHelper() {
+  nonexistent()
+}

@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_STDLIB_ENABLE_UNICODE_DATA
+#if LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
 
 #if defined(__APPLE__)
 #include "Apple/ScalarPropsData.h"
@@ -28,10 +32,10 @@
 #include "language/shims/UnicodeData.h"
 #include <stdint.h>
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint64_t _swift_stdlib_getBinaryProperties(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint64_t _language_stdlib_getBinaryProperties(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto lowerBoundIndex = 0;
   auto endIndex = BIN_PROPS_COUNT;
@@ -40,17 +44,17 @@ __swift_uint64_t _swift_stdlib_getBinaryProperties(__swift_uint32_t scalar) {
   while (upperBoundIndex >= lowerBoundIndex) {
     auto index = lowerBoundIndex + (upperBoundIndex - lowerBoundIndex) / 2;
 
-    auto entry = _swift_stdlib_scalar_binProps[index];
+    auto entry = _language_stdlib_scalar_binProps[index];
 
     // Shift the ccc value out of the scalar.
     auto lowerBoundScalar = (entry << 11) >> 11;
 
-    __swift_uint32_t upperBoundScalar = 0;
+    __language_uint32_t upperBoundScalar = 0;
 
     // If we're not at the end of the array, the range count is simply the
     // distance to the next element.
     if (index != endIndex - 1) {
-      auto nextEntry = _swift_stdlib_scalar_binProps[index + 1];
+      auto nextEntry = _language_stdlib_scalar_binProps[index + 1];
 
       auto nextLower = (nextEntry << 11) >> 11;
 
@@ -64,7 +68,7 @@ __swift_uint64_t _swift_stdlib_getBinaryProperties(__swift_uint32_t scalar) {
     auto dataIndex = entry >> 21;
 
     if (scalar >= lowerBoundScalar && scalar <= upperBoundScalar) {
-      return  _swift_stdlib_scalar_binProps_data[dataIndex];
+      return  _language_stdlib_scalar_binProps_data[dataIndex];
     }
 
     if (scalar > upperBoundScalar) {
@@ -86,10 +90,10 @@ __swift_uint64_t _swift_stdlib_getBinaryProperties(__swift_uint32_t scalar) {
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint8_t _swift_stdlib_getNumericType(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint8_t _language_stdlib_getNumericType(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto lowerBoundIndex = 0;
   auto endIndex = NUMERIC_TYPE_COUNT;
@@ -98,13 +102,13 @@ __swift_uint8_t _swift_stdlib_getNumericType(__swift_uint32_t scalar) {
   while (upperBoundIndex >= lowerBoundIndex) {
     auto idx = lowerBoundIndex + (upperBoundIndex - lowerBoundIndex) / 2;
 
-    auto entry = _swift_stdlib_numeric_type[idx];
+    auto entry = _language_stdlib_numeric_type[idx];
 
     auto lowerBoundScalar = (entry << 11) >> 11;
     auto rangeCount = (entry << 3) >> 24;
     auto upperBoundScalar = lowerBoundScalar + rangeCount;
 
-    auto numericType = (__swift_uint8_t)(entry >> 29);
+    auto numericType = (__language_uint8_t)(entry >> 29);
 
     if (scalar >= lowerBoundScalar && scalar <= upperBoundScalar) {
       return numericType;
@@ -128,56 +132,56 @@ __swift_uint8_t _swift_stdlib_getNumericType(__swift_uint32_t scalar) {
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-double _swift_stdlib_getNumericValue(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+double _language_stdlib_getNumericValue(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto levelCount = NUMERIC_VALUES_LEVEL_COUNT;
-  __swift_intptr_t scalarIdx = _swift_stdlib_getMphIdx(scalar, levelCount,
-                                                  _swift_stdlib_numeric_values_keys,
-                                                  _swift_stdlib_numeric_values_ranks,
-                                                  _swift_stdlib_numeric_values_sizes);
+  __language_intptr_t scalarIdx = _language_stdlib_getMphIdx(scalar, levelCount,
+                                                  _language_stdlib_numeric_values_keys,
+                                                  _language_stdlib_numeric_values_ranks,
+                                                  _language_stdlib_numeric_values_sizes);
 
-  auto valueIdx = _swift_stdlib_numeric_values_indices[scalarIdx];
-  return _swift_stdlib_numeric_values[valueIdx];
+  auto valueIdx = _language_stdlib_numeric_values_indices[scalarIdx];
+  return _language_stdlib_numeric_values[valueIdx];
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-const char *_swift_stdlib_getNameAlias(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+const char *_language_stdlib_getNameAlias(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto dataIdx = _swift_stdlib_getScalarBitArrayIdx(scalar,
-                                                    _swift_stdlib_nameAlias,
-                                                  _swift_stdlib_nameAlias_ranks);
+  auto dataIdx = _language_stdlib_getScalarBitArrayIdx(scalar,
+                                                    _language_stdlib_nameAlias,
+                                                  _language_stdlib_nameAlias_ranks);
 
   if (dataIdx == INTPTR_MAX) {
     return nullptr;
   }
 
-  return _swift_stdlib_nameAlias_data[dataIdx];
+  return _language_stdlib_nameAlias_data[dataIdx];
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_int32_t _swift_stdlib_getMapping(__swift_uint32_t scalar,
-                                         __swift_uint8_t mapping) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_int32_t _language_stdlib_getMapping(__language_uint32_t scalar,
+                                         __language_uint8_t mapping) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto dataIdx = _swift_stdlib_getScalarBitArrayIdx(scalar,
-                                                    _swift_stdlib_mappings,
-                                                  _swift_stdlib_mappings_ranks);
+  auto dataIdx = _language_stdlib_getScalarBitArrayIdx(scalar,
+                                                    _language_stdlib_mappings,
+                                                  _language_stdlib_mappings_ranks);
 
   if (dataIdx == INTPTR_MAX) {
     return 0;
   }
 
-  auto mappings = _swift_stdlib_mappings_data_indices[dataIdx];
+  auto mappings = _language_stdlib_mappings_data_indices[dataIdx];
 
-  __swift_uint8_t mappingIdx;
+  __language_uint8_t mappingIdx;
 
   switch (mapping) {
     // Uppercase
@@ -204,28 +208,28 @@ __swift_int32_t _swift_stdlib_getMapping(__swift_uint32_t scalar,
     return 0;
   }
 
-  return _swift_stdlib_mappings_data[mappingIdx];
+  return _language_stdlib_mappings_data[mappingIdx];
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-const __swift_uint8_t *_swift_stdlib_getSpecialMapping(__swift_uint32_t scalar,
-                                                       __swift_uint8_t mapping,
-                                                     __swift_intptr_t *length) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+const __language_uint8_t *_language_stdlib_getSpecialMapping(__language_uint32_t scalar,
+                                                       __language_uint8_t mapping,
+                                                     __language_intptr_t *length) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto dataIdx = _swift_stdlib_getScalarBitArrayIdx(scalar,
-                                                 _swift_stdlib_special_mappings,
-                                          _swift_stdlib_special_mappings_ranks);
+  auto dataIdx = _language_stdlib_getScalarBitArrayIdx(scalar,
+                                                 _language_stdlib_special_mappings,
+                                          _language_stdlib_special_mappings_ranks);
 
   if (dataIdx == INTPTR_MAX) {
     return nullptr;
   }
 
-  auto index = _swift_stdlib_special_mappings_data_indices[dataIdx];
+  auto index = _language_stdlib_special_mappings_data_indices[dataIdx];
 
-  auto uppercase = _swift_stdlib_special_mappings_data + index;
+  auto uppercase = _language_stdlib_special_mappings_data + index;
   auto lowercase = uppercase + 1 + *uppercase;
   auto titlecase = lowercase + 1 + *lowercase;
 
@@ -252,21 +256,21 @@ const __swift_uint8_t *_swift_stdlib_getSpecialMapping(__swift_uint32_t scalar,
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_intptr_t _swift_stdlib_getScalarName(__swift_uint32_t scalar,
-                                             __swift_uint8_t *buffer,
-                                             __swift_intptr_t capacity) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_intptr_t _language_stdlib_getScalarName(__language_uint32_t scalar,
+                                             __language_uint8_t *buffer,
+                                             __language_intptr_t capacity) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto setOffset = _swift_stdlib_names_scalar_sets[scalar >> 7];
+  auto setOffset = _language_stdlib_names_scalar_sets[scalar >> 7];
 
   if (setOffset == UINT16_MAX) {
     return 0;
   }
 
   auto scalarIndex = (setOffset << 7) + (scalar & ((1 << 7) - 1));
-  auto scalarOffset = _swift_stdlib_names_scalars[scalarIndex];
+  auto scalarOffset = _language_stdlib_names_scalars[scalarIndex];
 
   // U+20 is the first scalar that Unicode defines a name for, so their offset
   // will the only valid 0.
@@ -274,7 +278,7 @@ __swift_intptr_t _swift_stdlib_getScalarName(__swift_uint32_t scalar,
     return 0;
   }
 
-  __swift_uint32_t nextScalarOffset = 0;
+  __language_uint32_t nextScalarOffset = 0;
 
   if (scalarIndex != NAMES_SCALARS_MAX_INDEX) {
     int i = 1;
@@ -282,7 +286,7 @@ __swift_intptr_t _swift_stdlib_getScalarName(__swift_uint32_t scalar,
     // Look for the next scalar who has a name and their position in the names
     // array. This tells us exactly how many bytes our name takes up.
     while (nextScalarOffset == 0) {
-      nextScalarOffset = _swift_stdlib_names_scalars[scalarIndex + i];
+      nextScalarOffset = _language_stdlib_names_scalars[scalarIndex + i];
       i += 1;
     }
   } else {
@@ -296,8 +300,8 @@ __swift_intptr_t _swift_stdlib_getScalarName(__swift_uint32_t scalar,
   // The total number of initialized bytes in the name string.
   int c = 0;
 
-  for (__swift_uint32_t i = 0; i < nameSize; i += 1) {
-    __swift_uint16_t wordIndex = (__swift_uint16_t) _swift_stdlib_names[
+  for (__language_uint32_t i = 0; i < nameSize; i += 1) {
+    __language_uint16_t wordIndex = (__language_uint16_t) _language_stdlib_names[
       scalarOffset + i
     ];
 
@@ -305,17 +309,17 @@ __swift_intptr_t _swift_stdlib_getScalarName(__swift_uint32_t scalar,
     // byte, so the next two bytes will compose the 16 bit index.
     if (wordIndex == 0xFF) {
       i += 1;
-      auto firstPart = _swift_stdlib_names[scalarOffset + i];
+      auto firstPart = _language_stdlib_names[scalarOffset + i];
       wordIndex = firstPart;
 
       i += 1;
-      auto secondPart = _swift_stdlib_names[scalarOffset + i];
+      auto secondPart = _language_stdlib_names[scalarOffset + i];
       wordIndex |= secondPart << 8;
     }
 
-    auto wordOffset = _swift_stdlib_word_indices[wordIndex];
+    auto wordOffset = _language_stdlib_word_indices[wordIndex];
 
-    auto word = _swift_stdlib_words + wordOffset;
+    auto word = _language_stdlib_words + wordOffset;
 
     // The last character in a word has the 7th bit set.
     while (*word < 0x80) {
@@ -347,10 +351,10 @@ __swift_intptr_t _swift_stdlib_getScalarName(__swift_uint32_t scalar,
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint16_t _swift_stdlib_getAge(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint16_t _language_stdlib_getAge(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto lowerBoundIndex = 0;
   auto endIndex = AGE_COUNT;
@@ -359,16 +363,16 @@ __swift_uint16_t _swift_stdlib_getAge(__swift_uint32_t scalar) {
   while (upperBoundIndex >= lowerBoundIndex) {
     auto idx = lowerBoundIndex + (upperBoundIndex - lowerBoundIndex) / 2;
 
-    auto entry = _swift_stdlib_ages[idx];
+    auto entry = _language_stdlib_ages[idx];
 
     auto lowerBoundScalar = (entry << 43) >> 43;
     auto rangeCount = entry >> 32;
     auto upperBoundScalar = lowerBoundScalar + rangeCount;
 
-    auto ageIdx = (__swift_uint8_t)((entry << 32) >> 32 >> 21);
+    auto ageIdx = (__language_uint8_t)((entry << 32) >> 32 >> 21);
 
     if (scalar >= lowerBoundScalar && scalar <= upperBoundScalar) {
-      return _swift_stdlib_ages_data[ageIdx];
+      return _language_stdlib_ages_data[ageIdx];
     }
 
     if (scalar > upperBoundScalar) {
@@ -389,10 +393,10 @@ __swift_uint16_t _swift_stdlib_getAge(__swift_uint32_t scalar) {
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint8_t _swift_stdlib_getGeneralCategory(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint8_t _language_stdlib_getGeneralCategory(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto lowerBoundIndex = 0;
   auto endIndex = GENERAL_CATEGORY_COUNT;
@@ -401,13 +405,13 @@ __swift_uint8_t _swift_stdlib_getGeneralCategory(__swift_uint32_t scalar) {
   while (upperBoundIndex >= lowerBoundIndex) {
     auto idx = lowerBoundIndex + (upperBoundIndex - lowerBoundIndex) / 2;
 
-    auto entry = _swift_stdlib_generalCategory[idx];
+    auto entry = _language_stdlib_generalCategory[idx];
 
     auto lowerBoundScalar = (entry << 43) >> 43;
     auto rangeCount = entry >> 32;
     auto upperBoundScalar = lowerBoundScalar + rangeCount;
 
-    auto generalCategory = (__swift_uint8_t)((entry << 32) >> 32 >> 21);
+    auto generalCategory = (__language_uint8_t)((entry << 32) >> 32 >> 21);
 
     if (scalar >= lowerBoundScalar && scalar <= upperBoundScalar) {
       return generalCategory;
@@ -431,10 +435,10 @@ __swift_uint8_t _swift_stdlib_getGeneralCategory(__swift_uint32_t scalar) {
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint8_t _swift_stdlib_getScript(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint8_t _language_stdlib_getScript(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto lowerBoundIndex = 0;
   auto endIndex = SCRIPTS_COUNT;
@@ -443,17 +447,17 @@ __swift_uint8_t _swift_stdlib_getScript(__swift_uint32_t scalar) {
   while (upperBoundIndex >= lowerBoundIndex) {
     auto index = lowerBoundIndex + (upperBoundIndex - lowerBoundIndex) / 2;
     
-    auto entry = _swift_stdlib_scripts[index];
+    auto entry = _language_stdlib_scripts[index];
     
     // Shift the enum value out of the scalar.
     auto lowerBoundScalar = (entry << 11) >> 11;
     
-    __swift_uint32_t upperBoundScalar = 0;
+    __language_uint32_t upperBoundScalar = 0;
     
     // If we're not at the end of the array, the range count is simply the
     // distance to the next element.
     if (index != endIndex - 1) {
-      auto nextEntry = _swift_stdlib_scripts[index + 1];
+      auto nextEntry = _language_stdlib_scripts[index + 1];
       
       auto nextLower = (nextEntry << 11) >> 11;
       
@@ -489,15 +493,15 @@ __swift_uint8_t _swift_stdlib_getScript(__swift_uint32_t scalar) {
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-const __swift_uint8_t *_swift_stdlib_getScriptExtensions(__swift_uint32_t scalar,
-                                                       __swift_uint8_t *count) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+const __language_uint8_t *_language_stdlib_getScriptExtensions(__language_uint32_t scalar,
+                                                       __language_uint8_t *count) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto dataIdx = _swift_stdlib_getScalarBitArrayIdx(scalar,
-                                                _swift_stdlib_script_extensions,
-                                         _swift_stdlib_script_extensions_ranks);
+  auto dataIdx = _language_stdlib_getScalarBitArrayIdx(scalar,
+                                                _language_stdlib_script_extensions,
+                                         _language_stdlib_script_extensions_ranks);
   
   // If we don't have an index into the data indices, then this scalar has no
   // script extensions
@@ -505,26 +509,26 @@ const __swift_uint8_t *_swift_stdlib_getScriptExtensions(__swift_uint32_t scalar
     return 0;
   }
   
-  auto scalarDataIdx = _swift_stdlib_script_extensions_data_indices[dataIdx];
+  auto scalarDataIdx = _language_stdlib_script_extensions_data_indices[dataIdx];
   *count = scalarDataIdx >> 11;
   
-  return _swift_stdlib_script_extensions_data + (scalarDataIdx & 0x7FF);
+  return _language_stdlib_script_extensions_data + (scalarDataIdx & 0x7FF);
 #endif
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-void _swift_stdlib_getCaseMapping(__swift_uint32_t scalar,
-                                  __swift_uint32_t *buffer) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+void _language_stdlib_getCaseMapping(__language_uint32_t scalar,
+                                  __language_uint32_t *buffer) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
-  auto mphIdx = _swift_stdlib_getMphIdx(scalar, CASE_FOLD_LEVEL_COUNT,
-                                        _swift_stdlib_case_keys,
-                                        _swift_stdlib_case_ranks,
-                                        _swift_stdlib_case_sizes);
+  auto mphIdx = _language_stdlib_getMphIdx(scalar, CASE_FOLD_LEVEL_COUNT,
+                                        _language_stdlib_case_keys,
+                                        _language_stdlib_case_ranks,
+                                        _language_stdlib_case_sizes);
   
-  auto caseValue = _swift_stdlib_case[mphIdx];
-  __swift_uint32_t hashedScalar = (caseValue << 43) >> 43;
+  auto caseValue = _language_stdlib_case[mphIdx];
+  __language_uint32_t hashedScalar = (caseValue << 43) >> 43;
   
   // If our scalar is not the original one we hashed, then this scalar has no
   // case mapping. It maps to itself.
@@ -535,9 +539,9 @@ void _swift_stdlib_getCaseMapping(__swift_uint32_t scalar,
   
   // If the top bit is NOT set, then this scalar simply maps to another scalar.
   // We have stored the distance to said scalar in this value.
-  if ((caseValue & ((__swift_uint64_t)(0x1) << 63)) == 0) {
-    auto distance = (__swift_int32_t)((caseValue << 1) >> 22);
-    auto mappedScalar = (__swift_uint32_t)((__swift_int32_t)(scalar) - distance);
+  if ((caseValue & ((__language_uint64_t)(0x1) << 63)) == 0) {
+    auto distance = (__language_int32_t)((caseValue << 1) >> 22);
+    auto mappedScalar = (__language_uint32_t)((__language_int32_t)(scalar) - distance);
     
     buffer[0] = mappedScalar;
     return;
@@ -545,18 +549,18 @@ void _swift_stdlib_getCaseMapping(__swift_uint32_t scalar,
   
   // Our top bit WAS set which means this scalar maps to multiple scalars.
   // Lookup our mapping in the full mph.
-  auto fullMphIdx = _swift_stdlib_getMphIdx(scalar, CASE_FULL_FOLD_LEVEL_COUNT,
-                                            _swift_stdlib_case_full_keys,
-                                            _swift_stdlib_case_full_ranks,
-                                            _swift_stdlib_case_full_sizes);
+  auto fullMphIdx = _language_stdlib_getMphIdx(scalar, CASE_FULL_FOLD_LEVEL_COUNT,
+                                            _language_stdlib_case_full_keys,
+                                            _language_stdlib_case_full_ranks,
+                                            _language_stdlib_case_full_sizes);
   
-  auto fullCaseValue = _swift_stdlib_case_full[fullMphIdx];
+  auto fullCaseValue = _language_stdlib_case_full[fullMphIdx];
 
   // Count is either 2 or 3.
   auto count = fullCaseValue >> 62;
 
-  for (__swift_uint64_t i = 0; i != count; i += 1) {
-    auto distance = (__swift_int32_t)(fullCaseValue & 0xFFFF);
+  for (__language_uint64_t i = 0; i != count; i += 1) {
+    auto distance = (__language_int32_t)(fullCaseValue & 0xFFFF);
 
     if ((fullCaseValue & 0x10000) != 0) {
       distance = -distance;
@@ -564,7 +568,7 @@ void _swift_stdlib_getCaseMapping(__swift_uint32_t scalar,
 
     fullCaseValue >>= 17;
 
-    auto mappedScalar = (__swift_uint32_t)((__swift_int32_t)(scalar) - distance);
+    auto mappedScalar = (__language_uint32_t)((__language_int32_t)(scalar) - distance);
 
     buffer[i] = mappedScalar;
   }

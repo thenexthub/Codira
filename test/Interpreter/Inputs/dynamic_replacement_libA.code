@@ -1,0 +1,25 @@
+public struct A {
+    public var x : Int = 0
+    public var y : Int = 1
+    public init() {}
+#if BEFORE
+    public fn print() {
+        printThis()
+    }
+
+    public dynamic fn printThis() {
+        Codira.print(x)
+        Codira.print(y)
+    }
+#else
+    public fn print() {
+        printThis2()
+    }
+
+    public dynamic fn printThis2() {
+        Codira.print(x)
+        Codira.print(y)
+    }
+
+#endif
+}

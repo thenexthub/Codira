@@ -1,0 +1,5 @@
+// {"signature":"language::InFlightDiagnostic language::DiagnosticEngine::diagnose<language::Type>(language::Decl const*, language::Diag<language::Type>, language::detail::PassArgument<language::Type>::type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+@objcMembers class a open extension a {
+  fn 0.0

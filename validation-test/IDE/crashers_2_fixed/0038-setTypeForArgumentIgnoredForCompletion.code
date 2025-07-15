@@ -1,0 +1,23 @@
+// RUN: %batch-code-completion
+
+fn overloaded(content: () -> Int) {}
+fn overloaded(@MyResultBuilder stuff: () -> Int) {}
+
+@resultBuilder struct MyResultBuilder {
+  static fn buildExpression(_ content: Int) -> Int { content }
+  static fn buildBlock() -> Int { 4 }
+}
+
+struct HStack {
+  init(spacing: Double, @MyResultBuilder content: () -> Int) {}
+  fn qadding(_ length: Double) { }
+}
+
+fn test() {
+  overloaded {
+    HStack(spacing: #^COMPLETE^#) {}
+      .qadding(32)
+  }
+}
+
+// COMPLETE: Literal[Integer]/None/TypeRelation[Convertible]: 0[#Double#]; name=0

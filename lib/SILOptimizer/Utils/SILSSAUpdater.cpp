@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
@@ -24,10 +25,10 @@
 #include "language/SIL/SILUndef.h"
 #include "language/SIL/Test.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Transforms/Utils/SSAUpdaterImpl.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Transforms/Utils/SSAUpdaterImpl.h"
 
 using namespace language;
 
@@ -79,7 +80,7 @@ SILValue SILSSAUpdater::getValueAtEndOfBlock(SILBasicBlock *block) {
 
 /// Are all available values identicalTo each other.
 static bool
-areIdentical(llvm::DenseMap<SILBasicBlock *, SILValue> &availableValues) {
+areIdentical(toolchain::DenseMap<SILBasicBlock *, SILValue> &availableValues) {
   if (auto *firstInst =
           dyn_cast<SingleValueInstruction>(availableValues.begin()->second)) {
     for (auto value : availableValues) {
@@ -145,7 +146,7 @@ void SILSSAUpdater::rewriteUse(Operand &use) {
     return;
   } else if (auto *ili = dyn_cast<IntegerLiteralInst>(use.get()))
     if (areIdentical(*blockToAvailableValueMap)) {
-      // Some llvm intrinsics don't like phi nodes as their constant inputs (e.g
+      // Some toolchain intrinsics don't like phi nodes as their constant inputs (e.g
       // ctlz).
       SILInstruction *user = use.getUser();
       use.set(cast<IntegerLiteralInst>(ili->clone(user)));
@@ -180,14 +181,14 @@ static OperandValueArrayRef getEdgeValuesForTerminator(TermInst *ti,
 
   // We need a predecessor who is capable of holding outgoing branch
   // arguments.
-  llvm_unreachable("Unrecognized terminator leading to phi block");
+  toolchain_unreachable("Unrecognized terminator leading to phi block");
 }
 
 /// Check that the argument has the same incoming edge values as the value
 /// map.
 static bool
 isEquivalentPHI(SILPhiArgument *phi,
-                llvm::SmallDenseMap<SILBasicBlock *, SILValue, 8> &valueMap) {
+                toolchain::SmallDenseMap<SILBasicBlock *, SILValue, 8> &valueMap) {
   SILBasicBlock *phiBlock = phi->getParent();
   size_t phiArgEdgeIndex = phi->getIndex();
   for (auto *predBlock : phiBlock->getPredecessorBlocks()) {
@@ -235,7 +236,7 @@ SILValue SILSSAUpdater::getValueInMiddleOfBlock(SILBasicBlock *block) {
 
   // Check if we already have an equivalent phi.
   if (!block->getArguments().empty()) {
-    llvm::SmallDenseMap<SILBasicBlock *, SILValue, 8> valueMap(predVals.begin(),
+    toolchain::SmallDenseMap<SILBasicBlock *, SILValue, 8> valueMap(predVals.begin(),
                                                                predVals.end());
     for (auto *arg : block->getSILPhiArguments()) {
       if (arg->isPhi() && isEquivalentPHI(arg, valueMap))
@@ -259,7 +260,7 @@ SILValue SILSSAUpdater::getValueInMiddleOfBlock(SILBasicBlock *block) {
   return phiArg;
 }
 
-namespace llvm {
+namespace toolchain {
 
 /// Traits for the SSAUpdaterImpl specialized for SIL and the SILSSAUpdater.
 template <>
@@ -326,7 +327,7 @@ public:
   static void
   FindPredecessorBlocks(SILBasicBlock *block,
                         SmallVectorImpl<SILBasicBlock *> *predBlocks) {
-    llvm::copy(block->getPredecessorBlocks(), std::back_inserter(*predBlocks));
+    toolchain::copy(block->getPredecessorBlocks(), std::back_inserter(*predBlocks));
   }
 
   static SILValue GetPoisonVal(SILBasicBlock *block, SILSSAUpdater *ssaUpdater) {
@@ -405,7 +406,7 @@ public:
   static SILValue GetPHIValue(SILPhiArgument *phi) { return phi; }
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 /// Check to see if AvailableVals has an entry for the specified BB and if so,
 /// return it.  If not, construct SSA form by first calculating the required
@@ -416,7 +417,7 @@ SILValue SILSSAUpdater::getValueAtEndOfBlockInternal(SILBasicBlock *block) {
   if (iter != availableValues.end())
     return iter->second;
 
-  llvm::SSAUpdaterImpl<SILSSAUpdater> impl(this, &availableValues,
+  toolchain::SSAUpdaterImpl<SILSSAUpdater> impl(this, &availableValues,
                                            insertedPhis);
   return impl.GetValue(block);
 }
@@ -435,7 +436,7 @@ UseWrapper::UseWrapper(Operand *inputUse) {
 
   // Direct branch user.
   if (auto *br = dyn_cast<BranchInst>(user)) {
-    for (auto pair : llvm::enumerate(user->getAllOperands())) {
+    for (auto pair : toolchain::enumerate(user->getAllOperands())) {
       if (inputUse == &pair.value()) {
         index = pair.index();
         type = kBranchUse;
@@ -449,7 +450,7 @@ UseWrapper::UseWrapper(Operand *inputUse) {
   if (auto *cbi = dyn_cast<CondBranchInst>(user)) {
     auto operands = user->getAllOperands();
     auto numTrueArgs = cbi->getTrueArgs().size();
-    for (auto pair : llvm::enumerate(operands)) {
+    for (auto pair : toolchain::enumerate(operands)) {
       if (inputUse == &pair.value()) {
         unsigned i = pair.index();
         // We treat the condition as part of the true args.
@@ -494,7 +495,7 @@ Operand *UseWrapper::getOperand() {
   }
   }
 
-  llvm_unreachable("uninitialize use type");
+  toolchain_unreachable("uninitialize use type");
 }
 
 namespace language::test {

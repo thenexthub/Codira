@@ -23,15 +23,15 @@ function(gyb_expand source output)
   endforeach()
   list(REMOVE_DUPLICATES gyb_expand_deps)
 
-  set(utils_dir "${SwiftOverlay_SWIFTC_SOURCE_DIR}/utils/")
+  set(utils_dir "${CodiraOverlay_LANGUAGEC_SOURCE_DIR}/utils/")
   set(gyb_tool "${utils_dir}/gyb")
 
   # All the tidbits to track for changes
   list(APPEND GYB_DEPENDS
     "${source}"
     "${utils_dir}/GYBUnicodeDataUtils.py"
-    "${utils_dir}/SwiftIntTypes.py"
-    "${utils_dir}/SwiftFloatingPointTypes.py"
+    "${utils_dir}/CodiraIntTypes.py"
+    "${utils_dir}/CodiraFloatingPointTypes.py"
     "${utils_dir}/UnicodeData/GraphemeBreakProperty.txt"
     "${utils_dir}/UnicodeData/GraphemeBreakTest.txt"
     "${utils_dir}/gyb_stdlib_support.py")

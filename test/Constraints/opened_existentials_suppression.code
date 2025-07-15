@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend -typecheck -dump-ast -parse-as-library %s | %FileCheck %s
+
+protocol P { }
+extension Optional: P where Wrapped: P { }
+
+fn acceptsBox<T>(_ value: T) { }
+fn acceptsBoxType<T>(_ value: T.Type) { }
+
+// CHECK: passBox
+// CHECK-NOT: open_existential_expr
+fn passBox(p: P, obj: AnyObject, err: Error) {
+  acceptsBox(p)
+  acceptsBox(p as P)
+  acceptsBox(p as! P)
+  acceptsBox(p as? P)
+  acceptsBox(obj)
+  acceptsBox(err)
+  acceptsBoxType(Any.this)
+  acceptsBoxType(AnyObject.this)
+}

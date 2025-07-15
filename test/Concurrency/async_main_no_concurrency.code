@@ -1,0 +1,8 @@
+// RUN: %target-typecheck-verify-language -parse-as-library -target %target-language-5.1-abi-triple -disable-implicit-concurrency-module-import
+// RUN: %target-typecheck-verify-language -parse-as-library -target %target-language-5.1-abi-triple -parse-stdlib
+
+@main struct Main {
+  // expected-error@+1:22{{'_Concurrency' module not imported, required for async main}}
+  static fn main() async {
+  }
+}

@@ -1,0 +1,47 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+protocol P {
+  fn doSomething()
+
+  typealias Y
+  fn doSomething2(Y)
+}
+
+protocol P2 : P {
+  fn doSomething3()
+}
+
+struct X {}
+
+class B<T> : P2 {
+  fn doSomething() { }
+
+  typealias Y = T
+
+  fn doSomething2<T2>(t : T) { }
+
+  fn doSomething3() { }
+}
+
+fn DoSomething<T : P, T2 where T2 == T.Y>(t : T, t2 : T2) {
+  t.doSomething()
+  t.doSomething2(t2)
+}
+
+fn DoSomething2(p : P) {
+  p.doSomething()
+}
+
+fn DoSomething3<T : P2>(t : T) {
+  t.doSomething3()
+}
+
+fn DoSomething3(p2 : P2) {
+  p2.doSomething3()
+}
+
+var b = B<X>()
+var x = X()
+DoSomething(b, t2: x)
+DoSomething2(b)
+DoSomething3(b)

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_DIAGNOSTIC_ARGUMENT_H
-#define SWIFT_AST_DIAGNOSTIC_ARGUMENT_H
+#ifndef LANGUAGE_AST_DIAGNOSTIC_ARGUMENT_H
+#define LANGUAGE_AST_DIAGNOSTIC_ARGUMENT_H
 
 #include "language/AST/ActorIsolation.h"
 #include "language/AST/AvailabilityDomain.h"
@@ -23,7 +24,7 @@
 #include "language/AST/LayoutConstraint.h"
 #include "language/AST/TypeLoc.h"
 #include "language/Basic/Version.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/Support/VersionTuple.h"
 
 namespace clang {
 class NamedDecl;
@@ -128,7 +129,7 @@ class DiagnosticArgument {
     const TypeAttribute *TypeAttributeVal;
     AvailabilityDomain AvailabilityDomainVal;
     AvailabilityRange AvailabilityRangeVal;
-    llvm::VersionTuple VersionVal;
+    toolchain::VersionTuple VersionVal;
     LayoutConstraint LayoutConstraintVal;
     ActorIsolation ActorIsolationVal;
     IsolationSource IsolationSourceVal;
@@ -162,7 +163,7 @@ public:
   DiagnosticArgument(const TypeAttribute *attr);
   DiagnosticArgument(const AvailabilityDomain domain);
   DiagnosticArgument(const AvailabilityRange &range);
-  DiagnosticArgument(llvm::VersionTuple version);
+  DiagnosticArgument(toolchain::VersionTuple version);
   DiagnosticArgument(LayoutConstraint L);
   DiagnosticArgument(ActorIsolation AI);
   DiagnosticArgument(IsolationSource IS);
@@ -202,7 +203,7 @@ public:
   const TypeAttribute *getAsTypeAttribute() const;
   const AvailabilityDomain getAsAvailabilityDomain() const;
   const AvailabilityRange getAsAvailabilityRange() const;
-  llvm::VersionTuple getAsVersionTuple() const;
+  toolchain::VersionTuple getAsVersionTuple() const;
   LayoutConstraint getAsLayoutConstraint() const;
   ActorIsolation getAsActorIsolation() const;
   IsolationSource getAsIsolationSource() const;
@@ -213,4 +214,4 @@ public:
 
 } // namespace language
 
-#endif /* SWIFT_AST_DIAGNOSTIC_ARGUMENT_H */
+#endif /* LANGUAGE_AST_DIAGNOSTIC_ARGUMENT_H */

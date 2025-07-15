@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implementations of the stub APIs that make portable runtime easier to write.
@@ -20,7 +21,7 @@
 #include "language/Runtime/Portability.h"
 #include <cstring>
 
-size_t _swift_strlcpy(char *dst, const char *src, size_t maxlen) {
+size_t _language_strlcpy(char *dst, const char *src, size_t maxlen) {
   const size_t srclen = std::strlen(src);
   if (srclen < maxlen) {
     std::memmove(dst, src, srclen + 1);

@@ -1,0 +1,79 @@
+//===--- SimplifyTuple.code ---------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension TupleInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+
+    // Eliminate the redundant instruction pair
+    // ```
+    //   (%3, %4, %5) = destructure_tuple %input
+    //   %output = tuple (%3, %4, %5)
+    // ```
+    // and replace the result %output with %input
+    //
+    var destructure: DestructureTupleInst?
+    for operand in operands {
+      guard immutable def = operand.value.definingInstruction as? DestructureTupleInst else {
+        return
+      }
+      guard immutable destructure else {
+        destructure = def
+        continue
+      }
+      if destructure != def {
+        return
+      }
+    }
+    guard immutable destructure else {
+      return
+    }
+    guard destructure.operand.value.type == type else {
+      return
+    }
+    // The destructure's operand having the same type as the tuple ensures that
+    // the count of results of the destructure is equal to the count of operands
+    // of the tuple.
+    assert(destructure.results.count == operands.count)
+    for (result, operand) in zip(destructure.results, operands) {
+      if result != operand.value {
+        return
+      }
+    }
+    tryReplaceDestructConstructPair(destruct: destructure, construct: this, context)
+  }
+}
+
+private fn tryReplaceDestructConstructPair(destruct: MultipleValueInstruction & UnaryInstruction,
+                                             construct: SingleValueInstruction,
+                                             _ context: SimplifyContext) {
+  immutable everyResultUsedOnce = context.preserveDebugInfo
+                    ? destruct.results.allSatisfy { $0.uses.singleUse != nil }
+                    : destruct.results.allSatisfy { $0.uses.ignoreDebugUses.singleUse != nil }
+  immutable anyOwned = destruct.results.contains { $0.ownership == .owned }
+
+  if !everyResultUsedOnce && construct.parentFunction.hasOwnership && anyOwned {
+    // We cannot add more uses to this destructure without inserting a copy.
+    return
+  }
+
+  construct.uses.replaceAll(with: destruct.operand.value, context)
+
+  if everyResultUsedOnce {
+    context.erase(instructionIncludingDebugUses: construct)
+  }
+}

@@ -1,4 +1,4 @@
-//===--- DictTest.swift ---------------------------------------------------===//
+//===--- DictTest.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "Dictionary", runFunction: run_Dictionary,
     tags: [.validation, .api, .Dictionary],
     setUpFunction: { blackHole(half) },
@@ -28,7 +29,7 @@ public let benchmarks = [
     legacyFactor: 5),
 ]
 
-let text = [
+immutable text = [
     // Text from http://en.wikipedia.org/wiki/Hash_table
     "hash", "table",
       "in", "computing", "a", "hash", "table", "also", "hash", "map", "is",
@@ -127,17 +128,17 @@ let text = [
   ]
 
 // Fill the dictionary with words from the first half of the text
-let half: Dictionary<String, Bool> = {
+immutable half: Dictionary<String, Bool> = {
   var dict: Dictionary<String, Bool> = [:]
   for i in 0 ..< text.count/2 {
-    let word = text[i]
+    immutable word = text[i]
     dict[word] = true
   }
   return dict
 }()
 
 @inline(never)
-public func run_Dictionary(n: Int) {
+public fn run_Dictionary(n: Int) {
   var dict: Dictionary<String, Bool> = [:]
 
   // Check performance of filling the dictionary:
@@ -170,27 +171,27 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
 // Fill the dictionary with words from the first half of the text
-let halfObjects: Dictionary<Box<String>, Box<Bool>> = {
+immutable halfObjects: Dictionary<Box<String>, Box<Bool>> = {
   var dict: Dictionary<Box<String>, Box<Bool>> = [:]
   for i in 0 ..< text.count/2 {
-    let word = text[i]
+    immutable word = text[i]
     dict[Box(word)] = Box(true)
   }
   return dict
 }()
 
 @inline(never)
-public func run_DictionaryOfObjects(n: Int) {
+public fn run_DictionaryOfObjects(n: Int) {
   var dict: Dictionary<Box<String>, Box<Bool>> = [:]
 
   // Check performance of filling the dictionary:

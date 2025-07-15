@@ -1,4 +1,4 @@
-//===--- Overrides.cpp - Compat override table for Swift 5.1 runtime ------===//
+//===--- Overrides.cpp - Compat override table for Codira 5.1 runtime ------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file provides compatibility override hooks for Swift 5.1 runtimes.
+//  This file provides compatibility override hooks for Codira 5.1 runtimes.
 //
 //===----------------------------------------------------------------------===//
 
@@ -35,14 +36,14 @@ struct OverrideSection {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-designated-field-initializers"
-OverrideSection Swift51Overrides
-__attribute__((used, section("__DATA,__swift51_hooks"))) = {
+OverrideSection Codira51Overrides
+__attribute__((used, section("__DATA,__language51_hooks"))) = {
   .version = 0,
-  .conformsToSwiftProtocol = swift51override_conformsToSwiftProtocol,
+  .conformsToCodiraProtocol = language51override_conformsToCodiraProtocol,
 };
 #pragma clang diagnostic pop
 
 // Allow this library to get force-loaded by autolinking
 __attribute__((weak, visibility("hidden")))
 extern "C"
-char _swift_FORCE_LOAD_$_swiftCompatibility51 = 0;
+char _language_FORCE_LOAD_$_languageCompatibility51 = 0;

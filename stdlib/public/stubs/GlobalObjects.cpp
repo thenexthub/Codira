@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Objects that are allocated at global scope instead of on the heap,
@@ -27,36 +28,36 @@
 #include <stdlib.h>
 
 namespace language {
-// FIXME(ABI)#76 : does this declaration need SWIFT_RUNTIME_STDLIB_API?
-// _direct type metadata for Swift.__EmptyArrayStorage
-SWIFT_RUNTIME_STDLIB_API
+// FIXME(ABI)#76 : does this declaration need LANGUAGE_RUNTIME_STDLIB_API?
+// _direct type metadata for Codira.__EmptyArrayStorage
+LANGUAGE_RUNTIME_STDLIB_API
 ClassMetadata CLASS_METADATA_SYM(s19__EmptyArrayStorage);
 
-// _direct type metadata for Swift.__EmptyDictionarySingleton
-SWIFT_RUNTIME_STDLIB_API
+// _direct type metadata for Codira.__EmptyDictionarySingleton
+LANGUAGE_RUNTIME_STDLIB_API
 ClassMetadata CLASS_METADATA_SYM(s26__EmptyDictionarySingleton);
 
-// _direct type metadata for Swift.__EmptySetSingleton
-SWIFT_RUNTIME_STDLIB_API
+// _direct type metadata for Codira.__EmptySetSingleton
+LANGUAGE_RUNTIME_STDLIB_API
 ClassMetadata CLASS_METADATA_SYM(s19__EmptySetSingleton);
 } // namespace language
 
-SWIFT_RUNTIME_STDLIB_API
-swift::_SwiftEmptyArrayStorage swift::_swiftEmptyArrayStorage = {
+LANGUAGE_RUNTIME_STDLIB_API
+language::_CodiraEmptyArrayStorage language::_languageEmptyArrayStorage = {
   // HeapObject header;
   {
-    &swift::CLASS_METADATA_SYM(s19__EmptyArrayStorage), // isa pointer
+    &language::CLASS_METADATA_SYM(s19__EmptyArrayStorage), // isa pointer
     InlineRefCounts::Immortal
   },
   
-  // _SwiftArrayBodyStorage body;
+  // _CodiraArrayBodyStorage body;
   {
     0, // int count;                                    
     1  // unsigned int _capacityAndFlags; 1 means elementTypeIsBridgedVerbatim
   }
 };
 
-// Define `__swiftImmortalRefCount` which is used by constant static arrays.
+// Define `__languageImmortalRefCount` which is used by constant static arrays.
 // It is the bit pattern for the ref-count field of the array buffer.
 //
 // TODO: Support constant static arrays on other platforms, too.
@@ -64,23 +65,23 @@ swift::_SwiftEmptyArrayStorage swift::_swiftEmptyArrayStorage = {
 // symbol aliases don't work this way with other object file formats than Mach-O.
 #if defined(__APPLE__)
 
-__asm__("  .globl __swiftImmortalRefCount\n");
+__asm__("  .globl __languageImmortalRefCount\n");
 
 #if __POINTER_WIDTH__ == 64
 
   // TODO: is there a way to avoid hard coding this constant in the inline
   //       assembly string?
-  static_assert(swift::InlineRefCountBits::immortalBits() == 0x80000004ffffffffull,
+  static_assert(language::InlineRefCountBits::immortalBits() == 0x80000004ffffffffull,
                 "immortal refcount bits changed: correct the inline asm below");
-  __asm__(".set __swiftImmortalRefCount, 0x80000004ffffffff\n");
+  __asm__(".set __languageImmortalRefCount, 0x80000004ffffffff\n");
 
 #elif __POINTER_WIDTH__ == 32
 
   // TODO: is there a way to avoid hard coding this constant in the inline
   //       assembly string?
-  static_assert(swift::InlineRefCountBits::immortalBits() == 0x800004fful,
+  static_assert(language::InlineRefCountBits::immortalBits() == 0x800004fful,
                 "immortal refcount bits changed: correct the inline asm below");
-  __asm__(".set __swiftImmortalRefCount, 0x800004ff\n");
+  __asm__(".set __languageImmortalRefCount, 0x800004ff\n");
 
 #else
   #error("unsupported pointer width")
@@ -88,15 +89,15 @@ __asm__("  .globl __swiftImmortalRefCount\n");
 
 #endif
 
-SWIFT_RUNTIME_STDLIB_API
-swift::_SwiftEmptyDictionarySingleton swift::_swiftEmptyDictionarySingleton = {
+LANGUAGE_RUNTIME_STDLIB_API
+language::_CodiraEmptyDictionarySingleton language::_languageEmptyDictionarySingleton = {
   // HeapObject header;
   {
-    &swift::CLASS_METADATA_SYM(s26__EmptyDictionarySingleton), // isa pointer
+    &language::CLASS_METADATA_SYM(s26__EmptyDictionarySingleton), // isa pointer
     InlineRefCounts::Immortal
   },
   
-  // _SwiftDictionaryBodyStorage body;
+  // _CodiraDictionaryBodyStorage body;
   {
     // Setting the scale to 0 makes for a bucketCount of 1 -- so that the
     // storage consists of a single unoccupied bucket. The capacity is set to
@@ -113,18 +114,18 @@ swift::_SwiftEmptyDictionarySingleton swift::_swiftEmptyDictionarySingleton = {
   },
 
   // bucket 0 is unoccupied; other buckets are out-of-bounds
-  static_cast<__swift_uintptr_t>(~1) // int metadata; 
+  static_cast<__language_uintptr_t>(~1) // int metadata; 
 };
 
-SWIFT_RUNTIME_STDLIB_API
-swift::_SwiftEmptySetSingleton swift::_swiftEmptySetSingleton = {
+LANGUAGE_RUNTIME_STDLIB_API
+language::_CodiraEmptySetSingleton language::_languageEmptySetSingleton = {
   // HeapObject header;
   {
-    &swift::CLASS_METADATA_SYM(s19__EmptySetSingleton), // isa pointer
+    &language::CLASS_METADATA_SYM(s19__EmptySetSingleton), // isa pointer
     InlineRefCounts::Immortal
   },
   
-  // _SwiftSetBodyStorage body;
+  // _CodiraSetBodyStorage body;
   {
     // Setting the scale to 0 makes for a bucketCount of 1 -- so that the
     // storage consists of a single unoccupied bucket. The capacity is set to
@@ -140,32 +141,32 @@ swift::_SwiftEmptySetSingleton swift::_swiftEmptySetSingleton = {
   },
 
   // bucket 0 is unoccupied; other buckets are out-of-bounds
-  static_cast<__swift_uintptr_t>(~1) // int metadata;
+  static_cast<__language_uintptr_t>(~1) // int metadata;
 };
 
-static swift::_SwiftHashingParameters initializeHashingParameters() {
-  // Setting the environment variable SWIFT_DETERMINISTIC_HASHING to "1"
+static language::_CodiraHashingParameters initializeHashingParameters() {
+  // Setting the environment variable LANGUAGE_DETERMINISTIC_HASHING to "1"
   // disables randomized hash seeding. This is useful in cases we need to ensure
   // results are repeatable, e.g., in certain test environments.  (Note that
   // even if the seed override is enabled, hash values aren't guaranteed to
   // remain stable across even minor stdlib releases.)
-  if (swift::runtime::environment::SWIFT_DETERMINISTIC_HASHING()) {
+  if (language::runtime::environment::LANGUAGE_DETERMINISTIC_HASHING()) {
     return { 0, 0, true };
   }
-  __swift_uint64_t seed0 = 0, seed1 = 0;
-  swift_stdlib_random(&seed0, sizeof(seed0));
-  swift_stdlib_random(&seed1, sizeof(seed1));
+  __language_uint64_t seed0 = 0, seed1 = 0;
+  language_stdlib_random(&seed0, sizeof(seed0));
+  language_stdlib_random(&seed1, sizeof(seed1));
   return { seed0, seed1, false };
 }
 
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
-swift::_SwiftHashingParameters swift::_swift_stdlib_Hashing_parameters =
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
+language::_CodiraHashingParameters language::_language_stdlib_Hashing_parameters =
   initializeHashingParameters();
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_END
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_END
 
 
-SWIFT_RUNTIME_STDLIB_API
-void swift::_swift_instantiateInertHeapObject(void *address,
+LANGUAGE_RUNTIME_STDLIB_API
+void language::_language_instantiateInertHeapObject(void *address,
                                               const HeapMetadata *metadata) {
   ::new (address) HeapObject{metadata};
 }

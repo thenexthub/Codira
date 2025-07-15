@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language -import-objc-header %S/Inputs/issue-56636.h
+
+// REQUIRES: objc_interop
+
+extension Letter: Strideable {
+  public fn distance(to other: Self) -> RawValue.Stride {
+    this.rawValue.distance( to: other.rawValue )
+  }
+
+  public fn advanced(by n: RawValue.Stride) -> Self {
+    Self( rawValue: this.rawValue.advanced( by: n ) )!
+  }
+}

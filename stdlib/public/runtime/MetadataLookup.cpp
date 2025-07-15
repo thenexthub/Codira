@@ -1,4 +1,4 @@
-//===--- MetadataLookup.cpp - Swift Language Type Name Lookup -------------===//
+//===--- MetadataLookup.cpp - Codira Language Type Name Lookup -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implementations of runtime functions for looking up a type by name.
@@ -36,11 +37,11 @@
 #include "language/Runtime/Metadata.h"
 #include "language/Strings.h"
 #include "language/Threading/Mutex.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/StringExtras.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/StringExtras.h"
 #include <cctype>
 #include <cstring>
 #include <functional>
@@ -53,7 +54,7 @@ using namespace language;
 using namespace Demangle;
 using namespace reflection;
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include <objc/runtime.h>
 #include <objc/message.h>
 #include <objc/objc.h>
@@ -114,10 +115,10 @@ static uintptr_t resolveSymbolicReferenceOffset(SymbolicReferenceKind kind,
     case SymbolicReferenceKind::UniqueExtendedExistentialTypeShape:
     case SymbolicReferenceKind::NonUniqueExtendedExistentialTypeShape:
     case SymbolicReferenceKind::AccessorFunctionReference: {
-      swift_unreachable("should not be indirectly referenced");
+      language_unreachable("should not be indirectly referenced");
     }
     }
-    swift_unreachable("unknown symbolic reference kind");
+    language_unreachable("unknown symbolic reference kind");
   } else {
     return ptr;
   }
@@ -130,7 +131,7 @@ ResolveAsSymbolicReference::operator()(SymbolicReferenceKind kind,
                                        const void *base) {
   // Resolve the absolute pointer to the entity being referenced.
   auto ptr = resolveSymbolicReferenceOffset(kind, isIndirect, offset, base);
-  if (SWIFT_UNLIKELY(!ptr)) {
+  if (LANGUAGE_UNLIKELY(!ptr)) {
     auto symInfo = SymbolInfo::lookup(base);
     const char *fileName = "<unknown>";
     const char *symbolName = "<unknown>";
@@ -141,7 +142,7 @@ ResolveAsSymbolicReference::operator()(SymbolicReferenceKind kind,
         symbolName = symInfo->getSymbolName();
     }
     uintptr_t ptrLocation = detail::applyRelativeOffset(base, offset);
-    swift::fatalError(
+    language::fatalError(
         0,
         "Failed to look up symbolic reference at %p - offset %" PRId32
         " - symbol %s in %s - pointer at %#" PRIxPTR
@@ -184,7 +185,7 @@ ResolveAsSymbolicReference::operator()(SymbolicReferenceKind kind,
     // invoke the function to resolve the thing they're trying to access.
     nodeKind = Node::Kind::AccessorFunctionReference;
     isType = false;
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     // The pointer refers to an accessor function, which we need to sign.
     ptr = (uintptr_t)ptrauth_sign_unauthenticated((void*)ptr,
       ptrauth_key_function_pointer, 0);
@@ -194,7 +195,7 @@ ResolveAsSymbolicReference::operator()(SymbolicReferenceKind kind,
   case Demangle::SymbolicReferenceKind::UniqueExtendedExistentialTypeShape:
     nodeKind = Node::Kind::UniqueExtendedExistentialTypeShapeSymbolicReference;
     isType = false;
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     ptr = (uintptr_t)ptrauth_sign_unauthenticated((void*)ptr,
       ptrauth_key_process_independent_data,
       SpecialPointerAuthDiscriminators::ExtendedExistentialTypeShape);
@@ -203,7 +204,7 @@ ResolveAsSymbolicReference::operator()(SymbolicReferenceKind kind,
   case Demangle::SymbolicReferenceKind::NonUniqueExtendedExistentialTypeShape:
     nodeKind = Node::Kind::NonUniqueExtendedExistentialTypeShapeSymbolicReference;
     isType = false;
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     ptr = (uintptr_t)ptrauth_sign_unauthenticated((void*)ptr,
       ptrauth_key_process_independent_data,
       SpecialPointerAuthDiscriminators::NonUniqueExtendedExistentialTypeShape);
@@ -234,7 +235,7 @@ _buildDemanglingForSymbolicReference(SymbolicReferenceKind kind,
         (const ContextDescriptor *)resolvedReference, {}, Dem);
 
   case SymbolicReferenceKind::AccessorFunctionReference:
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     // The pointer refers to an accessor function, which we need to sign.
     resolvedReference = ptrauth_sign_unauthenticated(resolvedReference,
       ptrauth_key_function_pointer, 0);
@@ -243,7 +244,7 @@ _buildDemanglingForSymbolicReference(SymbolicReferenceKind kind,
                           (uintptr_t)resolvedReference);
 
   case SymbolicReferenceKind::UniqueExtendedExistentialTypeShape:
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     resolvedReference = ptrauth_sign_unauthenticated(resolvedReference,
       ptrauth_key_process_independent_data,
       SpecialPointerAuthDiscriminators::ExtendedExistentialTypeShape);
@@ -252,7 +253,7 @@ _buildDemanglingForSymbolicReference(SymbolicReferenceKind kind,
                           (uintptr_t)resolvedReference);
 
   case SymbolicReferenceKind::NonUniqueExtendedExistentialTypeShape:
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     // The pointer refers to an accessor function, which we need to sign.
     resolvedReference = ptrauth_sign_unauthenticated(resolvedReference,
       ptrauth_key_process_independent_data,
@@ -265,7 +266,7 @@ _buildDemanglingForSymbolicReference(SymbolicReferenceKind kind,
                           (uintptr_t)resolvedReference);
   }
 
-  swift_unreachable("invalid symbolic reference kind");
+  language_unreachable("invalid symbolic reference kind");
 }
   
 NodePointer
@@ -305,7 +306,7 @@ namespace {
     const ContextDescriptor *Description;
 
   public:
-    NominalTypeDescriptorCacheEntry(const llvm::StringRef name,
+    NominalTypeDescriptorCacheEntry(const toolchain::StringRef name,
                                     const ContextDescriptor *description)
         : Description(description) {
       char *nameCopy = reinterpret_cast<char *>(malloc(name.size()));
@@ -316,13 +317,13 @@ namespace {
 
     const ContextDescriptor *getDescription() const { return Description; }
 
-    bool matchesKey(llvm::StringRef aName) {
-      return aName == llvm::StringRef{Name, NameLength};
+    bool matchesKey(toolchain::StringRef aName) {
+      return aName == toolchain::StringRef{Name, NameLength};
     }
 
-    friend llvm::hash_code
+    friend toolchain::hash_code
     hash_value(const NominalTypeDescriptorCacheEntry &value) {
-      return hash_value(llvm::StringRef{value.Name, value.NameLength});
+      return hash_value(toolchain::StringRef{value.Name, value.NameLength});
     }
 
     template <class... T>
@@ -332,7 +333,7 @@ namespace {
   };
 } // end anonymous namespace
 
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
 struct SharedCacheInfoState {
   uintptr_t dyldSharedCacheStart;
   uintptr_t dyldSharedCacheEnd;
@@ -357,7 +358,7 @@ struct TypeMetadataPrivateState {
   ConcurrentReadableHashMap<NominalTypeDescriptorCacheEntry> NominalCache;
   ConcurrentReadableArray<TypeMetadataSection> SectionsToScan;
 
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
   ConcurrentReadableArray<TypeMetadataSection> SharedCacheSectionsToScan;
 #endif
 
@@ -372,7 +373,7 @@ static void
 _registerTypeMetadataRecords(TypeMetadataPrivateState &T,
                              const TypeMetadataRecord *begin,
                              const TypeMetadataRecord *end) {
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
   if (SharedCacheInfo.get().inSharedCache(begin)) {
     T.SharedCacheSectionsToScan.push_back(TypeMetadataSection{begin, end});
     return;
@@ -381,7 +382,7 @@ _registerTypeMetadataRecords(TypeMetadataPrivateState &T,
   T.SectionsToScan.push_back(TypeMetadataSection{begin, end});
 }
 
-void swift::addImageTypeMetadataRecordBlockCallbackUnsafe(
+void language::addImageTypeMetadataRecordBlockCallbackUnsafe(
     const void *baseAddress,
     const void *records, uintptr_t recordsSize) {
   assert(recordsSize % sizeof(TypeMetadataRecord) == 0
@@ -404,7 +405,7 @@ void swift::addImageTypeMetadataRecordBlockCallbackUnsafe(
                                recordsBegin, recordsEnd);
 }
 
-void swift::addImageTypeMetadataRecordBlockCallback(const void *baseAddress,
+void language::addImageTypeMetadataRecordBlockCallback(const void *baseAddress,
                                                     const void *records,
                                                     uintptr_t recordsSize) {
   TypeMetadataRecords.get();
@@ -413,7 +414,7 @@ void swift::addImageTypeMetadataRecordBlockCallback(const void *baseAddress,
 }
 
 void
-swift::swift_registerTypeMetadataRecords(const TypeMetadataRecord *begin,
+language::language_registerTypeMetadataRecords(const TypeMetadataRecord *begin,
                                          const TypeMetadataRecord *end) {
   auto &T = TypeMetadataRecords.get();
   _registerTypeMetadataRecords(T, begin, end);
@@ -494,7 +495,7 @@ _findExtendedTypeContextDescriptor(const ContextDescriptor *maybeExtension,
 ///
 /// This should be kept in sync with the AST mangler and with
 /// buildContextDescriptorMangling in MetadataReader.
-bool swift::_isCImportedTagType(const TypeContextDescriptor *type,
+bool language::_isCImportedTagType(const TypeContextDescriptor *type,
                                 const ParsedTypeIdentity &identity) {
   // Tag types are always imported as structs or enums.
   if (type->getKind() != ContextDescriptorKind::Enum &&
@@ -596,7 +597,7 @@ ParsedTypeIdentity::parse(const TypeContextDescriptor *type) {
   return result;
 }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 /// Determine whether the two demangle trees both refer to the same
 /// Objective-C class or protocol referenced by name.
 static bool sameObjCTypeManglings(Demangle::NodePointer node1,
@@ -626,7 +627,7 @@ static bool stringRefEqualsCString(StringRef s1, const char *s2) {
 }
 
 bool
-swift::_contextDescriptorMatchesMangling(const ContextDescriptor *context,
+language::_contextDescriptorMatchesMangling(const ContextDescriptor *context,
                                          Demangle::NodePointer node) {
   while (context) {
     if (node->getKind() == Demangle::Node::Kind::Type)
@@ -683,7 +684,7 @@ swift::_contextDescriptorMatchesMangling(const ContextDescriptor *context,
         equalContexts(extendedDescriptorFromNode,
                       extendedDescriptorFromDemangled);
       
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       // If we have manglings of the same Objective-C type, the contexts match.
       if (!contextsMatch &&
           (!extendedDescriptorFromNode || !extendedDescriptorFromDemangled) &&
@@ -717,7 +718,7 @@ swift::_contextDescriptorMatchesMangling(const ContextDescriptor *context,
     case ContextDescriptorKind::Protocol:
       // Match a protocol context.
       if (node->getKind() == Demangle::Node::Kind::Protocol) {
-        auto proto = llvm::cast<ProtocolDescriptor>(context);
+        auto proto = toolchain::cast<ProtocolDescriptor>(context);
         auto nameNode = node->getChild(1);
         if (nameNode->getKind() != Demangle::Node::Kind::Identifier)
           return false;
@@ -729,7 +730,7 @@ swift::_contextDescriptorMatchesMangling(const ContextDescriptor *context,
       return false;
 
     default:
-      if (auto type = llvm::dyn_cast<TypeContextDescriptor>(context)) {
+      if (auto type = toolchain::dyn_cast<TypeContextDescriptor>(context)) {
         std::optional<ParsedTypeIdentity> _identity;
         auto getIdentity = [&]() -> const ParsedTypeIdentity & {
           if (_identity) return *_identity;
@@ -855,14 +856,14 @@ template <typename State, typename TraceBegin>
 static const ContextDescriptor *
 _searchForContextDescriptor(State &state, NodePointer node,
                             TraceBegin traceBegin) {
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
   // Try LibPrespecialized first.
   auto result = getLibPrespecializedTypeDescriptor(node);
 
   // Validate the result if requested.
-  if (SWIFT_UNLIKELY(
+  if (LANGUAGE_UNLIKELY(
           runtime::environment::
-              SWIFT_DEBUG_VALIDATE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP())) {
+              LANGUAGE_DEBUG_VALIDATE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP())) {
     // Only validate a definitive result.
     if (result.first == LibPrespecializedLookupResult::Found ||
         result.first == LibPrespecializedLookupResult::DefinitiveNotFound) {
@@ -880,7 +881,7 @@ _searchForContextDescriptor(State &state, NodePointer node,
         // properly.
         if (!equalContexts(result.second, scanResult)) {
           auto tree = getNodeTreeAsString(node);
-          swift::fatalError(
+          language::fatalError(
               0,
               "Searching for type descriptor, prespecialized descriptor map "
               "returned %p, but scan returned %p. Node tree:\n%s",
@@ -921,7 +922,7 @@ _searchForContextDescriptor(State &state, NodePointer node,
 static const ContextDescriptor *
 _searchTypeMetadataRecords(TypeMetadataPrivateState &T,
                            Demangle::NodePointer node) {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   // Classes in the __C module are ObjC classes. They never have a
   // nominal type descriptor, so don't bother to search for one.
   if (node && node->getKind() == Node::Kind::Class)
@@ -954,7 +955,7 @@ _searchTypeMetadataRecords(TypeMetadataPrivateState &T,
 // we will be able to reference those symbols directly as well.
 #define STANDARD_TYPE_CONCURRENCY(KIND, MANGLING, TYPENAME)
 
-#if !SWIFT_OBJC_INTEROP
+#if !LANGUAGE_OBJC_INTEROP
 # define OBJC_INTEROP_STANDARD_TYPE(KIND, MANGLING, TYPENAME)
 #endif
 
@@ -967,11 +968,11 @@ static const ConcurrencyStandardTypeDescriptors *concurrencyDescriptors;
 /// couldn't be resolved, or if the node does not refer to one of those types.
 static const ContextDescriptor *
 descriptorFromStandardMangling(Demangle::NodePointer symbolicNode) {
-#if SWIFT_STDLIB_SHORT_MANGLING_LOOKUPS
+#if LANGUAGE_STDLIB_SHORT_MANGLING_LOOKUPS
   // Fast-path lookup for standard library type references with short manglings.
   if (symbolicNode->getNumChildren() >= 2
       && symbolicNode->getChild(0)->getKind() == Node::Kind::Module
-      && stringRefEqualsCString(symbolicNode->getChild(0)->getText(), "Swift")
+      && stringRefEqualsCString(symbolicNode->getChild(0)->getText(), "Codira")
       && symbolicNode->getChild(1)->getKind() == Node::Kind::Identifier) {
     auto name = symbolicNode->getChild(1)->getText();
 
@@ -985,7 +986,7 @@ descriptorFromStandardMangling(Demangle::NodePointer symbolicNode) {
   if (concurrencyDescriptors && stringRefEqualsCString(name, #TYPENAME)) {     \
     return concurrencyDescriptors->TYPENAME;                                   \
   }
-#if !SWIFT_OBJC_INTEROP
+#if !LANGUAGE_OBJC_INTEROP
 # define OBJC_INTEROP_STANDARD_TYPE(KIND, MANGLING, TYPENAME)
 #endif
 
@@ -1058,15 +1059,15 @@ _findContextDescriptor(Demangle::NodePointer node,
 
 /// Function to check whether we're currently running on the given global
 /// actor.
-bool (* __ptrauth_swift_is_global_actor_function SWIFT_CC(swift)
-        swift::_swift_task_isCurrentGlobalActorHook)(
+bool (* __ptrauth_language_is_global_actor_function LANGUAGE_CC(language)
+        language::_language_task_isCurrentGlobalActorHook)(
     const Metadata *, const WitnessTable *);
 
-void swift::_swift_registerConcurrencyRuntime(
+void language::_language_registerConcurrencyRuntime(
     const ConcurrencyStandardTypeDescriptors *descriptors,
     IsCurrentGlobalActor isCurrentGlobalActor) {
   concurrencyDescriptors = descriptors;
-  _swift_task_isCurrentGlobalActorHook = isCurrentGlobalActor;
+  _language_task_isCurrentGlobalActorHook = isCurrentGlobalActor;
 }
 
 #pragma mark Protocol descriptor cache
@@ -1089,7 +1090,7 @@ namespace {
     const ProtocolDescriptor *Description;
 
   public:
-    ProtocolDescriptorCacheEntry(const llvm::StringRef name,
+    ProtocolDescriptorCacheEntry(const toolchain::StringRef name,
                                  const ProtocolDescriptor *description)
         : Description(description) {
       char *nameCopy = reinterpret_cast<char *>(malloc(name.size()));
@@ -1100,13 +1101,13 @@ namespace {
 
     const ProtocolDescriptor *getDescription() const { return Description; }
 
-    bool matchesKey(llvm::StringRef aName) {
-      return aName == llvm::StringRef{Name, NameLength};
+    bool matchesKey(toolchain::StringRef aName) {
+      return aName == toolchain::StringRef{Name, NameLength};
     }
 
-    friend llvm::hash_code
+    friend toolchain::hash_code
     hash_value(const ProtocolDescriptorCacheEntry &value) {
-      return hash_value(llvm::StringRef{value.Name, value.NameLength});
+      return hash_value(toolchain::StringRef{value.Name, value.NameLength});
     }
 
     template <class... T>
@@ -1119,7 +1120,7 @@ namespace {
     ConcurrentReadableHashMap<ProtocolDescriptorCacheEntry> ProtocolCache;
     ConcurrentReadableArray<ProtocolSection> SectionsToScan;
 
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
     ConcurrentReadableArray<ProtocolSection> SharedCacheSectionsToScan;
 #endif
 
@@ -1135,7 +1136,7 @@ static void
 _registerProtocols(ProtocolMetadataPrivateState &C,
                    const ProtocolRecord *begin,
                    const ProtocolRecord *end) {
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
   if (SharedCacheInfo.get().inSharedCache(begin)) {
     C.SharedCacheSectionsToScan.push_back(ProtocolSection{begin, end});
     return;
@@ -1144,7 +1145,7 @@ _registerProtocols(ProtocolMetadataPrivateState &C,
   C.SectionsToScan.push_back(ProtocolSection{begin, end});
 }
 
-void swift::addImageProtocolsBlockCallbackUnsafe(const void *baseAddress,
+void language::addImageProtocolsBlockCallbackUnsafe(const void *baseAddress,
                                                  const void *protocols,
                                                  uintptr_t protocolsSize) {
   assert(protocolsSize % sizeof(ProtocolRecord) == 0 &&
@@ -1162,14 +1163,14 @@ void swift::addImageProtocolsBlockCallbackUnsafe(const void *baseAddress,
                      recordsBegin, recordsEnd);
 }
 
-void swift::addImageProtocolsBlockCallback(const void *baseAddress,
+void language::addImageProtocolsBlockCallback(const void *baseAddress,
                                            const void *protocols,
                                            uintptr_t protocolsSize) {
   Protocols.get();
   addImageProtocolsBlockCallbackUnsafe(baseAddress, protocols, protocolsSize);
 }
 
-void swift::swift_registerProtocols(const ProtocolRecord *begin,
+void language::language_registerProtocols(const ProtocolRecord *begin,
                                     const ProtocolRecord *end) {
   auto &C = Protocols.get();
   _registerProtocols(C, begin, end);
@@ -1268,8 +1269,8 @@ public:
 #pragma mark Metadata lookup via mangled name
 
 std::optional<unsigned>
-swift::_depthIndexToFlatIndex(unsigned depth, unsigned index,
-                              llvm::ArrayRef<unsigned> paramCounts) {
+language::_depthIndexToFlatIndex(unsigned depth, unsigned index,
+                              toolchain::ArrayRef<unsigned> paramCounts) {
   // Out-of-bounds depth.
   if (depth >= paramCounts.size())
     return std::nullopt;
@@ -1287,9 +1288,9 @@ swift::_depthIndexToFlatIndex(unsigned depth, unsigned index,
 /// Gather generic parameter counts from a context descriptor.
 ///
 /// \returns true if the innermost descriptor is generic.
-bool swift::_gatherGenericParameterCounts(
+bool language::_gatherGenericParameterCounts(
     const ContextDescriptor *descriptor,
-    llvm::SmallVectorImpl<unsigned> &genericParamCounts,
+    toolchain::SmallVectorImpl<unsigned> &genericParamCounts,
     Demangler &BorrowFrom) {
   DemanglerForRuntimeTypeResolution<> demangler;
   demangler.providePreallocatedMemory(BorrowFrom);
@@ -1322,7 +1323,7 @@ bool swift::_gatherGenericParameterCounts(
 }
 
 /// Retrieve the generic parameters introduced in this context.
-static llvm::ArrayRef<GenericParamDescriptor>
+static toolchain::ArrayRef<GenericParamDescriptor>
 getLocalGenericParams(const ContextDescriptor *context) {
   if (!context->isGeneric())
     return { };
@@ -1347,10 +1348,10 @@ namespace {
 /// Use with \c _getTypeByMangledName to decode potentially-generic types.
 class SubstGenericParametersFromWrittenArgs {
   /// The complete set of generic arguments.
-  const llvm::SmallVectorImpl<MetadataPackOrValue> &allGenericArgs;
+  const toolchain::SmallVectorImpl<MetadataPackOrValue> &allGenericArgs;
 
   /// The counts of generic parameters at each level.
-  const llvm::SmallVectorImpl<unsigned> &genericParamCounts;
+  const toolchain::SmallVectorImpl<unsigned> &genericParamCounts;
 
 public:
   /// Initialize a new function object to handle substitutions. Both
@@ -1364,8 +1365,8 @@ public:
   /// \param genericParamCounts The count of generic parameters at each
   /// generic level, typically gathered by _gatherGenericParameterCounts.
   explicit SubstGenericParametersFromWrittenArgs(
-      const llvm::SmallVectorImpl<MetadataPackOrValue> &allGenericArgs,
-      const llvm::SmallVectorImpl<unsigned> &genericParamCounts)
+      const toolchain::SmallVectorImpl<MetadataPackOrValue> &allGenericArgs,
+      const toolchain::SmallVectorImpl<unsigned> &genericParamCounts)
       : allGenericArgs(allGenericArgs),
         genericParamCounts(genericParamCounts) {}
 
@@ -1379,10 +1380,10 @@ public:
 
 static std::optional<TypeLookupError>
 _gatherGenericParameters(const ContextDescriptor *context,
-                         llvm::ArrayRef<MetadataPackOrValue> genericArgs,
+                         toolchain::ArrayRef<MetadataPackOrValue> genericArgs,
                          const Metadata *parent,
-                         llvm::SmallVectorImpl<unsigned> &genericParamCounts,
-                         llvm::SmallVectorImpl<const void *> &allGenericArgsVec,
+                         toolchain::SmallVectorImpl<unsigned> &genericParamCounts,
+                         toolchain::SmallVectorImpl<const void *> &allGenericArgsVec,
                          Demangler &demangler) {
   auto makeCommonErrorStringGetter = [&] {
     auto metadataVector = genericArgs.vec();
@@ -1397,7 +1398,7 @@ _gatherGenericParameters(const ContextDescriptor *context,
       }
 
       char *contextStr;
-      swift_asprintf(&contextStr, "%p", context);
+      language_asprintf(&contextStr, "%p", context);
       str += contextStr;
       free(contextStr);
 
@@ -1409,7 +1410,7 @@ _gatherGenericParameters(const ContextDescriptor *context,
           str += ", ";
         first = false;
         char *metadataStr;
-        swift_asprintf(&metadataStr, "%p", metadata.Ptr);
+        language_asprintf(&metadataStr, "%p", metadata.Ptr);
         str += metadataStr;
       }
 
@@ -1455,7 +1456,7 @@ _gatherGenericParameters(const ContextDescriptor *context,
   // requirements and fill in the generic arguments vector.
   if (!genericParamCounts.empty()) {
     // Compute the set of generic arguments "as written".
-    llvm::SmallVector<MetadataPackOrValue, 8> allGenericArgs;
+    toolchain::SmallVector<MetadataPackOrValue, 8> allGenericArgs;
 
     auto generics = context->getGenericContext();
     assert(generics);
@@ -1479,7 +1480,7 @@ _gatherGenericParameters(const ContextDescriptor *context,
         }
       }
 
-      llvm::ArrayRef<const void *> genericArgsRef(
+      toolchain::ArrayRef<const void *> genericArgsRef(
           reinterpret_cast<const void * const *>(nonShapeClassGenericArgs),
           numKeyArgs);
 
@@ -1675,7 +1676,7 @@ findAssociatedTypeByName(const ProtocolDescriptor *protocol, StringRef name) {
     ++currentAssocTypeIdx;
   }
 
-  swift_unreachable("associated type names don't line up");
+  language_unreachable("associated type names don't line up");
 }
 
 } // end unnamed namespace
@@ -1684,7 +1685,7 @@ static Lazy<Mutex> DynamicReplacementLock;
 
 namespace {
 struct OpaqueTypeMappings {
-  llvm::DenseMap<const OpaqueTypeDescriptor *, const OpaqueTypeDescriptor *>
+  toolchain::DenseMap<const OpaqueTypeDescriptor *, const OpaqueTypeDescriptor *>
       descriptorMapping;
   const OpaqueTypeDescriptor* find(const OpaqueTypeDescriptor *orig) {
     const OpaqueTypeDescriptor *replacement = nullptr;
@@ -1724,7 +1725,7 @@ _findOpaqueTypeDescriptor(NodePointer demangleNode,
   return nullptr;
 }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 static Protocol *_asObjectiveCProtocol(NodePointer demangleNode) {
   if (demangleNode->getKind() ==
       Node::Kind::ObjectiveCProtocolSymbolicReference) {
@@ -1772,7 +1773,7 @@ public:
   using BuiltProtocolDecl = ProtocolDescriptorRef;
   using BuiltGenericSignature = const Metadata *;
   using BuiltSubstitution = std::pair<BuiltType, BuiltType>;
-  using BuiltSubstitutionMap = llvm::ArrayRef<BuiltSubstitution>;
+  using BuiltSubstitutionMap = toolchain::ArrayRef<BuiltSubstitution>;
   using BuiltGenericTypeParam = const Metadata *;
 
   struct BuiltRequirement {
@@ -1848,20 +1849,20 @@ public:
 
   TypeLookupErrorOr<BuiltType>
   resolveOpaqueType(NodePointer opaqueDecl,
-                    llvm::ArrayRef<llvm::ArrayRef<BuiltType>> genericArgs,
+                    toolchain::ArrayRef<toolchain::ArrayRef<BuiltType>> genericArgs,
                     unsigned ordinal) {
     auto descriptor = _findOpaqueTypeDescriptor(opaqueDecl, demangler);
     if (!descriptor)
       return BuiltType();
     auto outerContext = descriptor->Parent.get();
 
-    llvm::SmallVector<MetadataPackOrValue, 8> allGenericArgs;
+    toolchain::SmallVector<MetadataPackOrValue, 8> allGenericArgs;
     for (auto argSet : genericArgs)
       allGenericArgs.append(argSet.begin(), argSet.end());
     
     // Gather the generic parameters we need to parameterize the opaque decl.
-    llvm::SmallVector<unsigned, 8> genericParamCounts;
-    llvm::SmallVector<const void *, 8> allGenericArgsVec;
+    toolchain::SmallVector<unsigned, 8> genericParamCounts;
+    toolchain::SmallVector<const void *, 8> allGenericArgsVec;
 
     if (auto error = _gatherGenericParameters(
             outerContext, allGenericArgs, nullptr, /* no parent */
@@ -1872,7 +1873,7 @@ public:
     SubstGenericParametersFromMetadata substitutions(descriptor,
                                                      allGenericArgsVec.data());
     return BuiltType(
-        swift_getTypeByMangledName(MetadataState::Complete,
+        language_getTypeByMangledName(MetadataState::Complete,
                                    mangledName, allGenericArgsVec.data(),
         [&substitutions](unsigned depth, unsigned index) {
           return substitutions.getMetadata(depth, index).Ptr;
@@ -1889,7 +1890,7 @@ public:
   }
 
   BuiltProtocolDecl createProtocolDecl(NodePointer node) const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     // Check for an objective c protocol symbolic reference.
     if (auto protocol = _asObjectiveCProtocol(node)) {
       return ProtocolDescriptorRef::forObjC(protocol);
@@ -1898,10 +1899,10 @@ public:
 
     // Look for a protocol descriptor based on its mangled name.
     if (auto protocol = _findProtocolDescriptor(node, demangler))
-      return ProtocolDescriptorRef::forSwift(protocol);;
+      return ProtocolDescriptorRef::forCodira(protocol);;
 
-#if SWIFT_OBJC_INTEROP
-    // Look for a Swift-defined @objc protocol with the Swift 3 mangling that
+#if LANGUAGE_OBJC_INTEROP
+    // Look for a Codira-defined @objc protocol with the Codira 3 mangling that
     // is used for Objective-C entities.
     auto mangling = mangleNodeAsObjcCString(node, demangler);
     if (mangling.isSuccess()) {
@@ -1916,7 +1917,7 @@ public:
 
   BuiltProtocolDecl createObjCProtocolDecl(
                                          const std::string &mangledName) const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     return ProtocolDescriptorRef::forObjC(
         objc_getProtocol(mangledName.c_str()));
 #else
@@ -1926,10 +1927,10 @@ public:
 
   TypeLookupErrorOr<BuiltType>
   createObjCClassType(const std::string &mangledName) const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     auto objcClass = objc_getClass(mangledName.c_str());
     return BuiltType(
-        swift_getObjCClassMetadata((const ClassMetadata *)objcClass));
+        language_getObjCClassMetadata((const ClassMetadata *)objcClass));
 #else
     return BuiltType();
 #endif
@@ -1937,7 +1938,7 @@ public:
 
   TypeLookupErrorOr<BuiltType>
   createBoundGenericObjCClassType(const std::string &mangledName,
-                                  llvm::ArrayRef<BuiltType> args) const {
+                                  toolchain::ArrayRef<BuiltType> args) const {
     // Generic arguments of lightweight Objective-C generic classes are not
     // reified in the metadata.
     return createObjCClassType(mangledName);
@@ -1960,7 +1961,7 @@ public:
 
   TypeLookupErrorOr<BuiltType>
   createBoundGenericType(BuiltTypeDecl anyTypeDecl,
-                         llvm::ArrayRef<BuiltType> genericArgs,
+                         toolchain::ArrayRef<BuiltType> genericArgs,
                          BuiltType parent) const {
     auto typeDecl = dyn_cast<TypeContextDescriptor>(anyTypeDecl);
     if (!typeDecl) {
@@ -1977,8 +1978,8 @@ public:
 
     // Figure out the various levels of generic parameters we have in
     // this type.
-    llvm::SmallVector<unsigned, 8> genericParamCounts;
-    llvm::SmallVector<const void *, 8> allGenericArgsVec;
+    toolchain::SmallVector<unsigned, 8> genericParamCounts;
+    toolchain::SmallVector<const void *, 8> allGenericArgsVec;
 
     if (auto error = _gatherGenericParameters(typeDecl, genericArgs,
                                               parent.getMetadataOrNull(),
@@ -1996,7 +1997,7 @@ public:
 
   TypeLookupErrorOr<BuiltType>
   createSymbolicExtendedExistentialType(NodePointer shapeNode,
-                                  llvm::ArrayRef<BuiltType> genArgs) const {
+                                  toolchain::ArrayRef<BuiltType> genArgs) const {
     const ExtendedExistentialTypeShape *shape;
     if (shapeNode->getKind() ==
           Node::Kind::UniqueExtendedExistentialTypeShapeSymbolicReference) {
@@ -2007,14 +2008,14 @@ public:
       auto nonUniqueShape =
         reinterpret_cast<const NonUniqueExtendedExistentialTypeShape *>(
                 shapeNode->getIndex());
-      shape = swift_getExtendedExistentialTypeShape(nonUniqueShape);
+      shape = language_getExtendedExistentialTypeShape(nonUniqueShape);
     } else {
       return TYPE_LOOKUP_ERROR_FMT("Tried to build an extended existential "
                                    "metatype from an unexpected shape node");
     }
 
     auto rawShape =
-      swift_auth_data_non_address(shape,
+      language_auth_data_non_address(shape,
           SpecialPointerAuthDiscriminators::ExtendedExistentialTypeShape);
     auto genSig = rawShape->getGeneralizationSignature();
 
@@ -2022,7 +2023,7 @@ public:
     if (genArgs.size() != genSig.getParams().size())
       return TYPE_LOOKUP_ERROR_FMT("Length mismatch building an extended "
                                    "existential metatype");
-    llvm::SmallVector<const void *, 8> allArgsVec;
+    toolchain::SmallVector<const void *, 8> allArgsVec;
 
     // FIXME: variadic-generics
     for (auto arg : genArgs)
@@ -2046,14 +2047,14 @@ public:
           return genArgs[fullOrdinal].getMetadata();
         },
         [](const Metadata *type, unsigned index) -> const WitnessTable * {
-          swift_unreachable("never called");
+          language_unreachable("never called");
         },
         nullptr);
     if (error)
       return *error;
 
     return BuiltType(
-        swift_getExtendedExistentialTypeMetadata_unique(shape,
+        language_getExtendedExistentialTypeMetadata_unique(shape,
                                                         allArgsVec.data()));
   }
 
@@ -2062,7 +2063,7 @@ public:
 #define BUILTIN_TYPE(Symbol, _) \
     if (stringRefEqualsCString(mangledName, #Symbol)) \
       return BuiltType(&METADATA_SYM(Symbol).base);
-#if !SWIFT_STDLIB_ENABLE_VECTOR_TYPES
+#if !LANGUAGE_STDLIB_ENABLE_VECTOR_TYPES
 #define BUILTIN_VECTOR_TYPE(ElementSymbol, ElementName, Width)
 #endif
 #include "language/Runtime/BuiltinTypes.def"
@@ -2075,7 +2076,7 @@ public:
                          std::nullopt) const {
     if (!instance.isMetadata())
       return TYPE_LOOKUP_ERROR_FMT("Tried to build a metatype from a pack");
-    return BuiltType(swift_getMetatypeMetadata(instance.getMetadata()));
+    return BuiltType(language_getMetatypeMetadata(instance.getMetadata()));
   }
 
   TypeLookupErrorOr<BuiltType> createExistentialMetatypeType(
@@ -2093,11 +2094,11 @@ public:
                                    "a type that was neither an existential nor "
                                    "an existential metatype");
     }
-    return BuiltType(swift_getExistentialMetatypeMetadata(instanceMetadata));
+    return BuiltType(language_getExistentialMetatypeMetadata(instanceMetadata));
   }
 
   TypeLookupErrorOr<BuiltType>
-  createProtocolCompositionType(llvm::ArrayRef<BuiltProtocolDecl> protocols,
+  createProtocolCompositionType(toolchain::ArrayRef<BuiltProtocolDecl> protocols,
                                 BuiltType superclass, bool isClassBound,
                                 bool forRequirement = true) const {
     // Determine whether we have a class bound.
@@ -2118,7 +2119,7 @@ public:
                                    "the superclass type is a pack");
     }
     return BuiltType(
-        swift_getExistentialTypeMetadata(classConstraint,
+        language_getExistentialTypeMetadata(classConstraint,
                                          superclass.getMetadataOrNull(),
                                          protocols.size(), protocols.data()));
   }
@@ -2126,8 +2127,8 @@ public:
   TypeLookupErrorOr<BuiltType>
   createConstrainedExistentialType(
       BuiltType base,
-      llvm::ArrayRef<BuiltRequirement> rs,
-      llvm::ArrayRef<BuiltInverseRequirement> InverseRequirements) const {
+      toolchain::ArrayRef<BuiltRequirement> rs,
+      toolchain::ArrayRef<BuiltInverseRequirement> InverseRequirements) const {
     // FIXME: Runtime plumbing.
     return BuiltType();
   }
@@ -2137,7 +2138,7 @@ public:
     return BuiltType();
   }
 
-  void pushGenericParams(llvm::ArrayRef<std::pair<unsigned, unsigned>> parameterPacks) {}
+  void pushGenericParams(toolchain::ArrayRef<std::pair<unsigned, unsigned>> parameterPacks) {}
   void popGenericParams() {}
 
   BuiltType
@@ -2153,7 +2154,7 @@ public:
         if (substType.isMetadataPack()) {
           auto substPack = substType.getMetadataPack();
           if (index >= substPack.getNumElements()) {
-            swift::fatalError(0, "Pack index %zu exceeds pack length %zu\n",
+            language::fatalError(0, "Pack index %zu exceeds pack length %zu\n",
                               index, substPack.getNumElements());
           }
 
@@ -2169,7 +2170,7 @@ public:
 
   TypeLookupErrorOr<BuiltType>
   createFunctionType(
-      llvm::ArrayRef<Demangle::FunctionParam<BuiltType>> params,
+      toolchain::ArrayRef<Demangle::FunctionParam<BuiltType>> params,
       BuiltType result, FunctionTypeFlags flags,
       ExtendedFunctionTypeFlags extFlags,
       FunctionMetadataDifferentiabilityKind diffKind,
@@ -2183,8 +2184,8 @@ public:
                                    "the result type is a pack");
     }
 
-    llvm::SmallVector<const Metadata *, 8> paramTypes;
-    llvm::SmallVector<uint32_t, 8> paramFlags;
+    toolchain::SmallVector<const Metadata *, 8> paramTypes;
+    toolchain::SmallVector<uint32_t, 8> paramFlags;
 
     // Fill in the parameters.
     paramTypes.reserve(params.size());
@@ -2209,7 +2210,7 @@ public:
     }
 
     return BuiltType(
-        swift_getExtendedFunctionTypeMetadata(
+        language_getExtendedFunctionTypeMetadata(
             flags, diffKind, paramTypes.data(),
             flags.hasParameterFlags() ? paramFlags.data() : nullptr,
             result.getMetadata(), globalActorType.getMetadataOrNull(), extFlags,
@@ -2219,9 +2220,9 @@ public:
   TypeLookupErrorOr<BuiltType> createImplFunctionType(
       Demangle::ImplParameterConvention calleeConvention,
       Demangle::ImplCoroutineKind coroutineKind,
-      llvm::ArrayRef<Demangle::ImplFunctionParam<BuiltType>> params,
-      llvm::ArrayRef<Demangle::ImplFunctionYield<BuiltType>> yields,
-      llvm::ArrayRef<Demangle::ImplFunctionResult<BuiltType>> results,
+      toolchain::ArrayRef<Demangle::ImplFunctionParam<BuiltType>> params,
+      toolchain::ArrayRef<Demangle::ImplFunctionYield<BuiltType>> yields,
+      toolchain::ArrayRef<Demangle::ImplFunctionResult<BuiltType>> results,
       std::optional<Demangle::ImplFunctionResult<BuiltType>> errorResult,
       ImplFunctionTypeFlags flags) {
     // We can't realize the metadata for a SILFunctionType.
@@ -2229,8 +2230,8 @@ public:
   }
 
   TypeLookupErrorOr<BuiltType>
-  createTupleType(llvm::ArrayRef<BuiltType> elements,
-                  llvm::ArrayRef<StringRef> labels) const {
+  createTupleType(toolchain::ArrayRef<BuiltType> elements,
+                  toolchain::ArrayRef<StringRef> labels) const {
     // Unwrap unlabeled one-element tuples.
     //
     // FIXME: The behavior of one-element labeled tuples is inconsistent
@@ -2268,7 +2269,7 @@ public:
     if (!labelStr.empty())
       flags = flags.withNonConstantLabels(true);
     return BuiltType(
-        swift_getTupleTypeMetadata(
+        language_getTupleTypeMetadata(
           MetadataState::Abstract, flags,
           reinterpret_cast<const Metadata * const *>(elements.data()),
           labelStr.empty() ? nullptr : labelStr.c_str(),
@@ -2276,14 +2277,14 @@ public:
   }
 
   TypeLookupErrorOr<BuiltType>
-  createPackType(llvm::ArrayRef<BuiltType> elements) const {
+  createPackType(toolchain::ArrayRef<BuiltType> elements) const {
     for (auto element : elements) {
       if (!element.isMetadata()) {
         return TYPE_LOOKUP_ERROR_FMT("Can't have nested metadata packs");
       }
     }
 
-    MetadataPackPointer pack(swift_allocateMetadataPack(
+    MetadataPackPointer pack(language_allocateMetadataPack(
         reinterpret_cast<const Metadata * const *>(elements.data()),
         elements.size()));
 
@@ -2291,13 +2292,13 @@ public:
   }
 
   TypeLookupErrorOr<BuiltType>
-  createSILPackType(llvm::ArrayRef<BuiltType> elements, bool isElementAddress) const {
+  createSILPackType(toolchain::ArrayRef<BuiltType> elements, bool isElementAddress) const {
     return TYPE_LOOKUP_ERROR_FMT("Lowered SILPackType cannot be demangled");
   }
 
   size_t beginPackExpansion(BuiltType countType) {
     if (!countType.isMetadataPack()) {
-      swift::fatalError(0, "Pack expansion count type should be a pack\n");
+      language::fatalError(0, "Pack expansion count type should be a pack\n");
     }
 
     auto pack = countType.getMetadataPack();
@@ -2308,7 +2309,7 @@ public:
 
   void advancePackExpansion(size_t index) {
     if (ActivePackExpansions.empty()) {
-      swift::fatalError(0, "advancePackExpansion() without beginPackExpansion()\n");
+      language::fatalError(0, "advancePackExpansion() without beginPackExpansion()\n");
     }
 
     ActivePackExpansions.back().second = index;
@@ -2320,7 +2321,7 @@ public:
 
   void endPackExpansion() {
     if (ActivePackExpansions.empty()) {
-      swift::fatalError(0, "endPackExpansion() without beginPackExpansion()\n");
+      language::fatalError(0, "endPackExpansion() without beginPackExpansion()\n");
     }
 
     ActivePackExpansions.pop_back();
@@ -2334,38 +2335,38 @@ public:
   TypeLookupErrorOr<BuiltType>
   createDependentMemberType(StringRef name, BuiltType base,
                             BuiltProtocolDecl protocol) const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     if (protocol.isObjC())
       return BuiltType();
 #endif
 
-    auto swiftProtocol = protocol.getSwiftProtocol();
+    auto languageProtocol = protocol.getCodiraProtocol();
 
     // Look for the named associated type within the protocol.
-    auto assocType = findAssociatedTypeByName(swiftProtocol, name);
+    auto assocType = findAssociatedTypeByName(languageProtocol, name);
     if (!assocType) return BuiltType();
 
     auto projectDependentMemberType = [&](const Metadata *baseMetadata) -> const Metadata * {
-      auto witnessTable = swift_conformsToProtocolCommon(baseMetadata, swiftProtocol);
+      auto witnessTable = language_conformsToProtocolCommon(baseMetadata, languageProtocol);
       if (!witnessTable)
         return nullptr;
 
       // Call the associated type access function.
-  #if SWIFT_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
+  #if LANGUAGE_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
       auto tbl = reinterpret_cast<RelativeWitnessTable *>(
         const_cast<WitnessTable *>(witnessTable));
-      return swift_getAssociatedTypeWitnessRelative(
+      return language_getAssociatedTypeWitnessRelative(
                                    MetadataState::Abstract,
                                    tbl,
                                    baseMetadata,
-                                   swiftProtocol->getRequirementBaseDescriptor(),
+                                   languageProtocol->getRequirementBaseDescriptor(),
                                    *assocType).Value;
   #else
-      return swift_getAssociatedTypeWitness(
+      return language_getAssociatedTypeWitness(
                                    MetadataState::Abstract,
                                    const_cast<WitnessTable *>(witnessTable),
                                    baseMetadata,
-                                   swiftProtocol->getRequirementBaseDescriptor(),
+                                   languageProtocol->getRequirementBaseDescriptor(),
                                    *assocType).Value;
   #endif
     };
@@ -2375,13 +2376,13 @@ public:
     } else {
       MetadataPackPointer basePack = base.getMetadataPack();
 
-      llvm::SmallVector<const Metadata *, 4> packElts;
+      toolchain::SmallVector<const Metadata *, 4> packElts;
       for (size_t i = 0, e = basePack.getNumElements(); i < e; ++i) {
         auto *projectedElt = projectDependentMemberType(basePack.getElements()[i]);
         packElts.push_back(projectedElt);
       }
 
-      return BuiltType(swift_allocateMetadataPack(packElts.data(), packElts.size()));
+      return BuiltType(language_allocateMetadataPack(packElts.data(), packElts.size()));
     }
   }
 
@@ -2420,10 +2421,10 @@ public:
   }
 
   TypeLookupErrorOr<BuiltType> createSILBoxTypeWithLayout(
-      llvm::ArrayRef<BuiltSILBoxField> Fields,
-      llvm::ArrayRef<BuiltSubstitution> Substitutions,
-      llvm::ArrayRef<BuiltRequirement> Requirements,
-      llvm::ArrayRef<BuiltInverseRequirement> InverseRequirements) const {
+      toolchain::ArrayRef<BuiltSILBoxField> Fields,
+      toolchain::ArrayRef<BuiltSubstitution> Substitutions,
+      toolchain::ArrayRef<BuiltRequirement> Requirements,
+      toolchain::ArrayRef<BuiltInverseRequirement> InverseRequirements) const {
     // FIXME: Implement.
     return BuiltType();
   }
@@ -2479,7 +2480,7 @@ public:
 
   TypeLookupErrorOr<BuiltType> createBuiltinFixedArrayType(BuiltType size,
                                                            BuiltType element) {
-    return BuiltType(swift_getFixedArrayTypeMetadata(MetadataState::Abstract,
+    return BuiltType(language_getFixedArrayTypeMetadata(MetadataState::Abstract,
                                                      size.getValue(),
                                                      element.getMetadata()));
   }
@@ -2487,9 +2488,9 @@ public:
 
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static TypeLookupErrorOr<TypeInfo>
-swift_getTypeByMangledNodeImpl(MetadataRequest request, Demangler &demangler,
+language_getTypeByMangledNodeImpl(MetadataRequest request, Demangler &demangler,
                                Demangle::NodePointer node,
                                const void *const *origArgumentVector,
                                SubstGenericParameterFn substGenericParam,
@@ -2509,7 +2510,7 @@ swift_getTypeByMangledNodeImpl(MetadataRequest request, Demangler &demangler,
   }
     
   // TODO: propagate the request down to the builder instead of calling
-  // swift_checkMetadataState after the fact.
+  // language_checkMetadataState after the fact.
   DecodedMetadataBuilder builder(demangler, substGenericParam,
                                  substWitnessTable);
   auto type = Demangle::decodeMangledType(builder, node);
@@ -2524,14 +2525,14 @@ swift_getTypeByMangledNodeImpl(MetadataRequest request, Demangler &demangler,
     return TypeLookupError("Cannot demangle a free-standing pack");
   }
 
-  return TypeInfo{swift_checkMetadataState(request,
+  return TypeInfo{language_checkMetadataState(request,
                   type.getType().getMetadata()),
                   builder.getReferenceOwnership()};
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static TypeLookupErrorOr<TypeInfo>
-swift_getTypeByMangledNameImpl(MetadataRequest request, StringRef typeName,
+language_getTypeByMangledNameImpl(MetadataRequest request, StringRef typeName,
                                const void *const *origArgumentVector,
                                SubstGenericParameterFn substGenericParam,
                                SubstDependentWitnessTableFn substWitnessTable) {
@@ -2541,28 +2542,28 @@ swift_getTypeByMangledNameImpl(MetadataRequest request, StringRef typeName,
 
   // Check whether this is the convenience syntax "ModuleName.ClassName".
   auto getDotPosForConvenienceSyntax = [&]() -> size_t {
-    size_t dotPos = llvm::StringRef::npos;
+    size_t dotPos = toolchain::StringRef::npos;
     for (unsigned i = 0; i < typeName.size(); ++i) {
       // Should only contain one dot.
       if (typeName[i] == '.') {
-        if (dotPos == llvm::StringRef::npos) {
+        if (dotPos == toolchain::StringRef::npos) {
           dotPos = i;
           continue;
         } else {
-          return llvm::StringRef::npos;
+          return toolchain::StringRef::npos;
         }
       }
       
       // Should not contain symbolic references.
       if ((unsigned char)typeName[i] <= '\x1F') {
-        return llvm::StringRef::npos;
+        return toolchain::StringRef::npos;
       }
     }
     return dotPos;
   };
 
   auto dotPos = getDotPosForConvenienceSyntax();
-  if (dotPos != llvm::StringRef::npos) {
+  if (dotPos != toolchain::StringRef::npos) {
     // Form a demangle tree for this class.
     NodePointer classNode = demangler.createNode(Node::Kind::Class);
     NodePointer moduleNode = demangler.createNode(Node::Kind::Module,
@@ -2581,21 +2582,21 @@ swift_getTypeByMangledNameImpl(MetadataRequest request, StringRef typeName,
     }
   }
 
-  return swift_getTypeByMangledNode(request, demangler, node,
+  return language_getTypeByMangledNode(request, demangler, node,
                                     origArgumentVector,
                                     substGenericParam, substWitnessTable);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const Metadata * _Nullable
-swift_getTypeByMangledNameInEnvironment(
+language_getTypeByMangledNameInEnvironment(
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const TargetGenericEnvironment<InProcess> *environment,
                         const void * const *genericArgs) {
-  llvm::StringRef typeName(typeNameStart, typeNameLength);
+  toolchain::StringRef typeName(typeNameStart, typeNameLength);
   SubstGenericParametersFromMetadata substitutions(environment, genericArgs);
-  TypeLookupErrorOr<TypeInfo> result = swift_getTypeByMangledName(
+  TypeLookupErrorOr<TypeInfo> result = language_getTypeByMangledName(
     MetadataState::Complete, typeName,
     genericArgs,
     [&substitutions](unsigned depth, unsigned index) {
@@ -2605,10 +2606,10 @@ swift_getTypeByMangledNameInEnvironment(
       return substitutions.getWitnessTable(type, index);
     });
   if (result.isError()
-      && runtime::environment::SWIFT_DEBUG_FAILED_TYPE_LOOKUP()) {
+      && runtime::environment::LANGUAGE_DEBUG_FAILED_TYPE_LOOKUP()) {
     TypeLookupError *error = result.getError();
     char *errorString = error->copyErrorString();
-    swift::warning(0, "failed type lookup for %.*s: %s\n",
+    language::warning(0, "failed type lookup for %.*s: %s\n",
                    (int)typeNameLength, typeNameStart,
                    errorString);
     error->freeErrorString(errorString);
@@ -2617,17 +2618,17 @@ swift_getTypeByMangledNameInEnvironment(
   return result.getType().getMetadata();
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const Metadata * _Nullable
-swift_getTypeByMangledNameInEnvironmentInMetadataState(
+language_getTypeByMangledNameInEnvironmentInMetadataState(
                         size_t metadataState,
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const TargetGenericEnvironment<InProcess> *environment,
                         const void * const *genericArgs) {
-  llvm::StringRef typeName(typeNameStart, typeNameLength);
+  toolchain::StringRef typeName(typeNameStart, typeNameLength);
   SubstGenericParametersFromMetadata substitutions(environment, genericArgs);
-  TypeLookupErrorOr<TypeInfo> result = swift_getTypeByMangledName(
+  TypeLookupErrorOr<TypeInfo> result = language_getTypeByMangledName(
     (MetadataState)metadataState, typeName,
     genericArgs,
     [&substitutions](unsigned depth, unsigned index) {
@@ -2637,10 +2638,10 @@ swift_getTypeByMangledNameInEnvironmentInMetadataState(
       return substitutions.getWitnessTable(type, index);
     });
   if (result.isError()
-      && runtime::environment::SWIFT_DEBUG_FAILED_TYPE_LOOKUP()) {
+      && runtime::environment::LANGUAGE_DEBUG_FAILED_TYPE_LOOKUP()) {
     TypeLookupError *error = result.getError();
     char *errorString = error->copyErrorString();
-    swift::warning(0, "failed type lookup for %.*s: %s\n",
+    language::warning(0, "failed type lookup for %.*s: %s\n",
                    (int)typeNameLength, typeNameStart,
                    errorString);
     error->freeErrorString(errorString);
@@ -2651,14 +2652,14 @@ swift_getTypeByMangledNameInEnvironmentInMetadataState(
 
 static
 const Metadata * _Nullable
-swift_getTypeByMangledNameInContextImpl(
+language_getTypeByMangledNameInContextImpl(
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const TargetContextDescriptor<InProcess> *context,
                         const void * const *genericArgs) {
-  llvm::StringRef typeName(typeNameStart, typeNameLength);
+  toolchain::StringRef typeName(typeNameStart, typeNameLength);
   SubstGenericParametersFromMetadata substitutions(context, genericArgs);
-  TypeLookupErrorOr<TypeInfo> result = swift_getTypeByMangledName(
+  TypeLookupErrorOr<TypeInfo> result = language_getTypeByMangledName(
     MetadataState::Complete, typeName,
     genericArgs,
     [&substitutions](unsigned depth, unsigned index) {
@@ -2668,10 +2669,10 @@ swift_getTypeByMangledNameInContextImpl(
       return substitutions.getWitnessTable(type, index);
     });
   if (result.isError()
-      && runtime::environment::SWIFT_DEBUG_FAILED_TYPE_LOOKUP()) {
+      && runtime::environment::LANGUAGE_DEBUG_FAILED_TYPE_LOOKUP()) {
     TypeLookupError *error = result.getError();
     char *errorString = error->copyErrorString();
-    swift::warning(0, "failed type lookup for %.*s: %s\n",
+    language::warning(0, "failed type lookup for %.*s: %s\n",
                    (int)typeNameLength, typeNameStart,
                    errorString);
     error->freeErrorString(errorString);
@@ -2680,22 +2681,22 @@ swift_getTypeByMangledNameInContextImpl(
   return result.getType().getMetadata();
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const Metadata * _Nullable
-swift_getTypeByMangledNameInContext2(
+language_getTypeByMangledNameInContext2(
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const TargetContextDescriptor<InProcess> *context,
                         const void * const *genericArgs) {
-  context = swift_auth_data_non_address(
+  context = language_auth_data_non_address(
       context, SpecialPointerAuthDiscriminators::ContextDescriptor);
-  return swift_getTypeByMangledNameInContextImpl(typeNameStart, typeNameLength,
+  return language_getTypeByMangledNameInContextImpl(typeNameStart, typeNameLength,
                                                  context, genericArgs);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const Metadata * _Nullable
-swift_getTypeByMangledNameInContext(
+language_getTypeByMangledNameInContext(
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const void *context,
@@ -2704,8 +2705,8 @@ swift_getTypeByMangledNameInContext(
   // declare it as `void *` to avoid the implicit ptrauth we get from
   // the ptrauth_struct attribute. The static_cast implicitly signs the
   // pointer when we call through to the implementation in
-  // swift_getTypeByMangledNameInContextImpl.
-  return swift_getTypeByMangledNameInContextImpl(
+  // language_getTypeByMangledNameInContextImpl.
+  return language_getTypeByMangledNameInContextImpl(
       typeNameStart, typeNameLength,
       static_cast<const TargetContextDescriptor<InProcess> *>(context),
       genericArgs);
@@ -2713,15 +2714,15 @@ swift_getTypeByMangledNameInContext(
 
 static
 const Metadata * _Nullable
-swift_getTypeByMangledNameInContextInMetadataStateImpl(
+language_getTypeByMangledNameInContextInMetadataStateImpl(
                         size_t metadataState,
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const TargetContextDescriptor<InProcess> *context,
                         const void * const *genericArgs) {
-  llvm::StringRef typeName(typeNameStart, typeNameLength);
+  toolchain::StringRef typeName(typeNameStart, typeNameLength);
   SubstGenericParametersFromMetadata substitutions(context, genericArgs);
-  TypeLookupErrorOr<TypeInfo> result = swift_getTypeByMangledName(
+  TypeLookupErrorOr<TypeInfo> result = language_getTypeByMangledName(
     (MetadataState)metadataState, typeName,
     genericArgs,
     [&substitutions](unsigned depth, unsigned index) {
@@ -2731,10 +2732,10 @@ swift_getTypeByMangledNameInContextInMetadataStateImpl(
       return substitutions.getWitnessTable(type, index);
     });
   if (result.isError()
-      && runtime::environment::SWIFT_DEBUG_FAILED_TYPE_LOOKUP()) {
+      && runtime::environment::LANGUAGE_DEBUG_FAILED_TYPE_LOOKUP()) {
     TypeLookupError *error = result.getError();
     char *errorString = error->copyErrorString();
-    swift::warning(0, "failed type lookup for %.*s: %s\n",
+    language::warning(0, "failed type lookup for %.*s: %s\n",
                    (int)typeNameLength, typeNameStart,
                    errorString);
     error->freeErrorString(errorString);
@@ -2743,23 +2744,23 @@ swift_getTypeByMangledNameInContextInMetadataStateImpl(
   return result.getType().getMetadata();
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const Metadata * _Nullable
-swift_getTypeByMangledNameInContextInMetadataState2(
+language_getTypeByMangledNameInContextInMetadataState2(
                         size_t metadataState,
                         const char *typeNameStart,
                         size_t typeNameLength,
                         const TargetContextDescriptor<InProcess> *context,
                         const void * const *genericArgs) {
-  context = swift_auth_data_non_address(
+  context = language_auth_data_non_address(
       context, SpecialPointerAuthDiscriminators::ContextDescriptor);
-  return swift_getTypeByMangledNameInContextInMetadataStateImpl(
+  return language_getTypeByMangledNameInContextInMetadataStateImpl(
       metadataState, typeNameStart, typeNameLength, context, genericArgs);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const Metadata * _Nullable
-swift_getTypeByMangledNameInContextInMetadataState(
+language_getTypeByMangledNameInContextInMetadataState(
                         size_t metadataState,
                         const char *typeNameStart,
                         size_t typeNameLength,
@@ -2769,30 +2770,30 @@ swift_getTypeByMangledNameInContextInMetadataState(
   // declare it as `void *` to avoid the implicit ptrauth we get from
   // the ptrauth_struct attribute. The static_cast implicitly signs the
   // pointer when we call through to the implementation in
-  // swift_getTypeByMangledNameInContextInMetadataState2.
-  return swift_getTypeByMangledNameInContextInMetadataStateImpl(
+  // language_getTypeByMangledNameInContextInMetadataState2.
+  return language_getTypeByMangledNameInContextInMetadataStateImpl(
       metadataState, typeNameStart, typeNameLength,
       static_cast<const TargetContextDescriptor<InProcess> *>(context),
       genericArgs);
 }
 
 /// Demangle a mangled name, but don't allow symbolic references.
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
 const Metadata *_Nullable
-swift_stdlib_getTypeByMangledNameUntrusted(const char *typeNameStart,
+language_stdlib_getTypeByMangledNameUntrusted(const char *typeNameStart,
                                            size_t typeNameLength) {
-  llvm::StringRef typeName(typeNameStart, typeNameLength);
+  toolchain::StringRef typeName(typeNameStart, typeNameLength);
   for (char c : typeName) {
     if (c >= '\x01' && c <= '\x1F')
       return nullptr;
   }
 
-  return swift_getTypeByMangledName(MetadataState::Complete, typeName, nullptr,
+  return language_getTypeByMangledName(MetadataState::Complete, typeName, nullptr,
                                     {}, {}).getType().getMetadata();
 }
 
 TypeLookupErrorOr<MetadataPackPointer>
-swift::getTypePackByMangledName(StringRef typeName,
+language::getTypePackByMangledName(StringRef typeName,
                                 const void *const *origArgumentVector,
                                 SubstGenericParameterFn substGenericParam,
                                 SubstDependentWitnessTableFn substWitnessTable) {
@@ -2820,7 +2821,7 @@ swift::getTypePackByMangledName(StringRef typeName,
 }
 
 TypeLookupErrorOr<intptr_t>
-swift::getTypeValueByMangledName(StringRef typeName,
+language::getTypeValueByMangledName(StringRef typeName,
                                 const void *const *origArgumentVector,
                                 SubstGenericParameterFn substGenericParam,
                                 SubstDependentWitnessTableFn substWitnessTable) {
@@ -2846,9 +2847,9 @@ swift::getTypeValueByMangledName(StringRef typeName,
 
 // ==== Function metadata functions ----------------------------------------------
 
-static std::optional<llvm::StringRef> cstrToStringRef(const char *typeNameStart,
+static std::optional<toolchain::StringRef> cstrToStringRef(const char *typeNameStart,
                                                       size_t typeNameLength) {
-  llvm::StringRef typeName(typeNameStart, typeNameLength);
+  toolchain::StringRef typeName(typeNameStart, typeNameLength);
   for (char c : typeName) {
     if (c >= '\x01' && c <= '\x1F')
       return std::nullopt;
@@ -2861,7 +2862,7 @@ static std::optional<llvm::StringRef> cstrToStringRef(const char *typeNameStart,
 static NodePointer extractFunctionTypeFromMethod(Demangler &demangler,
                                                  const char *typeNameStart,
                                                  size_t typeNameLength) {
-  std::optional<llvm::StringRef> typeName =
+  std::optional<toolchain::StringRef> typeName =
       cstrToStringRef(typeNameStart, typeNameLength);
   if (!typeName)
     return nullptr;
@@ -2910,28 +2911,9 @@ static NodePointer getParameterList(NodePointer funcType) {
   return parameterContainer;
 }
 
-static const Metadata *decodeType(TypeDecoder<DecodedMetadataBuilder> &decoder,
-                                  NodePointer type) {
-  assert(type->getKind() == Node::Kind::Type);
-
-  auto builtTypeOrError = decoder.decodeMangledType(type);
-
-  if (builtTypeOrError.isError()) {
-    auto err = builtTypeOrError.getError();
-    char *errStr = err->copyErrorString();
-    err->freeErrorString(errStr);
-    return nullptr;
-  }
-
-  if (!builtTypeOrError.getType().isMetadata())
-    return nullptr;
-
-  return builtTypeOrError.getType().getMetadata();
-}
-
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_SPI
-unsigned swift_func_getParameterCount(const char *typeNameStart,
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_SPI
+unsigned language_func_getParameterCount(const char *typeNameStart,
                                       size_t typeNameLength) {
   StackAllocatedDemangler<1024> demangler;
 
@@ -2944,9 +2926,9 @@ unsigned swift_func_getParameterCount(const char *typeNameStart,
   return parameterList->getNumChildren();
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_SPI
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
 const Metadata *_Nullable
-swift_func_getReturnTypeInfo(const char *typeNameStart, size_t typeNameLength,
+language_func_getReturnTypeInfo(const char *typeNameStart, size_t typeNameLength,
                              GenericEnvironmentDescriptor *genericEnv,
                              const void * const *genericArguments) {
   StackAllocatedDemangler<1024> demangler;
@@ -2967,7 +2949,7 @@ swift_func_getReturnTypeInfo(const char *typeNameStart, size_t typeNameLength,
   auto request = MetadataRequest(MetadataState::Complete);
 
   NodePointer nodePointer = resultType->getFirstChild();
-  auto typeInfoOrErr = swift_getTypeByMangledNode(
+  auto typeInfoOrErr = language_getTypeByMangledNode(
       request, demangler, nodePointer,
       /*arguments=*/genericArguments,
       /*substGenericParam=*/
@@ -2987,9 +2969,9 @@ swift_func_getReturnTypeInfo(const char *typeNameStart, size_t typeNameLength,
   return typeInfo.getMetadata();
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_SPI
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
 unsigned
-swift_func_getParameterTypeInfo(
+language_func_getParameterTypeInfo(
     const char *typeNameStart, size_t typeNameLength,
     GenericEnvironmentDescriptor *genericEnv,
     const void * const *genericArguments,
@@ -3012,8 +2994,21 @@ swift_func_getParameterTypeInfo(
 
   SubstGenericParametersFromMetadata substFn(genericEnv, genericArguments);
 
-  DecodedMetadataBuilder builder(
-      demangler,
+  // for each parameter (TupleElement), store it into the provided buffer
+  for (unsigned index = 0; index != typesLength; ++index) {
+    auto nodePointer = parameterList->getChild(index);
+
+    if (nodePointer->getKind() == Node::Kind::TupleElement) {
+      assert(nodePointer->getNumChildren() == 1);
+      nodePointer = nodePointer->getFirstChild();
+    }
+    assert(nodePointer->getKind() == Node::Kind::Type);
+
+    auto request = MetadataRequest(MetadataState::Complete);
+
+    auto typeInfoOrErr = language_getTypeByMangledNode(
+      request, demangler, nodePointer,
+      /*arguments=*/genericArguments,
       /*substGenericParam=*/
       [&substFn](unsigned depth, unsigned index) {
         return substFn.getMetadata(depth, index).Ptr;
@@ -3022,38 +3017,27 @@ swift_func_getParameterTypeInfo(
       [&substFn](const Metadata *type, unsigned index) {
         return substFn.getWitnessTable(type, index);
       });
-  TypeDecoder<DecodedMetadataBuilder> decoder(builder);
 
-  // for each parameter (TupleElement), store it into the provided buffer
-  for (unsigned index = 0; index != typesLength; ++index) {
-    auto *parameter = parameterList->getChild(index);
-
-    if (parameter->getKind() == Node::Kind::TupleElement) {
-      assert(parameter->getNumChildren() == 1);
-      parameter = parameter->getFirstChild();
+    if (typeInfoOrErr.isError()) {
+      return -3; // Failed to decode a type.
     }
 
-    assert(parameter->getKind() == Node::Kind::Type);
-
-    auto type = decodeType(decoder, parameter);
-    if (!type)
-      return -3; // Failed to decode a type.
-
-    types[index] = type;
+    auto typeInfo = typeInfoOrErr.getType();
+    types[index] = typeInfo.getMetadata();
   } // end foreach parameter
 
   return typesLength;
 }
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_SPI
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_SPI
 BufferAndSize
-swift_distributed_getWitnessTables(GenericEnvironmentDescriptor *genericEnv,
+language_distributed_getWitnessTables(GenericEnvironmentDescriptor *genericEnv,
                                    const void *const *genericArguments) {
   assert(genericEnv);
   assert(genericArguments);
 
-  llvm::SmallVector<const void *, 4> witnessTables;
+  toolchain::SmallVector<const void *, 4> witnessTables;
   SubstGenericParametersFromMetadata substFn(genericEnv, genericArguments);
 
   auto error = _checkGenericRequirements(
@@ -3088,14 +3072,14 @@ swift_distributed_getWitnessTables(GenericEnvironmentDescriptor *genericEnv,
 
 static
 MetadataResponse
-swift_getOpaqueTypeMetadataImpl(MetadataRequest request,
+language_getOpaqueTypeMetadataImpl(MetadataRequest request,
                             const void * const *arguments,
                             const OpaqueTypeDescriptor *descriptor,
                             unsigned index) {
   auto mangledName = descriptor->getUnderlyingTypeArgument(index);
   SubstGenericParametersFromMetadata substitutions(descriptor, arguments);
 
-  return swift_getTypeByMangledName(request.getState(),
+  return language_getTypeByMangledName(request.getState(),
                                     mangledName, arguments,
     [&substitutions](unsigned depth, unsigned index) {
       return substitutions.getMetadata(depth, index).Ptr;
@@ -3105,20 +3089,20 @@ swift_getOpaqueTypeMetadataImpl(MetadataRequest request,
     }).getType().getResponse();
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 MetadataResponse
-swift_getOpaqueTypeMetadata2(MetadataRequest request,
+language_getOpaqueTypeMetadata2(MetadataRequest request,
                             const void * const *arguments,
                             const OpaqueTypeDescriptor *descriptor,
                             unsigned index) {
-  descriptor = swift_auth_data_non_address(
+  descriptor = language_auth_data_non_address(
       descriptor, SpecialPointerAuthDiscriminators::OpaqueTypeDescriptor);
-  return swift_getOpaqueTypeMetadataImpl(request, arguments, descriptor, index);
+  return language_getOpaqueTypeMetadataImpl(request, arguments, descriptor, index);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 MetadataResponse
-swift_getOpaqueTypeMetadata(MetadataRequest request,
+language_getOpaqueTypeMetadata(MetadataRequest request,
                             const void * const *arguments,
                             const void *descriptor,
                             unsigned index) {
@@ -3126,52 +3110,52 @@ swift_getOpaqueTypeMetadata(MetadataRequest request,
   // declare it as `void *` to avoid the implicit ptrauth we get from
   // the ptrauth_struct attribute. The static_cast implicitly signs the
   // pointer when we call through to the implementation in
-  // swift_getOpaqueTypeMetadataImpl.
-  return swift_getOpaqueTypeMetadataImpl(
+  // language_getOpaqueTypeMetadataImpl.
+  return language_getOpaqueTypeMetadataImpl(
       request, arguments, static_cast<const OpaqueTypeDescriptor *>(descriptor),
       index);
 }
 
 static const WitnessTable *
-swift_getOpaqueTypeConformanceImpl(const void *const *arguments,
+language_getOpaqueTypeConformanceImpl(const void *const *arguments,
                                    const OpaqueTypeDescriptor *descriptor,
                                    unsigned index) {
-  auto response = swift_getOpaqueTypeMetadataImpl(
+  auto response = language_getOpaqueTypeMetadataImpl(
       MetadataRequest(MetadataState::Complete), arguments, descriptor, index);
   return (const WitnessTable *)response.Value;
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const WitnessTable *
-swift_getOpaqueTypeConformance2(const void * const *arguments,
+language_getOpaqueTypeConformance2(const void * const *arguments,
                                const OpaqueTypeDescriptor *descriptor,
                                unsigned index) {
-  descriptor = swift_auth_data_non_address(
+  descriptor = language_auth_data_non_address(
       descriptor, SpecialPointerAuthDiscriminators::OpaqueTypeDescriptor);
-  return swift_getOpaqueTypeConformanceImpl(arguments, descriptor, index);
+  return language_getOpaqueTypeConformanceImpl(arguments, descriptor, index);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 const WitnessTable *
-swift_getOpaqueTypeConformance(const void * const *arguments,
+language_getOpaqueTypeConformance(const void * const *arguments,
                                const void *descriptor,
                                unsigned index) {
   // This call takes `descriptor` without a ptrauth signature. We
   // declare it as `void *` to avoid the implicit ptrauth we get from
   // the ptrauth_struct attribute. The static_cast implicitly signs the
   // pointer when we call through to the implementation in
-  // swift_getOpaqueTypeConformanceImpl.
-  return swift_getOpaqueTypeConformanceImpl(
+  // language_getOpaqueTypeConformanceImpl.
+  return language_getOpaqueTypeConformanceImpl(
       arguments, static_cast<const OpaqueTypeDescriptor *>(descriptor), index);
 }
 
-SWIFT_RUNTIME_STDLIB_SPI
-SWIFT_CC(swift)
-const Metadata *swift::_swift_instantiateCheckedGenericMetadata(
+LANGUAGE_RUNTIME_STDLIB_SPI
+LANGUAGE_CC(language)
+const Metadata *language::_language_instantiateCheckedGenericMetadata(
     const TypeContextDescriptor *context,
     const void * const *genericArgs,
     size_t genericArgsSize) {
-  context = swift_auth_data_non_address(
+  context = language_auth_data_non_address(
       context, SpecialPointerAuthDiscriminators::ContextDescriptor);
 
   if (!context->isGeneric()) {
@@ -3182,8 +3166,8 @@ const Metadata *swift::_swift_instantiateCheckedGenericMetadata(
 
   // _instantiateCheckedGenericMetadata expects generic args to NOT begin with
   // shape classes.
-  llvm::ArrayRef<const void *> genericArgsRef(genericArgs, genericArgsSize);
-  llvm::SmallVector<MetadataPackOrValue, 8> writtenGenericArgs;
+  toolchain::ArrayRef<const void *> genericArgsRef(genericArgs, genericArgsSize);
+  toolchain::SmallVector<MetadataPackOrValue, 8> writtenGenericArgs;
 
   // If we fail to fill in all of the generic parameters, just fail.
   if (!_gatherWrittenGenericParameters(context, genericArgsRef,
@@ -3191,8 +3175,8 @@ const Metadata *swift::_swift_instantiateCheckedGenericMetadata(
     return nullptr;
   }
 
-  llvm::SmallVector<unsigned, 8> genericParamCounts;
-  llvm::SmallVector<const void *, 8> allGenericArgs;
+  toolchain::SmallVector<unsigned, 8> genericParamCounts;
+  toolchain::SmallVector<const void *, 8> allGenericArgs;
 
   auto result = _gatherGenericParameters(context, writtenGenericArgs,
                                          /* parent */ nullptr,
@@ -3209,7 +3193,7 @@ const Metadata *swift::_swift_instantiateCheckedGenericMetadata(
   return accessFunction(MetadataState::Complete, allGenericArgs).Value;
 }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 
 // Return the ObjC class for the given type name.
 // This gets installed as a callback from libobjc.
@@ -3258,7 +3242,7 @@ getObjCClassByMangledName(const char * _Nonnull typeName,
         node->getLastChild()->getKind() == Node::Kind::Suffix)
       return NO;
 
-    metadata = swift_getTypeByMangledNode(
+    metadata = language_getTypeByMangledNode(
       MetadataState::Complete, demangler, node,
       nullptr,
       /* no substitutions */
@@ -3267,14 +3251,14 @@ getObjCClassByMangledName(const char * _Nonnull typeName,
     ).getType().getMetadata();
   } else {
     if (validateObjCMangledName(typeName))
-      metadata = swift_stdlib_getTypeByMangledNameUntrusted(typeStr.data(),
+      metadata = language_stdlib_getTypeByMangledNameUntrusted(typeStr.data(),
                                                             typeStr.size());
   }
   if (metadata) {
     auto objcClass =
       reinterpret_cast<Class>(
         const_cast<ClassMetadata *>(
-          swift_getObjCClassFromMetadataConditional(metadata)));
+          language_getObjCClassFromMetadataConditional(metadata)));
 
     if (objcClass) {
       *outClass = objcClass;
@@ -3285,14 +3269,14 @@ getObjCClassByMangledName(const char * _Nonnull typeName,
   return OldGetClassHook(typeName, outClass);
 }
 
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
 __attribute__((constructor))
 static void installGetClassHook() {
-  if (SWIFT_RUNTIME_WEAK_CHECK(objc_setHook_getClass)) {
-    SWIFT_RUNTIME_WEAK_USE(objc_setHook_getClass(getObjCClassByMangledName, &OldGetClassHook));
+  if (LANGUAGE_RUNTIME_WEAK_CHECK(objc_setHook_getClass)) {
+    LANGUAGE_RUNTIME_WEAK_USE(objc_setHook_getClass(getObjCClassByMangledName, &OldGetClassHook));
   }
 }
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_END
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_END
 
 #endif
 
@@ -3566,10 +3550,10 @@ demangleToGenericParamRef(StringRef typeName) {
                                        node->getChild(1)->getIndex());
 }
 
-bool swift::_gatherWrittenGenericParameters(
+bool language::_gatherWrittenGenericParameters(
     const TypeContextDescriptor *descriptor,
-    llvm::ArrayRef<const void *> keyArgs,
-    llvm::SmallVectorImpl<MetadataPackOrValue> &genericArgs,
+    toolchain::ArrayRef<const void *> keyArgs,
+    toolchain::SmallVectorImpl<MetadataPackOrValue> &genericArgs,
     Demangle::Demangler &Dem) {
   if (!descriptor) {
     return false;
@@ -3612,7 +3596,7 @@ bool swift::_gatherWrittenGenericParameters(
   // canonicalized away. Use same-type requirements to reconstitute them.
 
   // Retrieve the mapping information needed for depth/index -> flat index.
-  llvm::SmallVector<unsigned, 8> genericParamCounts;
+  toolchain::SmallVector<unsigned, 8> genericParamCounts;
   (void)_gatherGenericParameterCounts(descriptor, genericParamCounts, Dem);
 
   SubstGenericParametersFromWrittenArgs substitutions(genericArgs,
@@ -3645,7 +3629,7 @@ bool swift::_gatherWrittenGenericParameters(
 
       if (req.Flags.isValueRequirement()) {
         auto genericArgValue =
-            swift::getTypeValueByMangledName(
+            language::getTypeValueByMangledName(
               req.getMangledTypeName(),
               keyArgs.data(),
               [&substitutions](unsigned depth, unsigned index) {
@@ -3658,7 +3642,7 @@ bool swift::_gatherWrittenGenericParameters(
         genericArg = MetadataPackOrValue(genericArgValue);
       } else {
         auto *genericArgMetadata =
-            swift_getTypeByMangledName(MetadataState::Abstract,
+            language_getTypeByMangledName(MetadataState::Abstract,
               req.getMangledTypeName(),
               keyArgs.data(),
               [&substitutions](unsigned depth, unsigned index) {
@@ -3712,9 +3696,9 @@ struct InitializeDynamicReplacementLookup {
   }
 };
 
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
 static InitializeDynamicReplacementLookup initDynamicReplacements;
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_END
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_END
 
 void DynamicReplacementDescriptor::enableReplacement() const {
   // Weakly linked symbols can be zero.
@@ -3730,7 +3714,7 @@ void DynamicReplacementDescriptor::enableReplacement() const {
 #if 0
   for (auto *curr = chainRoot; curr != nullptr; curr = curr->next) {
     if (curr == chainEntry.get()) {
-      swift::swift_abortDynamicReplacementEnabling();
+      language::language_abortDynamicReplacementEnabling();
     }
   }
 #endif
@@ -3740,7 +3724,7 @@ void DynamicReplacementDescriptor::enableReplacement() const {
     auto *previous = chainRoot->next;
     chainRoot->next = previous->next;
     //chainRoot->implementationFunction = previous->implementationFunction;
-    swift_ptrauth_copy_code_or_data(
+    language_ptrauth_copy_code_or_data(
         reinterpret_cast<void **>(&chainRoot->implementationFunction),
         reinterpret_cast<void *const *>(&previous->implementationFunction),
         replacedFunctionKey->getExtraDiscriminator(),
@@ -3751,7 +3735,7 @@ void DynamicReplacementDescriptor::enableReplacement() const {
   auto *currentEntry =
       const_cast<DynamicReplacementChainEntry *>(chainEntry.get());
   // currentEntry->implementationFunction = chainRoot->implementationFunction;
-  swift_ptrauth_copy_code_or_data(
+  language_ptrauth_copy_code_or_data(
       reinterpret_cast<void **>(&currentEntry->implementationFunction),
       reinterpret_cast<void *const *>(&chainRoot->implementationFunction),
       replacedFunctionKey->getExtraDiscriminator(),
@@ -3762,7 +3746,7 @@ void DynamicReplacementDescriptor::enableReplacement() const {
   // Link the replacement entry.
   chainRoot->next = chainEntry.get();
   // chainRoot->implementationFunction = getReplacementFunction();
-  swift_ptrauth_init_code_or_data(
+  language_ptrauth_init_code_or_data(
       reinterpret_cast<void **>(&chainRoot->implementationFunction),
       reinterpret_cast<void *>(getReplacementFunction()),
       replacedFunctionKey->getExtraDiscriminator(),
@@ -3779,7 +3763,7 @@ void DynamicReplacementDescriptor::disableReplacement() const {
   while (prev && prev->next != thisEntry)
     prev = prev->next;
   if (!prev) {
-    swift::swift_abortDynamicReplacementDisabling();
+    language::language_abortDynamicReplacementDisabling();
     return;
   }
 
@@ -3787,7 +3771,7 @@ void DynamicReplacementDescriptor::disableReplacement() const {
   auto *previous = const_cast<DynamicReplacementChainEntry *>(prev);
   previous->next = thisEntry->next;
   // previous->implementationFunction = thisEntry->implementationFunction;
-  swift_ptrauth_copy_code_or_data(
+  language_ptrauth_copy_code_or_data(
       reinterpret_cast<void **>(&previous->implementationFunction),
       reinterpret_cast<void *const *>(&thisEntry->implementationFunction),
       replacedFunctionKey->getExtraDiscriminator(),
@@ -3808,17 +3792,17 @@ public:
 
 /// A list of automatic dynamic replacement scopes.
 class AutomaticDynamicReplacements
-    : private swift::ABI::TrailingObjects<AutomaticDynamicReplacements,
+    : private language::ABI::TrailingObjects<AutomaticDynamicReplacements,
                                           AutomaticDynamicReplacementEntry> {
   uint32_t flags;
   uint32_t numScopes;
 
   using TrailingObjects =
-      swift::ABI::TrailingObjects<AutomaticDynamicReplacements,
+      language::ABI::TrailingObjects<AutomaticDynamicReplacements,
                                   AutomaticDynamicReplacementEntry>;
   friend TrailingObjects;
 
-  llvm::ArrayRef<AutomaticDynamicReplacementEntry>
+  toolchain::ArrayRef<AutomaticDynamicReplacementEntry>
   getReplacementEntries() const {
     return {
         this->template getTrailingObjects<AutomaticDynamicReplacementEntry>(),
@@ -3839,7 +3823,7 @@ class DynamicReplacementSomeDescriptor {
   RelativeIndirectablePointer<
       const OpaqueTypeDescriptor, false, int32_t,
       TargetSignedPointer<InProcess, OpaqueTypeDescriptor *
-                                         __ptrauth_swift_type_descriptor>>
+                                         __ptrauth_language_type_descriptor>>
       originalOpaqueTypeDesc;
   RelativeDirectPointer<const OpaqueTypeDescriptor, false>
       replacementOpaqueTypeDesc;
@@ -3853,16 +3837,16 @@ public:
 
 /// A list of dynamic replacements of some types.
 class AutomaticDynamicReplacementsSome
-    : private swift::ABI::TrailingObjects<AutomaticDynamicReplacementsSome,
+    : private language::ABI::TrailingObjects<AutomaticDynamicReplacementsSome,
                                           DynamicReplacementSomeDescriptor> {
   uint32_t flags;
   uint32_t numEntries;
   using TrailingObjects =
-      swift::ABI::TrailingObjects<AutomaticDynamicReplacementsSome,
+      language::ABI::TrailingObjects<AutomaticDynamicReplacementsSome,
                                   DynamicReplacementSomeDescriptor>;
   friend TrailingObjects;
 
-  llvm::ArrayRef<DynamicReplacementSomeDescriptor>
+  toolchain::ArrayRef<DynamicReplacementSomeDescriptor>
   getReplacementEntries() const {
     return {
         this->template getTrailingObjects<DynamicReplacementSomeDescriptor>(),
@@ -3879,7 +3863,7 @@ public:
 
 } // anonymous namespace
 
-void swift::addImageDynamicReplacementBlockCallback(
+void language::addImageDynamicReplacementBlockCallback(
     const void *baseAddress,
     const void *replacements, uintptr_t replacementsSize,
     const void *replacementsSome, uintptr_t replacementsSomeSize) {
@@ -3935,16 +3919,16 @@ void swift::addImageDynamicReplacementBlockCallback(
   });
 }
 
-void swift::swift_enableDynamicReplacementScope(
+void language::language_enableDynamicReplacementScope(
     const DynamicReplacementScope *scope) {
-  scope = swift_auth_data_non_address(
+  scope = language_auth_data_non_address(
       scope, SpecialPointerAuthDiscriminators::DynamicReplacementScope);
   DynamicReplacementLock.get().withLock([=] { scope->enable(); });
 }
 
-void swift::swift_disableDynamicReplacementScope(
+void language::language_disableDynamicReplacementScope(
     const DynamicReplacementScope *scope) {
-  scope = swift_auth_data_non_address(
+  scope = language_auth_data_non_address(
       scope, SpecialPointerAuthDiscriminators::DynamicReplacementScope);
   DynamicReplacementLock.get().withLock([=] { scope->disable(); });
 }

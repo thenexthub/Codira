@@ -1,0 +1,44 @@
+// RUN: %empty-directory(%t/src)
+// RUN: split-file %s %t/src
+
+/// Build the library
+// RUN: %target-language-frontend -emit-module %t/src/Lib.code \
+// RUN:   -target %target-language-5.1-abi-triple \
+// RUN:   -module-name Lib -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface
+
+// RUN: rm %t/Lib.codemodule
+
+// Build the client using interface
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.1-abi-triple -language-version 5 -I %t %t/src/Test.code -enable-upcoming-feature NonisolatedNonsendingByDefault:migrate
+
+// REQUIRES: asserts
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+//--- Lib.code
+public struct Counter: AsyncSequence {
+  public typealias Element = Int
+
+  public init(howHigh: Int) {
+  }
+
+  public struct AsyncIterator: AsyncIteratorProtocol {
+    public mutating fn next() async -> Int? {
+      nil
+    }
+  }
+  
+  public fn makeAsyncIterator() -> AsyncIterator {
+    AsyncIterator()
+  }
+}
+
+//--- Test.code
+import Lib
+
+fn count(n: Int) async {
+  // expected-warning@-1 {{feature 'NonisolatedNonsendingByDefault' will cause nonisolated async global function 'count' to run on the caller's actor; use '@concurrent' to preserve behavior}}
+  for await _ in Counter(howHigh: n) {
+  }
+}

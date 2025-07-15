@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILType.h"
@@ -42,10 +43,10 @@ using namespace language::Lowering;
 /// recursively check any children of this type, because
 /// this is the task of the type visitor invoking it.
 /// \returns The found archetype or empty type otherwise.
-CanExistentialArchetypeType swift::getOpenedArchetypeOf(CanType Ty) {
+CanExistentialArchetypeType language::getOpenedArchetypeOf(CanType Ty) {
   return dyn_cast_or_null<ExistentialArchetypeType>(getLocalArchetypeOf(Ty));
 }
-CanLocalArchetypeType swift::getLocalArchetypeOf(CanType Ty) {
+CanLocalArchetypeType language::getLocalArchetypeOf(CanType Ty) {
   if (!Ty)
     return CanLocalArchetypeType();
   while (auto MetaTy = dyn_cast<AnyMetatypeType>(Ty))
@@ -216,7 +217,7 @@ std::string SILType::getMangledName() const {
 
 std::string SILType::getAsString() const {
   std::string Result;
-  llvm::raw_string_ostream OS(Result);
+  toolchain::raw_string_ostream OS(Result);
   print(OS);
   return OS.str();
 }
@@ -238,7 +239,7 @@ bool SILType::isPointerSizeAndAligned(SILModule &M,
   return false;
 }
 
-static bool isSingleSwiftRefcounted(SILModule &M,
+static bool isSingleCodiraRefcounted(SILModule &M,
                                     SILType SILTy,
                                     ResilienceExpansion expansion,
                                     bool didUnwrapOptional) {
@@ -249,25 +250,25 @@ static bool isSingleSwiftRefcounted(SILModule &M,
   // no-payload case.
   if (!didUnwrapOptional) {
     if (auto objectTy = SILTy.getOptionalObjectType()) {
-      return ::isSingleSwiftRefcounted(M, objectTy, expansion, true);
+      return ::isSingleCodiraRefcounted(M, objectTy, expansion, true);
     }
   }
 
   // Unwrap singleton aggregates.
   if (auto underlyingField = SILTy.getSingletonAggregateFieldType(M, expansion)) {
-    return ::isSingleSwiftRefcounted(M, underlyingField, expansion,
+    return ::isSingleCodiraRefcounted(M, underlyingField, expansion,
                                      didUnwrapOptional);
   }
   
   auto Ty = SILTy.getASTType();
   
-  // Easy cases: Builtin.NativeObject and boxes are always Swift-refcounted.
+  // Easy cases: Builtin.NativeObject and boxes are always Codira-refcounted.
   if (Ty == C.TheNativeObjectType)
     return true;
   if (isa<SILBoxType>(Ty))
     return true;
   
-  // Is the type a Swift-refcounted class?
+  // Is the type a Codira-refcounted class?
   // For a generic type, consider its superclass constraint, if any.
   auto ClassTy = Ty;
   if (auto archety = dyn_cast<ArchetypeType>(Ty)) {
@@ -280,7 +281,7 @@ static bool isSingleSwiftRefcounted(SILModule &M,
   if (Ty->isAnyExistentialType()) {
     auto layout = Ty->getExistentialLayout();
     // Must be no protocol constraints that aren't @objc or @_marker.
-    if (layout.containsSwiftProtocol) {
+    if (layout.containsCodiraProtocol) {
       return false;
     }
     
@@ -290,21 +291,21 @@ static bool isSingleSwiftRefcounted(SILModule &M,
     }
     
     // We can look at the superclass constraint, if any, to see if it's
-    // Swift-refcounted.
+    // Codira-refcounted.
     if (!layout.getSuperclass()) {
       return false;
     }
     ClassTy = layout.getSuperclass()->getCanonicalType();
   }
   
-  // TODO: Does the base class we found have fully native Swift ancestry,
-  // so we can use Swift native refcounting on it?
+  // TODO: Does the base class we found have fully native Codira ancestry,
+  // so we can use Codira native refcounting on it?
   return false;
 }
 
-bool SILType::isSingleSwiftRefcounted(SILModule &M,
+bool SILType::isSingleCodiraRefcounted(SILModule &M,
                                       ResilienceExpansion expansion) const {
-  return ::isSingleSwiftRefcounted(M, *this, expansion, false);
+  return ::isSingleCodiraRefcounted(M, *this, expansion, false);
 }
 
 // Reference cast from representations with single pointer low bits.
@@ -445,11 +446,11 @@ SILType SILType::getEnumElementType(EnumElementDecl *elt,
 
 EnumElementDecl *SILType::getEnumElement(int caseIndex) const {
   EnumDecl *enumDecl = getEnumOrBoundGenericEnum();
-  for (auto elemWithIndex : llvm::enumerate(enumDecl->getAllElements())) {
+  for (auto elemWithIndex : toolchain::enumerate(enumDecl->getAllElements())) {
     if ((int)elemWithIndex.index() == caseIndex)
       return elemWithIndex.value();
   }
-  llvm_unreachable("invalid enum case index");
+  toolchain_unreachable("invalid enum case index");
 }
 
 bool SILType::isLoadableOrOpaque(const SILFunction &F) const {
@@ -602,13 +603,13 @@ SILType::canUseExistentialRepresentation(ExistentialRepresentation repr,
     case ExistentialLayout::Kind::Opaque:
       return repr == ExistentialRepresentation::Opaque;
     }
-    llvm_unreachable("unknown existential kind!");
+    toolchain_unreachable("unknown existential kind!");
   }
   case ExistentialRepresentation::Metatype:
     return is<ExistentialMetatypeType>();
   }
 
-  llvm_unreachable("Unhandled ExistentialRepresentation in switch.");
+  toolchain_unreachable("Unhandled ExistentialRepresentation in switch.");
 }
 
 SILType SILType::mapTypeOutOfContext() const {
@@ -620,7 +621,7 @@ CanType SILType::mapTypeOutOfContext(CanType type) {
   return type->mapTypeOutOfContext()->getCanonicalType();
 }
 
-CanType swift::getSILBoxFieldLoweredType(TypeExpansionContext context,
+CanType language::getSILBoxFieldLoweredType(TypeExpansionContext context,
                                          SILBoxType *type, TypeConverter &TC,
                                          unsigned index) {
   auto fieldTy = SILType::getPrimitiveObjectType(
@@ -665,7 +666,7 @@ SILResultInfo::getOwnershipKind(SILFunction &F,
     return OwnershipKind::Unowned;
   }
 
-  llvm_unreachable("Unhandled ResultConvention in switch.");
+  toolchain_unreachable("Unhandled ResultConvention in switch.");
 }
 
 SILModuleConventions::SILModuleConventions(SILModule &M)
@@ -800,7 +801,7 @@ static bool areOnlyAbstractionDifferent(CanType type1, CanType type2) {
   if (isa<SILFunctionType>(type2))
     return false;
 
-  llvm_unreachable("no other types should differ by abstraction");
+  toolchain_unreachable("no other types should differ by abstraction");
 }
 #endif
 
@@ -964,7 +965,7 @@ bool SILType::isEffectivelyExhaustiveEnumType(SILFunction *f) {
   if (decl->hasCasesUnavailableDuringLowering())
     return false;
 
-  return decl->isEffectivelyExhaustive(f->getModule().getSwiftModule(),
+  return decl->isEffectivelyExhaustive(f->getModule().getCodiraModule(),
                                        f->getResilienceExpansion());
 }
 
@@ -988,7 +989,7 @@ SILType::getSingletonAggregateFieldType(SILModule &M,
   if (auto structDecl = getStructOrBoundGenericStruct()) {
     // If the struct has to be accessed resiliently from this resilience domain,
     // we can't assume anything about its layout.
-    if (structDecl->isResilient(M.getSwiftModule(), expansion)) {
+    if (structDecl->isResilient(M.getCodiraModule(), expansion)) {
       return SILType();
     }
 
@@ -1011,7 +1012,7 @@ SILType::getSingletonAggregateFieldType(SILModule &M,
     if (allFields.size() == 1) {
       auto fieldTy = getFieldType(
           allFields[0], M,
-          TypeExpansionContext(expansion, M.getSwiftModule(),
+          TypeExpansionContext(expansion, M.getCodiraModule(),
                                M.isWholeModule()));
       if (!M.isTypeABIAccessible(fieldTy,
                        TypeExpansionContext::maximalResilienceExpansionOnly())){
@@ -1026,7 +1027,7 @@ SILType::getSingletonAggregateFieldType(SILModule &M,
   if (auto enumDecl = getEnumOrBoundGenericEnum()) {
     // If the enum has to be accessed resiliently from this resilience domain,
     // we can't assume anything about its layout.
-    if (enumDecl->isResilient(M.getSwiftModule(), expansion)) {
+    if (enumDecl->isResilient(M.getCodiraModule(), expansion)) {
       return SILType();
     }
 
@@ -1037,7 +1038,7 @@ SILType::getSingletonAggregateFieldType(SILModule &M,
         && (*theCase)->hasAssociatedValues()) {
       auto enumEltTy = getEnumElementType(
           *theCase, M,
-          TypeExpansionContext(expansion, M.getSwiftModule(),
+          TypeExpansionContext(expansion, M.getCodiraModule(),
                                M.isWholeModule()));
       if (!M.isTypeABIAccessible(enumEltTy,
                        TypeExpansionContext::maximalResilienceExpansionOnly())){
@@ -1232,7 +1233,7 @@ intptr_t SILType::getCaseIdxOfEnumType(StringRef caseName) const {
 
 std::string SILType::getDebugDescription() const {
   std::string str;
-  llvm::raw_string_ostream os(str);
+  toolchain::raw_string_ostream os(str);
   print(os);
   return str;
 }
@@ -1339,11 +1340,11 @@ static FunctionTest IsSILTrivial("is_sil_trivial", [](auto &function,
                                                       auto &arguments,
                                                       auto &test) {
   SILValue value = arguments.takeValue();
-  llvm::outs() << value;
+  toolchain::outs() << value;
   if (value->getType().isTrivial(value->getFunction())) {
-    llvm::outs() << " is trivial\n";
+    toolchain::outs() << " is trivial\n";
   } else {
-    llvm::outs() << " is not trivial\n";
+    toolchain::outs() << " is not trivial\n";
   }
 });
 } // end namespace language::test

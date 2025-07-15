@@ -1,0 +1,35 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+protocol P {
+  associatedtype T : Q
+
+  fn makeT() -> T
+}
+
+protocol Q {
+  associatedtype U : R
+
+  fn makeU() -> U
+}
+
+protocol R {
+  init()
+}
+
+class C<U : R> : Q {
+  fn makeU() -> U {
+    return U()
+  }
+}
+
+fn takesR<T : R>(_: T.Type) {}
+
+fn takesPWithC<T : P, U>(_ t: T) -> U where T.T : C<U> {
+  takesR(T.T.U.this)
+
+  immutable c: C<U> = t.makeT()
+  immutable u: U = c.makeU()
+
+  return u
+}
+

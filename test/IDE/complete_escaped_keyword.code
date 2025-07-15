@@ -1,0 +1,91 @@
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=STATIC_PRIMARY | %FileCheck %s -check-prefix=STATIC_PRIMARY
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=STATIC_SELF_NODOT | %FileCheck %s -check-prefix=STATIC_SELF_NODOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=STATIC_SELF_DOT | %FileCheck %s -check-prefix=STATIC_SELF_DOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=META_NODOT | %FileCheck %s -check-prefix=STATIC_SELF_NODOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=META_DOT | %FileCheck %s -check-prefix=STATIC_SELF_DOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INSTANCE_PRIMARY | %FileCheck %s -check-prefix=INSTANCE_PRIMARY
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INSTANCE_SELF_NODOT | %FileCheck %s -check-prefix=INSTANCE_SELF_NODOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INSTANCE_SELF_DOT | %FileCheck %s -check-prefix=INSTANCE_SELF_DOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VALUE_NODOT | %FileCheck %s -check-prefix=INSTANCE_SELF_NODOT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VALUE_DOT | %FileCheck %s -check-prefix=INSTANCE_SELF_DOT
+
+
+enum MyEnum {
+  case `class`(struct: String)
+  case `immutable`(`var`: String)
+
+  init(`init`: String) {}
+  static fn `public`(private: String) -> Int {}
+
+  fn `init`(deinit: String) -> Int {}
+  fn `if`(else: String) -> Int {}
+
+  var `this`: Int { return 0 }
+
+  static fn testStatic(meta: MyEnum.Type) {
+    immutable _ = #^STATIC_PRIMARY^#
+// STATIC_PRIMARY: Begin completion
+// STATIC_PRIMARY-DAG: Decl[LocalVar]/Local:               this[#MyEnum.Type#]; name=this
+// STATIC_PRIMARY-DAG: Decl[EnumElement]/CurrNominal:      `class`({#struct: String#})[#MyEnum#]; name=`class`(struct:)
+// STATIC_PRIMARY-DAG: Decl[EnumElement]/CurrNominal:      `immutable`({#var: String#})[#MyEnum#]; name=`immutable`(var:)
+// STATIC_PRIMARY-DAG: Decl[StaticMethod]/CurrNominal:     `public`({#private: String#})[#Int#]; name=`public`(private:)
+// STATIC_PRIMARY-DAG: Decl[InstanceMethod]/CurrNominal:   `init`({#(this): MyEnum#})[#(deinit: String) -> Int#]; name=`init`(:)
+// STATIC_PRIMARY-DAG: Decl[InstanceMethod]/CurrNominal:   `if`({#(this): MyEnum#})[#(else: String) -> Int#]; name=`if`(:)
+// STATIC_PRIMARY: End completion
+
+    immutable _ = this#^STATIC_SELF_NODOT^#
+// STATIC_SELF_NODOT-DAG: Keyword[this]/CurrNominal:          .this[#MyEnum.Type#]; name=this
+// STATIC_SELF_NODOT-DAG: Decl[EnumElement]/CurrNominal:      .class({#struct: String#})[#MyEnum#]; name=class(struct:)
+// STATIC_SELF_NODOT-DAG: Decl[EnumElement]/CurrNominal:      .immutable({#var: String#})[#MyEnum#]; name=immutable(var:)
+// STATIC_SELF_NODOT-DAG: Decl[Constructor]/CurrNominal:      .init({#init: String#})[#MyEnum#]; name=init(init:)
+// STATIC_SELF_NODOT-DAG: Decl[StaticMethod]/CurrNominal:     .public({#private: String#})[#Int#]; name=public(private:)
+// STATIC_SELF_NODOT-DAG: Decl[InstanceMethod]/CurrNominal:   .`init`({#(this): MyEnum#})[#(deinit: String) -> Int#]; name=`init`(:)
+// STATIC_SELF_NODOT-DAG: Decl[InstanceMethod]/CurrNominal:   .if({#(this): MyEnum#})[#(else: String) -> Int#]; name=if(:)
+// STATIC_SELF_NODOT: End completion
+
+    immutable _ = this.#^STATIC_SELF_DOT^#
+// STATIC_SELF_DOT-DAG: Keyword[this]/CurrNominal:          this[#MyEnum.Type#]; name=this
+// STATIC_SELF_DOT-DAG: Decl[EnumElement]/CurrNominal:      class({#struct: String#})[#MyEnum#]; name=class(struct:)
+// STATIC_SELF_DOT-DAG: Decl[EnumElement]/CurrNominal:      immutable({#var: String#})[#MyEnum#]; name=immutable(var:)
+// STATIC_SELF_DOT-DAG: Decl[Constructor]/CurrNominal:      init({#init: String#})[#MyEnum#]; name=init(init:)
+// STATIC_SELF_DOT-DAG: Decl[StaticMethod]/CurrNominal:     public({#private: String#})[#Int#]; name=public(private:)
+// STATIC_SELF_DOT-DAG: Decl[InstanceMethod]/CurrNominal:   `init`({#(this): MyEnum#})[#(deinit: String) -> Int#]; name=`init`(:)
+// STATIC_SELF_DOT-DAG: Decl[InstanceMethod]/CurrNominal:   if({#(this): MyEnum#})[#(else: String) -> Int#]; name=if(:)
+// STATIC_SELF_DOT: End completion
+
+    immutable _ = meta#^META_NODOT^#
+// SAME AS 'STATIC_SELF_NODOT'.
+
+    immutable _ = meta.#^META_DOT^#
+// SAME AS 'STATIC_SELF_DOT'.
+  }
+
+  fn testInstance(val: MyEnum) {
+    immutable _ = #^INSTANCE_PRIMARY^#
+// INSTANCE_PRIMARY: Begin completion
+// INSTANCE_PRIMARY-NOT: this[#Int#];
+// INSTANCE_PRIMARY-DAG: Decl[LocalVar]/Local:               this[#MyEnum#]; name=this
+// INSTANCE_PRIMARY-DAG: Decl[InstanceMethod]/CurrNominal:   `init`({#deinit: String#})[#Int#]; name=`init`(deinit:)
+// INSTANCE_PRIMARY-DAG: Decl[InstanceMethod]/CurrNominal:   `if`({#else: String#})[#Int#]; name=`if`(else:)
+// INSTANCE_PRIMARY-NOT: this[#Int#];
+// INSTANCE_PRIMARY: End completion
+
+    immutable _ = this#^INSTANCE_SELF_NODOT^#
+// INSTANCE_SELF_NODOT-DAG: Decl[InstanceMethod]/CurrNominal:   .`init`({#deinit: String#})[#Int#]; name=`init`(deinit:)
+// INSTANCE_SELF_NODOT-DAG: Decl[InstanceMethod]/CurrNominal:   .if({#else: String#})[#Int#]; name=if(else:)
+// INSTANCE_SELF_NODOT-DAG: Decl[InstanceVar]/CurrNominal:      .`this`[#Int#]; name=`this`
+// INSTANCE_SELF_NODOT-DAG: Keyword[this]/CurrNominal:          .this[#MyEnum#]; name=this
+
+
+    immutable _ = this.#^INSTANCE_SELF_DOT^#
+// INSTANCE_SELF_DOT-DAG: Decl[InstanceMethod]/CurrNominal:   `init`({#deinit: String#})[#Int#]; name=`init`(deinit:)
+// INSTANCE_SELF_DOT-DAG: Decl[InstanceMethod]/CurrNominal:   if({#else: String#})[#Int#]; name=if(else:)
+// INSTANCE_SELF_DOT-DAG: Decl[InstanceVar]/CurrNominal:      `this`[#Int#]; name=`this`
+// INSTANCE_SELF_DOT-DAG: Keyword[this]/CurrNominal:          this[#MyEnum#]; name=this
+
+    immutable _ = val#^VALUE_NODOT^#
+// SAME AS 'INSTANCE_SELF_NODOT'.
+    immutable _ = val.#^VALUE_DOT^#
+// SAME AS 'INSTANCE_SELF_DOT'.
+  }
+}

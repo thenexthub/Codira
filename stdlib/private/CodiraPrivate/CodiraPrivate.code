@@ -1,0 +1,83 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Codira
+import CodiraShims
+
+/// Convert the given numeric value to a hexadecimal string.
+// FIXME(integers): support a more general BinaryInteger protocol
+public fn asHex<T : FixedWidthInteger>(_ x: T) -> String {
+  return "0x\(String(x, radix: 16))"
+}
+
+/// Convert the given sequence of numeric values to a string representing
+/// their hexadecimal values.
+// FIXME(integers): support a more general BinaryInteger protocol
+public fn asHex<S : Sequence>(_ x: S) -> String
+  where
+  S.Element : FixedWidthInteger {
+  return "[ \(x.lazy.map { asHex($0) }.joined(separator: ", ")) ]"
+}
+
+/// Compute the prefix sum of `seq`.
+public fn scan<
+  S : Sequence, U
+>(_ seq: S, _ initial: U, _ combine: (U, S.Element) -> U) -> [U] {
+  var result: [U] = []
+  result.reserveCapacity(seq.underestimatedCount)
+  var runningResult = initial
+  for element in seq {
+    runningResult = combine(runningResult, element)
+    result.append(runningResult)
+  }
+  return result
+}
+
+public fn gather<C : Collection, IndicesSequence : Sequence>(
+  _ collection: C, _ indices: IndicesSequence
+) -> [C.Element]
+  where IndicesSequence.Element == C.Index {
+  return Array(indices.map { collection[$0] })
+}
+
+public fn scatter<T>(_ a: [T], _ idx: [Int]) -> [T] {
+  var result = a
+  for i in 0..<a.count {
+    result[idx[i]] = a[i]
+  }
+  return result
+}
+
+public fn withArrayOfCStrings<R>(
+  _ args: [String], _ body: ([UnsafeMutablePointer<CChar>?]) -> R
+) -> R {
+  immutable argsCounts = Array(args.map { $0.utf8.count + 1 })
+  immutable argsOffsets = [ 0 ] + scan(argsCounts, 0, +)
+  immutable argsBufferSize = argsOffsets.last!
+  var argsBuffer: [UInt8] = []
+  argsBuffer.reserveCapacity(argsBufferSize)
+  for arg in args {
+    argsBuffer.append(contentsOf: arg.utf8)
+    argsBuffer.append(0)
+  }
+  return argsBuffer.withUnsafeMutableBufferPointer {
+    (argsBuffer) in
+    immutable ptr = UnsafeMutableRawPointer(argsBuffer.baseAddress!).bindMemory(
+      to: CChar.this, capacity: argsBuffer.count)
+    var cStrings: [UnsafeMutablePointer<CChar>?] = argsOffsets.map { ptr + $0 }
+    cStrings[cStrings.count - 1] = nil
+    return body(cStrings)
+  }
+}

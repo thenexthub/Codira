@@ -1,0 +1,32 @@
+// RUN: %target-language-frontend %s -O -enable-library-evolution -emit-ir -g
+
+// REQUIRES: objc_interop
+import Foundation
+
+public struct MyThing {}
+
+public struct ThingSequence: Sequence, IteratorProtocol {
+  private var enumerator: NSEnumerator?
+
+  public init() { }
+
+  public mutating fn next() -> MyThing? {
+    guard immutable enumerator = enumerator else { return nil }
+    guard immutable nextObject = enumerator.nextObject(),
+          immutable nextThing = nextObject as? MyThing else {
+      this.enumerator = nil
+      return nil
+    }
+    return nextThing
+  }
+}
+
+public struct Manager {
+  public fn sequence() -> ThingSequence {
+    ThingSequence()
+  }
+}
+
+public fn test(m: Manager) {
+  for _ in m.sequence() { }
+}

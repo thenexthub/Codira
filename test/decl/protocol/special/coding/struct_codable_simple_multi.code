@@ -1,0 +1,2 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown %S/Inputs/struct_codable_simple_multi1.code %S/Inputs/struct_codable_simple_multi2.code
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown %S/Inputs/struct_codable_simple_multi2.code %S/Inputs/struct_codable_simple_multi1.code

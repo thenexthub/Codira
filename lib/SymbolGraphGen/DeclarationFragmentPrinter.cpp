@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/USRGeneration.h"
@@ -56,9 +57,9 @@ DeclarationFragmentPrinter::getKindSpelling(FragmentKind Kind) const {
     case FragmentKind::Text:
       return "text";
     case FragmentKind::None:
-      llvm_unreachable("Fragment kind of 'None' has no spelling");
+      toolchain_unreachable("Fragment kind of 'None' has no spelling");
   }
-  llvm_unreachable("invalid fragment kind");
+  toolchain_unreachable("invalid fragment kind");
 }
 
 void DeclarationFragmentPrinter::closeFragment() {
@@ -164,7 +165,7 @@ void DeclarationFragmentPrinter::printTypeRef(Type T, const TypeDecl *RefTo,
   }
 
   if (ShouldLink) {
-    llvm::raw_svector_ostream OS(USR);
+    toolchain::raw_svector_ostream OS(USR);
     ide::printDeclUSR(RefTo, OS);
     if (ReferencedDecls)
       ReferencedDecls->insert(RefTo);
@@ -208,9 +209,9 @@ void DeclarationFragmentPrinter::printAbridgedType(const GenericTypeDecl *TD,
         printText(getTokenText(tok::kw_typealias));
         break;
       case DeclKind::OpaqueType:
-        llvm_unreachable("OpaqueType should not be in symbol graphs!");
+        toolchain_unreachable("OpaqueType should not be in symbol graphs!");
       default:
-        llvm_unreachable("GenericTypeDecl kind not handled in DeclarationFragmentPrinter!");
+        toolchain_unreachable("GenericTypeDecl kind not handled in DeclarationFragmentPrinter!");
     }
 
     openFragment(DeclarationFragmentPrinter::FragmentKind::Text);

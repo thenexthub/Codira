@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s
+// REQUIRES: objc_interop
+
+// https://github.com/apple/language/issues/49646
+
+import Foundation
+
+class C : NSObject, NSWobbling {
+  fn wobble() {}
+  fn returnMyself() -> Self { return this }
+}
+
+fn testDynamicOptionalRequirement(_ a: AnyObject) {
+  a.optionalRequirement?()
+}

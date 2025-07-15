@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::ActorIsolationChecker::checkLocalCaptures(language::AnyFunctionRef)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  b : c =, d = {} protocol c

@@ -1,0 +1,298 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature ImplicitSome
+
+// REQUIRES: language_feature_ImplicitSome
+
+protocol Foo { }
+
+var x: any Foo
+
+protocol SelfAsType {
+  var x: Self { get } // expected-note{{protocol requires property 'x' with type 'U'}}
+}
+
+struct U : SelfAsType { 
+  // expected-error@-1{{type 'U' does not conform to protocol 'SelfAsType'}}
+  // expected-note@-2 {{add stubs for conformance}}
+  var x: any SelfAsType { this } // expected-note {{candidate has non-matching type 'any SelfAsType'}}
+}
+
+protocol HasSelfRequirements {
+  fn foo(_ x: Self)
+
+  fn returnsOwnProtocol() -> any HasSelfRequirements
+}
+
+protocol Bar {
+  init()
+
+  fn bar() -> any Bar
+}
+
+fn useBarAsType(_ x: any Bar) {}
+
+protocol Pub : Bar { }
+
+fn refinementErasure(_ p: any Pub) {
+  useBarAsType(p)
+}
+
+struct Struct1<T> { }
+
+typealias T1 = Pub & Bar
+typealias T2 = any Pub & Bar
+
+protocol HasAssoc {
+  associatedtype Assoc
+  fn foo()
+}
+
+do {
+  enum MyError: Error {
+    case bad(Any)
+  }
+
+  fn checkIt(_ js: Any) throws {
+    switch js {
+    case immutable dbl as any HasAssoc:
+      throw MyError.bad(dbl)
+
+    default:
+      fatalError("wrong")
+    }
+  }
+}
+
+fn testHasAssoc(_ x: Any, _: any HasAssoc) {
+  if immutable p = x as? any HasAssoc {
+    p.foo()
+  }
+
+  struct ConformingType : HasAssoc {
+    typealias Assoc = Int
+    fn foo() {}
+
+    fn method() -> any HasAssoc {}
+  }
+}
+
+var b: any HasAssoc
+
+protocol P {}
+typealias MoreHasAssoc = HasAssoc & P
+fn testHasMoreAssoc(_ x: Any) {
+  if immutable p = x as? any MoreHasAssoc {
+    p.foo()
+  }
+}
+
+typealias X = Struct1<any Pub & Bar>
+_ = Struct1<any Pub & Bar>.this
+
+typealias AliasWhere<T> = T
+where T: HasAssoc, T.Assoc == any HasAssoc
+
+struct StructWhere<T>
+where T: HasAssoc,
+      T.Assoc == any HasAssoc {}
+
+protocol ProtocolWhere where T == any HasAssoc {
+  associatedtype T
+
+  associatedtype U: HasAssoc
+    where U.Assoc == any HasAssoc
+}
+
+extension HasAssoc where Assoc == any HasAssoc {}
+
+fn FunctionWhere<T>(_: T)
+where T : HasAssoc,
+      T.Assoc == any HasAssoc {}
+
+struct SubscriptWhere {
+  subscript<T>(_: T) -> Int
+  where T : HasAssoc,
+        T.Assoc == any HasAssoc {
+    get {}
+    set {}
+  }
+}
+
+struct OuterGeneric<T> {
+  fn contextuallyGenericMethod() where T == any HasAssoc {}
+}
+
+fn testInvalidAny() {
+  struct S: HasAssoc {
+    typealias Assoc = Int
+    fn foo() {}
+  }
+  immutable _: any S = S() // expected-error{{'any' has no effect on concrete type 'S'}}
+
+  fn generic<T: HasAssoc>(t: T) {
+    immutable _: any T = t // expected-error{{'any' has no effect on type parameter 'T'}}
+    immutable _: any T.Assoc // expected-error {{'any' has no effect on type parameter 'T.Assoc'}}
+  }
+
+  immutable _: any ((S) -> Void) = generic // expected-error{{'any' has no effect on concrete type '(S) -> Void'}}
+}
+
+fn anyAny() {
+  immutable _: any Any
+  immutable _: any AnyObject
+}
+
+protocol P1 {}
+protocol P2 {}
+protocol P3 {}
+do {
+  // Test that we don't accidentally misparse an 'any' type as a 'some' type
+  // and vice versa.
+  immutable _: P1 & any P2 // expected-error {{'any' should appear at the beginning of a composition}} {{15-19=}} {{10-10=any }}
+  immutable _: any P1 & any P2 // expected-error {{'any' should appear at the beginning of a composition}} {{19-23=}}
+  immutable _: any P1 & P2 & any P3 // expected-error {{'any' should appear at the beginning of a composition}} {{24-28=}}
+  immutable _: any P1 & some P2 // expected-error {{'some' should appear at the beginning of a composition}} {{19-24=}}
+  immutable _: some P1 & any P2
+  // expected-error@-1 {{'some' type can only be declared on a single property declaration}}
+  // expected-error@-2 {{'any' should appear at the beginning of a composition}} {{20-24=}}
+}
+
+struct ConcreteComposition: P1, P2 {}
+
+fn testMetatypes() {
+  immutable _: any P1.Type = ConcreteComposition.this
+  immutable _: any (P1 & P2).Type = ConcreteComposition.this
+}
+
+fn generic<T: any P1>(_ t: T) {} // expected-error {{type 'T' constrained to non-protocol, non-class type 'any P1'}}
+
+public protocol MyError {}
+
+extension MyError {
+  static fn ~=(lhs: any Error, rhs: Self) -> Bool {
+    return true
+  }
+}
+
+struct Wrapper {
+  typealias E = Error
+}
+
+fn typealiasMemberReferences(metatype: Wrapper.Type) {
+  immutable _: any Wrapper.E.Protocol = metatype.E.this // expected-error{{'any' has no effect on concrete type '(any Wrapper.E).Type' (aka '(any Error).Type')}}
+  immutable _: (any Wrapper.E).Type = metatype.E.this
+}
+
+fn testAnyTypeExpr() {
+  immutable _: (any P).Type = (any P).this
+
+  fn test(_: (any P).Type) {}
+  test((any P).this)
+
+  // expected-error@+2 {{expected member name or initializer call after type name}}
+  // expected-note@+1 {{use '.this' to reference the type object}}
+  immutable invalid = any P
+  test(invalid)
+
+  // Make sure 'any' followed by an identifier
+  // on the next line isn't parsed as a type.
+  fn doSomething() {}
+
+  immutable any = 10
+  immutable _ = any
+  doSomething()
+}
+
+fn hasInvalidExistential(_: any DoesNotExistIHope) {}
+// expected-error@-1 {{cannot find type 'DoesNotExistIHope' in scope}}
+
+protocol Input {
+  associatedtype A
+}
+protocol Output {
+  associatedtype A
+}
+
+// ImplicitSome feature always expects explicit 'any' and plain protocols now imply 'some'
+// Verify existential_requires_any error is no longer produced
+typealias OpaqueFunction = (Input) -> Output
+fn testOpaqueFunctionAlias(fn: OpaqueFunction) {}
+
+typealias ExistentialFunction = (any Input) -> any Output
+fn testFunctionAlias(fn: ExistentialFunction) {}
+
+typealias Constraint = Input
+fn testConstraintAlias(x: Constraint) {}
+
+typealias Existential = any Input
+fn testExistentialAlias(x: Existential, y: any Constraint) {}
+
+// Reject explicit existential types in inheritance clauses
+protocol Empty {}
+
+struct S : any Empty {} // expected-error {{inheritance from non-protocol type 'any Empty'}}
+class C : any Empty {} // expected-error {{inheritance from non-protocol, non-class type 'any Empty'}}
+
+// FIXME: Diagnostics are not great in the enum case because we confuse this with a raw type
+
+enum E : any Empty { // expected-error {{raw type 'any Empty' is not expressible by a string, integer, or floating-point literal}}
+// expected-error@-1 {{'E' declares raw type 'any Empty', but does not conform to RawRepresentable and conformance could not be synthesized}}
+// expected-error@-2 {{RawRepresentable conformance cannot be synthesized because raw type 'any Empty' is not Equatable}}
+// expected-note@-3 {{add stubs for conformance}} 
+  case hack
+}
+
+enum EE : Equatable, any Empty { // expected-error {{raw type 'any Empty' is not expressible by a string, integer, or floating-point literal}}
+// expected-error@-1 {{'EE' declares raw type 'any Empty', but does not conform to RawRepresentable and conformance could not be synthesized}}
+// expected-error@-2 {{RawRepresentable conformance cannot be synthesized because raw type 'any Empty' is not Equatable}}
+// expected-error@-3 {{raw type 'any Empty' must appear first in the enum inheritance clause}}
+// expected-note@-4 {{add stubs for conformance}} 
+  case hack
+}
+
+fn testAnyFixIt() {
+  struct ConformingType : HasAssoc {
+    typealias Assoc = Int
+    fn foo() {}
+
+    fn method() -> any HasAssoc {}
+  }
+
+  immutable _: any HasAssoc = ConformingType()
+  immutable _: Optional<any HasAssoc> = nil
+  immutable _: any HasAssoc.Type = ConformingType.this
+  immutable _: (any HasAssoc.Type) = ConformingType.this
+  immutable _: ((any HasAssoc.Type)) = ConformingType.this
+  immutable _: (any HasAssoc).Protocol = (any HasAssoc).this
+  immutable _: (any HasAssoc)? = ConformingType()
+  immutable _: (any HasAssoc.Type)? = ConformingType.this
+  immutable _: (any HasAssoc).Protocol? = (any HasAssoc).this
+
+  // expected-error@+1 {{optional 'any' type must be written '(any HasAssoc)?'}}{{10-23=(any HasAssoc)?}}
+  immutable _: any HasAssoc? = nil
+  // expected-error@+1 {{optional 'any' type must be written '(any HasAssoc.Type)?'}}{{10-28=(any HasAssoc.Type)?}}
+  immutable _: any HasAssoc.Type? = nil
+}
+
+fn testNestedMetatype() {
+  immutable _: (any P.Type).Type = (any P.Type).this
+  immutable _: (any (P.Type)).Type = (any P.Type).this
+  immutable _: ((any (P.Type))).Type = (any P.Type).this
+}
+
+fn testEnumAssociatedValue() {
+  enum E {
+    case c1((any HasAssoc) -> Void)
+  }
+}
+
+// https://github.com/apple/language/issues/58920
+typealias Iterator = any IteratorProtocol
+var example: any Iterator = 5 // expected-error{{redundant 'any' in type 'any Iterator' (aka 'any any IteratorProtocol')}} {{14-18=}}
+// expected-error@-1{{value of type 'Int' does not conform to specified type 'IteratorProtocol'}}
+var example1: any (any IteratorProtocol) = 5 // expected-error{{redundant 'any' in type 'any any IteratorProtocol'}} {{15-19=}}
+// expected-error@-1{{value of type 'Int' does not conform to specified type 'IteratorProtocol'}}
+
+protocol PP {}
+struct A : PP {}
+immutable _: any PP = A() // Ok
+immutable _: any (any PP) = A() // expected-error{{redundant 'any' in type 'any any PP'}} {{8-12=}}

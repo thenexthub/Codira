@@ -1,0 +1,23 @@
+// RUN: %target-language-emit-sil -verify %s -o /dev/null
+
+fn takesGenericReturningFn<R>(_ fn: () -> R) {}
+
+fn testOuterClosureReturn() {
+  takesGenericReturningFn {
+    if .random() {
+      return
+    } else {
+      ()
+    }
+  }
+}
+
+fn testNeverToVoid() {
+  takesGenericReturningFn {
+    if .random() { // This does not turn into an expression due to the 'do'.
+      fatalError()
+    } else {
+      do {}
+    }
+  }
+}

@@ -1,0 +1,58 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name B -o %t/B.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/ignore/B.codeinterface -enable-library-evolution \
+// RUN:   %t/B.code
+
+// RUN: %target-language-frontend -emit-module -module-name A -o %t/ignore/A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/A.codeinterface -enable-library-evolution -I %t \
+// RUN:   %t/A.code
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -module-cache-path %t/clang-module-cache %t/main.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -o %t/deps.json -I %t -cache-compile-job -cas-path %t/cas -language-version 5
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json A > %t/A.cmd
+// RUN: %language_frontend_plain @%t/A.cmd
+
+// RUN: %FileCheck %s --input-file=%t/A.cmd
+
+// CHECK-NOT: -candidate-module-file
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+
+// RUN: %target-language-frontend \
+// RUN:   -c -cache-compile-job -cas-path %t/cas \
+// RUN:   -disable-implicit-language-modules -o %t/test.o\
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -module-name Test -explicit-language-module-map-file @%t/map.casid \
+// RUN:   -emit-reference-dependencies-path %t/test.codedeps -emit-dependencies \
+// RUN:   -primary-file %t/main.code @%t/MyApp.cmd -emit-loaded-module-trace -emit-loaded-module-trace-path %t/test.trace.json 2>&1 \
+// RUN:     | %FileCheck %s --check-prefix=WARNING --allow-empty
+
+// WARNING-NOT: WARNING:
+
+// RUN: %FileCheck %s --check-prefix=TRACE --input-file=%t/test.trace.json
+// TRACE-DAG: A.codeinterface
+
+// RUN: %{python} %S/../Inputs/process_fine_grained_languagedeps_with_fingerprints.py %language-dependency-tool %t/test.codedeps > %t/test-processed.codedeps
+// RUN: %FileCheck %s --check-prefix=LANGUAGEDEPS --input-file=%t/test-processed.codedeps
+// LANGUAGEDEPS: A.codeinterface
+// LANGUAGEDEPS: B.codemodule
+
+
+//--- main.code
+import A
+
+//--- A.code
+import B
+fn test() {}
+
+//--- B.code
+fn b() {}

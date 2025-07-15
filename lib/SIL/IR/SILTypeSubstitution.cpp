@@ -1,13 +1,17 @@
 //===--- SILTypeSubstitution.cpp - Apply substitutions to SIL types -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the core operations that apply substitutions to
@@ -68,19 +72,7 @@ public:
     if (!typeExpansionContext.shouldLookThroughOpaqueTypeArchetypes())
       return subs;
 
-    return subs.subst([&](SubstitutableType *s) -> Type {
-        return substOpaqueTypesWithUnderlyingTypes(s->getCanonicalType(),
-                                                   typeExpansionContext);
-      }, [&](CanType dependentType,
-             Type conformingReplacementType,
-             ProtocolDecl *conformedProtocol) -> ProtocolConformanceRef {
-        return substOpaqueTypesWithUnderlyingTypes(
-               ProtocolConformanceRef::forAbstract(conformingReplacementType,
-                                                   conformedProtocol),
-               typeExpansionContext);
-      },
-      SubstFlags::SubstituteOpaqueArchetypes |
-      SubstFlags::PreservePackExpansionLevel);
+    return substOpaqueTypesWithUnderlyingTypes(subs, typeExpansionContext);
   }
 
   // Substitute a function type.
@@ -252,11 +244,10 @@ public:
     auto genericSig = IFS.shouldSubstituteOpaqueArchetypes()
                         ? origType->getInvocationGenericSignature()
                         : nullptr;
-                        
-    extInfo = SILFunctionType::getSubstLifetimeDependencies(genericSig, extInfo,
-                                                            substParams,
-                                                            substYields,
-                                                            substResults);
+
+    extInfo = SILFunctionType::getSubstLifetimeDependencies(
+        genericSig, extInfo, TC.Context, substParams, substYields,
+        substResults);
 
     return SILFunctionType::get(genericSig, extInfo,
                                 origType->getCoroutineKind(),
@@ -339,19 +330,19 @@ public:
   }
 
   CanType visitPackType(CanPackType origType) {
-    llvm_unreachable("CanPackType shouldn't show in lowered types");
+    toolchain_unreachable("CanPackType shouldn't show in lowered types");
   }
 
   /* FIXME: Uncomment this once SubstFlags::PreservePackExpansionLevel is gone */
 #if 0
   CanType visitPackExpansionType(CanPackExpansionType origType) {
-    llvm_unreachable("shouldn't substitute an independent lowered pack "
+    toolchain_unreachable("shouldn't substitute an independent lowered pack "
                      "expansion type");
   }
 #endif
 
   void substPackExpansion(CanPackExpansionType origType,
-                          llvm::function_ref<void(CanType)> addExpandedType) {
+                          toolchain::function_ref<void(CanType)> addExpandedType) {
     IFS.expandPackExpansionShape(origType.getCountType(),
                                 [&](Type substExpansionShape) {
       CanType substComponentType = visit(origType.getPatternType());

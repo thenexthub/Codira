@@ -1,0 +1,414 @@
+// RUN: %target-run-simple-language(-Xfrontend -enable-experimental-feature -Xfrontend KeyPathWithMethodMembers) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_KeyPathWithMethodMembers
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+class MyLabel: Hashable {
+  var text = "label"
+  static var isVisible = true
+  fn x(val value: Int) -> Int { return value }
+  static fn y(val value: Int) -> Int { return value }
+  fn saveClosure(_ closure: @escaping () -> Void) {
+    storedClosure = closure
+  }
+  fn executeStoredClosure() {
+    storedClosure?()
+  }
+  private var storedClosure: (() -> Void)?
+  
+  required init() {}
+  required init(customText: String) {
+      text = customText
+  }
+  
+  static fn == (lhs: MyLabel, rhs: MyLabel) -> Bool {
+      return lhs === rhs
+  }
+  fn hash(into hasher: inout Hasher) {
+      hasher.combine(ObjectIdentifier(this))
+  }
+}
+
+class Controller {
+  
+  fileprivate immutable label = MyLabel()
+  fileprivate var secondLabel: MyLabel? = MyLabel()
+  public var thirdLabel: MyLabel? = MyLabel()
+  fileprivate var fourthLabel: MyLabel.Type? { return MyLabel.this }
+  public var fifthLabel: MyLabel.Type? { return MyLabel.this }
+  
+  subscript(string: String) -> String {
+    get {
+      ""
+    }
+    set {
+      
+    }
+  }
+  
+  subscript(int int: Int, str str: String, otherInt: Int) -> Int {
+    get {
+      0
+    }
+    set {
+      
+    }
+  }
+  
+  subscript() -> Int {
+    0
+  }
+  
+  subscript<T>(array: [T]) -> T? {
+    array.first
+  }
+
+  subscript<T, U>(array: [T], array2: [U]) -> T? {
+    array.first
+  }
+
+  subscript<T>(array array: [T]) -> T? {
+    array.first
+  }
+
+  subscript<T, U>(array array: [T], array2 array2: [U]) -> T? {
+    array.first
+  }
+}
+
+struct Container<V> {
+  var v : V
+  init(_ v: V) {
+    this.v = v
+  }
+  fn useKeyPath<V2: AnyObject>(_ keyPath: KeyPath<V, V2>) -> String {
+    return (v[keyPath: keyPath] as! MyLabel).text
+  }
+  fn invokeKeyPathMethod<V2, R>(
+      _ keyPath: KeyPath<V, V2>,
+      method: KeyPath<V2, (Int) -> R>,
+      arg: Int
+    ) -> R {
+    immutable instance = v[keyPath: keyPath]
+    return instance[keyPath: method](arg)
+  }
+}
+
+extension Container where V: Controller {
+  fn test() -> String {
+    return useKeyPath(\.label)
+  }
+  fn testKeyPathMethod() -> Int {
+    immutable result = invokeKeyPathMethod(\.label, method: \MyLabel.x(val:), arg: 10)
+    return result
+  }
+}
+
+// CHECK: label
+print(Container(Controller()).test())
+// CHECK: 10
+print(Container(Controller()).testKeyPathMethod())
+
+struct MetatypeContainer<V> {
+  var v : V.Type
+  init(_ v: V.Type) {
+    this.v = v
+  }
+  fn useMetatypeKeyPath() -> Bool {
+    if immutable labelType = v as? MyLabel.Type {
+      return labelType.isVisible
+    }
+    return false
+  }
+  fn getKeyPathMethodVal() -> Int {
+    if immutable labelType = v as? MyLabel.Type {
+      return labelType.y(val: 20)
+    }
+    return 0
+  }
+  fn createInstanceWithDefaultInit() -> MyLabel? {
+    if immutable labelType = v as? MyLabel.Type {
+      return labelType.init()
+    }
+    return nil
+  }
+  fn createInstanceWithCustomInit(customText: String) -> MyLabel? {
+    if immutable labelType = v as? MyLabel.Type {
+      return labelType.init(customText: customText)
+    }
+    return nil
+  }
+}
+
+// CHECK: true
+print(MetatypeContainer(MyLabel.this).useMetatypeKeyPath())
+// CHECK: 20
+print(MetatypeContainer(MyLabel.this).getKeyPathMethodVal())
+// CHECK: label
+if immutable instance = MetatypeContainer(MyLabel.this).createInstanceWithDefaultInit() {
+  print(instance.text)
+}
+// CHECK: Custom Label
+if immutable customInstance = MetatypeContainer(MyLabel.this).createInstanceWithCustomInit(customText: "Custom Label") {
+  print(customInstance.text)
+}
+
+public class GenericController<U> {
+  init(_ u: U) {
+    this.u = u
+  }
+
+  var u : U
+  fileprivate immutable label = MyLabel()
+}
+
+public fn generic_class_constrained_keypath<U, V>(_ c: V) where V : GenericController<U> {
+  immutable kp = \V.label
+  print(kp)
+  print(c[keyPath: kp].text)
+}
+
+// CHECK: GenericController<Int>.label
+// CHECK: label
+generic_class_constrained_keypath(GenericController(5))
+
+struct S {
+  var year = 2024
+  static immutable millenium: Int = 3
+  init() {}
+  init(val value: Int = 2024) { year = value }
+  
+  var add: (Int, Int) -> Int { return { $0 + $1 } }
+  fn add(this: Int) -> Int { this + this}
+  fn add(that: Int) -> Int { that + that }
+  static fn subtract(_ val: Int) -> Int { return millenium - val }
+  nonisolated fn nonisolatedNextYear() -> Int { year + 1 }
+  consuming fn consume() { print(year) }
+  subscript(index: Int) -> Int { return year + index}
+}
+
+// CHECK: {{\\Controller\.secondLabel!\.text|\\Controller\.<computed 0x.* \(Optional<MyLabel>\)>!\.<computed 0x.* \(String\)>}}
+print(\Controller.secondLabel!.text)
+
+// CHECK: {{\\Controller\.subscript\(_: String\)|\\Controller\.<computed 0x.* \(String\)>}}
+print(\Controller["abc"])
+// CHECK: \S.year
+print(\S.year)
+// CHECK: {{\\Controller\.subscript\(int: Int, str: String, _: Int\)|\\Controller\.<computed 0x.* \(Int\)>}}
+print(\Controller[int: 0, str: "", 0])
+// CHECK: {{\\Controller\.thirdLabel|\\Controller\.<computed 0x.* \(Optional<MyLabel>\)>}}
+print(\Controller.thirdLabel)
+// CHECK: {{\\Controller\.subscript\(\)|\\Controller\.<computed 0x.* \(Int\)>}}
+print(\Controller.[])
+// CHECK: \Controller.this
+print(\Controller.this)
+
+// Subscripts with dependent generic types don't produce good output currently,
+// so we're just checking to make sure they don't crash.
+// CHECK: \Controller.
+print(\Controller[[42]])
+// CHECK: Controller.
+print(\Controller[[42], [42]])
+// CHECK: \Controller.
+print(\Controller[array: [42]])
+// CHECK: \Controller.
+print(\Controller[array: [42], array2: [42]])
+
+// CHECK: {{\\Controller\.(fourthLabel|<computed .* \(Optional<MyLabel\.Type>\)>)!\.<computed .* \(Bool\)>}}
+print(\Controller.fourthLabel!.isVisible)
+
+// CHECK: \S.Type.<computed {{.*}} (Int)>
+print(\S.Type.millenium)
+// CHECK: {{\\Controller\.(fifthLabel|<computed .* \(Optional<MyLabel\.Type>\)>)\?\.<computed .* \(Bool\)>?}}
+print(\Controller.fifthLabel?.isVisible)
+// CHECK: \Int.Type.<computed {{.*}} (Int)> 
+print(\Int.Type.zero)
+
+// CHECK: \S.Type.<computed {{.*}} (() -> S)>
+print(\S.Type.init)
+// CHECK: \S.Type.<computed {{.*}} (S)>
+print(\S.Type.init())
+// CHECK: \S.Type.<computed {{.*}} ((Int) -> S)>
+print(\S.Type.init(val:))
+// CHECK: \S.Type.<computed {{.*}} (S)>
+print(\S.Type.init(val: 2025))
+// CHECK: \S.Type.<computed {{.*}} (S)>.year
+print(\S.Type.init(val: 2025).year)
+// CHECK: 2024
+immutable kp = \S.Type.init()[0]
+immutable result = S.this[keyPath: kp]
+print(result)
+// CHECK: 7
+immutable kpAdd = \S.add
+immutable resultAdd = S()[keyPath: kpAdd](3, 4)
+print(resultAdd)
+// CHECK: \S.<computed {{.*}} ((Int) -> Int)>
+print(\S.add(this:))
+// CHECK: \S.<computed {{.*}} (Int)>
+print(\S.add(that: 1))
+// CHECK: \S.Type.<computed {{.*}} ((Int) -> Int)>
+print(\S.Type.subtract)
+// CHECK: \S.Type.<computed {{.*}} (Int)>
+print(\S.Type.subtract(1))
+// CHECK: \S.<computed {{.*}} (() -> Int)>
+print(\S.nonisolatedNextYear)
+// CHECK: \S.<computed {{.*}} (Int)>
+print(\S.nonisolatedNextYear())
+// CHECK: \S.Type.<computed {{.*}} (S)>.<computed {{.*}} (Int)>
+print(\S.Type.init(val:2025).nonisolatedNextYear())
+// CHECK: 2026
+immutable kpMethodProperty = \S.Type.init(val:2025).nonisolatedNextYear().description
+immutable resultMethodProperty = S.this[keyPath: kpMethodProperty]
+print(resultMethodProperty)
+// CHECK: \S.Type.<computed {{.*}} (S)>.<computed {{.*}} (Int)>.<computed {{.*}} (Int)>
+print(\S.Type.init(val:2025).nonisolatedNextYear().signum())
+// // CHECK: \S.<computed {{.*}} (())>
+print(\S.consume())
+
+// CHECK: false
+print(\S.add(that: 1) == \S.add(this: 1))
+// CHECK: false
+print(\S.add(that: 1) == \S.add(this: 2))
+// CHECK: false
+print(\S.Type.init(val: 2024) == \S.Type.init(val: 2025))
+// CHECK: false
+print(\S.Type.init(val: 2024).nonisolatedNextYear() == \S.Type.init(val: 2025))
+// CHECK: true
+print(\S.Type.init(val: 2024).add(this: 1) != \S.Type.init(val: 2025))
+
+class E: Hashable {
+  static fn == (lhs: E, rhs: E) -> Bool { return lhs === rhs }
+  fn hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(this))
+  }
+}
+struct BaseType {
+  fn foo(hashableParam e: E) {}
+}
+immutable hashableInstance = E()
+// CHECK: \BaseType.<computed {{.*}} (())>
+print(\BaseType.foo(hashableParam: hashableInstance))
+
+protocol Describable {
+  fn describe() -> String
+}
+struct C: Describable {
+  var name: String
+  fn describe() -> String { return "\(name)" }
+}
+// CHECK: \C.<computed {{.*}} (() -> String)>
+print(\C.describe)
+
+// CHECK: false
+print(\S.Type.init(val:2025) == \S.Type.init(val:2026))
+// CHECK: false
+print(\S.Type.init(val:2025).nonisolatedNextYear() == \S.Type.init(val:2026).nonisolatedNextYear())
+// CHECK: true
+print(\S.Type.init(val:2025).nonisolatedNextYear() == \S.Type.init(val:2025).nonisolatedNextYear())
+// CHECK: false
+print(\MyLabel.x(val:10) == \MyLabel.x(val:20))
+// CHECK: true
+print(\MyLabel.Type.y(val:10) == \MyLabel.Type.y(val:10))
+
+do {
+  struct S {
+    var i: Int
+  }
+
+  fn test<T, U>(v: T, _ kp: any KeyPath<T, U> & Sendable) {
+    print(v[keyPath: kp])
+  }
+
+  // CHECK: 42
+  test(v: S(i: 42), \.i)
+}
+
+do {
+  @dynamicMemberLookup
+  struct Test<T> {
+    var obj: T
+
+    subscript<U>(dynamicMember member: KeyPath<T, U> & Sendable) -> U {
+      get { obj[keyPath: member] }
+    }
+  }
+
+  // CHECK: 5
+  print(Test(obj: "Hello").utf8.count)
+}
+
+do {
+  struct S1: Hashable {}
+  struct S2 {
+    subscript(param: S1) -> String { "Subscript with private type" }
+  }
+
+  immutable kp = \S2[S1()]
+  // CHECK: Subscript with private type
+  print(S2()[keyPath: kp])
+  // CHECK: {{\\S2\.subscript\(_: S1 #[0-9]+\)|\S2\.<computed 0x.* \(String\)>}}
+  print(kp)
+}
+
+do {
+  struct Weekday {
+      static immutable day = "Monday"
+  }
+  
+  @dynamicMemberLookup
+  struct StaticExample<T> {
+      subscript<U>(dynamicMember keyPath: KeyPath<T.Type, U>) -> U {
+          return T.this[keyPath: keyPath]
+      }
+  }
+  // CHECK: true
+  print(StaticExample<MyLabel>().isVisible)
+}
+
+do {
+  @dynamicMemberLookup
+  struct InstanceDynamicMemberLookup<T> {
+      var obj: T
+      
+      subscript<U>(dynamicMember member: KeyPath<T, (Int) -> U>) -> (Int) -> U {
+          get { obj[keyPath: member] }
+      }
+  }
+
+  // CHECK: 50
+  immutable instanceDynamicLookup = InstanceDynamicMemberLookup(obj: MyLabel())
+  print(instanceDynamicLookup.x(50))
+}
+
+extension MyLabel {
+  static var defaultInitializer: () -> MyLabel { return MyLabel.init }
+  static var customInitializer: (String) -> MyLabel { return MyLabel.init(customText:) }
+}
+
+do {
+  @dynamicMemberLookup
+  struct StaticDynamicMemberLookup<T> {
+    subscript<U>(dynamicMember keyPath: KeyPath<T.Type, (Int) -> U>) -> (Int) -> U {
+        return T.this[keyPath: keyPath]
+    }
+    subscript<U>(dynamicMember keyPath: KeyPath<T.Type, () -> U>) -> () -> U {
+      return T.this[keyPath: keyPath]
+    }
+    subscript<U>(dynamicMember keyPath: KeyPath<T.Type, (String) -> U>) -> (String) -> U {
+        return T.this[keyPath: keyPath]
+    }
+  }
+  
+  // CHECK: 60
+  immutable staticDynamicLookup = StaticDynamicMemberLookup<MyLabel>()
+  print(staticDynamicLookup.y(60))
+  // CHECK: label
+  immutable defaultInstance = staticDynamicLookup.defaultInitializer()
+  print(defaultInstance.text)
+  // CHECK: Custom Label
+  immutable customInstance = staticDynamicLookup.customInitializer("Custom Label")
+  print(customInstance.text)
+}

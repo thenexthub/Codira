@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILVisitor class, used for walking SIL code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILVISITOR_H
-#define SWIFT_SIL_SILVISITOR_H
+#ifndef LANGUAGE_SIL_SILVISITOR_H
+#define LANGUAGE_SIL_SILVISITOR_H
 
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILUndef.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
@@ -53,7 +54,7 @@ public:
   }
 };
 
-/// SILValueVisitor - This is a simple visitor class for Swift SIL nodes,
+/// SILValueVisitor - This is a simple visitor class for Codira SIL nodes,
 /// allowing clients to walk over entire SIL functions, blocks, or instructions.
 template <typename ImplClass, typename RetTy = void, typename... ArgTys>
 class SILValueVisitor
@@ -70,7 +71,7 @@ public:
                                  std::forward<ArgTys>(args)...);
 #include "language/SIL/SILNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
   // Define default dispatcher implementations chain to parent nodes.
@@ -105,7 +106,7 @@ public:
                                    std::forward<ArgTys>(args)...);
 #include "language/SIL/SILNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
   // Define default dispatcher implementations chain to parent nodes.
@@ -142,7 +143,7 @@ public:
                                    std::forward<ArgTys>(args)...);
 #include "language/SIL/SILNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
   // Define default dispatcher implementations chain to parent nodes.

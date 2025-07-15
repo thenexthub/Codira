@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the Signature type, which encapsulates all the
@@ -18,18 +19,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_SIGNATURE_H
-#define SWIFT_IRGEN_SIGNATURE_H
+#ifndef LANGUAGE_IRGEN_SIGNATURE_H
+#define LANGUAGE_IRGEN_SIGNATURE_H
 
 #include "MetadataSource.h"
 #include "language/AST/Types.h"
 #include "language/Basic/ExternalUnion.h"
 #include "language/IRGen/GenericRequirement.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/IR/Attributes.h"
-#include "llvm/IR/CallingConv.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/IR/Attributes.h"
+#include "toolchain/IR/CallingConv.h"
 
-namespace llvm {
+namespace toolchain {
   class FunctionType;
 }
 
@@ -70,7 +71,7 @@ public:
 /// the general expansion algorithm.  We then find the longest prefix of
 /// the resulting sequence for which the concatenation
 ///   (continuation function pointer) + prefix + (optional remainder pointer)
-/// is a legal return type according to the swiftcall ABI.  The remainder
+/// is a legal return type according to the languagecall ABI.  The remainder
 /// pointer must be included whenever the prefix is strict; it points to
 /// a structure containing the remainder of the type sequence, with each
 /// element naturally aligned.
@@ -92,7 +93,7 @@ public:
   /// The number of yield components that are returned directly in the
   /// coroutine return value.
   unsigned NumDirectYieldComponents = 0;
-  llvm::StructType *indirectResultsType = nullptr;
+  toolchain::StructType *indirectResultsType = nullptr;
 };
 
 namespace {
@@ -102,7 +103,7 @@ namespace {
 class AsyncInfo {
 public:
   uint32_t AsyncContextIdx = 0;
-  uint32_t AsyncResumeFunctionSwiftSelfIdx = 0;
+  uint32_t AsyncResumeFunctionCodiraSelfIdx = 0;
 };
 
 /// Represents the source of the corresponding type pointer computed
@@ -119,8 +120,8 @@ public:
       : metadataSource(metadataSource) {}
 
   inline void
-  visit(llvm::function_ref<void(const GenericRequirement &)> requirementVisitor,
-        llvm::function_ref<void(const MetadataSource &)> metadataSourceVisitor)
+  visit(toolchain::function_ref<void(const GenericRequirement &)> requirementVisitor,
+        toolchain::function_ref<void(const MetadataSource &)> metadataSourceVisitor)
       const {
     if (requirement)
       return requirementVisitor(*requirement);
@@ -148,7 +149,7 @@ public:
     bool hasSRet;
   };
   /// The indirect results passed as parameters to the call.
-  llvm::SmallVector<IndirectResult, 1> indirectResults;
+  toolchain::SmallVector<IndirectResult, 1> indirectResults;
   /// Recorded information about the parameter convention.
   struct Parameter {
     std::reference_wrapper<const irgen::TypeInfo> typeInfo;
@@ -160,9 +161,9 @@ public:
         : typeInfo(typeInfo), convention(convention), isSelf(false) {}
   };
   /// The parameters passed to the call.
-  llvm::SmallVector<Parameter, 8> parameters;
+  toolchain::SmallVector<Parameter, 8> parameters;
   /// Type sources added to the signature during expansion.
-  llvm::SmallVector<PolymorphicSignatureExpandedTypeSource, 2>
+  toolchain::SmallVector<PolymorphicSignatureExpandedTypeSource, 2>
       polymorphicSignatureExpandedTypeSources;
   /// True if a trailing self parameter is passed to the call.
   bool hasTrailingSelfParam = false;
@@ -179,9 +180,9 @@ class Signature {
   using ExtraData =
       SimpleExternalUnion<void, ForeignFunctionInfo, CoroutineInfo, AsyncInfo>;
 
-  llvm::FunctionType *Type;
-  llvm::AttributeList Attributes;
-  llvm::CallingConv::ID CallingConv;
+  toolchain::FunctionType *Type;
+  toolchain::AttributeList Attributes;
+  toolchain::CallingConv::ID CallingConv;
   ExtraData::Kind ExtraDataKind; // packed with above
   ExtraData ExtraDataStorage;
   std::optional<SignatureExpansionABIDetails> ABIDetails;
@@ -192,8 +193,8 @@ class Signature {
 
 public:
   Signature() : Type(nullptr) {}
-  Signature(llvm::FunctionType *fnType, llvm::AttributeList attrs,
-            llvm::CallingConv::ID callingConv)
+  Signature(toolchain::FunctionType *fnType, toolchain::AttributeList attrs,
+            toolchain::CallingConv::ID callingConv)
     : Type(fnType), Attributes(attrs), CallingConv(callingConv),
       ExtraDataKind(ExtraData::kindForMember<void>()) {}
 
@@ -226,17 +227,17 @@ public:
   static Signature forAsyncEntry(IRGenModule &IGM, CanSILFunctionType asyncType,
                                  FunctionPointerKind kind);
 
-  llvm::FunctionType *getType() const {
+  toolchain::FunctionType *getType() const {
     assert(isValid());
     return Type;
   }
 
-  llvm::CallingConv::ID getCallingConv() const {
+  toolchain::CallingConv::ID getCallingConv() const {
     assert(isValid());
     return CallingConv;
   }
 
-  llvm::AttributeList getAttributes() const {
+  toolchain::AttributeList getAttributes() const {
     assert(isValid());
     return Attributes;
   }
@@ -266,18 +267,18 @@ public:
   uint32_t getAsyncContextIndex() const {
     return getAsyncInfo().AsyncContextIdx;
   }
-  uint32_t getAsyncResumeFunctionSwiftSelfIndex() const {
-    return getAsyncInfo().AsyncResumeFunctionSwiftSelfIdx;
+  uint32_t getAsyncResumeFunctionCodiraSelfIndex() const {
+    return getAsyncInfo().AsyncResumeFunctionCodiraSelfIdx;
   }
 
   // The mutators below should generally only be used when building up
   // a callee.
 
-  void setType(llvm::FunctionType *type) {
+  void setType(toolchain::FunctionType *type) {
     Type = type;
   }
 
-  llvm::AttributeList &getMutableAttributes() & {
+  toolchain::AttributeList &getMutableAttributes() & {
     assert(isValid());
     return Attributes;
   }

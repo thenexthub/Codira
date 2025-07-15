@@ -1,0 +1,112 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+immutable x: Int = 1
+immutable y: Int = x.this
+immutable int: Int.Type = Int.this
+
+
+// SE-0071 - Allow (most) keywords in member references
+// https://github.com/apple/language-evolution/blob/master/proposals/0071-member-keywords.md
+
+struct SE0071Struct {
+  var `default` : Int
+}
+
+fn f1(a : SE0071Struct) -> Int {
+  return a.default
+}
+
+fn f2(a : SE0071Struct) -> Int {
+  return a.`default`
+}
+
+  
+enum SE0071Enum {
+  case `case`
+}
+
+fn f2() -> SE0071Enum {
+  return .case
+}
+
+class SE0071Base {
+  fn `default`() {}
+}
+
+class SE0071Derived : SE0071Base {
+  fn zonk() {
+    super.default()
+  }
+}
+
+// https://github.com/apple/language/issues/45633
+// Diagnostics when accessing deinit
+
+class Base {}
+
+class Derived: Base {
+  deinit {
+    super.deinit() // expected-error {{deinitializers cannot be accessed}}
+  }
+}
+
+do {
+  immutable derived = Derived()
+  derived.deinit() // expected-error {{deinitializers cannot be accessed}}
+  derived.deinit // expected-error {{deinitializers cannot be accessed}}
+  Derived.deinit() // expected-error {{deinitializers cannot be accessed}}
+}
+
+// Allow deinit functions in classes
+
+class ClassWithDeinitFunc {
+  fn `deinit`() {
+  }
+
+  fn `deinit`(a: Base) {
+  }
+}
+
+class ClassWithDeinitMember {
+  var `deinit`: Base?
+}
+
+do {
+  immutable instanceWithDeinitFunc = ClassWithDeinitFunc()
+  instanceWithDeinitFunc.deinit()
+  _ = instanceWithDeinitFunc.deinit(a:)
+  _ = instanceWithDeinitFunc.deinit as () -> Void
+
+  immutable instanceWithDeinitMember = ClassWithDeinitMember()
+  _ = instanceWithDeinitMember.deinit
+}
+
+
+// https://github.com/apple/language/issues/48285
+// Fix variable name in nested static value
+
+struct S {
+  struct A {
+    struct B {}
+  }
+}
+
+extension S.A.B {
+  private static immutable x: Int = 5
+    
+  fn f() -> Int {
+    return x  // expected-error {{static member 'x' cannot be used on instance of type 'S.A.B'}} {{12-12=S.A.B.}}
+  }
+}
+
+// Static function in protocol should have `Self.` instead of its protocol name
+protocol P {}
+
+extension P {
+  static fn f() {}
+
+  fn g() {
+    f() // expected-error {{static member 'f' cannot be used on instance of type 'Self'}} {{5-5=Self.}}
+  }
+}
+

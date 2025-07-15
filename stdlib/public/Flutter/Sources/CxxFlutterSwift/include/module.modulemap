@@ -1,3 +1,0 @@
-module CxxFlutterSwift {
-    header "CxxFlutterSwift.h"
-}

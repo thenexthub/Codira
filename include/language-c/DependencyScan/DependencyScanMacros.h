@@ -1,4 +1,4 @@
-//===-- DependencyScanMacros.h - Swift Dependency Scanning Macros -*- C -*-===//
+//===-- DependencyScanMacros.h - Codira Dependency Scanning Macros -*- C -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #ifdef  __cplusplus
-# define SWIFTSCAN_BEGIN_DECLS  extern "C" {
-# define SWIFTSCAN_END_DECLS    }
+# define LANGUAGESCAN_BEGIN_DECLS  extern "C" {
+# define LANGUAGESCAN_END_DECLS    }
 #else
-# define SWIFTSCAN_BEGIN_DECLS
-# define SWIFTSCAN_END_DECLS
+# define LANGUAGESCAN_BEGIN_DECLS
+# define LANGUAGESCAN_END_DECLS
 #endif
 
-#ifndef SWIFTSCAN_PUBLIC
+#ifndef LANGUAGESCAN_PUBLIC
 # ifdef _WIN32
-#  ifdef libSwiftScan_EXPORTS
-#    define SWIFTSCAN_PUBLIC __declspec(dllexport)
+#  ifdef libCodiraScan_EXPORTS
+#    define LANGUAGESCAN_PUBLIC __declspec(dllexport)
 #  else
-#    define SWIFTSCAN_PUBLIC __declspec(dllimport)
+#    define LANGUAGESCAN_PUBLIC __declspec(dllimport)
 #  endif
 # else
-#  define SWIFTSCAN_PUBLIC
+#  define LANGUAGESCAN_PUBLIC
 # endif
 #endif

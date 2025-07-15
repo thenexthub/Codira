@@ -1,4 +1,4 @@
-//===--- PlatformKinds.def - Swift PlatformKind Metaprogramming -*- C++ -*-===//
+//===--- PlatformKinds.def - Codira PlatformKind Metaprogramming -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with platform kinds.
@@ -37,6 +38,7 @@ AVAILABILITY_PLATFORM(visionOSApplicationExtension, "application extensions for 
 AVAILABILITY_PLATFORM(macOSApplicationExtension, "application extensions for macOS")
 AVAILABILITY_PLATFORM(macCatalyst, "Mac Catalyst")
 AVAILABILITY_PLATFORM(macCatalystApplicationExtension, "application extensions for Mac Catalyst")
+AVAILABILITY_PLATFORM(FreeBSD, "FreeBSD")
 AVAILABILITY_PLATFORM(OpenBSD, "OpenBSD")
 AVAILABILITY_PLATFORM(Windows, "Windows")
 

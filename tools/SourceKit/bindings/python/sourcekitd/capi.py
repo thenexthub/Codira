@@ -1,12 +1,12 @@
 # capi.py - sourcekitd Python Bindings -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 from ctypes import (
     CFUNCTYPE,
@@ -532,7 +532,7 @@ def register_function(lib, item, ignore_errors):
     # A function may not exist, if these bindings are used with an older or
     # incompatible version of sourcekitd.
     try:
-        func = getattr(lib, item[0])
+        fn = getattr(lib, item[0])
     except AttributeError as e:
         msg = str(e) + ". Please ensure that your Python bindings are "\
                        "compatible with your sourcekitd version."
@@ -541,13 +541,13 @@ def register_function(lib, item, ignore_errors):
         raise LibsourcekitdError(msg)
 
     if len(item) >= 2:
-        func.argtypes = item[1]
+        fn.argtypes = item[1]
 
     if len(item) >= 3:
-        func.restype = item[2]
+        fn.restype = item[2]
 
     if len(item) == 4:
-        func.errcheck = item[3]
+        fn.errcheck = item[3]
 
 
 def register_functions(lib, ignore_errors):

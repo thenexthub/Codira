@@ -1,0 +1,124 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol a {
+    class fn c()
+}
+class b: a {
+    c T) {
+}
+f(true as Boolean)
+fn f() {
+    ({})
+}
+import Foundation
+class Foo<T>:     1)
+fn c<d {
+    enum c {
+        fn e
+        var _ = e
+    }
+}
+struct c<d : Sequence> {
+    var b: d
+}
+fn a<enum b {
+        case c
+    }
+}
+fn String {\(with): \(g())" } i {}
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}
+f
+e)
+fn f<g>() -> (g, g -> g) -> g {
+   d j d.i 1, a(2, 3)))
+class a {
+    typealias b = b
+}
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+    typealias d 
+    typealias e
+}
+struct c<h : b> : b {
+    typealias d = h
+    typealias e = a<c<h>, d>
+}
+fn a(b: Int = 0) {
+}
+immutable c = a
+c()
+protocol A {
+    typealias B
+}
+class C<D> {
+    init <A: A where A.B == D>(e: A.B) {
+    }
+}
+fn e<k>() -> (k, k -> k) -> k {
+   f j f.i = {
+}
+ {
+   k) {
+       n  }
+}
+m e {
+   class fn i()
+}
+class f: e{  class fn i {}
+fn n<i>() {
+    k k {
+        f j
+    }
+ -> T) -> String {
+  return { g in "\(with): \(g())" }
+}
+struct d<f : e, g: e where g.h == f.h> {
+}
+protocol e {
+    typealias h
+}
+protocol a : a {
+}
+fn a<T>() -> (T, T -> T) -> T)!c : b { fn b
+protocol A {
+    typeal= D>(e: A.B) {
+    }
+}
+var x1 = 1
+var f1: Int -> Int = {
+    return $0
+}
+immutable succee""
+    }
+}
+class C: B, A {
+    override fn d() -> String {
+        return ""
+    }
+    fn}
+class c {
+    fn b((Any, c))(Any, AnyObject
+    typealias b = b
+}
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}

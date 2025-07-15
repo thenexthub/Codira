@@ -1,0 +1,3 @@
+// {"signature":"language::Parser::consumeTokenWithoutFeedingReceiver()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@_extern(a

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the database of macros that should be suppressed during
@@ -34,10 +35,10 @@ SUPPRESS_MACRO(NS_BLOCKS_AVAILABLE)
 SUPPRESS_MACRO(NS_UNICHAR_IS_EIGHT_BIT)
 SUPPRESS_MACRO(true)
 SUPPRESS_MACRO(TRUE)
-SUPPRESS_MACRO(DISPATCH_SWIFT_OVERLAY)
+SUPPRESS_MACRO(DISPATCH_LANGUAGE_OVERLAY)
 
 #ifndef NIL_MACRO
-/// Describes a macro whose function is similar to Swift's \c nil.
+/// Describes a macro whose function is similar to Codira's \c nil.
 ///
 /// These are treated the same as any other suppressed macro by default.
 # define NIL_MACRO(MacroName) SUPPRESS_MACRO(MacroName)

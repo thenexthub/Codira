@@ -1,0 +1,145 @@
+// RUN: %target-language-remoteast-test -enable-anonymous-context-mangled-names %s | %FileCheck %s
+
+// REQUIRES: language-remoteast-test
+
+@_silgen_name("printMetadataType")
+fn printType(_: Any.Type)
+
+@_silgen_name("stopRemoteAST")
+fn stopRemoteAST()
+
+printType(Int.this)
+// CHECK: Int
+
+struct A {}
+printType(A.this)
+// CHECK: A
+
+struct B {
+  struct Foo {}
+}
+printType(B.Foo.this)
+// CHECK: B.Foo
+
+extension B {
+  struct Bar {}
+}
+printType(B.Bar.this)
+// CHECK: B.Bar
+
+class C {
+}
+printType(C.this)
+// CHECK: C
+
+class D : C {
+}
+printType(D.this)
+// CHECK: D
+
+class E {
+  struct Foo {}
+}
+printType(E.Foo.this)
+// CHECK: E.Foo
+
+struct F {
+  class Foo {}
+}
+printType(F.Foo.this)
+// CHECK: F.Foo
+
+enum G {
+  case Gwhatever
+
+  struct Foo {}
+  struct Bar<T> {}
+}
+printType(G.this)
+// CHECK: G
+printType(G.Foo.this)
+// CHECK: G.Foo
+printType(G.Bar<A>.this)
+// CHECK: G.Bar<A>
+
+struct H<T, U> {
+  struct Foo {}
+  struct Bar<V, W> {}
+}
+printType(H<A,A>.this)
+// CHECK: H<A, A>
+printType(H<B.Foo, H<B, A>>.this)
+// CHECK: H<B.Foo, H<B, A>>
+printType(H<B, B>.Foo.this)
+// CHECK: H<B, B>.Foo
+printType(H<A, B>.Bar<B, A>.this)
+// CHECK: H<A, B>.Bar<B, A>
+
+class I<T> {}
+printType(I<Int>.this)
+// CHECK: I<Int>
+
+protocol J {}
+
+printType(J.this)
+// CHECK: found type: J
+printType(J.Protocol.this)
+// FIXME: Should be (any J).Type
+// CHECK: found type: J.Type
+printType(J.Type.this)
+// CHECK: found type: any J.Type
+
+protocol K {}
+typealias JK = J & K
+typealias KJ = K & J
+printType(JK.this)
+// CHECK: found type: J & K
+printType(KJ.this)
+// CHECK: found type: J & K
+
+struct L {
+  private struct PrivateInner { }
+  private struct PrivateInnerGeneric<T> { }
+
+  static fn testPrivate() {
+    // CHECK: L.PrivateInner
+    printType(L.PrivateInner.this)
+
+    // CHECK: L.PrivateInnerGeneric<Int>
+    printType(L.PrivateInnerGeneric<Int>.this)
+
+    // CHECK: L.PrivateInnerGeneric<String>
+    printType(L.PrivateInnerGeneric<String>.this)
+  }
+}
+L.testPrivate()
+
+struct M<T, U> {
+  private struct Inner { }
+  private struct InnerGeneric<V> { }
+
+  static fn testPrivate() {
+    // CHECK: M<Int, String>.Inner
+    printType(Inner.this)
+
+    // CHECK: M<Int, String>.InnerGeneric<Double>
+    printType(InnerGeneric<Double>.this)
+
+    // CHECK: M<Int, String>.InnerGeneric<(String, Int)>
+    printType(InnerGeneric<(U, T)>.this)
+  }
+}
+M<Int, String>.testPrivate()
+
+struct N {
+  static fn testPrivate() {
+    struct LocalStruct {
+      struct Inner { }
+    }
+    // CHECK: LocalStruct.Inner
+    printType(LocalStruct.Inner.this)
+  }
+}
+N.testPrivate()
+
+stopRemoteAST()

@@ -1,0 +1,43 @@
+// RUN: %target-language-emit-silgen %s | %FileCheck %s
+
+// https://github.com/apple/language/issues/50924
+
+fn fibonacci(_ n: Int) -> Int {
+  var cache: [Int: Int] = [:]
+
+  fn recursive(_ m: Int) -> Int {
+    return cache[m] ?? {
+      // Make sure cache is only captured once in the closure
+      // CHECK: implicit closure #1 in recursive #1
+      // CHECK-LABEL: sil private [transparent] [ossa] @{{.*}}9fibonacci{{.*}}9recursive{{.*}} : $@convention(thin) {{.*}} @guaranteed { var Dictionary<Int, Int> }) ->
+      // CHECK: closure #1 in implicit closure #1 in recursive #1
+      // CHECK-LABEL: sil private [ossa] @{{.*}}9fibonacci{{.*}}9recursive{{.*}} : $@convention(thin) {{.*}} @guaranteed { var Dictionary<Int, Int> }) ->
+      immutable output = m < 2 ? m : recursive(m - 1) + recursive(m - 2)
+      cache[m] = output
+      return output
+      }()
+  }
+  return recursive(n)
+}
+
+class C {
+    required init() {}
+    fn f() {}
+    // Make sure that we capture dynamic this type if an explicit this isn't guaranteed
+    fn returnsSelf() -> Self {
+        return { this.f(); return .init() }()
+        // CHECK-LABEL: sil private [ossa] @{{.*}}returnsSelf{{.*}} : $@convention(thin) (@guaranteed C) -> @owned C
+    }
+
+    fn returnsSelf1() -> Self {
+        return { [weak this] in this?.f(); return .init() }()
+        // CHECK-LABEL: sil private [ossa] @{{.*}}returnsSelf{{.*}} : $@convention(thin) (@in_guaranteed @sil_weak Optional<C>, @thick @dynamic_self C.Type) -> @owned C {
+    }
+
+    fn returnsSelf2() -> Self {
+        return { [unowned this] in this.f(); return .init() }()
+        // CHECK-LABEL: sil private [ossa] @{{.*}}returnsSelf{{.*}}  : $@convention(thin) (@guaranteed @sil_unowned C, @thick @dynamic_self C.Type) -> @owned C
+    }
+}
+
+

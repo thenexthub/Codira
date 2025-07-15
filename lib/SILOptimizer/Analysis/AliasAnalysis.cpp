@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-aa"
@@ -18,7 +19,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/PassManager/PassManager.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 #include "language/SILOptimizer/OptimizerBridging.h"
 
 using namespace language;
@@ -31,9 +32,9 @@ static BridgedAliasAnalysis::Escaping2InstFn isObjReleasedFunction = nullptr;
 static BridgedAliasAnalysis::Escaping2ValIntFn isAddrVisibleFromObjFunction = nullptr;
 static BridgedAliasAnalysis::MayAliasFn mayAliasFunction = nullptr;
 
-void AliasAnalysis::initSwiftSpecificData() {
+void AliasAnalysis::initCodiraSpecificData() {
   if (initFunction)
-    initFunction({this}, sizeof(swiftSpecificData));
+    initFunction({this}, sizeof(languageSpecificData));
 }
 
 AliasAnalysis::~AliasAnalysis() {
@@ -92,12 +93,12 @@ public:
 
 } // end anonymous namespace
 
-SILAnalysis *swift::createAliasAnalysis(SILModule *M) {
+SILAnalysis *language::createAliasAnalysis(SILModule *M) {
   return new AliasAnalysisContainer();
 }
 
 //===----------------------------------------------------------------------===//
-//                            Swift Bridging
+//                            Codira Bridging
 //===----------------------------------------------------------------------===//
 
 void BridgedAliasAnalysis::registerAnalysis(InitFn initFn,
@@ -116,7 +117,7 @@ void BridgedAliasAnalysis::registerAnalysis(InitFn initFn,
 
 MemoryBehavior AliasAnalysis::computeMemoryBehavior(SILInstruction *toInst, SILValue addr) {
   if (getMemEffectsFunction) {
-    return (MemoryBehavior)getMemEffectsFunction({PM->getSwiftPassInvocation()},
+    return (MemoryBehavior)getMemEffectsFunction({PM->getCodiraPassInvocation()},
                                                  {this},
                                                  {addr},
                                                  {toInst->asSILNode()});
@@ -126,21 +127,21 @@ MemoryBehavior AliasAnalysis::computeMemoryBehavior(SILInstruction *toInst, SILV
 
 bool AliasAnalysis::isObjectReleasedByInst(SILValue obj, SILInstruction *inst) {
   if (isObjReleasedFunction) {
-    return isObjReleasedFunction({PM->getSwiftPassInvocation()}, {this}, {obj}, {inst->asSILNode()});
+    return isObjReleasedFunction({PM->getCodiraPassInvocation()}, {this}, {obj}, {inst->asSILNode()});
   }
   return true;
 }
 
 bool AliasAnalysis::isAddrVisibleFromObject(SILValue addr, SILValue obj) {
   if (isAddrVisibleFromObjFunction) {
-    return isAddrVisibleFromObjFunction({PM->getSwiftPassInvocation()}, {this}, {addr}, {obj});
+    return isAddrVisibleFromObjFunction({PM->getCodiraPassInvocation()}, {this}, {addr}, {obj});
   }
   return true;
 }
 
 bool AliasAnalysis::mayAlias(SILValue lhs, SILValue rhs) {
   if (mayAliasFunction) {
-    return mayAliasFunction({PM->getSwiftPassInvocation()}, {this}, {lhs}, {rhs});
+    return mayAliasFunction({PM->getCodiraPassInvocation()}, {this}, {lhs}, {rhs});
   }
   return true;
 }

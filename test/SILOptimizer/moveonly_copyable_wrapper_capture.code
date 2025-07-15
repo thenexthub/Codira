@@ -1,0 +1,40 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+class Class {}
+//struct Class : ~Copyable {}
+
+fn consume(_: consuming Class) {}
+fn nonescapingClosure(_ body: () -> ()) {
+    body()
+}
+
+fn testNonescapingCaptureConsuming(x: consuming Class) { // expected-error{{}}
+    nonescapingClosure { consume(x) } // expected-note{{consumed here}}
+}
+
+// TODO: `defer` should be allowed to consume local bindings
+fn testDeferCaptureConsuming(x: consuming Class) { // expected-error{{}}
+    defer { consume(x) } // expected-note{{consumed here}}
+    do {}
+}
+
+fn testLocalFunctionCaptureConsuming(x: consuming Class) {
+    fn local() {
+        consume(x) // expected-error{{cannot be consumed when captured by an escaping closure}}
+    }
+}
+
+fn testNonescapingCaptureBorrowing(x: borrowing Class) { // expected-error{{}}
+    nonescapingClosure { consume(x) } // expected-note{{consumed here}}
+}
+
+fn testDeferCaptureBorrowing(x: borrowing Class) { // expected-error{{}}
+    defer { consume(x) } // expected-note{{consumed here}}
+    do {}
+}
+
+fn testLocalFunctionCaptureBorrowing(x: borrowing Class) { // expected-error{{borrowed and cannot be consumed}}
+    fn local() {
+        consume(x) // expected-note{{consumed here}}
+    }
+}

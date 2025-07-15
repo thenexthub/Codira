@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/Concurrency.h"
 #include "SourceKit/Support/UIdent.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <mutex>
 #include <vector>
 
 using namespace SourceKit;
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace {
 class UIDRegistryImpl {
-  typedef llvm::StringMap<void *, llvm::BumpPtrAllocator> HashTableTy;
-  typedef llvm::StringMapEntry<void *> EntryTy;
+  typedef toolchain::StringMap<void *, toolchain::BumpPtrAllocator> HashTableTy;
+  typedef toolchain::StringMapEntry<void *> EntryTy;
   HashTableTy HashTable;
   WorkQueue Queue{ WorkQueue::Dequeuing::Concurrent, "UIDRegistryImpl" };
 
@@ -49,11 +50,11 @@ static UIDRegistryImpl *getGlobalRegistry() {
   return GlobalRegistry;
 }
 
-UIdent::UIdent(llvm::StringRef Str) {
+UIdent::UIdent(toolchain::StringRef Str) {
   Ptr = getGlobalRegistry()->get(Str);
 }
 
-llvm::StringRef UIdent::getName() const {
+toolchain::StringRef UIdent::getName() const {
   if (isInvalid())
     return StringRef();
   return UIDRegistryImpl::getName(Ptr);
@@ -76,10 +77,10 @@ void *UIdent::getTag() const {
 }
 
 void UIdent::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
-void UIdent::print(llvm::raw_ostream &OS) const {
+void UIdent::print(toolchain::raw_ostream &OS) const {
   if (isInvalid())
     OS << "<<INVALID>>";
   else

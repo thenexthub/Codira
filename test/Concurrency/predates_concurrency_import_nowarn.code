@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/OtherActors.codemodule -module-name OtherActors %S/Inputs/OtherActors.code -target %target-language-5.1-abi-triple
+
+// RUN: %target-language-frontend  -I %t %s -emit-sil -o /dev/null -verify  -parse-as-library
+
+// REQUIRES: concurrency
+
+@preconcurrency import OtherActors

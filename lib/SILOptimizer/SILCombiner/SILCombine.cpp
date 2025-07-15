@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A port of LLVM's InstCombine pass to SIL. Its main purpose is for performing
@@ -43,11 +44,11 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 #include <fstream>
 #include <set>
 
@@ -56,16 +57,16 @@ using namespace language;
 STATISTIC(NumCombined, "Number of instructions combined");
 STATISTIC(NumDeadInst, "Number of dead insts eliminated");
 
-static llvm::cl::opt<bool> EnableSinkingOwnedForwardingInstToUses(
+static toolchain::cl::opt<bool> EnableSinkingOwnedForwardingInstToUses(
     "silcombine-owned-code-sinking",
-    llvm::cl::desc("Enable sinking of owned forwarding insts"),
-    llvm::cl::init(true), llvm::cl::Hidden);
+    toolchain::cl::desc("Enable sinking of owned forwarding insts"),
+    toolchain::cl::init(true), toolchain::cl::Hidden);
 
 // Allow disabling general optimization for targeted unit tests.
-static llvm::cl::opt<bool> EnableSILCombineCanonicalize(
+static toolchain::cl::opt<bool> EnableSILCombineCanonicalize(
     "sil-combine-canonicalize",
-    llvm::cl::desc("Canonicalization during sil-combine"), llvm::cl::init(true),
-    llvm::cl::Hidden);
+    toolchain::cl::desc("Canonicalization during sil-combine"), toolchain::cl::init(true),
+    toolchain::cl::Hidden);
 
 //===----------------------------------------------------------------------===//
 //                              Utility Methods
@@ -80,7 +81,7 @@ static llvm::cl::opt<bool> EnableSILCombineCanonicalize(
 /// instructions are dead or constant).
 void SILCombiner::addReachableCodeToWorklist(SILBasicBlock *BB) {
   BasicBlockWorklist Worklist(BB);
-  llvm::SmallVector<SILInstruction *, 128> InstrsForSILCombineWorklist;
+  toolchain::SmallVector<SILInstruction *, 128> InstrsForSILCombineWorklist;
 
   while (SILBasicBlock *BB = Worklist.pop()) {
     for (SILBasicBlock::iterator BBI = BB->begin(), E = BB->end(); BBI != E; ) {
@@ -90,7 +91,7 @@ void SILCombiner::addReachableCodeToWorklist(SILBasicBlock *BB) {
       // DCE instruction if trivially dead.
       if (isInstructionTriviallyDead(Inst)) {
         ++NumDeadInst;
-        LLVM_DEBUG(llvm::dbgs() << "SC: DCE: " << *Inst << '\n');
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "SC: DCE: " << *Inst << '\n');
 
         // We pass in false here since we need to signal to
         // eraseInstFromFunction to not add this instruction's operands to the
@@ -221,7 +222,7 @@ SILCombiner::SILCombiner(SILFunctionTransform *trans,
       [&](SILInstruction *I) { eraseInstFromFunction(*I); }),
   deBlocks(trans->getFunction()),
   ownershipFixupContext(getInstModCallbacks(), deBlocks),
-  swiftPassInvocation(trans->getPassManager(),
+  languagePassInvocation(trans->getPassManager(),
                       trans->getFunction(), this) {}
 
 bool SILCombiner::trySinkOwnedForwardingInst(SingleValueInstruction *svi) {
@@ -234,11 +235,11 @@ bool SILCombiner::trySinkOwnedForwardingInst(SingleValueInstruction *svi) {
 
     // Otherwise, make sure our instruction does not have any non-debug uses
     // that are non-lifetime ending. If so, we return.
-    if (llvm::any_of(getNonDebugUses(svi),
+    if (toolchain::any_of(getNonDebugUses(svi),
                      [](Operand *use) { return !use->isLifetimeEnding(); }))
       return false;
 
-    LLVM_DEBUG(llvm::dbgs() << "Sink forwarding: " << *svi << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Sink forwarding: " << *svi << '\n');
 
     // Otherwise, delete all of the debug uses so we don't have to sink them as
     // well and then return true so we process svi in its new position.
@@ -254,7 +255,7 @@ bool SILCombiner::trySinkOwnedForwardingInst(SingleValueInstruction *svi) {
   // If we have multiple consuming uses, then we know that our
   // forwarding inst must be live out of the current block and thus we
   // might be able to duplicate/sink.
-  if (llvm::any_of(getNonDebugUses(svi),
+  if (toolchain::any_of(getNonDebugUses(svi),
                    [](Operand *use) { return !use->isLifetimeEnding(); }))
     return false;
 
@@ -275,7 +276,7 @@ bool SILCombiner::trySinkOwnedForwardingInst(SingleValueInstruction *svi) {
 
     auto *newSVI = svi->clone(sviUser);
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Sink forwarding: " << *svi << " to " << *newSVI << '\n');
 
     Worklist.add(newSVI);
@@ -309,7 +310,7 @@ void SILCombiner::canonicalizeOSSALifetimes(SILInstruction *currentInst) {
   if (!enableCopyPropagation || !Builder.hasOwnership())
     return;
 
-  llvm::SmallSetVector<SILValue, 16> defsToCanonicalize;
+  toolchain::SmallSetVector<SILValue, 16> defsToCanonicalize;
 
   // copyInst was either optimized by a SILCombine visitor or is a copy_value
   // produced by the visitor. Find the canonical def.
@@ -401,7 +402,7 @@ void SILCombiner::canonicalizeOSSALifetimes(SILInstruction *currentInst) {
 bool SILCombiner::doOneIteration(SILFunction &F, unsigned Iteration) {
   MadeChange = false;
 
-  LLVM_DEBUG(llvm::dbgs() << "\n\nSILCOMBINE ITERATION #" << Iteration << " on "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n\nSILCOMBINE ITERATION #" << Iteration << " on "
                           << F.getName() << "\n");
 
   // Add reachable instructions to our worklist.
@@ -436,7 +437,7 @@ void SILCombiner::processInstruction(SILInstruction *I,
                                      bool &MadeChange) {
   // Check to see if we can DCE the instruction.
   if (isInstructionTriviallyDead(I)) {
-    LLVM_DEBUG(llvm::dbgs() << "SC: DCE: " << *I << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "SC: DCE: " << *I << '\n');
     eraseInstFromFunction(*I);
     ++NumDeadInst;
     MadeChange = true;
@@ -445,9 +446,9 @@ void SILCombiner::processInstruction(SILInstruction *I,
 #ifndef NDEBUG
   std::string OrigIStr;
 #endif
-  LLVM_DEBUG(llvm::raw_string_ostream SS(OrigIStr); I->print(SS);
+  TOOLCHAIN_DEBUG(toolchain::raw_string_ostream SS(OrigIStr); I->print(SS);
              OrigIStr = SS.str(););
-  LLVM_DEBUG(llvm::dbgs() << "SC: Visiting: " << OrigIStr << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "SC: Visiting: " << OrigIStr << '\n');
 
   // Canonicalize the instruction.
   if (scCanonicalize.tryCanonicalize(I)) {
@@ -508,7 +509,7 @@ void SILCombiner::processInstruction(SILInstruction *I,
   // said list in preparation for the next iteration.
   for (SILInstruction *I : *Builder.getTrackingList()) {
     if (!I->isDeleted()) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "SC: add " << *I << " from tracking list to worklist\n");
       Worklist.add(I);
     }
@@ -597,51 +598,52 @@ void SILCombiner::eraseInstIncludingUsers(SILInstruction *inst) {
   eraseInstFromFunction(*inst);
 }
 
-/// Runs a Swift instruction pass.
-void SILCombiner::runSwiftInstructionPass(SILInstruction *inst,
+/// Runs a Codira instruction pass.
+void SILCombiner::runCodiraInstructionPass(SILInstruction *inst,
                               void (*runFunction)(BridgedInstructionPassCtxt)) {
-  swiftPassInvocation.startInstructionPassRun(inst);
-  runFunction({ {inst->asSILNode()}, {&swiftPassInvocation} });
-  swiftPassInvocation.finishedInstructionPassRun();
+  languagePassInvocation.startInstructionPassRun(inst);
+  runFunction({ {inst->asSILNode()}, {&languagePassInvocation} });
+  languagePassInvocation.finishedInstructionPassRun();
 }
 
 /// Registered briged instruction pass run functions.
-static llvm::StringMap<BridgedInstructionPassRunFn> swiftInstPasses;
+static toolchain::StringMap<BridgedInstructionPassRunFn> languageInstPasses;
 static bool passesRegistered = false;
 
-// Called from initializeSwiftModules().
+// Called from initializeCodiraModules().
 void SILCombine_registerInstructionPass(BridgedStringRef instClassName,
                                         BridgedInstructionPassRunFn runFn) {
-  swiftInstPasses[instClassName.unbridged()] = runFn;
+  languageInstPasses[instClassName.unbridged()] = runFn;
   passesRegistered = true;
 }
 
-#define _RUN_SWIFT_SIMPLIFICATON(INST) \
-  static BridgedInstructionPassRunFn runFunction = nullptr;                \
-  static bool passDisabled = false;                                        \
-  if (!runFunction) {                                                      \
-    runFunction = swiftInstPasses[#INST];                                  \
-    if (!runFunction) {                                                    \
-      if (passesRegistered) {                                              \
-        llvm::errs() << "Swift pass " << #INST << " is not registered\n";  \
-        abort();                                                           \
-      } else {                                                             \
-        return nullptr;                                                    \
-      }                                                                    \
-    }                                                                      \
-    StringRef instName = getSILInstructionName(SILInstructionKind::INST);  \
-    passDisabled = SILPassManager::isInstructionPassDisabled(instName);    \
-  }                                                                        \
-  if (passDisabled &&                                                      \
-      SILPassManager::disablePassesForFunction(inst->getFunction())) {     \
-    return nullptr;                                                        \
-  }                                                                        \
-  runSwiftInstructionPass(inst, runFunction);                              \
-  return nullptr;                                                          \
+#define _RUN_LANGUAGE_SIMPLIFICATON(INST)                                         \
+  static BridgedInstructionPassRunFn runFunction = nullptr;                    \
+  static bool passDisabled = false;                                            \
+  if (!runFunction) {                                                          \
+    runFunction = languageInstPasses[#INST];                                      \
+    if (!runFunction) {                                                        \
+      if (passesRegistered) {                                                  \
+        ABORT([&](auto &out) {                                                 \
+          out << "Codira pass " << #INST << " is not registered";               \
+        });                                                                    \
+      } else {                                                                 \
+        return nullptr;                                                        \
+      }                                                                        \
+    }                                                                          \
+    StringRef instName = getSILInstructionName(SILInstructionKind::INST);      \
+    passDisabled = SILPassManager::isInstructionPassDisabled(instName);        \
+  }                                                                            \
+  if (passDisabled &&                                                          \
+      SILPassManager::disablePassesForFunction(inst->getFunction())) {         \
+    return nullptr;                                                            \
+  }                                                                            \
+  runCodiraInstructionPass(inst, runFunction);                                  \
+  return nullptr;
 
 #define INSTRUCTION_SIMPLIFICATION(INST) \
 SILInstruction *SILCombiner::visit##INST(INST *inst) {                     \
-  _RUN_SWIFT_SIMPLIFICATON(INST)                                           \
+  _RUN_LANGUAGE_SIMPLIFICATON(INST)                                           \
 }                                                                          \
 
 #define INSTRUCTION_SIMPLIFICATION_WITH_LEGACY(INST) \
@@ -649,14 +651,14 @@ SILInstruction *SILCombiner::visit##INST(INST *inst) {                     \
   if (auto *result = legacyVisit##INST(inst))                              \
     return result;                                                         \
   if (!inst->isDeleted()) {                                                \
-    _RUN_SWIFT_SIMPLIFICATON(INST)                                         \
+    _RUN_LANGUAGE_SIMPLIFICATON(INST)                                         \
   }                                                                        \
   return nullptr;                                                          \
 }                                                                          \
 
 #include "Simplifications.def"
 
-#undef _RUN_SWIFT_SIMPLIFICATON
+#undef _RUN_LANGUAGE_SIMPLIFICATON
 
 //===----------------------------------------------------------------------===//
 //                                Entry Points
@@ -689,19 +691,21 @@ class SILCombine : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createSILCombine() {
+SILTransform *language::createSILCombine() {
   return new SILCombine();
 }
 
 //===----------------------------------------------------------------------===//
-//                          SwiftFunctionPassContext
+//                          CodiraFunctionPassContext
 //===----------------------------------------------------------------------===//
 
-void SwiftPassInvocation::eraseInstruction(SILInstruction *inst) {
+void CodiraPassInvocation::eraseInstruction(SILInstruction *inst, bool salvageDebugInfo) {
   if (silCombiner) {
-    silCombiner->eraseInstFromFunction(*inst);
+    silCombiner->eraseInstFromFunction(*inst, /*addOperandsToWorklist=*/ true, salvageDebugInfo);
   } else {
-    swift::salvageDebugInfo(inst);
+    if (salvageDebugInfo) {
+      language::salvageDebugInfo(inst);
+    }
     if (inst->isStaticInitializerInst()) {
       inst->getParent()->erase(inst, *getPassManager()->getModule());
     } else {
@@ -731,15 +735,15 @@ void SwiftPassInvocation::eraseInstruction(SILInstruction *inst) {
 // Array index is out of range
 // ```
 //
-// The optimizer will remove these cond_fails if the swift frontend is invoked
-// with -Xllvm -cond-fail-config-file=/path/to/disable_cond_fails.
+// The optimizer will remove these cond_fails if the language frontend is invoked
+// with -Xtoolchain -cond-fail-config-file=/path/to/disable_cond_fails.
 //
 // Additionally, also interpret the lines as function names and check whether
 // the current cond_fail is contained in a listed function when considering
 // whether to remove it.
-static llvm::cl::opt<std::string> CondFailConfigFile(
-    "cond-fail-config-file", llvm::cl::init(""),
-    llvm::cl::desc("read the cond_fail message strings to elimimate from file"));
+static toolchain::cl::opt<std::string> CondFailConfigFile(
+    "cond-fail-config-file", toolchain::cl::init(""),
+    toolchain::cl::desc("read the cond_fail message strings to elimimate from file"));
 
 static std::set<std::string> CondFailsToRemove;
 
@@ -749,7 +753,7 @@ bool SILCombiner::shouldRemoveCondFail(CondFailInst &CFI) {
 
   std::fstream fs(CondFailConfigFile);
   if (!fs) {
-    llvm::errs() << "cannot cond_fail disablement config file\n";
+    toolchain::errs() << "cannot cond_fail disablement config file\n";
     exit(1);
   }
   if (CondFailsToRemove.empty()) {

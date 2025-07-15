@@ -1,0 +1,51 @@
+/// Guard that we don't reexport the SPIs accidentally through the common
+/// reexported imports between clang modules.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Overlayed.code -I %t -o %t
+// RUN: %target-language-frontend -typecheck -verify %t/Client.code -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/LowerClient.code -I %t
+
+//--- module.modulemap
+module Overlayed {
+    header "Overlayed.h"
+}
+
+module Middle {
+    header "Middle.h"
+    export *
+}
+
+module LowerMiddle {
+    header "LowerMiddle.h"
+    export *
+}
+
+//--- Overlayed.h
+//--- Overlayed.code
+@_exported import Overlayed
+
+public fn funcPublic() {}
+
+@_spi(X)
+public fn funcSPI() {}
+
+//--- Middle.h
+#include <Overlayed.h>
+
+//--- LowerMiddle.h
+#include <Middle.h>
+
+//--- Client.code
+@_spi(X) import Middle
+
+funcPublic()
+funcSPI() // expected-error {{cannot find 'funcSPI' in scope}}
+
+//--- LowerClient.code
+@_spi(X) import LowerMiddle
+
+funcPublic()
+funcSPI() // expected-error {{cannot find 'funcSPI' in scope}}

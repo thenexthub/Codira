@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Simple pass for testing the new loop region dumper analysis. Prints out
@@ -23,20 +24,20 @@
 #include "language/SILOptimizer/Analysis/LoopRegionAnalysis.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
-static llvm::cl::opt<std::string>
+static toolchain::cl::opt<std::string>
     SILViewCFGOnlyFun("sil-loop-region-view-cfg-only-function",
-                      llvm::cl::init(""),
-                      llvm::cl::desc("Only produce a graphviz file for the "
+                      toolchain::cl::init(""),
+                      toolchain::cl::desc("Only produce a graphviz file for the "
                                      "loop region info of this function"));
 
-static llvm::cl::opt<std::string>
+static toolchain::cl::opt<std::string>
     SILViewCFGOnlyFuns("sil-loop-region-view-cfg-only-functions",
-                       llvm::cl::init(""),
-                       llvm::cl::desc("Only produce a graphviz file for the "
+                       toolchain::cl::init(""),
+                       toolchain::cl::desc("Only produce a graphviz file for the "
                                       "loop region info for the functions "
                                       "whose name contains this substring"));
 
@@ -58,10 +59,10 @@ class LoopRegionViewText : public SILModuleTransform {
 
       // Ok, we are going to analyze this function. Invalidate all state
       // associated with it so we recompute the loop regions.
-      llvm::outs() << "Start @" << fn.getName() << "@\n";
+      toolchain::outs() << "Start @" << fn.getName() << "@\n";
       lra->get(&fn)->dump();
-      llvm::outs() << "End @" << fn.getName() << "@\n";
-      llvm::outs().flush();
+      toolchain::outs() << "End @" << fn.getName() << "@\n";
+      toolchain::outs().flush();
     }
   }
 };
@@ -89,10 +90,10 @@ class LoopRegionViewCFG : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createLoopRegionViewText() {
+SILTransform *language::createLoopRegionViewText() {
   return new LoopRegionViewText();
 }
 
-SILTransform *swift::createLoopRegionViewCFG() {
+SILTransform *language::createLoopRegionViewCFG() {
   return new LoopRegionViewCFG();
 }

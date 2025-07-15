@@ -1,12 +1,12 @@
-# swift_build_support/host_configuration_support.py -------------*- python -*-
+# language_build_support/host_configuration_support.py -------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -79,12 +79,12 @@ class HostSpecificConfiguration(object):
         # Compute the lists of **CMake** targets for each use case (configure
         # vs. build vs. run) and the SDKs to configure with.
         self.sdks_to_configure = set()
-        self.swift_stdlib_build_targets = []
-        self.swift_libexec_build_targets = []
-        self.swift_test_run_targets = []
-        self.swift_benchmark_build_targets = []
-        self.swift_benchmark_run_targets = []
-        self.swift_flags = ''
+        self.code_stdlib_build_targets = []
+        self.code_libexec_build_targets = []
+        self.code_test_run_targets = []
+        self.code_benchmark_build_targets = []
+        self.code_benchmark_run_targets = []
+        self.code_flags = ''
         self.cmake_options = CMakeOptions()
         for deployment_target_name in stdlib_targets_to_configure:
             # Get the target object.
@@ -115,7 +115,7 @@ class HostSpecificConfiguration(object):
             build_benchmarks = build and dt_supports_benchmark
             build_external_benchmarks = all([build, dt_supports_benchmark,
                                              args.build_external_benchmarks])
-            build_libexec = build and args.build_swift_libexec
+            build_libexec = build and args.build_language_libexec
 
             # FIXME: Note, `build-script-impl` computed a property here
             # w.r.t. testing, but it was actually unused.
@@ -141,31 +141,31 @@ class HostSpecificConfiguration(object):
                 #
                 # NOTE: We currently do not separate testing options for
                 # stage1/stage2 compiler. This can change with time.
-                if stage_dependent_args.build_swift_stdlib_unittest_extra or \
+                if stage_dependent_args.build_language_stdlib_unittest_extra or \
                         args.validation_test or args.long_test or \
                         args.stress_test:
-                    self.swift_stdlib_build_targets.append(
-                        "swift-stdlib-" + name)
+                    self.code_stdlib_build_targets.append(
+                        "language-stdlib-" + name)
                 else:
-                    self.swift_stdlib_build_targets.append(
-                        "swift-test-stdlib-" + name)
+                    self.code_stdlib_build_targets.append(
+                        "language-test-stdlib-" + name)
             if build_libexec:
-                self.swift_libexec_build_targets.append(
-                    'swift-libexec-' + name)
+                self.code_libexec_build_targets.append(
+                    'language-libexec-' + name)
             if build_benchmarks:
-                self.swift_benchmark_build_targets.append(
-                    "swift-benchmark-" + name)
+                self.code_benchmark_build_targets.append(
+                    "language-benchmark-" + name)
                 if args.benchmark:
-                    self.swift_benchmark_run_targets.append(
-                        "check-swift-benchmark-" + name)
+                    self.code_benchmark_run_targets.append(
+                        "check-language-benchmark-" + name)
 
             if build_external_benchmarks:
                 # Add support for the external benchmarks.
-                self.swift_benchmark_build_targets.append(
-                    "swift-benchmark-{}-external".format(name))
+                self.code_benchmark_build_targets.append(
+                    "language-benchmark-{}-external".format(name))
                 if args.benchmark:
-                    self.swift_benchmark_run_targets.append(
-                        "check-swift-benchmark-{}-external".format(name))
+                    self.code_benchmark_run_targets.append(
+                        "check-language-benchmark-{}-external".format(name))
             if test:
                 if test_host_only:
                     suffix = "-only_non_executable"
@@ -193,27 +193,27 @@ class HostSpecificConfiguration(object):
                 macosx_platform_match = re.search("macosx-(.*)", name)
                 if macosx_platform_match and args.maccatalyst \
                    and args.maccatalyst_ios_tests:
-                    (self.swift_test_run_targets
-                     .append("check-swift{}{}-{}-{}".format(
+                    (self.code_test_run_targets
+                     .append("check-language{}{}-{}-{}".format(
                          subset_suffix, suffix, "macosx-maccatalyst",
                          macosx_platform_match.group(1))))
                 else:
-                    (self.swift_test_run_targets
-                     .append("check-swift{}{}-{}".format(
+                    (self.code_test_run_targets
+                     .append("check-language{}{}-{}".format(
                          subset_suffix, suffix, name)))
 
                 if args.test_optimized and not test_host_only:
-                    self.swift_test_run_targets.append(
-                        "check-swift{}-optimize-{}".format(
+                    self.code_test_run_targets.append(
+                        "check-language{}-optimize-{}".format(
                             subset_suffix, name))
                 if args.test_optimize_for_size and not test_host_only:
-                    self.swift_test_run_targets.append(
-                        "check-swift{}-optimize_size-{}".format(
+                    self.code_test_run_targets.append(
+                        "check-language{}-optimize_size-{}".format(
                             subset_suffix, name))
                 if args.test_optimize_none_with_implicit_dynamic and \
                         not test_host_only:
-                    self.swift_test_run_targets.append(
-                        "check-swift{}-optimize_none_with_implicit_dynamic-{}"
+                    self.code_test_run_targets.append(
+                        "check-language{}-optimize_none_with_implicit_dynamic-{}"
                         .format(subset_suffix, name))
 
             # Only pull in these flags when cross-compiling with
@@ -223,7 +223,7 @@ class HostSpecificConfiguration(object):
                 self.add_flags_for_cross_compilation(args, deployment_target)
 
     def add_flags_for_cross_compilation(self, args, deployment_target):
-        self.swift_flags = deployment_target.platform.swift_flags(args)
+        self.code_flags = deployment_target.platform.code_flags(args)
         self.cmake_options = deployment_target.platform.cmake_options(args)
 
     def __platforms_to_skip_build(self, args, stage_dependent_args):
@@ -282,7 +282,7 @@ class HostSpecificConfiguration(object):
         elif not args.only_non_executable_test:
             raise ArgumentError(None,
                                 "error: iOS device tests are not " +
-                                "supported in open-source Swift.")
+                                "supported in open-source Codira.")
         if not stage_dependent_args.test_ios_simulator:
             platforms_to_skip_test.add(StdlibDeploymentTarget.iOSSimulator)
         if not stage_dependent_args.test_tvos_host and \
@@ -291,7 +291,7 @@ class HostSpecificConfiguration(object):
         elif not args.only_non_executable_test:
             raise ArgumentError(None,
                                 "error: tvOS device tests are not " +
-                                "supported in open-source Swift.")
+                                "supported in open-source Codira.")
         if not stage_dependent_args.test_tvos_simulator:
             platforms_to_skip_test.add(StdlibDeploymentTarget.AppleTVSimulator)
         if not stage_dependent_args.test_watchos_host and \
@@ -300,7 +300,7 @@ class HostSpecificConfiguration(object):
         elif not args.only_non_executable_test:
             raise ArgumentError(None,
                                 "error: watchOS device tests are not " +
-                                "supported in open-source Swift.")
+                                "supported in open-source Codira.")
         if not stage_dependent_args.test_watchos_simulator:
             platforms_to_skip_test.add(
                 StdlibDeploymentTarget.AppleWatchSimulator)
@@ -311,7 +311,7 @@ class HostSpecificConfiguration(object):
         elif StdlibDeploymentTarget.XROS and not args.only_non_executable_test:
             raise ArgumentError(None,
                                 "error: xrOS device tests are not " +
-                                "supported in open-source Swift.")
+                                "supported in open-source Codira.")
         if StdlibDeploymentTarget.XROSSimulator and \
            not stage_dependent_args.test_xros_simulator:
             platforms_to_skip_test.add(

@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/modules
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t/modules) -Xcc -DCGFLOAT_IN_COREFOUNDATION -DCGFLOAT_IN_COREFOUNDATION -emit-module -o %t/modules/CoreFoundation.codemodule %clang-importer-sdk-path/language-modules/CoreFoundation.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t/modules) -Xcc -DCGFLOAT_IN_COREFOUNDATION -DCGFLOAT_IN_COREFOUNDATION -emit-module -o %t/modules/CoreGraphics.codemodule %clang-importer-sdk-path/language-modules/CoreGraphics.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t/modules) -Xcc -DCGFLOAT_IN_COREFOUNDATION -DCGFLOAT_IN_COREFOUNDATION -emit-module -o %t/modules/Foundation.codemodule %clang-importer-sdk-path/language-modules/Foundation.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t/modules) -typecheck -Xcc -DCGFLOAT_IN_COREFOUNDATION -DCGFLOAT_IN_COREFOUNDATION %s
+
+// REQUIRES: objc_interop
+
+import CoreFoundation
+import Foundation
+import CoreGraphics
+
+fn test() -> UnsafeMutablePointer<CGFloat>? {
+    immutable color = CGColor(gray: 1.0, alpha: 1.0)
+    return CGColorGetComponents(color)
+}
+
+// Allow redundant conformances on CoreFoundation
+// types where the conformance is in CoreGraphics.
+extension CGFloat: CustomStringConvertible {}

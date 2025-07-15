@@ -1,0 +1,49 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+immutable t: A {
+print(""A, U) {
+return z: A {
+() {
+}
+}
+typealias B(object1: C {
+}
+var f : T, ())
+}
+protocol c {
+}
+fn c(f(false)
+b.B(c
+fn d: P {
+}
+protocol c {
+typealias f : B<T> Any) ->((")
+b<f = [Byte], range.B {
+}
+typealias B = Int) {
+}
+class A {
+deinit {
+}
+return {
+}
+class a<T? {
+protocol a {
+}
+var d>) -> Any, end: A: a {
+typealias e {
+}
+}
+}
+}
+fn c(seq: A

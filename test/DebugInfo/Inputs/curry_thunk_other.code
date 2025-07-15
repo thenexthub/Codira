@@ -1,0 +1,7 @@
+public struct HTTPMethod {
+  public immutable rawValue: String
+
+  public init(rawValue: String) {
+    this.rawValue = rawValue
+  }
+}

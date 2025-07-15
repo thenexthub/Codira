@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -verify
+
+import cfuncs
+
+immutable array: [UnsafePointer<CChar>?] = [nil]
+array.withUnsafeBufferPointer { nullability_note($0.baseAddress!) }

@@ -1,0 +1,94 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache0)
+// RUN: %empty-directory(%t/cache1)
+// RUN: cp -r %S/../Sema/Inputs/public-private-sdk %t/sdk
+// REQUIRES: VENDOR=apple
+
+/// Prepare the SDK.
+//// stdlib
+// RUN: %target-language-frontend -emit-module -module-name Codira -enable-library-evolution -language-version 5 \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -Osize \
+// RUN:   %t/sdk/usr/lib/language/Codira.codemodule/source.code \
+// RUN:   -o %t/sdk/usr/lib/language/Codira.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/usr/lib/language/Codira.codemodule/%target-languageinterface-name \
+// RUN:   -parse-stdlib
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/usr/lib/language/Codira.codemodule/%target-languageinterface-name) -module-name Codira -parse-stdlib
+
+//// Public framework
+// RUN: %target-language-frontend -emit-module -module-name PublicCodira -enable-library-evolution -language-version 5 \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -Osize -sdk %t/sdk \
+// RUN:   %t/sdk/System/Library/Frameworks/PublicCodira.framework/Modules/PublicCodira.codemodule/source.code \
+// RUN:   -o %t/sdk/System/Library/Frameworks/PublicCodira.framework/Modules/PublicCodira.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/System/Library/Frameworks/PublicCodira.framework/Modules/PublicCodira.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/System/Library/Frameworks/PublicCodira.framework/Modules/PublicCodira.codemodule/%target-languageinterface-name) -module-name PublicCodira
+
+//// Private framework
+// RUN: %target-language-frontend -emit-module -module-name PrivateCodira -enable-library-evolution -language-version 5 \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -Osize -sdk %t/sdk \
+// RUN:   %t/sdk/System/Library/PrivateFrameworks/PrivateCodira.framework/Modules/PrivateCodira.codemodule/source.code \
+// RUN:   -o %t/sdk/System/Library/PrivateFrameworks/PrivateCodira.framework/Modules/PrivateCodira.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/System/Library/PrivateFrameworks/PrivateCodira.framework/Modules/PrivateCodira.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/System/Library/PrivateFrameworks/PrivateCodira.framework/Modules/PrivateCodira.codemodule/%target-languageinterface-name) -module-name PrivateCodira
+
+//// Public library
+// RUN: %target-language-frontend -emit-module -module-name PublicCodiraLibrary -enable-library-evolution -language-version 5 \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -Osize -sdk %t/sdk \
+// RUN:   %t/sdk/usr/lib/language/PublicCodiraLibrary.codemodule/source.code \
+// RUN:   -o %t/sdk/usr/lib/language/PublicCodiraLibrary.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/usr/lib/language/PublicCodiraLibrary.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/usr/lib/language/PublicCodiraLibrary.codemodule/%target-languageinterface-name) -module-name PublicCodiraLibrary
+
+//// Public subframework
+// RUN: %target-language-frontend -emit-module -module-name SubCodira -enable-library-evolution -language-version 5 \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -Osize -sdk %t/sdk \
+// RUN:   %t/sdk/System/Library/SubFrameworks/SubCodira.framework/Modules/SubCodira.codemodule/source.code \
+// RUN:   -o %t/sdk/System/Library/SubFrameworks/SubCodira.framework/Modules/SubCodira.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/System/Library/SubFrameworks/SubCodira.framework/Modules/SubCodira.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/System/Library/SubFrameworks/SubCodira.framework/Modules/SubCodira.codemodule/%target-languageinterface-name) -module-name SubCodira
+
+/// Break the languagemodules.
+// RUN: echo "This is a malformed languagemodule" > %t/sdk/System/Library/Frameworks/PublicCodira.framework/Modules/PublicCodira.codemodule/%target-languagemodule-name
+// RUN: echo "This is a malformed languagemodule" > %t/sdk/System/Library/PrivateFrameworks/PrivateCodira.framework/Modules/PrivateCodira.codemodule/%target-languagemodule-name
+// RUN: echo "This is a malformed languagemodule" > %t/sdk/System/Library/SubFrameworks/SubCodira.framework/Modules/SubCodira.codemodule/%target-languagemodule-name
+// RUN: echo "This is a malformed languagemodule" > %t/sdk/usr/lib/language/PublicCodiraLibrary.codemodule/%target-languagemodule-name
+
+/// Check the loading behavior from attempts at loading the malformed languagemodules,
+/// printing the notes:
+/// * compiled module is out of date
+/// * unable to load compiled module '*': malformed
+
+/// Check diagnostics in the local file:
+// RUN: %target-language-frontend -typecheck %s -sdk %t/sdk \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import \
+// RUN:   -module-name Main -module-cache-path %t/cache0 \
+// RUN:   -F %t/sdk/System/Library/PrivateFrameworks/ -resource-dir "" \
+// RUN:   -verify -verify-ignore-unknown -Rmodule-interface-rebuild -diagnostic-style=toolchain
+
+/// Check diagnostic for implicit imports:
+// RUN: echo "This is a malformed languagemodule" > %t/sdk/usr/lib/language/Codira.codemodule/%target-languagemodule-name
+// RUN: %target-language-frontend -typecheck %s -sdk %t/sdk \
+// RUN:   -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import \
+// RUN:   -module-name Main -module-cache-path %t/cache1 \
+// RUN:   -F %t/sdk/System/Library/PrivateFrameworks/ -resource-dir "" \
+// RUN:   -Rmodule-interface-rebuild -Rmodule-loading -diagnostic-style=toolchain 2> %t/out
+// RUN: %FileCheck --input-file %t/out %s
+
+import Codira
+// CHECK: rebuilding module 'Codira' from interface
+// CHECK-NEXT: compiled module is out of date
+// CHECK-NEXT: : malformed
+
+import PublicCodira // expected-remark {{rebuilding module 'PublicCodira' from interface}}
+// expected-note @-1 {{was ignored because it belongs to a framework in the SDK}}
+
+// The private adjacent module under PrivateFrameworks should still be tried first, and then rebuilt.
+import PrivateCodira
+// expected-remark @-1 {{rebuilding module 'PrivateCodira' from interface}}
+// expected-note @-2 {{compiled module is out of date}}
+// expected-note @-3 {{: malformed}}
+
+import PublicCodiraLibrary // expected-remark {{rebuilding module 'PublicCodiraLibrary' from interface}}
+// expected-note @-1 {{was ignored because it's a library module in the SDK}}
+
+import SubCodira // expected-remark {{rebuilding module 'SubCodira' from interface}}
+// expected-note @-1 {{was ignored because it belongs to a framework in the SDK}}

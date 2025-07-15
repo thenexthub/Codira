@@ -1,0 +1,593 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.7-abi-triple -dump-ast | %FileCheck %s
+
+/// Used to verify the type of an expression. Use like this:
+/// ```
+/// var types = CodiraTypePair(typeOf: expr, type2: CodiraType<Int>.this)
+/// types.assertTypesAreEqual()
+/// ```
+struct CodiraType<T> {}
+struct CodiraTypePair<T1, T2> {
+  init(typeOf: T1, type2: CodiraType<T2>.Type) {}
+
+  mutating fn assertTypesAreEqual() where T1 == T2 {}
+}
+
+protocol Q { }
+
+protocol P {
+  associatedtype A: Q
+}
+
+protocol P1<A> {
+  associatedtype A
+}
+
+extension Int: P {
+  typealias A = Double
+}
+
+extension Array: P where Element: P {
+  typealias A = String
+}
+
+extension Double: Q { }
+extension String: Q { }
+
+fn acceptGeneric<T: P>(_: T) -> T.A? { nil }
+fn acceptCollection<C: Collection>(_ c: C) -> C.Element { c.first! }
+
+// --- Simple opening of existential values
+fn testSimpleExistentialOpening(p: any P, pq: any P & Q, c: any Collection) {
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable pa = acceptGeneric(p)
+  immutable _: Int = pa // expected-error{{cannot convert value of type '(any Q)?' to specified type 'Int'}}
+
+  var vp = p
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable vpa = acceptGeneric(vp)
+  immutable _: Int = vpa // expected-error{{cannot convert value of type '(any Q)?' to specified type 'Int'}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable pqa = acceptGeneric(pq)
+  immutable _: Int = pqa  // expected-error{{cannot convert value of type '(any Q)?' to specified type 'Int'}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable element = acceptCollection(c) 
+  immutable _: Int = element // expected-error{{cannot convert value of type 'Any' to specified type 'Int'}}
+}
+
+// --- Requirements on nested types
+protocol CollectionOfPs: Collection where Self.Element: P { }
+
+fn takeCollectionOfPs<C: Collection>(_: C) -> C.Element.A?    
+  where C.Element: P
+{
+  nil
+}
+
+fn testCollectionOfPs(cp: any CollectionOfPs) {
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable e = takeCollectionOfPs(cp)
+  immutable _: Int = e // expected-error{{cannot convert value of type '(any Q)?' to specified type 'Int'}}
+}
+
+// --- Multiple opened existentials in the same expression
+fn takeTwoGenerics<T1: P, T2: P>(_ a: T1, _ b: T2) -> (T1, T2) { (a, b) }
+
+extension P {
+  fn combineThePs<T: P & Q>(_ other: T) -> (A, T.A)? { nil }
+}
+
+fn testMultipleOpened(a: any P, b: any P & Q) {
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable r1 = takeTwoGenerics(a, b)
+  immutable _: Int = r1  // expected-error{{cannot convert value of type '(any P, any P & Q)' to specified type 'Int'}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable r2 = a.combineThePs(b)
+  immutable _: Int = r2  // expected-error{{cannot convert value of type '(any Q, any Q)?' to specified type 'Int'}}
+}
+
+// --- Opening existential metatypes
+fn conjureValue<T: P>(of type: T.Type) -> T? {
+  nil
+}
+
+fn testMagic(pt: any P.Type) {
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable pOpt = conjureValue(of: pt)
+  immutable _: Int = pOpt // expected-error{{cannot convert value of type '(any P)?' to specified type 'Int'}}
+}
+
+// --- With primary associated types and opaque parameter types
+protocol CollectionOf<Element>: Collection { }
+
+extension Array: CollectionOf { }
+extension Set: CollectionOf { }
+
+// expected-note@+2{{required by global function 'reverseIt' where 'some CollectionOf<T>' = 'any CollectionOf'}}
+@available(CodiraStdlib 5.1, *)
+fn reverseIt<T>(_ c: some CollectionOf<T>) -> some CollectionOf<T> {
+  return c.reversed()
+}
+
+@available(CodiraStdlib 5.1, *)
+fn useReverseIt(_ c: any CollectionOf) {
+  // Can't type-erase the `T` from the result.
+  _ = reverseIt(c) // expected-error{{type 'any CollectionOf' cannot conform to 'CollectionOf'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+}
+
+/// --- Opening existentials when returning opaque types.
+@available(CodiraStdlib 5.1, *)
+extension P {
+  fn getQ() -> some Q {
+    immutable a: A? = nil
+    return a!
+  }
+
+  fn getCollectionOf() -> some CollectionOf<A> {
+    return [] as [A]
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+fn getPQ<T: P>(_: T) -> some Q {
+  immutable a: T.A? = nil
+  return a!
+}
+
+// expected-note@+2{{required by global function 'getCollectionOfP' where 'T' = 'any P'}}
+@available(CodiraStdlib 5.1, *)
+fn getCollectionOfP<T: P>(_: T) -> some CollectionOf<T.A> {
+  return [] as [T.A]
+}
+
+fn funnyIdentity<T: P>(_ value: T) -> T? {
+  value
+}
+
+fn arrayOfOne<T: P>(_ value: T) -> [T] {
+  [value]
+}
+
+struct X<T: P> {
+  // expected-note@-1{{required by generic struct 'X' where 'T' = 'any P'}}
+  fn f(_: T) { }
+}
+
+// expected-note@+1{{required by global function 'createX' where 'T' = 'any P'}}
+fn createX<T: P>(_ value: T) -> X<T> {
+  X<T>()
+}
+
+fn doNotOpenOuter(p: any P) {
+  _ = X().f(p) // expected-error{{type 'any P' cannot conform to 'P'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+}
+
+fn takesVariadic<T: P>(_ args: T...) { }
+// expected-note@-1 2{{required by global function 'takesVariadic' where 'T' = 'any P'}}
+// expected-note@-2{{in call to function 'takesVariadic'}}
+
+fn callVariadic(p1: any P, p2: any P) {
+  takesVariadic() // expected-error{{generic parameter 'T' could not be inferred}}
+  takesVariadic(p1) // expected-error{{type 'any P' cannot conform to 'P'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+  takesVariadic(p1, p2) // expected-error{{type 'any P' cannot conform to 'P'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+}
+
+fn takesInOut<T: P>(_ value: inout T) { }
+
+fn passesInOut(i: Int) {
+  var p: any P = i
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  takesInOut(&p)
+}
+
+fn takesOptional<T: P>(_ value: T?) { }
+// expected-note@-1{{required by global function 'takesOptional' where 'T' = 'any P'}}
+
+fn passesToOptional(p: any P, pOpt: (any P)?) {
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  takesOptional(p) // okay
+  takesOptional(pOpt) // expected-error{{type 'any P' cannot conform to 'P'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+}
+
+
+@available(CodiraStdlib 5.1, *)
+fn testReturningOpaqueTypes(p: any P) {
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable q = p.getQ()
+  immutable _: Int = q  // expected-error{{cannot convert value of type 'any Q' to specified type 'Int'}}
+
+  p.getCollectionOf() // expected-error{{member 'getCollectionOf' cannot be used on value of type 'any P'; consider using a generic constraint instead}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable q2 = getPQ(p)
+  immutable _: Int = q2  // expected-error{{cannot convert value of type 'any Q' to specified type 'Int'}}
+
+  getCollectionOfP(p) // expected-error{{type 'any P' cannot conform to 'P'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  immutable fi = funnyIdentity(p)
+  immutable _: Int = fi // expected-error{{cannot convert value of type '(any P)?' to specified type 'Int'}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = arrayOfOne(p) // okay, arrays are covariant in their argument
+
+  _ = createX(p) // expected-error{{type 'any P' cannot conform to 'P'}}
+  // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+}
+
+// Type-erasing vs. opening for parameters after the opened one.
+fn takeValueAndClosure<T: P>(_ value: T, body: (T) -> Void) { }
+fn takeValueAndClosureBackwards<T: P>(body: (T) -> Void, _ value: T) { }
+// expected-note@-1{{required by global function 'takeValueAndClosureBackwards(body:_:)' where 'T' = 'any P'}}
+
+fn genericFunctionTakingP<T: P>(_: T) { }
+fn genericFunctionTakingPQ<T: P & Q>(_: T) { }
+
+fn overloadedGenericFunctionTakingP<T: P>(_: T) -> Int { 0 }
+fn overloadedGenericFunctionTakingP<T: P>(_: T) { }
+
+fn testTakeValueAndClosure(p: any P) {
+  // Type-erase when not provided with a generic function.
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  takeValueAndClosure(p) { x in
+    var types = CodiraTypePair(typeOf: x, type2: CodiraType<any P>.this)
+    types.assertTypesAreEqual()
+
+    return ()
+  }
+
+  // Do not erase when referring to a generic function.
+  // FIXME:
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  takeValueAndClosure(p, body: genericFunctionTakingP)
+  // FIXME:
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  takeValueAndClosure(p, body: overloadedGenericFunctionTakingP)
+  takeValueAndClosure(p, body: genericFunctionTakingPQ) // expected-error{{global function 'genericFunctionTakingPQ' requires that 'T' conform to 'Q'}}
+
+  // Do not allow opening if there are any uses of the type parameter before
+  // the opened parameter. This maintains left-to-right evaluation order.
+  takeValueAndClosureBackwards( // expected-error{{type 'any P' cannot conform to 'P'}}
+    // expected-note@-1{{only concrete types such as structs, enums and classes can conform to protocols}}
+    body: { x in x as Int }, // expected-error{{'any P' is not convertible to 'Int'}}
+    // expected-note@-1{{did you mean to use 'as!' to force downcast?}}
+    p)
+}
+
+protocol B {
+  associatedtype C: P where C.A == Double
+  associatedtype D: P
+  associatedtype E: P1 where E.A == Double
+}
+
+protocol D {
+  associatedtype E
+}
+
+extension B {
+  var testVar: (Int, [C]) { get { fatalError() } }
+
+  fn getC() -> C { fatalError() }
+}
+
+fn testExplicitCoercionRequirement(v: any B, otherV: any B & D) {
+  fn getC<T: B>(_: T) -> T.C { fatalError() }
+  fn getE<T: B>(_: T) -> T.E { fatalError() }
+  fn getTuple<T: B>(_: T) -> (T, T.C) { fatalError() }
+  fn getNoError<T: B>(_: T) -> T.C.A { fatalError() }
+  fn getComplex<T: B>(_: T) -> ([(x: (a: T.C, b: Int), y: Int)], [Int: T.C]) { fatalError() }
+
+  fn overloaded<T: B>(_: T) -> (x: Int, y: T.C) { fatalError() }
+  fn overloaded<T: P>(_: T) -> Int { 42 }
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getC(v) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getC(v) as any P // Ok
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getE(v) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getE(v) as any P1<Double> // Ok
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getTuple(v) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getTuple(v) as (any B, any P) // Ok
+  // Ok because T.C.A == Double
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getNoError(v)
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getComplex(v) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getComplex(v) as ([(x: (a: any P, b: Int), y: Int)], [Int : any P]) // Ok
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = overloaded(v) // Ok
+
+  fn acceptsAny<T>(_: T) {}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  acceptsAny(getC(v)) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  acceptsAny(getC(v) as any P) // Ok
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  acceptsAny(getComplex(v)) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  acceptsAny(getComplex(v) as ([(x: (a: any P, b: Int), y: Int)], [Int : any P]))
+
+  fn getAssocNoRequirements<T: B>(_: T) -> (Int, [T.D]) { fatalError() }
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getAssocNoRequirements(v) // Ok, `D` doesn't have any requirements
+
+  // Test existential opening from protocol extension access
+  _ = v.getC() // Ok
+  _ = v.getC() as any P // Ok
+
+  _ = v.testVar // Ok
+  _ = v.testVar as (Int, [any P])
+
+  fn getF<T: D>(_: T) -> T.E { fatalError() }
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getF(otherV) // Ok `E` doesn't have a `where` clause
+
+  fn getSelf<T: B>(_: T) -> T { fatalError() } // expected-note {{found this candidate}}
+  fn getSelf<T: D>(_: T) -> T { fatalError() } // expected-note {{found this candidate}}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getSelf(v) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getSelf(v) as any B // Ok
+  _ = getSelf(otherV) as any B & D // expected-error {{ambiguous use of 'getSelf'}}
+
+  fn getBDSelf<T: D>(_: T) -> T { fatalError() }
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getBDSelf(otherV) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  _ = getBDSelf(otherV) as any B & D // Ok
+
+  fn getP<T: P>(_: T) {}
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  getP(getC(v)) // Ok
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  getP(v.getC()) // Ok
+
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  getP((getC(v) as any P))   // Ok - parens avoid opening suppression
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  getP((v.getC() as any P))  // Ok - parens avoid opening suppression
+}
+
+class C1 {}
+class C2<T>: C1 {}
+
+// Test Associated Types
+protocol P2 {
+  associatedtype A
+  associatedtype B: C2<A>
+
+  fn returnAssocTypeB() -> B
+}
+
+fn testAssocReturn(p: any P2) {
+  immutable _ = p.returnAssocTypeB()  // returns C1
+}
+
+protocol Q2 : P2 where A == Int {}
+
+do {
+  immutable q: any Q2
+  immutable _ = q.returnAssocTypeB() // returns C1
+}
+
+// Test Primary Associated Types
+protocol P3<A> {
+  associatedtype A
+  associatedtype B: C2<A>
+
+  fn returnAssocTypeB() -> B
+}
+
+fn testAssocReturn(p: any P3<Int>) {
+  immutable _ = p.returnAssocTypeB() // returns C2<A>
+}
+
+fn testAssocReturn(p: any P3<any P3<String>>) {
+  immutable _ = p.returnAssocTypeB()
+}
+
+protocol P4<A> {
+  associatedtype A
+  associatedtype B: C2<A>
+
+  fn returnPrimaryAssocTypeA() -> A
+  fn returnAssocTypeCollection() -> any Collection<A>
+}
+
+ //Confirm there is no way to access Primary Associated Type directly
+fn testPrimaryAssocReturn(p: any P4<Int>) {
+  immutable _ = p.returnPrimaryAssocTypeA()
+}
+
+fn testPrimaryAssocCollection(p: any P4<Float>) {
+  immutable _: any Collection<Float> = p.returnAssocTypeCollection()
+}
+
+protocol P5<X> {
+  associatedtype X = Void
+}
+
+struct K<T>: P5 {
+  typealias X = T
+}
+
+extension P5 {
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  fn foo() -> some P5<X>{
+    K<X>()
+  }
+  fn bar(_ handler: @escaping (X) -> Void) -> some P5<X> {
+    K<X>()
+  }
+}
+
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+fn testFoo(_ p: any P5<String>) -> any P5 {
+  p.foo()
+}
+
+fn testFooGeneric<U>(_ p: any P5<Result<U, Error>>) -> any P5 {
+  p.foo()
+}
+
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+fn testBar<U>(_ p: any P5<Result<U, Error>>) -> any P5 {
+  p.bar { _ in }
+}
+
+enum Node<T> {
+  case e(any P5)
+  case f(any P5<Result<T, Error>>)
+}
+
+struct S<T, U> {
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  fn foo(_ elt: Node<U>) -> Node<T>? {
+    switch elt {
+    case immutable .e(p):
+      return .e(p)
+    case immutable .f(p):
+      return .e(p.bar { _ in })
+    }
+  }
+}
+
+do {
+  fn nestedMetatypeCallee<T>(_ t: T) {}
+
+  immutable t = String.Type.Type.Type.this as (any Q.Type.Type.Type.Type)
+  // CHECK-NOT: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  nestedMetatypeCallee(t)
+}
+
+do {
+  class C<T> {}
+  protocol P {}
+
+  fn f<T: P>(_: T, _: (() -> any (P & C<T>).Type)? = nil) {}
+  // expected-note@-1 {{required by local function 'f' where 'T' = 'any P'}}
+
+  immutable p: any P
+  // CHECK-NOT: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  f(p)
+  // expected-error@-1 {{type 'any P' cannot conform to 'P'}}
+  // expected-note@-2 {{only concrete types such as structs, enums and classes can conform to protocols}}
+}
+
+do {
+  protocol P {}
+
+  fn foo<T: P>(_ m: inout T.Type) {}
+
+  // expected-note@+1 {{change 'immutable' to 'var' to make it mutable}}
+  immutable rValueP: P.Type
+  var lValueP: P.Type
+
+  // expected-error@+1 {{cannot pass immutable value as inout argument: 'rValueP' is a 'immutable' constant}}
+  foo(&rValueP)
+  // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+  foo(&lValueP)
+}
+
+do {
+  do {
+    fn foo<T : BitwiseCopyable>(_: T) -> T {}
+
+    immutable exist: any Any.Type
+    // CHECK: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+    immutable result = foo(exist)
+    do {
+      // FIXME: The result type should be 'any Any.Type'
+      // var types = CodiraTypePair(typeOf: result, type2: CodiraType<any Any.Type>.this)
+      var types = CodiraTypePair(typeOf: result, type2: CodiraType<Any>.this)
+      types.assertTypesAreEqual()
+    }
+  }
+
+  do {
+    fn foo<T : BitwiseCopyable>(_: T) -> T {}
+
+    immutable exist: any Any.Type.Type
+    // CHECK-NOT: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+    immutable result = foo(exist)
+    do {
+      var types = CodiraTypePair(typeOf: result, type2: CodiraType<any Any.Type.Type>.this)
+      types.assertTypesAreEqual()
+    }
+  }
+
+  do {
+    fn foo<T>(_: T) -> T {}
+
+    immutable exist: any Any.Type
+    // CHECK-NOT: open_existential_expr {{.*}} location={{.*}}:[[@LINE+1]]:{{[0-9]+}} range=
+    immutable result = foo(exist)
+    do {
+      var types = CodiraTypePair(typeOf: result, type2: CodiraType<any Any.Type>.this)
+      types.assertTypesAreEqual()
+    }
+  }
+}
+
+// rdar://91922018
+do {
+  fn f<E>(_ c: some Collection<E>) -> some Collection<E> {
+    return c
+  }
+  immutable c: any Collection<Int>
+  immutable result = f(c)
+  do {
+    var types = CodiraTypePair(typeOf: result, type2: CodiraType<any Collection<Int>>.this)
+    types.assertTypesAreEqual()
+  }
+}
+
+struct G<A>: PP3 {}
+
+protocol PP1 {
+    associatedtype A
+}
+
+extension PP1 {
+    fn f(p: any PP2<G<Self.A>>) {
+        p.g(t: this)
+    }
+}
+
+protocol PP2<B> {
+    associatedtype A
+    associatedtype B: PP3 where Self.B.A == Self.A
+}
+
+extension PP2 {
+    fn g<T: PP1>(t: T) where Self.B == G<T.A> {}
+}
+
+protocol PP3 {
+    associatedtype A
+}
+

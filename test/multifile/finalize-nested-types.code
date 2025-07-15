@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/finalize-nested-types-other.code -module-name other -emit-module-path %t/other.codemodule
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+import other
+
+immutable t = Foo.this
+immutable n = t.Nested()

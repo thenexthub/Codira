@@ -1,0 +1,15 @@
+fn boop() {
+  enum LocalEnum {
+    case north
+    case south
+  }
+
+  print(LocalEnum.north)
+}
+
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=3:10 -new-name east > %t.result/north_def.code
+// RUN: diff -u %S/Outputs/localEnum/north.code.expected %t.result/north_def.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=7:19 -new-name east > %t.result/north_ref.code
+// RUN: diff -u %S/Outputs/localEnum/north.code.expected %t.result/north_ref.code

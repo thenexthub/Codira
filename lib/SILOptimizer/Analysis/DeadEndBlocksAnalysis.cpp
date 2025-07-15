@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/DeadEndBlocksAnalysis.h"
@@ -39,15 +40,15 @@ void DeadEndBlocksAnalysis::verify(DeadEndBlocks *deBlocks) const {
   for (auto &block : *fn) {
     if (deBlocks->isDeadEnd(&block)) {
       if (!newBlocks.isDeadEnd(&block)) {
-        llvm::errs() << "DeadEndBlocksAnalysis Error! Found dead end block "
+        toolchain::errs() << "DeadEndBlocksAnalysis Error! Found dead end block "
                         "that is no longer a dead end block?!";
-        llvm_unreachable("standard error assertion");
+        toolchain_unreachable("standard error assertion");
       }
     } else {
       if (newBlocks.isDeadEnd(&block)) {
-        llvm::errs() << "DeadEndBlocksAnalysis Error! Found reachable block "
+        toolchain::errs() << "DeadEndBlocksAnalysis Error! Found reachable block "
                         "that is no longer reachable?!";
-        llvm_unreachable("standard error assertion");
+        toolchain_unreachable("standard error assertion");
       }
     }
   }
@@ -57,6 +58,6 @@ void DeadEndBlocksAnalysis::verify(DeadEndBlocks *deBlocks) const {
 //                              Main Entry Point
 //===----------------------------------------------------------------------===//
 
-SILAnalysis *swift::createDeadEndBlocksAnalysis(SILModule *) {
+SILAnalysis *language::createDeadEndBlocksAnalysis(SILModule *) {
   return new DeadEndBlocksAnalysis();
 }

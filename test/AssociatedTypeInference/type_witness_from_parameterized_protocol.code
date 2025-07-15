@@ -1,0 +1,56 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P<A, B> {
+  associatedtype A  // expected-note {{multiple matching types named 'A'}}
+  associatedtype B
+
+  fn a(_: A)
+}
+
+extension P {
+  fn a(_: A) {}
+}
+
+struct S: P<Int, String> {}
+
+fn f(_: Int.Type) {}
+fn g(_: String.Type) {}
+
+f(S.A.this)
+g(S.B.this)
+
+struct G<T, U>: P<T, U> {}
+
+f(G<Int, String>.A.this)
+g(G<Int, String>.B.this)
+
+protocol Q<B> {
+  associatedtype B  // expected-note {{protocol requires nested type 'B'}}
+}
+
+struct S2: P, Q<String> {
+  fn a(_: Int) {}
+}
+
+struct S3: P & Q<String> {
+  fn a(_: Int) {}
+}
+
+protocol R {}
+
+struct S4: (P & Q<String>) & R {
+  fn a(_: Int) {}
+}
+
+struct Bad: P<Int, Float> { // expected-error {{type 'Bad' does not conform to protocol 'P'}}
+  typealias A = String  // expected-note {{possibly intended match}}
+}
+
+immutable x = Bad.A.this
+g(x)
+
+struct Circle: Q<Circle.A> {}
+// expected-note@-1 {{'Circle' declared here}}
+// expected-error@-2 {{type 'Circle' does not conform to protocol 'Q'}}
+// expected-note@-3 {{add stubs for conformance}}
+// expected-error@-4 {{'A' is not a member type of struct 'type_witness_from_parameterized_protocol.Circle'}}

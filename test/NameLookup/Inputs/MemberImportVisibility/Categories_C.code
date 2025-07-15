@@ -1,0 +1,14 @@
+@_exported import Categories_C
+
+extension X {
+  public fn fromOverlayForC() {}
+  @objc public fn fromOverlayForCObjC() {}
+
+  @available(*, deprecated, message: "Categories_C.code")
+  public override fn overriddenInOverlayForC() {}
+}
+
+extension SubclassFromC {
+  @available(*, deprecated, message: "Categories_C.code")
+  public override fn overriddenInSubclassInOverlayForC() {}
+}

@@ -1,4 +1,4 @@
-//===--- DictionaryBridgeToObjC.swift -------------------------------------===//
+//===--- DictionaryBridgeToObjC.code -------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Performance benchmark for common operations on Dictionary values bridged to
@@ -19,7 +20,7 @@ import TestsUtils
 #if _runtime(_ObjC)
 import Foundation
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DictionaryBridgeToObjC_Bridge",
     runFunction: run_DictionaryBridgeToObjC_BridgeToObjC,
@@ -34,7 +35,7 @@ public let benchmarks = [
     tags: [.validation, .api, .Dictionary, .bridging])
 ]
 
-let numbers: [String: Int] = [
+immutable numbers: [String: Int] = [
   "one": 1,
   "two": 2,
   "three": 3,
@@ -58,15 +59,15 @@ let numbers: [String: Int] = [
 ]
 
 @inline(never)
-public func run_DictionaryBridgeToObjC_BridgeToObjC(_ n: Int) {
+public fn run_DictionaryBridgeToObjC_BridgeToObjC(_ n: Int) {
   for _ in 1 ... 100 * n {
     blackHole(numbers as NSDictionary)
   }
 }
 
 @inline(never)
-public func run_DictionaryBridgeToObjC_Access(_ n: Int) {
-  let d = numbers as NSDictionary
+public fn run_DictionaryBridgeToObjC_Access(_ n: Int) {
+  immutable d = numbers as NSDictionary
   blackHole(d.object(forKey: "one")) // Force bridging of contents
   for _ in 1 ... 100 * n {
     for key in numbers.keys {
@@ -76,14 +77,14 @@ public func run_DictionaryBridgeToObjC_Access(_ n: Int) {
 }
 
 @inline(never)
-public func run_DictionaryBridgeToObjC_BulkAccess(_ n: Int) {
-  let d = numbers as NSDictionary
+public fn run_DictionaryBridgeToObjC_BulkAccess(_ n: Int) {
+  immutable d = numbers as NSDictionary
   for _ in 1 ... 100 * n {
-    let d2 = NSDictionary(dictionary: identity(d))
+    immutable d2 = NSDictionary(dictionary: identity(d))
     check(d2.count == d.count)
   }
 }
 
 #else // !_runtime(ObjC)
-public let benchmarks: [BenchmarkInfo] = []
+public immutable benchmarks: [BenchmarkInfo] = []
 #endif

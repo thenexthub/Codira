@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::ConstraintSystem::getTypeOfReference(language::ValueDecl*, language::FunctionRefInfo, language::constraints::ConstraintLocatorBuilder, language::DeclContext*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<b>((__shared b) -> Void)
+fn c(UnsafeMutablePointer<UInt8>) a {
+  c(&$0

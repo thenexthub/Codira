@@ -4,12 +4,12 @@
 
 For example:
 
-```swift
-func callConcurrently(
+```language
+fn callConcurrently(
   _ closure: @escaping @Sendable () -> Void
 ) { ... }
 
-func capture() {
+fn capture() {
   var result = 0
   result += 1
   
@@ -31,8 +31,8 @@ The compiler diagnoses the capture of `result` in a `@Sendable` closure:
 
 Because the closure is marked `@Sendable`, the implementation of `callConcurrently` can call `closure` multiple times concurrently. For example, multiple child tasks within a task group can call `closure` concurrently:
 
-```swift
-func callConcurrently(
+```language
+fn callConcurrently(
   _ closure: @escaping @Sendable () -> Void
 ) {
   Task {
@@ -49,8 +49,8 @@ func callConcurrently(
 
 If the type of the capture is `Sendable` and the closure only needs the value of the variable at the point of capture, resolve the error by explicitly capturing the variable by value in the closure's capture list:
 
-```swift
-func capture() {
+```language
+fn capture() {
   var result = 0
   result += 1
   
@@ -62,12 +62,12 @@ func capture() {
 
 This strategy does not apply to captures with non-`Sendable` type. Consider the following example:
 
-```swift
+```language
 class MyModel {
-  func log() { ... }
+  fn log() { ... }
 }
 
-func capture(model: MyModel) async {
+fn capture(model: MyModel) async {
   callConcurrently {
     model.log()
   }
@@ -77,23 +77,23 @@ func capture(model: MyModel) async {
 The compiler diagnoses the capture of `model` in a `@Sendable` closure:
 
 ```
-| func capture(model: MyModel) async {
+| fn capture(model: MyModel) async {
 |   callConcurrently {
 |     model.log()
-|     `- error: capture of 'model' with non-sendable type 'MyModel' in a '@Sendable' closure
+|     `- error: capture of 'model' with non-Sendable type 'MyModel' in a '@Sendable' closure
 |   }
 | }
 ```
 
 If a type with mutable state can be referenced concurrently, but all access to mutable state happens on the main actor, isolate the type to the main actor and mark the methods that don't access mutable state as `nonisolated`:
 
-```swift
+```language
 @MainActor
 class MyModel {
-  nonisolated func log() { ... }
+  nonisolated fn log() { ... }
 }
 
-func capture(model: MyModel) async {
+fn capture(model: MyModel) async {
   callConcurrently {
     model.log()
   }
@@ -104,12 +104,12 @@ The compiler will guarantee that the implementation of `log` does not access any
 
 If you manually ensure data-race safety, such as by using an external synchronization mechanism, you can use `nonisolated(unsafe)` to opt out of concurrency checking:
 
-```swift
+```language
 class MyModel {
-  func log() { ... }
+  fn log() { ... }
 }
 
-func capture(model: MyModel) async {
+fn capture(model: MyModel) async {
   nonisolated(unsafe) let model = model
   callConcurrently {
     model.log()

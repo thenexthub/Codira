@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODE_COMPLETIONCACHE_H
-#define SWIFT_IDE_CODE_COMPLETIONCACHE_H
+#ifndef LANGUAGE_IDE_CODE_COMPLETIONCACHE_H
+#define LANGUAGE_IDE_CODE_COMPLETIONCACHE_H
 
 #include "language/Basic/ThreadSafeRefCounted.h"
 #include "language/IDE/CodeCompletion.h"
 #include "language/IDE/CodeCompletionResult.h"
 #include "language/IDE/CodeCompletionString.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/Support/Chrono.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/Support/Chrono.h"
 #include <system_error>
 
 namespace language {
@@ -49,7 +50,7 @@ public:
     bool ForTestableLookup;
     bool ForPrivateImportLookup;
     /// Must be sorted alphabetically for stable identity.
-    llvm::SmallVector<std::string, 2> SpiGroups;
+    toolchain::SmallVector<std::string, 2> SpiGroups;
     bool AddInitsInToplevel;
     bool AddCallWithNoDefaultArgs;
     bool Annotated;
@@ -68,11 +69,11 @@ public:
     }
   };
 
-  struct Value : public llvm::ThreadSafeRefCountedBase<Value> {
+  struct Value : public toolchain::ThreadSafeRefCountedBase<Value> {
     /// The allocator used to allocate the results stored in this cache.
-    std::shared_ptr<llvm::BumpPtrAllocator> Allocator;
+    std::shared_ptr<toolchain::BumpPtrAllocator> Allocator;
 
-    llvm::sys::TimePoint<> ModuleModificationTime;
+    toolchain::sys::TimePoint<> ModuleModificationTime;
 
     std::vector<const ContextFreeCodeCompletionResult *> Results;
 
@@ -80,9 +81,9 @@ public:
     /// \c ContextFreeCodeCompletionResult in this cache value.
     USRBasedTypeArena USRTypeArena;
 
-    Value() : Allocator(std::make_shared<llvm::BumpPtrAllocator>()) {}
+    Value() : Allocator(std::make_shared<toolchain::BumpPtrAllocator>()) {}
   };
-  using ValueRefCntPtr = llvm::IntrusiveRefCntPtr<Value>;
+  using ValueRefCntPtr = toolchain::IntrusiveRefCntPtr<Value>;
 
   CodeCompletionCache(OnDiskCodeCompletionCache *nextCache = nullptr);
   ~CodeCompletionCache();
@@ -125,10 +126,10 @@ struct RequestedCachedModule {
 } // end namespace ide
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 template<>
-struct DenseMapInfo<swift::ide::CodeCompletionCache::Key> {
-  using KeyTy = swift::ide::CodeCompletionCache::Key;
+struct DenseMapInfo<language::ide::CodeCompletionCache::Key> {
+  using KeyTy = language::ide::CodeCompletionCache::Key;
   static inline KeyTy getEmptyKey() {
     return KeyTy{/*ModuleFilename=*/"",
                  /*ModuleName=*/"",
@@ -154,11 +155,11 @@ struct DenseMapInfo<swift::ide::CodeCompletionCache::Key> {
                  /*Annotated=*/false};
   }
   static unsigned getHashValue(const KeyTy &Val) {
-    return llvm::hash_combine(
+    return toolchain::hash_combine(
         Val.ModuleFilename, Val.ModuleName,
-        llvm::hash_combine_range(Val.AccessPath.begin(), Val.AccessPath.end()),
+        toolchain::hash_combine_range(Val.AccessPath.begin(), Val.AccessPath.end()),
         Val.ResultsHaveLeadingDot, Val.ForTestableLookup,
-        llvm::hash_combine_range(Val.SpiGroups.begin(), Val.SpiGroups.end()),
+        toolchain::hash_combine_range(Val.SpiGroups.begin(), Val.SpiGroups.end()),
         Val.ForPrivateImportLookup, Val.AddInitsInToplevel,
         Val.AddCallWithNoDefaultArgs, Val.Annotated);
   }
@@ -166,6 +167,6 @@ struct DenseMapInfo<swift::ide::CodeCompletionCache::Key> {
     return LHS == RHS;
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_IDE_CODE_COMPLETIONCACHE_H
+#endif // LANGUAGE_IDE_CODE_COMPLETIONCACHE_H

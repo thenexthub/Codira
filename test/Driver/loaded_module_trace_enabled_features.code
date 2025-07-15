@@ -1,0 +1,83 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %s -emit-module -o /dev/null -language-version 4 \
+// RUN:   -emit-loaded-module-trace-path %t/language4.trace.json
+// RUN: %FileCheck -check-prefix=CHECK-LANGUAGE4 %s < %t/language4.trace.json
+
+// RUN: %target-language-frontend %s -emit-module -o /dev/null -language-version 5 \
+// RUN:   -emit-loaded-module-trace-path %t/language5.trace.json
+// RUN: %FileCheck -check-prefix=CHECK-LANGUAGE5 %s < %t/language5.trace.json
+
+// RUN: %target-language-frontend %s -emit-module -o /dev/null -language-version 5 \
+// RUN:   -emit-loaded-module-trace-path %t/language5_and_features.trace.json \
+// RUN:   -enable-experimental-feature ParserValidation \
+// RUN:   -enable-upcoming-feature RegionBasedIsolation \
+// RUN:   -strict-memory-safety
+// RUN: %FileCheck -check-prefix=CHECK-LANGUAGE5-PLUS %s < %t/language5_and_features.trace.json
+
+// RUN: %target-language-frontend %s -emit-module -o /dev/null -language-version 6 \
+// RUN:   -emit-loaded-module-trace-path %t/language6.trace.json
+// RUN: %FileCheck -check-prefix=CHECK-LANGUAGE6 %s < %t/language6.trace.json
+
+// NOTE: The matching of the enabledLanguageFeatures lists below is
+// intentionally inexact. There are few experimental features (ParserRoundTrip,
+// ParserValidation) that are enabled by default in asserts compilers but
+// otherwise disabled, so the enabled feature lists will sometimes contain
+// additional entries.
+
+// REQUIRES: language_feature_ParserValidation
+// REQUIRES: language_feature_RegionBasedIsolation
+
+// CHECK-LANGUAGE4: {
+// CHECK-LANGUAGE4: "version":2
+// CHECK-LANGUAGE4: "arch":"{{[^"]*}}"
+// CHECK-LANGUAGE4: "languageMode":"4"
+// CHECK-LANGUAGE4: "enabledLanguageFeatures":[
+// CHECK-LANGUAGE4: ]
+// CHECK-LANGUAGE4: "strictMemorySafety":false
+
+// CHECK-LANGUAGE5: {
+// CHECK-LANGUAGE5: "version":2
+// CHECK-LANGUAGE5: "arch":"{{[^"]*}}"
+// CHECK-LANGUAGE5: "languageMode":"5"
+// CHECK-LANGUAGE5: "enabledLanguageFeatures":[
+// CHECK-LANGUAGE5: "NonfrozenEnumExhaustivity"
+// CHECK-LANGUAGE5: ]
+// CHECK-LANGUAGE5: "strictMemorySafety":false
+
+// CHECK-LANGUAGE5-PLUS: {
+// CHECK-LANGUAGE5-PLUS: "version":2
+// CHECK-LANGUAGE5-PLUS: "arch":"{{[^"]*}}"
+// CHECK-LANGUAGE5-PLUS: "languageMode":"5"
+// CHECK-LANGUAGE5-PLUS: "enabledLanguageFeatures":[
+// CHECK-LANGUAGE5-PLUS: "NonfrozenEnumExhaustivity",
+// CHECK-LANGUAGE5-PLUS: "ParserValidation",
+// CHECK-LANGUAGE5-PLUS: "RegionBasedIsolation",
+// CHECK-LANGUAGE5-PLUS: "StrictMemorySafety"
+// CHECK-LANGUAGE5-PLUS: ]
+// CHECK-LANGUAGE5-PLUS: "strictMemorySafety":true
+
+// CHECK-LANGUAGE6: {
+// CHECK-LANGUAGE6: "version":2
+// CHECK-LANGUAGE6: "arch":"{{[^"]*}}"
+// CHECK-LANGUAGE6: "languageMode":"6"
+// CHECK-LANGUAGE6: "enabledLanguageFeatures":[
+// CHECK-LANGUAGE6: "BareSlashRegexLiterals",
+// CHECK-LANGUAGE6: "ConciseMagicFile",
+// CHECK-LANGUAGE6: "DeprecateApplicationMain",
+// CHECK-LANGUAGE6: "DisableOutwardActorInference",
+// CHECK-LANGUAGE6: "DynamicActorIsolation",
+// CHECK-LANGUAGE6: "ForwardTrailingClosures",
+// CHECK-LANGUAGE6: "GlobalActorIsolatedTypesUsability",
+// CHECK-LANGUAGE6: "GlobalConcurrency",
+// CHECK-LANGUAGE6: "ImplicitOpenExistentials",
+// CHECK-LANGUAGE6: "ImportObjcForwardDeclarations",
+// CHECK-LANGUAGE6: "InferSendableFromCaptures",
+// CHECK-LANGUAGE6: "IsolatedDefaultValues",
+// CHECK-LANGUAGE6: "NonfrozenEnumExhaustivity",
+// CHECK-LANGUAGE6: "RegionBasedIsolation",
+// CHECK-LANGUAGE6: "StrictConcurrency"
+// CHECK-LANGUAGE6: ]
+// CHECK-LANGUAGE6: "strictMemorySafety":false
+
+import Codira

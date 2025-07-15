@@ -1,4 +1,4 @@
-//===- TypeOrExtensionDecl.h - Swift Language Declaration ASTs -*- C++ -*-===//
+//===- TypeOrExtensionDecl.h - Codira Language Declaration ASTs -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the TypeOrExtensionDecl struct, separately to Decl.h so
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPE_OR_EXTENSION_DECL_H
-#define SWIFT_TYPE_OR_EXTENSION_DECL_H
+#ifndef LANGUAGE_TYPE_OR_EXTENSION_DECL_H
+#define LANGUAGE_TYPE_OR_EXTENSION_DECL_H
 
 #include "language/AST/TypeAlignments.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -38,7 +39,7 @@ class IterableDeclContext;
 /// declaration.
 struct TypeOrExtensionDecl {
   // (The definitions are in Decl.cpp.)
-  llvm::PointerUnion<NominalTypeDecl *, ExtensionDecl *> Decl;
+  toolchain::PointerUnion<NominalTypeDecl *, ExtensionDecl *> Decl;
 
   TypeOrExtensionDecl() = default;
 
@@ -68,12 +69,12 @@ struct TypeOrExtensionDecl {
   friend bool operator<(TypeOrExtensionDecl lhs, TypeOrExtensionDecl rhs) {
     return lhs.Decl < rhs.Decl;
   }
-  friend llvm::hash_code hash_value(TypeOrExtensionDecl decl) {
-    return llvm::hash_value(decl.getAsDecl());
+  friend toolchain::hash_code hash_value(TypeOrExtensionDecl decl) {
+    return toolchain::hash_value(decl.getAsDecl());
   }
 };
 
-void simple_display(llvm::raw_ostream &out, TypeOrExtensionDecl container);
+void simple_display(toolchain::raw_ostream &out, TypeOrExtensionDecl container);
 SourceLoc extractNearestSourceLoc(TypeOrExtensionDecl container);
 
 } // end namespace language

@@ -1,17 +1,17 @@
 
-add_library(swift_math
-  Math.swift)
-set_target_properties(swift_math PROPERTIES
-  Swift_MODULE_NAME math)
-target_link_libraries(swift_math PRIVATE
-  SwiftAndroid
-  swiftCore)
+add_library(language_math
+  Math.code)
+set_target_properties(language_math PROPERTIES
+  Codira_MODULE_NAME math)
+target_link_libraries(language_math PRIVATE
+  CodiraAndroid
+  languageCore)
 
-install(TARGETS swift_math
-  ARCHIVE DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
-  LIBRARY DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
+install(TARGETS language_math
+  ARCHIVE DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-emit_swift_interface(swift_math)
-install_swift_interface(swift_math)
+emit_language_interface(language_math)
+install_language_interface(language_math)
 
-embed_manifest(swift_math)
+embed_manifest(language_math)

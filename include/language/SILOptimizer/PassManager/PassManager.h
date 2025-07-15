@@ -1,4 +1,4 @@
-//===--- PassManager.h  - Swift Pass Manager --------------------*- C++ -*-===//
+//===--- PassManager.h  - Codira Pass Manager --------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/Notifications.h"
@@ -22,16 +23,16 @@
 #include "language/SILOptimizer/PassManager/PassPipeline.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Casting.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <vector>
 #include <bitset>
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_PASSMANAGER_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_PASSMANAGER_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_PASSMANAGER_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_PASSMANAGER_H
 
 namespace language {
 
@@ -54,8 +55,8 @@ void executePassPipelinePlan(SILModule *SM, const SILPassPipelinePlan &plan,
                              bool isMandatory = false,
                              irgen::IRGenModule *IRMod = nullptr);
 
-/// Utility class to invoke Swift passes.
-class SwiftPassInvocation {
+/// Utility class to invoke Codira passes.
+class CodiraPassInvocation {
   /// Backlink to the pass manager.
   SILPassManager *passManager;
 
@@ -78,8 +79,9 @@ class SwiftPassInvocation {
   SILModule::SlabList allocatedSlabs;
 
   SILSSAUpdater *ssaUpdater = nullptr;
+  SmallVector<SILPhiArgument *, 4> insertedPhisBySSAUpdater;
 
-  SwiftPassInvocation *nestedSwiftPassInvocation = nullptr;
+  CodiraPassInvocation *nestedCodiraPassInvocation = nullptr;
 
   static constexpr int BlockSetCapacity = SILBasicBlock::numCustomBits;
   char blockSetStorage[sizeof(BasicBlockSet) * BlockSetCapacity];
@@ -103,18 +105,18 @@ class SwiftPassInvocation {
   void endPass();
 
 public:
-  SwiftPassInvocation(SILPassManager *passManager, SILFunction *function,
+  CodiraPassInvocation(SILPassManager *passManager, SILFunction *function,
                          SILCombiner *silCombiner) :
     passManager(passManager), function(function), silCombiner(silCombiner) {}
 
-  SwiftPassInvocation(SILPassManager *passManager, SILTransform *transform,
+  CodiraPassInvocation(SILPassManager *passManager, SILTransform *transform,
                       SILFunction *function) :
     passManager(passManager), transform(transform), function(function) {}
 
-  SwiftPassInvocation(SILPassManager *passManager) :
+  CodiraPassInvocation(SILPassManager *passManager) :
     passManager(passManager) {}
 
-  ~SwiftPassInvocation();
+  ~CodiraPassInvocation();
 
   SILPassManager *getPassManager() const { return passManager; }
   
@@ -140,8 +142,8 @@ public:
 
   void freeOperandSet(OperandSet *set);
 
-  /// The top-level API to erase an instruction, called from the Swift pass.
-  void eraseInstruction(SILInstruction *inst);
+  /// The top-level API to erase an instruction, called from the Codira pass.
+  void eraseInstruction(SILInstruction *inst, bool salvageDebugInfo);
 
   /// Called by the pass when changes are made to the SIL.
   void notifyChanges(SILAnalysis::InvalidationKind invalidationKind);
@@ -181,8 +183,9 @@ public:
 
   void initializeSSAUpdater(SILFunction *fn, SILType type,
                             ValueOwnershipKind ownership) {
+    insertedPhisBySSAUpdater.clear();
     if (!ssaUpdater)
-      ssaUpdater = new SILSSAUpdater;
+      ssaUpdater = new SILSSAUpdater(&insertedPhisBySSAUpdater);
     ssaUpdater->initialize(fn, type, ownership);
   }
 
@@ -191,17 +194,19 @@ public:
     return ssaUpdater;
   }
 
-  SwiftPassInvocation *initializeNestedSwiftPassInvocation(SILFunction *newFunction) {
-    assert(!nestedSwiftPassInvocation && "Nested Swift pass invocation already initialized");
-    nestedSwiftPassInvocation = new SwiftPassInvocation(passManager, transform, newFunction);
-    return nestedSwiftPassInvocation;
+  ArrayRef<SILPhiArgument *> getInsertedPhisBySSAUpdater() { return insertedPhisBySSAUpdater; }
+
+  CodiraPassInvocation *initializeNestedCodiraPassInvocation(SILFunction *newFunction) {
+    assert(!nestedCodiraPassInvocation && "Nested Codira pass invocation already initialized");
+    nestedCodiraPassInvocation = new CodiraPassInvocation(passManager, transform, newFunction);
+    return nestedCodiraPassInvocation;
   }
 
-  void deinitializeNestedSwiftPassInvocation() {
-    assert(nestedSwiftPassInvocation && "Nested Swift pass invocation not initialized");
-    nestedSwiftPassInvocation->endTransformFunction();
-    delete nestedSwiftPassInvocation;
-    nestedSwiftPassInvocation = nullptr;
+  void deinitializeNestedCodiraPassInvocation() {
+    assert(nestedCodiraPassInvocation && "Nested Codira pass invocation not initialized");
+    nestedCodiraPassInvocation->endTransformFunction();
+    delete nestedCodiraPassInvocation;
+    nestedCodiraPassInvocation = nullptr;
   }
 };
 
@@ -217,10 +222,10 @@ class SILPassManager {
   irgen::IRGenerator *irgen;
 
   /// The list of transformations to run.
-  llvm::SmallVector<SILTransform *, 16> Transformations;
+  toolchain::SmallVector<SILTransform *, 16> Transformations;
 
   /// A list of registered analysis.
-  llvm::SmallVector<SILAnalysis *, 16> Analyses;
+  toolchain::SmallVector<SILAnalysis *, 16> Analyses;
 
   /// An entry in the FunctionWorkList.
   struct WorklistEntry {
@@ -249,8 +254,8 @@ class SILPassManager {
   unsigned maxNumSubpassesToRun = UINT_MAX;
   unsigned breakBeforePassCount = UINT_MAX;
 
-  /// For invoking Swift passes.
-  SwiftPassInvocation swiftPassInvocation;
+  /// For invoking Codira passes.
+  CodiraPassInvocation languagePassInvocation;
 
   /// A mask which has one bit for each pass. A one for a pass-bit means that
   /// the pass doesn't need to run, because nothing has changed since the
@@ -258,14 +263,14 @@ class SILPassManager {
   typedef std::bitset<(size_t)PassKind::numPasses> CompletedPasses;
   
   /// A completed-passes mask for each function.
-  llvm::DenseMap<SILFunction *, CompletedPasses> CompletedPassesMap;
+  toolchain::DenseMap<SILFunction *, CompletedPasses> CompletedPassesMap;
 
   /// Stores for each function the number of levels of specializations it is
   /// derived from an original function. E.g. if a function is a signature
   /// optimized specialization of a generic specialization, it has level 2.
   /// This is used to avoid an infinite amount of functions pushed on the
   /// worklist (e.g. caused by a bug in a specializing optimization).
-  llvm::DenseMap<SILFunction *, int> DerivationLevels;
+  toolchain::DenseMap<SILFunction *, int> DerivationLevels;
 
   /// Set to true when a pass invalidates an analysis.
   bool CurrentPassHasInvalidated = false;
@@ -302,10 +307,10 @@ public:
   template<typename T>
   T *getAnalysis() {
     for (SILAnalysis *A : Analyses)
-      if (auto *R = llvm::dyn_cast<T>(A))
+      if (auto *R = toolchain::dyn_cast<T>(A))
         return R;
 
-    llvm_unreachable("Unable to find analysis for requested type.");
+    toolchain_unreachable("Unable to find analysis for requested type.");
   }
 
   template<typename T>
@@ -314,7 +319,7 @@ public:
       if (A->getKind() == T::getAnalysisKind())
         return static_cast<FunctionAnalysisBase<T> *>(A)->get(f);
     }
-    llvm_unreachable("Unable to find analysis for requested type.");
+    toolchain_unreachable("Unable to find analysis for requested type.");
   }
 
   /// \returns the module that the pass manager owns.
@@ -324,8 +329,8 @@ public:
   /// pass manager.
   irgen::IRGenModule *getIRGenModule();
 
-  SwiftPassInvocation *getSwiftPassInvocation() {
-    return &swiftPassInvocation;
+  CodiraPassInvocation *getCodiraPassInvocation() {
+    return &languagePassInvocation;
   }
 
   /// Restart the function pass pipeline on the same function
@@ -417,7 +422,7 @@ public:
   /// Set the name of the current optimization stage.
   ///
   /// This is useful for debugging.
-  void setStageName(llvm::StringRef NextStage = "");
+  void setStageName(toolchain::StringRef NextStage = "");
 
   /// Get the name of the current optimization stage.
   ///
@@ -447,7 +452,7 @@ public:
 
   void executePassPipelinePlan(const SILPassPipelinePlan &Plan);
 
-  using Transformee = llvm::PointerUnion<SILValue, SILInstruction *>;
+  using Transformee = toolchain::PointerUnion<SILValue, SILInstruction *>;
   bool continueWithNextSubpassRun(std::optional<Transformee> forTransformee,
                                   SILFunction *function, SILTransform *trans);
 
@@ -456,11 +461,11 @@ public:
   static bool isAnyPassDisabled();
   static bool disablePassesForFunction(SILFunction *function);
 
-  /// Runs the SIL verifier which is implemented in the SwiftCompilerSources.
-  void runSwiftFunctionVerification(SILFunction *f);
+  /// Runs the SIL verifier which is implemented in the CodiraCompilerSources.
+  void runCodiraFunctionVerification(SILFunction *f);
 
-  /// Runs the SIL verifier which is implemented in the SwiftCompilerSources.
-  void runSwiftModuleVerification();
+  /// Runs the SIL verifier which is implemented in the CodiraCompilerSources.
+  void runCodiraModuleVerification();
 
 private:
   void parsePassesToRunCount(StringRef countsStr);
@@ -503,11 +508,11 @@ private:
   /// Return true if all analyses are unlocked.
   bool analysesUnlocked();
 
-  /// Dumps information about the pass with index \p TransIdx to llvm::dbgs().
+  /// Dumps information about the pass with index \p TransIdx to toolchain::dbgs().
   void dumpPassInfo(const char *Title, SILTransform *Tr, SILFunction *F,
                     int passIdx = -1);
 
-  /// Dumps information about the pass with index \p TransIdx to llvm::dbgs().
+  /// Dumps information about the pass with index \p TransIdx to toolchain::dbgs().
   void dumpPassInfo(const char *Title, unsigned TransIdx,
                     SILFunction *F = nullptr);
 
@@ -517,12 +522,12 @@ private:
   void viewCallGraph();
 };
 
-inline void SwiftPassInvocation::
+inline void CodiraPassInvocation::
 notifyChanges(SILAnalysis::InvalidationKind invalidationKind) {
     changeNotifications = (SILAnalysis::InvalidationKind)
         (changeNotifications | invalidationKind);
 }
-inline void SwiftPassInvocation::notifyFunctionTablesChanged() {
+inline void CodiraPassInvocation::notifyFunctionTablesChanged() {
   functionTablesChanged = true;
 }
 

@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines routines for working with extra inhabitants.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_EXTRAINHABITANTS_H
-#define SWIFT_IRGEN_EXTRAINHABITANTS_H
+#ifndef LANGUAGE_IRGEN_EXTRAINHABITANTS_H
+#define LANGUAGE_IRGEN_EXTRAINHABITANTS_H
 
 #include "IRGen.h"
 
-namespace llvm {
+namespace toolchain {
 class APInt;
 class ConstantInt;
 class Value;
@@ -71,7 +72,7 @@ struct PointerInfo {
   /// If the pointer appears within a larger aggregate, the
   /// 'bits' and 'offset' arguments can be used to position
   /// the inhabitant within the larger integer constant.
-  llvm::APInt getFixedExtraInhabitantValue(const IRGenModule &IGM,
+  toolchain::APInt getFixedExtraInhabitantValue(const IRGenModule &IGM,
                                            unsigned bits,
                                            unsigned index,
                                            unsigned offset) const;
@@ -80,13 +81,13 @@ struct PointerInfo {
   /// properties, return the extra inhabitant index of the
   /// value, or -1 if the value is a valid pointer.  Always
   /// produces an i32. 
-  llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
+  toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
                                        Address src) const;
 
   /// Store an extra inhabitant representation for the given
   /// dynamic extra inhabitant index into the given storage.
   void storeExtraInhabitant(IRGenFunction &IGF,
-                            llvm::Value *index,
+                            toolchain::Value *index,
                             Address dest) const;
 };
 
@@ -104,20 +105,20 @@ unsigned getHeapObjectExtraInhabitantCount(const IRGenModule &IGM);
 /// If the pointer appears within a larger aggregate, the 'bits' and 'offset'
 /// arguments can be used to position the inhabitant within the larger integer
 /// constant.
-llvm::APInt getHeapObjectFixedExtraInhabitantValue(const IRGenModule &IGM,
+toolchain::APInt getHeapObjectFixedExtraInhabitantValue(const IRGenModule &IGM,
                                                    unsigned bits,
                                                    unsigned index,
                                                    unsigned offset);
   
 /// Calculate the index of a heap object extra inhabitant representation stored
 /// in memory.
-llvm::Value *getHeapObjectExtraInhabitantIndex(IRGenFunction &IGF,
+toolchain::Value *getHeapObjectExtraInhabitantIndex(IRGenFunction &IGF,
                                                Address src);
 
 /// Calculate an extra inhabitant representation from an index and store it to
 /// memory.
 void storeHeapObjectExtraInhabitant(IRGenFunction &IGF,
-                                    llvm::Value *index,
+                                    toolchain::Value *index,
                                     Address dest);
 
 } // end namespace irgen

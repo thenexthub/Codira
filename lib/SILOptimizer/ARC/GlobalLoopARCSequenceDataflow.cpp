@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -26,9 +27,9 @@
 #include "language/SIL/SILSuccessor.h"
 #include "language/SIL/CFG.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -69,7 +70,7 @@ void LoopARCSequenceDataflowEvaluator::mergePredecessors(
     auto *PredRegion = LRFI->getRegion(PredID);
     auto &PredState = getARCState(PredRegion);
 
-    LLVM_DEBUG(llvm::dbgs() << "    Merging Pred: " << PredID << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Merging Pred: " << PredID << "\n");
 
     // If this merge is undefined due to unknown control flow, assume that the
     // empty set is flowing into this block so clear all state and exit early.
@@ -90,7 +91,7 @@ void LoopARCSequenceDataflowEvaluator::mergePredecessors(
 
 bool LoopARCSequenceDataflowEvaluator::processLoopTopDown(const LoopRegion *R) {
   assert(!R->isBlock() && "Expecting to process a non-block region");
-  LLVM_DEBUG(llvm::dbgs() << "Processing Loop#: " << R->getID() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing Loop#: " << R->getID() << "\n");
 
   bool NestingDetected = false;
 
@@ -100,16 +101,16 @@ bool LoopARCSequenceDataflowEvaluator::processLoopTopDown(const LoopRegion *R) {
     auto &SubregionData = getARCState(Subregion);
 
     // This will always succeed since we have an entry for each BB in our RPOT.
-    LLVM_DEBUG(llvm::dbgs() << "Processing Subregion#: " << SubregionIndex
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing Subregion#: " << SubregionIndex
                             << "\n");
 
     // Ignore blocks that allow leaks.
     if (SubregionData.allowsLeaks()) {
-      LLVM_DEBUG(llvm::dbgs() << "Skipping leaking BB.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping leaking BB.\n");
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Merging Predecessors for subregion!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Merging Predecessors for subregion!\n");
     mergePredecessors(Subregion, SubregionData);
 
     // Then perform the dataflow.
@@ -134,7 +135,7 @@ void LoopARCSequenceDataflowEvaluator::mergeSuccessors(const LoopRegion *Region,
     auto *SuccRegion = LRFI->getRegion(SuccID);
     auto &SuccState = getARCState(SuccRegion);
 
-    LLVM_DEBUG(llvm::dbgs() << "    Merging Local Succ: " << SuccID << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Merging Local Succ: " << SuccID << "\n");
 
     // If this merge is undefined due to unknown control flow, assume that the
     // empty set is flowing into this block so clear all state and exit early.
@@ -165,7 +166,7 @@ void LoopARCSequenceDataflowEvaluator::mergeSuccessors(const LoopRegion *Region,
     auto *SuccRegion = LRFI->getRegionForNonLocalSuccessor(Region, SuccID);
     auto &SuccState = getARCState(SuccRegion);
 
-    LLVM_DEBUG(llvm::dbgs() << "    Merging Non Local Succs: " << SuccID
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Merging Non Local Succs: " << SuccID
                             << "\n");
 
     // Check if this block is post dominated by ARC unreachable
@@ -173,12 +174,12 @@ void LoopARCSequenceDataflowEvaluator::mergeSuccessors(const LoopRegion *Region,
     //
     // TODO: We just check the block itself for now.
     if (SuccState.allowsLeaks()) {
-      LLVM_DEBUG(llvm::dbgs() << "        Allows leaks skipping\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Allows leaks skipping\n");
       continue;
     }
 
     // Otherwise, we treat it as unknown control flow.
-    LLVM_DEBUG(llvm::dbgs() << "        Clearing state b/c of early exit\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Clearing state b/c of early exit\n");
     State.clear();
     break;
   }
@@ -211,10 +212,10 @@ bool LoopARCSequenceDataflowEvaluator::processLoopBottomUp(
 
     // This will always succeed since we have an entry for each BB in our post
     // order.
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Processing Subregion#: " << SubregionIndex << "\n");
 
-    LLVM_DEBUG(llvm::dbgs() << "Merging Successors!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Merging Successors!\n");
     mergeSuccessors(Subregion, SubregionData);
 
     // Then perform the region optimization.
@@ -258,33 +259,33 @@ LoopARCSequenceDataflowEvaluator::~LoopARCSequenceDataflowEvaluator() {
 bool LoopARCSequenceDataflowEvaluator::runOnLoop(
     const LoopRegion *R, bool FreezeOwnedArgEpilogueReleases,
     bool RecomputePostDomReleases) {
-  LLVM_DEBUG(llvm::dbgs() << "Run on region:\n");
-  LLVM_DEBUG(R->dump(true));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Run on region:\n");
+  TOOLCHAIN_DEBUG(R->dump(true));
   bool NestingDetected = processLoopBottomUp(R, FreezeOwnedArgEpilogueReleases);
   NestingDetected |= processLoopTopDown(R);
-  LLVM_DEBUG(
-      llvm::dbgs() << "*** Bottom-Up and Top-Down analysis results ***\n");
-  LLVM_DEBUG(dumpDataflowResults());
+  TOOLCHAIN_DEBUG(
+      toolchain::dbgs() << "*** Bottom-Up and Top-Down analysis results ***\n");
+  TOOLCHAIN_DEBUG(dumpDataflowResults());
   return NestingDetected;
 }
 
 void LoopARCSequenceDataflowEvaluator::dumpDataflowResults() {
-  llvm::dbgs() << "IncToDecStateMap:\n";
+  toolchain::dbgs() << "IncToDecStateMap:\n";
   for (auto it : IncToDecStateMap) {
     if (!it.has_value())
       continue;
     auto instAndState = it.value();
-    llvm::dbgs() << "Increment: ";
+    toolchain::dbgs() << "Increment: ";
     instAndState.first->dump();
     instAndState.second.dump();
   }
 
-  llvm::dbgs() << "DecToIncStateMap:\n";
+  toolchain::dbgs() << "DecToIncStateMap:\n";
   for (auto it : DecToIncStateMap) {
     if (!it.has_value())
       continue;
     auto instAndState = it.value();
-    llvm::dbgs() << "Decrement: ";
+    toolchain::dbgs() << "Decrement: ";
     instAndState.first->dump();
     instAndState.second.dump();
   }

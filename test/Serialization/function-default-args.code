@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/Test~partial.codemodule -module-name Test -primary-file %s
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/Test.codemodule %t/Test~partial.codemodule
+// RUN: %target-language-ide-test -print-module -module-to-print=Test -source-filename=x -I %t | %FileCheck %s
+
+// CHECK-LABEL: fn testDefaultArguments(
+public fn testDefaultArguments(
+  // CHECK-SAME: normal: Int = 0
+  normal: Int = 0,
+  // CHECK-SAME: multiToken: Int = Int.max
+  multiToken: Int = Int.max,
+  // CHECK-SAME: special: Int = #line
+  special: Int = #line
+) {}
+// CHECK-SAME: )

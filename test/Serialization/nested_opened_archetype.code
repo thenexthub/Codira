@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/nested_opened_archetype_other.codemodule %S/Inputs/nested_opened_archetype_other.code
+// RUN: %target-language-frontend -emit-sil %s -I %t
+
+import nested_opened_archetype_other
+
+struct SP : P {
+  fn foo() -> SQ { return SQ() }
+}
+
+struct SQ : Q {}
+
+fn g() {
+  f(p: SP())
+}

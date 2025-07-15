@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -language-version 5 %t/OtherLibrary.code -emit-module -module-name OtherLibrary -o %t
+// RUN: %target-language-frontend -typecheck %t/Library.code -module-name Library -verify -language-version 5 -import-underlying-module -I %t
+// RUN: %target-language-frontend -typecheck %t/Library.code -module-name Library -verify -language-version 5 -DEXPLICIT_IMPORT -I %t
+
+// REQUIRES: objc_interop
+
+//--- module.modulemap
+
+module Library {
+  header "Library.h"
+}
+
+//--- Library.h
+
+@import Foundation;
+
+@interface UnderlyingLibraryClass : NSObject
+@end
+
+@protocol UnderlyingLibraryProtocol
+@end
+
+//--- OtherLibrary.code
+
+public class OtherLibraryClass {}
+public protocol OtherLibraryProtocol {}
+
+//--- Library.code
+
+#if EXPLICIT_IMPORT
+@_exported import Library
+#endif
+import OtherLibrary
+
+public class LibraryClass {}
+public protocol LibraryProtocol {}
+
+extension LibraryClass: UnderlyingLibraryProtocol {}
+extension LibraryClass: LibraryProtocol {}
+extension LibraryClass: OtherLibraryProtocol {}
+extension UnderlyingLibraryClass: OtherLibraryProtocol {}
+extension UnderlyingLibraryClass: LibraryProtocol {}
+extension UnderlyingLibraryClass: UnderlyingLibraryProtocol {}
+extension OtherLibraryClass: UnderlyingLibraryProtocol {}
+extension OtherLibraryClass: LibraryProtocol {}
+extension OtherLibraryClass: OtherLibraryProtocol {} // expected-warning {{extension declares a conformance of imported type 'OtherLibraryClass' to imported protocol 'OtherLibraryProtocol'}}
+// expected-note @-1 {{add '@retroactive' to silence this warning}} {{30-50=@retroactive OtherLibraryProtocol}}

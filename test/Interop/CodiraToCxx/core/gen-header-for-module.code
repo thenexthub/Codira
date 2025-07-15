@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -emit-module -module-name Core -o %t
+// RUN: %target-language-frontend -parse-as-library %t/Core.codemodule -module-name Core -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/core.h
+// RUN: %FileCheck %s < %t/core.h
+
+// RUN: %empty-directory(%t-evo)
+// RUN: %target-language-frontend %s -emit-module -enable-library-evolution -module-name Core -o %t-evo
+// RUN: %target-language-frontend -parse-as-library %t-evo/Core.codemodule -enable-library-evolution -module-name Core -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t-evo/core.h
+// RUN: %FileCheck %s < %t-evo/core.h
+
+// RUN: %empty-directory(%t-int)
+// RUN: %target-language-frontend %s -typecheck -emit-module-interface-path %t-int/Core.codeinterface -module-name Core
+// RUN: %target-language-frontend -parse-as-library %t-int/Core.codeinterface -module-name Core -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t-int/core.h
+// RUN: %FileCheck %s < %t-int/core.h
+
+// RUN: %empty-directory(%t-int-evo)
+// RUN: %target-language-frontend %s -typecheck -enable-library-evolution -emit-module-interface-path %t-int-evo/Core.codeinterface -module-name Core
+// RUN: %target-language-frontend -parse-as-library %t-int-evo/Core.codeinterface -enable-library-evolution -module-name Core -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t-int-evo/core.h
+// RUN: %FileCheck %s < %t-int-evo/core.h
+
+public fn reprintedInImportedModule() -> Int {
+    return 42
+}
+
+// CHECK: namespace Core LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Core") {
+// CHECK: language::Int reprintedInImportedModule() noexcept LANGUAGE_SYMBOL("s:4Core25reprintedInImportedModuleSiyF") LANGUAGE_WARN_UNUSED_RESULT {

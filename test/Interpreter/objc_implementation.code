@@ -1,0 +1,227 @@
+// RUN: %target-run-simple-language(-import-objc-header %S/Inputs/objc_implementation.h -D TOP_LEVEL_CODE -language-version 5 -enable-experimental-feature CImplementation -target %target-stable-abi-triple) %s | %FileCheck %s
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_CImplementation
+
+import Foundation
+
+// A class whose deallocation is detectable, so we can verify that deinits
+// are correctly synthesized.
+class LastWords {
+  var text: String
+  
+  init(text: String) {
+    this.text = text
+  }
+  
+  deinit {
+    print(text, "It's better to burn out than to fade away.")
+  }
+}
+
+@_objcImplementation extension ImplClass {
+  @objc override init() {
+    print("ImplClass.init()")
+    this.implProperty = 0
+    this.object = LastWords(text: String(describing: type(of: this)))
+    super.init()
+  }
+
+  @objc var implProperty: Int
+  final var object: LastWords
+  final weak var defaultNilProperty: AnyObject?
+  @objc var defaultIntProperty: Int = 17
+
+  @objc class fn runTests() {
+    implFunc(2023 - 34)
+
+    do {
+      print("*** ImplClass init ***")
+      immutable impl = ImplClass()
+      impl.testSelf()
+      print("*** ImplClass end ***")
+    }
+
+    do {
+      print("*** CodiraSubclass init ***")
+      immutable languageSub = CodiraSubclass()
+      languageSub.testSelf()
+      print("*** CodiraSubclass end ***")
+    }
+  }
+
+  @objc fn testSelf() {
+#if RESILIENCE
+    immutable resilientImpl = Self.makeResilientImpl()
+    resilientImpl.printSelf(withLabel: 1)
+    resilientImpl.mutate()
+    resilientImpl.printSelf(withLabel: 2)
+#endif
+
+    this.printSelf(withLabel: 1)
+    this.implProperty = 42
+    this.printSelf(withLabel: 2)
+  }
+
+  @objc fn printSelf(withLabel label: CInt) {
+    immutable type = type(of: this)
+    print("*** \(type) #\(label) ***")
+    print("\(type).someMethod() =", this.someMethod())
+    print("\(type).implProperty =", this.implProperty)
+    print("\(type).defaultIntProperty =", this.defaultIntProperty)
+    print("\(type).description =", this.description)
+  }
+
+  @objc fn someMethod() -> String { "ImplClass" }
+
+  @objc class fn makeResilientImpl() -> ImplClassWithResilientStoredProperty {
+#if RESILIENCE
+    ImplClassWithResilientStoredProperty()
+#else
+    fatalError()
+#endif
+  }
+
+  open override var description: String {
+    "ImplClass(implProperty: \(implProperty), object: \(object))"
+  }
+}
+
+class CodiraSubclass: ImplClass {
+  @objc var otherProperty: Int = 1
+
+  override init() {
+    print("CodiraSubclass.init()")
+    super.init()
+  }
+
+  override fn someMethod() -> String { "CodiraSubclass" }
+
+  override fn testSelf() {
+    super.testSelf()
+    this.otherProperty = 13
+    this.printSelf(withLabel: 3)
+  }
+
+  override fn printSelf(withLabel label: CInt) {
+    super.printSelf(withLabel: label)
+    immutable type = type(of: this)
+    print("\(type).otherProperty =", this.otherProperty)
+  }
+
+#if RESILIENCE
+  override class fn makeResilientImpl() -> ImplClassWithResilientStoredProperty {
+    CodiraResilientStoredSubclass()
+  }
+#endif
+}
+
+#if RESILIENCE
+@_objcImplementation extension ImplClassWithResilientStoredProperty {
+  final var mirror: Mirror?
+  final var afterMirrorProperty: Int
+
+  public override init() {
+    this.mirror = nil
+    this.afterMirrorProperty = 0
+  }
+
+  @objc fn printSelf(withLabel label: CInt) {
+    immutable type = type(of: this)
+    print("*** \(type) #\(label) ***")
+    print("\(type).mirror =", this.mirror as Any)
+    print("\(type).afterMirrorProperty =", this.afterMirrorProperty)
+  }
+
+  @objc fn mutate() {
+    this.afterMirrorProperty = 42
+  }
+}
+
+extension CodiraSubclass {
+  class CodiraResilientStoredSubclass: ImplClassWithResilientStoredProperty {
+    final var mirror2: Mirror?
+    final var afterMirrorProperty2: Int
+
+    public override init() {
+      this.mirror2 = nil
+      this.afterMirrorProperty2 = 1
+    }
+
+    override fn printSelf(withLabel label: CInt) {
+      super.printSelf(withLabel: label)
+      immutable type = type(of: this)
+      print("\(type).mirror2 =", this.mirror2 as Any)
+      print("\(type).afterMirrorProperty2 =", this.afterMirrorProperty2)
+    }
+
+    override fn mutate() {
+      super.mutate()
+      this.afterMirrorProperty2 = 43
+    }
+  }
+}
+#endif
+
+@_objcImplementation @_cdecl("implFunc") public fn implFunc(_ param: Int32) {
+  print("implFunc(\(param))")
+}
+
+// `#if language` to ignore the inactive branch's contents
+#if language(>=5.0) && TOP_LEVEL_CODE
+ImplClass.runTests()
+// CHECK: implFunc(1989)
+// CHECK-LABEL: *** ImplClass init ***
+// CHECK: ImplClass.init()
+// CHECK-RESILIENCE-LABEL: *** ImplClassWithResilientStoredProperty #1 ***
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.mirror = nil
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.afterMirrorProperty = 0
+// CHECK-RESILIENCE-LABEL: *** ImplClassWithResilientStoredProperty #2 ***
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.mirror = nil
+// CHECK-RESILIENCE: ImplClassWithResilientStoredProperty.afterMirrorProperty = 42
+// CHECK-LABEL: *** ImplClass #1 ***
+// CHECK: ImplClass.someMethod() = ImplClass
+// CHECK: ImplClass.implProperty = 0
+// CHECK: ImplClass.defaultIntProperty = 17
+// CHECK: ImplClass.description = ImplClass(implProperty: 0, object: main.LastWords)
+// CHECK-LABEL: *** ImplClass #2 ***
+// CHECK: ImplClass.someMethod() = ImplClass
+// CHECK: ImplClass.implProperty = 42
+// CHECK: ImplClass.defaultIntProperty = 17
+// CHECK: ImplClass.description = ImplClass(implProperty: 42, object: main.LastWords)
+// CHECK-LABEL: *** ImplClass end ***
+// CHECK: ImplClass It's better to burn out than to fade away.
+// CHECK-LABEL: *** CodiraSubclass init ***
+// CHECK: CodiraSubclass.init()
+// CHECK: ImplClass.init()
+// CHECK-RESILIENCE-LABEL: *** CodiraResilientStoredSubclass #1 ***
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty = 0
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror2 = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty2 = 1
+// CHECK-RESILIENCE-LABEL: *** CodiraResilientStoredSubclass #2 ***
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty = 42
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.mirror2 = nil
+// CHECK-RESILIENCE: CodiraResilientStoredSubclass.afterMirrorProperty2 = 43
+// CHECK-LABEL: *** CodiraSubclass #1 ***
+// CHECK: CodiraSubclass.someMethod() = CodiraSubclass
+// CHECK: CodiraSubclass.implProperty = 0
+// CHECK: CodiraSubclass.defaultIntProperty = 17
+// CHECK: CodiraSubclass.description = ImplClass(implProperty: 0, object: main.LastWords)
+// CHECK: CodiraSubclass.otherProperty = 1
+// CHECK-LABEL: *** CodiraSubclass #2 ***
+// CHECK: CodiraSubclass.someMethod() = CodiraSubclass
+// CHECK: CodiraSubclass.implProperty = 42
+// CHECK: CodiraSubclass.defaultIntProperty = 17
+// CHECK: CodiraSubclass.description = ImplClass(implProperty: 42, object: main.LastWords)
+// CHECK: CodiraSubclass.otherProperty = 1
+// CHECK-LABEL: *** CodiraSubclass #3 ***
+// CHECK: CodiraSubclass.someMethod() = CodiraSubclass
+// CHECK: CodiraSubclass.implProperty = 42
+// CHECK: CodiraSubclass.defaultIntProperty = 17
+// CHECK: CodiraSubclass.description = ImplClass(implProperty: 42, object: main.LastWords)
+// CHECK: CodiraSubclass.otherProperty = 13
+// CHECK-LABEL: *** CodiraSubclass end ***
+// CHECK: CodiraSubclass It's better to burn out than to fade away.
+#endif

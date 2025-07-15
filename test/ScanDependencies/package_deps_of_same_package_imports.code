@@ -1,0 +1,40 @@
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/clang-module-cache)
+// RUN: %empty-directory(%t/Foo.codemodule)
+// RUN: %empty-directory(%t/Bar.codemodule)
+// RUN: split-file %s %t
+
+// Step 1: build Bar language interface and language module side by side
+// RUN: %target-language-frontend -emit-module %t/Bar.code -emit-module-path %t/Bar.codemodule/%target-languagemodule-name -module-name Bar -emit-module-interface-path %t/Bar.codemodule/%target-languageinterface-name -I %S/Inputs/CHeaders -I %S/Inputs/Codira
+
+// Step 2: build Foo language interface and language module side by side belonging to package 'Test'
+// RUN: %target-language-frontend -emit-module %t/Foo.code -emit-module-path %t/Foo.codemodule/%target-languagemodule-name -module-name Foo -emit-module-interface-path %t/Foo.codemodule/%target-languageinterface-name -I %S/Inputs/CHeaders -I %S/Inputs/Codira -I %t -package-name Test
+
+// Step 3: scan dependencies with '-no-scanner-module-validation' and '-package-name Test'
+// RUN: %target-language-frontend -scan-dependencies %t/Client.code -o %t/deps.json -no-scanner-module-validation -I %t -sdk %t -prebuilt-module-cache-path %t/clang-module-cache -I %S/Inputs/CHeaders -I %S/Inputs/Codira -package-name Test
+// Step 4: Ensure that same-package scan can see package-only dependencies
+// RUN: %FileCheck %s --input-file=%t/deps.json --check-prefix CHECK-SAME-PACKAGE
+
+// Step 5: scan dependencies with '-no-scanner-module-validation' and no package name
+// RUN: %target-language-frontend -scan-dependencies %t/Client.code -o %t/deps_no_package.json -no-scanner-module-validation -I %t -sdk %t -prebuilt-module-cache-path %t/clang-module-cache -I %S/Inputs/CHeaders -I %S/Inputs/Codira
+// Step 6: Ensure that non-same-package scan can not see package-only dependencies
+// RUN: %FileCheck %s --input-file=%t/deps_no_package.json --check-prefix CHECK-NO-PACKAGE
+
+
+// CHECK-SAME-PACKAGE: "language": "Bar"
+// CHECK-NO-PACKAGE-NOT: "language": "Bar"
+
+//--- Bar.code
+enum PubEnum {
+  case red, green
+}
+
+//--- Foo.code
+package import Bar
+
+//--- Client.code
+import Foo
+
+

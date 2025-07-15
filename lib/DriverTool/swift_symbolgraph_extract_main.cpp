@@ -1,4 +1,4 @@
-//===--- swift_indent_main.cpp - Swift code formatting tool ---------------===//
+//===--- language_indent_main.cpp - Codira code formatting tool ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  Extracts a Symbol Graph from a .swiftmodule file.
+//  Extracts a Symbol Graph from a .codemodule file.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/DiagnosticsFrontend.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Basic/Version.h"
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/Option/Options.h"
 #include "language/Parse/ParseVersion.h"
 #include "language/SymbolGraphGen/SymbolGraphGen.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace options;
 
-int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
+int language_symbolgraph_extract_main(ArrayRef<const char *> Args,
                                    const char *Argv0, void *MainAddr) {
   INITIALIZE_LLVM();
 
@@ -43,11 +44,11 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
   auto &Diags = CI.getDiags();
   Diags.addConsumer(DiagPrinter);
 
-  std::unique_ptr<llvm::opt::OptTable> Table = createSwiftOptTable();
+  std::unique_ptr<toolchain::opt::OptTable> Table = createCodiraOptTable();
   unsigned MissingIndex;
   unsigned MissingCount;
-  llvm::opt::InputArgList ParsedArgs = Table->ParseArgs(
-      Args, MissingIndex, MissingCount, SwiftSymbolGraphExtractOption);
+  toolchain::opt::InputArgList ParsedArgs = Table->ParseArgs(
+      Args, MissingIndex, MissingCount, CodiraSymbolGraphExtractOption);
   if (MissingCount) {
     Diags.diagnose(SourceLoc(), diag::error_missing_arg_value,
                    ParsedArgs.getArgString(MissingIndex), MissingCount);
@@ -62,14 +63,14 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
     return EXIT_FAILURE;
   }
 
-  auto MainExecutablePath = llvm::sys::fs::getMainExecutable(Argv0, MainAddr);
+  auto MainExecutablePath = toolchain::sys::fs::getMainExecutable(Argv0, MainAddr);
 
   if (ParsedArgs.getLastArg(OPT_help) || Args.empty()) {
     std::string ExecutableName =
-        llvm::sys::path::stem(MainExecutablePath).str();
-    Table->printHelp(llvm::outs(), ExecutableName.c_str(),
-                     "Swift Symbol Graph Extractor",
-                     SwiftSymbolGraphExtractOption, 0,
+        toolchain::sys::path::stem(MainExecutablePath).str();
+    Table->printHelp(toolchain::outs(), ExecutableName.c_str(),
+                     "Codira Symbol Graph Extractor",
+                     CodiraSymbolGraphExtractOption, 0,
                      /*ShowAllAliases*/ false);
     return EXIT_FAILURE;
   }
@@ -82,9 +83,9 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
     return EXIT_FAILURE;
   }
 
-  llvm::Triple Target;
+  toolchain::Triple Target;
   if (auto *A = ParsedArgs.getLastArg(OPT_target)) {
-    Target = llvm::Triple(A->getValue());
+    Target = toolchain::Triple(A->getValue());
   } else {
     Diags.diagnose(SourceLoc(), diag::error_option_required, "-target");
     return EXIT_FAILURE;
@@ -98,13 +99,13 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
     return EXIT_FAILURE;
   }
 
-  if (!llvm::sys::fs::is_directory(OutputDir)) {
+  if (!toolchain::sys::fs::is_directory(OutputDir)) {
     Diags.diagnose(SourceLoc(), diag::error_nonexistent_output_dir, OutputDir);
     return EXIT_FAILURE;
   }
 
   Invocation.setMainExecutablePath(MainExecutablePath);
-  Invocation.setModuleName("swift_symbolgraph_extract");
+  Invocation.setModuleName("language_symbolgraph_extract");
 
   if (auto *A = ParsedArgs.getLastArg(OPT_resource_dir)) {
     Invocation.setRuntimeResourcePath(A->getValue());
@@ -155,12 +156,12 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
   Invocation.getClangImporterOptions().ImportForwardDeclarations = true;
   Invocation.setDefaultPrebuiltCacheIfNecessary();
 
-  if (auto *A = ParsedArgs.getLastArg(OPT_swift_version)) {
+  if (auto *A = ParsedArgs.getLastArg(OPT_language_version)) {
     using version::Version;
-    auto SwiftVersion = A->getValue();
+    auto CodiraVersion = A->getValue();
     bool isValid = false;
     if (auto Version = VersionParser::parseVersionString(
-            SwiftVersion, SourceLoc(), nullptr)) {
+            CodiraVersion, SourceLoc(), nullptr)) {
       if (auto Effective = Version.value().getEffectiveLanguageVersion()) {
         Invocation.getLangOptions().EffectiveLanguageVersion = *Effective;
         isValid = true;
@@ -168,7 +169,7 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
     }
     if (!isValid) {
       Diags.diagnose(SourceLoc(), diag::error_invalid_arg_value,
-                     "-swift-version", SwiftVersion);
+                     "-language-version", CodiraVersion);
       return EXIT_FAILURE;
     }
   }
@@ -196,7 +197,7 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
 
   if (auto *A = ParsedArgs.getLastArg(OPT_minimum_access_level)) {
     Options.MinimumAccessLevel =
-        llvm::StringSwitch<AccessLevel>(A->getValue())
+        toolchain::StringSwitch<AccessLevel>(A->getValue())
             .Case("open", AccessLevel::Open)
             .Case("public", AccessLevel::Public)
             .Case("package", AccessLevel::Package)
@@ -208,26 +209,27 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
 
   if (auto *A = ParsedArgs.getLastArg(OPT_allow_availability_platforms,
         OPT_block_availability_platforms)) {
-    llvm::SmallVector<StringRef> AvailabilityPlatforms;
+    toolchain::SmallVector<StringRef> AvailabilityPlatforms;
     StringRef(A->getValue())
         .split(AvailabilityPlatforms, ',', /*MaxSplits*/ -1,
                /*KeepEmpty*/ false);
-    Options.AvailabilityPlatforms = llvm::DenseSet<StringRef>(
+    Options.AvailabilityPlatforms = toolchain::DenseSet<StringRef>(
         AvailabilityPlatforms.begin(), AvailabilityPlatforms.end());
     Options.AvailabilityIsBlockList = A->getOption().matches(OPT_block_availability_platforms);
   }
 
-  Invocation.getLangOptions().setCxxInteropFromArgs(ParsedArgs, Diags);
+  Invocation.getLangOptions().setCxxInteropFromArgs(ParsedArgs, Diags,
+                                                    Invocation.getFrontendOptions());
 
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::outs() << InstanceSetupError << '\n';
+    toolchain::outs() << InstanceSetupError << '\n';
     return EXIT_FAILURE;
   }
 
   auto M = CI.getASTContext().getModuleByName(ModuleName);
   if (!M) {
-    llvm::errs()
+    toolchain::errs()
       << "Couldn't load module '" << ModuleName << '\''
       << " in the current SDK and search paths.\n";
     
@@ -235,22 +237,22 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
     CI.getASTContext().getVisibleTopLevelModuleNames(VisibleModuleNames);
 
     if (VisibleModuleNames.empty()) {
-      llvm::errs() << "Could not find any modules.\n";
+      toolchain::errs() << "Could not find any modules.\n";
     } else {
       std::sort(VisibleModuleNames.begin(), VisibleModuleNames.end(),
                 [](const Identifier &A, const Identifier &B) -> bool {
         return A.str() < B.str();
       });
-      llvm::errs() << "Current visible modules:\n";
+      toolchain::errs() << "Current visible modules:\n";
       for (const auto &ModuleName : VisibleModuleNames) {
-        llvm::errs() << ModuleName.str() << "\n";
+        toolchain::errs() << ModuleName.str() << "\n";
       }
     }
     return EXIT_FAILURE;
   }
   
   if (M->failedToLoad()) {
-    llvm::errs() << "Error: Failed to load the module '" << ModuleName
+    toolchain::errs() << "Error: Failed to load the module '" << ModuleName
                  << "'. Are you missing build dependencies or "
                     "include/framework directories?\n"
                  << "See the previous error messages for details. Aborting.\n";
@@ -259,12 +261,12 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
   }
 
   FileUnitKind expectedKind = FileUnitKind::SerializedAST;
-  if (M->isNonSwiftModule())
+  if (M->isNonCodiraModule())
     expectedKind = FileUnitKind::ClangModule;
   const auto &MainFile = M->getMainFile(expectedKind);
   
   if (Options.PrintMessages)
-    llvm::errs() << "Emitting symbol graph for module file: " << MainFile.getModuleDefiningPath() << '\n';
+    toolchain::errs() << "Emitting symbol graph for module file: " << MainFile.getModuleDefiningPath() << '\n';
   
   int Success = symbolgraphgen::emitSymbolGraphForModule(M, Options);
   
@@ -284,7 +286,7 @@ int swift_symbolgraph_extract_main(ArrayRef<const char *> Args,
       const auto &CIMainFile = CIM->getMainFile(FileUnitKind::SerializedAST);
       
       if (Options.PrintMessages)
-        llvm::errs() << "Emitting symbol graph for cross-import overlay module file: "
+        toolchain::errs() << "Emitting symbol graph for cross-import overlay module file: "
           << CIMainFile.getModuleDefiningPath() << '\n';
       
       Success |= symbolgraphgen::emitSymbolGraphForModule(CIM, Options);

@@ -1,0 +1,13 @@
+// language-interface-format-version: 1.0
+// language-compiler-version: Codira version 6.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name Library
+
+// RUN: %target-language-typecheck-module-from-interface(%s) -module-name Library
+
+import Codira
+import _Concurrency
+import _StringProcessing
+import _CodiraConcurrencyShims
+
+public struct S : Codira.Escapable {
+}

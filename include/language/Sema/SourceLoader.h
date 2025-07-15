@@ -1,4 +1,4 @@
-//===--- SourceLoader.h - Import .swift files as modules --------*- C++ -*-===//
+//===--- SourceLoader.h - Import .code files as modules --------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_SOURCELOADER_H
-#define SWIFT_SEMA_SOURCELOADER_H
+#ifndef LANGUAGE_SEMA_SOURCELOADER_H
+#define LANGUAGE_SEMA_SOURCELOADER_H
 
 #include "language/AST/ModuleLoader.h"
 
@@ -23,7 +24,7 @@ namespace language {
 class ASTContext;
 class ModuleDecl;
   
-/// Imports serialized Swift modules into an ASTContext.
+/// Imports serialized Codira modules into an ASTContext.
 class SourceLoader : public ModuleLoader {
 private:
   ASTContext &Ctx;
@@ -96,18 +97,10 @@ public:
                  ObjCSelector selector,
                  bool isInstanceMethod,
                  unsigned previousGeneration,
-                 llvm::TinyPtrVector<AbstractFunctionDecl *> &methods) override
+                 toolchain::TinyPtrVector<AbstractFunctionDecl *> &methods) override
   {
     // Parsing populates the Objective-C method tables.
   }
-
-  llvm::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>
-  getModuleDependencies(Identifier moduleName, StringRef moduleOutputPath, StringRef sdkModuleOutputPath,
-                        const llvm::DenseSet<clang::tooling::dependencies::ModuleID> &alreadySeenClangModules,
-                        clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-                        InterfaceSubContextDelegate &delegate,
-                        llvm::PrefixMapper *mapper,
-                        bool isTestableImport) override;
 };
 }
 

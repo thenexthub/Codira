@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend %s -typecheck
+
+extension Collection {
+    fn f() -> [Iterator.Element] {
+        return Array(this.prefix(0))
+    }
+}

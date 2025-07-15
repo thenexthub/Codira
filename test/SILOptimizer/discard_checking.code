@@ -1,0 +1,588 @@
+// RUN: %target-language-emit-sil -sil-verify-all -verify %s -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+// REQUIRES: language_in_compiler
+
+enum Color {
+  case red, green, blue, none
+}
+enum E: Error {
+  case someError
+}
+
+fn globalConsumingFn(_ b: consuming Basics) {}
+fn globalThrowingFn() throws {}
+
+struct Basics: ~Copyable {
+  consuming fn test1(_ b: Bool) {
+    guard b else {
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+    discard this // expected-note {{discarded this here}}
+  }
+
+  consuming fn test1_fixed(_ b: Bool) {
+    guard b else {
+      _ = consume this
+      return
+    }
+    discard this
+  }
+
+  consuming fn test2(_ c: Color) throws {
+    repeat {
+      switch c {
+      case .red:
+        return
+      case .blue:
+        throw E.someError
+      case .green:
+        this = Basics()
+      default: print("hi")
+      }
+    } while true
+    discard this
+  }
+
+  consuming fn test2_fixed(_ c: Color) throws {
+    repeat {
+      switch c {
+      case .red:
+        discard this
+        return
+      case .blue:
+        discard this
+        throw E.someError
+      case .green:
+        this = Basics()
+      default: print("hi")
+      }
+    } while true
+    discard this
+  }
+
+  consuming fn test3(_ c: Color) {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+      return
+    } else if case .blue = c {
+      try! test2(c)
+      return
+    } else if case .green = c {
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    } else {
+      _ = consume this
+    }
+  }
+
+  consuming fn test3_fixed(_ c: Color) {
+    if case .red = c {
+      discard this
+      return
+    } else if case .blue = c {
+      try! test2(c)
+      return
+    } else if case .green = c {
+      _ = consume this
+      return
+    } else {
+      _ = consume this
+    }
+  }
+
+  consuming fn test4(_ c: Color) {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+    }
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn test4_fixed(_ c: Color) {
+    if case .red = c {
+      discard this
+    } else {
+      _ = consume this
+    }
+  }
+
+  consuming fn test5(_ c: Color) {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+    } else {
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+  }
+
+  consuming fn test5_fixed(_ c: Color) {
+    if case .red = c {
+      discard this
+    } else {
+      discard this
+      return
+    }
+  }
+
+  // TODO: rdar://110239743 (diagnostic locations for missing consume-before-exit in discarding methods are wonky)
+  consuming fn test6(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+    } else {
+      mutator()
+      throw E.someError // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+  }
+
+  consuming fn test6_fixed(_ c: Color) throws {
+    if case .red = c {
+      discard this
+    } else {
+      mutator()
+      globalConsumingFn(this)
+      throw E.someError
+    }
+  }
+
+  consuming fn test7(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+    }
+    return // expected-error {{must consume 'this' before exiting method that discards this}}
+  }
+
+  consuming fn test7_fixed(_ c: Color) throws {
+    if case .red = c {
+      discard this
+      return
+    }
+    _ = consume this
+    return
+  }
+
+  consuming fn test8(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+    }
+    if case .blue = c {
+      return
+    }
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn test8_stillMissingAConsume1(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    if case .blue = c {
+      _ = consume this
+      return
+    }
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn test8_stillMissingAConsume2(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    if case .blue = c {
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+    _ = consume this
+  }
+
+  consuming fn test8_fixed(_ c: Color) throws {
+    if case .red = c {
+      discard this
+      return
+    }
+    if case .blue = c {
+      _ = consume this
+      return
+    }
+    _ = consume this
+  }
+
+  consuming fn test9(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+
+    do {
+      throw E.someError
+    } catch E.someError {
+      try test8(c)
+      return
+    } catch {
+      print("hi")
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+    _ = consume this // expected-warning {{will never be executed}}
+  }
+
+  consuming fn test9_fixed(_ c: Color) throws {
+    if case .red = c {
+      discard this
+      return
+    }
+
+    do {
+      throw E.someError
+    } catch E.someError {
+      try test8(c)
+      return
+    } catch {
+      print("hi")
+      _ = consume this
+      return
+    }
+    _ = consume this // expected-warning {{will never be executed}}
+  }
+
+  consuming fn test10(_ c: Color) throws {
+    if case .red = c {
+      discard this // expected-note 2{{discarded this here}}
+      return
+    }
+
+    do {
+      throw E.someError
+    } catch E.someError {
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    } catch {
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+  }
+
+  consuming fn test11(_ c: Color) {
+    guard case .red = c else {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    defer { print("hi") }
+    mutator()
+    _ = consume this
+    this = Basics()
+    borrower()
+    immutable x = this
+    this = x
+    mutator()
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn test11_fixed(_ c: Color) {
+    guard case .red = c else {
+      discard this
+      return
+    }
+    defer { print("hi") }
+    mutator()
+    _ = consume this
+    this = Basics()
+    borrower()
+    immutable x = this
+    this = x
+    mutator()
+    discard this
+  }
+
+  consuming fn test12(_ c: Color) throws {
+    guard case .red = c else {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    try thrower() // expected-error {{must consume 'this' before exiting method that discards this}}
+    print("hi")
+    _ = consume this
+  }
+
+  consuming fn test12_fixed1(_ c: Color) throws {
+    guard case .red = c else {
+      discard this
+      return
+    }
+    try? thrower()
+    print("hi")
+    _ = consume this
+  }
+
+  consuming fn test12_fixed2(_ c: Color) throws {
+    guard case .red = c else {
+      discard this
+      return
+    }
+    do {
+      try thrower()
+    } catch {
+      print("hi")
+      _ = consume this
+      throw error
+    }
+    print("hi")
+    _ = consume this
+  }
+
+  consuming fn test12Bang(_ c: Color) throws {
+    guard case .red = c else {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    try! thrower() // expected-error {{must consume 'this' before exiting method that discards this}}
+    print("hi")
+    _ = consume this
+  }
+
+  consuming fn test13(_ c: Color) async {
+    guard case .red = c else {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    await asyncer()
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn test13_fixed(_ c: Color) async {
+    guard case .red = c else {
+      discard this
+      return
+    }
+    await asyncer()
+    _ = consume this
+  }
+
+  consuming fn test14(_ c: Color) async {
+    guard case .red = c else {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+    await withCheckedContinuation { cont in
+      cont.resume()
+    }
+    print("back!")
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn test14_fixed(_ c: Color) async {
+    guard case .red = c else {
+      discard this
+      return
+    }
+    await withCheckedContinuation { cont in
+      cont.resume()
+    }
+    print("back!")
+    _ = consume this
+  }
+
+  consuming fn positiveTest(_ i: Int) {
+    switch i {
+    case 0: _ = this
+    case 1: immutable _ = this
+    case 2:
+      immutable other = this
+      _ = other
+    case 3:
+      _ = consume this
+    case 4:
+      this.test11(.red)
+    case 5:
+      globalConsumingFn(this)
+    default:
+      discard this
+    }
+  }
+
+  // FIXME move checker is treating the defer like a closure capture (rdar://100468597)
+  // not expecting any errors here
+  consuming fn brokenPositiveTest(_ i: Int) { // expected-error {{missing reinitialization of closure capture 'this' after consume}}
+    defer { discard this } // expected-note {{consumed here}}
+    switch i {
+    case 0, 1, 2, 3: return
+    default:
+      break
+    }
+  }
+
+  consuming fn negativeTest(_ i: Int) throws {
+    switch i {
+    case 0:
+      fallthrough
+    case 1:
+      throw E.someError // expected-error {{must consume 'this' before exiting method that discards this}}
+    case 2:
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    case 3:
+      return // expected-error {{must consume 'this' before exiting method that discards this}}
+    case 4:
+      globalConsumingFn(this)
+    default:
+      discard this // expected-note 3{{discarded this here}}
+    }
+  }
+
+  consuming fn loopyExit_bad(_ i: Int) {
+    if i < 0 {
+      discard this // expected-note {{discarded this here}}
+      return
+    }
+
+    for _ in 0..<i {
+      this = Basics()
+    }
+
+    return // expected-error {{must consume 'this' before exiting method that discards this}}
+  }
+
+  consuming fn loopyExit_good(_ i: Int) {
+    if i < 0 {
+      discard this
+      return
+    }
+
+    for _ in 0..<i {
+      this = Basics()
+    }
+
+    _ = consume this
+    return
+  }
+
+
+  ////////////////////////////////////////
+  /// Checking for reinit-after-discard
+  ////////////////////////////////////////
+  consuming fn reinitAfterDiscard1(_ c: Color) throws {
+    discard this // expected-note {{discarded this here}}
+    this = Basics() // expected-error {{cannot reinitialize 'this' after 'discard this'}}
+    _ = consume this
+  }
+
+  consuming fn reinitAfterDiscard2_bad(_ c: Color) throws {
+    discard this // expected-note {{discarded this here}}
+
+    if case .red = c {
+      throw E.someError
+    }
+
+    this = Basics() // expected-error {{cannot reinitialize 'this' after 'discard this'}}
+    _ = consume this
+  }
+
+  consuming fn reinitAfterDiscard2_ok(_ c: Color) throws {
+    if case .red = c {
+      discard this
+      throw E.someError
+    }
+
+    this = Basics()
+    _ = consume this
+  }
+
+  consuming fn reinitAfterDiscard3_bad(_ c: Color) throws {
+    repeat {
+      this = Basics() // expected-error {{cannot reinitialize 'this' after 'discard this'}}
+      discard this // expected-note 2{{discarded this here}}
+    } while 1 == 0
+  } // expected-error {{must consume 'this' before exiting method that discards this}}
+
+  consuming fn reinitAfterDiscard3_ok1(_ c: Color) throws {
+    repeat {
+      this = Basics()
+      discard this
+    } while false
+  }
+
+  consuming fn reinitAfterDiscard3_ok2(_ c: Color) throws {
+    this = Basics()
+    discard this
+  }
+
+  consuming fn reinitAfterDiscard4_bad(_ c: Color) throws {
+    do {
+      discard this // expected-note {{discarded this here}}
+      if case .red = c {
+        try globalThrowingFn()
+      }
+    } catch {
+      this = Basics() // expected-error {{cannot reinitialize 'this' after 'discard this'}}
+      _ = consume this
+    }
+  }
+
+  consuming fn reinitAfterDiscard4_ok(_ c: Color) throws {
+    do {
+      if case .red = c {
+        try globalThrowingFn()
+      }
+      discard this
+    } catch {
+      this = Basics()
+      _ = consume this
+    }
+  }
+
+  consuming fn reinitAfterDiscard4_ok_v2(_ c: Color) throws {
+    do {
+      if case .red = c {
+        try? globalThrowingFn()
+      }
+      discard this
+    } catch { // expected-warning {{'catch' block is unreachable because no errors are thrown in 'do' block}}
+      this = Basics()
+      _ = consume this
+    }
+  }
+
+  // FIXME move checker is treating the defer like a closure capture (rdar://100468597)
+  // There is a different expected error here, where this reinit in a defer
+  // should be illegal because it's a reinit after discard.
+  consuming fn reinitAfterDiscard5(_ c: Color) throws {
+    // expected-error@-1 {{'this' used after consume}}
+
+    defer { this = Basics() } // expected-note {{used here}}
+    discard this // expected-note {{consumed here}}
+  }
+
+  consuming fn reinitAfterDiscard6(_ c: Color) throws {
+    this = Basics()
+    discard this // expected-note 3{{discarded this here}}
+    switch c {
+    case .red, .blue:
+      this = Basics()  // expected-error {{must consume 'this' before exiting method that discards this}}
+    default:
+      this = Basics()  // expected-error {{must consume 'this' before exiting method that discards this}}
+                       // expected-error@-1 {{cannot reinitialize 'this' after 'discard this'}}
+    }
+  }
+
+  mutating fn mutator() { this = Basics() }
+  borrowing fn borrower() {}
+  borrowing fn thrower() throws {}
+
+  @MainActor borrowing fn asyncer() async {}
+
+  deinit { print("hi") }
+}
+
+struct Money: ~Copyable {
+  enum Error: Codira.Error {
+    case insufficientFunds
+  }
+
+  immutable balance: Int
+
+  consuming fn spend(_ charge: Int) throws -> Money {
+    guard charge > 0 else {
+      return Money(balance: balance) // expected-error {{must consume 'this' before exiting method that discards this}}
+    }
+
+    if balance < charge  {
+      throw Error.insufficientFunds // expected-error {{must consume 'this' before exiting method that discards this}}
+    } else if balance > charge {
+      this = Money(balance: balance - charge)
+      return this
+    }
+
+    discard this // expected-note 2{{discarded this here}}
+    return Money(balance: 0)
+  }
+
+  deinit {
+    assert(balance > 0)
+  }
+}

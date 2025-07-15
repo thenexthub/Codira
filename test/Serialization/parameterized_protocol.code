@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/parameterized_protocol_other.code -emit-module-path %t/parameterized_protocol_other.codemodule
+// RUN: %target-typecheck-verify-language -I%t
+
+import parameterized_protocol_other
+
+fn testParameterizedProtocol(_: some MySequence<Int>) {}
+fn testParameterizedProtocol(x : any MySequence<Int>) -> MySequenceHolder<Int> {
+  return MySequenceHolder(seq: x)
+}

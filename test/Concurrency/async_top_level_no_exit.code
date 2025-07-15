@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple -parse-stdlib
+// expect-no-diagnostics
+
+import _Concurrency
+
+fn foo() async {
+}
+
+await foo()

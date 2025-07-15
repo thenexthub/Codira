@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Lazy parsing requests
@@ -36,14 +37,14 @@ using namespace language;
 
 namespace language {
 // Implement the type checker type zone (zone 10).
-#define SWIFT_TYPEID_ZONE Parse
-#define SWIFT_TYPEID_HEADER "swift/AST/ParseTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE Parse
+#define LANGUAGE_TYPEID_HEADER "language/AST/ParseTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const FingerprintAndMembers &value) {
   if (value.fingerprint)
     simple_display(out, *value.fingerprint);
@@ -169,7 +170,7 @@ ParseMembersRequest::evaluate(Evaluator &evaluator,
                                    fingerprintAndMembers.members);
   return FingerprintAndMembers{
       fingerprintAndMembers.fingerprint,
-      ctx.AllocateCopy(llvm::ArrayRef(fingerprintAndMembers.members))};
+      ctx.AllocateCopy(toolchain::ArrayRef(fingerprintAndMembers.members))};
 }
 
 BodyAndFingerprint
@@ -224,7 +225,7 @@ ParseAbstractFunctionBodyRequest::evaluate(Evaluator &evaluator,
     return result;
   }
   }
-  llvm_unreachable("Unhandled BodyKind in switch");
+  toolchain_unreachable("Unhandled BodyKind in switch");
 }
 
 //----------------------------------------------------------------------------//
@@ -257,8 +258,8 @@ getBridgedGeneratedSourceFileKind(const GeneratedSourceInfo *genInfo) {
 
 void *ExportedSourceFileRequest::evaluate(Evaluator &evaluator,
                                           const SourceFile *SF) const {
-#if SWIFT_BUILD_SWIFT_SYNTAX
-  // The SwiftSyntax parser doesn't (yet?) handle SIL.
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+  // The CodiraSyntax parser doesn't (yet?) handle SIL.
   if (SF->Kind == SourceFileKind::SIL)
     return nullptr;
 
@@ -270,25 +271,25 @@ void *ExportedSourceFileRequest::evaluate(Evaluator &evaluator,
     dc = genInfo->declContext;
 
   // Parse the source file.
-  auto exportedSourceFile = swift_ASTGen_parseSourceFile(
+  auto exportedSourceFile = language_ASTGen_parseSourceFile(
       SF->getBuffer(), SF->getParentModule()->getName().str(),
       SF->getFilename(), dc, getBridgedGeneratedSourceFileKind(genInfo));
 
   // Round-trip validation if needed.
   if (SF->getParsingOptions().contains(SourceFile::ParsingFlags::RoundTrip)) {
-    if (swift_ASTGen_roundTripCheck(exportedSourceFile)) {
+    if (language_ASTGen_roundTripCheck(exportedSourceFile)) {
       SourceLoc loc = ctx.SourceMgr.getLocForBufferStart(SF->getBufferID());
       ctx.Diags.diagnose(loc, diag::parser_round_trip_error);
     }
   }
 
   ctx.addCleanup([exportedSourceFile] {
-    swift_ASTGen_destroySourceFile(exportedSourceFile);
+    language_ASTGen_destroySourceFile(exportedSourceFile);
   });
   return exportedSourceFile;
 #else
   return nullptr;
-#endif // SWIFT_BUILD_SWIFT_SYNTAX
+#endif // LANGUAGE_BUILD_LANGUAGE_SYNTAX
 }
 
 //----------------------------------------------------------------------------//
@@ -297,7 +298,7 @@ void *ExportedSourceFileRequest::evaluate(Evaluator &evaluator,
 
 namespace {
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 /// Whether we can "parse" the source file via ASTGen.
 bool shouldParseViaASTGen(SourceFile &SF) {
   auto &ctx = SF.getASTContext();
@@ -371,7 +372,7 @@ SourceFileParsingResult parseSourceFileViaASTGen(SourceFile &SF) {
   // FIXME: Do this lazily in SourceManager::getVirtualFile().
   BridgedVirtualFile *virtualFiles = nullptr;
   size_t numVirtualFiles =
-      swift_ASTGen_virtualFiles(exportedSourceFile, &virtualFiles);
+      language_ASTGen_virtualFiles(exportedSourceFile, &virtualFiles);
   SourceLoc bufferStart = SM.getLocForBufferStart(SF.getBufferID());
   for (size_t i = 0; i != numVirtualFiles; ++i) {
     auto &VF = virtualFiles[i];
@@ -382,17 +383,17 @@ SourceFileParsingResult parseSourceFileViaASTGen(SourceFile &SF) {
     SF.VirtualFilePaths.emplace_back(
         name, bufferStart.getAdvancedLoc(VF.NamePosition));
   }
-  swift_ASTGen_freeBridgedVirtualFiles(virtualFiles, numVirtualFiles);
+  language_ASTGen_freeBridgedVirtualFiles(virtualFiles, numVirtualFiles);
 
   // Emit parser diagnostics.
-  (void)swift_ASTGen_emitParserDiagnostics(
+  (void)language_ASTGen_emitParserDiagnostics(
       Ctx, &Diags, exportedSourceFile, /*emitOnlyErrors=*/false,
       /*downgradePlaceholderErrorsToWarnings=*/langOpts.Playground ||
           langOpts.WarnOnEditorPlaceholder);
 
   // Generate AST nodes.
   SmallVector<ASTNode, 128> items;
-  swift_ASTGen_buildTopLevelASTNodes(
+  language_ASTGen_buildTopLevelASTNodes(
       &Diags, exportedSourceFile, declContext, attachedDecl, Ctx,
       static_cast<SmallVectorImpl<ASTNode> *>(&items),
       appendToVector<BridgedASTNode, ASTNode>);
@@ -401,7 +402,7 @@ SourceFileParsingResult parseSourceFileViaASTGen(SourceFile &SF) {
   // FIXME: Split request (SourceFileFingerprintRequest).
   std::optional<Fingerprint> fp;
   if (SF.hasInterfaceHash())
-    fp = swift_ASTGen_getSourceFileFingerprint(exportedSourceFile, Ctx)
+    fp = language_ASTGen_getSourceFileFingerprint(exportedSourceFile, Ctx)
              .unbridged();
 
   registerDeclWithOpaqueResultType(declContext->getOutermostParentSourceFile(),
@@ -411,7 +412,7 @@ SourceFileParsingResult parseSourceFileViaASTGen(SourceFile &SF) {
                                  /*CollectedTokens=*/std::nullopt,
                                  /*Fingerprint=*/fp};
 }
-#endif // SWIFT_BUILD_SWIFT_SYNTAX
+#endif // LANGUAGE_BUILD_LANGUAGE_SYNTAX
 
 /// A thunk that deletes an allocated PersistentParserState. This is needed for
 /// us to be able to forward declare a unique_ptr to the state in the AST.
@@ -559,9 +560,9 @@ SourceFileParsingResult ParseSourceFileRequest::evaluate(Evaluator &evaluator,
   auto shouldSuppress = SF->getParsingOptions().contains(
       SourceFile::ParsingFlags::SuppressWarnings);
   diags.setSuppressWarnings(didSuppressWarnings || shouldSuppress);
-  SWIFT_DEFER { diags.setSuppressWarnings(didSuppressWarnings); };
+  LANGUAGE_DEFER { diags.setSuppressWarnings(didSuppressWarnings); };
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   if (shouldParseViaASTGen(*SF))
     return parseSourceFileViaASTGen(*SF);
 #endif
@@ -617,16 +618,16 @@ ArrayRef<Decl *> ParseTopLevelDeclsRequest::evaluate(
 namespace {
 bool parseAvailabilityMacroDefinitionViaASTGen(
     unsigned bufferID, ASTContext &ctx, std::string &name,
-    llvm::VersionTuple &version, SmallVectorImpl<AvailabilitySpec *> &specs) {
+    toolchain::VersionTuple &version, SmallVectorImpl<AvailabilitySpec *> &specs) {
   StringRef buffer = ctx.SourceMgr.getEntireTextForBuffer(bufferID);
   DeclContext *dc = ctx.MainModule;
 
   BridgedAvailabilityMacroDefinition parsed;
-  bool hadError = swift_ASTGen_parseAvailabilityMacroDefinition(ctx, dc, &ctx.Diags, buffer,
+  bool hadError = language_ASTGen_parseAvailabilityMacroDefinition(ctx, dc, &ctx.Diags, buffer,
                                                   &parsed);
   if (hadError)
     return true;
-  SWIFT_DEFER { swift_ASTGen_freeAvailabilityMacroDefinition(&parsed); };
+  LANGUAGE_DEFER { language_ASTGen_freeAvailabilityMacroDefinition(&parsed); };
 
   name = parsed.name.unbridged();
   version = parsed.version.unbridged();
@@ -640,11 +641,11 @@ bool parseAvailabilityMacroDefinitionViaASTGen(
 
 bool parseAvailabilityMacroDefinitionViaLegacyParser(
     unsigned bufferID, ASTContext &ctx, std::string &name,
-    llvm::VersionTuple &version, SmallVectorImpl<AvailabilitySpec *> &specs) {
+    toolchain::VersionTuple &version, SmallVectorImpl<AvailabilitySpec *> &specs) {
   auto &SM = ctx.SourceMgr;
 
   // Create temporary parser.
-  swift::ParserUnit PU(SM, SourceFileKind::Main, bufferID, ctx.LangOpts,
+  language::ParserUnit PU(SM, SourceFileKind::Main, bufferID, ctx.LangOpts,
                        "unknown");
 
   ForwardingDiagnosticConsumer PDC(ctx.Diags);
@@ -668,8 +669,8 @@ bool parseAvailabilityMacroDefinitionViaLegacyParser(
 
 bool parseAvailabilityMacroDefinition(
     unsigned bufferID, ASTContext &ctx, std::string &name,
-    llvm::VersionTuple &version, SmallVectorImpl<AvailabilitySpec *> &specs) {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+    toolchain::VersionTuple &version, SmallVectorImpl<AvailabilitySpec *> &specs) {
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   if (ctx.LangOpts.hasFeature(Feature::ParserASTGen))
     return parseAvailabilityMacroDefinitionViaASTGen(bufferID, ctx, name,
                                                      version, specs);
@@ -687,7 +688,7 @@ AvailabilityMacroArgumentsRequest::evaluate(Evaluator &evaluator,
 
   // Allocate all buffers in one go to avoid repeating the sorting in
   // findBufferContainingLocInternal.
-  llvm::SmallVector<unsigned, 4> bufferIDs;
+  toolchain::SmallVector<unsigned, 4> bufferIDs;
   for (auto macro : ctx->LangOpts.AvailabilityMacros) {
     unsigned bufferID =
         SM.addMemBufferCopy(macro, "-define-availability argument");
@@ -700,7 +701,7 @@ AvailabilityMacroArgumentsRequest::evaluate(Evaluator &evaluator,
   // Parse each macro definition.
   for (unsigned bufferID : bufferIDs) {
     std::string name;
-    llvm::VersionTuple version;
+    toolchain::VersionTuple version;
     SmallVector<AvailabilitySpec *, 4> specs;
     if (parseAvailabilityMacroDefinition(bufferID, *ctx, name, version, specs))
       continue;
@@ -722,7 +723,7 @@ AvailabilityMacroArgumentsRequest::evaluate(Evaluator &evaluator,
 // IDEInspectionSecondPassRequest computation.
 //----------------------------------------------------------------------------//
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const IDEInspectionCallbacksFactory *factory) { }
 
 evaluator::DependencySource
@@ -733,13 +734,13 @@ IDEInspectionSecondPassRequest::readDependencySource(
 
 // Define request evaluation functions for each of the type checker requests.
 static AbstractRequestFunction *parseRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/AST/ParseTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerParseRequestFunctions(Evaluator &evaluator) {
+void language::registerParseRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::Parse,
                                      parseRequestFunctions);
 }

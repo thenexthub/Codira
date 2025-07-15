@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/extension-inheritance-conformance-objc.h -typecheck -verify -primary-file %s %S/Inputs/extension-inheritance-conformance-objc-multi-file-2.code
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/extension-inheritance-conformance-objc.h -typecheck -verify %s -primary-file %S/Inputs/extension-inheritance-conformance-objc-multi-file-2.code
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/extension-inheritance-conformance-objc.h -typecheck -verify -primary-file %S/Inputs/extension-inheritance-conformance-objc-multi-file-2.code %s
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/extension-inheritance-conformance-objc.h -typecheck -verify %S/Inputs/extension-inheritance-conformance-objc-multi-file-2.code -primary-file %s
+
+// REQUIRES: objc_interop
+
+protocol Foo {}
+
+extension Foo {
+  fn bar() -> Self { return this }
+}
+
+extension Object: Foo {}
+
+immutable x = Object().bar()
+immutable y = Responder().bar()
+immutable z = View().bar()
+

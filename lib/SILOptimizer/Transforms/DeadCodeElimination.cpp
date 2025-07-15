@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-dce"
@@ -34,12 +35,12 @@
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -75,7 +76,7 @@ static bool seemsUseful(SILInstruction *I) {
   if (I->mayHaveSideEffects())
     return true;
 
-  if (llvm::any_of(I->getResults(),
+  if (toolchain::any_of(I->getResults(),
                    [](auto result) { return result->isLexical(); })) {
     return true;
   }
@@ -87,7 +88,7 @@ static bool seemsUseful(SILInstruction *I) {
   // OSSACompleteLifetime requires that liveness be complete--that there are no
   // pointer escapes.  So we can't delete instructions which end the lifetime
   // of values which escape to a pointer and whose parent blocks are different.
-  if (llvm::any_of(I->getAllOperands(), [I](Operand &operand) {
+  if (toolchain::any_of(I->getAllOperands(), [I](Operand &operand) {
         if (!operand.isLifetimeEnding())
           return false;
         auto value = operand.get();
@@ -141,22 +142,22 @@ struct ControllingInfo {
   SILBasicBlock *Block;
   // The post-dominator tree level for this node.
   unsigned Level;
-  llvm::SmallVector<PredInfo, 2> ControllingPreds;
+  toolchain::SmallVector<PredInfo, 2> ControllingPreds;
   unsigned MinTreePredLevel;
 };
 
 class DCE {
-  typedef llvm::DomTreeNodeBase<SILBasicBlock> PostDomTreeNode;
+  typedef toolchain::DomTreeNodeBase<SILBasicBlock> PostDomTreeNode;
 
   SILFunction *F;
   ValueSet LiveArguments;
   InstructionSet LiveInstructions;
   BasicBlockSet LiveBlocks;
-  llvm::SmallVector<SILInstruction *, 64> Worklist;
+  toolchain::SmallVector<SILInstruction *, 64> Worklist;
   PostDominanceInfo *PDT;
   DominanceInfo *DT;
   DeadEndBlocks *deadEndBlocks;
-  llvm::DenseMap<SILBasicBlock *, ControllingInfo> ControllingInfoMap;
+  toolchain::DenseMap<SILBasicBlock *, ControllingInfo> ControllingInfoMap;
   SmallBlotSetVector<SILValue, 8> valuesToComplete;
 
   // Maps instructions which produce a failing condition (like overflow
@@ -173,7 +174,7 @@ class DCE {
   // In this case cond_fail is alive only if inst_which_can_fail is alive.
   // The key of this map is the source of the dependency (inst_a), the
   // value is the set of instructions dependent on it (inst_b).
-  llvm::DenseMap<SILValue, SmallPtrSet<SILInstruction *, 4>>
+  toolchain::DenseMap<SILValue, SmallPtrSet<SILInstruction *, 4>>
       ReverseDependencies;
 
   // guaranteedPhiDependencies tracks the dependency of reborrows and
@@ -182,7 +183,7 @@ class DCE {
   // operand/GuaranteedForwardingPhi operand, we will have a new base value
   // for the reborrow phi/@guaranteed forwarding phi.
   using BaseValueSet = SmallPtrSet<SILValue, 8>;
-  llvm::DenseMap<SILPhiArgument *, BaseValueSet> guaranteedPhiDependencies;
+  toolchain::DenseMap<SILPhiArgument *, BaseValueSet> guaranteedPhiDependencies;
 
   /// Tracks if the pass changed branches.
   bool BranchesChanged = false;
@@ -216,9 +217,9 @@ class DCE {
   void propagateLiveness(SILInstruction *I);
   void collectControllingBlocksInTree(ControllingInfo &QueryInfo,
                                       PostDomTreeNode *root,
-                           llvm::SmallPtrSetImpl<SILBasicBlock *> &Controlling);
+                           toolchain::SmallPtrSetImpl<SILBasicBlock *> &Controlling);
   void collectControllingBlocks(SILBasicBlock *Block,
-                                llvm::SmallPtrSetImpl<SILBasicBlock *> &);
+                                toolchain::SmallPtrSetImpl<SILBasicBlock *> &);
   SILBasicBlock *nearestUsefulPostDominator(SILBasicBlock *Block);
   void replaceBranchWithJump(SILInstruction *Inst, SILBasicBlock *Block);
   /// Insert lifetime ending instruction if defining value of \p op is live.
@@ -252,7 +253,7 @@ void DCE::markValueLive(SILValue V) {
   if (isa<SILUndef>(V))
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "Marking as live: " << *V);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Marking as live: " << *V);
 
   auto *Arg = cast<SILArgument>(V);
   if (!LiveArguments.insert(Arg))
@@ -266,7 +267,7 @@ void DCE::markInstructionLive(SILInstruction *Inst) {
   if (!LiveInstructions.insert(Inst))
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "Marking as live: " << *Inst);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Marking as live: " << *Inst);
 
   Worklist.push_back(Inst);
 }
@@ -431,7 +432,7 @@ void DCE::markLive() {
 
 // Records a reverse dependency if needed. See DCE::ReverseDependencies.
 void DCE::addReverseDependency(SILValue from, SILInstruction *to) {
-  LLVM_DEBUG(llvm::dbgs() << "Adding reverse dependency from " << from << " to "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Adding reverse dependency from " << from << " to "
                           << *to);
   ReverseDependencies[from].insert(to);
 }
@@ -439,7 +440,7 @@ void DCE::addReverseDependency(SILValue from, SILInstruction *to) {
 void DCE::findGuaranteedPhiDependencies(BorrowedValue borrow) {
   assert(borrow.kind == BorrowedValueKind::BeginBorrow ||
          borrow.kind == BorrowedValueKind::LoadBorrow);
-  LLVM_DEBUG(llvm::dbgs() << "Finding @guaranteed phi dependencies of "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Finding @guaranteed phi dependencies of "
                           << borrow << "\n");
   auto visitDependentPhiBaseValuePair = [&](SILPhiArgument *phiArg,
                                             SILValue baseValue) {
@@ -476,7 +477,7 @@ void DCE::markTerminatorArgsLive(SILBasicBlock *Pred,
   case TermKind::SwitchValueInst:
   case TermKind::SwitchEnumAddrInst:
   case TermKind::CheckedCastAddrBranchInst:
-    llvm_unreachable("Unexpected argument for terminator kind!");
+    toolchain_unreachable("Unexpected argument for terminator kind!");
     break;
 
   case TermKind::DynamicMethodBranchInst:
@@ -597,7 +598,7 @@ void DCE::propagateLiveness(SILInstruction *I) {
       markValueLive(O.get());
     return;
   }
-  llvm_unreachable("corrupt instruction!");
+  toolchain_unreachable("corrupt instruction!");
 }
 
 SILBasicBlock *DCE::nearestUsefulPostDominator(SILBasicBlock *Block) {
@@ -643,8 +644,8 @@ void DCE::replaceBranchWithJump(SILInstruction *Inst, SILBasicBlock *Block) {
   } else {
     Branch = SILBuilderWithScope(Inst).createBranch(Inst->getLoc(), Block);
   }
-  LLVM_DEBUG(llvm::dbgs() << "Inserted unconditional branch:\n");
-  LLVM_DEBUG(Branch->dump());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Inserted unconditional branch:\n");
+  TOOLCHAIN_DEBUG(Branch->dump());
   (void)Branch;
 }
 
@@ -692,8 +693,8 @@ bool DCE::removeDead() {
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "Removing dead argument:\n");
-      LLVM_DEBUG(arg->dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Removing dead argument:\n");
+      TOOLCHAIN_DEBUG(arg->dump());
 
       arg->replaceAllUsesWithUndef();
 
@@ -743,7 +744,7 @@ bool DCE::removeDead() {
           //        terminator.  Fix this by making note of the added
           //        destroy_value insts and only moving the insertion point
           //        before those that are newly added.
-          for (SILInstruction &predInst : llvm::reverse(*pred)) {
+          for (SILInstruction &predInst : toolchain::reverse(*pred)) {
             if (&predInst == predTerm)
               continue;
             if (!isa<DestroyValueInst>(&predInst)) {
@@ -797,9 +798,9 @@ bool DCE::removeDead() {
             endLifetimeOfLiveValue(&op, termInst);
           }
         }
-        LLVM_DEBUG(llvm::dbgs() << "Replacing branch: ");
-        LLVM_DEBUG(termInst->dump());
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Replacing branch: ");
+        TOOLCHAIN_DEBUG(termInst->dump());
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "with jump to: BB" << postDom->getDebugID() << "\n");
 
         replaceBranchWithJump(termInst, postDom);
@@ -812,8 +813,8 @@ bool DCE::removeDead() {
 
       ++NumDeletedInsts;
 
-      LLVM_DEBUG(llvm::dbgs() << "Removing dead instruction:\n");
-      LLVM_DEBUG(Inst->dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Removing dead instruction:\n");
+      TOOLCHAIN_DEBUG(Inst->dump());
 
       if (F->hasOwnership()) {
         for (auto &Op : Inst->getAllOperands()) {
@@ -838,9 +839,7 @@ bool DCE::removeDead() {
     }
   }
 
-  OSSALifetimeCompletion completion(
-      F, DT, *deadEndBlocks, OSSALifetimeCompletion::IgnoreTrivialVariable,
-      /*forceLivenessVerification=*/true);
+  OSSALifetimeCompletion completion(F, DT, *deadEndBlocks);
   for (auto value : valuesToComplete) {
     if (!value.has_value())
       continue;
@@ -894,7 +893,7 @@ void DCE::insertControllingInfo(SILBasicBlock *Block, unsigned Level) {
 
 // Assign a level number to each node in the post-dominator tree.
 void DCE::computeLevelNumbers(PostDomTreeNode *root) {
-  llvm::SmallVector<std::pair<PostDomTreeNode *, unsigned>, 32> workList;
+  toolchain::SmallVector<std::pair<PostDomTreeNode *, unsigned>, 32> workList;
   workList.push_back({root, 0});
 
   while (!workList.empty()) {
@@ -952,7 +951,7 @@ void DCE::computePredecessorDependence() {
 
 // Assign the minimum post-dominator tree level to each node in the tree.
 void DCE::computeMinPredecessorLevels(PostDomTreeNode *root) {
-  llvm::SmallVector<PostDomTreeNode *, 32> postDomOrder;
+  toolchain::SmallVector<PostDomTreeNode *, 32> postDomOrder;
   postDomOrder.reserve(ControllingInfoMap.size());
   postDomOrder.push_back(root);
 
@@ -963,7 +962,7 @@ void DCE::computeMinPredecessorLevels(PostDomTreeNode *root) {
     }
   }
 
-  for (PostDomTreeNode *node : llvm::reverse(postDomOrder)) {
+  for (PostDomTreeNode *node : toolchain::reverse(postDomOrder)) {
     SILBasicBlock *block = node->getBlock();
     assert(ControllingInfoMap.find(block) != ControllingInfoMap.end() &&
            "Expected to have map entry for node!");
@@ -981,8 +980,8 @@ void DCE::computeMinPredecessorLevels(PostDomTreeNode *root) {
 
 void DCE::collectControllingBlocksInTree(ControllingInfo &QueryInfo,
                                          PostDomTreeNode *root,
-                          llvm::SmallPtrSetImpl<SILBasicBlock *> &Controlling) {
-  llvm::SmallVector<PostDomTreeNode *, 32> workList;
+                          toolchain::SmallPtrSetImpl<SILBasicBlock *> &Controlling) {
+  toolchain::SmallVector<PostDomTreeNode *, 32> workList;
   workList.push_back(root);
 
   while (!workList.empty()) {
@@ -1019,7 +1018,7 @@ void DCE::collectControllingBlocksInTree(ControllingInfo &QueryInfo,
 // predecessors. We can use the latter to terminate the walk down the
 // dominator tree early.
 void DCE::collectControllingBlocks(SILBasicBlock *Block,
-                          llvm::SmallPtrSetImpl<SILBasicBlock *> &Controlling) {
+                          toolchain::SmallPtrSetImpl<SILBasicBlock *> &Controlling) {
   // First add the blocks that QueryNode is directly control-dependent on.
   assert(ControllingInfoMap.find(Block) != ControllingInfoMap.end() &&
          "Expected map entry for node!");
@@ -1037,7 +1036,7 @@ void DCE::markControllingTerminatorsLive(SILBasicBlock *Block) {
 
   LiveBlocks.insert(Block);
 
-  llvm::SmallPtrSet<SILBasicBlock *, 4> ControllingBlocks;
+  toolchain::SmallPtrSet<SILBasicBlock *, 4> ControllingBlocks;
   collectControllingBlocks(Block, ControllingBlocks);
 
   for (auto BB : ControllingBlocks)
@@ -1050,7 +1049,7 @@ public:
   void run() override {
     SILFunction *F = getFunction();
 
-    LLVM_DEBUG(llvm::dbgs() << "*** DCE on function: " << F->getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** DCE on function: " << F->getName()
                             << " ***\n");
 
     auto *PDA = PM->getAnalysis<PostDominanceAnalysis>();
@@ -1083,6 +1082,6 @@ public:
 
 } // end anonymous namespace
 
-SILTransform *swift::createDCE() {
+SILTransform *language::createDCE() {
   return new DCEPass();
 }

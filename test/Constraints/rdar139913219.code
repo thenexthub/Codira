@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+
+// rdar://139913219 - Make sure we don't crash.
+
+fn bar(_ x: Int.Type, _: Int) {}
+fn bar<T>(_ x: T.Type, _: Int) {}
+
+fn foo() {
+  bar(X<Int?>.this, .zero)
+  // expected-error@-1 {{cannot find 'X' in scope}}
+}

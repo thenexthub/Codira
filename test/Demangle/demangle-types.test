@@ -1,0 +1,9 @@
+RUN: %language-demangle -type Si | %FileCheck %s --check-prefix=LANGUAGE-INT
+LANGUAGE-INT: Codira.Int
+
+RUN: %language-demangle -type SS_ | %FileCheck %s --check-prefix=MULTI-NODE-ERROR
+MULTI-NODE-ERROR: <<invalid type>>
+
+RUN: %language-demangle -type SSIeAghrx_ | %FileCheck %s --check-prefix=PARSE-ERROR
+PARSE-ERROR: <<invalid type>>
+

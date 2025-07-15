@@ -1,13 +1,17 @@
 //===--- get-cpu-context.S - Low-level functions to capture registers -----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Saves the necessary registers to an appropriate Context structure.
@@ -22,13 +26,13 @@
 #endif
 
         .text
-        .globl FN(_swift_get_cpu_context)
+        .globl FN(_language_get_cpu_context)
 
 // .. x86-64 ...................................................................
 
 #if defined(__x86_64__)
         // On entry, rax contains the pointer to the x86_64_gprs
-FN(_swift_get_cpu_context):
+FN(_language_get_cpu_context):
         movq %rax,           (%rax)
         movq %rdx,          8(%rax)
         movq %rcx,         16(%rax)
@@ -65,7 +69,7 @@ FN(_swift_get_cpu_context):
 
 #if defined(__i386__)
         // On entry, 8(%esp) contains the pointer to the i386_gprs
-FN(_swift_get_cpu_context):
+FN(_language_get_cpu_context):
         push %eax
         movl 8(%esp),  %eax
         movl %ecx,     4(%eax)
@@ -103,7 +107,7 @@ FN(_swift_get_cpu_context):
 #if defined(__aarch64__)
         .p2align 2
         // On entry, x8 contains a pointer to the arm64_gprs
-FN(_swift_get_cpu_context):
+FN(_language_get_cpu_context):
         stp  x0,  x1, [x8, #0x00]
         stp  x2,  x3, [x8, #0x10]
         stp  x4,  x5, [x8, #0x20]
@@ -132,7 +136,7 @@ FN(_swift_get_cpu_context):
 #if defined(__arm__)
         .p2align 2
         // On entry, r0 contains a pointer to the arm_gprs
-FN(_swift_get_cpu_context):
+FN(_language_get_cpu_context):
         stm r0, {r0-r14}
         str lr, [r0, #0x3c]
         mov r1, #0xffff

@@ -1,6 +1,6 @@
 .. _Generics:
 
-Generics in Swift
+Generics in Codira
 =================
 
 Motivation
@@ -61,7 +61,7 @@ The alternatives to generics tend to lead to poor solutions:
   this limited set of data structures for *every* problem, even when another
   (not-baked-in) data structure would be better.
 
-Swift is intended to be a small, expressive language with great support for
+Codira is intended to be a small, expressive language with great support for
 building libraries. We'll need generics to be able to build those libraries
 well.
 
@@ -90,10 +90,10 @@ Polymorphism
 
 Polymorphism allows one to use different data types with a uniform
 interface. Overloading already allows a form of polymorphism (ad hoc
-polymorphism) in Swift. For example, given::
+polymorphism) in Codira. For example, given::
 
-  func +(x : Int, y : Int) -> Int { add... }
-  func +(x : String, y : String) -> String { concat... }
+  fn +(x : Int, y : Int) -> Int { add... }
+  fn +(x : String, y : String) -> String { concat... }
 
 .. @example.replace('add...','return 1')
    example.replace('concat...','return ""')
@@ -120,7 +120,7 @@ describe functions or methods that are part of the interface, and provide some
 way to re-use or extend a previous interface by adding to it. We'll start with
 that core feature, and build onto it what we need.
 
-In Swift, I suggest that we use the term protocol for this feature, because I
+In Codira, I suggest that we use the term protocol for this feature, because I
 expect the end result to be similar enough to Objective-C protocols that our
 users will benefit, and (more importantly) different enough from Java/C#
 interfaces and C++ abstract base classes that those terms will be harmful. The
@@ -130,7 +130,7 @@ users know Scala.
 In its most basic form, a protocol is a collection of function signatures::
 
   protocol Document {
-    func title() -> String
+    fn title() -> String
   }
 
 Document describes types that have a title() operation that accepts no arguments
@@ -149,14 +149,14 @@ protocols. For example, we could extend our Document protocol to cover documents
 that support versioning::
 
   protocol VersionedDocument : Document {
-    func version() -> Int
+    fn version() -> Int
   }
 
 Multiple inheritance is permitted, allowing us to form a directed acyclic graph
 of protocols::
 
   protocol PersistentDocument : VersionedDocument, Serializable {
-    func saveToFile(_ filename : path)
+    fn saveToFile(_ filename : path)
   }
 
 .. @example.prepend('struct path {} ; protocol Serializable {}')
@@ -173,7 +173,7 @@ operations. For example, let's try to write a Comparable protocol that could be
 used to search for a generic find() operation::
 
   protocol Comparable {
-    func isEqual(_ other : ???) -> Bool
+    fn isEqual(_ other : ???) -> Bool
   }
 
 Our options for filling in ??? are currently very poor. We could use the syntax
@@ -204,7 +204,7 @@ interface, e.g. (in Java)::
 
 .. @ignore()
 .. This test just doesn't compile at the moment, but that represents a
-   bug in Swift
+   bug in Codira
 
 and then a class X that wants to be Comparable will inherit from
 Comparable<X>. This is ugly and has a number of pitfalls; see
@@ -212,11 +212,11 @@ http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6479372.
 
 Scala and Strongtalk have the notion of the 'Self' type, which effectively
 allows one to refer to the eventual type of 'self' (which we call
-'self'). 'Self' (which we call 'Self' in Swift) allows us to express the
+'self'). 'Self' (which we call 'Self' in Codira) allows us to express the
 Comparable protocol in a natural way::
 
   protocol Comparable {
-    func isEqual(_ other : Self) -> Bool
+    fn isEqual(_ other : Self) -> Bool
   }
 
 By expressing Comparable in this way, we know that if we have two objects of
@@ -242,8 +242,8 @@ us to cleanly describe a protocol for collections::
 
   protocol Collection {
     typealias Element
-    func forEach(_ callback : (value : Element) -> Void)
-    func add(_ value : Element)
+    fn forEach(_ callback : (value : Element) -> Void)
+    fn add(_ value : Element)
   }
 
 It is important here that a generic function that refers to a given type T,
@@ -262,7 +262,7 @@ operators::
 
   protocol RandomAccessContainer : Collection {
     var count: Int
-    func == (lhs: Self, rhs: Self)
+    fn == (lhs: Self, rhs: Self)
     subscript(i: Int) -> Element
   }
 
@@ -280,7 +280,7 @@ to a protocol if it meets the syntactic requirements of the protocol. For
 example, given::
 
   protocol Shape {
-    func draw()
+    fn draw()
   }
 
 One could write a Circle struct such as::
@@ -289,7 +289,7 @@ One could write a Circle struct such as::
     var center : Point
     var radius : Int
 
-    func draw() {
+    fn draw() {
       // draw it
     }
   }
@@ -305,7 +305,7 @@ also know how to "draw!"::
   struct Cowboy {
     var gun : SixShooter
 
-    func draw() {
+    fn draw() {
       // draw!
     }
   }
@@ -317,7 +317,7 @@ using protocol inheritance with fine-grained (semantic or mostly-semantic)
 differences between protocols in the hierarchy, they become more common. See
 http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1798.html for examples
 of this problem as it surfaced with C++ concepts. It is not clear at this time
-whether we want implicit conformance in Swift: there's no existing code to worry
+whether we want implicit conformance in Codira: there's no existing code to worry
 about, and explicit conformance (described below) provides some benefits.
 
 Explicit Protocol Conformance
@@ -330,8 +330,8 @@ type::
 
   struct EmployeeList : Collection { // EmployeeList is a collection
     typealias Element = T
-    func forEach(_ callback : (value : Element) -> Void) { /* Implement this */ }
-    func add(_ value : Element) { /* Implement this */ }
+    fn forEach(_ callback : (value : Element) -> Void) { /* Implement this */ }
+    fn add(_ value : Element) { /* Implement this */ }
   }
 
 This explicit protocol conformance declaration forces the compiler to check that
@@ -362,13 +362,13 @@ protocol, but under a different name.  Retroactive modeling is the process by
 which the type is retrofitted (without changing the type) to meet the
 requirements of the protocol.
 
-In Swift, we provide support for retroactive modeling by allowing
+In Codira, we provide support for retroactive modeling by allowing
 extensions, e.g.,::
 
   extension String : Collection {
     typealias Element = char
-    func forEach(_ callback : (value : Element) -> Void) { /* use existing String routines to enumerate characters */ }
-    func add(_ value : Element) { self += value /* append character */ }
+    fn forEach(_ callback : (value : Element) -> Void) { /* use existing String routines to enumerate characters */ }
+    fn add(_ value : Element) { self += value /* append character */ }
   }
 
 Once an extension is defined, the extension now conforms to the Collection
@@ -384,10 +384,10 @@ and smaller protocols that make it easier to write conforming types. For
 example, should a Numeric protocol implement all operations, e.g.,::
 
   protocol Numeric {
-    func +(lhs : Self, rhs : Self) -> Self
-    func -(lhs : Self, rhs : Self) -> Self
-    func +(x : Self) -> Self
-    func -(x : Self) -> Self
+    fn +(lhs : Self, rhs : Self) -> Self
+    fn -(lhs : Self, rhs : Self) -> Self
+    fn +(x : Self) -> Self
+    fn -(x : Self) -> Self
   }
 
 which would make it easy to write general numeric algorithms, but requires the
@@ -395,8 +395,8 @@ author of some BigInt class to implement a lot of functionality, or should the
 numeric protocol implement just the core operations::
 
   protocol Numeric {
-    func +(lhs : Self, rhs : Self) -> Self
-    func -(x : Self) -> Self
+    fn +(lhs : Self, rhs : Self) -> Self
+    fn -(x : Self) -> Self
   }
 
 to make it easier to adopt the protocol (but harder to write numeric
@@ -406,10 +406,10 @@ other algorithms. However, it's far easier to allow the protocol itself to
 provide default implementations::
 
   protocol Numeric {
-    func +(lhs : Self, rhs : Self) -> Self
-    func -(lhs : Self, rhs : Self) -> Self { return lhs + -rhs }
-    func +(x : Self) -> Self { return x }
-    func -(x : Self) -> Self
+    fn +(lhs : Self, rhs : Self) -> Self
+    fn -(lhs : Self, rhs : Self) -> Self { return lhs + -rhs }
+    fn +(x : Self) -> Self { return x }
+    fn -(x : Self) -> Self
   }
 
 This makes it easier both to implement generic algorithms (which can use the
@@ -417,8 +417,8 @@ most natural syntax) and to make a new type conform to the protocol. For
 example, if we were to define only the core algorithms in our BigNum type::
 
   struct BigNum : Numeric {
-    func +(lhs : BigNum, rhs : BigNum) -> BigNum { ... }
-    func -(x : BigNum) -> BigNum { ... }
+    fn +(lhs : BigNum, rhs : BigNum) -> BigNum { ... }
+    fn -(x : BigNum) -> BigNum { ... }
   }
 
 the compiler will automatically synthesize the other operations needed for the
@@ -439,7 +439,7 @@ class Dog inherits from the class Animal, then Dog is a subtype of
 Animal. Subtype polymorphism is generally dynamic, in the sense that the
 substitution occurs at run-time, even if it is statically type-checked.
 
-In Swift, we consider protocols to be types. A value of protocol type has an
+In Codira, we consider protocols to be types. A value of protocol type has an
 existential type, meaning that we don't know the concrete type until run-time
 (and even then it varies), but we know that the type conforms to the given
 protocol. Thus, a variable can be declared with type "Serializable", e.g.,::
@@ -481,7 +481,7 @@ Here, doc has an existential type that is known to conform to both the Document
 and Serializable protocols. This gives rise to a natural "top" type, such that
 every type in the language is a subtype of "top". Java has java.lang.Object, C#
 has object, Objective-C has "id" (although "id" is weird, because it is also
-convertible to everything; it's best not to use it as a model). In Swift, the
+convertible to everything; it's best not to use it as a model). In Codira, the
 "top" type is simply an empty protocol composition: ``Any``::
 
   var value : Any = 17 // an any can hold an integer
@@ -507,7 +507,7 @@ C++ concepts, and many other language features support bounded parametric
 polymorphism.
 
 Protocols provide a natural way to express the constraints of a generic function
-in Swift. For example, one could define a generic linked list as::
+in Codira. For example, one could define a generic linked list as::
 
   struct ListNode<T> {
     var Value : T
@@ -522,7 +522,7 @@ in Swift. For example, one could define a generic linked list as::
 This list works on any type T. One could then add a generic function that
 inserts at the beginning of the list::
 
-  func insertAtBeginning<T>(_ list : List<T>, value : T) {
+  fn insertAtBeginning<T>(_ list : List<T>, value : T) {
     list.First = ListNode<T>(value, list.First)
   }
 
@@ -536,7 +536,7 @@ conform. Within the body of the generic type or function, any of the functions
 or types described by the constraints are available. For example, let's
 implement a find() operation on lists::
 
-  func find<T : Comparable>(_ list : List<T>, value : T) -> Int {
+  fn find<T : Comparable>(_ list : List<T>, value : T) -> Int {
     var index = 0
     var current
     for (current = list.First; current is Node; current = current.Next) {
@@ -555,11 +555,11 @@ function. For example, let's generalize our find algorithm to work on any
 ordered collection::
 
   protocol OrderedCollection : Collection {
-    func size() -> Int
-    func getAt(_ index : Int) -> Element // Element is an associated type
+    fn size() -> Int
+    fn getAt(_ index : Int) -> Element // Element is an associated type
   }
 
-  func find<C : OrderedCollection where C.Element : Comparable>(
+  fn find<C : OrderedCollection where C.Element : Comparable>(
          _ collection : C, value : C.Element) -> Int
   {
     for index in 0...collection.size() {
@@ -575,7 +575,7 @@ and the constraints expressed in the angle brackets (e.g., <C :
 OrderedCollection>) are just sugar for a where clause.  For example, the
 above find() signature is equivalent to::
 
-  func find<C where C : OrderedCollection, C.Element : Comparable>(
+  fn find<C where C : OrderedCollection, C.Element : Comparable>(
          _ collection : C, value : C.Element) -> Int
 
 Note that find<C> is shorthand for (and equivalent to) find<C : Any>, since
@@ -587,8 +587,8 @@ lets us describe an iteration of values of some given value type::
 
   protocol Enumerator {
     typealias Element
-    func isEmpty() -> Bool
-    func next() -> Element
+    fn isEmpty() -> Bool
+    fn next() -> Element
   }
 
 Now, we want to express the notion of an enumerable collection, which provides
@@ -597,7 +597,7 @@ iteration, which we do by adding requirements into the protocol::
   protocol EnumerableCollection : Collection {
     typealias EnumeratorType : Enumerator
     where EnumeratorType.Element == Element
-    func getEnumeratorType() -> EnumeratorType
+    fn getEnumeratorType() -> EnumeratorType
   }
 
 Here, we are specifying constraints on an associated type (EnumeratorType must
@@ -623,7 +623,7 @@ Comparable::
 Naturally, one any generic operation on a SortedDictionary<K,V> would also require
 that K be Comparable, e.g.,::
 
-  func forEachKey<Key : Comparable, Value>(_ c : SortedDictionary<Key, Value>,
+  fn forEachKey<Key : Comparable, Value>(_ c : SortedDictionary<Key, Value>,
                                            f : (Key) -> Void) { /* ... */ }
 
 However, explicitly requiring that Key conform to Comparable is redundant: one
@@ -633,7 +633,7 @@ itself could not be formed. Constraint inference infers these additional
 constraints within a generic function from the parameter and return types of the
 function, simplifying the specification of forEachKey::
 
-  func forEachKey<Key, Value>(_ c : SortedDictionary<Key, Value>,
+  fn forEachKey<Key, Value>(_ c : SortedDictionary<Key, Value>,
                               f : (Key) -> Void) { /* ... */ }
 
 Type Parameter Deduction
@@ -645,10 +645,10 @@ generic function::
   var values : list<Int>
   insertAtBeginning(values, 17) // deduces T = Int
 
-Since Swift already has top-down type inference (as well as the C++-like
+Since Codira already has top-down type inference (as well as the C++-like
 bottom-up inference), we can also deduce type arguments from the result type::
 
-  func cast<T, U>(_ value : T) -> U { ... }
+  fn cast<T, U>(_ value : T) -> U { ... }
   var x : Any
   var y : Int = cast(x) // deduces T = Any, U = Int
 
@@ -659,7 +659,7 @@ explicitly specifying type arguments to a generic function, e.g.,::
   var y : Int = cast<Int>(x) // not permitted: < is the less-than operator
 
 This syntax is horribly ambiguous in C++, and with good type argument deduction,
-should not be necessary in Swift.
+should not be necessary in Codira.
 
 Implementation Model
 --------------------
@@ -677,7 +677,7 @@ language (generic functions can be "virtual").
 The translation model is fairly simple. Consider the generic find() we
 implemented for lists, above::
 
-  func find<T : Comparable>(_ list : List<T>, value : T) -> Int {
+  fn find<T : Comparable>(_ list : List<T>, value : T) -> Int {
     var index = 0
     var current = list.First
     while current is ListNode<T> { // now I'm just making stuff up
@@ -721,7 +721,7 @@ type parameters.::
   struct S<T> {
     var x: T
     @_specialize(where T == Int, U == Float)
-    mutating func exchangeSecond<U>(_ u: U, _ t: T) -> (U, T) {
+    mutating fn exchangeSecond<U>(_ u: U, _ t: T) -> (U, T) {
       x = t
       return (u, x)
     }
@@ -745,7 +745,7 @@ The exact syntax of the @_specialize function attribute is defined as: ::
 
   @_specialize(exported: true, kind: full, where K == Int, V == Int)
   @_specialize(exported: false, kind: partial, where K: _Trivial64)
-  func dictFunction<K, V>(dict: Dictionary<K, V>) {
+  fn dictFunction<K, V>(dict: Dictionary<K, V>) {
   }
 
 If 'exported' is set, the corresponding specialization would have a public
@@ -762,10 +762,10 @@ but they may also specify so-called layout constraints like 'T: _Trivial'.
 
 The following layout constraints are currently supported:
   * AnyObject - the actual parameter should be an instance of a class
-  * _NativeClass - the actual parameter should be an instance of a Swift native
+  * _NativeClass - the actual parameter should be an instance of a Codira native
     class
   * _RefCountedObject - the actual parameter should be a reference-counted object
-  * _NativeRefCountedObject - the actual parameter should be a Swift-native
+  * _NativeRefCountedObject - the actual parameter should be a Codira-native
     reference-counted object
   * _Trivial - the actual parameter should be of a trivial type, i.e. a type
     without any reference counted properties.
@@ -801,7 +801,7 @@ Overloading
 Generic functions can be overloaded based entirely on constraints. For example,
 consider a binary search algorithm::
 
-   func binarySearch<
+   fn binarySearch<
       C : EnumerableCollection where C.Element : Comparable
    >(_ collection : C, value : C.Element)
      -> C.EnumeratorType
@@ -812,10 +812,10 @@ consider a binary search algorithm::
 
    protocol RandomAccessEnumerator : Enumerator {
      // splits a range in half, returning both halves
-     func split() -> (Enumerator, Enumerator)
+     fn split() -> (Enumerator, Enumerator)
    }
 
-   func binarySearch<
+   fn binarySearch<
       C : EnumerableCollection
        where C.Element : Comparable,
                  C.EnumeratorType: RandomAccessEnumerator
@@ -836,7 +836,7 @@ There is a question as to when this overloading occurs. For example,
 binarySearch might be called as a subroutine of another generic function with
 minimal requirements::
 
-  func doSomethingWithSearch<
+  fn doSomethingWithSearch<
     C : EnumerableCollection where C.Element : Ordered
   >(
     _ collection : C, value : C.Element

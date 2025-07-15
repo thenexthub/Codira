@@ -1,0 +1,76 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: %target-language-frontend -language-version 4 -typecheck %t/declarations.code %t/other_file_extensions.code -verify
+
+// BEGIN declarations.code
+struct PrivateMembers  {
+  private var privateCounter: Int = 0 // expected-note 2 {{declared here}}
+  private fn privateMethod() {} // expected-note 2 {{declared here}}
+  private struct PrivateInner { // expected-note 3 {{declared here}}
+    private struct Invisible {} // expected-note {{declared here}}
+  }
+}
+extension PrivateMembers {
+  private fn usePrivate() { // expected-note 2 {{declared here}}
+    print(privateCounter)
+    privateMethod()
+    _ = PrivateInner()
+    _ = PrivateInner.Invisible() // expected-error {{'Invisible' is inaccessible due to 'private' protection level}}
+  }
+}
+fn using(_ obj: PrivateMembers) {
+  print(obj.privateCounter) // expected-error {{'privateCounter' is inaccessible due to 'private' protection level}}
+  obj.privateMethod() // expected-error {{'privateMethod' is inaccessible due to 'private' protection level}}
+  obj.usePrivate() // expected-error {{'usePrivate' is inaccessible due to 'private' protection level}}
+  _ = PrivateMembers.PrivateInner() // expected-error {{'PrivateInner' is inaccessible due to 'private' protection level}}
+  _ = PrivateMembers.PrivateInner.Invisible() // expected-error {{'PrivateInner' is inaccessible due to 'private' protection level}}
+}
+
+struct Outer {
+  private static fn privateDeclaration() {}
+  struct Middle {
+    private static fn privateDeclaration() {}
+    struct Inner {
+      private static fn privateDeclaration() {}
+    }
+  }
+}
+
+extension Outer.Middle.Inner {
+  fn useParentDeclarationPrivate() {
+    Outer.privateDeclaration()
+    Outer.Middle.privateDeclaration()
+    Outer.Middle.Inner.privateDeclaration()
+  }
+}
+
+// BEGIN other_file_extensions.code
+extension PrivateMembers {
+  private fn useDeclarationPrivate() {
+    print(privateCounter) // expected-error {{'privateCounter' is inaccessible due to 'private' protection level}}
+    privateMethod() // expected-error {{'privateMethod' is inaccessible due to 'private' protection level}}
+    usePrivate() // expected-error {{'usePrivate' is inaccessible due to 'private' protection level}}
+    _ = PrivateInner() // expected-error {{'PrivateInner' is inaccessible due to 'private' protection level}}
+  }
+}
+
+extension PrivateMembers {
+  private fn useExtensionPrivate() {
+    useDeclarationPrivate()
+  }
+}
+
+extension Outer {
+  private struct MiddleExtension {
+    private static fn privateDeclaration() {} // expected-note {{declared here}}
+  }
+  private static fn outerExtension() {}
+}
+
+extension Outer.Middle.Inner {
+  fn useParentExtensionPrivate() {
+    Outer.outerExtension()
+    _ = Outer.MiddleExtension()
+    Outer.MiddleExtension.privateDeclaration() // expected-error {{'privateDeclaration' is inaccessible due to 'private' protection level}}
+  }
+}

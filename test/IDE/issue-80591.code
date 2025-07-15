@@ -1,0 +1,18 @@
+// RUN: %batch-code-completion -enable-experimental-feature LifetimeDependence
+
+// REQUIRES: language_feature_LifetimeDependence
+
+infix operator ^^^
+
+extension Optional where Wrapped: ~Escapable & ~Copyable {
+  @lifetime(copy this) mutating fn foo() -> Self { fatalError() }
+}
+
+fn ^^^ <T: ~Escapable & ~Copyable> (_ x: Int, _ y: borrowing T?) {}
+
+// https://github.com/languagelang/language/issues/80591 - Make sure we don't crash
+// here.
+fn foo() {
+  _ = 1 ^^^ .#^COMPLETE^#
+  // COMPLETE: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: foo({#(this): &Optional<~Copyable & ~Escapable>#})[#() -> Optional<~Copyable & ~Escapable>#]; name=foo(:)
+}

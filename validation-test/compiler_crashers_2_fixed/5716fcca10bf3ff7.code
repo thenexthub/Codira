@@ -1,0 +1,6 @@
+// {"signature":"createImplicitConstructor(language::NominalTypeDecl*, ImplicitConstructorKind, language::ASTContext&)"}
+// RUN: not %target-language-frontend -typecheck -language-version 5 %s
+struct a @propertyWrapper struct b < c {
+  wrappedValue : c
+} @propertyWrapper struct d {
+  var wrappedValue @b var e : a @d var f

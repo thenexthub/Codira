@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::ConjunctionStep::SolverSnapshot::~SolverSnapshot()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Foundation{immutable a = malloc(b.c <d>

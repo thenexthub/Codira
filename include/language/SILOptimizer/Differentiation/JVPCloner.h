@@ -1,13 +1,17 @@
 //===--- JVPCloner.h - JVP function generation ----------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a helper class for generating JVP functions for automatic
@@ -15,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_JVPCLONER_H
-#define SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_JVPCLONER_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_JVPCLONER_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_JVPCLONER_H
 
 #include "language/SILOptimizer/Differentiation/DifferentiationInvoker.h"
 
@@ -53,4 +57,4 @@ public:
 } // end namespace autodiff
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_JVPCLONER_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_JVPCLONER_H

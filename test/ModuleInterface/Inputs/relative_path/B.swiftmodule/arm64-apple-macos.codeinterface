@@ -1,0 +1,9 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -target arm64-apple-macosx15.0 -module-name B
+
+import Codira
+
+public struct BStruct {
+    var x : Int
+    public init()
+}

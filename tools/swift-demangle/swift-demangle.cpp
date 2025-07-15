@@ -1,4 +1,4 @@
-//===--- swift-demangle.cpp - Swift Demangler app -------------------------===//
+//===--- language-demangle.cpp - Codira Demangler app -------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This is the entry point.
@@ -20,12 +21,12 @@
 #include "language/Demangling/Demangle.h"
 #include "language/Demangling/ManglingFlavor.h"
 #include "language/Demangling/ManglingMacros.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/raw_ostream.h"
 
 // For std::rand, to work around a bug if main()'s first function call passes
 // argv[0].
@@ -37,90 +38,90 @@
 
 using namespace language::Demangle;
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 ExpandMode("expand",
-               llvm::cl::desc("Expand mode (show node structure of the demangling)"));
+               toolchain::cl::desc("Expand mode (show node structure of the demangling)"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 CompactMode("compact",
-          llvm::cl::desc("Compact mode (only emit the demangled names)"));
+          toolchain::cl::desc("Compact mode (only emit the demangled names)"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 TreeOnly("tree-only",
-           llvm::cl::desc("Tree-only mode (do not show the demangled string)"));
+           toolchain::cl::desc("Tree-only mode (do not show the demangled string)"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 DemangleType("type",
-           llvm::cl::desc("Demangle a runtime type string"));
+           toolchain::cl::desc("Demangle a runtime type string"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 StripSpecialization("strip-specialization",
-           llvm::cl::desc("Remangle the origin of a specialized function"));
+           toolchain::cl::desc("Remangle the origin of a specialized function"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 RemangleMode("test-remangle",
-           llvm::cl::desc("Remangle test mode (show the remangled string)"));
+           toolchain::cl::desc("Remangle test mode (show the remangled string)"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 RemangleRtMode("remangle-objc-rt",
-           llvm::cl::desc("Remangle to the ObjC runtime name mangling scheme"));
+           toolchain::cl::desc("Remangle to the ObjC runtime name mangling scheme"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 RemangleNew("remangle-new",
-           llvm::cl::desc("Remangle the symbol with new mangling scheme"));
+           toolchain::cl::desc("Remangle the symbol with new mangling scheme"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 DisableSugar("no-sugar",
-           llvm::cl::desc("No sugar mode (disable common language idioms such as ? and [] from the output)"));
+           toolchain::cl::desc("No sugar mode (disable common language idioms such as ? and [] from the output)"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 Simplified("simplified",
-           llvm::cl::desc("Don't display module names or implicit self types"));
+           toolchain::cl::desc("Don't display module names or implicit self types"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 Classify("classify",
-           llvm::cl::desc("Display symbol classification characters"));
+           toolchain::cl::desc("Display symbol classification characters"));
 
 /// Options that are primarily used for testing.
 /// \{
-static llvm::cl::opt<bool> DisplayLocalNameContexts(
-    "display-local-name-contexts", llvm::cl::init(true),
-    llvm::cl::desc("Qualify local names"),
-    llvm::cl::Hidden);
+static toolchain::cl::opt<bool> DisplayLocalNameContexts(
+    "display-local-name-contexts", toolchain::cl::init(true),
+    toolchain::cl::desc("Qualify local names"),
+    toolchain::cl::Hidden);
 
-static llvm::cl::opt<bool> DisplayStdlibModule(
-    "display-stdlib-module", llvm::cl::init(true),
-    llvm::cl::desc("Qualify types originating from the Swift standard library"),
-    llvm::cl::Hidden);
+static toolchain::cl::opt<bool> DisplayStdlibModule(
+    "display-stdlib-module", toolchain::cl::init(true),
+    toolchain::cl::desc("Qualify types originating from the Codira standard library"),
+    toolchain::cl::Hidden);
 
-static llvm::cl::opt<bool> DisplayObjCModule(
-    "display-objc-module", llvm::cl::init(true),
-    llvm::cl::desc("Qualify types originating from the __ObjC module"),
-    llvm::cl::Hidden);
+static toolchain::cl::opt<bool> DisplayObjCModule(
+    "display-objc-module", toolchain::cl::init(true),
+    toolchain::cl::desc("Qualify types originating from the __ObjC module"),
+    toolchain::cl::Hidden);
 
-static llvm::cl::opt<std::string> HidingModule(
+static toolchain::cl::opt<std::string> HidingModule(
     "hiding-module",
-    llvm::cl::desc("Don't qualify types originating from this module"),
-    llvm::cl::Hidden);
+    toolchain::cl::desc("Don't qualify types originating from this module"),
+    toolchain::cl::Hidden);
 
-static llvm::cl::opt<bool>
-    ShowClosureSignature("show-closure-signature", llvm::cl::init(true),
-                         llvm::cl::desc("Show type signature of closures"),
-                         llvm::cl::Hidden);
+static toolchain::cl::opt<bool>
+    ShowClosureSignature("show-closure-signature", toolchain::cl::init(true),
+                         toolchain::cl::desc("Show type signature of closures"),
+                         toolchain::cl::Hidden);
 /// \}
 
 
-static llvm::cl::list<std::string>
-InputNames(llvm::cl::Positional, llvm::cl::desc("[mangled name...]"),
-               llvm::cl::ZeroOrMore);
+static toolchain::cl::list<std::string>
+InputNames(toolchain::cl::Positional, toolchain::cl::desc("[mangled name...]"),
+               toolchain::cl::ZeroOrMore);
 
-static llvm::StringRef substrBefore(llvm::StringRef whole,
-                                    llvm::StringRef part) {
+static toolchain::StringRef substrBefore(toolchain::StringRef whole,
+                                    toolchain::StringRef part) {
   return whole.slice(0, part.data() - whole.data());
 }
 
-static llvm::StringRef substrAfter(llvm::StringRef whole,
-                                   llvm::StringRef part) {
+static toolchain::StringRef substrAfter(toolchain::StringRef whole,
+                                   toolchain::StringRef part) {
   return whole.substr((part.data() - whole.data()) + part.size());
 }
 
@@ -141,15 +142,15 @@ static void stripSpecialization(NodePointer Node) {
   }
 }
 
-static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
-                     swift::Demangle::Context &DCtx,
-                     const swift::Demangle::DemangleOptions &options) {
+static void demangle(toolchain::raw_ostream &os, toolchain::StringRef name,
+                     language::Demangle::Context &DCtx,
+                     const language::Demangle::DemangleOptions &options) {
   bool hadLeadingUnderscore = false;
   if (name.starts_with("__")) {
     hadLeadingUnderscore = true;
     name = name.substr(1);
   }
-  swift::Demangle::NodePointer pointer;
+  language::Demangle::NodePointer pointer;
   if (DemangleType) {
     pointer = DCtx.demangleTypeAsNode(name);
     if (!pointer) {
@@ -165,9 +166,9 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
     os << getNodeTreeAsString(pointer);
   }
 
-  swift::Mangle::ManglingFlavor ManglingFlavor = swift::Mangle::ManglingFlavor::Default;
+  language::Mangle::ManglingFlavor ManglingFlavor = language::Mangle::ManglingFlavor::Default;
   if (name.starts_with(MANGLING_PREFIX_EMBEDDED_STR)) {
-    ManglingFlavor = swift::Mangle::ManglingFlavor::Embedded;
+    ManglingFlavor = language::Mangle::ManglingFlavor::Embedded;
   }
 
   if (RemangleMode) {
@@ -181,26 +182,26 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
       // mangling and demangling tests.
       remangled = name.str();
     } else {
-      auto mangling = swift::Demangle::mangleNode(pointer, ManglingFlavor);
+      auto mangling = language::Demangle::mangleNode(pointer, ManglingFlavor);
       if (!mangling.isSuccess()) {
-        llvm::errs() << "Error: (" << mangling.error().code << ":"
+        toolchain::errs() << "Error: (" << mangling.error().code << ":"
                      << mangling.error().line << ") unable to re-mangle "
                      << name << '\n';
         exit(1);
       }
       remangled = mangling.result();
-      unsigned prefixLen = swift::Demangle::getManglingPrefixLength(remangled);
+      unsigned prefixLen = language::Demangle::getManglingPrefixLength(remangled);
       assert(prefixLen > 0);
       // Replace the prefix if we remangled with a different prefix.
       if (!name.starts_with(remangled.substr(0, prefixLen))) {
         unsigned namePrefixLen =
-          swift::Demangle::getManglingPrefixLength(name);
+          language::Demangle::getManglingPrefixLength(name);
         assert(namePrefixLen > 0);
         remangled = name.take_front(namePrefixLen).str() +
                       remangled.substr(prefixLen);
       }
       if (name != remangled) {
-        llvm::errs() << "Error: re-mangled name \n  " << remangled
+        toolchain::errs() << "Error: re-mangled name \n  " << remangled
                      << "\ndoes not match original name\n  " << name << '\n';
         exit(1);
       }
@@ -211,9 +212,9 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
   } else if (RemangleRtMode) {
     std::string remangled = name.str();
     if (pointer) {
-      auto mangling = swift::Demangle::mangleNodeOld(pointer);
+      auto mangling = language::Demangle::mangleNodeOld(pointer);
       if (!mangling.isSuccess()) {
-        llvm::errs() << "Error: (" << mangling.error().code << ":"
+        toolchain::errs() << "Error: (" << mangling.error().code << ":"
                      << mangling.error().line << ") unable to re-mangle "
                      << name << '\n';
         exit(1);
@@ -226,12 +227,12 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
   if (!TreeOnly) {
     if (RemangleNew) {
       if (!pointer) {
-        llvm::errs() << "Error: unable to de-mangle " << name << '\n';
+        toolchain::errs() << "Error: unable to de-mangle " << name << '\n';
         exit(1);
       }
-      auto mangling = swift::Demangle::mangleNode(pointer, ManglingFlavor);
+      auto mangling = language::Demangle::mangleNode(pointer, ManglingFlavor);
       if (!mangling.isSuccess()) {
-        llvm::errs() << "Error: (" << mangling.error().code << ":"
+        toolchain::errs() << "Error: (" << mangling.error().code << ":"
                      << mangling.error().line << ") unable to re-mangle "
                      << name << '\n';
         exit(1);
@@ -242,9 +243,9 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
     }
     if (StripSpecialization) {
       stripSpecialization(pointer);
-      auto mangling = swift::Demangle::mangleNode(pointer, ManglingFlavor);
+      auto mangling = language::Demangle::mangleNode(pointer, ManglingFlavor);
       if (!mangling.isSuccess()) {
-        llvm::errs() << "Error: (" << mangling.error().code << ":"
+        toolchain::errs() << "Error: (" << mangling.error().code << ":"
                      << mangling.error().line << ") unable to re-mangle "
                      << name << '\n';
         exit(1);
@@ -253,13 +254,13 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
       os << remangled;
       return;
     }
-    std::string string = swift::Demangle::nodeToString(pointer, options);
+    std::string string = language::Demangle::nodeToString(pointer, options);
     if (!CompactMode)
       os << name << " ---> ";
 
     if (Classify) {
       std::string Classifications;
-      if (!swift::Demangle::isSwiftSymbol(name))
+      if (!language::Demangle::isCodiraSymbol(name))
         Classifications += 'N';
       if (DCtx.isThunkSymbol(name)) {
         if (!Classifications.empty())
@@ -269,7 +270,7 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
       } else {
         assert(DCtx.getThunkTarget(name).empty());
       }
-      if (pointer && !DCtx.hasSwiftCallingConvention(name)) {
+      if (pointer && !DCtx.hasCodiraCallingConvention(name)) {
         if (!Classifications.empty())
           Classifications += ',';
         Classifications += 'C';
@@ -277,7 +278,7 @@ static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
       if (!Classifications.empty())
         os << '{' << Classifications << "} ";
     }
-    os << (string.empty() ? name : llvm::StringRef(string));
+    os << (string.empty() ? name : toolchain::StringRef(string));
   }
   DCtx.clear();
 }
@@ -289,7 +290,7 @@ static bool isValidInMangling(char ch) {
           || (ch >= '0' && ch <= '9'));
 }
 
-static bool findMaybeMangled(llvm::StringRef input, llvm::StringRef &match) {
+static bool findMaybeMangled(toolchain::StringRef input, toolchain::StringRef &match) {
   const char *ptr = input.data();
   size_t len = input.size();
   const char *end = ptr + len;
@@ -301,7 +302,7 @@ static bool findMaybeMangled(llvm::StringRef input, llvm::StringRef &match) {
   } state = Start;
   const char *matchStart = nullptr;
 
-  // Find _T, $S, $s, _$S, _$s, @__swiftmacro_ followed by a valid mangled string
+  // Find _T, $S, $s, _$S, _$s, @__languagemacro_ followed by a valid mangled string
   while (ptr < end) {
     switch (state) {
     case Start:
@@ -317,9 +318,9 @@ static bool findMaybeMangled(llvm::StringRef input, llvm::StringRef &match) {
           matchStart = ptr - 1;
           break;
         } else if (ch == '@' &&
-                   llvm::StringRef(ptr, end - ptr).starts_with("__swiftmacro_")){
+                   toolchain::StringRef(ptr, end - ptr).starts_with("__languagemacro_")){
           matchStart = ptr - 1;
-          ptr = ptr + strlen("__swiftmacro_");
+          ptr = ptr + strlen("__languagemacro_");
           state = FoundPrefix;
           break;
         }
@@ -377,7 +378,7 @@ static bool findMaybeMangled(llvm::StringRef input, llvm::StringRef &match) {
           break;
         }
 
-        match = llvm::StringRef(matchStart, ptr - matchStart);
+        match = toolchain::StringRef(matchStart, ptr - matchStart);
         return true;
       }
     }
@@ -386,19 +387,19 @@ static bool findMaybeMangled(llvm::StringRef input, llvm::StringRef &match) {
   return false;
 }
 
-static int demangleSTDIN(const swift::Demangle::DemangleOptions &options) {
-  swift::Demangle::Context DCtx;
+static int demangleSTDIN(const language::Demangle::DemangleOptions &options) {
+  language::Demangle::Context DCtx;
   for (std::string mangled; std::getline(std::cin, mangled);) {
-    llvm::StringRef inputContents(mangled);
-    llvm::StringRef match;
+    toolchain::StringRef inputContents(mangled);
+    toolchain::StringRef match;
 
     while (findMaybeMangled(inputContents, match)) {
-      llvm::outs() << substrBefore(inputContents, match);
-      demangle(llvm::outs(), match, DCtx, options);
+      toolchain::outs() << substrBefore(inputContents, match);
+      demangle(toolchain::outs(), match, DCtx, options);
       inputContents = substrAfter(inputContents, match);
     }
 
-    llvm::outs() << inputContents << '\n';
+    toolchain::outs() << inputContents << '\n';
   }
 
   return EXIT_SUCCESS;
@@ -410,12 +411,12 @@ int main(int argc, char **argv) {
   // if main()'s first function call is passing argv[0].
   std::rand();
 #endif
-  llvm::cl::ParseCommandLineOptions(argc, argv);
+  toolchain::cl::ParseCommandLineOptions(argc, argv);
 
-  swift::Demangle::DemangleOptions options;
+  language::Demangle::DemangleOptions options;
   options.SynthesizeSugarOnTypes = !DisableSugar;
   if (Simplified)
-    options = swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions();
+    options = language::Demangle::DemangleOptions::SimplifiedUIDemangleOptions();
   options.DisplayStdlibModule = DisplayStdlibModule;
   options.DisplayObjCModule = DisplayObjCModule;
   options.HidingCurrentModule = HidingModule;
@@ -425,32 +426,32 @@ int main(int argc, char **argv) {
   if (InputNames.empty()) {
     CompactMode = true;
     if (DemangleType) {
-      llvm::errs() << "The option -type cannot be used to demangle stdin.\n";
+      toolchain::errs() << "The option -type cannot be used to demangle stdin.\n";
       return EXIT_FAILURE;
     }
     return demangleSTDIN(options);
   } else {
-    swift::Demangle::Context DCtx;
-    for (llvm::StringRef name : InputNames) {
+    language::Demangle::Context DCtx;
+    for (toolchain::StringRef name : InputNames) {
       if (name == "_") {
-        llvm::errs() << "warning: input symbol '_' is likely the result of "
+        toolchain::errs() << "warning: input symbol '_' is likely the result of "
                         "variable expansion by the shell. Ensure the argument "
                         "is quoted or escaped.\n";
         continue;
       }
       if (name == "") {
-        llvm::errs() << "warning: empty input symbol is likely the result of "
+        toolchain::errs() << "warning: empty input symbol is likely the result of "
                         "variable expansion by the shell. Ensure the argument "
                         "is quoted or escaped.\n";
         continue;
       }
       if (!DemangleType && (name.starts_with("S") || name.starts_with("s") || name.starts_with("e"))) {
         std::string correctedName = std::string("$") + name.str();
-        demangle(llvm::outs(), correctedName, DCtx, options);
+        demangle(toolchain::outs(), correctedName, DCtx, options);
       } else {
-        demangle(llvm::outs(), name, DCtx, options);
+        demangle(toolchain::outs(), name, DCtx, options);
       }
-      llvm::outs() << '\n';
+      toolchain::outs() << '\n';
     }
 
     return EXIT_SUCCESS;

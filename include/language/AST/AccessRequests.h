@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines access-control requests.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_ACCESS_REQUESTS_H
-#define SWIFT_ACCESS_REQUESTS_H
+#ifndef LANGUAGE_ACCESS_REQUESTS_H
+#define LANGUAGE_ACCESS_REQUESTS_H
 
 #include "language/AST/AccessScope.h"
 #include "language/AST/AttrKind.h"
 #include "language/AST/Evaluator.h"
 #include "language/AST/SimpleRequest.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/Hashing.h"
+#include "toolchain/ADT/Hashing.h"
 
 namespace language {
 
@@ -98,22 +99,22 @@ public:
   void cacheResult(DefaultAndMax value) const;
 };
 
-#define SWIFT_TYPEID_ZONE AccessControl
-#define SWIFT_TYPEID_HEADER "swift/AST/AccessTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE AccessControl
+#define LANGUAGE_TYPEID_HEADER "language/AST/AccessTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
   template <>                                                                  \
   inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,              \
                                      const RequestType &request) {             \
     ++stats.getFrontendCounters().RequestType;                                 \
   }
 #include "language/AST/AccessTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_ACCESS_REQUESTS_H
+#endif // LANGUAGE_ACCESS_REQUESTS_H

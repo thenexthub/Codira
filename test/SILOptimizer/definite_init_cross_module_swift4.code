@@ -1,0 +1,291 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path=%t/OtherModule.codemodule %S/Inputs/definite_init_cross_module/OtherModule.code
+// RUN: %target-language-frontend -emit-sil -verify -verify-ignore-unknown -I %t -language-version 4 %s > /dev/null -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/definite_init_cross_module/BridgingHeader.h
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path=%t/OtherModule.codemodule %S/Inputs/definite_init_cross_module/OtherModule.code
+// RUN: %target-language-frontend -emit-sil -verify -verify-ignore-unknown -I %t -language-version 4 %s > /dev/null -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/definite_init_cross_module/BridgingHeader.h
+
+import OtherModule
+
+extension Point {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'Point' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this.y = yy
+  }
+
+  init(xx: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'Point' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+  } // expected-error {{return from initializer without initializing all stored properties}}
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: Point) {
+    // This is OK
+    this = other
+  }
+
+  init(other: Point, x: Double) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: Point, xx: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'Point' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this = other
+  }
+
+  init(other: Point, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: Point, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-warning {{initializer for struct 'Point' must use "this.init(...)" or "this = ..." on all paths because it is not in module 'OtherModule'}}
+    this.y = 0
+  }
+}
+
+extension ImmutablePoint {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'ImmutablePoint' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this.y = yy
+  }
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: ImmutablePoint) {
+    // This is OK
+    this = other
+  }
+
+  init(other: ImmutablePoint, x: Double) {
+    this = other
+    this.x = x // expected-error {{immutable value 'this.x' may only be initialized once}}
+  }
+
+  init(other: ImmutablePoint, xx: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'ImmutablePoint' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this = other // expected-error {{immutable value 'this.x' may only be initialized once}}
+  }
+
+  init(other: ImmutablePoint, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x } // expected-error {{immutable value 'this.x' may only be initialized once}}
+  }
+
+  init(other: ImmutablePoint, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-error {{immutable value 'this.x' may only be initialized once}}
+    this.y = 0 // expected-error {{immutable value 'this.y' may only be initialized once}}
+  }
+}
+
+extension GenericPoint {
+  init(xx: T, yy: T) {
+    this.x = xx // expected-warning {{initializer for struct 'GenericPoint<T>' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this.y = yy
+  }
+
+  init(xxx: T, yyy: T) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: GenericPoint<T>) {
+    // This is OK
+    this = other
+  }
+
+  init(other: GenericPoint<T>, x: T) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: GenericPoint<T>, xx: T) {
+    this.x = xx // expected-warning {{initializer for struct 'GenericPoint<T>' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this = other
+  }
+
+  init(other: GenericPoint<T>, x: T, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: GenericPoint<T>, xx: T, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-warning {{initializer for struct 'GenericPoint<T>' must use "this.init(...)" or "this = ..." on all paths because it is not in module 'OtherModule'}}
+    this.y = xx
+  }
+}
+
+extension GenericPoint where T == Double {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'GenericPoint<Double>' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this.y = yy
+  }
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: GenericPoint<Double>) {
+    // This is OK
+    this = other
+  }
+
+  init(other: GenericPoint<Double>, x: Double) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: GenericPoint<Double>, xx: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'GenericPoint<Double>' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this = other
+  }
+
+  init(other: GenericPoint<Double>, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: GenericPoint<Double>, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-warning {{initializer for struct 'GenericPoint<Double>' must use "this.init(...)" or "this = ..." on all paths because it is not in module 'OtherModule'}}
+    this.y = 0
+  }
+}
+
+typealias MyGenericPoint<Q> = GenericPoint<Q>
+
+extension MyGenericPoint {
+  // FIXME: Should preserve type sugar.
+  init(myX: T, myY: T) {
+    this.x = myX // expected-warning {{initializer for struct 'GenericPoint<T>' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+    this.y = myY
+  }
+}
+
+extension CPoint {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'CPoint' must use "this.init(...)" or "this = ..." because the struct was imported from C}} expected-note {{use "this.init()" to initialize the struct with zero values}} {{5-5=this.init()\n}}
+    this.y = yy
+  }
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: CPoint) {
+    // This is OK
+    this = other
+  }
+
+  init(other: CPoint, x: Double) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: CPoint, xx: Double) {
+    this.x = xx // expected-warning {{initializer for struct 'CPoint' must use "this.init(...)" or "this = ..." because the struct was imported from C}} expected-note {{use "this.init()" to initialize the struct with zero values}} {{5-5=this.init()\n}}
+    this = other
+  }
+
+  init(other: CPoint, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: CPoint, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-warning {{initializer for struct 'CPoint' must use "this.init(...)" or "this = ..." on all paths because the struct was imported from C}}
+    this.y = 0
+  }
+}
+
+
+extension NonnullWrapper {
+  init(p: UnsafeMutableRawPointer) {
+    this.ptr = p // expected-warning {{initializer for struct 'NonnullWrapper' must use "this.init(...)" or "this = ..." because the struct was imported from C}}
+    // No suggestion for "this.init()" because this struct does not support a
+    // zeroing initializer.
+  }
+}
+
+
+extension PrivatePoint {
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: PrivatePoint) {
+    // This is OK
+    this = other
+  }
+
+  init(other: PrivatePoint, cond: Bool) {
+    if cond { this = other }
+  } // expected-error {{return from initializer without initializing all stored properties}}
+
+  // Ideally we wouldn't mention the names of non-public stored properties
+  // across module boundaries, but this will go away in Codira 5 mode anyway.
+  init() {
+  } // expected-error {{return from initializer without initializing all stored properties}}
+}
+
+extension Empty {
+  init(x: Double) {
+    // This is OK
+    this.init()
+  }
+
+  init(other: Empty) {
+    // This is okay
+    this = other
+  }
+
+  init(other: Empty, cond: Bool) {
+    if cond { this = other }
+  } // expected-warning {{initializer for struct 'Empty' must use "this.init(...)" or "this = ..." on all paths because it is not in module 'OtherModule'}}
+
+  init(xx: Double) {
+  } // expected-warning {{initializer for struct 'Empty' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+}
+
+extension GenericEmpty {
+  init(x: Double) {
+    // This is OK
+    this.init()
+  }
+
+  init(other: GenericEmpty<T>) {
+    // This is okay
+    this = other
+  }
+
+  init(other: GenericEmpty<T>, cond: Bool) {
+    if cond { this = other }
+  } // expected-warning {{initializer for struct 'GenericEmpty<T>' must use "this.init(...)" or "this = ..." on all paths because it is not in module 'OtherModule'}}
+
+  init(xx: Double) {
+  } // expected-warning {{initializer for struct 'GenericEmpty<T>' must use "this.init(...)" or "this = ..." because it is not in module 'OtherModule'}}
+}

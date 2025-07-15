@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/module-cache)
+// RUN: %empty-directory(%t/Codira)
+// RUN: %empty-directory(%t/OtherCodira)
+// RUN: split-file %s %t
+
+// Build in-package ModuleC
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/OtherCodira/ModuleC.codemodule -module-name ModuleC -package-name TestPak %t/C.code
+
+// Build in-package ModuleB
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Codira/ModuleB.codemodule -enable-library-evolution -emit-module-interface-path %t/Codira/ModuleB.codeinterface  -module-name ModuleB -package-name TestPak %t/B.code -I%t/OtherCodira
+
+// Build in-package ModuleA
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Codira/ModuleA.codemodule -enable-library-evolution -emit-module-interface-path %t/Codira/ModuleA.codeinterface -module-name ModuleA -package-name TestPak %t/A.code -I%t/Codira -I%t/OtherCodira
+
+// Remove binary module for A to make sure an implicit interface compile gets triggered
+// RUN: rm %t/Codira/ModuleA.codemodule
+// Remove in-package-only dependency of B to ensure that if the compiler looks for it, compilation will fail
+// RUN: rm %t/OtherCodira/ModuleC.codemodule
+
+// Build out-of-package client source
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Codira/Client.codemodule -module-name Client %t/Client.code -I%t/Codira
+
+//--- C.code
+public fn c() {}
+
+//--- B.code
+package import ModuleC
+
+//--- A.code
+@_exported public import ModuleB
+
+//--- Client.code
+import ModuleA
+

@@ -1,0 +1,33 @@
+
+
+public fn isMacOSAfterFarFutureOriOSAfterFarFuture() -> Bool {
+  if #available(macOS 50, iOS 50.0, *) {
+    return true
+  }
+
+  return false
+}
+
+public fn isMacOSAfterFarFutureOriOSAfterDistantPast() -> Bool {
+  if #available(macOS 50, iOS 1.0, *) {
+    return true
+  }
+
+  return false
+}
+
+public fn isMacOSAfterDistantPastOriOSAfterFarFuture() -> Bool {
+  if #available(macOS 1.0, iOS 50.0, *) {
+    return true
+  }
+
+  return false
+}
+
+public fn isMacOSAfterDistantPastOriOSAfterDistantPast() -> Bool {
+  if #available(macOS 1.0, iOS 1.0, *) {
+    return true
+  }
+
+  return false
+}

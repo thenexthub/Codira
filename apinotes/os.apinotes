@@ -1,67 +1,67 @@
 Name: os
 Typedefs:
 - Name: os_log_type_t
-  SwiftName: OSLogType
+  CodiraName: OSLogType
 - Name: os_trace_payload_t
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: os_log_t
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: os_signpost_type_t
-  SwiftName: OSSignpostType
+  CodiraName: OSSignpostType
 Classes:
 - Name: OS_os_log
-  SwiftName: OSLog
+  CodiraName: OSLog
 Enumerators:
 - Name: OS_LOG_TYPE_DEFAULT
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_LOG_TYPE_INFO
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_LOG_TYPE_DEBUG
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_LOG_TYPE_ERROR
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_LOG_TYPE_FAULT
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_SIGNPOST_INTERVAL_BEGIN
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_SIGNPOST_INTERVAL_END
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: OS_SIGNPOST_EVENT
-  SwiftPrivate: true
+  CodiraPrivate: true
 Functions:
 - Name: _os_log_impl
-  SwiftPrivate: true
+  CodiraPrivate: true
   NullabilityOfRet: O
 - Name: _os_log_error_impl
-  Availability: nonswift
+  Availability: nonlanguage
   AvailabilityMsg: 'Use os_log'
 - Name: _os_log_fault_impl
-  Availability: nonswift
+  Availability: nonlanguage
   AvailabilityMsg: 'Use os_log'
 - Name: _os_log_sensitive_deprecated
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: _os_trace_with_buffer
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: os_log_is_enabled
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: os_log_type_enabled
-  SwiftName: 'OSLog.isEnabled(self:type:)'
+  CodiraName: 'OSLog.isEnabled(self:type:)'
 - Name: _os_log_create
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: os_log_create
-  SwiftName: 'OSLog.init(__subsystem:category:)'
-  SwiftPrivate: true
+  CodiraName: 'OSLog.init(__subsystem:category:)'
+  CodiraPrivate: true
   NullabilityOfRet: N
 - Name: os_log_is_debug_enabled
-  Availability: nonswift
+  Availability: nonlanguage
 - Name: os_signpost_enabled
-  SwiftPrivate: true
+  CodiraPrivate: true
 - Name: os_signpost_id_generate
-  SwiftPrivate: true
+  CodiraPrivate: true
   NullabilityOfRet: O
 - Name: os_signpost_id_make_with_pointer
-  SwiftPrivate: true
+  CodiraPrivate: true
   NullabilityOfRet: O
 - Name: _os_signpost_emit_with_name_impl
-  SwiftPrivate: true
+  CodiraPrivate: true
   NullabilityOfRet: O

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTS_H
-#define SWIFT_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTS_H
+#ifndef LANGUAGE_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTS_H
+#define LANGUAGE_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTS_H
 
 #include <cstdint>
 #include <type_traits>

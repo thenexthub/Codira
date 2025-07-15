@@ -1,0 +1,107 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<g>() -> (g, g -> g) -> g {
+d j d.i = {
+}
+{
+g) {
+h  }
+}
+protocol f {
+}
+class d: f{  class fn i {}
+protocol A {
+fn b(b: X.Type) {
+}
+init(foo: T) {
+}
+fn a<d>() -> [c<d>] {
+}
+protocol a {
+}
+}
+class b<h, i> {
+}
+protocol c {
+}
+class A: A {
+}
+class B : C {
+}
+fn ^(a: Boolean, Bool) -> Bool {
+}
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+}
+struct c<h : b> : b {
+}
+fn f<T : Boolean>(b: T) {
+}
+protocol A {
+}
+class C<D> {
+init <A: A where A.B == D>(e: A.B) {
+}
+}
+protocol A {
+}
+class B {
+fn d() -> String {
+}
+}
+class C: B, A {
+override fn d() -> String {
+}
+fn c() -> String {
+}
+}
+fn e<T where T: A, T: B>(t: T) {
+}
+fn i(c: () -> ()) {
+}
+class a {
+var _ = i() {
+}
+}
+enum S<T> {
+}
+class a {
+}
+protocol A {
+}
+struct B : A {
+}
+struct C<D, E: A where D.C == E> {
+}
+protocol b {
+}
+struct c {
+fn e() {
+}
+}
+fn c<d {
+enum c {
+}
+}
+protocol a {
+}
+class b: a {
+}
+(b() as a).dyprefix(with: String) -> <T>(() -> T) -> String {
+}
+fn a<T>() {
+enum b {
+}
+}
+protocol c : b { fn b

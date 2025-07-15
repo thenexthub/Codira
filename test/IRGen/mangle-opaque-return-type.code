@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-module -enable-library-evolution -emit-module-path=%t/A.codemodule -module-name=A %S/Inputs/mangle-opaque-return-types-A.code
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -emit-ir  %s
+import A
+
+public struct C<T, Content: Proto> {
+  immutable data: T
+  immutable content: Content
+
+  init(_ t: T, _ c: Content) {
+    data = t
+    content = c
+  }
+
+  public var dontCrash : some Proto {
+    return Group(Choice(content, EmptyProto().add()))
+  }
+}
+

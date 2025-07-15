@@ -1,0 +1,43 @@
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-build-language -emit-module -module-name Module %S/Inputs/loaded_module_trace_empty.code -o %t/Module.codemodule -module-cache-path %t/cache
+// RUN: %target-build-language -emit-module -module-name Module2 %S/Inputs/loaded_module_trace_imports_module.code -o %t/Module2.codemodule -I %t -module-cache-path %t/cache
+// RUN: %target-build-language -emit-library -module-name Plugin %S/Inputs/loaded_module_trace_compiler_plugin.code -o %t/%target-library-name(Plugin) -module-cache-path %t/cache
+// RUN: %target-build-language %s -emit-loaded-module-trace -o %t/loaded_module_trace -I %t -module-cache-path %t/cache -load-plugin-library %t/%target-library-name(Plugin)
+// RUN: %FileCheck -check-prefix=CHECK %s < %t/loaded_module_trace.trace.json
+// RUN: %FileCheck -check-prefix=CHECK-CONFIRM-ONELINE %s < %t/loaded_module_trace.trace.json
+
+// CHECK: {
+// CHECK: "version":2
+// CHECK: "name":"loaded_module_trace"
+// CHECK: "arch":"{{[^"]*}}"
+// CHECK: "languageMode":"4"
+// CHECK: "strictMemorySafety":false
+// CHECK: "languagemodules":[
+// CHECK-DAG: "{{[^"]*\\[/\\]}}Module2.codemodule"
+// CHECK-DAG: "{{[^"]*\\[/\\]}}Codira.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "{{[^"]*\\[/\\]}}CodiraOnoneSupport.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "{{[^"]*\\[/\\]}}Module.codemodule"
+// CHECK: ]
+
+// The checks are compressed into one line as the order of the objects varies
+// between OSes due to change in filepaths.
+
+// CHECK: "languagemodulesDetailedInfo":[
+// CHECK-DAG: {"name":"Module2","path":"{{[^"]*\\[/\\]}}Module2.codemodule","isImportedDirectly":true,"supportsLibraryEvolution":false,"strictMemorySafety":false}
+// CHECK-DAG: {"name":"Codira","path":"{{[^"]*\\[/\\]}}Codira.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}","isImportedDirectly":true,"supportsLibraryEvolution":true,"strictMemorySafety":true}
+// CHECK-DAG: {"name":"CodiraOnoneSupport","path":"{{[^"]*\\[/\\]}}CodiraOnoneSupport.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}","isImportedDirectly":true,"supportsLibraryEvolution":true,"strictMemorySafety":true}
+// CHECK-DAG: {"name":"Module","path":"{{[^"]*\\[/\\]}}Module.codemodule","isImportedDirectly":false,"supportsLibraryEvolution":false,"strictMemorySafety":false}
+// CHECK: ],
+// CHECK: "languagemacros":[
+// CHECK-DAG: {"name":"Plugin","path":"{{[^"]*\\[/\\]}}{{libPlugin.dylib|libPlugin.so|Plugin.dll}}"}
+// CHECK: ]
+// CHECK: }
+
+// Make sure it's all on a single line.
+// CHECK-CONFIRM-ONELINE: {"name":{{.*}}]}
+
+import Module2
+
+@freestanding(expression) macro echo<T>(_: T) -> T = #externalMacro(module: "Plugin", type: "EchoMacro")

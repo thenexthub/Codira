@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Change aggregate values into scalar values. Currently it takes every
@@ -20,7 +21,7 @@
 
 #define DEBUG_TYPE "sil-sroa"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Range.h"
 #include "language/SIL/DebugUtils.h"
 #include "language/SIL/Projection.h"
@@ -31,9 +32,9 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Debug.h"
 #include <type_traits>
 
 using namespace language;
@@ -50,11 +51,11 @@ class SROAMemoryUseAnalyzer {
   AllocStackInst *AI;
 
   // Loads from AI.
-  llvm::SmallVector<LoadInst *, 4> Loads;
+  toolchain::SmallVector<LoadInst *, 4> Loads;
   // Stores to AI.
-  llvm::SmallVector<StoreInst *, 4> Stores;
+  toolchain::SmallVector<StoreInst *, 4> Stores;
   // Instructions which extract from aggregates.
-  llvm::SmallVector<SingleValueInstruction *, 4> ExtractInsts;
+  toolchain::SmallVector<SingleValueInstruction *, 4> ExtractInsts;
 
   // TupleType if we are visiting a tuple.
   TupleType *TT = nullptr;
@@ -72,7 +73,7 @@ private:
   SILValue createAgg(SILBuilder &B, SILLocation Loc, SILType Ty,
                      ArrayRef<SILValue> Elements);
   unsigned getEltNoForProjection(SILInstruction *Inst);
-  void createAllocas(llvm::SmallVector<AllocStackInst *, 4> &NewAllocations);
+  void createAllocas(toolchain::SmallVector<AllocStackInst *, 4> &NewAllocations);
 };
 
 } // end anonymous namespace
@@ -103,7 +104,7 @@ unsigned SROAMemoryUseAnalyzer::getEltNoForProjection(SILInstruction *Inst) {
       return EltNo;
     ++EltNo;
   }
-  llvm_unreachable("Unknown field.");
+  toolchain_unreachable("Unknown field.");
 }
 
 bool SROAMemoryUseAnalyzer::analyze() {
@@ -127,13 +128,13 @@ bool SROAMemoryUseAnalyzer::analyze() {
   // Go through uses of the memory allocation of AI...
   for (auto *Operand : getNonDebugUses(SILValue(AI))) {
     SILInstruction *User = Operand->getUser();
-    LLVM_DEBUG(llvm::dbgs() << "    Visiting use: " << *User);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Visiting use: " << *User);
 
     // If we store the alloca pointer, we cannot analyze its uses so bail...
     // It is ok if we store into the alloca pointer though.
     if (auto *SI = dyn_cast<StoreInst>(User)) {
       if (SI->getDest() == AI) {
-        LLVM_DEBUG(llvm::dbgs() << "        Found a store into the "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a store into the "
                                    "projection.\n");
         Stores.push_back(SI);
         SILValue Src = SI->getSrc();
@@ -141,7 +142,7 @@ bool SROAMemoryUseAnalyzer::analyze() {
           hasBenefit = true;
         continue;
       } else {
-        LLVM_DEBUG(llvm::dbgs() << "        Found a store of the "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a store of the "
                                    "projection pointer. Escapes!.\n");
         ++NumEscapingAllocas;
         return false;
@@ -150,7 +151,7 @@ bool SROAMemoryUseAnalyzer::analyze() {
 
     // If the use is a load, keep track of it for splitting later...
     if (auto *LI = dyn_cast<LoadInst>(User)) {
-      LLVM_DEBUG(llvm::dbgs() << "        Found a load of the projection.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a load of the projection.\n");
       Loads.push_back(LI);
       for (auto useIter = LI->use_begin(), End = LI->use_end();
            !hasBenefit && useIter != End; ++useIter) {
@@ -163,7 +164,7 @@ bool SROAMemoryUseAnalyzer::analyze() {
     // If the use is a struct_element_addr, add it to the worklist so we check
     // if it or one of its descendants escape.
     if (auto *ASI = dyn_cast<StructElementAddrInst>(User)) {
-      LLVM_DEBUG(llvm::dbgs() << "        Found a struct subprojection!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a struct subprojection!\n");
       ExtractInsts.push_back(ASI);
       hasBenefit = true;
       continue;
@@ -172,7 +173,7 @@ bool SROAMemoryUseAnalyzer::analyze() {
     // If the use is a tuple_element_addr, add it to the worklist so we check
     // if it or one of its descendants escape.
     if (auto *TSI = dyn_cast<TupleElementAddrInst>(User)) {
-      LLVM_DEBUG(llvm::dbgs() << "        Found a tuple subprojection!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found a tuple subprojection!\n");
       ExtractInsts.push_back(TSI);
       hasBenefit = true;
       continue;
@@ -184,7 +185,7 @@ bool SROAMemoryUseAnalyzer::analyze() {
     }
     
     // Otherwise we do not understand this instruction, so bail.
-    LLVM_DEBUG(llvm::dbgs() <<"        Found unknown user, pointer escapes!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() <<"        Found unknown user, pointer escapes!\n");
     ++NumEscapingAllocas;
     return false;
   }
@@ -196,7 +197,7 @@ bool SROAMemoryUseAnalyzer::analyze() {
 
 void
 SROAMemoryUseAnalyzer::
-createAllocas(llvm::SmallVector<AllocStackInst *, 4> &NewAllocations) {
+createAllocas(toolchain::SmallVector<AllocStackInst *, 4> &NewAllocations) {
   SILBuilderWithScope B(AI);
   SILType Type = AI->getType().getObjectType();
   std::optional<SILDebugVariable> AIDebugVarInfo =
@@ -237,7 +238,7 @@ createAllocas(llvm::SmallVector<AllocStackInst *, 4> &NewAllocations) {
 
 void SROAMemoryUseAnalyzer::chopUpAlloca(std::vector<AllocStackInst *> &Worklist) {
   // Create allocations for this instruction.
-  llvm::SmallVector<AllocStackInst *, 4> NewAllocations;
+  toolchain::SmallVector<AllocStackInst *, 4> NewAllocations;
   createAllocas(NewAllocations);
   // Add the new allocations to the worklist for recursive processing.
   //
@@ -249,7 +250,7 @@ void SROAMemoryUseAnalyzer::chopUpAlloca(std::vector<AllocStackInst *> &Worklist
   // Change any aggregate loads into field loads + aggregate structure.
   for (auto *LI : Loads) {
     SILBuilderWithScope B(LI);
-    llvm::SmallVector<SILValue, 4> Elements;
+    toolchain::SmallVector<SILValue, 4> Elements;
     for (auto *NewAI : NewAllocations) {
       Elements.push_back(B.emitLoadValueOperation(LI->getLoc(), NewAI,
                                                   LI->getOwnershipQualifier()));
@@ -282,7 +283,7 @@ void SROAMemoryUseAnalyzer::chopUpAlloca(std::vector<AllocStackInst *> &Worklist
   }
 
   // Find all dealloc instructions for AI and then chop them up.
-  llvm::SmallVector<SILInstruction *, 4> ToRemove;
+  toolchain::SmallVector<SILInstruction *, 4> ToRemove;
   for (auto *Operand : getNonDebugUses(SILValue(AI))) {
     SILInstruction *User = Operand->getUser();
     SILBuilderWithScope B(User);
@@ -290,9 +291,9 @@ void SROAMemoryUseAnalyzer::chopUpAlloca(std::vector<AllocStackInst *> &Worklist
     // If the use is a DSI, add it to our memory analysis so that if we can chop
     // up allocas, we also chop up the relevant dealloc stack insts.
     if (auto *DSI = dyn_cast<DeallocStackInst>(User)) {
-      LLVM_DEBUG(llvm::dbgs() << "        Found DeallocStackInst!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found DeallocStackInst!\n");
       // Create the allocations in reverse order.
-      for (auto *NewAI : llvm::reverse(NewAllocations))
+      for (auto *NewAI : toolchain::reverse(NewAllocations))
         B.createDeallocStack(DSI->getLoc(), SILValue(NewAI));
       ToRemove.push_back(DSI);
     }
@@ -391,7 +392,7 @@ public:
   void run() override {
     SILFunction *F = getFunction();
 
-    LLVM_DEBUG(llvm::dbgs() << "***** SROA on function: " << F->getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** SROA on function: " << F->getName()
                             << " *****\n");
 
     if (runSROAOnFunction(*F, splitSemanticTypes))
@@ -402,10 +403,10 @@ public:
 } // end anonymous namespace
 
 
-SILTransform *swift::createSROA() {
+SILTransform *language::createSROA() {
   return new SILSROA(/*splitSemanticTypes*/ true);
 }
 
-SILTransform *swift::createEarlySROA() {
+SILTransform *language::createEarlySROA() {
   return new SILSROA(/*splitSemanticTypes*/ false);
 }

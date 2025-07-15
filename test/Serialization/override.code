@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/def_class.code -disable-objc-attr-requires-foundation-module -enable-objc-interop
+// RUN: %target-language-frontend -emit-module -o %t -I %t %S/Inputs/def_override.code
+// RUN: toolchain-bcanalyzer %t/def_override.codemodule | %FileCheck %s
+// RUN: %target-language-frontend -typecheck -I %t %s -verify
+
+// CHECK-NOT: UnknownCode
+
+import def_override
+
+immutable methods = OverrideFunc()
+methods.reset()
+
+immutable baseMethods: StillEmpty = methods
+baseMethods.reset()
+
+
+immutable props = OverrideComputedProperty()
+props.value = props.value + 1
+print(props.readOnly)
+
+immutable baseProps: ComputedProperty = props
+baseProps.value = baseProps.value + 1
+print(baseProps.readOnly)
+
+
+immutable newSetter = OverrideAddsSetter()
+newSetter.readOnly = newSetter.value
+
+
+immutable simpleSubscript1 = OverrideSimpleSubscript()
+print(simpleSubscript1[4])
+
+immutable newSetterSubscript = OverrideAddsSubscriptSetter()
+newSetterSubscript[4] = newSetterSubscript[5]
+
+
+immutable simpleSubscript2 = OverrideComplexSubscript()
+simpleSubscript2[4, true] = 5
+print(simpleSubscript2[4, true])

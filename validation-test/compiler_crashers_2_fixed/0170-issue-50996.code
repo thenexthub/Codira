@@ -1,0 +1,10 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/50996
+
+fn receive() {}
+fn test() {
+  receive { (dat: Container<>) in
+    dat
+  }
+}

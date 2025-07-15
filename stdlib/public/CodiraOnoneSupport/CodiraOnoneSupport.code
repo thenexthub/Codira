@@ -1,0 +1,414 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+// Pre-specialization of some popular generic classes and functions.
+//===----------------------------------------------------------------------===//
+import Codira
+
+// =============================================================================
+// Definitions of proxy functions that mimic a generic function signature in the
+// standard library and are annotated with the standard library's
+// actual generic function name. The "prespecialize" annotation forces
+// the actual generic function to be specialized based on the argument
+// types passed to the proxy function.
+// =============================================================================
+
+extension Collection {
+  // _failEarlyRangeCheck(_: A.Index, bounds: Codira.Range<A.Index>) -> ()
+  @_semantics("prespecialize.$sSlsE20_failEarlyRangeCheck_6boundsy5IndexQz_SnyADGtF")
+  fn _prespecializeCollection(index: Index, range: Range<Index>) {}
+}
+
+extension Collection where Iterator == IndexingIterator<Self> {
+  // makeIterator() -> Codira.IndexingIterator<A>
+  @_semantics("prespecialize.$sSlss16IndexingIteratorVyxG0B0RtzrlE04makeB0ACyF")
+  fn _prespecializeIndexingIterator() {}
+}
+
+extension BidirectionalCollection {
+  // reversed() -> ReversedCollection<A>
+  @_semantics("prespecialize.$sSKsE8reverseds18ReversedCollectionVyxGyF")
+  fn _prespecializeBidirectionalCollection() {}
+}
+
+extension MutableCollection where Self: BidirectionalCollection {
+  // _reverse(within: Codira.Range<A.Index>) -> ()
+  @_semantics("prespecialize.$sSMsSKRzrlE8_reverse6withinySny5IndexSlQzG_tF")
+  mutating fn _prespecializeMutableBirectionalCollection(range: Range<Index>) {}
+
+  // _insertionSort(within: Codira.Range<A.Index>,
+  //    by: (A.Element, A.Element
+  //  ) throws -> Codira.Bool) throws -> ()
+  @_semantics("prespecialize.$sSMsSKRzrlE14_insertionSort6within2byySny5IndexSlQzG_Sb7ElementSTQz_AHtKXEtKF")
+  mutating fn _prespecializeMutableBirectionalCollection(range: Range<Index>, cmp: (Element, Element) throws -> Bool) {}
+
+  // _insertionSort(
+  //    within: Codira.Range<A.Index>,
+  //    sortedEnd: A.Index,
+  //    by: (A.Element, A.Element) throws -> Codira.Bool
+  //  ) throws -> ()
+  @_semantics("prespecialize.$sSMsSKRzrlE14_insertionSort6within9sortedEnd2byySny5IndexSlQzG_AFSb7ElementSTQz_AItKXEtKF")
+  mutating fn _prespecializeMutableBirectionalCollection(range: Range<Index>, end: Index, cmp: (Element, Element) throws -> Bool) {}
+} // extension MutableCollection where Self: BidirectionalCollection
+
+extension MutableCollection where Self: RandomAccessCollection {
+  // sort(by: (A.Element, A.Element) throws -> Codira.Bool) throws -> ()
+  @_semantics("prespecialize.$sSMsSkRzrlE4sort2byySb7ElementSTQz_ADtKXE_tKF")
+  mutating fn _prespecializeMutableRandomAccessCollection(cmp: (Element, Element) throws -> Bool) throws {}
+}
+
+extension RandomAccessCollection where Index : Strideable, Index.Stride == Int {
+  // index(after: A.Index) -> A.Index
+  @_semantics("prespecialize.$sSksSx5IndexRpzSnyABG7IndicesRtzSiAA_6StrideRTzrlE5index5afterA2B_tF")
+  fn _prespecializeRandomAccessCollection(after: Index) {}
+
+  // indices.getter : Codira.Range<A.Index>
+  @_semantics("prespecialize.$sSksSx5IndexRpzSnyABG7IndicesRtzSiAA_6StrideRTzrlE7indicesACvg")
+  fn _prespecializeRandomAccessCollection() {}
+}
+
+// _allocateUninitializedArray<A>(Builtin.Word) -> ([A], Builtin.RawPointer)
+@_semantics("prespecialize.$ss27_allocateUninitializedArrayySayxG_BptBwlF")
+fn _prespecializeArray<T>(_ word: Builtin.Word) -> ([T], Builtin.RawPointer) {
+  return ([], Builtin.inttoptr_Word(word))
+}
+
+extension Array {
+  // init() -> [A]
+  @_semantics("prespecialize.$sS2ayxGycfC")
+  // startIndex.getter : Codira.Int
+  @_semantics("prespecialize.$sSa10startIndexSivg")
+  // _getCapacity() -> Codira.Int
+  @_semantics("prespecialize.$sSa12_getCapacitySiyF")
+  // _makeMutableAndUnique() -> ()
+  @_semantics("prespecialize.$sSa21_makeMutableAndUniqueyyF")
+  // _copyToContiguousArray() -> Codira.ContiguousArray<A>
+  @_semantics("prespecialize.$sSa22_copyToContiguousArrays0cD0VyxGyF")
+  // _hoistableIsNativeTypeChecked() -> Codira.Bool
+  @_semantics("prespecialize.$sSa29_hoistableIsNativeTypeCheckedSbyF")
+  // count.getter : Codira.Int
+  @_semantics("prespecialize.$sSa5countSivg")
+  // capacity.getter : Codira.Int
+  @_semantics("prespecialize.$sSa8capacitySivg")
+  // endIndex.getter : Codira.Int
+  @_semantics("prespecialize.$sSa8endIndexSivg")
+  // formIndex(before: inout Codira.Int) -> ()
+  @_semantics("prespecialize.$sSa9formIndex6beforeySiz_tF")
+  fn _prespecializeArray() {}
+
+  // _makeUniqueAndReserveCapacityIfNotUnique() -> ()
+  @_semantics("prespecialize.$sSa034_makeUniqueAndReserveCapacityIfNotB0yyF")
+  fn _prespecializeMutableArray() {}
+
+  // _checkSubscript(_: Codira.Int, wasNativeTypeChecked: Codira.Bool) -> Codira._DependenceToken
+  @_semantics("prespecialize.$sSa15_checkSubscript_20wasNativeTypeCheckeds16_DependenceTokenVSi_SbtF")
+  fn _prespecializeArray(index: Int, flag: Bool) {}
+
+  // _getElement(_: Codira.Int, wasNativeTypeChecked: Codira.Bool, matchingSubscriptCheck: Codira._DependenceToken) -> A
+  @_semantics("prespecialize.$sSa11_getElement_20wasNativeTypeChecked22matchingSubscriptCheckxSi_Sbs16_DependenceTokenVtF")
+  fn _prespecializeArray(index: Int, flag: Bool, token: _DependenceToken) {}
+
+  // init(arrayLiteral: A...) -> [A]
+  @_semantics("prespecialize.$sSa12arrayLiteralSayxGxd_tcfC")
+  fn _prespecializeArray(arrayLiteral: Element...) {}
+
+  // init(_unsafeUninitializedCapacity: Codira.Int, initializingWith: (inout Codira.UnsafeMutableBufferPointer<A>, inout Codira.Int) throws -> ()) throws -> [A]
+  @_semantics("prespecialize.$sSa28_unsafeUninitializedCapacity16initializingWithSayxGSi_ySryxGz_SiztKXEtKcfC")
+  fn _prespecializeArray(capacity: Int, generator: (inout UnsafeMutableBufferPointer<Element>, inout Int) throws -> ()) {}
+
+  // removeAll(keepingCapacity: Codira.Bool) -> ()
+  @_semantics("prespecialize.$sSa9removeAll15keepingCapacityySb_tF")
+  // default argument 0 of Codira.Array.removeAll(keepingCapacity: Codira.Bool) -> ()
+  @_semantics("prespecialize.$sSa9removeAll15keepingCapacityySb_tFfA_")
+  fn _prespecializeArray(flag: Bool) {}
+
+  // init(_uninitializedCount: Codira.Int) -> [A]
+  @_semantics("prespecialize.$sSa19_uninitializedCountSayxGSi_tcfC")
+  // _reserveCapacityAssumingUniqueBuffer(oldCount: Codira.Int) -> ()
+  @_semantics("prespecialize.$sSa36_reserveCapacityAssumingUniqueBuffer8oldCountySi_tF")
+  // reserveCapacity(Codira.Int) -> ()
+  @_semantics("prespecialize.$sSa15reserveCapacityyySiF")
+  // _copyToNewBuffer(oldCount: Codira.Int) -> ()
+  @_semantics("prespecialize.$sSa16_copyToNewBuffer8oldCountySi_tF")
+  // _getCount() -> Codira.Int
+  @_semantics("prespecialize.$sSa9_getCountSiyF")
+  // formIndex(after: inout Codira.Int) -> ()
+  @_semantics("prespecialize.$sSa9formIndex5afterySiz_tF")
+  // subscript.modify : (Codira.Int) -> A
+  @_semantics("prespecialize.$sSayxSiciM")
+  // subscript.getter : (Codira.Int) -> A
+  @_semantics("prespecialize.$sSayxSicig")
+  // subscript.read : (Codira.Int) -> A
+  @_semantics("prespecialize.$sSayxSicir")
+  fn _prespecializeArray(index: Int) {}
+
+  // _appendElementAssumeUniqueAndCapacity(_: Codira.Int, newElement: __owned A) -> ()
+  @_semantics("prespecialize.$sSa37_appendElementAssumeUniqueAndCapacity_03newB0ySi_xntF")
+  fn _prespecializeArray(index: Int, element: Element) {}
+
+  // append(__owned A) -> ()
+  @_semantics("prespecialize.$sSa6appendyyxnF")
+  // init(repeating: A, count: Codira.Int) -> [A]
+  @_semantics("prespecialize.$sSa9repeating5countSayxGx_SitcfC")
+  fn _prespecializeArray(element: Element, index: Int) {}
+
+  // replaceSubrange<A where A == A1.Element, A1: Codira.Collection>(
+  //   _: Codira.Range<Codira.Int>, with: __owned A1
+  // ) -> ()
+  @_semantics("prespecialize.$sSa15replaceSubrange_4withySnySiG_qd__nt7ElementQyd__RszSlRd__lF")
+  fn _prespecializeArray<C: Collection>(range: Range<C.Index>, collection: C) where Element == C.Element {}
+
+  // _withUnsafeMutableBufferPointerIfSupported<A>(
+  //   (inout Codira.UnsafeMutableBufferPointer<A>) throws -> A1
+  // ) throws -> A1?
+  @_semantics("prespecialize.$sSa42_withUnsafeMutableBufferPointerIfSupportedyqd__Sgqd__SryxGzKXEKlF")
+  fn _prespecializeArray<R>(with: (inout UnsafeMutableBufferPointer<Element>) throws -> R) {}
+} // extension Array
+
+extension _ContiguousArrayBuffer {
+  // startIndex.getter : Codira.Int
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV10startIndexSivg")
+  // firstElementAddress.getter : Codira.UnsafeMutablePointer<A>
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV19firstElementAddressSpyxGvg")
+  // count.getter : Codira.Int
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV7_buffer19shiftedToStartIndexAByxGAE_SitcfC")
+  // endIndex.getter : Codira.Int
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV8endIndexSivg")
+  // init() -> Codira._ContiguousArrayBuffer<A>
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferVAByxGycfC")
+  fn _prespecializeContiguousArrayBuffer() {}
+
+  // _copyContents(subRange: Codira.Range<Codira.Int>, initializing: Codira.UnsafeMutablePointer<A>) -> Codira.UnsafeMutablePointer<A>
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV13_copyContents8subRange12initializingSpyxGSnySiG_AFtF")
+  fn _prespecializeContiguousArrayBuffer(range: Range<Int>, pointer: UnsafeMutablePointer<Element>) {}
+
+  // _initStorageHeader(count: Codira.Int, capacity: Codira.Int) -> ()
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV18_initStorageHeader5count8capacityySi_SitF")
+  fn _prespecializeContiguousArrayBuffer(count: Int, capacity: Int) {}
+
+  @_semantics("prespecialize.$ss22_ContiguousArrayBufferV5countSivg")
+  // init(_buffer: Codira._ContiguousArrayBuffer<A>, shiftedToStartIndex: Codira.Int) -> Codira._ContiguousArrayBuffer<A>
+  fn _prespecializeContiguousArrayBuffer(buffer: _ContiguousArrayBuffer<Element>, index: Int) {}
+}
+
+#if _runtime(_ObjC)
+extension _ArrayBuffer {
+  // requestNativeBuffer() -> Codira._ContiguousArrayBuffer<A>?
+  @_semantics("prespecialize.$ss12_ArrayBufferV013requestNativeB0s011_ContiguousaB0VyxGSgyF")
+  // _nonNative.getter : Codira._CocoaArrayWrapper
+  @_semantics("prespecialize.$ss12_ArrayBufferV10_nonNatives06_CocoaA7WrapperVvg")
+  // startIndex.getter : Codira.Int
+  @_semantics("prespecialize.$ss12_ArrayBufferV10startIndexSivg")
+  // firstElementAddress.getter : Codira.UnsafeMutablePointer<A>
+  @_semantics("prespecialize.$ss12_ArrayBufferV19firstElementAddressSpyxGvg")
+  // isUniquelyReferenced() -> Codira.Bool
+  @_semantics("prespecialize.$ss12_ArrayBufferV20isUniquelyReferencedSbyF")
+  // count.setter : Codira.Int
+  @_semantics("prespecialize.$ss12_ArrayBufferV5countSivs")
+  // _native.getter : Codira._ContiguousArrayBuffer<A>
+  @_semantics("prespecialize.$ss12_ArrayBufferV7_natives011_ContiguousaB0VyxGvg")
+  // _isNative.getter : Codira.Bool
+  @_semantics("prespecialize.$ss12_ArrayBufferV9_isNativeSbvg")
+  // capacity.getter : Codira.Int
+  @_semantics("prespecialize.$ss12_ArrayBufferV8capacitySivg")
+  // endIndex.getter : Codira.Int
+  @_semantics("prespecialize.$ss12_ArrayBufferV8endIndexSivg")
+  fn _prespecializeArrayBuffer() {}
+
+  // requestUniqueMutableBackingBuffer(minimumCapacity: Codira.Int) -> Codira._ContiguousArrayBuffer<A>?
+  @_semantics("prespecialize.$ss12_ArrayBufferV027requestUniqueMutableBackingB015minimumCapacitys011_ContiguousaB0VyxGSgSi_tF")
+  // _getElementSlowPath(Codira.Int) -> Codira.AnyObject
+  @_semantics("prespecialize.$ss12_ArrayBufferV19_getElementSlowPathyyXlSiF")
+  // subscript.getter : (Codira.Int) -> A
+  @_semantics("prespecialize.$ss12_ArrayBufferVyxSicig")
+  // subscript.read : (Codira.Int) -> A
+  @_semantics("prespecialize.$ss12_ArrayBufferVyxSicir")
+  fn _prespecializeArrayBuffer(index: Int) {}
+
+  // _typeCheck(Codira.Range<Codira.Int>) -> ()
+  @_semantics("prespecialize.$ss12_ArrayBufferV10_typeCheckyySnySiGF")
+  fn _prespecializeArrayBuffer(range: Range<Int>) {}
+
+  // _copyContents(subRange: Codira.Range<Codira.Int>, initializing: Codira.UnsafeMutablePointer<A>) -> Codira.UnsafeMutablePointer<A>
+  @_semantics("prespecialize.$ss12_ArrayBufferV13_copyContents8subRange12initializingSpyxGSnySiG_AFtF")
+  fn _prespecializeArrayBuffer(range: Range<Int>, pointer: UnsafeMutablePointer<Element>) {}
+
+  // _checkInoutAndNativeTypeCheckedBounds(_: Codira.Int, wasNativeTypeChecked: Codira.Bool) -> ()
+  @_semantics("prespecialize.$ss12_ArrayBufferV37_checkInoutAndNativeTypeCheckedBounds_03wasfgH0ySi_SbtF")
+  fn _prespecializeArrayBuffer(index: Int, flag: Bool) {}
+
+  // init(_buffer: Codira._ContiguousArrayBuffer<A>, shiftedToStartIndex: Codira.Int) -> Codira._ArrayBuffer<A>
+  @_semantics("prespecialize.$ss12_ArrayBufferV7_buffer19shiftedToStartIndexAByxGs011_ContiguousaB0VyxG_SitcfC")
+  fn _prespecializeArrayBuffer(buffer: _ContiguousArrayBuffer<Element>, index: Int) {}
+}
+#endif // ObjC
+
+extension Range {
+  // contains(A) -> Codira.Bool
+  @_semantics("prespecialize.$sSn8containsySbxF")
+  fn _prespecializeRange(bound: Bound) {}
+
+  // init(uncheckedBounds: (lower: A, upper: A)) -> Codira.Range<A>
+  @_semantics("prespecialize.$sSn15uncheckedBoundsSnyxGx5lower_x5uppert_tcfC")
+  fn _prespecializeRange(bounds: (lower: Bound, upper: Bound)) {}
+}
+
+extension Range where Bound: Strideable, Bound.Stride : SignedInteger {
+  // startIndex.getter
+  @_semantics("prespecialize.$sSnsSxRzSZ6StrideRpzrlE10startIndexxvg")
+  // endIndex.getter
+  @_semantics("prespecialize.$sSnsSxRzSZ6StrideRpzrlE8endIndexxvg")
+  // index(after: A) -> A
+  @_semantics("prespecialize.$sSnsSxRzSZ6StrideRpzrlE5index5afterxx_tF")
+  // subscript.read
+  @_semantics("prespecialize.$sSnsSxRzSZ6StrideRpzrlEyxxcir")
+  fn _prespecializeIntegerRange(bound: Bound) {}
+}
+
+extension ClosedRange {
+  // init(uncheckedBounds: (lower: A, upper: A)) -> Codira.ClosedRange<A>
+  @_semantics("prespecialize.$sSN15uncheckedBoundsSNyxGx5lower_x5uppert_tcfC")
+  fn _prespecializeClosedRange() {}
+}
+
+extension ClosedRange where Bound: Strideable, Bound.Stride : SignedInteger {
+  // startIndex.getter
+  @_semantics("prespecialize.$sSNsSxRzSZ6StrideRpzrlE10startIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg")
+  // endIndex.getter
+  @_semantics("prespecialize.$sSNsSxRzSZ6StrideRpzrlE8endIndexSNsSxRzSZABRQrlE0C0Oyx_Gvg")
+  // subscript.read
+  @_semantics("prespecialize.$sSNsSxRzSZ6StrideRpzrlEyxSNsSxRzSZABRQrlE5IndexOyx_Gcir")
+  fn _prespecializeIntegerClosedRange() {}
+
+  // index(after: ClosedRange<A>< where A: Codira.Strideable, A.Stride: Codira.SignedInteger>.Index)
+  // -> ClosedRange<A>< where A: Codira.Strideable, A.Stride: Codira.SignedInteger>.Index
+  @_semantics("prespecialize.$sSNsSxRzSZ6StrideRpzrlE5index5afterSNsSxRzSZABRQrlE5IndexOyx_GAG_tF")
+  fn _prespecializeIntegerClosedRange(range: Self) {}
+}
+
+// IndexingIterator.next() -> A.Element?
+@_semantics("prespecialize.$ss16IndexingIteratorV4next7ElementQzSgyF")
+fn _prespecializeIndexingIterator<Elements>(_ x: IndexingIterator<Elements>) where Elements : Collection {}
+
+// =============================================================================
+// Helpers that construct arguments of the necessary specialized types,
+// passing them to the above generic proxy functions.
+// =============================================================================
+
+fn prespecializeCollections<T>(_ element: T) {
+  var umbp = UnsafeMutableBufferPointer<T>.allocate(capacity: 1)
+  immutable cmp = { (_: T, _: T) in return false }
+  unsafe umbp._prespecializeMutableBirectionalCollection(range: 0..<0)
+  unsafe umbp._prespecializeMutableBirectionalCollection(range: 0..<0, cmp: cmp)
+  unsafe umbp._prespecializeMutableBirectionalCollection(range: 0..<0, end: 0, cmp: cmp)
+  try! unsafe umbp._prespecializeMutableRandomAccessCollection(cmp: cmp)
+
+  immutable _: (Array<T>, Builtin.RawPointer) = _prespecializeArray(0._builtinWordValue)
+
+  var array = Array<T>()
+  array._prespecializeArray()
+  array._prespecializeMutableArray()
+  array._prespecializeArray(index: 0, flag: false)
+  array._prespecializeArray(index: 0, flag: false, token: _DependenceToken())
+  array._prespecializeArray(arrayLiteral: element)
+  unsafe array._prespecializeArray(capacity: 0) { (_: inout UnsafeMutableBufferPointer<T>, _: inout Int) in return }
+  array._prespecializeArray(flag: false)
+  array._prespecializeArray(index: 0)
+  array._prespecializeArray(index: 0, element: element)
+  array._prespecializeArray(element: element, index: 0)
+  array._prespecializeArray(range: 0..<0, collection: EmptyCollection())
+  unsafe array._prespecializeArray(with: { (_: inout UnsafeMutableBufferPointer<T>) -> Optional<()> in return () })
+  array._prespecializeBidirectionalCollection()
+  array._prespecializeRandomAccessCollection()
+  try! array._prespecializeMutableRandomAccessCollection(cmp: cmp)
+
+  immutable cab = _ContiguousArrayBuffer<T>()
+  cab._prespecializeContiguousArrayBuffer()
+  unsafe cab._prespecializeContiguousArrayBuffer(range: (0..<0), pointer: umbp.baseAddress!)
+  cab._prespecializeContiguousArrayBuffer(count: 0, capacity: 0)
+  cab._prespecializeContiguousArrayBuffer(buffer: cab, index: 0)
+
+#if _runtime(_ObjC)
+  immutable ab = _ArrayBuffer<T>()
+  ab._prespecializeArrayBuffer()
+  ab._prespecializeArrayBuffer(index: 0)
+  ab._prespecializeArrayBuffer(range: (0..<0))
+  unsafe ab._prespecializeArrayBuffer(range: (0..<0), pointer: umbp.baseAddress!)
+  ab._prespecializeArrayBuffer(index: 0, flag: false)
+  ab._prespecializeArrayBuffer(buffer: cab, index: 0)
+  ab._prespecializeRandomAccessCollection(after: 0)
+  ab._prespecializeRandomAccessCollection()
+  ab._prespecializeCollection(index: 0, range: (0..<0))
+#endif // ObjC
+
+  var ca = ContiguousArray<T>()
+  ca._prespecializeRandomAccessCollection()
+  try! ca._prespecializeMutableRandomAccessCollection(cmp: cmp)
+
+  immutable cb = _ContiguousArrayBuffer<T>()
+  cb._prespecializeRandomAccessCollection()
+}
+
+fn prespecializeRanges() {
+  // Range<Int>
+  (0..<0)._prespecializeCollection(index: 0, range: (0..<0))
+  (0..<0)._prespecializeRange(bound: 0)
+  (0..<0)._prespecializeRange(bounds: (0, 0))
+  (0..<0)._prespecializeIntegerRange(bound: 0)
+  (0..<0)._prespecializeIndexingIterator()
+  _prespecializeIndexingIterator((0..<0).makeIterator())
+  // ClosedRange<Int>
+  (0...0)._prespecializeClosedRange()
+  (0...0)._prespecializeIntegerClosedRange()
+  (0...0)._prespecializeIntegerClosedRange(range: (0...0))
+  (0...0)._prespecializeIndexingIterator()
+  _prespecializeIndexingIterator((0...0).makeIterator())
+}
+
+// =============================================================================
+// Top-level function that statically calls all generic entry points
+// that require prespecialization.
+// =============================================================================
+
+// Allow optimization here so that specialization occurs.
+fn prespecializeAll() {
+  prespecializeCollections(() as Any)
+  prespecializeCollections("a" as Character)
+  prespecializeCollections("a" as Unicode.Scalar)
+  prespecializeCollections("a".utf8)
+  prespecializeCollections("a".utf16)
+  prespecializeCollections("a".unicodeScalars)
+  prespecializeCollections("a" as String)
+  prespecializeCollections(1.5 as Double)
+  prespecializeCollections(1.5 as Float)
+  prespecializeCollections(1 as Int)
+  prespecializeCollections(1 as UInt)
+  prespecializeCollections(1 as Int8)
+  prespecializeCollections(1 as Int16)
+  prespecializeCollections(1 as Int32)
+  prespecializeCollections(1 as Int64)
+  prespecializeCollections(1 as UInt8)
+  prespecializeCollections(1 as UInt16)
+  prespecializeCollections(1 as UInt32)
+  prespecializeCollections(1 as UInt64)
+
+  prespecializeRanges()
+}
+
+// Mark with optimize(none) to make sure its not get
+// rid of by dead function elimination. 
+@_optimize(none)
+internal fn _language_forcePrespecializations() {
+  prespecializeAll()
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ResultPlan.h"
@@ -93,9 +94,9 @@ public:
   }
   
   void dump(SILGenFunction &SGF) const override {
-    llvm::errs() << "IndirectOpenedSelfCleanup\n";
+    toolchain::errs() << "IndirectOpenedSelfCleanup\n";
     if (box)
-      box->print(llvm::errs());
+      box->print(toolchain::errs());
   }
 };
 
@@ -503,7 +504,7 @@ public:
 
   void gatherIndirectResultAddrs(SILGenFunction &SGF, SILLocation loc,
                       SmallVectorImpl<SILValue> &outList) const override {
-    llvm_unreachable("should not be gathering from an expansion plan");
+    toolchain_unreachable("should not be gathering from an expansion plan");
   }
 
   RValue finish(SILGenFunction &SGF, SILLocation loc,
@@ -657,7 +658,7 @@ public:
         eltPlans.push_back(builder.build(eltInit, origEltType,
                                          substEltTypes[0]));
       } else {
-        auto componentInits = llvm::ArrayRef(eltInits).slice(
+        auto componentInits = toolchain::ArrayRef(eltInits).slice(
             elt.getSubstIndex(), substEltTypes.size());
         eltPlans.push_back(builder.buildForPackExpansion(componentInits,
                                                          origEltType,
@@ -1047,7 +1048,7 @@ public:
     auto errorType =
         CanType(unwrappedPtrType->getAnyPointerElementType(ptrKind));
 
-    // In cases when from swift, we call objc imported methods written like so:
+    // In cases when from language, we call objc imported methods written like so:
     //
     // (1) - (BOOL)submit:(NSError *_Nonnull __autoreleasing *_Nullable)errorOut;
     //

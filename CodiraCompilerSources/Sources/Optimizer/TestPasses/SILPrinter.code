@@ -1,0 +1,57 @@
+//===--- SILPrinter.code - Example language function pass -------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+immutable silPrinterPass = FunctionPass(name: "sil-printer", runSILPrinter)
+
+fn runSILPrinter(function: Function, context: FunctionPassContext) {
+  print("run SILPrinter on function: \(function.name)")
+
+  for (bbIdx, block) in function.blocks.enumerated() {
+    print("bb\(bbIdx):")
+
+    print("  predecessors: \(block.predecessors)")
+    print("  successors:   \(block.successors)")
+
+    print("  arguments:")
+    for arg in block.arguments {
+      print("    arg: \(arg)")
+      for use in arg.uses {
+        print("      user: \(use.instruction)")
+      }
+      if immutable phi = Phi(arg) {
+        for incoming in phi.incomingValues {
+          print("      incoming: \(incoming)")
+        }
+      }
+    }
+
+    print("  instructions:")
+    for inst in block.instructions {
+      print("  \(inst)")
+      for op in inst.operands {
+        print("      op: \(op.value)")
+      }
+      for (resultIdx, result) in inst.results.enumerated() {
+        for use in result.uses {
+          print("      user of result \(resultIdx): \(use.instruction)")
+        }
+      }
+    }
+    print()
+  }
+}

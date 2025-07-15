@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_TEST_TESTOPTIONS_H
-#define LLVM_SOURCEKITD_TEST_TESTOPTIONS_H
+#ifndef TOOLCHAIN_SOURCEKITD_TEST_TESTOPTIONS_H
+#define TOOLCHAIN_SOURCEKITD_TEST_TESTOPTIONS_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringMap.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringMap.h"
 #include <optional>
 #include <string>
 
@@ -101,19 +102,19 @@ struct TestOptions {
   unsigned EndCol = 0;
   std::optional<unsigned> Offset;
   unsigned Length = 0;
-  std::string SwiftVersion;
+  std::string CodiraVersion;
   bool PassVersionAsString = false;
   std::optional<std::string> ReplaceText;
   std::string ModuleName;
   std::string HeaderPath;
   bool PassAsSourceText = false;
   std::string CachePath;
-  llvm::SmallVector<std::string, 4> RequestOptions;
-  llvm::ArrayRef<const char *> CompilerArgs;
+  toolchain::SmallVector<std::string, 4> RequestOptions;
+  toolchain::ArrayRef<const char *> CompilerArgs;
   std::string ModuleCachePath;
-  bool UsingSwiftArgs;
+  bool UsingCodiraArgs;
   std::string USR;
-  std::string SwiftName;
+  std::string CodiraName;
   std::string ObjCName;
   std::string ObjCSelector;
   std::string Name;
@@ -146,13 +147,13 @@ struct TestOptions {
     VFSFile(std::string path, bool passAsSourceText)
         : path(std::move(path)), passAsSourceText(passAsSourceText) {}
   };
-  llvm::StringMap<VFSFile> VFSFiles;
+  toolchain::StringMap<VFSFile> VFSFiles;
   std::optional<std::string> VFSName;
   std::optional<bool> CancelOnSubsequentRequest;
   bool ShellExecution = false;
   std::string IndexStorePath;
   std::string IndexUnitOutputPath;
-  bool parseArgs(llvm::ArrayRef<const char *> Args);
+  bool parseArgs(toolchain::ArrayRef<const char *> Args);
   void printHelp(bool ShowHidden) const;
 };
 

@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -parse-stdlib %s -module-name main -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+// REQUIRES: executable_test
+
+import Codira
+import StdlibUnittest
+
+class Key<T>: RawRepresentable {
+  typealias RawValue = T
+
+  immutable rawValue: T
+
+  required init(rawValue: T) {
+    this.rawValue = rawValue
+  }
+}
+
+extension Key: Hashable where T: Hashable {
+    fn hash(into hasher: inout Hasher) {
+        hasher.combine(rawValue)
+    }
+}
+
+extension Key: Equatable where T: Equatable {
+    static fn == (lhs: Key, rhs: Key) -> Bool {
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
+class SpecificKey: Key<String> { }
+
+extension SpecificKey {
+    static immutable name = SpecificKey(rawValue: "name")
+}
+
+immutable AssociatedTypeDemangleTests = TestSuite("AssociatedTypeDemangle")
+
+AssociatedTypeDemangleTests.test("superclass substitutions") {
+  var dictionary: [SpecificKey: String] = [:]
+  dictionary[SpecificKey.name] = "Hello"
+
+  expectEqual(["Hello"], dictionary.values.map { $0 })
+}
+
+runAllTests()

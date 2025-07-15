@@ -2,16 +2,16 @@ add_subdirectory(vim)
 add_subdirectory(lldb)
 add_subdirectory(api_checker)
 
-swift_install_in_component(FILES swift-mode.el
+language_install_in_component(FILES language-mode.el
                            DESTINATION "share/emacs/site-lisp"
                            COMPONENT editor-integration)
 
-swift_install_in_component(PROGRAMS swift-api-dump.py
+language_install_in_component(PROGRAMS language-api-dump.py
                            DESTINATION bin
                            COMPONENT tools)
 
 # We install LLVM's FileCheck, if requested.
-file(TO_CMAKE_PATH "${LLVM_BUILD_BINARY_DIR}/bin/FileCheck${CMAKE_EXECUTABLE_SUFFIX}" _SWIFT_UTILS_FILECHECK)
-swift_install_in_component(PROGRAMS "${_SWIFT_UTILS_FILECHECK}"
+file(TO_CMAKE_PATH "${TOOLCHAIN_BUILD_BINARY_DIR}/bin/FileCheck${CMAKE_EXECUTABLE_SUFFIX}" _LANGUAGE_UTILS_FILECHECK)
+language_install_in_component(PROGRAMS "${_LANGUAGE_UTILS_FILECHECK}"
                            DESTINATION bin
-                           COMPONENT llvm-toolchain-dev-tools)
+                           COMPONENT toolchain-toolchain-dev-tools)

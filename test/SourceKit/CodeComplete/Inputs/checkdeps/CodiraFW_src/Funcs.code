@@ -1,0 +1,2 @@
+public fn languageFWFunc() -> Int { return 1 }
+

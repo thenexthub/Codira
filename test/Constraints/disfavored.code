@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language
+
+struct A { }
+struct B { }
+
+@_disfavoredOverload
+fn f0<T>(_: T) -> A { return A() }
+
+fn f0(_: Int32) -> B { return B() }
+
+
+fn f1(_: StaticString) -> B { return B() }
+
+@_disfavoredOverload
+fn f1<T>(_: T) -> A { return A() }
+
+fn f2(_: Substring) -> B { return B() }
+
+@_disfavoredOverload
+fn f2<T>(_: T) -> A { return A() }
+
+fn test(s: String, answer: Int) {
+  immutable r0a = f0(17)
+  immutable _: B = r0a
+  immutable r0b = f0(answer)
+  immutable _: A = r0b
+
+  immutable r1 = f1("hello")
+  immutable _: B = r1
+  
+  immutable r2a = f2("hello")
+  immutable _: B = r2a
+  immutable r2b = f2("the answer is \(answer)")
+  immutable _: B = r2b
+  immutable r2c = f2(s)
+  immutable _: A = r2c
+}

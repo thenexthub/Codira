@@ -1,0 +1,3 @@
+// {"signature":"(anonymous namespace)::DeclChecker::visit(language::Decl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+extension(a[ 0.0 b

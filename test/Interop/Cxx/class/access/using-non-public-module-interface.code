@@ -1,0 +1,54 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=UsingNonPublic -print-access -I %S/Inputs -source-filename=x -cxx-interoperability-mode=default -enable-experimental-feature ImportNonPublicCxxMembers | %FileCheck %s
+// REQUIRES: language_feature_ImportNonPublicCxxMembers
+
+// CHECK:      public struct PublUser {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   public fn publUsingProt() -> Return
+// CHECK-NEXT:   public fn publUsingPubl() -> Return
+// CHECK-NEXT:   private fn protUsingProt() -> Return
+// CHECK-NEXT:   private fn protUsingPubl() -> Return
+// CHECK-NEXT:   private fn omitUsingProt() -> Return
+// CHECK-NEXT:   public fn omitUsingPubl() -> Return
+// CHECK-NEXT: }
+
+// CHECK:      public struct ProtUser {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   public fn publUsingProt() -> Return
+// CHECK-NEXT:   public fn publUsingPubl() -> Return
+// CHECK-NEXT:   private fn protUsingProt() -> Return
+// CHECK-NEXT:   private fn protUsingPubl() -> Return
+// CHECK-NEXT:   private fn omitUsingProt() -> Return
+// CHECK-NEXT:   private fn omitUsingPubl() -> Return
+// CHECK-NEXT: }
+
+// CHECK:      public struct PrivUser {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   public fn publUsingProt() -> Return
+// CHECK-NEXT:   public fn publUsingPubl() -> Return
+// CHECK-NEXT:   private fn protUsingProt() -> Return
+// CHECK-NEXT:   private fn protUsingPubl() -> Return
+// CHECK-NEXT:   private fn omitUsingProt() -> Return
+// CHECK-NEXT:   private fn omitUsingPubl() -> Return
+// CHECK-NEXT: }
+
+// CHECK:      public struct PublPrivUser {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   public fn publUsingProt() -> Return
+// CHECK-NEXT:   public fn publUsingPubl() -> Return
+// CHECK-NEXT:   private fn protUsingProt() -> Return
+// CHECK-NEXT:   private fn protUsingPubl() -> Return
+// CHECK-NEXT:   @available(*, unavailable, message: "this base member is not accessible because of private inheritance")
+// CHECK-NEXT:   private fn omitUsingProt() -> Return
+// CHECK-NEXT:   @available(*, unavailable, message: "this base member is not accessible because of private inheritance")
+// CHECK-NEXT:   private fn omitUsingPubl() -> Return
+// CHECK-NEXT: }
+
+// CHECK:      public struct PrivUserPubl {
+// CHECK-NEXT:   public init()
+// CHECK-NEXT:   public fn publUsingProt() -> Return
+// CHECK-NEXT:   public fn publUsingPubl() -> Return
+// CHECK-NEXT:   private fn protUsingProt() -> Return
+// CHECK-NEXT:   private fn protUsingPubl() -> Return
+// CHECK-NEXT:   private fn omitUsingProt() -> Return
+// CHECK-NEXT:   private fn omitUsingPubl() -> Return
+// CHECK-NEXT: }

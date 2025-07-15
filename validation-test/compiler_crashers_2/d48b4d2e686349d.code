@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ConstraintSystem::associateArgumentList(language::constraints::ConstraintLocator*, language::ArgumentList*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol b immutable b = { (a : b)in switch a { case .c(d(

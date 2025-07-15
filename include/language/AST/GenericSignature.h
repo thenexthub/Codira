@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the GenericSignature class and its related classes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_GENERIC_SIGNATURE_H
-#define SWIFT_AST_GENERIC_SIGNATURE_H
+#ifndef LANGUAGE_AST_GENERIC_SIGNATURE_H
+#define LANGUAGE_AST_GENERIC_SIGNATURE_H
 
 #include "language/AST/PrintOptions.h"
 #include "language/AST/Requirement.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <utility>
 
 namespace language {
@@ -50,7 +51,7 @@ namespace rewriting {
 /// derivable within the generic signature. For example, given:
 ///
 /// \code
-///   func f<C: Collection>(_: C) where C.Iterator.Element: Hashable { }
+///   fn f<C: Collection>(_: C) where C.Iterator.Element: Hashable { }
 /// \endcode
 ///
 /// One can extract conformances for various types and protocols, including
@@ -101,7 +102,7 @@ public:
 
   void print(raw_ostream &OS) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 class CanGenericSignature;
@@ -118,7 +119,7 @@ public:
   /// Create a new generic signature with the given type parameters and
   /// requirements. The requirements must already be minimal and canonical;
   /// to build a signature from an arbitrary set of requirements, use
-  /// swift::buildGenericSignature() instead.
+  /// language::buildGenericSignature() instead.
   static GenericSignature get(ArrayRef<GenericTypeParamType *> params,
                               ArrayRef<Requirement> requirements,
                               bool isKnownCanonical = false);
@@ -145,8 +146,8 @@ public:
 
   explicit operator bool() const { return Ptr != 0; }
 
-  friend llvm::hash_code hash_value(GenericSignature sig) {
-    using llvm::hash_value;
+  friend toolchain::hash_code hash_value(GenericSignature sig) {
+    using toolchain::hash_value;
     return hash_value(sig.getPointer());
   }
 
@@ -154,7 +155,7 @@ public:
              const PrintOptions &Options = PrintOptions()) const;
   void print(ASTPrinter &Printer,
              const PrintOptions &Opts = PrintOptions()) const;
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   std::string getAsString() const;
 
   /// Returns the canonical generic signature, or \c nullptr if the underlying
@@ -162,9 +163,9 @@ public:
   CanGenericSignature getCanonicalSignature() const;
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
+  void Profile(toolchain::FoldingSetNodeID &id) const;
 
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       ArrayRef<GenericTypeParamType *> genericParams,
                       ArrayRef<Requirement> requirements);
 public:
@@ -266,8 +267,8 @@ public:
 
 /// The underlying implementation of generic signatures.
 class alignas(1 << TypeAlignInBits) GenericSignatureImpl final
-  : public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<GenericSignatureImpl, GenericTypeParamType *,
+  : public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<GenericSignatureImpl, GenericTypeParamType *,
                                   Requirement> {
   friend class ASTContext;
   friend GenericSignature;
@@ -300,7 +301,7 @@ class alignas(1 << TypeAlignInBits) GenericSignatureImpl final
 
   // FIXME: Making this a CanGenericSignature reveals callers are violating
   // the interface's invariants.
-  mutable llvm::PointerUnion<const GenericSignatureImpl *, ASTContext *>
+  mutable toolchain::PointerUnion<const GenericSignatureImpl *, ASTContext *>
     CanonicalSignatureOrASTContext;
 
   friend class ArchetypeType;
@@ -325,7 +326,7 @@ public:
   /// Iterate over all generic parameters, passing a flag to the callback
   /// indicating if the generic parameter is canonical or not.
   void forEachParam(
-    llvm::function_ref<void(GenericTypeParamType *, bool)> callback) const;
+    toolchain::function_ref<void(GenericTypeParamType *, bool)> callback) const;
 
   /// Check if the generic signature makes all generic parameters
   /// concrete.
@@ -361,7 +362,7 @@ public:
   GenericSignature::LocalRequirements getLocalRequirements(Type depType) const;
 
   /// Uniquing for the ASTContext.
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     Profile(ID, getGenericParams(), getRequirements());
   }
   
@@ -501,13 +502,13 @@ public:
   /// Utility wrapper for use when this is an opened existential signature.
   Type getExistentialType(Type type) const;
 
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       ArrayRef<GenericTypeParamType *> genericParams,
                       ArrayRef<Requirement> requirements);
   
-  void print(raw_ostream &OS, PrintOptions Options = PrintOptions()) const;
-  void print(ASTPrinter &Printer, PrintOptions Opts = PrintOptions()) const;
-  SWIFT_DEBUG_DUMP;
+  void print(raw_ostream &OS, const PrintOptions &Options = PrintOptions()) const;
+  void print(ASTPrinter &Printer, const PrintOptions &Opts = PrintOptions()) const;
+  LANGUAGE_DEBUG_DUMP;
   std::string getAsString() const;
 
 private:
@@ -557,9 +558,9 @@ void simple_display(raw_ostream &out, GenericSignature sig);
 inline bool CanGenericSignature::isActuallyCanonicalOrNull() const {
   return getPointer() == nullptr ||
          getPointer() ==
-             llvm::DenseMapInfo<GenericSignatureImpl *>::getEmptyKey() ||
+             toolchain::DenseMapInfo<GenericSignatureImpl *>::getEmptyKey() ||
          getPointer() ==
-             llvm::DenseMapInfo<GenericSignatureImpl *>::getTombstoneKey() ||
+             toolchain::DenseMapInfo<GenericSignatureImpl *>::getTombstoneKey() ||
          getPointer()->isCanonical();
 }
 
@@ -617,68 +618,85 @@ using GenericSignatureErrors = OptionSet<GenericSignatureErrorFlags>;
 /// AbstractGenericSignatureRequest and InferredGenericSignatureRequest
 /// return this type, which stores a GenericSignature together with the
 /// above set of error flags.
-using GenericSignatureWithError = llvm::PointerIntPair<GenericSignature, 3,
+using GenericSignatureWithError = toolchain::PointerIntPair<GenericSignature, 3,
                                                        GenericSignatureErrors>;
+
+/// Build a generic signature from the given requirements, which are not
+/// required to be minimal or canonical, and may contain unresolved
+/// DependentMemberTypes. The generic signature is returned with the
+/// error flags (if any) that were raised while building the signature.
+///
+/// \param baseSignature if non-null, the new parameters and requirements
+///// are added on; existing requirements of the base signature might become
+///// redundant. Otherwise if null, build a new signature from scratch.
+/// \param allowInverses if true, default requirements to Copyable/Escapable are
+/// expanded for generic parameters.
+GenericSignatureWithError buildGenericSignatureWithError(
+    ASTContext &ctx,
+    GenericSignature baseSignature,
+    SmallVector<GenericTypeParamType *, 2> addedParameters,
+    SmallVector<Requirement, 2> addedRequirements,
+    bool allowInverses);
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 static inline raw_ostream &operator<<(raw_ostream &OS,
-                                      swift::GenericSignature Sig) {
+                                      language::GenericSignature Sig) {
   Sig.print(OS);
   return OS;
 }
 
 // A GenericSignature casts like a GenericSignatureImpl*.
-template <> struct simplify_type<const ::swift::GenericSignature> {
-  typedef const ::swift::GenericSignatureImpl *SimpleType;
-  static SimpleType getSimplifiedValue(const ::swift::GenericSignature &Val) {
+template <> struct simplify_type<const ::language::GenericSignature> {
+  typedef const ::language::GenericSignatureImpl *SimpleType;
+  static SimpleType getSimplifiedValue(const ::language::GenericSignature &Val) {
     return Val.getPointer();
   }
 };
 template <>
-struct simplify_type<::swift::GenericSignature>
-    : public simplify_type<const ::swift::GenericSignature> {};
+struct simplify_type<::language::GenericSignature>
+    : public simplify_type<const ::language::GenericSignature> {};
 
-template <> struct DenseMapInfo<swift::GenericSignature> {
-  static swift::GenericSignature getEmptyKey() {
-    return llvm::DenseMapInfo<swift::GenericSignatureImpl *>::getEmptyKey();
+template <> struct DenseMapInfo<language::GenericSignature> {
+  static language::GenericSignature getEmptyKey() {
+    return toolchain::DenseMapInfo<language::GenericSignatureImpl *>::getEmptyKey();
   }
-  static swift::GenericSignature getTombstoneKey() {
-    return llvm::DenseMapInfo<swift::GenericSignatureImpl *>::getTombstoneKey();
+  static language::GenericSignature getTombstoneKey() {
+    return toolchain::DenseMapInfo<language::GenericSignatureImpl *>::getTombstoneKey();
   }
-  static unsigned getHashValue(swift::GenericSignature Val) {
-    return DenseMapInfo<swift::GenericSignatureImpl *>::getHashValue(
+  static unsigned getHashValue(language::GenericSignature Val) {
+    return DenseMapInfo<language::GenericSignatureImpl *>::getHashValue(
         Val.getPointer());
   }
-  static bool isEqual(swift::GenericSignature LHS,
-                      swift::GenericSignature RHS) {
+  static bool isEqual(language::GenericSignature LHS,
+                      language::GenericSignature RHS) {
     return LHS.getPointer() == RHS.getPointer();
   }
 };
 
 // A GenericSignature is "pointer like".
-template <> struct PointerLikeTypeTraits<swift::GenericSignature> {
+template <> struct PointerLikeTypeTraits<language::GenericSignature> {
 public:
-  static inline swift::GenericSignature getFromVoidPointer(void *P) {
-    return (swift::GenericSignatureImpl *)P;
+  static inline language::GenericSignature getFromVoidPointer(void *P) {
+    return (language::GenericSignatureImpl *)P;
   }
-  static inline void *getAsVoidPointer(swift::GenericSignature S) {
+  static inline void *getAsVoidPointer(language::GenericSignature S) {
     return (void *)S.getPointer();
   }
-  enum { NumLowBitsAvailable = swift::TypeAlignInBits };
+  enum { NumLowBitsAvailable = language::TypeAlignInBits };
 };
 
-template <> struct PointerLikeTypeTraits<swift::CanGenericSignature> {
+template <> struct PointerLikeTypeTraits<language::CanGenericSignature> {
 public:
-  static inline swift::CanGenericSignature getFromVoidPointer(void *P) {
-    return swift::CanGenericSignature((swift::GenericSignatureImpl *)P);
+  static inline language::CanGenericSignature getFromVoidPointer(void *P) {
+    return language::CanGenericSignature((language::GenericSignatureImpl *)P);
   }
-  static inline void *getAsVoidPointer(swift::CanGenericSignature S) {
+  static inline void *getAsVoidPointer(language::CanGenericSignature S) {
     return (void *)S.getPointer();
   }
-  enum { NumLowBitsAvailable = swift::TypeAlignInBits };
+  enum { NumLowBitsAvailable = language::TypeAlignInBits };
 };
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_AST_GENERIC_SIGNATURE_H
+#endif // LANGUAGE_AST_GENERIC_SIGNATURE_H

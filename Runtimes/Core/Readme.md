@@ -1,16 +1,16 @@
-# SwiftCore
+# CodiraCore
 
-SwiftCore contains core libraries that sit below the platform overlays.
-These include the standard library and associated runtimes, SwiftOnoneSupport,
+CodiraCore contains core libraries that sit below the platform overlays.
+These include the standard library and associated runtimes, CodiraOnoneSupport,
 and the concurrency runtimes.
 
 ## Build Instructions
 
 > [!IMPORTANT]
-> The standard library requires that it is built with a Swift compiler that is
+> The standard library requires that it is built with a Codira compiler that is
 > at least as new as the standard library sources. You will likely need to
 > build the compiler as you would normally.
-> In these instructions, `<swiftc>` is the path to your just-built Swift
+> In these instructions, `<languagec>` is the path to your just-built Codira
 > compiler.
 
 Run these commands from the `Runtimes/Core` directory.
@@ -20,7 +20,7 @@ system that the command was run on, usually resulting in a static archive
 without optimizations applied.
 
 ```sh
-cmake -B build -S . -G Ninja -DCMAKE_Swift_COMPILER=<swiftc>
+cmake -B build -S . -G Ninja -DCMAKE_Codira_COMPILER=<languagec>
 cmake --build build
 DESTDIR=/tmp/staging-dir cmake --install build --prefix /usr
 ```
@@ -37,7 +37,7 @@ To build the runtimes as dynamic libraries, pass `-DBUILD_SHARED_LIBS=YES` to
 CMake.
 
 ```sh
-cmake -B build -S . -G Ninja -DBUILD_SHARED_LIBS=YES -DCMAKE_Swift_COMPILER=<swiftc>
+cmake -B build -S . -G Ninja -DBUILD_SHARED_LIBS=YES -DCMAKE_Codira_COMPILER=<languagec>
 cmake --build build
 ```
 
@@ -80,7 +80,7 @@ Apple Intel macOS standard library build.
 cmake -B build -S . -G Ninja \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=15.3 \
     -DCMAKE_OSX_SYSROOT=macosx \
-    -DCMAKE_Swift_COMPILER=<swiftc> \
+    -DCMAKE_Codira_COMPILER=<languagec> \
     --toolchain cmake/caches/Vendors/Apple/Darwin.toolchain.cmake \
     -C cmake/caches/Vendors/Apple/x86_64-MacOSX.cmake
 cmake --build build

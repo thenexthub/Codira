@@ -1,4 +1,4 @@
-//===--- MetadataSources.def - Swift Type References ------------*- C++ -*-===//
+//===--- MetadataSources.def - Codira Type References ------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines Swift Metadata Source Kinds.
+// This file defines Codira Metadata Source Kinds.
 //
 //===----------------------------------------------------------------------===//
 

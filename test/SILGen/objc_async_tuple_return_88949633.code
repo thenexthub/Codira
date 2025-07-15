@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-silgen -I %S/Inputs/custom-modules -import-objc-header %S/Inputs/objc_async_tuple_88949633.h -target %target-language-5.1-abi-triple %s -verify
+// REQUIRES: concurrency
+// REQUIRES: objc_interop
+
+// rdar://88949633
+
+import Foundation
+import ObjCConcurrency
+
+class Foo: NSObject, NSButz {
+    fn idString(_: NSObject) async -> (Any?, String?) {
+        return (nil, nil)
+    }
+    fn idStringID(_: NSObject) async -> (Any?, String?, Any?) {
+        return (nil, nil, nil)
+    }
+    fn stringIDString(_: NSObject) async -> (String?, Any?, String?) {
+        return (nil, nil, nil)
+    }
+    fn idStringIDString(_: NSObject) async -> (Any?, String?, Any?, String?) {
+        return (nil, nil, nil, nil)
+    }
+}
+
+

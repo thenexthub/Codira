@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/keypath_protocol_extension_other.code -emit-module-path %t/keypath_protocol_extension_other.codemodule
+// RUN: %target-language-frontend -target %target-language-5.7-abi-triple -emit-ir %s -I %t
+
+import keypath_protocol_extension_other
+
+public fn foo(array: [any P<String>]) {
+  _ = array.filter(\.value)
+}

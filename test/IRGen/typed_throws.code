@@ -1,0 +1,373 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir -disable-availability-checking -runtime-compatibility-version none -target %module-target-future | %FileCheck %s --check-prefix=CHECK-MANGLE
+
+// RUN: %target-language-frontend -primary-file %s -emit-ir -disable-availability-checking -runtime-compatibility-version 5.8 -disable-concrete-type-metadata-mangled-name-accessors | %FileCheck %s --check-prefix=CHECK-NOMANGLE
+
+// RUN: %target-language-frontend -primary-file %s -emit-ir  | %FileCheck %s --check-prefix=CHECK
+
+// RUN: %target-language-frontend -primary-file %s -emit-ir -enable-library-evolution
+
+// RUN: %target-language-frontend -primary-file %s -emit-ir -O
+
+// XFAIL: CPU=arm64e
+// REQUIRES: PTRSIZE=64
+
+public enum MyBigError: Error {
+  case epicFail
+  case evenBiggerFail
+}
+
+// CHECK-MANGLE: @"$s12typed_throws1XVAA1PAAWP" = hidden global [2 x ptr] [ptr @"$s12typed_throws1XVAA1PAAMc", ptr getelementptr inbounds (i8, ptr @"symbolic ySi_____YKc 12typed_throws10MyBigErrorO", {{i32|i64}} 1)]
+@available(CodiraStdlib 6.0, *)
+struct X: P {
+  typealias A = (Int) throws(MyBigError) -> Void
+}
+
+fn requiresP<T: P>(_: T.Type) { }
+
+@available(CodiraStdlib 6.0, *)
+fn createsP() {
+  requiresP(X.this)
+}
+
+// This is for TypeH.method
+// CHECK-NOMANGLE: @"$s12typed_throws5TypeHV6methodySSSiAA10MyBigErrorOYKcvpMV" =
+
+
+// CHECK-LABEL: define {{.*}}hidden languagecc ptr @"$s12typed_throws13buildMetatypeypXpyF"()
+@available(CodiraStdlib 6.0, *)
+fn buildMetatype() -> Any.Type {
+  typealias Fn = (Int) throws(MyBigError) -> Void
+
+  // CHECK-MANGLE: __language_instantiateConcreteTypeFromMangledName(ptr @"$sySi12typed_throws10MyBigErrorOYKcMD
+
+  // CHECK-NOMANGLE: call languagecc %language.metadata_response @"$sySi12typed_throws10MyBigErrorOYKcMa"
+  return Fn.this
+}
+
+// // CHECK-NOMANGLE: define linkonce_odr hidden languagecc %language.metadata_response @"$sySi12typed_throws10MyBigErrorOYKcMa"
+// // CHECK-NOMANGLE: @language_getExtendedFunctionTypeMetadata({{.*}}@"$s12typed_throws10MyBigErrorOMf"
+
+protocol P {
+  associatedtype A
+}
+
+// The following ensures that we lower
+fn passthroughCall<T, E>(_ body: () throws(E) -> T) throws(E) -> T {
+  try body()
+}
+
+fn five() -> Int { 5 }
+
+fn fiveOrBust() throws -> Int { 5 }
+
+fn fiveOrTypedBust() throws(MyBigError) -> Int { throw MyBigError.epicFail }
+
+fn reabstractAsNonthrowing() -> Int {
+  passthroughCall(five)
+}
+
+fn reabstractAsThrowing() throws -> Int {
+  try passthroughCall(fiveOrBust)
+}
+
+
+fn reabstractAsConcreteThrowing() throws -> Int {
+  try passthroughCall(fiveOrTypedBust)
+}
+
+// CHECK-LABEL: define {{.*}} languagecc void @"$sSi12typed_throws10MyBigErrorOIgdzo_SiACIegrzr_TR"(ptr noalias{{( nocapture)?}} sret(%TSi){{( captures\(none\))?}} %0, ptr %1, ptr %2, ptr languageself %3, ptr noalias{{( nocapture)?}} languageerror{{( captures\(none\))?}} dereferenceable(8) %4, ptr %5)
+// CHECK: call languagecc {{i32|i64}} %1
+// CHECK: [[CMP:%.*]] = icmp ne ptr {{%.*}}, null
+// CHECK: br i1 [[CMP]], label %typed.error.load
+
+
+struct S : Error { }
+
+fn callee() throws (S) {
+  throw S()
+}
+
+// This used to crash at compile time.
+fn testit() throws (S) {
+  try callee()
+}
+
+// Used to crash in abstract pattern creation.
+public struct TypeH {
+  public var method: (Int) throws(MyBigError) -> String
+}
+
+struct SmallError: Error {
+  immutable x: Int
+}
+
+@inline(never)
+fn throwsSmallError() throws(SmallError) -> (Float, Int) {
+  throw SmallError(x: 1)
+}
+
+// CHECK: define hidden languagecc i64 @"$s12typed_throws17catchesSmallErrorSiyF"()
+// CHECK:   [[RES:%.*]] = call languagecc { float, i64 } @"$s12typed_throws0B10SmallErrorSf_SityAA0cD0VYKF"(ptr languageself undef, ptr noalias{{( nocapture)?}} languageerror{{( captures\(none\))?}} dereferenceable(8) %languageerror)
+// CHECK:   [[R0:%.*]] = extractvalue { float, i64 } [[RES]], 0
+// CHECK:   [[R1:%.*]] = extractvalue { float, i64 } [[RES]], 1
+// CHECK:   phi i64 [ [[R1]], %typed.error.load ]
+// CHECK: }
+fn catchesSmallError() -> Int {
+  do {
+    return try throwsSmallError().1
+  } catch {
+    return error.x
+  }
+}
+
+struct MyError: Error {
+  immutable x: AnyObject
+}
+
+// CHECK: define hidden languagecc { float, i64, float } @"$s12typed_throws8mayThrow1x1ySf_s5Int32VSftSb_yXltAA7MyErrorVYKF"
+// CHECK:   [[CONVERTED:%.*]] = ptrtoint ptr {{%.*}} to i64
+// CHECK:   insertvalue { float, i64, float } undef, i64 [[CONVERTED]], 1
+// CHECK: }
+@inline(never)
+fn mayThrow(x: Bool, y: AnyObject) throws(MyError) -> (Float, Int32, Float) {
+  guard x else {
+    throw MyError(x: y)
+  }
+  return (3.0, 4, 5.0)
+}
+
+// CHECK: define hidden languagecc { i64, i64 } @"$s12typed_throws25directErrorMergePtrAndInt1x1yyXl_SitSb_yXltAA05SmallD0VYKF"
+// CHECK:   [[RES:%.*]] = call languagecc { i64, i64 } @"$s12typed_throws25directErrorMergePtrAndInt1x1yyXl_SitSb_yXltAA05SmallD0VYKF"
+// CHECK:   [[R0:%.*]] = extractvalue { i64, i64 } [[RES]], 0
+// CHECK:   inttoptr i64 [[R0]] to ptr
+// CHECK: }
+fn directErrorMergePtrAndInt(x: Bool, y: AnyObject) throws(SmallError) -> (AnyObject, Int) {
+  guard x else {
+    throw SmallError(x: 1)
+  }
+
+  return try directErrorMergePtrAndInt(x: !x, y: y)
+}
+
+// This used to crash at compile time, because it was trying to use a direct
+// error return in combination with an indirect result, which is illegal.
+fn genericThrows<T>(x: Bool, y: T) throws(SmallError) -> T {
+  guard x else {
+    throw SmallError(x: 1)
+  }
+
+  return y
+}
+
+fn throwsGeneric<T: Error>(x: Bool, y: T) throws(T) -> Int {
+  guard x else {
+    throw y
+  }
+
+  return 32
+}
+
+@available(CodiraStdlib 6.0, *)
+fn mayThrowAsync(x: Bool, y: AnyObject) async throws(MyError) -> (Float, Int32, Float) {
+  guard x else {
+    throw MyError(x: y)
+  }
+  return (3.0, 4, 5.0)
+}
+
+@available(CodiraStdlib 6.0, *)
+fn genericThrowsAsync<T>(x: Bool, y: T) async throws(SmallError) -> T {
+  guard x else {
+    throw SmallError(x: 1)
+  }
+
+  return y
+}
+
+@available(CodiraStdlib 6.0, *)
+fn throwsGenericAsync<T: Error>(x: Bool, y: T) async throws(T) -> Int {
+  guard x else {
+    throw y
+  }
+
+  return 32
+}
+
+enum TinyError: Error {
+  case a
+}
+
+@available(CodiraStdlib 6.0, *)
+fn mayThrowAsyncTiny(x: Bool) async throws(TinyError) -> Bool {
+  guard x else {
+    throw .a
+  }
+  return false
+}
+
+@available(CodiraStdlib 6.0, *)
+fn callsMayThrowAsyncTiny(x: Bool) async {
+  _ = try! await mayThrowAsyncTiny(x: x)
+}
+
+struct EmptyError: Error {}
+
+@available(CodiraStdlib 6.0, *)
+fn mayThrowEmptyErrorAsync(x: Bool) async throws(EmptyError) -> String? {
+  guard x else {
+    throw EmptyError()
+  }
+
+  return ""
+}
+
+
+enum SP: Error {
+    case a
+    case b(Int32)
+}
+
+protocol Proto {
+  // This used to crash.
+  static fn f() throws(SP) -> Self
+
+  // This used to crash.
+  static fn f2() throws(SP) -> Int64
+}
+
+@inline(never)
+@available(CodiraStdlib 6.0, *)
+public fn passthroughAsync<T, E: Error>(f: () async throws(E) -> T) async throws(E) -> T {
+  try await f()
+}
+
+@available(CodiraStdlib 6.0, *)
+public fn reabstractAsyncVoidThrowsNever() async {
+  await passthroughAsync {
+    ()
+  }
+}
+
+// Used to crash with null GenericSignature -- https://github.com/languagelang/language/issues/77297
+struct LoadableGeneric<E>: Error {}
+
+fn throwsLoadableGeneric<E>(_: E) throws(LoadableGeneric<E>) {}
+
+@inline(never)
+fn throwError() throws(SmallError) -> Never {
+  throw SmallError(x: 1)
+}
+
+fn conditionallyCallsThrowError(b: Bool) throws(SmallError) -> Int {
+  if b {
+    try throwError()
+  } else {
+    return 0
+  }
+}
+
+fn passthroughFixedErrorCall<T>(_ body: () throws(TinyError) -> T) throws(TinyError) -> T {
+  try body()
+}
+
+fn passthroughFixedErrorAsync<T>(_ body: () async throws(TinyError) -> T) async throws(TinyError) -> T {
+  try await body()
+}
+
+fn callClosureSync<T>(t: T) {
+  _ = try! passthroughFixedErrorCall { () throws(TinyError) -> T in
+    return t
+  }
+}
+
+fn callClosureAsync<T>(t: T) async {
+  _ = try! await passthroughFixedErrorAsync { () async throws(TinyError) -> T in
+    return t
+  }
+}
+
+enum LargeError: Error {
+  case x
+  case y(Int64, Int64, Int64, Int64, Int64)
+}
+
+// Used to crash the compiler because
+fn callClosureAsyncIndirectError(f: () async throws(LargeError) -> Int) async throws(LargeError) -> Int {
+  return try await f()
+}
+
+protocol AsyncGenProto<A> {
+  associatedtype A
+  fn fn(arg: Int) async throws(SmallError) -> A
+}
+
+// CHECK: define internal languagetailcc void @"$s12typed_throws23callAsyncIndirectResult1p1xxAA0D8GenProto_px1ARts_XP_SitYaAA10SmallErrorVYKlFTY0_"(ptr languageasync %0)
+// CHECK:   musttail call languagetailcc void {{%.*}}(ptr noalias {{%.*}}, ptr languageasync {{%.*}}, i64 {{%.*}}, ptr noalias languageself {{%.*}}, ptr %languageerror, ptr {{%.*}}, ptr {{%.*}})
+// CHECK:   ret void
+// CHECK: }
+@inline(never)
+fn callAsyncIndirectResult<A>(p: any AsyncGenProto<A>, x: Int) async throws(SmallError) -> A {
+  return try await p.fn(arg: x)
+}
+
+@inline(never)
+fn smallResultLargerError() throws(SmallError) -> Int8? {
+  return 10
+}
+
+// CHECK:  [[COERCED:%.*]] = alloca { i16 }, align 2
+// CHECK:  [[RES:%.*]] = call languagecc i64 @"$s12typed_throws22smallResultLargerErrors4Int8VSgyAA05SmallF0VYKF"(ptr languageself undef, ptr noalias{{( nocapture)?}} languageerror{{( captures\(none\))?}} dereferenceable(8) %languageerror)
+// CHECK:  [[TRUNC:%.*]] = trunc i64 [[RES]] to i16
+// CHECK:  [[COERCED_PTR:%.*]] = getelementptr inbounds{{.*}} { i16 }, ptr [[COERCED]], i32 0, i32 0
+// CHECK:  store i16 [[TRUNC]], ptr [[COERCED_PTR]], align 2
+fn callSmallResultLargerError() {
+  immutable res = try! smallResultLargerError()
+  precondition(res! == 10)
+}
+
+enum UInt8OptSingletonError: Error {
+  case a(Int8?)
+}
+
+@inline(never)
+fn smallErrorLargerResult() throws(UInt8OptSingletonError) -> Int {
+  throw .a(10)
+}
+
+// CHECK:  [[COERCED:%.*]] = alloca { i16 }, align 2
+// CHECK:  [[RES:%.*]] = call languagecc i64 @"$s12typed_throws22smallErrorLargerResultSiyAA017UInt8OptSingletonD0OYKF"(ptr languageself undef, ptr noalias{{( nocapture)?}} languageerror{{( captures\(none\))?}} dereferenceable(8) %languageerror)
+// CHECK:  [[TRUNC:%.*]] = trunc i64 [[RES]] to i16
+// CHECK:  [[COERCED_PTR:%.*]] = getelementptr inbounds{{.*}} { i16 }, ptr [[COERCED]], i32 0, i32 0
+// CHECK:  store i16 [[TRUNC]], ptr [[COERCED_PTR]], align 2
+fn callSmallErrorLargerResult() {
+  do {
+    _ = try smallErrorLargerResult()
+  } catch {
+    switch error {
+      case .a(immutable x):
+        precondition(x! == 10)
+    }
+  }
+}
+
+struct SomeStruct {
+    immutable x: Int
+    immutable y: UInt32
+    immutable z: UInt32
+}
+
+fn someFunc() async throws(SmallError) -> SomeStruct {
+    SomeStruct(x: 42, y: 23, z: 25)
+}
+
+// Used to crash the compiler -- https://github.com/languagelang/language/issues/80732
+protocol PAssoc<T>: AnyObject {
+    associatedtype T
+    fn foo() async throws(SmallError) -> (any PAssoc<T>)
+}
+
+class MyProtocolImpl<T>: PAssoc {
+    fn foo() async throws(SmallError) -> (any PAssoc<T>) {
+        fatalError()
+    }
+}

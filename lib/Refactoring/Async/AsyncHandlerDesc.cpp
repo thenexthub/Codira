@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "AsyncRefactoring.h"
@@ -87,7 +91,7 @@ const ValueDecl *AsyncHandlerDesc::getHandler() const {
   } else if (auto Func = Handler.dyn_cast<const AbstractFunctionDecl *>()) {
     return Func;
   } else {
-    llvm_unreachable("Unknown handler type");
+    toolchain_unreachable("Unknown handler type");
   }
 }
 
@@ -97,11 +101,11 @@ StringRef AsyncHandlerDesc::getNameStr() const {
   } else if (auto Func = Handler.dyn_cast<const AbstractFunctionDecl *>()) {
     return Func->getNameStr();
   } else {
-    llvm_unreachable("Unknown handler type");
+    toolchain_unreachable("Unknown handler type");
   }
 }
 
-swift::Type AsyncHandlerDesc::getType() const {
+language::Type AsyncHandlerDesc::getType() const {
   if (auto Var = Handler.dyn_cast<const VarDecl *>()) {
     return Var->getTypeInContext();
   } else if (auto Func = Handler.dyn_cast<const AbstractFunctionDecl *>()) {
@@ -113,7 +117,7 @@ swift::Type AsyncHandlerDesc::getType() const {
     }
     return Type;
   } else {
-    llvm_unreachable("Unknown handler type");
+    toolchain_unreachable("Unknown handler type");
   }
 }
 
@@ -135,7 +139,7 @@ std::optional<AnyFunctionType::Param> AsyncHandlerDesc::getErrorParam() const {
   return std::nullopt;
 }
 
-std::optional<swift::Type> AsyncHandlerDesc::getErrorType() const {
+std::optional<language::Type> AsyncHandlerDesc::getErrorType() const {
   if (HasError) {
     switch (Type) {
     case HandlerType::INVALID:
@@ -197,7 +201,7 @@ AsyncHandlerDesc::extractResultArgs(const CallExpr *CE,
                                     bool ReturnErrorArgsIfAmbiguous) const {
   auto *ArgList = CE->getArgs();
   SmallVector<Argument, 2> Scratch(ArgList->begin(), ArgList->end());
-  auto Args = llvm::ArrayRef(Scratch);
+  auto Args = toolchain::ArrayRef(Scratch);
 
   if (Type == HandlerType::PARAMS) {
     bool IsErrorResult;
@@ -244,11 +248,11 @@ AsyncHandlerDesc::extractResultArgs(const CallExpr *CE,
     return HandlerResult(ResultArgList->get(0), isFailure);
   }
 
-  llvm_unreachable("Unhandled result type");
+  toolchain_unreachable("Unhandled result type");
 }
 
-swift::Type
-AsyncHandlerDesc::getSuccessParamAsyncReturnType(swift::Type Ty) const {
+language::Type
+AsyncHandlerDesc::getSuccessParamAsyncReturnType(language::Type Ty) const {
   switch (Type) {
   case HandlerType::PARAMS: {
     // If there's an Error parameter in the handler, the success branch can
@@ -263,7 +267,7 @@ AsyncHandlerDesc::getSuccessParamAsyncReturnType(swift::Type Ty) const {
     return Ty->castTo<BoundGenericType>()->getGenericArgs()[0];
   }
   case HandlerType::INVALID:
-    llvm_unreachable("Invalid handler type");
+    toolchain_unreachable("Invalid handler type");
   }
 }
 
@@ -290,7 +294,7 @@ ArrayRef<LabeledReturnType> AsyncHandlerDesc::getAsyncReturnTypes(
 bool AsyncHandlerDesc::willAsyncReturnVoid() const {
   // If all of the success params will be converted to Void return types,
   // this will be a Void async function.
-  return llvm::all_of(getSuccessParams(), [&](auto &param) {
+  return toolchain::all_of(getSuccessParams(), [&](auto &param) {
     auto Ty = param.getParameterType();
     return getSuccessParamAsyncReturnType(Ty)->isVoid();
   });

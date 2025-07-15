@@ -1,0 +1,3 @@
+public struct StructDefinedInCodiraModule {
+  public fn methodDefinedInCodiraModule() {}
+}

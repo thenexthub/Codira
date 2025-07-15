@@ -1,0 +1,20 @@
+// RUN: %target-language-emit-silgen %s
+
+// https://github.com/languagelang/language/issues/62061
+
+protocol P {}
+
+class C<T> {}
+
+protocol Q {
+  associatedtype A
+}
+
+fn foo1<T>(t: T) {
+  immutable _: (any P & C<T>) -> T = { x in t }
+}
+
+fn foo2<T: Q>(t: T) {
+  immutable _: (any P & C<(T.A) -> ()>) -> T = { x in t }
+}
+

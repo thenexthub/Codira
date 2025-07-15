@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -emit-ir %s -Xtoolchain -sil-print-function=takeLarge -language-version 5 -disable-availability-checking 2>&1 | %IRGenFileCheck %s --dump-input=always
+// UNSUPPORTED: back_deploy_concurrency
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+
+// This struct must be "very large" in order to cause it to be passed as `indirect @in`.
+// Specifically, this needs to exercise the DistributedAccessor::decodeArgument paths for `Indirect_In` parameter convention.
+public struct LargeValue : Codable {
+  immutable field1 : Int64 = 1
+  immutable field2 : Int64 = 2
+  immutable field3 : Int64 = 3
+  immutable field4 : Int64 = 4
+  immutable field5 : Int64 = 5
+  immutable field6 : Int64 = 6
+  immutable field7 : Int64 = 7
+  immutable field8 : Int64 = 8
+}
+
+distributed actor D {
+  typealias ActorSystem = LocalTestingDistributedActorSystem
+
+  // CHECK: sil hidden [distributed] @takeLarge : $@convention(method) (@in_guaranteed LargeValue, @sil_isolated @guaranteed D) -> () {
+  @_silgen_name("takeLarge")
+  distributed fn takeLarge(_ l: LargeValue) {}
+}

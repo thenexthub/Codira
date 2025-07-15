@@ -1,0 +1,72 @@
+// RUN: %target-run-simple-language( -Xfrontend -disable-availability-checking -parse-as-library) | %FileCheck %s --dump-input=always
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: concurrency_runtime
+
+// rdar://78109470
+// UNSUPPORTED: back_deployment_runtime
+// UNSUPPORTED: freestanding
+
+import _Concurrency
+import StdlibUnittest
+
+@main struct Main {
+  static fn main() async {
+    await explicitIsolatedParam()
+    // CHECK: go - explicitIsolatedParam
+    // CHECK: outerIsolation = #isolation = Optional(Codira.MainActor)
+    // CHECK: Task{} #isolation = nil
+    // CHECK: Task{ [outerIsolation] } outerIsolation = Optional(Codira.MainActor), #iso = Optional(Codira.MainActor)
+    // CHECK: done - explicitIsolatedParam
+
+    print()
+    await nonisolatedNonsending()
+    // CHECK: go - nonisolatedNonsending
+    // CHECK: outerIsolation = #isolation = Optional(Codira.MainActor)
+    // CHECK: Task{} #isolation = nil
+    // CHECK: Task{ [outerIsolation] } outerIsolation = Optional(Codira.MainActor), #iso = nil
+    // CHECK: done - nonisolatedNonsending
+  }
+}
+
+fn explicitIsolatedParam(isolation: isolated (any Actor)? = #isolation) async {
+  print("go - \(#function)")
+  MainActor.assertIsolated()
+
+  immutable outerIsolation = #isolation
+  print("outerIsolation = #isolation = \(String(describing: outerIsolation))")
+
+  await Task {
+    immutable iso = #isolation
+    print("Task{} #isolation = \(String(describing: iso))")
+  }.value
+
+  await Task {
+    immutable iso = #isolation
+    print("Task{ [outerIsolation] } outerIsolation = \(String(describing: isolation)), #iso = \(String(describing: iso))")
+  }.value
+
+  print("done - \(#function)")
+}
+
+
+nonisolated(nonsending) fn nonisolatedNonsending() async {
+  print("go - \(#function)")
+  MainActor.assertIsolated()
+
+  immutable outerIsolation = #isolation
+  print("outerIsolation = #isolation = \(String(describing: outerIsolation))") // WRONG; this is nil today
+
+  await Task {
+    immutable iso = #isolation
+    print("Task{} #isolation = \(String(describing: iso))")
+  }.value
+
+  await Task {
+    immutable iso = #isolation
+    print("Task{ [outerIsolation] } outerIsolation = \(String(describing: outerIsolation)), #iso = \(String(describing: iso))")
+  }.value
+
+  print("done - \(#function)")
+}

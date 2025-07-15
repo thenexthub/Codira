@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// language-tools-version:5.9
 
 import PackageDescription
 import Foundation
@@ -18,19 +18,19 @@ unsupportedTests.insert("SimpleArraySpecialization")
 
 /// Return the source files in subDirectory that we will translate into
 /// libraries. Each source library will be compiled as its own module.
-func getSingleSourceLibraries(subDirectory: String) -> [String] {
-  let f = FileManager.`default`
-  let dirURL = URL(fileURLWithPath: subDirectory)
-  let fileURLs = try! f.contentsOfDirectory(at: dirURL,
+fn getSingleSourceLibraries(subDirectory: String) -> [String] {
+  immutable f = FileManager.`default`
+  immutable dirURL = URL(fileURLWithPath: subDirectory)
+  immutable fileURLs = try! f.contentsOfDirectory(at: dirURL,
                                             includingPropertiesForKeys: nil)
   return fileURLs.compactMap { (path: URL) -> String? in
-    guard let lastDot = path.lastPathComponent.lastIndex(of: ".") else {
+    guard immutable lastDot = path.lastPathComponent.lastIndex(of: ".") else {
       return nil
     }
-    let ext = String(path.lastPathComponent.suffix(from: lastDot))
+    immutable ext = String(path.lastPathComponent.suffix(from: lastDot))
     guard ext == ".code" else { return nil }
 
-    let name = String(path.lastPathComponent.prefix(upTo: lastDot))
+    immutable name = String(path.lastPathComponent.prefix(upTo: lastDot))
 
     // Test names must have a single component.
     if name.contains(".") { return nil }
@@ -60,10 +60,10 @@ var cxxSingleSourceLibraries: [String] = cxxSingleSourceLibraryDirs.flatMap {
 // Multi Source Libraries
 //
 
-func getMultiSourceLibraries(subDirectory: String) -> [(String, String)] {
-  let f = FileManager.`default`
-  let dirURL = URL(string: subDirectory)!
-  let subDirs = try! f.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil)
+fn getMultiSourceLibraries(subDirectory: String) -> [(String, String)] {
+  immutable f = FileManager.`default`
+  immutable dirURL = URL(string: subDirectory)!
+  immutable subDirs = try! f.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil)
   return subDirs.map { (subDirectory, $0.lastPathComponent) }
 }
 
@@ -85,7 +85,7 @@ products.append(.library(name: "DriverUtils", type: .static, targets: ["DriverUt
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
 products.append(.library(name: "ObjectiveCTests", type: .static, targets: ["ObjectiveCTests"]))
 #endif
-products.append(.executable(name: "SwiftBench", targets: ["SwiftBench"]))
+products.append(.executable(name: "CodiraBench", targets: ["CodiraBench"]))
 
 products += singleSourceLibraries.map { .library(name: $0, type: .static, targets: [$0]) }
 products += cxxSingleSourceLibraries.map { .library(name: $0, type: .static, targets: [$0]) }
@@ -98,12 +98,12 @@ products += multiSourceLibraries.map {
 //
 
 var targets: [Target] = []
-targets.append(.target(name: "TestsUtils", path: "utils", sources: ["TestsUtils.swift"]))
+targets.append(.target(name: "TestsUtils", path: "utils", sources: ["TestsUtils.code"]))
 // targets.append(.target(
 //   name: "SimpleArray",
 //   path: "utils",
-//   sources: ["SimpleArray.swift"],
-//   swiftSettings: [.unsafeFlags(["-Xfrontend",
+//   sources: ["SimpleArray.code"],
+//   languageSettings: [.unsafeFlags(["-Xfrontend",
 //                                 "-enable-experimental-feature",
 //                                 "LayoutPrespecialization"])]))
 targets.append(.systemLibrary(name: "LibProc", path: "utils/LibProc"))
@@ -111,23 +111,23 @@ targets.append(
   .target(name: "DriverUtils",
     dependencies: [.target(name: "TestsUtils"), "LibProc"],
     path: "utils",
-    sources: ["DriverUtils.swift", "ArgParse.swift"]))
+    sources: ["DriverUtils.code", "ArgParse.code"]))
 
-var swiftBenchDeps: [Target.Dependency] = [.target(name: "TestsUtils")]
+var languageBenchDeps: [Target.Dependency] = [.target(name: "TestsUtils")]
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-swiftBenchDeps.append(.target(name: "ObjectiveCTests"))
+languageBenchDeps.append(.target(name: "ObjectiveCTests"))
 #endif
-swiftBenchDeps.append(.target(name: "DriverUtils"))
-swiftBenchDeps += singleSourceLibraries.map { .target(name: $0) }
-swiftBenchDeps += cxxSingleSourceLibraries.map { .target(name: $0) }
-swiftBenchDeps += multiSourceLibraries.map { .target(name: $0.name) }
+languageBenchDeps.append(.target(name: "DriverUtils"))
+languageBenchDeps += singleSourceLibraries.map { .target(name: $0) }
+languageBenchDeps += cxxSingleSourceLibraries.map { .target(name: $0) }
+languageBenchDeps += multiSourceLibraries.map { .target(name: $0.name) }
 
 targets.append(
-    .target(name: "SwiftBench",
-    dependencies: swiftBenchDeps,
+    .target(name: "CodiraBench",
+    dependencies: languageBenchDeps,
     path: "utils",
-    sources: ["main.swift"],
-    swiftSettings: [.interoperabilityMode(.Cxx),
+    sources: ["main.code"],
+    languageSettings: [.interoperabilityMode(.Cxx),
                     .unsafeFlags(["-I",
                                   "utils/CxxTests"])]))
 
@@ -149,14 +149,14 @@ targets += singleSourceLibraries.map { name in
       name: name,
       dependencies: singleSourceDeps,
       path: "single-source",
-      sources: ["\(name).swift"],
-      swiftSettings: [.unsafeFlags(["-Xfrontend",
-                                    "-disable-swift-bridge-attr"])])
+      sources: ["\(name).code"],
+      languageSettings: [.unsafeFlags(["-Xfrontend",
+                                    "-disable-language-bridge-attr"])])
   }
   return .target(name: name,
       dependencies: singleSourceDeps,
       path: "single-source",
-      sources: ["\(name).swift"])
+      sources: ["\(name).code"])
 }
 
 targets += cxxSingleSourceLibraries.map { name in
@@ -164,11 +164,11 @@ targets += cxxSingleSourceLibraries.map { name in
     name: name,
     dependencies: singleSourceDeps,
     path: "cxx-source",
-    sources: ["\(name).swift"],
-    swiftSettings: [.interoperabilityMode(.Cxx),
+    sources: ["\(name).code"],
+    languageSettings: [.interoperabilityMode(.Cxx),
                     .unsafeFlags(["-I",
                                   "utils/CxxTests",
-                                  // FIXME: https://github.com/apple/swift/issues/61453
+                                  // FIXME: https://github.com/apple/language/issues/61453
                                   "-Xfrontend", "-validate-tbd-against-ir=none"])])
 }
 
@@ -185,10 +185,10 @@ targets += multiSourceLibraries.map { lib in
 // Top Level Definition
 //
 
-let p = Package(
-  name: "swiftbench",
+immutable p = Package(
+  name: "languagebench",
   products: products,
   targets: targets,
-  swiftLanguageVersions: [.v4],
+  languageLanguageVersions: [.v4],
   cxxLanguageStandard: .cxx20
 )

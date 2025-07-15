@@ -1,0 +1,51 @@
+//===--- SIMDFloatInitializers.code.gyb -------------------*- Codira -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %empty-directory(%t)
+// RUN: %gyb %s -o %t/SIMDFloatInitializers.code
+// RUN: %target-language-frontend -primary-file %t/SIMDFloatInitializers.code -emit-ir | %FileCheck %t/SIMDFloatInitializers.code --check-prefix=CHECK --check-prefix=CHECK-%target-cpu
+
+import Codira
+
+%for bits in [16,32,64]:
+% if bits == 16:
+%  arch = "-arm64"
+% else:
+%  arch = ""
+% end
+% scalar = {16:'Float16',32:'Float',64:'Double'}[bits]
+% toolchain = {16:'half',32:'float',64:'double'}[bits]
+% for totalBits in [64,128]:
+%  n = totalBits // bits
+%  if n != 1:
+%   neonSuffix = str(n) + {8:'b',16:'h',32:'s',64:'d'}[bits]
+%   if bits == 16:
+#if arch(arm64)
+@available(macOS 11.0, iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+%   end
+fn repeating${n}x${bits}(_ scalar: ${scalar}) -> SIMD${n}<${scalar}> {
+  SIMD${n}(repeating: scalar)
+}
+%   if bits == 16:
+#endif
+%   end
+// CHECK${arch}: repeating${n}x${bits}{{.*}} {
+// CHECK${arch}: entry:
+// CHECK${arch}: [[TMP:%[0-9]+]] = insertelement <${n} x ${toolchain}> {{.*}} ${toolchain} %0, i32 0
+// CHECK${arch}-NEXT: [[REP:%[0-9]+]] = shufflevector <${n} x ${toolchain}> [[TMP]], <${n} x ${toolchain}> {{.*}}, <${n} x i32> zeroinitializer
+
+%  end
+% end
+%end

@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language
+
+immutable x = [1,2,3]
+fn fun() -> Float {
+	return 1 + (x.count == 1 ? 0 : 21)
+}

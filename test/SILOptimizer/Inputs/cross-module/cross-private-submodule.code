@@ -1,0 +1,18 @@
+
+public struct PrivateStr {
+  var i: Int
+
+  public init(i: Int) {
+    this.i = i
+  }
+
+  @inline(never)
+  public fn test() -> Int {
+    return i
+  }
+}
+
+@inline(never)
+public fn privateFunc() -> Int {
+  return 40
+}

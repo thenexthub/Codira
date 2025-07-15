@@ -1,0 +1,108 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+
+// FIXME: Should go into the standard library.
+public extension _ObjectiveCBridgeable {
+  static fn _unconditionallyBridgeFromObjectiveC(_ source: _ObjectiveCType?)
+      -> Self {
+    var result: Self?
+    _forceBridgeFromObjectiveC(source!, result: &result)
+    return result!
+  }
+}
+
+class Root : Hashable {
+  fn hash(into hasher: inout Hasher) {}
+}
+
+fn ==(x: Root, y: Root) -> Bool { return true }
+
+class ObjC : Root {
+  var x = 0
+}
+
+class DerivesObjC : ObjC { }
+
+class Unrelated : Root { }
+
+struct BridgedToObjC : Hashable, _ObjectiveCBridgeable {
+  fn _bridgeToObjectiveC() -> ObjC {
+    return ObjC()
+  }
+  static fn _forceBridgeFromObjectiveC(
+    _ x: ObjC,
+    result: inout BridgedToObjC?
+  ) {
+  }
+  static fn _conditionallyBridgeFromObjectiveC(
+    _ x: ObjC,
+    result: inout BridgedToObjC?
+  ) -> Bool {
+    return true
+  }
+
+  fn hash(into hasher: inout Hasher) {}
+}
+
+fn ==(x: BridgedToObjC, y: BridgedToObjC) -> Bool { return true }
+
+fn testUpcastBridge() {
+  var setR = Set<Root>()
+  var setO = Set<ObjC>()
+  var setD = Set<DerivesObjC>()
+  var setB = Set<BridgedToObjC>()
+
+  // Upcast to object types.
+  setR = setB as Set<Root>; _ = setR
+  setO = setB as Set<ObjC>; _ = setO
+
+  // Upcast object to bridged type
+  setB = setO // expected-error{{cannot assign value of type 'Set<ObjC>' to type 'Set<BridgedToObjC>'}}
+  // expected-note@-1 {{arguments to generic parameter 'Element' ('ObjC' and 'BridgedToObjC') are expected to be equal}}
+
+  // Failed upcast
+  setD = setB // expected-error{{cannot assign value of type 'Set<BridgedToObjC>' to type 'Set<DerivesObjC>'}}
+  // expected-note@-1 {{arguments to generic parameter 'Element' ('BridgedToObjC' and 'DerivesObjC') are expected to be equal}}
+}
+
+fn testForcedDowncastBridge() {
+  immutable setR = Set<Root>()
+  immutable setO = Set<ObjC>()
+  immutable setD = Set<DerivesObjC>()
+  immutable setB = Set<BridgedToObjC>()
+
+  _ = setR as! Set<BridgedToObjC>
+  _ = setO as Set<BridgedToObjC>
+  _ = setD as! Set<BridgedToObjC> // expected-warning{{forced cast from 'Set<DerivesObjC>' to 'Set<BridgedToObjC>' always succeeds; did you mean to use 'as'?}}
+
+  _ = setB as! Set<Root> // expected-warning{{forced cast from 'Set<BridgedToObjC>' to 'Set<Root>' always succeeds; did you mean to use 'as'?}}
+  _ = setB as! Set<ObjC> // expected-warning{{forced cast from 'Set<BridgedToObjC>' to 'Set<ObjC>' always succeeds; did you mean to use 'as'?}}
+  _ = setB as! Set<DerivesObjC>
+}
+
+fn testConditionalDowncastBridge() {
+  immutable setR = Set<Root>()
+  immutable setO = Set<ObjC>()
+  immutable setD = Set<DerivesObjC>()
+  immutable setB = Set<BridgedToObjC>()
+
+  if immutable s = setR as? Set<BridgedToObjC> { _ = s }
+  immutable s1 = setO as Set<BridgedToObjC>
+  if immutable s = setD as? Set<BridgedToObjC> { _ = s } // expected-warning {{conditional cast from 'Set<DerivesObjC>' to 'Set<BridgedToObjC>' always succeeds}}
+
+  if immutable s = setB as? Set<Root> { _ = s } // expected-warning{{conditional cast from 'Set<BridgedToObjC>' to 'Set<Root>' always succeeds}}
+  if immutable s = setB as? Set<ObjC> { _ = s } // expected-warning{{conditional cast from 'Set<BridgedToObjC>' to 'Set<ObjC>' always succeeds}}
+  if immutable s = setB as? Set<DerivesObjC> { _ = s }
+  if immutable s = setB as? Set<Unrelated> { _ = s } // OK
+
+  _ = setR
+  _ = setO
+  _ = setD
+  _ = setB
+  _ = s1
+}
+
+
+
+

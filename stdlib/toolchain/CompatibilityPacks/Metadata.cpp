@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Backward deployment of swift_allocateMetadataPack() and
-// swift_allocateWitnessTablePack() runtime entry points.
+// Backward deployment of language_allocateMetadataPack() and
+// language_allocateWitnessTablePack() runtime entry points.
 //
 //===----------------------------------------------------------------------===//
 
@@ -27,15 +28,15 @@ void *MetadataAllocator::Allocate(size_t size, size_t alignment) {
   return malloc(size);
 }
 
-/// Avoid depending on non-inline parts of llvm::hashing.
-inline llvm::hash_code our_hash_integer_value(uint64_t value) {
+/// Avoid depending on non-inline parts of toolchain::hashing.
+inline toolchain::hash_code our_hash_integer_value(uint64_t value) {
   const char *s = reinterpret_cast<const char *>(&value);
-  const uint64_t a = llvm::hashing::detail::fetch32(s);
-  return llvm::hashing::detail::hash_16_bytes(
-      (a << 3), llvm::hashing::detail::fetch32(s + 4));
+  const uint64_t a = toolchain::hashing::detail::fetch32(s);
+  return toolchain::hashing::detail::hash_16_bytes(
+      (a << 3), toolchain::hashing::detail::fetch32(s + 4));
 }
 
-static inline llvm::hash_code our_hash_combine(llvm::hash_code seed, llvm::hash_code v) {
+static inline toolchain::hash_code our_hash_combine(toolchain::hash_code seed, toolchain::hash_code v) {
   return seed ^ (v + 0x9e3779b9 + (seed<<6) + (seed>>2));
 }
 
@@ -69,8 +70,8 @@ public:
       return Data[index];
     }
 
-    friend llvm::hash_code hash_value(const Key &key) {
-      llvm::hash_code hash = 0;
+    friend toolchain::hash_code hash_value(const Key &key) {
+      toolchain::hash_code hash = 0;
       for (size_t i = 0; i != key.getCount(); ++i) {
         hash = our_hash_combine(hash, our_hash_integer_value(
             reinterpret_cast<uint64_t>(key.getElement(i))));
@@ -95,8 +96,8 @@ public:
     return true;
   }
 
-  friend llvm::hash_code hash_value(const PackCacheEntry<PackType> &value) {
-    llvm::hash_code hash = 0;
+  friend toolchain::hash_code hash_value(const PackCacheEntry<PackType> &value) {
+    toolchain::hash_code hash = 0;
     for (size_t i = 0; i != value.Count; ++i) {
       hash = our_hash_combine(hash, our_hash_integer_value(
           reinterpret_cast<uint64_t>(value.getElements()[i])));
@@ -132,9 +133,9 @@ PackCacheEntry<PackType>::PackCacheEntry(
 static SimpleGlobalCache<PackCacheEntry<Metadata>,
                          MetadataPackTag> MetadataPacks;
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 const Metadata * const *
-swift_allocateMetadataPack(const Metadata * const *ptr, size_t count) {
+language_allocateMetadataPack(const Metadata * const *ptr, size_t count) {
   if (MetadataPackPointer(reinterpret_cast<uintptr_t>(ptr)).getLifetime()
         == PackLifetime::OnHeap)
     return ptr;
@@ -150,9 +151,9 @@ swift_allocateMetadataPack(const Metadata * const *ptr, size_t count) {
 static SimpleGlobalCache<PackCacheEntry<WitnessTable>,
                          WitnessTablePackTag> WitnessTablePacks;
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 const WitnessTable * const *
-swift_allocateWitnessTablePack(const WitnessTable * const *ptr, size_t count) {
+language_allocateWitnessTablePack(const WitnessTable * const *ptr, size_t count) {
   if (WitnessTablePackPointer(reinterpret_cast<uintptr_t>(ptr)).getLifetime()
         == PackLifetime::OnHeap)
     return ptr;

@@ -1,0 +1,62 @@
+//===--- subclass_existentials_objc.code ---------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+//
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+//
+
+import StdlibUnittest
+import Foundation
+
+// FIXME: Actually write proper tests here.
+
+fn cast<T, U>(_ t: T, to: U.Type) -> U? {
+  return t as? U
+}
+
+protocol CP : class {}
+@objc protocol OP {}
+
+class C {}
+
+class D : C, OP {}
+
+var SubclassExistentialsTestSuite = TestSuite("SubclassExistentials")
+
+SubclassExistentialsTestSuite.test("Metatype this-conformance") {
+  expectFalse(CP.this is AnyObject.Type)
+  expectEqual(OP.this, OP.this as AnyObject.Type)
+
+  expectNil(cast(CP.this, to: AnyObject.Type.this))
+  // FIXME
+  expectNil(cast(OP.this, to: AnyObject.Type.this))
+
+  // FIXME: Sema says 'always true', runtime says false.
+  //
+  // Runtime code had a FIXME in it already, so I think Sema is right.
+  expectFalse(OP.this is AnyObject.Type)
+  expectFalse((C & OP).this is AnyObject.Type)
+  expectFalse((C & OP).this is OP.Type)
+
+  expectTrue(D.this is (C & OP).Type)
+  expectFalse(OP.this is (C & OP).Type)
+}
+
+runAllTests()

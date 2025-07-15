@@ -1,4 +1,4 @@
-//===--- Reflection.h - Swift Language Reflection Support -------*- C++ -*-===//
+//===--- Reflection.h - Codira Language Reflection Support -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // An implementation of value reflection based on type metadata.
@@ -31,7 +32,7 @@ struct Mirror {
   const MirrorWitnessTable *MirrorWitness;
 };
 
-// Swift assumes Mirror is returned in memory. 
+// Codira assumes Mirror is returned in memory. 
 // Use MirrorReturn to guarantee that even on architectures 
 // where Mirror would be returned in registers.
 struct MirrorReturn {
@@ -42,18 +43,18 @@ struct MirrorReturn {
 };
 
 // We intentionally use a non-POD return type with these entry points to give
-// them an indirect return ABI for compatibility with Swift.
+// them an indirect return ABI for compatibility with Codira.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
-/// func reflect<T>(x: T) -> Mirror
+/// fn reflect<T>(x: T) -> Mirror
 ///
 /// Produce a mirror for any value.  The runtime produces a mirror that
 /// structurally reflects values of any type.
-SWIFT_CC(swift)
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_EXPORT
 MirrorReturn
-swift_reflectAny(OpaqueValue *value, const Metadata *T);
+language_reflectAny(OpaqueValue *value, const Metadata *T);
 
 #pragma clang diagnostic pop
 

@@ -1,0 +1,31 @@
+// REQUIRES: cplusplus_driver
+// language-driver has language-help with its own tests and the output has evolved.
+
+// Check that options printed with -help respect whether the driver is invoked
+// as 'language' or as 'languagec'.
+
+// RUN: %languagec_driver -help | %FileCheck -check-prefix CHECK -check-prefix CHECK-LANGUAGEC %s
+// RUN: %languagec_driver -help | %FileCheck -check-prefix NEGATIVE -check-prefix NEGATIVE-LANGUAGEC %s
+
+// RUN: %language_driver -help | %FileCheck -check-prefix CHECK -check-prefix CHECK-LANGUAGE %s
+// RUN: %language_driver -help | %FileCheck -check-prefix NEGATIVE -check-prefix NEGATIVE-LANGUAGE %s
+
+// Options that work with both 'languagec' and 'language':
+// CHECK-DAG: -language-version
+
+// languagec-only options:
+// CHECK-LANGUAGEC-DAG: -typecheck
+// NEGATIVE-LANGUAGE-NOT: -typecheck
+
+// There are currently no interpreter-only options.
+
+// Frontend options should not show up here.
+// NEGATIVE-NOT: -merge-modules
+
+// Options marked "help-hidden" should not show up here.
+// NEGATIVE-NOT: -parse-stdlib
+
+// CHECK-LANGUAGEC: SEE ALSO: language build, language run, language package, language test
+// NEGATIVE-LANGUAGEC-NOT: SEE ALSO - PACKAGE MANAGER COMMANDS:
+// CHECK-LANGUAGE: SEE ALSO - PACKAGE MANAGER COMMANDS:
+// NEGATIVE-LANGUAGE-NOT: SEE ALSO: language build, language run, language package, language test

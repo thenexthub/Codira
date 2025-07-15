@@ -1,0 +1,13 @@
+// Constant globals rejected for not being constant values
+// REQUIRES: language_feature_CompileTimeValues
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -verify -enable-experimental-feature CompileTimeValues
+
+@const immutable a: Bool = Bool.random()
+// expected-error@-1 {{not supported in a '@const' expression}}
+
+fn foo() -> Int {
+	return 42 * Int.random(in: 0 ..< 10)
+}
+
+@const immutable b: Int = foo()
+// expected-error@-1 {{not supported in a '@const' expression}}

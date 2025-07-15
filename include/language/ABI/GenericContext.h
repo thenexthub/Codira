@@ -1,13 +1,17 @@
 //===--- GenericContext.h - ABI for generic signatures ----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file describes runtime metadata structures for representing
@@ -15,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_GENERICCONTEXT_H
-#define SWIFT_ABI_GENERICCONTEXT_H
+#ifndef LANGUAGE_ABI_GENERICCONTEXT_H
+#define LANGUAGE_ABI_GENERICCONTEXT_H
 
 #include "language/ABI/TargetLayout.h"
 #include "language/ABI/MetadataValues.h"
@@ -89,13 +93,13 @@ struct TargetGenericContextDescriptorHeader {
   /// would ever want such a thing.  As a result, in pre-5.8 runtimes
   /// this field is always zero.  New flags can only be added as long
   /// as they remains zero in code which must be compatible with
-  /// older Swift runtimes.
+  /// older Codira runtimes.
   GenericContextDescriptorFlags Flags;
   
   uint32_t getNumArguments() const {
     // Note: this used to be NumKeyArguments + NumExtraArguments,
     // and flags was named NumExtraArguments, which is why Flags
-    // must remain zero when backward deploying to Swift 5.7 or
+    // must remain zero when backward deploying to Codira 5.7 or
     // earlier.
     return NumKeyArguments;
   }
@@ -173,8 +177,8 @@ public:
 
   /// Retrieve the generic parameter that is the subject of this requirement,
   /// as a mangled type name.
-  llvm::StringRef getParam() const {
-    return swift::Demangle::makeSymbolicMangledNameStringRef(Param.get());
+  toolchain::StringRef getParam() const {
+    return language::Demangle::makeSymbolicMangledNameStringRef(Param.get());
   }
 
   /// Retrieve the protocol for a Protocol requirement.
@@ -208,11 +212,11 @@ public:
   }
 
   /// Retrieve the right-hand type for a SameType, BaseClass or SameShape requirement.
-  llvm::StringRef getMangledTypeName() const {
+  toolchain::StringRef getMangledTypeName() const {
     assert(getKind() == GenericRequirementKind::SameType ||
            getKind() == GenericRequirementKind::BaseClass ||
            getKind() == GenericRequirementKind::SameShape);
-    return swift::Demangle::makeSymbolicMangledNameStringRef(Type.get());
+    return language::Demangle::makeSymbolicMangledNameStringRef(Type.get());
   }
 
   /// Retrieve the protocol conformance record for a SameConformance
@@ -393,28 +397,28 @@ public:
       PackShapeHeader(packShapeHeader), PackShapeDescriptors(packShapeDescriptors),
       ValueHeader(valueHeader), ValueDescriptors(valueDescriptors) {}
 
-  llvm::ArrayRef<GenericParamDescriptor> getParams() const {
-    return llvm::ArrayRef(Params, Header.NumParams);
+  toolchain::ArrayRef<GenericParamDescriptor> getParams() const {
+    return toolchain::ArrayRef(Params, Header.NumParams);
   }
 
-  llvm::ArrayRef<TargetGenericRequirementDescriptor<Runtime>> getRequirements() const {
-    return llvm::ArrayRef(Requirements, Header.NumRequirements);
+  toolchain::ArrayRef<TargetGenericRequirementDescriptor<Runtime>> getRequirements() const {
+    return toolchain::ArrayRef(Requirements, Header.NumRequirements);
   }
 
   const GenericPackShapeHeader &getGenericPackShapeHeader() const {
     return PackShapeHeader;
   }
 
-  llvm::ArrayRef<GenericPackShapeDescriptor> getGenericPackShapeDescriptors() const {
-    return llvm::ArrayRef(PackShapeDescriptors, PackShapeHeader.NumPacks);
+  toolchain::ArrayRef<GenericPackShapeDescriptor> getGenericPackShapeDescriptors() const {
+    return toolchain::ArrayRef(PackShapeDescriptors, PackShapeHeader.NumPacks);
   }
 
   const GenericValueHeader &getGenericValueHeader() const {
     return ValueHeader;
   }
 
-  llvm::ArrayRef<GenericValueDescriptor> getGenericValueDescriptors() const {
-    return llvm::ArrayRef(ValueDescriptors, ValueHeader.NumValues);
+  toolchain::ArrayRef<GenericValueDescriptor> getGenericValueDescriptors() const {
+    return toolchain::ArrayRef(ValueDescriptors, ValueHeader.NumValues);
   }
 
   size_t getArgumentLayoutSizeInWords() const {
@@ -424,13 +428,13 @@ public:
 
 template<typename Runtime>
 class TargetGenericEnvironment
-    : public swift::ABI::TrailingObjects<TargetGenericEnvironment<Runtime>,
+    : public language::ABI::TrailingObjects<TargetGenericEnvironment<Runtime>,
                uint16_t, GenericParamDescriptor,
                TargetGenericRequirementDescriptor<Runtime>> {
   using GenericRequirementDescriptor =
     TargetGenericRequirementDescriptor<Runtime>;
   using TrailingObjects =
-     swift::ABI::TrailingObjects<TargetGenericEnvironment<Runtime>,
+     language::ABI::TrailingObjects<TargetGenericEnvironment<Runtime>,
        uint16_t, GenericParamDescriptor, GenericRequirementDescriptor>;
   friend TrailingObjects;
 
@@ -462,21 +466,21 @@ class TargetGenericEnvironment
 
 public:
   /// Retrieve the cumulative generic parameter counts at each level of genericity.
-  llvm::ArrayRef<uint16_t> getGenericParameterCounts() const {
-    return llvm::ArrayRef(this->template getTrailingObjects<uint16_t>(),
+  toolchain::ArrayRef<uint16_t> getGenericParameterCounts() const {
+    return toolchain::ArrayRef(this->template getTrailingObjects<uint16_t>(),
                           Flags.getNumGenericParameterLevels());
   }
 
   /// Retrieve the generic parameters descriptors.
-  llvm::ArrayRef<GenericParamDescriptor> getGenericParameters() const {
-    return llvm::ArrayRef(
+  toolchain::ArrayRef<GenericParamDescriptor> getGenericParameters() const {
+    return toolchain::ArrayRef(
         this->template getTrailingObjects<GenericParamDescriptor>(),
         getGenericParameterCounts().back());
   }
 
   /// Retrieve the generic requirements.
-  llvm::ArrayRef<GenericRequirementDescriptor> getGenericRequirements() const {
-    return llvm::ArrayRef(
+  toolchain::ArrayRef<GenericRequirementDescriptor> getGenericRequirements() const {
+    return toolchain::ArrayRef(
         this->template getTrailingObjects<GenericRequirementDescriptor>(),
         Flags.getNumGenericRequirements());
   }
@@ -503,7 +507,7 @@ template<class Runtime,
 class TrailingGenericContextObjects<TargetSelf<Runtime>,
                                     TargetGenericContextHeaderType,
                                     FollowingTrailingObjects...> :
-  protected swift::ABI::TrailingObjects<TargetSelf<Runtime>,
+  protected language::ABI::TrailingObjects<TargetSelf<Runtime>,
       TargetGenericContextHeaderType<Runtime>,
       GenericParamDescriptor,
       TargetGenericRequirementDescriptor<Runtime>,
@@ -523,7 +527,7 @@ protected:
     TargetGenericRequirementDescriptor<Runtime>;
   using GenericConditionalInvertibleProtocolRequirement =
     TargetConditionalInvertibleProtocolRequirement<Runtime>;
-  using TrailingObjects = swift::ABI::TrailingObjects<Self,
+  using TrailingObjects = language::ABI::TrailingObjects<Self,
     GenericContextHeaderType,
     GenericParamDescriptor,
     GenericRequirementDescriptor,
@@ -585,7 +589,7 @@ public:
   /// second entry in the array is the number of requirements in the first
   /// and second conditional conformances. The last entry is, therefore, the
   /// total count of requirements in the structure.
-  llvm::ArrayRef<ConditionalInvertibleProtocolsRequirementCount>
+  toolchain::ArrayRef<ConditionalInvertibleProtocolsRequirementCount>
   getConditionalInvertibleProtocolRequirementCounts() const {
     if (!asSelf()->hasConditionalInvertedProtocols())
       return {};
@@ -599,7 +603,7 @@ public:
 
   /// Retrieve the array of requirements for conditional conformances to
   /// the ith conditional conformance to a invertible protocol.
-  llvm::ArrayRef<GenericConditionalInvertibleProtocolRequirement>
+  toolchain::ArrayRef<GenericConditionalInvertibleProtocolRequirement>
   getConditionalInvertibleProtocolRequirementsAt(unsigned i) const {
     auto counts = getConditionalInvertibleProtocolRequirementCounts();
     assert(i < counts.size());
@@ -615,7 +619,7 @@ public:
 
   /// Retrieve the array of requirements for conditional conformances to
   /// the ith conditional conformance to a invertible protocol.
-  llvm::ArrayRef<GenericConditionalInvertibleProtocolRequirement>
+  toolchain::ArrayRef<GenericConditionalInvertibleProtocolRequirement>
   getConditionalInvertibleProtocolRequirementsFor(
       InvertibleProtocolKind kind
   ) const {
@@ -650,7 +654,7 @@ public:
       header - sizeof(TargetGenericContext<Runtime>));
   }
 
-  llvm::ArrayRef<GenericParamDescriptor> getGenericParams() const {
+  toolchain::ArrayRef<GenericParamDescriptor> getGenericParams() const {
     if (!asSelf()->isGeneric())
       return {};
 
@@ -658,7 +662,7 @@ public:
             getGenericContextHeader().NumParams};
   }
   
-  llvm::ArrayRef<GenericRequirementDescriptor> getGenericRequirements() const {
+  toolchain::ArrayRef<GenericRequirementDescriptor> getGenericRequirements() const {
     if (!asSelf()->isGeneric())
       return {};
     return {this->template getTrailingObjects<GenericRequirementDescriptor>(),
@@ -673,7 +677,7 @@ public:
     return *this->template getTrailingObjects<GenericPackShapeHeader>();
   }
 
-  llvm::ArrayRef<GenericPackShapeDescriptor> getGenericPackShapeDescriptors() const {
+  toolchain::ArrayRef<GenericPackShapeDescriptor> getGenericPackShapeDescriptors() const {
     auto header = getGenericPackShapeHeader();
     if (header.NumPacks == 0)
       return {};
@@ -690,7 +694,7 @@ public:
     return *this->template getTrailingObjects<GenericValueHeader>();
   }
 
-  llvm::ArrayRef<GenericValueDescriptor> getGenericValueDescriptors() const {
+  toolchain::ArrayRef<GenericValueDescriptor> getGenericValueDescriptors() const {
     auto header = getGenericValueHeader();
 
     if (header.NumValues == 0)

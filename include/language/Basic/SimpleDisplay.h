@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the main customization point, simple_display, for
@@ -19,11 +20,11 @@
 //  for run-time type information.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_BASIC_SIMPLE_DISPLAY_H
-#define SWIFT_BASIC_SIMPLE_DISPLAY_H
+#ifndef LANGUAGE_BASIC_SIMPLE_DISPLAY_H
+#define LANGUAGE_BASIC_SIMPLE_DISPLAY_H
 
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -60,18 +61,18 @@ namespace language {
 
   template<typename T>
   typename std::enable_if<HasTrivialDisplay<T>::value>::type
-  simple_display(llvm::raw_ostream &out, const T &value) {
+  simple_display(toolchain::raw_ostream &out, const T &value) {
     out << value;
   }
 
   template<unsigned I, typename ...Types,
   typename std::enable_if<I == sizeof...(Types)>::type* = nullptr>
-  void simple_display_tuple(llvm::raw_ostream &out,
+  void simple_display_tuple(toolchain::raw_ostream &out,
                             const std::tuple<Types...> &value);
 
   template<unsigned I, typename ...Types,
            typename std::enable_if<I < sizeof...(Types)>::type* = nullptr>
-  void simple_display_tuple(llvm::raw_ostream &out,
+  void simple_display_tuple(toolchain::raw_ostream &out,
                             const std::tuple<Types...> &value) {
     // Start or separator.
     if (I == 0) out << "(";
@@ -86,20 +87,20 @@ namespace language {
 
   template<unsigned I, typename ...Types,
            typename std::enable_if<I == sizeof...(Types)>::type*>
-  void simple_display_tuple(llvm::raw_ostream &out,
+  void simple_display_tuple(toolchain::raw_ostream &out,
                             const std::tuple<Types...> &value) {
     // Last element.
     out << ")";
   }
 
   template<typename ...Types>
-  void simple_display(llvm::raw_ostream &out,
+  void simple_display(toolchain::raw_ostream &out,
                       const std::tuple<Types...> &value) {
     simple_display_tuple<0>(out, value);
   }
 
   template<typename T1, typename T2>
-  void simple_display(llvm::raw_ostream &out,
+  void simple_display(toolchain::raw_ostream &out,
                       const std::pair<T1, T2> &value) {
     out << "(";
     simple_display(out, value.first);
@@ -109,8 +110,8 @@ namespace language {
   }
 
   template<typename T>
-  void simple_display(llvm::raw_ostream &out,
-                      const llvm::TinyPtrVector<T> &vector) {
+  void simple_display(toolchain::raw_ostream &out,
+                      const toolchain::TinyPtrVector<T> &vector) {
     out << "{";
     bool first = true;
     for (const T &value : vector) {
@@ -123,8 +124,8 @@ namespace language {
   }
   
   template<typename T>
-  void simple_display(llvm::raw_ostream &out,
-                      const llvm::ArrayRef<T> &array) {
+  void simple_display(toolchain::raw_ostream &out,
+                      const toolchain::ArrayRef<T> &array) {
     out << "{";
     bool first = true;
     for (const T &value : array) {
@@ -137,8 +138,8 @@ namespace language {
   }
 
   template<typename T>
-  void simple_display(llvm::raw_ostream &out,
-                      const llvm::SmallVectorImpl<T> &vec) {
+  void simple_display(toolchain::raw_ostream &out,
+                      const toolchain::SmallVectorImpl<T> &vec) {
     out << "{";
     bool first = true;
     for (const T &value : vec) {
@@ -151,7 +152,7 @@ namespace language {
   }
 
   template<typename T>
-  void simple_display(llvm::raw_ostream &out,
+  void simple_display(toolchain::raw_ostream &out,
                       const std::vector<T> &vec) {
     out << "{";
     bool first = true;
@@ -165,8 +166,8 @@ namespace language {
   }
 
   template<typename T, typename U>
-  void simple_display(llvm::raw_ostream &out,
-                      const llvm::PointerUnion<T, U> &ptrUnion) {
+  void simple_display(toolchain::raw_ostream &out,
+                      const toolchain::PointerUnion<T, U> &ptrUnion) {
     if (const auto t = ptrUnion.template dyn_cast<T>())
       simple_display(out, t);
     else
@@ -174,4 +175,4 @@ namespace language {
   }
 }
 
-#endif // SWIFT_BASIC_SIMPLE_DISPLAY_H
+#endif // LANGUAGE_BASIC_SIMPLE_DISPLAY_H

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_THREADSAFEREFCOUNTED_H
-#define SWIFT_BASIC_THREADSAFEREFCOUNTED_H
+#ifndef LANGUAGE_BASIC_THREADSAFEREFCOUNTED_H
+#define LANGUAGE_BASIC_THREADSAFEREFCOUNTED_H
 
 #include <atomic>
 #include <cassert>
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
 
 namespace language {
 
@@ -27,7 +28,7 @@ namespace language {
 ///
 /// Should be used instead of \c ThreadSafeRefCountedBase for classes that
 /// already have virtual methods to enforce dynamic allocation via 'new'.
-/// FIXME: This should eventually move to llvm.
+/// FIXME: This should eventually move to toolchain.
 class ThreadSafeRefCountedBaseVPTR {
   mutable std::atomic<unsigned> ref_cnt;
   virtual void anchor();
@@ -50,4 +51,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_THREADSAFEREFCOUNTED_H
+#endif // LANGUAGE_BASIC_THREADSAFEREFCOUNTED_H

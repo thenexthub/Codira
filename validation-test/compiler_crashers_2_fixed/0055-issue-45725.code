@@ -1,0 +1,11 @@
+// RUN: not %target-language-frontend %s -typecheck
+//
+// REQUIRES: objc_interop
+
+// https://github.com/apple/language/issues/45725
+
+import Foundation
+
+class GenericClass<T>: NSObject {
+    var someVar = [String: UndefinedClass]()
+}

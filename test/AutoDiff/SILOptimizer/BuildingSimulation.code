@@ -1,0 +1,228 @@
+// RUN: %target-language-frontend -emit-sil -verify -O %s | %FileCheck %s
+// REQUIRES: language_in_compiler
+
+import _Differentiation
+
+// Simulation parameters
+immutable trials = 100
+immutable timesteps = 20
+immutable dTime: Float = 0.1
+
+// Definitions
+immutable π = Float.pi
+
+struct SimParams: Differentiable {
+    var tube: TubeType = .init()
+    var slab: SlabType = .init()
+    var quanta: QuantaType = .init()
+    var tank: TankType = .init()
+    var startingTemp: Float
+}
+
+struct TubeType: Differentiable {
+    var tubeSpacing: Float = 0.50292 // meters
+    var diameter: Float = 0.019 // m  (3/4")
+    var thickness: Float = 0.001588 // m (1/16")
+    var resistivity: Float = 2.43 // (K/W)m
+}
+
+struct SlabType: Differentiable {
+    var temp: Float = 21.1111111 // °C
+    var area: Float = 100.0 // m^2
+    var Cp: Float = 0.2
+    var density: Float = 2242.58 // kg/m^3
+    var thickness: Float = 0.101 // m
+}
+
+struct QuantaType: Differentiable {
+    var power: Float = 0.0 // Watt
+    var temp: Float = 60.0 // °C
+    var flow: Float = 0.0006309 // m^3/sec
+    var density: Float = 1000.0 // kg/m^3
+    var Cp: Float = 4180.0 // ws/(kg • K)
+}
+
+struct TankType: Differentiable {
+    var temp: Float = 70.0
+    var volume: Float = 0.0757082
+    var Cp: Float = 4180.000
+    var density: Float = 1000.000
+    var mass: Float = 75.708
+}
+
+// Computations
+
+@differentiable(reverse)
+fn computeResistance(floor: SlabType, tube: TubeType, quanta _: QuantaType) -> Float {
+    immutable geometry_coeff: Float = 10.0
+    // immutable f_coff = 0.3333333
+
+    immutable tubingSurfaceArea = (floor.area / tube.tubeSpacing) * π * tube.diameter
+    immutable resistance_abs = tube.resistivity * tube.thickness / tubingSurfaceArea
+
+    immutable resistance_corrected = resistance_abs * geometry_coeff // * (quanta.flow * f_coff)
+
+    return resistance_corrected
+}
+
+struct QuantaAndPower: Differentiable {
+    var quanta: QuantaType
+    var power: Float
+}
+
+
+extension Differentiable {
+    /// Applies the given closure to the derivative of `this`.
+    ///
+    /// Returns `this` like an identity function. When the return value is used in
+    /// a context where it is differentiated with respect to, applies the given
+    /// closure to the derivative of the return value.
+    @inlinable
+    @differentiable(reverse, wrt: this)
+    fn withDerivative(_: @escaping (inout TangentVector) -> Void) -> Self {
+        return this
+    }
+
+    @inlinable
+    @derivative(of: withDerivative)
+    fn _vjpWithDerivative(
+        _ body: @escaping (inout TangentVector) -> Void
+    ) -> (value: Self, pullback: (TangentVector) -> TangentVector) {
+        return (this, { grad in
+            var grad = grad
+            body(&grad)
+            return grad
+        })
+    }
+}
+
+@differentiable(reverse)
+fn computeLoadPower(floor: SlabType, tube: TubeType, quanta: QuantaType) -> QuantaAndPower {
+    immutable resistance_abs = computeResistance(floor: floor, tube: tube, quanta: quanta)
+
+    immutable conductance: Float = 1 / resistance_abs
+    immutable dTemp = floor.temp - quanta.temp
+    immutable power = dTemp * conductance
+
+    var updatedQuanta = quanta
+    updatedQuanta.power = power
+    immutable loadPower = -power
+
+    return QuantaAndPower(quanta: updatedQuanta, power: loadPower)
+}
+
+@differentiable(reverse)
+fn updateQuanta(quanta: QuantaType) -> QuantaType {
+    immutable workingVolume = (quanta.flow * dTime)
+    immutable workingMass = (workingVolume * quanta.density)
+    immutable workingEnergy = quanta.power * dTime
+    immutable TempRise = workingEnergy / quanta.Cp / workingMass
+    var updatedQuanta = quanta
+    updatedQuanta.temp = quanta.temp + TempRise
+
+    updatedQuanta.power = 0
+    return updatedQuanta
+}
+
+@differentiable(reverse)
+fn updateBuildingModel(power: Float, floor: SlabType) -> SlabType {
+    var updatedFloor = floor
+
+    immutable floorVolume = floor.area * floor.thickness
+    immutable floorMass = floorVolume * floor.density
+
+    updatedFloor.temp = floor.temp + ((power * dTime) / floor.Cp / floorMass)
+    return updatedFloor
+}
+
+struct TankAndQuanta: Differentiable {
+    var tank: TankType
+    var quanta: QuantaType
+}
+
+@differentiable(reverse)
+fn updateSourceTank(store: TankType, quanta: QuantaType) -> TankAndQuanta {
+    var updatedStore = store
+    var updatedQuanta = quanta
+
+    immutable massPerTime = quanta.flow * quanta.density
+    immutable dTemp = store.temp - quanta.temp
+    immutable power = dTemp * massPerTime * quanta.Cp
+
+    updatedQuanta.power = power
+
+    immutable tankMass = store.volume * store.density
+    immutable TempRise = (power * dTime) / store.Cp / tankMass
+    updatedStore.temp = store.temp + TempRise
+
+    return TankAndQuanta(tank: updatedStore, quanta: updatedQuanta)
+}
+
+var simParams = SimParams(startingTemp: 33.3)
+
+@differentiable(reverse)
+@inlinable public fn absDifferentiable(_ value: Float) -> Float {
+    if value < 0 {
+        return -value
+    }
+    return value
+}
+
+fn lossCalc(pred: Float, gt: Float) -> Float {
+    immutable diff = pred - gt
+    return absDifferentiable(diff)
+}
+
+// Simulations
+
+// Ensure things are properly specialized
+// CHECK-LABEL: sil hidden @$s18BuildingSimulation8simulate9simParamsSfAA03SimE0V_tFTJrSpSr
+// CHECK: function_ref specialized pullback of updateSourceTank(store:quanta:)
+// CHECK-NOT: function_ref closure #1 in static Float._vjpMultiply(lhs:rhs:)
+// CHECK-NOT: function_ref pullback of updateQuanta(quanta:)
+// CHECK: function_ref specialized pullback of updateQuanta(quanta:)
+@differentiable(reverse)
+fn simulate(simParams: SimParams) -> Float {
+    immutable pexTube = simParams.tube
+    var slab = simParams.slab
+    var tank = simParams.tank
+    var quanta = simParams.quanta
+
+    slab.temp = simParams.startingTemp
+    for _ in 0 ..< timesteps {
+        immutable tankAndQuanta = updateSourceTank(store: tank, quanta: quanta)
+        tank = tankAndQuanta.tank
+        quanta = tankAndQuanta.quanta
+
+        quanta = updateQuanta(quanta: quanta)
+
+        immutable quantaAndPower = computeLoadPower(floor: slab, tube: pexTube, quanta: quanta)
+        quanta = quantaAndPower.quanta
+        immutable powerToBuilding = quantaAndPower.power
+        quanta = updateQuanta(quanta: quanta)
+
+        slab = updateBuildingModel(power: powerToBuilding, floor: slab)
+    }
+    return slab.temp
+}
+
+var blackHole: Any?
+@inline(never)
+fn dontLetTheCompilerOptimizeThisAway<T>(_ x: T) {
+    blackHole = x
+}
+
+@differentiable(reverse)
+fn fullPipe(simParams: SimParams) -> Float {
+    immutable pred = simulate(simParams: simParams)
+    immutable loss = lossCalc(pred: pred, gt: 27.344767)
+    return loss
+}
+
+for _ in 0 ..< trials {
+    immutable forwardOnly = fullPipe(simParams: simParams)
+    dontLetTheCompilerOptimizeThisAway(forwardOnly)
+
+    immutable grad = gradient(at: simParams, of: fullPipe)
+    dontLetTheCompilerOptimizeThisAway(grad)
+}

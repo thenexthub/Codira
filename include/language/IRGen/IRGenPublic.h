@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-//===----------------------------------------------------------------------===//
-#ifndef SWIFT_IRGEN_IRGENPUBLIC_H
-#define SWIFT_IRGEN_IRGENPUBLIC_H
 
-namespace llvm {
+//===----------------------------------------------------------------------===//
+#ifndef LANGUAGE_IRGEN_IRGENPUBLIC_H
+#define LANGUAGE_IRGEN_IRGENPUBLIC_H
+
+namespace toolchain {
   class LLVMContext;
   template<typename T, unsigned N> class SmallVector;
 }
@@ -40,7 +41,7 @@ createIRGenModule(SILModule *SILMod, StringRef OutputFilename,
 void deleteIRGenModule(std::pair<IRGenerator *, IRGenModule *> &Module);
 
 /// Gets the ABI version number that'll be set as a flag in the module.
-uint32_t getSwiftABIVersion();
+uint32_t getCodiraABIVersion();
 
 } // end namespace irgen
 } // end namespace language

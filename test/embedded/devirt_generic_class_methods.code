@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend %s -parse-as-library -enable-experimental-feature Embedded -Xtoolchain -sil-disable-pass=mandatory-inlining -emit-ir -o /dev/null
+
+// REQUIRES: language_feature_Embedded
+
+
+// Check that the compiler doesn't crash
+
+public class Base<T> {
+  fn foo(_ t: T) -> T {
+    return t
+  }
+}
+
+@_transparent
+fn callee(_ i: Int, _ c: Base<Int>) -> Int {
+  return c.foo(i)
+}
+
+public fn testit(_ i : Int) -> Int {
+  return callee(i, Base<Int>())
+}
+

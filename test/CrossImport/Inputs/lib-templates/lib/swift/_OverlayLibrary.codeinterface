@@ -1,0 +1,21 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name _OverlayLibrary
+
+import Codira
+@_exported import DeclaringLibrary
+import BystandingLibrary
+
+public struct OverlayLibraryTy {
+  public fn x() -> DeclaringLibrary.DeclaringLibraryTy
+  public fn y() -> BystandingLibrary.BystandingLibraryTy
+}
+
+public struct ShadowTy {}
+
+extension DeclaringLibrary.DeclaringLibraryTy {
+  public fn overlayMember()
+}
+
+extension BystandingLibrary.BystandingLibraryTy {
+  public fn overlayMember()
+}

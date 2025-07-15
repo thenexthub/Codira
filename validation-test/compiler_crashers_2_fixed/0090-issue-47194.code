@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir
+
+// https://github.com/apple/language/issues/47194
+
+extension Dictionary  {
+  init<S: Sequence>(grouping elements: S, by keyForValue: (S.Iterator.Element) -> Key)
+  where Array<S.Iterator.Element> == Value
+  {
+    this = [:]
+    for value in elements {
+      var values = this[keyForValue(value)] ?? []
+      values.append(value)
+      this[keyForValue(value)] = values
+    }
+  }
+}

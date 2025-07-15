@@ -1,4 +1,4 @@
-//===--- TypeRefBuilder.cpp - Swift Type Reference Builder ----------------===//
+//===--- TypeRefBuilder.cpp - Codira Type Reference Builder ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements utilities for constructing TypeRefs and looking up field and
@@ -18,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 
 #include "language/RemoteInspection/TypeRefBuilder.h"
 #include "language/Demangling/Demangle.h"
@@ -32,17 +33,18 @@
 
 using namespace language;
 using namespace reflection;
-using ReadBytesResult = swift::remote::MemoryReader::ReadBytesResult;
+using ReadBytesResult = language::remote::MemoryReader::ReadBytesResult;
 
 TypeRefBuilder::BuiltType
 TypeRefBuilder::decodeMangledType(Node *node, bool forRequirement) {
-  return swift::Demangle::decodeMangledType(*this, node, forRequirement)
+  return language::Demangle::decodeMangledType(*this, node, forRequirement)
       .getType();
 }
 
 std::optional<std::reference_wrapper<const ReflectionInfo>>
 TypeRefBuilder::ReflectionTypeDescriptorFinder::
-    findReflectionInfoWithTypeRefContainingAddress(uint64_t remoteAddr) {
+    findReflectionInfoWithTypeRefContainingAddress(
+        remote::RemoteAddress remoteAddr) {
   // Update ReflectionInfoIndexesSortedByTypeReferenceRange if necessary.
   if (ReflectionInfoIndexesSortedByTypeReferenceRange.size() !=
       ReflectionInfos.size()) {
@@ -57,14 +59,16 @@ TypeRefBuilder::ReflectionTypeDescriptorFinder::
         ReflectionInfoIndexesSortedByTypeReferenceRange.begin(),
         ReflectionInfoIndexesSortedByTypeReferenceRange.end(),
         [&](uint32_t ReflectionInfoIndexA, uint32_t ReflectionInfoIndexB) {
-          uint64_t typeReferenceAStart = ReflectionInfos[ReflectionInfoIndexA]
-                                             .TypeReference.startAddress()
-                                             .getAddressData();
-          uint64_t typeReferenceBStart = ReflectionInfos[ReflectionInfoIndexB]
-                                             .TypeReference.startAddress()
-                                             .getAddressData();
+          remote::RemoteAddress typeReferenceAStart =
+              ReflectionInfos[ReflectionInfoIndexA]
+                  .TypeReference.startAddress()
+                  .getRemoteAddress();
+          remote::RemoteAddress typeReferenceBStart =
+              ReflectionInfos[ReflectionInfoIndexB]
+                  .TypeReference.startAddress()
+                  .getRemoteAddress();
 
-          return typeReferenceAStart < typeReferenceBStart;
+          return typeReferenceAStart.orderedLessThan(typeReferenceBStart);
         });
   }
 
@@ -74,10 +78,12 @@ TypeRefBuilder::ReflectionTypeDescriptorFinder::
   const auto possiblyMatchingReflectionInfoIndex = std::lower_bound(
       ReflectionInfoIndexesSortedByTypeReferenceRange.begin(),
       ReflectionInfoIndexesSortedByTypeReferenceRange.end(), remoteAddr,
-      [&](uint32_t ReflectionInfoIndex, uint64_t remoteAddr) {
-        return ReflectionInfos[ReflectionInfoIndex]
-                   .TypeReference.endAddress()
-                   .getAddressData() <= remoteAddr;
+      [&](uint32_t ReflectionInfoIndex, remote::RemoteAddress remoteAddr) {
+        auto reflectionInfoAddress = ReflectionInfos[ReflectionInfoIndex]
+                                         .TypeReference.endAddress()
+                                         .getRemoteAddress();
+
+        return reflectionInfoAddress.orderedLessThanOrEqual(remoteAddr);
       });
 
   if (possiblyMatchingReflectionInfoIndex ==
@@ -100,7 +106,7 @@ TypeRefBuilder::ReflectionTypeDescriptorFinder::
 }
 
 RemoteRef<char> TypeRefBuilder::ReflectionTypeDescriptorFinder::readTypeRef(
-    uint64_t remoteAddr) {
+    remote::RemoteAddress remoteAddr) {
   // The remote address should point into one of the TypeRef or
   // ReflectionString references we already read out of the images.
   RemoteRef<char> foundTypeRef;
@@ -132,7 +138,7 @@ found_type_ref:
   // Make sure there's a valid mangled string within the bounds of the
   // section.
   for (auto i = foundTypeRef;
-       i.getAddressData() < limitAddress.getAddressData();) {
+       i.getRemoteAddress() < limitAddress.getRemoteAddress();) {
     auto c = *i.getLocalBuffer();
     if (c == '\0')
       goto valid_type_ref;
@@ -163,7 +169,7 @@ valid_type_ref:
 std::optional<std::string>
 TypeRefBuilder::ReflectionTypeDescriptorFinder::normalizeReflectionName(
     RemoteRef<char> reflectionName) {
-  const auto reflectionNameRemoteAddress = reflectionName.getAddressData();
+  const auto reflectionNameRemoteAddress = reflectionName.getRemoteAddress();
 
   if (const auto found =
           NormalizedReflectionNameCache.find(reflectionNameRemoteAddress);
@@ -287,7 +293,7 @@ static std::optional<StringRef> FindOutermostModuleName(NodePointer Node) {
     return {};
   // Breadth first search until we find the module name so we find the outermost
   // one.
-  llvm::SmallVector<NodePointer, 8> Queue;
+  toolchain::SmallVector<NodePointer, 8> Queue;
   Queue.push_back(Node);
   // Instead of removing items from the front of the queue we just iterate over
   // them.
@@ -310,7 +316,7 @@ void TypeRefBuilder::ReflectionTypeDescriptorFinder::
   if (ProcessedReflectionInfoIndexes.contains(Index))
     return;
 
-  llvm::SmallVector<std::string, 0> Names;
+  toolchain::SmallVector<std::string, 0> Names;
   const auto &Info = ReflectionInfos[Index];
   for (auto FD : Info.Field) {
     if (FD->hasMangledTypeName()) {
@@ -356,13 +362,13 @@ TypeRefBuilder::ReflectionTypeDescriptorFinder::
       return std::nullopt;
 
     auto &Field = ReflectionInfos[Locator->InfoID].Field;
-    auto Addr = Field.startAddress().getAddressData() + Locator->Offset;
+    auto Addr = Field.startAddress().getRemoteAddress() + Locator->Offset;
 
     // Validate that we've got the correct field descriptor offset by parsing
     // the mangled name for that specific offset and making sure it's the one
     // we're looking for.
     for (auto FD : Field) {
-      if (FD.getAddressData() == Addr) {
+      if (FD.getRemoteAddress() == Addr) {
         if (!FD->hasMangledTypeName())
           break;
         auto CandidateMangledName = readTypeRef(FD, FD->MangledTypeName);
@@ -416,7 +422,7 @@ TypeRefBuilder::ReflectionTypeDescriptorFinder::getFieldTypeInfo(
       if (ExternalTypeRefCache &&
           ExternalTypeRefCache->isReflectionInfoCached(i))
         continue;
-      if (llvm::is_contained(ReflectionInfos[i].PotentialModuleNames,
+      if (toolchain::is_contained(ReflectionInfos[i].PotentialModuleNames,
                              ModuleName))
         if (auto FD = findFieldDescriptorAtIndex(i, *MangledName))
           return *FD;
@@ -541,8 +547,9 @@ bool TypeRefBuilder::getFieldTypeRefs(
     // We need this for enums; an enum case "is generic" if any generic type
     // parameter substitutions occurred on the payload.  E.g.,
     // `case a([T?])` is generic, but `case a([Int?])` is not.
-    bool IsGeneric = false;
-    auto Substituted = Unsubstituted->subst(*this, *Subs, IsGeneric);
+    bool IsGeneric = !Unsubstituted->isConcrete();
+    auto Substituted = (IsGeneric ? Unsubstituted->subst(*this, *Subs)
+                                  : Unsubstituted);
     bool IsIndirect = FD.isEnum() && Field->IsIndirectCase;
 
     auto FieldTI = FieldTypeInfo(FieldName.str(), FieldValue, Substituted,
@@ -751,7 +758,7 @@ TypeRefBuilder::getMultiPayloadEnumDescriptor(const TypeRef *TR) {
 
 RemoteRef<CaptureDescriptor>
 TypeRefBuilder::ReflectionTypeDescriptorFinder::getCaptureDescriptor(
-    uint64_t RemoteAddress) {
+    remote::RemoteAddress RemoteAddress) {
 
   for (; CaptureDescriptorsByAddressLastReflectionInfoCache <
          ReflectionInfos.size();
@@ -760,7 +767,7 @@ TypeRefBuilder::ReflectionTypeDescriptorFinder::getCaptureDescriptor(
          ReflectionInfos[CaptureDescriptorsByAddressLastReflectionInfoCache]
              .Capture) {
       CaptureDescriptorsByAddress.emplace(
-          std::make_pair(CD.getAddressData(), CD));
+          std::make_pair(CD.getRemoteAddress(), CD));
     }
   }
 
@@ -827,7 +834,7 @@ void TypeRefBuilder::ReflectionTypeDescriptorFinder::dumpTypeRef(
   auto DemangleTree = Builder.demangleTypeRef(MangledName);
   auto TypeName = nodeToString(DemangleTree);
   stream << TypeName << "\n";
-  auto Result = swift::Demangle::decodeMangledType(Builder, DemangleTree);
+  auto Result = language::Demangle::decodeMangledType(Builder, DemangleTree);
   if (Result.isError()) {
     auto *Error = Result.getError();
     char *ErrorStr = Error->copyErrorString();

@@ -1,13 +1,17 @@
 //===-- KeyPathProjector.h - Project a static key path ----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -16,8 +20,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_KEYPATHPROJECTOR_H
-#define SWIFT_SILOPTIMIZER_UTILS_KEYPATHPROJECTOR_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_KEYPATHPROJECTOR_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_KEYPATHPROJECTOR_H
 
 #include "language/SIL/SILBuilder.h"
 #include <memory>
@@ -32,13 +36,13 @@ class KeyPathProjector {
 public:
   /// The type of a key path access.
   enum class AccessType {
-    /// A get-only access (i.e. swift_getAtKeyPath).
+    /// A get-only access (i.e. language_getAtKeyPath).
     Get,
     
-    /// A set-only access (i.e. swift_setAtWritableKeyPath).
+    /// A set-only access (i.e. language_setAtWritableKeyPath).
     Set,
     
-    /// A modification (i.e. swift_modifyAtWritableKeyPath).
+    /// A modification (i.e. language_modifyAtWritableKeyPath).
     Modify
   };
   

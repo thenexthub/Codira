@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -typecheck -verify -primary-file %t/a.code %t/b.code -plugin-path %language-plugin-dir
+
+//--- a.code
+
+fn foo() {
+  _ = {
+    immutable i = 0
+    $bar.withValue(i) {}
+  }
+}
+
+//--- b.code
+
+@TaskLocal
+var bar: Int?

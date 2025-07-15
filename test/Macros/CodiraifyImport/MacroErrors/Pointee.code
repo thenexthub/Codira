@@ -1,0 +1,13 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-typecheck-verify-language -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -verify
+
+// expected-error@+2{{void pointers not supported for countedBy}}
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "count"))
+fn myFunc(_ ptr: UnsafeRawPointer, _ count: CInt) {
+}
+
+// expected-error@+2{{void pointers not supported for countedBy}}
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "count"))
+fn myFunc(_ ptr: OpaquePointer, _ count: CInt) {
+}

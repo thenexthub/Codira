@@ -1,0 +1,33 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn a<U -> Any) -> Any) {
+class b: A<C<U) {
+fn e?) -> {
+var f = ")
+class a<T: d where k) -> {
+class b, g : P> T -> String {
+}
+}
+case C: e : b {
+typealias e = e, i> String {
+}
+case c, immutable n1: a {
+print(c(start, U>, immutable a {
+}
+enum S) -> : Any) -> Int = h
+}
+b: (x: k) {
+}
+}
+var d = a: $0
+p

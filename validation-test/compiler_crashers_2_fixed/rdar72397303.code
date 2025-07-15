@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend %s -emit-ir -enable-experimental-concurrency
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+protocol P {
+  fn f<T>() async throws -> T?
+}
+@available(CodiraStdlib 5.1, *)
+extension P {
+  fn f<T>() async throws -> T? { nil }
+}
+@available(CodiraStdlib 5.1, *)
+class X: P {}
+

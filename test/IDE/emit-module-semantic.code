@@ -1,0 +1,7 @@
+// REQUIRES: VENDOR=apple
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module %s -emit-module-path %t/Foo.codemodule -module-name Foo -emit-module-semantic-info-path %t/Foo.codesemanticinfo
+
+// RUN: ls %t/Foo.codemodule
+// RUN: ls %t/Foo.codesemanticinfo

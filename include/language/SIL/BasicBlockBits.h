@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines utilities for BasicBlock bit fields and sets.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_BASICBLOCKBITS_H
-#define SWIFT_SIL_BASICBLOCKBITS_H
+#ifndef LANGUAGE_SIL_BASICBLOCKBITS_H
+#define LANGUAGE_SIL_BASICBLOCKBITS_H
 
 #include "language/SIL/SILBitfield.h"
 

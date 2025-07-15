@@ -1,22 +1,22 @@
 //===--- IndexRecord.h - Entry point for recording index data ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2016 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See http://swift.org/LICENSE.txt for license information
-// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See http://language.org/LICENSE.txt for license information
+// See http://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_INDEX_INDEXRECORD_H
-#define SWIFT_INDEX_INDEXRECORD_H
+#ifndef LANGUAGE_INDEX_INDEXRECORD_H
+#define LANGUAGE_INDEX_INDEXRECORD_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/PathRemapper.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 class DependencyTracker;
@@ -38,7 +38,7 @@ namespace index {
 /// (pcms).
 ///
 /// \param indexSystemModules If true, emit index data for imported serialized
-/// swift system modules.
+/// language system modules.
 ///
 /// \param skipStdlib If indexing system modules, don't index the standard
 /// library.
@@ -80,7 +80,7 @@ bool indexAndRecord(SourceFile *primarySourceFile, StringRef indexUnitToken,
 /// (pcms).
 ///
 /// \param indexSystemModules If true, emit index data for imported serialized
-/// swift system modules.
+/// language system modules.
 ///
 /// \param skipStdlib If indexing system modules, don't index the standard
 /// library.
@@ -109,4 +109,4 @@ bool indexAndRecord(ModuleDecl *module, ArrayRef<std::string> indexUnitTokens,
 } // end namespace index
 } // end namespace language
 
-#endif // SWIFT_INDEX_INDEXRECORD_H
+#endif // LANGUAGE_INDEX_INDEXRECORD_H

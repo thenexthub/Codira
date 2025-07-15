@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILDeclRef.h"
@@ -33,13 +34,13 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/Mangle.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/raw_ostream.h"
 using namespace language;
 
 /// Get the method dispatch mechanism for a method.
 MethodDispatch
-swift::getMethodDispatch(AbstractFunctionDecl *method) {
+language::getMethodDispatch(AbstractFunctionDecl *method) {
   // Some methods are forced to be statically dispatched.
   if (method->hasForcedStaticDispatch())
     return MethodDispatch::Static;
@@ -83,9 +84,9 @@ swift::getMethodDispatch(AbstractFunctionDecl *method) {
   return MethodDispatch::Static;
 }
 
-bool swift::requiresForeignToNativeThunk(ValueDecl *vd) {
+bool language::requiresForeignToNativeThunk(ValueDecl *vd) {
   // Functions imported from C, Objective-C methods imported from Objective-C,
-  // as well as methods in @objc protocols (even protocols defined in Swift)
+  // as well as methods in @objc protocols (even protocols defined in Codira)
   // require a foreign to native thunk.
   auto dc = vd->getDeclContext();
   if (auto proto = dyn_cast<ProtocolDecl>(dc))
@@ -98,7 +99,7 @@ bool swift::requiresForeignToNativeThunk(ValueDecl *vd) {
   return false;
 }
 
-bool swift::requiresForeignEntryPoint(ValueDecl *vd) {
+bool language::requiresForeignEntryPoint(ValueDecl *vd) {
   assert(!isa<AbstractStorageDecl>(vd));
 
   if (vd->shouldUseObjCDispatch()) {
@@ -161,7 +162,7 @@ SILDeclRef::SILDeclRef(SILDeclRef::Loc baseLoc, bool asForeign,
     }
     // VarDecl constants require an explicit kind.
     else if (isa<VarDecl>(vd)) {
-      llvm_unreachable("must create SILDeclRef for VarDecl with explicit kind");
+      toolchain_unreachable("must create SILDeclRef for VarDecl with explicit kind");
     }
     // Map DestructorDecls to the Deallocator of the destructor.
     else if (auto dtor = dyn_cast<DestructorDecl>(vd)) {
@@ -169,7 +170,7 @@ SILDeclRef::SILDeclRef(SILDeclRef::Loc baseLoc, bool asForeign,
       kind = Kind::Deallocator;
     }
     else {
-      llvm_unreachable("invalid loc decl for SILDeclRef!");
+      toolchain_unreachable("invalid loc decl for SILDeclRef!");
     }
   } else if (auto *ACE = baseLoc.dyn_cast<AbstractClosureExpr *>()) {
     loc = ACE;
@@ -185,7 +186,7 @@ SILDeclRef::SILDeclRef(SILDeclRef::Loc baseLoc, bool asForeign,
       }
     }
   } else {
-    llvm_unreachable("impossible SILDeclRef loc");
+    toolchain_unreachable("impossible SILDeclRef loc");
   }
 
   isForeign = asForeign;
@@ -210,7 +211,7 @@ std::optional<AnyFunctionRef> SILDeclRef::getAnyFunctionRef() const {
   case LocKind::File:
     return std::nullopt;
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 DeclContext *SILDeclRef::getInnermostDeclContext() const {
@@ -224,7 +225,7 @@ DeclContext *SILDeclRef::getInnermostDeclContext() const {
   case LocKind::File:
     return getFileUnit();
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 ASTContext &SILDeclRef::getASTContext() const {
@@ -299,7 +300,7 @@ bool SILDeclRef::isImplicit() const {
     // Files are currently never considered implicit.
     return false;
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 bool SILDeclRef::hasUserWrittenCode() const {
@@ -311,7 +312,7 @@ bool SILDeclRef::hasUserWrittenCode() const {
       // arguments to apply. Otherwise, it's just a forwarding initializer for
       // the wrappedValue.
       auto *var = cast<VarDecl>(getDecl());
-      return llvm::any_of(var->getAttachedPropertyWrappers(), [&](auto *attr) {
+      return toolchain::any_of(var->getAttachedPropertyWrappers(), [&](auto *attr) {
         return attr->hasArgs();
       });
     }
@@ -332,7 +333,7 @@ bool SILDeclRef::hasUserWrittenCode() const {
       // in more cases to take advantage of it.
       return true;
     }
-    llvm_unreachable("Unhandled case in switch!");
+    toolchain_unreachable("Unhandled case in switch!");
   }
 
   // Implicit decls generally don't have user-written code, but some splice
@@ -352,7 +353,7 @@ bool SILDeclRef::hasUserWrittenCode() const {
         case AutoClosureExpr::Kind::AsyncLet:
           return true;
         }
-        llvm_unreachable("Unhandled case in switch!");
+        toolchain_unreachable("Unhandled case in switch!");
       }
       // Otherwise, assume an implicit closure doesn't have user code.
       return false;
@@ -395,7 +396,7 @@ bool SILDeclRef::hasUserWrittenCode() const {
     // Implicit decls for these don't splice in user-written code.
     return false;
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 bool SILDeclRef::shouldBeEmittedForDebugger() const {
@@ -536,7 +537,7 @@ static LinkageLimit getLinkageLimit(SILDeclRef constant) {
     }
     // Otherwise, regular property wrapper backing initializers (for properties)
     // are treated just like stored property initializers.
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   case Kind::StoredPropertyInitializer: {
     // Stored property initializers get the linkage of their containing type.
@@ -572,7 +573,7 @@ static LinkageLimit getLinkageLimit(SILDeclRef constant) {
 
   case Kind::EntryPoint:
   case Kind::AsyncEntryPoint:
-    llvm_unreachable("Already handled");
+    toolchain_unreachable("Already handled");
   }
   return Limit::None;
 }
@@ -601,7 +602,7 @@ SILLinkage SILDeclRef::getDefinitionLinkage() const {
     // async main entrypoint is referenced only from @main and
     // they are in the same SIL module. Hiding this entrypoint
     // from other object file makes it possible to link multiple
-    // executable targets for SwiftPM testing with -entry-point-function-name
+    // executable targets for CodiraPM testing with -entry-point-function-name
     return SILLinkage::Private;
   }
 
@@ -683,7 +684,7 @@ SILLinkage SILDeclRef::getDefinitionLinkage() const {
     case Limit::NeverPublic:
       return SILLinkage::Hidden;
     case Limit::Private:
-      llvm_unreachable("Already handled");
+      toolchain_unreachable("Already handled");
     }
   case AccessLevel::Public:
   case AccessLevel::Open:
@@ -697,10 +698,10 @@ SILLinkage SILDeclRef::getDefinitionLinkage() const {
     case Limit::NeverPublic:
       return SILLinkage::Hidden;
     case Limit::Private:
-      llvm_unreachable("Already handled");
+      toolchain_unreachable("Already handled");
     }
   }
-  llvm_unreachable("unhandled access");
+  toolchain_unreachable("unhandled access");
 }
 
 SILLinkage SILDeclRef::getLinkage(ForDefinition_t forDefinition) const {
@@ -788,7 +789,7 @@ ModuleDecl *SILDeclRef::getModuleContext() const {
   } else if (hasAutoClosureExpr()) {
     return getAutoClosureExpr()->getParentModule();
   }
-  llvm_unreachable("Unknown declaration reference");
+  toolchain_unreachable("Unknown declaration reference");
 }
 
 bool SILDeclRef::isSetter() const {
@@ -834,9 +835,9 @@ bool SILDeclRef::isTransparent() const {
     }
   }
 
-  // To support using metatypes as type hints in Embedded Swift. A default
+  // To support using metatypes as type hints in Embedded Codira. A default
   // argument generator might be returning a metatype, which we normally don't
-  // support in Embedded Swift, but to still allow metatypes as type hints, we
+  // support in Embedded Codira, but to still allow metatypes as type hints, we
   // make the generator always inline to the callee by marking it transparent.
   if (getASTContext().LangOpts.hasFeature(Feature::Embedded)) {
     if (isDefaultArgGenerator() && hasDecl()) {
@@ -894,8 +895,8 @@ SerializedKind_t SILDeclRef::getSerializedKind() const {
   if (isDefaultArgGenerator() || (isPropertyWrapperBackingInitializer() &&
                                   isa<ParamDecl>(d))) {
     if (isPropertyWrapperBackingInitializer()) {
-      if (auto *func = dyn_cast_or_null<ValueDecl>(d->getDeclContext()->getAsDecl())) {
-        d = func;
+      if (auto *fn = dyn_cast_or_null<ValueDecl>(d->getDeclContext()->getAsDecl())) {
+        d = fn;
       }
     }
 
@@ -923,7 +924,7 @@ SerializedKind_t SILDeclRef::getSerializedKind() const {
 
     // If this isn't in a nominal, it must be in an @objc @implementation
     // extension. We don't serialize those since clients outside the module
-    // don't think of these as Swift classes.
+    // don't think of these as Codira classes.
     if (!nominal) {
       ASSERT(isa<ExtensionDecl>(d->getDeclContext()) &&
              cast<ExtensionDecl>(d->getDeclContext())->isObjCImplementation());
@@ -1046,7 +1047,7 @@ bool SILDeclRef::isNoinline() const {
 
 /// True if the function has the @inline(__always) attribute.
 bool SILDeclRef::isAlwaysInline() const {
-  swift::Decl *decl = nullptr;
+  language::Decl *decl = nullptr;
   if (hasDecl()) {
     decl = getDecl();
   } else if (auto *ce = getAbstractClosureExpr()) {
@@ -1101,7 +1102,7 @@ bool SILDeclRef::isForeignToNativeThunk() const {
   // have a foreign-to-native thunk.
   if (!hasDecl())
     return false;
-  // A default argument generator for a C++ function is a Swift function, so no
+  // A default argument generator for a C++ function is a Codira function, so no
   // thunk needed.
   if (isDefaultArgGenerator())
     return false;
@@ -1141,7 +1142,7 @@ bool SILDeclRef::isNativeToForeignThunk() const {
   case LocKind::File:
     return false;
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 bool SILDeclRef::isDistributedThunk() const {
@@ -1193,7 +1194,7 @@ static std::string mangleClangDecl(Decl *decl, bool isForeign) {
     } else if (namedClangDecl->hasAttr<clang::OverloadableAttr>() ||
                decl->getASTContext().LangOpts.EnableCXXInterop) {
       std::string storage;
-      llvm::raw_string_ostream SS(storage);
+      toolchain::raw_string_ostream SS(storage);
       mangleClangDeclViaImporter(SS, namedClangDecl, decl->getASTContext());
       return SS.str();
     }
@@ -1201,7 +1202,7 @@ static std::string mangleClangDecl(Decl *decl, bool isForeign) {
   } else if (auto objcDecl = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
     if (objcDecl->isDirectMethod() && isForeign) {
       std::string storage;
-      llvm::raw_string_ostream SS(storage);
+      toolchain::raw_string_ostream SS(storage);
       clang::ASTContext &ctx = clangDecl->getASTContext();
       std::unique_ptr<clang::MangleContext> mangler(ctx.createMangleContext());
       mangler->mangleObjCMethodName(objcDecl, SS, /*includePrefixByte=*/true,
@@ -1266,9 +1267,9 @@ std::string SILDeclRef::mangle(ManglingKind MKind) const {
   switch (MKind) {
     case SILDeclRef::ManglingKind::Default:
       if (isForeign) {
-        SKind = ASTMangler::SymbolKind::SwiftAsObjCThunk;
+        SKind = ASTMangler::SymbolKind::CodiraAsObjCThunk;
       } else if (isForeignToNativeThunk()) {
-        SKind = ASTMangler::SymbolKind::ObjCAsSwiftThunk;
+        SKind = ASTMangler::SymbolKind::ObjCAsCodiraThunk;
       } else if (isDistributedThunk()) {
         SKind = ASTMangler::SymbolKind::DistributedThunk;
       } else if (isBackDeploymentThunk()) {
@@ -1301,7 +1302,7 @@ std::string SILDeclRef::mangle(ManglingKind MKind) const {
     }
 
     // Use a given cdecl name for native-to-foreign thunks.
-    if (auto CDeclA = getDecl()->getAttrs().getAttribute<CDeclAttr>())
+    if (getDecl()->getAttrs().hasAttribute<CDeclAttr>())
       if (isNativeToForeignThunk()) {
         // If this is an @implementation @_cdecl, mangle it like the clang
         // function it implements.
@@ -1310,7 +1311,7 @@ std::string SILDeclRef::mangle(ManglingKind MKind) const {
           if (!clangMangling.empty())
             return clangMangling;
         }
-        return CDeclA->Name.str();
+        return getDecl()->getCDeclName().str();
       }
 
     if (SKind == ASTMangler::SymbolKind::DistributedThunk) {
@@ -1318,7 +1319,7 @@ std::string SILDeclRef::mangle(ManglingKind MKind) const {
     }
 
     // Otherwise, fall through into the 'other decl' case.
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 
   case SILDeclRef::Kind::EnumElement:
     return mangler.mangleEntity(getDecl(), SKind);
@@ -1393,11 +1394,11 @@ std::string SILDeclRef::mangle(ManglingKind MKind) const {
   }
   }
 
-  llvm_unreachable("bad entity kind!");
+  toolchain_unreachable("bad entity kind!");
 }
 
 // Returns true if the given JVP/VJP SILDeclRef requires a new vtable entry.
-// FIXME(https://github.com/apple/swift/issues/54833): Also consider derived declaration `@derivative` attributes.
+// FIXME(https://github.com/apple/language/issues/54833): Also consider derived declaration `@derivative` attributes.
 static bool derivativeFunctionRequiresNewVTableEntry(SILDeclRef declRef) {
   assert(declRef.getDerivativeFunctionIdentifier() &&
          "Expected a derivative function SILDeclRef");
@@ -1405,7 +1406,7 @@ static bool derivativeFunctionRequiresNewVTableEntry(SILDeclRef declRef) {
   if (!overridden)
     return false;
   // Get the derived `@differentiable` attribute.
-  auto *derivedDiffAttr = *llvm::find_if(
+  auto *derivedDiffAttr = *toolchain::find_if(
       declRef.getDecl()->getAttrs().getAttributes<DifferentiableAttr>(),
       [&](const DifferentiableAttr *derivedDiffAttr) {
         return derivedDiffAttr->getParameterIndices() ==
@@ -1474,7 +1475,7 @@ SILDeclRef SILDeclRef::getNextOverriddenVTableEntry() const {
     // An @objc convenience initializer can be "overridden" in the sense that
     // its selector is reclaimed by a subclass's convenience init with the
     // same name. The AST models this as an override for the purposes of
-    // ObjC selector validation, but it isn't for Swift method dispatch
+    // ObjC selector validation, but it isn't for Codira method dispatch
     // purposes.
     if (overridden.kind == SILDeclRef::Kind::Allocator) {
       auto overriddenCtor = cast<ConstructorDecl>(overridden.getDecl());
@@ -1484,8 +1485,8 @@ SILDeclRef SILDeclRef::getNextOverriddenVTableEntry() const {
     }
 
     // Initializing entry points for initializers won't be in the vtable.
-    // For Swift designated initializers, they're only used in super.init
-    // chains, which can always be statically resolved. Other native Swift
+    // For Codira designated initializers, they're only used in super.init
+    // chains, which can always be statically resolved. Other native Codira
     // initializers only have allocating entry points. ObjC initializers always
     // have the initializing entry point (corresponding to the -init method)
     // but those are never in the vtable.
@@ -1545,16 +1546,16 @@ SILDeclRef SILDeclRef::getOverriddenWitnessTableEntry() const {
 }
 
 AbstractFunctionDecl *SILDeclRef::getOverriddenWitnessTableEntry(
-                                                 AbstractFunctionDecl *func) {
-  if (!isa<ProtocolDecl>(func->getDeclContext()))
-    return func;
+                                                 AbstractFunctionDecl *fn) {
+  if (!isa<ProtocolDecl>(fn->getDeclContext()))
+    return fn;
 
   AbstractFunctionDecl *bestOverridden = nullptr;
 
   SmallVector<AbstractFunctionDecl *, 4> stack;
   SmallPtrSet<AbstractFunctionDecl *, 4> visited;
-  stack.push_back(func);
-  visited.insert(func);
+  stack.push_back(fn);
+  visited.insert(fn);
 
   while (!stack.empty()) {
     auto current = stack.back();
@@ -1607,7 +1608,7 @@ SILLocation SILDeclRef::getAsRegularLocation() const {
   case LocKind::File:
     return RegularLocation::getModuleLocation();
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 SubclassScope SILDeclRef::getSubclassScope() const {
@@ -1711,7 +1712,7 @@ SubclassScope SILDeclRef::getSubclassScope() const {
     return SubclassScope::External;
   }
 
-  llvm_unreachable("Unhandled access level in switch.");
+  toolchain_unreachable("Unhandled access level in switch.");
 }
 
 Expr *SILDeclRef::getInitializationExpr() const {
@@ -1774,7 +1775,7 @@ unsigned SILDeclRef::getParameterListCount() const {
   } else if (isa<VarDecl>(vd)) {
     return 1;
   } else {
-    llvm_unreachable("Unhandled ValueDecl for SILDeclRef");
+    toolchain_unreachable("Unhandled ValueDecl for SILDeclRef");
   }
 }
 

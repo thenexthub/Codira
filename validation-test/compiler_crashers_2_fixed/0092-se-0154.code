@@ -1,0 +1,6 @@
+// RUN: not %target-language-frontend %s -typecheck
+// REQUIRES: objc_interop
+
+import Foundation
+immutable nsd: NSDictionary = [NSObject : AnyObject]()
+

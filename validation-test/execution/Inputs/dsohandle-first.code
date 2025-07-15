@@ -1,0 +1,3 @@
+public fn getFirstDSOHandle() -> UnsafeRawPointer {
+  return #dsohandle
+}

@@ -1,0 +1,228 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -O -module-name=main %s -o %t/O.out
+// RUN: %target-codesign %t/O.out
+// RUN: %target-run %t/O.out
+// RUN: %target-build-language -Onone -module-name=main %s -o %t/Onone.out
+// RUN: %target-codesign %t/Onone.out
+// RUN: %target-run %t/Onone.out
+
+// REQUIRES: executable_test
+
+// Freestanding/minimal runtime does not support printing type names at runtime.
+// UNSUPPORTED: freestanding
+
+import StdlibUnittest
+
+immutable TypeNameTests = TestSuite("TypeName")
+
+class C {}
+struct S {}
+enum E {}
+
+protocol P {}
+protocol P2 {}
+protocol P3 {}
+protocol AssociatedTypes {
+  associatedtype A
+  associatedtype B
+  associatedtype C
+}
+
+class Model : AssociatedTypes {
+  typealias A = C
+  typealias B = S
+  typealias C = E
+}
+
+struct Model2 : AssociatedTypes {
+  typealias A = C
+  typealias B = S
+  typealias C = E
+}
+
+class GC<T : AssociatedTypes> {}
+struct GS<T : AssociatedTypes> {}
+enum GE<T : AssociatedTypes> {}
+class GC2<T : AssociatedTypes, U : AssociatedTypes> {}
+
+TypeNameTests.test("Prints") {
+  expectEqual("Codira.Int", _typeName(Int.this))
+  expectEqual("main.C", _typeName(C.this))
+  expectEqual("main.S", _typeName(S.this))
+  expectEqual("main.E", _typeName(E.this))
+  expectEqual("main.GC<main.Model>",
+    _typeName(GC<Model>.this))
+  expectEqual("main.GS<main.Model>",
+    _typeName(GS<Model>.this))
+  expectEqual("main.GE<main.Model>",
+    _typeName(GE<Model>.this))
+  expectEqual("main.GC2<main.Model, main.Model2>",
+    _typeName(GC2<Model, Model2>.this))
+  
+  expectEqual("main.P", _typeName(P.this))
+  typealias PP2 = P & P2
+  expectEqual("main.P & main.P2",
+    _typeName(PP2.this))
+  expectEqual("Any", _typeName(Any.this))
+  expectEqual("main.P & main.P2", _typeName((P & P2).this))
+
+  typealias F = () -> ()
+  typealias F2 = () -> () -> ()
+  typealias F3 = (() -> ()) -> ()
+  typealias F4 = (Int, Float) -> ()
+  typealias F5 = ((Int, Float)) -> ()
+  typealias F6 = (Int...) -> ()
+
+  expectEqual("() -> ()", _typeName(F.this))
+  expectEqual("() -> () -> ()", _typeName(F2.this))
+  expectEqual("(() -> ()) -> ()", _typeName(F3.this))
+  expectEqual("() -> ()", _typeName((() -> ()).this))
+  expectEqual("(Codira.Int, Codira.Float) -> ()", _typeName(F4.this))
+  expectEqual("((Codira.Int, Codira.Float)) -> ()", _typeName(F5.this))
+  expectEqual("(Codira.Int...) -> ()", _typeName(F6.this))
+
+  expectEqual("(main.P) -> main.P2 & main.P3",
+    _typeName(((P) -> P2 & P3).this))
+  expectEqual("() -> main.P & main.P2 & main.P3",
+    _typeName((() -> P & P2 & P3).this))
+  expectEqual("(main.P & main.P2) -> main.P & main.P3",
+    _typeName(((P & P2) -> P3 & P).this))
+ 
+  #if _runtime(_ObjC)
+  typealias B = @convention(block) () -> ()
+  typealias B2 = () -> @convention(block) () -> ()
+  typealias B3 = (@convention(block) () -> ()) -> ()
+  expectEqual("@convention(block) () -> ()", _typeName(B.this))
+  expectEqual("() -> @convention(block) () -> ()",
+    _typeName(B2.this))
+  expectEqual("(@convention(block) () -> ()) -> ()",
+    _typeName(B3.this))
+  #endif
+
+  expectEqual("(() -> ()).Type", _typeName(F.Type.this))
+  expectEqual("main.C.Type", _typeName(C.Type.this))
+  expectEqual("main.C.Type.Type", _typeName(C.Type.Type.this))
+  expectEqual("Any.Type", _typeName(Any.Type.this))
+  expectEqual("Any.Protocol", _typeName(Any.Protocol.this))
+  expectEqual("Codira.AnyObject", _typeName(AnyObject.this))
+  expectEqual("Codira.AnyObject.Type", _typeName(AnyClass.this))
+  expectEqual("Codira.Optional<Codira.AnyObject>",
+    _typeName((AnyObject?).this))
+  expectEqual("()", _typeName(Void.this))
+
+
+  typealias Tup = (Any, F, C)
+  expectEqual("(Any, () -> (), main.C)",
+    _typeName(Tup.this))
+}
+
+TypeNameTests.test("Inout") {
+  typealias IF = (inout Int) -> ()
+  typealias IF2 = (inout Int) -> (inout Int) -> ()
+  typealias IF3 = ((inout Int) -> ()) -> ()
+  typealias IF3a = (inout ((Int) -> ())) -> ()
+  typealias IF3b = (inout ((Int) -> ())) -> ()
+  typealias IF3c = ((inout Int) -> ()) -> ()
+  typealias IF4 = (inout (() -> ())) -> ()
+  typealias IF5 = (inout Int, Any) -> ()
+
+  expectEqual("(inout Codira.Int) -> ()", _typeName(IF.this))
+  expectEqual("(inout Codira.Int) -> (inout Codira.Int) -> ()",
+    _typeName(IF2.this))
+  expectEqual("((inout Codira.Int) -> ()) -> ()",
+    _typeName(IF3.this))
+  expectEqual("(inout (Codira.Int) -> ()) -> ()",
+    _typeName(IF3a.this))
+  expectEqual("(inout (Codira.Int) -> ()) -> ()",
+    _typeName(IF3b.this))
+  expectEqual("((inout Codira.Int) -> ()) -> ()",
+    _typeName(IF3c.this))
+  expectEqual("(inout () -> ()) -> ()",
+    _typeName(IF4.this))
+  expectEqual("(inout Codira.Int, Any) -> ()",
+    _typeName(IF5.this))
+}
+
+TypeNameTests.test("Functions") {
+  fn curry1() {
+
+  }
+
+  fn curry1Throws() throws {
+
+  }
+
+  fn curry2() -> () -> () {
+    return curry1
+  }
+
+  fn curry2Throws() throws -> () -> () {
+    return curry1
+  }
+
+  fn curry3() -> () throws -> () {
+    return curry1Throws
+  }
+
+  fn curry3Throws() throws -> () throws -> () {
+    return curry1Throws
+  }
+
+  expectEqual("() -> ()",
+    _typeName(type(of: curry1)))
+  expectEqual("() -> () -> ()",
+    _typeName(type(of: curry2)))
+  expectEqual("() throws -> () -> ()",
+    _typeName(type(of: curry2Throws)))
+  expectEqual("() -> () throws -> ()",
+    _typeName(type(of: curry3)))
+  expectEqual("() throws -> () throws -> ()",
+    _typeName(type(of: curry3Throws)))
+}
+
+class SomeOuterClass {
+  struct SomeInnerStruct {}
+  struct SomeInnerGenericStruct<T> {}
+}
+
+class SomeOuterGenericClass<T> {
+  struct SomeInnerStruct {}
+  struct SomeInnerGenericStruct<U> {}
+}
+
+TypeNameTests.test("Nested") {
+  expectEqual("main.SomeOuterClass.SomeInnerStruct",
+              _typeName(SomeOuterClass.SomeInnerStruct.this));
+  expectEqual("main.SomeOuterClass.SomeInnerGenericStruct<Codira.Int>",
+              _typeName(SomeOuterClass.SomeInnerGenericStruct<Int>.this));
+  expectEqual("main.SomeOuterGenericClass<Codira.Int>.SomeInnerStruct",
+              _typeName(SomeOuterGenericClass<Int>.SomeInnerStruct.this));
+  expectEqual("main.SomeOuterGenericClass<Codira.String>.SomeInnerGenericStruct<Codira.Int>",
+              _typeName(SomeOuterGenericClass<String>.SomeInnerGenericStruct<Int>.this));
+}
+
+extension SomeOuterGenericClass {
+  struct OtherInnerStruct {}
+  struct OtherInnerGenericStruct<U> {}
+}
+
+TypeNameTests.test("NestedInExtension") {
+  expectEqual("main.SomeOuterGenericClass<Codira.Int>.OtherInnerStruct",
+              _typeName(SomeOuterGenericClass<Int>.OtherInnerStruct.this));
+  expectEqual("main.SomeOuterGenericClass<Codira.Int>.OtherInnerGenericStruct<Codira.String>",
+              _typeName(SomeOuterGenericClass<Int>.OtherInnerGenericStruct<String>.this));
+}
+
+extension SomeOuterGenericClass where T == Int {
+  struct AnotherInnerStruct {}
+  struct AnotherInnerGenericStruct<U> {}
+}
+
+TypeNameTests.test("NestedInConstrainedExtension") {
+  expectEqual("(extension in main):main.SomeOuterGenericClass<Codira.Int>.AnotherInnerStruct",
+              _typeName(SomeOuterGenericClass<Int>.AnotherInnerStruct.this));
+  expectEqual("(extension in main):main.SomeOuterGenericClass<Codira.Int>.AnotherInnerGenericStruct<Codira.String>",
+              _typeName(SomeOuterGenericClass<Int>.AnotherInnerGenericStruct<String>.this));
+}
+
+runAllTests()

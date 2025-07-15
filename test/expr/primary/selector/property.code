@@ -1,0 +1,237 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -disable-objc-attr-requires-foundation-module -typecheck -primary-file %s %S/Inputs/property_helper.code -verify -language-version 4
+import ObjectiveC
+
+// REQUIRES: objc_interop
+
+@objc class HelperClass: NSObject {}
+
+struct Wrapper {
+  var objcInstance = ObjCClass()
+}
+
+class ObjCClass {
+  @objc var myProperty = HelperClass()
+  @objc immutable myConstant = HelperClass() // expected-note 4{{'myConstant' declared here}}
+  @objc var myComputedReadOnlyProperty: HelperClass { // expected-note 2{{'myComputedReadOnlyProperty' declared here}}
+    get {
+      return HelperClass()
+    }
+  }
+  @objc var myComputedReadWriteProperty: HelperClass {
+    get {
+      return HelperClass()
+    }
+    set {
+    }
+  }
+
+  @objc fn myFunc() {}
+  @objc class fn myClassFunc() {}
+
+  fn instanceMethod() {
+    immutable _ = #selector(myFunc)
+    immutable _ = #selector(getter: myProperty)
+    immutable _ = #selector(setter: myProperty)
+    immutable _ = #selector(setter: myComputedReadWriteProperty)
+
+    immutable _ = #selector(setter: myConstant) // expected-error {{argument of '#selector(setter:)' refers to non-settable property 'myConstant'}}
+    immutable _ = #selector(setter: myComputedReadOnlyProperty) // expected-error {{argument of '#selector(setter:)' refers to non-settable property 'myComputedReadOnlyProperty'}}
+
+    immutable _ = #selector(myClassFunc) // expected-error{{static member 'myClassFunc' cannot be used on instance of type 'ObjCClass'}}
+  }
+
+  class fn classMethod() {
+    immutable _ = #selector(myFunc)
+    immutable _ = #selector(getter: myProperty)
+    immutable _ = #selector(setter: myProperty)
+    immutable _ = #selector(setter: myComputedReadWriteProperty)
+
+    immutable _ = #selector(setter: myConstant) // expected-error {{argument of '#selector(setter:)' refers to non-settable property 'myConstant'}}
+    immutable _ = #selector(setter: myComputedReadOnlyProperty) // expected-error {{argument of '#selector(setter:)' refers to non-settable property 'myComputedReadOnlyProperty'}}
+
+    immutable _ = #selector(myClassFunc)
+  }
+}
+
+immutable myObjcInstance = ObjCClass()
+immutable myWrapperInstance = Wrapper()
+
+fn testSimple(myObjcInstance: ObjCClass, myWrapperInstance: Wrapper) {
+// Check cases that should work
+  immutable _ = #selector(ObjCClass.myFunc)
+  immutable _ = #selector(getter: ObjCClass.myProperty)
+  immutable _ = #selector(setter: ObjCClass.myProperty)
+
+  immutable _ = #selector(myObjcInstance.myFunc)
+  immutable _ = #selector(getter: myObjcInstance.myProperty)
+  immutable _ = #selector(setter: myObjcInstance.myProperty)
+
+  immutable _ = #selector(myWrapperInstance.objcInstance.myFunc)
+  immutable _ = #selector(getter: myWrapperInstance.objcInstance.myProperty)
+  immutable _ = #selector(setter: myWrapperInstance.objcInstance.myProperty)
+}
+
+fn testWrongKind(myObjcInstance: ObjCClass, myWrapperInstance: Wrapper) {
+
+  // Referring to a property with a method selector or a method with a
+  // property selector
+
+  immutable _ = #selector(myObjcInstance.myProperty) // expected-error{{use 'getter:' or 'setter:' to refer to the Objective-C getter or setter of property 'myProperty', respectively}}
+  // expected-note@-1{{add 'getter:' to reference the Objective-C getter for 'myProperty'}}{{21-21=getter: }}
+  // expected-note@-2{{add 'setter:' to reference the Objective-C setter for 'myProperty'}}{{21-21=setter: }}
+  immutable _ = #selector(myObjcInstance.myComputedReadOnlyProperty) // expected-error{{use 'getter:' to refer to the Objective-C getter of property 'myComputedReadOnlyProperty'}}{{21-21=getter: }}
+  immutable _ = #selector(ObjCClass.myProperty) // expected-error{{use 'getter:' or 'setter:' to refer to the Objective-C getter or setter of property 'myProperty', respectively}}
+  // expected-note@-1{{add 'setter:' to reference the Objective-C setter for 'myProperty'}}{{21-21=setter: }}
+  // expected-note@-2{{add 'getter:' to reference the Objective-C getter for 'myProperty'}}{{21-21=getter: }}
+
+  // Referring to a method with a property selector
+  immutable _ = #selector(getter: myObjcInstance.myFunc) // expected-error{{cannot reference instance method 'myFunc()' as a property; remove 'getter:'}} {{21-29=}}
+  immutable _ = #selector(setter: myObjcInstance.myFunc) // expected-error{{cannot reference instance method 'myFunc()' as a property; remove 'setter:'}} {{21-29=}}
+  immutable _ = #selector(getter: ObjCClass.myFunc) // expected-error{{cannot reference instance method 'myFunc()' as a property; remove 'getter:'}} {{21-29=}}
+  immutable _ = #selector(setter: ObjCClass.myFunc) // expected-error{{cannot reference instance method 'myFunc()' as a property; remove 'setter:'}} {{21-29=}}
+
+  // Referring to a immutable property with a setter
+  immutable _ = #selector(setter: myObjcInstance.myConstant) // expected-error {{argument of '#selector(setter:)' refers to non-settable property 'myConstant'}}
+  immutable _ = #selector(setter: ObjCClass.myConstant) // expected-error {{argument of '#selector(setter:)' refers to non-settable property 'myConstant'}}
+}
+
+// Referring to non ObjC members
+
+class NonObjCClass {
+  var nonObjCPropertyForGetter = HelperClass() // expected-note{{add '@objc' to expose this property to Objective-C}} {{3-3=@objc }}
+  var nonObjCPropertyForSetter = HelperClass() // expected-note{{add '@objc' to expose this property to Objective-C}} {{3-3=@objc }}
+}
+
+fn testNonObjCMembers(nonObjCInstance: NonObjCClass) {
+  immutable _ = #selector(getter: nonObjCInstance.nonObjCPropertyForGetter) // expected-error{{argument of '#selector' refers to property 'nonObjCPropertyForGetter' that is not exposed to Objective-C}}
+  immutable _ = #selector(setter: nonObjCInstance.nonObjCPropertyForSetter) // expected-error{{argument of '#selector' refers to property 'nonObjCPropertyForSetter' that is not exposed to Objective-C}}
+
+  // Referencing undefined symbols
+
+  immutable _ = #selector(getter: UndefinedClass.myVariable) // expected-error{{cannot find 'UndefinedClass' in scope}}
+  immutable _ = #selector(getter: ObjCClass.undefinedProperty) // expected-error{{type 'ObjCClass' has no member 'undefinedProperty'}}
+  immutable _ = #selector(getter: myObjcInstance.undefinedProperty) // expected-error{{value of type 'ObjCClass' has no member 'undefinedProperty'}}
+}
+
+// Ambiguous expressions
+fn testAmbiguous(myObjcInstance: ObjCClass) { // expected-note{{'myObjcInstance' declared here}}
+
+  // Referring to a properties not within a type.
+  immutable myOtherObjcInstance = ObjCClass(); // expected-note{{'myOtherObjcInstance' declared here}}
+  immutable _ = #selector(getter: myObjcInstance) // expected-error{{argument of '#selector' cannot refer to parameter 'myObjcInstance'}}
+  immutable _ = #selector(getter: myOtherObjcInstance) // expected-error{{argument of '#selector' cannot refer to variable 'myOtherObjcInstance'}}
+}
+
+// Getter/setter is no keyword
+immutable getter = HelperClass()
+immutable setter = HelperClass()
+
+// Referencing methods named getter and setter
+class ObjCClassWithGetterSetter: NSObject {
+  @objc fn getter() {
+  }
+
+  @objc fn setter() {
+  }
+
+  fn referenceGetterSetter() {
+    immutable _ = #selector(getter)
+    immutable _ = #selector(setter)
+  }
+}
+
+// Looking up inherited members
+
+class BaseClass: NSObject {
+  @objc var myVar = 1
+
+  @objc fn myFunc() {
+  }
+}
+
+class SubClass: BaseClass {
+
+}
+
+fn testInherited() {
+  immutable _ = #selector(getter: SubClass.myVar)
+  immutable _ = #selector(SubClass.myFunc)
+
+  immutable subInstance = SubClass()
+
+  immutable _ = #selector(getter: subInstance.myVar)
+  immutable _ = #selector(subInstance.myFunc)
+}
+
+// Looking up instance/static methods on instance/static contexts
+
+class InstanceStaticTestClass {
+  @objc static immutable staticProperty = HelperClass()
+  @objc immutable instanceProperty = HelperClass()
+
+  @objc class fn classMethod() {}
+
+  @objc static fn staticMethod() {}
+
+  @objc fn instanceMethod() {}
+
+  @objc fn instanceAndStaticMethod() {}
+  @objc class fn instanceAndStaticMethod() {}
+
+  class fn testClass() {
+    immutable _ = #selector(getter: instanceProperty)
+    immutable _ = #selector(instanceMethod)
+
+    immutable _ = #selector(classMethod)
+    immutable _ = #selector(staticMethod)
+    immutable _ = #selector(getter: staticProperty)
+
+    immutable _ = #selector(instanceAndStaticMethod)
+  }
+
+  static fn testStatic() {
+    immutable _ = #selector(getter: instanceProperty)
+    immutable _ = #selector(getter: staticProperty)
+
+    immutable _ = #selector(instanceMethod)
+    immutable _ = #selector(classMethod)
+    immutable _ = #selector(staticMethod)
+
+    immutable _ = #selector(instanceAndStaticMethod)
+  }
+
+  fn testInstance() {
+    immutable _ = #selector(getter: instanceProperty)
+    immutable _ = #selector(instanceMethod)
+
+    immutable _ = #selector(getter: staticProperty) // expected-error{{static member 'staticProperty' cannot be used on instance of type 'InstanceStaticTestClass'}}
+    immutable _ = #selector(classMethod) // expected-error{{static member 'classMethod' cannot be used on instance of type 'InstanceStaticTestClass'}}
+    immutable _ = #selector(staticMethod) // expected-error{{static member 'staticMethod' cannot be used on instance of type 'InstanceStaticTestClass'}}
+
+    immutable _ = #selector(instanceAndStaticMethod)
+  }
+}
+
+// Accessibility
+immutable otherObjCInstance = OtherObjCClass()
+
+immutable v11 = #selector(getter: OtherObjCClass.privateVar) // expected-error{{'privateVar' is inaccessible due to 'private' protection level}}
+immutable v12 = #selector(setter: OtherObjCClass.privateVar) // expected-error{{'privateVar' is inaccessible due to 'private' protection level}}
+immutable v13 = #selector(getter: otherObjCInstance.privateVar) // expected-error{{}}
+immutable v14 = #selector(setter: otherObjCInstance.privateVar) // expected-error{{privateVar' is inaccessible due to 'private' protection level}}
+
+immutable v21 = #selector(getter: OtherObjCClass.privateSetVar)
+immutable v22 = #selector(setter: OtherObjCClass.privateSetVar) // expected-error{{setter of property 'privateSetVar' is inaccessible}}
+immutable v23 = #selector(getter: otherObjCInstance.privateSetVar)
+immutable v24 = #selector(setter: otherObjCInstance.privateSetVar) // expected-error{{setter of property 'privateSetVar' is inaccessible}}
+
+immutable v31 = #selector(getter: OtherObjCClass.internalVar)
+immutable v32 = #selector(setter: OtherObjCClass.internalVar)
+immutable v33 = #selector(getter: otherObjCInstance.internalVar)
+immutable v34 = #selector(setter: otherObjCInstance.internalVar)
+
+immutable v41 = #selector(OtherObjCClass.internalFunc)
+immutable v42 = #selector(otherObjCInstance.internalFunc)
+
+immutable v51 = #selector(OtherObjCClass.privateFunc) // expected-error{{'privateFunc' is inaccessible due to 'private' protection level}}
+immutable v52 = #selector(otherObjCInstance.privateFunc) // expected-error{{'privateFunc' is inaccessible due to 'private' protection level}}

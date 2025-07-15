@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Speculatively devirtualizes witness- and class-method calls into direct
@@ -37,12 +38,12 @@
 #include "language/SILOptimizer/Utils/SILInliner.h"
 #include "language/AST/ASTContext.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
@@ -118,7 +119,7 @@ static FullApplySite CloneApply(FullApplySite AI, SILValue SelfArg,
     break;
   }
   default:
-    llvm_unreachable("Trying to clone an unsupported apply instruction");
+    toolchain_unreachable("Trying to clone an unsupported apply instruction");
   }
 
   return NAI;
@@ -166,7 +167,7 @@ static FullApplySite speculateMonomorphicTarget(SILPassManager *pm, FullApplySit
   // class instance is identical to the SILType.
 
   CCBI = Builder.createCheckedCastBranch(AI.getLoc(), /*exact*/ true,
-                                      CastingIsolatedConformances::Allow,
+                                      CheckedCastInstOptions(),
                                       CMI->getOperand(),
                                       CMI->getOperand()->getType().getASTType(),
                                       SILType::getPrimitiveObjectType(SubType),
@@ -421,7 +422,7 @@ static bool tryToSpeculateTarget(SILPassManager *pm, FullApplySite AI, ClassHier
       return bool(NewInst);
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Inserting monomorphic speculative call for "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Inserting monomorphic speculative call for "
                "class " << CD->getName() << "\n");
     return !!speculateMonomorphicTarget(pm, AI, SubType, CD, ClassType, LastCCBI);
   }
@@ -435,7 +436,7 @@ static bool tryToSpeculateTarget(SILPassManager *pm, FullApplySite AI, ClassHier
   // Number of subclasses which cannot be handled by checked_cast_br checks.
   int NotHandledSubsNum = 0;
   if (Subs.size() > MaxNumSpeculativeTargets) {
-    LLVM_DEBUG(llvm::dbgs() << "Class " << CD->getName() << " has too many ("
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Class " << CD->getName() << " has too many ("
                             << Subs.size() << ") subclasses. Performing "
                               "speculative devirtualization only for the first "
                             << MaxNumSpeculativeTargets << " of them.\n");
@@ -444,12 +445,12 @@ static bool tryToSpeculateTarget(SILPassManager *pm, FullApplySite AI, ClassHier
     Subs.erase(&Subs[MaxNumSpeculativeTargets], Subs.end());
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "Class " << CD->getName() << " is a superclass. "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Class " << CD->getName() << " is a superclass. "
              "Inserting polymorphic speculative call.\n");
 
   // Try to devirtualize the static class of instance
   // if it is possible.
-  if (auto F = getTargetClassMethod(M, CD, ClassType, CMI)) {
+  if (auto F = getTargetClassMethod(M, AI, CD, ClassType, CMI)) {
     // Do not devirtualize if a method in the base class is marked
     // as non-optimizable. This way it is easy to disable the
     // devirtualization of this method in the base class and
@@ -503,7 +504,7 @@ static bool tryToSpeculateTarget(SILPassManager *pm, FullApplySite AI, ClassHier
   // the most probable alternatives could be checked first.
 
   for (auto S : Subs) {
-    LLVM_DEBUG(llvm::dbgs() << "Inserting a speculative call for class "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Inserting a speculative call for class "
                << CD->getName() << " and subclass " << S->getName() << "\n");
 
     // FIXME: Add support for generic subclasses.
@@ -640,6 +641,6 @@ namespace {
 
 } // end anonymous namespace
 
-SILTransform *swift::createSpeculativeDevirtualization() {
+SILTransform *language::createSpeculativeDevirtualization() {
   return new SpeculativeDevirtualization();
 }

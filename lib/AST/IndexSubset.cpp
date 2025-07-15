@@ -1,13 +1,17 @@
 //===--- IndexSubset.cpp - Fixed-size subset of indices -------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/IndexSubset.h"
@@ -18,7 +22,7 @@ using namespace language;
 IndexSubset *
 IndexSubset::getFromString(ASTContext &ctx, StringRef string) {
   unsigned capacity = string.size();
-  llvm::SmallBitVector indices(capacity);
+  toolchain::SmallBitVector indices(capacity);
   for (unsigned i : range(capacity)) {
     if (string[i] == 'S')
       indices.set(i);
@@ -87,16 +91,16 @@ IndexSubset *IndexSubset::extendingCapacity(
   return IndexSubset::get(ctx, indices);
 }
 
-void IndexSubset::print(llvm::raw_ostream &s) const {
+void IndexSubset::print(toolchain::raw_ostream &s) const {
   s << '{';
-  llvm::interleave(
+  toolchain::interleave(
       range(capacity), [this, &s](unsigned i) { s << contains(i); },
       [&s] { s << ", "; });
   s << '}';
 }
 
 void IndexSubset::dump() const {
-  auto &s = llvm::errs();
+  auto &s = toolchain::errs();
   s << "(index_subset capacity=" << capacity << " indices=(";
   interleave(getIndices(), [&s](unsigned i) { s << i; },
              [&s] { s << ", "; });

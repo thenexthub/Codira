@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FILESYSTEM_H
-#define SWIFT_BASIC_FILESYSTEM_H
+#ifndef LANGUAGE_BASIC_FILESYSTEM_H
+#define LANGUAGE_BASIC_FILESYSTEM_H
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/MemoryBuffer.h"
 #include <system_error>
 
-namespace llvm {
+namespace toolchain {
   class raw_pwrite_stream;
   class Twine;
 }
 
-namespace llvm {
+namespace toolchain {
   namespace vfs {
     class FileSystem;
   }
@@ -48,16 +49,16 @@ namespace language {
   /// As a special case, an output path of "-" is treated as referring to
   /// stdout.
   std::error_code atomicallyWritingToFile(
-      llvm::StringRef outputPath,
-      llvm::function_ref<void(llvm::raw_pwrite_stream &)> action);
+      toolchain::StringRef outputPath,
+      toolchain::function_ref<void(toolchain::raw_pwrite_stream &)> action);
 
   /// Moves a file from \p source to \p destination, unless there is already
   /// a file at \p destination that contains the same data as \p source.
   ///
   /// In the latter case, the file at \p source is deleted. If an error occurs,
   /// the file at \p source will still be present at \p source.
-  std::error_code moveFileIfDifferent(const llvm::Twine &source,
-                                      const llvm::Twine &destination);
+  std::error_code moveFileIfDifferent(const toolchain::Twine &source,
+                                      const toolchain::Twine &destination);
 
   enum class FileDifference : uint8_t {
     /// The source and destination paths refer to the exact same file.
@@ -75,18 +76,18 @@ namespace language {
   /// different files with different contents. If \p allowDestinationErrors is
   /// set, file system errors relating to the \p destination file return a
   /// \c DifferentFile result, rather than an error.
-  llvm::ErrorOr<FileDifference>
-  areFilesDifferent(const llvm::Twine &source, const llvm::Twine &destination,
+  toolchain::ErrorOr<FileDifference>
+  areFilesDifferent(const toolchain::Twine &source, const toolchain::Twine &destination,
                     bool allowDestinationErrors);
 
   namespace vfs {
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
-    getFileOrSTDIN(llvm::vfs::FileSystem &FS,
-                   const llvm::Twine &Name, int64_t FileSize = -1,
+    toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>
+    getFileOrSTDIN(toolchain::vfs::FileSystem &FS,
+                   const toolchain::Twine &Name, int64_t FileSize = -1,
                    bool RequiresNullTerminator = true, bool IsVolatile = false,
                    unsigned BADFRetry = 0);
   } // end namespace vfs
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_FILESYSTEM_H
+#endif // LANGUAGE_BASIC_FILESYSTEM_H

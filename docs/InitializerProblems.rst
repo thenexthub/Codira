@@ -59,9 +59,9 @@ NSDocuments for each particular case.
 Problem 3: Factory Initializers
 ===============================
 
-Finally, we try to standardize on initializers for object creation in Swift,
+Finally, we try to standardize on initializers for object creation in Codira,
 even going as far as to import Objective-C factory methods as initializers...but
-there are some patterns that cannot be written in Swift, such as this one::
+there are some patterns that cannot be written in Codira, such as this one::
 
     class AnyGenerator<Element> : GeneratorType {
       init<

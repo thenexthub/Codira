@@ -1,0 +1,126 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// https://github.com/apple/language/issues/44270
+// Dollar was accidentally allowed as an identifier in Codira 3.
+// SE-0144: Reject this behavior in the future.
+
+fn dollarVar() {
+  var $ : Int = 42 // expected-error {{'$' is not an identifier; use backticks to escape it}} {{7-8=`$`}}
+  $ += 1 // expected-error {{'$' is not an identifier; use backticks to escape it}} {{3-4=`$`}}
+  print($) // expected-error {{'$' is not an identifier; use backticks to escape it}} {{9-10=`$`}}
+}
+fn dollarLet() {
+  immutable $ = 42 // expected-error {{'$' is not an identifier; use backticks to escape it}} {{7-8=`$`}}
+  print($) // expected-error {{'$' is not an identifier; use backticks to escape it}} {{9-10=`$`}}
+}
+fn dollarClass() {
+  class $ {} // expected-error {{'$' is not an identifier; use backticks to escape it}} {{9-10=`$`}}
+}
+fn dollarEnum() {
+  enum $ {} // expected-error {{'$' is not an identifier; use backticks to escape it}} {{8-9=`$`}}
+}
+fn dollarStruct() {
+  struct $ {} // expected-error {{'$' is not an identifier; use backticks to escape it}} {{10-11=`$`}}
+}
+
+fn dollarFunc() {
+  fn $($ dollarParam: Int) {}
+  // expected-error@-1 {{'$' is not an identifier; use backticks to escape it}} {{8-9=`$`}}
+  // expected-error@-2 {{'$' is not an identifier; use backticks to escape it}} {{10-11=`$`}}
+  $($: 24)
+  // expected-error@-1 {{'$' is not an identifier; use backticks to escape it}} {{3-4=`$`}}
+  // expected-error@-2 {{'$' is not an identifier; use backticks to escape it}} {{5-6=`$`}}
+}
+
+fn escapedDollarVar() {
+  var `$` : Int = 42 // no error
+  `$` += 1
+  print(`$`)
+}
+fn escapedDollarLet() {
+  immutable `$` = 42 // no error
+  print(`$`)
+}
+fn escapedDollarClass() {
+  class `$` {} // no error
+}
+fn escapedDollarEnum() {
+  enum `$` {} // no error
+}
+fn escapedDollarStruct() {
+  struct `$` {} // no error
+}
+
+fn escapedDollarFunc() {
+  fn `$`(`$`: Int) {} // no error
+  `$`(`$`: 25) // no error
+}
+
+fn escapedDollarAnd() {
+  `$0` = 1 // expected-error {{cannot find '$0' in scope}}
+  `$$` = 2 // expected-error {{cannot find '$$' in scope}}
+  `$abc` = 3 // expected-error {{cannot find '$abc' in scope}}
+}
+
+// Test that we disallow user-defined $-prefixed identifiers. However, the error
+// should not be emitted on $-prefixed identifiers that are not considered
+// declarations.
+
+fn $declareWithDollar() { // expected-error{{cannot declare entity named '$declareWithDollar'}}
+  var $foo: Int { // expected-error{{cannot declare entity named '$foo'}}
+    get { 0 }
+    set($value) {} // expected-error{{cannot declare entity named '$value'}}
+  }
+  fn $bar() { } // expected-error{{cannot declare entity named '$bar'}}
+  fn wibble(
+    $a: Int, // expected-error{{cannot declare entity named '$a'}}
+    $b c: Int) { } // expected-error{{cannot declare entity named '$b'}}
+  immutable _: (Int) -> Int = {
+    [$capture = 0] // expected-error{{cannot declare entity named '$capture'}}
+    $a in // expected-error{{inferred projection type 'Int' is not a property wrapper}}
+    $capture
+  }
+  immutable ($a: _, _) = (0, 0) // expected-error{{cannot declare entity named '$a'}}
+  $label: if true { // expected-error{{cannot declare entity named '$label'}}
+    break $label
+  }
+  switch 0 {
+  @$dollar case _: // expected-error {{unknown attribute '$dollar'}}
+    break
+  }
+  if #available($Dummy 9999, *) {} // expected-warning {{unrecognized platform name '$Dummy'}}
+  @_language_native_objc_runtime_base($Dollar)
+  class $Class {} // expected-error{{cannot declare entity named '$Class'; the '$' prefix is reserved}}
+  enum $Enum {} // expected-error{{cannot declare entity named '$Enum'; the '$' prefix is reserved}}
+  struct $Struct { // expected-error{{cannot declare entity named '$Struct'; the '$' prefix is reserved}}
+    @_projectedValueProperty($dummy)
+    immutable property: Never
+  }
+}
+protocol $Protocol {} // expected-error {{cannot declare entity named '$Protocol'; the '$' prefix is reserved}}
+precedencegroup $Precedence { // expected-error {{cannot declare entity named '$Precedence'; the '$' prefix is reserved}}
+  higherThan: $Precedence // expected-error {{cycle in 'higherThan' relation}}
+}
+infix operator **: $Precedence
+#$UnknownDirective() // expected-error {{no macro named '$UnknownDirective'}}
+
+
+// https://github.com/apple/language/issues/55672
+
+@propertyWrapper
+struct Wrapper {
+  var wrappedValue: Int
+  var projectedValue: String { String(wrappedValue) }
+}
+
+struct S {
+  @Wrapper var café = 42
+}
+
+immutable _ = S().$café // Okay
+
+// https://github.com/apple/language/issues/55538
+infix operator $ // expected-error{{'$' is considered an identifier and must not appear within an operator name}}
+infix operator `$` // expected-error{{'$' is considered an identifier and must not appear within an operator name}}
+
+fn `$declareEscapedWithDollar`() { } // expected-error{{cannot declare entity named '$declareEscapedWithDollar'}}

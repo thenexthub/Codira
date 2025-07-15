@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/SerializationHelper.codemodule -I %S/Inputs/custom-modules %S/Inputs/SerializationHelper.code -sdk "" -enable-objc-interop -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -enable-objc-interop -typecheck -sdk "" -I %t -I %S/Inputs/custom-modules %s -verify
+
+import SerializationHelper
+
+immutable obj: InitProto = Impl(int: 42)
+
+immutable impl = obj as! Impl
+impl.takeStruct(testStruct(value: 0))
+_ = impl.getEnum()

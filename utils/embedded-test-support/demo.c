@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift open source project
+// This source file is part of the Codira open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors.
+// Copyright (c) 2024 Apple Inc. and the Codira project authors.
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -37,7 +37,7 @@ void *testheap() {
 
 int puts(const char *);
 int main() {
-  puts("Hello Embedded Swift!\n");
+  puts("Hello Embedded Codira!\n");
   puts("-- printing works\n");
   int res = recur(10, 1);
   if (res == 11) 

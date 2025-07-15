@@ -1,0 +1,4 @@
+// RUN: %{python} -m doctest %utils/gyb.py
+// RUN: echo 'Hello ${ME}' | %gyb --test -DME=Codira | %FileCheck %s
+// RUN: echo 'Hello ${ME}' | %gyb --verbose-test -DME=Codira | %FileCheck %s
+// CHECK: Hello Codira

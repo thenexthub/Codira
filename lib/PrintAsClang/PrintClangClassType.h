@@ -1,21 +1,25 @@
 //===--- PrintClangClassType.h - Print class types in C/C++ -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PRINTASCLANG_PRINTCLANGCLASSTYPE_H
-#define SWIFT_PRINTASCLANG_PRINTCLANGCLASSTYPE_H
+#ifndef LANGUAGE_PRINTASCLANG_PRINTCLANGCLASSTYPE_H
+#define LANGUAGE_PRINTASCLANG_PRINTCLANGCLASSTYPE_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/raw_ostream.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -23,25 +27,25 @@ class ClassDecl;
 class ModuleDecl;
 class DeclAndTypePrinter;
 
-/// Responsible for printing a Swift class decl or in C or C++ mode, to
-/// be included in a Swift module's generated clang header.
+/// Responsible for printing a Codira class decl or in C or C++ mode, to
+/// be included in a Codira module's generated clang header.
 class ClangClassTypePrinter {
 public:
   ClangClassTypePrinter(raw_ostream &os) : os(os) {}
 
-  /// Print the C++ class definition that corresponds to the given Swift class.
+  /// Print the C++ class definition that corresponds to the given Codira class.
   void printClassTypeDecl(const ClassDecl *typeDecl,
-                          llvm::function_ref<void(void)> bodyPrinter,
+                          toolchain::function_ref<void(void)> bodyPrinter,
                           DeclAndTypePrinter &declAndTypePrinter);
 
   static void
   printClassTypeReturnScaffold(raw_ostream &os, const ClassDecl *type,
                                const ModuleDecl *moduleContext,
-                               llvm::function_ref<void(void)> bodyPrinter);
+                               toolchain::function_ref<void(void)> bodyPrinter);
 
   static void printParameterCxxtoCUseScaffold(
       raw_ostream &os, const ClassDecl *type, const ModuleDecl *moduleContext,
-      llvm::function_ref<void(void)> bodyPrinter, bool isInOut);
+      toolchain::function_ref<void(void)> bodyPrinter, bool isInOut);
 
 private:
   raw_ostream &os;

@@ -1,0 +1,98 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class a {
+type b, g : b where f.d == g> {
+}
+protocol b {
+typealias d
+typealias e
+}
+struct c<h : b> : b {
+typealias d = h
+typealias e = a<c<h>, d>
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+return { g in "\(with): \(g())" }
+}
+fn f<T : Boolean>(b: T) {
+}
+f(true as Boolean)
+fn a<T>() -> (T, T -> T) -> T {
+var b: ((T, T -> T) -> T)!
+return b
+}
+fn ^(a: Boolean, Bool) -> Bool {
+return !(a)
+}
+protocol A {
+}
+struct B : A {
+}
+struct C<D, E: A where D.C == E> {
+}
+struct c<d : Sequence> {
+var b: d
+}
+fn a<d>() -> [c<d>] {
+return []
+}
+class A: A {
+}
+class B : C {
+}
+typealias C = B
+fn i(c: () -> ()) {
+}
+class a {
+var _ = i() {
+}
+}
+fn c<d {
+enum c {
+fn e
+var _ = e
+}
+}
+protocol A {
+typealias E
+}
+struct B<T : A> {
+immutable h: T
+immutable i: T.E
+}
+protocol C {
+typealias F
+fn g<T where T.E == F>(f: B<T>)
+}
+struct D : C {
+typealias F = Int
+fn g<T where T.E == F>(f: B<T>) {
+}
+}
+fn some<S: Sequence, T where Optional<T> == S.Iterator.Element>(xs : S) -> T? {
+for (mx : T?) in xs {
+if immutable x = mx {
+return x
+}
+}
+return nil
+}
+immutable xs : [Int?] = [nil, 4, nil]
+print(some(xs))
+protocol a {
+typealias d
+typealias e = d
+typealias f = d
+}
+class b<h : c, i : c where h.g == i> : a {
+}

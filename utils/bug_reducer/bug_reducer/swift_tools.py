@@ -23,16 +23,16 @@ def sanity_check_file_exists(f):
         raise RuntimeError('Error! Could not find file: ' + f)
 
 
-class SwiftTools(object):
+class CodiraTools(object):
     """A utility class that enables users to easily find sil-tools without needing
 to constantly reform paths to the build directory. Also provides safety by
 asserting if one of the tools does not exist at the specified path"""
 
-    def __init__(self, swift_build_dir):
-        self.swift_build_dir = swift_build_dir
+    def __init__(self, language_build_dir):
+        self.code_build_dir = language_build_dir
 
     def _get_tool(self, name):
-        path = os.path.join(self.swift_build_dir, 'bin', name)
+        path = os.path.join(self.code_build_dir, 'bin', name)
         if not os.access(path, os.F_OK):
             error_msg = "Error! {} does not exist at: {}".format(name, path)
             raise RuntimeError(error_msg)
@@ -40,31 +40,31 @@ asserting if one of the tools does not exist at the specified path"""
 
     @property
     def sil_nm(self):
-        """Return the path to sil-nm in the specified swift build directory. Throws a
+        """Return the path to sil-nm in the specified language build directory. Throws a
 runtime error if the tool does not exist"""
         return self._get_tool('sil-nm')
 
     @property
-    def swiftc(self):
-        """Return the path to swiftc in the specified swift build directory. Throws a
+    def languagec(self):
+        """Return the path to languagec in the specified language build directory. Throws a
 runtime error if the tool does not exist"""
-        return self._get_tool('swiftc')
+        return self._get_tool('languagec')
 
     @property
     def sil_opt(self):
-        """Return the path to sil-opt in the specified swift build directory. Throws a
+        """Return the path to sil-opt in the specified language build directory. Throws a
 runtime error if the tool does not exist"""
         return self._get_tool('sil-opt')
 
     @property
     def sil_func_extractor(self):
-        """Return the path to sil-func-extractor in the specified swift build
+        """Return the path to sil-fn-extractor in the specified language build
 directory. Throws a runtime error if the tool does not exist."""
-        return self._get_tool('sil-func-extractor')
+        return self._get_tool('sil-fn-extractor')
 
     @property
     def sil_passpipeline_dumper(self):
-        """Return the path to sil-passpipeline-dumper in the specified swift build
+        """Return the path to sil-passpipeline-dumper in the specified language build
 directory. Throws a runtime error if the tool does not exist
 
         """
@@ -131,7 +131,7 @@ class SILConstantInputToolInvoker(SILToolInvoker):
         self.base_input_file_ext = ".sib"
 
         # First emit an initial *.sib file. This ensures no matter if we have a
-        # *.swiftmodule, *.sil, or *.sib file, we are always using *.sib.
+        # *.codemodule, *.sil, or *.sib file, we are always using *.sib.
         self.input_file = initial_input_file
         sanity_check_file_exists(initial_input_file)
 
@@ -197,7 +197,7 @@ class SILFuncExtractorInvoker(SILConstantInputToolInvoker):
         assert isinstance(funclist_path, str)
         base_args = self.base_args(emit_sib)
         base_args.extend([input_file, '-o', output_file,
-                          '-func-file=%s' % funclist_path])
+                          '-fn-file=%s' % funclist_path])
         if invert:
             base_args.append('-invert')
         return base_args

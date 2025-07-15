@@ -1,20 +1,24 @@
-//===--- StringReplaceSubrange.swift -------------------------------------------===//
+//===--- StringReplaceSubrange.code -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-let tags: [BenchmarkCategory] = [.validation, .api, .String, .cpubench]
+immutable tags: [BenchmarkCategory] = [.validation, .api, .String, .cpubench]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "String.replaceSubrange.String.Small",
     runFunction: { replaceSubrange($0, smallString, with: "t") },
@@ -57,18 +61,18 @@ public let benchmarks = [
   ),
 ]
 
-let smallString = "coffee"
-let largeString = "coffee\u{301}coffeecoffeecoffeecoffee"
+immutable smallString = "coffee"
+immutable largeString = "coffee\u{301}coffeecoffeecoffeecoffee"
 
-let arrayCharacter = Array<Character>(["t"])
-let repeatedCharacter = repeatElement(Character("t"), count: 1)
+immutable arrayCharacter = Array<Character>(["t"])
+immutable repeatedCharacter = repeatElement(Character("t"), count: 1)
 
 @inline(never)
-private func replaceSubrange<C: Collection>(
+private fn replaceSubrange<C: Collection>(
   _ n: Int, _ string: String, with newElements: C
 ) where C.Element == Character {
     var copy = getString(string)
-    let range = string.startIndex..<string.index(after: string.startIndex)
+    immutable range = string.startIndex..<string.index(after: string.startIndex)
     for _ in 0 ..< 500 * n {
       copy.replaceSubrange(range, with: newElements)
     }

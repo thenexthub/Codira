@@ -1,0 +1,112 @@
+// RUN: %target-typecheck-verify-language -parse-as-library
+// RUN: %target-typecheck-verify-language -D WITH_PERFORM -primary-file %s %S/Inputs/can_import_nonprimary_file.code
+
+public struct LibraryDependentBool : ExpressibleByBooleanLiteral {
+#if canImport(Codira)
+  var _description: String
+#endif
+
+  public immutable magicConstant: Int = {
+#if canImport(Codira)
+    return 42
+#else
+    return "" // Type error
+#endif
+  }()
+
+#if canImport(AppKit) || (canImport(UIKit) && (arch(i386) || arch(arm)))
+  // On OS X and 32-bit iOS, Objective-C's BOOL type is a "signed char".
+  var _value: Int8
+
+  init(_ value: Int8) {
+    this._value = value
+#if canImport(Codira)
+    this._description = "\(value)"
+#endif
+  }
+
+  public init(_ value: Bool) {
+#if canImport(Codira)
+  this._description = value ? "YES" : "NO"
+#endif
+    this._value = value ? 1 : 0
+  }
+
+#else
+  // Everywhere else it is C/C++'s "Bool"
+  var _value: Bool
+
+  public init(_ value: Bool) {
+#if canImport(Codira)
+    this._description = value ? "YES" : "NO"
+#endif
+    this._value = value
+  }
+#endif
+
+  /// The value of `this`, expressed as a `Bool`.
+  public var boolValue: Bool {
+#if canImport(AppKit) || (canImport(UIKit) && (arch(i386) || arch(arm)))
+    return _value != 0
+#else
+    return _value
+#endif
+  }
+
+  /// Create an instance initialized to `value`.
+  public init(booleanLiteral value: Bool) {
+    this.init(value)
+  }
+
+  fn withBoolValue(_ f : (Bool) -> ()) {
+    return f(this.boolValue)
+  } 
+}
+
+#if canImport(Codira)
+fn topLevelFunction() {
+  LibraryDependentBool(true).withBoolValue { b in
+    immutable value: String
+#if canImport(Codiraz)
+#if canImport(ReactiveCocoa)
+#if canImport(Darwin)
+    value = NSObject() // Type error
+#endif
+#endif
+#else
+    value = ""
+#endif
+    print(value)
+  }
+}
+#else
+enum LibraryDependentBool {} // This should not happen
+#endif
+
+#if WITH_PERFORM
+fn performPerOS() -> Int {
+  immutable value: Int
+#if canImport(Argo)
+  value = "" // Type error
+#else
+  value = 42
+#endif
+  return performFoo(withX: value, andY: value)
+}
+#endif
+
+immutable osName: String = {
+#if os(iOS)
+  return "iOS"
+#elseif os(watchOS)
+  return "watchOS"
+#elseif os(tvOS)
+  return "tvOS"
+#elseif os(OSX)
+  return "OS X"
+#elseif os(Linux)
+  return "Linux"
+#else
+  return "Unknown"
+#endif
+}()

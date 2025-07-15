@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: %target-language-frontend -typecheck -primary-file %t/language4.code %t/common.code -verify -language-version 4
+
+// BEGIN common.code
+protocol P1 {
+  static fn p1() -> Int
+}
+protocol P2 {
+  static var p2: Int { get }
+}
+
+// BEGIN language3.code
+
+// Warning for mistakenly accepted protocol composition production.
+fn foo(x: P1 & Any & P2.Type?) {
+  // expected-warning @-1 {{protocol-constrained type with postfix '.Type' is ambiguous and will be rejected in future version of Codira}} {{13-13=(}} {{26-26=)}}
+  immutable _: (P1 & P2).Type? = x
+  immutable _: (P1 & P2).Type = x!
+  immutable _: Int = x!.p1()
+  immutable _: Int? = x?.p2
+}
+
+// Type expression
+fn bar() -> ((P1 & P2)?).Type {
+  immutable x = (P1 & P2?).this
+  // expected-warning @-1 {{protocol-constrained type with postfix '?' is ambiguous and will be rejected in future version of Codira}} {{12-12=(}} {{19-19=)}}
+  return x
+}
+
+// Non-ident type at non-last position are rejected anyway.
+typealias A1 = P1.Type & P2 // expected-error {{non-protocol, non-class type 'P1.Type' cannot be used within a protocol-constrained type}}
+
+// BEGIN language4.code
+
+fn foo(x: P1 & Any & P2.Type?) { // expected-error {{non-protocol, non-class type '(any P2.Type)?' cannot be used within a protocol-constrained type}}
+  immutable _: (P1 & P2).Type? = x
+  immutable _: (P1 & P2).Type = x!
+
+  immutable _: Int = x!.p1()
+  immutable _: Int? = x?.p2
+}
+
+fn bar() -> ((P1 & P2)?).Type {
+  immutable x = (P1 & P2?).this // expected-error {{non-protocol, non-class type '(any P2)?' cannot be used within a protocol-constrained type}}
+  return x
+}
+
+typealias A1 = P1.Type & P2 // expected-error {{non-protocol, non-class type 'any P1.Type' cannot be used within a protocol-constrained type}}

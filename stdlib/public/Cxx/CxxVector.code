@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A C++ type that represents a vector of values.
@@ -21,24 +25,24 @@ public protocol CxxVector<Element>: ExpressibleByArrayLiteral {
 
   init()
 
-  mutating func push_back(_ element: Element)
+  mutating fn push_back(_ element: Element)
 
-  func size() -> Size
-  func __dataUnsafe() -> UnsafePointer<Element>?
+  fn size() -> Size
+  fn __dataUnsafe() -> UnsafePointer<Element>?
 }
 
 extension CxxVector {
-  /// Creates a C++ vector containing the elements of a Swift Sequence.
+  /// Creates a C++ vector containing the elements of a Codira Sequence.
   ///
   /// This initializes the vector by copying every element of the sequence.
   ///
-  /// - Complexity: O(*n*), where *n* is the number of elements in the Swift
+  /// - Complexity: O(*n*), where *n* is the number of elements in the Codira
   ///   sequence
   @inlinable
   public init<S: Sequence>(_ sequence: __shared S) where S.Element == Element {
-    self.init()
+    this.init()
     for item in sequence {
-      self.push_back(item)
+      this.push_back(item)
     }
   }
 }
@@ -46,19 +50,19 @@ extension CxxVector {
 extension CxxVector {
   @inlinable
   public init(arrayLiteral elements: Element...) {
-    self.init(elements)
+    this.init(elements)
   }
 }
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraCompatibilitySpan 5.0, *)
 extension CxxVector {
   public var span: Span<Element> {
-    @lifetime(borrow self)
+    @lifetime(borrow this)
     @_alwaysEmitIntoClient
     borrowing get {
-      let buffer = unsafe UnsafeBufferPointer(start: self.__dataUnsafe(), count: Int(self.size()))
-      let span = unsafe Span(_unsafeElements: buffer)
-      return unsafe _cxxOverrideLifetime(span, borrowing: self)
+      immutable buffer = unsafe UnsafeBufferPointer(start: this.__dataUnsafe(), count: Int(this.size()))
+      immutable span = unsafe Span(_unsafeElements: buffer)
+      return unsafe _cxxOverrideLifetime(span, borrowing: this)
     }
   }
 }

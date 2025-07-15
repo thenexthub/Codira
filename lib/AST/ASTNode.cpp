@@ -1,4 +1,4 @@
-//===--- ASTNode.cpp - Swift Language ASTs --------------------------------===//
+//===--- ASTNode.cpp - Codira Language ASTs --------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the ASTNode, which is a union of Stmt, Expr, and Decl.
@@ -46,7 +47,7 @@ SourceRange ASTNode::getSourceRange() const {
     return I->getSourceRange();
   }
   assert(!isNull() && "Null ASTNode doesn't have a source range");
-  llvm_unreachable("unsupported AST node");
+  toolchain_unreachable("unsupported AST node");
 }
 
 /// Return the location of the start of the statement.
@@ -69,7 +70,7 @@ DeclContext *ASTNode::getAsDeclContext() const {
     if (isa<DeclContext>(D))
       return cast<DeclContext>(D);
   } else if (getOpaqueValue())
-    llvm_unreachable("unsupported AST node");
+    toolchain_unreachable("unsupported AST node");
   return nullptr;
 }
 
@@ -88,7 +89,7 @@ bool ASTNode::isImplicit() const {
     return false;
   if (this->is<CaseLabelItem *>())
     return false;
-  llvm_unreachable("unsupported AST node");
+  toolchain_unreachable("unsupported AST node");
 }
 
 void ASTNode::walk(ASTWalker &Walker) {
@@ -111,7 +112,7 @@ void ASTNode::walk(ASTWalker &Walker) {
     if (auto *G = I->getGuardExpr())
       G->walk(Walker);
   } else
-    llvm_unreachable("unsupported AST node");
+    toolchain_unreachable("unsupported AST node");
 }
 
 void ASTNode::dump(raw_ostream &OS, unsigned Indent) const {
@@ -132,14 +133,14 @@ void ASTNode::dump(raw_ostream &OS, unsigned Indent) const {
   else if (is<CaseLabelItem *>()) {
     OS.indent(Indent) << "(case label item)";
   } else
-    llvm_unreachable("unsupported AST node");
+    toolchain_unreachable("unsupported AST node");
 }
 
 void ASTNode::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
-StringRef swift::getTokenText(tok kind) {
+StringRef language::getTokenText(tok kind) {
   switch(kind) {
 #define KEYWORD(KW) case tok::kw_##KW: return #KW;
 #define POUND_KEYWORD(KW) case tok::pound_##KW: return "#"#KW;
@@ -160,3 +161,29 @@ FUNC(Expr)
 FUNC(Decl)
 FUNC(Pattern)
 #undef FUNC
+
+SourceRange language::getUnexpandedMacroRange(const SourceManager &SM,
+                                           SourceRange range) {
+  unsigned bufferID = SM.findBufferContainingLoc(range.Start);
+  SourceRange outerRange;
+  while (const auto *info = SM.getGeneratedSourceInfo(bufferID)) {
+    switch (info->kind) {
+#define MACRO_ROLE(Name, Description)                                          \
+  case GeneratedSourceInfo::Name##MacroExpansion:
+#include "language/Basic/MacroRoles.def"
+      if (auto *customAttr = info->attachedMacroCustomAttr)
+        outerRange = customAttr->getRange();
+      else
+        outerRange =
+            ASTNode::getFromOpaqueValue(info->astNode).getSourceRange();
+      bufferID = SM.findBufferContainingLoc(outerRange.Start);
+      continue;
+    case GeneratedSourceInfo::ReplacedFunctionBody:
+    case GeneratedSourceInfo::PrettyPrinted:
+    case GeneratedSourceInfo::DefaultArgument:
+    case GeneratedSourceInfo::AttributeFromClang:
+      return SourceRange();
+    }
+  }
+  return outerRange;
+}

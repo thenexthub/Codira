@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for holding an exploded r-value.  An exploded
@@ -21,11 +22,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_EXPLOSION_H
-#define SWIFT_IRGEN_EXPLOSION_H
+#ifndef LANGUAGE_IRGEN_EXPLOSION_H
+#define LANGUAGE_IRGEN_EXPLOSION_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "IRGen.h"
 #include "IRGenFunction.h"
 
@@ -38,7 +39,7 @@ namespace irgen {
 /// as arguments in exactly this way.
 class Explosion {
   unsigned NextValue;
-  SmallVector<llvm::Value*, 8> Values;
+  SmallVector<toolchain::Value*, 8> Values;
 
 public:
   Explosion() : NextValue(0) {}
@@ -63,7 +64,7 @@ public:
     return *this;
   }
 
-  Explosion(llvm::Value *singleValue) : NextValue(0) {
+  Explosion(toolchain::Value *singleValue) : NextValue(0) {
     add(singleValue);
   }
 
@@ -79,22 +80,22 @@ public:
     return Values.size() - NextValue;
   }
 
-  using iterator = SmallVector<llvm::Value *, 8>::iterator;
+  using iterator = SmallVector<toolchain::Value *, 8>::iterator;
   iterator begin() { return Values.begin() + NextValue; }
   iterator end() { return Values.end(); }
 
-  using const_iterator = SmallVector<llvm::Value *, 8>::const_iterator;
+  using const_iterator = SmallVector<toolchain::Value *, 8>::const_iterator;
   const_iterator begin() const { return Values.begin() + NextValue; }
   const_iterator end() const { return Values.end(); }
 
   /// Add a value to the end of this exploded r-value.
-  void add(llvm::Value *value) {
+  void add(toolchain::Value *value) {
     assert(value && "adding null value to explosion");
     assert(NextValue == 0 && "adding to partially-claimed explosion?");
     Values.push_back(value);
   }
 
-  void add(ArrayRef<llvm::Value*> values) {
+  void add(ArrayRef<toolchain::Value*> values) {
 #ifndef NDEBUG
     for (auto value : values)
       assert(value && "adding null value to explosion");
@@ -103,22 +104,22 @@ public:
     Values.append(values.begin(), values.end());
   }
 
-  void insert(unsigned index, llvm::Value *value) {
+  void insert(unsigned index, toolchain::Value *value) {
     Values.insert(Values.begin() + index, value);
   }
 
   /// Return an array containing the given range of values.  The values
   /// are not claimed.
-  ArrayRef<llvm::Value*> getRange(unsigned from, unsigned to) const {
+  ArrayRef<toolchain::Value*> getRange(unsigned from, unsigned to) const {
     assert(from <= to);
     assert(to <= Values.size());
-    return llvm::ArrayRef(begin() + from, to - from);
+    return toolchain::ArrayRef(begin() + from, to - from);
   }
 
   /// Return an array containing all of the remaining values.  The values
   /// are not claimed.
-  ArrayRef<llvm::Value *> getAll() {
-    return llvm::ArrayRef(begin(), Values.size() - NextValue);
+  ArrayRef<toolchain::Value *> getAll() {
+    return toolchain::ArrayRef(begin(), Values.size() - NextValue);
   }
 
   /// Transfer ownership of the next N values to the given explosion.
@@ -135,25 +136,25 @@ public:
   }
 
   /// Claim and return the next value in this explosion.
-  llvm::Value *claimNext() {
+  toolchain::Value *claimNext() {
     assert(NextValue < Values.size());
     return Values[NextValue++];
   }
 
-  llvm::Constant *claimNextConstant() {
-    return cast<llvm::Constant>(claimNext());
+  toolchain::Constant *claimNextConstant() {
+    return cast<toolchain::Constant>(claimNext());
   }
 
   /// Claim and return the next N values in this explosion.
-  ArrayRef<llvm::Value*> claim(unsigned n) {
+  ArrayRef<toolchain::Value*> claim(unsigned n) {
     assert(NextValue + n <= Values.size());
-    auto array = llvm::ArrayRef(begin(), n);
+    auto array = toolchain::ArrayRef(begin(), n);
     NextValue += n;
     return array;
   }
 
   /// Claim and return all the values in this explosion.
-  ArrayRef<llvm::Value*> claimAll() {
+  ArrayRef<toolchain::Value*> claimAll() {
     return claim(size());
   }
 
@@ -161,14 +162,14 @@ public:
 
   /// Without changing any state, take the last claimed value,
   /// if there is one.
-  llvm::Value *getLastClaimed() {
+  toolchain::Value *getLastClaimed() {
     assert(NextValue > 0);
     return Values[NextValue-1];
   }
 
   /// Claim and remove the last item in the array.
   /// Unlike the normal 'claim' methods, the item is gone forever.
-  llvm::Value *takeLast() {
+  toolchain::Value *takeLast() {
     assert(!empty());
     auto result = Values.back();
     Values.pop_back();
@@ -191,7 +192,7 @@ public:
     NextValue = savedNextValue;
   }
 
-  void print(llvm::raw_ostream &OS);
+  void print(toolchain::raw_ostream &OS);
   void dump();
 };
 
@@ -201,18 +202,18 @@ public:
 
   /// The schema for one atom of the explosion.
   class Element {
-    llvm::Type *Type;
+    toolchain::Type *Type;
     Alignment::int_type Align;
     Element() = default;
   public:
-    static Element forScalar(llvm::Type *type) {
+    static Element forScalar(toolchain::Type *type) {
       Element e;
       e.Type = type;
       e.Align = 0;
       return e;
     }
 
-    static Element forAggregate(llvm::Type *type, Alignment align) {
+    static Element forAggregate(toolchain::Type *type, Alignment align) {
       assert(align.getValue() != 0 && "alignment with zero value!");
       Element e;
       e.Type = type;
@@ -221,10 +222,10 @@ public:
     }
 
     bool isScalar() const { return Align == 0; }
-    llvm::Type *getScalarType() const { assert(isScalar()); return Type; }
+    toolchain::Type *getScalarType() const { assert(isScalar()); return Type; }
 
     bool isAggregate() const { return !isScalar(); }
-    llvm::Type *getAggregateType() const {
+    toolchain::Type *getAggregateType() const {
       assert(isAggregate());
       return Type;
     }
@@ -275,7 +276,7 @@ public:
   ///   - void, if the schema is empty;
   ///   - the element type, if the schema contains exactly one element;
   ///   - an anonymous struct type concatenating those types, otherwise.
-  llvm::Type *getScalarResultType(IRGenModule &IGM) const;
+  toolchain::Type *getScalarResultType(IRGenModule &IGM) const;
 };
 
 /// A peepholed explosion of an optional scalar value.

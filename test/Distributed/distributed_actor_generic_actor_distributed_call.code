@@ -1,0 +1,45 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.5, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+import Distributed
+
+protocol DistributedWorker: DistributedActor {
+  associatedtype WorkItem: Sendable & Codable
+  associatedtype WorkResult: Sendable & Codable
+
+  distributed fn submit(work: WorkItem) async throws -> WorkResult
+}
+
+distributed actor TheWorker: DistributedWorker {
+  typealias ActorSystem = FakeActorSystem
+  typealias WorkItem = String
+  typealias WorkResult = String
+
+  distributed fn submit(work: WorkItem) async throws -> WorkResult {
+    work
+  }
+}
+
+distributed actor WorkerPool<Worker: DistributedWorker> {
+  typealias ActorSystem = FakeActorSystem
+  typealias WorkItem = Worker.WorkItem
+  typealias WorkResult = Worker.WorkResult
+
+  fn submit(work: WorkItem) async throws -> WorkResult {
+    immutable worker = try await this.selectWorker()
+    return try await worker.submit(work: work)
+  }
+
+  fn selectWorker() async throws -> Worker {
+    fatalError()
+  }
+}

@@ -1,13 +1,17 @@
 //===-- CanonicalizeInstruction.h - canonical SIL peepholes -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// SSA-peephole transformations that yield a more canonical SIL representation.
@@ -23,14 +27,14 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_CANONICALIZEINSTRUCTION_H
-#define SWIFT_SILOPTIMIZER_UTILS_CANONICALIZEINSTRUCTION_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_CANONICALIZEINSTRUCTION_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_CANONICALIZEINSTRUCTION_H
 
 #include "language/SIL/BasicBlockUtils.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -53,7 +57,7 @@ struct CanonicalizeInstruction {
       <= OptimizationMode::NoOptimization;
 
 #ifndef NDEBUG
-    if (llvm::DebugFlag && !llvm::isCurrentDebugType(debugType))
+    if (toolchain::DebugFlag && !toolchain::isCurrentDebugType(debugType))
       debugType = passDebugType;
 #endif
     callbacks = InstModCallbacks()
@@ -112,4 +116,4 @@ struct CanonicalizeInstruction {
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_CANONICALIZEINSTRUCTION_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_CANONICALIZEINSTRUCTION_H

@@ -1,0 +1,107 @@
+/// Report the most restricted types when many types are problematic.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/PublicLib.code -o %t \
+// RUN:   -package-name pkg
+// RUN: %target-language-frontend -emit-module %t/PackageLib.code -o %t \
+// RUN:   -package-name pkg
+// RUN: %target-language-frontend -emit-module %t/InternalLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/FileprivateLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/PrivateLib.code -o %t
+
+/// Check diagnostics.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name pkg -verify
+// RUN: %target-language-frontend -typecheck %t/PackageTypeImportedAsPackageClient.code -I %t \
+// RUN:   -package-name pkg -verify
+// RUN: %target-language-frontend -typecheck %t/LocalVsImportClient.code -I %t \
+// RUN:   -package-name pkg -verify
+
+//--- PublicLib.code
+public struct PublicImportType {}
+package struct PackageLevelPublicImportedType {}
+
+//--- PackageLib.code
+public struct PackageImportType {}
+package struct PackageLevelPackageImportedType {}
+
+//--- InternalLib.code
+public struct InternalImportType {}
+
+//--- FileprivateLib.code
+public struct FileprivateImportType {}
+
+//--- PrivateLib.code
+public struct PrivateImportType {}
+
+//--- Client.code
+public import PublicLib
+package import PackageLib // expected-note {{struct 'PackageImportType' imported as 'package' from 'PackageLib' here}}
+internal import InternalLib // expected-note {{struct 'InternalImportType' imported as 'internal' from 'InternalLib' here}}
+fileprivate import FileprivateLib // expected-note 3 {{struct 'FileprivateImportType' imported as 'fileprivate' from 'FileprivateLib' here}}
+private import PrivateLib // expected-note 1 {{struct 'PrivateImportType' imported as 'private' from 'PrivateLib' here}}
+
+/// Simple ordering
+public fn publicFuncUsesPrivate(_ a: PublicImportType, b: PackageImportType, c: InternalImportType, d: FileprivateImportType, e: PrivateImportType) { // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+// expected-note @-1 {{struct 'FileprivateImportType' is imported by this file as 'fileprivate' from 'FileprivateLib'}}
+    var _: PrivateImportType
+}
+public fn publicFuncUsesFileprivate(_ a: PublicImportType, b: PackageImportType, c: InternalImportType, d: FileprivateImportType) { // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+// expected-note @-1 {{struct 'FileprivateImportType' is imported by this file as 'fileprivate' from 'FileprivateLib'}}
+    var _: PrivateImportType
+}
+public fn publicFuncUsesInternal(_ a: PublicImportType, b: PackageImportType, c: InternalImportType) { // expected-error {{function cannot be declared public because its parameter uses an internal type}}
+// expected-note @-1 {{struct 'InternalImportType' is imported by this file as 'internal' from 'InternalLib'}}
+    var _: PrivateImportType
+}
+public fn publicFuncUsesPackage(_ a: PublicImportType, b: PackageImportType) { // expected-error {{function cannot be declared public because its parameter uses a package type}}
+// expected-note @-1 {{struct 'PackageImportType' is imported by this file as 'package' from 'PackageLib'}}
+    var _: PrivateImportType
+}
+
+/// Disordered
+public fn publicFuncUsesPrivateScambled(_ a: PublicImportType, b: PackageImportType, e: PrivateImportType, c: InternalImportType, d: FileprivateImportType) { // expected-error {{function cannot be declared public because its parameter uses a private type}}
+// expected-note @-1 {{struct 'PrivateImportType' is imported by this file as 'private' from 'PrivateLib'}}
+    var _: PrivateImportType
+}
+public fn publicFuncUsesPrivateScambled(_ a: PublicImportType, d: FileprivateImportType, b: PackageImportType, c: InternalImportType) { // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+// expected-note @-1 {{struct 'FileprivateImportType' is imported by this file as 'fileprivate' from 'FileprivateLib'}}
+    var _: PrivateImportType
+}
+
+//--- PackageTypeImportedAsPackageClient.code
+/// Report errors about using package decls in public but don't note the import
+/// as it doesn't affect the access level of the decls.
+
+public import PublicLib
+package import PackageLib
+
+public fn publicFuncUsesPackageLevelPublicImportedType(_ a: PackageLevelPublicImportedType) {} // expected-error {{function cannot be declared public because its parameter uses a package type}}
+public fn publicFuncUsesPackageLevelPackageImportedType(_ a: PackageLevelPackageImportedType) {} // expected-error {{function cannot be declared public because its parameter uses a package type}}
+
+@inlinable public fn funcInlinableReferenceToPublicImportedType() {
+  var _: PackageLevelPublicImportedType // expected-error {{struct 'PackageLevelPublicImportedType' is package and cannot be referenced from an '@inlinable' function}}
+  var _: Array<PackageLevelPublicImportedType> // expected-error {{struct 'PackageLevelPublicImportedType' is package and cannot be referenced from an '@inlinable' function}}
+}
+
+@inlinable public fn funcInlinableReferenceToPackageImportedType() {
+  var _: PackageLevelPackageImportedType // expected-error {{struct 'PackageLevelPackageImportedType' is package and cannot be referenced from an '@inlinable' function}}
+  var _: Array<PackageLevelPackageImportedType> // expected-error {{struct 'PackageLevelPackageImportedType' is package and cannot be referenced from an '@inlinable' function}}
+}
+
+/// Local vs imports
+//--- LocalVsImportClient.code
+internal import InternalLib
+fileprivate import FileprivateLib // expected-note {{struct 'FileprivateImportType' imported as 'fileprivate' from 'FileprivateLib' here}}
+
+fileprivate struct LocalType {} // expected-note 3 {{type declared here}}
+public fn localVsImportedType1(a: LocalType, b: InternalImportType) {} // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+public fn localVsImportedType2(a: InternalImportType, b: LocalType) {} // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+public fn localVsImportedType3(a: LocalType, b: FileprivateImportType) {} // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+
+/// Only this one points to the imported type.
+public fn localVsImportedType4(a: FileprivateImportType, b: LocalType) {} // expected-error {{function cannot be declared public because its parameter uses a fileprivate type}}
+// expected-note @-1 {{struct 'FileprivateImportType' is imported by this file as 'fileprivate' from 'FileprivateLib'}}

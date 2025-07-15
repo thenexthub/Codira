@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/46291
+
+immutable occurrences: [String] = []
+immutable results: [(String, Int)] = occurrences.flatMap({ (match: String) -> (String, Int) in
+	return ("", 0)
+})

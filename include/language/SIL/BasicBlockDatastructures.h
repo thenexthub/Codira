@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines efficient data structures for working with BasicBlocks.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_BASICBLOCKDATASTRUCTURES_H
-#define SWIFT_SIL_BASICBLOCKDATASTRUCTURES_H
+#ifndef LANGUAGE_SIL_BASICBLOCKDATASTRUCTURES_H
+#define LANGUAGE_SIL_BASICBLOCKDATASTRUCTURES_H
 
 #include "language/SIL/StackList.h"
 #include "language/SIL/BasicBlockBits.h"
@@ -26,11 +27,11 @@
 
 namespace language {
 
-/// An implementation of `llvm::SetVector<SILBasicBlock *,
+/// An implementation of `toolchain::SetVector<SILBasicBlock *,
 ///                                       StackList<SILBasicBlock *>,
 ///                                       BasicBlockSet>`.
 ///
-/// Unfortunately it's not possible to use `llvm::SetVector` directly because
+/// Unfortunately it's not possible to use `toolchain::SetVector` directly because
 /// the BasicBlockSet and StackList constructors needs a `SILFunction` argument.
 ///
 /// Note: This class does not provide a `remove` method intentionally, because
@@ -47,8 +48,8 @@ public:
   iterator begin() const { return vector.begin(); }
   iterator end() const { return vector.end(); }
 
-  llvm::iterator_range<iterator> getRange() const {
-    return llvm::make_range(begin(), end());
+  toolchain::iterator_range<iterator> getRange() const {
+    return toolchain::make_range(begin(), end());
   }
 
   bool empty() const { return vector.empty(); }

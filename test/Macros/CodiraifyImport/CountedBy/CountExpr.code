@@ -1,0 +1,16 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -strict-memory-safety -warnings-as-errors -dump-macro-expansions 2>&1 | %FileCheck --match-full-lines %s
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "size * count"))
+fn myFunc(_ ptr: UnsafePointer<CInt>, _ size: CInt, _ count: CInt) {
+}
+
+// CHECK:      @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn myFunc(_ ptr: UnsafeBufferPointer<CInt>, _ size: CInt, _ count: CInt) {
+// CHECK-NEXT:     immutable _ptrCount = unsafe ptr.count
+// CHECK-NEXT:     if _ptrCount != size * count {
+// CHECK-NEXT:       fatalError("bounds check failure in myFunc: expected \(size * count) but got \(_ptrCount)")
+// CHECK-NEXT:     }
+// CHECK-NEXT:     return unsafe myFunc(ptr.baseAddress!, size, count)
+// CHECK-NEXT: }

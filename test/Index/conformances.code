@@ -1,0 +1,177 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+
+protocol P1 { // CHECK: [[@LINE]]:10 | protocol/Codira | P1 | [[P1_USR:.*]] | Def |
+  fn foo() // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[P1_foo_USR:.*]] | Def
+}
+
+struct DirectConf: P1 { // CHECK: [[@LINE]]:8 | struct/Codira | DirectConf | [[DirectConf_USR:.*]] | Def
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[DirectConf_foo_USR:.*]] | Def,RelChild,RelOver | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P1_foo_USR]]
+    // CHECK-NEXT: RelChild | struct/Codira | DirectConf | [[DirectConf_USR]]
+}
+
+struct ConfFromExtension {}
+extension ConfFromExtension: P1 { // CHECK: [[@LINE]]:11 | extension/ext-struct/Codira | ConfFromExtension | [[ConfFromExtension_ext_USR:.*]] | Def
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[ConfFromExtension_ext_foo_USR:.*]] | Def,RelChild,RelOver | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P1_foo_USR]]
+    // CHECK-NEXT: RelChild | extension/ext-struct/Codira | ConfFromExtension | [[ConfFromExtension_ext_USR]]
+}
+
+struct ImplicitConfFromExtension { // CHECK: [[@LINE]]:8 | struct/Codira | ImplicitConfFromExtension | [[ImplicitConfFromExtension_USR:.*]] | Def
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[ImplicitConfFromExtension_foo_USR:.*]] | Def,RelChild | rel: 1
+    // CHECK-NEXT: RelChild | struct/Codira | ImplicitConfFromExtension | [[ImplicitConfFromExtension_USR]]
+}
+extension ImplicitConfFromExtension: P1 { // CHECK: [[@LINE]]:11 | extension/ext-struct/Codira | ImplicitConfFromExtension | [[ImplicitConfFromExtension_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:11 | instance-method/Codira | foo() | [[ImplicitConfFromExtension_foo_USR]] | Impl,RelOver,RelCont | rel: 2
+  // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P1_foo_USR]]
+  // CHECK-NEXT: RelCont | extension/ext-struct/Codira | ImplicitConfFromExtension | [[ImplicitConfFromExtension_USR]]
+}
+
+class BaseConfFromBase { // CHECK: [[@LINE]]:7 | class/Codira | BaseConfFromBase | [[BaseConfFromBase_USR:.*]] | Def
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[BaseConfFromBase_foo_USR:.*]] | Def,Dyn,RelChild | rel: 1
+    // CHECK-NEXT: RelChild | class/Codira | BaseConfFromBase | [[BaseConfFromBase_USR]]
+}
+class SubConfFromBase: BaseConfFromBase, P1 { // CHECK: [[@LINE]]:7 | class/Codira | SubConfFromBase | [[SubConfFromBase_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:7 | instance-method/Codira | foo() | [[BaseConfFromBase_foo_USR]] | Impl,RelOver,RelCont | rel: 2
+  // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P1_foo_USR]]
+  // CHECK-NEXT: RelCont | class/Codira | SubConfFromBase | [[SubConfFromBase_USR]]
+}
+
+protocol P2 { // CHECK: [[@LINE]]:10 | protocol/Codira | P2 | [[P2_USR:.*]] | Def |
+  fn foo() // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[P2_foo_USR:.*]] | Def
+}
+extension P2 { // CHECK: [[@LINE]]:11 | extension/ext-protocol/Codira | P2 | [[P2_ext_USR:.*]] | Def
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[P2_ext_foo_USR:.*]] | Def,Dyn,RelChild,RelOver | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P2_foo_USR]]
+    // CHECK-NEXT: RelChild | extension/ext-protocol/Codira | P2 | [[P2_ext_USR]]
+}
+
+struct ConfFromDefaultImpl: P2 { // CHECK: [[@LINE]]:8 | struct/Codira | ConfFromDefaultImpl | [[ConfFromDefaultImpl_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:8 | instance-method/Codira | foo() | [[P2_ext_foo_USR]] | Impl,RelOver,RelCont | rel: 2
+  // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P2_foo_USR]]
+  // CHECK-NEXT: RelCont | struct/Codira | ConfFromDefaultImpl | [[ConfFromDefaultImpl_USR]]
+}
+
+protocol P3 {
+  fn meth1() // CHECK: [[@LINE]]:8 | instance-method/Codira | meth1() | [[P3_meth1_USR:.*]] | Def
+  fn meth2() // CHECK: [[@LINE]]:8 | instance-method/Codira | meth2() | [[P3_meth2_USR:.*]] | Def
+}
+
+class BaseMultiConf { // CHECK: [[@LINE]]:7 | class/Codira | BaseMultiConf | [[BaseMultiConf_USR:.*]] | Def
+  fn meth2() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | meth2() | [[BaseMultiConf_meth2_USR:.*]] | Def
+}
+extension SubMultiConf {
+  fn meth1() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | meth1() | [[SubMultiConf_ext_meth1_USR:.*]] | Def
+}
+class SubMultiConf: BaseMultiConf,P2,P1,P3 { // CHECK: [[@LINE]]:7 | class/Codira | SubMultiConf | [[SubMultiConf_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:7 | instance-method/Codira | foo() | [[P2_ext_foo_USR]] | Impl,RelOver,RelCont | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P2_foo_USR]]
+    // CHECK-NEXT: RelCont | class/Codira | SubMultiConf | [[SubMultiConf_USR]]
+  // CHECK: [[@LINE-4]]:7 | instance-method/Codira | foo() | [[P2_ext_foo_USR]] | Impl,RelOver,RelCont | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P1_foo_USR]]
+    // CHECK-NEXT: RelCont | class/Codira | SubMultiConf | [[SubMultiConf_USR]]
+  // CHECK: [[@LINE-7]]:7 | instance-method/Codira | meth1() | [[SubMultiConf_ext_meth1_USR]] | Impl,RelOver,RelCont | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | meth1() | [[P3_meth1_USR]]
+    // CHECK-NEXT: RelCont | class/Codira | SubMultiConf | [[SubMultiConf_USR]]
+  // CHECK: [[@LINE-10]]:7 | instance-method/Codira | meth2() | [[BaseMultiConf_meth2_USR]] | Impl,RelOver,RelCont | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | meth2() | [[P3_meth2_USR]]
+    // CHECK-NEXT: RelCont | class/Codira | SubMultiConf | [[SubMultiConf_USR]]
+  // CHECK-NOT: [[@LINE-13]]:7 | instance-method
+}
+
+class CompositionType: BaseMultiConf & P1 { // CHECK: [[@LINE]]:7 | class/Codira | CompositionType | [[CompositionType_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:24 | class/Codira | BaseMultiConf | [[BaseMultiConf_USR]] | Ref,RelBase | rel: 1
+  // CHECK: [[@LINE-2]]:24 | protocol/Codira | P1 | [[P1_USR]] | Ref,RelBase | rel: 1
+  fn foo() {}
+}
+
+typealias CompositionTypeAlias = BaseMultiConf & P1 // CHECK: [[@LINE]]:11 | type-alias/Codira | CompositionTypeAlias | [[CompositionTypeAlias_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:34 | class/Codira | BaseMultiConf | [[BaseMultiConf_USR]] | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:50 | protocol/Codira | P1 | [[P1_USR]] | Ref | rel: 0
+
+class CompositionTypeViaAlias: CompositionTypeAlias { // CHECK: [[@LINE]]:7 | class/Codira | CompositionTypeViaAlias | [[CompositionTypeViaAlias_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:32 | type-alias/Codira | CompositionTypeAlias | [[CompositionTypeAlias_USR]] | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:32 | class/Codira | BaseMultiConf | [[BaseMultiConf_USR]] | Ref,Impl,RelBase | rel: 1
+  // CHECK: [[@LINE-3]]:32 | protocol/Codira | P1 | [[P1_USR]] | Ref,Impl,RelBase | rel: 1
+  fn foo() {}
+}
+
+typealias NestedCompositionTypeAlias = CompositionTypeAlias & P2 // CHECK: [[@LINE]]:11 | type-alias/Codira | NestedCompositionTypeAlias | [[NestedCompositionTypeAlias_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:40 | type-alias/Codira | CompositionTypeAlias | [[CompositionTypeAlias_USR]] | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:63 | protocol/Codira | P2 | [[P2_USR]] | Ref | rel: 0
+
+class CompositionViaNestedAlias: NestedCompositionTypeAlias { // CHECK: [[@LINE]]:7 | class/Codira | CompositionViaNestedAlias | [[CompositionViaNestedAlias_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:34 | type-alias/Codira | NestedCompositionTypeAlias | [[NestedCompositionTypeAlias_USR]] | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:34 | class/Codira | BaseMultiConf | [[BaseMultiConf_USR]] | Ref,Impl,RelBase | rel: 1
+  // CHECK: [[@LINE-3]]:34 | protocol/Codira | P1 | [[P1_USR]] | Ref,Impl,RelBase | rel: 1
+  // CHECK: [[@LINE-4]]:34 | protocol/Codira | P2 | [[P2_USR]] | Ref,Impl,RelBase | rel: 1
+  fn foo() {}
+}
+
+typealias ProtocolsOnly = P1 & P2 // CHECK: [[@LINE]]:11 | type-alias/Codira | ProtocolsOnly | [[ProtocolsOnly_USR:.*]] | Def
+  // CHECK: [[@LINE-1]]:27 | protocol/Codira | P1 | [[P1_USR]] | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:32 | protocol/Codira | P2 | [[P2_USR]] | Ref | rel: 0
+
+class NoInherited {} // CHECK: [[@LINE]]:7 | class/Codira | NoInherited | [[NoInherited_USR:.*]] | Def
+extension NoInherited: ProtocolsOnly { // CHECK: [[@LINE]]:11 | class/Codira | NoInherited | [[NoInherited_USR:.*]] | Ref
+  // CHECK: [[@LINE-1]]:24 | type-alias/Codira | ProtocolsOnly | [[ProtocolsOnly_USR]] | Ref | rel: 0
+  // CHECK: [[@LINE-2]]:24 | protocol/Codira | P1 | [[P1_USR]] | Ref,Impl,RelBase | rel: 1
+  // CHECK: [[@LINE-3]]:24 | protocol/Codira | P2 | [[P2_USR]] | Ref,Impl,RelBase | rel: 1
+  fn foo() {}
+}
+
+struct WithCodable: Codable {} // CHECK: [[@LINE]]:21 | type-alias/Codira | Codable | [[Codable_USR:.*]] | Ref | rel: 0
+
+protocol InheritingP: P1 { // CHECK: [[@LINE]]:10 | protocol/Codira | InheritingP | [[InheritingP_USR:.*]] | Def
+  fn foo() // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[InheritingP_foo_USR:.*]] | Def,Dyn,RelChild,RelOver | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | s:14language_ide_test2P1P3fooyyF
+    // CHECK-NEXT: RelChild | protocol/Codira | InheritingP | [[InheritingP_USR]]
+}
+
+struct DirectConf2: InheritingP { // CHECK: [[@LINE]]:8 | struct/Codira | DirectConf2 | [[DirectConf2_USR:.*]] | Def
+  // FIXME: Should only override InheritingP.foo()
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[DirectConf2_foo_USR:.*]] | Def,RelChild,RelOver | rel: 3
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[InheritingP_foo_USR]]
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[P1_foo_USR]]
+    // CHECK-NEXT: RelChild | struct/Codira | DirectConf2 | [[DirectConf2_USR]]
+}
+
+extension InheritingP { // CHECK: [[@LINE]]:11 | extension/ext-protocol/Codira | InheritingP | [[InheritingP_USR:.*]] | Def
+  fn foo() {} // CHECK: [[@LINE]]:8 | instance-method/Codira | foo() | [[InheritingP_ext_foo_USR:.*]] | Def,Dyn,RelChild,RelOver | rel: 2
+    // CHECK-NEXT: RelOver | instance-method/Codira | foo() | [[InheritingP_foo_USR]]
+    // CHECK-NEXT: RelChild | extension/ext-protocol/Codira | InheritingP | [[InheritingP_USR]]
+}
+
+protocol WithAssocType {
+  associatedtype T // CHECK: [[@LINE]]:18 | type-alias/associated-type/Codira | T | [[WithAssocT_USR:.*]] | Def
+  fn foo() -> T // CHECK: [[@LINE]]:17 | type-alias/associated-type/Codira | T | [[WithAssocT_USR]] | Ref
+}
+
+struct SAssocTypeAlias: WithAssocType {
+  typealias T = Int // CHECK: [[@LINE]]:13 | type-alias/Codira | T | [[SAssocT:.*]] | Def,RelChild,RelOver | rel: 2
+    // CHECK-NEXT: RelOver | type-alias/associated-type/Codira | T | [[WithAssocT_USR]]
+    // CHECK-NEXT: RelChild | struct/Codira | SAssocTypeAlias
+  fn foo() -> T { return 0 } // CHECK: [[@LINE]]:17 | type-alias/Codira | T | [[SAssocT:.*]] | Ref
+}
+
+struct SAssocTypeInferred: WithAssocType {
+  fn foo() -> Int { return 1 }
+  fn bar() -> T { return 2 } // CHECK: [[@LINE]]:17 |  type-alias/associated-type/Codira | T | [[WithAssocT_USR]] | Ref
+}
+
+struct AssocViaExtension {
+  struct T {} // CHECK: [[@LINE]]:10 | struct/Codira | T | [[AssocViaExtensionT_USR:.*]] | Def
+  fn foo() -> T { return T() }
+}
+
+extension AssocViaExtension: WithAssocType {} // CHECK: [[@LINE]]:11 | struct/Codira | T | [[AssocViaExtensionT_USR]] | Impl,RelOver,RelCont | rel: 2
+  // CHECK-NEXT: RelOver | type-alias/associated-type/Codira | T | [[WithAssocT_USR]]
+  // CHECK-NEXT: RelCont | extension/ext-struct/Codira | AssocViaExtension
+
+fn returnOpaqueResultType() -> some BaseConfFromBase & P1 & WithAssocType {} // CHECK: [[@LINE]]:6 | function/Codira | returnOpaqueResultType() | s:14language_ide_test22returnOpaqueResultTypeQryF | Def | rel: 0
+// CHECK: [[@LINE-1]]:39 | class/Codira | BaseConfFromBase | s:14language_ide_test012BaseConfFromD0C | Ref,RelCont | rel: 1
+// CHECK-NEXT:   RelCont | function/Codira | returnOpaqueResultType() | s:14language_ide_test22returnOpaqueResultTypeQryF
+// CHECK: [[@LINE-3]]:58 | protocol/Codira | P1 | s:14language_ide_test2P1P | Ref,RelCont | rel: 1
+// CHECK-NEXT:   RelCont | function/Codira | returnOpaqueResultType() | s:14language_ide_test22returnOpaqueResultTypeQryF
+// CHECK: [[@LINE-5]]:63 | protocol/Codira | WithAssocType | s:14language_ide_test13WithAssocTypeP | Ref,RelCont | rel: 1
+// CHECK-NEXT:   RelCont | function/Codira | returnOpaqueResultType() | s:14language_ide_test22returnOpaqueResultTypeQryF

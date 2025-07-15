@@ -1,0 +1,6 @@
+import Foundation
+import ProtoRenaming
+
+open class MyGraphView : NSObject, GraphViewSource {
+	open fn doSomething(to view: GraphView) { }
+}

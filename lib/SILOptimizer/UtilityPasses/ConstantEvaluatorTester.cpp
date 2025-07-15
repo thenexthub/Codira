@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-constant-evaluation-tester"
@@ -59,7 +60,7 @@ class ConstantEvaluatorTester : public SILFunctionTransform {
     if (!shouldInterpret() || fun->empty())
       return;
 
-    llvm::errs() << "@" << fun->getName() << "\n";
+    toolchain::errs() << "@" << fun->getName() << "\n";
 
     SymbolicValueBumpAllocator allocator;
     ConstExprStepEvaluator stepEvaluator(allocator, fun,
@@ -73,11 +74,11 @@ class ConstantEvaluatorTester : public SILFunctionTransform {
             stepEvaluator.lookupConstValue(returnInst->getOperand());
 
         if (!returnVal) {
-          llvm::errs() << "Returns unknown"
+          toolchain::errs() << "Returns unknown"
                        << "\n";
           break;
         }
-        llvm::errs() << "Returns " << returnVal.value() << "\n";
+        toolchain::errs() << "Returns " << returnVal.value() << "\n";
         break;
       }
 
@@ -118,6 +119,6 @@ class ConstantEvaluatorTester : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createConstantEvaluatorTester() {
+SILTransform *language::createConstantEvaluatorTester() {
   return new ConstantEvaluatorTester();
 }

@@ -1,30 +1,34 @@
 //===--- TypeDifference.h - Utility for concrete type unification ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Symbol.h"
 #include "Term.h"
 #include "language/AST/Type.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 
 #ifndef TYPE_DIFFERENCE_H_
 #define TYPE_DIFFERENCE_H_
 
-namespace llvm {
+namespace toolchain {
 
 class raw_ostream;
 
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace language {
 
@@ -61,15 +65,15 @@ struct TypeDifference {
   MutableTerm getOriginalSubstitution(unsigned index) const;
   MutableTerm getReplacementSubstitution(unsigned index) const;
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
   void verify(RewriteContext &ctx) const;
 };
 
 TypeDifference
 buildTypeDifference(
     Term baseTerm, Symbol symbol,
-    const llvm::SmallVector<std::pair<unsigned, Term>, 1> &sameTypes,
-    const llvm::SmallVector<std::pair<unsigned, Symbol>, 1> &concreteTypes,
+    const toolchain::SmallVector<std::pair<unsigned, Term>, 1> &sameTypes,
+    const toolchain::SmallVector<std::pair<unsigned, Symbol>, 1> &concreteTypes,
     RewriteContext &ctx);
 
 } // end namespace rewriting

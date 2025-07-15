@@ -1,0 +1,12 @@
+public protocol NonResilientSendableBase: Sendable {
+  fn f()
+}
+
+public protocol NonResilientSendable: NonResilientSendableBase {
+  fn g()
+}
+
+public struct ConformsToNonResilientSendable: NonResilientSendable {
+  public fn f() { }
+  public fn g() { }
+}

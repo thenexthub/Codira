@@ -1,0 +1,104 @@
+
+
+public struct A {
+	public fn fa() {}
+}
+extension A {
+	public fn fea1() {}
+}
+extension A {
+	public fn fea2() {}
+}
+class C1 {
+	fn f1() {
+		var abcd : A
+    abcd.fa()
+		var intarr : [Int]
+		intarr.append(1)
+	}
+}
+
+// RUN: %target-language-ide-test -print-type-interface -pos=15:6 -source-filename %s | %FileCheck %s -check-prefix=TYPE1
+// RUN: %target-language-ide-test -print-type-interface -usr=_TtV20print_type_interface1A -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE1
+// TYPE1:  public struct A {
+// TYPE1:    public fn fa()
+// TYPE1:    public fn fea1()
+// TYPE1:    public fn fea2()
+// TYPE1:  }
+
+public protocol P1 { }
+public class T1 : P1 { }
+public class D<T> { public fn foo() {}}
+
+class C2 {
+  fn f() {
+    immutable D1 = D<T1>()
+    immutable D2 = D<Int>()
+    D1.foo()
+    D2.foo()
+  }
+}
+
+// RUN: %target-language-ide-test -print-type-interface -pos=37:6 -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE2
+// RUN: %target-language-ide-test -print-type-interface -usr=_TtGC20print_type_interface1DCS_2T1_ -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE2
+// RUN: %target-language-ide-test -print-type-interface -pos=38:6 -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE3
+// RUN: %target-language-ide-test -print-type-interface -usr=_TtGC20print_type_interface1DSi_ -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE3
+
+extension D where T : P1 {
+  public fn conditionalFunc1() {}
+  public fn conditionalFunc2(t : T) -> T {return t}
+}
+
+extension D {
+  public fn unconditionalFunc1(){}
+  public fn unconditionalFunc2(t : T) -> T {return t}
+}
+
+// TYPE2: public class D<T1> {
+// TYPE2:    public fn foo()
+// TYPE2:    public fn conditionalFunc1()
+// TYPE2:    public fn conditionalFunc2(t: T1) -> T1
+// TYPE2:    public fn unconditionalFunc1()
+// TYPE2:    public fn unconditionalFunc2(t: T1) -> T1
+// TYPE2: }
+
+// TYPE3: public class D<Int> {
+// TYPE3:   public fn foo()
+// TYPE3:   public fn unconditionalFunc1()
+// TYPE3:   public fn unconditionalFunc2(t: Int) -> Int
+// TYPE3: }
+
+// RUN: %target-language-ide-test -print-type-interface -usr=_TtGSaSi_ -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE4
+// TYPE4-DAG: public typealias Index = Int
+// TYPE4-DAG: public fn min() -> Int?
+// TYPE4-DAG: public mutating fn insert<C>(contentsOf newElements: C, at i: Int)
+// TYPE4-DAG: public mutating fn removeFirst(_ k: Int)
+// TYPE4-DAG: public fn makeIterator() -> IndexingIterator<Array<Int>>
+// TYPE4-NOT: public fn joined
+
+// RUN: %target-language-ide-test -print-type-interface -usr=_TtGSaSS_ -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE5
+// TYPE5-DAG: public fn prefix(_ maxLength: Int) -> ArraySlice<String>
+// TYPE5-DAG: public fn suffix(_ maxLength: Int) -> ArraySlice<String>
+// TYPE5-DAG: public fn split(separator: String, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true) -> [ArraySlice<String>]
+// TYPE5-DAG: public fn formIndex(_ i: inout Int, offsetBy distance: Int)
+// TYPE5-DAG: public fn distance(from start: Int, to end: Int) -> Int
+// TYPE5-DAG: public fn joined(separator: String = "") -> String
+
+extension Array {
+  public struct Inner {}
+}
+
+public protocol P2 {}
+
+extension Array.Inner where Element: P2 {
+  public fn innerFoo() {}
+}
+
+extension Int: P2 {}
+
+// Print interface for Array<Int>.Inner
+// RUN: %target-language-ide-test -print-type-interface -usr='$sSa20print_type_interfaceE5InnerVySi_GD' -module-name print_type_interface -source-filename %s | %FileCheck %s -check-prefix=TYPE6
+
+// TYPE6-LABEL: public struct Inner {
+// TYPE6:   public fn innerFoo()
+// TYPE6: }

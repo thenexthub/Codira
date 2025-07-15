@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/TargetInfo.h"
@@ -20,15 +21,15 @@
 #include "language/Frontend/Frontend.h"
 
 #include "clang/Basic/TargetInfo.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
 /// Print information about a
 static void printCompatibilityLibrary(
-    llvm::VersionTuple runtimeVersion, llvm::VersionTuple maxVersion,
+    toolchain::VersionTuple runtimeVersion, toolchain::VersionTuple maxVersion,
     StringRef filter, StringRef libraryName, bool forceLoad,
-    bool &printedAny, llvm::raw_ostream &out) {
+    bool &printedAny, toolchain::raw_ostream &out) {
   if (runtimeVersion > maxVersion)
     return;
 
@@ -40,11 +41,11 @@ static void printCompatibilityLibrary(
   out << "      {";
 
   out << "\n        \"libraryName\": \"";
-  swift::writeEscaped(libraryName, out);
+  language::writeEscaped(libraryName, out);
   out << "\",";
 
   out << "\n        \"filter\": \"";
-  swift::writeEscaped(filter, out);
+  language::writeEscaped(filter, out);
   out << "\"";
 
   if (!forceLoad) {
@@ -60,13 +61,21 @@ namespace language {
 namespace targetinfo {
 /// Print information about the selected target in JSON.
 void printTargetInfo(const CompilerInvocation &invocation,
-                     llvm::raw_ostream &out) {
+                     toolchain::raw_ostream &out) {
   out << "{\n";
 
   // Compiler version, as produced by --version.
   out << "  \"compilerVersion\": \"";
-  writeEscaped(version::getSwiftFullVersion(version::Version::getCurrentLanguageVersion()), out);
+  writeEscaped(version::getCodiraFullVersion(version::Version::getCurrentLanguageVersion()), out);
   out << "\",\n";
+
+  // Distribution tag, if any.
+  StringRef tag = version::getCurrentCompilerTag();
+  if (!tag.empty()) {
+    out << "  \"languageCompilerTag\": \"";
+    writeEscaped(tag, out);
+    out << "\",\n";
+  }
 
   // Target triple and target variant triple.
   auto runtimeVersion =
@@ -94,7 +103,7 @@ void printTargetInfo(const CompilerInvocation &invocation,
 
   auto outputPaths = [&](StringRef name, const std::vector<std::string> &paths){
     out << "    \"" << name << "\": [\n";
-    llvm::interleave(paths, [&out](const std::string &path) {
+    toolchain::interleave(paths, [&out](const std::string &path) {
       out << "      \"";
       writeEscaped(path, out);
       out << "\"";
@@ -119,9 +128,9 @@ void printTargetInfo(const CompilerInvocation &invocation,
 
 // Print information about the target triple in JSON.
 void printTripleInfo(const CompilerInvocation &invocation,
-                     const llvm::Triple &triple,
-                     std::optional<llvm::VersionTuple> runtimeVersion,
-                     llvm::raw_ostream &out) {
+                     const toolchain::Triple &triple,
+                     std::optional<toolchain::VersionTuple> runtimeVersion,
+                     toolchain::raw_ostream &out) {
   out << "{\n";
 
   out << "    \"triple\": \"";
@@ -137,7 +146,7 @@ void printTripleInfo(const CompilerInvocation &invocation,
   out << "\",\n";
 
   out << "    \"platform\": \"" << getPlatformNameForTriple(triple) << "\",\n";
-  out << "    \"arch\": \"" << swift::getMajorArchitectureName(triple)
+  out << "    \"arch\": \"" << language::getMajorArchitectureName(triple)
       << "\",\n";
 
   clang::DiagnosticsEngine DE{new clang::DiagnosticIDs(),
@@ -154,7 +163,7 @@ void printTripleInfo(const CompilerInvocation &invocation,
       << ",\n";
 
   if (runtimeVersion) {
-    out << "    \"swiftRuntimeCompatibilityVersion\": \"";
+    out << "    \"languageRuntimeCompatibilityVersion\": \"";
     writeEscaped(runtimeVersion->getAsString(), out);
     out << "\",\n";
 
@@ -162,7 +171,7 @@ void printTripleInfo(const CompilerInvocation &invocation,
     out << "    \"compatibilityLibraries\": [";
     bool printedAnyCompatibilityLibrary = false;
 #define BACK_DEPLOYMENT_LIB(Version, Filter, LibraryName, ForceLoad)           \
-  printCompatibilityLibrary(*runtimeVersion, llvm::VersionTuple Version,       \
+  printCompatibilityLibrary(*runtimeVersion, toolchain::VersionTuple Version,       \
                             #Filter, LibraryName, ForceLoad,                   \
                             printedAnyCompatibilityLibrary, out);
 #include "language/Frontend/BackDeploymentLibs.def"
@@ -175,7 +184,7 @@ void printTripleInfo(const CompilerInvocation &invocation,
   }
 
   if (tripleBTCFIByDefaultInOpenBSD(triple)) {
-#if SWIFT_OPENBSD_BTCFI
+#if LANGUAGE_OPENBSD_BTCFI
      out << "    \"openbsdBTCFIEnabled\": true,\n";
 #else
      out << "    \"openbsdBTCFIEnabled\": false,\n";
@@ -185,7 +194,7 @@ void printTripleInfo(const CompilerInvocation &invocation,
   }
 
   out << "    \"librariesRequireRPath\": "
-      << (tripleRequiresRPathForSwiftLibrariesInOS(triple) ? "true" : "false")
+      << (tripleRequiresRPathForCodiraLibrariesInOS(triple) ? "true" : "false")
       << "\n";
 
   out << "  }";

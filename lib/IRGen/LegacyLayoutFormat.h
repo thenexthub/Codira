@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the YAML format for the backward deployment type layout
@@ -30,12 +31,12 @@
 // To support this case, we emit fixed metadata for any such class, and in place
 // of each resilient field type, we use previously-emitted fixed type info.
 //
-// This fixed type info must match the Swift standard library and overlays used
+// This fixed type info must match the Codira standard library and overlays used
 // for backward deployment, since on older Objective-C runtimes these layouts
 // will be used at runtime.
 //
 // However, since these types are resilient, their layouts might change in the
-// future. Newer Objective-C runtimes will expose a hook allowing the Swift
+// future. Newer Objective-C runtimes will expose a hook allowing the Codira
 // runtime to re-compute the class layout when the class is realized.
 //
 // Note that except for metadata emission, field accesses and instance
@@ -43,20 +44,20 @@
 // initialization, loading the field offsets from global variables and loading
 // the size and alignment dynamically from metadata when allocating.
 //
-// Also, any Swift-side accesses of the metadata must call the metadata accessor
-// function, allowing the Swift runtime to re-initialize the layout if
+// Also, any Codira-side accesses of the metadata must call the metadata accessor
+// function, allowing the Codira runtime to re-initialize the layout if
 // necessary.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_LEGACY_LAYOUT_FORMAT_H
-#define SWIFT_IRGEN_LEGACY_LAYOUT_FORMAT_H
+#ifndef LANGUAGE_IRGEN_LEGACY_LAYOUT_FORMAT_H
+#define LANGUAGE_IRGEN_LEGACY_LAYOUT_FORMAT_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 namespace irgen {
@@ -80,11 +81,11 @@ struct YAMLModuleNode {
 } // namespace irgen
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
-template <> struct MappingTraits<swift::irgen::YAMLTypeInfoNode> {
-  static void mapping(IO &io, swift::irgen::YAMLTypeInfoNode &node) {
+template <> struct MappingTraits<language::irgen::YAMLTypeInfoNode> {
+  static void mapping(IO &io, language::irgen::YAMLTypeInfoNode &node) {
     io.mapRequired("Name", node.Name);
     io.mapRequired("Size", node.Size);
     io.mapRequired("Alignment", node.Alignment);
@@ -92,17 +93,17 @@ template <> struct MappingTraits<swift::irgen::YAMLTypeInfoNode> {
   }
 };
 
-template <> struct MappingTraits<swift::irgen::YAMLModuleNode> {
-  static void mapping(IO &io, swift::irgen::YAMLModuleNode &node) {
+template <> struct MappingTraits<language::irgen::YAMLModuleNode> {
+  static void mapping(IO &io, language::irgen::YAMLModuleNode &node) {
     io.mapRequired("Name", node.Name);
     io.mapOptional("Decls", node.Decls);
   }
 };
 
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(swift::irgen::YAMLTypeInfoNode)
-LLVM_YAML_IS_DOCUMENT_LIST_VECTOR(swift::irgen::YAMLModuleNode)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(language::irgen::YAMLTypeInfoNode)
+TOOLCHAIN_YAML_IS_DOCUMENT_LIST_VECTOR(language::irgen::YAMLModuleNode)
 
-#endif // SWIFT_IRGEN_LEGACY_LAYOUT_FORMAT_H
+#endif // LANGUAGE_IRGEN_LEGACY_LAYOUT_FORMAT_H

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the AbstractionPattern class, which is used to
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_ABSTRACTIONPATTERN_H
-#define SWIFT_SIL_ABSTRACTIONPATTERN_H
+#ifndef LANGUAGE_SIL_ABSTRACTIONPATTERN_H
+#define LANGUAGE_SIL_ABSTRACTIONPATTERN_H
 
 #include "language/Basic/IndexedViewRange.h"
 #include "language/AST/Decl.h"
 #include "language/AST/Types.h"
 
-namespace llvm {
+namespace toolchain {
   template <class T> class function_ref;
 }
 
@@ -44,16 +45,16 @@ class PackElementGenerator;
 
 /// A pattern for the abstraction of a value.
 ///
-/// The representation of values in Swift can vary according to how
+/// The representation of values in Codira can vary according to how
 /// their type is abstracted: which is to say, according to the pattern
 /// of opaque type variables within their type.  The main motivation
 /// here is performance: it would be far easier for types to adopt a
 /// single representation regardless of their abstraction, but this
-/// would force Swift to adopt a very inefficient representation for
+/// would force Codira to adopt a very inefficient representation for
 /// abstractable values.
 ///
 /// For example, consider the comparison function on Int:
-///   func <(lhs : Int, rhs : Int) -> Bool
+///   fn <(lhs : Int, rhs : Int) -> Bool
 ///
 /// This function can be used as an opaque value of type
 /// (Int,Int)->Bool.  An optimal representation of values of that type
@@ -72,12 +73,12 @@ class PackElementGenerator;
 /// However, that representation is problematic in the presence of
 /// generics.  This function could be passed off to any of the following
 /// generic functions:
-///   func foo<T>(f : (T, Int) -> Bool)
-///   func bar<U,V>(f : (U, V) -> Bool)
-///   func baz<W>(f : (Int, Int) -> W)
+///   fn foo<T>(f : (T, Int) -> Bool)
+///   fn bar<U,V>(f : (U, V) -> Bool)
+///   fn baz<W>(f : (Int, Int) -> W)
 ///
 /// These generic functions all need to be able to call 'f'.  But in
-/// Swift's implementation model, these functions don't have to be
+/// Codira's implementation model, these functions don't have to be
 /// instantiated for different parameter types, which means that (e.g.)
 /// the same 'baz' implementation needs to also be able to work when
 /// W=String.  But the optimal way to pass an Int to a function might
@@ -85,11 +86,11 @@ class PackElementGenerator;
 ///
 /// And this runs in both directions: a generic function might return
 /// a function that the caller would like to use as an (Int,Int)->Bool:
-///   func getFalseFunction<T>() -> (T,T)->Bool
+///   fn getFalseFunction<T>() -> (T,T)->Bool
 ///
 /// There are three ways we can deal with this:
 ///
-/// 1. Give all types in Swift a common representation.  The generic
+/// 1. Give all types in Codira a common representation.  The generic
 /// implementation can work with both W=String and W=Int because
 /// both of those types have the same (direct) storage representation.
 /// That's pretty clearly not an acceptable sacrifice.
@@ -187,7 +188,7 @@ class AbstractionPattern {
     /// error index.
     ObjCMethodType,
     /// The type of an ObjC block used as a completion handler for
-    /// an API that has been imported into Swift as async,
+    /// an API that has been imported into Codira as async,
     /// representing the tuple of results of the async projection of the
     /// API.
     ObjCCompletionHandlerArgumentsType,
@@ -201,7 +202,7 @@ class AbstractionPattern {
     /// non-static member function. OrigType is valid and is a function type.
     /// CXXMethod is valid.
     PartialCurriedCXXMethodType,
-    /// A Swift function whose parameters and results are opaque. This is
+    /// A Codira function whose parameters and results are opaque. This is
     /// like `AP::Type<T>((T) -> T)`, except that the number of parameters is
     /// unspecified.
     ///
@@ -209,7 +210,7 @@ class AbstractionPattern {
     /// derivative function of a function with opaque abstraction pattern. See
     /// `OpaqueDerivativeFunction`.
     OpaqueFunction,
-    /// A Swift function whose parameters are opaque and whose result is the
+    /// A Codira function whose parameters are opaque and whose result is the
     /// tuple abstraction pattern `(AP::Opaque, AP::OpaqueFunction)`.
     ///
     /// Purpose: when we reabstract `@differentiable` function-typed values
@@ -409,7 +410,7 @@ class AbstractionPattern {
     unsigned getForeignParamIndex() const {
       switch (getKind()) {
       case IsNotForeign:
-        llvm_unreachable("no foreign param");
+        toolchain_unreachable("no foreign param");
       
       case IsError:
         return getErrorParamIndex();
@@ -417,7 +418,7 @@ class AbstractionPattern {
       case IsAsync:
         return getAsyncCompletionHandlerParamIndex();
       }
-      llvm_unreachable("uncovered switch");
+      toolchain_unreachable("uncovered switch");
     }
 
     unsigned getOpaqueValue() const { return Value; }
@@ -525,7 +526,7 @@ class AbstractionPattern {
     }
   }
   
-  void initSwiftType(SubstitutionMap subs,
+  void initCodiraType(SubstitutionMap subs,
                      CanGenericSignature signature,
                      CanType origType,
                      Kind kind = Kind::Type) {
@@ -543,14 +544,14 @@ class AbstractionPattern {
   void initClangType(SubstitutionMap subs, CanGenericSignature signature,
                      CanType origType, const clang::Type *clangType,
                      Kind kind = Kind::ClangType) {
-    initSwiftType(subs, signature, origType, kind);
+    initCodiraType(subs, signature, origType, kind);
     ClangType = clangType;
   }
 
   void initObjCMethod(SubstitutionMap subs, CanGenericSignature signature,
                       CanType origType, const clang::ObjCMethodDecl *method,
                       Kind kind, EncodedForeignInfo errorInfo) {
-    initSwiftType(subs, signature, origType, kind);
+    initCodiraType(subs, signature, origType, kind);
     ObjCMethod = method;
     OtherData = errorInfo.getOpaqueValue();
   }
@@ -568,7 +569,7 @@ class AbstractionPattern {
                      CanGenericSignature signature, CanType origType,
                      const clang::CXXMethodDecl *method, Kind kind,
                      ImportAsMemberStatus memberStatus) {
-    initSwiftType(subs, signature, origType, kind);
+    initCodiraType(subs, signature, origType, kind);
     CXXMethod = method;
     OtherData = memberStatus.getRawValue();
   }
@@ -582,15 +583,15 @@ public:
   explicit AbstractionPattern(CanType origType)
     : AbstractionPattern(nullptr, origType) {}
   explicit AbstractionPattern(CanGenericSignature signature, CanType origType) {
-    initSwiftType(SubstitutionMap(), signature, origType);
+    initCodiraType(SubstitutionMap(), signature, origType);
   }
   explicit AbstractionPattern(SubstitutionMap subs, CanType origType) {
-    initSwiftType(subs, subs.getGenericSignature().getCanonicalSignature(),
+    initCodiraType(subs, subs.getGenericSignature().getCanonicalSignature(),
                   origType);
   }
   explicit AbstractionPattern(SubstitutionMap subs, CanGenericSignature sig,
                               CanType origType) {
-    initSwiftType(subs, sig, origType);
+    initCodiraType(subs, sig, origType);
   }
   explicit AbstractionPattern(CanType origType, const clang::Type *clangType)
     : AbstractionPattern(nullptr, origType, clangType) {}
@@ -644,7 +645,7 @@ public:
     case Kind::OpaqueDerivativeFunction:
       return false;
     }
-    llvm_unreachable("Unhandled AbstractionPatternKind in switch");
+    toolchain_unreachable("Unhandled AbstractionPatternKind in switch");
   }
 
   SubstitutionMap getGenericSubstitutions() const {
@@ -784,7 +785,7 @@ public:
                                        CanGenericSignature signature,
                                        CanType origType) {
     AbstractionPattern pattern;
-    pattern.initSwiftType(subs, signature, origType, Kind::Discard);
+    pattern.initCodiraType(subs, signature, origType, Kind::Discard);
     return pattern;
   }
   
@@ -918,7 +919,7 @@ public:
   /// Return an abstraction pattern with an added level of optionality.
   ///
   /// The based abstraction pattern must be either opaque or based on
-  /// a Clang or Swift type.  That is, it cannot be a tuple or an ObjC
+  /// a Clang or Codira type.  That is, it cannot be a tuple or an ObjC
   /// method type.
   static AbstractionPattern getOptional(AbstractionPattern objectPattern);
 
@@ -1022,7 +1023,7 @@ public:
   bool isNoncopyable(CanType substTy) const;
   bool isEscapable(CanType substTy) const;
 
-  /// Return the Swift type which provides structure for this
+  /// Return the Codira type which provides structure for this
   /// abstraction pattern.
   ///
   /// This is always valid unless the pattern is opaque or an
@@ -1031,15 +1032,15 @@ public:
   CanType getType() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
-      llvm_unreachable("opaque pattern has no type");
+      toolchain_unreachable("opaque pattern has no type");
     case Kind::Tuple:
-      llvm_unreachable("open-coded tuple pattern has no type");
+      toolchain_unreachable("open-coded tuple pattern has no type");
     case Kind::OpaqueFunction:
-      llvm_unreachable("opaque function pattern has no type");
+      toolchain_unreachable("opaque function pattern has no type");
     case Kind::OpaqueDerivativeFunction:
-      llvm_unreachable("opaque derivative function pattern has no type");
+      toolchain_unreachable("opaque derivative function pattern has no type");
     case Kind::ClangType:
     case Kind::ObjCCompletionHandlerArgumentsType:
     case Kind::CurriedObjCMethodType:
@@ -1055,7 +1056,7 @@ public:
     case Kind::Discard:
       return OrigType;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Do the two given types have the same basic type structure as
@@ -1076,7 +1077,7 @@ public:
     case Kind::Tuple:
     case Kind::OpaqueFunction:
     case Kind::OpaqueDerivativeFunction:
-      llvm_unreachable("type cannot be replaced on pattern without type");
+      toolchain_unreachable("type cannot be replaced on pattern without type");
     case Kind::ClangType:
     case Kind::CurriedObjCMethodType:
     case Kind::PartialCurriedObjCMethodType:
@@ -1096,7 +1097,7 @@ public:
       OrigType = type;
       return;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Add substitutions to this pattern.
@@ -1119,7 +1120,7 @@ public:
   bool isForeign() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::Tuple:
     case Kind::Type:
@@ -1140,7 +1141,7 @@ public:
     case Kind::ObjCCompletionHandlerArgumentsType:
       return true;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// True if the value is discarded.
@@ -1200,9 +1201,9 @@ public:
   bool hasForeignErrorStrippingResultOptionality() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Tuple:
-      llvm_unreachable("querying foreign-error bits on non-function pattern");
+      toolchain_unreachable("querying foreign-error bits on non-function pattern");
 
     case Kind::Opaque:
     case Kind::ClangType:
@@ -1225,7 +1226,7 @@ public:
       return errorInfo.errorStripsResultOptionality();
     }
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   template<typename TYPE>
@@ -1233,7 +1234,7 @@ public:
   getAs() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::Tuple:
     case Kind::OpaqueFunction:
@@ -1254,7 +1255,7 @@ public:
     case Kind::ObjCCompletionHandlerArgumentsType:
       return dyn_cast<TYPE>(getType());
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Is this pattern the exact given type?
@@ -1265,7 +1266,7 @@ public:
   bool isExactType(CanType type) const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::Tuple:
     case Kind::ClangType:
@@ -1287,7 +1288,7 @@ public:
     case Kind::Discard:
       return getType() == type;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Is the given tuple type a valid substitution of this abstraction
@@ -1298,7 +1299,7 @@ public:
   bool isTuple() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::PartialCurriedObjCMethodType:
     case Kind::CurriedObjCMethodType:
@@ -1320,13 +1321,13 @@ public:
     case Kind::ClangType:
       return isa<TupleType>(getType());
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   size_t getNumTupleElements() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::PartialCurriedObjCMethodType:
     case Kind::CurriedObjCMethodType:
@@ -1339,7 +1340,7 @@ public:
     case Kind::PartialCurriedCXXMethodType:
     case Kind::OpaqueFunction:
     case Kind::OpaqueDerivativeFunction:
-      llvm_unreachable("pattern is not a tuple");      
+      toolchain_unreachable("pattern is not a tuple");      
     case Kind::Tuple:
       return getNumTupleElements_Stored();
     case Kind::ObjCCompletionHandlerArgumentsType:
@@ -1348,7 +1349,7 @@ public:
     case Kind::ClangType:
       return cast<TupleType>(getType())->getNumElements();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   bool doesTupleContainPackExpansionType() const;
@@ -1384,7 +1385,7 @@ public:
   /// This pattern must be a tuple pattern.  The substituted type may be
   /// a non-tuple only if this is a vanshing tuple pattern.
   void forEachTupleElement(CanType substType,
-         llvm::function_ref<void(TupleElementGenerator &element)> fn) const;
+         toolchain::function_ref<void(TupleElementGenerator &element)> fn) const;
 
   /// Perform a parallel visitation of the elements of a tuple type,
   /// expanding the elements of the type.  This preserves the structure
@@ -1395,7 +1396,7 @@ public:
   /// This pattern must match the substituted type, but it may be an
   /// opaque pattern.
   void forEachExpandedTupleElement(CanType substType,
-      llvm::function_ref<void(AbstractionPattern origEltType,
+      toolchain::function_ref<void(AbstractionPattern origEltType,
                               CanType substEltType,
                               const TupleTypeElt &elt)> handleElement) const;
 
@@ -1406,7 +1407,7 @@ public:
   bool isPack() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::PartialCurriedObjCMethodType:
     case Kind::CurriedObjCMethodType:
@@ -1427,13 +1428,13 @@ public:
     case Kind::Discard:
       return isa<PackType>(getType());
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   size_t getNumPackElements() const {
     switch (getKind()) {
     case Kind::Invalid:
-      llvm_unreachable("querying invalid abstraction pattern!");
+      toolchain_unreachable("querying invalid abstraction pattern!");
     case Kind::Opaque:
     case Kind::PartialCurriedObjCMethodType:
     case Kind::CurriedObjCMethodType:
@@ -1449,12 +1450,12 @@ public:
     case Kind::ObjCCompletionHandlerArgumentsType:
     case Kind::Tuple:
     case Kind::ClangType:
-      llvm_unreachable("pattern is not a pack");
+      toolchain_unreachable("pattern is not a pack");
     case Kind::Type:
     case Kind::Discard:
       return cast<PackType>(getType())->getNumElements();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Perform a parallel visitation of the elements of a pack type,
@@ -1464,7 +1465,7 @@ public:
   ///
   /// This pattern must be a pack pattern.
   void forEachPackElement(CanPackType substPackType,
-         llvm::function_ref<void(PackElementGenerator &element)> fn) const;
+         toolchain::function_ref<void(PackElementGenerator &element)> fn) const;
 
   /// Perform a parallel visitation of the elements of a pack type,
   /// expanding the elements of the type.  This preserves the structure
@@ -1474,7 +1475,7 @@ public:
   /// This pattern must match the substituted type, but it may be an
   /// opaque pattern.
   void forEachExpandedPackElement(CanPackType substPackType,
-      llvm::function_ref<void(AbstractionPattern origEltType,
+      toolchain::function_ref<void(AbstractionPattern origEltType,
                               CanType substEltType)> handleElement) const;
 
   /// Given that the value being abstracted is a move only type, return the
@@ -1587,11 +1588,11 @@ public:
   /// If this is not a function pattern, calls handleScalar for each
   /// parameter of the substituted function type.  Note that functions
   /// with pack expansions cannot be legally abstracted this way; it
-  /// is not possible in Swift's ABI to support this without some sort
+  /// is not possible in Codira's ABI to support this without some sort
   /// of dynamic argument-forwarding thunk.
   void forEachFunctionParam(AnyFunctionType::CanParamArrayRef substParams,
                             bool ignoreFinalParam,
-    llvm::function_ref<void(FunctionParamGenerator &param)> function) const;
+    toolchain::function_ref<void(FunctionParamGenerator &param)> function) const;
 
   /// Return the start index of the given formal parameter in the lowered
   /// parameter sequence corresponding to a function with this abstraction
@@ -1630,9 +1631,9 @@ public:
   /// the abstraction pattern for the completion callback with the original ObjC block type.
   ///
   /// Otherwise, this produces the default fully-concrete abstraction pattern for the given
-  /// Swift type.
+  /// Codira type.
   AbstractionPattern getObjCMethodAsyncCompletionHandlerType(
-                                     CanType swiftCompletionHandlerType) const;
+                                     CanType languageCompletionHandlerType) const;
 
   /// Given that this is a pack expansion, return the number of components
   /// that it should expand to.  This, and the general correctness of
@@ -1705,7 +1706,7 @@ public:
                               CanType coroutineYieldSubstType,
                               bool &unimplementable) const;
   
-  void dump() const LLVM_ATTRIBUTE_USED;
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED;
   void print(raw_ostream &OS) const;
   
   bool operator==(const AbstractionPattern &other) const;
@@ -1714,7 +1715,7 @@ public:
   }
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                      const AbstractionPattern &pattern) {
   pattern.print(out);
   return out;

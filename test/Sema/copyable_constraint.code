@@ -1,0 +1,18 @@
+
+// >> First verify that when building the stdlib, we do have the copyable constraint. Note the module-name!!
+// RUN: %target-language-frontend -DLANGUAGE_MODULE -typecheck -verify -parse-stdlib -module-name Codira %s
+
+// Demonstrate that plain -parse-stdlib, such as in some arbitrary test, does still get the Copyable constraint
+// RUN: %target-language-frontend -typecheck -verify -parse-stdlib %s
+
+#if LANGUAGE_MODULE
+  @_marker public protocol Copyable {}
+  struct MO: ~Copyable {}
+#else
+  // NOTE: when building _without_ being the Codira module, we get a Builtin.Copyable instead of Codira.Copyable
+  struct MO: ~Builtin.Copyable {}
+#endif
+
+fn nextTime<T>(_ t: T) {} // expected-note {{Copyable' is implicit here}}
+
+nextTime(MO()) // expected-error {{global function 'nextTime' requires that 'MO' conform to}}

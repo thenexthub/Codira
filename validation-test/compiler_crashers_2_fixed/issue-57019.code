@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/57019
+
+class A { }
+class B<T> : A { }
+class C {
+  fn bar(x : (A?) -> Void) { }
+}
+class D<T> : C {
+  override fn bar(x : (B<T>?) -> Void) { }
+}

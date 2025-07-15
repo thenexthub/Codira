@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "predictable-memopt"
@@ -34,15 +35,15 @@
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool> EnableAggressiveExpansionBlocking(
-  "enable-aggressive-expansion-blocking", llvm::cl::init(false));
+static toolchain::cl::opt<bool> EnableAggressiveExpansionBlocking(
+  "enable-aggressive-expansion-blocking", toolchain::cl::init(false));
 
 STATISTIC(NumLoadTakePromoted, "Number of load takes promoted");
 STATISTIC(NumDestroyAddrPromoted, "Number of destroy_addrs promoted");
@@ -84,7 +85,7 @@ struct LoadInfo {
 } // namespace
 
 // We can only analyze components of structs whose storage is fully accessible
-// from Swift.
+// from Codira.
 static StructDecl *
 getFullyReferenceableStruct(SILType Ty) {
   auto SD = Ty.getStructOrBoundGenericStruct();
@@ -236,7 +237,7 @@ struct AvailableValue {
 
   /// If this gets too expensive in terms of copying, we can use an arena and a
   /// FrozenPtrSet like we do in ARC.
-  llvm::SmallSetVector<SILInstruction *, 1> InsertionPoints;
+  toolchain::SmallSetVector<SILInstruction *, 1> InsertionPoints;
 
   /// Just for updating.
   SmallVectorImpl<PMOMemoryUse> *Uses;
@@ -324,8 +325,8 @@ public:
     return {b.createBeginBorrow(loc, Value), SubElementNumber, InsertionPoints};
   }
 
-  void dump() const LLVM_ATTRIBUTE_USED;
-  void print(llvm::raw_ostream &os) const;
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED;
+  void print(toolchain::raw_ostream &os) const;
 
 private:
   /// Private constructor.
@@ -337,9 +338,9 @@ private:
 
 } // end anonymous namespace
 
-void AvailableValue::dump() const { print(llvm::dbgs()); }
+void AvailableValue::dump() const { print(toolchain::dbgs()); }
 
-void AvailableValue::print(llvm::raw_ostream &os) const {
+void AvailableValue::print(toolchain::raw_ostream &os) const {
   os << "Available Value Dump. Value: ";
   if (getValue()) {
     os << getValue();
@@ -353,14 +354,14 @@ void AvailableValue::print(llvm::raw_ostream &os) const {
   }
 }
 
-namespace llvm {
+namespace toolchain {
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const AvailableValue &V) {
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, const AvailableValue &V) {
   V.print(os);
   return os;
 }
 
-} // end llvm namespace
+} // end toolchain namespace
 
 //===----------------------------------------------------------------------===//
 //                           Subelement Extraction
@@ -379,7 +380,7 @@ static bool isFullyAvailable(SILType loadTy, unsigned firstElt,
     return false;
 
   auto &function = *firstVal.getValue()->getFunction();
-  return llvm::all_of(
+  return toolchain::all_of(
     range(getNumSubElements(loadTy, function, TypeExpansionContext(function))),
     [&](unsigned index) -> bool {
       auto &val = AvailableValues[firstElt + index];
@@ -418,7 +419,7 @@ static SILValue nonDestructivelyExtractSubElement(const AvailableValue &Val,
       SubElementNumber -= NumSubElt;
     }
     
-    llvm_unreachable("Didn't find field");
+    toolchain_unreachable("Didn't find field");
   }
   
   // Extract struct elements.
@@ -444,7 +445,7 @@ static SILValue nonDestructivelyExtractSubElement(const AvailableValue &Val,
       SubElementNumber -= NumSubElt;
       
     }
-    llvm_unreachable("Didn't find field");
+    toolchain_unreachable("Didn't find field");
   }
 
   // Otherwise, we're down to a scalar. If we have ownership enabled,
@@ -723,8 +724,8 @@ public:
                            bool isTopLevel = true);
   bool canTake(SILType loadTy, unsigned firstElt) const;
 
-  void print(llvm::raw_ostream &os) const;
-  void dump() const LLVM_ATTRIBUTE_USED;
+  void print(toolchain::raw_ostream &os) const;
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED;
 
   bool isTake() const {
     return expectedOwnership == AvailableValueExpectedOwnership::Take;
@@ -748,9 +749,9 @@ private:
 
 } // end anonymous namespace
 
-void AvailableValueAggregator::dump() const { print(llvm::dbgs()); }
+void AvailableValueAggregator::dump() const { print(toolchain::dbgs()); }
 
-void AvailableValueAggregator::print(llvm::raw_ostream &os) const {
+void AvailableValueAggregator::print(toolchain::raw_ostream &os) const {
   os << "Available Value List, N = " << AvailableValueList.size()
      << ". Elts:\n";
   for (auto &V : AvailableValueList) {
@@ -768,7 +769,7 @@ bool AvailableValueAggregator::canTake(SILType loadTy,
 
   // Otherwise see if we are an aggregate with fully available leaf types.
   if (TupleType *tt = loadTy.getAs<TupleType>()) {
-    return llvm::all_of(indices(tt->getElements()), [&](unsigned eltNo) {
+    return toolchain::all_of(indices(tt->getElements()), [&](unsigned eltNo) {
       SILType eltTy = loadTy.getTupleElementType(eltNo);
       unsigned numSubElt =
         getNumSubElements(eltTy, B.getFunction(),
@@ -780,7 +781,7 @@ bool AvailableValueAggregator::canTake(SILType loadTy,
   }
 
   if (auto *sd = getFullyReferenceableStruct(loadTy)) {
-    return llvm::all_of(sd->getStoredProperties(), [&](VarDecl *decl) -> bool {
+    return toolchain::all_of(sd->getStoredProperties(), [&](VarDecl *decl) -> bool {
       auto context = TypeExpansionContext(B.getFunction());
       SILType eltTy = loadTy.getFieldType(decl, M, context);
       unsigned numSubElt = getNumSubElements(eltTy, B.getFunction(), context);
@@ -1026,11 +1027,11 @@ class AvailableValueDataflowContext {
 
   /// This is a set of load takes that we are tracking. HasLocalKill is the set
   /// of parent blocks of these instructions.
-  llvm::SmallPtrSet<SILInstruction *, 8> LoadTakeUses;
+  toolchain::SmallPtrSet<SILInstruction *, 8> LoadTakeUses;
 
   /// This is a map of uses that are not loads (i.e., they are Stores,
   /// InOutUses, and Escapes), to their entry in Uses.
-  llvm::SmallDenseMap<SILInstruction *, unsigned, 16> NonLoadUses;
+  toolchain::SmallDenseMap<SILInstruction *, unsigned, 16> NonLoadUses;
 
   AvailableValueDataflowFixup ownershipFixup;
 
@@ -1087,7 +1088,7 @@ private:
     SILInstruction *Inst,
     SmallBitVector &RequiredElts,
     SmallVectorImpl<AvailableValue> &Result,
-    llvm::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
+    toolchain::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
     SmallBitVector &ConflictingValues);
 
   /// Try to compute available values for "TheMemory" at the instruction \p
@@ -1106,7 +1107,7 @@ private:
       SILBasicBlock::iterator StartingFrom, SILBasicBlock *BB,
       SmallBitVector &RequiredElts,
       SmallVectorImpl<AvailableValue> &Result,
-      llvm::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32>
+      toolchain::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32>
           &VisitedBlocks,
       SmallBitVector &ConflictingValues);
 
@@ -1115,7 +1116,7 @@ private:
     MarkDependenceInst *md,
     SmallBitVector &RequiredElts,
     SmallVectorImpl<AvailableValue> &Result,
-    llvm::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
+    toolchain::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
     SmallBitVector &ConflictingValues);
 
   SILValue createAvailableMarkDependence(MarkDependenceInst *md,
@@ -1170,7 +1171,7 @@ AvailableValueDataflowContext::AvailableValueDataflowContext(
         HasLocalKill.set(Use.Inst->getParent());
         continue;
       }
-      llvm_unreachable("Unhandled SILInstructionKind for PMOUseKind::Load?!");
+      toolchain_unreachable("Unhandled SILInstructionKind for PMOUseKind::Load?!");
     }
     if (Use.Kind == PMOUseKind::DependenceBase) {
       // An address used as a dependence base does not affect load promotion.
@@ -1306,7 +1307,7 @@ static inline void updateAvailableValuesHelper(
 void AvailableValueDataflowContext::updateAvailableValues(
     SILInstruction *Inst, SmallBitVector &RequiredElts,
     SmallVectorImpl<AvailableValue> &Result,
-    llvm::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
+    toolchain::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
     SmallBitVector &ConflictingValues) {
 
   // If we are visiting a load [take], it invalidates the underlying available
@@ -1458,7 +1459,7 @@ void AvailableValueDataflowContext::updateAvailableValues(
 bool AvailableValueDataflowContext::computeAvailableElementValues(
     SILInstruction *StartingFrom, LoadInfo loadInfo,
     SmallBitVector &RequiredElts, SmallVectorImpl<AvailableValue> &Result) {
-  llvm::SmallDenseMap<SILBasicBlock*, SmallBitVector, 32> VisitedBlocks;
+  toolchain::SmallDenseMap<SILBasicBlock*, SmallBitVector, 32> VisitedBlocks;
   SmallBitVector ConflictingValues(Result.size());
 
   computeAvailableValuesFrom(StartingFrom->getIterator(),
@@ -1503,7 +1504,7 @@ bool AvailableValueDataflowContext::computeAvailableElementValues(
 void AvailableValueDataflowContext::computeAvailableValuesFrom(
     SILBasicBlock::iterator StartingFrom, SILBasicBlock *BB,
     SmallBitVector &RequiredElts, SmallVectorImpl<AvailableValue> &Result,
-    llvm::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32>
+    toolchain::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32>
         &VisitedBlocks,
     SmallBitVector &ConflictingValues) {
   assert(!RequiredElts.none() && "Scanning with a goal of finding nothing?");
@@ -1578,7 +1579,7 @@ void AvailableValueDataflowContext::computeAvailableValuesFrom(
 /// Explode a copy_addr instruction of a loadable type into lower level
 /// operations like loads, stores, retains, releases, retain_value, etc.
 void AvailableValueDataflowContext::explodeCopyAddr(CopyAddrInst *CAI) {
-  LLVM_DEBUG(llvm::dbgs() << "  -- Exploding copy_addr: " << *CAI << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  -- Exploding copy_addr: " << *CAI << "\n");
 
   SILType ValTy = CAI->getDest()->getType().getObjectType();
 
@@ -1640,7 +1641,7 @@ void AvailableValueDataflowContext::explodeCopyAddr(CopyAddrInst *CAI) {
     switch (NewInst->getKind()) {
     default:
       NewInst->dump();
-      llvm_unreachable("Unknown instruction generated by copy_addr lowering");
+      toolchain_unreachable("Unknown instruction generated by copy_addr lowering");
 
     case SILInstructionKind::StoreInst:
       // If it is a store to the memory object (as oppose to a store to
@@ -1696,7 +1697,7 @@ void AvailableValueDataflowContext::updateMarkDependenceValues(
   MarkDependenceInst *md,
   SmallBitVector &RequiredElts,
   SmallVectorImpl<AvailableValue> &Result,
-  llvm::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
+  toolchain::SmallDenseMap<SILBasicBlock *, SmallBitVector, 32> &VisitedBlocks,
   SmallBitVector &ConflictingValues) {
 
   // Recursively compute all currently required available values up to the
@@ -1769,7 +1770,7 @@ createAvailableMarkDependence(MarkDependenceInst *md,
     if (!value)
       return SILValue();
   }
-  LLVM_DEBUG(llvm::dbgs() << "  -- Promoting mark_dependence: " << *md
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  -- Promoting mark_dependence: " << *md
              << " source: " << value << "\n");
   auto *newMD = SILBuilderWithScope(md)
     .createMarkDependence(md->getLoc(), value, md->getBase(),
@@ -2027,7 +2028,7 @@ bool OptimizeDeadAlloc::canRemoveDeadAllocation() {
   // Check the uses list to see if there are any non-store uses left over after
   // load promotion and other things PMO does.
   if (auto *badUser = collectUsesForPromotion()) {
-    LLVM_DEBUG(llvm::dbgs() << "*** Failed to remove autogenerated alloc: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Failed to remove autogenerated alloc: "
                                "kept alive by: "
                             << *badUser);
     return false;
@@ -2127,7 +2128,7 @@ SILInstruction *OptimizeDeadAlloc::collectUsesForPromotion() {
            || cast<CopyAddrInst>(u.Inst)->isTakeOfSrc())) {
         continue;
       }
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case PMOUseKind::IndirectIn:
     case PMOUseKind::InOutUse:
     case PMOUseKind::Escape:
@@ -2212,7 +2213,7 @@ bool OptimizeDeadAlloc::canPromoteTake(
 }
 
 void OptimizeDeadAlloc::removeDeadAllocation() {
-  for (auto idxVal : llvm::enumerate(promotions.markDepBases.instructions())) {
+  for (auto idxVal : toolchain::enumerate(promotions.markDepBases.instructions())) {
     auto vals = promotions.markDepBases.availableValues(idxVal.index());
     if (auto *mdi = dyn_cast<MarkDependenceInst>(idxVal.value())) {
       promoteMarkDepBase(mdi, vals);
@@ -2226,7 +2227,7 @@ void OptimizeDeadAlloc::removeDeadAllocation() {
   // consider if the stored value needs to be destroyed. So at this point,
   // delete the memory!
   if (isTrivial()) {
-    LLVM_DEBUG(llvm::dbgs() << "*** Removing autogenerated trivial allocation: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Removing autogenerated trivial allocation: "
                             << *TheMemory);
 
     // If it is safe to remove, do it.  Recursively remove all instructions
@@ -2239,15 +2240,15 @@ void OptimizeDeadAlloc::removeDeadAllocation() {
   // Since our load [take] may be available values for our
   // destroy_addr/load [take], we promote the destroy_addr first and then handle
   // load [take] with extra rigour later to handle that possibility.
-  for (auto idxVal : llvm::enumerate(promotions.destroys.instructions())) {
+  for (auto idxVal : toolchain::enumerate(promotions.destroys.instructions())) {
     auto *dai = cast<DestroyAddrInst>(idxVal.value());
     auto vals = promotions.destroys.availableValues(idxVal.index());
     promoteDestroyAddr(dai, vals);
     // We do not need to unset releases, since we are going to exit here.
   }
 
-  llvm::SmallMapVector<LoadInst *, SILValue, 32> loadsToDelete;
-  for (auto idxVal : llvm::enumerate(promotions.loadTakes.instructions())) {
+  toolchain::SmallMapVector<LoadInst *, SILValue, 32> loadsToDelete;
+  for (auto idxVal : toolchain::enumerate(promotions.loadTakes.instructions())) {
     for (auto &availableVal :
          promotions.loadTakes.mutableAvailableValues(idxVal.index())) {
       auto *availableLoad = dyn_cast<LoadInst>(availableVal.Value);
@@ -2297,7 +2298,7 @@ void OptimizeDeadAlloc::removeDeadAllocation() {
     deleter.forceDelete(li);
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Removing autogenerated non-trivial alloc: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Removing autogenerated non-trivial alloc: "
                           << *TheMemory);
 
   // If it is safe to remove, do it.  Recursively remove all instructions
@@ -2323,8 +2324,8 @@ void OptimizeDeadAlloc::removeDeadAllocation() {
     auto boundary = v->getType().isOrHasEnum()
                         ? OSSALifetimeCompletion::Boundary::Liveness
                         : OSSALifetimeCompletion::Boundary::Availability;
-    LLVM_DEBUG(llvm::dbgs() << "Completing lifetime of: ");
-    LLVM_DEBUG(v->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Completing lifetime of: ");
+    TOOLCHAIN_DEBUG(v->dump());
     completion.completeOSSALifetime(v, boundary);
   }
 }
@@ -2332,7 +2333,7 @@ void OptimizeDeadAlloc::removeDeadAllocation() {
 SILValue OptimizeDeadAlloc::promoteMarkDepBase(
     MarkDependenceInst *md, ArrayRef<AvailableValue> availableValues) {
 
-  LLVM_DEBUG(llvm::dbgs() << "  *** Promoting mark_dependence base: " << *md);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Promoting mark_dependence base: " << *md);
   SILBuilderWithScope B(md);
   SILValue dependentValue = md->getValue();
   for (auto &availableValue : availableValues) {
@@ -2340,7 +2341,7 @@ SILValue OptimizeDeadAlloc::promoteMarkDepBase(
         B.createMarkDependence(md->getLoc(), dependentValue,
                                availableValue.getValue(), md->dependenceKind());
   }
-  LLVM_DEBUG(llvm::dbgs() << "      To value: " << dependentValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "      To value: " << dependentValue);
   md->replaceAllUsesWith(dependentValue);
   deleter.deleteIfDead(md);
   return dependentValue;
@@ -2350,7 +2351,7 @@ void OptimizeDeadAlloc::promoteMarkDepAddrBase(
   MarkDependenceAddrInst *md, ArrayRef<AvailableValue> availableValues) {
 
   SILValue dependentAddress = md->getAddress();
-  LLVM_DEBUG(llvm::dbgs() << "  *** Promoting mark_dependence_addr base: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Promoting mark_dependence_addr base: "
              << *md
              << "      To address: " << dependentAddress);
   SILBuilderWithScope B(md);
@@ -2385,8 +2386,8 @@ OptimizeDeadAlloc::promoteLoadTake(LoadInst *li,
 
   ++NumLoadTakePromoted;
 
-  LLVM_DEBUG(llvm::dbgs() << "  *** Promoting load_take: " << *li);
-  LLVM_DEBUG(llvm::dbgs() << "      To value: " << *newVal);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Promoting load_take: " << *li);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "      To value: " << *newVal);
 
   // Our parent RAUWs with newVal/erases li.
   return newVal;
@@ -2417,8 +2418,8 @@ void OptimizeDeadAlloc::promoteDestroyAddr(
 
   ++NumDestroyAddrPromoted;
 
-  LLVM_DEBUG(llvm::dbgs() << "  *** Promoting destroy_addr: " << *dai);
-  LLVM_DEBUG(llvm::dbgs() << "      To value: " << *newVal);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Promoting destroy_addr: " << *dai);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "      To value: " << *newVal);
 
   SILBuilderWithScope(dai).emitDestroyValueOperation(dai->getLoc(), newVal);
   deleter.forceDelete(dai);
@@ -2456,7 +2457,7 @@ static AllocationInst *getOptimizableAllocation(SILInstruction *i) {
   return alloc;
 }
 
-bool swift::eliminateDeadAllocations(SILFunction *fn, DominanceInfo *domInfo) {
+bool language::eliminateDeadAllocations(SILFunction *fn, DominanceInfo *domInfo) {
   if (!fn->hasOwnership()) {
     return false;
   }
@@ -2472,7 +2473,7 @@ bool swift::eliminateDeadAllocations(SILFunction *fn, DominanceInfo *domInfo) {
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "*** PMO Dead Allocation Elimination looking at: "
                  << *alloc);
       PMOMemoryObjectInfo memInfo(alloc);
@@ -2503,22 +2504,22 @@ namespace {
 
 class PredictableDeadAllocationElimination : public SILFunctionTransform {
   void run() override {
-    auto *func = getFunction();
-    if (!func->hasOwnership())
+    auto *fn = getFunction();
+    if (!fn->hasOwnership())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "Looking at: " << func->getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Looking at: " << fn->getName() << "\n");
     auto *da = getAnalysis<DominanceAnalysis>();
     // If we are already canonical or do not have ownership, just bail.
-    if (func->wasDeserializedCanonical() || !func->hasOwnership())
+    if (fn->wasDeserializedCanonical() || !fn->hasOwnership())
       return;
-    if (eliminateDeadAllocations(func, da->get(func)))
+    if (eliminateDeadAllocations(fn, da->get(fn)))
       invalidateAnalysis(SILAnalysis::InvalidationKind::FunctionBody);
   }
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createPredictableDeadAllocationElimination() {
+SILTransform *language::createPredictableDeadAllocationElimination() {
   return new PredictableDeadAllocationElimination();
 }

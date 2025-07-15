@@ -1,5 +1,5 @@
 //===--- RuntimeValueWitness.h                                         ---===//
-// Swift Language Bytecode Layouts Runtime Implementation
+// Codira Language Bytecode Layouts Runtime Implementation
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -12,14 +12,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implementations of runtime determined value witness functions
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BYTECODE_LAYOUTS_H
-#define SWIFT_BYTECODE_LAYOUTS_H
+#ifndef LANGUAGE_BYTECODE_LAYOUTS_H
+#define LANGUAGE_BYTECODE_LAYOUTS_H
 
 #include "language/Runtime/Metadata.h"
 #include <cstdint>
@@ -39,7 +40,7 @@ enum class RefCountingKind : uint8_t {
   Bridge = 0x08,
   Block = 0x09,
   ObjC = 0x0a,
-  NativeSwiftObjC = 0x0b,
+  NativeCodiraObjC = 0x0b,
 
   Metatype = 0x0c,
   Generic = 0x0d,
@@ -175,170 +176,170 @@ struct LayoutStringWriter {
   inline void skip(size_t n) { offset += n; }
 };
 
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_destroy(swift::OpaqueValue *address, const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_cvw_assignWithCopy(swift::OpaqueValue *dest,
-                                             swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_destroy(language::OpaqueValue *address, const Metadata *metadata);
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_cvw_assignWithCopy(language::OpaqueValue *dest,
+                                             language::OpaqueValue *src,
                                              const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_cvw_assignWithTake(swift::OpaqueValue *dest,
-                                             swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_cvw_assignWithTake(language::OpaqueValue *dest,
+                                             language::OpaqueValue *src,
                                              const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_cvw_initWithCopy(swift::OpaqueValue *dest,
-                                           swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_cvw_initWithCopy(language::OpaqueValue *dest,
+                                           language::OpaqueValue *src,
                                            const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_cvw_initWithTake(swift::OpaqueValue *dest,
-                                           swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_cvw_initWithTake(language::OpaqueValue *dest,
+                                           language::OpaqueValue *src,
                                            const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_cvw_initializeBufferWithCopyOfBuffer(swift::ValueBuffer *dest,
-                                           swift::ValueBuffer *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_cvw_initializeBufferWithCopyOfBuffer(language::ValueBuffer *dest,
+                                           language::ValueBuffer *src,
                                            const Metadata *metadata);
 
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_destroyMultiPayloadEnumFN(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_destroyMultiPayloadEnumFN(language::OpaqueValue *address,
                                          const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_cvw_assignWithCopyMultiPayloadEnumFN(swift::OpaqueValue *dest,
-                                           swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_cvw_assignWithCopyMultiPayloadEnumFN(language::OpaqueValue *dest,
+                                           language::OpaqueValue *src,
                                            const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_cvw_assignWithTakeMultiPayloadEnumFN(swift::OpaqueValue *dest,
-                                           swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_cvw_assignWithTakeMultiPayloadEnumFN(language::OpaqueValue *dest,
+                                           language::OpaqueValue *src,
                                            const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_cvw_initWithCopyMultiPayloadEnumFN(swift::OpaqueValue *dest,
-                                         swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_cvw_initWithCopyMultiPayloadEnumFN(language::OpaqueValue *dest,
+                                         language::OpaqueValue *src,
                                          const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_cvw_initWithTakeMultiPayloadEnumFN(swift::OpaqueValue *dest,
-                                         swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_cvw_initWithTakeMultiPayloadEnumFN(language::OpaqueValue *dest,
+                                         language::OpaqueValue *src,
                                          const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_cvw_initializeBufferWithCopyOfBufferMultiPayloadEnumFN(
-    swift::ValueBuffer *dest, swift::ValueBuffer *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_cvw_initializeBufferWithCopyOfBufferMultiPayloadEnumFN(
+    language::ValueBuffer *dest, language::ValueBuffer *src,
     const Metadata *metadata);
 
-SWIFT_RUNTIME_EXPORT
-unsigned swift_cvw_singletonEnum_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_cvw_singletonEnum_getEnumTag(language::OpaqueValue *address,
                                             const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_singletonEnum_destructiveInjectEnumTag(
-    swift::OpaqueValue *address, unsigned tag, const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-unsigned swift_cvw_enumSimple_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_singletonEnum_destructiveInjectEnumTag(
+    language::OpaqueValue *address, unsigned tag, const Metadata *metadata);
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_cvw_enumSimple_getEnumTag(language::OpaqueValue *address,
                                          const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_enumSimple_destructiveInjectEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_enumSimple_destructiveInjectEnumTag(language::OpaqueValue *address,
                                                    unsigned tag,
                                                    const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-unsigned swift_cvw_enumFn_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_cvw_enumFn_getEnumTag(language::OpaqueValue *address,
                                      const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 unsigned
-swift_cvw_multiPayloadEnumGeneric_getEnumTag(swift::OpaqueValue *address,
+language_cvw_multiPayloadEnumGeneric_getEnumTag(language::OpaqueValue *address,
                                              const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_multiPayloadEnumGeneric_destructiveInjectEnumTag(
-    swift::OpaqueValue *address, unsigned tag, const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_multiPayloadEnumGeneric_destructiveInjectEnumTag(
+    language::OpaqueValue *address, unsigned tag, const Metadata *metadata);
+LANGUAGE_RUNTIME_EXPORT
 unsigned
-swift_cvw_singlePayloadEnumGeneric_getEnumTag(swift::OpaqueValue *address,
+language_cvw_singlePayloadEnumGeneric_getEnumTag(language::OpaqueValue *address,
                                               const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_singlePayloadEnumGeneric_destructiveInjectEnumTag(
-    swift::OpaqueValue *address, unsigned tag, const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_instantiateLayoutString(const uint8_t *layoutStr,
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_singlePayloadEnumGeneric_destructiveInjectEnumTag(
+    language::OpaqueValue *address, unsigned tag, const Metadata *metadata);
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_instantiateLayoutString(const uint8_t *layoutStr,
                                        Metadata *type);
 
-void swift_cvw_resolve_resilientAccessors(uint8_t *layoutStr,
+void language_cvw_resolve_resilientAccessors(uint8_t *layoutStr,
                                           size_t layoutStrOffset,
                                           const uint8_t *fieldLayoutStr,
                                           const Metadata *fieldType);
 
-void swift_cvw_arrayDestroy(swift::OpaqueValue *addr, size_t count,
+void language_cvw_arrayDestroy(language::OpaqueValue *addr, size_t count,
                             size_t stride, const Metadata *metadata);
 
-void swift_cvw_arrayInitWithCopy(swift::OpaqueValue *dest,
-                                 swift::OpaqueValue *src, size_t count,
+void language_cvw_arrayInitWithCopy(language::OpaqueValue *dest,
+                                 language::OpaqueValue *src, size_t count,
                                  size_t stride, const Metadata *metadata);
 
-extern "C" void swift_cvw_arrayAssignWithCopy(swift::OpaqueValue *dest,
-                                              swift::OpaqueValue *src,
+extern "C" void language_cvw_arrayAssignWithCopy(language::OpaqueValue *dest,
+                                              language::OpaqueValue *src,
                                               size_t count, size_t stride,
                                               const Metadata *metadata);
 
 // For backwards compatibility
-SWIFT_RUNTIME_EXPORT
-void swift_generic_destroy(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_generic_destroy(language::OpaqueValue *address,
                            const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_generic_assignWithCopy(swift::OpaqueValue *dest,
-                                                 swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_generic_assignWithCopy(language::OpaqueValue *dest,
+                                                 language::OpaqueValue *src,
                                                  const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_generic_assignWithTake(swift::OpaqueValue *dest,
-                                                 swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_generic_assignWithTake(language::OpaqueValue *dest,
+                                                 language::OpaqueValue *src,
                                                  const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_generic_initWithCopy(swift::OpaqueValue *dest,
-                                               swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_generic_initWithCopy(language::OpaqueValue *dest,
+                                               language::OpaqueValue *src,
                                                const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *swift_generic_initWithTake(swift::OpaqueValue *dest,
-                                               swift::OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *language_generic_initWithTake(language::OpaqueValue *dest,
+                                               language::OpaqueValue *src,
                                                const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-swift::OpaqueValue *
-swift_generic_initializeBufferWithCopyOfBuffer(swift::ValueBuffer *dest,
-                                               swift::ValueBuffer *src,
+LANGUAGE_RUNTIME_EXPORT
+language::OpaqueValue *
+language_generic_initializeBufferWithCopyOfBuffer(language::ValueBuffer *dest,
+                                               language::ValueBuffer *src,
                                                const Metadata *metadata);
 
-SWIFT_RUNTIME_EXPORT
-unsigned swift_singletonEnum_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_singletonEnum_getEnumTag(language::OpaqueValue *address,
                                         const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_singletonEnum_destructiveInjectEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_singletonEnum_destructiveInjectEnumTag(language::OpaqueValue *address,
                                                   unsigned tag,
                                                   const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-unsigned swift_enumSimple_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_enumSimple_getEnumTag(language::OpaqueValue *address,
                                      const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_enumSimple_destructiveInjectEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_enumSimple_destructiveInjectEnumTag(language::OpaqueValue *address,
                                                unsigned tag,
                                                const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-unsigned swift_enumFn_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_enumFn_getEnumTag(language::OpaqueValue *address,
                                  const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-unsigned swift_multiPayloadEnumGeneric_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_multiPayloadEnumGeneric_getEnumTag(language::OpaqueValue *address,
                                                   const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_multiPayloadEnumGeneric_destructiveInjectEnumTag(
-    swift::OpaqueValue *address, unsigned tag, const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-unsigned swift_singlePayloadEnumGeneric_getEnumTag(swift::OpaqueValue *address,
+LANGUAGE_RUNTIME_EXPORT
+void language_multiPayloadEnumGeneric_destructiveInjectEnumTag(
+    language::OpaqueValue *address, unsigned tag, const Metadata *metadata);
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_singlePayloadEnumGeneric_getEnumTag(language::OpaqueValue *address,
                                                    const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_singlePayloadEnumGeneric_destructiveInjectEnumTag(
-    swift::OpaqueValue *address, unsigned tag, const Metadata *metadata);
-SWIFT_RUNTIME_EXPORT
-void swift_generic_instantiateLayoutString(const uint8_t *layoutStr, Metadata *type);
+LANGUAGE_RUNTIME_EXPORT
+void language_singlePayloadEnumGeneric_destructiveInjectEnumTag(
+    language::OpaqueValue *address, unsigned tag, const Metadata *metadata);
+LANGUAGE_RUNTIME_EXPORT
+void language_generic_instantiateLayoutString(const uint8_t *layoutStr, Metadata *type);
 
 constexpr size_t layoutStringHeaderSize = sizeof(uint64_t) + sizeof(size_t);
 
 } // namespace language
 
-#endif // SWIFT_BYTECODE_LAYOUTS_H
+#endif // LANGUAGE_BYTECODE_LAYOUTS_H

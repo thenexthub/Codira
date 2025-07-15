@@ -1,28 +1,28 @@
-# swift_build_support/products/sourcekitlsp.py -------------------*- python -*-
+# language_build_support/products/sourcekitlsp.py -------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import os
 
-from build_swift.build_swift.constants import MULTIROOT_DATA_FILE_PATH
+from build_language.build_language.constants import MULTIROOT_DATA_FILE_PATH
 
 from . import cmark
 from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
+from . import language
+from . import languagepm
 from . import xctest
 from .. import shell
 from .. import targets
@@ -42,17 +42,17 @@ class SourceKitLSP(product.Product):
         return False
 
     @classmethod
-    def is_swiftpm_unified_build_product(cls):
+    def is_languagepm_unified_build_product(cls):
         return True
 
     def should_build(self, host_target):
         return True
 
-    def _run_swift_syntax_dev_utils(self, host_target, command, arguments=[]):
+    def _run_language_syntax_dev_utils(self, host_target, command, arguments=[]):
         sourcekit_lsp_dev_utils = os.path.join(self.source_dir, 'SourceKitLSPDevUtils')
 
         run_cmd = [
-            os.path.join(self.install_toolchain_path(host_target), "bin", "swift"),
+            os.path.join(self.install_toolchain_path(host_target), "bin", "language"),
             'run',
             '--package-path', sourcekit_lsp_dev_utils,
             'sourcekit-lsp-dev-utils',
@@ -60,7 +60,7 @@ class SourceKitLSP(product.Product):
         ] + arguments
 
         env = dict(os.environ)
-        env["SWIFTCI_USE_LOCAL_DEPS"] = "1"
+        env["LANGUAGECI_USE_LOCAL_DEPS"] = "1"
 
         shell.call(run_cmd, env=env)
 
@@ -75,7 +75,7 @@ class SourceKitLSP(product.Product):
 
     def build(self, host_target):
         if self.args.sourcekitlsp_verify_generated_files:
-            self._run_swift_syntax_dev_utils(
+            self._run_language_syntax_dev_utils(
                 host_target, 'verify-config-schema')
 
         self._for_each_host_target(
@@ -101,14 +101,14 @@ class SourceKitLSP(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM]
+                languagepm.CodiraPM]
 
     def run_build_script_helper(self, action, base_target, host_target):
         # base_target is the machine that's driving the build.
@@ -146,13 +146,13 @@ class SourceKitLSP(product.Product):
             if self.is_cross_compile_target(host_target) and \
                     not self.is_darwin_host(host_target):
                 build_toolchain_path = install_destdir + self.args.install_prefix
-                resource_dir = '%s/lib/swift' % build_toolchain_path
+                resource_dir = '%s/lib/language' % build_toolchain_path
                 helper_cmd += [
                     '--cross-compile-config',
                     targets.StdlibDeploymentTarget.get_target_for_name(host_target)
                     .platform
-                    .swiftpm_config(self.args, output_dir=build_toolchain_path,
-                                    swift_toolchain=toolchain_path,
+                    .codepm_config(self.args, output_dir=build_toolchain_path,
+                                    language_toolchain=toolchain_path,
                                     resource_path=resource_dir)
                 ]
 

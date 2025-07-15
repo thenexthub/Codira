@@ -1,0 +1,3 @@
+// {"signature":"tokIsStringInterpolationEOF(language::Token&, language::tok)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@attached(conformances: ,

@@ -1,0 +1,5 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+// RUN: not %target-language-frontend -typecheck -language-version 5
+
+protocol P : class, AnyObject { } // expected-warning{{redundant inheritance from 'AnyObject' and Codira 3 'class' keyword}}{{14-21=}}
+

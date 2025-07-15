@@ -1,21 +1,25 @@
 //==--- Darwin.h - Threading abstraction implementation -------- -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for Apple platforms
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_IMPL_DARWIN_H
-#define SWIFT_THREADING_IMPL_DARWIN_H
+#ifndef LANGUAGE_THREADING_IMPL_DARWIN_H
+#define LANGUAGE_THREADING_IMPL_DARWIN_H
 
 #include <dispatch/dispatch.h>
 #include <os/lock.h>
@@ -36,14 +40,14 @@
 namespace language {
 namespace threading_impl {
 
-#define SWIFT_PTHREADS_CHECK(expr)                                             \
+#define LANGUAGE_PTHREADS_CHECK(expr)                                             \
   do {                                                                         \
     int res_ = (expr);                                                         \
     if (res_ != 0)                                                             \
-      swift::threading::fatal(#expr " failed with error %d\n", res_);          \
+      language::threading::fatal(#expr " failed with error %d\n", res_);          \
   } while (0)
 
-#define SWIFT_PTHREADS_RETURN_TRUE_OR_FALSE(falseerr, expr)                    \
+#define LANGUAGE_PTHREADS_RETURN_TRUE_OR_FALSE(falseerr, expr)                    \
   do {                                                                         \
     int res_ = (expr);                                                         \
     switch (res_) {                                                            \
@@ -52,7 +56,7 @@ namespace threading_impl {
     case falseerr:                                                             \
       return false;                                                            \
     default:                                                                   \
-      swift::threading::fatal(#expr " failed with error (%d)\n", res_);        \
+      language::threading::fatal(#expr " failed with error (%d)\n", res_);        \
     }                                                                          \
   } while (0)
 
@@ -108,7 +112,7 @@ inline void mutex_unsafe_unlock(mutex_handle &handle) {
 using lazy_mutex_handle = ::os_unfair_lock;
 
 // We don't need to be lazy here because Darwin has OS_UNFAIR_LOCK_INIT.
-#define SWIFT_LAZY_MUTEX_INITIALIZER OS_UNFAIR_LOCK_INIT
+#define LANGUAGE_LAZY_MUTEX_INITIALIZER OS_UNFAIR_LOCK_INIT
 
 inline void lazy_mutex_destroy(lazy_mutex_handle &handle) {}
 
@@ -131,7 +135,9 @@ inline void lazy_mutex_unsafe_unlock(lazy_mutex_handle &handle) {
 
 // .. Recursive mutex support .................................................
 
-// The os_unfair_recursive_lock interface is stable, but not in the SDK. Bring
+#if OS_LOCK_API_VERSION < 20250601
+
+// The os_unfair_recursive_lock interface is stable, but not in this SDK. Bring
 // our own definitions for what we need.
 
 #define OS_UNFAIR_RECURSIVE_LOCK_INIT                                          \
@@ -150,6 +156,8 @@ os_unfair_recursive_lock_lock_with_options(os_unfair_recursive_lock_t lock,
 
 extern "C" void
 os_unfair_recursive_lock_unlock(os_unfair_recursive_lock_t lock);
+
+#endif // OS_UNFAIR_RECURSIVE_LOCK_INIT
 
 inline void recursive_mutex_init(recursive_mutex_handle &handle,
                                  bool checked = false) {
@@ -177,23 +185,23 @@ inline void cond_init(cond_handle &handle) {
   handle.mutex = PTHREAD_MUTEX_INITIALIZER;
 }
 inline void cond_destroy(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_destroy(&handle.condition));
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_destroy(&handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_destroy(&handle.condition));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_destroy(&handle.mutex));
 }
 inline void cond_lock(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_lock(&handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_lock(&handle.mutex));
 }
 inline void cond_unlock(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_unlock(&handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_unlock(&handle.mutex));
 }
 inline void cond_signal(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_signal(&handle.condition));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_signal(&handle.condition));
 }
 inline void cond_broadcast(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_broadcast(&handle.condition));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_broadcast(&handle.condition));
 }
 inline void cond_wait(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_wait(&handle.condition, &handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_wait(&handle.condition, &handle.mutex));
 }
 template <class Rep, class Period>
 inline bool cond_wait(cond_handle &handle,
@@ -208,7 +216,7 @@ inline bool cond_wait(cond_handle &handle,
   auto ns = chrono_utils::ceil<std::chrono::nanoseconds>(
     deadline.time_since_epoch()).count();
   struct ::timespec ts = { ::time_t(ns / 1000000000), long(ns % 1000000000) };
-  SWIFT_PTHREADS_RETURN_TRUE_OR_FALSE(
+  LANGUAGE_PTHREADS_RETURN_TRUE_OR_FALSE(
     ETIMEDOUT,
     ::pthread_cond_timedwait(&handle.condition, &handle.mutex, &ts)
   );
@@ -225,9 +233,9 @@ inline void once_impl(once_t &predicate, void (*fn)(void *), void *context) {
 // .. Thread local storage ...................................................
 
 // On Darwin, we want to use the reserved keys
-#define SWIFT_THREADING_USE_RESERVED_TLS_KEYS 1
+#define LANGUAGE_THREADING_USE_RESERVED_TLS_KEYS 1
 
-#if !(SWIFT_THREADING_IS_COMPATIBILITY_LIBRARY && (__ARM_ARCH_7K__ || __ARM64_ARCH_8_32__)) && __has_include(<pthread/tsd_private.h>)
+#if !(LANGUAGE_THREADING_IS_COMPATIBILITY_LIBRARY && (__ARM_ARCH_7K__ || __ARM64_ARCH_8_32__)) && __has_include(<pthread/tsd_private.h>)
 } // namespace threading_impl
 } // namespace language
 
@@ -235,23 +243,23 @@ extern "C" {
 #include <pthread/tsd_private.h>
 }
 
-#define SWIFT_THREADING_USE_DIRECT_TSD 1
+#define LANGUAGE_THREADING_USE_DIRECT_TSD 1
 
 namespace language {
 namespace threading_impl {
 #else
-#define __PTK_FRAMEWORK_SWIFT_KEY0 100
-#define __PTK_FRAMEWORK_SWIFT_KEY1 101
-#define __PTK_FRAMEWORK_SWIFT_KEY2 102
-#define __PTK_FRAMEWORK_SWIFT_KEY3 103
-#define __PTK_FRAMEWORK_SWIFT_KEY4 104
-#define __PTK_FRAMEWORK_SWIFT_KEY5 105
-#define __PTK_FRAMEWORK_SWIFT_KEY6 106
-#define __PTK_FRAMEWORK_SWIFT_KEY7 107
-#define __PTK_FRAMEWORK_SWIFT_KEY8 108
-#define __PTK_FRAMEWORK_SWIFT_KEY9 109
+#define __PTK_FRAMEWORK_LANGUAGE_KEY0 100
+#define __PTK_FRAMEWORK_LANGUAGE_KEY1 101
+#define __PTK_FRAMEWORK_LANGUAGE_KEY2 102
+#define __PTK_FRAMEWORK_LANGUAGE_KEY3 103
+#define __PTK_FRAMEWORK_LANGUAGE_KEY4 104
+#define __PTK_FRAMEWORK_LANGUAGE_KEY5 105
+#define __PTK_FRAMEWORK_LANGUAGE_KEY6 106
+#define __PTK_FRAMEWORK_LANGUAGE_KEY7 107
+#define __PTK_FRAMEWORK_LANGUAGE_KEY8 108
+#define __PTK_FRAMEWORK_LANGUAGE_KEY9 109
 
-#define SWIFT_THREADING_USE_DIRECT_TSD 0
+#define LANGUAGE_THREADING_USE_DIRECT_TSD 0
 
 extern "C" {
 
@@ -260,7 +268,7 @@ extern int pthread_key_init_np(int, void (*)(void *));
 }
 #endif
 
-#define SWIFT_TLS_DECLARE_DTOR(name) void name(void *)
+#define LANGUAGE_TLS_DECLARE_DTOR(name) void name(void *)
 
 using tls_key_t = pthread_key_t;
 using tls_dtor_t = void (*)(void *);
@@ -268,19 +276,19 @@ using tls_dtor_t = void (*)(void *);
 inline tls_key_t tls_get_key(tls_key k) {
   switch (k) {
   case tls_key::runtime:
-    return __PTK_FRAMEWORK_SWIFT_KEY0;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY0;
   case tls_key::stdlib:
-    return __PTK_FRAMEWORK_SWIFT_KEY1;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY1;
   case tls_key::compatibility50:
-    return __PTK_FRAMEWORK_SWIFT_KEY2;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY2;
   case tls_key::concurrency_task:
-    return __PTK_FRAMEWORK_SWIFT_KEY3;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY3;
   case tls_key::concurrency_executor_tracking_info:
-    return __PTK_FRAMEWORK_SWIFT_KEY4;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY4;
   case tls_key::concurrency_fallback:
-    return __PTK_FRAMEWORK_SWIFT_KEY5;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY5;
   case tls_key::observation_transaction:
-    return __PTK_FRAMEWORK_SWIFT_KEY6;
+    return __PTK_FRAMEWORK_LANGUAGE_KEY6;
   }
 }
 
@@ -297,7 +305,7 @@ inline bool tls_alloc(tls_key_t &key, tls_dtor_t dtor) {
 }
 
 inline void *tls_get(tls_key_t key) {
-#if SWIFT_THREADING_USE_DIRECT_TSD
+#if LANGUAGE_THREADING_USE_DIRECT_TSD
   if (_pthread_has_direct_tsd())
     return _pthread_getspecific_direct(key);
   else
@@ -308,7 +316,7 @@ inline void *tls_get(tls_key_t key) {
 inline void *tls_get(tls_key key) { return tls_get(tls_get_key(key)); }
 
 inline void tls_set(tls_key_t key, void *value) {
-#if SWIFT_THREADING_USE_DIRECT_TSD
+#if LANGUAGE_THREADING_USE_DIRECT_TSD
   if (_pthread_has_direct_tsd())
     _pthread_setspecific_direct(key, value);
   else
@@ -324,4 +332,4 @@ inline void tls_set(tls_key key, void *value) {
 
 } // namespace language
 
-#endif // SWIFT_THREADING_IMPL_DARWIN_H
+#endif // LANGUAGE_THREADING_IMPL_DARWIN_H

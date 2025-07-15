@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/has_nested_generic_extension.code
+// RUN: toolchain-bcanalyzer %t/has_nested_generic_extension.codemodule | %FileCheck %s
+// RUN: %target-language-frontend -emit-ir -I %t %s -o /dev/null
+
+// CHECK-NOT: UnknownCode
+
+import has_nested_generic_extension
+
+var sillyGeneric = Outer<String>.Inner<Float>()
+immutable result: Float = sillyGeneric.extensionMethod(t: "square root of two")

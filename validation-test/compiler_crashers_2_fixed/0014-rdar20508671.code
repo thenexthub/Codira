@@ -1,0 +1,35 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+protocol MyIteratorProtocol {
+  typealias Element
+  mutating fn next() -> Element?
+}
+
+protocol MySequence {
+  typealias Iterator : MyIteratorProtocol
+  fn makeIterator() -> Iterator
+}
+
+protocol MyCollectionDefaults : MySequence {}
+extension MyCollectionDefaults {
+  final fn makeIterator() -> DefaultIterator<Self> {
+    return DefaultIterator()
+  }
+}
+
+protocol MyCollection
+  : MySequence, MyCollectionDefaults {}
+
+struct DefaultIterator<C : MyCollectionDefaults> : MyIteratorProtocol {
+  mutating fn next() -> C.Iterator.Element {
+    fatalError("")
+  }
+}
+
+struct FooIteratorWrapper<Base : MyIteratorProtocol> {
+  init(_ base: Base) {}
+}
+
+fn f<C : MyCollection>(c: C) {
+  FooIteratorWrapper(c.makeIterator())
+}

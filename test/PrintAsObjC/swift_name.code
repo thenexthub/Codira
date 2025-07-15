@@ -1,0 +1,43 @@
+// Please keep this file in alphabetical order!
+
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code
+// FIXME: END -enable-source-import hackaround
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -import-objc-header %S/Inputs/language_name.h -emit-module -o %t %s
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -import-objc-header %S/Inputs/language_name.h -parse-as-library %t/language_name.codemodule -typecheck -verify -emit-objc-header-path %t/language_name.h
+
+// RUN: %FileCheck %s < %t/language_name.h
+// RUN: %check-in-clang %t/language_name.h
+
+import Foundation
+
+// CHECK-LABEL: @interface Test : NSObject
+// CHECK-NEXT: - (NSArray<ABCStringAlias> * _Nonnull)makeArray:(ABCStringAlias _Nonnull)_ LANGUAGE_WARN_UNUSED_RESULT;
+// CHECK-NEXT: - (void)usePoint:(struct ABCPoint)_;
+// CHECK-NEXT: - (void)useAlignment:(enum ABCAlignment)_;
+// CHECK-NEXT: - (NSArray<id <ABCProto>> * _Nonnull)useObjects:(ABCClass * _Nonnull)_ LANGUAGE_WARN_UNUSED_RESULT;
+// CHECK-NEXT: - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: @end
+class Test : NSObject {
+  @objc fn makeArray(_: ZZStringAlias) -> [ZZStringAlias] { return [] }
+  @objc fn usePoint(_: ZZPoint) {}
+  @objc fn useAlignment(_: ZZAlignment) {}
+  @objc fn useObjects(_: ZZClass) -> [ZZProto] { return [] }
+}
+
+@objc
+public enum TestE : Int{
+	@objc(A2)
+	case A1
+	case B1
+}
+// CHECK: typedef LANGUAGE_ENUM(NSInteger, TestE, closed)
+// CHECK-NEXT: {{^}} A2 LANGUAGE_COMPILE_NAME("A1") = 0,
+// CHECK-NEXT: {{^}} TestEB1 = 1,

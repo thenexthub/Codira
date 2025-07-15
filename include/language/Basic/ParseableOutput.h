@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,10 +19,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSEABLEOUTPUT_H
-#define SWIFT_PARSEABLEOUTPUT_H
+#ifndef LANGUAGE_PARSEABLEOUTPUT_H
+#define LANGUAGE_PARSEABLEOUTPUT_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/TaskQueue.h"
 #include "language/Basic/FileTypes.h"
 
@@ -46,7 +47,7 @@ struct CommandInput {
 
 using OutputPair = std::pair<file_types::ID, std::string>;
 
-/// A client-agnostic (e.g. either the compiler driver or `swift-frontend`)
+/// A client-agnostic (e.g. either the compiler driver or `language-frontend`)
 /// description of a task that is the subject of a parseable-output message.
 struct DetailedTaskDescription {
   std::string Executable;

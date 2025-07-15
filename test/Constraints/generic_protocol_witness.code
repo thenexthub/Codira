@@ -1,0 +1,63 @@
+// RUN: %target-typecheck-verify-language
+
+infix operator •
+
+protocol Runcible { fn runce() }
+protocol Fungible { fn funge() }
+protocol Ansible { fn anse() }
+
+protocol NeedsGenericMethods {
+  fn oneArgNoConstraints<T>(x : T) // expected-note {{protocol requires function 'oneArgNoConstraints(x:)' with type '<T> (x: T) -> ()'}}
+  fn oneArgWithConstraint<T : Runcible>(x: T) // expected-note {{protocol requires function 'oneArgWithConstraint(x:)' with type '<T> (x: T) -> ()'}}
+  fn oneArgWithConstraints<T : Runcible & Fungible>(x: T) // expected-note {{protocol requires function 'oneArgWithConstraints(x:)' with type '<T> (x: T) -> ()'}}
+
+  fn twoArgsOneVar<T>(x: T, y: T) // expected-note {{protocol requires function 'twoArgsOneVar(x:y:)' with type '<T> (x: T, y: T) -> ()'}}
+  fn twoArgsTwoVars<T, U>(x: T, y: U) // expected-note {{protocol requires function 'twoArgsTwoVars(x:y:)' with type '<T, U> (x: T, y: U) -> ()'}}
+
+  static fn •<T : Fungible>(x: Self, y: T) // expected-note {{protocol requires function '•' with type '<T> (TooTightConstraints, T) -> ()'}}
+}
+
+class EqualConstraints : NeedsGenericMethods {
+  fn oneArgNoConstraints<U>(x: U) {}
+  fn oneArgWithConstraint<U : Runcible>(x: U) {}
+  fn oneArgWithConstraints<U : Fungible & Runcible>(x: U) {}
+
+  fn twoArgsOneVar<U>(x: U, y: U) {}
+  fn twoArgsTwoVars<V, U>(x: U, y: V) {}
+}
+fn •<T : Fungible>(x: EqualConstraints, y: T) {} // expected-note {{candidate has non-matching type '<T> (EqualConstraints, T) -> ()'}}
+
+class LooseConstraints : NeedsGenericMethods {
+  fn oneArgNoConstraints<U>(x: U) {}
+  fn oneArgWithConstraint<U>(x: U) {}
+  fn oneArgWithConstraints<U : Fungible>(x: U) {}
+
+  fn twoArgsOneVar<V, U>(x: U, y: V) {}
+  fn twoArgsTwoVars<V, U>(x: U, y: V) {}
+}
+fn •<T>(_ x: LooseConstraints, y: T) {} // expected-note {{candidate has non-matching type '<T> (LooseConstraints, T) -> ()'}}
+
+class TooTightConstraints : NeedsGenericMethods { // expected-error{{type 'TooTightConstraints' does not conform to protocol 'NeedsGenericMethods'}} expected-note {{add stubs for conformance}}
+  fn oneArgNoConstraints<U : Runcible>(x: U) {} // expected-note{{candidate has non-matching type '<U> (x: U) -> ()'}}
+  fn oneArgWithConstraint<U : Fungible>(x: U) {} // expected-note{{candidate has non-matching type '<U> (x: U) -> ()'}}
+  fn oneArgWithConstraints<U : Runcible & Fungible & Ansible>(x: U) {} // expected-note{{candidate has non-matching type '<U> (x: U) -> ()'}}
+
+  fn twoArgsOneVar<U : Runcible>(x: U) {}
+  fn twoArgsTwoVars<U>(x: U, y: U) {} // expected-note{{candidate has non-matching type '<U> (x: U, y: U) -> ()'}}
+}
+fn •(_ x: TooTightConstraints, y: Int) {} // expected-note {{candidate has non-matching type '(TooTightConstraints, Int) -> ()'}}
+
+// Regression test for a crash when resolving a reference to a generic method
+// in a protocol.
+protocol NeedsAGenericMethod {
+  fn method<T>(_ x: T)
+}
+fn usesAGenericMethod<U : NeedsAGenericMethod>(_ x: U) {
+  x.method(5)
+}
+
+struct L<T>: Sequence {} // expected-error {{type 'L<T>' does not conform to protocol 'Sequence'}}
+
+fn z(_ x: L<Int>) {
+  for xx in x {}
+}

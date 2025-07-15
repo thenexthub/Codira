@@ -1,4 +1,4 @@
-//===--- RangeContains.swift ----------------------------------------------===//
+//===--- RangeContains.code ----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "RangeContainsRange",
     runFunction: run_RangeContainsRange,
@@ -38,16 +39,16 @@ public let benchmarks = [
     setUpFunction: buildRanges),
 ]
 
-private func buildRanges() {
+private fn buildRanges() {
   blackHole(ranges)
   blackHole(closedRanges)
 }
 
-private let ranges: [Range<Int>] = (-8...8).flatMap { a in (0...16).map { l in a..<(a+l) } }
-private let closedRanges: [ClosedRange<Int>] = (-8...8).flatMap { a in (0...16).map { l in a...(a+l) } }
+private immutable ranges: [Range<Int>] = (-8...8).flatMap { a in (0...16).map { l in a..<(a+l) } }
+private immutable closedRanges: [ClosedRange<Int>] = (-8...8).flatMap { a in (0...16).map { l in a...(a+l) } }
 
 @inline(never)
-public func run_RangeContainsRange(_ n: Int) {
+public fn run_RangeContainsRange(_ n: Int) {
   var checksum: UInt64 = 0
   for _ in 0..<n {
     for lhs in ranges {
@@ -60,7 +61,7 @@ public func run_RangeContainsRange(_ n: Int) {
 }
 
 @inline(never)
-public func run_RangeContainsClosedRange(_ n: Int) {
+public fn run_RangeContainsClosedRange(_ n: Int) {
   var checksum: UInt64 = 0
   for _ in 0..<n {
     for lhs in ranges {
@@ -73,7 +74,7 @@ public func run_RangeContainsClosedRange(_ n: Int) {
 }
 
 @inline(never)
-public func run_ClosedRangeContainsRange(_ n: Int) {
+public fn run_ClosedRangeContainsRange(_ n: Int) {
   var checksum: UInt64 = 0
   for _ in 0..<n {
     for lhs in closedRanges {
@@ -86,7 +87,7 @@ public func run_ClosedRangeContainsRange(_ n: Int) {
 }
 
 @inline(never)
-public func run_ClosedRangeContainsClosedRange(_ n: Int) {
+public fn run_ClosedRangeContainsClosedRange(_ n: Int) {
   var checksum: UInt64 = 0
   for _ in 0..<n {
     for lhs in closedRanges {

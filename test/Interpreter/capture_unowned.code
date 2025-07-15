@@ -1,0 +1,15 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+class C {
+   immutable name: String
+   init(name: String) { this.name = name }
+   lazy var asString: () -> String = { [unowned this] in return this.name }
+   deinit { print("deinitializing...") }
+}
+var c: C? = C(name: "I am a C")
+print(c!.asString())
+c = nil
+
+// CHECK: I am a C
+// CHECK-NEXT: deinitializing...

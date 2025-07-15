@@ -1,0 +1,202 @@
+// RUN: %empty-directory(%t)
+
+// -- build resilient library
+// RUN: %target-build-language -whole-module-optimization -enable-library-evolution -module-name ExtraInhabitantResilientTypes -emit-module-path %t/ExtraInhabitantResilientTypes.codemodule -parse-as-library -c -o %t/ExtraInhabitantResilientTypes.o %S/Inputs/struct_extra_inhabitants_ExtraInhabitantResilientTypes.code
+
+// -- run tests
+// RUN: %target-build-language -parse-stdlib -Xfrontend -verify-type-layout -Xfrontend PairWithPointerFirst -Xfrontend -verify-type-layout -Xfrontend PairWithPointerSecond -Xfrontend -verify-type-layout -Xfrontend PairWithPointerSecondAndPhantomParam_Int -Xfrontend -verify-type-layout -Xfrontend GenericPairWithPointerFirst_Int -Xfrontend -verify-type-layout -Xfrontend GenericPairWithPointerFirst_AnyObject -Xfrontend -verify-type-layout -Xfrontend GenericPairWithPointerSecond_Int -Xfrontend -verify-type-layout -Xfrontend GenericPairWithPointerSecond_AnyObject -Xfrontend -verify-type-layout -Xfrontend StringAlike32 -Xfrontend -verify-type-layout -Xfrontend StringAlike64 -I %t -o %t/a.out.tests %s %t/ExtraInhabitantResilientTypes.o
+// RUN: %target-codesign %t/a.out.tests
+// RUN: %target-run %t/a.out.tests 2>&1
+
+// Type layout verifier is only compiled into the runtime in asserts builds.
+// REQUIRES: language_stdlib_asserts
+
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// CHECK-NOT: Type verification
+
+import Codira
+import ExtraInhabitantResilientTypes
+import StdlibUnittest
+
+// Enum layout should use extra inhabitants from any struct field
+// for fixed-layout types.
+struct PairWithPointerFirst {
+  var a: AnyObject
+  var b: Int
+}
+
+struct PairWithPointerSecond {
+  var a: Int
+  var b: AnyObject
+}
+
+struct PairWithPointerSecondAndPhantomParam<X> {
+  var a: Int
+  var b: AnyObject
+}
+
+struct StringAlike64 {
+  var a: Int
+  var b: Builtin.BridgeObject
+}
+struct StringAlike32 {
+  var a,b,c: Int
+  var d: Builtin.BridgeObject
+}
+
+// TODO: Runtime struct instantiation still only considers the first argument
+
+struct GenericPair<T, U> {
+  var a: T
+  var b: U
+}
+
+struct GenericSamePair<T> {
+  var a: T
+  var b: T
+}
+
+struct GenericPairPlusPointer<T, U> {
+  var a: T
+  var b: U
+  var c: UnsafeRawPointer
+}
+
+struct GenericSamePairPlusPointer<T> {
+  var a: T
+  var b: T
+  var c: UnsafeRawPointer
+}
+
+struct GenericPairWithPointerFirst<T> {
+  var a: AnyObject
+  var b: T
+}
+
+struct GenericPairWithPointerSecond<T> {
+  var a: T
+  var b: AnyObject
+}
+
+struct GenericFullHouse<T, U> {
+  var a, b, c: T
+  var d, e: U
+}
+
+struct ResilientPairWithXIFirst {
+  var a: ResilientXI
+  var b: ResilientNoXI
+}
+
+struct ResilientPairWithXISecond {
+  var a: ResilientNoXI
+  var b: ResilientXI
+}
+
+// Typealiases for the type layout verifier
+
+typealias PairWithPointerSecondAndPhantomParam_Int
+ = PairWithPointerSecondAndPhantomParam<Int>
+
+typealias GenericPairWithPointerFirst_Int
+ = GenericPairWithPointerFirst<Int>
+
+typealias GenericPairWithPointerFirst_AnyObject
+ = GenericPairWithPointerFirst<AnyObject>
+
+typealias GenericPairWithPointerSecond_Int
+ = GenericPairWithPointerSecond<Int>
+
+typealias GenericPairWithPointerSecond_AnyObject
+ = GenericPairWithPointerSecond<AnyObject>
+
+var tests = TestSuite("extra inhabitants of structs")
+
+@inline(never)
+fn expectHasAtLeastThreeExtraInhabitants<T>(_: T.Type,
+                                              nil theNil: T???,
+                                              someNil: T???,
+                                              someSomeNil: T???,
+                                 file: String = #file, line: UInt = #line) {
+  expectEqual(MemoryLayout<T>.size, MemoryLayout<T???>.size,
+              "\(T.this) has at least three extra inhabitants",
+              file: file, line: line)
+
+  expectNil(theNil,
+            "\(T.this) extra inhabitant should agree in generic and concrete " +
+            "context")
+
+  expectNil(someNil!,
+            "\(T.this) extra inhabitant should agree in generic and concrete " +
+            "context")
+
+  expectNil(someSomeNil!!,
+            "\(T.this) extra inhabitant should agree in generic and concrete " +
+            "context")
+}
+
+@inline(never)
+fn expectHasExtraInhabitant<T>(_: T.Type, nil theNil: T?,
+                                 file: String = #file, line: UInt = #line) {
+  expectEqual(MemoryLayout<T>.size, MemoryLayout<T?>.size,
+              "\(T.this) has extra inhabitant",
+              file: file, line: line)
+
+  expectNil(theNil,
+            "\(T.this) extra inhabitant should agree in generic and concrete " +
+            "context")
+}
+
+fn expectHasNoExtraInhabitant<T>(_: T.Type,
+                                   file: String = #file, line: UInt = #line) {
+  expectNotEqual(MemoryLayout<T>.size, MemoryLayout<T?>.size,
+                 "\(T.this) does not have extra inhabitant",
+                 file: file, line: line)
+}
+
+tests.test("types that have extra inhabitants") {
+  expectHasExtraInhabitant(PairWithPointerFirst.this, nil: nil)
+  expectHasExtraInhabitant(PairWithPointerSecond.this, nil: nil)
+  expectHasExtraInhabitant(PairWithPointerSecondAndPhantomParam<Int>.this, nil: nil)
+  expectHasExtraInhabitant(PairWithPointerSecondAndPhantomParam<AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairWithPointerFirst<Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairWithPointerFirst<AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairWithPointerSecond<Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairWithPointerSecond<AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(ResilientPairWithXIFirst.this, nil: nil)
+  expectHasExtraInhabitant(ResilientPairWithXISecond.this, nil: nil)
+  expectHasExtraInhabitant(StringAlike64.this, nil: nil)
+  expectHasExtraInhabitant(StringAlike32.this, nil: nil)
+  expectHasExtraInhabitant(GenericPair<AnyObject, Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPair<Int, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPair<AnyObject, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPair<AnyObject, UnsafeRawPointer>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPair<UnsafeRawPointer, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPair<UnsafeRawPointer, UnsafeRawPointer>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairPlusPointer<Int, Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairPlusPointer<AnyObject, Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairPlusPointer<Int, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericPairPlusPointer<AnyObject, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericSamePair<UnsafeRawPointer>.this, nil: nil)
+  expectHasExtraInhabitant(GenericSamePair<AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericSamePairPlusPointer<UnsafeRawPointer>.this, nil: nil)
+  expectHasExtraInhabitant(GenericSamePairPlusPointer<AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericSamePairPlusPointer<Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericFullHouse<AnyObject, Int>.this, nil: nil)
+  expectHasExtraInhabitant(GenericFullHouse<Int, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericFullHouse<AnyObject, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericFullHouse<AnyObject, UnsafeRawPointer>.this, nil: nil)
+  expectHasExtraInhabitant(GenericFullHouse<UnsafeRawPointer, AnyObject>.this, nil: nil)
+  expectHasExtraInhabitant(GenericFullHouse<UnsafeRawPointer, UnsafeRawPointer>.this, nil: nil)
+}
+
+tests.test("types that have more than one extra inhabitant") {
+  expectHasAtLeastThreeExtraInhabitants(StringAlike64.this, nil: nil, someNil: .some(nil), someSomeNil: .some(.some(nil)))
+  expectHasAtLeastThreeExtraInhabitants(StringAlike32.this, nil: nil, someNil: .some(nil), someSomeNil: .some(.some(nil)))
+}
+
+runAllTests()
+

@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -emit-silgen %s -module-name test -language-version 5 | %FileCheck %s
+// REQUIRES: concurrency
+
+// Declarations don't mangle global actor types.
+// CHECK: @$s4test10returnsOptyxycSgxyScMYccSglF
+fn returnsOpt<R>(_ fn: (@MainActor () -> R)?) -> (() -> R)? {
+  typealias Fn = (() -> R)?
+  return unsafeBitCast(fn, to: Fn.this)
+}

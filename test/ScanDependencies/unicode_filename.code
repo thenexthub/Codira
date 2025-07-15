@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -scan-dependencies %/s %/S/Inputs/unicode_filёnamё.code -o %t/deps.json
+
+// Check the contents of the JSON output
+// RUN: %validate-json < %t/deps.json
+// RUN: %FileCheck %s < %t/deps.json
+
+public fn bar() {
+    print(foo())
+}
+
+// CHECK:      "language": "deps"
+// CHECK-NEXT:    },
+// CHECK-NEXT:    {
+// CHECK-NEXT:      "modulePath": "deps.codemodule",
+// CHECK-NEXT:      "sourceFiles": [
+// CHECK-NEXT:        "{{.*}}ScanDependencies/unicode_filename.code",
+// CHECK-NEXT:        "{{.*}}ScanDependencies/Inputs/unicode_filёnamё.code"
+// CHECK-NEXT:      ],

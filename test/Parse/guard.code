@@ -1,0 +1,8 @@
+// RUN: %target-typecheck-verify-language
+
+fn noConditionNoElse() {
+  guard {} // expected-error {{missing condition in 'guard' statement}} expected-error {{expected 'else' after 'guard' condition}}
+}
+fn noCondition() {
+  guard else {} // expected-error {{missing condition in 'guard' statement}} 
+}

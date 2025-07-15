@@ -1,0 +1,3 @@
+// {"signature":"(anonymous namespace)::DeclChecker::visitExtensionDecl(language::ExtensionDecl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+extension repeat (

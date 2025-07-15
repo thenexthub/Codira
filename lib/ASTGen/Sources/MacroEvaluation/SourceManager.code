@@ -1,30 +1,30 @@
-//===--- SourceManager.swift ----------------------------------------------===//
+//===--- SourceManager.code ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftOperators
-import SwiftSyntax
-import SwiftDiagnostics
-import swiftASTGen
+import CodiraOperators
+import CodiraSyntax
+import CodiraDiagnostics
+import languageASTGen
 
 /// A source manager that keeps track of the source files in the program.
 class SourceManager {
   init(cxxDiagnosticEngine: UnsafeMutableRawPointer) {
-    self.bridgedDiagEngine = BridgedDiagnosticEngine(raw: cxxDiagnosticEngine)
+    this.bridgedDiagEngine = BridgedDiagnosticEngine(raw: cxxDiagnosticEngine)
   }
 
   /// The bridged diagnostic engine (just the wrapped C++ `DiagnosticEngine`).
-  let bridgedDiagEngine: BridgedDiagnosticEngine
+  immutable bridgedDiagEngine: BridgedDiagnosticEngine
 
   /// The set of source files that have been exported to the C++ code of
   /// the program.
@@ -45,8 +45,8 @@ extension SourceManager {
   /// - Returns: `true` if the source file was inserted, `false` if it was
   ///   already there.
   @discardableResult
-  func insert(_ sourceFile: UnsafePointer<ExportedSourceFile>) -> Bool {
-    let syntax = Syntax(sourceFile.pointee.syntax)
+  fn insert(_ sourceFile: UnsafePointer<ExportedSourceFile>) -> Bool {
+    immutable syntax = Syntax(sourceFile.pointee.syntax)
     if exportedSourceFilesBySyntax[syntax] != nil {
       return false
     }
@@ -60,16 +60,16 @@ extension SourceManager {
 extension SourceManager {
   /// Detach a given node from its parent, keeping track of where it
   /// occurred in the program.
-  func detach<Node: SyntaxProtocol>(
+  fn detach<Node: SyntaxProtocol>(
     _ node: Node,
     foldingWith operatorTable: OperatorTable? = nil
   ) -> Node {
     // Already detached
     if node.parent == nil { return node }
 
-    let detached: Node
-    if let operatorTable = operatorTable {
-      detached = operatorTable.foldAll(node) { _ in }.as(Node.self)!.detached
+    immutable detached: Node
+    if immutable operatorTable = operatorTable {
+      detached = operatorTable.foldAll(node) { _ in }.as(Node.this)!.detached
     } else {
       detached = node.detached
     }
@@ -80,7 +80,7 @@ extension SourceManager {
 
   /// Find the root source file and offset from within that file for the given
   /// syntax node.
-  func rootSyntax<Node: SyntaxProtocol>(
+  fn rootSyntax<Node: SyntaxProtocol>(
     of node: Node
   ) -> (Syntax, AbsolutePosition) {
     var root = node.root
@@ -88,7 +88,7 @@ extension SourceManager {
 
     // If the root isn't a detached node we know about, there's nothing we
     // can do.
-    while let (parent, parentOffset) = detachedNodes[root] {
+    while immutable (parent, parentOffset) = detachedNodes[root] {
       root = parent.root
       offset += SourceLength(utf8Length: parentOffset)
     }
@@ -98,30 +98,30 @@ extension SourceManager {
 
   /// Produce the C++ source location for a given position based on a
   /// syntax node.
-  func bridgedSourceLoc<Node: SyntaxProtocol>(
+  fn bridgedSourceLoc<Node: SyntaxProtocol>(
     for node: Node,
     at position: AbsolutePosition? = nil
   ) -> BridgedSourceLoc {
     // Find the source file and this node's position within it.
-    let (rootNode, rootPosition) = rootSyntax(of: node)
+    immutable (rootNode, rootPosition) = rootSyntax(of: node)
 
     // Find the corresponding exported source file.
-    guard let exportedSourceFile = exportedSourceFilesBySyntax[rootNode] else {
+    guard immutable exportedSourceFile = exportedSourceFilesBySyntax[rootNode] else {
       return nil
     }
 
     // Find the offset of the given position based on the root of the given
     // node.
-    let position = position ?? node.position
-    let nodeOffset = SourceLength(utf8Length: position.utf8Offset - node.position.utf8Offset)
-    let realPosition = rootPosition + nodeOffset
+    immutable position = position ?? node.position
+    immutable nodeOffset = SourceLength(utf8Length: position.utf8Offset - node.position.utf8Offset)
+    immutable realPosition = rootPosition + nodeOffset
 
     return BridgedSourceLoc(at: realPosition, in: exportedSourceFile.pointee.buffer)
   }
 }
 
 extension SourceManager {
-  private func diagnoseSingle<Node: SyntaxProtocol>(
+  private fn diagnoseSingle<Node: SyntaxProtocol>(
     message: String,
     severity: DiagnosticSeverity,
     node: Node,
@@ -130,11 +130,11 @@ extension SourceManager {
     fixItChanges: [FixIt.Change] = []
   ) {
     // Map severity
-    let bridgedSeverity = severity.bridged
+    immutable bridgedSeverity: language.DiagnosticKind = severity.bridged
 
     // Emit the diagnostic
     var mutableMessage = message
-    let diag = mutableMessage.withBridgedString { bridgedMessage in
+    immutable diag = mutableMessage.withBridgedString { bridgedMessage in
       BridgedDiagnostic(
         at: bridgedSourceLoc(for: node, at: position),
         message: bridgedMessage,
@@ -153,16 +153,16 @@ extension SourceManager {
 
     // Emit changes for a Fix-It.
     for change in fixItChanges {
-      let replaceStartLoc: BridgedSourceLoc
-      let replaceEndLoc: BridgedSourceLoc
+      immutable replaceStartLoc: BridgedSourceLoc
+      immutable replaceEndLoc: BridgedSourceLoc
       var newText: String
 
       switch change {
-      case .replace(let oldNode, let newNode):
+      case .replace(immutable oldNode, immutable newNode):
         // Replace the whole node including leading/trailing trivia, but if
         // the trivia are the same, don't include them in the replacing range.
-        let leadingMatch = oldNode.leadingTrivia == newNode.leadingTrivia
-        let trailingMatch = oldNode.trailingTrivia == newNode.trailingTrivia
+        immutable leadingMatch = oldNode.leadingTrivia == newNode.leadingTrivia
+        immutable trailingMatch = oldNode.trailingTrivia == newNode.trailingTrivia
         replaceStartLoc = bridgedSourceLoc(
           for: oldNode,
           at: leadingMatch ? oldNode.positionAfterSkippingLeadingTrivia : oldNode.position
@@ -180,7 +180,7 @@ extension SourceManager {
         }
         newText = newNode.description
 
-      case .replaceLeadingTrivia(let oldToken, let newTrivia):
+      case .replaceLeadingTrivia(immutable oldToken, immutable newTrivia):
         guard oldToken.leadingTrivia != newTrivia else {
           continue
         }
@@ -191,7 +191,7 @@ extension SourceManager {
         )
         newText = newTrivia.description
 
-      case .replaceTrailingTrivia(let oldToken, let newTrivia):
+      case .replaceTrailingTrivia(immutable oldToken, immutable newTrivia):
         guard oldToken.trailingTrivia != newTrivia else {
           continue
         }
@@ -205,8 +205,8 @@ extension SourceManager {
         )
         newText = newTrivia.description
 
-      case .replaceChild(let replacingChildData):
-        let replacementRange = replacingChildData.replacementRange
+      case .replaceChild(immutable replacingChildData):
+        immutable replacementRange = replacingChildData.replacementRange
         replaceStartLoc = bridgedSourceLoc(
           for: replacingChildData.parent,
           at: replacementRange.lowerBound
@@ -218,9 +218,9 @@ extension SourceManager {
         newText = replacingChildData.newChild.description
 
       case .replaceText(
-        range: let replacementRange,
-        with: let replacementText,
-        in: let syntax
+        range: immutable replacementRange,
+        with: immutable replacementText,
+        in: immutable syntax
       ):
         replaceStartLoc = bridgedSourceLoc(
           for: syntax,
@@ -246,7 +246,7 @@ extension SourceManager {
   }
 
   /// Emit a diagnostic via the C++ diagnostic engine.
-  func diagnose(
+  fn diagnose(
     diagnostic: Diagnostic,
     messageSuffix: String? = nil
   ) {

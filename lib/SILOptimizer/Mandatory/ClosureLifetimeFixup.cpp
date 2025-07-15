@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "closure-lifetime-fixup"
@@ -36,19 +37,19 @@
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
 
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
-llvm::cl::opt<bool> DisableConvertEscapeToNoEscapeSwitchEnumPeephole(
+toolchain::cl::opt<bool> DisableConvertEscapeToNoEscapeSwitchEnumPeephole(
     "sil-disable-convert-escape-to-noescape-switch-peephole",
-    llvm::cl::init(false),
-    llvm::cl::desc(
+    toolchain::cl::init(false),
+    toolchain::cl::desc(
         "Disable the convert_escape_to_noescape switch enum peephole. "),
-    llvm::cl::Hidden);
+    toolchain::cl::Hidden);
 
-llvm::cl::opt<bool> DisableCopyEliminationOfCopyableCapture(
+toolchain::cl::opt<bool> DisableCopyEliminationOfCopyableCapture(
     "sil-disable-copy-elimination-of-copyable-closure-capture",
-    llvm::cl::init(false),
-    llvm::cl::desc("Don't eliminate copy_addr of Copyable closure captures "
+    toolchain::cl::init(false),
+    toolchain::cl::desc("Don't eliminate copy_addr of Copyable closure captures "
                    "inserted by SILGen"));
 
 using namespace language;
@@ -107,7 +108,7 @@ static SILBasicBlock *getOptionalDiamondSuccessor(SwitchEnumInst *sei) {
 ///  apply %deinit(%super) : $@convention(objc_method) (A) -> ()
 ///  end_lifetime %super : $A
 static SILInstruction *getDeinitSafeClosureDestructionPoint(SILBasicBlock *bb) {
-  for (auto &i : llvm::reverse(*bb)) {
+  for (auto &i : toolchain::reverse(*bb)) {
     if (auto *endLifetime = dyn_cast<EndLifetimeInst>(&i)) {
       auto *superInstance = endLifetime->getOperand()->getDefiningInstruction();
       assert(superInstance && "Expected an instruction");
@@ -135,11 +136,11 @@ static void findReachableExitBlocks(SILInstruction *i,
 /// We use this to ensure that we properly handle recursive cases by revisiting
 /// phi nodes that we are tracking. This just makes it easier to reproduce in a
 /// test case.
-static llvm::cl::opt<bool> ReverseInitialWorklist(
-    "sil-closure-lifetime-fixup-reverse-phi-order", llvm::cl::init(false),
-    llvm::cl::desc(
+static toolchain::cl::opt<bool> ReverseInitialWorklist(
+    "sil-closure-lifetime-fixup-reverse-phi-order", toolchain::cl::init(false),
+    toolchain::cl::desc(
         "Reverse the order in which we visit phis for testing purposes"),
-    llvm::cl::Hidden);
+    toolchain::cl::Hidden);
 
 // Finally, we need to prune phis inserted by the SSA updater that
 // only take the .none from the entry block. This means that they are
@@ -162,7 +163,7 @@ cleanupDeadTrivialPhiArgs(SILValue initialValue,
 
   while (!worklist.empty()) {
     // Clear the incoming values array after each iteration.
-    SWIFT_DEFER { incomingValues.clear(); };
+    LANGUAGE_DEFER { incomingValues.clear(); };
 
     auto *phi = worklist.pop_back_val();
     {
@@ -177,7 +178,7 @@ cleanupDeadTrivialPhiArgs(SILValue initialValue,
     (void)foundPhiValues;
     assert(foundPhiValues && "Should always have 'true' phi arguments since "
                              "these were inserted by the SSA updater.");
-    if (llvm::any_of(incomingValues,
+    if (toolchain::any_of(incomingValues,
                      [&](SILValue v) { return v != initialValue; }))
       continue;
 
@@ -200,7 +201,7 @@ cleanupDeadTrivialPhiArgs(SILValue initialValue,
 
       auto *termInst = cast<TermInst>(user);
       for (auto succBlockArgList : termInst->getSuccessorBlockArgumentLists()) {
-        llvm::copy_if(succBlockArgList, std::back_inserter(worklist),
+        toolchain::copy_if(succBlockArgList, std::back_inserter(worklist),
                       [&](SILArgument *succArg) -> bool {
                         auto it = lower_bound(insertedPhis, succArg);
                         return it != insertedPhis.end() && *it == succArg;
@@ -347,7 +348,7 @@ static void extendLifetimeToEndOfFunction(SILFunction &fn,
 
 static SILInstruction *lookThroughRebastractionUsers(
     SILInstruction *inst,
-    llvm::DenseMap<SILInstruction *, SILInstruction *> &memoized) {
+    toolchain::DenseMap<SILInstruction *, SILInstruction *> &memoized) {
   if (inst == nullptr)
     return nullptr;
 
@@ -589,7 +590,7 @@ static bool lookThroughMarkDependenceChainForValue(MarkDependenceInst *mark,
 static SILValue tryRewriteToPartialApplyStack(
     ConvertEscapeToNoEscapeInst *cvt, SILInstruction *closureUser,
     DominanceAnalysis *dominanceAnalysis, InstructionDeleter &deleter,
-    llvm::DenseMap<SILInstruction *, SILInstruction *> &memoized,
+    toolchain::DenseMap<SILInstruction *, SILInstruction *> &memoized,
     ReachableBlocks const &reachableBlocks, const bool &modifiedCFG) {
 
   auto *origPA = dyn_cast<PartialApplyInst>(skipConvert(cvt->getOperand()));
@@ -671,7 +672,7 @@ static SILValue tryRewriteToPartialApplyStack(
   // Optionally, replace the convert_function instruction.
   if (auto *convert = dyn_cast<ConvertFunctionInst>(convertOrPartialApply)) {
     /* DEBUG
-    llvm::errs() << "=== replacing conversion\n";
+    toolchain::errs() << "=== replacing conversion\n";
     convert->dumpInContext();
     */
     
@@ -682,7 +683,7 @@ static SILValue tryRewriteToPartialApplyStack(
                                         origWithNoEscape, false);
     
     /* DEBUG
-    llvm::errs() << "--- with\n";
+    toolchain::errs() << "--- with\n";
     closureOp->dumpInContext();
     */
   }
@@ -743,7 +744,7 @@ static SILValue tryRewriteToPartialApplyStack(
   SSAPrunedLiveness closureLiveness(cvt->getFunction(), &discoveredBlocks);
   closureLiveness.initializeDef(closureOp);
 
-  llvm::SmallSetVector<SILValue, 4> borrowedOriginals;
+  toolchain::SmallSetVector<SILValue, 4> borrowedOriginals;
 
   unsigned appliedArgStartIdx =
         newPA->getOrigCalleeType()->getNumParameters() - newPA->getNumArguments();
@@ -752,19 +753,19 @@ static SILValue tryRewriteToPartialApplyStack(
     auto &arg = newPA->getArgumentOperands()[i];
     SILValue copy = arg.get();
     // The temporary should be a local stack allocation.
-    LLVM_DEBUG(llvm::dbgs() << "considering whether to eliminate copy of capture\n";
-               copy->printInContext(llvm::dbgs());
-               llvm::dbgs() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "considering whether to eliminate copy of capture\n";
+               copy->printInContext(toolchain::dbgs());
+               toolchain::dbgs() << "\n");
 
     auto stack = dyn_cast<AllocStackInst>(copy);
     if (!stack) {
-      LLVM_DEBUG(llvm::dbgs() << "-- not an alloc_stack\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- not an alloc_stack\n");
       continue;
     }
 
     if (DisableCopyEliminationOfCopyableCapture) {
       if (!copy->getType().isMoveOnly()) {
-        LLVM_DEBUG(llvm::dbgs() << "-- not move-only\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- not move-only\n");
         continue;
       }
     }
@@ -773,13 +774,13 @@ static SILValue tryRewriteToPartialApplyStack(
 
     auto paramIndex = i + appliedArgStartIdx;
     auto param = newPA->getOrigCalleeType()->getParameters()[paramIndex];
-    LLVM_DEBUG(param.print(llvm::dbgs());
-               llvm::dbgs() << '\n');
+    TOOLCHAIN_DEBUG(param.print(toolchain::dbgs());
+               toolchain::dbgs() << '\n');
     if (!param.isIndirectInGuaranteed()) {
-      LLVM_DEBUG(llvm::dbgs() << "-- not an in_guaranteed parameter\n";
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- not an in_guaranteed parameter\n";
                  newPA->getOrigCalleeType()->getParameters()[paramIndex]
-                   .print(llvm::dbgs());
-                 llvm::dbgs() << "\n");
+                   .print(toolchain::dbgs());
+                 toolchain::dbgs() << "\n");
       continue;
     }
     
@@ -806,8 +807,8 @@ static SILValue tryRewriteToPartialApplyStack(
         // partial_apply or it's chain of mark_dependences.
         if (!lookThroughMarkDependenceChainForValue(mark, newPA) ||
             mark->getBase() != stack) {
-          LLVM_DEBUG(llvm::dbgs() << "-- had unexpected mark_dependence use\n";
-                     use->getUser()->print(llvm::dbgs()); llvm::dbgs() << "\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- had unexpected mark_dependence use\n";
+                     use->getUser()->print(toolchain::dbgs()); toolchain::dbgs() << "\n");
           initialization = nullptr;
           break;
         }
@@ -819,9 +820,9 @@ static SILValue tryRewriteToPartialApplyStack(
       // If we saw more than just the initialization, this isn't a pattern we
       // recognize.
       if (initialization) {
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                        << "-- had non-initialization, non-partial-apply use\n";
-                   use->getUser()->print(llvm::dbgs()); llvm::dbgs() << "\n");
+                   use->getUser()->print(toolchain::dbgs()); toolchain::dbgs() << "\n");
 
         initialization = nullptr;
         break;
@@ -830,10 +831,10 @@ static SILValue tryRewriteToPartialApplyStack(
         // Should copy the source and initialize the destination.
         if (possibleInit->isTakeOfSrc() ||
             !possibleInit->isInitializationOfDest()) {
-          LLVM_DEBUG(
-              llvm::dbgs()
+          TOOLCHAIN_DEBUG(
+              toolchain::dbgs()
                   << "-- had non-initialization, non-partial-apply use\n";
-              use->getUser()->print(llvm::dbgs()); llvm::dbgs() << "\n");
+              use->getUser()->print(toolchain::dbgs()); toolchain::dbgs() << "\n");
 
           break;
         }
@@ -845,22 +846,22 @@ static SILValue tryRewriteToPartialApplyStack(
           isa<DeallocStackInst>(user)) {
         continue;
       }
-      LLVM_DEBUG(llvm::dbgs() << "-- unrecognized use\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- unrecognized use\n");
       // Reset initialization on an unrecognized use
       initialization = nullptr;
       break;
     }
     if (!initialization) {
-      LLVM_DEBUG(llvm::dbgs() << "-- failed to find single initializing use\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- failed to find single initializing use\n");
       continue;
     }
     
     // The source should have no writes in the duration of the partial_apply's
     // liveness.
     auto orig = initialization->getSrc();
-    LLVM_DEBUG(llvm::dbgs() << "++ found original:\n";
-               orig->print(llvm::dbgs());
-               llvm::dbgs() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "++ found original:\n";
+               orig->print(toolchain::dbgs());
+               toolchain::dbgs() << "\n");
 
     bool origIsUnmodifiedDuringClosureLifetime = true;
 
@@ -879,9 +880,9 @@ static SILValue tryRewriteToPartialApplyStack(
                 origIsUnmodifiedDuringClosureLifetime) {}
 
       bool visitUse(Operand *origUse) {
-        LLVM_DEBUG(llvm::dbgs() << "looking at use\n";
-                   origUse->getUser()->printInContext(llvm::dbgs());
-                   llvm::dbgs() << "\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "looking at use\n";
+                   origUse->getUser()->printInContext(toolchain::dbgs());
+                   toolchain::dbgs() << "\n");
 
         // If the user doesn't write to memory, then it's harmless.
         if (!origUse->getUser()->mayWriteToMemory()) {
@@ -890,10 +891,10 @@ static SILValue tryRewriteToPartialApplyStack(
         if (closureLiveness.isWithinBoundary(origUse->getUser(),
                                              /*deadEndBlocks=*/nullptr)) {
           origIsUnmodifiedDuringClosureLifetime = false;
-          LLVM_DEBUG(llvm::dbgs() << "-- original has other possibly writing "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- original has other possibly writing "
                                      "use during closure lifetime\n";
-                     origUse->getUser()->print(llvm::dbgs());
-                     llvm::dbgs() << "\n");
+                     origUse->getUser()->print(toolchain::dbgs());
+                     toolchain::dbgs() << "\n");
           return false;
         }
         return true;
@@ -917,7 +918,7 @@ static SILValue tryRewriteToPartialApplyStack(
 
     // OK, we can use the original. Eliminate the copy and replace it with the
     // original.
-    LLVM_DEBUG(llvm::dbgs() << "++ replacing with original!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "++ replacing with original!\n");
     arg.set(orig);
     if (markDep) {
       markDep->setBase(orig);
@@ -928,9 +929,9 @@ static SILValue tryRewriteToPartialApplyStack(
   }
   
   /* DEBUG
-  llvm::errs() << "=== found lifetime ends for\n";
+  toolchain::errs() << "=== found lifetime ends for\n";
   closureOp->dump();
-  llvm::errs() << "--- at\n";
+  toolchain::errs() << "--- at\n";
   */
   for (auto destroy : lifetimeEnds) {
     /* DEBUG
@@ -963,9 +964,9 @@ static SILValue tryRewriteToPartialApplyStack(
                                      newPA->getLoc());
   }
   /* DEBUG
-  llvm::errs() << "=== function after conversion to stack partial_apply of\n";
+  toolchain::errs() << "=== function after conversion to stack partial_apply of\n";
   newPA->dump();
-  llvm::errs() << "---\n";
+  toolchain::errs() << "---\n";
   newPA->getFunction()->dump();
   */
 
@@ -1002,7 +1003,7 @@ static SILValue tryRewriteToPartialApplyStack(
 static bool tryExtendLifetimeToLastUse(
     ConvertEscapeToNoEscapeInst *cvt, DominanceAnalysis *dominanceAnalysis,
     DeadEndBlocksAnalysis *deadEndBlocksAnalysis,
-    llvm::DenseMap<SILInstruction *, SILInstruction *> &memoized,
+    toolchain::DenseMap<SILInstruction *, SILInstruction *> &memoized,
     ReachableBlocks const &reachableBlocks, InstructionDeleter &deleter,
     const bool &modifiedCFG) {
   // If there is a single user, this is simple: extend the
@@ -1072,7 +1073,7 @@ static bool tryExtendLifetimeToLastUse(
 
   endLifetimeAtLeakingBlocks(closureCopy, {singleUser->getParent()}, deadEndBlocks);
   /*
-  llvm::errs() << "after lifetime extension of\n";
+  toolchain::errs() << "after lifetime extension of\n";
   escapingClosure->dump();
   escapingClosure->getFunction()->dump();
   */
@@ -1446,7 +1447,7 @@ static bool fixupClosureLifetimes(SILFunction &fn,
 
   // tryExtendLifetimeToLastUse uses a cache of recursive instruction use
   // queries.
-  llvm::DenseMap<SILInstruction *, SILInstruction *> memoizedQueries;
+  toolchain::DenseMap<SILInstruction *, SILInstruction *> memoizedQueries;
 
   ReachableBlocks reachableBlocks(&fn);
   reachableBlocks.compute();
@@ -1530,13 +1531,13 @@ class ClosureLifetimeFixup : public SILFunctionTransform {
       }
       invalidateAnalysis(analysisInvalidationKind(modifiedCFG));
     }
-    LLVM_DEBUG(getFunction()->verify(getAnalysis<BasicCalleeAnalysis>()->getCalleeCache()));
+    TOOLCHAIN_DEBUG(getFunction()->verify(getAnalysis<BasicCalleeAnalysis>()->getCalleeCache()));
 
   }
 
 };
 } // end anonymous namespace
 
-SILTransform *swift::createClosureLifetimeFixup() {
+SILTransform *language::createClosureLifetimeFixup() {
   return new ClosureLifetimeFixup();
 }

@@ -1,0 +1,33 @@
+
+// RUN: %empty-directory(%t)
+// RUN: %build-silgen-test-overlays
+
+// RUN: %target-language-emit-silgen(mock-sdk: -sdk %S/Inputs -I %t) -module-name inlinable_attribute_objc -Xtoolchain -sil-full-demangle -primary-file %s | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+public class Horse : NSObject {
+  @objc public dynamic fn gallop() {}
+  @objc public fn someMethod() {}
+  @objc public convenience init(saddle: ()) {
+    this.init()
+  }
+  @objc public override init() {}
+}
+
+// @objc thunks are not serialized, since they are only referenced from
+// method tables.
+
+// CHECK-LABEL: sil private [thunk] [ossa] @$s24inlinable_attribute_objc5HorseC6gallopyyFTo : $@convention(objc_method) (Horse) -> ()
+// CHECK-LABEL: sil private [thunk] [ossa] @$s24inlinable_attribute_objc5HorseC10someMethodyyFTo : $@convention(objc_method) (Horse) -> ()
+// CHECK-LABEL: sil private [thunk] [ossa] @$s24inlinable_attribute_objc5HorseC6saddleACyt_tcfcTo : $@convention(objc_method) (@owned Horse) -> @owned Horse
+// CHECK-LABEL: sil private [thunk] [ossa] @$s24inlinable_attribute_objc5HorseCACycfcTo : $@convention(objc_method) (@owned Horse) -> @owned Horse
+
+// However, make sure we can reference dynamic thunks and curry thunks
+// from inlinable scopes
+
+@inlinable public fn talkAboutAHorse(h: Horse) {
+  _ = h.gallop
+}

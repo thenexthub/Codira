@@ -12,7 +12,7 @@ else()
 endif()
 
 function(generate_revision_inc revision_inc_var name dir)
-  if(SWIFT_APPEND_VC_REV)
+  if(LANGUAGE_APPEND_VC_REV)
     # generate_vcs_version_script generates header with only `undef`s
     # inside when source directory doesn't exist.
     find_first_existing_vc_file("${dir}" ${name}_vc)
@@ -22,7 +22,7 @@ function(generate_revision_inc revision_inc_var name dir)
   # Create custom target to generate the VC revision include.
   set(version_inc "${CMAKE_CURRENT_BINARY_DIR}/${name}Revision.inc")
 
-  set(generate_vcs_version_script "${LLVM_MAIN_SRC_DIR}/cmake/modules/GenerateVersionFromVCS.cmake")
+  set(generate_vcs_version_script "${TOOLCHAIN_MAIN_SRC_DIR}/cmake/modules/GenerateVersionFromVCS.cmake")
 
   add_custom_command(OUTPUT "${version_inc}"
     DEPENDS "${${name}_vc}" "${generate_vcs_version_script}"
@@ -38,10 +38,10 @@ function(generate_revision_inc revision_inc_var name dir)
   set(${revision_inc_var} ${version_inc} PARENT_SCOPE)
 endfunction()
 
-generate_revision_inc(llvm_revision_inc LLVM "${LLVM_MAIN_SRC_DIR}")
-generate_revision_inc(swift_revision_inc Swift "${SWIFT_SOURCE_DIR}")
+generate_revision_inc(toolchain_revision_inc LLVM "${TOOLCHAIN_MAIN_SRC_DIR}")
+generate_revision_inc(language_revision_inc Codira "${LANGUAGE_SOURCE_DIR}")
 
-add_swift_host_library(swiftBasic STATIC
+add_language_host_library(languageBasic STATIC
   Assertions.cpp
   BasicBridging.cpp
   BasicSourceInfo.cpp
@@ -84,9 +84,9 @@ add_swift_host_library(swiftBasic STATIC
   Version.cpp
   BlockList.cpp
 
-  ${llvm_revision_inc}
+  ${toolchain_revision_inc}
   ${clang_revision_inc}
-  ${swift_revision_inc}
+  ${language_revision_inc}
 
   # Platform-specific TaskQueue implementations
   Unix/TaskQueue.inc
@@ -94,55 +94,53 @@ add_swift_host_library(swiftBasic STATIC
   # Platform-agnostic fallback TaskQueue implementation
   Default/TaskQueue.inc
 
-  LLVM_LINK_COMPONENTS support targetparser)
-_swift_gyb_target_sources(swiftBasic PRIVATE
+  TOOLCHAIN_LINK_COMPONENTS support targetparser)
+_language_gyb_target_sources(languageBasic PRIVATE
     UnicodeExtendedGraphemeClusters.cpp.gyb)
 
-target_include_directories(swiftBasic PRIVATE
+target_include_directories(languageBasic PRIVATE
   clangBasic
   ${UUID_INCLUDE})
 
-target_link_libraries(swiftBasic PUBLIC
-  swiftDemangling)
-target_link_libraries(swiftBasic PRIVATE
+target_link_libraries(languageBasic PUBLIC
+  languageDemangling)
+target_link_libraries(languageBasic PRIVATE
   ${UUID_LIBRARIES})
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/SwiftVersion.cmake)
-message(STATUS "Swift version: ${SWIFT_VERSION}")
-message(STATUS "Swift vendor: ${SWIFT_VENDOR}")
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/CodiraVersion.cmake)
+message(STATUS "Codira version: ${LANGUAGE_VERSION}")
+message(STATUS "Codira vendor: ${LANGUAGE_VENDOR}")
 
-string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" SWIFT_VERSION_MAJOR
-  ${SWIFT_VERSION})
-string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" SWIFT_VERSION_MINOR
-  ${SWIFT_VERSION})
+string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" LANGUAGE_VERSION_MAJOR
+  ${LANGUAGE_VERSION})
+string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" LANGUAGE_VERSION_MINOR
+  ${LANGUAGE_VERSION})
 
 set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-  " -DSWIFT_VERSION=${SWIFT_VERSION} -DSWIFT_VERSION_MAJOR=${SWIFT_VERSION_MAJOR} -DSWIFT_VERSION_MINOR=${SWIFT_VERSION_MINOR}")
+  " -DLANGUAGE_VERSION=${LANGUAGE_VERSION} -DLANGUAGE_VERSION_MAJOR=${LANGUAGE_VERSION_MAJOR} -DLANGUAGE_VERSION_MINOR=${LANGUAGE_VERSION_MINOR}")
 
-if ("${SWIFT_VERSION}" MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
-  string(REGEX REPLACE "[0-9]+\\.[0-9]+\\.([0-9]+)" "\\1" SWIFT_VERSION_PATCHLEVEL
-    ${SWIFT_VERSION})
+if ("${LANGUAGE_VERSION}" MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
+  string(REGEX REPLACE "[0-9]+\\.[0-9]+\\.([0-9]+)" "\\1" LANGUAGE_VERSION_PATCHLEVEL
+    ${LANGUAGE_VERSION})
   set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-    " -DSWIFT_HAS_VERSION_PATCHLEVEL=1 -DSWIFT_VERSION_PATCHLEVEL=${SWIFT_VERSION_PATCHLEVEL}")
+    " -DLANGUAGE_HAS_VERSION_PATCHLEVEL=1 -DLANGUAGE_VERSION_PATCHLEVEL=${LANGUAGE_VERSION_PATCHLEVEL}")
 else()
   set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-    " -DSWIFT_HAS_VERSION_PATCHLEVEL=0")
+    " -DLANGUAGE_HAS_VERSION_PATCHLEVEL=0")
 endif()
 
-if(NOT "${SWIFT_VENDOR}" STREQUAL "")
+if(NOT "${LANGUAGE_VENDOR}" STREQUAL "")
   set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-      " -DSWIFT_VENDOR=\"\\\"${SWIFT_VENDOR}\\\"\"")
+      " -DLANGUAGE_VENDOR=\"\\\"${LANGUAGE_VENDOR}\\\"\"")
 endif()
 
-set(SWIFT_COMPILER_VERSION "" CACHE STRING
-    "The string that identifies the SCM commit(s) for this build")
-
-message(STATUS "Swift compiler version: ${SWIFT_COMPILER_VERSION}")
+message(STATUS "Codira compiler version: ${LANGUAGE_COMPILER_VERSION}")
+message(STATUS "Codira toolchain version: ${LANGUAGE_TOOLCHAIN_VERSION}")
 message(STATUS "Embedded clang compiler version: ${CLANG_COMPILER_VERSION}")
 
-if(SWIFT_COMPILER_VERSION)
+if(LANGUAGE_COMPILER_VERSION)
   set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
-    " -DSWIFT_COMPILER_VERSION=\"\\\"${SWIFT_COMPILER_VERSION}\\\"\"")
+    " -DLANGUAGE_COMPILER_VERSION=\"\\\"${LANGUAGE_COMPILER_VERSION}\\\"\"")
 endif()
 
 if(CLANG_COMPILER_VERSION)
@@ -150,3 +148,7 @@ if(CLANG_COMPILER_VERSION)
     " -DCLANG_COMPILER_VERSION=\"\\\"${CLANG_COMPILER_VERSION}\\\"\"")
 endif()
 
+if(LANGUAGE_TOOLCHAIN_VERSION)
+  set_property(SOURCE Version.cpp APPEND_STRING PROPERTY COMPILE_FLAGS
+    " -DLANGUAGE_TOOLCHAIN_VERSION=\"\\\"${LANGUAGE_TOOLCHAIN_VERSION}\\\"\"")
+endif()

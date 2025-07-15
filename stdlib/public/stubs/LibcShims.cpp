@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if defined(__APPLE__)
@@ -32,16 +33,16 @@
 
 #if defined(_WIN32)
 static void __attribute__((__constructor__))
-_swift_stdlib_configure_console_mode(void) {
+_language_stdlib_configure_console_mode(void) {
   static UINT uiPrevConsoleCP = GetConsoleOutputCP();
   atexit([]() { SetConsoleOutputCP(uiPrevConsoleCP); });
   SetConsoleOutputCP(CP_UTF8);
 }
 #endif
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_size_t _swift_stdlib_fwrite_stdout(const void *ptr,
-                                           __swift_size_t size,
-                                           __swift_size_t nitems) {
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_size_t _language_stdlib_fwrite_stdout(const void *ptr,
+                                           __language_size_t size,
+                                           __language_size_t nitems) {
   return fwrite(ptr, size, nitems, stdout);
 }

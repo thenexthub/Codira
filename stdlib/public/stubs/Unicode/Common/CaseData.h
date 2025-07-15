@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,15 +16,15 @@
 #ifndef CASE_DATA_H
 #define CASE_DATA_H
 
-#include "language/shims/SwiftStdint.h"
+#include "language/shims/CodiraStdint.h"
 
 #define CASE_FOLD_LEVEL_COUNT 10
 
-static const __swift_uint16_t _swift_stdlib_case_sizes[10] = {
+static const __language_uint16_t _language_stdlib_case_sizes[10] = {
   0x615, 0x3DE, 0x26D, 0x179, 0xEF, 0xA0, 0x5F, 0x40, 0x40, 0x40,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys0[25] = {
+static const __language_uint64_t _language_stdlib_case_keys0[25] = {
   0x9561048FA8452AD4, 0x20194650604260E0, 0x2A1B409682921C93, 0x490C6EA011401870,
   0x2981D2D24E858257, 0x4310A464AAD40760, 0x2A803405A0F08AD0, 0x4051A801E0712900, 0x4E6CAD208E24E08,
   0x49310961C0AE5029, 0x2B022A1A57814D1, 0x16DD892C7E0A5E03, 0x11F455A381915445, 0xBD00254389A4CC0A,
@@ -33,103 +33,103 @@ static const __swift_uint64_t _swift_stdlib_case_keys0[25] = {
   0x144005DA632088A1, 0x4D82612040ECBE, 0x17A418,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys1[16] = {
+static const __language_uint64_t _language_stdlib_case_keys1[16] = {
   0x1580700EE0256762, 0x51C1A44C53888000, 0xC55530CB1D866A18, 0xE45CC34370A6084E,
   0x705400056C84081A, 0x3D204245C0520235, 0x5C6B40839C22B0D, 0x781C19291E108124, 0x9F10D226547B244A,
   0xFCDD0A0602B26896, 0xA02070346A0C1C2, 0x110CA5B9A8015810, 0xE0C581F97EB1F211, 0x44DA694D984000E2,
   0x20C0CFD8E3D22020, 0x6560530,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys2[10] = {
+static const __language_uint64_t _language_stdlib_case_keys2[10] = {
   0xB14244288BB8C5D0, 0x428CEED78DC51B0B, 0x721D00BE9417A370, 0x124A8B8B9133604C,
   0xE62704E460CA6EE3, 0x5061109420A64934, 0x5140C48601801801, 0x613559E105395A70,
   0x4A294B4450A34A12, 0x189591E2E410,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys3[6] = {
+static const __language_uint64_t _language_stdlib_case_keys3[6] = {
   0x6080C0EAF380A402, 0x538284108B02178A, 0x21401102861696AD, 0x6C4EEA0F8A321642, 0x81CE4D1800FD9C0,
   0x19152C6C50350CA,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys4[4] = {
+static const __language_uint64_t _language_stdlib_case_keys4[4] = {
   0x889C81212120005, 0x401AA3C4B908A897, 0x1F35A6208C447001, 0x2013850F3190,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys5[3] = {
+static const __language_uint64_t _language_stdlib_case_keys5[3] = {
   0x15441C8410BAC3EA, 0x8A4080766AD82B11, 0x8558EBCA,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys6[2] = {
+static const __language_uint64_t _language_stdlib_case_keys6[2] = {
   0xDD2101E8D0D84111, 0x50450297,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys7[1] = {
+static const __language_uint64_t _language_stdlib_case_keys7[1] = {
   0x21C346004538781C,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys8[1] = {
+static const __language_uint64_t _language_stdlib_case_keys8[1] = {
   0xF15192867AAEC664,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_keys9[1] = {
+static const __language_uint64_t _language_stdlib_case_keys9[1] = {
   0x810808050000200,
 };
 
-static const __swift_uint64_t * const _swift_stdlib_case_keys[10] = {
-  _swift_stdlib_case_keys0, _swift_stdlib_case_keys1, _swift_stdlib_case_keys2,
-  _swift_stdlib_case_keys3, _swift_stdlib_case_keys4, _swift_stdlib_case_keys5,
-  _swift_stdlib_case_keys6, _swift_stdlib_case_keys7, _swift_stdlib_case_keys8,
-  _swift_stdlib_case_keys9,
+static const __language_uint64_t * const _language_stdlib_case_keys[10] = {
+  _language_stdlib_case_keys0, _language_stdlib_case_keys1, _language_stdlib_case_keys2,
+  _language_stdlib_case_keys3, _language_stdlib_case_keys4, _language_stdlib_case_keys5,
+  _language_stdlib_case_keys6, _language_stdlib_case_keys7, _language_stdlib_case_keys8,
+  _language_stdlib_case_keys9,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks0[4] = {
+static const __language_uint16_t _language_stdlib_case_ranks0[4] = {
   0x0, 0xB1, 0x173, 0x22E,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks1[2] = {
+static const __language_uint16_t _language_stdlib_case_ranks1[2] = {
   0x237, 0x2EF,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks2[2] = {
+static const __language_uint16_t _language_stdlib_case_ranks2[2] = {
   0x3A8, 0x473,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks3[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks3[1] = {
   0x49C,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks4[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks4[1] = {
   0x526,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks5[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks5[1] = {
   0x575,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks6[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks6[1] = {
   0x5B6,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks7[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks7[1] = {
   0x5D9,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks8[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks8[1] = {
   0x5EF,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_ranks9[1] = {
+static const __language_uint16_t _language_stdlib_case_ranks9[1] = {
   0x60E,
 };
 
-static const __swift_uint16_t * const _swift_stdlib_case_ranks[10] = {
-  _swift_stdlib_case_ranks0, _swift_stdlib_case_ranks1, _swift_stdlib_case_ranks2,
-  _swift_stdlib_case_ranks3, _swift_stdlib_case_ranks4, _swift_stdlib_case_ranks5,
-  _swift_stdlib_case_ranks6, _swift_stdlib_case_ranks7, _swift_stdlib_case_ranks8,
-  _swift_stdlib_case_ranks9,
+static const __language_uint16_t * const _language_stdlib_case_ranks[10] = {
+  _language_stdlib_case_ranks0, _language_stdlib_case_ranks1, _language_stdlib_case_ranks2,
+  _language_stdlib_case_ranks3, _language_stdlib_case_ranks4, _language_stdlib_case_ranks5,
+  _language_stdlib_case_ranks6, _language_stdlib_case_ranks7, _language_stdlib_case_ranks8,
+  _language_stdlib_case_ranks9,
 };
 
-static const __swift_uint64_t _swift_stdlib_case[1557] = {
+static const __language_uint64_t _language_stdlib_case[1557] = {
   0x1FFFFFFFE01EC4, 0xFC01FFA, 0x12FA00ABBF, 0x1FFFFFFB0104C4, 0x1FFFFFFC000418, 0x1FFFFFFC00FF38,
   0x1FFFFC740010BF, 0x1FFFFFFA00053A, 0x1FFFFFFFE0A658, 0x1FFFFFFA002C1A, 0x1FFFFFFFE0A722,
   0x1FFFFFFC000415, 0x1FFFFFFFE001A0, 0x1FFFFFFB210579, 0x14A2A0A7B2, 0x1FFFFFFC016E4C,
@@ -434,61 +434,61 @@ static const __swift_uint64_t _swift_stdlib_case[1557] = {
 
 #define CASE_FULL_FOLD_LEVEL_COUNT 5
 
-static const __swift_uint16_t _swift_stdlib_case_full_sizes[5] = {
+static const __language_uint16_t _language_stdlib_case_full_sizes[5] = {
   0x68, 0x46, 0x40, 0x40, 0x40,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_full_keys0[2] = {
+static const __language_uint64_t _language_stdlib_case_full_keys0[2] = {
   0xC832049503465522, 0x416D38A000,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_full_keys1[2] = {
+static const __language_uint64_t _language_stdlib_case_full_keys1[2] = {
   0x2EE5E8C0C284C002, 0x29,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_full_keys2[1] = {
+static const __language_uint64_t _language_stdlib_case_full_keys2[1] = {
   0x19E4901050128A0,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_full_keys3[1] = {
+static const __language_uint64_t _language_stdlib_case_full_keys3[1] = {
   0x60A8C42639280330,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_full_keys4[1] = {
+static const __language_uint64_t _language_stdlib_case_full_keys4[1] = {
   0x20800810802000,
 };
 
-static const __swift_uint64_t * const _swift_stdlib_case_full_keys[5] = {
-  _swift_stdlib_case_full_keys0, _swift_stdlib_case_full_keys1, _swift_stdlib_case_full_keys2,
-  _swift_stdlib_case_full_keys3, _swift_stdlib_case_full_keys4,
+static const __language_uint64_t * const _language_stdlib_case_full_keys[5] = {
+  _language_stdlib_case_full_keys0, _language_stdlib_case_full_keys1, _language_stdlib_case_full_keys2,
+  _language_stdlib_case_full_keys3, _language_stdlib_case_full_keys4,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_full_ranks0[1] = {
+static const __language_uint16_t _language_stdlib_case_full_ranks0[1] = {
   0x0,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_full_ranks1[1] = {
+static const __language_uint16_t _language_stdlib_case_full_ranks1[1] = {
   0x22,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_full_ranks2[1] = {
+static const __language_uint16_t _language_stdlib_case_full_ranks2[1] = {
   0x3C,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_full_ranks3[1] = {
+static const __language_uint16_t _language_stdlib_case_full_ranks3[1] = {
   0x4D,
 };
 
-static const __swift_uint16_t _swift_stdlib_case_full_ranks4[1] = {
+static const __language_uint16_t _language_stdlib_case_full_ranks4[1] = {
   0x62,
 };
 
-static const __swift_uint16_t * const _swift_stdlib_case_full_ranks[5] = {
-  _swift_stdlib_case_full_ranks0, _swift_stdlib_case_full_ranks1, _swift_stdlib_case_full_ranks2,
-  _swift_stdlib_case_full_ranks3, _swift_stdlib_case_full_ranks4,
+static const __language_uint16_t * const _language_stdlib_case_full_ranks[5] = {
+  _language_stdlib_case_full_ranks0, _language_stdlib_case_full_ranks1, _language_stdlib_case_full_ranks2,
+  _language_stdlib_case_full_ranks3, _language_stdlib_case_full_ranks4,
 };
 
-static const __swift_uint64_t _swift_stdlib_case_full[104] = {
+static const __language_uint64_t _language_stdlib_case_full[104] = {
   0xC0007038390A1C10, 0x80000000371E1E23, 0x8000000037C60078, 0x8000000037DA0040,
   0x8000000037AE0070, 0xC000729439BE1C22, 0x8000000037F61C08, 0x8000000037E60048,
   0x80000000379E0088, 0x800000003C561E2B, 0x8000000039281C1D, 0x80000001EB40F598,

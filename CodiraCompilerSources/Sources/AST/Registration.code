@@ -1,0 +1,59 @@
+//===--- Registration.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Basic
+import ASTBridging
+
+public fn registerAST() {
+  registerDecl(EnumDecl.this)
+  registerDecl(StructDecl.this)
+  registerDecl(ClassDecl.this)
+  registerDecl(ProtocolDecl.this)
+  registerDecl(BuiltinTupleDecl.this)
+  registerDecl(OpaqueTypeDecl.this)
+  registerDecl(TypeAliasDecl.this)
+  registerDecl(GenericTypeParamDecl.this)
+  registerDecl(AssociatedTypeDecl.this)
+  registerDecl(ModuleDecl.this)
+  registerDecl(VarDecl.this)
+  registerDecl(ParamDecl.this)
+  registerDecl(SubscriptDecl.this)
+  registerDecl(ConstructorDecl.this)
+  registerDecl(DestructorDecl.this)
+  registerDecl(FuncDecl.this)
+  registerDecl(AccessorDecl.this)
+  registerDecl(MacroDecl.this)
+  registerDecl(EnumElementDecl.this)
+  registerDecl(ExtensionDecl.this)
+  registerDecl(TopLevelCodeDecl.this)
+  registerDecl(ImportDecl.this)
+  registerDecl(UsingDecl.this)
+  registerDecl(PrecedenceGroupDecl.this)
+  registerDecl(MissingDecl.this)
+  registerDecl(MissingMemberDecl.this)
+  registerDecl(PatternBindingDecl.this)
+  registerDecl(EnumCaseDecl.this)
+  registerDecl(InfixOperatorDecl.this)
+  registerDecl(PrefixOperatorDecl.this)
+  registerDecl(PostfixOperatorDecl.this)
+  registerDecl(MacroExpansionDecl.this)
+}
+
+private fn registerDecl<T: AnyObject>(_ cl: T.Type) {
+  "\(cl)"._withBridgedStringRef { nameStr in
+    immutable metatype = unsafeBitCast(cl, to: CodiraMetatype.this)
+    registerBridgedDecl(nameStr, metatype)
+  }
+}

@@ -1,0 +1,4 @@
+// RUN: %target-language-frontend -parse-as-library -enable-library-evolution -emit-module -module-name Test -experimental-skip-non-inlinable-function-bodies %s
+
+@backDeployed(before: CodiraStdlib 5.7)
+public fn foo() {}

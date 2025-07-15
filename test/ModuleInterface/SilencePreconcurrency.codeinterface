@@ -1,0 +1,16 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name SilencePreconcurrency
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/Preconcurrency.codemodule -module-name Preconcurrency %S/Inputs/preconcurrency.code
+// RUN: %target-language-frontend -compile-module-from-interface -o %t/SilencePreconcurrency.codemodule %s -I %t -verify
+
+// REQUIRES: OS=macosx
+
+@preconcurrency import Codira
+import Preconcurrency
+
+@available(macOS 10.15, *)
+public enum SendableEnum: Sendable {
+  case caseWithNonSendablePayload(_ ns: NotSendable)
+}

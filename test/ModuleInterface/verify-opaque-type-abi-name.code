@@ -1,0 +1,4 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-typecheck-module-from-interface(%S/Inputs/opaque-type-abi-name/Bottom.codeinterface) -module-name Bottom -o %t/Bottom.codemodule -verify
+// RUN: %target-language-typecheck-module-from-interface(%S/Inputs/opaque-type-abi-name/Top.codeinterface) -module-name Top -o %t/Top.codemodule -verify -I %S/Inputs/opaque-type-abi-name

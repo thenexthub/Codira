@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language
+
+fn foo(_:[() -> ()]){}
+fn foo(_:[() throws -> ()]){}
+
+fn x() {}
+
+var bs = [x]
+
+foo(bs)

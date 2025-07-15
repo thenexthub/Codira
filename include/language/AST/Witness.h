@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the \c Witness data structure, used as part of protocol
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_WITNESS_H
-#define SWIFT_AST_WITNESS_H
+#ifndef LANGUAGE_AST_WITNESS_H
+#define LANGUAGE_AST_WITNESS_H
 
 #include "language/AST/ConcreteDeclRef.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
 
@@ -39,11 +40,11 @@ class ValueDecl;
 ///
 /// \code
 /// protocol P {
-///   func f()
+///   fn f()
 /// }
 ///
 /// struct X : P {
-///   func f() { }
+///   fn f() { }
 /// }
 /// \endcode
 ///
@@ -62,13 +63,13 @@ class ValueDecl;
 ///
 /// protocol R {
 ///   associatedtype B
-///   func foo<T : Q>(x: T) where T.A == B
+///   fn foo<T : Q>(x: T) where T.A == B
 /// }
 ///
 /// struct X<U, V> : R {
 ///   typealias B = U
 ///
-///   func foo<W: P>(x: W) where W.A == U { }
+///   fn foo<W: P>(x: W) where W.A == U { }
 /// }
 /// \endcode
 ///
@@ -103,7 +104,7 @@ class Witness {
     std::optional<ActorIsolation> enterIsolation;
   };
 
-  llvm::PointerUnion<ValueDecl *, StoredWitness *> storage;
+  toolchain::PointerUnion<ValueDecl *, StoredWitness *> storage;
 
 public:
   /// Create an empty witness, which describes missing witnesses.
@@ -214,9 +215,9 @@ public:
   /// witness thunk will need to hop to.
   Witness withEnterIsolation(ActorIsolation enterIsolation) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 };
 
 struct TypeWitnessAndDecl {
@@ -236,8 +237,8 @@ public:
     return witnessDecl;
   }
 
-  friend llvm::hash_code hash_value(const TypeWitnessAndDecl &owner) {
-    return llvm::hash_combine(owner.witnessType.getPointer(),
+  friend toolchain::hash_code hash_value(const TypeWitnessAndDecl &owner) {
+    return toolchain::hash_combine(owner.witnessType.getPointer(),
                               owner.witnessDecl);
   }
 
@@ -255,4 +256,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_AST_WITNESS_H
+#endif // LANGUAGE_AST_WITNESS_H

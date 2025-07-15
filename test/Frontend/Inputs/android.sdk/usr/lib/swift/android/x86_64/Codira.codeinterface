@@ -1,0 +1,3 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -target x86_64-unknown-linux-android -disable-objc-interop -language-version 5 -O -module-name Codira -parse-stdlib
+

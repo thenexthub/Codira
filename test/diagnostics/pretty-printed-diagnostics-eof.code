@@ -1,0 +1,13 @@
+// RUN: not %target-language-frontend -diagnostic-style=language -typecheck %/s 2>&1 | %FileCheck %s
+
+// REQUIRES: language_language_parser
+
+// CHECK:      {{SOURCE_DIR[/\]test[/\]diagnostics[/\]pretty-printed-diagnostics-eof\.code}}:[[#LINE:]]:1: error: expected '}' in struct
+// CHECK:      [[#LINE-2]] | struct MyStruct {
+// CHECK-NEXT:             |                 `- note: to match this opening '{'
+// CHECK-NEXT: [[#LINE-1]] |   fn foo() {}
+// CHECK-NEXT: [[#LINE]]   |
+// CHECK-NEXT:             | `- error: expected '}' in struct
+
+struct MyStruct {
+  fn foo() {}

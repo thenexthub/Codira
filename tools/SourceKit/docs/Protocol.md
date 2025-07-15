@@ -1,7 +1,7 @@
 # The SourceKit Protocol
 
 This documents the request/response API as it is currently implemented.
-For specific details related to Swift, see `SwiftSupport.md`.
+For specific details related to Codira, see `CodiraSupport.md`.
 
 The protocol is documented in the following format:
 
@@ -123,10 +123,10 @@ $ sourcekitd-test -req=complete -offset=<offset> <file> [-- <compiler args>]
 ```
 
 For example, to get a code completion suggestion for the 58th character in an
-ASCII file at `/path/to/file.swift`:
+ASCII file at `/path/to/file.code`:
 
 ```
-$ sourcekitd-test -req=complete -offset=58 /path/to/file.swift -- /path/to/file.swift
+$ sourcekitd-test -req=complete -offset=58 /path/to/file.code -- /path/to/file.code
 ```
 
 You could also issue the following request in the `sourcekitd-repl`:
@@ -136,9 +136,9 @@ $ sourcekitd-repl
 Welcome to SourceKit.  Type ':help' for assistance.
 (SourceKit) {
     key.request: source.request.codecomplete,
-    key.sourcefile: "/path/to/file.swift",
+    key.sourcefile: "/path/to/file.code",
     key.offset: 57,
-    key.compilerargs: ["/path/to/file.swift"]
+    key.compilerargs: ["/path/to/file.code"]
 }
 ```
 
@@ -206,7 +206,7 @@ entity ::=
 ```
 dependency ::=
 {
-    <key.kind>:        (UID)    // UID for the kind (import of a swift module, etc.).
+    <key.kind>:        (UID)    // UID for the kind (import of a language module, etc.).
     <key.name>:        (string) // Displayed name for dependency.
     <key.filepath>:    (string) // Path to the file.
     [opt] <key.hash>:  (string) // Hash associated with this dependency.
@@ -219,10 +219,10 @@ dependency ::=
 $ sourcekitd-test -req=index <file> [-- <compiler args>]
 ```
 
-For example, to index a file at `/path/to/file.swift`:
+For example, to index a file at `/path/to/file.code`:
 
 ```
-$ sourcekitd-test -req=index /path/to/file.swift -- /path/to/file.swift
+$ sourcekitd-test -req=index /path/to/file.code -- /path/to/file.code
 ```
 
 You could also issue the following request in the `sourcekitd-repl`:
@@ -232,15 +232,15 @@ $ sourcekitd-repl
 Welcome to SourceKit.  Type ':help' for assistance.
 (SourceKit) {
     key.request: source.request.index,
-    key.sourcefile: "/path/to/file.swift",
-    key.compilerargs: ["/path/to/file.swift"]
+    key.sourcefile: "/path/to/file.code",
+    key.compilerargs: ["/path/to/file.code"]
 }
 ```
 
 ## Documentation
 
 SourceKit is capable of gathering symbols and their documentation, either
-from Swift source code or from a Swift module. SourceKit returns a list of
+from Codira source code or from a Codira module. SourceKit returns a list of
 symbols and, if they are documented, the documentation for those symbols.
 
 To gather documentation, SourceKit must be given either the name of a module
@@ -253,7 +253,7 @@ provided, and both of those keys are ignored if `key.modulename` is provided.
 ```
 {
     <key.request>:          (UID) <source.request.docinfo>
-    [opt] <key.modulename>: (string)   // The name of the Swift module.
+    [opt] <key.modulename>: (string)   // The name of the Codira module.
     [opt] <key.sourcetext>: (string)   // Source contents.
     [opt] <key.sourcefile>: (string)   // Absolute path to the file.
     [opt] <key.compilerargs> [string*] // Array of zero or more strings for the compiler arguments
@@ -332,10 +332,10 @@ diagnostic ::=
 $ sourcekitd-test -req=doc-info <file> [-- <compiler args>]
 ```
 
-For example, to gather documentation info for a file at `/path/to/file.swift`:
+For example, to gather documentation info for a file at `/path/to/file.code`:
 
 ```
-$ sourcekitd-test -req=doc-info /path/to/file.swift -- /path/to/file.swift
+$ sourcekitd-test -req=doc-info /path/to/file.code -- /path/to/file.code
 ```
 
 You could also issue the following request in the `sourcekitd-repl` to
@@ -368,9 +368,9 @@ Welcome to SourceKit.  Type ':help' for assistance.
 
 ### Response
 
-This will return the Swift interface of the specified module.
+This will return the Codira interface of the specified module.
 
-- `key.sourcetext`: The pretty-printed module interface in swift source code.
+- `key.sourcetext`: The pretty-printed module interface in language source code.
 - `key.syntaxmap`: An array of syntactic annotations, same as the one returned for the source.request.editor.open request.
 - `key.annotations`: An array of semantic annotations, same as the one returned for the source.request.editor.open request.
 - `key.substructure`: An array of dictionaries representing ranges of structural elements in the result description, such as the parameters of a function.
@@ -456,7 +456,7 @@ Sub-diagnostics are only diagnostic notes currently.
 
 ## Demangling
 
-SourceKit is capable of "demangling" mangled Swift symbols. In other words,
+SourceKit is capable of "demangling" mangled Codira symbols. In other words,
 it's capable of taking the symbol `_TF13MyCoolPackageg6raichuVS_7Pokemon` as
 input, and returning the human-readable
 `MyCoolPackage.raichu.getter : MyCoolPackage.Pokemon`.
@@ -518,7 +518,7 @@ Welcome to SourceKit.  Type ':help' for assistance.
 
 ## Simple Class Mangling
 
-SourceKit is capable of "mangling" Swift class names. In other words,
+SourceKit is capable of "mangling" Codira class names. In other words,
 it's capable of taking the human-readable `UIKit.ViewController` as input and returning the symbol `_TtC5UIKit14ViewController`.
 
 ### Request
@@ -533,7 +533,7 @@ it's capable of taking the human-readable `UIKit.ViewController` as input and re
 ```
 mangle-request ::=
 {
-    <key.modulename>: (string)  // The Swift module name
+    <key.modulename>: (string)  // The Codira module name
     <key.name>: (string)        // The class name
 }
 ```
@@ -726,8 +726,8 @@ struct Foo {
 To get the information about the type `Foo` you would make one of the following requests:
 
 ```
-$ sourcekitd-test -req=cursor -offset=7 /path/to/file.swift -- /path/to/file.swift
-$ sourcekitd-test -req=cursor -pos=1:8 /path/to/file.swift -- /path/to/file.swift
+$ sourcekitd-test -req=cursor -offset=7 /path/to/file.code -- /path/to/file.code
+$ sourcekitd-test -req=cursor -pos=1:8 /path/to/file.code -- /path/to/file.code
 ```
 
 Note that when using `sourcekitd-test`, the output is output in an ad hoc text format, not JSON.
@@ -739,15 +739,15 @@ $ sourcekitd-repl
 Welcome to SourceKit.  Type ':help' for assistance.
 (SourceKit) {
   key.request: source.request.cursorinfo,
-  key.sourcefile: "/path/to/file.swift",
+  key.sourcefile: "/path/to/file.code",
   key.offset: 7,
-  key.compilerargs: ["/path/to/file.swift"]
+  key.compilerargs: ["/path/to/file.code"]
 }
 ```
 
 ## Expression Type
 This request collects the types of all expressions in a source file after type checking.
-To fulfill this task, the client must provide the path to the Swift source file under
+To fulfill this task, the client must provide the path to the Codira source file under
 type checking and the necessary compiler arguments to help resolve all dependencies.
 
 ### Request
@@ -786,13 +786,13 @@ expr-type-info ::=
 ### Testing
 
 ```
-$ sourcekitd-test -req=collect-type /path/to/file.swift -- /path/to/file.swift
+$ sourcekitd-test -req=collect-type /path/to/file.code -- /path/to/file.code
 ```
 
 ## Variable Type
 
 This request collects the types of all variable declarations in a source file after type checking.
-To fulfill this task, the client must provide the path to the Swift source file under
+To fulfill this task, the client must provide the path to the Codira source file under
 type checking and the necessary compiler arguments to help resolve all dependencies.
 
 ### Request
@@ -830,7 +830,7 @@ var-type-info ::=
 ### Testing
 
 ```
-$ sourcekitd-test -req=collect-var-type /path/to/file.swift -- /path/to/file.swift
+$ sourcekitd-test -req=collect-var-type /path/to/file.code -- /path/to/file.code
 ```
 
 # UIDs

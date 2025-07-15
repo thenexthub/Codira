@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: echo "// language-interface-format-version: 1.0" > %t/Main.codeinterface
+// RUN: echo "// language-module-flags: -module-name Foo" >> %t/Main.codeinterface
+// RUN: echo "malfunctioned" >> %t/Main.codeinterface
+// RUN: %target-language-frontend -typecheck-module-from-interface %t/Main.codeinterface -module-name Foo -downgrade-typecheck-interface-error &> %t/results.txt
+// RUN: %FileCheck --input-file %t/results.txt %s
+
+// CHECK: warning:
+// CHECK-NOT: error:

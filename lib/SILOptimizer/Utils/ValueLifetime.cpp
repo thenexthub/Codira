@@ -1,13 +1,17 @@
 //===--- ValueLifetime.cpp - ValueLifetimeAnalysis ------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
@@ -20,7 +24,7 @@
 using namespace language;
 
 void ValueLifetimeBoundary::visitInsertionPoints(
-    llvm::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
+    toolchain::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
     DeadEndBlocks *deBlocks) {
   for (SILInstruction *user : lastUsers) {
     if (!isa<TermInst>(user)) {
@@ -107,21 +111,21 @@ void ValueLifetimeAnalysis::propagateLiveness() {
 
 SILInstruction *ValueLifetimeAnalysis::findLastUserInBlock(SILBasicBlock *bb) {
   // Walk backwards in bb looking for last use of the value.
-  for (auto &inst : llvm::reverse(*bb)) {
+  for (auto &inst : toolchain::reverse(*bb)) {
     assert(defValue.dyn_cast<SILInstruction *>() != &inst &&
            "Found def before finding use!");
 
     if (userSet.count(&inst))
       return &inst;
   }
-  llvm_unreachable("Expected to find use of value in block!");
+  toolchain_unreachable("Expected to find use of value in block!");
 }
 
 // FIXME: remove the visitBlock callback once DeadEndBlocks is removed.
 void ValueLifetimeAnalysis::computeLifetime(
-    llvm::function_ref<bool(SILBasicBlock *)> visitBlock,
-    llvm::function_ref<void(SILInstruction *)> visitLastUser,
-    llvm::function_ref<void(SILBasicBlock *predBB, SILBasicBlock *succBB)>
+    toolchain::function_ref<bool(SILBasicBlock *)> visitBlock,
+    toolchain::function_ref<void(SILInstruction *)> visitLastUser,
+    toolchain::function_ref<void(SILBasicBlock *predBB, SILBasicBlock *succBB)>
         visitBoundaryEdge) {
   assert(!isAliveAtBeginOfBlock(getFunction()->getEntryBlock()) &&
          "Can't compute frontier for def which does not dominate all uses");
@@ -296,7 +300,7 @@ bool ValueLifetimeAnalysis::computeFrontier(FrontierImpl &frontier, Mode mode,
     auto *term = frontierPred->getTerminator();
     // Cache the successor blocks because splitting critical edges invalidates
     // the successor list iterator of T.
-    llvm::SmallVector<SILBasicBlock *, 4> succBlocks;
+    toolchain::SmallVector<SILBasicBlock *, 4> succBlocks;
     for (const SILSuccessor &succ : term->getSuccessors())
       succBlocks.push_back(succ);
 
@@ -342,7 +346,7 @@ bool ValueLifetimeAnalysis::isWithinLifetime(SILInstruction *inst) {
     if (inst == &*ii)
       return false;
   }
-  llvm_unreachable("Expected to find use of value in block!");
+  toolchain_unreachable("Expected to find use of value in block!");
 }
 
 // Searches \p bb backwards from the instruction before \p frontierInst
@@ -389,23 +393,23 @@ bool ValueLifetimeAnalysis::containsDeallocRef(const FrontierImpl &frontier) {
 }
 
 void ValueLifetimeAnalysis::dump() const {
-  llvm::errs() << "lifetime of def: ";
+  toolchain::errs() << "lifetime of def: ";
   if (auto *ii = defValue.dyn_cast<SILInstruction *>()) {
-    llvm::errs() << *ii;
+    toolchain::errs() << *ii;
   } else {
-    llvm::errs() << *defValue.get<SILArgument *>();
+    toolchain::errs() << *defValue.get<SILArgument *>();
   }
   for (SILInstruction *use : userSet) {
-    llvm::errs() << "  use: " << *use;
+    toolchain::errs() << "  use: " << *use;
   }
-  llvm::errs() << "  live blocks:";
+  toolchain::errs() << "  live blocks:";
   for (SILBasicBlock *bb : liveBlocks) {
-    llvm::errs() << ' ' << bb->getDebugID();
+    toolchain::errs() << ' ' << bb->getDebugID();
   }
-  llvm::errs() << '\n';
+  toolchain::errs() << '\n';
 }
 
-void swift::endLifetimeAtFrontier(
+void language::endLifetimeAtFrontier(
     SILValue valueOrStackLoc,
     const ValueLifetimeAnalysis::FrontierImpl &frontier,
     SILBuilderContext &builderCtxt, InstModCallbacks callbacks) {

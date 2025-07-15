@@ -1,0 +1,13 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s | %FileCheck %s
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=B -source-filename=%s | %FileCheck %s
+
+typealias X = protocol<CustomStringConvertible>
+typealias Y = protocol<CustomStringConvertible>
+extension protocol<X, Y> {
+    fn x() { #^A^# }
+}
+extension AnyObject {
+    fn x() { #^B^# }
+}
+// Soundness check results.
+// CHECK:  Keyword[immutable]/None:                  immutable

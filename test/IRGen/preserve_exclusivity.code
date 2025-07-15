@@ -1,0 +1,53 @@
+// RUN: %target-language-frontend -language-version 4 -parse-stdlib -Xtoolchain -sil-disable-pass=FunctionSignatureOpts -Xtoolchain -sil-disable-pass=GenericSpecializer -emit-ir -O %s | %FileCheck %s
+//
+// Check that the -O pipeline always preserves the runtime calls for Builtin access markers and that the KeyPath implementation is fully inlined.
+
+@_silgen_name("marker1")
+fn marker1() -> ()
+
+@_silgen_name("marker2")
+fn marker2() -> ()
+
+@_silgen_name("marker3")
+fn marker3() -> ()
+
+// IR-LABEL: define {{.*}}languagecc void @"$s20preserve_exclusivity11beginAccessyyBp_BpxmtlF"(ptr, ptr, ptr{{.*}}, ptr{{.*}} %T1)
+// IR:   call void @language_beginAccess
+// IR-NEXT: ret void
+
+public fn beginAccess<T1>(_ address: Builtin.RawPointer, _ scratch: Builtin.RawPointer, _ ty1: T1.Type) {
+  marker1()
+  Builtin.beginUnpairedModifyAccess(address, scratch, ty1);
+}
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s20preserve_exclusivity9endAccessyyBpF"(ptr{{.*}})
+// CHECK:   call void @language_endAccess
+// CHECK-NEXT: ret void
+public fn endAccess(_ address: Builtin.RawPointer) {
+  marker2()
+  Builtin.endUnpairedAccess(address)
+}
+
+// CHECK-LABEL: define {{.*}}languagecc void @"$s20preserve_exclusivity10readAccessyyBp_xmtlF"(ptr %0, ptr{{.*}}, ptr{{.*}} %T1)
+// CHECK:   call void @language_beginAccess
+// CHECK: ret void
+public fn readAccess<T1>(_ address: Builtin.RawPointer, _ ty1: T1.Type) {
+  marker3()
+  Builtin.performInstantaneousReadAccess(address, ty1);
+}
+
+// Make sure testAccess properly inlines in our functions.
+//
+// CHECK-LABEL: define {{.*}}languagecc void @"$s20preserve_exclusivity10testAccessyyBpF"(ptr %0)
+// CHECK: call languagecc void @marker1
+// CHECK: call void @language_beginAccess
+// CHECK: call languagecc void @marker2
+// CHECK: call void @language_endAccess
+// CHECK: call languagecc void @marker3
+// CHECK: call void @language_beginAccess
+// CHECK: ret void
+public fn testAccess(_ k1: Builtin.RawPointer) {
+  beginAccess(k1, k1, Builtin.RawPointer.this)
+  endAccess(k1)
+  readAccess(k1, Builtin.RawPointer.this)
+}

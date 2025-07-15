@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Pre-checking resolves unqualified name references, type expressions and
@@ -39,8 +40,8 @@
 #include "language/Parse/Confusables.h"
 #include "language/Parse/Lexer.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 using namespace constraints;
@@ -50,8 +51,8 @@ using namespace constraints;
 //===----------------------------------------------------------------------===//
 
 static unsigned getNumArgs(ValueDecl *value) {
-  if (auto *func = dyn_cast<FuncDecl>(value))
-    return func->getParameters()->size();
+  if (auto *fn = dyn_cast<FuncDecl>(value))
+    return fn->getParameters()->size();
   return ~0U;
 }
 
@@ -73,7 +74,7 @@ static bool matchesDeclRefKind(ValueDecl *value, DeclRefKind refKind) {
     return (value->getAttrs().hasAttribute<PostfixAttr>() &&
             getNumArgs(value) == 1);
   }
-  llvm_unreachable("bad declaration reference kind");
+  toolchain_unreachable("bad declaration reference kind");
 }
 
 static bool containsDeclRefKind(LookupResult &lookupResult,
@@ -296,7 +297,7 @@ static bool diagnoseIncDecOperator(DiagnosticEngine &Diags,
 static bool findNonMembers(ArrayRef<LookupResultEntry> lookupResults,
                            DeclRefKind refKind, bool breakOnMember,
                            SmallVectorImpl<ValueDecl *> &ResultValues,
-                           llvm::function_ref<bool(ValueDecl *)> isValid) {
+                           toolchain::function_ref<bool(ValueDecl *)> isValid) {
   bool AllDeclRefs = true;
   for (auto Result : lookupResults) {
     // If we find a member, then all of the results aren't non-members.
@@ -430,7 +431,7 @@ static BinaryExpr *getCompositionExpr(Expr *expr) {
     // composition TypeExpr
     auto fn = binaryExpr->getFn();
     if (auto Overload = dyn_cast<OverloadedDeclRefExpr>(fn)) {
-      if (llvm::any_of(Overload->getDecls(), [](auto *decl) -> bool {
+      if (toolchain::any_of(Overload->getDecls(), [](auto *decl) -> bool {
             return decl->getBaseName() == "&";
           }))
         return binaryExpr;
@@ -684,7 +685,7 @@ Expr *TypeChecker::resolveDeclRefExpr(UnresolvedDeclRefExpr *UDRE,
 
     Identifier simpleName = Name.getBaseIdentifier();
     const char *buffer = simpleName.get();
-    llvm::SmallString<64> expectedIdentifier;
+    toolchain::SmallString<64> expectedIdentifier;
     bool isConfused = false;
     uint32_t codepoint;
     uint32_t firstConfusableCodepoint = 0;
@@ -869,10 +870,10 @@ Expr *TypeChecker::resolveDeclRefExpr(UnresolvedDeclRefExpr *UDRE,
 
     // Filter out macro declarations without `#` if there are valid
     // non-macro results.
-    if (llvm::any_of(ResultValues,
+    if (toolchain::any_of(ResultValues,
                      [](const ValueDecl *D) { return !isa<MacroDecl>(D); })) {
       ResultValues.erase(
-          llvm::remove_if(ResultValues,
+          toolchain::remove_if(ResultValues,
                           [](const ValueDecl *D) { return isa<MacroDecl>(D); }),
           ResultValues.end());
 
@@ -949,7 +950,7 @@ Expr *TypeChecker::resolveDeclRefExpr(UnresolvedDeclRefExpr *UDRE,
       return false;
     };
 
-    llvm::SmallVector<ValueDecl *, 4> outerAlternatives;
+    toolchain::SmallVector<ValueDecl *, 4> outerAlternatives;
     (void)findNonMembers(Lookup.outerResults(), UDRE->getRefKind(),
                          /*breakOnMember=*/false, outerAlternatives,
                          /*isValid=*/[&](ValueDecl *choice) -> bool {
@@ -1078,7 +1079,7 @@ class PreCheckTarget final : public ASTWalker {
 
   /// A stack of expressions being walked, used to determine where to
   /// insert RebindSelfInConstructorExpr nodes.
-  llvm::SmallVector<Expr *, 8> ExprStack;
+  toolchain::SmallVector<Expr *, 8> ExprStack;
 
   /// The 'self' variable to use when rebinding 'self' in a constructor.
   VarDecl *UnresolvedCtorSelf = nullptr;
@@ -1088,12 +1089,12 @@ class PreCheckTarget final : public ASTWalker {
   Expr *UnresolvedCtorRebindTarget = nullptr;
 
   /// Keep track of acceptable DiscardAssignmentExpr's.
-  llvm::SmallPtrSet<DiscardAssignmentExpr *, 2> CorrectDiscardAssignmentExprs;
+  toolchain::SmallPtrSet<DiscardAssignmentExpr *, 2> CorrectDiscardAssignmentExprs;
 
   /// Keep track of any out-of-place SingleValueStmtExprs. We populate this as
   /// we encounter SingleValueStmtExprs, and erase them as we walk up to a
   /// valid parent in the post walk.
-  llvm::SetVector<SingleValueStmtExpr *> OutOfPlaceSingleValueStmtExprs;
+  toolchain::SetVector<SingleValueStmtExpr *> OutOfPlaceSingleValueStmtExprs;
 
   /// Simplify expressions which are type sugar productions that got parsed
   /// as expressions due to the parser not knowing which identifiers are
@@ -1138,7 +1139,7 @@ class PreCheckTarget final : public ASTWalker {
   /// such simplification (see \c canSimplifyPlaceholderTypes above).
   bool canSimplifyDiscardAssignmentExpr(DiscardAssignmentExpr *DAE);
 
-  /// In Swift < 5, diagnose and correct invalid multi-argument or
+  /// In Codira < 5, diagnose and correct invalid multi-argument or
   /// argument-labeled interpolations. Returns \c true if the AST walk should
   /// continue, or \c false if it should be aborted.
   bool correctInterpolationIfStrange(InterpolatedStringLiteralExpr *ISLE);
@@ -1318,8 +1319,9 @@ public:
           lastInnerParenLoc = PE->getLParenLoc();
           parent = nextParent;
         }
-
-        if (isa<ApplyExpr>(parent) || isa<UnresolvedMemberExpr>(parent)) {
+        
+        if (isa<ApplyExpr>(parent) || isa<UnresolvedMemberExpr>(parent) ||
+            isa<MacroExpansionExpr>(parent)) {
           // If outermost paren is associated with a call or
           // a member reference, it might be valid to have `&`
           // before all of the parens.
@@ -1415,7 +1417,7 @@ public:
         // Walk our ancestor expressions looking for the appropriate place
         // to insert the RebindSelfInConstructorExpr.
         Expr *target = apply;
-        for (auto ancestor : llvm::reverse(ExprStack)) {
+        for (auto ancestor : toolchain::reverse(ExprStack)) {
           if (isa<IdentityExpr>(ancestor) || isa<ForceValueExpr>(ancestor) ||
               isa<AnyTryExpr>(ancestor)) {
             target = ancestor;
@@ -1887,7 +1889,7 @@ bool PreCheckTarget::exprLooksLikeAType(Expr *expr) {
 
 bool PreCheckTarget::possiblyInTypeContext(Expr *E) {
   // Walk back up the stack of parents looking for a valid type context.
-  for (auto *ParentExpr : llvm::reverse(ExprStack)) {
+  for (auto *ParentExpr : toolchain::reverse(ExprStack)) {
     // We're considered to be in a type context if either:
     // - We have a valid parent for a TypeExpr, or
     // - The parent "looks like" a type (and is not a call arg), and we can
@@ -1912,13 +1914,13 @@ bool PreCheckTarget::canSimplifyDiscardAssignmentExpr(
 }
 
 
-/// In Swift < 5, diagnose and correct invalid multi-argument or
+/// In Codira < 5, diagnose and correct invalid multi-argument or
 /// argument-labeled interpolations. Returns \c true if the AST walk should
 /// continue, or \c false if it should be aborted.
 bool PreCheckTarget::correctInterpolationIfStrange(
     InterpolatedStringLiteralExpr *ISLE) {
-  // These expressions are valid in Swift 5+.
-  if (getASTContext().isSwiftVersionAtLeast(5))
+  // These expressions are valid in Codira 5+.
+  if (getASTContext().isCodiraVersionAtLeast(5))
     return true;
 
   /// Diagnoses appendInterpolation(...) calls with multiple
@@ -2104,7 +2106,7 @@ static bool isTildeOperator(Expr *expr) {
   };
 
   if (auto overload = dyn_cast<OverloadedDeclRefExpr>(expr)) {
-    return llvm::any_of(overload->getDecls(), [=](auto *decl) -> bool {
+    return toolchain::any_of(overload->getDecls(), [=](auto *decl) -> bool {
       return nameMatches(decl->getName());
     });
   }
@@ -2467,7 +2469,7 @@ void PreCheckTarget::resolveKeyPathExpr(KeyPathExpr *KPE) {
     // implicit TypeExpr or an implicit DeclRefExpr.
     auto diagnoseMissingDot = [&]() {
       DE.diagnose(expr->getLoc(),
-                  diag::expr_swift_keypath_not_starting_with_dot)
+                  diag::expr_language_keypath_not_starting_with_dot)
           .fixItInsert(expr->getStartLoc(), ".");
     };
     while (1) {
@@ -2534,11 +2536,11 @@ void PreCheckTarget::resolveKeyPathExpr(KeyPathExpr *KPE) {
         (void)outermostExpr;
         assert(OEE == outermostExpr);
         expr = OEE->getSubExpr();
-      } else if (auto AE = dyn_cast<ApplyExpr>(expr)) {
+      } else if (auto CE = dyn_cast<CallExpr>(expr)) {
         // foo(), foo(val value: Int) or unapplied foo
         components.push_back(KeyPathExpr::Component::forUnresolvedApply(
-            getASTContext(), AE->getArgs()));
-        expr = AE->getFn();
+            getASTContext(), CE->getArgs()));
+        expr = CE->getFn();
       } else {
         if (emitErrors) {
           // \(<expr>) may be an attempt to write a string interpolation outside
@@ -2548,7 +2550,7 @@ void PreCheckTarget::resolveKeyPathExpr(KeyPathExpr *KPE) {
                         diag::expr_string_interpolation_outside_string);
           } else {
             DE.diagnose(expr->getLoc(),
-                        diag::expr_swift_keypath_invalid_component);
+                        diag::expr_language_keypath_invalid_component);
           }
         }
         components.push_back(KeyPathExpr::Component());
@@ -2572,7 +2574,7 @@ void PreCheckTarget::resolveKeyPathExpr(KeyPathExpr *KPE) {
         // FIXME: Probably better to catch this case earlier and force-eval as
         // TypeExpr.
         DE.diagnose(root->getLoc(),
-                    diag::expr_swift_keypath_not_starting_with_type);
+                    diag::expr_language_keypath_not_starting_with_type);
 
         // Traverse this path for recovery purposes: it may be a typo like
         // \Foo.property.[0].
@@ -2600,7 +2602,7 @@ void PreCheckTarget::resolveKeyPathExpr(KeyPathExpr *KPE) {
 Expr *PreCheckTarget::simplifyTypeConstructionWithLiteralArg(Expr *E) {
   // If constructor call is expected to produce an optional let's not attempt
   // this optimization because literal initializers aren't failable.
-  if (!getASTContext().LangOpts.isSwiftVersionAtLeast(5)) {
+  if (!getASTContext().LangOpts.isCodiraVersionAtLeast(5)) {
     if (!ExprStack.empty()) {
       auto *parent = ExprStack.back();
       if (isa<BindOptionalExpr>(parent) || isa<ForceValueExpr>(parent))

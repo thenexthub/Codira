@@ -1,0 +1,49 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol b {
+    class fn e()
+}
+struct c {
+    var d: b.Type
+    fn e() {
+        d.e()
+    }
+}
+fn e<k>() -> (k, k -> k) -> k {
+   f j f.i = {
+}
+ {
+   k) {
+       n  }
+}
+m e {
+   class fn i()
+}
+class f: e{  class f = a
+}
+struct e : d {
+  typealias f = b
+}
+fn i<j : b, k : d where k.f == j> (n: k) {
+}
+fn i<l : d where l.f = 0) {
+}
+l -> Any)   return $0
+}
+immutable succeeds: Int = 1, f1)
+class A<T : A> {
+}
+class c {
+    fn b((Any, c))(a: (Any, AnyObj c() -> Str rn 
+fn e<T where Tj d.        h  }b
+}

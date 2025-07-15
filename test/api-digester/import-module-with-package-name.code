@@ -1,0 +1,105 @@
+// REQUIRES: VENDOR=apple
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t.mod)
+// RUN: %empty-directory(%t.sdk)
+// RUN: %empty-directory(%t.module-cache)
+// RUN: split-file %s %t
+
+// Make sure api-digester loads an interface with package-name correctly
+
+// Generate module Lib
+// RUN: %target-language-frontend  %t/Lib.code -emit-module -module-name Lib -emit-module-path %t.mod/Lib.codemodule -emit-module-interface-path %t.mod/Lib.codeinterface -emit-private-module-interface-path %t.mod/Lib.private.codeinterface -package-name myLib -parse-as-library -enable-library-evolution -module-cache-path %t.module-cache -language-version 5
+
+// Dumping sdk for Lib ABI via .codemodule file should work
+// RUN: %api-digester -dump-sdk -abort-on-module-fail -abi -module Lib -o - -module-cache-path %t.module-cache -I %t.mod > %t.dump-lib-binary.json
+// RUN: %FileCheck -check-prefix=LIB-BINARY %s < %t.dump-lib-binary.json
+// LIB-BINARY: PkgKlass
+// LIB-BINARY: pkgFunc
+// LIB-BINARY: PublicStruct
+// LIB-BINARY: PkgKlassUFI
+// LIB-BINARY: libFunc
+
+// Dumping sdk file for Lib ABI via .codeinterface file should work
+// RUN: %api-digester -dump-sdk -abort-on-module-fail -abi -module Lib -use-interface-for-module Lib -o - -module-cache-path %t.module-cache -I %t.mod > %t.dump-lib-interface.json
+// RUN: %FileCheck -check-prefix=LIB-INTERFACE %s < %t.dump-lib-interface.json
+// LIB-INTERFACE-NOT: PkgKlass
+// LIB-INTERFACE-NOT: pkgFunc
+// LIB-INTERFACE: PublicStruct
+// LIB-INTERFACE: PkgKlassUFI
+// LIB-INTERFACE: libFunc
+
+// Generate module Client
+// RUN: %target-language-frontend %t/Client.code -emit-module -module-name Client -emit-module-path %t.mod/Client.codemodule -emit-module-interface-path %t.mod/Client.codeinterface -emit-private-module-interface-path %t.mod/Client.private.codeinterface -package-name myLib -parse-as-library -enable-library-evolution -module-cache-path %t.module-cache -language-version 5  -I %t.mod
+
+// RUN: rm -f %t.mod/Lib.codemodule
+// RUN: rm -f %t.module-cache/Lib*.codemodule
+
+// Dumping sdk for Client ABI via .codemodule file should work
+// RUN: %api-digester -dump-sdk -abort-on-module-fail -abi -module Client -o - -module-cache-path %t.module-cache -I %t.mod > %t.dump-client-binary.json
+// RUN: %FileCheck -check-prefix=CLIENT-BINARY %s < %t.dump-client-binary.json
+// CLIENT-BINARY-NOT: PkgKlass
+// CLIENT-BINARY-NOT: pkgFunc
+// CLIENT-BINARY-NOT: PublicStruct
+// CLIENT-BINARY-NOT: PkgKlassUFI
+// CLIENT-BINARY-NOT: libFunc
+// CLIENT-BINARY: clientFunc
+// CLIENT-BINARY: clientFuncInlinable
+
+// Dumping sdk for Client ABI via .codeinterface file should work
+// RUN: %api-digester -dump-sdk -abort-on-module-fail -abi -module Client -use-interface-for-module Client -o - -module-cache-path %t.module-cache -I %t.mod > %t.dump-client-interface.json
+// RUN: %FileCheck -check-prefix=CLIENT-INTERFACE %s < %t.dump-client-interface.json
+// CLIENT-INTERFACE-NOT: PkgKlass
+// CLIENT-INTERFACE-NOT: pkgFunc
+// CLIENT-INTERFACE-NOT: PublicStruct
+// CLIENT-INTERFACE-NOT: PkgKlassUFI
+// CLIENT-INTERFACE-NOT: libFunc
+// CLIENT-INTERFACE: clientFunc
+// CLIENT-INTERFACE: clientFuncInlinable
+
+
+//--- Lib.code
+package class PkgKlass {
+  package class fn foo() {}
+  package fn foo2(_ : Int) {}
+  package weak var bar : PkgKlass?
+  package var bar2 : PkgKlass?
+}
+
+package fn pkgFunc() -> (PkgKlass) -> () { return { _ in } }
+
+public struct PublicStruct {
+  package init(_ : PkgKlass?) {}
+  public static fn baz(_ arg: String?) {}
+}
+
+@usableFromInline
+package struct PkgKlassUFI {
+  @usableFromInline
+  package init() {}
+  @usableFromInline
+  package fn ufiFunc() {}
+}
+
+@inlinable
+public fn libFunc() {
+  PkgKlassUFI().ufiFunc()
+}
+
+//--- Client.code
+import Lib
+
+public fn clientFunc() {
+  PkgKlass.foo()
+  immutable result = pkgFunc()
+  immutable s = PublicStruct(nil)
+  PublicStruct.baz("")
+  print(s, result)
+}
+
+@inlinable
+public fn clientFuncInlinable() {
+  immutable x = PkgKlassUFI()
+  libFunc()
+  print(x)
+}

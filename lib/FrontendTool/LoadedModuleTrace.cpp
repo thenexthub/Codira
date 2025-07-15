@@ -1,4 +1,4 @@
-//===--- ModuleTrace.cpp -- Emit a trace of all loaded Swift modules ------===//
+//===--- ModuleTrace.cpp -- Emit a trace of all loaded Codira modules ------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Dependencies.h"
@@ -34,12 +35,12 @@
 #include "clang/AST/ObjCMethodReferenceInfo.h"
 #include "clang/Basic/Module.h"
 
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/FileUtilities.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/FileUtilities.h"
 
 #if !defined(_MSC_VER) && !defined(__MINGW32__)
 #include <unistd.h>
@@ -50,7 +51,7 @@
 using namespace language;
 
 namespace {
-struct SwiftModuleTraceInfo {
+struct CodiraModuleTraceInfo {
   Identifier Name;
   std::string Path;
   bool IsImportedDirectly;
@@ -58,7 +59,7 @@ struct SwiftModuleTraceInfo {
   bool StrictMemorySafety;
 };
 
-struct SwiftMacroTraceInfo {
+struct CodiraMacroTraceInfo {
   Identifier Name;
   std::string Path;
 };
@@ -68,16 +69,18 @@ struct LoadedModuleTraceFormat {
   unsigned Version;
   Identifier Name;
   std::string Arch;
+  std::string LanguageMode;
+  std::vector<StringRef> EnabledLanguageFeatures;
   bool StrictMemorySafety;
-  std::vector<SwiftModuleTraceInfo> SwiftModules;
-  std::vector<SwiftMacroTraceInfo> SwiftMacros;
+  std::vector<CodiraModuleTraceInfo> CodiraModules;
+  std::vector<CodiraMacroTraceInfo> CodiraMacros;
 };
 } // namespace
 
 namespace language {
 namespace json {
-template <> struct ObjectTraits<SwiftModuleTraceInfo> {
-  static void mapping(Output &out, SwiftModuleTraceInfo &contents) {
+template <> struct ObjectTraits<CodiraModuleTraceInfo> {
+  static void mapping(Output &out, CodiraModuleTraceInfo &contents) {
     StringRef name = contents.Name.str();
     out.mapRequired("name", name);
     out.mapRequired("path", contents.Path);
@@ -90,8 +93,8 @@ template <> struct ObjectTraits<SwiftModuleTraceInfo> {
 };
 
 template <>
-struct ObjectTraits<SwiftMacroTraceInfo> {
-  static void mapping(Output &out, SwiftMacroTraceInfo &contents) {
+struct ObjectTraits<CodiraMacroTraceInfo> {
+  static void mapping(Output &out, CodiraMacroTraceInfo &contents) {
     StringRef name = contents.Name.str();
     out.mapRequired("name", name);
     out.mapRequired("path", contents.Path);
@@ -99,8 +102,8 @@ struct ObjectTraits<SwiftMacroTraceInfo> {
 };
 
 // Version notes:
-// 1. Keys: name, arch, swiftmodules
-// 2. New keys: version, swiftmodulesDetailedInfo
+// 1. Keys: name, arch, languagemodules
+// 2. New keys: version, languagemodulesDetailedInfo
 template <> struct ObjectTraits<LoadedModuleTraceFormat> {
   static void mapping(Output &out, LoadedModuleTraceFormat &contents) {
     out.mapRequired("version", contents.Version);
@@ -110,17 +113,22 @@ template <> struct ObjectTraits<LoadedModuleTraceFormat> {
 
     out.mapRequired("arch", contents.Arch);
 
+    out.mapRequired("languageMode", contents.codeMode);
+
+    out.mapRequired("enabledLanguageFeatures",
+                    contents.EnabledLanguageFeatures);
+
     out.mapRequired("strictMemorySafety", contents.StrictMemorySafety);
 
-    // The 'swiftmodules' key is kept for backwards compatibility.
+    // The 'languagemodules' key is kept for backwards compatibility.
     std::vector<std::string> moduleNames;
-    for (auto &m : contents.SwiftModules)
+    for (auto &m : contents.CodiraModules)
       moduleNames.push_back(m.Path);
-    out.mapRequired("swiftmodules", moduleNames);
+    out.mapRequired("languagemodules", moduleNames);
 
-    out.mapRequired("swiftmodulesDetailedInfo", contents.SwiftModules);
+    out.mapRequired("languagemodulesDetailedInfo", contents.CodiraModules);
 
-    out.mapRequired("swiftmacros", contents.SwiftMacros);
+    out.mapRequired("languagemacros", contents.CodiraMacros);
   }
 };
 } // namespace json
@@ -128,13 +136,13 @@ template <> struct ObjectTraits<LoadedModuleTraceFormat> {
 
 static bool isClangOverlayOf(ModuleDecl *potentialOverlay,
                              ModuleDecl *potentialUnderlying) {
-  return !potentialOverlay->isNonSwiftModule() &&
-         potentialUnderlying->isNonSwiftModule() &&
+  return !potentialOverlay->isNonCodiraModule() &&
+         potentialUnderlying->isNonCodiraModule() &&
          potentialOverlay->getName() == potentialUnderlying->getName();
 }
 
-// TODO: Delete this once changes from https://reviews.llvm.org/D83449 land on
-// apple/llvm-project's swift/main branch.
+// TODO: Delete this once changes from https://reviews.toolchain.org/D83449 land on
+// apple/toolchain-project's language/main branch.
 template <typename SetLike, typename Item>
 static bool contains(const SetLike &setLike, Item item) {
   return setLike.find(item) != setLike.end();
@@ -165,10 +173,10 @@ class ABIDependencyEvaluator {
   /// \code
   /// - A is @_exported-imported by B
   /// - B is #imported by C' (via a compiler-generated umbrella header)
-  /// - C' is @_exported-imported by C (Swift overlay)
+  /// - C' is @_exported-imported by C (Codira overlay)
   /// - D' is #imported by E'
-  /// - D' is @_exported-imported by D (Swift overlay)
-  /// - E' is @_exported-imported by E (Swift overlay)
+  /// - D' is @_exported-imported by D (Codira overlay)
+  /// - E' is @_exported-imported by E (Codira overlay)
   /// \endcode
   ///
   /// Then the \c abiExportMap will be
@@ -177,16 +185,16 @@ class ABIDependencyEvaluator {
   /// \endcode
   ///
   /// \b WARNING: Use \c reexposeImportedABI instead of inserting directly.
-  llvm::DenseMap<ModuleDecl *, llvm::DenseSet<ModuleDecl *>> abiExportMap;
+  toolchain::DenseMap<ModuleDecl *, toolchain::DenseSet<ModuleDecl *>> abiExportMap;
 
   /// Stack for depth-first traversal.
   SmallVector<ModuleDecl *, 32> searchStack;
 
-  llvm::DenseSet<ModuleDecl *> visited;
+  toolchain::DenseSet<ModuleDecl *> visited;
 
   /// Helper function to handle invariant violations as crashes in debug mode.
   void
-  crashOnInvariantViolation(llvm::function_ref<void(raw_ostream &)> f) const;
+  crashOnInvariantViolation(toolchain::function_ref<void(raw_ostream &)> f) const;
 
   /// Computes the ABI exports for \p importedModule and adds them to
   /// \p module's ABI exports.
@@ -198,10 +206,10 @@ class ABIDependencyEvaluator {
   void reexposeImportedABI(ModuleDecl *module, ModuleDecl *importedModule,
                            bool includeImportedModule = true);
 
-  /// Check if a Swift module is an overlay for some Clang module.
+  /// Check if a Codira module is an overlay for some Clang module.
   ///
-  /// FIXME: Delete this hack once https://github.com/apple/swift/issues/55804 is fixed and ModuleDecl has the right API which we can use directly.
-  bool isOverlayOfClangModule(ModuleDecl *swiftModule);
+  /// FIXME: Delete this hack once https://github.com/apple/language/issues/55804 is fixed and ModuleDecl has the right API which we can use directly.
+  bool isOverlayOfClangModule(ModuleDecl *languageModule);
 
   /// Check for cases where we have a fake cycle through an overlay.
   ///
@@ -227,39 +235,39 @@ class ABIDependencyEvaluator {
 
   /// Recursive step in computing ABI dependencies.
   ///
-  /// Use this method instead of using the \c forClangModule/\c forSwiftModule
+  /// Use this method instead of using the \c forClangModule/\c forCodiraModule
   /// methods.
   void computeABIDependenciesForModule(ModuleDecl *module);
-  void computeABIDependenciesForSwiftModule(ModuleDecl *module);
+  void computeABIDependenciesForCodiraModule(ModuleDecl *module);
   void computeABIDependenciesForClangModule(ModuleDecl *module);
 
-  static void printModule(const ModuleDecl *module, llvm::raw_ostream &os);
+  static void printModule(const ModuleDecl *module, toolchain::raw_ostream &os);
 
   template <typename SetLike>
-  static void printModuleSet(const SetLike &set, llvm::raw_ostream &os);
+  static void printModuleSet(const SetLike &set, toolchain::raw_ostream &os);
 
 public:
   ABIDependencyEvaluator() = default;
   ABIDependencyEvaluator(const ABIDependencyEvaluator &) = delete;
   ABIDependencyEvaluator(ABIDependencyEvaluator &&) = default;
 
-  void getABIDependenciesForSwiftModule(
+  void getABIDependenciesForCodiraModule(
       ModuleDecl *module, SmallPtrSetImpl<ModuleDecl *> &abiDependencies);
 
-  void printABIExportMap(llvm::raw_ostream &os) const;
+  void printABIExportMap(toolchain::raw_ostream &os) const;
 };
 } // end anonymous namespace
 
 // See [NOTE: Bailing-vs-crashing-in-trace-emission].
 // TODO: Use PrettyStackTrace instead?
 void ABIDependencyEvaluator::crashOnInvariantViolation(
-    llvm::function_ref<void(raw_ostream &)> f) const {
+    toolchain::function_ref<void(raw_ostream &)> f) const {
 #ifndef NDEBUG
   SmallVector<char, 0> msg;
-  llvm::raw_svector_ostream os(msg);
+  toolchain::raw_svector_ostream os(msg);
   os << "error: invariant violation: ";
   f(os);
-  llvm::report_fatal_error(msg);
+  toolchain::report_fatal_error(msg);
 #endif
 }
 
@@ -303,7 +311,7 @@ void ABIDependencyEvaluator::reexposeImportedABI(ModuleDecl *module,
       });
       return;
     }
-    if (reexport->isNonSwiftModule() && module->isNonSwiftModule() &&
+    if (reexport->isNonCodiraModule() && module->isNonCodiraModule() &&
         module->getTopLevelModule() == reexport->getTopLevelModule()) {
       // Dependencies within the same top-level Clang module are not useful.
       // See also: [NOTE: Trace-Clang-submodule-complexity].
@@ -316,7 +324,7 @@ void ABIDependencyEvaluator::reexposeImportedABI(ModuleDecl *module,
 
     if (::isClangOverlayOf(module, reexport)) {
       // For overlays, we need to have a dependency on the underlying module.
-      // Otherwise, we might accidentally create a Swift -> Swift cycle.
+      // Otherwise, we might accidentally create a Codira -> Codira cycle.
       abiExportMap[module].insert(
           reexport->getTopLevelModule(/*preferOverlay*/ false));
       return;
@@ -338,15 +346,15 @@ void ABIDependencyEvaluator::reexposeImportedABI(ModuleDecl *module,
     addToABIExportMap(module, reexportedModule);
 }
 
-bool ABIDependencyEvaluator::isOverlayOfClangModule(ModuleDecl *swiftModule) {
-  assert(!swiftModule->isNonSwiftModule());
+bool ABIDependencyEvaluator::isOverlayOfClangModule(ModuleDecl *languageModule) {
+  assert(!languageModule->isNonCodiraModule());
 
-  llvm::SmallPtrSet<ModuleDecl *, 8> importList;
-  ::getImmediateImports(swiftModule, importList,
+  toolchain::SmallPtrSet<ModuleDecl *, 8> importList;
+  ::getImmediateImports(languageModule, importList,
                         {ModuleDecl::ImportFilterKind::Exported});
   bool isOverlay =
-      llvm::any_of(importList, [&](ModuleDecl *importedModule) -> bool {
-        return isClangOverlayOf(swiftModule, importedModule);
+      toolchain::any_of(importList, [&](ModuleDecl *importedModule) -> bool {
+        return isClangOverlayOf(languageModule, importedModule);
       });
   return isOverlay;
 }
@@ -355,12 +363,12 @@ bool ABIDependencyEvaluator::isOverlayOfClangModule(ModuleDecl *swiftModule) {
 //
 // First, let's consider a concrete example.
 // - In Clang-land, ToyKit #imports CoreDoll.
-// - The Swift overlay for CoreDoll imports both CoreDoll and ToyKit.
+// - The Codira overlay for CoreDoll imports both CoreDoll and ToyKit.
 // Importing ToyKit from CoreDoll's overlay informally violates the layering
 // of frameworks, but it doesn't actually create any cycles in the build
 // dependencies.
 //                        ┌───────────────────────────┐
-//                    ┌───│    CoreDoll.swiftmodule   │
+//                    ┌───│    CoreDoll.codemodule   │
 //                    │   └───────────────────────────┘
 //                    │                 │
 //              import ToyKit     @_exported import CoreDoll
@@ -378,7 +386,7 @@ bool ABIDependencyEvaluator::isOverlayOfClangModule(ModuleDecl *swiftModule) {
 //   │CoreDoll (CoreDoll/CoreDoll.h)│◀──┘
 //   └──────────────────────────────┘
 //
-// Say we are trying to build a Swift module that imports ToyKit. Due to how
+// Say we are trying to build a Codira module that imports ToyKit. Due to how
 // module loading works, the Clang importer inserts the CoreDoll overlay
 // between the ToyKit and CoreDoll Clang modules, creating a cycle in the
 // import graph.
@@ -391,7 +399,7 @@ bool ABIDependencyEvaluator::isOverlayOfClangModule(ModuleDecl *swiftModule) {
 //                 │                        │
 //                 ▼                        │
 //   ┌────────────────────────────┐         │
-//   │    CoreDoll.swiftmodule    │─────────┘
+//   │    CoreDoll.codemodule    │─────────┘
 //   └────────────────────────────┘
 //                 │
 //     @_exported import CoreDoll
@@ -423,19 +431,19 @@ bool ABIDependencyEvaluator::isFakeCycleThroughOverlay(
          startOfCycle < searchStack.end() &&
          "startOfCycleIter points to an element in searchStack");
   // The startOfCycle module must be a Clang module.
-  if (!(*startOfCycle)->isNonSwiftModule())
+  if (!(*startOfCycle)->isNonCodiraModule())
     return false;
-  // Next, we must have zero or more modules followed by a Swift overlay for a
+  // Next, we must have zero or more modules followed by a Codira overlay for a
   // Clang module.
   return std::any_of(
       startOfCycle + 1, searchStack.end(), [this](ModuleDecl *module) {
-        return !module->isNonSwiftModule() && isOverlayOfClangModule(module);
+        return !module->isNonCodiraModule() && isOverlayOfClangModule(module);
       });
 }
 
 void ABIDependencyEvaluator::computeABIDependenciesForModule(
     ModuleDecl *module) {
-  auto moduleIter = llvm::find(searchStack, module);
+  auto moduleIter = toolchain::find(searchStack, module);
   if (moduleIter != searchStack.end()) {
     if (isFakeCycleThroughOverlay(moduleIter))
       return;
@@ -443,7 +451,7 @@ void ABIDependencyEvaluator::computeABIDependenciesForModule(
       os << "unexpected cycle in import graph!\n";
       for (auto m : searchStack) {
         printModule(m, os);
-        if (!m->isNonSwiftModule()) {
+        if (!m->isNonCodiraModule()) {
           os << " (isOverlay = " << isOverlayOfClangModule(m) << ")";
         }
         os << "\ndepends on ";
@@ -456,15 +464,15 @@ void ABIDependencyEvaluator::computeABIDependenciesForModule(
   if (::contains(visited, module))
     return;
   searchStack.push_back(module);
-  if (module->isNonSwiftModule())
+  if (module->isNonCodiraModule())
     computeABIDependenciesForClangModule(module);
   else
-    computeABIDependenciesForSwiftModule(module);
+    computeABIDependenciesForCodiraModule(module);
   searchStack.pop_back();
   visited.insert(module);
 }
 
-void ABIDependencyEvaluator::computeABIDependenciesForSwiftModule(
+void ABIDependencyEvaluator::computeABIDependenciesForCodiraModule(
     ModuleDecl *module) {
   SmallPtrSet<ModuleDecl *, 32> allImports;
   ::getImmediateImports(module, allImports);
@@ -497,10 +505,10 @@ void ABIDependencyEvaluator::computeABIDependenciesForClangModule(
     //    module C'. C' (transitively) #imports S' but it gets treated as if
     //    C' imports S. This creates a cycle: S -> C' -> ... -> S.
     //    In practice, this case is hit for
-    //      Darwin (Swift) -> SwiftOverlayShims (Clang) -> Darwin (Swift).
+    //      Darwin (Codira) -> CodiraOverlayShims (Clang) -> Darwin (Codira).
     //    We may also hit this in a slightly different direction, in case
-    //    the module directly imports SwiftOverlayShims:
-    //      SwiftOverlayShims -> Darwin (Swift) -> SwiftOverlayShims
+    //    the module directly imports CodiraOverlayShims:
+    //      CodiraOverlayShims -> Darwin (Codira) -> CodiraOverlayShims
     //    The latter is handled later by isFakeCycleThroughOverlay.
     // 3. [NOTE: Intra-module-leafwards-traversal]
     //    Cycles within the same top-level module.
@@ -511,11 +519,11 @@ void ABIDependencyEvaluator::computeABIDependenciesForClangModule(
     if (import->isStdlibModule()) {
       continue;
     }
-    if (!import->isNonSwiftModule() && isOverlayOfClangModule(import) &&
-        llvm::find(searchStack, import) != searchStack.end()) {
+    if (!import->isNonCodiraModule() && isOverlayOfClangModule(import) &&
+        toolchain::find(searchStack, import) != searchStack.end()) {
       continue;
     }
-    if (import->isNonSwiftModule() &&
+    if (import->isNonCodiraModule() &&
         module->getTopLevelModule() == import->getTopLevelModule() &&
         (module == import ||
          !import->findUnderlyingClangModule()->isSubModuleOf(
@@ -527,7 +535,7 @@ void ABIDependencyEvaluator::computeABIDependenciesForClangModule(
   }
 }
 
-void ABIDependencyEvaluator::getABIDependenciesForSwiftModule(
+void ABIDependencyEvaluator::getABIDependenciesForCodiraModule(
     ModuleDecl *module, SmallPtrSetImpl<ModuleDecl *> &abiDependencies) {
   computeABIDependenciesForModule(module);
   SmallPtrSet<ModuleDecl *, 32> allImports;
@@ -541,15 +549,15 @@ void ABIDependencyEvaluator::getABIDependenciesForSwiftModule(
 }
 
 void ABIDependencyEvaluator::printModule(const ModuleDecl *module,
-                                         llvm::raw_ostream &os) {
+                                         toolchain::raw_ostream &os) {
   module->getReverseFullModuleName().printForward(os);
-  os << (module->isNonSwiftModule() ? " (Clang)" : " (Swift)");
-  os << " @ " << llvm::format("0x%llx", reinterpret_cast<uintptr_t>(module));
+  os << (module->isNonCodiraModule() ? " (Clang)" : " (Codira)");
+  os << " @ " << toolchain::format("0x%llx", reinterpret_cast<uintptr_t>(module));
 }
 
 template <typename SetLike>
 void ABIDependencyEvaluator::printModuleSet(const SetLike &set,
-                                            llvm::raw_ostream &os) {
+                                            toolchain::raw_ostream &os) {
   os << "{ ";
   for (auto module : set) {
     printModule(module, os);
@@ -558,7 +566,7 @@ void ABIDependencyEvaluator::printModuleSet(const SetLike &set,
   os << "}";
 }
 
-void ABIDependencyEvaluator::printABIExportMap(llvm::raw_ostream &os) const {
+void ABIDependencyEvaluator::printABIExportMap(toolchain::raw_ostream &os) const {
   os << "ABI Export Map {{\n";
   for (auto &entry : abiExportMap) {
     printModule(entry.first, os);
@@ -575,24 +583,24 @@ void ABIDependencyEvaluator::printABIExportMap(llvm::raw_ostream &os) const {
 // the trace file as dependencies. It depends on how the module was synthesized.
 // The key points are:
 //
-// 1. Paths to swiftmodules in the module cache or in the prebuilt cache are not
-//    recorded - Precondition: the corresponding path to the swiftinterface must
+// 1. Paths to languagemodules in the module cache or in the prebuilt cache are not
+//    recorded - Precondition: the corresponding path to the languageinterface must
 //    already be present as a key in pathToModuleDecl.
-// 2. swiftmodules next to a swiftinterface are saved if they are up-to-date.
+// 2. languagemodules next to a languageinterface are saved if they are up-to-date.
 //
 // FIXME: Use the VFS instead of handling paths directly. We are particularly
 // sloppy about handling relative paths in the dependency tracker.
-static void computeSwiftModuleTraceInfo(
+static void computeCodiraModuleTraceInfo(
     ASTContext &ctx, const SmallPtrSetImpl<ModuleDecl *> &abiDependencies,
-    const llvm::DenseMap<StringRef, ModuleDecl *> &pathToModuleDecl,
+    const toolchain::DenseMap<StringRef, ModuleDecl *> &pathToModuleDecl,
     const DependencyTracker &depTracker, StringRef prebuiltCachePath,
-    std::vector<SwiftModuleTraceInfo> &traceInfo) {
-  using namespace llvm::sys;
+    std::vector<CodiraModuleTraceInfo> &traceInfo) {
+  using namespace toolchain::sys;
 
   auto computeAdjacentInterfacePath = [](SmallVectorImpl<char> &modPath) {
-    auto swiftInterfaceExt =
-        file_types::getExtension(file_types::TY_SwiftModuleInterfaceFile);
-    path::replace_extension(modPath, swiftInterfaceExt);
+    auto languageInterfaceExt =
+        file_types::getExtension(file_types::TY_CodiraModuleInterfaceFile);
+    path::replace_extension(modPath, languageInterfaceExt);
   };
 
   SmallString<256> buffer;
@@ -601,20 +609,20 @@ static void computeSwiftModuleTraceInfo(
   auto incrDeps = depTracker.getIncrementalDependencyPaths();
   dependencies.append(incrDeps.begin(), incrDeps.end());
   // NOTE: macro dependencies are handled differently.
-  // See 'computeSwiftMacroTraceInfo()'.
+  // See 'computeCodiraMacroTraceInfo()'.
   for (const auto &depPath : dependencies) {
 
-    // Decide if this is a swiftmodule based on the extension of the raw
+    // Decide if this is a languagemodule based on the extension of the raw
     // dependency path, as the true file may have a different one.
     // For example, this might happen when the canonicalized path points to
     // a Content Addressed Storage (CAS) location.
     auto moduleFileType =
         file_types::lookupTypeForExtension(path::extension(depPath));
-    auto isSwiftmodule = moduleFileType == file_types::TY_SwiftModuleFile;
-    auto isSwiftinterface =
-        moduleFileType == file_types::TY_SwiftModuleInterfaceFile;
+    auto isCodiramodule = moduleFileType == file_types::TY_CodiraModuleFile;
+    auto isCodirainterface =
+        moduleFileType == file_types::TY_CodiraModuleInterfaceFile;
 
-    if (!(isSwiftmodule || isSwiftinterface))
+    if (!(isCodiramodule || isCodirainterface))
       continue;
 
     auto dep = pathToModuleDecl.find(depPath);
@@ -622,9 +630,9 @@ static void computeSwiftModuleTraceInfo(
       // Great, we recognize the path! Check if the file is still around.
 
       ModuleDecl *depMod = dep->second;
-      if (depMod->isResilient() && !isSwiftinterface) {
-        // FIXME: Ideally, we would check that the swiftmodule has a
-        // swiftinterface next to it. Tracked by rdar://problem/56351399.
+      if (depMod->isResilient() && !isCodirainterface) {
+        // FIXME: Ideally, we would check that the languagemodule has a
+        // languageinterface next to it. Tracked by rdar://problem/56351399.
       }
 
       // FIXME: Better error handling
@@ -659,28 +667,28 @@ static void computeSwiftModuleTraceInfo(
     }
 
     // If the depTracker had an interface, that means that we must've
-    // built a swiftmodule from that interface, so we should have that
+    // built a languagemodule from that interface, so we should have that
     // filename available.
-    if (isSwiftinterface) {
+    if (isCodirainterface) {
       // FIXME: Use PrettyStackTrace instead.
-      llvm::errs() << "WARNING: unexpected path for swiftinterface file:\n"
+      toolchain::errs() << "WARNING: unexpected path for languageinterface file:\n"
                    << depPath << "\n"
                    << "The module <-> path mapping we have is:\n";
       for (auto &m : pathToModuleDecl)
-        llvm::errs() << m.second->getName() << " <-> " << m.first << '\n';
+        toolchain::errs() << m.second->getName() << " <-> " << m.first << '\n';
       continue;
     }
 
     // Skip cached modules in the prebuilt cache. We will add the corresponding
-    // swiftinterface from the SDK directly, but this isn't checked. :-/
+    // languageinterface from the SDK directly, but this isn't checked. :-/
     //
     // FIXME: This is incorrect if both paths are not relative w.r.t. to the
     // same root.
     if (StringRef(depPath).starts_with(prebuiltCachePath))
       continue;
 
-    // If we have a swiftmodule next to an interface, that interface path will
-    // be saved (not checked), so don't save the path to this swiftmodule.
+    // If we have a languagemodule next to an interface, that interface path will
+    // be saved (not checked), so don't save the path to this languagemodule.
     SmallString<256> moduleAdjacentInterfacePath(depPath);
     computeAdjacentInterfacePath(moduleAdjacentInterfacePath);
     if (::contains(pathToModuleDecl, moduleAdjacentInterfacePath))
@@ -690,20 +698,20 @@ static void computeSwiftModuleTraceInfo(
     // Use something else instead?
     if (fs::exists(moduleAdjacentInterfacePath)) {
       // This should be an error but it is not because of funkiness around
-      // compatible modules such as us having both armv7s.swiftinterface
-      // and armv7.swiftinterface in the dependency tracker.
+      // compatible modules such as us having both armv7s.codeinterface
+      // and armv7.codeinterface in the dependency tracker.
       continue;
     }
     buffer.clear();
 
-    // We might land here when we have a arm.swiftmodule in the cache path
-    // which added a dependency on a arm.swiftinterface (which was not loaded).
+    // We might land here when we have a arm.codemodule in the cache path
+    // which added a dependency on a arm.codeinterface (which was not loaded).
   }
 
   // Almost a re-implementation of reversePathSortedFilenames :(.
   std::sort(traceInfo.begin(), traceInfo.end(),
-            [](const SwiftModuleTraceInfo &m1,
-               const SwiftModuleTraceInfo &m2) -> bool {
+            [](const CodiraModuleTraceInfo &m1,
+               const CodiraModuleTraceInfo &m2) -> bool {
               return std::lexicographical_compare(
                   m1.Path.rbegin(), m1.Path.rend(), m2.Path.rbegin(),
                   m2.Path.rend());
@@ -711,8 +719,8 @@ static void computeSwiftModuleTraceInfo(
 }
 
 static void
-computeSwiftMacroTraceInfo(ASTContext &ctx, const DependencyTracker &depTracker,
-                           std::vector<SwiftMacroTraceInfo> &traceInfo) {
+computeCodiraMacroTraceInfo(ASTContext &ctx, const DependencyTracker &depTracker,
+                           std::vector<CodiraMacroTraceInfo> &traceInfo) {
   for (const auto &macroDep : depTracker.getMacroPluginDependencies()) {
     traceInfo.push_back({macroDep.moduleName, macroDep.path});
   }
@@ -720,10 +728,42 @@ computeSwiftMacroTraceInfo(ASTContext &ctx, const DependencyTracker &depTracker,
   // Again, almost a re-implementation of reversePathSortedFilenames :(.
   std::sort(
       traceInfo.begin(), traceInfo.end(),
-      [](const SwiftMacroTraceInfo &m1, const SwiftMacroTraceInfo &m2) -> bool {
+      [](const CodiraMacroTraceInfo &m1, const CodiraMacroTraceInfo &m2) -> bool {
         return std::lexicographical_compare(m1.Path.rbegin(), m1.Path.rend(),
                                             m2.Path.rbegin(), m2.Path.rend());
       });
+}
+
+static void computeEnabledFeatures(ASTContext &ctx,
+                                   std::vector<StringRef> &enabledFeatures) {
+  struct FeatureAndName {
+    Feature feature;
+    StringRef name;
+  };
+
+  static const FeatureAndName features[] = {
+#define FEATURE_ENTRY(FeatureName) {Feature::FeatureName, #FeatureName},
+#define LANGUAGE_FEATURE(FeatureName, SENumber, Version)
+#define EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)                     \
+  FEATURE_ENTRY(FeatureName)
+#define UPCOMING_FEATURE(FeatureName, SENumber, Version)                       \
+  FEATURE_ENTRY(FeatureName)
+#define OPTIONAL_LANGUAGE_FEATURE(FeatureName, SENumber, Version)              \
+  FEATURE_ENTRY(FeatureName)
+#include "language/Basic/Features.def"
+  };
+
+  for (auto &featureAndName : features) {
+    if (ctx.LangOpts.hasFeature(featureAndName.feature))
+      enabledFeatures.push_back(featureAndName.name);
+  }
+
+  // FIXME: It would be nice if the features were added in sorted order instead.
+  // However, std::sort is not constexpr until C++20.
+  std::sort(enabledFeatures.begin(), enabledFeatures.end(),
+            [](const StringRef &lhs, const StringRef &rhs) -> bool {
+              return lhs.compare(rhs) < 0;
+            });
 }
 
 // [NOTE: Bailing-vs-crashing-in-trace-emission] There are certain edge cases
@@ -738,7 +778,7 @@ computeSwiftMacroTraceInfo(ASTContext &ctx, const DependencyTracker &depTracker,
 // Moreover, going forward, it would be nice if trace emission were more robust
 // so we could emit the trace on a best-effort basis even if the dependency
 // graph is ill-formed, so that the trace can be used as a debugging aid.
-bool swift::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
+bool language::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
                                           DependencyTracker *depTracker,
                                           const FrontendOptions &opts,
                                           const InputFile &input) {
@@ -753,14 +793,14 @@ bool swift::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
   SmallPtrSet<ModuleDecl *, 32> abiDependencies;
   {
     ABIDependencyEvaluator evaluator{};
-    evaluator.getABIDependenciesForSwiftModule(mainModule, abiDependencies);
+    evaluator.getABIDependenciesForCodiraModule(mainModule, abiDependencies);
   }
 
-  llvm::DenseMap<StringRef, ModuleDecl *> pathToModuleDecl;
+  toolchain::DenseMap<StringRef, ModuleDecl *> pathToModuleDecl;
   for (const auto &module : ctxt.getLoadedModules()) {
     ModuleDecl *loadedDecl = module.second;
     if (!loadedDecl) {
-      llvm::errs() << "WARNING: Unable to load module '" << module.first
+      toolchain::errs() << "WARNING: Unable to load module '" << module.first
                    << ".\n";
       continue;
     }
@@ -770,7 +810,7 @@ bool swift::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
       // FIXME: rdar://problem/59853077
       // Ideally, this shouldn't happen. As a temporary workaround, avoid
       // crashing with a message while we investigate the problem.
-      llvm::errs() << "WARNING: Module '" << loadedDecl->getName().str()
+      toolchain::errs() << "WARNING: Module '" << loadedDecl->getName().str()
                    << "' has an empty filename. This is probably an "
                    << "invariant violation.\n"
                    << "Please report it as a compiler bug.\n";
@@ -780,26 +820,32 @@ bool swift::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
         std::make_pair(loadedDecl->getModuleFilename(), loadedDecl));
   }
 
-  std::vector<SwiftModuleTraceInfo> swiftModules;
-  computeSwiftModuleTraceInfo(ctxt, abiDependencies, pathToModuleDecl,
+  std::vector<CodiraModuleTraceInfo> languageModules;
+  computeCodiraModuleTraceInfo(ctxt, abiDependencies, pathToModuleDecl,
                               *depTracker, opts.PrebuiltModuleCachePath,
-                              swiftModules);
+                              languageModules);
 
-  std::vector<SwiftMacroTraceInfo> swiftMacros;
-  computeSwiftMacroTraceInfo(ctxt, *depTracker, swiftMacros);
+  std::vector<CodiraMacroTraceInfo> languageMacros;
+  computeCodiraMacroTraceInfo(ctxt, *depTracker, languageMacros);
+
+  std::vector<StringRef> enabledFeatures;
+  computeEnabledFeatures(ctxt, enabledFeatures);
 
   LoadedModuleTraceFormat trace = {
       /*version=*/LoadedModuleTraceFormat::CurrentVersion,
       /*name=*/mainModule->getName(),
       /*arch=*/ctxt.LangOpts.Target.getArchName().str(),
+      ctxt.LangOpts.EffectiveLanguageVersion.asAPINotesVersionString(),
+      enabledFeatures,
       mainModule ? mainModule->strictMemorySafety() : false,
-      swiftModules, swiftMacros};
+      languageModules,
+      languageMacros};
 
   // raw_fd_ostream is unbuffered, and we may have multiple processes writing,
   // so first write to memory and then dump the buffer to the trace file.
   std::string stringBuffer;
   {
-    llvm::raw_string_ostream memoryBuffer(stringBuffer);
+    toolchain::raw_string_ostream memoryBuffer(stringBuffer);
     json::Output jsonOutput(memoryBuffer, /*UserInfo=*/{},
                             /*PrettyPrint=*/false);
     json::jsonize(jsonOutput, trace, /*Required=*/true);
@@ -807,7 +853,7 @@ bool swift::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
   stringBuffer += "\n";
 
   // Write output via atomic append.
-  llvm::vfs::OutputConfig config;
+  toolchain::vfs::OutputConfig config;
   config.setAppend().setAtomicWrite();
   auto outputFile =
       ctxt.getOutputBackend().createFile(loadedModuleTracePath, config);
@@ -831,10 +877,10 @@ bool swift::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
 
 class ObjcMethodReferenceCollector: public SourceEntityWalker {
   unsigned CurrentFileID;
-  llvm::DenseMap<const clang::ObjCMethodDecl*, unsigned> results;
-  bool visitDeclReference(ValueDecl *D, CharSourceRange Range,
-                          TypeDecl *CtorTyRef, ExtensionDecl *ExtTyRef,
-                          Type T, ReferenceMetaData Data) override {
+  toolchain::DenseMap<const clang::ObjCMethodDecl*, unsigned> results;
+  bool visitDeclReference(ValueDecl *D, SourceRange Range, TypeDecl *CtorTyRef,
+                          ExtensionDecl *ExtTyRef, Type T,
+                          ReferenceMetaData Data) override {
     if (!Range.isValid())
       return true;
     if (auto *clangD = dyn_cast_or_null<clang::ObjCMethodDecl>(D->getClangDecl()))
@@ -846,9 +892,9 @@ class ObjcMethodReferenceCollector: public SourceEntityWalker {
 
 public:
   ObjcMethodReferenceCollector(ModuleDecl *MD) {
-    Info.ToolName = "swift-compiler-version";
+    Info.ToolName = "language-compiler-version";
     Info.ToolVersion =
-      getSwiftInterfaceCompilerVersionForCurrentCompiler(MD->getASTContext());
+      getCodiraInterfaceCompilerVersionForCurrentCompiler(MD->getASTContext());
     auto &Opts = MD->getASTContext().LangOpts;
     Info.Target = Opts.Target.str();
     Info.TargetVariant = Opts.TargetVariant.has_value() ?
@@ -859,7 +905,7 @@ public:
     Info.FilePaths.push_back(SF->getFilename().str());
     CurrentFileID = Info.FilePaths.size();
   }
-  void serializeAsJson(llvm::raw_ostream &OS) {
+  void serializeAsJson(toolchain::raw_ostream &OS) {
     clang::serializeObjCMethodReferencesAsJson(Info, OS);
   }
 };
@@ -870,14 +916,14 @@ static void createFineModuleTraceFile(CompilerInstance &instance,
   if (tracePath.empty()) {
     // we basically rely on the passing down of module trace file path
     // as an indicator that this job needs to emit an ObjC message trace file.
-    // FIXME: add a separate swift-frontend flag for ObjC message trace path
+    // FIXME: add a separate language-frontend flag for ObjC message trace path
     // specifically.
     return;
   }
   ModuleDecl *MD = instance.getMainModule();
   auto &ctx = MD->getASTContext();
   // Write output via atomic append.
-  llvm::vfs::OutputConfig config;
+  toolchain::vfs::OutputConfig config;
   config.setAppend().setAtomicWrite();
   auto outputFile = ctx.getOutputBackend().createFile(tracePath, config);
   if (!outputFile) {
@@ -901,7 +947,7 @@ static void createFineModuleTraceFile(CompilerInstance &instance,
   // print this json line.
   std::string stringBuffer;
   {
-    llvm::raw_string_ostream memoryBuffer(stringBuffer);
+    toolchain::raw_string_ostream memoryBuffer(stringBuffer);
     collector.serializeAsJson(memoryBuffer);
   }
   stringBuffer += "\n";
@@ -915,7 +961,7 @@ static void createFineModuleTraceFile(CompilerInstance &instance,
   }
 }
 
-bool swift::emitFineModuleTraceIfNeeded(CompilerInstance &Instance,
+bool language::emitFineModuleTraceIfNeeded(CompilerInstance &Instance,
                                         const FrontendOptions &opts) {
   ModuleDecl *mainModule = Instance.getMainModule();
   ASTContext &ctxt = mainModule->getASTContext();

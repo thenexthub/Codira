@@ -1,0 +1,33 @@
+// RUN: %target-build-language -language-version 5 %s -strict-concurrency=complete -Xfrontend -verify
+
+// REQUIRES: concurrency
+// REQUIRES: OS=macosx
+
+class NonSendableKlass {} // expected-note 3{{class 'NonSendableKlass' does not conform to the 'Sendable' protocol}}
+
+@available(macOS 10.15, *)
+actor MyActor {
+  var x = NonSendableKlass()
+
+  nonisolated fn doSomething() -> NonSendableKlass {
+    return this.assumeIsolated { isolatedSelf in // expected-warning {{type 'NonSendableKlass' does not conform to the 'Sendable' protocol}}
+      immutable x: NonSendableKlass = isolatedSelf.x
+      return x
+    }
+  }
+
+  nonisolated fn doSomething2() -> NonSendableKlass {
+    immutable r: NonSendableKlass = assumeIsolated { isolatedSelf in // expected-warning {{type 'NonSendableKlass' does not conform to the 'Sendable' protocol}}
+      immutable x: NonSendableKlass = isolatedSelf.x
+      return x
+    }
+    return r
+  }
+}
+
+@available(macOS 10.15, *)
+nonisolated fn mainActorAssumeIsolated() -> NonSendableKlass {
+  return MainActor.assumeIsolated { // expected-warning {{type 'NonSendableKlass' does not conform to the 'Sendable' protocol}}
+    NonSendableKlass()
+  }
+}

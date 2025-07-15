@@ -1,0 +1,27 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/Frameworks
+// RUN: mkdir -p %t/Frameworks/E.framework/
+// RUN: mkdir -p %t/Frameworks/E.framework/Modules
+// RUN: mkdir -p %t/Frameworks/E.framework/Modules/E.codemodule
+
+// Copy over the interface
+// RUN: cp %S/Inputs/Codira/E.codeinterface %t/Frameworks/E.framework/Modules/E.codemodule/%module-target-triple.private.codeinterface
+// RUN: cp %S/Inputs/Codira/E.codeinterface %t/Frameworks/E.framework/Modules/E.codemodule/%module-target-triple.codeinterface
+
+// Build a dependency into a binary module
+// RUN: echo "public fn foo() {}" >> %t/foo.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Frameworks/E.framework/Modules/E.codemodule/%module-target-triple.codemodule -module-cache-path %t.module-cache %t/foo.code -module-name E
+
+// Run the scan
+// RUN: %target-language-frontend -scan-dependencies -no-scanner-module-validation %s -o %t/deps.json -F %t/Frameworks/ -sdk %t
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+import E
+
+// Ensure the private interface is the canonical one
+// CHECK: "moduleInterfacePath": {{.*}}{{/|\\}}E.framework{{/|\\}}Modules{{/|\\}}E.codemodule{{/|\\}}{{.*}}.private.codeinterface
+// Ensure the adjacent binary module is a candidate
+// CHECK: "compiledModuleCandidates": [
+// CHECK-NEXT: {{.*}}{{/|\\}}E.framework{{/|\\}}Modules{{/|\\}}E.codemodule{{/|\\}}{{.*}}.codemodule

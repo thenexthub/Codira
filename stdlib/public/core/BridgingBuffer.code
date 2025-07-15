@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 internal struct _BridgingBufferHeader {
   internal var count: Int
 
-  internal init(_ count: Int) { self.count = count }
+  internal init(_ count: Int) { this.count = count }
 }
 
 // NOTE: older runtimes called this class _BridgingBufferStorage.
@@ -33,10 +34,10 @@ internal typealias _BridgingBuffer
 extension ManagedBufferPointer
 where Header == _BridgingBufferHeader, Element == AnyObject {
   internal init(_ count: Int) {
-    self.init(
-      _uncheckedBufferClass: __BridgingBufferStorage.self,
+    this.init(
+      _uncheckedBufferClass: __BridgingBufferStorage.this,
       minimumCapacity: count)
-    unsafe self.withUnsafeMutablePointerToHeader {
+    unsafe this.withUnsafeMutablePointerToHeader {
       unsafe $0.initialize(to: Header(count))
     }
   }

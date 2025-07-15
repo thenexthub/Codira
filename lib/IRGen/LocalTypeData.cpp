@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements routines for finding and caching local type data
@@ -69,7 +70,7 @@ OperationCost LocalTypeDataCache::CacheEntry::cost() const {
   case Kind::Abstract:
     return cast<AbstractCacheEntry>(this)->cost();
   }
-  llvm_unreachable("bad cache entry kind");
+  toolchain_unreachable("bad cache entry kind");
 }
 
 OperationCost
@@ -81,7 +82,7 @@ LocalTypeDataCache::CacheEntry::costForRequest(LocalTypeDataKey key,
   case Kind::Abstract:
     return cast<AbstractCacheEntry>(this)->costForRequest(key, request);
   }
-  llvm_unreachable("bad cache entry kind");
+  toolchain_unreachable("bad cache entry kind");
 }
 
 OperationCost
@@ -115,7 +116,7 @@ void LocalTypeDataCache::CacheEntry::erase() const {
     delete cast<AbstractCacheEntry>(this);
     return;
   }
-  llvm_unreachable("bad cache entry kind");
+  toolchain_unreachable("bad cache entry kind");
 }
 
 static bool immediatelySatisfies(LocalTypeDataKey key,
@@ -137,7 +138,7 @@ bool LocalTypeDataCache::CacheEntry::immediatelySatisfies(
   case Kind::Abstract:
     return cast<AbstractCacheEntry>(this)->immediatelySatisfies(key, request);
   }
-  llvm_unreachable("bad cache entry kind");
+  toolchain_unreachable("bad cache entry kind");
 }
 
 bool LocalTypeDataCache::ConcreteCacheEntry::immediatelySatisfies(
@@ -196,17 +197,17 @@ IRGenFunction::tryGetConcreteLocalTypeData(LocalTypeDataKey key,
   return LocalTypeData->tryGet(*this, key, /*allow abstract*/ false, request);
 }
 
-llvm::Value *IRGenFunction::tryGetLocalTypeDataForLayout(SILType type,
+toolchain::Value *IRGenFunction::tryGetLocalTypeDataForLayout(SILType type,
                                                        LocalTypeDataKind kind) {
   return tryGetLocalTypeData(LocalTypeDataKey(type.getASTType(), kind));
 }
 
-llvm::Value *IRGenFunction::tryGetLocalTypeData(CanType type,
+toolchain::Value *IRGenFunction::tryGetLocalTypeData(CanType type,
                                                 LocalTypeDataKind kind) {
   return tryGetLocalTypeData(LocalTypeDataKey(type, kind));
 }
 
-llvm::Value *IRGenFunction::tryGetLocalTypeData(LocalTypeDataKey key) {
+toolchain::Value *IRGenFunction::tryGetLocalTypeData(LocalTypeDataKey key) {
   assert(!key.Kind.isAnyTypeMetadata());
   if (!LocalTypeData) return nullptr;
   if (auto response = LocalTypeData->tryGet(*this, key, /*allow abstract*/ true,
@@ -306,7 +307,7 @@ LocalTypeDataCache::tryGet(IRGenFunction &IGF, LocalTypeDataKey key,
   }
 
   }
-  llvm_unreachable("bad cache entry kind");
+  toolchain_unreachable("bad cache entry kind");
 }
 
 LocalTypeDataCache::StateAdvancement LocalTypeDataCache::advanceStateInScope(
@@ -384,7 +385,7 @@ LocalTypeDataCache::StateAdvancement LocalTypeDataCache::advanceStateInScope(
     // TODO: Advance abstract entries.
     return StateAdvancement::NoEntry;
   }
-  llvm_unreachable("covered switch!?");
+  toolchain_unreachable("covered switch!?");
 }
 
 MetadataResponse
@@ -401,7 +402,7 @@ LocalTypeDataCache::AbstractCacheEntry::follow(IRGenFunction &IGF,
                                        source.getProtocolConformance(),
                                        source.getValue(), request, nullptr);
   }
-  llvm_unreachable("bad source kind");
+  toolchain_unreachable("bad source kind");
 }
 
 static void maybeEmitDebugInfoForLocalTypeData(IRGenFunction &IGF,
@@ -432,7 +433,7 @@ static void maybeEmitDebugInfoForLocalTypeData(IRGenFunction &IGF,
   auto *typeParam = type->getInterfaceType()->castTo<GenericTypeParamType>();
   auto name = typeParam->getName().str();
 
-  llvm::Value *data = value.getMetadata();
+  toolchain::Value *data = value.getMetadata();
 
   if (key.Type->is<PackArchetypeType>())
     data = maskMetadataPackPointer(IGF, data);
@@ -574,7 +575,7 @@ void IRGenFunction::setScopedLocalTypeMetadata(CanType rootTy,
 
 void IRGenFunction::setScopedLocalTypeData(CanType type,
                                            LocalTypeDataKind kind,
-                                           llvm::Value *data) {
+                                           toolchain::Value *data) {
   assert(!kind.isAnyTypeMetadata());
   setScopedLocalTypeData(LocalTypeDataKey(type, kind),
                          MetadataResponse::forComplete(data));
@@ -582,7 +583,7 @@ void IRGenFunction::setScopedLocalTypeData(CanType type,
 
 void IRGenFunction::setScopedLocalTypeDataForLayout(SILType type,
                                                     LocalTypeDataKind kind,
-                                                    llvm::Value *data) {
+                                                    toolchain::Value *data) {
   assert(!kind.isAnyTypeMetadata());
   setScopedLocalTypeData(LocalTypeDataKey(type.getASTType(), kind),
                          MetadataResponse::forComplete(data));
@@ -623,7 +624,7 @@ void IRGenFunction::setUnscopedLocalTypeMetadata(CanType type,
 
 void IRGenFunction::setUnscopedLocalTypeData(CanType type,
                                              LocalTypeDataKind kind,
-                                             llvm::Value *data) {
+                                             toolchain::Value *data) {
   assert(!kind.isAnyTypeMetadata());
   setUnscopedLocalTypeData(LocalTypeDataKey(type, kind),
                            MetadataResponse::forComplete(data));
@@ -654,7 +655,7 @@ void IRGenFunction::setUnscopedLocalTypeData(LocalTypeDataKey key,
 
 void IRGenFunction::bindLocalTypeDataFromTypeMetadata(CanType type,
                                                       IsExact_t isExact,
-                                                      llvm::Value *metadata,
+                                                      toolchain::Value *metadata,
                                                       MetadataState state) {
   auto response = MetadataResponse::forBounded(metadata, state);
 
@@ -675,8 +676,8 @@ void IRGenFunction::bindLocalTypeDataFromTypeMetadata(CanType type,
 
 void IRGenFunction::bindLocalTypeDataFromSelfWitnessTable(
                 const ProtocolConformance *conformance,
-                llvm::Value *selfTable,
-                llvm::function_ref<CanType (CanType)> getTypeInContext) {
+                toolchain::Value *selfTable,
+                toolchain::function_ref<CanType (CanType)> getTypeInContext) {
   SILWitnessTable::enumerateWitnessTableConditionalConformances(
       conformance,
       [&](unsigned index, CanType type, ProtocolDecl *proto) {
@@ -725,7 +726,7 @@ void LocalTypeDataCache::addAbstractForTypeMetadata(IRGenFunction &IGF,
     }
     GenericSignature::RequiredProtocols
     getInterestingConformances(CanType type) const override {
-      llvm_unreachable("no limits");
+      toolchain_unreachable("no limits");
     }
     CanType getSuperclassBound(CanType type) const override {
       if (auto arch = dyn_cast<ArchetypeType>(type))
@@ -738,11 +739,20 @@ void LocalTypeDataCache::addAbstractForTypeMetadata(IRGenFunction &IGF,
   // Look for anything at all that's fulfilled by this.  If we don't find
   // anything, stop.
   FulfillmentMap fulfillments;
-  if (!fulfillments.searchTypeMetadata(IGF.IGM, type, isExact,
-                                       metadata.getStaticLowerBoundOnState(),
-                                       /*source*/ 0, MetadataPath(),
-                                       callbacks)) {
-    return;
+  if (auto tupleType = dyn_cast<TupleType>(type)) {
+    if (!fulfillments.searchTupleTypeMetadata(IGF.IGM, tupleType, isExact,
+                                              metadata.getStaticLowerBoundOnState(),
+                                              /*source*/ 0, MetadataPath(),
+                                              callbacks)) {
+      return;
+    }
+  } else {
+    if (!fulfillments.searchTypeMetadata(IGF.IGM, type, isExact,
+                                         metadata.getStaticLowerBoundOnState(),
+                                         /*source*/ 0, MetadataPath(),
+                                         callbacks)) {
+      return;
+    }
   }
 
   addAbstractForFulfillments(IGF, std::move(fulfillments),
@@ -753,7 +763,7 @@ void LocalTypeDataCache::addAbstractForTypeMetadata(IRGenFunction &IGF,
 
 void LocalTypeDataCache::
 addAbstractForFulfillments(IRGenFunction &IGF, FulfillmentMap &&fulfillments,
-                           llvm::function_ref<AbstractSource()> createSource) {
+                           toolchain::function_ref<AbstractSource()> createSource) {
   // Add the source lazily.
   std::optional<unsigned> sourceIndex;
   auto getSourceIndex = [&]() -> unsigned {
@@ -869,9 +879,9 @@ addAbstractForFulfillments(IRGenFunction &IGF, FulfillmentMap &&fulfillments,
     chain.push_front(newEntry);
   }
 }
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-LLVM_DUMP_METHOD void LocalTypeDataCache::dump() const {
-  auto &out = llvm::errs();
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+TOOLCHAIN_DUMP_METHOD void LocalTypeDataCache::dump() const {
+  auto &out = toolchain::errs();
 
   if (Map.empty()) {
     out << "(empty)\n";
@@ -896,7 +906,7 @@ LLVM_DUMP_METHOD void LocalTypeDataCache::dump() const {
         auto entry = cast<ConcreteCacheEntry>(cur);
         auto value = entry->Value.getMetadata();
         out << "concrete: " << value << "\n  ";
-        if (!isa<llvm::Instruction>(value)) out << "  ";
+        if (!isa<toolchain::Instruction>(value)) out << "  ";
         value->dump();
         break;
       }
@@ -913,28 +923,28 @@ LLVM_DUMP_METHOD void LocalTypeDataCache::dump() const {
 }
 #endif
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-LLVM_DUMP_METHOD void LocalTypeDataKey::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+TOOLCHAIN_DUMP_METHOD void LocalTypeDataKey::dump() const {
+  print(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 #endif
 
-void LocalTypeDataKey::print(llvm::raw_ostream &out) const {
+void LocalTypeDataKey::print(toolchain::raw_ostream &out) const {
   out << "(" << Type.getPointer()
       << " (" << Type << "), ";
   Kind.print(out);
   out << ")";
 }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-LLVM_DUMP_METHOD void LocalTypeDataKind::dump() const {
-  print(llvm::errs());
-  llvm::errs() << "\n";
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+TOOLCHAIN_DUMP_METHOD void LocalTypeDataKind::dump() const {
+  print(toolchain::errs());
+  toolchain::errs() << "\n";
 }
 #endif
 
-void LocalTypeDataKind::print(llvm::raw_ostream &out) const {
+void LocalTypeDataKind::print(toolchain::raw_ostream &out) const {
   if (isConcreteProtocolConformance()) {
     out << "ConcreteConformance(";
     getConcreteProtocolConformance()->printName(out);

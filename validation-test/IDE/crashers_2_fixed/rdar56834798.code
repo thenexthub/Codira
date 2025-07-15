@@ -1,0 +1,23 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=B -source-filename=%s
+
+protocol Proto {}
+
+struct S<T: Proto> {
+  typealias Value = T
+
+  fn test(arg: Int) -> Value {
+    return #^A^#
+  }
+}
+
+class C: Proto {
+  init() {}
+}
+extension Proto {
+  typealias Nested = C
+}
+fn receiver<T: Proto>(arg: T) {}
+fn test() {
+  receiver(arg: .#^B^#)
+}

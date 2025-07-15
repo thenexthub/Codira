@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/Internal-XPC.h"
 #include "SourceKit/Support/Logging.h"
 #include "SourceKit/Support/UIdent.h"
 
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/Path.h"
 
 #include <Block.h>
 #include <chrono>
@@ -35,13 +36,13 @@ static UIdent gKeyNotification("key.notification");
 static UIdent gKeyDuration("key.duration");
 static UIdent gSemaDisableNotificationUID("source.notification.sema_disabled");
 
-static llvm::sys::Mutex GlobalHandlersMtx;
+static toolchain::sys::Mutex GlobalHandlersMtx;
 static sourcekitd_uid_handler_t UidMappingHandler;
 static sourcekitd_str_from_uid_handler_t StrFromUidMappingHandler;
 
 void
 sourcekitd_set_uid_handler(sourcekitd_uid_handler_t handler) {
-  llvm::sys::ScopedLock L(GlobalHandlersMtx);
+  toolchain::sys::ScopedLock L(GlobalHandlersMtx);
   sourcekitd_uid_handler_t newHandler = Block_copy(handler);
   Block_release(UidMappingHandler);
   UidMappingHandler = newHandler;
@@ -50,7 +51,7 @@ sourcekitd_set_uid_handler(sourcekitd_uid_handler_t handler) {
 void
 sourcekitd_set_uid_handlers(sourcekitd_uid_from_str_handler_t uid_from_str,
                             sourcekitd_str_from_uid_handler_t str_from_uid) {
-  llvm::sys::ScopedLock L(GlobalHandlersMtx);
+  toolchain::sys::ScopedLock L(GlobalHandlersMtx);
 
   sourcekitd_uid_handler_t newUIDFromStrHandler = Block_copy(uid_from_str);
   Block_release(UidMappingHandler);
@@ -282,7 +283,7 @@ static void handleInternalUIDRequest(xpc_object_t XVal,
     response = xpc_string_create(Str);
 
   } else {
-    llvm::report_fatal_error("Unknown internal message");
+    toolchain::report_fatal_error("Unknown internal message");
   }
 
   xpc_dictionary_set_value(reply, xpc::KeyMsgResponse, response);
@@ -300,18 +301,18 @@ static void initializeXPCClient() {
   dladdr(__dso_handle, &dlinfo);
 
   // '.../usr/lib/sourcekitd.framework/sourcekitd'
-  llvm::SmallString<128> serviceNamePath(dlinfo.dli_fname);
+  toolchain::SmallString<128> serviceNamePath(dlinfo.dli_fname);
   if (serviceNamePath.empty()) {
-    llvm::report_fatal_error("Unable to find service name path");
+    toolchain::report_fatal_error("Unable to find service name path");
   }
 
-  llvm::sys::path::remove_filename(serviceNamePath);
+  toolchain::sys::path::remove_filename(serviceNamePath);
   // '.../usr/lib/sourcekitd.framework/Resources/xpc_service_name.txt'
-  llvm::sys::path::append(serviceNamePath, "Resources", "xpc_service_name.txt");
+  toolchain::sys::path::append(serviceNamePath, "Resources", "xpc_service_name.txt");
 
-  auto bufferOrErr = llvm::MemoryBuffer::getFile(serviceNamePath);
+  auto bufferOrErr = toolchain::MemoryBuffer::getFile(serviceNamePath);
   if (!bufferOrErr) {
-    llvm::report_fatal_error("Unable to find service name");
+    toolchain::report_fatal_error("Unable to find service name");
   }
 
   std::string serviceName = (*bufferOrErr)->getBuffer().trim().str();
@@ -343,7 +344,7 @@ static void initializeXPCClient() {
     } else {
       xpc_object_t contents = xpc_dictionary_get_value(event, xpc::KeyInternalMsg);
       if (!contents) {
-        llvm::report_fatal_error("Received unexpected message from service");
+        toolchain::report_fatal_error("Received unexpected message from service");
       }
 
       xpc::Message msg = (xpc::Message)xpc_array_get_uint64(contents, 0);
@@ -419,7 +420,7 @@ void sourcekitd_register_plugin_path(const char *clientPlugin,
 
 static xpc_connection_t getGlobalConnection() {
   if (!GlobalConn) {
-    llvm::report_fatal_error("Service is invalid");
+    toolchain::report_fatal_error("Service is invalid");
   }
   return GlobalConn;
 }

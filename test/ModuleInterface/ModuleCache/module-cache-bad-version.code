@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/modulecache)
+//
+// Test will build a module TestModule that depends LeafModule (built from leaf.code).
+//
+// RUN: echo 'public fn LeafFunc() -> Int { return 10; }' >%t/leaf.code
+//
+// RUN: %target-language-frontend -I %t -emit-module-interface-path %t/LeafModule.codeinterface -module-name LeafModule %t/leaf.code -emit-module -o /dev/null
+// RUN: test -f %t/LeafModule.codeinterface
+// RUN: %FileCheck %s -check-prefix=CHECK-LEAFINTERFACE <%t/LeafModule.codeinterface
+// CHECK-LEAFINTERFACE: {{language-interface-format-version: [0-9\\.]+}}
+// CHECK-LEAFINTERFACE: LeafFunc
+//
+// Break LeafModule's version number
+// RUN: sed -e 's/language-interface-format-version:.*/language-interface-format-version: 9999.999/' %t/LeafModule.codeinterface | tr -d '\r' > %t/LeafModule.codeinterface.tmp
+// RUN: mv %t/LeafModule.codeinterface.tmp %t/LeafModule.codeinterface
+//
+// Try to build TestModule into a .codemodule explicitly using LeafModule via LeafModule.codeinterface, but fail because version mismatch in LeafModule.codeinterface.
+//
+// RUN: not %target-language-frontend -I %t -module-cache-path %t/modulecache -emit-module  -o %t/TestModule.codemodule -module-name TestModule %s >%t/err.txt 2>&1
+// RUN: test ! -f %t/TestModule.codemodule
+// This avoids a problem in Windows with test ! -f 'foo*' for a file that doesn't exist
+// RUN: %{python} -c "import sys; import glob; sys.exit(len(glob.glob(r'%t/modulecache/LeafModule-*.codemodule')) != 0)"
+// RUN: %FileCheck %s -check-prefix=CHECK-ERR <%t/err.txt
+// CHECK-ERR: {{error: unsupported version of module interface '.*[/\\]LeafModule.codeinterface': '9999.999'}}
+// CHECK-ERR: error: no such module 'LeafModule
+
+import LeafModule
+
+public fn TestFunc() {
+    print(LeafFunc())
+}

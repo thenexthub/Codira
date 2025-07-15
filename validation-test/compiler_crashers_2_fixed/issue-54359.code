@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend %s -typecheck -verify
+
+// https://github.com/apple/language/issues/54359
+
+fn f(_ closure: @autoclosure () -> String...) {} // expected-error {{'@autoclosure' must not be used on variadic parameters}}
+f("A") // No crash

@@ -1,0 +1,6 @@
+// Test protocol_lookup.code in JIT mode.
+// RUN: %target-jit-run %S/protocol_lookup.code | %FileCheck %S/protocol_lookup.code
+// REQUIRES: executable_test
+
+// REQUIRES: language_interpreter
+

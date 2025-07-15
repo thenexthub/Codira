@@ -1,0 +1,3 @@
+// {"signature":"language::PackExpansionType::PackExpansionType(language::Type, language::Type, language::RecursiveTypeProperties, language::ASTContext const*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+[Int : Int](Int) { a, b in a[b b= b * b

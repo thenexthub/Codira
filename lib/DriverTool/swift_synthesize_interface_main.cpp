@@ -1,4 +1,4 @@
-//===--- swift_synthesize_interface_main.cpp - Swift interface synthesis --===//
+//===--- language_synthesize_interface_main.cpp - Codira interface synthesis --===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,30 +11,31 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  Prints the synthesized Swift interface for a Clang module.
+//  Prints the synthesized Codira interface for a Clang module.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTPrinter.h"
 #include "language/AST/DiagnosticsFrontend.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Basic/Version.h"
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/IDE/ModuleInterfacePrinting.h"
 #include "language/Option/Options.h"
 #include "language/Parse/ParseVersion.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace options;
 
-int swift_synthesize_interface_main(ArrayRef<const char *> Args,
+int language_synthesize_interface_main(ArrayRef<const char *> Args,
                                     const char *Argv0, void *MainAddr) {
   INITIALIZE_LLVM();
 
@@ -44,11 +45,11 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
   auto &Diags = CI.getDiags();
   Diags.addConsumer(DiagPrinter);
 
-  std::unique_ptr<llvm::opt::OptTable> Table = createSwiftOptTable();
+  std::unique_ptr<toolchain::opt::OptTable> Table = createCodiraOptTable();
   unsigned MissingIndex;
   unsigned MissingCount;
-  llvm::opt::InputArgList ParsedArgs = Table->ParseArgs(
-      Args, MissingIndex, MissingCount, SwiftSynthesizeInterfaceOption);
+  toolchain::opt::InputArgList ParsedArgs = Table->ParseArgs(
+      Args, MissingIndex, MissingCount, CodiraSynthesizeInterfaceOption);
   if (MissingCount) {
     Diags.diagnose(SourceLoc(), diag::error_missing_arg_value,
                    ParsedArgs.getArgString(MissingIndex), MissingCount);
@@ -63,14 +64,14 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
     return EXIT_FAILURE;
   }
 
-  auto MainExecutablePath = llvm::sys::fs::getMainExecutable(Argv0, MainAddr);
+  auto MainExecutablePath = toolchain::sys::fs::getMainExecutable(Argv0, MainAddr);
 
   if (ParsedArgs.getLastArg(OPT_help) || Args.empty()) {
     std::string ExecutableName =
-        llvm::sys::path::stem(MainExecutablePath).str();
-    Table->printHelp(llvm::outs(), ExecutableName.c_str(),
-                     "Swift Interface Synthesizer",
-                     SwiftSynthesizeInterfaceOption, 0,
+        toolchain::sys::path::stem(MainExecutablePath).str();
+    Table->printHelp(toolchain::outs(), ExecutableName.c_str(),
+                     "Codira Interface Synthesizer",
+                     CodiraSynthesizeInterfaceOption, 0,
                      /*ShowAllAliases*/ false);
     return EXIT_FAILURE;
   }
@@ -83,9 +84,9 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
     return EXIT_FAILURE;
   }
 
-  llvm::Triple Target;
+  toolchain::Triple Target;
   if (auto *A = ParsedArgs.getLastArg(OPT_target)) {
-    Target = llvm::Triple(A->getValue());
+    Target = toolchain::Triple(A->getValue());
   } else {
     Diags.diagnose(SourceLoc(), diag::error_option_required, "-target");
     return EXIT_FAILURE;
@@ -99,7 +100,7 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
   }
 
   Invocation.setMainExecutablePath(MainExecutablePath);
-  Invocation.setModuleName("swift_synthesize_interface");
+  Invocation.setModuleName("language_synthesize_interface");
 
   if (auto *A = ParsedArgs.getLastArg(OPT_resource_dir)) {
     Invocation.setRuntimeResourcePath(A->getValue());
@@ -136,7 +137,8 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
   Invocation.setImportSearchPaths(ImportSearchPaths);
 
   Invocation.getLangOptions().EnableObjCInterop = Target.isOSDarwin();
-  Invocation.getLangOptions().setCxxInteropFromArgs(ParsedArgs, Diags);
+  Invocation.getLangOptions().setCxxInteropFromArgs(ParsedArgs, Diags,
+                                                    Invocation.getFrontendOptions());
 
   std::string ModuleCachePath = "";
   if (auto *A = ParsedArgs.getLastArg(OPT_module_cache_path)) {
@@ -147,12 +149,12 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
   Invocation.getClangImporterOptions().ImportForwardDeclarations = true;
   Invocation.setDefaultPrebuiltCacheIfNecessary();
 
-  if (auto *A = ParsedArgs.getLastArg(OPT_swift_version)) {
+  if (auto *A = ParsedArgs.getLastArg(OPT_language_version)) {
     using version::Version;
-    auto SwiftVersion = A->getValue();
+    auto CodiraVersion = A->getValue();
     bool isValid = false;
     if (auto Version = VersionParser::parseVersionString(
-            SwiftVersion, SourceLoc(), nullptr)) {
+            CodiraVersion, SourceLoc(), nullptr)) {
       if (auto Effective = Version.value().getEffectiveLanguageVersion()) {
         Invocation.getLangOptions().EffectiveLanguageVersion = *Effective;
         isValid = true;
@@ -160,42 +162,42 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
     }
     if (!isValid) {
       Diags.diagnose(SourceLoc(), diag::error_invalid_arg_value,
-                     "-swift-version", SwiftVersion);
+                     "-language-version", CodiraVersion);
       return EXIT_FAILURE;
     }
   }
 
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::outs() << InstanceSetupError << '\n';
+    toolchain::outs() << InstanceSetupError << '\n';
     return EXIT_FAILURE;
   }
 
   auto M = CI.getASTContext().getModuleByName(ModuleName);
   if (!M) {
-    llvm::errs() << "Couldn't load module '" << ModuleName << '\''
+    toolchain::errs() << "Couldn't load module '" << ModuleName << '\''
                  << " in the current SDK and search paths.\n";
 
     SmallVector<Identifier, 32> VisibleModuleNames;
     CI.getASTContext().getVisibleTopLevelModuleNames(VisibleModuleNames);
 
     if (VisibleModuleNames.empty()) {
-      llvm::errs() << "Could not find any modules.\n";
+      toolchain::errs() << "Could not find any modules.\n";
     } else {
       std::sort(VisibleModuleNames.begin(), VisibleModuleNames.end(),
                 [](const Identifier &A, const Identifier &B) -> bool {
                   return A.str() < B.str();
                 });
-      llvm::errs() << "Current visible modules:\n";
+      toolchain::errs() << "Current visible modules:\n";
       for (const auto &ModuleName : VisibleModuleNames) {
-        llvm::errs() << ModuleName.str() << "\n";
+        toolchain::errs() << ModuleName.str() << "\n";
       }
     }
     return EXIT_FAILURE;
   }
 
   if (M->failedToLoad()) {
-    llvm::errs() << "Error: Failed to load the module '" << ModuleName
+    toolchain::errs() << "Error: Failed to load the module '" << ModuleName
                  << "'. Are you missing build dependencies or "
                     "include/framework directories?\n"
                  << "See the previous error messages for details. Aborting.\n";
@@ -204,9 +206,9 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
   }
 
   std::error_code EC;
-  llvm::raw_fd_ostream fs(OutputFile, EC);
+  toolchain::raw_fd_ostream fs(OutputFile, EC);
   if (EC) {
-    llvm::errs() << "Cannot open output file: " << OutputFile << "\n";
+    toolchain::errs() << "Cannot open output file: " << OutputFile << "\n";
     return EXIT_FAILURE;
   }
 
@@ -216,9 +218,9 @@ int swift_synthesize_interface_main(ArrayRef<const char *> Args,
     printOpts.FullyQualifiedTypes = true;
   }
 
-  swift::OptionSet<swift::ide::ModuleTraversal> traversalOpts = std::nullopt;
+  language::OptionSet<language::ide::ModuleTraversal> traversalOpts = std::nullopt;
   if (ParsedArgs.hasArg(OPT_include_submodules)) {
-    traversalOpts = swift::ide::ModuleTraversal::VisitSubmodules;
+    traversalOpts = language::ide::ModuleTraversal::VisitSubmodules;
   }
 
   StreamPrinter printer(fs);

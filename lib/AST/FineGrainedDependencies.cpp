@@ -1,4 +1,4 @@
-//===---- FineGrainedDependencies.cpp - Generates swiftdeps files ---------===//
+//===---- FineGrainedDependencies.cpp - Generates languagedeps files ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/FineGrainedDependencies.h"
@@ -23,15 +24,15 @@
 #include "language/AST/FineGrainedDependencyFormat.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/FileSystem.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Demangling/Demangle.h"
 #include "language/Frontend/FrontendOptions.h"
 
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
 
 
 // This file holds the definitions for the fine-grained dependency system
@@ -47,31 +48,31 @@ using namespace fine_grained_dependencies;
 //==============================================================================
 
 std::optional<SourceFileDepGraph>
-SourceFileDepGraph::loadFromPath(StringRef path, const bool allowSwiftModule) {
+SourceFileDepGraph::loadFromPath(StringRef path, const bool allowCodiraModule) {
   const bool treatAsModule =
-      allowSwiftModule &&
-      path.ends_with(file_types::getExtension(file_types::TY_SwiftModuleFile));
-  auto bufferOrError = llvm::MemoryBuffer::getFile(path);
+      allowCodiraModule &&
+      path.ends_with(file_types::getExtension(file_types::TY_CodiraModuleFile));
+  auto bufferOrError = toolchain::MemoryBuffer::getFile(path);
   if (!bufferOrError)
     return std::nullopt;
-  return treatAsModule ? loadFromSwiftModuleBuffer(*bufferOrError.get())
+  return treatAsModule ? loadFromCodiraModuleBuffer(*bufferOrError.get())
                        : loadFromBuffer(*bufferOrError.get());
 }
 
 std::optional<SourceFileDepGraph>
-SourceFileDepGraph::loadFromBuffer(llvm::MemoryBuffer &buffer) {
+SourceFileDepGraph::loadFromBuffer(toolchain::MemoryBuffer &buffer) {
   SourceFileDepGraph fg;
-  if (swift::fine_grained_dependencies::readFineGrainedDependencyGraph(
+  if (language::fine_grained_dependencies::readFineGrainedDependencyGraph(
       buffer, fg))
     return std::nullopt;
   return std::optional<SourceFileDepGraph>(std::move(fg));
 }
 
 std::optional<SourceFileDepGraph>
-SourceFileDepGraph::loadFromSwiftModuleBuffer(llvm::MemoryBuffer &buffer) {
+SourceFileDepGraph::loadFromCodiraModuleBuffer(toolchain::MemoryBuffer &buffer) {
   SourceFileDepGraph fg;
-  if (swift::fine_grained_dependencies::
-          readFineGrainedDependencyGraphFromSwiftModule(buffer, fg))
+  if (language::fine_grained_dependencies::
+          readFineGrainedDependencyGraphFromCodiraModule(buffer, fg))
     return std::nullopt;
   return std::optional<SourceFileDepGraph>(std::move(fg));
 }
@@ -98,11 +99,11 @@ SourceFileDepGraph::getSourceFileNodePair() const {
                   sourceFileProvidesImplementationSequenceNumber));
 }
 
-StringRef SourceFileDepGraph::getSwiftDepsOfJobThatProducedThisGraph() const {
+StringRef SourceFileDepGraph::getCodiraDepsOfJobThatProducedThisGraph() const {
   return getSourceFileNodePair()
       .getInterface()
       ->getKey()
-      .getSwiftDepsFromASourceFileProvideNodeKey();
+      .getCodiraDepsFromASourceFileProvideNodeKey();
 }
 
 void SourceFileDepGraph::forEachArc(
@@ -189,14 +190,14 @@ SourceFileDepGraph::findExistingNode(const DependencyKey &key) {
 }
 
 std::string DependencyKey::demangleTypeAsContext(StringRef s) {
-  return swift::Demangle::demangleTypeAsString(s.str());
+  return language::Demangle::demangleTypeAsString(s.str());
 }
 
 DependencyKey DependencyKey::createKeyForWholeSourceFile(DeclAspect aspect,
-                                                         StringRef swiftDeps) {
-  assert(!swiftDeps.empty());
+                                                         StringRef languageDeps) {
+  assert(!languageDeps.empty());
   return DependencyKey::Builder(NodeKind::sourceFileProvide, aspect)
-      .withName(swiftDeps)
+      .withName(languageDeps)
       .build();
 }
 
@@ -219,12 +220,12 @@ bool SourceFileDepGraph::verify() const {
 
     auto iterInserted = nodesSeen.insert(std::make_pair(n->getKey(), n));
     if (!iterInserted.second) {
-      llvm::errs() << "Duplicate frontend keys: ";
-      iterInserted.first->second->dump(llvm::errs());
-      llvm::errs() << " and ";
-      n->dump(llvm::errs());
-      llvm::errs() << "\n";
-      llvm_unreachable("duplicate frontend keys");
+      toolchain::errs() << "Duplicate frontend keys: ";
+      iterInserted.first->second->dump(toolchain::errs());
+      toolchain::errs() << " and ";
+      n->dump(toolchain::errs());
+      toolchain::errs() << "\n";
+      toolchain_unreachable("duplicate frontend keys");
     }
 
     forEachDefDependedUponBy(n, [&](SourceFileDepGraphNode *def) {
@@ -248,7 +249,7 @@ std::string DependencyKey::humanReadableName() const {
     return demangleTypeAsContext(context) + "." + name;
   case NodeKind::externalDepend:
   case NodeKind::sourceFileProvide:
-    return llvm::sys::path::filename(name).str();
+    return toolchain::sys::path::filename(name).str();
   case NodeKind::potentialMember:
     return demangleTypeAsContext(context) + ".*";
   case NodeKind::nominal:
@@ -257,7 +258,7 @@ std::string DependencyKey::humanReadableName() const {
   case NodeKind::dynamicLookup:
     return name;
   default:
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 }
 
@@ -291,12 +292,12 @@ bool DependencyKey::verify() const {
     assert(!context.empty() && !name.empty() && "Must have both");
     break;
   case NodeKind::kindCount:
-    llvm_unreachable("impossible");
+    toolchain_unreachable("impossible");
   }
   return true;
 }
 
-/// Since I don't have Swift enums, ensure name correspondence here.
+/// Since I don't have Codira enums, ensure name correspondence here.
 void DependencyKey::verifyNodeKindNames() {
   for (size_t i = 0; i < size_t(NodeKind::kindCount); ++i)
     switch (NodeKind(i)) {
@@ -312,12 +313,12 @@ void DependencyKey::verifyNodeKindNames() {
       CHECK_NAME(externalDepend)
       CHECK_NAME(sourceFileProvide)
     case NodeKind::kindCount:
-      llvm_unreachable("impossible");
+      toolchain_unreachable("impossible");
     }
 #undef CHECK_NAME
 }
 
-/// Since I don't have Swift enums, ensure name correspondence here.
+/// Since I don't have Codira enums, ensure name correspondence here.
 void DependencyKey::verifyDeclAspectNames() {
   for (size_t i = 0; i < size_t(DeclAspect::aspectCount); ++i)
     switch (DeclAspect(i)) {
@@ -328,13 +329,13 @@ void DependencyKey::verifyDeclAspectNames() {
       CHECK_NAME(interface)
       CHECK_NAME(implementation)
     case DeclAspect::aspectCount:
-      llvm_unreachable("impossible");
+      toolchain_unreachable("impossible");
     }
 #undef CHECK_NAME
 }
 
 void DepGraphNode::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void DepGraphNode::dump(raw_ostream &os) const {
@@ -346,7 +347,7 @@ void DepGraphNode::dump(raw_ostream &os) const {
 }
 
 void SourceFileDepGraphNode::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void SourceFileDepGraphNode::dump(raw_ostream &os) const {
@@ -377,12 +378,12 @@ void SourceFileDepGraph::verifySame(const SourceFileDepGraph &other) const {
 #endif
 }
 
-void SourceFileDepGraph::emitDotFile(llvm::vfs::OutputBackend &outputBackend,
+void SourceFileDepGraph::emitDotFile(toolchain::vfs::OutputBackend &outputBackend,
                                      StringRef outputPath,
                                      DiagnosticEngine &diags) {
   std::string dotFileName = outputPath.str() + ".dot";
   withOutputPath(
-      diags, outputBackend, dotFileName, [&](llvm::raw_pwrite_stream &out) {
+      diags, outputBackend, dotFileName, [&](toolchain::raw_pwrite_stream &out) {
         DotFileEmitter<SourceFileDepGraph>(out, *this, false, false).emit();
         return false;
       });

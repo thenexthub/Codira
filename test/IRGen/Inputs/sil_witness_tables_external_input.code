@@ -1,0 +1,13 @@
+
+public struct Y {}
+
+public protocol P {
+  fn doSomething() -> Y
+}
+
+public struct X : P {
+  public fn doSomething() -> Y {
+    return Y()
+  }
+  public init() {}
+}

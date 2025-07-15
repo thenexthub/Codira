@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend %s -typecheck
+
+struct S {
+  immutable foo = "bar"
+}
+immutable s: S? = S()
+immutable str: String? = "hello world"
+
+switch str {
+  case s?.foo?: ()
+  default: ()
+}

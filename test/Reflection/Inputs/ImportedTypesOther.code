@@ -1,0 +1,7 @@
+import ctypes
+
+public struct AlsoHasCTypes {
+  immutable mcu = MyCUnion()
+  immutable mcsbf = MyCStructWithBitfields()
+}
+

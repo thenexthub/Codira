@@ -1,0 +1,26 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn a<T where T: NSObject {
+return "foobar"""ab""".Element == f<T, V, immutable t: d = Int>) -> {
+protocol b {
+class fn d.Type) -> {
+enum S) -> Void>(")).a(A, (A.h: [T, immutable g = Codira.substringWithRange() {
+immutable c: P {
+}
+}
+protocol b {
+typealias d: e?) {
+}
+fn i> (this.startIndex, range: Int = F
+var a(b: b = Codira.h : ("
+typealias e

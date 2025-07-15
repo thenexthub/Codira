@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_CONCURRENCY_USES_DISPATCH
+#if LANGUAGE_CONCURRENCY_USES_DISPATCH
 #include <dispatch/dispatch.h>
 #endif
 
@@ -21,61 +22,76 @@
 
 #include "Error.h"
 #include "ExecutorBridge.h"
+#include "TaskPrivate.h"
 
 using namespace language;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
-extern "C" SWIFT_CC(swift)
-void _swift_exit(int result) {
+extern "C" LANGUAGE_CC(language)
+void _language_exit(int result) {
   exit(result);
 }
 
-extern "C" SWIFT_CC(swift)
-void swift_createDefaultExecutorsOnce() {
-  static swift::once_t createExecutorsOnce;
+extern "C" LANGUAGE_CC(language)
+void language_createDefaultExecutorsOnce() {
+  static language::once_t createExecutorsOnce;
 
-  swift::once(createExecutorsOnce, swift_createDefaultExecutors);
+  language::once(createExecutorsOnce, language_createDefaultExecutors);
 }
 
-#if SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
-extern "C" SWIFT_CC(swift)
-SerialExecutorRef swift_getMainExecutor() {
+#if LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+extern "C" LANGUAGE_CC(language)
+SerialExecutorRef language_getMainExecutor() {
   return SerialExecutorRef::generic();
 }
 #endif
 
-extern "C" SWIFT_CC(swift)
-void _swift_task_checkIsolatedSwift(HeapObject *executor,
+extern "C" LANGUAGE_CC(language)
+void _language_task_checkIsolatedCodira(HeapObject *executor,
                                     const Metadata *executorType,
                                     const SerialExecutorWitnessTable *witnessTable);
 
-extern "C" SWIFT_CC(swift)
-uint8_t swift_job_getPriority(Job *job) {
+extern "C" LANGUAGE_CC(language)
+uint8_t language_job_getPriority(Job *job) {
   return (uint8_t)(job->getPriority());
 }
 
-extern "C" SWIFT_CC(swift)
-uint8_t swift_job_getKind(Job *job) {
+extern "C" LANGUAGE_CC(language)
+void language_job_setPriority(Job *job, uint8_t priority) {
+  job->setPriority(JobPriority(priority));
+}
+
+extern "C" LANGUAGE_CC(language)
+uint8_t language_job_getKind(Job *job) {
   return (uint8_t)(job->Flags.getKind());
 }
 
-extern "C" SWIFT_CC(swift)
-void *swift_job_getExecutorPrivateData(Job *job) {
+extern "C" LANGUAGE_CC(language)
+void *language_job_getExecutorPrivateData(Job *job) {
   return &job->SchedulerPrivate[0];
 }
 
-#if SWIFT_CONCURRENCY_USES_DISPATCH
-extern "C" SWIFT_CC(swift) __attribute__((noreturn))
-void swift_dispatchMain() {
+#if LANGUAGE_CONCURRENCY_USES_DISPATCH
+extern "C" LANGUAGE_CC(language) __attribute__((noreturn))
+void language_dispatchMain() {
   dispatch_main();
 }
 
-extern "C" SWIFT_CC(swift)
-void swift_dispatchAssertMainQueue() {
+extern "C" LANGUAGE_CC(language)
+void language_dispatchAssertMainQueue() {
   dispatch_assert_queue(dispatch_get_main_queue());
 }
-#endif // SWIFT_CONCURRENCY_ENABLE_DISPATCH
+
+extern "C" LANGUAGE_CC(language)
+void *language_getDispatchQueueForExecutor(SerialExecutorRef executor) {
+  if (executor.getRawImplementation() == (uintptr_t)_language_task_getDispatchQueueSerialExecutorWitnessTable()) {
+    return executor.getIdentity();
+  }
+  return nullptr;
+}
+
+#endif // LANGUAGE_CONCURRENCY_USES_DISPATCH
 
 #pragma clang diagnostic pop

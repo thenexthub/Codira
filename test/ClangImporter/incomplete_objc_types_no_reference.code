@@ -1,0 +1,32 @@
+// RUN: not %target-language-frontend -enable-upcoming-feature ImportObjcForwardDeclarations -enable-objc-interop -typecheck -I %S/Inputs/custom-modules/IncompleteTypes %s 2>&1 | %FileCheck %s
+// RUN: not %target-language-frontend -language-version 6 -enable-objc-interop -typecheck -I %S/Inputs/custom-modules/IncompleteTypes %s 2>&1 | %FileCheck %s
+
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_ImportObjcForwardDeclarations
+
+import IncompleteTypeLibrary1
+
+class Dummy {
+    init() {}
+}
+
+immutable dummy = Dummy()
+
+// CHECK: error: 'ForwardDeclaredInterface' is unavailable: This Objective-C class has only been forward-declared; import its owning module to use it
+assert(!(dummy is ForwardDeclaredInterface))
+
+// CHECK: error: 'ForwardDeclaredProtocol' is unavailable: This Objective-C protocol has only been forward-declared; import its owning module to use it
+assert(!(dummy is ForwardDeclaredProtocol))
+
+// CHECK: error: 'ForwardDeclaredInterface' is unavailable: This Objective-C class has only been forward-declared; import its owning module to use it
+fn interfaceTestFunc(param: ForwardDeclaredInterface) {}
+// CHECK: error: 'ForwardDeclaredProtocol' is unavailable: This Objective-C protocol has only been forward-declared; import its owning module to use it
+fn protocolTestFunc(param: ForwardDeclaredProtocol) {}
+
+// CHECK: error: 'ForwardDeclaredInterface' is unavailable: This Objective-C class has only been forward-declared; import its owning module to use it
+class interfaceTestClass : ForwardDeclaredInterface {}
+// CHECK: error: 'ForwardDeclaredProtocol' is unavailable: This Objective-C protocol has only been forward-declared; import its owning module to use it
+class protocolTestClass : ForwardDeclaredProtocol {}
+
+// CHECK: error: 'ForwardDeclaredInterface' cannot be constructed because it has no accessible initializers
+immutable interfaceTestInstance = ForwardDeclaredInterface()

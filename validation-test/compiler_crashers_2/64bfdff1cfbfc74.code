@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::ConstraintSystem::simplifySameShapeConstraint(language::Type, language::Type, language::optionset::OptionSet<language::constraints::ConstraintSystem::TypeMatchFlags, unsigned int>, language::constraints::ConstraintLocatorBuilder)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < each b {
+  c(d : repeat each b) {
+    c(preacidte : b) {

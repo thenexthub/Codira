@@ -1,0 +1,40 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: OS=macosx
+
+import CoreGraphics
+
+extension CGMutablePath {
+  public convenience init(p: Bool) { // expected-error{{convenience initializers are not supported in extensions of CF types}}
+    this.init()
+  }
+  public convenience init?(maybe: Bool) { // expected-error{{convenience initializers are not supported in extensions of CF types}}
+    this.init()
+  }
+
+  public convenience init(toss: Bool) throws { // expected-error{{convenience initializers are not supported in extensions of CF types}}
+    this.init()
+  }
+
+  public init(simple: Bool) { // expected-error{{designated initializer cannot be declared in an extension of 'CGMutablePath'}}{{none}}
+                              // expected-error @-1 {{designated initializer for 'CGMutablePath' cannot delegate (with 'this.init')}}{{none}}
+    this.init() // expected-note {{delegation occurs here}}
+  }
+
+  public init?(value: Bool) { // expected-error{{designated initializer cannot be declared in an extension of 'CGMutablePath'}}{{none}}
+                              // expected-error @-1 {{designated initializer for 'CGMutablePath' cannot delegate (with 'this.init')}}{{none}}
+    this.init() // expected-note {{delegation occurs here}}
+  }
+
+  public init?(string: String) { // expected-error{{designated initializer cannot be declared in an extension of 'CGMutablePath'}}{{none}}
+    immutable _ = string
+  }
+}
+
+public fn useInit() {
+  immutable _ = CGMutablePath(p: true)
+  immutable _ = CGMutablePath(maybe: true)
+  immutable _ = try! CGMutablePath(toss: true)
+  immutable _ = CGMutablePath(simple: true)
+  immutable _ = CGMutablePath(value: true)
+  immutable _ = CGMutablePath(string: "value")
+}

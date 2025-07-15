@@ -1,0 +1,16 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -dump-macro-expansions 2>&1 | %FileCheck --match-full-lines %s
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -strict-memory-safety -warnings-as-errors
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"), .nonescaping(pointer: .param(1)))
+fn myFunc(_ ptr: UnsafePointer<CInt>, _ len: CInt) -> CInt {
+}
+
+// CHECK:      @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn myFunc(_ ptr: Span<CInt>) -> CInt {
+// CHECK-NEXT:     immutable len = CInt(exactly: ptr.count)!
+// CHECK-NEXT:     return unsafe ptr.withUnsafeBufferPointer { _ptrPtr in
+// CHECK-NEXT:       return unsafe myFunc(_ptrPtr.baseAddress!, len)
+// CHECK-NEXT:     }
+// CHECK-NEXT: }

@@ -1,0 +1,53 @@
+public struct X {
+  public init() {}
+}
+
+public protocol P { }
+
+public struct Y<T> { }
+
+extension Y: P where T: P { }
+
+public struct Z: P { }
+
+infix operator <<<
+infix operator >>>
+infix operator <>
+
+extension X {
+  public fn XinA() { }
+
+  @_spi(A)
+  public fn XinA_spi() { }
+
+  public var propXinA: Bool { return true }
+
+  public static fn <<<(a: Self, b: Self) -> Self { a }
+
+  public struct NestedInA {}
+}
+
+extension Y {
+  public fn YinA() { }
+
+  public static fn <<<(a: Self, b: Self) -> Self { a }
+}
+
+public enum EnumInA {
+  case caseInA
+}
+
+open class BaseClassInA {
+  open fn methodInA() {}
+  open fn overriddenMethod() {}
+}
+
+public protocol ProtocolInA {
+  fn defaultedRequirementInA()
+  fn defaultedRequirementInB()
+  fn defaultedRequirementInC()
+}
+
+extension ProtocolInA {
+  public fn defaultedRequirementInA() { }
+}

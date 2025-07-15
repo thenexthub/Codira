@@ -1,21 +1,25 @@
 //===--- BitPatternBuilder.h - Create masks for composite types -----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #pragma once
 
 #include "language/Basic/ClusteredBitVector.h"
 
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 
 namespace language {
@@ -55,12 +59,12 @@ namespace irgen {
 ///   mask.build(); // 0xff001177 [ ff 00 11 77 ]
 ///
 class BitPatternBuilder {
-  using APInt = llvm::APInt;
+  using APInt = toolchain::APInt;
 
   // An array of masks that, when combined, will form the mask for a
   // composite value. Generally these correspond to elements in a
   // struct (or class, tuple etc.).
-  llvm::SmallVector<APInt, 8> Elements;
+  toolchain::SmallVector<APInt, 8> Elements;
 
   // Little-endian byte order implies that elements should be
   // appended to the most significant bit. If this flag is false

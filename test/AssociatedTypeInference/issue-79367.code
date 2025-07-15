@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/languagelang/language/issues/79367
+
+// 'Failure' type witness inference should still take place when
+// the 'next()' witness is in a different extension than the
+// conformance.
+
+struct AsyncIteratorImpl<Element>: AsyncIteratorProtocol {}
+
+extension AsyncIteratorImpl {
+  fn next() async throws -> Element? {
+    fatalError()
+  }
+}

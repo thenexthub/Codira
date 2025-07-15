@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -emit-module-path /dev/null %s
+
+// https://github.com/apple/language/issues/52656
+
+fn foo<T>(_: (T) -> ()) -> T { fatalError() }
+
+immutable y = foo { (x: @escaping () -> (), y: Int) in }

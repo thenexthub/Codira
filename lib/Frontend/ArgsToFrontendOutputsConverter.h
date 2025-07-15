@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_ARGSTOFRONTENDOUTPUTSCONVERTER_H
-#define SWIFT_FRONTEND_ARGSTOFRONTENDOUTPUTSCONVERTER_H
+#ifndef LANGUAGE_FRONTEND_ARGSTOFRONTENDOUTPUTSCONVERTER_H
+#define LANGUAGE_FRONTEND_ARGSTOFRONTENDOUTPUTSCONVERTER_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticEngine.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SupplementaryOutputPaths.h"
 #include "language/Frontend/FrontendOptions.h"
 #include "language/Option/Options.h"
-#include "llvm/Option/ArgList.h"
+#include "toolchain/Option/ArgList.h"
 
 #include <vector>
 
@@ -33,13 +34,13 @@ class OutputFileMap;
 /// Fill in all the information in FrontendInputsAndOutputs.
 
 class ArgsToFrontendOutputsConverter {
-  const llvm::opt::ArgList &Args;
+  const toolchain::opt::ArgList &Args;
   StringRef ModuleName;
   FrontendInputsAndOutputs &InputsAndOutputs;
   DiagnosticEngine &Diags;
 
 public:
-  ArgsToFrontendOutputsConverter(const llvm::opt::ArgList &args,
+  ArgsToFrontendOutputsConverter(const toolchain::opt::ArgList &args,
                                  StringRef moduleName,
                                  FrontendInputsAndOutputs &inputsAndOutputs,
                                  DiagnosticEngine &diags)
@@ -70,7 +71,7 @@ class OutputFilesComputer {
   const std::string OutputDirectoryArgument;
   const std::string FirstInput;
   const FrontendOptions::ActionType RequestedAction;
-  const llvm::opt::Arg *const ModuleNameArg;
+  const toolchain::opt::Arg *const ModuleNameArg;
   const StringRef Suffix;
   const bool HasTextualOutput;
   const OutputOptInfo OutputInfo;
@@ -80,13 +81,13 @@ class OutputFilesComputer {
                       std::vector<std::string> outputFileArguments,
                       StringRef outputDirectoryArgument, StringRef firstInput,
                       FrontendOptions::ActionType requestedAction,
-                      const llvm::opt::Arg *moduleNameArg, StringRef suffix,
+                      const toolchain::opt::Arg *moduleNameArg, StringRef suffix,
                       bool hasTextualOutput,
                       OutputOptInfo optInfo);
 
 public:
   static std::optional<OutputFilesComputer>
-  create(const llvm::opt::ArgList &args, DiagnosticEngine &diags,
+  create(const toolchain::opt::ArgList &args, DiagnosticEngine &diags,
          const FrontendInputsAndOutputs &inputsAndOutputs,
          OutputOptInfo optInfo);
 
@@ -94,7 +95,7 @@ public:
   /// filelist. If there
   /// were neither -o's nor an output filelist, returns an empty vector.
   static std::optional<std::vector<std::string>>
-  getOutputFilenamesFromCommandLineOrFilelist(const llvm::opt::ArgList &args,
+  getOutputFilenamesFromCommandLineOrFilelist(const toolchain::opt::ArgList &args,
                                               DiagnosticEngine &diags,
                                               options::ID singleOpt,
                                               options::ID filelistOpt);
@@ -128,7 +129,7 @@ private:
 };
 
 class SupplementaryOutputPathsComputer {
-  const llvm::opt::ArgList &Args;
+  const toolchain::opt::ArgList &Args;
   DiagnosticEngine &Diags;
   const FrontendInputsAndOutputs &InputsAndOutputs;
   ArrayRef<std::string> OutputFiles;
@@ -138,7 +139,7 @@ class SupplementaryOutputPathsComputer {
 
 public:
   SupplementaryOutputPathsComputer(
-      const llvm::opt::ArgList &args, DiagnosticEngine &diags,
+      const toolchain::opt::ArgList &args, DiagnosticEngine &diags,
       const FrontendInputsAndOutputs &inputsAndOutputs,
       ArrayRef<std::string> outputFiles, StringRef moduleName);
   std::optional<std::vector<SupplementaryOutputPaths>>
@@ -183,7 +184,8 @@ private:
   std::string determineSupplementaryOutputFilename(
       options::ID emitOpt, std::string pathFromArgumentsOrFilelists,
       file_types::ID type, StringRef mainOutputIfUsable,
-      StringRef defaultSupplementaryOutputPathExcludingExtension) const;
+      StringRef defaultSupplementaryOutputPathExcludingExtension,
+      bool forceDefaultSupplementaryOutputPathExcludingExtension = false) const;
 
   void deriveModulePathParameters(StringRef mainOutputFile,
                                   options::ID &emitOption,
@@ -193,4 +195,4 @@ private:
 
 } // namespace language
 
-#endif /* SWIFT_FRONTEND_ARGSTOFRONTENDOUTPUTSCONVERTER_H */
+#endif /* LANGUAGE_FRONTEND_ARGSTOFRONTENDOUTPUTSCONVERTER_H */

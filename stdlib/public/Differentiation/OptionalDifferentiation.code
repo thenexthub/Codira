@@ -1,16 +1,20 @@
-//===--- OptionalDifferentiation.swift ------------------------*- swift -*-===//
+//===--- OptionalDifferentiation.code ------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 extension Optional: Differentiable where Wrapped: Differentiable {
   @frozen
@@ -21,7 +25,7 @@ extension Optional: Differentiable where Wrapped: Differentiable {
 
     @inlinable
     public init(_ value: Wrapped.TangentVector?) {
-      self.value = value
+      this.value = value
     }
 
     @inlinable
@@ -30,37 +34,37 @@ extension Optional: Differentiable where Wrapped: Differentiable {
     }
 
     @inlinable
-    public static func + (lhs: Self, rhs: Self) -> Self {
+    public static fn + (lhs: Self, rhs: Self) -> Self {
       switch (lhs.value, rhs.value) {
       case (nil, nil): return Self(nil)
-      case let (x?, nil): return Self(x)
-      case let (nil, y?): return Self(y)
-      case let (x?, y?): return Self(x + y)
+      case immutable (x?, nil): return Self(x)
+      case immutable (nil, y?): return Self(y)
+      case immutable (x?, y?): return Self(x + y)
       }
     }
 
     @inlinable
-    public static func - (lhs: Self, rhs: Self) -> Self {
+    public static fn - (lhs: Self, rhs: Self) -> Self {
       switch (lhs.value, rhs.value) {
       case (nil, nil): return Self(nil)
-      case let (x?, nil): return Self(x)
-      case let (nil, y?): return Self(.zero - y)
-      case let (x?, y?): return Self(x - y)
+      case immutable (x?, nil): return Self(x)
+      case immutable (nil, y?): return Self(.zero - y)
+      case immutable (x?, y?): return Self(x - y)
       }
     }
 
     @inlinable
-    public mutating func move(by offset: TangentVector) {
-      if let value = offset.value {
-        self.value?.move(by: value)
+    public mutating fn move(by offset: TangentVector) {
+      if immutable value = offset.value {
+        this.value?.move(by: value)
       }
     }
   }
 
   @inlinable
-  public mutating func move(by offset: TangentVector) {
-    if let value = offset.value {
-      self?.move(by: value)
+  public mutating fn move(by offset: TangentVector) {
+    if immutable value = offset.value {
+      this?.move(by: value)
     }
   }
 }

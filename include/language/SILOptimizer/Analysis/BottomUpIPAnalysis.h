@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains a base class for bottom-up interprocedural analysis.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_BOTTOMUPIPANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_BOTTOMUPIPANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_BOTTOMUPIPANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_BOTTOMUPIPANALYSIS_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/ApplySite.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -87,7 +88,7 @@ protected:
     /// invalidated at the same time).
     /// Note that Callers can't be a pure hashed set-like container because the
     /// iteration order must be deterministic.
-    llvm::SmallVector<CallerEntry, 8> Callers;
+    toolchain::SmallVector<CallerEntry, 8> Callers;
 
     /// In which update-cycle the analysis was computed for this function.
     /// A 0-value means that the analysis for this function was not computed
@@ -161,7 +162,7 @@ protected:
   /// Computes and stores a bottom-up function order.
   template<typename FunctionInfo> class BottomUpFunctionOrder {
 
-    typedef llvm::SmallVector<FunctionInfo *, 8> FunctionInfoList;
+    typedef toolchain::SmallVector<FunctionInfo *, 8> FunctionInfoList;
 
     /// The final bottom-up function order.
     FunctionInfoList Scheduled;
@@ -303,7 +304,7 @@ protected:
   /// the callers.
   template<typename FunctionInfo>
   void invalidateIncludingAllCallers(FunctionInfo *FInfo) {
-    llvm::SmallVector<FunctionInfo *, 8> WorkList;
+    toolchain::SmallVector<FunctionInfo *, 8> WorkList;
     WorkList.push_back(FInfo);
 
     while (!WorkList.empty()) {
@@ -321,4 +322,4 @@ protected:
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_ANALYSIS_BOTTOMUPIPANALYSIS_H
+#endif // LANGUAGE_SILOPTIMIZER_ANALYSIS_BOTTOMUPIPANALYSIS_H

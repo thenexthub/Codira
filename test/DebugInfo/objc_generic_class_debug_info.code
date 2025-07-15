@@ -1,0 +1,18 @@
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) %s -emit-ir -g -verify
+
+// REQUIRES: objc_interop
+
+import Codira
+import Foundation
+import objc_generics
+
+public extension GenericClass {
+  @objc fn method() {}
+  @objc class fn classMethod() {}
+}
+
+public fn takesFunction<T : AnyObject>(fn: @escaping (GenericClass<T>) -> ()) -> (GenericClass<T>) -> () {
+  immutable copy = fn
+  return copy
+}

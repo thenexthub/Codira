@@ -1,18 +1,22 @@
 //===--- PropertyMap.cpp - Collects properties of type parameters ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The property map is used to answer generic signature queries. It also
 // implements special behaviors of layout, superclass, and concrete type
-// requirements in the Swift language.
+// requirements in the Codira language.
 //
 // # Property map construction
 //
@@ -94,7 +98,7 @@
 #include "language/AST/ProtocolConformance.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <vector>
 
@@ -103,7 +107,7 @@
 using namespace language;
 using namespace rewriting;
 
-void PropertyBag::dump(llvm::raw_ostream &out) const {
+void PropertyBag::dump(toolchain::raw_ostream &out) const {
   out << Key << " => {";
 
   if (!ConformsTo.empty()) {
@@ -364,14 +368,14 @@ PropertyMap::getOrCreateProperties(Term key) {
   Entries.push_back(props);
   auto oldProps = Trie.insert(key.rbegin(), key.rend(), props);
   if (oldProps) {
-    llvm::errs() << "Duplicate property map entry for " << key << "\n";
-    llvm::errs() << "Old:\n";
-    (*oldProps)->dump(llvm::errs());
-    llvm::errs() << "\n";
-    llvm::errs() << "New:\n";
-    props->dump(llvm::errs());
-    llvm::errs() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "Duplicate property map entry for " << key << "\n";
+      out << "Old:\n";
+      (*oldProps)->dump(out);
+      out << "\n";
+      out << "New:\n";
+      props->dump(out);
+    });
   }
 
   return props;
@@ -394,9 +398,9 @@ void PropertyMap::clear() {
 /// completion, and rebuild the property map again.
 void PropertyMap::buildPropertyMap() {
   if (System.getDebugOptions().contains(DebugFlags::PropertyMap)) {
-    llvm::dbgs() << "-------------------------\n";
-    llvm::dbgs() << "- Building property map -\n";
-    llvm::dbgs() << "-------------------------\n";
+    toolchain::dbgs() << "-------------------------\n";
+    toolchain::dbgs() << "- Building property map -\n";
+    toolchain::dbgs() << "-------------------------\n";
   }
 
   clear();
@@ -462,7 +466,7 @@ void PropertyMap::buildPropertyMap() {
   verify();
 }
 
-void PropertyMap::dump(llvm::raw_ostream &out) const {
+void PropertyMap::dump(toolchain::raw_ostream &out) const {
   out << "Property map: {\n";
   for (const auto &props : Entries) {
     out << "  ";

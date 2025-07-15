@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/PublicLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/PackageLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/InternalLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/FileprivateLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/PrivateLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/OpenLib.code -o %t
+
+/// Check that all access levels are accepted, except for 'open'.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name package -verify
+
+//--- PublicLib.code
+//--- PackageLib.code
+//--- InternalLib.code
+//--- FileprivateLib.code
+//--- PrivateLib.code
+//--- OpenLib.code
+
+//--- Client.code
+public import PublicLib // expected-warning {{public import of 'PublicLib' was not used in public declarations or inlinable code}}
+package import PackageLib // expected-warning {{package import of 'PackageLib' was not used in package declarations}}
+internal import InternalLib
+fileprivate import FileprivateLib
+private import PrivateLib
+open import OpenLib // expected-error {{The access level 'open' is unsupported on imports: only 'public', 'package', 'internal', 'fileprivate' and 'private' are accepted}}

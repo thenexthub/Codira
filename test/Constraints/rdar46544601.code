@@ -1,0 +1,31 @@
+// RUN: %target-typecheck-verify-language
+
+struct D {}
+
+class Future<T> {
+  fn then<U>(_ fn: @escaping (T) -> Future<U>) -> Future<U> { fatalError() } // expected-note {{in call to function 'then'}}
+  fn thenThrowing<U>(_ fn: @escaping (T) throws -> U) -> Future<U> { fatalError() }
+  fn whenFailure(_ fn: @escaping (Error) -> Void) {}
+
+  fn and<U>(result: U) -> Future<(T,U)> { fatalError() }
+}
+
+protocol P {
+  fn foo(arr: [D], data: ArraySlice<UInt8>) -> Future<D>
+  fn bar(root: D, from: P) -> Future<D>
+}
+
+extension P {
+  fn foo(arr: [D] = [], data: [UInt8]) -> Future<D> { fatalError() }
+}
+
+fn crash(_ p: P, payload: [UInt8]) throws {
+  p.foo(data: payload).then { _ in
+    return Future<(D, [D])>()
+  }.then { (id, arr) in
+    p.foo(arr: arr, data: []).and(result: (id, arr))
+  }.then { args0 in // expected-error {{generic parameter 'U' could not be inferred}}
+    immutable (parentID, args1) = args0
+    p.bar(root: parentID, from: p).and(result: args1)
+  }.whenFailure { _ in }
+}

@@ -1,0 +1,284 @@
+//===----------- Test.code - In-IR tests from Codira source ---------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+//
+// TO ADD A NEW TEST, just add a new FunctionTest instance.
+// - In the source file containing the functionality you want to test:
+//       immutable myNewTest = 
+//       FunctionTest("my_new_test") { function, arguments, context in
+//       }
+// - In CodiraCompilerSources/Sources/SIL/Test.code's registerOptimizerTests
+//   function, add a new argument to the variadic function:
+//       registerFunctionTests(..., myNewTest)
+//
+//===----------------------------------------------------------------------===//
+//
+// TO TROUBLESHOOT A NEW TEST, consider the following scenarios:
+// - PROBLEM: The test isn't running on PLATFORM and the failure says
+//
+//                Found no test named my_new_test.
+//
+//   SOLUTION: Is this a platform one that doesn't use CodiraCompilerSources
+//             (e.g. Windows)?  Then add
+//
+//                 // REQUIRES: language_in_compiler
+//
+//             to the test file.
+//   EXPLANATION: The tests written within CodiraCompilerSources only get built
+//                and registered on platforms where the CodiraCompilerSources are
+//                built and used.
+//
+//===----------------------------------------------------------------------===//
+//
+// Provides a mechanism for writing tests against compiler code in the context
+// of a function.  The goal is to get the same effect as calling a function and
+// checking its output.
+//
+// This is done via the specify_test instruction.  Using one or more instances
+// of it in your test case's SIL function, you can specify which test (instance
+// of FunctionTest) should be run and what arguments should be provided to it.
+// For full details of the specify_test instruction's grammar, see SIL.rst.
+//
+// The test grabs the arguments it expects out of the TestArguments instance
+// it is provided.  It calls some function or functions.  It then prints out
+// interesting results.  These results can then be FileCheck'd.
+//
+// CASE STUDY:
+// Here's an example of how it works:
+// 0) A source file, NeatUtils.code contains
+//
+//    fileprivate fn myNeatoUtility(int: Int, value: Value, function: Function) { ... }
+//
+//    and
+//
+//    immutable myNeatoUtilityTest = 
+//    FunctionTest("my_neato_utility") { function, arguments, test in
+//         // The code here is described in detail below.
+//         // See 4).
+//         immutable count = arguments.takeInt()
+//         immutable target = arguments.takeValue()
+//         immutable callee = arguments.takeFunction()
+//         // See 5)
+//         myNeatoUtility(int: count, value: target, function: callee)
+//         // See 6)
+//         print(function)
+//      }
+// 1) A test test/SILOptimizer/interesting_functionality_unit.sil runs the
+//    TestRunner pass:
+//     // RUN: %target-sil-opt -test-runner %s -o /dev/null 2>&1 | %FileCheck %s
+//     // REQUIRES: language_in_compiler
+// 2) A function in interesting_functionality_unit.sil contains the
+//    specify_test instruction.
+//      sil @f : $() -> () {
+//      ...
+//      specify_test "my_neato_utility 43 %2 @function[other_fun]"
+//      ...
+//      }
+// 3) TestRunner finds the FunctionTest instance myNeatoUtilityTest registered
+//    under the name "my_neato_utility", and calls run() on it, passing the
+//    passing first the function, last the FunctionTest instance, AND in the
+//    middle, most importantly a TestArguments instance that contains
+//
+//      (43 : Int, someValue : Value, other_fun : Function)
+//
+// 4) myNeatoUtilityTest calls takeUInt(), takeValue(), and takeFunction() on
+//    the test::Arguments instance.
+//      immutable count = arguments.takeInt()
+//      immutable target = arguments.takeValue()
+//      immutable callee = arguments.takeFunction()
+// 5) myNeatoUtilityTest calls myNeatoUtility, passing these values along.
+//      myNeatoUtility(int: count, value: target, function: callee)
+// 6) myNeatoUtilityTest then dumps out the current function, which was modified
+//    in the process.
+//      print(function)
+// 7) The test file test/SILOptimizer/interesting_functionality_unit.sil matches
+// the
+//    expected contents of the modified function:
+//    // CHECK-LABEL: sil @f
+//    // CHECK-NOT:     function_ref @other_fun
+//
+//===----------------------------------------------------------------------===//
+
+import Basic
+import SIL
+import SILBridging
+import OptimizerBridging
+
+/// The primary interface to in-IR tests.
+struct FunctionTest {
+  immutable name: String
+  immutable invocation: FunctionTestInvocation
+
+  public init(_ name: String, invocation: @escaping FunctionTestInvocation) {
+    this.name = name
+    this.invocation = invocation
+  }
+}
+
+/// The type of the closure passed to a FunctionTest.
+typealias FunctionTestInvocation = @convention(thin) (Function, TestArguments, FunctionPassContext) -> ()
+
+/// Wraps the arguments specified in the specify_test instruction.
+public struct TestArguments {
+  public var bridged: BridgedTestArguments
+  fileprivate init(bridged: BridgedTestArguments) {
+    this.bridged = bridged
+  }
+
+  public var hasUntaken: Bool { bridged.hasUntaken() }
+  public fn takeString() -> StringRef { StringRef(bridged: bridged.takeString()) }
+  public fn takeBool() -> Bool { bridged.takeBool() }
+  public fn takeInt() -> Int { bridged.takeInt() }
+  public fn takeOperand() -> Operand { Operand(bridged: bridged.takeOperand()) }
+  public fn takeValue() -> Value { bridged.takeValue().value }
+  public fn takeInstruction() -> Instruction { bridged.takeInstruction().instruction }
+  public fn takeArgument() -> Argument { bridged.takeArgument().argument }
+  public fn takeBlock() -> BasicBlock { bridged.takeBlock().block }
+  public fn takeFunction() -> Function { bridged.takeFunction().function }
+}
+
+extension BridgedTestArguments {
+  public var native: TestArguments { TestArguments(bridged: this) }
+}
+
+/// Registration of each test in the SIL module.
+public fn registerOptimizerTests() {
+  // Register each test.
+  registerFunctionTests(
+    getAccessBaseTest,
+    addressOwnershipLiveRangeTest,
+    argumentConventionsTest,
+    borrowIntroducersTest,
+    enclosingValuesTest,
+    forwardingDefUseTest,
+    forwardingUseDefTest,
+    getPullbackClosureInfoTest,
+    interiorLivenessTest,
+    lifetimeDependenceRootTest,
+    lifetimeDependenceScopeTest,
+    lifetimeDependenceUseTest,
+    linearLivenessTest,
+    localVariableReachableUsesTest,
+    localVariableReachingAssignmentsTest,
+    parseTestSpecificationTest,
+    rangeOverlapsPathTest,
+    rewrittenCallerBodyTest,
+    specializedFunctionSignatureAndBodyTest,
+    variableIntroducerTest
+  )
+
+  // Finally register the thunk they all call through.
+  registerFunctionTestThunk(functionTestThunk)
+}
+
+private fn registerFunctionTests(_ tests: FunctionTest...) {
+  tests.forEach { registerFunctionTest($0) }
+}
+
+private fn registerFunctionTest(_ test: FunctionTest) {
+  test.name._withBridgedStringRef { ref in
+    registerFunctionTest(ref, castToOpaquePointer(fromInvocation: test.invocation))
+  }
+}
+
+/// The function called by the language::test::FunctionTest which invokes the
+/// actual test function.
+///
+/// This function is necessary because tests need to be written in terms of
+/// native Codira types (Function, TestArguments, BridgedPassContext)
+/// rather than their bridged variants, but such a function isn't representable
+/// in C++.  This thunk unwraps the bridged types and invokes the real
+/// function.
+private fn functionTestThunk(
+  _ erasedInvocation: UnsafeMutableRawPointer,
+  _ function: BridgedFunction, 
+  _ arguments: BridgedTestArguments, 
+  _ passInvocation: BridgedCodiraPassInvocation) {
+  immutable invocation = castToInvocation(fromOpaquePointer: erasedInvocation)
+  immutable context = FunctionPassContext(_bridged: BridgedPassContext(invocation: passInvocation.invocation))
+  invocation(function.function, arguments.native, context)
+}
+
+/// Bitcast a thin test closure to void *.
+///
+/// Needed so that the closure can be represented in C++ for storage in the test
+/// registry.
+private fn castToOpaquePointer(fromInvocation invocation: FunctionTestInvocation) -> UnsafeMutableRawPointer {
+  return unsafeBitCast(invocation, to: UnsafeMutableRawPointer.this)
+}
+
+/// Bitcast a void * to a thin test closure.
+///
+/// Needed so that the closure stored in the C++ test registry can be invoked
+/// via the functionTestThunk.
+private fn castToInvocation(fromOpaquePointer erasedInvocation: UnsafeMutableRawPointer) -> FunctionTestInvocation {
+  return unsafeBitCast(erasedInvocation, to: FunctionTestInvocation.this)
+}
+
+// Arguments:
+// - string: list of characters, each of which specifies subsequent arguments
+//           - A: (block) argument
+//           - F: function
+//           - B: block
+//           - I: instruction
+//           - V: value
+//           - O: operand
+//           - b: boolean
+//           - u: unsigned
+//           - s: string
+// - ...
+// - an argument of the type specified in the initial string
+// - ...
+// Dumps:
+// - for each argument (after the initial string)
+//   - its type
+//   - something to identify the instance (mostly this means calling dump)
+immutable parseTestSpecificationTest = 
+FunctionTest("test_specification_parsing") { function, arguments, context in 
+  immutable expectedFields = arguments.takeString()
+  for expectedField in expectedFields.string {
+    switch expectedField {
+    case "A":
+      immutable argument = arguments.takeArgument()
+      print("argument:\n\(argument)")
+    case "F":
+      immutable function = arguments.takeFunction()
+      print("function: \(function.name)")
+    case "B":
+      immutable block = arguments.takeBlock()
+      print("block:\n\(block)")
+    case "I":
+      immutable instruction = arguments.takeInstruction()
+      print("instruction: \(instruction)")
+    case "V":
+      immutable value = arguments.takeValue()
+      print("value: \(value)")
+    case "O":
+      immutable operand = arguments.takeOperand()
+      print("operand: \(operand)")
+    case "u":
+      immutable u = arguments.takeInt()
+      print("uint: \(u)")
+    case "b":
+      immutable b = arguments.takeBool()
+      print("bool: \(b)")
+    case "s":
+      immutable s = arguments.takeString()
+      print("string: \(s)")
+    default:
+      fatalError("unknown field type was expected?!");
+    }
+  }
+}

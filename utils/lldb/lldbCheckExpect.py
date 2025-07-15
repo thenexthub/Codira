@@ -9,9 +9,9 @@ To use it, compile a target program with these flags:
 
     -g -Xfrontend -debugger-testing-transform
 
-Make sure the swift standard library is built with debug info. Then, launch
-swift-lldb with "-o path/to/this/script -- <program> [<args>]". There is a
-utility available in SWIFT_BINARY_DIR/bin/lldb-check-expect which automates
+Make sure the language standard library is built with debug info. Then, launch
+language-lldb with "-o path/to/this/script -- <program> [<args>]". There is a
+utility available in LANGUAGE_BINARY_DIR/bin/lldb-check-expect which automates
 this, e.g:
 
     ./bin/lldb-check-expect <program>

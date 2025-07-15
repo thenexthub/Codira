@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SGFCONTEXT_H
-#define SWIFT_SILGEN_SGFCONTEXT_H
+#ifndef LANGUAGE_SILGEN_SGFCONTEXT_H
+#define LANGUAGE_SILGEN_SGFCONTEXT_H
 
 #include "Initialization.h"
 
@@ -39,7 +40,7 @@ class SGFContext {
     ImmediatePlusZero,
     GuaranteedPlusZero,
   };
-  llvm::PointerIntPair<Initialization *, 2, DesiredTransfer> state;
+  toolchain::PointerIntPair<Initialization *, 2, DesiredTransfer> state;
 public:
   SGFContext() = default;
 
@@ -173,7 +174,7 @@ public:
 };
 
 using ValueProducerRef =
-  llvm::function_ref<ManagedValue(SILGenFunction &SGF, SILLocation loc,
+  toolchain::function_ref<ManagedValue(SILGenFunction &SGF, SILLocation loc,
                                   SGFContext context)>;
 
 } // end namespace Lowering

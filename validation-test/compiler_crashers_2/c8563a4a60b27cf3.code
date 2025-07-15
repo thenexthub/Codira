@@ -1,0 +1,7 @@
+// {"signature":"language::CanTypeVisitor<language::TypeMatcher<desugarSameTypeRequirement(language::Requirement, language::SourceLoc, toolchain::SmallVectorImpl<language::Requirement>&, toolchain::SmallVectorImpl<language::InverseRequirement>&, toolchain::SmallVectorImpl<language::rewriting::RequirementError>&)::Matcher>::MatchVisitor, bool, language::Type, language::Type>::visit(language::CanType, language::Type, language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  associatedtype b associatedtype c associatedtype d fn e(b, c) -> d
+}
+struct f < j, g : a where h == g.c struct i<j> : a {
+  e(j, _) extension f where g == i<j>

@@ -1,0 +1,46 @@
+// This file tests that we emit cross-imports into module interfaces.
+
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/lib-templates/* %t/
+
+//
+// Should pass with -enable-cross-import-overlays
+//
+
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %FileCheck %s < %t.codeinterface
+
+//
+// Should fail with -disable-cross-import-overlays
+//
+
+// RUN: not %target-language-emit-module-interface(%t.codeinterface) %s -disable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary 2>/dev/null
+
+//
+// Should fail by default
+//
+
+// RUN: not %target-language-emit-module-interface(%t.codeinterface) %s -I %t/lib/language -module-name ClientLibrary -language-version 5 2>/dev/null
+
+
+import DeclaringLibrary
+import BystandingLibrary
+
+public fn fn(_: DeclaringLibraryTy, _: BystandingLibraryTy, _: OverlayLibraryTy) {}
+
+public fn alias(_: DeclaringLibrary.OverlayLibraryTy) {}
+
+public fn shadow(_: DeclaringLibrary.ShadowTy, _: ShadowTy) {}
+
+// CHECK: // language-interface-format-version
+// CHECK: // language-module-flags: {{.*}} -module-name ClientLibrary
+
+// CHECK-DAG: import Codira
+// CHECK-DAG: import DeclaringLibrary
+// CHECK-DAG: import BystandingLibrary
+// CHECK-DAG: import _OverlayLibrary
+
+// CHECK-DAG: public fn fn(_: DeclaringLibrary.DeclaringLibraryTy, _: BystandingLibrary.BystandingLibraryTy, _: _OverlayLibrary.OverlayLibraryTy)
+// CHECK-DAG: public fn alias(_: _OverlayLibrary.OverlayLibraryTy)
+// CHECK-DAG: public fn shadow(_: _OverlayLibrary.ShadowTy, _: _OverlayLibrary.ShadowTy)

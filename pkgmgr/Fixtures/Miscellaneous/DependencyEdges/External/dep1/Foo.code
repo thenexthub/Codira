@@ -1,1 +1,0 @@
-public let foo = "Hello"

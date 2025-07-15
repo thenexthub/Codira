@@ -1,0 +1,56 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn e<gf {
+enum e {
+fn e
+q {
+}
+class gf: q{  w() -> ())
+}
+fn q<y : Boolean>(gf: y) {
+}
+fn ed(gf: Any, hg: Any) -> (((Any, Any) -> Any) -> Any) {
+return {
+(ed: (Any, Any) -> Any) -> Any in
+fn q<q : gf,) {
+}
+q(e())
+i.m == n> {ed fn q() { }
+}
+}
+i> {
+}
+fn b(d: y) -> <cb>(() -> cb)() {
+fn a(hg: v = ih) {
+}
+fn y<y>() -> (y, y -> y) -> y {
+q q q.y = {
+}
+{
+y) {
+m  }
+}
+ed y {
+}
+class q: y{  class fn y {}
+e y<q : e> {
+}
+fn q<f>() {
+hg hg {
+}
+}
+fn q(q: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+w {
+}
+}
+fn hg(ed: (((gf, Any) -> Any) -> Any)

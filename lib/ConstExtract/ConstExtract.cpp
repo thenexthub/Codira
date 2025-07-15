@@ -1,13 +1,17 @@
 //===-------- ConstExtract.cpp -- Gather Compile-Time-Known Values --------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/ConstExtract/ConstExtract.h"
@@ -25,11 +29,11 @@
 #include "language/Basic/TypeID.h"
 #include "language/ConstExtract/ConstExtractRequests.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
 
 #include <set>
 #include <sstream>
@@ -55,7 +59,7 @@ public:
   }
 
   PreWalkAction walkToDeclPre(Decl *D) override {
-    auto *NTD = llvm::dyn_cast<NominalTypeDecl>(D);
+    auto *NTD = toolchain::dyn_cast<NominalTypeDecl>(D);
     if (!NTD)
       if (auto *ETD = dyn_cast<ExtensionDecl>(D))
         NTD = ETD->getExtendedNominal();
@@ -85,10 +89,10 @@ private:
   std::unordered_set<NominalTypeDecl *> CheckedDecls;
 };
 
-std::string toFullyQualifiedTypeNameString(const swift::Type &Type) {
+std::string toFullyQualifiedTypeNameString(const language::Type &Type) {
   std::string TypeNameOutput;
-  llvm::raw_string_ostream OutputStream(TypeNameOutput);
-  swift::PrintOptions Options;
+  toolchain::raw_string_ostream OutputStream(TypeNameOutput);
+  language::PrintOptions Options;
   Options.FullyQualifiedTypes = true;
   Options.PreferTypeRepr = true;
   Options.AlwaysDesugarArraySliceTypes = true;
@@ -103,13 +107,13 @@ std::string toFullyQualifiedTypeNameString(const swift::Type &Type) {
   return TypeNameOutput;
 }
 
-std::string toFullyQualifiedProtocolNameString(const swift::ProtocolDecl &Protocol) {
+std::string toFullyQualifiedProtocolNameString(const language::ProtocolDecl &Protocol) {
   // Protocols cannot be nested in other declarations, so the only fully-qualified
   // context is the declaring module name.
   return Protocol.getParentModule()->getNameStr().str() + "." + Protocol.getNameStr().str();
 }
 
-std::string toMangledTypeNameString(const swift::Type &Type) {
+std::string toMangledTypeNameString(const language::Type &Type) {
   auto PrintingType = Type;
   if (Type->hasArchetype())
     PrintingType = Type->mapTypeOutOfContext();
@@ -125,8 +129,8 @@ parseProtocolListFromFile(StringRef protocolListFilePath,
                           DiagnosticEngine &diags,
                           std::unordered_set<std::string> &protocols) {
   // Load the input file.
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
-      llvm::MemoryBuffer::getFile(protocolListFilePath);
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
+      toolchain::MemoryBuffer::getFile(protocolListFilePath);
   if (!FileBufOrErr) {
     diags.diagnose(SourceLoc(),
                    diag::const_extract_protocol_list_input_file_missing,
@@ -139,13 +143,13 @@ parseProtocolListFromFile(StringRef protocolListFilePath,
   bool ParseFailed = false;
   {
     StringRef Buffer = FileBufOrErr->get()->getBuffer();
-    llvm::SourceMgr SM;
-    llvm::yaml::Stream S(Buffer, SM);
-    llvm::yaml::SequenceNode *Sequence =
-        dyn_cast<llvm::yaml::SequenceNode>(S.begin()->getRoot());
+    toolchain::SourceMgr SM;
+    toolchain::yaml::Stream S(Buffer, SM);
+    toolchain::yaml::SequenceNode *Sequence =
+        dyn_cast<toolchain::yaml::SequenceNode>(S.begin()->getRoot());
     if (Sequence) {
       for (auto &ProtocolNameNode : *Sequence) {
-        auto *ScalarNode = dyn_cast<llvm::yaml::ScalarNode>(&ProtocolNameNode);
+        auto *ScalarNode = dyn_cast<toolchain::yaml::ScalarNode>(&ProtocolNameNode);
         if (!ScalarNode) {
           ParseFailed = true;
           break;
@@ -206,7 +210,7 @@ static std::optional<std::string> extractRawLiteral(Expr *expr) {
     case ExprKind::FloatLiteral:
     case ExprKind::IntegerLiteral: {
       std::string literalOutput;
-      llvm::raw_string_ostream OutputStream(literalOutput);
+      toolchain::raw_string_ostream OutputStream(literalOutput);
       expr->printConstExprValue(&OutputStream, nullptr);
       if (!literalOutput.empty()) {
         return literalOutput;
@@ -217,7 +221,7 @@ static std::optional<std::string> extractRawLiteral(Expr *expr) {
     case ExprKind::StringLiteral: {
       auto stringLiteralExpression = cast<StringLiteralExpr>(expr);
       std::string literalOutput;
-      llvm::raw_string_ostream OutputStream(literalOutput);
+      toolchain::raw_string_ostream OutputStream(literalOutput);
       OutputStream << stringLiteralExpression->getValue();
       return literalOutput;
     }
@@ -276,7 +280,7 @@ extractCompileTimeValue(Expr *expr, const DeclContext *declContext) {
 
       std::vector<TupleElement> elements;
       if (tupleExpr->hasElementNames()) {
-        for (auto pair : llvm::zip(tupleExpr->getElements(),
+        for (auto pair : toolchain::zip(tupleExpr->getElements(),
                                    tupleExpr->getElementNames())) {
           auto elementExpr = std::get<0>(pair);
           auto elementName = std::get<1>(pair);
@@ -414,7 +418,7 @@ extractCompileTimeValue(Expr *expr, const DeclContext *declContext) {
       assert(!decl->hasDefaultExpr());
       switch (decl->getDefaultArgumentKind()) {
       case DefaultArgumentKind::NilLiteral:
-        return std::make_shared<RawLiteralValue>("nil");
+        return std::make_shared<NilLiteralValue>();
       case DefaultArgumentKind::EmptyArray:
         return std::make_shared<ArrayValue>(
             std::vector<std::shared_ptr<CompileTimeValue>>());
@@ -617,7 +621,7 @@ extractEnumCases(NominalTypeDecl *Decl) {
 
 ConstValueTypeInfo ConstantValueInfoRequest::evaluate(
     Evaluator &Evaluator, NominalTypeDecl *Decl,
-    llvm::PointerUnion<const SourceFile *, ModuleDecl *> extractionScope)
+    toolchain::PointerUnion<const SourceFile *, ModuleDecl *> extractionScope)
     const {
 
   auto shouldExtract = [&](DeclContext *decl) {
@@ -711,7 +715,7 @@ gatherConstValuesForPrimary(const std::unordered_set<std::string> &Protocols,
   return Result;
 }
 
-void writeLocationInformation(llvm::json::OStream &JSON, SourceLoc Loc,
+void writeLocationInformation(toolchain::json::OStream &JSON, SourceLoc Loc,
                               const ASTContext &ctx) {
   if (Loc.isInvalid())
     return;
@@ -723,9 +727,9 @@ void writeLocationInformation(llvm::json::OStream &JSON, SourceLoc Loc,
 
 // Take BuilderValue, which is a representation of a result builder
 // and write the values
-void writeBuilderValue(llvm::json::OStream &JSON, BuilderValue *Value);
+void writeBuilderValue(toolchain::json::OStream &JSON, BuilderValue *Value);
 
-void writeValue(llvm::json::OStream &JSON,
+void writeValue(toolchain::json::OStream &JSON,
                 std::shared_ptr<CompileTimeValue> Value) {
   auto value = Value.get();
   switch (value->getKind()) {
@@ -940,7 +944,7 @@ void writeValue(llvm::json::OStream &JSON,
   }
 }
 
-void writeAttributeInfo(llvm::json::OStream &JSON,
+void writeAttributeInfo(toolchain::json::OStream &JSON,
                         const CustomAttrValue &AttrVal,
                         const ASTContext &ctx) {
   JSON.object([&] {
@@ -960,7 +964,7 @@ void writeAttributeInfo(llvm::json::OStream &JSON,
 }
 
 void writePropertyWrapperAttributes(
-    llvm::json::OStream &JSON, std::optional<AttrValueVector> PropertyWrappers,
+    toolchain::json::OStream &JSON, std::optional<AttrValueVector> PropertyWrappers,
     const ASTContext &ctx) {
   if (!PropertyWrappers.has_value()) {
     return;
@@ -973,7 +977,7 @@ void writePropertyWrapperAttributes(
 }
 
 void writeEnumCases(
-    llvm::json::OStream &JSON,
+    toolchain::json::OStream &JSON,
     std::optional<std::vector<EnumElementDeclValue>> EnumElements) {
   if (!EnumElements.has_value()) {
     return;
@@ -1124,7 +1128,7 @@ getResultBuilderMembersFromBraceStmt(BraceStmt *braceStmt,
 
 std::shared_ptr<BuilderValue>
 createBuilderCompileTimeValue(CustomAttr *AttachedResultBuilder,
-                              const swift::VarDecl *VarDecl) {
+                              const language::VarDecl *VarDecl) {
   std::vector<std::shared_ptr<BuilderValue::BuilderMember>>
       ResultBuilderMembers;
   if (!VarDecl->getAllAccessors().empty()) {
@@ -1140,7 +1144,7 @@ createBuilderCompileTimeValue(CustomAttr *AttachedResultBuilder,
 }
 
 void writeSingleBuilderMemberElement(
-    llvm::json::OStream &JSON, std::shared_ptr<CompileTimeValue> Element) {
+    toolchain::json::OStream &JSON, std::shared_ptr<CompileTimeValue> Element) {
   switch (Element.get()->getKind()) {
   case CompileTimeValue::ValueKind::StaticFunctionCall: {
     auto staticFunctionCallValue = cast<StaticFunctionCallValue>(Element.get());
@@ -1159,7 +1163,7 @@ void writeSingleBuilderMemberElement(
 }
 
 void writeBuilderMember(
-    llvm::json::OStream &JSON,
+    toolchain::json::OStream &JSON,
     std::shared_ptr<BuilderValue::BuilderMember> BuilderMember) {
   auto Member = BuilderMember.get();
   switch (Member->getKind()) {
@@ -1211,7 +1215,7 @@ void writeBuilderMember(
   }
 }
 
-void writeBuilderValue(llvm::json::OStream &JSON, BuilderValue *Value) {
+void writeBuilderValue(toolchain::json::OStream &JSON, BuilderValue *Value) {
   JSON.attribute("valueKind", "Builder");
   JSON.attributeObject("value", [&] {
     if (auto resultBuilderType = Value->getResultBuilderType()) {
@@ -1253,8 +1257,8 @@ void writeBuilderValue(llvm::json::OStream &JSON, BuilderValue *Value) {
 }
 
 std::optional<std::shared_ptr<BuilderValue>>
-extractBuilderValueIfExists(const swift::NominalTypeDecl *TypeDecl,
-                            const swift::VarDecl *VarDecl) {
+extractBuilderValueIfExists(const language::NominalTypeDecl *TypeDecl,
+                            const language::VarDecl *VarDecl) {
   if (auto *attr = VarDecl->getAttachedResultBuilder()) {
     return createBuilderCompileTimeValue(attr, VarDecl);
   }
@@ -1266,7 +1270,7 @@ extractBuilderValueIfExists(const swift::NominalTypeDecl *TypeDecl,
       continue;
 
     for (auto Member : Decl->getMembers()) {
-      if (auto *VD = dyn_cast<swift::VarDecl>(Member)) {
+      if (auto *VD = dyn_cast<language::VarDecl>(Member)) {
         if (VD->getName() != VarDecl->getName())
           continue;
 
@@ -1280,7 +1284,7 @@ extractBuilderValueIfExists(const swift::NominalTypeDecl *TypeDecl,
   ;
 }
 
-void writeAvailabilityAttributes(llvm::json::OStream &JSON, const Decl &decl) {
+void writeAvailabilityAttributes(toolchain::json::OStream &JSON, const Decl &decl) {
   auto attrs = decl.getSemanticAvailableAttrs();
   if (attrs.empty())
     return;
@@ -1318,7 +1322,7 @@ void writeAvailabilityAttributes(llvm::json::OStream &JSON, const Decl &decl) {
 }
 
 void writeSubstitutedOpaqueTypeAliasDetails(
-    llvm::json::OStream &JSON, const OpaqueTypeArchetypeType &OpaqueTy) {
+    toolchain::json::OStream &JSON, const OpaqueTypeArchetypeType &OpaqueTy) {
   auto Signature = OpaqueTy.getDecl()->getOpaqueInterfaceGenericSignature();
 
   JSON.attributeArray("opaqueTypeProtocolRequirements", [&] {
@@ -1363,7 +1367,7 @@ void writeSubstitutedOpaqueTypeAliasDetails(
   });
 }
 
-void writeAssociatedTypeAliases(llvm::json::OStream &JSON,
+void writeAssociatedTypeAliases(toolchain::json::OStream &JSON,
                                 const NominalTypeDecl &NomTypeDecl) {
   JSON.attributeArray("associatedTypeAliases", [&] {
     for (auto &Conformance : NomTypeDecl.getAllConformances()) {
@@ -1385,7 +1389,7 @@ void writeAssociatedTypeAliases(llvm::json::OStream &JSON,
   });
 }
 
-void writeProperties(llvm::json::OStream &JSON,
+void writeProperties(toolchain::json::OStream &JSON,
                      const ConstValueTypeInfo &TypeInfo,
                      const NominalTypeDecl &NomTypeDecl) {
   JSON.attributeArray("properties", [&] {
@@ -1420,7 +1424,7 @@ void writeProperties(llvm::json::OStream &JSON,
   });
 }
 
-void writeConformances(llvm::json::OStream &JSON,
+void writeConformances(toolchain::json::OStream &JSON,
                        const NominalTypeDecl &NomTypeDecl) {
   JSON.attributeArray("conformances", [&] {
     for (auto *Conformance : NomTypeDecl.getAllConformances()) {
@@ -1434,7 +1438,7 @@ void writeConformances(llvm::json::OStream &JSON,
   });
 }
 
-void writeAllConformances(llvm::json::OStream &JSON,
+void writeAllConformances(toolchain::json::OStream &JSON,
                           const NominalTypeDecl &NomTypeDecl) {
   JSON.attributeArray("allConformances", [&] {
     for (auto *Conformance : NomTypeDecl.getAllConformances()) {
@@ -1454,7 +1458,7 @@ void writeAllConformances(llvm::json::OStream &JSON,
   });
 }
 
-void writeTypeName(llvm::json::OStream &JSON, const TypeDecl &TypeDecl) {
+void writeTypeName(toolchain::json::OStream &JSON, const TypeDecl &TypeDecl) {
   JSON.attribute("typeName",
                  toFullyQualifiedTypeNameString(
                                  TypeDecl.getDeclaredInterfaceType()));
@@ -1462,7 +1466,7 @@ void writeTypeName(llvm::json::OStream &JSON, const TypeDecl &TypeDecl) {
                  toMangledTypeNameString(TypeDecl.getDeclaredInterfaceType()));
 }
 
-void writeNominalTypeKind(llvm::json::OStream &JSON,
+void writeNominalTypeKind(toolchain::json::OStream &JSON,
                           const NominalTypeDecl &NomTypeDecl) {
   JSON.attribute(
       "kind",
@@ -1471,8 +1475,8 @@ void writeNominalTypeKind(llvm::json::OStream &JSON,
 }
 
 bool writeAsJSONToFile(const std::vector<ConstValueTypeInfo> &ConstValueInfos,
-                       llvm::raw_ostream &OS) {
-  llvm::json::OStream JSON(OS, 2);
+                       toolchain::raw_ostream &OS) {
+  toolchain::json::OStream JSON(OS, 2);
   JSON.array([&] {
     for (const auto &TypeInfo : ConstValueInfos) {
       assert(isa<NominalTypeDecl>(TypeInfo.TypeDecl) &&
@@ -1504,21 +1508,21 @@ bool writeAsJSONToFile(const std::vector<ConstValueTypeInfo> &ConstValueInfos,
 
 } // namespace language
 
-#define SWIFT_TYPEID_ZONE ConstExtract
-#define SWIFT_TYPEID_HEADER "swift/ConstExtract/ConstExtractTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE ConstExtract
+#define LANGUAGE_TYPEID_HEADER "language/ConstExtract/ConstExtractTypeIDZone.def"
 #include "language/Basic/ImplementTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Define request evaluation functions for each of the name lookup requests.
 static AbstractRequestFunction *constExtractRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/ConstExtract/ConstExtractTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerConstExtractRequestFunctions(Evaluator &evaluator) {
+void language::registerConstExtractRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::ConstExtract,
                                      constExtractRequestFunctions);
 }

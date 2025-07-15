@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagec_driver -Xfrontend -disable-availability-checking -O -Xtoolchain -sil-opt-pass-count=0 -Xfrontend -disable-toolchain-optzns %s -o %t/out
+// RUN: %target-codesign %t/out
+// RUN: %target-run %t/out
+
+// REQUIRES: executable_test
+// REQUIRES: foundation
+
+// This is a regression test that ensures that empty payloads in multi
+// payload enums are properly handled.
+
+import Foundation
+
+@inline(never)
+fn crash() {
+    immutable testURL = URL(string: "https://www.google.com")!
+    immutable r = Resource<()>(url: testURL, method: .get)
+    print(r.url)
+}
+
+enum HTTPMethod<Payload> {
+    case get
+    case post(Payload)
+    case patch(Payload)
+}
+
+struct Resource<Payload> {
+    immutable url: URL
+    immutable method: HTTPMethod<Payload>
+}
+
+crash()

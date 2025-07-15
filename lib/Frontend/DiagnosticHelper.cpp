@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the DiagnosticHelper class.
@@ -28,7 +29,7 @@
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/Frontend/SerializedDiagnosticConsumer.h"
 #include "language/Migrator/FixitFilter.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #if __has_include(<unistd.h>)
 #include <unistd.h>
@@ -39,13 +40,13 @@
 using namespace language;
 using namespace language::parseable_output;
 
-class LLVM_LIBRARY_VISIBILITY DiagnosticHelper::Implementation {
+class TOOLCHAIN_LIBRARY_VISIBILITY DiagnosticHelper::Implementation {
   friend class DiagnosticHelper;
 
 public:
   Implementation(CompilerInstance &instance,
                  const CompilerInvocation &invocation,
-                 ArrayRef<const char *> args, llvm::raw_pwrite_stream &OS,
+                 ArrayRef<const char *> args, toolchain::raw_pwrite_stream &OS,
                  bool useQuasiPID);
 
   void beginMessage();
@@ -66,11 +67,11 @@ private:
   CompilerInstance &instance;
   const CompilerInvocation &invocation;
   ArrayRef<const char*> args;
-  llvm::raw_pwrite_stream &errOS;
+  toolchain::raw_pwrite_stream &errOS;
 
   // potentially created diagnostic consumers.
   PrintingDiagnosticConsumer PDC;
-  llvm::StringMap<std::vector<std::string>> FileSpecificDiagnostics;
+  toolchain::StringMap<std::vector<std::string>> FileSpecificDiagnostics;
   std::unique_ptr<DiagnosticConsumer> FileSpecificAccumulatingConsumer;
   std::unique_ptr<DiagnosticConsumer> SerializedConsumerDispatcher;
   std::unique_ptr<DiagnosticConsumer> FixItsConsumer;
@@ -83,7 +84,7 @@ namespace {
 class JSONFixitWriter : public DiagnosticConsumer,
                         public migrator::FixitFilter {
   std::string FixitsOutputPath;
-  std::unique_ptr<llvm::raw_ostream> OSPtr;
+  std::unique_ptr<toolchain::raw_ostream> OSPtr;
   bool FixitAll;
   SourceEdits AllEdits;
 
@@ -104,9 +105,9 @@ private:
 
   bool finishProcessing() override {
     std::error_code EC;
-    std::unique_ptr<llvm::raw_fd_ostream> OS;
+    std::unique_ptr<toolchain::raw_fd_ostream> OS;
     OS.reset(
-        new llvm::raw_fd_ostream(FixitsOutputPath, EC, llvm::sys::fs::OF_None));
+        new toolchain::raw_fd_ostream(FixitsOutputPath, EC, toolchain::sys::fs::OF_None));
     if (EC) {
       // Create a temporary diagnostics engine to print the error to stderr.
       SourceManager dummyMgr;
@@ -118,7 +119,7 @@ private:
       return true;
     }
 
-    swift::writeEditsInJson(AllEdits, *OS);
+    language::writeEditsInJson(AllEdits, *OS);
     return false;
   }
 };
@@ -133,7 +134,7 @@ private:
 static std::unique_ptr<DiagnosticConsumer>
 createDispatchingDiagnosticConsumerIfNeeded(
     const FrontendInputsAndOutputs &inputsAndOutputs,
-    llvm::function_ref<std::unique_ptr<DiagnosticConsumer>(const InputFile &)>
+    toolchain::function_ref<std::unique_ptr<DiagnosticConsumer>(const InputFile &)>
         maybeCreateConsumerForDiagnosticsFrom) {
 
   // The "4" here is somewhat arbitrary. In practice we're going to have one
@@ -203,7 +204,7 @@ createSerializedDiagnosticConsumerIfNeeded(
 /// frontend's parseable-output.
 static std::unique_ptr<DiagnosticConsumer> createAccumulatingDiagnosticConsumer(
     const FrontendInputsAndOutputs &InputsAndOutputs,
-    llvm::StringMap<std::vector<std::string>> &FileSpecificDiagnostics) {
+    toolchain::StringMap<std::vector<std::string>> &FileSpecificDiagnostics) {
   return createDispatchingDiagnosticConsumerIfNeeded(
       InputsAndOutputs,
       [&](const InputFile &Input) -> std::unique_ptr<DiagnosticConsumer> {
@@ -235,7 +236,7 @@ createJSONFixItDiagnosticConsumerIfNeeded(
 
 DiagnosticHelper::Implementation::Implementation(
     CompilerInstance &instance, const CompilerInvocation &invocation,
-    ArrayRef<const char *> args, llvm::raw_pwrite_stream &OS, bool useQuasiPID)
+    ArrayRef<const char *> args, toolchain::raw_pwrite_stream &OS, bool useQuasiPID)
     : OSPid(useQuasiPID ? QUASI_PID_START : getpid()), procInfo(OSPid),
       instance(instance), invocation(invocation), args(args), errOS(OS),
       PDC(OS) {
@@ -279,22 +280,22 @@ mapFrontendInvocationToAction(const CompilerInvocation &Invocation) {
 }
 
 // TODO: Apply elsewhere in the compiler
-static swift::file_types::ID computeFileTypeForPath(const StringRef Path) {
-  if (!llvm::sys::path::has_extension(Path))
-    return swift::file_types::ID::TY_INVALID;
+static language::file_types::ID computeFileTypeForPath(const StringRef Path) {
+  if (!toolchain::sys::path::has_extension(Path))
+    return language::file_types::ID::TY_INVALID;
 
-  auto Extension = llvm::sys::path::extension(Path).str();
+  auto Extension = toolchain::sys::path::extension(Path).str();
   auto FileType = file_types::lookupTypeForExtension(Extension);
-  if (FileType == swift::file_types::ID::TY_INVALID) {
-    auto PathStem = llvm::sys::path::stem(Path);
+  if (FileType == language::file_types::ID::TY_INVALID) {
+    auto PathStem = toolchain::sys::path::stem(Path);
     // If this path has a multiple '.' extension (e.g. .abi.json),
     // then iterate over all preceeding possible extension variants.
-    while (llvm::sys::path::has_extension(PathStem)) {
-      auto NextExtension = llvm::sys::path::extension(PathStem);
-      PathStem = llvm::sys::path::stem(PathStem);
+    while (toolchain::sys::path::has_extension(PathStem)) {
+      auto NextExtension = toolchain::sys::path::extension(PathStem);
+      PathStem = toolchain::sys::path::stem(PathStem);
       Extension = NextExtension.str() + Extension;
       FileType = file_types::lookupTypeForExtension(Extension);
-      if (FileType != swift::file_types::ID::TY_INVALID)
+      if (FileType != language::file_types::ID::TY_INVALID)
         break;
     }
   }
@@ -307,9 +308,9 @@ static DetailedTaskDescription constructDetailedTaskDescription(
     ArrayRef<const char *> Args, bool isEmitModuleOnly = false) {
   // Command line and arguments
   std::string Executable = Invocation.getFrontendOptions().MainExecutablePath;
-  // If main executable path is never set, use `swift-frontend` as placeholder.
+  // If main executable path is never set, use `language-frontend` as placeholder.
   if (Executable.empty())
-    Executable = "swift-frontend";
+    Executable = "language-frontend";
   SmallVector<std::string, 16> Arguments;
   std::string CommandLine;
   SmallVector<CommandInput, 4> Inputs;
@@ -366,7 +367,7 @@ void DiagnosticHelper::Implementation::beginMessage() {
   // serialized. This is a non-issue because, in nearly all cases, frontend
   // arguments are generated by the driver, not directly by a user. The driver
   // is responsible for emitting diagnostics for its own errors.
-  // See https://github.com/apple/swift/issues/45288 for details.
+  // See https://github.com/apple/language/issues/45288 for details.
   SerializedConsumerDispatcher = createSerializedDiagnosticConsumerIfNeeded(
       invocation.getFrontendOptions().InputsAndOutputs,
       invocation.getDiagnosticOptions().EmitMacroExpansionFiles);
@@ -479,8 +480,8 @@ void DiagnosticHelper::Implementation::diagnoseFatalError(const char *reason,
   if (recursiveFatalError) {
     // Report the /original/ error through LLVM's default handler, not
     // whatever we encountered.
-    llvm::remove_fatal_error_handler();
-    llvm::report_fatal_error(recursiveFatalError, shouldCrash);
+    toolchain::remove_fatal_error_handler();
+    toolchain::report_fatal_error(recursiveFatalError, shouldCrash);
   }
   recursiveFatalError = reason;
 
@@ -488,7 +489,7 @@ void DiagnosticHelper::Implementation::diagnoseFatalError(const char *reason,
 
   DiagnosticInfo errorInfo(
       DiagID(0), SourceLoc(), DiagnosticKind::Error,
-      "fatal error encountered during compilation; " SWIFT_BUG_REPORT_MESSAGE,
+      "fatal error encountered during compilation; " LANGUAGE_BUG_REPORT_MESSAGE,
       {}, StringRef(), SourceLoc(), {}, {}, {}, false);
   DiagnosticInfo noteInfo(DiagID(0), SourceLoc(), DiagnosticKind::Note, reason,
                           {}, StringRef(), SourceLoc(), {}, {}, {}, false);
@@ -501,7 +502,7 @@ void DiagnosticHelper::Implementation::diagnoseFatalError(const char *reason,
 DiagnosticHelper DiagnosticHelper::create(CompilerInstance &instance,
                                           const CompilerInvocation &invocation,
                                           ArrayRef<const char *> args,
-                                          llvm::raw_pwrite_stream &OS,
+                                          toolchain::raw_pwrite_stream &OS,
                                           bool useQuasiPID) {
   return DiagnosticHelper(instance, invocation, args, OS, useQuasiPID);
 }
@@ -509,7 +510,7 @@ DiagnosticHelper DiagnosticHelper::create(CompilerInstance &instance,
 DiagnosticHelper::DiagnosticHelper(CompilerInstance &instance,
                                    const CompilerInvocation &invocation,
                                    ArrayRef<const char *> args,
-                                   llvm::raw_pwrite_stream &OS,
+                                   toolchain::raw_pwrite_stream &OS,
                                    bool useQuasiPID)
     : Impl(*new Implementation(instance, invocation, args, OS, useQuasiPID)) {}
 

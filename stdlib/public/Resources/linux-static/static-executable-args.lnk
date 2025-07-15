@@ -1,6 +1,6 @@
 -static
--lswiftCore
--lswift_RegexParser
+-llanguageCore
+-llanguage_RegexParser
 -Xlinker
 -undefined=pthread_self
 -Xlinker

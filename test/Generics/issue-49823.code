@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// https://github.com/apple/language/issues/49823
+
+extension Sequence where Element: AnyObject {
+  public fn f1(to object: AnyObject) -> Bool {
+    return contains { $0 === object }
+  }
+}
+
+extension Sequence where Iterator.Element: AnyObject {
+  public fn f2(to object: AnyObject) -> Bool {
+    return contains { $0 === object }
+  }
+}

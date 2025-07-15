@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation for class and protocol method dispatch
@@ -44,18 +45,18 @@
 #include "language/Basic/Assertions.h"
 #include "language/IRGen/Linking.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/IR/Function.h"
+#include "toolchain/IR/Function.h"
 
 using namespace language;
 using namespace irgen;
 
 /// Find the entry point for a method dispatch thunk.
-llvm::Function *
+toolchain::Function *
 IRGenModule::getAddrOfDispatchThunk(SILDeclRef declRef,
                                     ForDefinition_t forDefinition) {
   LinkEntity entity = LinkEntity::forDispatchThunk(declRef);
 
-  llvm::Function *&entry = GlobalFuncs[entity];
+  toolchain::Function *&entry = GlobalFuncs[entity];
   if (entry) {
     if (forDefinition) updateLinkageForDefinition(*this, entry, entity);
     return entry;
@@ -83,16 +84,16 @@ class IRGenThunk {
   bool isCoroutine;
   bool isCalleeAllocatedCoroutine;
   bool isWitnessMethod;
-  llvm::Value *allocator;
-  llvm::Value *buffer;
+  toolchain::Value *allocator;
+  toolchain::Value *buffer;
 
   std::optional<AsyncContextLayout> asyncLayout;
 
   // Initialized by prepareArguments()
-  llvm::Value *indirectReturnSlot = nullptr;
-  llvm::Value *selfValue = nullptr;
-  llvm::Value *errorResult = nullptr;
-  llvm::Value *typedErrorIndirectErrorSlot = nullptr;
+  toolchain::Value *indirectReturnSlot = nullptr;
+  toolchain::Value *selfValue = nullptr;
+  toolchain::Value *errorResult = nullptr;
+  toolchain::Value *typedErrorIndirectErrorSlot = nullptr;
   WitnessMetadata witnessMetadata;
   Explosion params;
 
@@ -270,7 +271,7 @@ Callee IRGenThunk::lookupMethod() {
       IGF.IGM.getSILModule(), origTy, expansionContext);
 
   // If 'self' is an instance, load the class metadata.
-  llvm::Value *metadata;
+  toolchain::Value *metadata;
   if (selfTy.is<MetatypeType>()) {
     metadata = selfValue;
   } else {
@@ -309,13 +310,13 @@ void IRGenThunk::emit() {
     auto entity = LinkEntity::forDispatchThunk(declRef);
     auto *cfp = emitCoroFunctionPointer(IGF.IGM, IGF.CurFn, entity);
     emitYieldOnce2CoroutineEntry(IGF, origTy, buffer, allocator,
-                                 cast<llvm::GlobalVariable>(cfp));
+                                 cast<toolchain::GlobalVariable>(cfp));
   }
 
   auto callee = lookupMethod();
 
   std::unique_ptr<CallEmission> emission =
-      getCallEmission(IGF, callee.getSwiftContext(), std::move(callee));
+      getCallEmission(IGF, callee.getCodiraContext(), std::move(callee));
 
   if (typedErrorIndirectErrorSlot) {
     emission->setIndirectTypedErrorResultSlot(typedErrorIndirectErrorSlot);
@@ -357,7 +358,7 @@ void IRGenThunk::emit() {
     emission->emitToExplosion(result, /*isOutlined=*/false);
   }
 
-  llvm::Value *errorValue = nullptr;
+  toolchain::Value *errorValue = nullptr;
 
   if (emission->getTypedErrorExplosion() ||
       (isAsync && origTy->hasErrorResult())) {
@@ -379,14 +380,14 @@ void IRGenThunk::emit() {
     // allocated in the thunk in the case of the malloc allocator.
     //
     // EARLIER:
-    // %allocation = call token @llvm.coro.alloca.alloc.i64(i64 %size, i32 16)
-    // %allocation_handle = call ptr @llvm.coro.alloca.get(token %allocation)
+    // %allocation = call token @toolchain.coro.alloca.alloc.i64(i64 %size, i32 16)
+    // %allocation_handle = call ptr @toolchain.coro.alloca.get(token %allocation)
     // WE ARE HERE:
-    // call ptr (...) @llvm.coro.suspend.retcon(...callee's yields...)
-    // call swiftcc void %continuation(ptr noalias %callee_frame, ptr %allocator)
-    // call void @llvm.lifetime.end.p0(i64 -1, ptr %allocation_handle)
-    // call void @llvm.coro.alloca.free(token %allocation)
-    // call i1 @llvm.coro.end(ptr %3, i1 false, token none)
+    // call ptr (...) @toolchain.coro.suspend.retcon(...callee's yields...)
+    // call languagecc void %continuation(ptr noalias %callee_frame, ptr %allocator)
+    // call void @toolchain.lifetime.end.p0(i64 -1, ptr %allocation_handle)
+    // call void @toolchain.coro.alloca.free(token %allocation)
+    // call i1 @toolchain.coro.end(ptr %3, i1 false, token none)
     // unreachable
     auto *continuation = result.claimNext();
     auto sig = Signature::forCoroutineContinuation(IGF.IGM, origTy);
@@ -401,11 +402,11 @@ void IRGenThunk::emit() {
     auto callee =
         FunctionPointer::createSigned(FunctionPointerKind::BasicKind::Function,
                                       continuation, pointerAuth, sig);
-    SmallVector<llvm::Value *, 8> yieldArgs;
+    SmallVector<toolchain::Value *, 8> yieldArgs;
     while (!result.empty()) {
       yieldArgs.push_back(result.claimNext());
     }
-    IGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::coro_suspend_retcon,
+    IGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::coro_suspend_retcon,
                                     {IGF.IGM.CoroAllocatorPtrTy}, yieldArgs);
     IGF.Builder.CreateCall(
         callee,
@@ -413,9 +414,9 @@ void IRGenThunk::emit() {
     Temporaries.destroyAll(IGF);
     emitDeallocYieldOnce2CoroutineFrame(IGF, emission->getCoroStaticFrame());
     IGF.Builder.CreateIntrinsicCall(
-        llvm::Intrinsic::coro_end,
+        toolchain::Intrinsic::coro_end,
         {IGF.getCoroutineHandle(), IGF.Builder.getFalse(),
-         llvm::ConstantTokenNone::get(IGF.Builder.getContext())});
+         toolchain::ConstantTokenNone::get(IGF.Builder.getContext())});
     IGF.Builder.CreateUnreachable();
     return;
   }
@@ -423,11 +424,11 @@ void IRGenThunk::emit() {
   // FIXME: we shouldn't have to generate all of this. We should just forward
   // the value as is
   if (auto &error = emission->getTypedErrorExplosion()) {
-    llvm::BasicBlock *successBB = IGF.createBasicBlock("success");
-    llvm::BasicBlock *errorBB = IGF.createBasicBlock("failure");
+    toolchain::BasicBlock *successBB = IGF.createBasicBlock("success");
+    toolchain::BasicBlock *errorBB = IGF.createBasicBlock("failure");
 
-    llvm::Value *nil = llvm::ConstantPointerNull::get(
-        cast<llvm::PointerType>(errorValue->getType()));
+    toolchain::Value *nil = toolchain::ConstantPointerNull::get(
+        cast<toolchain::PointerType>(errorValue->getType()));
     auto *hasError = IGF.Builder.CreateICmpNE(errorValue, nil);
 
     // Predict no error is thrown.
@@ -448,16 +449,16 @@ void IRGenThunk::emit() {
       Explosion errorArgValues;
 
       if (!combined.combinedTy->isVoidTy()) {
-        llvm::Value *expandedResult =
-            llvm::UndefValue::get(combined.combinedTy);
+        toolchain::Value *expandedResult =
+            toolchain::UndefValue::get(combined.combinedTy);
         if (!errorSchema.getExpandedType(IGM)->isVoidTy()) {
           auto nativeError =
               errorSchema.mapIntoNative(IGM, IGF, *error, silErrorTy, false);
 
           if (auto *structTy =
-                  dyn_cast<llvm::StructType>(combined.combinedTy)) {
+                  dyn_cast<toolchain::StructType>(combined.combinedTy)) {
             for (unsigned i : combined.errorValueMapping) {
-              llvm::Value *elt = nativeError.claimNext();
+              toolchain::Value *elt = nativeError.claimNext();
               auto *nativeTy = structTy->getElementType(i);
               elt = convertForDirectError(IGF, elt, nativeTy,
                                           /*forExtraction*/ false);
@@ -471,7 +472,7 @@ void IRGenThunk::emit() {
                                                    /*forExtraction*/ false);
           }
         } else if (auto *structTy =
-                       dyn_cast<llvm::StructType>(combined.combinedTy)) {
+                       dyn_cast<toolchain::StructType>(combined.combinedTy)) {
           IGF.emitAllExtractValues(expandedResult, structTy, errorArgValues);
         } else {
           errorArgValues = expandedResult;
@@ -486,19 +487,19 @@ void IRGenThunk::emit() {
       if (result.empty()) {
         if (!combined.combinedTy->isVoidTy()) {
           if (auto *structTy =
-                  dyn_cast<llvm::StructType>(combined.combinedTy)) {
-            IGF.emitAllExtractValues(llvm::UndefValue::get(structTy), structTy,
+                  dyn_cast<toolchain::StructType>(combined.combinedTy)) {
+            IGF.emitAllExtractValues(toolchain::UndefValue::get(structTy), structTy,
                                      resultArgValues);
           } else {
-            resultArgValues = llvm::UndefValue::get(combined.combinedTy);
+            resultArgValues = toolchain::UndefValue::get(combined.combinedTy);
           }
         }
       } else {
-        if (auto *structTy = dyn_cast<llvm::StructType>(combined.combinedTy)) {
-          llvm::Value *expandedResult =
-              llvm::UndefValue::get(combined.combinedTy);
+        if (auto *structTy = dyn_cast<toolchain::StructType>(combined.combinedTy)) {
+          toolchain::Value *expandedResult =
+              toolchain::UndefValue::get(combined.combinedTy);
           for (size_t i = 0, count = result.size(); i < count; i++) {
-            llvm::Value *elt = result.claimNext();
+            toolchain::Value *elt = result.claimNext();
             auto *nativeTy = structTy->getElementType(i);
             elt = convertForDirectError(IGF, elt, nativeTy,
                                         /*forExtraction*/ false);
@@ -535,7 +536,7 @@ void IRGenThunk::emit() {
           IGF.Builder.CreateRetVoid();
         } else {
           IGF.Builder.CreateRet(
-              llvm::UndefValue::get(IGF.CurFn->getReturnType()));
+              toolchain::UndefValue::get(IGF.CurFn->getReturnType()));
         }
       }
       IGF.Builder.emitBlock(successBB);
@@ -555,7 +556,7 @@ void IRGenThunk::emit() {
   if (result.empty()) {
     if (emission->getTypedErrorExplosion() &&
         !IGF.CurFn->getReturnType()->isVoidTy()) {
-      IGF.Builder.CreateRet(llvm::UndefValue::get(IGF.CurFn->getReturnType()));
+      IGF.Builder.CreateRet(toolchain::UndefValue::get(IGF.CurFn->getReturnType()));
     } else {
       IGF.Builder.CreateRetVoid();
     }
@@ -565,7 +566,7 @@ void IRGenThunk::emit() {
   auto resultTy = conv.getSILResultType(expansionContext);
   resultTy = resultTy.subst(IGF.getSILModule(), subMap);
   IGF.emitScalarReturn(resultTy, resultTy, result,
-                       /*swiftCCReturn=*/false,
+                       /*languageCCReturn=*/false,
                        /*isOutlined=*/false);
 }
 
@@ -579,9 +580,9 @@ void IRGenModule::emitDispatchThunk(SILDeclRef declRef) {
   IRGenThunk(IGF, declRef).emit();
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfAsyncFunctionPointer(LinkEntity entity) {
-  llvm::Constant *Pointer =
+  toolchain::Constant *Pointer =
       getAddrOfLLVMVariable(LinkEntity::forAsyncFunctionPointer(entity),
                             NotForDefinition, DebugTypeInfo());
   if (!getOptions().IndirectAsyncFunctionPointer)
@@ -592,42 +593,42 @@ IRGenModule::getAddrOfAsyncFunctionPointer(LinkEntity entity) {
   if (!Pointer->isDLLImportDependent())
     return Pointer;
 
-  llvm::Constant *PointerPointer =
+  toolchain::Constant *PointerPointer =
       getOrCreateGOTEquivalent(Pointer,
                                LinkEntity::forAsyncFunctionPointer(entity));
-  llvm::Constant *PointerPointerConstant =
-      llvm::ConstantExpr::getPtrToInt(PointerPointer, IntPtrTy);
-  llvm::Constant *Marker =
-      llvm::Constant::getIntegerValue(IntPtrTy, APInt(IntPtrTy->getBitWidth(),
+  toolchain::Constant *PointerPointerConstant =
+      toolchain::ConstantExpr::getPtrToInt(PointerPointer, IntPtrTy);
+  toolchain::Constant *Marker =
+      toolchain::Constant::getIntegerValue(IntPtrTy, APInt(IntPtrTy->getBitWidth(),
                                                       1));
   // TODO(compnerd) ensure that the pointer alignment guarantees that bit-0 is
   // cleared. We cannot use an `getOr` here as it does not form a relocatable
   // expression.
-  llvm::Constant *Address =
-      llvm::ConstantExpr::getAdd(PointerPointerConstant, Marker);
+  toolchain::Constant *Address =
+      toolchain::ConstantExpr::getAdd(PointerPointerConstant, Marker);
 
   IndirectAsyncFunctionPointers[entity] = Address;
-  return llvm::ConstantExpr::getIntToPtr(Address,
+  return toolchain::ConstantExpr::getIntToPtr(Address,
                                          AsyncFunctionPointerTy->getPointerTo());
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfAsyncFunctionPointer(SILFunction *function) {
   (void)getAddrOfSILFunction(function, NotForDefinition);
   return getAddrOfAsyncFunctionPointer(
       LinkEntity::forSILFunction(function));
 }
 
-llvm::Constant *IRGenModule::defineAsyncFunctionPointer(LinkEntity entity,
+toolchain::Constant *IRGenModule::defineAsyncFunctionPointer(LinkEntity entity,
                                                         ConstantInit init) {
   auto asyncEntity = LinkEntity::forAsyncFunctionPointer(entity);
-  auto *var = cast<llvm::GlobalVariable>(
+  auto *var = cast<toolchain::GlobalVariable>(
       getAddrOfLLVMVariable(asyncEntity, init, DebugTypeInfo()));
   return var;
 }
 
 SILFunction *
-IRGenModule::getSILFunctionForAsyncFunctionPointer(llvm::Constant *afp) {
+IRGenModule::getSILFunctionForAsyncFunctionPointer(toolchain::Constant *afp) {
   for (auto &entry : GlobalVars) {
     if (entry.getSecond() == afp) {
       auto entity = entry.getFirst();
@@ -646,8 +647,8 @@ IRGenModule::getSILFunctionForAsyncFunctionPointer(llvm::Constant *afp) {
   return nullptr;
 }
 
-llvm::Constant *IRGenModule::getAddrOfCoroFunctionPointer(LinkEntity entity) {
-  llvm::Constant *Pointer =
+toolchain::Constant *IRGenModule::getAddrOfCoroFunctionPointer(LinkEntity entity) {
+  toolchain::Constant *Pointer =
       getAddrOfLLVMVariable(LinkEntity::forCoroFunctionPointer(entity),
                             NotForDefinition, DebugTypeInfo());
   if (!getOptions().IndirectCoroFunctionPointer)
@@ -658,39 +659,39 @@ llvm::Constant *IRGenModule::getAddrOfCoroFunctionPointer(LinkEntity entity) {
   if (!Pointer->isDLLImportDependent())
     return Pointer;
 
-  llvm::Constant *PointerPointer = getOrCreateGOTEquivalent(
+  toolchain::Constant *PointerPointer = getOrCreateGOTEquivalent(
       Pointer, LinkEntity::forCoroFunctionPointer(entity));
-  llvm::Constant *PointerPointerConstant =
-      llvm::ConstantExpr::getPtrToInt(PointerPointer, IntPtrTy);
-  llvm::Constant *Marker = llvm::Constant::getIntegerValue(
+  toolchain::Constant *PointerPointerConstant =
+      toolchain::ConstantExpr::getPtrToInt(PointerPointer, IntPtrTy);
+  toolchain::Constant *Marker = toolchain::Constant::getIntegerValue(
       IntPtrTy, APInt(IntPtrTy->getBitWidth(), 1));
   // TODO(compnerd) ensure that the pointer alignment guarantees that bit-0 is
   // cleared. We cannot use an `getOr` here as it does not form a relocatable
   // expression.
-  llvm::Constant *Address =
-      llvm::ConstantExpr::getAdd(PointerPointerConstant, Marker);
+  toolchain::Constant *Address =
+      toolchain::ConstantExpr::getAdd(PointerPointerConstant, Marker);
 
   IndirectCoroFunctionPointers[entity] = Address;
-  return llvm::ConstantExpr::getIntToPtr(Address,
+  return toolchain::ConstantExpr::getIntToPtr(Address,
                                          CoroFunctionPointerTy->getPointerTo());
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfCoroFunctionPointer(SILFunction *function) {
   (void)getAddrOfSILFunction(function, NotForDefinition);
   return getAddrOfCoroFunctionPointer(LinkEntity::forSILFunction(function));
 }
 
-llvm::Constant *IRGenModule::defineCoroFunctionPointer(LinkEntity entity,
+toolchain::Constant *IRGenModule::defineCoroFunctionPointer(LinkEntity entity,
                                                        ConstantInit init) {
   auto coroEntity = LinkEntity::forCoroFunctionPointer(entity);
-  auto *var = cast<llvm::GlobalVariable>(
+  auto *var = cast<toolchain::GlobalVariable>(
       getAddrOfLLVMVariable(coroEntity, init, DebugTypeInfo()));
   return var;
 }
 
 SILFunction *
-IRGenModule::getSILFunctionForCoroFunctionPointer(llvm::Constant *cfp) {
+IRGenModule::getSILFunctionForCoroFunctionPointer(toolchain::Constant *cfp) {
   for (auto &entry : GlobalVars) {
     if (entry.getSecond() == cfp) {
       auto entity = entry.getFirst();
@@ -709,15 +710,15 @@ IRGenModule::getSILFunctionForCoroFunctionPointer(llvm::Constant *cfp) {
   return nullptr;
 }
 
-llvm::GlobalValue *IRGenModule::defineMethodDescriptor(
+toolchain::GlobalValue *IRGenModule::defineMethodDescriptor(
     SILDeclRef declRef, NominalTypeDecl *nominalDecl,
-    llvm::Constant *definition, llvm::Type *typeOfDefinitionValue) {
+    toolchain::Constant *definition, toolchain::Type *typeOfDefinitionValue) {
   auto entity = LinkEntity::forMethodDescriptor(declRef);
   return defineAlias(entity, definition, typeOfDefinitionValue);
 }
 
 /// Get or create a method descriptor variable.
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfMethodDescriptor(SILDeclRef declRef,
                                        ForDefinition_t forDefinition) {
   assert(forDefinition == NotForDefinition);
@@ -728,24 +729,24 @@ IRGenModule::getAddrOfMethodDescriptor(SILDeclRef declRef,
 }
 
 /// Fetch the method lookup function for a resilient class.
-llvm::Function *
+toolchain::Function *
 IRGenModule::getAddrOfMethodLookupFunction(ClassDecl *classDecl,
                                            ForDefinition_t forDefinition) {
   IRGen.noteUseOfTypeMetadata(classDecl);
 
   LinkEntity entity = LinkEntity::forMethodLookupFunction(classDecl);
-  llvm::Function *&entry = GlobalFuncs[entity];
+  toolchain::Function *&entry = GlobalFuncs[entity];
   if (entry) {
     if (forDefinition) updateLinkageForDefinition(*this, entry, entity);
     return entry;
   }
 
-  llvm::Type *params[] = {
+  toolchain::Type *params[] = {
     TypeMetadataPtrTy,
     MethodDescriptorStructTy->getPointerTo()
   };
-  auto fnType = llvm::FunctionType::get(Int8PtrTy, params, false);
-  Signature signature(fnType, llvm::AttributeList(), SwiftCC);
+  auto fnType = toolchain::FunctionType::get(Int8PtrTy, params, false);
+  Signature signature(fnType, toolchain::AttributeList(), CodiraCC);
   LinkInfo link = LinkInfo::get(*this, entity, forDefinition);
   entry = createFunction(*this, link, signature);
   return entry;
@@ -772,12 +773,12 @@ void IRGenModule::emitMethodLookupFunction(ClassDecl *classDecl) {
     : public ClassMetadataScanner<LookUpNonoverriddenMethods> {
   
     IRGenFunction &IGF;
-    llvm::Value *methodArg;
+    toolchain::Value *methodArg;
       
   public:
     LookUpNonoverriddenMethods(IRGenFunction &IGF,
                                ClassDecl *classDecl,
-                               llvm::Value *methodArg)
+                               toolchain::Value *methodArg)
       : ClassMetadataScanner(IGF.IGM, classDecl), IGF(IGF),
         methodArg(methodArg) {}
       
@@ -801,18 +802,18 @@ void IRGenModule::emitMethodLookupFunction(ClassDecl *classDecl) {
       IGF.Builder.emitBlock(trueBB);
       // Since this method is nonoverridden, we can produce a static result.
       auto entry = VTable->getEntry(IGM.getSILModule(), method);
-      llvm::Value *impl = IGM.getAddrOfSILFunction(entry->getImplementation(),
+      toolchain::Value *impl = IGM.getAddrOfSILFunction(entry->getImplementation(),
                                                    NotForDefinition);
       // Sign using the discriminator we would include in the method
       // descriptor.
       if (auto &schema =
               entry->getImplementation()->getLoweredFunctionType()->isAsync()
-                  ? IGM.getOptions().PointerAuth.AsyncSwiftClassMethods
+                  ? IGM.getOptions().PointerAuth.AsyncCodiraClassMethods
               : entry->getImplementation()
                       ->getLoweredFunctionType()
                       ->isCalleeAllocatedCoroutine()
-                  ? IGM.getOptions().PointerAuth.CoroSwiftClassMethods
-                  : IGM.getOptions().PointerAuth.SwiftClassMethods) {
+                  ? IGM.getOptions().PointerAuth.CoroCodiraClassMethods
+                  : IGM.getOptions().PointerAuth.CodiraClassMethods) {
         auto discriminator =
           PointerAuthInfo::getOtherDiscriminator(IGM, schema, method);
         

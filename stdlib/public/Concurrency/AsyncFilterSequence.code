@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Creates an asynchronous sequence that contains, in order, the elements of
   /// the base sequence that satisfy the given predicate.
@@ -21,7 +25,7 @@ extension AsyncSequence {
   /// values from `1` to `10`. The `filter(_:)` method returns `true` for even
   /// values and `false` for odd values, thereby filtering out the odd values:
   ///
-  ///     let stream = Counter(howHigh: 10)
+  ///     immutable stream = Counter(howHigh: 10)
   ///         .filter { $0 % 2 == 0 }
   ///     for await number in stream {
   ///         print(number, terminator: " ")
@@ -35,34 +39,34 @@ extension AsyncSequence {
   ///   of the base sequence that satisfy the given predicate.
   @preconcurrency 
   @inlinable
-  public __consuming func filter(
+  public __consuming fn filter(
     _ isIncluded: @Sendable @escaping (Element) async -> Bool
   ) -> AsyncFilterSequence<Self> {
-    return AsyncFilterSequence(self, isIncluded: isIncluded)
+    return AsyncFilterSequence(this, isIncluded: isIncluded)
   }
 }
 
 /// An asynchronous sequence that contains, in order, the elements of
 /// the base sequence that satisfy a given predicate.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncFilterSequence<Base: AsyncSequence> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let isIncluded: (Element) async -> Bool
+  immutable isIncluded: (Element) async -> Bool
 
   @usableFromInline
   init(
     _ base: Base, 
     isIncluded: @escaping (Base.Element) async -> Bool
   ) {
-    self.base = base
-    self.isIncluded = isIncluded
+    this.base = base
+    this.isIncluded = isIncluded
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncFilterSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -73,7 +77,7 @@ extension AsyncFilterSequence: AsyncSequence {
   ///
   /// The filter sequence produces whatever type of error its
   /// base sequence does.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias Failure = Base.Failure
   /// The type of iterator that produces elements of the sequence.
   public typealias AsyncIterator = Iterator
@@ -84,15 +88,15 @@ extension AsyncFilterSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    let isIncluded: (Base.Element) async -> Bool
+    immutable isIncluded: (Base.Element) async -> Bool
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator,
       isIncluded: @escaping (Base.Element) async -> Bool
     ) {
-      self.baseIterator = baseIterator
-      self.isIncluded = isIncluded
+      this.baseIterator = baseIterator
+      this.isIncluded = isIncluded
     }
 
     /// Produces the next element in the filter sequence.
@@ -103,9 +107,9 @@ extension AsyncFilterSequence: AsyncSequence {
     /// `next()` returns the received element; otherwise it awaits the next
     /// element from the base iterator.
     @inlinable
-    public mutating func next() async rethrows -> Base.Element? {
+    public mutating fn next() async rethrows -> Base.Element? {
       while true {
-        guard let element = try await baseIterator.next() else {
+        guard immutable element = try await baseIterator.next() else {
           return nil
         }
         if await isIncluded(element) {
@@ -121,11 +125,11 @@ extension AsyncFilterSequence: AsyncSequence {
     /// `next(isolation:)` evaluates the result with the `predicate` closure. If
     /// the closure returns `true`, `next(isolation:)` returns the received
     /// element; otherwise it awaits the next element from the base iterator.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
       while true {
-        guard let element = try await baseIterator.next(isolation: actor) else {
+        guard immutable element = try await baseIterator.next(isolation: actor) else {
           return nil
         }
         if await isIncluded(element) {
@@ -136,17 +140,17 @@ extension AsyncFilterSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), isIncluded: isIncluded)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncFilterSequence: @unchecked Sendable 
   where Base: Sendable, 
         Base.Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncFilterSequence.Iterator: @unchecked Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable { }

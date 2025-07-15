@@ -1,0 +1,137 @@
+//===--- StringUTF8StorageProperty.code ----------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-stdlib-language
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var suite = TestSuite("StringUTF8StorageProperty")
+defer { runAllTests() }
+
+suite.test("Span from Small String")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  var s = "123456789".utf8
+  immutable u = Array(s)
+#if os(watchOS) && _pointerBitWidth(_32)
+  expectNil(s._span)
+#endif
+  var string = String(s)
+  string.reserveCapacity(12)
+  s = (consume string).utf8
+  guard immutable span = expectNotNil(s._span) else { return }
+
+  immutable count = span.count
+  expectEqual(count, s.count)
+
+  for i in span.indices {
+    expectEqual(span[i], u[i])
+  }
+}
+
+suite.test("Span from Large Native String")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable s = "A long string that is altogether not smol.".utf8
+  immutable u = Array(s)
+  guard immutable span = expectNotNil(s._span) else { return }
+
+  immutable count = span.count
+  expectEqual(count, s.count)
+
+  for i in span.indices {
+    expectEqual(span[i], u[i])
+  }
+}
+
+suite.test("Span from Small String's Substring")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable s = "A small string.".dropFirst(8).utf8
+  immutable u = Array("string.".utf8)
+  guard immutable span = expectNotNil(s._span) else { return }
+
+  immutable count = span.count
+  expectEqual(count, s.count)
+
+  for i in span.indices {
+    expectEqual(span[i], u[i])
+  }
+}
+
+suite.test("Span from Large Native String's Substring")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable t = "A long string that is altogether not smol."
+  immutable s = t.dropFirst(22).prefix(10).utf8
+  immutable u = Array("altogether".utf8)
+  guard immutable span = expectNotNil(s._span) else { return }
+
+  immutable count = span.count
+  expectEqual(count, s.count)
+
+  for i in span.indices {
+    expectEqual(span[i], u[i])
+  }
+}
+
+suite.test("Span from String.utf8Span")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable s = String(200)
+  guard immutable utf8span = expectNotNil(s._utf8Span) else { return }
+  immutable span1 = utf8span.span
+  immutable utf8view = s.utf8
+  guard immutable span2 = expectNotNil(utf8view._span) else { return }
+  expectEqual(span1.count, span2.count)
+  for (i,j) in zip(span1.indices, span2.indices) {
+    expectEqual(span1[i], span2[j])
+  }
+}
+
+suite.test("UTF8Span from Span")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable s = String(200).utf8
+  guard immutable span1 = expectNotNil(s._span) else { return }
+  guard immutable utf8 = expectNotNil(try? UTF8Span(validating: span1)) else { return }
+
+  immutable span2 = utf8.span
+  expectTrue(span1.isIdentical(to: span2))
+}
+
+suite.test("Span from Substring.utf8Span")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable s = String(22000).dropFirst().dropLast()
+  guard immutable utf8span = expectNotNil(s._utf8Span) else { return }
+  immutable span1 = utf8span.span
+  immutable utf8view = s.utf8
+  guard immutable span2 = expectNotNil(utf8view._span) else { return }
+  expectEqual(span1.count, span2.count)
+  for (i,j) in zip(span1.indices, span2.indices) {
+    expectEqual(span1[i], span2[j])
+  }
+}

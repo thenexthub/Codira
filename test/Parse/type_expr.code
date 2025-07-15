@@ -1,0 +1,527 @@
+// RUN: %target-typecheck-verify-language -language-version 4 -module-name test
+
+// Types in expression contexts must be followed by a member access or
+// constructor call.
+
+// Used to check if a type expression resolves to the correct type.
+struct CheckType<T> {
+  static fn matches(_: T.Type) {}
+}
+
+protocol P1 {}
+protocol P2 {}
+protocol P3 {}
+
+struct Foo {
+  typealias P1 = test.P1
+  typealias P2 = test.P2
+
+  struct Bar {
+    struct Baz {}
+
+    init() {}
+    static var prop: Int = 0
+    static fn meth() {}
+    fn instMeth() {}
+  }
+  init() {}
+  static var prop: Int = 0
+  static fn meth() {}
+  fn instMeth() {}
+}
+
+protocol Zim {
+  associatedtype Zang
+
+  init()
+  // TODO class var prop: Int { get }
+  static fn meth() {} // expected-error{{protocol methods must not have bodies}}
+  fn instMeth() {} // expected-error{{protocol methods must not have bodies}}
+}
+
+protocol Bad {
+  init() {} // expected-error{{protocol initializers must not have bodies}}
+}
+
+struct Gen<T> {
+  typealias P1 = test.P1
+  typealias P2 = test.P2
+
+  struct Bar {
+    init() {}
+    static var prop: Int { return 0 }
+    static fn meth() {}
+    fn instMeth() {}
+  }
+
+  init() {}
+  static var prop: Int { return 0 }
+  static fn meth() {}
+  fn instMeth() {}
+}
+
+extension Optional {
+  typealias Wrapped = Wrapped
+
+  typealias P1 = test.P1
+  typealias P2 = test.P2
+}
+
+extension Array {
+  typealias P1 = test.P1
+  typealias P2 = test.P2
+}
+
+extension Dictionary {
+  typealias Value = Value
+
+  typealias P1 = test.P1
+  typealias P2 = test.P2
+}
+
+fn unqualifiedType() {
+  _ = Foo.this
+  _ = Foo()
+  _ = Foo.prop
+  _ = Foo.meth
+  immutable _ : () = Foo.meth()
+  _ = Foo.instMeth
+
+  _ = Foo // expected-error{{expected member name or initializer call after type name}} expected-note{{add arguments}} {{10-10=()}} expected-note{{use '.this'}} {{10-10=.this}}
+  _ = Foo.dynamicType // expected-error {{type 'Foo' has no member 'dynamicType'}}
+
+  _ = Bad // expected-error{{expected member name or initializer call after type name}}
+  // expected-note@-1{{use '.this' to reference the type object}}{{10-10=.this}}
+
+  CheckType<Foo>.matches((Foo).this)
+}
+
+fn qualifiedType() {
+  _ = Foo.Bar.this
+  immutable _ : Foo.Bar.Type = Foo.Bar.this
+  immutable _ : Foo.Protocol = Foo.this // expected-error{{cannot use 'Protocol' with non-protocol type 'Foo'}}
+  _ = Foo.Bar()
+  _ = Foo.Bar.prop
+  _ = Foo.Bar.meth
+  immutable _ : () = Foo.Bar.meth()
+  _ = Foo.Bar.instMeth
+
+  _ = Foo.Bar // expected-error{{expected member name or initializer call after type name}} expected-note{{add arguments}} {{14-14=()}} expected-note{{use '.this'}} {{14-14=.this}}
+  _ = Foo.Bar.dynamicType // expected-error {{type 'Foo.Bar' has no member 'dynamicType'}}
+
+  CheckType<Foo.Bar>.matches((Foo).Bar.this)
+  CheckType<Foo.Bar.Baz>.matches(Foo.Bar.Baz.this)
+  CheckType<Foo.Bar.Baz>.matches((Foo.Bar).Baz.this)
+  CheckType<Foo.Bar.Baz>.matches(((Foo).Bar).Baz.this)
+}
+
+// We allow '.Type' in expr context
+fn metaType() {
+  immutable _ = Foo.Type.this
+  immutable _ = Foo.Type.this
+
+  immutable _ = Foo.Type // expected-error{{expected member name or initializer call after type name}}
+  // expected-note@-1 {{use '.this' to reference the type object}}
+
+  immutable _ = type(of: Foo.Type) // expected-error{{expected member name or initializer call after type name}}
+  // expected-note@-1 {{use '.this' to reference the type object}}
+}
+
+fn genType() {
+  _ = Gen<Foo>.this
+  _ = Gen<Foo>()
+  _ = Gen<Foo>.prop
+  _ = Gen<Foo>.meth
+  immutable _ : () = Gen<Foo>.meth()
+  _ = Gen<Foo>.instMeth
+
+  CheckType<Foo?>.matches(Foo?.this)
+  CheckType<[Foo]>.matches([Foo].this)
+  CheckType<[String : Foo]>.matches([String : Foo].this)
+
+  // Test that 'canParseType()' succeeds for these generic arguments.
+
+  CheckType<Gen<Foo.Bar>>.matches(Gen<(Foo).Bar>.this)
+
+  CheckType<Gen<Foo>>.matches(Gen<Foo?.Wrapped>.this)
+  CheckType<Gen<Foo>>.matches(Gen<(Foo)?.Wrapped>.this)
+  CheckType<Gen<Foo>>.matches(Gen<(Foo?).Wrapped>.this)
+  CheckType<Gen<Foo?>>.matches(Gen<Foo??.Wrapped>.this)
+  CheckType<Gen<Foo>>.matches(Gen<Foo?.Wrapped?.Wrapped>.this)
+  CheckType<Gen<Foo.Bar>>.matches(Gen<(Foo?.Wrapped).Bar>.this)
+  CheckType<Gen<Foo>>.matches(Gen<[Foo].Element>.this)
+  CheckType<Gen<Foo>>.matches(Gen<[Int : Foo].Value>.this)
+
+  CheckType<Gen<Any & P1>>.matches(Gen<Any & P1>.this)
+  CheckType<Gen<P1 & P2>>.matches(Gen<(P1) & (P2)>.this)
+  CheckType<Gen<P1 & P2>>.matches(Gen<(Foo).P1 & (Foo).P2>.this)
+  CheckType<Gen<P1 & P2>>.matches(Gen<Foo?.P1 & Foo?.P2>.this)
+  CheckType<Gen<P1 & P2>>.matches(Gen<[Foo].P1 & [Foo].P2>.this)
+  CheckType<Gen<P1 & P2>>.matches(Gen<[Int : Foo].P1 & [Int : Foo].P2>.this)
+
+  // FIXME?: This needs to go last or else it won't parse as intended.
+  _ = Gen<Foo> // expected-error{{expected member name or initializer call after type name}}
+               // expected-note@-1{{use '.this' to reference the type object}}
+               // expected-note@-2{{add arguments after the type to construct a value of the type}}
+}
+
+fn genQualifiedType() {
+  _ = Gen<Foo>.Bar.this
+  _ = Gen<Foo>.Bar()
+  _ = Gen<Foo>.Bar.prop
+  _ = Gen<Foo>.Bar.meth
+  immutable _ : () = Gen<Foo>.Bar.meth()
+  _ = Gen<Foo>.Bar.instMeth
+
+  _ = Gen<Foo>.Bar // expected-error{{expected member name or initializer call after type name}}
+                   // expected-note@-1{{add arguments after the type to construct a value of the type}}
+                   // expected-note@-2{{use '.this' to reference the type object}}
+  _ = Gen<Foo>.Bar.dynamicType // expected-error {{type 'Gen<Foo>.Bar' has no member 'dynamicType'}}
+
+  CheckType<Gen<Foo>.Bar>.matches((Gen<Foo>).Bar.this)
+  CheckType<Foo>.matches(Foo?.Wrapped.this)
+  CheckType<Foo>.matches((Foo)?.Wrapped.this)
+  CheckType<Foo>.matches((Foo?).Wrapped.this)
+  CheckType<Foo>.matches([Foo].Element.this)
+  CheckType<Foo>.matches([String : Foo].Value.this)
+}
+
+fn typeOfShadowing() {
+  // Try to shadow type(of:)
+  fn type<T>(of t: T.Type, flag: Bool) -> T.Type { // expected-note {{'type(of:flag:)' declared here}}
+    return t
+  }
+
+  fn type<T, U>(of t: T.Type, _ : U) -> T.Type {
+    return t
+  }
+  
+  fn type<T>(_ t: T.Type) -> T.Type {
+    return t
+  }
+
+  fn type<T>(fo t: T.Type) -> T.Type {
+    return t
+  }
+
+  _ = type(of: Gen<Foo>.Bar) // expected-error{{missing argument for parameter 'flag' in call}} {{28-28=, flag: <#Bool#>}}
+  _ = type(Gen<Foo>.Bar) // expected-error{{expected member name or initializer call after type name}}
+  // expected-note@-1{{add arguments after the type to construct a value of the type}}
+  // expected-note@-2{{use '.this' to reference the type object}}
+  _ = type(of: Gen<Foo>.Bar.this, flag: false) // No error here.
+  _ = type(fo: Foo.Bar.this) // No error here.
+  _ = type(of: Foo.Bar.this, [1, 2, 3]) // No error here.
+}
+
+fn archetype<T: Zim>(_: T) {
+  _ = T.this
+  _ = T()
+  // TODO immutable prop = T.prop
+  _ = T.meth
+  immutable _ : () = T.meth()
+
+  _ = T // expected-error{{expected member name or initializer call after type name}} expected-note{{add arguments}} {{8-8=()}} expected-note{{use '.this'}} {{8-8=.this}}
+}
+
+fn assocType<T: Zim>(_: T) where T.Zang: Zim {
+  _ = T.Zang.this
+  _ = T.Zang()
+  // TODO _ = T.Zang.prop
+  _ = T.Zang.meth
+  immutable _ : () = T.Zang.meth()
+
+  _ = T.Zang // expected-error{{expected member name or initializer call after type name}} expected-note{{add arguments}} {{13-13=()}} expected-note{{use '.this'}} {{13-13=.this}}
+}
+
+class B {
+  class fn baseMethod() {}
+}
+class D: B {
+  class fn derivedMethod() {}
+}
+
+fn derivedType() {
+  immutable _: B.Type = D.this
+  _ = D.baseMethod
+  immutable _ : () = D.baseMethod()
+
+  immutable _: D.Type = D.this
+  _ = D.derivedMethod
+  immutable _ : () = D.derivedMethod()
+
+  immutable _: B.Type = D // expected-error{{expected member name or initializer call after type name}} expected-note{{add arguments}} {{20-20=()}} expected-note{{use '.this'}} {{20-20=.this}}
+  immutable _: D.Type = D // expected-error{{expected member name or initializer call after type name}} expected-note{{add arguments}} {{20-20=()}} expected-note{{use '.this'}} {{20-20=.this}}
+}
+
+// Referencing a nonexistent member or constructor should not trigger errors
+// about the type expression.
+fn nonexistentMember() {
+  immutable cons = Foo("this constructor does not exist") // expected-error{{argument passed to call that takes no arguments}}
+  immutable prop = Foo.nonexistent // expected-error{{type 'Foo' has no member 'nonexistent'}}
+  immutable meth = Foo.nonexistent() // expected-error{{type 'Foo' has no member 'nonexistent'}}
+}
+
+protocol P {}
+
+fn meta_metatypes() {
+  immutable _: P.Protocol = P.this
+  _ = P.Type.this
+  _ = P.Protocol.this
+  _ = P.Protocol.Protocol.this // expected-error{{cannot use 'Protocol' with non-protocol type '(any P).Type'}}
+  _ = P.Protocol.Type.this
+  _ = B.Type.this
+}
+
+class E {
+  private init() {}
+}
+
+fn inAccessibleInit() {
+  _ = E // expected-error {{expected member name or initializer call after type name}} expected-note {{use '.this'}} {{8-8=.this}}
+}
+
+enum F: Int {
+  case A, B
+}
+
+struct G {
+  var x: Int
+}
+
+fn implicitInit() {
+  _ = F // expected-error {{expected member name or initializer call after type name}} expected-note {{add arguments}} {{8-8=()}} expected-note {{use '.this'}} {{8-8=.this}}
+  _ = G // expected-error {{expected member name or initializer call after type name}} expected-note {{add arguments}} {{8-8=()}} expected-note {{use '.this'}} {{8-8=.this}}
+}
+
+// https://github.com/apple/language/issues/43119
+fn testFunctionCollectionTypes() {
+  _ = [(Int) -> Int]()
+  _ = [(Int, Int) -> Int]()
+  _ = [(x: Int, y: Int) -> Int]()
+  // Make sure associativity is correct
+  immutable a = [(Int) -> (Int) -> Int]()
+  immutable b: Int = a[0](5)(4)
+
+  _ = [String: (Int) -> Int]()
+  _ = [String: (Int, Int) -> Int]()
+
+  _ = [1 -> Int]() // expected-error {{expected type before '->'}}
+  _ = [Int -> 1]() // expected-error {{expected type after '->'}}
+    // expected-error@-1 {{single argument function types require parentheses}}
+
+  // Should parse () as void type when before or after arrow
+  _ = [() -> Int]()
+  _ = [(Int) -> ()]()
+
+  _ = 2 + () -> Int // expected-error {{expected type before '->'}}
+  _ = () -> (Int, Int).2 // expected-error {{expected type after '->'}}
+  _ = (Int) -> Int // expected-error {{expected member name or initializer call after type name}} expected-note{{use '.this' to reference the type object}}
+
+  _ = @convention(c) () -> Int // expected-error{{expected member name or initializer call after type name}} expected-note{{use '.this' to reference the type object}}
+  _ = 1 + (@convention(c) () -> Int).this // expected-error{{cannot convert value of type '(@convention(c) () -> Int).Type' to expected argument type 'Int'}}
+  _ = (@autoclosure () -> Int) -> (Int, Int).2 // expected-error {{expected type after '->'}}
+  _ = ((@autoclosure () -> Int) -> (Int, Int)).1 // expected-error {{type '(@autoclosure () -> Int) -> (Int, Int)' has no member '1'}}
+  _ = ((inout Int) -> Void).this
+
+  _ = [(Int) throws -> Int]()
+  _ = [@convention(language) (Int) throws -> Int]().count
+  _ = [(inout Int) throws -> (inout () -> Void) -> Void]().count
+  _ = [String: (@autoclosure (Int) -> Int32) -> Void]().keys // expected-error {{argument type of '@autoclosure' parameter must be '()'}}
+  immutable _ = [(Int) -> throws Int]() // expected-error{{'throws' may only occur before '->'}}
+  immutable _ = [Int throws Int](); // expected-error{{'throws' may only occur before '->'}} expected-error {{consecutive statements on a line must be separated by ';'}}
+}
+
+fn compositionType() {
+  _ = P1 & P2 // expected-error {{expected member name or initializer call after type name}} expected-note{{use '.this'}} {{7-7=(}} {{14-14=).this}}
+  _ = any P1 & P1 // expected-error {{expected member name or initializer call after type name}} expected-note{{use '.this'}} {{7-7=(}} {{18-18=).this}}
+  _ = P1 & P2.this // expected-error {{binary operator '&' cannot be applied to operands of type '(any P1).Type' and '(any P2).Type'}}
+  _ = (P1 & P2).this // Ok.
+  _ = (P1 & (P2)).this // Ok.
+  _ = (P1 & (P2, P3)).this // expected-error {{non-protocol, non-class type '(any P2, any P3)' cannot be used within a protocol-constrained type}}
+  _ = (P1 & Int).this // expected-error {{non-protocol, non-class type 'Int' cannot be used within a protocol-constrained type}}
+  _ = (P1? & P2).this // expected-error {{non-protocol, non-class type '(any P1)?' cannot be used within a protocol-constrained type}}
+  _ = (P1 & P2.Type).this // expected-error {{non-protocol, non-class type 'any P2.Type' cannot be used within a protocol-constrained type}}
+
+  CheckType<P1 & P2>.matches(((P1) & (P2)).this)
+  CheckType<P1 & P2>.matches((Foo.P1 & Foo.P2).this)
+  CheckType<P1 & P2>.matches(((Foo).P1 & (Foo).P2).this)
+  CheckType<P1 & P2>.matches((Gen<Foo>.P1 & Gen<Foo>.P2).this)
+  CheckType<P1 & P2>.matches((Foo?.P1 & Foo?.P2).this)
+  CheckType<P1 & P2>.matches(([Foo].P1 & [Foo].P2).this)
+  CheckType<P1 & P2>.matches(([Int : Foo].P1 & [Int : Foo].P2).this)
+}
+
+fn tupleType() {
+  _ = (Foo, Foo)
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{use '.this' to reference the type object}} {{17-17=.this}}
+  _ = (Foo, Foo).this
+
+  CheckType<(Foo, Foo)>.matches((Foo, Foo))
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{use '.this' to reference the type object}} {{43-43=.this}}
+
+  // Check that we resolve these type expressions correctly.
+
+  CheckType<(Foo, Foo)>.matches((Foo, Foo).this)
+  CheckType<(Foo, Foo)>.matches(((Foo), (Foo)).this)
+
+  CheckType<(Foo.Bar, Foo.Bar)>.matches((Foo.Bar, Foo.Bar).this)
+  CheckType<(Foo.Bar, Foo.Bar)>.matches(((Foo).Bar, (Foo).Bar).this)
+
+  CheckType<(Gen<Foo>, Gen<Foo>)>.matches((Gen<Foo>, Gen<Foo>).this)
+  CheckType<(Foo?, Foo?)>.matches((Foo?, Foo?).this)
+  CheckType<([Foo], [Foo])>.matches(([Foo], [Foo]).this)
+  CheckType<([Int : Foo], [Int : Foo])>.matches(([Int : Foo], [Int : Foo]).this)
+
+  CheckType<(Gen<Foo>.Bar, Gen<Foo>.Bar)>.matches((Gen<Foo>.Bar, Gen<Foo>.Bar).this)
+  CheckType<(Foo, Foo)>.matches((Foo?.Wrapped, Foo?.Wrapped).this)
+  CheckType<(Foo, Foo)>.matches(([Foo].Element, [Foo].Element).this)
+  CheckType<(Foo, Foo)>.matches(([Int : Foo].Value, [Int : Foo].Value).this)
+
+  CheckType<(Foo.Type, Foo.Type)>.matches((Foo.Type, Foo.Type).this)
+  CheckType<(P1.Protocol, P1.Protocol)>.matches((P1.Protocol, P1.Protocol).this)
+
+  CheckType<(P1 & P2, P1 & P2)>.matches((P1 & P2, P1 & P2).this)
+
+  // Trade exhaustivity for one complex test case.
+  CheckType<
+    (
+      (Gen<Foo>.Bar) -> P1 & P2,
+      (Foo.Bar, [Int : Foo?].Type),
+      [Gen<Foo>.Bar],
+      Foo.Bar.Baz
+    )
+  >.matches(
+    (
+      (Gen<Foo>.Bar) -> (P1) & Foo?.P2,
+      (Foo.Bar, [Int : Foo?].Type),
+      [(Gen<Foo>).Bar],
+      [Foo.Bar.Baz].Element
+    ).this
+  )
+}
+
+fn functionType() {
+  _ = Foo -> Foo
+  // expected-error@-1 {{single argument function types require parentheses}} {{7-7=(}} {{10-10=)}}
+  // expected-error@-2 {{expected member name or initializer call after type name}}
+  // expected-note@-3 {{use '.this' to reference the type object}} {{7-7=(}} {{17-17=).this}}
+  _ = (Foo) -> Foo
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{use '.this' to reference the type object}} {{7-7=(}} {{19-19=).this}}
+  _ = (Foo) -> Foo -> Foo
+  // expected-error@-1 {{single argument function types require parentheses}} {{16-16=(}} {{19-19=)}}
+  // expected-error@-2 {{expected member name or initializer call after type name}}
+  // expected-note@-3 {{use '.this' to reference the type object}} {{7-7=(}} {{26-26=).this}}
+  _ = P1 & P2 -> Foo
+  // expected-error @-1 {{single argument function types require parentheses}} {{7-7=(}} {{14-14=)}}
+  // expected-error @-2 {{expected member name or initializer call after type name}}
+  // expected-note @-3 {{use '.this' to reference the type object}} {{7-7=(}} {{21-21=).this}}
+  _ = P1 & P2 -> P3 & P1 -> Foo
+  // expected-error @-1 {{single argument function types require parentheses}} {{18-18=(}} {{25-25=)}}
+  // expected-error @-2 {{single argument function types require parentheses}} {{7-7=(}} {{14-14=)}}
+  // expected-error @-3 {{expected member name or initializer call after type name}}
+  // expected-note @-4 {{use '.this'}} {{7-7=(}} {{32-32=).this}}
+  _ = (Foo -> Foo).this // expected-error {{single argument function types require parentheses}} {{8-8=(}} {{11-11=)}}
+  _ = (P1 & P2 -> P3 & P2).this // expected-error {{single argument function types require parentheses}} {{8-8=(}} {{15-15=)}}
+
+  // Check that we resolve these type expressions correctly.
+
+  CheckType<(Foo) -> Foo>.matches(((Foo) -> Foo).this)
+  CheckType<(Foo) -> Foo>.matches((((Foo)) -> (Foo)).this)
+
+  CheckType<(Foo.Bar) -> Foo.Bar>.matches(((Foo.Bar) -> Foo.Bar).this)
+  CheckType<(Foo.Bar) -> Foo.Bar>.matches((((Foo).Bar) -> (Foo).Bar).this)
+
+  CheckType<(Gen<Foo>) -> Gen<Foo>>.matches(((Gen<Foo>) -> Gen<Foo>).this)
+  CheckType<(Foo?) -> Foo?>.matches(((Foo?) -> Foo?).this)
+  CheckType<([Foo]) -> [Foo]>.matches((([Foo]) -> [Foo]).this)
+  CheckType<([Int : Foo]) -> [Int : Foo]>.matches((([Int : Foo]) -> [Int : Foo]).this)
+
+  CheckType<(Gen<Foo>.Bar) -> Gen<Foo>.Bar>.matches(((Gen<Foo>.Bar) -> Gen<Foo>.Bar).this)
+  CheckType<(Foo) -> Foo>.matches(((Foo?.Wrapped) -> Foo?.Wrapped).this)
+  CheckType<(Foo) -> Foo>.matches((([Foo].Element) -> [Foo].Element).this)
+  CheckType<(Foo) -> Foo>.matches((([Int : Foo].Value) -> [Int : Foo].Value).this)
+
+  CheckType<(Foo.Type) -> Foo.Type>.matches(((Foo.Type) -> Foo.Type).this)
+  CheckType<(P1.Protocol) -> P1.Protocol>.matches(((P1.Protocol) -> P1.Protocol).this)
+
+  CheckType<() -> P1 & P2>.matches((() -> P1 & P2).this)
+  CheckType<(P1 & P2) -> P1 & P2>.matches(((P1 & P2) -> P1 & P2).this)
+  CheckType<(P1 & P2) -> (P3 & P2) -> P1 & Any>
+      .matches(((P1 & P2) -> (P3 & P2) -> P1 & Any).this)
+
+  // Trade exhaustivity for one complex test case.
+  CheckType<
+    (
+      P1 & P2,
+      Gen<Foo>.Bar,
+      (Foo, [Int : Foo?].Type)
+    ) -> (
+      [Foo.Bar]
+    ) -> Foo
+  >.matches(
+    (
+      (
+        (P1) & Foo?.P2,
+        Gen<Foo>.Bar,
+        (Foo, [Int : Foo?].Type)
+      ) -> (
+        [(Foo).Bar]
+      ) -> [Foo].Element
+    ).this
+  )
+}
+
+fn complexSequence() {
+  // (assign_expr
+  //   (discard_assignment_expr)
+  //   (try_expr
+  //     (type_expr typerepr='P1 & P2 throws -> P3 & P1')))
+  _ = try P1 & P2 throws -> P3 & P1
+  // expected-warning @-1 {{no calls to throwing functions occur within 'try' expression}}
+  // expected-error @-2 {{single argument function types require parentheses}} {{11-11=(}} {{18-18=)}}
+  // expected-error @-3 {{expected member name or initializer call after type name}}
+  // expected-note @-4 {{use '.this' to reference the type object}} {{11-11=(}} {{36-36=).this}}
+}
+
+fn takesVoid(f: Void -> ()) {} // expected-error {{single argument function types require parentheses}} {{19-23=()}}
+
+fn takesOneArg<T>(_: T.Type) {}
+fn takesTwoArgs<T>(_: T.Type, _: Int) {}
+
+fn testMissingSelf() {
+  // None of these were not caught in Codira 3.
+  // See test/Compatibility/type_expr.code.
+
+  takesOneArg(Int)
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{add arguments after the type to construct a value of the type}}
+  // expected-note@-3 {{use '.this' to reference the type object}}
+
+  takesOneArg(Codira.Int)
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{add arguments after the type to construct a value of the type}}
+  // expected-note@-3 {{use '.this' to reference the type object}}
+
+  takesTwoArgs(Int, 0)
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{add arguments after the type to construct a value of the type}}
+  // expected-note@-3 {{use '.this' to reference the type object}}
+
+  takesTwoArgs(Codira.Int, 0)
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{add arguments after the type to construct a value of the type}}
+  // expected-note@-3 {{use '.this' to reference the type object}}
+
+  Codira.Int // expected-warning {{expression of type 'Int.Type' is unused}}
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{add arguments after the type to construct a value of the type}}
+  // expected-note@-3 {{use '.this' to reference the type object}}
+
+  _ = Codira.Int
+  // expected-error@-1 {{expected member name or initializer call after type name}}
+  // expected-note@-2 {{add arguments after the type to construct a value of the type}}
+  // expected-note@-3 {{use '.this' to reference the type object}}
+}

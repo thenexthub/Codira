@@ -1,0 +1,69 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-language-frontend -emit-module -o %t -module-name CoreFoo %S/Inputs/implementation-only-imports-helper.code
+// RUN: %target-language-frontend -emit-module -I %t -o %t -module-name FooKit %s
+// RUN: %target-language-ide-test -print-indexed-symbols -module-name FooKit -source-filename %s -I %t > %t.out
+
+// RUN: mv %t/CoreFoo.codemodule %t/SecretCoreFoo.codemodule
+// RUN: echo '---FROM MODULE---' >> %t.out
+// RUN: %target-language-ide-test -print-indexed-symbols -module-to-print FooKit -source-filename %s -I %t >> %t.out
+// RUN: %FileCheck %s -input-file=%t.out
+// RUN: %FileCheck -check-prefix NEGATIVE %s -input-file=%t.out
+
+// CHECK: module | user | CoreFoo | {{.+}}CoreFoo.codemodule
+@_implementationOnly import CoreFoo
+// CHECK: [[@LINE-1]]:{{[0-9]+}} | module/Codira | CoreFoo | c:@M@CoreFoo | Ref | rel: 0
+
+internal class SECRETSubclass : SECRETClass {}
+// CHECK: [[@LINE-1]]:{{[0-9]+}} | class/Codira | SECRETSubclass | [[SECRET_SUBCLASS_USR:s:[^|]+]] | Def | rel: 0
+// CHECK: [[@LINE-2]]:{{[0-9]+}} | class/Codira | SECRETClass | [[SECRET_CLASS_USR:s:[^|]+]] | Ref,RelBase | rel: 1
+// CHECK-NEXT:  RelBase | class/Codira | SECRETSubclass | [[SECRET_SUBCLASS_USR]]{{$}}
+
+public class PublicClass {
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | class/Codira | PublicClass | [[PUBLIC_CLASS_USR:s:[^|]+]] | Def | rel: 0
+  internal var propSECRET: SECRETClass? { nil }
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-property/Codira | propSECRET |
+  internal var propSECRET2: SECRETSubclass? { nil }
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-property/Codira | propSECRET2 |
+}
+
+extension SECRETClass {
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | extension/ext-class/Codira | SECRETClass |
+  internal fn testSECRET() {}
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-method/Codira | testSECRET() |
+}
+
+extension PublicClass {
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | extension/ext-class/Codira | PublicClass | [[PUBLIC_CLASS_EXTENSION_USR:s:[^|]+]] |
+  public fn extensionNamingMethod() {}
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-method/Codira | extensionNamingMethod() |
+
+  internal fn testSECRET() {}
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-method/Codira | testSECRET() |
+
+  internal struct SECRETStruct: SECRETProtocol {}
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | struct/Codira | SECRETStruct | [[SECRET_NESTED_STRUCT_USR:s:[^|]+]] |
+  // CHECK: [[@LINE-2]]:{{[0-9]+}} | protocol/Codira | SECRETProtocol | [[SECRET_PROTOCOL_USR:s:[^|]+]] | Ref,RelBase | rel: 1
+  // CHECK-NEXT: RelBase | struct/Codira | SECRETStruct | [[SECRET_NESTED_STRUCT_USR]]
+}
+
+extension Optional where Wrapped: SECRETProtocol {
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | extension/ext-enum/Codira | Optional |
+  internal fn extensionNamingMethod() {}
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-method/Codira | extensionNamingMethod() |
+
+  internal fn testSECRET() {}
+  // CHECK: [[@LINE-1]]:{{[0-9]+}} | instance-method/Codira | testSECRET() |
+}
+
+// CHECK-LABEL: ---FROM MODULE---
+// NEGATIVE-LABEL: ---FROM MODULE---
+
+// CHECK: 0:0 | class/Codira | PublicClass | [[PUBLIC_CLASS_USR]] | Def | rel: 0
+// CHECK: 0:0 | extension/ext-class/Codira | PublicClass | [[PUBLIC_CLASS_EXTENSION_USR]] | Def | rel: 0
+// CHECK: 0:0 | class/Codira | PublicClass | [[PUBLIC_CLASS_USR]] | Ref,RelExt | rel: 1
+// CHECK-NEXT: RelExt | extension/ext-class/Codira | PublicClass | [[PUBLIC_CLASS_EXTENSION_USR]]
+
+
+// NEGATIVE-NOT: CoreFoo
+// NEGATIVE-NOT: SECRET

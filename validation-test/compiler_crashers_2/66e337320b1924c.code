@@ -1,0 +1,3 @@
+// {"signature":"std::__1::__function::__func<resolveTypeWitnessViaLookup(language::NormalProtocolConformance*, language::AssociatedTypeDecl*)::$_3, std::__1::allocator<resolveTypeWitnessViaLookup(language::NormalProtocolConformance*, language::AssociatedTypeDecl*)::$_3>, void (language::NormalProtocolConformance*)>::~__func()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct b immutable b c a = b protocol a : a

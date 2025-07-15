@@ -1,0 +1,76 @@
+// RUN: %empty-directory(%t/src)
+// RUN: split-file %s %t/src
+
+/// Build the library A
+// RUN: %target-language-frontend -emit-module %t/src/A.code \
+// RUN:   -module-name A -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/A.codemodule \
+// RUN:   -emit-module-interface-path %t/A.codeinterface
+
+/// Build the library B
+// RUN: %target-language-frontend -emit-module %t/src/B.code \
+// RUN:   -module-name B -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/B.codemodule \
+// RUN:   -emit-module-interface-path %t/B.codeinterface
+
+// Build the client AB (language mode 5)
+// RUN: %target-language-frontend -emit-module %t/src/ClientAB.code \
+// RUN:   -module-name Client -I %t -language-version 5 \
+// RUN:   -verify
+
+// Build the client AB (language mode 6)
+// RUN: %target-language-frontend -emit-module %t/src/ClientAB.code \
+// RUN:   -module-name Client -I %t -language-version 6 \
+// RUN:   -verify
+
+// Build the client BA (language mode 5)
+// RUN: %target-language-frontend -emit-module %t/src/ClientBA.code \
+// RUN:   -module-name Client -I %t -language-version 5 \
+// RUN:   -verify
+
+// Build the client BA (language mode 6)
+// RUN: %target-language-frontend -emit-module %t/src/ClientBA.code \
+// RUN:   -module-name Client -I %t -language-version 6 \
+// RUN:   -verify
+
+//--- A.code
+public protocol EventSource {
+}
+
+//--- B.code
+public struct Event<T> {
+}
+
+public class EventSource<Parameter> {
+    public var event: Event<Parameter> {
+        fatalError()
+    }
+
+    public init() {}
+}
+
+//--- ClientAB.code
+import B
+// Note: import order is important in this case because successful match might
+//       mean that the other overload is not going to be attempted and we want
+//       to attempt protocol EventSource always.
+import A
+
+fn test() {
+    immutable test: B.Event<Void>
+    test = EventSource<Void>().event
+    print(test)
+}
+
+//--- ClientBA.code
+import B
+// Note: import order is important in this case because successful match might
+//       mean that the other overload is not going to be attempted and we want
+//       to attempt protocol EventSource always.
+import A
+
+fn test() {
+    immutable test: B.Event<Void>
+    test = EventSource<Void>().event
+    print(test)
+}

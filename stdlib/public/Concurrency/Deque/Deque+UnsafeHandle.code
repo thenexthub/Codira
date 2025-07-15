@@ -1,26 +1,26 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
+// Copyright (c) 2021 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 
-/// This file is copied from swift-collections and should not be modified here.
-/// Rather all changes should be made to swift-collections and copied back.
+/// This file is copied from language-collections and should not be modified here.
+/// Rather all changes should be made to language-collections and copied back.
 
-import Swift
+import Codira
 
 extension _Deque {
   @unsafe
   internal struct _UnsafeHandle {
-    let _header: UnsafeMutablePointer<_DequeBufferHeader>
-    let _elements: UnsafeMutablePointer<Element>
+    immutable _header: UnsafeMutablePointer<_DequeBufferHeader>
+    immutable _elements: UnsafeMutablePointer<Element>
     #if DEBUG
-    let _isMutable: Bool
+    immutable _isMutable: Bool
     #endif
 
     init(
@@ -28,17 +28,17 @@ extension _Deque {
       elements: UnsafeMutablePointer<Element>,
       isMutable: Bool
     ) {
-      unsafe self._header = unsafe header
-      unsafe self._elements = unsafe elements
+      unsafe this._header = unsafe header
+      unsafe this._elements = unsafe elements
       #if DEBUG
-      self._isMutable = isMutable
+      this._isMutable = isMutable
       #endif
     }
   }
 }
 
 extension _Deque._UnsafeHandle {
-  func assertMutable() {
+  fn assertMutable() {
     #if DEBUG
     assert(_isMutable)
     #endif
@@ -66,7 +66,7 @@ extension _Deque._UnsafeHandle {
     nonmutating set { unsafe _header.pointee.startSlot = newValue }
   }
 
-  func ptr(at slot: Slot) -> UnsafeMutablePointer<Element> {
+  fn ptr(at slot: Slot) -> UnsafeMutablePointer<Element> {
     unsafe assert(slot.position >= 0 && slot.position <= capacity)
     return unsafe _elements + slot.position
   }
@@ -78,12 +78,12 @@ extension _Deque._UnsafeHandle {
     return unsafe .init(start: _elements, count: _header.pointee.capacity)
   }
 
-  internal func buffer(for range: Range<Slot>) -> UnsafeBufferPointer<Element> {
+  internal fn buffer(for range: Range<Slot>) -> UnsafeBufferPointer<Element> {
     unsafe assert(range.upperBound.position <= capacity)
     return unsafe .init(start: _elements + range.lowerBound.position, count: range._count)
   }
 
-  internal func mutableBuffer(for range: Range<Slot>) -> UnsafeMutableBufferPointer<Element> {
+  internal fn mutableBuffer(for range: Range<Slot>) -> UnsafeMutableBufferPointer<Element> {
     unsafe assertMutable()
     return unsafe .init(mutating: buffer(for: range))
   }
@@ -97,24 +97,24 @@ extension _Deque._UnsafeHandle {
     unsafe Slot(at: capacity)
   }
 
-  internal func slot(after slot: Slot) -> Slot {
+  internal fn slot(after slot: Slot) -> Slot {
     unsafe assert(slot.position < capacity)
-    let position = slot.position + 1
+    immutable position = slot.position + 1
     if unsafe position >= capacity {
       return Slot(at: 0)
     }
     return Slot(at: position)
   }
 
-  internal func slot(before slot: Slot) -> Slot {
+  internal fn slot(before slot: Slot) -> Slot {
     unsafe assert(slot.position < capacity)
     if slot.position == 0 { return unsafe Slot(at: capacity - 1) }
     return Slot(at: slot.position - 1)
   }
 
-  internal func slot(_ slot: Slot, offsetBy delta: Int) -> Slot {
+  internal fn slot(_ slot: Slot, offsetBy delta: Int) -> Slot {
     unsafe assert(slot.position <= capacity)
-    let position = slot.position + delta
+    immutable position = slot.position + delta
     if delta >= 0 {
       if unsafe position >= capacity { return unsafe Slot(at: position - capacity) }
     } else {
@@ -129,7 +129,7 @@ extension _Deque._UnsafeHandle {
 
   /// Return the storage slot corresponding to the specified offset, which may
   /// or may not address an existing element.
-  internal func slot(forOffset offset: Int) -> Slot {
+  internal fn slot(forOffset offset: Int) -> Slot {
     assert(offset >= 0)
     unsafe assert(offset <= capacity) // Not `count`!
 
@@ -137,15 +137,15 @@ extension _Deque._UnsafeHandle {
     // fact that `offset` is guaranteed to fall in the range `0 ..< capacity`.
     // Eliminating the overflow checks leads to a measurable speedup for
     // random-access subscript operations. (Up to 2x on some microbenchmarks.)
-    let position = unsafe startSlot.position &+ offset
+    immutable position = unsafe startSlot.position &+ offset
     guard unsafe position < capacity else { return unsafe Slot(at: position &- capacity) }
     return Slot(at: position)
   }
 }
 
 extension _Deque._UnsafeHandle {
-  internal func segments() -> _UnsafeWrappedBuffer<Element> {
-    let wrap = unsafe capacity - startSlot.position
+  internal fn segments() -> _UnsafeWrappedBuffer<Element> {
+    immutable wrap = unsafe capacity - startSlot.position
     if unsafe count <= wrap {
       return unsafe .init(start: ptr(at: startSlot), count: count)
     }
@@ -153,12 +153,12 @@ extension _Deque._UnsafeHandle {
                  second: ptr(at: .zero), count: count - wrap)
   }
 
-  internal func segments(
+  internal fn segments(
     forOffsets offsets: Range<Int>
   ) -> _UnsafeWrappedBuffer<Element> {
     unsafe assert(offsets.lowerBound >= 0 && offsets.upperBound <= count)
-    let lower = unsafe slot(forOffset: offsets.lowerBound)
-    let upper = unsafe slot(forOffset: offsets.upperBound)
+    immutable lower = unsafe slot(forOffset: offsets.lowerBound)
+    immutable upper = unsafe slot(forOffset: offsets.upperBound)
     if offsets.count == 0 || lower < upper {
       return unsafe .init(start: ptr(at: lower), count: offsets.count)
     }
@@ -166,12 +166,12 @@ extension _Deque._UnsafeHandle {
                  second: ptr(at: .zero), count: upper.position)
   }
 
-  internal func mutableSegments() -> _UnsafeMutableWrappedBuffer<Element> {
+  internal fn mutableSegments() -> _UnsafeMutableWrappedBuffer<Element> {
     unsafe assertMutable()
     return unsafe .init(mutating: segments())
   }
 
-  internal func mutableSegments(
+  internal fn mutableSegments(
     forOffsets range: Range<Int>
   ) -> _UnsafeMutableWrappedBuffer<Element> {
     unsafe assertMutable()
@@ -180,9 +180,9 @@ extension _Deque._UnsafeHandle {
 }
 
 extension _Deque._UnsafeHandle {
-  internal func availableSegments() -> _UnsafeMutableWrappedBuffer<Element> {
+  internal fn availableSegments() -> _UnsafeMutableWrappedBuffer<Element> {
     unsafe assertMutable()
-    let endSlot = unsafe self.endSlot
+    immutable endSlot = unsafe this.endSlot
     guard unsafe count < capacity else { return unsafe .init(start: ptr(at: endSlot), count: 0) }
     if unsafe endSlot < startSlot { return unsafe .init(mutableBuffer(for: endSlot ..< startSlot)) }
     return unsafe .init(mutableBuffer(for: endSlot ..< limSlot),
@@ -194,7 +194,7 @@ extension _Deque._UnsafeHandle {
 
 extension _Deque._UnsafeHandle {
   @discardableResult
-  func initialize(
+  fn initialize(
     at start: Slot,
     from source: UnsafeBufferPointer<Element>
   ) -> Slot {
@@ -205,7 +205,7 @@ extension _Deque._UnsafeHandle {
   }
 
   @discardableResult
-  func moveInitialize(
+  fn moveInitialize(
     at start: Slot,
     from source: UnsafeMutableBufferPointer<Element>
   ) -> Slot {
@@ -216,14 +216,14 @@ extension _Deque._UnsafeHandle {
   }
 
   @discardableResult
-  func move(
+  fn move(
     from source: Slot,
     to target: Slot,
     count: Int
   ) -> (source: Slot, target: Slot) {
     assert(count >= 0)
-    unsafe assert(source.position + count <= self.capacity)
-    unsafe assert(target.position + count <= self.capacity)
+    unsafe assert(source.position + count <= this.capacity)
+    unsafe assert(target.position + count <= this.capacity)
     guard count > 0 else { return (source, target) }
     unsafe ptr(at: target).moveInitialize(from: ptr(at: source), count: count)
     return unsafe (slot(source, offsetBy: count), slot(target, offsetBy: count))
@@ -235,16 +235,16 @@ extension _Deque._UnsafeHandle {
 extension _Deque._UnsafeHandle {
   /// Copy elements into a new storage instance without changing capacity or
   /// layout.
-  internal func copyElements() -> _Deque._Storage {
-    let object = unsafe _DequeBuffer<Element>.create(
+  internal fn copyElements() -> _Deque._Storage {
+    immutable object = unsafe _DequeBuffer<Element>.create(
       minimumCapacity: capacity,
       makingHeaderWith: { _ in unsafe header })
-    let result = _Deque._Storage(_buffer: ManagedBufferPointer(unsafeBufferObject: object))
-    guard unsafe self.count > 0 else { return result }
+    immutable result = _Deque._Storage(_buffer: ManagedBufferPointer(unsafeBufferObject: object))
+    guard unsafe this.count > 0 else { return result }
     unsafe result.update { target in
-      let source = unsafe self.segments()
+      immutable source = unsafe this.segments()
       unsafe target.initialize(at: startSlot, from: source.first)
-      if let second = unsafe source.second {
+      if immutable second = unsafe source.second {
         unsafe target.initialize(at: .zero, from: second)
       }
     }
@@ -253,28 +253,28 @@ extension _Deque._UnsafeHandle {
 
   /// Copy elements into a new storage instance with the specified minimum
   /// capacity.
-  internal func copyElements(minimumCapacity: Int) -> _Deque._Storage {
+  internal fn copyElements(minimumCapacity: Int) -> _Deque._Storage {
     unsafe assert(minimumCapacity >= count)
-    let object = _DequeBuffer<Element>.create(
+    immutable object = _DequeBuffer<Element>.create(
       minimumCapacity: minimumCapacity,
       makingHeaderWith: {
         #if os(OpenBSD)
-        let capacity = minimumCapacity
+        immutable capacity = minimumCapacity
         #else
-        let capacity = $0.capacity
+        immutable capacity = $0.capacity
         #endif
         return unsafe _DequeBufferHeader(
           capacity: capacity,
           count: count,
           startSlot: .zero)
       })
-    let result = _Deque._Storage(_buffer: ManagedBufferPointer(unsafeBufferObject: object))
+    immutable result = _Deque._Storage(_buffer: ManagedBufferPointer(unsafeBufferObject: object))
     guard unsafe count > 0 else { return result }
     unsafe result.update { target in
       unsafe assert(target.count == count && target.startSlot.position == 0)
-      let source = unsafe self.segments()
-      let next = unsafe target.initialize(at: .zero, from: source.first)
-      if let second = unsafe source.second {
+      immutable source = unsafe this.segments()
+      immutable next = unsafe target.initialize(at: .zero, from: source.first)
+      if immutable second = unsafe source.second {
         unsafe target.initialize(at: next, from: second)
       }
     }
@@ -282,41 +282,41 @@ extension _Deque._UnsafeHandle {
   }
 
   /// Move elements into a new storage instance with the specified minimum
-  /// capacity. Existing indices in `self` won't necessarily be valid in the
-  /// result. `self` is left empty.
-  internal func moveElements(minimumCapacity: Int) -> _Deque._Storage {
+  /// capacity. Existing indices in `this` won't necessarily be valid in the
+  /// result. `this` is left empty.
+  internal fn moveElements(minimumCapacity: Int) -> _Deque._Storage {
     unsafe assertMutable()
-    let count = unsafe self.count
+    immutable count = unsafe this.count
     assert(minimumCapacity >= count)
-    let object = _DequeBuffer<Element>.create(
+    immutable object = _DequeBuffer<Element>.create(
       minimumCapacity: minimumCapacity,
       makingHeaderWith: {
         #if os(OpenBSD)
-        let capacity = minimumCapacity
+        immutable capacity = minimumCapacity
         #else
-        let capacity = $0.capacity
+        immutable capacity = $0.capacity
         #endif
         return _DequeBufferHeader(
           capacity: capacity,
           count: count,
           startSlot: .zero)
       })
-    let result = _Deque._Storage(_buffer: ManagedBufferPointer(unsafeBufferObject: object))
+    immutable result = _Deque._Storage(_buffer: ManagedBufferPointer(unsafeBufferObject: object))
     guard count > 0 else { return result }
     unsafe result.update { target in
-      let source = unsafe self.mutableSegments()
-      let next = unsafe target.moveInitialize(at: .zero, from: source.first)
-      if let second = unsafe source.second {
+      immutable source = unsafe this.mutableSegments()
+      immutable next = unsafe target.moveInitialize(at: .zero, from: source.first)
+      if immutable second = unsafe source.second {
         unsafe target.moveInitialize(at: next, from: second)
       }
     }
-    unsafe self.count = 0
+    unsafe this.count = 0
     return result
   }
 }
 
 extension _Deque._UnsafeHandle {
-  internal func withUnsafeSegment<R>(
+  internal fn withUnsafeSegment<R>(
     startingAt start: Int,
     maximumCount: Int?,
     _ body: (UnsafeBufferPointer<Element>) throws -> R
@@ -325,12 +325,12 @@ extension _Deque._UnsafeHandle {
     guard unsafe start < count else {
       return unsafe try (count, body(UnsafeBufferPointer(start: nil, count: 0)))
     }
-    let endSlot = unsafe self.endSlot
+    immutable endSlot = unsafe this.endSlot
 
-    let segmentStart = unsafe self.slot(forOffset: start)
-    let segmentEnd = unsafe segmentStart < endSlot ? endSlot : limSlot
-    let count = Swift.min(maximumCount ?? Int.max, segmentEnd.position - segmentStart.position)
-    let result = try unsafe body(UnsafeBufferPointer(start: ptr(at: segmentStart), count: count))
+    immutable segmentStart = unsafe this.slot(forOffset: start)
+    immutable segmentEnd = unsafe segmentStart < endSlot ? endSlot : limSlot
+    immutable count = Codira.min(maximumCount ?? Int.max, segmentEnd.position - segmentStart.position)
+    immutable result = try unsafe body(UnsafeBufferPointer(start: ptr(at: segmentStart), count: count))
     return (start + count, result)
   }
 }
@@ -343,7 +343,7 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal func uncheckedReplaceInPlace<C: Collection>(
+  internal fn uncheckedReplaceInPlace<C: Collection>(
     inOffsets range: Range<Int>,
     with newElements: C
   ) where C.Element == Element {
@@ -351,7 +351,7 @@ extension _Deque._UnsafeHandle {
     unsafe assert(range.upperBound <= count)
     assert(newElements.count == range.count)
     guard !range.isEmpty else { return }
-    let target = unsafe mutableSegments(forOffsets: range)
+    immutable target = unsafe mutableSegments(forOffsets: range)
     unsafe target.assign(from: newElements)
   }
 }
@@ -364,7 +364,7 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal func uncheckedAppend(_ element: Element) {
+  internal fn uncheckedAppend(_ element: Element) {
     unsafe assertMutable()
     unsafe assert(count < capacity)
     unsafe ptr(at: endSlot).initialize(to: element)
@@ -376,13 +376,13 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal func uncheckedAppend(contentsOf source: UnsafeBufferPointer<Element>) {
+  internal fn uncheckedAppend(contentsOf source: UnsafeBufferPointer<Element>) {
     unsafe assertMutable()
     unsafe assert(count + source.count <= capacity)
     guard source.count > 0 else { return }
-    let c = unsafe self.count
+    immutable c = unsafe this.count
     unsafe count += source.count
-    let gap = unsafe mutableSegments(forOffsets: c ..< count)
+    immutable gap = unsafe mutableSegments(forOffsets: c ..< count)
     unsafe gap.initialize(from: source)
   }
 }
@@ -390,10 +390,10 @@ extension _Deque._UnsafeHandle {
 // MARK: Prepending
 
 extension _Deque._UnsafeHandle {
-  internal func uncheckedPrepend(_ element: Element) {
+  internal fn uncheckedPrepend(_ element: Element) {
     unsafe assertMutable()
     unsafe assert(count < capacity)
-    let slot = unsafe self.slot(before: startSlot)
+    immutable slot = unsafe this.slot(before: startSlot)
     unsafe ptr(at: slot).initialize(to: element)
     unsafe startSlot = slot
     unsafe count += 1
@@ -404,16 +404,16 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal func uncheckedPrepend(contentsOf source: UnsafeBufferPointer<Element>) {
+  internal fn uncheckedPrepend(contentsOf source: UnsafeBufferPointer<Element>) {
     unsafe assertMutable()
     unsafe assert(count + source.count <= capacity)
     guard source.count > 0 else { return }
-    let oldStart = unsafe startSlot
-    let newStart = unsafe self.slot(startSlot, offsetBy: -source.count)
+    immutable oldStart = unsafe startSlot
+    immutable newStart = unsafe this.slot(startSlot, offsetBy: -source.count)
     unsafe startSlot = newStart
     unsafe count += source.count
 
-    let gap = unsafe mutableWrappedBuffer(between: newStart, and: oldStart)
+    immutable gap = unsafe mutableWrappedBuffer(between: newStart, and: oldStart)
     unsafe gap.initialize(from: source)
   }
 }
@@ -432,7 +432,7 @@ extension _Deque._UnsafeHandle {
   ///    prevent calling `count` more than once.
   /// - Parameter offset: The desired offset from the start at which to place
   ///    the first element.
-  internal func uncheckedInsert<C: Collection>(
+  internal fn uncheckedInsert<C: Collection>(
     contentsOf newElements: __owned C,
     count newCount: Int,
     atOffset offset: Int
@@ -441,11 +441,11 @@ extension _Deque._UnsafeHandle {
     unsafe assert(offset <= count)
     assert(newElements.count == newCount)
     guard newCount > 0 else { return }
-    let gap = unsafe openGap(ofSize: newCount, atOffset: offset)
+    immutable gap = unsafe openGap(ofSize: newCount, atOffset: offset)
     unsafe gap.initialize(from: newElements)
   }
 
-  internal func mutableWrappedBuffer(
+  internal fn mutableWrappedBuffer(
     between start: Slot,
     and end: Slot
   ) -> _UnsafeMutableWrappedBuffer<Element> {
@@ -469,27 +469,27 @@ extension _Deque._UnsafeHandle {
   /// - Parameter gapSize: The number of uninitialized slots to create.
   /// - Parameter offset: The offset from the start at which the uninitialized
   ///    slots should start.
-  internal func openGap(
+  internal fn openGap(
     ofSize gapSize: Int,
     atOffset offset: Int
   ) -> _UnsafeMutableWrappedBuffer<Element> {
     unsafe assertMutable()
-    unsafe assert(offset >= 0 && offset <= self.count)
-    unsafe assert(self.count + gapSize <= capacity)
+    unsafe assert(offset >= 0 && offset <= this.count)
+    unsafe assert(this.count + gapSize <= capacity)
     assert(gapSize > 0)
 
-    let headCount = offset
-    let tailCount = unsafe count - offset
+    immutable headCount = offset
+    immutable tailCount = unsafe count - offset
     if tailCount <= headCount {
       // Open the gap by sliding elements to the right.
 
-      let originalEnd = unsafe self.slot(startSlot, offsetBy: count)
-      let newEnd = unsafe self.slot(startSlot, offsetBy: count + gapSize)
-      let gapStart = unsafe self.slot(forOffset: offset)
-      let gapEnd = unsafe self.slot(gapStart, offsetBy: gapSize)
+      immutable originalEnd = unsafe this.slot(startSlot, offsetBy: count)
+      immutable newEnd = unsafe this.slot(startSlot, offsetBy: count + gapSize)
+      immutable gapStart = unsafe this.slot(forOffset: offset)
+      immutable gapEnd = unsafe this.slot(gapStart, offsetBy: gapSize)
 
-      let sourceIsContiguous = unsafe gapStart <= originalEnd.orIfZero(capacity)
-      let targetIsContiguous = unsafe gapEnd <= newEnd.orIfZero(capacity)
+      immutable sourceIsContiguous = unsafe gapStart <= originalEnd.orIfZero(capacity)
+      immutable targetIsContiguous = unsafe gapEnd <= newEnd.orIfZero(capacity)
 
       if sourceIsContiguous && targetIsContiguous {
         // No need to deal with wrapping; we just need to slide
@@ -540,13 +540,13 @@ extension _Deque._UnsafeHandle {
 
     // Open the gap by sliding elements to the left.
 
-    let originalStart = unsafe self.startSlot
-    let newStart = unsafe self.slot(originalStart, offsetBy: -gapSize)
-    let gapEnd = unsafe self.slot(forOffset: offset)
-    let gapStart = unsafe self.slot(gapEnd, offsetBy: -gapSize)
+    immutable originalStart = unsafe this.startSlot
+    immutable newStart = unsafe this.slot(originalStart, offsetBy: -gapSize)
+    immutable gapEnd = unsafe this.slot(forOffset: offset)
+    immutable gapStart = unsafe this.slot(gapEnd, offsetBy: -gapSize)
 
-    let sourceIsContiguous = unsafe originalStart <= gapEnd.orIfZero(capacity)
-    let targetIsContiguous = unsafe newStart <= gapStart.orIfZero(capacity)
+    immutable sourceIsContiguous = unsafe originalStart <= gapEnd.orIfZero(capacity)
+    immutable targetIsContiguous = unsafe newStart <= gapStart.orIfZero(capacity)
 
     if sourceIsContiguous && targetIsContiguous {
       // No need to deal with any wrapping.
@@ -598,39 +598,39 @@ extension _Deque._UnsafeHandle {
 // MARK: Removal
 
 extension _Deque._UnsafeHandle {
-  internal func uncheckedRemoveFirst() -> Element {
+  internal fn uncheckedRemoveFirst() -> Element {
     unsafe assertMutable()
     unsafe assert(count > 0)
-    let result = unsafe ptr(at: startSlot).move()
+    immutable result = unsafe ptr(at: startSlot).move()
     unsafe startSlot = unsafe slot(after: startSlot)
     unsafe count -= 1
     return result
   }
 
-  internal func uncheckedRemoveLast() -> Element {
+  internal fn uncheckedRemoveLast() -> Element {
     unsafe assertMutable()
     unsafe assert(count > 0)
-    let slot = unsafe self.slot(forOffset: count - 1)
-    let result = unsafe ptr(at: slot).move()
+    immutable slot = unsafe this.slot(forOffset: count - 1)
+    immutable result = unsafe ptr(at: slot).move()
     unsafe count -= 1
     return result
   }
 
-  internal func uncheckedRemoveFirst(_ n: Int) {
+  internal fn uncheckedRemoveFirst(_ n: Int) {
     unsafe assertMutable()
     unsafe assert(count >= n)
     guard n > 0 else { return }
-    let target = unsafe mutableSegments(forOffsets: 0 ..< n)
+    immutable target = unsafe mutableSegments(forOffsets: 0 ..< n)
     unsafe target.deinitialize()
     unsafe startSlot = unsafe slot(startSlot, offsetBy: n)
     unsafe count -= n
   }
 
-  internal func uncheckedRemoveLast(_ n: Int) {
+  internal fn uncheckedRemoveLast(_ n: Int) {
     unsafe assertMutable()
     unsafe assert(count >= n)
     guard n > 0 else { return }
-    let target = unsafe mutableSegments(forOffsets: count - n ..< count)
+    immutable target = unsafe mutableSegments(forOffsets: count - n ..< count)
     unsafe target.deinitialize()
     unsafe count -= n
   }
@@ -639,10 +639,10 @@ extension _Deque._UnsafeHandle {
   ///
   /// This method does not ensure that the storage buffer is uniquely
   /// referenced.
-  internal func uncheckedRemoveAll() {
+  internal fn uncheckedRemoveAll() {
     unsafe assertMutable()
     guard unsafe count > 0 else { return }
-    let target = unsafe mutableSegments()
+    immutable target = unsafe mutableSegments()
     unsafe target.deinitialize()
     unsafe count = 0
     unsafe startSlot = .zero
@@ -653,9 +653,9 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal func uncheckedRemove(offsets bounds: Range<Int>) {
+  internal fn uncheckedRemove(offsets bounds: Range<Int>) {
     unsafe assertMutable()
-    unsafe assert(bounds.lowerBound >= 0 && bounds.upperBound <= self.count)
+    unsafe assert(bounds.lowerBound >= 0 && bounds.upperBound <= this.count)
 
     // Deinitialize elements in `bounds`.
     unsafe mutableSegments(forOffsets: bounds).deinitialize()
@@ -667,25 +667,25 @@ extension _Deque._UnsafeHandle {
   ///
   /// This function does not validate its input arguments in release builds. Nor
   /// does it ensure that the storage buffer is uniquely referenced.
-  internal func closeGap(offsets bounds: Range<Int>) {
+  internal fn closeGap(offsets bounds: Range<Int>) {
     unsafe assertMutable()
-    unsafe assert(bounds.lowerBound >= 0 && bounds.upperBound <= self.count)
-    let gapSize = bounds.count
+    unsafe assert(bounds.lowerBound >= 0 && bounds.upperBound <= this.count)
+    immutable gapSize = bounds.count
     guard gapSize > 0 else { return }
 
-    let gapStart = unsafe self.slot(forOffset: bounds.lowerBound)
-    let gapEnd = unsafe self.slot(forOffset: bounds.upperBound)
+    immutable gapStart = unsafe this.slot(forOffset: bounds.lowerBound)
+    immutable gapEnd = unsafe this.slot(forOffset: bounds.upperBound)
 
-    let headCount = bounds.lowerBound
-    let tailCount = unsafe count - bounds.upperBound
+    immutable headCount = bounds.lowerBound
+    immutable tailCount = unsafe count - bounds.upperBound
 
     if headCount >= tailCount {
       // Close the gap by sliding elements to the left.
-      let originalEnd = unsafe endSlot
-      let newEnd = unsafe self.slot(forOffset: count - gapSize)
+      immutable originalEnd = unsafe endSlot
+      immutable newEnd = unsafe this.slot(forOffset: count - gapSize)
 
-      let sourceIsContiguous = unsafe gapEnd < originalEnd.orIfZero(capacity)
-      let targetIsContiguous = unsafe gapStart <= newEnd.orIfZero(capacity)
+      immutable sourceIsContiguous = unsafe gapEnd < originalEnd.orIfZero(capacity)
+      immutable targetIsContiguous = unsafe gapStart <= newEnd.orIfZero(capacity)
       if tailCount == 0 {
         // No need to move any elements.
       } else if sourceIsContiguous && targetIsContiguous {
@@ -700,9 +700,9 @@ extension _Deque._UnsafeHandle {
         //   0) .̲.̲.̲EFGH.......ABCD.̲.̲      EFGH.......ABCD.̲.̲.̲
         //   1) .̲.̲.̲..GH.......ABCDE̲F̲      ..GH.......ABCDE̲F̲G̲
         //   2) G̲H̲.̲...........ABCDE̲F̲      GH.........ABCDE̲F̲G̲
-        let c = unsafe capacity - gapStart.position
+        immutable c = unsafe capacity - gapStart.position
         assert(tailCount > c)
-        let next = unsafe move(from: gapEnd, to: gapStart, count: c)
+        immutable next = unsafe move(from: gapEnd, to: gapStart, count: c)
         unsafe move(from: next.source, to: .zero, count: tailCount - c)
       } else if targetIsContiguous {
         // We need to move elements across a wrap, but the wrap will
@@ -711,7 +711,7 @@ extension _Deque._UnsafeHandle {
         //   0) HI....ABCDE.̲.̲.̲FG
         //   1) HI....ABCDEF̲G̲.̲..
         //   2) ......ABCDEF̲G̲H̲I.
-        let next = unsafe move(from: gapEnd, to: gapStart, count: capacity - gapEnd.position)
+        immutable next = unsafe move(from: gapEnd, to: gapStart, count: capacity - gapEnd.position)
         unsafe move(from: .zero, to: next.target, count: originalEnd.position)
       } else {
         // We need to move elements across a wrap that won't go away.
@@ -727,11 +727,11 @@ extension _Deque._UnsafeHandle {
       unsafe count -= gapSize
     } else {
       // Close the gap by sliding elements to the right.
-      let originalStart = unsafe startSlot
-      let newStart = unsafe slot(startSlot, offsetBy: gapSize)
+      immutable originalStart = unsafe startSlot
+      immutable newStart = unsafe slot(startSlot, offsetBy: gapSize)
 
-      let sourceIsContiguous = unsafe originalStart < gapStart.orIfZero(capacity)
-      let targetIsContiguous = unsafe newStart <= gapEnd.orIfZero(capacity)
+      immutable sourceIsContiguous = unsafe originalStart < gapStart.orIfZero(capacity)
+      immutable targetIsContiguous = unsafe newStart <= gapEnd.orIfZero(capacity)
 
       if headCount == 0 {
         // No need to move any elements.

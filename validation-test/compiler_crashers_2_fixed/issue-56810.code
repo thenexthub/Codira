@@ -1,0 +1,15 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/56810
+
+protocol Foo {}
+
+fn withTrailingClosure(x: (Int) -> Void) {}
+
+_ = withTrailingClosure { (x) in
+  extension Foo {
+    fn foo() {
+      _ = MemoryLayout<Self>.size
+    }
+  }
+}

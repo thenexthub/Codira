@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -22,8 +23,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PROJECTION_H
-#define SWIFT_SIL_PROJECTION_H
+#ifndef LANGUAGE_SIL_PROJECTION_H
+#define LANGUAGE_SIL_PROJECTION_H
 
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/NullablePtr.h"
@@ -33,17 +34,17 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/ARCAnalysis.h"
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/Allocator.h"
 #include <optional>
 
 namespace language {
 
 class SILBuilder;
 class ProjectionPath;
-using ProjectionPathSet = llvm::DenseSet<ProjectionPath>;
-using ProjectionPathList = llvm::SmallVector<std::optional<ProjectionPath>, 8>;
+using ProjectionPathSet = toolchain::DenseSet<ProjectionPath>;
+using ProjectionPathList = toolchain::SmallVector<std::optional<ProjectionPath>, 8>;
 
 enum class SubSeqRelation_t : uint8_t {
   Unknown,
@@ -65,7 +66,7 @@ inline bool isStrictSubSeqRelation(SubSeqRelation_t Seq) {
     return true;
   }
 
-  llvm_unreachable("Unhandled SubSeqRelation_t in switch.");
+  toolchain_unreachable("Unhandled SubSeqRelation_t in switch.");
 }
 
 /// Extract an integer index from a SILValue.
@@ -288,7 +289,7 @@ public:
     } else if (Base->getType().isObject()) {
       return createObjectProjection(B, Loc, Base);
     } else {
-      llvm_unreachable("Unsupported SILValueCategory");
+      toolchain_unreachable("Unsupported SILValueCategory");
     }
   }
 
@@ -335,7 +336,7 @@ public:
       return blockStorageTy->getCaptureAddressType();
     }
     default:
-      llvm_unreachable("unknown cast projection type");
+      toolchain_unreachable("unknown cast projection type");
     }
   }
 
@@ -415,7 +416,7 @@ public:
   /// aggregate.
   static void getFirstLevelProjections(SILType V, SILModule &Mod,
                                        TypeExpansionContext context,
-                                       llvm::SmallVectorImpl<Projection> &Out);
+                                       toolchain::SmallVectorImpl<Projection> &Out);
 
   /// Is this cast which only allows for equality?
   ///
@@ -441,7 +442,7 @@ public:
       return false;
     }
 
-    llvm_unreachable("Unhandled ProjectionKind in switch.");
+    toolchain_unreachable("Unhandled ProjectionKind in switch.");
   }
 
   bool isNominalKind() const {
@@ -461,7 +462,7 @@ public:
       return false;
     }
 
-    llvm_unreachable("Unhandled ProjectionKind in switch.");
+    toolchain_unreachable("Unhandled ProjectionKind in switch.");
   }
 
   /// Form an aggregate of type BaseType using the SILValue Values. Returns the
@@ -500,7 +501,7 @@ static_assert(sizeof(Projection) == sizeof(uintptr_t),
 ///    definition of tuples as ordered sets).
 class ProjectionPath {
 public:
-  using PathTy = llvm::SmallVector<Projection, 4>;
+  using PathTy = toolchain::SmallVector<Projection, 4>;
 
 private:
   SILType BaseType;
@@ -696,13 +697,13 @@ public:
 };
 
 /// Returns the hashcode for the new projection path.
-static inline llvm::hash_code hash_value(const ProjectionPath &P) {
-  return llvm::hash_combine_range(P.begin(), P.end());
+static inline toolchain::hash_code hash_value(const ProjectionPath &P) {
+  return toolchain::hash_combine_range(P.begin(), P.end());
 }
 
 /// Returns the hashcode for the projection path.
-static inline llvm::hash_code hash_value(const Projection &P) {
-  return llvm::hash_combine(P.getHash());
+static inline toolchain::hash_code hash_value(const Projection &P) {
+  return toolchain::hash_combine(P.getHash());
 }
 
 class ProjectionTree;
@@ -729,12 +730,12 @@ class ProjectionTreeNode {
   /// The list of 'non-projection' users of this projection.
   ///
   /// *NOTE* This also includes projections like enums we do not handle.
-  llvm::SmallVector<Operand *, 4> NonProjUsers;
+  toolchain::SmallVector<Operand *, 4> NonProjUsers;
 
   /// The indices of the child projections of this node. Each one of these
   /// projections is associated with a field type from BaseType and will contain
   /// references to
-  llvm::SmallVector<unsigned, 4> ChildProjections;
+  toolchain::SmallVector<unsigned, 4> ChildProjections;
 
   /// Flag to see if ChildProjections have been initialized.
   bool Initialized;
@@ -773,13 +774,13 @@ public:
   bool isLeaf() const { return ChildProjections.empty(); }
 
   ArrayRef<unsigned> getChildProjections() const {
-    return llvm::ArrayRef(ChildProjections);
+    return toolchain::ArrayRef(ChildProjections);
   }
 
   std::optional<Projection> &getProjection() { return Proj; }
 
   const ArrayRef<Operand *> getNonProjUsers() const {
-    return llvm::ArrayRef(NonProjUsers);
+    return toolchain::ArrayRef(NonProjUsers);
   }
 
   SILType getType() const { return NodeType; }
@@ -828,7 +829,7 @@ private:
   using ValueNodePair = std::pair<SILValue, ProjectionTreeNode *>;
 
   void processUsersOfValue(ProjectionTree &Tree,
-                           llvm::SmallVectorImpl<ValueNodePair> &Worklist,
+                           toolchain::SmallVectorImpl<ValueNodePair> &Worklist,
                            SILValue Value);
 
   void createNextLevelChildren(ProjectionTree &Tree, TypeExpansionContext context);
@@ -846,22 +847,22 @@ class ProjectionTree {
   SILModule *Mod;
 
   /// The allocator we use to allocate ProjectionTreeNodes in the tree.
-  llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> *Allocator;
+  toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> *Allocator;
 
   // A common pattern is a 3 field struct.
-  llvm::SmallVector<ProjectionTreeNode *, 4> ProjectionTreeNodes;
-  llvm::SmallVector<unsigned, 3> LiveLeafIndices;
+  toolchain::SmallVector<ProjectionTreeNode *, 4> ProjectionTreeNodes;
+  toolchain::SmallVector<unsigned, 3> LiveLeafIndices;
 
-  using LeafValueMapTy = llvm::DenseMap<unsigned, SILValue>;
+  using LeafValueMapTy = toolchain::DenseMap<unsigned, SILValue>;
 
 public:
   /// Construct a projection tree from BaseTy.
   ProjectionTree(SILModule &Mod, SILType BaseTy,
-                 llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator);
+                 toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator);
   /// Construct an uninitialized projection tree, which can then be
   /// initialized by initializeWithExistingTree.
   ProjectionTree(SILModule &Mod,
-                 llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator)
+                 toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator)
       : Mod(&Mod), Allocator(&Allocator) {}
   ~ProjectionTree();
   ProjectionTree(const ProjectionTree &) = delete;
@@ -877,7 +878,7 @@ public:
   /// the projection tree.
   SILValue computeExplodedArgumentValue(SILBuilder &Builder,
                                         SILLocation Loc, 
-                                        llvm::SmallVector<SILValue, 8> &LVs);
+                                        toolchain::SmallVector<SILValue, 8> &LVs);
   SILValue computeExplodedArgumentValueInner(SILBuilder &Builder,
                                              SILLocation Loc, 
                                              ProjectionTreeNode *Node,
@@ -886,8 +887,8 @@ public:
   /// Return the module associated with this tree.
   SILModule &getModule() const { return *Mod; }
 
-  llvm::ArrayRef<ProjectionTreeNode *> getProjectionTreeNodes() {
-    return llvm::ArrayRef(ProjectionTreeNodes);
+  toolchain::ArrayRef<ProjectionTreeNode *> getProjectionTreeNodes() {
+    return toolchain::ArrayRef(ProjectionTreeNodes);
   }
 
   /// Iterate over all values in the tree. The function should return false if
@@ -937,8 +938,8 @@ public:
     return false;
   }
 
-  void getAllLeafTypes(llvm::SmallVectorImpl<SILType> &outArray) const {
-    llvm::SmallVector<const ProjectionTreeNode *, 32> worklist;
+  void getAllLeafTypes(toolchain::SmallVectorImpl<SILType> &outArray) const {
+    toolchain::SmallVector<const ProjectionTreeNode *, 32> worklist;
     worklist.push_back(getRoot());
 
     while (!worklist.empty()) {
@@ -955,7 +956,7 @@ public:
     }
   }
 
-  void getLiveLeafTypes(llvm::SmallVectorImpl<SILType> &OutArray) const {
+  void getLiveLeafTypes(toolchain::SmallVectorImpl<SILType> &OutArray) const {
     for (unsigned LeafIndex : LiveLeafIndices) {
       const ProjectionTreeNode *Node = getNode(LeafIndex);
       assert(Node->IsLive && "We are only interested in leafs that are live");
@@ -964,7 +965,7 @@ public:
   }
 
   void getLiveLeafNodes(
-      llvm::SmallVectorImpl<const ProjectionTreeNode *> &Out) const {
+      toolchain::SmallVectorImpl<const ProjectionTreeNode *> &Out) const {
     for (unsigned LeafIndex : LiveLeafIndices) {
       const ProjectionTreeNode *Node = getNode(LeafIndex);
       assert(Node->IsLive && "We are only interested in leafs that are live");
@@ -976,11 +977,11 @@ public:
   unsigned getLiveLeafCount() const { return LiveLeafIndices.size(); }
 
   void createTreeFromValue(SILBuilder &B, SILLocation Loc, SILValue NewBase,
-                           llvm::SmallVectorImpl<SILValue> &Leafs) const;
+                           toolchain::SmallVectorImpl<SILValue> &Leafs) const;
 
   void
   replaceValueUsesWithLeafUses(SILBuilder &B, SILLocation Loc,
-                               llvm::SmallVectorImpl<SILValue> &Leafs);
+                               toolchain::SmallVectorImpl<SILValue> &Leafs);
 
   void getUsers(SmallPtrSetImpl<SILInstruction *> &users) const;
 
@@ -1026,19 +1027,19 @@ private:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
-using swift::ProjectionPath;
+namespace toolchain {
+using language::ProjectionPath;
 /// Allow ProjectionPath to be used in DenseMap.
 template <> struct DenseMapInfo<ProjectionPath> {
   static inline ProjectionPath getEmptyKey() {
-    return ProjectionPath(DenseMapInfo<swift::SILType>::getEmptyKey(),
-                          DenseMapInfo<swift::SILType>::getEmptyKey());
+    return ProjectionPath(DenseMapInfo<language::SILType>::getEmptyKey(),
+                          DenseMapInfo<language::SILType>::getEmptyKey());
   }
   static inline ProjectionPath getTombstoneKey() {
-    return ProjectionPath(DenseMapInfo<swift::SILType>::getTombstoneKey(),
-                          DenseMapInfo<swift::SILType>::getTombstoneKey());
+    return ProjectionPath(DenseMapInfo<language::SILType>::getTombstoneKey(),
+                          DenseMapInfo<language::SILType>::getTombstoneKey());
   }
   static inline unsigned getHashValue(const ProjectionPath &Val) {
     return hash_value(Val);
@@ -1047,6 +1048,6 @@ template <> struct DenseMapInfo<ProjectionPath> {
     return LHS == RHS;
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
 #endif

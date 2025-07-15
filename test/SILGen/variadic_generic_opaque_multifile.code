@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -emit-silgen -primary-file %s %S/Inputs/variadic_generic_opaque_multifile_other.code -target %target-language-5.9-abi-triple
+// RUN: %target-language-frontend -emit-silgen %s %S/Inputs/variadic_generic_opaque_multifile_other.code -target %target-language-5.9-abi-triple
+
+public fn caller() {
+  callee(1, 2, 3).f()
+}

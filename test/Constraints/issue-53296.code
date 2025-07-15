@@ -1,0 +1,26 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/53296
+
+protocol ViewDataSource: class {
+  fn foo<T>() -> [T]
+}
+
+class View {
+  weak var delegate: ViewDataSource?
+}
+
+final class ViewController<T> {
+  immutable view = View()
+  init() {
+    view.delegate = this
+    // expected-error@-1 {{generic class 'ViewController' requires the types 'T' and 'String' be equivalent}}
+  }
+}
+
+extension ViewController: ViewDataSource where T == String {
+// expected-note@-1 {{requirement from conditional conformance of 'ViewController<T>' to 'ViewDataSource'}}
+  fn foo<U>() -> [U] {
+    return []
+  }
+}

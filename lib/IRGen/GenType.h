@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the private interface used for turning AST types
@@ -18,19 +19,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENTYPE_H
-#define SWIFT_IRGEN_GENTYPE_H
+#ifndef LANGUAGE_IRGEN_GENTYPE_H
+#define LANGUAGE_IRGEN_GENTYPE_H
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/ilist.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/ADT/StringMap.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/ADT/StringMap.h"
 #include "IRGenModule.h"
 #include "IRGenFunction.h"
 #include "LegacyLayoutFormat.h"
 
-namespace llvm {
+namespace toolchain {
   namespace vfs {
     class FileSystem;
   }
@@ -77,7 +78,7 @@ public:
 
     /// Used for computing backward deployment class layouts, where we emit a
     /// static class metadata layout using known sizes and alignments of any
-    /// resiliently-typed fields from a previous Swift version. On newer Swift
+    /// resiliently-typed fields from a previous Codira version. On newer Codira
     /// versions we use a runtime mechanism to re-initialize the class metadata
     /// in-place with the current known layout.
     Legacy,
@@ -104,7 +105,7 @@ private:
 
   Mode LoweringMode = Mode::Normal;
 
-  llvm::DenseMap<ProtocolDecl*, std::unique_ptr<const ProtocolInfo>> Protocols;
+  toolchain::DenseMap<ProtocolDecl*, std::unique_ptr<const ProtocolInfo>> Protocols;
   const TypeInfo *FirstType;
   
   const LoadableTypeInfo *NativeObjectTI = nullptr;
@@ -116,7 +117,7 @@ private:
   const LoadableTypeInfo *ExecutorTI = nullptr;
   const LoadableTypeInfo *WitnessTablePtrTI = nullptr;
   const TypeInfo *TypeMetadataPtrTI = nullptr;
-  const TypeInfo *SwiftContextPtrTI = nullptr;
+  const TypeInfo *CodiraContextPtrTI = nullptr;
   const TypeInfo *TaskContinuationFunctionPtrTI = nullptr;
   const TypeInfo *ObjCClassPtrTI = nullptr;
   const LoadableTypeInfo *EmptyTI = nullptr;
@@ -129,27 +130,27 @@ private:
 
   const TypeInfo *DynamicTupleTI[2] = {nullptr, nullptr};
   
-  llvm::DenseMap<std::pair<unsigned, unsigned>, const LoadableTypeInfo *>
+  toolchain::DenseMap<std::pair<unsigned, unsigned>, const LoadableTypeInfo *>
     OpaqueStorageTypes;
 
   const LoadableTypeInfo *NonFixedBoxTI = nullptr;
   const LoadableTypeInfo *EmptyBoxTI = nullptr;
-  llvm::DenseMap<std::pair<unsigned, unsigned>, const LoadableTypeInfo *>
+  toolchain::DenseMap<std::pair<unsigned, unsigned>, const LoadableTypeInfo *>
     PODBoxTI;
-  const LoadableTypeInfo *SwiftRetainablePointerBoxTI = nullptr,
+  const LoadableTypeInfo *CodiraRetainablePointerBoxTI = nullptr,
                          *UnknownObjectRetainablePointerBoxTI = nullptr;
 
-  llvm::StringMap<YAMLTypeInfoNode> LegacyTypeInfos;
-  llvm::DenseMap<NominalTypeDecl *, std::string> DeclMangledNames;
+  toolchain::StringMap<YAMLTypeInfoNode> LegacyTypeInfos;
+  toolchain::DenseMap<NominalTypeDecl *, std::string> DeclMangledNames;
 
   /// The key is the number of witness tables.
-  llvm::DenseMap<unsigned, llvm::StructType *> OpaqueExistentialTypes;
+  toolchain::DenseMap<unsigned, toolchain::StructType *> OpaqueExistentialTypes;
 
-  const LoadableTypeInfo *createPrimitive(llvm::Type *T,
+  const LoadableTypeInfo *createPrimitive(toolchain::Type *T,
                                           Size size, Alignment align);
-  const FixedTypeInfo *createImmovable(llvm::Type *T,
+  const FixedTypeInfo *createImmovable(toolchain::Type *T,
                                        Size size, Alignment align);
-  const TypeInfo *createOpaqueImmovable(llvm::Type *T, Alignment minAlign);
+  const TypeInfo *createOpaqueImmovable(toolchain::Type *T, Alignment minAlign);
 
   void addForwardDecl(TypeBase *key);
 
@@ -210,7 +211,7 @@ public:
   const LoadableTypeInfo &getJobTypeInfo();
   const LoadableTypeInfo &getExecutorTypeInfo();
   const TypeInfo &getTypeMetadataPtrTypeInfo();
-  const TypeInfo &getSwiftContextPtrTypeInfo();
+  const TypeInfo &getCodiraContextPtrTypeInfo();
   const TypeInfo &getTaskContinuationFunctionPtrTypeInfo();
   const TypeInfo &getObjCClassPtrTypeInfo();
   const LoadableTypeInfo &getWitnessTablePtrTypeInfo();
@@ -225,12 +226,12 @@ public:
   const TypeInfo &getMetatypeTypeInfo(MetatypeRepresentation representation);
 
 #define REF_STORAGE(Name, ...) \
-  const TypeInfo *create##Name##StorageType(llvm::Type *valueType, \
+  const TypeInfo *create##Name##StorageType(toolchain::Type *valueType, \
                                             ReferenceCounting style, \
                                             bool isOptional);
 #include "language/AST/ReferenceStorage.def"
 
-  llvm::Type *getExistentialType(unsigned numWitnessTables);
+  toolchain::Type *getExistentialType(unsigned numWitnessTables);
 
   /// Retrieve the generic signature for the current generic context, or null if no
   /// generic environment is active.
@@ -250,7 +251,7 @@ private:
 
   /// Read a YAML legacy type layout dump. Returns false on success, true on
   /// error.
-  bool readLegacyTypeInfo(llvm::vfs::FileSystem &fs, StringRef path);
+  bool readLegacyTypeInfo(toolchain::vfs::FileSystem &fs, StringRef path);
 
   std::optional<YAMLTypeInfoNode>
   getLegacyTypeInfo(NominalTypeDecl *decl) const;
@@ -264,18 +265,18 @@ private:
   CanType getExemplarType(CanType t);
   
   class Types_t {
-    llvm::DenseMap<TypeBase *, const TypeInfo *> IndependentCache[NumLoweringModes];
-    llvm::DenseMap<TypeBase *, const TypeInfo *> DependentCache[NumLoweringModes];
+    toolchain::DenseMap<TypeBase *, const TypeInfo *> IndependentCache[NumLoweringModes];
+    toolchain::DenseMap<TypeBase *, const TypeInfo *> DependentCache[NumLoweringModes];
 
-    llvm::DenseMap<TypeBase *, const TypeLayoutEntry *>
+    toolchain::DenseMap<TypeBase *, const TypeLayoutEntry *>
         IndependentTypeLayoutCache[NumLoweringModes];
-    llvm::DenseMap<TypeBase *, const TypeLayoutEntry *>
+    toolchain::DenseMap<TypeBase *, const TypeLayoutEntry *>
         DependentTypeLayoutCache[NumLoweringModes];
 
   public:
-    llvm::DenseMap<TypeBase *, const TypeInfo *> &getCacheFor(bool isDependent,
+    toolchain::DenseMap<TypeBase *, const TypeInfo *> &getCacheFor(bool isDependent,
                                                               Mode mode);
-    llvm::DenseMap<TypeBase *, const TypeLayoutEntry *> &
+    toolchain::DenseMap<TypeBase *, const TypeLayoutEntry *> &
     getTypeLayoutCacheFor(bool isDependent, Mode mode);
   };
   Types_t Types;
@@ -341,27 +342,27 @@ private:
   struct VerifierArgumentBuffers {
     Address runtimeBuf, staticBuf;
   };
-  llvm::DenseMap<llvm::Type *, VerifierArgumentBuffers> VerifierArgBufs;
+  toolchain::DenseMap<toolchain::Type *, VerifierArgumentBuffers> VerifierArgBufs;
 
 public:
-  IRGenTypeVerifierFunction(IRGenModule &IGM, llvm::Function *f);
+  IRGenTypeVerifierFunction(IRGenModule &IGM, toolchain::Function *f);
   
   void emit(ArrayRef<CanType> typesToVerify);
   
   /// Call a runtime function that verifies that the two LLVM values are
   /// equivalent, logging a detailed error if they differ.
-  void verifyValues(llvm::Value *typeMetadata,
-                    llvm::Value *runtimeValue,
-                    llvm::Value *compilerValue,
-                    const llvm::Twine &description);
+  void verifyValues(toolchain::Value *typeMetadata,
+                    toolchain::Value *runtimeValue,
+                    toolchain::Value *compilerValue,
+                    const toolchain::Twine &description);
   
   /// Call a runtime function that verifies that the contents of the two
   /// memory buffers are equivalent, logging a detailed error if they differ.
-  void verifyBuffers(llvm::Value *typeMetadata,
+  void verifyBuffers(toolchain::Value *typeMetadata,
                      Address runtimeValue,
                      Address compilerValue,
                      Size size,
-                     const llvm::Twine &description);
+                     const toolchain::Twine &description);
 };
 
 template <class FixedTypeInfoType>

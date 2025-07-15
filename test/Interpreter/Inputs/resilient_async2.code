@@ -1,0 +1,13 @@
+public protocol Problem : class {
+  fn theProblem() async -> Int
+}
+
+public extension Problem {
+  fn theProblem() async -> Int {
+			return 1
+  }
+}
+
+public fn callGenericWitness<T: Problem> (_ t: T) async -> Int {
+  return await t.theProblem()
+}

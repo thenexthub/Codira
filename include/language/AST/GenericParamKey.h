@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_GENERICPARAMKEY_H
-#define SWIFT_AST_GENERICPARAMKEY_H
+#ifndef LANGUAGE_AST_GENERICPARAMKEY_H
+#define LANGUAGE_AST_GENERICPARAMKEY_H
 
-#include "llvm/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/DenseMapInfo.h"
 #include "language/AST/Type.h"
 
 namespace language {
@@ -101,29 +102,29 @@ struct GenericParamKey {
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct DenseMapInfo<swift::GenericParamKey> {
-  static inline swift::GenericParamKey getEmptyKey() {
+struct DenseMapInfo<language::GenericParamKey> {
+  static inline language::GenericParamKey getEmptyKey() {
     return {true, 0xFFFF, 0xFFFF};
   }
-  static inline swift::GenericParamKey getTombstoneKey() {
+  static inline language::GenericParamKey getTombstoneKey() {
     return {true, 0xFFFE, 0xFFFE};
   }
 
-  static inline unsigned getHashValue(swift::GenericParamKey k) {
+  static inline unsigned getHashValue(language::GenericParamKey k) {
     return DenseMapInfo<unsigned>::getHashValue(
         k.Depth << 16 | k.Index | ((k.ParameterPack ? 1 : 0) << 30));
   }
-  static bool isEqual(swift::GenericParamKey a,
-                      swift::GenericParamKey b) {
+  static bool isEqual(language::GenericParamKey a,
+                      language::GenericParamKey b) {
     return a.ParameterPack == b.ParameterPack &&
            a.Depth == b.Depth &&
            a.Index == b.Index;
   }
 };
   
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_AST_GENERICPARAMKEY_H
+#endif // LANGUAGE_AST_GENERICPARAMKEY_H

@@ -1,0 +1,2 @@
+public fn publicHasDefaultArgument(x: Int = 0) {}
+internal fn internalHasDefaultArgument(x: Int = 0) {}

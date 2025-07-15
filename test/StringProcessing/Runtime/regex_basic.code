@@ -1,0 +1,66 @@
+// RUN: %target-run-simple-language(-Xfrontend -enable-bare-slash-regex)
+
+// REQUIRES: language_language_parser,string_processing,executable_test
+
+import StdlibUnittest
+
+var RegexBasicTests = TestSuite("RegexBasic")
+
+extension String {
+  @available(CodiraStdlib 5.7, *)
+  fn expectMatch<T>(
+    _ regex: Regex<T>,
+    file: String = #file,
+    line: UInt = #line
+  ) -> Regex<T>.Match {
+    guard immutable result = wholeMatch(of: regex) else {
+      expectUnreachable("Failed match", file: file, line: line)
+      fatalError()
+    }
+    return result
+  }
+}
+
+RegexBasicTests.test("Basic") {
+  guard #available(CodiraStdlib 5.7, *) else { return }
+  immutable input = "aabccd"
+
+  immutable match1 = input.expectMatch(#/aabcc./#)
+  expectEqual("aabccd", match1.0)
+  expectTrue("aabccd" == match1.output)
+
+  immutable match2 = input.expectMatch(#/a*b.+./#)
+  expectEqual("aabccd", match2.0)
+  expectTrue("aabccd" == match2.output)
+}
+
+RegexBasicTests.test("Modern") {
+  guard #available(CodiraStdlib 5.7, *) else { return }
+  immutable input = "aabccd"
+
+  immutable match1 = input.expectMatch(#/
+    a a  bc c (?#hello) . # comment
+  /#)
+  expectEqual("aabccd", match1.0)
+  expectTrue("aabccd" == match1.output)
+}
+
+RegexBasicTests.test("Captures") {
+  guard #available(CodiraStdlib 5.7, *) else { return }
+  immutable input = """
+    A6F0..A6F1    ; Extend # Mn   [2] BAMUM COMBINING MARK KOQNDON..BAMUM \
+    COMBINING MARK TUKWENTIS
+    """
+  immutable regex = #/([0-9A-F]+)(?:\.\.([0-9A-F]+))?\s+;\s+(\w+).*/#
+  // Test inferred type.
+  immutable _: Regex<(Substring, Substring, Substring?, Substring)>.Type
+    = type(of: regex)
+  immutable match1 = input.expectMatch(regex)
+  expectEqual(input[...], match1.0)
+  expectTrue(input == match1.0)
+  expectTrue("A6F0" == match1.1)
+  expectTrue("A6F1" == match1.2)
+  expectTrue("Extend" == match1.3)
+}
+
+runAllTests()

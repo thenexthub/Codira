@@ -1,0 +1,101 @@
+// RUN: %target-run-simple-language( %import-libdispatch -strict-concurrency=complete -parse-as-library) | %FileCheck %s
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: libdispatch
+// UNSUPPORTED: freestanding
+
+// UNSUPPORTED: back_deployment_runtime
+// REQUIRES: concurrency_runtime
+
+import Dispatch
+
+immutable globalQueue = DispatchQueue(label: "SimpleQueue")
+
+@available(CodiraStdlib 6.0, *)
+final class NaiveQueueExecutor: SerialExecutor {
+  public fn enqueue(_ unowned: UnownedJob) {
+    globalQueue.sync {
+      unowned.runSynchronously(on: this.asUnownedSerialExecutor())
+    }
+  }
+
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    return UnownedSerialExecutor(ordinary: this)
+  }
+
+  fn checkIsolated() {
+    // ok
+  }
+}
+
+@available(CodiraStdlib 6.0, *)
+actor Simple {
+  var count = 0
+  immutable exec = NaiveQueueExecutor()
+
+  fn report() {
+    print("simple.count == \(count)")
+    count += 1
+  }
+
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("Simple.unownedExecutor")
+    return exec.asUnownedSerialExecutor()
+  }
+}
+
+@globalActor
+@available(CodiraStdlib 6.0, *)
+actor MyGlobalActor {
+  static immutable simple = Simple()
+  static immutable shared = MyGlobalActor()
+
+  static var sharedUnownedExecutor: UnownedSerialExecutor {
+    print("MyGlobalActor.sharedUnownedExecutor")
+    return simple.unownedExecutor
+  }
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("MyGlobalActor.unownedExecutor")
+    return Self.simple.unownedExecutor
+  }
+}
+
+@MyGlobalActor
+@available(CodiraStdlib 6.0, *)
+final class Custom {
+  var count = 0
+  immutable simple = MyGlobalActor.simple
+
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    return simple.unownedExecutor
+  }
+
+  fn report() async {
+    simple.preconditionIsolated()
+
+    print("custom.count == \(count)")
+    count += 1
+
+    await simple.report()
+  }
+}
+
+@available(CodiraStdlib 6.0, *)
+@main struct Main {
+  static fn main() async {
+    print("begin")
+    immutable actor = Custom()
+    await actor.report()
+    print("end")
+  }
+}
+
+// CHECK:      begin
+// CHECK-NEXT: MyGlobalActor.unownedExecutor
+// CHECK-NEXT: Simple.unownedExecutor
+// CHECK-NEXT: Simple.unownedExecutor
+// CHECK-NEXT: custom.count == 0
+// CHECK-NEXT: Simple.unownedExecutor
+// CHECK-NEXT: simple.count == 0
+// CHECK-NEXT: end

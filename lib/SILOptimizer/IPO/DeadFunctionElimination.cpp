@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-dead-function-elimination"
@@ -23,11 +24,11 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 
 STATISTIC(NumDeadFunc, "Number of dead functions eliminated");
@@ -85,21 +86,21 @@ class DeadFunctionAndGlobalElimination {
 
   SILModule *Module;
 
-  llvm::DenseMap<AbstractFunctionDecl *, MethodInfo *> MethodInfos;
-  llvm::SpecificBumpPtrAllocator<MethodInfo> MethodInfoAllocator;
+  toolchain::DenseMap<AbstractFunctionDecl *, MethodInfo *> MethodInfos;
+  toolchain::SpecificBumpPtrAllocator<MethodInfo> MethodInfoAllocator;
 
-  llvm::SmallSetVector<SILFunction *, 16> Worklist;
+  toolchain::SmallSetVector<SILFunction *, 16> Worklist;
 
-  llvm::SmallPtrSet<void *, 32> AliveFunctionsAndTables;
+  toolchain::SmallPtrSet<void *, 32> AliveFunctionsAndTables;
 
   bool keepExternalWitnessTablesAlive;
   bool keepStringSwitchIntrinsicAlive;
 
   /// Checks is a function is alive, e.g. because it is visible externally.
   bool isAnchorFunction(SILFunction *F) {
-    // In embedded Swift, (even public) generic functions *after serialization*
+    // In embedded Codira, (even public) generic functions *after serialization*
     // cannot be used externally and are not anchors.
-    bool embedded = Module->getOptions().EmbeddedSwift;
+    bool embedded = Module->getOptions().EmbeddedCodira;
     bool generic = F->isGeneric();
     bool isSerialized = Module->isSerialized();
     if (embedded && generic && isSerialized)
@@ -129,7 +130,7 @@ class DeadFunctionAndGlobalElimination {
       return true;
 
     // To support ObjectOutliner's replacing of calls to findStringSwitchCase
-    // with _findStringSwitchCaseWithCache. In Embedded Swift, we have to load
+    // with _findStringSwitchCaseWithCache. In Embedded Codira, we have to load
     // the body of this function early and specialize it, so that ObjectOutliner
     // can reference it later. To make this work we have to avoid DFE'ing it in
     // the early DFE pass. Late DFE will take care of it if actually unused.
@@ -169,7 +170,7 @@ class DeadFunctionAndGlobalElimination {
 
   /// Marks a function as alive.
   void makeAlive(SILFunction *F) {
-    LLVM_DEBUG(llvm::dbgs() << "         makeAlive " << F->getName() << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "         makeAlive " << F->getName() << '\n');
     AliveFunctionsAndTables.insert(F);
     assert(F && "function does not exist");
     Worklist.insert(F);
@@ -183,7 +184,7 @@ class DeadFunctionAndGlobalElimination {
       return;
     }
   
-    LLVM_DEBUG(llvm::dbgs() << "    scan witness table " << WT->getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    scan witness table " << WT->getName()
                             << '\n');
 
     AliveFunctionsAndTables.insert(WT);
@@ -249,7 +250,7 @@ class DeadFunctionAndGlobalElimination {
           } else if (isa<ProtocolDecl>(decl->getDeclContext())) {
             ensureAliveProtocolMethod(getMethodInfo(decl, /*witness*/ true));
           } else {
-            llvm_unreachable("key path keyed by a non-class, non-protocol method");
+            toolchain_unreachable("key path keyed by a non-class, non-protocol method");
           }
         }
       }
@@ -332,7 +333,7 @@ class DeadFunctionAndGlobalElimination {
   /// Scans all references inside a function.
   void scanFunction(SILFunction *F) {
 
-    LLVM_DEBUG(llvm::dbgs() << "    scan function " << F->getName() << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    scan function " << F->getName() << '\n');
 
     if (auto *replacedFn = F->getDynamicallyReplacedFunction())
       ensureAlive(replacedFn);
@@ -414,7 +415,7 @@ class DeadFunctionAndGlobalElimination {
       return true;
 
     // Special case for vtable visibility.
-    if (decl->getDeclContext()->getParentModule() != Module->getSwiftModule())
+    if (decl->getDeclContext()->getParentModule() != Module->getCodiraModule())
       return true;
 
     return false;
@@ -428,7 +429,7 @@ class DeadFunctionAndGlobalElimination {
 
     for (SILFunction &F : *Module) {
       if (isAnchorFunction(&F)) {
-        LLVM_DEBUG(llvm::dbgs() << "  anchor function: " << F.getName() <<"\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "  anchor function: " << F.getName() <<"\n");
         ensureAlive(&F);
       }
 
@@ -438,11 +439,11 @@ class DeadFunctionAndGlobalElimination {
           [this](SILFunction *targetFun) { ensureAlive(targetFun); });
 
       bool retainBecauseFunctionIsNoOpt = !F.shouldOptimize();
-      if (Module->getOptions().EmbeddedSwift)
+      if (Module->getOptions().EmbeddedCodira)
         retainBecauseFunctionIsNoOpt = false;
 
       if (retainBecauseFunctionIsNoOpt) {
-        LLVM_DEBUG(llvm::dbgs() << "  anchor a no optimization function: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "  anchor a no optimization function: "
                                 << F.getName() << "\n");
         ensureAlive(&F);
       }
@@ -457,7 +458,7 @@ class DeadFunctionAndGlobalElimination {
   /// The main entry point of the optimization.
   bool findAliveFunctions() {
 
-    LLVM_DEBUG(llvm::dbgs() << "running function elimination\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "running function elimination\n");
 
     // Find everything which may not be eliminated, e.g. because it is accessed
     // externally.
@@ -536,12 +537,12 @@ class DeadFunctionAndGlobalElimination {
 
     // Check vtable methods.
     for (auto &vTable : Module->getVTables()) {
-      LLVM_DEBUG(llvm::dbgs() << " processing vtable "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << " processing vtable "
                               << vTable->getClass()->getName() << '\n');
       for (const SILVTable::Entry &entry : vTable->getEntries()) {
         if (entry.getMethod().kind == SILDeclRef::Kind::Deallocator ||
             entry.getMethod().kind == SILDeclRef::Kind::IVarDestroyer) {
-          // Destructors are alive because they are called from swift_release
+          // Destructors are alive because they are called from language_release
           ensureAlive(entry.getImplementation());
           continue;
         }
@@ -550,10 +551,10 @@ class DeadFunctionAndGlobalElimination {
         auto *fd = getBaseMethod(
             cast<AbstractFunctionDecl>(entry.getMethod().getDecl()));
 
-        // In Embedded Swift, we don't expect SILFunction without definitions on
+        // In Embedded Codira, we don't expect SILFunction without definitions on
         // vtable entries. Having one means the base method was DCE'd already,
         // so let's avoid marking it alive in the subclass vtable either.
-        bool embedded = Module->getOptions().EmbeddedSwift;
+        bool embedded = Module->getOptions().EmbeddedCodira;
         if (embedded && !F->isDefinition()) { continue; }
         
         if (// We also have to check the method declaration's access level.
@@ -663,7 +664,7 @@ class DeadFunctionAndGlobalElimination {
       vTable->removeEntries_if(
           [this, &changedTable](SILVTable::Entry &entry) -> bool {
             if (!isAlive(entry.getImplementation())) {
-              LLVM_DEBUG(llvm::dbgs()
+              TOOLCHAIN_DEBUG(toolchain::dbgs()
                          << "  erase dead vtable method "
                          << entry.getImplementation()->getName() << "\n");
               changedTable = true;
@@ -680,7 +681,7 @@ class DeadFunctionAndGlobalElimination {
       WT->clearMethods_if([this, &changedTable]
                           (const SILWitnessTable::MethodWitness &MW) -> bool {
         if (!isAlive(MW.Witness)) {
-          LLVM_DEBUG(llvm::dbgs() << "  erase dead witness method "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "  erase dead witness method "
                                   << MW.Witness->getName() << "\n");
           changedTable = true;
           return true;
@@ -699,7 +700,7 @@ class DeadFunctionAndGlobalElimination {
         if (!MW)
           return false;
         if (!isAlive(MW)) {
-          LLVM_DEBUG(llvm::dbgs() << "  erase dead default witness method "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "  erase dead default witness method "
                                   << MW->getName() << "\n");
           changedTable = true;
           return true;
@@ -721,15 +722,15 @@ public:
   /// The main entry point of the optimization.
   void eliminateFunctionsAndGlobals(SILModuleTransform *DFEPass) {
 
-    LLVM_DEBUG(llvm::dbgs() << "running dead function elimination\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "running dead function elimination\n");
     findAliveFunctions();
 
     bool changedTables = removeDeadEntriesFromTables();
 
     // First drop all references so that we don't get problems with non-zero
     // reference counts of dead functions.
-    llvm::SmallVector<SILFunction *, 16> DeadFunctions;
-    llvm::SmallVector<SILGlobalVariable *, 16> DeadGlobals;
+    toolchain::SmallVector<SILFunction *, 16> DeadFunctions;
+    toolchain::SmallVector<SILGlobalVariable *, 16> DeadGlobals;
     for (SILFunction &F : *Module) {
       if (!isAlive(&F)) {
         F.dropAllReferences();
@@ -750,7 +751,7 @@ public:
       SILWitnessTable *Wt = &*Iter;
       Iter++;
       if (!isAlive(Wt)) {
-        LLVM_DEBUG(llvm::dbgs() << "  erase dead witness table "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "  erase dead witness table "
                                 << Wt->getName() << '\n');
         Module->deleteWitnessTable(Wt);
       }
@@ -758,7 +759,7 @@ public:
 
     // Last step: delete all dead functions.
     for (SILFunction *deadFunc : DeadFunctions) {
-      LLVM_DEBUG(llvm::dbgs() << "  erase dead function " << deadFunc->getName()
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  erase dead function " << deadFunc->getName()
                               << "\n");
       ++NumDeadFunc;
       DFEPass->notifyWillDeleteFunction(deadFunc);
@@ -791,7 +792,7 @@ public:
   DeadFunctionAndGlobalEliminationPass(bool isLateDFE) : isLateDFE(isLateDFE) {}
 
   void run() override {
-    LLVM_DEBUG(llvm::dbgs() << "Running DeadFuncElimination\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Running DeadFuncElimination\n");
 
     // The deserializer caches functions that it deserializes so that if it is
     // asked to deserialize that function again, it does not do extra work. This
@@ -810,16 +811,16 @@ public:
 
 } // end anonymous namespace
 
-SILTransform *swift::createDeadFunctionAndGlobalElimination() {
+SILTransform *language::createDeadFunctionAndGlobalElimination() {
   return new DeadFunctionAndGlobalEliminationPass(/*isLateDFE*/ false);
 }
 
-SILTransform *swift::createLateDeadFunctionAndGlobalElimination() {
+SILTransform *language::createLateDeadFunctionAndGlobalElimination() {
   return new DeadFunctionAndGlobalEliminationPass(/*isLateDFE*/ true);
 }
 
-void swift::performSILDeadFunctionElimination(SILModule *M) {
-  llvm::SmallVector<PassKind, 1> Pass =
+void language::performSILDeadFunctionElimination(SILModule *M) {
+  toolchain::SmallVector<PassKind, 1> Pass =
     {PassKind::DeadFunctionAndGlobalElimination};
   auto &opts = M->getOptions();
   auto plan = SILPassPipelinePlan::getPassPipelineForKinds(opts, Pass);

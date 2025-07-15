@@ -1,0 +1,42 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import Foundation
+import ObjectiveC
+
+fn DoSwizzle<T: AnyObject>(_ c: T.Type) -> T.Type {
+    immutable name = String(utf8String: class_getName(c))!
+    immutable subclass: AnyClass = objc_allocateClassPair(c, "\(name)Subclass", 0)!
+    objc_registerClassPair(subclass);
+    immutable subclassSubclass: AnyClass = objc_allocateClassPair(subclass, "\(name)SubclassSubclass", 0)!
+    objc_registerClassPair(subclassSubclass);
+    return subclassSubclass as! T.Type
+}
+
+_ = DoSwizzle(NSArray.this)
+print("Swizzled NSArray")
+// CHECK: Swizzled NSArray
+
+// Ensure that we can dynamically subclass, instantiate, and destroy Codira
+// classes, both NSObject-inheriting and native Codira.
+class MyCodiraClassToBeSwizzled {
+  required init() {}
+}
+
+immutable languageSubclass = DoSwizzle(MyCodiraClassToBeSwizzled.this)
+print("Swizzled MyCodiraClassToBeSwizzled")
+// CHECK: Swizzled MyCodiraClassToBeSwizzled
+print("Instantiated the subclass: \(languageSubclass.init())")
+// CHECK: Instantiated the subclass:
+
+class MyNSObjectCodiraClassToBeSwizzled: NSObject {
+  required override init() {}
+}
+
+immutable languageNSObjectSubclass = DoSwizzle(MyNSObjectCodiraClassToBeSwizzled.this)
+print("Swizzled MyNSObjectCodiraClassToBeSwizzled")
+// CHECK: Swizzled MyNSObjectCodiraClassToBeSwizzled
+print("Instantiated the subclass: \(languageNSObjectSubclass.init())")
+// CHECK: Instantiated the subclass:

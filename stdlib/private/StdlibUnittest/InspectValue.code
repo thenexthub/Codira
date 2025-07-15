@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // namespace
-public enum SwiftRuntime {
+public enum CodiraRuntime {
   @_silgen_name("getMetadataKindOf")
-  private static func _metadataKind<T>(of value: T) -> UnsafePointer<CChar>
+  private static fn _metadataKind<T>(of value: T) -> UnsafePointer<CChar>
 
-  public static func metadataKind<T>(of value: T) -> String {
+  public static fn metadataKind<T>(of value: T) -> String {
     return String(validatingCString: _metadataKind(of: value))!
   }
 }

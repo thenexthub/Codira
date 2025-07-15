@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Track invocations of Swift runtime functions. This can be used for performance
+// Track invocations of Codira runtime functions. This can be used for performance
 // analysis.
 //
 //===----------------------------------------------------------------------===//
@@ -24,11 +25,11 @@
 #include "language/Basic/Lazy.h"
 #include "language/Runtime/HeapObject.h"
 #include "language/Threading/Mutex.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
-#if defined(SWIFT_ENABLE_RUNTIME_FUNCTION_COUNTERS)
+#if defined(LANGUAGE_ENABLE_RUNTIME_FUNCTION_COUNTERS)
 
-#define SWIFT_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION)                 \
+#define LANGUAGE_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION)                 \
   invocationCounter_##RT_FUNCTION
 
 namespace language {
@@ -37,7 +38,7 @@ namespace language {
 // functions.
 struct RuntimeFunctionCountersState {
 #define FUNCTION_TO_TRACK(RT_FUNCTION)                                         \
-  std::uint32_t SWIFT_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION) = 0;
+  std::uint32_t LANGUAGE_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION) = 0;
 // Provide one counter per runtime function being tracked.
 #include "RuntimeInvocationsTracking.def"
 };
@@ -61,7 +62,7 @@ static RuntimeFunctionCountersStateSentinel RuntimeGlobalFunctionCountersState;
 /// The object state cache mapping objects to the collected state associated with
 /// them.
 struct RuntimeObjectCacheSentinel {
-  llvm::DenseMap<HeapObject *, RuntimeFunctionCountersState> Cache;
+  toolchain::DenseMap<HeapObject *, RuntimeFunctionCountersState> Cache;
   Mutex Lock;
 };
 static Lazy<RuntimeObjectCacheSentinel> RuntimeObjectStateCache;
@@ -103,27 +104,27 @@ static std::uint16_t RuntimeFunctionCountersOffsets[] = {
 /// TODO: Track only objects that were registered for tracking?
 /// TODO: Perform atomic increments?
 #define FUNCTION_TO_TRACK(RT_FUNCTION)                                         \
-  void SWIFT_RT_TRACK_INVOCATION_NAME(RT_FUNCTION)(HeapObject * object) {      \
+  void LANGUAGE_RT_TRACK_INVOCATION_NAME(RT_FUNCTION)(HeapObject * object) {      \
     /* Update global counters. */                                              \
     if (UpdateGlobalRuntimeFunctionCounters) {                                 \
       LazyMutex::ScopedLock lock(RuntimeGlobalFunctionCountersState.Lock);     \
       RuntimeGlobalFunctionCountersState.State                                 \
-          .SWIFT_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION)++;           \
+          .code_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION)++;           \
       if (GlobalRuntimeFunctionCountersUpdateHandler) {                        \
-        auto oldGlobalMode = _swift_setGlobalRuntimeFunctionCountersMode(0);   \
+        auto oldGlobalMode = _language_setGlobalRuntimeFunctionCountersMode(0);   \
         auto oldPerObjectMode =                                                \
-            _swift_setPerObjectRuntimeFunctionCountersMode(0);                 \
+            _language_setPerObjectRuntimeFunctionCountersMode(0);                 \
         GlobalRuntimeFunctionCountersUpdateHandler(                            \
             object, RT_FUNCTION_ID(RT_FUNCTION));                              \
-        _swift_setGlobalRuntimeFunctionCountersMode(oldGlobalMode);            \
-        _swift_setPerObjectRuntimeFunctionCountersMode(oldPerObjectMode);      \
+        _language_setGlobalRuntimeFunctionCountersMode(oldGlobalMode);            \
+        _language_setPerObjectRuntimeFunctionCountersMode(oldPerObjectMode);      \
       }                                                                        \
     }                                                                          \
     /* Update per object counters. */                                          \
     if (UpdatePerObjectRuntimeFunctionCounters && object) {                    \
       auto &theSentinel = RuntimeObjectStateCache.get();                       \
       Mutex::ScopedLock lock(theSentinel.Lock);                                \
-      theSentinel.Cache[object].SWIFT_RT_FUNCTION_INVOCATION_COUNTER_NAME(     \
+      theSentinel.Cache[object].code_RT_FUNCTION_INVOCATION_COUNTER_NAME(     \
           RT_FUNCTION)++;                                                      \
       /* TODO: Remember the order/history of  operations? */                   \
     }                                                                          \
@@ -133,7 +134,7 @@ static std::uint16_t RuntimeFunctionCountersOffsets[] = {
 /// Public APIs
 
 /// Get the runtime object state associated with an object.
-void _swift_getObjectRuntimeFunctionCounters(
+void _language_getObjectRuntimeFunctionCounters(
     HeapObject *object, RuntimeFunctionCountersState *result) {
   auto &theSentinel = RuntimeObjectStateCache.get();
   Mutex::ScopedLock lock(theSentinel.Lock);
@@ -142,7 +143,7 @@ void _swift_getObjectRuntimeFunctionCounters(
 
 /// Set the runtime object state associated with an object from a provided
 /// state.
-void _swift_setObjectRuntimeFunctionCounters(
+void _language_setObjectRuntimeFunctionCounters(
     HeapObject *object, RuntimeFunctionCountersState *state) {
   auto &theSentinel = RuntimeObjectStateCache.get();
   Mutex::ScopedLock lock(theSentinel.Lock);
@@ -151,14 +152,14 @@ void _swift_setObjectRuntimeFunctionCounters(
 
 /// Get the global runtime state containing the total numbers of invocations for
 /// each runtime function of interest.
-void _swift_getGlobalRuntimeFunctionCounters(
+void _language_getGlobalRuntimeFunctionCounters(
     RuntimeFunctionCountersState *result) {
   LazyMutex::ScopedLock lock(RuntimeGlobalFunctionCountersState.Lock);
   *result = RuntimeGlobalFunctionCountersState.State;
 }
 
 /// Set the global runtime state of function pointers from a provided state.
-void _swift_setGlobalRuntimeFunctionCounters(
+void _language_setGlobalRuntimeFunctionCounters(
     RuntimeFunctionCountersState *state) {
   LazyMutex::ScopedLock lock(RuntimeGlobalFunctionCountersState.Lock);
   RuntimeGlobalFunctionCountersState.State = *state;
@@ -167,27 +168,27 @@ void _swift_setGlobalRuntimeFunctionCounters(
 /// Return the names of the runtime functions being tracked.
 /// Their order is the same as the order of the counters in the
 /// RuntimeObjectState structure. All these strings are null terminated.
-const char **_swift_getRuntimeFunctionNames() {
+const char **_language_getRuntimeFunctionNames() {
   return RuntimeFunctionNames;
 }
 
 /// Return the offsets of the runtime function counters being tracked.
 /// Their order is the same as the order of the counters in the
 /// RuntimeObjectState structure.
-const std::uint16_t *_swift_getRuntimeFunctionCountersOffsets() {
+const std::uint16_t *_language_getRuntimeFunctionCountersOffsets() {
   return RuntimeFunctionCountersOffsets;
 }
 
 /// Return the number of runtime functions being tracked.
-std::uint64_t _swift_getNumRuntimeFunctionCounters() {
+std::uint64_t _language_getNumRuntimeFunctionCounters() {
   return ID_LastRuntimeFunctionName;
 }
 
-static void _swift_dumpRuntimeCounters(RuntimeFunctionCountersState *State) {
+static void _language_dumpRuntimeCounters(RuntimeFunctionCountersState *State) {
   std::uint32_t tmp;
 /// Define how to dump the counter for a given runtime function.
 #define FUNCTION_TO_TRACK(RT_FUNCTION)                                         \
-  tmp = State->SWIFT_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION);         \
+  tmp = State->LANGUAGE_RT_FUNCTION_INVOCATION_COUNTER_NAME(RT_FUNCTION);         \
   if (tmp != 0)                                                                \
     printf("%s = %d\n",                                                        \
            RuntimeFunctionNames[(int)RT_FUNCTION_ID(RT_FUNCTION)], tmp);
@@ -195,19 +196,19 @@ static void _swift_dumpRuntimeCounters(RuntimeFunctionCountersState *State) {
 }
 
 /// Dump all per-object runtime function pointers.
-void _swift_dumpObjectsRuntimeFunctionPointers() {
+void _language_dumpObjectsRuntimeFunctionPointers() {
   auto &theSentinel = RuntimeObjectStateCache.get();
   Mutex::ScopedLock lock(theSentinel.Lock);
   for (auto &Pair : theSentinel.Cache) {
     printf("\n\nRuntime counters for object at address %p:\n", Pair.getFirst());
-    _swift_dumpRuntimeCounters(&Pair.getSecond());
+    _language_dumpRuntimeCounters(&Pair.getSecond());
     printf("\n");
   }
 }
 
 /// Set mode for global runtime function counters.
 /// Return the old value of this flag.
-int _swift_setGlobalRuntimeFunctionCountersMode(int mode) {
+int _language_setGlobalRuntimeFunctionCountersMode(int mode) {
   int oldMode = UpdateGlobalRuntimeFunctionCounters;
   UpdateGlobalRuntimeFunctionCounters = mode ? 1 : 0;
   return oldMode;
@@ -215,7 +216,7 @@ int _swift_setGlobalRuntimeFunctionCountersMode(int mode) {
 
 /// Set mode for per object runtime function counters.
 /// Return the old value of this flag.
-int _swift_setPerObjectRuntimeFunctionCountersMode(int mode) {
+int _language_setPerObjectRuntimeFunctionCountersMode(int mode) {
   int oldMode = UpdatePerObjectRuntimeFunctionCounters;
   UpdatePerObjectRuntimeFunctionCounters = mode ? 1 : 0;
   return oldMode;
@@ -230,7 +231,7 @@ int _swift_setPerObjectRuntimeFunctionCountersMode(int mode) {
 /// We could allow for setting global handlers or even per-object
 /// handlers.
 RuntimeFunctionCountersUpdateHandler
-_swift_setGlobalRuntimeFunctionCountersUpdateHandler(
+_language_setGlobalRuntimeFunctionCountersUpdateHandler(
     RuntimeFunctionCountersUpdateHandler handler) {
   auto oldHandler = GlobalRuntimeFunctionCountersUpdateHandler;
   GlobalRuntimeFunctionCountersUpdateHandler = handler;

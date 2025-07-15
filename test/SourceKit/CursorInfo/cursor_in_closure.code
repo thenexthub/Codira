@@ -1,0 +1,13 @@
+struct MyStruct {
+  var identifier: String
+}
+
+fn takeClosure(_ x: () -> Void) {}
+
+fn test() {
+  takeClosure {
+    immutable foo = MyStruct()
+    // RUN: %sourcekitd-test -req=cursor -pos=%(line + 1):5 %s -- %s
+    foo.identifier = "\(item.category)#\(item.name)"
+  }
+}

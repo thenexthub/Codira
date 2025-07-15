@@ -1,4 +1,4 @@
-//===--- AvailabilityContextStorage.h - Swift AvailabilityContext ---------===//
+//===--- AvailabilityContextStorage.h - Codira AvailabilityContext ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types used in the implementation of AvailabilityContext.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AVAILABILITY_CONTEXT_STORAGE_H
-#define SWIFT_AST_AVAILABILITY_CONTEXT_STORAGE_H
+#ifndef LANGUAGE_AST_AVAILABILITY_CONTEXT_STORAGE_H
+#define LANGUAGE_AST_AVAILABILITY_CONTEXT_STORAGE_H
 
 #include "language/AST/AvailabilityContext.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
 
@@ -48,7 +49,7 @@ public:
 
   bool constrainRange(const AvailabilityRange &range);
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     ID.AddPointer(domain.getOpaqueValue());
     range.getRawVersionRange().Profile(ID);
   }
@@ -57,8 +58,8 @@ public:
 /// As an implementation detail, the values that make up an `Availability`
 /// context are uniqued and stored as folding set nodes.
 class AvailabilityContext::Storage final
-    : public llvm::FoldingSetNode,
-      public llvm::TrailingObjects<Storage, DomainInfo> {
+    : public toolchain::FoldingSetNode,
+      public toolchain::TrailingObjects<Storage, DomainInfo> {
   friend TrailingObjects;
 
   Storage(const AvailabilityRange &platformRange, bool isDeprecated,
@@ -81,23 +82,23 @@ public:
   /// parameters.
   static const Storage *get(const AvailabilityRange &platformRange,
                             bool isDeprecated,
-                            llvm::ArrayRef<DomainInfo> domainInfos,
+                            toolchain::ArrayRef<DomainInfo> domainInfos,
                             const ASTContext &ctx);
 
-  llvm::ArrayRef<DomainInfo> getDomainInfos() const {
-    return llvm::ArrayRef(getTrailingObjects<DomainInfo>(), domainInfoCount);
+  toolchain::ArrayRef<DomainInfo> getDomainInfos() const {
+    return toolchain::ArrayRef(getTrailingObjects<DomainInfo>(), domainInfoCount);
   }
 
-  llvm::SmallVector<DomainInfo, 4> copyDomainInfos() const {
-    return llvm::SmallVector<DomainInfo, 4>{getDomainInfos()};
+  toolchain::SmallVector<DomainInfo, 4> copyDomainInfos() const {
+    return toolchain::SmallVector<DomainInfo, 4>{getDomainInfos()};
   }
 
   /// Uniquing for `ASTContext`.
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       const AvailabilityRange &platformRange, bool isDeprecated,
-                      llvm::ArrayRef<DomainInfo> domainInfos);
+                      toolchain::ArrayRef<DomainInfo> domainInfos);
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     Profile(ID, platformRange, static_cast<bool>(isDeprecated),
             getDomainInfos());
   }

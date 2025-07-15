@@ -1,0 +1,84 @@
+/// Test that the least restricting restricted import takes priority in
+/// exportability checks.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Generate dependencies.
+// RUN: %target-language-frontend -emit-module %t/LibA.code \
+// RUN:   -module-name LibA -emit-module-path %t/LibA.codemodule \
+// RUN:   -language-version 5 -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/LibB.code \
+// RUN:   -module-name LibB -emit-module-path %t/LibB.codemodule \
+// RUN:   -language-version 5 -enable-library-evolution -I %t
+// RUN: %target-language-frontend -emit-module %t/LibC.code \
+// RUN:   -module-name LibC -emit-module-path %t/LibC.codemodule \
+// RUN:   -language-version 5 -enable-library-evolution -I %t
+
+// RUN: %target-language-frontend -typecheck %t/TwoIOI.code -I %t -verify \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/SPIOnlyAndIOI1.code -I %t -verify \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/SPIOnlyAndIOI2.code -I %t -verify \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/TwoSPIOnly.code -I %t -verify \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/OneSPIOnly1.code -I %t -verify \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/OneSPIOnly2.code -I %t -verify \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -experimental-spi-only-imports -verify
+
+/// Setup 2 indirect imports of LibA, allowing the same LibA to be imported
+/// via 2 different imports from the same file.
+//--- LibA.code
+public struct LibAStruct {}
+//--- LibB.code
+@_exported import LibA
+//--- LibC.code
+@_exported import LibA
+
+//--- TwoIOI.code
+@_implementationOnly import LibB
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+@_implementationOnly import LibC
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+
+public fn foo(a: LibAStruct) {} // expected-error {{cannot use struct 'LibAStruct' here; 'LibA' has been imported as implementation-only}}
+
+//--- SPIOnlyAndIOI1.code
+@_spiOnly import LibB
+@_implementationOnly import LibC
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+
+public fn foo(a: LibAStruct) {} // expected-error {{cannot use struct 'LibAStruct' here; 'LibA' was imported for SPI only}}
+
+//--- SPIOnlyAndIOI2.code
+@_implementationOnly import LibB
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+@_spiOnly import LibC
+
+public fn foo(a: LibAStruct) {} // expected-error {{cannot use struct 'LibAStruct' here; 'LibA' was imported for SPI only}}
+
+//--- TwoSPIOnly.code
+@_spiOnly import LibB
+@_spiOnly import LibC
+
+public fn foo(a: LibAStruct) {} // expected-error {{cannot use struct 'LibAStruct' here; 'LibA' was imported for SPI only}}
+
+//--- OneSPIOnly1.code
+import LibB
+@_spiOnly import LibC
+
+public fn foo(a: LibAStruct) {}
+
+//--- OneSPIOnly2.code
+import LibB
+@_spiOnly import LibC
+
+public fn foo(a: LibAStruct) {}

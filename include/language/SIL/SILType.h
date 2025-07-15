@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILType class, which is used to refer to SIL
@@ -18,16 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILTYPE_H
-#define SWIFT_SIL_SILTYPE_H
+#ifndef LANGUAGE_SIL_SILTYPE_H
+#define LANGUAGE_SIL_SILTYPE_H
 
 #include "language/AST/SILLayout.h"
 #include "language/AST/Types.h"
 #include "language/SIL/AbstractionPattern.h"
 #include "language/SIL/Lifetime.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
@@ -95,14 +96,14 @@ enum class SILValueCategory : uint8_t {
 class SILPrinter;
 class SILParser;
 
-/// SILType - A Swift type that has been lowered to a SIL representation type.
-/// In addition to the Swift type system, SIL adds "address" types that can
-/// reference any Swift type (but cannot take the address of an address). *T
+/// SILType - A Codira type that has been lowered to a SIL representation type.
+/// In addition to the Codira type system, SIL adds "address" types that can
+/// reference any Codira type (but cannot take the address of an address). *T
 /// is the type of an address pointing at T.
 class SILType {
 public:
   /// The unsigned is a SILValueCategory.
-  using ValueType = llvm::PointerIntPair<TypeBase *, 2, unsigned>;
+  using ValueType = toolchain::PointerIntPair<TypeBase *, 2, unsigned>;
 
 private:
   ValueType value;
@@ -121,7 +122,7 @@ private:
   }
 
   friend class Lowering::TypeConverter;
-  friend struct llvm::DenseMapInfo<SILType>;
+  friend struct toolchain::DenseMapInfo<SILType>;
   friend class SILPrinter;
   friend class SILParser;
 
@@ -134,14 +135,14 @@ public:
     return SILType(T, category);
   }
 
-  /// Form the type of an r-value, given a Swift type that either does
+  /// Form the type of an r-value, given a Codira type that either does
   /// not require any special handling or has already been
   /// appropriately lowered.
   static SILType getPrimitiveObjectType(CanType T) {
     return SILType(T, SILValueCategory::Object);
   }
 
-  /// Form the type for the address of an object, given a Swift type
+  /// Form the type for the address of an object, given a Codira type
   /// that either does not require any special handling or has already
   /// been appropriately lowered.
   static SILType getPrimitiveAddressType(CanType T) {
@@ -206,7 +207,7 @@ public:
 
 public:
   // FIXME -- Temporary until LLDB adopts getASTType()
-  [[deprecated("Please use getASTType()")]] CanType getSwiftRValueType() const {
+  [[deprecated("Please use getASTType()")]] CanType getCodiraRValueType() const {
     return getASTType();
   }
 
@@ -216,19 +217,19 @@ public:
     return castTo<SILFunctionType>()->getRepresentation();
   }
 
-  /// Cast the Swift type referenced by this SIL type, or return null if the
+  /// Cast the Codira type referenced by this SIL type, or return null if the
   /// cast fails.
   template<typename TYPE>
   typename CanTypeWrapperTraits<TYPE>::type
   getAs() const { return dyn_cast<TYPE>(getASTType()); }
 
-  /// Cast the Swift type referenced by this SIL type, which must be of the
+  /// Cast the Codira type referenced by this SIL type, which must be of the
   /// specified subtype.
   template<typename TYPE>
   typename CanTypeWrapperTraits<TYPE>::type
   castTo() const { return cast<TYPE>(getASTType()); }
 
-  /// Returns true if the Swift type referenced by this SIL type is of the
+  /// Returns true if the Codira type referenced by this SIL type is of the
   /// specified subtype.
   template<typename TYPE>
   bool is() const { return isa<TYPE>(getASTType()); }
@@ -244,17 +245,17 @@ public:
            is<BoundGenericEnumType>();
   }
 
-  /// Retrieve the ClassDecl for a type that maps to a Swift class or
+  /// Retrieve the ClassDecl for a type that maps to a Codira class or
   /// bound generic class type.
   ClassDecl *getClassOrBoundGenericClass() const {
     return getASTType().getClassOrBoundGenericClass();
   }
-  /// Retrieve the StructDecl for a type that maps to a Swift struct or
+  /// Retrieve the StructDecl for a type that maps to a Codira struct or
   /// bound generic struct type.
   StructDecl *getStructOrBoundGenericStruct() const {
     return getASTType().getStructOrBoundGenericStruct();
   }
-  /// Retrieve the EnumDecl for a type that maps to a Swift enum or
+  /// Retrieve the EnumDecl for a type that maps to a Codira enum or
   /// bound generic enum type.
   EnumDecl *getEnumOrBoundGenericEnum() const {
     return getASTType().getEnumOrBoundGenericEnum();
@@ -274,13 +275,13 @@ public:
     return getPrimitiveObjectType(vector.getElementType());
   }
 
-  /// Retrieve the NominalTypeDecl for a type that maps to a Swift
+  /// Retrieve the NominalTypeDecl for a type that maps to a Codira
   /// nominal or bound generic nominal type.
   NominalTypeDecl *getNominalOrBoundGenericNominal() const {
     return getASTType().getNominalOrBoundGenericNominal();
   }
 
-  /// If this type maps to a Swift class, check if that class is a foreign
+  /// If this type maps to a Codira class, check if that class is a foreign
   /// reference type.
   bool isForeignReferenceType() const {
     return getASTType().isForeignReferenceType();
@@ -567,7 +568,7 @@ public:
     return getASTType()->hasOpaqueArchetype();
   }
   
-  /// Returns the ASTContext for the referenced Swift type.
+  /// Returns the ASTContext for the referenced Codira type.
   ASTContext &getASTContext() const {
     return getASTType()->getASTContext();
   }
@@ -577,9 +578,9 @@ public:
   bool isPointerSizeAndAligned(SILModule &M,
                                ResilienceExpansion expansion) const;
 
-  /// True if the layout of the given type consists of a single native Swift-
+  /// True if the layout of the given type consists of a single native Codira-
   /// refcounted object reference, possibly nullable.
-  bool isSingleSwiftRefcounted(SILModule &M,
+  bool isSingleCodiraRefcounted(SILModule &M,
                                ResilienceExpansion expansion) const;
 
   /// True if `operTy` can be cast by single-reference value into `resultTy`.
@@ -620,7 +621,7 @@ public:
 
   SILType getFieldType(intptr_t fieldIndex, SILFunction *function) const;
 
-  SWIFT_IMPORT_UNSAFE
+  LANGUAGE_IMPORT_UNSAFE
   StringRef getFieldName(intptr_t fieldIndex) const;
 
   // Returns < 0 if the field was not found.
@@ -756,6 +757,13 @@ public:
   SILType subst(SILModule &M, SubstitutionMap subs) const;
   SILType subst(SILModule &M, SubstitutionMap subs,
                 TypeExpansionContext context) const;
+
+  /// Strip concurrency annotations from the representation type.
+  SILType stripConcurrency(bool recursive, bool dropGlobalActor) {
+    auto strippedASTTy = getASTType()->stripConcurrency(recursive, dropGlobalActor);
+    return SILType::getPrimitiveType(strippedASTTy->getCanonicalType(),
+                                     getCategory());
+  }
 
   /// Return true if this type references a "ref" type that has a single pointer
   /// representation. Class existentials do not always qualify.
@@ -898,8 +906,8 @@ public:
   SILType getSILBoxFieldType(const SILFunction *f, unsigned field = 0) const;
 
   /// Returns the hash code for the SILType.
-  llvm::hash_code getHashCode() const {
-    return llvm::hash_combine(*this);
+  toolchain::hash_code getHashCode() const {
+    return toolchain::hash_combine(*this);
   }
   
   /// If a type is visibly a singleton aggregate (a tuple with one element, a
@@ -1070,7 +1078,7 @@ template<> Can##ID##Type SILType::castTo<ID##Type>() const = delete; \
 template<> bool SILType::is<ID##Type>() const = delete;
 #include "language/AST/TypeNodes.def"
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, SILType T) {
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS, SILType T) {
   T.print(OS);
   return OS;
 }
@@ -1087,8 +1095,8 @@ inline SILType SILPackType::getSILElementType(unsigned index) const {
 }
 
 /// The hash of a SILType is the hash of its opaque value.
-static inline llvm::hash_code hash_value(SILType V) {
-  return llvm::hash_value(V.getOpaqueValue());
+static inline toolchain::hash_code hash_value(SILType V) {
+  return toolchain::hash_value(V.getOpaqueValue());
 }
 
 inline SILType SILField::getAddressType() const {
@@ -1109,31 +1117,31 @@ inline SILType getSILBoxFieldType(TypeExpansionContext context,
       getSILBoxFieldLoweredType(context, type, TC, index));
 }
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 
 // Allow the low bit of SILType to be used for nefarious purposes, e.g. putting
 // a SILType into a PointerUnion.
 template<>
-struct PointerLikeTypeTraits<swift::SILType> {
+struct PointerLikeTypeTraits<language::SILType> {
 public:
-  static inline void *getAsVoidPointer(swift::SILType T) {
+  static inline void *getAsVoidPointer(language::SILType T) {
     return T.getOpaqueValue();
   }
-  static inline swift::SILType getFromVoidPointer(void *P) {
-    return swift::SILType::getFromOpaqueValue(P);
+  static inline language::SILType getFromVoidPointer(void *P) {
+    return language::SILType::getFromOpaqueValue(P);
   }
   // SILType is just a wrapper around its ValueType, so it has a bit available.
   enum { NumLowBitsAvailable =
-    PointerLikeTypeTraits<swift::SILType::ValueType>::NumLowBitsAvailable };
+    PointerLikeTypeTraits<language::SILType::ValueType>::NumLowBitsAvailable };
 };
 
 
 // Allow SILType to be used as a DenseMap key.
 template<>
-struct DenseMapInfo<swift::SILType> {
-  using SILType = swift::SILType;
+struct DenseMapInfo<language::SILType> {
+  using SILType = language::SILType;
   using PointerMapInfo = DenseMapInfo<void*>;
 public:
   static SILType getEmptyKey() {
@@ -1150,6 +1158,6 @@ public:
   }
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 #endif

@@ -1,0 +1,18 @@
+public class C {
+fileprivate fn new_name4(_ aaa: inout Int) {
+aaa = aaa + 3
+  if aaa == 3 { aaa = 4 }
+}
+
+/// Insert before this.
+public fn foo() -> Int{
+  var aaa = 1 + 2
+  new_name4(&aaa)
+  return aaa
+}
+public fn new_name() {}
+public fn new_name1() {}
+public fn new_name2() {}
+public fn new_name3() {}
+}
+

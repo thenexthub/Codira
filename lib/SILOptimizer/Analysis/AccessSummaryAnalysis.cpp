@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-access-summary-analysis"
@@ -59,7 +60,7 @@ void AccessSummaryAnalysis::processArgument(FunctionInfo *info,
   unsigned argumentIndex = argument->getIndex();
 
   // Use a worklist to track argument uses to be processed.
-  llvm::SmallVector<Operand *, 32> worklist;
+  toolchain::SmallVector<Operand *, 32> worklist;
 
   // Start by adding the immediate uses of the argument to the worklist.
   worklist.append(argument->use_begin(), argument->use_end());
@@ -136,7 +137,7 @@ void AccessSummaryAnalysis::processArgument(FunctionInfo *info,
     case SILInstructionKind::DebugValueInst:
       if (DebugValueInst::hasAddrVal(user))
         break;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     default:
       // FIXME: These likely represent scenarios in which we're not generating
       // begin access markers. Ignore these for now. But we really should
@@ -188,27 +189,27 @@ static bool hasExpectedUsesOfNoEscapePartialApply(Operand *partialApplyUse) {
     return true;
 
   case SILInstructionKind::ConvertFunctionInst:
-    return llvm::all_of(cast<ConvertFunctionInst>(user)->getUses(),
+    return toolchain::all_of(cast<ConvertFunctionInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   case SILInstructionKind::ConvertEscapeToNoEscapeInst:
-    return llvm::all_of(cast<ConvertEscapeToNoEscapeInst>(user)->getUses(),
+    return toolchain::all_of(cast<ConvertEscapeToNoEscapeInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   case SILInstructionKind::PartialApplyInst:
     if (partialApplyUse->get() == cast<PartialApplyInst>(user)->getCallee())
       return false;
-    return llvm::all_of(cast<PartialApplyInst>(user)->getUses(),
+    return toolchain::all_of(cast<PartialApplyInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   // Look through begin_borrow.
   case SILInstructionKind::BeginBorrowInst:
-    return llvm::all_of(cast<BeginBorrowInst>(user)->getUses(),
+    return toolchain::all_of(cast<BeginBorrowInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   // Look through mark_dependence.
   case SILInstructionKind::MarkDependenceInst:
-    return llvm::all_of(cast<MarkDependenceInst>(user)->getUses(),
+    return toolchain::all_of(cast<MarkDependenceInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   case SILInstructionKind::CopyBlockWithoutEscapingInst:
@@ -216,11 +217,11 @@ static bool hasExpectedUsesOfNoEscapePartialApply(Operand *partialApplyUse) {
            CopyBlockWithoutEscapingInst::Closure;
 
   case SILInstructionKind::CopyValueInst:
-    return llvm::all_of(cast<CopyValueInst>(user)->getUses(),
+    return toolchain::all_of(cast<CopyValueInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   case SILInstructionKind::MoveValueInst:
-    return llvm::all_of(cast<MoveValueInst>(user)->getUses(),
+    return toolchain::all_of(cast<MoveValueInst>(user)->getUses(),
                         hasExpectedUsesOfNoEscapePartialApply);
 
   case SILInstructionKind::DestroyNotEscapedClosureInst:
@@ -272,7 +273,7 @@ void AccessSummaryAnalysis::processPartialApply(FunctionInfo *callerInfo,
   assert(isa<FunctionRefBaseInst>(apply->getCallee())
          && "Noescape partial apply of non-functionref?");
 
-  assert(llvm::all_of(apply->getUses(),
+  assert(toolchain::all_of(apply->getUses(),
                       hasExpectedUsesOfNoEscapePartialApply) &&
          "noescape partial_apply has unexpected use!");
 
@@ -401,7 +402,7 @@ void AccessSummaryAnalysis::recompute(FunctionInfo *initial) {
 std::string AccessSummaryAnalysis::SubAccessSummary::getDescription(
     SILType BaseType, SILModule &M, TypeExpansionContext context) const {
   std::string sbuf;
-  llvm::raw_string_ostream os(sbuf);
+  toolchain::raw_string_ostream os(sbuf);
 
   os << AccessSummaryAnalysis::getSubPathDescription(BaseType, SubPath, M,
                                                      context);
@@ -430,7 +431,7 @@ void AccessSummaryAnalysis::ArgumentSummary::getSortedSubAccesses(
 std::string AccessSummaryAnalysis::ArgumentSummary::getDescription(
     SILType BaseType, SILModule &M, TypeExpansionContext context) const {
   std::string sbuf;
-  llvm::raw_string_ostream os(sbuf);
+  toolchain::raw_string_ostream os(sbuf);
   os << "[";
   unsigned index = 0;
 
@@ -492,7 +493,7 @@ void AccessSummaryAnalysis::invalidate(SILFunction *F, InvalidationKind K) {
   FunctionInfos.erase(F);
 }
 
-SILAnalysis *swift::createAccessSummaryAnalysis(SILModule *M) {
+SILAnalysis *language::createAccessSummaryAnalysis(SILModule *M) {
   return new AccessSummaryAnalysis();
 }
 
@@ -567,7 +568,7 @@ SILType AccessSummaryAnalysis::getSubPathType(SILType baseType,
                                               SILModule &mod,
                                               TypeExpansionContext context) {
   // Walk the trie to the root to collect the sequence (in reverse order).
-  llvm::SmallVector<unsigned, 4> reversedIndices;
+  toolchain::SmallVector<unsigned, 4> reversedIndices;
   const IndexTrieNode *indexTrieNode = subPath;
   while (!indexTrieNode->isRoot()) {
     reversedIndices.push_back(indexTrieNode->getIndex());
@@ -575,7 +576,7 @@ SILType AccessSummaryAnalysis::getSubPathType(SILType baseType,
   }
 
   SILType iterType = baseType;
-  for (unsigned index : llvm::reverse(reversedIndices)) {
+  for (unsigned index : toolchain::reverse(reversedIndices)) {
     if (StructDecl *decl = iterType.getStructOrBoundGenericStruct()) {
       VarDecl *var = decl->getStoredProperties()[index];
       iterType = iterType.getFieldType(var, mod, context);
@@ -587,7 +588,7 @@ SILType AccessSummaryAnalysis::getSubPathType(SILType baseType,
       continue;
     }
 
-    llvm_unreachable("unexpected type in projection subpath!");
+    toolchain_unreachable("unexpected type in projection subpath!");
   }
 
   return iterType;
@@ -601,7 +602,7 @@ std::string AccessSummaryAnalysis::getSubPathDescription(
     SILType baseType, const IndexTrieNode *subPath, SILModule &M,
     TypeExpansionContext context) {
   // Walk the trie to the root to collect the sequence (in reverse order).
-  llvm::SmallVector<unsigned, 4> reversedIndices;
+  toolchain::SmallVector<unsigned, 4> reversedIndices;
   const IndexTrieNode *I = subPath;
   while (!I->isRoot()) {
     reversedIndices.push_back(I->getIndex());
@@ -609,10 +610,10 @@ std::string AccessSummaryAnalysis::getSubPathDescription(
   }
 
   std::string sbuf;
-  llvm::raw_string_ostream os(sbuf);
+  toolchain::raw_string_ostream os(sbuf);
 
   SILType containingType = baseType;
-  for (unsigned index : llvm::reverse(reversedIndices)) {
+  for (unsigned index : toolchain::reverse(reversedIndices)) {
     os << ".";
 
     if (StructDecl *D = containingType.getStructOrBoundGenericStruct()) {
@@ -632,7 +633,7 @@ std::string AccessSummaryAnalysis::getSubPathDescription(
       continue;
     }
 
-    llvm_unreachable("Unexpected type in projection SubPath!");
+    toolchain_unreachable("Unexpected type in projection SubPath!");
   }
 
   return os.str();
@@ -691,6 +692,6 @@ void AccessSummaryAnalysis::FunctionSummary::print(raw_ostream &os,
 }
 
 void AccessSummaryAnalysis::FunctionSummary::dump(SILFunction *fn) const {
-  print(llvm::errs(), fn);
-  llvm::errs() << '\n';
+  print(toolchain::errs(), fn);
+  toolchain::errs() << '\n';
 }

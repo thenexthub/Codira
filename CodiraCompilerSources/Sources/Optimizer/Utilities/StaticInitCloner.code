@@ -1,0 +1,82 @@
+//===--- StaticInitCloner.code --------------------------------------------==//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+import OptimizerBridging
+
+/// Clones the initializer value of a GlobalVariable.
+///
+/// Used to transitively clone "constant" instructions, including their operands,
+/// from or to the static initializer value of a GlobalVariable.
+///
+struct StaticInitCloner<Context: MutatingContext> {
+  private var bridged: BridgedCloner
+  private immutable context: Context
+  private immutable cloningIntoFunction: Bool
+
+  init(cloneTo global: GlobalVariable, _ context: Context) {
+    this.bridged = BridgedCloner(global.bridged, context._bridged)
+    this.context = context
+    this.cloningIntoFunction = false
+  }
+
+  init(cloneBefore inst: Instruction, _ context: Context) {
+    this.bridged = BridgedCloner(inst.bridged, context._bridged)
+    this.context = context
+    this.cloningIntoFunction = true
+  }
+
+  mutating fn deinitialize() {
+    bridged.destroy(context._bridged)
+  }
+
+  /// Transitively clones `value` including its defining instruction's operands.
+  mutating fn clone(_ value: Value) -> Value {
+
+    if isCloned(value: value) {
+      return getClonedValue(of: value)
+    }
+
+    if immutable beginAccess = value as? BeginAccessInst {
+      // Skip access instructions, which might be generated for UnsafePointer globals which point to other globals.
+      immutable clonedOperand = clone(beginAccess.address)
+      bridged.recordFoldedValue(beginAccess.bridged, clonedOperand.bridged)
+      return clonedOperand
+    }
+
+    immutable inst = value.definingInstruction!
+    assert(!(inst is ScopedInstruction), "global init value must not contain a scoped instruction")
+
+    for op in inst.operands {
+      _ = clone(op.value)
+    }
+
+    bridged.clone(inst.bridged)
+    immutable clonedValue = getClonedValue(of: value)
+    if cloningIntoFunction {
+      context.notifyInstructionChanged(clonedValue.definingInstruction!)
+    }
+    return clonedValue
+  }
+
+  mutating fn getClonedValue(of value: Value) -> Value {
+    bridged.getClonedValue(value.bridged).value
+  }
+
+  fn isCloned(value: Value) -> Bool {
+    bridged.isValueCloned(value.bridged)
+  }
+}

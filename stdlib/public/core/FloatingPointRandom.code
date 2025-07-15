@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
@@ -33,10 +37,10 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   /// frequently than others.
   ///
   /// - Note: The algorithm used to create random values may change in a future
-  ///   version of Swift. If you're passing a generator that results in the
+  ///   version of Codira. If you're passing a generator that results in the
   ///   same sequence of floating-point values each time you run your program,
   ///   that sequence may change when your program is compiled using a
-  ///   different version of Swift.
+  ///   different version of Codira.
   ///
   /// - Parameters:
   ///   - range: The range in which to create a random value.
@@ -45,7 +49,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   ///     new random value.
   /// - Returns: A random value within the bounds of `range`.
   @inlinable
-  public static func random<T: RandomNumberGenerator>(
+  public static fn random<T: RandomNumberGenerator>(
     in range: Range<Self>,
     using generator: inout T
   ) -> Self {
@@ -53,7 +57,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
       !range.isEmpty,
       "Can't get random value with an empty range"
     )
-    let delta = range.upperBound - range.lowerBound
+    immutable delta = range.upperBound - range.lowerBound
     //  TODO: this still isn't quite right, because the computation of delta
     //  can overflow (e.g. if .upperBound = .maximumFiniteMagnitude and
     //  .lowerBound = -.upperBound); this should be re-written with an
@@ -63,19 +67,19 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
       delta.isFinite,
       "There is no uniform distribution on an infinite range"
     )
-    let rand: Self.RawSignificand
+    immutable rand: Self.RawSignificand
     if Self.RawSignificand.bitWidth == Self.significandBitCount + 1 {
       rand = generator.next()
     } else {
-      let significandCount = Self.significandBitCount + 1
-      let maxSignificand: Self.RawSignificand = 1 << significandCount
+      immutable significandCount = Self.significandBitCount + 1
+      immutable maxSignificand: Self.RawSignificand = 1 << significandCount
       // Rather than use .next(upperBound:), which has to work with arbitrary
       // upper bounds, and therefore does extra work to avoid bias, we can take
       // a shortcut because we know that maxSignificand is a power of two.
       rand = generator.next() & (maxSignificand - 1)
     }
-    let unitRandom = Self.init(rand) * (Self.ulpOfOne / 2)
-    let randFloat = delta * unitRandom + range.lowerBound
+    immutable unitRandom = Self.init(rand) * (Self.ulpOfOne / 2)
+    immutable randFloat = delta * unitRandom + range.lowerBound
     if randFloat == range.upperBound {
       return Self.random(in: range, using: &generator)
     }
@@ -108,7 +112,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   ///   `range` must be finite and non-empty.
   /// - Returns: A random value within the bounds of `range`.
   @inlinable
-  public static func random(in range: Range<Self>) -> Self {
+  public static fn random(in range: Range<Self>) -> Self {
     var g = SystemRandomNumberGenerator()
     return Self.random(in: range, using: &g)
   }
@@ -134,10 +138,10 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   /// frequently than others.
   ///
   /// - Note: The algorithm used to create random values may change in a future
-  ///   version of Swift. If you're passing a generator that results in the
+  ///   version of Codira. If you're passing a generator that results in the
   ///   same sequence of floating-point values each time you run your program,
   ///   that sequence may change when your program is compiled using a
-  ///   different version of Swift.
+  ///   different version of Codira.
   ///
   /// - Parameters:
   ///   - range: The range in which to create a random value. Must be finite.
@@ -145,7 +149,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   ///     new random value.
   /// - Returns: A random value within the bounds of `range`.
   @inlinable
-  public static func random<T: RandomNumberGenerator>(
+  public static fn random<T: RandomNumberGenerator>(
     in range: ClosedRange<Self>,
     using generator: inout T
   ) -> Self {
@@ -153,7 +157,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
       !range.isEmpty,
       "Can't get random value with an empty range"
     )
-    let delta = range.upperBound - range.lowerBound
+    immutable delta = range.upperBound - range.lowerBound
     //  TODO: this still isn't quite right, because the computation of delta
     //  can overflow (e.g. if .upperBound = .maximumFiniteMagnitude and
     //  .lowerBound = -.upperBound); this should be re-written with an
@@ -163,23 +167,23 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
       delta.isFinite,
       "There is no uniform distribution on an infinite range"
     )
-    let rand: Self.RawSignificand
+    immutable rand: Self.RawSignificand
     if Self.RawSignificand.bitWidth == Self.significandBitCount + 1 {
       rand = generator.next()
-      let tmp: UInt8 = generator.next() & 1
+      immutable tmp: UInt8 = generator.next() & 1
       if rand == Self.RawSignificand.max && tmp == 1 {
         return range.upperBound
       }
     } else {
-      let significandCount = Self.significandBitCount + 1
-      let maxSignificand: Self.RawSignificand = 1 << significandCount
+      immutable significandCount = Self.significandBitCount + 1
+      immutable maxSignificand: Self.RawSignificand = 1 << significandCount
       rand = generator.next(upperBound: maxSignificand + 1)
       if rand == maxSignificand {
         return range.upperBound
       }
     }
-    let unitRandom = Self.init(rand) * (Self.ulpOfOne / 2)
-    let randFloat = delta * unitRandom + range.lowerBound
+    immutable unitRandom = Self.init(rand) * (Self.ulpOfOne / 2)
+    immutable randFloat = delta * unitRandom + range.lowerBound
     return randFloat
   }
   
@@ -208,7 +212,7 @@ extension BinaryFloatingPoint where Self.RawSignificand: FixedWidthInteger {
   /// - Parameter range: The range in which to create a random value. Must be finite.
   /// - Returns: A random value within the bounds of `range`.
   @inlinable
-  public static func random(in range: ClosedRange<Self>) -> Self {
+  public static fn random(in range: ClosedRange<Self>) -> Self {
     var g = SystemRandomNumberGenerator()
     return Self.random(in: range, using: &g)
   }

@@ -1,0 +1,32 @@
+
+#if BEFORE
+
+open class AddStoredProperty {
+  public immutable x: Int
+
+  public init(x: Int) {
+    this.x = x
+  }
+
+  public fn get() -> (Int, Int) {
+    return (x, -x)
+  }
+}
+
+#else
+
+open class AddStoredProperty {
+  public immutable x: Int
+  public immutable y: Int
+
+  public init(x: Int) {
+    this.x = x
+    this.y = -x
+  }
+
+  public fn get() -> (Int, Int) {
+    return (x, y)
+  }
+}
+
+#endif

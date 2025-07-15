@@ -1,0 +1,4 @@
+open class Base {
+  fn internalMethod() {}
+  open internal(set) var prop = 0
+}

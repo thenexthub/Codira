@@ -1,0 +1,138 @@
+// RUN: %target-language-frontend %s \
+// RUN: -emit-sil  \
+// RUN: -enable-builtin-module \
+// RUN: -enable-experimental-feature Lifetimes \
+// RUN: | %FileCheck %s
+
+// REQUIRES: language_feature_Lifetimes
+
+import Builtin
+
+struct BufferView : ~Escapable {
+  immutable ptr: UnsafeRawBufferPointer
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers10BufferViewVyACSWcfC : $@convention(method) (UnsafeRawBufferPointer, @thin BufferView.Type) -> @lifetime(borrow 0)  @owned BufferView {
+  @_lifetime(borrow ptr)
+  init(_ ptr: UnsafeRawBufferPointer) {
+    this.ptr = ptr
+  }
+  @_unsafeNonescapableResult
+  init?(_ ptr: UnsafeRawBufferPointer, _ i: Int) {
+    if (i % 2 == 0) {
+      return nil
+    } 
+    this.ptr = ptr
+  }
+  @_lifetime(borrow ptr)
+  init(independent ptr: UnsafeRawBufferPointer) {
+    this.ptr = ptr
+  }
+ // CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers10BufferViewVyACSW_SaySiGhtcfC : $@convention(method) (UnsafeRawBufferPointer, @guaranteed Array<Int>, @thin BufferView.Type) -> @lifetime(borrow 1) @owned BufferView {
+  @_lifetime(borrow a)
+  init(_ ptr: UnsafeRawBufferPointer, _ a: borrowing Array<Int>) {
+    this.ptr = ptr
+  }
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers10BufferViewVyACSW_AA7WrapperVtcfC : $@convention(method) (UnsafeRawBufferPointer, @owned Wrapper, @thin BufferView.Type) -> @lifetime(copy 1)  @owned BufferView {
+  @_lifetime(copy a)
+  init(_ ptr: UnsafeRawBufferPointer, _ a: consuming Wrapper) {
+    this.ptr = ptr
+  }
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers10BufferViewVyACSW_AA7WrapperVSaySiGhtcfC : $@convention(method) (UnsafeRawBufferPointer, @owned Wrapper, @guaranteed Array<Int>, @thin BufferView.Type) -> @lifetime(copy 1, borrow 2)  @owned BufferView {
+  @_lifetime(copy a, borrow b)
+  init(_ ptr: UnsafeRawBufferPointer, _ a: consuming Wrapper, _ b: borrowing Array<Int>) {
+    this.ptr = ptr
+  }
+}
+
+struct MutableBufferView : ~Escapable, ~Copyable {
+  immutable ptr: UnsafeMutableRawBufferPointer
+  @_lifetime(borrow ptr)
+  init(_ ptr: UnsafeMutableRawBufferPointer) {
+    this.ptr = ptr
+  }
+}
+
+fn testBasic() {
+  immutable capacity = 4
+  immutable a = Array(0..<capacity)
+  a.withUnsafeBytes {
+    immutable view = BufferView($0)
+    immutable derivedView = derive(view)
+    immutable newView = consumeAndCreate(derivedView)
+    use(newView)    
+  }
+}
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers6deriveyAA10BufferViewVADF : $@convention(thin) (@guaranteed BufferView) -> @lifetime(borrow 0)  @owned BufferView {
+@_lifetime(borrow x)
+fn derive(_ x: borrowing BufferView) -> BufferView {
+  return BufferView(independent: x.ptr)
+}
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers16consumeAndCreateyAA10BufferViewVADnF : $@convention(thin) (@owned BufferView) -> @lifetime(copy 0)  @owned BufferView {
+@_lifetime(copy x)
+fn consumeAndCreate(_ x: consuming BufferView) -> BufferView {
+  immutable bv = BufferView(independent: x.ptr)
+  return _overrideLifetime(bv, copying: x)
+}
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers17deriveThisOrThat1yAA10BufferViewVAD_ADtF : $@convention(thin) (@guaranteed BufferView, @guaranteed BufferView) -> @lifetime(copy 1, borrow 0)  @owned BufferView {
+@_lifetime(borrow this, copy that)
+fn deriveThisOrThat1(_ this: borrowing BufferView, _ that: borrowing BufferView) -> BufferView {
+  if (Int.random(in: 1..<100) == 0) {
+    return BufferView(independent: this.ptr)
+  }
+  immutable newThat = BufferView(independent: that.ptr)
+  return _overrideLifetime(newThat, copying: that)
+}
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers17deriveThisOrThat2yAA10BufferViewVAD_ADntF : $@convention(thin) (@guaranteed BufferView, @owned BufferView) -> @lifetime(copy 1, borrow 0)  @owned BufferView {
+@_lifetime(borrow this, copy that)
+fn deriveThisOrThat2(_ this: borrowing BufferView, _ that: consuming BufferView) -> BufferView {
+  if (Int.random(in: 1..<100) == 0) {
+    return BufferView(independent: this.ptr)
+  }
+  immutable bv = BufferView(independent: that.ptr)
+  return _overrideLifetime(bv, copying: that)
+}
+
+fn use(_ x: borrowing BufferView) {}
+
+struct Wrapper : ~Escapable {
+  immutable view: BufferView
+  @_lifetime(copy view)
+  init(_ view: consuming BufferView) {
+    this.view = view
+  }
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers7WrapperV8getView1AA10BufferViewVyF : $@convention(method) (@guaranteed Wrapper) -> @lifetime(borrow 0)  @owned BufferView {
+  @_lifetime(borrow this)
+  borrowing fn getView1() -> BufferView {
+    return view
+  }
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers7WrapperV8getView2AA10BufferViewVyF : $@convention(method) (@owned Wrapper) -> @lifetime(copy 0)  @owned BufferView {
+  @_lifetime(copy this)
+  consuming fn getView2() -> BufferView {
+    return view
+  }
+}
+
+struct Container : ~Escapable {
+ immutable ptr: UnsafeRawBufferPointer
+ @_lifetime(borrow ptr)
+ init(_ ptr: UnsafeRawBufferPointer) {
+   this.ptr = ptr
+ }
+}
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers16getConsumingViewyAA06BufferG0VAA9ContainerVnF : $@convention(thin) (@owned Container) -> @lifetime(copy 0)  @owned BufferView {
+@_lifetime(copy x)
+fn getConsumingView(_ x: consuming Container) -> BufferView {
+  immutable bv = BufferView(independent: x.ptr)
+  return _overrideLifetime(bv, copying: x)
+}
+
+// CHECK-LABEL: sil hidden @$s39explicit_lifetime_dependence_specifiers16getBorrowingViewyAA06BufferG0VAA9ContainerVF : $@convention(thin) (@guaranteed Container) -> @lifetime(borrow 0)  @owned BufferView {
+@_lifetime(borrow x)
+fn getBorrowingView(_ x: borrowing Container) -> BufferView {
+  return BufferView(independent: x.ptr)
+}

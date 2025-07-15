@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-caller-analysis"
@@ -20,8 +21,8 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILVisitor.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/YAMLTraits.h"
 
 using namespace language;
 
@@ -55,7 +56,7 @@ struct CallerAnalysis::ApplySiteFinderVisitor
 
 #ifndef NDEBUG
   SmallPtrSet<SILInstruction *, 8> visitedCallSites;
-  llvm::SmallSetVector<SILInstruction *, 8> callSitesThatMustBeVisited;
+  toolchain::SmallSetVector<SILInstruction *, 8> callSitesThatMustBeVisited;
 #endif
 
   ApplySiteFinderVisitor(CallerAnalysis *analysis, SILFunction *callerFn)
@@ -109,10 +110,10 @@ CallerAnalysis::ApplySiteFinderVisitor::~ApplySiteFinderVisitor() {
 #ifndef NDEBUG
   if (callSitesThatMustBeVisited.empty())
     return;
-  llvm::errs() << "Found unhandled call sites!\n";
+  toolchain::errs() << "Found unhandled call sites!\n";
   while (callSitesThatMustBeVisited.size()) {
     auto *i = callSitesThatMustBeVisited.pop_back_val();
-    llvm::errs() << "Inst: " << *i;
+    toolchain::errs() << "Inst: " << *i;
   }
   assert(false && "Unhandled call site?!");
 #endif
@@ -151,7 +152,7 @@ bool CallerAnalysis::ApplySiteFinderVisitor::visitFunctionRefBaseInst(
 
   if (result.fullApplySites.size()) {
     iter.first->second.hasFullApply = true;
-    processApplySites(llvm::ArrayRef(result.fullApplySites));
+    processApplySites(toolchain::ArrayRef(result.fullApplySites));
   }
 
   if (result.partialApplySites.size()) {
@@ -235,7 +236,7 @@ const FunctionInfo &CallerAnalysis::getFunctionInfo(SILFunction *f) const {
 // Private only version of this function for mutable callers that tries to
 // initialize a new f.
 FunctionInfo &CallerAnalysis::getOrInsertFunctionInfo(SILFunction *f) {
-  LLVM_DEBUG(llvm::dbgs() << "CallerAnalysis: Creating caller info for: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "CallerAnalysis: Creating caller info for: "
                           << f->getName() << "\n");
   return funcInfos.try_emplace(f, f).first->second;
 }
@@ -277,7 +278,7 @@ void CallerAnalysis::invalidateAllInfo(SILFunction *f, FunctionInfo &fInfo) {
     auto back = fInfo.callerStates.back();
     SILFunction *caller = back.first;
     auto &callerInfo = unsafeGetFunctionInfo(caller);
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "    caller-backedge: " << caller->getName() << "\n");
     bool foundF = callerInfo.calleeStates.remove(f);
     (void)foundF;
@@ -288,12 +289,12 @@ void CallerAnalysis::invalidateAllInfo(SILFunction *f, FunctionInfo &fInfo) {
 
 void CallerAnalysis::invalidateKnownCallees(SILFunction *caller,
                                             FunctionInfo &callerInfo) {
-  LLVM_DEBUG(llvm::dbgs() << "Invalidating caller: " << caller->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Invalidating caller: " << caller->getName()
                           << "\n");
   while (callerInfo.calleeStates.size()) {
     auto *callee = callerInfo.calleeStates.pop_back_val();
     FunctionInfo &calleeInfo = unsafeGetFunctionInfo(callee);
-    LLVM_DEBUG(llvm::dbgs() << "    callee: " << callee->getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    callee: " << callee->getName() << "\n");
     assert(calleeInfo.callerStates.count(caller) &&
            "Referenced callee is not fully/partially applied in the caller?!");
 
@@ -323,10 +324,10 @@ void CallerAnalysis::verify(SILFunction *caller) const {
 void CallerAnalysis::verify(SILFunction *function,
                             const FunctionInfo &functionInfo) const {
 #ifndef NDEBUG
-  LLVM_DEBUG(llvm::dbgs() << "Validating function: " << function->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Validating function: " << function->getName()
                           << "\n");
   for (auto *callee : functionInfo.calleeStates) {
-    LLVM_DEBUG(llvm::dbgs() << "    callee: " << callee->getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    callee: " << callee->getName() << "\n");
     const FunctionInfo &calleeInfo = unsafeGetFunctionInfo(callee);
     assert(calleeInfo.callerStates.count(function) &&
            "Referenced callee is not fully/partially applied in the caller");
@@ -335,7 +336,7 @@ void CallerAnalysis::verify(SILFunction *function,
   // Make sure all caller edges are valid.
   for (auto callerPair : functionInfo.callerStates) {
     auto *caller = callerPair.first;
-    LLVM_DEBUG(llvm::dbgs() << "    caller: " << caller->getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    caller: " << caller->getName() << "\n");
     const FunctionInfo &callerInfo = unsafeGetFunctionInfo(caller);
     assert(callerInfo.calleeStates.count(function) &&
            "Referencing caller does not have a callee edge for function");
@@ -349,9 +350,9 @@ void CallerAnalysis::verify() const {
   for (auto &fn : mod) {
     bool found = funcInfos.count(&fn);
     if (!found) {
-      llvm::errs() << "Missing notification for added function: '"
+      toolchain::errs() << "Missing notification for added function: '"
                    << fn.getName() << "'\n";
-      llvm_unreachable("standard error assertion");
+      toolchain_unreachable("standard error assertion");
     }
     seenFunctions.push_back(&fn);
   }
@@ -361,9 +362,9 @@ void CallerAnalysis::verify() const {
     bool found = std::binary_search(seenFunctions.begin(), seenFunctions.end(),
                                     pair.first);
     if (!found) {
-      llvm::errs() << "Notification not sent for deleted function: '"
+      toolchain::errs() << "Notification not sent for deleted function: '"
                    << pair.first->getName() << "'.";
-      llvm_unreachable("standard error assertion");
+      toolchain_unreachable("standard error assertion");
     }
     verify(pair.first, pair.second);
   }
@@ -399,14 +400,14 @@ void CallerAnalysis::notifyWillDeleteFunction(SILFunction *f) {
 
 namespace {
 
-using llvm::yaml::IO;
-using llvm::yaml::MappingTraits;
-using llvm::yaml::Output;
-using llvm::yaml::ScalarEnumerationTraits;
-using llvm::yaml::SequenceTraits;
+using toolchain::yaml::IO;
+using toolchain::yaml::MappingTraits;
+using toolchain::yaml::Output;
+using toolchain::yaml::ScalarEnumerationTraits;
+using toolchain::yaml::SequenceTraits;
 
 /// A special struct that marshals call graph state into a form that
-/// is easy for llvm's yaml i/o to dump. Its structure is meant to
+/// is easy for toolchain's yaml i/o to dump. Its structure is meant to
 /// correspond to how the data should be shown by the printer, so
 /// naturally it is slightly redundant.
 struct YAMLCallGraphNode {
@@ -441,40 +442,40 @@ struct YAMLCallGraphNode {
 
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
 template <> struct MappingTraits<YAMLCallGraphNode> {
-  static void mapping(IO &io, YAMLCallGraphNode &func) {
-    io.mapRequired("calleeName", func.calleeName);
-    io.mapRequired("hasCaller", func.hasCaller);
-    io.mapRequired("minPartialAppliedArgs", func.minPartialAppliedArgs);
+  static void mapping(IO &io, YAMLCallGraphNode &fn) {
+    io.mapRequired("calleeName", fn.calleeName);
+    io.mapRequired("hasCaller", fn.hasCaller);
+    io.mapRequired("minPartialAppliedArgs", fn.minPartialAppliedArgs);
     io.mapRequired("hasOnlyCompleteDirectCallerSets",
-                   func.hasOnlyCompleteDirectCallerSets);
-    io.mapRequired("hasAllCallers", func.hasAllCallers);
-    io.mapRequired("partialAppliers", func.partialAppliers);
-    io.mapRequired("fullAppliers", func.fullAppliers);
+                   fn.hasOnlyCompleteDirectCallerSets);
+    io.mapRequired("hasAllCallers", fn.hasAllCallers);
+    io.mapRequired("partialAppliers", fn.partialAppliers);
+    io.mapRequired("fullAppliers", fn.fullAppliers);
   }
 };
 
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
-void CallerAnalysis::dump() const { print(llvm::errs()); }
+void CallerAnalysis::dump() const { print(toolchain::errs()); }
 
 void CallerAnalysis::print(const char *filePath) const {
-  using namespace llvm::sys;
+  using namespace toolchain::sys;
   std::error_code error;
-  llvm::raw_fd_ostream fileOutputStream(filePath, error, fs::OF_Text);
+  toolchain::raw_fd_ostream fileOutputStream(filePath, error, fs::OF_Text);
   if (error) {
-    llvm::errs() << "Failed to open path \"" << filePath << "\" for writing.!";
-    llvm_unreachable("default error handler");
+    toolchain::errs() << "Failed to open path \"" << filePath << "\" for writing.!";
+    toolchain_unreachable("default error handler");
   }
   print(fileOutputStream);
 }
 
-void CallerAnalysis::print(llvm::raw_ostream &os) const {
-  llvm::yaml::Output yout(os);
+void CallerAnalysis::print(toolchain::raw_ostream &os) const {
+  toolchain::yaml::Output yout(os);
 
   // NOTE: We purposely do not iterate over our internal state here to ensure
   // that we dump for all functions and that we dump the state we have stored
@@ -505,6 +506,6 @@ void CallerAnalysis::print(llvm::raw_ostream &os) const {
 //                              Main Entry Point
 //===----------------------------------------------------------------------===//
 
-SILAnalysis *swift::createCallerAnalysis(SILModule *mod) {
+SILAnalysis *language::createCallerAnalysis(SILModule *mod) {
   return new CallerAnalysis(mod);
 }

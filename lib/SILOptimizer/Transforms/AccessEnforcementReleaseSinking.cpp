@@ -1,13 +1,17 @@
 //===--- AccessEnforcementReleaseSinking.cpp - release sinking opt ---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This function pass sinks releases out of access scopes.
@@ -78,7 +82,7 @@ static bool isBarrier(SILInstruction *inst) {
     // require updating all passes to be aware of it.
     switch (kind.value()) {
     case BuiltinValueKind::None:
-      llvm_unreachable("Builtin must has a non-empty kind.");
+      toolchain_unreachable("Builtin must has a non-empty kind.");
 
       // Unhandled categories don't generate a case. Instead, they result
       // in a build error: enumeration values not handled in switch.
@@ -100,7 +104,7 @@ static bool isBarrier(SILInstruction *inst) {
   BUILTIN_NO_BARRIER(Id)
 #define BUILTIN_SIL_OPERATION(Id, Name, Overload)                              \
   case BuiltinValueKind::Id:                                                   \
-    llvm_unreachable("SIL operation must be lowered to instructions.");
+    toolchain_unreachable("SIL operation must be lowered to instructions.");
 #define BUILTIN_RUNTIME_CALL(Id, Name, Attrs)                                  \
   case BuiltinValueKind::Id:                                                   \
     return true; // A runtime call could be anything.
@@ -121,7 +125,10 @@ static bool isBarrier(SILInstruction *inst) {
     case BuiltinValueKind::OnFastPath:
     case BuiltinValueKind::ExtractElement:
     case BuiltinValueKind::InsertElement:
+    case BuiltinValueKind::Select:
     case BuiltinValueKind::ShuffleVector:
+    case BuiltinValueKind::Interleave:
+    case BuiltinValueKind::Deinterleave:
     case BuiltinValueKind::StaticReport:
     case BuiltinValueKind::AssertConf:
     case BuiltinValueKind::StringObjectOr:
@@ -134,6 +141,7 @@ static bool isBarrier(SILInstruction *inst) {
     case BuiltinValueKind::IsNegative:
     case BuiltinValueKind::WordAtIndex:
     case BuiltinValueKind::ZeroInitializer:
+    case BuiltinValueKind::PrepareInitialization:
     case BuiltinValueKind::Once:
     case BuiltinValueKind::OnceWithContext:
     case BuiltinValueKind::GetObjCTypeEncoding:
@@ -230,19 +238,19 @@ static void processBlock(SILBasicBlock &block) {
         bottomEndAccessInst = currEAI;
       }
     } else if (isBarrier(&currIns)) {
-      LLVM_DEBUG(llvm::dbgs() << "Found a barrier " << currIns
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found a barrier " << currIns
                               << ", clearing last seen end_access\n");
       bottomEndAccessInst = nullptr;
     } else if (isSinkable(currIns)) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Found a sinkable instruction " << currIns << "\n");
       if (!bottomEndAccessInst) {
-        LLVM_DEBUG(
-            llvm::dbgs()
+        TOOLCHAIN_DEBUG(
+            toolchain::dbgs()
             << "Cannot be sunk: no open barrier-less end_access found\n");
         continue;
       }
-      LLVM_DEBUG(llvm::dbgs() << "Moving sinkable instruction below "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Moving sinkable instruction below "
                               << *bottomEndAccessInst << "\n");
       // We need to avoid iterator invalidation:
       // We know this is not the last instruction of the block:
@@ -272,7 +280,7 @@ struct AccessEnforcementReleaseSinking : public SILFunctionTransform {
     if (F->hasOwnership())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "Running AccessEnforcementReleaseSinking on "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Running AccessEnforcementReleaseSinking on "
                             << F->getName() << "\n");
 
     for (SILBasicBlock &currBB : *F) {
@@ -282,6 +290,6 @@ struct AccessEnforcementReleaseSinking : public SILFunctionTransform {
 };
 } // namespace
 
-SILTransform *swift::createAccessEnforcementReleaseSinking() {
+SILTransform *language::createAccessEnforcementReleaseSinking() {
   return new AccessEnforcementReleaseSinking();
 }

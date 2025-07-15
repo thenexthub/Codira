@@ -1,0 +1,203 @@
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_VOID_0 | %FileCheck %s -check-prefix=VOID_VOID
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_VOID_1 | %FileCheck %s -check-prefix=VOID_VOID
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_VOID_2 | %FileCheck %s -check-prefix=VOID_VOID
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_VOID_3 | %FileCheck %s -check-prefix=VOID_VOID
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_VOID_4 | %FileCheck %s -check-prefix=VOID_VOID
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=ANY_INT_0 | %FileCheck %s -check-prefix=ANY_INT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=ANY_INT_1 | %FileCheck %s -check-prefix=ANY_INT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=ANY_INT_2 > %t.results
+// RUN:%FileCheck %s -check-prefix=ANY_INT < %t.results
+// RUN:%FileCheck %s -check-prefix=ANY_INT_STATIC_CURRY < %t.results
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=ANY_INT_3 | %FileCheck %s -check-prefix=ANY_INT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=ANY_INT_4 | %FileCheck %s -check-prefix=ANY_INT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INT_ANY_0 | %FileCheck %s -check-prefix=INT_ANY
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INT_ANY_1 | %FileCheck %s -check-prefix=INT_ANY
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INT_ANY_2 > %t.results
+// RUN: %FileCheck %s -check-prefix=INT_ANY < %t.results
+// RUN: %FileCheck %s -check-prefix=INT_ANY_STATIC_CURRY < %t.results
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=INT_ANY_3 > %t.results
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_INT_INT_0 | %FileCheck %s -check-prefix=VOID_INT_INT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_INT_INT_1 | %FileCheck %s -check-prefix=VOID_INT_INT
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=VOID_INT_INT_2 | %FileCheck %s -check-prefix=VOID_INT_INT
+
+fn voidToVoid() {}
+fn voidToInt() -> Int {}
+fn intToInt(a: Int) -> Int {}
+fn intToVoid(a: Int) {}
+
+fn voidToAny() -> Any {}
+fn anyToAny(a: Any) -> Any {}
+fn anyToVoid(a: Any) {}
+
+fn intToAny(a: Int) -> Any {}
+fn anyToInt(a: Any) -> Int {}
+
+fn returnsIntToInt() -> (Int) -> Int {}
+
+struct S0 {
+  fn voidToVoid() {}
+  fn voidToInt() -> Int {}
+  fn intToInt(a: Int) -> Int {}
+  fn intToVoid(a: Int) {}
+
+  fn voidToAny() -> Any {}
+  fn anyToAny(a: Any) -> Any {}
+  fn anyToVoid(a: Any) {}
+
+  fn intToAny(a: Int) -> Any {}
+  fn anyToInt(a: Any) -> Int {}
+
+  fn returnsIntToInt() -> (Int) -> Int {}
+
+  static fn voidToVoid() {}
+  static fn voidToInt() -> Int {}
+  static fn intToInt(a: Int) -> Int {}
+  static fn intToVoid(a: Int) {}
+
+  static fn voidToAny() -> Any {}
+  static fn anyToAny(a: Any) -> Any {}
+  static fn anyToVoid(a: Any) {}
+
+  static fn intToAny(a: Int) -> Any {}
+  static fn anyToInt(a: Any) -> Int {}
+
+  static fn returnsIntToInt() -> (Int) -> Int {}
+}
+
+do {
+  fn take(_: @escaping ()->()) {}
+  take(#^VOID_VOID_0^#)
+}
+// VOID_VOID-DAG: Decl{{.*}}/TypeRelation[Convertible]: voidToVoid[#() -> ()#];
+// VOID_VOID-DAG: Decl{{.*}}/TypeRelation[Invalid]: anyToVoid({#a: Any#})[#Void#];
+// VOID_VOID-DAG: Decl{{.*}}/TypeRelation[Invalid]: intToVoid({#a: Int#})[#Void#];
+// VOID_VOID-DAG: Decl{{.*}}:      anyToAny({#a: Any#})[#Any#];
+// VOID_VOID-DAG: Decl{{.*}}:      intToAny({#a: Int#})[#Any#];
+// VOID_VOID-DAG: Decl{{.*}}:      voidToInt()[#Int#];
+// VOID_VOID-DAG: Decl{{.*}}:      anyToInt({#a: Any#})[#Int#];
+// VOID_VOID-DAG: Decl{{.*}}:      intToInt({#a: Int#})[#Int#];
+// VOID_VOID-DAG: Decl{{.*}}:      voidToAny()[#Any#];
+// VOID_VOID-DAG: Decl{{.*}}:      returnsIntToInt()[#(Int) -> Int#];
+
+do {
+  fn take(_: Int, _: Int, c: @escaping ()->()) {}
+  take(1, 2, c: #^VOID_VOID_1^#)
+}
+
+do {
+  immutable take: ()->()
+  take = #^VOID_VOID_2^#
+}
+do {
+  immutable take: ()->()
+  take = S0().#^VOID_VOID_3^#
+}
+do {
+  immutable take: ()->()
+  take = S0.#^VOID_VOID_4^#
+}
+
+do {
+  fn take(_: @escaping (Any)->Int) {}
+  take(#^ANY_INT_0^#)
+}
+do {
+  fn take(_: @escaping (Any)->Int) {}
+  take(S0().#^ANY_INT_1^#)
+}
+do {
+  fn take(_: @escaping (Any)->Int) {}
+  take(S0.#^ANY_INT_2^#)
+}
+do {
+  fn take(_: @escaping ((Any)->Int)???!) {}
+  take(S0().#^ANY_INT_3^#)
+}
+do {
+  immutable take: ((Any)->Int)?
+  take = S0().#^ANY_INT_4^#
+}
+
+// ANY_INT-DAG: Decl{{.*}}/TypeRelation[Convertible]: anyToInt(a:)[#(Any) -> Int#]; name=anyToInt(a:)
+// ANY_INT-DAG: Decl{{.*}}/TypeRelation[Invalid]: intToVoid({#a: Int#})[#Void#];
+// ANY_INT-DAG: Decl{{.*}}/TypeRelation[Invalid]: anyToVoid({#a: Any#})[#Void#];
+// ANY_INT-DAG: Decl{{.*}}/TypeRelation[Invalid]: voidToVoid()[#Void#];
+// ANY_INT-DAG: Decl{{.*}}:      voidToAny()[#Any#];
+// ANY_INT-DAG: Decl{{.*}}:      intToInt({#a: Int#})[#Int#];
+// ANY_INT-DAG: Decl{{.*}}:      intToAny({#a: Int#})[#Any#];
+// ANY_INT-DAG: Decl{{.*}}:      anyToAny({#a: Any#})[#Any#];
+// ANY_INT-DAG: Decl{{.*}}:      voidToInt()[#Int#];
+// ANY_INT-DAG: Decl{{.*}}:      returnsIntToInt()[#(Int) -> Int#];
+
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: anyToInt({#(this): S0#})[#(a: Any) -> Int#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Invalid]: voidToVoid({#(this): S0#})[#() -> Void#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Invalid]: intToVoid({#(this): S0#})[#(a: Int) -> Void#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Invalid]: anyToVoid({#(this): S0#})[#(a: Any) -> Void#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   voidToInt({#(this): S0#})[#() -> Int#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   intToInt({#(this): S0#})[#(a: Int) -> Int#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   voidToAny({#(this): S0#})[#() -> Any#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   anyToAny({#(this): S0#})[#(a: Any) -> Any#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   intToAny({#(this): S0#})[#(a: Int) -> Any#];
+// ANY_INT_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   returnsIntToInt({#(this): S0#})[#() -> (Int) -> Int#];
+
+do {
+  fn take(_: @escaping (Int)->Any) {}
+  take(#^INT_ANY_0^#)
+}
+
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: intToAny(a:)[#(Int) -> Any#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: intToInt(a:)[#(Int) -> Int#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: intToVoid(a:)[#(Int) -> ()#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: anyToAny(a:)[#(Any) -> Any#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: anyToInt(a:)[#(Any) -> Int#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: anyToVoid(a:)[#(Any) -> ()#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Convertible]: returnsIntToInt()[#(Int) -> Int#];
+// INT_ANY-DAG: Decl{{.*}}/TypeRelation[Invalid]: voidToVoid()[#Void#];
+// INT_ANY-DAG: Decl{{.*}}:      voidToInt()[#Int#];
+// INT_ANY-DAG: Decl{{.*}}:      voidToAny()[#Any#];
+
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: intToInt({#(this): S0#})[#(a: Int) -> Int#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: intToVoid({#(this): S0#})[#(a: Int) -> Void#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: anyToAny({#(this): S0#})[#(a: Any) -> Any#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: anyToVoid({#(this): S0#})[#(a: Any) -> Void#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: intToAny({#(this): S0#})[#(a: Int) -> Any#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: anyToInt({#(this): S0#})[#(a: Any) -> Int#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal: returnsIntToInt({#(this): S0#})[#() -> (Int) -> Int#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   voidToAny({#(this): S0#})[#() -> Any#];
+// INT_ANY_STATIC_CURRY-DAG: Decl[InstanceMethod]/CurrNominal:   voidToInt({#(this): S0#})[#() -> Int#];
+
+do {
+  fn take(_: @escaping (Int)->Any) {}
+  take(S0().#^INT_ANY_1^#)
+}
+do {
+  fn take(_: @escaping (Int)->Any) {}
+  take(S0.#^INT_ANY_2^#)
+}
+do {
+  fn take(_: @escaping ((Int)->Any)?) {}
+  take(S0.#^INT_ANY_3^#)
+}
+
+do {
+  fn take(_: @escaping ()->(Int)->Int) {}
+  take(#^VOID_INT_INT_0^#)
+}
+do {
+  fn take(_: @escaping ()->(Int)->Int) {}
+  take(S0().#^VOID_INT_INT_1^#)
+}
+do {
+  fn take(_: @escaping ()->(Int)->Int) {}
+  take(S0.#^VOID_INT_INT_2^#)
+}
+// VOID_INT_INT-DAG: Decl{{.*}}/TypeRelation[Convertible]: returnsIntToInt[#() -> (Int) -> Int#];
+// VOID_INT_INT-DAG: Decl{{.*}}/TypeRelation[Invalid]: intToVoid({#a: Int#})[#Void#];
+// VOID_INT_INT-DAG: Decl{{.*}}/TypeRelation[Invalid]: anyToVoid({#a: Any#})[#Void#];
+// VOID_INT_INT-DAG: Decl{{.*}}/TypeRelation[Invalid]: voidToVoid()[#Void#];
+// VOID_INT_INT-DAG: Decl{{.*}}:      voidToAny()[#Any#];
+// VOID_INT_INT-DAG: Decl{{.*}}:      intToAny({#a: Int#})[#Any#];
+// VOID_INT_INT-DAG: Decl{{.*}}:      anyToAny({#a: Any#})[#Any#];
+// VOID_INT_INT-DAG: Decl{{.*}}:      voidToInt()[#Int#];
+// VOID_INT_INT-DAG: Decl{{.*}}:      anyToInt({#a: Any#})[#Int#];
+// VOID_INT_INT-DAG: Decl{{.*}}:      intToInt({#a: Int#})[#Int#];

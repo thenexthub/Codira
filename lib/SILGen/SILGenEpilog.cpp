@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ASTVisitor.h"
@@ -19,7 +20,7 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILArgument.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
 using namespace Lowering;
@@ -54,7 +55,7 @@ void SILGenFunction::prepareEpilog(
             // is drained by popping the back, arguments are created for the
             // earlier types first.
             for (auto index :
-                 llvm::reverse(indices(tupleType->getElementTypes()))) {
+                 toolchain::reverse(indices(tupleType->getElementTypes()))) {
               worklist.push_back(ty.getTupleElementType(index));
             }
           } else {
@@ -86,10 +87,12 @@ void SILGenFunction::prepareEpilog(
 void SILGenFunction::prepareRethrowEpilog(
     DeclContext *dc, AbstractionPattern origErrorType, Type errorType,
     CleanupLocation cleanupLoc) {
+  ASSERT(!errorType->hasPrimaryArchetype());
 
   SILBasicBlock *rethrowBB = createBasicBlock(FunctionSection::Postmatter);
   if (!IndirectErrorResult) {
-    SILType loweredErrorType = getLoweredType(origErrorType, errorType);
+    auto errorTypeInContext = dc->mapTypeIntoContext(errorType);
+    SILType loweredErrorType = getLoweredType(origErrorType, errorTypeInContext);
     rethrowBB->createPhiArgument(loweredErrorType, OwnershipKind::Owned);
   }
 

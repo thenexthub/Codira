@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # viewcfg - A script for viewing the CFG of SIL and LLVM IR -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 #
@@ -99,25 +99,25 @@ def main():
     block_map = {}
     cur_block = None
     sil_block_pattern = re.compile(r'^(\S+)(\(.*\))?: *(\/\/ *Preds:(.*))?$')
-    llvm_block_pattern1 = re.compile(r'^"?([^\s"]+)"?: *; *preds =(.*)?$')
-    llvm_block_pattern2 = re.compile(r'^(\d+):? *; *preds =(.*)?$')
+    toolchain_block_pattern1 = re.compile(r'^"?([^\s"]+)"?: *; *preds =(.*)?$')
+    toolchain_block_pattern2 = re.compile(r'^(\d+):? *; *preds =(.*)?$')
 
     # Scan the input file.
     for line in args.input_file.readlines():
         sil_block_match = sil_block_pattern.match(line)
-        llvm_block_match1 = llvm_block_pattern1.match(line)
-        llvm_block_match2 = llvm_block_pattern2.match(line)
+        toolchain_block_match1 = toolchain_block_pattern1.match(line)
+        toolchain_block_match2 = toolchain_block_pattern2.match(line)
         block_name = None
         preds = None
         if sil_block_match:
             block_name = sil_block_match.group(1)
             preds = sil_block_match.group(4)
-        elif llvm_block_match1:
-            block_name = llvm_block_match1.group(1)
-            preds = llvm_block_match1.group(2)
-        elif llvm_block_match2:
-            block_name = llvm_block_match2.group(1)
-            preds = llvm_block_match2.group(2)
+        elif toolchain_block_match1:
+            block_name = toolchain_block_match1.group(1)
+            preds = toolchain_block_match1.group(2)
+        elif toolchain_block_match2:
+            block_name = toolchain_block_match2.group(1)
+            preds = toolchain_block_match2.group(2)
         elif line.startswith(' '):
             if cur_block is not None:
                 cur_block.add_line(line)

@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s
+
+struct EntryPoint {
+  static fn main() {
+  }
+}
+
+@main
+extension EntryPoint {
+}
+

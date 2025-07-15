@@ -1,0 +1,60 @@
+// RUN: %target-language-frontend -O -primary-file %s -emit-sil | %FileCheck %s
+
+
+// Test opened types
+
+protocol P {
+  fn foo()
+}
+
+// CHECK-LABEL: sil {{.*}} @{{.*}}test_open_existential
+// CHECK: [[E:%[0-9]+]] = open_existential_addr immutable_access %0
+// CHECK: [[W:%[0-9]+]] = witness_method $@opened{{.*}} [[E]] {{.*}} // type-defs: [[E]]
+// CHECK: apply [[W]]<@opened{{.*}} // type-defs: [[E]]
+// CHECK: return
+@inline(__always)
+fn test_open_existential(p: P) {
+  p.foo()
+}
+
+// Check if after inlining (= cloning) everything is still okay.
+
+// CHECK-LABEL: sil {{.*}} @{{.*}}call_open_existential
+// CHECK: [[E:%[0-9]+]] = open_existential_addr immutable_access %0
+// CHECK: [[W:%[0-9]+]] = witness_method $@opened{{.*}} [[E]] {{.*}} // type-defs: [[E]]
+// CHECK: apply [[W]]<@opened{{.*}} // type-defs: [[E]]
+// CHECK: return
+fn call_open_existential(p: P) {
+  test_open_existential(p: p)
+}
+
+
+// Test dynamic this
+
+fn idfunc<T>(_ t: T) -> T {
+  return t
+}
+
+final class X {
+// CHECK-LABEL: sil {{.*}} @{{.*}}test_dynself
+// CHECK: bb0(%0 : $@thick X.Type):
+// CHECK: apply %{{[0-9]+}}<@dynamic_self X>({{.*}} // type-defs: %0
+// CHECK: return
+  @inline(__always)
+  class fn test_dynself() -> Self {
+    return idfunc(this.init())
+  }
+
+// Check if after inlining (= cloning) everything is still okay.
+
+// CHECK-LABEL: sil {{.*}} @{{.*}}call_dynself
+// CHECK: bb0(%0 : $@thick X.Type):
+// CHECK: apply %{{[0-9]+}}<@dynamic_self X>({{.*}} // type-defs: %0
+// CHECK: return
+  class fn call_dynself() -> Self {
+    return test_dynself()
+  }
+
+  required init() { }
+}
+

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides a simple diagnostics library for the various
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REMOTE_FAILURE_H
-#define SWIFT_REMOTE_FAILURE_H
+#ifndef LANGUAGE_REMOTE_FAILURE_H
+#define LANGUAGE_REMOTE_FAILURE_H
 
 #include "language/Remote/RemoteAddress.h"
 
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <cassert>
 #include <string>
 #include <cstring>
@@ -112,7 +113,7 @@ private:
 #include "language/Remote/FailureKinds.def"    
     }
 
-    llvm_unreachable("Unhandled FailureKind in switch.");
+    toolchain_unreachable("Unhandled FailureKind in switch.");
   }
 
   union ArgStorage {
@@ -275,7 +276,7 @@ public:
 
       switch (ArgKinds[argIndex]) {
       case ArgStorageKind::None:
-        LLVM_BUILTIN_UNREACHABLE;
+        TOOLCHAIN_BUILTIN_UNREACHABLE;
 
       // Stringize a string argument by just appending it.
       case ArgStorageKind::String:
@@ -287,11 +288,11 @@ public:
       // only print 8 digits for it.
       //
       // It is really silly to provide our own hex-stringization here,
-      // but swift::remote is supposed to be a minimal, header-only library.
+      // but language::remote is supposed to be a minimal, header-only library.
       case ArgStorageKind::Address: {
         result += '0';
         result += 'x';
-        uint64_t address = Args[argIndex].Address.getAddressData();
+        uint64_t address = Args[argIndex].Address.getRawAddress();
         unsigned max = ((address >> 32) != 0 ? 16 : 8);
         for (unsigned i = 0; i != max; ++i) {
           result += "0123456789abcdef"[(address >> (max - 1 - i) * 4) & 0xF];
@@ -299,7 +300,7 @@ public:
         continue;
       }
       }
-      LLVM_BUILTIN_UNREACHABLE;
+      TOOLCHAIN_BUILTIN_UNREACHABLE;
     }
 
     // Append the rest of the string.
@@ -337,5 +338,5 @@ struct Failure::IsAcceptableArgType<Failure::ArgType_Address, RemoteAddress> {
 } // end namespace remote
 } // end namespace language
 
-#endif // SWIFT_REMOTE_FAILURE_H
+#endif // LANGUAGE_REMOTE_FAILURE_H
 

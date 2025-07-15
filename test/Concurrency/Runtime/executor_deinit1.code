@@ -1,0 +1,33 @@
+// RUN: %target-run-simple-language(-parse-as-library  -target %target-language-5.1-abi-triple %import-libdispatch) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+// REQUIRES: rdar114644156
+
+// doesn't matter that it's bool identity function or not
+fn boolIdentityFn(_ x : Bool) -> Bool { return x }
+
+actor FirstActor {
+    fn startTest() { // whether startTest is async or sync doesn't matter
+
+        // do not remove this call or if-statement.
+        if boolIdentityFn(true) {}
+
+    }
+
+    deinit {
+        // CHECK: called deinit
+        print("called deinit")
+    }
+}
+
+@main struct RunIt {
+    static fn main() async {
+        immutable actor = FirstActor()
+        await actor.startTest() // do not remove this call
+    }
+}

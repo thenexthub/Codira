@@ -27,7 +27,7 @@ def main(arguments):
 
 
 # This function rewrites binaries that use these `@rpath`-based load
-# commands to use direct /usr/lib/swift paths instead, to work around
+# commands to use direct /usr/lib/language paths instead, to work around
 # an issue where the DYLD_LIBRARY_PATH override doesn't reliably work
 # with runpath-relative loads of system libraries on some dyld versions.
 # (rdar://78851265)
@@ -47,28 +47,28 @@ def unrpathize(filename):
 
     # Do not rewrite @rpath-relative load commands for these libraries:
     # they are test support libraries that are never installed under
-    # /usr/lib/swift and they aren't loaded via DYLD_LIBRARY_PATH.
+    # /usr/lib/language and they aren't loaded via DYLD_LIBRARY_PATH.
     allow_list = {
-        'libswiftDifferentiationUnittest.dylib',
-        'libswiftLocalizationAnalysisTestHelper.dylib',
-        'libswiftOSLogTestHelper.dylib',
-        'libswiftRemoteMirror.dylib',
-        'libswiftRuntimeUnittest.dylib',
-        'libswiftStdlibCollectionUnittest.dylib',
-        'libswiftStdlibUnicodeUnittest.dylib',
-        'libswiftStdlibUnittest.dylib',
-        'libswiftStdlibUnittestFoundationExtras.dylib',
-        'libswiftSwiftPrivate.dylib',
-        'libswiftSwiftPrivateLibcExtras.dylib',
-        'libswiftSwiftPrivateThreadExtras.dylib',
-        'libswiftSwiftReflectionTest.dylib',
-        'libswiftGenericMetadataBuilder.dylib',
+        'liblanguageDifferentiationUnittest.dylib',
+        'liblanguageLocalizationAnalysisTestHelper.dylib',
+        'liblanguageOSLogTestHelper.dylib',
+        'liblanguageRemoteMirror.dylib',
+        'liblanguageRuntimeUnittest.dylib',
+        'liblanguageStdlibCollectionUnittest.dylib',
+        'liblanguageStdlibUnicodeUnittest.dylib',
+        'liblanguageStdlibUnittest.dylib',
+        'liblanguageStdlibUnittestFoundationExtras.dylib',
+        'liblanguageCodiraPrivate.dylib',
+        'liblanguageCodiraPrivateLibcExtras.dylib',
+        'liblanguageCodiraPrivateThreadExtras.dylib',
+        'liblanguageCodiraReflectionTest.dylib',
+        'liblanguageGenericMetadataBuilder.dylib',
     }
 
     # The output from dyldinfo -dylibs is a line of header followed by one
     # install name per line, indented with spaces.
     dylib_regex = re.compile(
-        r"(^|.*\s)(?P<path>@rpath/(?P<filename>libswift.*\.dylib))\s*$")
+        r"(^|.*\s)(?P<path>@rpath/(?P<filename>liblanguage.*\.dylib))\s*$")
 
     # Build a command to invoke install_name_tool.
     command = ['install_name_tool']
@@ -77,7 +77,7 @@ def unrpathize(filename):
         if match and match.group('filename') not in allow_list:
             command.append('-change')
             command.append(match.group('path'))
-            command.append('/usr/lib/swift/' + match.group('filename'))
+            command.append('/usr/lib/language/' + match.group('filename'))
             continue
 
     # Don't run the command if we didn't find any dylibs to change:

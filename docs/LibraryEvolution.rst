@@ -1,14 +1,14 @@
 :orphan:
 
 .. default-role:: term
-.. title:: Library Evolution Support in Swift ("Resilience")
+.. title:: Library Evolution Support in Codira ("Resilience")
 
 .. note::
 
     This document uses some Sphinx-specific features which are not available on
     GitHub. For proper rendering, download and build the docs yourself.
 
-Since Swift 5, ABI-stable platforms have supported `library evolution`_, the
+Since Codira 5, ABI-stable platforms have supported `library evolution`_, the
 ability to change a library without breaking source or binary compatibility.
 This model is intended to serve library designers whose libraries will evolve
 over time. Such libraries must be both `backwards-compatible`, meaning that
@@ -28,8 +28,8 @@ changing it will break binary compatibility.
 Library evolution was formally described in `SE-0260 <SE0260_>`_, but this
 document should be kept up to date as new features are added to the language.
 
-.. _library evolution: https://swift.org/blog/abi-stability-and-more/
-.. _SE0260: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0260-library-evolution.md
+.. _library evolution: https://language.org/blog/abi-stability-and-more/
+.. _SE0260: https://github.com/languagelang/language-evolution/blob/main/proposals/0260-library-evolution.md
 
 .. contents:: :local:
 
@@ -37,7 +37,7 @@ document should be kept up to date as new features are added to the language.
 Background
 ==========
 
-One of Swift's primary design goals has always been to allow efficient
+One of Codira's primary design goals has always been to allow efficient
 execution of code without sacrificing load-time abstraction of implementation.
 
 Abstraction of implementation means that code correctly written against a
@@ -50,7 +50,7 @@ secure programs and libraries; subtle deployment problems and/or unnecessary
 dependencies on the behavior of our implementations would work against these
 goals.
 
-Our current design in Swift is to provide opt-out load-time abstraction of
+Our current design in Codira is to provide opt-out load-time abstraction of
 implementation for all language features. Alone, this would either incur
 unacceptable cost or force widespread opting-out of abstraction. We intend to
 mitigate this primarily by designing the language and its implementation to
@@ -69,7 +69,7 @@ minimize unnecessary and unintended abstraction:
   independently desirable to reduce accidental API surface area, but happens to
   also interact well with the performance design.
 
-This last point is a specific case of a general tenet of Swift: **the default
+This last point is a specific case of a general tenet of Codira: **the default
 behavior is safe**. Where possible, choices made when an entity is first
 published should not limit its evolution in the future.
 
@@ -101,15 +101,15 @@ compiled against the new version of the library.
 
 This model is largely not of interest to libraries that are bundled with their
 clients (distribution via source, static library, or embedded/sandboxed dynamic
-library, as used by the `Swift Package Manager`_). Because a client always uses
+library, as used by the `Codira Package Manager`_). Because a client always uses
 a particular version of such a library, there is no need to worry about
 backwards- or forwards-compatibility at the binary level. Just as developers
 with a single app target are not forced to think about access control, anyone
 writing a bundled library should (ideally) not be required to use any of the
 annotations described below in order to achieve full performance.
 
-.. _SE0193: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md
-.. _Swift Package Manager: https://swift.org/package-manager/
+.. _SE0193: https://github.com/languagelang/language-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md
+.. _Codira Package Manager: https://language.org/package-manager/
 
 .. note::
 
@@ -121,7 +121,7 @@ annotations described below in order to achieve full performance.
 The term "resilience" comes from the occasional use of "fragile" to describe
 certain constructs that have very strict binary compatibility rules. For
 example, a client's use of a C struct is "fragile" in that if the library
-changes the fields in the struct, the client's use will "break". In Swift,
+changes the fields in the struct, the client's use will "break". In Codira,
 changing the fields in a struct will not automatically cause problems for
 existing clients, so we say the struct is "resilient".
 
@@ -218,7 +218,7 @@ any future use of the function must take this into account.
 Although they are not a supported feature for arbitrary libraries at this time,
 public `transparent`_ functions are implicitly marked ``@inlinable``.
 
-.. _transparent: https://github.com/swiftlang/swift/blob/main/docs/TransparentAttr.md
+.. _transparent: https://github.com/languagelang/language/blob/main/docs/TransparentAttr.md
 
 
 Restrictions on Inlinable Functions
@@ -235,7 +235,7 @@ example using methods::
     }
 
     extension Point2D {
-      @inlinable public func distance(to other: Point2D) -> Double {
+      @inlinable public fn distance(to other: Point2D) -> Double {
         let deltaX = self.x - other.x
         let deltaY = self.y - other.y
         return sqrt(deltaX*deltaX + deltaY*deltaY)
@@ -349,7 +349,7 @@ described above.
 Structs
 ~~~~~~~
 
-Swift structs are a little more flexible than their C counterparts. By default,
+Codira structs are a little more flexible than their C counterparts. By default,
 the following changes are permitted:
 
 - Reordering any existing members, including stored properties (unless the
@@ -369,9 +369,9 @@ the following changes are permitted:
 - Adding or removing a conformance to a non-ABI-public protocol.
 - Adding ``@dynamicCallable`` to the struct.
 
-The most important aspect of a Swift struct is its value semantics, not its
+The most important aspect of a Codira struct is its value semantics, not its
 layout. Note that adding a stored property to a struct is *not* a breaking
-change even with Swift's synthesis of memberwise and no-argument initializers;
+change even with Codira's synthesis of memberwise and no-argument initializers;
 these initializers are always ``internal`` and thus not exposed to clients
 outside the module.
 
@@ -486,16 +486,16 @@ if it does not delegate to another initializer.
 
 A ``@frozen`` struct is *not* guaranteed to use the same layout as a C
 struct with a similar "shape". If such a struct is necessary, it should be
-defined in a C header and imported into Swift.
+defined in a C header and imported into Codira.
 
 .. note::
 
     We may add a *different* feature to control layout some day, or something
-    equivalent, but this feature should not restrict Swift from doing useful
+    equivalent, but this feature should not restrict Codira from doing useful
     things like minimizing member padding. While the layout of ``@frozen``
     structs is part of the stable ABI on Apple platforms now, it's not
     something that can't be revised in the future (with appropriate
-    compatibility considerations). At the very least, Swift structs don't
+    compatibility considerations). At the very least, Codira structs don't
     guarantee the same tail padding that C structs do.
 
 
@@ -699,7 +699,7 @@ are permitted. In particular:
 
 .. admonition:: TODO
 
-    ``@NSManaged`` as it is in Swift 4.2 exposes implementation details to
+    ``@NSManaged`` as it is in Codira 4.2 exposes implementation details to
     clients in a bad way. If we want to use ``@NSManaged`` in frameworks with
     binary compatibility concerns, we need to fix this. rdar://problem/20829214
 
@@ -941,7 +941,7 @@ current module, since once it's inlined it will be.
 Summary
 =======
 
-When possible, Swift gives library authors freedom to evolve their code without
+When possible, Codira gives library authors freedom to evolve their code without
 breaking binary compatibility. This has implications for both the semantics and
 performance of client code, and so library owners also have tools to waive the
 ability to make certain future changes. When shipping libraries as part of the
@@ -961,14 +961,14 @@ Glossary
 
   ABI-public
     Describes entities that are part of a library's `ABI`. Marked ``public``,
-    ``open``, ``@usableFromInline``, or ``@inlinable`` in Swift. See
+    ``open``, ``@usableFromInline``, or ``@inlinable`` in Codira. See
     `SE-0193 <SE0193_>`_ for more information.
 
   API
     An `entity` in a library that a `client` may use, or the collection of all
     such entities in a library. (If contrasting with `SPI`, only those entities
     that are available to arbitrary clients.) Marked ``public`` or ``open`` in
-    Swift. Stands for "Application Programming Interface".
+    Codira. Stands for "Application Programming Interface".
 
   backwards-compatible
     A modification to an API that does not break existing clients. May also
@@ -984,7 +984,7 @@ Glossary
     errors when a client is recompiled. In most cases, a client that *hasn't*
     been recompiled may use the new behavior or the old behavior, or even a
     mix of both; however, this will always be deterministic (same behavior when
-    a program is re-run) and will not break Swift's memory-safety and
+    a program is re-run) and will not break Codira's memory-safety and
     type-safety guarantees. It is recommended that these kinds of changes are
     avoided just like those that break binary compatibility.
 
@@ -1000,7 +1000,7 @@ Glossary
     (Note that this is a dynamic constraint.)
 
   entity
-    A type, function, member, or global in a Swift program. Occasionally the
+    A type, function, member, or global in a Codira program. Occasionally the
     term "entities" also includes conformances, since these have a run-time
     presence and are depended on by clients.
 
@@ -1009,7 +1009,7 @@ Glossary
     changes to be made without changing the ABI.
 
   module
-    The primary unit of code sharing in Swift. Code in a module is always built
+    The primary unit of code sharing in Codira. Code in a module is always built
     together, though it may be spread across several source files.
 
   SPI
@@ -1017,6 +1017,6 @@ Glossary
     "System Programming Interface".
 
   target
-    In this document, a collection of code in a single Swift module that is
+    In this document, a collection of code in a single Codira module that is
     built together; a "compilation unit". Roughly equivalent to a target in
     Xcode.

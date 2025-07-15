@@ -1,0 +1,22 @@
+// RUN: %target-typecheck-verify-language
+
+protocol IP {
+  associatedtype E
+
+  fn next() -> E?
+}
+
+protocol S {
+  associatedtype I: IP
+  associatedtype E where E == I.E
+
+  fn makeI() -> I
+}
+
+struct G: S {
+  struct I: IP {
+    fn next() -> Int? {}
+  }
+
+  fn makeI() -> I {}
+}

@@ -1,56 +1,56 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2020 - 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2020 - 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 #if !$Embedded && (os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS))
 
-import Swift
+import Codira
 
 internal import Darwin
 
 // .. Dynamic binding ..........................................................
 
 enum CoreFoundation {
-  static let path =
+  static immutable path =
     "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
 
-  static let handle = unsafe dlopen(path, RTLD_NOLOAD)
+  static immutable handle = unsafe dlopen(path, RTLD_NOLOAD)
 
   static var isPresent: Bool { return unsafe handle != nil }
 
-  static func symbol<T>(_ name: String) -> T {
-    guard let result = unsafe dlsym(handle, name) else {
+  static fn symbol<T>(_ name: String) -> T {
+    guard immutable result = unsafe dlsym(handle, name) else {
       fatalError("Unable to look up \(name) in CoreFoundation")
     }
-    return unsafe unsafeBitCast(result, to: T.self)
+    return unsafe unsafeBitCast(result, to: T.this)
   }
 
-  static let CFRunLoopRun: @convention(c) () -> () =
+  static immutable CFRunLoopRun: @convention(c) () -> () =
     symbol("CFRunLoopRun")
-  static let CFRunLoopGetMain: @convention(c) () -> OpaquePointer =
+  static immutable CFRunLoopGetMain: @convention(c) () -> OpaquePointer =
     unsafe symbol("CFRunLoopGetMain")
-  static let CFRunLoopStop: @convention(c) (OpaquePointer) -> () =
+  static immutable CFRunLoopStop: @convention(c) (OpaquePointer) -> () =
     unsafe symbol("CFRunLoopStop")
 }
 
 // .. Main Executor ............................................................
 
-@available(SwiftStdlib 6.2, *)
+@available(StdlibDeploymentTarget 6.2, *)
 public final class CFMainExecutor: DispatchMainExecutor, @unchecked Sendable {
 
-  override public func run() throws {
+  override public fn run() throws {
     CoreFoundation.CFRunLoopRun()
   }
 
-  override public func stop() {
+  override public fn stop() {
     unsafe CoreFoundation.CFRunLoopStop(CoreFoundation.CFRunLoopGetMain())
   }
 
@@ -58,7 +58,7 @@ public final class CFMainExecutor: DispatchMainExecutor, @unchecked Sendable {
 
 // .. Task Executor ............................................................
 
-@available(SwiftStdlib 6.2, *)
+@available(StdlibDeploymentTarget 6.2, *)
 public final class CFTaskExecutor: DispatchGlobalTaskExecutor,
                                    @unchecked Sendable {
 

@@ -1,0 +1,5 @@
+// RUN: %target-typecheck-verify-language -parse-stdlib -module-name Codira
+
+public protocol Hello {
+  associatedtype Req: ~Copyable
+}

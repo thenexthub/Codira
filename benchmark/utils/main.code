@@ -1,4 +1,4 @@
-//===--- main.swift -------------------------------------------*- swift -*-===//
+//===--- main.code -------------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This is just a driver for performance overview tests.
@@ -60,8 +61,8 @@ import CountAlgo
 import CreateObjects
 // rdar://128520766
 // import CxxSetToCollection
-// import CxxSpanTests
-// import CxxStringConversion
+import CxxSpanTests
+import CxxStringConversion
 // rdar://128520766
 // import CxxVectorSum
 import DataBenchmarks
@@ -125,7 +126,7 @@ import MonteCarloPi
 import NaiveRangeReplaceableCollectionConformance
 import NibbleSort
 import NIOChannelPipeline
-import NSDictionaryCastToSwift
+import NSDictionaryCastToCodira
 import NSErrorTest
 #if canImport(Darwin)
 import NSStringConversion
@@ -135,7 +136,7 @@ import ObjectAllocation
 #if canImport(Darwin)
 import ObjectiveCBridging
 import ObjectiveCBridgingStubs
-#if !(SWIFT_PACKAGE || Xcode)
+#if !(LANGUAGE_PACKAGE || Xcode)
 import ObjectiveCNoBridgingStubs
 #endif
 #endif
@@ -260,8 +261,8 @@ register(ClassArrayGetter.benchmarks)
 register(CreateObjects.benchmarks)
 // rdar://128520766
 // register(CxxSetToCollection.benchmarks)
-// register(CxxSpanTests.benchmarks)
-// register(CxxStringConversion.benchmarks)
+register(CxxSpanTests.benchmarks)
+register(CxxStringConversion.benchmarks)
 // rdar://128520766
 // register(CxxVectorSum.benchmarks)
 register(DataBenchmarks.benchmarks)
@@ -323,7 +324,7 @@ register(MirrorTest.benchmarks)
 register(MonteCarloE.benchmarks)
 register(MonteCarloPi.benchmarks)
 register(NaiveRangeReplaceableCollectionConformance.benchmarks)
-register(NSDictionaryCastToSwift.benchmarks)
+register(NSDictionaryCastToCodira.benchmarks)
 register(NSErrorTest.benchmarks)
 #if canImport(Darwin)
 register(NSStringConversion.benchmarks)
@@ -335,7 +336,7 @@ register(ObjectAllocation.benchmarks)
 #if canImport(Darwin)
 register(ObjectiveCBridging.benchmarks)
 register(ObjectiveCBridgingStubs.benchmarks)
-#if !(SWIFT_PACKAGE || Xcode)
+#if !(LANGUAGE_PACKAGE || Xcode)
 register(ObjectiveCNoBridgingStubs.benchmarks)
 #endif
 #endif

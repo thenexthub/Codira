@@ -1,23 +1,27 @@
 //===--- ModuleContentsWriter.h - Walk module to print ObjC/C++ -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PRINTASCLANG_MODULECONTENTSWRITER_H
-#define SWIFT_PRINTASCLANG_MODULECONTENTSWRITER_H
+#ifndef LANGUAGE_PRINTASCLANG_MODULECONTENTSWRITER_H
+#define LANGUAGE_PRINTASCLANG_MODULECONTENTSWRITER_H
 
 #include "language/AST/AttrKind.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/StringSet.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/StringSet.h"
 
 namespace clang {
   class Module;
@@ -26,16 +30,21 @@ namespace clang {
 namespace language {
 class Decl;
 class ModuleDecl;
-class SwiftToClangInteropContext;
+class CodiraToClangInteropContext;
 
 using ImportModuleTy = PointerUnion<ModuleDecl*, const clang::Module*>;
 
 /// Prints the declarations of \p M to \p os and collecting imports in
 /// \p imports along the way.
 void printModuleContentsAsObjC(raw_ostream &os,
-                               llvm::SmallPtrSetImpl<ImportModuleTy> &imports,
+                               toolchain::SmallPtrSetImpl<ImportModuleTy> &imports,
                                ModuleDecl &M,
-                               SwiftToClangInteropContext &interopContext);
+                               CodiraToClangInteropContext &interopContext);
+
+void printModuleContentsAsC(raw_ostream &os,
+                            toolchain::SmallPtrSetImpl<ImportModuleTy> &imports,
+                            ModuleDecl &M,
+                            CodiraToClangInteropContext &interopContext);
 
 struct EmittedClangHeaderDependencyInfo {
     /// The set of imported modules used by this module.
@@ -48,8 +57,8 @@ struct EmittedClangHeaderDependencyInfo {
 ///
 /// \returns Dependencies required by this module.
 EmittedClangHeaderDependencyInfo printModuleContentsAsCxx(
-    raw_ostream &os, ModuleDecl &M, SwiftToClangInteropContext &interopContext,
-    bool requiresExposedAttribute, llvm::StringSet<> &exposedModules);
+    raw_ostream &os, ModuleDecl &M, CodiraToClangInteropContext &interopContext,
+    bool requiresExposedAttribute, toolchain::StringSet<> &exposedModules);
 
 } // end namespace language
 

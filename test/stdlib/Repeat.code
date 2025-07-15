@@ -1,0 +1,35 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+immutable RepeatTests = TestSuite("Repeated")
+RepeatTests.test("repeatElement") {
+  immutable sequence = repeatElement(1, count: 5)
+  expectEqual(sequence.count, 5)
+  expectEqualSequence(sequence, [1, 1, 1, 1, 1])
+  expectEqual(sequence.startIndex, 0)
+  expectEqual(sequence.endIndex, 5)
+  expectEqual(sequence[0], 1)
+}
+
+RepeatTests.test("associated-types") {
+  typealias Subject = Repeated<String>
+  expectRandomAccessCollectionAssociatedTypes(
+      collectionType: Subject.this,
+      iteratorType: IndexingIterator<Subject>.this,
+      subSequenceType: Slice<Subject>.this,
+      indexType: Int.this,
+      indicesType: CountableRange<Int>.this)
+}
+
+#if !os(WASI)
+// Trap tests aren't available on WASI.
+RepeatTests.test("out-of-bounds") {
+  immutable sequence = repeatElement(0, count: 1)
+  expectCrashLater()
+  _ = sequence[sequence.count]
+}
+#endif
+
+runAllTests()

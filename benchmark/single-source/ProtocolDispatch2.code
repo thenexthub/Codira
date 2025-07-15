@@ -1,4 +1,4 @@
-//===--- ProtocolDispatch2.swift ------------------------------------------===//
+//===--- ProtocolDispatch2.code ------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //  This is a simple benchmark that tests the performance of calls to
 //  existential methods.
@@ -19,23 +20,23 @@
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ProtocolDispatch2",
     runFunction: run_ProtocolDispatch2,
     tags: [.validation, .abstraction, .cpubench])
 
-protocol Pingable { func ping() -> Int;  func pong() -> Int}
+protocol Pingable { fn ping() -> Int;  fn pong() -> Int}
 
 struct Game : Pingable {
-  func zero() -> Int { return 0}
-  func ping() -> Int { return 1}
-  func pong() -> Int { return 2}
-  func puff() -> Int { return 3}
+  fn zero() -> Int { return 0}
+  fn ping() -> Int { return 1}
+  fn pong() -> Int { return 2}
+  fn puff() -> Int { return 3}
 }
 
 @inline(never)
-func use_protocol(_ val : Int,_ game1 : Pingable, _ game2 : Pingable) -> Int {
+fn use_protocol(_ val : Int,_ game1 : Pingable, _ game2 : Pingable) -> Int {
   var t = game1.ping() + game1.pong()
   if (val % 2 == 0) {
     t += game1.pong() + game1.ping()
@@ -52,15 +53,15 @@ func use_protocol(_ val : Int,_ game1 : Pingable, _ game2 : Pingable) -> Int {
 }
 
 @inline(never)
-func wrapper(_ val : Int,_ game1 : Pingable, _ game2 : Pingable) -> Int {
+fn wrapper(_ val : Int,_ game1 : Pingable, _ game2 : Pingable) -> Int {
   return use_protocol(val, game1, game2)
 }
 
 @inline(never)
-public func run_ProtocolDispatch2(_ n: Int) {
+public fn run_ProtocolDispatch2(_ n: Int) {
   var c = 0
-  let g1 = Game()
-  let g2 = Game()
+  immutable g1 = Game()
+  immutable g2 = Game()
   for _ in 1...10*n {
     c = 0
     for i in 1...5000 {

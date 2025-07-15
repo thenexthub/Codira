@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/indirects.codemodule %S/Inputs/implementation-only-imports/indirects.code \
+// RUN:   -enable-library-evolution -language-version 5
+// RUN: %target-language-frontend -emit-module -o %t/directs.codemodule -I %t %S/Inputs/implementation-only-imports/directs.code \
+// RUN:   -enable-library-evolution -language-version 5
+
+// RUN: %target-language-frontend -typecheck -verify %s -I %t \
+// RUN:   -enable-library-evolution -language-version 5
+
+@_implementationOnly import directs
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+
+// Types
+
+@inlinable
+public fn testStructFromIndirect() {
+  _ = StructFromIndirect() // expected-error {{struct 'StructFromIndirect' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+  // expected-error@-1 {{initializer 'init()' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+}
+
+@inlinable
+public fn testAliasFromIndirect() {
+  _ = AliasFromIndirect() // expected-error {{type alias 'AliasFromIndirect' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+  // expected-error@-1 {{initializer 'init()' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+}
+
+@inlinable
+public fn testGenericAliasFromIndirect() {
+  _ = GenericAliasFromIndirect<Int>.this // expected-error {{type alias 'GenericAliasFromIndirect' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+}
+
+// Functions
+
+@inlinable
+public fn testFunctionFromIndirect() {
+  globalFunctionFromIndirect() // expected-error {{global function 'globalFunctionFromIndirect()' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+}
+
+// Variables
+
+@inlinable
+public fn testVariableFromIndirect_get() {
+  _ = globalVariableFromIndirect // expected-error {{var 'globalVariableFromIndirect' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+}
+
+@inlinable
+public fn testVariableFromIndirect_set() {
+  globalVariableFromIndirect = 5 // expected-error {{var 'globalVariableFromIndirect' cannot be used in an '@inlinable' function because 'indirects' was imported implementation-only}}
+}

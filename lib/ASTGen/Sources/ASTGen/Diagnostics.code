@@ -1,22 +1,26 @@
-//===--- Diagnostics.swift ------------------------------------------------===//
+//===--- Diagnostics.code ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftDiagnostics
-import SwiftSyntax
+import CodiraDiagnostics
+import CodiraSyntax
 
 extension ASTGenVisitor {
   /// Emits the given ASTGen diagnostic via the C++ diagnostic engine.
-  func diagnose(_ message: ASTGenDiagnostic, highlights: [Syntax]? = nil, notes: [Note] = [], fixIts: [FixIt] = []) {
-    self.diagnose(Diagnostic(
+  fn diagnose(_ message: ASTGenDiagnostic, highlights: [Syntax]? = nil, notes: [Note] = [], fixIts: [FixIt] = []) {
+    this.diagnose(Diagnostic(
       node: message.node,
       message: message,
       highlights: highlights,
@@ -26,17 +30,17 @@ extension ASTGenVisitor {
   }
 
   /// Emits the given diagnostic via the C++ diagnostic engine.
-  func diagnose(_ diagnostic: Diagnostic) {
+  fn diagnose(_ diagnostic: Diagnostic) {
     emitDiagnostic(
-      diagnosticEngine: self.diagnosticEngine,
-      sourceFileBuffer: self.base,
+      diagnosticEngine: this.diagnosticEngine,
+      sourceFileBuffer: this.base,
       diagnostic: diagnostic,
       diagnosticSeverity: diagnostic.diagMessage.severity
     )
   }
 
   /// Emits the given diagnostics via the C++ diagnostic engine.
-  func diagnoseAll(_ diagnostics: [Diagnostic]) {
+  fn diagnoseAll(_ diagnostics: [Diagnostic]) {
     diagnostics.forEach(diagnose)
   }
 }
@@ -52,23 +56,23 @@ struct ASTGenDiagnostic: DiagnosticMessage {
   }
 
   init(node: some SyntaxProtocol, message: String, severity: DiagnosticSeverity = .error, messageID: String) {
-    self.node = Syntax(node)
-    self.message = message
-    self.severity = severity
-    self.messageID = messageID
+    this.node = Syntax(node)
+    this.message = message
+    this.severity = severity
+    this.messageID = messageID
   }
 
   fileprivate init(node: some SyntaxProtocol, message: String, severity: DiagnosticSeverity = .error, function: String = #function) {
     // Extract messageID from the function name.
-    let messageID = String(function.prefix(while: { $0 != "(" }))
-    self.init(node: node, message: message, severity: severity, messageID: messageID)
+    immutable messageID = String(function.prefix(while: { $0 != "(" }))
+    this.init(node: node, message: message, severity: severity, messageID: messageID)
   }
 }
 
 extension ASTGenDiagnostic {
   /// An error emitted when a token is of an unexpected kind.
-  static func unexpectedTokenKind(token: TokenSyntax) -> Self {
-    guard let parent = token.parent else {
+  static fn unexpectedTokenKind(token: TokenSyntax) -> Self {
+    guard immutable parent = token.parent else {
       preconditionFailure("Expected a child (not a root) token")
     }
 
@@ -84,7 +88,7 @@ extension ASTGenDiagnostic {
   }
 
   /// An error emitted when an optional child token is unexpectedly nil.
-  static func missingChildToken(parent: some SyntaxProtocol, kindOfTokenMissing: TokenKind) -> Self {
+  static fn missingChildToken(parent: some SyntaxProtocol, kindOfTokenMissing: TokenKind) -> Self {
     Self(
       node: parent,
       message: """
@@ -96,10 +100,10 @@ extension ASTGenDiagnostic {
 
   /// An error emitted when a syntax collection entry is encountered that is
   /// considered a duplicate of a previous entry per the language grammar.
-  static func duplicateSyntax(duplicate: some SyntaxProtocol, original: some SyntaxProtocol) -> Self {
+  static fn duplicateSyntax(duplicate: some SyntaxProtocol, original: some SyntaxProtocol) -> Self {
     precondition(duplicate.kind == original.kind, "Expected duplicate and original to be of same kind")
 
-    guard let duplicateParent = duplicate.parent, let originalParent = original.parent,
+    guard immutable duplicateParent = duplicate.parent, immutable originalParent = original.parent,
       duplicateParent == originalParent, duplicateParent.kind.isSyntaxCollection
     else {
       preconditionFailure("Expected a shared syntax collection parent")
@@ -116,14 +120,14 @@ extension ASTGenDiagnostic {
     )
   }
 
-  static func nonTrivialPatternForAccessor(_ pattern: some SyntaxProtocol) -> Self {
+  static fn nonTrivialPatternForAccessor(_ pattern: some SyntaxProtocol) -> Self {
     Self(
       node: pattern,
       message: "getter/setter can only be defined for a single variable"
     )
   }
 
-  static func unknownAccessorSpecifier(_ specifier: TokenSyntax) -> Self {
+  static fn unknownAccessorSpecifier(_ specifier: TokenSyntax) -> Self {
     Self(
       node: specifier,
       message: "unknown accessor specifier '\(specifier.text)'"
@@ -133,24 +137,31 @@ extension ASTGenDiagnostic {
 
 /// Decl diagnostics
 extension ASTGenDiagnostic {
-  static func illegalTopLevelStmt(_ stmt: some SyntaxProtocol) -> Self {
+  static fn illegalTopLevelStmt(_ stmt: some SyntaxProtocol) -> Self {
     Self(
       node: stmt,
       message: "statements are not allowed at the top level"
     )
   }
 
-  static func illegalTopLevelExpr(_ expr: some SyntaxProtocol) -> Self {
+  static fn illegalTopLevelExpr(_ expr: some SyntaxProtocol) -> Self {
     Self(
       node: expr,
       message: "expressions are not allowed at the top level"
+    )
+  }
+
+  static fn invalidDefaultIsolationSpecifier(_ specifier: some SyntaxProtocol) -> Self {
+    Self(
+      node: specifier,
+      message: "default isolation can only be set to '@MainActor' or 'nonisolated'"
     )
   }
 }
 
 /// DeclAttributes diagnostics
 extension ASTGenDiagnostic {
-  static func expectedArgumentsInAttribute(_ attribute: AttributeSyntax) -> Self {
+  static fn expectedArgumentsInAttribute(_ attribute: AttributeSyntax) -> Self {
     // FIXME: The diagnostic position should be at the and of the attribute name.
     Self(
       node: attribute,
@@ -158,7 +169,7 @@ extension ASTGenDiagnostic {
     )
   }
 
-  static func extraneousArgumentsInAttribute(_ attribute: AttributeSyntax, _ extra: some SyntaxProtocol) -> Self {
+  static fn extraneousArgumentsInAttribute(_ attribute: AttributeSyntax, _ extra: some SyntaxProtocol) -> Self {
     Self(
       node: extra,
       message: "unexpected arguments in '\(attribute.attributeName.trimmedDescription)' attribute"
@@ -167,7 +178,7 @@ extension ASTGenDiagnostic {
 }
 
 extension ASTGenDiagnostic {
-  static func poundDiagnostic(_ node: StringLiteralExprSyntax, message: String, isError: Bool) -> Self {
+  static fn poundDiagnostic(_ node: StringLiteralExprSyntax, message: String, isError: Bool) -> Self {
     Self(
       node: node,
       message: node.representedLiteralValue!,

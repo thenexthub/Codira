@@ -1,0 +1,26 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -emit-sil
+
+// One day, if we're lucky, this test will start failing by emitting SIL
+// instead of diagnosing an error. If you are reading this comment because that
+// joyous day has finally arrived, please remove the "not" in the RUN line.
+// Until then, we will at least make sure we don't regress and start crashing
+// again.
+
+fn f() -> Int {
+    return { a in
+        { [unowned a] b in
+            a(b)
+        }
+    }(1)
+}

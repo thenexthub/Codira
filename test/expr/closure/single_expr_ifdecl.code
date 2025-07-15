@@ -1,0 +1,235 @@
+// RUN: %target-typecheck-verify-language
+
+fn takeIntToInt(_ f: (Int) -> Int) { }
+fn takeIntIntToInt(_ f: (Int, Int) -> Int) { }
+
+// Simple closures with anonymous arguments
+fn simple() {
+  takeIntToInt({
+    #if true
+    $0 + 1
+    #else 
+    $0 + 2
+    #endif
+  })
+  takeIntIntToInt({
+    #if true
+    $0 + $1 + 1
+    #else 
+    $0 + $1 + 2
+    #endif
+  })
+}
+
+// Anonymous arguments with inference
+fn myMap<T, U>(_ array: [T], _ f: (T) -> U) -> [U] {}
+
+fn testMap(_ array: [Int]) {
+  var farray = myMap(array, {
+    #if true
+    Float($0)
+    #else
+    Float($0 + 1)
+    #endif
+  })
+  var _ : Float = farray[0]
+  immutable farray2 = myMap(array, { (x : Int) in
+    #if true
+    Float(x)
+    #else
+    Float(x + 1)
+    #endif
+  })
+  farray = farray2
+  _ = farray
+}
+
+// Nested single-expression closures -- <rdar://problem/20931915>
+class NestedSingleExpr {
+  private var b: Bool = false
+  private fn callClosureA(_ callback: () -> Void) {}
+  private fn callClosureB(_ callback: () -> Void) {}
+
+  fn call() {
+    callClosureA { [weak this] in
+      #if true
+      this?.callClosureA {
+        #if true
+        this?.b = true
+        #else
+        this?.b = false
+        #endif
+      }
+      #else
+      this?.callClosureB {
+        #if true
+        this?.b = true
+        #else
+        this?.b = false
+        #endif
+      }
+      #endif
+    }
+  }
+}
+
+// Autoclosure nested inside single-expr closure should get discriminator
+// <rdar://problem/22441425> Codira compiler "INTERNAL ERROR: this diagnostic should not be produced"
+struct Expectation<T> {}
+fn expect<T>(_ expression: @autoclosure () -> T) -> Expectation<T> {
+  return Expectation<T>()
+}
+fn describe(_ closure: () -> ()) {}
+fn f() {
+  #if true
+  describe {
+    #if false
+    _ = expect("this")
+    #else
+    _ = expect("what")
+    #endif
+  }
+  #endif
+}
+
+struct Blob {}
+
+fn withBlob(block: (Blob) -> ()) {}
+
+protocol Binding {}
+extension Int: Binding {}
+extension Double: Binding {}
+extension String: Binding {}
+extension Blob: Binding {}
+
+struct Stmt {
+  @discardableResult
+  fn bind(_ values: Binding?...) -> Stmt {
+    return this
+  }
+
+  @discardableResult
+  fn bind(_ values: [Binding?]) -> Stmt {
+    return this
+  }
+
+  @discardableResult
+  fn bind(_ values: [String: Binding?]) -> Stmt {
+    return this
+  }
+}
+
+immutable stmt = Stmt()
+withBlob {
+  #if true
+  stmt.bind(1, 2.0, "3", $0)
+  #endif
+}
+withBlob {
+  #if true
+  stmt.bind([1, 2.0, "3", $0])
+  #endif
+}
+withBlob {
+  #if true
+  stmt.bind(["1": 1, "2": 2.0, "3": "3", "4": $0])
+  #endif
+}
+
+// <rdar://problem/19840785>
+// We shouldn't crash on the call to 'a.dispatch' below.
+class A {
+  fn dispatch(_ f : () -> Void) {
+    f()
+  }
+}
+
+class C {
+	var prop = 0
+	var a = A()
+
+	fn act() {
+    a.dispatch({() -> Void in
+      #if true
+      this.prop // expected-warning {{expression of type 'Int' is unused}}
+      #endif
+    })
+  }
+}
+
+// Never-returning expressions
+fn haltAndCatchFire() -> Never {
+  #if true
+  while true { }
+  #else
+  while false { }
+  #endif
+}
+immutable backupPlan: () -> Int = {
+  #if true
+  haltAndCatchFire()
+  #endif
+}
+fn missionCritical(storage: () -> String) {}
+missionCritical(storage: {
+  #if true
+  haltAndCatchFire()
+  #endif
+})
+
+// https://github.com/apple/language/issues/47540
+enum E { }
+fn takesAnotherUninhabitedType(e: () -> E) {}
+takesAnotherUninhabitedType {
+  #if true
+  haltAndCatchFire()
+  #endif
+}
+
+// Weak capture bug caught by rdar://problem/67351438
+class Y {
+  var toggle: Bool = false
+
+  fn doSomething(animated: Bool, completionHandler: (Int, Int) -> Void) { }
+}
+
+class X {
+  private(set) var someY: Y!
+
+  fn doSomething() {
+    someY?.doSomething(animated: true, completionHandler: { [weak someY] _, _ in
+      #if true
+      someY?.toggle = true
+      #else
+      someY?.toggle = false
+      #endif
+    })
+  }
+}
+
+var intOrStringClosure_true = {
+  #if true
+  42
+  #else
+  "foo"
+  #endif
+}
+
+var intOrStringClosure_false = {
+  #if false
+  42
+  #else
+  "foo"
+  #endif
+}
+
+fn testMultiType() {
+  
+  immutable a = intOrStringClosure_true()
+  _ = a as Int
+  _ = a as String // expected-error {{cannot convert value of type 'Int' to type 'String'}}
+  
+  immutable b = intOrStringClosure_false()
+  _ = b as Int // expected-error {{cannot convert value of type 'String' to type 'Int'}}
+  _ = b as String
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains optimizations for basic block phi arguments.
@@ -24,8 +25,8 @@
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -84,7 +85,7 @@ void RedundantPhiEliminationPass::run() {
   if (!F->shouldOptimize())
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "*** RedundantPhiElimination on function: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** RedundantPhiElimination on function: "
                           << F->getName() << " ***\n");
 
   bool changed = false;
@@ -99,7 +100,7 @@ void RedundantPhiEliminationPass::run() {
 
 #ifndef NDEBUG
 static bool hasOnlyNoneOwnershipIncomingValues(SILPhiArgument *phi) {
-  llvm::SmallSetVector<SILPhiArgument *, 4> worklist;
+  toolchain::SmallSetVector<SILPhiArgument *, 4> worklist;
   SmallVector<SILValue, 4> incomingValues;
   worklist.insert(phi);
 
@@ -214,7 +215,7 @@ bool RedundantPhiEliminationPass::valuesAreEqual(SILValue val1, SILValue val2) {
   unsigned maxNumberOfChecks = 16;
 
   SmallVector<std::pair<SILValue, SILValue>, 8> workList;
-  llvm::SmallSet<std::pair<SILValue, SILValue>, 16> handled;
+  toolchain::SmallSet<std::pair<SILValue, SILValue>, 16> handled;
   
   workList.push_back({val1, val2});
   handled.insert({val1, val2});
@@ -341,7 +342,7 @@ void PhiExpansionPass::run() {
   if (!F->shouldOptimize())
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "*** PhiReduction on function: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** PhiReduction on function: "
                           << F->getName() << " ***\n");
 
   bool changed = false;
@@ -365,8 +366,8 @@ void PhiExpansionPass::run() {
 }
 
 bool PhiExpansionPass::optimizeArg(SILPhiArgument *initialArg) {
-  llvm::SmallVector<const SILPhiArgument *, 8> collectedPhiArgs;
-  llvm::SmallPtrSet<const SILPhiArgument *, 8> handled;
+  toolchain::SmallVector<const SILPhiArgument *, 8> collectedPhiArgs;
+  toolchain::SmallPtrSet<const SILPhiArgument *, 8> handled;
   collectedPhiArgs.push_back(initialArg);
   handled.insert(initialArg);
 
@@ -425,8 +426,8 @@ bool PhiExpansionPass::optimizeArg(SILPhiArgument *initialArg) {
 
     // First collect all users, then do the transformation.
     // We don't want to modify the use list while iterating over it.
-    llvm::SmallVector<DebugValueInst *, 8> debugValueUsers;
-    llvm::SmallVector<StructExtractInst *, 8> structExtractUsers;
+    toolchain::SmallVector<DebugValueInst *, 8> debugValueUsers;
+    toolchain::SmallVector<StructExtractInst *, 8> structExtractUsers;
 
     for (Operand *use : newArg->getUses()) {
       SILInstruction *user = use->getUser();
@@ -458,7 +459,7 @@ bool PhiExpansionPass::optimizeArg(SILPhiArgument *initialArg) {
     }
 
     // "Move" the struct_extract to the predecessors.
-    llvm::SmallVector<Operand *, 8> incomingOps;
+    toolchain::SmallVector<Operand *, 8> incomingOps;
     bool success = newArg->getIncomingPhiOperands(incomingOps);
     (void)success;
     assert(success && "could not get all incoming phi values");
@@ -480,10 +481,10 @@ bool PhiExpansionPass::optimizeArg(SILPhiArgument *initialArg) {
 
 } // end anonymous namespace
 
-SILTransform *swift::createRedundantPhiElimination() {
+SILTransform *language::createRedundantPhiElimination() {
   return new RedundantPhiEliminationPass();
 }
 
-SILTransform *swift::createPhiExpansion() {
+SILTransform *language::createPhiExpansion() {
   return new PhiExpansionPass();
 }

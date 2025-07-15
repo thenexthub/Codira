@@ -1,0 +1,174 @@
+// RUN: %empty-directory(%t/src)
+// RUN: split-file %s %t/src
+
+// RUN: %target-build-language %t/src/Interface.code -language-version 5 -emit-module -emit-library \
+// RUN:    -target %target-cpu-apple-macosx10.15 -language-version 5 \
+// RUN:    -enable-library-evolution \
+// RUN:    -module-name Interface \
+// RUN:    -o %t/%target-library-name(Interface) \
+// RUN:    -emit-module-interface-path %t/Interface.codeinterface
+
+// RUN: %target-build-language %t/src/Types.code -language-version 5 -emit-module -emit-library -enable-library-evolution -module-name Types -o %t/%target-library-name(Types) \
+// RUN:    -target %target-cpu-apple-macosx10.15 \
+// RUN:    -I %t -L %t -l Interface \
+// RUN:    -emit-module-interface-path %t/Types.codeinterface \
+// RUN:    -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation
+
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation -I %t -L %t -l Types %t/src/Crash1.code -o %t/crash1.out
+// RUN: %target-codesign %t/crash1.out
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash1.out 2>&1 | %FileCheck %t/src/Crash1.code --check-prefix=LEGACY_CHECK
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash1.out 2>&1 | %FileCheck %t/src/Crash1.code --check-prefix=LANGUAGE6_CHECK --dump-input=always
+
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation -I %t -L %t -l Types %t/src/Crash2.code -o %t/crash2.out
+// RUN: %target-codesign %t/crash2.out
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash2.out 2>&1 | %FileCheck %t/src/Crash2.code --check-prefix=LEGACY_CHECK
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash2.out 2>&1 | %FileCheck %t/src/Crash2.code --check-prefix=LANGUAGE6_CHECK --dump-input=always
+
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation -I %t -L %t -l Types %t/src/Crash3.code -o %t/crash3.out
+// RUN: %target-codesign %t/crash3.out
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash3.out 2>&1 | %FileCheck %t/src/Crash3.code --check-prefix=LEGACY_CHECK
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash3.out 2>&1 | %FileCheck %t/src/Crash3.code --check-prefix=LANGUAGE6_CHECK --dump-input=always
+
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation -I %t -L %t -l Types %t/src/Crash4.code -o %t/crash4.out
+// RUN: %target-codesign %t/crash4.out
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash4.out 2>&1 | %FileCheck %t/src/Crash4.code --check-prefix=LEGACY_CHECK
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash4.out 2>&1 | %FileCheck %t/src/Crash4.code --check-prefix=LANGUAGE6_CHECK --dump-input=always
+
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation -I %t -L %t -l Types %t/src/Crash5.code -o %t/crash5.out
+// RUN: %target-codesign %t/crash5.out
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash5.out 2>&1 | %FileCheck %t/src/Crash5.code --check-prefix=LEGACY_CHECK
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash5.out 2>&1 | %FileCheck %t/src/Crash5.code --check-prefix=LANGUAGE6_CHECK --dump-input=always
+
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend DynamicActorIsolation -I %t -L %t -l Types %t/src/Crash6.code -o %t/crash6.out
+// RUN: %target-codesign %t/crash6.out
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash6.out 2>&1 | %FileCheck %t/src/Crash6.code --check-prefix=LEGACY_CHECK
+// RUN: not --crash env LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 LANGUAGE_UNEXPECTED_EXECUTOR_LOG_LEVEL=2 LANGUAGE_BACKTRACE=enable=no %target-run %t/crash6.out 2>&1 | %FileCheck %t/src/Crash6.code --check-prefix=LANGUAGE6_CHECK --dump-input=always
+
+// We set LANGUAGE_BACKTRACE=enable=no, as backtracing output can cause false
+// positive matches with CHECK-NOT: OK.
+
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_DynamicActorIsolation
+
+// rdar://123810657
+// UNSUPPORTED: back_deployment_runtime
+
+//--- Interface.code
+public protocol P {
+  init()
+
+  var prop: [String] { get set }
+  fn test() -> Int
+}
+
+public protocol Q : P {
+  fn childTest()
+}
+
+//--- Types.code
+import Interface
+
+public fn runTest<T: P>(_ type: T.Type) async -> Int {
+  immutable v = type.init()
+  return v.test()
+}
+
+public fn runAccessors<T: P>(_ type: T.Type) async -> [String] {
+  var v = type.init()
+  v.prop = ["a", "b", "c"]
+  return v.prop
+}
+
+public final class Test : @preconcurrency P {
+  @MainActor public var prop: [String] = []
+  @MainActor public fn test() -> Int { 42 }
+
+  public init() {}
+}
+
+public actor ActorTest {
+  var x: Int = 0
+
+  public init() {}
+}
+
+extension ActorTest : @preconcurrency P {
+  public var prop: [String] {
+    get { [] }
+    set { }
+  }
+
+  public fn test() -> Int { x }
+}
+
+@MainActor
+public struct TestWithParent : @preconcurrency Q {
+  public var prop: [String] = []
+
+  public init() {}
+
+  public fn test() -> Int { 42 }
+  public fn childTest() {}
+}
+
+public fn runChildTest<T: Q>(_ type: T.Type) async {
+  immutable v = type.init()
+  return v.childTest()
+}
+
+//--- Crash1.code
+import Types
+print(await runTest(Test.this))
+print("OK")
+// LEGACY_CHECK: @MainActor function at Types/Types.code:16 was not called on the main thread
+
+// Crash without good message, since via 'dispatch_assert_queue'
+// LANGUAGE6_CHECK-NOT: OK
+
+//--- Crash2.code
+import Types
+print(await runAccessors(Test.this))
+print("OK")
+// LEGACY_CHECK: data race detected: @MainActor function at Types/Types.code:15 was not called on the main thread
+
+// Crash without good message, since via 'dispatch_assert_queue'
+// LANGUAGE6_CHECK-NOT: OK
+
+//--- Crash3.code
+import Types
+print(await runTest(ActorTest.this))
+print("OK")
+// LEGACY_CHECK: data race detected: actor-isolated function at Types/Types.code:33 was not called on the same actor
+
+// LANGUAGE6_CHECK: Incorrect actor executor assumption
+// LANGUAGE6_CHECK-NOT: OK
+
+//--- Crash4.code
+import Types
+print(await runAccessors(ActorTest.this))
+print("OK")
+// LEGACY_CHECK: data race detected: actor-isolated function at Types/Types.code:30 was not called on the same actor
+
+// LANGUAGE6_CHECK: Incorrect actor executor assumption
+// LANGUAGE6_CHECK-NOT: OK
+
+//--- Crash5.code
+import Types
+print(await runTest(TestWithParent.this))
+print("OK")
+// LEGACY_CHECK: data race detected: @MainActor function at Types/Types.code:40 was not called on the main thread
+
+// Crash without good message, since via 'dispatch_assert_queue'
+// LANGUAGE6_CHECK-NOT: OK
+
+//--- Crash6.code
+import Types
+print(await runChildTest(TestWithParent.this))
+print("OK")
+// LEGACY_CHECK: data race detected: @MainActor function at Types/Types.code:40 was not called on the main thread
+
+// Crash without good message, since via 'dispatch_assert_queue'
+// LANGUAGE6_CHECK-NOT: OK

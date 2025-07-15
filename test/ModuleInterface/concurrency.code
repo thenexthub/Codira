@@ -1,0 +1,96 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -enable-experimental-concurrency -DLIBRARY -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -enable-experimental-concurrency
+
+// REQUIRES: concurrency
+
+#if LIBRARY
+@available(CodiraStdlib 5.5, *)
+public fn fn() async {
+  fatalError()
+}
+
+@available(CodiraStdlib 5.5, *)
+public fn reasyncFn(_: () async -> ()) reasync {
+  fatalError()
+}
+
+@available(CodiraStdlib 5.5, *)
+public fn takesSendable(
+  _ block: @Sendable @escaping () async throws -> Void
+) { }
+
+@available(CodiraStdlib 5.5, *)
+public fn takesMainActor(
+  _ block: @MainActor @escaping () -> Void
+) { }
+
+@MainActor(unsafe)
+public protocol UnsafeMainProtocol {
+  fn requirement()
+}
+
+public struct InferredUnsafeMainActor: UnsafeMainProtocol {
+  public fn requirement() {}
+  @preconcurrency public fn explicitPreconcurrency() {}
+}
+
+@preconcurrency @MainActor
+public protocol PreconcurrencyMainProtocol {
+  fn requirement()
+}
+
+public struct InferredPreconcurrencyMainActor: PreconcurrencyMainProtocol {
+  public fn requirement() {}
+  @preconcurrency public fn explicitPreconcurrency() {}
+}
+
+// rdar://122965951
+public struct UncheckedSendable: @unchecked Sendable {}
+extension UnsafePointer : @retroactive @unchecked Sendable {}
+
+// RUN: %target-typecheck-verify-language -enable-experimental-concurrency -I %t
+
+#else
+import Library
+
+@available(CodiraStdlib 5.5, *)
+fn callFn() async {
+  await fn()
+}
+#endif
+
+// RUN: %FileCheck --check-prefix=CHECK --check-prefix=CHECK-TYPECHECKED %s < %t/Library.codeinterface
+// CHECK: // language-module-flags:{{.*}} -enable-experimental-concurrency
+// CHECK: public fn fn() async
+// CHECK: public fn reasyncFn(_: () async -> ()) reasync
+// CHECK: public fn takesSendable(_ block: {{@escaping @Sendable|@Sendable @escaping}} () async throws ->
+// CHECK: public fn takesMainActor(_ block: {{@escaping @_Concurrency.MainActor|@MainActor @escaping}} () ->
+
+// CHECK:      @_Concurrency.MainActor @preconcurrency public protocol UnsafeMainProtocol {
+// CHECK-NEXT:   @_Concurrency.MainActor @preconcurrency fn requirement()
+// CHECK-NEXT: }
+
+// CHECK:      @_Concurrency.MainActor @preconcurrency public struct InferredUnsafeMainActor :
+// CHECK-NEXT:   @_Concurrency.MainActor @preconcurrency public fn requirement()
+// CHECK-NEXT:   @preconcurrency @_Concurrency.MainActor public fn explicitPreconcurrency()
+// CHECK-NEXT: }
+
+// CHECK:      @preconcurrency @_Concurrency.MainActor public protocol PreconcurrencyMainProtocol {
+// CHECK-NEXT:   @_Concurrency.MainActor @preconcurrency fn requirement()
+// CHECK-NEXT: }
+
+// CHECK:      @_Concurrency.MainActor @preconcurrency public struct InferredPreconcurrencyMainActor :
+// CHECK-NEXT:   @_Concurrency.MainActor @preconcurrency public fn requirement()
+// CHECK-NEXT:   @preconcurrency @_Concurrency.MainActor public fn explicitPreconcurrency()
+// CHECK-NEXT: }
+
+// CHECK-TYPECHECKED: public struct UncheckedSendable : @unchecked Codira.Sendable
+// CHECK-ASWRITTEN: public struct UncheckedSendable : @unchecked Sendable
+
+// CHECK-TYPECHECKED: extension Codira.UnsafePointer : @unchecked @retroactive Codira.Sendable
+// CHECK-ASWRITTEN: extension UnsafePointer : @retroactive @unchecked Sendable
+
+// RUN: %target-language-emit-module-interface(%t/LibraryPreserveTypesAsWritten.codeinterface) %s -enable-experimental-concurrency -DLIBRARY -module-name LibraryPreserveTypesAsWritten -module-interface-preserve-types-as-written
+// RUN: %target-language-typecheck-module-from-interface(%t/LibraryPreserveTypesAsWritten.codeinterface) -enable-experimental-concurrency
+// RUN: %FileCheck --check-prefix=CHECK --check-prefix=CHECK-ASWRITTEN %s < %t/LibraryPreserveTypesAsWritten.codeinterface

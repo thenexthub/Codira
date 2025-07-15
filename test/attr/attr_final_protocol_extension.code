@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+protocol P {}
+
+extension P {
+  final fn inExtension() {} // expected-error {{only classes and class members may be marked with 'final'}} {{3-9=}}
+}

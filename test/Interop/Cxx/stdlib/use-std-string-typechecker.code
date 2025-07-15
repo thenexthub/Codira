@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language
+
+import CxxStdlib
+import StdString
+
+immutable _ = HasMethodThatReturnsString().getString()
+
+immutable x: std.string = "Hello"
+immutable y: std.string = "\(x), World!" 

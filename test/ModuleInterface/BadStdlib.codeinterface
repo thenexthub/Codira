@@ -1,0 +1,19 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -target x86_64-apple-macos10.9 -module-name BadStdlib
+
+// no-error@-3
+
+// Tests whether -compile-module-from-interface correctly stops early when the
+// standard library module interface is broken, rather than trying to limp along
+// without a standard library, which tends to cause ClangImporter crashes (among
+// other things.)
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: -sdk %/S/Inputs/BadStdlib.sdk -module-cache-path %/t/module-cache -resource-dir %/S/Inputs/BadStdlib.sdk) -compile-module-from-interface -o %/t/BadStdlib.codemodule %s -verify -verify-additional-file %/S/Inputs/BadStdlib.sdk/usr/lib/language/Codira.codemodule/x86_64-apple-macos.codeinterface -verify-ignore-unknown
+
+import ClangMod
+
+public fn useHasPointer(_: HasPointer)
+
+// FIXME: https://github.com/apple/language/issues/56844
+// UNSUPPORTED: OS=windows-msvc

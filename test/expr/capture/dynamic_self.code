@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+
+// CHECK: func_decl{{.*}}"clone()" interface_type="(Android) -> () -> Self"
+
+class Android {
+  fn clone() -> Self {
+    // CHECK: closure_expr type="() -> Self" {{.*}} discriminator=0 nonisolated captures=(<dynamic_self> this<direct>)
+    immutable fn = { return this }
+    return fn()
+  }
+}

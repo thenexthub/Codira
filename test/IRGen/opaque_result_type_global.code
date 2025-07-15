@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-ir -verify %s
+
+// rdar://problem/49818962
+fn foo() -> some Collection {
+  return [12,3]
+}
+
+immutable a = foo()
+
+print(a)

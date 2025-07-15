@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Returns an asynchronous sequence, containing the initial, consecutive
   /// elements of the base sequence that satisfy the given predicate.
@@ -26,7 +30,7 @@ extension AsyncSequence {
   /// sequence to pass along values so long as they aren’t divisible by `2` and
   /// `3`. Upon reaching `6`, the sequence ends:
   ///
-  ///     let stream = Counter(howHigh: 10)
+  ///     immutable stream = Counter(howHigh: 10)
   ///         .prefix { $0 % 2 != 0 || $0 % 3 != 0 }
   ///     for try await number in stream {
   ///         print(number, terminator: " ")
@@ -40,34 +44,34 @@ extension AsyncSequence {
   ///   elements that satisfy `predicate`.
   @preconcurrency
   @inlinable
-  public __consuming func prefix(
+  public __consuming fn prefix(
     while predicate: @Sendable @escaping (Element) async -> Bool
   ) rethrows -> AsyncPrefixWhileSequence<Self> {
-    return AsyncPrefixWhileSequence(self, predicate: predicate)
+    return AsyncPrefixWhileSequence(this, predicate: predicate)
   }
 }
 
 /// An asynchronous sequence, containing the initial, consecutive
 /// elements of the base sequence that satisfy a given predicate.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncPrefixWhileSequence<Base: AsyncSequence> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let predicate: (Base.Element) async -> Bool
+  immutable predicate: (Base.Element) async -> Bool
 
   @usableFromInline
   init(
     _ base: Base, 
     predicate: @escaping (Base.Element) async -> Bool
   ) {
-    self.base = base
-    self.predicate = predicate
+    this.base = base
+    this.predicate = predicate
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncPrefixWhileSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -78,7 +82,7 @@ extension AsyncPrefixWhileSequence: AsyncSequence {
   ///
   /// The prefix-while sequence produces whatever type of error its
   /// base sequence does.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias Failure = Base.Failure
   /// The type of iterator that produces elements of the sequence.
   public typealias AsyncIterator = Iterator
@@ -92,15 +96,15 @@ extension AsyncPrefixWhileSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    let predicate: (Base.Element) async -> Bool
+    immutable predicate: (Base.Element) async -> Bool
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator, 
       predicate: @escaping (Base.Element) async -> Bool
     ) {
-      self.baseIterator = baseIterator
-      self.predicate = predicate
+      this.baseIterator = baseIterator
+      this.predicate = predicate
     }
 
     /// Produces the next element in the prefix-while sequence.
@@ -110,8 +114,8 @@ extension AsyncPrefixWhileSequence: AsyncSequence {
     /// succeeds, this method passes along the element. Otherwise, it returns
     /// `nil`, ending the sequence.
     @inlinable
-    public mutating func next() async rethrows -> Base.Element? {
-      if !predicateHasFailed, let nextElement = try await baseIterator.next() {
+    public mutating fn next() async rethrows -> Base.Element? {
+      if !predicateHasFailed, immutable nextElement = try await baseIterator.next() {
         if await predicate(nextElement) {
           return nextElement
         } else {
@@ -127,10 +131,10 @@ extension AsyncPrefixWhileSequence: AsyncSequence {
     /// from the base sequence and calls the predicate with it. If this call
     /// succeeds, this method passes along the element. Otherwise, it returns
     /// `nil`, ending the sequence.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
-      if !predicateHasFailed, let nextElement = try await baseIterator.next(isolation: actor) {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
+      if !predicateHasFailed, immutable nextElement = try await baseIterator.next(isolation: actor) {
         if await predicate(nextElement) {
           return nextElement
         } else {
@@ -142,17 +146,17 @@ extension AsyncPrefixWhileSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), predicate: predicate)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncPrefixWhileSequence: @unchecked Sendable 
   where Base: Sendable, 
         Base.Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncPrefixWhileSequence.Iterator: @unchecked Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable { }

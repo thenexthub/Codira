@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements selection of bindings for type variables.
@@ -23,9 +24,9 @@
 #include "language/Basic/Assertions.h"
 #include "language/Sema/ConstraintGraph.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <tuple>
 
 #define DEBUG_TYPE "PotentialBindings"
@@ -34,13 +35,18 @@ using namespace language;
 using namespace constraints;
 using namespace inference;
 
-
 void ConstraintGraphNode::initBindingSet() {
   ASSERT(!hasBindingSet());
   ASSERT(forRepresentativeVar());
 
   Set.emplace(CG.getConstraintSystem(), TypeVar, Potential);
 }
+
+/// Check whether there exists a type that could be implicitly converted
+/// to a given type i.e. is the given type is Double or Optional<..> this
+/// function is going to return true because CGFloat could be converted
+/// to a Double and non-optional value could be injected into an optional.
+static bool hasConversions(Type);
 
 static std::optional<Type> checkTypeOfBinding(TypeVariableType *typeVar,
                                               Type type);
@@ -156,7 +162,7 @@ bool BindingSet::isDelayed() const {
     // variables to attempt.
     if (locator->directlyAt<ForceValueExpr>() &&
         TypeVar->getImpl().canBindToLValue()) {
-      return llvm::none_of(Bindings, [](const PotentialBinding &binding) {
+      return toolchain::none_of(Bindings, [](const PotentialBinding &binding) {
         return binding.BindingType->is<LValueType>();
       });
     }
@@ -203,7 +209,7 @@ bool BindingSet::isDelayed() const {
     // because it's possible that variable is marked as a "hole"
     // (or that status is propagated to it) after constraints
     // mentioned below are recorded.
-    return llvm::any_of(Info.DelayedBy, [&](Constraint *constraint) {
+    return toolchain::any_of(Info.DelayedBy, [&](Constraint *constraint) {
       switch (constraint->getKind()) {
       case ConstraintKind::ApplicableFunction:
       case ConstraintKind::DynamicCallableApplicableFunction:
@@ -232,7 +238,7 @@ bool BindingSet::involvesTypeVariables() const {
   // on each step of the solver, but once bindings are computed
   // incrementally it becomes more important to double-check that
   // any adjacent type variables found previously are still unresolved.
-  return llvm::any_of(AdjacentVars, [](TypeVariableType *typeVar) {
+  return toolchain::any_of(AdjacentVars, [](TypeVariableType *typeVar) {
     return !typeVar->getImpl().getFixedType(/*record=*/nullptr);
   });
 }
@@ -287,7 +293,7 @@ bool BindingSet::isPotentiallyIncomplete() const {
     // base type of the chain but it can't be done early - type variable
     // representing chain's result type has a different l-valueness comparing
     // to generic parameter of the optional.
-    if (llvm::any_of(Bindings, [&](const PotentialBinding &binding) {
+    if (toolchain::any_of(Bindings, [&](const PotentialBinding &binding) {
           if (binding.Kind != AllowedBindingKind::Subtypes)
             return false;
 
@@ -322,7 +328,7 @@ bool BindingSet::isPotentiallyIncomplete() const {
   // right-hand side of the `bind param` constraint and
   // represents result type of the closure body, because
   // left-hand side gets types from overload choices.
-  if (llvm::any_of(
+  if (toolchain::any_of(
           Info.EquivalentTo,
           [&](const std::pair<TypeVariableType *, Constraint *> &equivalence) {
             auto *constraint = equivalence.second;
@@ -338,11 +344,11 @@ void BindingSet::inferTransitiveProtocolRequirements() {
   if (TransitiveProtocols)
     return;
 
-  llvm::SmallVector<std::pair<TypeVariableType *, TypeVariableType *>, 4>
+  toolchain::SmallVector<std::pair<TypeVariableType *, TypeVariableType *>, 4>
       workList;
-  llvm::SmallPtrSet<TypeVariableType *, 4> visitedRelations;
+  toolchain::SmallPtrSet<TypeVariableType *, 4> visitedRelations;
 
-  llvm::SmallDenseMap<TypeVariableType *, SmallPtrSet<Constraint *, 4>, 4>
+  toolchain::SmallDenseMap<TypeVariableType *, SmallPtrSet<Constraint *, 4>, 4>
       protocols;
 
   auto addToWorkList = [&](TypeVariableType *parent,
@@ -396,7 +402,7 @@ void BindingSet::inferTransitiveProtocolRequirements() {
     // class, make it a "representative" and let it infer
     // supertypes and direct protocol requirements from
     // other members and their equivalence classes.
-    llvm::SmallSetVector<TypeVariableType *, 4> equivalenceClass;
+    toolchain::SmallSetVector<TypeVariableType *, 4> equivalenceClass;
     {
       SmallVector<TypeVariableType *, 4> workList;
       workList.push_back(currentVar);
@@ -428,7 +434,7 @@ void BindingSet::inferTransitiveProtocolRequirements() {
 
       const auto &bindings = node.getBindingSet();
 
-      llvm::SmallPtrSet<Constraint *, 2> placeholder;
+      toolchain::SmallPtrSet<Constraint *, 2> placeholder;
       // Add any direct protocols from members of the
       // equivalence class, so they could be propagated
       // to all of the members.
@@ -459,7 +465,7 @@ void BindingSet::inferTransitiveProtocolRequirements() {
 
     auto &inferredProtocols = protocols[currentVar];
 
-    llvm::SmallPtrSet<Constraint *, 4> protocolsForEquivalence;
+    toolchain::SmallPtrSet<Constraint *, 4> protocolsForEquivalence;
 
     // Equivalence class should contain both:
     // - direct protocol requirements of the current type
@@ -574,13 +580,13 @@ void BindingSet::inferTransitiveBindings() {
     // parameter positions.
     //
     // \code
-    // func foo<T: ExpressibleByStringLiteral>(_: String, _: T) -> T {
+    // fn foo<T: ExpressibleByStringLiteral>(_: String, _: T) -> T {
     //   fatalError()
     // }
     //
-    // func bar(_: Any?) {}
+    // fn bar(_: Any?) {}
     //
-    // func test() {
+    // fn test() {
     //   bar(foo("", ""))
     // }
     // \endcode
@@ -678,7 +684,7 @@ bool BindingSet::finalize(bool transitive) {
       // This allows us to find solutions in cases like this:
       //
       // \code
-      // func foo<T: P>(_: T) {}
+      // fn foo<T: P>(_: T) {}
       // foo(.bar) <- `.bar` should be a static member of `P`.
       // \endcode
       if (transitive && !hasViableBindings()) {
@@ -772,7 +778,7 @@ bool BindingSet::finalize(bool transitive) {
           if (!keyPath->hasSingleInvalidComponent() &&
               (keyPath->getParsedRoot() ||
                (fixedRootTy && !fixedRootTy->isTypeVariableOrMember()))) {
-            auto fallback = llvm::find_if(Defaults, [](const auto &entry) {
+            auto fallback = toolchain::find_if(Defaults, [](const auto &entry) {
               return entry.second->getKind() == ConstraintKind::FallbackType;
             });
             assert(fallback != Defaults.end());
@@ -854,14 +860,14 @@ void BindingSet::addBinding(PotentialBinding binding, bool isTransitive) {
     auto type = binding.BindingType;
 
     if (type->isCGFloat() &&
-        llvm::any_of(Bindings, [](const PotentialBinding &binding) {
+        toolchain::any_of(Bindings, [](const PotentialBinding &binding) {
           return binding.BindingType->isDouble();
         }))
       return;
 
     if (type->isDouble()) {
       auto inferredCGFloat =
-          llvm::find_if(Bindings, [](const PotentialBinding &binding) {
+          toolchain::find_if(Bindings, [](const PotentialBinding &binding) {
             return binding.BindingType->isCGFloat();
           });
 
@@ -1117,7 +1123,7 @@ bool BindingSet::operator<(const BindingSet &other) {
 }
 
 std::optional<BindingSet> ConstraintSystem::determineBestBindings(
-    llvm::function_ref<void(const BindingSet &)> onCandidate) {
+    toolchain::function_ref<void(const BindingSet &)> onCandidate) {
   // Look for potential type variable bindings.
   BindingSet *bestBindings = nullptr;
 
@@ -1351,7 +1357,31 @@ bool BindingSet::isViable(PotentialBinding &binding, bool isTransitive) {
     if (!existingNTD || NTD != existingNTD)
       continue;
 
-    // FIXME: What is going on here needs to be thoroughly re-evaluated.
+    // What is going on in this method needs to be thoroughly re-evaluated!
+    //
+    // This logic aims to skip dropping bindings if
+    // collection type has conversions i.e. in situations like:
+    //
+    // [$T1] conv $T2
+    // $T2 conv [(Int, String)]
+    // $T2.Element equal $T5.Element
+    //
+    // `$T1` could be bound to `(i: Int, v: String)` after
+    // `$T2` is bound to `[(Int, String)]` which is is a problem
+    // because it means that `$T2` was attempted to early
+    // before the solver had a chance to discover all viable
+    // bindings.
+    //
+    // Let's say existing binding is `[(Int, String)]` and
+    // relation is "exact", in this case there is no point
+    // tracking `[$T1]` because upcasts are only allowed for
+    // subtype and other conversions.
+    if (existing->Kind != AllowedBindingKind::Exact) {
+      if (existingType->isKnownStdlibCollectionType() &&
+          hasConversions(existingType)) {
+        continue;
+      }
+    }
 
     // If new type has a type variable it shouldn't
     // be considered  viable.
@@ -1388,7 +1418,7 @@ static bool hasConversions(Type type) {
     return true;
 
   if (auto *structTy = type->getAs<BoundGenericStructType>()) {
-    if (auto eltTy = structTy->isArrayType()) {
+    if (auto eltTy = structTy->getArrayElementType()) {
       return hasConversions(eltTy);
     } else if (auto pair = ConstraintSystem::isDictionaryType(structTy)) {
       return hasConversions(pair->second);
@@ -1414,7 +1444,7 @@ bool BindingSet::favoredOverDisjunction(Constraint *disjunction) const {
   if (isHole())
     return false;
 
-  if (llvm::any_of(Bindings, [&](const PotentialBinding &binding) {
+  if (toolchain::any_of(Bindings, [&](const PotentialBinding &binding) {
         if (binding.Kind == AllowedBindingKind::Supertypes)
           return false;
 
@@ -1425,7 +1455,7 @@ bool BindingSet::favoredOverDisjunction(Constraint *disjunction) const {
       })) {
     // Result type of subscript could be l-value so we can't bind it early.
     if (!TypeVar->getImpl().isSubscriptResultType() &&
-        llvm::none_of(Info.DelayedBy, [](const Constraint *constraint) {
+        toolchain::none_of(Info.DelayedBy, [](const Constraint *constraint) {
           return constraint->getKind() == ConstraintKind::Disjunction ||
                  constraint->getKind() == ConstraintKind::ValueMember;
         }))
@@ -1516,7 +1546,7 @@ bool BindingSet::favoredOverConjunction(Constraint *conjunction) const {
 
       // If some of the closure parameters are unresolved, the conjunction
       // has to be delayed to give them a chance to be inferred.
-      if (llvm::any_of(contextualFnType->getParams(), [](const auto &param) {
+      if (toolchain::any_of(contextualFnType->getParams(), [](const auto &param) {
             return param.getPlainType()->hasTypeVariable();
           }))
         return true;
@@ -1529,7 +1559,7 @@ bool BindingSet::favoredOverConjunction(Constraint *conjunction) const {
       // parameters of the builder type), if any of such references
       // are not yet inferred the conjunction has to be delayed.
       auto *closureType = CS.getType(closure)->castTo<TypeVariableType>();
-      return llvm::any_of(
+      return toolchain::any_of(
           conjunction->getTypeVariables(), [&](TypeVariableType *typeVar) {
             return !(typeVar == closureType || CS.getFixedType(typeVar));
           });
@@ -1754,7 +1784,7 @@ PotentialBindings::inferFromRelational(ConstraintSystem &CS,
   if (type->getWithoutSpecifierType()
           ->lookThroughAllOptionalTypes()
           ->is<DependentMemberType>()) {
-    llvm::SmallPtrSet<TypeVariableType *, 4> referencedVars;
+    toolchain::SmallPtrSet<TypeVariableType *, 4> referencedVars;
     type->getTypeVariables(referencedVars);
 
     bool containsSelf = false;
@@ -2005,7 +2035,7 @@ void PotentialBindings::infer(ConstraintSystem &CS,
     if (overloadTy->isEqual(TypeVar))
       break;
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
 
   case ConstraintKind::BindOverload: {
@@ -2069,14 +2099,14 @@ void PotentialBindings::retract(ConstraintSystem &CS,
   if (recordingChanges)
     CS.recordChange(SolverTrail::Change::RetractedBindings(TypeVar, constraint));
 
-  LLVM_DEBUG(
-    llvm::dbgs() << Constraints.size() << " " << Bindings.size() << " "
+  TOOLCHAIN_DEBUG(
+    toolchain::dbgs() << Constraints.size() << " " << Bindings.size() << " "
                  << AdjacentVars.size() << " " << DelayedBy.size() << " "
                  << SubtypeOf.size() << " " << SupertypeOf.size() << " "
                  << EquivalentTo.size() << "\n");
 
   Bindings.erase(
-      llvm::remove_if(Bindings,
+      toolchain::remove_if(Bindings,
                       [&](const PotentialBinding &binding) {
                         if (binding.getSource() == constraint) {
                           if (recordingChanges) {
@@ -2090,7 +2120,7 @@ void PotentialBindings::retract(ConstraintSystem &CS,
       Bindings.end());
 
   DelayedBy.erase(
-      llvm::remove_if(DelayedBy,
+      toolchain::remove_if(DelayedBy,
                       [&](Constraint *existing) {
                         if (existing == constraint) {
                           if (recordingChanges) {
@@ -2116,19 +2146,19 @@ void PotentialBindings::retract(ConstraintSystem &CS,
   }
 
   AdjacentVars.erase(
-    llvm::remove_if(AdjacentVars, CALLBACK(RetractedAdjacentVar)),
+    toolchain::remove_if(AdjacentVars, CALLBACK(RetractedAdjacentVar)),
     AdjacentVars.end());
 
   SubtypeOf.erase(
-    llvm::remove_if(SubtypeOf, CALLBACK(RetractedSubtypeOf)),
+    toolchain::remove_if(SubtypeOf, CALLBACK(RetractedSubtypeOf)),
     SubtypeOf.end());
 
   SupertypeOf.erase(
-    llvm::remove_if(SupertypeOf, CALLBACK(RetractedSupertypeOf)),
+    toolchain::remove_if(SupertypeOf, CALLBACK(RetractedSupertypeOf)),
     SupertypeOf.end());
 
   EquivalentTo.erase(
-    llvm::remove_if(EquivalentTo, CALLBACK(RetractedEquivalentTo)),
+    toolchain::remove_if(EquivalentTo, CALLBACK(RetractedEquivalentTo)),
     EquivalentTo.end());
 
 #undef CALLBACK
@@ -2150,7 +2180,7 @@ void PotentialBindings::reset() {
 
 void PotentialBindings::dump(ConstraintSystem &cs,
                              TypeVariableType *typeVar,
-                             llvm::raw_ostream &out,
+                             toolchain::raw_ostream &out,
                              unsigned indent) const {
   PrintOptions PO;
   PO.PrintTypesForDebugging = true;
@@ -2172,7 +2202,7 @@ void PotentialBindings::dump(ConstraintSystem &cs,
     out << "[adjacent to: ";
     SmallVector<std::pair<TypeVariableType *, Constraint *>> adjacentVars(
         AdjacentVars.begin(), AdjacentVars.end());
-    llvm::sort(adjacentVars,
+    toolchain::sort(adjacentVars,
                [](auto lhs, auto rhs) {
                    return lhs.first->getID() < rhs.first->getID();
                });
@@ -2191,7 +2221,7 @@ void PotentialBindings::dump(ConstraintSystem &cs,
 }
 
 void BindingSet::forEachLiteralRequirement(
-    llvm::function_ref<void(KnownProtocolKind)> callback) const {
+    toolchain::function_ref<void(KnownProtocolKind)> callback) const {
   for (const auto &literal : Literals) {
     auto *protocol = literal.first;
     const auto &info = literal.second;
@@ -2230,7 +2260,7 @@ LiteralBindingKind BindingSet::getLiteralForScore() const {
 }
 
 unsigned BindingSet::getNumViableLiteralBindings() const {
-  return llvm::count_if(Literals, [&](const auto &literal) {
+  return toolchain::count_if(Literals, [&](const auto &literal) {
     return literal.second.viableAsBinding();
   });
 }
@@ -2268,7 +2298,7 @@ static std::string getCollectionLiteralAsString(KnownProtocolKind KPK) {
 #undef ENTRY
 }
 
-void BindingSet::dump(llvm::raw_ostream &out, unsigned indent) const {
+void BindingSet::dump(toolchain::raw_ostream &out, unsigned indent) const {
   PrintOptions PO;
   PO.PrintTypesForDebugging = true;
 
@@ -2333,7 +2363,7 @@ void BindingSet::dump(llvm::raw_ostream &out, unsigned indent) const {
     out << "[adjacent to: ";
     SmallVector<TypeVariableType *> adjacentVars(AdjacentVars.begin(),
                                                  AdjacentVars.end());
-    llvm::sort(adjacentVars,
+    toolchain::sort(adjacentVars,
                [](const TypeVariableType *lhs, const TypeVariableType *rhs) {
                    return lhs->getID() < rhs->getID();
                });
@@ -2377,7 +2407,7 @@ void BindingSet::dump(llvm::raw_ostream &out, unsigned indent) const {
       return PrintableBinding{BindingKind::Literal, binding, viable};
     }
 
-    void print(llvm::raw_ostream &out, const PrintOptions &PO,
+    void print(toolchain::raw_ostream &out, const PrintOptions &PO,
                unsigned indent = 0) const {
       switch (Kind) {
       case BindingKind::Exact:
@@ -2784,7 +2814,7 @@ TypeVariableBinding::fixForHole(ConstraintSystem &cs) const {
     // If key path has any invalid component, let's just skip fix because the
     // invalid component would be already diagnosed.
     auto keyPath = castToExpr<KeyPathExpr>(srcLocator->getAnchor());
-    if (llvm::any_of(keyPath->getComponents(),
+    if (toolchain::any_of(keyPath->getComponents(),
                      [](KeyPathExpr::Component component) {
                        return !component.isValid();
                      }))
@@ -2965,7 +2995,7 @@ bool TypeVariableBinding::attempt(ConstraintSystem &cs) const {
       PrintOptions PO;
       PO.PrintTypesForDebugging = true;
 
-      llvm::errs().indent(cs.solverState->getCurrentIndent())
+      toolchain::errs().indent(cs.solverState->getCurrentIndent())
           << "(failed to establish binding " << TypeVar->getString(PO)
           << " := " << type->getString(PO) << ")\n";
     }

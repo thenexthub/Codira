@@ -1,0 +1,37 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+struct Payload: ~Copyable {
+    var x: Int
+    var y: String
+}
+
+enum Foo: ~Copyable {
+    case nonCopyablePayload(Payload)
+    case copyablePayload(String)
+}
+
+fn hungryCondition(_: consuming String) -> Bool { fatalError() }
+fn condition(_: borrowing String) -> Bool { fatalError() }
+
+fn eat(_: consuming String) {}
+fn nibble(_: borrowing String) {}
+
+fn test(borrowing foo: borrowing Foo) {
+    switch foo {
+    case .nonCopyablePayload(immutable x): // expected-warning{{}}
+        break
+
+    // OK to form a normal `immutable` binding when the payload is copyable.
+    // Then it's OK to consume copies of it in the condition clause
+    // and in the body.
+    case .copyablePayload(immutable x) where hungryCondition(x):
+        eat(x)
+        nibble(x)
+    case .copyablePayload(immutable x) where condition(x):
+        eat(x)
+        nibble(x)
+
+    case .copyablePayload(immutable x):
+        nibble(x)
+    }
+}

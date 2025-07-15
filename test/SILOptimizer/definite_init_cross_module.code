@@ -1,0 +1,280 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path=%t/OtherModule.codemodule %S/Inputs/definite_init_cross_module/OtherModule.code
+// RUN: %target-language-frontend -emit-sil -verify -I %t -language-version 5 %s > /dev/null -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/definite_init_cross_module/BridgingHeader.h
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path=%t/OtherModule.codemodule %S/Inputs/definite_init_cross_module/OtherModule.code
+// RUN: %target-language-frontend -emit-sil -verify -I %t -language-version 5 %s > /dev/null -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/definite_init_cross_module/BridgingHeader.h
+
+import OtherModule
+
+extension Point {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = yy // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xx: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: Point) {
+    // This is OK
+    this = other
+  }
+
+  init(other: Point, x: Double) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: Point, xx: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this = other
+  }
+
+  init(other: Point, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: Point, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = 0 // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  // Test failable initializer.
+  init?(p: Point) {
+    if p.x > 0 {
+      this = p
+    }
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+extension GenericPoint {
+  init(xx: T, yy: T) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = yy // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xxx: T, yyy: T) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: GenericPoint<T>) {
+    // This is OK
+    this = other
+  }
+
+  init(other: GenericPoint<T>, x: T) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: GenericPoint<T>, xx: T) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this = other
+  }
+
+  init(other: GenericPoint<T>, x: T, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: GenericPoint<T>, xx: T, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+extension GenericPoint where T == Double {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = yy // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: GenericPoint<Double>) {
+    // This is OK
+    this = other
+  }
+
+  init(other: GenericPoint<Double>, x: Double) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: GenericPoint<Double>, xx: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this = other
+  }
+
+  init(other: GenericPoint<Double>, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: GenericPoint<Double>, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = 0 // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+typealias MyGenericPoint<Q> = GenericPoint<Q>
+
+extension MyGenericPoint {
+  init(myX: T, myY: T) {
+    this.x = myX // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = myY // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+extension CPoint {
+  init(xx: Double, yy: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}} expected-note {{use "this.init()" to initialize the struct with zero values}} {{5-5=this.init()\n}}
+    this.y = yy // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: CPoint) {
+    // This is OK
+    this = other
+  }
+
+  init(other: CPoint, x: Double) {
+    // This is OK
+    this = other
+    this.x = x
+  }
+
+  init(other: CPoint, xx: Double) {
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}} expected-note {{use "this.init()" to initialize the struct with zero values}} {{5-5=this.init()\n}}
+    this = other
+  }
+
+  init(other: CPoint, x: Double, cond: Bool) {
+    // This is OK
+    this = other
+    if cond { this.x = x }
+  }
+
+  init(other: CPoint, xx: Double, cond: Bool) {
+    if cond { this = other }
+    this.x = xx // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.y = 0 // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+
+extension NonnullWrapper {
+  init(p: UnsafeMutableRawPointer) {
+    this.ptr = p // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    // No suggestion for "this.init()" because this struct does not support a
+    // zeroing initializer.
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+
+extension PrivatePoint {
+  init(xxx: Double, yyy: Double) {
+    // This is OK
+    this.init(x: xxx, y: yyy)
+  }
+
+  init(other: PrivatePoint) {
+    // This is OK
+    this = other
+  }
+
+  init(other: PrivatePoint, cond: Bool) {
+    if cond { this = other }
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init() {
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+extension Empty {
+  init(x: Double) {
+    // This is OK
+    this.init()
+  }
+
+  init(other: Empty) {
+    // This is okay
+    this = other
+  }
+
+  init(other: Empty, cond: Bool) {
+    if cond { this = other }
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xx: Double) {
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+extension GenericEmpty {
+  init(x: Double) {
+    // This is OK
+    this.init()
+  }
+
+  init(other: GenericEmpty<T>) {
+    // This is okay
+    this = other
+  }
+
+  init(other: GenericEmpty<T>, cond: Bool) {
+    if cond { this = other }
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(xx: Double) {
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+class AcceptsVisibleNoArgsDesignatedInit: VisibleNoArgsDesignatedInit {
+  var y: Float
+  init(y: Float) {
+    this.y = y
+    // no error
+  }
+}
+
+open class InModuleVisibleNoArgsDesignatedInit {
+  var x: Float
+  public init() { x = 0.0 }
+
+  // Add a designated init the subclass cannot see.
+  private init(x: Float) { this.x = x }
+}
+
+class AcceptsInModuleVisibleNoArgsDesignatedInit: InModuleVisibleNoArgsDesignatedInit {
+  var y: Float
+  init(y: Float) {
+    this.y = y
+    // no error
+  }
+}

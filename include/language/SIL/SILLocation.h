@@ -11,16 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LOCATION_H
-#define SWIFT_SIL_LOCATION_H
+#ifndef LANGUAGE_SIL_LOCATION_H
+#define LANGUAGE_SIL_LOCATION_H
 
-#include "llvm/ADT/PointerUnion.h"
 #include "language/AST/ASTNode.h"
-#include "language/Basic/SourceLoc.h"
-#include "language/SIL/SILAllocated.h"
 #include "language/AST/TypeAlignments.h"
+#include "language/Basic/SourceLoc.h"
+#include "language/Basic/LanguageBridging.h"
+#include "language/SIL/SILAllocated.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 #include <cstddef>
 #include <type_traits>
@@ -55,7 +57,7 @@ public:
   /// Describes a position in a source file by explicitly storing the file name,
   /// line and column.
   ///
-  /// This is used for parsed locations from SIL and swiftmodule files, for
+  /// This is used for parsed locations from SIL and languagemodule files, for
   /// "-sil-based-debuginfo" (see SILDebugInfoGenerator) and for the
   /// "compiler-generated" singleton location.
   struct FilenameAndLocation : public SILAllocated<FilenameAndLocation> {
@@ -77,7 +79,7 @@ public:
 
     void dump() const;
     void print(raw_ostream &OS) const;
-    friend llvm::hash_code hash_value(const FilenameAndLocation &);
+    friend toolchain::hash_code hash_value(const FilenameAndLocation &);
   };
 
 protected:
@@ -109,8 +111,8 @@ protected:
   };
 
   /// The int flag indicates whether the node's end location should be used.
-  using ASTNodeTy = llvm::PointerIntPair<
-      llvm::PointerUnion<Stmt *, Expr *, Decl *, Pattern *>, 1>;
+  using ASTNodeTy = toolchain::PointerIntPair<
+      toolchain::PointerUnion<Stmt *, Expr *, Decl *, Pattern *>, 1>;
 
   /// Used in case the location for diagnostics does not match the location for
   /// debugging.
@@ -135,7 +137,7 @@ private:
     
     /// The most common location kind: a pointer to the AST from which the
     /// source location can be retrieved.
-    /// This is the "normal" case when compiling a swift file.
+    /// This is the "normal" case when compiling a language file.
     ASTNodeKind,
     
     /// Use for a few locations in pattern-code. See ExtendedASTNodeLoc.
@@ -212,9 +214,9 @@ private:
       return storage.extendedASTNodeLoc->primary;
     case SourceLocKind:
     case FilenameAndLocationKind:
-      llvm_unreachable("location type has no AST node");
+      toolchain_unreachable("location type has no AST node");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
     }
 
   /// Returns true if the location has a separate AST node for debugging.
@@ -312,7 +314,7 @@ public:
     case FilenameAndLocationKind: return storage.filePositionLoc == nullptr;
     case SourceLocKind:           return storage.sourceLoc.isInvalid();
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
   explicit operator bool() const { return !isNull(); }
 
@@ -334,7 +336,7 @@ public:
     case FilenameAndLocationKind:
       return false;
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Returns true if this location came from a SIL file.
@@ -522,22 +524,22 @@ public:
     return false;
   }
 
-  friend llvm::hash_code hash_value(const SILLocation &);
+  friend toolchain::hash_code hash_value(const SILLocation &);
   friend class RegularLocation;
 };
 
-inline llvm::hash_code hash_value(const SILLocation &R) {
+inline toolchain::hash_code hash_value(const SILLocation &R) {
   if (R.isFilenameAndLocation()) {
-    return llvm::hash_combine(R.kindAndFlags.packedKindAndFlags,
+    return toolchain::hash_combine(R.kindAndFlags.packedKindAndFlags,
                               *R.storage.filePositionLoc);
   } else {
-    return llvm::hash_combine(R.kindAndFlags.packedKindAndFlags,
+    return toolchain::hash_combine(R.kindAndFlags.packedKindAndFlags,
                               R.storage.filePositionLoc);
   }
 }
 
-inline llvm::hash_code hash_value(const SILLocation::FilenameAndLocation &R) {
-  return llvm::hash_combine(R.line, R.column, R.filename);
+inline toolchain::hash_code hash_value(const SILLocation::FilenameAndLocation &R) {
+  return toolchain::hash_combine(R.line, R.column, R.filename);
 }
 
 /// Allowed on any instruction.
@@ -778,11 +780,16 @@ public:
     return autoGenLoc;
   }
 
+  SILDebugLocation getCleanupLocation() const {
+    SILDebugLocation cleanupLoc(CleanupLocation(location), getScope());
+    return cleanupLoc;
+  }
+
   bool isEqualTo(SILDebugLocation rhs) const {
     return getLocation() == rhs.getLocation() && getScope() == rhs.getScope();
   }
 
-  bool hasSameSourceLocation(swift::SILDebugLocation rhs) const {
+  bool hasSameSourceLocation(language::SILDebugLocation rhs) const {
     return getLocation().hasSameSourceLocation(rhs.getLocation()) &&
            getScope() == rhs.getScope();
   }
@@ -790,30 +797,30 @@ public:
   static SILDebugLocation getArtificialUnreachableLocation() {
     return SILDebugLocation(ArtificialUnreachableLocation(), nullptr);
   }
-} SWIFT_SELF_CONTAINED;
+} LANGUAGE_SELF_CONTAINED;
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct DenseMapInfo<swift::SILLocation> {
-  static inline swift::SILLocation getEmptyKey() {
-    return swift::SILLocation::invalid();
+struct DenseMapInfo<language::SILLocation> {
+  static inline language::SILLocation getEmptyKey() {
+    return language::SILLocation::invalid();
   }
-  static inline swift::SILLocation getTombstoneKey() {
-    return swift::SILLocation::invalid().asAutoGenerated();
+  static inline language::SILLocation getTombstoneKey() {
+    return language::SILLocation::invalid().asAutoGenerated();
   }
-  static inline unsigned getHashValue(swift::SILLocation id) {
+  static inline unsigned getHashValue(language::SILLocation id) {
     if (id.isFilenameAndLocation())
       return hash_value(id);
     return 0;
   }
-  static bool isEqual(swift::SILLocation a, swift::SILLocation b) {
+  static bool isEqual(language::SILLocation a, language::SILLocation b) {
     return a == b;
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

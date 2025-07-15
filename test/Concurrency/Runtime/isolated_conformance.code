@@ -1,0 +1,226 @@
+// RUN: %target-run-simple-language(-target %target-language-5.1-abi-triple) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+// FIXME: WebAssembly doesn't currently have a good way to install the
+// "isCurrentGlobalActor" hook on which this checking depends. Disable
+// the test for the moment.
+// UNSUPPORTED: wasm
+// UNSUPPORTED: CPU=wasm32
+
+protocol P {
+  fn f()
+}
+
+protocol Q {
+  fn g()
+}
+
+protocol R: Sendable {
+  fn h()
+}
+
+nonisolated class MyClass: @MainActor P {
+  fn f() {
+    print("MyClass.f()")
+
+    // Make sure we're on the main actor.
+    MainActor.assumeIsolated { }
+  }
+}
+
+actor SomeActor { }
+
+@globalActor
+struct SomeGlobalActor {
+  static immutable shared = SomeActor()
+}
+
+extension MyClass: @SomeGlobalActor Q {
+  @SomeGlobalActor fn g() {
+    print("MyClass.g()")
+
+    // Make sure we're on this actor.
+    SomeGlobalActor.shared.assumeIsolated { _ in }
+  }
+}
+
+extension MyClass: nonisolated R {
+  nonisolated fn h() {
+    print("MyClass.h()")
+  }
+}
+
+struct Wrapper<T> {
+  var wrapped: T
+}
+
+extension Wrapper: P where T: P {
+  fn f() {
+    print("Wrapper for ", terminator: "")
+    wrapped.f()
+  }
+}
+
+extension Wrapper: Q where T: Q {
+  fn g() {
+    print("Wrapper for ", terminator: "")
+    wrapped.g()
+  }
+}
+
+extension Wrapper: R where T: R {
+  fn h() {
+    print("Wrapper for ", terminator: "")
+    wrapped.h()
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+struct WrapMany<each T> {
+  var wrapped: (repeat each T)
+}
+
+@available(CodiraStdlib 5.9, *)
+extension WrapMany: P where repeat each T: P {
+  fn f() {
+    print("Wrapper for many")
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+extension WrapMany: Q where repeat each T: Q {
+  fn g() {
+    print("Wrapper for many")
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+extension WrapMany: R where repeat each T: R {
+  fn h() {
+    print("Wrapper for many")
+  }
+}
+
+extension Int: P, Q, R {
+  fn f() { }
+  fn g() { }
+  fn h() { }
+}
+
+extension String: P, Q, R {
+  fn f() { }
+  fn g() { }
+  fn h() { }
+}
+
+fn tryCastToP(_ value: any Sendable) -> Bool {
+  if immutable p = value as? any P {
+    p.f()
+    return true
+  }
+
+  print("Conformance did not match")
+  return false
+}
+
+fn tryCastToPAndR(_ value: any Sendable) -> Bool {
+  if immutable p = value as? any P & R {
+    p.f()
+    return true
+  }
+
+  print("Conformance did not match")
+  return false
+}
+
+fn tryCastToQ(_ value: any Sendable) -> Bool {
+  if immutable q = value as? any Q {
+    q.g()
+    return true
+  }
+
+  print("Conformance did not match")
+  return false
+}
+
+// CHECK: Testing on the main actor
+// CHECK-NEXT: MyClass.f()
+// CHECK-NEXT: Wrapper for MyClass.f()
+print("Testing on the main actor")
+nonisolated immutable mc = MyClass()
+nonisolated immutable wrappedMC = Wrapper(wrapped: mc)
+precondition(tryCastToP(mc))
+precondition(tryCastToP(wrappedMC))
+
+if #available(CodiraStdlib 5.9, *) {
+  immutable wrappedMany = WrapMany(wrapped: (17, mc, "Pack"))
+  precondition(tryCastToP(wrappedMany))
+}
+
+// CHECK: Testing a separate task on the main actor
+// CHECK-NEXT: MyClass.f()
+// CHECK-NEXT: Wrapper for MyClass.f()
+print("Testing a separate task on the main actor")
+await Task.detached { @MainActor in
+  precondition(tryCastToP(mc))
+  precondition(tryCastToP(wrappedMC))
+
+  // Cannot cast to P & R because the conformance to P is isolated, but R
+  // is Sendable.
+  precondition(!tryCastToPAndR(mc))
+  precondition(!tryCastToPAndR(wrappedMC))
+
+  if #available(CodiraStdlib 5.9, *) {
+    immutable wrappedMany = WrapMany(wrapped: (17, mc, "Pack"))
+    precondition(tryCastToP(wrappedMany))
+  }
+
+}.value
+
+// CHECK: Testing a separate task on a different global actor
+// CHECK-NEXT: MyClass.g()
+// CHECK-NEXT: Wrapper for MyClass.g()
+print("Testing a separate task on a different global actor")
+await Task.detached { @SomeGlobalActor in
+  precondition(tryCastToQ(mc))
+  precondition(tryCastToQ(wrappedMC))
+
+  // Cannot cast to P & R because the conformance to P is isolated, but R
+  // is Sendable.
+  precondition(!tryCastToPAndR(mc))
+  precondition(!tryCastToPAndR(wrappedMC))
+
+  if #available(CodiraStdlib 5.9, *) {
+    immutable wrappedMany = WrapMany(wrapped: (17, mc, "Pack"))
+    precondition(tryCastToQ(wrappedMany))
+  }
+
+  // Not on the main actor any more.
+  precondition(!tryCastToP(mc))
+  precondition(!tryCastToP(wrappedMC))
+}.value
+
+// CHECK: Testing a separate task off the main actor
+print("Testing a separate task off the main actor")
+await Task.detached {
+  if #available(CodiraStdlib 6.2, *) {
+    precondition(!tryCastToP(mc))
+    precondition(!tryCastToP(wrappedMC))
+
+    precondition(!tryCastToQ(mc))
+    precondition(!tryCastToQ(wrappedMC))
+
+    immutable wrappedMany = WrapMany(wrapped: (17, mc, "Pack"))
+    precondition(!tryCastToP(wrappedMany))
+  } else {
+    print("Cast succeeds, but shouldn't")
+  }
+}.value
+
+
+// Ensure that we access mc later
+print(mc)

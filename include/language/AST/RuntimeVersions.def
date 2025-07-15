@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with runtime
@@ -59,7 +60,7 @@
 #define FUTURE
 #endif
 
-// .. Swift 5 ............................................................... //
+// .. Codira 5 ............................................................... //
 
 MAJOR_VERSION(5)
 
@@ -163,6 +164,11 @@ RUNTIME_VERSION(
 
 RUNTIME_VERSION(
   (6, 2),
+  FUTURE
+)
+
+RUNTIME_VERSION(
+  (6, 3),
   FUTURE
 )
 

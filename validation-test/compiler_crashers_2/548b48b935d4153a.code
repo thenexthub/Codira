@@ -1,0 +1,4 @@
+// {"signature":"language::NominalType::get(language::NominalTypeDecl*, language::Type, language::ASTContext const&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+extension() {
+  struct a extension a

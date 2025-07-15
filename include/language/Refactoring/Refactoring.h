@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFACTORING_REFACTORING_H
-#define SWIFT_REFACTORING_REFACTORING_H
+#ifndef LANGUAGE_REFACTORING_REFACTORING_H
+#define LANGUAGE_REFACTORING_REFACTORING_H
 
 #include "language/AST/DiagnosticConsumer.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/StringExtras.h"
 #include "language/IDE/CancellableResult.h"
 #include "language/IDE/Utils.h"
 #include "language/Refactoring/RenameLoc.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
   class ModuleDecl;
@@ -89,7 +90,7 @@ public:
 ///   - valueDecl: The declaration that should be renamed
 RenameLocs localRenameLocs(SourceFile *sourceFile, const ValueDecl *valueDecl);
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 /// A `RenameLoc` together with the `ResolvedLoc` that it resolved to.
 struct ResolvedAndRenameLoc {
   RenameLoc renameLoc;
@@ -136,7 +137,7 @@ StringRef getDescriptiveRefactoringKindName(RefactoringKind Kind);
 
 StringRef getDescriptiveRenameUnavailableReason(RefactorAvailableKind Kind);
 
-bool refactorSwiftModule(ModuleDecl *M, RefactoringOptions Opts,
+bool refactorCodiraModule(ModuleDecl *M, RefactoringOptions Opts,
                          SourceEditConsumer &EditConsumer,
                          DiagnosticConsumer &DiagConsumer);
 
@@ -161,7 +162,7 @@ getSyntacticRenameRangeDetails(const SourceManager &SM, StringRef OldName,
 /// to that new name. If not, no ranges are reported and an error is emitted
 /// via \p DiagConsumer.
 CancellableResult<std::vector<SyntacticRenameRangeDetails>>
-findSyntacticRenameRanges(SourceFile *SF, llvm::ArrayRef<RenameLoc> RenameLocs,
+findSyntacticRenameRanges(SourceFile *SF, toolchain::ArrayRef<RenameLoc> RenameLocs,
                           StringRef NewName);
 
 CancellableResult<std::vector<SyntacticRenameRangeDetails>>
@@ -170,7 +171,7 @@ findLocalRenameRanges(SourceFile *SF, RangeConfig Range);
 SmallVector<RefactorAvailabilityInfo, 0>
 collectRefactorings(SourceFile *SF, RangeConfig Range,
                     bool &RangeStartMayNeedRename,
-                    llvm::ArrayRef<DiagnosticConsumer *> DiagConsumers);
+                    toolchain::ArrayRef<DiagnosticConsumer *> DiagConsumers);
 
 SmallVector<RefactorAvailabilityInfo, 0>
 collectRefactorings(ResolvedCursorInfoPtr CursorInfo, bool ExcludeRename);
@@ -178,4 +179,4 @@ collectRefactorings(ResolvedCursorInfoPtr CursorInfo, bool ExcludeRename);
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_REFACTORING_REFACTORING_H
+#endif // LANGUAGE_REFACTORING_REFACTORING_H

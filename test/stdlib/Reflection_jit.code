@@ -1,0 +1,9 @@
+// Test Reflection.code in JIT mode.
+// RUN: %target-jit-run -parse-stdlib %S/Reflection.code -- %S/Inputs/shuffle.jpg | %FileCheck %S/Reflection.code
+
+// REQUIRES: language_interpreter
+
+// Only run this test when we build host tools (e.g. bin/language-frontend), avoid running it for standalone stdlib builds.
+// Standalone stdlib builds use downloadable toolchains from language.org, which are codesigned in a way that doesn't immutable
+// the interpreter process (language-frontend) dynamically load locally-built modules (liblanguageCore).
+// REQUIRES: language_tools_extra

@@ -1,0 +1,48 @@
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+struct MemberInjectingMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable member: DeclSyntax =
+      """
+      private var _macroInjectedMember: String = ""
+      """
+
+    return [member]
+  }
+}
+
+struct PeerInjectingMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf decl: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable peer: DeclSyntax =
+      """
+      struct FixedNamePeer {}
+      """
+
+    return [peer]
+  }
+}
+
+struct FreestandingInjectingMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable peer: DeclSyntax =
+      """
+      struct FixedNameFreestander {}
+      """
+
+    return [peer]
+  }
+}

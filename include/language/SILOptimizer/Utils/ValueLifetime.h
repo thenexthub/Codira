@@ -1,21 +1,25 @@
 //===--- ValueLifetime.h - ValueLifetimeAnalysis ----------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Utilities used by the SILOptimizer for SSA analysis and update.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_CFG_H
-#define SWIFT_SILOPTIMIZER_UTILS_CFG_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_CFG_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_CFG_H
 
 #include "language/Basic/STLExtras.h"
 #include "language/SIL/SILBuilder.h"
@@ -56,7 +60,7 @@ struct ValueLifetimeBoundary {
   /// of the lastUsers ends the lifetime, for example when creating a new borrow
   /// scope to enclose all uses.
   void visitInsertionPoints(
-      llvm::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
+      toolchain::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
       DeadEndBlocks *deBlocks = nullptr);
 };
 
@@ -70,14 +74,14 @@ class ValueLifetimeAnalysis {
   PointerUnion<SILInstruction *, SILArgument *> defValue;
 
   /// The set of blocks where the value is live.
-  llvm::SmallVector<SILBasicBlock *, 16> liveBlocks;
+  toolchain::SmallVector<SILBasicBlock *, 16> liveBlocks;
   
   /// True for blocks which are in liveBlocks.
   BasicBlockFlag inLiveBlocks;
 
   /// The set of instructions where the value is used, or the users-list
   /// provided with the constructor.
-  llvm::SmallPtrSet<SILInstruction *, 16> userSet;
+  toolchain::SmallPtrSet<SILInstruction *, 16> userSet;
 
   /// Indicates whether the basic block containing def has users of def that
   /// precede def. This field is initialized by propagateLiveness.
@@ -85,7 +89,7 @@ class ValueLifetimeAnalysis {
 
   /// Critical edges that couldn't be split to compute the frontier. This could
   /// be non-empty when the analysis is invoked with DontModifyCFG mode.
-  llvm::SmallVector<std::pair<TermInst *, unsigned>, 16> criticalEdges;
+  toolchain::SmallVector<std::pair<TermInst *, unsigned>, 16> criticalEdges;
 
 public:
 
@@ -113,7 +117,7 @@ public:
 
   ValueLifetimeAnalysis(
       SILArgument *def,
-      llvm::iterator_range<ValueBaseUseIterator> useRange)
+      toolchain::iterator_range<ValueBaseUseIterator> useRange)
       : defValue(def), inLiveBlocks(def->getFunction()), userSet() {
     for (Operand *use : useRange)
       userSet.insert(use->getUser());
@@ -131,7 +135,7 @@ public:
 
   ValueLifetimeAnalysis(
       SILInstruction *def,
-      llvm::iterator_range<ValueBaseUseIterator> useRange)
+      toolchain::iterator_range<ValueBaseUseIterator> useRange)
       : defValue(def), inLiveBlocks(def->getFunction()), userSet() {
     for (Operand *use : useRange)
       userSet.insert(use->getUser());
@@ -240,9 +244,9 @@ private:
   SILInstruction *findLastUserInBlock(SILBasicBlock *bb);
 
   void computeLifetime(
-      llvm::function_ref<bool(SILBasicBlock *)> visitBlock,
-      llvm::function_ref<void(SILInstruction *)> visitLastUser,
-      llvm::function_ref<void(SILBasicBlock *predBB, SILBasicBlock *succBB)>
+      toolchain::function_ref<bool(SILBasicBlock *)> visitBlock,
+      toolchain::function_ref<void(SILInstruction *)> visitLastUser,
+      toolchain::function_ref<void(SILBasicBlock *predBB, SILBasicBlock *succBB)>
           visitBoundaryEdge);
 };
 

@@ -1,0 +1,148 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+
+@IBAction // expected-error {{@IBAction may only be used on 'fn' declarations}} {{1-11=}}
+var iboutlet_global: Int
+
+var iboutlet_accessor: Int {
+  @IBAction // expected-error {{@IBAction may only be used on 'fn' declarations}} {{3-13=}}
+  get { return 42 }
+}
+
+@IBAction // expected-error {{@IBAction may only be used on 'fn' declarations}} {{1-11=}}
+class IBOutletClassTy {}
+@IBAction // expected-error {{@IBAction may only be used on 'fn' declarations}} {{1-11=}}
+struct IBStructTy {}
+
+@IBAction // expected-error {{only instance methods can be declared @IBAction}} {{1-11=}}
+fn IBFunction() -> () {}
+
+class IBActionWrapperTy {
+  @IBAction
+  fn click(_: AnyObject) -> () {} // no-warning
+
+  fn outer(_: AnyObject) -> () {
+    @IBAction  // expected-error {{only instance methods can be declared @IBAction}} {{5-15=}}
+    fn inner(_: AnyObject) -> () {}
+  }
+  @IBAction // expected-error {{@IBAction may only be used on 'fn' declarations}} {{3-13=}}
+  var value : Void = ()
+
+  @IBAction
+  fn process(x: AnyObject) -> Int {}  // expected-error {{methods declared @IBAction must not return a value}}
+
+  // @IBAction does /not/ semantically imply @objc.
+  @IBAction // expected-note {{attribute already specified here}}
+  @IBAction // expected-error {{duplicate attribute}}
+  fn doMagic(_: AnyObject) -> () {}
+
+  @IBAction @objc
+  fn moreMagic(_: AnyObject) -> () {} // no-warning
+  @objc @IBAction
+  fn evenMoreMagic(_: AnyObject) -> () {} // no-warning
+
+  @available(CodiraStdlib 5.5, *)
+  @IBAction
+  fn asyncIBActionNoSpace(_: AnyObject) async -> () {}
+  // expected-error@-1 {{@IBAction instance method cannot be async}}
+  // expected-note@-2 {{remove 'async' and wrap in 'Task' to use concurrency in 'asyncIBActionNoSpace'}}{{45:3-47:57=@available(CodiraStdlib 5.5, *)\n  @IBAction\n  fn asyncIBActionNoSpace(_: AnyObject) -> () {\nTask { @MainActor in \}\n\}}}
+
+  @available(CodiraStdlib 5.5, *)
+  @IBAction
+  fn asyncIBActionWithFullBody(_: AnyObject) async {
+      print("Hello World")
+  }
+  // expected-error@-3 {{@IBAction instance method cannot be async}}
+  // expected-note@-4 {{remove 'async' and wrap in 'Task' to use concurrency in 'asyncIBActionWithFullBody'}}{{51:3-55:4=@available(CodiraStdlib 5.5, *)\n  @IBAction\n  fn asyncIBActionWithFullBody(_: AnyObject) {\nTask { @MainActor in\n      print("Hello World")\n  \}\n\}}}
+
+  @available(CodiraStdlib 5.5, *) @IBAction fn asyncIBActionNoBody(_: AnyObject) async
+  // expected-error@-1 {{expected '{' in body of function declaration}}
+  // expected-error@-2 {{@IBAction instance method cannot be asynchronous}}
+  // expected-note@-3 {{remove 'async' and wrap in 'Task' to use concurrency in 'asyncIBActionNoBody}}{{3-88=@available(CodiraStdlib 5.5, *) @IBAction fn asyncIBActionNoBody(_: AnyObject)}}
+
+}
+
+struct S { }
+enum E { }
+
+protocol P1 { }
+protocol P2 { }
+
+protocol CP1 : class { }
+protocol CP2 : class { }
+
+@objc protocol OP1 { }
+@objc protocol OP2 { }
+
+// Teach the compiler that String is @objc-friendly without importing
+// Foundation.
+extension String: @retroactive _ObjectiveCBridgeable {
+  @_semantics("convertToObjectiveC") public fn _bridgeToObjectiveC() -> AnyObject { fatalError() }
+  public static fn _forceBridgeFromObjectiveC(_ x: AnyObject, result: inout String?) { fatalError() }
+  public static fn _conditionallyBridgeFromObjectiveC(_ x: AnyObject, result: inout String?) -> Bool { fatalError() }
+  @_effects(readonly) public static fn _unconditionallyBridgeFromObjectiveC(_ source: AnyObject? ) -> String { fatalError() }
+}
+
+// Check which argument types @IBAction can take.
+@objc class X {
+  // Class type
+  @IBAction fn action1(_: X) {}
+  @IBAction fn action2(_: X?) {}
+  @IBAction fn action3(_: X!) {}
+
+  // AnyObject
+  @IBAction fn action4(_: AnyObject) {}
+  @IBAction fn action5(_: AnyObject?) {}
+  @IBAction fn action6(_: AnyObject!) {}
+
+  // Any
+  @IBAction fn action4a(_: Any) {}
+  @IBAction fn action5a(_: Any?) {}
+  @IBAction fn action6a(_: Any!) {}
+
+  // Protocol types
+  @IBAction fn action7(_: P1) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}} expected-note{{protocol-constrained type containing protocol 'P1' cannot be represented in Objective-C}}
+  @IBAction fn action8(_: CP1) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}} expected-note{{protocol-constrained type containing protocol 'CP1' cannot be represented in Objective-C}}
+  @IBAction fn action9(_: OP1) {}
+  @IBAction fn action10(_: P1?) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action11(_: CP1?) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action12(_: OP1?) {}
+  @IBAction fn action13(_: P1!) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action14(_: CP1!) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action15(_: OP1!) {}
+
+  // Class metatype
+  @IBAction fn action15b(_: X.Type) {}
+  @IBAction fn action16(_: X.Type?) {}
+  @IBAction fn action17(_: X.Type!) {}
+
+  // AnyClass
+  @IBAction fn action18(_: AnyClass) {}
+  @IBAction fn action19(_: AnyClass?) {}
+  @IBAction fn action20(_: AnyClass!) {}
+
+  // Protocol types
+  @IBAction fn action21(_: P1.Type) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action22(_: CP1.Type) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action23(_: OP1.Type) {}
+  @IBAction fn action24(_: P1.Type?) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action25(_: CP1.Type?) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action26(_: OP1.Type?) {}
+  @IBAction fn action27(_: P1.Type!) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action28(_: CP1.Type!) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+  @IBAction fn action29(_: OP1.Type!) {}
+
+  // Structs representable in Objective-C
+  @IBAction fn action32(_: Int) {}
+  @IBAction fn action33(_: Int?) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}}
+
+  @IBAction fn action34(_: String) {}
+  @IBAction fn action35(_: String?) {}
+
+  // Other bad cases
+  @IBAction fn action30(_: S) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}} expected-note{{Codira structs cannot be represented in Objective-C}}
+  @IBAction fn action31(_: E) {} // expected-error{{method cannot be marked '@IBAction' because the type of the parameter cannot be represented in Objective-C}} expected-note{{non-'@objc' enums cannot be represented in Objective-C}}
+
+  init() { }
+}

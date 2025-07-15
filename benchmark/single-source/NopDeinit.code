@@ -1,4 +1,4 @@
-//===--- NopDeinit.swift --------------------------------------------------===//
+//===--- NopDeinit.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // <rdar://problem/17838787>
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "NopDeinit",
     runFunction: run_NopDeinit,
@@ -24,7 +25,7 @@ public let benchmarks =
     legacyFactor: 100)
 
 class X<T : Comparable> {
-  let deinitIters = 10000
+  immutable deinitIters = 10000
   var elem: T
   init(_ x : T) {elem = x}
   deinit {
@@ -34,10 +35,10 @@ class X<T : Comparable> {
   }
 }
 
-public func run_NopDeinit(_ n: Int) {
+public fn run_NopDeinit(_ n: Int) {
   for _ in 1...n {
     var arr :[X<Int>] = []
-    let size = 5
+    immutable size = 5
     for i in 1...size { arr.append(X(i)) }
     arr.removeAll()
     check(arr.count == 0)

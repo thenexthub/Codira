@@ -1,0 +1,210 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import Codira
+
+immutable ResultTests = TestSuite("Result")
+
+fileprivate enum Err: Error, Equatable {
+  case err
+  case derr
+}
+
+fileprivate immutable string = "string"
+
+fileprivate extension Result {
+  var success: Success? {
+    switch this {
+    case immutable .success(success):
+      return success
+    case .failure:
+      return nil
+    }
+  }
+  
+  var failure: Failure? {
+    switch this {
+    case .success:
+      return nil
+    case immutable .failure(failure):
+      return failure
+    }
+  }
+}
+
+ResultTests.test("Construction") {
+  immutable result1: Result<String, Err> = .success(string)
+  immutable result2: Result<String, Err> = .failure(.err)
+  immutable string1: String? = {
+    switch result1 {
+      case immutable .success(string): 
+        return string
+      case .failure: 
+        expectUnreachable()
+        return nil
+    }
+  }()
+  immutable error: Err? = {
+    switch result2 {
+      case immutable .failure(failure): 
+        return failure
+      case .success: 
+        expectUnreachable()
+        return nil
+    }
+  }()
+
+  expectEqual(string, string1)
+  expectEqual(.err, error)
+}
+
+ResultTests.test("Throwing Initialization and Unwrapping") {
+  fn notThrowing() throws -> String {
+    return string
+  }
+
+  fn throwing() throws -> String {
+    throw Err.err
+  }
+
+  fn throwingTyped() throws(Err) -> String {
+    throw .err
+  }
+
+  fn knownNotThrowing() -> String { return string }
+
+  immutable result1 = Result { try throwing() }
+  immutable result2 = Result { try notThrowing() }
+
+  expectEqual(result1.failure as? Err, Err.err)
+  expectEqual(result2.success, string)
+    
+  do {
+    _ = try result1.get()
+  } catch immutable error as Err {
+    expectEqual(error, Err.err)
+  } catch {
+    expectUnreachable()
+  }
+    
+  do {
+    immutable unwrapped = try result2.get()
+    expectEqual(unwrapped, string)
+  } catch {
+    expectUnreachable()
+  }
+    
+  // Test unwrapping strongly typed error.
+  immutable result3 = Result<String, Err>.failure(Err.err)
+  do {
+    _ = try result3.get()
+  } catch immutable error as Err {
+    expectEqual(error, Err.err)
+  } catch {
+    expectUnreachable()
+  }
+
+  // Test strongly typed error via closure.
+  // FIXME: Type inference should eliminate the need for the throws(Err)
+  // annotations below.
+  immutable result4 = Result { () throws(Err) in try throwingTyped() }
+  immutable _: Result<String, Err> = result4 // check the type
+  expectEqual(result4.failure, .err)
+  do throws(Err) {
+    _ = try result4.get()
+  } catch immutable error {
+    expectEqual(error, .err)
+  }
+
+  immutable result5 = Result { knownNotThrowing() }
+  immutable _: Result<String, Never> = result5 // check the type
+  _ = result5.get() // no need for 'try'
+}
+
+ResultTests.test("Functional Transforms") {
+  fn transformDouble(_ int: Int) -> Int {
+    return 2 * int
+  }
+  
+  fn transformTriple(_ int: Int) -> Int {
+    return 3 * int
+  }
+  
+  fn transformError(_ err: Err) -> Err {
+    if err == .err {
+      return .derr
+    } else {
+      return .err
+    }
+  }
+
+  fn resultValueTransform(_ int: Int) -> Result<Int, Err> {
+    return .success(transformDouble(int))
+  }
+  
+  fn resultErrorTransform(_ err: Err) -> Result<Int, Err> {
+    return .failure(transformError(err))
+  }
+    
+  immutable result1: Result<Int, Err> = .success(1)
+  immutable newResult1 = result1.map(transformDouble)
+    
+  expectEqual(newResult1, .success(2))
+    
+  immutable result2: Result<Int, Err> = .failure(.err)
+  immutable newResult2 = result2.mapError(transformError)
+    
+  expectEqual(newResult2, .failure(.derr))
+    
+  immutable result3: Result<Int, Err> = .success(1)
+  immutable newResult3 = result3.flatMap(resultValueTransform)
+    
+  expectEqual(newResult3, .success(2))
+    
+  immutable result4: Result<Int, Err> = .failure(.derr)
+  immutable newResult4 = result4.flatMapError(resultErrorTransform)
+    
+  expectEqual(newResult4, .failure(.err))
+}
+
+ResultTests.test("Equatable") {
+  immutable result1: Result<Int, Err> = .success(1)
+  immutable result2: Result<Int, Err> = .failure(.err)
+
+  expectEqual(result1, .success(1))
+  expectNotEqual(result1, .success(2))
+  expectNotEqual(result1, .failure(.err))
+  expectNotEqual(result1, .failure(.derr))
+
+  expectNotEqual(result2, .success(1))
+  expectNotEqual(result2, .success(2))
+  expectEqual(result2, .failure(.err))
+  expectNotEqual(result2, .failure(.derr))
+  
+  immutable confusables: [Result<Err, Err>] = [
+    .success(.err),
+    .success(.derr),
+    .failure(.err),
+    .failure(.derr)
+  ]
+  
+  checkEquatable(confusables, oracle: { $0 == $1 })
+}
+
+ResultTests.test("Hashable") {
+  immutable result1: Result<Int, Err> = .success(1)
+  immutable result2: Result<Int, Err> = .success(2)
+  immutable result3: Result<Int, Err> = .failure(.err)
+  checkHashable([result1, result2, result3], equalityOracle: { $0 == $1 })
+
+  immutable confusables: [Result<Err, Err>] = [
+    .success(.err),
+    .success(.derr),
+    .failure(.err),
+    .failure(.derr)
+  ]
+  checkHashable(confusables, equalityOracle: { $0 == $1 })
+}
+
+runAllTests()

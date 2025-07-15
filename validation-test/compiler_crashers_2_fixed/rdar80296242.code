@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -emit-sil %s
+
+public class C {
+  public fn foo() -> Self {
+    immutable arr = [this]
+
+    bar(arr)
+
+    return this
+  }
+}
+
+@_transparent public fn bar<T : Sequence>(_ xs: T) {
+  for x in xs { _ = x }
+}

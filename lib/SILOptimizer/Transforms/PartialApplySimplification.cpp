@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -34,8 +35,8 @@
 
 #define DEBUG_TYPE "sil-partial-apply-simplification"
 
-#include "llvm/Support/Debug.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILCloner.h"
 #include "language/SIL/SILInstruction.h"
@@ -72,11 +73,11 @@ namespace {
 
 struct KnownCallee {
   /// The set of function_refs to the callee.
-  llvm::SetVector<FunctionRefInst *> FunctionRefs;
+  toolchain::SetVector<FunctionRefInst *> FunctionRefs;
   /// The set of partial application sites.
-  llvm::SetVector<PartialApplyInst *> PartialApplications;
+  toolchain::SetVector<PartialApplyInst *> PartialApplications;
   /// The set of full application sites.
-  llvm::SetVector<FullApplySite> FullApplications;
+  toolchain::SetVector<FullApplySite> FullApplications;
   /// If the callee has a non-partial-apply, non-apply use, this points to an
   /// arbitrary one, for logging purposes.
   SILInstruction *NonApplyUse = nullptr;
@@ -86,8 +87,8 @@ class PartialApplySimplificationPass : public SILModuleTransform {
   /// The entry point to the transformation.
   void run() override {
     // Scan all partial applications in the module so we know what to work with.
-    llvm::DenseMap<SILFunction *, KnownCallee> knownCallees;
-    llvm::SetVector<swift::PartialApplyInst *> dynamicCallees;
+    toolchain::DenseMap<SILFunction *, KnownCallee> knownCallees;
+    toolchain::SetVector<language::PartialApplyInst *> dynamicCallees;
     for (auto &f : *getModule()) {
       scanFunction(&f, knownCallees, dynamicCallees);
     }
@@ -102,9 +103,9 @@ class PartialApplySimplificationPass : public SILModuleTransform {
   }
 
   void scanFunction(SILFunction *f,
-                    llvm::DenseMap<SILFunction *,
+                    toolchain::DenseMap<SILFunction *,
                                    KnownCallee> &knownCallees,
-                    llvm::SetVector<PartialApplyInst *> &dynamicCallees);
+                    toolchain::SetVector<PartialApplyInst *> &dynamicCallees);
   
   void processKnownCallee(SILFunction *callee,
                           const KnownCallee &pa);
@@ -136,7 +137,7 @@ class PartialApplySimplificationPass : public SILModuleTransform {
 ///   - the argument is either trivial, or passed with a net +0 convention
 ///     (guaranteed, unowned, in_guaranteed, inout)
 /// - if the partial application is escapable:
-///   - the argument is either a single Swift-refcounted word, or trivial and
+///   - the argument is either a single Codira-refcounted word, or trivial and
 ///     sized strictly less than one word
 ///   - the argument ownership convention matches the callee convention of the
 ///     resulting function
@@ -198,10 +199,10 @@ static bool isSimplePartialApply(SILModule &M,
       return false;
     }
     
-    // The context type must consist of only a swift-refcounted object
+    // The context type must consist of only a language-refcounted object
     // reference.
     return SILType::getPrimitiveObjectType(argTy)
-      .isSingleSwiftRefcounted(M, context.getResilienceExpansion());
+      .isSingleCodiraRefcounted(M, context.getResilienceExpansion());
   }
   
   return true;
@@ -217,9 +218,9 @@ static bool isSimplePartialApply(PartialApplyInst *i) {
 }
 
 void PartialApplySimplificationPass::scanFunction(SILFunction *f,
-                         llvm::DenseMap<SILFunction *,
+                         toolchain::DenseMap<SILFunction *,
                                         KnownCallee> &knownCallees,
-                         llvm::SetVector<PartialApplyInst *> &dynamicCallees) {
+                         toolchain::SetVector<PartialApplyInst *> &dynamicCallees) {
   // Consider all partial_apply instructions.
   for (auto &block : *f) {
     for (auto &inst : block) {
@@ -266,14 +267,14 @@ void PartialApplySimplificationPass::processKnownCallee(SILFunction *callee,
   if (pa.PartialApplications.empty())
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "***** Processing known partial_apply callee "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** Processing known partial_apply callee "
                           << callee->getName() << " *****\n");
   
   // If the subject of the partial application has other uses that aren't
   // partial applications, then thunk it.
   if (pa.NonApplyUse) {
-    LLVM_DEBUG(llvm::dbgs() << "Callee has non-apply uses; thunking\n";
-               pa.NonApplyUse->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Callee has non-apply uses; thunking\n";
+               pa.NonApplyUse->print(toolchain::dbgs()));
     ++NumPartialApplyCalleesWithNonApplyUses;
     return generateForwardingThunksForKnownCallee();
   }
@@ -282,12 +283,12 @@ void PartialApplySimplificationPass::processKnownCallee(SILFunction *callee,
   // or is itself an external reference, we can't change the existing function
   // signature. We'll always use forwarding thunks in this case.
   if (callee->isPossiblyUsedExternally()) {
-    LLVM_DEBUG(llvm::dbgs() << "Callee is possibly used externally; thunking\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Callee is possibly used externally; thunking\n");
     ++NumPartialApplyCalleesPossiblyUsedExternally;
     return generateForwardingThunksForKnownCallee();
   }
   if (callee->empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "Callee is a declaration only; thunking\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Callee is a declaration only; thunking\n");
     ++NumPartialApplyCalleesDeclarationOnly;
     return generateForwardingThunksForKnownCallee();
   }
@@ -311,21 +312,21 @@ void PartialApplySimplificationPass::processKnownCallee(SILFunction *callee,
             != thisPA->getFunctionType()->getCalleeConvention()
         || !examplePA->getFunctionType()->getExtInfo()
             .isEqualTo(thisPA->getFunctionType()->getExtInfo(), true)) {
-      LLVM_DEBUG(llvm::dbgs() << "Mismatched partial application arguments; thunking:\n";
-                 thisPA->print(llvm::dbgs());
-                 examplePA->print(llvm::dbgs()));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Mismatched partial application arguments; thunking:\n";
+                 thisPA->print(toolchain::dbgs());
+                 examplePA->print(toolchain::dbgs()));
       ++NumPartialApplyCalleesWithMismatchedPartialApplies;
       return generateForwardingThunksForKnownCallee();
     }
   }
   
   // OK, all the partial applications look the same.
-  LLVM_DEBUG(llvm::dbgs() << "All partial applications look like this:\n";
-             examplePA->print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "All partial applications look like this:\n";
+             examplePA->print(toolchain::dbgs()));
   
   // If they're simple already, then we don't need to do anything.
   if (isSimplePartialApply(examplePA)) {
-    LLVM_DEBUG(llvm::dbgs() << "And they're already simple, don't need to do anything!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "And they're already simple, don't need to do anything!\n");
     return;
   }
 
@@ -351,8 +352,8 @@ void PartialApplySimplificationPass::processKnownCallee(SILFunction *callee,
   //
   // TODO: Evaluate if stack-allocating the escapable box is acceptable.
   if (!examplePA->isOnStack() && !pa.FullApplications.empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "Callee has mix of escaping partial_apply and full application sites; thunking:\n";
-               pa.FullApplications.front().getInstruction()->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Callee has mix of escaping partial_apply and full application sites; thunking:\n";
+               pa.FullApplications.front().getInstruction()->print(toolchain::dbgs()));
     ++NumPartialApplyCalleesWithEscapingAndApplyUses;
     return generateForwardingThunksForKnownCallee();
   }
@@ -368,7 +369,7 @@ void PartialApplySimplificationPass::processDynamicCallee(PartialApplyInst *pa){
 }
 
 void PartialApplySimplificationPass::generateForwardingThunksForKnownCallee() {
-  LLVM_DEBUG(llvm::dbgs() << "TODO: create forwarding thunk here\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "TODO: create forwarding thunk here\n");
   return;
 }
 
@@ -488,7 +489,7 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
   // capture the generic environment to represent partial applications in
   // their full generality.
   if (origTy->getInvocationGenericSignature()) {
-    LLVM_DEBUG(llvm::dbgs() << "TODO: generic partial_apply not yet implemented\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "TODO: generic partial_apply not yet implemented\n");
     ++NumUnsupportedChangesToInvocationFunctions;
     return;
   }
@@ -501,7 +502,7 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
   if (boxFields.size() == 1) {
     tupleTy = boxFields[0].getLoweredType();
   } else {
-    llvm::SmallVector<TupleTypeElt, 4> tupleElts;
+    toolchain::SmallVector<TupleTypeElt, 4> tupleElts;
     for (auto field : boxFields) {
       tupleElts.push_back(TupleTypeElt(field.getLoweredType()));
     }
@@ -548,9 +549,9 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
                                     origTy->getInvocationSubstitutions(),
                                     C);
   
-  LLVM_DEBUG(llvm::dbgs() << "Changing invocation function signature to\n";
-             newTy->print(llvm::dbgs());
-             llvm::dbgs() << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Changing invocation function signature to\n";
+             newTy->print(toolchain::dbgs());
+             toolchain::dbgs() << '\n');
   
   // Change the invocation function to use the new type, and unbox the
   // captures in its entry block.
@@ -642,7 +643,7 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
         case ParameterConvention::Pack_Guaranteed:
         case ParameterConvention::Pack_Owned:
         case ParameterConvention::Pack_Inout:
-          llvm_unreachable("unsupported!");
+          toolchain_unreachable("unsupported!");
           break;
         }
       } else {
@@ -689,7 +690,7 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
         case ParameterConvention::Pack_Guaranteed:
         case ParameterConvention::Pack_Owned:
         case ParameterConvention::Pack_Inout:
-          llvm_unreachable("unsupported!");
+          toolchain_unreachable("unsupported!");
           break;
         }
       }
@@ -716,7 +717,7 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
     // Indirect_In arguments, then balance them with deallocations on all
     // function exits.
     if (!AddedStackAllocs.empty()) {
-      llvm_unreachable("todo");
+      toolchain_unreachable("todo");
     }
   }
   
@@ -820,7 +821,7 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
       case ParameterConvention::Pack_Guaranteed:
       case ParameterConvention::Pack_Owned:
       case ParameterConvention::Pack_Inout:
-        llvm_unreachable("unsupported!");
+        toolchain_unreachable("unsupported!");
         break;
       }
     }
@@ -890,6 +891,6 @@ rewriteKnownCalleeWithExplicitContext(SILFunction *callee,
   return;
 }
 
-SILTransform *swift::createPartialApplySimplification() {
+SILTransform *language::createPartialApplySimplification() {
   return new PartialApplySimplificationPass();
 }

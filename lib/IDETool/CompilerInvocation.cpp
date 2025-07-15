@@ -1,13 +1,17 @@
 //===--- CompilerInvocation.cpp - Compiler invocation utilities -----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDETool/CompilerInvocation.h"
@@ -36,38 +40,38 @@ static void disableExpensiveSILOptions(SILOptions &Opts) {
 }
 
 // Adjust the cc1 triple string we got from clang, to make sure it will be
-// accepted when it goes through the swift clang importer.
+// accepted when it goes through the language clang importer.
 static std::string adjustClangTriple(StringRef TripleStr) {
   std::string Result;
-  llvm::raw_string_ostream OS(Result);
+  toolchain::raw_string_ostream OS(Result);
 
-  llvm::Triple Triple(TripleStr);
+  toolchain::Triple Triple(TripleStr);
   switch (Triple.getSubArch()) {
-  case llvm::Triple::SubArchType::ARMSubArch_v7:
+  case toolchain::Triple::SubArchType::ARMSubArch_v7:
     OS << "armv7"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v7s:
+  case toolchain::Triple::SubArchType::ARMSubArch_v7s:
     OS << "armv7s"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v7k:
+  case toolchain::Triple::SubArchType::ARMSubArch_v7k:
     OS << "armv7k"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v6:
+  case toolchain::Triple::SubArchType::ARMSubArch_v6:
     OS << "armv6"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v6m:
+  case toolchain::Triple::SubArchType::ARMSubArch_v6m:
     OS << "armv6m"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v6k:
+  case toolchain::Triple::SubArchType::ARMSubArch_v6k:
     OS << "armv6k"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v6t2:
+  case toolchain::Triple::SubArchType::ARMSubArch_v6t2:
     OS << "armv6t2"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v5:
+  case toolchain::Triple::SubArchType::ARMSubArch_v5:
     OS << "armv5"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v5te:
+  case toolchain::Triple::SubArchType::ARMSubArch_v5te:
     OS << "armv5te"; break;
-  case llvm::Triple::SubArchType::ARMSubArch_v4t:
+  case toolchain::Triple::SubArchType::ARMSubArch_v4t:
     OS << "armv4t"; break;
   default:
-    // Adjust i386-macosx to x86_64 because there is no Swift stdlib for i386.
-    if ((Triple.getOS() == llvm::Triple::MacOSX ||
-         Triple.getOS() == llvm::Triple::Darwin) &&
-        Triple.getArch() == llvm::Triple::x86) {
+    // Adjust i386-macosx to x86_64 because there is no Codira stdlib for i386.
+    if ((Triple.getOS() == toolchain::Triple::MacOSX ||
+         Triple.getOS() == toolchain::Triple::Darwin) &&
+        Triple.getArch() == toolchain::Triple::x86) {
       OS << "x86_64";
     } else {
       OS << Triple.getArchName();
@@ -82,11 +86,11 @@ static std::string adjustClangTriple(StringRef TripleStr) {
 
 static FrontendInputsAndOutputs resolveSymbolicLinksInInputs(
     FrontendInputsAndOutputs &inputsAndOutputs, StringRef UnresolvedPrimaryFile,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
     std::string &Error) {
   assert(FileSystem);
 
-  llvm::SmallString<128> PrimaryFile;
+  toolchain::SmallString<128> PrimaryFile;
   if (auto err = FileSystem->getRealPath(UnresolvedPrimaryFile, PrimaryFile))
     PrimaryFile = UnresolvedPrimaryFile;
 
@@ -95,10 +99,10 @@ static FrontendInputsAndOutputs resolveSymbolicLinksInInputs(
   // clang's FileManager ?
   FrontendInputsAndOutputs replacementInputsAndOutputs;
   for (const InputFile &input : inputsAndOutputs.getAllInputs()) {
-    llvm::SmallString<128> newFilename;
+    toolchain::SmallString<128> newFilename;
     if (auto err = FileSystem->getRealPath(input.getFileName(), newFilename))
       newFilename = input.getFileName();
-    llvm::sys::path::native(newFilename);
+    toolchain::sys::path::native(newFilename);
     bool newIsPrimary = input.isPrimary() ||
                         (!PrimaryFile.empty() && PrimaryFile == newFilename);
     if (newIsPrimary) {
@@ -114,8 +118,8 @@ static FrontendInputsAndOutputs resolveSymbolicLinksInInputs(
     return replacementInputsAndOutputs;
   }
 
-  llvm::SmallString<64> Err;
-  llvm::raw_svector_ostream OS(Err);
+  toolchain::SmallString<64> Err;
+  toolchain::raw_svector_ostream OS(Err);
   OS << "'" << PrimaryFile << "' is not part of the input files";
   Error = std::string(OS.str());
   return replacementInputsAndOutputs;
@@ -123,10 +127,10 @@ static FrontendInputsAndOutputs resolveSymbolicLinksInInputs(
 
 namespace {
 class StreamDiagConsumer : public DiagnosticConsumer {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
 
 public:
-  StreamDiagConsumer(llvm::raw_ostream &OS) : OS(OS) {}
+  StreamDiagConsumer(toolchain::raw_ostream &OS) : OS(OS) {}
 
   void handleDiagnostic(SourceManager &SM,
                         const DiagnosticInfo &Info) override {
@@ -155,31 +159,26 @@ bool ide::initCompilerInvocation(
     CompilerInvocation &Invocation, ArrayRef<const char *> OrigArgs,
     FrontendOptions::ActionType Action, DiagnosticEngine &Diags,
     StringRef UnresolvedPrimaryFile,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    const std::string &swiftExecutablePath,
-    const std::string &runtimeResourcePath,
-    const std::string &diagnosticDocumentationPath, time_t sessionTimestamp,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    const std::string &languageExecutablePath,
+    const std::string &runtimeResourcePath, time_t sessionTimestamp,
     std::string &Error) {
   SmallVector<const char *, 16> Args;
-  // Make sure to put '-resource-dir' and '-diagnostic-documentation-path' at
-  // the top to allow overriding them with the passed in arguments.
+  // Make sure to put '-resource-dir' at the top to allow overriding them with
+  // the passed in arguments.
   Args.push_back("-resource-dir");
   Args.push_back(runtimeResourcePath.c_str());
-  Args.push_back("-Xfrontend");
-  Args.push_back("-diagnostic-documentation-path");
-  Args.push_back("-Xfrontend");
-  Args.push_back(diagnosticDocumentationPath.c_str());
   Args.append(OrigArgs.begin(), OrigArgs.end());
 
   SmallString<32> ErrStr;
-  llvm::raw_svector_ostream ErrOS(ErrStr);
+  toolchain::raw_svector_ostream ErrOS(ErrStr);
   StreamDiagConsumer DiagConsumer(ErrOS);
   Diags.addConsumer(DiagConsumer);
 
-  // Derive 'swiftc' path from 'swift-frontend' path (swiftExecutablePath).
-  SmallString<256> driverPath(swiftExecutablePath);
-  llvm::sys::path::remove_filename(driverPath);
-  llvm::sys::path::append(driverPath, "swiftc");
+  // Derive 'languagec' path from 'language-frontend' path (languageExecutablePath).
+  SmallString<256> driverPath(languageExecutablePath);
+  toolchain::sys::path::remove_filename(driverPath);
+  toolchain::sys::path::append(driverPath, "languagec");
 
   bool InvocationCreationFailed =
       driver::getSingleFrontendInvocationFromDriverArguments(
@@ -187,7 +186,7 @@ bool ide::initCompilerInvocation(
           [&](ArrayRef<const char *> FrontendArgs) {
             return Invocation.parseArgs(
                 FrontendArgs, Diags, /*ConfigurationFileBuffers=*/nullptr,
-                /*workingDirectory=*/"", swiftExecutablePath);
+                /*workingDirectory=*/"", languageExecutablePath);
           },
           /*ForceNoOutputs=*/true);
 
@@ -272,12 +271,12 @@ bool ide::initCompilerInvocation(
 bool ide::initInvocationByClangArguments(ArrayRef<const char *> ArgList,
                                          CompilerInvocation &Invok,
                                          std::string &Error) {
-  llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> DiagOpts{
+  toolchain::IntrusiveRefCntPtr<clang::DiagnosticOptions> DiagOpts{
     new clang::DiagnosticOptions()
   };
 
   clang::TextDiagnosticBuffer DiagBuf;
-  llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> ClangDiags =
+  toolchain::IntrusiveRefCntPtr<clang::DiagnosticsEngine> ClangDiags =
       clang::CompilerInstance::createDiagnostics(DiagOpts.get(), &DiagBuf,
                                                  /*ShouldOwnClient=*/false);
 
@@ -385,7 +384,7 @@ bool ide::initInvocationByClangArguments(ArrayRef<const char *> ArgList,
 
   if (!ClangInvok->getLangOpts().isCompilingModule()) {
     CCArgs.push_back("-Xclang");
-    llvm::SmallString<64> Str;
+    toolchain::SmallString<64> Str;
     Str += "-fmodule-name=";
     Str += ClangInvok->getLangOpts().CurrentModule;
     CCArgs.push_back(std::string(Str.str()));

@@ -1,0 +1,60 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn a<T>: C {
+fn b<h : Any, e> {
+for b : $0.E == c, T -> {
+var c(A, object2: b = 1)(A, Bool) {
+}
+struct c<Q<T {
+}
+}
+protocol B : U {
+}
+return b: X.h: d where I) -> Any) {
+for b {
+convenience init(a: c) -> {
+class A {
+}
+struct c : T>?) {
+}
+class A {
+}
+class a {
+}
+class fn b: (c(x)) ->) -> {
+class A {
+}
+static immutable g == c) -> {
+}
+}
+}
+typealias f = 0.c {
+}
+protocol P {
+typealias g() -> String {
+var b {
+protocol a {
+}
+}
+}
+enum B {
+}
+}
+}
+}
+this.c : NSManagedObject {
+typealias b = b: Int = f<(i> ()
+var d = Codira.dynamicType.e(""")
+}
+}
+var b: T.h

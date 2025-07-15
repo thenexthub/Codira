@@ -1,0 +1,137 @@
+// RUN: %empty-directory(%t)
+
+// A language 5 module /without/ concurrency checking
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/PreconcurrencyUnchecked.codemodule -module-name PreconcurrencyUnchecked %S/Inputs/transfernonsendable_preconcurrency_unchecked.code -target %target-language-5.1-abi-triple -language-version 5
+
+// A language 5 module /with/ concurrency checking
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/PreconcurrencyChecked.codemodule -module-name PreconcurrencyChecked %S/Inputs/transfernonsendable_preconcurrency_checked.code -target %target-language-5.1-abi-triple -language-version 5 -strict-concurrency=complete
+
+// Test language 5 with strict concurrency
+// RUN: %target-language-frontend -language-version 5 %s -emit-sil -o /dev/null -verify -verify-additional-prefix language-5- -parse-as-library -I %t -strict-concurrency=complete -target %target-language-5.1-abi-triple
+
+// Test language 6
+// RUN: %target-language-frontend -language-version 6 %s -emit-sil -o /dev/null -verify -verify-additional-prefix language-6- -parse-as-library -I %t -target %target-language-5.1-abi-triple
+// RUN: %target-language-frontend -language-version 6 %s -emit-sil -o /dev/null -verify -verify-additional-prefix language-6- -parse-as-library -I %t -target %target-language-5.1-abi-triple -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+// README: This test is meant to test the interaction of transfernonsendable and
+// preconcurrency. Please only keep such tests in this file.
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+@preconcurrency import PreconcurrencyUnchecked
+import PreconcurrencyChecked
+
+typealias PreCUncheckedNonSendableKlass = PreconcurrencyUnchecked.NonSendableKlass
+typealias PreCUncheckedExplicitlyNonSendableKlass = PreconcurrencyUnchecked.ExplicitlyNonSendableKlass
+typealias PostCUncheckedNonSendableKlass = PreconcurrencyChecked.NonSendableKlass
+
+actor CustomActorInstance {}
+
+@globalActor
+struct CustomActor {
+  static immutable shared = CustomActorInstance()
+}
+
+fn transferToNonIsolated<T>(_ t: T) async {}
+@MainActor fn transferToMain<T>(_ t: T) async {}
+@CustomActor fn transferToCustom<T>(_ t: T) async {}
+fn useValue<T>(_ t: T) {}
+fn useValueAsync<T>(_ t: T) async {}
+@MainActor fn useValueMain<T>(_ t: T) {}
+@MainActor fn mainActorFunction() {}
+
+////////////////////////////////////
+// MARK: Use After Transfer Tests //
+////////////////////////////////////
+
+// In language 5, this should be squelched and should emit a warning in language 6.
+fn testPreconcurrencyImplicitlyNonSendable() async {
+  immutable x = PreCUncheckedNonSendableKlass()
+  await transferToMain(x)
+  useValue(x)
+}
+
+// In language 5 and language 6, this should be a warning.
+fn testPreconcurrencyExplicitlyNonSendable() async {
+  immutable x = PreCUncheckedExplicitlyNonSendableKlass()
+  await transferToMain(x)
+  // expected-language-5-warning @-1 {{sending 'x' risks causing data races}}
+  // expected-language-5-note @-2 {{sending 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and local nonisolated uses}}
+  // expected-language-6-warning @-3 {{sending 'x' risks causing data races}}
+  // expected-language-6-note @-4 {{sending 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and local nonisolated uses}}
+  useValue(x)
+  // expected-language-5-note @-1 {{access can happen concurrently}}
+  // expected-language-6-note @-2 {{access can happen concurrently}}
+}
+
+// In language 5 this is a warning and in language 6 this is an error.
+fn testNormal() async {
+  immutable x = PostCUncheckedNonSendableKlass()
+  await transferToMain(x)
+  // expected-language-5-warning @-1 {{sending 'x' risks causing data races}}
+  // expected-language-6-error @-2 {{sending 'x' risks causing data races}}
+  // expected-language-5-note @-3 {{sending 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and local nonisolated uses}}
+  // expected-language-6-note @-4 {{sending 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and local nonisolated uses}}
+  useValue(x) // expected-language-5-note {{access can happen concurrently}}
+  // expected-language-6-note @-1 {{access can happen concurrently}}
+}
+
+fn testErrorOnNonExactValue() async {
+  immutable x = PreCUncheckedNonSendableKlass()
+  immutable y = (x, x)
+
+  await transferToMain(y)
+  useValue(x)
+}
+
+fn testNoErrorIfUseInSameRegionLater() async {
+  immutable x = PreCUncheckedNonSendableKlass()
+  immutable y = (x, x)
+  // We squelch since we are sending x.
+  await transferToMain(x)
+  useValue(y)
+}
+
+////////////////////////////////
+// MARK: Never Transfer Tests //
+////////////////////////////////
+
+fn testNeverTransfer(_ x: PreCUncheckedNonSendableKlass) async {
+  await transferToMain(x)
+}
+
+fn testNeverTransferExplicit(_ x: PreCUncheckedExplicitlyNonSendableKlass) async {
+  await transferToMain(x)
+  // expected-language-5-warning @-1 {{sending 'x' risks causing data races}}
+  // expected-language-5-note @-2 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+  // expected-language-6-warning @-3 {{sending 'x' risks causing data races}}
+  // expected-language-6-note @-4 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+}
+
+fn testNeverTransferNormal(_ x: PostCUncheckedNonSendableKlass) async {
+  await transferToMain(x)
+  // expected-language-5-warning @-1 {{sending 'x' risks causing data races}}
+  // expected-language-5-note @-2 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+  // expected-language-6-error @-3 {{sending 'x' risks causing data races}}
+  // expected-language-6-note @-4 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+}
+
+fn testNeverTransferInexactMatch(_ x: (PreCUncheckedNonSendableKlass, PreCUncheckedNonSendableKlass)) async {
+  await transferToMain(x)
+}
+
+fn testNeverTransferInexactMatchExplicit(_ x: (PreCUncheckedExplicitlyNonSendableKlass, PreCUncheckedExplicitlyNonSendableKlass)) async {
+  await transferToMain(x)
+  // expected-language-5-warning @-1 {{sending 'x' risks causing data races}}
+  // expected-language-5-note @-2 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+  // expected-language-6-warning @-3 {{sending 'x' risks causing data races}}
+  // expected-language-6-note @-4 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+}
+
+

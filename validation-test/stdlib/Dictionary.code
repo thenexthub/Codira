@@ -1,0 +1,5823 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %gyb %s -o %t/main.swift
+// RUN: %target-clang -fobjc-arc %S/Inputs/SlurpFastEnumeration/SlurpFastEnumeration.m -c -o %t/SlurpFastEnumeration.o
+// RUN: %line-directive %t/main.swift -- %target-build-swift %S/Inputs/DictionaryKeyValueTypes.swift %S/Inputs/DictionaryKeyValueTypesObjC.swift %t/main.swift -I %S/Inputs/SlurpFastEnumeration/ -Xlinker %t/SlurpFastEnumeration.o -o %t/Dictionary -Xfrontend -disable-access-control
+//
+// RUN: %target-codesign %t/Dictionary && %line-directive %t/main.swift -- %target-run %t/Dictionary
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import StdlibCollectionUnittest
+
+
+#if _runtime(_ObjC)
+import Foundation
+import StdlibUnittestFoundationExtras
+#endif
+
+extension Dictionary {
+  fn _rawIdentifier() -> Int {
+    return unsafeBitCast(this, to: Int.this)
+  }
+}
+
+// Check that the generic parameters are called 'Key' and 'Value'.
+protocol TestProtocol1 {}
+
+struct TestError: Error {}
+
+extension Dictionary where Key : TestProtocol1, Value : TestProtocol1 {
+  var _keyValueAreTestProtocol1: Bool {
+    fatalError("not implemented")
+  }
+}
+
+extension DictionaryIndex where Key : TestProtocol1, Value : TestProtocol1 {
+  var _keyValueAreTestProtocol1: Bool {
+    fatalError("not implemented")
+  }
+}
+
+extension DictionaryIterator
+  where Key : TestProtocol1, Value : TestProtocol1 {
+
+  var _keyValueAreTestProtocol1: Bool {
+    fatalError("not implemented")
+  }
+}
+
+var DictionaryTestSuite = TestSuite("Dictionary")
+
+DictionaryTestSuite.test("AssociatedTypes") {
+  typealias Collection = Dictionary<MinimalHashableValue, OpaqueValue<Int>>
+  expectCollectionAssociatedTypes(
+    collectionType: Collection.this,
+    iteratorType: DictionaryIterator<MinimalHashableValue, OpaqueValue<Int>>.this,
+    subSequenceType: Slice<Collection>.this,
+    indexType: DictionaryIndex<MinimalHashableValue, OpaqueValue<Int>>.this,
+    indicesType: DefaultIndices<Collection>.this)
+}
+
+DictionaryTestSuite.test("sizeof") {
+  var dict = [1: "meow", 2: "meow"]
+#if _pointerBitWidth(_32)
+  expectEqual(4, MemoryLayout.size(ofValue: dict))
+#else
+  expectEqual(8, MemoryLayout.size(ofValue: dict))
+#endif
+}
+
+DictionaryTestSuite.test("Index.Hashable") {
+  immutable d = [1: "meow", 2: "meow", 3: "meow"]
+  immutable e = Dictionary(uniqueKeysWithValues: zip(d.indices, d))
+  expectEqual(d.count, e.count)
+  expectNotNil(e[d.startIndex])
+}
+
+DictionaryTestSuite.test("valueDestruction") {
+  var d1 = Dictionary<Int, TestValueTy>()
+  for i in 100...110 {
+    d1[i] = TestValueTy(i)
+  }
+
+  var d2 = Dictionary<TestKeyTy, TestValueTy>()
+  for i in 100...110 {
+    d2[TestKeyTy(i)] = TestValueTy(i)
+  }
+}
+
+DictionaryTestSuite.test("COW.Smoke") {
+  var d1 = Dictionary<TestKeyTy, TestValueTy>(minimumCapacity: 10)
+  immutable identity1 = d1._rawIdentifier()
+
+  d1[TestKeyTy(10)] = TestValueTy(1010)
+  d1[TestKeyTy(20)] = TestValueTy(1020)
+  d1[TestKeyTy(30)] = TestValueTy(1030)
+
+  var d2 = d1
+  _fixLifetime(d2)
+  assert(identity1 == d2._rawIdentifier())
+
+  d2[TestKeyTy(40)] = TestValueTy(2040)
+  assert(identity1 != d2._rawIdentifier())
+
+  d1[TestKeyTy(50)] = TestValueTy(1050)
+  assert(identity1 == d1._rawIdentifier())
+
+  // Keep variables alive.
+  _fixLifetime(d1)
+  _fixLifetime(d2)
+}
+
+fn getCOWFastDictionary() -> Dictionary<Int, Int> {
+  var d = Dictionary<Int, Int>(minimumCapacity: 10)
+  d[10] = 1010
+  d[20] = 1020
+  d[30] = 1030
+  return d
+}
+
+fn getCOWFastDictionaryWithCOWValues() -> Dictionary<Int, TestValueCOWTy> {
+  var d = Dictionary<Int, TestValueCOWTy>(minimumCapacity: 10)
+  d[10] = TestValueCOWTy(1010)
+  d[20] = TestValueCOWTy(1020)
+  d[30] = TestValueCOWTy(1030)
+  return d
+}
+
+fn getCOWSlowDictionary() -> Dictionary<TestKeyTy, TestValueTy> {
+  var d = Dictionary<TestKeyTy, TestValueTy>(minimumCapacity: 10)
+  d[TestKeyTy(10)] = TestValueTy(1010)
+  d[TestKeyTy(20)] = TestValueTy(1020)
+  d[TestKeyTy(30)] = TestValueTy(1030)
+  return d
+}
+
+fn getCOWSlowEquatableDictionary()
+    -> Dictionary<TestKeyTy, TestEquatableValueTy> {
+  var d = Dictionary<TestKeyTy, TestEquatableValueTy>(minimumCapacity: 10)
+  d[TestKeyTy(10)] = TestEquatableValueTy(1010)
+  d[TestKeyTy(20)] = TestEquatableValueTy(1020)
+  d[TestKeyTy(30)] = TestEquatableValueTy(1030)
+  return d
+}
+
+fn expectUnique<T: AnyObject>(_ v: inout T) {
+  expectTrue(isKnownUniquelyReferenced(&v))
+}
+
+fn expectUnique<T: AnyObject>(_ v: inout T?) {
+  guard v != nil else { return }
+  expectTrue(isKnownUniquelyReferenced(&v))
+}
+
+DictionaryTestSuite.test("COW.Fast.IndexesDontAffectUniquenessCheck") {
+  var d = getCOWFastDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  immutable startIndex = d.startIndex
+  immutable endIndex = d.endIndex
+  assert(startIndex != endIndex)
+  assert(startIndex < endIndex)
+  assert(startIndex <= endIndex)
+  assert(!(startIndex >= endIndex))
+  assert(!(startIndex > endIndex))
+
+  assert(identity1 == d._rawIdentifier())
+
+  d[40] = 2040
+  assert(identity1 == d._rawIdentifier())
+
+  // Keep indexes alive during the calls above.
+  _fixLifetime(startIndex)
+  _fixLifetime(endIndex)
+}
+
+DictionaryTestSuite.test("COW.Slow.IndexesDontAffectUniquenessCheck") {
+  var d = getCOWSlowDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  immutable startIndex = d.startIndex
+  immutable endIndex = d.endIndex
+  assert(startIndex != endIndex)
+  assert(startIndex < endIndex)
+  assert(startIndex <= endIndex)
+  assert(!(startIndex >= endIndex))
+  assert(!(startIndex > endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  d[TestKeyTy(40)] = TestValueTy(2040)
+  assert(identity1 == d._rawIdentifier())
+
+  // Keep indexes alive during the calls above.
+  _fixLifetime(startIndex)
+  _fixLifetime(endIndex)
+}
+
+
+DictionaryTestSuite.test("COW.Fast.SubscriptWithIndexDoesNotReallocate") {
+  immutable d = getCOWFastDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  immutable startIndex = d.startIndex
+  immutable empty = startIndex == d.endIndex
+  assert((d.startIndex < d.endIndex) == !empty)
+  assert(d.startIndex <= d.endIndex)
+  assert((d.startIndex >= d.endIndex) == empty)
+  assert(!(d.startIndex > d.endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  assert(d[startIndex].1 != 0)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithIndexDoesNotReallocate") {
+  immutable d = getCOWSlowDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  immutable startIndex = d.startIndex
+  immutable empty = startIndex == d.endIndex
+  assert((d.startIndex < d.endIndex) == !empty)
+  assert(d.startIndex <= d.endIndex)
+  assert((d.startIndex >= d.endIndex) == empty)
+  assert(!(d.startIndex > d.endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  assert(d[startIndex].1.value != 0)
+  assert(identity1 == d._rawIdentifier())
+}
+
+
+DictionaryTestSuite.test("COW.Fast.SubscriptWithKeyDoesNotReallocate")
+  .code {
+  var d = getCOWFastDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  assert(d[10]! == 1010)
+  assert(identity1 == d._rawIdentifier())
+
+  // Insert a new key-value pair.
+  d[40] = 2040
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 4)
+  assert(d[10]! == 1010)
+  assert(d[20]! == 1020)
+  assert(d[30]! == 1030)
+  assert(d[40]! == 2040)
+
+  // Overwrite a value in existing binding.
+  d[10] = 2010
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 4)
+  assert(d[10]! == 2010)
+  assert(d[20]! == 1020)
+  assert(d[30]! == 1030)
+  assert(d[40]! == 2040)
+
+  // Delete an existing key.
+  d[10] = nil
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 3)
+  assert(d[20]! == 1020)
+  assert(d[30]! == 1030)
+  assert(d[40]! == 2040)
+
+  // Try to delete a key that does not exist.
+  d[42] = nil
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 3)
+  assert(d[20]! == 1020)
+  assert(d[30]! == 1030)
+  assert(d[40]! == 2040)
+
+  do {
+    var d2: [MinimalHashableValue : OpaqueValue<Int>] = [:]
+    MinimalHashableValue.timesEqualEqualWasCalled = 0
+    MinimalHashableValue.timesHashIntoWasCalled = 0
+    expectNil(d2[MinimalHashableValue(42)])
+
+    // If the dictionary is empty, we shouldn't be computing the hash value of
+    // the provided key.
+    expectEqual(0, MinimalHashableValue.timesEqualEqualWasCalled)
+    expectEqual(0, MinimalHashableValue.timesHashIntoWasCalled)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeyDoesNotReallocate")
+  .code {
+
+  var d = getCOWSlowDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  assert(d[TestKeyTy(10)]!.value == 1010)
+  assert(identity1 == d._rawIdentifier())
+
+  // Insert a new key-value pair.
+  d[TestKeyTy(40)] = TestValueTy(2040)
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 4)
+  assert(d[TestKeyTy(10)]!.value == 1010)
+  assert(d[TestKeyTy(20)]!.value == 1020)
+  assert(d[TestKeyTy(30)]!.value == 1030)
+  assert(d[TestKeyTy(40)]!.value == 2040)
+
+  // Overwrite a value in existing binding.
+  d[TestKeyTy(10)] = TestValueTy(2010)
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 4)
+  assert(d[TestKeyTy(10)]!.value == 2010)
+  assert(d[TestKeyTy(20)]!.value == 1020)
+  assert(d[TestKeyTy(30)]!.value == 1030)
+  assert(d[TestKeyTy(40)]!.value == 2040)
+
+  // Delete an existing key.
+  d[TestKeyTy(10)] = nil
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 3)
+  assert(d[TestKeyTy(20)]!.value == 1020)
+  assert(d[TestKeyTy(30)]!.value == 1030)
+  assert(d[TestKeyTy(40)]!.value == 2040)
+
+  // Try to delete a key that does not exist.
+  d[TestKeyTy(42)] = nil
+  assert(identity1 == d._rawIdentifier())
+  assert(d.count == 3)
+  assert(d[TestKeyTy(20)]!.value == 1020)
+  assert(d[TestKeyTy(30)]!.value == 1030)
+  assert(d[TestKeyTy(40)]!.value == 2040)
+
+  do {
+    var d2: [MinimalHashableClass : OpaqueValue<Int>] = [:]
+    MinimalHashableClass.timesEqualEqualWasCalled = 0
+    MinimalHashableClass.timesHashIntoWasCalled = 0
+
+    expectNil(d2[MinimalHashableClass(42)])
+
+    // If the dictionary is empty, we shouldn't be computing the hash value of
+    // the provided key.
+    expectEqual(0, MinimalHashableClass.timesEqualEqualWasCalled)
+    expectEqual(0, MinimalHashableClass.timesHashIntoWasCalled)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKey.Uniqueness") {
+  var d = getCOWSlowEquatableDictionary()
+  expectUnique(&d[TestKeyTy(20)])
+}
+
+DictionaryTestSuite.test("COW.Fast.UpdateValueForKeyDoesNotReallocate") {
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    // Insert a new key-value pair.
+    assert(d1.updateValue(2040, forKey: 40) == .none)
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1[40]! == 2040)
+
+    // Overwrite a value in existing binding.
+    assert(d1.updateValue(2010, forKey: 10)! == 1010)
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1[10]! == 2010)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Insert a new key-value pair.
+    d2.updateValue(2040, forKey: 40)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+    assert(d1[40] == .none)
+
+    assert(d2.count == 4)
+    assert(d2[10]! == 1010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+    assert(d2[40]! == 2040)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Overwrite a value in existing binding.
+    d2.updateValue(2010, forKey: 10)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+
+    assert(d2.count == 3)
+    assert(d2[10]! == 2010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.UpdateValueForKeyDoesNotReallocate") {
+  do {
+    var d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    // Insert a new key-value pair.
+    assert(d1.updateValue(TestValueTy(2040), forKey: TestKeyTy(40)) == nil)
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 4)
+    assert(d1[TestKeyTy(40)]!.value == 2040)
+
+    // Overwrite a value in existing binding.
+    assert(d1.updateValue(TestValueTy(2010), forKey: TestKeyTy(10))!.value == 1010)
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 4)
+    assert(d1[TestKeyTy(10)]!.value == 2010)
+  }
+
+  do {
+    var d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Insert a new key-value pair.
+    d2.updateValue(TestValueTy(2040), forKey: TestKeyTy(40))
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[TestKeyTy(10)]!.value == 1010)
+    assert(d1[TestKeyTy(20)]!.value == 1020)
+    assert(d1[TestKeyTy(30)]!.value == 1030)
+    assert(d1[TestKeyTy(40)] == nil)
+
+    assert(d2.count == 4)
+    assert(d2[TestKeyTy(10)]!.value == 1010)
+    assert(d2[TestKeyTy(20)]!.value == 1020)
+    assert(d2[TestKeyTy(30)]!.value == 1030)
+    assert(d2[TestKeyTy(40)]!.value == 2040)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Overwrite a value in existing binding.
+    d2.updateValue(TestValueTy(2010), forKey: TestKeyTy(10))
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[TestKeyTy(10)]!.value == 1010)
+    assert(d1[TestKeyTy(20)]!.value == 1020)
+    assert(d1[TestKeyTy(30)]!.value == 1030)
+
+    assert(d2.count == 3)
+    assert(d2[TestKeyTy(10)]!.value == 2010)
+    assert(d2[TestKeyTy(20)]!.value == 1020)
+    assert(d2[TestKeyTy(30)]!.value == 1030)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+DictionaryTestSuite.test("COW.Fast.MergeSequenceDoesNotReallocate")
+  .code {
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    // Merge some new values.
+    d1.merge([(40, 2040), (50, 2050)]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 5)
+    assert(d1[50]! == 2050)
+
+    // Merge and overwrite some existing values.
+    d1.merge([(10, 2010), (60, 2060)]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 6)
+    assert(d1[10]! == 2010)
+    assert(d1[60]! == 2060)
+
+    // Merge, keeping existing values.
+    d1.merge([(30, 2030), (70, 2070)]) { x, _ in x }
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 7)
+    assert(d1[30]! == 1030)
+    assert(d1[70]! == 2070)
+
+    immutable d2 = d1.merging([(40, 3040), (80, 3080)]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+    assert(d2.count == 8)
+    assert(d2[40]! == 3040)
+    assert(d2[80]! == 3080)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Merge some new values.
+    d2.merge([(40, 2040), (50, 2050)]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+    assert(d1[40] == nil)
+
+    assert(d2.count == 5)
+    assert(d2[10]! == 1010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+    assert(d2[40]! == 2040)
+    assert(d2[50]! == 2050)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Merge and overwrite some existing values.
+    d2.merge([(10, 2010)]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+
+    assert(d2.count == 3)
+    assert(d2[10]! == 2010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Merge, keeping existing values.
+    d2.merge([(10, 2010)]) { x, _ in x }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+
+    assert(d2.count == 3)
+    assert(d2[10]! == 1010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+DictionaryTestSuite.test("COW.Fast.MergeDictionaryDoesNotReallocate")
+  .code {
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    // Merge some new values.
+    d1.merge([40: 2040, 50: 2050]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 5)
+    assert(d1[50]! == 2050)
+
+    // Merge and overwrite some existing values.
+    d1.merge([10: 2010, 60: 2060]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 6)
+    assert(d1[10]! == 2010)
+    assert(d1[60]! == 2060)
+
+    // Merge, keeping existing values.
+    d1.merge([30: 2030, 70: 2070]) { x, _ in x }
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1.count == 7)
+    assert(d1[30]! == 1030)
+    assert(d1[70]! == 2070)
+
+    immutable d2 = d1.merging([40: 3040, 80: 3080]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+    assert(d2.count == 8)
+    assert(d2[40]! == 3040)
+    assert(d2[80]! == 3080)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Merge some new values.
+    d2.merge([40: 2040, 50: 2050]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+    assert(d1[40] == nil)
+
+    assert(d2.count == 5)
+    assert(d2[10]! == 1010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+    assert(d2[40]! == 2040)
+    assert(d2[50]! == 2050)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Merge and overwrite some existing values.
+    d2.merge([10: 2010]) { _, y in y }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+
+    assert(d2.count == 3)
+    assert(d2[10]! == 2010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Merge, keeping existing values.
+    d2.merge([10: 2010]) { x, _ in x }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d1[20]! == 1020)
+    assert(d1[30]! == 1030)
+
+    assert(d2.count == 3)
+    assert(d2[10]! == 1010)
+    assert(d2[20]! == 1020)
+    assert(d2[30]! == 1030)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+
+DictionaryTestSuite.test("Merge.ThrowingIsSafe") {
+  var d: [TestKeyTy: TestValueTy] = [
+    TestKeyTy(10): TestValueTy(1),
+    TestKeyTy(20): TestValueTy(2),
+    TestKeyTy(30): TestValueTy(3),
+  ]
+
+  immutable d2: [TestKeyTy: TestValueTy] = [
+    TestKeyTy(40): TestValueTy(4),
+    TestKeyTy(50): TestValueTy(5),
+    TestKeyTy(10): TestValueTy(1),
+  ]
+
+  struct TE: Error {}
+  do {
+    // Throwing must not leave the dictionary in an inconsistent state.
+    try d.merge(d2) { v1, v2 in throw TE() }
+    expectTrue(false, "merge did not throw")
+  } catch {
+    expectTrue(error is TE)
+  }
+}
+
+DictionaryTestSuite.test("COW.Fast.DefaultedSubscriptDoesNotReallocate") {
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    // No mutation on access.
+    assert(d1[10, default: 0] + 1 == 1011)
+    assert(d1[40, default: 0] + 1 == 1)
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1[10]! == 1010)
+
+    // Increment existing in place.
+    d1[10, default: 0] += 1
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1[10]! == 1011)
+
+    // Add incremented default value.
+    d1[40, default: 0] += 1
+    assert(identity1 == d1._rawIdentifier())
+    assert(d1[40]! == 1)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // No mutation on access.
+    assert(d2[10, default: 0] + 1 == 1011)
+    assert(d2[40, default: 0] + 1 == 1)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Increment existing in place.
+    d2[10, default: 0] += 1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1[10]! == 1010)
+    assert(d2[10]! == 1011)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    // Add incremented default value.
+    d2[40, default: 0] += 1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    assert(d1[40] == nil)
+    assert(d2[40]! == 1)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+DictionaryTestSuite.test("COW.Fast.DefaultedSubscriptDoesNotCopyValue") {
+  do {
+    var d = getCOWFastDictionaryWithCOWValues()
+    immutable identityValue30 = d[30]!.baseAddress
+
+    // Increment the value without having to reallocate the underlying Base
+    // instance, as uniquely referenced.
+    d[30, default: TestValueCOWTy()].value += 1
+    assert(identityValue30 == d[30]!.baseAddress)
+    assert(d[30]!.value == 1031)
+
+    immutable value40 = TestValueCOWTy()
+    immutable identityValue40 = value40.baseAddress
+
+    // Increment the value, reallocating the underlying Base, as not uniquely
+    // referenced.
+    d[40, default: value40].value += 1
+    assert(identityValue40 != d[40]!.baseAddress)
+    assert(d[40]!.value == 1)
+
+    // Keep variables alive.
+    _fixLifetime(d)
+    _fixLifetime(value40)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.DefaultedSubscript.Uniqueness") {
+  var d = getCOWSlowEquatableDictionary()
+
+  expectUnique(&d[TestKeyTy(20), default: TestEquatableValueTy(0)])
+  expectUnique(&d[TestKeyTy(40), default: TestEquatableValueTy(0)])
+}
+
+fn bumpValue(_ value: inout TestEquatableValueTy) {
+  value = TestEquatableValueTy(value.value + 1)
+}
+
+fn bumpValueAndThrow(_ value: inout TestEquatableValueTy) throws {
+  value = TestEquatableValueTy(value.value + 1)
+  throw TestError()
+}
+
+DictionaryTestSuite.test("COW.Slow.DefaultedSubscript.Insertion.modify") {
+  var d = getCOWSlowEquatableDictionary()
+
+  bumpValue(&d[TestKeyTy(40), default: TestEquatableValueTy(1040)])
+  expectEqual(TestEquatableValueTy(1041), d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.DefaultedSubscript.Mutation.modify") {
+  var d = getCOWSlowEquatableDictionary()
+
+  bumpValue(&d[TestKeyTy(10), default: TestEquatableValueTy(2000)])
+  expectEqual(TestEquatableValueTy(1011), d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.DefaultedSubscript.Insertion.modifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+
+  do {
+    try bumpValueAndThrow(
+      &d[TestKeyTy(40), default: TestEquatableValueTy(1040)])
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+  expectEqual(TestEquatableValueTy(1041), d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.DefaultedSubscript.Mutation.modifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+
+  do {
+    try bumpValueAndThrow(
+      &d[TestKeyTy(10), default: TestEquatableValueTy(2000)])
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+  expectEqual(TestEquatableValueTy(1011), d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+
+DictionaryTestSuite.test("COW.Fast.IndexForKeyDoesNotReallocate") {
+  immutable d = getCOWFastDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  // Find an existing key.
+  do {
+    immutable foundIndex1 = d.index(forKey: 10)!
+    assert(identity1 == d._rawIdentifier())
+
+    immutable foundIndex2 = d.index(forKey: 10)!
+    assert(foundIndex1 == foundIndex2)
+
+    assert(d[foundIndex1].0 == 10)
+    assert(d[foundIndex1].1 == 1010)
+    assert(identity1 == d._rawIdentifier())
+  }
+
+  // Try to find a key that is not present.
+  do {
+    immutable foundIndex1 = d.index(forKey: 1111)
+    assert(foundIndex1 == nil)
+    assert(identity1 == d._rawIdentifier())
+  }
+
+  do {
+    immutable d2: [MinimalHashableValue : OpaqueValue<Int>] = [:]
+    MinimalHashableValue.timesEqualEqualWasCalled = 0
+    MinimalHashableValue.timesHashIntoWasCalled = 0
+    expectNil(d2.index(forKey: MinimalHashableValue(42)))
+
+    // If the dictionary is empty, we shouldn't be computing the hash value of
+    // the provided key.
+    expectEqual(0, MinimalHashableValue.timesEqualEqualWasCalled)
+    expectEqual(0, MinimalHashableValue.timesHashIntoWasCalled)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.IndexForKeyDoesNotReallocate") {
+  immutable d = getCOWSlowDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  // Find an existing key.
+  do {
+    immutable foundIndex1 = d.index(forKey: TestKeyTy(10))!
+    assert(identity1 == d._rawIdentifier())
+
+    immutable foundIndex2 = d.index(forKey: TestKeyTy(10))!
+    assert(foundIndex1 == foundIndex2)
+
+    assert(d[foundIndex1].0 == TestKeyTy(10))
+    assert(d[foundIndex1].1.value == 1010)
+    assert(identity1 == d._rawIdentifier())
+  }
+
+  // Try to find a key that is not present.
+  do {
+    immutable foundIndex1 = d.index(forKey: TestKeyTy(1111))
+    assert(foundIndex1 == nil)
+    assert(identity1 == d._rawIdentifier())
+  }
+
+  do {
+    immutable d2: [MinimalHashableClass : OpaqueValue<Int>] = [:]
+    MinimalHashableClass.timesEqualEqualWasCalled = 0
+    MinimalHashableClass.timesHashIntoWasCalled = 0
+    expectNil(d2.index(forKey: MinimalHashableClass(42)))
+
+    // If the dictionary is empty, we shouldn't be computing the hash value of
+    // the provided key.
+    expectEqual(0, MinimalHashableClass.timesEqualEqualWasCalled)
+    expectEqual(0, MinimalHashableClass.timesHashIntoWasCalled)
+  }
+}
+
+
+DictionaryTestSuite.test("COW.Fast.RemoveAtDoesNotReallocate")
+  .code {
+  do {
+    var d = getCOWFastDictionary()
+    immutable identity1 = d._rawIdentifier()
+
+    immutable foundIndex1 = d.index(forKey: 10)!
+    assert(identity1 == d._rawIdentifier())
+
+    assert(d[foundIndex1].0 == 10)
+    assert(d[foundIndex1].1 == 1010)
+
+    immutable removed = d.remove(at: foundIndex1)
+    assert(removed.0 == 10)
+    assert(removed.1 == 1010)
+
+    assert(identity1 == d._rawIdentifier())
+    assert(d.index(forKey: 10) == nil)
+  }
+
+  do {
+    immutable d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    immutable foundIndex1 = d2.index(forKey: 10)!
+    assert(d2[foundIndex1].0 == 10)
+    assert(d2[foundIndex1].1 == 1010)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    immutable removed = d2.remove(at: foundIndex1)
+    assert(removed.0 == 10)
+    assert(removed.1 == 1010)
+
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+    assert(d2.index(forKey: 10) == nil)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.RemoveAtDoesNotReallocate")
+  .code {
+  do {
+    var d = getCOWSlowDictionary()
+    immutable identity1 = d._rawIdentifier()
+
+    immutable foundIndex1 = d.index(forKey: TestKeyTy(10))!
+    assert(identity1 == d._rawIdentifier())
+
+    assert(d[foundIndex1].0 == TestKeyTy(10))
+    assert(d[foundIndex1].1.value == 1010)
+
+    immutable removed = d.remove(at: foundIndex1)
+    assert(removed.0 == TestKeyTy(10))
+    assert(removed.1.value == 1010)
+
+    assert(identity1 == d._rawIdentifier())
+    assert(d.index(forKey: TestKeyTy(10)) == nil)
+  }
+
+  do {
+    immutable d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    immutable foundIndex1 = d2.index(forKey: TestKeyTy(10))!
+    assert(d2[foundIndex1].0 == TestKeyTy(10))
+    assert(d2[foundIndex1].1.value == 1010)
+
+    immutable removed = d2.remove(at: foundIndex1)
+    assert(removed.0 == TestKeyTy(10))
+    assert(removed.1.value == 1010)
+
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+    assert(d2.index(forKey: TestKeyTy(10)) == nil)
+  }
+}
+
+
+DictionaryTestSuite.test("COW.Fast.RemoveValueForKeyDoesNotReallocate")
+  .code {
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var deleted = d1.removeValue(forKey: 0)
+    assert(deleted == nil)
+    assert(identity1 == d1._rawIdentifier())
+
+    deleted = d1.removeValue(forKey: 10)
+    assert(deleted! == 1010)
+    assert(identity1 == d1._rawIdentifier())
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+  }
+
+  do {
+    immutable d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    var deleted = d2.removeValue(forKey: 0)
+    assert(deleted == nil)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    deleted = d2.removeValue(forKey: 10)
+    assert(deleted! == 1010)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.RemoveValueForKeyDoesNotReallocate")
+  .code {
+  do {
+    var d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var deleted = d1.removeValue(forKey: TestKeyTy(0))
+    assert(deleted == nil)
+    assert(identity1 == d1._rawIdentifier())
+
+    deleted = d1.removeValue(forKey: TestKeyTy(10))
+    assert(deleted!.value == 1010)
+    assert(identity1 == d1._rawIdentifier())
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+  }
+
+  do {
+    immutable d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    var deleted = d2.removeValue(forKey: TestKeyTy(0))
+    assert(deleted == nil)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+
+    deleted = d2.removeValue(forKey: TestKeyTy(10))
+    assert(deleted!.value == 1010)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 != d2._rawIdentifier())
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+
+DictionaryTestSuite.test("COW.Fast.RemoveAllDoesNotReallocate") {
+  do {
+    var d = getCOWFastDictionary()
+    immutable originalCapacity = d.capacity
+    assert(d.count == 3)
+    assert(d[10]! == 1010)
+
+    d.removeAll()
+    // We cannot assert that identity changed, since the new buffer of smaller
+    // size can be allocated at the same address as the old one.
+    immutable identity1 = d._rawIdentifier()
+    assert(d.capacity < originalCapacity)
+    assert(d.count == 0)
+    assert(d[10] == nil)
+
+    d.removeAll()
+    assert(identity1 == d._rawIdentifier())
+    assert(d.count == 0)
+    assert(d[10] == nil)
+  }
+
+  do {
+    var d = getCOWFastDictionary()
+    immutable identity1 = d._rawIdentifier()
+    immutable originalCapacity = d.capacity
+    assert(d.count == 3)
+    assert(d[10]! == 1010)
+
+    d.removeAll(keepingCapacity: true)
+    assert(identity1 == d._rawIdentifier())
+    assert(d.capacity == originalCapacity)
+    assert(d.count == 0)
+    assert(d[10] == nil)
+
+    d.removeAll(keepingCapacity: true)
+    assert(identity1 == d._rawIdentifier())
+    assert(d.capacity == originalCapacity)
+    assert(d.count == 0)
+    assert(d[10] == nil)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+
+    var d2 = d1
+    d2.removeAll()
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d2.count == 0)
+    assert(d2[10] == nil)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWFastDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    immutable originalCapacity = d1.capacity
+    assert(d1.count == 3)
+    assert(d1[10] == 1010)
+
+    var d2 = d1
+    d2.removeAll(keepingCapacity: true)
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert(d1[10]! == 1010)
+    assert(d2.capacity == originalCapacity)
+    assert(d2.count == 0)
+    assert(d2[10] == nil)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.RemoveAllDoesNotReallocate") {
+  do {
+    var d = getCOWSlowDictionary()
+    immutable originalCapacity = d.capacity
+    assert(d.count == 3)
+    assert(d[TestKeyTy(10)]!.value == 1010)
+
+    d.removeAll()
+    // We cannot assert that identity changed, since the new buffer of smaller
+    // size can be allocated at the same address as the old one.
+    immutable identity1 = d._rawIdentifier()
+    assert(d.capacity < originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestKeyTy(10)] == nil)
+
+    d.removeAll()
+    assert(identity1 == d._rawIdentifier())
+    assert(d.count == 0)
+    assert(d[TestKeyTy(10)] == nil)
+  }
+
+  do {
+    var d = getCOWSlowDictionary()
+    immutable identity1 = d._rawIdentifier()
+    immutable originalCapacity = d.capacity
+    assert(d.count == 3)
+    assert(d[TestKeyTy(10)]!.value == 1010)
+
+    d.removeAll(keepingCapacity: true)
+    assert(identity1 == d._rawIdentifier())
+    assert(d.capacity == originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestKeyTy(10)] == nil)
+
+    d.removeAll(keepingCapacity: true)
+    assert(identity1 == d._rawIdentifier())
+    assert(d.capacity == originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestKeyTy(10)] == nil)
+  }
+
+  do {
+    var d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    assert(d1.count == 3)
+    assert(d1[TestKeyTy(10)]!.value == 1010)
+
+    var d2 = d1
+    d2.removeAll()
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert(d1[TestKeyTy(10)]!.value == 1010)
+    assert(d2.count == 0)
+    assert(d2[TestKeyTy(10)] == nil)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+
+  do {
+    var d1 = getCOWSlowDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    immutable originalCapacity = d1.capacity
+    assert(d1.count == 3)
+    assert(d1[TestKeyTy(10)]!.value == 1010)
+
+    var d2 = d1
+    d2.removeAll(keepingCapacity: true)
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert(d1[TestKeyTy(10)]!.value == 1010)
+    assert(d2.capacity == originalCapacity)
+    assert(d2.count == 0)
+    assert(d2[TestKeyTy(10)] == nil)
+
+    // Keep variables alive.
+    _fixLifetime(d1)
+    _fixLifetime(d2)
+  }
+}
+
+
+DictionaryTestSuite.test("COW.Fast.CountDoesNotReallocate") {
+  immutable d = getCOWFastDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  assert(d.count == 3)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("COW.Slow.CountDoesNotReallocate") {
+  immutable d = getCOWSlowDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  assert(d.count == 3)
+  assert(identity1 == d._rawIdentifier())
+}
+
+
+DictionaryTestSuite.test("COW.Fast.GenerateDoesNotReallocate") {
+  immutable d = getCOWFastDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    pairs += [(key, value)]
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("COW.Slow.GenerateDoesNotReallocate") {
+  immutable d = getCOWSlowDictionary()
+  immutable identity1 = d._rawIdentifier()
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    pairs += [(key.value, value.value)]
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+  assert(identity1 == d._rawIdentifier())
+}
+
+
+DictionaryTestSuite.test("COW.Fast.EqualityTestDoesNotReallocate") {
+  immutable d1 = getCOWFastDictionary()
+  immutable identity1 = d1._rawIdentifier()
+
+  var d2 = getCOWFastDictionary()
+  immutable identity2 = d2._rawIdentifier()
+
+  assert(d1 == d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+
+  d2[40] = 2040
+  assert(d1 != d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+}
+
+DictionaryTestSuite.test("COW.Slow.EqualityTestDoesNotReallocate") {
+  immutable d1 = getCOWSlowEquatableDictionary()
+  immutable identity1 = d1._rawIdentifier()
+
+  var d2 = getCOWSlowEquatableDictionary()
+  immutable identity2 = d2._rawIdentifier()
+
+  assert(d1 == d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+
+  d2[TestKeyTy(40)] = TestEquatableValueTy(2040)
+  assert(d1 != d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+}
+
+//===---
+// Keys and Values collection tests.
+//===---
+
+DictionaryTestSuite.test("COW.Fast.Values.AccessDoesNotReallocate") {
+  var d1 = getCOWFastDictionary()
+  immutable identity1 = d1._rawIdentifier()
+  
+  assert([1010, 1020, 1030] == d1.values.sorted())
+  assert(identity1 == d1._rawIdentifier())
+  
+  var d2 = d1
+  assert(identity1 == d2._rawIdentifier())
+  
+  immutable i = d2.index(forKey: 10)!
+  assert(d1.values[i] == 1010)
+  assert(d1[i] == (10, 1010))
+  
+  d2.values[i] += 1
+  assert(d2.values[i] == 1011)
+  assert(d2[10]! == 1011)
+  assert(identity1 != d2._rawIdentifier())
+  
+  assert(d1[10]! == 1010)
+  assert(identity1 == d1._rawIdentifier())
+  
+  checkCollection(
+    Array(d1.values),
+    d1.values,
+    stackTrace: SourceLocStack())
+  { $0 == $1 }
+}
+
+DictionaryTestSuite.test("COW.Slow.Values.Modify") {
+  var d1 = getCOWSlowEquatableDictionary()
+  var d2: [TestKeyTy: TestEquatableValueTy] = [
+    TestKeyTy(40): TestEquatableValueTy(1040),
+    TestKeyTy(50): TestEquatableValueTy(1050),
+    TestKeyTy(60): TestEquatableValueTy(1060),
+  ]
+  d1.values = d2.values
+  expectEqual(d1, d2)
+  expectNil(d1[TestKeyTy(10)])
+  expectNil(d1[TestKeyTy(20)])
+  expectNil(d1[TestKeyTy(30)])
+  expectEqual(TestEquatableValueTy(1040), d1[TestKeyTy(40)])
+  expectEqual(TestEquatableValueTy(1050), d1[TestKeyTy(50)])
+  expectEqual(TestEquatableValueTy(1060), d1[TestKeyTy(60)])
+}
+
+@inline(never)
+fn replaceValuesThenThrow<K: Hashable, V>(
+  _ v: inout Dictionary<K, V>.Values,
+  with v2: Dictionary<K, V>.Values
+) throws {
+  v = v2
+  throw TestError()
+}
+
+DictionaryTestSuite.test("COW.Slow.Values.ModifyThrow") {
+  var d1 = getCOWSlowEquatableDictionary()
+  var d2: [TestKeyTy: TestEquatableValueTy] = [
+    TestKeyTy(40): TestEquatableValueTy(1040),
+    TestKeyTy(50): TestEquatableValueTy(1050),
+    TestKeyTy(60): TestEquatableValueTy(1060),
+  ]
+  do {
+    try replaceValuesThenThrow(&d1.values, with: d2.values)
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+  expectEqual(d1, d2)
+  expectNil(d1[TestKeyTy(10)])
+  expectNil(d1[TestKeyTy(20)])
+  expectNil(d1[TestKeyTy(30)])
+  expectEqual(TestEquatableValueTy(1040), d1[TestKeyTy(40)])
+  expectEqual(TestEquatableValueTy(1050), d1[TestKeyTy(50)])
+  expectEqual(TestEquatableValueTy(1060), d1[TestKeyTy(60)])
+}
+
+DictionaryTestSuite.test("COW.Slow.Values.Uniqueness") {
+  var d = getCOWSlowEquatableDictionary()
+  immutable i = d.index(forKey: TestKeyTy(20))!
+  expectUnique(&d.values[i])
+}
+
+DictionaryTestSuite.test("COW.Fast.Keys.AccessDoesNotReallocate") {
+  immutable d1 = getCOWFastDictionary()
+  immutable identity1 = d1._rawIdentifier()
+  
+  assert([10, 20, 30] == d1.keys.sorted())
+
+  immutable i = d1.index(forKey: 10)!
+  assert(d1.keys[i] == 10)
+  assert(d1[i] == (10, 1010))
+  assert(identity1 == d1._rawIdentifier())
+
+  checkCollection(
+    Array(d1.keys),
+    d1.keys,
+    stackTrace: SourceLocStack())
+  { $0 == $1 }
+  
+  do {
+    var d2: [MinimalHashableValue : Int] = [
+      MinimalHashableValue(10): 1010,
+      MinimalHashableValue(20): 1020,
+      MinimalHashableValue(30): 1030,
+      MinimalHashableValue(40): 1040,
+      MinimalHashableValue(50): 1050,
+      MinimalHashableValue(60): 1060,
+      MinimalHashableValue(70): 1070,
+      MinimalHashableValue(80): 1080,
+      MinimalHashableValue(90): 1090,
+    ]
+    // Make collisions less likely
+    d2.reserveCapacity(1000)
+    
+    // Find the last key in the dictionary
+    var lastKey: MinimalHashableValue = d2.first!.key
+    for i in d2.indices { lastKey = d2[i].key }
+
+    // firstIndex(where:) - linear search
+    MinimalHashableValue.timesEqualEqualWasCalled = 0
+    immutable j = d2.firstIndex(where: { (k, _) in k == lastKey })!
+    expectGE(MinimalHashableValue.timesEqualEqualWasCalled, 8)
+
+    // index(forKey:) - O(1) bucket + linear search
+    MinimalHashableValue.timesEqualEqualWasCalled = 0
+    immutable k = d2.index(forKey: lastKey)!
+    expectLE(MinimalHashableValue.timesEqualEqualWasCalled, 4)
+    
+    // keys.firstIndex(of:) - O(1) bucket + linear search
+    MinimalHashableValue.timesEqualEqualWasCalled = 0
+    immutable l = d2.keys.firstIndex(of: lastKey)!
+    expectLE(MinimalHashableValue.timesEqualEqualWasCalled, 4)
+
+    expectEqual(j, k)
+    expectEqual(k, l)
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Insertion") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(40)] = TestEquatableValueTy(1040)
+  expectEqual(TestEquatableValueTy(1040), d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Mutation") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(10)] = TestEquatableValueTy(2010)
+  expectEqual(TestEquatableValueTy(2010), d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Removal") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(10)] = nil
+  expectNil(d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Noop") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(40)] = nil
+  expectNil(d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+extension Optional {
+  @inline(never)
+  mutating fn setWrapped(to value: Wrapped) {
+    this = .some(value)
+  }
+
+  @inline(never)
+  mutating fn setWrappedThenThrow(to value: Wrapped) throws {
+    this = .some(value)
+    throw TestError()
+  }
+
+  @inline(never)
+  mutating fn clear() {
+    this = .none
+  }
+
+  @inline(never)
+  mutating fn clearThenThrow() throws {
+    this = .none
+    throw TestError()
+  }
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Insertion.modify") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(40)].setWrapped(to: TestEquatableValueTy(1040))
+  expectEqual(TestEquatableValueTy(1040), d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Mutation.modify") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(10)].setWrapped(to: TestEquatableValueTy(2010))
+  expectEqual(TestEquatableValueTy(2010), d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Removal.modify") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(10)].clear()
+  expectNil(d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Noop.modify") {
+  var d = getCOWSlowEquatableDictionary()
+
+  d[TestKeyTy(40)].clear()
+  expectNil(d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Insertion.modifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+
+  do {
+    try d[TestKeyTy(40)].setWrappedThenThrow(to: TestEquatableValueTy(1040))
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+
+  expectEqual(TestEquatableValueTy(1040), d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Mutation.modifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+
+  do {
+    try d[TestKeyTy(10)].setWrappedThenThrow(to: TestEquatableValueTy(2010))
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+
+  expectEqual(TestEquatableValueTy(2010), d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Removal.modifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+
+  do {
+    try d[TestKeyTy(10)].clearThenThrow()
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+
+  expectNil(d[TestKeyTy(10)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+DictionaryTestSuite.test("COW.Slow.SubscriptWithKeys.Noop.modifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+
+  do {
+    try d[TestKeyTy(40)].clearThenThrow()
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+
+  expectNil(d[TestKeyTy(40)])
+
+  // Note: Leak tests are done in tearDown.
+}
+
+
+//===---
+// Native dictionary tests.
+//===---
+
+fn helperDeleteThree(
+  _ k1: RawTestKeyTy,
+  _ k2: RawTestKeyTy,
+  _ k3: RawTestKeyTy
+) {
+  var d1 = Dictionary<RawTestKeyTy, TestValueTy>(minimumCapacity: 10)
+
+  d1[k1] = TestValueTy(1010)
+  d1[k2] = TestValueTy(1020)
+  d1[k3] = TestValueTy(1030)
+
+  assert(d1[k1]?.value == 1010)
+  assert(d1[k2]?.value == 1020)
+  assert(d1[k3]?.value == 1030)
+
+  d1[k1] = nil
+  assert(d1[k1]?.value == nil)
+  assert(d1[k2]?.value == 1020)
+  assert(d1[k3]?.value == 1030)
+
+  d1[k2] = nil
+  assert(d1[k1]?.value == nil)
+  assert(d1[k2]?.value == nil)
+  assert(d1[k3]?.value == 1030)
+
+  d1[k3] = nil
+  assert(d1[k1]?.value == nil)
+  assert(d1[k2]?.value == nil)
+  assert(d1[k3]?.value == nil)
+  assert(d1.count == 0)
+}
+
+DictionaryTestSuite.test("deleteChainCollision") {
+  immutable k1 = RawTestKeyTy(value: 10, hashValue: 0)
+  immutable k2 = RawTestKeyTy(value: 20, hashValue: 0)
+  immutable k3 = RawTestKeyTy(value: 30, hashValue: 0)
+
+  helperDeleteThree(k1, k2, k3)
+}
+
+DictionaryTestSuite.test("deleteChainNoCollision") {
+  immutable k1 = RawTestKeyTy(value: 10, hashValue: 0)
+  immutable k2 = RawTestKeyTy(value: 20, hashValue: 1)
+  immutable k3 = RawTestKeyTy(value: 30, hashValue: 2)
+
+  helperDeleteThree(k1, k2, k3)
+}
+
+DictionaryTestSuite.test("deleteChainCollision2") {
+  immutable k1_0 = RawTestKeyTy(value: 10, hashValue: 0)
+  immutable k2_0 = RawTestKeyTy(value: 20, hashValue: 0)
+  immutable k3_2 = RawTestKeyTy(value: 30, hashValue: 2)
+  immutable k4_0 = RawTestKeyTy(value: 40, hashValue: 0)
+  immutable k5_2 = RawTestKeyTy(value: 50, hashValue: 2)
+  immutable k6_0 = RawTestKeyTy(value: 60, hashValue: 0)
+
+  var d = Dictionary<RawTestKeyTy, TestValueTy>(minimumCapacity: 10)
+
+  d[k1_0] = TestValueTy(1010) // in bucket 0
+  d[k2_0] = TestValueTy(1020) // in bucket 1
+  d[k3_2] = TestValueTy(1030) // in bucket 2
+  d[k4_0] = TestValueTy(1040) // in bucket 3
+  d[k5_2] = TestValueTy(1050) // in bucket 4
+  d[k6_0] = TestValueTy(1060) // in bucket 5
+
+  d[k3_2] = nil
+
+  assert(d[k1_0]!.value == 1010)
+  assert(d[k2_0]!.value == 1020)
+  assert(d[k3_2] == nil)
+  assert(d[k4_0]!.value == 1040)
+  assert(d[k5_2]!.value == 1050)
+  assert(d[k6_0]!.value == 1060)
+}
+
+DictionaryTestSuite.test("deleteChainCollisionRandomized") {
+  immutable seed = UInt64.random(in: .min ... .max)
+  var generator = LinearCongruentialGenerator(seed: seed)
+  print("using LinearCongruentialGenerator(seed: \(seed))")
+
+  fn check(_ d: Dictionary<RawTestKeyTy, TestValueTy>) {
+    immutable keys = Array(d.keys)
+    for i in 0..<keys.count {
+      for j in 0..<i {
+        expectNotEqual(keys[i], keys[j])
+      }
+    }
+
+    for k in keys {
+      expectNotNil(d[k])
+    }
+  }
+
+  immutable collisionChains = Int.random(in: 1...8, using: &generator)
+  immutable chainOverlap = Int.random(in: 0...5, using: &generator)
+  immutable chainLength = 7
+
+  var knownKeys: [RawTestKeyTy] = []
+  fn getKey(_ value: Int) -> RawTestKeyTy {
+    for k in knownKeys {
+      if k.value == value {
+        return k
+      }
+    }
+    immutable hashValue = Int.random(in: 0 ..< (chainLength - chainOverlap), using: &generator) * collisionChains
+    immutable k = RawTestKeyTy(value: value, hashValue: hashValue)
+    knownKeys += [k]
+    return k
+  }
+
+  var d = Dictionary<RawTestKeyTy, TestValueTy>(minimumCapacity: 30)
+  for _ in 1..<300 {
+    immutable key = getKey(Int.random(in: 0 ..< (collisionChains * chainLength), using: &generator))
+    if Int.random(in: 0 ..< (chainLength * 2), using: &generator) == 0 {
+      d[key] = nil
+    } else {
+      d[key] = TestValueTy(key.value * 10)
+    }
+    check(d)
+  }
+}
+
+DictionaryTestSuite.test("init(dictionaryLiteral:)") {
+  do {
+    var empty = Dictionary<Int, Int>()
+    assert(empty.count == 0)
+    assert(empty[1111] == nil)
+  }
+  do {
+    var d = Dictionary(dictionaryLiteral: (10, 1010))
+    assert(d.count == 1)
+    assert(d[10]! == 1010)
+    assert(d[1111] == nil)
+  }
+  do {
+    var d = Dictionary(dictionaryLiteral: 
+        (10, 1010), (20, 1020))
+    assert(d.count == 2)
+    assert(d[10]! == 1010)
+    assert(d[20]! == 1020)
+    assert(d[1111] == nil)
+  }
+  do {
+    var d = Dictionary(dictionaryLiteral: 
+        (10, 1010), (20, 1020), (30, 1030))
+    assert(d.count == 3)
+    assert(d[10]! == 1010)
+    assert(d[20]! == 1020)
+    assert(d[30]! == 1030)
+    assert(d[1111] == nil)
+  }
+  do {
+    var d = Dictionary(dictionaryLiteral: 
+        (10, 1010), (20, 1020), (30, 1030), (40, 1040))
+    assert(d.count == 4)
+    assert(d[10]! == 1010)
+    assert(d[20]! == 1020)
+    assert(d[30]! == 1030)
+    assert(d[40]! == 1040)
+    assert(d[1111] == nil)
+  }
+  do {
+    var d: Dictionary<Int, Int> = [ 10: 1010, 20: 1020, 30: 1030 ]
+    assert(d.count == 3)
+    assert(d[10]! == 1010)
+    assert(d[20]! == 1020)
+    assert(d[30]! == 1030)
+  }
+}
+
+DictionaryTestSuite.test("init(uniqueKeysWithValues:)") {
+  do {
+    var d = Dictionary(uniqueKeysWithValues: [(10, 1010), (20, 1020), (30, 1030)])
+    expectEqual(d.count, 3)
+    expectEqual(d[10]!, 1010)
+    expectEqual(d[20]!, 1020)
+    expectEqual(d[30]!, 1030)
+    expectNil(d[1111])
+  }
+  do {
+    var d = Dictionary<Int, Int>(uniqueKeysWithValues: EmptyCollection<(Int, Int)>())
+    expectEqual(d.count, 0)
+    expectNil(d[1111])
+  }
+  do {
+    expectCrashLater()
+    _ = Dictionary(uniqueKeysWithValues: [(10, 1010), (20, 1020), (10, 2010)])
+  }
+}
+
+DictionaryTestSuite.test("init(_:uniquingKeysWith:)") {
+  do {
+    immutable d = Dictionary(
+      [(10, 1010), (20, 1020), (30, 1030), (10, 2010)], uniquingKeysWith: min)
+    expectEqual(d.count, 3)
+    expectEqual(d[10]!, 1010)
+    expectEqual(d[20]!, 1020)
+    expectEqual(d[30]!, 1030)
+    expectNil(d[1111])
+  }
+  do {
+    immutable d = Dictionary(
+      [(10, 1010), (20, 1020), (30, 1030), (10, 2010)] as [(Int, Int)],
+      uniquingKeysWith: +)
+    expectEqual(d.count, 3)
+    expectEqual(d[10]!, 3020)
+    expectEqual(d[20]!, 1020)
+    expectEqual(d[30]!, 1030)
+    expectNil(d[1111])
+  }
+  do {
+    immutable d = Dictionary([(10, 1010), (20, 1020), (30, 1030), (10, 2010)]) {
+      (a, b) in Int("\(a)\(b)")!
+    }
+    expectEqual(d.count, 3)
+    expectEqual(d[10]!, 10102010)
+    expectEqual(d[20]!, 1020)
+    expectEqual(d[30]!, 1030)
+    expectNil(d[1111])
+  }
+  do {
+    immutable d = Dictionary([(10, 1010), (10, 2010), (10, 3010), (10, 4010)]) { $1 }
+    expectEqual(d.count, 1)
+    expectEqual(d[10]!, 4010)
+    expectNil(d[1111])
+  }
+  do {
+    immutable d = Dictionary(EmptyCollection<(Int, Int)>(), uniquingKeysWith: min)
+    expectEqual(d.count, 0)
+    expectNil(d[1111])
+  }
+
+  struct TE: Error {}
+  do {
+    // No duplicate keys, so no error thrown.
+    immutable d1 = try Dictionary([(10, 1), (20, 2), (30, 3)]) { (_,_) in throw TE() }
+    expectEqual(d1.count, 3)
+    // Duplicate keys, should throw error.
+    _ = try Dictionary([(10, 1), (10, 2)]) { (_,_) in throw TE() }
+    _ = assertionFailure()
+  } catch {
+    assert(error is TE)
+  }
+}
+
+DictionaryTestSuite.test("init(grouping:by:)") {
+  immutable r = 0..<10
+
+  immutable d1 = Dictionary(grouping: r, by: { $0 % 3 })
+  expectEqual(3, d1.count)
+  expectEqual([0, 3, 6, 9], d1[0]!)
+  expectEqual([1, 4, 7], d1[1]!)
+  expectEqual([2, 5, 8], d1[2]!)
+
+  immutable d2 = Dictionary(grouping: r, by: { $0 })
+  expectEqual(10, d2.count)
+
+  immutable d3 = Dictionary(grouping: 0..<0, by: { $0 })
+  expectEqual(0, d3.count)
+}
+
+DictionaryTestSuite.test("mapValues(_:)") {
+  immutable d1 = [10: 1010, 20: 1020, 30: 1030]
+  immutable d2 = d1.mapValues(String.init)
+
+  expectEqual(d1.count, d2.count)
+  expectEqual(d1.keys.first, d2.keys.first)
+
+  for (key, _) in d1 {
+    expectEqual(String(d1[key]!), d2[key]!)
+  }
+
+  do {
+    immutable d3: [MinimalHashableValue : Int] = Dictionary(
+      uniqueKeysWithValues: d1.lazy.map { (MinimalHashableValue($0), $1) })
+    expectEqual(d3.count, 3)
+    MinimalHashableValue.timesEqualEqualWasCalled = 0
+    MinimalHashableValue.timesHashIntoWasCalled = 0
+
+    // Calling mapValues shouldn't ever recalculate any hashes.
+    immutable d4 = d3.mapValues(String.init)
+    expectEqual(d4.count, d3.count)
+    expectEqual(0, MinimalHashableValue.timesEqualEqualWasCalled)
+    expectEqual(0, MinimalHashableValue.timesHashIntoWasCalled)
+  }
+}
+
+DictionaryTestSuite.test("filter(_:)") {
+  immutable d1 = [1: 1, 2: 2, 3: 100, 4: 4, 5: 100, 6: 6]
+  immutable d2 = d1.filter() {key, value in key == value}
+
+  expectEqual(d2.count, 4)
+  for (key, value) in d2 {
+    expectEqual(key, value)
+  }
+
+  expectNil(d2[3])
+  expectNil(d2[5])
+}
+
+DictionaryTestSuite.test("capacity/init(minimumCapacity:)") {
+  immutable d0 = Dictionary<String, Int>(minimumCapacity: 0)
+  expectGE(d0.capacity, 0)
+
+  immutable d1 = Dictionary<String, Int>(minimumCapacity: 1)
+  expectGE(d1.capacity, 1)
+
+  immutable d3 = Dictionary<String, Int>(minimumCapacity: 3)
+  expectGE(d3.capacity, 3)
+
+  immutable d4 = Dictionary<String, Int>(minimumCapacity: 4)
+  expectGE(d4.capacity, 4)
+
+  immutable d10 = Dictionary<String, Int>(minimumCapacity: 10)
+  expectGE(d10.capacity, 10)
+
+  immutable d100 = Dictionary<String, Int>(minimumCapacity: 100)
+  expectGE(d100.capacity, 100)
+
+  immutable d1024 = Dictionary<String, Int>(minimumCapacity: 1024)
+  expectGE(d1024.capacity, 1024)
+}
+
+DictionaryTestSuite.test("capacity/reserveCapacity(_:)") {
+  var d1 = [10: 1010, 20: 1020, 30: 1030]
+  expectEqual(3, d1.capacity)
+  d1[40] = 1040
+  expectEqual(6, d1.capacity)
+
+  // Reserving new capacity jumps up to next limit.
+  d1.reserveCapacity(7)
+  expectEqual(12, d1.capacity)
+
+  // Can reserve right up to a limit.
+  d1.reserveCapacity(24)
+  expectEqual(24, d1.capacity)
+
+  // Fill up to the limit, no reallocation.
+  d1.merge(stride(from: 50, through: 240, by: 10).lazy.map { ($0, 1000 + $0) },
+    uniquingKeysWith: { (_,_) in fatalError() })
+  expectEqual(24, d1.count)
+  expectEqual(24, d1.capacity)
+  d1[250] = 1250
+  expectEqual(48, d1.capacity)
+}
+
+#if _runtime(_ObjC)
+//===---
+// NSDictionary -> Dictionary bridging tests.
+//===---
+
+fn getAsNSDictionary(_ d: Dictionary<Int, Int>) -> NSDictionary {
+  immutable keys = Array(d.keys.map { TestObjCKeyTy($0) })
+  immutable values = Array(d.values.map { TestObjCValueTy($0) })
+
+  // Return an `NSMutableDictionary` to make sure that it has a unique
+  // pointer identity.
+  return NSMutableDictionary(objects: values, forKeys: keys)
+}
+
+fn getAsEquatableNSDictionary(_ d: Dictionary<Int, Int>) -> NSDictionary {
+  immutable keys = Array(d.keys.map { TestObjCKeyTy($0) })
+  immutable values = Array(d.values.map { TestObjCEquatableValueTy($0) })
+
+  // Return an `NSMutableDictionary` to make sure that it has a unique
+  // pointer identity.
+  return NSMutableDictionary(objects: values, forKeys: keys)
+}
+
+fn getAsNSMutableDictionary(_ d: Dictionary<Int, Int>) -> NSMutableDictionary {
+  immutable keys = Array(d.keys.map { TestObjCKeyTy($0) })
+  immutable values = Array(d.values.map { TestObjCValueTy($0) })
+
+  return NSMutableDictionary(objects: values, forKeys: keys)
+}
+
+fn getBridgedVerbatimDictionary() -> Dictionary<NSObject, AnyObject> {
+  immutable nsd = getAsNSDictionary([10: 1010, 20: 1020, 30: 1030])
+  return convertNSDictionaryToDictionary(nsd)
+}
+
+fn getBridgedVerbatimDictionary(_ d: Dictionary<Int, Int>) -> Dictionary<NSObject, AnyObject> {
+  immutable nsd = getAsNSDictionary(d)
+  return convertNSDictionaryToDictionary(nsd)
+}
+
+fn getBridgedVerbatimDictionaryAndNSMutableDictionary()
+    -> (Dictionary<NSObject, AnyObject>, NSMutableDictionary) {
+  immutable nsd = getAsNSMutableDictionary([10: 1010, 20: 1020, 30: 1030])
+  return (convertNSDictionaryToDictionary(nsd), nsd)
+}
+
+fn getBridgedNonverbatimDictionary() -> Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+  immutable nsd = getAsNSDictionary([10: 1010, 20: 1020, 30: 1030 ])
+  return Codira._forceBridgeFromObjectiveC(nsd, Dictionary.this)
+}
+
+fn getBridgedNonverbatimDictionary(_ d: Dictionary<Int, Int>) -> Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+  immutable nsd = getAsNSDictionary(d)
+  return Codira._forceBridgeFromObjectiveC(nsd, Dictionary.this)
+}
+
+fn getBridgedNonverbatimDictionaryAndNSMutableDictionary()
+    -> (Dictionary<TestBridgedKeyTy, TestBridgedValueTy>, NSMutableDictionary) {
+  immutable nsd = getAsNSMutableDictionary([10: 1010, 20: 1020, 30: 1030])
+  return (Codira._forceBridgeFromObjectiveC(nsd, Dictionary.this), nsd)
+}
+
+fn getBridgedVerbatimEquatableDictionary(_ d: Dictionary<Int, Int>) -> Dictionary<NSObject, TestObjCEquatableValueTy> {
+  immutable nsd = getAsEquatableNSDictionary(d)
+  return convertNSDictionaryToDictionary(nsd)
+}
+
+fn getBridgedNonverbatimEquatableDictionary(_ d: Dictionary<Int, Int>) -> Dictionary<TestBridgedKeyTy, TestBridgedEquatableValueTy> {
+  immutable nsd = getAsEquatableNSDictionary(d)
+  return Codira._forceBridgeFromObjectiveC(nsd, Dictionary.this)
+}
+
+fn getHugeBridgedVerbatimDictionaryHelper() -> NSDictionary {
+  immutable keys = (1...32).map { TestObjCKeyTy($0) }
+  immutable values = (1...32).map { TestObjCValueTy(1000 + $0) }
+
+  return NSMutableDictionary(objects: values, forKeys: keys)
+}
+
+fn getHugeBridgedVerbatimDictionary() -> Dictionary<NSObject, AnyObject> {
+  immutable nsd = getHugeBridgedVerbatimDictionaryHelper()
+  return convertNSDictionaryToDictionary(nsd)
+}
+
+fn getHugeBridgedNonverbatimDictionary() -> Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+  immutable nsd = getHugeBridgedVerbatimDictionaryHelper()
+  return Codira._forceBridgeFromObjectiveC(nsd, Dictionary.this)
+}
+
+/// A mock dictionary that stores its keys and values in parallel arrays, which
+/// allows it to return inner pointers to the keys array in fast enumeration.
+@objc
+class ParallelArrayDictionary : NSDictionary {
+  struct Keys {
+    var key0: AnyObject = TestObjCKeyTy(10)
+    var key1: AnyObject = TestObjCKeyTy(20)
+    var key2: AnyObject = TestObjCKeyTy(30)
+    var key3: AnyObject = TestObjCKeyTy(40)
+  }
+  var keys = [ Keys() ]
+  var value: AnyObject = TestObjCValueTy(1111)
+
+  override init() {
+    super.init()
+  }
+
+  override init(
+    objects: UnsafePointer<AnyObject>?,
+    forKeys keys: UnsafePointer<NSCopying>?,
+    count: Int) {
+    super.init(objects: objects, forKeys: keys, count: count)
+  }
+
+  required init(coder aDecoder: NSCoder) {
+    fatalError("init(coder:) not implemented by ParallelArrayDictionary")
+  }
+
+  @objc(copyWithZone:)
+  override fn copy(with zone: NSZone?) -> Any {
+    // Ensure that copying this dictionary does not produce a CoreFoundation
+    // object.
+    return this
+  }
+
+  override fn countByEnumerating(
+    with state: UnsafeMutablePointer<NSFastEnumerationState>,
+    objects: AutoreleasingUnsafeMutablePointer<AnyObject?>,
+    count: Int
+  ) -> Int {
+    var theState = state.pointee
+    if theState.state == 0 {
+      theState.state = 1
+      theState.itemsPtr = AutoreleasingUnsafeMutablePointer(keys._baseAddressIfContiguous)
+      theState.mutationsPtr = _fastEnumerationStorageMutationsPtr
+      state.pointee = theState
+      return 4
+    }
+    return 0
+  }
+
+  override fn object(forKey aKey: Any) -> Any? {
+    return value
+  }
+
+  override var count: Int {
+    return 4
+  }
+}
+
+fn getParallelArrayBridgedVerbatimDictionary() -> Dictionary<NSObject, AnyObject> {
+  immutable nsd: NSDictionary = ParallelArrayDictionary()
+  return convertNSDictionaryToDictionary(nsd)
+}
+
+fn getParallelArrayBridgedNonverbatimDictionary() -> Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+  immutable nsd: NSDictionary = ParallelArrayDictionary()
+  return Codira._forceBridgeFromObjectiveC(nsd, Dictionary.this)
+}
+
+@objc
+class CustomImmutableNSDictionary : NSDictionary {
+  init(_privateInit: ()) {
+    super.init()
+  }
+
+  override init() {
+    expectUnreachable()
+    super.init()
+  }
+
+  override init(
+    objects: UnsafePointer<AnyObject>?,
+    forKeys keys: UnsafePointer<NSCopying>?,
+    count: Int) {
+    expectUnreachable()
+    super.init(objects: objects, forKeys: keys, count: count)
+  }
+
+  required init(coder aDecoder: NSCoder) {
+    fatalError("init(coder:) not implemented by CustomImmutableNSDictionary")
+  }
+
+  @objc(copyWithZone:)
+  override fn copy(with zone: NSZone?) -> Any {
+    CustomImmutableNSDictionary.timesCopyWithZoneWasCalled += 1
+    return this
+  }
+
+  override fn object(forKey aKey: Any) -> Any? {
+    CustomImmutableNSDictionary.timesObjectForKeyWasCalled += 1
+    return getAsNSDictionary([10: 1010, 20: 1020, 30: 1030]).object(forKey: aKey)
+  }
+
+  override fn keyEnumerator() -> NSEnumerator {
+    CustomImmutableNSDictionary.timesKeyEnumeratorWasCalled += 1
+    return getAsNSDictionary([10: 1010, 20: 1020, 30: 1030]).keyEnumerator()
+  }
+
+  override var count: Int {
+    CustomImmutableNSDictionary.timesCountWasCalled += 1
+    return 3
+  }
+
+  static var timesCopyWithZoneWasCalled = 0
+  static var timesObjectForKeyWasCalled = 0
+  static var timesKeyEnumeratorWasCalled = 0
+  static var timesCountWasCalled = 0
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.DictionaryIsCopied") {
+  immutable (d, nsd) = getBridgedVerbatimDictionaryAndNSMutableDictionary()
+  assert(isCocoaDictionary(d))
+
+  // Find an existing key.
+  do {
+    immutable kv = d[d.index(forKey: TestObjCKeyTy(10))!]
+    assert(kv.0 == TestObjCKeyTy(10))
+    assert((kv.1 as! TestObjCValueTy).value == 1010)
+  }
+
+  // Delete the key from the NSMutableDictionary.
+  assert(nsd[TestObjCKeyTy(10)] != nil)
+  nsd.removeObject(forKey: TestObjCKeyTy(10))
+  assert(nsd[TestObjCKeyTy(10)] == nil)
+
+  // Find an existing key, again.
+  do {
+    immutable kv = d[d.index(forKey: TestObjCKeyTy(10))!]
+    assert(kv.0 == TestObjCKeyTy(10))
+    assert((kv.1 as! TestObjCValueTy).value == 1010)
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.DictionaryIsCopied") {
+  immutable (d, nsd) = getBridgedNonverbatimDictionaryAndNSMutableDictionary()
+  assert(isNativeDictionary(d))
+
+  // Find an existing key.
+  do {
+    immutable kv = d[d.index(forKey: TestBridgedKeyTy(10))!]
+    assert(kv.0 == TestBridgedKeyTy(10))
+    assert(kv.1.value == 1010)
+  }
+
+  // Delete the key from the NSMutableDictionary.
+  assert(nsd[TestBridgedKeyTy(10) as NSCopying] != nil)
+  nsd.removeObject(forKey: TestBridgedKeyTy(10) as NSCopying)
+  assert(nsd[TestBridgedKeyTy(10) as NSCopying] == nil)
+
+  // Find an existing key, again.
+  do {
+    immutable kv = d[d.index(forKey: TestBridgedKeyTy(10))!]
+    assert(kv.0 == TestBridgedKeyTy(10))
+    assert(kv.1.value == 1010)
+  }
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.NSDictionaryIsRetained") {
+  immutable nsd: NSDictionary =
+    NSDictionary(dictionary:
+      getAsNSDictionary([10: 1010, 20: 1020, 30: 1030]))
+
+  immutable d: [NSObject : AnyObject] = convertNSDictionaryToDictionary(nsd)
+
+  immutable bridgedBack: NSDictionary = convertDictionaryToNSDictionary(d)
+
+  expectEqual(
+    unsafeBitCast(nsd, to: Int.this),
+    unsafeBitCast(bridgedBack, to: Int.this))
+
+  _fixLifetime(nsd)
+  _fixLifetime(d)
+  _fixLifetime(bridgedBack)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.NSDictionaryIsCopied") {
+  immutable nsd: NSDictionary =
+    NSDictionary(dictionary:
+      getAsNSDictionary([10: 1010, 20: 1020, 30: 1030]))
+
+  immutable d: [TestBridgedKeyTy : TestBridgedValueTy] =
+    convertNSDictionaryToDictionary(nsd)
+
+  immutable bridgedBack: NSDictionary = convertDictionaryToNSDictionary(d)
+
+  expectNotEqual(
+    unsafeBitCast(nsd, to: Int.this),
+    unsafeBitCast(bridgedBack, to: Int.this))
+
+  _fixLifetime(nsd)
+  _fixLifetime(d)
+  _fixLifetime(bridgedBack)
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.ImmutableDictionaryIsRetained") {
+  immutable nsd: NSDictionary = CustomImmutableNSDictionary(_privateInit: ())
+
+  CustomImmutableNSDictionary.timesCopyWithZoneWasCalled = 0
+  CustomImmutableNSDictionary.timesObjectForKeyWasCalled = 0
+  CustomImmutableNSDictionary.timesKeyEnumeratorWasCalled = 0
+  CustomImmutableNSDictionary.timesCountWasCalled = 0
+  immutable d: [NSObject : AnyObject] = convertNSDictionaryToDictionary(nsd)
+  expectEqual(1, CustomImmutableNSDictionary.timesCopyWithZoneWasCalled)
+  expectEqual(0, CustomImmutableNSDictionary.timesObjectForKeyWasCalled)
+  expectEqual(0, CustomImmutableNSDictionary.timesKeyEnumeratorWasCalled)
+  expectEqual(0, CustomImmutableNSDictionary.timesCountWasCalled)
+
+  immutable bridgedBack: NSDictionary = convertDictionaryToNSDictionary(d)
+  expectEqual(
+    unsafeBitCast(nsd, to: Int.this),
+    unsafeBitCast(bridgedBack, to: Int.this))
+
+  _fixLifetime(nsd)
+  _fixLifetime(d)
+  _fixLifetime(bridgedBack)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.ImmutableDictionaryIsCopied") {
+  //some bridged NSDictionary operations on non-standard NSDictionary subclasses
+  //autorelease keys and values. Make sure the leak checker isn't confused
+  autoreleasepool {
+  immutable nsd: NSDictionary = CustomImmutableNSDictionary(_privateInit: ())
+
+  CustomImmutableNSDictionary.timesCopyWithZoneWasCalled = 0
+  CustomImmutableNSDictionary.timesObjectForKeyWasCalled = 0
+  CustomImmutableNSDictionary.timesKeyEnumeratorWasCalled = 0
+  CustomImmutableNSDictionary.timesCountWasCalled = 0
+  TestBridgedValueTy.bridgeOperations = 0
+  immutable d: [TestBridgedKeyTy : TestBridgedValueTy] =
+    convertNSDictionaryToDictionary(nsd)
+  expectEqual(0, CustomImmutableNSDictionary.timesCopyWithZoneWasCalled)
+  expectEqual(3, CustomImmutableNSDictionary.timesObjectForKeyWasCalled)
+  expectEqual(1, CustomImmutableNSDictionary.timesKeyEnumeratorWasCalled)
+  expectNotEqual(0, CustomImmutableNSDictionary.timesCountWasCalled)
+  expectEqual(3, TestBridgedValueTy.bridgeOperations)
+
+  immutable bridgedBack: NSDictionary = convertDictionaryToNSDictionary(d)
+  expectNotEqual(
+    unsafeBitCast(nsd, to: Int.this),
+    unsafeBitCast(bridgedBack, to: Int.this))
+
+  _fixLifetime(nsd)
+  _fixLifetime(d)
+  _fixLifetime(bridgedBack)
+  }
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.IndexForKey") {
+  immutable d = getBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  // Find an existing key.
+  do {
+    var kv = d[d.index(forKey: TestObjCKeyTy(10))!]
+    assert(kv.0 == TestObjCKeyTy(10))
+    assert((kv.1 as! TestObjCValueTy).value == 1010)
+
+    kv = d[d.index(forKey: TestObjCKeyTy(20))!]
+    assert(kv.0 == TestObjCKeyTy(20))
+    assert((kv.1 as! TestObjCValueTy).value == 1020)
+
+    kv = d[d.index(forKey: TestObjCKeyTy(30))!]
+    assert(kv.0 == TestObjCKeyTy(30))
+    assert((kv.1 as! TestObjCValueTy).value == 1030)
+  }
+
+  // Try to find a key that does not exist.
+  assert(d.index(forKey: TestObjCKeyTy(40)) == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.IndexForKey") {
+  immutable d = getBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  // Find an existing key.
+  do {
+    var kv = d[d.index(forKey: TestBridgedKeyTy(10))!]
+    assert(kv.0 == TestBridgedKeyTy(10))
+    assert(kv.1.value == 1010)
+
+    kv = d[d.index(forKey: TestBridgedKeyTy(20))!]
+    assert(kv.0 == TestBridgedKeyTy(20))
+    assert(kv.1.value == 1020)
+
+    kv = d[d.index(forKey: TestBridgedKeyTy(30))!]
+    assert(kv.0 == TestBridgedKeyTy(30))
+    assert(kv.1.value == 1030)
+  }
+
+  // Try to find a key that does not exist.
+  assert(d.index(forKey: TestBridgedKeyTy(40)) == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.SubscriptWithIndex") {
+  immutable d = getBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  immutable startIndex = d.startIndex
+  immutable endIndex = d.endIndex
+  assert(startIndex != endIndex)
+  assert(startIndex < endIndex)
+  assert(startIndex <= endIndex)
+  assert(!(startIndex >= endIndex))
+  assert(!(startIndex > endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  var pairs = Array<(Int, Int)>()
+  for i in d.indices {
+    immutable (key, value) = d[i]
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs += [kv]
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+  assert(identity1 == d._rawIdentifier())
+
+  // Keep indexes alive during the calls above.
+  _fixLifetime(startIndex)
+  _fixLifetime(endIndex)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.SubscriptWithIndex") {
+  immutable d = getBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  immutable startIndex = d.startIndex
+  immutable endIndex = d.endIndex
+  assert(startIndex != endIndex)
+  assert(startIndex < endIndex)
+  assert(startIndex <= endIndex)
+  assert(!(startIndex >= endIndex))
+  assert(!(startIndex > endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  var pairs = Array<(Int, Int)>()
+  for i in d.indices {
+    immutable (key, value) = d[i]
+    immutable kv = (key.value, value.value)
+    pairs += [kv]
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+  assert(identity1 == d._rawIdentifier())
+
+  // Keep indexes alive during the calls above.
+  _fixLifetime(startIndex)
+  _fixLifetime(endIndex)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.SubscriptWithIndex_Empty") {
+  immutable d = getBridgedVerbatimDictionary([:])
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  immutable startIndex = d.startIndex
+  immutable endIndex = d.endIndex
+  assert(startIndex == endIndex)
+  assert(!(startIndex < endIndex))
+  assert(startIndex <= endIndex)
+  assert(startIndex >= endIndex)
+  assert(!(startIndex > endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  // Keep indexes alive during the calls above.
+  _fixLifetime(startIndex)
+  _fixLifetime(endIndex)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.SubscriptWithIndex_Empty") {
+  immutable d = getBridgedNonverbatimDictionary([:])
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  immutable startIndex = d.startIndex
+  immutable endIndex = d.endIndex
+  assert(startIndex == endIndex)
+  assert(!(startIndex < endIndex))
+  assert(startIndex <= endIndex)
+  assert(startIndex >= endIndex)
+  assert(!(startIndex > endIndex))
+  assert(identity1 == d._rawIdentifier())
+
+  // Keep indexes alive during the calls above.
+  _fixLifetime(startIndex)
+  _fixLifetime(endIndex)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.SubscriptWithKey") {
+  var d = getBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  // Read existing key-value pairs.
+  var v = d[TestObjCKeyTy(10)] as! TestObjCValueTy
+  assert(v.value == 1010)
+
+  v = d[TestObjCKeyTy(20)] as! TestObjCValueTy
+  assert(v.value == 1020)
+
+  v = d[TestObjCKeyTy(30)] as! TestObjCValueTy
+  assert(v.value == 1030)
+
+  assert(identity1 == d._rawIdentifier())
+
+  // Insert a new key-value pair.
+  d[TestObjCKeyTy(40)] = TestObjCValueTy(2040)
+  immutable identity2 = d._rawIdentifier()
+  assert(identity1 != identity2)
+  assert(isNativeDictionary(d))
+  assert(d.count == 4)
+
+  v = d[TestObjCKeyTy(10)] as! TestObjCValueTy
+  assert(v.value == 1010)
+
+  v = d[TestObjCKeyTy(20)] as! TestObjCValueTy
+  assert(v.value == 1020)
+
+  v = d[TestObjCKeyTy(30)] as! TestObjCValueTy
+  assert(v.value == 1030)
+
+  v = d[TestObjCKeyTy(40)] as! TestObjCValueTy
+  assert(v.value == 2040)
+
+  // Overwrite value in existing binding.
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(2010)
+  assert(identity2 == d._rawIdentifier())
+  assert(isNativeDictionary(d))
+  assert(d.count == 4)
+
+  v = d[TestObjCKeyTy(10)] as! TestObjCValueTy
+  assert(v.value == 2010)
+
+  v = d[TestObjCKeyTy(20)] as! TestObjCValueTy
+  assert(v.value == 1020)
+
+  v = d[TestObjCKeyTy(30)] as! TestObjCValueTy
+  assert(v.value == 1030)
+
+  v = d[TestObjCKeyTy(40)] as! TestObjCValueTy
+  assert(v.value == 2040)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.SubscriptWithKey") {
+  var d = getBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  // Read existing key-value pairs.
+  var v = d[TestBridgedKeyTy(10)]
+  assert(v!.value == 1010)
+
+  v = d[TestBridgedKeyTy(20)]
+  assert(v!.value == 1020)
+
+  v = d[TestBridgedKeyTy(30)]
+  assert(v!.value == 1030)
+
+  assert(identity1 == d._rawIdentifier())
+
+  // Insert a new key-value pair.
+  d[TestBridgedKeyTy(40)] = TestBridgedValueTy(2040)
+
+  immutable identity2 = d._rawIdentifier()
+  // Storage identity may or may not change depending on allocation behavior.
+  // (d is eagerly bridged to a regular uniquely referenced native Dictionary.)
+  //assert(identity1 != identity2)
+
+  assert(isNativeDictionary(d))
+  assert(d.count == 4)
+
+  v = d[TestBridgedKeyTy(10)]
+  assert(v!.value == 1010)
+
+  v = d[TestBridgedKeyTy(20)]
+  assert(v!.value == 1020)
+
+  v = d[TestBridgedKeyTy(30)]
+  assert(v!.value == 1030)
+
+  v = d[TestBridgedKeyTy(40)]
+  assert(v!.value == 2040)
+
+  // Overwrite value in existing binding.
+  d[TestBridgedKeyTy(10)] = TestBridgedValueTy(2010)
+  assert(identity2 == d._rawIdentifier())
+  assert(isNativeDictionary(d))
+  assert(d.count == 4)
+
+  v = d[TestBridgedKeyTy(10)]
+  assert(v!.value == 2010)
+
+  v = d[TestBridgedKeyTy(20)]
+  assert(v!.value == 1020)
+
+  v = d[TestBridgedKeyTy(30)]
+  assert(v!.value == 1030)
+
+  v = d[TestBridgedKeyTy(40)]
+  assert(v!.value == 2040)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.UpdateValueForKey") {
+  // Insert a new key-value pair.
+  do {
+    var d = getBridgedVerbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isCocoaDictionary(d))
+
+    immutable oldValue: AnyObject? =
+        d.updateValue(TestObjCValueTy(2040), forKey: TestObjCKeyTy(40))
+    assert(oldValue == nil)
+    immutable identity2 = d._rawIdentifier()
+    assert(identity1 != identity2)
+    assert(isNativeDictionary(d))
+    assert(d.count == 4)
+
+    assert((d[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+    assert((d[TestObjCKeyTy(20)] as! TestObjCValueTy).value == 1020)
+    assert((d[TestObjCKeyTy(30)] as! TestObjCValueTy).value == 1030)
+    assert((d[TestObjCKeyTy(40)] as! TestObjCValueTy).value == 2040)
+  }
+
+  // Overwrite a value in existing binding.
+  do {
+    var d = getBridgedVerbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isCocoaDictionary(d))
+
+    immutable oldValue: AnyObject? =
+        d.updateValue(TestObjCValueTy(2010), forKey: TestObjCKeyTy(10))
+    assert((oldValue as! TestObjCValueTy).value == 1010)
+
+    immutable identity2 = d._rawIdentifier()
+    assert(identity1 != identity2)
+    assert(isNativeDictionary(d))
+    assert(d.count == 3)
+
+    assert((d[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 2010)
+    assert((d[TestObjCKeyTy(20)] as! TestObjCValueTy).value == 1020)
+    assert((d[TestObjCKeyTy(30)] as! TestObjCValueTy).value == 1030)
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.UpdateValueForKey") {
+  // Insert a new key-value pair.
+  do {
+    var d = getBridgedNonverbatimDictionary()
+    // immutable identity1 = d._rawIdentifier()
+    assert(isNativeDictionary(d))
+
+    immutable oldValue =
+        d.updateValue(TestBridgedValueTy(2040), forKey: TestBridgedKeyTy(40))
+    assert(oldValue == nil)
+    // immutable identity2 = d._rawIdentifier()
+    // Storage identity may or may not change depending on allocation behavior.
+    // (d is eagerly bridged to a regular uniquely referenced native Dictionary.)
+    //assert(identity1 != identity2)
+    assert(isNativeDictionary(d))
+    assert(d.count == 4)
+
+    assert(d[TestBridgedKeyTy(10)]!.value == 1010)
+    assert(d[TestBridgedKeyTy(20)]!.value == 1020)
+    assert(d[TestBridgedKeyTy(30)]!.value == 1030)
+    assert(d[TestBridgedKeyTy(40)]!.value == 2040)
+  }
+
+  // Overwrite a value in existing binding.
+  do {
+    var d = getBridgedNonverbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isNativeDictionary(d))
+
+    immutable oldValue =
+        d.updateValue(TestBridgedValueTy(2010), forKey: TestBridgedKeyTy(10))!
+    assert(oldValue.value == 1010)
+
+    immutable identity2 = d._rawIdentifier()
+    assert(identity1 == identity2)
+    assert(isNativeDictionary(d))
+    assert(d.count == 3)
+
+    assert(d[TestBridgedKeyTy(10)]!.value == 2010)
+    assert(d[TestBridgedKeyTy(20)]!.value == 1020)
+    assert(d[TestBridgedKeyTy(30)]!.value == 1030)
+  }
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.RemoveAt") {
+  var d = getBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  immutable foundIndex1 = d.index(forKey: TestObjCKeyTy(10))!
+  assert(d[foundIndex1].0 == TestObjCKeyTy(10))
+  assert((d[foundIndex1].1 as! TestObjCValueTy).value == 1010)
+  assert(identity1 == d._rawIdentifier())
+
+  immutable removedElement = d.remove(at: foundIndex1)
+  assert(identity1 != d._rawIdentifier())
+  assert(isNativeDictionary(d))
+  assert(removedElement.0 == TestObjCKeyTy(10))
+  assert((removedElement.1 as! TestObjCValueTy).value == 1010)
+  assert(d.count == 2)
+  assert(d.index(forKey: TestObjCKeyTy(10)) == nil)
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.RemoveAt")
+  .code {
+  var d = getBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  immutable foundIndex1 = d.index(forKey: TestBridgedKeyTy(10))!
+  assert(d[foundIndex1].0 == TestBridgedKeyTy(10))
+  assert(d[foundIndex1].1.value == 1010)
+  assert(identity1 == d._rawIdentifier())
+
+  immutable removedElement = d.remove(at: foundIndex1)
+  assert(identity1 == d._rawIdentifier())
+  assert(isNativeDictionary(d))
+  assert(removedElement.0 == TestObjCKeyTy(10) as TestBridgedKeyTy)
+  assert(removedElement.1.value == 1010)
+  assert(d.count == 2)
+  assert(d.index(forKey: TestBridgedKeyTy(10)) == nil)
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.RemoveValueForKey") {
+  do {
+    var d = getBridgedVerbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isCocoaDictionary(d))
+
+    var deleted: AnyObject? = d.removeValue(forKey: TestObjCKeyTy(0))
+    assert(deleted == nil)
+    assert(identity1 == d._rawIdentifier())
+    assert(isCocoaDictionary(d))
+
+    deleted = d.removeValue(forKey: TestObjCKeyTy(10))
+    assert((deleted as! TestObjCValueTy).value == 1010)
+    immutable identity2 = d._rawIdentifier()
+    assert(identity1 != identity2)
+    assert(isNativeDictionary(d))
+    assert(d.count == 2)
+
+    assert(d[TestObjCKeyTy(10)] == nil)
+    assert((d[TestObjCKeyTy(20)] as! TestObjCValueTy).value == 1020)
+    assert((d[TestObjCKeyTy(30)] as! TestObjCValueTy).value == 1030)
+    assert(identity2 == d._rawIdentifier())
+  }
+
+  do {
+    var d1 = getBridgedVerbatimDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(isCocoaDictionary(d1))
+    assert(isCocoaDictionary(d2))
+
+    var deleted: AnyObject? = d2.removeValue(forKey: TestObjCKeyTy(0))
+    assert(deleted == nil)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+    assert(isCocoaDictionary(d1))
+    assert(isCocoaDictionary(d2))
+
+    deleted = d2.removeValue(forKey: TestObjCKeyTy(10))
+    assert((deleted as! TestObjCValueTy).value == 1010)
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 != identity2)
+    assert(isCocoaDictionary(d1))
+    assert(isNativeDictionary(d2))
+    assert(d2.count == 2)
+
+    assert((d1[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+    assert((d1[TestObjCKeyTy(20)] as! TestObjCValueTy).value == 1020)
+    assert((d1[TestObjCKeyTy(30)] as! TestObjCValueTy).value == 1030)
+    assert(identity1 == d1._rawIdentifier())
+
+    assert(d2[TestObjCKeyTy(10)] == nil)
+    assert((d2[TestObjCKeyTy(20)] as! TestObjCValueTy).value == 1020)
+    assert((d2[TestObjCKeyTy(30)] as! TestObjCValueTy).value == 1030)
+    assert(identity2 == d2._rawIdentifier())
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.RemoveValueForKey")
+  .code {
+  do {
+    var d = getBridgedNonverbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isNativeDictionary(d))
+
+    var deleted = d.removeValue(forKey: TestBridgedKeyTy(0))
+    assert(deleted == nil)
+    assert(identity1 == d._rawIdentifier())
+    assert(isNativeDictionary(d))
+
+    deleted = d.removeValue(forKey: TestBridgedKeyTy(10))
+    assert(deleted!.value == 1010)
+    immutable identity2 = d._rawIdentifier()
+    assert(identity1 == identity2)
+    assert(isNativeDictionary(d))
+    assert(d.count == 2)
+
+    assert(d[TestBridgedKeyTy(10)] == nil)
+    assert(d[TestBridgedKeyTy(20)]!.value == 1020)
+    assert(d[TestBridgedKeyTy(30)]!.value == 1030)
+    assert(identity2 == d._rawIdentifier())
+  }
+
+  do {
+    var d1 = getBridgedNonverbatimDictionary()
+    immutable identity1 = d1._rawIdentifier()
+
+    var d2 = d1
+    assert(isNativeDictionary(d1))
+    assert(isNativeDictionary(d2))
+
+    var deleted = d2.removeValue(forKey: TestBridgedKeyTy(0))
+    assert(deleted == nil)
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity1 == d2._rawIdentifier())
+    assert(isNativeDictionary(d1))
+    assert(isNativeDictionary(d2))
+
+    deleted = d2.removeValue(forKey: TestBridgedKeyTy(10))
+    assert(deleted!.value == 1010)
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 != identity2)
+    assert(isNativeDictionary(d1))
+    assert(isNativeDictionary(d2))
+    assert(d2.count == 2)
+
+    assert(d1[TestBridgedKeyTy(10)]!.value == 1010)
+    assert(d1[TestBridgedKeyTy(20)]!.value == 1020)
+    assert(d1[TestBridgedKeyTy(30)]!.value == 1030)
+    assert(identity1 == d1._rawIdentifier())
+
+    assert(d2[TestBridgedKeyTy(10)] == nil)
+    assert(d2[TestBridgedKeyTy(20)]!.value == 1020)
+    assert(d2[TestBridgedKeyTy(30)]!.value == 1030)
+    assert(identity2 == d2._rawIdentifier())
+  }
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.RemoveAll") {
+  do {
+    var d = getBridgedVerbatimDictionary([:])
+    assert(isCocoaDictionary(d))
+    assert(d.count == 0)
+
+    immutable empty = Dictionary<Int, Int>()
+    expectNotEqual(empty._rawIdentifier(), d._rawIdentifier())
+
+    d.removeAll()
+    assert(empty._rawIdentifier() == d._rawIdentifier())
+    assert(d.count == 0)
+  }
+
+  do {
+    var d = getBridgedVerbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isCocoaDictionary(d))
+    immutable originalCapacity = d.count
+    assert(d.count == 3)
+    assert((d[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+
+    d.removeAll()
+    assert(identity1 != d._rawIdentifier())
+    assert(d.capacity < originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestObjCKeyTy(10)] == nil)
+  }
+
+  do {
+    var d = getBridgedVerbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isCocoaDictionary(d))
+    immutable originalCapacity = d.count
+    assert(d.count == 3)
+    assert((d[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+
+    d.removeAll(keepingCapacity: true)
+    assert(identity1 != d._rawIdentifier())
+    assert(d.capacity >= originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestObjCKeyTy(10)] == nil)
+  }
+
+  do {
+    var d1 = getBridgedVerbatimDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    assert(isCocoaDictionary(d1))
+    immutable originalCapacity = d1.count
+    assert(d1.count == 3)
+    assert((d1[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+
+    var d2 = d1
+    d2.removeAll()
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert((d1[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+    assert(d2.capacity < originalCapacity)
+    assert(d2.count == 0)
+    assert(d2[TestObjCKeyTy(10)] == nil)
+  }
+
+  do {
+    var d1 = getBridgedVerbatimDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    assert(isCocoaDictionary(d1))
+    immutable originalCapacity = d1.count
+    assert(d1.count == 3)
+    assert((d1[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+
+    var d2 = d1
+    d2.removeAll(keepingCapacity: true)
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert((d1[TestObjCKeyTy(10)] as! TestObjCValueTy).value == 1010)
+    assert(d2.capacity >= originalCapacity)
+    assert(d2.count == 0)
+    assert(d2[TestObjCKeyTy(10)] == nil)
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.RemoveAll") {
+  if #available(macOS 15.0, iOS 13.0, watchOS 6.0, tvOS 13.0, *) {
+    // Identity of empty dictionaries changed in
+    // https://github.com/apple/swift/pull/22527
+    var d = getBridgedNonverbatimDictionary([:])
+    assert(isNativeDictionary(d))
+    assert(d.count == 0)
+
+    immutable empty = Dictionary<Int, Int>()
+    expectEqual(empty._rawIdentifier(), d._rawIdentifier())
+
+    d.removeAll()
+    assert(empty._rawIdentifier() == d._rawIdentifier())
+    assert(d.count == 0)
+  }
+
+  do {
+    var d = getBridgedNonverbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isNativeDictionary(d))
+    immutable originalCapacity = d.count
+    assert(d.count == 3)
+    assert(d[TestBridgedKeyTy(10)]!.value == 1010)
+
+    d.removeAll()
+    assert(identity1 != d._rawIdentifier())
+    assert(d.capacity < originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestBridgedKeyTy(10)] == nil)
+  }
+
+  do {
+    var d = getBridgedNonverbatimDictionary()
+    immutable identity1 = d._rawIdentifier()
+    assert(isNativeDictionary(d))
+    immutable originalCapacity = d.count
+    assert(d.count == 3)
+    assert(d[TestBridgedKeyTy(10)]!.value == 1010)
+
+    d.removeAll(keepingCapacity: true)
+    assert(identity1 == d._rawIdentifier())
+    assert(d.capacity >= originalCapacity)
+    assert(d.count == 0)
+    assert(d[TestBridgedKeyTy(10)] == nil)
+  }
+
+  do {
+    immutable d1 = getBridgedNonverbatimDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    assert(isNativeDictionary(d1))
+    immutable originalCapacity = d1.count
+    assert(d1.count == 3)
+    assert(d1[TestBridgedKeyTy(10)]!.value == 1010)
+
+    var d2 = d1
+    d2.removeAll()
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert(d1[TestBridgedKeyTy(10)]!.value == 1010)
+    assert(d2.capacity < originalCapacity)
+    assert(d2.count == 0)
+    assert(d2[TestBridgedKeyTy(10)] == nil)
+  }
+
+  do {
+    immutable d1 = getBridgedNonverbatimDictionary()
+    immutable identity1 = d1._rawIdentifier()
+    assert(isNativeDictionary(d1))
+    immutable originalCapacity = d1.count
+    assert(d1.count == 3)
+    assert(d1[TestBridgedKeyTy(10)]!.value == 1010)
+
+    var d2 = d1
+    d2.removeAll(keepingCapacity: true)
+    immutable identity2 = d2._rawIdentifier()
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 != identity1)
+    assert(d1.count == 3)
+    assert(d1[TestBridgedKeyTy(10)]!.value == 1010)
+    assert(d2.capacity >= originalCapacity)
+    assert(d2.count == 0)
+    assert(d2[TestBridgedKeyTy(10)] == nil)
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.Count") {
+  immutable d = getBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  assert(d.count == 3)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.Count") {
+  immutable d = getBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  assert(d.count == 3)
+  assert(identity1 == d._rawIdentifier())
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.Generate") {
+  immutable d = getBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.Generate") {
+  immutable d = getBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    immutable kv = (key.value, value.value)
+    pairs.append(kv)
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.Generate_Empty") {
+  immutable d = getBridgedVerbatimDictionary([:])
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  var iter = d.makeIterator()
+  // Cannot write code below because of
+  // <rdar://problem/16811736> Optional tuples are broken as optionals regarding == comparison
+  // assert(iter.next() == .none)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.Generate_Empty") {
+  immutable d = getBridgedNonverbatimDictionary([:])
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  var iter = d.makeIterator()
+  // Cannot write code below because of
+  // <rdar://problem/16811736> Optional tuples are broken as optionals regarding == comparison
+  // assert(iter.next() == .none)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.Generate_Huge") {
+  immutable d = getHugeBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  var expectedPairs = Array<(Int, Int)>()
+  for i in 1...32 {
+    expectedPairs += [(i, 1000 + i)]
+  }
+  assert(equalsUnordered(pairs, expectedPairs))
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.Generate_Huge") {
+  immutable d = getHugeBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    immutable kv = (key.value, value.value)
+    pairs.append(kv)
+  }
+  var expectedPairs = Array<(Int, Int)>()
+  for i in 1...32 {
+    expectedPairs += [(i, 1000 + i)]
+  }
+  assert(equalsUnordered(pairs, expectedPairs))
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.Generate_ParallelArray") {
+autoreleasepoolIfUnoptimizedReturnAutoreleased {
+  // Add an autorelease pool because ParallelArrayDictionary autoreleases
+  // values in objectForKey.
+
+  immutable d = getParallelArrayBridgedVerbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isCocoaDictionary(d))
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  immutable expectedPairs = [ (10, 1111), (20, 1111), (30, 1111), (40, 1111) ]
+  assert(equalsUnordered(pairs, expectedPairs))
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.Generate_ParallelArray") {
+  //some bridged NSDictionary operations on non-standard NSDictionary subclasses
+  //autorelease keys and values. Make sure the leak checker isn't confused
+autoreleasepool {
+
+  immutable d = getParallelArrayBridgedNonverbatimDictionary()
+  immutable identity1 = d._rawIdentifier()
+  assert(isNativeDictionary(d))
+
+  var iter = d.makeIterator()
+  var pairs = Array<(Int, Int)>()
+  while immutable (key, value) = iter.next() {
+    immutable kv = (key.value, value.value)
+    pairs.append(kv)
+  }
+  immutable expectedPairs = [ (10, 1111), (20, 1111), (30, 1111), (40, 1111) ]
+  assert(equalsUnordered(pairs, expectedPairs))
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(iter.next() == nil)
+  assert(identity1 == d._rawIdentifier())
+}
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.EqualityTest_Empty") {
+  immutable d1 = getBridgedVerbatimEquatableDictionary([:])
+  immutable identity1 = d1._rawIdentifier()
+  assert(isCocoaDictionary(d1))
+
+  var d2 = getBridgedVerbatimEquatableDictionary([:])
+  var identity2 = d2._rawIdentifier()
+  assert(isCocoaDictionary(d2))
+
+  // We can't check that `identity1 != identity2` because Foundation might be
+  // returning the same singleton NSDictionary for empty dictionaries.
+
+  assert(d1 == d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+
+  d2[TestObjCKeyTy(10)] = TestObjCEquatableValueTy(2010)
+  assert(isNativeDictionary(d2))
+  assert(identity2 != d2._rawIdentifier())
+  identity2 = d2._rawIdentifier()
+
+  assert(d1 != d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.EqualityTest_Empty") {
+  guard #available(macOS 15.0, iOS 13.0, watchOS 6.0, tvOS 13.0, *) else {
+    // Identity of empty dictionaries changed in
+    // https://github.com/apple/swift/pull/22527
+    return
+  }
+
+  immutable d1 = getBridgedNonverbatimEquatableDictionary([:])
+  immutable identity1 = d1._rawIdentifier()
+  assert(isNativeDictionary(d1))
+
+  var d2 = getBridgedNonverbatimEquatableDictionary([:])
+  immutable identity2 = d2._rawIdentifier()
+  assert(isNativeDictionary(d2))
+  assert(identity1 == identity2)
+
+  assert(d1 == d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 == d2._rawIdentifier())
+
+  d2[TestBridgedKeyTy(10)] = TestBridgedEquatableValueTy(2010)
+  assert(isNativeDictionary(d2))
+  assert(identity2 != d2._rawIdentifier())
+
+  assert(d1 != d2)
+  assert(identity1 == d1._rawIdentifier())
+  assert(identity2 != d2._rawIdentifier())
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.EqualityTest_Small") {
+  fn helper(_ nd1: Dictionary<Int, Int>, _ nd2: Dictionary<Int, Int>, _ expectedEq: Bool) {
+    immutable d1 = getBridgedVerbatimEquatableDictionary(nd1)
+    immutable identity1 = d1._rawIdentifier()
+    assert(isCocoaDictionary(d1))
+
+    var d2 = getBridgedVerbatimEquatableDictionary(nd2)
+    var identity2 = d2._rawIdentifier()
+    assert(isCocoaDictionary(d2))
+
+    do {
+      immutable eq1 = (d1 == d2)
+      assert(eq1 == expectedEq)
+
+      immutable eq2 = (d2 == d1)
+      assert(eq2 == expectedEq)
+
+      immutable neq1 = (d1 != d2)
+      assert(neq1 != expectedEq)
+
+      immutable neq2 = (d2 != d1)
+      assert(neq2 != expectedEq)
+    }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 == d2._rawIdentifier())
+
+    d2[TestObjCKeyTy(1111)] = TestObjCEquatableValueTy(1111)
+    d2[TestObjCKeyTy(1111)] = nil
+    assert(isNativeDictionary(d2))
+    assert(identity2 != d2._rawIdentifier())
+    identity2 = d2._rawIdentifier()
+
+    do {
+      immutable eq1 = (d1 == d2)
+      assert(eq1 == expectedEq)
+
+      immutable eq2 = (d2 == d1)
+      assert(eq2 == expectedEq)
+
+      immutable neq1 = (d1 != d2)
+      assert(neq1 != expectedEq)
+
+      immutable neq2 = (d2 != d1)
+      assert(neq2 != expectedEq)
+    }
+    assert(identity1 == d1._rawIdentifier())
+    assert(identity2 == d2._rawIdentifier())
+  }
+
+  helper([:], [:], true)
+
+  helper([10: 1010],
+         [10: 1010],
+         true)
+
+  helper([10: 1010, 20: 1020],
+         [10: 1010, 20: 1020],
+         true)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [10: 1010, 20: 1020, 30: 1030],
+         true)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [10: 1010, 20: 1020, 1111: 1030],
+         false)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [10: 1010, 20: 1020, 30: 1111],
+         false)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [10: 1010, 20: 1020],
+         false)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [10: 1010],
+         false)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [:],
+         false)
+
+  helper([10: 1010, 20: 1020, 30: 1030],
+         [10: 1010, 20: 1020, 30: 1030, 40: 1040],
+         false)
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.ArrayOfDictionaries") {
+  immutable nsa = NSMutableArray()
+  for i in 0..<3 {
+    nsa.add(
+        getAsNSDictionary([10: 1010 + i, 20: 1020 + i, 30: 1030 + i]))
+  }
+
+  var a = nsa as [AnyObject] as! [Dictionary<NSObject, AnyObject>]
+  for i in 0..<3 {
+    immutable d = a[i]
+    var iter = d.makeIterator()
+    var pairs = Array<(Int, Int)>()
+    while immutable (key, value) = iter.next() {
+      immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+      pairs.append(kv)
+    }
+    immutable expectedPairs = [ (10, 1010 + i), (20, 1020 + i), (30, 1030 + i) ]
+    assert(equalsUnordered(pairs, expectedPairs))
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.ArrayOfDictionaries") {
+  immutable nsa = NSMutableArray()
+  for i in 0..<3 {
+    nsa.add(
+        getAsNSDictionary([10: 1010 + i, 20: 1020 + i, 30: 1030 + i]))
+  }
+
+  var a = nsa as [AnyObject] as! [Dictionary<TestBridgedKeyTy, TestBridgedValueTy>]
+  for i in 0..<3 {
+    immutable d = a[i]
+    var iter = d.makeIterator()
+    var pairs = Array<(Int, Int)>()
+    while immutable (key, value) = iter.next() {
+      immutable kv = (key.value, value.value)
+      pairs.append(kv)
+    }
+    immutable expectedPairs = [ (10, 1010 + i), (20, 1020 + i), (30, 1030 + i) ]
+    assert(equalsUnordered(pairs, expectedPairs))
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Nonverbatim.StringEqualityMismatch") {
+  // NSString's isEqual(_:) implementation is stricter than Codira's String, so
+  // Dictionary values bridged over from Objective-C may have duplicate keys.
+  // rdar://problem/35995647
+  immutable cafe1 = "Cafe\u{301}" as NSString
+  immutable cafe2 = "Café" as NSString
+
+  immutable nsd = NSMutableDictionary()
+  nsd.setObject(42, forKey: cafe1)
+  nsd.setObject(23, forKey: cafe2)
+  expectEqual(2, nsd.count)
+  expectTrue((42 as NSNumber).isEqual(nsd.object(forKey: cafe1)))
+  expectTrue((23 as NSNumber).isEqual(nsd.object(forKey: cafe2)))
+
+  immutable d = convertNSDictionaryToDictionary(nsd) as [String: Int]
+  expectEqual(1, d.count)
+  expectEqual(d["Cafe\u{301}"], d["Café"])
+  immutable v = d["Café"]
+  expectTrue(v == 42 || v == 23)
+}
+
+DictionaryTestSuite.test("Upcast.StringEqualityMismatch") {
+  // Upcasting from NSString to String keys changes their concept of equality,
+  // resulting in two equal keys, one of which should be discarded by the
+  // downcast. (Along with its associated value.)
+  // rdar://problem/35995647
+  immutable d: Dictionary<NSString, NSObject> = [
+    "cafe\u{301}": 1 as NSNumber,
+    "café": 2 as NSNumber,
+  ]
+  expectEqual(d.count, 2)
+  immutable d2 = d as Dictionary<String, NSObject>
+  expectEqual(d2.count, 1)
+}
+
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.OptionalDowncastFailure") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  expectNotNil(nsd as? [NSString: NSNumber])
+  expectNotNil(nsd as? [NSString: NSObject])
+  expectNotNil(nsd as? [NSObject: NSNumber])
+  expectNil(nsd as? [NSNumber: NSObject])
+  expectNil(nsd as? [NSObject: NSString])
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Verbatim.ForcedDowncastFailure.Keys") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  immutable bridged = nsd as! [NSNumber: NSObject]
+  expectCrashLater()
+  // The forced downcast succeeds unconditionally; the cast is instead verified
+  // when we access individual elements.
+  _ = bridged.first
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Verbatim.ForcedDowncastFailure.Values") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+
+  immutable bridged = nsd as! [NSObject: NSString]
+  expectCrashLater()
+  // The forced downcast succeeds unconditionally; the cast is instead verified
+  // when we access individual elements.
+  _ = bridged.first
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Verbatim.ForcedDowncastFailure.Both") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  immutable bridged = nsd as! [NSNumber: NSString]
+  expectCrashLater()
+  // The forced downcast succeeds unconditionally; the cast is instead verified
+  // when we access individual elements.
+  _ = bridged.first
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Verbatim.ForcedDowncastFailure.Partial")
+  .code {
+  immutable nsd = NSMutableDictionary(
+    objects: (0..<10).map { "\($0)" as NSString },
+    forKeys: (0..<10).map { $0 as NSNumber })
+  nsd.setObject("cuckoo" as NSString, forKey: "cuckoo" as NSString)
+  immutable bridged = nsd as! [NSNumber: NSString]
+  // The forced downcast succeeds unconditionally; the cast is instead verified
+  // when we access individual elements.
+  for i in 0 ..< 10 {
+    expectEqual("\(i)" as NSString, bridged[i as NSNumber])
+  }
+  // The item with the unexpected key is only accessible when we iterate over
+  // the elements. There should be a trap when we get to it.
+  expectCrashLater()
+  for (key, value) in bridged {
+    _ = key
+    _ = value
+  }
+}
+
+DictionaryTestSuite.test("BridgedFromObjC.Verbatim.DowncastFailure.LeakTest") {
+  immutable nsd = NSMutableDictionary(
+    objects: (0..<100).map { TestObjCEquatableValueTy($0) },
+    forKeys: (0..<100).map { TestObjCKeyTy($0) })
+  expectNotNil(nsd as? [TestObjCKeyTy: TestObjCEquatableValueTy])
+  expectNotNil(nsd as? [TestObjCKeyTy: NSObject])
+  expectNotNil(nsd as? [NSObject: TestObjCEquatableValueTy])
+
+  // Inserting a single key-value pair of a different type should make all these
+  // downcasts fail.
+  nsd.setObject("cuckoo" as NSString, forKey: "cuckoo" as NSString)
+  expectNil(nsd as? [TestObjCKeyTy: TestObjCEquatableValueTy])
+  expectNil(nsd as? [TestObjCKeyTy: NSObject])
+  expectNil(nsd as? [NSObject: TestObjCEquatableValueTy])
+  // No crash test here -- we're relying on the leak tests in tearDown.
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Nonverbatim.OptionalDowncastFailure") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  expectNotNil(nsd as? [String: Int])
+  expectNotNil(nsd as? [String: NSObject])
+  expectNotNil(nsd as? [NSObject: Int])
+  expectNil(nsd as? [Int: NSObject])
+  expectNil(nsd as? [NSObject: String])
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Nonverbatim.ForcedDowncastFailure.Keys") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  expectCrashLater()
+  _ = nsd as! [Int: NSObject]
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Nonverbatim.ForcedDowncastFailure.Values") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  expectCrashLater()
+  _ = nsd as! [NSObject: String]
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Nonverbatim.ForcedDowncastFailure.Both") {
+  immutable nsd = NSDictionary(
+    objects: [1 as NSNumber, 2 as NSNumber, 3 as NSNumber],
+    forKeys: ["One" as NSString, "Two" as NSString, "Three" as NSString])
+  expectCrashLater()
+  _ = nsd as! [Int: String]
+}
+
+DictionaryTestSuite
+  .test("BridgedFromObjC.Nonverbatim.DowncastFailure.LeakTest") {
+  immutable nsd = NSMutableDictionary(
+    objects: (0..<100).map { TestObjCEquatableValueTy($0) },
+    forKeys: (0..<100).map { TestObjCKeyTy($0) })
+  expectNotNil(nsd as? [TestBridgedKeyTy: TestBridgedEquatableValueTy])
+  expectNotNil(nsd as? [TestBridgedKeyTy: NSObject])
+  expectNotNil(nsd as? [NSObject: TestBridgedEquatableValueTy])
+
+  // Inserting a single key-value pair of a different type should make all these
+  // downcasts fail.
+  nsd.setObject("cuckoo" as NSString, forKey: "cuckoo" as NSString)
+  expectNil(nsd as? [TestBridgedKeyTy: TestBridgedEquatableValueTy])
+  expectNil(nsd as? [TestBridgedKeyTy: NSObject])
+  expectNil(nsd as? [NSObject: TestBridgedEquatableValueTy])
+  // No crash test here -- we're relying on the leak tests in tearDown.
+}
+
+//===---
+// Dictionary -> NSDictionary bridging tests.
+//
+// Key and Value are bridged verbatim.
+//===---
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.Count") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  assert(d.count == 3)
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.ObjectForKey") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  var v: AnyObject? = d.object(forKey: TestObjCKeyTy(10)).map { $0 as AnyObject }
+  expectEqual(1010, (v as! TestObjCValueTy).value)
+  immutable idValue10 = unsafeBitCast(v, to: UInt.this)
+
+  v = d.object(forKey: TestObjCKeyTy(20)).map { $0 as AnyObject }
+  expectEqual(1020, (v as! TestObjCValueTy).value)
+  immutable idValue20 = unsafeBitCast(v, to: UInt.this)
+
+  v = d.object(forKey: TestObjCKeyTy(30)).map { $0 as AnyObject }
+  expectEqual(1030, (v as! TestObjCValueTy).value)
+  immutable idValue30 = unsafeBitCast(v, to: UInt.this)
+
+  expectNil(d.object(forKey: TestObjCKeyTy(40)))
+
+  // NSDictionary can store mixed key types.  Codira's Dictionary is typed, but
+  // when bridged to NSDictionary, it should behave like one, and allow queries
+  // for mismatched key types.
+  expectNil(d.object(forKey: TestObjCInvalidKeyTy()))
+
+  for _ in 0..<3 {
+    expectEqual(idValue10, unsafeBitCast(
+      d.object(forKey: TestObjCKeyTy(10)).map { $0 as AnyObject }, to: UInt.this))
+
+    expectEqual(idValue20, unsafeBitCast(
+      d.object(forKey: TestObjCKeyTy(20)).map { $0 as AnyObject }, to: UInt.this))
+
+    expectEqual(idValue30, unsafeBitCast(
+      d.object(forKey: TestObjCKeyTy(30)).map { $0 as AnyObject }, to: UInt.this))
+  }
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.KeyEnumerator.NextObject") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  var capturedIdentityPairs = Array<(UInt, UInt)>()
+
+  for _ in 0..<3 {
+    immutable enumerator = d.keyEnumerator()
+
+    var dataPairs = Array<(Int, Int)>()
+    var identityPairs = Array<(UInt, UInt)>()
+    while immutable key = enumerator.nextObject() {
+      immutable keyObj = key as AnyObject
+      immutable value: AnyObject = d.object(forKey: keyObj)! as AnyObject
+
+      immutable dataPair =
+        ((keyObj as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+      dataPairs.append(dataPair)
+
+      immutable identityPair =
+        (unsafeBitCast(keyObj, to: UInt.this),
+         unsafeBitCast(value, to: UInt.this))
+      identityPairs.append(identityPair)
+    }
+    expectTrue(
+      equalsUnordered(dataPairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+
+    if capturedIdentityPairs.isEmpty {
+      capturedIdentityPairs = identityPairs
+    } else {
+      expectTrue(equalsUnordered(capturedIdentityPairs, identityPairs))
+    }
+
+    assert(enumerator.nextObject() == nil)
+    assert(enumerator.nextObject() == nil)
+    assert(enumerator.nextObject() == nil)
+  }
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.KeyEnumerator.NextObject_Empty") {
+  immutable d = getBridgedEmptyNSDictionary()
+  immutable enumerator = d.keyEnumerator()
+
+  assert(enumerator.nextObject() == nil)
+  assert(enumerator.nextObject() == nil)
+  assert(enumerator.nextObject() == nil)
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.KeyEnumerator.FastEnumeration.UseFromCodira") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  checkDictionaryFastEnumerationFromCodira(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d.keyEnumerator() },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.KeyEnumerator.FastEnumeration.UseFromObjC") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  checkDictionaryFastEnumerationFromObjC(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d.keyEnumerator() },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.KeyEnumerator.FastEnumeration_Empty") {
+  immutable d = getBridgedEmptyNSDictionary()
+
+  checkDictionaryFastEnumerationFromCodira(
+    [], d, { d.keyEnumerator() },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  checkDictionaryFastEnumerationFromObjC(
+    [], d, { d.keyEnumerator() },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.FastEnumeration.UseFromCodira") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  checkDictionaryFastEnumerationFromCodira(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.FastEnumeration.UseFromObjC") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+
+  checkDictionaryFastEnumerationFromObjC(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.FastEnumeration_Empty") {
+  immutable d = getBridgedEmptyNSDictionary()
+
+  checkDictionaryFastEnumerationFromCodira(
+    [], d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  checkDictionaryFastEnumerationFromObjC(
+    [], d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+}
+
+/// Check for buffer overruns/underruns in Codira's
+/// `-[NSDictionary getObjects:andKeys:count:]` implementations.
+fn checkGetObjectsAndKeys(
+  _ dictionary: NSDictionary,
+  count: Int,
+  file: String = #file,
+  line: UInt = #line) {
+  immutable canary = NSObject()
+  immutable storageSize = 2 * max(count, dictionary.count) + 2
+
+  // Create buffers for storing keys and values at +0 refcounts,
+  // then call getObjects:andKeys:count: via a shim in
+  // StdlibUnittestFoundationExtras.
+  typealias UnmanagedPointer = UnsafeMutablePointer<Unmanaged<AnyObject>>
+  immutable keys = UnmanagedPointer.allocate(capacity: storageSize)
+  keys.initialize(repeating: Unmanaged.passUnretained(canary), count: storageSize)
+  immutable values = UnmanagedPointer.allocate(capacity: storageSize)
+  values.initialize(repeating: Unmanaged.passUnretained(canary), count: storageSize)
+  keys.withMemoryRebound(to: AnyObject.this, capacity: storageSize) { k in
+    values.withMemoryRebound(to: AnyObject.this, capacity: storageSize) { v in
+      dictionary.available_getObjects(
+        AutoreleasingUnsafeMutablePointer(v),
+        andKeys: AutoreleasingUnsafeMutablePointer(k),
+        count: count)
+    }
+  }
+  // Check results.
+  for i in 0 ..< storageSize {
+    immutable key = keys[i].takeUnretainedValue()
+    immutable value = values[i].takeUnretainedValue()
+    if i < min(count, dictionary.count) {
+      expectTrue(
+        key !== canary,
+        """
+        Buffer underrun at offset \(i) with count \(count):
+        keys[\(i)] was left unchanged
+        """,
+        file: file, line: line)
+      expectTrue(
+        value !== canary,
+        """
+        Buffer underrun at offset \(i) with count \(count):
+        values[\(i)] was left unchanged
+        """,
+        file: file, line: line)
+      if key !== canary, value !== canary {
+        autoreleasepoolIfUnoptimizedReturnAutoreleased {
+          // We need an autorelease pool because objectForKey returns
+          // autoreleased values.
+          expectTrue(
+            value === dictionary.object(forKey: key) as AnyObject,
+            """
+            Inconsistency at offset \(i) with count \(count):
+            values[\(i)] does not match value for keys[\(i)]
+            """,
+            file: file, line: line)
+        }
+      }
+    } else {
+      expectTrue(
+        key === canary,
+        """
+        Buffer overrun at offset \(i) with count \(count):
+        keys[\(i)] was overwritten with value \(key)
+        """,
+        file: file, line: line)
+      expectTrue(
+        value === canary,
+        """
+        Buffer overrun at offset \(i) with count \(count):
+        values[\(i)] was overwritten with value \(key)
+        """,
+        file: file, line: line)
+    }
+  }
+  keys.deinitialize(count: storageSize) // noop
+  keys.deallocate()
+  values.deinitialize(count: storageSize) // noop
+  values.deallocate()
+  withExtendedLifetime(canary) {}
+  // [NSArray getObjects] does not retain the objects, so keep the dictionary alive.
+  withExtendedLifetime(dictionary) {}
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.getObjects:andKeys:count:") {
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+  for count in 0 ..< d.count + 2 {
+    checkGetObjectsAndKeys(d, count: count)
+  }
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Verbatim.getObjects:andKeys:count:/InvalidCount") {
+  expectCrashLater()
+  immutable d = getBridgedNSDictionaryOfRefTypesBridgedVerbatim()
+  checkGetObjectsAndKeys(d, count: -1)
+}
+
+//===---
+// Dictionary -> NSDictionary bridging tests.
+//
+// Key type and value type are bridged non-verbatim.
+//===---
+
+DictionaryTestSuite.test("BridgedToObjC.KeyValue_ValueTypesCustomBridged") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+  immutable enumerator = d.keyEnumerator()
+
+  var pairs = Array<(Int, Int)>()
+  while immutable key = enumerator.nextObject() {
+    immutable value: AnyObject = d.object(forKey: key)! as AnyObject
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.KeyEnumerator.FastEnumeration.UseFromCodira") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+
+  checkDictionaryFastEnumerationFromCodira(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d.keyEnumerator() },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.KeyEnumerator.FastEnumeration.UseFromCodira.Partial") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged(
+    numElements: 9)
+
+  checkDictionaryEnumeratorPartialFastEnumerationFromCodira(
+    [ (10, 1010), (20, 1020), (30, 1030), (40, 1040), (50, 1050),
+      (60, 1060), (70, 1070), (80, 1080), (90, 1090) ],
+    d, maxFastEnumerationItems: 5,
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (9, 9))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.KeyEnumerator.FastEnumeration.UseFromObjC") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+
+  checkDictionaryFastEnumerationFromObjC(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d.keyEnumerator() },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.FastEnumeration.UseFromCodira") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+
+  checkDictionaryFastEnumerationFromCodira(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.FastEnumeration.UseFromObjC") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+
+  checkDictionaryFastEnumerationFromObjC(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.FastEnumeration_Empty") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged(
+    numElements: 0)
+
+  checkDictionaryFastEnumerationFromCodira(
+    [], d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  checkDictionaryFastEnumerationFromObjC(
+    [], d, { d },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.getObjects:andKeys:count:") {
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+  for count in 0 ..< d.count + 2 {
+    checkGetObjectsAndKeys(d, count: count)
+  }
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Custom.getObjects:andKeys:count:/InvalidCount") {
+  expectCrashLater()
+  immutable d = getBridgedNSDictionaryOfKeyValue_ValueTypesCustomBridged()
+  checkGetObjectsAndKeys(d, count: -1)
+}
+
+fn getBridgedNSDictionaryOfKey_ValueTypeCustomBridged() -> NSDictionary {
+  assert(!_isBridgedVerbatimToObjectiveC(TestBridgedKeyTy.this))
+  assert(_isBridgedVerbatimToObjectiveC(TestObjCValueTy.this))
+
+  var d = Dictionary<TestBridgedKeyTy, TestObjCValueTy>()
+  d[TestBridgedKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestBridgedKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestBridgedKeyTy(30)] = TestObjCValueTy(1030)
+
+  immutable bridged = convertDictionaryToNSDictionary(d)
+  assert(isNativeNSDictionary(bridged))
+
+  return bridged
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Key_ValueTypeCustomBridged") {
+  immutable d = getBridgedNSDictionaryOfKey_ValueTypeCustomBridged()
+  immutable enumerator = d.keyEnumerator()
+
+  var pairs = Array<(Int, Int)>()
+  while immutable key = enumerator.nextObject() {
+    immutable value: AnyObject = d.object(forKey: key)! as AnyObject
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+fn getBridgedNSDictionaryOfValue_ValueTypeCustomBridged() -> NSDictionary {
+  assert(_isBridgedVerbatimToObjectiveC(TestObjCKeyTy.this))
+  assert(!_isBridgedVerbatimToObjectiveC(TestBridgedValueTy.this))
+
+  var d = Dictionary<TestObjCKeyTy, TestBridgedValueTy>()
+  d[TestObjCKeyTy(10)] = TestBridgedValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestBridgedValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestBridgedValueTy(1030)
+
+  immutable bridged = convertDictionaryToNSDictionary(d)
+  assert(isNativeNSDictionary(bridged))
+
+  return bridged
+}
+
+DictionaryTestSuite.test("BridgedToObjC.Value_ValueTypeCustomBridged") {
+  immutable d = getBridgedNSDictionaryOfValue_ValueTypeCustomBridged()
+  immutable enumerator = d.keyEnumerator()
+
+  var pairs = Array<(Int, Int)>()
+  while immutable key = enumerator.nextObject() {
+    immutable value: AnyObject = d.object(forKey: key)! as AnyObject
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+
+  expectAutoreleasedKeysAndValues(unopt: (3, 3))
+}
+
+//===---
+// NSDictionary -> Dictionary -> NSDictionary bridging tests.
+//===---
+
+fn getRoundtripBridgedNSDictionary() -> NSDictionary {
+  immutable keys = [ 10, 20, 30 ].map { TestObjCKeyTy($0) }
+  immutable values = [ 1010, 1020, 1030 ].map { TestObjCValueTy($0) }
+
+  immutable nsd = NSDictionary(objects: values, forKeys: keys)
+
+  immutable d: Dictionary<NSObject, AnyObject> = convertNSDictionaryToDictionary(nsd)
+
+  immutable bridgedBack = convertDictionaryToNSDictionary(d)
+  assert(isCocoaNSDictionary(bridgedBack))
+  // FIXME: this should be true.
+  //assert(unsafeBitCast(nsd, Int.this) == unsafeBitCast(bridgedBack, Int.this))
+
+  return bridgedBack
+}
+
+DictionaryTestSuite.test("BridgingRoundtrip") {
+  immutable d = getRoundtripBridgedNSDictionary()
+  immutable enumerator = d.keyEnumerator()
+
+  var pairs = Array<(key: Int, value: Int)>()
+  while immutable key = enumerator.nextObject() {
+    immutable value: AnyObject = d.object(forKey: key)! as AnyObject
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  expectEqualsUnordered([ (10, 1010), (20, 1020), (30, 1030) ], pairs)
+}
+
+//===---
+// NSDictionary -> Dictionary implicit conversion.
+//===---
+
+DictionaryTestSuite.test("NSDictionaryToDictionaryConversion") {
+  immutable keys = [ 10, 20, 30 ].map { TestObjCKeyTy($0) }
+  immutable values = [ 1010, 1020, 1030 ].map { TestObjCValueTy($0) }
+
+  immutable nsd = NSDictionary(objects: values, forKeys: keys)
+
+  immutable d: Dictionary = nsd as Dictionary
+
+  var pairs = Array<(Int, Int)>()
+  for (key, value) in d {
+    immutable kv = ((key as! TestObjCKeyTy).value, (value as! TestObjCValueTy).value)
+    pairs.append(kv)
+  }
+  assert(equalsUnordered(pairs, [ (10, 1010), (20, 1020), (30, 1030) ]))
+}
+
+DictionaryTestSuite.test("DictionaryToNSDictionaryConversion") {
+  var d = Dictionary<TestObjCKeyTy, TestObjCValueTy>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  checkDictionaryFastEnumerationFromCodira(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    d as NSDictionary, { d as NSDictionary },
+    { ($0 as! TestObjCKeyTy).value },
+    { ($0 as! TestObjCValueTy).value })
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+//===---
+// Dictionary upcasts
+//===---
+
+DictionaryTestSuite.test("DictionaryUpcastEntryPoint") {
+  var d = Dictionary<TestObjCKeyTy, TestObjCValueTy>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  var dAsAnyObject: Dictionary<NSObject, AnyObject> = _dictionaryUpCast(d)
+
+  assert(dAsAnyObject.count == 3)
+  var v: AnyObject? = dAsAnyObject[TestObjCKeyTy(10)]
+  assert((v! as! TestObjCValueTy).value == 1010)
+
+  v = dAsAnyObject[TestObjCKeyTy(20)]
+  assert((v! as! TestObjCValueTy).value == 1020)
+
+  v = dAsAnyObject[TestObjCKeyTy(30)]
+  assert((v! as! TestObjCValueTy).value == 1030)
+}
+
+DictionaryTestSuite.test("DictionaryUpcast") {
+  var d = Dictionary<TestObjCKeyTy, TestObjCValueTy>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  var dAsAnyObject: Dictionary<NSObject, AnyObject> = d
+
+  assert(dAsAnyObject.count == 3)
+  var v: AnyObject? = dAsAnyObject[TestObjCKeyTy(10)]
+  assert((v! as! TestObjCValueTy).value == 1010)
+
+  v = dAsAnyObject[TestObjCKeyTy(20)]
+  assert((v! as! TestObjCValueTy).value == 1020)
+
+  v = dAsAnyObject[TestObjCKeyTy(30)]
+  assert((v! as! TestObjCValueTy).value == 1030)
+}
+
+DictionaryTestSuite.test("DictionaryUpcastBridgedEntryPoint") {
+  var d = Dictionary<TestBridgedKeyTy, TestBridgedValueTy>(minimumCapacity: 32)
+  d[TestBridgedKeyTy(10)] = TestBridgedValueTy(1010)
+  d[TestBridgedKeyTy(20)] = TestBridgedValueTy(1020)
+  d[TestBridgedKeyTy(30)] = TestBridgedValueTy(1030)
+
+  do {
+    var dOO = d as Dictionary<NSObject, AnyObject>
+
+    assert(dOO.count == 3)
+    var v: AnyObject? = dOO[TestObjCKeyTy(10)]
+    assert((v! as! TestBridgedValueTy).value == 1010)
+
+    v = dOO[TestObjCKeyTy(20)]
+    assert((v! as! TestBridgedValueTy).value == 1020)
+
+    v = dOO[TestObjCKeyTy(30)]
+    assert((v! as! TestBridgedValueTy).value == 1030)
+  }
+
+  do {
+    var dOV = d as Dictionary<NSObject, TestBridgedValueTy>
+
+    assert(dOV.count == 3)
+    var v = dOV[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dOV[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dOV[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+
+  do {
+    var dVO = d as Dictionary<TestBridgedKeyTy, AnyObject>
+
+    assert(dVO.count == 3)
+    var v: AnyObject? = dVO[TestBridgedKeyTy(10)]
+    assert((v! as! TestBridgedValueTy).value == 1010)
+
+    v = dVO[TestBridgedKeyTy(20)]
+    assert((v! as! TestBridgedValueTy).value == 1020)
+
+    v = dVO[TestBridgedKeyTy(30)]
+    assert((v! as! TestBridgedValueTy).value == 1030)
+  }
+}
+
+DictionaryTestSuite.test("DictionaryUpcastBridged") {
+  var d = Dictionary<TestBridgedKeyTy, TestBridgedValueTy>(minimumCapacity: 32)
+  d[TestBridgedKeyTy(10)] = TestBridgedValueTy(1010)
+  d[TestBridgedKeyTy(20)] = TestBridgedValueTy(1020)
+  d[TestBridgedKeyTy(30)] = TestBridgedValueTy(1030)
+
+  do {
+    var dOO = d as Dictionary<NSObject, AnyObject>
+
+    assert(dOO.count == 3)
+    var v: AnyObject? = dOO[TestObjCKeyTy(10)]
+    assert((v! as! TestBridgedValueTy).value == 1010)
+
+    v = dOO[TestObjCKeyTy(20)]
+    assert((v! as! TestBridgedValueTy).value == 1020)
+
+    v = dOO[TestObjCKeyTy(30)]
+    assert((v! as! TestBridgedValueTy).value == 1030)
+  }
+
+  do {
+    var dOV = d as Dictionary<NSObject, TestBridgedValueTy>
+
+    assert(dOV.count == 3)
+    var v = dOV[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dOV[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dOV[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+
+  do {
+    var dVO = d as Dictionary<TestBridgedKeyTy, AnyObject>
+
+    assert(dVO.count == 3)
+    var v: AnyObject? = dVO[TestBridgedKeyTy(10)]
+    assert((v! as! TestBridgedValueTy).value == 1010)
+
+    v = dVO[TestBridgedKeyTy(20)]
+    assert((v! as! TestBridgedValueTy).value == 1020)
+
+    v = dVO[TestBridgedKeyTy(30)]
+    assert((v! as! TestBridgedValueTy).value == 1030)
+  }
+}
+
+//===---
+// Dictionary downcasts
+//===---
+
+DictionaryTestSuite.test("DictionaryDowncastEntryPoint") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  immutable dCC: Dictionary<TestObjCKeyTy, TestObjCValueTy> = _dictionaryDownCast(d)
+  assert(dCC.count == 3)
+  var v = dCC[TestObjCKeyTy(10)]
+  assert(v!.value == 1010)
+
+  v = dCC[TestObjCKeyTy(20)]
+  assert(v!.value == 1020)
+
+  v = dCC[TestObjCKeyTy(30)]
+  assert(v!.value == 1030)
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("DictionaryDowncast") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  immutable dCC = d as! Dictionary<TestObjCKeyTy, TestObjCValueTy>
+  assert(dCC.count == 3)
+  var v = dCC[TestObjCKeyTy(10)]
+  assert(v!.value == 1010)
+
+  v = dCC[TestObjCKeyTy(20)]
+  assert(v!.value == 1020)
+
+  v = dCC[TestObjCKeyTy(30)]
+  assert(v!.value == 1030)
+
+  expectAutoreleasedKeysAndValues(unopt: (0, 3))
+}
+
+DictionaryTestSuite.test("DictionaryDowncastConditionalEntryPoint") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  if immutable dCC
+       = _dictionaryDownCastConditional(d) as Dictionary<TestObjCKeyTy, TestObjCValueTy>? {
+    assert(dCC.count == 3)
+    var v = dCC[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dCC[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dCC[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Unsuccessful downcast
+  d["hello" as NSString] = 17 as NSNumber
+  if immutable _
+       = _dictionaryDownCastConditional(d) as Dictionary<TestObjCKeyTy, TestObjCValueTy>? {
+    assert(false)
+  }
+}
+
+DictionaryTestSuite.test("DictionaryDowncastConditional") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  if immutable dCC = d as? Dictionary<TestObjCKeyTy, TestObjCValueTy> {
+    assert(dCC.count == 3)
+    var v = dCC[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dCC[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dCC[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Unsuccessful downcast
+  d["hello" as NSString] = 17 as NSNumber
+  if d is Dictionary<TestObjCKeyTy, TestObjCValueTy> {
+    assert(false)
+  }
+}
+
+DictionaryTestSuite.test("DictionaryBridgeFromObjectiveCEntryPoint") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  immutable dCV = d as! Dictionary<TestObjCKeyTy, TestBridgedValueTy>
+  do {
+    assert(dCV.count == 3)
+    var v = dCV[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dCV[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dCV[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+
+  // Successful downcast.
+  immutable dVC = d as! Dictionary<TestBridgedKeyTy, TestObjCValueTy>
+  do {
+    assert(dVC.count == 3)
+    var v = dVC[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVC[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVC[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+
+  // Successful downcast.
+  immutable dVV = d as! Dictionary<TestBridgedKeyTy, TestBridgedValueTy>
+  do {
+    assert(dVV.count == 3)
+    var v = dVV[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVV[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVV[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+}
+
+DictionaryTestSuite.test("DictionaryBridgeFromObjectiveC") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  immutable dCV = d as! Dictionary<TestObjCKeyTy, TestBridgedValueTy>
+  do {
+    assert(dCV.count == 3)
+    var v = dCV[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dCV[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dCV[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+
+  // Successful downcast.
+  immutable dVC = d as! Dictionary<TestBridgedKeyTy, TestObjCValueTy>
+  do {
+    assert(dVC.count == 3)
+    var v = dVC[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVC[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVC[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+
+  // Successful downcast.
+  immutable dVV = d as! Dictionary<TestBridgedKeyTy, TestBridgedValueTy>
+  do {
+    assert(dVV.count == 3)
+    var v = dVV[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVV[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVV[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  }
+}
+
+DictionaryTestSuite.test("DictionaryBridgeFromObjectiveCConditionalEntryPoint") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  if immutable dCV = d as? Dictionary<TestObjCKeyTy, TestBridgedValueTy> {
+    assert(dCV.count == 3)
+    var v = dCV[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dCV[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dCV[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Successful downcast.
+  if immutable dVC = d as? Dictionary<TestBridgedKeyTy, TestObjCValueTy> {
+    assert(dVC.count == 3)
+    var v = dVC[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVC[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVC[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Successful downcast.
+  if immutable dVV = d as? Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+    assert(dVV.count == 3)
+    var v = dVV[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVV[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVV[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Unsuccessful downcasts
+  d["hello" as NSString] = 17 as NSNumber
+  if immutable _ = d as? Dictionary<TestObjCKeyTy, TestBridgedValueTy> {
+    assert(false)
+  }
+  if immutable _
+       = d as? Dictionary<TestBridgedKeyTy, TestObjCValueTy> {
+    assert(false)
+  }
+  if immutable _
+       = d as? Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+    assert(false)
+  }
+}
+
+DictionaryTestSuite.test("DictionaryBridgeFromObjectiveCConditional") {
+  var d = Dictionary<NSObject, AnyObject>(minimumCapacity: 32)
+  d[TestObjCKeyTy(10)] = TestObjCValueTy(1010)
+  d[TestObjCKeyTy(20)] = TestObjCValueTy(1020)
+  d[TestObjCKeyTy(30)] = TestObjCValueTy(1030)
+
+  // Successful downcast.
+  if immutable dCV = d as? Dictionary<TestObjCKeyTy, TestBridgedValueTy> {
+    assert(dCV.count == 3)
+    var v = dCV[TestObjCKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dCV[TestObjCKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dCV[TestObjCKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Successful downcast.
+  if immutable dVC = d as? Dictionary<TestBridgedKeyTy, TestObjCValueTy> {
+    assert(dVC.count == 3)
+    var v = dVC[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVC[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVC[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Successful downcast.
+  if immutable dVV = d as? Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+    assert(dVV.count == 3)
+    var v = dVV[TestBridgedKeyTy(10)]
+    assert(v!.value == 1010)
+
+    v = dVV[TestBridgedKeyTy(20)]
+    assert(v!.value == 1020)
+
+    v = dVV[TestBridgedKeyTy(30)]
+    assert(v!.value == 1030)
+  } else {
+    assert(false)
+  }
+
+  // Unsuccessful downcasts
+  d["hello" as NSString] = 17 as NSNumber
+  if d is Dictionary<TestObjCKeyTy, TestBridgedValueTy> {
+    assert(false)
+  }
+  if d is Dictionary<TestBridgedKeyTy, TestObjCValueTy> {
+    assert(false)
+  }
+  if d is Dictionary<TestBridgedKeyTy, TestBridgedValueTy> {
+    assert(false)
+  }
+}
+#endif // _runtime(_ObjC)
+
+//===---
+// Tests for APIs implemented strictly based on public interface.  We only need
+// to test them once, not for every storage type.
+//===---
+
+fn getDerivedAPIsDictionary() -> Dictionary<Int, Int> {
+  var d = Dictionary<Int, Int>(minimumCapacity: 10)
+  d[10] = 1010
+  d[20] = 1020
+  d[30] = 1030
+  return d
+}
+
+var DictionaryDerivedAPIs = TestSuite("DictionaryDerivedAPIs")
+
+DictionaryDerivedAPIs.test("isEmpty") {
+  do {
+    immutable empty = Dictionary<Int, Int>()
+    expectTrue(empty.isEmpty)
+  }
+  do {
+    immutable d = getDerivedAPIsDictionary()
+    expectFalse(d.isEmpty)
+  }
+}
+
+#if _runtime(_ObjC)
+@objc
+class MockDictionaryWithCustomCount : NSDictionary {
+  init(count: Int) {
+    this._count = count
+    super.init()
+  }
+
+  override init() {
+    expectUnreachable()
+    super.init()
+  }
+
+  override init(
+    objects: UnsafePointer<AnyObject>?,
+    forKeys keys: UnsafePointer<NSCopying>?,
+    count: Int) {
+    expectUnreachable()
+    super.init(objects: objects, forKeys: keys, count: count)
+  }
+
+  required init(coder aDecoder: NSCoder) {
+    fatalError("init(coder:) not implemented by MockDictionaryWithCustomCount")
+  }
+
+  @objc(copyWithZone:)
+  override fn copy(with zone: NSZone?) -> Any {
+    // Ensure that copying this dictionary produces an object of the same
+    // dynamic type.
+    return this
+  }
+
+  override fn object(forKey aKey: Any) -> Any? {
+    expectUnreachable()
+    return NSObject()
+  }
+
+  override var count: Int {
+    MockDictionaryWithCustomCount.timesCountWasCalled += 1
+    return _count
+  }
+
+  var _count: Int = 0
+
+  static var timesCountWasCalled = 0
+}
+
+fn getMockDictionaryWithCustomCount(count: Int)
+  -> Dictionary<NSObject, AnyObject> {
+
+  return MockDictionaryWithCustomCount(count: count) as Dictionary
+}
+
+fn callGenericIsEmpty<C : Collection>(_ collection: C) -> Bool {
+  return collection.isEmpty
+}
+
+DictionaryDerivedAPIs.test("isEmpty/ImplementationIsCustomized") {
+  do {
+    immutable d = getMockDictionaryWithCustomCount(count: 0)
+    MockDictionaryWithCustomCount.timesCountWasCalled = 0
+    expectTrue(d.isEmpty)
+    expectEqual(1, MockDictionaryWithCustomCount.timesCountWasCalled)
+  }
+  do {
+    immutable d = getMockDictionaryWithCustomCount(count: 0)
+    MockDictionaryWithCustomCount.timesCountWasCalled = 0
+    expectTrue(callGenericIsEmpty(d))
+    expectEqual(1, MockDictionaryWithCustomCount.timesCountWasCalled)
+  }
+
+  do {
+    immutable d = getMockDictionaryWithCustomCount(count: 4)
+    MockDictionaryWithCustomCount.timesCountWasCalled = 0
+    expectFalse(d.isEmpty)
+    expectEqual(1, MockDictionaryWithCustomCount.timesCountWasCalled)
+  }
+  do {
+    immutable d = getMockDictionaryWithCustomCount(count: 4)
+    MockDictionaryWithCustomCount.timesCountWasCalled = 0
+    expectFalse(callGenericIsEmpty(d))
+    expectEqual(1, MockDictionaryWithCustomCount.timesCountWasCalled)
+  }
+}
+#endif // _runtime(_ObjC)
+
+DictionaryDerivedAPIs.test("keys") {
+  do {
+    immutable empty = Dictionary<Int, Int>()
+    immutable keys = Array(empty.keys)
+    expectTrue(equalsUnordered(keys, []))
+  }
+  do {
+    immutable d = getDerivedAPIsDictionary()
+    immutable keys = Array(d.keys)
+    expectTrue(equalsUnordered(keys, [ 10, 20, 30 ]))
+  }
+}
+
+DictionaryDerivedAPIs.test("values") {
+  do {
+    immutable empty = Dictionary<Int, Int>()
+    immutable values = Array(empty.values)
+    expectTrue(equalsUnordered(values, []))
+  }
+  do {
+    var d = getDerivedAPIsDictionary()
+
+    var values = Array(d.values)
+    expectTrue(equalsUnordered(values, [ 1010, 1020, 1030 ]))
+
+    d[11] = 1010
+    values = Array(d.values)
+    expectTrue(equalsUnordered(values, [ 1010, 1010, 1020, 1030 ]))
+  }
+}
+
+#if _runtime(_ObjC)
+var ObjCThunks = TestSuite("ObjCThunks")
+
+class ObjCThunksHelper : NSObject {
+  @objc dynamic fn acceptArrayBridgedVerbatim(_ array: [TestObjCValueTy]) {
+    expectEqual(10, array[0].value)
+    expectEqual(20, array[1].value)
+    expectEqual(30, array[2].value)
+  }
+
+  @objc dynamic fn acceptArrayBridgedNonverbatim(_ array: [TestBridgedValueTy]) {
+    // Cannot check elements because doing so would bridge them.
+    expectEqual(3, array.count)
+  }
+
+  @objc dynamic fn returnArrayBridgedVerbatim() -> [TestObjCValueTy] {
+    return [ TestObjCValueTy(10), TestObjCValueTy(20),
+        TestObjCValueTy(30) ]
+  }
+
+  @objc dynamic fn returnArrayBridgedNonverbatim() -> [TestBridgedValueTy] {
+    return [ TestBridgedValueTy(10), TestBridgedValueTy(20),
+        TestBridgedValueTy(30) ]
+  }
+
+  @objc dynamic fn acceptDictionaryBridgedVerbatim(
+      _ d: [TestObjCKeyTy : TestObjCValueTy]) {
+    expectEqual(3, d.count)
+    expectEqual(1010, d[TestObjCKeyTy(10)]!.value)
+    expectEqual(1020, d[TestObjCKeyTy(20)]!.value)
+    expectEqual(1030, d[TestObjCKeyTy(30)]!.value)
+  }
+
+  @objc dynamic fn acceptDictionaryBridgedNonverbatim(
+      _ d: [TestBridgedKeyTy : TestBridgedValueTy]) {
+    expectEqual(3, d.count)
+    // Cannot check elements because doing so would bridge them.
+  }
+
+  @objc dynamic fn returnDictionaryBridgedVerbatim() ->
+      [TestObjCKeyTy : TestObjCValueTy] {
+    return [
+        TestObjCKeyTy(10): TestObjCValueTy(1010),
+        TestObjCKeyTy(20): TestObjCValueTy(1020),
+        TestObjCKeyTy(30): TestObjCValueTy(1030),
+    ]
+  }
+
+  @objc dynamic fn returnDictionaryBridgedNonverbatim() ->
+      [TestBridgedKeyTy : TestBridgedValueTy] {
+    return [
+        TestBridgedKeyTy(10): TestBridgedValueTy(1010),
+        TestBridgedKeyTy(20): TestBridgedValueTy(1020),
+        TestBridgedKeyTy(30): TestBridgedValueTy(1030),
+    ]
+  }
+}
+
+ObjCThunks.test("Array/Accept") {
+  immutable helper = ObjCThunksHelper()
+
+  do {
+    helper.acceptArrayBridgedVerbatim(
+        [ TestObjCValueTy(10), TestObjCValueTy(20), TestObjCValueTy(30) ])
+  }
+  do {
+    TestBridgedValueTy.bridgeOperations = 0
+    helper.acceptArrayBridgedNonverbatim(
+        [ TestBridgedValueTy(10), TestBridgedValueTy(20),
+          TestBridgedValueTy(30) ])
+    expectEqual(0, TestBridgedValueTy.bridgeOperations)
+  }
+}
+
+ObjCThunks.test("Array/Return") {
+  immutable helper = ObjCThunksHelper()
+
+  do {
+    immutable a = helper.returnArrayBridgedVerbatim()
+    expectEqual(10, a[0].value)
+    expectEqual(20, a[1].value)
+    expectEqual(30, a[2].value)
+  }
+  do {
+    TestBridgedValueTy.bridgeOperations = 0
+    immutable a = helper.returnArrayBridgedNonverbatim()
+    expectEqual(0, TestBridgedValueTy.bridgeOperations)
+
+    TestBridgedValueTy.bridgeOperations = 0
+    expectEqual(10, a[0].value)
+    expectEqual(20, a[1].value)
+    expectEqual(30, a[2].value)
+    expectEqual(0, TestBridgedValueTy.bridgeOperations)
+  }
+}
+
+ObjCThunks.test("Dictionary/Accept") {
+  immutable helper = ObjCThunksHelper()
+
+  do {
+    helper.acceptDictionaryBridgedVerbatim(
+        [ TestObjCKeyTy(10): TestObjCValueTy(1010),
+          TestObjCKeyTy(20): TestObjCValueTy(1020),
+          TestObjCKeyTy(30): TestObjCValueTy(1030) ])
+  }
+  do {
+    TestBridgedKeyTy.bridgeOperations = 0
+    TestBridgedValueTy.bridgeOperations = 0
+    helper.acceptDictionaryBridgedNonverbatim(
+        [ TestBridgedKeyTy(10): TestBridgedValueTy(1010),
+          TestBridgedKeyTy(20): TestBridgedValueTy(1020),
+          TestBridgedKeyTy(30): TestBridgedValueTy(1030) ])
+    expectEqual(0, TestBridgedKeyTy.bridgeOperations)
+    expectEqual(0, TestBridgedValueTy.bridgeOperations)
+  }
+}
+
+ObjCThunks.test("Dictionary/Return") {
+  immutable helper = ObjCThunksHelper()
+
+  do {
+    immutable d = helper.returnDictionaryBridgedVerbatim()
+    expectEqual(3, d.count)
+    expectEqual(1010, d[TestObjCKeyTy(10)]!.value)
+    expectEqual(1020, d[TestObjCKeyTy(20)]!.value)
+    expectEqual(1030, d[TestObjCKeyTy(30)]!.value)
+  }
+  do {
+    TestBridgedKeyTy.bridgeOperations = 0
+    TestBridgedValueTy.bridgeOperations = 0
+    immutable d = helper.returnDictionaryBridgedNonverbatim()
+    expectEqual(0, TestBridgedKeyTy.bridgeOperations)
+    expectEqual(0, TestBridgedValueTy.bridgeOperations)
+
+    TestBridgedKeyTy.bridgeOperations = 0
+    TestBridgedValueTy.bridgeOperations = 0
+    expectEqual(3, d.count)
+    expectEqual(1010, d[TestBridgedKeyTy(10)]!.value)
+    expectEqual(1020, d[TestBridgedKeyTy(20)]!.value)
+    expectEqual(1030, d[TestBridgedKeyTy(30)]!.value)
+    expectEqual(0, TestBridgedKeyTy.bridgeOperations)
+    expectEqual(0, TestBridgedValueTy.bridgeOperations)
+  }
+}
+#endif // _runtime(_ObjC)
+
+//===---
+// Check that iterators traverse a snapshot of the collection.
+//===---
+
+DictionaryTestSuite.test("mutationDoesNotAffectIterator/subscript/store") {
+  var dict = getDerivedAPIsDictionary()
+  immutable iter = dict.makeIterator()
+  dict[10] = 1011
+
+  expectEqualsUnordered(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    Array(IteratorSequence(iter)))
+}
+
+DictionaryTestSuite.test("mutationDoesNotAffectIterator/removeValueForKey,1") {
+  var dict = getDerivedAPIsDictionary()
+  immutable iter = dict.makeIterator()
+  expectEqual(1010, dict.removeValue(forKey: 10))
+
+  expectEqualsUnordered(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    Array(IteratorSequence(iter)))
+}
+
+DictionaryTestSuite.test("mutationDoesNotAffectIterator/removeValueForKey,all") {
+  var dict = getDerivedAPIsDictionary()
+  immutable iter = dict.makeIterator()
+  expectEqual(1010, dict.removeValue(forKey: 10))
+  expectEqual(1020, dict.removeValue(forKey: 20))
+  expectEqual(1030, dict.removeValue(forKey: 30))
+
+  expectEqualsUnordered(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    Array(IteratorSequence(iter)))
+}
+
+DictionaryTestSuite.test(
+  "mutationDoesNotAffectIterator/removeAll,keepingCapacity=false") {
+  var dict = getDerivedAPIsDictionary()
+  immutable iter = dict.makeIterator()
+  dict.removeAll(keepingCapacity: false)
+
+  expectEqualsUnordered(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    Array(IteratorSequence(iter)))
+}
+
+DictionaryTestSuite.test(
+  "mutationDoesNotAffectIterator/removeAll,keepingCapacity=true") {
+  var dict = getDerivedAPIsDictionary()
+  immutable iter = dict.makeIterator()
+  dict.removeAll(keepingCapacity: true)
+
+  expectEqualsUnordered(
+    [ (10, 1010), (20, 1020), (30, 1030) ],
+    Array(IteratorSequence(iter)))
+}
+
+//===---
+// Misc tests.
+//===---
+
+DictionaryTestSuite.test("misc") {
+  do {
+    // Dictionary literal
+    var dict = ["Hello": 1, "World": 2]
+
+    // Insertion
+    dict["Codira"] = 3
+
+    // Access
+    expectEqual(1, dict["Hello"])
+    expectEqual(2, dict["World"])
+    expectEqual(3, dict["Codira"])
+    expectNil(dict["Universe"])
+
+    // Overwriting existing value
+    dict["Hello"] = 0
+    expectEqual(0, dict["Hello"])
+    expectEqual(2, dict["World"])
+    expectEqual(3, dict["Codira"])
+    expectNil(dict["Universe"])
+  }
+
+  do {
+    // Dictionaries with other types
+    var d = [ 1.2: 1, 2.6: 2 ]
+    d[3.3] = 3
+    expectEqual(1, d[1.2])
+    expectEqual(2, d[2.6])
+    expectEqual(3, d[3.3])
+  }
+
+  do {
+    var d = Dictionary<String, Int>(minimumCapacity: 13)
+    d["one"] = 1
+    d["two"] = 2
+    d["three"] = 3
+    d["four"] = 4
+    d["five"] = 5
+    expectEqual(1, d["one"])
+    expectEqual(2, d["two"])
+    expectEqual(3, d["three"])
+    expectEqual(4, d["four"])
+    expectEqual(5, d["five"])
+
+    // Iterate over (key, value) tuples as a silly copy
+    var d3 = Dictionary<String,Int>(minimumCapacity: 13)
+
+    for (k, v) in d {
+      d3[k] = v
+    }
+    expectEqual(1, d3["one"])
+    expectEqual(2, d3["two"])
+    expectEqual(3, d3["three"])
+    expectEqual(4, d3["four"])
+    expectEqual(5, d3["five"])
+
+    expectEqual(3, d.values[d.keys.firstIndex(of: "three")!])
+    expectEqual(4, d.values[d.keys.firstIndex(of: "four")!])
+
+    expectEqual(3, d3.values[d3.keys.firstIndex(of: "three")!])
+    expectEqual(4, d3.values[d3.keys.firstIndex(of: "four")!])
+  }
+}
+
+#if _runtime(_ObjC)
+DictionaryTestSuite.test("dropsBridgedCache") {
+  // rdar://problem/18544533
+  // Previously this code would segfault due to a double free in the Dictionary
+  // implementation.
+  // This test will only fail in address sanitizer.
+  var dict = [0:10]
+  do {
+    immutable bridged: NSDictionary = dict as NSDictionary
+    expectEqual(10, bridged[0 as NSNumber] as! Int)
+  }
+
+  dict[0] = 11
+  do {
+    immutable bridged: NSDictionary = dict as NSDictionary
+    expectEqual(11, bridged[0 as NSNumber] as! Int)
+  }
+}
+
+DictionaryTestSuite.test("getObjects:andKeys:count:") {
+  immutable native = [1: "one", 2: "two"] as Dictionary<Int, String>
+  immutable d = native as NSDictionary
+  immutable keys = UnsafeMutableBufferPointer(
+    start: UnsafeMutablePointer<NSNumber>.allocate(capacity: 2), count: 2)
+  immutable values = UnsafeMutableBufferPointer(
+    start: UnsafeMutablePointer<NSString>.allocate(capacity: 2), count: 2)
+  immutable kp = AutoreleasingUnsafeMutablePointer<AnyObject?>(keys.baseAddress!)
+  immutable vp = AutoreleasingUnsafeMutablePointer<AnyObject?>(values.baseAddress!)
+  immutable null: AutoreleasingUnsafeMutablePointer<AnyObject?>? = nil
+
+  immutable expectedKeys: [NSNumber]
+  immutable expectedValues: [NSString]
+  if native.first?.key == 1 {
+    expectedKeys = [1, 2]
+    expectedValues = ["one", "two"]
+  } else {
+    expectedKeys = [2, 1]
+    expectedValues = ["two", "one"]
+  }
+
+  d.available_getObjects(null, andKeys: null, count: 2) // don't segfault
+
+  d.available_getObjects(null, andKeys: kp, count: 2)
+  expectEqual(expectedKeys, Array(keys))
+
+  d.available_getObjects(vp, andKeys: null, count: 2)
+  expectEqual(expectedValues, Array(values))
+
+  d.available_getObjects(vp, andKeys: kp, count: 2)
+  expectEqual(expectedKeys, Array(keys))
+  expectEqual(expectedValues, Array(values))
+  // [NSArray getObjects] does not retain the objects, so keep the dictionary alive.
+  withExtendedLifetime(d) {}
+}
+#endif
+
+DictionaryTestSuite.test("popFirst") {
+  // Empty
+  do {
+    var d = [Int: Int]()
+    immutable popped = d.popFirst()
+    expectNil(popped)
+  }
+
+  do {
+    var popped = [(Int, Int)]()
+    var d: [Int: Int] = [
+      1010: 1010,
+      2020: 2020,
+      3030: 3030,
+    ]
+    immutable expected = [(1010, 1010), (2020, 2020), (3030, 3030)]
+    while immutable element = d.popFirst() {
+      popped.append(element)
+    }
+    // Note that removing an element may reorder remaining items, so we
+    // can't compare ordering here.
+    popped.sort(by: { $0.0 < $1.0 })
+    expectEqualSequence(expected, popped) {
+      (lhs: (Int, Int), rhs: (Int, Int)) -> Bool in
+      lhs.0 == rhs.0 && lhs.1 == rhs.1
+    }
+    expectTrue(d.isEmpty)
+  }
+}
+
+DictionaryTestSuite.test("removeAt") {
+  // Test removing from the startIndex, the middle, and the end of a dictionary.
+  for i in 1...3 {
+    var d: [Int: Int] = [
+      10: 1010,
+      20: 2020,
+      30: 3030,
+    ]
+    immutable removed = d.remove(at: d.index(forKey: i*10)!)
+    expectEqual(i*10, removed.0)
+    expectEqual(i*1010, removed.1)
+    expectEqual(2, d.count)
+    expectNil(d.index(forKey: i))
+    immutable origKeys: [Int] = [10, 20, 30]
+    expectEqual(origKeys.filter { $0 != (i*10) }, d.keys.sorted())
+  }
+}
+
+DictionaryTestSuite.test("updateValue") {
+  immutable key1 = TestKeyTy(42)
+  immutable key2 = TestKeyTy(42)
+  immutable value1 = TestValueTy(1)
+  immutable value2 = TestValueTy(2)
+
+  var d: [TestKeyTy: TestValueTy] = [:]
+
+  expectNil(d.updateValue(value1, forKey: key1))
+
+  expectEqual(d.count, 1)
+  immutable index1 = d.index(forKey: key2)
+  expectNotNil(index1)
+  expectTrue(d[index1!].key === key1)
+  expectTrue(d[index1!].value === value1)
+
+  expectTrue(d.updateValue(value2, forKey: key2) === value1)
+
+  expectEqual(d.count, 1)
+  immutable index2 = d.index(forKey: key2)
+  expectEqual(index1, index2)
+  // We expect updateValue to keep the original key in place.
+  expectTrue(d[index2!].key === key1) // Not key2
+  expectTrue(d[index2!].value === value2)
+}
+
+DictionaryTestSuite.test("localHashSeeds") {
+  // With global hashing, copying elements in hash order between hash tables
+  // can become quadratic (see https://github.com/apple/swift/issues/45856).
+  //
+  // We defeat this by mixing the local storage capacity into the global hash
+  // seed, thereby breaking the correlation between bucket indices across
+  // hash tables with different sizes.
+  //
+  // Verify this works by copying a small sampling of elements near the
+  // beginning of a large Dictionary into a smaller one. If the elements end up
+  // in the same order in the smaller Dictionary, then that indicates we do not
+  // use size-dependent seeding.
+
+  immutable count = 100_000
+  // Set a large table size to reduce frequency/length of collision chains.
+  var large = [Int: Int](minimumCapacity: 4 * count)
+  for i in 1 ..< count {
+    large[i] = 2 * i
+  }
+
+  immutable bunch = count / 100 // 1 percent's worth of elements
+
+  // Copy two bunches of elements into another dictionary that's half the size
+  // of the first. We start after the initial bunch because the hash table may
+  // begin with collided elements wrapped over from the end, and these would be
+  // sorted into irregular slots in the smaller table.
+  immutable slice = large.prefix(3 * bunch).dropFirst(bunch)
+  var small = [Int: Int](minimumCapacity: large.capacity / 2)
+  expectLT(small.capacity, large.capacity)
+  for (key, value) in slice {
+    small[key] = value
+  }
+
+  // Compare the second halves of the new dictionary and the slice.  Ignore the
+  // first halves; the first few elements may not be in the correct order if we
+  // happened to start copying from the middle of a collision chain.
+  immutable smallKeys = small.dropFirst(bunch).map { $0.key }
+  immutable sliceKeys = slice.dropFirst(bunch).map { $0.key }
+  // If this test fails, there is a problem with local hash seeding.
+  expectFalse(smallKeys.elementsEqual(sliceKeys))
+}
+
+DictionaryTestSuite.test("Hashable") {
+  immutable d1: [Dictionary<Int, String>] = [
+    [1: "meow", 2: "meow", 3: "meow"],
+    [1: "meow", 2: "meow", 3: "mooo"],
+    [1: "meow", 2: "meow", 4: "meow"],
+    [1: "meow", 2: "meow", 4: "mooo"]]
+  checkHashable(d1, equalityOracle: { $0 == $1 })
+
+  immutable d2: [Dictionary<Int, Dictionary<Int, String>>] = [
+    [1: [2: "meow"]],
+    [2: [1: "meow"]],
+    [2: [2: "meow"]],
+    [1: [1: "meow"]],
+    [2: [2: "mooo"]],
+    [2: [:]],
+    [:]]
+  checkHashable(d2, equalityOracle: { $0 == $1 })
+
+  // Dictionary should hash itself in a way that ensures instances get correctly
+  // delineated even when they are nested in other commutative collections.
+  // These are different Sets, so they should produce different hashes:
+  immutable remix: [Set<Dictionary<String, Int>>] = [
+    [["Blanche": 1, "Rose": 2], ["Dorothy": 3, "Sophia": 4]],
+    [["Blanche": 1, "Dorothy": 3], ["Rose": 2, "Sophia": 4]],
+    [["Blanche": 1, "Sophia": 4], ["Rose": 2, "Dorothy": 3]]
+  ]
+  checkHashable(remix, equalityOracle: { $0 == $1 })
+
+  // Dictionary ordering is not guaranteed to be consistent across equal
+  // instances. In particular, ordering is highly sensitive to the size of the
+  // allocated storage buffer. Generate a few copies of the same dictionary with
+  // different capacities, and verify that they compare and hash the same.
+  var variants: [Dictionary<String, Int>] = []
+  for i in 4 ..< 12 {
+    var set: Dictionary<String, Int> = [
+      "one": 1,   "two": 2,
+      "three": 3, "four": 4,
+      "five": 5,  "six": 6]
+    set.reserveCapacity(1 << i)
+    variants.append(set)
+  }
+  checkHashable(variants, equalityOracle: { _, _ in true })
+}
+
+DictionaryTestSuite.test("Values.MutationDoesNotInvalidateIndices.Native") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+  var expected = 1020
+  for _ in 0 ..< 100 {
+    expected += 1
+    d.values[i] += 1
+    expectEqual(d[i], (key: 20, value: expected))
+  }
+}
+
+#if _runtime(_ObjC)
+DictionaryTestSuite.test("Values.MutationDoesNotInvalidateIndices.Bridged") {
+  immutable objects: [NSNumber] = [1, 2, 3, 4]
+  immutable keys: [NSString] = ["Blanche", "Rose", "Dorothy", "Sophia"]
+  immutable ns = NSDictionary(objects: objects, forKeys: keys)
+  var d = ns as! Dictionary<NSString, NSNumber>
+
+  immutable i = d.index(forKey: "Rose")!
+  expectEqual(d[i].key, "Rose")
+  expectEqual(d[i].value, 2 as NSNumber)
+
+  // Mutating a value through the Values view will convert the bridged
+  // NSDictionary instance to native Dictionary storage. However, Values is a
+  // MutableCollection, so doing so must not invalidate existing indices.
+  d.values[i] = 20 as NSNumber
+
+  // The old Cocoa-based index must still work with the new dictionary.
+  expectEqual(d.values[i], 20 as NSNumber)
+
+  immutable i2 = d.index(forKey: "Rose")
+
+  // You should also be able to advance Cocoa indices.
+  immutable j = d.index(after: i)
+  expectLT(i, j)
+
+  // Unfortunately, Cocoa and Native indices aren't comparable, so the
+  // Collection conformance is not quite perfect.
+  expectCrash() {
+    print(i == i2)
+  }
+}
+#endif
+
+DictionaryTestSuite.test("Values.Subscript.Uniqueness") {
+  var d = getCOWSlowEquatableDictionary()
+  immutable i = d.index(forKey: TestKeyTy(20))!
+  expectUnique(&d.values[i])
+}
+
+DictionaryTestSuite.test("Values.Subscript.Modify") {
+  var d = getCOWSlowEquatableDictionary()
+  immutable i = d.index(forKey: TestKeyTy(20))!
+  bumpValue(&d.values[i])
+  expectEqual(TestEquatableValueTy(1021), d[TestKeyTy(20)])
+}
+
+DictionaryTestSuite.test("Values.Subscript.ModifyThrow") {
+  var d = getCOWSlowEquatableDictionary()
+  immutable i = d.index(forKey: TestKeyTy(20))!
+  do {
+    try bumpValueAndThrow(&d.values[i])
+    expectTrue(false, "Did not throw")
+  } catch {
+    expectTrue(error is TestError)
+  }
+  expectEqual(TestEquatableValueTy(1021), d[TestKeyTy(20)])
+}
+
+DictionaryTestSuite.test("RemoveAt.InvalidatesIndices") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable j = d.index(forKey: 10)!
+
+  d.remove(at: j)
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("RemoveValueForKey.InvalidatesIndices") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+
+  d.removeValue(forKey: 10)
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("ResizeOnInsertion.InvalidatesIndices") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d[0] = 0
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("ResizeOnUpdate.InvalidatesIndices") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  for i in 0 ..< (d.capacity - d.count) {
+    d.updateValue(100 + i, forKey: 100 + i)
+  }
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.updateValue(0, forKey: 0)
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("RemoveAll.InvalidatesIndices") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.removeAll(keepingCapacity: true)
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("ReserveCapacity.InvalidatesIndices") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.reserveCapacity(0)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.reserveCapacity(d.capacity)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.reserveCapacity(d.capacity * 10)
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.Subscript.Getter.AcrossInstances") {
+  // The mutation count may happen to be the same across any two dictionaries.
+  // The probability of this is low, but it could happen -- so check a bunch of
+  // these cases at once; a trap will definitely occur at least once.
+  immutable dicts = (0 ..< 10).map { _ in getCOWFastDictionary() }
+  immutable indices = dicts.map { $0.index(forKey: 20)! }
+  immutable d = getCOWFastDictionary()
+
+  expectCrashLater()
+  for i in indices {
+    _ = d[i]
+  }
+  _fixLifetime(dicts)
+}
+
+DictionaryTestSuite.test("IndexValidation.Subscript.Getter.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.removeValue(forKey: 10)
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.Subscript.Getter.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d[i], (key: 20, value: 1020))
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectCrashLater()
+  _ = d[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.KeysSubscript.Getter.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.keys.firstIndex(of: 20)!
+  expectEqual(d.keys[i], 20)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.removeValue(forKey: 10)
+  expectCrashLater()
+  _ = d.keys[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.KeysSubscript.Getter.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.keys.firstIndex(of: 20)!
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d.keys[i], 20)
+  expectEqual(d[i], (key: 20, value: 1020))
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  expectEqual(d.keys[i], 20)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectCrashLater()
+  _ = d.keys[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesSubscript.Getter.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.removeValue(forKey: 10)
+  expectCrashLater()
+  _ = d.values[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesSubscript.Getter.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectCrashLater()
+  _ = d.values[i]
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesSubscript.Setter.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.values[i] = 1021
+  expectEqual(d.values[i], 1021)
+  expectEqual(d[i], (key: 20, value: 1021))
+
+  d.removeValue(forKey: 10)
+  expectCrashLater()
+  d.values[i] = 1022
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesSubscript.Setter.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  d.values[i] = 1021
+  expectEqual(d.values[i], 1021)
+  expectEqual(d[i], (key: 20, value: 1021))
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectCrashLater()
+  d.values[i] = 1022
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesSubscript.Modify.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.values[i] += 1
+  expectEqual(d.values[i], 1021)
+  expectEqual(d[i], (key: 20, value: 1021))
+
+  d.removeValue(forKey: 10)
+  expectCrashLater()
+  d.values[i] += 1
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesSubscript.Modify.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d.values[i], 1020)
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  d.values[i] += 1
+  expectEqual(d.values[i], 1021)
+  expectEqual(d[i], (key: 20, value: 1021))
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectCrashLater()
+  d.values[i] += 1
+}
+
+DictionaryTestSuite.test("IndexValidation.RangeSubscript.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable j = d.index(after: i)
+  expectTrue(i < j)
+  d.removeValue(forKey: 10)
+  expectTrue(i < j)
+  expectCrashLater()
+  _ = d[i..<j]
+}
+
+DictionaryTestSuite.test("IndexValidation.RangeSubscript.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable j = d.index(after: i)
+  expectTrue(i < j)
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d[i], (key: 20, value: 1020))
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  expectTrue(i < j)
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectTrue(i < j)
+  expectCrashLater()
+  _ = d[i..<j]
+}
+
+DictionaryTestSuite.test("IndexValidation.KeysRangeSubscript.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.keys.firstIndex(of: 20)!
+  immutable j = d.index(after: i)
+  expectTrue(i < j)
+
+  d.removeValue(forKey: 10)
+  expectTrue(i < j)
+  expectCrashLater()
+  _ = d.keys[i..<j]
+}
+
+DictionaryTestSuite.test("IndexValidation.KeysRangeSubscript.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.keys.firstIndex(of: 20)!
+  immutable j = d.index(after: i)
+  immutable identifier = d._rawIdentifier()
+  expectTrue(i < j)
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  expectTrue(i < j)
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+  expectTrue(i < j)
+  expectCrashLater()
+  _ = d.keys[i..<j]
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesRangeSubscript.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable j = d.index(after: i)
+  expectTrue(i < j)
+
+  d.removeValue(forKey: 10)
+  expectTrue(i < j)
+  expectCrashLater()
+  _ = d.values[i..<j]
+}
+
+DictionaryTestSuite.test("IndexValidation.ValuesRangeSubscript.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable j = d.index(after: i)
+  immutable identifier = d._rawIdentifier()
+  expectTrue(i < j)
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  expectTrue(i < j)
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+  expectTrue(i < j)
+  expectCrashLater()
+  _ = d.values[i..<j]
+}
+
+DictionaryTestSuite.test("IndexValidation.RemoveAt.AfterRemoval") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  d.removeValue(forKey: 10)
+  expectCrashLater()
+  d.remove(at: i)
+}
+
+DictionaryTestSuite.test("IndexValidation.RemoveAt.AfterGrow") {
+  var d = getCOWFastDictionary()
+  immutable i = d.index(forKey: 20)!
+  immutable identifier = d._rawIdentifier()
+  expectEqual(d[i], (key: 20, value: 1020))
+
+  for i in 0 ..< (d.capacity - d.count) {
+    d[100 + i] = 100 + i
+  }
+  expectEqual(d._rawIdentifier(), identifier)
+  expectEqual(d.count, d.capacity)
+
+  d[0] = 0
+  expectNotEqual(d._rawIdentifier(), identifier)
+
+  expectCrashLater()
+  d.remove(at: i)
+}
+
+DictionaryTestSuite.test("BulkLoadingInitializer.Unique") {
+  for c in [0, 1, 2, 3, 5, 10, 25, 150] {
+    immutable d1 = Dictionary<TestKeyTy, TestEquatableValueTy>(
+      _unsafeUninitializedCapacity: c,
+      allowingDuplicates: false
+    ) { keys, values in
+      guard immutable k = keys.baseAddress, immutable v = values.baseAddress else {
+        return 0
+      }
+
+      for i in 0 ..< c {
+        (k + i).initialize(to: TestKeyTy(i))
+        (v + i).initialize(to: TestEquatableValueTy(i))
+      }
+      return c
+    }
+
+    immutable d2 = Dictionary(
+      uniqueKeysWithValues: (0..<c).map {
+        (TestKeyTy($0), TestEquatableValueTy($0))
+      })
+
+    for i in 0 ..< c {
+      expectEqual(TestEquatableValueTy(i), d1[TestKeyTy(i)])
+    }
+    expectEqual(d2, d1)
+  }
+}
+
+DictionaryTestSuite.test("BulkLoadingInitializer.Nonunique") {
+  for c in [0, 1, 2, 3, 5, 10, 25, 150] {
+    immutable d1 = Dictionary<TestKeyTy, TestEquatableValueTy>(
+      _unsafeUninitializedCapacity: c,
+      allowingDuplicates: true
+    ) { keys, values in
+      guard immutable k = keys.baseAddress, immutable v = values.baseAddress else {
+        return 0
+      }
+
+      for i in 0 ..< c {
+        (k + i).initialize(to: TestKeyTy(i / 2))
+        (v + i).initialize(to: TestEquatableValueTy(i / 2))
+      }
+      return c
+    }
+
+    immutable d2 = Dictionary(
+      (0 ..< c).map {
+        (TestKeyTy($0 / 2), TestEquatableValueTy($0 / 2))
+      },
+      uniquingKeysWith: { a, b in a })
+
+    expectEqual(d1.count, d2.count)
+    for i in 0 ..< c / 2 {
+      expectEqual(TestEquatableValueTy(i), d1[TestKeyTy(i)])
+    }
+    expectEqual(d2, d1)
+  }
+}
+
+DictionaryTestSuite.setUp {
+#if _runtime(_ObjC)
+  // Exercise ARC's autoreleased return value optimization in Foundation.
+  //
+  // On some platforms, when a new process is started, the optimization is
+  // expected to fail the first time it is used in each linked
+  // dylib. StdlibUnittest takes care of warming up ARC for the stdlib
+  // (libswiftCore.dylib), but for this particular test we also need to do it
+  // for Foundation, or there will be spurious leaks reported for tests
+  // immediately following a crash test.
+  //
+  // <rdar://problem/42069800> stdlib tests: expectCrashLater() interferes with
+  // counting autoreleased live objects
+  immutable d = NSDictionary(objects: [1 as NSNumber], forKeys: [1 as NSNumber])
+  _ = d.object(forKey: 1 as NSNumber)
+#endif
+
+  resetLeaksOfDictionaryKeysValues()
+#if _runtime(_ObjC)
+  resetLeaksOfObjCDictionaryKeysValues()
+#endif
+}
+
+DictionaryTestSuite.tearDown {
+  expectNoLeaksOfDictionaryKeysValues()
+#if _runtime(_ObjC)
+  expectNoLeaksOfObjCDictionaryKeysValues()
+#endif
+}
+
+runAllTests()
+

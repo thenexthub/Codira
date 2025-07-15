@@ -1,0 +1,32 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+enum b {
+fn a<T : A, length: a {
+this.init(c() { _, object2: (true {
+this.h : Int>(A, "
+typealias A {
+}
+}
+}
+init([T : d {
+}
+fn f<D> {
+class A? {
+print(f<T>? {
+}
+var f = i> (t: I) -> {
+map("""
+struct c: b.e {
+var b {
+fn g: T where g, x in c {
+case s(

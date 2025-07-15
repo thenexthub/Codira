@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/VariableTypeArray.h"
 #include "sourcekitd/CompactArray.h"
 #include "sourcekitd/DictionaryKeys.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Core/LangSupport.h"
 #include "SourceKit/Support/UIdent.h"
 
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace SourceKit;
 using namespace sourcekitd;
@@ -114,14 +115,14 @@ struct VariableTypeArrayBuilder::Implementation {
     return Reader.count();
   }
 
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer(CustomBufferKind Kind) {
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer(CustomBufferKind Kind) {
     std::array<CompactArrayBuilderImpl *, 2> Builders = {&Builder, &StrBuilder};
     auto KindSize = sizeof(uint64_t);
     size_t HeaderSize = sizeof(uint64_t) * Builders.size();
     auto AllSize = KindSize + HeaderSize;
     for (auto *B : Builders)
       AllSize += B->sizeInBytes();
-    auto Result = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(AllSize);
+    auto Result = toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(AllSize);
     *reinterpret_cast<uint64_t *>(Result->getBufferStart()) = (uint64_t)Kind;
 
     char *Start = Result->getBufferStart() + KindSize;
@@ -152,7 +153,7 @@ void VariableTypeArrayBuilder::add(const VariableType &VarType) {
                         VarType.HasExplicitType);
 }
 
-std::unique_ptr<llvm::MemoryBuffer> VariableTypeArrayBuilder::createBuffer() {
+std::unique_ptr<toolchain::MemoryBuffer> VariableTypeArrayBuilder::createBuffer() {
   return Impl.createBuffer(CustomBufferKind::VariableTypeArray);
 }
 

@@ -1,0 +1,7 @@
+// {"signature":"language::DeclAttribute::printImpl(language::ASTPrinter&, language::PrintOptions const&, language::Decl const*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a { associatedtype b }
+public
+struct c < d : a extension c {
+public
+  typealias e = d.b

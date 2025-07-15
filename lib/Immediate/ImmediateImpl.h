@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IMMEDIATEIMPL_H
-#define SWIFT_IMMEDIATEIMPL_H
+#ifndef LANGUAGE_IMMEDIATEIMPL_H
+#define LANGUAGE_IMMEDIATEIMPL_H
 
 #include "language/AST/LinkLibrary.h"
 #include "language/AST/SearchPathOptions.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
-namespace llvm {
+namespace toolchain {
   class Function;
   class Module;
 }
@@ -42,12 +43,12 @@ namespace immediate {
 /// calls or \c null if an error occurred.
 ///
 /// \param runtimeLibPaths Paths to search for stdlib dylibs.
-void *loadSwiftRuntime(ArrayRef<std::string> runtimeLibPaths);
+void *loadCodiraRuntime(ArrayRef<std::string> runtimeLibPaths);
 bool tryLoadLibraries(ArrayRef<LinkLibrary> LinkLibraries,
                       SearchPathOptions SearchPathOpts,
                       DiagnosticEngine &Diags);
-bool linkLLVMModules(llvm::Module *Module,
-                     std::unique_ptr<llvm::Module> &&SubModule);
+bool linkLLVMModules(toolchain::Module *Module,
+                     std::unique_ptr<toolchain::Module> &&SubModule);
 bool autolinkImportedModules(ModuleDecl *M, const IRGenOptions &IRGenOpts);
 
 } // end namespace immediate

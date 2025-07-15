@@ -1,0 +1,17 @@
+fn myAsync() async -> Int { 0 }
+fn myFoo() -> Int { 0 }
+
+fn testExtract() async -> Int {
+  immutable a = myFoo()
+  immutable b = myFoo()
+  immutable x = await myAsync()
+  immutable y = await myAsync()
+  return a + b + x + y
+}
+
+// rdar://72199992
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-repeat -source-filename %s -pos=5:11 -end-pos=5:18 >> %t.result/one.code
+// RUN: diff -u %S/Outputs/await/one.code.expected %t.result/one.code
+// RUN: %refactor -extract-repeat -source-filename %s -pos=7:11 -end-pos=7:26 >> %t.result/two.code
+// RUN: diff -u %S/Outputs/await/two.code.expected %t.result/two.code

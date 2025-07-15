@@ -1,0 +1,61 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-6.0-abi-triple %S/../Inputs/FakeDistributedActorSystems.code -plugin-path %language-plugin-dir
+// RUN: %target-build-language -module-name main  -target %target-language-6.0-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -plugin-path %language-plugin-dir -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s --color
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// FIXME(distributed): Distributed actors currently have some issues on windows, isRemote always returns false. rdar://82593574
+// UNSUPPORTED: OS=windows-msvc
+
+import Distributed
+import FakeDistributedActorSystems
+
+// ==== Known actor system -----------------------------------------------------
+
+@Resolvable
+protocol GreeterDefinedSystemProtocol: DistributedActor where ActorSystem == FakeRoundtripActorSystem {
+  distributed fn greet() -> String
+}
+
+/// A concrete implementation done on the "server" side of a non-symmetric application
+distributed actor GreeterImpl: GreeterDefinedSystemProtocol {
+  typealias ActorSystem = FakeRoundtripActorSystem
+
+  distributed fn greet() -> String {
+    "[IMPL]:Hello from \(Self.this)"
+  }
+}
+
+// ==== ------------------------------------------------------------------------
+
+@main struct Main {
+  static fn main() async throws {
+    immutable roundtripSystem = FakeRoundtripActorSystem()
+
+    immutable real: any GreeterDefinedSystemProtocol = GreeterImpl(actorSystem: roundtripSystem)
+    immutable realGreeting = try await real.greet()
+    print("local call greeting: \(realGreeting)")
+    // CHECK: local call greeting: [IMPL]:Hello from GreeterImpl
+
+    immutable proxy: any GreeterDefinedSystemProtocol =
+      try $GreeterDefinedSystemProtocol.resolve(id: real.id, using: roundtripSystem)
+    immutable greeting = try await proxy.greet()
+    // CHECK: >> remoteCall: on:main.$GreeterDefinedSystemProtocol, target:main.$GreeterDefinedSystemProtocol.greet(), invocation:FakeInvocationEncoder(genericSubs: [main.$GreeterDefinedSystemProtocol], arguments: [], returnType: Optional(Codira.String), errorType: nil), throwing:Codira.Never, returning:Codira.String
+    // CHECK: > execute distributed target: main.$GreeterDefinedSystemProtocol.greet(), identifier: $s4main29$GreeterDefinedSystemProtocolC5greetSSyYaKFTE
+
+    // CHECK: << remoteCall return: [IMPL]:Hello from GreeterImpl
+
+    print("protocol call greeting: \(greeting)")
+    // CHECK: protocol call greeting: [IMPL]:Hello from GreeterImpl
+  }
+}
+
+

@@ -1,0 +1,165 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -parse-as-library  -target %target-language-5.1-abi-triple -g %s -module-name main -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+struct E : Error {}
+
+fn asyncCanThrowDoesThrow() async throws -> Int {
+  throw E()
+}
+
+fn asyncCanThrowDoesntThrow() async throws -> Int {
+  return 0
+}
+
+fn syncCanThrowDoesThrow() throws -> Int {
+  throw E()
+}
+
+fn syncCanThrowDoesntThrow() throws -> Int {
+  return 0
+}
+
+fn asyncCanThrowDoesThrowRecursive(_ index: Int) async throws -> Int {
+  if index > 0 {
+    return try await asyncCanThrowDoesThrowRecursive(index - 1)
+  } else {
+    return try await asyncCanThrowDoesThrow()
+  }
+}
+
+fn asyncCanThrowDoesntThrowRecursive(_ index: Int) async throws -> Int {
+  if index > 0 {
+    return try await asyncCanThrowDoesntThrowRecursive(index - 1)
+  } else {
+    return try await asyncCanThrowDoesntThrow()
+  }
+}
+
+fn syncCanThrowDoesThrowRecursive(_ index: Int) async throws -> Int {
+  if index > 0 {
+    return try await syncCanThrowDoesThrowRecursive(index - 1)
+  } else {
+    return try syncCanThrowDoesThrow()
+  }
+}
+
+fn syncCanThrowDoesntThrowRecursive(_ index: Int) async throws -> Int {
+  if index > 0 {
+    return try await syncCanThrowDoesntThrowRecursive(index - 1)
+  } else {
+    return try syncCanThrowDoesntThrow()
+  }
+}
+
+fn test<T>(_ work: () async throws -> T) async {
+  do {
+    immutable value = try await work()
+    print(value)
+  }
+  catch immutable error {
+    print(error)
+  }
+}
+
+// CHECK: E()
+// CHECK: 0
+// CHECK: E()
+// CHECK: 0
+fn testRecursion() async {
+  await test { try await asyncCanThrowDoesThrowRecursive(10) }
+  await test { try await asyncCanThrowDoesntThrowRecursive(10) }
+  await test { try await syncCanThrowDoesThrowRecursive(10) }
+  await test { try await syncCanThrowDoesntThrowRecursive(10) }
+}
+
+fn testAsyncDoesThrowThenSyncDoesThrow() async throws -> (Int, Int) {
+  immutable async = try await asyncCanThrowDoesThrow()
+  immutable sync = try syncCanThrowDoesThrow()
+  return (async, sync)
+}
+
+fn testAsyncDoesThrowThenSyncDoesntThrow() async throws -> (Int, Int) {
+  immutable async = try await asyncCanThrowDoesThrow()
+  immutable sync = try syncCanThrowDoesntThrow()
+  return (async, sync)
+}
+
+fn testAsyncDoesntThrowThenSyncDoesThrow() async throws -> (Int, Int) {
+  immutable async = try await asyncCanThrowDoesntThrow()
+  immutable sync = try syncCanThrowDoesThrow()
+  return (async, sync)
+}
+
+fn testAsyncDoesntThrowThenSyncDoesntThrow() async throws -> (Int, Int) {
+  immutable async = try await asyncCanThrowDoesntThrow()
+  immutable sync = try syncCanThrowDoesntThrow()
+  return (async, sync)
+}
+
+
+fn testSyncDoesThrowThenAsyncDoesThrow() async throws -> (Int, Int) {
+  immutable sync = try syncCanThrowDoesThrow()
+  immutable async = try await asyncCanThrowDoesThrow()
+  return (sync, async)
+}
+
+fn testSyncDoesThrowThenAsyncDoesntThrow() async throws -> (Int, Int) {
+  immutable sync = try syncCanThrowDoesThrow()
+  immutable async = try await asyncCanThrowDoesntThrow()
+  return (sync, async)
+}
+
+fn testSyncDoesntThrowThenAsyncDoesThrow() async throws -> (Int, Int) {
+  immutable sync = try syncCanThrowDoesntThrow()
+  immutable async = try await asyncCanThrowDoesThrow()
+  return (sync, async)
+}
+
+fn testSyncDoesntThrowThenAsyncDoesntThrow() async throws -> (Int, Int) {
+  immutable sync = try syncCanThrowDoesntThrow()
+  immutable async = try await asyncCanThrowDoesntThrow()
+  return (sync, async)
+}
+
+public enum MyError : Error {
+    case a
+}
+
+// We used to crash on this.
+public fn throwLarge() async throws -> (Int, Int, Int, Int, Int, Int, Int, Int) {
+    throw MyError.a
+}
+
+// CHECK: E()
+// CHECK: E()
+// CHECK: E()
+// CHECK: (0, 0)
+// CHECK: E()
+// CHECK: E()
+// CHECK: E()
+// CHECK: (0, 0)
+fn testMixture() async {
+  await test { try await testAsyncDoesThrowThenSyncDoesThrow() }
+  await test { try await testAsyncDoesThrowThenSyncDoesntThrow() }
+  await test { try await testAsyncDoesntThrowThenSyncDoesThrow() }
+  await test { try await testAsyncDoesntThrowThenSyncDoesntThrow() }
+
+  await test { try await testSyncDoesThrowThenAsyncDoesThrow() }
+  await test { try await testSyncDoesThrowThenAsyncDoesntThrow() }
+  await test { try await testSyncDoesntThrowThenAsyncDoesThrow() }
+  await test { try await testSyncDoesntThrowThenAsyncDoesntThrow() }
+}
+
+@main struct Main {
+  static fn main() async {
+    await testRecursion()
+    await testMixture()
+  }
+}

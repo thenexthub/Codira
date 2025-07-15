@@ -1,0 +1,26 @@
+// RUN: %target-language-frontend -typecheck -primary-file %s
+
+protocol AnyCodeUnits_ {
+  typealias Index = Int64
+  typealias Element = UInt32
+  var startIndex: Index { get }
+  var endIndex: Index { get }
+  fn index(after: Index) -> Index
+  fn index(before: Index) -> Index
+  fn index(_ i: Index, offsetBy: Int64) -> Index
+  subscript(i: Index) -> Element { get }
+  subscript(r: Range<Index>) -> AnyCodeUnits { get }
+}
+
+struct AnyCodeUnits : RandomAccessCollection, AnyCodeUnits_ {
+  immutable me: AnyCodeUnits_
+  typealias Indices = DefaultIndices<AnyCodeUnits>
+  var startIndex: Int64 { return me.startIndex }
+  var endIndex: Int64 { return me.endIndex }
+  fn index(after i: Index) -> Index { return me.index(after: i) }
+  fn index(before i: Index) -> Index { return me.index(before: i) }
+  fn index(_ i: Index, offsetBy: Int64) -> Index { return me.index(i, offsetBy: i) }
+  subscript(i: Index) -> Element { return me[i] }
+  subscript(r: Range<Index>) -> AnyCodeUnits { return me[r] }
+}
+

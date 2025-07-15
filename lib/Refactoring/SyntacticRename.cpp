@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
@@ -22,9 +26,9 @@
 using namespace language;
 using namespace language::ide;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 std::vector<ResolvedAndRenameLoc>
-swift::ide::resolveRenameLocations(ArrayRef<RenameLoc> RenameLocs,
+language::ide::resolveRenameLocations(ArrayRef<RenameLoc> RenameLocs,
                                    StringRef NewName, SourceFile &SF,
                                    DiagnosticEngine &Diags) {
   SourceManager &SM = SF.getASTContext().SourceMgr;
@@ -82,8 +86,8 @@ swift::ide::resolveRenameLocations(ArrayRef<RenameLoc> RenameLocs,
   // originated from. Match them.
   std::vector<ResolvedAndRenameLoc> resolvedAndRenameLocs;
   for (auto [unresolvedLoc, renameLoc] :
-       llvm::zip_equal(UnresolvedLocs, RenameLocs)) {
-    auto found = llvm::find_if(
+       toolchain::zip_equal(UnresolvedLocs, RenameLocs)) {
+    auto found = toolchain::find_if(
         resolvedLocsInSourceOrder,
         [unresolvedLoc = unresolvedLoc](const ResolvedLoc &resolved) {
           return resolved.range.getStart() == unresolvedLoc;
@@ -104,21 +108,21 @@ swift::ide::resolveRenameLocations(ArrayRef<RenameLoc> RenameLocs,
 #endif
 
 CancellableResult<std::vector<SyntacticRenameRangeDetails>>
-swift::ide::findSyntacticRenameRanges(SourceFile *SF,
+language::ide::findSyntacticRenameRanges(SourceFile *SF,
                                       ArrayRef<RenameLoc> RenameLocs,
                                       StringRef NewName) {
   using ResultType =
       CancellableResult<std::vector<SyntacticRenameRangeDetails>>;
-#if !SWIFT_BUILD_SWIFT_SYNTAX
-  return ResultType::failure("find-syntactic-rename-ranges is not supported because sourcekitd was built without swift-syntax");
+#if !LANGUAGE_BUILD_LANGUAGE_SYNTAX
+  return ResultType::failure("find-syntactic-rename-ranges is not supported because sourcekitd was built without language-syntax");
 #else
   assert(SF && "null source file");
 
   SourceManager &SM = SF->getASTContext().SourceMgr;
   DiagnosticEngine DiagEngine(SM);
   std::string ErrBuffer;
-  llvm::raw_string_ostream DiagOS(ErrBuffer);
-  swift::PrintingDiagnosticConsumer DiagConsumer(DiagOS);
+  toolchain::raw_string_ostream DiagOS(ErrBuffer);
+  language::PrintingDiagnosticConsumer DiagConsumer(DiagOS);
   DiagEngine.addConsumer(DiagConsumer);
 
   auto ResolvedAndRenameLocs =

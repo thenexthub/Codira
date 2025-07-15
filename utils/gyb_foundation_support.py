@@ -1,12 +1,12 @@
 def ObjectiveCBridgeableImplementationForNSValue(Type):
     return """
 extension {Type}: _ObjectiveCBridgeable {{
-  public func _bridgeToObjectiveC() -> NSValue {{
+  public fn _bridgeToObjectiveC() -> NSValue {{
     var myself = self
     return NSValue(bytes: &myself, objCType: _getObjCTypeEncoding({Type}.self))
   }}
 
-  public static func _forceBridgeFromObjectiveC(_ source: NSValue,
+  public static fn _forceBridgeFromObjectiveC(_ source: NSValue,
                                                 result: inout {Type}?) {{
     precondition(strcmp(source.objCType,
                         _getObjCTypeEncoding({Type}.self)) == 0,
@@ -19,7 +19,7 @@ extension {Type}: _ObjectiveCBridgeable {{
     }}
   }}
 
-  public static func _conditionallyBridgeFromObjectiveC(_ source: NSValue,
+  public static fn _conditionallyBridgeFromObjectiveC(_ source: NSValue,
                                                         result: inout {Type}?)
       -> Bool {{
     if strcmp(source.objCType, _getObjCTypeEncoding({Type}.self)) != 0 {{
@@ -35,7 +35,7 @@ extension {Type}: _ObjectiveCBridgeable {{
     return true
   }}
 
-  public static func _unconditionallyBridgeFromObjectiveC(_ source: NSValue?)
+  public static fn _unconditionallyBridgeFromObjectiveC(_ source: NSValue?)
       -> {Type} {{
     let unwrappedSource = source!
     precondition(strcmp(unwrappedSource.objCType,
@@ -61,11 +61,11 @@ def ObjectiveCBridgeableImplementationForNSValueWithCategoryMethods(
 ):
     return """
 extension {Type}: _ObjectiveCBridgeable {{
-  public func _bridgeToObjectiveC() -> NSValue {{
+  public fn _bridgeToObjectiveC() -> NSValue {{
     return {initializer}(self)
   }}
 
-  public static func _forceBridgeFromObjectiveC(_ source: NSValue,
+  public static fn _forceBridgeFromObjectiveC(_ source: NSValue,
                                                 result: inout {Type}?) {{
     precondition(strcmp(source.objCType,
                         {objCType}({Type}.self)) == 0,
@@ -73,7 +73,7 @@ extension {Type}: _ObjectiveCBridgeable {{
     result = {getter}(source)
   }}
 
-  public static func _conditionallyBridgeFromObjectiveC(_ source: NSValue,
+  public static fn _conditionallyBridgeFromObjectiveC(_ source: NSValue,
                                                         result: inout {Type}?)
       -> Bool {{
     if strcmp(source.objCType, {objCType}({Type}.self)) != 0 {{
@@ -84,7 +84,7 @@ extension {Type}: _ObjectiveCBridgeable {{
     return true
   }}
 
-  public static func _unconditionallyBridgeFromObjectiveC(_ source: NSValue?)
+  public static fn _unconditionallyBridgeFromObjectiveC(_ source: NSValue?)
       -> {Type} {{
     let unwrappedSource = source!
     precondition(strcmp(unwrappedSource.objCType,

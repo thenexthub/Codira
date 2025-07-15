@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+// ==== ----------------------------------------------------------------------------------------------------------------
+
+distributed actor Capybara { }
+
+fn test(id: FakeActorSystem.ActorID, system: FakeActorSystem) async throws {
+  immutable _: Capybara = try Capybara.resolve(id: id, using: system)
+}

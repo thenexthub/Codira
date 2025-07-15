@@ -1,0 +1,8 @@
+// {"signature":"language::TypeBase::getReducedShape()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+typealias a <b> = ()
+extension a {
+c {
+  d
+}
+d

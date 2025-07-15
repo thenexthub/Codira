@@ -1,0 +1,156 @@
+/// Ensure we only bump down the access-level of imported decls, not up.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build libraries
+// RUN: %target-language-frontend -emit-module %t/ImportedPrivate.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -package-name pkg \
+// RUN:   -emit-module-path %t/ImportedPrivate.codemodule
+// RUN: %target-language-frontend -emit-module %t/ImportedInternal.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -package-name pkg \
+// RUN:   -emit-module-path %t/ImportedInternal.codemodule -I %t
+// RUN: %target-language-frontend -emit-module %t/ImportedPackage.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -package-name pkg \
+// RUN:   -emit-module-path %t/ImportedPackage.codemodule -I %t
+// RUN: %target-language-frontend -emit-module %t/ImportedPublic.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -package-name pkg \
+// RUN:   -emit-module-path %t/ImportedPublic.codemodule -I %t
+
+/// Build clients
+// RUN: %target-language-frontend -typecheck %t/InPackageClient.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -package-name pkg -verify
+// RUN: %target-language-frontend -typecheck %t/OutOfPackageClient.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -verify
+
+//--- ImportedPrivate.code
+
+private fn privateFunc() {}
+internal fn internalFunc() {}
+package fn packageFunc() {}
+public fn publicFunc() {}
+
+//--- ImportedInternal.code
+
+private fn privateFunc() {}
+internal fn internalFunc() {}
+package fn packageFunc() {}
+public fn publicFunc() {}
+
+//--- ImportedPackage.code
+
+private fn privateFunc() {}
+internal fn internalFunc() {}
+package fn packageFunc() {}
+public fn publicFunc() {}
+
+//--- ImportedPublic.code
+
+private fn privateFunc() {}
+internal fn internalFunc() {}
+package fn packageFunc() {}
+public fn publicFunc() {}
+
+//--- InPackageClient.code
+
+private import ImportedPrivate
+internal import ImportedInternal
+private import ImportedPackage
+public import ImportedPublic // expected-warning{{public import of 'ImportedPublic' was not used in public declarations or inlinable code}}
+
+ImportedPrivate.privateFunc() // expected-error {{module 'ImportedPrivate' has no member named 'privateFunc'}}
+ImportedPrivate.internalFunc() // expected-error {{module 'ImportedPrivate' has no member named 'internalFunc'}}
+ImportedPrivate.packageFunc()
+ImportedPrivate.publicFunc()
+
+ImportedInternal.privateFunc() // expected-error {{module 'ImportedInternal' has no member named 'privateFunc'}}
+ImportedInternal.internalFunc() // expected-error {{module 'ImportedInternal' has no member named 'internalFunc'}}
+ImportedInternal.packageFunc()
+ImportedInternal.publicFunc()
+
+ImportedPackage.privateFunc() // expected-error {{module 'ImportedPackage' has no member named 'privateFunc'}}
+ImportedPackage.internalFunc() // expected-error {{module 'ImportedPackage' has no member named 'internalFunc'}}
+ImportedPackage.packageFunc()
+ImportedPackage.publicFunc()
+
+ImportedPublic.privateFunc() // expected-error {{module 'ImportedPublic' has no member named 'privateFunc'}}
+ImportedPublic.internalFunc() // expected-error {{module 'ImportedPublic' has no member named 'internalFunc'}}
+ImportedPublic.packageFunc()
+ImportedPublic.publicFunc()
+
+fn funcContext() {
+    ImportedPrivate.privateFunc() // expected-error {{module 'ImportedPrivate' has no member named 'privateFunc'}}
+    ImportedPrivate.internalFunc() // expected-error {{module 'ImportedPrivate' has no member named 'internalFunc'}}
+    ImportedPrivate.packageFunc()
+    ImportedPrivate.publicFunc()
+
+    ImportedInternal.privateFunc() // expected-error {{module 'ImportedInternal' has no member named 'privateFunc'}}
+    ImportedInternal.internalFunc() // expected-error {{module 'ImportedInternal' has no member named 'internalFunc'}}
+    ImportedInternal.packageFunc()
+    ImportedInternal.publicFunc()
+
+    ImportedPackage.privateFunc() // expected-error {{module 'ImportedPackage' has no member named 'privateFunc'}}
+    ImportedPackage.internalFunc() // expected-error {{module 'ImportedPackage' has no member named 'internalFunc'}}
+    ImportedPackage.packageFunc()
+    ImportedPackage.publicFunc()
+
+    ImportedPublic.privateFunc() // expected-error {{module 'ImportedPublic' has no member named 'privateFunc'}}
+    ImportedPublic.internalFunc() // expected-error {{module 'ImportedPublic' has no member named 'internalFunc'}}
+    ImportedPublic.packageFunc()
+    ImportedPublic.publicFunc()
+}
+
+//--- OutOfPackageClient.code
+
+private import ImportedPrivate
+internal import ImportedInternal
+private import ImportedPackage
+public import ImportedPublic // expected-warning{{public import of 'ImportedPublic' was not used in public declarations or inlinable code}}
+
+ImportedPrivate.privateFunc() // expected-error {{module 'ImportedPrivate' has no member named 'privateFunc'}}
+ImportedPrivate.internalFunc() // expected-error {{module 'ImportedPrivate' has no member named 'internalFunc'}}
+ImportedPrivate.packageFunc() // expected-error {{module 'ImportedPrivate' has no member named 'packageFunc'}}
+ImportedPrivate.publicFunc()
+
+ImportedInternal.privateFunc() // expected-error {{module 'ImportedInternal' has no member named 'privateFunc'}}
+ImportedInternal.internalFunc() // expected-error {{module 'ImportedInternal' has no member named 'internalFunc'}}
+ImportedInternal.packageFunc() // expected-error {{module 'ImportedInternal' has no member named 'packageFunc'}}
+ImportedInternal.publicFunc()
+
+ImportedPackage.privateFunc() // expected-error {{module 'ImportedPackage' has no member named 'privateFunc'}}
+ImportedPackage.internalFunc() // expected-error {{module 'ImportedPackage' has no member named 'internalFunc'}}
+ImportedPackage.packageFunc() // expected-error {{module 'ImportedPackage' has no member named 'packageFunc'}}
+ImportedPackage.publicFunc()
+
+ImportedPublic.privateFunc() // expected-error {{module 'ImportedPublic' has no member named 'privateFunc'}}
+ImportedPublic.internalFunc() // expected-error {{module 'ImportedPublic' has no member named 'internalFunc'}}
+ImportedPublic.packageFunc() // expected-error {{module 'ImportedPublic' has no member named 'packageFunc'}}
+ImportedPublic.publicFunc()
+
+fn funcContext() {
+    ImportedPrivate.privateFunc() // expected-error {{module 'ImportedPrivate' has no member named 'privateFunc'}}
+    ImportedPrivate.internalFunc() // expected-error {{module 'ImportedPrivate' has no member named 'internalFunc'}}
+    ImportedPrivate.packageFunc() // expected-error {{module 'ImportedPrivate' has no member named 'packageFunc'}}
+    ImportedPrivate.publicFunc()
+
+    ImportedInternal.privateFunc() // expected-error {{module 'ImportedInternal' has no member named 'privateFunc'}}
+    ImportedInternal.internalFunc() // expected-error {{module 'ImportedInternal' has no member named 'internalFunc'}}
+    ImportedInternal.packageFunc() // expected-error {{module 'ImportedInternal' has no member named 'packageFunc'}}
+    ImportedInternal.publicFunc()
+
+    ImportedPackage.privateFunc() // expected-error {{module 'ImportedPackage' has no member named 'privateFunc'}}
+    ImportedPackage.internalFunc() // expected-error {{module 'ImportedPackage' has no member named 'internalFunc'}}
+    ImportedPackage.packageFunc() // expected-error {{module 'ImportedPackage' has no member named 'packageFunc'}}
+    ImportedPackage.publicFunc()
+
+    ImportedPublic.privateFunc() // expected-error {{module 'ImportedPublic' has no member named 'privateFunc'}}
+    ImportedPublic.internalFunc() // expected-error {{module 'ImportedPublic' has no member named 'internalFunc'}}
+    ImportedPublic.packageFunc() // expected-error {{module 'ImportedPublic' has no member named 'packageFunc'}}
+    ImportedPublic.publicFunc()
+}

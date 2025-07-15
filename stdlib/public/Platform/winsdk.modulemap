@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 module WinSDK [system] {
@@ -330,6 +331,11 @@ module WinSDK [system] {
     export *
 
     link "Mpr.Lib"
+  }
+
+  module NTAPI {
+    header "winternl.h"
+    export *
   }
 
   module Security {

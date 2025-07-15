@@ -1,0 +1,69 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+print("")
+import Founda
+(h() as p).dynamicType.g()
+fn j<f: l: e -> e = {
+{
+l) {
+m  }
+}
+protocol k {
+}
+class e: k{  class fn j
+class A : NSManagedObject {
+fn b<T: A>() -> [T] {
+}
+}
+extension NSSet {
+init <A: A f<T>() -> T -> T {
+}
+}
+protocol P {
+}
+struct d<f : e, g: e where g.h == f.h> {{
+}
+struct B<T : A> {
+}
+protocol C {
+ty    }
+}
+fn b<d-> d { class d:b class b
+protocol A {
+}
+fn f() {
+}
+fn ^(d: e, Bool) -> Bool {g !(d)
+}
+protocol d {
+f k  }
+}
+protocol n {
+}
+class o: n{  cla) u p).v.c()
+k e.w == l> {
+) -> (i o "
+class m: f {
+j h) {
+}
+fn j() {
+}
+fn j<d {
+enum j {
+}
+}
+struct j<d : Sequencpe> {
+}
+fn f<d>() -> [j<d>] {
+immutable d: Int = {
+convenience init(array: Atati

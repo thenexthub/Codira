@@ -1,4 +1,4 @@
-//===--- Join.swift - Protocol and Algorithm for concatenation ------------===//
+//===--- Join.code - Protocol and Algorithm for concatenation ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A sequence that presents the elements of a base sequence of sequences
@@ -32,8 +33,8 @@ public struct JoinedSequence<Base: Sequence> where Base.Element: Sequence {
   @inlinable // lazy-performance
   public init<Separator: Sequence>(base: Base, separator: Separator)
     where Separator.Element == Element {
-    self._base = base
-    self._separator = ContiguousArray(separator)
+    this._base = base
+    this._separator = ContiguousArray(separator)
   }
 }
 
@@ -71,8 +72,8 @@ extension JoinedSequence {
     @inlinable // lazy-performance
     public init<Separator: Sequence>(base: Base.Iterator, separator: Separator)
       where Separator.Element == Element {
-      self._base = base
-      self._separatorData = ContiguousArray(separator)
+      this._base = base
+      this._separatorData = ContiguousArray(separator)
     }
   }
 }
@@ -90,11 +91,11 @@ extension JoinedSequence.Iterator: IteratorProtocol {
   ///
   /// Once `nil` has been returned, all subsequent calls return `nil`.
   @inlinable // lazy-performance
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     while true {
       switch _state {
       case .start:
-        if let nextSubSequence = _base.next() {
+        if immutable nextSubSequence = _base.next() {
           _inner = nextSubSequence.makeIterator()
           _state = .generatingElements
         } else {
@@ -103,7 +104,7 @@ extension JoinedSequence.Iterator: IteratorProtocol {
         }
 
       case .generatingElements:
-        let result = _inner!.next()
+        immutable result = _inner!.next()
         if _fastPath(result != nil) {
           return result
         }
@@ -118,7 +119,7 @@ extension JoinedSequence.Iterator: IteratorProtocol {
         }
 
       case .generatingSeparator:
-        let result = _separator!.next()
+        immutable result = _separator!.next()
         if _fastPath(result != nil) {
           return result
         }
@@ -137,14 +138,14 @@ extension JoinedSequence: Sequence {
   ///
   /// - Complexity: O(1).
   @inlinable // lazy-performance
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     return Iterator(base: _base.makeIterator(), separator: _separator)
   }
 
   @inlinable // lazy-performance
-  public __consuming func _copyToContiguousArray() -> ContiguousArray<Element> {
+  public __consuming fn _copyToContiguousArray() -> ContiguousArray<Element> {
     var result = ContiguousArray<Element>()
-    let separatorSize = _separator.count
+    immutable separatorSize = _separator.count
 
     if separatorSize == 0 {
       for x in _base {
@@ -154,9 +155,9 @@ extension JoinedSequence: Sequence {
     }
 
     var iter = _base.makeIterator()
-    if let first = iter.next() {
+    if immutable first = iter.next() {
       result.append(contentsOf: first)
-      while let next = iter.next() {
+      while immutable next = iter.next() {
         result.append(contentsOf: _separator)
         result.append(contentsOf: next)
       }
@@ -173,8 +174,8 @@ extension Sequence where Element: Sequence {
   /// This example shows how an array of `[Int]` instances can be joined, using
   /// another `[Int]` instance as the separator:
   ///
-  ///     let nestedNumbers = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-  ///     let joined = nestedNumbers.joined(separator: [-1, -2])
+  ///     immutable nestedNumbers = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+  ///     immutable joined = nestedNumbers.joined(separator: [-1, -2])
   ///     print(Array(joined))
   ///     // Prints "[1, 2, 3, -1, -2, 4, 5, 6, -1, -2, 7, 8, 9]"
   ///
@@ -182,10 +183,10 @@ extension Sequence where Element: Sequence {
   ///   sequence's elements.
   /// - Returns: The joined sequence of elements.
   @inlinable // lazy-performance
-  public __consuming func joined<Separator: Sequence>(
+  public __consuming fn joined<Separator: Sequence>(
     separator: Separator
   ) -> JoinedSequence<Self>
     where Separator.Element == Element.Element {
-    return JoinedSequence(base: self, separator: separator)
+    return JoinedSequence(base: this, separator: separator)
   }
 }

@@ -14,17 +14,17 @@ and crosses no resilience boundaries.
 
 For completeness, this document describes the layout of both key path objects
 and patterns; note however that the instantiated runtime layout of key path
-objects is an implementation detail of the Swift runtime, and *only key path
+objects is an implementation detail of the Codira runtime, and *only key path
 patterns* are strictly ABI, since they are emitted by the compiler. The
 runtime has the freedom to change the runtime layout of key path objects, but
 will have to maintain the ability to instantiate from key path patterns emitted
-by previous ABI-stable versions of the Swift compiler.
+by previous ABI-stable versions of the Codira compiler.
 
 ## Key Path Objects
 
 ### Buffer Header
 
-Key path objects begin with the standard Swift heap object header, followed by a
+Key path objects begin with the standard Codira heap object header, followed by a
 key path object header. Relative to the end of the heap object header:
 
 Offset  | Description
@@ -40,7 +40,7 @@ following bit fields:
 Bits (LSB zero) | Description
 --------------- | -----------
 0...23          | **Buffer size** in bytes
-24...29         | Reserved. Must be zero in Swift 4...5 runtime
+24...29         | Reserved. Must be zero in Codira 4...5 runtime
 30              | 1 = Has **reference prefix**, 0 = No reference prefix
 31              | 1 = Is **trivial**, 0 = Has destructor
 
@@ -92,7 +92,7 @@ Value in bits 24...30 | Description
 - A **class stored property** component, when given a reference to a class
   instance, can project the component value inside the class instance at
   a fixed offset. The *payload*
-  *payload* contains the offset in bytes of the projected field from the
+  contains the offset in bytes of the projected field from the
   address point of the object, or the special value `0xFF_FFFF`, which
   indicates that the offset is too large to pack into the payload and is stored
   in the next 32 bits after the header.
@@ -160,14 +160,14 @@ Value in bits 24...30 | Description
     component. The identifier kind bits are used to discriminate
     possibly-overlapping domains.
 
-    The getter function is a pointer to a Swift function with the signature
+    The getter function is a pointer to a Codira function with the signature
     `@convention(thin) (@in Base, UnsafeRawPointer) -> @out Value`. When
     the component is applied, the getter is invoked with a copy of the base
     value and is passed a pointer to the captured arguments of the
     component. If the component has no captures, the second argument is
     undefined.
 
-    The setter function is also a pointer to a Swift function. This field is
+    The setter function is also a pointer to a Codira function. This field is
     only present if the *settable* bit of the header is set. If the
     component is nonmutating, then the function has signature
     `@convention(thin) (@in Base, @in Value, UnsafeRawPointer) -> ()`,
@@ -232,7 +232,7 @@ argument of the `KeyPath<Root, Value>` type.)
 
 Given:
 
-```swift
+```language
 struct A {
   var padding: (128 x UInt8)
   var b: B

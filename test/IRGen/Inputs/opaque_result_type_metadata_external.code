@@ -1,0 +1,17 @@
+
+public protocol P {
+  static fn stat()
+}
+
+extension Int: P {
+  public static fn stat() {}
+}
+
+public fn external_opaque() -> some P {
+  return 0
+}
+
+@inlinable
+public fn external_inlinable() -> some P {
+  return 0
+}

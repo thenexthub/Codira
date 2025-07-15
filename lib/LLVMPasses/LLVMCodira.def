@@ -1,0 +1,152 @@
+//===--- LLVMCodira.def ----------------------------------*- C++ -*---------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// KIND(Name, MemBehavior)
+//
+// This represents a specific equivalence class of LLVM instructions that have a
+// Name and the same MemBehavior from a ModRef perspective.
+//
+// Name - The name of the kind.
+// MemBehavior - One of NoModRef or ModRef.
+//
+#ifndef KIND
+#define KIND(Name, MemBehavior)
+#endif
+
+// LANGUAGE_FUNC(Name, MemBehavior, TextualName)
+//
+// This defines a special language function known to the optimizer that may be
+// present in either atomic or nonatomic form.
+//
+// Name - The name of the function
+// MemBehavior - The MemBehavior of the instruction that can be known at compile time
+// TextualName - The name of the function in the final binary.
+#ifndef LANGUAGE_FUNC
+#define LANGUAGE_FUNC(Name, MemBehavior, TextualName) KIND(Name, MemBehavior)
+#endif
+
+// LANGUAGE_NEVER_NONATOMIC_FUNC(Name, MemBehavior, TextualName)
+//
+// This defines a special language function known to the optimizer that does not
+// have a nonatomic form.
+//
+// Name - The name of the function
+// MemBehavior - The MemBehavior of the instruction that can be known at compile time
+// TextualName - The name of the function in the final binary.
+#ifndef LANGUAGE_NEVER_NONATOMIC_FUNC
+#define LANGUAGE_NEVER_NONATOMIC_FUNC(Name, MemBehavior, TextualName) LANGUAGE_FUNC(Name, MemBehavior, TextualName)
+#endif
+
+// LANGUAGE_INTERNAL_NEVER_NONATOMIC_FUNC(Name, MemBehavior, TextualName)
+//
+// This defines a special language function known to the optimizer that does not
+// have a nonatomic form and has an internal prefix (i.e. '__').
+//
+// Name - The name of the function
+// MemBehavior - The MemBehavior of the instruction that can be known at compile time
+// TextualName - The name of the function in the final binary.
+#ifndef LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC
+#define LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC(Name, MemBehavior, TextualName) LANGUAGE_FUNC(Name, MemBehavior, TextualName)
+#endif
+
+// OBJC_FUNC(Name, MemBehavior, TextualName)
+//
+// This defines a special objc function known to the optimizer that may have an
+// atomic and nonatomic form.
+//
+// Name - The name of the function
+// MemBehavior - The MemBehavior of the instruction that can be known at compile time
+// TextualName - The name of the function in the final binary.
+#ifndef OBJC_FUNC
+#define OBJC_FUNC(Name, MemBehavior, TextualName) KIND(Name, MemBehavior)
+#endif
+
+/// An instruction with this classification is known to not access (read or
+/// write) memory.
+KIND(NoMemoryAccessed, NoModRef)
+
+/// void language_retain(CodiraHeapObject *object)
+LANGUAGE_FUNC(Retain, NoModRef, retain)
+
+/// void language_retain_n(CodiraHeapObject *object)
+LANGUAGE_FUNC(RetainN, NoModRef, retain_n)
+
+/// void language::language_retainUnowned(HeapObject *object)
+LANGUAGE_FUNC(RetainUnowned, NoModRef, retainUnowned)
+
+/// void language_checkUnowned(HeapObject *object)
+LANGUAGE_FUNC(CheckUnowned, NoModRef, checkUnowned)
+
+/// void language_release(CodiraHeapObject *object)
+LANGUAGE_FUNC(Release, ModRef, release)
+
+/// void language_release_n(CodiraHeapObject *object)
+LANGUAGE_FUNC(ReleaseN, ModRef, release_n)
+
+/// CodiraHeapObject *language_allocObject(CodiraHeapMetadata *metadata,
+///                                    size_t size, size_t alignment)
+LANGUAGE_NEVER_NONATOMIC_FUNC(AllocObject, NoModRef, allocObject)
+
+/// void objc_release(%objc_object* %P)
+OBJC_FUNC(ObjCRelease, ModRef, release)
+
+/// %objc_object* objc_retain(%objc_object* %P)
+OBJC_FUNC(ObjCRetain, NoModRef, retain)
+
+/// void language_unknownObjectRetain(%language.refcounted* %P)
+LANGUAGE_FUNC(UnknownObjectRetain, NoModRef, unknownObjectRetain)
+
+/// void language_unknownObjectRetain_n(%language.refcounted* %P)
+LANGUAGE_FUNC(UnknownObjectRetainN, NoModRef, unknownObjectRetain_n)
+
+/// void language_unknownObjectRelease(%language.refcounted* %P)
+LANGUAGE_FUNC(UnknownObjectRelease, ModRef, unknownObjectRelease)
+
+/// void language_unknownObjectRelease_n(%language.refcounted* %P)
+LANGUAGE_FUNC(UnknownObjectReleaseN, ModRef, unknownObjectRelease_n)
+
+/// void __language_fixLifetime(%language.refcounted* %P)
+LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC(FixLifetime, NoModRef, fixLifetime)
+
+/// void language_bridgeObjectRetain(%language.refcounted* %P)
+LANGUAGE_FUNC(BridgeRetain, NoModRef, bridgeObjectRetain)
+
+/// void language_bridgeObjectRetain_n(%language.refcounted* %P)
+LANGUAGE_FUNC(BridgeRetainN, NoModRef, bridgeObjectRetain_n)
+
+/// void language_bridgeObjectRelease(%language.refcounted* %P)
+LANGUAGE_FUNC(BridgeRelease, ModRef, bridgeObjectRelease)
+
+/// void language_bridgeObjectRelease_n(%language.refcounted* %P)
+LANGUAGE_FUNC(BridgeReleaseN, ModRef, bridgeObjectRelease_n)
+
+/// borrow source is the value that was borrowed from. borrow_dest is the
+/// borrowed ref.
+///
+/// TODO: We may want to communicate to the optimizer that this does not have
+/// global effects.
+///
+/// void __language_endBorrow(i8* %borrow_source, i8* %borrow_dest)
+LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC(EndBorrow, ModRef, endBorrow)
+
+/// This is not a runtime function that we support.  Maybe it is not a call,
+/// or is a call to something we don't care about.
+KIND(Unknown, ModRef)
+
+#undef LANGUAGE_INTERNAL_FUNC_NEVER_NONATOMIC
+#undef LANGUAGE_NEVER_NONATOMIC_FUNC
+#undef OBJC_FUNC
+#undef LANGUAGE_FUNC
+#undef KIND

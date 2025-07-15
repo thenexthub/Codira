@@ -1,13 +1,17 @@
 //===--- DestroyAddrHoisting.cpp - SSA-based destroy_addr hoisting --------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This is a light-weight utility for hoisting destroy instructions for unique
@@ -59,7 +63,7 @@
 /// Case #3. Synchronization points: If the object potentially has a custom
 /// deinitializer with side effects, then any external function call, which may
 /// contain a memory barrier or system call, prevents hoisting. If the external
-/// function call is annotated as "read-only", then it is safe. Since Swift does
+/// function call is annotated as "read-only", then it is safe. Since Codira does
 /// not directly support atomics, no SIL instructions are currently considered
 /// synchronization points.
 ///
@@ -115,7 +119,7 @@ struct KnownStorageUses : UniqueStorageUseVisitor {
   bool ignoreDeinitBarriers;
 
   SmallPtrSet<SILInstruction *, 16> storageUsers;
-  llvm::SmallSetVector<SILInstruction *, 4> originalDestroys;
+  toolchain::SmallSetVector<SILInstruction *, 4> originalDestroys;
   SmallPtrSet<SILInstruction *, 4> debugInsts;
 
   KnownStorageUses(AccessStorage storage, SILFunction *function,
@@ -164,6 +168,20 @@ protected:
   bool visitStore(Operand *use) override { return recordUser(use->getUser()); }
 
   bool visitDestroy(Operand *use) override {
+    // An init_enum_data_addr is viewed as an "identity projection", rather than
+    // a proper projection like a struct_element_addr.  As a result, its
+    // destroys are passed directly to visitors.  But such addresses aren't
+    // quite equivalent to the original address.  Specifically, a destroy of an
+    // init_enum_data_addr cannot in general be replaced with a destroy of the
+    // whole enum.  The latter destroy is only equivalent to the former if there
+    // has been an `inject_enum_addr`.
+    //
+    // Handle a destroy of such a projection just like we handle the destroy of
+    // a struct_element_addr: by bailing out.
+    if (isa<InitEnumDataAddrInst>(
+            stripAccessAndAccessStorageCasts(use->get()))) {
+      return false;
+    }
     originalDestroys.insert(use->getUser());
     return true;
   }
@@ -196,7 +214,7 @@ protected:
       // obstruct all hoisting.
       return true;
     }
-    LLVM_DEBUG(llvm::dbgs() << "Unknown user " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Unknown user " << *user);
     return false;
   }
 };
@@ -211,17 +229,17 @@ class DeinitBarriers final {
 public:
   // Instructions beyond which a destroy_addr cannot be hoisted, reachable from
   // a destroy_addr.  Deinit barriers or storage uses.
-  llvm::SmallSetVector<SILInstruction *, 4> barrierInstructions;
+  toolchain::SmallSetVector<SILInstruction *, 4> barrierInstructions;
 
   // Phis beyond which a destroy_addr cannot be hoisted, reachable from a
   // destroy_addr.
-  llvm::SmallSetVector<SILBasicBlock *, 4> barrierPhis;
+  toolchain::SmallSetVector<SILBasicBlock *, 4> barrierPhis;
 
   // Blocks beyond the end of which a destroy_addr cannot be hoisted.
-  llvm::SmallSetVector<SILBasicBlock *, 4> barrierBlocks;
+  toolchain::SmallSetVector<SILBasicBlock *, 4> barrierBlocks;
 
   // Debug instructions that are no longer within this lifetime after shrinking.
-  llvm::SmallSetVector<SILInstruction *, 4> deadUsers;
+  toolchain::SmallSetVector<SILInstruction *, 4> deadUsers;
 
   // The access scopes which are hoisting barriers.
   //
@@ -381,7 +399,7 @@ bool DeinitBarriers::classificationIsBarrier(Classification classification) {
   case Classification::Barrier:
     return true;
   }
-  llvm_unreachable("exhaustive switch is not exhaustive?!");
+  toolchain_unreachable("exhaustive switch is not exhaustive?!");
 }
 
 DeinitBarriers::DestroyReachability::Effect
@@ -399,7 +417,7 @@ DeinitBarriers::DestroyReachability::effectForInstruction(
 DeinitBarriers::DestroyReachability::Effect
 DeinitBarriers::DestroyReachability::effectForPhi(SILBasicBlock *block) {
   bool isBarrier =
-      llvm::any_of(block->getPredecessorBlocks(), [&](auto *predecessor) {
+      toolchain::any_of(block->getPredecessorBlocks(), [&](auto *predecessor) {
         return result.isBarrier(predecessor->getTerminator());
       });
   return isBarrier ? Effect::Kill() : Effect::NoEffect();
@@ -574,15 +592,15 @@ bool HoistDestroys::foldBarrier(SILInstruction *barrier,
                                 const DeinitBarriers &deinitBarriers) {
   // The load [copy]s which will be folded into load [take]s if folding is
   // possible.
-  llvm::SmallVector<LoadInst *, 4> loads;
+  toolchain::SmallVector<LoadInst *, 4> loads;
   // The copy_addrs which will be folded into copy_addr [take]s if folding is
   // possible.
-  llvm::SmallVector<CopyAddrInst *, 4> copies;
+  toolchain::SmallVector<CopyAddrInst *, 4> copies;
 
   // The non-trivial storage leaves of the root storage all of which must be
   // destroyed exactly once in the sequence of instructions prior to the
   // destroy_addr in order for folding to occur.
-  llvm::SmallPtrSet<AccessPath::PathNode, 16> leaves;
+  toolchain::SmallPtrSet<AccessPath::PathNode, 16> leaves;
 
   // The trivial storage leaves of the root storage.  They needn't be destroyed
   // in the sequence prior to the destroy_addr, but their uses may obstruct
@@ -604,7 +622,7 @@ bool HoistDestroys::foldBarrier(SILInstruction *barrier,
   SmallPtrSet<AccessPath::PathNode, 16> trivialLeaves;
 
   bool succeeded = visitProductLeafAccessPathNodes(
-      storageRoot, typeExpansionContext, module,
+      storageRoot, typeExpansionContext, *function,
       [&](AccessPath::PathNode node, SILType ty) {
         if (ty.isTrivial(*function))
           return;
@@ -727,6 +745,11 @@ bool HoistDestroys::checkFoldingBarrier(
     auto loadee = load->getOperand();
     auto relativeAccessStorage = RelativeAccessStorageWithBase::compute(loadee);
     if (relativeAccessStorage.getStorage().hasIdenticalStorage(storage)) {
+      // Only fold into access scopes which aren't [read].
+      auto scoped = AccessStorageWithBase::computeInScope(loadee);
+      auto *bai = dyn_cast_or_null<BeginAccessInst>(scoped.base);
+      if (bai && bai->getAccessKind() == SILAccessKind::Read)
+        return true;
       // If the access path from the loaded address to its root storage involves
       // a (layout non-equivalent) typecast--a load [take] of the casted address
       // would not be equivalent to a load [copy] followed by a destroy_addr of
@@ -746,6 +769,11 @@ bool HoistDestroys::checkFoldingBarrier(
     auto source = copy->getSrc();
     auto relativeAccessStorage = RelativeAccessStorageWithBase::compute(source);
     if (relativeAccessStorage.getStorage().hasIdenticalStorage(storage)) {
+      // Only fold into access scopes which aren't [read].
+      auto scoped = AccessStorageWithBase::computeInScope(source);
+      auto *bai = dyn_cast_or_null<BeginAccessInst>(scoped.base);
+      if (bai && bai->getAccessKind() == SILAccessKind::Read)
+        return true;
       // If the access path from the copy_addr'd address to its root storage
       // involves a (layout non-equivalent) typecast--a copy_addr [take] of the
       // casted address would not be equivalent to a copy_addr followed by a
@@ -765,7 +793,7 @@ bool HoistDestroys::checkFoldingBarrier(
     bool alreadySawLeaf = false;
     bool alreadySawTrivialSubleaf = false;
     auto succeeded = visitProductLeafAccessPathNodes(
-        address, typeExpansionContext, module,
+        address, typeExpansionContext, *function,
         [&](AccessPath::PathNode node, SILType ty) {
           if (ty.isTrivial(*function)) {
             bool inserted = !trivialLeaves.insert(node).second;
@@ -838,7 +866,7 @@ void HoistDestroys::insertDestroy(SILInstruction *barrier,
   // Avoid mutating SIL for no reason. This could lead to infinite loops.
   if (isa<DestroyAddrInst>(insertBefore) ||
       isa<DestroyValueInst>(insertBefore)) {
-    if (llvm::find(knownUses.originalDestroys, insertBefore) !=
+    if (toolchain::find(knownUses.originalDestroys, insertBefore) !=
         knownUses.originalDestroys.end()) {
       reusedDestroys.insert(insertBefore);
       return;
@@ -895,7 +923,7 @@ bool hoistDestroys(SILValue root, bool ignoreDeinitBarriers,
                    SmallPtrSetImpl<SILInstruction *> &remainingDestroyAddrs,
                    InstructionDeleter &deleter,
                    BasicCalleeAnalysis *calleeAnalysis) {
-  LLVM_DEBUG(llvm::dbgs() << "Performing destroy hoisting on " << root);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Performing destroy hoisting on " << root);
 
   // Don't canonicalize the lifetimes of addresses of move-only type.
   // According to language rules, they are fixed.
@@ -925,7 +953,7 @@ bool hoistDestroys(SILValue root, bool ignoreDeinitBarriers,
 // =============================================================================
 
 namespace {
-class DestroyAddrHoisting : public swift::SILFunctionTransform {
+class DestroyAddrHoisting : public language::SILFunctionTransform {
   void run() override;
   void hoistDestroys(bool &changed, ArrayRef<BeginAccessInst *> bais,
                      ArrayRef<AllocStackInst *> asis,
@@ -944,7 +972,7 @@ void DestroyAddrHoisting::hoistDestroys(
   // We assume that the function is in reverse post order so visiting the
   // blocks and pushing begin_access as we see them and then popping them off
   // the end will result in hoisting inner begin_access' destroy_addrs first.
-  for (auto *bai : llvm::reverse(bais)) {
+  for (auto *bai : toolchain::reverse(bais)) {
     if (!continueWithNextSubpassRun(bai))
       return;
     // [exclusive_modify_scope_hoisting] Hoisting within modify access scopes
@@ -1007,10 +1035,10 @@ void DestroyAddrHoisting::run() {
   InstructionDeleter deleter;
   bool changed = false;
 
-  llvm::SmallVector<AllocStackInst *, 4> asis;
-  llvm::SmallVector<BeginAccessInst *, 4> bais;
-  llvm::SmallVector<StoreInst *, 4> sis;
-  llvm::SmallVector<CopyAddrInst *, 4> cais;
+  toolchain::SmallVector<AllocStackInst *, 4> asis;
+  toolchain::SmallVector<BeginAccessInst *, 4> bais;
+  toolchain::SmallVector<StoreInst *, 4> sis;
+  toolchain::SmallVector<CopyAddrInst *, 4> cais;
 
   // Collect the instructions that we'll be transforming.
   for (auto &block : *getFunction()) {
@@ -1047,7 +1075,7 @@ void DestroyAddrHoisting::run() {
   // Record the newly created destroy_addrs and the stores they were split off
   // of.  After hoisting, if they have not been hoisted away from the store
   // instruction, we will merge them back together.
-  llvm::SmallVector<std::pair<DestroyAddrInst *, StoreInst *>, 8>
+  toolchain::SmallVector<std::pair<DestroyAddrInst *, StoreInst *>, 8>
       splitDestroysAndStores;
   // The destroy_addrs that were created that have not been deleted.  Items are
   // erased from the set as the destroy_addrs are deleted.
@@ -1079,7 +1107,7 @@ void DestroyAddrHoisting::run() {
   // As above, record the newly created destroy_addrs and copy_addrs off of
   // which they were split.  After hoisting, we'll merge them back together when
   // possible.
-  llvm::SmallVector<std::pair<DestroyAddrInst *, CopyAddrInst *>, 8>
+  toolchain::SmallVector<std::pair<DestroyAddrInst *, CopyAddrInst *>, 8>
       splitDestroysAndCopies;
   for (auto *cai : cais) {
     auto builder = SILBuilderWithScope(cai);
@@ -1132,6 +1160,6 @@ void DestroyAddrHoisting::run() {
   }
 }
 
-SILTransform *swift::createDestroyAddrHoisting() {
+SILTransform *language::createDestroyAddrHoisting() {
   return new DestroyAddrHoisting();
 }

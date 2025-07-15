@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements unsafe diagnostics.
@@ -32,7 +33,7 @@
 
 using namespace language;
 
-void swift::diagnoseUnsafeUse(const UnsafeUse &use) {
+void language::diagnoseUnsafeUse(const UnsafeUse &use) {
   switch (use.getKind()) {
   case UnsafeUse::Override: {
     auto override = use.getDecl();
@@ -154,6 +155,40 @@ void swift::diagnoseUnsafeUse(const UnsafeUse &use) {
     return;
   }
 
+  case UnsafeUse::CallArgument: {
+    auto [argumentName, argumentIndex, argument] = use.getCallArgument();
+    Type paramType = use.getType();
+    ASTContext &ctx = paramType->getASTContext();
+
+    SourceLoc loc = argument->getLoc();
+    if (loc.isInvalid())
+      loc = use.getLocation();
+
+    if (auto calleeDecl = dyn_cast_or_null<ValueDecl>(use.getDecl())) {
+      if (argumentName.empty()) {
+        ctx.Diags.diagnose(
+            loc,
+            diag::note_unsafe_call_decl_argument_indexed,
+            calleeDecl, argumentIndex, argument->getType())
+          .highlight(argument->getSourceRange());
+      } else {
+        ctx.Diags.diagnose(
+            loc,
+            diag::note_unsafe_call_decl_argument_named,
+            calleeDecl, argumentName, argument->getType())
+          .highlight(argument->getSourceRange());
+      }
+    } else {
+      ctx.Diags.diagnose(
+          loc,
+          diag::note_unsafe_call_argument_indexed,
+          argumentIndex, argument->getType())
+        .highlight(argument->getSourceRange());
+    }
+
+    return;
+  }
+
   case UnsafeUse::TemporarilyEscaping: {
     Type type = use.getType();
     ASTContext &ctx = type->getASTContext();
@@ -164,7 +199,9 @@ void swift::diagnoseUnsafeUse(const UnsafeUse &use) {
 
   case UnsafeUse::PreconcurrencyImport: {
     auto importDecl = cast<ImportDecl>(use.getDecl());
-    importDecl->diagnose(diag::preconcurrency_import_unsafe);
+    importDecl->diagnose(diag::preconcurrency_import_unsafe)
+      .fixItInsert(importDecl->getAttributeInsertionLoc(false), "@unsafe ");
+
     return;
   }
   }
@@ -177,10 +214,11 @@ static bool isReferenceToNonisolatedUnsafe(ValueDecl *decl) {
   return attr && attr->isUnsafe();
 }
 
-bool swift::enumerateUnsafeUses(ConcreteDeclRef declRef,
+bool language::enumerateUnsafeUses(ConcreteDeclRef declRef,
                                 SourceLoc loc,
                                 bool isCall,
-                                llvm::function_ref<bool(UnsafeUse)> fn) {
+                                bool skipTypeCheck,
+                                toolchain::function_ref<bool(UnsafeUse)> fn) {
   // If the declaration is explicitly unsafe, note that.
   auto decl = declRef.getDecl();
   switch (decl->getExplicitSafety()) {
@@ -206,7 +244,7 @@ bool swift::enumerateUnsafeUses(ConcreteDeclRef declRef,
   // If the type of this declaration involves unsafe types, diagnose that.
   ASTContext &ctx = decl->getASTContext();
   auto subs = declRef.getSubstitutions();
-  {
+  if (!skipTypeCheck) {
     auto type = decl->getInterfaceType();
     if (subs) {
       if (auto *genericFnType = type->getAs<GenericFunctionType>())
@@ -267,7 +305,7 @@ bool swift::enumerateUnsafeUses(ConcreteDeclRef declRef,
 /// Visit all of the unsafe conformances within this conformance.
 static bool forEachUnsafeConformance(
     ProtocolConformanceRef conformance,
-    llvm::function_ref<bool(ProtocolConformance *)> body) {
+    toolchain::function_ref<bool(ProtocolConformance *)> body) {
   if (conformance.isInvalid() || conformance.isAbstract())
     return false;
 
@@ -299,16 +337,12 @@ static bool forEachUnsafeConformance(
   return false;
 }
 
-bool swift::enumerateUnsafeUses(ArrayRef<ProtocolConformanceRef> conformances,
+bool language::enumerateUnsafeUses(ArrayRef<ProtocolConformanceRef> conformances,
                                 SourceLoc loc,
-                                llvm::function_ref<bool(UnsafeUse)> fn) {
+                                toolchain::function_ref<bool(UnsafeUse)> fn) {
   for (auto conformance : conformances) {
     if (conformance.isInvalid())
       continue;
-
-    ASTContext &ctx = conformance.getProtocol()->getASTContext();
-    if (!ctx.LangOpts.hasFeature(Feature::StrictMemorySafety))
-      return false;
 
     if (!conformance.hasEffect(EffectKind::Unsafe))
       continue;
@@ -327,9 +361,9 @@ bool swift::enumerateUnsafeUses(ArrayRef<ProtocolConformanceRef> conformances,
   return false;
 }
 
-bool swift::enumerateUnsafeUses(SubstitutionMap subs,
+bool language::enumerateUnsafeUses(SubstitutionMap subs,
                                 SourceLoc loc,
-                                llvm::function_ref<bool(UnsafeUse)> fn) {
+                                toolchain::function_ref<bool(UnsafeUse)> fn) {
   // Replacement types.
   for (auto replacementType : subs.getReplacementTypes()) {
     if (replacementType->isUnsafe() &&
@@ -344,14 +378,15 @@ bool swift::enumerateUnsafeUses(SubstitutionMap subs,
   return false;
 }
 
-bool swift::isUnsafe(ConcreteDeclRef declRef) {
+bool language::isUnsafe(ConcreteDeclRef declRef) {
   return enumerateUnsafeUses(
-      declRef, SourceLoc(), /*isCall=*/false, [&](UnsafeUse) {
+      declRef, SourceLoc(), /*isCall=*/false, /*skipTypeCheck=*/false,
+      [&](UnsafeUse) {
     return true;
   });
 }
 
-bool swift::isUnsafeInConformance(const ValueDecl *requirement,
+bool language::isUnsafeInConformance(const ValueDecl *requirement,
                                   const Witness &witness,
                                   NormalProtocolConformance *conformance) {
   if (requirement->getExplicitSafety() == ExplicitSafety::Unsafe)
@@ -375,11 +410,8 @@ bool swift::isUnsafeInConformance(const ValueDecl *requirement,
   return hasUnsafeType;
 }
 
-void swift::diagnoseUnsafeType(ASTContext &ctx, SourceLoc loc, Type type,
-                               llvm::function_ref<void(Type)> diagnose) {
-  if (!ctx.LangOpts.hasFeature(Feature::StrictMemorySafety))
-    return;
-
+void language::diagnoseUnsafeType(ASTContext &ctx, SourceLoc loc, Type type,
+                               toolchain::function_ref<void(Type)> diagnose) {
   if (!type->isUnsafe())
     return;
 
@@ -451,7 +483,7 @@ void swift::diagnoseUnsafeType(ASTContext &ctx, SourceLoc loc, Type type,
   diagnose(specificType ? specificType : type);
 }
 
-void swift::checkUnsafeStorage(NominalTypeDecl *nominal) {
+void language::checkUnsafeStorage(NominalTypeDecl *nominal) {
   // If the type is marked explicitly with @safe or @unsafe, there's nothing
   // to check.
   switch (nominal->getExplicitSafety()) {

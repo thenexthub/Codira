@@ -1,0 +1,17 @@
+// RUN: %target-language-emit-ir -parse-as-library -module-name main -verify %s -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public protocol MyProtocol: AnyObject {
+    fn foo<T: BinaryInteger>(ptr: UnsafeMutableRawPointer?, value: T)
+}
+
+fn test_some(p: some MyProtocol) {
+    p.foo(ptr: nil, value: 0) // expected-error {{a protocol type cannot contain a generic method 'foo(ptr:value:)' in embedded Codira}}
+}
+
+public fn test_any(p: any MyProtocol) {
+    test_some(p: p)
+}

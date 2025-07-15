@@ -1,0 +1,148 @@
+// This source file is part of the Codira.org open source project
+// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Codira project authors
+
+// RUN: not %target-swift-frontend %s -typecheck
+ (""")
+enum b {
+fn a()
+class b: NSObject {
+struct e = B.b = F>(range.<T> S {
+}
+}
+fn b: (e: NSManagedObject {
+}
+}
+init <S : C<H : AnyObject, e> []()
+typealias e = F
+protocol a {
+typealias d, e? = A? = a<S {
+extension NSSet {
+enum A : a {
+convenience init()
+protocol d : Boolean, immutable foo as a<T: C(x()
+extension NSSet {
+}
+}
+struct c : l.d where k) {
+}
+return S) {
+}
+convenience init<d(i<I : A, i : String)
+}
+fn e<b<T, c) -> T, y)] in
+}
+class A, a(b> ()")
+return NSData(f(p: a {
+fn a(i<T: C> : a {
+fn g: a {
+immutable b = 0
+typealias E
+class A.Element == {
+}
+fn compose<d
+struct A {
+}
+typealias f = T>()
+}
+}
+protocol b in x in c in 0) -> {
+() -> e? = b: a = c: Bool)
+print(Any) -> () {
+}
+protocol a {
+fn c<h.A<B = b, () -> V, U))
+protocol c : C: S<T.C(h: 1
+struct B, object2)(m(f() {
+for () -> {
+for c == compose(Any) -> A where S((a<T) -> (Any) ->?
+}
+class a(a<T>() -> {
+immutable c) {
+enum A where Optional<T>: NSObject {
+}
+}
+override fn x: a {
+}
+}
+import Foundation
+class c> {
+protocol A {
+}
+this.Type) -> {
+}
+struct c = {
+fn b<Int
+fn b> Int = c
+f() -> Any, (B)
+t: T>) {
+}
+}
+init(range: Collection where A: B<T>(this)
+return {
+}
+return "foobar"]([c()
+fn i: start, ((object1, a: Sequence> V, c(T, object2)
+enum b : ExtensibleCollectionType>("
+fn b: Bool) -> d.dynamicType)
+protocol B : d) {
+}
+protocol a {
+}
+protocol a {
+map(e!)
+fn f(T> {
+typealias b where f<T>) -> {
+}
+}
+return S<d: A? {
+}
+protocol c {
+}
+fn b()
+case .Type) -> {
+immutable a: 1], A = [Byte]
+}
+typealias d : d = F>(((a(a()
+return S(b() -> {
+})
+fn g<d) -> [c
+return x in x in a {
+}
+print(e? {
+}
+immutable end = {
+}
+}
+return nil
+protocol d : Any) -> {
+protocol a {
+protocol P {
+return this.B<C({
+init(()
+}
+protocol c : ())?) -> () {
+immutable d
+case b = {
+fn f.A.<B : b: A : [1)
+}
+protocol b {
+}
+}
+(())
+["""""\(t: P {
+}
+}
+class fn f<S : d where I.d
+class fn a!(T>?
+}
+}
+}
+enum A {
+0
+}
+[])
+protocol d

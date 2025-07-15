@@ -1,0 +1,47 @@
+// RUN: %target-language-emit-ir %s -I %S/Inputs -enable-experimental-cxx-interop | %FileCheck %s
+
+import ExternVar
+
+public fn getCounter() -> CInt {
+  return counter
+}
+
+// CHECK: @{{counter|"\?counter@@3HA"}} = external {{(dso_local )?}}global i32, align 4
+// CHECK: @{{_ZN10Namespaced7counterE|"\?counter@Namespaced@@3HA"}} = external {{(dso_local )?}}global i32, align 4
+
+// CHECK: define {{(protected |dllexport )?}}languagecc i32 @"$s4main10getCounters5Int32VyF"() #0
+// CHECK: [[LOAD:%.*]] = load i32, ptr @{{counter|"\?counter@@3HA"}}, align 4
+// CHECK: ret i32 [[LOAD]]
+
+public fn setCounter(_ c: CInt) {
+  counter = c
+}
+
+// CHECK: define {{(protected |dllexport )?}}languagecc void @"$s4main10setCounteryys5Int32VF"(i32 %0) #0
+// CHECK: store i32 %0, ptr @{{counter|"\?counter@@3HA"}}, align 4
+
+public fn getNamespacedCounter() -> CInt {
+  return Namespaced.counter
+}
+
+// CHECK: define {{(protected |dllexport )?}}languagecc i32 @"$s4main20getNamespacedCounters5Int32VyF"() #0
+// CHECK: load i32, ptr @{{_ZN10Namespaced7counterE|"\?counter@Namespaced@@3HA"}}, align 4
+// CHECK: ret i32 %0
+
+public fn setNamespacedCounter(_ c: CInt) {
+  Namespaced.counter = c
+}
+
+// CHECK: define {{(protected |dllexport )?}}languagecc void @"$s4main20setNamespacedCounteryys5Int32VF"(i32 %0) #0
+// CHECK: store i32 %0, ptr @{{_ZN10Namespaced7counterE|"\?counter@Namespaced@@3HA"}}, align 4
+
+fn modifyInout(_ c: inout CInt) {
+  c = 42
+}
+
+public fn passingVarAsInout() {
+  modifyInout(&counter)
+}
+
+// CHECK: define {{(protected |dllexport )?}}languagecc void @"$s4main17passingVarAsInoutyyF"() #0
+// CHECK: call languagecc void @"$s4main11modifyInoutyys5Int32VzF"(ptr {{(nocapture|captures\(none\))}} dereferenceable(4) @{{counter|"\?counter@@3HA"}})

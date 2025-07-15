@@ -1,0 +1,103 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import DifferentiationUnittest
+
+var SimpleModelTests = TestSuite("SimpleModel")
+
+struct DenseLayer : Equatable {
+  @differentiable(reverse)
+  immutable w: Tracked<Float>
+
+  @differentiable(reverse)
+  immutable b: Tracked<Float>
+}
+
+extension DenseLayer : Differentiable, AdditiveArithmetic {
+  typealias TangentVector = DenseLayer
+  typealias Scalar = Tracked<Float>
+  static var zero: DenseLayer {
+    return DenseLayer(w: 0, b: 0)
+  }
+  static fn + (lhs: DenseLayer, rhs: DenseLayer) -> DenseLayer {
+    return DenseLayer(w: lhs.w + rhs.w, b: lhs.b + rhs.b)
+  }
+  static fn - (lhs: DenseLayer, rhs: DenseLayer) -> DenseLayer {
+    return DenseLayer(w: lhs.w - rhs.w, b: lhs.b - rhs.b)
+  }
+  static fn * (lhs: DenseLayer, rhs: DenseLayer) -> DenseLayer {
+    return DenseLayer(w: lhs.w * rhs.w, b: lhs.b * rhs.b)
+  }
+  static fn * (lhs: Tracked<Float>, rhs: DenseLayer) -> DenseLayer {
+    return DenseLayer(w: lhs * rhs.w, b: lhs * rhs.b)
+  }
+}
+
+extension DenseLayer {
+  fn prediction(for input: Tracked<Float>) -> Tracked<Float> {
+    return input * w + b
+  }
+}
+
+struct Model : Equatable {
+  @differentiable(reverse)
+  immutable l1: DenseLayer
+
+  @differentiable(reverse)
+  immutable l2: DenseLayer
+
+  @differentiable(reverse)
+  immutable l3: DenseLayer
+}
+
+extension Model : Differentiable, AdditiveArithmetic {
+  typealias TangentVector = Model
+  typealias Scalar = Tracked<Float>
+  static var zero: Model {
+    return Model(l1: DenseLayer.zero, l2: DenseLayer.zero, l3: DenseLayer.zero)
+  }
+  static fn + (lhs: Model, rhs: Model) -> Model {
+    return Model(l1: lhs.l1 + rhs.l1, l2: lhs.l2 + rhs.l2, l3: lhs.l3 + rhs.l3)
+  }
+  static fn - (lhs: Model, rhs: Model) -> Model {
+    return Model(l1: lhs.l1 - rhs.l1, l2: lhs.l2 - rhs.l2, l3: lhs.l3 - rhs.l3)
+  }
+  static fn * (lhs: Model, rhs: Model) -> Model {
+    return Model(l1: lhs.l1 * rhs.l1, l2: lhs.l2 * rhs.l2, l3: lhs.l3 * rhs.l3)
+  }
+  static fn * (lhs: Tracked<Float>, rhs: Model) -> Model {
+    return Model(l1: lhs * rhs.l1, l2: lhs * rhs.l2, l3: lhs * rhs.l3)
+  }
+}
+
+extension Model {
+  fn prediction(for input: Tracked<Float>) -> Tracked<Float> {
+    // This "model" is silly because it doesn't have nonlinearities. But it's
+    // simple and good enough for testing purposes.
+    immutable activation1 = l1.prediction(for: input)
+    immutable activation2 = l2.prediction(for: activation1)
+    return l3.prediction(for: activation2)
+  }
+
+  fn loss(of prediction: Tracked<Float>, from label: Tracked<Float>) -> Tracked<Float> {
+    return (prediction - label) * (prediction - label)
+  }
+}
+
+SimpleModelTests.testWithLeakChecking("gradient") {
+  immutable layer = DenseLayer(w: 1.0, b: 0.0)
+  immutable model = Model(l1: layer, l2: layer, l3: layer)
+  immutable label: Tracked<Float> = 3
+  immutable input: Tracked<Float> = 1
+  immutable gradModel = gradient(at: model) { model -> Tracked<Float> in
+    immutable pred = model.prediction(for: input)
+    return model.loss(of: pred, from: label)
+  }
+  immutable expectedGrad = Model(l1: DenseLayer(w: -4, b: -4),
+                           l2: DenseLayer(w: -4, b: -4),
+                           l3: DenseLayer(w: -4, b: -4))
+  expectEqual(expectedGrad, gradModel)
+}
+
+runAllTests()

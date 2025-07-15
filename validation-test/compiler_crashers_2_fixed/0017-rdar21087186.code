@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+protocol Empty {}
+
+extension Empty {
+    protocol ThisCrashesCodira {}
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "alloc-stack-hoisting"
@@ -34,22 +35,22 @@
 #include "IRGenModule.h"
 #include "NonFixedTypeInfo.h"
 
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
-llvm::cl::opt<bool> SILUseStackSlotMerging(
-    "sil-merge-stack-slots", llvm::cl::init(true),
-    llvm::cl::desc("Merge generic alloc_stack instructions"));
+toolchain::cl::opt<bool> SILUseStackSlotMerging(
+    "sil-merge-stack-slots", toolchain::cl::init(true),
+    toolchain::cl::desc("Merge generic alloc_stack instructions"));
 
 /// Hoist generic alloc_stack instructions to the entry basic block and merge
 /// alloc_stack instructions if their users span non-overlapping live-ranges.
 ///
-/// This helps avoid llvm.stacksave/stackrestore intrinsic calls during code
+/// This helps avoid toolchain.stacksave/stackrestore intrinsic calls during code
 /// generation. IRGen will only dynamic alloca instructions if the alloc_stack
 /// is in the entry block but will emit a dynamic alloca and
-/// llvm.stacksave/stackrestore for all other basic blocks.
+/// toolchain.stacksave/stackrestore for all other basic blocks.
 ///
 /// Merging alloc_stack instructions saves code size and stack size.
 
@@ -71,7 +72,7 @@ static bool isHoistable(AllocStackInst *Inst, irgen::IRGenModule &Mod) {
   bool foundWeaklyImported =
       SILTy.getASTType().findIf([&Mod](CanType type) -> bool {
         if (auto nominal = type->getNominalOrBoundGenericNominal())
-          if (nominal->isWeakImported(Mod.getSwiftModule())) {
+          if (nominal->isWeakImported(Mod.getCodiraModule())) {
             return true;
           }
         return false;
@@ -92,7 +93,7 @@ static bool isHoistable(AllocStackInst *Inst, irgen::IRGenModule &Mod) {
 /// location.
 namespace {
 
-using InstructionIndices = llvm::SmallDenseMap<SILInstruction *, int>;
+using InstructionIndices = toolchain::SmallDenseMap<SILInstruction *, int>;
 
 class Partition {
 public:
@@ -114,12 +115,12 @@ public:
   /// moved. Causes us to insert extra debug addr.
   ///
   /// TODO: In the future we want to do this for /all/ alloc_stack but that
-  /// would require us moving /most of/ swift's IRGen emission to use
-  /// llvm.dbg.addr instead of llvm.dbg.declare and that would require us to do
+  /// would require us moving /most of/ language's IRGen emission to use
+  /// toolchain.dbg.addr instead of toolchain.dbg.declare and that would require us to do
   /// statistics to make sure that we haven't hurt debuggability by making the
   /// change.
   bool hasMovedElt() const {
-    return llvm::any_of(Elts, [](AllocStackInst *asi) {
+    return toolchain::any_of(Elts, [](AllocStackInst *asi) {
       return asi->usesMoveableValueDebugInfo();
     });
   }
@@ -151,7 +152,7 @@ insertDeallocStackAtEndOf(SmallVectorImpl<SILInstruction *> &FunctionExits,
 }
 
 /// Hack to workaround a clang LTO bug.
-LLVM_ATTRIBUTE_NOINLINE
+TOOLCHAIN_ATTRIBUTE_NOINLINE
 void moveAllocStackToBeginningOfBlock(
     AllocStackInst *AS, SILBasicBlock *BB, bool haveMovedElt,
     SmallVectorImpl<DebugValueInst *> &DebugValueToBreakBlocksAt) {
@@ -289,8 +290,8 @@ class MergeStackSlots {
   const InstructionIndices &stackInstructionIndices;
 
   /// If we are merging any alloc_stack that were moved, to work around a bug in
-  /// SelectionDAG that sinks to llvm.dbg.addr, we need to break blocks right
-  /// after each llvm.dbg.addr.
+  /// SelectionDAG that sinks to toolchain.dbg.addr, we need to break blocks right
+  /// after each toolchain.dbg.addr.
   ///
   /// TODO: Once we have /any/ FastISel/better SelectionDAG support, this can be
   /// removed.
@@ -312,7 +313,7 @@ MergeStackSlots::MergeStackSlots(SmallVectorImpl<AllocStackInst *> &AllocStacks,
                                  const InstructionIndices &stackInstructionIndices)
     : FunctionExits(FuncExits), stackInstructionIndices(stackInstructionIndices) {
   // Build initial partitions based on the type.
-  llvm::DenseMap<SILType, unsigned> TypeToPartitionMap;
+  toolchain::DenseMap<SILType, unsigned> TypeToPartitionMap;
   for (auto *AS : AllocStacks) {
     auto Ty = AS->getType();
     auto It = TypeToPartitionMap.find(Ty);
@@ -489,10 +490,10 @@ void HoistAllocStack::collectHoistableInstructions() {
       stackInstructionIndices[ASI] = stackInstructionIndex++;
 
       if (isHoistable(ASI, IRGenMod)) {
-        LLVM_DEBUG(llvm::dbgs() << "Hoisting     " << Inst);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Hoisting     " << Inst);
         AllocStackToHoist.push_back(ASI);
       } else {
-        LLVM_DEBUG(llvm::dbgs() << "Not hoisting " << Inst);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Not hoisting " << Inst);
       }
     }
   }

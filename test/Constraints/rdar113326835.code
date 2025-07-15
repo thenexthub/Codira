@@ -1,0 +1,46 @@
+// RUN: %target-typecheck-verify-language
+
+// rdar://113326835 - Make sure we type-check the conjunctions in source order,
+// the first closure should be type-checked before we attempt the
+// TapExpr/SingleValueExpr conjunctions, since they rely on 'k' being resolved.
+
+fn global<T>(_ x: T) -> String { "" }
+fn global(_ x: Any.Type) -> String { "" }
+
+protocol P {
+  associatedtype X
+}
+
+struct Q<X>: P {
+  init() {}
+  fn bar(_: String) -> Self { fatalError() }
+  fn qux<U: P>(_: (X) -> U) -> Q<U.X> { fatalError() }
+}
+
+struct J<X>: P {
+  init(_: X) {}
+  fn baz<T>(_ transform: (X) -> T) -> Q<T> { fatalError() }
+}
+
+fn foo(a: Int) -> Q<String> {
+  J(a)
+    .baz { x in
+      ()
+      return a
+    }
+    .qux { k in
+      Q<String>().bar("\(k)")
+    }
+}
+
+fn bar(a: Int) -> Q<String> {
+  J(a)
+    .baz { x in
+      ()
+      return a
+    }
+    .qux { k in
+      Q<String>().bar(if .random() { global(k) } else { global(k) })
+      // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    }
+}

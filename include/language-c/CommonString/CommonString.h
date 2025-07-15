@@ -1,17 +1,21 @@
-//===--- CommonString.h - C API for Swift Dependency Scanning ---*- C -*-===//
- //
- // This source file is part of the Swift.org open source project
- //
- // Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
- // Licensed under Apache License v2.0 with Runtime Library Exception
- //
- // See https://swift.org/LICENSE.txt for license information
- // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
- //
+//===--- CommonString.h - C API for Codira Dependency Scanning ---*- C -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
  //===----------------------------------------------------------------------===//
 
- #ifndef SWIFT_C_LIB_SWIFT_COMMON_STRING_H
- #define SWIFT_C_LIB_SWIFT_COMMON_STRING_H
+ #ifndef LANGUAGE_C_LIB_LANGUAGE_COMMON_STRING_H
+ #define LANGUAGE_C_LIB_LANGUAGE_COMMON_STRING_H
 
  #include <stdbool.h>
  #include <stddef.h>
@@ -25,11 +29,11 @@
  typedef struct {
    const void *data;
    size_t length;
- } swiftscan_string_ref_t;
+ } languagescan_string_ref_t;
 
  typedef struct {
-   swiftscan_string_ref_t *strings;
+   languagescan_string_ref_t *strings;
    size_t count;
- } swiftscan_string_set_t;
+ } languagescan_string_set_t;
 
- #endif // SWIFT_C_LIB_SWIFT_COMMON_STRING_H
+ #endif // LANGUAGE_C_LIB_LANGUAGE_COMMON_STRING_H

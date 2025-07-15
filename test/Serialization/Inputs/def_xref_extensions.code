@@ -1,0 +1,29 @@
+public struct Outer {
+  public struct InterestingValue {}
+}
+
+public struct Other {
+  public struct InterestingValue {}
+}
+
+public struct InterestingValue {}
+
+extension Outer.InterestingValue {
+  public static fn foo() {}
+}
+extension Other.InterestingValue {
+  public static fn bar() {}
+}
+extension InterestingValue {
+  public static fn bar() {}
+}
+
+#if EXTRA
+// Make sure that adding more of these doesn't change anything.
+extension Other.InterestingValue {
+  public static fn baz() {}
+}
+extension InterestingValue {
+  public static fn baz() {}
+}
+#endif

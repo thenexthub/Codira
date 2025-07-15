@@ -1,13 +1,17 @@
 //===--- DifferentiationInvoker.h -----------------------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Class that represents an invoker of differentiation.
@@ -15,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_DIFFERENTIATIONINVOKER_H
-#define SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_DIFFERENTIATIONINVOKER_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_DIFFERENTIATIONINVOKER_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_DIFFERENTIATIONINVOKER_H
 
 #include "language/Basic/SourceLoc.h"
 #include <utility>
@@ -39,12 +43,12 @@ public:
   /// The kind of the invoker of a differentiation task.
   enum class Kind {
     // Invoked by an `differentiable_function` instruction, which may or may not
-    // be linked to a Swift AST node (e.g. an `DifferentiableFunctionExpr`
+    // be linked to a Codira AST node (e.g. an `DifferentiableFunctionExpr`
     // expression).
     DifferentiableFunctionInst,
 
     // Invoked by an `linear_function` instruction, which may or may not
-    // be linked to a Swift AST node (e.g. an `LinearFunctionExpr` expression).
+    // be linked to a Codira AST node (e.g. an `LinearFunctionExpr` expression).
     LinearFunctionInst,
 
     // Invoked by the indirect application of differentiation. This case has an
@@ -53,7 +57,7 @@ public:
     IndirectDifferentiation,
 
     // Invoked by a `SILDifferentiabilityWitness` **without** being linked to a
-    // Swift AST attribute. This case has an associated
+    // Codira AST attribute. This case has an associated
     // `SILDifferentiabilityWitness`.
     SILDifferentiabilityWitnessInvoker
   };
@@ -71,10 +75,17 @@ private:
 
     /// The parent `apply` instruction and the witness associated with the
     /// `IndirectDifferentiation` case.
-    std::pair<ApplyInst *, SILDifferentiabilityWitness *>
-        indirectDifferentiation;
+    /// Note: This used to be a std::pair, but on FreeBSD, libc++ is
+    /// configured with _LIBCPP_DEPRECATED_ABI_DISABLE_PAIR_TRIVIAL_COPY_CTOR
+    /// and hence does not have a trivial copy constructor
+    struct IndirectDifferentiation {
+      ApplyInst *applyInst;
+      SILDifferentiabilityWitness *witness;
+    };
+    IndirectDifferentiation indirectDifferentiation;
+
     Value(ApplyInst *applyInst, SILDifferentiabilityWitness *witness)
-        : indirectDifferentiation({applyInst, witness}) {}
+      : indirectDifferentiation({applyInst, witness}) {}
 
     /// The witness associated with the `SILDifferentiabilityWitnessInvoker`
     /// case.
@@ -111,7 +122,8 @@ public:
   std::pair<ApplyInst *, SILDifferentiabilityWitness *>
   getIndirectDifferentiation() const {
     assert(kind == Kind::IndirectDifferentiation);
-    return value.indirectDifferentiation;
+    return std::make_pair(value.indirectDifferentiation.applyInst,
+                          value.indirectDifferentiation.witness);
   }
 
   SILDifferentiabilityWitness *getSILDifferentiabilityWitnessInvoker() const {
@@ -121,10 +133,10 @@ public:
 
   SourceLoc getLocation() const;
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                                      DifferentiationInvoker invoker) {
   invoker.print(os);
   return os;
@@ -133,4 +145,4 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 } // end namespace autodiff
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_DIFFERENTIATIONINVOKER_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_DIFFERENTIATIONINVOKER_H

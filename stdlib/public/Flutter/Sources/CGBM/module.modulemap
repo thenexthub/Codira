@@ -1,4 +1,0 @@
-module CGBM {
-    umbrella header "CGBM.h"
-    link "gbm"
-}

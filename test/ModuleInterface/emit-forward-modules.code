@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/Foo.codemodule)
+// RUN: %empty-directory(%t/ResourceDir/%target-sdk-name/prebuilt-modules/Foo.codemodule)
+// RUN: echo "public fn foo() {}" > %t/Foo.code
+
+import Foo
+
+// Step 1: build language interface from the source
+// RUN: %target-language-frontend -emit-module %t/Foo.code -module-name Foo -emit-module-interface-path %t/Foo.codemodule/%target-languageinterface-name
+
+// Step 2: building a module from the interface, and the module should not be a forwarding module.
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo.codemodule/%target-languageinterface-name -o %t/Foo.codemodule/%target-languagemodule-name -module-name Foo
+
+// RUN: not %{python} %S/ModuleCache/Inputs/check-is-forwarding-module.py %t/Foo.codemodule/%target-languagemodule-name
+
+// Step 3: given the adjacent binary module as a candidate, building a module from the interface should give us a forwarding module
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo.codemodule/%target-languageinterface-name -o %t/Foo-from-interface.codemodule -module-name Foo -candidate-module-file %t/Foo.codemodule/%target-languagemodule-name
+
+// RUN: %{python} %S/ModuleCache/Inputs/check-is-forwarding-module.py %t/Foo-from-interface.codemodule
+
+// Step 4: given the stale adjacent binary module as a candidate, building a module from the interface should give us a binary module
+// RUN: echo "// some comments" >> %t/Foo.codemodule/%target-languageinterface-name
+
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo.codemodule/%target-languageinterface-name -o %t/Foo-from-interface.codemodule -module-name Foo -candidate-module-file %t/Foo.codemodule/%target-languagemodule-name
+
+// RUN: not %{python} %S/ModuleCache/Inputs/check-is-forwarding-module.py %t/Foo-from-interface.codemodule

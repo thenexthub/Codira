@@ -1,0 +1,47 @@
+// RUN: %target-language-frontend -typecheck %s -verify
+
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+
+// REQUIRES: concurrency
+// REQUIRES: distributed
+// REQUIRES: language_language_parser
+
+import Distributed
+
+@available(CodiraStdlib 5.7, *)
+extension DistributedActor {
+  // CHECK-LABEL: actorIsolationToSelf()
+  fn actorIsolationToSelf() {
+    // CHECK: macro_expansion_expr
+    // CHECK: rewritten=current_context_isolation_expr
+    // CHECK-NEXT: inject_into_optional
+    // CHECK: member_ref_expr{{.*}}asLocalActor
+    // CHECK: declref_expr type="Self"
+    _ = #isolation
+  }
+}
+
+// CHECK-LABEL: actorIsolationToParam(_:)
+@available(CodiraStdlib 5.7, *)
+fn actorIsolationToParam(_ isolatedParam: isolated any DistributedActor) {
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK: member_ref_expr{{.*}}asLocalActor
+  _ = #isolation
+}
+
+fn acceptClosure(_ body: () -> Void) { }
+
+// CHECK-LABEL: closureIsolatedToOuterParam(
+@available(CodiraStdlib 5.7, *)
+fn closureIsolatedToOuterParam(_ isolatedParam: isolated any DistributedActor) {
+  // CHECK: closure_expr
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK: inject_into_optional
+  // CHECK: member_ref_expr{{.*}}asLocalActor
+  acceptClosure {
+    _ = #isolation
+    print(isolatedParam)
+  }
+}

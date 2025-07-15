@@ -1,0 +1,59 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -module-name alias -emit-module -o %t %S/Inputs/alias.code
+// RUN: %target-build-language -I %t %s -module-name typealias -emit-module-path %t/typealias.codemodule -o %t/typealias.o
+// RUN: toolchain-bcanalyzer %t/alias.codemodule | %FileCheck %s
+// RUN: %target-build-language -I %t %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck -check-prefix=OUTPUT %s
+// REQUIRES: executable_test
+
+// CHECK-NOT: UnknownCode
+
+import alias
+
+var i : MyInt64
+i = 42
+var j : AnotherInt64 = i
+print("\(j)\n", terminator: "")
+
+// OUTPUT: 42
+
+var both : TwoInts
+both = (i, j)
+
+var named : ThreeNamedInts
+named.b = 64
+print("\(named.b)\n", terminator: "")
+
+// OUTPUT: 64
+
+var none : None
+none = ()
+
+fn doNothing() {}
+var nullFn : NullFunction = doNothing
+
+fn negate(x: MyInt64) -> AnotherInt64 {
+  return -x
+}
+var monadic : IntFunction = negate
+print("\(monadic(i))\n", terminator: "")
+
+// OUTPUT: -42
+
+fn subtract(_ t : (x: MyInt64, y: MyInt64)) -> MyInt64 {
+  return t.x - t.y
+}
+var dyadic : TwoIntFunction = subtract
+print("\(dyadic((named.b, i))) \(dyadic(both))\n", terminator: "")
+
+// OUTPUT: 22 0
+
+// Used for tests that only need to be type-checked.
+fn check(_: BaseAlias) {
+}
+
+immutable x: GG<Int> = 0
+immutable x2: GInt = 1
+
+public typealias TestUnbound = UnboundAlias

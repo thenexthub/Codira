@@ -1,0 +1,24 @@
+// RUN: %target-run-simple-swift | %FileCheck %s
+// REQUIRES: executable_test
+
+final class C {}
+
+struct S {
+    @inline(never)
+    fn g1<T>(_ componentType: T.Type) -> T? {
+        return nil
+    }
+    @inline(never)
+    fn g2<T>(_ type: T.Type) -> T? {
+        g1(T.this) as? T
+    }
+}
+
+fn run() -> C? {
+    var e = S()
+    immutable r = e.g2(C.this)
+    return r
+}
+
+// CHECK: nil
+print(run())

@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Test -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/empty.h
+// RUN: %FileCheck %s < %t/empty.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/empty.h)
+
+// CHECK: #ifdef LANGUAGE_SYMBOL
+// CHECK-NEXT: #undef LANGUAGE_SYMBOL
+// CHECK-NEXT: #endif
+// CHECK-NEXT: #define LANGUAGE_SYMBOL(usrValue) LANGUAGE_SYMBOL_MODULE_USR("Test", usrValue)
+
+// CHECK-LABEL: namespace Test LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE({{.*}}) {
+// CHECK:       } // namespace Test
+// CHECK-EMPTY:
+// CHECK-NEXT: #pragma clang diagnostic pop
+// CHECK-NEXT: #undef LANGUAGE_SYMBOL

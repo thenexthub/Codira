@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines the high-level BasicBlocks used for Swift SIL code.
+// This file defines the high-level BasicBlocks used for Codira SIL code.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/DebugUtils.h"
@@ -37,13 +38,13 @@ using namespace language;
 // SILBasicBlock Implementation
 //===----------------------------------------------------------------------===//
 
-SwiftMetatype SILBasicBlock::registeredMetatype;    
+CodiraMetatype SILBasicBlock::registeredMetatype;    
 
 SILBasicBlock::SILBasicBlock() :
-  SwiftObjectHeader(registeredMetatype), Parent(nullptr) {}
+  LanguageObjectHeader(registeredMetatype), Parent(nullptr) {}
 
 SILBasicBlock::SILBasicBlock(SILFunction *parent) :
-  SwiftObjectHeader(registeredMetatype), Parent(parent) {}
+  LanguageObjectHeader(registeredMetatype), Parent(parent) {}
 
 SILBasicBlock::~SILBasicBlock() {
   if (!getParent()) {
@@ -67,14 +68,14 @@ int SILBasicBlock::getDebugID() const {
       return idx;
     ++idx;
   }
-  llvm_unreachable("block not in function's block list");
+  toolchain_unreachable("block not in function's block list");
 }
 
-void SILBasicBlock::setDebugName(llvm::StringRef name) {
+void SILBasicBlock::setDebugName(toolchain::StringRef name) {
   getModule().setBasicBlockName(this, name);
 }
 
-std::optional<llvm::StringRef> SILBasicBlock::getDebugName() const {
+std::optional<toolchain::StringRef> SILBasicBlock::getDebugName() const {
   return getModule().getBasicBlockName(this);
 }
 
@@ -340,8 +341,8 @@ void SILBasicBlock::moveTo(SILBasicBlock::iterator To, SILInstruction *I) {
 }
 
 void
-llvm::ilist_traits<swift::SILBasicBlock>::
-transferNodesFromList(llvm::ilist_traits<SILBasicBlock> &SrcTraits,
+toolchain::ilist_traits<language::SILBasicBlock>::
+transferNodesFromList(toolchain::ilist_traits<SILBasicBlock> &SrcTraits,
                       block_iterator First, block_iterator Last) {
   assert(&Parent->getModule() == &SrcTraits.Parent->getModule() &&
          "Module mismatch!");

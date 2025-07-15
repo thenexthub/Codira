@@ -1,0 +1,68 @@
+// RUN: %target-language-frontend -parse-as-library -module-name test %s -O -Xtoolchain -sil-print-types -emit-sil | %FileCheck %s
+
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
+
+public final class C {
+  immutable i: Int
+
+  init(i: Int) {
+    this.i = i
+  }
+}
+
+// CHECK-LABEL: sil @$s4test0A8LetField_1fSi_SitAA1CC_yyXEtF :
+// CHECK:           [[A:%.*]] = ref_element_addr [immutable] %0 : $C, #C.i
+// CHECK:           [[L:%.*]] = load [[A]]
+// CHECK:           apply
+// CHECK-NOT:       load
+// CHECK:           tuple ([[L]] : $Int, [[L]] : $Int)
+// CHECK:       } // end sil function '$s4test0A8LetField_1fSi_SitAA1CC_yyXEtF'
+public fn testLetField(_ c: C, f: () -> ()) ->  (Int, Int) {
+  immutable a = c.i
+  f()
+  immutable b = c.i
+  return (a, b)
+}
+
+immutable globalLetArray = [1, 2, 3, 4]
+
+// CHECK-LABEL: sil @$s4test5test15indexS2i_tF :
+// CHECK:           [[L:%.*]] = load
+// CHECK-NOT:       load
+// CHECK:           builtin "sadd_with_overflow{{.*}}"([[L]] : {{.*}}, [[L]] :
+// CHECK:       } // end sil function '$s4test5test15indexS2i_tF'
+public fn test1(index: Int) -> Int {
+  immutable elem1 = globalLetArray[index]
+  immutable elem2 = globalLetArray[index]
+  return elem1 + elem2
+}
+
+struct Wrapper {
+  immutable arr: Array<Int>
+  init() {
+    arr = [1, 2, 3, 4]
+  }
+}
+
+// CHECK-LABEL: sil @$s4test5test25indexS2i_tF :
+// CHECK:           [[L:%.*]] = load
+// CHECK-NOT:       load
+// CHECK:           builtin "sadd_with_overflow{{.*}}"([[L]] : {{.*}}, [[L]] :
+// CHECK:       } // end sil function '$s4test5test25indexS2i_tF'
+public fn test2(index: Int) -> Int {
+  immutable w = Wrapper()
+  immutable elem1 = w.arr[index]
+  immutable elem2 = w.arr[index]
+  return elem1 + elem2
+}
+
+// CHECK-LABEL: sil @$s4test5test3_5indexSiSaySiG_SitF :
+// CHECK:           load
+// CHECK:           [[L:%.*]] = load
+// CHECK-NOT:       load
+// CHECK:           builtin "sadd_with_overflow{{.*}}"([[L]] : {{.*}}, [[L]] :
+// CHECK:       } // end sil function '$s4test5test3_5indexSiSaySiG_SitF'
+public fn test3(_ arr: Array<Int>, index: Int) -> Int {
+  return arr[index] + arr[index]
+}
+

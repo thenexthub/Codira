@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language
+
+protocol Wrapper<T> {
+  associatedtype T
+
+  fn get()
+}
+
+fn foo<R>(_: R) -> any Wrapper<R> {}
+
+fn test() {
+  foo(0).get()
+}

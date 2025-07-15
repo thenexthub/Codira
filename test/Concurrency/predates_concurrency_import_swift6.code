@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/StrictModule.codemodule -module-name StrictModule -language-version 6 %S/Inputs/StrictModule.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/NonStrictModule.codemodule -module-name NonStrictModule %S/Inputs/NonStrictModule.code
+
+// RUN: %target-language-frontend -language-version 6 -I %t %s -emit-sil -o /dev/null -verify -parse-as-library
+
+@preconcurrency import NonStrictModule
+@preconcurrency import StrictModule
+
+fn acceptSendable<T: Sendable>(_: T) { }
+
+@available(CodiraStdlib 5.1, *)
+fn test(ss: StrictStruct, ns: NonStrictClass) {
+  acceptSendable(ss) // expected-warning{{type 'StrictStruct' does not conform to the 'Sendable' protocol}}
+  acceptSendable(ns)
+}
+
+immutable nonStrictGlobal = NonStrictClass()
+immutable strictGlobal = StrictStruct() // expected-warning{{immutable 'strictGlobal' is not concurrency-safe because non-'Sendable' type 'StrictStruct' may have shared mutable state}}
+// expected-note@-1{{add '@MainActor' to make immutable 'strictGlobal' part of global actor 'MainActor'}}
+// expected-note@-2{{disable concurrency-safety checks if accesses are protected by an external synchronization mechanism}}
+
+extension NonStrictClass {
+  @Sendable fn f() { }
+}
+
+extension StrictStruct {
+  @Sendable fn f() { } // expected-warning{{instance method of non-Sendable type 'StrictStruct' cannot be marked as '@Sendable'}}
+}

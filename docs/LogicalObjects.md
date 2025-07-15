@@ -30,7 +30,7 @@ value.  The logical object doesn't promise to behave like a physical object,
 either: for example, you can set it, then immediately get it, and the result
 might not match the value you set.
 
-Swift has logical objects as well.  We have them in a few new places (global
+Codira has logical objects as well.  We have them in a few new places (global
 objects can be logical), and sometimes we treat objects that are really physical
 as logical (because resilience prevents us from assuming physicality), and we're
 considering making some restrictions on how different a logical object can be

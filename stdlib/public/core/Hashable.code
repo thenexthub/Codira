@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that can be hashed into a `Hasher` to produce an integer hash value.
@@ -78,11 +79,11 @@
 /// and implement the `hash(into:)` method.
 ///
 ///     extension GridPoint: Hashable {
-///         static func == (lhs: GridPoint, rhs: GridPoint) -> Bool {
+///         static fn == (lhs: GridPoint, rhs: GridPoint) -> Bool {
 ///             return lhs.x == rhs.x && lhs.y == rhs.y
 ///         }
 ///
-///         func hash(into hasher: inout Hasher) {
+///         fn hash(into hasher: inout Hasher) {
 ///             hasher.combine(x)
 ///             hasher.combine(y)
 ///         }
@@ -96,7 +97,7 @@
 /// set of previously tapped grid points.
 ///
 ///     var tappedPoints: Set = [GridPoint(x: 2, y: 3), GridPoint(x: 4, y: 1)]
-///     let nextTap = GridPoint(x: 0, y: 1)
+///     immutable nextTap = GridPoint(x: 0, y: 1)
 ///     if tappedPoints.contains(nextTap) {
 ///         print("Already tapped at (\(nextTap.x), \(nextTap.y)).")
 ///     } else {
@@ -130,20 +131,20 @@ public protocol Hashable: Equatable {
   ///
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
-  func hash(into hasher: inout Hasher)
+  fn hash(into hasher: inout Hasher)
 
   // Raw top-level hashing interface. Some standard library types (mostly
   // primitives) specialize this to eliminate small resiliency overheads. (This
   // only matters for tiny keys.)
-  func _rawHashValue(seed: Int) -> Int
+  fn _rawHashValue(seed: Int) -> Int
 }
 
 extension Hashable {
   @inlinable
   @inline(__always)
-  public func _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Int) -> Int {
     var hasher = Hasher(_seed: seed)
-    hasher.combine(self)
+    hasher.combine(this)
     return hasher._finalize()
   }
 }
@@ -151,22 +152,22 @@ extension Hashable {
 // Called by synthesized `hashValue` implementations.
 @inlinable
 @inline(__always)
-public func _hashValue<H: Hashable>(for value: H) -> Int {
+public fn _hashValue<H: Hashable>(for value: H) -> Int {
   return value._rawHashValue(seed: 0)
 }
 
-// Called by the SwiftValue implementation.
-@_silgen_name("_swift_stdlib_Hashable_isEqual_indirect")
-internal func Hashable_isEqual_indirect<T: Hashable>(
+// Called by the CodiraValue implementation.
+@_silgen_name("_language_stdlib_Hashable_isEqual_indirect")
+internal fn Hashable_isEqual_indirect<T: Hashable>(
   _ lhs: UnsafePointer<T>,
   _ rhs: UnsafePointer<T>
 ) -> Bool {
   return unsafe lhs.pointee == rhs.pointee
 }
 
-// Called by the SwiftValue implementation.
-@_silgen_name("_swift_stdlib_Hashable_hashValue_indirect")
-internal func Hashable_hashValue_indirect<T: Hashable>(
+// Called by the CodiraValue implementation.
+@_silgen_name("_language_stdlib_Hashable_hashValue_indirect")
+internal fn Hashable_hashValue_indirect<T: Hashable>(
   _ value: UnsafePointer<T>
 ) -> Int {
   return unsafe value.pointee.hashValue

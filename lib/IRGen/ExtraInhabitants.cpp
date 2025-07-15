@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements routines for working with extra inhabitants.
@@ -22,7 +23,7 @@
 #include "BitPatternBuilder.h"
 #include "IRGenModule.h"
 #include "IRGenFunction.h"
-#include "languageTargetInfo.h"
+#include "CodiraTargetInfo.h"
 #include "language/ABI/MetadataValues.h"
 #include "language/Basic/Assertions.h"
 
@@ -105,55 +106,55 @@ APInt irgen::getHeapObjectFixedExtraInhabitantValue(const IRGenModule &IGM,
 
 /*****************************************************************************/
 
-llvm::Value *PointerInfo::getExtraInhabitantIndex(IRGenFunction &IGF,
+toolchain::Value *PointerInfo::getExtraInhabitantIndex(IRGenFunction &IGF,
                                                   Address src) const {
-  llvm::BasicBlock *contBB = IGF.createBasicBlock("is-valid-pointer");
-  SmallVector<std::pair<llvm::BasicBlock*, llvm::Value*>, 3> phiValues;
-  auto invalidIndex = llvm::ConstantInt::getSigned(IGF.IGM.Int32Ty, -1);
+  toolchain::BasicBlock *contBB = IGF.createBasicBlock("is-valid-pointer");
+  SmallVector<std::pair<toolchain::BasicBlock*, toolchain::Value*>, 3> phiValues;
+  auto invalidIndex = toolchain::ConstantInt::getSigned(IGF.IGM.Int32Ty, -1);
 
   src = IGF.Builder.CreateElementBitCast(src, IGF.IGM.SizeTy);
 
   // Check if the inhabitant is below the least valid pointer value.
-  llvm::Value *val = IGF.Builder.CreateLoad(src);
+  toolchain::Value *val = IGF.Builder.CreateLoad(src);
   {
-    llvm::Value *leastValid = llvm::ConstantInt::get(IGF.IGM.SizeTy,
+    toolchain::Value *leastValid = toolchain::ConstantInt::get(IGF.IGM.SizeTy,
                                      IGF.IGM.TargetInfo.LeastValidPointerValue);
-    llvm::Value *isValid = IGF.Builder.CreateICmpUGE(val, leastValid);
+    toolchain::Value *isValid = IGF.Builder.CreateICmpUGE(val, leastValid);
 
     phiValues.push_back({IGF.Builder.GetInsertBlock(), invalidIndex});
-    llvm::BasicBlock *invalidBB = IGF.createBasicBlock("is-invalid-pointer");
+    toolchain::BasicBlock *invalidBB = IGF.createBasicBlock("is-invalid-pointer");
     IGF.Builder.CreateCondBr(isValid, contBB, invalidBB);
     IGF.Builder.emitBlock(invalidBB);
   }
 
   // If null is not an extra inhabitant, check if the inhabitant is null.
   if (Nullable) {
-    auto null = llvm::ConstantInt::get(IGF.IGM.SizeTy, 0);
+    auto null = toolchain::ConstantInt::get(IGF.IGM.SizeTy, 0);
     auto isNonNull = IGF.Builder.CreateICmpNE(val, null);
     phiValues.push_back({IGF.Builder.GetInsertBlock(), invalidIndex});
-    llvm::BasicBlock *nonnullBB = IGF.createBasicBlock("is-nonnull-pointer");
+    toolchain::BasicBlock *nonnullBB = IGF.createBasicBlock("is-nonnull-pointer");
     IGF.Builder.CreateCondBr(isNonNull, nonnullBB, contBB);
     IGF.Builder.emitBlock(nonnullBB);
   }
 
   // Check if the inhabitant has any reserved low bits set.
-  // FIXME: This check is unneeded if the type is known to be pure Swift.
+  // FIXME: This check is unneeded if the type is known to be pure Codira.
   if (NumReservedLowBits) {
     auto objcMask =
-      llvm::ConstantInt::get(IGF.IGM.SizeTy, (1 << NumReservedLowBits) - 1);
-    llvm::Value *masked = IGF.Builder.CreateAnd(val, objcMask);
-    llvm::Value *maskedZero = IGF.Builder.CreateICmpEQ(masked,
-                                     llvm::ConstantInt::get(IGF.IGM.SizeTy, 0));
+      toolchain::ConstantInt::get(IGF.IGM.SizeTy, (1 << NumReservedLowBits) - 1);
+    toolchain::Value *masked = IGF.Builder.CreateAnd(val, objcMask);
+    toolchain::Value *maskedZero = IGF.Builder.CreateICmpEQ(masked,
+                                     toolchain::ConstantInt::get(IGF.IGM.SizeTy, 0));
 
     phiValues.push_back({IGF.Builder.GetInsertBlock(), invalidIndex});
-    llvm::BasicBlock *untaggedBB = IGF.createBasicBlock("is-untagged-pointer");
+    toolchain::BasicBlock *untaggedBB = IGF.createBasicBlock("is-untagged-pointer");
     IGF.Builder.CreateCondBr(maskedZero, untaggedBB, contBB);
     IGF.Builder.emitBlock(untaggedBB);
   }
 
   // The inhabitant is an invalid pointer. Derive its extra inhabitant index.
   {
-    llvm::Value *index = val;
+    toolchain::Value *index = val;
 
     // Shift away the reserved bits.
     if (NumReservedLowBits) {
@@ -184,7 +185,7 @@ llvm::Value *PointerInfo::getExtraInhabitantIndex(IRGenFunction &IGF,
   return phi;
 }
 
-llvm::Value *irgen::getHeapObjectExtraInhabitantIndex(IRGenFunction &IGF,
+toolchain::Value *irgen::getHeapObjectExtraInhabitantIndex(IRGenFunction &IGF,
                                                       Address src) {
   // This must be consistent with the extra inhabitant calculation implemented
   // in the runtime's getHeapObjectExtraInhabitantIndex function in
@@ -195,7 +196,7 @@ llvm::Value *irgen::getHeapObjectExtraInhabitantIndex(IRGenFunction &IGF,
 /*****************************************************************************/
 
 void PointerInfo::storeExtraInhabitant(IRGenFunction &IGF,
-                                       llvm::Value *index,
+                                       toolchain::Value *index,
                                        Address dest) const {
   if (index->getType() != IGF.IGM.SizeTy) {
     index = IGF.Builder.CreateZExt(index, IGF.IGM.SizeTy);
@@ -207,7 +208,7 @@ void PointerInfo::storeExtraInhabitant(IRGenFunction &IGF,
 
   if (NumReservedLowBits) {
     index = IGF.Builder.CreateShl(index,
-                  llvm::ConstantInt::get(IGF.IGM.SizeTy, NumReservedLowBits));
+                  toolchain::ConstantInt::get(IGF.IGM.SizeTy, NumReservedLowBits));
   }
 
   dest = IGF.Builder.CreateElementBitCast(dest, IGF.IGM.SizeTy);
@@ -215,7 +216,7 @@ void PointerInfo::storeExtraInhabitant(IRGenFunction &IGF,
 }
 
 void irgen::storeHeapObjectExtraInhabitant(IRGenFunction &IGF,
-                                           llvm::Value *index,
+                                           toolchain::Value *index,
                                            Address dest) {
   // This must be consistent with the extra inhabitant calculation implemented
   // in the runtime's storeHeapObjectExtraInhabitant function in

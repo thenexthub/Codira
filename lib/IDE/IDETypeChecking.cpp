@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Sema/IDETypeChecking.h"
@@ -35,11 +36,11 @@
 #include "language/IDE/SourceEntityWalker.h"
 #include "language/Parse/Lexer.h"
 #include "language/Sema/IDETypeCheckingRequests.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 
-void swift::getTopLevelDeclsForDisplay(ModuleDecl *M,
+void language::getTopLevelDeclsForDisplay(ModuleDecl *M,
                                        SmallVectorImpl<Decl *> &Results,
                                        bool Recursive) {
   auto getDisplayDeclsForModule =
@@ -49,9 +50,9 @@ void swift::getTopLevelDeclsForDisplay(ModuleDecl *M,
   getTopLevelDeclsForDisplay(M, Results, std::move(getDisplayDeclsForModule));
 }
 
-void swift::getTopLevelDeclsForDisplay(
+void language::getTopLevelDeclsForDisplay(
     ModuleDecl *M, SmallVectorImpl<Decl *> &Results,
-    llvm::function_ref<void(ModuleDecl *, SmallVectorImpl<Decl *> &)>
+    toolchain::function_ref<void(ModuleDecl *, SmallVectorImpl<Decl *> &)>
         getDisplayDeclsForModule) {
   auto startingSize = Results.size();
   getDisplayDeclsForModule(M, Results);
@@ -194,7 +195,7 @@ struct SynthesizedExtensionAnalyzer::Implementation {
 
   struct ExtensionMergeInfo {
     struct Requirement {
-      swift::Requirement Req;
+      language::Requirement Req;
 
       bool operator<(const Requirement& Rhs) const {
         if (auto result = unsigned(Req.getKind()) - unsigned(Rhs.Req.getKind())) {
@@ -218,7 +219,7 @@ struct SynthesizedExtensionAnalyzer::Implementation {
     bool Unmergable;
     unsigned InheritsCount;
     std::set<Requirement> Requirements;
-    void addRequirement(swift::Requirement Req) {
+    void addRequirement(language::Requirement Req) {
       Requirements.insert({Req});
     }
     bool operator== (const ExtensionMergeInfo& Another) const {
@@ -235,9 +236,9 @@ struct SynthesizedExtensionAnalyzer::Implementation {
   };
 
   using ExtensionInfoMap =
-      llvm::MapVector<ExtensionDecl *, SynthesizedExtensionInfo>;
+      toolchain::MapVector<ExtensionDecl *, SynthesizedExtensionInfo>;
   using ExtensionMergeInfoMap =
-      llvm::MapVector<ExtensionDecl *, ExtensionMergeInfo>;
+      toolchain::MapVector<ExtensionDecl *, ExtensionMergeInfo>;
 
   struct ExtensionMergeGroup {
 
@@ -289,12 +290,12 @@ struct SynthesizedExtensionAnalyzer::Implementation {
 
   Implementation(NominalTypeDecl *Target,
                  bool IncludeUnconditional,
-                 PrintOptions Options):
+                 PrintOptions &&Options):
   Target(Target),
   BaseType(Target->getDeclaredInterfaceType()),
   DC(Target),
   IncludeUnconditional(IncludeUnconditional),
-  Options(Options), AllGroups(MergeGroupVector()),
+  Options(std::move(Options)), AllGroups(MergeGroupVector()),
   InfoMap(collectSynthesizedExtensionInfo(AllGroups)) {}
 
   unsigned countInherits(ExtensionDecl *ED) {
@@ -487,14 +488,14 @@ struct SynthesizedExtensionAnalyzer::Implementation {
     auto handleExtension = [&](ExtensionDecl *E, bool Synthesized,
                                ExtensionDecl *EnablingE,
                                NormalProtocolConformance *Conf) {
-      PrintOptions AdjustedOpts = Options;
+      PrintOptions::OverrideScope AdjustedOpts(Options);
       if (Synthesized) {
         // Members from underscored system protocols should still appear as
         // members of the target type, even if the protocols themselves are not
         // printed.
-        AdjustedOpts.SkipUnderscoredSystemProtocols = false;
+        OVERRIDE_PRINT_OPTION(AdjustedOpts, SkipUnderscoredSystemProtocols, false);
       }
-      if (AdjustedOpts.shouldPrint(E)) {
+      if (Options.shouldPrint(E)) {
         auto Pair = isApplicable(E, Synthesized, EnablingE, Conf);
         if (Pair.first) {
           InfoMap.insert({E, Pair.first});
@@ -559,8 +560,8 @@ struct SynthesizedExtensionAnalyzer::Implementation {
 };
 
 SynthesizedExtensionAnalyzer::SynthesizedExtensionAnalyzer(
-    NominalTypeDecl *Target, PrintOptions Options, bool IncludeUnconditional)
-    : Impl(*(new Implementation(Target, IncludeUnconditional, Options))) {}
+    NominalTypeDecl *Target, PrintOptions &&Options, bool IncludeUnconditional)
+    : Impl(*(new Implementation(Target, IncludeUnconditional, std::move(Options)))) {}
 
 SynthesizedExtensionAnalyzer::~SynthesizedExtensionAnalyzer() {delete &Impl;}
 
@@ -590,7 +591,7 @@ forEachExtensionMergeGroup(MergeGroupKind Kind, ExtensionGroupOperation Fn) {
       GroupContent.push_back(
           {Member->Ext, Member->EnablingExt, Member->IsSynthesized});
     }
-    Fn(llvm::ArrayRef(GroupContent));
+    Fn(toolchain::ArrayRef(GroupContent));
   }
 }
 
@@ -604,9 +605,9 @@ bool SynthesizedExtensionAnalyzer::hasMergeGroup(MergeGroupKind Kind) {
   return false;
 }
 
-void swift::
+void language::
 collectDefaultImplementationForProtocolMembers(ProtocolDecl *PD,
-                    llvm::SmallDenseMap<ValueDecl*, ValueDecl*> &DefaultMap) {
+                    toolchain::SmallDenseMap<ValueDecl*, ValueDecl*> &DefaultMap) {
   auto HandleMembers = [&](DeclRange Members) {
     for (Decl *D : Members) {
       auto *VD = dyn_cast<ValueDecl>(D);
@@ -643,18 +644,18 @@ class ExpressionTypeCollector: public SourceEntityWalker {
   std::vector<ExpressionTypeInfo> &Results;
 
   // This is to where we print all types.
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
 
   // Map from a printed type to the offset in OS where the type starts.
-  llvm::StringMap<uint32_t> TypeOffsets;
+  toolchain::StringMap<uint32_t> TypeOffsets;
 
   // This keeps track of whether we have a type reported for a given
   // [offset, length].
-  llvm::DenseMap<unsigned, llvm::DenseSet<unsigned>> AllPrintedTypes;
+  toolchain::DenseMap<unsigned, toolchain::DenseSet<unsigned>> AllPrintedTypes;
 
   // When non empty, we only print expression types that conform to any of
   // these protocols.
-  llvm::MapVector<ProtocolDecl*, StringRef> &InterestedProtocols;
+  toolchain::MapVector<ProtocolDecl*, StringRef> &InterestedProtocols;
 
   // Specified by the client whether we should print fully qualified types
   const bool FullyQualified;
@@ -716,9 +717,9 @@ class ExpressionTypeCollector: public SourceEntityWalker {
 public:
   ExpressionTypeCollector(
       SourceFile &SF,
-      llvm::MapVector<ProtocolDecl *, StringRef> &InterestedProtocols,
+      toolchain::MapVector<ProtocolDecl *, StringRef> &InterestedProtocols,
       std::vector<ExpressionTypeInfo> &Results, bool FullyQualified,
-      bool CanonicalType, llvm::raw_ostream &OS)
+      bool CanonicalType, toolchain::raw_ostream &OS)
       : SM(SF.getASTContext().SourceMgr),
         BufferId(SF.getBufferID()), Results(Results), OS(OS),
         InterestedProtocols(InterestedProtocols),
@@ -736,7 +737,7 @@ public:
     // Print the type to a temporary buffer.
     SmallString<64> Buffer;
     {
-      llvm::raw_svector_ostream OS(Buffer);
+      toolchain::raw_svector_ostream OS(Buffer);
       auto Ty = E->getType()->getRValueType();
       PrintOptions printOptions = PrintOptions();
       printOptions.FullyQualifiedTypes = FullyQualified;
@@ -762,17 +763,17 @@ public:
   }
 };
 
-ProtocolDecl* swift::resolveProtocolName(DeclContext *dc, StringRef name) {
+ProtocolDecl* language::resolveProtocolName(DeclContext *dc, StringRef name) {
   return evaluateOrDefault(dc->getASTContext().evaluator,
                            ResolveProtocolNameRequest(ProtocolNameOwner(dc, name)),
                            nullptr);
 }
 
-ArrayRef<ExpressionTypeInfo> swift::collectExpressionType(
+ArrayRef<ExpressionTypeInfo> language::collectExpressionType(
     SourceFile &SF, ArrayRef<const char *> ExpectedProtocols,
     std::vector<ExpressionTypeInfo> &Scratch, bool FullyQualified,
-    bool CanonicalType, llvm::raw_ostream &OS) {
-  llvm::MapVector<ProtocolDecl*, StringRef> InterestedProtocols;
+    bool CanonicalType, toolchain::raw_ostream &OS) {
+  toolchain::MapVector<ProtocolDecl*, StringRef> InterestedProtocols;
   for (auto Name: ExpectedProtocols) {
     if (auto *pd = resolveProtocolName(&SF, Name)) {
       InterestedProtocols.insert({pd, Name});
@@ -807,10 +808,10 @@ private:
   /// i.e. \c OS builds a string that contains all null-terminated printed type
   /// strings. When referring to one of these types, we can use the offsets at
   /// which it starts in the \c OS.
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
 
   /// Map from a printed type to the offset in \c OS where the type starts.
-  llvm::StringMap<uint32_t> TypeOffsets;
+  toolchain::StringMap<uint32_t> TypeOffsets;
 
   /// Returns the start offset of this string in \c OS. If \c PrintedType
   /// hasn't been printed to \c OS yet, this function will do so.
@@ -833,7 +834,7 @@ public:
   VariableTypeCollector(const SourceFile &SF, SourceRange Range,
                         bool FullyQualified,
                         std::vector<VariableTypeInfo> &Results,
-                        llvm::raw_ostream &OS)
+                        toolchain::raw_ostream &OS)
       : SM(SF.getASTContext().SourceMgr), BufferId(SF.getBufferID()),
         TotalRange(Range), FullyQualified(FullyQualified), Results(Results),
         OS(OS) {}
@@ -853,7 +854,7 @@ public:
       // Print the type to a temporary buffer
       SmallString<64> Buffer;
       {
-        llvm::raw_svector_ostream OS(Buffer);
+        toolchain::raw_svector_ostream OS(Buffer);
         PrintOptions Options;
         Options.SynthesizeSugarOnTypes = true;
         Options.FullyQualifiedTypes = FullyQualified;
@@ -896,22 +897,22 @@ VariableTypeInfo::VariableTypeInfo(uint32_t Offset, uint32_t Length,
     : Offset(Offset), Length(Length), HasExplicitType(HasExplicitType),
       TypeOffset(TypeOffset) {}
 
-void swift::collectVariableType(
+void language::collectVariableType(
     SourceFile &SF, SourceRange Range, bool FullyQualified,
-    std::vector<VariableTypeInfo> &VariableTypeInfos, llvm::raw_ostream &OS) {
+    std::vector<VariableTypeInfo> &VariableTypeInfos, toolchain::raw_ostream &OS) {
   VariableTypeCollector Walker(SF, Range, FullyQualified, VariableTypeInfos,
                                OS);
   Walker.walk(SF);
 }
 
-ArrayRef<ValueDecl*> swift::
+ArrayRef<ValueDecl*> language::
 canDeclProvideDefaultImplementationFor(ValueDecl* VD) {
   return evaluateOrDefault(VD->getASTContext().evaluator,
                            ProvideDefaultImplForRequest(VD),
                            ArrayRef<ValueDecl*>());
 }
 
-ArrayRef<ValueDecl*> swift::
+ArrayRef<ValueDecl*> language::
 collectAllOverriddenDecls(ValueDecl *VD, bool IncludeProtocolRequirements,
                           bool Transitive) {
   return evaluateOrDefault(VD->getASTContext().evaluator,
@@ -919,19 +920,19 @@ collectAllOverriddenDecls(ValueDecl *VD, bool IncludeProtocolRequirements,
       IncludeProtocolRequirements, Transitive)), ArrayRef<ValueDecl*>());
 }
 
-bool swift::isExtensionApplied(const DeclContext *DC, Type BaseTy,
+bool language::isExtensionApplied(const DeclContext *DC, Type BaseTy,
                                const ExtensionDecl *ED) {
   return evaluateOrDefault(DC->getASTContext().evaluator,
     IsDeclApplicableRequest(DeclApplicabilityOwner(DC, BaseTy, ED)), false);
 }
 
-bool swift::isMemberDeclApplied(const DeclContext *DC, Type BaseTy,
+bool language::isMemberDeclApplied(const DeclContext *DC, Type BaseTy,
                                 const ValueDecl *VD) {
   return evaluateOrDefault(DC->getASTContext().evaluator,
     IsDeclApplicableRequest(DeclApplicabilityOwner(DC, BaseTy, VD)), false);
 }
 
-Type swift::tryMergeBaseTypeForCompletionLookup(Type ty1, Type ty2,
+Type language::tryMergeBaseTypeForCompletionLookup(Type ty1, Type ty2,
                                                 DeclContext *dc) {
   // Easy case, equivalent so just pick one.
   if (ty1->isEqual(ty2))
@@ -970,32 +971,32 @@ Type swift::tryMergeBaseTypeForCompletionLookup(Type ty1, Type ty2,
   return Type();
 }
 
-bool swift::isConvertibleTo(Type T1, Type T2, bool openArchetypes,
+bool language::isConvertibleTo(Type T1, Type T2, bool openArchetypes,
                             DeclContext &DC) {
   return evaluateOrDefault(DC.getASTContext().evaluator,
     TypeRelationCheckRequest(TypeRelationCheckInput(&DC, T1, T2,
       TypeRelation::ConvertTo, openArchetypes)), false);
 }
 
-bool swift::isSubtypeOf(Type T1, Type T2, DeclContext *DC) {
+bool language::isSubtypeOf(Type T1, Type T2, DeclContext *DC) {
   return evaluateOrDefault(DC->getASTContext().evaluator,
     TypeRelationCheckRequest(TypeRelationCheckInput(DC, T1, T2,
       TypeRelation::SubtypeOf, /*openArchetypes*/ false)), false);
 }
 
-Type swift::getRootTypeOfKeypathDynamicMember(SubscriptDecl *SD) {
+Type language::getRootTypeOfKeypathDynamicMember(SubscriptDecl *SD) {
   return evaluateOrDefault(SD->getASTContext().evaluator,
     RootTypeOfKeypathDynamicMemberRequest{SD}, Type());
 }
 
-Type swift::getResultTypeOfKeypathDynamicMember(SubscriptDecl *SD) {
+Type language::getResultTypeOfKeypathDynamicMember(SubscriptDecl *SD) {
   return evaluateOrDefault(SD->getASTContext().evaluator,
     RootAndResultTypeOfKeypathDynamicMemberRequest{SD}, TypePair()).
       SecondTy;
 }
 
 SmallVector<std::pair<ValueDecl *, ValueDecl *>, 1>
-swift::getShorthandShadows(CaptureListExpr *CaptureList, DeclContext *DC) {
+language::getShorthandShadows(CaptureListExpr *CaptureList, DeclContext *DC) {
   SmallVector<std::pair<ValueDecl *, ValueDecl *>, 1> Result;
   for (auto Capture : CaptureList->getCaptureList()) {
     if (Capture.PBD->getPatternList().size() != 1)
@@ -1027,7 +1028,7 @@ swift::getShorthandShadows(CaptureListExpr *CaptureList, DeclContext *DC) {
 }
 
 SmallVector<std::pair<ValueDecl *, ValueDecl *>, 1>
-swift::getShorthandShadows(LabeledConditionalStmt *CondStmt, DeclContext *DC) {
+language::getShorthandShadows(LabeledConditionalStmt *CondStmt, DeclContext *DC) {
   SmallVector<std::pair<ValueDecl *, ValueDecl *>, 1> Result;
   for (const StmtConditionElement &Cond : CondStmt->getCond()) {
     if (Cond.getKind() != StmtConditionElement::CK_PatternBinding)

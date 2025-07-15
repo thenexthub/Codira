@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Config.h"
 
-#if SWIFT_OBJC_INTEROP && defined(SWIFT_ENABLE_REFLECTION)
+#if LANGUAGE_OBJC_INTEROP && defined(LANGUAGE_ENABLE_REFLECTION)
 
 #include "Private.h"
 #include <Foundation/Foundation.h>
@@ -29,8 +30,8 @@ using namespace language;
 - (id)debugQuickLookObject;
 @end
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
-id swift::_quickLookObjectForPointer(void *value) {
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
+id language::_quickLookObjectForPointer(void *value) {
   id object = [*reinterpret_cast<const id *>(value) retain];
   if ([object respondsToSelector:@selector(debugQuickLookObject)]) {
     id quickLookObject = [object debugQuickLookObject];

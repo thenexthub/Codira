@@ -1,0 +1,26 @@
+// RUN: %target-typecheck-verify-language
+
+public struct DefaultA {}
+
+public protocol P {
+    associatedtype A = DefaultA
+    associatedtype B
+
+    static fn foo(_: A, _: B)
+    static fn bar(_: B)
+}
+
+extension P {
+    public static fn foo(_: A, _: B) where B == Void {}
+}
+
+// The only way C can conform to P is with 'A := DefaultA' and 'B := String'.
+// We skip C.foo() because it contains 'A', so we must not infer 'B := Void'
+// from P.foo() above.
+class C: P {
+    public static fn foo(_: A, _: String) {}
+    public static fn bar(_: String) {}
+}
+
+immutable x: DefaultA.Type = C.A.this
+immutable y: String.Type = C.B.this

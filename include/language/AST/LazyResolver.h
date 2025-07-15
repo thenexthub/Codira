@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the abstract interfaces for lazily resolving declarations.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_LAZYRESOLVER_H
-#define SWIFT_AST_LAZYRESOLVER_H
+#ifndef LANGUAGE_AST_LAZYRESOLVER_H
+#define LANGUAGE_AST_LAZYRESOLVER_H
 
-#include "llvm/ADT/PointerEmbeddedInt.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
 
 namespace language {
 
@@ -139,7 +140,7 @@ public:
                                   uint64_t contextData) = 0;
 
   // Returns the target parameter of the `@_specialize` attribute or null.
-  virtual ValueDecl *loadTargetFunctionDecl(const SpecializeAttr *attr,
+  virtual ValueDecl *loadTargetFunctionDecl(const AbstractSpecializeAttr *attr,
                                             uint64_t contextData) = 0;
 };
 
@@ -158,4 +159,4 @@ public:
 
 }
 
-#endif // LLVM_SWIFT_AST_LAZYRESOLVER_H
+#endif // TOOLCHAIN_LANGUAGE_AST_LAZYRESOLVER_H

@@ -1,0 +1,8 @@
+// {"signature":"(anonymous namespace)::AssociatedTypeInference::inferTypeWitnessesViaValueWitnesses(toolchain::SetVector<language::AssociatedTypeDecl*, toolchain::SmallVector<language::AssociatedTypeDecl*, 0u>, toolchain::DenseSet<language::AssociatedTypeDecl*, toolchain::DenseMapInfo<language::AssociatedTypeDecl*, void>>, 0u> const&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a{associatedtype b} protocol c : RandomAccessCollection struct d < e
+    : a,
+    f {
+  g {
+    struct h : c {
+      typealias i = e.b subscript(i) f

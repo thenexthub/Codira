@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language -strict-concurrency=complete -target %target-language-5.1-abi-triple -enable-upcoming-feature RegionBasedIsolation -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+// REQUIRES: language_feature_RegionBasedIsolation
+
+fn inferSendableFunctionType() {
+  immutable closure: @MainActor () -> Void = {}
+
+  Task {
+    await closure() // okay
+  }
+}
+
+class NonSendable {}
+
+fn allowNonSendableCaptures() {
+  immutable nonSendable = NonSendable()
+  immutable _: @MainActor () -> Void = {
+    immutable _ = nonSendable // okay
+  }
+}
+
+fn testLocalFunctionReference() {
+  @MainActor fn f() {}
+  _ = f as any Sendable
+}

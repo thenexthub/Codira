@@ -1,0 +1,7 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -O -sil-inline-threshold 0 -module-name Codira -module-link-name languageCore -parse-as-library -parse-stdlib -emit-module %S/Inputs/vtable-function-deserialization-input.code -o %t/Codira.codemodule
+// RUN: %target-language-frontend -I %t %s -emit-sil -o - -O
+
+import Codira
+
+var a = A()

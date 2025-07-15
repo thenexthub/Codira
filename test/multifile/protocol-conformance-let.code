@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend -typecheck -verify -primary-file %s %S/Inputs/protocol-conformance-immutable-other.code
+
+public struct S : P {
+  public var x: Int
+}

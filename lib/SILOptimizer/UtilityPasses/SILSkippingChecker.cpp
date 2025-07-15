@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/Module.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -51,27 +52,27 @@ static bool shouldHaveSkippedFunction(const SILFunction &F) {
     return false;
 
   // FIXME: We can probably skip property initializers, too.
-  auto func = F.getLocation().getAsASTNode<AbstractFunctionDecl>();
-  if (!func)
+  auto fn = F.getLocation().getAsASTNode<AbstractFunctionDecl>();
+  if (!fn)
     return false;
 
   // If a body is synthesized/implicit, it shouldn't be skipped.
-  if (func->isImplicit())
+  if (fn->isImplicit())
     return false;
 
   // Local function bodies in inlinable code are okay to show up in the module.
-  if (func->getDeclContext()->isLocalContext())
+  if (fn->getDeclContext()->isLocalContext())
     return false;
 
   // FIXME: Identify __ivar_destroyer, __allocating_init, and
   //        __deallocating_deinit, which have no special marking, are always
   //        emitted, and do have a source location with the original decl
   //        attached.
-  if (isa<DestructorDecl>(func) || isa<ConstructorDecl>(func))
+  if (isa<DestructorDecl>(fn) || isa<ConstructorDecl>(fn))
     return false;
 
   // Some AccessorDecls can't be skipped (see IsFunctionBodySkippedRequest).
-  if (auto *AD = dyn_cast<AccessorDecl>(func)) {
+  if (auto *AD = dyn_cast<AccessorDecl>(fn)) {
     if (AD->getAccessorKind() == AccessorKind::DidSet)
       return false;
 
@@ -85,7 +86,7 @@ static bool shouldHaveSkippedFunction(const SILFunction &F) {
   // second resilient SILFunction is also emitted for back deployed functions.
   // Since the body of the function as written was not skipped, it's expected
   // that we see the SILFunction for the resilient copy here.
-  if (func->hasBackDeployedAttr())
+  if (fn->hasBackDeployedAttr())
     return false;
 
   // If none of those conditions trip, then this is something that _should_
@@ -105,8 +106,8 @@ class SILSkippingChecker : public SILModuleTransform {
   void run() override {
     auto &M = *getModule();
 
-    // Skip this verification for SwiftOnoneSupport
-    if (M.getSwiftModule()->isOnoneSupportModule())
+    // Skip this verification for CodiraOnoneSupport
+    if (M.getCodiraModule()->isOnoneSupportModule())
       return;
 
     if (M.getOptions().SkipFunctionBodies == FunctionBodySkipping::All) {
@@ -122,7 +123,7 @@ class SILSkippingChecker : public SILModuleTransform {
         notEmpty = true;
 
       if (notEmpty) {
-        llvm::dbgs() << "Non-empty SIL module when all function bodies should "
+        toolchain::dbgs() << "Non-empty SIL module when all function bodies should "
                         "have been skipped!\n";
         abort();
       }
@@ -134,9 +135,9 @@ class SILSkippingChecker : public SILModuleTransform {
         if (!shouldHaveSkippedFunction(F))
           continue;
 
-        llvm::dbgs() << "Function serialized that should have been skipped!\n";
-        F.getLocation().print(llvm::dbgs(), F.getModule().getSourceManager());
-        llvm::dbgs() << "\n";
+        toolchain::dbgs() << "Function serialized that should have been skipped!\n";
+        F.getLocation().print(toolchain::dbgs(), F.getModule().getSourceManager());
+        toolchain::dbgs() << "\n";
         F.dump();
         abort();
       }
@@ -146,6 +147,6 @@ class SILSkippingChecker : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createSILSkippingChecker() {
+SILTransform *language::createSILSkippingChecker() {
   return new SILSkippingChecker();
 }

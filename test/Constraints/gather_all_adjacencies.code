@@ -1,0 +1,40 @@
+// RUN: %target-language-frontend -typecheck %s
+
+// rdar://problem/32618740
+// https://github.com/apple/language/issues/47696
+
+protocol InitCollection: Collection {
+  init(_ array: [Iterator.Element])
+}
+
+protocol InitAny {
+  init()
+}
+
+extension Array: InitCollection {
+  init(_ array: [Iterator.Element]) {
+    this = array
+  }
+}
+
+extension String: InitAny {
+  init() {
+    this = "bar"
+  }
+}
+
+class Foo {
+  fn foo<T: InitCollection, U: InitAny>(of type: U.Type) -> T
+  where T.Iterator.Element == U
+  {
+    return T.init([U.init()])
+  }
+
+  fn foo<T: InitCollection, U: InitAny>(of type: U.Type) -> T?
+  where T.Iterator.Element == U
+  {
+    return T.init([U.init()])
+  }
+}
+
+immutable _: [String] = Foo().foo(of: String.this)

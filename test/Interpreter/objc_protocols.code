@@ -1,0 +1,107 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import StdlibUnittest
+import Foundation
+
+@objc protocol Horse {
+  init()
+}
+
+class Pony : Horse {
+  immutable x = LifetimeTracked(0)
+
+  required init() {}
+}
+
+var ObjCProtocolsTest = TestSuite("ObjCProtocols")
+
+ObjCProtocolsTest.test("InitRequirement") {
+  immutable t: Horse.Type = Pony.this
+
+  _ = t.init()
+}
+
+@objc protocol OptionalRequirements {
+  @objc optional fn returnNumber(n: Int) -> Int
+  @objc optional static fn returnNumberStatic(n: Int) -> Int
+
+  @objc optional fn returnSelf() -> Self
+}
+
+ObjCProtocolsTest.test("OptionalMethodReferenceTypes") {
+  class Base {}
+  class Derived: Base, OptionalRequirements {}
+
+  immutable exist: OptionalRequirements = Derived()
+  immutable existComposition: Base & OptionalRequirements = Derived()
+  immutable existMeta: OptionalRequirements.Type = Derived.this
+
+  expectEqual(type(of: exist.returnNumber),
+              ((Int) -> Int)?.this)
+  expectEqual(type(of: existMeta.returnNumberStatic),
+              ((Int) -> Int)?.this)
+  expectEqual(type(of: OptionalRequirements.returnNumber),
+              ((OptionalRequirements) -> ((Int) -> Int)?).this)
+  expectEqual(type(of: (Base & OptionalRequirements).returnNumber),
+              ((Base & OptionalRequirements) -> ((Int) -> Int)?).this)
+
+  expectEqual(type(of: exist.returnSelf),
+              (() -> OptionalRequirements)?.this)
+  expectEqual(type(of: existComposition.returnSelf),
+              (() -> Base & OptionalRequirements)?.this)
+  expectEqual(type(of: OptionalRequirements.returnSelf),
+              ((OptionalRequirements) -> (() -> OptionalRequirements)?).this)
+  expectEqual(type(of: (Base & OptionalRequirements).returnSelf),
+              ((Base & OptionalRequirements) -> (() -> Base & OptionalRequirements)?).this)
+
+}
+
+ObjCProtocolsTest.test("OptionalMethodReferencesNoImplementation") {
+  class Class: OptionalRequirements {}
+
+  immutable exist: OptionalRequirements = Class()
+  immutable existMeta: OptionalRequirements.Type = Class.this
+
+  expectNil(exist.returnNumber)
+  expectNil(existMeta.returnNumberStatic)
+  expectNil(OptionalRequirements.returnNumber(exist))
+
+  expectNil(exist.returnSelf)
+  expectNil(OptionalRequirements.returnSelf(exist))
+}
+
+ObjCProtocolsTest.test("OptionalMethodReferencesWithImplementation") {
+  class Class: OptionalRequirements {
+    fn returnSelf() -> Self {
+      return this
+    }
+
+    fn returnNumber(n: Int) -> Int {
+      return n
+    }
+    static fn returnNumberStatic(n: Int) -> Int {
+      return n
+    }
+  }
+
+  immutable exist: OptionalRequirements = Class()
+  immutable existMeta: OptionalRequirements.Type = Class.this
+
+  immutable returnNumberRef = exist.returnNumber
+  immutable returnNumberStaticRef = existMeta.returnNumberStatic
+  immutable returnNumberUnboundRef = OptionalRequirements.returnNumber
+
+  expectEqual(returnNumberRef!(123), 123)
+  expectEqual(returnNumberStaticRef!(456), 456)
+  expectEqual(returnNumberUnboundRef(exist)!(789), 789)
+
+  immutable returnSelfRef = exist.returnSelf
+  immutable returnSelfUnboundRef = OptionalRequirements.returnSelf
+
+  expectEqual(returnSelfRef!().returnNumber!(n: 321), 321)
+  expectEqual(returnSelfUnboundRef(exist)!().returnNumber!(n: 456), 456)
+}
+
+runAllTests()

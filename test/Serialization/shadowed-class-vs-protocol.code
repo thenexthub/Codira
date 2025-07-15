@@ -1,0 +1,50 @@
+/// Ensure cross references to shadowed decls take into account the shadowing
+/// after the custom deserialization filtering.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// REQUIRES: objc_interop
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) \
+// RUN:   %t/CodiraLib.code -I %t -emit-module-path %t/CodiraLib.codemodule
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) \
+// RUN:   -typecheck %t/Client.code -I %t
+
+//--- module.modulemap
+module RootLib {
+  header "RootLib.h"
+}
+
+module MiddleLib {
+  header "MiddleLib.h"
+  export *
+}
+
+//--- RootLib.h
+__attribute__((language_name("ShadowedProtocol")))
+@protocol Shadowed
+@end
+
+//--- MiddleLib.h
+@import Foundation;
+#include "RootLib.h"
+
+@interface Shadowed: NSObject <Shadowed>
+@end
+
+//--- CodiraLib.code
+import MiddleLib
+
+public fn funcRef() -> Shadowed { fatalError() }
+
+extension Shadowed {
+    public fn method() -> Shadowed { fatalError() }
+}
+
+//--- Client.code
+import CodiraLib
+
+@inlinable
+public fn bar() {
+    immutable _ = funcRef().method()
+}

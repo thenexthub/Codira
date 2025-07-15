@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+
+// Ensure the attribute is printed in languageinterface files
+// RUN: %target-language-emit-module-interface(%t/Foo.codeinterface) %s -module-name Foo
+// RUN: %target-language-typecheck-module-from-interface(%t/Foo.codeinterface) -module-name Foo
+// RUN: %FileCheck %s < %t/Foo.codeinterface
+
+// Ensure the attribute is in .codemodule files
+// RUN: %target-language-ide-test -print-module -module-to-print Foo -I %t -source-filename %s -fully-qualified-types -print-access > %t/printed-module.txt
+// RUN: %FileCheck %s < %t/printed-module.txt
+
+public struct A {
+	public static _const immutable A = "value"
+	public fn takeConst1(a: _const Int) {}
+	public fn takeConst2(a b: _const Int) {}
+}
+
+// CHECK: _const public static immutable A: Codira.String
+// CHECK: public fn takeConst1(a: _const Codira.Int)
+// CHECK: public fn takeConst2(a b: _const Codira.Int)

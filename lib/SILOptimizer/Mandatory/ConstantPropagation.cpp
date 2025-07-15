@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "constant-propagation"
@@ -51,12 +52,12 @@ private:
 
 } // end anonymous namespace
 
-SILTransform *swift::createDiagnosticConstantPropagation() {
+SILTransform *language::createDiagnosticConstantPropagation() {
   // Diagnostic propagation is rerun on deserialized SIL because it is sensitive
   // to assert configuration.
   return new ConstantPropagation(true /*enable diagnostics*/);
 }
 
-SILTransform *swift::createPerformanceConstantPropagation() {
+SILTransform *language::createPerformanceConstantPropagation() {
   return new ConstantPropagation(false /*disable diagnostics*/);
 }

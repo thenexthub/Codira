@@ -1,0 +1,9 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-typecheck-verify-language %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -verify
+
+immutable pointerIndex = 1
+// expected-error@+1{{expected integer literal, got 'pointerIndex'}}
+@_CodiraifyImport(.countedBy(pointer: .param(pointerIndex), count: "len"))
+fn myFunc(_ ptr: UnsafePointer<CInt>, _ len: String) {
+}

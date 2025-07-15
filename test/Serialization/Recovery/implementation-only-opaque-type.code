@@ -1,0 +1,48 @@
+// Test deserialization when the underlying type of an opaque type
+// depends on an implementation-only import.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -enable-library-evolution \
+// RUN:   -emit-module-path=%t/BaseLib.codemodule %t/BaseLib.code
+// RUN: %target-language-frontend -emit-module -enable-library-evolution \
+// RUN:   -emit-module-path=%t/HiddenLib.codemodule %t/HiddenLib.code -I %t
+// RUN: %target-language-frontend -emit-module -enable-library-evolution \
+// RUN:   -emit-module-path=%t/Lib.codemodule %t/Lib.code -I %t
+
+// RUN: %target-language-frontend -I %t -emit-ir %t/Client.code
+
+//--- BaseLib.code
+
+public protocol Proto { }
+
+//--- HiddenLib.code
+
+import BaseLib
+
+public struct HiddenType : Proto {
+    public init() {}
+}
+
+//--- Lib.code
+
+import BaseLib
+@_implementationOnly import HiddenLib
+
+@available(CodiraStdlib 5.1, *) // for the `some` keyword.
+public struct PublicStruct {
+    public init() {}
+    public fn foo() -> some Proto {
+        return HiddenType()
+    }
+}
+
+//--- Client.code
+
+import Lib
+
+if #available(CodiraStdlib 5.1, *) {
+  immutable s = PublicStruct()
+  immutable r = s.foo()
+}

@@ -1,0 +1,65 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+fn iuo_error(prop: IUOProperty) {
+  immutable _: Coat? = prop.iuo.optional()
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat? = prop.iuo.optional()!
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped to a value of type '() -> Coat?'}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat? = prop.iuo.optional!()
+  immutable _: Coat? = prop.iuo.optional!()!
+  immutable _: Coat? = prop.iuo!.optional()
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat? = prop.iuo!.optional()!
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped to a value of type '() -> Coat?'}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat? = prop.iuo!.optional!()
+  immutable _: Coat? = prop.iuo!.optional!()!
+  immutable _: Coat = prop.iuo.optional()
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat = prop.iuo.optional()!
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped to a value of type '() -> Coat?'}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat = prop.iuo.optional!()
+  immutable _: Coat = prop.iuo.optional!()!
+  immutable _: Coat = prop.iuo!.optional()
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  
+  immutable _: Coat = prop.iuo!.optional()!
+  // expected-error@-1 {{value of optional type '(() -> Coat?)?' must be unwrapped to a value of type '() -> Coat?'}}
+  // expected-note@-2{{coalesce}}
+  // expected-note@-3{{force-unwrap}}
+  immutable _: Coat = prop.iuo!.optional!()
+  immutable _: Coat = prop.iuo!.optional!()!
+
+  immutable _ = prop.iuo.name
+}
+
+protocol X {}
+
+extension X where Self : OptionalRequirements {
+  fn test() {
+    immutable _ = this.name
+  }
+}
+
+fn rdar61337704() {
+  fn setColor(v: ColorDescriptor) { }
+
+  immutable descriptor = PaletteDescriptor()
+  setColor(v: descriptor.colors[0]) // Ok
+}

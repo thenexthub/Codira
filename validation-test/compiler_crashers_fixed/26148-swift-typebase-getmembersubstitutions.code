@@ -1,0 +1,29 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class B}struct B<T struct S<T{struct S<T immutable:{<T
+protocol c
+struct S<g{class A
+var:{struct b{}
+{}<T
+g
+enum S<T
+enum S<T where T:C{enum B<T{
+class B
+struct S<T{enum S:Collection}
+enum S<B
+struct B<a
+enum B<b
+struct S<T
+enum S<b
+struct S<T
+class B<H

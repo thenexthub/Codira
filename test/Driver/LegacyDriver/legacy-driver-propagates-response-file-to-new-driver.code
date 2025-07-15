@@ -1,0 +1,17 @@
+// Verify that when the legacy driver (language-frontend executable invoked as
+// languagec) spawns the new driver, it passes the original arguments (i.e.,
+// preserving response files) instead of trying to spawn the process with the
+// expansion, which may exceed `ARG_MAX`.
+
+// REQUIRES: shell
+// RUN: %{python} -c 'for i in range(500001): print("-DTEST5_" + str(i))' > %t.resp
+// RUN: cp %S/Inputs/print-args.sh %language-bin-dir/legacy-driver-propagates-response-file.sh
+// RUN: env LANGUAGE_OVERLOAD_DRIVER=legacy-driver-propagates-response-file.sh %languagec_driver_plain -disallow-use-new-driver %s @%t.resp | %FileCheck %s
+// RUN: rm %language-bin-dir/legacy-driver-propagates-response-file.sh
+
+// CHECK:      -Xfrontend
+// CHECK-NEXT: -new-driver-path
+// CHECK-NEXT: -Xfrontend
+// CHECK-NEXT: legacy-driver-propagates-response-file.sh
+// CHECK:      @{{.*}}.resp
+// CHECK-NOT:  -DTEST5_{{.*}}

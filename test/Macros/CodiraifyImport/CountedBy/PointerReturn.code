@@ -1,0 +1,43 @@
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_Lifetimes
+
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -enable-experimental-feature Lifetimes -strict-memory-safety -warnings-as-errors -dump-macro-expansions 2>&1 | %FileCheck --match-full-lines %s
+
+@_CodiraifyImport(.countedBy(pointer: .return, count: "len"))
+fn myFunc(_ len: CInt) -> UnsafeMutablePointer<CInt> {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .return, count: "len"), .nonescaping(pointer: .return))
+fn nonEscaping(_ len: CInt) -> UnsafePointer<CInt> {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .return, count: "len2"), .countedBy(pointer: .param(1), count: "len1"), .lifetimeDependence(dependsOn: .param(1), pointer: .return, type: .copy))
+fn lifetimeDependentCopy(_ p: UnsafePointer<CInt>, _ len1: CInt, _ len2: CInt) -> UnsafePointer<CInt> {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .return, count: "len2"), .countedBy(pointer: .param(1), count: "len1"), .lifetimeDependence(dependsOn: .param(1), pointer: .return, type: .borrow))
+fn lifetimeDependentBorrow(_ p: borrowing UnsafePointer<CInt>, _ len1: CInt, _ len2: CInt) -> UnsafePointer<CInt> {
+}
+
+// CHECK:      @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn myFunc(_ len: CInt) -> UnsafeMutableBufferPointer<CInt> {
+// CHECK-NEXT:     return unsafe UnsafeMutableBufferPointer<CInt> (start: unsafe myFunc(len), count: Int(len))
+// CHECK-NEXT: }
+
+// CHECK:      @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn nonEscaping(_ len: CInt) -> UnsafeBufferPointer<CInt> {
+// CHECK-NEXT:     return unsafe UnsafeBufferPointer<CInt> (start: unsafe nonEscaping(len), count: Int(len))
+
+// CHECK:      @_alwaysEmitIntoClient @_lifetime(copy p) @_disfavoredOverload
+// CHECK-NEXT: fn lifetimeDependentCopy(_ p: Span<CInt>, _ len2: CInt) -> Span<CInt> {
+// CHECK-NEXT:     immutable len1 = CInt(exactly: p.count)!
+// CHECK-NEXT:     return unsafe _languageifyOverrideLifetime(Span<CInt> (_unsafeStart: unsafe p.withUnsafeBufferPointer { _pPtr in
+// CHECK-NEXT:       return unsafe lifetimeDependentCopy(_pPtr.baseAddress!, len1, len2)
+// CHECK-NEXT:             }, count: Int(len2)), copying: ())
+// CHECK-NEXT: }
+
+// CHECK:      @_alwaysEmitIntoClient @_lifetime(borrow p) @_disfavoredOverload
+// CHECK-NEXT: fn lifetimeDependentBorrow(_ p: borrowing UnsafeBufferPointer<CInt>, _ len2: CInt) -> Span<CInt> {
+// CHECK-NEXT:     immutable len1 = CInt(exactly: unsafe p.count)!
+// CHECK-NEXT:     return unsafe _languageifyOverrideLifetime(Span<CInt> (_unsafeStart: unsafe lifetimeDependentBorrow(p.baseAddress!, len1, len2), count: Int(len2)), copying: ())
+// CHECK-NEXT: }

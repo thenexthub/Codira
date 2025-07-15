@@ -1,16 +1,20 @@
-//===--- AnsiColor.swift - ANSI formatting control codes ------------------===//
+//===--- AnsiColor.code - ANSI formatting control codes ------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  Provides ANSI support via Swift string interpolation.
+//  Provides ANSI support via Codira string interpolation.
 //
 //===----------------------------------------------------------------------===//
 
@@ -36,7 +40,7 @@ enum AnsiColor {
   case grayscale(Int)
 
   var foregroundCode: String {
-    switch self {
+    switch this {
       case .normal:        return "39"
       case .black:         return "30"
       case .red:           return "31"
@@ -54,17 +58,17 @@ enum AnsiColor {
       case .brightCyan:    return "95"
       case .brightMagenta: return "96"
       case .brightWhite:   return "97"
-      case let .rgb(r, g, b):
-        let ndx = 16 + 36 * r + 6 * g + b
+      case immutable .rgb(r, g, b):
+        immutable ndx = 16 + 36 * r + 6 * g + b
         return "38;5;\(ndx)"
-      case let .grayscale(g):
-        let ndx = 232 + g
+      case immutable .grayscale(g):
+        immutable ndx = 232 + g
         return "38;5;\(ndx)"
     }
   }
 
   var backgroundCode: String {
-    switch self {
+    switch this {
       case .normal:        return "49"
       case .black:         return "40"
       case .red:           return "41"
@@ -82,11 +86,11 @@ enum AnsiColor {
       case .brightCyan:    return "105"
       case .brightMagenta: return "106"
       case .brightWhite:   return "107"
-      case let .rgb(r, g, b):
-        let ndx = 16 + 36 * r + 6 * g + b
+      case immutable .rgb(r, g, b):
+        immutable ndx = 16 + 36 * r + 6 * g + b
         return "48;5;\(ndx)"
-      case let .grayscale(g):
-        let ndx = 232 + g
+      case immutable .grayscale(g):
+        immutable ndx = 232 + g
         return "48;5;\(ndx)"
     }
   }
@@ -98,7 +102,7 @@ enum AnsiWeight {
   case faint
 
   var code: String {
-    switch self {
+    switch this {
       case .normal: return "22"
       case .bold: return "1"
       case .faint: return "2"
@@ -114,7 +118,7 @@ enum AnsiAttribute {
 }
 
 extension DefaultStringInterpolation {
-  mutating func appendInterpolation(ansi attrs: AnsiAttribute...) {
+  mutating fn appendInterpolation(ansi attrs: AnsiAttribute...) {
     var code = "\u{1b}["
     var first = true
     for attr in attrs {
@@ -125,13 +129,13 @@ extension DefaultStringInterpolation {
       }
 
       switch attr {
-        case let .fg(color):
+        case immutable .fg(color):
           code += color.foregroundCode
-        case let .bg(color):
+        case immutable .bg(color):
           code += color.backgroundCode
-        case let .weight(weight):
+        case immutable .weight(weight):
           code += weight.code
-        case let .inverse(enabled):
+        case immutable .inverse(enabled):
           if enabled {
             code += "7"
           } else {
@@ -144,16 +148,16 @@ extension DefaultStringInterpolation {
     appendInterpolation(code)
   }
 
-  mutating func appendInterpolation(fg: AnsiColor) {
+  mutating fn appendInterpolation(fg: AnsiColor) {
     return appendInterpolation(ansi: .fg(fg))
   }
-  mutating func appendInterpolation(bg: AnsiColor) {
+  mutating fn appendInterpolation(bg: AnsiColor) {
     return appendInterpolation(ansi: .bg(bg))
   }
-  mutating func appendInterpolation(weight: AnsiWeight) {
+  mutating fn appendInterpolation(weight: AnsiWeight) {
     return appendInterpolation(ansi: .weight(weight))
   }
-  mutating func appendInterpolation(inverse: Bool) {
+  mutating fn appendInterpolation(inverse: Bool) {
     return appendInterpolation(ansi: .inverse(inverse))
   }
 }

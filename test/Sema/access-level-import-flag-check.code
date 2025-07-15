@@ -1,0 +1,50 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/PublicLib.code -o %t \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/PackageLib.code -o %t \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/InternalLib.code -o %t \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/FileprivateLib.code -o %t \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/PrivateLib.code -o %t \
+// RUN:   -enable-library-evolution
+
+/// Check flag requirement, without and with the flag.
+// RUN: %target-language-frontend -typecheck %t/ClientWithoutTheFlag.code -I %t \
+// RUN:   -package-name package -verify
+// RUN: %target-language-frontend -typecheck %t/ClientWithoutTheFlag.code -I %t \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault \
+// RUN:   -package-name package -verify
+
+/// languageinterfaces don't need the flag.
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t
+
+// REQUIRES: language_feature_InternalImportsByDefault
+
+//--- PublicLib.code
+//--- PackageLib.code
+//--- InternalLib.code
+//--- FileprivateLib.code
+//--- PrivateLib.code
+
+//--- ClientWithoutTheFlag.code
+public import PublicLib
+// expected-warning @-1 {{public import of 'PublicLib' was not used in public declarations or inlinable code}}
+package import PackageLib
+// expected-warning @-1 {{package import of 'PackageLib' was not used in package declarations}}
+internal import InternalLib
+fileprivate import FileprivateLib
+private import PrivateLib
+
+//--- Client.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -enable-library-evolution -package-name MyPackage
+public import PublicLib
+package import PackageLib
+internal import InternalLib
+fileprivate import FileprivateLib
+private import PrivateLib

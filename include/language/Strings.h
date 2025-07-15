@@ -11,33 +11,34 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_STRINGS_H
-#define SWIFT_STRINGS_H
+#ifndef LANGUAGE_STRINGS_H
+#define LANGUAGE_STRINGS_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
 /// The name of the standard library, which is a reserved module name.
-constexpr static const StringLiteral STDLIB_NAME = "Swift";
+constexpr static const StringLiteral STDLIB_NAME = "Codira";
 /// The name of the Onone support library, which is a reserved module name.
-constexpr static const StringLiteral SWIFT_ONONE_SUPPORT = "SwiftOnoneSupport";
+constexpr static const StringLiteral LANGUAGE_ONONE_SUPPORT = "CodiraOnoneSupport";
 /// The name of the Concurrency module, which supports that extension.
-constexpr static const StringLiteral SWIFT_CONCURRENCY_NAME = "_Concurrency";
+constexpr static const StringLiteral LANGUAGE_CONCURRENCY_NAME = "_Concurrency";
 /// The name of the Concurrency Shims Clang module
-constexpr static const StringLiteral SWIFT_CONCURRENCY_SHIMS_NAME = "_SwiftConcurrencyShims";
-/// The unique ABI prefix that swift-syntax uses when it's built as part of the
+constexpr static const StringLiteral LANGUAGE_CONCURRENCY_SHIMS_NAME = "_CodiraConcurrencyShims";
+/// The unique ABI prefix that language-syntax uses when it's built as part of the
 /// compiler.
-constexpr static const StringLiteral SWIFT_MODULE_ABI_NAME_PREFIX = "Compiler";
+constexpr static const StringLiteral LANGUAGE_MODULE_ABI_NAME_PREFIX = "Compiler";
 /// The name of the Distributed module, which supports that extension.
-constexpr static const StringLiteral SWIFT_DISTRIBUTED_NAME = "Distributed";
+constexpr static const StringLiteral LANGUAGE_DISTRIBUTED_NAME = "Distributed";
 /// The name of the StringProcessing module, which supports that extension.
-constexpr static const StringLiteral SWIFT_STRING_PROCESSING_NAME = "_StringProcessing";
-/// The name of the SwiftShims module, which contains private stdlib decls.
-constexpr static const StringLiteral SWIFT_SHIMS_NAME = "SwiftShims";
+constexpr static const StringLiteral LANGUAGE_STRING_PROCESSING_NAME = "_StringProcessing";
+/// The name of the CodiraShims module, which contains private stdlib decls.
+constexpr static const StringLiteral LANGUAGE_SHIMS_NAME = "CodiraShims";
 /// The name of the CxxShim module, which contains a cxx casting utility.
 constexpr static const StringLiteral CXX_SHIM_NAME = "CxxShim";
 /// The name of the Cxx module, which contains C++ interop helper protocols.
@@ -46,7 +47,7 @@ constexpr static const StringLiteral CXX_MODULE_NAME = "Cxx";
 constexpr static const StringLiteral BUILTIN_NAME = "Builtin";
 /// The name of the clang imported header module.
 constexpr static const StringLiteral CLANG_HEADER_MODULE_NAME = "__ObjC";
-/// The prefix of module names used by LLDB to capture Swift expressions
+/// The prefix of module names used by LLDB to capture Codira expressions
 constexpr static const StringLiteral LLDB_EXPRESSIONS_MODULE_NAME_PREFIX =
     "__lldb_expr_";
 
@@ -56,7 +57,7 @@ constexpr static const StringLiteral MANGLING_MODULE_OBJC = "__C";
 constexpr static const StringLiteral MANGLING_MODULE_CLANG_IMPORTER =
     "__C_Synthesized";
 
-/// The name prefix for C++ template instantiation imported as a Swift struct.
+/// The name prefix for C++ template instantiation imported as a Codira struct.
 constexpr static const StringLiteral CXX_TEMPLATE_INST_PREFIX =
     "__CxxTemplateInst";
 
@@ -91,7 +92,7 @@ constexpr static const StringLiteral UNAVAILABLE_IN_EMBEDDED_ATTRNAME =
     "_unavailableInEmbedded";
 
 /// A composition class containing a StringLiteral for the names of
-/// Swift builtins. The reason we use this is to ensure that we when
+/// Codira builtins. The reason we use this is to ensure that we when
 /// necessary slice off the "Builtin." prefix from these names in a
 /// constexpr way from a global constant string.
 ///
@@ -191,4 +192,4 @@ constexpr static BuiltinNameStringLiteral BUILTIN_TYPE_NAME_PACKINDEX = {
 
 } // end namespace language
 
-#endif // SWIFT_STRINGS_H
+#endif // LANGUAGE_STRINGS_H

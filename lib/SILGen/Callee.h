@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_CALLEE_H
-#define SWIFT_SILGEN_CALLEE_H
+#ifndef LANGUAGE_SILGEN_CALLEE_H
+#define LANGUAGE_SILGEN_CALLEE_H
 
 #include "language/AST/ForeignAsyncConvention.h"
 #include "language/AST/ForeignErrorConvention.h"

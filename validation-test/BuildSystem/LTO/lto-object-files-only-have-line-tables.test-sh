@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# This test makes sure that if lto is enabled:
+#
+# 1. We have lto object files for language in our build tree. We language and liblanguagedemangle.
+# 2. These lto output files all have line tables in the language include directory,
+#    but do not have full debug info. To check for the latter case, we look for
+#    SmallVector a commonly used data type.
+# 3. We use language-demangle since it is a much smaller executable than all of
+#    language.
+
+set -e
+set -u
+
+# REQUIRES: lto
+# REQUIRES: OS=macosx
+# REQUIRES: tools-debuginfo
+# RUN: rm -rf %t
+# RUN: mkdir -p %t
+# RUN: %s %language_obj_root %t %toolchain-dwarfdump
+
+OBJECT_ROOT=$1
+TEMP_DIR=$2
+DWARFDUMP=$3
+
+LANGUAGE_DEMANGLE_LTO_OBJECT_FILE=$(find ${OBJECT_ROOT} -path '*/language-demangle/language-demangle*-lto.o' | head -1)
+
+# Check that we have a temporary lto file for language.
+if [[ -z "${LANGUAGE_DEMANGLE_LTO_OBJECT_FILE}" ]]; then
+   echo "Failed to find a temporary debug file for language-demangle?!"
+   exit 1
+else
+    echo "Found language-demangle LTO object!"
+fi
+
+${DWARFDUMP} --debug-line ${LANGUAGE_DEMANGLE_LTO_OBJECT_FILE} > ${TEMP_DIR}/line.info
+
+# Make sure that we found a line table.
+if [[ -z "$(sed -n "/include_directories.*=.*include\/language/{p;q;}" ${TEMP_DIR}/line.info)" ]] ; then
+  echo "Failed to find line table information for language-demangle?!"
+  exit 1
+else
+  echo "Found line table information for language-demangle in language LTO object"
+fi
+
+${DWARFDUMP} -apple-types ${LANGUAGE_DEMANGLE_LTO_OBJECT_FILE} > ${TEMP_DIR}/types.info
+
+# And that it does not have full debug info
+if [[ -n "$(sed -n '/Name:.*SmallVector<..*>/{p;q;}' ${TEMP_DIR}/types.info)" ]] ; then
+  echo "Found full debug info in the language-demangle lto object?!"
+  exit 1
+else
+  echo "Did not find full debug info for language-demangle lto object!"
+fi
+
+echo "The language-demangle binary only has line table debug info!"
+
+set +u
+set +e

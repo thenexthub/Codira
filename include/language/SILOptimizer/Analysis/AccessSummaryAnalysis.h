@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements an interprocedural analysis pass that summarizes
@@ -19,15 +20,15 @@
 // accesses for noescape closures.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_ACCESS_SUMMARY_ANALYSIS_H_
-#define SWIFT_SILOPTIMIZER_ANALYSIS_ACCESS_SUMMARY_ANALYSIS_H_
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_ACCESS_SUMMARY_ANALYSIS_H_
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_ACCESS_SUMMARY_ANALYSIS_H_
 
 #include "language/Basic/IndexTrie.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Analysis/BottomUpIPAnalysis.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -69,7 +70,7 @@ public:
                                TypeExpansionContext context) const;
   };
 
-  typedef llvm::SmallDenseMap<const IndexTrieNode *, SubAccessSummary, 8>
+  typedef toolchain::SmallDenseMap<const IndexTrieNode *, SubAccessSummary, 8>
       SubAccessMap;
 
   /// Summarizes the accesses that a function begins on an argument, including
@@ -106,7 +107,7 @@ public:
   /// projections from its arguments.
   class FunctionSummary {
   private:
-    llvm::SmallVector<ArgumentSummary, 6> ArgAccesses;
+    toolchain::SmallVector<ArgumentSummary, 6> ArgAccesses;
 
   public:
     FunctionSummary(unsigned argCount) : ArgAccesses(argCount) {}
@@ -150,7 +151,7 @@ public:
 
     SILFunction *F;
 
-    llvm::SmallVector<ArgumentFlow, 8> RecordedArgumentFlows;
+    toolchain::SmallVector<ArgumentFlow, 8> RecordedArgumentFlows;
 
   public:
     FunctionInfo(SILFunction *F) : FS(F->getArguments().size()), F(F) {}
@@ -173,9 +174,9 @@ public:
 
 private:
   /// Maps functions to the information the analysis keeps for each function.
-  llvm::DenseMap<SILFunction *, FunctionInfo *> FunctionInfos;
+  toolchain::DenseMap<SILFunction *, FunctionInfo *> FunctionInfos;
 
-  llvm::SpecificBumpPtrAllocator<FunctionInfo> Allocator;
+  toolchain::SpecificBumpPtrAllocator<FunctionInfo> Allocator;
 
 public:
   AccessSummaryAnalysis()

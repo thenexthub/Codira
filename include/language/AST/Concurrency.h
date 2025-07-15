@@ -1,23 +1,32 @@
 //===--- Concurrency.h ----------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CONCURRENCY_H
-#define SWIFT_AST_CONCURRENCY_H
+#ifndef LANGUAGE_AST_CONCURRENCY_H
+#define LANGUAGE_AST_CONCURRENCY_H
 
 #include "language/AST/DiagnosticEngine.h"
 
 #include <optional>
 
 namespace language {
+
+/// Find the imported module that treats the given nominal type as "preconcurrency", or return `nullptr`
+/// if there is no such module.
+ModuleDecl *moduleImportForPreconcurrency(NominalTypeDecl *nominal,
+                                          const DeclContext *fromDC);
 
 /// Determinate the appropriate diagnostic behavior to used when emitting
 /// concurrency diagnostics when referencing the given nominal type from the

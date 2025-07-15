@@ -1,7 +1,7 @@
-add_swift_host_library(swiftStaticMirror STATIC
+add_language_host_library(languageStaticMirror STATIC
    BinaryScanningTool.cpp
    ObjectFileContext.cpp
-   LLVM_LINK_COMPONENTS object support)
+   TOOLCHAIN_LINK_COMPONENTS object support)
 
- target_link_libraries(swiftStaticMirror PRIVATE
-     swiftRemoteInspection)
+ target_link_libraries(languageStaticMirror PRIVATE
+     languageRemoteInspection)

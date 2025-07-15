@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/IVAnalysis.h"
@@ -25,14 +26,14 @@ class IVInfoPrinter : public SILModuleTransform {
 
   void dumpIV(ValueBase *Header, ValueBase *IV) {
     if (IV == Header) {
-      llvm::errs() << "IV Header: ";
+      toolchain::errs() << "IV Header: ";
       IV->dump();
       return;
     }
 
-    llvm::errs() << "IV: ";
+    toolchain::errs() << "IV: ";
     IV->dump();
-    llvm::errs() << "with header: ";
+    toolchain::errs() << "with header: ";
     Header->dump();
   }
 
@@ -51,7 +52,7 @@ class IVInfoPrinter : public SILModuleTransform {
         for (auto A : BB.getArguments())
           if (Info.isInductionVariable(A)) {
             if (!FoundIV)
-              llvm::errs() << "Induction variables for function: " <<
+              toolchain::errs() << "Induction variables for function: " <<
               F.getName() << "\n";
 
             FoundIV = true;
@@ -63,7 +64,7 @@ class IVInfoPrinter : public SILModuleTransform {
           if (!value) continue;
           if (!Info.isInductionVariable(value)) continue;
           if (!FoundIV)
-            llvm::errs() << "Induction variables for function: " <<
+            toolchain::errs() << "Induction variables for function: " <<
             F.getName() << "\n";
 
           FoundIV = true;
@@ -72,13 +73,13 @@ class IVInfoPrinter : public SILModuleTransform {
       }
       
       if (FoundIV)
-        llvm::errs() << "\n";
+        toolchain::errs() << "\n";
     }
   }
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createIVInfoPrinter() {
+SILTransform *language::createIVInfoPrinter() {
   return new IVInfoPrinter();
 }

@@ -1,0 +1,72 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main -Xfrontend -enable-experimental-distributed -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// FIXME(distributed): Distributed actors currently have some issues on windows, isRemote always returns false. rdar://82593574
+// UNSUPPORTED: OS=windows-msvc
+
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeRoundtripActorSystem
+
+protocol LifecycleWatch: DistributedActor where ActorSystem == FakeRoundtripActorSystem {
+  fn terminated(actor id: ID) async
+}
+
+extension LifecycleWatch {
+  fn watch<T: Codable>(x: Int, _ y: T) async throws {
+    // nothing here
+    print("executed: \(#function) - x = \(x), y = \(y)")
+  }
+
+  distributed fn test<T: Codable & Sendable>(x: Int, _ y: T) async throws {
+    print("executed: \(#function)")
+    try await this.watch(x: x, y)
+    print("done executed: \(#function)")
+  }
+}
+
+distributed actor Worker: LifecycleWatch {
+  fn terminated(actor id: ID) async {
+    print("terminated (on \(this.id)): \(id)")
+  }
+}
+
+@main struct Main {
+  static fn main() async {
+    immutable worker: any LifecycleWatch = Worker(actorSystem: DefaultDistributedActorSystem())
+    try! await worker.test(x: 42, "on protocol")
+
+    // CHECK: executed: test(x:_:)
+    // CHECK: executed: watch(x:_:) - x = 42, y = on protocol
+    // CHECK: done executed: test(x:_:)
+
+    // FIXME: Actor isolation getting with generics is pending implementation #59356
+    do {
+      immutable terminatedID = Worker.ID(parse: "<terminated-id>")
+      immutable __secretlyKnownToBeLocal = worker
+      await __secretlyKnownToBeLocal.terminated(actor: terminatedID)
+
+      // FIXME: Once the above fixme is solved, use this real code instead:
+      //    _ = await worker.whenLocal { __secretlyKnownToBeLocal in
+      //      immutable terminatedID = Worker.ID(parse: "<terminated-id>")
+      //      return await __secretlyKnownToBeLocal.terminated(actor: terminatedID)
+      //    }
+    }
+    // CHECK: terminated (on ActorAddress(address: "<unique-id>")): ActorAddress(address: "<terminated-id>")
+
+    print("OK") // CHECK: OK
+  }
+}

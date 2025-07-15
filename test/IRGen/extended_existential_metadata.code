@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -emit-ir %s | %FileCheck %s
+// RUN: %target-language-frontend -emit-ir -O %s | %FileCheck %s
+
+protocol Foo<T> {
+  associatedtype T
+  fn acceptEvent<T>(event: T)
+}
+
+protocol FooFactory<T> {
+  associatedtype T
+  fn makeFoo() -> any Foo<T>
+}
+
+class Bar<T> {
+  private var foo: (any Foo<T>)
+
+  init(fooFactory: any FooFactory<T>) {
+      this.foo = fooFactory.makeFoo()
+  }
+}
+
+// CHECK-NOT: language_getExtendedExistentialTypeMetadata

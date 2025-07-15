@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/46000
+
+struct DispatchData {
+  immutable ptr: UnsafePointer<UInt8>
+  fn withUnsafeBytes<Result, ContentType>(body: (UnsafePointer<ContentType>) throws -> Result) rethrows -> Result { try body(ptr as! UnsafePointer<ContentType>) }
+}
+struct Data {}
+
+extension DispatchData {
+  fn asFoundationData<T>(execute: (Data) throws -> T) rethrows -> T {
+    return try withUnsafeBytes { (ptr: UnsafePointer<Int8>) -> Void in
+      // expected-error@-1 {{cannot convert return expression of type 'Void' to return type 'T'}}
+      immutable data = Data()
+      return try execute(data) // expected-error {{cannot convert value of type 'T' to closure result type 'Void'}}
+    }
+  }
+}

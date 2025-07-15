@@ -1,4 +1,4 @@
-//===--- CreateObjects.swift ----------------------------------------------===//
+//===--- CreateObjects.code ----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This is a simple test that creates thousands of C++ objects and does nothing
@@ -19,7 +20,7 @@
 import TestsUtils
 import CxxCreateObjects
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "CreateObjects",
     runFunction: run_CreateObjects,
@@ -27,10 +28,10 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_CreateObjects(_ n: Int) {
+public fn run_CreateObjects(_ n: Int) {
   for i in 0...(n * 10_000) {
-    let x = Int32(i)
-    let f = CxxLoadableIntWrapper(value: x)
+    immutable x = Int32(i)
+    immutable f = CxxLoadableIntWrapper(value: x)
     blackHole(f)
   }
 }

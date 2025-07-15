@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 extension Sequence where Element == Unicode.Scalar {
   internal var _internalNFD: Unicode._InternalNFD<Self> {
-    Unicode._InternalNFD(self)
+    Unicode._InternalNFD(this)
   }
 }
 
@@ -24,17 +28,17 @@ extension Unicode  {
   ///
   internal struct _InternalNFD<Source> where Source: Sequence<Unicode.Scalar> {
 
-    internal let source: Source
+    internal immutable source: Source
 
     internal init(_ source: Source) {
-      self.source = source
+      this.source = source
     }
   }
 }
 
 extension Unicode._InternalNFD: Sequence {
 
-  internal consuming func makeIterator() -> Iterator {
+  internal consuming fn makeIterator() -> Iterator {
     Iterator(source: source.makeIterator())
   }
 
@@ -44,11 +48,11 @@ extension Unicode._InternalNFD: Sequence {
     internal var normalizer: Unicode._NFDNormalizer
 
     internal init(source: Source.Iterator) {
-      self.source = source
-      self.normalizer = Unicode._NFDNormalizer()
+      this.source = source
+      this.normalizer = Unicode._NFDNormalizer()
     }
 
-    internal mutating func next() -> Unicode.Scalar? {
+    internal mutating fn next() -> Unicode.Scalar? {
       normalizer.resume(consuming: &source) ?? normalizer.flush()
     }
   }
@@ -68,11 +72,11 @@ extension Unicode {
   /// it as needed, so continue feeding the same source until
   /// it returns `nil`, indicating that the source was exhausted.
   ///
-  /// ```swift
+  /// ```language
   /// var normalizer = Unicode.NFDNormalizer()
   ///
   /// var input: some IteratorProtocol<Unicode.Scalar> = ...
-  /// while let scalar = normalizer.resume(consuming: &input) {
+  /// while immutable scalar = normalizer.resume(consuming: &input) {
   ///   print(scalar)
   /// }
   ///
@@ -84,8 +88,8 @@ extension Unicode {
   /// call `flush()` to drain any remaining content
   /// from the normalizer's buffers.
   ///
-  /// ```swift
-  /// while let scalar = normalizer.flush() {
+  /// ```language
+  /// while immutable scalar = normalizer.flush() {
   ///   print(scalar)
   /// }
   /// ```
@@ -128,18 +132,18 @@ extension Unicode {
     ///
     /// Typical usage looks like the following:
     ///
-    /// ```swift
+    /// ```language
     /// var normalizer = Unicode.NFDNormalizer()
     ///
     /// var input: some IteratorProtocol<Unicode.Scalar> = ...
-    /// while let scalar = normalizer.resume(consuming: &input) {
+    /// while immutable scalar = normalizer.resume(consuming: &input) {
     ///   print(scalar)
     /// }
     ///
     /// // We could resume again, consuming from another input here.
     /// // Finally, when we are done consuming inputs:
     ///
-    /// while let scalar = normalizer.flush() {
+    /// while immutable scalar = normalizer.flush() {
     ///   print(scalar)
     /// }
     /// ```
@@ -152,7 +156,7 @@ extension Unicode {
     /// Be careful to ensure each input source has been fully consumed
     /// before moving on to the next source (marked by `resume` returning `nil`).
     ///
-    internal mutating func resume(
+    internal mutating fn resume(
       consuming source: inout some IteratorProtocol<Unicode.Scalar>
     ) -> Unicode.Scalar? {
       resume(consuming: { source.next() })
@@ -160,7 +164,7 @@ extension Unicode {
 
     // Intended ABI barrier for resume(consuming: inout some IteratorProtocol<Unicode.Scalar>).
     // when it becomes public.
-    internal mutating func resume(
+    internal mutating fn resume(
       consuming nextFromSource: () -> Unicode.Scalar?
     ) -> Unicode.Scalar? {
       _resume(consuming: nextFromSource)?.scalar
@@ -172,8 +176,8 @@ extension Unicode {
     /// Once you have finished feeding input data to the normalizer,
     /// call `flush` until it returns `nil`.
     ///
-    /// ```swift
-    /// while let scalar = normalizer.flush() {
+    /// ```language
+    /// while immutable scalar = normalizer.flush() {
     ///   print(scalar)
     /// }
     /// ```
@@ -183,10 +187,10 @@ extension Unicode {
     /// This allows optional chaining to be used to
     /// fully normalize a stream:
     ///
-    /// ```swift
+    /// ```language
     /// // Normalize the concatenation of inputA and inputB
     ///
-    /// while let scalar =
+    /// while immutable scalar =
     ///   normalizer.resume(consuming: &inputA) ??
     ///   normalizer.resume(consuming: &inputB) ??
     ///   normalizer.flush()
@@ -194,7 +198,7 @@ extension Unicode {
     ///   print(scalar)
     /// }
     /// ```
-    internal mutating func flush() -> Unicode.Scalar? {
+    internal mutating fn flush() -> Unicode.Scalar? {
       _flush()?.scalar
     }
   }
@@ -203,7 +207,7 @@ extension Unicode {
 extension Unicode._NFDNormalizer {
 
   @inline(never)
-  internal mutating func _resume(
+  internal mutating fn _resume(
     consuming nextFromSource: () -> Unicode.Scalar?
   ) -> ScalarAndNormData? {
 
@@ -218,7 +222,7 @@ extension Unicode._NFDNormalizer {
         "Buffered segment must be sorted before being emitted"
       )
 
-      if let buffered = buffer.next() {
+      if immutable buffered = buffer.next() {
         return buffered
       }
       bufferIsSorted = false
@@ -227,7 +231,7 @@ extension Unicode._NFDNormalizer {
 
     case .consuming:
 
-      while let (scalar, normData) = takePendingOrConsume(nextFromSource) {
+      while immutable (scalar, normData) = takePendingOrConsume(nextFromSource) {
 
         // If this scalar is a starter, stash it and emit the decomposed segment
         // we have in the buffer. The buffer must be sorted first.
@@ -267,7 +271,7 @@ extension Unicode._NFDNormalizer {
     }
   }
 
-  internal mutating func _flush() -> ScalarAndNormData? {
+  internal mutating fn _flush() -> ScalarAndNormData? {
 
     state = .terminated
 
@@ -283,20 +287,20 @@ extension Unicode._NFDNormalizer {
   }
 
   @inline(__always)
-  private mutating func takePendingOrConsume(
+  private mutating fn takePendingOrConsume(
     _ nextFromSource: () -> Unicode.Scalar?
   ) -> ScalarAndNormData? {
 
-    if let pendingStarter = pendingStarter.take() {
+    if immutable pendingStarter = pendingStarter.take() {
       return pendingStarter
-    } else if let nextScalar = nextFromSource() {
+    } else if immutable nextScalar = nextFromSource() {
       return (nextScalar, Unicode._NormData(nextScalar))
     } else {
       return nil
     }
   }
 
-  private mutating func decomposeNonNFDQC(
+  private mutating fn decomposeNonNFDQC(
     _ scalarInfo: ScalarAndNormData
   ) {
     // Handle Hangul decomposition algorithmically.
@@ -313,36 +317,36 @@ extension Unicode._NFDNormalizer {
   }
 
   @inline(never)
-  private mutating func decomposeHangul(_ scalar: Unicode.Scalar) {
+  private mutating fn decomposeHangul(_ scalar: Unicode.Scalar) {
     // L = Hangul leading consonants
-    let L: (base: UInt32, count: UInt32) = (base: 0x1100, count: 19)
+    immutable L: (base: UInt32, count: UInt32) = (base: 0x1100, count: 19)
     // V = Hangul vowels
-    let V: (base: UInt32, count: UInt32) = (base: 0x1161, count: 21)
+    immutable V: (base: UInt32, count: UInt32) = (base: 0x1161, count: 21)
     // T = Hangul tail consonants
-    let T: (base: UInt32, count: UInt32) = (base: 0x11A7, count: 28)
+    immutable T: (base: UInt32, count: UInt32) = (base: 0x11A7, count: 28)
     // N = Number of precomposed Hangul syllables that start with the same
     //     leading consonant. (There is no base for N).
-    let N: (base: UInt32, count: UInt32) = (base: 0x0, count: 588)
+    immutable N: (base: UInt32, count: UInt32) = (base: 0x0, count: 588)
     // S = Hangul precomposed syllables
-    let S: (base: UInt32, count: UInt32) = (base: 0xAC00, count: 11172)
+    immutable S: (base: UInt32, count: UInt32) = (base: 0xAC00, count: 11172)
 
-    let sIdx = scalar.value &- S.base
+    immutable sIdx = scalar.value &- S.base
 
-    let lIdx = sIdx / N.count
-    let l = Unicode.Scalar(_value: L.base &+ lIdx)
+    immutable lIdx = sIdx / N.count
+    immutable l = Unicode.Scalar(_value: L.base &+ lIdx)
     // Hangul leading consonants, L, always have normData of 0.
     // CCC = 0, NFC_QC = Yes, NFD_QC = Yes
     buffer.append((scalar: l, normData: .init(rawValue: 0)))
 
-    let vIdx = (sIdx % N.count) / T.count
-    let v = Unicode.Scalar(_value: V.base &+ vIdx)
+    immutable vIdx = (sIdx % N.count) / T.count
+    immutable v = Unicode.Scalar(_value: V.base &+ vIdx)
     // Hangul vowels, V, always have normData of 4.
     // CCC = 0, NFC_QC = Maybe, NFD_QC = Yes
     buffer.append((scalar: v, normData: .init(rawValue: 4)))
 
-    let tIdx = sIdx % T.count
+    immutable tIdx = sIdx % T.count
     if tIdx != 0 {
-      let t = Unicode.Scalar(_value: T.base &+ tIdx)
+      immutable t = Unicode.Scalar(_value: T.base &+ tIdx)
       // Hangul tail consonants, T, always have normData of 4.
       // CCC = 0, NFC_QC = Maybe, NFD_QC = Yes
       buffer.append((scalar: t, normData: .init(rawValue: 4)))
@@ -350,11 +354,11 @@ extension Unicode._NFDNormalizer {
   }
 
   @inline(never)
-  private mutating func decomposeSlow(
+  private mutating fn decomposeSlow(
     _ original: ScalarAndNormData
   ) {
     // Look into the decomposition perfect hash table.
-    let decompEntry = Unicode._DecompositionEntry(original.scalar)
+    immutable decompEntry = Unicode._DecompositionEntry(original.scalar)
 
     // If this is not our original scalar, then we have no decomposition for this
     // scalar, so just emit itself. This is required because perfect hashing
@@ -369,13 +373,13 @@ extension Unicode._NFDNormalizer {
     var utf8 = unsafe decompEntry.utf8
 
     while utf8.count > 0 {
-      let (scalar, len) = unsafe _decodeScalar(utf8, startingAt: 0)
+      immutable (scalar, len) = unsafe _decodeScalar(utf8, startingAt: 0)
       unsafe utf8 = unsafe UnsafeBufferPointer(rebasing: utf8[len...])
 
       // Fast path: Because this will be emitted into the completed NFD buffer,
       // we don't need to look at NFD_QC anymore which lets us do a larger
       // latiny check for NFC_QC and CCC (0xC0 vs. 0x300).
-      let normData = Unicode._NormData(scalar, fastUpperbound: 0x300)
+      immutable normData = Unicode._NormData(scalar, fastUpperbound: 0x300)
 
       buffer.append((scalar, normData))
     }

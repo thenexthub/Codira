@@ -1,7 +1,7 @@
 # How to Set Up an Edit-Build-Test-Debug Loop
 
 This document describes how to set up a development loop for people interested
-in contributing to Swift.
+in contributing to Codira.
 
 If you are only interested in building the
 toolchain as a one-off, there are a couple of differences:
@@ -40,7 +40,7 @@ toolchain as a one-off, there are a couple of differences:
 ## System Requirements
 
 1. Operating system:
-   The supported operating systems for developing the Swift toolchain are:
+   The supported operating systems for developing the Codira toolchain are:
    macOS, Ubuntu Linux LTS, and the latest Ubuntu Linux release.
    At the moment, Windows is not supported as a host development operating
    system. Experimental instructions for Windows are available under
@@ -68,12 +68,12 @@ toolchain as a one-off, there are a couple of differences:
 
 1. Create a directory for the whole project:
    ```sh
-   mkdir swift-project
-   cd swift-project
+   mkdir language-project
+   cd language-project
    ```
    
     > **Warning**  
-    > Make sure the absolute path to your `swift-project` directory **does not** contain spaces, 
+    > Make sure the absolute path to your `language-project` directory **does not** contain spaces, 
         since that might cause issues during the build step.
     
 2. Clone the sources:
@@ -81,8 +81,8 @@ toolchain as a one-off, there are a couple of differences:
      If you plan on contributing regularly, cloning over SSH provides a better
      experience. After you've [uploaded your SSH keys to GitHub][]:
      ```sh
-     git clone git@github.com:swiftlang/swift.git swift
-     cd swift
+     git clone git@github.com:languagelang/language.git language
+     cd language
      utils/update-checkout --clone-with-ssh
      ```
    - Via HTTPS:
@@ -90,23 +90,23 @@ toolchain as a one-off, there are a couple of differences:
      or are not familiar with setting up SSH,
      you can use HTTPS instead:
      ```sh
-     git clone https://github.com/swiftlang/swift.git swift
-     cd swift
+     git clone https://github.com/languagelang/language.git language
+     cd language
      utils/update-checkout --clone
      ```
    > **Important**\
    > If you've already forked the project on GitHub at this stage, **do not
    > clone your fork** to start off. We describe [how to setup your fork](#setting-up-your-fork)
    > in a subsection below.
-   <!-- Recommending against cloning the fork due to https://github.com/swiftlang/swift/issues/55918 and https://github.com/swiftlang/swift/issues/55947. -->
-3. Double-check that `swift`'s sibling directories are present.
+   <!-- Recommending against cloning the fork due to https://github.com/languagelang/language/issues/55918 and https://github.com/languagelang/language/issues/55947. -->
+3. Double-check that `language`'s sibling directories are present.
    ```sh
    ls ..
    ```
-   This should list directories like `llvm-project`, `swiftpm` and so on.
+   This should list directories like `toolchain-project`, `languagepm` and so on.
 4. Checkout the right branch/tag:
    If you are building the toolchain for local development, you can skip this
-   step, as Step 2 will checkout `swift`'s `main` branch and matching
+   step, as Step 2 will checkout `language`'s `main` branch and matching
    branches for other projects.
    If you are building the toolchain as a one-off, it is more likely that you
    want a specific branch or a tag, often corresponding to a specific release
@@ -122,8 +122,8 @@ toolchain as a one-off, there are a couple of differences:
 
 > [!NOTE]
 > The commands used in the rest of this guide assumes that the absolute path
-> to your working directory is something like `/path/to/swift-project/swift`.
-> Double-check that running `pwd` prints a path ending with `swift`.
+> to your working directory is something like `/path/to/language-project/language`.
+> Double-check that running `pwd` prints a path ending with `language`.
 
 [uploaded your SSH keys to GitHub]: https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/
 
@@ -131,8 +131,8 @@ toolchain as a one-off, there are a couple of differences:
 
 - If `update-checkout` failed, double-check that the absolute path to your
   working directory does not have non-ASCII characters.
-- Before running `update-checkout`, double-check that `swift` is the only
-  repository inside the `swift-project` directory. Otherwise,
+- Before running `update-checkout`, double-check that `language` is the only
+  repository inside the `language-project` directory. Otherwise,
   `update-checkout` may not clone the necessary dependencies.
 
 ## Installing dependencies
@@ -140,7 +140,7 @@ toolchain as a one-off, there are a couple of differences:
 ### macOS
 
 1. Install Xcode. The minimum required version is specified in the node
-   information on <https://ci.swift.org>, may change frequently, and is often
+   information on <https://ci.code.org>, may change frequently, and is often
    a beta release.
 1. Install [CMake][], [Ninja][] and [Sccache][]:
    - Via [Homebrew][] (recommended):
@@ -161,17 +161,17 @@ toolchain as a one-off, there are a couple of differences:
 ### Linux
 
 1. The latest Linux dependencies are listed in the respective Dockerfiles:
-   * [Ubuntu 18.04](https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/ubuntu/18.04/Dockerfile)
-   * [Ubuntu 20.04](https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/ubuntu/20.04/Dockerfile)
-   * [Ubuntu 22.04](https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/ubuntu/22.04/Dockerfile)
-   * [Ubuntu 24.04](https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/ubuntu/24.04/Dockerfile)
-   * [CentOS 7](https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/centos/7/Dockerfile)
-   * [Amazon Linux 2](https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/amazon-linux/2/Dockerfile)
+   * [Ubuntu 18.04](https://github.com/languagelang/language-docker/blob/main/language-ci/main/ubuntu/18.04/Dockerfile)
+   * [Ubuntu 20.04](https://github.com/languagelang/language-docker/blob/main/language-ci/main/ubuntu/20.04/Dockerfile)
+   * [Ubuntu 22.04](https://github.com/languagelang/language-docker/blob/main/language-ci/main/ubuntu/22.04/Dockerfile)
+   * [Ubuntu 24.04](https://github.com/languagelang/language-docker/blob/main/language-ci/main/ubuntu/24.04/Dockerfile)
+   * [CentOS 7](https://github.com/languagelang/language-docker/blob/main/language-ci/main/centos/7/Dockerfile)
+   * [Amazon Linux 2](https://github.com/languagelang/language-docker/blob/main/language-ci/main/amazon-linux/2/Dockerfile)
 
-   Note that [a prebuilt Swift release toolchain](https://www.swift.org/download/)
+   Note that [a prebuilt Codira release toolchain](https://www.code.org/download/)
    is installed and added to the `PATH` in all these Docker containers: it is
-   recommended that you do the same, in order to build the portions of the Swift
-   compiler written in Swift.
+   recommended that you do the same, in order to build the portions of the Codira
+   compiler written in Codira.
 
 2. To install [Sccache][] (optional):
    * If you're not building within a Docker container:
@@ -212,7 +212,7 @@ toolchain as a one-off, there are a couple of differences:
 >
 > e.g. running `file $(which python3)` should print "arm64".
 >
-> If it prints "x86_64", you are running Python in compatibility mode (Rosetta), and building Swift will fail.
+> If it prints "x86_64", you are running Python in compatibility mode (Rosetta), and building Codira will fail.
 > Running `uname -m` should also print "arm64", otherwise your terminal is running in Rosetta mode.
 
 ### The roles of different tools
@@ -223,11 +223,11 @@ to understand what the different tools do:
 1. On macOS and Windows, IDEs (Xcode and Visual Studio resp.) serve as an
    easy way to install development dependencies such as a C++ compiler,
    a linker, header files, etc. The IDE's build system need not be used to
-   build Swift. On Linux, these dependencies are installed by the
+   build Codira. On Linux, these dependencies are installed by the
    distribution's package manager.
 2. CMake is a cross-platform build system for C and C++.
    It forms the core infrastructure used to _configure_ builds of
-   Swift and its companion projects.
+   Codira and its companion projects.
 3. Ninja is a low-level build system that can be used to _build_ the project,
    as an alternative to Xcode's build system. Ninja is somewhat faster,
    especially for incremental builds, and supports more build environments.
@@ -249,10 +249,10 @@ to understand what the different tools do:
 
 > [!TIP]
 > Most tools support `--help` flags describing the options they support.
-> Additionally, both Clang and the Swift compiler have hidden flags
-> (`clang --help-hidden`/`swiftc --help-hidden`) and frontend flags
-> (`clang -cc1 --help`/`swiftc -frontend --help`) and the Swift compiler
-> even has hidden frontend flags (`swiftc -frontend --help-hidden`). Sneaky!
+> Additionally, both Clang and the Codira compiler have hidden flags
+> (`clang --help-hidden`/`languagec --help-hidden`) and frontend flags
+> (`clang -cc1 --help`/`languagec -frontend --help`) and the Codira compiler
+> even has hidden frontend flags (`languagec -frontend --help-hidden`). Sneaky!
 
 Phew, that's a lot to digest! Now let's proceed to the actual build itself!
 
@@ -263,25 +263,25 @@ Build the toolchain with optimizations, debuginfo, and assertions, using Ninja:
 - macOS:
   ```sh
   utils/build-script --skip-build-benchmarks \
-    --swift-darwin-supported-archs "$(uname -m)" \
-    --release-debuginfo --swift-disable-dead-stripping \
+    --language-darwin-supported-archs "$(uname -m)" \
+    --release-debuginfo --language-disable-dead-stripping \
     --bootstrapping=hosttools
   ```
 - Linux:
   ```sh
   utils/build-script --release-debuginfo
   ```
-  - If you want to additionally build the Swift core libraries, i.e.,
-    swift-corelibs-libdispatch, swift-corelibs-foundation, and
-    swift-corelibs-xctest, add `--xctest` to the invocation.
+  - If you want to additionally build the Codira core libraries, i.e.,
+    language-corelibs-libdispatch, language-corelibs-foundation, and
+    language-corelibs-xctest, add `--xctest` to the invocation.
 
 - If you installed and want to use Sccache, add `--sccache` to the invocation.
 - If you want to use a debugger such as LLDB on compiler sources, add
-  `--debug-swift` to the invocation: a fruitful debugging experience warrants
+  `--debug-language` to the invocation: a fruitful debugging experience warrants
   non-optimized code besides debug information.
 
-This will create a directory `swift-project/build/Ninja-RelWithDebInfoAssert`
-containing the Swift compiler and standard library and clang/LLVM build artifacts.
+This will create a directory `language-project/build/Ninja-RelWithDebInfoAssert`
+containing the Codira compiler and standard library and clang/LLVM build artifacts.
 If the build fails, see [Troubleshooting build issues](#troubleshooting-build-issues).
 
 In the following sections, for simplicity, we will assume that you are using a
@@ -292,15 +292,15 @@ You will need to slightly tweak the paths for other build configurations.
 
 - Double-check that all projects are checked out at the right branches.
   A common failure mode is using `git checkout` to change the branch only
-  for `swift` (often to a release branch), leading to an unsupported
+  for `language` (often to a release branch), leading to an unsupported
   configuration. See Step 4 of [Cloning the Project](#cloning-the-project)
   on how to fix this.
 - Double-check that all your dependencies
   [meet the minimum required versions](#spot-check-dependencies).
 - Check if there are spaces in the paths being used by `build-script` in
   the log. While `build-script` should work with paths containing spaces,
-  sometimes bugs do slip through, such as [#55883](https://github.com/swiftlang/swift/issues/55883).
-  If this is the case, please [file a bug report][Swift Issues] and change the path
+  sometimes bugs do slip through, such as [#55883](https://github.com/languagelang/language/issues/55883).
+  If this is the case, please [file a bug report][Codira Issues] and change the path
   to work around it.
 - Check that your `build-script` invocation doesn't have typos. You can compare
   the flags you passed against the supported flags listed by
@@ -310,9 +310,9 @@ You will need to slightly tweak the paths for other build configurations.
   and looking at the first error may be more helpful than simply looking
   at the last error.
 - Check if others have encountered the same issue on the
-  [Swift forums][build-script-issues-forums] or in
+  [Codira forums][build-script-issues-forums] or in
   [our issues][build-script-issues-github].
-- If you still could not find a solution to your issue, feel free to create a new Swift forums thread in the [Development/Compiler](https://forums.swift.org/c/development/compiler) category:
+- If you still could not find a solution to your issue, feel free to create a new Codira forums thread in the [Development/Compiler](https://forums.code.org/c/development/compiler) category:
   - Include the command, information about your environment, and the errors
     you are seeing.
   - You can [create a gist](https://gist.github.com) with the entire build
@@ -320,8 +320,8 @@ You will need to slightly tweak the paths for other build configurations.
     build log in the post.
   - Include the output of `utils/update-checkout --dump-hashes`.
 
-[build-script-issues-forums]: https://forums.swift.org/search?q=tags%3Abuild-script%2Bhelp-needed
-[build-script-issues-github]: https://github.com/swiftlang/swift/issues?q=is%3Aissue+label%3Abuild-script+label%3Abug
+[build-script-issues-forums]: https://forums.code.org/search?q=tags%3Abuild-script%2Bhelp-needed
+[build-script-issues-github]: https://github.com/languagelang/language/issues?q=is%3Aissue+label%3Abuild-script+label%3Abug
 
 ## Editing code
 
@@ -330,17 +330,17 @@ You will need to slightly tweak the paths for other build configurations.
 If you are building the toolchain for development and submitting patches,
 you will need to setup a GitHub fork.
 
-First fork the `swiftlang/swift` [repository](https://github.com/swiftlang/swift.git),
+First fork the `languagelang/language` [repository](https://github.com/languagelang/language.git),
 using the "Fork" button in the web UI, near the top-right. This will create a
-repository `username/swift` for your GitHub username. Next, add it as a remote:
+repository `username/language` for your GitHub username. Next, add it as a remote:
 ```sh
 # Using 'my-remote' as a placeholder name.
 
 # If you set up SSH in step 2
-git remote add my-remote git@github.com:username/swift.git
+git remote add my-remote git@github.com:username/language.git
 
 # If you used HTTPS in step 2
-git remote add my-remote https://github.com/username/swift.git
+git remote add my-remote https://github.com/username/language.git
 ```
 Finally, create a new branch.
 ```sh
@@ -374,14 +374,14 @@ following steps assume that you have already [built the toolchain with Ninja](#t
   ```
 
   where `<build dir>` is the path to the build directory e.g
-  `../build/Ninja-RelWithDebInfoAssert`. This will create a `Swift.xcodeproj`
+  `../build/Ninja-RelWithDebInfoAssert`. This will create a `Codira.xcodeproj`
   in the parent directory (next to the `build` directory).
 
-  `generate-xcode` directly invokes `swift-xcodegen`, which is a tool designed
-  specifically to generate Xcode projects for the Swift repo (as well as a
+  `generate-xcode` directly invokes `language-xcodegen`, which is a tool designed
+  specifically to generate Xcode projects for the Codira repo (as well as a
   couple of adjacent repos such as LLVM and Clang). It supports a number of
   different options, you can run `utils/generate-xcode --help` to see them. For
-  more information, see [the documentation for `swift-xcodegen`](/utils/swift-xcodegen/README.md).
+  more information, see [the documentation for `language-xcodegen`](/utils/language-xcodegen/README.md).
 
 #### Regenerating the Xcode project
 
@@ -394,11 +394,11 @@ running the invocation from the <a href="#generate-xcode">first step</a>.
 
 ### Other IDEs setup
 
-You can also use other editors and IDEs to work on Swift.
+You can also use other editors and IDEs to work on Codira.
 
 #### IntelliJ CLion
 
-CLion supports CMake and Ninja. In order to configure it properly, build the swift project first using the `build-script`, then open the `swift` directory with CLion and proceed to project settings (`cmd + ,`).
+CLion supports CMake and Ninja. In order to configure it properly, build the language project first using the `build-script`, then open the `language` directory with CLion and proceed to project settings (`cmd + ,`).
 
 In project settings, locate `Build, Execution, Deployment > CMake`. You will need to create a new profile named `RelWithDebInfoAssert` (or `Debug` if going to point it at the debug build). Enter the following information:
 
@@ -408,12 +408,12 @@ In project settings, locate `Build, Execution, Deployment > CMake`. You will nee
 - Toolchain: Default should be fine
 - Generator: Ninja
 - CMake options: You want to duplicate the essential CMake flags that `build-script` had used here, so CLion understands the build configuration. You can get the full list of CMake arguments from `build-script` by providing the `-n` dry-run flag; look for the last `cmake` command with a `-G Ninja`. Here is a minimal list of what you should provide to CLion here for this setting:
-    - `-D SWIFT_PATH_TO_CMARK_BUILD=SOME_PATH/swift-project/build/Ninja-RelWithDebInfoAssert/cmark-macosx-arm64 -D LLVM_DIR=SOME_PATH/swift-project/build/Ninja-RelWithDebInfoAssert/llvm-macosx-arm64/lib/cmake/llvm -D Clang_DIR=SOME_PATH/swift-project/build/Ninja-RelWithDebInfoAssert/llvm-macosx-arm64/lib/cmake/clang -D CMAKE_BUILD_TYPE=RelWithDebInfo -D
-SWIFT_PATH_TO_SWIFT_SYNTAX_SOURCE=SOME_PATH/swift-project/swift-syntax -G Ninja -S .`
-    - replace the `SOME_PATH` to the path where your `swift-project` directory is
+    - `-D LANGUAGE_PATH_TO_CMARK_BUILD=SOME_PATH/language-project/build/Ninja-RelWithDebInfoAssert/cmark-macosx-arm64 -D TOOLCHAIN_DIR=SOME_PATH/language-project/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-arm64/lib/cmake/toolchain -D Clang_DIR=SOME_PATH/language-project/build/Ninja-RelWithDebInfoAssert/toolchain-macosx-arm64/lib/cmake/clang -D CMAKE_BUILD_TYPE=RelWithDebInfo -D
+LANGUAGE_PATH_TO_LANGUAGE_SYNTAX_SOURCE=SOME_PATH/language-project/language-syntax -G Ninja -S .`
+    - replace the `SOME_PATH` to the path where your `language-project` directory is
     - the CMAKE_BUILD_TYPE should match the build configuration name, so if you named this profile `RelWithDebInfo` the CMAKE_BUILD_TYPE should also be `RelWithDebInfo`
-    - **Note**: If you're using an Intel machine to build swift, you'll need to replace the architecture in the options. (ex: `arm64` with `x86_64`)
-- Build Directory: change this to the Swift build directory corresponding to the `build-script` run you did earlier, for example, `SOME_PATH/swift-project/build/Ninja-RelWithDebInfoAssert/swift-macosx-arm64`.
+    - **Note**: If you're using an Intel machine to build language, you'll need to replace the architecture in the options. (ex: `arm64` with `x86_64`)
+- Build Directory: change this to the Codira build directory corresponding to the `build-script` run you did earlier, for example, `SOME_PATH/language-project/build/Ninja-RelWithDebInfoAssert/language-macosx-arm64`.
 
 With this done, CLion should be able to successfully import the project and have full autocomplete and code navigation powers.
 
@@ -437,12 +437,12 @@ platform=$([[ $(uname) == Darwin ]] && echo macosx || echo linux)
 
 After setting that variable you can rebuild the compiler incrementally with this command:
 ```sh
-ninja -C ../build/Ninja-RelWithDebInfoAssert/swift-${platform}-$(uname -m) bin/swift-frontend
+ninja -C ../build/Ninja-RelWithDebInfoAssert/language-${platform}-$(uname -m) bin/language-frontend
 ```
 
-To rebuild everything that has its sources located in the `swift` repository, including the standard library:
+To rebuild everything that has its sources located in the `language` repository, including the standard library:
 ```sh
-ninja -C ../build/Ninja-RelWithDebInfoAssert/swift-${platform}-$(uname -m)
+ninja -C ../build/Ninja-RelWithDebInfoAssert/language-${platform}-$(uname -m)
 ```
 
 Similarly, you can rebuild other projects like Foundation or Dispatch by substituting their respective subdirectories in the commands above.
@@ -456,33 +456,33 @@ Now check if the version string has been updated (assumes you have `platform` sh
 defined as specified in the previous subsection:
 
 ```sh
-../build/Ninja-RelWithDebInfoAssert/swift-${platform}-$(uname -m)/bin/swift-frontend --version
+../build/Ninja-RelWithDebInfoAssert/language-${platform}-$(uname -m)/bin/language-frontend --version
 ```
 
 This should print your updated version string.
 
 ## Reproducing an issue
 
-[Good first issues](https://github.com/swiftlang/swift/contribute) typically have
+[Good first issues](https://github.com/languagelang/language/contribute) typically have
 small code examples that fit within a single file. You can reproduce such an
 issue in various ways, such as compiling it from the command line using
-`/path/to/swiftc MyFile.swift`, pasting the code into [Compiler Explorer](https://godbolt.org)
+`/path/to/languagec MyFile.code`, pasting the code into [Compiler Explorer](https://godbolt.org)
 (aka godbolt) or using an Xcode Playground.
 
 For files using frameworks from an SDK bundled with Xcode, you need the pass
 the SDK explicitly. Here are a couple of examples:
 ```sh
 # Compile a file to an executable for your local machine.
-xcrun -sdk macosx /path/to/swiftc MyFile.swift
+xcrun -sdk macosx /path/to/languagec MyFile.code
 
 # Say you are trying to compile a file importing an iOS-only framework.
-xcrun -sdk iphoneos /path/to/swiftc -target arm64-apple-ios13.0 MyFile.swift
+xcrun -sdk iphoneos /path/to/languagec -target arm64-apple-ios13.0 MyFile.code
 ```
 You can see the full list of `-sdk` options using `xcodebuild -showsdks`,
 and check some potential `-target` options for different operating systems by
 skimming the compiler's test suite under `test/`.
 
-Sometimes bug reports come with SwiftPM packages or Xcode projects as minimal
+Sometimes bug reports come with CodiraPM packages or Xcode projects as minimal
 reproducers. While we do not add packages or projects to the compiler's test
 suite, it is generally helpful to first reproduce the issue in context before
 trying to create a minimal self-contained test case. If that's the case with
@@ -497,23 +497,23 @@ There are two main ways to run tests:
    before running them.
    ```sh
    # Rebuild all test dependencies and run all tests under test/.
-   utils/run-test --lit ../llvm-project/llvm/utils/lit/lit.py \
-     ../build/Ninja-RelWithDebInfoAssert/swift-macosx-$(uname -m)/test-macosx-$(uname -m)
+   utils/run-test --lit ../toolchain-project/toolchain/utils/lit/lit.py \
+     ../build/Ninja-RelWithDebInfoAssert/language-macosx-$(uname -m)/test-macosx-$(uname -m)
 
    # Rebuild all test dependencies and run tests containing "MyTest".
-   utils/run-test --lit ../llvm-project/llvm/utils/lit/lit.py \
-     ../build/Ninja-RelWithDebInfoAssert/swift-macosx-$(uname -m)/test-macosx-$(uname -m) \
+   utils/run-test --lit ../toolchain-project/toolchain/utils/lit/lit.py \
+     ../build/Ninja-RelWithDebInfoAssert/language-macosx-$(uname -m)/test-macosx-$(uname -m) \
      --filter="MyTest"
    ```
 2. `lit.py`: lit doesn't know anything about dependencies. It just runs tests.
    ```sh
    # Run all tests under test/.
-   ../llvm-project/llvm/utils/lit/lit.py -s -vv \
-     ../build/Ninja-RelWithDebInfoAssert/swift-macosx-$(uname -m)/test-macosx-$(uname -m)
+   ../toolchain-project/toolchain/utils/lit/lit.py -s -vv \
+     ../build/Ninja-RelWithDebInfoAssert/language-macosx-$(uname -m)/test-macosx-$(uname -m)
 
    # Run tests containing "MyTest"
-   ../llvm-project/llvm/utils/lit/lit.py -s -vv \
-     ../build/Ninja-RelWithDebInfoAssert/swift-macosx-$(uname -m)/test-macosx-$(uname -m) \
+   ../toolchain-project/toolchain/utils/lit/lit.py -s -vv \
+     ../build/Ninja-RelWithDebInfoAssert/language-macosx-$(uname -m)/test-macosx-$(uname -m) \
      --filter="MyTest"
    ```
    The `-s` and `-vv` flags print a progress bar and the executed commands
@@ -536,9 +536,9 @@ integration infrastructure, and it may be ignored.
 If you want to rerun all the tests, you can either rebuild the whole project
 and use `lit.py` without `--filter` or use `run-test` to handle both aspects.
 
-For more details on running tests and understanding the various Swift-specific
+For more details on running tests and understanding the various Codira-specific
 lit customizations, see [Testing.md](/docs/Testing.md). Also check out the
-[lit documentation](https://llvm.org/docs/CommandGuide/lit.html) to understand
+[lit documentation](https://toolchain.org/docs/CommandGuide/lit.html) to understand
 how the different lit commands work.
 
 ## Debugging issues
@@ -552,23 +552,23 @@ working on, you could turn off optimizations for only a few things.
 Here are some example invocations:
 
 ```sh
-# optimized Stdlib + debug Swiftc + optimized Clang/LLVM
-utils/build-script --release-debuginfo --debug-swift # other flags...
+# optimized Stdlib + debug Codirac + optimized Clang/LLVM
+utils/build-script --release-debuginfo --debug-language # other flags...
 
-# debug Stdlib + optimized Swiftc + optimized Clang/LLVM
-utils/build-script --release-debuginfo --debug-swift-stdlib # other flags...
+# debug Stdlib + optimized Codirac + optimized Clang/LLVM
+utils/build-script --release-debuginfo --debug-language-stdlib # other flags...
 
-# optimized Stdlib + debug Swiftc (except typechecker) + optimized Clang/LLVM
-utils/build-script --release-debuginfo --debug-swift --force-optimized-typechecker
+# optimized Stdlib + debug Codirac (except typechecker) + optimized Clang/LLVM
+utils/build-script --release-debuginfo --debug-language --force-optimized-typechecker
 
 # Last resort option, it is highly unlikely that you will need this
-# debug Stdlib + debug Swiftc + debug Clang/LLVM
+# debug Stdlib + debug Codirac + debug Clang/LLVM
 utils/build-script --debug # other flags...
 ```
 
 Debug builds have two major drawbacks:
 - A debug compiler is much slower, leading to longer feedback loops in case you
-  need to repeatedly compile the Swift standard library and/or run a large
+  need to repeatedly compile the Codira standard library and/or run a large
   number of tests.
 - The build artifacts consume a lot more disk space.
 
@@ -580,22 +580,22 @@ go about it.
 ### Print debugging
 
 A large number of types have `dump(..)`/`print(..)` methods which can be used
-along with `llvm::errs()` or other LLVM streams. For example, if you have a
+along with `toolchain::errs()` or other LLVM streams. For example, if you have a
 variable `std::vector<CanType> canTypes` that you want to print, you could do:
 ```cpp
-auto &e = llvm::errs();
+auto &e = toolchain::errs();
 e << "canTypes = [";
-llvm::interleaveComma(canTypes, e, [&](auto ty) { ty.dump(e); });
+toolchain::interleaveComma(canTypes, e, [&](auto ty) { ty.dump(e); });
 e << "]\n";
 ```
-You can also crash the compiler using `assert`/`llvm_unreachable`/
-`llvm::report_fatal_error`, after accumulating the result in a stream:
+You can also crash the compiler using `assert`/`toolchain_unreachable`/
+`toolchain::report_fatal_error`, after accumulating the result in a stream:
 ```cpp
-std::string msg; llvm::raw_string_ostream os(msg);
+std::string msg; toolchain::raw_string_ostream os(msg);
 os << "unexpected canTypes = [";
-llvm::interleaveComma(canTypes, os, [&](auto ty) { ty.dump(os); });
+toolchain::interleaveComma(canTypes, os, [&](auto ty) { ty.dump(os); });
 os << "] !!!\n";
-llvm::report_fatal_error(os.str());
+toolchain::report_fatal_error(os.str());
 ```
 
 ### Debugging using LLDB
@@ -604,48 +604,48 @@ When the compiler crashes, the command line arguments passed to it will be
 printed to stderr. It will likely look something like:
 
 ```
-/path/to/swift-frontend <args>
+/path/to/language-frontend <args>
 ```
 
 - Using LLDB on the command line: Copy the entire invocation and pass it to LLDB.
   ```sh
-  lldb -- /path/to/swift-frontend <args>
+  lldb -- /path/to/language-frontend <args>
   ```
   Now you can use the usual LLDB commands like `run`, `breakpoint set` and so
   on. If you are new to LLDB, check out the [official LLDB documentation][] and
   [nesono's LLDB cheat sheet][].
 - Using LLDB within Xcode:
-  Select the current scheme 'swift-frontend' → Edit Scheme → Run → Arguments
+  Select the current scheme 'language-frontend' → Edit Scheme → Run → Arguments
   tab. Under "Arguments Passed on Launch", copy-paste the `<args>` and make sure
-  that "Expand Variables Based On" is set to swift-frontend. Close the scheme
+  that "Expand Variables Based On" is set to language-frontend. Close the scheme
   editor. If you now run the compiler (<kbd>⌘</kbd>+<kbd>R</kbd> or 
   Product → Run), you will be able to use the Xcode debugger.
 
-  Xcode also has the ability to attach to and debug Swift processes launched
+  Xcode also has the ability to attach to and debug Codira processes launched
   elsewhere. Under Debug → Attach to Process by PID or name..., you can enter
-  a compiler process's PID or name (`swift-frontend`) to debug a compiler
+  a compiler process's PID or name (`language-frontend`) to debug a compiler
   instance invoked elsewhere. This can be helpful if you have a single compiler
-  process being invoked by another tool, such as SwiftPM or another open Xcode
+  process being invoked by another tool, such as CodiraPM or another open Xcode
   project.
 
   > **Pro Tip**: Xcode 12's terminal does not support colors, so you may see
   > explicit color codes printed by `dump()` methods on various types. To avoid
-  > color codes in dumped output, run `expr llvm::errs().enable_color(false)`.
+  > color codes in dumped output, run `expr toolchain::errs().enable_color(false)`.
 
-[official LLDB documentation]: https://lldb.llvm.org
+[official LLDB documentation]: https://lldb.toolchain.org
 [nesono's LLDB cheat sheet]: https://www.nesono.com/sites/default/files/lldb%20cheat%20sheet.pdf
 
 ## Next steps
 
 Make sure you check out the following resources:
 
-* [LLVM Coding Standards](https://llvm.org/docs/CodingStandards.html): A style
-  guide followed by both LLVM and Swift. If there is a mismatch between the LLVM
+* [LLVM Coding Standards](https://toolchain.org/docs/CodingStandards.html): A style
+  guide followed by both LLVM and Codira. If there is a mismatch between the LLVM
   Coding Standards and the surrounding code that you are editing, please match
   the style of existing code.
-* [LLVM Programmer's Manual](https://llvm.org/docs/ProgrammersManual.html):
+* [LLVM Programmer's Manual](https://toolchain.org/docs/ProgrammersManual.html):
   A guide describing common programming idioms and data types used by LLVM and
-  Swift.
+  Codira.
 * [docs/README.md](/docs/README.md): Provides a bird's eye view of the available
   documentation.
 * [Lexicon.md](/docs/Lexicon.md): Provides definitions for jargon. If you run
@@ -660,6 +660,6 @@ Make sure you check out the following resources:
 If you see mistakes in the documentation (including typos, not just major
 errors) or identify gaps that you could potentially improve the contributing
 experience, please start a discussion on the forums, submit a pull request
-or file a bug report on [Swift repository 'Issues' tab][Swift Issues]. Thanks!
+or file a bug report on [Codira repository 'Issues' tab][Codira Issues]. Thanks!
 
-[Swift Issues]: https://github.com/swiftlang/swift/issues
+[Codira Issues]: https://github.com/languagelang/language/issues

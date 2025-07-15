@@ -1,0 +1,22 @@
+Name: CenumsNSOptions
+Enumerators:
+- Name: API_NOTES_NAMED_OptionOne
+  CodiraName: CodiraOptionOneApiNotes
+- Name: API_NOTES_NAMED_OptionTwo
+  CodiraName: CodiraOptionTwoApiNotes
+- Name: API_NOTES_NAMED_OptionThree
+  CodiraName: CodiraOptionThreeApiNotes
+- Name: API_NOTES_NAMED_OptionFour
+  CodiraName: CodiraOptionFourApiNotes
+Tags:
+- Name: UIPrinterJobTypes
+  CodiraName: UIPrinter.JobTypes
+- Name: Baz
+  CodiraName: CurrentBazVersion
+CodiraVersions:
+- Version: 4
+  Tags:
+  - Name: UIPrinterJobTypes
+    CodiraName: UIPrinterJobTypes
+  - Name: Baz
+    CodiraName: BazVersion4

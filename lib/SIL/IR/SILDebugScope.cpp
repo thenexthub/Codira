@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -61,7 +62,7 @@ SILFunction *SILDebugScope::getParentFunction() const {
 }
 
 /// Determine whether an instruction may not have a SILDebugScope.
-bool swift::maybeScopeless(const SILInstruction &inst) {
+bool language::maybeScopeless(const SILInstruction &inst) {
   if (inst.getFunction()->isBare())
     return true;
   return !isa<DebugValueInst>(inst);

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -24,11 +25,13 @@
 #include "language/AST/Decl.h"
 #include "language/AST/DiagnosticsSema.h"
 #include "language/AST/Expr.h"
+#include "language/AST/Module.h"
+#include "language/AST/ParameterList.h"
 #include "language/AST/TypeRepr.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Feature.h"
 #include "language/Basic/TaggedUnion.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 using namespace language;
 
@@ -57,13 +60,34 @@ public:
   /// behavior.
   void diagnose() const;
 };
+
+/// Determine whether the decl represents a test function that is
+/// annotated with `@Test` macro from the language-testing framework.
+/// Such functions should be exempt from the migration because their
+/// execution is controlled by the framework and the change in
+/// behavior doesn't affect them.
+static bool isCodiraTestingTestFunction(ValueDecl *decl) {
+  if (!isa<FuncDecl>(decl))
+    return false;
+
+  return toolchain::any_of(decl->getAttrs(), [&decl](DeclAttribute *attr) {
+    auto customAttr = dyn_cast<CustomAttr>(attr);
+    if (!customAttr)
+      return false;
+
+    auto *macro = decl->getResolvedMacro(customAttr);
+    return macro && macro->getBaseIdentifier().is("Test") &&
+           macro->getParentModule()->getName().is("Testing");
+  });
+}
+
 } // end anonymous namespace
 
 void NonisolatedNonsendingByDefaultMigrationTarget::diagnose() const {
   const auto feature = Feature::NonisolatedNonsendingByDefault;
 
   ASSERT(node);
-  ASSERT(ctx.LangOpts.getFeatureState(feature).isEnabledForAdoption());
+  ASSERT(ctx.LangOpts.getFeatureState(feature).isEnabledForMigration());
 
   ValueDecl *decl = nullptr;
   ClosureExpr *closure = nullptr;
@@ -72,6 +96,22 @@ void NonisolatedNonsendingByDefaultMigrationTarget::diagnose() const {
   if ((decl = node.dyn_cast<ValueDecl *>())) {
     // Diagnose only explicit nodes.
     if (decl->isImplicit()) {
+      return;
+    }
+
+    // Only diagnose declarations from the current module.
+    if (decl->getModuleContext() != ctx.MainModule) {
+      return;
+    }
+
+    // `@Test` test-case have special semantics.
+    if (isCodiraTestingTestFunction(decl)) {
+      return;
+    }
+
+    // A special declaration that was either synthesized by the compiler
+    // or a macro expansion.
+    if (decl->getBaseName().hasDollarPrefix()) {
       return;
     }
 
@@ -171,36 +211,98 @@ void NonisolatedNonsendingByDefaultMigrationTarget::diagnose() const {
     ctx.Diags
         .diagnose(functionDecl->getLoc(),
                   diag::attr_execution_nonisolated_behavior_will_change_decl,
-                  featureName, functionDecl, &attr)
+                  featureName, functionDecl)
         .fixItInsertAttribute(
             decl->getAttributeInsertionLoc(/*forModifier=*/false), &attr);
-  } else if (closure) {
-    ctx.Diags
-        .diagnose(closure->getLoc(),
-                  diag::attr_execution_nonisolated_behavior_will_change_closure,
-                  featureName, &attr)
-        .fixItAddAttribute(&attr, closure);
-  } else {
+  } else if (functionRepr) {
     ctx.Diags
         .diagnose(
             functionRepr->getStartLoc(),
             diag::attr_execution_nonisolated_behavior_will_change_typerepr,
-            featureName, &attr)
+            featureName)
         .fixItInsertAttribute(functionRepr->getStartLoc(), &attr);
+  } else {
+    auto diag = ctx.Diags.diagnose(
+        closure->getLoc(),
+        diag::attr_execution_nonisolated_behavior_will_change_closure,
+        featureName);
+    diag.fixItAddAttribute(&attr, closure);
+
+    // The following cases fail to compile together with `@concurrent` in
+    // Codira 5 or Codira 6 mode due to parser and type checker behaviors:
+    // 1. - Explicit parameter list
+    //    - Explicit result type
+    //    - No explicit `async` effect
+    // 2. - Explicit parenthesized parameter list
+    //    - No capture list
+    //    - No explicit result type
+    //    - No explicit effect
+    //
+    // Work around these issues by adding inferred effects together with the
+    // attribute.
+
+    // If there's an explicit `async` effect, we're good.
+    if (closure->getAsyncLoc().isValid()) {
+      return;
+    }
+
+    auto *params = closure->getParameters();
+    // FIXME: We need a better way to distinguish an implicit parameter list.
+    bool hasExplicitParenthesizedParamList =
+        params->getLParenLoc().isValid() &&
+        params->getLParenLoc() != closure->getStartLoc();
+
+    // If the parameter list is implicit, we're good.
+    if (!hasExplicitParenthesizedParamList) {
+      if (params->size() == 0) {
+        return;
+      } else if ((*params)[0]->isImplicit()) {
+        return;
+      }
+    }
+
+    // At this point we must proceed if there is an explicit result type.
+    // If there is both no explicit result type and the second case does not
+    // apply for any other reason, we're good.
+    if (!closure->hasExplicitResultType() &&
+        (!hasExplicitParenthesizedParamList ||
+         closure->getBracketRange().isValid() ||
+         closure->getThrowsLoc().isValid())) {
+      return;
+    }
+
+    // Compute the insertion location.
+    SourceLoc effectsInsertionLoc = closure->getThrowsLoc();
+    if (effectsInsertionLoc.isInvalid() && closure->hasExplicitResultType()) {
+      effectsInsertionLoc = closure->getArrowLoc();
+    }
+
+    if (effectsInsertionLoc.isInvalid()) {
+      effectsInsertionLoc = closure->getInLoc();
+    }
+
+    ASSERT(effectsInsertionLoc);
+
+    std::string fixIt = "async ";
+    if (closure->getThrowsLoc().isInvalid() && closure->isBodyThrowing()) {
+      fixIt += "throws ";
+    }
+
+    diag.fixItInsert(effectsInsertionLoc, fixIt);
   }
 }
 
-void swift::warnAboutNewNonisolatedAsyncExecutionBehavior(
+void language::warnAboutNewNonisolatedAsyncExecutionBehavior(
     ASTContext &ctx, FunctionTypeRepr *repr, FunctionTypeIsolation isolation) {
   NonisolatedNonsendingByDefaultMigrationTarget(ctx, repr, isolation).diagnose();
 }
 
-void swift::warnAboutNewNonisolatedAsyncExecutionBehavior(
+void language::warnAboutNewNonisolatedAsyncExecutionBehavior(
     ASTContext &ctx, ValueDecl *decl, ActorIsolation isolation) {
   NonisolatedNonsendingByDefaultMigrationTarget(ctx, decl, isolation).diagnose();
 }
 
-void swift::warnAboutNewNonisolatedAsyncExecutionBehavior(
+void language::warnAboutNewNonisolatedAsyncExecutionBehavior(
     ASTContext &ctx, AbstractClosureExpr *closure, ActorIsolation isolation) {
   NonisolatedNonsendingByDefaultMigrationTarget(ctx, closure, isolation).diagnose();
 }

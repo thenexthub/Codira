@@ -1,0 +1,74 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name A_Internal -o %t/A_Internal.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -emit-module-interface-path %t/A_Internal.codeinterface -enable-library-evolution -I %t %t/A_Internal.code
+
+// RUN: %target-language-frontend -emit-module -module-name A -o %t/A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -emit-module-interface-path %t/A.codeinterface -enable-library-evolution -I %t %t/A.code
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -module-cache-path %t/clang-module-cache %t/main.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -o %t/deps.json -I %t -cache-compile-job -cas-path %t/cas -language-version 5
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:CodiraShims > %t/shim.cmd
+// RUN: %language_frontend_plain @%t/shim.cmd
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:AC > %t/clangAC.cmd
+// RUN: %language_frontend_plain @%t/clangAC.cmd
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:A > %t/clangA.cmd
+// RUN: %language_frontend_plain @%t/clangA.cmd
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+
+// RUN: %target-language-frontend -emit-module -o %t/Test.codemodule  \
+// RUN:   -cache-compile-job -cas-path %t/cas \
+// RUN:   -disable-implicit-language-modules -language-version 5 -enable-cross-import-overlays \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -module-name Test -explicit-language-module-map-file @%t/map.casid \
+// RUN:   %t/main.code @%t/MyApp.cmd
+
+//--- main.code
+import A
+
+extension Base {
+  fn test(input: String) {
+    Base.testA(1)
+  }
+}
+
+//--- A.code
+@_exported import A
+@_implementationOnly import A_Internal
+public extension Base {
+  static fn testA(_ num: Int) {}
+  fileprivate fn testA(_ p: AI) {}
+}
+
+//--- A_Internal.code
+public struct AI {}
+
+//--- a.h
+#include "ac.h"
+
+//--- ac.h
+@interface Base
+- (void)test;
+@end
+
+//--- module.modulemap
+module A {
+  header "a.h"
+  export *
+}
+
+module AC {
+  header "ac.h"
+  export_as A
+  export *
+}

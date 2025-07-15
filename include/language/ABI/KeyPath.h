@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Constants used in the layout of key path objects.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_KEYPATH_H
-#define SWIFT_ABI_KEYPATH_H
+#ifndef LANGUAGE_ABI_KEYPATH_H
+#define LANGUAGE_ABI_KEYPATH_H
 
 // We include the basic constants in a shim header so that it can be shared with
-// the Swift implementation in the standard library.
+// the Codira implementation in the standard library.
 
 #include <cstdint>
 #include <cassert>
@@ -36,7 +37,7 @@ class KeyPathBufferHeader {
   constexpr KeyPathBufferHeader(unsigned Data) : Data(Data) {}
   
   static constexpr uint32_t validateSize(uint32_t size) {
-    return assert(size <= _SwiftKeyPathBufferHeader_SizeMask
+    return assert(size <= _CodiraKeyPathBufferHeader_SizeMask
                   && "size too big!"),
            size;
   }
@@ -44,28 +45,28 @@ public:
   constexpr KeyPathBufferHeader(unsigned size,
                                 bool trivialOrInstantiableInPlace,
                                 bool hasReferencePrefix)
-    : Data((validateSize(size) & _SwiftKeyPathBufferHeader_SizeMask)
-           | (trivialOrInstantiableInPlace ? _SwiftKeyPathBufferHeader_TrivialFlag : 0)
-           | (hasReferencePrefix ? _SwiftKeyPathBufferHeader_HasReferencePrefixFlag : 0)) 
+    : Data((validateSize(size) & _CodiraKeyPathBufferHeader_SizeMask)
+           | (trivialOrInstantiableInPlace ? _CodiraKeyPathBufferHeader_TrivialFlag : 0)
+           | (hasReferencePrefix ? _CodiraKeyPathBufferHeader_HasReferencePrefixFlag : 0)) 
   {
   }
   
   constexpr KeyPathBufferHeader withSize(unsigned size) const {
-    return (Data & ~_SwiftKeyPathBufferHeader_SizeMask) | validateSize(size);
+    return (Data & ~_CodiraKeyPathBufferHeader_SizeMask) | validateSize(size);
   }
   
   constexpr KeyPathBufferHeader withIsTrivial(bool isTrivial) const {
-    return (Data & ~_SwiftKeyPathBufferHeader_TrivialFlag)
-      | (isTrivial ? _SwiftKeyPathBufferHeader_TrivialFlag : 0);
+    return (Data & ~_CodiraKeyPathBufferHeader_TrivialFlag)
+      | (isTrivial ? _CodiraKeyPathBufferHeader_TrivialFlag : 0);
   }
   constexpr KeyPathBufferHeader withIsInstantiableInPlace(bool isTrivial) const {
-    return (Data & ~_SwiftKeyPathBufferHeader_TrivialFlag)
-      | (isTrivial ? _SwiftKeyPathBufferHeader_TrivialFlag : 0);
+    return (Data & ~_CodiraKeyPathBufferHeader_TrivialFlag)
+      | (isTrivial ? _CodiraKeyPathBufferHeader_TrivialFlag : 0);
   }
 
   constexpr KeyPathBufferHeader withHasReferencePrefix(bool hasPrefix) const {
-    return (Data & ~_SwiftKeyPathBufferHeader_HasReferencePrefixFlag)
-      | (hasPrefix ? _SwiftKeyPathBufferHeader_HasReferencePrefixFlag : 0);
+    return (Data & ~_CodiraKeyPathBufferHeader_HasReferencePrefixFlag)
+      | (hasPrefix ? _CodiraKeyPathBufferHeader_HasReferencePrefixFlag : 0);
   }
 
   constexpr uint32_t getData() const {
@@ -86,20 +87,20 @@ class KeyPathComponentHeader {
   }
 
   static constexpr uint32_t isLetBit(bool isLet) {
-    return isLet ? 0 : _SwiftKeyPathComponentHeader_StoredMutableFlag;
+    return isLet ? 0 : _CodiraKeyPathComponentHeader_StoredMutableFlag;
   }
 
 public:
   static constexpr bool offsetCanBeInline(unsigned offset) {
-    return offset <= _SwiftKeyPathComponentHeader_MaximumOffsetPayload;
+    return offset <= _CodiraKeyPathComponentHeader_MaximumOffsetPayload;
   }
 
   constexpr static KeyPathComponentHeader
   forStructComponentWithInlineOffset(bool isLet,
                                      unsigned offset) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_StructTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
+      (_CodiraKeyPathComponentHeader_StructTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
       | validateInlineOffset(offset)
       | isLetBit(isLet));
   }
@@ -107,18 +108,18 @@ public:
   constexpr static KeyPathComponentHeader
   forStructComponentWithOutOfLineOffset(bool isLet) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_StructTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_OutOfLineOffsetPayload
+      (_CodiraKeyPathComponentHeader_StructTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_OutOfLineOffsetPayload
       | isLetBit(isLet));
   }
 
   constexpr static KeyPathComponentHeader
   forStructComponentWithUnresolvedFieldOffset(bool isLet) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_StructTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_UnresolvedFieldOffsetPayload
+      (_CodiraKeyPathComponentHeader_StructTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_UnresolvedFieldOffsetPayload
       | isLetBit(isLet));
   }
   
@@ -126,8 +127,8 @@ public:
   forClassComponentWithInlineOffset(bool isLet,
                                     unsigned offset) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_ClassTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
+      (_CodiraKeyPathComponentHeader_ClassTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
       | validateInlineOffset(offset)
       | isLetBit(isLet));
   }
@@ -135,50 +136,50 @@ public:
   constexpr static KeyPathComponentHeader
   forClassComponentWithOutOfLineOffset(bool isLet) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_ClassTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_OutOfLineOffsetPayload
+      (_CodiraKeyPathComponentHeader_ClassTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_OutOfLineOffsetPayload
       | isLetBit(isLet));
   }
   
   constexpr static KeyPathComponentHeader
   forClassComponentWithUnresolvedFieldOffset(bool isLet) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_ClassTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_UnresolvedFieldOffsetPayload
+      (_CodiraKeyPathComponentHeader_ClassTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_UnresolvedFieldOffsetPayload
       | isLetBit(isLet));
   }
   
   constexpr static KeyPathComponentHeader
   forClassComponentWithUnresolvedIndirectOffset(bool isLet) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_ClassTag
-       << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_UnresolvedIndirectOffsetPayload
+      (_CodiraKeyPathComponentHeader_ClassTag
+       << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_UnresolvedIndirectOffsetPayload
       | isLetBit(isLet));
   }
   
   constexpr static KeyPathComponentHeader
   forOptionalChain() {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_OptionalTag
-      << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_OptionalChainPayload);
+      (_CodiraKeyPathComponentHeader_OptionalTag
+      << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_OptionalChainPayload);
   }
   constexpr static KeyPathComponentHeader
   forOptionalWrap() {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_OptionalTag
-      << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_OptionalWrapPayload);
+      (_CodiraKeyPathComponentHeader_OptionalTag
+      << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_OptionalWrapPayload);
   }
   constexpr static KeyPathComponentHeader
   forOptionalForce() {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_OptionalTag
-      << _SwiftKeyPathComponentHeader_DiscriminatorShift)
-      | _SwiftKeyPathComponentHeader_OptionalForcePayload);
+      (_CodiraKeyPathComponentHeader_OptionalTag
+      << _CodiraKeyPathComponentHeader_DiscriminatorShift)
+      | _CodiraKeyPathComponentHeader_OptionalForcePayload);
   }
   
   enum ComputedPropertyKind {
@@ -206,32 +207,32 @@ public:
                       bool hasArguments,
                       ComputedPropertyIDResolution resolution) {
     return KeyPathComponentHeader(
-      (_SwiftKeyPathComponentHeader_ComputedTag
-        << _SwiftKeyPathComponentHeader_DiscriminatorShift)
+      (_CodiraKeyPathComponentHeader_ComputedTag
+        << _CodiraKeyPathComponentHeader_DiscriminatorShift)
       | (kind != GetOnly
-           ? _SwiftKeyPathComponentHeader_ComputedSettableFlag : 0)
+           ? _CodiraKeyPathComponentHeader_ComputedSettableFlag : 0)
       | (kind == SettableMutating
-           ? _SwiftKeyPathComponentHeader_ComputedMutatingFlag : 0)
+           ? _CodiraKeyPathComponentHeader_ComputedMutatingFlag : 0)
       | (idKind == StoredPropertyIndex
-           ? _SwiftKeyPathComponentHeader_ComputedIDByStoredPropertyFlag : 0)
+           ? _CodiraKeyPathComponentHeader_ComputedIDByStoredPropertyFlag : 0)
       | (idKind == VTableOffset
-           ? _SwiftKeyPathComponentHeader_ComputedIDByVTableOffsetFlag : 0)
-      | (hasArguments ? _SwiftKeyPathComponentHeader_ComputedHasArgumentsFlag : 0)
-      | (resolution == Resolved ? _SwiftKeyPathComponentHeader_ComputedIDResolved
-       : resolution == ResolvedAbsolute ? _SwiftKeyPathComponentHeader_ComputedIDResolvedAbsolute
-       : resolution == IndirectPointer ? _SwiftKeyPathComponentHeader_ComputedIDUnresolvedIndirectPointer
-       : resolution == FunctionCall ? _SwiftKeyPathComponentHeader_ComputedIDUnresolvedFunctionCall
+           ? _CodiraKeyPathComponentHeader_ComputedIDByVTableOffsetFlag : 0)
+      | (hasArguments ? _CodiraKeyPathComponentHeader_ComputedHasArgumentsFlag : 0)
+      | (resolution == Resolved ? _CodiraKeyPathComponentHeader_ComputedIDResolved
+       : resolution == ResolvedAbsolute ? _CodiraKeyPathComponentHeader_ComputedIDResolvedAbsolute
+       : resolution == IndirectPointer ? _CodiraKeyPathComponentHeader_ComputedIDUnresolvedIndirectPointer
+       : resolution == FunctionCall ? _CodiraKeyPathComponentHeader_ComputedIDUnresolvedFunctionCall
        : (assert(false && "invalid resolution"), 0)));
   }
   
   constexpr static KeyPathComponentHeader
   forExternalComponent(unsigned numSubstitutions) {
     return assert(numSubstitutions <
-        (1u << _SwiftKeyPathComponentHeader_DiscriminatorShift) - 1u
+        (1u << _CodiraKeyPathComponentHeader_DiscriminatorShift) - 1u
         && "too many substitutions"),
       KeyPathComponentHeader(
-        (_SwiftKeyPathComponentHeader_ExternalTag
-          << _SwiftKeyPathComponentHeader_DiscriminatorShift)
+        (_CodiraKeyPathComponentHeader_ExternalTag
+          << _CodiraKeyPathComponentHeader_DiscriminatorShift)
         | numSubstitutions);
   }
   
@@ -240,4 +241,4 @@ public:
 
 }
 
-#endif // SWIFT_ABI_KEYPATH_H
+#endif // LANGUAGE_ABI_KEYPATH_H

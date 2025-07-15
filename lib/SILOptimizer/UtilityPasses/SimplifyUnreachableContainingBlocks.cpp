@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -59,6 +60,6 @@ class SimplifyUnreachableContainingBlocks : public SILFunctionTransform {
 //                           Top Level Entry Point
 //===----------------------------------------------------------------------===//
 
-SILTransform *swift::createSimplifyUnreachableContainingBlocks() {
+SILTransform *language::createSimplifyUnreachableContainingBlocks() {
   return new SimplifyUnreachableContainingBlocks();
 }

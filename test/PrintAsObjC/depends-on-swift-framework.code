@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code
+// FIXME: END -enable-source-import hackaround
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %S/Inputs/depends-on-language-framework-helper.code -module-name OtherModule
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -import-objc-header %S/../Inputs/empty.h -emit-module -o %t %s -module-name main
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -import-objc-header %S/../Inputs/empty.h -parse-as-library %t/main.codemodule -typecheck -verify -emit-objc-header-path %t/main.h
+
+// RUN: %FileCheck %s < %t/main.h
+
+// RUN: %check-in-clang -I %S/Inputs/custom-modules %t/main.h
+// RUN: %check-in-clang -fno-modules -Qunused-arguments %t/main.h -include objc_generics.h
+
+// REQUIRES: objc_interop
+
+import Foundation
+import objc_generics
+import OtherModule
+
+// CHECK-LABEL: @interface Test
+public class Test: NSObject {
+  // CHECK: - (void)testSimpleTypealias:(id <Fungible> _Nonnull)_;
+  @objc fn testSimpleTypealias(_: AliasForFungible) {}
+  // CHECK: - (void)testGenericTypealias:(FungibleContainer<id <Fungible>> * _Nonnull)_;
+  @objc fn testGenericTypealias(_: FungibleContainer<AliasForFungible>) {}
+} // CHECK: @end

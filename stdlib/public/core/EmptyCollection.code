@@ -1,4 +1,4 @@
-//===--- EmptyCollection.swift - A collection with no elements ------------===//
+//===--- EmptyCollection.code - A collection with no elements ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Sometimes an operation is best expressed in terms of some other,
@@ -45,7 +46,7 @@ extension EmptyCollection {
 extension EmptyCollection.Iterator: IteratorProtocol, Sequence {
   /// Returns `nil`, indicating that there are no more elements.
   @inlinable // trivial-implementation
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     return nil
   }
 }
@@ -53,7 +54,7 @@ extension EmptyCollection.Iterator: IteratorProtocol, Sequence {
 extension EmptyCollection: Sequence {
   /// Returns an empty iterator.
   @inlinable // trivial-implementation
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return Iterator()
   }
 }
@@ -84,7 +85,7 @@ extension EmptyCollection: RandomAccessCollection, MutableCollection {
   /// `EmptyCollection` does not have any element indices, so it is not
   /// possible to advance indices.
   @inlinable // trivial-implementation
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     _preconditionFailure("EmptyCollection can't advance indices")
   }
 
@@ -93,7 +94,7 @@ extension EmptyCollection: RandomAccessCollection, MutableCollection {
   /// `EmptyCollection` does not have any element indices, so it is not
   /// possible to advance indices.
   @inlinable // trivial-implementation
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     _preconditionFailure("EmptyCollection can't advance indices")
   }
 
@@ -115,7 +116,7 @@ extension EmptyCollection: RandomAccessCollection, MutableCollection {
     get {
       _debugPrecondition(bounds.lowerBound == 0 && bounds.upperBound == 0,
         "Index out of range")
-      return self
+      return this
     }
     set {
       _debugPrecondition(bounds.lowerBound == 0 && bounds.upperBound == 0,
@@ -130,13 +131,13 @@ extension EmptyCollection: RandomAccessCollection, MutableCollection {
   }
 
   @inlinable // trivial-implementation
-  public func index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Int) -> Index {
     _debugPrecondition(i == startIndex && n == 0, "Index out of range")
     return i
   }
 
   @inlinable // trivial-implementation
-  public func index(
+  public fn index(
     _ i: Index, offsetBy n: Int, limitedBy limit: Index
   ) -> Index? {
     _debugPrecondition(i == startIndex && limit == startIndex,
@@ -146,20 +147,20 @@ extension EmptyCollection: RandomAccessCollection, MutableCollection {
 
   /// The distance between two indexes (always zero).
   @inlinable // trivial-implementation
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     _debugPrecondition(start == 0, "From must be startIndex (or endIndex)")
     _debugPrecondition(end == 0, "To must be endIndex (or startIndex)")
     return 0
   }
 
   @inlinable // trivial-implementation
-  public func _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
+  public fn _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
     _debugPrecondition(index == 0, "out of bounds")
     _debugPrecondition(bounds == indices, "invalid bounds for an empty collection")
   }
 
   @inlinable // trivial-implementation
-  public func _failEarlyRangeCheck(
+  public fn _failEarlyRangeCheck(
     _ range: Range<Index>, bounds: Range<Index>
   ) {
     _debugPrecondition(range == indices, "invalid range for an empty collection")
@@ -169,7 +170,7 @@ extension EmptyCollection: RandomAccessCollection, MutableCollection {
 
 extension EmptyCollection: Equatable {
   @inlinable // trivial-implementation
-  public static func == (
+  public static fn == (
     lhs: EmptyCollection<Element>, rhs: EmptyCollection<Element>
   ) -> Bool {
     return true

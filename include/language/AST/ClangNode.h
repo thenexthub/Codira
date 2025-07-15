@@ -1,4 +1,4 @@
-//===--- ClangNode.h - How Swift tracks imported Clang entities -*- C++ -*-===//
+//===--- ClangNode.h - How Codira tracks imported Clang entities -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CLANGNODE_H
-#define SWIFT_CLANGNODE_H
+#ifndef LANGUAGE_CLANGNODE_H
+#define LANGUAGE_CLANGNODE_H
 
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 namespace clang {
   class Decl;
@@ -52,7 +53,7 @@ class ClangNode {
   template <typename T>
   using Box = detail::ClangNodeBox<T>;
 
-  llvm::PointerUnion<Box<clang::Decl>, Box<clang::MacroInfo>,
+  toolchain::PointerUnion<Box<clang::Decl>, Box<clang::MacroInfo>,
                      Box<clang::ModuleMacro>, Box<clang::Module>> Ptr;
 
 public:
@@ -105,7 +106,7 @@ public:
   clang::SourceLocation getLocation() const;
   clang::SourceRange getSourceRange() const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   void *getOpaqueValue() const { return Ptr.getOpaqueValue(); }
   static inline ClangNode getFromOpaqueValue(void *VP) {
@@ -117,10 +118,10 @@ public:
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 template <typename T>
-struct PointerLikeTypeTraits<swift::detail::ClangNodeBox<T>> {
-  using Box = ::swift::detail::ClangNodeBox<T>;
+struct PointerLikeTypeTraits<language::detail::ClangNodeBox<T>> {
+  using Box = ::language::detail::ClangNodeBox<T>;
 
   static inline void *getAsVoidPointer(Box P) {
     return const_cast<void *>(static_cast<const void *>(P.value));
@@ -133,6 +134,6 @@ struct PointerLikeTypeTraits<swift::detail::ClangNodeBox<T>> {
   enum { NumLowBitsAvailable = 2 };
 };
   
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

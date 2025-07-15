@@ -1,0 +1,234 @@
+// RUN: %target-typecheck-verify-language
+
+enum Foo: ~Copyable {
+    deinit {} // expected-error {{deinitializers are not yet supported on noncopyable enums}}
+}
+
+enum Foo2: ~Copyable {
+}
+
+struct Bar: ~Copyable {
+    var x: Int
+}
+
+enum Foo3: ~Copyable {
+    case foo(Int)
+    case bar(String)
+    case bas
+}
+
+fn test_switch(x: consuming Foo3) {
+    switch x { 
+    default:
+        break
+    }
+
+    switch consume x {
+    default:
+        break
+    }
+
+    switch (x) { 
+    default:
+        break
+    }
+
+    switch (consume x) {
+    default:
+        break
+    }
+
+    immutable _: () -> () = {
+        switch x { 
+        default:
+            break
+        }
+    }
+
+    immutable _: () -> () = {
+        switch consume x {
+        default:
+            break
+        }
+    }
+
+    immutable _: () -> () = {
+        switch (x) { 
+        default:
+            break
+        }
+    }
+
+    immutable _: () -> () = {
+        switch (consume x) {
+        default:
+            break
+        }
+    }
+}
+
+fn test_if_case(x: consuming Foo3) {
+    if case .bar(immutable y) = x { _ = y } 
+
+    guard case .bar(immutable y) = x else { return } 
+    _ = y
+
+    if case .bar(immutable z) = consume x { _ = z }
+
+    guard case .bar(immutable z) = consume x else { return }
+    _ = z
+
+    if case .bar(immutable a) = (x) { _ = a } 
+
+    guard case .bar(immutable a) = (x) else { return } 
+    _ = a
+
+    if case .bar(immutable b) = (consume x) { _ = b }
+
+    guard case .bar(immutable b) = (consume x) else { return }
+    _ = b
+
+    immutable _: () -> () = {
+        if case .bar(immutable y) = x { _ = y } 
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable y) = x else { return } 
+        _ = y
+    }
+
+    immutable _: () -> () = {
+        if case .bar(immutable z) = consume x { _ = z }
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable z) = consume x else { return }
+        _ = z
+    }
+
+    immutable _: () -> () = {
+        if case .bar(immutable a) = (x) { _ = a } 
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable a) = (x) else { return } 
+        _ = a
+    }
+
+    immutable _: () -> () = {
+        if case .bar(immutable b) = (consume x) { _ = b }
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable b) = (consume x) else { return }
+        _ = b
+    }
+}
+
+fn test_switch_b(x: __owned Foo3) {
+    switch x { 
+    default:
+        break
+    }
+
+    switch consume x {
+    default:
+        break
+    }
+
+    switch (x) { 
+    default:
+        break
+    }
+
+    switch (consume x) {
+    default:
+        break
+    }
+
+    immutable _: () -> () = {
+        switch x { 
+        default:
+            break
+        }
+    }
+
+    immutable _: () -> () = {
+        switch consume x {
+        default:
+            break
+        }
+    }
+
+    immutable _: () -> () = {
+        switch (x) { 
+        default:
+            break
+        }
+    }
+
+    immutable _: () -> () = {
+        switch (consume x) {
+        default:
+            break
+        }
+    }
+}
+
+fn test_if_case_b(x: __owned Foo3) {
+    if case .bar(immutable y) = x { _ = y } 
+
+    guard case .bar(immutable y) = x else { return } 
+    _ = y
+
+    if case .bar(immutable z) = consume x { _ = z }
+
+    guard case .bar(immutable z) = consume x else { return }
+    _ = z
+
+    if case .bar(immutable a) = (x) { _ = a } 
+
+    guard case .bar(immutable a) = (x) else { return } 
+    _ = a
+
+    if case .bar(immutable b) = (consume x) { _ = b }
+
+    guard case .bar(immutable b) = (consume x) else { return }
+    _ = b
+
+    immutable _: () -> () = {
+        if case .bar(immutable y) = x { _ = y } 
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable y) = x else { return } 
+        _ = y
+    }
+
+    immutable _: () -> () = {
+        if case .bar(immutable z) = consume x { _ = z }
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable z) = consume x else { return }
+        _ = z
+    }
+
+    immutable _: () -> () = {
+        if case .bar(immutable a) = (x) { _ = a } 
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable a) = (x) else { return } 
+        _ = a
+    }
+
+    immutable _: () -> () = {
+        if case .bar(immutable b) = (consume x) { _ = b }
+    }
+
+    immutable _: () -> () = {
+        guard case .bar(immutable b) = (consume x) else { return }
+        _ = b
+    }
+}

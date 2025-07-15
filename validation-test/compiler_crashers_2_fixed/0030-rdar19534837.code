@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend %s -typecheck
+
+_ = {
+  typealias A = Int
+}

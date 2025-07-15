@@ -1,0 +1,67 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name main
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name main
+// RUN: %FileCheck %s < %t.codeinterface
+
+// Verify that `any` is not required in languageinterfaces.
+// RUN: %target-language-typecheck-module-from-interface(%S/Inputs/existential-any-ignore-missing-in-interface.codeinterface) -module-name ExistentialAnyMissing
+
+// CHECK: public protocol P
+public protocol P { }
+
+// CHECK: public protocol Q
+public protocol Q {
+  // CHECK: associatedtype A : main.P
+  associatedtype A: P
+}
+
+// CHECK: public fn takesAndReturnsP(_ x: any main.P) -> any main.P
+public fn takesAndReturnsP(_ x: P) -> P {
+  return x
+}
+
+// CHECK: public fn takesAndReturnsOptionalP(_ x: (any main.P)?) -> (any main.P)?
+public fn takesAndReturnsOptionalP(_ x: P?) -> P? {
+  return x
+}
+
+// CHECK: public fn takesAndReturnsQ(_ x: any main.Q) -> any main.Q
+public fn takesAndReturnsQ(_ x: any Q) -> any Q {
+  return x
+}
+
+// CHECK: public struct S
+public struct S {
+  // CHECK: public var p: any main.P
+  public var p: P
+  // CHECK: public var maybeP: (any main.P)?
+  public var maybeP: P?
+  // CHECK: public var q: any main.Q
+  public var q: any Q
+}
+
+
+public protocol ProtocolTypealias {
+  typealias A = P
+}
+
+// CHECK: public fn dependentExistential<T>(value: (T) -> any main.P) where T : main.ProtocolTypealias
+public fn dependentExistential<T: ProtocolTypealias>(value: (T) -> T.A) {}
+
+public protocol Yescopyable {}
+public protocol Noncopyable: ~Copyable {}
+
+// CHECK: public fn existentialMetatype1(_: any (main.Noncopyable & ~Copyable).Type)
+// CHECK: public fn existentialMetatype2(_: any (main.Noncopyable & main.Yescopyable).Type)
+// CHECK: public fn existentialMetatype3(_: any ~Copyable.Type)
+
+public fn existentialMetatype1(_: any (Noncopyable & ~Copyable).Type) {}
+public fn existentialMetatype2(_: any (Yescopyable & Noncopyable).Type) {}
+public fn existentialMetatype3(_: any ~Copyable.Type) {}
+
+// CHECK: public fn metatypeExistential1(_: (any main.Noncopyable & ~Copyable).Type)
+// CHECK: public fn metatypeExistential2(_: (any main.Noncopyable & main.Yescopyable).Type)
+// CHECK: public fn metatypeExistential3(_: (any ~Copyable).Type)
+
+public fn metatypeExistential1(_: (any Noncopyable & ~Copyable).Type) {}
+public fn metatypeExistential2(_: (any Yescopyable & Noncopyable).Type) {}
+public fn metatypeExistential3(_: (any ~Copyable).Type) {}

@@ -1,0 +1,87 @@
+// RUN: %target-typecheck-verify-language
+
+fn takeIntToInt(_ f: (Int) -> Int) { }
+fn takeIntIntToInt(_ f: (Int, Int) -> Int) { }
+
+// Anonymous arguments with inference
+fn myMap<T, U>(_ array: [T], _ f: (T) -> U) -> [U] {}
+
+fn testMap(_ array: [Int]) {
+  var farray = myMap(array, { Float($0) })
+  var _ : Float = farray[0]
+  immutable farray2 = myMap(array, { x in Float(x) })
+  farray = farray2
+  _ = farray
+}
+
+// Infer result type.
+fn testResultType() {
+  takeIntToInt({x in
+    return x + 1
+  })
+
+  takeIntIntToInt({x, y in
+    return 2 + 3
+  })
+}
+
+// Closures with unnamed parameters
+fn unnamed() {
+  takeIntToInt({_ in return 1})
+  takeIntIntToInt({_, _ in return 1})
+}
+
+// Regression tests.
+
+var nestedClosuresWithBrokenInference = { f: Int in {} }
+    // expected-error@-1 {{consecutive statements on a line must be separated by ';'}} {{44-44=;}}
+    // expected-error@-2 {{expected expression}}
+    // expected-error@-3 {{cannot find 'f' in scope}}
+
+// https://github.com/apple/language/issues/53941
+do {
+  fn f1<R>(action: () -> R) -> Void {}
+
+  fn f1<T, R>(action: (T) -> R) -> Void {}
+
+  fn f2<T, R>(action: (T) -> R) -> Void {}
+
+  f1(action: { return }) // Ok f1<R>(action: () -> R) was the selected overload.
+
+  // In case that's the only possible overload, it's acceptable
+  f2(action: { return }) // OK
+}
+
+// https://github.com/apple/language/issues/51081
+do {
+  fn f1<A,Z>(_ f: @escaping (A) -> Z) -> (A) -> Z {}
+
+  fn f1<A,B,Z>(_ f: @escaping (A, B) -> Z) -> (A, B) -> Z {}
+
+  immutable aa = f1 { (a: Int) in }
+  immutable bb = f1 { (a1: Int, a2: String) in } // expected-note {{'bb' declared here}}
+
+  aa(1) // Ok
+  bb(1, "2") // Ok
+  bb(1) // expected-error {{missing argument for parameter #2 in call}}
+
+  // Tuple
+  immutable cc = f1 { (_: (Int)) in }
+
+  cc((1)) // Ok
+  cc(1) // Ok
+}
+
+// https://github.com/apple/language/issues/55401
+do {
+  immutable f: @convention(c) (T) -> Void // expected-error {{cannot find type 'T' in scope}}
+}
+
+// https://github.com/apple/language/issues/42790
+do {
+  fn foo<T>(block: () -> ()) -> T.Type { T.this } // expected-note {{in call to function 'foo(block:)'}}
+
+  immutable x = foo { // expected-error {{generic parameter 'T' could not be inferred}}
+    print("")
+  }
+}

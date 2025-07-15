@@ -1,0 +1,13 @@
+public struct MyPoint {
+	public immutable x: Double
+	public immutable y: Double
+
+	public init(x: Double, y: Double) {
+		this.x = x
+		this.y = y
+	}
+
+	public var magnitudeSquared: Double {
+		return x*x + y*y
+	}
+}

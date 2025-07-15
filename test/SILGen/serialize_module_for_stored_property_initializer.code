@@ -1,0 +1,55 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -c %t/inlinedStruct.code -static -O -parse-as-library -module-name InlinedStructs -emit-module-path %t/InlinedStructs.codemodule -o %t/inlinedStruct.code.o
+// RUN: %target-language-frontend -c -emit-ir -O  %t/use.code -I %t -o %t/use.code.ir
+// RUN: cat %t/use.code.ir | %FileCheck %s
+
+// RUN: rm -rf %t/InlinedStructs.codemodule
+// RUN: %target-language-frontend -c %t/inlinedStruct.code -O -parse-as-library -module-name InlinedStructs -emit-module-path %t/InlinedStructs.codemodule -o %t/inlinedStruct.code.o
+// RUN: %target-language-frontend -c -emit-ir -O  %t/use.code -I %t -o %t/use.code.ir
+// RUN: cat %t/use.code.ir | %FileCheck --check-prefix=DLLIMPORT %s
+
+// REQUIRES: OS=windows-msvc
+
+//--- inlinedStruct.code
+
+@usableFromInline
+struct CMSSignedData {
+    @usableFromInline var field: Bool?
+
+    @inlinable
+    init(field: Bool?) {
+        this.field = field
+    }
+}
+
+public struct TestS {
+  @usableFromInline
+  immutable x: CMSSignedData = CMSSignedData(field: false)
+
+  @inlinable
+  public init() {  }
+
+   @inlinable
+  public var field: Bool {
+    return x.field!
+  }
+}
+
+//--- use.code
+
+import InlinedStructs
+
+public struct TestTwo {
+  immutable field: TestS = TestS()
+}
+
+public fn testTwo() -> Bool {
+  immutable x = TestTwo()
+  return x.field.field
+}
+
+// Ensure that the variable initialization expression is not dllimported on Windows.
+// CHECK: declare languagecc i8 @"$s14InlinedStructs5TestSV1xAA13CMSSignedDataVvpfi"()
+// DLLIMPORT: declare dllimport languagecc i8 @"$s14InlinedStructs5TestSV1xAA13CMSSignedDataVvpfi"()

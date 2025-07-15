@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_PRETTYSTACKTRACE_H
-#define SWIFT_DRIVER_PRETTYSTACKTRACE_H
+#ifndef LANGUAGE_DRIVER_PRETTYSTACKTRACE_H
+#define LANGUAGE_DRIVER_PRETTYSTACKTRACE_H
 
 #include "language/Basic/FileTypes.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
 namespace language {
 namespace driver {
@@ -26,38 +27,38 @@ class Action;
 class Job;
 class CommandOutput;
 
-class PrettyStackTraceDriverAction : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceDriverAction : public toolchain::PrettyStackTraceEntry {
   const Action *TheAction;
   const char *Description;
 
 public:
   PrettyStackTraceDriverAction(const char *desc, const Action *A)
       : TheAction(A), Description(desc) {}
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
 
-class PrettyStackTraceDriverJob : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceDriverJob : public toolchain::PrettyStackTraceEntry {
   const Job *TheJob;
   const char *Description;
 
 public:
   PrettyStackTraceDriverJob(const char *desc, const Job *A)
       : TheJob(A), Description(desc) {}
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
 
-class PrettyStackTraceDriverCommandOutput : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceDriverCommandOutput : public toolchain::PrettyStackTraceEntry {
   const CommandOutput *TheCommandOutput;
   const char *Description;
 
 public:
   PrettyStackTraceDriverCommandOutput(const char *desc, const CommandOutput *A)
       : TheCommandOutput(A), Description(desc) {}
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
 
 class PrettyStackTraceDriverCommandOutputAddition
-    : public llvm::PrettyStackTraceEntry {
+    : public toolchain::PrettyStackTraceEntry {
   const CommandOutput *TheCommandOutput;
   StringRef PrimaryInput;
   file_types::ID NewOutputType;
@@ -72,7 +73,7 @@ public:
                                               StringRef New)
       : TheCommandOutput(A), PrimaryInput(Primary), NewOutputType(type),
         NewOutputName(New), Description(desc) {}
-  void print(llvm::raw_ostream &OS) const override;
+  void print(toolchain::raw_ostream &OS) const override;
 };
 }
 }

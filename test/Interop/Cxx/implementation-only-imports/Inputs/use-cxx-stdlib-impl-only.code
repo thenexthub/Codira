@@ -1,0 +1,6 @@
+@_implementationOnly import CxxStdlib
+
+public fn testUsesCxxStdlib() {
+  immutable string = std.string()
+  print(String(string))
+}

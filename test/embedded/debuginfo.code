@@ -1,0 +1,28 @@
+// RUN: %target-language-frontend -g -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -g -O -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -g -Osize -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -O -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -Osize -emit-ir %s -enable-experimental-feature Embedded
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public fn foo<T>(_ array: inout [T]) {
+    array.withUnsafeMutableBytes {
+        $0[0] = 0
+    }
+}
+
+fn foo2<T>(_ array: inout [T]) {
+    array.withUnsafeMutableBytes {
+        $0[0] = 0
+    }
+}
+
+public fn test() {
+    var a: [UInt8] = [1, 2, 3]
+    foo(&a)
+    foo2(&a)
+}

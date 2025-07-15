@@ -1,263 +1,263 @@
 @inline(never)
-private func consume<T>(_ t: T) {
+private fn consume<T>(_ t: T) {
     withExtendedLifetime(t) { t in }
 }
 @usableFromInline
-internal func _prespecialize() {
-  consume(Array<()>.self)
-  consume(Array<(Optional<String>, Any)>.self)
-  consume(Array<Any>.self)
-  consume(Array<AnyHashable>.self)
-  consume(Array<Dictionary<String, Any>>.self)
-  consume(Array<Dictionary<String, AnyObject>>.self)
-  consume(Array<Int64>.self)
-  consume(Array<Int>.self)
-  consume(Array<Optional<Any>>.self)
-  consume(Array<Optional<String>>.self)
+internal fn _prespecialize() {
+  consume(Array<()>.this)
+  consume(Array<(Optional<String>, Any)>.this)
+  consume(Array<Any>.this)
+  consume(Array<AnyHashable>.this)
+  consume(Array<Dictionary<String, Any>>.this)
+  consume(Array<Dictionary<String, AnyObject>>.this)
+  consume(Array<Int64>.this)
+  consume(Array<Int>.this)
+  consume(Array<Optional<Any>>.this)
+  consume(Array<Optional<String>>.this)
 #if _runtime(_ObjC)
-  consume(_ArrayBuffer<()>.self)
-  consume(_ArrayBuffer<(Optional<String>, Any)>.self)
-  consume(_ArrayBuffer<Any>.self)
-  consume(_ArrayBuffer<AnyHashable>.self)
-  consume(_ArrayBuffer<Dictionary<String, Any>>.self)
-  consume(_ArrayBuffer<Dictionary<String, AnyObject>>.self)
-  consume(_ArrayBuffer<Int64>.self)
-  consume(_ArrayBuffer<Int>.self)
-  consume(_ArrayBuffer<Optional<Any>>.self)
-  consume(_ArrayBuffer<Optional<String>>.self)
+  consume(_ArrayBuffer<()>.this)
+  consume(_ArrayBuffer<(Optional<String>, Any)>.this)
+  consume(_ArrayBuffer<Any>.this)
+  consume(_ArrayBuffer<AnyHashable>.this)
+  consume(_ArrayBuffer<Dictionary<String, Any>>.this)
+  consume(_ArrayBuffer<Dictionary<String, AnyObject>>.this)
+  consume(_ArrayBuffer<Int64>.this)
+  consume(_ArrayBuffer<Int>.this)
+  consume(_ArrayBuffer<Optional<Any>>.this)
+  consume(_ArrayBuffer<Optional<String>>.this)
 #endif
-  consume(ClosedRange<Int>.self)
-  consume(ContiguousArray<(AnyHashable, Any)>.self)
-  consume(ContiguousArray<(Optional<String>, Any)>.self)
-  consume(ContiguousArray<Any>.self)
-  consume(ContiguousArray<AnyHashable>.self)
-  consume(ContiguousArray<Dictionary<String, AnyObject>>.self)
-  consume(ContiguousArray<Int64>.self)
-  consume(ContiguousArray<String>.self)
-  consume(_ContiguousArrayStorage<(AnyHashable, Any)>.self)
-  consume(_ContiguousArrayStorage<(Optional<String>, Any)>.self)
-  consume(_ContiguousArrayStorage<Any>.self)
-  consume(_ContiguousArrayStorage<AnyHashable>.self)
-  consume(_ContiguousArrayStorage<Dictionary<String, AnyObject>>.self)
-  consume(_ContiguousArrayStorage<Int64>.self)
-  consume(_ContiguousArrayStorage<String>.self)
-  consume(Dictionary<String, String>.Index.self)
-  consume(Dictionary<String, String>.Iterator.self)
-  consume(Dictionary<AnyHashable, Any>.self)
-  consume(Dictionary<AnyHashable, Any>.Iterator.self)
-  consume(Dictionary<AnyHashable, AnyHashable>.self)
-  consume(Dictionary<AnyHashable, AnyHashable>.Iterator.self)
-  consume(Dictionary<AnyHashable, AnyObject>.self)
-  consume(Dictionary<String, Any>.self)
-  consume(Dictionary<String, Any>.Iterator.self)
-  consume(Dictionary<String, AnyHashable>.self)
-  consume(Dictionary<String, AnyObject>.self)
-  consume(Dictionary<String, Array<String>>.self)
-  consume(Dictionary<String, Dictionary<String, Any>>.self)
-  consume(Dictionary<String, String>.self)
-  consume(Dictionary<String, UInt8>.self)
-  consume(IndexingIterator<Array<Dictionary<String, AnyObject>>>.self)
-  consume(IndexingIterator<Array<Int>>.self)
-  consume(IndexingIterator<Array<String>>.self)
-  consume(IndexingIterator<ClosedRange<Int>>.self)
-  consume(IndexingIterator<Range<Int>>.self)
-  consume(IndexingIterator<String.UTF8View>.self)
-  consume(Optional<()>.self)
-  consume(Optional<(Any, Any)>.self)
-  consume(Optional<(AnyHashable, Any)>.self)
-  consume(Optional<(AnyHashable, AnyHashable)>.self)
-  consume(Optional<(CodingUserInfoKey, Any)>.self)
-  consume(Optional<(Int64, Bool)>.self)
-  consume(Optional<(Optional<String>, Any)>.self)
-  consume(Optional<(String, Any)>.self)
-  consume(Optional<(String, AnyObject)>.self)
-  consume(Optional<(String, Array<String>)>.self)
-  consume(Optional<(String, Int64)>.self)
-  consume(Optional<(String, String)>.self)
-  consume(Optional<(String, UInt8)>.self)
-  consume(Optional<Any>.self)
-  consume(Optional<AnyObject>.self)
-  consume(Optional<Array<Int64>>.self)
-  consume(Optional<Array<String>>.self)
-  consume(Optional<Bool>.self)
-  consume(Optional<CodingKey>.self)
-  consume(Optional<CodingUserInfoKey>.self)
-  consume(Optional<CustomDebugStringConvertible>.self)
-#if SWIFT_ENABLE_REFLECTION
-  consume(Optional<CustomReflectable>.self)
+  consume(ClosedRange<Int>.this)
+  consume(ContiguousArray<(AnyHashable, Any)>.this)
+  consume(ContiguousArray<(Optional<String>, Any)>.this)
+  consume(ContiguousArray<Any>.this)
+  consume(ContiguousArray<AnyHashable>.this)
+  consume(ContiguousArray<Dictionary<String, AnyObject>>.this)
+  consume(ContiguousArray<Int64>.this)
+  consume(ContiguousArray<String>.this)
+  consume(_ContiguousArrayStorage<(AnyHashable, Any)>.this)
+  consume(_ContiguousArrayStorage<(Optional<String>, Any)>.this)
+  consume(_ContiguousArrayStorage<Any>.this)
+  consume(_ContiguousArrayStorage<AnyHashable>.this)
+  consume(_ContiguousArrayStorage<Dictionary<String, AnyObject>>.this)
+  consume(_ContiguousArrayStorage<Int64>.this)
+  consume(_ContiguousArrayStorage<String>.this)
+  consume(Dictionary<String, String>.Index.this)
+  consume(Dictionary<String, String>.Iterator.this)
+  consume(Dictionary<AnyHashable, Any>.this)
+  consume(Dictionary<AnyHashable, Any>.Iterator.this)
+  consume(Dictionary<AnyHashable, AnyHashable>.this)
+  consume(Dictionary<AnyHashable, AnyHashable>.Iterator.this)
+  consume(Dictionary<AnyHashable, AnyObject>.this)
+  consume(Dictionary<String, Any>.this)
+  consume(Dictionary<String, Any>.Iterator.this)
+  consume(Dictionary<String, AnyHashable>.this)
+  consume(Dictionary<String, AnyObject>.this)
+  consume(Dictionary<String, Array<String>>.this)
+  consume(Dictionary<String, Dictionary<String, Any>>.this)
+  consume(Dictionary<String, String>.this)
+  consume(Dictionary<String, UInt8>.this)
+  consume(IndexingIterator<Array<Dictionary<String, AnyObject>>>.this)
+  consume(IndexingIterator<Array<Int>>.this)
+  consume(IndexingIterator<Array<String>>.this)
+  consume(IndexingIterator<ClosedRange<Int>>.this)
+  consume(IndexingIterator<Range<Int>>.this)
+  consume(IndexingIterator<String.UTF8View>.this)
+  consume(Optional<()>.this)
+  consume(Optional<(Any, Any)>.this)
+  consume(Optional<(AnyHashable, Any)>.this)
+  consume(Optional<(AnyHashable, AnyHashable)>.this)
+  consume(Optional<(CodingUserInfoKey, Any)>.this)
+  consume(Optional<(Int64, Bool)>.this)
+  consume(Optional<(Optional<String>, Any)>.this)
+  consume(Optional<(String, Any)>.this)
+  consume(Optional<(String, AnyObject)>.this)
+  consume(Optional<(String, Array<String>)>.this)
+  consume(Optional<(String, Int64)>.this)
+  consume(Optional<(String, String)>.this)
+  consume(Optional<(String, UInt8)>.this)
+  consume(Optional<Any>.this)
+  consume(Optional<AnyObject>.this)
+  consume(Optional<Array<Int64>>.this)
+  consume(Optional<Array<String>>.this)
+  consume(Optional<Bool>.this)
+  consume(Optional<CodingKey>.this)
+  consume(Optional<CodingUserInfoKey>.this)
+  consume(Optional<CustomDebugStringConvertible>.this)
+#if LANGUAGE_ENABLE_REFLECTION
+  consume(Optional<CustomReflectable>.this)
 #endif
-  consume(Optional<CustomStringConvertible>.self)
-  consume(Optional<Dictionary<AnyHashable, Any>>.self)
-  consume(Optional<Dictionary<String, Any>>.self)
-  consume(Optional<Dictionary<String, AnyObject>>.self)
-  consume(Optional<Dictionary<String, Array<String>>>.self)
-  consume(Optional<Dictionary<String, String>>.self)
-  consume(Optional<Double>.self)
-  consume(Optional<Int64>.self)
-  consume(Optional<Int8>.self)
-#if SWIFT_ENABLE_REFLECTION
-  consume(Optional<Mirror.DisplayStyle>.self)
+  consume(Optional<CustomStringConvertible>.this)
+  consume(Optional<Dictionary<AnyHashable, Any>>.this)
+  consume(Optional<Dictionary<String, Any>>.this)
+  consume(Optional<Dictionary<String, AnyObject>>.this)
+  consume(Optional<Dictionary<String, Array<String>>>.this)
+  consume(Optional<Dictionary<String, String>>.this)
+  consume(Optional<Double>.this)
+  consume(Optional<Int64>.this)
+  consume(Optional<Int8>.this)
+#if LANGUAGE_ENABLE_REFLECTION
+  consume(Optional<Mirror.DisplayStyle>.this)
 #endif
-  consume(Optional<Optional<Int64>>.self)
-  consume(Optional<Optional<String>>.self)
-  consume(Optional<Set<String>>.self)
-  consume(Optional<TextOutputStreamable>.self)
-  consume(Optional<UInt8>.self)
-  unsafe consume(Optional<UnsafeBufferPointer<AnyObject>>.self)
-  consume(PartialRangeFrom<Int>.self)
-  consume(Range<String.Index>.self)
-  consume(ReversedCollection<Range<Int>>.self)
-  consume(ReversedCollection<Range<Int>>.Iterator.self)
-  consume(Set<Int>.self)
-  consume(Set<String>.self)
-  consume(Set<String>.Iterator.self)
-  consume(Set<String>.self)
-  unsafe consume(Unmanaged<AnyObject>.self)
-  unsafe consume(UnsafeBufferPointer<AnyObject>.self)
-  unsafe consume(UnsafeBufferPointer<Int8>.self)
-  unsafe consume(UnsafePointer<Int8>.self)
+  consume(Optional<Optional<Int64>>.this)
+  consume(Optional<Optional<String>>.this)
+  consume(Optional<Set<String>>.this)
+  consume(Optional<TextOutputStreamable>.this)
+  consume(Optional<UInt8>.this)
+  unsafe consume(Optional<UnsafeBufferPointer<AnyObject>>.this)
+  consume(PartialRangeFrom<Int>.this)
+  consume(Range<String.Index>.this)
+  consume(ReversedCollection<Range<Int>>.this)
+  consume(ReversedCollection<Range<Int>>.Iterator.this)
+  consume(Set<Int>.this)
+  consume(Set<String>.this)
+  consume(Set<String>.Iterator.this)
+  consume(Set<String>.this)
+  unsafe consume(Unmanaged<AnyObject>.this)
+  unsafe consume(UnsafeBufferPointer<AnyObject>.this)
+  unsafe consume(UnsafeBufferPointer<Int8>.this)
+  unsafe consume(UnsafePointer<Int8>.this)
 }
 
 @_specializeExtension
 extension Array {
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _endMutation(),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__endMutation(){ Builtin.unreachable() }
+  mutating fn __specialize_class__endMutation(){ Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _createNewBuffer(bufferIsUnique:minimumCapacity:growForAppend:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__createNewBuffer(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
+  mutating fn __specialize_class__createNewBuffer(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _makeUniqueAndReserveCapacityIfNotUnique(),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__makeUniqueAndReserveCapacityIfNotUnique() { Builtin.unreachable() }
+  mutating fn __specialize_class__makeUniqueAndReserveCapacityIfNotUnique() { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _appendElementAssumeUniqueAndCapacity(_:newElement:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__appendElementAssumeUniqueAndCapacity(_: Int, newElement: __owned Element) { Builtin.unreachable() }
+  mutating fn __specialize_class__appendElementAssumeUniqueAndCapacity(_: Int, newElement: __owned Element) { Builtin.unreachable() }
 }
 
 #if _runtime(_ObjC)
 @_specializeExtension
 extension _ArrayBuffer {
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _consumeAndCreateNew(bufferIsUnique:minimumCapacity:growForAppend:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  func __specialize_class__consumeAndCreateNew(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) -> _ArrayBuffer<Element> { Builtin.unreachable() }
+  fn __specialize_class__consumeAndCreateNew(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) -> _ArrayBuffer<Element> { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _copyContents(initializing:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  __consuming func __specialize_class__copyContents(
+  __consuming fn __specialize_class__copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _copyContents(subRange:initializing:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  __consuming func __specialize_class__copyContents(subRange: Range<Int>, initializing: Swift.UnsafeMutablePointer<Element>) -> Swift.UnsafeMutablePointer<Element> { Builtin.unreachable() }
+  __consuming fn __specialize_class__copyContents(subRange: Range<Int>, initializing: Codira.UnsafeMutablePointer<Element>) -> Codira.UnsafeMutablePointer<Element> { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _getElementSlowPath(_:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
-  func __specialize_class__getElementSlowPath(_ i: Int) -> AnyObject { Builtin.unreachable() }
+  @available(CodiraStdlib 5.9, *)
+  fn __specialize_class__getElementSlowPath(_ i: Int) -> AnyObject { Builtin.unreachable() }
 }
 #endif
 
 @_specializeExtension
 extension ContiguousArray {
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _endMutation(),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__endMutation(){ Builtin.unreachable() }
+  mutating fn __specialize_class__endMutation(){ Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _createNewBuffer(bufferIsUnique:minimumCapacity:growForAppend:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__createNewBuffer(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
+  mutating fn __specialize_class__createNewBuffer(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _makeUniqueAndReserveCapacityIfNotUnique(),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__makeUniqueAndReserveCapacityIfNotUnique() { Builtin.unreachable() }
+  mutating fn __specialize_class__makeUniqueAndReserveCapacityIfNotUnique() { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _appendElementAssumeUniqueAndCapacity(_:newElement:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__appendElementAssumeUniqueAndCapacity(_: Int, newElement: __owned Element) { Builtin.unreachable() }
+  mutating fn __specialize_class__appendElementAssumeUniqueAndCapacity(_: Int, newElement: __owned Element) { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
               target: _reserveCapacityImpl(minimumCapacity:growForAppend:),
               where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__reserveCapacityImpl(minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
+  mutating fn __specialize_class__reserveCapacityImpl(minimumCapacity: Int, growForAppend: Bool) { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
               target: _reserveCapacityAssumingUniqueBuffer(oldCount:),
               where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__reserveCapacityAssumingUniqueBuffer(oldCount: Int) { Builtin.unreachable() }
+  mutating fn __specialize_class__reserveCapacityAssumingUniqueBuffer(oldCount: Int) { Builtin.unreachable() }
 
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
               target: reserveCapacity(_:),
               where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  mutating func __specialize_class__reserveCapacity(_ minimumCapacity: Int) { Builtin.unreachable() }
+  mutating fn __specialize_class__reserveCapacity(_ minimumCapacity: Int) { Builtin.unreachable() }
 }
 
 @_specializeExtension
 extension _ContiguousArrayBuffer {
   @_specialize(exported: true,
-               availability: SwiftStdlib 5.9, *;
+               availability: CodiraStdlib 5.9, *;
                target: _consumeAndCreateNew(bufferIsUnique:minimumCapacity:growForAppend:),
                where @_noMetadata Element : _Class)
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
-  func __specialize_class__consumeAndCreateNew(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) -> _ContiguousArrayBuffer<Element> { Builtin.unreachable() }
+  fn __specialize_class__consumeAndCreateNew(bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool) -> _ContiguousArrayBuffer<Element> { Builtin.unreachable() }
 }

@@ -1,0 +1,2392 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature Extern -enable-experimental-feature AddressableParameters -enable-experimental-feature NoImplicitCopy -enable-experimental-feature SymbolLinkageMarkers -enable-experimental-feature StrictMemorySafety -enable-experimental-feature Lifetimes -enable-experimental-feature CImplementation -import-bridging-header %S/Inputs/attr_abi.h -parse-as-library -debugger-support
+
+// REQUIRES: language_feature_AddressableParameters
+// REQUIRES: language_feature_CImplementation
+// REQUIRES: language_feature_Extern
+// REQUIRES: language_feature_Lifetimes
+// REQUIRES: language_feature_NoImplicitCopy
+// REQUIRES: language_feature_StrictMemorySafety
+// REQUIRES: language_feature_SymbolLinkageMarkers
+
+import _Differentiation
+
+import Distributed
+
+@available(CodiraStdlib 5.7, *)
+typealias DefaultDistributedActorSystem = LocalTestingDistributedActorSystem
+
+//
+// Same-kind checking
+//
+
+@abi(fn funcForFunc_abi())
+fn funcForFunc() {}
+
+@abi(var varForVar_abi: Int)
+var varForVar: Int = 0
+
+@abi(fn funcForVar_abi()) // expected-error {{cannot give var 'funcForVar' the ABI of a global function}}
+var funcForVar: Int = 0
+
+@abi(var varForFunc_abi: Int) // expected-error {{cannot give global function 'varForFunc()' the ABI of a pattern binding}}
+fn varForFunc() {}
+
+struct SameKind {
+  @abi(subscript(sub1 _: Int) -> Int)
+  subscript(sub1 _: Int) -> Int { 0 }
+
+  @abi(fn sub2(_: Int) -> Int) // expected-error {{cannot give subscript 'subscript(sub2:)' the ABI of a instance method}}
+  subscript(sub2 _: Int) -> Int { 0 }
+
+  @abi(subscript(sub3 _: Int) -> Int) // expected-error {{cannot give instance method 'sub3' the ABI of a subscript}}
+  fn sub3(_: Int) -> Int { 0 }
+
+  @abi(var sub4: Int) // expected-error {{cannot give subscript 'subscript(sub4:)' the ABI of a pattern binding}}
+  subscript(sub4 _: Int) -> Int { 0 }
+
+  @abi(subscript(sub4 _: Int) -> Int) // expected-error {{cannot give property 'sub4' the ABI of a subscript}}
+  var sub4: Int { 0 }
+}
+
+//
+// Function arity checking
+//
+
+@abi(fn param00_generic00() -> Int)
+fn param00_generic00() -> Int { fatalError() }
+
+@abi(fn param10_generic00(_: Int) -> Int) // expected-error {{cannot give global function 'param10_generic00()' the ABI of a global function with a different number of parameters}}
+fn param10_generic00() -> Int { fatalError() }
+
+@abi(fn param01_generic00() -> Int) // expected-error {{cannot give global function 'param01_generic00' the ABI of a global function with a different number of parameters}}
+fn param01_generic00(_: Int) -> Int { fatalError() }
+
+@abi(fn param11_generic00(_: Int) -> Int)
+fn param11_generic00(_: Int) -> Int { fatalError() }
+
+
+
+@abi(fn param00_generic10<T>() -> T) // expected-error {{declaration in '@abi' should not have generic signature}}
+fn param00_generic10() -> Int { fatalError() }
+
+@abi(fn param10_generic10<T>(_: Int) -> T) // expected-error {{declaration in '@abi' should not have generic signature}}
+fn param10_generic10() -> Int { fatalError() }
+
+@abi(fn param01_generic10<T>() -> T) // expected-error {{declaration in '@abi' should not have generic signature because 'param01_generic10' is not generic}}
+fn param01_generic10(_: Int) -> Int { fatalError() }
+
+@abi(fn param11_generic10<T>(_: Int) -> T) // expected-error {{declaration in '@abi' should not have generic signature because 'param11_generic10' is not generic}}
+fn param11_generic10(_: Int) -> Int { fatalError() }
+
+
+
+@abi(fn param00_generic01() -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+fn param00_generic01<T>() -> T { fatalError() }
+
+@abi(fn param10_generic01(_: Int) -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+fn param10_generic01<T>() -> T { fatalError() }
+
+@abi(fn param01_generic01() -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+fn param01_generic01<T>(_: Int) -> T { fatalError() }
+
+@abi(fn param11_generic01(_: Int) -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+fn param11_generic01<T>(_: Int) -> T { fatalError() }
+
+
+
+@abi(fn param00_generic11<T>() -> T)
+fn param00_generic11<T>() -> T { fatalError() }
+
+@abi(fn param10_generic11<T>(_: Int) -> T) // expected-error {{cannot give global function 'param10_generic11()' the ABI of a global function with a different number of parameters}}
+fn param10_generic11<T>() -> T { fatalError() }
+
+@abi(fn param01_generic11<T>() -> T) // expected-error {{cannot give global function 'param01_generic11' the ABI of a global function with a different number of parameters}}
+fn param01_generic11<T>(_: Int) -> T { fatalError() }
+
+@abi(fn param11_generic11<T>(_: Int) -> T)
+fn param11_generic11<T>(_: Int) -> T { fatalError() }
+
+
+
+struct SubscriptArity {
+  @abi(subscript(param11_generic00 _: Int) -> Int)
+  subscript(param11_generic00 _: Int) -> Int { 0 }
+
+  @abi(subscript(param21_generic00 _: Int, _: Int) -> Int) // expected-error {{cannot give subscript 'subscript(param21_generic00:)' the ABI of a subscript with a different number of parameters}}
+  subscript(param21_generic00 _: Int) -> Int { 0 }
+
+  @abi(subscript(param12_generic00 _: Int) -> Int) // expected-error {{cannot give subscript 'subscript(param12_generic00:_:)' the ABI of a subscript with a different number of parameters}}
+  subscript(param12_generic00 _: Int, _: Int) -> Int { 0 }
+
+  @abi(subscript(param22_generic00 _: Int, _: Int) -> Int)
+  subscript(param22_generic00 _: Int, _: Int) -> Int { 0 }
+
+  @abi(subscript<T>(param11_generic10 _: T) -> Int) // expected-error {{declaration in '@abi' should not have generic signature because 'subscript(param11_generic10:)' is not generic}}
+  subscript(param11_generic10 _: Int) -> Int { 0 }
+
+  @abi(subscript<T>(param21_generic10 _: T, _: Int) -> Int) // expected-error {{declaration in '@abi' should not have generic signature because 'subscript(param21_generic10:)' is not generic}}
+  subscript(param21_generic10 _: Int) -> Int { 0 }
+
+  @abi(subscript<T>(param12_generic10 _: T) -> Int) // expected-error {{declaration in '@abi' should not have generic signature because 'subscript(param12_generic10:_:)' is not generic}}
+  subscript(param12_generic10 _: Int, _: Int) -> Int { 0 }
+
+  @abi(subscript<T>(param22_generic10 _: T, _: Int) -> Int) // expected-error {{declaration in '@abi' should not have generic signature because 'subscript(param22_generic10:_:)' is not generic}}
+  subscript(param22_generic10 _: Int, _: Int) -> Int { 0 }
+
+  @abi(subscript(param11_generic01 _: Int) -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+  subscript<T>(param11_generic01 _: T) -> Int { 0 }
+
+  @abi(subscript(param21_generic01 _: Int, _: Int) -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+  subscript<T>(param21_generic01 _: T) -> Int { 0 }
+
+  @abi(subscript(param12_generic01 _: Int) -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+  subscript<T>(param12_generic01 _: T, _: Int) -> Int { 0 }
+
+  @abi(subscript(param22_generic01 _: Int, _: Int) -> Int) // expected-error {{declaration in '@abi' should have generic signature compatible with '<T where T : Copyable, T : Escapable>'}}
+  subscript<T>(param22_generic01 _: T, _: Int) -> Int { 0 }
+
+  @abi(subscript<T>(param11_generic11 _: T) -> Int)
+  subscript<T>(param11_generic11 _: T) -> Int { 0 }
+
+  @abi(subscript<T>(param21_generic11 _: T, _: Int) -> Int) // expected-error {{cannot give subscript 'subscript(param21_generic11:)' the ABI of a subscript with a different number of parameters}}
+  subscript<T>(param21_generic11 _: T) -> Int { 0 }
+
+  @abi(subscript<T>(param12_generic11 _: T) -> Int) // expected-error {{cannot give subscript 'subscript(param12_generic11:_:)' the ABI of a subscript with a different number of parameters}}
+  subscript<T>(param12_generic11 _: T, _: Int) -> Int { 0 }
+
+  @abi(subscript<T>(param22_generic11 _: T, _: Int) -> Int)
+  subscript<T>(param22_generic11 _: T, _: Int) -> Int { 0 }
+}
+
+//
+// Throws effect checking
+//
+
+enum MyError: Error {}
+
+@abi(fn throws00(_: () throws -> Void))
+fn throws00(_: () throws -> Void) {}
+
+@abi(fn throws10(_: () throws -> Void) throws) // expected-error {{cannot give 'throws10' the ABI of a global function which can throw}}
+fn throws10(_: () throws -> Void) {}
+
+@abi(fn throws20(_: () throws -> Void) rethrows) // expected-error {{cannot give 'throws20' the ABI of a global function which can throw}}
+fn throws20(_: () throws -> Void) {}
+
+@abi(fn throws30(_: () throws -> Void) throws(MyError)) // expected-error {{cannot give 'throws30' the ABI of a global function which can throw}}
+fn throws30(_: () throws -> Void) {}
+
+@abi(fn throws01(_: () throws -> Void)) // expected-error {{cannot give 'throws01' the ABI of a global function which cannot throw}}
+fn throws01(_: () throws -> Void) throws {}
+
+@abi(fn throws11(_: () throws -> Void) throws)
+fn throws11(_: () throws -> Void) throws {}
+
+@abi(fn throws21(_: () throws -> Void) rethrows)
+fn throws21(_: () throws -> Void) throws {}
+
+@abi(fn throws31(_: () throws -> Void) throws(MyError)) // expected-error {{thrown type 'MyError' in '@abi' should match 'any Error'}}
+fn throws31(_: () throws -> Void) throws {} // expected-note@:37 {{should match type here}}
+
+@abi(fn throws02(_: () throws -> Void)) // expected-error {{cannot give 'throws02' the ABI of a global function which cannot throw}}
+fn throws02(_: () throws -> Void) rethrows {}
+
+@abi(fn throws12(_: () throws -> Void) throws)
+fn throws12(_: () throws -> Void) rethrows {}
+
+@abi(fn throws22(_: () throws -> Void) rethrows)
+fn throws22(_: () throws -> Void) rethrows {}
+
+@abi(fn throws32(_: () throws -> Void) throws(MyError)) // expected-error {{thrown type 'MyError' in '@abi' should match 'any Error'}}
+fn throws32(_: () throws -> Void) rethrows {} // expected-note@:37 {{should match type here}}
+
+@abi(fn throws03(_: () throws -> Void)) // expected-error {{cannot give 'throws03' the ABI of a global function which cannot throw}}
+fn throws03(_: () throws -> Void) throws(MyError) {}
+
+@abi(fn throws13(_: () throws -> Void) throws) // expected-error {{thrown type 'any Error' in '@abi' should match 'MyError'}}
+fn throws13(_: () throws -> Void) throws(MyError) {} // expected-note@:37 {{should match type here}}
+
+@abi(fn throws23(_: () throws -> Void) rethrows) // expected-error {{thrown type 'any Error' in '@abi' should match 'MyError'}}
+fn throws23(_: () throws -> Void) throws(MyError) {} // expected-note@:37 {{should match type here}}
+
+@abi(fn throws33(_: () throws -> Void) throws(MyError))
+fn throws33(_: () throws -> Void) throws(MyError) {}
+
+@abi(var throws00Var: Int)
+var throws00Var: Int { get { fatalError() } }
+
+@abi(var throws11Var: Int)
+var throws11Var: Int { get throws { fatalError() } }
+
+enum ErsatzResult<Success, Failure: Error> {}
+
+extension ErsatzResult where Failure == Codira.Error {
+  // The `where` clause makes `throws(Failure)` equivalent to `throws`.
+
+  // Similar to Codira.Result.init(__untyped_throws_catching:)
+  @abi(
+    init(
+      catching body: () throws -> Success
+    )
+  )
+  init(
+    __untyped_throws_catching body: () throws(Failure) -> Success
+  ) {}
+
+  @abi(fn get() throws -> Success)
+  fn __untyped_throws_get() throws(Failure) -> Success { fatalError() }
+}
+
+extension ErsatzResult {
+  // Should not be allowed, as `Failure` is still generic
+  @abi(
+    init(
+      unconstrainedCatching body: () throws -> Success // expected-error {{parameter 'body' type '() throws -> Success' in '@abi' should match '() throws(Failure) -> Success'}}
+    )
+  )
+  init(
+    __untyped_throws_catching_bad body: () throws(Failure) -> Success // expected-note {{should match type here}}
+  ) {}
+
+  @abi(fn unconstrainedGet() throws -> Success) // expected-error @:32 {{thrown type 'any Error' in '@abi' should match 'Failure'}}
+  fn __untyped_throws_get_bad() throws(Failure) -> Success { fatalError() } // expected-note {{should match type here}}
+}
+
+//
+// Async effect checking
+//
+
+@abi(fn async00())
+fn async00() {}
+
+@abi(fn async10() async) // expected-error {{cannot give 'async10()' the ABI of an async global function}}
+fn async10() {}
+
+@abi(fn async01()) // expected-error {{cannot give 'async01()' the ABI of a non-async global function}}
+fn async01() async {}
+
+@abi(fn async11() async)
+fn async11() async {}
+
+@abi(var async00Var: Int)
+var async00Var: Int { get { fatalError() } }
+
+@abi(var async11Var: Int)
+var async11Var: Int { get async { fatalError() } }
+
+//
+// PBD shape checking
+//
+
+@abi(var x1, y1: Int)
+var x1: Int = 0 // expected-error {{'abi' attribute can only be applied to a single var; declare each var separately}}
+
+@abi(var x2: Int)
+var x2 = 0, y2: Int = 0 // expected-error {{'abi' attribute can only be applied to a single var; declare each var separately}}
+
+@abi(var (x3, y3): (Int, Int), (a3, b3): (Int, Int))
+var (x3, y3): (Int, Int) = (0, 0), a3: Int = 0 // expected-error {{'abi' attribute can only be applied to a single var; declare each var separately}}
+
+@abi(var (x4, y4): (Int, Int), a4: Int)
+var (x4, y4): (Int, Int) = (0, 0), (a4, b4): (Int, Int) = (0, 0) // expected-error {{'abi' attribute can only be applied to a single var; declare each var separately}}
+
+@abi(var x5: Int)
+var x5: Int = 0
+
+//
+// Redeclaration diagnostics
+//
+
+@abi(fn noConflictWithSelf())
+fn noConflictWithSelf() {}
+
+@abi(fn noConflictWithMutualChanges1())
+fn noConflictWithMutualChanges2() {}
+
+@abi(fn noConflictWithMutualChanges2())
+fn noConflictWithMutualChanges1() {}
+
+@abi(fn conflictsWithOtherABI()) // expected-note {{'conflictsWithOtherABI()' previously declared here}}
+fn conflictsWithOtherABI1() {}
+
+@abi(fn conflictsWithOtherABI()) // expected-error {{invalid redeclaration of 'conflictsWithOtherABI()'}}
+fn conflictsWithOtherABI2() {}
+
+@abi(fn conflictsWithNonABI()) // expected-error {{invalid redeclaration of 'conflictsWithNonABI()'}}
+fn conflictsWithNonABI_formal() {}
+
+fn conflictsWithNonABI() {} // expected-note {{'conflictsWithNonABI()' previously declared here}}
+
+@abi(var var_noConflictWithSelf: Int)
+var var_noConflictWithSelf: Int = 0
+
+@abi(var var_noConflictWithMutualChanges1: Int)
+var var_noConflictWithMutualChanges2: Int = 0
+
+@abi(var var_noConflictWithMutualChanges2: Int)
+var var_noConflictWithMutualChanges1: Int = 0
+
+@abi(var var_conflictsWithOtherABI: Int) // expected-note {{'var_conflictsWithOtherABI' previously declared here}}
+var var_conflictsWithOtherABI1: Int = 0
+
+@abi(var var_conflictsWithOtherABI: Int) // expected-error {{invalid redeclaration of 'var_conflictsWithOtherABI'}}
+var var_conflictsWithOtherABI2: Int = 0
+
+@abi(var var_conflictsWithNonABI: Int) // expected-error {{invalid redeclaration of 'var_conflictsWithNonABI'}}
+var var_conflictsWithNonABI_formal: Int = 0
+
+var var_conflictsWithNonABI: Int = 0 // expected-note {{'var_conflictsWithNonABI' previously declared here}}
+
+struct Foo {
+  @abi(fn noConflictWithSelf())
+  fn noConflictWithSelf() {}
+
+  @abi(fn noConflictWithMutualChanges1())
+  fn noConflictWithMutualChanges2() {}
+
+  @abi(fn noConflictWithMutualChanges2())
+  fn noConflictWithMutualChanges1() {}
+
+  @abi(fn conflictsWithOtherABI()) // expected-note {{'conflictsWithOtherABI()' previously declared here}}
+  fn conflictsWithOtherABI1() {}
+
+  @abi(fn conflictsWithOtherABI()) // expected-error {{invalid redeclaration of 'conflictsWithOtherABI()'}}
+  fn conflictsWithOtherABI2() {}
+
+  @abi(fn conflictsWithNonABI()) // expected-error {{invalid redeclaration of 'conflictsWithNonABI()'}}
+  fn conflictsWithNonABI_formal() {}
+
+  fn conflictsWithNonABI() {} // expected-note {{'conflictsWithNonABI()' previously declared here}}
+
+  @abi(var var_noConflictWithSelf: Int)
+  var var_noConflictWithSelf: Int = 0
+
+  @abi(var var_noConflictWithMutualChanges1: Int)
+  var var_noConflictWithMutualChanges2: Int = 0
+
+  @abi(var var_noConflictWithMutualChanges2: Int)
+  var var_noConflictWithMutualChanges1: Int = 0
+
+  @abi(var var_conflictsWithOtherABI: Int) // expected-note {{'var_conflictsWithOtherABI' previously declared here}}
+  var var_conflictsWithOtherABI1: Int = 0
+
+  @abi(var var_conflictsWithOtherABI: Int) // expected-error {{invalid redeclaration of 'var_conflictsWithOtherABI'}}
+  var var_conflictsWithOtherABI2: Int = 0
+
+  @abi(var var_conflictsWithNonABI: Int) // expected-error {{invalid redeclaration of 'var_conflictsWithNonABI'}}
+  var var_conflictsWithNonABI_formal: Int = 0
+
+  var var_conflictsWithNonABI: Int = 0 // expected-note {{'var_conflictsWithNonABI' previously declared here}}
+}
+
+fn fn() {
+  // TODO: Figure out if @abi makes sense in local scope and, if so, when we
+  //       should complain about redecls.
+
+  @abi(fn noConflictWithSelf())
+  fn noConflictWithSelf() {}
+
+  @abi(fn noConflictWithMutualChanges1())
+  fn noConflictWithMutualChanges2() {}
+
+  @abi(fn noConflictWithMutualChanges2())
+  fn noConflictWithMutualChanges1() {}
+
+  @abi(fn conflictsWithOtherABI()) // expected-note {{'conflictsWithOtherABI()' previously declared here}}
+  fn conflictsWithOtherABI1() {}
+
+  @abi(fn conflictsWithOtherABI()) // expected-error {{invalid redeclaration of 'conflictsWithOtherABI()'}}
+  fn conflictsWithOtherABI2() {}
+
+  @abi(fn conflictsWithNonABI()) // expected-error {{invalid redeclaration of 'conflictsWithNonABI()'}}
+  fn conflictsWithNonABI_formal() {}
+
+  fn conflictsWithNonABI() {} // expected-note {{'conflictsWithNonABI()' previously declared here}}
+
+  var a = 1 // expected-note {{'a' previously declared here}}
+  var a = 1 // expected-error {{invalid redeclaration of 'a'}}
+
+  @abi(var var_noConflictWithSelf: Int)
+  var var_noConflictWithSelf: Int = 0
+
+  @abi(var var_noConflictWithMutualChanges1: Int)
+  var var_noConflictWithMutualChanges2: Int = 0
+
+  @abi(var var_noConflictWithMutualChanges2: Int)
+  var var_noConflictWithMutualChanges1: Int = 0
+
+  @abi(var var_conflictsWithOtherABI: Int) // expected-note {{'var_conflictsWithOtherABI' previously declared here}}
+  var var_conflictsWithOtherABI1: Int = 0
+
+  @abi(var var_conflictsWithOtherABI: Int) // expected-error {{invalid redeclaration of 'var_conflictsWithOtherABI'}}
+  var var_conflictsWithOtherABI2: Int = 0
+
+  // Diagnosed in the opposite order from usual due to being in a local scope where visibility may be limited:
+  @abi(var var_conflictsWithNonABI: Int) // expected-note {{'var_conflictsWithNonABI' previously declared here}}
+  var var_conflictsWithNonABI_formal: Int = 0
+
+  var var_conflictsWithNonABI: Int = 0 // expected-error {{invalid redeclaration of 'var_conflictsWithNonABI'}}
+}
+
+//
+// Type differences
+//
+
+@abi(fn floatForIntParam(_ a: Float) -> Int) // expected-error @:33 {{parameter 'a' type 'Float' in '@abi' should match 'Int'}}
+fn intForFloatParam(_: Int) -> Int { fatalError() } // expected-note @:26 {{should match type here}}
+
+@abi(fn floatForIntResult(_ a: Int) -> Float) // expected-error @:42 {{result type 'Float' in '@abi' should match 'Int'}}
+fn intForFloatResult(_: Int) -> Int { fatalError() } // expected-note @:35 {{should match type here}}
+
+@abi(fn labeledForUnlabeledTuple(_: (x: Int, y: Int)))
+fn labeledForUnlabeledTuple(_: (Int, Int)) {}
+
+@abi(fn unlabeledForLabeledTuple(_: (Int, Int)))
+fn unlabeledForLabeledTuple(_: (x: Int, y: Int)) {}
+
+@abi(fn labeledForLabeledTuple(_: (x: Int, y: Int)))
+fn labeledForLabeledTuple(_: (a: Int, b: Int)) {}
+
+@abi(
+  fn testDefaultArguments(
+    a: Int,
+    b: Int = 1, // expected-error {{'b' in '@abi' should not have a default argument; it does not affect the parameter's ABI}}
+    c: Int,
+    d: Int = 2 // expected-error {{'d' in '@abi' should not have a default argument; it does not affect the parameter's ABI}}
+  )
+)
+fn testDefaultArguments(
+  a: Int,
+  b: Int,
+  c: Int = 1,
+  d: Int = 2
+) {}
+
+@abi(fn arrayForVariadicParam(a: [Int], b: Set<Float>)) // expected-error @:46 {{parameter 'b' type 'Set<Float>' in '@abi' should match 'Float...'}}
+fn arrayForVariadicParam(a: Int..., b: Float...) {} // expected-note @:42 {{should match type here}}
+
+struct DefaultParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with default}}
+      _ c: borrowing AnyObject,
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with default}}
+      _ e: __shared AnyObject,
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with default}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with default}}
+      _ h: (AnyObject) -> Void,
+      _ i: (borrowing AnyObject) -> Void,
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(AnyObject) -> Void'}}
+    )
+  )
+  fn method(
+    _: AnyObject,
+    _: AnyObject, // expected-note {{should match type here}}
+    _: AnyObject,
+    _: AnyObject, // expected-note {{should match type here}}
+    _: AnyObject,
+    _: AnyObject, // expected-note {{should match type here}}
+    _: AnyObject, // expected-note {{should match type here}}
+    _: (AnyObject) -> Void,
+    _: (AnyObject) -> Void,
+    _: (AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with default}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with default}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with default}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void,
+      _ i: (borrowing AnyObject) -> Void,
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(AnyObject) -> Void'}}
+    )
+  )
+  init(
+    _: AnyObject,
+    _: AnyObject, // expected-note {{should match type here}}
+    _: AnyObject, // expected-note {{should match type here}}
+    _: AnyObject,
+    _: AnyObject, // expected-note {{should match type here}}
+    _: AnyObject,
+    _: AnyObject,
+    _: (AnyObject) -> Void,
+    _: (AnyObject) -> Void,
+    _: (AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+}
+
+struct InoutParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with 'inout'}}
+      _ b: inout AnyObject,
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with 'inout'}}
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with 'inout'}}
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with 'inout'}}
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with 'inout'}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with 'inout'}}
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(inout AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(inout AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(inout AnyObject) -> Void'}}
+    )
+  )
+  fn method(
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject,
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: (inout AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (inout AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (inout AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with 'inout'}}
+      _ b: inout AnyObject,
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with 'inout'}}
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with 'inout'}}
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with 'inout'}}
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with 'inout'}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with 'inout'}}
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(inout AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(inout AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(inout AnyObject) -> Void'}}
+    )
+  )
+  init(
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject,
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: inout AnyObject, // expected-note {{should match type here}}
+    _: (inout AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (inout AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (inout AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+}
+
+struct BorrowingParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with 'borrowing'}}
+      _ c: borrowing AnyObject,
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with 'borrowing'}}
+      _ e: __shared AnyObject,
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with 'borrowing'}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with 'borrowing'}}
+      _ h: (AnyObject) -> Void,
+      _ i: (borrowing AnyObject) -> Void,
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(borrowing AnyObject) -> Void'}}
+    )
+  )
+  fn method(
+    _: borrowing AnyObject,
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject,
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject,
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: (borrowing AnyObject) -> Void,
+    _: (borrowing AnyObject) -> Void,
+    _: (borrowing AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with 'borrowing'}}
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with 'borrowing'}}
+      _ c: borrowing AnyObject,
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with 'borrowing'}}
+      _ e: __shared AnyObject,
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with 'borrowing'}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with 'borrowing'}}
+      _ h: (AnyObject) -> Void,
+      _ i: (borrowing AnyObject) -> Void,
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(borrowing AnyObject) -> Void'}}
+    )
+  )
+  init(
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject,
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject,
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: borrowing AnyObject, // expected-note {{should match type here}}
+    _: (borrowing AnyObject) -> Void,
+    _: (borrowing AnyObject) -> Void,
+    _: (borrowing AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+}
+
+struct ConsumingParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with 'consuming'}}
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with 'consuming'}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with 'consuming'}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with 'consuming'}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(consuming AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(consuming AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void
+    )
+  )
+  fn method(
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject,
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject,
+    _: consuming AnyObject,
+    _: (consuming AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (consuming AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (consuming AnyObject) -> Void
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with 'consuming'}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with 'consuming'}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with 'consuming'}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(consuming AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(consuming AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void
+    )
+  )
+  init(
+    _: consuming AnyObject,
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject,
+    _: consuming AnyObject, // expected-note {{should match type here}}
+    _: consuming AnyObject,
+    _: consuming AnyObject,
+    _: (consuming AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (consuming AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (consuming AnyObject) -> Void
+  ) {}
+}
+
+struct SharedParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with '__shared'}}
+      _ c: borrowing AnyObject,
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with '__shared'}}
+      _ e: __shared AnyObject,
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with '__shared'}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with '__shared'}}
+      _ h: (AnyObject) -> Void,
+      _ i: (borrowing AnyObject) -> Void,
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(__shared AnyObject) -> Void'}}
+    )
+  )
+  fn method(
+    _: __shared AnyObject,
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject,
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject,
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: (__shared AnyObject) -> Void,
+    _: (__shared AnyObject) -> Void,
+    _: (__shared AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with '__shared'}}
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with '__shared'}}
+      _ c: borrowing AnyObject,
+      _ d: consuming AnyObject, // expected-error {{modifier 'consuming' on parameter 'd' in '@abi' is not compatible with '__shared'}}
+      _ e: __shared AnyObject,
+      _ f: __owned AnyObject, // expected-error {{modifier '__owned' on parameter 'f' in '@abi' is not compatible with '__shared'}}
+      _ g: sending AnyObject, // expected-error {{modifier 'sending' on parameter 'g' in '@abi' is not compatible with '__shared'}}
+      _ h: (AnyObject) -> Void,
+      _ i: (borrowing AnyObject) -> Void,
+      _ j: (consuming AnyObject) -> Void // expected-error {{parameter 'j' type '(consuming AnyObject) -> Void' in '@abi' should match '(__shared AnyObject) -> Void'}}
+    )
+  )
+  init(
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject,
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject,
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: __shared AnyObject, // expected-note {{should match type here}}
+    _: (__shared AnyObject) -> Void,
+    _: (__shared AnyObject) -> Void,
+    _: (__shared AnyObject) -> Void // expected-note {{should match type here}}
+  ) {}
+}
+
+struct OwnedParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with '__owned'}}
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with '__owned'}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with '__owned'}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with '__owned'}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(__owned AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(__owned AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void
+    )
+  )
+  fn method(
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject,
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject,
+    _: __owned AnyObject,
+    _: (__owned AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (__owned AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (__owned AnyObject) -> Void
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with '__owned'}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with '__owned'}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with '__owned'}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(__owned AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(__owned AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void
+    )
+  )
+  init(
+    _: __owned AnyObject,
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject,
+    _: __owned AnyObject, // expected-note {{should match type here}}
+    _: __owned AnyObject,
+    _: __owned AnyObject,
+    _: (__owned AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (__owned AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (__owned AnyObject) -> Void
+  ) {}
+}
+
+struct SendingParamOwnership {
+  @abi(
+    fn method(
+      _ a: AnyObject, // expected-error {{default modifier on parameter 'a' in '@abi' is not compatible with 'sending'}}
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with 'sending'}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with 'sending'}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with 'sending'}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(sending AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(sending AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void
+    )
+  )
+  fn method(
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject,
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject,
+    _: sending AnyObject,
+    _: (sending AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (sending AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (sending AnyObject) -> Void
+  ) {}
+
+  @abi(
+    init(
+      _ a: AnyObject,
+      _ b: inout AnyObject, // expected-error {{modifier 'inout' on parameter 'b' in '@abi' is not compatible with 'sending'}}
+      _ c: borrowing AnyObject, // expected-error {{modifier 'borrowing' on parameter 'c' in '@abi' is not compatible with 'sending'}}
+      _ d: consuming AnyObject,
+      _ e: __shared AnyObject, // expected-error {{modifier '__shared' on parameter 'e' in '@abi' is not compatible with 'sending'}}
+      _ f: __owned AnyObject,
+      _ g: sending AnyObject,
+      _ h: (AnyObject) -> Void, // expected-error {{parameter 'h' type '(AnyObject) -> Void' in '@abi' should match '(sending AnyObject) -> Void'}}
+      _ i: (borrowing AnyObject) -> Void, // expected-error {{parameter 'i' type '(borrowing AnyObject) -> Void' in '@abi' should match '(sending AnyObject) -> Void'}}
+      _ j: (consuming AnyObject) -> Void
+    )
+  )
+  init(
+    _: sending AnyObject,
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject,
+    _: sending AnyObject, // expected-note {{should match type here}}
+    _: sending AnyObject,
+    _: sending AnyObject,
+    _: (sending AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (sending AnyObject) -> Void, // expected-note {{should match type here}}
+    _: (sending AnyObject) -> Void
+  ) {}
+}
+
+// @autoclosure should be flattened away
+@abi(
+  fn autoclosureTest(
+    _: @autoclosure () -> Void,
+    _: () -> Void,
+    _: @autoclosure () -> Void,
+    _: () -> Void
+  )
+)
+fn autoclosureTest(
+  _: @autoclosure () -> Void,
+  _: @autoclosure () -> Void,
+  _: () -> Void,
+  _: () -> Void
+) {}
+
+// @_nonEphemeral should be flattened away
+// (the diagnostic we get on these is actually part of attr checking)
+@abi(
+  fn nonEphemeralTest(
+    @_nonEphemeral _: UnsafeRawPointer, // expected-error {{unused '_nonEphemeral' attribute in '@abi'}}
+    _: UnsafeRawPointer,
+    @_nonEphemeral _: UnsafeRawPointer, // expected-error {{unused '_nonEphemeral' attribute in '@abi'}}
+    _: UnsafeRawPointer
+  )
+)
+fn nonEphemeralTest(
+  @_nonEphemeral _: UnsafeRawPointer,
+  @_nonEphemeral _: UnsafeRawPointer,
+  _: UnsafeRawPointer,
+  _: UnsafeRawPointer
+) {}
+
+// isolated param should be flattened away
+@abi(fn isolatedTestMismatch<A: Actor>(_: isolated A, _: A))
+fn isolatedTestMismatch<A: Actor>(_: A, _: isolated A) {}
+
+@abi(fn isolatedTestMatch<A: Actor>(_: isolated A, _: A))
+fn isolatedTestMatch<A: Actor>(_: isolated A, _: A) {}
+
+// _const should be flattened away
+@abi(
+  fn constTest(
+    _: _const () -> Void,
+    _: () -> Void,
+    _: _const () -> Void,
+    _: () -> Void
+  )
+)
+fn constTest(
+  _: _const () -> Void,
+  _: _const () -> Void,
+  _: () -> Void,
+  _: () -> Void
+) {}
+
+// @noDerivative should match
+@abi(fn noDerivativeTest1(_ a: @differentiable(reverse) (@noDerivative Double, Double) -> Double))
+fn noDerivativeTest1(_: @differentiable(reverse) (@noDerivative Double, Double) -> Double) {}
+
+@abi(fn noDerivativeTest2(_ a: @differentiable(reverse) (Double, Double) -> Double)) // expected-error {{parameter 'a' type '@differentiable(reverse) (Double, Double) -> Double' in '@abi' should match '@differentiable(reverse) (@noDerivative Double, Double) -> Double'}}
+fn noDerivativeTest2(_: @differentiable(reverse) (@noDerivative Double, Double) -> Double) {} // expected-note {{should match type here}}
+
+@abi(fn noDerivativeTest3(_ a: @differentiable(reverse) (@noDerivative Double, Double) -> Double)) // expected-error {{parameter 'a' type '@differentiable(reverse) (@noDerivative Double, Double) -> Double' in '@abi' should match '@differentiable(reverse) (Double, Double) -> Double'}}
+fn noDerivativeTest3(_: @differentiable(reverse) (Double, Double) -> Double) {} // expected-note {{should match type here}}
+
+// @_addressable should match
+@abi(
+  fn addressableTest(
+    _ a: @_addressable String,
+    _ b: String, // expected-error {{default attribute on parameter 'b' in '@abi' is not compatible with '_addressable'}}
+    _ c: @_addressable String, // expected-error {{attribute '_addressable' on parameter 'c' in '@abi' is not compatible with default}}
+    _ d: String
+  )
+)
+fn addressableTest(
+  _: @_addressable String,
+  _: @_addressable String, // expected-note {{should match type here}}
+  _: String, // expected-note {{should match type here}}
+  _: String
+) {}
+
+// Flattening of function type ExtInfo
+@abi(
+  fn fnExtInfoTest(
+    _ a: @escaping () -> AnyObject,
+    _ b: @Sendable () -> AnyObject,
+    _ c: () -> sending AnyObject,
+    _ d: () -> AnyObject,
+    _ e: @MainActor () -> AnyObject,
+    _ f: (isolated MainActor) -> AnyObject,
+    _ g: @isolated(any) () -> AnyObject, // expected-error {{parameter 'g' type '@isolated(any) () -> AnyObject' in '@abi' should match '() -> AnyObject'}}
+    _ h: nonisolated(nonsending) () async -> AnyObject,
+    _ i: () -> AnyObject, // expected-error {{parameter 'i' type '() -> AnyObject' in '@abi' should match '@isolated(any) () -> AnyObject'}}
+    _ j: () async -> Void,
+    _ k: () -> Void, // expected-error {{parameter 'k' type '() -> Void' in '@abi' should match '() async -> Void'}}
+    _ l: () async -> Void, // expected-error {{parameter 'l' type '() async -> Void' in '@abi' should match '() -> Void'}}
+    _ m: () -> Void,
+    _ n: () throws -> Void,
+    _ o: () -> Void, // expected-error {{parameter 'o' type '() -> Void' in '@abi' should match '() throws -> Void'}}
+    _ p: () throws -> Void, // expected-error {{parameter 'p' type '() throws -> Void' in '@abi' should match '() -> Void'}}
+    _ q: () -> Void,
+    _ r: () -> Void,
+    _ s: @convention(block) () -> Void, // expected-error {{parameter 's' type '@convention(block) () -> Void' in '@abi' should match '() -> Void'}}
+    _ t: @convention(thin) () -> Void, // expected-error {{parameter 't' type '@convention(thin) () -> Void' in '@abi' should match '() -> Void'}}
+    _ u: @convention(c) () -> Void // expected-error {{parameter 'u' type '@convention(c) () -> Void' in '@abi' should match '() -> Void'}}
+  )
+)
+fn fnExtInfoTest(
+  _: () -> AnyObject,
+  _: () -> AnyObject,
+  _: () -> AnyObject,
+  _: () -> AnyObject,
+  _: () -> AnyObject,
+  _: (MainActor) -> AnyObject,
+  _: () -> AnyObject, // expected-note {{should match type here}}
+  _: () async -> AnyObject,
+  _: @isolated(any) () -> AnyObject, // expected-note {{should match type here}}
+  _: () async -> Void,
+  _: () async -> Void, // expected-note {{should match type here}}
+  _: () -> Void, // expected-note {{should match type here}}
+  _: () -> Void,
+  _: () throws -> Void,
+  _: () throws -> Void, // expected-note {{should match type here}}
+  _: () -> Void, // expected-note {{should match type here}}
+  _: () -> Void,
+  _: () -> Void,
+  _: () -> Void, // expected-note {{should match type here}}
+  _: () -> Void, // expected-note {{should match type here}}
+  _: () -> Void // expected-note {{should match type here}}
+) {}
+
+// FIXME: Not sure how to reach tryNormalizeOutermostType() generic fn
+
+@abi(
+  fn testMarkerProtocols<A, B: Sendable, C, D: SendableMetatype>(
+    _: A, _: B, _: C, _: D,
+    _: Any, _: Sendable, _: Any, _: SendableMetatype,
+    _: AnyKeyPath, _: AnyKeyPath & Sendable, _: AnyKeyPath, _: AnyKeyPath & SendableMetatype,
+    _: Any, _: Sendable & BitwiseCopyable, _: Any, _: SendableMetatype & BitwiseCopyable
+  )
+)
+fn testMarkerProtocols<A: Sendable, B, C: SendableMetatype, D>(
+  _: A, _: B, _: C, _: D,
+  _: Sendable, _: Any, _: SendableMetatype, _: Any,
+  _: AnyKeyPath & Sendable, _: AnyKeyPath, _: AnyKeyPath & SendableMetatype, _: AnyKeyPath,
+  _: Sendable & BitwiseCopyable, _: Any, _: SendableMetatype & BitwiseCopyable, _: Any
+) {}
+
+@abi(
+  fn testNormalProtocols(
+    _ a: Any, // expected-error {{parameter 'a' type 'Any' in '@abi' should match 'any CustomStringConvertible'}}
+    _ b: CustomStringConvertible, // expected-error {{parameter 'b' type 'any CustomStringConvertible' in '@abi' should match 'Any'}}
+    _ c: AnyKeyPath, // expected-error {{parameter 'c' type 'AnyKeyPath' in '@abi' should match 'any AnyKeyPath & CustomStringConvertible'}}
+    _ d: AnyKeyPath & CustomStringConvertible, // expected-error {{parameter 'd' type 'any AnyKeyPath & CustomStringConvertible' in '@abi' should match 'AnyKeyPath'}}
+    _ e: Any, // expected-error {{parameter 'e' type 'Any' in '@abi' should match 'any CustomDebugStringConvertible & CustomStringConvertible'}}
+    _ f: CustomStringConvertible & CustomDebugStringConvertible // expected-error {{parameter 'f' type 'any CustomDebugStringConvertible & CustomStringConvertible' in '@abi' should match 'Any'}}
+  )
+)
+fn testNormalProtocols(
+  _: CustomStringConvertible, // expected-note {{should match type here}}
+  _: Any, // expected-note {{should match type here}}
+  _: AnyKeyPath & CustomStringConvertible, // expected-note {{should match type here}}
+  _: AnyKeyPath, // expected-note {{should match type here}}
+  _: CustomStringConvertible & CustomDebugStringConvertible, // expected-note {{should match type here}}
+  _: Any // expected-note {{should match type here}}
+) {}
+
+@abi(
+  fn testNormalProtocolsGeneric<A, B: CustomStringConvertible>( // expected-error {{generic signature '<A, B where A : Copyable, A : Escapable, B : CustomStringConvertible>' in '@abi' is not compatible with '<A, B where A : CustomStringConvertible, B : Copyable, B : Escapable>'}}
+    _: A, _: B
+  )
+)
+fn testNormalProtocolsGeneric<A: CustomStringConvertible, B>( // expected-note {{should match type here}}
+  _: A, _: B
+) {}
+
+//
+// Static/Instance and interactions with `final`
+//
+
+class ClassStaticAndFinal {
+  @abi(fn class00final00())
+  fn class00final00() {}
+
+  @abi(class fn class10final00()) // expected-error {{class method 'class10final00()' in '@abi' should be instance method to ensure ABI compatibility}} {{8-14=}}
+  fn class10final00() {}
+
+  @abi(static fn class20final00()) // expected-error {{static method 'class20final00()' in '@abi' should be non-final instance method to ensure ABI compatibility}} {{8-15=}}
+  fn class20final00() {}
+
+  @abi(fn class01final00()) // expected-error {{instance method 'class01final00()' in '@abi' should be class method to ensure ABI compatibility}} {{8-8=class }}
+  class fn class01final00() {}
+
+  @abi(fn class02final00()) // expected-error {{non-final instance method 'class02final00()' in '@abi' should be static method to ensure ABI compatibility}} {{8-8=static }}
+  static fn class02final00() {}
+
+  @abi(class fn class11final00())
+  class fn class11final00() {}
+
+  @abi(class fn class12final00()) // expected-error {{non-final class method 'class12final00()' in '@abi' should be static method to ensure ABI compatibility}} {{8-13=static}}
+  static fn class12final00() {}
+
+  @abi(static fn class21final00()) // expected-error {{static method 'class21final00()' in '@abi' should be non-final class method to ensure ABI compatibility}} {{8-14=class}}
+  class fn class21final00() {}
+
+  @abi(static fn class22final00())
+  static fn class22final00() {}
+
+  @abi(final fn class00final10()) // expected-error {{final instance method 'class00final10()' in '@abi' should be non-final instance method to ensure ABI compatibility}} {{8-14=}}
+  fn class00final10() {}
+
+  @abi(class final fn class10final10()) // expected-error {{final class method 'class10final10()' in '@abi' should be non-final instance method to ensure ABI compatibility}} {{8-14=}}
+  fn class10final10() {}
+
+  @abi(final fn class01final10()) // expected-error {{final instance method 'class01final10()' in '@abi' should be non-final class method to ensure ABI compatibility}} {{8-13=class}}
+  class fn class01final10() {}
+
+  @abi(final fn class02final10()) // expected-error {{final instance method 'class02final10()' in '@abi' should be static method to ensure ABI compatibility}} {{8-13=static}}
+  static fn class02final10() {}
+
+  @abi(class final fn class11final10()) // expected-error {{final class method 'class11final10()' in '@abi' should be non-final class method to ensure ABI compatibility}} {{14-20=}}
+  class fn class11final10() {}
+
+  @abi(class final fn class12final10())
+  static fn class12final10() {}
+
+  @abi(fn class00final01()) // expected-error {{non-final instance method 'class00final01()' in '@abi' should be final instance method to ensure ABI compatibility}} {{8-8=final }}
+  final fn class00final01() {}
+
+  @abi(class fn class10final01()) // expected-error {{non-final class method 'class10final01()' in '@abi' should be final instance method to ensure ABI compatibility}} {{8-13=final}}
+  final fn class10final01() {}
+
+  @abi(static fn class20final01()) // expected-error {{static method 'class20final01()' in '@abi' should be final instance method to ensure ABI compatibility}} {{8-14=final}}
+  final fn class20final01() {}
+
+  @abi(fn class01final01()) // expected-error {{non-final instance method 'class01final01()' in '@abi' should be final class method to ensure ABI compatibility}} {{8-8=final class }}
+  class final fn class01final01() {}
+
+  @abi(class fn class11final01()) // expected-error {{non-final class method 'class11final01()' in '@abi' should be final class method to ensure ABI compatibility}} {{8-13=final class}}
+  class final fn class11final01() {}
+
+  @abi(static fn class21final01())
+  class final fn class21final01() {}
+
+  @abi(final fn class00final11())
+  final fn class00final11() {}
+
+  @abi(class final fn class10final11()) //expected-error {{final class method 'class10final11()' in '@abi' should be final instance method to ensure ABI compatibility}} {{14-20=}} {{8-13=final}}
+  final fn class10final11() {}
+
+  @abi(final fn class01final11()) // expected-error {{final instance method 'class01final11()' in '@abi' should be final class method to ensure ABI compatibility}} {{8-13=final class}}
+  class final fn class01final11() {}
+
+  @abi(class final fn class11final11())
+  class final fn class11final11() {}
+}
+
+struct StaticAndFinal {
+  @abi(fn class00final00())
+  fn class00final00() {}
+
+  @abi(static fn class20final00()) // expected-error {{static method 'class20final00()' in '@abi' should be instance method to ensure ABI compatibility}} {{8-15=}}
+  fn class20final00() {}
+
+  @abi(fn class02final00()) // expected-error {{instance method 'class02final00()' in '@abi' should be static method to ensure ABI compatibility}} {{8-8=static }}
+  static fn class02final00() {}
+
+  @abi(static fn class22final00())
+  static fn class22final00() {}
+}
+
+//
+// Failable Initializers
+//
+
+struct FailableInits {
+  @abi(init(i11: Void))
+  init(i11: Void) {}
+
+  @abi(init?(i21: Void)) // expected-error {{cannot give non-failable initializer 'init(i21:)' the ABI of a failable initializer}} {{12-13=}}
+  init(i21: Void) {}
+
+  @abi(init!(i31: Void)) // expected-error {{cannot give non-failable initializer 'init(i31:)' the ABI of a failable initializer}} {{12-13=}}
+  init(i31: Void) {}
+
+  @abi(init(i12: Void)) // expected-error {{cannot give failable initializer 'init(i12:)' the ABI of a non-failable initializer}} {{12-12=?}}
+  init?(i12: Void) {}
+
+  @abi(init?(i22: Void))
+  init?(i22: Void) {}
+
+  @abi(init!(i32: Void))
+  init?(i32: Void) {}
+
+  @abi(init(i13: Void)) // expected-error {{cannot give failable initializer 'init(i13:)' the ABI of a non-failable initializer}} {{12-12=!}}
+  init!(i13: Void) {}
+
+  @abi(init?(i23: Void))
+  init!(i23: Void) {}
+
+  @abi(init!(i33: Void))
+  init!(i33: Void) {}
+}
+
+//
+// Attributes
+//
+
+// @_originallyDefinedIn -- allowed to vary
+@abi(@_originallyDefinedIn(module: "Other", macOS 14) fn originallyDefinedIn1())
+@available(macOS 12, *) @_originallyDefinedIn(module: "Other", macOS 14) public fn originallyDefinedIn1() {}
+
+@abi(fn originallyDefinedIn2())
+@available(macOS 12, *) @_originallyDefinedIn(module: "Other", macOS 14) public fn originallyDefinedIn2() {}
+
+@abi(@_originallyDefinedIn(module: "Other", macOS 14) fn originallyDefinedIn3())
+@available(macOS 12, *) public fn originallyDefinedIn3() {}
+
+@abi(@_originallyDefinedIn(module: "Different", macOS 12) fn originallyDefinedIn4())
+@available(macOS 12, *) @_originallyDefinedIn(module: "Other", macOS 14) public fn originallyDefinedIn4() {}
+
+// @Sendable -- allowed to vary
+@abi(@Sendable fn sendable1())
+@Sendable fn sendable1() {}
+
+@abi(@Sendable fn sendable2())
+fn sendable2() {}
+
+@abi(fn sendable3())
+@Sendable fn sendable3() {}
+
+// @preconcurrency -- allowed to vary
+@abi(@preconcurrency fn preconcurrency1())
+@preconcurrency fn preconcurrency1() {}
+
+@abi(@preconcurrency fn preconcurrency2())
+fn preconcurrency2() {}
+
+@abi(fn preconcurrency3())
+@preconcurrency fn preconcurrency3() {}
+
+// @_preInverseGenerics -- allowed to vary
+struct PreInverseGenerics<T: ~Copyable> {
+  @abi(@_preInverseGenerics fn fn1(_: consuming T))
+  @_preInverseGenerics fn fn1(_: consuming T) {}
+
+  @abi(@_preInverseGenerics fn fn2(_: consuming T))
+  fn fn2(_: consuming T) {}
+
+  @abi(fn fn3(_: consuming T))
+  @_preInverseGenerics fn fn3(_: consuming T) {}
+}
+
+// 'nonisolated', 'isolated' arguments, global actors -- allowed to vary
+@abi(@MainActor fn isolation1())
+@MainActor fn isolation1() {}
+
+@abi(fn isolation2())
+@MainActor fn isolation2() {}
+
+@abi(@MainActor fn isolation3())
+fn isolation3() {}
+
+@abi(nonisolated fn isolation4())
+@MainActor fn isolation4() {}
+
+@abi(@MainActor fn isolation5())
+nonisolated fn isolation5() {}
+
+@abi(fn isolation6(_: isolated some Actor))
+@MainActor fn isolation6(_: some Actor) {}
+
+@abi(fn isolation7(_: some Actor))
+fn isolation7(_: isolated some Actor) {}
+
+@abi(@concurrent fn isolation8() async)
+@concurrent fn isolation8() async {}
+
+@abi(fn isolation9() async)
+@concurrent fn isolation9() async {}
+
+@abi(@concurrent fn isolation10() async)
+fn isolation10() async {}
+
+@abi(nonisolated fn isolation11() async)
+@concurrent fn isolation11() async {}
+
+@abi(@concurrent fn isolation12() async)
+nonisolated fn isolation12() async {}
+
+@abi(nonisolated(nonsending) fn isolation13() async)
+nonisolated(nonsending) fn isolation13() async {}
+
+@abi(fn isolation14() async)
+nonisolated(nonsending) fn isolation14() async {}
+
+@abi(nonisolated(nonsending) fn isolation15() async)
+fn isolation15() async {}
+
+@abi(nonisolated fn isolation16() async)
+nonisolated(nonsending) fn isolation16() async {}
+
+@abi(nonisolated(nonsending) fn isolation17() async)
+nonisolated fn isolation17() async {}
+
+@abi(nonisolated(nonsending) fn isolation18() async)
+@concurrent fn isolation18() async {}
+
+@abi(@concurrent fn isolation19() async)
+nonisolated(nonsending) fn isolation19() async {}
+
+// CustomAttr for property wrapper -- banned in and with '@abi'
+// Banned because we would need to design behavior for its auxiliary decls.
+@propertyWrapper struct PropertyWrapper {
+  var wrappedValue: Int { fatalError() }
+}
+
+struct CustomAttrPropertyWrapper {
+  @abi(@PropertyWrapper var v1: Int) // expected-error {{property 'v1' with a wrapper cannot also be '@abi'}}
+  @PropertyWrapper var v1: Int // expected-error {{property 'v1' with a wrapper cannot also be '@abi'}}
+
+  @abi(@PropertyWrapper var v2: Int) // expected-error {{property 'v2' with a wrapper cannot also be '@abi'}}
+  var v2: Int
+
+  @abi(var v3: Int)
+  @PropertyWrapper var v3: Int // expected-error {{property 'v3' with a wrapper cannot also be '@abi'}}
+}
+
+// CustomAttr for attached macro -- see Macros/macro_expand_peers.code
+// Freestanding macro in @abi -- see Macros/macro_expand.code
+
+// CustomAttr for result builder -- banned in '@abi'
+// Has no ABI impact on either a parameter or a decl.
+@resultBuilder struct ResultBuilder {
+  static fn buildBlock(_ values: Int...) -> Int { values.reduce(0, +) }
+}
+
+struct CustomAttrResultBuilder {
+  @abi(@ResultBuilder var v1: Int) // expected-error {{unused 'ResultBuilder' attribute in '@abi'}} {{8-22=}}
+  @ResultBuilder var v1: Int { 0 }
+
+  @abi(@ResultBuilder var v2: Int) // expected-error {{unused 'ResultBuilder' attribute in '@abi'}} {{8-22=}}
+  var v2: Int { 0 }
+
+  @abi(var v3: Int)
+  @ResultBuilder var v3: Int { 0 }
+
+  @abi(@ResultBuilder fn fn11() -> Int) // expected-error {{unused 'ResultBuilder' attribute in '@abi'}} {{8-22=}}
+  @ResultBuilder fn fn11() -> Int { 0 }
+
+  @abi(@ResultBuilder fn fn21() -> Int) // expected-error {{unused 'ResultBuilder' attribute in '@abi'}} {{8-22=}}
+  fn fn21() -> Int { 0 }
+
+  @abi(fn fn31() -> Int)
+  @ResultBuilder fn fn31() -> Int { 0 }
+
+  @abi(fn fn12(@ResultBuilder _: () -> Int) -> Int) // expected-error {{unused 'ResultBuilder' attribute in '@abi'}}  {{18-32=}}
+  fn fn12(@ResultBuilder _: () -> Int) -> Int { 0 }
+
+  @abi(fn fn22(@ResultBuilder _: () -> Int) -> Int) // expected-error {{unused 'ResultBuilder' attribute in '@abi'}} {{18-32=}}
+  fn fn22(_: () -> Int) -> Int { 0 }
+
+  @abi(fn fn32(_: () -> Int) -> Int)
+  fn fn32(@ResultBuilder _: () -> Int) -> Int { 0 }
+}
+
+// NSCopying - see attr/attr_abi_objc.code
+
+// @LLDBDebuggerFunction -- banned in @abi
+@abi(@LLDBDebuggerFunction fn lldbDebuggerFunction1()) // expected-error {{unused 'LLDBDebuggerFunction' attribute in '@abi'}} {{6-27=}}
+@LLDBDebuggerFunction fn lldbDebuggerFunction1() {}
+
+@abi(@LLDBDebuggerFunction fn lldbDebuggerFunction2()) // expected-error {{unused 'LLDBDebuggerFunction' attribute in '@abi'}} {{6-27=}}
+fn lldbDebuggerFunction2() {}
+
+@abi(fn lldbDebuggerFunction3())
+@LLDBDebuggerFunction fn lldbDebuggerFunction3() {}
+
+// @_compilerInitialized -- banned in @abi
+class CompilerInitialized {
+  @abi(@_compilerInitialized immutable v1: Int) // expected-error {{unused '_compilerInitialized' attribute in '@abi'}} {{8-29=}}
+  @_compilerInitialized immutable v1: Int
+
+  @abi(@_compilerInitialized immutable v2: Int) // expected-error {{unused '_compilerInitialized' attribute in '@abi'}} {{8-29=}}
+  immutable v2: Int
+
+  @abi(immutable v3: Int)
+  @_compilerInitialized immutable v3: Int
+
+  init() {}
+}
+
+// @_hasStorage -- banned in @abi
+struct HasStorage {
+  @abi(@_hasStorage immutable v1: Int) // expected-error {{unused '_hasStorage' attribute in '@abi'}} {{8-20=}}
+  @_hasStorage immutable v1: Int
+
+  @abi(@_hasStorage immutable v2: Int) // expected-error {{unused '_hasStorage' attribute in '@abi'}} {{8-20=}}
+  immutable v2: Int
+
+  @abi(immutable v3: Int)
+  @_hasStorage immutable v3: Int
+
+  init() {}
+}
+
+// @discardableResult -- banned in @abi
+@abi(@discardableResult fn discardableResult1() -> Int) // expected-error {{unused 'discardableResult' attribute in '@abi'}} {{6-24=}}
+@discardableResult fn discardableResult1() -> Int { 0 }
+
+@abi(@discardableResult fn discardableResult2() -> Int) // expected-error {{unused 'discardableResult' attribute in '@abi'}} {{6-24=}}
+fn discardableResult2() -> Int { 0 }
+
+@abi(fn lldbDebuggerFunction3() -> Int)
+@discardableResult fn discardableResult3() -> Int { 0 }
+
+// @warn_unqualified_access -- banned in @abi
+struct WarnUnqualifiedAccess {
+  @abi(@warn_unqualified_access fn fn1()) // expected-error {{unused 'warn_unqualified_access' attribute in '@abi'}} {{8-32=}}
+  @warn_unqualified_access fn fn1() {}
+
+  @abi(@warn_unqualified_access fn fn2()) // expected-error {{unused 'warn_unqualified_access' attribute in '@abi'}} {{8-32=}}
+  fn fn2() {}
+
+  @abi(fn fn3())
+  @warn_unqualified_access fn fn3() {}
+}
+
+// @_disfavoredOverload -- banned in @abi
+@abi(@_disfavoredOverload fn disfavoredOverload1()) // expected-error {{unused '_disfavoredOverload' attribute in '@abi'}} {{6-26=}}
+@_disfavoredOverload fn disfavoredOverload1() {}
+
+@abi(@_disfavoredOverload fn disfavoredOverload2()) // expected-error {{unused '_disfavoredOverload' attribute in '@abi'}} {{6-26=}}
+fn disfavoredOverload2() {}
+
+@abi(fn disfavoredOverload3())
+@_disfavoredOverload fn disfavoredOverload3() {}
+
+// @_nonEphemeral -- banned in @abi
+@abi(fn nonEphemeral1(@_nonEphemeral _: UnsafeRawPointer)) // expected-error {{unused '_nonEphemeral' attribute in '@abi'}} {{25-39=}}
+fn nonEphemeral1(@_nonEphemeral _: UnsafeRawPointer) {}
+
+@abi(fn nonEphemeral2(@_nonEphemeral _: UnsafeRawPointer)) // expected-error {{unused '_nonEphemeral' attribute in '@abi'}} {{25-39=}}
+fn nonEphemeral2(_: UnsafeRawPointer) {}
+
+@abi(fn disfavoredOverload3(_: UnsafeRawPointer))
+fn nonEphemeral3(@_nonEphemeral _: UnsafeRawPointer) {}
+
+// @_inheritActorContext
+@abi(fn inheritActorContext1(@_inheritActorContext fn: @Sendable @escaping () async -> Void))
+fn inheritActorContext1(@_inheritActorContext fn: @Sendable @escaping () async -> Void) {}
+
+@abi(fn inheritActorContext2(@_inheritActorContext fn: @Sendable @escaping () async -> Void))
+fn inheritActorContext2(fn: @Sendable @escaping () async -> Void) {}
+
+@abi(fn inheritActorContext3(fn: @Sendable @escaping () async -> Void))
+fn inheritActorContext3(@_inheritActorContext fn: @Sendable @escaping () async -> Void) {}
+
+@abi(fn inheritActorContext4(@_inheritActorContext(always) fn: @Sendable @escaping () async -> Void))
+fn inheritActorContext4(fn: @Sendable @escaping () async -> Void) {}
+
+// @excusivity(checked/unchecked) -- banned in @abi
+class Exclusivity {
+  @abi(var checked00: Int)
+  var checked00: Int = 0
+
+  @abi(@exclusivity(checked) var checked10: Int) // expected-error {{unused 'exclusivity(checked)' attribute in '@abi'}} {{8-29=}}
+  var checked10: Int = 0
+
+  @abi(@exclusivity(unchecked) var checked20: Int) // expected-error {{unused 'exclusivity(unchecked)' attribute in '@abi'}} {{8-31=}}
+  var checked20: Int = 0
+
+  @abi(var checked01: Int)
+  @exclusivity(checked) var checked01: Int = 0
+
+  @abi(@exclusivity(checked) var checked11: Int) // expected-error {{unused 'exclusivity(checked)' attribute in '@abi'}} {{8-29=}}
+  @exclusivity(checked) var checked11: Int = 0
+
+  @abi(@exclusivity(unchecked) var checked21: Int) // expected-error {{unused 'exclusivity(unchecked)' attribute in '@abi'}} {{8-31=}}
+  @exclusivity(checked) var checked21: Int = 0
+
+  @abi(var checked02: Int)
+  @exclusivity(unchecked) var checked02: Int = 0
+
+  @abi(@exclusivity(checked) var checked12: Int) // expected-error {{unused 'exclusivity(checked)' attribute in '@abi'}} {{8-29=}}
+  @exclusivity(unchecked) var checked12: Int = 0
+
+  @abi(@exclusivity(unchecked) var checked22: Int) // expected-error {{unused 'exclusivity(unchecked)' attribute in '@abi'}} {{8-31=}}
+  @exclusivity(unchecked) var checked22: Int = 0
+}
+
+// @_noAllocation -- banned in @abi
+@abi(@_noAllocation fn noAllocation1()) // expected-error {{unused '_noAllocation' attribute in '@abi'}} {{6-20=}}
+@_noAllocation fn noAllocation1() {}
+
+@abi(@_noAllocation fn noAllocation2()) // expected-error {{unused '_noAllocation' attribute in '@abi'}} {{6-20=}}
+fn noAllocation2() {}
+
+@abi(fn noAllocation3())
+@_noAllocation fn noAllocation3() {}
+
+// @_noLocks -- banned in @abi
+@abi(@_noLocks fn noLocks1()) // expected-error {{unused '_noLocks' attribute in '@abi'}} {{6-15=}}
+@_noLocks fn noLocks1() {}
+
+@abi(@_noLocks fn noLocks2()) // expected-error {{unused '_noLocks' attribute in '@abi'}} {{6-15=}}
+fn noLocks2() {}
+
+@abi(fn noLocks3())
+@_noLocks fn noLocks3() {}
+
+// @_noImplicitCopy -- banned in @abi
+struct NoImplicitCopy {
+  @abi(@_noImplicitCopy fn fn1()) // expected-error {{unused '_noImplicitCopy' attribute in '@abi'}} {{8-24=}}
+  @_noImplicitCopy fn fn1() {}
+
+  @abi(@_noImplicitCopy fn fn2()) // expected-error {{unused '_noImplicitCopy' attribute in '@abi'}} {{8-24=}}
+  fn fn2() {}
+
+  @abi(fn fn3())
+  @_noImplicitCopy fn fn3() {}
+
+  @abi(fn fn4(@_noImplicitCopy _: Int)) // expected-error {{unused '_noImplicitCopy' attribute in '@abi'}} {{17-33=}}
+  fn fn4(@_noImplicitCopy _: Int) {}
+
+  @abi(fn fn5(@_noImplicitCopy _: Int)) // expected-error {{unused '_noImplicitCopy' attribute in '@abi'}} {{17-33=}}
+  fn fn5(_: Int) {}
+
+  @abi(fn fn6(_: Int))
+  fn fn6(@_noImplicitCopy _: Int) {}
+}
+
+// @_noObjCBridging -- banned in @abi
+@abi(@_noObjCBridging fn noObjCBridging1()) // expected-error {{unused '_noObjCBridging' attribute in '@abi'}} {{6-22=}}
+@_noObjCBridging fn noObjCBridging1() {}
+
+@abi(@_noObjCBridging fn noObjCBridging2()) // expected-error {{unused '_noObjCBridging' attribute in '@abi'}} {{6-22=}}
+fn noObjCBridging2() {}
+
+@abi(fn noObjCBridging3())
+@_noObjCBridging fn noObjCBridging3() {}
+
+// @_noExistentials -- banned in @abi
+@abi(@_noExistentials fn noExistentials1()) // expected-error {{unused '_noExistentials' attribute in '@abi'}} {{6-22=}}
+@_noExistentials fn noExistentials1() {}
+
+@abi(@_noExistentials fn noExistentials2()) // expected-error {{unused '_noExistentials' attribute in '@abi'}} {{6-22=}}
+fn noExistentials2() {}
+
+@abi(fn noExistentials3())
+@_noExistentials fn noExistentials3() {}
+
+// @_noRuntime -- banned in @abi
+@abi(@_noRuntime fn noRuntime1()) // expected-error {{unused '_noRuntime' attribute in '@abi'}} {{6-17=}}
+@_noRuntime fn noRuntime1() {}
+
+@abi(@_noRuntime fn noRuntime2()) // expected-error {{unused '_noRuntime' attribute in '@abi'}} {{6-17=}}
+fn noRuntime2() {}
+
+@abi(fn noRuntime3())
+@_noRuntime fn noRuntime3() {}
+
+// @_noEagerMove -- banned in @abi
+struct NoEagerMove {
+  @abi(@_noEagerMove fn fn1()) // expected-error {{unused '_noEagerMove' attribute in '@abi'}} {{8-21=}}
+  @_noEagerMove fn fn1() {}
+
+  @abi(@_noEagerMove fn fn2()) // expected-error {{unused '_noEagerMove' attribute in '@abi'}} {{8-21=}}
+  fn fn2() {}
+
+  @abi(fn fn3())
+  @_noEagerMove fn fn3() {}
+
+  @abi(fn fn4(@_noEagerMove _: Int)) // expected-error {{unused '_noEagerMove' attribute in '@abi'}} {{17-30=}}
+  fn fn4(@_noEagerMove _: Int) {}
+
+  @abi(fn fn5(@_noEagerMove _: Int)) // expected-error {{unused '_noEagerMove' attribute in '@abi'}} {{17-30=}}
+  fn fn5(_: Int) {}
+
+  @abi(fn fn6(_: Int))
+  fn fn6(@_noEagerMove _: Int) {}
+}
+
+// @_eagerMove -- banned in @abi
+struct EagerMove {
+  @abi(@_eagerMove fn fn1()) // expected-error {{unused '_eagerMove' attribute in '@abi'}} {{8-19=}}
+  @_eagerMove fn fn1() {}
+
+  @abi(@_eagerMove fn fn2()) // expected-error {{unused '_eagerMove' attribute in '@abi'}} {{8-19=}}
+  fn fn2() {}
+
+  @abi(fn fn3())
+  @_eagerMove fn fn3() {}
+
+  @abi(fn fn4(@_eagerMove _: Int)) // expected-error {{unused '_eagerMove' attribute in '@abi'}} {{17-28=}}
+  fn fn4(@_eagerMove _: Int) {}
+
+  @abi(fn fn5(@_eagerMove _: Int)) // expected-error {{unused '_eagerMove' attribute in '@abi'}} {{17-28=}}
+  fn fn5(_: Int) {}
+
+  @abi(fn fn6(_: Int))
+  fn fn6(@_eagerMove _: Int) {}
+}
+
+// @_lexicalLifetimes -- banned in @abi
+@abi(@_lexicalLifetimes fn lexicalLifetimes1()) // expected-error {{unused '_lexicalLifetimes' attribute in '@abi'}} {{6-24=}}
+@_lexicalLifetimes fn lexicalLifetimes1() {}
+
+@abi(@_lexicalLifetimes fn lexicalLifetimes2()) // expected-error {{unused '_lexicalLifetimes' attribute in '@abi'}} {{6-24=}}
+fn lexicalLifetimes2() {}
+
+@abi(fn lexicalLifetimes3())
+@_lexicalLifetimes fn lexicalLifetimes3() {}
+
+// @_assemblyVision -- banned in @abi
+@abi(@_assemblyVision fn assemblyVision1()) // expected-error {{unused '_assemblyVision' attribute in '@abi'}} {{6-22=}}
+@_assemblyVision fn assemblyVision1() {}
+
+@abi(@_assemblyVision fn assemblyVision2()) // expected-error {{unused '_assemblyVision' attribute in '@abi'}} {{6-22=}}
+fn assemblyVision2() {}
+
+@abi(fn assemblyVision3())
+@_assemblyVision fn assemblyVision3() {}
+
+// @_extern -- banned in @abi
+@abi(@_extern(c) @_extern(wasm, module: "foo", name: "bar") fn extern1()) // expected-error {{unused '_extern' attribute in '@abi'}} {{18-61=}}  expected-error {{unused '_extern' attribute in '@abi'}} {{6-17=}}
+@_extern(c) @_extern(wasm, module: "foo", name: "bar") fn extern1()
+
+@abi(@_extern(c) @_extern(wasm, module: "foo", name: "bar") fn extern2()) // expected-error {{unused '_extern' attribute in '@abi'}} {{18-61=}} expected-error {{unused '_extern' attribute in '@abi'}} {{6-17=}}
+fn extern2() {}
+
+@abi(fn extern3())
+@_extern(c) @_extern(wasm, module: "foo", name: "bar") fn extern3()
+
+// @_used -- banned in @abi
+@abi(@_used fn used1()) // expected-error {{unused '_used' attribute in '@abi'}} {{6-12=}}
+@_used fn used1() {}
+
+@abi(@_used fn used2()) // expected-error {{unused '_used' attribute in '@abi'}} {{6-12=}}
+fn used2() {}
+
+@abi(fn used3())
+@_used fn used3() {}
+
+// weak, unowned, unowned(unsafe) -- banned in @abi
+class ReferenceOwnership {
+  @abi(var v00: AnyObject?)
+  var v00: AnyObject? = nil
+
+  @abi(weak var v10: AnyObject?) // expected-error {{unused 'weak' modifier in '@abi'}} {{8-12=}}
+  var v10: AnyObject? = nil
+
+  @abi(unowned var v20: AnyObject?) // expected-error {{unused 'unowned' modifier in '@abi'}} {{8-15=}}
+  var v20: AnyObject? = nil
+
+  @abi(unowned(unsafe) var v30: AnyObject?) // expected-error {{unused 'unowned(unsafe)' modifier in '@abi'}} {{8-23=}}
+  var v30: AnyObject? = nil
+
+  @abi(var v01: AnyObject?)
+  weak var v01: AnyObject? = nil
+
+  @abi(weak var v11: AnyObject?) // expected-error {{unused 'weak' modifier in '@abi'}} {{8-12=}}
+  weak var v11: AnyObject? = nil
+
+  @abi(unowned var v21: AnyObject?) // expected-error {{unused 'unowned' modifier in '@abi'}} {{8-15=}}
+  weak var v21: AnyObject? = nil
+
+  @abi(unowned(unsafe) var v31: AnyObject?) // expected-error {{unused 'unowned(unsafe)' modifier in '@abi'}} {{8-23=}}
+  weak var v31: AnyObject? = nil
+
+  @abi(var v02: AnyObject?)
+  unowned var v02: AnyObject? = nil
+
+  @abi(weak var v12: AnyObject?) // expected-error {{unused 'weak' modifier in '@abi'}} {{8-12=}}
+  unowned var v12: AnyObject? = nil
+
+  @abi(unowned var v22: AnyObject?) // expected-error {{unused 'unowned' modifier in '@abi'}} {{8-15=}}
+  unowned var v22: AnyObject? = nil
+
+  @abi(unowned(unsafe) var v32: AnyObject?) // expected-error {{unused 'unowned(unsafe)' modifier in '@abi'}} {{8-23=}}
+  unowned var v32: AnyObject? = nil
+
+  @abi(var v03: AnyObject?)
+  unowned(unsafe) var v03: AnyObject? = nil
+
+  @abi(weak var v13: AnyObject?) // expected-error {{unused 'weak' modifier in '@abi'}} {{8-12=}}
+  unowned(unsafe) var v13: AnyObject? = nil
+
+  @abi(unowned var v23: AnyObject?) // expected-error {{unused 'unowned' modifier in '@abi'}} {{8-15=}}
+  unowned(unsafe) var v23: AnyObject? = nil
+
+  @abi(unowned(unsafe) var v33: AnyObject?) // expected-error {{unused 'unowned(unsafe)' modifier in '@abi'}} {{8-23=}}
+  unowned(unsafe) var v33: AnyObject? = nil
+}
+
+// @abi -- banned in @abi (no recursion)
+@abi(
+  @abi(fn abiRecursion()) // expected-error {{unused 'abi' attribute in '@abi'}} {{3-29=}}
+  fn abiRecursion()
+)
+fn abiRecursion() {}
+
+// @unsafe -- banned in @abi
+@abi(@unsafe fn unsafe1()) // expected-error {{unused 'unsafe' attribute in '@abi'}} {{6-13=}}
+@unsafe fn unsafe1() {}
+
+@abi(@unsafe fn unsafe2()) // expected-error {{unused 'unsafe' attribute in '@abi'}} {{6-13=}}
+fn unsafe2() {}
+
+@abi(fn unsafe3())
+@unsafe fn unsafe3() {}
+
+// @safe -- banned in @abi
+@abi(@safe fn safe1()) // expected-error {{unused 'safe' attribute in '@abi'}} {{6-11=}}
+@safe fn safe1() {}
+
+@abi(@safe fn safe2()) // expected-error {{unused 'safe' attribute in '@abi'}} {{6-11=}}
+fn safe2() {}
+
+@abi(fn safe3())
+@safe fn safe3() {}
+
+// Access control, @usableFromInline, @_spi -- banned in @abi
+// An ABI-only decl gets its access control from its counterpart.
+@abi(internal fn accessControl1()) // expected-error {{unused 'internal' modifier in '@abi'}} {{6-14=}}
+fn accessControl1() {}
+
+@abi(fn accessControl2())
+public fn accessControl2() {}
+
+@abi(@usableFromInline fn accessControl3()) // expected-error {{'@usableFromInline' attribute can only be applied to internal or package declarations, but global function 'accessControl3()' is public}}
+public fn accessControl3() {}
+
+@abi(private(set) var setterAccess1: Int) // expected-error {{unused 'private' modifier in '@abi'}} {{6-18=}}
+var setterAccess1: Int = 42
+
+@abi(var setterAccess2: Int)
+private(set) var setterAccess2: Int = 42
+
+@abi(@usableFromInline fn usableFromInline1()) // expected-error {{unused 'usableFromInline' attribute in '@abi'}} {{6-23=}}
+@usableFromInline fn usableFromInline1() {}
+
+@abi(fn usableFromInline2())
+@usableFromInline fn usableFromInline2() {}
+
+@_spi(foo) public struct SPIType {} // expected-note 2 {{struct declared here}}
+
+@abi(@_spi(foo) fn spi1(_: SPIType)) // expected-error {{unused '_spi' attribute in '@abi'}} {{6-16=}}
+@_spi(foo) public fn spi1(_: SPIType) {}
+
+@abi(fn spi2(_: SPIType))
+@_spi(foo) public fn spi2(_: SPIType) {}
+
+@abi(fn spi3(_: SPIType)) // expected-error {{cannot use struct 'SPIType' here; it is SPI}}
+public fn spi3(_: SPIType) {} // expected-error {{cannot use struct 'SPIType' here; it is SPI}}
+
+// @available, @_unavailable*, @backDeployed -- banned in @abi 
+// An ABI-only decl gets its availability from its counterpart.
+@abi(@available(macOS 14, iOS 16, *) fn available1()) // expected-error {{unused 'available' attribute in '@abi'}} {{6-37=}}
+@available(macOS 14, iOS 16, *) fn available1() {}
+
+@abi(@available(macOS 14, iOS 16, *) fn available2()) // expected-error {{unused 'available' attribute in '@abi'}} {{6-37=}}
+fn available2() {}
+
+@abi(fn available3())
+@available(macOS 14, iOS 16, *) fn available3() {}
+
+@abi(
+  @available(macOS, unavailable) // expected-error {{unused 'available' attribute in '@abi'}} {{3-34=}}
+  @available(iOS, deprecated) // expected-error {{unused 'available' attribute in '@abi'}} {{3-31=}}
+  fn available4()
+)
+@available(macOS 14, iOS 16, *) fn available4() {}
+
+// Additional tests in attr/attr_abi_objc.code
+
+@abi(@_unavailableFromAsync fn unavailableFromAsync1()) // expected-error {{unused '_unavailableFromAsync' attribute in '@abi'}} {{6-28=}}
+@_unavailableFromAsync fn unavailableFromAsync1() {}
+
+@abi(@_unavailableFromAsync fn unavailableFromAsync2()) // expected-error {{unused '_unavailableFromAsync' attribute in '@abi'}} {{6-28=}}
+fn unavailableFromAsync2() {}
+
+@abi(fn unavailableFromAsync3())
+@_unavailableFromAsync fn unavailableFromAsync3() {}
+
+// FIXME: Test @_unavailableInEmbedded (it gets rewritten in the parser)
+
+@abi(@backDeployed(before: macOS 14) fn backDeployed1()) // expected-error {{unused 'backDeployed' attribute in '@abi'}} {{6-37=}}
+@backDeployed(before: macOS 14) public fn backDeployed1() {}
+
+@abi(@backDeployed(before: macOS 14) fn backDeployed2()) // expected-error {{unused 'backDeployed' attribute in '@abi'}} {{6-37=}}
+public fn backDeployed2() {}
+
+@abi(fn backDeployed3())
+@backDeployed(before: macOS 14) public fn backDeployed3() {}
+
+// override, @_nonoverride -- banned in @abi
+// An ABI-only decl gets its overrides from its counterpart; no marker modifiers
+// are required.
+class Overridden {
+  fn fn1() {}
+
+  fn fn2() {} // expected-note 2 {{overridden declaration is here}}
+
+  fn fn3() {}
+}
+
+class Override: Overridden {
+  @abi(override fn fn1()) // expected-error {{unused 'override' modifier in '@abi'}} {{8-16=}}
+  override fn fn1() {}
+
+  @abi(override fn fn2()) // expected-error {{unused 'override' modifier in '@abi'}} {{8-16=}}
+  fn fn2() {} // expected-error {{overriding declaration requires an 'override' keyword}}
+
+  @abi(fn fn3())
+  override fn fn3() {}
+}
+
+class NonOverride: Overridden {
+  @abi(@_nonoverride fn fn1()) // expected-error {{unused '_nonoverride' attribute in '@abi'}} {{8-21=}}
+  @_nonoverride fn fn1() {}
+
+  @abi(@_nonoverride fn fn2()) // expected-error {{unused '_nonoverride' attribute in '@abi'}} {{8-21=}}
+  fn fn2() {} // expected-error {{overriding declaration requires an 'override' keyword}}
+
+  @abi(fn fn3())
+  @_nonoverride fn fn3() {}
+}
+
+// @_silgen_name -- banned in @abi *and* on declarations with @abi
+// Becuase of the way @_silgen_name is implemented, these would interact oddly
+// if they were allowed on the same decl.
+@_silgen_name("conflictingAttrsSilgenName")
+@abi(fn silgenName1())
+fn silgenName1() {} // expected-error@-2 {{cannot use '@_silgen_name' and '@abi' on the same global function because they serve the same purpose}} {{1-44=}}
+
+@abi(@_silgen_name("silgenNameWithABI") fn silgenName2()) // expected-error {{unused '_silgen_name' attribute in '@abi'}} {{6-40=}}
+fn silgenName2() {}
+
+// @_documentation(visibility:metadata:) -- banned in @abi
+@abi(@_documentation(visibility: public) fn documentation1()) // expected-error {{unused '_documentation' attribute in '@abi'}} {{6-41=}}
+@_documentation(visibility: public) fn documentation1() {}
+
+@abi(@_documentation(visibility: public) fn documentation2()) // expected-error {{unused '_documentation' attribute in '@abi'}} {{6-41=}}
+fn documentation2() {}
+
+@abi(fn documentation3())
+@_documentation(visibility: public) fn documentation3() {}
+
+// @_allowFeatureSuppression -- banned in @abi
+// Feature suppression should be applied to the API since we can't put `#if`
+// inside `@abi`.
+@abi(@_allowFeatureSuppression(IsolatedAny) fn allowFeatureSuppression1()) // expected-error {{unused '_allowFeatureSuppression' attribute in '@abi'}} {{6-44=}}
+@_allowFeatureSuppression(IsolatedAny) fn allowFeatureSuppression1() {}
+
+@abi(@_allowFeatureSuppression(IsolatedAny) fn allowFeatureSuppression2()) // expected-error {{unused '_allowFeatureSuppression' attribute in '@abi'}} {{6-44=}}
+fn allowFeatureSuppression2() {}
+
+@abi(fn allowFeatureSuppression3())
+@_allowFeatureSuppression(IsolatedAny) fn allowFeatureSuppression3() {}
+
+// @objc -- tested in attr/attr_abi_objc.code
+// @IBAction -- tested in attr/attr_abi_objc.code
+// @IBInspectable -- tested in attr/attr_abi_objc.code
+// @GKInspectable -- tested in attr/attr_abi_objc.code
+// @IBOutlet -- tested in attr/attr_abi_objc.code
+// @IBSegueAction -- tested in attr/attr_abi_objc.code
+// @NSManaged -- tested in attr/attr_abi_objc.code
+// @nonobjc -- tested in attr/attr_abi_objc.code
+// optional -- tested in attr/attr_abi_objc.code
+// dynamic -- tested in attr/attr_abi_objc.code
+
+// @_cdecl -- banned in @abi
+// ABI-only decls inherit cdecl-ness from their counterpart
+@abi(@_cdecl("cdecl1") fn cdecl1()) // expected-error {{unused '_cdecl' attribute in '@abi'}} {{6-23=}}
+@_cdecl("cdecl1") fn cdecl1() {}
+
+@abi(@_cdecl("cdecl2") fn cdecl2()) // expected-error {{unused '_cdecl' attribute in '@abi'}} {{6-23=}}
+fn cdecl2() {}
+
+@abi(fn cdecl3())
+@_cdecl("cdecl3") fn cdecl3() {}
+
+// @implementation -- banned in @abi
+// ABI-only decls inherit implementation-ness from their counterpart
+@abi(@implementation fn implementation1()) // expected-error {{unused 'implementation' attribute in '@abi'}} {{6-21=}}
+@_cdecl("implementation1") @implementation fn implementation1() {}
+
+@abi(@implementation fn implementation2()) // expected-error {{unused 'implementation' attribute in '@abi'}} {{6-21=}}
+@_cdecl("implementation2") fn implementation2() {}
+
+@abi(fn implementation3())
+@_cdecl("implementation3") @implementation fn implementation3() {}
+
+// @_expose -- banned in @abi
+// ABI-only decls inherit exposure from their counterpart
+@abi(@_expose(Cxx) fn expose1()) // expected-error {{unused '_expose' attribute in '@abi'}} {{6-19=}}
+@_expose(Cxx) fn expose1() {}
+
+@abi(@_expose(Cxx) fn expose2()) // expected-error {{unused '_expose' attribute in '@abi'}} {{6-19=}}
+fn expose2() {}
+
+@abi(fn expose3())
+@_expose(Cxx) fn expose3() {}
+
+// @_section -- banned in @abi
+@abi(@_section("fnord") fn section1()) // expected-error {{unused '_section' attribute in '@abi'}} {{6-24=}}
+@_section("fnord") fn section1() {}
+
+@abi(@_section("fnord") fn section2()) // expected-error {{unused '_section' attribute in '@abi'}} {{6-24=}}
+fn section2() {}
+
+@abi(fn section3())
+@_section("fnord") fn section3() {}
+
+// @inlinable -- banned in @abi
+// Although the inlining *does* occasionally get mangled, it's only done in the
+// SpecializationManglers, which shouldn't get their serialization from an ABI
+// attribute.
+@abi(@inlinable fn inlinable1()) // expected-error {{unused 'inlinable' attribute in '@abi'}} {{6-16=}}
+@inlinable fn inlinable1() {}
+
+@abi(@inlinable fn inlinable2()) // expected-error {{unused 'inlinable' attribute in '@abi'}} {{6-16=}}
+fn inlinable2() {}
+
+@abi(fn inlinable3())
+@inlinable fn inlinable3() {}
+
+// @inlinable -- banned in @abi
+@abi(@inline(never) fn inline1()) // expected-error {{unused 'inline(never)' attribute in '@abi'}} {{6-20=}}
+@inline(never) fn inline1() {}
+
+@abi(@inline(never) fn inline2()) // expected-error {{unused 'inline(never)' attribute in '@abi'}} {{6-20=}}
+fn inline2() {}
+
+@abi(fn inline3())
+@inline(never) fn inline3() {}
+
+// @_transparent -- banned in @abi
+@abi(@_transparent fn transparent1()) // expected-error {{unused '_transparent' attribute in '@abi'}} {{6-19=}}
+@_transparent fn transparent1() {}
+
+@abi(@_transparent fn transparent2()) // expected-error {{unused '_transparent' attribute in '@abi'}} {{6-19=}}
+fn transparent2() {}
+
+@abi(fn transparent3())
+@_transparent fn transparent3() {}
+
+// @_alwaysEmitIntoClient -- banned in @abi
+@abi(@_alwaysEmitIntoClient fn alwaysEmitIntoClient1()) // expected-error {{unused '_alwaysEmitIntoClient' attribute in '@abi'}} {{6-28=}}
+@_alwaysEmitIntoClient fn alwaysEmitIntoClient1() {}
+
+@abi(@_alwaysEmitIntoClient fn alwaysEmitIntoClient2()) // expected-error {{unused '_alwaysEmitIntoClient' attribute in '@abi'}} {{6-28=}}
+fn alwaysEmitIntoClient2() {}
+
+@abi(fn alwaysEmitIntoClient3())
+@_alwaysEmitIntoClient fn alwaysEmitIntoClient3() {}
+
+// @_optimize(none) -- banned in @abi
+@abi(@_optimize(none) fn optimize1()) // expected-error {{unused '_optimize(none)' attribute in '@abi'}} {{6-22=}}
+@_optimize(none) fn optimize1() {}
+
+@abi(@_optimize(none) fn optimize2()) // expected-error {{unused '_optimize(none)' attribute in '@abi'}} {{6-22=}}
+fn optimize2() {}
+
+@abi(fn optimize3())
+@_optimize(none) fn optimize3() {}
+
+// convenience -- must match in @abi
+// This doesn't have direct mangling impact, but a future direction where
+// convenience inits could fake designated inits or vice versa might be useful.
+class Convenience {
+  @abi(convenience init(i1: Void))
+  convenience init(i1: Void) { fatalError() }
+
+  @abi(convenience init(i2: Void))  // expected-error {{extra 'convenience' modifier in '@abi'}} {{8-19=}}
+  init(i2: Void) { fatalError() }
+
+  @abi(init(i3: Void)) // expected-error {{missing 'convenience' modifier in '@abi'}} {{8-8=convenience }}
+  convenience init(i3: Void) { fatalError() } // expected-note {{should match modifier here}}
+}
+
+// required -- must match in @abi
+// This doesn't have direct mangling impact, but a future direction where
+// required inits could fake normal inits or vice versa might be useful.
+class Required {
+  @abi(required init(i1: Void))
+  required init(i1: Void) { fatalError() }
+
+  @abi(required init(i2: Void))  // expected-error {{extra 'required' modifier in '@abi'}} {{8-16=}}
+  init(i2: Void) { fatalError() }
+
+  @abi(init(i3: Void)) // expected-error {{missing 'required' modifier in '@abi'}} {{8-8=required }}
+  required init(i3: Void) { fatalError() } // expected-note {{should match modifier here}}
+}
+
+// lazy -- banned both in and with @abi
+// This introduces auxiliary decls whose ABI could not be controlled.
+class Lazy {
+  @abi(lazy var v1: Int) // expected-error {{'lazy' is not compatible with '@abi' attribute}} {{8-12=}}
+  lazy var v1: Int = 0 // expected-error {{'lazy' is not compatible with '@abi' attribute}} {{3-8=}}
+
+  @abi(lazy var v2: Int) // expected-error {{'lazy' is not compatible with '@abi' attribute}} {{8-12=}}
+  var v2: Int = 0
+
+  @abi(var v3: Int)
+  lazy var v3: Int = 0 // expected-error {{'lazy' is not compatible with '@abi' attribute}} {{3-8=}}
+}
+
+// @_fixed_layout -- banned in @abi
+class FixedLayoutVars {
+  @abi(@_fixed_layout var v1: Int) // expected-error {{unused '_fixed_layout' attribute in '@abi'}} {{8-22=}}
+  @_fixed_layout public var v1: Int = 0
+
+  @abi(@_fixed_layout var v2: Int) // expected-error {{unused '_fixed_layout' attribute in '@abi'}} {{8-22=}}
+  public var v2: Int = 0
+
+  @abi(var v3: Int)
+  @_fixed_layout public var v3: Int = 0
+}
+
+// @_specialize -- banned in @abi
+// TODO: Maybe use @_specialize in @abi to tweak the ABI of specializations.
+// Ban it for now, since there's nothing useful you can do with it yet.
+@abi(@_specialize(where T == Int) fn specialize1<T>(_: T)) // expected-error {{unused '_specialize' attribute in '@abi'}} {{6-34=}}
+@_specialize(where T == Int) fn specialize1<T>(_: T) {}
+
+@abi(@_specialize(where T == Int) fn specialize2<T>(_: T)) // expected-error {{unused '_specialize' attribute in '@abi'}} {{6-34=}}
+fn specialize2<T>(_: T) {}
+
+@abi(fn specialize3<T>(_: T))
+@_specialize(where T == Int) fn specialize3<T>(_: T) {}
+
+// @_effects -- banned in @abi
+@abi(@_effects(readonly) fn effects1()) // expected-error {{unused '_effects(readonly)' attribute in '@abi'}} {{6-25=}}
+@_effects(readonly) fn effects1() {}
+
+@abi(@_effects(readonly) fn effects2()) // expected-error {{unused '_effects(readonly)' attribute in '@abi'}} {{6-25=}}
+fn effects2() {}
+
+@abi(fn effects3())
+@_effects(readonly) fn effects3() {}
+
+// @_implements -- banned in @abi
+protocol ImplementsProto {
+  fn f1()
+  fn f2()
+  fn f3()
+}
+
+class Implements: ImplementsProto {
+  @abi(@_implements(ImplementsProto, f1) fn f1()) // expected-error {{unused '_implements' attribute in '@abi'}} {{8-41=}}
+  @_implements(ImplementsProto, f1) fn f1() {}
+
+  @abi(@_implements(ImplementsProto, f2) fn f2()) // expected-error {{unused '_implements' attribute in '@abi'}} {{8-41=}}
+  fn f2() {}
+
+  @abi(fn f3())
+  @_implements(ImplementsProto, f3) fn f3() {}
+}
+
+// @_dynamicReplacement -- banned in @abi
+struct DynamicReplacement {
+  dynamic fn f1Original() {}
+  dynamic fn f2Original() {}
+  dynamic fn f3Original() {}
+}
+
+extension DynamicReplacement {
+  @abi(@_dynamicReplacement(for: f1Original) fn f1()) // expected-error {{unused '_dynamicReplacement' attribute in '@abi'}} {{8-45=}}
+  @_dynamicReplacement(for: f1Original) fn f1() {}
+
+  @abi(@_dynamicReplacement(for: f2Original) fn f2()) // expected-error {{unused '_dynamicReplacement' attribute in '@abi'}} {{8-45=}}
+  fn f2() {}
+
+  @abi(fn f3())
+  @_dynamicReplacement(for: f3Original) fn f3() {}
+}
+
+// @_weakLinked -- tested in attr/attr_weaklinked.code
+
+// @_borrowed -- banned in @abi
+protocol BorrowedAttr {
+  @abi(@_borrowed var v1: Int) // expected-error {{unused '_borrowed' attribute in '@abi'}} {{8-18=}}
+  @_borrowed var v1: Int { get set }
+
+  @abi(var v2: Int)
+  @_borrowed var v2: Int { get set }
+
+  @abi(@_borrowed var v3: Int) // expected-error {{unused '_borrowed' attribute in '@abi'}} {{8-18=}}
+  var v3: Int { get set }
+}
+
+// @_lifetime -- must match in @abi
+// TODO: Probably possible to make these unconstrained as long as we ensure
+// that `@_addressableForDependencies` doesn't cause a calling convention
+// change.
+struct Lifetime: ~Escapable {
+  @abi(@_lifetime(borrow i1) init(i1: UnsafeRawPointer))
+  @_lifetime(borrow i1) init(i1: UnsafeRawPointer) {}
+
+  @abi(@_lifetime(borrow i2) init(i2: UnsafeRawPointer)) // expected-error {{extra '_lifetime' attribute in '@abi'}} {{8-29=}}
+  init(i2: UnsafeRawPointer) {}
+
+  @abi(init(i3: UnsafeRawPointer)) // expected-error {{missing '_lifetime' attribute in '@abi'}} {{8-8=@_lifetime(borrow i3) }}
+  @_lifetime(borrow i3) init(i3: UnsafeRawPointer) {} // expected-note {{should match attribute here}}
+
+  @abi(@_lifetime(borrow i4) init(i4: UnsafeRawPointer, i4a: UnsafeRawPointer)) // expected-error {{'_lifetime' attribute in '@abi' should match '@_lifetime(borrow i4a)'}} {{8-29=@_lifetime(borrow i4a)}}
+  @_lifetime(borrow i4a) init(i4: UnsafeRawPointer, i4a: UnsafeRawPointer) {} // expected-note {{should match attribute here}}
+}
+
+// @_unsafeNonescapableResult -- must match in @abi
+// TODO: This could probably be allowed to vary in some circumstances.
+struct UnsafeNonescapableResult: ~Escapable {
+  @abi(@_unsafeNonescapableResult init(i1: UnsafeRawPointer))
+  @_unsafeNonescapableResult init(i1: UnsafeRawPointer) {}
+
+  @abi(@_unsafeNonescapableResult init(i2: UnsafeRawPointer)) // expected-error {{extra '_unsafeNonescapableResult' attribute in '@abi'}} {{8-34=}}
+  init(i2: UnsafeRawPointer) {}
+
+  @abi(init(i3: UnsafeRawPointer)) // expected-error {{missing '_unsafeNonescapableResult' attribute in '@abi'}} {{8-8=@_unsafeNonescapableResult }}
+  @_unsafeNonescapableResult init(i3: UnsafeRawPointer) {} // expected-note {{should match attribute here}}
+}
+
+// distributed -- must match in @abi
+@available(CodiraStdlib 5.7, *)
+distributed actor Local {
+  @abi(distributed fn fn1())
+  distributed fn fn1() {}
+
+  @abi(distributed fn fn2()) // expected-error {{extra 'distributed' modifier in '@abi'}} {{8-19=}}
+  fn fn2() {}
+
+  @abi(fn fn3()) // expected-error {{missing 'distributed' modifier in '@abi'}} {{8-8=distributed }}
+  distributed fn fn3() {} // expected-note {{should match modifier here}}
+}
+
+// _const -- allowed to vary
+@abi(fn const1(_: _const Int))
+fn const1(_: _const Int) {}
+
+@abi(fn const2(_: _const Int))
+fn const2(_: Int) {}
+
+@abi(fn const3(_: Int))
+fn const3(_: _const Int) {}
+
+// @derivative, @differentiable, @transpose, @_noDerivative -- banned in @abi
+// Too complex to infer or check
+// TODO: Figure out if there's something we could do here.
+@abi(@differentiable(reverse) fn differentiable1(_ x: Float) -> Float) // expected-error {{unused 'differentiable' attribute in '@abi'}} {{6-30=}}
+@differentiable(reverse) fn differentiable1(_ x: Float) -> Float { x }
+
+@abi(@differentiable(reverse) fn differentiable2(_ x: Float) -> Float) // expected-error {{unused 'differentiable' attribute in '@abi'}} {{6-30=}}
+fn differentiable2(_ x: Float) -> Float { x }
+
+@abi(fn differentiable3(_ x: Float) -> Float)
+@differentiable(reverse) fn differentiable3(_ x: Float) -> Float { x }
+
+@abi(
+  @derivative(of: differentiable1(_:)) // expected-error {{unused 'derivative' attribute in '@abi'}} {{3-40=}}
+  fn derivative1(_: Float) -> (value: Float, differential: (Float) -> (Float))
+)
+@derivative(of: differentiable1(_:))
+fn derivative1(_ x: Float) -> (value: Float, differential: (Float) -> (Float)) {
+  return (x, { $0 })
+}
+
+@abi(
+  @derivative(of: differentiable2(_:)) // expected-error {{unused 'derivative' attribute in '@abi'}} {{3-40=}}
+  fn derivative2(_: Float) -> (value: Float, differential: (Float) -> (Float))
+)
+fn derivative2(_ x: Float) -> (value: Float, differential: (Float) -> (Float)) {
+  return (x, { $0 })
+}
+
+@abi(
+  fn derivative3(_: Float) -> (value: Float, differential: (Float) -> (Float))
+)
+@derivative(of: differentiable3(_:))
+fn derivative3(_ x: Float) -> (value: Float, differential: (Float) -> (Float)) {
+  return (x, { $0 })
+}
+
+struct Transpose<T: Differentiable & AdditiveArithmetic> where T == T.TangentVector {
+  fn fn1(_ x: T, _ y: T) -> T { x + y }
+  fn fn2(_ x: T, _ y: T) -> T { x + y }
+  fn fn3(_ x: T, _ y: T) -> T { x + y }
+
+  @abi(
+    @transpose(of: fn1, wrt: (0, 1)) // expected-error {{unused 'transpose' attribute in '@abi'}} {{5-38=}}
+    fn t_fn1(_ result: T) -> (T, T)
+  )
+  @transpose(of: fn1, wrt: (0, 1))
+  fn t_fn1(_ result: T) -> (T, T) { (result, result) }
+
+  @abi(
+    @transpose(of: fn2, wrt: (0, 1)) // expected-error {{unused 'transpose' attribute in '@abi'}} {{5-38=}}
+    fn t_fn2(_ result: T) -> (T, T)
+  )
+  fn t_fn2(_ result: T) -> (T, T) { (result, result) }
+
+  @abi(
+    fn t_fn3(_ result: T) -> (T, T)
+  )
+  @transpose(of: fn3, wrt: (0, 1))
+  fn t_fn3(_ result: T) -> (T, T) { (result, result) }
+}
+
+struct NoDerivative {
+  @abi(@noDerivative fn fn1()) // expected-error {{unused 'noDerivative' attribute in '@abi'}} {{8-21=}}
+  @noDerivative fn fn1() {}
+
+  @abi(@noDerivative fn fn2()) // expected-error {{unused 'noDerivative' attribute in '@abi'}} {{8-21=}}
+  fn fn2() {}
+
+  @abi(fn fn3())
+  @noDerivative fn fn3() {}
+}
+
+// prefix, postfix -- allowed to vary
+// Essentially part of the name, which is unconstrained.
+prefix operator ←
+prefix operator ↑ // expected-note {{prefix operator found here}}
+prefix operator → // expected-note {{prefix operator found here}}
+prefix operator ↓
+
+struct Prefix {
+  @abi(static prefix fn ← (value: Self) -> Self)
+  static prefix fn ← (value: Self) -> Self { value }
+
+  @abi(static prefix fn ↑ (value: Self) -> Self)
+  static fn ↑ (value: Self) -> Self { value } // expected-error {{prefix unary operator missing 'prefix' modifier}}
+
+  @abi(static fn → (value: Self) -> Self) // expected-error {{prefix unary operator missing 'prefix' modifier}}
+  static prefix fn → (value: Self) -> Self { value }
+
+  // Test ABI-preserving replacement code pattern:
+
+  @abi(static prefix fn ↓ (value: Self) -> Self)
+  static fn __oldDownArrow(value: Self) -> Self { value }
+
+  @abi(static fn __newDownArrow(value: Self) -> Self)
+  static prefix fn ↓ (value: Self) -> Self { value }
+}
+
+postfix operator ←←
+postfix operator ↑↑ // expected-note {{postfix operator found here}}
+postfix operator →→ // expected-note {{postfix operator found here}}
+postfix operator ↓↓
+
+struct Postfix {
+  @abi(static postfix fn ←← (value: Self) -> Self)
+  static postfix fn ←← (value: Self) -> Self { value }
+
+  @abi(static postfix fn ↑↑ (value: Self) -> Self)
+  static fn ↑↑ (value: Self) -> Self { value } // expected-error {{postfix unary operator missing 'postfix' modifier}}
+
+  @abi(static fn →→ (value: Self) -> Self) // expected-error {{postfix unary operator missing 'postfix' modifier}}
+  static postfix fn →→ (value: Self) -> Self { value }
+
+  // Test ABI-preserving replacement code pattern:
+
+  @abi(static postfix fn ↓↓ (value: Self) -> Self)
+  static fn __oldDownArrow(value: Self) -> Self { value }
+
+  @abi(static fn __newDownArrow(value: Self) -> Self)
+  static postfix fn ↓↓ (value: Self) -> Self { value }
+}
+
+// Not testing `infix`; it's not *really* valid on funcs.
+
+// nonmutating, borrowing, consuming, __consuming, mutating -- allowed to vary
+// Act like param modifiers; checked against each other separately
+struct SelfParamOwnership {
+  @abi(fn fn00())
+  fn fn00() {}
+
+  @abi(nonmutating fn fn10())
+  fn fn10() {}
+
+  @abi(borrowing fn fn20())
+  fn fn20() {}
+
+  @abi(consuming fn fn30()) // expected-error {{modifier 'consuming' on this parameter in '@abi' is not compatible with default}} {{none}}
+  fn fn30() {} // expected-note {{should match modifier here}}
+
+  @abi(__consuming fn fn40()) // expected-error {{modifier '__consuming' on this parameter in '@abi' is not compatible with default}} {{none}}
+  fn fn40() {} // expected-note {{should match modifier here}}
+
+  @abi(mutating fn fn50()) // expected-error {{modifier 'mutating' on this parameter in '@abi' is not compatible with default}} {{none}}
+  fn fn50() {} // expected-note {{should match modifier here}}
+
+  @abi(fn fn01())
+  nonmutating fn fn01() {}
+
+  @abi(nonmutating fn fn11())
+  nonmutating fn fn11() {}
+
+  @abi(borrowing fn fn21())
+  nonmutating fn fn21() {}
+
+  @abi(consuming fn fn31()) // expected-error {{modifier 'consuming' on this parameter in '@abi' is not compatible with default}} {{none}}
+  nonmutating fn fn31() {} // expected-note {{should match modifier here}}
+
+  @abi(__consuming fn fn41()) // expected-error {{modifier '__consuming' on this parameter in '@abi' is not compatible with default}} {{none}}
+  nonmutating fn fn41() {} // expected-note {{should match modifier here}}
+
+  @abi(mutating fn fn51()) // expected-error {{modifier 'mutating' on this parameter in '@abi' is not compatible with default}} {{none}}
+  nonmutating fn fn51() {} // expected-note {{should match modifier here}}
+
+  @abi(fn fn02())
+  borrowing fn fn02() {}
+
+  @abi(nonmutating fn fn12())
+  borrowing fn fn12() {}
+
+  @abi(borrowing fn fn22())
+  borrowing fn fn22() {}
+
+  @abi(consuming fn fn32()) // expected-error {{modifier 'consuming' on this parameter in '@abi' is not compatible with 'borrowing'}} {{none}}
+  borrowing fn fn32() {} // expected-note {{should match modifier here}}
+
+  @abi(__consuming fn fn42()) // expected-error {{modifier '__consuming' on this parameter in '@abi' is not compatible with 'borrowing'}} {{none}}
+  borrowing fn fn42() {} // expected-note {{should match modifier here}}
+
+  @abi(mutating fn fn52()) // expected-error {{modifier 'mutating' on this parameter in '@abi' is not compatible with 'borrowing'}} {{none}}
+  borrowing fn fn52() {} // expected-note {{should match modifier here}}
+
+  @abi(fn fn03()) // expected-error {{default modifier on this parameter in '@abi' is not compatible with 'consuming'}} {{none}}
+  consuming fn fn03() {} // expected-note {{should match modifier here}}
+
+  @abi(nonmutating fn fn13()) // expected-error {{default modifier on this parameter in '@abi' is not compatible with 'consuming'}} {{none}}
+  consuming fn fn13() {} // expected-note {{should match modifier here}}
+
+  @abi(borrowing fn fn23()) // expected-error {{modifier 'borrowing' on this parameter in '@abi' is not compatible with 'consuming'}} {{none}}
+  consuming fn fn23() {} // expected-note {{should match modifier here}}
+
+  @abi(consuming fn fn33())
+  consuming fn fn33() {}
+
+  @abi(__consuming fn fn43())
+  consuming fn fn43() {}
+
+  @abi(mutating fn fn53()) // expected-error {{modifier 'mutating' on this parameter in '@abi' is not compatible with 'consuming'}} {{none}}
+  consuming fn fn53() {} // expected-note {{should match modifier here}}
+
+  @abi(fn fn04()) // expected-error {{default modifier on this parameter in '@abi' is not compatible with '__consuming'}} {{none}}
+  __consuming fn fn04() {} // expected-note {{should match modifier here}}
+
+  @abi(nonmutating fn fn14()) // expected-error {{default modifier on this parameter in '@abi' is not compatible with '__consuming'}} {{none}}
+  __consuming fn fn14() {} // expected-note {{should match modifier here}}
+
+  @abi(borrowing fn fn24()) // expected-error {{modifier 'borrowing' on this parameter in '@abi' is not compatible with '__consuming'}} {{none}}
+  __consuming fn fn24() {} // expected-note {{should match modifier here}}
+
+  @abi(consuming fn fn34())
+  __consuming fn fn34() {}
+
+  @abi(__consuming fn fn44())
+  __consuming fn fn44() {}
+
+  @abi(mutating fn fn54()) // expected-error {{modifier 'mutating' on this parameter in '@abi' is not compatible with '__consuming'}} {{none}}
+  __consuming fn fn54() {} // expected-note {{should match modifier here}}
+
+  @abi(fn fn05()) // expected-error {{default modifier on this parameter in '@abi' is not compatible with 'mutating'}} {{none}}
+  mutating fn fn05() {} // expected-note {{should match modifier here}}
+
+  @abi(nonmutating fn fn15()) // expected-error {{default modifier on this parameter in '@abi' is not compatible with 'mutating'}} {{none}}
+  mutating fn fn15() {} // expected-note {{should match modifier here}}
+
+  @abi(borrowing fn fn25()) // expected-error {{modifier 'borrowing' on this parameter in '@abi' is not compatible with 'mutating'}} {{none}}
+  mutating fn fn25() {} // expected-note {{should match modifier here}}
+
+  @abi(consuming fn fn35()) // expected-error {{modifier 'consuming' on this parameter in '@abi' is not compatible with 'mutating'}} {{none}}
+  mutating fn fn35() {} // expected-note {{should match modifier here}}
+
+  @abi(__consuming fn fn45()) // expected-error {{modifier '__consuming' on this parameter in '@abi' is not compatible with 'mutating'}} {{none}}
+  mutating fn fn45() {} // expected-note {{should match modifier here}}
+
+  @abi(mutating fn fn55())
+  mutating fn fn55() {}
+}
+
+// @_addressableSelf -- act like type attribute on `this`
+struct AddressableSelf {
+  @abi(@_addressableSelf fn fn1())
+  @_addressableSelf fn fn1() {}
+
+  @abi(@_addressableSelf fn fn2()) // expected-error {{attribute '_addressableSelf' on this parameter in '@abi' is not compatible with default}} {{none}}
+  fn fn2() {} // expected-note {{should match attribute here}}
+
+  @abi(fn fn3()) // expected-error {{default attribute on this parameter in '@abi' is not compatible with '_addressableSelf'}} {{none}}
+  @_addressableSelf fn fn3() {} // expected-note {{should match attribute here}}
+}
+
+//
+// Incorrect usage
+//
+
+@abi(fn bar()) // expected-note {{attribute already specified here}}
+@abi(fn foo()) // expected-error {{duplicate attribute}}
+fn duplicateABIAttr() {}
+
+// Test parser recovery by having something that
+// should parse fine.
+fn somethingThatShouldParseFine() {}
+
+fn func_with_nested_abi() {
+  @abi(fn _exit(_ code: UInt32) -> Void)
+  fn exit(_ code : UInt32) -> Void {}
+  exit(0)
+}
+
+@abi(var x = 1) // expected-error {{initial value is not allowed here}} expected-error {{type annotation missing in pattern}}
+var x = 1
+
+//
+// Examples of expected use cases
+//
+
+@abi(fn originallySendable() -> @Sendable () -> Void)
+fn originallySendable() -> sending () -> Void { fatalError() }
+
+@abi(fn originallyGenericSendable<T: Sendable>() -> T)
+fn originallyGenericSendable<T>() -> sending T { fatalError() }
+
+@abi(fn originallyAnySendable() -> any Sendable)
+fn originallyAnySendable() -> sending Any { fatalError() }
+
+@abi(nonisolated fn explicitIsolationChanged() -> @Sendable () -> Void)
+@MainActor fn explicitIsolationChanged() -> sending () -> Void { fatalError() }

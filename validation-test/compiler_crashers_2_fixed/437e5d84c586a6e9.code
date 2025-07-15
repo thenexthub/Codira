@@ -1,0 +1,3 @@
+// {"signature":"std::__1::optional<language::Type> toolchain::function_ref<std::__1::optional<language::Type> (language::TypeBase*)>::callback_fn<language::constraints::FailureDiagnostic::resolveType(language::Type, bool, bool) const::$_0>(long, language::TypeBase*)"}
+// RUN: not %target-language-frontend -typecheck %s
+Array(repeat a

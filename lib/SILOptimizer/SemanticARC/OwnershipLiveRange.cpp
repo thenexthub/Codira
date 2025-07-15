@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "OwnershipLiveRange.h"
@@ -113,7 +114,7 @@ OwnershipLiveRange::OwnershipLiveRange(SILValue value)
             !isa<BorrowedFromInst>(user)) {
           continue;
         }
-        llvm::copy(v->getUses(), std::back_inserter(worklist));
+        toolchain::copy(v->getUses(), std::back_inserter(worklist));
       }
       continue;
     }
@@ -140,7 +141,7 @@ OwnershipLiveRange::OwnershipLiveRange(SILValue value)
 
         // Otherwise add all users of this BBArg to the worklist to visit
         // recursively.
-        llvm::copy(succArg->getUses(), std::back_inserter(worklist));
+        toolchain::copy(succArg->getUses(), std::back_inserter(worklist));
       }
     }
   }
@@ -149,11 +150,11 @@ OwnershipLiveRange::OwnershipLiveRange(SILValue value)
   // their order as an invariant. This is done to ensure that we can pass off
   // all of our uses or individual sub-arrays of our users without needing to
   // move around memory.
-  llvm::copy(tmpDestroyingUses, std::back_inserter(consumingUses));
-  llvm::copy(tmpForwardingConsumingUses, std::back_inserter(consumingUses));
-  llvm::copy(tmpUnknownConsumingUses, std::back_inserter(consumingUses));
+  toolchain::copy(tmpDestroyingUses, std::back_inserter(consumingUses));
+  toolchain::copy(tmpForwardingConsumingUses, std::back_inserter(consumingUses));
+  toolchain::copy(tmpUnknownConsumingUses, std::back_inserter(consumingUses));
 
-  auto cUseArrayRef = llvm::ArrayRef(consumingUses);
+  auto cUseArrayRef = toolchain::ArrayRef(consumingUses);
   destroyingUses = cUseArrayRef.take_front(tmpDestroyingUses.size());
   ownershipForwardingUses = cUseArrayRef.slice(
       tmpDestroyingUses.size(), tmpForwardingConsumingUses.size());
@@ -280,7 +281,7 @@ void OwnershipLiveRange::convertToGuaranteedAndRAUW(
 static SILValue convertIntroducerToGuaranteed(OwnedValueIntroducer introducer) {
   switch (introducer.kind) {
   case OwnedValueIntroducerKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case OwnedValueIntroducerKind::Phi: {
     auto *phiArg = cast<SILPhiArgument>(introducer.value);
     phiArg->setOwnershipKind(OwnershipKind::Guaranteed);
@@ -309,7 +310,7 @@ static SILValue convertIntroducerToGuaranteed(OwnedValueIntroducer introducer) {
   case OwnedValueIntroducerKind::AllocRefInit:
     return SILValue();
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 void OwnershipLiveRange::convertJoinedLiveRangePhiToGuaranteed(

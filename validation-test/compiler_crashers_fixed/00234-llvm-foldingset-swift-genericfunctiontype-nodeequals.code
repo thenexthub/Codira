@@ -1,0 +1,314 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn k<q {
+    enum k {
+        fn j
+        var _ = j
+    }
+}
+class x  {
+    s m
+    fn j(m)
+}
+struct j<u> : r {
+    fn j(j: j.n) {
+    }
+}
+enum q<v> {   immutable k: v
+    immutable u: v.l
+}
+protocol y {
+    o= p>(r: m<v>)
+}
+struct D : y {
+    s p = Int
+    fn y<v k r {
+    s m
+}
+class y<D> {
+    w <r:
+fn j<v x: v) {
+    x.k()
+}
+fn x(j: Int = a) {
+}
+immutable k = x
+protocol A {
+    fn c() -> String
+}
+class B {
+    fn d() -> String {
+        return ""
+    }
+}
+class C: B, A {
+    override fn d() -> String {
+        return ""
+    }
+    fn c() -> String {
+        return ""
+    }
+}
+fn e<T where T: A, T: B>(t: T) {
+    t.c()
+}
+struct c<d : Sequence> {
+    var b: d
+}
+fn a<d>() -> [c<d>] {
+    return []
+}
+b
+protocol c : b { fn b
+fn f<r>() -> (r, r -> r) -> r {
+   f r f.j = {
+}
+ {
+   r) {
+        s  }
+}
+protocol f {
+   class fn j()
+}
+class f: f{  class fn j {}
+protocol j {
+    class fn m()
+}
+class r: j {
+    class fn m() { }
+}
+(r() n j).p.m()
+j=k n j=k
+protocol r {
+    class fn q()
+}
+s m {
+    m f: r.q
+    fn q() {
+        f.q()
+    }
+(l, () -> ())
+}
+fn f<l : o>(r: l)
+fn f<e>() -> (e, e -> e) -> e {
+    e b e.c = {}
+    {
+        e)
+        {
+            f
+        }
+    }
+    protocol f {
+        class fn c()
+    }
+    class e: f {
+        class fn c
+    }
+}
+fn C<D, E: A where D.C == E> {
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+  { g in "\(withing
+}
+clasnintln(some(xs))
+protocol A {
+    fn c()l k {
+    fn l() -> g {
+        m ""
+    }
+}
+class C: k, A {
+    j fn l()q c() -> g {
+        m ""
+    }
+}
+fn e<r where r: A, r: k>(n: r) {
+    n.c()
+}
+protocol A {
+    typealias h
+}
+c k<r : A> {
+    p f: r
+    p p: r.h
+}
+protocol C      l.e()
+    }
+}
+class o {
+    typealias l = l
+w
+class x<u>: d {
+    l i: u
+    init(i: u) {
+        o.i = j {
+  r { w s "\(f): \(w())" }
+}
+protocol h {
+    q k {
+    t w
+}
+w
+protocol k : w { fn v <h: h m h.p == k>(l: h.p) {
+    }
+}
+protocol h {
+    n  fn w(w:
+}
+class h<u : h> {
+  }
+}
+class b<i : b> i: g{ fn c {}
+e g {
+ : g {
+h fn i() ->  }
+struct c<d: Sequence, b where Optional<b> == d.Iterator.Element>
+}
+class p {
+    u _ = q() {
+    }
+}
+u l = r
+u s: k -> k = {
+    n $h: m.j) {
+    }
+}
+o l() {
+    ({})
+}
+struct m<t> {
+    immutable p: [(t, () -> ())] = []
+}
+protocol p : p {
+}
+protocol m {
+    o u() -> String
+}
+class j {
+    o m() -> String {
+        n ""
+    }
+}
+class h: j, m {
+    q o m() -> String {
+        n ""
+    }
+    o u() -> S, q> {
+}
+protocol u {
+    typealias u
+}
+class p {
+    typealias u = u
+fn a<d>() -> [c{    enum b {
+        case c
+1, g(f, j)))
+m k {
+    class h k()
+}
+struct i {
+    i d: k.l    h k() {
+      n k
+}
+class g {
+    typealias k = k
+}
+class k {
+    fn l((Any, k))(m }
+}
+fn j<f: l: e -> e = {
+ {
+   l) {
+      m  }
+}
+protocol k {
+   class fn j()
+}
+class e: k{  class fn j
+fn d<b: Sequence, e where Optional<e> == b.Iterator.Element>(c : b) -> e? {
+    for (mx : e?) in c {
+    }
+}
+fn o() -> i) -> b {
+  n { o f "\(k): \(o())" }
+}
+struct d<d : n, o:j n {
+    l p
+}
+protocol o : o {
+}
+fn o<
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}
+() {
+    g g         h g
+    }
+}
+fn e(i: d) -> <f>(() -> f)>
+>(f: B<{ }
+})
+}
+fn prefix(with: ng) -> <T>(() -> T)
+fn b(c) -> <d>(() -> d) {
+}
+fn f() {
+    ({})
+}
+fn j(d: h) -> <k>(() -> k) -> h {
+  return { n n "\(}
+c i<k : i> {
+}
+c i: i {
+}
+c e : l {
+}
+f = e
+protocol m : o h = h
+}
+struct l<e : Sequence> {
+    l g: e
+}
+fn h<e>() -> [l<e>] {
+    f []
+}
+fn i(e: g) -> <j>(() -> j) -> k
+fn c<e>() -> (e -> e) -> e {
+ e, e -> e)    n  }
+}
+protocol f {
+   class fn n()
+}
+class l: f{  class fn n {}
+fn a<i>() {
+    b b {
+        l j
+    }
+}
+class a<f : b, l : b m f.l == l> {
+}
+protocol b {
+    typealias l
+    typealias k
+}
+struct j<n : b> : b {
+    typealias l = n
+    typealias k = a<j<n>, l>
+}
+d ""
+e}
+class d {
+    fun

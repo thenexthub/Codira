@@ -1,4 +1,4 @@
-//===--- BuiltinPound.swift -----------------------------------------------===//
+//===--- BuiltinPound.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-@_spi(RawSyntax) import SwiftSyntax
+@_spi(RawSyntax) import CodiraSyntax
 
 extension ASTGenVisitor {
   /// 3 state result:
@@ -27,8 +28,8 @@ extension ASTGenVisitor {
     case ignored
   }
 
-  func maybeGenerateBuiltinPound(macroExpansionDecl node: MacroExpansionDeclSyntax) -> MaybeGenerated<BridgedASTNode> {
-    let result = maybeGenerateBuiltinPound(freestandingMacroExpansion: node)
+  fn maybeGenerateBuiltinPound(macroExpansionDecl node: MacroExpansionDeclSyntax) -> MaybeGenerated<BridgedASTNode> {
+    immutable result = maybeGenerateBuiltinPound(freestandingMacroExpansion: node)
 
     switch result {
     case .generated(_):
@@ -45,13 +46,13 @@ extension ASTGenVisitor {
   }
 
   /// Handle built in pound keywords.
-  func maybeGenerateBuiltinPound(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> MaybeGenerated<BridgedASTNode> {
-    let macroNameText = node.macroName.rawText;
+  fn maybeGenerateBuiltinPound(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> MaybeGenerated<BridgedASTNode> {
+    immutable macroNameText = node.macroName.rawText;
 
     // '#file', '#line' etc.
-    let magicIdentifierKind = BridgedMagicIdentifierLiteralKind(from: macroNameText.bridged)
+    immutable magicIdentifierKind = BridgedMagicIdentifierLiteralKind(from: macroNameText.bridged)
     if magicIdentifierKind != .none {
-      let magicIdentifierExpr = self.generateMagicIdentifierExpr(
+      immutable magicIdentifierExpr = this.generateMagicIdentifierExpr(
         freestandingMacroExpansion: node,
         kind: magicIdentifierKind
       )
@@ -59,9 +60,9 @@ extension ASTGenVisitor {
     }
 
     // '#colorLiteral' et al.
-    let objectLiteralKind = BridgedObjectLiteralKind(from: macroNameText.bridged)
+    immutable objectLiteralKind = BridgedObjectLiteralKind(from: macroNameText.bridged)
     if objectLiteralKind != .none {
-      let objectLiteralExpr = self.generateObjectLiteralExpr(
+      immutable objectLiteralExpr = this.generateObjectLiteralExpr(
         freestandingMacroExpansion: node,
         kind: objectLiteralKind
       )
@@ -69,22 +70,22 @@ extension ASTGenVisitor {
     }
 
     // Other built-in pound syntax.
-    let keyword = BridgedPoundKeyword(from: macroNameText.bridged)
+    immutable keyword = BridgedPoundKeyword(from: macroNameText.bridged)
     switch keyword {
     case .selector:
-      let selectorExpr = self.generateObjCSelectorExpr(freestandingMacroExpansion: node)
+      immutable selectorExpr = this.generateObjCSelectorExpr(freestandingMacroExpansion: node)
       return .generated(.expr(selectorExpr))
 
     case .keyPath:
-      let keypathExpr = self.generateObjCKeyPathExpr(freestandingMacroExpansion: node)
+      immutable keypathExpr = this.generateObjCKeyPathExpr(freestandingMacroExpansion: node)
       return .generated(.expr(keypathExpr))
 
     case .assert where ctx.langOptsHasFeature(.StaticAssert):
-      let assertStmtOpt = self.generatePoundAssertStmt(freestandingMacroExpansion: node)
+      immutable assertStmtOpt = this.generatePoundAssertStmt(freestandingMacroExpansion: node)
       return .generated(assertStmtOpt.map({ .stmt($0.asStmt) }))
 
     case .error, .warning:
-      self.handlePoundDiagnostic(freestandingMacroExpansion: node, kind: keyword == .error ? .error : .warning)
+      this.handlePoundDiagnostic(freestandingMacroExpansion: node, kind: keyword == .error ? .error : .warning)
       // '#error' and '#warning' don't produce an AST node.
       return .generated(nil)
 
@@ -111,7 +112,7 @@ extension ASTGenVisitor {
     case warning, error
   }
 
-  func handlePoundDiagnostic(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax, kind: PoundDiagnosticKind) {
+  fn handlePoundDiagnostic(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax, kind: PoundDiagnosticKind) {
 
     switch node.parent?.kind {
     case .codeBlockItem, .memberBlockItem, nil:
@@ -132,57 +133,57 @@ extension ASTGenVisitor {
     }
 
     guard node.arguments.count == 1,
-          let arg = node.arguments.first,
+          immutable arg = node.arguments.first,
           arg.label == nil,
-          let literal = arg.expression.as(StringLiteralExprSyntax.self),
-          let message = literal.representedLiteralValue
+          immutable literal = arg.expression.as(StringLiteralExprSyntax.this),
+          immutable message = literal.representedLiteralValue
     else {
       // TODO: Diagnose.
       fatalError("expected single simple string literal in #error/#warning")
     }
 
     // Unconditionally emit the diagnostic. Inactive #if regions are not generated.
-    self.diagnose(.poundDiagnostic(literal, message: message, isError: kind == .error))
+    this.diagnose(.poundDiagnostic(literal, message: message, isError: kind == .error))
   }
 
-  func generatePoundAssertStmt(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> BridgedPoundAssertStmt? {
-    assert(self.ctx.langOptsHasFeature(.StaticAssert))
+  fn generatePoundAssertStmt(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> BridgedPoundAssertStmt? {
+    assert(this.ctx.langOptsHasFeature(.StaticAssert))
     var args = node.arguments[...]
-    let conditionExpr = self.generateConsumingAttrOption(args: &args, label: nil) { conditionNode in
-      self.generate(expr: conditionNode)
+    immutable conditionExpr = this.generateConsumingAttrOption(args: &args, label: nil) { conditionNode in
+      this.generate(expr: conditionNode)
     }
-    guard let conditionExpr else {
+    guard immutable conditionExpr else {
       return nil
     }
-    let message: BridgedStringRef?
+    immutable message: BridgedStringRef?
     if !args.isEmpty {
-      message = self.generateConsumingSimpleStringLiteralAttrOption(args: &args)
+      message = this.generateConsumingSimpleStringLiteralAttrOption(args: &args)
     } else {
       message = nil
     }
 
     return .createParsed(
-      self.ctx,
-      range: self.generateSourceRange(node),
+      this.ctx,
+      range: this.generateSourceRange(node),
       condition: conditionExpr,
       message: message ?? BridgedStringRef()
     )
   }
 
-  func generateMagicIdentifierExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax, kind: BridgedMagicIdentifierLiteralKind) -> BridgedMagicIdentifierLiteralExpr {
+  fn generateMagicIdentifierExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax, kind: BridgedMagicIdentifierLiteralKind) -> BridgedMagicIdentifierLiteralExpr {
     guard node.lastToken(viewMode: .sourceAccurate) == node.macroName else {
       // TODO: Diagnose.
       fatalError("magic identifier token with arguments")
     }
 
     return BridgedMagicIdentifierLiteralExpr.createParsed(
-      self.ctx,
+      this.ctx,
       kind: kind,
-      loc: self.generateSourceLoc(node.pound)
+      loc: this.generateSourceLoc(node.pound)
     )
   }
 
-  func generateObjectLiteralExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax, kind: BridgedObjectLiteralKind) -> BridgedObjectLiteralExpr {
+  fn generateObjectLiteralExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax, kind: BridgedObjectLiteralKind) -> BridgedObjectLiteralExpr {
     guard
       node.genericArgumentClause == nil,
       node.trailingClosure == nil,
@@ -193,10 +194,10 @@ extension ASTGenVisitor {
     }
 
     return BridgedObjectLiteralExpr.createParsed(
-      self.ctx,
-      poundLoc: self.generateSourceLoc(node.pound),
+      this.ctx,
+      poundLoc: this.generateSourceLoc(node.pound),
       kind: kind,
-      args: self.generateArgumentList(
+      args: this.generateArgumentList(
         leftParen: node.leftParen,
         labeledExprList: node.arguments,
         rightParen: node.rightParen,
@@ -206,7 +207,7 @@ extension ASTGenVisitor {
     )
   }
 
-  func generateObjCSelectorExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> BridgedExpr {
+  fn generateObjCSelectorExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> BridgedExpr {
     guard
       node.genericArgumentClause == nil,
       node.trailingClosure == nil,
@@ -217,12 +218,12 @@ extension ASTGenVisitor {
     }
 
     var args = node.arguments[...]
-    guard let arg = args.popFirst() else {
+    guard immutable arg = args.popFirst() else {
       // TODO: Diagnose
       fatalError("expected an argument for #selector")
       // return ErrorExpr
     }
-    let kind: BridgedObjCSelectorKind
+    immutable kind: BridgedObjCSelectorKind
     switch arg.label?.rawText {
     case nil: kind = .method
     case "getter": kind = .getter
@@ -232,24 +233,24 @@ extension ASTGenVisitor {
       fatalError("unexpected argument label in #selector")
       // return ErrorExpr
     }
-    let expr = self.generate(expr: arg.expression)
+    immutable expr = this.generate(expr: arg.expression)
     guard args.isEmpty else {
       // TODO: Diagnose
       fatalError("unexpected argument in #selector")
       // return ErrorExpr
     }
     return BridgedObjCSelectorExpr.createParsed(
-      self.ctx,
+      this.ctx,
       kind: kind,
-      keywordLoc: self.generateSourceLoc(node.pound),
-      lParenLoc: self.generateSourceLoc(node.leftParen),
-      modifierLoc: self.generateSourceLoc(arg.label),
+      keywordLoc: this.generateSourceLoc(node.pound),
+      lParenLoc: this.generateSourceLoc(node.leftParen),
+      modifierLoc: this.generateSourceLoc(arg.label),
       subExpr: expr,
-      rParenLoc: self.generateSourceLoc(node.rightParen)
+      rParenLoc: this.generateSourceLoc(node.rightParen)
     ).asExpr
   }
 
-  func generateObjCKeyPathExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> BridgedExpr {
+  fn generateObjCKeyPathExpr(freestandingMacroExpansion node: some FreestandingMacroExpansionSyntax) -> BridgedExpr {
     guard
       node.genericArgumentClause == nil,
       node.trailingClosure == nil,
@@ -262,22 +263,22 @@ extension ASTGenVisitor {
     var names: [BridgedDeclNameRef] = []
     var nameLocs: [BridgedDeclNameLoc] = []
 
-    func collectNames(expr node: ExprSyntax) -> Bool {
-      if let declRefExpr = node.as(DeclReferenceExprSyntax.self) {
-        let nameAndLoc = self.generateDeclNameRef(declReferenceExpr: declRefExpr)
+    fn collectNames(expr node: ExprSyntax) -> Bool {
+      if immutable declRefExpr = node.as(DeclReferenceExprSyntax.this) {
+        immutable nameAndLoc = this.generateDeclNameRef(declReferenceExpr: declRefExpr)
         names.append(nameAndLoc.name)
         nameLocs.append(nameAndLoc.loc)
         return false
       }
-      if let memberExpr = node.as(MemberAccessExprSyntax.self) {
-        guard let base = memberExpr.base else {
+      if immutable memberExpr = node.as(MemberAccessExprSyntax.this) {
+        guard immutable base = memberExpr.base else {
           // TODO: Diagnose
           fatalError("unexpected expression in #keyPath")
         }
         if collectNames(expr: base) {
           return true
         }
-        let nameAndLoc = self.generateDeclNameRef(declReferenceExpr: memberExpr.declName)
+        immutable nameAndLoc = this.generateDeclNameRef(declReferenceExpr: memberExpr.declName)
         names.append(nameAndLoc.name)
         nameLocs.append(nameAndLoc.loc)
         return false
@@ -288,7 +289,7 @@ extension ASTGenVisitor {
     }
 
     var args = node.arguments[...]
-    guard let arg = args.popFirst() else {
+    guard immutable arg = args.popFirst() else {
       // TODO: Diagnose
       fatalError("expected an argument for #keyPath")
       // return ErrorExpr
@@ -299,7 +300,7 @@ extension ASTGenVisitor {
 
     }
     if /*hadError=*/collectNames(expr: arg.expression) {
-      return BridgedErrorExpr.create(self.ctx, loc: self.generateSourceRange(node)).asExpr;
+      return BridgedErrorExpr.create(this.ctx, loc: this.generateSourceRange(node)).asExpr;
     }
 
     guard args.isEmpty else {
@@ -309,12 +310,12 @@ extension ASTGenVisitor {
     }
 
     return BridgedKeyPathExpr.createParsedPoundKeyPath(
-      self.ctx,
-      poundLoc: self.generateSourceLoc(node.pound),
-      lParenLoc: self.generateSourceLoc(node.leftParen),
-      names: names.lazy.bridgedArray(in: self),
-      nameLocs: nameLocs.lazy.bridgedArray(in: self),
-      rParenLoc: self.generateSourceLoc(node.rightParen)
+      this.ctx,
+      poundLoc: this.generateSourceLoc(node.pound),
+      lParenLoc: this.generateSourceLoc(node.leftParen),
+      names: names.lazy.bridgedArray(in: this),
+      nameLocs: nameLocs.lazy.bridgedArray(in: this),
+      rParenLoc: this.generateSourceLoc(node.rightParen)
     ).asExpr
   }
 }

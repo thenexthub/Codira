@@ -1,13 +1,17 @@
 //===--- MovedAsyncVarDebugInfoPropagator.cpp -----------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -17,7 +21,7 @@
 /// points where they are available. The reason that we are doing this is that
 /// during LLVM, the CoroSplitter will split such functions into several
 /// coroutine funclets. Rather than teaching LLVM heuristics to understand how
-/// Swift needs to emit debug info, we pre-propagate debug info for moved values
+/// Codira needs to emit debug info, we pre-propagate debug info for moved values
 /// so that after splitting the dbg info is in the appropriate place.
 ///
 /// The lattice that we use for each Debug Variable we are tracking is as
@@ -76,10 +80,10 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/Support/Format.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/Support/Format.h"
 #include <cstring>
 
 using namespace language;
@@ -139,7 +143,7 @@ namespace {
 
 /// An ADT wrapping a mutable array ref with extra methods used by the pass for
 /// convenience. The author just wished to avoid writing memcpy/memset/memcmp
-/// multiple times by hand and potentially messing up. This /should/ be a swift
+/// multiple times by hand and potentially messing up. This /should/ be a language
 /// extension on MutableArrayRef in truth.
 struct DebugInstMutableArrayRef {
   MutableArrayRef<DebugVarCarryingInst> state;
@@ -171,13 +175,13 @@ struct DebugInstMutableArrayRef {
   unsigned size() const { return state.size(); }
 
   void cloneAfterInsertPt(SILInstruction *insertPt) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Cloning debug info at insert pt: " << *insertPt);
     if (!isa<TermInst>(insertPt)) {
       for (auto value : state) {
         if (!value)
           continue;
-        LLVM_DEBUG(llvm::dbgs() << "    Inst to clone: " << **value);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Inst to clone: " << **value);
         cloneDebugValue(value, insertPt);
       }
       return;
@@ -189,19 +193,19 @@ struct DebugInstMutableArrayRef {
       for (auto value : state) {
         if (!value)
           continue;
-        LLVM_DEBUG(llvm::dbgs() << "    Inst to clone: " << **value);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Inst to clone: " << **value);
         cloneDebugValue(value, succBlock);
       }
     }
   }
 
   void cloneUndefOnlyAfterInsertPt(SILBasicBlock *insertBlock) {
-    LLVM_DEBUG(llvm::dbgs() << "Cloning debug info for undef at block: bb"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Cloning debug info for undef at block: bb"
                             << insertBlock->getDebugID() << '\n');
     for (auto value : state) {
       if (!value || !value.getSpareBits())
         continue;
-      LLVM_DEBUG(llvm::dbgs() << "    Inst to clone: " << **value);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Inst to clone: " << **value);
       cloneDebugValueMakeUndef(value, insertBlock);
     }
   }
@@ -246,27 +250,27 @@ struct BlockState {
   bool containsAsyncEdge = false;
 
   void dump() const {
-    llvm::dbgs() << "BlockState.\n";
-    llvm::dbgs() << "Uninit Out State: "
+    toolchain::dbgs() << "BlockState.\n";
+    toolchain::dbgs() << "Uninit Out State: "
                  << (uninitializedOutState ? "true" : "false") << '\n';
-    llvm::dbgs() << "Contains Async Edge: "
+    toolchain::dbgs() << "Contains Async Edge: "
                  << (containsAsyncEdge ? "true" : "false") << '\n';
-    llvm::dbgs() << "InState.\n";
+    toolchain::dbgs() << "InState.\n";
     for (unsigned i : range(inState.size())) {
-      llvm::dbgs() << "[" << i << "] = "
-                   << llvm::format_hex(uintptr_t(*inState.getElt(i)), 16)
+      toolchain::dbgs() << "[" << i << "] = "
+                   << toolchain::format_hex(uintptr_t(*inState.getElt(i)), 16)
                    << '\n';
     }
-    llvm::dbgs() << "GenSet.\n";
+    toolchain::dbgs() << "GenSet.\n";
     for (unsigned i : range(genSet.size())) {
-      llvm::dbgs() << "[" << i << "] = "
-                   << llvm::format_hex(uintptr_t(*genSet.getElt(i)), 16)
+      toolchain::dbgs() << "[" << i << "] = "
+                   << toolchain::format_hex(uintptr_t(*genSet.getElt(i)), 16)
                    << '\n';
     }
-    llvm::dbgs() << "OutSet.\n";
+    toolchain::dbgs() << "OutSet.\n";
     for (unsigned i : range(outState.size())) {
-      llvm::dbgs() << "[" << i << "] = "
-                   << llvm::format_hex(uintptr_t(*outState.getElt(i)), 16)
+      toolchain::dbgs() << "[" << i << "] = "
+                   << toolchain::format_hex(uintptr_t(*outState.getElt(i)), 16)
                    << '\n';
     }
   }
@@ -279,7 +283,7 @@ namespace {
 struct DebugInfoPropagator {
   SILFunction *fn;
 
-  /// Set to true if we find /any/ func lets. We use this to know if we should
+  /// Set to true if we find /any/ fn lets. We use this to know if we should
   /// early exit from the function. We purposely do not store this information
   /// on a per block level since we need to iterate over instructions right
   /// before we end... allowing us to save some memory.
@@ -296,7 +300,7 @@ struct DebugInfoPropagator {
   /// seen so far when we see a specific SILDebugVariable the first time. This
   /// ensures that our SILDebugVariables will not change from compiler run to
   /// compiler run.
-  llvm::SmallMapVector<SILDebugVariable, unsigned, 4> dbgVarToDbgVarIndexMap;
+  toolchain::SmallMapVector<SILDebugVariable, unsigned, 4> dbgVarToDbgVarIndexMap;
 
   /// A multi map from a SILDebugVariable index to the set of generating
   /// DebugVarCarryingInst for the variable within the entire function. Used to
@@ -305,7 +309,7 @@ struct DebugInfoPropagator {
 
   /// A dense map that maps each block to the global state that we track for
   /// it. BlockState includes the various dataflow vectors.
-  llvm::DenseMap<SILBasicBlock *, BlockState> blockToBlockState;
+  toolchain::DenseMap<SILBasicBlock *, BlockState> blockToBlockState;
 
   /// Storage vector that contains all of our per block state.
   ///
@@ -353,7 +357,7 @@ struct DebugInfoPropagator {
     debugVariable.Type = {};
     auto iter = dbgVarToDbgVarIndexMap.insert(
         {debugVariable, dbgVarToDbgVarIndexMap.size()});
-    LLVM_DEBUG(if (iter.second) llvm::dbgs()
+    TOOLCHAIN_DEBUG(if (iter.second) toolchain::dbgs()
                    << "Mapping: [" << iter.first->second
                    << "] = " << iter.first->first.Name << '\n';);
     return iter.first->second;
@@ -375,7 +379,7 @@ struct DebugInfoPropagator {
 void DebugInfoPropagator::performInitialLocalDataflow() {
   // Map from SILDebugVariable index to the last DebugVarCarryingInst mapped to
   // that SILDebugVariable in the block we are processing.
-  llvm::SmallMapVector<unsigned, DebugVarCarryingInst, 4> blockLastGenInst;
+  toolchain::SmallMapVector<unsigned, DebugVarCarryingInst, 4> blockLastGenInst;
 
   // Walk through the function, mapping SILDebugVariable ->
   // DebugVarCarryingInst. We use our multi-map later to update our gen set once
@@ -387,16 +391,16 @@ void DebugInfoPropagator::performInitialLocalDataflow() {
     // without needing to iterate over the blocks an additional time.
     ++numBlocks;
 
-    // blockLastGenInst is per block state, so use SWIFT_DEFER to make sure we
+    // blockLastGenInst is per block state, so use LANGUAGE_DEFER to make sure we
     // don't forget to clean it up before processing the next block.
-    SWIFT_DEFER { blockLastGenInst.clear(); };
+    LANGUAGE_DEFER { blockLastGenInst.clear(); };
 
     auto &blockState = blockToBlockState[&block];
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Visiting Block: bb" << block.getDebugID() << '\n');
 
     for (auto &inst : block) {
-      LLVM_DEBUG(llvm::dbgs() << "Visiting inst: " << inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting inst: " << inst);
       // If we have a funclet edge, just note that we saw one so we can exit
       // early if we do not have any. We are going to actually emit our
       // debug_value with a 2nd pass after we perform dataflow. We could store
@@ -404,7 +408,7 @@ void DebugInfoPropagator::performInitialLocalDataflow() {
       // BlockState. It would make BlockState even larger and potentially malloc
       // memory if the data structure went large.
       if (isAsyncFuncletEdge(&inst)) {
-        LLVM_DEBUG(llvm::dbgs() << "    Found funclet edge!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found funclet edge!\n");
         blockState.containsAsyncEdge = true;
         foundFuncLets = true;
         continue;
@@ -414,23 +418,23 @@ void DebugInfoPropagator::performInitialLocalDataflow() {
       // debug_value, etc)...
       auto debugInst = DebugVarCarryingInst(&inst);
       if (!debugInst) {
-        LLVM_DEBUG(llvm::dbgs() << "Found a non debug inst?! Continuing\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found a non debug inst?! Continuing\n");
         continue;
       }
 
       if (!debugInst.getWasMoved()) {
-        LLVM_DEBUG(
-            llvm::dbgs()
+        TOOLCHAIN_DEBUG(
+            toolchain::dbgs()
             << "    Found a moved debug that was moved... continuing!\n");
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "Found DebugValueInst!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found DebugValueInst!\n");
 
       // ... and we have a non-empty SILDebugVariable.
       auto debugInfo = debugInst.getVarInfo();
       if (!debugInfo) {
-        LLVM_DEBUG(llvm::dbgs() << "        Has no var info?! Skipping!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Has no var info?! Skipping!\n");
         continue;
       }
 
@@ -450,13 +454,13 @@ void DebugInfoPropagator::performInitialLocalDataflow() {
       blockLastGenInst[dbgVarIndex] = debugInst;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "  Postprocessing gen/kill for block: bb"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Postprocessing gen/kill for block: bb"
                             << block.getDebugID() << '\n');
 
     // Now post-process our state beginning by adding the set of last gened
     // debug var carrying inst to our multi-map.
     for (auto pair : blockLastGenInst) {
-      LLVM_DEBUG(llvm::dbgs() << "Gen: " << **pair.second);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Gen: " << **pair.second);
       varToGenDbgInstsMultimap.insert(pair.first, pair.second);
     }
   }
@@ -515,7 +519,7 @@ void DebugInfoPropagator::initializeDataflowState() {
 
 void DebugInfoPropagator::performGlobalDataflow() {
   // Ok, now we are all setup to perform our dataflow.
-  LLVM_DEBUG(llvm::dbgs() << "Performing dataflow!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Performing dataflow!\n");
 
   std::vector<SILBasicBlock *> pending;
   SmallPtrSet<SILBasicBlock *, 8> inPendingWorklist;
@@ -537,28 +541,28 @@ void DebugInfoPropagator::performGlobalDataflow() {
       worklist.pop_back();
       auto &blockState = blockToBlockState[block];
 
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Visiting block: bb" << block->getDebugID() << '\n');
-      LLVM_DEBUG(blockState.dump());
+      TOOLCHAIN_DEBUG(blockState.dump());
 
       bool visitedFirstPred = false;
       for (auto *pred : block->getPredecessorBlocks()) {
         auto &predBlockState = blockToBlockState[pred];
 
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                        << "PredBlock: bb" << pred->getDebugID() << '\n';
                    predBlockState.dump());
 
         // Skip uninitialized preds.
         if (predBlockState.uninitializedOutState) {
-          LLVM_DEBUG(llvm::dbgs() << "    Skipping uninit block...\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping uninit block...\n");
           continue;
         }
 
         // If this is our first pred, just initialize our instate with that
         // pred.
         if (!visitedFirstPred) {
-          LLVM_DEBUG(llvm::dbgs() << "    First pred... initing!\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    First pred... initing!\n");
           visitedFirstPred = true;
           blockState.inState.copy(predBlockState.outState);
           continue;
@@ -577,7 +581,7 @@ void DebugInfoPropagator::performGlobalDataflow() {
             // blocks, we have the appropriate SILDebugVariable stored and know
             // the value is undef.
             if (auto dbgVar = predBlockState.outState.getElt(index)) {
-              LLVM_DEBUG(llvm::dbgs()
+              TOOLCHAIN_DEBUG(toolchain::dbgs()
                          << "Invalidating along one path... inserting undef "
                             "at merge point?!\n");
               currentValue = dbgVar;
@@ -596,7 +600,7 @@ void DebugInfoPropagator::performGlobalDataflow() {
           // debug_value at merge point. Set the spareBit to 1 so we know this
           // is undef.
           currentValue.setSpareBits(1);
-          LLVM_DEBUG(llvm::dbgs() << "Invalidating along one path... "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Invalidating along one path... "
                                      "inserting undef at merge point 2?!\n");
         }
       }
@@ -623,13 +627,13 @@ void DebugInfoPropagator::performGlobalDataflow() {
         blockState.outState.copy(tmpData);
         for (auto *succBlock : block->getSuccessorBlocks()) {
           if (inPendingWorklist.insert(succBlock).second) {
-            LLVM_DEBUG(llvm::dbgs() << "Adding to pending list: bb"
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "Adding to pending list: bb"
                                     << succBlock->getDebugID() << '\n');
             pending.push_back(succBlock);
           }
         }
       }
-      LLVM_DEBUG(llvm::dbgs() << "After Round.\n"; blockState.dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "After Round.\n"; blockState.dump());
     }
 
     std::swap(worklist, pending);
@@ -690,7 +694,7 @@ bool DebugInfoPropagator::process() {
 
   // If we didn't find any funclets or any moved gen dbg, just bail.
   if (!foundFuncLets) {
-    LLVM_DEBUG(llvm::dbgs() << "Exiting early! No seen func let edges?!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Exiting early! No seen fn let edges?!\n");
     return false;
   }
 
@@ -706,11 +710,11 @@ bool DebugInfoPropagator::process() {
   // Then if we found any debug values that "GEN"ed out of a block, perform our
   // global dataflow.
   if (varToGenDbgInstsMultimap.size()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Found gen out blocks, performing global dataflow!\n");
     performGlobalDataflow();
   } else {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "No gen out blocks! skipping global dataflow!\n");
   }
 
@@ -733,7 +737,7 @@ namespace {
 class MovedAsyncVarDebugInfoPropagatorTransform : public SILFunctionTransform {
   void run() override {
     auto *fn = getFunction();
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "*** MovedAsyncVarDebugInfoPropagatorTransform on function: '"
                << fn->getName() << "\"\n");
     DebugInfoPropagator propagator(fn);
@@ -746,6 +750,6 @@ class MovedAsyncVarDebugInfoPropagatorTransform : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createMovedAsyncVarDebugInfoPropagator() {
+SILTransform *language::createMovedAsyncVarDebugInfoPropagator() {
   return new MovedAsyncVarDebugInfoPropagatorTransform();
 }

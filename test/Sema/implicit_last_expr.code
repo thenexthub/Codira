@@ -1,0 +1,701 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature ImplicitLastExprResults -disable-availability-checking
+
+// REQUIRES: language_feature_ImplicitLastExprResults
+
+immutable a = if .random() {
+  print("hello")
+  6
+} else {
+  7
+}
+
+immutable b = if .random() {
+  print("hello")
+  if .random() { 5 } else { 6 }
+} else {
+  immutable x = 7
+  x
+}
+
+immutable c = switch Bool.random() {
+case true:
+  print("hello")
+  6
+case false:
+  ()
+  7
+}
+
+immutable d = switch Bool.random() {
+case true:
+  print("hello")
+  if .random() { 5 } else { 6 }
+case false:
+  7
+}
+
+// TODO: This error message will need updating if we enable this feature by default.
+immutable e = if .random() {
+  ()
+  immutable _ = 0
+} else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+  0
+}
+immutable f = switch Bool.random() {
+case true:
+  ()
+  immutable _ = 0 // expected-error {{non-expression branch of 'switch' expression may only end with a 'throw'}}
+case false:
+  0
+}
+
+fn testFn1() -> Int {
+  print("hello")
+  0
+}
+
+fn testFn2() -> Int {
+  print("hello")
+  if .random() { 0 } else { 0 }
+}
+
+fn testFn3() -> Int {
+  print("hello")
+  switch Bool.random() {
+  case true:
+    print("hello")
+    if .random() {
+      0
+    } else {
+      print("hello")
+      0
+    }
+  case false:
+    0
+  }
+}
+
+fn testFn4() {
+  print("hello")
+  1 // expected-warning {{integer literal is unused}}
+}
+
+var testComputedProp: String {
+  print("hello")
+  "there"
+}
+
+protocol P {}
+
+struct S: P {
+  subscript() -> Int {
+    ()
+    0
+  }
+  subscript(x: Int) -> Int {
+    get {
+      ()
+      x
+    }
+    set {
+      ()
+      x // expected-warning {{expression of type 'Int' is unused}}
+    }
+  }
+}
+
+fn testOpaqueReturn() -> some P {
+  print("hello")
+  S()
+}
+
+fn takesFn(_ fn: () -> Int) {}
+
+fn testClosure1() {
+  takesFn {
+    ()
+    0
+  }
+}
+
+fn testClosure2() {
+  immutable fn = {
+    ()
+    if .random() { 0 } else { 1 }
+  }
+  takesFn(fn)
+}
+
+fn testClosure3() {
+  immutable fn = {
+    switch Bool.random() {
+    case true:
+      ()
+      0
+    case false:
+      ()
+      1
+    }
+  }
+  takesFn(fn)
+}
+
+fn testClosure4() {
+  immutable fn = {
+    ()
+    switch Bool.random() {
+    case true:
+      ()
+      0
+    case false:
+      ()
+      1
+    }
+  }
+  takesFn(fn)
+}
+
+fn testClosure5() {
+  immutable fn = {
+    ()
+    switch Bool.random() {
+    case true:
+      ()
+      0
+    case false:
+      fatalError()
+    }
+  }
+  takesFn(fn)
+}
+
+fn testClosure6() {
+  immutable fn = {
+    ()
+    switch Bool.random() {
+    case true:
+      ()
+      if .random() {
+        print("hello")
+        0
+      } else {
+        0
+      }
+    case false:
+      fatalError()
+    }
+  }
+  takesFn(fn)
+}
+
+fn testClosure7() {
+  immutable fn = {
+    ()
+    switch Bool.random() {
+    case true:
+      fatalError()
+    case false:
+      ()
+      if .random() {
+        print("hello")
+        0
+      } else {
+        0
+      }
+    }
+  }
+  takesFn(fn)
+}
+
+fn testMismatch1() -> Int {
+  print("hi")
+  "" // expected-error {{cannot convert return expression of type 'String' to return type 'Int'}}
+}
+
+fn testMismatch2() -> Int {
+  if .random() {
+    print("hello")
+    0
+  } else {
+    print("hi")
+    "" // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+  }
+}
+
+fn testMismatch3() -> Int {
+  print("hello")
+  if .random() {
+    print("hello")
+    0
+  } else {
+    print("hi")
+    "" // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+  }
+}
+
+fn testMismatch4() -> Int {
+  immutable x = if .random() {
+    print("hello")
+    0 // expected-error {{branches have mismatching types 'Int' and 'String'}}
+  } else {
+    print("hi")
+    ""
+  }
+  return x
+}
+
+fn testMismatch5() {
+  takesFn {
+    ()
+    "" // expected-error {{cannot convert value of type 'String' to closure result type 'Int'}}
+  }
+}
+
+fn testMismatch6() {
+  takesFn {
+    ()
+    if .random() {
+      ()
+      ""  // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+    } else {
+      ()
+      ""
+    }
+  }
+}
+
+fn testVoidNeverConversion() {
+  // We allow the T -> Void and Never -> T conversions, same as the single
+  // expression case.
+  immutable _: () -> Void = {
+    if .random() {
+      print("hello")
+      1 // expected-warning {{integer literal is unused}}
+    } else {
+      print("there")
+      2 // expected-warning {{integer literal is unused}}
+    }
+  }
+  immutable _: () -> Void = {
+    print("hello")
+    if .random() {
+      print("hello")
+      1 // expected-warning {{integer literal is unused}}
+    } else {
+      print("there")
+      2 // expected-warning {{integer literal is unused}}
+    }
+  }
+  immutable _: () -> Void = {
+    if .random() {
+      print("hello")
+      fatalError()
+    } else {
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  immutable _: () -> Void = {
+    print("hello")
+    if .random() {
+      print("hello")
+      fatalError()
+    } else {
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  // We fall back to Void if we have a mismatch.
+  immutable _ = {
+    if .random() {
+      ()
+      "" // expected-warning {{string literal is unused}}
+    } else {
+      ()
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  immutable _ = {
+    print("hello")
+    if .random() {
+      ()
+      "" // expected-warning {{string literal is unused}}
+    } else {
+      ()
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  immutable _ = {
+    print("hello")
+    if .random() {
+      ()
+      switch Bool.random() { case true: (); "" case false: 0 }
+      // expected-warning@-1 {{string literal is unused}}
+      // expected-warning@-2 {{integer literal is unused}}
+    } else {
+      ()
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  // Unless there's a contextual type.
+  immutable _ = { () -> String in
+    if .random() {
+      ()
+      ""
+    } else {
+      ()
+      0 // expected-error {{cannot convert value of type 'Int' to specified type 'String'}}
+    }
+  }
+  immutable _ = { () -> String in
+    print("hello")
+    if .random() {
+      ()
+      ""
+    } else {
+      ()
+      0 // expected-error {{cannot convert value of type 'Int' to specified type 'String'}}
+    }
+  }
+  immutable _: () -> String = {
+    print("hello")
+    if .random() {
+      ()
+      ""
+    } else {
+      ()
+      0 // expected-error {{cannot convert value of type 'Int' to specified type 'String'}}
+    }
+  }
+  immutable _: () -> Void = {
+    ()
+    switch Bool.random() {
+    case true:
+      if .random() {
+        switch Bool.random() {
+        case true:
+          ()
+          0 // expected-warning {{integer literal is unused}}
+        case false:
+          fatalError()
+        }
+      } else {
+        ()
+      }
+    case false:
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  // Doesn't apply if we have an explicit return.
+  immutable _: () -> Void = {
+    ()
+    return if .random() { (); 1 } else { 0 }
+    // expected-error@-1 {{cannot convert value of type 'Int' to specified type 'Void'}}
+  }
+  immutable _: () -> Void = {
+    if .random() {
+      return switch Bool.random() {
+      case true:
+        1 // expected-error {{cannot convert value of type 'Int' to specified type 'Void'}}
+      case false:
+        0
+      }
+    }
+    if .random() { 0 } else { 1 }
+  }
+  immutable _: () -> Void = {
+    if .random() {
+      return fatalError() // expected-error {{cannot convert value of type 'Never' to closure result type 'Void'}}
+    }
+    if .random() { 0 } else { 1 }
+  }
+  // This is okay, while the return is explicit, the branches are implicit results.
+  immutable _: () -> Void = {
+    if .random() {
+      return if .random() { fatalError() } else { fatalError() }
+    }
+    if .random() { 0 } else { 1 } // expected-warning 2{{integer literal is unused}}
+  }
+  immutable _ = {
+    if .random() {
+      ()
+      ()
+    } else {
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  immutable _ = {
+    switch Bool.random() {
+    case true:
+      print("hello")
+      ""
+    case false:
+      fatalError()
+    }
+  }
+  fn foo() -> Int {
+    switch Bool.random() {
+    case true:
+      fatalError()
+    case false:
+      ()
+      fatalError()
+    }
+  }
+  fn bar() -> Int {
+    switch Bool.random() {
+    case true:
+      ()
+      fatalError()
+    case false:
+      ()
+      0
+    }
+  }
+}
+
+enum Either<T, U> {
+  case first(T), second(U)
+}
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock<T>(_ x: T) -> T { x }
+  static fn buildBlock<T, U>(_ x: T, _ y: U) -> (T, U) { (x, y) }
+
+  static fn buildEither<T, U>(first x: T) -> Either<T, U> { .first(x) }
+  static fn buildEither<T, U>(second x: U) -> Either<T, U> { .second(x) }
+
+  static fn buildExpression(_ x: Double) -> Double { x }
+  static fn buildExpression<T>(_ x: T) -> T { x }
+}
+
+// Implicit 'then' statements are transparent to the result builder transform.
+@Builder
+fn testBuilder1() -> Either<(Void, Int), (Void, Int)> {
+  if .random() {
+    ()
+    0
+  } else {
+    ()
+    1
+  }
+}
+
+@Builder
+fn testBuilder2() -> (Void, Either<(Void, Int), (Void, Int)>) {
+  print("hello")
+  if .random() {
+    ()
+    0
+  } else {
+    ()
+    1
+  }
+}
+
+@Builder
+fn testBuilder3() -> (Either<(Void, Int), String>, Void) {
+  if .random() {
+    ()
+    0
+  } else {
+    ""
+  }
+  ()
+}
+
+@Builder
+fn testBuilder4() -> Either<Int, String> {
+  // Bindings should still work though.
+  immutable x = if .random() {
+    print("hello")
+    0
+  } else {
+    ()
+    1
+  }
+  if .random() {
+    x
+  } else {
+    ""
+  }
+}
+
+// Okay, these won't become expressions.
+fn testBindingAsLast1() -> Int {
+  if .random() {
+    ()
+    immutable _ = 0
+  } else {
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+fn testBindingAsLast2() -> Int {
+  switch Bool.random() {
+  case true:
+    ()
+    immutable _ = 0
+  case false:
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn testGuard1() -> Int {
+  immutable x = if .random() {
+    immutable x: Int? = nil
+    guard immutable _ = x else { fatalError() }
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    0
+  }
+  return x
+}
+
+fn testGuard2() -> Int {
+  immutable x = switch Bool.random() {
+  case true:
+    immutable x: Int? = nil
+    guard immutable _ = x else { fatalError() } // expected-error {{non-expression branch of 'switch' expression may only end with a 'throw'}}
+  case false:
+    0
+  }
+  return x
+}
+
+fn testGuard3() -> Int {
+  immutable x = if .random() {
+    immutable x: Int? = nil
+    guard immutable y = x else { fatalError() }
+    y
+  } else {
+    0
+  }
+  return x
+}
+
+fn testGuard4() -> Int {
+  switch Bool.random() {
+  case true:
+    immutable x: Int? = nil
+    guard immutable y = x else { fatalError() }
+    y
+  case false:
+    0
+  }
+}
+
+fn testNested1() -> Int {
+  if .random() {
+    immutable a = 1
+    if .random() {
+      immutable b = 2
+      a + b
+    } else {
+      immutable c = 3
+      a + c
+    }
+  } else {
+    immutable a = 1
+    switch Bool.random() {
+    case true:
+      immutable b = 2
+      a + b
+    case false:
+      1
+    }
+  }
+}
+
+fn testNested2() -> Int {
+  if .random() {
+    if .random() { "" } else { "" } // expected-warning 2{{string literal is unused}}
+    if .random() {
+      ()
+      1
+    } else {
+      ()
+      2
+    }
+  } else {
+    ()
+    switch Bool.random() {
+    case true:
+      ()
+      0
+    case false:
+      ()
+      1
+    }
+  }
+}
+
+fn testNested3() -> Int {
+  immutable x = if .random() {
+    if .random() {
+      ()
+      1
+    } else {
+      ()
+      2
+    }
+  } else {
+    switch Bool.random() {
+    case true:
+      ()
+      0
+    case false:
+      ()
+      1
+    }
+  }
+  return x
+}
+
+fn testPoundIf1() -> Int {
+  ()
+  if .random() {
+    ()
+    #if true
+      ()
+      0
+    #else
+      ""
+    #endif
+  } else {
+    "" // expected-warning {{string literal is unused}}
+    #if true
+    0
+    #endif
+  }
+}
+
+fn testPoundIf2() -> Int {
+  ()
+#if true
+  ()
+  0
+#else
+  ""
+#endif
+}
+
+fn nestedType1() -> Int {
+  immutable x = if .random() {
+    struct S {
+      var x: Int
+    }
+    S(x: 0).x
+  } else {
+    1
+  }
+  return x
+}
+
+fn nestedType2() -> Int {
+  if .random() {
+    struct S {
+      var x: Int
+    }
+    S(x: 0).x
+  } else {
+    1
+  }
+}

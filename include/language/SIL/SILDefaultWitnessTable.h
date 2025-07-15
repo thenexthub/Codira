@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILDefaultWitnessTable class, which is used to provide
@@ -21,15 +22,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILDEFAULTWITNESSTABLE_H
-#define SWIFT_SIL_SILDEFAULTWITNESSTABLE_H
+#ifndef LANGUAGE_SIL_SILDEFAULTWITNESSTABLE_H
+#define LANGUAGE_SIL_SILDEFAULTWITNESSTABLE_H
 
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILDeclRef.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILWitnessTable.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/ADT/ilist.h"
 #include <string>
 
 namespace language {
@@ -41,7 +42,7 @@ class SILModule;
 /// A mapping from each requirement of a protocol to the SIL-level entity
 /// satisfying the requirement for conformances which do not explicitly
 /// provide a witness.
-class SILDefaultWitnessTable : public llvm::ilist_node<SILDefaultWitnessTable>,
+class SILDefaultWitnessTable : public toolchain::ilist_node<SILDefaultWitnessTable>,
                                public SILAllocated<SILDefaultWitnessTable>
 {
 public:
@@ -136,24 +137,24 @@ public:
   void verify(const SILModule &M) const;
   
   /// Print the default witness table.
-  void print(llvm::raw_ostream &OS, bool Verbose = false) const;
+  void print(toolchain::raw_ostream &OS, bool Verbose = false) const;
 
   /// Dump the default witness table to stderr.
   void dump() const;
 };
   
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILDefaultWitnessTable
 //===----------------------------------------------------------------------===//
 
-namespace llvm {
+namespace toolchain {
   
 template <>
-struct ilist_traits<::swift::SILDefaultWitnessTable> :
-public ilist_node_traits<::swift::SILDefaultWitnessTable> {
-  using SILDefaultWitnessTable = ::swift::SILDefaultWitnessTable;
+struct ilist_traits<::language::SILDefaultWitnessTable> :
+public ilist_node_traits<::language::SILDefaultWitnessTable> {
+  using SILDefaultWitnessTable = ::language::SILDefaultWitnessTable;
 
 public:
   static void deleteNode(SILDefaultWitnessTable *WT) { WT->~SILDefaultWitnessTable(); }
@@ -162,6 +163,6 @@ private:
   void createNode(const SILDefaultWitnessTable &);
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 #endif

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the RequirementSignature class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_REQUIREMENT_SIGNATURE_H
-#define SWIFT_AST_REQUIREMENT_SIGNATURE_H
+#ifndef LANGUAGE_AST_REQUIREMENT_SIGNATURE_H
+#define LANGUAGE_AST_REQUIREMENT_SIGNATURE_H
 
 #include "language/AST/GenericSignature.h"
 #include "language/AST/Type.h"
@@ -93,4 +94,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_AST_REQUIREMENT_SIGNATURE_H
+#endif // LANGUAGE_AST_REQUIREMENT_SIGNATURE_H

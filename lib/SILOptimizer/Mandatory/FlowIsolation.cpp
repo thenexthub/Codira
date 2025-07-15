@@ -1,18 +1,18 @@
 //===-- FlowIsolation.cpp - Enforces flow-sensitive actor isolation rules -===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021 - 2022 Apple Inc. and the Swift project authors
+// Copyright (c) 2021 - 2022 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "flow-isolation"
 
-#include "llvm/Support/WithColor.h"
+#include "toolchain/Support/WithColor.h"
 #include "language/AST/Expr.h"
 #include "language/AST/ActorIsolation.h"
 #include "language/AST/DiagnosticsSIL.h"
@@ -115,12 +115,12 @@ struct Info {
     return !propertyUses.empty();
   }
 
-  void dump() const LLVM_ATTRIBUTE_USED {
-    llvm::dbgs() << "nonisolatedUses:\n";
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED {
+    toolchain::dbgs() << "nonisolatedUses:\n";
     for (auto const *i : nonisolatedUses)
       i->dump();
 
-    llvm::dbgs() << "propertyUses:\n";
+    toolchain::dbgs() << "propertyUses:\n";
     for (auto const *i : propertyUses)
       i->dump();
   }
@@ -148,7 +148,7 @@ public:
 
   // The deferBlocks information is shared between all blocks of
   // this analysis information's function.
-  llvm::SmallMapVector< SILFunction*,
+  toolchain::SmallMapVector< SILFunction*,
                         std::unique_ptr<AnalysisInfo>, 8> deferBlocks;
 
   // Only computed after calling solve()
@@ -245,29 +245,29 @@ public:
 
   /// Records that the instruction accesses an isolated property.
   void markPropertyUse(SILInstruction *i) {
-    LLVM_DEBUG(llvm::dbgs() << "marking as isolated: " << *i);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "marking as isolated: " << *i);
     auto &blockData = this->operator[](i->getParent());
     blockData.propertyUses.insert(i);
   }
 
   /// Records that the instruction causes 'self' to become nonisolated.
   void markNonIsolated(SILInstruction *i) {
-    LLVM_DEBUG(llvm::dbgs() << "marking as non-isolated: " << *i);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "marking as non-isolated: " << *i);
     auto &blockData = this->operator[](i->getParent());
     blockData.nonisolatedUses.insert(i);
   }
 
-  void dump() const LLVM_ATTRIBUTE_USED {
-    llvm::dbgs() << "analysis-info for " << getFunction()->getName() << "\n";
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED {
+    toolchain::dbgs() << "analysis-info for " << getFunction()->getName() << "\n";
     for (auto const& bnd : *this) {
-      llvm::dbgs() << "bb" << bnd.block.getDebugID() << "\n";
+      toolchain::dbgs() << "bb" << bnd.block.getDebugID() << "\n";
       bnd.data.dump();
     }
-    llvm::dbgs() << "flow-problem state:\n";
+    toolchain::dbgs() << "flow-problem state:\n";
     flow.dump();
 
     // print the defer information in a different color, if supported.
-    llvm::WithColor color(llvm::dbgs(), raw_ostream::BLUE);
+    toolchain::WithColor color(toolchain::dbgs(), raw_ostream::BLUE);
     for (auto const& entry : deferBlocks)
       entry.second->dump();
   }
@@ -337,7 +337,7 @@ SILInstruction *AnalysisInfo::findNonisolatedBlame(SILInstruction* startInst) {
     }
   }
 
-  llvm_unreachable("failed to find nonisolated blame.");
+  toolchain_unreachable("failed to find nonisolated blame.");
 }
 
 static StringRef verbForInvoking(ValueDecl *value) {
@@ -474,7 +474,7 @@ void Info::diagnoseAll(AnalysisInfo &info, bool forDeinit,
       diag.diagnose(illegalLoc.getSourceLoc(),
                     diag::isolated_property_mutation_in_nonisolated_context,
                     accessor->getStorage(), accessor->isSetter())
-          .warnUntilSwiftVersion(6);
+          .warnUntilCodiraVersion(6);
       continue;
     }
 
@@ -486,7 +486,7 @@ void Info::diagnoseAll(AnalysisInfo &info, bool forDeinit,
     diag.diagnose(illegalLoc.getSourceLoc(), diag::isolated_after_nonisolated,
                   forDeinit, var)
         .highlight(illegalLoc.getSourceRange())
-        .warnUntilSwiftVersion(6);
+        .warnUntilCodiraVersion(6);
 
     // after <verb><adjective> <subject>, ... can't use self anymore, etc ...
     //   example:
@@ -537,7 +537,7 @@ static bool diagnoseNonSendableFromDeinit(RefElementAddrInst *inst) {
         != StrictConcurrency::Complete)
     return false;
 
-  return swift::diagnoseNonSendableFromDeinit(
+  return language::diagnoseNonSendableFromDeinit(
       inst->getLoc().getSourceLoc(),
       inst->getField(),
       dc);
@@ -574,7 +574,7 @@ public:
 void AnalysisInfo::analyze(const SILArgument *selfParam) {
   assert(selfParam && "analyzing a function with no self?");
 
-  ModuleDecl *module = getFunction()->getModule().getSwiftModule();
+  ModuleDecl *module = getFunction()->getModule().getCodiraModule();
 
   // Use a worklist to track the uses left to be searched.
   OperandWorklist worklist;
@@ -724,7 +724,7 @@ void AnalysisInfo::analyze(const SILArgument *selfParam) {
 
       default:
         // don't follow this instruction.
-        LLVM_DEBUG(llvm::dbgs() << DEBUG_TYPE << " def-use walk skipping: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << DEBUG_TYPE << " def-use walk skipping: "
                        << *user);
         break;
     }
@@ -858,7 +858,7 @@ void checkFlowIsolation(SILFunction *fn) {
   // Step 2 -- Initialize and solve the dataflow problem.
   info.solve();
 
-  LLVM_DEBUG(info.dump());
+  TOOLCHAIN_DEBUG(info.dump());
 
   // Step 3 -- With the information gathered, check for flow-isolation issues.
   info.verifyIsolation();
@@ -895,6 +895,6 @@ class FlowIsolation : public SILFunctionTransform {
 
 /// This pass is known to depend on the following passes having run before it:
 ///   - NoReturnFolding
-SILTransform *swift::createFlowIsolation() {
+SILTransform *language::createFlowIsolation() {
   return new FlowIsolation();
 }

@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a structure (\c PotentialMacroExpansions) to track
 //  potential macro expansions within a given context.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_POTENTIAL_MACRO_EXPANSIONS_H
-#define SWIFT_AST_POTENTIAL_MACRO_EXPANSIONS_H
+#ifndef LANGUAGE_AST_POTENTIAL_MACRO_EXPANSIONS_H
+#define LANGUAGE_AST_POTENTIAL_MACRO_EXPANSIONS_H
 
 #include "language/AST/Identifier.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 namespace language {
 
@@ -37,10 +38,10 @@ class PotentialMacroExpansions {
     IntroducesArbitraryNames = 0x02,
   };
 
-  using NameSet = llvm::SmallPtrSet<DeclName, 4>;
+  using NameSet = toolchain::SmallPtrSet<DeclName, 4>;
 
   /// Storage for the set of potential macro expansions.
-  llvm::PointerIntPair<NameSet *, 2, unsigned> Storage;
+  toolchain::PointerIntPair<NameSet *, 2, unsigned> Storage;
 
   /// Retrieve a pointer to the name set if there is one.
   const NameSet *getIntroducedNamesIfAvailable() const {
@@ -186,4 +187,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_POTENTIAL_MACRO_EXPANSIONS_H
+#endif // LANGUAGE_AST_POTENTIAL_MACRO_EXPANSIONS_H

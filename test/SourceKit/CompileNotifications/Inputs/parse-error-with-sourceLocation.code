@@ -1,0 +1,3 @@
+#sourceLocation(file: "custom.swuft", line: 2000)
+fn 1() {}
+#sourceLocation() // reset

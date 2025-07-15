@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/main.codeinterface) %s
+// RUN: %target-language-typecheck-module-from-interface(%t/main.codeinterface)
+// RUN: %FileCheck %s < %t/main.codeinterface
+
+// CHECK: import Codira
+
+// CHECK: public immutable MyClosureVar: (Codira.Int) -> Codira.Int
+public immutable MyClosureVar: (Int) -> Int = { $0 }
+
+// CHECK: public immutable MyOtherClosureVar: (_ x: Codira.Int) -> Codira.Int
+public immutable MyOtherClosureVar: (_ x: Int) -> Int = { x in x }

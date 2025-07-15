@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This definition file describes the types in the access-control
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-SWIFT_REQUEST(AccessControl, AccessLevelRequest, AccessLevel(ValueDecl *),
+LANGUAGE_REQUEST(AccessControl, AccessLevelRequest, AccessLevel(ValueDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(AccessControl, DefaultAndMaxAccessLevelRequest,
+LANGUAGE_REQUEST(AccessControl, DefaultAndMaxAccessLevelRequest,
               DefaultAndMax(ExtensionDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(AccessControl, SetterAccessLevelRequest,
+LANGUAGE_REQUEST(AccessControl, SetterAccessLevelRequest,
               AccessLevel(AbstractStorageDecl *), SeparatelyCached,
               NoLocationInfo)

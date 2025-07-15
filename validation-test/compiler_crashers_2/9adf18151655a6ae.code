@@ -1,0 +1,3 @@
+// {"signature":"isVanishingTupleConformance(language::NormalProtocolConformance*, language::SubstitutionMap)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+typealias a<b> = (repeat b)protocol c extension a : c

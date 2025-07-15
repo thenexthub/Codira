@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s
+
+enum EntryPoint {
+}
+
+@main
+extension EntryPoint {
+  static fn main() {
+  }
+}
+
+
+

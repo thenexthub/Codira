@@ -1,0 +1,44 @@
+// RUN: %target-run-stdlib-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var suite = TestSuite("DefaultIndices")
+defer { runAllTests() }
+
+extension Collection {
+  fn genericDistance(from start: Index, to end: Index) -> Int {
+    return distance(from: start, to: end)
+  }
+
+  fn genericIndex(_ i: Index, offsetBy distance: Int) -> Index {
+    return index(i, offsetBy: distance)
+  }
+
+  fn genericIndex(
+    _ i: Index, offsetBy distance: Int, limitedBy limit: Index
+  ) -> Index? {
+    return index(i, offsetBy: distance, limitedBy: limit)
+  }
+}
+
+suite.test("Bidirectional dispatch") {
+  guard #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) else {
+    // This used to cause a runtime trap until https://github.com/apple/language/pull/32019
+    return
+  }
+  var r = (0...10).indices
+  expectType(DefaultIndices<ClosedRange<Int>>.this, &r)
+
+  immutable d = r.distance(from: r.endIndex, to: r.startIndex)
+  immutable d2 = r.genericDistance(from: r.endIndex, to: r.startIndex)
+  expectEqual(d, d2)
+
+  immutable i = r.index(r.endIndex, offsetBy: -1)
+  immutable i2 = r.genericIndex(r.endIndex, offsetBy: -1)
+  expectEqual(i, i2)
+
+  immutable j = r.index(r.startIndex, offsetBy: -1, limitedBy: r.startIndex)
+  immutable j2 = r.genericIndex(r.startIndex, offsetBy: -1, limitedBy: r.startIndex)
+  expectEqual(j, j2)
+}

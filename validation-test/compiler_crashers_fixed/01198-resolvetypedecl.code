@@ -1,0 +1,72 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+return {
+}
+struct X<Y> : A {
+fn b(b: X.Type) {
+}
+}
+class d<c>: NSObject {
+init(b: c) {
+}
+}
+protocol a {
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+}
+protocol a : a {
+}
+class A : A {
+}
+class B : C {
+}
+class c {
+fn b((Any, c))(a: (Any, AnyObject)) {
+}
+}
+protocol b {
+}
+struct c {
+fn e() {
+}
+}
+fn d<b: Sequence, e where Optional<e> == b.Generat<d>(() -> d) {
+}
+protocol A {
+}
+class B {
+fn d() -> String {
+}
+}
+class C: B, A {
+override fn d() -> String {
+}
+fn c() -> String {
+}
+}
+fn e<T where T: A, T: B>(t: T) {
+}
+enum S<T> : P {
+fn f<T>() -> T -> T {
+}
+}
+protocol P {
+}
+fn a(b: Int = 0) {
+}
+struct c<d, e: b where d.c == e

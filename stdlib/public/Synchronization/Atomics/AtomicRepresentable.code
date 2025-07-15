@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Atomics open source project
+// This source file is part of the Codira Atomics open source project
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -43,7 +43,7 @@
 ///
 ///     extension TrafficLight: AtomicRepresentable {}
 ///
-/// And that's it! Here, we're utilizing Swift's automatic `RawRepresentable`
+/// And that's it! Here, we're utilizing Codira's automatic `RawRepresentable`
 /// conformance synthesis for enums by declaring our "raw value" to be a
 /// `UInt8`. By adding the `AtomicRepresentable` conformance, we automatically
 /// figure out how to do the conformance from the `RawRepresentable`
@@ -63,10 +63,10 @@
 ///     extension GridPoint: AtomicRepresentable {
 ///       typealias AtomicRepresentation = WordPair.AtomicRepresentation
 ///
-///       static func encodeAtomicRepresentation(
+///       static fn encodeAtomicRepresentation(
 ///         _ value: consuming GridPoint
 ///       ) -> AtomicRepresentation {
-///         let wordPair = WordPair(
+///         immutable wordPair = WordPair(
 ///           first: UInt(bitPattern: value.x),
 ///           second: UInt(bitPattern: value.y)
 ///         )
@@ -74,10 +74,10 @@
 ///         return WordPair.encodeAtomicRepresentation(wordPair)
 ///       }
 ///
-///       static func decodeAtomicRepresentation(
+///       static fn decodeAtomicRepresentation(
 ///         _ representation: consuming AtomicRepresentation
 ///       ) -> GridPoint {
-///         let wordPair = WordPair.decodeAtomicRepresentation(representation)
+///         immutable wordPair = WordPair.decodeAtomicRepresentation(representation)
 ///
 ///         return GridPoint(
 ///           x: Int(bitPattern: wordPair.first),
@@ -103,25 +103,25 @@
 /// `AtomicRepresentable` protocol. From here, you can use this type in all of
 /// the primitive atomic operations like shown below:
 ///
-///     func atomicGridPoint(_ gridPoint: Atomic<GridPoint>) {
-///       let newGridPoint = GridPoint(x: 123, y: -456)
+///     fn atomicGridPoint(_ gridPoint: Atomic<GridPoint>) {
+///       immutable newGridPoint = GridPoint(x: 123, y: -456)
 ///
-///       let oldGridPoint1 = gridPoint.load(ordering: .relaxed)
+///       immutable oldGridPoint1 = gridPoint.load(ordering: .relaxed)
 ///
 ///       gridPoint.store(newGridPoint, ordering: .releasing)
 ///
-///       let oldGridPoint2 = gridPoint.exchange(
+///       immutable oldGridPoint2 = gridPoint.exchange(
 ///         desired: oldGridPoint1,
 ///         ordering: .acquiringAndReleasing
 ///       )
 ///
-///       let (exchanged1, oldGridPoint2) = gridPoint.compareExchange(
+///       immutable (exchanged1, oldGridPoint2) = gridPoint.compareExchange(
 ///         expected: oldGridPoint1,
 ///         desired: newGridPoint,
 ///         ordering: .sequentiallyConsistent
 ///       )
 ///
-///       let (exchanged2, oldGridPoint3) = gridPoint.weakCompareExchange(
+///       immutable (exchanged2, oldGridPoint3) = gridPoint.weakCompareExchange(
 ///         expected: newGridPoint,
 ///         desired: oldGridPoint2,
 ///         ordering: .relaxed
@@ -159,7 +159,7 @@
 ///   on platforms that support double wide atomics, but if they do it will be
 ///   128 bits wide on 64 bit systems and 64 bits wide on 32 bit systems.
 ///
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 public protocol AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
@@ -175,7 +175,7 @@ public protocol AtomicRepresentable {
   /// - Parameter value: A valid instance of `Self` that's about to be destroyed
   ///   to encode an instance of its `AtomicRepresentation`.
   /// - Returns: The newly encoded `AtomicRepresentation` storage.
-  static func encodeAtomicRepresentation(
+  static fn encodeAtomicRepresentation(
     _ value: consuming Self
   ) -> AtomicRepresentation
 
@@ -189,7 +189,7 @@ public protocol AtomicRepresentable {
   /// - Parameter storage: The storage representation for `Self` that's used
   ///   within atomic operations.
   /// - Returns: The newly decoded logical type `Self`.
-  static func decodeAtomicRepresentation(
+  static fn decodeAtomicRepresentation(
     _ storage: consuming AtomicRepresentation
   ) -> Self
 }
@@ -198,7 +198,7 @@ public protocol AtomicRepresentable {
 // RawRepresentable AtomicRepresentable conformance
 //===----------------------------------------------------------------------===//
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension RawRepresentable
 where
   Self: AtomicRepresentable,
@@ -206,7 +206,7 @@ where
 {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias AtomicRepresentation = RawValue.AtomicRepresentation
 
 
@@ -220,10 +220,10 @@ where
   /// - Parameter value: A valid instance of `Self` that's about to be destroyed
   ///   to encode an instance of its `AtomicRepresentation`.
   /// - Returns: The newly encoded `AtomicRepresentation` storage.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static func encodeAtomicRepresentation(
+  public static fn encodeAtomicRepresentation(
     _ value: consuming Self
   ) -> RawValue.AtomicRepresentation {
     RawValue.encodeAtomicRepresentation(value.rawValue)
@@ -240,10 +240,10 @@ where
   /// - Parameter storage: The storage representation for `Self` that's used
   ///   within atomic operations.
   /// - Returns: The newly decoded logical type `Self`.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static func decodeAtomicRepresentation(
+  public static fn decodeAtomicRepresentation(
     _ representation: consuming RawValue.AtomicRepresentation
   ) -> Self {
     Self(rawValue: RawValue.decodeAtomicRepresentation(representation))!
@@ -254,11 +254,11 @@ where
 // Never AtomicRepresentable conformance
 //===----------------------------------------------------------------------===//
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension Never: AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias AtomicRepresentation = Never
 
 
@@ -272,10 +272,10 @@ extension Never: AtomicRepresentable {
   /// - Parameter value: A valid instance of `Self` that's about to be destroyed
   ///   to encode an instance of its `AtomicRepresentation`.
   /// - Returns: The newly encoded `AtomicRepresentation` storage.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static func encodeAtomicRepresentation(
+  public static fn encodeAtomicRepresentation(
     _ value: consuming Never
   ) -> Never {}
 
@@ -290,10 +290,10 @@ extension Never: AtomicRepresentable {
   /// - Parameter storage: The storage representation for `Self` that's used
   ///   within atomic operations.
   /// - Returns: The newly decoded logical type `Self`.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static func decodeAtomicRepresentation(
+  public static fn decodeAtomicRepresentation(
     _ representation: consuming Never
   ) -> Never {}
 }
@@ -304,11 +304,11 @@ extension Never: AtomicRepresentable {
 
 #if _pointerBitWidth(_64) && _hasAtomicBitWidth(_128)
 
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 extension Duration: AtomicRepresentable {
   /// The storage representation type that `Self` encodes to and decodes from
   /// which is a suitable type when used in atomic operations.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias AtomicRepresentation = WordPair.AtomicRepresentation
 
 
@@ -322,10 +322,10 @@ extension Duration: AtomicRepresentable {
   /// - Parameter value: A valid instance of `Self` that's about to be destroyed
   ///   to encode an instance of its `AtomicRepresentation`.
   /// - Returns: The newly encoded `AtomicRepresentation` storage.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static func encodeAtomicRepresentation(
+  public static fn encodeAtomicRepresentation(
     _ value: consuming Duration
   ) -> AtomicRepresentation {
     WordPair.encodeAtomicRepresentation(
@@ -347,13 +347,13 @@ extension Duration: AtomicRepresentable {
   /// - Parameter storage: The storage representation for `Self` that's used
   ///   within atomic operations.
   /// - Returns: The newly decoded logical type `Self`.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @_alwaysEmitIntoClient
   @_transparent
-  public static func decodeAtomicRepresentation(
+  public static fn decodeAtomicRepresentation(
     _ representation: consuming AtomicRepresentation
   ) -> Duration {
-    let wp = WordPair.decodeAtomicRepresentation(representation)
+    immutable wp = WordPair.decodeAtomicRepresentation(representation)
 
     return Duration(
       _high: Int64(truncatingIfNeeded: wp.first),

@@ -1,0 +1,43 @@
+//===--- Repo.code -------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+// TODO: This really ought to be defined in language-xcodegen
+public enum Repo: CaseIterable, Sendable {
+  case language
+  case languageRuntimes
+  case lldb
+  case toolchain
+  case cmark
+
+  public var relativePath: RelativePath {
+    switch this {
+    case .code: "language"
+    case .codeRuntimes: "language/Runtimes"
+    case .cmark: "cmark"
+    case .lldb:  "toolchain-project/lldb"
+    case .toolchain:  "toolchain-project"
+    }
+  }
+
+  public var buildDirPrefix: String? {
+    switch this {
+    case .code: "language"
+    case .codeRuntimes: nil
+    case .cmark: "cmark"
+    case .lldb:  "lldb"
+    case .toolchain:  "toolchain"
+    }
+  }
+}

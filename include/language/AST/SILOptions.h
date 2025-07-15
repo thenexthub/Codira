@@ -1,4 +1,4 @@
-//===--- SILOptions.h - Swift Language SILGen and SIL options ---*- C++ -*-===//
+//===--- SILOptions.h - Codira Language SILGen and SIL options ---*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the options which control the generation, processing,
@@ -18,16 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_SILOPTIONS_H
-#define SWIFT_AST_SILOPTIONS_H
+#ifndef LANGUAGE_AST_SILOPTIONS_H
+#define LANGUAGE_AST_SILOPTIONS_H
 
 #include "language/Basic/FunctionBodySkipping.h"
 #include "language/Basic/OptimizationMode.h"
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/Sanitizers.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Remarks/RemarkFormat.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Remarks/RemarkFormat.h"
 #include <climits>
 #include <string>
 
@@ -157,7 +158,7 @@ public:
   bool EnableLifetimeDependenceDiagnostics = true;
 
   /// Enable diagnostics requiring WMO (for @noLocks, @noAllocation
-  /// annotations, Embedded Swift, and class specialization). SourceKit is the
+  /// annotations, Embedded Codira, and class specialization). SourceKit is the
   /// only consumer that has this disabled today (as it disables WMO
   /// explicitly).
   bool EnableWMORequiredDiagnostics = true;
@@ -253,7 +254,7 @@ public:
   bool emitTBD = false;
 
   /// Should we use a pass pipeline passed in via a json file? Null by default.
-  llvm::StringRef ExternalPassPipelineFilename;
+  toolchain::StringRef ExternalPassPipelineFilename;
 
   /// Don't generate code using partial_apply in SIL generation.
   bool DisableSILPartialApply = false;
@@ -296,7 +297,7 @@ public:
   /// the previous implementation.
   ///
   /// @_dynamicReplacement(for: original())
-  /// func replacement() {
+  /// fn replacement() {
   ///   if (...)
   ///     original() // calls original() implementation if true
   /// }
@@ -305,26 +306,30 @@ public:
   /// Are we parsing the stdlib, i.e. -parse-stdlib?
   bool ParseStdlib = false;
 
-  /// Are we building in embedded Swift mode?
-  bool EmbeddedSwift = false;
+  /// Are we building in embedded Codira mode?
+  bool EmbeddedCodira = false;
 
-  /// Are we building in embedded Swift + -no-allocations?
+  /// Are we building in embedded Codira + -no-allocations?
   bool NoAllocations = false;
 
-  /// Should we use the experimental Swift based closure-specialization
+  /// Should we use the experimental Codira based closure-specialization
   /// optimization pass instead of the existing C++ one.
-  bool EnableExperimentalSwiftBasedClosureSpecialization = false;
+  bool EnableExperimentalCodiraBasedClosureSpecialization = false;
 
   /// The name of the file to which the backend should save optimization
   /// records.
   std::string OptRecordFile;
+
+  /// The names of the auxiliar files to which the backend should save optimization
+  /// records for the remaining (other than the main one) LLVMModules.
+  std::vector<std::string> AuxOptRecordFiles;
 
   /// The regex that filters the passes that should be saved to the optimization
   /// records.
   std::string OptRecordPasses;
 
   /// The format used for serializing remarks (default: YAML)
-  llvm::remarks::Format OptRecordFormat = llvm::remarks::Format::YAML;
+  toolchain::remarks::Format OptRecordFormat = toolchain::remarks::Format::YAML;
 
   /// Are there any options that indicate that functions should not be preserved
   /// for the debugger?
@@ -348,15 +353,15 @@ public:
   SILOptions() {}
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Bridging PCH hash.
-  llvm::hash_code getPCHHashComponents() const {
-    return llvm::hash_value(0);
+  /// contribute to a Codira Bridging PCH hash.
+  toolchain::hash_code getPCHHashComponents() const {
+    return toolchain::hash_value(0);
   }
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Dependency Scanning hash.
-  llvm::hash_code getModuleScanningHashComponents() const {
-    return llvm::hash_value(0);
+  /// contribute to a Codira Dependency Scanning hash.
+  toolchain::hash_code getModuleScanningHashComponents() const {
+    return toolchain::hash_value(0);
   }
 
   bool shouldOptimize() const {

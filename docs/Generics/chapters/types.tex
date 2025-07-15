@@ -4,7 +4,7 @@
 
 \chapter{Types}\label{types}
 
-\lettrine{R}{easoning about types} is a central concern in the implementation of a statically typed language. In Swift, various syntactic forms such as \texttt{Int}, \texttt{Array<String>} and \texttt{(Bool) -> ()} denote references to types. A \index{type representation}\emph{type representation} is the syntactic form of a type annotation written in source, as constructed by the parser. A \IndexDefinition{type}\emph{type} is a higher-level semantic object. Types are constructed from type representations by \index{type}\emph{type resolution}. They can also be built and taken apart directly.
+\lettrine{R}{easoning about types} is a central concern in the implementation of a statically typed language. In Codira, various syntactic forms such as \texttt{Int}, \texttt{Array<String>} and \texttt{(Bool) -> ()} denote references to types. A \index{type representation}\emph{type representation} is the syntactic form of a type annotation written in source, as constructed by the parser. A \IndexDefinition{type}\emph{type} is a higher-level semantic object. Types are constructed from type representations by \index{type}\emph{type resolution}. They can also be built and taken apart directly.
 
 \medskip
 
@@ -154,13 +154,13 @@ More generally, types can be transformed by taking the type apart by kind, recur
 
 \paragraph{Canonical types.} It is possible for two types to differ in their spelling, and yet be equivalent semantically:
 \begin{itemize}
-\item The Swift language defines some shorthands for common types, such as \texttt{T?} for \texttt{Optional<T>}, \texttt{[T]} for \texttt{Array<T>}, and \texttt{[K:\ V]} for \texttt{Dictionary<K, V>}.
+\item The Codira language defines some shorthands for common types, such as \texttt{T?} for \texttt{Optional<T>}, \texttt{[T]} for \texttt{Array<T>}, and \texttt{[K:\ V]} for \texttt{Dictionary<K, V>}.
 \item \index{type alias declaration}Type alias declarations introduce a new name for some existing underlying type, equivalent to writing out the \index{underlying type}underlying type in place of the type alias. The standard library, for example, declares a type alias \IndexDefinition{Void type@\texttt{Void} type}\texttt{Void} with underlying type \texttt{()}.
 \item Another form of fiction along these lines is the preservation of generic parameter names. \index{generic parameter type}Generic parameter types written in source have a name, like ``\texttt{Element},'' and should be printed back as such in diagnostics, but internally they are uniquely identified in their generic signature by a pair of integers, the \index{depth}depth and the \index{index}index. This is detailed in \SecRef{generic params}.
 \end{itemize}
 These constructions are the so-called \IndexDefinition{sugared type}\emph{sugared types}. A sugared type has a desugaring into a more primitive form in terms of its structural components. The compiler constructs type sugar in \index{type resolution}type resolution, and attempts to preserve it as much as possible when transforming types. Preserving sugar in diagnostics can be especially helpful with more complex type aliases and such.
 
-A \IndexDefinition{canonical type}\emph{canonical type} is a type that does not recursively contain any sugared types. Type sugar has no semantic effect, for the most part. For example, it would not make sense to define two overloads of the same function that only differ by sugared types. For this reason, many operations on types compute the canonical type first to avoid having to consider sugared types in case analysis. After type checking, compiler passes such as \index{SILGen}SILGen and \index{IRGen}IRGen only deal with canonical types. The Swift runtime reifies canonical types as \index{runtime type metadata}runtime type metadata.
+A \IndexDefinition{canonical type}\emph{canonical type} is a type that does not recursively contain any sugared types. Type sugar has no semantic effect, for the most part. For example, it would not make sense to define two overloads of the same function that only differ by sugared types. For this reason, many operations on types compute the canonical type first to avoid having to consider sugared types in case analysis. After type checking, compiler passes such as \index{SILGen}SILGen and \index{IRGen}IRGen only deal with canonical types. The Codira runtime reifies canonical types as \index{runtime type metadata}runtime type metadata.
 
 The compiler can transform an arbitrary type into a canonical type by the process of \emph{canonicalization}, which recursively replaces sugared types with their desugared form; in this way, \texttt{[(Int?, Void)]} becomes \verb|Array<(Optional<Int>, ())>|. This operation is very cheap; each type caches a pointer to its canonical type, which is computed as needed (so types are not completely immutable, as we said previously; but the mutability cannot be observed from outside).
 
@@ -217,7 +217,7 @@ Each level of equality implies the next, so $(1)\Rightarrow(2)$ and $(2)\Rightar
 \FigRef{type equality fig} demonstrates type equality in the following extension declaration, where the \texttt{Key} (\ttgp{0}{0}) and \texttt{Value} (\ttgp{0}{1}) generic parameters of \texttt{Dictionary} are declared equivalent with a same-type requirement:
 \begin{Verbatim}
 extension Dictionary where Key == Value {
-  func foo(a: Key?, b: Optional<Key>, c: Value?, d: Optional<Value>) {}
+  fn foo(a: Key?, b: Optional<Key>, c: Value?, d: Optional<Value>) {}
 }
 \end{Verbatim}
 Consider the four types \texttt{Key?}, \texttt{Optional<Key>}, \texttt{Value?}, and \texttt{Optional<Value>}:
@@ -373,7 +373,7 @@ Archetypes occur inside \index{expression}expressions and \index{SIL}SIL instruc
 
 \medskip
 
-The fundamental type kinds we surveyed above---nominal types, type parameters, and archetypes---are \textsl{the Swift types that can conform to protocols}. In other words, they can satisfy the left-hand side of a \index{conformance requirement!checking}conformance requirement, with the details for each type given later in \SecRef{conformance lookup}. Also important are \index{constraint type}\emph{constraint types}; these are \textsl{the types appearing on the right hand side of conformance requirements}. Constraint types themselves are never the types of value-producing expressions. (A type-erased value has an existential type, which wraps a constraint type, as we will see in the next section.)
+The fundamental type kinds we surveyed above---nominal types, type parameters, and archetypes---are \textsl{the Codira types that can conform to protocols}. In other words, they can satisfy the left-hand side of a \index{conformance requirement!checking}conformance requirement, with the details for each type given later in \SecRef{conformance lookup}. Also important are \index{constraint type}\emph{constraint types}; these are \textsl{the types appearing on the right hand side of conformance requirements}. Constraint types themselves are never the types of value-producing expressions. (A type-erased value has an existential type, which wraps a constraint type, as we will see in the next section.)
 
 \paragraph{Protocol types.}
 A protocol type is the most fundamental kind of constraint type; a conformance requirement involving any other kind of constraint type can always be split up into simpler conformance requirements. A \IndexDefinition{protocol type}protocol type is a kind of \index{nominal type}nominal type, so it will have a \index{parent type}parent type if the protocol declaration is nested inside of another nominal type declaration. Unlike other nominal types, protocols cannot be nested in generic contexts (\SecRef{nested nominal types}), so neither the protocol type itself nor any of its parents can have generic arguments. Thus, there is exactly one protocol type corresponding to each protocol declaration.
@@ -389,7 +389,7 @@ SomeClass<Int> & P
 \end{quote}
 
 \paragraph{Parameterized protocol types.}
-A \index{constrained protocol type|see{parameterized protocol type}}\IndexDefinition{parameterized protocol type}parameterized protocol type stores a protocol type together with a list of generic arguments. As a constraint type, it expands into a conformance requirement together with one or more same-type requirements, for each of the protocol's \emph{primary associated types} (\SecRef{protocols}). The written representation looks just like a generic nominal type, except the named declaration is a protocol, for example, \texttt{Sequence<Int>}. Parameterized protocol types were introduced in \IndexSwift{5.7}Swift 5.7~\cite{se0346} (the evolution proposal calls them ``constrained protocol types'').
+A \index{constrained protocol type|see{parameterized protocol type}}\IndexDefinition{parameterized protocol type}parameterized protocol type stores a protocol type together with a list of generic arguments. As a constraint type, it expands into a conformance requirement together with one or more same-type requirements, for each of the protocol's \emph{primary associated types} (\SecRef{protocols}). The written representation looks just like a generic nominal type, except the named declaration is a protocol, for example, \texttt{Sequence<Int>}. Parameterized protocol types were introduced in \IndexCodira{5.7}Codira 5.7~\cite{se0346} (the evolution proposal calls them ``constrained protocol types'').
 
 \section{More Types}\label{more types}
 
@@ -413,7 +413,7 @@ Now we will look at the various \IndexDefinition{structural type}\emph{structura
 \paragraph{Existential types.}
 An \index{existential type}existential type has one structural component, the \emph{constraint type}. An existential value is a container holding a value of some unknown dynamic type that is known to satisfy the constraint; to the right we show the existential type \verb|any (P & Q)|, which stores a value conforming to both \tP\ and \tQ.
 
-The \texttt{any} keyword was added in \IndexSwift{5.6}Swift~5.6~\cite{se0355}; in Swift releases prior, existential types and constraint types were the same concept in the language and implementation. (For the sake of source compatibility, a constraint type without the \texttt{any} keyword still resolves to an existential type except when it appears on the right-hand side of a conformance requirement.)
+The \texttt{any} keyword was added in \IndexCodira{5.6}Codira~5.6~\cite{se0355}; in Codira releases prior, existential types and constraint types were the same concept in the language and implementation. (For the sake of source compatibility, a constraint type without the \texttt{any} keyword still resolves to an existential type except when it appears on the right-hand side of a conformance requirement.)
 
 Existential types are covered in \ChapRef{existentialtypes}.
 
@@ -487,7 +487,7 @@ A \IndexDefinition{tuple type}tuple type is a list of element types together wit
 
 An unlabeled one-element tuple type cannot be formed at all; \texttt{(T)} resolves to the same type as \tT. Labeled one-element tuple types \texttt{(foo:\ T)} are valid in the grammar, but are rejected by type resolution. \index{SILGen}SILGen creates them internally when it materializes the payload of an enum case (for instance, ``\texttt{case person(name:\ String)}''), but they do not appear as the types of expressions.
 
-\paragraph{Function types.} A \IndexDefinition{function type}function type is the type of the callee in a \index{call expression}call expression. It contains a parameter list, a return type, and non-type attributes. The attributes include the function's effect, lifetime, and calling convention. The effects are \texttt{throws} and \texttt{async} (part of the \IndexSwift{5.5}Swift~5.5 concurrency model \cite{se0296}). Function values with \index{non-escaping function type}non-escaping lifetime are second-class; they can only be passed to another function, captured by a non-escaping closure, or called. Only \index{escaping function type}escaping functions can be returned or stored inside other values. The four calling conventions are:
+\paragraph{Function types.} A \IndexDefinition{function type}function type is the type of the callee in a \index{call expression}call expression. It contains a parameter list, a return type, and non-type attributes. The attributes include the function's effect, lifetime, and calling convention. The effects are \texttt{throws} and \texttt{async} (part of the \IndexCodira{5.5}Codira~5.5 concurrency model \cite{se0296}). Function values with \index{non-escaping function type}non-escaping lifetime are second-class; they can only be passed to another function, captured by a non-escaping closure, or called. Only \index{escaping function type}escaping functions can be returned or stored inside other values. The four calling conventions are:
 \begin{itemize}
 \item The default ``thick'' convention, where the function is passed as a function pointer together with a reference-counted closure context.
 \item \texttt{@convention(thin)}: the function is passed as a single function pointer, without a closure context. Thin functions cannot capture values from outer scopes.
@@ -499,7 +499,7 @@ Each entry in the parameter list contains a parameter type and some non-type bit
 \begin{itemize}
 \item The \textbf{value ownership kind}, which can be the default, \texttt{inout}, \texttt{borrowing} or \texttt{consuming}.
 
-The \texttt{inout} kind is key to Swift's mutable value type model; the interested reader can consult \cite{valuesemantics} for details. The last two were introduced in \IndexSwift{5.9}Swift~5.9 \cite{se0377}.
+The \texttt{inout} kind is key to Codira's mutable value type model; the interested reader can consult \cite{valuesemantics} for details. The last two were introduced in \IndexCodira{5.9}Codira~5.9 \cite{se0377}.
 
 \item The \textbf{variadic} flag, in which case the parameter type must be an array type.
 
@@ -538,11 +538,11 @@ This instructs the type checker to treat the corresponding argument in the calle
 \end{center}
 \end{figure}
 
-In functional languages such as \index{ML}ML and \index{Haskell}Haskell, all function types conceptually take a single parameter type. This is not the case in Swift, however. \FigRef{function param tuple fig} illustrates the distinction between \verb|(Int, Float) -> Bool| and \verb|((Int, Float)) -> Bool|; the first has two parameters, and the second has a single parameter that is of tuple type.
+In functional languages such as \index{ML}ML and \index{Haskell}Haskell, all function types conceptually take a single parameter type. This is not the case in Codira, however. \FigRef{function param tuple fig} illustrates the distinction between \verb|(Int, Float) -> Bool| and \verb|((Int, Float)) -> Bool|; the first has two parameters, and the second has a single parameter that is of tuple type.
 
 For convenience, the type checker defines an implicit conversion, called a \index{tuple splat}``tuple splat,'' between function types taking a single tuple and function types of multiple arguments. This implicit conversion is only available when passing a function value as an argument to a call, and only when the function type's parameter list can be represented as a tuple (hence, it has no parameter attributes). An example:
 \begin{Verbatim}
-func apply<T, U>(fn: (T) -> U, arg: T) -> U {
+fn apply<T, U>(fn: (T) -> U, arg: T) -> U {
   return fn(arg)
 }
 
@@ -554,7 +554,7 @@ print(apply(fn: (+), arg: (1, 2)))
 
 Another subtle point with function types is that \index{argument label}argument labels are part of a function declaration's \emph{name}, not a function declaration's \emph{type}. A closure, being an anonymous function, is always called without argument labels. This includes a \index{expression}\index{closure expression}closure formed from an \index{unapplied function reference}unapplied reference to a function declaration---even if the function declaration \emph{does} have argument labels:
 \begin{Verbatim}
-func subtract(minuend x: Int, subtrahend y: Int) -> Int {
+fn subtract(minuend x: Int, subtrahend y: Int) -> Int {
   return x - y
 }
 
@@ -567,13 +567,13 @@ let fn2 = subtract(minuend:subtrahend:)  // full declaration name
 print(fn2(3, 1))  // prints 2
 \end{Verbatim}
 
-The history of Swift function types is an interesting case study in language evolution. Originally, Swift followed the classical functional language model, where a function type always had a \emph{single} parameter type, which could be a tuple type to simulate a function of multiple parameters. Tuple types used to be able to contain \texttt{inout} and variadic elements, and furthermore, the argument labels of a function declaration were part of the function declaration's type. The existence of such ``non-materializable'' tuple types introduced complications throughout the type system, and argument labels had inconsistent behavior in different contexts.
+The history of Codira function types is an interesting case study in language evolution. Originally, Codira followed the classical functional language model, where a function type always had a \emph{single} parameter type, which could be a tuple type to simulate a function of multiple parameters. Tuple types used to be able to contain \texttt{inout} and variadic elements, and furthermore, the argument labels of a function declaration were part of the function declaration's type. The existence of such ``non-materializable'' tuple types introduced complications throughout the type system, and argument labels had inconsistent behavior in different contexts.
 
-The syntax for referencing a declaration name with argument labels was adopted in \IndexSwift{2.2}Swift~2.2~\cite{se0021}. Subsequently, argument labels were dropped from function types in \IndexSwift{3.0}Swift~3~\cite{se0111}. The distinction between a function taking multiple arguments and a function taking a single tuple argument was first hinted at in Swift~3 with \cite{se0029} and \cite{se0066}, and became explicit in \IndexSwift{4.0}Swift~4 \cite{se0110}. At the same time, Swift~4 also introduced the ``tuple splat'' function conversion to simulate the Swift~3 model for the cases where the old behavior was convenient. For example, the element type of \texttt{Dictionary} is a key/value pair, but often it is more convenient to call \texttt{Collection.map()} with a closure taking two arguments, instead of a single tuple argument.
+The syntax for referencing a declaration name with argument labels was adopted in \IndexCodira{2.2}Codira~2.2~\cite{se0021}. Subsequently, argument labels were dropped from function types in \IndexCodira{3.0}Codira~3~\cite{se0111}. The distinction between a function taking multiple arguments and a function taking a single tuple argument was first hinted at in Codira~3 with \cite{se0029} and \cite{se0066}, and became explicit in \IndexCodira{4.0}Codira~4 \cite{se0110}. At the same time, Codira~4 also introduced the ``tuple splat'' function conversion to simulate the Codira~3 model for the cases where the old behavior was convenient. For example, the element type of \texttt{Dictionary} is a key/value pair, but often it is more convenient to call \texttt{Collection.map()} with a closure taking two arguments, instead of a single tuple argument.
 
-Once the above proposals were implemented, the compiler continued to model function types as having a single input type for quite some time, despite this being completely hidden from the user. After \IndexSwift{5.0}Swift~5, the function type representation fully converged with the semantic model of the language.
+Once the above proposals were implemented, the compiler continued to model function types as having a single input type for quite some time, despite this being completely hidden from the user. After \IndexCodira{5.0}Codira~5, the function type representation fully converged with the semantic model of the language.
 
-It is worth noting that metatypes, tuple types and function types play an important role in the core language model, but they are not essential to the formal analysis of generics; one can construct a toy implementation of Swift generics from nominal types and type parameters alone. Indeed, all structural types can be seen as special kinds of type constructors, which have no special behavior other than possibly containing type parameters which can be substituted.
+It is worth noting that metatypes, tuple types and function types play an important role in the core language model, but they are not essential to the formal analysis of generics; one can construct a toy implementation of Codira generics from nominal types and type parameters alone. Indeed, all structural types can be seen as special kinds of type constructors, which have no special behavior other than possibly containing type parameters which can be substituted.
 
 \smallskip
 
@@ -599,7 +599,7 @@ A \IndexDefinition{generic function type}generic function type has the same stru
 \end{verbatim}
 \end{quote}
 
-Generic function types are the \index{interface type!function declaration}interface types of generic \index{function declaration}function and \index{interface type!subscript declaration}\index{subscript declaration}subscript declarations. A reference to a generic function declaration from an expression always applies substitutions first, so generic function types do not appear as the types of expressions. In particular, an unsubstituted generic function value cannot be a parameter to another function, thus the Swift type system does not support \index{limitation!higher-rank polymorphism}\index{higher-rank polymorphism}higher-rank polymorphism. Type inference with higher-rank types is known to be \index{halting problem}\index{undecidable problem!rank-3 polymorphism}undecidable; see \cite{wells} and \cite{practicalhigherrank}.
+Generic function types are the \index{interface type!function declaration}interface types of generic \index{function declaration}function and \index{interface type!subscript declaration}\index{subscript declaration}subscript declarations. A reference to a generic function declaration from an expression always applies substitutions first, so generic function types do not appear as the types of expressions. In particular, an unsubstituted generic function value cannot be a parameter to another function, thus the Codira type system does not support \index{limitation!higher-rank polymorphism}\index{higher-rank polymorphism}higher-rank polymorphism. Type inference with higher-rank types is known to be \index{halting problem}\index{undecidable problem!rank-3 polymorphism}undecidable; see \cite{wells} and \cite{practicalhigherrank}.
 
 Generic function types have a special behavior when their canonical type is computed. Since generic function types carry a generic signature, the parameter types and return type of a \emph{canonical} generic function type are actually \emph{reduced} types with respect to this generic signature (\SecRef{reduced types}).
 
@@ -611,7 +611,7 @@ A \IndexDefinition{placeholder type}placeholder type represents a generic argume
 \begin{Verbatim}
 let myPets: Array<_> = ["Zelda", "Giblet"]
 \end{Verbatim}
-Placeholder types were introduced in \IndexSwift{5.6}Swift 5.6~\cite{se0315}.
+Placeholder types were introduced in \IndexCodira{5.6}Codira 5.6~\cite{se0315}.
 
 \paragraph{Unbound generic types.}
 \IndexDefinition{unbound generic type}Unbound generic types predate placeholder types, and can be seen as a special case. An unbound generic type is written as a named reference to a generic type declaration, without generic arguments applied. An unbound generic type behaves like a generic nominal type where all generic arguments are placeholder types. In previous example, we wrote the generic nominal type \verb|Array<_>| with a placeholder type. The unbound generic type \texttt{Array} could have been used instead:
@@ -625,21 +625,21 @@ Unbound generic types are also occasionally useful in \index{diagnostic!printing
 class Base {
   required init() {}
   
-  func dynamicSelf() -> Self {
+  fn dynamicSelf() -> Self {
     // the type of `self' in a method returning `Self' is
     // the dynamic Self type.
     return self
   }
 
-  func clone() -> Self {
+  fn clone() -> Self {
     return Self()
   }
   
-  func invalid1() -> Self {
+  fn invalid1() -> Self {
     return Base()
   }
   
-  func invalid2(_: Self) {}
+  fn invalid2(_: Self) {}
 }
 
 class Derived: Base {}
@@ -695,15 +695,15 @@ Built-in types and their intrinsics are defined in the special \texttt{Builtin} 
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/Type.h}
-\item \SourceFile{include/swift/AST/Types.h}
+\item \SourceFile{include/language/AST/Type.h}
+\item \SourceFile{include/language/AST/Types.h}
 \item \SourceFile{lib/AST/Type.cpp}
 \end{itemize}
 Other source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/TypeNodes.def}
-\item \SourceFile{include/swift/AST/TypeVisitor.h}
-\item \SourceFile{include/swift/AST/CanTypeVisitor.h}
+\item \SourceFile{include/language/AST/TypeNodes.def}
+\item \SourceFile{include/language/AST/TypeVisitor.h}
+\item \SourceFile{include/language/AST/CanTypeVisitor.h}
 \end{itemize}
 
 \IndexSource{type}
@@ -800,7 +800,7 @@ The root of the type kind hierarchy. Its instances are always uniqued and alloca
 \item \texttt{ErrorType}.
 \end{itemize}
 \end{itemize}
-Each concrete subclass defines some set of static factory methods, usually named \texttt{get()} or similar, which take the structural components and construct a new, uniqued type of this kind. There are also getter methods, prefixed with \texttt{get}, which project the structural components of each kind of type. It would be needlessly duplicative to list all of the getter methods for each subclass of \texttt{TypeBase}; they can all be found in \SourceFile{include/swift/AST/Types.h}.
+Each concrete subclass defines some set of static factory methods, usually named \texttt{get()} or similar, which take the structural components and construct a new, uniqued type of this kind. There are also getter methods, prefixed with \texttt{get}, which project the structural components of each kind of type. It would be needlessly duplicative to list all of the getter methods for each subclass of \texttt{TypeBase}; they can all be found in \SourceFile{include/language/AST/Types.h}.
 
 \paragraph{Dynamic casts.}
 Subclasses of \texttt{TypeBase *} are identifiable at runtime via the \verb|is<>|, \verb|castTo<>| and \verb|getAs<>| template methods. To check if a type has a specific kind, use \verb|is<>|:
@@ -819,7 +819,7 @@ Finally, \verb|castTo<>| is an unconditional cast which asserts that the type ha
 \begin{Verbatim}
 FunctionType *funcTy = type->castTo<FunctionType>();
 \end{Verbatim}
-These template methods desugar the type if it is a sugared type, and the casted type can never itself be a sugared type. This is usually correct; for example, if \texttt{type} is the \texttt{Swift.Void} type alias type, then \texttt{type->is<TupleType>()} returns true, because it is for all intents and purposes a tuple (an empty tuple), except when printed in diagnostics.
+These template methods desugar the type if it is a sugared type, and the casted type can never itself be a sugared type. This is usually correct; for example, if \texttt{type} is the \texttt{Codira.Void} type alias type, then \texttt{type->is<TupleType>()} returns true, because it is for all intents and purposes a tuple (an empty tuple), except when printed in diagnostics.
 
 There are also top-level template functions \verb|isa<>|, \verb|dyn_cast<>| and \verb|cast<>| that operate on \texttt{TypeBase *}. Using these with \texttt{Type} is an error; the pointer must be explicitly unwrapped with \texttt{getPointer()} first. These casts do not desugar, and permit casting to sugared types. This is the mechanism used when \IndexSource{sugared type}sugared types must be distinguished from canonical types for some reason:
 \begin{Verbatim}

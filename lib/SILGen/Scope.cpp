@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Scope.h"
@@ -47,8 +48,8 @@ ManagedValue Scope::popPreservingValue(ManagedValue mv) {
 // lifetimes to resolve the issues.
 static void lifetimeExtendAddressOnlyRValueSubValues(
     SILGenFunction &SGF, SILLocation loc,
-    llvm::SmallVectorImpl<SILValue> &values,
-    llvm::SmallVectorImpl<SILValue> &lifetimeExtendingBoxes) {
+    toolchain::SmallVectorImpl<SILValue> &values,
+    toolchain::SmallVectorImpl<SILValue> &lifetimeExtendingBoxes) {
   for (SILValue &v : values) {
     // If v is not an address, it isn't interesting, continue.
     if (!v->getType().isAddress()) {

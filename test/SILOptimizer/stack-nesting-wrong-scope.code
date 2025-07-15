@@ -1,0 +1,28 @@
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-sil %s -Onone -Xtoolchain \
+// RUN:   -sil-print-after=allocbox-to-stack -Xtoolchain \
+// RUN:   -sil-print-functions=$s3red19ThrowAddrOnlyStructV016throwsOptionalToG0ACyxGSgSi_tcfC \
+// RUN:   -Xtoolchain -sil-print-types -Xtoolchain -sil-print-debuginfo -o %t -module-name red 2>&1 | %FileCheck %s
+
+// CHECK: bb{{[0-9]+}}(%{{[0-9]+}} : @owned $any Error):
+// CHECK:   dealloc_stack %{{[0-9]+}} : $*ThrowAddrOnlyStruct<T>, loc {{.*}}:26:68, scope [[SCOPE:[0-9]+]]
+// CHECK:   br bb{{[0-9]+}}(%{{[0-9]+}} : $any Error), loc {{.*}}:26:15, scope [[SCOPE]]
+
+protocol Patatino {
+  init()
+}
+struct ThrowAddrOnlyStruct<T : Patatino> {
+  var x : T
+  init(fail: ()) throws { x = T() }
+  init(failDuringDelegation: Int) throws {
+    try this.init(fail: ())
+  }
+  init?(throwsToOptional: Int) {
+    try? this.init(failDuringDelegation: throwsToOptional)
+  }
+  init(throwsOptionalToThrows: Int) throws {
+    this.init(throwsToOptional: throwsOptionalToThrows)!
+  }
+  init?(throwsOptionalToOptional: Int) {
+    try! this.init(throwsOptionalToThrows: throwsOptionalToOptional)
+  }
+}

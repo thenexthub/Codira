@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-semantic-arc-opts"
@@ -19,14 +20,14 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/MemAccessUtils.h"
 #include "language/SIL/Projection.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 using namespace language::semanticarc;
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
     VerifyAfterTransformOption("sil-semantic-arc-opts-verify-after-transform",
-                               llvm::cl::Hidden, llvm::cl::init(false));
+                               toolchain::cl::Hidden, toolchain::cl::init(false));
 
 void Context::verify() const {
   if (VerifyAfterTransformOption)
@@ -54,7 +55,7 @@ bool Context::constructCacheValue(
     if (Projection::isAddressProjection(user) ||
         isa<ProjectBlockStorageInst>(user)) {
       for (SILValue r : user->getResults()) {
-        llvm::copy(r->getNonTypeDependentUses(),
+        toolchain::copy(r->getNonTypeDependentUses(),
                    std::back_inserter(worklist));
       }
       continue;
@@ -67,7 +68,7 @@ bool Context::constructCacheValue(
       }
 
       //  Otherwise, look through it and continue.
-      llvm::copy(oeai->getNonTypeDependentUses(),
+      toolchain::copy(oeai->getNonTypeDependentUses(),
                  std::back_inserter(worklist));
       continue;
     }
@@ -102,7 +103,7 @@ bool Context::constructCacheValue(
       }
 
       // And then add the users to the worklist and continue.
-      llvm::copy(bai->getNonTypeDependentUses(),
+      toolchain::copy(bai->getNonTypeDependentUses(),
                  std::back_inserter(worklist));
       continue;
     }
@@ -135,10 +136,10 @@ bool Context::constructCacheValue(
 
       // Otherwise, be conservative and return that we had a write that we did
       // not understand.
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Function: " << user->getFunction()->getName() << "\n");
-      LLVM_DEBUG(llvm::dbgs() << "Value: " << op->get());
-      LLVM_DEBUG(llvm::dbgs() << "Unhandled apply site!: " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Value: " << op->get());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Unhandled apply site!: " << *user);
 
       return false;
     }
@@ -164,10 +165,10 @@ bool Context::constructCacheValue(
 
     // If we did not recognize the user, just return conservatively that it was
     // written to in a way we did not understand.
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Function: " << user->getFunction()->getName() << "\n");
-    LLVM_DEBUG(llvm::dbgs() << "Value: " << op->get());
-    LLVM_DEBUG(llvm::dbgs() << "Unknown instruction!: " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Value: " << op->get());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Unknown instruction!: " << *user);
     return false;
   }
 

@@ -1,0 +1,72 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: mkdir -p %t/SDK/Frameworks/SomeModule.framework/Modules/SomeModule.codemodule
+// RUN: %target-language-frontend \
+// RUN:     -emit-module \
+// RUN:     -module-name SomeModule \
+// RUN:     -o %t/SDK/Frameworks/SomeModule.framework/Modules/SomeModule.codemodule/%module-target-triple.codemodule \
+// RUN:     -language-version 5 \
+// RUN:     %t/SomeModule.code
+
+// RUN: %target-language-ide-test -code-completion -sdk %t/SDK -iframework %t/SDK/Frameworks -source-filename %t/main.code -code-completion-token=GLOBAL | %FileCheck --check-prefix GLOBAL %s
+// RUN: %target-language-ide-test -code-completion -sdk %t/SDK -iframework %t/SDK/Frameworks -source-filename %t/main.code -code-completion-token=GLOBAL_TYPE | %FileCheck --check-prefix GLOBAL_TYPE %s
+// RUN: %target-language-ide-test -code-completion -sdk %t/SDK -iframework %t/SDK/Frameworks -source-filename %t/main.code -code-completion-token=INSTANCE | %FileCheck --check-prefix INSTANCE %s
+// RUN: %target-language-ide-test -code-completion -sdk %t/SDK -iframework %t/SDK/Frameworks -source-filename %t/main.code -code-completion-token=INITIALIZER | %FileCheck --check-prefix INITIALIZER %s
+
+// Test that declarations starting with '_' from system module doesn't apper in
+// code completion.
+
+// BEGIN SomeModule.code
+
+public struct SomeValue {
+  internal var internalValue: Int { return 1 }
+  public var _secretValue: Int { return 1 }
+  public var publicValue: Int { return 1 }
+
+  internal fn internalMethod() -> Int { return 1 }
+  public fn _secretMethod() -> Int { return 1 }
+  public fn publicMethod() -> Int { return 1 }
+
+  internal init(internal: Int) {}
+  public init(_secret: Int) {}
+  public init(public: Int) {}
+}
+
+internal fn internalFunc() {}
+public fn _secretFunc() {}
+public fn publicFunc() {}
+
+internal class InternalClass {}
+public class _SecretClass {}
+public class PublicClass {}
+
+// BEGIN main.code
+import SomeModule
+
+fn test(value: SomeValue) {
+  immutable _ = #^GLOBAL^#
+// GLOBAL-NOT: _secretFunc
+// GLOBAL-NOT: internalFunc
+// GLOBAL-NOT: _SecretClass
+// GLOBAL-NOT: InternalClass
+// GLOBAL-DAG: Decl[Struct]/OtherModule[SomeModule]/IsSystem: SomeValue[#SomeValue#];
+// GLOBAL-DAG: Decl[FreeFunction]/OtherModule[SomeModule]/IsSystem: publicFunc()[#Void#];
+// GLOBAL-DAG: Decl[Class]/OtherModule[SomeModule]/IsSystem: PublicClass[#PublicClass#]; name=PublicClass
+
+  immutable _: #^GLOBAL_TYPE^#
+// GLOBAL_TYPE-NOT: InternalClass
+// GLOBAL_TYPE-NOT: _SecretClass
+// GLOBAL-TYPE-DAG: Decl[Struct]/OtherModule[SomeModule]: SomeValue[#SomeValue#];
+// GLOBAL-TYPE-DAG: Decl[Class]/OtherModule[SomeModule]: PublicClass[#PublicClass#];
+
+  immutable _ = value.#^INSTANCE^#
+// INSTANCE: Begin completions, 3 items
+// INSTANCE-DAG: Keyword[this]/CurrNominal:          this[#SomeValue#];
+// INSTANCE-DAG: Decl[InstanceVar]/CurrNominal/IsSystem: publicValue[#Int#];
+// INSTANCE-DAG: Decl[InstanceMethod]/CurrNominal/IsSystem: publicMethod()[#Int#];
+
+  immutable _ = SomeValue(#^INITIALIZER^#
+// INITIALIZER: Begin completions, 1 items
+// INITIALIZER-DAG: Decl[Constructor]/CurrNominal/Flair[ArgLabels]/IsSystem: ['(']{#public: Int#}[')'][#SomeValue#];
+}

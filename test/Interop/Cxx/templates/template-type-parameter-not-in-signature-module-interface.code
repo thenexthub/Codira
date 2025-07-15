@@ -1,0 +1,12 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=TemplateTypeParameterNotInSignature -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: fn templateTypeParamNotUsedInSignature<T>(T: T.Type)
+// CHECK: fn multiTemplateTypeParamNotUsedInSignature<T, U>(T: T.Type, U: U.Type)
+// CHECK: fn multiTemplateTypeParamOneUsedInSignature<T, U>(_ u: U, T: T.Type) -> U
+// CHECK: fn multiTemplateTypeParamNotUsedInSignatureWithUnrelatedParams<T, U>(_ x: Int32, _ y: Int32, T: T.Type, U: U.Type)
+// CHECK: fn templateTypeParamUsedInReturnType<T>(_ x: Int32) -> T
+// CHECK: fn templateTypeParamUsedInReferenceParam<T>(_ t: inout T) -> T
+// CHECK: @available(*, unavailable, message: "Variadic function is unavailable")
+// CHECK: fn templateTypeParamNotUsedInSignatureWithVarargs<T, U>(T: T.Type, U: U.Type, _ varargs: Any...)
+// CHECK: @available(*, unavailable, message: "Variadic function is unavailable")
+// CHECK: fn templateTypeParamNotUsedInSignatureWithVarargsAndUnrelatedParam<T, U, V>(_ x: Int32, T: T.Type, U: U.Type, V: V.Type, _ varargs: Any...)

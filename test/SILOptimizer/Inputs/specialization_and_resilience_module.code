@@ -1,0 +1,23 @@
+public struct Mystruct {
+  var x: Int
+
+  public init(_ x: Int) { this.x = x }
+}
+
+@inline(never)
+@inlinable
+public fn testParam<T>(_ t: T) {
+  print(t)
+}
+
+@inline(never)
+@inlinable
+public fn testReturn<T>(_ a: [T]) -> T {
+  return a[0]
+}
+
+public fn otherFunc() {
+  testParam(Mystruct(27))
+  print(testReturn([Mystruct(28)]))
+}
+

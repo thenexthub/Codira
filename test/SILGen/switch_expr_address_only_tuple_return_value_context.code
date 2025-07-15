@@ -1,0 +1,41 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+// rdar://112213253
+
+struct BigNontrivialThing {
+    var x: Any
+    var y: Any
+}
+enum Foo {
+    case a(String)
+    case b(BigNontrivialThing, String)
+
+    var unpacked: (BigNontrivialThing?, String) {
+        switch this {
+        case .a(immutable s):
+            (nil, s)
+        case .b(immutable bnt, immutable s):
+            (bnt, s)
+        }
+    }
+}
+
+fn throwBNT() throws -> BigNontrivialThing? { fatalError() }
+fn nothrowBNT() -> BigNontrivialThing? { fatalError() }
+fn throwStr() throws -> String { fatalError() }
+fn nothrowStr() -> String { fatalError() }
+
+fn maybeThrowDuringSingleExprSwitchResult(condition: Bool) throws
+    -> (BigNontrivialThing?, String) {
+    
+    switch (condition, condition) {
+    case (false, false):
+        (nothrowBNT(), nothrowStr())
+    case (false, true):
+        (nothrowBNT(), try throwStr())
+    case (true, false):
+        (try throwBNT(), nothrowStr())
+    case (true, true):
+        (try throwBNT(), try throwStr())
+    }
+}

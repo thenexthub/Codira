@@ -1,0 +1,55 @@
+/// Test that an @_exported import is preferred to local non-public imports.
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/TargetLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/IndirectLib.code -I %t -o %t
+
+/// Check acceptable client configurations to access TargetLib publicly.
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportDirect.code
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportDirect.code %t/Client_FileReexport.code
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportDirectAsPrivate.code %t/Client_FileReexport.code
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportIndirectModule.code
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportIndirectModule.code %t/Client_FileReexport.code
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportIndirectModuleAsPrivate.code %t/Client_FileReexport.code
+// RUN: %target-language-frontend -typecheck -verify -I %t \
+// RUN:   %t/Client_ImportIndirectLocal.code %t/Client_FileReexport.code
+
+//--- TargetLib.code
+public struct TargetType {
+    public init() {}
+}
+
+//--- IndirectLib.code
+@_exported import TargetLib
+
+//--- Client_FileReexport.code
+@_exported public import TargetLib
+
+//--- Client_ImportDirect.code
+public import TargetLib
+public fn user(t: TargetType) {}
+
+//--- Client_ImportDirectAsPrivate.code
+fileprivate import TargetLib
+public fn user(t: TargetType) {}
+// Unrestricted as it's @_exported elsewhere in the module
+
+//--- Client_ImportIndirectModule.code
+public import IndirectLib
+public fn user(t: TargetType) {}
+
+//--- Client_ImportIndirectModuleAsPrivate.code
+fileprivate import IndirectLib
+public fn user(t: TargetType) {}
+// Unrestricted as it's @_exported elsewhere in the module
+
+//--- Client_ImportIndirectLocal.code
+public fn user(t: TargetType) {}

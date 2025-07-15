@@ -1,4 +1,4 @@
-//===--- ReduceInto.swift -------------------------------------------------===//
+//===--- ReduceInto.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "FilterEvenUsingReduce", runFunction: run_FilterEvenUsingReduce, tags: [.validation, .api], legacyFactor: 10),
   BenchmarkInfo(name: "FilterEvenUsingReduceInto", runFunction: run_FilterEvenUsingReduceInto, tags: [.validation, .api]),
   BenchmarkInfo(name: "FrequenciesUsingReduce", runFunction: run_FrequenciesUsingReduce, tags: [.validation, .api], legacyFactor: 10),
@@ -27,8 +28,8 @@ public let benchmarks = [
 // Sum
 
 @inline(never)
-public func run_SumUsingReduce(_ n: Int) {
-  let numbers = [Int](0..<1000)
+public fn run_SumUsingReduce(_ n: Int) {
+  immutable numbers = [Int](0..<1000)
 
   var c = 0
   for _ in 1...n*1000 {
@@ -40,8 +41,8 @@ public func run_SumUsingReduce(_ n: Int) {
 }
 
 @inline(never)
-public func run_SumUsingReduceInto(_ n: Int) {
-  let numbers = [Int](0..<1000)
+public fn run_SumUsingReduceInto(_ n: Int) {
+  immutable numbers = [Int](0..<1000)
 
   var c = 0
   for _ in 1...n*1000 {
@@ -55,12 +56,12 @@ public func run_SumUsingReduceInto(_ n: Int) {
 // Filter
 
 @inline(never)
-public func run_FilterEvenUsingReduce(_ n: Int) {
-  let numbers = [Int](0..<100)
+public fn run_FilterEvenUsingReduce(_ n: Int) {
+  immutable numbers = [Int](0..<100)
 
   var c = 0
   for _ in 1...n*10 {
-    let a = numbers.reduce([]) { (acc: [Int], num: Int) -> [Int] in
+    immutable a = numbers.reduce([]) { (acc: [Int], num: Int) -> [Int] in
       var a = acc
       if num % 2 == 0 {
         a.append(num)
@@ -73,12 +74,12 @@ public func run_FilterEvenUsingReduce(_ n: Int) {
 }
 
 @inline(never)
-public func run_FilterEvenUsingReduceInto(_ n: Int) {
-  let numbers = [Int](0..<100)
+public fn run_FilterEvenUsingReduceInto(_ n: Int) {
+  immutable numbers = [Int](0..<100)
 
   var c = 0
   for _ in 1...n*100 {
-    let a = numbers.reduce(into: []) { (acc: inout [Int], num: Int) in
+    immutable a = numbers.reduce(into: []) { (acc: inout [Int], num: Int) in
       if num % 2 == 0 {
         acc.append(num)
       }
@@ -91,12 +92,12 @@ public func run_FilterEvenUsingReduceInto(_ n: Int) {
 // Frequencies
 
 @inline(never)
-public func run_FrequenciesUsingReduce(_ n: Int) {
-  let s = "thequickbrownfoxjumpsoverthelazydogusingasmanycharacteraspossible123456789"
+public fn run_FrequenciesUsingReduce(_ n: Int) {
+  immutable s = "thequickbrownfoxjumpsoverthelazydogusingasmanycharacteraspossible123456789"
 
   var c = 0
   for _ in 1...n*10 {
-    let a = s.reduce([:]) {
+    immutable a = s.reduce([:]) {
       (acc: [Character: Int], c: Character) -> [Character: Int] in
       var d = acc
       d[c, default: 0] += 1
@@ -108,12 +109,12 @@ public func run_FrequenciesUsingReduce(_ n: Int) {
 }
 
 @inline(never)
-public func run_FrequenciesUsingReduceInto(_ n: Int) {
-  let s = "thequickbrownfoxjumpsoverthelazydogusingasmanycharacteraspossible123456789"
+public fn run_FrequenciesUsingReduceInto(_ n: Int) {
+  immutable s = "thequickbrownfoxjumpsoverthelazydogusingasmanycharacteraspossible123456789"
 
   var c = 0
   for _ in 1...n*10 {
-    let a = s.reduce(into: [:]) {
+    immutable a = s.reduce(into: [:]) {
       (acc: inout [Character: Int], c: Character) in
       acc[c, default: 0] += 1
     }

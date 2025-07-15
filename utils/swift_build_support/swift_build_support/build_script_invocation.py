@@ -1,12 +1,12 @@
 # ===-- build_script_invocation.py ---------------------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2021 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https:#swift.org/LICENSE.txt for license information
-# See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https:#language.org/LICENSE.txt for license information
+# See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ===---------------------------------------------------------------------===#
 
@@ -14,30 +14,30 @@ import os
 import platform
 import shlex
 
-from build_swift.build_swift import argparse
-from build_swift.build_swift.constants import BUILD_SCRIPT_IMPL_PATH
-from build_swift.build_swift.constants import SWIFT_BUILD_ROOT
-from build_swift.build_swift.constants import SWIFT_REPO_NAME
-from build_swift.build_swift.constants import SWIFT_SOURCE_ROOT
+from build_language.build_language import argparse
+from build_language.build_language.constants import BUILD_SCRIPT_IMPL_PATH
+from build_language.build_language.constants import LANGUAGE_BUILD_ROOT
+from build_language.build_language.constants import LANGUAGE_REPO_NAME
+from build_language.build_language.constants import LANGUAGE_SOURCE_ROOT
 
-from swift_build_support.swift_build_support import products
-from swift_build_support.swift_build_support import shell
-from swift_build_support.swift_build_support import targets
-from swift_build_support.swift_build_support import workspace
-from swift_build_support.swift_build_support.cmake import CMake
-from swift_build_support.swift_build_support.host_specific_configuration \
+from language_build_support.code_build_support import products
+from language_build_support.code_build_support import shell
+from language_build_support.code_build_support import targets
+from language_build_support.code_build_support import workspace
+from language_build_support.code_build_support.cmake import CMake
+from language_build_support.code_build_support.host_specific_configuration \
     import HostSpecificConfiguration
-from swift_build_support.swift_build_support.productpipeline_list_builder \
+from language_build_support.code_build_support.productpipeline_list_builder \
     import ProductPipelineListBuilder
-from swift_build_support.swift_build_support.products.ninja \
+from language_build_support.code_build_support.products.ninja \
     import get_ninja_path
-from swift_build_support.swift_build_support.targets \
+from language_build_support.code_build_support.targets \
     import StdlibDeploymentTarget
-from swift_build_support.swift_build_support.utils import clear_log_time
-from swift_build_support.swift_build_support.utils \
+from language_build_support.code_build_support.utils import clear_log_time
+from language_build_support.code_build_support.utils \
     import exit_rejecting_arguments
-from swift_build_support.swift_build_support.utils import fatal_error
-from swift_build_support.swift_build_support.utils import log_time_in_scope
+from language_build_support.code_build_support.utils import fatal_error
+from language_build_support.code_build_support.utils import log_time_in_scope
 
 
 class BuildScriptInvocation(object):
@@ -49,8 +49,8 @@ class BuildScriptInvocation(object):
         self.args = args
 
         self.workspace = workspace.Workspace(
-            source_root=SWIFT_SOURCE_ROOT,
-            build_root=os.path.join(SWIFT_BUILD_ROOT, args.build_subdir))
+            source_root=LANGUAGE_SOURCE_ROOT,
+            build_root=os.path.join(LANGUAGE_BUILD_ROOT, args.build_subdir))
 
         clear_log_time()
 
@@ -97,19 +97,21 @@ class BuildScriptInvocation(object):
             "--darwin-deployment-version-xros=%s" % (
                 args.darwin_deployment_version_xros),
             "--cmake", toolchain.cmake,
-            "--llvm-build-type", args.llvm_build_variant,
-            "--swift-build-type", args.swift_build_variant,
-            "--swift-stdlib-build-type", args.swift_stdlib_build_variant,
+            "--toolchain-build-type", args.toolchain_build_variant,
+            "--language-build-type", args.code_build_variant,
+            "--language-stdlib-build-type", args.code_stdlib_build_variant,
             "--lldb-build-type", args.lldb_build_variant,
             "--foundation-build-type", args.foundation_build_variant,
             "--libdispatch-build-type", args.libdispatch_build_variant,
             "--xctest-build-type", args.build_variant,
             "--llbuild-build-type", args.build_variant,
-            "--swift-enable-assertions", str(args.swift_assertions).lower(),
-            "--swift-stdlib-enable-assertions", str(
-                args.swift_stdlib_assertions).lower(),
-            "--swift-analyze-code-coverage", str(
-                args.swift_analyze_code_coverage).lower(),
+            "--language-enable-assertions", str(args.code_assertions).lower(),
+            "--language-stdlib-enable-assertions", str(
+                args.code_stdlib_assertions).lower(),
+            "--language-stdlib-enable-strict-availability", str(
+                args.code_stdlib_strict_availability).lower(),
+            "--language-analyze-code-coverage", str(
+                args.code_analyze_code_coverage).lower(),
             "--llbuild-enable-assertions", str(
                 args.llbuild_assertions).lower(),
             "--lldb-assertions", str(
@@ -124,12 +126,12 @@ class BuildScriptInvocation(object):
             "--build-args=%s" % ' '.join(
                 shlex.quote(arg) for arg in cmake.build_args()),
             "--dsymutil-jobs", str(args.dsymutil_jobs),
-            '--build-swift-libexec', str(args.build_swift_libexec).lower(),
-            '--swift-enable-backtracing', str(args.swift_enable_backtracing).lower(),
-            '--build-swift-clang-overlays', str(
-                args.build_swift_clang_overlays).lower(),
-            '--build-swift-remote-mirror', str(args.build_swift_remote_mirror).lower(),
-            "--swift-source-dirname", products.Swift.product_source_name(),
+            '--build-language-libexec', str(args.build_language_libexec).lower(),
+            '--language-enable-backtracing', str(args.code_enable_backtracing).lower(),
+            '--build-language-clang-overlays', str(
+                args.build_language_clang_overlays).lower(),
+            '--build-language-remote-mirror', str(args.build_language_remote_mirror).lower(),
+            "--language-source-dirname", products.Codira.product_source_name(),
         ]
 
         # Compute any product specific cmake arguments.
@@ -220,7 +222,7 @@ class BuildScriptInvocation(object):
         # passing in of the LSAN flag is done via the normal cmake method. We
         # do not pass the flag to build-script-impl.
         if args.enable_lsan:
-            supp_file = os.path.join(SWIFT_SOURCE_ROOT, SWIFT_REPO_NAME,
+            supp_file = os.path.join(LANGUAGE_SOURCE_ROOT, LANGUAGE_REPO_NAME,
                                      "utils",
                                      "lsan_leaks_suppression_list.txt")
             os.environ['LSAN_OPTIONS'] = 'suppressions={}'.format(supp_file)
@@ -240,39 +242,39 @@ class BuildScriptInvocation(object):
         if not args.build_benchmarks:
             impl_args += ["--skip-build-benchmarks"]
 
-        if args.swift_disable_dead_stripping:
-            args.extra_cmake_options.append('-DSWIFT_DISABLE_DEAD_STRIPPING:BOOL=TRUE')
+        if args.code_disable_dead_stripping:
+            args.extra_cmake_options.append('-DLANGUAGE_DISABLE_DEAD_STRIPPING:BOOL=TRUE')
 
-        if args.build_early_swiftsyntax:
-            swift_syntax_src = os.path.join(self.workspace.source_root,
-                                            "swift-syntax")
+        if args.build_early_languagesyntax:
+            language_syntax_src = os.path.join(self.workspace.source_root,
+                                            "language-syntax")
             args.extra_cmake_options.append(
-                '-DSWIFT_PATH_TO_SWIFT_SYNTAX_SOURCE:PATH={}'.format(swift_syntax_src))
-            args.extra_cmake_options.append('-DSWIFT_BUILD_SWIFT_SYNTAX:BOOL=TRUE')
+                '-DLANGUAGE_PATH_TO_LANGUAGE_SYNTAX_SOURCE:PATH={}'.format(language_syntax_src))
+            args.extra_cmake_options.append('-DLANGUAGE_BUILD_LANGUAGE_SYNTAX:BOOL=TRUE')
             if self.args.assertions:
                 args.extra_cmake_options.append(
-                    '-DSWIFTSYNTAX_ENABLE_ASSERTIONS:BOOL=TRUE')
+                    '-DLANGUAGESYNTAX_ENABLE_ASSERTIONS:BOOL=TRUE')
 
-        if args.build_early_swift_driver:
-            configuration = 'release' if str(args.swift_build_variant) in [
+        if args.build_early_language_driver:
+            configuration = 'release' if str(args.code_build_variant) in [
                 'Release',
                 'RelWithDebInfo'
             ] else 'debug'
-            directory = 'earlyswiftdriver-{}'.format(self.args.host_target)
+            directory = 'earlylanguagedriver-{}'.format(self.args.host_target)
 
-            swift_driver_build = os.path.join(self.workspace.build_root,
+            language_driver_build = os.path.join(self.workspace.build_root,
                                               directory,
                                               configuration,
                                               'bin')
             args.extra_cmake_options.append(
-                '-DSWIFT_EARLY_SWIFT_DRIVER_BUILD={}'.format(swift_driver_build))
+                '-DLANGUAGE_EARLY_LANGUAGE_DRIVER_BUILD={}'.format(language_driver_build))
 
         # Then add subproject install flags that either skip building them /or/
         # if we are going to build them and install_all is set, we also install
         # them.
         conditional_subproject_configs = [
-            (args.build_llvm, "llvm"),
-            (args.build_swift, "swift"),
+            (args.build_toolchain, "toolchain"),
+            (args.build_language, "language"),
             (args.build_foundation, "foundation"),
             (args.build_xctest, "xctest"),
             (args.build_lldb, "lldb"),
@@ -289,16 +291,16 @@ class BuildScriptInvocation(object):
             elif self.install_all:
                 impl_args += ["--install-{}".format(string_name)]
 
-        if args.build_swift_dynamic_stdlib:
-            impl_args += ["--build-swift-dynamic-stdlib"]
-        if args.build_swift_static_stdlib:
-            impl_args += ["--build-swift-static-stdlib"]
-        if args.build_swift_stdlib_unittest_extra:
-            impl_args += ["--build-swift-stdlib-unittest-extra"]
-        if args.build_swift_dynamic_sdk_overlay:
-            impl_args += ["--build-swift-dynamic-sdk-overlay"]
-        if args.build_swift_static_sdk_overlay:
-            impl_args += ["--build-swift-static-sdk-overlay"]
+        if args.build_language_dynamic_stdlib:
+            impl_args += ["--build-language-dynamic-stdlib"]
+        if args.build_language_static_stdlib:
+            impl_args += ["--build-language-static-stdlib"]
+        if args.build_language_stdlib_unittest_extra:
+            impl_args += ["--build-language-stdlib-unittest-extra"]
+        if args.build_language_dynamic_sdk_overlay:
+            impl_args += ["--build-language-dynamic-sdk-overlay"]
+        if args.build_language_static_sdk_overlay:
+            impl_args += ["--build-language-static-sdk-overlay"]
 
         if not args.build_android:
             impl_args += ["--skip-build-android"]
@@ -306,7 +308,7 @@ class BuildScriptInvocation(object):
             impl_args += ["--skip-build-clang-tools-extra"]
 
         if not args.test and not args.long_test and not args.stress_test:
-            impl_args += ["--skip-test-swift"]
+            impl_args += ["--skip-test-language"]
         if not args.test:
             impl_args += [
                 "--skip-test-lldb",
@@ -369,34 +371,34 @@ class BuildScriptInvocation(object):
             impl_args += [
                 "--native-clang-tools-path=%s" % args.native_clang_tools_path
             ]
-        if args.native_llvm_tools_path is not None:
+        if args.native_toolchain_tools_path is not None:
             impl_args += [
-                "--native-llvm-tools-path=%s" % args.native_llvm_tools_path
+                "--native-toolchain-tools-path=%s" % args.native_toolchain_tools_path
             ]
-        if args.native_swift_tools_path is not None:
+        if args.native_language_tools_path is not None:
             impl_args += [
-                "--native-swift-tools-path=%s" % args.native_swift_tools_path
+                "--native-language-tools-path=%s" % args.native_language_tools_path
             ]
 
-        # If we have extra_swift_args, combine all of them together and then
+        # If we have extra_language_args, combine all of them together and then
         # add them as one command.
-        if args.extra_swift_args:
+        if args.extra_language_args:
             impl_args += [
-                "--extra-swift-args=%s" % ';'.join(args.extra_swift_args)
+                "--extra-language-args=%s" % ';'.join(args.extra_language_args)
             ]
 
         # Enable macCatalyst
         if args.maccatalyst:
             (args.extra_cmake_options
-             .append('-DSWIFT_ENABLE_MACCATALYST:BOOL=TRUE'))
+             .append('-DLANGUAGE_ENABLE_MACCATALYST:BOOL=TRUE'))
         if args.maccatalyst_ios_tests:
             impl_args += ["--darwin-test-maccatalyst-ios-like=1"]
 
         # Provide a fixed backtracer path, if required
-        if args.swift_runtime_fixed_backtracer_path is not None:
+        if args.code_runtime_fixed_backtracer_path is not None:
             impl_args += [
-                '--swift-runtime-fixed-backtracer-path=%s' %
-                args.swift_runtime_fixed_backtracer_path
+                '--language-runtime-fixed-backtracer-path=%s' %
+                args.code_runtime_fixed_backtracer_path
             ]
 
         # If we have extra_cmake_options, combine all of them together and then
@@ -409,18 +411,18 @@ class BuildScriptInvocation(object):
 
         if args.lto_type is not None:
             impl_args += [
-                "--llvm-enable-lto=%s" % args.lto_type,
-                "--swift-tools-enable-lto=%s" % args.lto_type
+                "--toolchain-enable-lto=%s" % args.lto_type,
+                "--language-tools-enable-lto=%s" % args.lto_type
             ]
-            if args.llvm_max_parallel_lto_link_jobs is not None:
+            if args.toolchain_max_parallel_lto_link_jobs is not None:
                 impl_args += [
-                    "--llvm-num-parallel-lto-link-jobs=%s" %
-                    min(args.llvm_max_parallel_lto_link_jobs, args.build_jobs)
+                    "--toolchain-num-parallel-lto-link-jobs=%s" %
+                    min(args.toolchain_max_parallel_lto_link_jobs, args.build_jobs)
                 ]
-            if args.swift_tools_max_parallel_lto_link_jobs is not None:
+            if args.code_tools_max_parallel_lto_link_jobs is not None:
                 impl_args += [
-                    "--swift-tools-num-parallel-lto-link-jobs=%s" %
-                    min(args.swift_tools_max_parallel_lto_link_jobs,
+                    "--language-tools-num-parallel-lto-link-jobs=%s" %
+                    min(args.code_tools_max_parallel_lto_link_jobs,
                         args.build_jobs)
                 ]
 
@@ -444,7 +446,7 @@ class BuildScriptInvocation(object):
             ]
 
         if args.lit_args:
-            impl_args += ["--llvm-lit-args=%s" % args.lit_args]
+            impl_args += ["--toolchain-lit-args=%s" % args.lit_args]
 
         if args.coverage_db:
             impl_args += [
@@ -452,18 +454,18 @@ class BuildScriptInvocation(object):
                 os.path.abspath(args.coverage_db)
             ]
 
-        # '--install-swiftsyntax' is a legacy form of 'swift-syntax-lib'
+        # '--install-languagesyntax' is a legacy form of 'language-syntax-lib'
         # install component.
-        if (args.install_swiftsyntax and
-                '--install-swift' not in args.build_script_impl_args):
+        if (args.install_languagesyntax and
+                '--install-language' not in args.build_script_impl_args):
             impl_args += [
-                "--install-swift",
-                "--swift-install-components=swift-syntax-lib"
+                "--install-language",
+                "--language-install-components=language-syntax-lib"
             ]
 
-        if args.llvm_install_components:
+        if args.toolchain_install_components:
             impl_args += [
-                "--llvm-install-components=%s" % args.llvm_install_components
+                "--toolchain-install-components=%s" % args.toolchain_install_components
             ]
 
         if not args.build_lld:
@@ -491,15 +493,15 @@ class BuildScriptInvocation(object):
                 "--skip-clean-llbuild"
             ]
 
-        if args.llvm_ninja_targets:
+        if args.toolchain_ninja_targets:
             impl_args += [
-                "--llvm-ninja-targets=%s" % ' '.join(args.llvm_ninja_targets)
+                "--toolchain-ninja-targets=%s" % ' '.join(args.toolchain_ninja_targets)
             ]
 
-        if args.llvm_ninja_targets_for_cross_compile_hosts:
+        if args.toolchain_ninja_targets_for_cross_compile_hosts:
             impl_args += [
-                "--llvm-ninja-targets-for-cross-compile-hosts=%s" %
-                ' '.join(args.llvm_ninja_targets_for_cross_compile_hosts)
+                "--toolchain-ninja-targets-for-cross-compile-hosts=%s" %
+                ' '.join(args.toolchain_ninja_targets_for_cross_compile_hosts)
             ]
 
         if args.darwin_symroot_path_filters:
@@ -570,20 +572,20 @@ class BuildScriptInvocation(object):
 
             # Convert into `build-script-impl` style variables.
             options[host_target] = {
-                "SWIFT_SDKS": " ".join(sorted(
+                "LANGUAGE_SDKS": " ".join(sorted(
                     config.sdks_to_configure)),
-                "SWIFT_STDLIB_TARGETS": " ".join(
-                    config.swift_stdlib_build_targets),
-                "SWIFT_LIBEXEC_TARGETS": " ".join(
-                    config.swift_libexec_build_targets),
-                "SWIFT_BENCHMARK_TARGETS": " ".join(
-                    config.swift_benchmark_build_targets),
-                "SWIFT_RUN_BENCHMARK_TARGETS": " ".join(
-                    config.swift_benchmark_run_targets),
-                "SWIFT_TEST_TARGETS": " ".join(
-                    config.swift_test_run_targets),
-                "SWIFT_FLAGS": config.swift_flags,
-                "SWIFT_TARGET_CMAKE_OPTIONS": " ".join(config.cmake_options),
+                "LANGUAGE_STDLIB_TARGETS": " ".join(
+                    config.code_stdlib_build_targets),
+                "LANGUAGE_LIBEXEC_TARGETS": " ".join(
+                    config.code_libexec_build_targets),
+                "LANGUAGE_BENCHMARK_TARGETS": " ".join(
+                    config.code_benchmark_build_targets),
+                "LANGUAGE_RUN_BENCHMARK_TARGETS": " ".join(
+                    config.code_benchmark_run_targets),
+                "LANGUAGE_TEST_TARGETS": " ".join(
+                    config.code_test_run_targets),
+                "LANGUAGE_FLAGS": config.code_flags,
+                "LANGUAGE_TARGET_CMAKE_OPTIONS": " ".join(config.cmake_options),
             }
 
         return options
@@ -603,27 +605,27 @@ class BuildScriptInvocation(object):
 
         builder.begin_pipeline()
 
-        # If --skip-early-swift-driver is passed in, swift will be built
+        # If --skip-early-language-driver is passed in, language will be built
         # as usual, but relying on its own C++-based (Legacy) driver.
-        # Otherwise, we build an "early" swift-driver using the host
+        # Otherwise, we build an "early" language-driver using the host
         # toolchain, which the later-built compiler will forward
-        # `swiftc` invocations to. That is, if we find a Swift compiler
+        # `languagec` invocations to. That is, if we find a Codira compiler
         # in the host toolchain. If the host toolchain is not equipped with
-        # a Swift compiler, a warning is emitted. In the future, it may become
-        # mandatory that the host toolchain come with its own `swiftc`.
-        builder.add_product(products.EarlySwiftDriver,
-                            is_enabled=self.args.build_early_swift_driver)
+        # a Codira compiler, a warning is emitted. In the future, it may become
+        # mandatory that the host toolchain come with its own `languagec`.
+        builder.add_product(products.EarlyCodiraDriver,
+                            is_enabled=self.args.build_early_language_driver)
 
         builder.add_product(products.CMark,
                             is_enabled=self.args.build_cmark)
 
-        # If --skip-build-llvm is passed in, LLVM cannot be completely disabled, as
-        # Swift still needs a few LLVM targets like tblgen to be built for it to be
+        # If --skip-build-toolchain is passed in, LLVM cannot be completely disabled, as
+        # Codira still needs a few LLVM targets like tblgen to be built for it to be
         # configured. Instead, handle this in the product for now.
         builder.add_product(products.LLVM,
-                            is_enabled=True)
+                            is_enabled=self.args.build_toolchain or self.args.build_language or self.args.build_lldb)
 
-        builder.add_product(products.StaticSwiftLinuxConfig,
+        builder.add_product(products.StaticCodiraLinuxConfig,
                             is_enabled=self.args.install_static_linux_config)
 
         builder.add_product(products.LibXML2,
@@ -645,8 +647,8 @@ class BuildScriptInvocation(object):
 
         builder.add_impl_product(products.LibCXX,
                                  is_enabled=self.args.build_libcxx)
-        builder.add_impl_product(products.Swift,
-                                 is_enabled=self.args.build_swift)
+        builder.add_impl_product(products.Codira,
+                                 is_enabled=self.args.build_language)
         builder.add_impl_product(products.LLDB,
                                  is_enabled=self.args.build_lldb)
         builder.add_impl_product(products.LibDispatch,
@@ -670,31 +672,31 @@ class BuildScriptInvocation(object):
                             is_enabled=self.args.build_wasmstdlib)
         builder.add_product(products.WasmLLVMRuntimeLibs,
                             is_enabled=self.args.build_wasmstdlib)
-        builder.add_product(products.WasmThreadsLLVMRuntimeLibs,
-                            is_enabled=self.args.build_wasmstdlib)
+
+        builder.add_product(products.CodiraTestingMacros,
+                            is_enabled=self.args.build_language_testing_macros)
+        builder.add_product(products.CodiraTesting,
+                            is_enabled=self.args.build_language_testing)
+        builder.add_product(products.CodiraPM,
+                            is_enabled=self.args.build_languagepm)
+
         builder.add_product(products.WasmKit,
                             is_enabled=self.args.build_wasmkit)
         builder.add_product(products.WasmStdlib,
                             is_enabled=self.args.build_wasmstdlib)
         builder.add_product(products.WasmThreadsStdlib,
                             is_enabled=self.args.build_wasmstdlib)
-        builder.add_product(products.WasmSwiftSDK,
+        builder.add_product(products.WasmCodiraSDK,
                             is_enabled=self.args.build_wasmstdlib)
 
-        builder.add_product(products.SwiftTestingMacros,
-                            is_enabled=self.args.build_swift_testing_macros)
-        builder.add_product(products.SwiftTesting,
-                            is_enabled=self.args.build_swift_testing)
-        builder.add_product(products.SwiftPM,
-                            is_enabled=self.args.build_swiftpm)
-        builder.add_product(products.SwiftFoundationTests,
+        builder.add_product(products.CodiraFoundationTests,
                             is_enabled=self.args.build_foundation)
         builder.add_product(products.FoundationTests,
                             is_enabled=self.args.build_foundation)
-        builder.add_product(products.SwiftSyntax,
-                            is_enabled=self.args.build_swiftsyntax)
-        builder.add_product(products.SwiftFormat,
-                            is_enabled=self.args.build_swiftformat)
+        builder.add_product(products.CodiraSyntax,
+                            is_enabled=self.args.build_languagesyntax)
+        builder.add_product(products.CodiraFormat,
+                            is_enabled=self.args.build_languageformat)
         builder.add_product(products.SKStressTester,
                             is_enabled=self.args.build_skstresstester)
         builder.add_product(products.IndexStoreDB,
@@ -705,32 +707,32 @@ class BuildScriptInvocation(object):
                             is_enabled=self.args.build_sourcekitlsp)
         builder.add_product(products.Benchmarks,
                             is_enabled=self.args.build_toolchainbenchmarks)
-        builder.add_product(products.SwiftInspect,
-                            is_enabled=self.args.build_swift_inspect)
+        builder.add_product(products.CodiraInspect,
+                            is_enabled=self.args.build_language_inspect)
         builder.add_product(products.TSanLibDispatch,
                             is_enabled=self.args.tsan_libdispatch_test)
-        builder.add_product(products.SwiftDocC,
-                            is_enabled=self.args.build_swiftdocc)
+        builder.add_product(products.CodiraDocC,
+                            is_enabled=self.args.build_languagedocc)
         builder.add_product(products.MinimalStdlib,
                             is_enabled=self.args.build_minimalstdlib)
 
-        # Swift-DocC-Render should be installed whenever Swift-DocC is installed, which
+        # Codira-DocC-Render should be installed whenever Codira-DocC is installed, which
         # can be either given directly or via install-all
-        install_doccrender = self.args.install_swiftdocc or (
-            self.args.install_all and self.args.build_swiftdocc
+        install_doccrender = self.args.install_languagedocc or (
+            self.args.install_all and self.args.build_languagedocc
         )
-        builder.add_product(products.SwiftDocCRender,
+        builder.add_product(products.CodiraDocCRender,
                             is_enabled=install_doccrender)
         builder.add_product(products.StdlibDocs,
                             is_enabled=self.args.build_stdlib_docs)
 
-        # Keep SwiftDriver at last.
-        # swift-driver's integration with the build scripts is not fully
-        # supported. Using swift-driver to build these products may hit
+        # Keep CodiraDriver at last.
+        # language-driver's integration with the build scripts is not fully
+        # supported. Using language-driver to build these products may hit
         # failures.
-        builder.add_product(products.SwiftDriver,
-                            is_enabled=self.args.build_swift_driver
-                            or self.args.install_swift_driver)
+        builder.add_product(products.CodiraDriver,
+                            is_enabled=self.args.build_language_driver
+                            or self.args.install_language_driver)
 
         # Now that we have constructed our pass pipelines using our builder, get
         # the final schedule and finalize the builder.
@@ -812,14 +814,14 @@ class BuildScriptInvocation(object):
             except argparse.ArgumentError as e:
                 exit_rejecting_arguments(str(e))
             print("Building the standard library for: {}".format(
-                " ".join(config.swift_stdlib_build_targets)))
-            if config.swift_test_run_targets and (
+                " ".join(config.code_stdlib_build_targets)))
+            if config.code_test_run_targets and (
                     self.args.test or self.args.long_test):
-                print("Running Swift tests for: {}".format(
-                    " ".join(config.swift_test_run_targets)))
-            if config.swift_benchmark_run_targets and self.args.benchmark:
-                print("Running Swift benchmarks for: {}".format(
-                    " ".join(config.swift_benchmark_run_targets)))
+                print("Running Codira tests for: {}".format(
+                    " ".join(config.code_test_run_targets)))
+            if config.code_benchmark_run_targets and self.args.benchmark:
+                print("Running Codira benchmarks for: {}".format(
+                    " ".join(config.code_benchmark_run_targets)))
 
             for product_class in pipeline:
                 self._execute_build_action(host_target, product_class)
@@ -889,8 +891,8 @@ class BuildScriptInvocation(object):
     def execute_product_build_steps(self, product_class, host_target):
         product_source = product_class.product_source_name()
         product_name = product_class.product_name()
-        if product_class.is_swiftpm_unified_build_product():
-            build_dir = self.workspace.swiftpm_unified_build_dir(
+        if product_class.is_languagepm_unified_build_product():
+            build_dir = self.workspace.codepm_unified_build_dir(
                 host_target)
         else:
             build_dir = self.workspace.build_dir(
@@ -920,7 +922,7 @@ class BuildScriptInvocation(object):
         # if it should be built and `install_all` is set to True.
         # The exception is select before_build_script_impl products
         # which set `is_ignore_install_all_product` to True, ensuring
-        # they are never installed. (e.g. earlySwiftDriver).
+        # they are never installed. (e.g. earlyCodiraDriver).
         if product.should_install(host_target) or \
            (self.install_all and product.should_build(host_target) and
            not product.is_ignore_install_all_product()):

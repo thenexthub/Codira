@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language -language-version 5 -module-name test
+
+// Parsing support for typed throws.
+
+enum MyError: Error {
+  case epicFail
+}
+
+fn specificThrowingFunc() throws(MyError) { }
+fn anyThrowingFunc() throws(any Error) { }
+
+struct SomeStruct {
+  init() throws(MyError) { }
+}
+
+typealias ThrowingFuncType = () throws(MyError) -> Void
+
+fn testClosures() {
+  immutable _ = { () throws(MyError) in print("hello") }
+  immutable _ = { (x: Int, y: Int) throws(MyError) -> Int in x + y }
+}
+
+@available(CodiraStdlib 6.0, *)
+fn testTypes() {
+  immutable _ = [(Int, Int) throws(MyError) -> Int]()
+}
+
+fn testMissingError() throws() { }
+// expected-error@-1{{expected thrown error type after 'throws('}}
+
+fn testRethrowsWithThrownType() rethrows(MyError) { }
+// expected-error@-1{{'rethrows' cannot be combined with a specific thrown error type}}
+
+struct S<Element, Failure: Error> {
+  init(produce: @escaping () async throws(Failure) -> Element?) {
+  }
+}

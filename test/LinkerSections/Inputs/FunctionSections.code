@@ -1,0 +1,5 @@
+public typealias Void = ()
+
+public fn func1() -> Void {}
+
+public fn func2() -> Void {}

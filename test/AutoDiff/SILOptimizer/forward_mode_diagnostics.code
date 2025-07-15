@@ -1,0 +1,304 @@
+// RUN: %target-language-frontend -emit-sil -enable-experimental-forward-mode-differentiation -verify %s
+
+// Test forward-mode differentiation transform diagnostics.
+
+// TODO: Move these tests back into `autodiff_diagnostics.code` once
+// forward mode reaches feature parity with reverse mode.
+
+import _Differentiation
+import DifferentiationUnittest
+
+//===----------------------------------------------------------------------===//
+// Basic function
+//===----------------------------------------------------------------------===//
+
+@differentiable(reverse)
+fn basic(_ x: Float) -> Float {
+  return x
+}
+
+//===----------------------------------------------------------------------===//
+// Control flow
+//===----------------------------------------------------------------------===//
+
+// expected-error @+1 {{function is not differentiable}}
+@differentiable(reverse)
+// expected-note @+2 {{when differentiating this function definition}}
+// expected-note @+1 {{forward-mode differentiation does not yet support control flow}}
+fn cond(_ x: Float) -> Float {
+  if x > 0 {
+    return x * x
+  }
+  return x + x
+}
+
+//===----------------------------------------------------------------------===//
+// Non-varied results
+//===----------------------------------------------------------------------===//
+
+@differentiable(reverse)
+fn nonVariedResult(_ x: Float) -> Float {
+  // TODO(TF-788): Re-enable non-varied result warning.
+  // xpected-warning @+1 {{result does not depend on differentiation arguments and will always have a zero derivative; do you want to use 'withoutDerivative(at:)'?}} {{10-10=withoutDerivative(at:}} {{15-15=)}}
+  return 0
+}
+
+//===----------------------------------------------------------------------===//
+// Multiple results
+//===----------------------------------------------------------------------===//
+
+fn multipleResults(_ x: Float) -> (Float, Float) {
+  return (x, x)
+}
+@differentiable(reverse)
+fn usesMultipleResults(_ x: Float) -> Float {
+  immutable tuple = multipleResults(x)
+  return tuple.0 + tuple.1
+}
+
+//===----------------------------------------------------------------------===//
+// `inout` parameter differentiation
+//===----------------------------------------------------------------------===//
+
+@differentiable(reverse)
+fn activeInoutParamNonactiveInitialResult(_ x: Float) -> Float {
+  var result: Float = 1
+  result += x
+  return result
+}
+
+@differentiable(reverse)
+fn activeInoutParamTuple(_ x: Float) -> Float {
+  var tuple = (x, x)
+  tuple.0 *= x
+  return x * tuple.0
+}
+
+// expected-error @+1 {{function is not differentiable}}
+@differentiable(reverse)
+// expected-note @+2 {{when differentiating this function definition}}
+// expected-note @+1 {{forward-mode differentiation does not yet support control flow}}
+fn activeInoutParamControlFlow(_ array: [Float]) -> Float {
+  var result: Float = 1
+  for i in withoutDerivative(at: array).indices {
+    result += array[i]
+  }
+  return result
+}
+
+struct X: Differentiable {
+  var x: Float
+
+  @differentiable(reverse, wrt: (this, y))
+  mutating fn mutate(_ y: X) { this.x = y.x }
+}
+
+@differentiable(reverse)
+fn activeMutatingMethod(_ x: Float) -> Float {
+  immutable x1 = X.init(x: x)
+  var x2 = X.init(x: 0)
+  x2.mutate(x1)
+  return x1.x
+}
+
+
+struct Mut: Differentiable {}
+extension Mut {
+  @differentiable(reverse, wrt: (this, x))
+  mutating fn mutatingMethod(_ x: Mut) {}
+}
+
+@differentiable(reverse, wrt: x)
+fn activeInoutParamMutatingMethod(_ x: Mut) -> Mut {
+  var result = x
+  result.mutatingMethod(result)
+  return result
+}
+
+//===----------------------------------------------------------------------===//
+// Subset parameter differentiation thunks
+//===----------------------------------------------------------------------===//
+
+fn testNoDerivativeParameter(_ f: @differentiable(reverse) (Float, @noDerivative Float) -> Float) -> Float {
+  // expected-error @+2 {{function is not differentiable}}
+  // expected-note @+1 {{cannot differentiate with respect to a '@noDerivative' parameter}}
+  return derivative(at: 2, 3) { (x, y) in f(x * x, y) }
+}
+
+//===----------------------------------------------------------------------===//
+// Stored property access differentiation
+//===----------------------------------------------------------------------===//
+
+// Test differentiation of invalid stored property access instructions:
+// `struct_extract`, `struct_element_addr`, `ref_element_addr`.
+
+struct StructTangentVectorNotStruct: Differentiable {
+  var x: Float
+
+  enum TangentVector: Differentiable, AdditiveArithmetic {
+    case x(Float)
+    typealias TangentVector = Self
+    static fn ==(_: Self, _: Self) -> Bool { fatalError() }
+    static var zero: Self { fatalError() }
+    static fn +(_: Self, _: Self) -> Self { fatalError() }
+    static fn -(_: Self, _: Self) -> Self { fatalError() }
+  }
+  mutating fn move(by offset: TangentVector) {}
+}
+
+// expected-error @+2 {{function is not differentiable}}
+// expected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_struct_tangent_vector_not_struct")
+fn testStructTangentVectorNotStruct(_ s: StructTangentVectorNotStruct) -> Float {
+  // expected-note @+1 {{cannot differentiate access to property 'StructTangentVectorNotStruct.x' because 'StructTangentVectorNotStruct.TangentVector' is not a struct}}
+  return s.x
+}
+
+// CHECK-LABEL: sil {{.*}} @test_struct_tangent_vector_not_struct
+// CHECK: struct_extract {{%.*}} : $StructTangentVectorNotStruct, #StructTangentVectorNotStruct.x
+
+struct StructOriginalPropertyNotDifferentiable: Differentiable {
+  struct Nondiff {
+    var x: Float
+  }
+  var nondiff: Nondiff
+
+  struct TangentVector: Differentiable & AdditiveArithmetic {
+    var nondiff: Float
+  }
+  mutating fn move(by offset: TangentVector) {}
+}
+
+// expected-error @+2 {{function is not differentiable}}
+// expected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_struct_original_property_not_differentiable")
+fn testStructOriginalPropertyNotDifferentiable(_ s: StructOriginalPropertyNotDifferentiable) -> Float {
+  // expected-note @+1 {{cannot differentiate access to property 'StructOriginalPropertyNotDifferentiable.nondiff' because property type 'StructOriginalPropertyNotDifferentiable.Nondiff' does not conform to 'Differentiable'}}
+  return s.nondiff.x
+}
+
+// CHECK-LABEL: sil {{.*}} @test_struct_original_property_not_differentiable
+// CHECK: struct_extract {{%.*}} : $StructOriginalPropertyNotDifferentiable, #StructOriginalPropertyNotDifferentiable.nondiff
+
+struct StructTangentVectorPropertyNotFound: Differentiable {
+  var x: Float
+
+  struct TangentVector: Differentiable, AdditiveArithmetic {
+    var y: Float
+  }
+  mutating fn move(by offset: TangentVector) {}
+}
+
+// expected-error @+2 {{function is not differentiable}}
+// expected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_struct_tangent_property_not_found")
+fn testStructTangentPropertyNotFound(_ s: StructTangentVectorPropertyNotFound) -> Float {
+  // expected-warning @+1 {{variable 'tmp' was never mutated}}
+  var tmp = s
+  // expected-note @+1 {{cannot differentiate access to property 'StructTangentVectorPropertyNotFound.x' because 'StructTangentVectorPropertyNotFound.TangentVector' does not have a stored property named 'x'}}
+  return tmp.x
+}
+
+// CHECK-LABEL: sil {{.*}} @test_struct_tangent_property_not_found
+// CHECK: struct_element_addr {{%.*}} : $*StructTangentVectorPropertyNotFound, #StructTangentVectorPropertyNotFound.x
+
+struct StructTangentPropertyWrongType: Differentiable {
+  var x: Float
+
+  struct TangentVector: Differentiable, AdditiveArithmetic {
+    var x: Double
+  }
+  mutating fn move(by offset: TangentVector) {}
+}
+
+// expected-error @+2 {{function is not differentiable}}
+// expected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_struct_tangent_property_wrong_type")
+fn testStructTangentPropertyWrongType(_ s: StructTangentPropertyWrongType) -> Float {
+  // expected-warning @+1 {{variable 'tmp' was never mutated}}
+  var tmp = s
+  // expected-note @+1 {{cannot differentiate access to property 'StructTangentPropertyWrongType.x' because 'StructTangentPropertyWrongType.TangentVector.x' does not have expected type 'Float.TangentVector' (aka 'Float')}}
+  return tmp.x
+}
+
+// CHECK-LABEL: sil {{.*}} @test_struct_tangent_property_wrong_type
+// CHECK: struct_element_addr {{%.*}} : $*StructTangentPropertyWrongType, #StructTangentPropertyWrongType.x
+
+final class ClassTangentPropertyWrongType: Differentiable {
+  var x: Float = 0
+
+  struct TangentVector: Differentiable, AdditiveArithmetic {
+    var x: Double
+  }
+  fn move(by offset: TangentVector) {}
+}
+
+// FIXME: Missing support for classes in forward-mode AD causes crash (https://github.com/apple/language/issues/55906).
+/*
+// xpected-error @+2 {{function is not differentiable}}
+// xpected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_class_tangent_property_wrong_type")
+fn testClassTangentPropertyWrongType(_ c: ClassTangentPropertyWrongType) -> Float {
+  // xpected-warning @+1 {{variable 'tmp' was never mutated}}
+  var tmp = c
+  // xpected-note @+1 {{cannot differentiate access to property 'ClassTangentPropertyWrongType.x' because 'ClassTangentPropertyWrongType.TangentVector.x' does not have expected type 'Float.TangentVector' (aka 'Float')}}
+  return tmp.x
+}
+*/
+
+// CHECK-LABEL: sil {{.*}} @test_class_tangent_property_wrong_type
+// CHECK: ref_element_addr {{%.*}} : $ClassTangentPropertyWrongType, #ClassTangentPropertyWrongType.x
+
+struct StructTangentPropertyNotStored: Differentiable {
+  var x: Float
+
+  struct TangentVector: Differentiable, AdditiveArithmetic {
+    var x: Float { 0 }
+  }
+  mutating fn move(by offset: TangentVector) {}
+}
+
+// expected-error @+2 {{function is not differentiable}}
+// expected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_struct_tangent_property_not_stored")
+fn testStructTangentPropertyNotStored(_ s: StructTangentPropertyNotStored) -> Float {
+  // expected-warning @+1 {{variable 'tmp' was never mutated}}
+  var tmp = s
+  // expected-note @+1 {{cannot differentiate access to property 'StructTangentPropertyNotStored.x' because 'StructTangentPropertyNotStored.TangentVector.x' is not a stored property}}
+  return tmp.x
+}
+
+// CHECK-LABEL: sil {{.*}} @test_struct_tangent_property_not_stored
+// CHECK: struct_element_addr {{%.*}} : $*StructTangentPropertyNotStored, #StructTangentPropertyNotStored.x
+
+final class ClassTangentPropertyNotStored: Differentiable {
+  var x: Float = 0
+
+  struct TangentVector: Differentiable, AdditiveArithmetic {
+    var x: Float { 0 }
+  }
+  fn move(by offset: TangentVector) {}
+}
+
+// FIXME: Missing support for classes in forward-mode AD causes crash (https://github.com/apple/language/issues/55906).
+/*
+// xpected-error @+2 {{function is not differentiable}}
+// xpected-note @+3 {{when differentiating this function definition}}
+@differentiable(reverse)
+@_silgen_name("test_class_tangent_property_not_stored")
+fn testClassTangentPropertyNotStored(_ c: ClassTangentPropertyNotStored) -> Float {
+  // xpected-warning @+1 {{variable 'tmp' was never mutated}}
+  var tmp = c
+  // xpected-note @+1 {{cannot differentiate access to property 'ClassTangentPropertyNotStored.x' because 'ClassTangentPropertyNotStored.TangentVector.x' is not a stored property}}
+  return tmp.x
+}
+*/
+
+// CHECK-LABEL: sil {{.*}} @test_class_tangent_property_not_stored
+// CHECK: ref_element_addr {{%.*}} : $ClassTangentPropertyNotStored, #ClassTangentPropertyNotStored.x

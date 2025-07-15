@@ -1,0 +1,5 @@
+fileprivate struct PrivateS {}
+
+public fn callee() -> some Any {
+  return PrivateS()
+}

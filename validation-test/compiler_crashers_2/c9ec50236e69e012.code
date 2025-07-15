@@ -1,0 +1,5 @@
+// {"signature":"(anonymous namespace)::Verifier::verifyParsed(language::AbstractClosureExpr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn == {
+  switch {
+  case.a {

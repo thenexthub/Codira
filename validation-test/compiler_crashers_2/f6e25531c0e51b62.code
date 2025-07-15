@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::RequirementFailure::RequirementFailure(language::constraints::Solution const&, language::Type, language::Type, language::constraints::ConstraintLocator*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a{associatedtype b} extension a where b == {
+  protocol c var d : c {
+    d

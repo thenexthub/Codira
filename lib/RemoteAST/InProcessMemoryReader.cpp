@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the abstract interface for working with remote memory.
 //  This method cannot be implemented in the header, as we must avoid importing
-//  <windows.h> in a header, which causes conflicts with Swift definitions.
+//  <windows.h> in a header, which causes conflicts with Codira definitions.
 //
 //===----------------------------------------------------------------------===//
 
@@ -38,5 +39,5 @@ RemoteAddress InProcessMemoryReader::getSymbolAddress(const std::string &name) {
 #else
     auto pointer = dlsym(RTLD_DEFAULT, name.c_str());
 #endif
-    return RemoteAddress(pointer);
+    return RemoteAddress((uint64_t)pointer, RemoteAddress::DefaultAddressSpace);
 }

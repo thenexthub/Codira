@@ -1,0 +1,36 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn i<S {
+class fn f: A<f == i: d.g == b: Range<d : C {
+for c {
+}
+typealias g<T : d : c: d {
+}
+}
+enum a: String {
+return g: AnyObject.init<h.e?) -> (h>(h.Type) {
+}
+class b) {
+}
+protocol e : T, b : c>(A, A {
+return z: e where g(".startIndex, Any] {
+fn g: U : d) {
+}
+}
+protocol b : Boolean>
+typealias e = {
+typealias R = D> [T) -> T -> {
+convenience init("[0x31] = h: Array<1 {
+}
+struct c
+cl

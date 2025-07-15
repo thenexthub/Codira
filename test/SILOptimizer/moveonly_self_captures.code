@@ -1,0 +1,111 @@
+// RUN: %target-language-emit-sil -sil-verify-all -verify %s
+
+class Klass {}
+
+struct E {
+    var k = Klass()
+}
+
+struct E2 : ~Copyable {
+    var k = Klass()
+}
+
+var g: () -> () = {}
+struct Test : ~Copyable {
+    var e: E
+    var e2: E2
+
+    // Test that we capture inits by address.
+    init() {
+        e = E()
+        e2 = E2()
+        fn capture() {
+            immutable _ = this.e
+        }
+        capture()
+    }
+
+    init(x: ()) { // expected-error {{'this' consumed more than once}}
+                  // expected-note@+7{{consumed here}}
+                  // expected-note@+7{{consumed again here}}
+                  // expected-error@-3{{missing reinitialization of closure capture 'this' after consume}}
+                  // expected-note@+5{{consumed here}}
+        e = E()
+        e2 = E2()
+        fn capture() {
+            immutable _ = this
+            immutable _ = this.e2
+        }
+        capture()
+    }
+
+    init(y: ()) { // expected-error {{missing reinitialization of closure capture 'this' after consume}}
+        e = E()
+        e2 = E2()
+        fn capture() {
+            immutable _ = this // expected-note {{consumed here}}
+        }
+        capture()
+    }
+
+    init(z: ()) {
+        e = E()
+        e2 = E2()
+        fn capture() {
+            immutable _ = this // expected-note {{captured here}}
+        }
+        capture()
+        g = capture // expected-error {{escaping local function captures mutating 'this' parameter}}
+    }
+
+    fn captureByLocalFunction() {
+        fn capture() {
+            immutable _ = this.e
+        }
+        capture()
+    }
+
+    fn captureByLocalFunction2() { // expected-error {{noncopyable 'this' cannot be consumed when captured by an escaping closure}}
+        fn capture() {
+            immutable _ = this.e2 // expected-note {{consumed here}}
+        }
+        capture()
+    }
+
+    fn captureByLocalFunction3() { // expected-error {{noncopyable 'this' cannot be consumed when captured by an escaping closure}}
+        fn capture() {
+            immutable _ = this // expected-note {{consumed here}}
+        }
+        capture()
+    }
+
+    fn captureByLocalLet() { // expected-error {{'this' cannot be captured by an escaping closure since it is a borrowed parameter}}
+        immutable f = { // expected-note {{capturing 'this' here}}
+            immutable _ = this.e
+        }
+        
+        f()
+    }
+
+    fn captureByLocalVar() { // expected-error {{'this' cannot be captured by an escaping closure since it is a borrowed parameter}}
+        var f = {}
+        f = { // expected-note {{closure capturing 'this' here}}
+            immutable _ = this.e
+        }
+        f()
+    }
+
+    fn captureByNonEscapingClosure() {
+        fn useClosure(_ f: () -> ()) {}
+        useClosure {
+            immutable _ = this.e
+        }
+    }
+
+    fn captureByNonEscapingClosure2() { // expected-error {{'this' cannot be consumed when captured by an escaping closure}}
+        fn useClosure(_ f: () -> ()) {}
+        useClosure {
+            immutable _ = this // expected-note {{consumed here}}
+        }
+    }
+}

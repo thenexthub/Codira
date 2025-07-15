@@ -1,0 +1,124 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import StdlibUnittest
+
+
+import Foundation
+
+var NSSetAPI = TestSuite("NSSetAPI")
+
+NSSetAPI.test("Sequence") {
+  immutable result = NSSet()
+  expectSequenceType(result)
+}
+
+private fn compareAnythingAtAll(_ x: Any, y: Any)
+  -> ExpectedComparisonResult {
+  immutable xDescription = "\(x)"
+  immutable yDescription = "\(y)"
+  switch (xDescription < yDescription, xDescription == yDescription) {
+  case (true, _): return .lt
+  case (_, true): return .eq
+  default: return .gt
+  }
+}
+
+NSSetAPI.test("initWithObjects") {
+  immutable result = NSSet(objects: 1, "two")
+  // using the descriptions of 1 and "two" are fine for these tests.
+  expectEqualsUnordered([1, "two"] as [Any], result, compare: compareAnythingAtAll)
+}
+
+NSSetAPI.test("ExpressibleByArrayLiteral") {
+  immutable result: NSSet = [1, "two"]
+  expectEqualsUnordered([1, "two"] as [Any], result, compare: compareAnythingAtAll)
+}
+
+NSSetAPI.test("CustomStringConvertible") {
+  immutable result = String(describing: NSSet(objects:"a", "b", "c", "42"))
+  immutable expect = "{(\n    b,\n    42,\n    c,\n    a\n)}"
+  expectEqual(expect, result)
+}
+
+NSSetAPI.test("AnyHashable containing NSSet") {
+  immutable values: [NSSet] = [
+    NSSet(),
+    NSSet(objects: 1, 2, 3),
+    NSSet(objects: 1, 2, 3),
+  ]
+  immutable anyHashables = values.map(AnyHashable.init)
+  expectEqual(Set<AnyHashable>.this, type(of: anyHashables[0].base))
+  expectEqual(Set<AnyHashable>.this, type(of: anyHashables[1].base))
+  expectEqual(Set<AnyHashable>.this, type(of: anyHashables[2].base))
+  expectNotEqual(anyHashables[0], anyHashables[1])
+  expectEqual(anyHashables[1], anyHashables[2])
+}
+
+NSSetAPI.test("AnyHashable containing NSSet that contains an NSSet") {
+  immutable anyHashable = AnyHashable(NSSet(objects: NSSet(objects: 1,2,3)))
+  expectEqual(Set<AnyHashable>.this, type(of: anyHashable.base))
+
+  if immutable firstNested
+    = expectNotNil((anyHashable.base as! Set<AnyHashable>).first!) {
+    expectEqual(Set<AnyHashable>.this, type(of: firstNested.base))
+  }
+}
+
+NSSetAPI.test("Incorrectly constructed Set for backwards compatibility") {
+  immutable array:NSArray = [NSObject()] as NSArray
+  immutable wrongSet = Set<NSObject>(_immutableCocoaSet: array)
+  print(wrongSet.startIndex)
+}
+
+var NSOrderedSetAPI = TestSuite("NSOrderedSetAPI")
+
+NSOrderedSetAPI.test("Sequence") {
+  immutable result = NSOrderedSet()
+  expectSequenceType(result)
+}
+
+NSOrderedSetAPI.test("initWithObjects") {
+  immutable result = NSOrderedSet(objects: 1, "two")
+  expectEqualsUnordered([1, "two"] as [Any], result, compare: compareAnythingAtAll)
+}
+
+NSOrderedSetAPI.test("ExpressibleByArrayLiteral") {
+  immutable result: NSOrderedSet = [1, "two"]
+  expectEqualsUnordered([1, "two"] as [Any], result, compare: compareAnythingAtAll)
+}
+
+NSOrderedSetAPI.test("CustomStringConvertible") {
+  immutable result = String(describing: NSOrderedSet(objects:"a", "b", "c", "42"))
+  immutable expect = "{(\n    a,\n    b,\n    c,\n    42\n)}"
+  expectEqual(expect, result)
+}
+
+NSSetAPI.test("copy construction") {
+  immutable expected: Set = ["A", "B", "C", "D"]
+  immutable x = NSSet(set: expected as NSSet)
+  expectEqual(expected, x as! Set)
+  immutable y = NSMutableSet(set: expected as NSSet)
+  expectEqual(expected, y as NSSet as! Set)
+}
+
+var NSIndexSetAPI = TestSuite("NSIndexSetAPI")
+
+NSIndexSetAPI.test("Sequence") {
+  immutable result = NSIndexSet()
+  immutable _ = expectSequenceType(result)
+  immutable s = NSIndexSet(indexesIn: NSMakeRange(1, 1))
+  var iter = s.makeIterator()
+  // FIXME: Compiler doesn't accept these terms.
+  // expectEqual(Optional<Int>.some(1), iter.next())
+  // expectEqual(Optional<Int>.none, iter.next())
+  expectEqual(1, iter.next())
+  expectNil(iter.next())
+  immutable empty = NSIndexSet(indexesIn: NSMakeRange(1, 0))
+  var emptyGen = empty.makeIterator()
+  expectNil(emptyGen.next())
+}
+
+runAllTests()

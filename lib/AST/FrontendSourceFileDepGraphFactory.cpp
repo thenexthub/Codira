@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file holds the code to build a SourceFileDepGraph in the frontend.
@@ -38,17 +39,17 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/FileSystem.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/ReferenceDependencyKeys.h"
 #include "language/Demangling/Demangle.h"
 #include "language/Frontend/FrontendOptions.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/YAMLParser.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/YAMLParser.h"
 
 using namespace language;
 using namespace fine_grained_dependencies;
@@ -97,7 +98,7 @@ DependencyKey::Builder DependencyKey::Builder::fromReference(
   switch (ref.kind) {
   case Kind::Empty:
   case Kind::Tombstone:
-    llvm_unreachable("Cannot enumerate dead reference!");
+    toolchain_unreachable("Cannot enumerate dead reference!");
   case Kind::PotentialMember:
     return Builder{kind, aspect}.withContext(ref.subject->getAsDecl());
   case Kind::TopLevel:
@@ -129,7 +130,7 @@ DependencyKey::Builder DependencyKey::Builder::withContext(const Decl *D) && {
     // Context field is not used for most kinds
     return Builder{kind, aspect, nullptr, name};
   case NodeKind::kindCount:
-    llvm_unreachable("saw count!");
+    toolchain_unreachable("saw count!");
   }
 }
 
@@ -162,7 +163,7 @@ DependencyKey::Builder DependencyKey::Builder::withName(const Decl *decl) && {
   case NodeKind::sourceFileProvide:
     return Builder{kind, aspect, context, ""};
   case NodeKind::kindCount:
-    llvm_unreachable("saw count!");
+    toolchain_unreachable("saw count!");
   }
 }
 
@@ -196,7 +197,7 @@ StringRef DependencyKey::Builder::getTopLevelName(const Decl *decl) {
     return cast<NominalTypeDecl>(decl)->getName().str();
 
   case DeclKind::BuiltinTuple:
-    llvm_unreachable("Should never appear in source file");
+    toolchain_unreachable("Should never appear in source file");
 
   case DeclKind::Extension:
     // FIXME: We ought to provide an identifier for extensions so we can
@@ -224,10 +225,11 @@ StringRef DependencyKey::Builder::getTopLevelName(const Decl *decl) {
   case DeclKind::MissingMember:
   case DeclKind::Module:
   case DeclKind::MacroExpansion:
+  case DeclKind::Using:
     return "";
   }
 
-  llvm_unreachable("Invalid decl kind!");
+  toolchain_unreachable("Invalid decl kind!");
 }
 
 //==============================================================================
@@ -235,10 +237,10 @@ StringRef DependencyKey::Builder::getTopLevelName(const Decl *decl) {
 //==============================================================================
 
 bool fine_grained_dependencies::withReferenceDependencies(
-    llvm::PointerUnion<const ModuleDecl *, const SourceFile *> MSF,
-    const DependencyTracker &depTracker, llvm::vfs::OutputBackend &backend,
+    toolchain::PointerUnion<const ModuleDecl *, const SourceFile *> MSF,
+    const DependencyTracker &depTracker, toolchain::vfs::OutputBackend &backend,
     StringRef outputPath, bool alsoEmitDotFile,
-    llvm::function_ref<bool(SourceFileDepGraph &&)> cont) {
+    toolchain::function_ref<bool(SourceFileDepGraph &&)> cont) {
   if (auto *MD = MSF.dyn_cast<const ModuleDecl *>()) {
     SourceFileDepGraph g =
         ModuleDepGraphFactory(backend, MD, alsoEmitDotFile).construct();
@@ -258,7 +260,7 @@ bool fine_grained_dependencies::withReferenceDependencies(
 //==============================================================================
 
 FrontendSourceFileDepGraphFactory::FrontendSourceFileDepGraphFactory(
-    const SourceFile *SF, llvm::vfs::OutputBackend &backend,
+    const SourceFile *SF, toolchain::vfs::OutputBackend &backend,
     StringRef outputPath, const DependencyTracker &depTracker,
     const bool alsoEmitDotFile)
     : AbstractSourceFileDepGraphFactory(
@@ -289,7 +291,7 @@ struct DeclFinder {
   ConstPtrPairVec<NominalTypeDecl, ValueDecl> valuesInExtensions;
   ConstPtrVec<ValueDecl> classMembers;
 
-  using LookupClassMember = llvm::function_ref<void(VisibleDeclConsumer &)>;
+  using LookupClassMember = toolchain::function_ref<void(VisibleDeclConsumer &)>;
 
 public:
   /// Construct me and separates the Decls.
@@ -447,20 +449,20 @@ namespace {
 /// Extracts uses out of a SourceFile
 class UsedDeclEnumerator {
   const SourceFile *SF;
-  StringRef swiftDeps;
+  StringRef languageDeps;
 
   /// Cache these for efficiency
   const DependencyKey sourceFileImplementation;
 
 public:
-  UsedDeclEnumerator(const SourceFile *SF, StringRef swiftDeps)
-      : SF(SF), swiftDeps(swiftDeps),
+  UsedDeclEnumerator(const SourceFile *SF, StringRef languageDeps)
+      : SF(SF), languageDeps(languageDeps),
         sourceFileImplementation(DependencyKey::createKeyForWholeSourceFile(
-            DeclAspect::implementation, swiftDeps)) {}
+            DeclAspect::implementation, languageDeps)) {}
 
 public:
   using UseEnumerator =
-      llvm::function_ref<void(const DependencyKey &, const DependencyKey &)>;
+      toolchain::function_ref<void(const DependencyKey &, const DependencyKey &)>;
   void enumerateAllUses(UseEnumerator enumerator) {
     auto &Ctx = SF->getASTContext();
     Ctx.evaluator.enumerateReferencesInFile(SF, [&](const auto &ref) {
@@ -520,9 +522,9 @@ private:
     case ReferenceKind::Dynamic:
       return NodeKind::dynamicLookup;
     case ReferenceKind::Empty:
-      llvm_unreachable("Found invalid reference kind!");
+      toolchain_unreachable("Found invalid reference kind!");
     case ReferenceKind::Tombstone:
-      llvm_unreachable("Found invalid reference kind!");
+      toolchain_unreachable("Found invalid reference kind!");
     }
   }
 };
@@ -535,14 +537,14 @@ class ExternalDependencyEnumerator {
 
 public:
   using UseEnumerator =
-      llvm::function_ref<void(const DependencyKey &, const DependencyKey &,
+      toolchain::function_ref<void(const DependencyKey &, const DependencyKey &,
                               std::optional<Fingerprint>)>;
 
   ExternalDependencyEnumerator(const DependencyTracker &depTracker,
-                               StringRef swiftDeps)
+                               StringRef languageDeps)
       : depTracker(depTracker),
         sourceFileImplementation(DependencyKey::createKeyForWholeSourceFile(
-            DeclAspect::implementation, swiftDeps)) {}
+            DeclAspect::implementation, languageDeps)) {}
 
   void enumerateExternalUses(UseEnumerator enumerator) {
     for (const auto &id : depTracker.getIncrementalDependencies()) {
@@ -571,12 +573,12 @@ private:
 } // end namespace
 
 void FrontendSourceFileDepGraphFactory::addAllUsedDecls() {
-  UsedDeclEnumerator(SF, swiftDeps)
+  UsedDeclEnumerator(SF, languageDeps)
       .enumerateAllUses(
           [&](const DependencyKey &def, const DependencyKey &use) {
             addAUsedDecl(def, use);
           });
-  ExternalDependencyEnumerator(depTracker, swiftDeps)
+  ExternalDependencyEnumerator(depTracker, languageDeps)
       .enumerateExternalUses([&](const DependencyKey &def,
                                  const DependencyKey &use,
                                  std::optional<Fingerprint> maybeFP) {
@@ -588,7 +590,7 @@ void FrontendSourceFileDepGraphFactory::addAllUsedDecls() {
 // MARK: ModuleDepGraphFactory
 //==============================================================================
 
-ModuleDepGraphFactory::ModuleDepGraphFactory(llvm::vfs::OutputBackend &backend,
+ModuleDepGraphFactory::ModuleDepGraphFactory(toolchain::vfs::OutputBackend &backend,
                                              const ModuleDecl *Mod,
                                              bool emitDot)
     : AbstractSourceFileDepGraphFactory(

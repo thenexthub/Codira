@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+// RUN: not %target-language-frontend -typecheck -language-version 5 -playground -diagnostic-style toolchain %t/main.code 2>&1 | %FileCheck %s
+// RUN: not %target-language-frontend -typecheck -language-version 6 -playground -diagnostic-style toolchain %t/main.code 2>&1 | %FileCheck %s
+
+// CHECK: error: no such module
+import Nonexistent_Module
+// CHECK-NOT: error
+import Another_Nonexistent_Module

@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/LayoutPrespec.codeinterface) %s -module-name LayoutPrespec -disable-availability-checking
+// RUN: %target-language-typecheck-module-from-interface(%t/LayoutPrespec.codeinterface) -module-name LayoutPrespec -disable-availability-checking
+// RUN: %target-language-typecheck-module-from-interface(%t/LayoutPrespec.codeinterface) -module-name LayoutPrespec -disable-availability-checking
+// RUN: %FileCheck %s < %t/LayoutPrespec.codeinterface
+
+// CHECK: @_specialize(exported: true, kind: full, where @_noMetadata A : _Class)
+// CHECK-NEXT: public fn test<A>(a: A) -> A
+@_specialize(exported: true, where @_noMetadata A : _Class)
+public fn test<A>(a: A) -> A {
+    return a
+}

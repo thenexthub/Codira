@@ -1,12 +1,12 @@
 # ===--- SchemeMock.py ----------------------------------------------------===#
 #
-#  This source file is part of the Swift.org open source project
+#  This source file is part of the Codira.org open source project
 #
-#  Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
+#  Copyright (c) 2014 - 2018 Apple Inc. and the Codira project authors
 #  Licensed under Apache License v2.0 with Runtime Library Exception
 #
-#  See https:#swift.org/LICENSE.txt for license information
-#  See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+#  See https:#language.org/LICENSE.txt for license information
+#  See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ===----------------------------------------------------------------------===#
 """This file defines objects for mocking an update-checkout scheme. It creates
@@ -62,6 +62,21 @@ MOCK_CONFIG = {
     }
 }
 
+MOCK_ADDITIONAL_SCHEME = {
+    'branch-schemes': {
+        'extra': {
+            'aliases': ['extra'],
+            'repos': {
+                # Spell this differently just to make it distinguishable in
+                # test output, even though we only have one branch.
+                # TODO: Support multiple test branches in the repo instead.
+                'repo1': 'refs/heads/main',
+                'repo2': 'refs/heads/main',
+            }
+        }
+    }
+}
+
 
 class CallQuietlyException(Exception):
     def __init__(self, command, returncode, output):
@@ -78,7 +93,7 @@ class CallQuietlyException(Exception):
 def call_quietly(*args, **kwargs):
     kwargs['stderr'] = subprocess.STDOUT
     try:
-        subprocess.check_output(*args, **kwargs)
+        return subprocess.check_output(*args, **kwargs)
     except subprocess.CalledProcessError as e:
         raise CallQuietlyException(command=e.cmd, returncode=e.returncode,
                                    output=e.stdout) from e
@@ -95,6 +110,10 @@ def teardown_mock_remote(base_dir):
 
 def get_config_path(base_dir):
     return os.path.join(base_dir, 'test-config.json')
+
+
+def get_additional_config_path(base_dir):
+    return os.path.join(base_dir, 'test-additional-config.json')
 
 
 def setup_mock_remote(base_dir, base_config):
@@ -118,9 +137,11 @@ def setup_mock_remote(base_dir, base_config):
         call_quietly(['git', 'symbolic-ref', 'HEAD', 'refs/heads/main'],
                      cwd=remote_repo_path)
         call_quietly(['git', 'clone', '-l', remote_repo_path, local_repo_path])
-        call_quietly(['git', 'config', 'user.name', 'swift_test'],
+        call_quietly(['git', 'config', '--local', 'user.name', 'language_test'],
                      cwd=local_repo_path)
-        call_quietly(['git', 'config', 'user.email', 'no-reply@swift.org'],
+        call_quietly(['git', 'config', '--local', 'user.email', 'no-reply@language.org'],
+                     cwd=local_repo_path)
+        call_quietly(['git', 'config', '--local', 'commit.gpgsign', 'false'],
                      cwd=local_repo_path)
         call_quietly(['git', 'symbolic-ref', 'HEAD', 'refs/heads/main'],
                      cwd=local_repo_path)
@@ -139,6 +160,9 @@ def setup_mock_remote(base_dir, base_config):
 
     with open(get_config_path(base_dir), 'w') as f:
         json.dump(base_config, f)
+
+    with open(get_additional_config_path(base_dir), 'w') as f:
+        json.dump(MOCK_ADDITIONAL_SCHEME, f)
 
     return (LOCAL_PATH, REMOTE_PATH)
 
@@ -162,6 +186,7 @@ class SchemeMockTestCase(unittest.TestCase):
             raise RuntimeError('Misconfigured test suite! Environment '
                                'variable %s must be set!' % BASEDIR_ENV_VAR)
         self.config_path = get_config_path(self.workspace)
+        self.additional_config_path = get_additional_config_path(self.workspace)
         self.update_checkout_path = UPDATE_CHECKOUT_PATH
         if not os.access(self.update_checkout_path, os.X_OK):
             raise RuntimeError('Error! Could not find executable '
@@ -180,7 +205,7 @@ class SchemeMockTestCase(unittest.TestCase):
 
     def call(self, *args, **kwargs):
         kwargs['cwd'] = self.source_root
-        call_quietly(*args, **kwargs)
+        return call_quietly(*args, **kwargs)
 
     def get_all_repos(self):
         return list(self.config["repos"].keys())

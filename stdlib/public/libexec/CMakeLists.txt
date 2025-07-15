@@ -1,4 +1,4 @@
 # Make this macOS only for now.
-if(SWIFT_ENABLE_BACKTRACING)
-  add_subdirectory(swift-backtrace)
+if(LANGUAGE_ENABLE_BACKTRACING)
+  add_subdirectory(language-backtrace)
 endif()

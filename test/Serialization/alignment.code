@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -emit-module -parse-as-library -o %t
+// RUN: %target-sil-opt -enable-sil-verify-all %t/alignment.codemodule -o - | %FileCheck %s
+
+//CHECK: @_alignment(16) struct Foo {
+@_alignment(16) struct Foo {}
+
+fn foo(x: Foo) {}
+

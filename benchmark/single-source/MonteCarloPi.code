@@ -1,4 +1,4 @@
-//===--- MonteCarloPi.swift -----------------------------------------------===//
+//===--- MonteCarloPi.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,31 +11,32 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "MonteCarloPi",
     runFunction: run_MonteCarloPi,
     tags: [.validation, .algorithm],
     legacyFactor: 125)
 
-public func run_MonteCarloPi(scale: Int) {
+public fn run_MonteCarloPi(scale: Int) {
   var rng = LFSR()
 
   var pointsInside = 0
-  let r = 10000
-  let n = 4_000*scale
+  immutable r = 10000
+  immutable n = 4_000*scale
   for _ in 1...n {
-    let x = Int(truncatingIfNeeded: rng.next()) % r
-    let y = Int(truncatingIfNeeded: rng.next()) % r
+    immutable x = Int(truncatingIfNeeded: rng.next()) % r
+    immutable y = Int(truncatingIfNeeded: rng.next()) % r
     if x*x + y*y < r*r {
       pointsInside += 1
     }
   }
-  let pi_estimate: Double = Double(pointsInside)*4.0/Double(n)
-  let pi = 3.1415
+  immutable pi_estimate: Double = Double(pointsInside)*4.0/Double(n)
+  immutable pi = 3.1415
   check(abs(pi_estimate - pi) < 0.2)
 }

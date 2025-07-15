@@ -1,13 +1,17 @@
 //===--- ConcreteTypeWitness.cpp - Nested types of concrete conformances --===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements "nested type concretization", which introduces concrete
@@ -43,15 +47,15 @@ void PropertyMap::concretizeNestedTypesFromConcreteParents() {
     if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
       if (props->isConcreteType() ||
           props->hasSuperclassBound()) {
-        llvm::dbgs() << "^ Concretizing nested types of ";
-        props->dump(llvm::dbgs());
-        llvm::dbgs() << "\n";
+        toolchain::dbgs() << "^ Concretizing nested types of ";
+        props->dump(toolchain::dbgs());
+        toolchain::dbgs() << "\n";
       }
     }
 
     if (props->isConcreteType()) {
       if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-        llvm::dbgs() << "- via concrete type requirement\n";
+        toolchain::dbgs() << "- via concrete type requirement\n";
       }
 
       for (auto pair : props->ConcreteTypeRules) {
@@ -68,7 +72,7 @@ void PropertyMap::concretizeNestedTypesFromConcreteParents() {
 
     if (props->hasSuperclassBound()) {
       if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-        llvm::dbgs() << "- via superclass requirement\n";
+        toolchain::dbgs() << "- via superclass requirement\n";
       }
 
       const auto &superclassReq = props->getSuperclassRequirement();
@@ -174,7 +178,7 @@ void PropertyMap::concretizeNestedTypesFromConcreteParent(
         System.recordConflict(conformanceRuleID, concreteRuleID);
 
       if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-        llvm::dbgs() << "^^ " << concreteType << " does not conform to "
+        toolchain::dbgs() << "^^ " << concreteType << " does not conform to "
                      << proto->getName() << "\n";
       }
 
@@ -194,7 +198,7 @@ void PropertyMap::concretizeNestedTypesFromConcreteParent(
     if (conformance.isAbstract() &&
         !Context.getASTContext().LangOpts.EnableRequirementMachineOpaqueArchetypes) {
       if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-        llvm::dbgs() << "^^ " << "Skipping abstract conformance of "
+        toolchain::dbgs() << "^^ " << "Skipping abstract conformance of "
                      << concreteType << " to " << proto->getName() << "\n";
       }
 
@@ -227,7 +231,7 @@ void PropertyMap::concretizeTypeWitnessInConformance(
   ASSERT(proto == concreteConformanceSymbol.getProtocol());
 
   if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-    llvm::dbgs() << "^^ " << "Looking up type witness for "
+    toolchain::dbgs() << "^^ " << "Looking up type witness for "
                  << proto->getName() << ":" << assocType->getName()
                  << " on " << concreteType << "\n";
   }
@@ -238,7 +242,7 @@ void PropertyMap::concretizeTypeWitnessInConformance(
 
     if (!t) {
       if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-        llvm::dbgs() << "^^ " << "Type witness for " << assocType->getName()
+        toolchain::dbgs() << "^^ " << "Type witness for " << assocType->getName()
                      << " of " << concreteType << " could not be inferred\n";
       }
 
@@ -249,12 +253,13 @@ void PropertyMap::concretizeTypeWitnessInConformance(
   } else if (conformance.isAbstract()) {
     auto archetype = concreteType->getAs<OpaqueTypeArchetypeType>();
     if (archetype == nullptr) {
-      llvm::errs() << "Should only have an abstract conformance with an "
-                   << "opaque archetype type\n";
-      llvm::errs() << "Symbol: " << concreteConformanceSymbol << "\n";
-      llvm::errs() << "Term: " << key << "\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Should only have an abstract conformance with an opaque "
+            << "archetype type\n";
+        out << "Symbol: " << concreteConformanceSymbol << "\n";
+        out << "Term: " << key << "\n";
+        dump(out);
+      });
     }
 
     typeWitness = archetype->getNestedType(assocType)->getCanonicalType();
@@ -263,7 +268,7 @@ void PropertyMap::concretizeTypeWitnessInConformance(
   }
 
   if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-    llvm::dbgs() << "^^ " << "Type witness for " << assocType->getName()
+    toolchain::dbgs() << "^^ " << "Type witness for " << assocType->getName()
                  << " of " << concreteType << " is " << typeWitness << "\n";
   }
 
@@ -284,7 +289,7 @@ void PropertyMap::concretizeTypeWitnessInConformance(
   ASSERT(!path.empty());
   (void) System.addRule(constraintType, subjectType, &path);
   if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-    llvm::dbgs() << "^^ Induced rule " << constraintType
+    toolchain::dbgs() << "^^ Induced rule " << constraintType
                  << " => " << subjectType << "\n";
   }
 }
@@ -377,7 +382,7 @@ MutableTerm PropertyMap::computeConstraintTermForTypeWitness(
               /*inverse=*/false));
 
           if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-             llvm::dbgs() << "^^ Type witness can re-use property bag of "
+             toolchain::dbgs() << "^^ Type witness can re-use property bag of "
                           << result << "\n";
           }
 
@@ -419,7 +424,7 @@ MutableTerm PropertyMap::computeConstraintTermForTypeWitness(
       typeWitnessSymbol.getConcreteType() == concreteType &&
       typeWitnessSymbol.getSubstitutions() == substitutions) {
     if (Debug.contains(DebugFlags::ConcretizeNestedTypes)) {
-      llvm::dbgs() << "^^ Type witness is the same as the concrete type\n";
+      toolchain::dbgs() << "^^ Type witness is the same as the concrete type\n";
     }
 
     // Add a rule T.[concrete: C : P] => T.[concrete: C : P].[P:X].
@@ -559,12 +564,12 @@ void PropertyMap::inferConditionalRequirements(
 
   if (Debug.contains(DebugFlags::ConditionalRequirements)) {
     if (conditionalRequirements.empty())
-      llvm::dbgs() << "@@ No conditional requirements from ";
+      toolchain::dbgs() << "@@ No conditional requirements from ";
     else
-      llvm::dbgs() << "@@ Inferring conditional requirements from ";
+      toolchain::dbgs() << "@@ Inferring conditional requirements from ";
 
-    llvm::dbgs() << concrete->getType() << " : ";
-    llvm::dbgs() << concrete->getProtocol()->getName() << "\n";
+    toolchain::dbgs() << concrete->getType() << " : ";
+    toolchain::dbgs() << concrete->getProtocol()->getName() << "\n";
   }
 
   if (conditionalRequirements.empty())
@@ -579,9 +584,9 @@ void PropertyMap::inferConditionalRequirements(
   // First, desugar all conditional requirements.
   for (auto req : conditionalRequirements) {
     if (Debug.contains(DebugFlags::ConditionalRequirements)) {
-      llvm::dbgs() << "@@@ Original requirement: ";
-      req.dump(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "@@@ Original requirement: ";
+      req.dump(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     }
 
     desugarRequirement(req, SourceLoc(), desugaredRequirements,

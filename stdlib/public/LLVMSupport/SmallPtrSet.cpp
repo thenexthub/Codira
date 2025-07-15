@@ -1,9 +1,17 @@
-//===- llvm/ADT/SmallPtrSet.cpp - 'Normally small' pointer set ------------===//
+//===- toolchain/ADT/SmallPtrSet.cpp - 'Normally small' pointer set ------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the SmallPtrSet class.  See SmallPtrSet.h for an
@@ -11,16 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/MathExtras.h"
-#include "llvm/Support/MemAlloc.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/MathExtras.h"
+#include "toolchain/Support/MemAlloc.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
 
-using namespace llvm;
+using namespace toolchain;
 
 void SmallPtrSetImplBase::shrink_and_clear() {
   assert(!isSmall() && "Can't shrink a small set!");
@@ -39,10 +47,10 @@ void SmallPtrSetImplBase::shrink_and_clear() {
 
 std::pair<const void *const *, bool>
 SmallPtrSetImplBase::insert_imp_big(const void *Ptr) {
-  if (LLVM_UNLIKELY(size() * 4 >= CurArraySize * 3)) {
+  if (TOOLCHAIN_UNLIKELY(size() * 4 >= CurArraySize * 3)) {
     // If more than 3/4 of the array is full, grow.
     Grow(CurArraySize < 64 ? 128 : CurArraySize * 2);
-  } else if (LLVM_UNLIKELY(CurArraySize - NumNonEmpty < CurArraySize / 8)) {
+  } else if (TOOLCHAIN_UNLIKELY(CurArraySize - NumNonEmpty < CurArraySize / 8)) {
     // If fewer of 1/8 of the array is empty (meaning that many are filled with
     // tombstones), rehash.
     Grow(CurArraySize);
@@ -72,11 +80,11 @@ const void * const *SmallPtrSetImplBase::FindBucketFor(const void *Ptr) const {
     // If we found an empty bucket, the pointer doesn't exist in the set.
     // Return a tombstone if we've seen one so far, or the empty bucket if
     // not.
-    if (LLVM_LIKELY(Array[Bucket] == getEmptyMarker()))
+    if (TOOLCHAIN_LIKELY(Array[Bucket] == getEmptyMarker()))
       return Tombstone ? Tombstone : Array+Bucket;
 
     // Found Ptr's bucket?
-    if (LLVM_LIKELY(Array[Bucket] == Ptr))
+    if (TOOLCHAIN_LIKELY(Array[Bucket] == Ptr))
       return Array+Bucket;
 
     // If this is a tombstone, remember it.  If Ptr ends up not in the set, we

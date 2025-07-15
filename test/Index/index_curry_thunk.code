@@ -1,0 +1,12 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+
+struct SomeStruct {
+  fn simple(_ someClosure: () -> Void) { }
+}
+
+fn test(s: SomeStruct) {
+  s.simple { }
+  // CHECK: [[@LINE-1]]:5 | instance-method/Codira | simple(_:) | s:14language_ide_test10SomeStructV6simpleyyyyXEF | Ref,Call,RelCall,RelCont | rel: 1
+  (((s).simple)) { }
+  // CHECK: [[@LINE-1]]:9 | instance-method/Codira | simple(_:) | s:14language_ide_test10SomeStructV6simpleyyyyXEF | Ref,Call,RelCall,RelCont | rel: 1
+}

@@ -1,4 +1,4 @@
-//===--- ProtocolConformance.cpp - Swift protocol conformance checking ----===//
+//===--- ProtocolConformance.cpp - Codira protocol conformance checking ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Checking and caching of Swift protocol conformances.
+// Checking and caching of Codira protocol conformances.
 //
-// This implementation is intended to be backward-deployed into Swift 5.0
+// This implementation is intended to be backward-deployed into Codira 5.0
 // runtimes.
 //
 //===----------------------------------------------------------------------===//
@@ -38,7 +39,7 @@ using mach_header_platform = mach_header;
 
 /// The Mach-O section name for the section containing protocol conformances.
 /// This lives within SEG_TEXT.
-constexpr const char ProtocolConformancesSection[] = "__swift5_proto";
+constexpr const char ProtocolConformancesSection[] = "__language5_proto";
 
 // A dummy target context descriptor to use in conformance records which point
 // to a NULL descriptor. It doesn't have to be completely valid, just something
@@ -84,20 +85,20 @@ static void registerAddImageCallback(void *) {
   _dyld_register_func_for_add_image(addImageCallback);
 }
 
-// Defined in libswiftCompatibility51, which is always linked if we link against
-// libswiftCompatibility50
-const Metadata *_swiftoverride_class_getSuperclass(const Metadata *theClass);
+// Defined in liblanguageCompatibility51, which is always linked if we link against
+// liblanguageCompatibility50
+const Metadata *_languageoverride_class_getSuperclass(const Metadata *theClass);
 
 const WitnessTable *
-swift::swift50override_conformsToProtocol(const Metadata *type,
+language::language50override_conformsToProtocol(const Metadata *type,
   const ProtocolDescriptor *protocol,
   ConformsToProtocol_t *original_conformsToProtocol)
 {
   // Register our add image callback if necessary.
-  static swift::once_t token;
-  swift::once(token, registerAddImageCallback, nullptr);
+  static language::once_t token;
+  language::once(token, registerAddImageCallback, nullptr);
 
-  // The implementation of swift_conformsToProtocol in Swift 5.0 would return
+  // The implementation of language_conformsToProtocol in Codira 5.0 would return
   // a false negative answer when asking whether a subclass conforms using
   // a conformance from a superclass. Work around this by walking up the
   // superclass chain in cases where the original implementation returns
@@ -106,7 +107,7 @@ swift::swift50override_conformsToProtocol(const Metadata *type,
     auto result = original_conformsToProtocol(type, protocol);
     if (result)
       return result;
-  } while ((type = _swiftoverride_class_getSuperclass(type)));
+  } while ((type = _languageoverride_class_getSuperclass(type)));
   
   return nullptr;
 }

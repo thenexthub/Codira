@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines diagnostics emitted during SIL (dataflow) analysis.
@@ -142,7 +143,7 @@ NOTE(function_declared_here,none,
      "function declared here", ())
 
 ERROR(deserialize_function_type_mismatch,Fatal,
-      "type mismatch of function '%0', declared as %1 but used in a swift module as %2",
+      "type mismatch of function '%0', declared as %1 but used in a language module as %2",
       (StringRef, Type, Type))
 
 ERROR(without_actually_escaping_on_isolated_any,none,
@@ -382,43 +383,45 @@ ERROR(bad_attr_on_non_const_global,none,
 ERROR(global_must_be_compile_time_const,none,
       "global variable must be a compile-time constant", ())
 ERROR(embedded_cannot_specialize_class_method,none,
-      "classes cannot have a non-final, generic method %0 in embedded Swift", (DeclName))
+      "classes cannot have a non-final, generic method %0 in embedded Codira", (DeclName))
 ERROR(embedded_cannot_specialize_witness_method,none,
-      "a protocol type cannot contain a generic method %0 in embedded Swift", (DeclName))
+      "a protocol type cannot contain a generic method %0 in embedded Codira", (DeclName))
 ERROR(cannot_specialize_class,none,
       "cannot specialize %0 because class definition is not available (make sure to build with -wmo)", (Type))
-ERROR(embedded_swift_existential_type,none,
-      "cannot use a value of protocol type %0 in embedded Swift", (Type))
-ERROR(embedded_swift_existential_protocol,none,
-      "cannot use a value of protocol type 'any %0' in embedded Swift", (StringRef))
-ERROR(embedded_swift_existential,none,
-      "cannot use a value of protocol type in embedded Swift", ())
+ERROR(embedded_language_existential_type,none,
+      "cannot use a value of protocol type %0 in embedded Codira", (Type))
+ERROR(embedded_language_existential_protocol,none,
+      "cannot use a value of protocol type 'any %0' in embedded Codira", (StringRef))
+ERROR(embedded_language_existential,none,
+      "cannot use a value of protocol type in embedded Codira", ())
 ERROR(perf_diag_existential_type,none,
       "cannot use a value of protocol type %0 in '@_noExistential' function", (Type))
 ERROR(perf_diag_existential,none,
       "cannot use a value of protocol type in '@_noExistential' function", ())
-ERROR(embedded_swift_value_deinit,none,
+ERROR(embedded_language_value_deinit,none,
       "cannot de-virtualize deinit of type %0", (Type))
-ERROR(embedded_swift_metatype_type,none,
-      "cannot use metatype of type %0 in embedded Swift", (Type))
-ERROR(embedded_swift_metatype,none,
-      "cannot use metatype in embedded Swift", ())
-ERROR(embedded_swift_keypath,none,
-      "cannot use key path in embedded Swift", ())
-ERROR(embedded_swift_dynamic_cast,none,
-      "cannot do dynamic casting in embedded Swift", ())
-ERROR(embedded_swift_allocating_type,none,
+ERROR(embedded_language_metatype_type,none,
+      "cannot use metatype of type %0 in embedded Codira", (Type))
+ERROR(embedded_language_metatype,none,
+      "cannot use metatype in embedded Codira", ())
+ERROR(embedded_language_keypath,none,
+      "cannot use key path in embedded Codira", ())
+ERROR(embedded_language_dynamic_cast,none,
+      "cannot do dynamic casting in embedded Codira", ())
+ERROR(embedded_language_allocating_type,none,
       "cannot use allocating type %0 in -no-allocations mode", (Type))
-ERROR(embedded_swift_allocating_coroutine,none,
+ERROR(embedded_language_allocating_coroutine,none,
       "cannot use co-routines (like accessors) in -no-allocations mode", ())
-ERROR(embedded_swift_allocating_closure,none,
+ERROR(embedded_language_allocating_closure,none,
       "cannot use escaping closures in -no-allocations mode", ())
-ERROR(embedded_swift_allocating,none,
+ERROR(embedded_language_allocating,none,
       "cannot use allocating operation in -no-allocations mode", ())
 ERROR(embedded_capture_of_generic_value_with_deinit,none,
-      "capturing generic non-copyable type with deinit in escaping closure not supported in embedded Swift", ())
+      "capturing generic non-copyable type with deinit in escaping closure not supported in embedded Codira", ())
 ERROR(embedded_call_generic_function,none,
-      "cannot specialize generic function in this context", ())
+      "cannot specialize generic function or default protocol method in this context", ())
+ERROR(embedded_call_generic_function_with_dynamic_self,none,
+      "cannot call an initializer or static method, which is defined as default protocol method, from a class method or initializer", ())
 NOTE(embedded_specialization_called_from,none,
       "generic specialization called here", ())
 NOTE(embedded_existential_created,none,
@@ -440,7 +443,7 @@ NOTE(note_while_inlining,none,
 ERROR(cannot_prespecialize,none,
       "Cannot pre-specialize %0", (StringRef))
 ERROR(missing_prespecialization,none,
-      "Pre-specialized function %0 missing in SwiftOnoneSupport module",
+      "Pre-specialized function %0 missing in CodiraOnoneSupport module",
       (StringRef))
 
 // Arithmetic diagnostics.
@@ -578,8 +581,8 @@ ERROR(constexpr_imported_func_not_onone, none, "imported constant evaluable "
       "function '%0' must be annotated '@_optimize(none)'", (StringRef))
 
 // Differentiation transform diagnostics
-ERROR(autodiff_internal_swift_not_imported,none,
-      "Automatic differentiation internal error: the Swift module is not "
+ERROR(autodiff_internal_language_not_imported,none,
+      "Automatic differentiation internal error: the Codira module is not "
       "imported", ())
 ERROR(autodiff_differentiation_module_not_imported,none,
       "Automatic differentiation requires the '_Differentiation' module to be "
@@ -812,7 +815,7 @@ WARNING(semantic_function_improper_nesting, none, "'@_semantics' function calls 
 
 // SDK mismatch diagnostics
 ERROR(missing_deinit_on_executor_function, none,
-      "Missing 'swift_task_deinitOnExecutor' function! "
+      "Missing 'language_task_deinitOnExecutor' function! "
       "This is likely due to an outdated/incompatible SDK.", ())
 
 // Capture promotion diagnostics
@@ -858,7 +861,8 @@ ERROR(sil_movechecking_borrowed_parameter_captured_by_closure, none,
       "parameter",
       (StringRef))
 ERROR(sil_movechecking_capture_consumed, none,
-      "noncopyable '%0' cannot be consumed when captured by an escaping closure", (StringRef))
+      "noncopyable '%0' cannot be consumed when captured by an escaping closure or borrowed by a non-Escapable type",
+      (StringRef))
 ERROR(sil_movechecking_not_reinitialized_before_end_of_function, none,
       "missing reinitialization of %select{inout parameter|closure capture}1 '%0' "
       "after consume", (StringRef, bool))
@@ -967,10 +971,10 @@ NOTE(sil_referencebinding_inout_binding_here, none,
       ())
 
 //===----------------------------------------------------------------------===//
-//                  MARK: Region Based Isolation Diagnostics
+//                  MARK: Region-Based Isolation Diagnostics
 //===----------------------------------------------------------------------===//
 
-// READ THIS: Please when adding diagnostics for region based isolation, keep
+// READ THIS: Please when adding diagnostics for region-based isolation, keep
 // them ordered in sections depending on which emitter uses it. It makes it
 // easier for people unfamiliar with the code to quickly see which diagnostics
 // are used by which of the SendNonSendable emitters use.
@@ -979,7 +983,7 @@ NOTE(sil_referencebinding_inout_binding_here, none,
 // Misc
 
 ERROR(regionbasedisolation_unknown_pattern, none,
-      "pattern that the region based isolation checker does not understand how to check. Please file a bug",
+      "pattern that the region-based isolation checker does not understand how to check. Please file a bug",
       ())
 NOTE(regionbasedisolation_maybe_race, none,
      "access can happen concurrently", ())
@@ -999,23 +1003,23 @@ GROUPED_ERROR(regionbasedisolation_type_send_yields_race, SendingRisksDataRace, 
       (Type))
 NOTE(regionbasedisolation_type_use_after_send, none,
       "sending value of non-Sendable type %0 to %1 callee risks causing data races between %1 and local %2 uses",
-      (Type, ActorIsolation, ActorIsolation))
+      (Type, StringRef, StringRef))
 NOTE(regionbasedisolation_type_use_after_send_callee, none,
      "sending value of non-Sendable type %0 to %1 %kind2 risks causing data "
      "races between %1 and local %3 uses",
-     (Type, ActorIsolation, const ValueDecl *, ActorIsolation))
+     (Type, StringRef, const ValueDecl *, StringRef))
 
 NOTE(regionbasedisolation_named_info_send_yields_race, none,
-     "sending %1%0 to %2 callee risks causing data races between %2 and local %3 uses",
-     (Identifier, StringRef, ActorIsolation, ActorIsolation))
+     "sending %select{%2 |}0%1 to %3 callee risks causing data races between %3 and local %4 uses",
+     (bool, Identifier, StringRef, StringRef, StringRef))
 NOTE(regionbasedisolation_named_info_send_yields_race_callee, none,
-     "sending %1%0 to %2 %kind3 risks causing data races between %2 and local %4 uses",
-     (Identifier, StringRef, ActorIsolation, const ValueDecl *, ActorIsolation))
+     "sending %select{%2 |}0%1 to %3 %kind4 risks causing data races between %3 and local %5 uses",
+     (bool, Identifier, StringRef, StringRef, const ValueDecl *, StringRef))
 
 // Use after send closure.
 NOTE(regionbasedisolation_type_isolated_capture_yields_race, none,
       "sending value of non-Sendable type %0 to %1 closure due to closure capture risks causing races in between %1 and %2 uses",
-      (Type, ActorIsolation, ActorIsolation))
+      (Type, StringRef, StringRef))
 
 // Value captured in async let and reused.
 NOTE(regionbasedisolation_named_nonisolated_asynclet_name, none,
@@ -1026,8 +1030,8 @@ NOTE(regionbasedisolation_named_value_used_after_explicit_sending, none,
       "%0 used after being passed as a 'sending' parameter; Later uses could race",
       (Identifier))
 NOTE(regionbasedisolation_named_isolated_closure_yields_race, none,
-      "%0%1 is captured by a %2 closure. %2 uses in closure may race against later %3 uses",
-      (StringRef, Identifier, ActorIsolation, ActorIsolation))
+      "%select{%1 |}0%2 is captured by a %3 closure. %3 uses in closure may race against later %4 uses",
+      (bool, StringRef, Identifier, StringRef, StringRef))
 
 NOTE(regionbasedisolation_typed_use_after_sending, none,
       "Passing value of non-Sendable type %0 as a 'sending' argument risks causing races in between local and caller code",
@@ -1040,19 +1044,19 @@ NOTE(regionbasedisolation_typed_use_after_sending_callee, none,
 // Sending Never Sendable Emitter
 
 NOTE(regionbasedisolation_named_send_never_sendable, none,
-      "sending %1%0 to %2 callee risks causing data races between %2 and %3 uses",
-      (Identifier, StringRef, ActorIsolation, StringRef))
+      "sending %select{%2 |}0%1 to %3 callee risks causing data races between %3 and %4 uses",
+      (bool, Identifier, StringRef, StringRef, StringRef))
 NOTE(regionbasedisolation_named_send_never_sendable_callee, none,
-      "sending %1%0 to %2 %kind3 risks causing data races between %2 and %4 uses",
-      (Identifier, StringRef, ActorIsolation, const ValueDecl *, StringRef))
+      "sending %select{%2 |}0%1 to %3 %kind4 risks causing data races between %3 and %5 uses",
+      (bool, Identifier, StringRef, StringRef, const ValueDecl *, StringRef))
 
 NOTE(regionbasedisolation_named_send_into_sending_param, none,
-     "%0%1 is passed as a 'sending' parameter; Uses in callee may race with "
-     "later %0uses",
-     (StringRef, Identifier))
+     "%select{%1 |}0%2 is passed as a 'sending' parameter; Uses in callee may race with "
+     "later %1 uses",
+     (bool, StringRef, Identifier))
 NOTE(regionbasedisolation_named_nosend_send_into_result, none,
-     "%0%1 cannot be a 'sending' result. %2 uses may race with caller uses",
-     (StringRef, Identifier, StringRef))
+     "%select{%1 |}0%2 cannot be a 'sending' result. %3 uses may race with caller uses",
+     (bool, StringRef, Identifier, StringRef))
 NOTE(regionbasedisolation_typed_tns_passed_to_sending, none,
      "Passing %0 value of non-Sendable type %1 as a 'sending' parameter risks "
      "causing races inbetween %0 uses and uses reachable from the callee",
@@ -1093,27 +1097,31 @@ NOTE(regionbasedisolation_named_send_nt_asynclet_capture, none,
       (Identifier, StringRef))
 NOTE(regionbasedisolation_typed_sendneversendable_via_arg, none,
       "sending %0 value of non-Sendable type %1 to %2 callee risks causing races in between %0 and %2 uses",
-      (StringRef, Type, ActorIsolation))
+      (StringRef, Type, StringRef))
 NOTE(regionbasedisolation_typed_sendneversendable_via_arg_callee, none,
       "sending %0 value of non-Sendable type %1 to %2 %kind3 risks causing races in between %0 and %2 uses",
-      (StringRef, Type, ActorIsolation, const ValueDecl *))
+      (StringRef, Type, StringRef, const ValueDecl *))
+
+NOTE(regionbasedisolation_isolated_conformance_introduced, none,
+     "isolated conformance to %kind0 can be introduced here",
+     (const ValueDecl *))
 
 // Error that is only used when the send non sendable emitter cannot discover any
 // information to give a better diagnostic.
 ERROR(regionbasedisolation_task_or_actor_isolated_sent, none,
-      "task or actor isolated value cannot be sent", ())
+      "task or actor-isolated value cannot be sent", ())
 
 //===
 // InOut Sending Emitter
 
 NOTE(regionbasedisolation_inout_sending_must_be_reinitialized, none,
-     "'inout sending' parameter must be reinitialized before function exit with a non-actor isolated value",
+     "'inout sending' parameter must be reinitialized before function exit with a non-actor-isolated value",
      ())
 ERROR(regionbasedisolation_inout_sending_cannot_be_actor_isolated, none,
-      "'inout sending' parameter %0 cannot be %1at end of function",
+      "'inout sending' parameter %0 cannot be %1 at end of function",
       (Identifier, StringRef))
 NOTE(regionbasedisolation_inout_sending_cannot_be_actor_isolated_note, none,
-      "%1%0 risks causing races in between %1uses and caller uses since caller assumes value is not actor isolated",
+      "%1 %0 risks causing races in between %1 uses and caller uses since caller assumes value is not actor isolated",
       (Identifier, StringRef))
 
 //===
@@ -1138,10 +1146,10 @@ NOTE(regionbasedisolation_out_sending_cannot_be_actor_isolated_note_named, none,
 // Example: returning main-actor isolated result to a custom-actor isolated context risks causing data races
 ERROR(rbi_isolation_crossing_result, none,
       "non-Sendable %0-typed result can not be returned from %1 %kind2 to %3 context",
-      (Type, ActorIsolation, const ValueDecl *, ActorIsolation))
+      (Type, StringRef, const ValueDecl *, StringRef))
 ERROR(rbi_isolation_crossing_result_no_decl, none,
       "non-Sendable %0-typed result can not be returned from %1 function to %2 context",
-      (Type, ActorIsolation, ActorIsolation))
+      (Type, StringRef, StringRef))
 NOTE(rbi_non_sendable_nominal,none,
      "%kind0 does not conform to the 'Sendable' protocol",
       (const ValueDecl *))
@@ -1172,14 +1180,22 @@ ERROR(lifetime_variable_outside_scope, none,
       "lifetime-dependent variable '%0' escapes its scope", (Identifier))
 ERROR(lifetime_value_outside_scope, none,
       "lifetime-dependent value escapes its scope", ())
+ERROR(lifetime_value_outside_accessor, none,
+      "lifetime-dependent value returned by generated accessor '%0'", (StringRef))
+ERROR(lifetime_value_outside_thunk, none,
+      "lifetime-dependent value returned by generated %select{function|thunk}0 '%1'", (bool, StringRef))
 NOTE(lifetime_outside_scope_argument, none,
      "it depends on the lifetime of argument '%0'", (Identifier))
+NOTE(lifetime_outside_scope_synthesized_argument, none,
+     "it depends on the lifetime of an argument of '%0'", (Identifier))
 NOTE(lifetime_outside_scope_access, none,
      "it depends on this scoped access to variable '%0'", (Identifier))
 NOTE(lifetime_outside_scope_variable, none,
      "it depends on the lifetime of variable '%0'", (Identifier))
 NOTE(lifetime_outside_scope_value, none,
      "it depends on the lifetime of this parent value", ())
+NOTE(lifetime_outside_scope_capture, none,
+     "it depends on a closure capture; this is not yet supported", ())
 NOTE(lifetime_outside_scope_use, none,
      "this use of the lifetime-dependent value is out of scope", ())
 NOTE(lifetime_outside_scope_escape, none,

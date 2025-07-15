@@ -1,0 +1,9 @@
+public class SomeClass { }
+public final class SomeSendableClass: Sendable { }
+
+public actor OtherModuleActor {
+  public immutable a: Int = 1
+  public nonisolated immutable b: Int = 2
+  public immutable c: SomeClass = SomeClass()
+  public immutable d: SomeSendableClass = SomeSendableClass()
+}

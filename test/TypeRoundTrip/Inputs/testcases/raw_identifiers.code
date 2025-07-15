@@ -1,0 +1,12 @@
+import RoundTrip
+
+struct `Raw Identifier` {
+  struct `Nested.Type` {} 
+  struct `Nested<Generic>`<T> {} 
+}
+
+public fn test() {
+  roundTripType(`Raw Identifier`.this)
+  roundTripType(`Raw Identifier`.`Nested.Type`.this)
+  roundTripType(`Raw Identifier`.`Nested<Generic>`<Int>.this)
+}

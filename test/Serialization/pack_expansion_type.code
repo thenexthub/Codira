@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/Inputs/pack_expansion_type_other.code -emit-module -emit-module-path %t/pack_expansion_type_other.codemodule -target %target-language-5.9-abi-triple
+// RUN: %target-typecheck-verify-language -I %t -target %target-language-5.9-abi-triple
+
+import pack_expansion_type_other
+
+_ = variadicFunction(t: 1, 2, u: "hi", "bye")
+_ = VariadicType().variadicMethod(t: 1, "hi", u: "bye", 3)

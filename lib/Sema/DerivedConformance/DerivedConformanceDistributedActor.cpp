@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements implicit derivation of the Actor protocol.
@@ -174,12 +175,12 @@ deriveBodyDistributed_doInvokeOnReturn(AbstractFunctionDecl *afd, void *arg) {
                          new (C) DeclRefExpr(ConcreteDeclRef(returnTypeParam),
                                              dloc, implicit))}));
 
-    if (C.LangOpts.hasFeature(Feature::StrictMemorySafety))
+    if (C.LangOpts.hasFeature(Feature::StrictMemorySafety, /*allowMigration=*/true))
       resultLoadCall = new (C) UnsafeExpr(sloc, resultLoadCall, Type(), true);
 
     auto resultPattern = NamedPattern::createImplicit(C, resultVar);
     auto resultPB = PatternBindingDecl::createImplicit(
-        C, swift::StaticSpellingKind::None, resultPattern,
+        C, language::StaticSpellingKind::None, resultPattern,
         /*expr=*/resultLoadCall, afd);
 
     stmts.push_back(resultPB);
@@ -217,7 +218,7 @@ deriveBodyDistributed_doInvokeOnReturn(AbstractFunctionDecl *afd, void *arg) {
 }
 
 // Create local function:
-//    func invokeOnReturn<R: Self.SerializationRequirement>(
+//    fn invokeOnReturn<R: Self.SerializationRequirement>(
 //        _ returnType: R.Type
 //    ) async throws {
 //      let value = resultBuffer.load(as: returnType)
@@ -231,7 +232,7 @@ static FuncDecl* createLocalFunc_doInvokeOnReturn(
   auto DC = parentFunc;
   auto doInvokeLocalFuncIdent = C.getIdentifier("doInvokeOnReturn");
 
-  // mock locations, we're a synthesized func and don't need real locations
+  // mock locations, we're a synthesized fn and don't need real locations
   const SourceLoc sloc = SourceLoc();
 
   // <R: Self.SerializationRequirement>
@@ -273,7 +274,7 @@ static FuncDecl* createLocalFunc_doInvokeOnReturn(
                             /*allowInverses=*/true);
 
   FuncDecl *doInvokeOnReturnFunc = FuncDecl::createImplicit(
-      C, swift::StaticSpellingKind::None,
+      C, language::StaticSpellingKind::None,
       DeclName(C, doInvokeLocalFuncIdent, doInvokeParamsList),
       sloc,
       /*async=*/true,
@@ -308,11 +309,11 @@ deriveBodyDistributed_invokeHandlerOnReturn(AbstractFunctionDecl *afd,
   NominalTypeDecl *nominal = dyn_cast<NominalTypeDecl>(DC);
   assert(nominal);
 
-  auto func = dyn_cast<FuncDecl>(afd);
-  assert(func);
+  auto fn = dyn_cast<FuncDecl>(afd);
+  assert(fn);
 
   // === parameters
-  auto params = func->getParameters();
+  auto params = fn->getParameters();
   assert(params->size() == 3);
   auto handlerParam = params->get(0);
   auto resultBufParam = params->get(1);
@@ -330,7 +331,7 @@ deriveBodyDistributed_invokeHandlerOnReturn(AbstractFunctionDecl *afd,
   // --- `let m = metatype as! SerializationRequirement.Type`
   VarDecl *metatypeVar =
       new (C) VarDecl(/*isStatic=*/false, VarDecl::Introducer::Let, sloc,
-                      C.getIdentifier("m"), func);
+                      C.getIdentifier("m"), fn);
   {
     metatypeVar->setImplicit();
     metatypeVar->setSynthesized();
@@ -343,8 +344,8 @@ deriveBodyDistributed_invokeHandlerOnReturn(AbstractFunctionDecl *afd,
 
     auto metatypePattern = NamedPattern::createImplicit(C, metatypeVar);
     auto metatypePB = PatternBindingDecl::createImplicit(
-        C, swift::StaticSpellingKind::None, metatypePattern,
-        /*expr=*/metatypeSRCastExpr, func);
+        C, language::StaticSpellingKind::None, metatypePattern,
+        /*expr=*/metatypeSRCastExpr, fn);
 
     stmts.push_back(metatypePB);
     stmts.push_back(metatypeVar);
@@ -352,7 +353,7 @@ deriveBodyDistributed_invokeHandlerOnReturn(AbstractFunctionDecl *afd,
 
   // --- Declare the local function `doInvokeOnReturn`...
   FuncDecl *doInvokeOnReturnFunc = createLocalFunc_doInvokeOnReturn(
-      C, func,
+      C, fn,
       nominal, handlerParam, resultBufParam);
   stmts.push_back(doInvokeOnReturnFunc);
 
@@ -391,7 +392,7 @@ deriveBodyDistributed_invokeHandlerOnReturn(AbstractFunctionDecl *afd,
 /// Synthesizes the
 ///
 /// \verbatim
-/// static func invokeHandlerOnReturn(
+/// static fn invokeHandlerOnReturn(
 ////    handler: ResultHandler,
 ////    resultBuffer: UnsafeRawPointer,
 ////    metatype _metatype: Any.Type
@@ -860,10 +861,10 @@ ValueDecl *DerivedConformance::deriveDistributedActor(ValueDecl *requirement) {
     return derivedValue;
   }
 
-  if (auto func = dyn_cast<FuncDecl>(requirement)) {
+  if (auto fn = dyn_cast<FuncDecl>(requirement)) {
     // just a simple name check is enough here,
     // if we are invoked here we know for sure it is for the "right" function
-    if (func->getName().getBaseName() == Context.Id_resolve) {
+    if (fn->getName().getBaseName() == Context.Id_resolve) {
       return deriveDistributedActor_resolve(*this);
     }
   }
@@ -897,10 +898,10 @@ std::pair<Type, TypeDecl *> DerivedConformance::deriveDistributedActor(
 
 ValueDecl *
 DerivedConformance::deriveDistributedActorSystem(ValueDecl *requirement) {
-  if (auto func = dyn_cast<FuncDecl>(requirement)) {
+  if (auto fn = dyn_cast<FuncDecl>(requirement)) {
     // just a simple name check is enough here,
     // if we are invoked here we know for sure it is for the "right" function
-    if (func->getName().getBaseName() == Context.Id_invokeHandlerOnReturn) {
+    if (fn->getName().getBaseName() == Context.Id_invokeHandlerOnReturn) {
       return deriveDistributedActorSystem_invokeHandlerOnReturn(*this);
     }
   }

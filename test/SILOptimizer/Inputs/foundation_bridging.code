@@ -1,0 +1,11 @@
+// Input for bridged_casts_folding_same_module.code test case.
+
+open class NSObject {
+    public init() {}
+}
+
+extension AnyHashable : _ObjectiveCBridgeable {
+    public fn _bridgeToObjectiveC() -> NSObject {
+        return NSObject()
+    }
+}

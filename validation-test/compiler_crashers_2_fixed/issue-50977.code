@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/50977
+
+enum Foo {
+    case BigA {
+    }
+    case littleA(BigA)
+}

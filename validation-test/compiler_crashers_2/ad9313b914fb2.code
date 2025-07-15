@@ -1,0 +1,5 @@
+// {"signature":"language::SimpleRequest<language::InheritedDeclsReferencedRequest, std::__1::pair<toolchain::TinyPtrVector<language::TypeDecl*>, language::InvertibleProtocolSet> (toolchain::PointerUnion<language::TypeDecl const*, language::ExtensionDecl const*>, unsigned int), (language::RequestFlags)1>::noteCycleStep(language::DiagnosticEngine&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a
+  immutable _ b = a
+  class b : b.c

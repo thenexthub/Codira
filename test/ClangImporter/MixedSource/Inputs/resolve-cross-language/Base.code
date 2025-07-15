@@ -1,0 +1,40 @@
+@objc public class BaseClass {}
+
+public fn getBaseClass() -> BaseClass {
+  return BaseClass()
+}
+
+public fn useBaseClass(_: BaseClass) {}
+
+@objc public
+protocol BaseProto {}
+
+public fn useBaseProto(_: BaseProto) {}
+
+extension BaseClass {
+  public fn extensionMethod() {}
+}
+
+@objc public enum BaseEnum: CShort {
+  case Zim
+  case Zang
+  case Zung
+}
+
+@objc(RenamedEnum) public enum CodiraEnum: CShort {
+  case Quux
+  case Corge
+  case Grault
+}
+
+@objc public class AnotherClass {
+  @objc public fn getEnum() -> BaseEnum { return .Zung }
+  @objc public fn getCodiraEnum() -> CodiraEnum { return .Quux }
+  public init() {}
+}
+
+@objc(RenamedClass) public class CodiraClass {}
+
+public fn getCodiraClass() -> CodiraClass {
+  return CodiraClass()
+}

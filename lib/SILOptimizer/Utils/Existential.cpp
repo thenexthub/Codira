@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/Existential.h"
@@ -22,7 +23,7 @@
 #include "language/SIL/InstructionUtils.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 using namespace language;
 
@@ -44,7 +45,7 @@ findInitExistentialFromGlobalAddr(GlobalAddrInst *GAI, SILInstruction *Insn) {
   /// a simple dominance check: both InitExistential and Insn are in
   /// the same basic block and only one InitExistential
   /// occurs between GAI and Insn.
-  llvm::SmallPtrSet<SILInstruction *, 8> IEUses;
+  toolchain::SmallPtrSet<SILInstruction *, 8> IEUses;
   for (auto *Use : GAI->getUses()) {
     if (auto *InitExistential =
             dyn_cast<InitExistentialAddrInst>(Use->getUser())) {
@@ -265,8 +266,8 @@ void ConcreteExistentialInfo::initializeSubstitutionMap(
 
   ExistentialSubs = SubstitutionMap::get(
       ExistentialSig, [&](SubstitutableType *type) { return ConcreteType; },
-      [&](CanType /*depType*/, Type /*replaceType*/,
-          ProtocolDecl *proto) -> ProtocolConformanceRef {
+      [&](InFlightSubstitution &, Type, ProtocolDecl *proto)
+          -> ProtocolConformanceRef {
         // Directly providing ExistentialConformances to the SubstitutionMap will
         // fail because of the mismatch between opened archetype conformance and
         // existential value conformance. Instead, provide a conformance lookup
@@ -274,7 +275,7 @@ void ConcreteExistentialInfo::initializeSubstitutionMap(
         // ExistentialConformances. This assumes that existential conformances
         // are a superset of opened archetype conformances.
         auto iter =
-            llvm::find_if(ExistentialConformances,
+            toolchain::find_if(ExistentialConformances,
                           [&](const ProtocolConformanceRef &conformance) {
                             return conformance.getProtocol() == proto;
                           });
@@ -439,39 +440,39 @@ ConcreteOpenedExistentialInfo::ConcreteOpenedExistentialInfo(
   CEI->isConcreteValueCopied |= OAI.isOpenedValueCopied;
 }
 
-void LLVM_ATTRIBUTE_USED OpenedArchetypeInfo::dump() const {
+void TOOLCHAIN_ATTRIBUTE_USED OpenedArchetypeInfo::dump() const {
   if (!isValid()) {
-    llvm::dbgs() << "invalid OpenedArchetypeInfo\n";
+    toolchain::dbgs() << "invalid OpenedArchetypeInfo\n";
     return;
   }
-  llvm::dbgs() << "OpendArchetype: ";
-  OpenedArchetype->dump(llvm::dbgs());
-  llvm::dbgs() << "OpendArchetypeValue: ";
+  toolchain::dbgs() << "OpendArchetype: ";
+  OpenedArchetype->dump(toolchain::dbgs());
+  toolchain::dbgs() << "OpendArchetypeValue: ";
   OpenedArchetypeValue->dump();
-  llvm::dbgs() << (isOpenedValueCopied ? "copied " : "") << "ExistentialValue: ";
+  toolchain::dbgs() << (isOpenedValueCopied ? "copied " : "") << "ExistentialValue: ";
   ExistentialValue->dump();
 }
 
-void LLVM_ATTRIBUTE_USED ConcreteExistentialInfo::dump() const {
-  llvm::dbgs() << "ExistentialType: ";
-  ExistentialType->dump(llvm::dbgs());
-  llvm::dbgs() << "ConcreteType: ";
-  ConcreteType->dump(llvm::dbgs());
-  llvm::dbgs() << (isConcreteValueCopied ? "copied " : "") << "ConcreteValue: ";
+void TOOLCHAIN_ATTRIBUTE_USED ConcreteExistentialInfo::dump() const {
+  toolchain::dbgs() << "ExistentialType: ";
+  ExistentialType->dump(toolchain::dbgs());
+  toolchain::dbgs() << "ConcreteType: ";
+  ConcreteType->dump(toolchain::dbgs());
+  toolchain::dbgs() << (isConcreteValueCopied ? "copied " : "") << "ConcreteValue: ";
   ConcreteValue->dump();
   if (ConcreteTypeDef) {
-    llvm::dbgs() << "ConcreteTypeDef: ";
+    toolchain::dbgs() << "ConcreteTypeDef: ";
     ConcreteTypeDef->dump();
   }
-  ExistentialSubs.dump(llvm::dbgs());
-  llvm::dbgs() << '\n';
+  ExistentialSubs.dump(toolchain::dbgs());
+  toolchain::dbgs() << '\n';
 }
 
-void LLVM_ATTRIBUTE_USED ConcreteOpenedExistentialInfo::dump() const {
+void TOOLCHAIN_ATTRIBUTE_USED ConcreteOpenedExistentialInfo::dump() const {
   OAI.dump();
   if (CEI) {
     CEI->dump();
   } else {
-    llvm::dbgs() << "no ConcreteExistentialInfo\n";
+    toolchain::dbgs() << "no ConcreteExistentialInfo\n";
   }
 }

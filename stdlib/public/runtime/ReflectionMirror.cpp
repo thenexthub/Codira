@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifdef SWIFT_ENABLE_REFLECTION
+#ifdef LANGUAGE_ENABLE_REFLECTION
 
 #include "ImageInspection.h"
 #include "Private.h"
@@ -38,9 +39,9 @@
 #include <string>
 #include <tuple>
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include "language/Runtime/ObjCBridge.h"
-#include "languageObject.h"
+#include "CodiraObject.h"
 #endif
 
 using namespace language;
@@ -76,7 +77,7 @@ public:
 /// The layout of Any.
 using Any = OpaqueExistentialContainer;
 
-// Swift assumes Any is returned in memory.
+// Codira assumes Any is returned in memory.
 // Use AnyReturn to guarantee that even on architectures
 // where Any would be returned in registers.
 struct AnyReturn {
@@ -116,19 +117,19 @@ unwrapExistential(const Metadata *T, OpaqueValue *Value) {
       case ExtendedExistentialTypeShape::SpecialKind::Class: {
 	auto classContainer =
 	  reinterpret_cast<ClassExistentialContainer *>(Value);
-	T = swift_getObjectType((HeapObject *)classContainer->Value);
+	T = language_getObjectType((HeapObject *)classContainer->Value);
 	Value = reinterpret_cast<OpaqueValue *>(&classContainer->Value);
 	break;
       }
       case ExtendedExistentialTypeShape::SpecialKind::Metatype: {
 	auto srcExistentialContainer =
 	  reinterpret_cast<ExistentialMetatypeContainer *>(Value);
-	T = swift_getMetatypeMetadata(srcExistentialContainer->Value);
+	T = language_getMetatypeMetadata(srcExistentialContainer->Value);
 	Value = reinterpret_cast<OpaqueValue *>(&srcExistentialContainer->Value);
 	break;
       }
       case ExtendedExistentialTypeShape::SpecialKind::ExplicitLayout: {
-	swift_unreachable("Extended Existential with explicit layout not supported");
+	language_unreachable("Extended Existential with explicit layout not supported");
 	break;
       }
       }
@@ -144,7 +145,7 @@ static void copyWeakFieldContents(OpaqueValue *destContainer, const Metadata *ty
   assert(type->getKind() == MetadataKind::Optional);
   auto *srcContainer = reinterpret_cast<WeakClassExistentialContainer*>(fieldData);
   auto *destClassContainer = reinterpret_cast<ClassExistentialContainer*>(destContainer);
-  destClassContainer->Value = swift_unknownObjectWeakLoadStrong(&srcContainer->Value);
+  destClassContainer->Value = language_unknownObjectWeakLoadStrong(&srcContainer->Value);
   auto witnessTablesSize = type->vw_size() - sizeof(WeakClassExistentialContainer);
   memcpy(destClassContainer->getWitnessTables(), srcContainer->getWitnessTables(), witnessTablesSize);
 }
@@ -152,7 +153,7 @@ static void copyWeakFieldContents(OpaqueValue *destContainer, const Metadata *ty
 static void copyUnownedFieldContents(OpaqueValue *destContainer, const Metadata *type, OpaqueValue *fieldData) {
   auto *srcContainer = reinterpret_cast<UnownedClassExistentialContainer*>(fieldData);
   auto *destClassContainer = reinterpret_cast<ClassExistentialContainer*>(destContainer);
-  destClassContainer->Value = swift_unknownObjectUnownedLoadStrong(&srcContainer->Value);
+  destClassContainer->Value = language_unknownObjectUnownedLoadStrong(&srcContainer->Value);
   auto witnessTablesSize = type->vw_size() - sizeof(UnownedClassExistentialContainer);
   memcpy(destClassContainer->getWitnessTables(), srcContainer->getWitnessTables(), witnessTablesSize);
 }
@@ -238,7 +239,7 @@ struct ReflectionMirrorImpl {
                               void (**outFreeFunc)(const char *)) = 0;
   virtual const char *enumCaseName() { return nullptr; }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   virtual id quickLookObject() { return nil; }
 #endif
   
@@ -277,7 +278,7 @@ struct TupleImpl : ReflectionMirrorImpl {
     auto *Tuple = static_cast<const TupleTypeMetadata *>(type);
 
     if (i < 0 || (size_t)i > Tuple->NumElements)
-      swift::crash("Swift mirror subscript bounds check failure");
+      language::crash("Codira mirror subscript bounds check failure");
 
     // Get the nth element.
     auto &elt = Tuple->getElement(i);
@@ -289,7 +290,7 @@ struct TupleImpl : ReflectionMirrorImpl {
     auto *Tuple = static_cast<const TupleTypeMetadata *>(type);
 
     if (i < 0 || (size_t)i > Tuple->NumElements)
-      swift::crash("Swift mirror subscript bounds check failure");
+      language::crash("Codira mirror subscript bounds check failure");
 
     // Determine whether there is a label.
     bool hasLabel = false;
@@ -315,7 +316,7 @@ struct TupleImpl : ReflectionMirrorImpl {
     if (!hasLabel) {
       // The name is the stringized element number '.0'.
       char *str;
-      swift_asprintf(&str, ".%" PRIdPTR, i);
+      language_asprintf(&str, ".%" PRIdPTR, i);
       *outName = str;
     }
     
@@ -349,15 +350,15 @@ struct TupleImpl : ReflectionMirrorImpl {
   }
 };
   
-struct swift_closure {
+struct language_closure {
   void *fptr;
   HeapObject *context;
 };
-#if SWIFT_LIBRARY_EVOLUTION
-SWIFT_RUNTIME_STDLIB_API SWIFT_CC(swift) swift_closure
+#if LANGUAGE_LIBRARY_EVOLUTION
+LANGUAGE_RUNTIME_STDLIB_API LANGUAGE_CC(language) language_closure
 MANGLE_SYM(s20_playgroundPrintHookySScSgvg)();
 #else
-SWIFT_RUNTIME_STDLIB_API swift_closure
+LANGUAGE_RUNTIME_STDLIB_API language_closure
 MANGLE_SYM(s20_playgroundPrintHookySScSgvp);
 #endif
 
@@ -369,13 +370,13 @@ static bool _shouldReportMissingReflectionMetadataWarnings() {
   // Guesstimate whether we're in a playground by looking at the
   // _playgroundPrintHook variable in the standard library, which is set during
   // playground execution.
-  #if SWIFT_LIBRARY_EVOLUTION
+  #if LANGUAGE_LIBRARY_EVOLUTION
   auto hook = MANGLE_SYM(s20_playgroundPrintHookySScSgvg)();
   #else
   auto hook = MANGLE_SYM(s20_playgroundPrintHookySScSgvp);
   #endif
   if (hook.fptr) {
-    swift_release(hook.context);
+    language_release(hook.context);
     return false;
   } else {
     return true;
@@ -386,10 +387,10 @@ static bool _shouldReportMissingReflectionMetadataWarnings() {
 /// at runtime. This is usually mostly harmless, but it's good to alert
 /// users that it happens.
 static void
-SWIFT_FORMAT(1, 2)
+LANGUAGE_FORMAT(1, 2)
 missing_reflection_metadata_warning(const char *fmt, ...) {
   bool shouldWarn =
-    SWIFT_LAZY_CONSTANT(_shouldReportMissingReflectionMetadataWarnings());
+    LANGUAGE_LAZY_CONSTANT(_shouldReportMissingReflectionMetadataWarnings());
   
   if (!shouldWarn)
     return;
@@ -407,9 +408,9 @@ getFieldAt(const Metadata *base, unsigned index) {
   // If we failed to find the field descriptor metadata for the type, fall
   // back to returning an empty tuple as a standin.
   auto failedToFindMetadata = [&]() -> std::pair<StringRef, FieldType> {
-    auto typeName = swift_getTypeName(base, /*qualified*/ true);
+    auto typeName = language_getTypeName(base, /*qualified*/ true);
     missing_reflection_metadata_warning(
-      "warning: the Swift runtime found no field metadata for "
+      "warning: the Codira runtime found no field metadata for "
       "type '%*s' that claims to be reflectable. Its fields will show up as "
       "'unknown' in Mirrors\n",
       (int)typeName.length, typeName.data);
@@ -435,7 +436,7 @@ getFieldAt(const Metadata *base, unsigned index) {
   auto typeName = field.getMangledTypeName();
 
   SubstGenericParametersFromMetadata substitutions(base);
-  auto result = swift_getTypeByMangledName(
+  auto result = language_getTypeByMangledName(
       MetadataState::Complete, typeName, substitutions.getGenericArgs(),
       [&substitutions](unsigned depth, unsigned index) {
         return substitutions.getMetadata(depth, index).Ptr;
@@ -454,7 +455,7 @@ getFieldAt(const Metadata *base, unsigned index) {
     auto *error = result.getError();
     char *str = error->copyErrorString();
     missing_reflection_metadata_warning(
-        "warning: the Swift runtime was unable to demangle the type "
+        "warning: the Codira runtime was unable to demangle the type "
         "of field '%*s'. the mangled type name is '%*s': %s. this field will "
         "show up as an empty tuple in Mirrors\n",
         (int)name.size(), name.data(), (int)typeName.size(), typeName.data(),
@@ -496,7 +497,7 @@ struct StructImpl : ReflectionMirrorImpl {
     auto *Struct = static_cast<const StructMetadata *>(type);
 
     if (i < 0 || (size_t)i > Struct->getDescription()->NumFields)
-      swift::crash("Swift mirror subscript bounds check failure");
+      language::crash("Codira mirror subscript bounds check failure");
 
     // Load the offset from its respective vector.
     return Struct->getFieldOffsets()[i];
@@ -541,17 +542,17 @@ struct ForeignReferenceTypeImpl : ReflectionMirrorImpl {
   }
 
   intptr_t childOffset(intptr_t i) override {
-    swift::crash("Cannot find offset of FRT.");
+    language::crash("Cannot find offset of FRT.");
   }
 
   const FieldType childMetadata(intptr_t i, const char **outName,
                                 void (**outFreeFunc)(const char *)) override {
-    swift::crash("FRT has no children.");
+    language::crash("FRT has no children.");
   }
 
   AnyReturn subscript(intptr_t i, const char **outName,
                       void (**outFreeFunc)(const char *)) override {
-    swift::crash("FRT has no subscript.");
+    language::crash("FRT has no subscript.");
   }
 };
 
@@ -632,7 +633,7 @@ struct EnumImpl : ReflectionMirrorImpl {
 
     // Copy the enum payload into a box
     const Metadata *boxType = (indirect ? &METADATA_SYM(Bo).base : payloadType);
-    BoxPair pair = swift_allocBox(boxType);
+    BoxPair pair = language_allocBox(boxType);
     type->vw_destructiveProjectEnumData(enumCopyContainer);
     boxType->vw_initializeWithTake(pair.buffer, enumCopyContainer);
     type->deallocateBoxForExistentialIn(&enumCopy.Buffer);
@@ -642,7 +643,7 @@ struct EnumImpl : ReflectionMirrorImpl {
     // If the payload is indirect, we need to jump through the box to get it.
     if (indirect) {
       const HeapObject *owner = *reinterpret_cast<HeapObject * const *>(value);
-      value = swift_projectBox(const_cast<HeapObject *>(owner));
+      value = language_projectBox(const_cast<HeapObject *>(owner));
     }
     
     *outName = caseName;
@@ -655,7 +656,7 @@ struct EnumImpl : ReflectionMirrorImpl {
     result.Type->vw_initializeWithCopy(opaqueValueAddr,
                                        const_cast<OpaqueValue *>(value));
 
-    swift_release(pair.object);
+    language_release(pair.object);
     return AnyReturn(result);
   }
   
@@ -702,7 +703,7 @@ struct ClassImpl : ReflectionMirrorImpl {
         return impl;
       }
     }
-    swift::crash("No superclass mirror found");
+    language::crash("No superclass mirror found");
   }
 
   intptr_t count() override {
@@ -729,22 +730,22 @@ struct ClassImpl : ReflectionMirrorImpl {
     auto description = Clazz->getDescription();
 
     if (i < 0 || (size_t)i > description->NumFields)
-      swift::crash("Swift mirror subscript bounds check failure");
+      language::crash("Codira mirror subscript bounds check failure");
 
     // FIXME: If the class has ObjC heritage, get the field offset using the ObjC
     // metadata, because we don't update the field offsets in the face of
     // resilient base classes.
     uintptr_t fieldOffset;
-    if (usesNativeSwiftReferenceCounting(Clazz)) {
+    if (usesNativeCodiraReferenceCounting(Clazz)) {
       fieldOffset = Clazz->getFieldOffsets()[i];
     } else {
-  #if SWIFT_OBJC_INTEROP
+  #if LANGUAGE_OBJC_INTEROP
       Ivar *ivars = class_copyIvarList(
           reinterpret_cast<Class>(const_cast<ClassMetadata *>(Clazz)), nullptr);
       fieldOffset = ivar_getOffset(ivars[i]);
       free(ivars);
   #else
-      swift::crash("Object appears to be Objective-C, but no runtime.");
+      language::crash("Object appears to be Objective-C, but no runtime.");
   #endif
     }
     return (intptr_t)fieldOffset;
@@ -806,7 +807,7 @@ struct ClassImpl : ReflectionMirrorImpl {
     return copyFieldContents(fieldData, fieldInfo);
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   id quickLookObject() override {
     return _quickLookObjectForPointer(value);
   }
@@ -814,7 +815,7 @@ struct ClassImpl : ReflectionMirrorImpl {
 };
 
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 // Implementation for ObjC classes.
 struct ObjCClassImpl : ClassImpl {
   intptr_t count() override {
@@ -824,29 +825,29 @@ struct ObjCClassImpl : ClassImpl {
   }
 
   intptr_t childOffset(intptr_t i) override {
-    swift::crash("Cannot get children of Objective-C objects.");
+    language::crash("Cannot get children of Objective-C objects.");
   }
 
   const FieldType childMetadata(intptr_t i, const char **outName,
                                 void (**outFreeFunc)(const char *)) override {
-    swift::crash("Cannot get children of Objective-C objects.");
+    language::crash("Cannot get children of Objective-C objects.");
   }
 
   AnyReturn subscript(intptr_t i, const char **outName,
                       void (**outFreeFunc)(const char *)) override {
-    swift::crash("Cannot get children of Objective-C objects.");
+    language::crash("Cannot get children of Objective-C objects.");
   }
 
   virtual intptr_t recursiveCount() override { return 0; }
 
   virtual intptr_t recursiveChildOffset(intptr_t index) override {
-    swift::crash("Cannot get children of Objective-C objects.");
+    language::crash("Cannot get children of Objective-C objects.");
   }
 
   virtual const FieldType
   recursiveChildMetadata(intptr_t index, const char **outName,
                          void (**outFreeFunc)(const char *)) override {
-    swift::crash("Cannot get children of Objective-C objects.");
+    language::crash("Cannot get children of Objective-C objects.");
   }
 };
 #endif
@@ -863,17 +864,17 @@ struct MetatypeImpl : ReflectionMirrorImpl {
   }
 
   intptr_t childOffset(intptr_t i) override {
-    swift::crash("Metatypes have no children.");
+    language::crash("Metatypes have no children.");
   }
 
   const FieldType childMetadata(intptr_t i, const char **outName,
                                 void (**outFreeFunc)(const char *)) override {
-    swift::crash("Metatypes have no children.");
+    language::crash("Metatypes have no children.");
   }
 
   AnyReturn subscript(intptr_t i, const char **outName,
                     void (**outFreeFunc)(const char *)) override {
-    swift::crash("Metatypes have no children.");
+    language::crash("Metatypes have no children.");
   }
 };
 
@@ -889,17 +890,17 @@ struct OpaqueImpl : ReflectionMirrorImpl {
   }
   
   intptr_t childOffset(intptr_t i) override {
-    swift::crash("Opaque types have no children.");
+    language::crash("Opaque types have no children.");
   }
 
   const FieldType childMetadata(intptr_t i, const char **outName,
                                 void (**outFreeFunc)(const char *)) override {
-    swift::crash("Opaque types have no children.");
+    language::crash("Opaque types have no children.");
   }
 
   AnyReturn subscript(intptr_t i, const char **outName,
                     void (**outFreeFunc)(const char *)) override {
-    swift::crash("Opaque types have no children.");
+    language::crash("Opaque types have no children.");
   }
 };
 
@@ -927,7 +928,7 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
     if (passedType == nullptr) {
       // Get the runtime type of the object.
       const void *obj = *reinterpret_cast<const void * const *>(value);
-      auto isa = _swift_getClass(obj);
+      auto isa = _language_getClass(obj);
 
       // Look through artificial subclasses.
       while (isa->isTypeMetadata() && isa->isArtificialSubclass()) {
@@ -936,7 +937,7 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
       passedType = isa;
     }
 
-  #if SWIFT_OBJC_INTEROP
+  #if LANGUAGE_OBJC_INTEROP
     // If this is a pure ObjC class, reflect it using ObjC's runtime facilities.
     // ForeignClass (e.g. CF classes) manifests as a NULL class object.
     auto *classObject = passedType->getClassObject();
@@ -946,7 +947,7 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
     }
   #endif
 
-    // Otherwise, use the native Swift facilities.
+    // Otherwise, use the native Codira facilities.
     ClassImpl impl;
     return call(&impl);
   };
@@ -987,7 +988,7 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
     }
 
     case MetadataKind::Opaque: {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       // If this is the AnyObject type, use the dynamic type of the
       // object reference.
       if (type == &METADATA_SYM(BO).base) {
@@ -1003,7 +1004,7 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
           return callClass();
         }
       }
-      SWIFT_FALLTHROUGH;
+      LANGUAGE_FALLTHROUGH;
     }
 
     /// TODO: Implement specialized mirror witnesses for all kinds.
@@ -1014,7 +1015,7 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
     case MetadataKind::HeapLocalVariable:
     case MetadataKind::HeapGenericLocalVariable:
     case MetadataKind::ErrorObject:
-      swift::crash("Swift mirror lookup failure");
+      language::crash("Codira mirror lookup failure");
     }
 
     // If we have an unknown kind of type, or a type without special handling,
@@ -1026,23 +1027,23 @@ auto call(OpaqueValue *passedValue, const Metadata *T, const Metadata *passedTyp
 } // end anonymous namespace
 
 
-// func _getNormalizedType<T>(_: T, type: Any.Type) -> Any.Type
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-const Metadata *swift_reflectionMirror_normalizedType(OpaqueValue *value,
+// fn _getNormalizedType<T>(_: T, type: Any.Type) -> Any.Type
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+const Metadata *language_reflectionMirror_normalizedType(OpaqueValue *value,
                                                       const Metadata *type,
                                                       const Metadata *T) {
   return call(value, T, type, [](ReflectionMirrorImpl *impl) { return impl->type; });
 }
 
-// func _getMetadataKind(_ type: Any.Type) -> UInt
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-uintptr_t swift_getMetadataKind(const Metadata *type) {
+// fn _getMetadataKind(_ type: Any.Type) -> UInt
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+uintptr_t language_getMetadataKind(const Metadata *type) {
   return static_cast<uintptr_t>(type->getKind());
 }
 
-// func _getChildCount<T>(_: T, type: Any.Type) -> Int
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-intptr_t swift_reflectionMirror_count(OpaqueValue *value,
+// fn _getChildCount<T>(_: T, type: Any.Type) -> Int
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+intptr_t language_reflectionMirror_count(OpaqueValue *value,
                                       const Metadata *type,
                                       const Metadata *T) {
   return call(value, T, type, [](ReflectionMirrorImpl *impl) {
@@ -1050,21 +1051,21 @@ intptr_t swift_reflectionMirror_count(OpaqueValue *value,
   });
 }
 
-// func _getChildCount(_ type: Any.Type) -> Int
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-intptr_t swift_reflectionMirror_recursiveCount(const Metadata *type) {
+// fn _getChildCount(_ type: Any.Type) -> Int
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+intptr_t language_reflectionMirror_recursiveCount(const Metadata *type) {
   return call(nullptr, type, type, [](ReflectionMirrorImpl *impl) {
     return impl->recursiveCount();
   });
 }
 
-// func _getChildMetadata(
+// fn _getChildMetadata(
 //   type: Any.Type,
 //   index: Int,
 //   fieldMetadata: UnsafeMutablePointer<_FieldReflectionMetadata>
 // ) -> Any.Type
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-const Metadata *swift_reflectionMirror_recursiveChildMetadata(
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+const Metadata *language_reflectionMirror_recursiveChildMetadata(
                                        const Metadata *type,
                                        intptr_t index,
                                        _FieldReflectionMetadata* field) {
@@ -1078,12 +1079,12 @@ const Metadata *swift_reflectionMirror_recursiveChildMetadata(
   });
 }
 
-// internal func _getChildOffset(
+// internal fn _getChildOffset(
 //   type: Any.Type,
 //   index: Int
 // ) -> Int
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-intptr_t swift_reflectionMirror_recursiveChildOffset(
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+intptr_t language_reflectionMirror_recursiveChildOffset(
                                        const Metadata *type,
                                        intptr_t index) {
   return call(nullptr, type, type, [&](ReflectionMirrorImpl *impl) {
@@ -1092,18 +1093,18 @@ intptr_t swift_reflectionMirror_recursiveChildOffset(
 }
 
 // We intentionally use a non-POD return type with this entry point to give
-// it an indirect return ABI for compatibility with Swift.
+// it an indirect return ABI for compatibility with Codira.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
-// func _getChild<T>(
+// fn _getChild<T>(
 //   of: T,
 //   type: Any.Type,
 //   index: Int,
 //   outName: UnsafeMutablePointer<UnsafePointer<CChar>?>,
 //   outFreeFunc: UnsafeMutablePointer<NameFreeFunc?>
 // ) -> Any
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-AnyReturn swift_reflectionMirror_subscript(OpaqueValue *value, const Metadata *type,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+AnyReturn language_reflectionMirror_subscript(OpaqueValue *value, const Metadata *type,
                                            intptr_t index,
                                            const char **outName,
                                            void (**outFreeFunc)(const char *),
@@ -1114,21 +1115,21 @@ AnyReturn swift_reflectionMirror_subscript(OpaqueValue *value, const Metadata *t
 }
 #pragma clang diagnostic pop
 
-// func _getDisplayStyle<T>(_: T) -> CChar
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-char swift_reflectionMirror_displayStyle(OpaqueValue *value, const Metadata *T) {
+// fn _getDisplayStyle<T>(_: T) -> CChar
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+char language_reflectionMirror_displayStyle(OpaqueValue *value, const Metadata *T) {
   return call(value, T, nullptr, [](ReflectionMirrorImpl *impl) { return impl->displayStyle(); });
 }
 
-// func _getEnumCaseName<T>(_ value: T) -> UnsafePointer<CChar>?
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-const char *swift_EnumCaseName(OpaqueValue *value, const Metadata *T) {
+// fn _getEnumCaseName<T>(_ value: T) -> UnsafePointer<CChar>?
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+const char *language_EnumCaseName(OpaqueValue *value, const Metadata *T) {
   return call(value, T, nullptr, [](ReflectionMirrorImpl *impl) { return impl->enumCaseName(); });
 }
 
-// func _opaqueSummary(_ metadata: Any.Type) -> UnsafePointer<CChar>?
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-const char *swift_OpaqueSummary(const Metadata *T) {
+// fn _opaqueSummary(_ metadata: Any.Type) -> UnsafePointer<CChar>?
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+const char *language_OpaqueSummary(const Metadata *T) {
   switch (T->getKind()) {
     case MetadataKind::Class:
     case MetadataKind::Struct:
@@ -1165,16 +1166,16 @@ const char *swift_OpaqueSummary(const Metadata *T) {
   }
 }
 
-#if SWIFT_OBJC_INTEROP
-// func _getQuickLookObject<T>(_: T) -> AnyObject?
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-id swift_reflectionMirror_quickLookObject(OpaqueValue *value, const Metadata *T) {
+#if LANGUAGE_OBJC_INTEROP
+// fn _getQuickLookObject<T>(_: T) -> AnyObject?
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+id language_reflectionMirror_quickLookObject(OpaqueValue *value, const Metadata *T) {
   return call(value, T, nullptr, [](ReflectionMirrorImpl *impl) { return impl->quickLookObject(); });
 }
 #endif
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
-const char *swift_keyPath_copySymbolName(void *address) {
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
+const char *language_keyPath_copySymbolName(void *address) {
   if (auto info = SymbolInfo::lookup(address)) {
     if (info->getSymbolName()) {
 #if defined(_WIN32)
@@ -1187,14 +1188,14 @@ const char *swift_keyPath_copySymbolName(void *address) {
   return nullptr;
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
-void swift_keyPath_freeSymbolName(const char *symbolName) {
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
+void language_keyPath_freeSymbolName(const char *symbolName) {
   free(const_cast<char *>(symbolName));
 }
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_INTERNAL const
-    char *swift_keyPathSourceString(char *name) {
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_INTERNAL const
+    char *language_keyPathSourceString(char *name) {
   size_t length = strlen(name);
   std::string mangledName = keyPathSourceString(name, length);
   if (mangledName == "") {
@@ -1207,4 +1208,4 @@ SWIFT_RUNTIME_STDLIB_INTERNAL const
 #endif
 }
 
-#endif  // SWIFT_ENABLE_REFLECTION
+#endif  // LANGUAGE_ENABLE_REFLECTION

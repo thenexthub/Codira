@@ -1,0 +1,65 @@
+// UNSUPPORTED: OS=windows-msvc
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/inputs
+// RUN: echo "public fn anotherFuncA() {}" > %t/A.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/inputs/A.codemodule -emit-module-doc-path %t/inputs/A.codedoc -emit-module-source-info -emit-module-source-info-path %t/inputs/A.codesourceinfo -import-underlying-module -I%S/Inputs/CHeaders -module-cache-path %t.module-cache %t/A.code -module-name A
+// RUN: %target-language-emit-pcm -module-name A -o %t/inputs/A.pcm %S/Inputs/CHeaders/module.modulemap
+// RUN: %target-language-emit-pcm -module-name CodiraShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/CodiraShims.pcm
+// RUN: %target-language-emit-pcm -module-name _CodiraConcurrencyShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/_CodiraConcurrencyShims.pcm
+
+// RUN: echo "[{" > %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"A\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/t/inputs/A.codemodule\"," >> %/t/inputs/map.json
+// RUN: echo "\"docPath\": \"%/t/inputs/A.codedoc\"," >> %/t/inputs/map.json
+// RUN: echo "\"sourceInfoPath\": \"%/t/inputs/A.codesourceinfo\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"A\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModulePath\": \"%/t/inputs/A.pcm\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%/S/Inputs/CHeaders/module.modulemap\"" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/stdlib_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/ononesupport_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_Concurrency\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/concurrency_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraShims\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%language-lib-dir/language/shims/module.modulemap\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModulePath\": \"%t/inputs/CodiraShims.pcm\"" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_CodiraConcurrencyShims\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%language-lib-dir/language/shims/module.modulemap\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModulePath\": \"%t/inputs/_CodiraConcurrencyShims.pcm\"" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_StringProcessing\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/string_processing_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Foo.codemodule -disable-implicit-language-modules -module-cache-path %t.module-cache -explicit-language-module-map-file %t/inputs/map.json -Rmodule-loading -Xcc -Rmodule-import %s 2>&1 | %FileCheck %s
+
+// CHECK: <unknown>:0: remark: importing module 'A' from {{.*}}{{/|\\}}explicit-module-map-clang-and-language.code.tmp{{/|\\}}inputs{{/|\\}}A.pcm'
+
+import A
+
+fn callA() {
+  funcA()
+  anotherFuncA()
+}

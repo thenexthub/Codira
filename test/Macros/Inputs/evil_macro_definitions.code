@@ -1,0 +1,17 @@
+import CodiraDiagnostics
+import CodiraOperators
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+
+public struct CrashingMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    immutable arg: UInt = UInt(macro.argumentList.first!.expression.description)!
+    immutable zero: UInt = 0
+    return "\(raw: zero - arg).description"
+  }
+}

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_RUNTIME_CONCURRENTUTILS_H
-#define SWIFT_RUNTIME_CONCURRENTUTILS_H
+#ifndef LANGUAGE_RUNTIME_CONCURRENTUTILS_H
+#define LANGUAGE_RUNTIME_CONCURRENTUTILS_H
 #include "Atomic.h"
 #include "Debug.h"
 #include "language/Threading/Mutex.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/Support/Allocator.h"
 #include <algorithm>
 #include <atomic>
 #include <functional>
@@ -82,7 +83,7 @@ private:
     static Storage *allocate(size_t capacity) {
       auto size = sizeof(Storage) + (capacity - 1) * sizeof(Storage().Elem);
       auto *ptr = reinterpret_cast<Storage *>(malloc(size));
-      if (!ptr) swift::crash("Could not allocate memory.");
+      if (!ptr) language::crash("Could not allocate memory.");
       ptr->Count.store(0, std::memory_order_relaxed);
       return ptr;
     }
@@ -195,7 +196,7 @@ public:
 
   Snapshot snapshot() {
     incrementReaders();
-    auto *storage = Elements.load(SWIFT_MEMORY_ORDER_CONSUME);
+    auto *storage = Elements.load(LANGUAGE_MEMORY_ORDER_CONSUME);
     if (storage == nullptr) {
       return Snapshot(this, nullptr, 0);
     }
@@ -206,7 +207,7 @@ public:
   }
 };
 
-using llvm::hash_value;
+using toolchain::hash_value;
 
 /// A hash table that can be queried without taking any locks. Writes are still
 /// locked and serialized, but only with respect to other locks. Writers can add
@@ -260,7 +261,7 @@ private:
   /// Otherwise, just return the passed-in size, which is always valid even if
   /// not necessarily optimal.
   static size_t goodSize(size_t size) {
-#if defined(__APPLE__) && defined(__MACH__) && SWIFT_STDLIB_HAS_DARWIN_LIBMALLOC
+#if defined(__APPLE__) && defined(__MACH__) && LANGUAGE_STDLIB_HAS_DARWIN_LIBMALLOC
     return malloc_good_size(size);
 #else
     return size;
@@ -332,7 +333,7 @@ private:
         mode = IndexMode::Array32;
         break;
       default:
-        swift_unreachable("unknown index size");
+        language_unreachable("unknown index size");
       }
       Value = reinterpret_cast<uintptr_t>(ptr) | static_cast<uintptr_t>(mode);
       *reinterpret_cast<uint8_t *>(ptr) = capacityLog2 | InlineCapacityDebugBits;
@@ -380,7 +381,7 @@ private:
       unsigned size = indexSize(capacityLog2);
       auto *ptr = calloc(capacity, size);
       if (!ptr)
-        swift::crash("Could not allocate memory.");
+        language::crash("Could not allocate memory.");
       return IndexStorage(ptr, size, capacityLog2);
     }
 
@@ -445,7 +446,7 @@ private:
 
       auto *ptr = reinterpret_cast<ElementStorage *>(malloc(size));
       if (!ptr)
-        swift::crash("Could not allocate memory.");
+        language::crash("Could not allocate memory.");
 
       ptr->Capacity = (size - headerSize) / sizeof(ElemTy);
 
@@ -790,7 +791,7 @@ template <class ElemTy> struct HashMapElementWrapper {
     return Ptr->matchesKey(key);
   }
 
-  friend llvm::hash_code hash_value(const HashMapElementWrapper &wrapper) {
+  friend toolchain::hash_code hash_value(const HashMapElementWrapper &wrapper) {
     return hash_value(*wrapper.Ptr);
   }
 };
@@ -868,4 +869,4 @@ private:
 
 } // end namespace language
 
-#endif // SWIFT_RUNTIME_CONCURRENTUTILS_H
+#endif // LANGUAGE_RUNTIME_CONCURRENTUTILS_H

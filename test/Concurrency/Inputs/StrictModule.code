@@ -1,0 +1,13 @@
+public struct StrictStruct: Hashable {
+  public init() {}
+}
+
+open class StrictClass {
+  open fn send(_ body: @Sendable () -> Void) {}
+  open fn dontSend(_ body: () -> Void) {}
+}
+
+public protocol StrictProtocol {
+  fn send(_ body: @Sendable () -> Void)
+  fn dontSend(_ body: () -> Void)
+}

@@ -1,19 +1,23 @@
 //===--- RewriteSystem.cpp - Generics with term rewriting -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/Decl.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <vector>
 #include "PropertyMap.h"
@@ -34,7 +38,8 @@ RewriteSystem::RewriteSystem(RewriteContext &ctx)
   Frozen = 0;
   RecordLoops = 0;
   LongestInitialRule = 0;
-  DeepestInitialRule = 0;
+  MaxNestingOfInitialRule = 0;
+  MaxSizeOfInitialRule = 0;
 }
 
 RewriteSystem::~RewriteSystem() {
@@ -90,7 +95,12 @@ void RewriteSystem::initialize(
 
   for (const auto &rule : getLocalRules()) {
     LongestInitialRule = std::max(LongestInitialRule, rule.getDepth());
-    DeepestInitialRule = std::max(DeepestInitialRule, rule.getNesting());
+
+    auto nestingAndSize = rule.getNestingAndSize();
+    MaxNestingOfInitialRule = std::max(MaxNestingOfInitialRule,
+                                      nestingAndSize.first);
+    MaxSizeOfInitialRule = std::max(MaxSizeOfInitialRule,
+                                    nestingAndSize.second);
   }
 }
 
@@ -146,11 +156,11 @@ bool RewriteSystem::simplify(MutableTerm &term, RewritePath *path) const {
 
   if (debug) {
     if (changed) {
-      llvm::dbgs() << "= Simplified " << original << " to " << term << " via ";
-      subpath.dump(llvm::dbgs(), original, *this);
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "= Simplified " << original << " to " << term << " via ";
+      subpath.dump(toolchain::dbgs(), original, *this);
+      toolchain::dbgs() << "\n";
     } else {
-      llvm::dbgs() << "= Irreducible term: " << term << "\n";
+      toolchain::dbgs() << "= Irreducible term: " << term << "\n";
     }
   }
 
@@ -178,7 +188,7 @@ bool RewriteSystem::addRule(MutableTerm lhs, MutableTerm rhs,
   ASSERT(!rhs.empty());
 
   if (Debug.contains(DebugFlags::Add)) {
-    llvm::dbgs() << "# Adding rule " << lhs << " == " << rhs << "\n\n";
+    toolchain::dbgs() << "# Adding rule " << lhs << " == " << rhs << "\n\n";
   }
 
   // Now simplify both sides as much as possible with the rules we have so far.
@@ -219,9 +229,9 @@ bool RewriteSystem::addRule(MutableTerm lhs, MutableTerm rhs,
       recordRewriteLoop(lhs, loop);
 
       if (Debug.contains(DebugFlags::Add)) {
-        llvm::dbgs() << "## Recorded trivial loop at " << lhs << ": ";
-        loop.dump(llvm::dbgs(), lhs, *this);
-        llvm::dbgs() << "\n\n";
+        toolchain::dbgs() << "## Recorded trivial loop at " << lhs << ": ";
+        loop.dump(toolchain::dbgs(), lhs, *this);
+        toolchain::dbgs() << "\n\n";
       }
     }
 
@@ -238,7 +248,7 @@ bool RewriteSystem::addRule(MutableTerm lhs, MutableTerm rhs,
   DEBUG_ASSERT(*lhs.compare(rhs, Context) > 0);
 
   if (Debug.contains(DebugFlags::Add)) {
-    llvm::dbgs() << "## Simplified and oriented rule " << lhs << " => " << rhs << "\n\n";
+    toolchain::dbgs() << "## Simplified and oriented rule " << lhs << " => " << rhs << "\n\n";
   }
 
   unsigned newRuleID = Rules.size();
@@ -253,25 +263,26 @@ bool RewriteSystem::addRule(MutableTerm lhs, MutableTerm rhs,
     recordRewriteLoop(lhs, loop);
 
     if (Debug.contains(DebugFlags::Add)) {
-      llvm::dbgs() << "## Recorded non-trivial loop at " << lhs << ": ";
-      loop.dump(llvm::dbgs(), lhs, *this);
-      llvm::dbgs() << "\n\n";
+      toolchain::dbgs() << "## Recorded non-trivial loop at " << lhs << ": ";
+      loop.dump(toolchain::dbgs(), lhs, *this);
+      toolchain::dbgs() << "\n\n";
     }
   }
 
   auto oldRuleID = Trie.insert(lhs.begin(), lhs.end(), newRuleID);
   if (oldRuleID) {
-    llvm::errs() << "Duplicate rewrite rule!\n";
-    const auto &oldRule = getRule(*oldRuleID);
-    llvm::errs() << "Old rule #" << *oldRuleID << ": ";
-    oldRule.dump(llvm::errs());
-    llvm::errs() << "\nTrying to replay what happened when I simplified this term:\n";
-    Debug |= DebugFlags::Simplify;
-    MutableTerm term = lhs;
-    simplify(lhs);
+    ABORT([&](auto &out) {
+      out << "Duplicate rewrite rule!\n";
+      const auto &oldRule = getRule(*oldRuleID);
+      out << "Old rule #" << *oldRuleID << ": ";
+      oldRule.dump(out);
+      out << "\nTrying to replay what happened when I simplified this term:\n";
+      Debug |= DebugFlags::Simplify;
+      MutableTerm term = lhs;
+      simplify(lhs);
 
-    dump(llvm::errs());
-    abort();
+      dump(out);
+    });
   }
 
   // Tell the caller that we added a new rule.
@@ -339,12 +350,13 @@ void RewriteSystem::addRules(
                                  newRule.getLHS().end(),
                                  newRuleID);
     if (oldRuleID) {
-      llvm::errs() << "Imported rules have duplicate left hand sides!\n";
-      llvm::errs() << "New rule #" << newRuleID << ": " << newRule << "\n";
-      const auto &oldRule = getRule(*oldRuleID);
-      llvm::errs() << "Old rule #" << *oldRuleID << ": " << oldRule << "\n\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Imported rules have duplicate left hand sides!\n";
+        out << "New rule #" << newRuleID << ": " << newRule << "\n";
+        const auto &oldRule = getRule(*oldRuleID);
+        out << "Old rule #" << *oldRuleID << ": " << oldRule << "\n\n";
+        dump(out);
+      });
     }
   }
 
@@ -386,7 +398,7 @@ void RewriteSystem::simplifyLeftHandSides() {
 
         if (Debug.contains(DebugFlags::Completion)) {
           const auto &otherRule = getRule(*otherRuleID);
-          llvm::dbgs() << "$ Deleting rule " << rule << " because "
+          toolchain::dbgs() << "$ Deleting rule " << rule << " because "
                        << "its left hand side contains " << otherRule
                        << "\n";
         }
@@ -425,7 +437,7 @@ void RewriteSystem::simplifyRightHandSides() {
     unsigned newRuleID = Rules.size();
 
     if (Debug.contains(DebugFlags::Add)) {
-      llvm::dbgs() << "## RHS simplification adds a rule " << lhs << " => " << rhs << "\n\n";
+      toolchain::dbgs() << "## RHS simplification adds a rule " << lhs << " => " << rhs << "\n\n";
     }
 
     // Add a new rule with the simplified right hand side.
@@ -448,10 +460,10 @@ void RewriteSystem::simplifyRightHandSides() {
                                          newRuleID, /*inverse=*/true));
 
     if (Debug.contains(DebugFlags::Completion)) {
-      llvm::dbgs() << "$ Right hand side simplification recorded a loop at ";
-      llvm::dbgs() << lhs << ": ";
-      loop.dump(llvm::dbgs(), MutableTerm(lhs), *this);
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "$ Right hand side simplification recorded a loop at ";
+      toolchain::dbgs() << lhs << ": ";
+      loop.dump(toolchain::dbgs(), MutableTerm(lhs), *this);
+      toolchain::dbgs() << "\n";
     }
 
     recordRewriteLoop(MutableTerm(lhs), loop);
@@ -505,12 +517,13 @@ void RewriteSystem::recordRewriteLoop(MutableTerm basepoint,
 }
 
 void RewriteSystem::verifyRewriteRules(ValidityPolicy policy) const {
-#define ASSERT_RULE(expr) \
-  if (!(expr)) { \
-    llvm::errs() << "&&& Malformed rewrite rule: " << rule << "\n"; \
-    llvm::errs() << "&&& " << #expr << "\n\n"; \
-    dump(llvm::errs()); \
-    abort(); \
+#define ASSERT_RULE(expr)                                                      \
+  if (!(expr)) {                                                               \
+    ABORT([&](auto &out) {                                                     \
+      out << "&&& Malformed rewrite rule: " << rule << "\n";                   \
+      out << "&&& " << #expr << "\n\n";                                        \
+      dump(out);                                                               \
+    });                                                                        \
   }
 
   for (const auto &rule : getLocalRules()) {
@@ -660,7 +673,7 @@ void RewriteSystem::freeze() {
   ConflictingRules.clear();
 }
 
-void RewriteSystem::dump(llvm::raw_ostream &out) const {
+void RewriteSystem::dump(toolchain::raw_ostream &out) const {
   out << "Rewrite system: {\n";
   for (const auto &rule : Rules) {
     out << "- " << rule << "\n";

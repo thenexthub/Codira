@@ -1,4 +1,4 @@
-//===------------ ObjectFileContext.cpp - Swift Compiler ----------------===//
+//===------------ ObjectFileContext.cpp - Codira Compiler ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/StaticMirror/ObjectFileContext.h"
@@ -22,22 +23,22 @@
 #include "language/RemoteInspection/TypeRefBuilder.h"
 #include "language/Remote/CMemoryReader.h"
 
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Object/Archive.h"
-#include "llvm/Object/MachOUniversal.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Object/Archive.h"
+#include "toolchain/Object/MachOUniversal.h"
 
-#include "llvm/Object/Archive.h"
-#include "llvm/Object/ELF.h"
-#include "llvm/Object/ELFObjectFile.h"
-#include "llvm/Object/ELFTypes.h"
-#include "llvm/Object/MachOUniversal.h"
-#include "llvm/Object/RelocationResolver.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/StringSaver.h"
+#include "toolchain/Object/Archive.h"
+#include "toolchain/Object/ELF.h"
+#include "toolchain/Object/ELFObjectFile.h"
+#include "toolchain/Object/ELFTypes.h"
+#include "toolchain/Object/MachOUniversal.h"
+#include "toolchain/Object/RelocationResolver.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/StringSaver.h"
 
 #include <sstream>
 
-using namespace llvm::object;
+using namespace toolchain::object;
 
 namespace language {
 namespace static_mirror {
@@ -46,8 +47,8 @@ namespace static_mirror {
 // raw data, we can vend ReadBytesResults with no-op destructors.
 static void no_op_destructor(const void *) {}
 
-void Image::scanMachO(const llvm::object::MachOObjectFile *O) {
-  using namespace llvm::MachO;
+void Image::scanMachO(const toolchain::object::MachOObjectFile *O) {
+  using namespace toolchain::MachO;
 
   HeaderAddress = UINT64_MAX;
 
@@ -84,12 +85,12 @@ void Image::scanMachO(const llvm::object::MachOObjectFile *O) {
 
   // Walk through the bindings list to collect all the external references
   // in the image.
-  llvm::Error error = llvm::Error::success();
-  auto OO = const_cast<llvm::object::MachOObjectFile *>(O);
+  toolchain::Error error = toolchain::Error::success();
+  auto OO = const_cast<toolchain::object::MachOObjectFile *>(O);
 
   for (auto bind : OO->bindTable(error)) {
     if (error) {
-      llvm::consumeError(std::move(error));
+      toolchain::consumeError(std::move(error));
       break;
     }
 
@@ -113,33 +114,33 @@ void Image::scanMachO(const llvm::object::MachOObjectFile *O) {
     DynamicRelocations.insert({bind.address(), {bind.symbolName(), Offset}});
   }
   if (error) {
-    llvm::consumeError(std::move(error));
+    toolchain::consumeError(std::move(error));
   }
 }
 
 // We only support these for AArch64, ARM and x86-64 at present
 static uint32_t getELFGlobDatRelocationType(uint32_t machine) {
   switch (machine) {
-  case llvm::ELF::EM_AARCH64:
-    return llvm::ELF::R_AARCH64_GLOB_DAT;
-  case llvm::ELF::EM_ARM:
-    return llvm::ELF::R_ARM_GLOB_DAT;
-  case llvm::ELF::EM_X86_64:
-    return llvm::ELF::R_X86_64_GLOB_DAT;
+  case toolchain::ELF::EM_AARCH64:
+    return toolchain::ELF::R_AARCH64_GLOB_DAT;
+  case toolchain::ELF::EM_ARM:
+    return toolchain::ELF::R_ARM_GLOB_DAT;
+  case toolchain::ELF::EM_X86_64:
+    return toolchain::ELF::R_X86_64_GLOB_DAT;
   default:
     return 0;
   }
 }
 
 template <typename ELFT>
-void Image::scanELFType(const llvm::object::ELFObjectFile<ELFT> *O) {
-  using namespace llvm::ELF;
+void Image::scanELFType(const toolchain::object::ELFObjectFile<ELFT> *O) {
+  using namespace toolchain::ELF;
 
   HeaderAddress = UINT64_MAX;
 
   auto phdrs = O->getELFFile().program_headers();
   if (!phdrs) {
-    llvm::consumeError(phdrs.takeError());
+    toolchain::consumeError(phdrs.takeError());
   }
 
   for (auto &ph : *phdrs) {
@@ -163,15 +164,15 @@ void Image::scanELFType(const llvm::object::ELFObjectFile<ELFT> *O) {
     return;
 
   auto machine = O->getELFFile().getHeader().e_machine;
-  auto relativeRelocType = llvm::object::getELFRelativeRelocationType(machine);
+  auto relativeRelocType = toolchain::object::getELFRelativeRelocationType(machine);
   auto globDatRelocType = getELFGlobDatRelocationType(machine);
 
-  for (auto &S : static_cast<const llvm::object::ELFObjectFileBase *>(O)
+  for (auto &S : static_cast<const toolchain::object::ELFObjectFileBase *>(O)
                      ->dynamic_relocation_sections()) {
     bool isRela =
-        O->getSection(S.getRawDataRefImpl())->sh_type == llvm::ELF::SHT_RELA;
+        O->getSection(S.getRawDataRefImpl())->sh_type == toolchain::ELF::SHT_RELA;
 
-    for (const llvm::object::RelocationRef &R : S.relocations()) {
+    for (const toolchain::object::RelocationRef &R : S.relocations()) {
       // `getRelocationResolver` doesn't handle RELATIVE relocations, so we
       // have to do that ourselves.
       if (isRela && R.getType() == relativeRelocType) {
@@ -187,14 +188,14 @@ void Image::scanELFType(const llvm::object::ELFObjectFile<ELFT> *O) {
         auto symbol = R.getSymbol();
         auto name = symbol->getName();
         if (!name) {
-          llvm::consumeError(name.takeError());
+          toolchain::consumeError(name.takeError());
           continue;
         }
 
         // On x86-64, this is just S, but on other architectures it is
         // usually S + A.
         uint64_t addend = 0;
-        if (isRela && machine != llvm::ELF::EM_X86_64) {
+        if (isRela && machine != toolchain::ELF::EM_X86_64) {
           auto rela = O->getRela(R.getRawDataRefImpl());
           addend = rela->r_addend;
         }
@@ -208,7 +209,7 @@ void Image::scanELFType(const llvm::object::ELFObjectFile<ELFT> *O) {
       auto symbol = R.getSymbol();
       auto name = symbol->getName();
       if (!name) {
-        llvm::consumeError(name.takeError());
+        toolchain::consumeError(name.takeError());
         continue;
       }
       uint64_t offset = resolve(R.getType(), R.getOffset(), 0, 0, 0);
@@ -217,20 +218,20 @@ void Image::scanELFType(const llvm::object::ELFObjectFile<ELFT> *O) {
   }
 }
 
-void Image::scanELF(const llvm::object::ELFObjectFileBase *O) {
+void Image::scanELF(const toolchain::object::ELFObjectFileBase *O) {
   if (auto le32 =
-          dyn_cast<llvm::object::ELFObjectFile<llvm::object::ELF32LE>>(O)) {
+          dyn_cast<toolchain::object::ELFObjectFile<toolchain::object::ELF32LE>>(O)) {
     scanELFType(le32);
   } else if (auto be32 =
-                 dyn_cast<llvm::object::ELFObjectFile<llvm::object::ELF32BE>>(
+                 dyn_cast<toolchain::object::ELFObjectFile<toolchain::object::ELF32BE>>(
                      O)) {
     scanELFType(be32);
   } else if (auto le64 =
-                 dyn_cast<llvm::object::ELFObjectFile<llvm::object::ELF64LE>>(
+                 dyn_cast<toolchain::object::ELFObjectFile<toolchain::object::ELF64LE>>(
                      O)) {
     scanELFType(le64);
   } else if (auto be64 =
-                 dyn_cast<llvm::object::ELFObjectFile<llvm::object::ELF64BE>>(
+                 dyn_cast<toolchain::object::ELFObjectFile<toolchain::object::ELF64BE>>(
                      O)) {
     scanELFType(be64);
   } else {
@@ -244,7 +245,7 @@ void Image::scanELF(const llvm::object::ELFObjectFileBase *O) {
   Segments.push_back({HeaderAddress, O->getData()});
 }
 
-void Image::scanCOFF(const llvm::object::COFFObjectFile *O) {
+void Image::scanCOFF(const toolchain::object::COFFObjectFile *O) {
   HeaderAddress = O->getImageBase();
 
   for (auto SectionRef : O->sections()) {
@@ -270,24 +271,24 @@ void Image::scanCOFF(const llvm::object::COFFObjectFile *O) {
 }
 
 bool Image::isMachOWithPtrAuth() const {
-  auto macho = dyn_cast<llvm::object::MachOObjectFile>(O);
+  auto macho = dyn_cast<toolchain::object::MachOObjectFile>(O);
   if (!macho)
     return false;
 
   auto &header = macho->getHeader();
 
-  return header.cputype == llvm::MachO::CPU_TYPE_ARM64 &&
-         header.cpusubtype == llvm::MachO::CPU_SUBTYPE_ARM64E;
+  return header.cputype == toolchain::MachO::CPU_TYPE_ARM64 &&
+         header.cpusubtype == toolchain::MachO::CPU_SUBTYPE_ARM64E;
 }
 
-Image::Image(const llvm::object::ObjectFile *O) : O(O) {
-  // Unfortunately llvm doesn't provide a uniform interface for iterating
+Image::Image(const toolchain::object::ObjectFile *O) : O(O) {
+  // Unfortunately toolchain doesn't provide a uniform interface for iterating
   // loadable segments or dynamic relocations in executable images yet.
-  if (auto macho = dyn_cast<llvm::object::MachOObjectFile>(O)) {
+  if (auto macho = dyn_cast<toolchain::object::MachOObjectFile>(O)) {
     scanMachO(macho);
-  } else if (auto elf = dyn_cast<llvm::object::ELFObjectFileBase>(O)) {
+  } else if (auto elf = dyn_cast<toolchain::object::ELFObjectFileBase>(O)) {
     scanELF(elf);
-  } else if (auto coff = dyn_cast<llvm::object::COFFObjectFile>(O)) {
+  } else if (auto coff = dyn_cast<toolchain::object::COFFObjectFile>(O)) {
     scanCOFF(coff);
   } else {
     fputs("unsupported image format\n", stderr);
@@ -324,10 +325,11 @@ Image::resolvePointer(uint64_t Addr, uint64_t pointerValue) const {
   // base address in the low 32 bits, and ptrauth discriminator info in the top
   // 32 bits.
   if (isMachOWithPtrAuth()) {
-    return remote::RemoteAbsolutePointer(
-        "", HeaderAddress + (pointerValue & 0xffffffffull));
+    return remote::RemoteAbsolutePointer(remote::RemoteAddress(
+        HeaderAddress + (pointerValue & 0xffffffffull), 0));
   } else {
-    return remote::RemoteAbsolutePointer("", pointerValue);
+    return remote::RemoteAbsolutePointer(remote::RemoteAddress(
+        pointerValue, reflection::RemoteAddress::DefaultAddressSpace));
   }
 }
 
@@ -335,8 +337,13 @@ remote::RemoteAbsolutePointer Image::getDynamicSymbol(uint64_t Addr) const {
   auto found = DynamicRelocations.find(Addr);
   if (found == DynamicRelocations.end())
     return nullptr;
-  return remote::RemoteAbsolutePointer(found->second.Symbol,
-                                       found->second.Offset);
+  if (!found->second.Symbol.empty())
+    return remote::RemoteAbsolutePointer(found->second.Symbol,
+                                         found->second.OffsetOrAddress,
+                                         remote::RemoteAddress());
+  return remote::RemoteAbsolutePointer(
+      remote::RemoteAddress(found->second.OffsetOrAddress,
+                            remote::RemoteAddress::DefaultAddressSpace));
 }
 
 std::pair<const Image *, uint64_t>
@@ -350,9 +357,8 @@ ObjectMemoryReader::decodeImageIndexAndAddress(uint64_t Addr) const {
   return {nullptr, 0};
 }
 
-uint64_t
-ObjectMemoryReader::encodeImageIndexAndAddress(const Image *image,
-                                               uint64_t imageAddr) const {
+remote::RemoteAddress ObjectMemoryReader::encodeImageIndexAndAddress(
+    const Image *image, remote::RemoteAddress imageAddr) const {
   auto entry = (const ImageEntry *)image;
   return imageAddr + entry->Slide;
 }
@@ -370,13 +376,13 @@ StringRef ObjectMemoryReader::getContentsAtAddress(uint64_t Addr,
 }
 
 ObjectMemoryReader::ObjectMemoryReader(
-    const std::vector<const llvm::object::ObjectFile *> &ObjectFiles) {
+    const std::vector<const toolchain::object::ObjectFile *> &ObjectFiles) {
   if (ObjectFiles.empty()) {
     fputs("no object files provided\n", stderr);
     abort();
   }
   unsigned WordSize = 0;
-  for (const llvm::object::ObjectFile *O : ObjectFiles) {
+  for (const toolchain::object::ObjectFile *O : ObjectFiles) {
     // All the object files we look at should share a word size.
     if (!WordSize) {
       WordSize = O->getBytesInAddress();
@@ -464,10 +470,10 @@ bool ObjectMemoryReader::queryDataLayout(DataLayoutQueryType type,
   case DLQ_GetLeastValidPointerValue: {
     auto result = static_cast<uint64_t *>(outBuffer);
     if (applePlatform && wordSize == 8) {
-      // Swift reserves the first 4GiB on 64-bit Apple platforms
+      // Codira reserves the first 4GiB on 64-bit Apple platforms
       *result = 0x100000000;
     } else {
-      // Swift reserves the first 4KiB everywhere else
+      // Codira reserves the first 4KiB everywhere else
       *result = 0x1000;
     }
     return true;
@@ -484,19 +490,21 @@ ObjectMemoryReader::getImageStartAddress(unsigned i) const {
   assert(i < Images.size());
 
   return reflection::RemoteAddress(encodeImageIndexAndAddress(
-      &Images[i].TheImage, Images[i].TheImage.getStartAddress()));
+      &Images[i].TheImage,
+      remote::RemoteAddress(Images[i].TheImage.getStartAddress(),
+                            reflection::RemoteAddress::DefaultAddressSpace)));
 }
 
 ReadBytesResult ObjectMemoryReader::readBytes(reflection::RemoteAddress Addr,
                                               uint64_t Size) {
-  auto addrValue = Addr.getAddressData();
+  auto addrValue = Addr.getRawAddress();
   auto resultBuffer = getContentsAtAddress(addrValue, Size);
   return ReadBytesResult(resultBuffer.data(), no_op_destructor);
 }
 
 bool ObjectMemoryReader::readString(reflection::RemoteAddress Addr,
                                     std::string &Dest) {
-  auto addrValue = Addr.getAddressData();
+  auto addrValue = Addr.getRawAddress();
   auto resultBuffer = getContentsAtAddress(addrValue, 1);
   if (resultBuffer.empty())
     return false;
@@ -517,7 +525,7 @@ found_terminator:
 remote::RemoteAbsolutePointer
 ObjectMemoryReader::resolvePointer(reflection::RemoteAddress Addr,
                                    uint64_t pointerValue) {
-  auto addrValue = Addr.getAddressData();
+  auto addrValue = Addr.getRawAddress();
   const Image *image;
   uint64_t imageAddr;
   std::tie(image, imageAddr) = decodeImageIndexAndAddress(addrValue);
@@ -528,14 +536,13 @@ ObjectMemoryReader::resolvePointer(reflection::RemoteAddress Addr,
   auto resolved = image->resolvePointer(imageAddr, pointerValue);
   // Mix in the image index again to produce a remote address pointing into the
   // same image.
-  return remote::RemoteAbsolutePointer(
-      "", encodeImageIndexAndAddress(
-              image, resolved.getResolvedAddress().getAddressData()));
+  return remote::RemoteAbsolutePointer(remote::RemoteAddress(
+      encodeImageIndexAndAddress(image, resolved.getResolvedAddress())));
 }
 
 remote::RemoteAbsolutePointer
 ObjectMemoryReader::getDynamicSymbol(reflection::RemoteAddress Addr) {
-  auto addrValue = Addr.getAddressData();
+  auto addrValue = Addr.getRawAddress();
   const Image *image;
   uint64_t imageAddr;
   std::tie(image, imageAddr) = decodeImageIndexAndAddress(addrValue);
@@ -544,6 +551,31 @@ ObjectMemoryReader::getDynamicSymbol(reflection::RemoteAddress Addr) {
     return nullptr;
 
   return image->getDynamicSymbol(imageAddr);
+}
+
+uint64_t ObjectMemoryReader::getPtrauthMask() {
+  auto initializePtrauthMask = [&]() -> uint64_t {
+    uint8_t pointerSize = 0;
+    if (!queryDataLayout(DataLayoutQueryType::DLQ_GetPointerSize, nullptr,
+                         &pointerSize))
+      return ~0ull;
+
+    if (pointerSize == 4) {
+      uint32_t ptrauthMask32 = 0;
+      if (queryDataLayout(DataLayoutQueryType::DLQ_GetPtrAuthMask, nullptr,
+                          &ptrauthMask32))
+        return (uint64_t)ptrauthMask32;
+    } else if (pointerSize == 8) {
+      uint64_t ptrauthMask64 = 0;
+      if (queryDataLayout(DataLayoutQueryType::DLQ_GetPtrAuthMask, nullptr,
+                          &ptrauthMask64))
+        return ptrauthMask64;
+    }
+    return ~0ull;
+  };
+  if (!PtrauthMask)
+    PtrauthMask = initializePtrauthMask();
+  return PtrauthMask;
 }
 
 template <typename Runtime>
@@ -567,17 +599,19 @@ std::unique_ptr<ReflectionContextHolder> makeReflectionContextForObjectFiles(
   const std::vector<const ObjectFile *> &objectFiles, bool ObjCInterop) {
   auto Reader = std::make_shared<ObjectMemoryReader>(objectFiles);
 
-  uint8_t pointerSize;
-  Reader->queryDataLayout(DataLayoutQueryType::DLQ_GetPointerSize, nullptr,
-                          &pointerSize);
+  auto pointerSize = Reader->getPointerSize();
+  if (!pointerSize) {
+    fputs("unable to get target pointer size\n", stderr);
+    abort();
+  }
 
-  switch (pointerSize) {
+  switch (pointerSize.value()) {
   case 4:
 #define MAKE_CONTEXT(INTEROP, PTRSIZE)                                         \
   makeReflectionContextForMetadataReader<                                      \
       External<INTEROP<RuntimeTarget<PTRSIZE>>>>(std::move(Reader),            \
-                                                 pointerSize)
-#if SWIFT_OBJC_INTEROP
+                                                 pointerSize.value())
+#if LANGUAGE_OBJC_INTEROP
     if (ObjCInterop)
       return MAKE_CONTEXT(WithObjCInterop, 4);
     else
@@ -586,7 +620,7 @@ std::unique_ptr<ReflectionContextHolder> makeReflectionContextForObjectFiles(
     return MAKE_CONTEXT(NoObjCInterop, 4);
 #endif
    case 8:
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     if (ObjCInterop)
       return MAKE_CONTEXT(WithObjCInterop, 8);
     else

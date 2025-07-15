@@ -1,0 +1,55 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -emit-dependencies -emit-dependencies-path %t/deps.d -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+
+import F
+
+// CHECK: "mainModuleName": "deps"
+
+/// --------Main module
+// CHECK-LABEL: "modulePath": "deps.codemodule",
+// CHECK-NEXT: sourceFiles
+// CHECK-NEXT: explicit-language-dependencies.code
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-DAG:     "language": "F"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-DAG:     "language": "_Concurrency"
+// CHECK-DAG:     "clang": "_CodiraConcurrencyShims"
+// CHECK-DAG:     "language": "_StringProcessing"
+// CHECK: ],
+
+/// --------Codira module F
+// CHECK: "modulePath": "{{.*}}{{/|\\}}F-{{.*}}.codemodule",
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "F"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-DAG:   "language": "CodiraOnoneSupport"
+
+
+// CHECK: "commandLine": [
+// CHECK-NEXT:            "-frontend",
+// CHECK-NEXT:            "-compile-module-from-interface",
+// CHECK-NEXT:            "-target",
+// ...
+// CHECK:                 "-explicit-interface-module-build",
+// CHECK-NEXT:            "-disable-implicit-language-modules",
+// CHECK-NEXT:            "-Xcc",
+// CHECK-NEXT:            "-fno-implicit-modules",
+// CHECK-NEXT:            "-Xcc",
+// CHECK-NEXT:            "-fno-implicit-module-maps",
+// CHECK-DAG:             "-language-module-file=Codira={{.*}}{{/|\\}}Codira-{{.*}}.codemodule"
+// CHECK-DAG:             "-language-module-file=CodiraOnoneSupport={{.*}}{{/|\\}}CodiraOnoneSupport-{{.*}}.codemodule"
+// CHECK-DAG:             "-fmodule-file=F={{.*}}{{/|\\}}F-{{.*}}.pcm"
+// CHECK-DAG:             "-fmodule-file=CodiraShims={{.*}}{{/|\\}}CodiraShims-{{.*}}.pcm"
+// CHECK-NEXT:            "-o",
+// CHECK-NEXT:            "{{.*}}{{/|\\}}F-{{.*}}.codemodule"

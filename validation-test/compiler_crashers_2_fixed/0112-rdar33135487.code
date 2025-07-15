@@ -1,0 +1,8 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+enum State<StateType> {
+  fn put<StateType>() -> StateType {}
+  fn put<T>(keyPath: WritableKeyPath<StateType, T>, projection: T) {
+    put(keyPath: \.age, projection: {})
+  }
+}

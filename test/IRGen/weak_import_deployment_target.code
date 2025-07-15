@@ -1,0 +1,33 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-language-frontend -enable-library-evolution -emit-module -target %target-cpu-apple-macosx10.50 -emit-module-path %t/weak_import_deployment_target_helper.codemodule -parse-as-library %S/Inputs/weak_import_deployment_target_helper.code
+// RUN: %target-language-frontend -primary-file %s -I %t -emit-ir -target %target-cpu-apple-macosx10.50 | %FileCheck %s --check-prefix=CHECK-OLD
+// RUN: %target-language-frontend -primary-file %s -I %t -emit-ir -target %target-cpu-apple-macosx10.60 | %FileCheck %s --check-prefix=CHECK-NEW
+//
+// RUN: %target-language-frontend -enable-library-evolution -emit-module -target %target-cpu-apple-macosx10.60 -emit-module-path %t/weak_import_deployment_target_helper.codemodule -parse-as-library %S/Inputs/weak_import_deployment_target_helper.code
+// RUN: %target-language-frontend -primary-file %s -I %t -emit-ir -target %target-cpu-apple-macosx10.50 | %FileCheck %s --check-prefix=CHECK-OLD
+// RUN: %target-language-frontend -primary-file %s -I %t -emit-ir -target %target-cpu-apple-macosx10.60 | %FileCheck %s --check-prefix=CHECK-NEW
+//
+// REQUIRES: OS=macosx
+
+import weak_import_deployment_target_helper
+
+@available(macOS 10.50, *)
+public fn callsOld() {
+  hasDefaultArg()
+}
+
+@available(macOS 10.60, *)
+public fn callsNew() {
+  hasAvailableDefaultArg()
+}
+
+// CHECK-OLD-LABEL: declare languagecc void @"$s36weak_import_deployment_target_helper13hasDefaultArgyySiF"(i64)
+// CHECK-OLD-LABEL: declare extern_weak languagecc void @"$s36weak_import_deployment_target_helper22hasAvailableDefaultArgyySiF"(i64)
+// CHECK-OLD-LABEL: declare extern_weak languagecc i64 @"$s36weak_import_deployment_target_helper17availableFunctionSiyF"()
+// CHECK-OLD-LABEL: declare languagecc i64 @"$s36weak_import_deployment_target_helper8functionSiyF"()
+
+// CHECK-NEW-LABEL: declare languagecc void @"$s36weak_import_deployment_target_helper13hasDefaultArgyySiF"(i64)
+// CHECK-NEW-LABEL: declare languagecc void @"$s36weak_import_deployment_target_helper22hasAvailableDefaultArgyySiF"(i64)
+// CHECK-NEW-LABEL: declare languagecc i64 @"$s36weak_import_deployment_target_helper17availableFunctionSiyF"()
+// CHECK-NEW-LABEL: declare languagecc i64 @"$s36weak_import_deployment_target_helper8functionSiyF"()

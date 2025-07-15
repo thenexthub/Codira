@@ -1,19 +1,19 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import configparser
 import os
 import unittest
 
-from build_swift import constants
-from build_swift import presets
-from build_swift.presets import Preset, PresetParser
+from build_language import constants
+from build_language import presets
+from build_language.presets import Preset, PresetParser
 
 from .. import utils
 
@@ -32,18 +32,19 @@ PRESET_DEFAULTS = {
     'darwin_toolchain_display_name_short': 'DisplayNameShort',
     'darwin_toolchain_version': '1.0',
     'darwin_toolchain_xctoolchain_name': 'default',
-    'extra_swift_args': '',
+    'extra_language_args': '',
     'install_destdir': '/tmp/install',
     'install_symroot': '/tmp/install/symroot',
     'install_all': False,
     'install_toolchain_dir': '/tmp/install/toolchain',
     'install_prefix': '/usr',
     'installable_package': '/tmp/install/pkg',
-    'swift_install_destdir': '/tmp/install/swift',
+    'language_install_destdir': '/tmp/install/language',
     'symbols_package': '/path/to/symbols/package',
     'ndk_path': '/path/to/ndk',
     'arm_dir': '/path/to/arm',
     'toolchain_path': '/tmp/toolchain',
+    'build_subdir': 'test_build_subdir',
 }
 
 SAMPLE_PRESET = """

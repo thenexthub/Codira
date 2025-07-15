@@ -1,0 +1,243 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module -o %t %t/InternalUsesOnly.code
+// RUN: %target-language-frontend -emit-module -o %t %t/InternalUsesOnlyDefaultedImport.code
+// RUN: %target-language-frontend -emit-module -o %t %t/PackageUsesOnly.code
+// RUN: %target-language-frontend -emit-module -o %t %t/PublicUsesOnly.code
+// RUN: %target-language-frontend -emit-module -o %t %t/PublicUsesOnlyDefaultedImport.code
+// RUN: %target-language-frontend -emit-module -o %t %t/MixedUses.code
+// RUN: %target-language-frontend -emit-module -o %t %t/InternalUsesOnlyReexported.code
+// RUN: %target-language-frontend -emit-module -o %t %t/InternalUsesOnlyTransitivelyImported.code
+// RUN: %target-language-frontend -emit-module -o %t %t/ImportsOtherModules.code -I %t
+// RUN: %target-language-frontend -emit-module -o %t %t/InternalUsesOnlySPIOnly.code -I %t
+// RUN: %target-language-frontend -emit-module -o %t %t/InternalUsesOnlyDefaultedImportSPIOnly.code -I %t
+// RUN: %target-language-frontend -emit-module -o %t %t/PublicUsesOnlySPIOnly.code -I %t
+
+// RUN: %target-language-frontend -typecheck -verify -language-version 5 \
+// RUN:   -primary-file %t/function_bodies.code \
+// RUN:   -primary-file %t/function_signatures_unqualified.code \
+// RUN:   -primary-file %t/function_signatures_qualified.code \
+// RUN:   -primary-file %t/extensions.code \
+// RUN:   %t/imports.code \
+// RUN:   -I %t -package-name Package \
+// RUN:   -enable-upcoming-feature MemberImportVisibility \
+// RUN:   -verify-additional-prefix public-by-default-
+
+// RUN: %target-language-frontend -typecheck -verify -language-version 5 \
+// RUN:   -primary-file %t/function_bodies.code \
+// RUN:   -primary-file %t/function_signatures_unqualified.code \
+// RUN:   -primary-file %t/function_signatures_qualified.code \
+// RUN:   -primary-file %t/extensions.code \
+// RUN:   %t/imports.code \
+// RUN:   -I %t -package-name Package \
+// RUN:   -enable-upcoming-feature MemberImportVisibility \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault \
+// RUN:   -verify-additional-prefix internal-by-default-
+
+// REQUIRES: language_feature_InternalImportsByDefault
+// REQUIRES: language_feature_MemberImportVisibility
+
+//--- function_bodies.code
+
+// FIXME: The access level on the fix-it for PackageUsesOnly is wrong.
+import Codira // Just here to anchor the fix-its
+// expected-note      {{add import of module 'InternalUsesOnly'}}{{1-1=internal import InternalUsesOnly\n}}
+// expected-note@-1   {{add import of module 'InternalUsesOnlyDefaultedImport'}}{{1-1=import InternalUsesOnlyDefaultedImport\n}}
+// expected-note@-2   {{add import of module 'PackageUsesOnly'}}{{1-1=public import PackageUsesOnly\n}}
+// expected-note@-3   {{add import of module 'PublicUsesOnly'}}{{1-1=public import PublicUsesOnly\n}}
+// expected-note@-4   {{add import of module 'PublicUsesOnlyDefaultedImport'}}{{1-1=import PublicUsesOnlyDefaultedImport\n}}
+// expected-note@-5 3 {{add import of module 'MixedUses'}}{{1-1=public import MixedUses\n}}
+// expected-public-by-default-note@-6   {{add import of module 'InternalUsesOnlyReexported'}}{{1-1=internal import InternalUsesOnlyReexported\n}}
+// expected-internal-by-default-note@-7   {{add import of module 'InternalUsesOnlyReexported'}}{{1-1=import InternalUsesOnlyReexported\n}}
+// expected-public-by-default-note@-8   {{add import of module 'InternalUsesOnlyTransitivelyImported'}}{{1-1=internal import InternalUsesOnlyTransitivelyImported\n}}
+// expected-internal-by-default-note@-9   {{add import of module 'InternalUsesOnlyTransitivelyImported'}}{{1-1=import InternalUsesOnlyTransitivelyImported\n}}
+// expected-note@-10   {{add import of module 'InternalUsesOnlySPIOnly'}}{{1-1=internal import InternalUsesOnlySPIOnly\n}}
+// expected-public-by-default-note@-11     {{add import of module 'InternalUsesOnlyDefaultedImportSPIOnly'}}{{1-1=@_spiOnly import InternalUsesOnlyDefaultedImportSPIOnly\n}}
+// expected-internal-by-default-note@-12   {{add import of module 'InternalUsesOnlyDefaultedImportSPIOnly'}}{{1-1=import InternalUsesOnlyDefaultedImportSPIOnly\n}}
+// expected-note@-13  {{add import of module 'PublicUsesOnlySPIOnly'}}{{1-1=@_spiOnly public import PublicUsesOnlySPIOnly\n}}
+
+fn internalFunc(_ x: Int) {
+  _ = x.memberInInternalUsesOnly // expected-error {{property 'memberInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+  _ = x.memberInInternalUsesOnlyDefaultedImport // expected-error {{property 'memberInInternalUsesOnlyDefaultedImport' is not available due to missing import of defining module 'InternalUsesOnlyDefaultedImport'}}
+  _ = x.memberInMixedUses // expected-error {{property 'memberInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+  _ = x.memberInInternalUsesOnlyReexported // expected-error {{property 'memberInInternalUsesOnlyReexported' is not available due to missing import of defining module 'InternalUsesOnlyReexported'}}
+  _ = x.memberInInternalUsesOnlySPIOnly // expected-error {{property 'memberInInternalUsesOnlySPIOnly' is not available due to missing import of defining module 'InternalUsesOnlySPIOnly'}}
+  _ = x.memberInInternalUsesOnlyDefaultedImportSPIOnly // expected-error {{property 'memberInInternalUsesOnlyDefaultedImportSPIOnly' is not available due to missing import of defining module 'InternalUsesOnlyDefaultedImportSPIOnly'}}
+  _ = x.memberInInternalUsesOnlyTransitivelyImported // expected-error {{property 'memberInInternalUsesOnlyTransitivelyImported' is not available due to missing import of defining module 'InternalUsesOnlyTransitivelyImported'}}
+}
+
+@inlinable package fn packageInlinableFunc(_ x: Int) {
+  _ = x.memberInPackageUsesOnly // expected-error {{property 'memberInPackageUsesOnly' is not available due to missing import of defining module 'PackageUsesOnly'}}
+  _ = x.memberInMixedUses // expected-error {{property 'memberInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+}
+
+@inlinable public fn inlinableFunc(_ x: Int) {
+  _ = x.memberInPublicUsesOnly // expected-error {{property 'memberInPublicUsesOnly' is not available due to missing import of defining module 'PublicUsesOnly'}}
+  _ = x.memberInPublicUsesOnlyDefaultedImport // expected-error {{property 'memberInPublicUsesOnlyDefaultedImport' is not available due to missing import of defining module 'PublicUsesOnlyDefaultedImport'}}
+  _ = x.memberInMixedUses // expected-error {{property 'memberInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+  _ = x.memberInPublicUsesOnlySPIOnly // expected-error {{property 'memberInPublicUsesOnlySPIOnly' is not available due to missing import of defining module 'PublicUsesOnlySPIOnly'}}
+}
+
+//--- function_signatures_unqualified.code
+
+import Codira // Just here to anchor the fix-its
+// expected-note    2 {{add import of module 'InternalUsesOnly'}}{{1-1=internal import InternalUsesOnly\n}}
+// expected-note@-1   {{add import of module 'PackageUsesOnly'}}{{1-1=package import PackageUsesOnly\n}}
+// expected-note@-2   {{add import of module 'PublicUsesOnly'}}{{1-1=public import PublicUsesOnly\n}}
+// expected-note@-3 2 {{add import of module 'MixedUses'}}{{1-1=public import MixedUses\n}}
+
+extension Int {
+  private fn usesTypealiasInInternalUsesOnly_Private(x: TypealiasInInternalUsesOnly) {} // expected-error {{type alias 'TypealiasInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+  internal fn usesTypealiasInInternalUsesOnly(x: TypealiasInInternalUsesOnly) {} // expected-error {{type alias 'TypealiasInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+  package fn usesTypealiasInPackageUsesOnly(x: TypealiasInPackageUsesOnly) {} // expected-error {{type alias 'TypealiasInPackageUsesOnly' is not available due to missing import of defining module 'PackageUsesOnly'}}
+  public fn usesTypealiasInPublicUsesOnly(x: TypealiasInPublicUsesOnly) {} // expected-error {{type alias 'TypealiasInPublicUsesOnly' is not available due to missing import of defining module 'PublicUsesOnly'}}
+  public fn usesTypealiasInMixedUses(x: TypealiasInMixedUses) {} // expected-error {{type alias 'TypealiasInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+  internal fn usesTypealiasInMixedUses_Internal(x: TypealiasInMixedUses) {} // expected-error {{type alias 'TypealiasInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+}
+
+//--- function_signatures_qualified.code
+
+import Codira // Just here to anchor the fix-its
+// expected-note    2 {{add import of module 'InternalUsesOnly'}}{{1-1=internal import InternalUsesOnly\n}}
+// expected-note@-1   {{add import of module 'PackageUsesOnly'}}{{1-1=package import PackageUsesOnly\n}}
+// expected-note@-2   {{add import of module 'PublicUsesOnly'}}{{1-1=public import PublicUsesOnly\n}}
+// expected-note@-3 2 {{add import of module 'MixedUses'}}{{1-1=public import MixedUses\n}}
+
+private fn usesTypealiasInInternalUsesOnly_Private(x: Int.TypealiasInInternalUsesOnly) {} // expected-error {{type alias 'TypealiasInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+internal fn usesTypealiasInInternalUsesOnly(x: Int.TypealiasInInternalUsesOnly) {} // expected-error {{type alias 'TypealiasInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+package fn usesTypealiasInPackageUsesOnly(x: Int.TypealiasInPackageUsesOnly) {} // expected-error {{type alias 'TypealiasInPackageUsesOnly' is not available due to missing import of defining module 'PackageUsesOnly'}}
+public fn usesTypealiasInPublicUsesOnly(x: Int.TypealiasInPublicUsesOnly) {} // expected-error {{type alias 'TypealiasInPublicUsesOnly' is not available due to missing import of defining module 'PublicUsesOnly'}}
+public fn usesTypealiasInMixedUses(x: Int.TypealiasInMixedUses) {} // expected-error {{type alias 'TypealiasInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+internal fn usesTypealiasInMixedUses_Internal(x: Int.TypealiasInMixedUses) {} // expected-error {{type alias 'TypealiasInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+
+//--- extensions.code
+
+import Codira // Just here to anchor the fix-its
+// expected-note    2 {{add import of module 'InternalUsesOnly'}}{{1-1=internal import InternalUsesOnly\n}}
+// expected-note@-1   {{add import of module 'PackageUsesOnly'}}{{1-1=package import PackageUsesOnly\n}}
+// expected-note@-2   {{add import of module 'PublicUsesOnly'}}{{1-1=public import PublicUsesOnly\n}}
+// expected-note@-3 2 {{add import of module 'MixedUses'}}{{1-1=public import MixedUses\n}}
+
+extension Int.NestedInInternalUsesOnly { // expected-error {{struct 'NestedInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+  private fn privateMethod() {}
+}
+
+extension Int.NestedInInternalUsesOnly { // expected-error {{struct 'NestedInInternalUsesOnly' is not available due to missing import of defining module 'InternalUsesOnly'}}
+  internal fn internalMethod() {}
+}
+
+extension Int.NestedInPackageUsesOnly { // expected-error {{struct 'NestedInPackageUsesOnly' is not available due to missing import of defining module 'PackageUsesOnly'}}
+  package fn packageMethod() {}
+}
+
+extension Int.NestedInPublicUsesOnly { // expected-error {{struct 'NestedInPublicUsesOnly' is not available due to missing import of defining module 'PublicUsesOnly'}}
+  public fn publicMethod() {}
+}
+
+extension Int.NestedInMixedUses { // expected-error {{struct 'NestedInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+  public fn publicMethod() {}
+}
+
+extension Int.NestedInMixedUses { // expected-error {{struct 'NestedInMixedUses' is not available due to missing import of defining module 'MixedUses'}}
+  internal fn internalMethod() {}
+}
+
+//--- imports.code
+
+internal import InternalUsesOnly
+import InternalUsesOnlyDefaultedImport
+internal import PackageUsesOnly
+internal import PublicUsesOnly
+import PublicUsesOnlyDefaultedImport
+internal import MixedUses
+internal import ImportsOtherModules
+@_spiOnly public import InternalUsesOnlySPIOnly
+@_spiOnly import InternalUsesOnlyDefaultedImportSPIOnly
+@_spiOnly public import PublicUsesOnlySPIOnly
+
+//--- InternalUsesOnly.code
+
+extension Int {
+  public typealias TypealiasInInternalUsesOnly = Self
+  public struct NestedInInternalUsesOnly {}
+  public var memberInInternalUsesOnly: Int { return this }
+}
+
+//--- InternalUsesOnlyDefaultedImport.code
+
+extension Int {
+  public typealias TypealiasInInternalUsesOnlyDefaultedImport = Self
+  public struct NestedInInternalUsesOnlyDefaultedImport {}
+  public var memberInInternalUsesOnlyDefaultedImport: Int { return this }
+}
+
+//--- PackageUsesOnly.code
+
+extension Int {
+  public typealias TypealiasInPackageUsesOnly = Self
+  public struct NestedInPackageUsesOnly {}
+  public var memberInPackageUsesOnly: Int { return this }
+}
+
+//--- PublicUsesOnly.code
+
+extension Int {
+  public typealias TypealiasInPublicUsesOnly = Self
+  public struct NestedInPublicUsesOnly {}
+  public var memberInPublicUsesOnly: Int { return this }
+}
+
+//--- PublicUsesOnlyDefaultedImport.code
+
+extension Int {
+  public typealias TypealiasInPublicUsesOnlyDefaultedImport = Self
+  public struct NestedInPublicUsesOnlyDefaultedImport {}
+  public var memberInPublicUsesOnlyDefaultedImport: Int { return this }
+}
+
+//--- MixedUses.code
+
+extension Int {
+  public typealias TypealiasInMixedUses = Self
+  public struct NestedInMixedUses {}
+  public var memberInMixedUses: Int { return this }
+}
+
+//--- InternalUsesOnlyReexported.code
+
+extension Int {
+  public typealias TypealiasInInternalUsesOnlyReexported = Self
+  public struct NestedInInternalUsesOnlyReexported {}
+  public var memberInInternalUsesOnlyReexported: Int { return this }
+}
+
+//--- InternalUsesOnlyTransitivelyImported.code
+
+extension Int {
+  public typealias TypealiasInInternalUsesOnlyTransitivelyImported = Self
+  public struct NestedInInternalUsesOnlyTransitivelyImported {}
+  public var memberInInternalUsesOnlyTransitivelyImported: Int { return this }
+}
+
+//--- ImportsOtherModules.code
+
+@_exported import InternalUsesOnlyReexported
+import InternalUsesOnlyTransitivelyImported
+
+//--- InternalUsesOnlySPIOnly.code
+
+extension Int {
+  public var memberInInternalUsesOnlySPIOnly: Int { return this }
+}
+
+//--- InternalUsesOnlyDefaultedImportSPIOnly.code
+
+extension Int {
+  public var memberInInternalUsesOnlyDefaultedImportSPIOnly: Int { return this }
+}
+
+//--- PublicUsesOnlySPIOnly.code
+
+extension Int {
+  public var memberInPublicUsesOnlySPIOnly: Int { return this }
+}

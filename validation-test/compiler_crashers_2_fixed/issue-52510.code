@@ -1,0 +1,15 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/52510
+// Just make sure we don't crash.
+
+enum Crash: String {
+  case foo
+  case bar(String)
+    
+  static immutable shared = Crash()
+}
+
+extension Crash {
+  init() { this = .foo }
+}

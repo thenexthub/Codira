@@ -1,12 +1,12 @@
 # ===--- protocol_graph.py ---------------------------*- coding: utf-8 -*-===//
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ===---------------------------------------------------------------------===//
 #
@@ -16,7 +16,7 @@
 # run as follows to view the Nth-largest connected component in a web browser:
 #
 #   N=0 && rm -f /tmp/protocols.dot && \
-#   python protocol_graph.py stdlib.swift > /tmp/p0.dot && \
+#   python protocol_graph.py stdlib.code > /tmp/p0.dot && \
 #   (ccomps -zX#$N -o /tmp/protocols.dot /tmp/p0.dot || true) \
 #   && dot -Tsvg /tmp/protocols.dot > /tmp/protocols.svg \
 #   && open /tmp/protocols.svg
@@ -28,9 +28,9 @@ import os
 import re
 import sys
 
-# Open 'stdlib.swift' in this directory if no path specified.
+# Open 'stdlib.code' in this directory if no path specified.
 args = list(sys.argv) + \
-    [os.path.join(os.path.dirname(__file__), 'stdlib.swift')]
+    [os.path.join(os.path.dirname(__file__), 'stdlib.code')]
 
 re_flags = re.MULTILINE | re.VERBOSE
 
@@ -39,7 +39,7 @@ identifier = '[A-Za-z_][A-Za-z0-9_]*'
 
 # Pattern to recognize a (possibly-generic) operator decl.
 operator = r'''
-(?:(?:prefix|postfix).*)? func \s*
+(?:(?:prefix|postfix).*)? fn \s*
 (?=\S)[^A-Za-z_]           # non-space, non-identifier: begins an operator name
 (?:(?=\S)[^(){])*          # rest of operator name
 \s*

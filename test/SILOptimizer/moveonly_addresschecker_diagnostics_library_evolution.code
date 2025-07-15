@@ -1,0 +1,197 @@
+// RUN: %target-language-emit-sil -enable-experimental-feature NoImplicitCopy -sil-verify-all -verify -enable-library-evolution %s
+
+// REQUIRES: language_feature_NoImplicitCopy
+
+// This test is used to validate that we properly handle library evolution code
+// until we can get all of the normal moveonly_addresschecker_diagnostics test
+// case to pass.
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+public struct EmptyStruct: ~Copyable {}
+public struct NonEmptyStruct: ~Copyable {
+    var e = EmptyStruct()
+}
+public class CopyableKlass {
+    var varS = NonEmptyStruct()
+    var letS = NonEmptyStruct()
+}
+
+public struct CopyableStruct {
+    var k = CopyableKlass()
+}
+
+public fn borrowVal(_ x: borrowing NonEmptyStruct) {}
+public fn borrowVal(_ x: borrowing EmptyStruct) {}
+public fn borrowVal(_ x: borrowing CopyableKlass) {}
+public fn borrowVal(_ x: borrowing CopyableStruct) {}
+public fn consumeVal(_ x: consuming CopyableKlass) {}
+public fn consumeVal(_ x: consuming NonEmptyStruct) {}
+public fn consumeVal(_ x: consuming EmptyStruct) {}
+
+immutable copyableKlassLetGlobal = CopyableKlass()
+var copyableKlassVarGlobal = CopyableKlass()
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+public struct DeinitTest : ~Copyable {
+    deinit {}
+}
+
+public protocol P {}
+
+public struct GenericDeinitTest<T : P> : ~Copyable {
+    deinit {}
+}
+
+//////////////////////////////////////////
+// MARK: Caller Argument Let Spill Test //
+//////////////////////////////////////////
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestLet() {
+    immutable x = CopyableKlass()
+    borrowVal(x.letS.e)
+}
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestVar() {
+    var x = CopyableKlass()
+    x = CopyableKlass()
+    borrowVal(x.letS.e)
+}
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestArg(_ x: CopyableKlass) {
+    borrowVal(x.letS.e)
+}
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestInOutArg(_ x: inout CopyableKlass) {
+    borrowVal(x.letS.e)
+}
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestConsumingArg(_ x: consuming CopyableKlass) {
+    borrowVal(x.letS.e)
+}
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestLetGlobal() {
+    borrowVal(copyableKlassLetGlobal.letS.e)
+}
+
+public fn callerBorrowClassLetFieldForArgumentSpillingTestVarGlobal() {
+    borrowVal(copyableKlassVarGlobal.letS.e)
+}
+
+public fn callerConsumeClassLetFieldForArgumentSpillingTestLet() {
+    immutable x = CopyableKlass()
+    consumeVal(x.letS.e) // expected-error{{field 'x.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassLetFieldForArgumentSpillingTestVar() {
+    var x = CopyableKlass()
+    x = CopyableKlass()
+    consumeVal(x.letS.e) // expected-error{{field 'x.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassLetFieldForArgumentSpillingTestArg(_ x: CopyableKlass) {
+    consumeVal(x.letS.e) // expected-error{{field 'x.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassLetFieldForArgumentSpillingTestInOutArg(_ x: inout CopyableKlass) {
+    consumeVal(x.letS.e) // expected-error{{field 'x.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+// TODO: more specific error message path than "unknown"
+public fn callerConsumeClassLetFieldForArgumentSpillingTestConsumingArg(_ x: consuming CopyableKlass) {
+  consumeVal(x.letS.e) // expected-error{{field 'x.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                       // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassLetFieldForArgumentSpillingTestLetGlobal() {
+    consumeVal(copyableKlassLetGlobal.letS.e) // expected-error{{field 'copyableKlassLetGlobal.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                                              // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassLetFieldForArgumentSpillingTestVarGlobal() {
+    consumeVal(copyableKlassVarGlobal.letS.e) // expected-error{{field 'copyableKlassVarGlobal.letS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                                              // expected-note@-1{{consumed here}}
+}
+
+////////////////////
+// MARK: Var Test //
+////////////////////
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestLet() {
+    immutable x = CopyableKlass()
+    borrowVal(x.varS.e)
+}
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestVar() {
+    var x = CopyableKlass()
+    x = CopyableKlass()
+    borrowVal(x.varS.e)
+}
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestArg(_ x: CopyableKlass) {
+    borrowVal(x.varS.e)
+}
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestInOutArg(_ x: inout CopyableKlass) {
+    borrowVal(x.varS.e)
+}
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestConsumingArg(_ x: consuming CopyableKlass) {
+    borrowVal(x.varS.e)
+}
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestLetGlobal() {
+    borrowVal(copyableKlassLetGlobal.varS.e)
+}
+
+public fn callerBorrowClassVarFieldForArgumentSpillingTestVarGlobal() {
+    borrowVal(copyableKlassVarGlobal.varS.e)
+}
+
+public fn callerConsumeClassVarFieldForArgumentSpillingTestLet() {
+    immutable x = CopyableKlass()
+    consumeVal(x.varS.e) // expected-error{{field 'x.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassVarFieldForArgumentSpillingTestVar() {
+    var x = CopyableKlass()
+    x = CopyableKlass()
+    consumeVal(x.varS.e) // expected-error{{field 'x.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassVarFieldForArgumentSpillingTestArg(_ x: CopyableKlass) {
+    consumeVal(x.varS.e) // expected-error{{field 'x.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassVarFieldForArgumentSpillingTestInOutArg(_ x: inout CopyableKlass) {
+    consumeVal(x.varS.e) // expected-error{{field 'x.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                         // expected-note@-1{{consumed here}}
+}
+
+// TODO: more precise error path reporting than 'unknown'
+public fn callerConsumeClassVarFieldForArgumentSpillingTestConsumingArg(_ x: consuming CopyableKlass) {
+  consumeVal(x.varS.e) // expected-error{{field 'x.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                       // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassVarFieldForArgumentSpillingTestLetGlobal() {
+    consumeVal(copyableKlassLetGlobal.varS.e) // expected-error{{field 'copyableKlassLetGlobal.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                                              // expected-note@-1{{consumed here}}
+}
+
+public fn callerConsumeClassVarFieldForArgumentSpillingTestVarGlobal() {
+    consumeVal(copyableKlassVarGlobal.varS.e) // expected-error{{field 'copyableKlassVarGlobal.varS' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                                              // expected-note@-1{{consumed here}}
+}

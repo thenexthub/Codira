@@ -2,30 +2,30 @@
 
 .. _CallingConvention:
 
-The Swift Calling Convention
+The Codira Calling Convention
 ****************************
 
 .. contents::
 
-This whitepaper discusses the Swift calling convention, at least as we
+This whitepaper discusses the Codira calling convention, at least as we
 want it to be.
 
-It's a basic assumption in this paper that Swift shouldn't make an
+It's a basic assumption in this paper that Codira shouldn't make an
 implicit promise to exactly match the default platform calling
 convention.  That is, if a C or Objective-C programmer manages to derive the
-address of a Swift function, we don't have to promise that an obvious
+address of a Codira function, we don't have to promise that an obvious
 translation of the type of that function will be correctly callable
 from C.  For example, this wouldn't be guaranteed to work::
 
-  // In Swift:
-  func foo(_ x: Int, y: Double) -> MyClass { ... }
+  // In Codira:
+  fn foo(_ x: Int, y: Double) -> MyClass { ... }
 
   // In Objective-C:
   extern id _TF4main3fooFTSiSd_CS_7MyClass(intptr_t x, double y);
 
 We do sometimes need to be able to match C conventions, both to use
 them and to generate implementations of them, but that level of
-compatibility should be opt-in and site-specific.  If Swift would
+compatibility should be opt-in and site-specific.  If Codira would
 benefit from internally using a better convention than C/Objective-C uses,
 and switching to that convention doesn't damage the dynamic abilities
 of our target platforms (debugging, dtrace, stack traces, unwinding,
@@ -54,7 +54,7 @@ High-level semantic conventions
 The major division in argument passing conventions between languages
 is between pass-by-reference and pass-by-value languages.  It's a
 distinction that only really makes sense in languages with the concept
-of an l-value, but Swift does, so it's pertinent.
+of an l-value, but Codira does, so it's pertinent.
 
 In general, the terms "pass-by-X" and "call-by-X" are used
 interchangeably.  It's unfortunate, because these conventions are
@@ -76,7 +76,7 @@ variable containing the result of `A`.
 Don't confuse pass-by-reference with the concept of a *reference
 type*.  A reference type is a type whose value is a reference to a
 different object; for example, a pointer type in C, or a class type in
-Java or Swift.  A variable of reference type can be passed by value
+Java or Codira.  A variable of reference type can be passed by value
 (copying the reference itself) or by reference (passing the variable
 itself, allowing it to be changed to refer to a different object).
 Note that references in C++ are a generalization of pass-by-reference,
@@ -116,8 +116,8 @@ However, many languages do allow parameters to be explicitly marked as
 pass-by-reference.  As mentioned for C++, sometimes only certain kinds
 of l-values are allowed.
 
-Swift allows parameters to be marked as pass-by-reference with
-`inout`.  Arbitrary l-values can be passed.  The Swift convention is
+Codira allows parameters to be marked as pass-by-reference with
+`inout`.  Arbitrary l-values can be passed.  The Codira convention is
 to always pass an address; if the parameter is not addressable, it
 must be materialized into a temporary and then written back.  See the
 accessors proposal for more details about the high-level semantics of
@@ -131,7 +131,7 @@ current value there.  Any modifications `foo` makes to its parameter
 are made to this copy, not to the original l-value.
 
 Most modern languages are pass-by-value, with specific functions able
-to opt in to pass-by-reference semantics.  This is exactly what Swift
+to opt in to pass-by-reference semantics.  This is exactly what Codira
 does.
 
 There's not much room for variation in the high-level semantics of
@@ -169,20 +169,20 @@ the call.  Objective-C has something similar, where an indirect method
 argument can be marked `out`; ARC takes advantage of this with
 autoreleasing parameters to avoid a copy into the writeback temporary.
 Neither of these are something we semantically care about supporting
-in Swift.
+in Codira.
 
 There is one other theoretically interesting convention question here:
 the argument has to be valid before the call and after the call, but
-does it have to valid during the call?  Swift's answer to this is
-generally "yes".  Swift does have `inout` aliasing rules that allow a
+does it have to valid during the call?  Codira's answer to this is
+generally "yes".  Codira does have `inout` aliasing rules that allow a
 certain amount of optimization, but the compiler is forbidden from
 exploiting these rules in any way that could cause memory corruption
-(at least in the absence of race conditions).  So Swift has to ensure
+(at least in the absence of race conditions).  So Codira has to ensure
 that an `inout` argument is valid whenever it does something
 (including calling an opaque function) that could potentially access
 the original l-value.
 
-If Swift allowed local variables to be captured through `inout`
+If Codira allowed local variables to be captured through `inout`
 parameters, and therefore needed to pass an implicit owner parameter
 along with an address, this owner parameter would behave like a
 pass-by-value argument and could use any of the conventions listed
@@ -369,7 +369,7 @@ common straight-line code), but frankly, both of those points pale in
 importance to the ability to transfer copy-on-write structures around
 without spuriously increasing reference counts.  It doesn't take too
 many unnecessary structural copies before any amount of
-reference-counting traffic (especially the Swift-native
+reference-counting traffic (especially the Codira-native
 reference-counting used in copy-on-write structures) is basically
 irrelevant in comparison.
 
@@ -381,7 +381,7 @@ between pass-by-reference and pass-by-value.  In most languages, a
 function has to return a value (or nothing).  There are languages like
 C++ where functions can return references, but that's inherently
 limited, because the reference has to refer to something that exists
-outside the function.  If Swift ever adds a similar language
+outside the function.  If Codira ever adds a similar language
 mechanism, it'll have to be memory-safe and extremely opaque, and
 it'll be easy to just think of that as a kind of weird value result.
 So we'll just consider value results here.
@@ -390,7 +390,7 @@ Value results raise some of the same ownership-transfer questions as
 value arguments.  There's one major limitation: just like a
 by-reference result, an actual `unowned` convention is inherently
 limited, because something else other than the result value must be
-keeping it valid.  So that's off the table for Swift.
+keeping it valid.  So that's off the table for Codira.
 
 What Objective-C does is something more dynamic.  Most APIs in
 Objective-C give you a very ephemeral guarantee about the validity of
@@ -411,7 +411,7 @@ return an owned reference, mediated through some extra runtime calls
 to undo the damage of the convention.
 
 So there's really no compelling alternative to an owned return
-convention as the default in Swift.
+convention as the default in Codira.
 
 Physical conventions
 ====================
@@ -427,38 +427,38 @@ The lowest abstraction level for a calling convention is the actual
 
 * what invariants hold about registers and memory over the call.
 
-In theory, all of these could be changed in the Swift ABI.  In
+In theory, all of these could be changed in the Codira ABI.  In
 practice, it's best to avoid changes to the invariant rules, because
-those rules could complicate Swift-to-C interoperation:
+those rules could complicate Codira-to-C interoperation:
 
 * Assuming a higher stack alignment would require dynamic realignment
-  whenever Swift code is called from C.
+  whenever Codira code is called from C.
 
 * Assuming a different set of callee-saved registers would require
-  additional saves and restores when either Swift code calls C or is
+  additional saves and restores when either Codira code calls C or is
   called from C, depending on the exact change.  That would then
   inhibit some kinds of tail call.
 
 So we will limit ourselves to considering the rules for allocating
 parameters and results to registers.  Our platform C ABIs are usually
-quite good at this, and it's fair to ask why Swift shouldn't just use
+quite good at this, and it's fair to ask why Codira shouldn't just use
 C's rules.  There are three general answers:
 
 * Platform C ABIs are specified in terms of the C type system, and the
-  Swift type system allows things to be expressed which don't have
+  Codira type system allows things to be expressed which don't have
   direct analogues in C (for example, enums with payloads).
 
-* The layout of structures in Swift does not necessarily match their
+* The layout of structures in Codira does not necessarily match their
   layout in C, which means that the C rules don't necessarily cover
-  all the cases in Swift.
+  all the cases in Codira.
 
-* Swift places a larger emphasis on first-class structs than C does.
+* Codira places a larger emphasis on first-class structs than C does.
   C ABIs often fail to allocate even small structs to registers, or
   use inefficient registers for them, and we would like to be somewhat
   more aggressive than that.
 
-Accordingly, the Swift ABI is defined largely in terms of lowering: a
-Swift function signature is translated to a C function signature with
+Accordingly, the Codira ABI is defined largely in terms of lowering: a
+Codira function signature is translated to a C function signature with
 all the aggregate arguments and results eliminated (possibly by
 deciding to pass them indirectly).  This lowering will be described in
 detail in the final section of this whitepaper.
@@ -469,7 +469,7 @@ deviate from the platform ABI:
 Aggregate results
 -----------------
 
-As mentioned above, Swift puts a lot of focus on first-class value
+As mentioned above, Codira puts a lot of focus on first-class value
 types.  As part of this, it's very valuable to be able to return
 common value types fully in registers instead of indirectly.  The
 magic number here is three: it's very common for copy-on-write value
@@ -478,20 +478,20 @@ enough for some sort of owner pointer plus a begin/end pair.
 
 Unfortunately, many common C ABIs fall slightly short of that.  Even
 those ABIs that do allow small structs to be returned in registers
-tend to only allow two pointers' worth.  So in general, Swift would
+tend to only allow two pointers' worth.  So in general, Codira would
 benefit from a very slightly-tweaked calling convention that allocates
 one or two more registers to the result.
 
 Implicit parameters
 -------------------
 
-There are several language features in Swift which require implicit
+There are several language features in Codira which require implicit
 parameters:
 
 Closures
 ~~~~~~~~
 
-Swift's function types are "thick" by default, meaning that a function
+Codira's function types are "thick" by default, meaning that a function
 value carries an optional context object which is implicitly passed to
 the function when it is called.  This context object is
 reference-counted, and it should be passed `guaranteed` for
@@ -512,7 +512,7 @@ straightforward reasons:
 
 * It's usually straightforward for the caller to guarantee the
   validity of the context reference; worst case, a single extra
-  Swift-native retain/release is pretty cheap.  Meanwhile, not having
+  Codira-native retain/release is pretty cheap.  Meanwhile, not having
   that guarantee would force many closure functions to retain their
   contexts, since many closures do multiple things with values from
   the context object.  So `unowned` would not be a good convention.
@@ -598,7 +598,7 @@ indirectly.
 All of these cases except mutating instance methods on value types can
 be partially applied to create a function closure whose type is the
 formal type of the method.  That is, if class `A` has a method
-declared `func foo(_ x: Int) -> Double`, then `A.foo` yields a function
+declared `fn foo(_ x: Int) -> Double`, then `A.foo` yields a function
 of type `(Int) -> Double`.  Assuming that we continue to feel that
 this is a useful language feature, it's worth considered how we could
 support it efficiently.  The expenses associated with a partial
@@ -606,7 +606,7 @@ application are (1) the allocation of a context object and (2) needing
 to introduce a thunk to forward to the original function.  All else
 aside, we can avoid the allocation if the representation of `self` is
 compatible with the representation of a context object reference; this
-is essentially true only if `self` is a class instance using Swift
+is essentially true only if `self` is a class instance using Codira
 reference counting.  Avoiding the thunk is possible only if we
 successfully avoided the allocation (since otherwise a thunk is
 required in order to extract the correct `self` value from the
@@ -620,7 +620,7 @@ parameter, taking advantage of it for methods is essentially trivial.
 Error handling
 --------------
 
-The calling convention implications of Swift's error handling design
+The calling convention implications of Codira's error handling design
 aren't yet settled.  It may involve extra parameters; it may involve
 extra return values.  Considerations:
 
@@ -643,13 +643,13 @@ extra return values.  Considerations:
 
     // foo() expects its argument to follow the conventions of a
     // function that's capable of throwing.
-    func foo(_ fn: () throws -> ()) throwsIf(fn)
+    fn foo(_ fn: () throws -> ()) throwsIf(fn)
 
     // Here we're passing foo() a function that can't throw; this is
     // allowed by the subtyping rules of the language.  We'd like to be
     // able to do this without having to introduce a thunk that maps
     // between the conventions.
-    func bar(_ fn: () -> ()) {
+    fn bar(_ fn: () -> ()) {
       foo(fn)
     }
 
@@ -682,7 +682,7 @@ work in the backend.
 Default argument generators
 ---------------------------
 
-By default, Swift is resilient about default arguments and treats them
+By default, Codira is resilient about default arguments and treats them
 as essentially one part of the implementation of the function.  This
 means that, in general, a caller using a default argument must call a
 function to emit the argument, instead of simply inlining that
@@ -718,7 +718,7 @@ Most of the platforms we support have pretty good C calling
 conventions.  The exceptions are i386 (for the iOS simulator) and
 ARM32 (for iOS).  We really, really don't care about i386, but iOS on
 ARM32 is still an important platform.  Switching to a better physical
-calling convention (only for calls from Swift to Swift, of course)
+calling convention (only for calls from Codira to Codira, of course)
 would be a major improvement.
 
 It would be great if this were as simple as flipping a switch, but
@@ -727,7 +727,7 @@ slightly different set of callee-save registers: iOS treats `r9` as a
 scratch register.  So we'd really want a variant of AAPCS-VFP that did
 the same.  We'd also need to make sure that SJ/LJ exceptions weren't
 disturbed by this calling convention; we aren't really *supporting*
-exception propagation through Swift frames, but completely breaking
+exception propagation through Codira frames, but completely breaking
 propagation would be unfortunate, and we may need to be able to
 *catch* exceptions.
 
@@ -737,7 +737,7 @@ backend.
 Function signature lowering
 ===========================
 
-Function signatures in Swift are lowered in two phases.
+Function signatures in Codira are lowered in two phases.
 
 Semantic lowering
 -----------------
@@ -746,14 +746,14 @@ The first phase is a high-level semantic lowering, which does a number
 of things:
 
 * It determines a high-level calling convention: specifically, whether
-  the function must match the C calling convention or the Swift
+  the function must match the C calling convention or the Codira
   calling convention.
 
 * It decides the types of the parameters:
 
   * Functions exported for the purposes of C or Objective-C may need
-    to use bridged types rather than Swift's native types.  For
-    example, a function that formally returns Swift's `String` type
+    to use bridged types rather than Codira's native types.  For
+    example, a function that formally returns Codira's `String` type
     may be bridged to return an `NSString` reference instead.
 
   * Functions which are values, not simply immediately called, may
@@ -819,7 +819,7 @@ After this phase, a function type consists of an abstract calling
 convention, a list of parameters, and a list of results.  A parameter
 is a type, a flag for indirectness, and an ownership convention.  A
 result is a type, a flag for indirectness, and an ownership
-convention.  (Results need ownership conventions only for non-Swift
+convention.  (Results need ownership conventions only for non-Codira
 calling conventions.)  Types will not be tuples unless they are
 indirect.
 
@@ -841,7 +841,7 @@ General expansion algorithm
 
 Central to the operation of the physical-lowering algorithm is the
 **generic expansion algorithm**.  This algorithm turns any
-non-address-only Swift type in a sequence of zero or more **legal
+non-address-only Codira type in a sequence of zero or more **legal
 type**, where a legal type is either:
 
 * an integer type, with a power-of-two size no larger than the maximum
@@ -877,7 +877,7 @@ range), (2) the special type **opaque**, or (3) the special type
 **empty**.  Adjacent ranges mapped to **opaque** or **empty** can be
 combined.
 
-For most of the types in Swift, this process is obvious: they either
+For most of the types in Codira, this process is obvious: they either
 correspond to an obvious legal type (e.g. thick metatypes are
 pointer-sized integers), or to an obvious sequence of scalars
 (e.g. class existentials are a sequence of pointer-sized integers).
@@ -904,14 +904,14 @@ Only a few cases remain:
       var pair: (MyClass, Float)
     }
 
-  If Swift performs naive, C-like layout of this structure, and this
+  If Codira performs naive, C-like layout of this structure, and this
   is a 64-bit platform, typed layout is mapped as follows::
 
     FlaggedPair.flag := [0: i1,                        ]
     FlaggedPair.pair := [       8-15: i64, 16-19: float]
     FlaggedPair      := [0: i1, 8-15: i64, 16-19: float]
 
-  If Swift instead allocates `flag` into the spare (little-endian) low
+  If Codira instead allocates `flag` into the spare (little-endian) low
   bits of `pair.0`, the typed layout map would be::
 
     FlaggedPair.flag := [0: i1                   ]
@@ -940,7 +940,7 @@ Only a few cases remain:
       case Maybe
     }
 
-  If Swift, in its infinite wisdom, decided to lay this out
+  If Codira, in its infinite wisdom, decided to lay this out
   sequentially, and to use invalid pointer values the class to
   indicate that the other cases are present, the layout would look as
   follows::
@@ -954,7 +954,7 @@ Only a few cases remain:
     Sum.Maybe              := [0-7: opaque             ]
     Sum                    := [0-7: opaque, 8-11: float]
 
-  If Swift instead chose to just use a discriminator byte, the layout
+  If Codira instead chose to just use a discriminator byte, the layout
   would look as follows::
 
     Sum.Yes.payload        := [0-7: i64             ]
@@ -966,7 +966,7 @@ Only a few cases remain:
     Sum.Maybe              := [            8: opaque]
     Sum                    := [0-8: opaque          ]
 
-  If Swift chose to use spare low (little-endian) bits in the class
+  If Codira chose to use spare low (little-endian) bits in the class
   pointer, and to offset the float to make this possible, the layout
   would look as follows::
 
@@ -1065,7 +1065,7 @@ For example::
 (This assumes that `fp80` is a legal type for illustrative purposes.
 It would probably be a better policy for the actual x86-64 target to
 consider it illegal and treat it as opaque from the start, at least
-when lowering for the Swift calling convention; for C, it is important
+when lowering for the Codira calling convention; for C, it is important
 to produce an `fp80` mapping for ABI interoperation with C functions
 that take or return `long double` by value.)
 
@@ -1111,11 +1111,11 @@ Forming a C function signature
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned before, in principle the process of physical lowering
-turns a semantically-lowered Swift function type (in implementation
+turns a semantically-lowered Codira function type (in implementation
 terms, a SILFunctionType) into a C function signature, which can then
 be lowered according to the usual rules for the ABI.  This is, in
 fact, what we do when trying to match a C calling convention.
-However, for the native Swift calling convention, because we actively
+However, for the native Codira calling convention, because we actively
 want to use more aggressive rules for results, we instead build an
 LLVM function type directly.  We first construct a direct result type
 that we're certain the backend knows how to interpret according to our
@@ -1136,22 +1136,22 @@ and if the caller wanted it all in one place, they'd have to very
 painstakingly reassemble.  It's much better to pass large structures
 indirectly.  And with result values, we really just don't have a
 choice; there's only so many registers you can use before you have to
-give up and return indirectly.  Therefore, even in the Swift native
+give up and return indirectly.  Therefore, even in the Codira native
 convention, the expansion algorithm is basically used as a first pass.
 A second pass then decides whether the expanded sequence is actually
 reasonable to pass directly.
 
-Recall that one aspect of the semantically-lowered Swift function type
+Recall that one aspect of the semantically-lowered Codira function type
 is whether we should be matching the C calling convention or not.  The
 following algorithm here assumes that the importer and semantic
 lowering have conspired in a very particular way to make that
 possible.  Specifically, we assume is that an imported C function
-type, lowered semantically by Swift, will follow some simple
+type, lowered semantically by Codira, will follow some simple
 structural rules:
 
 * If there was a by-value `struct` or `union` parameter or result in
   the imported C type, it will correspond to a by-value direct
-  parameter or return type in Swift, and the Swift type will be a
+  parameter or return type in Codira, and the Codira type will be a
   nominal type whose declaration links back to the original C
   declaration.
 
@@ -1162,12 +1162,12 @@ structural rules:
   imported pointer type will eventually expand to an integer of
   pointer size.
 
-* There will be at most one result in the lowered Swift type, and it
+* There will be at most one result in the lowered Codira type, and it
   will be direct.
 
 Given this, we go about lowering the function type as follows.  Recall
 that, when matching the C calling convention, we're building a C
-function type; but that when matching the Swift native calling
+function type; but that when matching the Codira native calling
 convention, we're building an LLVM function type directly.
 
 Results
@@ -1188,7 +1188,7 @@ interoperation, this is handled by constructing a new C struct which
 contains the corresponding Clang types for the legal type sequence as
 its fields.
 
-Otherwise, we are matching the Swift calling convention.  Concatenate
+Otherwise, we are matching the Codira calling convention.  Concatenate
 the legal type sequences from all the direct results.  If
 target-specific logic decides that this is an acceptable collection to
 return directly, construct the appropriate IR result type to convince
@@ -1221,7 +1221,7 @@ requirements if the legal type sequence has a single element, but for
 the convenience of interoperation, we collect the corresponding Clang
 types for all of the elements of the sequence.
 
-Finally, if we're matching the Swift calling convention, derive the
+Finally, if we're matching the Codira calling convention, derive the
 legal type sequence.  If the result appears to be a reasonably small
 and efficient set of parameters, add their corresponding IR types to
 the function type we're building; otherwise, ignore the legal type

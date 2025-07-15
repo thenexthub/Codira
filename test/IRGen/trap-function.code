@@ -1,0 +1,68 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: %target-language-frontend -primary-file %s -trap-function oopsie -emit-ir -module-name trap_function -I %t | %FileCheck %s -check-prefix=TRAPFN
+// RUN: %target-language-frontend -O -primary-file %s -trap-function oopsie -emit-ir -module-name trap_function -I %t | %FileCheck %s -check-prefix=TRAPFN_OPT
+// RUN: %target-language-frontend -primary-file %s -emit-ir -module-name trap_function -I %t | %FileCheck %s -check-prefix=NOTRAPFN
+// REQUIRES: objc_codegen
+
+// TRAPFN-LABEL: define hidden languagecc {{.*}} @"$s13trap_function14checkOverflow1yS2i_SitF"
+// TRAPFN: call void @toolchain.trap() [[ATTR0:#[0-9]+]]
+
+// TRAPFN_OPT-LABEL: define hidden languagecc {{.*}} @"$s13trap_function14checkOverflow1yS2i_SitF"
+// TRAPFN_OPT: call void @toolchain.trap() [[ATTR0:#[0-9]+]]
+
+// NOTRAPFN-LABEL: define hidden languagecc {{.*}} @"$s13trap_function14checkOverflow1yS2i_SitF"
+// NOTRAPFN: call void @toolchain.trap(){{$}}
+fn checkOverflow1(_ a: Int, _ b: Int) -> Int {
+  a + b
+}
+
+// TRAPFN-LABEL: define hidden languagecc {{.*}} @"$s13trap_function14checkOverflow2yySiz_SitF"
+// TRAPFN: call void @toolchain.trap() [[ATTR0:#[0-9]+]]
+
+// TRAPFN_OPT-LABEL: define hidden languagecc {{.*}} @"$s13trap_function14checkOverflow2yySiz_SitF"
+// TRAPFN_OPT: call void @toolchain.trap() [[ATTR0:#[0-9]+]]
+
+// NOTRAPFN-LABEL: define hidden languagecc {{.*}} @"$s13trap_function14checkOverflow2yySiz_SitF"
+// NOTRAPFN: call void @toolchain.trap(){{$}}
+fn checkOverflow2(_ a: inout Int, _ b: Int) {
+  a *= b
+}
+
+// TRAPFN-LABEL: define hidden languagecc void @"$s13trap_function17checkPreconditionyySiF"
+// TRAPFN: call languagecc void @"$ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF"
+// TRAPFN-NOT: call void @toolchain.trap()
+
+// TRAPFN_OPT-LABEL: define hidden languagecc void @"$s13trap_function17checkPreconditionyySiF"
+// TRAPFN_OPT: call void @toolchain.trap() [[ATTR0]]
+
+// NOTRAPFN-LABEL: define hidden languagecc void @"$s13trap_function17checkPreconditionyySiF"
+// NOTRAPFN: call languagecc void @"$ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF"
+fn checkPrecondition(_ a: Int) {
+  precondition(a != 23)
+}
+
+// TRAPFN-LABEL: define hidden languagecc void @"$s13trap_function24checkPreconditionFailureyySiF"
+// TRAPFN: call languagecc void @"$ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF"
+// TRAPFN-NOT: call void @toolchain.trap()
+
+// TRAPFN_OPT-LABEL: define hidden languagecc void @"$s13trap_function24checkPreconditionFailureyySiF"
+// TRAPFN_OPT: call void @toolchain.trap() [[ATTR0]]
+
+// NOTRAPFN-LABEL: define hidden languagecc void @"$s13trap_function24checkPreconditionFailureyySiF"
+// NOTRAPFN: call languagecc void @"$ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF"
+fn checkPreconditionFailure(_ a: Int) {
+  if a == 42 {
+    preconditionFailure()
+  }
+}
+
+// TRAPFN-LABEL: define hidden languagecc void @"$s13trap_function10terminatoryyF"
+// TRAPFN_OPT-LABEL: define hidden languagecc void @"$s13trap_function10terminatoryyF"
+// NOTRAPFN-LABEL: define hidden languagecc void @"$s13trap_function10terminatoryyF"
+fn terminator() {
+}
+
+// TRAPFN: attributes [[ATTR0]] = { {{.*}}"trap-fn-name"="oopsie" }
+// TRAPFN_OPT: attributes [[ATTR0]] = { {{.*}}"trap-fn-name"="oopsie" }
+// NOTRAPFN-NOT: attributes {{.*}} = { {{.*}}"trap-fn-name"="oopsie" }

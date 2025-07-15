@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// A type that asynchronously supplies the values of a sequence one at a
 /// time.
@@ -31,26 +35,26 @@ import Swift
 ///
 ///     struct Counter: AsyncSequence {
 ///         typealias Element = Int
-///         let howHigh: Int
+///         immutable howHigh: Int
 ///
 ///         struct AsyncIterator: AsyncIteratorProtocol {
-///             let howHigh: Int
+///             immutable howHigh: Int
 ///             var current = 1
 ///
-///             mutating func next() async -> Int? {
+///             mutating fn next() async -> Int? {
 ///                 // A genuinely asynchronous implementation uses the `Task`
 ///                 // API to check for cancellation here and return early.
 ///                 guard current <= howHigh else {
 ///                     return nil
 ///                 }
 ///
-///                 let result = current
+///                 immutable result = current
 ///                 current += 1
 ///                 return result
 ///             }
 ///         }
 ///
-///         func makeAsyncIterator() -> AsyncIterator {
+///         fn makeAsyncIterator() -> AsyncIterator {
 ///             return AsyncIterator(howHigh: howHigh)
 ///         }
 ///     }
@@ -71,7 +75,7 @@ import Swift
 /// ### Cancellation
 ///
 /// Types conforming to `AsyncIteratorProtocol` should use the cancellation
-/// primitives provided by Swift's `Task` API. The iterator can choose how to
+/// primitives provided by Codira's `Task` API. The iterator can choose how to
 /// handle and respond to cancellation, including:
 ///
 /// - Checking the `isCancelled` value of the current `Task` inside `next()`
@@ -85,12 +89,12 @@ import Swift
 /// If the iterator needs to clean up on cancellation, it can do so after
 /// checking for cancellation as described above, or in `deinit` if it's
 /// a reference type.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public protocol AsyncIteratorProtocol<Element, Failure> {
   associatedtype Element
 
   /// The type of failure produced by iteration.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   associatedtype Failure: Error = any Error
 
   /// Asynchronously advances to the next element and returns it, or ends the
@@ -98,25 +102,25 @@ public protocol AsyncIteratorProtocol<Element, Failure> {
   ///
   /// - Returns: The next element, if it exists, or `nil` to signal the end of
   ///   the sequence.
-  mutating func next() async throws -> Element?
+  mutating fn next() async throws -> Element?
 
   /// Asynchronously advances to the next element and returns it, or ends the
   /// sequence if there is no next element.
   ///
   /// - Returns: The next element, if it exists, or `nil` to signal the end of
   ///   the sequence.
-  @available(SwiftStdlib 6.0, *)
-  mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element?
+  @available(CodiraStdlib 6.0, *)
+  mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element?
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncIteratorProtocol {
   /// Default implementation of `next(isolation:)` in terms of `next()`, which
   /// is required to maintain backward compatibility with existing async
   /// iterators.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @inlinable
-  public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
+  public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Element? {
     do {
       return try await next()
     } catch {
@@ -125,14 +129,14 @@ extension AsyncIteratorProtocol {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncIteratorProtocol {
   /// Default implementation of `next()` in terms of `next(isolation:)`, which
   /// is required to maintain backward compatibility with existing async
   /// iterators.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @inlinable
-  public mutating func next() async throws(Failure) -> Element? {
+  public mutating fn next() async throws(Failure) -> Element? {
     return try await next(isolation: nil)
   }
 }

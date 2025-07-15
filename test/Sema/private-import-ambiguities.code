@@ -1,0 +1,44 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build libraries
+// RUN: %target-language-frontend -emit-module %t/LibShared.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/LibShared.codemodule
+// RUN: %target-language-frontend -emit-module %t/LibWithPublicFoo.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/LibWithPublicFoo.codemodule -I %t
+// RUN: %target-language-frontend -emit-module %t/LibWithInternalFoo.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/LibWithInternalFoo.codemodule -I %t
+
+/// Build client
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5
+
+//--- LibShared.code
+public struct Struct {
+    public init() {}
+}
+
+//--- LibWithPublicFoo.code
+import LibShared
+
+extension Struct {
+    public fn foo() {}
+}
+
+//--- LibWithInternalFoo.code
+import LibShared
+
+extension Struct {
+    internal fn foo() {}
+}
+
+//--- Client.code
+import LibShared
+import LibWithPublicFoo
+private import LibWithInternalFoo
+
+var s = Struct()
+s.foo() // This is non-ambiguous

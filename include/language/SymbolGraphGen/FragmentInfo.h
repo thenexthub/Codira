@@ -1,4 +1,4 @@
-//===--- FragmentInfo.h - Swift SymbolGraph Declaration Fragment Info -----===//
+//===--- FragmentInfo.h - Codira SymbolGraph Declaration Fragment Info -----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_FRAGMENTINFO_H
-#define SWIFT_SYMBOLGRAPHGEN_FRAGMENTINFO_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_FRAGMENTINFO_H
+#define LANGUAGE_SYMBOLGRAPHGEN_FRAGMENTINFO_H
 
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "PathComponent.h"
 
 namespace language {
@@ -26,7 +27,7 @@ namespace symbolgraphgen {
 
 /// Summary information for a symbol referenced in a symbol graph declaration fragment.
 struct FragmentInfo {
-  /// The swift decl of the referenced symbol.
+  /// The language decl of the referenced symbol.
   const ValueDecl *VD;
   /// The path components of the referenced symbol.
   SmallVector<PathComponent, 4> ParentContexts;
@@ -35,4 +36,4 @@ struct FragmentInfo {
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_FRAGMENTINFO_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_FRAGMENTINFO_H

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Internal functions for the concurrency library.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_TASKPRIVATE_H
-#define SWIFT_CONCURRENCY_TASKPRIVATE_H
+#ifndef LANGUAGE_CONCURRENCY_TASKPRIVATE_H
+#define LANGUAGE_CONCURRENCY_TASKPRIVATE_H
 
 #include "Error.h"
 #include "TaskLocal.h"
@@ -38,22 +39,22 @@
 #include <atomic>
 #include <new>
 
-#define SWIFT_FATAL_ERROR swift_Concurrency_fatalError
+#define LANGUAGE_FATAL_ERROR language_Concurrency_fatalError
 #include "../runtime/StackAllocator.h"
 
 namespace language {
 
 // Set to 1 to enable helpful debug spew to stderr
-// If this is enabled, tests with `swift_task_debug_log` requirement can run.
+// If this is enabled, tests with `language_task_debug_log` requirement can run.
 #if 0
-#define SWIFT_TASK_DEBUG_LOG_ENABLED 1
-#define SWIFT_TASK_DEBUG_LOG(fmt, ...)                                         \
+#define LANGUAGE_TASK_DEBUG_LOG_ENABLED 1
+#define LANGUAGE_TASK_DEBUG_LOG(fmt, ...)                                         \
   fprintf(stderr, "[%#lx] [%s:%d](%s) " fmt "\n",                              \
           (unsigned long)Thread::current().platformThreadId(), __FILE__,       \
           __LINE__, __FUNCTION__, __VA_ARGS__)
 #else
-#define SWIFT_TASK_DEBUG_LOG_ENABLED 0
-#define SWIFT_TASK_DEBUG_LOG(fmt, ...) (void)0
+#define LANGUAGE_TASK_DEBUG_LOG_ENABLED 0
+#define LANGUAGE_TASK_DEBUG_LOG(fmt, ...) (void)0
 #endif
 
 class AsyncTask;
@@ -63,12 +64,12 @@ class ActiveTaskStatus;
 /// Allocate task-local memory on behalf of a specific task,
 /// not necessarily the current one.  Generally this should only be
 /// done on behalf of a child task.
-void *_swift_task_alloc_specific(AsyncTask *task, size_t size);
+void *_language_task_alloc_specific(AsyncTask *task, size_t size);
 
 /// dellocate task-local memory on behalf of a specific task,
 /// not necessarily the current one.  Generally this should only be
 /// done on behalf of a child task.
-void _swift_task_dealloc_specific(AsyncTask *task, void *ptr);
+void _language_task_dealloc_specific(AsyncTask *task, void *ptr);
 
 /// Given that we've already set the right executor as the active
 /// executor, run the given job.  This does additional bookkeeping
@@ -88,64 +89,64 @@ void asyncLet_addImpl(AsyncTask *task, AsyncLet *asyncLet,
                       bool didAllocateInParentTask);
 
 /// Clear the active task reference for the current thread.
-AsyncTask *_swift_task_clearCurrent();
+AsyncTask *_language_task_clearCurrent();
 /// Set the active task reference for the current thread.
-AsyncTask *_swift_task_setCurrent(AsyncTask *newTask);
+AsyncTask *_language_task_setCurrent(AsyncTask *newTask);
 
 /// Cancel the task group and all the child tasks that belong to `group`.
 ///
 /// The caller must guarantee that this is called while holding the owning
 /// task's status record lock.
-void _swift_taskGroup_cancel(TaskGroup *group);
+void _language_taskGroup_cancel(TaskGroup *group);
 
 /// Cancel the task group and all the child tasks that belong to `group`.
 ///
 /// The caller must guarantee that this is called from the owning task.
-void _swift_taskGroup_cancel_unlocked(TaskGroup *group,
+void _language_taskGroup_cancel_unlocked(TaskGroup *group,
                                                  AsyncTask *owningTask);
 
 /// Remove the given task from the given task group.
 ///
 /// This is an internal API; clients outside of the TaskGroup implementation
 /// should generally use a higher-level function.
-void _swift_taskGroup_detachChild(TaskGroup *group, AsyncTask *child);
+void _language_taskGroup_detachChild(TaskGroup *group, AsyncTask *child);
 
 /// Tell TSan about an acquiring load
-inline void _swift_tsan_acquire(void *addr) {
-  swift::tsan::acquire(addr);
+inline void _language_tsan_acquire(void *addr) {
+  language::tsan::acquire(addr);
 }
 /// Tell TSan about a releasing store
-inline void _swift_tsan_release(void *addr) {
-  swift::tsan::release(addr);
+inline void _language_tsan_release(void *addr) {
+  language::tsan::release(addr);
 }
 /// Tell TSan about a consuming load
-inline void _swift_tsan_consume(void *addr) {
+inline void _language_tsan_consume(void *addr) {
   // TSan doesn't support consume, so pretend it's an acquire.
   //
   // Note that that means that TSan won't generate errors for non-dependent
   // reads, so this isn't entirely safe if you're relying solely on TSan to
   // spot bugs.
-  swift::tsan::acquire(addr);
+  language::tsan::acquire(addr);
 }
 
 /// Special values used with DispatchQueueIndex to indicate the global and main
 /// executors.
 #define DISPATCH_QUEUE_GLOBAL_EXECUTOR (void *)1
 
-#if SWIFT_CONCURRENCY_ENABLE_DISPATCH
+#if LANGUAGE_CONCURRENCY_ENABLE_DISPATCH
 inline SerialExecutorWitnessTable *
-_swift_task_getDispatchQueueSerialExecutorWitnessTable() {
+_language_task_getDispatchQueueSerialExecutorWitnessTable() {
   extern SerialExecutorWitnessTable wtable
-    SWIFT_ASM_LABEL_WITH_PREFIX("$ss17DispatchQueueShimCScfsWP");
+    LANGUAGE_ASM_LABEL_WITH_PREFIX("$ss17DispatchQueueShimCScfsWP");
   return &wtable;
 }
 #endif
 
 // The task listed as argument is escalated to a new priority. Pass that
 // information along to the executor that it is enqueued into.
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void
-swift_executor_escalate(SerialExecutorRef executor, AsyncTask *task, JobPriority newPriority);
+language_executor_escalate(SerialExecutorRef executor, AsyncTask *task, JobPriority newPriority);
 
 /*************** Methods for Status records manipulation ******************/
 
@@ -179,24 +180,24 @@ swift_executor_escalate(SerialExecutorRef executor, AsyncTask *task, JobPriority
 ///
 /// A convenience overload is also provided for clients who have not done the
 /// load on the task status prior to adding the record
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 bool addStatusRecord(AsyncTask *task, TaskStatusRecord *record,
-     llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
+     toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 bool addStatusRecord(AsyncTask *task, TaskStatusRecord *record,
      ActiveTaskStatus& taskStatus,
-     llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
+     toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
 
 /// Convenience functions for clients who want to just add a record to the task
 /// on the current thread
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 bool addStatusRecordToSelf(TaskStatusRecord *record,
-     llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
+     toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 bool addStatusRecordToSelf(TaskStatusRecord *record,  ActiveTaskStatus& taskStatus,
-     llvm::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
+     toolchain::function_ref<bool(ActiveTaskStatus, ActiveTaskStatus&)> testAddRecord);
 
 /// Remove the status record from input task which may not be the current task.
 /// This may be called asynchronously from the current task.  After this call
@@ -215,13 +216,13 @@ bool addStatusRecordToSelf(TaskStatusRecord *record,  ActiveTaskStatus& taskStat
 /// idempotent. The new status passed to `fn` is freshly derived from the
 /// current status and does not include modifications made by previous runs
 /// through the loop
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void removeStatusRecord(AsyncTask *task, TaskStatusRecord *record, ActiveTaskStatus& status,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
 
 /// Update the status record by scanning through all records and removing
 /// those which match the condition. This can also be used to inspect
@@ -234,18 +235,18 @@ void removeStatusRecord(AsyncTask *task, TaskStatusRecord *record,
 /// The `updateStatus` function can be used to update the status after all
 /// records have been inspected. It may be invoked multiple times inside a RMW
 /// loop, therefore must be idempotent.
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void removeStatusRecordWhere(
     AsyncTask *task,
     ActiveTaskStatus& status,
-    llvm::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
-    llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>updateStatus = nullptr);
+    toolchain::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
+    toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>updateStatus = nullptr);
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void removeStatusRecordWhere(
     AsyncTask *task,
-    llvm::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
-    llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>updateStatus = nullptr);
+    toolchain::function_ref<bool(ActiveTaskStatus, TaskStatusRecord*)> condition,
+    toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>updateStatus = nullptr);
 
 /// Remove and return a status record of the given type. This function removes a
 /// singlw record, and leaves subsequent records as-is if there are any.
@@ -254,18 +255,18 @@ void removeStatusRecordWhere(
 /// NOTE: When using this function with new record types, make sure to provide
 /// an explicit instantiation in TaskStatus.cpp.
 template <typename TaskStatusRecordT>
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 TaskStatusRecordT* popStatusRecordOfType(AsyncTask *task);
 
 /// Remove a status record from the current task. This must be called
 /// synchronously with the task.
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void removeStatusRecordFromSelf(TaskStatusRecord *record, ActiveTaskStatus &status,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void removeStatusRecordFromSelf(TaskStatusRecord *record,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
 
 /// Update the specified input status record while holding the status record
 /// lock of the task. The status record must already be registered with the
@@ -279,15 +280,15 @@ void removeStatusRecordFromSelf(TaskStatusRecord *record,
 /// therefore be idempotent. The new status passed to `fn` is freshly derived
 /// from the current status and does not include modifications made by previous
 /// runs through the loop
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void updateStatusRecord(AsyncTask *task, TaskStatusRecord *record,
-     llvm::function_ref<void()>updateRecord,
+     toolchain::function_ref<void()>updateRecord,
      ActiveTaskStatus& status,
-     llvm::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
+     toolchain::function_ref<void(ActiveTaskStatus, ActiveTaskStatus&)>fn = nullptr);
 
 /// A helper function for updating a new child task that is created with
 /// information from the parent or the group that it was going to be added to.
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 void updateNewChildWithParentAndGroupState(AsyncTask *child,
                                            ActiveTaskStatus parentStatus,
                                            TaskGroup *group);
@@ -298,25 +299,25 @@ namespace {
 
 /// The layout of a context to call one of the following functions:
 ///
-///   @_silgen_name("swift_task_future_wait")
-///   func _taskFutureGet<T>(_ task: Builtin.NativeObject) async -> T
+///   @_silgen_name("language_task_future_wait")
+///   fn _taskFutureGet<T>(_ task: Builtin.NativeObject) async -> T
 ///
-///   @_silgen_name("swift_task_future_wait_throwing")
-///   func _taskFutureGetThrowing<T>(_ task: Builtin.NativeObject) async throws -> T
+///   @_silgen_name("language_task_future_wait_throwing")
+///   fn _taskFutureGetThrowing<T>(_ task: Builtin.NativeObject) async throws -> T
 ///
-///   @_silgen_name("swift_asyncLet_wait")
-///   func _asyncLetGet<T>(_ task: Builtin.RawPointer) async -> T
+///   @_silgen_name("language_asyncLet_wait")
+///   fn _asyncLetGet<T>(_ task: Builtin.RawPointer) async -> T
 ///
-///   @_silgen_name("swift_asyncLet_waitThrowing")
-///   func _asyncLetGetThrowing<T>(_ task: Builtin.RawPointer) async throws -> T
+///   @_silgen_name("language_asyncLet_waitThrowing")
+///   fn _asyncLetGetThrowing<T>(_ task: Builtin.RawPointer) async throws -> T
 ///
-///   @_silgen_name("swift_taskGroup_wait_next_throwing")
-///   func _taskGroupWaitNext<T>(group: Builtin.RawPointer) async throws -> T?
+///   @_silgen_name("language_taskGroup_wait_next_throwing")
+///   fn _taskGroupWaitNext<T>(group: Builtin.RawPointer) async throws -> T?
 ///
-///   @_silgen_name("swift_taskGroup_waitAll")
-///   func _taskGroupWaitAll<T>(
+///   @_silgen_name("language_taskGroup_waitAll")
+///   fn _taskGroupWaitAll<T>(
 ///     group: Builtin.RawPointer,
-///     bodyError: Swift.Error?
+///     bodyError: Codira.Error?
 ///   ) async throws -> T?
 ///
 class TaskFutureWaitAsyncContext : public AsyncContext {
@@ -328,7 +329,7 @@ public:
   //
   // (If you think three words is an odd choice, one of them used to be
   // the context flags.)
-  SwiftError *errorResult;
+  CodiraError *errorResult;
   OpaqueValue *successResultPointer;
   void *_reserved;
 
@@ -341,12 +342,12 @@ public:
   void fillWithError(AsyncTask::FutureFragment *future) {
     fillWithError(future->getError());
   }
-  void fillWithError(SwiftError *error) {
-    #if SWIFT_CONCURRENCY_EMBEDDED
-    swift_unreachable("untyped error used in embedded Swift");
+  void fillWithError(CodiraError *error) {
+    #if LANGUAGE_CONCURRENCY_EMBEDDED
+    language_unreachable("untyped error used in embedded Codira");
     #else
     errorResult = error;
-    swift_errorRetain(error);
+    language_errorRetain(error);
     #endif
   }
 };
@@ -372,7 +373,7 @@ public:
 ///
 /// Some changes to task state, like cancellation are local to the concurrency
 /// runtime library but others like priority escalation require deeper integration
-/// with the OS in order to have the intended side effects. On Darwin, Swift
+/// with the OS in order to have the intended side effects. On Darwin, Codira
 /// Concurrency Tasks runs on dispatch's queues. As such, we need to use an
 /// encoding of thread identity vended by libdispatch called dispatch_lock_t,
 /// and a futex-style dispatch API in order to escalate the priority of a thread.
@@ -385,25 +386,25 @@ public:
 /// operations. The ActiveTaskStatus's layout has thus been changed to have the
 /// following layout depending on the system configuration supported:
 ///
-/// 32 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
+/// 32 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
 ///
 ///          Flags               Execution Lock           Unused           TaskStatusRecord *
 /// |----------------------|----------------------|----------------------|-------------------|
 ///          32 bits                32 bits                32 bits              32 bits
 ///
-/// 64 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
+/// 64 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1
 ///
 ///         Flags              Execution Lock      TaskStatusRecord *
 /// |----------------------|-------------------|----------------------|
 ///          32 bits                32 bits              64 bits
 ///
-/// 32 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
+/// 32 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
 ///
 ///          Flags             TaskStatusRecord *
 /// |----------------------|----------------------|
 ///          32 bits                32 bits
 //
-/// 64 bit systems with SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
+/// 64 bit systems with LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=0
 ///
 ///         Flags                  Unused            TaskStatusRecord *
 /// |----------------------|----------------------|---------------------|
@@ -416,13 +417,13 @@ public:
 /// time.
 ///
 /// Size requirements:
-///     On 64 bit systems or if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
+///     On 64 bit systems or if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
 ///     the field is 16 bytes long.
 ///
 ///     Otherwise, it is 8 bytes long.
 ///
 /// Alignment requirements:
-///     On 64 bit systems or if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
+///     On 64 bit systems or if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1,
 ///     this 16-byte field needs to be 16 byte aligned to be able to do aligned
 ///     atomic stores field.
 ///
@@ -431,7 +432,7 @@ public:
 ///
 ///     As a result of varying alignment needs, we've marked the class as
 ///     needing 2-word alignment but on arm64_32 with
-///     SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1, 16 byte alignment is
+///     LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION=1, 16 byte alignment is
 ///     achieved through careful arrangement of the storage for this in the
 ///     AsyncTask::PrivateStorage. The additional alignment requirements are
 ///     enforced by static asserts below.
@@ -452,7 +453,7 @@ class alignas(2 * sizeof(void*)) ActiveTaskStatus {
     /// priority in the task status
     IsEscalated = 0x400,
 
-#if !SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if !LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     /// Whether the task is actively running. On systems which cannot track the
     /// identity of the drainer (see above), we use one bit in the flags to
     /// track
@@ -492,24 +493,24 @@ class alignas(2 * sizeof(void*)) ActiveTaskStatus {
 
   // Note: this structure is mirrored by ActiveTaskStatusWithEscalation and
   // ActiveTaskStatusWithoutEscalation in
-  // include/swift/RemoteInspection/RuntimeInternals.h. Any changes to the layout here
+  // include/language/RemoteInspection/RuntimeInternals.h. Any changes to the layout here
   // must also be made there.
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
   uint32_t Flags;
   dispatch_lock_t ExecutionLock;
-  LLVM_ATTRIBUTE_UNUSED uint32_t Unused = {};
-#elif SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_8_BYTES
+  TOOLCHAIN_ATTRIBUTE_UNUSED uint32_t Unused = {};
+#elif LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_8_BYTES
   uint32_t Flags;
   dispatch_lock_t ExecutionLock;
-#elif !SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#elif !LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
   uint32_t Flags;
-#else /* !SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_8_BYTES */
+#else /* !LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_8_BYTES */
   uint32_t Flags;
-  LLVM_ATTRIBUTE_UNUSED uint32_t Unused = {};
+  TOOLCHAIN_ATTRIBUTE_UNUSED uint32_t Unused = {};
 #endif
   TaskStatusRecord *Record;
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   ActiveTaskStatus(TaskStatusRecord *record, uintptr_t flags)
     : Flags(flags), ExecutionLock(DLOCK_OWNER_NULL), Record(record) {}
 
@@ -529,7 +530,7 @@ public:
   ActiveTaskStatus() = default;
 #endif
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   constexpr ActiveTaskStatus(JobPriority priority)
       : Flags(uintptr_t(priority)), ExecutionLock(DLOCK_OWNER_NULL), Record(nullptr) {}
 #else
@@ -540,7 +541,7 @@ public:
   /// Is the task currently cancelled?
   bool isCancelled() const { return Flags & IsCancelled; }
   ActiveTaskStatus withCancelled() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags | IsCancelled, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags | IsCancelled);
@@ -549,14 +550,14 @@ public:
 
   bool isEnqueued() const { return Flags & IsEnqueued; }
   ActiveTaskStatus withEnqueued() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags | IsEnqueued, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags | IsEnqueued);
 #endif
   }
   ActiveTaskStatus withoutEnqueued() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags & ~IsEnqueued, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags & ~IsEnqueued);
@@ -565,21 +566,21 @@ public:
 
   /// Is the task currently running? Also known as whether it is drain locked.
   bool isRunning() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   return dispatch_lock_is_locked(ExecutionLock);
 #else
     return Flags & IsRunning;
 #endif
   }
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   static size_t executionLockOffset() {
     return offsetof(ActiveTaskStatus, ExecutionLock);
   }
 #endif
 
   uint32_t currentExecutionLockOwner() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   return dispatch_lock_owner(ExecutionLock);
 #else
   return 0;
@@ -587,7 +588,7 @@ public:
   }
 
   ActiveTaskStatus withRunning(bool isRunning) const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   if (isRunning) {
     assert(!dispatch_lock_is_locked(ExecutionLock));
     return ActiveTaskStatus(Record, Flags, dispatch_lock_value_for_self());
@@ -605,7 +606,7 @@ public:
   }
 
   ActiveTaskStatus withComplete() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags | IsComplete, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags | IsComplete);
@@ -616,7 +617,7 @@ public:
   bool isStatusRecordLocked() const { return Flags & IsStatusRecordLocked; }
   ActiveTaskStatus withStatusRecordLocked() const {
     assert(!isStatusRecordLocked());
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags | IsStatusRecordLocked,
                             ExecutionLock);
 #else
@@ -626,7 +627,7 @@ public:
   ActiveTaskStatus withoutStatusRecordLocked() const {
     assert(isStatusRecordLocked());
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags & ~IsStatusRecordLocked,
                             ExecutionLock);
 #else
@@ -637,14 +638,14 @@ public:
   /// Is there a dependencyRecord in the linked list of status records?
   bool hasTaskDependency() const { return Flags & HasTaskDependency; }
   ActiveTaskStatus withTaskDependency() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags | HasTaskDependency, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags | HasTaskDependency);
 #endif
   }
   ActiveTaskStatus withoutTaskDependency() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags & ~HasTaskDependency, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags & ~HasTaskDependency);
@@ -656,14 +657,14 @@ public:
     return Flags & HasTaskExecutorPreference;
   }
   ActiveTaskStatus withTaskExecutorPreference() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags | HasTaskExecutorPreference, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags | HasTaskExecutorPreference);
 #endif
   }
   ActiveTaskStatus withoutTaskExecutorPreference() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags & ~HasTaskExecutorPreference, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags & ~HasTaskExecutorPreference);
@@ -682,7 +683,7 @@ public:
   /// other flags about the task are unmodified. This is only safe to use when
   /// we know that the task we're modifying is not running.
   ActiveTaskStatus withNewPriority(JobPriority priority) const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     assert(ExecutionLock == DLOCK_OWNER_NULL);
 #endif
     assert(!isEnqueued());
@@ -692,7 +693,7 @@ public:
 
   ActiveTaskStatus withEscalatedPriority(JobPriority priority) const {
     assert(priority > getStoredPriority());
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record,
                             (Flags & ~PriorityMask)
                                | IsEscalated | uintptr_t(priority), ExecutionLock);
@@ -702,7 +703,7 @@ public:
   }
 
   ActiveTaskStatus withoutStoredPriorityEscalation() const {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(Record, Flags & ~IsEscalated, ExecutionLock);
 #else
     return ActiveTaskStatus(Record, Flags & ~IsEscalated);
@@ -711,12 +712,12 @@ public:
 
   /// Return the innermost cancellation record.  Code running
   /// asynchronously with this task should not access this record
-  /// without having first locked it; see swift_taskCancel.
+  /// without having first locked it; see language_taskCancel.
   TaskStatusRecord *getInnermostRecord() const {
     return Record;
   }
   ActiveTaskStatus withInnermostRecord(TaskStatusRecord *newRecord) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
     return ActiveTaskStatus(newRecord, Flags, ExecutionLock);
 #else
     return ActiveTaskStatus(newRecord, Flags);
@@ -727,7 +728,7 @@ public:
 
   using record_iterator =
     LinkedListIterator<TaskStatusRecord, getStatusRecordParent>;
-  llvm::iterator_range<record_iterator> records() const {
+  toolchain::iterator_range<record_iterator> records() const {
     return record_iterator::rangeBeginning(getInnermostRecord());
   }
 
@@ -738,7 +739,7 @@ public:
   }
 };
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && SWIFT_POINTER_IS_4_BYTES
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION && LANGUAGE_POINTER_IS_4_BYTES
 #define ACTIVE_TASK_STATUS_SIZE (4 * (sizeof(uintptr_t)))
 #else
 #define ACTIVE_TASK_STATUS_SIZE (2 * (sizeof(uintptr_t)))
@@ -760,7 +761,7 @@ struct AsyncTask::PrivateStorage {
   /// State inside the AsyncTask whose state is only managed by the exclusivity
   /// runtime in stdlibCore. We zero initialize to provide a safe initial value,
   /// but actually initialize its bit state to a const global provided by
-  /// libswiftCore so that libswiftCore can control the layout of our initial
+  /// liblanguageCore so that liblanguageCore can control the layout of our initial
   /// state.
   uintptr_t ExclusivityAccessSet[2] = {0, 0};
 
@@ -832,12 +833,8 @@ struct AsyncTask::PrivateStorage {
     // result of the task
     auto oldStatus = task->_private()._status().load(std::memory_order_relaxed);
     while (true) {
-      // Task is completing
       assert(oldStatus.getInnermostRecord() == NULL &&
              "Status records should have been removed by this time!");
-      assert(!oldStatus.isStatusRecordLocked() &&
-             "Task is completing, cannot be locked anymore!");
-
       assert(oldStatus.isRunning());
 
       // Remove drainer, enqueued and override bit if any
@@ -851,15 +848,17 @@ struct AsyncTask::PrivateStorage {
       if (task->_private()._status().compare_exchange_weak(oldStatus, newStatus,
               /* success */ std::memory_order_relaxed,
               /* failure */ std::memory_order_relaxed)) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
         if (oldStatus.isStoredPriorityEscalated()) {
-          SWIFT_TASK_DEBUG_LOG("[Override] Reset override %#x on thread from task %p", oldStatus.getStoredPriority(), this);
-          swift_dispatch_lock_override_end((qos_class_t) oldStatus.getStoredPriority());
+          LANGUAGE_TASK_DEBUG_LOG("[Override] Reset override %#x on thread from task %p", oldStatus.getStoredPriority(), this);
+          language_dispatch_lock_override_end((qos_class_t) oldStatus.getStoredPriority());
         }
 #endif
         break;
       }
     }
+
+    _language_tsan_release(task);
 
     // Destroy and deallocate any remaining task local items since the task is
     // completed. We need to do this before we destroy the task local
@@ -884,12 +883,12 @@ struct AsyncTask::PrivateStorage {
     this->~PrivateStorage();
   }
 
-  swift::atomic<ActiveTaskStatus> &_status() {
-    return reinterpret_cast<swift::atomic<ActiveTaskStatus>&> (this->StatusStorage);
+  language::atomic<ActiveTaskStatus> &_status() {
+    return reinterpret_cast<language::atomic<ActiveTaskStatus>&> (this->StatusStorage);
   }
 
-  const swift::atomic<ActiveTaskStatus> &_status() const {
-    return reinterpret_cast<const swift::atomic<ActiveTaskStatus>&> (this->StatusStorage);
+  const language::atomic<ActiveTaskStatus> &_status() const {
+    return reinterpret_cast<const language::atomic<ActiveTaskStatus>&> (this->StatusStorage);
   }
 };
 
@@ -941,9 +940,9 @@ inline bool AsyncTask::isCancelled() const {
 
 inline void AsyncTask::flagAsRunning() {
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   dispatch_thread_override_info_s threadOverrideInfo;
-  threadOverrideInfo = swift_dispatch_thread_get_current_override_qos_floor();
+  threadOverrideInfo = language_dispatch_thread_get_current_override_qos_floor();
   qos_class_t overrideFloor = threadOverrideInfo.override_qos_floor;
 #endif
 
@@ -952,18 +951,18 @@ inline void AsyncTask::flagAsRunning() {
   assert(!oldStatus.isComplete());
 
   if (!oldStatus.hasTaskDependency()) {
-    SWIFT_TASK_DEBUG_LOG("%p->flagAsRunning() with no task dependency", this);
+    LANGUAGE_TASK_DEBUG_LOG("%p->flagAsRunning() with no task dependency", this);
     assert(_private().dependencyRecord == nullptr);
 
     while (true) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       // Task's priority is greater than the thread's - do a self escalation
       qos_class_t maxTaskPriority = (qos_class_t) oldStatus.getStoredPriority();
       if (threadOverrideInfo.can_override && (maxTaskPriority > overrideFloor)) {
-        SWIFT_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match task %p's max priority %#x",
+        LANGUAGE_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match task %p's max priority %#x",
             overrideFloor, this, maxTaskPriority);
 
-        (void) swift_dispatch_thread_override_self(maxTaskPriority);
+        (void) language_dispatch_thread_override_self(maxTaskPriority);
         overrideFloor = maxTaskPriority;
       }
 #endif
@@ -978,7 +977,7 @@ inline void AsyncTask::flagAsRunning() {
                /* failure */ std::memory_order_relaxed)) {
         newStatus.traceStatusChanged(this, true);
         adoptTaskVoucher(this);
-        swift_task_enterThreadLocalContext(
+        language_task_enterThreadLocalContext(
             (char *)&_private().ExclusivityAccessSet[0]);
         break;
       }
@@ -986,20 +985,20 @@ inline void AsyncTask::flagAsRunning() {
   } else {
     auto dependencyRecord = _private().dependencyRecord;
     assert(dependencyRecord != nullptr);
-    SWIFT_TASK_DEBUG_LOG("[Dependency] %p->flagAsRunning() and remove dependencyRecord %p",
+    LANGUAGE_TASK_DEBUG_LOG("[Dependency] %p->flagAsRunning() and remove dependencyRecord %p",
                     this, dependencyRecord);
 
     removeStatusRecord(this, dependencyRecord, oldStatus, [&](ActiveTaskStatus unused,
                        ActiveTaskStatus& newStatus) {
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       // Task's priority is greater than the thread's - do a self escalation
       qos_class_t maxTaskPriority = (qos_class_t) oldStatus.getStoredPriority();
       if (threadOverrideInfo.can_override && (maxTaskPriority > overrideFloor)) {
-        SWIFT_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match task %p's max priority %#x",
+        LANGUAGE_TASK_DEBUG_LOG("[Override] Self-override thread with oq_floor %#x to match task %p's max priority %#x",
             overrideFloor, this, maxTaskPriority);
 
-        (void) swift_dispatch_thread_override_self(maxTaskPriority);
+        (void) language_dispatch_thread_override_self(maxTaskPriority);
         overrideFloor = maxTaskPriority;
       }
 #endif
@@ -1013,7 +1012,7 @@ inline void AsyncTask::flagAsRunning() {
     this->destroyTaskDependency(dependencyRecord);
 
     adoptTaskVoucher(this);
-    swift_task_enterThreadLocalContext(
+    language_task_enterThreadLocalContext(
         (char *)&_private().ExclusivityAccessSet[0]);
   }
 
@@ -1038,9 +1037,9 @@ inline void AsyncTask::flagAsRunning() {
 /// rdar://88366470 (Direct handoff behaviour when tasks switch executors)
 inline void
 AsyncTask::flagAsAndEnqueueOnExecutor(SerialExecutorRef newExecutor) {
-#if SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL
+#if LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL
   assert(false && "Should not enqueue any tasks to execute in task-to-thread model");
-#else /* SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL */
+#else /* LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL */
   auto oldStatus = _private()._status().load(std::memory_order_relaxed);
   assert(!oldStatus.isEnqueued());
 
@@ -1053,7 +1052,7 @@ AsyncTask::flagAsAndEnqueueOnExecutor(SerialExecutorRef newExecutor) {
     TaskDependencyStatusRecord *dependencyRecord = _private().dependencyRecord;
     assert(dependencyRecord != nullptr);
 
-    SWIFT_TASK_DEBUG_LOG("[Dependency] %p->flagAsAndEnqueueOnExecutor() and update dependencyRecord %p",
+    LANGUAGE_TASK_DEBUG_LOG("[Dependency] %p->flagAsAndEnqueueOnExecutor() and update dependencyRecord %p",
       this, dependencyRecord);
 
     updateStatusRecord(this, dependencyRecord, [&] {
@@ -1077,9 +1076,9 @@ AsyncTask::flagAsAndEnqueueOnExecutor(SerialExecutorRef newExecutor) {
 
     // TODO: do we need to do tracking for task executors...? I guess no since
     // they can't escalate.
-    void *allocation = _swift_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
+    void *allocation = _language_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
     TaskDependencyStatusRecord *dependencyRecord = _private().dependencyRecord = ::new (allocation) TaskDependencyStatusRecord(this, newExecutor);
-    SWIFT_TASK_DEBUG_LOG("[Dependency] %p->flagAsAndEnqueueOnExecutor() with dependencyRecord %p", this,
+    LANGUAGE_TASK_DEBUG_LOG("[Dependency] %p->flagAsAndEnqueueOnExecutor() with dependencyRecord %p", this,
       dependencyRecord);
 
     addStatusRecord(this, dependencyRecord, oldStatus, [&](ActiveTaskStatus unused,
@@ -1094,17 +1093,17 @@ AsyncTask::flagAsAndEnqueueOnExecutor(SerialExecutorRef newExecutor) {
     });
 
     if (oldStatus.isRunning()) {
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
       // The thread was previously running the task, now that we aren't and
       // we've successfully escalated the thing the task is waiting on. We need
       // to remove any task escalation on the thread as a result of the task.
       if (oldStatus.isStoredPriorityEscalated()) {
-        SWIFT_TASK_DEBUG_LOG("[Override] Reset override %#x on thread from task %p",
+        LANGUAGE_TASK_DEBUG_LOG("[Override] Reset override %#x on thread from task %p",
           oldStatus.getStoredPriority(), this);
-        swift_dispatch_lock_override_end((qos_class_t) oldStatus.getStoredPriority());
+        language_dispatch_lock_override_end((qos_class_t) oldStatus.getStoredPriority());
       }
-#endif /* SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
-      swift_task_exitThreadLocalContext((char *)&_private().ExclusivityAccessSet[0]);
+#endif /* LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION */
+      language_task_exitThreadLocalContext((char *)&_private().ExclusivityAccessSet[0]);
       restoreTaskVoucher(this);
     }
   }
@@ -1116,14 +1115,14 @@ AsyncTask::flagAsAndEnqueueOnExecutor(SerialExecutorRef newExecutor) {
       Flags.task_isFuture(), Flags.task_isGroupChildTask(),
       Flags.task_isAsyncLetTask());
 
-  swift_task_enqueue(this, newExecutor);
-#endif /* SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL */
+  language_task_enqueue(this, newExecutor);
+#endif /* LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL */
 }
 
 // Always and only called by the task on itself
 inline
 void AsyncTask::flagAsSuspended(TaskDependencyStatusRecord *dependencyStatusRecord) {
-  SWIFT_TASK_DEBUG_LOG("[Dependency] %p->flagAsSuspended() with dependencyRecord %p", this,
+  LANGUAGE_TASK_DEBUG_LOG("[Dependency] %p->flagAsSuspended() with dependencyRecord %p", this,
                   dependencyStatusRecord);
   assert(dependencyStatusRecord != NULL);
 
@@ -1157,24 +1156,24 @@ void AsyncTask::flagAsSuspended(TaskDependencyStatusRecord *dependencyStatusReco
     return true;
   });
 
-#if SWIFT_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
+#if LANGUAGE_CONCURRENCY_ENABLE_PRIORITY_ESCALATION
   // Successfully dropped task drain lock, make sure to remove override on
   // thread due to task
   if (oldStatus.isStoredPriorityEscalated()) {
-     SWIFT_TASK_DEBUG_LOG("[Override] Reset override %#x on thread from task %p",
+     LANGUAGE_TASK_DEBUG_LOG("[Override] Reset override %#x on thread from task %p",
        oldStatus.getStoredPriority(), this);
-     swift_dispatch_lock_override_end((qos_class_t) oldStatus.getStoredPriority());
+     language_dispatch_lock_override_end((qos_class_t) oldStatus.getStoredPriority());
   }
 #endif
 
-  swift_task_exitThreadLocalContext((char *)&_private().ExclusivityAccessSet[0]);
+  language_task_exitThreadLocalContext((char *)&_private().ExclusivityAccessSet[0]);
   restoreTaskVoucher(this);
   return;
 }
 
 inline void AsyncTask::destroyTaskDependency(TaskDependencyStatusRecord *dependencyRecord) {
   assert(_private().dependencyRecord == dependencyRecord);
-  _swift_task_dealloc_specific(this, dependencyRecord);
+  _language_task_dealloc_specific(this, dependencyRecord);
 
   _private().dependencyRecord = nullptr;
 }
@@ -1184,9 +1183,9 @@ inline void AsyncTask::destroyTaskDependency(TaskDependencyStatusRecord *depende
 inline void AsyncTask::flagAsSuspendedOnTask(AsyncTask *task) {
   assert(_private().dependencyRecord == nullptr);
 
-  void *allocation = _swift_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
+  void *allocation = _language_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
   auto record = ::new (allocation) TaskDependencyStatusRecord(this, task);
-  SWIFT_TASK_DEBUG_LOG("[Dependency] Create a dependencyRecord %p for dependency on task %p", allocation, task);
+  LANGUAGE_TASK_DEBUG_LOG("[Dependency] Create a dependencyRecord %p for dependency on task %p", allocation, task);
   _private().dependencyRecord = record;
 
   this->flagAsSuspended(record);
@@ -1195,9 +1194,9 @@ inline void AsyncTask::flagAsSuspendedOnTask(AsyncTask *task) {
 inline void AsyncTask::flagAsSuspendedOnContinuation(ContinuationAsyncContext *context) {
   assert(_private().dependencyRecord == nullptr);
 
-  void *allocation = _swift_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
+  void *allocation = _language_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
   auto record = ::new (allocation) TaskDependencyStatusRecord(this, context);
-  SWIFT_TASK_DEBUG_LOG("[Dependency] Create a dependencyRecord %p for dependency on continuation %p", allocation, context);
+  LANGUAGE_TASK_DEBUG_LOG("[Dependency] Create a dependencyRecord %p for dependency on continuation %p", allocation, context);
   _private().dependencyRecord = record;
 
   this->flagAsSuspended(record);
@@ -1206,9 +1205,9 @@ inline void AsyncTask::flagAsSuspendedOnContinuation(ContinuationAsyncContext *c
 inline void AsyncTask::flagAsSuspendedOnTaskGroup(TaskGroup *taskGroup) {
   assert(_private().dependencyRecord == nullptr);
 
-  void *allocation = _swift_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
+  void *allocation = _language_task_alloc_specific(this, sizeof(class TaskDependencyStatusRecord));
   auto record = ::new (allocation) TaskDependencyStatusRecord(this, taskGroup);
-  SWIFT_TASK_DEBUG_LOG("[Dependency] Create a dependencyRecord %p for dependency on taskGroup %p", allocation, taskGroup);
+  LANGUAGE_TASK_DEBUG_LOG("[Dependency] Create a dependencyRecord %p for dependency on taskGroup %p", allocation, taskGroup);
   _private().dependencyRecord = record;
 
   this->flagAsSuspended(record);
@@ -1232,7 +1231,7 @@ inline bool AsyncTask::hasTaskExecutorPreferenceRecord() const {
 // that can be used when debugging locally to instrument when a task
 // actually is dealloced.
 inline void AsyncTask::flagAsDestroyed() {
-  SWIFT_TASK_DEBUG_LOG("task destroyed %p", this);
+  LANGUAGE_TASK_DEBUG_LOG("task destroyed %p", this);
 }
 
 // ==== Task Local Values -----------------------------------------------------

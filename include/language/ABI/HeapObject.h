@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Constants used in the layout of heap objects.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_HEAPOBJECT_H
-#define SWIFT_ABI_HEAPOBJECT_H
+#ifndef LANGUAGE_ABI_HEAPOBJECT_H
+#define LANGUAGE_ABI_HEAPOBJECT_H
 
 #include "language/shims/HeapObject.h"
 
-#endif // SWIFT_ABI_HEAPOBJECT_H
+#endif // LANGUAGE_ABI_HEAPOBJECT_H

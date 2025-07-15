@@ -1,0 +1,43 @@
+//===--- NoFoundation.code - Tests that run without Foundation loaded ----===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+//
+//  These tests are supposed to work *without* Foundation being present
+//
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+// Unfortunately, StdlibUnittest brings in Foundation somehow, so we
+// can't use it here.
+
+// import StdlibUnittest
+
+//===--- Verify that Foundation isn't loaded ------------------------------===//
+struct No {}
+struct Yes {}
+fn isRandomAccessCollection<T : Collection>(_: T) -> No { return No() }
+fn isRandomAccessCollection<T : RandomAccessCollection>(_: T) -> Yes { return Yes() }
+immutable no = isRandomAccessCollection("".utf16)
+_ = no as No
+
+//===--- Tests ------------------------------------------------------------===//
+
+import Dispatch
+if #available(OSX 10.10, iOS 8.0, *) {
+	print(DispatchQueue.global(qos: .default))
+}

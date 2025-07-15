@@ -1,0 +1,56 @@
+// RUN: %target-run-simple-swift
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import RuntimeUnittest
+
+fn hasBackdeployedConcurrencyRuntime() -> Bool {
+  // If the stdlib we've loaded predates Codira 5.5, then we're running on a back
+  // deployed concurrency runtime, which has the side effect of disabling
+  // regular runtime exclusivity checks.
+  if #available(CodiraStdlib 5.5, *) { return false } // recent enough production stdlib
+  if #available(CodiraStdlib 9999, *) { return false } // dev stdlib
+  return true
+}
+
+var ExclusivityTestSuite = TestSuite("Exclusivity")
+
+ExclusivityTestSuite.test("testExclusivityNullPC")
+  .skip(.custom(
+    { hasBackdeployedConcurrencyRuntime() },
+    reason: "the back deployed concurrency runtime doesn't do exclusivity checks"))
+  .code {
+  expectCrash(withMessage: "Simultaneous accesses") {
+      CodiraRuntimeUnitTest.testExclusivityNullPC()
+  }
+}
+
+ExclusivityTestSuite.test("testExclusivityPCOne")
+  .skip(.custom(
+    { hasBackdeployedConcurrencyRuntime() },
+    reason: "the back deployed concurrency runtime doesn't do exclusivity checks"))
+  .code {
+  expectCrash(withMessage: "Simultaneous accesses") {
+    CodiraRuntimeUnitTest.testExclusivityPCOne()
+  }
+}
+
+ExclusivityTestSuite.test("testExclusivityBogusPC")
+  .skip(.custom(
+    { hasBackdeployedConcurrencyRuntime() },
+    reason: "the back deployed concurrency runtime doesn't do exclusivity checks"))
+  .code {
+  expectCrash(withMessage: "Simultaneous accesses") {
+    CodiraRuntimeUnitTest.testExclusivityBogusPC()
+  }
+}
+
+ExclusivityTestSuite.test("testExclusivityNonNestedPC")
+  .skip(.custom(
+    { hasBackdeployedConcurrencyRuntime() },
+    reason: "the back deployed concurrency runtime doesn't do exclusivity checks"))
+  .code {
+  CodiraRuntimeUnitTest.testExclusivityNonNestedPC()
+}
+
+runAllTests()

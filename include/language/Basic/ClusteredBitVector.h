@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ClusteredBitVector class, a bitset data
@@ -25,15 +26,15 @@
 //
 // Primary observers:
 //   - testing a specific bit
-//   - converting to llvm::APInt
+//   - converting to toolchain::APInt
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_CLUSTEREDBITVECTOR_H
-#define SWIFT_BASIC_CLUSTEREDBITVECTOR_H
+#ifndef LANGUAGE_BASIC_CLUSTEREDBITVECTOR_H
+#define LANGUAGE_BASIC_CLUSTEREDBITVECTOR_H
 
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/APInt.h"
+#include "toolchain/ADT/APInt.h"
 #include <cassert>
 #include <optional>
 
@@ -41,7 +42,7 @@ namespace language {
 
 /// A vector of bits.
 class ClusteredBitVector {
-  using APInt = llvm::APInt;
+  using APInt = toolchain::APInt;
 
   /// Represents the bit vector as an integer.
   /// The least-significant bit of the integer corresponds to the bit
@@ -277,10 +278,10 @@ public:
   }
 
   /// Pretty-print the vector.
-  void print(llvm::raw_ostream &out) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &out) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_CLUSTEREDBITVECTOR_H
+#endif // LANGUAGE_BASIC_CLUSTEREDBITVECTOR_H

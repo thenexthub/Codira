@@ -1,0 +1,71 @@
+/// Check cross-import overlays with non-public imports.
+
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/lib-templates/* %t/
+// RUN: split-file --leading-lines %s %t
+
+//--- BothPublic.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/BothPublic.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %FileCheck %t/BothPublic.code < %t.codeinterface
+
+public import DeclaringLibrary
+public import BystandingLibrary
+
+// CHECK: // language-interface-format-version
+// CHECK: // language-module-flags: {{.*}} -module-name ClientLibrary
+// CHECK-DAG: import Codira
+// CHECK-DAG: import DeclaringLibrary
+// CHECK-DAG: import BystandingLibrary
+// CHECK-DAG: import _OverlayLibrary
+
+
+//--- BothHidden.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/BothHidden.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %FileCheck %t/BothHidden.code < %t.codeinterface
+// RUN: %FileCheck -check-prefix NEGATIVE %t/BothHidden.code < %t.codeinterface
+
+internal import DeclaringLibrary
+internal import BystandingLibrary
+
+// CHECK: // language-interface-format-version
+// CHECK: // language-module-flags: {{.*}} -module-name ClientLibrary
+// CHECK-DAG: import Codira
+// NEGATIVE-NOT: import DeclaringLibrary
+// NEGATIVE-NOT: import BystandingLibrary
+// NEGATIVE-NOT: import _OverlayLibrary
+
+
+//--- FirstHidden.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/FirstHidden.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %FileCheck %t/FirstHidden.code < %t.codeinterface
+// RUN: %FileCheck -check-prefix NEGATIVE %t/FirstHidden.code < %t.codeinterface
+
+internal import DeclaringLibrary
+public import BystandingLibrary
+
+// CHECK: // language-interface-format-version
+// CHECK: // language-module-flags: {{.*}} -module-name ClientLibrary
+// CHECK-DAG: import Codira
+// CHECK-DAG: import BystandingLibrary
+// NEGATIVE-NOT: import DeclaringLibrary
+// NEGATIVE-NOT: import _OverlayLibrary
+
+
+//--- SecondHidden.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/SecondHidden.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary
+// RUN: %FileCheck %t/SecondHidden.code < %t.codeinterface
+// RUN: %FileCheck -check-prefix NEGATIVE %t/SecondHidden.code < %t.codeinterface
+
+public import DeclaringLibrary
+internal import BystandingLibrary
+
+// CHECK: // language-interface-format-version
+// CHECK: // language-module-flags: {{.*}} -module-name ClientLibrary
+// CHECK-DAG: import Codira
+// CHECK-DAG: import DeclaringLibrary
+// NEGATIVE-NOT: import BystandingLibrary
+// NEGATIVE-NOT: import _OverlayLibrary

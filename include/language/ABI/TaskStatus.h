@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing "status records", the mechanism by which
+// Codira ABI describing "status records", the mechanism by which
 // tasks track dynamic information about their child tasks, custom
 // cancellation hooks, and other information which may need to be exposed
 // asynchronously outside of the task.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASKSTATUS_H
-#define SWIFT_ABI_TASKSTATUS_H
+#ifndef LANGUAGE_ABI_TASKSTATUS_H
+#define LANGUAGE_ABI_TASKSTATUS_H
 
 #include "language/Basic/OptionSet.h"
 #include "language/ABI/MetadataValues.h"
@@ -101,7 +102,7 @@ public:
   }
 
   using child_iterator = LinkedListIterator<AsyncTask, getNextChildTask>;
-  llvm::iterator_range<child_iterator> children() const {
+  toolchain::iterator_range<child_iterator> children() const {
     return child_iterator::rangeBeginning(getFirstChild());
   }
 
@@ -223,7 +224,7 @@ public:
   }
 
   using child_iterator = LinkedListIterator<AsyncTask, getNextChildTask>;
-  llvm::iterator_range<child_iterator> children() const {
+  toolchain::iterator_range<child_iterator> children() const {
     return child_iterator::rangeBeginning(getFirstChild());
   }
 
@@ -242,10 +243,10 @@ public:
 /// subsequently used.
 class CancellationNotificationStatusRecord : public TaskStatusRecord {
 public:
-  using FunctionType = SWIFT_CC(swift) void(SWIFT_CONTEXT void *);
+  using FunctionType = LANGUAGE_CC(language) void(LANGUAGE_CONTEXT void *);
 
 private:
-  FunctionType *__ptrauth_swift_cancellation_notification_function Function;
+  FunctionType *__ptrauth_language_cancellation_notification_function Function;
   void *Argument;
 
 public:
@@ -272,10 +273,10 @@ public:
 /// subsequently used.
 class EscalationNotificationStatusRecord : public TaskStatusRecord {
 public:
-  using FunctionType = SWIFT_CC(swift) void(JobPriority, JobPriority, SWIFT_CONTEXT void *);
+  using FunctionType = LANGUAGE_CC(language) void(uint8_t, uint8_t, LANGUAGE_CONTEXT void *);
 
 private:
-  FunctionType *__ptrauth_swift_escalation_notification_function Function;
+  FunctionType *__ptrauth_language_escalation_notification_function Function;
   void *Argument;
 
 public:
@@ -285,7 +286,10 @@ public:
   }
 
   void run(JobPriority oldPriority, JobPriority newPriority) {
-    Function(oldPriority, newPriority, Argument);
+    Function(
+      static_cast<size_t>(oldPriority),
+      static_cast<size_t>(newPriority),
+      Argument);
   }
 
   static bool classof(const TaskStatusRecord *record) {

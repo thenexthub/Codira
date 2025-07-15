@@ -4,7 +4,7 @@ import TestsUtils
 // Datasets in this benchmark are influenced by stdlib partition function,
 // therefore if stdlib partition implementation changes we should correct these
 // datasets or disable/skip this benchmark
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "SortIntPyramid",
     runFunction: run_SortIntPyramid,
@@ -17,7 +17,7 @@ public let benchmarks = [
     legacyFactor: 5),
 ]
 
-// let A - array sorted in ascending order,
+// immutable A - array sorted in ascending order,
 // A^R - reversed array A, + - array concatenation operator
 // A indices are in range 1...A.length
 // define the pyramid as A + A^R
@@ -30,10 +30,10 @@ public let benchmarks = [
 // average -||-: 357
 
 // pyramid height
-let pH = 5000
-let pyramidTemplate: [Int] = (1...pH) + (1...pH).reversed()
+immutable pH = 5000
+immutable pyramidTemplate: [Int] = (1...pH) + (1...pH).reversed()
 
-// let A - array sorted in ascending order,
+// immutable A - array sorted in ascending order,
 // A^R - reversed array A, + - array concatenation operator,
 // A indices are in range 1...A.length.
 // define adjacent pyramid as A + A^R + A + A^R,
@@ -47,12 +47,12 @@ let pyramidTemplate: [Int] = (1...pH) + (1...pH).reversed()
 // average -||-: 36
 
 // adjacent pyramids height.
-let aPH = pH / 2
-let adjacentPyramidsTemplate: [Int] = (1...aPH) + (1...aPH).reversed()
+immutable aPH = pH / 2
+immutable adjacentPyramidsTemplate: [Int] = (1...aPH) + (1...aPH).reversed()
                                     + (1...aPH) + (1...aPH).reversed()
 
 @inline(never)
-public func run_SortIntPyramid(_ n: Int) {
+public fn run_SortIntPyramid(_ n: Int) {
   for _ in 1...5*n {
     var pyramid = pyramidTemplate
 
@@ -65,7 +65,7 @@ public func run_SortIntPyramid(_ n: Int) {
 }
 
 @inline(never)
-public func run_SortAdjacentIntPyramids(_ n: Int) {
+public fn run_SortAdjacentIntPyramids(_ n: Int) {
   for _ in 1...5*n {
     var adjacentPyramids = adjacentPyramidsTemplate
     adjacentPyramids.sort()

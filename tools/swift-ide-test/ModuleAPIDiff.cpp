@@ -1,4 +1,4 @@
-//===--- ModuleAPIDiff.cpp - Swift Module API I/O -------------------------===//
+//===--- ModuleAPIDiff.cpp - Codira Module API I/O -------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ModuleAPIDiff.h"
@@ -22,8 +23,8 @@
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/YAMLTraits.h"
 #include <memory>
 #include <optional>
 
@@ -31,13 +32,13 @@ using namespace language;
 
 /*
 
-Machine-Readable Representation of API and ABI of a Swift Module (SMA)
+Machine-Readable Representation of API and ABI of a Codira Module (SMA)
 ======================================================================
 
-SMA stands for Swift Module API/ABI.
+SMA stands for Codira Module API/ABI.
 
 This format is designed to accurately represent API (and, in future, ABI) of a
-Swift module.  Design constraints are as follows:
+Codira module.  Design constraints are as follows:
 
 - the format should allow comparing API and ABI of two different modules
   produced by two different compilers;
@@ -55,7 +56,7 @@ Swift module.  Design constraints are as follows:
 - the format should be human-readable as long as it does not hurt other goals;
 
 - the format should be able to sustain significant changes (within reason) to
-  any aspects of the Swift language, including syntax changes, type system
+  any aspects of the Codira language, including syntax changes, type system
   changes, AST representation changes within the compiler etc.
 
 - the immediate goal is to capture the module API, but we would like to be able
@@ -80,7 +81,7 @@ nested-decls ::=
         AssociatedTypes: [ <associated-type-decl>* ]
         Vars: [ <var-decl>* ]
         Lets: [ <let-decl>* ]
-        Functions: [ <func-decl>* ]
+        Functions: [ <fn-decl>* ]
         Initializers: [ <init-decl>* ]
         Deinitializers: [ <deinit-decl>* ]
 
@@ -154,18 +155,18 @@ let-decl ::=
     Type: <type-name>
     <decl-attributes>?
 
-func-param ::=
+fn-param ::=
     Name: <identifier>
     Type: <type-name>
     IsInout: <bool>             (default: false)
     <decl-attributes>?
 
-func-decl ::=
+fn-decl ::=
     IsStatic: <bool>            (default: false)
     Name: <function-name>
     <generic-signature>?
     Params:
-        [ [ <func-param>* ]* ]
+        [ [ <fn-param>* ]* ]
     ResultType: <type-name>
     <decl-attributes>?
 
@@ -174,7 +175,7 @@ init-decl ::=
     InitializerFailability: (None|Optional|ImplicitlyUnwrappedOptional) (default: None)
     <generic-signature>?
     Params:
-        [ <func-param>* ]
+        [ <fn-param>* ]
     IsTrappingStub: <bool>      (default: false)
     <decl-attributes>?
 
@@ -205,16 +206,16 @@ decl-attributes ::=
 
 */
 
-// SMA data model is defined in 'swift::sma' namespace.
+// SMA data model is defined in 'language::sma' namespace.
 //
 // Never 'use namespace language::sma'.
 //
-// It is fine to shadow names from the 'swift' namespace in 'swift::sma'.
+// It is fine to shadow names from the 'language' namespace in 'language::sma'.
 //
-// Don't use any AST types in 'swift::sma'.  Only use simple types like
+// Don't use any AST types in 'language::sma'.  Only use simple types like
 // 'std::string', 'std::vector', 'std::map' etc.
 
-/// Define a type 'swift::sma::TYPE_NAME' that is a "strong typedef" for
+/// Define a type 'language::sma::TYPE_NAME' that is a "strong typedef" for
 /// 'std::string'.
 #define DEFINE_SMA_STRING_STRONG_TYPEDEF(TYPE_NAME, STRING_MEMBER_NAME)        \
   namespace language {                                                            \
@@ -225,15 +226,15 @@ decl-attributes ::=
   } /* namespace sma */                                                        \
   } /* namespace language */                                                      \
                                                                                \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
-  template <> struct ScalarTraits<::swift::sma::TYPE_NAME> {                   \
-    static void output(const ::swift::sma::TYPE_NAME &Val, void *Context,      \
-                       llvm::raw_ostream &Out) {                               \
+  template <> struct ScalarTraits<::language::sma::TYPE_NAME> {                   \
+    static void output(const ::language::sma::TYPE_NAME &Val, void *Context,      \
+                       toolchain::raw_ostream &Out) {                               \
       ScalarTraits<std::string>::output(Val.STRING_MEMBER_NAME, Context, Out); \
     }                                                                          \
     static StringRef input(StringRef Scalar, void *Context,                    \
-                           ::swift::sma::TYPE_NAME &Val) {                     \
+                           ::language::sma::TYPE_NAME &Val) {                     \
       return ScalarTraits<std::string>::input(Scalar, Context,                 \
                                               Val.STRING_MEMBER_NAME);         \
     }                                                                          \
@@ -242,7 +243,7 @@ decl-attributes ::=
     }                                                                          \
   };                                                                           \
   } /* namespace yaml */                                                       \
-  } /* namespace llvm */
+  } /* namespace toolchain */
 
 DEFINE_SMA_STRING_STRONG_TYPEDEF(Identifier, Name)
 DEFINE_SMA_STRING_STRONG_TYPEDEF(FunctionName, Name)
@@ -459,7 +460,7 @@ struct DeinitDecl {
 } // namespace sma
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 template <typename T> struct MappingTraits<std::shared_ptr<T>> {
   static void mapping(IO &io, std::shared_ptr<T> &Ptr) {
@@ -467,228 +468,228 @@ template <typename T> struct MappingTraits<std::shared_ptr<T>> {
   }
 };
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(::swift::sma::TypeName)
-LLVM_YAML_IS_SEQUENCE_VECTOR(::swift::sma::SubmoduleName)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(::language::sma::TypeName)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(::language::sma::SubmoduleName)
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::StructDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::EnumCaseDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::EnumDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::ClassDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::ProtocolDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::TypealiasDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::AssociatedTypeDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::VarDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::LetDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(::swift::sma::FuncParam)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::vector<::swift::sma::FuncParam>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::FuncDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::InitDecl>)
-LLVM_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::swift::sma::DeinitDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::StructDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::EnumCaseDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::EnumDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::ClassDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::ProtocolDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::TypealiasDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::AssociatedTypeDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::VarDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::LetDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(::language::sma::FuncParam)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::vector<::language::sma::FuncParam>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::FuncDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::InitDecl>)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(std::shared_ptr<::language::sma::DeinitDecl>)
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(::swift::sma::GenericParam)
-LLVM_YAML_IS_SEQUENCE_VECTOR(::swift::sma::ConformanceRequirement)
-LLVM_YAML_IS_SEQUENCE_VECTOR(::swift::sma::SameTypeRequirement)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(::language::sma::GenericParam)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(::language::sma::ConformanceRequirement)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(::language::sma::SameTypeRequirement)
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
-template <> struct MappingTraits<::swift::sma::DeclAttributes> {
-  static void mapping(IO &io, ::swift::sma::DeclAttributes &DA) {
+template <> struct MappingTraits<::language::sma::DeclAttributes> {
+  static void mapping(IO &io, ::language::sma::DeclAttributes &DA) {
 #define SERIALIZE_MEMBER(NAME) io.mapOptional(#NAME, DA.NAME, false);
     SMA_FOR_EVERY_DECL_ATTRIBUTE(SERIALIZE_MEMBER)
 #undef SERIALIZE_MEMBER
   }
 };
 
-template <> struct MappingTraits<::swift::sma::NestedDecls> {
+template <> struct MappingTraits<::language::sma::NestedDecls> {
   // Defined out of line to break circular dependency.
-  static void mapping(IO &io, ::swift::sma::NestedDecls &ND);
+  static void mapping(IO &io, ::language::sma::NestedDecls &ND);
 };
 
-template <> struct MappingTraits<::swift::sma::GenericParam> {
-  static void mapping(IO &io, ::swift::sma::GenericParam &ND) {
+template <> struct MappingTraits<::language::sma::GenericParam> {
+  static void mapping(IO &io, ::language::sma::GenericParam &ND) {
     io.mapRequired("Name", ND.Name);
   }
 };
 
-template <> struct MappingTraits<::swift::sma::ConformanceRequirement> {
-  static void mapping(IO &io, ::swift::sma::ConformanceRequirement &CR) {
+template <> struct MappingTraits<::language::sma::ConformanceRequirement> {
+  static void mapping(IO &io, ::language::sma::ConformanceRequirement &CR) {
     io.mapRequired("Type", CR.Type);
     io.mapRequired("Protocol", CR.Protocol);
   }
 };
 
-template <> struct MappingTraits<::swift::sma::SameTypeRequirement> {
-  static void mapping(IO &io, ::swift::sma::SameTypeRequirement &STR) {
+template <> struct MappingTraits<::language::sma::SameTypeRequirement> {
+  static void mapping(IO &io, ::language::sma::SameTypeRequirement &STR) {
     io.mapRequired("FirstType", STR.FirstType);
     io.mapRequired("SecondType", STR.SecondType);
   }
 };
 
-template <> struct MappingTraits<::swift::sma::GenericSignature> {
-  static void mapping(IO &io, ::swift::sma::GenericSignature &GS) {
+template <> struct MappingTraits<::language::sma::GenericSignature> {
+  static void mapping(IO &io, ::language::sma::GenericSignature &GS) {
     io.mapOptional("GenericParams", GS.GenericParams);
     io.mapOptional("ConformanceRequirements", GS.ConformanceRequirements);
     io.mapOptional("SameTypeRequirements", GS.SameTypeRequirements);
   }
 };
 
-template <> struct MappingTraits<::swift::sma::Module> {
-  static void mapping(IO &io, ::swift::sma::Module &M) {
+template <> struct MappingTraits<::language::sma::Module> {
+  static void mapping(IO &io, ::language::sma::Module &M) {
     io.mapRequired("Name", M.Name);
     io.mapOptional("ExportedModules", M.ExportedModules);
-    io.mapOptional("NestedDecls", M.Decls, ::swift::sma::NestedDecls());
+    io.mapOptional("NestedDecls", M.Decls, ::language::sma::NestedDecls());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::StructDecl> {
-  static void mapping(IO &io, ::swift::sma::StructDecl &SD) {
+template <> struct MappingTraits<::language::sma::StructDecl> {
+  static void mapping(IO &io, ::language::sma::StructDecl &SD) {
     io.mapRequired("Name", SD.Name);
     io.mapOptional("GenericSignature", SD.TheGenericSignature);
     io.mapOptional("ConformsToProtocols", SD.ConformsToProtocols);
-    io.mapOptional("Attributes", SD.Attributes, ::swift::sma::DeclAttributes());
-    io.mapOptional("NestedDecls", SD.Decls, ::swift::sma::NestedDecls());
+    io.mapOptional("Attributes", SD.Attributes, ::language::sma::DeclAttributes());
+    io.mapOptional("NestedDecls", SD.Decls, ::language::sma::NestedDecls());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::EnumCaseDecl> {
-  static void mapping(IO &io, ::swift::sma::EnumCaseDecl &ECD) {
+template <> struct MappingTraits<::language::sma::EnumCaseDecl> {
+  static void mapping(IO &io, ::language::sma::EnumCaseDecl &ECD) {
     io.mapRequired("Name", ECD.Name);
     io.mapOptional("ArgumentType", ECD.ArgumentType);
     io.mapOptional("RawValue", ECD.RawValue);
     io.mapOptional("Attributes", ECD.Attributes,
-                   ::swift::sma::DeclAttributes());
+                   ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::EnumDecl> {
-  static void mapping(IO &io, ::swift::sma::EnumDecl &ED) {
+template <> struct MappingTraits<::language::sma::EnumDecl> {
+  static void mapping(IO &io, ::language::sma::EnumDecl &ED) {
     io.mapRequired("Name", ED.Name);
     io.mapOptional("GenericSignature", ED.TheGenericSignature);
     io.mapOptional("RawType", ED.RawType);
     io.mapOptional("ConformsToProtocols", ED.ConformsToProtocols);
-    io.mapOptional("Attributes", ED.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", ED.Attributes, ::language::sma::DeclAttributes());
     io.mapOptional("Cases", ED.Cases);
-    io.mapOptional("NestedDecls", ED.Decls, ::swift::sma::NestedDecls());
+    io.mapOptional("NestedDecls", ED.Decls, ::language::sma::NestedDecls());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::ClassDecl> {
-  static void mapping(IO &io, ::swift::sma::ClassDecl &CD) {
+template <> struct MappingTraits<::language::sma::ClassDecl> {
+  static void mapping(IO &io, ::language::sma::ClassDecl &CD) {
     io.mapRequired("Name", CD.Name);
     io.mapOptional("GenericSignature", CD.TheGenericSignature);
     io.mapOptional("Superclass", CD.Superclass);
     io.mapOptional("ConformsToProtocols", CD.ConformsToProtocols);
-    io.mapOptional("Attributes", CD.Attributes, ::swift::sma::DeclAttributes());
-    io.mapOptional("NestedDecls", CD.Decls, ::swift::sma::NestedDecls());
+    io.mapOptional("Attributes", CD.Attributes, ::language::sma::DeclAttributes());
+    io.mapOptional("NestedDecls", CD.Decls, ::language::sma::NestedDecls());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::ProtocolDecl> {
-  static void mapping(IO &io, ::swift::sma::ProtocolDecl &PD) {
+template <> struct MappingTraits<::language::sma::ProtocolDecl> {
+  static void mapping(IO &io, ::language::sma::ProtocolDecl &PD) {
     io.mapRequired("Name", PD.Name);
     io.mapOptional("ConformsToProtocols", PD.ConformsToProtocols);
-    io.mapOptional("Attributes", PD.Attributes, ::swift::sma::DeclAttributes());
-    io.mapOptional("NestedDecls", PD.Decls, ::swift::sma::NestedDecls());
+    io.mapOptional("Attributes", PD.Attributes, ::language::sma::DeclAttributes());
+    io.mapOptional("NestedDecls", PD.Decls, ::language::sma::NestedDecls());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::TypealiasDecl> {
-  static void mapping(IO &io, ::swift::sma::TypealiasDecl &TD) {
+template <> struct MappingTraits<::language::sma::TypealiasDecl> {
+  static void mapping(IO &io, ::language::sma::TypealiasDecl &TD) {
     io.mapRequired("Name", TD.Name);
     io.mapRequired("Type", TD.Type);
-    io.mapOptional("Attributes", TD.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", TD.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::AssociatedTypeDecl> {
-  static void mapping(IO &io, ::swift::sma::AssociatedTypeDecl &ATD) {
+template <> struct MappingTraits<::language::sma::AssociatedTypeDecl> {
+  static void mapping(IO &io, ::language::sma::AssociatedTypeDecl &ATD) {
     io.mapRequired("Name", ATD.Name);
     io.mapOptional("DefaultDefinition", ATD.DefaultDefinition);
     io.mapOptional("Attributes", ATD.Attributes,
-                   ::swift::sma::DeclAttributes());
+                   ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::VarDecl> {
-  static void mapping(IO &io, ::swift::sma::VarDecl &VD) {
+template <> struct MappingTraits<::language::sma::VarDecl> {
+  static void mapping(IO &io, ::language::sma::VarDecl &VD) {
     io.mapRequired("Name", VD.Name);
     io.mapRequired("Type", VD.Type);
     io.mapOptional("IsSettable", VD.IsSettable, false);
     io.mapOptional("IsStored", VD.IsStored, false);
-    io.mapOptional("Attributes", VD.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", VD.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::LetDecl> {
-  static void mapping(IO &io, ::swift::sma::LetDecl &LD) {
+template <> struct MappingTraits<::language::sma::LetDecl> {
+  static void mapping(IO &io, ::language::sma::LetDecl &LD) {
     io.mapRequired("Name", LD.Name);
     io.mapRequired("Type", LD.Type);
-    io.mapOptional("Attributes", LD.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", LD.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::FuncParam> {
-  static void mapping(IO &io, ::swift::sma::FuncParam &FP) {
+template <> struct MappingTraits<::language::sma::FuncParam> {
+  static void mapping(IO &io, ::language::sma::FuncParam &FP) {
     io.mapRequired("Name", FP.Name);
     io.mapRequired("Type", FP.Type);
     io.mapOptional("IsInout", FP.IsInout, false);
-    io.mapOptional("Attributes", FP.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", FP.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::FuncDecl> {
-  static void mapping(IO &io, ::swift::sma::FuncDecl &FD) {
+template <> struct MappingTraits<::language::sma::FuncDecl> {
+  static void mapping(IO &io, ::language::sma::FuncDecl &FD) {
     io.mapRequired("Name", FD.Name);
     io.mapOptional("IsStatic", FD.IsStatic, false);
     io.mapOptional("GenericSignature", FD.TheGenericSignature);
     io.mapRequired("Params", FD.Params);
     io.mapRequired("ResultType", FD.ResultType);
-    io.mapOptional("Attributes", FD.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", FD.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct ScalarEnumerationTraits<::swift::sma::InitializerKind> {
-  static void enumeration(IO &io, ::swift::sma::InitializerKind &Value) {
-    io.enumCase(Value, "Designated", ::swift::sma::InitializerKind::Designated);
+template <> struct ScalarEnumerationTraits<::language::sma::InitializerKind> {
+  static void enumeration(IO &io, ::language::sma::InitializerKind &Value) {
+    io.enumCase(Value, "Designated", ::language::sma::InitializerKind::Designated);
     io.enumCase(Value, "Convenience",
-                ::swift::sma::InitializerKind::Convenience);
+                ::language::sma::InitializerKind::Convenience);
   }
 };
 
 template <>
-struct ScalarEnumerationTraits<::swift::sma::InitializerFailability> {
-  static void enumeration(IO &io, ::swift::sma::InitializerFailability &Value) {
-    io.enumCase(Value, "None", ::swift::sma::InitializerFailability::None);
+struct ScalarEnumerationTraits<::language::sma::InitializerFailability> {
+  static void enumeration(IO &io, ::language::sma::InitializerFailability &Value) {
+    io.enumCase(Value, "None", ::language::sma::InitializerFailability::None);
     io.enumCase(Value, "Optional",
-                ::swift::sma::InitializerFailability::Optional);
+                ::language::sma::InitializerFailability::Optional);
     io.enumCase(
         Value, "ImplicitlyUnwrappedOptional",
-        ::swift::sma::InitializerFailability::ImplicitlyUnwrappedOptional);
+        ::language::sma::InitializerFailability::ImplicitlyUnwrappedOptional);
   }
 };
 
-template <> struct MappingTraits<::swift::sma::InitDecl> {
-  static void mapping(IO &io, ::swift::sma::InitDecl &ID) {
+template <> struct MappingTraits<::language::sma::InitDecl> {
+  static void mapping(IO &io, ::language::sma::InitDecl &ID) {
     io.mapRequired("InitializerKind", ID.TheInitializerKind);
     io.mapRequired("InitializerFailability", ID.TheInitializerFailability);
     io.mapOptional("GenericSignature", ID.TheGenericSignature);
     io.mapRequired("Params", ID.Params);
     io.mapOptional("IsTrappingStub", ID.IsTrappingStub);
-    io.mapOptional("Attributes", ID.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", ID.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-template <> struct MappingTraits<::swift::sma::DeinitDecl> {
-  static void mapping(IO &io, ::swift::sma::DeinitDecl &DD) {
+template <> struct MappingTraits<::language::sma::DeinitDecl> {
+  static void mapping(IO &io, ::language::sma::DeinitDecl &DD) {
     io.mapRequired("Name", DD.Name);
-    io.mapOptional("Attributes", DD.Attributes, ::swift::sma::DeclAttributes());
+    io.mapOptional("Attributes", DD.Attributes, ::language::sma::DeclAttributes());
   }
 };
 
-void MappingTraits<::swift::sma::NestedDecls>::mapping(
-    IO &io, ::swift::sma::NestedDecls &ND) {
+void MappingTraits<::language::sma::NestedDecls>::mapping(
+    IO &io, ::language::sma::NestedDecls &ND) {
   io.mapOptional("Structs", ND.Structs);
   io.mapOptional("Enums", ND.Enums);
   io.mapOptional("Classes", ND.Classes);
@@ -703,7 +704,7 @@ void MappingTraits<::swift::sma::NestedDecls>::mapping(
 }
 
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
 namespace {
 
@@ -726,7 +727,7 @@ public:
     Options.PreferTypeRepr = true;
 
     sma::TypeName ResultTN;
-    llvm::raw_string_ostream OS(ResultTN.Name);
+    toolchain::raw_string_ostream OS(ResultTN.Name);
     T.print(OS, Options);
     return ResultTN;
   }
@@ -879,7 +880,7 @@ public:
 
 std::shared_ptr<sma::Module> createSMAModel(ModuleDecl *M) {
   SmallVector<Decl *, 1> Decls;
-  swift::getTopLevelDeclsForDisplay(M, Decls);
+  language::getTopLevelDeclsForDisplay(M, Decls);
 
   SMAModelGenerator Generator;
   for (auto *D : Decls) {
@@ -899,7 +900,7 @@ std::shared_ptr<sma::Module> createSMAModel(ModuleDecl *M) {
 
 } // unnamed namespace
 
-int swift::doGenerateModuleAPIDescription(StringRef DriverPath,
+int language::doGenerateModuleAPIDescription(StringRef DriverPath,
                                           StringRef MainExecutablePath,
                                           ArrayRef<std::string> Args) {
   std::vector<const char *> CStringArgs;
@@ -920,7 +921,7 @@ int swift::doGenerateModuleAPIDescription(StringRef DriverPath,
       });
 
   if (HadError) {
-    llvm::errs() << "error: unable to create a CompilerInvocation\n";
+    toolchain::errs() << "error: unable to create a CompilerInvocation\n";
     return 1;
   }
 
@@ -930,7 +931,7 @@ int swift::doGenerateModuleAPIDescription(StringRef DriverPath,
   CI.addDiagnosticConsumer(&PDC);
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::errs() << InstanceSetupError << '\n';
+    toolchain::errs() << InstanceSetupError << '\n';
     return 1;
   }
   CI.performSema();
@@ -938,10 +939,10 @@ int swift::doGenerateModuleAPIDescription(StringRef DriverPath,
   PrintOptions Options = PrintOptions::printDeclarations();
 
   ModuleDecl *M = CI.getMainModule();
-  M->getMainSourceFile().print(llvm::outs(), Options);
+  M->getMainSourceFile().print(toolchain::outs(), Options);
 
   auto SMAModel = createSMAModel(M);
-  llvm::yaml::Output YOut(llvm::outs());
+  toolchain::yaml::Output YOut(toolchain::outs());
   YOut << *SMAModel.get();
 
   return 0;

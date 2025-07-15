@@ -1,4 +1,4 @@
-//===--- Overrides.cpp - Compat override table for Swift 5.0 runtime ------===//
+//===--- Overrides.cpp - Compat override table for Codira 5.0 runtime ------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file provides compatibility override hooks for Swift 5.0 runtimes.
+//  This file provides compatibility override hooks for Codira 5.0 runtimes.
 //
 //===----------------------------------------------------------------------===//
 
@@ -36,24 +37,24 @@ struct OverrideSection {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-designated-field-initializers"
-OverrideSection Swift50Overrides
-__attribute__((used, section("__DATA,__swift_hooks"))) = {
+OverrideSection Codira50Overrides
+__attribute__((used, section("__DATA,__language_hooks"))) = {
   .version = 0,
-  .conformsToProtocol = swift50override_conformsToProtocol,
-  // We use the same hook for conformsToSwiftProtocol as we do for a 5.1
+  .conformsToProtocol = language50override_conformsToProtocol,
+  // We use the same hook for conformsToCodiraProtocol as we do for a 5.1
   // runtime, so reference the override from the Compatibility51 library.
-  // If we're back deploying to Swift 5.0, we also have to support 5.1, so
+  // If we're back deploying to Codira 5.0, we also have to support 5.1, so
   // the Compatibility51 library is always linked when the 50 library is.
-  .conformsToSwiftProtocol = swift51override_conformsToSwiftProtocol,
+  .conformsToCodiraProtocol = language51override_conformsToCodiraProtocol,
 };
 #pragma clang diagnostic pop
 
 // Allow this library to get force-loaded by autolinking
 __attribute__((weak, visibility("hidden")))
 extern "C"
-char _swift_FORCE_LOAD_$_swiftCompatibility50 = 0;
+char _language_FORCE_LOAD_$_languageCompatibility50 = 0;
 
-// Put a getClass hook in front of the system Swift runtime's hook to prevent it
+// Put a getClass hook in front of the system Codira runtime's hook to prevent it
 // from trying to interpret symbolic references. rdar://problem/55036306
 
 // FIXME: delete this #if and dlsym once we don't
@@ -90,12 +91,12 @@ using mach_header_platform = mach_header_64;
 using mach_header_platform = mach_header;
 #endif
 
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_BEGIN
 __attribute__((constructor))
 static void installGetClassHook_untrusted() {
   extern char __dso_handle[];
   
-  // swiftCompatibility* might be linked into multiple dynamic libraries because
+  // languageCompatibility* might be linked into multiple dynamic libraries because
   // of build system reasons, but the copy in the main executable is the only
   // one that should count. Bail early unless we're running out of the main
   // executable.
@@ -122,4 +123,4 @@ static void installGetClassHook_untrusted() {
   }
 #pragma clang diagnostic pop
 }
-SWIFT_ALLOWED_RUNTIME_GLOBAL_CTOR_END
+LANGUAGE_ALLOWED_RUNTIME_GLOBAL_CTOR_END

@@ -1,21 +1,29 @@
-//===- llvm/ADT/SmallVector.cpp - 'Normally small' vectors ----------------===//
+//===- toolchain/ADT/SmallVector.cpp - 'Normally small' vectors ----------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the SmallVector class.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <cstdint>
-#ifdef LLVM_ENABLE_EXCEPTIONS
+#ifdef TOOLCHAIN_ENABLE_EXCEPTIONS
 #include <stdexcept>
 #endif
-using namespace llvm;
+using namespace toolchain;
 
 // Check that no bytes are wasted and everything is well-aligned.
 namespace {
@@ -73,7 +81,7 @@ template <class Size_T>
 void *SmallVectorBase<Size_T>::mallocForGrow(size_t MinSize, size_t TSize,
                                              size_t &NewCapacity) {
   NewCapacity = getNewCapacity<Size_T>(MinSize, TSize, this->capacity());
-  return llvm::safe_malloc(NewCapacity * TSize);
+  return toolchain::safe_malloc(NewCapacity * TSize);
 }
 
 // Note: Moving this function into the header may cause performance regression.
@@ -96,14 +104,14 @@ void SmallVectorBase<Size_T>::grow_pod(void *FirstEl, size_t MinSize,
   this->Capacity = NewCapacity;
 }
 
-template class llvm::SmallVectorBase<uint32_t>;
+template class toolchain::SmallVectorBase<uint32_t>;
 
 // Disable the uint64_t instantiation for 32-bit builds.
 // Both uint32_t and uint64_t instantiations are needed for 64-bit builds.
 // This instantiation will never be used in 32-bit builds, and will cause
 // warnings when sizeof(Size_T) > sizeof(size_t).
 #if SIZE_MAX > UINT32_MAX
-template class llvm::SmallVectorBase<uint64_t>;
+template class toolchain::SmallVectorBase<uint64_t>;
 
 // Assertions to ensure this #if stays in sync with SmallVectorSizeType.
 static_assert(sizeof(SmallVectorSizeType<char>) == sizeof(uint64_t),

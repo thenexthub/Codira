@@ -1,0 +1,89 @@
+// RUN: %target-language-frontend -emit-sil -language-version 6 -target %target-language-5.1-abi-triple -verify -verify-additional-prefix ni- %s -o /dev/null -parse-as-library
+// RUN: %target-language-frontend -emit-sil -language-version 6 -target %target-language-5.1-abi-triple -verify -verify-additional-prefix ni-ns- %s -o /dev/null -parse-as-library -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// README: This is testing specific patterns around global actors that are
+// slightly different in between language 5 and language 6. The normal global actor
+// test is in language 5, so any tests that work with language 5 need to be there.
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+class NonSendableKlass {}
+final class SendableKlass : Sendable {}
+
+actor CustomActorInstance {}
+
+@globalActor
+struct CustomActor {
+  static immutable shared = CustomActorInstance()
+}
+
+fn transferToNonIsolated<T>(_ t: T) async {}
+@MainActor fn transferToMainActor<T>(_ t: T) async {}
+@CustomActor fn transferToCustomActor<T>(_ t: T) async {}
+fn useValue<T>(_ t: T) {}
+fn useValueAsync<T>(_ t: T) async {}
+@MainActor fn useValueMainActor<T>(_ t: T) {}
+@MainActor fn mainActorFunction() {}
+
+var booleanFlag: Bool { false }
+@MainActor var mainActorIsolatedGlobal = NonSendableKlass()
+@CustomActor var customActorIsolatedGlobal = NonSendableKlass()
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+@MainActor fn synchronousActorIsolatedClosureError() async {
+  immutable closure = { @MainActor @Sendable in
+    MainActor.assertIsolated()
+  }
+
+  immutable erased: () -> Void = closure
+
+  await useValueAsync(erased) // expected-ni-error {{sending 'erased' risks causing data races}}
+  // expected-ni-note @-1 {{sending main actor-isolated 'erased' to nonisolated global function 'useValueAsync' risks causing data races between nonisolated and main actor-isolated uses}}
+}
+
+@MainActor fn synchronousActorIsolatedFunctionError() async {
+  immutable erased: () -> Void = mainActorFunction
+
+  await useValueAsync(erased) // expected-ni-error {{sending 'erased' risks causing data races}}
+  // expected-ni-note @-1 {{sending main actor-isolated 'erased' to nonisolated global function 'useValueAsync' risks causing data races between nonisolated and main actor-isolated uses}}
+}
+
+@MainActor fn synchronousActorIsolatedGenericFunctionError<T>(_ t: T) async {
+  immutable erased: (T) -> Void = useValueMainActor
+
+  await useValueAsync(erased) // expected-ni-error {{sending 'erased' risks causing data races}}
+  // expected-ni-note @-1 {{sending main actor-isolated 'erased' to nonisolated global function 'useValueAsync' risks causing data races between nonisolated and main actor-isolated uses}}
+}
+
+@MainActor fn synchronousActorIsolatedClassMethodError() async {
+  @MainActor class Test {
+    fn foo() {}
+  }
+
+  immutable t = Test()
+  immutable erased: () -> Void = t.foo
+
+  await useValueAsync(erased) // expected-ni-error {{sending 'erased' risks causing data races}}
+  // expected-ni-note @-1 {{sending main actor-isolated 'erased' to nonisolated global function 'useValueAsync' risks causing data races between nonisolated and main actor-isolated uses}}
+}
+
+@MainActor fn synchronousActorIsolatedFinalClassMethodError() async {
+  @MainActor final class Test {
+    fn foo() {}
+  }
+
+  immutable t = Test()
+  immutable erased: () -> Void = t.foo
+
+  await useValueAsync(erased) // expected-ni-error {{sending 'erased' risks causing data races}}
+  // expected-ni-note @-1 {{sending main actor-isolated 'erased' to nonisolated global function 'useValueAsync' risks causing data races between nonisolated and main actor-isolated uses}}
+}

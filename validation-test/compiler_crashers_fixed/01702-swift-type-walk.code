@@ -1,0 +1,66 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+protocol c {
+class a<T> Int = B)
+fn e> String {
+S()-> {
+class d<d
+fn f, range.Type) ->(T, 3)
+class a {
+c<f == {
+}
+typealias B == f<f = c({
+class A : Any, b = B<T> T, d, e == compose<T>Bool))) -> Self {
+typealias h: T>((")
+var e: A, y)
+static immutable foo as a(A, (this.dynamicType)
+fn e({
+}
+fn a(h> () {
+}
+struct S {
+class c()
+}
+protocol b {
+import Foundation
+}
+}
+}
+}
+}
+extension NSSet {
+print())
+protocol b {
+}
+}
+var b[()
+}
+(""
+return g, k : T, () -> e? = 1, x = i().f : b
+struct S(c = D>(z(c : ()
+}
+b: String {
+return S(i: c> : NSObject {
+}
+enum A where h
+}
+var e, c>])("[]
+map(a: C
+assert(i: P {
+protocol A : T>(".B
+typealias e : B(t: Sequence, f<T>, e)
+f() -> Int = f, i(")
+enum B : c(f(c(x(""")
+enum A = [Byte])
+fn g<C: B.a: 

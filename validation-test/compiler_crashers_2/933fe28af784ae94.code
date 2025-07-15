@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::ASTScopeDeclConsumerForUnqualifiedLookup::consume(toolchain::ArrayRef<language::ValueDecl*>, language::NullablePtr<language::DeclContext>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  @abi(fn a) var b : c

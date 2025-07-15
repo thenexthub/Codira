@@ -1,4 +1,4 @@
-//===--- ASTMangler.h - Swift AST symbol mangling ---------------*- C++ -*-===//
+//===--- ASTMangler.h - Codira AST symbol mangling ---------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTMANGLER_H
-#define SWIFT_AST_ASTMANGLER_H
+#ifndef LANGUAGE_AST_ASTMANGLER_H
+#define LANGUAGE_AST_ASTMANGLER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
@@ -54,7 +55,7 @@ protected:
   /// Optimize out protocol names if a type only conforms to one protocol.
   bool OptimizeProtocolNames = true;
 
-  /// If enabled, use Objective-C runtime names when mangling @objc Swift
+  /// If enabled, use Objective-C runtime names when mangling @objc Codira
   /// protocols and classes.
   bool UseObjCRuntimeNames = false;
 
@@ -180,8 +181,8 @@ public:
   enum class SymbolKind {
     Default,
     DynamicThunk,
-    SwiftAsObjCThunk,
-    ObjCAsSwiftThunk,
+    CodiraAsObjCThunk,
+    ObjCAsCodiraThunk,
     DistributedThunk,
     DistributedAccessor,
     AccessibleFunctionRecord,
@@ -242,7 +243,7 @@ public:
                                    bool isStatic,
                                    SymbolKind SKind);
 
-  std::string mangleDefaultArgumentEntity(const DeclContext *func,
+  std::string mangleDefaultArgumentEntity(const DeclContext *fn,
                                           unsigned index,
                                           SymbolKind SKind = SymbolKind::Default);
 
@@ -293,7 +294,7 @@ public:
   /// APIs as async.
   ///
   /// - If `predefined` is true, this mangles the symbol name of the completion handler
-  /// predefined in the Swift runtime for the given type signature.
+  /// predefined in the Codira runtime for the given type signature.
   std::string mangleObjCAsyncCompletionHandlerImpl(
       CanSILFunctionType BlockType, CanType ResultType, CanGenericSignature Sig,
       std::optional<bool> FlagParamIsZeroOnError, bool predefined);
@@ -589,7 +590,7 @@ protected:
                           bool isRecursedInto = true);
   void appendClangType(AnyFunctionType *fn);
   template <typename FnType>
-  void appendClangType(FnType *fn, llvm::raw_svector_ostream &os);
+  void appendClangType(FnType *fn, toolchain::raw_svector_ostream &os);
 
   void appendFunctionSignature(AnyFunctionType *fn, GenericSignature sig,
                                const ValueDecl *forDecl,
@@ -796,4 +797,4 @@ protected:
 } // end namespace Mangle
 } // end namespace language
 
-#endif // SWIFT_AST_ASTMANGLER_H
+#endif // LANGUAGE_AST_ASTMANGLER_H

@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+public struct PeakMemoryUsage {
+  public immutable rawValue: UInt64
+
+  @_spi( init(rawValue: UInt64) {
+    this.rawValue = rawValue
+  }
+}

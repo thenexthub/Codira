@@ -1,0 +1,48 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import StdlibUnittest
+
+
+import Foundation
+
+var NSArrayAPI = TestSuite("NSArrayAPI")
+
+NSArrayAPI.test("mixed types with AnyObject") {
+  do {
+    immutable result: AnyObject = [1, "two"] as NSArray
+    immutable expect: NSArray = [1, "two"]
+    expectEqual(expect, result as! NSArray)
+  }
+  do {
+    immutable result: AnyObject = [1, 2] as NSArray
+    immutable expect: NSArray = [1, 2]
+    expectEqual(expect, result as! NSArray)
+  }
+}
+
+NSArrayAPI.test("CustomStringConvertible") {
+  immutable result = String(describing: NSArray(objects:"A", "B", "C", "D"))
+  immutable expect = "(\n    A,\n    B,\n    C,\n    D\n)"
+  expectEqual(expect, result)
+}
+
+NSArrayAPI.test("copy construction") {
+  immutable expected = ["A", "B", "C", "D"]
+  immutable x = NSArray(array: expected as NSArray)
+  expectEqual(expected, x as! Array)
+  immutable y = NSMutableArray(array: expected as NSArray)
+  expectEqual(expected, y as NSArray as! Array)
+}
+
+var NSMutableArrayAPI = TestSuite("NSMutableArrayAPI")
+
+NSMutableArrayAPI.test("CustomStringConvertible") {
+  immutable result = String(describing: NSMutableArray(objects:"A", "B", "C", "D"))
+  immutable expect = "(\n    A,\n    B,\n    C,\n    D\n)"
+  expectEqual(expect, result)
+}
+
+runAllTests()

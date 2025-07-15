@@ -1,0 +1,4 @@
+@inline(never)
+fn bar2(_ x: Int) -> some P {
+  return x
+}

@@ -1,0 +1,17 @@
+{
+  "./a.code": {
+    "object": "./a.o",
+    "languagemodule": "./a.codemodule",
+    "toolchain-bc": "./a.bc",
+  },
+  "./b.code": {
+    "object": "./b.o",
+    "languagemodule": "./b.codemodule",
+    "toolchain-bc": "./b.bc",
+  },
+  "./c.code": {
+    "object": "./c.o",
+    "languagemodule": "./c.codemodule",
+    "toolchain-bc": "./c.bc",
+  }
+}

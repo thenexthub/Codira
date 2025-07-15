@@ -1,0 +1,32 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<T! {
+immutable c == b<T>(n: H) {
+protocol C {
+immutable c, U.E == D> () {
+}
+class A {
+typealias B) {
+}
+}
+enum S<T>() {
+}
+}
+fn b: T>? = { c, f: Array<U : c: NSObject {
+}
+}
+}
+return b: NSManagedObject {
+}
+class A {
+class d: A

@@ -1,4 +1,4 @@
-//===--- Passes.def - Swift SILPass Metaprogramming -------------*- C++ -*-===//
+//===--- Passes.def - Codira SILPass Metaprogramming -------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with SILPasses.
@@ -21,7 +22,7 @@
 ///   Defines a function pass.
 
 ///   Id is a pass "identifier", used for its enum case, PassKind::Id,
-///   and type name, as returned by the global function swift::create##Id().
+///   and type name, as returned by the global function language::create##Id().
 ///
 ///   Tag identifies the pass as a command-line compatible option string.
 ///
@@ -31,7 +32,7 @@
 ///   cases and tools to specify a pass by string.
 ///
 ///   In addition to listing a pass in this file, a pass must also be registered
-///   in `registerSwiftPasses()`.
+///   in `registerCodiraPasses()`.
 #ifndef PASS
 #error "Macro must be defined by includer"
 #endif
@@ -44,7 +45,7 @@
 #endif
 
 /// Used for passes which are implemented in C++.
-///   Do not add any LEGACY_PASS entries. Implement new passes in swift
+///   Do not add any LEGACY_PASS entries. Implement new passes in language
 ///   and add them with PASS or MODULE_PASS.
 #ifndef LEGACY_PASS
 #define LEGACY_PASS(Id, Tag, Description) PASS(Id, Tag, Description)
@@ -62,6 +63,8 @@
 #endif
 
 
+PASS(AllocBoxToStack, "allocbox-to-stack",
+     "stack promotion of box objects")
 PASS(CopyToBorrowOptimization, "copy-to-borrow-optimization",
      "Convert load [copy] instructions to load_borrow and remove copies of borrowed values")
 PASS(AliasInfoDumper, "dump-alias-info",
@@ -143,12 +146,21 @@ PASS(StackPromotion, "stack-promotion",
      "Stack Promotion of Class Objects")
 PASS(UpdateBorrowedFrom, "update-borrowed-from",
      "Test pass for update borrowed-from instructions")
-// NOTE - ExperimentalSwiftBasedClosureSpecialization and AutodiffClosureSpecialization are a WIP
-PASS(ExperimentalSwiftBasedClosureSpecialization, "experimental-swift-based-closure-specialization",
-     "General closure-specialization pass written in Swift")
+PASS(MandatoryTempRValueElimination, "mandatory-temp-rvalue-elimination",
+     "Mandatory remove short-lived immutable temporary copies")
+PASS(TempRValueElimination, "temp-rvalue-elimination",
+     "Remove short-lived immutable temporary copies")
+PASS(TempLValueElimination, "temp-lvalue-elimination",
+     "Remove short-lived immutable temporary l-values")
+
+// NOTE - ExperimentalCodiraBasedClosureSpecialization and AutodiffClosureSpecialization are a WIP
+PASS(ExperimentalCodiraBasedClosureSpecialization, "experimental-language-based-closure-specialization",
+     "General closure-specialization pass written in Codira")
 PASS(AutodiffClosureSpecialization, "autodiff-closure-specialization",
      "Autodiff specific closure-specialization pass")
 
+MODULE_PASS(MandatoryAllocBoxToStack, "mandatory-allocbox-to-stack",
+     "Mandatory stack promotion of box objects")
 MODULE_PASS(AsyncDemotion, "async-demotion",
      "Convert async functions to be synchronous")
 MODULE_PASS(RunUnitTests, "run-unit-tests",
@@ -163,8 +175,8 @@ MODULE_PASS(StackProtection, "stack-protection",
      "Decides which functions need stack protectors")
 MODULE_PASS(DiagnoseUnknownConstValues, "diagnose-unknown-const-values",
      "Diagnose any '@const' entities which could not be simplified to a compile-time value")
-MODULE_PASS(EmbeddedSwiftDiagnostics, "embedded-swift-diagnostics",
-     "Diagnose violations of Embedded Swift language restrictions")
+MODULE_PASS(EmbeddedCodiraDiagnostics, "embedded-language-diagnostics",
+     "Diagnose violations of Embedded Codira language restrictions")
 
 IRGEN_PASS(AllocStackHoisting, "alloc-stack-hoisting",
            "SIL alloc_stack Hoisting")
@@ -178,7 +190,7 @@ IRGEN_PASS(PackMetadataMarkerInserter, "pack-metadata-marker-inserter",
 // Do not add any LEGACY_PASS entries below!
 //
 // Theses are passes, which are implemented in C++. Implement new passes
-// in swift and add them with PASS or MODULE_PASS above.
+// in language and add them with PASS or MODULE_PASS above.
 //
 //===----------------------------------------------------------------------===//
 
@@ -210,7 +222,7 @@ LEGACY_PASS(AccessMarkerElimination, "access-marker-elim",
      "Access Marker Elimination.")
 LEGACY_PASS(AddressLowering, "address-lowering",
      "SIL Address Lowering")
-LEGACY_PASS(AllocBoxToStack, "allocbox-to-stack",
+LEGACY_PASS(LegacyAllocBoxToStack, "legacy-allocbox-to-stack",
      "Stack Promotion of Box Objects")
 LEGACY_PASS(ArrayCountPropagation, "array-count-propagation",
      "Array Count Propagation")
@@ -246,7 +258,7 @@ LEGACY_PASS(ConditionForwarding, "condition-forwarding",
 LEGACY_PASS(ConstantEvaluatorTester, "test-constant-evaluator",
       "Test constant evaluator")
 LEGACY_PASS(ConstantEvaluableSubsetChecker, "test-constant-evaluable-subset",
-     "Test Swift code snippets expected to be constant evaluable")
+     "Test Codira code snippets expected to be constant evaluable")
 LEGACY_PASS(CopyForwarding, "copy-forwarding",
      "Copy Forwarding to Remove Redundant Copies")
 LEGACY_PASS(CopyPropagation, "copy-propagation",
@@ -374,7 +386,7 @@ LEGACY_PASS(ModulePrinter, "module-printer",
 LEGACY_PASS(NestedSemanticFunctionCheck, "nested-semantic-function-check",
      "Diagnose improperly nested '@_semantics' functions")
 LEGACY_PASS(NonTransparentFunctionOwnershipModelEliminator,
-     "non-transparent-func-ownership-model-eliminator",
+     "non-transparent-fn-ownership-model-eliminator",
      "Eliminate Ownership Annotations from non-transparent SIL Functions")
 LEGACY_PASS(RCIdentityDumper, "rc-id-dumper",
      "Print Reference Count Identities")
@@ -404,10 +416,6 @@ LEGACY_PASS(PerformanceSILLinker, "performance-linker",
      "Deserialize all referenced SIL functions")
 LEGACY_PASS(RawSILInstLowering, "raw-sil-inst-lowering",
      "Lower all raw SIL instructions to canonical equivalents.")
-LEGACY_PASS(TempLValueOpt, "temp-lvalue-opt",
-     "Remove short-lived immutable temporary l-values")
-LEGACY_PASS(TempRValueOpt, "temp-rvalue-opt",
-     "Remove short-lived immutable temporary copies")
 LEGACY_PASS(IRGenPrepare, "irgen-prepare",
      "Cleanup SIL in preparation for IRGen")
 LEGACY_PASS(SendNonSendable, "send-non-sendable",
@@ -440,7 +448,7 @@ LEGACY_PASS(StripDebugInfo, "strip-debug-info",
      "Strip Debug Information")
 LEGACY_PASS(StringOptimization, "string-optimization",
      "Optimization for String operations")
-LEGACY_PASS(SwiftArrayPropertyOpt, "array-property-opt",
+LEGACY_PASS(CodiraArrayPropertyOpt, "array-property-opt",
      "Loop Specialization for Array Properties")
 LEGACY_PASS(UsePrespecialized, "use-prespecialized",
      "Use Pre-Specialized Functions")
@@ -513,7 +521,7 @@ LEGACY_PASS(PruneVTables, "prune-vtables",
 // Do not add any LEGACY_PASS entries above!
 //
 // Theses are passes, which are implemented in C++. Implement new passes
-// in swift and add them with PASS or MODULE_PASS above.
+// in language and add them with PASS or MODULE_PASS above.
 //
 //===----------------------------------------------------------------------===//
 

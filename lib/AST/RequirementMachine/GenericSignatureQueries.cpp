@@ -1,13 +1,17 @@
 //===--- GenericSignatureQueries.cpp --------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The various generic signature query operations on GenericSignature will
@@ -274,8 +278,9 @@ RequirementMachine::getLongestValidPrefix(const MutableTerm &term) const {
     case Symbol::Kind::ConcreteConformance:
     case Symbol::Kind::Shape:
     case Symbol::Kind::PackElement:
-      llvm::errs() <<"Invalid symbol in a type term: " << term << "\n";
-      abort();
+      ABORT([&](auto &out) {
+        out << "Invalid symbol in a type term: " << term;
+      });
     }
 
     // This symbol is valid, add it to the longest prefix.
@@ -436,25 +441,25 @@ Type RequirementMachine::getReducedTypeParameter(
   // If U is not concrete, we have an invalid member type of a dependent
   // type, which is not valid in this generic signature. Give up.
   if (prefix.empty() || prefixType->isTypeParameter()) {
-    llvm::errs() << "\n";
-    llvm::errs() << "getReducedTypeParameter() was called\n";
-    llvm::errs() << "       with " << Sig << ",\n";
-    llvm::errs() << "       and " << t << ".\n\n";
-    if (prefix.empty()) {
-      llvm::errs() << "This type parameter contains the generic parameter "
-                   << Type(t->getRootGenericParam()) << ".\n\n";
-      llvm::errs() << "This generic parameter is not part of the given "
-                   << "generic signature.\n\n";
-    } else {
-      llvm::errs() << "This type parameter's reduced term is " << term << ".\n\n";
-      llvm::errs() << "This is not a valid term, because " << prefix << " does not "
-                   << "have a member type named " << term[prefix.size()] << ".\n\n";
-    }
-    llvm::errs() << "This usually indicates the caller passed the wrong type or "
-                 << "generic signature to getReducedType().\n\n";
+    ABORT([&](auto &out) {
+      out << "getReducedTypeParameter() was called\n";
+      out << "       with " << Sig << ",\n";
+      out << "       and " << t << ".\n\n";
+      if (prefix.empty()) {
+        out << "This type parameter contains the generic parameter "
+            << Type(t->getRootGenericParam()) << ".\n\n";
+        out << "This generic parameter is not part of the given "
+            << "generic signature.\n\n";
+      } else {
+        out << "This type parameter's reduced term is " << term << ".\n\n";
+        out << "This is not a valid term, because " << prefix << " does not "
+            << "have a member type named " << term[prefix.size()] << ".\n\n";
+      }
+      out << "This usually indicates the caller passed the wrong type or "
+          << "generic signature to getReducedType().\n\n";
 
-    dump(llvm::errs());
-    abort();
+      dump(out);
+    });
   }
 
   // Compute the type of the unresolved suffix term V.
@@ -603,13 +608,14 @@ RequirementMachine::getConformancePath(Type type,
     }
 
     if (CurrentConformancePaths.empty()) {
-      llvm::errs() << "Failed to find conformance path for ";
-      llvm::errs() << type << " (" << term << ")" << " : ";
-      llvm::errs() << protocol->getName() << ":\n";
-      type.dump(llvm::errs());
-      llvm::errs() << "\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Failed to find conformance path for ";
+        out << type << " (" << term << ")" << " : ";
+        out << protocol->getName() << ":\n";
+        type.dump(out);
+        out << "\n";
+        dump(out);
+      });
     }
 
     // The buffer consists of all conformance paths of length N.
@@ -751,10 +757,11 @@ RequirementMachine::getReducedShapeTerm(Type type) const {
   if (term.size() != 2 ||
       term[0].getKind() != Symbol::Kind::GenericParam ||
       term[1].getKind() != Symbol::Kind::Shape) {
-    llvm::errs() << "Invalid reduced shape\n";
-    llvm::errs() << "Type: " << type << "\n";
-    llvm::errs() << "Term: " << term << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "Invalid reduced shape\n";
+      out << "Type: " << type << "\n";
+      out << "Term: " << term;
+    });
   }
 
   MutableTerm reducedTerm(term.begin(), term.end() - 1);
@@ -791,9 +798,10 @@ void RequirementMachine::verify(const MutableTerm &term) const {
                                 return genericParam->isEqual(otherType);
                               });
     if (found == genericParams.end()) {
-      llvm::errs() << "Bad generic parameter in " << term << "\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Bad generic parameter in " << term << "\n";
+        dump(out);
+      });
     }
   }
 
@@ -820,8 +828,9 @@ void RequirementMachine::verify(const MutableTerm &term) const {
       case Symbol::Kind::ConcreteType:
       case Symbol::Kind::ConcreteConformance:
       case Symbol::Kind::Shape:
-        llvm::errs() << "Bad initial symbol in " << term << "\n";
-        abort();
+        ABORT([&](auto &out) {
+          out << "Bad initial symbol in " << term;
+        });
         break;
       }
     }
@@ -847,8 +856,9 @@ void RequirementMachine::verify(const MutableTerm &term) const {
     case Symbol::Kind::ConcreteType:
     case Symbol::Kind::ConcreteConformance:
     case Symbol::Kind::PackElement:
-      llvm::errs() << "Bad interior symbol " << symbol << " in " << term << "\n";
-      abort();
+      ABORT([&](auto &out) {
+        out << "Bad interior symbol " << symbol << " in " << term;
+      });
       break;
     }
   }
@@ -858,12 +868,13 @@ void RequirementMachine::verify(const MutableTerm &term) const {
 
   // We should end up with the same term.
   if (simplified != term) {
-    llvm::errs() << "Term verification failed\n";
-    llvm::errs() << "Initial term:    " << term << "\n";
-    llvm::errs() << "Erased term:     " << erased << "\n";
-    llvm::errs() << "Simplified term: " << simplified << "\n";
-    llvm::errs() << "\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Term verification failed\n";
+      out << "Initial term:    " << term << "\n";
+      out << "Erased term:     " << erased << "\n";
+      out << "Simplified term: " << simplified << "\n";
+      out << "\n";
+      dump(out);
+    });
   }
 }

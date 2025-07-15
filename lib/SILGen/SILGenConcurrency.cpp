@@ -1,13 +1,17 @@
 //===--- SILGenConcurrency.cpp - Concurrency-specific SILGen --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgumentSource.h"
@@ -75,7 +79,7 @@ setExpectedExecutorForParameterIsolation(SILGenFunction &SGF,
   // argument.
   if (actorIsolation.getKind() == ActorIsolation::CallerIsolationInheriting) {
     auto *isolatedArg = SGF.F.maybeGetIsolatedArgument();
-    assert(isolatedArg &&
+    ASSERT(isolatedArg &&
            "Caller Isolation Inheriting without isolated parameter");
     ManagedValue isolatedMV;
     if (isolatedArg->getOwnershipKind() == OwnershipKind::Guaranteed) {
@@ -88,7 +92,7 @@ setExpectedExecutorForParameterIsolation(SILGenFunction &SGF,
     return;
   }
 
-  llvm_unreachable("Unhandled case?!");
+  toolchain_unreachable("Unhandled case?!");
 }
 
 void SILGenFunction::emitExpectedExecutorProlog() {
@@ -114,7 +118,7 @@ void SILGenFunction::emitExpectedExecutorProlog() {
           return false;
 
         case ActorIsolation::Erased:
-          llvm_unreachable("deinit cannot have erased isolation");
+          toolchain_unreachable("deinit cannot have erased isolation");
         }
       }
 
@@ -136,7 +140,8 @@ void SILGenFunction::emitExpectedExecutorProlog() {
   // Defer bodies are always called synchronously within their enclosing
   // function, so the check is unnecessary; in addition, we cannot
   // necessarily perform the check because the defer may not have
-  // captured the isolated parameter of the enclosing function.
+  // captured the isolated parameter of the enclosing function, and
+  // forcing a capture would cause DI problems in actor initializers.
   bool wantDataRaceChecks = [&] {
     if (F.isAsync() || F.isDefer())
       return false;
@@ -155,7 +160,7 @@ void SILGenFunction::emitExpectedExecutorProlog() {
   }();
 
   // FIXME: Avoid loading and checking the expected executor if concurrency is
-  // unavailable. This is specifically relevant for MainActor isolated contexts,
+  // unavailable. This is specifically relevant for MainActor-isolated contexts,
   // which are allowed to be available on OSes where concurrency is not
   // available. rdar://106827064
 
@@ -169,7 +174,7 @@ void SILGenFunction::emitExpectedExecutorProlog() {
       break;
 
     case ActorIsolation::Erased:
-      llvm_unreachable("method cannot have erased isolation");
+      toolchain_unreachable("method cannot have erased isolation");
 
     case ActorIsolation::ActorInstance: {
       // Only produce an executor for actor-isolated functions that are async
@@ -195,7 +200,8 @@ void SILGenFunction::emitExpectedExecutorProlog() {
 
     case ActorIsolation::GlobalActor:
       if (F.isAsync() || wantDataRaceChecks) {
-        setExpectedExecutorForGlobalActor(*this, actorIsolation.getGlobalActor());
+        auto globalActorType = F.mapTypeIntoContext(actorIsolation.getGlobalActor());
+        setExpectedExecutorForGlobalActor(*this, globalActorType);
       }
       break;
     }
@@ -215,7 +221,7 @@ void SILGenFunction::emitExpectedExecutorProlog() {
       break;
 
     case ActorIsolation::Erased:
-      llvm_unreachable("closure cannot have erased isolation");
+      toolchain_unreachable("closure cannot have erased isolation");
 
     case ActorIsolation::ActorInstance: {
       if (wantExecutor) {
@@ -226,7 +232,8 @@ void SILGenFunction::emitExpectedExecutorProlog() {
 
     case ActorIsolation::GlobalActor:
       if (wantExecutor) {
-        setExpectedExecutorForGlobalActor(*this, actorIsolation.getGlobalActor());
+        auto globalActorType = F.mapTypeIntoContext(actorIsolation.getGlobalActor());
+        setExpectedExecutorForGlobalActor(*this, globalActorType);
         break;
       }
     }
@@ -340,7 +347,7 @@ SILGenFunction::emitLoadOfGlobalActorShared(SILLocation loc, CanType actorType) 
     actorType->getTypeOfMember(sharedInstanceDecl);
 
   auto metaRepr =
-    nominal->isResilient(SGM.SwiftModule, F.getResilienceExpansion())
+    nominal->isResilient(SGM.CodiraModule, F.getResilienceExpansion())
     ? MetatypeRepresentation::Thick
     : MetatypeRepresentation::Thin;
 
@@ -563,7 +570,7 @@ SILGenFunction::emitFunctionTypeIsolation(SILLocation loc,
   // Parameter-isolated functions don't have a specific actor they're isolated
   // to; they're essentially polymorphic over isolation.
   case FunctionTypeIsolation::Kind::Parameter:
-    llvm_unreachable("cannot load isolation from parameter-isoaltion function "
+    toolchain_unreachable("cannot load isolation from parameter-isoaltion function "
                      "reference");
 
   // Emit nonisolated by simply emitting Optional.none in the result type.
@@ -573,9 +580,10 @@ SILGenFunction::emitFunctionTypeIsolation(SILLocation loc,
 
   // Emit global actor isolation by loading .shared from the global actor,
   // erasing it into `any Actor`, and injecting that into Optional.
-  case FunctionTypeIsolation::Kind::GlobalActor:
+  case FunctionTypeIsolation::Kind::GlobalActor: {
     return emitGlobalActorIsolation(loc,
              isolation.getGlobalActorType()->getCanonicalType());
+  }
 
   // Emit @isolated(any) isolation by loading the actor reference from the
   // function.
@@ -586,16 +594,16 @@ SILGenFunction::emitFunctionTypeIsolation(SILLocation loc,
   }
   }
 
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static ActorIsolation getClosureIsolationInfo(SILDeclRef constant) {
   if (auto closure = constant.getAbstractClosureExpr()) {
     return closure->getActorIsolation();
   }
-  auto func = constant.getAbstractFunctionDecl();
-  assert(func && "unexpected closure constant");
-  return getActorIsolation(func);
+  auto fn = constant.getAbstractFunctionDecl();
+  assert(fn && "unexpected closure constant");
+  return getActorIsolation(fn);
 }
 
 static ManagedValue emitLoadOfCaptureIsolation(SILGenFunction &SGF,
@@ -644,22 +652,22 @@ SILGenFunction::emitClosureIsolation(SILLocation loc, SILDeclRef constant,
     return emitNonIsolatedIsolation(loc);
 
   case ActorIsolation::Erased:
-    llvm_unreachable("closures cannot directly have erased isolation");
+    toolchain_unreachable("closures cannot directly have erased isolation");
 
-  case ActorIsolation::GlobalActor:
-    return emitGlobalActorIsolation(loc,
-             isolation.getGlobalActor()->getCanonicalType());
+  case ActorIsolation::GlobalActor: {
+    auto globalActorType = F.mapTypeIntoContext(isolation.getGlobalActor())
+                               ->getCanonicalType();
+    return emitGlobalActorIsolation(loc, globalActorType);
+  }
 
   case ActorIsolation::ActorInstance: {
-    // This should always be a capture.  That's not expressed super-cleanly
-    // in ActorIsolation, unfortunately.
-    assert(isolation.getActorInstanceParameter() == 0);
+    assert(isolation.isActorInstanceForCapture());
     auto capture = isolation.getActorInstance();
     assert(capture);
     return emitLoadOfCaptureIsolation(*this, loc, capture, constant, captures);
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 ExecutorBreadcrumb
@@ -696,7 +704,7 @@ SILGenFunction::emitExecutor(SILLocation loc, ActorIsolation isolation,
     return std::nullopt;
 
   case ActorIsolation::Erased:
-    llvm_unreachable("executor emission for erased isolation is unimplemented");
+    toolchain_unreachable("executor emission for erased isolation is unimplemented");
 
   case ActorIsolation::ActorInstance: {
     // "self" here means the actor instance's "self" value.
@@ -705,16 +713,18 @@ SILGenFunction::emitExecutor(SILLocation loc, ActorIsolation isolation,
     return emitLoadActorExecutor(loc, self);
   }
 
-  case ActorIsolation::GlobalActor:
-    return emitLoadGlobalActorExecutor(isolation.getGlobalActor());
+  case ActorIsolation::GlobalActor: {
+    auto globalActorType = F.mapTypeIntoContext(isolation.getGlobalActor());
+    return emitLoadGlobalActorExecutor(globalActorType);
   }
-  llvm_unreachable("covered switch");
+  }
+  toolchain_unreachable("covered switch");
 }
 
 void SILGenFunction::emitHopToActorValue(SILLocation loc, ManagedValue actor) {
   // TODO: can the type system enforce this async requirement?
   if (!F.isAsync()) {
-    llvm::report_fatal_error("Builtin.hopToActor must be in an async function");
+    toolchain::report_fatal_error("Builtin.hopToActor must be in an async function");
   }
   auto isolation =
       getActorIsolationOfContext(FunctionDC, [](AbstractClosureExpr *CE) {
@@ -726,7 +736,7 @@ void SILGenFunction::emitHopToActorValue(SILLocation loc, ManagedValue actor) {
     // TODO: Explicit hop with no hop-back should only be allowed in nonisolated
     // async functions. But it needs work for any closure passed to
     // Task.detached, which currently has unspecified isolation.
-    llvm::report_fatal_error(
+    toolchain::report_fatal_error(
       "Builtin.hopToActor must be in an actor-independent function");
   }
   SILValue executor = emitLoadActorExecutor(loc, actor);

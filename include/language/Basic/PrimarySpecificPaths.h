@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PRIMARYSPECIFICPATHS_H
-#define SWIFT_BASIC_PRIMARYSPECIFICPATHS_H
+#ifndef LANGUAGE_BASIC_PRIMARYSPECIFICPATHS_H
+#define LANGUAGE_BASIC_PRIMARYSPECIFICPATHS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SupplementaryOutputPaths.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 #include <string>
 
@@ -65,4 +66,4 @@ public:
 };
 } // namespace language
 
-#endif // SWIFT_BASIC_PRIMARYSPECIFICPATHS_H
+#endif // LANGUAGE_BASIC_PRIMARYSPECIFICPATHS_H

@@ -5,7 +5,7 @@
 # It shouldn't be in the other places because those are OBJECT_LIBRARYs
 # and things that use them should be defining their own fatal error handler.
 
-add_swift_host_library(swiftThreading STATIC
+add_language_host_library(languageThreading STATIC
   C11.cpp
   Linux.cpp
   Pthreads.cpp

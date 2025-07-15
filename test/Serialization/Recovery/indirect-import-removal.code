@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules %s
+
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -I %t -I %S/Inputs/custom-modules | %FileCheck %s
+
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -I %t -I %S/Inputs/custom-modules -Xcc -DBAD | %FileCheck -check-prefix CHECK-RECOVERY %s
+
+import IndirectImport
+
+// CHECK: fn baseline()
+// CHECK-RECOVERY: fn baseline()
+public fn baseline() {}
+
+// CHECK: fn test(_: IndirectlyImportedStruct)
+// CHECK-RECOVERY-NOT: IndirectlyImportedStruct
+public fn test(_: IndirectlyImportedStruct) {}

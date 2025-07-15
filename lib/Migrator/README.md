@@ -1,13 +1,13 @@
-# Swift Migrator
+# Codira Migrator
 
-This library implements functionality for the Swift 4 Migrator.
+This library implements functionality for the Codira 4 Migrator.
 
 ## Overview
 
-The Migrator was rewritten from the ground up for Swift 4 with a few major differences:
+The Migrator was rewritten from the ground up for Codira 4 with a few major differences:
 
 - It's not a separate tool but integrated directly into the compiler binary
-- It understands Swift 3 and Swift 4 code equally
+- It understands Codira 3 and Codira 4 code equally
 - Can migrate individual targets in Xcode
 - A pipeline architecture with explicit immutable state changes
 
@@ -32,7 +32,7 @@ for some cases, discussed below.
 
 The migrator has the following *passes*, each of which takes an input source text and produces and output source text, collecting a sequence of *states*, which includes the input and output text from the pass.
 
-At the start of the normal frontend invocation, the compiler parses and type-checks the primary input, resulting in a type-checked AST, which is handed to the Migrator if one of the above flags were passed. For this initial step, the Migrator uses whatever Swift language version that was passed to the frontend.
+At the start of the normal frontend invocation, the compiler parses and type-checks the primary input, resulting in a type-checked AST, which is handed to the Migrator if one of the above flags were passed. For this initial step, the Migrator uses whatever Codira language version that was passed to the frontend.
 
 Here are the passes:
 
@@ -48,7 +48,7 @@ Here are the passes:
 2. AST Passes
 
    If the Pre-fix-it Pass was successful, or skipped because it was unnecessary, the
-   *AST Passes* run if you are migrating *from before Swift 4*. These include:
+   *AST Passes* run if you are migrating *from before Codira 4*. These include:
 
    - API Diff Pass
 
@@ -57,7 +57,7 @@ Here are the passes:
      to update code for things like referenced type and argument names or optionality
      changes. This is where the majority of changes come from in the Migrator.
 
-     For a list of the different kinds of entries, see `include/swift/IDE/DigesterEnums.def`
+     For a list of the different kinds of entries, see `include/language/IDE/DigesterEnums.def`
      and the actual JSON data files in `lib/Migrator`.
 
      There are also a few "special case" migrations implemented here, which
@@ -65,13 +65,13 @@ Here are the passes:
      are mainly declared in `lib/Migrator/overlay.json`, implemented in `handleSpecialCases`.
      Some examples of these include:
 
-     - Migrating `Double.abs(0.0)` to `Swift.abs(0.0)`
+     - Migrating `Double.abs(0.0)` to `Codira.abs(0.0)`
      - A few NSOpenGL APIs
      - Standard Library `UIntMax` and `IntMax` APIs moving to reference `UInt64` and `Int64`
 
      > See:
      > - lib/Migrator/APIDiffMigratorPass.cpp
-     > - include/swift/IDE/DigesterEnums.def
+     > - include/language/IDE/DigesterEnums.def
      > - lib/IDE/APIDigesterData.cpp
      > - lib/Migrator/ios.json
      > - lib/Migrator/macos.json
@@ -81,33 +81,33 @@ Here are the passes:
    - Tuple Splat Migrator Pass
 
      This implements a few convenience transformations to ease the transition
-     for [SE-0110: Distinguish between single-tuple and multiple-argument function types](https://github.com/apple/swift-evolution/blob/master/proposals/0110-distinguish-single-tuple-arg.md).
+     for [SE-0110: Distinguish between single-tuple and multiple-argument function types](https://github.com/apple/language-evolution/blob/master/proposals/0110-distinguish-single-tuple-arg.md).
 
      In particular, this pass adds new variable bindings in closure expressions
      to destructure what are now are a single argument, a tuple. Prior to SE-0110,
-     a closure's argument list may have been automatically matched up in Swift 3.
+     a closure's argument list may have been automatically matched up in Codira 3.
 
      > See lib/Migrator/RewriteBufferEditsReceiver.cpp
 
    - type(of:) Migrator Pass
 
-     This is a small convenience pass to account for `Swift.type(of:)` now being
-     resolved by overload resolution. It was handled specially in Swift 3.
+     This is a small convenience pass to account for `Codira.type(of:)` now being
+     resolved by overload resolution. It was handled specially in Codira 3.
 
      > See lib/Migrator/Migrator.cpp: `Migrator::performSyntacticPasses`
 
 3. Post-fix-it Pass
 
    Finally, the post-fix-it pass, like the pre-fix-it pass, ingests fix-its suggested
-   by the compiler, explicitly set to Swift 4 Mode. This essentially handles automating
-   acceptance of fix-its to convert the source file to Swift 4 in terms of the language
+   by the compiler, explicitly set to Codira 4 Mode. This essentially handles automating
+   acceptance of fix-its to convert the source file to Codira 4 in terms of the language
    itself instead of the APIs.
 
    This pass is run up to seven times, a number tweaked based on historical observations.
    The reason the pass is run multiple times is that applying fix-its may reveal more
    problems to the type-checker, which can then suggest more fix-its, and so on.
 
-   Of note, this includes migration to *Swift 4 @objc Inference*. This is a nuanced topic
+   Of note, this includes migration to *Codira 4 @objc Inference*. This is a nuanced topic
    with implications for your binary size and Objective-C interoperability. There is a
    link to discussion on this topic at the bottom of this README.
 
@@ -118,16 +118,16 @@ the input and output text explicitly, and which pass produced the transformation
 
 Finally, at the end of the pipeline, the outputs are emitted. If `-emit-migrated-file-path` was given, the `OutputText` of the final `MigrationState` is written to that file path. If `-dump-migration-states-dir` was specified, the input and output text of each state is dumped into that directory. Finally, if `-emit-remap-file-path` was specified, a file describing the differences between the first and last `MigrationState`'s `OutputText` is emitted.
 
-> See lib/Migrator/Migrator.cpp: `swift::migrator::updateCodeAndEmitRemap`
+> See lib/Migrator/Migrator.cpp: `language::migrator::updateCodeAndEmitRemap`
 
 Other controls for the frontend:
 
 - `-disable-migrator-fixits` - skips the fix-it passes during the migration pipeline.
 - `-migrate-keep-objc-visibility` - add `@objc` to declarations that were implicitly visible
-  to Objective-C in Swift 3.
+  to Objective-C in Codira 3.
 - `-api-diff-data-file` - override the API diff JSON file.
 
-> See include/swift/Migrator/MigratorOptions.h
+> See include/language/Migrator/MigratorOptions.h
 
 ### Fix-it Filter
 
@@ -136,9 +136,9 @@ For the pre- and post-fix-it passes, there are two basic rules for which fix-its
 1. Fix-its attached to *error* diagnostics are taken by default and are opt-out.
 2. Fix-its attached to *warning* or *note* diagnostics are not taken by default and so are opt-in.
 
-For the opt-out and opt-in cases, these are filtered in the `FixitFilter`, essentially just a small collection of Swift's compiler diagnostic IDs.
+For the opt-out and opt-in cases, these are filtered in the `FixitFilter`, essentially just a small collection of Codira's compiler diagnostic IDs.
 
-> See include/swift/Migrator/FixitFilter.h
+> See include/language/Migrator/FixitFilter.h
 
 ### Applying Fix-its
 
@@ -152,9 +152,9 @@ The `FixitApplyDiagnosticConsumer` delegate class subscribes to fix-its emitted 
 In order to produce a `MigrationState` for this pass, fix-its are applied immediately to a running *RewriteBuffer*, which is supplied by Clang. At the end of a fix-it pass, the resulting text is extracted from the `RewriteBufferEditsReceiver`.
 
 > See:
-> - include/swift/Migrator/FixitApplyDiagnosticConsumer.h
+> - include/language/Migrator/FixitApplyDiagnosticConsumer.h
 > - lib/Migrator/FixitApplyDiagnosticConsumer.cpp
-> - include/swift/Migrator/RewriteBufferEditsReceiver.h
+> - include/language/Migrator/RewriteBufferEditsReceiver.h
 > - lib/Migrator/RewriteBufferEditsReceiver.cpp
 
 ## Remap File Format
@@ -182,7 +182,7 @@ For removals, you specify `file`, `offset`, and `remove`.
 
 ```json
 {
-  "file": "/path/to/my/file.swift",
+  "file": "/path/to/my/file.code",
   "offset": 503,
   "remove": 10
 }
@@ -196,7 +196,7 @@ For insertions, you specify `file`, `offset`, and `text`. You can specify `remov
 
 ```json
 {
-  "file": "/path/to/my/file.swift",
+  "file": "/path/to/my/file.code",
   "offset": 61,
   "text": ".foo()"
 }
@@ -210,7 +210,7 @@ For replacements, you specify all four keys.
 
 ```json
 {
-  "file": "/path/to/my/file.swift",
+  "file": "/path/to/my/file.code",
   "offset": 61,
   "remove": 3,
   "text": "bar"
@@ -231,21 +231,21 @@ For diffing, we pulled in an STL port of Google's *diff-match-patch* library to 
 
 ### Editing
 
-For textual edits during the AST passes, we adapted libEdit's `Commit` and `EditedSource` functionality that was used in the ARC/Objective-C modernizer. Essentially a wrapper that converts Swift's `SourceLoc`, `SourceRange`, and `CharSourceRange` structures into Clang's,
+For textual edits during the AST passes, we adapted libEdit's `Commit` and `EditedSource` functionality that was used in the ARC/Objective-C modernizer. Essentially a wrapper that converts Codira's `SourceLoc`, `SourceRange`, and `CharSourceRange` structures into Clang's,
 this implements basic operations like insertions, removals, and replacements. Originally, we planned on using lib/Syntax for these transformations but there wasn't enough time and we found that the edits we needed for the Migrator were straightforward enough.
 
 > See:
-> - include/swift/Migrator/EditorAdaptor.h
+> - include/language/Migrator/EditorAdaptor.h
 > - lib/Migrator/EditorAdaptor.h
 
 ### Migration States
 
 This is an immutable container explicitly describing changes in state as the Migrator runs, which is not only for safety but also for debuggability. This clarifies which pass was responsible for a set of changes in the pipeline because there can be a lot of changes, sometimes conflicting or redundant, between the API diffs and compiler fix-its.
 
-> See include/swift/Migrator/MigrationState.h
+> See include/language/Migrator/MigrationState.h
 
 ## More Information
 
-[Migrating to Swift 4 on swift.org](https://swift.org/migration-guide/)
+[Migrating to Codira 4 on language.org](https://language.org/migration-guide/)
 
-[Migrate to Swift 4 @objc inference on help.apple.com](https://help.apple.com/xcode/mac/current/#/deve838b19a1)
+[Migrate to Codira 4 @objc inference on help.apple.com](https://help.apple.com/xcode/mac/current/#/deve838b19a1)

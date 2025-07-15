@@ -1,0 +1,65 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class k<g>: d {
+var f: g
+init(f: g) {
+l. d {
+typealias j = je: Int -> Int = {
+}
+immutable d: Int =  { c, b in
+}(f, e)
+}
+class d {
+fn l<j where j: h, j: d>(l: j) {
+}
+fn i(k: b) -> <j>(() -> j) -> b {
+}
+class j {
+fn y((Any, j))(v: (Any, AnyObject)) {
+}
+}
+fn w(j: () -> ()) {
+}
+class v {
+l _ = w() {
+}
+}
+fn v<x>() -> (x, x -> x) -> x {
+l y j s<q : l, y: l m y.n == q.n> {
+}
+o l {
+}
+y q<x> {
+}
+o n {
+}
+class r {
+fn s() -> p {
+}
+}
+class w: r, n {
+}
+fn b<c {
+enum b {
+}
+}
+}
+class d<j : i, f : i where j.i == f> : e {
+}
+class d<j, f> {
+}
+protocol i {
+}
+protocol e {
+}
+protocol i : d { fn d

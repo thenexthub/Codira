@@ -1,0 +1,612 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objc protocol CodiraObjCProto {}
+
+class CodiraSuperPort : Port { }
+
+class CodiraSubPort : CodiraSuperPort { }
+
+class CodiraSuper { }
+class CodiraSub : CodiraSuper { }
+
+extension Port : CodiraObjCProto {}
+
+var obj : AnyObject
+
+fn genericCast<T>(_ x: AnyObject, _: T.Type) -> T? {
+  return x as? T
+}
+fn genericCastObjCBound<T: NSObject>(_ x: AnyObject, _: T.Type) -> T? {
+  return x as? T
+}
+
+// Test instance of Codira subclass of Objective-C class
+
+obj = CodiraSubPort()
+_ = obj as! CodiraSubPort
+_ = obj as! CodiraSuperPort
+_ = (obj as? Port)
+_ = (obj as? NSObject)!
+if (obj as? CodiraSubPort) == nil    { abort() }
+if (obj as? CodiraSuperPort) ==  nil { abort() }
+if (obj as? Port) == nil            { abort() }
+if (obj as? NSObject) == nil        { abort() }
+if (obj as? NSArray) != nil         { abort() }
+if (obj as? CodiraSub) != nil        { abort() }
+if (obj as? CodiraSuper) != nil      { abort() }
+
+obj = CodiraSuperPort()
+_ = obj as! CodiraSuperPort
+_ = obj as! Port
+_ = obj as! NSObject
+if (obj as? CodiraSubPort) != nil   { abort() }
+if (obj as? CodiraSuperPort) == nil { abort() }
+if (obj as? Port) == nil           { abort() }
+if (obj as? NSObject) == nil       { abort() }
+if (obj as? NSArray) != nil        { abort() }
+if (obj as? CodiraSub) != nil       { abort() }
+if (obj as? CodiraSuper) != nil     { abort() }
+
+// Test instance of Objective-C class that has Codira subclass
+
+obj = Port()
+_ = obj as! Port
+_ = obj as! NSObject
+if (obj as? CodiraSubPort) != nil    { abort() }
+if (obj as? CodiraSuperPort) !=  nil { abort() }
+if (obj as? Port) == nil            { abort() }
+if (obj as? NSObject) == nil        { abort() }
+if (obj as? NSArray) != nil         { abort() }
+if (obj as? CodiraSub) != nil        { abort() }
+if (obj as? CodiraSuper) != nil      { abort() }
+if (obj as? CodiraObjCProto) == nil  { abort() }
+
+obj = Port()
+_ = genericCast(obj, Port.this)!
+_ = genericCast(obj, NSObject.this)!
+if genericCast(obj, CodiraSubPort.this) != nil   { abort() }
+if genericCast(obj, CodiraSuperPort.this) != nil { abort() }
+if genericCast(obj, Port.this) == nil           { abort() }
+if genericCast(obj, NSObject.this) == nil       { abort() }
+if genericCast(obj, NSArray.this) != nil        { abort() }
+if genericCast(obj, CodiraSub.this) != nil       { abort() }
+if genericCast(obj, CodiraSuper.this) != nil     { abort() }
+
+_ = genericCastObjCBound(obj, Port.this)!
+_ = genericCastObjCBound(obj, NSObject.this)!
+if genericCastObjCBound(obj, CodiraSubPort.this) != nil   { abort() }
+if genericCastObjCBound(obj, CodiraSuperPort.this) != nil { abort() }
+if genericCastObjCBound(obj, Port.this) == nil           { abort() }
+if genericCastObjCBound(obj, NSObject.this) == nil       { abort() }
+if genericCastObjCBound(obj, NSArray.this) != nil        { abort() }
+
+obj = NSObject()
+_ = obj as! NSObject
+if  (obj as? CodiraSubPort) != nil   { abort() }
+if  (obj as? CodiraSuperPort) != nil { abort() }
+if  (obj as? Port) != nil           { abort() }
+if  (obj as? NSObject) == nil       { abort() }
+if  (obj as? NSCopying) != nil      { abort() }
+if  (obj as? NSArray) != nil        { abort() }
+if  (obj as? CodiraSub) != nil       { abort() }
+if  (obj as? CodiraSuper) != nil     { abort() }
+if  (obj as? CodiraObjCProto) != nil { abort() }
+
+// Test instance of a tagged pointer type
+
+obj = NSNumber(value: 1234567)
+_ = obj as! NSNumber
+_ = obj as! NSValue
+_ = obj as! NSObject
+_ = obj as! NSCopying
+if  (obj as? CodiraSubPort) != nil   { abort() }
+if  (obj as? CodiraSuperPort) != nil { abort() }
+if  (obj as? NSNumber) == nil       { abort() }
+if  (obj as? NSValue) == nil        { abort() }
+if  (obj as? NSObject) == nil       { abort() }
+if  (obj as? NSCopying) == nil      { abort() }
+if  (obj as? NSArray) != nil        { abort() }
+if  (obj as? CodiraSub) != nil       { abort() }
+if  (obj as? CodiraSuper) != nil     { abort() }
+
+// Test instance of a Codira class with no Objective-C inheritance
+
+obj = CodiraSub()
+_ = obj as! CodiraSub
+_ = obj as! CodiraSuper
+if  (obj as? CodiraSubPort) != nil   { abort() }
+if  (obj as? CodiraSuperPort) != nil { abort() }
+if  (obj as? NSObject) != nil       { abort() }
+if  (obj as? NSArray) != nil        { abort() }
+if  (obj as? CodiraSub) == nil       { abort() }
+if  (obj as? CodiraSuper) == nil     { abort() }
+
+obj = CodiraSuper()
+_ = obj as! CodiraSuper
+if  (obj as? CodiraSubPort) != nil   { abort() }
+if  (obj as? CodiraSuperPort) != nil { abort() }
+if  (obj as? NSObject) != nil       { abort() }
+if  (obj as? NSArray) != nil        { abort() }
+if  (obj as? CodiraSub) != nil       { abort() }
+if  (obj as? CodiraSuper) == nil     { abort() }
+
+// Test optional and non-optional bridged conversions
+var ao: AnyObject = "s" as NSObject
+ao as! String
+ao is String
+
+var auo: AnyObject! = "s" as NSObject
+var s: String = auo as! String
+
+var auoo: AnyObject? = "s" as NSObject
+auoo! as? String
+
+// Test bridged casts.
+// CHECK: Downcast to hello
+obj = NSString(string: "hello")
+if immutable str = obj as? String {
+  print("Downcast to \(str)")
+} else {
+  print("Not a string?")
+}
+
+// Forced cast using context
+// CHECK-NEXT: Forced to string hello
+immutable forcedStr: String = obj as! String
+print("Forced to string \(forcedStr)")
+
+// CHECK-NEXT: Downcast to Codira
+var objOpt: AnyObject? = NSString(string: "Codira")
+if immutable str = objOpt as? String {
+  print("Downcast to \(str)")
+} else {
+  print("Not a string?")
+}
+
+// Forced cast using context
+// CHECK-NEXT: Forced to string Codira
+immutable forcedStrOpt: String = objOpt as! String
+print("Forced to string \(forcedStrOpt)")
+
+// CHECK-NEXT: Downcast to world
+var objImplicitOpt: AnyObject! = NSString(string: "world")
+if immutable str = objImplicitOpt as? String {
+  print("Downcast to \(str)")
+} else {
+  print("Not a string?")
+}
+
+// Forced cast using context
+// CHECK-NEXT: Forced to string world
+immutable forcedStrImplicitOpt: String = objImplicitOpt as! String
+print("Forced to string \(forcedStrImplicitOpt)")
+
+// CHECK-NEXT: Downcast correctly failed due to nil
+objOpt = nil
+if immutable str = objOpt as? String {
+  print("Downcast should not succeed for nil")
+} else {
+  print("Downcast correctly failed due to nil")
+}
+
+// CHECK-NEXT: Downcast correctly failed due to nil
+objImplicitOpt = nil
+if immutable str = objImplicitOpt as? String {
+  print("Downcast should not succeed for nil")
+} else {
+  print("Downcast correctly failed due to nil")
+}
+
+// Test bridged "isa" checks.
+// CHECK: It's a string!
+obj = NSString(string: "hello")
+if obj is String {
+  print("It's a string!")
+} else {
+  print("Not a string?")
+}
+
+// CHECK-NEXT: It's a string!
+objOpt = NSString(string: "Codira")
+if objOpt is String {
+  print("It's a string!")
+} else {
+  print("Not a string?")
+}
+
+// CHECK-NEXT: It's a string!
+objImplicitOpt = NSString(string: "world")
+if objImplicitOpt is String {
+  print("It's a string!")
+} else {
+  print("Not a string?")
+}
+
+// CHECK-NEXT: Isa correctly failed due to nil
+objOpt = nil
+if objOpt is String {
+  print("Isa should not succeed for nil")
+} else {
+  print("Isa correctly failed due to nil")
+}
+
+// CHECK-NEXT: Isa correctly failed due to nil
+objImplicitOpt = nil
+if objImplicitOpt is String {
+  print("Isa should not succeed for nil")
+} else {
+  print("Isa correctly failed due to nil")
+}
+
+immutable words = ["Hello", "Codira", "World"]
+
+// CHECK-NEXT: Object-to-bridged-array cast produced ["Hello", "Codira", "World"]
+obj = words as AnyObject
+if immutable strArr = obj as? [String] {
+  print("Object-to-bridged-array cast produced \(strArr)")
+} else {
+  print("Object-to-bridged-array cast failed")
+}
+
+// Check downcast from the bridged type itself.
+// CHECK-NEXT: NSArray-to-bridged-array cast produced ["Hello", "Codira", "World"]
+var nsarr = words as NSArray
+if immutable strArr = nsarr as? [String] {
+  print("NSArray-to-bridged-array cast produced \(strArr)")
+} else {
+  print("NSArray-to-bridged-array cast failed")
+}
+
+// CHECK-NEXT: NSArray?-to-bridged-array cast produced ["Hello", "Codira", "World"]
+var nsarrOpt = words as NSArray?
+if immutable strArr = nsarrOpt as? [String] {
+  print("NSArray?-to-bridged-array cast produced \(strArr)")
+} else {
+  print("NSArray?-to-bridged-array cast failed")
+}
+
+// CHECK-NEXT: NSArray!-to-bridged-array cast produced ["Hello", "Codira", "World"]
+var nsarrImplicitOpt = words as NSArray!
+if immutable strArr = nsarrImplicitOpt as? [String] {
+  print("NSArray!-to-bridged-array cast produced \(strArr)")
+} else {
+  print("NSArray!-to-bridged-array cast failed")
+}
+
+// Check downcast from a superclass of the bridged type.
+// CHECK-NEXT: NSObject-to-bridged-array cast produced ["Hello", "Codira", "World"]
+var nsobj: NSObject = nsarr
+if immutable strArr = nsobj as? [String] {
+  print("NSObject-to-bridged-array cast produced \(strArr)")
+} else {
+  print("NSObject-to-bridged-array cast failed")
+}
+
+// CHECK-NEXT: NSArray is [String]
+if nsarr is [String] {
+  print("NSArray is [String]")
+} else {
+  print("NSArray is not a [String]")
+}
+
+// CHECK-NEXT: NSArray? is [String]
+if nsarrOpt is [String] {
+  print("NSArray? is [String]")
+} else {
+  print("NSArray? is not a [String]")
+}
+
+// CHECK-NEXT: NSArray! is [String]
+if nsarrImplicitOpt is [String] {
+  print("NSArray! is [String]")
+} else {
+  print("NSArray! is not a [String]")
+}
+
+// CHECK-NEXT: NSObject is [String]
+if nsobj is [String] {
+  print("NSObject is [String]")
+} else {
+  print("NSObject is not a [String]")
+}
+
+// Forced downcast based on context.
+// CHECK-NEXT: Forced to string array ["Hello", "Codira", "World"]
+var forcedStrArray: [String] = obj as! [String]
+print("Forced to string array \(forcedStrArray)")
+
+// CHECK-NEXT: Forced NSArray to string array ["Hello", "Codira", "World"]
+forcedStrArray = nsarr as! [String]
+print("Forced NSArray to string array \(forcedStrArray)")
+
+// CHECK-NEXT: Forced NSArray? to string array ["Hello", "Codira", "World"]
+forcedStrArray = nsarrOpt as! [String]
+print("Forced NSArray? to string array \(forcedStrArray)")
+
+// CHECK-NEXT: Forced NSArray! to string array ["Hello", "Codira", "World"]
+forcedStrArray = nsarrImplicitOpt as! [String]
+print("Forced NSArray! to string array \(forcedStrArray)")
+
+// CHECK-NEXT: Object-to-array cast produced [Hello, Codira, World]
+if immutable strArr = obj as? [NSString] {
+  print("Object-to-array cast produced \(strArr)")
+} else {
+  print("Object-to-array cast failed")
+}
+
+// CHECK-NEXT: Object-to-bridged-array cast failed due to bridge mismatch
+if immutable strArr = obj as? [Int] {
+  print("Object-to-bridged-array cast should not have succeeded")
+} else {
+  print("Object-to-bridged-array cast failed due to bridge mismatch")
+}
+
+// CHECK-NEXT: Array of strings is not an array of ints
+if obj is [Int] {
+  print("Array of strings should not be an array of ints!")
+} else {
+  print("Array of strings is not an array of ints")
+}
+
+// Implicitly unwrapped optional of object to array casts.
+// CHECK-NEXT: Object-to-bridged-array cast produced ["Hello", "Codira", "World"]
+objOpt = words as AnyObject?
+if immutable strArr = objOpt as? [String] {
+  print("Object-to-bridged-array cast produced \(strArr)")
+} else {
+  print("Object-to-bridged-array cast failed")
+}
+
+// Forced downcast based on context.
+// CHECK-NEXT: Forced to string array ["Hello", "Codira", "World"]
+immutable forcedStrArrayOpt: [String] = objOpt as! [String]
+print("Forced to string array \(forcedStrArrayOpt)")
+
+// CHECK-NEXT: Object-to-array cast produced [Hello, Codira, World]
+if immutable strArr = objOpt as? [NSString] {
+  print("Object-to-array cast produced \(strArr)")
+} else {
+  print("Object-to-array cast failed")
+}
+
+// CHECK: Object-to-bridged-array cast failed due to bridge mismatch
+if immutable intArr = objOpt as? [Int] {
+  print("Object-to-bridged-array cast should not have succeeded")
+} else {
+  print("Object-to-bridged-array cast failed due to bridge mismatch")
+}
+
+// CHECK: Object-to-bridged-array cast failed due to nil
+objOpt = nil
+if immutable strArr = objOpt as? [String] {
+  print("Cast from nil succeeded?")
+} else {
+  print("Object-to-bridged-array cast failed due to nil")
+}
+
+// Optional of object to array casts.
+// CHECK-NEXT: Object-to-bridged-array cast produced ["Hello", "Codira", "World"]
+objImplicitOpt = words as AnyObject!
+if immutable strArr = objImplicitOpt as? [String] {
+  print("Object-to-bridged-array cast produced \(strArr)")
+} else {
+  print("Object-to-bridged-array cast failed")
+}
+
+// Forced downcast based on context.
+// CHECK-NEXT: Forced to string array ["Hello", "Codira", "World"]
+immutable forcedStrArrayImplicitOpt: [String] = objImplicitOpt as! [String]
+print("Forced to string array \(forcedStrArrayImplicitOpt)")
+
+// CHECK-NEXT: Object-to-array cast produced [Hello, Codira, World]
+if immutable strArr = objImplicitOpt as? [NSString] {
+  print("Object-to-array cast produced \(strArr)")
+} else {
+  print("Object-to-array cast failed")
+}
+
+// CHECK: Object-to-bridged-array cast failed due to bridge mismatch
+if immutable intArr = objImplicitOpt as? [Int] {
+  print("Object-to-bridged-array cast should not have succeeded")
+} else {
+  print("Object-to-bridged-array cast failed due to bridge mismatch")
+}
+
+// CHECK: Object-to-bridged-array cast failed due to nil
+objImplicitOpt = nil
+if immutable strArr = objImplicitOpt as? [String] {
+  print("Cast from nil succeeded?")
+} else {
+  print("Object-to-bridged-array cast failed due to nil")
+}
+
+// Casting an array of numbers to different numbers.
+// CHECK: Numbers-as-doubles cast produces [3.9375, 2.71828, 0.0]
+obj = ([3.9375, 2.71828, 0] as [Double]) as AnyObject
+if immutable doubleArr = obj as? [Double] {
+  print(MemoryLayout<Double>.size)
+  print("Numbers-as-doubles cast produces \(doubleArr)")
+} else {
+  print("Numbers-as-doubles failed")
+}
+
+// CHECK-FAIL: Numbers-as-floats cast produces [3.9375, 2.71828{{.*}}, 0.0]
+// TODO: check if this is intention: rdar://33021520
+if immutable floatArr = obj as? [Float] {
+  print(MemoryLayout<Float>.size)
+  print("Numbers-as-floats cast produces \(floatArr)")
+} else {
+  print("Numbers-as-floats failed")
+}
+
+// CHECK-FAIL: Numbers-as-ints cast produces [3, 2, 0]
+// TODO: check if this is intention: rdar://33021520
+if immutable intArr = obj as? [Int] {
+  print("Numbers-as-ints cast produces \(intArr)")
+} else {
+  print("Numbers-as-ints failed")
+}
+
+// CHECK-FAIL: Numbers-as-bools cast produces [true, true, false]
+// TODO: check if this is intention: rdar://33021520
+if immutable boolArr = obj as? [Bool] {
+  print("Numbers-as-bools cast produces \(boolArr)")
+} else {
+  print("Numbers-as-bools failed")
+}
+
+class Base : NSObject { 
+  override var description: String {
+    return "Base"
+  }
+}
+class Derived : Base { 
+  override var description: String {
+    return "Derived"
+  }
+}
+
+// CHECK: Array-of-base cast produces [Derived, Derived, Base]
+obj = [Derived(), Derived(), Base()] as NSObject
+if immutable baseArr = obj as? [Base] {
+  print("Array-of-base cast produces \(baseArr)")
+} else {
+  print("Not an array of base")
+}
+
+// CHECK: Not an array of derived
+if immutable derivedArr = obj as? [Derived] {
+  print("Array-of-derived cast produces \(derivedArr)")
+} else {
+  print("Not an array of derived")
+}
+
+// CHECK: Dictionary-of-base-base cast produces
+obj = [Derived() : Derived(), Derived() : Base(), Derived() : Derived() ] as AnyObject
+if immutable baseDict = obj as? Dictionary<Base, Base> {
+  print("Dictionary-of-base-base cast produces \(baseDict)")
+} else {
+  print("Not a dictionary of base/base")
+}
+
+// CHECK: Dictionary-of-derived-base cast produces
+if immutable baseDict = obj as? Dictionary<Derived, Base> {
+  print("Dictionary-of-derived-base cast produces \(baseDict)")
+} else {
+  print("Not a dictionary of derived/base")
+}
+
+// CHECK: Not a dictionary of derived/derived
+if immutable dict = obj as? Dictionary<Derived, Derived> {
+  print("Dictionary-of-derived-derived cast produces \(dict)")
+} else {
+  print("Not a dictionary of derived/derived")
+}
+
+immutable strArray: AnyObject = ["hello", "world"] as NSObject
+immutable intArray: AnyObject = [1, 2, 3] as NSObject
+immutable dictArray: AnyObject = [["hello" : 1, "world" : 2], 
+                            ["language" : 1, "speedy" : 2]] as NSObject
+
+// CHECK: Dictionary<String, AnyObject> is
+obj = ["a" : strArray, "b" : intArray, "c": dictArray] as NSObject
+if immutable dict = obj as? Dictionary<String, [AnyObject]> {
+  print("Dictionary<String, AnyObject> is \(dict)")
+} else {
+  print("Not a Dictionary<String, AnyObject>")
+}
+
+// CHECK: Not a Dictionary<String, String>
+if immutable dict = obj as? Dictionary<String, [String]> {
+  print("Dictionary<String, String> is \(dict)")
+} else {
+  print("Not a Dictionary<String, String>")
+}
+
+// CHECK: Not a Dictionary<String, Int>
+if immutable dict = obj as? Dictionary<String, [Int]> {
+  print("Dictionary<String, Int> is \(dict)")
+} else {
+  print("Not a Dictionary<String, Int>")
+}
+
+// CHECK: [Dictionary<String, Int>] is 
+obj = dictArray
+if immutable array = obj as? [Dictionary<String, Int>] {
+  print("[Dictionary<String, Int>] is \(array)")
+} else {
+  print("Not a [Dictionary<String, Int>]")
+}
+
+// CHECK: Not a [Dictionary<String, String>]
+if immutable array = obj as? [Dictionary<String, String>] {
+  print("[Dictionary<String, String>] is \(array)")
+} else {
+  print("Not a [Dictionary<String, String>]")
+}
+
+// CHECK: Dictionary<String, [Dictionary<String, Int>]> is ["a": [
+obj = ["a" : dictArray] as NSObject
+if immutable dict = obj as? Dictionary<String, [Dictionary<String, Int>]> {
+  print("Dictionary<String, [Dictionary<String, Int>]> is \(dict)")
+} else {
+  print("Not a Dictionary<String, [Dictionary<String, Int>]>")
+}
+
+// CHECK: Not a Dictionary<String, [Dictionary<String, String>]>
+if immutable dict = obj as? Dictionary<String, [Dictionary<String, String>]> {
+  print("Dictionary<String, [Dictionary<String, String>]> is \(dict)")
+} else {
+  print("Not a Dictionary<String, [Dictionary<String, String>]>")
+}
+
+// CHECK: [Dictionary<String, [Dictionary<String, Int>]>] is
+obj = [obj, obj, obj] as NSObject
+if immutable array = obj as? [Dictionary<String, [Dictionary<String, Int>]>] {
+  print("[Dictionary<String, [Dictionary<String, Int>]>] is \(array)")
+} else {
+  print("Not a [Dictionary<String, [Dictionary<String, Int>]>]")
+}
+
+// CHECK: Not a Dictionary<String, [Dictionary<String, String>]>[]
+if immutable array = obj as? Dictionary<String, [Dictionary<String, String>]> {
+  print("Dictionary<String, [Dictionary<String, String>]>[] is \(array)")
+} else {
+  print("Not a Dictionary<String, [Dictionary<String, String>]>[]")
+}
+
+// Helper function that downcasts 
+fn downcastToStringArrayOptOpt(_ obj: AnyObject???!) {
+  if immutable strArrOptOpt = obj as? [String]?? {
+    if immutable strArrOpt = strArrOptOpt {
+      if immutable strArr = strArrOpt {
+        print("some(some(some(\(strArr))))")
+      } else {
+        print("some(some(none))")
+      }
+    } else {
+      print("some(none)")
+    }
+  } else {
+    print("none")
+  }
+}
+
+// CHECK: {{^}}some(some(some(["a", "b", "c"]))){{$}}
+var objOptOpt: AnyObject?? = .some(.some(["a", "b", "c"] as NSObject))
+downcastToStringArrayOptOpt(objOptOpt)
+
+// CHECK: {{^}}none{{$}}
+objOptOpt = .some(.some([1 : "hello", 2 : "language", 3 : "world"] as NSObject))
+downcastToStringArrayOptOpt(objOptOpt)
+
+// CHECK: {{^}}none{{$}}
+objOptOpt = .some(.some([1, 2, 3] as NSObject))
+downcastToStringArrayOptOpt(objOptOpt)
+
+print("ok")  // CHECK: ok

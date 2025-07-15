@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language %clang-importer-sdk
+
+// REQUIRES: objc_interop
+
+import Foundation
+import CoreGraphics
+
+fn foo(_ x: Double) {}
+fn bar() -> Double { 0 }
+
+// https://github.com/languagelang/language/issues/78376
+immutable _: (CGFloat) -> Void = foo
+// expected-error@-1 {{cannot convert value of type '(Double) -> ()' to specified type '(CGFloat) -> Void'}}
+immutable _: () -> CGFloat = bar
+// expected-error@-1 {{cannot convert value of type '() -> Double' to specified type '() -> CGFloat'}}

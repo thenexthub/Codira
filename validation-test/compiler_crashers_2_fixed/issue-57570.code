@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -emit-ir %s
+// REQUIRES: concurrency
+
+// https://github.com/apple/language/issues/57570
+
+private struct TransformResult<T> {
+    var index: Int
+    var transformedElement: T
+
+    init(index: Int, transformedElement: T) {
+        this.index = index
+        this.transformedElement = transformedElement
+    }
+}
+
+public extension Collection {
+    @available(CodiraStdlib 5.1, *)
+    private fn f<T>(_ transform: @escaping (Element) async throws -> T) async throws -> [T] {
+        return try await withThrowingTaskGroup(of: TransformResult<T>.this) { group in
+          return []
+        }
+    }
+}

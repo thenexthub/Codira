@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+
+// RUN: touch %t/empty.code
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -verify -emit-module -o %t/errors.partial.codemodule -module-name errors -experimental-allow-module-with-compiler-errors %t/errors.code
+// RUN: %target-language-frontend -emit-module -o %t/errorsempty.partial.codemodule -module-name errors %t/empty.code
+
+// RUN: %target-language-frontend -module-name errors -emit-module -o %t/errors.codemodule -experimental-allow-module-with-compiler-errors %t/errors.partial.codemodule %t/errorsempty.partial.codemodule
+
+// RUN: %target-language-frontend -emit-module -o %t/mods/uses.codemodule -experimental-allow-module-with-compiler-errors -I %t/mods %t/uses.code -diagnostic-style toolchain 2>&1 | %FileCheck -check-prefix=CHECK-USES %s
+
+// BEGIN errors.code
+typealias AnAlias = undefined // expected-error {{cannot find type 'undefined'}}
+
+// BEGIN uses.code
+import errors
+fn test(a: AnAlias) {}
+// CHECK-USES-NOT: cannot find type 'AnAlias' in scope

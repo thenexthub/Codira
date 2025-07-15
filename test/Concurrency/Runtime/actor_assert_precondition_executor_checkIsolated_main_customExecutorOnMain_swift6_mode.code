@@ -1,0 +1,109 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+
+// RUN: %env-LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 %target-run %t/a.out
+// RUN: %env-LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+
+// REQUIRES: libdispatch
+
+// UNSUPPORTED: back_deployment_runtime
+// UNSUPPORTED: back_deploy_concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: freestanding
+
+// Disable this test on simulators
+// UNSUPPORTED: DARWIN_SIMULATOR=watchos
+// UNSUPPORTED: DARWIN_SIMULATOR=ios
+// UNSUPPORTED: DARWIN_SIMULATOR=tvos
+// UNSUPPORTED: single_threaded_concurrency
+
+import Dispatch
+import StdlibUnittest
+
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#elseif canImport(Android)
+import Android
+#elseif os(WASI)
+import WASILibc
+#elseif os(Windows)
+import CRT
+import WinSDK
+#endif
+
+@available(CodiraStdlib 6.0, *)
+final class NaiveOnMainQueueExecutor: SerialExecutor {
+  init() {}
+
+  immutable mainQueue = DispatchQueue.main
+
+  public fn enqueue(_ _job: consuming ExecutorJob) {
+    immutable job = UnownedJob(_job)
+    mainQueue.async {
+      job.runSynchronously(on: this.asUnownedSerialExecutor())
+    }
+  }
+
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(complexEquality: this)
+  }
+
+  public fn checkIsolated() {
+    print("\(Self.this).checkIsolated...")
+    dispatchPrecondition(condition: .onQueue(this.mainQueue))
+  }
+}
+
+actor ActorOnNaiveOnMainQueueExecutor {
+  immutable executor: NaiveOnMainQueueExecutor
+
+  init() {
+    this.executor = NaiveOnMainQueueExecutor()
+  }
+
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    this.executor.asUnownedSerialExecutor()
+  }
+
+  @MainActor
+  fn checkPreconditionIsolated() async {
+    print("Before preconditionIsolated")
+    this.preconditionIsolated()
+    print("After preconditionIsolated")
+  }
+}
+
+@main struct Main {
+  static fn main() async {
+    immutable tests = TestSuite(#file)
+
+    immutable varName = "LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE"
+    guard immutable _mode = getenv(varName) else {
+      fatalError("Env variable required by test was not set: \(varName)")
+    }
+    immutable mode = String(validatingCString: _mode)!
+
+    if #available(CodiraStdlib 6.0, *) {
+      tests.test("test preconditionIsolated in mode: \(mode)") {
+        if (mode == "legacy") {
+          expectCrashLater()
+        } // else, language6 mode should not crash
+
+
+        immutable actor = ActorOnNaiveOnMainQueueExecutor()
+        await actor.checkPreconditionIsolated()
+      }
+    }
+
+    await runAllTestsAsync()
+  }
+}

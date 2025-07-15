@@ -11,31 +11,32 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines the database of builtin C types that are imported as swift
+// This file defines the database of builtin C types that are imported as language
 // stdlib types.
 //
-// MAP_BUILTIN_TYPE(CLANG_BUILTIN_KIND, SWIFT_TYPE_NAME)
+// MAP_BUILTIN_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)
 //  - CLANG_BUILTIN_KIND is the kind of builtin type, clang::BuiltinType
-//  - SWIFT_TYPE_NAME is the name of the corresponding stdlib type.
+//  - LANGUAGE_TYPE_NAME is the name of the corresponding stdlib type.
 //
-// MAP_BUILTIN_INTEGER_TYPE(CLANG_BUILTIN_KIND, SWIFT_TYPE_NAME)
+// MAP_BUILTIN_INTEGER_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)
 //  - CLANG_BUILTIN_KIND is the kind of builtin type, clang::BuiltinType
-//  - SWIFT_TYPE_NAME is the name of the corresponding stdlib type.
+//  - LANGUAGE_TYPE_NAME is the name of the corresponding stdlib type.
 //
-// MAP_BUILTIN_CCHAR_TYPE(CLANG_BUILTIN_KIND, SWIFT_TYPE_NAME)
+// MAP_BUILTIN_CCHAR_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)
 //  - CLANG_BUILTIN_KIND is the kind of builtin type, clang::BuiltinType
-//  - SWIFT_TYPE_NAME is the name of the corresponding stdlib type.
+//  - LANGUAGE_TYPE_NAME is the name of the corresponding stdlib type.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef MAP_BUILTIN_INTEGER_TYPE
-#define MAP_BUILTIN_INTEGER_TYPE(CLANG, SWIFT) MAP_BUILTIN_TYPE(CLANG, SWIFT)
+#define MAP_BUILTIN_INTEGER_TYPE(CLANG, LANGUAGE) MAP_BUILTIN_TYPE(CLANG, LANGUAGE)
 #endif
 
 #ifndef MAP_BUILTIN_CCHAR_TYPE
-#define MAP_BUILTIN_CCHAR_TYPE(CLANG, SWIFT) MAP_BUILTIN_TYPE(CLANG, SWIFT)
+#define MAP_BUILTIN_CCHAR_TYPE(CLANG, LANGUAGE) MAP_BUILTIN_TYPE(CLANG, LANGUAGE)
 #endif
 
 MAP_BUILTIN_CCHAR_TYPE(Char_U,    CChar)

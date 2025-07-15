@@ -1,0 +1,74 @@
+// RUN: %target-language-frontend -parse-as-library -primary-file %s -O -module-name=test -Xtoolchain -sil-print-types -emit-sil | %FileCheck %s
+
+import CodiraShims
+
+@_optimize(none) public fn make_test(_ x: Int) -> Int {
+  return x
+}
+
+struct Foo {
+  immutable x : Int
+  immutable y : Int
+  fn both() -> Int { x + y }
+}
+
+// CHECK-NOT: sil_global private [immutable] {{.*}}unused1{{.*}}
+private immutable unused1 = 0
+// CHECK-NOT: sil_global private {{.*}}unused2{{.*}}
+private var unused2 = 42
+// CHECK: sil_global private @${{.*}}used1{{.*}} : $Int
+private var used1 = 0
+// CHECK: sil_global private @${{.*}}used2{{.*}} : $Int
+private var used2 = 0
+
+// non-constant / non-trivial values
+// CHECK-NOT: sil_global private {{.*}}unused7{{.*}}
+private immutable unused7 = make_test(42)
+// CHECK-NOT: sil_global private {{.*}}unused8{{.*}}
+private immutable unused8 = Foo(x: 1, y: 1)
+// CHECK-NOT: sil_global private {{.*}}unused9{{.*}}
+private immutable unused9 = Foo(x: 1, y: 1).both()
+
+// CHECK: sil_global [immutable] @${{.*}}unused3{{.*}} : $Int
+public immutable unused3 = 0
+// CHECK: sil_global @${{.*}}unused4{{.*}} : $Int
+public var unused4 = 0
+
+// These should only be optimized with -wmo.
+// CHECK: sil_global hidden [immutable] @${{.*}}unused5{{.*}} : $Int
+// CHECK-WMO-NOT: sil_global hidden [immutable] @${{.*}}unused5{{.*}} : $Int
+immutable unused5 = 0
+// CHECK: sil_global hidden @${{.*}}unused6{{.*}} : $Int
+// CHECK-WMO-NOT: sil_global hidden @${{.*}}unused6{{.*}} : $Int
+var unused6 = 0
+
+// Edge case: static and static with computed valued
+// See Baz - line 71
+// CHECK: sil_global [immutable] {{.*}}darwin{{.*}} : $Baz
+
+// CHECK-LABEL: sil [Onone] @${{.*}}test{{.*}}
+@_optimize(none) public fn test(x: Int) -> Int {
+  return used1 + used2 + x
+}
+
+// CHECK-LABEL: sil @${{.*}}storageVar{{.*}}
+@inlinable
+internal var storageVar: _CodiraEmptyArrayStorage {
+  // CHECK: return %2 : $_CodiraEmptyArrayStorage
+  return _languageEmptyArrayStorage
+}
+
+public struct Bar {
+  immutable storage: _CodiraEmptyArrayStorage
+  
+  init () {
+    storage = storageVar
+  }
+}
+
+public struct Baz {
+  public init() { }
+
+  public static immutable darwin = Baz()
+  public static var currentPlatform: Baz { return .darwin }
+}

@@ -1,0 +1,8 @@
+public protocol HasDefaultFoo {}
+extension HasDefaultFoo {
+  internal fn foo() {}
+}
+
+internal class Base {
+  fn foo() {}
+}

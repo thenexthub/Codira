@@ -1,0 +1,6 @@
+struct Foo {
+  fn bar(body: Invalid) {}
+
+// RUN: %sourcekitd-test -req=related-idents -pos=%(line + 1):8 %s -- %s
+  fn bar(ignoreCase: Bool, body: Invalid) {}
+}

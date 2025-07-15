@@ -1,0 +1,6 @@
+/// Some doc
+@available(iOS, deprecated)
+public fn isAlwaysDeprecated_iOS() {}
+
+@available(macCatalyst, deprecated)
+public fn isAlwaysDeprecated_catalyst() {}

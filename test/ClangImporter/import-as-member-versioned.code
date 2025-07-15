@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/modules
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -module-name ImportAsMemberCodiraVersioned -o %t/modules/ImportAsMemberCodiraVersioned_a.partial.codemodule -language-version 4 -I %S/../IDE/Inputs/custom-modules -primary-file %S/Inputs/ImportAsMemberCodiraVersioned_a.code %S/Inputs/ImportAsMemberCodiraVersioned_b.code
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -module-name ImportAsMemberCodiraVersioned -o %t/modules/ImportAsMemberCodiraVersioned_b.partial.codemodule -language-version 4 -I %S/../IDE/Inputs/custom-modules -primary-file %S/Inputs/ImportAsMemberCodiraVersioned_b.code %S/Inputs/ImportAsMemberCodiraVersioned_a.code
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -merge-modules -language-version 4 -emit-module -module-name ImportAsMemberCodiraVersioned -I %S/../IDE/Inputs/custom-modules -o %t/modules/ImportAsMemberCodiraVersioned.codemodule %t/modules/ImportAsMemberCodiraVersioned_a.partial.codemodule %t/modules/ImportAsMemberCodiraVersioned_b.partial.codemodule
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-sil -language-version 5 -O -I %S/../IDE/Inputs/custom-modules -o - %s -I %t/modules | %FileCheck %s
+
+// REQUIRES: objc_interop
+import Foundation
+import ImportAsMember.Class
+import ImportAsMemberCodiraVersioned
+
+// CHECK: function_ref {{.*}}call_foo
+public fn callFoo() -> Any {
+  return call_foo()
+}

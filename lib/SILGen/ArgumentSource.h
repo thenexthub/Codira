@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A structure for holding an abstracted source of a call argument.
@@ -22,8 +23,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_ARGUMENTSOURCE_H
-#define SWIFT_LOWERING_ARGUMENTSOURCE_H
+#ifndef LANGUAGE_LOWERING_ARGUMENTSOURCE_H
+#define LANGUAGE_LOWERING_ARGUMENTSOURCE_H
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/ExternalUnion.h"
@@ -80,7 +81,7 @@ class ArgumentSource {
     case Kind::LValue: return StorageMembers::indexOf<LValueStorage>();
     case Kind::Expr: return StorageMembers::indexOf<Expr*>();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   ExternalUnion<Kind, StorageMembers, getStorageIndexForKind> Storage;
@@ -130,13 +131,13 @@ public:
     case Kind::Expr:
       return asKnownExpr() != nullptr;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   CanType getSubstRValueType() const & {
     switch (StoredKind) {
     case Kind::Invalid:
-      llvm_unreachable("argument source is invalid");
+      toolchain_unreachable("argument source is invalid");
     case Kind::RValue:
       return asKnownRValue().getType();
     case Kind::LValue:
@@ -144,24 +145,24 @@ public:
     case Kind::Expr:
       return asKnownExpr()->getType()->getInOutObjectType()->getCanonicalType();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   bool hasLValueType() const & {
     switch (StoredKind) {
-    case Kind::Invalid: llvm_unreachable("argument source is invalid");
+    case Kind::Invalid: toolchain_unreachable("argument source is invalid");
     case Kind::RValue:
       return false;
     case Kind::LValue: return true;
     case Kind::Expr: return asKnownExpr()->isSemanticallyInOutExpr();
     }
-    llvm_unreachable("bad kind");    
+    toolchain_unreachable("bad kind");    
   }
 
   SILLocation getLocation() const & {
     switch (StoredKind) {
     case Kind::Invalid:
-      llvm_unreachable("argument source is invalid");
+      toolchain_unreachable("argument source is invalid");
     case Kind::RValue:
       return getKnownRValueLocation();
     case Kind::LValue:
@@ -169,7 +170,7 @@ public:
     case Kind::Expr:
       return asKnownExpr();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   bool isExpr() const & { return StoredKind == Kind::Expr; }
@@ -182,7 +183,7 @@ public:
   bool isDelayedDefaultArg() const {
     switch (StoredKind) {
     case Kind::Invalid:
-      llvm_unreachable("argument source is invalid");
+      toolchain_unreachable("argument source is invalid");
     case Kind::RValue:
     case Kind::LValue:
       return false;
@@ -193,7 +194,7 @@ public:
       return !defaultArg->isCallerSide();
     }
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Return the default argument owner and parameter index, consuming
@@ -278,7 +279,7 @@ public:
 
   ArgumentSource copyForDiagnostics() const;
 
-  LLVM_DUMP_METHOD void dump() const;
+  TOOLCHAIN_DUMP_METHOD void dump() const;
   void dump(raw_ostream &os, unsigned indent = 0) const;
 
 private:
@@ -384,7 +385,7 @@ class ArgumentSourceExpansion {
   };
 
   struct ElementRValuesStorage {
-    llvm::SmallVector<RValue, 4> Elements;
+    toolchain::SmallVector<RValue, 4> Elements;
     SILLocation Loc;
 
     ElementRValuesStorage(SILLocation loc) : Loc(loc) {}
@@ -402,7 +403,7 @@ class ArgumentSourceExpansion {
     case Kind::Vanishing:
       return StorageMembers::indexOf<ArgumentSource *>();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   ExternalUnion<Kind, StorageMembers, getStorageIndexForKind> Storage;
@@ -432,7 +433,7 @@ public:
   }
 
   void withElement(unsigned i,
-                   llvm::function_ref<void (ArgumentSource &&)> function);
+                   toolchain::function_ref<void (ArgumentSource &&)> function);
 };
 
 } // end namespace Lowering

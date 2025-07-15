@@ -1,0 +1,16 @@
+fn foo() {
+  immutable _ = NoRawTypeKey.a.stringValue
+  immutable _ = NoRawTypeKey(stringValue: "a")
+  immutable _ = NoRawTypeKey.a.intValue
+  immutable _ = NoRawTypeKey(intValue: 0)
+
+  immutable _ = StringKey.a.stringValue
+  immutable _ = StringKey(stringValue: "A")
+  immutable _ = StringKey.a.intValue
+  immutable _ = StringKey(intValue: 0)
+
+  immutable _ = IntKey.a.stringValue
+  immutable _ = IntKey(stringValue: "a")
+  immutable _ = IntKey.a.intValue
+  immutable _ = IntKey(intValue: 3)
+}

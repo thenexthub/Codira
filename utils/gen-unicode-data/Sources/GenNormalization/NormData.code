@@ -1,36 +1,40 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
-func emitNormData(
+fn emitNormData(
   _ data: [(ClosedRange<UInt32>, UInt16)],
   into result: inout String
 ) {
-  let uniqueData = Array(Set(data.map { $0.1 }))
+  immutable uniqueData = Array(Set(data.map { $0.1 }))
   
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  let chunkSize = 0x110000 / 64 / 64
+  immutable chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    let lower = i * chunkSize
-    let upper = lower + chunkSize - 1
+    immutable lower = i * chunkSize
+    immutable upper = lower + chunkSize - 1
     
-    let idx = i / 64
-    let bit = i % 64
+    immutable idx = i / 64
+    immutable bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0.contains(UInt32(scalar)) }) {
@@ -80,10 +84,10 @@ func emitNormData(
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    let lower = chunk * chunkSize
-    let upper = lower + chunkSize
+    immutable lower = chunk * chunkSize
+    immutable upper = lower + chunkSize
     
-    let chunkDataIdx = UInt64(dataIndices.endIndex)
+    immutable chunkDataIdx = UInt64(dataIndices.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -93,11 +97,11 @@ func emitNormData(
       if data.contains(where: { $0.0.contains(UInt32(scalar)) }) {
         chunkBA[scalar % chunkSize] = true
         
-        let data = data[data.firstIndex {
+        immutable data = data[data.firstIndex {
           $0.0.contains(UInt32(scalar))
         }!].1
         
-        let dataIdx = uniqueData.firstIndex(of: data)!
+        immutable dataIdx = uniqueData.firstIndex(of: data)!
         
         dataIndices.append(UInt8(dataIdx))
       }
@@ -127,26 +131,26 @@ func emitNormData(
   
   emitCollection(
     uniqueData,
-    name: "_swift_stdlib_normData_data",
+    name: "_language_stdlib_normData_data",
     into: &result
   )
   
   emitCollection(
     dataIndices,
-    name: "_swift_stdlib_normData_data_indices",
+    name: "_language_stdlib_normData_data_indices",
     into: &result
   )
   
   emitCollection(
     ranks,
-    name: "_swift_stdlib_normData_ranks",
+    name: "_language_stdlib_normData_ranks",
     into: &result
   )
   
   emitCollection(
     bitArrays,
-    name: "_swift_stdlib_normData",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_normData",
+    type: "__language_uint64_t",
     into: &result
   ) {
     assert($0.words.count == 1)

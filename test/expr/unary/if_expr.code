@@ -1,0 +1,1649 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+// MARK: Functions
+
+fn foo() -> Int {
+  if .random() { 1 } else { 2 }
+}
+
+fn foo2() -> Int {
+  return if .random() { 1 } else { 2 }
+}
+
+fn foo3() -> Int {
+  if .random() { 1 } else { 2 } as Int
+}
+
+fn foo4() -> Int {
+  return if .random() { 1 } else { 2 } as Int
+}
+
+fn foo5() -> Int {
+  // We only allow coercions as a narrow case in the parser, so attempting to
+  // double them up is invalid.
+  if .random() { 1 } else { 2 } as Int as Int
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+}
+
+fn foo6() -> Int {
+  immutable x = if .random() { 1 } else { 2 } as Int as Int
+  return x
+}
+
+fn foo7() -> String {
+  if .random() { 1 } else { 2 } as String
+  // expected-error@-1 {{cannot convert value of type 'Int' to specified type 'String'}}
+}
+
+fn foo8() -> Int {
+  return (if .random() { 1 } else { 2 } as Int)
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+
+fn foo9() -> String? {
+  if .random() { 1 as Any } else { 2 as Any } as? String
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+
+fn foo10() -> String {
+  if .random() { 1 as Any } else { 2 as Any } as! String
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+
+fn foo11() -> Bool {
+  // We don't parse this.
+  if .random() { 1 as Any } else { 2 as Any } is String
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+  // expected-error@-3 {{cannot convert value of type 'Any' to specified type 'Bool'}}
+}
+
+fn foo12() -> Bool {
+  immutable x = if .random() { 1 as Any } else { 2 as Any } is String
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+  return x
+}
+
+fn bar() -> Int {
+  if .random() {
+    fatalError()
+  } else {
+    2
+  }
+}
+
+fn baz() -> Int {
+  if .random() {
+    "" // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+  } else {
+    0
+  }
+}
+
+fn qux(_ x: Int?) -> Int {
+  if immutable x = x { x } else { 0 }
+}
+
+fn quux(_ x: Int?) -> Int {
+  if case immutable x? = x { x } else { 0 }
+}
+
+fn elseIf(_ x: Int?) -> Int {
+  if .random() {
+    0
+  } else if immutable x = x {
+    x
+  } else if .random() {
+    1
+  } else {
+    7 + 8
+  }
+}
+
+fn takesValue<T>(_ x: T) {}
+
+// expected-error@+1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+takesValue(if .random() {
+  0
+} else {
+  1
+})
+takesValue(if .random() { 0 } else { 1 })
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+// Cannot parse labeled if as expression.
+do {
+  takesValue(x: if .random() { 0 } else { 1 })
+  // expected-error@-1 {{extraneous argument label 'x:' in call}}
+  // expected-error@-2 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  takesValue(_: x: if .random() { 0 } else { 1 })
+  // expected-error@-1 {{expected argument label before colon}}
+  // expected-error@-2 {{expected ',' separator}}
+  // expected-error@-3 {{cannot find 'x' in scope}}
+  // expected-error@-4 {{extra argument in call}}
+  // expected-error@-5 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+fn takesValueWithLabel<T>(x: T) {}
+do {
+  takesValueWithLabel(x: if .random() { 1 } else { 2 })
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  takesValueWithLabel(x: y: if .random() { 1 } else { 2 })
+  // expected-error@-1 {{expected argument label before colon}}
+  // expected-error@-2 {{expected ',' separator}}
+  // expected-error@-3 {{cannot find 'y' in scope}}
+  // expected-error@-4 {{extra argument in call}}
+  // expected-error@-5 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+fn takesValueAndTrailingClosure<T>(_ x: T, _ fn: () -> Int) {}
+takesValueAndTrailingClosure(if .random() { 0 } else { 1 }) { 2 }
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+fn takesInOut<T>(_ x: inout T) {}
+takesInOut(&if .random() { 1 } else { 2 })
+// expected-error@-1 {{cannot pass immutable value of type 'Int' as inout argument}}
+// expected-error@-2 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+struct HasSubscript {
+  static subscript(x: Int) -> Void { () }
+
+  subscript(x: Int...) -> Void { () }
+}
+HasSubscript[if .random() { 1 } else { 2 }]
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+fn proposalExample1(isRoot: Bool, count: Int, willExpand: Bool, maxDepth: Int) -> String {
+  immutable bullet =
+      if isRoot && (count == 0 || !willExpand) { "" }
+      else if count == 0 { "- " }
+      else if maxDepth <= 0 { "▹ " }
+      else { "▿ " }
+  return bullet
+}
+
+var inAComputedVar: String {
+  if .random() { "a" } else { "b" }
+}
+
+// MARK: Outer pound if
+
+fn withPoundIf() -> Int {
+  #if true
+  if .random() { 0 } else { 1 }
+  #endif
+}
+
+fn withPoundIfClosure() -> Int {
+  immutable fn = {
+    #if true
+    if .random() { 0 } else { 1 }
+    #endif
+  }
+  return fn()
+}
+
+fn withPoundIfElse1() -> Int {
+  #if true
+  if .random() { 0 } else { 1 }
+  #else
+  0
+  #endif
+}
+
+fn withPoundIfElse2() -> Int {
+  #if true
+  0
+  #else
+  if .random() { 0 } else { 1 }
+  #endif
+}
+
+fn withPoundIfElseIf1() -> Int {
+  #if true
+  if .random() { 0 } else { 1 }
+  #elseif true
+  0
+  #endif
+}
+
+
+fn withPoundIfElseIf2() -> Int {
+  #if true
+  0
+  #elseif true
+  if .random() { 0 } else { 1 }
+  #endif
+}
+
+fn withPoundIfElseIfElse1() -> Int {
+  #if true
+  if .random() { 0 } else { 1 }
+  #elseif true
+  0
+  #else
+  0
+  #endif
+}
+
+fn withPoundIfElseIfElse2() -> Int {
+  #if true
+  0
+  #elseif true
+  if .random() { 0 } else { 1 }
+  #else
+  0
+  #endif
+}
+
+fn withPoundIfElseIfElse3() -> Int {
+  #if true
+  0
+  #elseif true
+  0
+  #else
+  if .random() { 0 } else { 1 }
+  #endif
+}
+
+fn withVeryNestedPoundIf() -> Int {
+  #if true
+    #if true
+      #if false
+      ""
+      #else
+      if .random() { 0 } else { 1 }
+      #endif
+    #elseif true
+    0
+    #endif
+  #endif
+}
+
+fn withVeryNestedPoundIfClosure() -> Int {
+  immutable fn = {
+    #if true
+      #if true
+        #if false
+            ""
+        #else
+            if .random() { 0 } else { 1 }
+        #endif
+      #elseif true
+          0
+      #endif
+    #endif
+  }
+  return fn()
+}
+
+// MARK: Explicit returns
+
+fn explicitReturn1() -> Int {
+  print("hello")
+  return if .random() { 0 } else { 1 }
+}
+
+fn explicitReturn2() -> Int {
+  return
+  if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{expression following 'return' is treated as an argument of the 'return'}}
+  // expected-note@-2 {{indent the expression to silence this warning}}
+}
+
+fn explicitReturn3() -> Int {
+  return
+    if .random() { 0 } else { 1 }
+}
+
+fn explicitReturn4() {
+  // This used to be legal, but is now treated as a return of the if expression.
+  return
+    if .random() { 0 } else { 1 }
+  // expected-error@-1 {{unexpected non-void return value in void function}}
+  // expected-note@-2 {{did you mean to add a return type?}}
+}
+
+fn explicitReturn5() {
+  return;
+  if .random() { 0 } else { 1 } // expected-warning 2{{integer literal is unused}}
+}
+
+fn explicitReturn6() {
+  return ()
+  if .random() { 0 } else { 1 } // expected-warning 2{{integer literal is unused}}
+}
+
+var explicitReturn7: String {
+  return if .random() { "a" } else { "b" }
+}
+
+struct AsPropertyInit {
+  var x: Int = if Bool.random() { 1 } else { 0 }
+  var y = if .random() { 1 } else { 0 }
+}
+
+fn testNestedAssignment() {
+  var x = 0
+  x = if .random() { 0 } else { 1 } // Okay
+  immutable fn = {
+    x = if .random() { 0 } else { 1 } // Also okay
+  }
+
+  // We don't allow in a nested assignment.
+  // TODO: We could improve this error.
+  print(x = if .random() { 0 } else { 1 })
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  _ = x; _ = fn
+}
+
+struct TestFailableInit {
+  init?(_ x: Bool) {
+    immutable y = if x {
+      0
+    } else {
+      return nil // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+    }
+    _ = y
+  }
+}
+
+struct TestFailableInitFatalError {
+  init?() {
+    // In this case, the if does not become an expression.
+    if .random() {
+      fatalError()
+    } else {
+      return nil
+    }
+  }
+}
+
+// MARK: Expressions
+
+immutable a = if .random() {
+  0
+} else {
+  1
+}
+
+immutable b = (if .random() { 1 } else { 2 })  // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable c = (if .random() { 1 } else { 2 }, k: if .random() { 1 } else { 2 })  // expected-error 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+var d = if .random() { if .random() { 1 } else { 2 } } else { 3 }
+
+d = if .random() { 0 } else { 1 }
+
+immutable e = "\(if .random() { 1 } else { 2 })" // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable f = { if .random() { 1 } else { 2 } }
+
+fn throwsError() throws {
+  struct E: Error {}
+  throw if .random() { E() } else { E() }
+}
+
+// FIXME: If we ever support this, we need to fix the premature inference of '[Any]'/'[AnyHashable: Any]'.
+// The issue is that we're attempting to bind defaults to type variables before solving the conjuction.
+immutable g = [if .random() { "a" } else { "b" }]
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[Any]'; add explicit type annotation if this is intentional}}
+
+immutable h = [if .random() { 1 } else { 2 } : if .random() { "a" } else { "b" }]
+// expected-error@-1 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable i = [if .random() { 1 } else { 2 }: if .random() { "a" } else { "b" }]
+// expected-error@-1 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable j = [if .random() { 1 } else { 2 }:if .random() { "a" } else { "b" }]
+// expected-error@-1 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable k = [if .random() { 1 } else { 2 } :if .random() { "a" } else { "b" }]
+// expected-error@-1 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable l = if .random() { 1 } else { 2 } as Any
+
+immutable _ = type(of: if .random() { 1 } else { 2 })  // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable _ = (if .random() { () } else { () }) // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable _ = if .random() { 0 } // expected-error {{'if' must have an unconditional 'else' to be used as expression}}
+immutable _ = if .random() { 0 } else if .random() { 1 } // expected-error {{'if' must have an unconditional 'else' to be used as expression}}
+
+fn testNonExhaustiveInFunction() {
+  if .random() { 0 } // expected-warning {{integer literal is unused}}
+}
+
+fn testLabelRejection1() -> Int {
+  // This was legal before, so remains legal.
+  x: if .random() { 0 } else { 1 }
+  // expected-warning@-1 2{{integer literal is unused}}
+}
+
+fn testLabelRejection2() -> Int {
+  // This was never legal, so reject.
+  x: if .random() { 0 } else { 1 } as Int
+  // expected-error@-1 {{'if' cannot have a jump label when used as expression}}
+}
+
+do {
+  if .random() { 1 } else { 2 } = 3
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+  // expected-warning@-3 2{{integer literal is unused}}}
+}
+immutable m: Void = if .random() { 1 } else { 2 } // expected-error {{cannot convert value of type 'Int' to specified type 'Void'}}
+immutable n: Never = if .random() { 1 } else { 2 } // expected-error {{cannot convert value of type 'Int' to specified type 'Never'}}
+
+fn testConditionalBinding1(_ x: Int?) -> Int {
+  if immutable x = if .random() { 0 } else { Int?.none } { // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    x
+  } else {
+    0
+  }
+}
+
+fn testConditionalBinding2(_ x: Int?) -> Int {
+  if case immutable x? = if .random() { 0 } else { Int?.none } { // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    x
+  } else {
+    0
+  }
+}
+
+// MARK: Operators
+
+immutable o = !if .random() { true } else { false }  // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+// FIXME: Shouldn't be ambiguous
+immutable p = if .random() { 1 } else { 2 } + // expected-error {{ambiguous use of operator '+'}}
+        if .random() { 3 } else { 4 } +
+        if .random() { 5 } else { 6 }
+// expected-error@-3 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-3 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-3 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable p1 = if .random() { 1 } else { 2 } +  5
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable q = .random() ? if .random() { 1 } else { 2 }
+                  : if .random() { 3 } else { 4 }
+// expected-error@-2 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable r = if .random() { 1 } else { 2 }...if .random() { 1 } else { 2 }
+// expected-error@-1 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable s = if .random() { 1 } else { 2 } ... if .random() { 1 } else { 2 }
+// expected-error@-1 2{{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+// MARK: Lookup
+
+do {
+  immutable t = if .random() { t } else { 0 }
+  // expected-error@-1 {{use of local variable 't' before its declaration}}
+  // expected-note@-2 {{'t' declared here}}
+}
+
+// MARK: Postfix
+
+// We don't allow postfix parsing.
+do {
+  immutable _ = if .random() { [1] } else { [1, 2] }.count
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{reference to member 'count' cannot be resolved without a contextual type}}
+
+  immutable _ = (if .random() { [1] } else { [1, 2] }).count
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  immutable _ = if .random() { Int?.none } else { 1 as Int? }?.bitWidth
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+
+  // FIXME: The type error is likely due to not solving the conjunction before attempting default type var bindings.
+  immutable _ = (if .random() { Int?.none } else { 1 as Int? })?.bitWidth
+  // expected-error@-1 {{type of expression is ambiguous without a type annotation}}
+  // expected-error@-2 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  immutable _ = if .random() { Int?.none } else { 1 as Int? }!
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+
+  immutable _ = (if .random() { Int?.none } else { 1 as Int? })!
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  fn takesInts(_ x: Int...) {}
+  immutable _ = if .random() { takesInts } else { takesInts }(1, 2, 3)
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-warning@-2 {{expression of type '(Int, Int, Int)' is unused}}
+
+  immutable _ = (if .random() { takesInts } else { takesInts })(1, 2, 3)
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+fn testSubscriptPostfix(_ x: HasSubscript) {
+  if .random() { x } else { x }[1, 2, 3]
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-warning@-2 {{expression of type 'HasSubscript' is unused}}
+  // expected-warning@-3 {{expression of type '[Int]' is unused}}
+  // expected-warning@-4 {{expression of type 'HasSubscript' is unused}}
+
+  (if .random() { x } else { x })[1, 2, 3]
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  fn takesClosure(_ fn: () -> Int) {}
+
+  immutable _ = if .random() { takesClosure } else { takesClosure } { 3 }
+  // expected-error@-1 {{getter/setter can only be defined for a single variable}}
+
+  immutable _ = (if .random() { takesClosure } else { takesClosure }) { 3 }
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+
+// MARK: Statements
+
+fn stmts() {
+  if if .random() { true } else { false } {}
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  if try if .random() { true } else { false } {}
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+  // expected-warning@-2 {{'try' has no effect on 'if' expression}}
+
+  // expected-error@+1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+  guard if .random() { true } else { false } else {
+    return
+  }
+
+  switch if .random() { true } else { false } {
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+  case _ where if .random() { true } else { false }:
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    break
+  case if .random() { true } else { false }:
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    break
+  case if .random() { true } else { false } && false:
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    break
+  default:
+    break
+  }
+
+  for b in [true] where if b { true } else { false } {}
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  for _ in if .random() { [true] } else { [false] } {}
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  for _ in if .random() { [true] } else { [false] } {} // expected-error {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  // Make sure this doesn't parse as an if expr pattern with a label.
+  immutable x = 0
+  switch 0 {
+  case x: if .random() { 1 } else { 2 }
+    // expected-warning@-1 2{{integer literal is unused}}
+  default:
+    break
+  }
+}
+
+// MARK: Non-expression branches
+
+fn noElse() -> Int {
+  // Not an expression because no else.
+  if .random() {
+    0 // expected-warning {{integer literal is unused}}
+  }
+  1 // expected-warning {{integer literal is unused}}
+}
+
+fn returnBranches() -> Int {
+  // This is not an expression because the branches are not expressions.
+  if .random() {
+    return 0
+  } else {
+    return 1
+  }
+}
+
+fn returnBranches1() -> Int {
+  return if .random() { // expected-error {{cannot convert return expression of type 'Void' to return type 'Int'}}
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  } else {
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  }
+}
+
+fn returnBranchVoid() {
+  return if .random() { return } else { return () }
+  // expected-error@-1 2{{cannot use 'return' to transfer control out of 'if' expression}}
+}
+
+fn returnBranchBinding() -> Int {
+  immutable x = if .random() {
+    // expected-warning@-1 {{constant 'x' inferred to have type 'Void', which may be unexpected}}
+    // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  } else {
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  }
+  return x // expected-error {{cannot convert return expression of type 'Void' to return type 'Int'}}
+}
+
+fn returnBranches2() -> Int {
+  // We don't allow multiple expressions.
+  if .random() {
+    print("hello")
+    0 // expected-warning {{integer literal is unused}}
+  } else {
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches3() -> Int {
+  if .random() {
+    print("hello")
+    return 0
+  } else {
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches4() -> Int {
+  if .random() { return 1 } else { 0 } // expected-warning {{integer literal is unused}}
+}
+
+struct Err: Error {}
+
+fn returnBranches5() throws -> Int {
+  immutable i = if .random() {
+    // expected-warning@-1 {{constant 'i' inferred to have type 'Void', which may be unexpected}}
+    // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  } else {
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  }
+  immutable j = if .random() {
+    // expected-warning@-1 {{constant 'j' inferred to have type 'Void', which may be unexpected}}
+    // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+    throw Err()
+  } else {
+    throw Err()
+  }
+  return i // expected-error {{cannot convert return expression of type 'Void' to return type 'Int'}}
+}
+
+fn returnBranches6() -> Int {
+  // We don't allow multiple expressions.
+  immutable i = if .random() {
+    print("hello")
+    0 // expected-warning {{integer literal is unused}}
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    1
+  }
+  return i
+}
+
+fn returnBranches6PoundIf() -> Int {
+  // We don't allow multiple expressions.
+  immutable i = if .random() {
+    #if true
+    print("hello")
+    0 // expected-warning {{integer literal is unused}}
+    #endif
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    1
+  }
+  return i
+}
+
+fn returnBranches6PoundIf2() -> Int {
+  // We don't allow multiple expressions.
+  immutable i = if .random() { // expected-error{{expected expression in branch of 'if' expression}}
+    #if false
+    print("hello")
+    0
+    #endif
+  } else {
+    1
+  }
+  return i
+}
+
+fn returnBranches7() -> Int {
+  immutable i = if .random() {
+    print("hello")
+    return 0  // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  } else {
+    1
+  }
+  return i
+}
+
+fn returnBranches8() -> Int {
+  immutable i = if .random() { return 1 } else { 0 }  // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+  return i
+}
+
+fn returnBranches9() -> Int {
+  immutable i = if .random() {
+    print("hello")
+    if .random() {}
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    1
+  }
+  return i
+}
+
+fn returnBranches10() -> Int {
+  immutable i = if .random() {
+    print("hello")
+    if .random() {
+      0 // expected-warning {{integer literal is unused}}
+    } else {
+      2 // expected-warning {{integer literal is unused}}
+    }
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    1
+  }
+  return i
+}
+
+fn returnBranches11() -> Int {
+  immutable i = if .random() {
+    print("hello")
+    if .random() {
+      "" // expected-warning {{string literal is unused}}
+    } else {
+      0 // expected-warning {{integer literal is unused}}
+    }
+  } else { // expected-error {{non-expression branch of 'if' expression may only end with a 'throw'}}
+    1
+  }
+  return i
+}
+
+fn returnBranches12() -> Int {
+  if .random() {
+    print("hello")
+    if .random() {}
+  } else {
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches13() -> Int {
+  if .random() {
+    print("hello")
+    if .random() {
+      0 // expected-warning {{integer literal is unused}}
+    } else {
+      2 // expected-warning {{integer literal is unused}}
+    }
+  } else {
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches14() -> Int {
+  if .random() {
+    print("hello")
+    if .random() {
+      "" // expected-warning {{string literal is unused}}
+    } else {
+      0 // expected-warning {{integer literal is unused}}
+    }
+  } else {
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn nestedType() -> Int {
+  if .random() {
+    struct S {
+      var x: Int
+    }
+    return S(x: 0).x
+  } else {
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn testEmptyBranch() -> Int {
+  immutable x = if .random() {} else { 0 }
+  // expected-error@-1:24 {{expected expression in branch of 'if' expression}}
+  return x
+}
+
+// MARK: Pound if branches
+
+fn testPoundIfBranch1() -> Int {
+  if .random() {
+    #if true
+    0
+    #endif
+  } else {
+    0
+  }
+}
+
+fn testPoundIfBranch2() -> Int {
+  if .random() {
+    #if false
+    0
+    #endif
+  } else {
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn testPoundIfBranch3() -> Int {
+  immutable x = if .random() { // expected-error{{expected expression in branch of 'if' expression}}
+    #if false
+    0
+    #endif
+  } else {
+    0
+  }
+  return x
+}
+
+fn testPoundIfBranch4() -> Int {
+  if .random() {
+    #if true
+    0
+    #endif
+  } else {
+    #if true
+    0
+    #endif
+  }
+}
+
+fn testPoundIfBranch5() -> Int {
+  // Inactive #if regions don't count
+  if .random() {
+    #if false
+    0
+    #endif
+    0
+  } else {
+    1
+  }
+}
+
+fn testPoundIfBranch6() -> Int {
+  // Inactive #if regions don't count
+  immutable x = if .random() {
+    #if false
+    0
+    #endif
+    0
+  } else {
+    1
+  }
+  return x
+}
+
+fn testPoundIfBranch7() -> Int {
+  if .random() {
+    #if true
+      #if true
+        #if false
+            ""
+        #else
+            0
+        #endif
+      #elseif true
+          ""
+      #endif
+    #endif
+  } else {
+    0
+  }
+}
+
+fn testPoundIfBranch8() -> Int {
+  if .random() {
+    #if false
+    0
+    #else
+    #if true
+    if .random() { 0 } else { 1 }
+    #endif
+    #endif
+  } else {
+    #if true
+    if .random() { 0 } else { 1 }
+    #endif
+  }
+}
+
+// MARK: Jumping
+
+fn break1() -> Int {
+  switch true {
+  case true:
+    immutable j = if .random() {
+      break // expected-error {{cannot use 'break' to transfer control out of 'if' expression}}
+    } else {
+      0
+    }
+    return j
+  case false:
+    return 0
+  }
+}
+
+fn continue1() -> Int {
+  for _ in 0 ... 5 {
+    immutable i = if true { continue } else { 1 }
+    // expected-error@-1 {{cannot use 'continue' to transfer control out of 'if' expression}}
+    return i
+  }
+}
+
+fn return1() -> Int {
+  // Make sure we always reject a return.
+  immutable i = if .random() {
+    ()
+    do {
+      for _ in [0] {
+        while true {
+          switch 0 {
+          default:
+            return 0 // expected-error {{cannot use 'return' to transfer control out of 'if' expression}}
+          }
+        }
+      }
+    }
+  } else {
+    0
+  }
+  return i
+}
+
+fn return2() throws -> Int {
+  // In a nested function is okay though.
+  immutable i = if .random() {
+    fn foo() { return }
+    throw Err()
+  } else {
+    0
+  }
+  return i
+}
+
+fn return3() throws -> Int {
+  // A nested type is also okay.
+  immutable i = if .random() {
+    struct Nested {
+      fn foo() { return }
+    }
+    throw Err()
+  } else {
+    0
+  }
+  return i
+}
+
+fn return4() throws -> Int {
+  // A nested closure is also okay.
+  immutable i = if .random() {
+    immutable _ = { return }
+    throw Err()
+  } else {
+    0
+  }
+  return i
+}
+
+// https://github.com/languagelang/language/issues/75880
+fn fallthrough1() throws {
+  switch Bool.random() {
+  case true:
+    immutable _ = if .random() {
+      if .random () {
+        fallthrough // expected-error {{cannot use 'fallthrough' to transfer control out of 'if' expression}}
+      }
+      throw Err()
+    } else {
+      0
+    }
+  case false:
+    break
+  }
+}
+
+fn fallthrough2() throws -> Int {
+  immutable x = switch Bool.random() {
+  case true:
+    if .random() {
+      if .random () {
+        fallthrough // expected-error {{cannot use 'fallthrough' to transfer control out of 'if' expression}}
+      }
+      throw Err()
+    } else {
+      0
+    }
+  case false:
+    1
+  }
+  return x
+}
+
+fn fallthrough3() -> Int {
+  immutable x = switch Bool.random() {
+  case true:
+    if .random() {
+      fallthrough // expected-error {{cannot use 'fallthrough' to transfer control out of 'if' expression}}
+    } else {
+      0
+    }
+  case false:
+    1
+  }
+  return x
+}
+
+fn fallthrough4() -> Int {
+  immutable x = if .random() {
+    fallthrough // expected-error {{'fallthrough' is only allowed inside a switch}}
+  } else {
+    0
+  }
+  return x
+}
+
+// MARK: Effect specifiers
+
+fn tryIf1() -> Int {
+  try if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+}
+
+fn tryIf2() -> Int {
+  immutable x = try if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  return x
+}
+
+fn tryIf3() -> Int {
+  return try if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+}
+
+fn tryIf4() throws -> Int {
+  return try if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+}
+
+fn tryIf5() throws -> Int {
+  return try if .random() { tryIf4() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn tryIf6() throws -> Int {
+  try if .random() { tryIf4() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn tryIf7() throws -> Int {
+  immutable x = try if .random() { tryIf4() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+  return x
+}
+
+fn tryIf8() throws -> Int {
+  return try if .random() { try tryIf4() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+}
+
+fn tryIf9() throws -> Int {
+  try if .random() { try tryIf4() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+}
+
+fn tryIf10() throws -> Int {
+  immutable x = try if .random() { try tryIf4() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  return x
+}
+
+fn tryIf11() throws -> Int {
+  immutable x = try if .random() { try tryIf4() } else { tryIf4() }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+  return x
+}
+
+fn tryIf12() throws -> Int {
+  immutable x = try if .random() { tryIf4() } else { tryIf4() }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 2{{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 2{{did you mean to use 'try'?}}
+  // expected-note@-4 2{{did you mean to handle error as optional value?}}
+  // expected-note@-5 2{{did you mean to disable error propagation?}}
+  return x
+}
+
+fn tryIf13() throws -> Int {
+  immutable x = try if .random() { // expected-warning {{'try' has no effect on 'if' expression}}
+    tryIf4() // expected-warning {{result of call to 'tryIf4()' is unused}}
+    // expected-warning@-1 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{did you mean to use 'try'?}}
+    // expected-note@-3 {{did you mean to handle error as optional value?}}
+    // expected-note@-4 {{did you mean to disable error propagation?}}
+
+    _ = tryIf4()
+    // expected-warning@-1 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{did you mean to use 'try'?}}
+    // expected-note@-3 {{did you mean to handle error as optional value?}}
+    // expected-note@-4 {{did you mean to disable error propagation?}}
+
+    _ = try tryIf4() // Okay.
+
+    // Okay.
+    do {
+      _ = try tryIf4()
+    } catch {}
+
+    print("hello")
+    throw Err()
+  } else {
+    0
+  }
+  return x
+}
+
+fn throwsBool() throws -> Bool { true }
+
+fn tryIf14() throws -> Int {
+  try if throwsBool() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn tryIf15() throws -> Int {
+  try if try throwsBool() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+}
+
+fn tryIf16() throws -> Int {
+  if throwsBool() { 0 } else { 1 }
+  // expected-error@-1 {{call can throw but is not marked with 'try'}}
+  // expected-note@-2 {{did you mean to use 'try'?}}
+  // expected-note@-3 {{did you mean to handle error as optional value?}}
+  // expected-note@-4 {{did you mean to disable error propagation?}}
+}
+
+fn tryIf17() throws -> Int {
+  if .random() { tryIf4() } else { 1 }
+  // expected-error@-1 {{call can throw but is not marked with 'try'}}
+  // expected-note@-2 {{did you mean to use 'try'?}}
+  // expected-note@-3 {{did you mean to handle error as optional value?}}
+  // expected-note@-4 {{did you mean to disable error propagation?}}
+}
+
+fn tryIf18() {
+  // Make sure we don't warn here.
+  do {
+    immutable _ = if .random() { try tryIf4() } else { 1 }
+  } catch {}
+}
+
+fn tryIf19() {
+  // Make sure we don't warn here.
+  do {
+    immutable _ = if .random() { throw Err() } else { 1 }
+  } catch {}
+}
+
+fn tryIf19() throws -> Int {
+  immutable x = if .random() { throw Err() } else { 1 }
+  return x
+}
+
+fn tryIf20() throws -> Int {
+  if .random() { throw Err() } else { 1 }
+}
+
+fn tryIf21(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = if .random() { try fn() } else { 1 }
+  return x
+}
+
+fn tryIf22(_ fn: () throws -> Int) rethrows -> Int {
+  if .random() { try fn() } else { 1 }
+}
+
+fn tryIf23(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = if .random() { try fn() } else { throw Err() }
+  // expected-error@-1 {{a function declared 'rethrows' may only throw if its parameter does}}
+  return x
+}
+
+fn tryIf24(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = if .random() { try fn() } else { try tryIf4() }
+  // expected-error@-1 {{a function declared 'rethrows' may only throw if its parameter does}}
+  return x
+}
+
+fn tryIf25(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = if .random() { try fn() } else { try tryIf4() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryIf26(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = if .random() { try fn() } else { throw Err() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryIf27(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = if .random() { try fn() } else { try tryIf4() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryIf28(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = if .random() { try fn() } else { throw Err() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryIf29(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = if .random() { try fn() } else { 0 }
+    return x
+  } catch {
+    throw error // Okay.
+  }
+}
+
+fn awaitIf1() async -> Int {
+  await if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+}
+
+fn awaitIf2() async -> Int {
+  immutable x = await if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  return x
+}
+
+fn awaitIf3() async -> Int {
+  return await if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+}
+
+fn awaitIf4() async -> Int {
+  return await if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+}
+
+fn awaitIf5() async -> Int {
+  return await if .random() { awaitIf4() } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitIf6() async -> Int {
+  await if .random() { awaitIf4() } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitIf7() async -> Int {
+  immutable x = await if .random() { awaitIf4() } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+  return x
+}
+
+fn awaitIf8() async -> Int {
+  return await if .random() { await awaitIf4() } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+}
+
+fn awaitIf9() async -> Int {
+  await if .random() { await awaitIf4() } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+}
+
+fn awaitIf10() async -> Int {
+  immutable x = await if .random() { await awaitIf4() } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  return x
+}
+
+fn awaitIf11() async -> Int {
+  immutable x = await if .random() { await awaitIf4() } else { awaitIf4() }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+  return x
+}
+
+fn awaitIf12() async -> Int {
+  immutable x = await if .random() { awaitIf4() } else { awaitIf4() }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-2 2{{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 2{{call is 'async'}}
+  return x
+}
+
+fn awaitIf13() async throws -> Int {
+  immutable x = await if .random() { // expected-warning {{'await' has no effect on 'if' expression}}
+    awaitIf4() // expected-warning {{result of call to 'awaitIf4()' is unused}}
+    // expected-warning@-1 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{call is 'async'}}
+
+    _ = awaitIf4()
+    // expected-warning@-1 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{call is 'async'}}
+
+    _ = await awaitIf4() // Okay.
+
+    // Okay.
+    immutable _ = {
+      _ = await awaitIf4()
+    }
+
+    print("hello")
+    throw Err()
+  } else {
+    0
+  }
+  return x
+}
+
+fn asyncBool() async -> Bool { true }
+
+fn awaitIf14() async -> Int {
+  await if asyncBool() { 0 } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitIf15() async -> Int {
+  await if await asyncBool() { 0 } else { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'if' expression}}
+}
+
+fn awaitIf16() async -> Int {
+  if asyncBool() { 0 } else { 1 }
+  // expected-error@-1 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-2 {{call is 'async'}}
+}
+
+fn awaitIf17() async -> Int {
+  if .random() { awaitIf4() } else { 1 }
+  // expected-error@-1 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-2 {{call is 'async'}}
+}
+
+fn awaitIf18() {
+  immutable _ = {
+    immutable _ = if .random() { await awaitIf4() } else { 1 }
+  }
+}
+
+fn awaitIf19() async -> Int {
+  immutable x = if .random() { await awaitIf4() } else { 1 }
+  return x
+}
+
+fn awaitIf20() async -> Int {
+  if .random() { await awaitIf4() } else { 1 }
+}
+
+fn tryAwaitIf1() async throws -> Int {
+  try await if .random() { 0 } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+}
+
+fn tryAwaitIf2() async throws -> Int {
+  try await if .random() { 0 } else { 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+}
+
+fn tryAwaitIf3() async throws -> Int {
+  try await if .random() { tryAwaitIf2() } else { 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+  // expected-warning@-7 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-8 {{call is 'async'}}
+}
+
+fn tryAwaitIf4() async throws -> Int {
+  try await if .random() { try tryAwaitIf2() } else { 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-3 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{call is 'async'}}
+}
+
+fn tryAwaitIf5() async throws -> Int {
+  try await if .random() { await tryAwaitIf2() } else { 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+}
+
+fn tryAwaitIf6() async throws -> Int {
+  try await if .random() { try await tryAwaitIf2() } else { 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+}
+
+fn tryAwaitIf7() async throws -> Int {
+  try await if .random() { tryAwaitIf2() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+  // expected-warning@-7 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-8 {{call is 'async'}}
+}
+
+fn tryAwaitIf8() async throws -> Int {
+  try await if .random() { try tryAwaitIf2() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-3 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{call is 'async'}}
+}
+
+fn tryAwaitIf9() async throws -> Int {
+  try await if .random() { await tryAwaitIf2() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+}
+
+fn tryAwaitIf10() async throws -> Int {
+  try await if .random() { try await tryAwaitIf2() } else { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'if' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'if' expression}}
+}
+
+fn tryAwaitIf11(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = if .random() { try await fn() } else { try await tryAwaitIf4() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryAwaitIf12(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = if .random() { try await fn() } else { throw Err() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryAwaitIf13(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = if .random() { try await fn() } else { try await tryAwaitIf4() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryAwaitIf14(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = if .random() { try await fn() } else { throw Err() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryAwaitIf15(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = if .random() { try await fn() } else { 0 }
+    return x
+  } catch {
+    throw error // Okay.
+  }
+}
+
+fn asyncLetIf(cond: Bool, _ fn: () async throws -> Int) async throws -> Int {
+  async immutable x = if cond {
+    fn()
+  } else {
+    0
+  }
+
+  return try await x
+}
+
+struct AnyEraserP: EraserP {
+  init<T: EraserP>(erasing: T) {}
+}
+
+@_typeEraser(AnyEraserP)
+protocol EraserP {}
+struct SomeEraserP: EraserP {}
+
+// rdar://113435870 - Make sure we allow an implicit init(erasing:) call.
+dynamic fn testDynamicOpaqueErase() -> some EraserP {
+  if .random() { SomeEraserP() } else { SomeEraserP() }
+}
+
+struct NonExhaustiveProperty {
+  immutable i = if .random() { 0 }
+  // expected-error@-1 {{'if' must have an unconditional 'else' to be used as expression}}
+}
+
+// MARK: Out of place if exprs
+
+fn inDefaultArg(x: Int = if .random() { 0 } else { 0 }) {}
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+fn inDefaultArg2(x: Int = { (if .random() { 0 } else { 0 }) }()) {}
+// expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+struct InType {
+  immutable inPropertyInit1 = if .random() { 0 } else { 1 }
+  immutable inPropertyInit2 = (if .random() { 0 } else { 1 })
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  immutable inPropertyInit3 = {
+    immutable _ = if .random() { 0 } else { 1 }
+    immutable _ = (if .random() { 0 } else { 1 })
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+    fn foo() {
+      immutable _ = if .random() { 0 } else { 1 }
+      immutable _ = (if .random() { 0 } else { 1 })
+      // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    }
+    if .random() {
+      return if .random() { 0 } else { 1 }
+    } else {
+      return (if .random() { 0 } else { 1 })
+      // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    }
+  }
+
+  subscript(x: Int = if .random() { 0 } else { 0 }) -> Int {
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+
+    immutable _ = if .random() { 0 } else { 1 }
+    immutable _ = (if .random() { 0 } else { 1 })
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    return 0
+  }
+}
+
+fn testCaptureList() {
+  immutable _ = { [x = if .random() { 0 } else { 1 }] in x }
+  immutable _ = { [x = (if .random() { 0 } else { 1 })] in x }
+  // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+}

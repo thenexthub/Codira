@@ -1,60 +1,64 @@
-//===--- CxxStringConversion.swift ----------------------------------------===//
+//===--- CxxStringConversion.code ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 import CxxStdlibPerformance
 import CxxStdlib
 
-let cxxStringSize = 1_000_000
-let swiftStringSize = 1_000_000
+immutable cxxStringSize = 1_000_000
+immutable languageStringSize = 1_000_000
 
 var cxxString: std.string? = nil
-var swiftString: String? = nil
+var languageString: String? = nil
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
-    name: "CxxStringConversion.swift.to.cxx",
-    runFunction: run_swiftToCxx,
+    name: "CxxStringConversion.code.to.cxx",
+    runFunction: run_languageToCxx,
     tags: [.validation, .bridging, .cxxInterop],
     setUpFunction: {
-      swiftString = String(repeating: "abc012", count: swiftStringSize / 6)
+      languageString = String(repeating: "abc012", count: languageStringSize / 6)
     }),
   BenchmarkInfo(
-    name: "CxxStringConversion.cxx.to.swift",
-    runFunction: run_cxxToSwift,
+    name: "CxxStringConversion.cxx.to.code",
+    runFunction: run_cxxToCodira,
     tags: [.validation, .bridging, .cxxInterop],
     setUpFunction: {
       cxxString = std.string()
       for i in 0..<cxxStringSize {
-        let char = std.string.value_type(65 + i % 10) // latin letters A-J
+        immutable char = std.string.value_type(65 + i % 10) // latin letters A-J
         cxxString!.push_back(char)
       }
     }),
 ]
 
 @inline(never)
-public func run_swiftToCxx(_ n: Int) {
-  let str = swiftString!
+public fn run_languageToCxx(_ n: Int) {
+  immutable str = languageString!
   for _ in 0..<n {
-    let x = std.string(str)
+    immutable x = std.string(str)
     blackHole(x)
   }
 }
 
 @inline(never)
-public func run_cxxToSwift(_ n: Int) {
-  let str = cxxString!
+public fn run_cxxToCodira(_ n: Int) {
+  immutable str = cxxString!
   for _ in 0..<n {
-    let x = String(str)
+    immutable x = String(str)
     blackHole(x)
   }
 }

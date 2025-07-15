@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend -emit-ir -module-name M -primary-file %S/Inputs/issue-53550-other.code -primary-file %s
+// RUN: %target-language-frontend -emit-ir -module-name M %S/Inputs/issue-53550-other.code %s
+
+// https://github.com/apple/language/issues/53550
+
+class WatchRegistry {
+    fn single<S: Snapshotting>(objectType: S.Type) throws -> Watch<S>
+    {
+        return try Watch<S>.singleObject(objectType: S.this, properties: S.ChangeType.PropertiesType.all)
+    }
+}
+
+class Watch<SnapshotType : Snapshotting> {
+    static fn singleObject(objectType: SnapshotType.Type, properties: SnapshotType.ChangeType.PropertiesType) throws -> Watch<SnapshotType> {
+        fatalError()
+    }
+}

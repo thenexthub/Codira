@@ -1,0 +1,2 @@
+@_transparent public fn maybeTrans(_ i: Int16) {}
+public fn maybeTrans(_ i: Int32) {}

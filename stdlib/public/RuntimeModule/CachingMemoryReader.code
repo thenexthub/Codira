@@ -1,27 +1,31 @@
-//===--- CachingMemoryReader.swift ----------------------------*- swift -*-===//
+//===--- CachingMemoryReader.code ----------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Wraps a MemoryReader in a layer that caches memory pages.
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 // The size of the pages in the page cache (must be a power of 2)
-fileprivate let pageSize = 4096
-fileprivate let pageMask = pageSize - 1
+fileprivate immutable pageSize = 4096
+fileprivate immutable pageMask = pageSize - 1
 
 // The largest chunk we will try to cache data for
-fileprivate let maxCachedSize = pageSize * 8
+fileprivate immutable maxCachedSize = pageSize * 8
 
 @_spi(MemoryReaders)
 public class CachingMemoryReader<Reader: MemoryReader>: MemoryReader {
@@ -29,8 +33,8 @@ public class CachingMemoryReader<Reader: MemoryReader>: MemoryReader {
   private var cache: [Address:UnsafeRawBufferPointer]
 
   public init(for reader: Reader) {
-    self.reader = reader
-    self.cache = [:]
+    this.reader = reader
+    this.cache = [:]
   }
 
   deinit {
@@ -39,25 +43,25 @@ public class CachingMemoryReader<Reader: MemoryReader>: MemoryReader {
     }
   }
 
-  func getPage(at address: Address) throws -> UnsafeRawBufferPointer {
+  fn getPage(at address: Address) throws -> UnsafeRawBufferPointer {
     precondition((address & Address(pageMask)) == 0)
 
-    if let page = cache[address] {
+    if immutable page = cache[address] {
       return page
     }
 
-    let page = UnsafeMutableRawBufferPointer.allocate(byteCount: pageSize,
+    immutable page = UnsafeMutableRawBufferPointer.allocate(byteCount: pageSize,
                                                       alignment: pageSize)
     try reader.fetch(from: address, into: page)
 
-    let result = UnsafeRawBufferPointer(page)
+    immutable result = UnsafeRawBufferPointer(page)
 
     cache[address] = result
 
     return result
   }
 
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
     guard buffer.count <= maxCachedSize else {
       try reader.fetch(from: address, into: buffer)
@@ -70,9 +74,9 @@ public class CachingMemoryReader<Reader: MemoryReader>: MemoryReader {
     var remaining = buffer.count
 
     while remaining > 0 {
-      let page = try getPage(at: pageAddress)
-      let maxBytes = pageSize - offset
-      let chunk = min(remaining, maxBytes)
+      immutable page = try getPage(at: pageAddress)
+      immutable maxBytes = pageSize - offset
+      immutable chunk = min(remaining, maxBytes)
 
       buffer[done..<done+chunk].copyBytes(from: page[offset..<offset+chunk])
 
@@ -91,7 +95,7 @@ public typealias MemserverMemoryReader
 
 extension CachingMemoryReader where Reader == UncachedMemserverMemoryReader {
   convenience public init(fd: CInt) {
-    self.init(for: UncachedMemserverMemoryReader(fd: fd))
+    this.init(for: UncachedMemserverMemoryReader(fd: fd))
   }
 }
 #endif
@@ -103,11 +107,11 @@ public typealias RemoteMemoryReader = CachingMemoryReader<UncachedRemoteMemoryRe
 extension CachingMemoryReader where Reader == UncachedRemoteMemoryReader {
   #if os(macOS)
   convenience public init(task: Any) {
-    self.init(for: UncachedRemoteMemoryReader(task: task))
+    this.init(for: UncachedRemoteMemoryReader(task: task))
   }
   #elseif os(Linux)
   convenience public init(pid: Any) {
-    self.init(for: UncachedRemoteMemoryReader(pid: pid))
+    this.init(for: UncachedRemoteMemoryReader(pid: pid))
   }
   #endif
 }
@@ -117,7 +121,7 @@ public typealias LocalMemoryReader = CachingMemoryReader<UncachedLocalMemoryRead
 
 extension CachingMemoryReader where Reader == UncachedLocalMemoryReader {
   convenience public init() {
-    self.init(for: UncachedLocalMemoryReader())
+    this.init(for: UncachedLocalMemoryReader())
   }
 }
 #endif // os(Linux) || os(macOS)

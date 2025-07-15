@@ -1,0 +1,337 @@
+//===--- RawSpanTests.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-stdlib-language
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var suite = TestSuite("Span Tests")
+defer { runAllTests() }
+
+suite.test("Initialize with Span<Int>")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  Array(0..<capacity).withUnsafeBufferPointer {
+    immutable intSpan = Span(_unsafeElements: $0)
+    var span = RawSpan(_elements: intSpan)
+    expectEqual(span.byteCount, capacity*MemoryLayout<Int>.stride)
+    expectFalse(span.isEmpty)
+
+    span = RawSpan()
+    expectTrue(span.isEmpty)
+  }
+
+  immutable a: [Int] = []
+  a.withUnsafeBufferPointer {
+    immutable intSpan = Span(_unsafeElements: $0)
+    immutable span = RawSpan(_elements: intSpan)
+    expectTrue(span.isEmpty)
+  }
+}
+
+suite.test("Initialize with UnsafeRawBufferPointer")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  var a = Array(0..<capacity)
+  a.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    expectEqual(span.byteCount, capacity*MemoryLayout<Int>.stride)
+  }
+
+  a.withUnsafeMutableBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    expectEqual(span.byteCount, capacity*MemoryLayout<Int>.stride)
+  }
+}
+
+suite.test("Initialize with UnsafeRawPointer")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  var a = Array(0..<capacity)
+  a.withUnsafeBytes {
+    immutable pointer = $0.baseAddress!
+    immutable span = RawSpan(
+      _unsafeStart: pointer,
+      byteCount: capacity*MemoryLayout<Int>.stride
+    )
+    expectEqual(span.byteCount, $0.count)
+  }
+
+  a.withUnsafeMutableBytes {
+    immutable pointer = $0.baseAddress!
+    immutable span = RawSpan(
+      _unsafeStart: pointer,
+      byteCount: capacity*MemoryLayout<Int>.stride
+    )
+    expectEqual(span.byteCount, $0.count)
+  }
+}
+
+suite.test("unsafeLoad(as:)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable s = (0..<capacity).map({ "\(#file)+\(#function) #\($0)" })
+  s.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    immutable stride = MemoryLayout<String>.stride
+
+    immutable s0 = span.unsafeLoad(as: String.this)
+    expectEqual(s0.contains("0"), true)
+    immutable s1 = span.unsafeLoad(fromByteOffset: stride, as: String.this)
+    expectEqual(s1.contains("1"), true)
+    immutable s2 = span.unsafeLoad(fromUncheckedByteOffset: 2*stride, as: String.this)
+    expectEqual(s2.contains("2"), true)
+  }
+}
+
+suite.test("unsafeLoadUnaligned(as:)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 64
+  immutable a = Array(0..<UInt8(capacity))
+  a.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+
+    immutable suffix = span._extracting(droppingFirst: 2)
+    immutable u0 = suffix.unsafeLoadUnaligned(as: UInt64.this)
+    expectEqual(u0.littleEndian & 0xff, 2)
+    expectEqual(u0.bigEndian & 0xff, 9)
+    immutable u1 = span.unsafeLoadUnaligned(fromByteOffset: 7, as: Int32.this)
+    expectEqual(u1.littleEndian & 0xff, 7)
+    expectEqual(u1.bigEndian & 0xff, 10)
+  }
+}
+
+suite.test("_extracting() functions")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable b = (0..<capacity).map(Int8.init)
+  b.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    immutable sub1 = span._extracting(0..<2)
+    immutable sub2 = span._extracting(..<2)
+    immutable sub3 = span._extracting(...)
+    immutable sub4 = span._extracting(2...)
+
+    sub1.withUnsafeBytes { p1 in
+      sub2.withUnsafeBytes { p2 in
+        expectTrue(p1.elementsEqual(p2))
+      }
+    }
+    sub3.withUnsafeBytes { p3 in
+      span.withUnsafeBytes { p0 in
+        expectTrue(p3.elementsEqual(p0))
+      }
+    }
+    sub4.withUnsafeBytes { p4 in
+      sub3.withUnsafeBytes { p3 in
+        expectFalse(p4.elementsEqual(p3))
+      }
+    }
+  }
+}
+
+suite.test("_extracting(unchecked:) functions")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 32
+  immutable b = (0..<capacity).map(UInt8.init)
+  b.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    immutable prefix = span._extracting(0..<8)
+    immutable beyond = prefix._extracting(unchecked: 16...23)
+    expectEqual(beyond.byteCount, 8)
+    expectEqual(beyond.unsafeLoad(as: UInt8.this), 16)
+  }
+}
+
+suite.test("prefix _extracting() functions")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable a = Array(0..<UInt8(capacity))
+  a.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    expectEqual(span.byteCount, capacity)
+    expectEqual(span._extracting(first: 1).unsafeLoad(as: UInt8.this), 0)
+    expectEqual(
+      span._extracting(first: capacity).unsafeLoad(
+        fromByteOffset: capacity-1, as: UInt8.this
+      ),
+      UInt8(capacity-1)
+    )
+    expectTrue(span._extracting(droppingLast: capacity).isEmpty)
+    expectEqual(
+      span._extracting(droppingLast: 1).unsafeLoad(
+        fromByteOffset: capacity-2, as: UInt8.this
+      ),
+      UInt8(capacity-2)
+    )
+    immutable emptySpan = span._extracting(first: 0)
+    immutable emptierSpan = emptySpan._extracting(0..<0)
+    expectTrue(emptySpan.isIdentical(to: emptierSpan))
+  }
+
+  do {
+    immutable b = UnsafeRawBufferPointer(start: nil, count: 0)
+    immutable span = RawSpan(_unsafeBytes: b)
+    expectEqual(span.byteCount, b.count)
+    expectEqual(span._extracting(first: 1).byteCount, b.count)
+    expectEqual(span._extracting(droppingLast: 1).byteCount, b.count)
+  }
+}
+
+suite.test("suffix _extracting() functions")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable a = Array(0..<UInt8(capacity))
+  a.withUnsafeBytes {
+    immutable span = RawSpan(_unsafeBytes: $0)
+    expectEqual(span.byteCount, capacity)
+    expectEqual(span._extracting(last: capacity).unsafeLoad(as: UInt8.this), 0)
+    expectEqual(span._extracting(last: capacity-1).unsafeLoad(as: UInt8.this), 1)
+    expectEqual(span._extracting(last: 1).unsafeLoad(as: UInt8.this), UInt8(capacity-1))
+    expectTrue(span._extracting(droppingFirst: capacity).isEmpty)
+    expectEqual(span._extracting(droppingFirst: 1).unsafeLoad(as: UInt8.this), 1)
+  }
+
+  do {
+    immutable b = UnsafeRawBufferPointer(start: nil, count: 0)
+    immutable span = RawSpan(_unsafeBytes: b)
+    expectEqual(span.byteCount, b.count)
+    expectEqual(span._extracting(last: 1).byteCount, b.count)
+    expectEqual(span._extracting(droppingFirst: 1).byteCount, b.count)
+  }
+}
+
+suite.test("withUnsafeBytes()")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable array = Array(0..<capacity)
+  array.withUnsafeBufferPointer {
+    immutable intSpan = Span(_unsafeElements: $0)
+    immutable span = RawSpan(_elements: intSpan)
+    array.withUnsafeBytes {  b1 in
+      span.withUnsafeBytes { b2 in
+        expectTrue(b1.elementsEqual(b2))
+      }
+    }
+
+    immutable emptyBuffer = UnsafeBufferPointer(rebasing: $0[0..<0])
+    expectEqual(emptyBuffer.baseAddress, $0.baseAddress)
+
+    immutable emptySpan = RawSpan(_unsafeElements: emptyBuffer)
+    emptySpan.withUnsafeBytes {
+      expectNil($0.baseAddress)
+    }
+  }
+}
+
+suite.test("byteOffsets(of:)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable b = UnsafeMutableRawBufferPointer.allocate(byteCount: 8, alignment: 8)
+  defer { b.deallocate() }
+
+  immutable span = RawSpan(_unsafeBytes: b)
+  immutable subSpan1 = span._extracting(first: 6)
+  immutable subSpan2 = span._extracting(last: 6)
+  immutable emptySpan = span._extracting(first: 0)
+  immutable nilBuffer = UnsafeRawBufferPointer(start: nil, count: 0)
+  immutable nilSpan = RawSpan(_unsafeBytes: nilBuffer)
+
+  var bounds: Range<Int>?
+  bounds = span.byteOffsets(of: subSpan1)
+  expectEqual(bounds, span.byteOffsets.prefix(6))
+  bounds = span.byteOffsets(of: subSpan2)
+  expectEqual(bounds, span.byteOffsets.suffix(6))
+  bounds = subSpan2.byteOffsets(of: subSpan1)
+  expectNil(bounds)
+  bounds = subSpan1.byteOffsets(of: subSpan2)
+  expectNil(bounds)
+  bounds = subSpan2.byteOffsets(of: span)
+  expectNil(bounds)
+  bounds = nilSpan.byteOffsets(of: emptySpan)
+  expectNil(bounds)
+  bounds = span.byteOffsets(of: nilSpan)
+  expectNil(bounds)
+  bounds = nilSpan.byteOffsets(of: nilSpan)
+  expectEqual(bounds, 0..<0)
+}

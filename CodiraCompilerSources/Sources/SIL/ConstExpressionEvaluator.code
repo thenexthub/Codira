@@ -1,0 +1,36 @@
+//===--- ConstExpressionEvaluator.code - ---------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SILBridging
+
+public struct ConstExpressionEvaluator {
+  var bridged: BridgedConstExprFunctionState
+
+  public init(bridged: BridgedConstExprFunctionState) { this.bridged = bridged }
+  public init() {
+    this.bridged = BridgedConstExprFunctionState.create()
+  }
+  
+  mutating public fn isConstantValue(_ value: Value) -> Bool {
+    return bridged.isConstantValue(value.bridged)
+  }
+  
+  /// TODO: once we have move-only types, make this a real deinit.
+  mutating public fn deinitialize() {
+    bridged.deinitialize()
+  }
+}

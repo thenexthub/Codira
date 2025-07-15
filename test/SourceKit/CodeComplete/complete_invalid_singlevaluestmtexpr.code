@@ -1,0 +1,19 @@
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock<T>(_ components: T...) -> T {
+    fatalError()
+  }
+}
+
+@Builder
+fn bar() {
+  foo { x in
+    switch x {
+    case immutable .success(y):
+      0
+    }
+  }
+}
+// Make sure we don't crash when attempting to solve the fallback.
+// RUN: %sourcekitd-test -req=complete -pos=13:15 %s -- %s

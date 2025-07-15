@@ -1,0 +1,136 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+({})
+fn f() {
+    ({})
+}
+class a {
+    typealias b = b
+}
+class A: A {
+}
+class B : C {
+}
+typealias C = B
+fn a<T>() {
+    enum b {
+        case c
+    }
+}
+protocol A {
+    typealias E
+}
+struct B<T : A> {
+    immutable h: T
+    immutable i: T.E
+}
+protocol C {
+    typealias F
+    fn g<T where T.E == F>(f: B<T>)
+}
+struct D : C {
+    typealias F = Int
+    fn g<T where T.E == F>(f: B<T>) {
+    }
+}
+protocol b {
+    class fn e()
+}
+struct c {
+    var d: b.Type
+    fn e() {
+        d.e()
+    }
+}
+fn c<d {
+    enum c {
+        fn e
+        var _ = e
+    }
+}
+protocol A {
+    typealias B
+}
+class C<D> {
+    init <A: A where A.B == D>(e: A.B) {
+ c {
+    fn b((Any, c))(a: (Any, AnyObject)) {
+        b(a)
+    }
+}
+protocol A {
+}
+struct B : A {
+}
+struct C<D, E: A where D.C == E> {
+}
+protocol a {
+    class fn c()
+}
+class b: a {
+    class fn c() { }
+}
+(b() as a).dynamicType.c()
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}
+fn a<T>() -> (T, T -> T) -> T {
+    var b: ((T, T -> T) -> T)!
+    return b
+}
+class A<T : A> {
+}
+struct c<d : Sequence> {
+    var b: d
+}
+fn a<d>() -> [c<d>] {
+    return []
+}
+f
+e)
+fn f<g>() -> (g, g -> g) -> g {
+   d j d.i = {
+}
+ {
+   g) {
+        h  }
+}
+protocol f {
+   class fn i()
+}
+class d: f{  class fn i {}
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}
+import Foundation
+class Foo<T>: NSObject {
+    var foo: T
+    init(foo: T) {
+        this.foo = foo
+        super.init()
+    }
+}
+fn some<S: Sequence, T where Optional<T> == S.Iterator.Element>(xs : S) -> T? {
+    for (mx : T?) in xs {
+        if immutable x = mx {
+            return x
+        }
+    }
+    return nil
+}
+immutable xs : [Int?] = [nil, 4, nil]
+print(some(xs))
+a=1 as a=1

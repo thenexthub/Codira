@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language -strict-memory-safety
+
+// REQUIRES: objc_interop
+
+fn callMe(body: @escaping @convention(block) () -> Void) { }
+
+fn callMeCodiraly(body: @escaping () -> Void) { }
+
+fn testCall(body: @convention(block) () -> Void, languageBody: () -> Void) {
+  // expected-warning@+2{{unsafe}}{{3-3=unsafe }}
+  // expected-note@+1{{'withoutActuallyEscaping' function of type '@convention(block) () -> Void' is unsafe}}
+  withoutActuallyEscaping(body) { nonescapingBody in
+    callMe(body: nonescapingBody)
+  }
+
+  withoutActuallyEscaping(languageBody) { nonescapingBody in
+    callMeCodiraly(body: nonescapingBody)
+  }
+}

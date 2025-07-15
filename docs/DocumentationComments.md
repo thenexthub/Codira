@@ -1,13 +1,13 @@
 # Documentation Comment Syntax
 
-Documentation comments in Swift use Markdown-flavored markup syntax. Swift doc
-comments utilize a full-fledged [CommonMark] parser library (known as [swift-cmark] in
-the Swift projects), which is rendered in Xcode QuickHelp.
+Documentation comments in Codira use Markdown-flavored markup syntax. Codira doc
+comments utilize a full-fledged [CommonMark] parser library (known as [language-cmark] in
+the Codira projects), which is rendered in Xcode QuickHelp.
 
 [CommonMark]: http://commonmark.org
-[cmark]: https://github.com/swiftlang/swift-cmark
+[cmark]: https://github.com/languagelang/language-cmark
 
-Swift Markup syntax is *exactly* CommonMark, *by design*, not only for its
+Codira Markup syntax is *exactly* CommonMark, *by design*, not only for its
 straightforward implementation and completeness but also in the spirit of
 Markdown's readability through limited special syntax.
 

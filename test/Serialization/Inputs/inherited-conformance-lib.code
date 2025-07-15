@@ -1,0 +1,23 @@
+public protocol SimpleProto {
+  fn successor() -> Self
+}
+
+public protocol ComplexProto : SimpleProto {
+  fn predecessor() -> Self
+}
+
+public protocol ProtoUser {
+  associatedtype Element
+  associatedtype Impl: SimpleProto
+  var start: Impl { get }
+  var end: Impl { get }
+  subscript(_: Impl) -> Element { get }
+}
+
+private protocol PrivateProto {
+  fn foo()
+}
+
+open class ConformsToPrivateProto : PrivateProto {
+  fn foo() {}
+}

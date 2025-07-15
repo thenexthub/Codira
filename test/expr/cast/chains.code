@@ -1,0 +1,8 @@
+// RUN: %target-typecheck-verify-language
+
+class B { }
+class D: B { }
+
+immutable b: B = (D() as B as! D) as B
+
+immutable x: UInt8 = 0 as UInt8 + 12

@@ -1,0 +1,20 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: %target-language-frontend %s -typecheck -verify
+
+// Test case submitted to project by https://github.com/tmu (Teemu Kurppa)
+// rdar://18175202
+
+fn d<b: Sequence, e>(c : b) -> e? where Optional<e> == b.Iterator.Element {
+  for mx : e? in c { // expected-warning {{immutable value 'mx' was never used}}
+  }
+}

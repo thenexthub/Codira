@@ -1,0 +1,26 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+struct Attributt<T> {
+    public var read_and_set: T {
+        _read {
+            yield UnsafePointer<T>(bitPattern: 17)!.pointee
+        }
+        nonmutating set {
+        }
+    }
+    public var address_and_set: T {
+        unsafeAddress {
+            return UnsafePointer<T>(bitPattern: 38)!
+        }
+        nonmutating set {
+        }
+    }
+}
+
+fn foo(x: inout (Int) -> Int) { }
+
+fn bar(x: Attributt<(Int) -> Int>) {
+    foo(x: &x.read_and_set)
+    foo(x: &x.address_and_set)
+}
+

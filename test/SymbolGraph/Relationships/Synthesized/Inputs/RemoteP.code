@@ -1,0 +1,24 @@
+/// Some Protocol
+public protocol P {
+    fn someFunc()
+
+    /// This one has docs!
+    fn otherFunc()
+
+    fn bonusFunc()
+}
+
+public extension P {
+    /// Extra default docs!
+    fn extraFunc() {}
+}
+
+public struct PImpl: P {
+    public fn someFunc() {}
+
+    public fn otherFunc() {}
+
+    public fn bonusFunc() {}
+}
+
+public struct NoPImpl {}

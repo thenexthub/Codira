@@ -1,4 +1,4 @@
-//===--- ManglingMacros.h - Macros for Swift symbol mangling ----*- C++ -*-===//
+//===--- ManglingMacros.h - Macros for Codira symbol mangling ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_MANGLING_MACROS_H
-#define SWIFT_DEMANGLING_MANGLING_MACROS_H
+#ifndef LANGUAGE_DEMANGLING_MANGLING_MACROS_H
+#define LANGUAGE_DEMANGLING_MANGLING_MACROS_H
 
 #define STRINGIFY_MANGLING(M) #M
 #define MANGLE_AS_STRING(M) STRINGIFY_MANGLING(M)
@@ -35,7 +36,7 @@ _Pragma("clang diagnostic pop")
 
 // The following macros help to create symbol manglings. They can be used
 // if a mangled name is needed at compile-time, e.g. for variable names in the
-// swift runtime libraries.
+// language runtime libraries.
 
 #define MANGLING_CONCAT2_IMPL(a, b) a##b
 #define MANGLING_CONCAT3_IMPL(a, b, c) a##b##c
@@ -97,5 +98,5 @@ _Pragma("clang diagnostic pop")
 #define OBJC_PARTIAL_APPLY_THUNK_SYM \
           MANGLE_SYM(OBJC_PARTIAL_APPLY_THUNK_MANGLING)
 
-#endif // SWIFT_DEMANGLING_MANGLING_MACROS_H
+#endif // LANGUAGE_DEMANGLING_MANGLING_MACROS_H
 

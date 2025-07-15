@@ -1,4 +1,4 @@
-//===--- Comment.h - Swift-specific comment parsing -------------*- C++ -*-===//
+//===--- Comment.h - Codira-specific comment parsing -------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_COMMENT_H
-#define SWIFT_AST_COMMENT_H
+#ifndef LANGUAGE_AST_COMMENT_H
+#define LANGUAGE_AST_COMMENT_H
 
 #include "language/Markup/Markup.h"
 #include <optional>
@@ -26,49 +27,49 @@ struct RawComment;
 
 class DocComment {
   const Decl *D;
-  swift::markup::Document *Doc = nullptr;
-  swift::markup::CommentParts Parts;
+  language::markup::Document *Doc = nullptr;
+  language::markup::CommentParts Parts;
 
-  DocComment(const Decl *D, swift::markup::Document *Doc,
-             swift::markup::CommentParts Parts)
+  DocComment(const Decl *D, language::markup::Document *Doc,
+             language::markup::CommentParts Parts)
       : D(D), Doc(Doc), Parts(Parts) {}
 
 public:
-  static DocComment *create(const Decl *D, swift::markup::MarkupContext &MC,
+  static DocComment *create(const Decl *D, language::markup::MarkupContext &MC,
                             RawComment RC);
 
-  void addInheritanceNote(swift::markup::MarkupContext &MC, TypeDecl *base);
+  void addInheritanceNote(language::markup::MarkupContext &MC, TypeDecl *base);
 
   const Decl *getDecl() const { return D; }
   void setDecl(const Decl *D) { this->D = D; }
 
-  const swift::markup::Document *getDocument() const { return Doc; }
+  const language::markup::Document *getDocument() const { return Doc; }
 
-  swift::markup::CommentParts getParts() const {
+  language::markup::CommentParts getParts() const {
     return Parts;
   }
 
   ArrayRef<StringRef> getTags() const {
-    return llvm::ArrayRef(Parts.Tags.begin(), Parts.Tags.end());
+    return toolchain::ArrayRef(Parts.Tags.begin(), Parts.Tags.end());
   }
 
-  std::optional<const swift::markup::Paragraph *> getBrief() const {
+  std::optional<const language::markup::Paragraph *> getBrief() const {
     return Parts.Brief;
   }
 
-  std::optional<const swift::markup::ReturnsField *> getReturnsField() const {
+  std::optional<const language::markup::ReturnsField *> getReturnsField() const {
     return Parts.ReturnsField;
   }
 
-  std::optional<const swift::markup::ThrowsField *> getThrowsField() const {
+  std::optional<const language::markup::ThrowsField *> getThrowsField() const {
     return Parts.ThrowsField;
   }
 
-  ArrayRef<const swift::markup::ParamField *> getParamFields() const {
+  ArrayRef<const language::markup::ParamField *> getParamFields() const {
     return Parts.ParamFields;
   }
 
-  ArrayRef<const swift::markup::MarkupASTNode *> getBodyNodes() const {
+  ArrayRef<const language::markup::MarkupASTNode *> getBodyNodes() const {
     return Parts.BodyNodes;
   }
 
@@ -83,7 +84,7 @@ public:
 
   // Only allow allocation using the allocator in MarkupContext or by
   // placement new.
-  void *operator new(size_t Bytes, swift::markup::MarkupContext &MC,
+  void *operator new(size_t Bytes, language::markup::MarkupContext &MC,
                      unsigned Alignment = alignof(DocComment));
   void *operator new(size_t Bytes, void *Mem) {
     assert(Mem);
@@ -96,28 +97,28 @@ public:
 };
 
 /// Get a parsed documentation comment for the declaration, if there is one.
-DocComment *getSingleDocComment(swift::markup::MarkupContext &Context,
+DocComment *getSingleDocComment(language::markup::MarkupContext &Context,
                                 const Decl *D);
 
 /// Extract comments parts from the given Markup node.
-swift::markup::CommentParts
-extractCommentParts(swift::markup::MarkupContext &MC,
-                    swift::markup::MarkupASTNode *Node);
+language::markup::CommentParts
+extractCommentParts(language::markup::MarkupContext &MC,
+                    language::markup::MarkupASTNode *Node);
 
 /// Extract brief comment from \p RC, and print it to \p OS .
-void printBriefComment(RawComment RC, llvm::raw_ostream &OS);
+void printBriefComment(RawComment RC, toolchain::raw_ostream &OS);
 
 /// Describes the intended serialization target for a doc comment.
 enum class DocCommentSerializationTarget : uint8_t {
   /// The doc comment should not be serialized.
   None = 0,
 
-  /// The doc comment should only be serialized in the 'swiftsourceinfo'.
+  /// The doc comment should only be serialized in the 'languagesourceinfo'.
   SourceInfoOnly,
 
-  /// The doc comment should be serialized in both the 'swiftdoc' and
-  /// 'swiftsourceinfo'.
-  SwiftDocAndSourceInfo,
+  /// The doc comment should be serialized in both the 'languagedoc' and
+  /// 'languagesourceinfo'.
+  CodiraDocAndSourceInfo,
 };
 
 /// Retrieve the expected serialization target for a documentation comment
@@ -127,4 +128,4 @@ getDocCommentSerializationTargetFor(const Decl *D);
 
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_COMMENT_H
+#endif // TOOLCHAIN_LANGUAGE_AST_COMMENT_H

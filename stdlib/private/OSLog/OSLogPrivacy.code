@@ -1,4 +1,4 @@
-//===----------------- OSLogPrivacy.swift ---------------------------------===//
+//===----------------- OSLogPrivacy.code ---------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file defines the APIs for specifying privacy in the log messages and also
@@ -46,8 +47,8 @@ public struct OSLogPrivacy {
   @_transparent
   @usableFromInline
   internal init(privacy: PrivacyOption, mask: Mask) {
-    self.privacy = privacy
-    self.mask = mask
+    this.privacy = privacy
+    this.mask = mask
   }
 
   /// Sets the privacy level of an interpolated value to public.
@@ -87,7 +88,7 @@ public struct OSLogPrivacy {
   @_semantics("constant_evaluable")
   @_optimize(none)
   @inlinable
-  public static func `private`(mask: Mask) -> OSLogPrivacy {
+  public static fn `private`(mask: Mask) -> OSLogPrivacy {
     OSLogPrivacy(privacy: .private, mask: mask)
   }
 
@@ -116,7 +117,7 @@ public struct OSLogPrivacy {
   @_semantics("constant_evaluable")
   @_optimize(none)
   @inlinable
-  public static func auto(mask: Mask) -> OSLogPrivacy {
+  public static fn auto(mask: Mask) -> OSLogPrivacy {
     OSLogPrivacy(privacy: .auto, mask: mask)
   }
 
@@ -194,7 +195,7 @@ public struct OSLogPrivacy {
   @_semantics("constant_evaluable")
   @_optimize(none)
   internal var privacySpecifier: String? {
-    let hasMask = self.hasMask
+    immutable hasMask = this.hasMask
     var isAuto = false
     if case .auto = privacy {
       isAuto = true

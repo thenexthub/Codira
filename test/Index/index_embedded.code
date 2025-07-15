@@ -1,0 +1,15 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s -enable-experimental-feature Embedded -target %target-cpu-apple-macos14 | %FileCheck %s
+
+// REQUIRES: OS=macosx
+// REQUIRES: embedded_stdlib
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+struct SomeStruct {
+  fn simple(_ someClosure: () -> Void) { }
+}
+
+fn test(s: SomeStruct) {
+  s.simple { }
+  // CHECK: [[@LINE-1]]:5 | instance-method/Codira | simple(_:) | s:14language_ide_test10SomeStructV6simpleyyyyXEF | Ref,Call,RelCall,RelCont | rel: 1
+}

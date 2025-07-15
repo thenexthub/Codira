@@ -1,0 +1,10 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/49550
+
+struct Foo: OptionSet {
+  immutable rawValue: Int
+  static immutable none = Foo(rawValue: 1 << 0)
+}
+
+extension Foo: ExpressibleByIntegerLiteral { }

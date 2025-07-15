@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_SUPPLEMENTARYOUTPUTPATHS_H
-#define SWIFT_FRONTEND_SUPPLEMENTARYOUTPUTPATHS_H
+#ifndef LANGUAGE_FRONTEND_SUPPLEMENTARYOUTPUTPATHS_H
+#define LANGUAGE_FRONTEND_SUPPLEMENTARYOUTPUTPATHS_H
 
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/IR/Function.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/IR/Function.h"
 
 #include <string>
 
@@ -31,7 +32,7 @@ struct SupplementaryOutputPaths {
   SupplementaryOutputPaths() = default;
 
   /// Apply a given function for each existing (non-empty string) supplementary output
-  void forEachSetOutput(llvm::function_ref<void(const std::string&)> fn) const {
+  void forEachSetOutput(toolchain::function_ref<void(const std::string&)> fn) const {
 #define OUTPUT(NAME, TYPE)                                                     \
   if (!NAME.empty())                                                           \
     fn(NAME);
@@ -40,7 +41,7 @@ struct SupplementaryOutputPaths {
   }
 
   void forEachSetOutputAndType(
-      llvm::function_ref<void(const std::string &, file_types::ID)> fn) const {
+      toolchain::function_ref<void(const std::string &, file_types::ID)> fn) const {
 #define OUTPUT(NAME, TYPE)                                                     \
   if (!NAME.empty())                                                           \
     fn(NAME, file_types::ID::TYPE);
@@ -58,4 +59,4 @@ struct SupplementaryOutputPaths {
 };
 } // namespace language
 
-#endif // SWIFT_FRONTEND_SUPPLEMENTARYOUTPUTPATHS_H
+#endif // LANGUAGE_FRONTEND_SUPPLEMENTARYOUTPUTPATHS_H

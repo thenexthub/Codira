@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %gyb %S/PrintFloat.code.gyb -o %t/FloatingPointPrinting.code
+// RUN: %line-directive %t/FloatingPointPrinting.code -- %target-build-language %t/FloatingPointPrinting.code -o %t/main.out
+// RUN: %target-codesign %t/main.out
+// RUN: %line-directive %t/FloatingPointPrinting.code -- %target-run %t/main.out --locale ru_RU.UTF-8
+// REQUIRES: executable_test
+
+// rdar://77087867
+// UNSUPPORTED: CPU=arm64_32 && OS=watchos
+
+// rdar://104232602
+// UNSUPPORTED: CPU=x86_64 && (DARWIN_SIMULATOR=ios || DARWIN_SIMULATOR=watchos || DARWIN_SIMULATOR=tvos)
+
+// UNSUPPORTED: freestanding

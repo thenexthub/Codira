@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A bump-pointer allocator that obeys a stack discipline.
@@ -26,14 +27,14 @@
 
 #include "language/ABI/MetadataValues.h"
 #include "language/Runtime/Debug.h"
-#include "llvm/Support/Alignment.h"
+#include "toolchain/Support/Alignment.h"
 #include <cstddef>
 #include <new>
 
-// Notes: swift::fatalError is not shared between libswiftCore and libswift_Concurrency
-// and libswift_Concurrency uses swift_Concurrency_fatalError instead.
-#ifndef SWIFT_FATAL_ERROR
-#define SWIFT_FATAL_ERROR swift::fatalError
+// Notes: language::fatalError is not shared between liblanguageCore and liblanguage_Concurrency
+// and liblanguage_Concurrency uses language_Concurrency_fatalError instead.
+#ifndef LANGUAGE_FATAL_ERROR
+#define LANGUAGE_FATAL_ERROR language::fatalError
 #endif
 
 namespace language {
@@ -171,7 +172,7 @@ private:
     /// Precondition: there must be enough space in this slab to fit the
     ///               allocation.
     Allocation *allocate(size_t alignedSize, Allocation *lastAllocation) {
-      assert(llvm::isAligned(llvm::Align(alignment), alignedSize));
+      assert(toolchain::isAligned(toolchain::Align(alignment), alignedSize));
       assert(canAllocate(alignedSize));
       void *buffer = getAddr(currentOffset);
       auto *allocation = ::new (buffer) Allocation(lastAllocation, this);
@@ -191,7 +192,7 @@ private:
       if (guardAllocations) {
         auto *endOfAllocation = (uintptr_t *)getAddr(currentOffset);
         if (endOfAllocation[-1] != magicEndOfAllocation)
-          SWIFT_FATAL_ERROR(0, "Buffer overflow in StackAllocator");
+          LANGUAGE_FATAL_ERROR(0, "Buffer overflow in StackAllocator");
         for (auto *p = (uintptr_t *)allocation; p < endOfAllocation; ++p)
           *p = magicUninitialized;
       }
@@ -220,7 +221,7 @@ private:
 
     /// The size of the allocation header.
     static size_t headerSize() {
-      return llvm::alignTo(sizeof(Allocation), llvm::Align(alignment));
+      return toolchain::alignTo(sizeof(Allocation), toolchain::Align(alignment));
     }
 
     /// Return \p size with the added overhead of the allocation header.
@@ -291,8 +292,8 @@ public:
     // If the pre-allocated buffer can't hold a slab header, ignore it.
     if (bufferCapacity <= Slab::headerSize())
       return;
-    char *start = (char *)llvm::alignAddr(firstSlabBuffer,
-                                          llvm::Align(alignment));
+    char *start = (char *)toolchain::alignAddr(firstSlabBuffer,
+                                          toolchain::Align(alignment));
     char *end = (char *)firstSlabBuffer + bufferCapacity;
     assert(start + Slab::headerSize() <= end &&
            "buffer for first slab too small");
@@ -303,7 +304,7 @@ public:
 
   ~StackAllocator() {
     if (lastAllocation)
-      SWIFT_FATAL_ERROR(0, "not all allocations are deallocated");
+      LANGUAGE_FATAL_ERROR(0, "not all allocations are deallocated");
     if (firstSlabIsPreallocated)
       firstSlab->clearMetadata();
     (void)freeAllSlabs(firstSlabIsPreallocated ? firstSlab->next : firstSlab);
@@ -318,11 +319,11 @@ public:
   void *alloc(size_t size) {
     if (guardAllocations)
       size += sizeof(uintptr_t);
-    size_t alignedSize = llvm::alignTo(size, llvm::Align(alignment));
+    size_t alignedSize = toolchain::alignTo(size, toolchain::Align(alignment));
     Slab *slab = getSlabForAllocation(alignedSize);
     Allocation *allocation = slab->allocate(alignedSize, lastAllocation);
     lastAllocation = allocation;
-    assert(llvm::isAddrAligned(llvm::Align(alignment),
+    assert(toolchain::isAddrAligned(toolchain::Align(alignment),
                                allocation->getAllocatedMemory()));
     return allocation->getAllocatedMemory();
   }
@@ -330,7 +331,7 @@ public:
   /// Deallocate memory \p ptr.
   void dealloc(void *ptr) {
     if (!lastAllocation || lastAllocation->getAllocatedMemory() != ptr) {
-      SWIFT_FATAL_ERROR(0, "freed pointer was not the last allocation");
+      LANGUAGE_FATAL_ERROR(0, "freed pointer was not the last allocation");
     }
 
     Allocation *prev = lastAllocation->previous;
@@ -342,7 +343,7 @@ public:
     void *current = nullptr;
     do {
       if (!lastAllocation) {
-        SWIFT_FATAL_ERROR(0, "freed pointer not among allocations");
+        LANGUAGE_FATAL_ERROR(0, "freed pointer not among allocations");
       }
       current = lastAllocation->getAllocatedMemory();
       dealloc(current);

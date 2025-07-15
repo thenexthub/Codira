@@ -1,0 +1,244 @@
+// RUN: %target-language-frontend %s -O -emit-sil | %FileCheck %s
+// RUN: %target-language-frontend %s -O -emit-sil -enable-testing | %FileCheck -check-prefix=CHECK-TESTING %s
+
+// Check if a private global is kept alive if it's only reference from another global variable.
+
+private var g1 = 27
+immutable g2 = UnsafePointer(&g1)
+
+// Check if cycles are removed.
+
+@inline(never)
+fn inCycleA() {
+	inCycleB()
+}
+
+@inline(never)
+fn inCycleB() {
+	inCycleA()
+}
+
+// Check if unused vtable methods are removed.
+
+class Base {
+
+	@inline(never)
+	fn aliveMethod() {
+	}
+
+	@inline(never)
+	fn DeadMethod() {
+		// introduces a cycle
+		testClasses(this)
+	}
+
+	// alive, because called with super
+	@inline(never)
+	fn calledWithSuper() {
+	}
+
+	// dead, because only overridden method is called
+	@inline(never)
+	fn baseNotCalled() {
+	}
+
+	// alive, because called for Derived but not overridden in Derived
+	@inline(never)
+	fn notInDerived() {
+	}
+
+	// dead, because only overridden method is called
+	@inline(never)
+	fn notInOther() {
+	}
+}
+
+class Derived : Base {
+
+	@inline(never)
+	override fn aliveMethod() {
+	}
+
+	@inline(never)
+	override fn DeadMethod() {
+	}
+
+	@inline(never)
+	@_optimize(none) // avoid devirtualization
+	override fn calledWithSuper() {
+		super.calledWithSuper()
+	}
+
+	@inline(never)
+	override fn baseNotCalled() {
+	}
+
+	@inline(never)
+	override fn notInOther() {
+	}
+}
+
+class Other : Derived {
+	@inline(never)
+	override fn baseNotCalled() {
+	}
+
+	@inline(never)
+	override fn notInDerived() {
+	}
+}
+
+@inline(never)
+@_optimize(none) // avoid devirtualization
+fn testClasses(_ b: Base) {
+	b.aliveMethod()
+}
+
+@inline(never)
+@_optimize(none) // avoid devirtualization
+fn testWithDerived(_ d: Derived) {
+	d.baseNotCalled()
+	d.notInDerived()
+	d.calledWithSuper()
+}
+
+@inline(never)
+@_optimize(none) // avoid devirtualization
+fn testWithOther(_ o: Other) {
+	o.notInOther()
+}
+
+// Check if dead methods of classes with higher visibility are removed.
+
+public class PublicCl {
+	fn publicClassMethod() {
+	}
+}
+
+// Check if unused witness table methods are removed.
+
+protocol Prot {
+  fn aliveWitness()
+
+  fn DeadWitness()
+
+  fn aliveDefaultWitness()
+
+  fn DeadDefaultWitness()
+}
+
+extension Prot {
+  @inline(never)
+  fn aliveDefaultWitness() {
+  }
+
+  @inline(never)
+  fn DeadDefaultWitness() {
+  }
+}
+
+struct Adopt : Prot {
+	@inline(never)
+	fn aliveWitness() {
+	}
+
+	@inline(never)
+	fn DeadWitness() {
+	}
+}
+
+@inline(never)
+@_optimize(none) // avoid devirtualization
+fn testProtocols(_ p: Prot) {
+	p.aliveWitness()
+}
+
+@inline(never)
+@_optimize(none) // avoid devirtualization
+fn testDefaultWitnessMethods(_ p: Prot) {
+	p.aliveDefaultWitness()
+}
+
+@_optimize(none) // avoid devirtualization
+public fn callTest() {
+	testClasses(Base())
+	testClasses(Derived())
+	testWithDerived(Derived())
+	testWithOther(Other())
+	testProtocols(Adopt())
+}
+
+@_optimize(none) // make sure not eliminated 
+internal fn donotEliminate() {
+  return
+}
+
+fn callingGlobalFuncPtr() {
+  GFStr.globalFuncPtr()
+}
+
+fn aliveReferencedFunc() {
+}
+
+struct GFStr {
+  static var globalFuncPtr: () -> () = callingGlobalFuncPtr
+  static var aliveFuncPtr: () -> () = aliveReferencedFunc
+}
+
+public fn keepPtrAlive() {
+  GFStr.aliveFuncPtr()
+}
+
+// CHECK-LABEL: sil_global private @$s25dead_function_elimination2g1{{.*}}
+
+// CHECK-NOT: sil {{.*}}inCycleA
+// CHECK-NOT: sil {{.*}}inCycleB
+// CHECK-NOT: sil {{.*}}DeadMethod
+// CHECK-NOT: sil {{.*}}DeadWitness
+// CHECK-NOT: sil {{.*}}publicClassMethod
+// CHECK-NOT: sil {{.*}}callingGlobalFuncPtr
+// CHECK-NOT: sil_global {{.*}}globalFuncPtr
+
+// CHECK-TESTING: sil {{.*}}inCycleA
+// CHECK-TESTING: sil {{.*}}inCycleB
+// CHECK-TESTING: sil {{.*}}DeadMethod
+// CHECK-TESTING: sil {{.*}}publicClassMethod
+// CHECK-TESTING: sil {{.*}}DeadWitness
+
+// CHECK-LABEL: @$s25dead_function_elimination14donotEliminateyyF
+// CHECK-LABEL: sil @$s25dead_function_elimination12keepPtrAliveyyF
+
+// CHECK-LABEL: sil_vtable Base
+// CHECK: aliveMethod
+// CHECK: calledWithSuper
+// CHECK-NOT: DeadMethod
+// CHECK-NOT: baseNotCalled
+// CHECK: notInDerived
+// CHECK-NOT: notInOther
+
+// CHECK-TESTING-LABEL: sil_vtable Base
+// CHECK-TESTING: DeadMethod
+
+// CHECK-LABEL: sil_vtable Derived
+// CHECK: aliveMethod
+// CHECK-NOT: DeadMethod
+// CHECK: baseNotCalled
+// CHECK: notInDerived
+// CHECK: notInOther
+
+// CHECK-TESTING-LABEL: sil_vtable Derived
+// CHECK-TESTING: DeadMethod
+
+// CHECK-LABEL: sil_vtable Other
+// CHECK: aliveMethod
+// CHECK-NOT: DeadMethod
+// CHECK: baseNotCalled
+// CHECK: notInDerived
+// CHECK: notInOther
+
+// CHECK-LABEL: sil_witness_table hidden Adopt: Prot
+// CHECK: aliveWitness: {{.*}} : @{{.*}}aliveWitness
+// CHECK: DeadWitness: {{.*}} : nil
+
+// CHECK-TESTING-LABEL: sil_witness_table Adopt: Prot
+// CHECK-TESTING: DeadWitness{{.*}}: @{{.*}}DeadWitness

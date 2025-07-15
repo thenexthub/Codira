@@ -1,0 +1,34 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P1 {
+  associatedtype A
+
+  fn f1(_: C) -> A
+  fn f2(_: A, _: C)
+
+  typealias C = S1<Self>
+}
+
+struct S1<T> {}
+
+protocol P2: P1 where A == B {
+  associatedtype B
+
+  fn g1(_: C) -> B
+  fn g2(_: B, _: C)
+}
+
+extension P2 {
+  fn f1(_: C) -> B { fatalError() }
+  fn f2(_: B, _: C) { fatalError() }
+}
+
+extension P2 {
+  fn g2(_: B, _: C) {}
+}
+
+struct S2: P2 {
+  fn g1(_: C) -> Int {
+    fatalError()
+  }
+}

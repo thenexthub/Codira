@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -21,8 +22,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_APPLYSITE_H
-#define SWIFT_SIL_APPLYSITE_H
+#ifndef LANGUAGE_SIL_APPLYSITE_H
+#define LANGUAGE_SIL_APPLYSITE_H
 
 #include "language/AST/ExtInfo.h"
 #include "language/Basic/STLExtras.h"
@@ -30,7 +31,7 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 namespace language {
 
@@ -115,7 +116,7 @@ public:
     case ApplySiteKind::PartialApplyInst:
       return ApplySite(cast<PartialApplyInst>(inst));
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   static ApplySite isa(SILValue value) {
@@ -149,7 +150,7 @@ public:
     case ApplySiteKind::TryApplyInst:                                          \
       return cast<TryApplyInst>(Inst)->OPERATION;                              \
     }                                                                          \
-    llvm_unreachable("covered switch");                                        \
+    toolchain_unreachable("covered switch");                                        \
   } while (0)
 
   /// Return the callee operand as a value.
@@ -200,8 +201,8 @@ public:
   /// Calls to (previous_)dynamic_function_ref have a dynamic target function so
   /// we should not optimize them.
   bool canOptimize() const {
-    return !swift::isa<DynamicFunctionRefInst>(getCallee()) &&
-      !swift::isa<PreviousDynamicFunctionRefInst>(getCallee());
+    return !language::isa<DynamicFunctionRefInst>(getCallee()) &&
+      !language::isa<PreviousDynamicFunctionRefInst>(getCallee());
   }
 
   /// Return the type.
@@ -400,7 +401,7 @@ public:
       // apply pa2(a)
       return getSubstCalleeConv().getNumSILArguments() - getNumArguments();
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return the callee's function argument index corresponding to the given
@@ -456,9 +457,9 @@ public:
                               : SILArgumentConvention::Pack_Owned;
     case SILArgumentConvention::Indirect_Out:
     case SILArgumentConvention::Pack_Out:
-      llvm_unreachable("partial_apply cannot have an @out operand");
+      toolchain_unreachable("partial_apply cannot have an @out operand");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return true if 'self' is an applied argument.
@@ -471,9 +472,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->hasSelfArgument();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("unhandled case");
+      toolchain_unreachable("unhandled case");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return the applied 'self' argument value.
@@ -486,9 +487,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->getSelfArgument();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("unhandled case");
+      toolchain_unreachable("unhandled case");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return the 'self' apply operand.
@@ -501,9 +502,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->getSelfArgumentOperand();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("Unhandled cast");
+      toolchain_unreachable("Unhandled cast");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return the sil_isolated operand if we have one.
@@ -516,9 +517,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->getIsolatedArgumentOperandOrNullPtr();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("Unhandled case");
+      toolchain_unreachable("Unhandled case");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return a list of applied arguments without self.
@@ -531,9 +532,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->getArgumentsWithoutSelf();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("Unhandled case");
+      toolchain_unreachable("Unhandled case");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return a list of applied operands of the apply without self.
@@ -546,9 +547,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->getOperandsWithoutSelf();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("Unhandled case");
+      toolchain_unreachable("Unhandled case");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   MutableArrayRef<Operand> getOperandsWithoutSelf() {
@@ -560,9 +561,9 @@ public:
     case ApplySiteKind::TryApplyInst:
       return cast<TryApplyInst>(Inst)->getOperandsWithoutSelf();
     case ApplySiteKind::PartialApplyInst:
-      llvm_unreachable("Unhandled case");
+      toolchain_unreachable("Unhandled case");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Returns true if \p op is an operand that passes an indirect
@@ -584,11 +585,11 @@ public:
     case ApplySiteKind::PartialApplyInst:
       return ApplyOptions();
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// If this is a terminator apply site, then pass a builder to insert at the
-  /// first instruction of each successor to \p func. Otherwise, pass a builder
+  /// first instruction of each successor to \p fn. Otherwise, pass a builder
   /// to insert at std::next(Inst).
   ///
   /// The intention is that this abstraction will enable the compiler writer to
@@ -599,7 +600,7 @@ public:
   /// NOTE: We pass std::next() for begin_apply. If one wishes to insert code
   /// /after/ the end_apply/abort_apply, please use instead
   /// insertAfterApplication.
-  void insertAfterInvocation(function_ref<void(SILBuilder &)> func) const;
+  void insertAfterInvocation(function_ref<void(SILBuilder &)> fn) const;
 
   /// Pass a builder with insertion points that are guaranteed to be immediately
   /// after this apply site has been applied.
@@ -612,7 +613,7 @@ public:
   /// is a begin_apply, we pass the insertion points after the end_apply,
   /// abort_apply rather than an insertion point right after the
   /// begin_apply. For such functionality, please invoke insertAfterInvocation.
-  void insertAfterApplication(function_ref<void(SILBuilder &)> func) const;
+  void insertAfterApplication(function_ref<void(SILBuilder &)> fn) const;
 
   /// Return whether the given apply is of a formally-throwing function
   /// which is statically known not to throw.
@@ -661,7 +662,7 @@ public:
     return bool(ApplySiteKind::fromNodeKind(inst->getKind()));
   }
 
-  void dump() const LLVM_ATTRIBUTE_USED { getInstruction()->dump(); }
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED { getInstruction()->dump(); }
 
   /// Form a FullApplySite.  Note that it will be null if this apply site is not
   /// in fact a FullApplySite.
@@ -735,7 +736,7 @@ public:
     case FullApplySiteKind::TryApplyInst:
       return FullApplySite(cast<TryApplyInst>(inst));
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   static FullApplySite isa(SILValue value) {
@@ -778,7 +779,7 @@ public:
       return normalBlock->getArgument(0);
     }
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   unsigned getNumIndirectSILResults() const {
@@ -824,7 +825,7 @@ public:
     case FullApplySiteKind::BeginApplyInst:
       return cast<BeginApplyInst>(getInstruction())->getInoutArguments();
     }
-    llvm_unreachable("invalid apply kind");
+    toolchain_unreachable("invalid apply kind");
   }
 
   AutoDiffSemanticResultArgumentRange getAutoDiffSemanticResultArguments() const {
@@ -836,7 +837,7 @@ public:
     case FullApplySiteKind::BeginApplyInst:
       return cast<BeginApplyInst>(getInstruction())->getAutoDiffSemanticResultArguments();
     }
-    llvm_unreachable("invalid apply kind");
+    toolchain_unreachable("invalid apply kind");
   }
 
   /// Returns true if \p op is the callee operand of this apply site
@@ -854,7 +855,7 @@ public:
     case FullApplySiteKind::BeginApplyInst:
       return true;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   /// Returns true if \p op is an operand that passes an indirect
@@ -906,88 +907,88 @@ public:
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct PointerLikeTypeTraits<swift::ApplySite> {
+struct PointerLikeTypeTraits<language::ApplySite> {
 public:
-  static inline void *getAsVoidPointer(swift::ApplySite apply) {
+  static inline void *getAsVoidPointer(language::ApplySite apply) {
     return (void*)apply.getInstruction();
   }
-  static inline swift::ApplySite getFromVoidPointer(void *pointer) {
-    return swift::ApplySite((swift::SILInstruction*)pointer);
+  static inline language::ApplySite getFromVoidPointer(void *pointer) {
+    return language::ApplySite((language::SILInstruction*)pointer);
   }
   enum { NumLowBitsAvailable =
-         PointerLikeTypeTraits<swift::SILNode *>::NumLowBitsAvailable };
+         PointerLikeTypeTraits<language::SILNode *>::NumLowBitsAvailable };
 };
 
 template<>
-struct PointerLikeTypeTraits<swift::FullApplySite> {
+struct PointerLikeTypeTraits<language::FullApplySite> {
 public:
-  static inline void *getAsVoidPointer(swift::FullApplySite apply) {
+  static inline void *getAsVoidPointer(language::FullApplySite apply) {
     return (void*)apply.getInstruction();
   }
-  static inline swift::FullApplySite getFromVoidPointer(void *pointer) {
-    return swift::FullApplySite((swift::SILInstruction*)pointer);
+  static inline language::FullApplySite getFromVoidPointer(void *pointer) {
+    return language::FullApplySite((language::SILInstruction*)pointer);
   }
   enum { NumLowBitsAvailable =
-         PointerLikeTypeTraits<swift::SILNode *>::NumLowBitsAvailable };
+         PointerLikeTypeTraits<language::SILNode *>::NumLowBitsAvailable };
 };
 
 // An ApplySite casts like a SILInstruction*.
-template <> struct simplify_type<const ::swift::ApplySite> {
-  using SimpleType = ::swift::SILInstruction *;
-  static SimpleType getSimplifiedValue(const ::swift::ApplySite &Val) {
+template <> struct simplify_type<const ::language::ApplySite> {
+  using SimpleType = ::language::SILInstruction *;
+  static SimpleType getSimplifiedValue(const ::language::ApplySite &Val) {
     return Val.getInstruction();
   }
 };
 template <>
-struct simplify_type<::swift::ApplySite>
-    : public simplify_type<const ::swift::ApplySite> {};
+struct simplify_type<::language::ApplySite>
+    : public simplify_type<const ::language::ApplySite> {};
 template <>
-struct simplify_type<::swift::FullApplySite>
-    : public simplify_type<const ::swift::ApplySite> {};
+struct simplify_type<::language::FullApplySite>
+    : public simplify_type<const ::language::ApplySite> {};
 template <>
-struct simplify_type<const ::swift::FullApplySite>
-    : public simplify_type<const ::swift::ApplySite> {};
+struct simplify_type<const ::language::FullApplySite>
+    : public simplify_type<const ::language::ApplySite> {};
 
-template <> struct DenseMapInfo<::swift::ApplySite> {
-  static ::swift::ApplySite getEmptyKey() {
-    return ::swift::ApplySite::getFromOpaqueValue(
-        llvm::DenseMapInfo<void *>::getEmptyKey());
+template <> struct DenseMapInfo<::language::ApplySite> {
+  static ::language::ApplySite getEmptyKey() {
+    return ::language::ApplySite::getFromOpaqueValue(
+        toolchain::DenseMapInfo<void *>::getEmptyKey());
   }
-  static ::swift::ApplySite getTombstoneKey() {
-    return ::swift::ApplySite::getFromOpaqueValue(
-        llvm::DenseMapInfo<void *>::getTombstoneKey());
+  static ::language::ApplySite getTombstoneKey() {
+    return ::language::ApplySite::getFromOpaqueValue(
+        toolchain::DenseMapInfo<void *>::getTombstoneKey());
   }
-  static unsigned getHashValue(::swift::ApplySite AS) {
+  static unsigned getHashValue(::language::ApplySite AS) {
     auto *I = AS.getInstruction();
-    return DenseMapInfo<::swift::SILInstruction *>::getHashValue(I);
+    return DenseMapInfo<::language::SILInstruction *>::getHashValue(I);
   }
-  static bool isEqual(::swift::ApplySite LHS, ::swift::ApplySite RHS) {
+  static bool isEqual(::language::ApplySite LHS, ::language::ApplySite RHS) {
     return LHS == RHS;
   }
 };
 
-template <> struct DenseMapInfo<::swift::FullApplySite> {
-  static ::swift::FullApplySite getEmptyKey() {
-    return ::swift::FullApplySite::getFromOpaqueValue(
-        llvm::DenseMapInfo<void *>::getEmptyKey());
+template <> struct DenseMapInfo<::language::FullApplySite> {
+  static ::language::FullApplySite getEmptyKey() {
+    return ::language::FullApplySite::getFromOpaqueValue(
+        toolchain::DenseMapInfo<void *>::getEmptyKey());
   }
-  static ::swift::FullApplySite getTombstoneKey() {
-    return ::swift::FullApplySite::getFromOpaqueValue(
-        llvm::DenseMapInfo<void *>::getTombstoneKey());
+  static ::language::FullApplySite getTombstoneKey() {
+    return ::language::FullApplySite::getFromOpaqueValue(
+        toolchain::DenseMapInfo<void *>::getTombstoneKey());
   }
-  static unsigned getHashValue(::swift::FullApplySite AS) {
+  static unsigned getHashValue(::language::FullApplySite AS) {
     auto *I = AS.getInstruction();
-    return DenseMapInfo<::swift::SILInstruction *>::getHashValue(I);
+    return DenseMapInfo<::language::SILInstruction *>::getHashValue(I);
   }
-  static bool isEqual(::swift::FullApplySite LHS, ::swift::FullApplySite RHS) {
+  static bool isEqual(::language::FullApplySite LHS, ::language::FullApplySite RHS) {
     return LHS == RHS;
   }
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 //===----------------------------------------------------------------------===//
 //           Inline Definitions to work around Forward Declaration

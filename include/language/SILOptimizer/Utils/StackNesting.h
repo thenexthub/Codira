@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_STACKNESTING_H
-#define SWIFT_SILOPTIMIZER_UTILS_STACKNESTING_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_STACKNESTING_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_STACKNESTING_H
 
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/BasicBlockData.h"
-#include "llvm/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallBitVector.h"
 
 namespace language {
 
@@ -70,7 +71,7 @@ private:
   /// Data stored for each block (actually for each block which is not dead).
   struct BlockInfo {
     /// The list of stack allocating/deallocating instructions in the block.
-    llvm::SmallVector<SILInstruction *, 8> StackInsts;
+    toolchain::SmallVector<SILInstruction *, 8> StackInsts;
 
     /// The bit-set of alive stack locations at the block entry.
     BitVector AliveStackLocsAtEntry;
@@ -103,11 +104,11 @@ private:
   };
 
   /// Mapping from stack allocations (= locations) to bit numbers.
-  llvm::DenseMap<SILInstruction *, unsigned> StackLoc2BitNumbers;
+  toolchain::DenseMap<SILInstruction *, unsigned> StackLoc2BitNumbers;
 
   /// The list of stack locations. The index into this array is also the bit
   /// number in the bit-sets.
-  llvm::SmallVector<StackLoc, 8> StackLocs;
+  toolchain::SmallVector<StackLoc, 8> StackLocs;
 
   BasicBlockData<BlockInfo> BlockInfos;
 
@@ -189,4 +190,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_STACKNESTING_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_STACKNESTING_H

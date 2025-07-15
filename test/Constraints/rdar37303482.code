@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+class P {}
+class A : P {
+  fn foo() throws {}
+}
+
+class B : P {
+  fn foo() throws {}
+}
+
+typealias C = (P) throws -> Void
+typealias E = (c: P.Type, arr: [(String, C)])
+
+fn foo<T: P>(_: [(String, (T) -> () throws -> Void)]) -> E { fatalError() }
+fn foo<T: P>(_: [(String, (T) -> () -> Void)]) -> E { fatalError() }
+
+var arr = [E]()
+arr.append(foo([("a", A.foo)]))
+arr.append(foo([("b", B.foo)]))

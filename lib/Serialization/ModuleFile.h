@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_MODULEFILE_H
-#define SWIFT_SERIALIZATION_MODULEFILE_H
+#ifndef LANGUAGE_SERIALIZATION_MODULEFILE_H
+#define LANGUAGE_SERIALIZATION_MODULEFILE_H
 
 #include "ModuleFileSharedCore.h"
 #include "ModuleFormat.h"
@@ -25,19 +26,19 @@
 #include "language/AST/Module.h"
 #include "language/AST/SILLayout.h"
 #include "language/Basic/BasicSourceInfo.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Serialization/Validation.h"
 #include "clang/AST/Type.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Bitstream/BitstreamReader.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
-namespace llvm {
+namespace toolchain {
   class BitstreamCursor;
   class BitstreamReader;
   class MemoryBuffer;
@@ -78,19 +79,19 @@ class ModuleFile
   ModuleDecl *UnderlyingModule = nullptr;
 
   /// Once this module file has been associated with the AST node representing
-  /// it, resolve the potentially-SDK-relative module-defining `.swiftinterface`
+  /// it, resolve the potentially-SDK-relative module-defining `.codeinterface`
   /// path to an absolute path.
   std::optional<std::string> ResolvedModuleDefiningFilename;
 
   /// The cursor used to lazily load things from the file.
-  llvm::BitstreamCursor DeclTypeCursor;
+  toolchain::BitstreamCursor DeclTypeCursor;
 
-  llvm::BitstreamCursor SILCursor;
-  llvm::BitstreamCursor SILIndexCursor;
-  llvm::BitstreamCursor DeclMemberTablesCursor;
+  toolchain::BitstreamCursor SILCursor;
+  toolchain::BitstreamCursor SILIndexCursor;
+  toolchain::BitstreamCursor DeclMemberTablesCursor;
 
 public:
-  static std::unique_ptr<llvm::MemoryBuffer> getModuleName(ASTContext &Ctx,
+  static std::unique_ptr<toolchain::MemoryBuffer> getModuleName(ASTContext &Ctx,
                                                            StringRef modulePath,
                                                            std::string &Name);
 
@@ -233,7 +234,7 @@ public:
 
 private:
   /// An allocator for buffers owned by the file.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   /// Allocates a buffer using #Allocator and initializes it with the contents
   /// of the container \p rawData, then stores it in \p buffer.
@@ -315,16 +316,16 @@ private:
   using SerializedDeclMembersTable =
       ModuleFileSharedCore::SerializedDeclMembersTable;
 
-  llvm::DenseMap<uint32_t,
+  toolchain::DenseMap<uint32_t,
            std::unique_ptr<SerializedDeclMembersTable>> DeclMembersTables;
 
-  llvm::DenseMap<const Decl *, Identifier> PrivateDiscriminatorsByValue;
-  llvm::DenseMap<const Decl *, StringRef> FilenamesForPrivateValues;
+  toolchain::DenseMap<const Decl *, Identifier> PrivateDiscriminatorsByValue;
+  toolchain::DenseMap<const Decl *, StringRef> FilenamesForPrivateValues;
 
   TinyPtrVector<Decl *> ImportDecls;
 
   /// Maps USRs to their deserialized comment object.
-  mutable llvm::StringMap<
+  mutable toolchain::StringMap<
       std::unique_ptr<ModuleFileSharedCore::DeserializedCommentInfo>>
       CommentsCache;
 
@@ -358,13 +359,13 @@ private:
   template <typename T, typename ...Args>
   T *createDecl(Args &&... args);
 
-  Decl *handleErrorAndSupplyMissingMiscMember(llvm::Error &&error) const;
+  Decl *handleErrorAndSupplyMissingMiscMember(toolchain::Error &&error) const;
 
   Decl *handleErrorAndSupplyMissingMember(ASTContext &context,
                                           Decl *container,
-                                          llvm::Error &&error) const;
+                                          toolchain::Error &&error) const;
   Decl *handleErrorAndSupplyMissingClassMember(
-      ASTContext &context, llvm::Error &&error,
+      ASTContext &context, toolchain::Error &&error,
       ClassDecl *containingClass) const;
 
 public:
@@ -383,51 +384,51 @@ public:
   /// The `diagnoseFatal` methods return only in LLDB where high error
   /// tolerance is expected, or when hitting a project error. During normal
   /// compilation, most calls won't return and lead to a compiler crash.
-  llvm::Error diagnoseFatal(llvm::Error error) const;
+  toolchain::Error diagnoseFatal(toolchain::Error error) const;
 
   /// Emit a generic deserialization error via \c diagnoseFatal().
-  llvm::Error diagnoseFatal() const {
+  toolchain::Error diagnoseFatal() const {
     return diagnoseFatal(createFatalError());
   }
 
   /// Emit a fatal error via \c diagnoseFatal() and consume it.
-  void diagnoseAndConsumeFatal(llvm::Error error) const {
-    llvm::consumeError(diagnoseFatal(std::move(error)));
+  void diagnoseAndConsumeFatal(toolchain::Error error) const {
+    toolchain::consumeError(diagnoseFatal(std::move(error)));
   }
 
   /// Emit a generic fatal error via \c diagnoseFatal() and consume it.
   void diagnoseAndConsumeFatal() const {
-    llvm::consumeError(diagnoseFatal());
+    toolchain::consumeError(diagnoseFatal());
   }
 
   /// Use this in \p void functions as:
   ///
   ///    if (diagnoseAndConsumeFatalIfNotSuccess(...)) return;
-  bool diagnoseAndConsumeFatalIfNotSuccess(llvm::Error error) const {
+  bool diagnoseAndConsumeFatalIfNotSuccess(toolchain::Error error) const {
     if (!error)
       return false;
-    llvm::consumeError(diagnoseFatal(std::move(error)));
+    toolchain::consumeError(diagnoseFatal(std::move(error)));
     return true;
   }
 
   /// Use this in functions that return Expected<T> as:
   ///
   ///    if (auto error = diagnoseFatalIfNotSuccess(...)) return error;
-  llvm::Error diagnoseFatalIfNotSuccess(llvm::Error error) const {
+  toolchain::Error diagnoseFatalIfNotSuccess(toolchain::Error error) const {
     if (!error)
       return error;
     return diagnoseFatal(std::move(error));
   }
 
   /// Emit and return a string error via \c diagnoseFatal().
-  llvm::Error diagnoseFatal(StringRef msg) const {
-    return diagnoseFatal(llvm::make_error<llvm::StringError>(
-        msg, llvm::inconvertibleErrorCode()));
+  toolchain::Error diagnoseFatal(StringRef msg) const {
+    return diagnoseFatal(toolchain::make_error<toolchain::StringError>(
+        msg, toolchain::inconvertibleErrorCode()));
   }
 
   /// Emit and consume a string error via \c diagnoseFatal().
   void diagnoseAndConsumeFatal(StringRef msg) const {
-    return llvm::consumeError(diagnoseFatal(msg));
+    return toolchain::consumeError(diagnoseFatal(msg));
   }
 
   /// Consume errors that are usually safe to ignore because they
@@ -436,57 +437,57 @@ public:
   ///
   /// If the error is handled, success is returned, otherwise the original
   /// error is returned.
-  llvm::Error consumeExpectedError(llvm::Error &&error);
+  toolchain::Error consumeExpectedError(toolchain::Error &&error);
 
   /// Report project errors as remarks if desired, otherwise drop the error
   /// silently.
-  void diagnoseAndConsumeError(llvm::Error error) const;
+  void diagnoseAndConsumeError(toolchain::Error error) const;
 
   /// Report modularization error, either directly or indirectly if it
   /// caused a \c TypeError or \c ExtensionError. Returns any unhandled errors.
-  llvm::Error
-  diagnoseModularizationError(llvm::Error error,
+  toolchain::Error
+  diagnoseModularizationError(toolchain::Error error,
                    DiagnosticBehavior limit = DiagnosticBehavior::Fatal) const;
 
   /// Report an unexpected format error that could happen only from a
   /// memory-level inconsistency. Please prefer passing an error to
-  /// `fatal(llvm::Error error)` when possible.
-  static llvm::Error createFatalError(
-      llvm::StringRef msg =
+  /// `fatal(toolchain::Error error)` when possible.
+  static toolchain::Error createFatalError(
+      toolchain::StringRef msg =
           "Memory corruption or serialization format inconsistency.") {
-    return llvm::make_error<llvm::StringError>(msg,
-                                               llvm::inconvertibleErrorCode());
+    return toolchain::make_error<toolchain::StringError>(msg,
+                                               toolchain::inconvertibleErrorCode());
   }
 
   /// Emit a fatal error and abort.  This function is deprecated, try to use
   /// diagnoseFatal() instead. Clients such as LLDB really prefer not to be
   /// killed.
-//  LLVM_DEPRECATED("Use diagnoseFatal and pass up the error instead.",
+//  TOOLCHAIN_DEPRECATED("Use diagnoseFatal and pass up the error instead.",
 //                  "diagnoseFatal")
-  [[noreturn]] void fatal(llvm::Error error = createFatalError()) const;
+  [[noreturn]] void fatal(toolchain::Error error = createFatalError()) const;
 
   /// Emit a fatal error and abort.  This function is deprecated, try to use
   /// diagnoseFatal() instead. Clients such as LLDB really prefer not to be
   /// killed.
-//  LLVM_DEPRECATED("Use diagnoseFatal and pass up the error instead.",
+//  TOOLCHAIN_DEPRECATED("Use diagnoseFatal and pass up the error instead.",
 //                  "diagnoseFatal")
-  [[noreturn]] void fatal(llvm::StringRef msg) const {
+  [[noreturn]] void fatal(toolchain::StringRef msg) const {
     fatal(createFatalError(msg));
   }
 
   /// Emit a fatal error and abort if unexpected. Try to avoid using this
   /// function. See comment in \p fatal().
-//  LLVM_DEPRECATED("Use diagnoseFatal and pass up the error instead.",
+//  TOOLCHAIN_DEPRECATED("Use diagnoseFatal and pass up the error instead.",
 //                  "diagnoseFatal")
   template <typename T>
-  T fatalIfUnexpected(llvm::Expected<T> expected) const {
+  T fatalIfUnexpected(toolchain::Expected<T> expected) const {
     if (expected)
       return std::move(expected.get());
     fatal(expected.takeError());
   }
 
   /// Outputs information useful for diagnostics to \p out
-  void outputDiagnosticInfo(llvm::raw_ostream &os) const;
+  void outputDiagnosticInfo(toolchain::raw_ostream &os) const;
 
   ASTContext &getContext() const {
     assert(FileContext && "no associated context yet");
@@ -505,15 +506,15 @@ public:
 
 private:
   /// Recursively reads a pattern from \c DeclTypeCursor.
-  llvm::Expected<Pattern *> readPattern(DeclContext *owningDC);
+  toolchain::Expected<Pattern *> readPattern(DeclContext *owningDC);
 
-  llvm::Expected<ParameterList *> readParameterList();
+  toolchain::Expected<ParameterList *> readParameterList();
   
   /// Reads a generic param list from \c DeclTypeCursor.
   ///
   /// If the record at the cursor is not a generic param list, returns null
   /// without moving the cursor.
-  llvm::Expected<GenericParamList *> maybeReadGenericParams(DeclContext *DC);
+  toolchain::Expected<GenericParamList *> maybeReadGenericParams(DeclContext *DC);
 
   /// Reads a set of requirements from \c DeclTypeCursor.
   void deserializeGenericRequirements(ArrayRef<uint64_t> scratch,
@@ -522,7 +523,7 @@ private:
 
   /// Reads a set of requirements from \c DeclTypeCursor, returns the first
   /// error, if any.
-  llvm::Error
+  toolchain::Error
   deserializeGenericRequirementsChecked(ArrayRef<uint64_t> scratch,
                                         unsigned &nextIndex,
                                    SmallVectorImpl<Requirement> &requirements);
@@ -531,17 +532,17 @@ private:
   /// generic requirements and a list of protocol typealias records.
   void readRequirementSignature(SmallVectorImpl<Requirement> &requirements,
                                 SmallVectorImpl<ProtocolTypeAlias> &typeAliases,
-                                llvm::BitstreamCursor &Cursor);
+                                toolchain::BitstreamCursor &Cursor);
 
   /// Read a list of associated type declarations in a protocol.
   void readAssociatedTypes(
       SmallVectorImpl<AssociatedTypeDecl *> &assocTypes,
-      llvm::BitstreamCursor &Cursor);
+      toolchain::BitstreamCursor &Cursor);
 
   /// Read a list of primary associated type declarations in a protocol.
   void readPrimaryAssociatedTypes(
       SmallVectorImpl<AssociatedTypeDecl *> &assocTypes,
-      llvm::BitstreamCursor &Cursor);
+      toolchain::BitstreamCursor &Cursor);
 
   /// Read a list of the protocol declarations inherited by another protocol.
   bool readInheritedProtocols(SmallVectorImpl<ProtocolDecl *> &inherited);
@@ -561,7 +562,7 @@ private:
   /// because it reads from the cursor, it is not possible to reset the cursor
   /// after reading. Nothing should ever follow an XREF record except
   /// XREF_PATH_PIECE records.
-  llvm::Expected<Decl *> resolveCrossReference(serialization::ModuleID MID,
+  toolchain::Expected<Decl *> resolveCrossReference(serialization::ModuleID MID,
                                                uint32_t pathLen);
 
   struct AccessorRecord {
@@ -605,19 +606,19 @@ public:
     return Core->ModuleABIName;
   }
 
-  llvm::VersionTuple getUserModuleVersion() const {
+  toolchain::VersionTuple getUserModuleVersion() const {
     return Core->UserModuleVersion;
   }
 
-  version::Version getSwiftInterfaceCompilerVersion() const {
-    return Core->SwiftInterfaceCompilerVersion;
+  version::Version getCodiraInterfaceCompilerVersion() const {
+    return Core->CodiraInterfaceCompilerVersion;
   }
 
   ArrayRef<StringRef> getAllowableClientNames() const {
     return Core->AllowableClientNames;
   }
 
-  /// The Swift compatibility version in use when this module was built.
+  /// The Codira compatibility version in use when this module was built.
   const version::Version &getCompatibilityVersion() const {
     return Core->CompatibilityVersion;
   }
@@ -628,7 +629,7 @@ public:
   }
 
   /// Is this module file actually a .sib file? .sib files are serialized SIL at
-  /// arbitrary granularity and arbitrary stage; unlike serialized Swift
+  /// arbitrary granularity and arbitrary stage; unlike serialized Codira
   /// modules, which are assumed to contain canonical SIL for an entire module.
   bool isSIB() const {
     return Core->Bits.IsSIB;
@@ -649,9 +650,9 @@ public:
     return Core->Bits.HasHermeticSealAtLink;
   }
 
-  /// Whether this module was built using embedded Swift.
-  bool isEmbeddedSwiftModule() const {
-    return Core->Bits.IsEmbeddedSwiftModule;
+  /// Whether this module was built using embedded Codira.
+  bool isEmbeddedCodiraModule() const {
+    return Core->Bits.IsEmbeddedCodiraModule;
   }
 
   /// Whether this module was built with C++ interoperability enabled.
@@ -704,11 +705,11 @@ public:
   /// \c true if this module has incremental dependency information.
   bool hasIncrementalInfo() const { return Core->hasIncrementalInfo(); }
 
-  /// \c true if this module has a corresponding .swiftsourceinfo file.
+  /// \c true if this module has a corresponding .codesourceinfo file.
   bool hasSourceInfoFile() const { return Core->hasSourceInfoFile(); }
 
   /// \c true if this module has information from a corresponding
-  /// .swiftsourceinfo file (ie. the file exists and has been read).
+  /// .codesourceinfo file (ie. the file exists and has been read).
   bool hasSourceInfo() const { return Core->hasSourceInfo(); }
 
   /// \c true if this module was built with complete checking for concurrency.
@@ -756,7 +757,7 @@ public:
   getTransitiveLoadingBehavior(const Dependency &dependency,
                                bool forTestable) const;
 
-  /// Generate a \c SourceLoc pointing at the loaded swiftmodule file.
+  /// Generate a \c SourceLoc pointing at the loaded languagemodule file.
   SourceLoc getSourceLoc() const;
 
   /// Returns `true` if there is a buffer that might contain source code where
@@ -836,13 +837,13 @@ public:
   void loadObjCMethods(NominalTypeDecl *typeDecl,
                        ObjCSelector selector,
                        bool isInstanceMethod,
-                       llvm::TinyPtrVector<AbstractFunctionDecl *> &methods);
+                       toolchain::TinyPtrVector<AbstractFunctionDecl *> &methods);
 
   /// Loads all derivative function configurations for the given
   /// AbstractFunctionDecl.
   void loadDerivativeFunctionConfigurations(
       AbstractFunctionDecl *originalAFD,
-      llvm::SetVector<AutoDiffConfig> &results);
+      toolchain::SetVector<AutoDiffConfig> &results);
 
   /// Reports all class members in the module to the given consumer.
   ///
@@ -874,7 +875,7 @@ public:
   /// attributes are deserialized and added to Results.
   void getTopLevelDecls(
          SmallVectorImpl<Decl*> &Results,
-         llvm::function_ref<bool(DeclAttributes)> matchAttributes = nullptr);
+         toolchain::function_ref<bool(DeclAttributes)> matchAttributes = nullptr);
 
   void getExportedPrespecializations(SmallVectorImpl<Decl *> &results);
 
@@ -943,7 +944,7 @@ public:
   loadDynamicallyReplacedFunctionDecl(const DynamicReplacementAttr *DRA,
                                       uint64_t contextData) override;
 
-  virtual ValueDecl *loadTargetFunctionDecl(const SpecializeAttr *attr,
+  virtual ValueDecl *loadTargetFunctionDecl(const AbstractSpecializeAttr *attr,
                                             uint64_t contextData) override;
   virtual AbstractFunctionDecl *
   loadReferencedFunctionDecl(const DerivativeAttr *DA,
@@ -977,7 +978,7 @@ public:
   std::optional<unsigned> getSourceOrderForDecl(const Decl *D) const;
   void collectAllGroups(SmallVectorImpl<StringRef> &Names) const;
   std::optional<CommentInfo> getCommentForDecl(const Decl *D) const;
-  bool hasLoadedSwiftDoc() const;
+  bool hasLoadedCodiraDoc() const;
   std::optional<CommentInfo> getCommentForDeclByUSR(StringRef USR) const;
   std::optional<StringRef> getGroupNameByUSR(StringRef USR) const;
   std::optional<ExternalSourceLocs::RawLocs>
@@ -986,16 +987,16 @@ public:
   std::optional<Fingerprint>
   loadFingerprint(const IterableDeclContext *IDC) const;
   void collectBasicSourceFileInfo(
-      llvm::function_ref<void(const BasicSourceFileInfo &)> callback) const;
+      toolchain::function_ref<void(const BasicSourceFileInfo &)> callback) const;
   void collectSerializedSearchPath(
-      llvm::function_ref<void(StringRef)> callback) const;
+      toolchain::function_ref<void(StringRef)> callback) const;
 
   // MARK: Deserialization interface
 
-  llvm::BitstreamCursor getSILCursor() const {
+  toolchain::BitstreamCursor getSILCursor() const {
     return SILCursor;
   }
-  llvm::BitstreamCursor getSILIndexCursor() const {
+  toolchain::BitstreamCursor getSILIndexCursor() const {
     return SILIndexCursor;
   }
 
@@ -1005,10 +1006,10 @@ public:
   Type getType(serialization::TypeID TID);
 
   /// Returns the type with the given ID, deserializing it if needed.
-  llvm::Expected<Type> getTypeChecked(serialization::TypeID TID);
+  toolchain::Expected<Type> getTypeChecked(serialization::TypeID TID);
 
   /// Returns the Clang type with the given ID, deserializing it if needed.
-  llvm::Expected<const clang::Type *>
+  toolchain::Expected<const clang::Type *>
   getClangType(serialization::ClangTypeID TID);
 
   /// Returns the base name with the given ID, deserializing it if needed.
@@ -1037,21 +1038,21 @@ public:
   /// determine if it should be fully deserialized and returned. If the
   /// attributes fail the check, the decl is not deserialized and
   /// \c DeclAttributesDidNotMatch is returned.
-  llvm::Expected<Decl *>
+  toolchain::Expected<Decl *>
   getDeclChecked(
     serialization::DeclID DID,
-    llvm::function_ref<bool(DeclAttributes)> matchAttributes = nullptr);
+    toolchain::function_ref<bool(DeclAttributes)> matchAttributes = nullptr);
 
   /// Returns the decl context with the given ID, deserializing it if needed.
   DeclContext *getDeclContext(serialization::DeclContextID DID);
 
   /// Returns the decl context with the given ID, deserializing it if needed,
   /// or the first error.
-  llvm::Expected<DeclContext *>
+  toolchain::Expected<DeclContext *>
   getDeclContextChecked(serialization::DeclContextID DCID);
 
   /// Returns the local decl context with the given ID, deserializing it if needed.
-  llvm::Expected<DeclContext *>
+  toolchain::Expected<DeclContext *>
   getLocalDeclContext(serialization::LocalDeclContextID DID);
 
   /// Returns the appropriate module for the given ID.
@@ -1067,11 +1068,11 @@ public:
   GenericSignature getGenericSignature(serialization::GenericSignatureID ID);
 
   /// Returns the generic signature for the given ID or the first error.
-  llvm::Expected<GenericSignature>
+  toolchain::Expected<GenericSignature>
   getGenericSignatureChecked(serialization::GenericSignatureID ID);
 
   /// Returns the generic environment for the given ID or the first error.
-  llvm::Expected<GenericEnvironment *>
+  toolchain::Expected<GenericEnvironment *>
   getGenericEnvironmentChecked(serialization::GenericEnvironmentID ID);
 
   /// Returns the substitution map for the given ID, deserializing it if
@@ -1080,7 +1081,7 @@ public:
 
   /// Returns the substitution map for the given ID, deserializing it if
   /// needed, or the first error.
-  llvm::Expected<SubstitutionMap>
+  toolchain::Expected<SubstitutionMap>
   getSubstitutionMapChecked(serialization::SubstitutionMapID id);
 
   /// Returns the protocol conformance for the given ID.
@@ -1088,11 +1089,11 @@ public:
   getConformance(serialization::ProtocolConformanceID id);
 
   /// Returns the protocol conformance for the given ID.
-  llvm::Expected<ProtocolConformanceRef>
+  toolchain::Expected<ProtocolConformanceRef>
   getConformanceChecked(serialization::ProtocolConformanceID id);
 
   /// Read a SILLayout from the given cursor.
-  SILLayout *readSILLayout(llvm::BitstreamCursor &Cursor);
+  SILLayout *readSILLayout(toolchain::BitstreamCursor &Cursor);
 
   /// Reads a foreign error convention from \c DeclTypeCursor, if present.
   std::optional<ForeignErrorConvention> maybeReadForeignErrorConvention();
@@ -1103,8 +1104,7 @@ public:
   bool maybeReadLifetimeDependenceRecord(SmallVectorImpl<uint64_t> &scratch);
 
   // Reads lifetime dependence info from type if present.
-  std::optional<LifetimeDependenceInfo>
-  maybeReadLifetimeDependence(unsigned numParams);
+  std::optional<LifetimeDependenceInfo> maybeReadLifetimeDependence();
 
   // Reads lifetime dependence specifier from decl if present
   bool maybeReadLifetimeEntry(SmallVectorImpl<LifetimeEntry> &specifierList,
@@ -1125,7 +1125,7 @@ void ModuleFile::allocateBuffer(MutableArrayRef<T> &buffer,
     return;
 
   void *rawBuffer = Allocator.Allocate(sizeof(T) * rawData.size(), alignof(T));
-  buffer = llvm::MutableArrayRef(static_cast<T *>(rawBuffer), rawData.size());
+  buffer = toolchain::MutableArrayRef(static_cast<T *>(rawBuffer), rawData.size());
   std::uninitialized_copy(rawData.begin(), rawData.end(), buffer.begin());
 }
 

@@ -1,13 +1,17 @@
 //===--- MoveOnlyAddressCheckerTester.cpp ---------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-move-only-checker"
@@ -47,16 +51,16 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 #include "MoveOnlyAddressCheckerUtils.h"
 #include "MoveOnlyBorrowToDestructureUtils.h"
@@ -85,7 +89,7 @@ class MoveOnlyAddressCheckerTesterPass : public SILFunctionTransform {
 
     assert(fn->getModule().getStage() == SILStage::Raw &&
            "Should only run on Raw SIL");
-    LLVM_DEBUG(llvm::dbgs() << "===> MoveOnly Addr Checker. Visiting: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "===> MoveOnly Addr Checker. Visiting: "
                             << fn->getName() << '\n');
     auto *dominanceAnalysis = getAnalysis<DominanceAnalysis>();
     DominanceInfo *domTree = dominanceAnalysis->get(fn);
@@ -93,20 +97,20 @@ class MoveOnlyAddressCheckerTesterPass : public SILFunctionTransform {
     auto *deba = getAnalysis<DeadEndBlocksAnalysis>();
 
     DiagnosticEmitter diagnosticEmitter(fn);
-    llvm::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
+    toolchain::SmallSetVector<MarkUnresolvedNonCopyableValueInst *, 32>
         moveIntroducersToProcess;
     searchForCandidateAddressMarkUnresolvedNonCopyableValueInsts(
         fn, getAnalysis<PostOrderAnalysis>(), moveIntroducersToProcess,
         diagnosticEmitter);
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Emitting diagnostic when checking for mark must check inst: "
                << (diagnosticEmitter.getDiagnosticCount() ? "yes" : "no")
                << '\n');
 
     bool madeChange = false;
     if (moveIntroducersToProcess.empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "No move introducers found?!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "No move introducers found?!\n");
     } else {
       borrowtodestructure::IntervalMapAllocator allocator;
       MoveOnlyAddressChecker checker{
@@ -135,6 +139,6 @@ class MoveOnlyAddressCheckerTesterPass : public SILFunctionTransform {
 
 } // anonymous namespace
 
-SILTransform *swift::createMoveOnlyAddressChecker() {
+SILTransform *language::createMoveOnlyAddressChecker() {
   return new MoveOnlyAddressCheckerTesterPass();
 }

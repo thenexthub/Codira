@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: echo "// language-interface-format-version: 1.0" > %t/Foo.codeinterface
+// RUN: echo "// language-module-flags: -module-name Foo" >> %t/Foo.codeinterface
+// RUN: echo "public fn foo() {}" >> %t/Foo.codeinterface
+
+// RUN: cp %t/Foo.codeinterface %t/Foo.private.codeinterface
+
+// RUN: %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %t
+
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+import Foo
+
+// CHECK: "moduleInterfacePath": "{{.*}}Foo.private.codeinterface",

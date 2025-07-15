@@ -1,0 +1,31 @@
+// RUN: %target-language-emit-sil -verify %s
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+struct Block {}
+
+class Story {
+  final var finalStored = [Block]()
+  var overridableStored = [Block]()
+  var computed: [Block] {
+    get { return [] }
+    set {}
+  }
+
+  fn test() {
+    // expected-error@+2 {{overlapping accesses to 'finalStored', but modification requires exclusive access; consider calling MutableCollection.swapAt(_:_:)}}
+    // expected-note@+1 {{conflicting access is here}}
+    swap(&this.finalStored[0], &this.finalStored[1])
+    swap(&this.overridableStored[0], &this.overridableStored[1])
+    swap(&this.computed[0], &this.computed[1]) // expected-error{{invalid aliasing}} expected-note{{concurrent writeback}}
+  }
+}
+
+protocol Storied {
+  var protocolRequirement: [Block] { get set }
+}
+
+fn testProtocol<T: Storied>(x: inout T) {
+  // expected-error@+2 {{overlapping accesses to 'x', but modification requires exclusive access; consider calling MutableCollection.swapAt(_:_:)}}
+  // expected-note@+1 {{conflicting access is here}}
+  swap(&x.protocolRequirement[0], &x.protocolRequirement[1])
+}

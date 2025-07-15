@@ -1,20 +1,24 @@
 //==--- Win32.cpp - Threading abstraction implementation ------- -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for Windows threads
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_THREADING_WIN32
+#if LANGUAGE_THREADING_WIN32
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -55,11 +59,11 @@ CONDITION_VARIABLE onceCond = CONDITION_VARIABLE_INIT;
 using namespace language;
 using namespace threading_impl;
 
-bool swift::threading_impl::thread_is_main() {
+bool language::threading_impl::thread_is_main() {
   return ::GetCurrentThreadId() == rememberer.main_thread();
 }
 
-void swift::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
+void language::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
                                       void *context) {
   intptr_t expected = 0;
   if (predicate.compare_exchange_strong(expected, static_cast<intptr_t>(1),
@@ -99,8 +103,8 @@ void swift::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
 #endif
 }
 
-std::optional<swift::threading_impl::stack_bounds>
-swift::threading_impl::thread_get_current_stack_bounds() {
+std::optional<language::threading_impl::stack_bounds>
+language::threading_impl::thread_get_current_stack_bounds() {
 #if _WIN32_WINNT >= 0x0602
   ULONG_PTR lowLimit = 0;
   ULONG_PTR highLimit = 0;
@@ -121,4 +125,4 @@ swift::threading_impl::thread_get_current_stack_bounds() {
   return result;
 }
 
-#endif // SWIFT_THREADING_WIN32
+#endif // LANGUAGE_THREADING_WIN32

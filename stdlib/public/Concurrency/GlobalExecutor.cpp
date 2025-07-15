@@ -1,18 +1,18 @@
 ///===--- GlobalExecutor.cpp - Global concurrent executor ------------------===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===----------------------------------------------------------------------===///
 ///
 /// Routines related to the global concurrent execution service.
 ///
-/// The execution side of Swift's concurrency model centers around
+/// The execution side of Codira's concurrency model centers around
 /// scheduling work onto various execution services ("executors").
 /// Executors vary in several different dimensions:
 ///
@@ -45,7 +45,7 @@
 /// With that as a baseline, special needs can be recognized and
 /// carved out from the global executor with its cooperation.
 ///
-/// This file defines Swift's interface to that global executor.
+/// This file defines Codira's interface to that global executor.
 ///
 /// The default implementation is backed by libdispatch, but there
 /// may be good reasons to provide alternatives (e.g. when building
@@ -62,79 +62,85 @@
 
 using namespace language;
 
-extern "C" SWIFT_CC(swift)
+extern "C" LANGUAGE_CC(language)
 void _task_serialExecutor_checkIsolated(
     HeapObject *executor,
     const Metadata *selfType,
     const SerialExecutorWitnessTable *wtable);
 
-SWIFT_CC(swift)
-bool swift::swift_task_invokeSwiftCheckIsolated(SerialExecutorRef executor)
+LANGUAGE_CC(language)
+bool language::language_task_invokeCodiraCheckIsolated(SerialExecutorRef executor)
 {
   if (!executor.hasSerialExecutorWitnessTable())
     return false;
 
   _task_serialExecutor_checkIsolated(
-        executor.getIdentity(), swift_getObjectType(executor.getIdentity()),
+        executor.getIdentity(), language_getObjectType(executor.getIdentity()),
         executor.getSerialExecutorWitnessTable());
 
   return true;
 }
 
-extern "C" bool _swift_task_invokeSwiftCheckIsolated_c(SwiftExecutorRef executor)
+extern "C" bool _language_task_invokeCodiraCheckIsolated_c(CodiraExecutorRef executor)
 {
-  return swift_task_invokeSwiftCheckIsolated(*reinterpret_cast<SerialExecutorRef *>(&executor));
+  return language_task_invokeCodiraCheckIsolated(*reinterpret_cast<SerialExecutorRef *>(&executor));
 }
 
 
-extern "C" SWIFT_CC(swift)
-bool _task_serialExecutor_isIsolatingCurrentContext(
+extern "C" LANGUAGE_CC(language)
+int8_t _task_serialExecutor_isIsolatingCurrentContext(
     HeapObject *executor,
     const Metadata *selfType,
     const SerialExecutorWitnessTable *wtable);
 
-SWIFT_CC(swift)
-bool swift::swift_task_invokeSwiftIsIsolatingCurrentContext(SerialExecutorRef executor)
+LANGUAGE_CC(language) int8_t
+language::language_task_invokeCodiraIsIsolatingCurrentContext(SerialExecutorRef executor)
 {
-  if (!executor.hasSerialExecutorWitnessTable())
-    return false;
+  if (!executor.hasSerialExecutorWitnessTable()) {
+    return static_cast<int8_t>(IsIsolatingCurrentContextDecision::NotIsolated);
+  }
 
-  return _task_serialExecutor_isIsolatingCurrentContext(
-        executor.getIdentity(), swift_getObjectType(executor.getIdentity()),
+  auto decision = _task_serialExecutor_isIsolatingCurrentContext(
+        executor.getIdentity(), language_getObjectType(executor.getIdentity()),
         executor.getSerialExecutorWitnessTable());
+
+  return decision;
 }
 
-extern "C" bool _swift_task_invokeSwiftIsIsolatingCurrentContext_c(SwiftExecutorRef executor)
+extern "C" int8_t
+_language_task_invokeCodiraIsIsolatingCurrentContext_c(CodiraExecutorRef executor)
 {
-  return swift_task_invokeSwiftIsIsolatingCurrentContext(*reinterpret_cast<SerialExecutorRef *>(&executor));
+  return
+      static_cast<int8_t>(language_task_invokeCodiraIsIsolatingCurrentContext(
+      *reinterpret_cast<SerialExecutorRef *>(&executor)));
 }
 
-extern "C" void _swift_job_run_c(SwiftJob *job, SwiftExecutorRef executor)
+extern "C" void _language_job_run_c(CodiraJob *job, CodiraExecutorRef executor)
 {
-  swift_job_run(reinterpret_cast<Job *>(job),
+  language_job_run(reinterpret_cast<Job *>(job),
                 *reinterpret_cast<SerialExecutorRef *>(&executor));
 }
 
-extern "C" SwiftTime swift_time_now(SwiftClockId clock)
+extern "C" CodiraTime language_time_now(CodiraClockId clock)
 {
-  SwiftTime result;
-  swift_get_time(&result.seconds, &result.nanoseconds, (swift_clock_id)clock);
+  CodiraTime result;
+  language_get_time(&result.seconds, &result.nanoseconds, (language_clock_id)clock);
   return result;
 }
 
-extern "C" SwiftTime swift_time_getResolution(SwiftClockId clock)
+extern "C" CodiraTime language_time_getResolution(CodiraClockId clock)
 {
-  SwiftTime result;
-  swift_get_clock_res(&result.seconds, &result.nanoseconds,
-                      (swift_clock_id)clock);
+  CodiraTime result;
+  language_get_clock_res(&result.seconds, &result.nanoseconds,
+                      (language_clock_id)clock);
   return result;
 }
 
-bool swift::swift_executor_isComplexEquality(SerialExecutorRef ref) {
+bool language::language_executor_isComplexEquality(SerialExecutorRef ref) {
   return ref.isComplexEquality();
 }
 
-uint64_t swift::swift_task_getJobTaskId(Job *job) {
+uint64_t language::language_task_getJobTaskId(Job *job) {
   if (auto task = dyn_cast<AsyncTask>(job)) {
     // TaskID is actually:
     //   32bits of Job's Id
@@ -145,14 +151,35 @@ uint64_t swift::swift_task_getJobTaskId(Job *job) {
   }
 }
 
-extern "C" void *swift_job_alloc(SwiftJob *job, size_t size) {
+extern "C" void *language_job_alloc(CodiraJob *job, size_t size) {
   auto task = cast<AsyncTask>(reinterpret_cast<Job *>(job));
-  return _swift_task_alloc_specific(task, size);
+  return _language_task_alloc_specific(task, size);
 }
 
-extern "C" void swift_job_dealloc(SwiftJob *job, void *ptr) {
+extern "C" void language_job_dealloc(CodiraJob *job, void *ptr) {
   auto task = cast<AsyncTask>(reinterpret_cast<Job *>(job));
-  return _swift_task_dealloc_specific(task, ptr);
+  return _language_task_dealloc_specific(task, ptr);
+}
+
+IsIsolatingCurrentContextDecision
+language::getIsIsolatingCurrentContextDecisionFromInt(int8_t value) {
+  switch (value) {
+  case -1: return IsIsolatingCurrentContextDecision::Unknown;
+  case 0: return IsIsolatingCurrentContextDecision::NotIsolated;
+  case 1: return IsIsolatingCurrentContextDecision::Isolated;
+  default:
+    language_Concurrency_fatalError(0, "Unexpected IsIsolatingCurrentContextDecision value");
+  }
+}
+
+StringRef
+language::getIsIsolatingCurrentContextDecisionNameStr(IsIsolatingCurrentContextDecision decision) {
+  switch (decision) {
+  case IsIsolatingCurrentContextDecision::Unknown: return "Unknown";
+  case IsIsolatingCurrentContextDecision::NotIsolated: return "NotIsolated";
+  case IsIsolatingCurrentContextDecision::Isolated: return "Isolated";
+  }
+  language_Concurrency_fatalError(0, "Unexpected IsIsolatingCurrentContextDecision value");
 }
 
 /*****************************************************************************/
@@ -160,12 +187,12 @@ extern "C" void swift_job_dealloc(SwiftJob *job, void *ptr) {
 /*****************************************************************************/
 
 bool SerialExecutorRef::isMainExecutor() const {
-  return swift_task_isMainExecutor(*this);
+  return language_task_isMainExecutor(*this);
 }
 
-extern "C" bool _swift_task_isMainExecutor_c(SwiftExecutorRef executor) {
+extern "C" bool _language_task_isMainExecutor_c(CodiraExecutorRef executor) {
   SerialExecutorRef ref = *reinterpret_cast<SerialExecutorRef *>(&executor);
-  return swift_task_isMainExecutor(ref);
+  return language_task_isMainExecutor(ref);
 }
 
 #define OVERRIDE_GLOBAL_EXECUTOR COMPATIBILITY_OVERRIDE

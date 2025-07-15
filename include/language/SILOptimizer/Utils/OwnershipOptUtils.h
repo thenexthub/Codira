@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,8 +20,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_OWNERSHIPOPTUTILS_H
-#define SWIFT_SILOPTIMIZER_UTILS_OWNERSHIPOPTUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_OWNERSHIPOPTUTILS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_OWNERSHIPOPTUTILS_H
 
 #include "language/Basic/Defer.h"
 #include "language/SIL/BasicBlockUtils.h"

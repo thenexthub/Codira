@@ -1,0 +1,7 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name DreadPirateRoberts
+
+// RUN: %empty-directory(%t)
+// RUN: echo 'import WrongName' | not %target-language-frontend -typecheck -module-cache-path %t -I %S - 2>&1 | %FileCheck %s
+
+// CHECK: :1:8: error: cannot load module 'DreadPirateRoberts' as 'WrongName'

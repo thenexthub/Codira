@@ -1,0 +1,4 @@
+// Run test variables.code, verifying that the combination of -interpret and -g works.
+// RUN: %target-jit-run -g %S/variables.code | %FileCheck %s
+// CHECK: 8, 16, 32
+// REQUIRES: language_interpreter

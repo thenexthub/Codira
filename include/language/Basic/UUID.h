@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This is an interface over the standard OSF uuid library that gives UUIDs
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_UUID_H
-#define SWIFT_BASIC_UUID_H
+#ifndef LANGUAGE_BASIC_UUID_H
+#define LANGUAGE_BASIC_UUID_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/raw_ostream.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <array>
 #include <optional>
 
@@ -71,7 +72,7 @@ public:
   static std::optional<UUID> fromString(const char *s);
 
   /// Convert a UUID to its string representation.
-  void toString(llvm::SmallVectorImpl<char> &out) const;
+  void toString(toolchain::SmallVectorImpl<char> &out) const;
   
   int compare(UUID y) const;
   
@@ -87,35 +88,35 @@ public:
 #undef COMPARE_UUID
 };
   
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, UUID uuid);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, UUID uuid);
   
 }
 
-namespace llvm {
+namespace toolchain {
   template<>
-  struct DenseMapInfo<swift::UUID> {
-    static inline swift::UUID getEmptyKey() {
+  struct DenseMapInfo<language::UUID> {
+    static inline language::UUID getEmptyKey() {
       return {{{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF}}};
     }
-    static inline swift::UUID getTombstoneKey() {
+    static inline language::UUID getTombstoneKey() {
       return {{{0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE}}};
     }
     
-    static unsigned getHashValue(swift::UUID uuid) {
+    static unsigned getHashValue(language::UUID uuid) {
       union {
-        swift::UUID uu;
+        language::UUID uu;
         unsigned words[4];
       } reinterpret = {uuid};
       return reinterpret.words[0] ^ reinterpret.words[1]
            ^ reinterpret.words[2] ^ reinterpret.words[3];
     }
     
-    static bool isEqual(swift::UUID a, swift::UUID b) {
+    static bool isEqual(language::UUID a, language::UUID b) {
       return a == b;
     }
   };
 } // end namespace language
 
-#endif // SWIFT_BASIC_UUID_H
+#endif // LANGUAGE_BASIC_UUID_H

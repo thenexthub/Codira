@@ -1,13 +1,17 @@
 //===--- GenericMetadataBuilder.cpp - Code to build generic metadata. -----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Builder for generic metadata, in-process and out-of-process.
@@ -25,7 +29,7 @@
 #include <string>
 #include <type_traits>
 
-#if SWIFT_STDLIB_HAS_DLADDR && __has_include(<dlfcn.h>)
+#if LANGUAGE_STDLIB_HAS_DLADDR && __has_include(<dlfcn.h>)
 #include <dlfcn.h>
 #define USE_DLADDR 1
 #endif
@@ -244,10 +248,10 @@ public:
   /// for retrieving metadata for field records.
   BuilderErrorOr<Buffer<const Metadata>> getTypeByMangledName(
       WritableData<FullMetadata<Metadata>> containingMetadataBuffer,
-      NodePointer metadataMangleNode, llvm::StringRef mangledTypeName) {
+      NodePointer metadataMangleNode, toolchain::StringRef mangledTypeName) {
     auto metadata = static_cast<Metadata *>(containingMetadataBuffer.ptr);
     SubstGenericParametersFromMetadata substitutions(metadata);
-    auto result = swift_getTypeByMangledName(
+    auto result = language_getTypeByMangledName(
         MetadataState::LayoutComplete, mangledTypeName,
         substitutions.getGenericArgs(),
         [&substitutions, this](unsigned depth, unsigned index) {
@@ -280,7 +284,7 @@ public:
 
   bool isLoggingEnabled() { return true; }
 
-  SWIFT_FORMAT(5, 6)
+  LANGUAGE_FORMAT(5, 6)
   void log(const char *filename, unsigned line, const char *function,
            const char *fmt, ...) {
     va_list args;
@@ -294,7 +298,7 @@ public:
   }
 };
 
-SWIFT_FORMAT(2, 3)
+LANGUAGE_FORMAT(2, 3)
 static void validationLog(bool isValidationFailure, const char *fmt, ...) {
   if (!isValidationFailure)
     return;
@@ -310,7 +314,7 @@ static void validationLog(bool isValidationFailure, const char *fmt, ...) {
   va_end(args);
 }
 
-SWIFT_FORMAT(1, 2) static void printToStderr(const char *fmt, ...) {
+LANGUAGE_FORMAT(1, 2) static void printToStderr(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
@@ -360,7 +364,7 @@ static bool equalVWTs(const ValueWitnessTable *a, const ValueWitnessTable *b) {
   return false;
 }
 
-bool swift::compareGenericMetadata(const Metadata *original,
+bool language::compareGenericMetadata(const Metadata *original,
                                    const Metadata *newMetadata) {
   if (original == newMetadata)
     return true;

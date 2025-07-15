@@ -1,4 +1,4 @@
-//===--- PopFront.swift ---------------------------------------------------===//
+//===--- PopFront.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "PopFrontArray",
     runFunction: run_PopFrontArray,
     tags: [.validation, .api, .Array],
@@ -26,11 +27,11 @@ public let benchmarks = [
     legacyFactor: 100),
 ]
 
-let arrayCount = 1024
+immutable arrayCount = 1024
 
 @inline(never)
-public func run_PopFrontArray(_ n: Int) {
-  let orig = Array(repeating: 1, count: arrayCount)
+public fn run_PopFrontArray(_ n: Int) {
+  immutable orig = Array(repeating: 1, count: arrayCount)
   var a = [Int]()
   for _ in 1...n {
       var result = 0
@@ -44,9 +45,9 @@ public func run_PopFrontArray(_ n: Int) {
 }
 
 @inline(never)
-public func run_PopFrontUnsafePointer(_ n: Int) {
-  let orig = Array(repeating: 1, count: arrayCount)
-  let a = UnsafeMutablePointer<Int>.allocate(capacity: arrayCount)
+public fn run_PopFrontUnsafePointer(_ n: Int) {
+  immutable orig = Array(repeating: 1, count: arrayCount)
+  immutable a = UnsafeMutablePointer<Int>.allocate(capacity: arrayCount)
   for _ in 1...n {
       for i in 0..<arrayCount {
         a[i] = orig[i]

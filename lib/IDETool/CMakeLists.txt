@@ -1,5 +1,5 @@
 
-add_swift_host_library(swiftIDETool STATIC
+add_language_host_library(languageIDETool STATIC
   CompileInstance.cpp
   CompilerInvocation.cpp
   IDEInspectionInstance.cpp
@@ -7,12 +7,12 @@ add_swift_host_library(swiftIDETool STATIC
   SyntacticMacroExpansion.cpp
   )
 
-target_link_libraries(swiftIDETool PRIVATE
-  swiftAST
-  swiftDriver
-  swiftFrontend
-  swiftFrontendTool
+target_link_libraries(languageIDETool PRIVATE
+  languageAST
+  languageDriver
+  languageFrontend
+  languageFrontendTool
   clangAST
   clangFrontend)
 
-set_swift_llvm_is_available(swiftIDETool)
+set_language_toolchain_is_available(languageIDETool)

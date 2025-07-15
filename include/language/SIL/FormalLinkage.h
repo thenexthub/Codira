@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_FORMALLINKAGE_H
-#define SWIFT_SIL_FORMALLINKAGE_H
+#ifndef LANGUAGE_SIL_FORMALLINKAGE_H
+#define LANGUAGE_SIL_FORMALLINKAGE_H
 
 namespace language {
 
@@ -29,23 +30,23 @@ enum ForDefinition_t : bool;
 /// informs, but is not completely equivalent to, the linkage of
 /// symbols corresponding to those types and declarations.
 enum class FormalLinkage {
-  /// This entity is visible in multiple Swift modules and has a
+  /// This entity is visible in multiple Codira modules and has a
   /// unique file that is known to define it.
   PublicUnique,
 
-  /// This entity is visible in multiple Swift modules, but does not
+  /// This entity is visible in multiple Codira modules, but does not
   /// have a unique file that is known to define it.
   PublicNonUnique,
 
-  /// This entity is visible in multiple Swift modules within a package
+  /// This entity is visible in multiple Codira modules within a package
   /// and has a unique file that is known to define it.
   PackageUnique,
 
-  /// This entity is visible in only a single Swift module and has a
+  /// This entity is visible in only a single Codira module and has a
   /// unique file that is known to define it.
   HiddenUnique,
 
-  /// This entity is visible in only a single Swift file. These are by
+  /// This entity is visible in only a single Codira file. These are by
   /// definition unique.
   Private,
 };
@@ -59,6 +60,6 @@ SILLinkage
 getLinkageForProtocolConformance(const ProtocolConformance *C,
                                  ForDefinition_t definition);
 
-} // end swift namespace
+} // end language namespace
 
 #endif

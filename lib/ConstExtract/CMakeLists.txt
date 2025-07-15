@@ -1,8 +1,8 @@
-add_swift_host_library(swiftConstExtract STATIC
+add_language_host_library(languageConstExtract STATIC
   ConstExtract.cpp
   )
-target_link_libraries(swiftConstExtract PRIVATE
-  swiftClangImporter
-  swiftAST)
+target_link_libraries(languageConstExtract PRIVATE
+  languageClangImporter
+  languageAST)
 
-set_swift_llvm_is_available(swiftConstExtract)
+set_language_toolchain_is_available(languageConstExtract)

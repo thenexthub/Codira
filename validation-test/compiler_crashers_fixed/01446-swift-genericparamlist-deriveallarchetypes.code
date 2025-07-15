@@ -1,0 +1,127 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol b {
+enum A : Collection where h)
+a()
+}
+}
+protocol a {
+fn ^()
+print("
+protocol b where T> String {
+return "a: c(true {
+}
+fn g<T where A() -> T where Optional<S {
+return nil
+}
+struct c in 0.R
+S()))?
+public var b(.E
+immutable h = A() {
+}
+return "cd"""ab""))
+this.d == b
+}
+get {
+}
+var d {
+fn a: k) {
+}
+fn compose<B {
+protocol c : b {
+var e([Int
+fn e!.b {
+fn g<T, e, T : d
+fn b
+typealias h
+return {
+}
+return [(object1: Array) {
+return true
+case b {
+}
+fn c<T, y)
+typealias d<Y> {
+class fn a: start: b[1])
+}
+}
+public subscript (a<T : b(T) {
+}
+}
+typealias d = c) {
+}
+}
+f, end: Array<T>(this)
+for (s: U : c<T>Bool) + seq
+enum S() { x }
+enum A : B
+}
+}
+class b() in return NSData()
+}
+protocol A {
+fn f()"foo""a<T> T> == T> T -> A : Array<T>() -> : l) -> {
+this.C(()
+}
+}() {
+print(x(Any) {
+protocol c where g(2, B, (() {
+var f.advance(T>()
+print() {
+}
+typealias C {
+immutable f = ")
+this.advance(T, e() -> Int = e> {
+}
+}
+class A {
+typealias e = 1)) {
+}
+class d(this, "))
+return z: C {
+fn f.advance() -> == F>? = c))
+struct Q<Int
+typealias B(f("
+class C(B>(h.A> {
+fn g<T -> {
+}
+fn ^(Any) -> : (x) -> ([1)
+}
+return z: 1)
+class A {
+fn a: String) in 0] {
+})
+immutable v: b(B(this[0) -> {
+}
+}
+typealias f = g<T, i: b = A, range.a
+enum A {
+immutable d
+return [unowned this.Type
+}
+fn f)"a()
+class A : a {
+}
+fn a: A? {
+print(t: A, e = a: Int
+A.d.substringWithRange(1)
+immutable h = b: a {
+}
+}
+var d>(2, U, e {
+}
+return "
+typealias R
+}
+}
+fn e(b: Int = 

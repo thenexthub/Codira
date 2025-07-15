@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_REFERENCE_COUNTING_H
-#define SWIFT_AST_REFERENCE_COUNTING_H
+#ifndef LANGUAGE_AST_REFERENCE_COUNTING_H
+#define LANGUAGE_AST_REFERENCE_COUNTING_H
 
 namespace language {
 
 /// The kind of reference counting implementation a heap object uses.
 enum class ReferenceCounting : uint8_t {
-  /// The object uses native Swift reference counting.
+  /// The object uses native Codira reference counting.
   Native,
 
   /// The object uses ObjC reference counting.
   ///
-  /// When ObjC interop is enabled, native Swift class objects are also ObjC
-  /// reference counting compatible. Swift non-class heap objects are never
+  /// When ObjC interop is enabled, native Codira class objects are also ObjC
+  /// reference counting compatible. Codira non-class heap objects are never
   /// ObjC reference counting compatible.
   ///
   /// Blocks are always ObjC reference counting compatible.
@@ -36,7 +37,7 @@ enum class ReferenceCounting : uint8_t {
   /// types.
   None,
 
-  /// The object uses swift_attr("retain:XXX") and "release:XXX" to implement
+  /// The object uses language_attr("retain:XXX") and "release:XXX" to implement
   /// reference counting.
   Custom,
 
@@ -62,7 +63,7 @@ enum class ReferenceCounting : uint8_t {
   ///
   /// This uses maximally-compatible reference counting entry points in the
   /// runtime, with a masking layer on top. A bit inside the pointer is used
-  /// to signal native Swift refcounting.
+  /// to signal native Codira refcounting.
   Bridge,
 
   /// The object uses ErrorType's reference counting entry points.

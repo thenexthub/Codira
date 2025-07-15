@@ -1,9 +1,9 @@
 # Optimizer Counter Analysis
 
 It is possible by means of providing some special command-line
-options to ask the Swift compiler to produce different statistics about
+options to ask the Codira compiler to produce different statistics about
 the optimizer counters. Optimizer counters are most typically counters
-representing different aspects of a SIL representation for a Swift module
+representing different aspects of a SIL representation for a Codira module
 being compiled, e.g. the number of SIL basic blocks or instructions. 
 These counters may also reveal some details about transformations
 and optimizations performed on SIL, e.g. the duration of an optimization
@@ -12,7 +12,7 @@ information about the changes of optimizer counters over time allows for
 analysis of changes to the SIL representation during the compilation.
  
 This document describes how you collect and analyze the counters produced by
-the optimizer of the Swift compiler. This analysis is useful if you need to get
+the optimizer of the Codira compiler. This analysis is useful if you need to get
 a detailed insight into the optimizer passes, their effect on the SIL code, 
 compile times, compiler's memory consumption, etc. For example, you can find
 out which optimization passes or phases of optimization produce most new SIL
@@ -94,7 +94,7 @@ collect more fine-grained counters.
 
 ### Module level counters
 The most coarse-grained counters are the module level counters, which are
-enabled by using `-Xllvm -sil-stats-modules` command-line option. They are
+enabled by using `-Xtoolchain -sil-stats-modules` command-line option. They are
 usually logged only if a given optimizer counter changed a lot for the whole
 SILModule, which does not happen that often, because most optimization passes
 perform just very small transformations on a single function and thus do not
@@ -102,26 +102,26 @@ significantly change any module-wide counters.
 
 ### Function level counters
 The next level of granularity are SILFunction counters, which are enabled by
-using `-Xllvm -sil-stats-functions` command-line option. They track statistics
+using `-Xtoolchain -sil-stats-functions` command-line option. They track statistics
 for SILFunctions. Every SILFunction has its own set of these counters.
 Obviously, interesting changes to these counters happen more often than to the
 module-wide counters.
 
 ### Instruction level counters
 The finest level of granularity are SILInstruction counters, which are enabled
-by using `-Xllvm -sil-stats-only-instructions` command-line option. You can use
+by using `-Xtoolchain -sil-stats-only-instructions` command-line option. You can use
 them to e.g. collect statistics about how many specific SIL instructions are
 used by a given SILFunction or a SILModule. For example, you can count how many
 `alloc_ref` instructions occur in a given SILFunction or SILModule. If you are
 interested in collecting the stats only for some specific SIL instructions, you
 can use a comma-separated list of instructions as a value of the option,
-e.g. `-Xllvm -sil-stats-only-instructions=alloc_ref,alloc_stack`. If you need to
+e.g. `-Xtoolchain -sil-stats-only-instructions=alloc_ref,alloc_stack`. If you need to
 collect stats about all kinds of SIL instructions, you can use this syntax: 
-`-Xllvm -sil-stats-only-instructions=all`.
+`-Xtoolchain -sil-stats-only-instructions=all`.
 
 ### Debug variable level counters
 A different type of counter is the lost debug variables counter. It is enabled
-by using the `-Xllvm -sil-stats-lost-variables` command-line option. It only
+by using the `-Xtoolchain -sil-stats-lost-variables` command-line option. It only
 tracks statistics about lost variables in SILFunctions. It is not enabled by
 any other command-line option, but can be combined with the others. It is not
 compatible with thresholds, it always counts lost variables. Note that it does
@@ -168,7 +168,7 @@ standard error.
 But it is possible to write into a custom file by specifying the following
 command-line option: 
 
-  `-Xllvm -sil-stats-output-file=your_file_name`
+  `-Xtoolchain -sil-stats-output-file=your_file_name`
 
 ## The format of the recorded optimizer counters
 
@@ -201,7 +201,7 @@ And for counter stats it looks like this:
 * `Duration` is the duration of the transformation
 * `TransformPassNumber` is the optimizer pass number. It is useful if you 
    want to reproduce the result later using 
-   `-Xllvm -sil-opt-pass-count -Xllvm TransformPassNumber`
+   `-Xtoolchain -sil-opt-pass-count -Xtoolchain TransformPassNumber`
 
 ## Extract Lost Variables per Pass
 

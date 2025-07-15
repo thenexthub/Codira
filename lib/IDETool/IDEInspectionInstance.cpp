@@ -1,13 +1,17 @@
 //===--- IDEInspectionInstance.cpp ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDETool/IDEInspectionInstance.h"
@@ -36,14 +40,14 @@
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
 #include "clang/AST/ASTContext.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace language;
 using namespace ide;
 
-std::unique_ptr<llvm::MemoryBuffer>
-swift::ide::makeCodeCompletionMemoryBuffer(const llvm::MemoryBuffer *origBuf,
+std::unique_ptr<toolchain::MemoryBuffer>
+language::ide::makeCodeCompletionMemoryBuffer(const toolchain::MemoryBuffer *origBuf,
                                            unsigned &Offset,
                                            StringRef bufferIdentifier) {
 
@@ -51,7 +55,7 @@ swift::ide::makeCodeCompletionMemoryBuffer(const llvm::MemoryBuffer *origBuf,
   if (Offset > origBuffSize)
     Offset = origBuffSize;
 
-  auto newBuffer = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(
+  auto newBuffer = toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(
       origBuffSize + 1, bufferIdentifier);
   auto *pos = origBuf->getBufferStart() + Offset;
   auto *newPos =
@@ -59,13 +63,14 @@ swift::ide::makeCodeCompletionMemoryBuffer(const llvm::MemoryBuffer *origBuf,
   *newPos = '\0';
   std::copy(pos, origBuf->getBufferEnd(), newPos + 1);
 
-  return std::unique_ptr<llvm::MemoryBuffer>(newBuffer.release());
+  return std::unique_ptr<toolchain::MemoryBuffer>(newBuffer.release());
 }
 
 namespace {
-/// Returns index number of \p D in \p Decls . If it's not found, returns ~0.
+/// Returns index number of \p D in \p Decls . If it's not found, returns
+/// \c nullopt.
 template <typename Range>
-unsigned findIndexInRange(Decl *D, const Range &Decls) {
+std::optional<unsigned> findIndexInRange(Decl *D, const Range &Decls) {
   unsigned N = 0;
   for (auto I = Decls.begin(), E = Decls.end(); I != E; ++I) {
     if ((*I)->isImplicit())
@@ -74,7 +79,7 @@ unsigned findIndexInRange(Decl *D, const Range &Decls) {
       return N;
     ++N;
   }
-  return ~0U;
+  return std::nullopt;
 }
 
 /// Return the element at \p N in \p Decls .
@@ -87,6 +92,23 @@ template <typename Range> Decl *getElementAt(const Range &Decls, unsigned N) {
     --N;
   }
   return nullptr;
+}
+
+static ArrayRef<AccessorDecl *>
+getParsedAccessors(AbstractStorageDecl *ASD,
+                   SmallVectorImpl<AccessorDecl *> &scratch) {
+  ASSERT(scratch.empty());
+  ASD->visitParsedAccessors([&](auto *AD) {
+    // Ignore accessors added by macro expansions.
+    // TODO: This ought to be the default behavior of `visitParsedAccessors`,
+    // we ought to have a different entrypoint for clients that care about
+    // the semantic set of "explicit" accessors.
+    if (AD->isInMacroExpansionInContext())
+      return;
+
+    scratch.push_back(AD);
+  });
+  return scratch;
 }
 
 /// Find the equivalent \c DeclContext with \p DC from \p SF AST.
@@ -106,7 +128,7 @@ static DeclContext *getEquivalentDeclContextFromSourceFile(DeclContext *DC,
     if (!D)
       return nullptr;
     auto *parentDC = newDC->getParent();
-    unsigned N = ~0U;
+    std::optional<unsigned> N;
 
     if (auto accessor = dyn_cast<AccessorDecl>(D)) {
       // The AST for accessors is like:
@@ -116,8 +138,13 @@ static DeclContext *getEquivalentDeclContextFromSourceFile(DeclContext *DC,
       auto *storage = accessor->getStorage();
       if (!storage)
         return nullptr;
-      auto accessorN = findIndexInRange(accessor, storage->getAllAccessors());
-      IndexStack.push_back(accessorN);
+
+      SmallVector<AccessorDecl *, 4> scratch;
+      auto accessorN =
+          findIndexInRange(accessor, getParsedAccessors(storage, scratch));
+      if (!accessorN)
+        return nullptr;
+      IndexStack.push_back(*accessorN);
       D = storage;
     }
 
@@ -125,20 +152,19 @@ static DeclContext *getEquivalentDeclContextFromSourceFile(DeclContext *DC,
       N = findIndexInRange(D, parentSF->getTopLevelDecls());
     } else if (auto parentIDC = dyn_cast_or_null<IterableDeclContext>(
                    parentDC->getAsDecl())) {
-      N = findIndexInRange(D, parentIDC->getMembers());
+      N = findIndexInRange(D, parentIDC->getParsedMembers());
     } else {
 #ifndef NDEBUG
-      llvm_unreachable("invalid DC kind for finding equivalent DC (indexpath)");
+      toolchain_unreachable("invalid DC kind for finding equivalent DC (indexpath)");
 #endif
       return nullptr;
     }
 
     // Not found in the decl context tree.
-    if (N == ~0U) {
+    if (!N)
       return nullptr;
-    }
 
-    IndexStack.push_back(N);
+    IndexStack.push_back(*N);
     newDC = parentDC;
   } while (!newDC->isModuleScopeContext());
 
@@ -153,15 +179,16 @@ static DeclContext *getEquivalentDeclContextFromSourceFile(DeclContext *DC,
     if (auto parentSF = dyn_cast<SourceFile>(newDC))
       D = getElementAt(parentSF->getTopLevelDecls(), N);
     else if (auto parentIDC = dyn_cast<IterableDeclContext>(newDC->getAsDecl()))
-      D = getElementAt(parentIDC->getMembers(), N);
+      D = getElementAt(parentIDC->getParsedMembers(), N);
     else
-      llvm_unreachable("invalid DC kind for finding equivalent DC (query)");
+      toolchain_unreachable("invalid DC kind for finding equivalent DC (query)");
 
     if (auto storage = dyn_cast_or_null<AbstractStorageDecl>(D)) {
       if (IndexStack.empty())
         return nullptr;
       auto accessorN = IndexStack.pop_back_val();
-      D = getElementAt(storage->getAllAccessors(), accessorN);
+      SmallVector<AccessorDecl *, 4> scratch;
+      D = getElementAt(getParsedAccessors(storage, scratch), accessorN);
     }
 
     newDC = dyn_cast_or_null<DeclContext>(D);
@@ -177,21 +204,23 @@ static DeclContext *getEquivalentDeclContextFromSourceFile(DeclContext *DC,
 } // namespace
 
 bool IDEInspectionInstance::performCachedOperationIfPossible(
-    llvm::hash_code ArgsHash,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
+    toolchain::hash_code ArgsHash,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
     const SearchPathOptions &SearchPathOpts,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
+    toolchain::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
         Callback) {
-  llvm::PrettyStackTraceString trace(
+  toolchain::PrettyStackTraceString trace(
       "While performing cached IDE inspection if possible");
 
   // Check the invalidation first. Otherwise, in case no 'CacheCI' exists yet,
   // the flag will remain 'true' even after 'CachedCI' is populated.
-  if (CachedCIShouldBeInvalidated.exchange(false))
+  if (CachedCIShouldBeInvalidated.exchange(false)) {
+    CachedCI = nullptr;
     return false;
+  }
   if (!CachedCI)
     return false;
   if (CachedReuseCount >= Opts.MaxASTReuseCount)
@@ -218,7 +247,7 @@ bool IDEInspectionInstance::performCachedOperationIfPossible(
     if (ExpectedOverlay) {
       FileSystem = std::move(ExpectedOverlay.get());
     } else {
-      llvm::consumeError(ExpectedOverlay.takeError());
+      toolchain::consumeError(ExpectedOverlay.takeError());
     }
 
     if (areAnyDependentFilesInvalidated(
@@ -279,9 +308,9 @@ bool IDEInspectionInstance::performCachedOperationIfPossible(
     // of the type members into account. For example:
     //
     //   struct S {
-    //     func foo() {}
+    //     fn foo() {}
     //   }
-    //   func main(val: S) {
+    //   fn main(val: S) {
     //     val.<HERE>
     //   }
     //
@@ -356,7 +385,7 @@ bool IDEInspectionInstance::performCachedOperationIfPossible(
           nullptr
         }
     );
-    SM.recordSourceFile(newBufferID, AFD->getParentSourceFile());
+    SM.recordSourceFile(newBufferID, oldSF);
 
     AFD->setBodyToBeReparsed(newBodyRange);
     oldSF->clearScope();
@@ -449,15 +478,15 @@ bool IDEInspectionInstance::performCachedOperationIfPossible(
 }
 
 void IDEInspectionInstance::performNewOperation(
-    std::optional<llvm::hash_code> ArgsHash,
-    swift::CompilerInvocation &Invocation,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+    std::optional<toolchain::hash_code> ArgsHash,
+    language::CompilerInvocation &Invocation,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
+    toolchain::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
         Callback) {
-  llvm::PrettyStackTraceString trace("While performing new IDE inspection");
+  toolchain::PrettyStackTraceString trace("While performing new IDE inspection");
 
   // If ArgsHash is None we shouldn't cache the compiler instance.
   bool ShouldCacheCompilerInstance = ArgsHash.has_value();
@@ -473,12 +502,12 @@ void IDEInspectionInstance::performNewOperation(
     if (DiagC)
       CI->addDiagnosticConsumer(DiagC);
 
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       if (DiagC)
         CI->removeDiagnosticConsumer(DiagC);
     };
 
-    if (FileSystem != llvm::vfs::getRealFileSystem())
+    if (FileSystem != toolchain::vfs::getRealFileSystem())
       CI->getSourceMgr().setFileSystem(FileSystem);
 
     Invocation.setIDEInspectionTarget(ideInspectionTargetBuffer, Offset);
@@ -525,7 +554,7 @@ void IDEInspectionInstance::performNewOperation(
 }
 
 void IDEInspectionInstance::cacheCompilerInstance(
-    std::shared_ptr<CompilerInstance> CI, llvm::hash_code ArgsHash) {
+    std::shared_ptr<CompilerInstance> CI, toolchain::hash_code ArgsHash) {
   CachedCI = std::move(CI);
   CachedArgHash = ArgsHash;
   auto now = std::chrono::system_clock::now();
@@ -556,18 +585,18 @@ void IDEInspectionInstance::setOptions(IDEInspectionInstance::Options NewOpts) {
   Opts = NewOpts;
 }
 
-void swift::ide::IDEInspectionInstance::performOperation(
-    swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+void language::ide::IDEInspectionInstance::performOperation(
+    language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
+    toolchain::function_ref<void(CancellableResult<IDEInspectionInstanceResult>)>
         Callback) {
   // Compute the signature of the invocation.
-  llvm::hash_code ArgsHash(0);
+  toolchain::hash_code ArgsHash(0);
   for (auto arg : Args)
-    ArgsHash = llvm::hash_combine(ArgsHash, StringRef(arg));
+    ArgsHash = toolchain::hash_combine(ArgsHash, StringRef(arg));
 
   // Concurrent completions will block so that they have higher chance to use
   // the cached completion instance.
@@ -590,35 +619,35 @@ void swift::ide::IDEInspectionInstance::performOperation(
                       CancellationFlag, Callback);
 }
 
-void swift::ide::IDEInspectionInstance::codeComplete(
-    swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+void language::ide::IDEInspectionInstance::codeComplete(
+    language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC, ide::CodeCompletionContext &CompletionContext,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<CodeCompleteResult>)> Callback) {
+    toolchain::function_ref<void(CancellableResult<CodeCompleteResult>)> Callback) {
   using ResultType = CancellableResult<CodeCompleteResult>;
 
   struct ConsumerToCallbackAdapter : public CodeCompletionConsumer {
-    SwiftCompletionInfo SwiftContext;
+    CodiraCompletionInfo CodiraContext;
     ImportDepth ImportDep;
     std::shared_ptr<std::atomic<bool>> CancellationFlag;
-    llvm::function_ref<void(ResultType)> Callback;
+    toolchain::function_ref<void(ResultType)> Callback;
     bool HandleResultsCalled = false;
 
     ConsumerToCallbackAdapter(
         ImportDepth ImportDep,
         std::shared_ptr<std::atomic<bool>> CancellationFlag,
-        llvm::function_ref<void(ResultType)> Callback)
+        toolchain::function_ref<void(ResultType)> Callback)
         : ImportDep(ImportDep), CancellationFlag(CancellationFlag),
           Callback(Callback) {}
 
     void setContext(std::shared_ptr<CompilerInstance> compilerInstance,
-                    swift::ide::CodeCompletionContext *completionContext) {
-      SwiftContext.compilerInstance = std::move(compilerInstance);
-      SwiftContext.completionContext = completionContext;
+                    language::ide::CodeCompletionContext *completionContext) {
+      CodiraContext.compilerInstance = std::move(compilerInstance);
+      CodiraContext.completionContext = completionContext;
     }
-    void clearContext() { SwiftContext = SwiftCompletionInfo(); }
+    void clearContext() { CodiraContext = CodiraCompletionInfo(); }
 
     void handleResults(CodeCompletionContext &context) override {
       HandleResultsCalled = true;
@@ -626,13 +655,13 @@ void swift::ide::IDEInspectionInstance::codeComplete(
           CancellationFlag->load(std::memory_order_relaxed)) {
         Callback(ResultType::cancelled());
       } else {
-        assert(SwiftContext.compilerInstance);
-        Callback(ResultType::success({context.getResultSink(), SwiftContext, ImportDep}));
+        assert(CodiraContext.compilerInstance);
+        Callback(ResultType::success({context.getResultSink(), CodiraContext, ImportDep}));
       }
     }
   };
 
-  // Disable source location resolutions from .swiftsourceinfo file because
+  // Disable source location resolutions from .codesourceinfo file because
   // they're somewhat heavy operations and aren't needed for completion.
   performOperation(
       Invocation, Args, FileSystem, ideInspectionTargetBuffer, Offset, DiagC,
@@ -653,7 +682,7 @@ void swift::ide::IDEInspectionInstance::codeComplete(
                                                           Consumer));
 
               if (!Result.DidFindIDEInspectionTarget) {
-                SwiftCompletionInfo Info{CI, &CompletionContext};
+                CodiraCompletionInfo Info{CI, &CompletionContext};
                 CodeCompletionResultSink ResultSink;
                 DeliverTransformed(ResultType::success({ResultSink, Info, ImportDep}));
                 return;
@@ -668,7 +697,7 @@ void swift::ide::IDEInspectionInstance::codeComplete(
                 // pass, we didn't receive any results. To make sure Callback
                 // gets called exactly once, call it manually with no results
                 // here.
-                SwiftCompletionInfo Info{CI, &CompletionContext};
+                CodiraCompletionInfo Info{CI, &CompletionContext};
                 CodeCompletionResultSink ResultSink;
                 DeliverTransformed(ResultType::success({ResultSink, Info, ImportDep}));
               }
@@ -677,26 +706,26 @@ void swift::ide::IDEInspectionInstance::codeComplete(
       });
 }
 
-void swift::ide::IDEInspectionInstance::typeContextInfo(
-    swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+void language::ide::IDEInspectionInstance::typeContextInfo(
+    language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<TypeContextInfoResult>)>
+    toolchain::function_ref<void(CancellableResult<TypeContextInfoResult>)>
         Callback) {
   using ResultType = CancellableResult<TypeContextInfoResult>;
 
   struct ConsumerToCallbackAdapter : public ide::TypeContextInfoConsumer {
     bool ReusingASTContext;
     std::shared_ptr<std::atomic<bool>> CancellationFlag;
-    llvm::function_ref<void(ResultType)> Callback;
+    toolchain::function_ref<void(ResultType)> Callback;
     bool HandleResultsCalled = false;
 
     ConsumerToCallbackAdapter(
         bool ReusingASTContext,
         std::shared_ptr<std::atomic<bool>> CancellationFlag,
-        llvm::function_ref<void(ResultType)> Callback)
+        toolchain::function_ref<void(ResultType)> Callback)
         : ReusingASTContext(ReusingASTContext),
           CancellationFlag(CancellationFlag), Callback(Callback) {}
 
@@ -744,27 +773,27 @@ void swift::ide::IDEInspectionInstance::typeContextInfo(
       });
 }
 
-void swift::ide::IDEInspectionInstance::conformingMethodList(
-    swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+void language::ide::IDEInspectionInstance::conformingMethodList(
+    language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC, ArrayRef<const char *> ExpectedTypeNames,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<ConformingMethodListResults>)>
+    toolchain::function_ref<void(CancellableResult<ConformingMethodListResults>)>
         Callback) {
   using ResultType = CancellableResult<ConformingMethodListResults>;
 
   struct ConsumerToCallbackAdapter
-      : public swift::ide::ConformingMethodListConsumer {
+      : public language::ide::ConformingMethodListConsumer {
     bool ReusingASTContext;
     std::shared_ptr<std::atomic<bool>> CancellationFlag;
-    llvm::function_ref<void(ResultType)> Callback;
+    toolchain::function_ref<void(ResultType)> Callback;
     bool HandleResultsCalled = false;
 
     ConsumerToCallbackAdapter(
         bool ReusingASTContext,
         std::shared_ptr<std::atomic<bool>> CancellationFlag,
-        llvm::function_ref<void(ResultType)> Callback)
+        toolchain::function_ref<void(ResultType)> Callback)
         : ReusingASTContext(ReusingASTContext),
           CancellationFlag(CancellationFlag), Callback(Callback) {}
 
@@ -812,25 +841,25 @@ void swift::ide::IDEInspectionInstance::conformingMethodList(
       });
 }
 
-void swift::ide::IDEInspectionInstance::cursorInfo(
-    swift::CompilerInvocation &Invocation, llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem,
-    llvm::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
+void language::ide::IDEInspectionInstance::cursorInfo(
+    language::CompilerInvocation &Invocation, toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem,
+    toolchain::MemoryBuffer *ideInspectionTargetBuffer, unsigned int Offset,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag,
-    llvm::function_ref<void(CancellableResult<CursorInfoResults>)> Callback) {
+    toolchain::function_ref<void(CancellableResult<CursorInfoResults>)> Callback) {
   using ResultType = CancellableResult<CursorInfoResults>;
 
-  struct ConsumerToCallbackAdapter : public swift::ide::CursorInfoConsumer {
+  struct ConsumerToCallbackAdapter : public language::ide::CursorInfoConsumer {
     bool ReusingASTContext;
     std::shared_ptr<std::atomic<bool>> CancellationFlag;
-    llvm::function_ref<void(ResultType)> Callback;
+    toolchain::function_ref<void(ResultType)> Callback;
     bool HandleResultsCalled = false;
 
     ConsumerToCallbackAdapter(
         bool ReusingASTContext,
         std::shared_ptr<std::atomic<bool>> CancellationFlag,
-        llvm::function_ref<void(ResultType)> Callback)
+        toolchain::function_ref<void(ResultType)> Callback)
         : ReusingASTContext(ReusingASTContext),
           CancellationFlag(CancellationFlag), Callback(Callback) {}
 

@@ -1,0 +1,29 @@
+// RUN: %target-language-emit-silgen -disable-availability-checking %s | %FileCheck %s
+
+// CHECK-LABEL: sil {{.*}}9withTuple
+// CHECK: bb0(%0 : $*(Int, String)):
+fn withTuple() -> some Any {
+  return (1, "hello")
+}
+
+struct S {}
+
+// CHECK-LABEL: sil {{.*}}12withMetatype
+// CHECK: bb0(%0 : $*@thick S.Type):
+fn withMetatype() -> some Any {
+  return S.this
+}
+
+// CHECK-LABEL: sil {{.*}}12withFunction
+// CHECK: bb0(%0 : $*@callee_guaranteed @substituted <τ_0_0> () -> @out τ_0_0 for <()>):
+fn withFunction() -> some Any {
+  immutable f: () -> () = {}
+  return f
+}
+
+// CHECK-LABEL: sil {{.*}}30withTupleOfMetatypeAndFunction
+// CHECK: bb0(%0 : $*(@thick S.Type, @callee_guaranteed @substituted <τ_0_0> () -> @out τ_0_0 for <()>)):
+fn withTupleOfMetatypeAndFunction() -> some Any {
+  immutable f: () -> () = {}
+  return (S.this, f)
+}

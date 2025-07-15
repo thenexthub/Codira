@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the database of builtin C types, vectors of which are
-// imported as swift SIMD types.
+// imported as language SIMD types.
 //
 //
 // MAP_SIMD_TYPE(C_TYPE, SCALAR_TYPE, BUILTIN_KIND)
 //
 //   maps vectors of the Clang builtin type identified by BUILTIN_KIND to
-//   Swift types in the SIMD module.
+//   Codira types in the SIMD module.
 //
 //===----------------------------------------------------------------------===//
 

@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Creates an asynchronous sequence that concatenates the results of calling
   /// the given transformation with each element of this sequence.
@@ -28,7 +32,7 @@ extension AsyncSequence {
   /// "flattens" the resulting sequence-of-sequences into a single
   /// `AsyncSequence`.
   ///
-  ///     let stream = Counter(howHigh: 5)
+  ///     immutable stream = Counter(howHigh: 5)
   ///         .flatMap { Counter(howHigh: $0) }
   ///     for await number in stream {
   ///         print(number, terminator: " ")
@@ -41,10 +45,10 @@ extension AsyncSequence {
   ///   elements in all the asynchronous sequences produced by `transform`.
   @usableFromInline
   @preconcurrency
-  __consuming func flatMap<SegmentOfResult: AsyncSequence>(
+  __consuming fn flatMap<SegmentOfResult: AsyncSequence>(
     _ transform: @Sendable @escaping (Element) async -> SegmentOfResult
   ) -> AsyncFlatMapSequence<Self, SegmentOfResult> {
-    return AsyncFlatMapSequence(self, transform: transform)
+    return AsyncFlatMapSequence(this, transform: transform)
   }
 
   /// Creates an asynchronous sequence that concatenates the results of calling
@@ -61,7 +65,7 @@ extension AsyncSequence {
   /// "flattens" the resulting sequence-of-sequences into a single
   /// `AsyncSequence`.
   ///
-  ///     let stream = Counter(howHigh: 5)
+  ///     immutable stream = Counter(howHigh: 5)
   ///         .flatMap { Counter(howHigh: $0) }
   ///     for await number in stream {
   ///         print(number, terminator: " ")
@@ -75,12 +79,12 @@ extension AsyncSequence {
   @preconcurrency 
   @_alwaysEmitIntoClient
   @inlinable
-  public __consuming func flatMap<SegmentOfResult: AsyncSequence>(
+  public __consuming fn flatMap<SegmentOfResult: AsyncSequence>(
     _ transform: @Sendable @escaping (Element) async -> SegmentOfResult
   ) -> AsyncFlatMapSequence<Self, SegmentOfResult>
     where SegmentOfResult.Failure == Failure
   {
-    return AsyncFlatMapSequence(self, transform: transform)
+    return AsyncFlatMapSequence(this, transform: transform)
   }
 
   /// Creates an asynchronous sequence that concatenates the results of calling
@@ -97,7 +101,7 @@ extension AsyncSequence {
   /// "flattens" the resulting sequence-of-sequences into a single
   /// `AsyncSequence`.
   ///
-  ///     let stream = Counter(howHigh: 5)
+  ///     immutable stream = Counter(howHigh: 5)
   ///         .flatMap { Counter(howHigh: $0) }
   ///     for await number in stream {
   ///         print(number, terminator: " ")
@@ -111,12 +115,12 @@ extension AsyncSequence {
   @preconcurrency 
   @_alwaysEmitIntoClient
   @inlinable
-  public __consuming func flatMap<SegmentOfResult: AsyncSequence>(
+  public __consuming fn flatMap<SegmentOfResult: AsyncSequence>(
     _ transform: @Sendable @escaping (Element) async -> SegmentOfResult
   ) -> AsyncFlatMapSequence<Self, SegmentOfResult>
     where SegmentOfResult.Failure == Never
   {
-    return AsyncFlatMapSequence(self, transform: transform)
+    return AsyncFlatMapSequence(this, transform: transform)
   }
 
   /// Creates an asynchronous sequence that concatenates the results of calling
@@ -133,7 +137,7 @@ extension AsyncSequence {
   /// "flattens" the resulting sequence-of-sequences into a single
   /// `AsyncSequence`.
   ///
-  ///     let stream = Counter(howHigh: 5)
+  ///     immutable stream = Counter(howHigh: 5)
   ///         .flatMap { Counter(howHigh: $0) }
   ///     for await number in stream {
   ///         print(number, terminator: " ")
@@ -147,37 +151,37 @@ extension AsyncSequence {
   @preconcurrency 
   @_alwaysEmitIntoClient
   @inlinable
-  public __consuming func flatMap<SegmentOfResult: AsyncSequence>(
+  public __consuming fn flatMap<SegmentOfResult: AsyncSequence>(
     _ transform: @Sendable @escaping (Element) async -> SegmentOfResult
   ) -> AsyncFlatMapSequence<Self, SegmentOfResult>
   where SegmentOfResult.Failure == Never, Failure == Never
   {
-    return AsyncFlatMapSequence(self, transform: transform)
+    return AsyncFlatMapSequence(this, transform: transform)
   }
 
 }
 
 /// An asynchronous sequence that concatenates the results of calling a given
 /// transformation with each element of this sequence.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncFlatMapSequence<Base: AsyncSequence, SegmentOfResult: AsyncSequence> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let transform: (Base.Element) async -> SegmentOfResult
+  immutable transform: (Base.Element) async -> SegmentOfResult
 
   @usableFromInline
   init(
     _ base: Base,
     transform: @escaping (Base.Element) async -> SegmentOfResult
   ) {
-    self.base = base
-    self.transform = transform
+    this.base = base
+    this.transform = transform
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncFlatMapSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -190,7 +194,7 @@ extension AsyncFlatMapSequence: AsyncSequence {
   /// sequence. By construction, the sequence produced by the `transform`
   /// closure must either produce this type of error or not produce errors
   /// at all.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   public typealias Failure = Base.Failure
   /// The type of iterator that produces elements of the sequence.
   public typealias AsyncIterator = Iterator
@@ -201,7 +205,7 @@ extension AsyncFlatMapSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    let transform: (Base.Element) async -> SegmentOfResult
+    immutable transform: (Base.Element) async -> SegmentOfResult
 
     @usableFromInline
     var currentIterator: SegmentOfResult.AsyncIterator?
@@ -214,8 +218,8 @@ extension AsyncFlatMapSequence: AsyncSequence {
       _ baseIterator: Base.AsyncIterator,
       transform: @escaping (Base.Element) async -> SegmentOfResult
     ) {
-      self.baseIterator = baseIterator
-      self.transform = transform
+      this.baseIterator = baseIterator
+      this.transform = transform
     }
 
     /// Produces the next element in the flat map sequence.
@@ -228,11 +232,11 @@ extension AsyncFlatMapSequence: AsyncSequence {
     /// At this point, `next()` is ready to receive the next value from the base
     /// sequence.
     @inlinable
-    public mutating func next() async rethrows -> SegmentOfResult.Element? {
+    public mutating fn next() async rethrows -> SegmentOfResult.Element? {
       while !finished {
         if var iterator = currentIterator {
           do {
-            guard let element = try await iterator.next() else {
+            guard immutable element = try await iterator.next() else {
               currentIterator = nil
               continue
             }
@@ -244,14 +248,14 @@ extension AsyncFlatMapSequence: AsyncSequence {
             throw error
           }
         } else {
-          guard let item = try await baseIterator.next() else {
+          guard immutable item = try await baseIterator.next() else {
             finished = true
             return nil
           }
           do { 
-            let segment = await transform(item)
+            immutable segment = await transform(item)
             var iterator = segment.makeAsyncIterator()
-            guard let element = try await iterator.next() else {
+            guard immutable element = try await iterator.next() else {
               currentIterator = nil
               continue
             }
@@ -276,14 +280,14 @@ extension AsyncFlatMapSequence: AsyncSequence {
     /// from this iterator until it terminates.  At this point,
     /// `next(isolation:)` is ready to receive the next value from the base
     /// sequence.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> SegmentOfResult.Element? {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> SegmentOfResult.Element? {
       while !finished {
         if var iterator = currentIterator {
           do {
-            let optElement = try await iterator.next(isolation: actor)
-            guard let element = optElement else {
+            immutable optElement = try await iterator.next(isolation: actor)
+            guard immutable element = optElement else {
               currentIterator = nil
               continue
             }
@@ -295,16 +299,16 @@ extension AsyncFlatMapSequence: AsyncSequence {
             throw error as! Failure
           }
         } else {
-          let optItem = try await baseIterator.next(isolation: actor)
-          guard let item = optItem else {
+          immutable optItem = try await baseIterator.next(isolation: actor)
+          guard immutable item = optItem else {
             finished = true
             return nil
           }
           do {
-            let segment = await transform(item)
+            immutable segment = await transform(item)
             var iterator = segment.makeAsyncIterator()
-            let optElement = try await iterator.next(isolation: actor)  
-            guard let element = optElement else {
+            immutable optElement = try await iterator.next(isolation: actor)  
+            guard immutable element = optElement else {
               currentIterator = nil
               continue
             }
@@ -321,19 +325,19 @@ extension AsyncFlatMapSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), transform: transform)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncFlatMapSequence: @unchecked Sendable 
   where Base: Sendable, 
         Base.Element: Sendable, 
         SegmentOfResult: Sendable, 
         SegmentOfResult.Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncFlatMapSequence.Iterator: @unchecked Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable, 

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-licm"
@@ -38,11 +39,11 @@
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
 
-#include "llvm/ADT/DepthFirstIterator.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DepthFirstIterator.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/Support/Debug.h"
 
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
@@ -50,9 +51,9 @@ namespace {
 
 /// Instructions which can be hoisted:
 /// loads, function calls without side effects and (some) exclusivity checks
-using InstSet = llvm::SmallPtrSet<SILInstruction *, 8>;
+using InstSet = toolchain::SmallPtrSet<SILInstruction *, 8>;
 
-using InstVector = llvm::SmallVector<SILInstruction *, 8>;
+using InstVector = toolchain::SmallVector<SILInstruction *, 8>;
 
 /// Returns true if the \p SideEffectInsts set contains any memory writes which
 /// may alias with the memory addressed by \a LI.
@@ -61,7 +62,7 @@ static bool mayWriteTo(AliasAnalysis *AA, InstSet &SideEffectInsts,
                        UnaryInstructionBase<K, T> *Inst) {
   for (auto *I : SideEffectInsts)
     if (AA->mayWriteToMemory(I, Inst->getOperand())) {
-      LLVM_DEBUG(llvm::dbgs() << "  mayWriteTo\n" << *I << " to "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  mayWriteTo\n" << *I << " to "
                               << *Inst << "\n");
       return true;
     }
@@ -288,8 +289,8 @@ static void getDominatingBlocks(SmallVectorImpl<SILBasicBlock *> &domBlocks,
   auto DTRoot = DT->getNode(HeaderBB);
   SmallVector<SILBasicBlock *, 8> ExitingAndLatchBBs;
   Loop->getExitingAndLatchBlocks(ExitingAndLatchBBs);
-  for (llvm::df_iterator<DominanceInfoNode *> It = llvm::df_begin(DTRoot),
-                                              E = llvm::df_end(DTRoot);
+  for (toolchain::df_iterator<DominanceInfoNode *> It = toolchain::df_begin(DTRoot),
+                                              E = toolchain::df_end(DTRoot);
        It != E;) {
     auto *CurBB = It->getBlock();
 
@@ -299,7 +300,7 @@ static void getDominatingBlocks(SmallVectorImpl<SILBasicBlock *> &domBlocks,
                      [=](SILBasicBlock *ExitBB) {
           return DT->dominates(CurBB, ExitBB);
         })) {
-      LLVM_DEBUG(llvm::dbgs() << "  skipping conditional block "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  skipping conditional block "
                               << *CurBB << "\n");
       It.skipChildren();
       continue;
@@ -323,7 +324,7 @@ static bool hoistInstruction(DominanceInfo *DT, SILInstruction *Inst,
   if (!std::all_of(Operands.begin(), Operands.end(), [=](Operand &Op) {
         return isLoopInvariant(Op.get(), Loop);
       })) {
-    LLVM_DEBUG(llvm::dbgs() << "   loop variant operands\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "   loop variant operands\n");
     return false;
   }
 
@@ -339,7 +340,7 @@ static bool hoistInstruction(DominanceInfo *DT, SILInstruction *Inst,
 
 static bool hoistInstructions(SILLoop *Loop, DominanceInfo *DT,
                               InstSet &HoistUpSet) {
-  LLVM_DEBUG(llvm::dbgs() << " Hoisting instructions.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << " Hoisting instructions.\n");
   auto Preheader = Loop->getLoopPreheader();
   assert(Preheader && "Expected a preheader");
   bool Changed = false;
@@ -351,14 +352,14 @@ static bool hoistInstructions(SILLoop *Loop, DominanceInfo *DT,
     for (auto InstIt = CurBB->begin(), E = CurBB->end(); InstIt != E;) {
       SILInstruction *Inst = &*InstIt;
       ++InstIt;
-      LLVM_DEBUG(llvm::dbgs() << "  looking at " << *Inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  looking at " << *Inst);
       if (!HoistUpSet.count(Inst)) {
         continue;
       }
       if (!hoistInstruction(DT, Inst, Loop, Preheader)) {
         continue;
       }
-      LLVM_DEBUG(llvm::dbgs() << "Hoisted " << *Inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Hoisted " << *Inst);
       Changed = true;
     }
   }
@@ -392,7 +393,7 @@ static unsigned getEdgeIndex(SILBasicBlock *BB, SILBasicBlock *ExitingBB) {
       return EdgeIdx;
     }
   }
-  llvm_unreachable("BB is not a Successor");
+  toolchain_unreachable("BB is not a Successor");
 }
 
 static bool sinkInstruction(DominanceInfo *DT,
@@ -441,15 +442,15 @@ static bool sinkInstruction(DominanceInfo *DT,
       };
       if (std::find_if(OutsideBB->begin(), OutsideBB->end(), matchPred) !=
           OutsideBB->end()) {
-        LLVM_DEBUG(llvm::errs() << "  instruction already at exit BB "
+        TOOLCHAIN_DEBUG(toolchain::errs() << "  instruction already at exit BB "
                                 << *Inst);
         ExitBB = nullptr;
       } else if (ExitBB) {
         // easy case
-        LLVM_DEBUG(llvm::errs() << "  moving instruction to exit BB " << *Inst);
+        TOOLCHAIN_DEBUG(toolchain::errs() << "  moving instruction to exit BB " << *Inst);
         Inst->moveBefore(&*OutsideBB->begin());
       } else {
-        LLVM_DEBUG(llvm::errs() << "  cloning instruction to exit BB "
+        TOOLCHAIN_DEBUG(toolchain::errs() << "  cloning instruction to exit BB "
                                 << *Inst);
         Inst->clone(&*OutsideBB->begin());
       }
@@ -469,7 +470,7 @@ static bool sinkInstructions(std::unique_ptr<LoopNestSummary> &LoopSummary,
                              DominanceInfo *DT, SILLoopInfo *LI,
                              InstVector &SinkDownSet) {
   auto *Loop = LoopSummary->Loop;
-  LLVM_DEBUG(llvm::errs() << " Sink instructions attempt\n");
+  TOOLCHAIN_DEBUG(toolchain::errs() << " Sink instructions attempt\n");
   SmallVector<SILBasicBlock *, 8> domBlocks;
   getDominatingBlocks(domBlocks, Loop, DT);
 
@@ -502,7 +503,7 @@ static bool
 hoistSpecialInstruction(std::unique_ptr<LoopNestSummary> &LoopSummary,
                         DominanceInfo *DT, SILLoopInfo *LI, InstVector &Special) {
   auto *Loop = LoopSummary->Loop;
-  LLVM_DEBUG(llvm::errs() << " Hoist and Sink pairs attempt\n");
+  TOOLCHAIN_DEBUG(toolchain::errs() << " Hoist and Sink pairs attempt\n");
   auto Preheader = Loop->getLoopPreheader();
   assert(Preheader && "Expected a preheader");
 
@@ -520,15 +521,15 @@ hoistSpecialInstruction(std::unique_ptr<LoopNestSummary> &LoopSummary,
     if (auto *BI = dyn_cast<BeginAccessInst>(Inst)) {
       SmallVector<EndAccessInst *, 2> Ends;
       getEndAccesses(BI, Ends);
-      LLVM_DEBUG(llvm::dbgs() << "Hoisted BeginAccess " << *BI);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Hoisted BeginAccess " << *BI);
       for (auto *instSink : Ends) {
         if (!sinkInstruction(DT, LoopSummary, instSink, LI)) {
-          llvm_unreachable("LICM: Could not perform must-sink instruction");
+          toolchain_unreachable("LICM: Could not perform must-sink instruction");
         }
       }
-      LLVM_DEBUG(llvm::errs() << " Successfully hoisted and sank pair\n");
+      TOOLCHAIN_DEBUG(toolchain::errs() << " Successfully hoisted and sank pair\n");
     } else {
-      LLVM_DEBUG(llvm::dbgs() << "Hoisted RefElementAddr "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Hoisted RefElementAddr "
                               << *static_cast<RefElementAddrInst *>(Inst));
     }
     Changed = true;
@@ -540,7 +541,7 @@ hoistSpecialInstruction(std::unique_ptr<LoopNestSummary> &LoopSummary,
 /// Optimize the loop tree bottom up propagating loop's summaries up the
 /// loop tree.
 class LoopTreeOptimization {
-  llvm::DenseMap<SILLoop *, std::unique_ptr<LoopNestSummary>>
+  toolchain::DenseMap<SILLoop *, std::unique_ptr<LoopNestSummary>>
       LoopNestSummaryMap;
   SmallVector<SILLoop *, 8> BotUpWorkList;
   InstSet toDelete;
@@ -569,7 +570,7 @@ class LoopTreeOptimization {
   InstVector LoadsAndStores;
 
   /// All access paths of the \p LoadsAndStores instructions.
-  llvm::SetVector<AccessPath> LoadAndStoreAddrs;
+  toolchain::SetVector<AccessPath> LoadAndStoreAddrs;
 
   /// Hoistable Instructions that need special treatment
   /// e.g. begin_access
@@ -654,7 +655,7 @@ bool LoopTreeOptimization::optimize() {
   // Process loops bottom up in the loop tree.
   while (!BotUpWorkList.empty()) {
     SILLoop *CurrentLoop = BotUpWorkList.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "Processing loop " << *CurrentLoop);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing loop " << *CurrentLoop);
 
     // Collect all summary of all sub loops of the current loop. Since we
     // process the loop tree bottom up they are guaranteed to be available in
@@ -715,12 +716,15 @@ bool LoopTreeOptimization::isSafeReadOnlyApply(BasicCalleeAnalysis *BCA, ApplyIn
          MemoryBehavior::MayRead;
 }
 
-static void checkSideEffects(swift::SILInstruction &Inst,
+static void checkSideEffects(language::SILInstruction &Inst,
                       InstSet &SideEffectInsts,
-                      SmallVectorImpl<SILInstruction *> &sideEffectsInBlock) {
+                      SmallVectorImpl<SILInstruction *> &sideEffectsInBlock,
+                      bool &hasOtherMemReadingInsts) {
   if (Inst.mayHaveSideEffects()) {
     SideEffectInsts.insert(&Inst);
     sideEffectsInBlock.push_back(&Inst);
+  } else if (Inst.mayReadFromMemory()) {
+    hasOtherMemReadingInsts = true;
   }
 }
 
@@ -838,7 +842,7 @@ static bool analyzeBeginAccess(BeginAccessInst *BI,
   if (kind != AccessStorage::Class && kind != AccessStorage::Global) {
     return true;
   }
-  // TODO Introduce "Pure Swift" deinitializers
+  // TODO Introduce "Pure Codira" deinitializers
   // We can then make use of alias information for instr's operands
   // If they don't alias - we might get away with not recording a conflict
   for (SILInstruction *I : SideEffectInsts) {
@@ -866,7 +870,7 @@ void LoopTreeOptimization::analyzeCurrentLoop(
     std::unique_ptr<LoopNestSummary> &CurrSummary) {
   InstSet &sideEffects = CurrSummary->SideEffectInsts;
   SILLoop *Loop = CurrSummary->Loop;
-  LLVM_DEBUG(llvm::dbgs() << " Analyzing accesses.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << " Analyzing accesses.\n");
 
   auto *Preheader = Loop->getLoopPreheader();
   if (!Preheader) {
@@ -888,11 +892,15 @@ void LoopTreeOptimization::analyzeCurrentLoop(
   SmallVector<BeginAccessInst *, 8> BeginAccesses;
   SmallVector<FullApplySite, 8> fullApplies;
 
+  // True if the loop has instructions which (may) read from memory, which are not
+  // in `Loads` and not in `sideEffects`.
+  bool hasOtherMemReadingInsts = false;
+
   for (auto *BB : Loop->getBlocks()) {
     SmallVector<SILInstruction *, 8> sideEffectsInBlock;
     for (auto &Inst : *BB) {
       if (hasOwnershipOperandsOrResults(&Inst)) {
-        checkSideEffects(Inst, sideEffects, sideEffectsInBlock);
+        checkSideEffects(Inst, sideEffects, sideEffectsInBlock, hasOtherMemReadingInsts);
         // Collect fullApplies to be checked in analyzeBeginAccess
         if (auto fullApply = FullApplySite::isa(&Inst)) {
           fullApplies.push_back(fullApply);
@@ -924,23 +932,23 @@ void LoopTreeOptimization::analyzeCurrentLoop(
         }
         Stores.push_back(store);
         LoadsAndStores.push_back(&Inst);
-        checkSideEffects(Inst, sideEffects, sideEffectsInBlock);
+        checkSideEffects(Inst, sideEffects, sideEffectsInBlock, hasOtherMemReadingInsts);
         break;
       }
       case SILInstructionKind::BeginAccessInst:
         BeginAccesses.push_back(cast<BeginAccessInst>(&Inst));
-        checkSideEffects(Inst, sideEffects, sideEffectsInBlock);
+        checkSideEffects(Inst, sideEffects, sideEffectsInBlock, hasOtherMemReadingInsts);
         break;
       case SILInstructionKind::RefElementAddrInst:
         SpecialHoist.push_back(cast<RefElementAddrInst>(&Inst));
         break;
-      case swift::SILInstructionKind::CondFailInst:
+      case language::SILInstructionKind::CondFailInst:
         // We can (and must) hoist cond_fail instructions if the operand is
         // invariant. We must hoist them so that we preserve memory safety. A
         // cond_fail that would have protected (executed before) a memory access
         // must - after hoisting - also be executed before said access.
         HoistUp.insert(&Inst);
-        checkSideEffects(Inst, sideEffects, sideEffectsInBlock);
+        checkSideEffects(Inst, sideEffects, sideEffectsInBlock, hasOtherMemReadingInsts);
         break;
       case SILInstructionKind::ApplyInst: {
         auto *AI = cast<ApplyInst>(&Inst);
@@ -957,7 +965,7 @@ void LoopTreeOptimization::analyzeCurrentLoop(
             globalInitCalls.push_back(&Inst);
         }
         // check for array semantics and side effects - same as default
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       }
       default:
         if (auto fullApply = FullApplySite::isa(&Inst)) {
@@ -974,7 +982,7 @@ void LoopTreeOptimization::analyzeCurrentLoop(
           }
         }
 
-        checkSideEffects(Inst, sideEffects, sideEffectsInBlock);
+        checkSideEffects(Inst, sideEffects, sideEffectsInBlock, hasOtherMemReadingInsts);
         if (canHoistUpDefault(&Inst, Loop, DomTree, RunsOnHighLevelSIL)) {
           HoistUp.insert(&Inst);
         }
@@ -1016,23 +1024,25 @@ void LoopTreeOptimization::analyzeCurrentLoop(
     }
   }
 
-  // Collect memory locations for which we can move all loads and stores out
-  // of the loop.
-  //
-  // Note: The Loads set and LoadsAndStores set may mutate during this loop.
-  for (StoreInst *SI : Stores) {
-    // Use AccessPathWithBase to recover a base address that can be used for
-    // newly inserted memory operations. If we instead teach hoistLoadsAndStores
-    // how to rematerialize global_addr, then we don't need this base.
-    auto access = AccessPathWithBase::compute(SI->getDest());
-    auto accessPath = access.accessPath;
-    if (accessPath.isValid() &&
-        (access.base && isLoopInvariant(access.base, Loop))) {
-      if (isOnlyLoadedAndStored(AA, sideEffects, Loads, Stores, SI->getDest(),
-                                accessPath)) {
-        if (!LoadAndStoreAddrs.count(accessPath)) {
-          if (splitLoads(Loads, accessPath, SI->getDest())) {
-            LoadAndStoreAddrs.insert(accessPath);
+  if (!hasOtherMemReadingInsts) {
+    // Collect memory locations for which we can move all loads and stores out
+    // of the loop.
+    //
+    // Note: The Loads set and LoadsAndStores set may mutate during this loop.
+    for (StoreInst *SI : Stores) {
+      // Use AccessPathWithBase to recover a base address that can be used for
+      // newly inserted memory operations. If we instead teach hoistLoadsAndStores
+      // how to rematerialize global_addr, then we don't need this base.
+      auto access = AccessPathWithBase::compute(SI->getDest());
+      auto accessPath = access.accessPath;
+      if (accessPath.isValid() &&
+          (access.base && isLoopInvariant(access.base, Loop))) {
+        if (isOnlyLoadedAndStored(AA, sideEffects, Loads, Stores, SI->getDest(),
+                                  accessPath)) {
+          if (!LoadAndStoreAddrs.count(accessPath)) {
+            if (splitLoads(Loads, accessPath, SI->getDest())) {
+              LoadAndStoreAddrs.insert(accessPath);
+            }
           }
         }
       }
@@ -1052,8 +1062,8 @@ void LoopTreeOptimization::analyzeCurrentLoop(
   }
   for (auto *BI : BeginAccesses) {
     if (!handledEndAccesses(BI, Loop)) {
-      LLVM_DEBUG(llvm::dbgs() << "Skipping: " << *BI);
-      LLVM_DEBUG(llvm::dbgs() << "Some end accesses can't be handled\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Skipping: " << *BI);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Some end accesses can't be handled\n");
       continue;
     }
     if (analyzeBeginAccess(BI, BeginAccesses, fullApplies, sideEffects, ASA,
@@ -1118,7 +1128,7 @@ SingleValueInstruction *LoopTreeOptimization::splitLoad(
     // Replace the outer load in the list of loads and stores to hoist and
     // sink. LoadsAndStores must remain in instruction order.
     LoadsAndStores[ldstIdx] = load;
-    LLVM_DEBUG(llvm::dbgs() << "Created load from stored path: " << *load);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Created load from stored path: " << *load);
     return load;
   }
   auto recordDisjointLoad = [&](LoadInst *newLoad) {
@@ -1142,7 +1152,7 @@ SingleValueInstruction *LoopTreeOptimization::splitLoad(
       }
       elements.push_back(elementVal);
     }
-    return builder.createTuple(loc, elements);
+    return builder.createTuple(loc, loadTy.getObjectType(), elements);
   }
   auto structTy = loadTy.getStructOrBoundGenericStruct();
   assert(structTy && "tuple and struct elements are checked earlier");
@@ -1193,7 +1203,7 @@ bool LoopTreeOptimization::splitLoads(SmallVectorImpl<LoadInst *> &Loads,
       continue;
 
     assert(loadAccessPath.contains(accessPath));
-    LLVM_DEBUG(llvm::dbgs() << "Overlaps with loop stores: " << *load);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Overlaps with loop stores: " << *load);
     SmallVector<AccessPath::Index, 4> reversePathIndices;
     if (!computeInnerAccessPath(loadAccessPath.getPathNode(),
                                 accessPath.getPathNode(), storeAddr,
@@ -1211,13 +1221,13 @@ bool LoopTreeOptimization::splitLoads(SmallVectorImpl<LoadInst *> &Loads,
     // avoid super-linear behavior for large types (e.g. giant tuples), limit
     // growth of new loads to an arbitrary constant factor per access path.
     if (Loads.size() >= endIdx + 6) {
-      LLVM_DEBUG(llvm::dbgs() << "...Refusing to split more loads\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "...Refusing to split more loads\n");
       return false;
     }
-    LLVM_DEBUG(llvm::dbgs() << "...Splitting load\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "...Splitting load\n");
 
     unsigned ldstIdx = [this, load]() {
-      auto ldstIter = llvm::find(LoadsAndStores, load);
+      auto ldstIter = toolchain::find(LoadsAndStores, load);
       assert(ldstIter != LoadsAndStores.end() && "outerLoad missing");
       return std::distance(LoadsAndStores.begin(), ldstIter);
     }();
@@ -1286,7 +1296,7 @@ static SILValue projectLoadValue(SILValue addr, AccessPath accessPath,
     return B.createTupleExtract(beforeInst->getLoc(), val, TEI->getFieldIndex(),
                                 TEI->getType().getObjectType());
   }
-  llvm_unreachable("unknown projection");
+  toolchain_unreachable("unknown projection");
 }
 
 /// Returns true if all stores to \p addr commonly dominate the loop exits.
@@ -1461,7 +1471,7 @@ hoistLoadsAndStores(AccessPath accessPath, SILLoop *loop) {
   LoadInst *initialLoad =
       B.createLoad(RegularLocation::getAutoGeneratedLocation(), initialAddr,
                    ownership);
-  LLVM_DEBUG(llvm::dbgs() << "Creating preload " << *initialLoad);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Creating preload " << *initialLoad);
   ssaUpdater.addAvailableValue(preheader, initialLoad);
 
   // Remove all stores and replace the loads with the current value.
@@ -1474,7 +1484,7 @@ hoistLoadsAndStores(AccessPath accessPath, SILLoop *loop) {
       currentVal = SILValue();
     }
     if (auto *SI = isStoreToAccess(I, accessPath)) {
-      LLVM_DEBUG(llvm::dbgs() << "Deleting reloaded store " << *SI);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Deleting reloaded store " << *SI);
       currentVal = SI->getSrc();
       toDelete.insert(SI);
       continue;
@@ -1492,7 +1502,7 @@ hoistLoadsAndStores(AccessPath accessPath, SILLoop *loop) {
     auto loadAddress = load->getOperand();
     SILValue projectedValue = projectLoadValue(
         loadAddress, loadWithAccess.accessPath, currentVal, accessPath, load);
-    LLVM_DEBUG(llvm::dbgs() << "Replacing stored load " << *load << " with "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Replacing stored load " << *load << " with "
                             << projectedValue);
     load->replaceAllUsesWith(projectedValue);
     toDelete.insert(load);
@@ -1514,7 +1524,7 @@ hoistLoadsAndStores(AccessPath accessPath, SILLoop *loop) {
           loc.value(), ssaUpdater.getValueInMiddleOfBlock(succ), initialAddr,
           ownership);
       (void)SI;
-      LLVM_DEBUG(llvm::dbgs() << "Creating loop-exit store " << *SI);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Creating loop-exit store " << *SI);
     }
   }
 
@@ -1563,7 +1573,7 @@ public:
     SILLoopInfo *LoopInfo = LA->get(F);
 
     if (LoopInfo->empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "No loops in " << F->getName() << "\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "No loops in " << F->getName() << "\n");
       return;
     }
 
@@ -1574,7 +1584,7 @@ public:
     AccessStorageAnalysis *ASA = getAnalysis<AccessStorageAnalysis>();
     DominanceInfo *DomTree = nullptr;
 
-    LLVM_DEBUG(llvm::dbgs() << "Processing loops in " << F->getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing loops in " << F->getName() << "\n");
     bool Changed = false;
 
     for (auto *TopLevelLoop : *LoopInfo) {
@@ -1595,10 +1605,10 @@ public:
 };
 } // end anonymous namespace
 
-SILTransform *swift::createLICM() {
+SILTransform *language::createLICM() {
   return new LICM(false);
 }
 
-SILTransform *swift::createHighLevelLICM() {
+SILTransform *language::createHighLevelLICM() {
   return new LICM(true);
 }

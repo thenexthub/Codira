@@ -1,4 +1,4 @@
-//===------------ BinaryScanningTool.cpp - Swift Compiler ----------------===//
+//===------------ BinaryScanningTool.cpp - Codira Compiler ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/StaticMirror/BinaryScanningTool.h"
@@ -22,13 +23,13 @@
 #include "language/Remote/CMemoryReader.h"
 #include "language/StaticMirror/ObjectFileContext.h"
 
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Object/Archive.h"
-#include "llvm/Object/MachOUniversal.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Object/Archive.h"
+#include "toolchain/Object/MachOUniversal.h"
 
 #include <sstream>
 
-using namespace llvm::object;
+using namespace toolchain::object;
 using namespace language::reflection;
 
 namespace language {
@@ -56,7 +57,7 @@ BinaryScanningTool::BinaryScanningTool(
     ObjectFiles.push_back(O);
   }
   // FIXME: This could/should be configurable.
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   bool ObjCInterop = true;
 #else
   bool ObjCInterop = false;
@@ -70,13 +71,13 @@ BinaryScanningTool::collectConformances(const std::vector<std::string> &protocol
   switch (PointerSize) {
     case 4:
       // FIXME: This could/should be configurable.
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       return Context->Builder.collectAllConformances<WithObjCInterop, 4>();
 #else
       return Context->Builder.collectAllConformances<NoObjCInterop, 4>();
 #endif
     case 8:
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       return Context->Builder.collectAllConformances<WithObjCInterop, 8>();
 #else
       return Context->Builder.collectAllConformances<NoObjCInterop, 8>();
@@ -92,13 +93,13 @@ BinaryScanningTool::collectAssociatedTypes(const std::string &mangledTypeName) {
   switch (PointerSize) {
     case 4:
       // FIXME: This could/should be configurable.
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       return Context->Builder.collectAssociatedTypes<WithObjCInterop, 4>(mangledTypeName);
 #else
       return Context->Builder.collectAssociatedTypes<NoObjCInterop, 4>(mangledTypeName);
 #endif
     case 8:
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       return Context->Builder.collectAssociatedTypes<WithObjCInterop, 8>(mangledTypeName);
 #else
       return Context->Builder.collectAssociatedTypes<NoObjCInterop, 8>(mangledTypeName);
@@ -114,7 +115,7 @@ BinaryScanningTool::collectAllAssociatedTypes() {
   switch (PointerSize) {
     case 4:
       // FIXME: This could/should be configurable.
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       return Context->Builder.collectAssociatedTypes<WithObjCInterop, 4>(
           std::optional<std::string>());
 #else
@@ -122,7 +123,7 @@ BinaryScanningTool::collectAllAssociatedTypes() {
           std::optional<std::string>());
 #endif
     case 8:
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
       return Context->Builder.collectAssociatedTypes<WithObjCInterop, 8>(
           std::optional<std::string>());
 #else

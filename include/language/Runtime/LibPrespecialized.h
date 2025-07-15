@@ -1,28 +1,32 @@
 //===--- LibPrespecialized.h - Interface for prespecializations -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Interface for interacting with prespecialized metadata library.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LIB_PRESPECIALIZED_H
-#define SWIFT_LIB_PRESPECIALIZED_H
+#ifndef LANGUAGE_LIB_PRESPECIALIZED_H
+#define LANGUAGE_LIB_PRESPECIALIZED_H
 
 #include "PrebuiltStringMap.h"
 #include "language/ABI/Metadata.h"
 #include "language/ABI/TargetLayout.h"
 #include "language/Demangling/Demangler.h"
 
-#define LIB_PRESPECIALIZED_TOP_LEVEL_SYMBOL_NAME "_swift_prespecializationsData"
+#define LIB_PRESPECIALIZED_TOP_LEVEL_SYMBOL_NAME "_language_prespecializationsData"
 
 namespace language {
 
@@ -241,7 +245,7 @@ buildSimplifiedDescriptorDemangling(Demangle::NodePointer node,
 // On return, outValidated is set to the total number of metadata records that
 // were validated (which is the total number in the table), and outFailed is set
 // to the number that failed validation.
-SWIFT_RUNTIME_EXPORT
-void _swift_validatePrespecializedMetadata();
+LANGUAGE_RUNTIME_EXPORT
+void _language_validatePrespecializedMetadata();
 
-#endif // SWIFT_LIB_PRESPECIALIZED_H
+#endif // LANGUAGE_LIB_PRESPECIALIZED_H

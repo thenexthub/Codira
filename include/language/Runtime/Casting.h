@@ -1,4 +1,4 @@
-//===--- Casting.h - Swift type-casting runtime support ---------*- C++ -*-===//
+//===--- Casting.h - Codira type-casting runtime support ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime functions for casting values.
+// Codira runtime functions for casting values.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_CASTING_H
-#define SWIFT_RUNTIME_CASTING_H
+#ifndef LANGUAGE_RUNTIME_CASTING_H
+#define LANGUAGE_RUNTIME_CASTING_H
 
 #include "language/Runtime/Metadata.h"
 
@@ -39,44 +40,44 @@ namespace language {
 /// \param flags Flags to control the operation.
 ///
 /// \return true if the cast succeeded. Depending on the flags,
-///   swift_dynamicCast may fail rather than return false.
-SWIFT_RUNTIME_EXPORT
+///   language_dynamicCast may fail rather than return false.
+LANGUAGE_RUNTIME_EXPORT
 bool
-swift_dynamicCast(OpaqueValue *dest, OpaqueValue *src,
+language_dynamicCast(OpaqueValue *dest, OpaqueValue *src,
                   const Metadata *srcType,
                   const Metadata *targetType,
                   DynamicCastFlags flags);
 
-/// Checked dynamic cast to a Swift class type.
+/// Checked dynamic cast to a Codira class type.
 ///
 /// \param object The object to cast.
 /// \param targetType The type to which we are casting, which is known to be
-/// a Swift class type.
+/// a Codira class type.
 ///
 /// \returns the object if the cast succeeds, or null otherwise.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastClass(const void *object, const ClassMetadata *targetType);
+language_dynamicCastClass(const void *object, const ClassMetadata *targetType);
 
-/// Unconditional, checked dynamic cast to a Swift class type.
+/// Unconditional, checked dynamic cast to a Codira class type.
 ///
 /// Aborts if the object isn't of the target type.
 ///
 /// \param object The object to cast.
 /// \param targetType The type to which we are casting, which is known to be
-/// a Swift class type.
+/// a Codira class type.
 /// \param file The source filename from which to report failure. May be null.
 /// \param line The source line from which to report failure.
 /// \param column The source column from which to report failure.
 ///
 /// \returns the object.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastClassUnconditional(const void *object,
+language_dynamicCastClassUnconditional(const void *object,
                                     const ClassMetadata *targetType,
                                     const char *file, unsigned line, unsigned column);
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 /// Checked Objective-C-style dynamic cast to a class type.
 ///
 /// \param object The object to cast, or nil.
@@ -84,9 +85,9 @@ swift_dynamicCastClassUnconditional(const void *object,
 /// a class type, but not necessarily valid type metadata.
 ///
 /// \returns the object if the cast succeeds, or null otherwise.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastObjCClass(const void *object, const ClassMetadata *targetType);
+language_dynamicCastObjCClass(const void *object, const ClassMetadata *targetType);
 
 /// Checked dynamic cast to a foreign class type.
 ///
@@ -95,16 +96,16 @@ swift_dynamicCastObjCClass(const void *object, const ClassMetadata *targetType);
 /// a foreign class type.
 ///
 /// \returns the object if the cast succeeds, or null otherwise.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastForeignClass(const void *object,
+language_dynamicCastForeignClass(const void *object,
                               const ForeignClassMetadata *targetType);
 
 /// Unconditional, checked, Objective-C-style dynamic cast to a class
 /// type.
 ///
 /// Aborts if the object isn't of the target type.
-/// Note that unlike swift_dynamicCastClassUnconditional, this does not abort
+/// Note that unlike language_dynamicCastClassUnconditional, this does not abort
 /// if the object is 'nil'.
 ///
 /// \param object The object to cast, or nil.
@@ -115,9 +116,9 @@ swift_dynamicCastForeignClass(const void *object,
 /// \param column The source column from which to report failure.
 ///
 /// \returns the object.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastObjCClassUnconditional(const void *object,
+language_dynamicCastObjCClassUnconditional(const void *object,
                                         const ClassMetadata *targetType,
                                         const char *file, unsigned line, unsigned column);
 
@@ -131,9 +132,9 @@ swift_dynamicCastObjCClassUnconditional(const void *object,
 /// \param column The source column from which to report failure.
 ///
 /// \returns the object if the cast succeeds, or null otherwise.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastForeignClassUnconditional(
+language_dynamicCastForeignClassUnconditional(
   const void *object,
   const ForeignClassMetadata *targetType,
   const char *file, unsigned line, unsigned column);
@@ -147,9 +148,9 @@ swift_dynamicCastForeignClassUnconditional(
 /// class type or a wrapped Objective-C class type.
 ///
 /// \returns the object, or null if it doesn't have the given target type.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastUnknownClass(const void *object, const Metadata *targetType);
+language_dynamicCastUnknownClass(const void *object, const Metadata *targetType);
 
 /// Unconditional checked dynamic cast of a class instance pointer to
 /// the given type.
@@ -166,40 +167,40 @@ swift_dynamicCastUnknownClass(const void *object, const Metadata *targetType);
 /// \param column The source column from which to report failure.
 ///
 /// \returns the object.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const void *
-swift_dynamicCastUnknownClassUnconditional(const void *object,
+language_dynamicCastUnknownClassUnconditional(const void *object,
                                            const Metadata *targetType,
                                            const char *file, unsigned line, unsigned column);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const Metadata *
-swift_dynamicCastMetatype(const Metadata *sourceType,
+language_dynamicCastMetatype(const Metadata *sourceType,
                           const Metadata *targetType);
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const Metadata *
-swift_dynamicCastMetatypeUnconditional(const Metadata *sourceType,
+language_dynamicCastMetatypeUnconditional(const Metadata *sourceType,
                                        const Metadata *targetType,
                                        const char *file, unsigned line, unsigned column);
-#if SWIFT_OBJC_INTEROP
-SWIFT_RUNTIME_EXPORT
+#if LANGUAGE_OBJC_INTEROP
+LANGUAGE_RUNTIME_EXPORT
 const ClassMetadata *
-swift_dynamicCastObjCClassMetatype(const ClassMetadata *sourceType,
+language_dynamicCastObjCClassMetatype(const ClassMetadata *sourceType,
                                    const ClassMetadata *targetType);
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ClassMetadata *
-swift_dynamicCastObjCClassMetatypeUnconditional(const ClassMetadata *sourceType,
+language_dynamicCastObjCClassMetatypeUnconditional(const ClassMetadata *sourceType,
                                                 const ClassMetadata *targetType,
                                                 const char *file, unsigned line, unsigned column);
 #endif
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ClassMetadata *
-swift_dynamicCastForeignClassMetatype(const ClassMetadata *sourceType,
+language_dynamicCastForeignClassMetatype(const ClassMetadata *sourceType,
                                    const ClassMetadata *targetType);
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ClassMetadata *
-swift_dynamicCastForeignClassMetatypeUnconditional(
+language_dynamicCastForeignClassMetatypeUnconditional(
   const ClassMetadata *sourceType,
   const ClassMetadata *targetType,
   const char *file, unsigned line, unsigned column);
@@ -219,9 +220,9 @@ swift_dynamicCastForeignClassMetatypeUnconditional(
 ///                            so existential containers can be projected
 ///                            through as long as a subtype relationship holds
 ///                            from `self` to the contained dynamic type.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const Metadata *
-swift_getDynamicType(OpaqueValue *value, const Metadata *self,
+language_getDynamicType(OpaqueValue *value, const Metadata *self,
                      bool existentialMetatype);
 
 /// Fetch the type metadata associated with the formal dynamic
@@ -230,10 +231,10 @@ swift_getDynamicType(OpaqueValue *value, const Metadata *self,
 /// by KVO. See [NOTE: Dynamic-subclass-KVO]
 ///
 /// The object pointer may be a tagged pointer, but cannot be null.
-SWIFT_RUNTIME_EXPORT
-const Metadata *swift_getObjectType(HeapObject *object);
+LANGUAGE_RUNTIME_EXPORT
+const Metadata *language_getObjectType(HeapObject *object);
 
-/// Check whether a type conforms to a given native Swift protocol,
+/// Check whether a type conforms to a given native Codira protocol,
 /// visible from the named module.
 ///
 /// If so, returns a pointer to the witness table for its conformance.
@@ -243,36 +244,36 @@ const Metadata *swift_getObjectType(HeapObject *object);
 ///             check.
 /// \param protocol The protocol descriptor for the protocol to check
 ///                 conformance for. This pointer does not have ptrauth applied.
-SWIFT_RUNTIME_EXPORT
-const WitnessTable *swift_conformsToProtocol(const Metadata *type,
+LANGUAGE_RUNTIME_EXPORT
+const WitnessTable *language_conformsToProtocol(const Metadata *type,
                                              const void *protocol);
 
-/// Check whether a type conforms to a given native Swift protocol. Identical to
-/// swift_conformsToProtocol, except that the protocol parameter has a ptrauth
+/// Check whether a type conforms to a given native Codira protocol. Identical to
+/// language_conformsToProtocol, except that the protocol parameter has a ptrauth
 /// signature on ARM64e that is signed with a process independent key.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const WitnessTable *
-swift_conformsToProtocol2(const Metadata *type,
+language_conformsToProtocol2(const Metadata *type,
                           const ProtocolDescriptor *protocol);
 
-/// Check whether a type conforms to a given native Swift protocol. Identical to
-/// swift_conformsToProtocol, except that the protocol parameter has a ptrauth
+/// Check whether a type conforms to a given native Codira protocol. Identical to
+/// language_conformsToProtocol, except that the protocol parameter has a ptrauth
 /// signature on ARM64e that is signed with a process dependent key.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const WitnessTable *
-swift_conformsToProtocolCommon(const Metadata *type,
+language_conformsToProtocolCommon(const Metadata *type,
                                const ProtocolDescriptor *protocol);
 
 /// The size of the ConformanceExecutionContext structure.
-SWIFT_RUNTIME_EXPORT
-size_t swift_ConformanceExecutionContextSize;
+LANGUAGE_RUNTIME_EXPORT
+size_t language_ConformanceExecutionContextSize;
 
-/// Check whether a type conforms to a given native Swift protocol. This
-/// is similar to swift_conformsToProtocolCommon, but allows the caller to
+/// Check whether a type conforms to a given native Codira protocol. This
+/// is similar to language_conformsToProtocolCommon, but allows the caller to
 /// either capture the execution context (in *context).
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const WitnessTable *
-swift_conformsToProtocolWithExecutionContext(
+language_conformsToProtocolWithExecutionContext(
     const Metadata *type,
     const ProtocolDescriptor *protocol,
     ConformanceExecutionContext *context);
@@ -283,12 +284,12 @@ swift_conformsToProtocolWithExecutionContext(
 /// that global actor's executor.
 ///
 /// The context should have been filled in by
-/// swift_conformsToProtocolWithExecutionContext.
-SWIFT_RUNTIME_EXPORT
-bool swift_isInConformanceExecutionContext(
+/// language_conformsToProtocolWithExecutionContext.
+LANGUAGE_RUNTIME_EXPORT
+bool language_isInConformanceExecutionContext(
     const Metadata *type,
     const ConformanceExecutionContext *context);
 
 } // end namespace language
 
-#endif // SWIFT_RUNTIME_CASTING_H
+#endif // LANGUAGE_RUNTIME_CASTING_H

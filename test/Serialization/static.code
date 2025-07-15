@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -o %t %s
+// RUN: toolchain-bcanalyzer -dump %t/static.codemodule | %FileCheck %s -check-prefix CHECK -check-prefix DYNAMIC
+
+// RUN: %target-language-frontend -static -emit-module -o %t %s
+// RUN: toolchain-bcanalyzer -dump %t/static.codemodule | %FileCheck %s -check-prefix CHECK -check-prefix STATIC
+
+// CHECK: <MODULE_BLOCK {{.*}}>
+// CHECK-STATIC: <IS_STATIC abbrevid={{[0-9]+}}/>
+// CHECK-DYNAMIC-NOT: <IS_STATIC abbrevid={{[0-9]+}}/>
+// CHECK: </MODULE_BLOCK>

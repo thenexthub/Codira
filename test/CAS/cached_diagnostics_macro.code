@@ -1,0 +1,71 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroDefinition) -module-name=MacroDefinition %t/macro.code
+
+// RUN: %target-language-frontend -typecheck -module-load-mode prefer-serialized -module-name MyApp -module-cache-path %t/clang-module-cache -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   %t/main.code -language-version 5 -external-plugin-path %t#%language-plugin-server 2> %t/diag1.txt
+
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-serialized -module-name MyApp -module-cache-path %t/clang-module-cache -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   %t/main.code -o %t/deps.json -language-version 5 -cache-compile-job -cas-path %t/cas -external-plugin-path %t#%language-plugin-server
+
+// RUN: %S/Inputs/CodiraDepsExtractor.py %t/deps.json MyApp casFSRootID > %t/fs.casid
+// RUN: %cache-tool -cas-path %t/cas -cache-tool-action print-include-tree-list @%t/fs.casid | %FileCheck %s --check-prefix=FS
+
+// FS: MacroDefinition
+// RUN: %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:CodiraShims > %t/CodiraShims.cmd
+// RUN: %language_frontend_plain @%t/CodiraShims.cmd
+
+// RUN: %S/Inputs/BuildCommandExtractor.py %t/deps.json MyApp > %t/MyApp.cmd
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %target-language-frontend -diagnostic-style=language \
+// RUN:   -emit-module -o %t/Test.codemodule -cache-compile-job -cas-path %t/cas \
+// RUN:   -language-version 5 -disable-implicit-language-modules \
+// RUN:   -external-plugin-path %t#%language-plugin-server \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -module-name MyApp -explicit-language-module-map-file @%t/map.casid -O \
+// RUN:   %t/main.code @%t/MyApp.cmd -serialize-diagnostics-path %t/Test.diag 2> %t/diag2.txt
+
+// RUN: diff %t/diag1.txt %t/diag2.txt
+
+//--- macro.code
+import CodiraDiagnostics
+import CodiraOperators
+import CodiraSyntax
+import CodiraSyntaxBuilder
+@_spi(ExperimentalLanguageFeature) import CodiraSyntaxMacros
+
+public struct CallDeprecatedMacro: ExpressionMacro {
+   public static fn expansion(
+     of macro: some FreestandingMacroExpansionSyntax,
+     in context: some MacroExpansionContext
+   ) throws -> ExprSyntax {
+     return "testDeprecated()"
+  }
+}
+
+public struct ToMyWarningMacro: ExpressionMacro {
+   public static fn expansion(
+     of macro: some FreestandingMacroExpansionSyntax,
+     in context: some MacroExpansionContext
+   ) throws -> ExprSyntax {
+     return "#myWarning(\"\")"
+  }
+}
+
+//--- main.code
+@freestanding(expression) macro myWarning(_ message: String) = #externalMacro(module: "MacroDefinition", type: "CallDeprecatedMacro")
+@freestanding(expression) macro toMyWarning(_ message: String) = #externalMacro(module: "MacroDefinition", type: "ToMyWarningMacro")
+
+@available(*, deprecated)
+fn testDeprecated() {}
+
+fn testDiscardableStringify(x: Int) {
+  #toMyWarning("this is a warning")
+  #myWarning("this is a warning")
+}

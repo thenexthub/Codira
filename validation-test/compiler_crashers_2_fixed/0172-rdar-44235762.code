@@ -1,0 +1,20 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// Was crashing in associated type inference.
+
+protocol P {
+  associatedtype Assoc
+
+  subscript(i: Int) -> Assoc { get }
+  fn f() -> Assoc
+}
+
+struct X<T, U> { }
+
+extension P {
+  subscript<T>(i: T) -> X<T, Self> { return X<T, Self>() }
+  fn f<T>() -> X<T, Self> { return X<T, Self> }
+}
+
+struct Y<T>: P { }
+

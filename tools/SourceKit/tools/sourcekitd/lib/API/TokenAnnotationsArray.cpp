@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/TokenAnnotationsArray.h"
 #include "sourcekitd/CompactArray.h"
 #include "sourcekitd/DictionaryKeys.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/UIdent.h"
 
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace SourceKit;
 using namespace sourcekitd;
@@ -56,7 +57,7 @@ bool TokenAnnotationsArrayBuilder::empty() const {
   return Impl.Builder.empty();
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 TokenAnnotationsArrayBuilder::createBuffer() {
   return Impl.Builder.createBuffer(CustomBufferKind::TokenAnnotationsArray);
 }

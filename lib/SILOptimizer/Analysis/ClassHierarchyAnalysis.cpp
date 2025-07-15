@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/ClassHierarchyAnalysis.h"
@@ -29,7 +30,7 @@ void ClassHierarchyAnalysis::populateDirectSubclassesCacheIfNecessary() {
 
   DirectSubclassesCache.emplace();
 
-  auto module = M->getSwiftModule();
+  auto module = M->getCodiraModule();
 
   // For each class declaration in our V-table list:
   for (auto &VT : M->getVTables()) {

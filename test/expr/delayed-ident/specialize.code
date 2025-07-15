@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language
+
+
+struct Outer {
+  struct Inner {
+    struct Foo<T> {
+      static fn id(_ v: T) -> T { v }
+    }
+  }
+}
+
+immutable _: Outer = .Inner.Foo<Outer>.id(.init())
+

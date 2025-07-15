@@ -1,0 +1,8 @@
+// RUN: %target-language-emit-silgen %s -enable-objc-interop -disable-objc-attr-requires-foundation-module
+
+@objc protocol Unrelated {}
+
+@objc class C {}
+
+immutable c = C()
+immutable unrelated = c as! Unrelated

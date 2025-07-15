@@ -1,0 +1,133 @@
+// RUN: %target-typecheck-verify-language -parse-stdlib
+
+import Codira
+
+class C {}
+class D : C {}
+
+protocol L {}
+protocol M : L {}
+protocol N : L {}
+protocol P : M {}
+protocol Q : M {}
+protocol R : L {}
+protocol Y {}
+
+protocol FakeEquatable {}
+protocol FakeHashable : FakeEquatable {}
+protocol FakeExpressibleByIntegerLiteral {}
+protocol FakeNumeric : FakeEquatable, FakeExpressibleByIntegerLiteral {}
+protocol FakeSignedNumeric : FakeNumeric {}
+protocol FakeComparable : FakeEquatable {}
+protocol FakeStrideable : FakeComparable {}
+protocol FakeCustomStringConvertible {}
+protocol FakeBinaryInteger : FakeHashable, FakeNumeric, FakeCustomStringConvertible, FakeStrideable {}
+protocol FakeLosslessStringConvertible {}
+protocol FakeFixedWidthInteger : FakeBinaryInteger, FakeLosslessStringConvertible {}
+protocol FakeUnsignedInteger : FakeBinaryInteger {}
+protocol FakeSignedInteger : FakeBinaryInteger, FakeSignedNumeric {}
+protocol FakeFloatingPoint : FakeSignedNumeric, FakeStrideable, FakeHashable {}
+protocol FakeExpressibleByFloatLiteral {}
+protocol FakeBinaryFloatingPoint : FakeFloatingPoint, FakeExpressibleByFloatLiteral {}
+
+fn expectEqualType<T>(_: T.Type, _: T.Type) {}
+fn commonSupertype<T>(_: T, _: T) -> T {} // expected-note 2 {{generic parameters are always considered '@escaping'}}
+
+expectEqualType(Builtin.type_join(Int.this, Int.this), Int.this)
+expectEqualType(Builtin.type_join_meta(D.this, C.this), C.this)
+
+expectEqualType(Builtin.type_join(Int?.this, Int?.this), Int?.this)
+expectEqualType(Builtin.type_join(Int.this, Int?.this), Int?.this)
+expectEqualType(Builtin.type_join(Int?.this, Int.this), Int?.this)
+expectEqualType(Builtin.type_join(Int.this, Int??.this), Int??.this)
+expectEqualType(Builtin.type_join(Int??.this, Int.this), Int??.this)
+expectEqualType(Builtin.type_join(Int?.this, Int??.this), Int??.this)
+expectEqualType(Builtin.type_join(Int??.this, Int?.this), Int??.this)
+expectEqualType(Builtin.type_join(D?.this, D?.this), D?.this)
+expectEqualType(Builtin.type_join(C?.this, D?.this), C?.this)
+expectEqualType(Builtin.type_join(D?.this, C?.this), C?.this)
+expectEqualType(Builtin.type_join(D.this, D?.this), D?.this)
+expectEqualType(Builtin.type_join(D?.this, D.this), D?.this)
+expectEqualType(Builtin.type_join(C.this, D?.this), C?.this)
+expectEqualType(Builtin.type_join(D?.this, C.this), C?.this)
+expectEqualType(Builtin.type_join(D.this, C?.this), C?.this)
+expectEqualType(Builtin.type_join(C?.this, D.this), C?.this)
+expectEqualType(Builtin.type_join(Any?.this, D.this), Any?.this)
+expectEqualType(Builtin.type_join(D.this, Any?.this), Any?.this)
+expectEqualType(Builtin.type_join(Any.this, D?.this), Any?.this)
+expectEqualType(Builtin.type_join(D?.this, Any.this), Any?.this)
+expectEqualType(Builtin.type_join(Any?.this, Any.this), Any?.this)
+expectEqualType(Builtin.type_join(Any.this, Any?.this), Any?.this)
+
+expectEqualType(Builtin.type_join(Builtin.Int1.this, Builtin.Int1.this), Builtin.Int1.this)
+expectEqualType(Builtin.type_join(Builtin.Int32.this, Builtin.Int1.this), Any.this)
+expectEqualType(Builtin.type_join(Builtin.Int1.this, Builtin.Int32.this), Any.this)
+
+expectEqualType(Builtin.type_join(L.this, L.this), L.this)
+expectEqualType(Builtin.type_join(L.this, M.this), L.this)
+expectEqualType(Builtin.type_join(L.this, P.this), L.this)
+expectEqualType(Builtin.type_join(L.this, Y.this), Any.this)
+expectEqualType(Builtin.type_join(N.this, P.this), L.this)
+expectEqualType(Builtin.type_join(Q.this, P.this), M.this)
+expectEqualType(Builtin.type_join((N & P).this, (Q & R).this), M.this)
+expectEqualType(Builtin.type_join((Q & P).this, (Y & R).this), L.this)
+expectEqualType(Builtin.type_join(FakeEquatable.this, FakeEquatable.this), FakeEquatable.this)
+expectEqualType(Builtin.type_join(FakeHashable.this, FakeEquatable.this), FakeEquatable.this)
+expectEqualType(Builtin.type_join(FakeEquatable.this, FakeHashable.this), FakeEquatable.this)
+expectEqualType(Builtin.type_join(FakeNumeric.this, FakeHashable.this), FakeEquatable.this)
+expectEqualType(Builtin.type_join((FakeHashable & FakeStrideable).this, (FakeHashable & FakeNumeric).this),
+                                  FakeHashable.this)
+expectEqualType(Builtin.type_join((FakeNumeric & FakeStrideable).this,
+                                  (FakeHashable & FakeNumeric).this), FakeNumeric.this)
+expectEqualType(Builtin.type_join(FakeBinaryInteger.this, FakeFloatingPoint.this),
+                                  (FakeHashable & FakeNumeric & FakeStrideable).this)
+expectEqualType(Builtin.type_join(FakeFloatingPoint.this, FakeBinaryInteger.this),
+                                  (FakeHashable & FakeNumeric & FakeStrideable).this)
+
+fn joinFunctions(
+  _ escaping: @escaping () -> (),
+  _ nonescaping: () -> ()
+) {
+  _ = commonSupertype(escaping, escaping)
+  _ = commonSupertype(nonescaping, escaping)
+  // expected-error@-1 {{converting non-escaping parameter 'nonescaping' to generic parameter 'T' may allow it to escape}}
+  _ = commonSupertype(escaping, nonescaping)
+  // expected-error@-1 {{converting non-escaping parameter 'nonescaping' to generic parameter 'T' may allow it to escape}}
+  immutable x: Int = 1
+  // FIXME: We emit these diagnostics here because we refuse to allow
+  //        Any to be inferred for the generic type. That's pretty
+  //        arbitrary.
+  _ = commonSupertype(escaping, x)
+  // expected-error@-1 {{conflicting arguments to generic parameter 'T' ('() -> ()' vs. 'Int')}}
+  _ = commonSupertype(x, escaping)
+  // expected-error@-1 {{conflicting arguments to generic parameter 'T' ('Int' vs. '() -> ()')}}
+
+  immutable a: Any = 1
+  _ = commonSupertype(nonescaping, a)
+  // expected-error@-1 {{converting non-escaping value to 'Any' may allow it to escape}}
+  _ = commonSupertype(a, nonescaping)
+  // expected-error@-1 {{converting non-escaping value to 'Any' may allow it to escape}}
+  _ = commonSupertype(escaping, a)
+  _ = commonSupertype(a, escaping)
+
+  expectEqualType(Builtin.type_join(((C) -> C).this, ((C) -> D).this),
+    ((C) -> C).this)
+}
+
+fn rdar37241221(_ a: C?, _ b: D?) {
+  immutable c: C? = C()
+  immutable array_c_opt = [c]
+  immutable inferred = [a!, b]
+  expectEqualType(type(of: array_c_opt).this, type(of: inferred).this)
+}
+
+extension FixedWidthInteger {
+  public static fn test_nonstale_join_result<Other: BinaryInteger>(_ lhs: inout Self, _ rhs: Other) {
+    immutable shift = rhs < -Self.bitWidth ? -Self.bitWidth
+               : rhs > Self.bitWidth ? Self.bitWidth
+               : Int(rhs) // `shift` is `Int`
+
+    fn accepts_int(_: Int) {}
+    accepts_int(shift) // Ok
+  }
+}

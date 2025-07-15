@@ -1,4 +1,4 @@
-//===--- WriteBackMutableSlice.swift --------------------------------------===//
+//===--- WriteBackMutableSlice.code --------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 @inlinable
-internal func _writeBackMutableSlice<C, Slice_>(
+internal fn _writeBackMutableSlice<C, Slice_>(
   _ self_: inout C, bounds: Range<C.Index>, slice: Slice_
 ) where
   C : MutableCollection,
@@ -29,9 +30,9 @@ internal func _writeBackMutableSlice<C, Slice_>(
   // aliasing violations if the newValue points to the same buffer?
 
   var selfElementIndex = bounds.lowerBound
-  let selfElementsEndIndex = bounds.upperBound
+  immutable selfElementsEndIndex = bounds.upperBound
   var newElementIndex = slice.startIndex
-  let newElementsEndIndex = slice.endIndex
+  immutable newElementsEndIndex = slice.endIndex
 
   while selfElementIndex != selfElementsEndIndex &&
     newElementIndex != newElementsEndIndex {

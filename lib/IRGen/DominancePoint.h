@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines types relating to local dominance calculations
@@ -23,8 +24,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_DOMINANCEPOINT_H
-#define SWIFT_IRGEN_DOMINANCEPOINT_H
+#ifndef LANGUAGE_IRGEN_DOMINANCEPOINT_H
+#define LANGUAGE_IRGEN_DOMINANCEPOINT_H
 
 #include <cassert>
 #include <cstdint>

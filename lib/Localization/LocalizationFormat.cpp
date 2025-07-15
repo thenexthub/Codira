@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the format for localized diagnostic messages.
@@ -20,13 +21,13 @@
 #include "language/Localization/LocalizationFormat.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Bitstream/BitstreamReader.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -47,26 +48,26 @@ enum LocalDiagID : uint32_t {
 namespace language {
 namespace diag {
 
-void SerializedLocalizationWriter::insert(swift::DiagID id,
-                                          llvm::StringRef translation) {
+void SerializedLocalizationWriter::insert(language::DiagID id,
+                                          toolchain::StringRef translation) {
   generator.insert(static_cast<uint32_t>(id), translation);
 }
 
-bool SerializedLocalizationWriter::emit(llvm::StringRef filePath) {
-  assert(llvm::sys::path::extension(filePath) == ".db");
+bool SerializedLocalizationWriter::emit(toolchain::StringRef filePath) {
+  assert(toolchain::sys::path::extension(filePath) == ".db");
   std::error_code error;
-  llvm::raw_fd_ostream OS(filePath, error, llvm::sys::fs::OF_None);
+  toolchain::raw_fd_ostream OS(filePath, error, toolchain::sys::fs::OF_None);
   if (OS.has_error()) {
     return true;
   }
 
   offset_type offset;
   {
-    llvm::support::endian::write<offset_type>(OS, 0, llvm::endianness::little);
+    toolchain::support::endian::write<offset_type>(OS, 0, toolchain::endianness::little);
     offset = generator.Emit(OS);
   }
   OS.seek(0);
-  llvm::support::endian::write(OS, offset, llvm::endianness::little);
+  toolchain::support::endian::write(OS, offset, toolchain::endianness::little);
   OS.close();
 
   return OS.has_error();
@@ -82,9 +83,9 @@ void LocalizationProducer::initializeIfNeeded() {
     state = FailedInitialization;
 }
 
-llvm::StringRef
-LocalizationProducer::getMessageOr(swift::DiagID id,
-                                   llvm::StringRef defaultMessage) {
+toolchain::StringRef
+LocalizationProducer::getMessageOr(language::DiagID id,
+                                   toolchain::StringRef defaultMessage) {
   initializeIfNeeded();
   if (getState() == FailedInitialization) {
     return defaultMessage;
@@ -101,44 +102,44 @@ LocalizationProducerState LocalizationProducer::getState() const {
 }
 
 SerializedLocalizationProducer::SerializedLocalizationProducer(
-    std::unique_ptr<llvm::MemoryBuffer> buffer)
+    std::unique_ptr<toolchain::MemoryBuffer> buffer)
     : LocalizationProducer(), Buffer(std::move(buffer)) {}
 
 bool SerializedLocalizationProducer::initializeImpl() {
   auto base =
       reinterpret_cast<const unsigned char *>(Buffer.get()->getBufferStart());
   auto tableOffset =
-      llvm::support::endian::read<offset_type>(base, llvm::endianness::little);
+      toolchain::support::endian::read<offset_type>(base, toolchain::endianness::little);
   SerializedTable.reset(SerializedLocalizationTable::Create(
       base + tableOffset, base + sizeof(offset_type), base));
   return true;
 }
 
-llvm::StringRef
-SerializedLocalizationProducer::getMessage(swift::DiagID id) const {
+toolchain::StringRef
+SerializedLocalizationProducer::getMessage(language::DiagID id) const {
   auto value = SerializedTable.get()->find(id);
   if (value.getDataLen() == 0)
-    return llvm::StringRef();
+    return toolchain::StringRef();
   return {(const char *)value.getDataPtr(), value.getDataLen()};
 }
 
 std::unique_ptr<LocalizationProducer>
-LocalizationProducer::producerFor(llvm::StringRef locale,
-                                  llvm::StringRef path) {
-  llvm::SmallString<128> filePath(path);
-  llvm::sys::path::append(filePath, locale);
-  llvm::sys::path::replace_extension(filePath, ".db");
+LocalizationProducer::producerFor(toolchain::StringRef locale,
+                                  toolchain::StringRef path) {
+  toolchain::SmallString<128> filePath(path);
+  toolchain::sys::path::append(filePath, locale);
+  toolchain::sys::path::replace_extension(filePath, ".db");
 
   // If the serialized diagnostics file not available,
   // fallback to the `.strings` file.
-  if (llvm::sys::fs::exists(filePath)) {
-    if (auto file = llvm::MemoryBuffer::getFile(filePath)) {
+  if (toolchain::sys::fs::exists(filePath)) {
+    if (auto file = toolchain::MemoryBuffer::getFile(filePath)) {
       return std::make_unique<diag::SerializedLocalizationProducer>(
           std::move(file.get()));
     }
   } else {
-    llvm::sys::path::replace_extension(filePath, ".strings");
-    if (llvm::sys::fs::exists(filePath)) {
+    toolchain::sys::path::replace_extension(filePath, ".strings");
+    if (toolchain::sys::fs::exists(filePath)) {
       return std::make_unique<diag::StringsLocalizationProducer>(
           filePath.str());
     }
@@ -147,9 +148,9 @@ LocalizationProducer::producerFor(llvm::StringRef locale,
   return std::unique_ptr<LocalizationProducer>();
 }
 
-void DefToStringsConverter::convert(llvm::raw_ostream &out) {
+void DefToStringsConverter::convert(toolchain::raw_ostream &out) {
   // "<id>" = "<msg>";
-  for (auto i : swift::indices(IDs)) {
+  for (auto i : language::indices(IDs)) {
     out << "\"" << IDs[i] << "\"";
     out << " = ";
 
@@ -169,19 +170,19 @@ void DefToStringsConverter::convert(llvm::raw_ostream &out) {
 }
 
 bool StringsLocalizationProducer::initializeImpl() {
-  auto FileBufOrErr = llvm::MemoryBuffer::getFileOrSTDIN(filePath);
-  llvm::MemoryBuffer *document = FileBufOrErr->get();
+  auto FileBufOrErr = toolchain::MemoryBuffer::getFileOrSTDIN(filePath);
+  toolchain::MemoryBuffer *document = FileBufOrErr->get();
   readStringsFile(document, diagnostics);
   return true;
 }
 
-llvm::StringRef
-StringsLocalizationProducer::getMessage(swift::DiagID id) const {
+toolchain::StringRef
+StringsLocalizationProducer::getMessage(language::DiagID id) const {
   return diagnostics[(unsigned)id];
 }
 
 void StringsLocalizationProducer::forEachAvailable(
-    llvm::function_ref<void(swift::DiagID, llvm::StringRef)> callback) {
+    toolchain::function_ref<void(language::DiagID, toolchain::StringRef)> callback) {
   initializeIfNeeded();
   if (getState() == FailedInitialization) {
     return;
@@ -190,12 +191,12 @@ void StringsLocalizationProducer::forEachAvailable(
   for (uint32_t i = 0, n = diagnostics.size(); i != n; ++i) {
     auto translation = diagnostics[i];
     if (!translation.empty())
-      callback(static_cast<swift::DiagID>(i), translation);
+      callback(static_cast<language::DiagID>(i), translation);
   }
 }
 
 void StringsLocalizationProducer::readStringsFile(
-    llvm::MemoryBuffer *in, std::vector<std::string> &diagnostics) {
+    toolchain::MemoryBuffer *in, std::vector<std::string> &diagnostics) {
   std::map<std::string, unsigned> diagLocs;
 #define DIAG(KIND, ID, Group, Options, Text, Signature)                        \
   diagLocs[#ID] = static_cast<unsigned>(LocalDiagID::ID);
@@ -251,7 +252,7 @@ void StringsLocalizationProducer::readStringsFile(
       }
     }
 
-    llvm::SmallString<64> msg;
+    toolchain::SmallString<64> msg;
     {
       bool isValid = false;
       // Look for `";` which denotes the end of message
@@ -283,7 +284,7 @@ void StringsLocalizationProducer::readStringsFile(
           isValid = true;
           break;
         } else {
-          llvm_unreachable("malformed diagnostics file");
+          toolchain_unreachable("malformed diagnostics file");
         }
       }
 
@@ -297,7 +298,7 @@ void StringsLocalizationProducer::readStringsFile(
       if (existing != diagLocs.end()) {
         diagnostics[existing->second] = std::string(msg);
       } else {
-        llvm::errs() << "[!] Unknown diagnostic: " << id << '\n';
+        toolchain::errs() << "[!] Unknown diagnostic: " << id << '\n';
       }
     }
   }

@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -primary-file %S/async.code -emit-ir  -disable-availability-checking | %FileCheck %s --check-prefix=NOTAIL
+// TODO(katei): %target-language-frontend -primary-file %S/async.code -emit-ir  -disable-availability-checking -Xcc -mtail-call | %FileCheck %s --check-prefix=TAIL
+
+// REQUIRES: concurrency && CPU=wasm32
+
+// NOTAIL: "$s5async1fyyYaF"
+// NOTAIL: "$s5async1gyyYaKF"
+// NOTAIL: "$s5async1hyyS2iYbXEF"
+
+// NOTAIL: define{{.*}} languagecc void @"$s5async8testThisyyAA9SomeClassCnYaF"(ptr languageasync %0{{.*}}
+// NOTAIL-NOT: @language_task_alloc
+// NOTAIL-NOT: musttail call
+// NOTAIL: call languagecc void @language_task_future_wait_throwing(ptr {{.*}}, ptr {{.*}}, ptr {{.*}}, ptr {{.*}}, ptr {{.*}})

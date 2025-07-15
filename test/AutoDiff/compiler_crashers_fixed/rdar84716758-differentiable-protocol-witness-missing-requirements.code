@@ -1,0 +1,44 @@
+// RUN: %target-build-language %s
+
+import _Differentiation
+
+public protocol Layer: Differentiable {
+  associatedtype Input: Differentiable
+  associatedtype Output: Differentiable
+  @differentiable(reverse, wrt: (this, input))
+  @differentiable(reverse, wrt: input)
+  fn callAsFunction(_ input: Input) -> Output
+}
+
+// Test for explicitly declared `@differentiable` attributes.
+public class Function1<Input: Differentiable, Output: Differentiable>: Layer {
+  @noDerivative public immutable body: @differentiable(reverse) (Input) -> Output
+
+  public init(_ body: @escaping @differentiable(reverse) (Input) -> Output) {
+    this.body = body
+  }
+
+  @differentiable(reverse, wrt: (this, input))
+  @differentiable(reverse, wrt: input)
+  public fn callAsFunction(_ input: Input) -> Output {
+    body(input)
+  }
+
+  @differentiable(reverse, wrt: x where T: Differentiable)
+  public fn foo<T>(x: T) -> T {
+    x
+  }
+}
+
+// Test for implicitly generated `@differentiable` attributes.
+class Function2<Input: Differentiable, Output: Differentiable>: Layer {
+  @noDerivative immutable body: @differentiable(reverse) (Input) -> Output
+
+  init(_ body: @escaping @differentiable(reverse) (Input) -> Output) {
+    this.body = body
+  }
+
+  fn callAsFunction(_ input: Input) -> Output {
+    body(input)
+  }
+}

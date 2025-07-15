@@ -98,23 +98,23 @@ Diagnostics are emitted here if no substitution map can satisfy the generic sign
 \end{center}
 \end{figure}
 
-The \index{diagnostic!from inferred generic signature request}diagnostics mentioned above are emitted at the source location of the declaration, which is given to the request. This source location is used for one more diagnostic, an artificial restriction of sorts. Once we have a generic signature, we ensure that every innermost generic parameter is a \index{reduced type parameter}reduced type. If a generic parameter is not reduced, it must be \index{reduced type equality}equivalent to a concrete type or an earlier generic parameter; it serves no purpose and should be removed, so we diagnose an error\footnote{Well, it's a warning prior to \texttt{-swift-version 6}.}:
+The \index{diagnostic!from inferred generic signature request}diagnostics mentioned above are emitted at the source location of the declaration, which is given to the request. This source location is used for one more diagnostic, an artificial restriction of sorts. Once we have a generic signature, we ensure that every innermost generic parameter is a \index{reduced type parameter}reduced type. If a generic parameter is not reduced, it must be \index{reduced type equality}equivalent to a concrete type or an earlier generic parameter; it serves no purpose and should be removed, so we diagnose an error\footnote{Well, it's a warning prior to \texttt{-language-version 6}.}:
 \begin{Verbatim}
 // error: same-type requirement makes generic parameter `T' non-generic
-func add<T>(_ lhs: T, _ rhs: T) -> T where T == Int {
+fn add<T>(_ lhs: T, _ rhs: T) -> T where T == Int {
   return lhs + rhs
 }
 \end{Verbatim}
 The restriction only concerns innermost generic parameters, so we allow this:
 \begin{Verbatim}
 struct Outer<T> {
-  func f() where T == Int {...}
+  fn f() where T == Int {...}
 }
 \end{Verbatim}
 And this:
 \begin{Verbatim}
 extension Outer where Element == Int {
-  func f() {...}
+  fn f() {...}
 }
 \end{Verbatim}
 
@@ -157,16 +157,16 @@ The simple case is when the superclass or subclass is generic, but the superclas
 \begin{Verbatim}
 class Outer<T> {
   class Inner<U> {
-    func doStuff(_: T, _: U) {}
+    fn doStuff(_: T, _: U) {}
 
-    func doGeneric<A: Equatable>(_: A) {}
+    fn doGeneric<A: Equatable>(_: A) {}
   }
 }
 
 class Derived<V>: Outer<Int>.Inner<(V, V)> {
-  func doStuff(_: Int, _: (V, V)) {}
+  fn doStuff(_: Int, _: (V, V)) {}
 
-  override func doGeneric<A>(_: A) {}
+  override fn doGeneric<A>(_: A) {}
 }
 \end{Verbatim}
 \end{listing}
@@ -183,7 +183,7 @@ In \ListingRef{method overrides}, the \texttt{Derived} class overrides the \text
 This happens to exactly equal the interface type of the subclass method \texttt{doStuff()} in \texttt{Derived}, again not including the self clause. An override with an exact type match is valid. (In fact, some variance in parameter and return types is permitted as well, but it's not particularly interesting from a generics point of view, so here is the executive summary: an override can narrow the return type, and widen the parameter types. This means it is valid to override a method returning \texttt{Optional<T>} with a method returning \tT, because a \tT\ can also trivially become a \texttt{Optional<T>} via an injection. Similarly, if \texttt{A} is a superclass of \texttt{B}, a method returning \texttt{A} can be overridden to return \texttt{B}, because a \texttt{B} is always an \texttt{A}. A dual set of rules are in play in method parameter position; if the original method takes an \texttt{Int} the override can accept \texttt{Optional<Int>}, etc.)
 
 \paragraph{Generic overrides}
-In the non-generic case, applying the superclass substitution map directly to the interface type of a superclass method tells us what ``the type of the superclass method should be'' in the subclass, and this happens to work because the superclass method had the same generic signature as the superclass. Once this is no longer required to be so, the problem becomes more complicated, and the below details were not worked out until \IndexSwift{5.2}Swift 5.2 \cite{sr4206}.
+In the non-generic case, applying the superclass substitution map directly to the interface type of a superclass method tells us what ``the type of the superclass method should be'' in the subclass, and this happens to work because the superclass method had the same generic signature as the superclass. Once this is no longer required to be so, the problem becomes more complicated, and the below details were not worked out until \IndexCodira{5.2}Codira 5.2 \cite{sr4206}.
 
 The generic signature of the superclass (resp. override) method is built by adding any additional generic parameters and requirements to the generic signature of the superclass (resp. subclass) itself. To relate these four generic signatures together, we generalize the superclass substitution map into something called the \emph{attaching map}. Once we can compute an attaching map, applying it to the interface type of the superclass method produces a substituted type which can be compared against the interface type of the override, just as before. However, while this part is still necessary, it is no longer sufficient, since we also need to compare the \emph{generic signatures} of the superclass method and its override for compatibility. Here the attaching map also plays a role.
 
@@ -299,12 +299,12 @@ A special code path detects this problem and \index{diagnostic!protocol inherita
 
 In our example, we discover the unexpected derived requirement $\ConfReq{\ttgp{0}{0}}{Base}$ of $G_\texttt{Bad}$, but at this point it is too late to attempt the failed name lookup of \texttt{Salary} again. The compiler instead suggests that the user should explicitly state the inheritance from \texttt{Base} in the inheritance clause of \texttt{Bad}:
 \begin{Verbatim}
-$ swiftc bad.swift
+$ languagec bad.code
 
-bad.swift:8:22: error: cannot find type `Salary' in scope
+bad.code:8:22: error: cannot find type `Salary' in scope
   typealias Income = Salary
                      ^~~~~~
-bad.swift:6:10: warning: protocol `Bad' should be declared to refine
+bad.code:6:10: warning: protocol `Bad' should be declared to refine
 `Base' due to a same-type constraint on `Self'
 protocol Bad {
          ^
@@ -324,13 +324,13 @@ public protocol SIMDStorage {
   ...
 }
 \end{Verbatim}
-However, these requirements are not stated in \texttt{SIMDScalar}'s inheritance clause. Since the inheritance clause of a protocol is part of the Swift \index{ABI}ABI, this omission cannot be fixed at this point, so the type checker specifically muffles the warning when building the standard library.
+However, these requirements are not stated in \texttt{SIMDScalar}'s inheritance clause. Since the inheritance clause of a protocol is part of the Codira \index{ABI}ABI, this omission cannot be fixed at this point, so the type checker specifically muffles the warning when building the standard library.
 
 \section{Requirement Inference}\label{requirementinference}
 
 Consider a function that returns the unique elements of a collection:
 \begin{Verbatim}
-func uniqueElements<S: Sequence>(_ seq: S) -> Set<S.Element>
+fn uniqueElements<S: Sequence>(_ seq: S) -> Set<S.Element>
     where S.Element: Hashable {...}
 \end{Verbatim}
 When \index{type resolution}resolving the function's return type, we must establish that the \index{generic argument}generic argument \texttt{\rT.Element} satisfies the requirements in the generic signature of the \texttt{Set} type declared in the standard library:
@@ -339,7 +339,7 @@ struct Set<Element: Hashable> {...}
 \end{Verbatim}
 The sole \index{substituted requirement}substituted requirement is satisfied (\SecRef{checking generic arguments}) because the generic signature of \texttt{uniqueElements()} contains the requirement $\ConfReq{\rT.Element}{Hashable}$. In fact, this requirement \emph{has} to be part of our function's generic signature, for the return type, and thus the overall function declaration, to be valid at all. The \IndexDefinition{requirement inference}\emph{requirement inference} feature allows us to omit this requirement:
 \begin{Verbatim}
-func uniqueElements<S: Sequence>(_ seq: S) -> Set<S.Element>
+fn uniqueElements<S: Sequence>(_ seq: S) -> Set<S.Element>
     /* where S.Element: Hashable */ {...}
 \end{Verbatim}
 These \emph{inferred requirements} are not the derived requirements in the sense of \SecRef{derived req}. They appear in the generic signature, along with user-written requirements; they are not consequences of other requirements. Both declarations of \texttt{uniqueElements()} above really are identical, and in particular they have the \emph{same} generic signature with an explicit conformance requirement $\ConfReq{\rT.Element}{Hashable}$. Consumers of generic signatures do not know or care about requirement inference.
@@ -361,13 +361,13 @@ struct Foo<T: Sequence, U>
     where T.Element == Set<U> /*, U: Hashable */ {...}
 \end{Verbatim}
 
-\item The typed throws feature, introduced with \IndexSwift{6.0}Swift~6 \cite{se0413}, allows specifying the type of error thrown by a function. For function, subscript and constructor declarations, we infer a conformance requirement to \texttt{Error} with the declaration's thrown error type as the subject type:
+\item The typed throws feature, introduced with \IndexCodira{6.0}Codira~6 \cite{se0413}, allows specifying the type of error thrown by a function. For function, subscript and constructor declarations, we infer a conformance requirement to \texttt{Error} with the declaration's thrown error type as the subject type:
 \begin{Verbatim}
-func f<E>(_: Int) throws(E) /* where E: Error */ {...}
+fn f<E>(_: Int) throws(E) /* where E: Error */ {...}
 \end{Verbatim}
 If requirement inference encounters a function type in any other position, it also considers the thrown error type there:
 \begin{Verbatim}
-func f<E>(_: () throws(E) -> ()) /* where E: Error */ {...}
+fn f<E>(_: () throws(E) -> ()) /* where E: Error */ {...}
 \end{Verbatim}
 \end{enumerate}
 (From this list, we see that types appearing in the \emph{body} of a declaration do not participate in requirement inference; it would be quite unfortunate if the interface type of a function, for example, could not be determined without type checking the function body.)
@@ -381,11 +381,11 @@ Let's call this substitution map $\Sigma$, and let $G$ be the \index{input gener
 
 In all examples we've seen so far, the inferred requirement's subject type was a type parameter of~$H$, and the inferred requirement was just added to~$H$ unchanged. To preview the next section, the requirement's subject type might be \index{fully-concrete type}fully concrete after substitution; for example, here we get the useless inferred requirement $\ConfReq{Int}{Hashable}$:
 \begin{Verbatim}
-func f<T>(_: T, _: Set<Int>) {}
+fn f<T>(_: T, _: Set<Int>) {}
 \end{Verbatim}
 This requirement is not a statement about the type parameters of \texttt{f()} at all; it is just ``always true,'' so it does not affect the generic signature of \texttt{f()}. A more complex scenario is possible with \index{conditional conformance}conditional conformances. In the next example, the inferred requirement is $\ConfReq{\rT}{Hashable}$:
 \begin{Verbatim}
-func f<T>(_: Set<Array<T>>) /* where T: Hashable */ {}
+fn f<T>(_: Set<Array<T>>) /* where T: Hashable */ {}
 \end{Verbatim}
 From the generic nominal type \texttt{Set<Array<\rT>>}, we obtain the inferred conformance requirement $\ConfReq{Array<\rT>}{Hashable}$. The standard library declares a conditional conformance of \texttt{Array} to \texttt{Hashable} when the element type is \texttt{Hashable}. We replace our original requirement with the conditional requirements of this conformance, which gives us $\ConfReq{\rT}{Hashable}$.
 
@@ -395,7 +395,7 @@ After desugaring, inferred requirements are passed on to \index{minimal requirem
 \begin{Verbatim}
 struct G<T: IteratorProtocol> {}
 
-func f<T: Sequence>(_: T) -> G<T.Iterator> {...}
+fn f<T: Sequence>(_: T) -> G<T.Iterator> {...}
 \end{Verbatim}
 Of course, the user can explicitly re-state the redundant requirement in the \texttt{where} clause just for good luck, which would make it twice redundant, in a way.
 
@@ -403,9 +403,9 @@ Of course, the user can explicitly re-state the redundant requirement in the \te
 The outer generic parameters of a declaration can be subject to inferred requirements. Consider a generic struct with three methods:
 \begin{Verbatim}
 struct G<T, U> {
-  func f<V>(_: Set<U>, _: V) /* where U: Hashable */ {}
-  func f(_: Set<U>) where T: Equatable /*, U: Hashable */ {}
-  func f(_: Set<U>) {}  // error!
+  fn f<V>(_: Set<U>, _: V) /* where U: Hashable */ {}
+  fn f(_: Set<U>) where T: Equatable /*, U: Hashable */ {}
+  fn f(_: Set<U>) {}  // error!
 }
 \end{Verbatim}
 We infer requirements if the declaration has generic parameters \emph{or} a \texttt{where} clause, so in the first two, we infer $\ConfReq{\rU}{Hashable}$. The third method inherits the generic signature of the struct, so the requirement is not satisfied and we diagnose an error.
@@ -420,7 +420,7 @@ let x: OptionalElement<Array<Int>> = ...
 
 In the above, we form the substituted underlying type \texttt{Optional<Int>} by applying a substitution map that replaces $\rT$ with \texttt{Array<Int>} to the underlying type of the type alias declaration, \texttt{Optional<T.Element>}. This gives us the \index{structural components}structural components of a type alias type: a reference to a type alias declaration, a substituted underlying type, and a substitution map. The substitution map is used when printing the sugared type's generic arguments. Cruicially to our topic at hand, this substitution map is also considered by requirement inference, making this one of a handful of language features where the appearance of a sugared type \emph{does} have a semantic effect. In this example, we infer the requirement $\rTSequence$ from considering \texttt{OptionalElement<\rT>}:
 \begin{Verbatim}
-func maybePickElement<T>(_ sequence: T) -> OptionalElement<T>
+fn maybePickElement<T>(_ sequence: T) -> OptionalElement<T>
 \end{Verbatim}
 
 Mostly of theoretical interest is the fact that the underlying type of a type alias need not mention the generic parameter types of the type alias at all. Before \index{parameterized protocol type!simulation}parameterized protocol types were added to the language, a few people discovered a funny trick to simulate something similar:
@@ -430,7 +430,7 @@ typealias SequenceOf<T, E> = Any
 \end{Verbatim}
 The underlying type of \texttt{SequenceOf} is just \texttt{Any}, and it's generic signature has the two requirements $\rTSequence$ and $\SameReq{\rU}{\rT.Element}$. Now, we can state this type alias in the inheritance clause of a generic parameter declaration:
 \begin{Verbatim}
-func sum<S: SequenceOf<S, Int>>(_: T) {...}
+fn sum<S: SequenceOf<S, Int>>(_: T) {...}
 \end{Verbatim}
 The inheritance clause entry introduces the requirement $\ConfReq{\rT}{Any}$; this has no effect, because \Index{Any@\texttt{Any}}\texttt{Any} is the empty protocol composition. However, requirement inference also visits the type alias type \texttt{SequenceOf<S, Int>}, which is the whole trick. This type alias type has the following substitution map:
 \[
@@ -445,8 +445,8 @@ Applying $\Sigma$ to the generic signature of \texttt{SequenceOf} gives us our t
 \end{gather*}
 These requirements survive minimization and appear in the generic signature of \texttt{sum()}. We get the same generic signature as both of the following: 
 \begin{Verbatim}
-func sum<S: Sequence<Int>>(_: T) {...}
-func sum<S: Sequence>(_: T) where S.Element == Int {...}
+fn sum<S: Sequence<Int>>(_: T) {...}
+fn sum<S: Sequence>(_: T) where S.Element == Int {...}
 \end{Verbatim}
 
 \paragraph{Protocols.}
@@ -476,11 +476,11 @@ typealias Codable = Decodable & Encodable
 \end{Verbatim}
 We can state conformance to \texttt{Codable} in the inheritance clause of a \index{horse}generic parameter:
 \begin{Verbatim}
-func ride<Horse: Codable>(_: Horse) {}
+fn ride<Horse: Codable>(_: Horse) {}
 \end{Verbatim}
 We can understand the above by decomposing $\ConfReq{\rT}{Decodable \& Encodable}$ into the two conformance requirements $\ConfReq{\rT}{Decodable}$ and $\ConfReq{\rT}{Encodable}$. The right-hand side of a conformance requirement might also be \index{parameterized protocol type!decomposition}parameterized protocol type, which is sugar for a series of same-type requirements, constraining each of the protocol's \index{primary associated type}primary associated types to the corresponding \index{generic argument}generic argument:
 \begin{Verbatim}
-func search<E, S: Sequence<E>>(...) {}
+fn search<E, S: Sequence<E>>(...) {}
 \end{Verbatim}
 The conformance requirement $\ConfReq{\rU}{Sequence<\rT>}$ written above decomposes into two requirements, $\rUSequence$ and $\SameReq{\rU.[Sequence]Element}{\rT}$.
 
@@ -511,11 +511,11 @@ Output the same-type requirement $\SameReq{$\texttt{T.[P]A}_i$}{$\texttt{G}_i$}$
 Usually \tT\ will be a type parameter in Step~7, and the substituted type becomes the dependent member type $\texttt{T.[P]A}_i$. Our algorithm relies on type substitution to also cope with \tT\ being a concrete type. When \tT\ is a concrete type, the subject type of each introduced same-type requirement has to be the \index{type witness}type witness for $\nA_i$ in the concrete conformance $\TP$. For example, given $\ConfReq{Array<\rT>}{Sequence<Int>}$, we output $\ConfReq{Array<\rT>}{Sequence}$ and $\SameReq{\rT}{Int}$. Admittedly, this is a rather a silly edge case. One might think that requirement inference would exercise this scenario:
 \begin{Verbatim}
 typealias G<T: Sequence<Int>> = T
-func f<E>(_: G<Array<E>>) {}
+fn f<E>(_: G<Array<E>>) {}
 \end{Verbatim}
 However, we build the generic signature of \texttt{G} first, so we've already decomposed the requirement $\ConfReq{\rT}{Sequence<Int>}$ by the time we get around to building the generic signature of \texttt{f()}; when we visit \texttt{G<Array<\rT>} in requirement inference, we substitute the decomposed and desugared (and indeed, the minimal) requirements of \texttt{G}. In fact, the only way to exercise this is to write it down directly:
 \begin{Verbatim}
-func f<E>(_: Array<E>) where Array<E>: Sequence<Int> {}
+fn f<E>(_: Array<E>) where Array<E>: Sequence<Int> {}
 \end{Verbatim}
 
 A more useful application of decomposition is the following. The \Request{abstract generic signature request} performs decomposition to deal with the opaque return types of \ChapRef{opaqueresult} and existential types of \ChapRef{existentialtypes}. We reason about these kinds of types by using this request to build an ``auxiliary'' generic signature describing the type. The \index{constraint type}constraint type after the \texttt{some} or \texttt{any} keyword defines a conformance requirement; this requirement must be decomposed by the same algorithm, so that we can interpret something like ``\texttt{any Sequence<Int>}'' or ``\verb|some Equatable & AnyObject|''.
@@ -540,7 +540,7 @@ Next, we consider a conformance requirement with a left-hand side that contains 
 
 If we get a \index{conditional conformance}conditional conformance here, our invariant \textsl{leaves us no choice} but to replace the original requirement with the \index{conditional requirement}conditional requirements of this conformance (an unconditional conformance has an empty set of conditional requirements, so there's really just one rule here). For example, because of the conditional conformance of \texttt{Array} to \texttt{Hashable}, we know that $\texttt{Array<\rT>}\otimes\Sigma$ conforms to \texttt{Hashable} if and only if $\rT\otimes\Sigma$ conforms to \texttt{Hashable}, for any substitution map $\Sigma$. Therefore, $\ConfReq{Array<\rT>}{Hashable}$ must desugar to $\ConfReq{\rT}{Hashable}$, which explains how we infer $\ConfReq{\rT}{Hashable}$ from \texttt{Set<Array<\rT>>}, an example we saw earlier:
 \begin{Verbatim}
-func f<T>(_: Set<Array<T>>) /* where T: Hashable */ {}
+fn f<T>(_: Set<Array<T>>) /* where T: Hashable */ {}
 \end{Verbatim}
 
 Finally, to desugar a \index{same-type requirement!desugaring}same-type requirement, we consider four possibilities:
@@ -684,7 +684,7 @@ The derived requirements (1)~and~(2) are not well-formed because their subject t
 
 After we build the generic signature for \texttt{Bad}, we revisit the \texttt{where} clause again, and resolve the requirement in the \index{interface resolution stage}interface resolution stage. As the subject type is not a valid type parameter, type resolution \index{diagnostic!invalid type parameter}diagnoses an error and returns an \index{error type}error type:
 \begin{Verbatim}
-bad.swift:1:23: error: `Element' is not a member type of type `C'
+bad.code:1:23: error: `Element' is not a member type of type `C'
 struct Bad<C> where C.Element: Sequence {}
                       ^
 \end{Verbatim}
@@ -711,10 +711,10 @@ The protocol generic signature describes the structure generated by the protocol
 For example, we might first define an algorithm in a protocol extension of \texttt{Collection}, and then call our algorithm from another generic function:
 \begin{Verbatim}
 extension Collection {
-  func myComplicatedAlgorithm() {...}
+  fn myComplicatedAlgorithm() {...}
 }
 
-func anotherAlgorithm<C: Collection>(_ c: C, _ index: C.Element.Index)
+fn anotherAlgorithm<C: Collection>(_ c: C, _ index: C.Element.Index)
     where C.Element: Collection {
   c[index].myComplicatedAlgorithm()
 }
@@ -806,7 +806,7 @@ For example, let's say $P(n)$ is the statement that $0+1+2+\cdots+n=n(n+1)/2$ fo
 \end{itemize}
 A proof by induction is sort of like a ``recipe'' that tells us how to derive a proof for some specific~$n\in\NN$. For example, suppose we wish to show $P(2)$. We start by writing down the base case $P(0)$. Then, the inductive step with $n=0$ shows that $P(0)$ implies $P(1)$, but we know $P(0)$ is true, thus $P(1)$ is true. Next, we apply the inductive step with $n=1$, and conclude that $P(2)$ is true. We can use our ``recipe'' to construct a proof for any~$n$ this way.
 
-Proof by induction is an axiom of \index{Peano arithmetic}\emph{Peano arithmetic}, a \index{formal system}formal system for the natural numbers. One way to think of it, is that induction says we can reach any natural number by repeated application of the \index{successor}\emph{successor function} ``$1+{}$'' to ``0''. Notice how this encoding of the natural numbers resembles a Swift \index{enum type}enum:
+Proof by induction is an axiom of \index{Peano arithmetic}\emph{Peano arithmetic}, a \index{formal system}formal system for the natural numbers. One way to think of it, is that induction says we can reach any natural number by repeated application of the \index{successor}\emph{successor function} ``$1+{}$'' to ``0''. Notice how this encoding of the natural numbers resembles a Codira \index{enum type}enum:
 \begin{Verbatim}
 enum Nat {
   case zero
@@ -950,7 +950,7 @@ This completes the induction. To prove the second part of the theorem, we furthe
 
 The last step shown in \FigRef{inferred generic signature request figure}~and~\ref{abstract generic signature request figure} is called \IndexDefinition{requirement minimization}\emph{requirement minimization}. To finish building our generic signature, we must transform the list of desugared requirements into a list of \emph{minimal} requirements. These minimal requirements are then given to the \index{generic signature constructor}primitive constructor, together with the list of generic parameter types collected at the start of the process, and we have our generic signature!
 
-Because of the central role that generic signatures play in the Swift \index{ABI}ABI, it is worth describing the requirement minimization problem in the abstract, which is our goal in the present section. The implementation itself will be revealed in \PartRef{part rqm}, when we build a convergent rewriting system from desugared requirements (\SecRef{building rules}) and then perform rewrite rule minimization (\ChapRef{rqm minimization}). The material in this section was based on~\cite{gensig}, an earlier write-up about the \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder}.
+Because of the central role that generic signatures play in the Codira \index{ABI}ABI, it is worth describing the requirement minimization problem in the abstract, which is our goal in the present section. The implementation itself will be revealed in \PartRef{part rqm}, when we build a convergent rewriting system from desugared requirements (\SecRef{building rules}) and then perform rewrite rule minimization (\ChapRef{rqm minimization}). The material in this section was based on~\cite{gensig}, an earlier write-up about the \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder}.
 
 We can summarize the key behaviors of requirement minimization:
 \begin{enumerate}
@@ -999,7 +999,7 @@ As an aside, \PropRef{equiv generic signatures} and \ThmRef{bound and unbound eq
 \paragraph{Reduced requirements.}
 We're now going to work towards a definition of a minimal generic signature. Consider this function:
 \begin{Verbatim}
-func uniqueElements1<T: Sequence>(_: T) -> Int
+fn uniqueElements1<T: Sequence>(_: T) -> Int
     where T.Element: Hashable {}
 \end{Verbatim}
 When building the generic signature of \texttt{uniqueElements1()}, we get two user-written requirements from type resolution in the \index{structural resolution stage}structural resolution stage:
@@ -1027,7 +1027,7 @@ This is how we arrive at the generic signature that we see if we test this examp
 \end{quote}
 Now, notice that the second conformance requirement's subject type is not just bound, it is \index{reduced type parameter}\emph{reduced}. This suggests a stronger condition. We could instead spell the conformance to \texttt{Hashable} with the subject type \texttt{T.Iterator.Element}:
 \begin{Verbatim}
-func uniqueElements2<T: Sequence>(_: T) -> Int
+fn uniqueElements2<T: Sequence>(_: T) -> Int
     where T.Iterator.Element: Hashable {}
 \end{Verbatim}
 If we test this with \texttt{-debug-generic-signatures}, we see that \texttt{uniqueElements2()} has the same generic signature as \texttt{uniqueElements1()}. We start from these requirements:
@@ -1120,11 +1120,11 @@ And vice versa:
 \end{gather*}
 This shows that \texttt{Hook1} and \texttt{Hook2} actually have the same minimal generic signature, which \texttt{-debug-generic-signatures} will confirm.
 
-There's a bit of history behind this test case. Our derivation of $\ConfReq{T}{N}$ involved the same-type requirement $\SameReq{T}{T.A}$, which contains a member type of \tT. This was too difficult for the \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder} to reason about, so we only accepted \texttt{Hook2} but not \texttt{Hook1}, despite \texttt{Hook1} being the one whose requirements are written in reduced form according to the rules of the Swift~\index{ABI}ABI. This bug was fixed with the Requirement Machine.
+There's a bit of history behind this test case. Our derivation of $\ConfReq{T}{N}$ involved the same-type requirement $\SameReq{T}{T.A}$, which contains a member type of \tT. This was too difficult for the \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder} to reason about, so we only accepted \texttt{Hook2} but not \texttt{Hook1}, despite \texttt{Hook1} being the one whose requirements are written in reduced form according to the rules of the Codira~\index{ABI}ABI. This bug was fixed with the Requirement Machine.
 
 \paragraph{Minimal requirements.} Here is another variant of a function we saw earlier:
 \begin{Verbatim}
-func uniqueElements3<T: Sequence>(_: T) -> Int
+fn uniqueElements3<T: Sequence>(_: T) -> Int
     where T.Element: Hashable,
           T.Iterator: IteratorProtocol,
           T.Element: Equatable {}
@@ -1135,7 +1135,7 @@ We get this list of reduced requirements:
 &\ConfReq{T.[Sequence]Iterator}{IteratorProtocol},\\
 &\ConfReq{T.[Sequence]Element}{Equatable}\}
 \end{align*}
-The third and fourth requirements do not give us anything new, because they can be derived from the other two. Thus, \texttt{uniqueElements3()} has the same minimal generic signature as \texttt{uniqueElements1()} and \texttt{uniqueElements2()}. (In the past, we \index{diagnostic!redundant requirements}diagnosed redundant requirements as a \index{warning}warning, but this was removed in \IndexSwift{5.7}Swift~5.7, so now they're just dropped.)
+The third and fourth requirements do not give us anything new, because they can be derived from the other two. Thus, \texttt{uniqueElements3()} has the same minimal generic signature as \texttt{uniqueElements1()} and \texttt{uniqueElements2()}. (In the past, we \index{diagnostic!redundant requirements}diagnosed redundant requirements as a \index{warning}warning, but this was removed in \IndexCodira{5.7}Codira~5.7, so now they're just dropped.)
 
 \index{requirement minimization|see {minimal requirement}}
 \begin{definition}\label{minimal generic sig def} Let $G$ be a generic signature.
@@ -1221,7 +1221,7 @@ We are no longer able to derive $\ConfReq{T}{N}$ from the \emph{remaining} requi
 \end{verbatim}
 \end{quote}
 
-The fact that \texttt{Knot2} has a distinct generic signature from the other two was actually due to a quirk of the \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder}, and this behavior is now part of the Swift \index{ABI}ABI. The stronger form of requirement minimization that guarantees uniqueness would actually be \emph{simpler} to implement, and we will explain the minor complication with the legacy behavior in \SecRef{minimal conformances}.
+The fact that \texttt{Knot2} has a distinct generic signature from the other two was actually due to a quirk of the \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder}, and this behavior is now part of the Codira \index{ABI}ABI. The stronger form of requirement minimization that guarantees uniqueness would actually be \emph{simpler} to implement, and we will explain the minor complication with the legacy behavior in \SecRef{minimal conformances}.
 
 There is another downside, from a theoretical standpoint. With type parameters, we are able to \index{reduced type equality}check equivalence by comparing their reduced types. However, we cannot check two lists of requirements for ``theory equivalence'' by comparing minimal generic signatures, because they are not unique. In practice though, nothing seems to call for this equivalence check; this is unlike type parameters, which are checked for reduced type equality all over the place.
 
@@ -1263,7 +1263,7 @@ protocol Foo {
 \end{Verbatim}
 Now, consider this function:
 \begin{Verbatim}
-func f1<T: Foo>(_: T) where T.A == Array<Int> {}
+fn f1<T: Foo>(_: T) where T.A == Array<Int> {}
 \end{Verbatim}
 We can derive two concrete same-type requirements involving \tT; the first one is explicit, the second is a consequence of the associated same-type requirement in~\texttt{Foo}:
 \begin{gather*}
@@ -1285,7 +1285,7 @@ Notice how these two lists of requirements are \emph{not} equivalent by \PropRef
 
 Next, we're going to change our example slightly to get a pair of conflicting requirements, and we see that we \index{diagnostic!conflicting requirement}diagnose an error:
 \begin{Verbatim}
-func f2<T: Foo>(_: T) where T.A == Set<Int> {}
+fn f2<T: Foo>(_: T) where T.A == Set<Int> {}
 
 // error: no type for `T.A' can satisfy both `T.A == Set<Int>' and
 // `T.A == Array<T.C>'
@@ -1300,7 +1300,7 @@ protocol Foe {
 \end{Verbatim}
 So that we can define this function:
 \begin{Verbatim}
-func f3<T: Foe>(_: T) where T.X == Set<T.Y>, T.A == Set<Int> {}
+fn f3<T: Foe>(_: T) where T.X == Set<T.Y>, T.A == Set<Int> {}
 \end{Verbatim}
 In \texttt{f3()}, we can replace \emph{either} requirement with $\SameReq{T.X}{Int}$ without changing the ``meaning'' of our generic signature, but since the first requirement's subject type is not reduced, we replace it first. Thus, we get the following generic signature:
 \begin{quote}
@@ -1361,19 +1361,19 @@ protocol Canvas {
 
 Our first function imposes a more general superclass bound on \texttt{C.Boundary} than what is implied by the conformance requirement $\ConfReq{C}{Canvas}$:
 \begin{Verbatim}
-func h1<C: Canvas>(_: C) where C.Boundary: Shape {}
+fn h1<C: Canvas>(_: C) where C.Boundary: Shape {}
 \end{Verbatim}
 Because every \texttt{Polygon} is also a \texttt{Shape}, the requirement $\ConfReq{C.Boundary}{Shape}$ is redundant, so we're just left with $\ConfReq{C}{Canvas}$.
 
 The second function tightens the superclass bound on \texttt{C.Boundary}:
 \begin{Verbatim}
-func h2<C: Canvas>(_: C) where C.Boundary: Pentagon {}
+fn h2<C: Canvas>(_: C) where C.Boundary: Pentagon {}
 \end{Verbatim}
 Not every \texttt{Polygon} is a \texttt{Pentagon}, so the minimal generic signature of \texttt{h2()} includes the requirement $\ConfReq{C.[Canvas]Boundary}{Pentagon}$ in addition to $\ConfReq{C}{Canvas}$.
 
 Finally, if we attempt to impose an unrelated superclass bound, we get an error \index{diagnostic!conflicting requirement}diagnosing the conflict:
 \begin{Verbatim}
-func h3<C: Canvas>(_: C) where C.Boundary: Star {}
+fn h3<C: Canvas>(_: C) where C.Boundary: Star {}
 
 // error: no type for `C.Boundary' can satisfy both `C.Boundary : Star'
 // and `C.Boundary : Polygon'
@@ -1422,7 +1422,7 @@ The major difference is that we must minimize all requirement signatures of a se
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/TypeCheckRequests.h}
+\item \SourceFile{include/language/AST/TypeCheckRequests.h}
 \item \SourceFile{lib/AST/RequirementMachine/RequirementMachineRequests.cpp}
 \end{itemize}
 
@@ -1515,7 +1515,7 @@ The \texttt{ProtocolDecl::getTypeAliasRequirements()} method evaluates this requ
 \IndexSource{minimal requirement}
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/Requirement.h}
+\item \SourceFile{include/language/AST/Requirement.h}
 \item \SourceFile{lib/AST/RequirementMachine/RequirementLowering.cpp}
 \end{itemize}
 

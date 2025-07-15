@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend -Xtoolchain -sil-disable-pass=SILGenCleanup -primary-file %s -emit-ir -o - | %FileCheck %s
+
+fn f() -> Bool? { return nil }
+
+var gb = false
+var gc: () -> () = {}
+
+({
+  guard var b = f() else { return }
+  immutable c = { b = true }
+  gb = b
+  gc = c
+})()
+
+// CHECK-LABEL: @"$s9alloc_boxyyXEfU0_"
+// CHECK-NOT: call void @language_setDeallocating
+// CHECK: call void @language_deallocUninitializedObject
+// CHECK-NOT: call void @language_setDeallocating
+// CHECK: ret void

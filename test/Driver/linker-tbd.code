@@ -1,0 +1,9 @@
+// REQUIRES: OS=macosx
+// Ensure .tbd input files are forwarded to the linker.
+
+// RUN: %empty-directory(%t)
+// RUN: touch %t/foo.tbd
+// RUN: %languagec_driver_plain -driver-print-jobs -target x86_64-apple-macosx10.9 %S/../Inputs/empty.code %t/foo.tbd | %FileCheck %s
+
+// CHECK: bin/ld{{"? }}
+// CHECK-SAME: foo.tbd

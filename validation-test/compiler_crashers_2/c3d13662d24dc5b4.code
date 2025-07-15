@@ -1,0 +1,4 @@
+// {"signature":"language::diagnoseConstantArgumentRequirement(language::Expr const*, language::DeclContext const*)::ConstantReqCallWalker::walkToExprPre(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  @_semantics("oslog.requires_constant_arguments") fn a(b) { a(

@@ -1,4 +1,4 @@
-//===--- ArrayOfRef.swift -------------------------------------------------===//
+//===--- ArrayOfRef.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This benchmark tests creation and destruction of an array of
@@ -21,7 +22,7 @@
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ArrayOfRef",
     runFunction: run_ArrayOfRef,
@@ -48,11 +49,11 @@ class ConstructibleArray<T:Constructible> {
 class POD : Constructible {
   typealias Element=Int
   var x: Int
-  required init(e:Int) { self.x = e }
+  required init(e:Int) { this.x = e }
 }
 
 @inline(never)
-func genPODRefArray() {
+fn genPODRefArray() {
   blackHole(ConstructibleArray<POD>(3))
   // should be a nop
 }
@@ -63,12 +64,12 @@ class Dummy {}
 class CommonRef : Constructible {
   typealias Element=Dummy
   var d: Dummy
-  required init(e:Dummy) { self.d = e }
+  required init(e:Dummy) { this.d = e }
 }
 
 @inline(never)
-func genCommonRefArray() {
-  let d = Dummy()
+fn genCommonRefArray() {
+  immutable d = Dummy()
   blackHole(ConstructibleArray<CommonRef>(d))
   // should be a nop
 }
@@ -88,8 +89,8 @@ class RefArray<T> {
 }
 
 @inline(never)
-func genRefEnumArray() {
-  let e = RefEnum.Some(Dummy())
+fn genRefEnumArray() {
+  immutable e = RefEnum.Some(Dummy())
   blackHole(RefArray<RefEnum>(e))
   // should be a nop
 }
@@ -98,18 +99,18 @@ func genRefEnumArray() {
 struct S : Constructible {
   typealias Element=Dummy
   var d: Dummy
-  init(e:Dummy) { self.d = e }
+  init(e:Dummy) { this.d = e }
 }
 
 @inline(never)
-func genRefStructArray() {
-  let d = Dummy()
+fn genRefStructArray() {
+  immutable d = Dummy()
   blackHole(ConstructibleArray<S>(d))
   // should be a nop
 }
 
 @inline(never)
-public func run_ArrayOfRef(_ n: Int) {
+public fn run_ArrayOfRef(_ n: Int) {
   for _ in 0..<n {
     genPODRefArray()
     genCommonRefArray()

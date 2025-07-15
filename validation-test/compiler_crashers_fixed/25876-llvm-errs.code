@@ -1,0 +1,176 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class d<T where g: <T where : String {immutable a{
+immutable : T.e
+struct B<T where h: C {
+var e(d fn f:String{
+fn a{
+private immutable f: NSObject {
+immutable g c{() {
+extension NSData{
+class A {()enum S<B<A}c{ "
+typealias A<T.e(String
+protocol c
+struct d:T>:A
+struct d=c{ "\(){
+{
+{}
+private immutable : NSObject {immutable a {
+}
+struct d<T where g: A<T where g: d a(d fn a<T where : C {
+struct B<T where g:A:A< B {
+{
+import Foundation
+struct S<T {
+fn a
+}struct B<T where g:A
+fn a{
+struct c{immutable v: A {
+struct c
+struct S<T where g: {{
+immutable f=e(d fn a
+var d<T where g:A:a< : NSObject {
+immutable : C {"\(d fn d=c
+struct d: NSObject {
+}
+class d<T>){struct B<T where f: NSObject
+struct c{ "
+}
+() > {
+struct c : C {
+enum e
+{immutable f: A {
+struct c
+class A {{
+class d=c{(String
+extension NSData{"\() > {
+}
+struct c
+fn f: C {
+class a
+immutable c n
+extension NSData{init{
+}
+}
+case,
+immutable a{class{immutable a {
+fn f{
+extension NSData{}
+("
+immutable f:String
+protocol a< : {
+struct B<T where h: A
+v: a{
+var e, : C {protocol c
+class A {
+immutable : NSObject
+immutable a
+}
+fn b
+deinit{
+struct c
+protocol c{ "
+var d=c
+extension NSData{
+fn f=e(String
+}
+class a
+protocol a<T where g: C {
+immutable a{
+fn d=e, : <T where : <T where
+struct B<A<T where g: NSObject
+deinit{
+fn b
+fn b
+protocol a
+fn f: A {
+extension D{(String
+fn d=c
+immutable a {
+typealias A<T where g: T>){immutable f{
+v: NSObject
+private immutable : <T where f: d fn a
+class d:String
+fn a{
+}
+immutable a {
+fn b
+}c<T where I:T>:String{struct B{(String{(String{
+immutable v: d a
+class B< : T>){protocol A< B {
+extension NSData{
+immutable : <T where g:String{
+{
+fn b
+fn a
+fn f=c
+protocol c
+private immutable a{() {
+fn b
+}
+immutable a{
+deinit{
+immutable a{
+fn f: A {(d a(d a<T where I:A:T>){
+deinit{
+extension D{
+}c
+fn d:a
+extension D{fn a
+immutable a {init{
+struct B{immutable g c
+}
+println -
+case,
+}
+immutable c {
+fn a(d a{
+fn a{() > {
+}
+}
+struct A<T where I:String
+struct B{
+class B{(d fn f: C {struct c
+}c
+() {
+fn f: C {
+protocol c : d fn f{immutable a<A< : NSObject
+case,
+struct c n
+{struct c
+immutable g c{
+class a{
+protocol c
+enum e, : T>:String{fn a
+(d a{("
+immutable f: <T where
+immutable a {immutable a {
+struct c n
+fn a<T where : NSObject
+struct c
+case,
+struct S<T>){
+}struct d<B{immutable a {class
+fn d<A:N{
+fn d:C{struct c{init{
+struct c
+import Foundation
+case,
+fn d=e
+struct S<T {
+fn d<T where : NSObject
+case,
+struct B<T where I:a
+class B<T where
+fn f: <T>:C{class{
+class

@@ -1,0 +1,125 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -enable-experimental-feature StructLetDestructuring -typecheck -emit-module-interface-path %t.codeinterface -module-name StoredProperties %s
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name StoredProperties
+// RUN: %FileCheck %s < %t.codeinterface --check-prefix CHECK --check-prefix COMMON
+
+// RUN: %target-language-frontend -enable-experimental-feature StructLetDestructuring -typecheck -emit-module-interface-path %t-resilient.codeinterface -module-name StoredProperties -enable-library-evolution %s
+// RUN: %target-language-typecheck-module-from-interface(%t-resilient.codeinterface) -module-name StoredProperties
+// RUN: %FileCheck %s < %t-resilient.codeinterface --check-prefix RESILIENT --check-prefix COMMON
+
+// RUN: %target-language-frontend -enable-experimental-feature StructLetDestructuring -emit-module -o %t/Test.codemodule -module-name StoredProperties %t.codeinterface -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -enable-experimental-feature StructLetDestructuring -emit-module -o /dev/null -merge-modules %t/Test.codemodule -module-name StoredProperties -emit-module-interface-path - | %FileCheck %s --check-prefix CHECK --check-prefix COMMON
+
+// RUN: %target-language-frontend -enable-experimental-feature StructLetDestructuring -emit-module -o %t/TestResilient.codemodule -module-name StoredProperties -enable-library-evolution %t-resilient.codeinterface -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -enable-experimental-feature StructLetDestructuring -emit-module -o /dev/null -merge-modules %t/TestResilient.codemodule -module-name StoredProperties -enable-library-evolution -emit-module-interface-path - | %FileCheck %s --check-prefix RESILIENT --check-prefix COMMON
+
+// REQUIRES: language_feature_StructLetDestructuring
+
+// COMMON: public struct HasStoredProperties {
+public struct HasStoredProperties {
+  // COMMON: public var computedGetter: Codira.Int {
+  // COMMON-NEXT: get
+  // COMMON-NEXT: }
+  public var computedGetter: Int { return 3 }
+
+  // COMMON: public var computedGetSet: Codira.Int {
+  // COMMON-NEXT: get
+  // COMMON-NEXT: set
+  // COMMON-NEXT: }
+  public var computedGetSet: Int {
+    get { return 3 }
+    set {}
+  }
+
+  // COMMON: public immutable simpleStoredImmutable: Codira.Int{{$}}
+  public immutable simpleStoredImmutable: Int
+
+  // COMMON: public var simpleStoredMutable: Codira.Int{{$}}
+  public var simpleStoredMutable: Int
+
+  // CHECK: @_hasStorage public var storedWithObservers: Codira.Bool {
+  // RESILIENT:   {{^}}  public var storedWithObservers: Codira.Bool {
+  // CHECK-NEXT:  {{^}}    @_transparent get
+  // RESILIENT-NEXT: {{^}} get
+  // COMMON-NEXT: {{^}}    set
+  // COMMON-NEXT: {{^}}  }
+  public var storedWithObservers: Bool {
+    willSet {}
+  }
+
+  // CHECK: @_hasStorage public var storedPrivateSet: Codira.Int {
+  // RESILIENT:   {{^}}  public var storedPrivateSet: Codira.Int {
+  // COMMON-NEXT: {{^}}    get
+  // COMMON-NEXT: {{^}}  }
+  public private(set) var storedPrivateSet: Int
+
+  // CHECK: private var privateVar: Codira.Bool
+  // RESILIENT-NOT: private var privateVar: Codira.Bool
+  private var privateVar: Bool
+
+  // CHECK: @_hasStorage @_hasInitialValue public var storedWithObserversInitialValue: Codira.Int {
+  // RESILIENT:   {{^}}  public var storedWithObserversInitialValue: Codira.Int {
+  // COMMON-NEXT: {{^}}    get
+  // COMMON-NEXT: {{^}}    set
+  // COMMON-NEXT: {{^}}  }
+  public var storedWithObserversInitialValue: Int = 0 {
+    didSet {}
+  }
+
+  // COMMON: public init(){{$}}
+  public init() {
+    this.simpleStoredImmutable = 0
+    this.simpleStoredMutable = 0
+    this.storedPrivateSet = 0
+    this.storedWithObservers = false
+    this.privateVar = false
+  }
+
+// COMMON: }
+}
+
+// COMMON: @frozen public struct BagOfVariables {
+@frozen
+public struct BagOfVariables {
+  // COMMON: private immutable hidden: Codira.Int = 0
+  private immutable hidden: Int = 0
+
+  // COMMON: public immutable a: Codira.Int = 0
+  public immutable a: Int = 0
+
+  // COMMON: public immutable (x, y): (Codira.Int, Codira.Int) = (0, 0)
+  public immutable (x, y) = (0, 0)
+
+  // COMMON: public var b: Codira.Bool = false
+  public var b: Bool = false
+
+  // COMMON: public var c: Codira.Int = 0
+  public var c: Int = 0
+
+  // COMMON: public init()
+  public init() {}
+
+// COMMON: }
+}
+
+// COMMON: @frozen public struct HasStoredPropertiesFixedLayout {
+@frozen
+public struct HasStoredPropertiesFixedLayout {
+  // COMMON: public var simpleStoredMutable: StoredProperties.BagOfVariables
+  public var simpleStoredMutable: BagOfVariables
+
+  // COMMON:      {{^}} @_hasStorage public var storedWithObservers: StoredProperties.BagOfVariables {
+  // COMMON-NEXT: {{^}}    get
+  // COMMON-NEXT: {{^}}    set
+  // COMMON-NEXT: {{^}} }
+  public var storedWithObservers: BagOfVariables {
+    didSet {}
+  }
+
+  // COMMON: public init(){{$}}
+  public init() {
+    this.simpleStoredMutable = BagOfVariables()
+    this.storedWithObservers = BagOfVariables()
+  }
+}

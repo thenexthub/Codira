@@ -1,4 +1,4 @@
-//===--- Expr.cpp - Swift Language Expression ASTs ------------------------===//
+//===--- Expr.cpp - Codira Language Expression ASTs ------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the Expr class and subclasses.
@@ -34,10 +35,10 @@
 #include "language/AST/PrettyStackTrace.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/AST/TypeLoc.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/Twine.h"
+#include "toolchain/ADT/APFloat.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/Twine.h"
 using namespace language;
 
 #define EXPR(Id, _) \
@@ -54,7 +55,7 @@ StringRef Expr::getKindName(ExprKind K) {
 #define EXPR(Id, Parent) case ExprKind::Id: return #Id;
 #include "language/AST/ExprNodes.def"
   }
-  llvm_unreachable("bad ExprKind");
+  toolchain_unreachable("bad ExprKind");
 }
 
 template <class T> static SourceLoc getStartLocImpl(const T *E);
@@ -138,7 +139,7 @@ SourceRange Expr::getSourceRange() const {
 #include "language/AST/ExprNodes.def"
   }
   
-  llvm_unreachable("expression type not handled!");
+  toolchain_unreachable("expression type not handled!");
 }
 
 template <class T> static SourceLoc getStartLocImpl(const T *E) {
@@ -151,7 +152,7 @@ SourceLoc Expr::getStartLoc() const {
 #include "language/AST/ExprNodes.def"
   }
 
-  llvm_unreachable("expression type not handled!");
+  toolchain_unreachable("expression type not handled!");
 }
 
 template <class T> static SourceLoc getEndLocImpl(const T *E) {
@@ -164,7 +165,7 @@ SourceLoc Expr::getEndLoc() const {
 #include "language/AST/ExprNodes.def"
   }
 
-  llvm_unreachable("expression type not handled!");
+  toolchain_unreachable("expression type not handled!");
 }
 
 template <class T> static SourceLoc getLocImpl(const T *E) {
@@ -177,7 +178,7 @@ SourceLoc Expr::getLoc() const {
 #include "language/AST/ExprNodes.def"
   }
 
-  llvm_unreachable("expression type not handled!");
+  toolchain_unreachable("expression type not handled!");
 }
 
 Expr *Expr::getSemanticsProvidingExpr() {
@@ -189,8 +190,8 @@ Expr *Expr::getSemanticsProvidingExpr() {
   return this;
 }
 
-bool Expr::printConstExprValue(llvm::raw_ostream *OS,
-                        llvm::function_ref<bool(Expr*)> additionalCheck) const {
+bool Expr::printConstExprValue(toolchain::raw_ostream *OS,
+                        toolchain::function_ref<bool(Expr*)> additionalCheck) const {
   auto print = [&](StringRef text) {
     if (OS) {
       *OS << text;
@@ -268,7 +269,7 @@ bool Expr::printConstExprValue(llvm::raw_ostream *OS,
 }
 
 bool Expr::isSemanticallyConstExpr(
-    llvm::function_ref<bool(Expr*)> additionalCheck) const {
+    toolchain::function_ref<bool(Expr*)> additionalCheck) const {
   return printConstExprValue(nullptr, additionalCheck);
 }
 
@@ -294,10 +295,10 @@ DeclRefExpr *Expr::getMemberOperatorRef() {
   auto operatorRef = dyn_cast<DeclRefExpr>(dotSyntax->getFn());
   if (!operatorRef) return nullptr;
 
-  auto func = dyn_cast<FuncDecl>(operatorRef->getDecl());
-  if (!func) return nullptr;
+  auto fn = dyn_cast<FuncDecl>(operatorRef->getDecl());
+  if (!fn) return nullptr;
 
-  if (!func->isOperator()) return nullptr;
+  if (!fn->isOperator()) return nullptr;
 
   return operatorRef;
 }
@@ -483,9 +484,9 @@ ConcreteDeclRef Expr::getReferencedDecl(bool stopAtParenExpr) const {
 /// specific functor on it.  This ignores statements and other non-expression
 /// children.
 void Expr::
-forEachImmediateChildExpr(llvm::function_ref<Expr *(Expr *)> callback) {
+forEachImmediateChildExpr(toolchain::function_ref<Expr *(Expr *)> callback) {
   struct ChildWalker : ASTWalker {
-    llvm::function_ref<Expr *(Expr *)> callback;
+    toolchain::function_ref<Expr *(Expr *)> callback;
     Expr *ThisNode;
 
     /// Only walk the arguments of a macro, to represent the source as written.
@@ -493,7 +494,7 @@ forEachImmediateChildExpr(llvm::function_ref<Expr *(Expr *)> callback) {
       return MacroWalking::Arguments;
     }
 
-    ChildWalker(llvm::function_ref<Expr *(Expr *)> callback, Expr *ThisNode)
+    ChildWalker(toolchain::function_ref<Expr *(Expr *)> callback, Expr *ThisNode)
       : callback(callback), ThisNode(ThisNode) {}
     
     PreWalkResult<Expr *> walkToExprPre(Expr *E) override {
@@ -533,16 +534,16 @@ forEachImmediateChildExpr(llvm::function_ref<Expr *(Expr *)> callback) {
 /// Enumerate each immediate child expression of this node, invoking the
 /// specific functor on it.  This ignores statements and other non-expression
 /// children.
-void Expr::forEachChildExpr(llvm::function_ref<Expr *(Expr *)> callback) {
+void Expr::forEachChildExpr(toolchain::function_ref<Expr *(Expr *)> callback) {
   struct ChildWalker : ASTWalker {
-    llvm::function_ref<Expr *(Expr *)> callback;
+    toolchain::function_ref<Expr *(Expr *)> callback;
 
     /// Only walk the arguments of a macro, to represent the source as written.
     MacroWalking getMacroWalkingBehavior() const override {
       return MacroWalking::Arguments;
     }
 
-    ChildWalker(llvm::function_ref<Expr *(Expr *)> callback)
+    ChildWalker(toolchain::function_ref<Expr *(Expr *)> callback)
     : callback(callback) {}
 
     PreWalkResult<Expr *> walkToExprPre(Expr *E) override {
@@ -572,8 +573,8 @@ void Expr::forEachChildExpr(llvm::function_ref<Expr *(Expr *)> callback) {
   this->walk(ChildWalker(callback));
 }
 
-bool Expr::isTypeReference(llvm::function_ref<Type(Expr *)> getType,
-                           llvm::function_ref<Decl *(Expr *)> getDecl) const {
+bool Expr::isTypeReference(toolchain::function_ref<Type(Expr *)> getType,
+                           toolchain::function_ref<Decl *(Expr *)> getDecl) const {
   Expr *expr = const_cast<Expr *>(this);
 
   // If the result isn't a metatype, there's nothing else to do.
@@ -618,8 +619,8 @@ bool Expr::isTypeReference(llvm::function_ref<Type(Expr *)> getType,
 }
 
 bool Expr::isStaticallyDerivedMetatype(
-    llvm::function_ref<Type(Expr *)> getType,
-    llvm::function_ref<bool(Expr *)> isTypeReference) const {
+    toolchain::function_ref<Type(Expr *)> getType,
+    toolchain::function_ref<bool(Expr *)> isTypeReference) const {
   // The expression must first be a type reference.
   if (!isTypeReference(const_cast<Expr *>(this)))
     return false;
@@ -848,7 +849,7 @@ bool Expr::canAppendPostfixExpression(bool appendingPostfixOperator) const {
     return true;
   }
 
-  llvm_unreachable("Unhandled ExprKind in switch.");
+  toolchain_unreachable("Unhandled ExprKind in switch.");
 }
 
 ArgumentList *Expr::getArgs() const {
@@ -884,17 +885,17 @@ DeclNameLoc Expr::getNameLoc() const {
   return DeclNameLoc();
 }
 
-llvm::DenseMap<Expr *, Expr *> Expr::getParentMap() {
+toolchain::DenseMap<Expr *, Expr *> Expr::getParentMap() {
   class RecordingTraversal : public ASTWalker {
   public:
-    llvm::DenseMap<Expr *, Expr *> &ParentMap;
+    toolchain::DenseMap<Expr *, Expr *> &ParentMap;
 
     /// Walk everything that's available.
     MacroWalking getMacroWalkingBehavior() const override {
       return MacroWalking::ArgumentsAndExpansion;
     }
 
-    explicit RecordingTraversal(llvm::DenseMap<Expr *, Expr *> &parentMap)
+    explicit RecordingTraversal(toolchain::DenseMap<Expr *, Expr *> &parentMap)
       : ParentMap(parentMap) { }
 
     PreWalkResult<Expr *> walkToExprPre(Expr *E) override {
@@ -905,7 +906,7 @@ llvm::DenseMap<Expr *, Expr *> Expr::getParentMap() {
     }
   };
 
-  llvm::DenseMap<Expr *, Expr *> parentMap;
+  toolchain::DenseMap<Expr *, Expr *> parentMap;
   RecordingTraversal traversal(parentMap);
   walk(traversal);
   return parentMap;
@@ -1053,7 +1054,7 @@ bool Expr::isValidParentOfTypeExpr(Expr *typeExpr) const {
     return false;
   }
 
-  llvm_unreachable("Unhandled ExprKind in switch.");
+  toolchain_unreachable("Unhandled ExprKind in switch.");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1087,14 +1088,21 @@ StringRef LiteralExpr::getLiteralKindDescription() const {
   #define LITERAL_EXPR(Id, Parent)
   #define EXPR(Id, Parent) case ExprKind::Id:
   #include "language/AST/ExprNodes.def"
-    llvm_unreachable("Not a literal expression");
+    toolchain_unreachable("Not a literal expression");
   }
-  llvm_unreachable("Unhandled literal");
+  toolchain_unreachable("Unhandled literal");
 }
 
-IntegerLiteralExpr * IntegerLiteralExpr::createFromUnsigned(ASTContext &C, unsigned value, SourceLoc loc) {
-  llvm::SmallString<8> Scratch;
-  llvm::APInt(sizeof(unsigned)*8, value).toString(Scratch, 10, /*signed*/ false);
+void BuiltinLiteralExpr::setBuiltinInitializer(
+    ConcreteDeclRef builtinInitializer) {
+  ASSERT(builtinInitializer);
+  BuiltinInitializer = builtinInitializer;
+}
+
+IntegerLiteralExpr * IntegerLiteralExpr::createFromUnsigned(
+    ASTContext &C, unsigned value, SourceLoc loc) {
+  toolchain::SmallString<8> Scratch;
+  toolchain::APInt(sizeof(unsigned)*8, value).toString(Scratch, 10, /*signed*/ false);
   auto Text = C.AllocateCopy(StringRef(Scratch));
   return new (C) IntegerLiteralExpr(Text, loc, /*implicit*/ true);
 }
@@ -1120,7 +1128,7 @@ APInt BuiltinIntegerWidth::parse(StringRef text, unsigned radix, bool negate,
   // Parse an unsigned value from the string.
   APInt value;
 
-  // Swift doesn't treat a leading zero as signifying octal, but
+  // Codira doesn't treat a leading zero as signifying octal, but
   // StringRef::getAsInteger does.  Force decimal parsing in this case.
   if (radix == 0 && text.size() >= 2 && text[0] == '0' && isdigit(text[1]))
     radix = 10;
@@ -1179,15 +1187,15 @@ APInt BuiltinIntegerWidth::parse(StringRef text, unsigned radix, bool negate,
 }
 
 static APFloat getFloatLiteralValue(bool IsNegative, StringRef Text,
-                                    const llvm::fltSemantics &Semantics) {
+                                    const toolchain::fltSemantics &Semantics) {
   APFloat Val(Semantics);
   auto Res =
-    Val.convertFromString(Text, llvm::APFloat::rmNearestTiesToEven);
+    Val.convertFromString(Text, toolchain::APFloat::rmNearestTiesToEven);
   assert(Res && "Sema didn't reject invalid number");
   consumeError(Res.takeError());
   if (IsNegative) {
     auto NegVal = APFloat::getZero(Semantics, /*negative*/ true);
-    Res = NegVal.subtract(Val, llvm::APFloat::rmNearestTiesToEven);
+    Res = NegVal.subtract(Val, toolchain::APFloat::rmNearestTiesToEven);
     assert(Res && "Sema didn't reject invalid number");
     consumeError(Res.takeError());
     return NegVal;
@@ -1196,12 +1204,12 @@ static APFloat getFloatLiteralValue(bool IsNegative, StringRef Text,
 }
 
 APFloat FloatLiteralExpr::getValue(StringRef Text,
-                                   const llvm::fltSemantics &Semantics,
+                                   const toolchain::fltSemantics &Semantics,
                                    bool Negative) {
   return getFloatLiteralValue(Negative, Text, Semantics);
 }
 
-llvm::APFloat FloatLiteralExpr::getValue() const {
+toolchain::APFloat FloatLiteralExpr::getValue() const {
   assert(!getType().isNull() && "Semantic analysis has not completed");
   assert(!getType()->hasError() && "Should have a valid type");
 
@@ -1248,7 +1256,7 @@ StringRef ObjectLiteralExpr::getLiteralKindRawName() const {
 #define POUND_OBJECT_LITERAL(Name, Desc, Proto) case Name: return #Name;
 #include "language/AST/TokenKinds.def"    
   }
-  llvm_unreachable("unspecified literal");
+  toolchain_unreachable("unspecified literal");
 }
 
 StringRef ObjectLiteralExpr::
@@ -1257,7 +1265,7 @@ getLiteralKindPlainName(ObjectLiteralExpr::LiteralKind kind) {
 #define POUND_OBJECT_LITERAL(Name, Desc, Proto) case Name: return Desc;
 #include "language/AST/TokenKinds.def"    
   }
-  llvm_unreachable("unspecified literal");
+  toolchain_unreachable("unspecified literal");
 }
 
 StringRef ObjectLiteralExpr::getLiteralKindPlainName() const {
@@ -1281,7 +1289,7 @@ Type OverloadSetRefExpr::getBaseType() const {
   if (isa<OverloadedDeclRefExpr>(this))
     return Type();
   
-  llvm_unreachable("Unhandled overloaded set reference expression");
+  toolchain_unreachable("Unhandled overloaded set reference expression");
 }
 
 bool OverloadSetRefExpr::hasBaseObject() const {
@@ -1369,11 +1377,8 @@ CaptureListEntry CaptureListEntry::createParsed(
     SourceRange ownershipRange, Identifier name, SourceLoc nameLoc,
     SourceLoc equalLoc, Expr *initializer, DeclContext *DC) {
 
-  auto introducer =
-      (ownershipKind != ReferenceOwnership::Weak ? VarDecl::Introducer::Let
-                                                 : VarDecl::Introducer::Var);
   auto *VD =
-      new (Ctx) VarDecl(/*isStatic==*/false, introducer, nameLoc, name, DC);
+      new (Ctx) VarDecl(/*isStatic==*/false, VarDecl::Introducer::Let, nameLoc, name, DC);
 
   if (ownershipKind != ReferenceOwnership::Strong)
     VD->getAttrs().add(
@@ -1469,7 +1474,7 @@ SourceRange TupleExpr::getSourceRange() const {
   auto end = RParenLoc;
   if (end.isInvalid()) {
     // Scan backwards for a valid source loc.
-    for (auto *expr : llvm::reverse(getElements())) {
+    for (auto *expr : toolchain::reverse(getElements())) {
       end = expr->getEndLoc();
       if (end.isValid())
         break;
@@ -1997,9 +2002,10 @@ unsigned AbstractClosureExpr::getDiscriminator() const {
   }
 
   if (getRawDiscriminator() == InvalidDiscriminator) {
-    llvm::errs() << "Closure does not have an assigned discriminator:\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Closure does not have an assigned discriminator:\n";
+      this->dump(out);
+    });
   }
 
   return getRawDiscriminator();
@@ -2017,7 +2023,7 @@ BraceStmt * AbstractClosureExpr::getBody() const {
     return autocls->getBody();
   if (const ClosureExpr *cls = dyn_cast<ClosureExpr>(this))
     return cls->getBody();
-  llvm_unreachable("Unknown closure expression");
+  toolchain_unreachable("Unknown closure expression");
 }
 
 BraceStmt *ClosureExpr::getExpandedBody() {
@@ -2055,7 +2061,7 @@ void AbstractClosureExpr::getExplicitReturnStmts(
 }
 
 Type AbstractClosureExpr::getResultType(
-    llvm::function_ref<Type(Expr *)> getType) const {
+    toolchain::function_ref<Type(Expr *)> getType) const {
   auto *E = const_cast<AbstractClosureExpr *>(this);
   Type T = getType(E);
   if (!T || T->hasError())
@@ -2136,7 +2142,7 @@ Expr *AbstractClosureExpr::getSingleExpressionBody() const {
 }
 
 ActorIsolation
-swift::__AbstractClosureExpr_getActorIsolation(AbstractClosureExpr *CE) {
+language::__AbstractClosureExpr_getActorIsolation(AbstractClosureExpr *CE) {
   return CE->getActorIsolation();
 }
 
@@ -2762,7 +2768,7 @@ SingleValueStmtExpr::Kind SingleValueStmtExpr::getStmtKind() const {
   case StmtKind::DoCatch:
     return Kind::DoCatch;
   default:
-    llvm_unreachable("Unhandled kind!");
+    toolchain_unreachable("Unhandled kind!");
   }
 }
 
@@ -2780,7 +2786,7 @@ SingleValueStmtExpr::getBranches(SmallVectorImpl<Stmt *> &scratch) const {
   case Kind::DoCatch:
     return cast<DoCatchStmt>(getStmt())->getBranches(scratch);
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 ArrayRef<ThenStmt *> SingleValueStmtExpr::getThenStmts(
@@ -2808,7 +2814,7 @@ ArrayRef<Expr *> SingleValueStmtExpr::getResultExprs(
 }
 
 void InterpolatedStringLiteralExpr::forEachSegment(ASTContext &Ctx, 
-    llvm::function_ref<void(bool, CallExpr *)> callback) {
+    toolchain::function_ref<void(bool, CallExpr *)> callback) {
   auto appendingExpr = getAppendingExpr();
   for (auto stmt : appendingExpr->getBody()->getElements()) {
     if (auto expr = stmt.dyn_cast<Expr*>()) {
@@ -2896,7 +2902,7 @@ RegexLiteralPatternFeatureKind::getAvailability(ASTContext &ctx) const {
                            AvailabilityRange::alwaysAvailable());
 }
 
-TypeJoinExpr::TypeJoinExpr(llvm::PointerUnion<DeclRefExpr *, TypeBase *> result,
+TypeJoinExpr::TypeJoinExpr(toolchain::PointerUnion<DeclRefExpr *, TypeBase *> result,
                            ArrayRef<Expr *> elements, SingleValueStmtExpr *SVE)
     : Expr(ExprKind::TypeJoin, /*implicit=*/true, Type()), Var(nullptr),
       SVE(SVE) {
@@ -2917,7 +2923,7 @@ TypeJoinExpr::TypeJoinExpr(llvm::PointerUnion<DeclRefExpr *, TypeBase *> result,
 }
 
 TypeJoinExpr *TypeJoinExpr::createImpl(
-    ASTContext &ctx, llvm::PointerUnion<DeclRefExpr *, TypeBase *> varOrType,
+    ASTContext &ctx, toolchain::PointerUnion<DeclRefExpr *, TypeBase *> varOrType,
     ArrayRef<Expr *> elements, AllocationArena arena,
     SingleValueStmtExpr *SVE) {
   size_t size = totalSizeToAlloc<Expr *>(elements.size());
@@ -2968,7 +2974,7 @@ MacroExpansionDecl *MacroExpansionExpr::getSubstituteDecl() const {
   return SubstituteDecl;
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const ClosureExpr *CE) {
+void language::simple_display(toolchain::raw_ostream &out, const ClosureExpr *CE) {
   if (!CE) {
     out << "(null)";
     return;
@@ -2977,7 +2983,7 @@ void swift::simple_display(llvm::raw_ostream &out, const ClosureExpr *CE) {
   out << "closure";
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const DefaultArgumentExpr *expr) {
   if (!expr) {
     out << "(null)";
@@ -2990,20 +2996,20 @@ void swift::simple_display(llvm::raw_ostream &out,
   simple_display(out, expr->getDefaultArgsOwner().getDecl());
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const Expr *expr) {
   out << "expression";
 }
 
-SourceLoc swift::extractNearestSourceLoc(const ClosureExpr *expr) {
+SourceLoc language::extractNearestSourceLoc(const ClosureExpr *expr) {
   return expr->getLoc();
 }
 
-SourceLoc swift::extractNearestSourceLoc(const Expr *expr) {
+SourceLoc language::extractNearestSourceLoc(const Expr *expr) {
   return expr->getLoc();
 }
 
-// See swift/Basic/Statistic.h for declaration: this enables tracing Exprs, is
+// See language/Basic/Statistic.h for declaration: this enables tracing Exprs, is
 // defined here to avoid too much layering violation / circular linkage
 // dependency.
 
@@ -3110,7 +3116,7 @@ void AbstractClosureExpr::getIsolationCrossing(
     SmallVectorImpl<std::tuple<CapturedValue, unsigned, ApplyIsolationCrossing>>
         &foundIsolationCrossings) {
   /// For each capture...
-  for (auto pair : llvm::enumerate(getCaptureInfo().getCaptures())) {
+  for (auto pair : toolchain::enumerate(getCaptureInfo().getCaptures())) {
     auto capture = pair.value();
 
     // First check quickly if we have dynamic self metadata. This is Sendable
@@ -3118,7 +3124,7 @@ void AbstractClosureExpr::getIsolationCrossing(
     if (capture.isDynamicSelfMetadata())
       continue;
 
-    auto declIsolation = swift::getActorIsolation(capture.getDecl());
+    auto declIsolation = language::getActorIsolation(capture.getDecl());
 
     // Assert that we do not have an opaque value capture. These only appear in
     // TypeLowering and should never appear in the AST itself.

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the ConcreteDeclRef class, which provides a reference to
@@ -26,7 +27,7 @@
 #include "language/AST/SubstitutionMap.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 using namespace language;
 
 ConcreteDeclRef ConcreteDeclRef::getOverriddenDecl() const {
@@ -87,5 +88,5 @@ void ConcreteDeclRef::dump(raw_ostream &os) const {
 }
 
 void ConcreteDeclRef::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }

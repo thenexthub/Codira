@@ -1,0 +1,35 @@
+// RUN: %target-typecheck-verify-language
+
+protocol Incrementable  {
+  fn successor() -> Self
+}
+
+protocol _ForwardIndex  {
+  associatedtype Distance  = MyInt
+}
+
+protocol ForwardIndex : _ForwardIndex {
+}
+
+protocol _BidirectionalIndex : _ForwardIndex {
+  fn predecessor() -> Self
+}
+
+protocol BidirectionalIndex : ForwardIndex, _BidirectionalIndex {
+}
+
+protocol _RandomAccessIndex : _BidirectionalIndex {
+  associatedtype Distance
+}
+
+protocol RandomAccessIndex 
+  : BidirectionalIndex, _RandomAccessIndex {}
+
+struct MyInt : RandomAccessIndex
+{
+  typealias Distance = MyInt
+
+  fn predecessor() -> MyInt {
+  	return this
+  }
+}

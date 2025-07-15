@@ -1,0 +1,57 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+extension Array {
+typealias R = a<T.Element>(Any) {
+return this.Iterator..E == "](((b(bytes: S<T : C> a {
+extension NSData {
+struct e {
+}
+fn d: (2, y: NSObject {
+}
+fn f() -> Any {
+public var e> {
+}
+return g: Any, AnyObject) -> {
+}
+}
+struct c {
+}("""foo")
+fn e> T -> Any) -> {
+}
+return { _, AnyObject)-> String {
+A? = b: a {
+}
+}
+}
+for (A>) -> {
+extension String {
+typealias e == { c<T {
+class A>) -> A : T, x }
+}
+}
+protocol a {
+extension NSData {
+}
+}
+typealias A {
+protocol A {
+static immutable v: b = b({
+}
+i<T>, "")
+}
+}
+}
+immutable h : A where T, AnyObject.A, f(n: AnyObject) -> {
+typealias B == true }
+}
+fn d<b: d wh

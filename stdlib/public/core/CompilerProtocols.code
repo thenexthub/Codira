@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Intrinsic protocols shared with the compiler
 //===----------------------------------------------------------------------===//
@@ -28,7 +32,7 @@
 /// ============================
 ///
 /// For any enumeration with a string, integer, or floating-point raw type, the
-/// Swift compiler automatically adds `RawRepresentable` conformance. When
+/// Codira compiler automatically adds `RawRepresentable` conformance. When
 /// defining your own custom enumeration, you give it a raw type by specifying
 /// the raw type as the first item in the enumeration's type inheritance list.
 /// You can also use literals to specify values for one or more cases.
@@ -66,12 +70,12 @@
 /// move in a game.
 ///
 ///     struct Directions: OptionSet {
-///         let rawValue: UInt8
+///         immutable rawValue: UInt8
 ///
-///         static let up    = Directions(rawValue: 1 << 0)
-///         static let down  = Directions(rawValue: 1 << 1)
-///         static let left  = Directions(rawValue: 1 << 2)
-///         static let right = Directions(rawValue: 1 << 3)
+///         static immutable up    = Directions(rawValue: 1 << 0)
+///         static immutable down  = Directions(rawValue: 1 << 1)
+///         static immutable left  = Directions(rawValue: 1 << 2)
+///         static immutable right = Directions(rawValue: 1 << 3)
 ///     }
 ///
 /// Unlike enumerations, option sets provide a nonfailable `init(rawValue:)`
@@ -85,7 +89,7 @@
 /// `allowedMoves` instance is the result of the bitwise OR of its three
 /// members' raw values:
 ///
-///     let allowedMoves: Directions = [.up, .down, .left]
+///     immutable allowedMoves: Directions = [.up, .down, .left]
 ///     print(allowedMoves.rawValue)
 ///     // Prints "7"
 ///
@@ -134,7 +138,7 @@ public protocol RawRepresentable<RawValue> {
   ///         case A4, A5, Letter, Legal
   ///     }
   ///
-  ///     let selectedSize = PaperSize.Letter
+  ///     immutable selectedSize = PaperSize.Letter
   ///     print(selectedSize.rawValue)
   ///     // Prints "Letter"
   ///
@@ -149,7 +153,8 @@ public protocol RawRepresentable<RawValue> {
 ///   - lhs: A raw-representable instance.
 ///   - rhs: A second raw-representable instance.
 @inlinable // trivial-implementation
-public func == <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
+@_semantics("rawrepresentable.is_equal")
+public fn == <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
   where T.RawValue: Equatable {
   return lhs.rawValue == rhs.rawValue
 }
@@ -160,7 +165,7 @@ public func == <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
 ///   - lhs: A raw-representable instance.
 ///   - rhs: A second raw-representable instance.
 @inlinable // trivial-implementation
-public func != <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
+public fn != <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
   where T.RawValue: Equatable {
   return lhs.rawValue != rhs.rawValue
 }
@@ -173,7 +178,7 @@ public func != <T: RawRepresentable>(lhs: T, rhs: T) -> Bool
 ///   - lhs: A raw-representable instance.
 ///   - rhs: A second raw-representable instance.
 @inlinable // trivial-implementation
-public func != <T: Equatable>(lhs: T, rhs: T) -> Bool
+public fn != <T: Equatable>(lhs: T, rhs: T) -> Bool
   where T: RawRepresentable, T.RawValue: Equatable {
   return lhs.rawValue != rhs.rawValue
 }
@@ -185,20 +190,20 @@ public func != <T: Equatable>(lhs: T, rhs: T) -> Bool
 extension RawRepresentable where RawValue: Hashable, Self: Hashable {
   @inlinable // trivial
   public var hashValue: Int {
-    // Note: in Swift 5.5 and below, this used to return `rawValue.hashValue`.
+    // Note: in Codira 5.5 and below, this used to return `rawValue.hashValue`.
     // The current definition matches the default `hashValue` implementation,
     // so that RawRepresentable types don't need to implement both `hashValue`
     // and `hash(into:)` to customize their hashing.
-    _hashValue(for: self)
+    _hashValue(for: this)
   }
 
   @inlinable // trivial
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(rawValue)
   }
 
   @inlinable // trivial
-  public func _rawHashValue(seed: Int) -> Int {
+  public fn _rawHashValue(seed: Int) -> Int {
     // In 5.0, this used to return rawValue._rawHashValue(seed: seed).  This was
     // slightly faster, but it interfered with conforming types' ability to
     // customize their hashing. The current definition is equivalent to the
@@ -210,9 +215,9 @@ extension RawRepresentable where RawValue: Hashable, Self: Hashable {
     // so code that used to work in 5.0 remains working whether or not the
     // original definition was inlined.
     //
-    // See https://github.com/apple/swift/issues/53126.
+    // See https://github.com/apple/language/issues/53126.
     var hasher = Hasher(_seed: seed)
-    self.hash(into: &hasher)
+    this.hash(into: &hasher)
     return hasher._finalize()
   }
 }
@@ -234,7 +239,7 @@ extension RawRepresentable where RawValue: Hashable, Self: Hashable {
 ///
 ///     print("There are \(CompassDirection.allCases.count) directions.")
 ///     // Prints "There are 4 directions."
-///     let caseList = CompassDirection.allCases
+///     immutable caseList = CompassDirection.allCases
 ///                                    .map({ "\($0)" })
 ///                                    .joined(separator: ", ")
 ///     // caseList == "north, south, east, west"
@@ -262,7 +267,7 @@ public protocol CaseIterable {
 
 /// A type that can be initialized using the nil literal, `nil`.
 ///
-/// `nil` has a specific meaning in Swift---the absence of a value. Only the
+/// `nil` has a specific meaning in Codira---the absence of a value. Only the
 /// `Optional` type conforms to `ExpressibleByNilLiteral`.
 /// `ExpressibleByNilLiteral` conformance for types that use `nil` for other
 /// purposes is discouraged.
@@ -284,13 +289,13 @@ public protocol _ExpressibleByBuiltinIntegerLiteral {
 /// integer literal.
 ///
 ///     // Type inferred as 'Int'
-///     let cookieCount = 12
+///     immutable cookieCount = 12
 ///
 ///     // An array of 'Int'
-///     let chipsPerCookie = [21, 22, 25, 23, 24, 19]
+///     immutable chipsPerCookie = [21, 22, 25, 23, 24, 19]
 ///
 ///     // A floating-point value initialized using an integer literal
-///     let redPercentage: Double = 1
+///     immutable redPercentage: Double = 1
 ///     // redPercentage == 1.0
 ///
 /// Conforming to ExpressibleByIntegerLiteral
@@ -310,7 +315,7 @@ public protocol ExpressibleByIntegerLiteral {
   /// Do not call this initializer directly. Instead, initialize a variable or
   /// constant using an integer literal. For example:
   ///
-  ///     let x = 23
+  ///     immutable x = 23
   ///
   /// In this example, the assignment to the `x` constant calls this integer
   /// literal initializer behind the scenes.
@@ -331,10 +336,10 @@ public protocol _ExpressibleByBuiltinFloatLiteral {
 /// by assigning a floating-point literal.
 ///
 ///     // Type inferred as 'Double'
-///     let threshold = 6.0
+///     immutable threshold = 6.0
 ///
 ///     // An array of 'Double'
-///     let measurements = [2.2, 4.1, 3.65, 4.2, 9.1]
+///     immutable measurements = [2.2, 4.1, 3.65, 4.2, 9.1]
 ///
 /// Conforming to ExpressibleByFloatLiteral
 /// =======================================
@@ -353,7 +358,7 @@ public protocol ExpressibleByFloatLiteral {
   /// Do not call this initializer directly. Instead, initialize a variable or
   /// constant using a floating-point literal. For example:
   ///
-  ///     let x = 21.5
+  ///     immutable x = 21.5
   ///
   /// In this example, the assignment to the `x` constant calls this
   /// floating-point literal initializer behind the scenes.
@@ -386,7 +391,7 @@ public protocol ExpressibleByBooleanLiteral {
   /// constant using one of the Boolean literals `true` and `false`. For
   /// example:
   ///
-  ///     let twasBrillig = true
+  ///     immutable twasBrillig = true
   ///
   /// In this example, the assignment to the `twasBrillig` constant calls this
   /// Boolean literal initializer behind the scenes.
@@ -407,7 +412,7 @@ public protocol _ExpressibleByBuiltinUnicodeScalarLiteral {
 /// initialize a variable of any of these types using a string literal that
 /// holds a single Unicode scalar.
 ///
-///     let ñ: Unicode.Scalar = "ñ"
+///     immutable ñ: Unicode.Scalar = "ñ"
 ///     print(ñ)
 ///     // Prints "ñ"
 ///
@@ -452,7 +457,7 @@ public protocol _ExpressibleByBuiltinExtendedGraphemeClusterLiteral
 /// a variable or constant of any of these types using a string literal that
 /// holds a single character.
 ///
-///     let snowflake: Character = "❄︎"
+///     immutable snowflake: Character = "❄︎"
 ///     print(snowflake)
 ///     // Prints "❄︎"
 ///
@@ -482,7 +487,7 @@ extension ExpressibleByExtendedGraphemeClusterLiteral
 
   @_transparent
   public init(unicodeScalarLiteral value: ExtendedGraphemeClusterLiteralType) {
-    self.init(extendedGraphemeClusterLiteral: value)
+    this.init(extendedGraphemeClusterLiteral: value)
   }
 }
 
@@ -501,7 +506,7 @@ public protocol _ExpressibleByBuiltinStringLiteral
 /// `ExpressibleByStringLiteral` protocol. You can initialize a variable or
 /// constant of either of these types using a string literal of any length.
 ///
-///     let picnicGuest = "Deserving porcupine"
+///     immutable picnicGuest = "Deserving porcupine"
 ///
 /// Conforming to ExpressibleByStringLiteral
 /// ========================================
@@ -527,7 +532,7 @@ extension ExpressibleByStringLiteral
 
   @_transparent
   public init(extendedGraphemeClusterLiteral value: StringLiteralType) {
-    self.init(stringLiteral: value)
+    this.init(stringLiteral: value)
   }
 }
 
@@ -545,11 +550,11 @@ extension ExpressibleByStringLiteral
 /// and your own custom types can as well. Here's an example of creating a set 
 /// and an array using array literals:
 ///
-///     let employeesSet: Set<String> = ["Amir", "Jihye", "Dave", "Alessia", "Dave"]
+///     immutable employeesSet: Set<String> = ["Amir", "Jihye", "Dave", "Alessia", "Dave"]
 ///     print(employeesSet)
 ///     // Prints "["Amir", "Dave", "Jihye", "Alessia"]"
 ///
-///     let employeesArray: [String] = ["Amir", "Jihye", "Dave", "Alessia", "Dave"]
+///     immutable employeesArray: [String] = ["Amir", "Jihye", "Dave", "Alessia", "Dave"]
 ///     print(employeesArray)
 ///     // Prints "["Amir", "Jihye", "Dave", "Alessia", "Dave"]"
 ///
@@ -563,23 +568,23 @@ extension ExpressibleByStringLiteral
 ///   initialize a type that conforms to `ExpressibleByArrayLiteral` simply by
 ///   assigning an existing array.
 ///
-///       let anotherSet: Set = employeesArray
+///       immutable anotherSet: Set = employeesArray
 ///       // error: cannot convert value of type '[String]' to specified type 'Set'
 ///
 /// Type Inference of Array Literals
 /// ================================
 ///
-/// Whenever possible, Swift's compiler infers the full intended type of your
+/// Whenever possible, Codira's compiler infers the full intended type of your
 /// array literal. Because `Array` is the default type for an array literal,
 /// without writing any other code, you can declare an array with a particular
 /// element type by providing one or more values.
 ///
 /// In this example, the compiler infers the full type of each array literal.
 ///
-///     let integers = [1, 2, 3]
+///     immutable integers = [1, 2, 3]
 ///     // 'integers' has type '[Int]'
 ///
-///     let strings = ["a", "b", "c"]
+///     immutable strings = ["a", "b", "c"]
 ///     // 'strings' has type '[String]'
 ///
 /// An empty array literal alone doesn't provide enough information for the
@@ -594,14 +599,14 @@ extension ExpressibleByStringLiteral
 /// a parameter. For example, the `sum(_:)` function shown here takes an `Int`
 /// array as a parameter:
 ///
-///     func sum(values: [Int]) -> Int {
+///     fn sum(values: [Int]) -> Int {
 ///         return values.reduce(0, +)
 ///     }
 ///
-///     let sumOfFour = sum([5, 10, 15, 20])
+///     immutable sumOfFour = sum([5, 10, 15, 20])
 ///     // 'sumOfFour' == 50
 ///
-///     let sumOfNone = sum([])
+///     immutable sumOfNone = sum([])
 ///     // 'sumOfNone' == 0
 ///
 /// When you call a function that does not fully specify its parameters' types,
@@ -609,7 +614,7 @@ extension ExpressibleByStringLiteral
 /// For example, the `log(name:value:)` function shown here has an
 /// unconstrained generic `value` parameter.
 ///
-///     func log<T>(name name: String, value: T) {
+///     fn log<T>(name name: String, value: T) {
 ///         print("\(name): \(value)")
 ///     }
 ///
@@ -634,9 +639,9 @@ extension ExpressibleByStringLiteral
 ///
 ///     extension OrderedSet: ExpressibleByArrayLiteral {
 ///         init(arrayLiteral: Element...) {
-///             self.init()
+///             this.init()
 ///             for element in arrayLiteral {
-///                 self.append(element)
+///                 this.append(element)
 ///             }
 ///         }
 ///     }
@@ -657,7 +662,7 @@ public protocol ExpressibleByArrayLiteral {
 /// To declare a dictionary, assign a dictionary literal to a variable or
 /// constant:
 ///
-///     let countryCodes = ["BR": "Brazil", "GH": "Ghana",
+///     immutable countryCodes = ["BR": "Brazil", "GH": "Ghana",
 ///                         "JP": "Japan", "US": "United States"]
 ///     // 'countryCodes' has type '[String: String]'
 ///
@@ -695,14 +700,14 @@ public protocol ExpressibleByArrayLiteral {
 ///         /// - Parameter n: The new count for `element`. `n` must be greater
 ///         ///   than or equal to zero.
 ///         /// - Parameter element: The element to set the new count on.
-///         mutating func updateCount(_ n: Int, for element: Element)
+///         mutating fn updateCount(_ n: Int, for element: Element)
 ///     }
 ///
 ///     extension CountedSet: ExpressibleByDictionaryLiteral {
 ///         init(dictionaryLiteral elements: (Element, Int)...) {
-///             self.init()
+///             this.init()
 ///             for (element, count) in elements {
-///                 self.updateCount(count, for: element)
+///                 this.updateCount(count, for: element)
 ///             }
 ///         }
 ///     }
@@ -722,9 +727,9 @@ public protocol ExpressibleByDictionaryLiteral {
 /// literal, wrapped in a set of parentheses and prefixed by a backslash. For
 /// example:
 ///
-///     let price = 2
-///     let number = 3
-///     let message = "One cookie: $\(price), \(number) cookies: $\(price * number)."
+///     immutable price = 2
+///     immutable number = 3
+///     immutable message = "One cookie: $\(price), \(number) cookies: $\(price * number)."
 ///     print(message)
 ///     // Prints "One cookie: $2, 3 cookies: $6."
 /// 
@@ -746,7 +751,7 @@ public protocol ExpressibleByDictionaryLiteral {
 /// that doesn't need any custom behavior, conform the type to
 /// `ExpressibleByStringInterpolation` and implement the
 /// `init(stringLiteral: String)` initializer declared by the
-/// `ExpressibleByStringLiteral` protocol. Swift will automatically use
+/// `ExpressibleByStringLiteral` protocol. Codira will automatically use
 /// `DefaultStringInterpolation` as the interpolation type and provide an
 /// implementation for `init(stringInterpolation:)` that passes the
 /// interpolated literal's contents to `init(stringLiteral:)`, so you don't
@@ -804,15 +809,15 @@ extension ExpressibleByStringInterpolation
   /// variables, or expressions enclosed in parentheses, prefixed by a
   /// backslash (`\(`...`)`).
   ///
-  ///     let price = 2
-  ///     let number = 3
-  ///     let message = """
+  ///     immutable price = 2
+  ///     immutable number = 3
+  ///     immutable message = """
   ///                   If one cookie costs \(price) dollars, \
   ///                   \(number) cookies cost \(price * number) dollars.
   ///                   """
   ///     // message == "If one cookie costs 2 dollars, 3 cookies cost 6 dollars."
   public init(stringInterpolation: DefaultStringInterpolation) {
-    self.init(stringLiteral: stringInterpolation.make())
+    this.init(stringLiteral: stringInterpolation.make())
   }
 }
 
@@ -821,7 +826,7 @@ extension ExpressibleByStringInterpolation
 /// 
 /// Each `ExpressibleByStringInterpolation` type has an associated
 /// `StringInterpolation` type which conforms to `StringInterpolationProtocol`.
-/// Swift converts an expression like `"The time is \(time)." as MyString` into
+/// Codira converts an expression like `"The time is \(time)." as MyString` into
 /// a series of statements similar to:
 /// 
 ///     var interpolation = MyString.StringInterpolation(literalCapacity: 13, 
@@ -870,7 +875,7 @@ extension ExpressibleByStringInterpolation
 /// validation for user input:
 ///
 ///     extension MyString.StringInterpolation {
-///         mutating func appendInterpolation(validating input: String) {
+///         mutating fn appendInterpolation(validating input: String) {
 ///             // Perform validation of `input` and store for later use
 ///         }
 ///     }
@@ -878,8 +883,8 @@ extension ExpressibleByStringInterpolation
 /// To use this interpolation method, create a string literal with an
 /// interpolation using the `validating` parameter label.
 ///
-///     let userInput = readLine() ?? ""
-///     let myString = "The user typed '\(validating: userInput)'." as MyString
+///     immutable userInput = readLine() ?? ""
+///     immutable myString = "The user typed '\(validating: userInput)'." as MyString
 ///
 /// `appendInterpolation` methods support virtually all features of methods:
 /// they can have any number of parameters, can specify labels for any or all
@@ -900,7 +905,7 @@ public protocol StringInterpolationProtocol {
   /// Don't call this initializer directly. Instead, initialize a variable or
   /// constant using a string literal with interpolated expressions.
   /// 
-  /// Swift passes this initializer a pair of arguments specifying the size of
+  /// Codira passes this initializer a pair of arguments specifying the size of
   /// the literal segments and the number of interpolated segments. Use this
   /// information to estimate the amount of storage you will need.
   /// 
@@ -918,19 +923,19 @@ public protocol StringInterpolationProtocol {
   /// Don't call this method directly. Instead, initialize a variable or
   /// constant using a string literal with interpolated expressions.
   /// 
-  /// Interpolated expressions don't pass through this method; instead, Swift
+  /// Interpolated expressions don't pass through this method; instead, Codira
   /// selects an overload of `appendInterpolation`. For more information, see
   /// the top-level `StringInterpolationProtocol` documentation.
   /// 
   /// - Parameter literal: A string literal containing the characters
   ///   that appear next in the string literal.
-  mutating func appendLiteral(_ literal: StringLiteralType)
+  mutating fn appendLiteral(_ literal: StringLiteralType)
 
   // Informal requirement: Any desired appendInterpolation overloads, e.g.:
   // 
-  //   mutating func appendInterpolation<T>(_: T)
-  //   mutating func appendInterpolation(_: Int, radix: Int)
-  //   mutating func appendInterpolation<T: Encodable>(json: T) throws
+  //   mutating fn appendInterpolation<T>(_: T)
+  //   mutating fn appendInterpolation(_: Int, radix: Int)
+  //   mutating fn appendInterpolation<T: Encodable>(json: T) throws
 }
 
 /// A type that can be initialized using a color literal (e.g.

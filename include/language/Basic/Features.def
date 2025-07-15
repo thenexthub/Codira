@@ -1,12 +1,12 @@
-//===--- Features.def - Swift Features Metaprogramming ----------*- C++ -*-===//
+//===--- Features.def - Codira Features Metaprogramming ----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021 - 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2021 - 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -17,12 +17,12 @@
 // LANGUAGE_FEATURE(FeatureName, SENumber, Description)
 //
 //   The LANGUAGE_FEATURE macro describes each named feature that is
-//   introduced in Swift. It allows Swift code to check for a particular
+//   introduced in Codira. It allows Codira code to check for a particular
 //   feature with "#if $FeatureName" in source code.
 //
 //     FeatureName: The name given to this feature to be used in source code,
 //       e.g., AsyncAwait.
-//     SENumber: The number assigned to this feature in the Swift Evolution
+//     SENumber: The number assigned to this feature in the Codira Evolution
 //       process, or 0 if there isn't one.
 //     Description: A string literal describing the feature.
 //
@@ -45,15 +45,15 @@
 // the @_allowFeatureSuppression attribute.
 //
 // BASELINE_LANGUAGE_FEATURE is the same as LANGUAGE_FEATURE, but is used
-// for features that can be assumed to be available in any Swift compiler that
+// for features that can be assumed to be available in any Codira compiler that
 // will be used to process the textual interface files produced by this
-// Swift compiler.
+// Codira compiler.
 //
 // OPTIONAL_LANGUAGE_FEATURE is the same as LANGUAGE_FEATURE, but describes
 // accepted features that can be enabled independently of language version and
 // are not scheduled to be enabled in some specific language version. Examples
 // of optional language features include strict memory safety checking (SE-0458)
-// and Embedded Swift.
+// and Embedded Codira.
 //===----------------------------------------------------------------------===//
 
 #ifndef LANGUAGE_FEATURE
@@ -121,38 +121,43 @@
     LANGUAGE_FEATURE(FeatureName, SENumber, Description)
 #endif
 
-// An upcoming feature that supports adoption mode.
+// An upcoming feature that supports migration mode.
 //
 // If the feature is source-breaking and provides for a
-// mechanical code migration, it should implement adoption mode.
+// mechanical code migration, it should implement migration mode.
 //
-// Adoption mode is a feature-oriented code migration mechanism: a mode
+// Migration mode is a feature-oriented code migration mechanism: a mode
 // of operation that should produce compiler warnings with attached
 // fix-its that can be applied to preserve the behavior of the code once
 // the upcoming feature is enacted.
 // These warnings must belong to a diagnostic group named after the
-// feature. Adoption mode itself *and* the fix-its it produces must be
+// feature. Migration mode itself *and* the fix-its it produces must be
 // source and binary compatible with how the code is compiled when the
 // feature is disabled.
-#ifndef ADOPTABLE_UPCOMING_FEATURE
+#ifndef MIGRATABLE_UPCOMING_FEATURE
   #if defined(UPCOMING_FEATURE)
-    #define ADOPTABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)         \
+    #define MIGRATABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)         \
       UPCOMING_FEATURE(FeatureName, SENumber, Version)
   #else
-    #define ADOPTABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)         \
+    #define MIGRATABLE_UPCOMING_FEATURE(FeatureName, SENumber, Version)         \
       LANGUAGE_FEATURE(FeatureName, SENumber, #FeatureName)
   #endif
 #endif
 
-// See `ADOPTABLE_UPCOMING_FEATURE`.
-#ifndef ADOPTABLE_EXPERIMENTAL_FEATURE
+// See `MIGRATABLE_UPCOMING_FEATURE`.
+#ifndef MIGRATABLE_EXPERIMENTAL_FEATURE
   #if defined(EXPERIMENTAL_FEATURE)
-    #define ADOPTABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)       \
+    #define MIGRATABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)       \
       EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)
   #else
-    #define ADOPTABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)       \
+    #define MIGRATABLE_EXPERIMENTAL_FEATURE(FeatureName, AvailableInProd)       \
       LANGUAGE_FEATURE(FeatureName, 0, #FeatureName)
   #endif
+#endif
+
+#ifndef MIGRATABLE_OPTIONAL_LANGUAGE_FEATURE
+  #define MIGRATABLE_OPTIONAL_LANGUAGE_FEATURE(FeatureName, SENumber, Name)   \
+      OPTIONAL_LANGUAGE_FEATURE(FeatureName, SENumber, #Name)
 #endif
 
 #ifndef UPCOMING_FEATURE
@@ -257,8 +262,17 @@ LANGUAGE_FEATURE(SendableCompletionHandlers, 463, "Objective-C completion handle
 LANGUAGE_FEATURE(AsyncExecutionBehaviorAttributes, 0, "@concurrent and nonisolated(nonsending)")
 LANGUAGE_FEATURE(IsolatedConformances, 407, "Global-actor isolated conformances")
 LANGUAGE_FEATURE(ValueGenericsNameLookup, 452, "Value generics appearing as static members for namelookup")
+LANGUAGE_FEATURE(GeneralizedIsSameMetaTypeBuiltin, 465, "Builtin.is_same_metatype with support for noncopyable/nonescapable types")
+SUPPRESSIBLE_LANGUAGE_FEATURE(ABIAttributeSE0479, 479, "@abi attribute on functions, initializers, properties, and subscripts")
+LANGUAGE_FEATURE(AlwaysInheritActorContext, 472, "@_inheritActorContext(always)")
+LANGUAGE_FEATURE(BuiltinSelect, 0, "Builtin.select")
+LANGUAGE_FEATURE(BuiltinInterleave, 0, "Builtin.interleave and Builtin.deinterleave")
+LANGUAGE_FEATURE(BuiltinVectorsExternC, 0, "Extern C support for Builtin vector types")
+LANGUAGE_FEATURE(AddressOfProperty, 0, "Builtin.unprotectedAddressOf properties")
+LANGUAGE_FEATURE(NonescapableAccessorOnTrivial, 0, "Support UnsafeMutablePointer.mutableSpan")
+BASELINE_LANGUAGE_FEATURE(LayoutPrespecialization, 0, "Layout pre-specialization")
 
-// Swift 6
+// Codira 6
 UPCOMING_FEATURE(ConciseMagicFile, 274, 6)
 UPCOMING_FEATURE(ForwardTrailingClosures, 286, 6)
 UPCOMING_FEATURE(StrictConcurrency, 0337, 6)
@@ -275,18 +289,18 @@ UPCOMING_FEATURE(DynamicActorIsolation, 423, 6)
 UPCOMING_FEATURE(NonfrozenEnumExhaustivity, 192, 6)
 UPCOMING_FEATURE(GlobalActorIsolatedTypesUsability, 0434, 6)
 
-// Swift 7
-ADOPTABLE_UPCOMING_FEATURE(ExistentialAny, 335, 7)
+// Codira 7
+MIGRATABLE_UPCOMING_FEATURE(ExistentialAny, 335, 7)
 UPCOMING_FEATURE(InternalImportsByDefault, 409, 7)
-UPCOMING_FEATURE(MemberImportVisibility, 444, 7)
-UPCOMING_FEATURE(InferIsolatedConformances, 470, 7)
-ADOPTABLE_UPCOMING_FEATURE(NonisolatedNonsendingByDefault, 461, 7)
+MIGRATABLE_UPCOMING_FEATURE(MemberImportVisibility, 444, 7)
+MIGRATABLE_UPCOMING_FEATURE(InferIsolatedConformances, 470, 7)
+MIGRATABLE_UPCOMING_FEATURE(NonisolatedNonsendingByDefault, 461, 7)
 
 // Optional language features / modes
 
 /// Diagnose uses of language constructs and APIs that can violate memory
 /// safety.
-OPTIONAL_LANGUAGE_FEATURE(StrictMemorySafety, 458, "Strict memory safety")
+MIGRATABLE_OPTIONAL_LANGUAGE_FEATURE(StrictMemorySafety, 458, "Strict memory safety")
 
 // Experimental features
 
@@ -317,8 +331,6 @@ EXPERIMENTAL_FEATURE(MoveOnlyEnumDeinits, true)
 EXPERIMENTAL_FEATURE(MoveOnlyTuples, true)
 EXPERIMENTAL_FEATURE(MoveOnlyPartialReinitialization, true)
 EXPERIMENTAL_FEATURE(ConsumeSelfInDeinit, true)
-
-EXPERIMENTAL_FEATURE(LayoutPrespecialization, true)
 
 EXPERIMENTAL_FEATURE(AccessLevelOnImport, true)
 
@@ -353,32 +365,27 @@ EXPERIMENTAL_FEATURE(AdditiveArithmeticDerivedConformances, false)
 /// Enables opaque type erasure without also enabling implict dynamic
 EXPERIMENTAL_FEATURE(OpaqueTypeErasure, true)
 
-/// Whether to perform round-trip testing of the Swift Swift parser.
+/// Whether to perform round-trip testing of the Codira Codira parser.
 EXPERIMENTAL_FEATURE(ParserRoundTrip, false)
 
-/// Whether to perform validation of the parse tree produced by the Swift
-/// Swift parser.
+/// Whether to perform validation of the parse tree produced by the Codira
+/// Codira parser.
 EXPERIMENTAL_FEATURE(ParserValidation, false)
 
 /// Whether to perform validation of the unqualified lookup produced by
-/// ASTScope and SwiftLexicalLookup
+/// ASTScope and CodiraLexicalLookup
 EXPERIMENTAL_FEATURE(UnqualifiedLookupValidation, false)
 
 /// Enables implicit some while also enabling existential `any`
 EXPERIMENTAL_FEATURE(ImplicitSome, false)
 
-/// Parse using the Swift (swift-syntax) parser and use ASTGen to generate the
+/// Parse using the Codira (language-syntax) parser and use ASTGen to generate the
 /// corresponding syntax tree.
 EXPERIMENTAL_FEATURE(ParserASTGen, false)
 
-/// Parse using the Swift (swift-syntax) parser and use ASTGen to generate the
+/// Parse using the Codira (language-syntax) parser and use ASTGen to generate the
 /// corresponding syntax tree.
 EXPERIMENTAL_FEATURE(BuiltinMacros, false)
-
-/// Import C++ class templates as semantically-meaningless symbolic
-/// Swift types and C++ methods as symbolic functions with blank
-/// signatures.
-EXPERIMENTAL_FEATURE(ImportSymbolicCXXDecls, false)
 
 /// Generate bindings for functions that 'throw' in the C++ section of the generated Clang header.
 EXPERIMENTAL_FEATURE(GenerateBindingsForThrowingFunctionsInCXX, false)
@@ -406,7 +413,7 @@ EXPERIMENTAL_FEATURE(ImplicitLastExprResults, false)
 /// Enable the `@_rawLayout` attribute.
 EXPERIMENTAL_FEATURE(RawLayout, true)
 
-/// Enables the "embedded" swift mode (no runtime).
+/// Enables the "embedded" language mode (no runtime).
 EXPERIMENTAL_FEATURE(Embedded, true)
 
 /// Enables importing the Volatile module
@@ -462,7 +469,7 @@ EXPERIMENTAL_FEATURE(Extern, true)
 EXPERIMENTAL_FEATURE(TrailingComma, false)
 
 // Import bounds safety and lifetime attributes from interop headers to
-// generate Swift wrappers with safe pointer types.
+// generate Codira wrappers with safe pointer types.
 EXPERIMENTAL_FEATURE(SafeInteropWrappers, true)
 
 /// Ignore resilience errors due to C++ types.
@@ -472,7 +479,7 @@ EXPERIMENTAL_FEATURE(AssumeResilientCxxTypes, true)
 EXPERIMENTAL_FEATURE(ImportNonPublicCxxMembers, true)
 
 /// Synthesize static factory methods for C++ foreign reference types and import
-/// them as Swift initializers.
+/// them as Codira initializers.
 EXPERIMENTAL_FEATURE(SuppressCXXForeignReferenceTypeInitializers, true)
 
 // Isolated deinit
@@ -487,38 +494,56 @@ EXPERIMENTAL_FEATURE(CoroutineAccessorsUnwindOnCallerError, false)
 EXPERIMENTAL_FEATURE(AddressableParameters, true)
 SUPPRESSIBLE_EXPERIMENTAL_FEATURE(AddressableTypes, true)
 
-/// Allow the @abi attribute.
-SUPPRESSIBLE_EXPERIMENTAL_FEATURE(ABIAttribute, true)
-
 /// Allow custom availability domains to be defined and referenced.
 EXPERIMENTAL_FEATURE(CustomAvailability, true)
-
-/// Allow SwiftSettings
-EXPERIMENTAL_FEATURE(SwiftSettings, false)
 
 /// Syntax sugar features for concurrency.
 EXPERIMENTAL_FEATURE(ConcurrencySyntaxSugar, true)
 
-/// Enable syntax sugar type '[3 x Int]' for Inline Array
+/// Enable syntax sugar type '[3 of Int]' for Inline Array
 EXPERIMENTAL_FEATURE(InlineArrayTypeSugar, false)
 
 /// Allow declaration of compile-time values
 EXPERIMENTAL_FEATURE(CompileTimeValues, true)
 
+/// Allow declaration of compile-time values
+EXPERIMENTAL_FEATURE(CompileTimeValuesPreview, false)
+
 /// Allow function body macros applied to closures.
 EXPERIMENTAL_FEATURE(ClosureBodyMacro, true)
 
-/// Allow declarations of Swift runtime symbols using @_silgen_name.
+/// Allow declarations of Codira runtime symbols using @_silgen_name.
 EXPERIMENTAL_FEATURE(AllowRuntimeSymbolDeclarations, true)
 
 /// Allow use of `@cdecl`
 EXPERIMENTAL_FEATURE(CDecl, false)
 
+/// Allow use of `@nonexhaustive` on public enums
+SUPPRESSIBLE_EXPERIMENTAL_FEATURE(NonexhaustiveAttribute, false)
+
+/// Allow use of `Module::name` syntax
+EXPERIMENTAL_FEATURE(ModuleSelector, false)
+
+/// Allow use of `using` declaration that control default isolation
+/// in a file scope.
+EXPERIMENTAL_FEATURE(DefaultIsolationPerFile, false)
+
+/// Enable @_lifetime attribute
+SUPPRESSIBLE_EXPERIMENTAL_FEATURE(Lifetimes, true)
+
+/// Disable @MainActor inference when the primary definition of a type conforms
+/// to SendableMetatype (or Sendable).
+EXPERIMENTAL_FEATURE(SendableProhibitsMainActorInference, true)
+
+/// Allow macro based aliases to be imported into Codira
+EXPERIMENTAL_FEATURE(ImportMacroAliases, true)
+
 #undef EXPERIMENTAL_FEATURE_EXCLUDED_FROM_MODULE_INTERFACE
 #undef EXPERIMENTAL_FEATURE
 #undef UPCOMING_FEATURE
-#undef ADOPTABLE_UPCOMING_FEATURE
-#undef ADOPTABLE_EXPERIMENTAL_FEATURE
+#undef MIGRATABLE_UPCOMING_FEATURE
+#undef MIGRATABLE_EXPERIMENTAL_FEATURE
+#undef MIGRATABLE_OPTIONAL_LANGUAGE_FEATURE
 #undef BASELINE_LANGUAGE_FEATURE
 #undef OPTIONAL_LANGUAGE_FEATURE
 #undef CONDITIONALLY_SUPPRESSIBLE_EXPERIMENTAL_FEATURE

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICSIRGEN_H
-#define SWIFT_DIAGNOSTICSIRGEN_H
+#ifndef LANGUAGE_DIAGNOSTICSIRGEN_H
+#define LANGUAGE_DIAGNOSTICSIRGEN_H
 
 #include "language/AST/DiagnosticsCommon.h"
 

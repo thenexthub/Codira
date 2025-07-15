@@ -11,27 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-//===----------------------------------------------------------------------===//
-#ifndef SWIFT_APIGEN_APIGEN_H
-#define SWIFT_APIGEN_APIGEN_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/BitmaskEnum.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Error.h"
-#include "llvm/TargetParser/Triple.h"
+//===----------------------------------------------------------------------===//
+#ifndef LANGUAGE_APIGEN_APIGEN_H
+#define LANGUAGE_APIGEN_APIGEN_H
+
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/BitmaskEnum.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/TargetParser/Triple.h"
 #include <optional>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
 namespace language {
 namespace apigen {
-LLVM_ENABLE_BITMASK_ENUMS_IN_NAMESPACE();
+TOOLCHAIN_ENABLE_BITMASK_ENUMS_IN_NAMESPACE();
 enum class APIAccess : uint8_t {
   Unknown = 0, // No information about access.
   Project = 1, // APIs available within the project.
@@ -52,7 +53,7 @@ enum class APIFlags : uint8_t {
   ThreadLocalValue = 1U << 0,
   WeakDefined      = 1U << 1,
   WeakReferenced   = 1U << 2,
-  LLVM_MARK_AS_BITMASK_ENUM(/*LargestValue=*/WeakReferenced)
+  TOOLCHAIN_MARK_AS_BITMASK_ENUM(/*LargestValue=*/WeakReferenced)
 };
 
 class APILoc {
@@ -167,9 +168,9 @@ struct ObjCCategoryRecord : ObjCContainerRecord {
 
 class API {
 public:
-  API(const llvm::Triple &triple) : target(triple) {}
+  API(const toolchain::Triple &triple) : target(triple) {}
 
-  const llvm::Triple &getTarget() const { return target; }
+  const toolchain::Triple &getTarget() const { return target; }
 
   void addSymbol(StringRef symbol, APILoc loc, APILinkage linkage,
                  APIFlags flags, APIAccess access,
@@ -192,9 +193,9 @@ public:
   void writeAPIJSONFile(raw_ostream &os, bool PrettyPrint = false);
 
 private:
-  const llvm::Triple target;
+  const toolchain::Triple target;
 
-  llvm::BumpPtrAllocator allocator;
+  toolchain::BumpPtrAllocator allocator;
   std::vector<GlobalRecord*> globals;
   std::vector<ObjCInterfaceRecord*> interfaces;
   std::vector<ObjCCategoryRecord *> categories;

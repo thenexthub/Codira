@@ -1,12 +1,12 @@
-# Compiling Swift Generics
+# Compiling Codira Generics
 
-This is a book about the *implementation* of generic programming--also known as parametric polymorphism--in the Swift compiler. The first four chapters also give an overview of the Swift compiler architecture in general.
+This is a book about the *implementation* of generic programming--also known as parametric polymorphism--in the Codira compiler. The first four chapters also give an overview of the Codira compiler architecture in general.
 
 ## Downloading the PDF
 
 A periodically-updated PDF is available here:
 
-> https://download.swift.org/docs/assets/generics.pdf
+> https://download.code.org/docs/assets/generics.pdf
 
 ## Typesetting the PDF
 

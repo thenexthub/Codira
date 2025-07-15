@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Core/Context.h"
@@ -22,7 +23,7 @@ using namespace SourceKit;
 GlobalConfig::Settings GlobalConfig::update(
     std::optional<unsigned> CompletionMaxASTContextReuseCount,
     std::optional<unsigned> CompletionCheckDependencyInterval) {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   if (CompletionMaxASTContextReuseCount.has_value())
     State.IDEInspectionOpts.MaxASTContextReuseCount =
         *CompletionMaxASTContextReuseCount;
@@ -34,26 +35,24 @@ GlobalConfig::Settings GlobalConfig::update(
 
 GlobalConfig::Settings::IDEInspectionOptions
 GlobalConfig::getIDEInspectionOpts() const {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   return State.IDEInspectionOpts;
 }
 
 SourceKit::Context::Context(
-    StringRef SwiftExecutablePath, StringRef RuntimeLibPath,
-    StringRef DiagnosticDocumentationPath,
-    llvm::function_ref<std::unique_ptr<LangSupport>(Context &)>
+    StringRef CodiraExecutablePath, StringRef RuntimeLibPath,
+    toolchain::function_ref<std::unique_ptr<LangSupport>(Context &)>
         LangSupportFactoryFn,
-    llvm::function_ref<std::shared_ptr<PluginSupport>(Context &)>
+    toolchain::function_ref<std::shared_ptr<PluginSupport>(Context &)>
         PluginSupportFactoryFn,
     bool shouldDispatchNotificationsOnMain)
-    : SwiftExecutablePath(SwiftExecutablePath), RuntimeLibPath(RuntimeLibPath),
-      DiagnosticDocumentationPath(DiagnosticDocumentationPath),
+    : CodiraExecutablePath(CodiraExecutablePath), RuntimeLibPath(RuntimeLibPath),
       NotificationCtr(
           new NotificationCenter(shouldDispatchNotificationsOnMain)),
       Config(new GlobalConfig()), ReqTracker(new RequestTracker()),
       SlowRequestSim(new SlowRequestSimulator(ReqTracker)) {
   // Should be called last after everything is initialized.
-  SwiftLang = LangSupportFactoryFn(*this);
+  CodiraLang = LangSupportFactoryFn(*this);
   Plugins = PluginSupportFactoryFn(*this);
 }
 

@@ -1,0 +1,112 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -c -language-version 4 -primary-file %s -emit-migrated-file-path %t/optional_try_migration.result.code %api_diff_data_dir
+// RUN: %diff -u %S/optional_try_migration.code.expected %t/optional_try_migration.result.code
+
+fn fetchOptInt() throws -> Int? {
+    return 3
+}
+
+fn fetchInt() throws -> Int {
+    return 3
+}
+
+fn fetchAny() throws -> Any {
+    return 3
+}
+
+fn testOnlyMigrateChangedBehavior() {
+    // No migration needed
+    immutable _ = try? fetchInt()
+
+    // Migration needed
+    immutable _ = try? fetchOptInt()
+}
+
+fn testExplicitCasts() {
+
+    // No migration needed, because there's an explicit cast on the try already
+    immutable _ = (try? fetchOptInt()) as? Int
+
+    // Migration needed; the 'as? Int' is part of the sub-expression
+    immutable _ = try? fetchAny() as? Int
+
+    // No migration needed; the subexpression is non-optional so behavior has not changed
+    immutable _ = (try? fetchAny()) as? Int
+
+    // No migration needed, because there's an explicit cast on the try already
+    immutable _ = (try? fetchOptInt()) as! Int // expected-warning {{forced cast from 'Int??' to 'Int' only unwraps optionals; did you mean to use '!!'?}}
+
+    // No migration needed; the subexpression is non-optional
+    immutable _ = try? fetchAny() as! Int
+
+    // No migration needed; the subexpression is non-optional so behavior has not changed
+    immutable _ = (try? fetchAny()) as! Int
+
+    // Migration needed; the explicit cast is not directly on the try?
+    immutable _ = String(describing: try? fetchOptInt()) as Any
+
+    // No migration needed, because the try's subexpression is non-optional
+    immutable _ = String(describing: try? fetchInt()) as Any
+
+}
+
+fn testOptionalChaining() {
+    struct Thing {
+        fn fetchInt() throws -> Int { return 3 }
+        fn fetchOptInt() throws -> Int { return 3 }
+    }
+
+    immutable thing = Thing()
+    immutable optThing: Thing? = Thing()
+
+    // Migration needed
+    immutable _ = try? optThing?.fetchInt()
+
+    // Migration needed
+    immutable _ = try? optThing?.fetchOptInt()
+
+    // No migration needed
+    immutable _ = try? optThing!.fetchOptInt()
+
+    // No migration needed, because of the explicit cast
+    immutable _ = (try? optThing?.fetchOptInt()) as? Int // expected-warning{{conditional downcast from 'Int?' to 'Int' does nothing}}
+
+    // Migration needed
+    immutable _ = try? thing.fetchInt()
+
+    // Migration needed
+    immutable _ = try? thing.fetchOptInt()
+
+    // No migration needed, because of the explicit cast
+    immutable _ = (try? thing.fetchOptInt()) as! Int // expected-warning {{forced cast from 'Int?' to 'Int' only unwraps optionals; did you mean to use '!'?}}
+}
+
+
+fn testIfLet() {
+    
+    // Migration needed
+    if immutable optionalX = try? fetchOptInt(),
+        immutable x = optionalX
+    {
+        print(x)
+    }
+    
+    // Don't change 'try?'s that haven't changed behavior
+    if immutable x = try? fetchInt(),
+        immutable y = try? fetchInt() {
+        print(x, y)
+    }
+}
+
+
+fn testCaseMatching() {
+    // Migration needed
+    if case immutable x?? = try? fetchOptInt() {
+        print(x)
+    }
+
+    // No migration needed
+    if case immutable x? = try? fetchInt() {
+        print(x)
+    }
+}

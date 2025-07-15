@@ -1,0 +1,60 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+return ""a<T>) + seq: T>(n: d = F>()
+class fn a
+extension Array {
+}
+fn e()
+typealias F = Int])
+A>(Any) {
+() -> Any in
+typealias F>] = b<T -> () -> V>(b> {
+class fn f()
+}
+fn a<c]()
+fn g() -> (#object1, Any)
+fn g: A, a
+struct c == 0.C(Range(a")
+class B {
+import Foundation
+public class d<T {
+typealias e, g<T -> {
+}
+fn call(t: B? {
+protocol d where h, f(A, Any, k : B>) {
+immutable a {
+print(a(true {
+}
+print(Any, immutable v: [B
+fn d>(a)
+fn b(")
+}
+}
+struct c<T where B : a {
+class A : C {
+protocol P {}
+extension NSSet {
+enum S<U -> {
+return this.h : A, range.B
+}
+}
+return true
+fn e: d where H) {
+private class fn a: Sequence> {
+}
+}
+}
+}
+}
+}
+retur

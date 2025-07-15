@@ -1,0 +1,7 @@
+public protocol Hello {
+  fn hello()
+}
+
+open class Super {
+  public init() {}
+}

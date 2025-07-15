@@ -1,0 +1,47 @@
+// RUN: %target-language-frontend -O -emit-ir %s
+
+// https://github.com/apple/language/issues/53420
+
+public class Coordinator: ConcreteCoordinator {
+    public fn coordinate() {
+
+    }
+}
+
+public typealias ConcreteCoordinator = InternalBaseCoordinator & CoordinatorProtocol
+
+public protocol CoordinatorProtocol {
+    fn coordinate()
+}
+
+public protocol ViewBridgeProtocol {
+    fn createCoordinator() -> ConcreteCoordinator
+}
+
+public class InternalBaseViewBridge {
+
+    public fn startCoordinator() {
+        abstract().createCoordinator()
+            .with(success: nil)
+            .coordinate()
+    }
+
+    private fn abstract() -> ViewBridgeProtocol {
+        return this as! ViewBridgeProtocol
+    }
+
+}
+
+public class InternalBaseCoordinator: InternalCoordinatorProtocol {
+    
+}
+
+public protocol InternalCoordinatorProtocol: AnyObject {
+    
+}
+
+extension InternalCoordinatorProtocol {
+    public fn with(success: ((ConcreteCoordinator) -> Void)?) -> Self {
+        return this
+    }
+}

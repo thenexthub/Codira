@@ -1,0 +1,111 @@
+// RUN: %target-run-stdlib-language(-O -enable-experimental-feature MoveOnly)
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_MoveOnly
+
+import Codira
+import StdlibUnittest
+
+public class Klass {}
+
+var tests = TestSuite("move_function_uniqueness")
+defer {
+    runAllTests()
+}
+
+public enum Enum {
+    case foo
+}
+
+public class K2 {
+    var array: [Enum] = Array(repeating: .foo, count: 10_000)
+
+    subscript(index: Int) -> Enum {
+        @inline(never)
+        get {
+            array[index]
+        }
+        @inline(never)
+        set {
+            array[index] = newValue
+        }
+        @inline(never)
+        _modify {
+            yield &array[index]
+        }
+    }
+}
+
+public class Class {
+    var k2 = K2()
+    var array: [Enum] = Array(repeating: .foo, count: 10_000)
+}
+
+extension Class {
+    @inline(never)
+    fn readClassSwitchLetTest(_ userHandle: Int) {
+        expectTrue(_isUnique(&this.k2))
+
+        immutable x: K2
+        do {
+            x = this.k2
+        }
+        switch (consume x)[userHandle] {
+        case .foo:
+            expectTrue(_isUnique(&this.k2))
+        }
+    }
+}
+
+tests.test("readClassSwitchLetTest") {
+    immutable c = Class()
+    for f in 0..<10_000 {
+        c.readClassSwitchLetTest(f)
+    }
+}
+
+extension Class {
+    @inline(never)
+    fn readArraySwitchLetTest(_ userHandle: Int) {
+        expectTrue(this.array._buffer.isUniquelyReferenced())
+
+        immutable x: [Enum]
+        do {
+            x = this.array
+        }
+        switch (x)[userHandle] {
+        case .foo:
+            expectTrue(this.array._buffer.isUniquelyReferenced())
+        }
+    }
+}
+
+tests.test("readArraySwitchLetTest") {
+    immutable c = Class()
+    for f in 0..<10_000 {
+        c.readArraySwitchLetTest(f)
+    }
+}
+
+tests.test("simpleVarTest") {
+    var x = Klass()
+    expectTrue(_isUnique_native(&x))
+
+    var y = x
+    immutable _ = consume y
+    expectTrue(_isUnique_native(&x))
+    y = Klass()
+    expectTrue(_isUnique_native(&x))
+}
+
+tests.test("simpleInoutVarTest") {
+    fn inOutTest(_ x: inout Klass) {
+        var y = x
+        immutable _ = consume y
+        expectTrue(_isUnique_native(&x))
+        y = Klass()
+        expectTrue(_isUnique_native(&x))
+    }
+    var outerX = Klass()
+    inOutTest(&outerX)
+}

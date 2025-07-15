@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides high-level entry points that use constraint
@@ -37,14 +38,14 @@
 #include "language/IDE/TypeCheckCompletionCallback.h"
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/SolutionResult.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <iterator>
 #include <map>
 #include <memory>
@@ -59,7 +60,7 @@ using namespace constraints;
 //===----------------------------------------------------------------------===//
 #pragma mark Type variable implementation
 
-void TypeVariableType::Implementation::print(llvm::raw_ostream &OS) {
+void TypeVariableType::Implementation::print(toolchain::raw_ostream &OS) {
   PrintOptions PO;
   PO.PrintTypesForDebugging = true;
   getTypeVariable()->print(OS, PO);
@@ -207,6 +208,18 @@ bool TypeVariableType::Implementation::isCollectionLiteralType() const {
                      locator->directlyAt<DictionaryExpr>());
 }
 
+bool TypeVariableType::Implementation::isNumberLiteralType() const {
+  return locator && locator->directlyAt<NumberLiteralExpr>();
+}
+
+bool TypeVariableType::Implementation::isFunctionResult() const {
+  return locator && locator->isLastElement<LocatorPathElt::FunctionResult>();
+}
+
+bool TypeVariableType::Implementation::isTernary() const {
+  return locator && locator->directlyAt<TernaryExpr>();
+}
+
 void *operator new(size_t bytes, ConstraintSystem& cs,
                    size_t alignment) {
   return cs.getAllocator().Allocate(bytes, alignment);
@@ -312,7 +325,7 @@ Expr *ConstraintLocatorBuilder::trySimplifyToExpr() const {
 void ParentConditionalConformance::diagnoseConformanceStack(
     DiagnosticEngine &diags, SourceLoc loc,
     ArrayRef<ParentConditionalConformance> conformances) {
-  for (auto history : llvm::reverse(conformances)) {
+  for (auto history : toolchain::reverse(conformances)) {
     diags.diagnose(loc, diag::requirement_implied_by_conditional_conformance,
                    history.ConformingType, history.Protocol->getDeclaredInterfaceType());
   }
@@ -342,7 +355,16 @@ public:
     // closures.
     if (ExprDepth == 0) {
       auto isExprStmt = (E == Target.getAsExpr()) ? IsTopLevelExprStmt : false;
-      performSyntacticExprDiagnostics(E, Target.getDeclContext(), isExprStmt);
+
+      bool isConstInitExpr = false;
+      if (Target.isForInitialization()) {
+        if (auto initPattern = Target.getInitializationPattern())
+          if (auto namedPatternVarDecl = initPattern->getSingleVar())
+            isConstInitExpr = namedPatternVarDecl->isConstValue();
+      }
+
+      performSyntacticExprDiagnostics(E, Target.getDeclContext(), isExprStmt,
+                                      isConstInitExpr);
     }
     ExprDepth += 1;
     return Action::Continue(E);
@@ -447,6 +469,13 @@ TypeChecker::typeCheckTarget(SyntacticElementTarget &target,
 
   if (options.contains(TypeCheckExprFlags::DisableMacroExpansions))
     csOptions |= ConstraintSystemFlags::DisableMacroExpansions;
+
+  if (Context.TypeCheckerOpts.EnableConstraintSolverPerformanceHacks ||
+      evaluateOrDefault(Context.evaluator,
+                        ModuleHasTypeCheckerPerformanceHacksEnabledRequest{
+                            dc->getParentModule()},
+                        false))
+    csOptions |= ConstraintSystemFlags::EnablePerformanceHacks;
 
   ConstraintSystem cs(dc, csOptions, diagnosticTransaction);
 
@@ -602,7 +631,7 @@ Type TypeChecker::typeCheckParameterDefault(Expr *&defaultValue,
       if (auto *typeVar = findParam(GP))
         return typeVar;
 
-      auto *typeVar = cs.openGenericParameter(GP, locator);
+      auto *typeVar = cs.openGenericParameter(GP, locator, nullptr);
       genericParameters.emplace_back(GP, typeVar);
 
       return typeVar;
@@ -633,33 +662,49 @@ Type TypeChecker::typeCheckParameterDefault(Expr *&defaultValue,
   // Check whether generic parameters are only mentioned once in
   // the anchor's signature.
   {
-    auto anchorTy = anchor->getInterfaceType()->castTo<GenericFunctionType>();
+    auto anchorTy = anchor->getInterfaceType()->castTo<AnyFunctionType>();
 
-    // Reject if generic parameters are used in multiple different positions
-    // in the parameter list.
+    if (anchor->hasCurriedSelf())
+      anchorTy = anchorTy->getResult()->castTo<AnyFunctionType>();
 
-    llvm::SmallVector<unsigned, 2> affectedParams;
+    SmallPtrSet<CanType, 4> inferrableParams;
+    collectReferencedGenericParams(paramInterfaceTy, inferrableParams);
+
+    toolchain::SmallVector<unsigned, 2> affectedParams;
     for (unsigned i : indices(anchorTy->getParams())) {
-      const auto &param = anchorTy->getParams()[i];
 
-      if (containsTypes(param.getPlainType()))
-        affectedParams.push_back(i);
+      SmallPtrSet<CanType, 4> referencedGenericParams;
+      collectReferencedGenericParams(anchorTy->getParams()[i].getPlainType(), referencedGenericParams);
+
+      for (auto can : referencedGenericParams) {
+        if (can->is<GenericTypeParamType>() && inferrableParams.contains(can)) {
+          affectedParams.push_back(i);
+          break;
+        }
+      }
     }
 
     if (affectedParams.size() > 1) {
       SmallString<32> paramBuf;
-      llvm::raw_svector_ostream params(paramBuf);
+      toolchain::raw_svector_ostream params(paramBuf);
 
       interleave(
           affectedParams, [&](const unsigned index) { params << "#" << index; },
           [&] { params << ", "; });
 
-      ctx.Diags.diagnose(
+      auto diag = ctx.Diags.diagnose(
           defaultValue->getLoc(),
           diag::
               cannot_default_generic_parameter_inferrable_from_another_parameter,
           paramInterfaceTy, params.str());
-      return Type();
+
+      // In Codira 6.2 and below we incorrectly missed checking this rule for
+      // methods, downgrade to a warning until the next language mode.
+      auto futureVersion = version::Version::getFutureMajorLanguageVersion();
+      if (!anchor->hasCurriedSelf() || ctx.isCodiraVersionAtLeast(futureVersion))
+        return Type();
+
+      diag.warnUntilFutureCodiraVersion();
     }
   }
 
@@ -679,14 +724,14 @@ Type TypeChecker::typeCheckParameterDefault(Expr *&defaultValue,
       cs.openGenericRequirement(DC->getParent(), signature, index, requirement,
                                 /*skipSelfProtocolConstraint=*/false, locator,
                                 [&](Type type) -> Type {
-                                  return cs.openType(type, genericParameters,
-                                                     locator);
-                                });
+                                  return cs.openType(type, genericParameters, locator,
+                                                     /*preparedOverload=*/nullptr);
+                                }, /*preparedOverload=*/nullptr);
     };
 
     auto diagnoseInvalidRequirement = [&](Requirement requirement) {
       SmallString<32> reqBuf;
-      llvm::raw_svector_ostream req(reqBuf);
+      toolchain::raw_svector_ostream req(reqBuf);
 
       requirement.print(req, PrintOptions());
 
@@ -702,7 +747,7 @@ Type TypeChecker::typeCheckParameterDefault(Expr *&defaultValue,
 
       switch (requirement.getKind()) {
       case RequirementKind::SameShape:
-        llvm_unreachable("Same-shape requirement not supported here");
+        toolchain_unreachable("Same-shape requirement not supported here");
 
       case RequirementKind::SameType: {
         auto lhsTy = requirement.getFirstType();
@@ -969,7 +1014,7 @@ bool TypeChecker::typeCheckExprPattern(ExprPattern *EP, DeclContext *DC,
 static Type openTypeParameter(ConstraintSystem &cs,
                               Type interfaceTy,
                               GenericEnvironment *env,
-                llvm::DenseMap<SubstitutableType *, TypeVariableType *> &types) {
+                toolchain::DenseMap<SubstitutableType *, TypeVariableType *> &types) {
   if (auto *memberTy = interfaceTy->getAs<DependentMemberType>()) {
     return DependentMemberType::get(
         openTypeParameter(cs, memberTy->getBase(), env, types),
@@ -1018,7 +1063,7 @@ static Type openTypeParameter(ConstraintSystem &cs,
 
 static Type replaceArchetypesWithTypeVariables(ConstraintSystem &cs,
                                                Type t) {
-  llvm::DenseMap<SubstitutableType *, TypeVariableType *> types;
+  toolchain::DenseMap<SubstitutableType *, TypeVariableType *> types;
 
   // FIXME: This operation doesn't really make sense with a generic function type.
   // We should open the signature instead.
@@ -1058,8 +1103,14 @@ bool TypeChecker::typesSatisfyConstraint(Type type1, Type type2,
                                          bool openArchetypes,
                                          ConstraintKind kind, DeclContext *dc,
                                          bool *unwrappedIUO) {
-  assert(!type1->hasTypeVariable() && !type2->hasTypeVariable() &&
-         "Unexpected type variable in constraint satisfaction testing");
+  // Don't allow any type variables to leak into the nested ConstraintSystem
+  // (including as originator types for placeholders). This also ensure that we
+  // avoid lifetime issues for e.g cases where we lazily populate the
+  // `ContextSubMap` on `NominalOrBoundGenericNominalType` in the nested arena,
+  // since it will be destroyed on leaving.
+  ASSERT(!type1->getRecursiveProperties().isSolverAllocated() &&
+         !type2->getRecursiveProperties().isSolverAllocated() &&
+         "Cannot escape solver-allocated types into a nested ConstraintSystem");
 
   ConstraintSystem cs(dc, ConstraintSystemOptions());
   if (openArchetypes) {
@@ -1179,8 +1230,8 @@ TypeChecker::addImplicitLoadExpr(ASTContext &Context, Expr *expr,
 
 Expr *
 TypeChecker::coerceToRValue(ASTContext &Context, Expr *expr,
-                            llvm::function_ref<Type(Expr *)> getType,
-                            llvm::function_ref<void(Expr *, Type)> setType) {
+                            toolchain::function_ref<Type(Expr *)> getType,
+                            toolchain::function_ref<void(Expr *, Type)> setType) {
   Type exprTy = getType(expr);
 
   // If expr has no type, just assume it's the right expr.
@@ -1305,7 +1356,7 @@ void OverloadChoice::dump(Type adjustedOpenedType, SourceManager *sm,
   }
 }
 
-void Solution::dump() const { dump(llvm::errs(), 0); }
+void Solution::dump() const { dump(toolchain::errs(), 0); }
 
 void Solution::dump(raw_ostream &out, unsigned indent) const {
   PrintOptions PO;
@@ -1320,7 +1371,7 @@ void Solution::dump(raw_ostream &out, unsigned indent) const {
   out.indent(indent) << "Type variables:\n";
   std::vector<std::pair<TypeVariableType *, Type>> bindings(
       typeBindings.begin(), typeBindings.end());
-  llvm::sort(bindings, [](const std::pair<TypeVariableType *, Type> &lhs,
+  toolchain::sort(bindings, [](const std::pair<TypeVariableType *, Type> &lhs,
                           const std::pair<TypeVariableType *, Type> &rhs) {
     return lhs.first->getID() < rhs.first->getID();
   });
@@ -1394,7 +1445,7 @@ void Solution::dump(raw_ostream &out, unsigned indent) const {
       out.indent(indent + 2);
       opened.first->dump(sm, out);
       out << " opens ";
-      llvm::interleave(
+      toolchain::interleave(
           opened.second.begin(), opened.second.end(),
           [&](OpenedType opened) {
             out << "'";
@@ -1453,11 +1504,11 @@ void Solution::dump(raw_ostream &out, unsigned indent) const {
 }
 
 void ConstraintSystem::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 void ConstraintSystem::dump(Expr *E) const {
-  print(llvm::errs(), E);
+  print(toolchain::errs(), E);
 }
 
 void ConstraintSystem::print(raw_ostream &out, Expr *E) const {
@@ -1511,7 +1562,7 @@ void ConstraintSystem::print(raw_ostream &out) const {
   out.indent(indent) << "Type Variables:\n";
   std::vector<TypeVariableType *> typeVariables(getTypeVariables().begin(),
                                                 getTypeVariables().end());
-  llvm::sort(typeVariables,
+  toolchain::sort(typeVariables,
              [](const TypeVariableType *lhs, const TypeVariableType *rhs) {
                return lhs->getID() < rhs->getID();
              });
@@ -1626,7 +1677,7 @@ void ConstraintSystem::print(raw_ostream &out) const {
       out.indent(indent + 2);
       opened.first->dump(&getASTContext().SourceMgr, out);
       out << " opens ";
-      llvm::interleave(
+      toolchain::interleave(
           opened.second.begin(), opened.second.end(),
           [&](OpenedType opened) {
             out << "'";
@@ -1851,7 +1902,7 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
       // Even though we know the elements cannot be downcast, we cannot return
       // Unresolved here as it's possible for an empty Array, Set or Dictionary
       // to be cast to any element type at runtime
-      // (https://github.com/apple/swift/issues/48744). The one exception
+      // (https://github.com/apple/language/issues/48744). The one exception
       // to this is when we're checking whether we can treat a coercion as a
       // checked cast because we don't want to tell the user to use as!, as it's
       // probably the wrong suggestion.
@@ -1859,12 +1910,12 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
         return CheckedCastKind::Unresolved;
       return castKind;
     }
-    llvm_unreachable("invalid cast type");
+    toolchain_unreachable("invalid cast type");
   };
 
   // Check for casts between specific concrete types that cannot succeed.
-  if (auto toElementType = toType->isArrayType()) {
-    if (auto fromElementType = fromType->isArrayType()) {
+  if (auto toElementType = toType->getArrayElementType()) {
+    if (auto fromElementType = fromType->getArrayElementType()) {
       return checkElementCast(fromElementType, toElementType,
                               CheckedCastKind::ArrayDowncast);
     }
@@ -1892,7 +1943,7 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
         // rationale.
         if (contextKind == CheckedCastContextKind::Coercion)
           return CheckedCastKind::Unresolved;
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
 
       case CheckedCastKind::ArrayDowncast:
       case CheckedCastKind::DictionaryDowncast:
@@ -1918,7 +1969,7 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
         // rationale.
         if (contextKind == CheckedCastContextKind::Coercion)
           return CheckedCastKind::Unresolved;
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
 
       case CheckedCastKind::ArrayDowncast:
       case CheckedCastKind::DictionaryDowncast:
@@ -1993,7 +2044,7 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
     auto conformsToAllProtocols = true;
     if (toArchetypeType) {
       auto archetype = toType->castTo<ArchetypeType>();
-      conformsToAllProtocols = llvm::all_of(archetype->getConformsTo(),
+      conformsToAllProtocols = toolchain::all_of(archetype->getConformsTo(),
         [&](ProtocolDecl *proto) {
           return checkConformance(fromType, proto,
                                   /*allowMissing=*/false);
@@ -2128,7 +2179,7 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
     // struct S {}
     // enum FooError: Error { case bar }
     //
-    // func foo() {
+    // fn foo() {
     //   do {
     //     throw FooError.bar
     //   } catch is X { /* Will always fail */
@@ -2146,7 +2197,7 @@ TypeChecker::typeCheckCheckedCast(Type fromType, Type toType,
       }
     } else if (auto protocolComposition =
                    constraint->getAs<ProtocolCompositionType>()) {
-      if (llvm::any_of(protocolComposition->getMembers(),
+      if (toolchain::any_of(protocolComposition->getMembers(),
                        [&](Type protocolType) {
                          if (auto protocolDecl = dyn_cast_or_null<ProtocolDecl>(
                                  protocolType->getAnyNominal())) {
@@ -2313,7 +2364,7 @@ static Expr *lookThroughBridgeFromObjCCall(ASTContext &ctx, Expr *expr) {
 
 /// If the expression has the effect of a forced downcast, find the
 /// underlying forced downcast expression.
-ForcedCheckedCastExpr *swift::findForcedDowncast(ASTContext &ctx, Expr *expr) {
+ForcedCheckedCastExpr *language::findForcedDowncast(ASTContext &ctx, Expr *expr) {
   expr = expr->getSemanticsProvidingExpr();
 
   // Look through a consume, just in case.
@@ -2370,7 +2421,7 @@ ForcedCheckedCastExpr *swift::findForcedDowncast(ASTContext &ctx, Expr *expr) {
   return nullptr;
 }
 
-bool swift::canAddExplicitConsume(constraints::Solution &sol,
+bool language::canAddExplicitConsume(constraints::Solution &sol,
                                   ModuleDecl *module,
                                   Expr *expr) {
   expr = expr->getSemanticsProvidingExpr();
@@ -2386,13 +2437,13 @@ bool swift::canAddExplicitConsume(constraints::Solution &sol,
 }
 
 void ConstraintSystem::forEachExpr(
-    Expr *expr, llvm::function_ref<Expr *(Expr *)> callback) {
+    Expr *expr, toolchain::function_ref<Expr *(Expr *)> callback) {
   struct ChildWalker : ASTWalker {
     ConstraintSystem &CS;
-    llvm::function_ref<Expr *(Expr *)> callback;
+    toolchain::function_ref<Expr *(Expr *)> callback;
 
     ChildWalker(ConstraintSystem &CS,
-                llvm::function_ref<Expr *(Expr *)> callback)
+                toolchain::function_ref<Expr *(Expr *)> callback)
         : CS(CS), callback(callback) {}
 
     MacroWalking getMacroWalkingBehavior() const override {
@@ -2419,4 +2470,12 @@ void ConstraintSystem::forEachExpr(
   };
 
   expr->walk(ChildWalker(*this, callback));
+}
+
+bool ModuleHasTypeCheckerPerformanceHacksEnabledRequest::evaluate(
+    Evaluator &evaluator, const ModuleDecl *module) const {
+  auto name = module->getRealName().str();
+  return module->getASTContext().blockListConfig.hasBlockListAction(
+      name, BlockListKeyKind::ModuleName,
+      BlockListAction::ShouldUseTypeCheckerPerfHacks);
 }

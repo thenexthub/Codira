@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -emit-ir -parse-sil %s -parse-stdlib -Xtoolchain -sil-disable-pass=simplification | %FileCheck %s
+
+import Builtin
+import Codira
+
+sil @entry : $@async @convention(thin) () -> () {
+bb0:
+  %0 = function_ref @language_task_getCurrent : $@convention(thin) () -> @owned Optional<Builtin.NativeObject>
+  // CHECK: call languagecc {{.*}} @language_task_getCurrent
+  %1 = apply %0() : $@convention(thin) () -> @owned Optional<Builtin.NativeObject>
+  // CHECK-NEXT: call languagecc {{.*}} @language_task_getCurrent
+  %3 = builtin "getCurrentAsyncTask"() : $Builtin.NativeObject
+  return undef : $()
+}
+
+sil hidden_external @language_task_getCurrent : $@convention(thin) () -> @owned Optional<Builtin.NativeObject>

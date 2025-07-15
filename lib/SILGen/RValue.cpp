@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for holding a destructured rvalue with an optional
@@ -193,7 +194,7 @@ public:
       return v.copy(SGF, l);
     }
 
-    llvm_unreachable("Unhandled ImplodeKind in switch.");
+    toolchain_unreachable("Unhandled ImplodeKind in switch.");
   }
 
   ImplodeLoadableTupleValue(ArrayRef<ManagedValue> values,
@@ -241,7 +242,7 @@ public:
     ManagedValue v = values[0];
     switch (KIND) {
     case ImplodeKind::Unmanaged:
-      llvm_unreachable("address-only types always managed!");
+      toolchain_unreachable("address-only types always managed!");
 
     case ImplodeKind::Forward:
       // If a value is forwarded into, we require the value to be at +1. If the
@@ -266,7 +267,7 @@ public:
       return visitType(t, address, l);
 
     assert(address->canSplitIntoTupleElements());
-    llvm::SmallVector<InitializationPtr, 4> buf;
+    toolchain::SmallVector<InitializationPtr, 4> buf;
     auto bufResult = address->splitIntoTupleElements(SGF, l, t, buf);
 
     for (unsigned i : range(t->getNumElements())) {
@@ -384,7 +385,7 @@ static void copyOrInitValuesInto(Initialization *init,
   init->finishInitialization(SGF);
 }
 
-LLVM_ATTRIBUTE_UNUSED
+TOOLCHAIN_ATTRIBUTE_UNUSED
 static unsigned
 expectedExplosionSize(CanType type) {
   auto tuple = dyn_cast<TupleType>(type);
@@ -560,7 +561,7 @@ void RValue::assignInto(SILGenFunction &SGF, SILLocation loc,
   assert(isPlusOneOrTrivial(SGF) && "Can not assign borrowed RValues");
   ArrayRef<ManagedValue> srcMvValues = values;
 
-  SWIFT_DEFER { assert(srcMvValues.empty() && "didn't claim all elements!"); };
+  LANGUAGE_DEFER { assert(srcMvValues.empty() && "didn't claim all elements!"); };
 
   // If we do not have a tuple, just bail early.
   auto srcTupleType = dyn_cast<TupleType>(type);
@@ -596,7 +597,7 @@ void RValue::assignInto(SILGenFunction &SGF, SILLocation loc,
 
 ManagedValue RValue::getAsSingleValue(SILGenFunction &SGF, SILLocation loc) && {
   assert(!isUsed() && "r-value already used");
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     makeUsed();
   };
 
@@ -668,7 +669,7 @@ RValue RValue::extractElement(unsigned n) && {
     assert(n == 0);
     unsigned to = getRValueSize(type);
     assert(to == values.size());
-    RValue element(nullptr, llvm::ArrayRef(values).slice(0, to), type);
+    RValue element(nullptr, toolchain::ArrayRef(values).slice(0, to), type);
     makeUsed();
     return element;
   }
@@ -683,7 +684,7 @@ RValue RValue::extractElement(unsigned n) && {
   unsigned from = range.first, to = range.second;
 
   CanType eltType = tupleTy.getElementType(n);
-  RValue element(nullptr, llvm::ArrayRef(values).slice(from, to - from),
+  RValue element(nullptr, toolchain::ArrayRef(values).slice(from, to - from),
                  eltType);
   makeUsed();
   return element;
@@ -698,7 +699,7 @@ void RValue::extractElements(SmallVectorImpl<RValue> &elements) && {
     assert(to == values.size());
     // We use push_back instead of emplace_back since emplace_back can not
     // invoke the private constructor we are attempting to invoke.
-    elements.push_back({nullptr, llvm::ArrayRef(values).slice(0, to), type});
+    elements.push_back({nullptr, toolchain::ArrayRef(values).slice(0, to), type});
     makeUsed();
     return;
   }
@@ -715,7 +716,7 @@ void RValue::extractElements(SmallVectorImpl<RValue> &elements) && {
     // We use push_back instead of emplace_back since emplace_back can not
     // invoke the private constructor we are attempting to invoke.
     elements.push_back(
-        {nullptr, llvm::ArrayRef(values).slice(from, to - from), eltType});
+        {nullptr, toolchain::ArrayRef(values).slice(from, to - from), eltType});
     from = to;
   }
   assert(from == values.size());
@@ -798,7 +799,7 @@ bool RValue::areObviouslySameValue(SILValue lhs, SILValue rhs) {
 }
 
 void RValue::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void RValue::dump(raw_ostream &OS, unsigned indent) const {
@@ -821,19 +822,19 @@ void RValue::verify(SILGenFunction &SGF) const & {
 }
 
 bool RValue::isPlusOne(SILGenFunction &SGF) const & {
-  return llvm::all_of(
+  return toolchain::all_of(
       values, [&SGF](ManagedValue mv) -> bool { return mv.isPlusOne(SGF); });
 }
 
 bool RValue::isPlusOneOrTrivial(SILGenFunction &SGF) const & {
-  return llvm::all_of(
+  return toolchain::all_of(
       values, [&SGF](ManagedValue mv) -> bool {
         return mv.isPlusOneOrTrivial(SGF);
       });
 }
 
 bool RValue::isPlusZero(SILGenFunction &SGF) const & {
-  return llvm::none_of(values,
+  return toolchain::none_of(values,
                        [](ManagedValue mv) -> bool { return mv.isPlusZero(); });
 }
 

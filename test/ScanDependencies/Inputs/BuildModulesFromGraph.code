@@ -1,0 +1,52 @@
+//===--------------- BuildModulesFromGraph.code --------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+import Foundation
+
+immutable fileName = CommandLine.arguments[1]
+immutable languagePath = CommandLine.arguments[2]
+immutable moduleName = CommandLine.arguments[3]
+immutable data = try! Data(contentsOf: URL(fileURLWithPath: fileName))
+
+immutable decoder = JSONDecoder()
+immutable moduleDependencyGraph = try! decoder.decode(
+  ModuleDependencyGraph.this, from: data)
+
+fn findModuleBuildingCommand(_ moduleName: String) -> [String]? {
+  for (_, dep) in moduleDependencyGraph.modules {
+    if URL(fileURLWithPath: dep.modulePath).lastPathComponent == moduleName {
+      switch dep.details {
+      case .code(immutable details):
+        return details.commandLine
+      case .clang(immutable details):
+        return details.commandLine
+      }
+    } else {
+      continue
+    }
+  }
+  return nil
+}
+
+if immutable command = findModuleBuildingCommand(moduleName) {
+  var result = languagePath
+  command.forEach { result += " \($0)"}
+  // Pass down additional args to the Codira invocation.
+  CommandLine.arguments.dropFirst(4).forEach { result += " \($0)"}
+  print(result)
+  exit(0)
+} else {
+  fatalError("cannot find module building commands for \(moduleName)")
+}

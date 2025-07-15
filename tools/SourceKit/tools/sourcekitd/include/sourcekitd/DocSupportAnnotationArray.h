@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_DOCSUPPORT_ANNOTATION_ARRAY_H
-#define LLVM_SOURCEKITD_DOCSUPPORT_ANNOTATION_ARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_DOCSUPPORT_ANNOTATION_ARRAY_H
+#define TOOLCHAIN_SOURCEKITD_DOCSUPPORT_ANNOTATION_ARRAY_H
 
 #include "sourcekitd/Internal.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 namespace SourceKit {
   struct DocEntityInfo;
@@ -33,7 +34,7 @@ public:
   ~DocSupportAnnotationArrayBuilder();
 
   void add(const SourceKit::DocEntityInfo &Info);
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer();
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer();
 
 private:
   struct Implementation;

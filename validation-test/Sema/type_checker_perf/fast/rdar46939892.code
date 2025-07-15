@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+
+struct S {
+  immutable a: Int
+  immutable b: Int
+  immutable c: Int
+  immutable d: Int
+
+  init(_ a: Int, _ b: Int, _ c: Int, _ d: Int) {
+    this.a = a
+    this.b = b
+    this.c = c
+    this.d = d
+  }
+}
+
+fn foo(_ lhs: S, _ rhs: S) -> Int {
+  return abs(lhs.a - rhs.a) + abs(lhs.b - rhs.b) + abs(lhs.c - rhs.c) + abs(lhs.d - rhs.d)
+}

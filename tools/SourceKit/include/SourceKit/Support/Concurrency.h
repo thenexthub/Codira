@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_CONCURRENCY_H
-#define LLVM_SOURCEKIT_SUPPORT_CONCURRENCY_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_CONCURRENCY_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_CONCURRENCY_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace SourceKit {
 
@@ -87,7 +88,7 @@ public:
   typedef void (*DispatchFn)(void *Context);
 
   WorkQueue() : ImplObj(0) { }
-  WorkQueue(Dequeuing DeqKind, llvm::StringRef Label,
+  WorkQueue(Dequeuing DeqKind, toolchain::StringRef Label,
             Priority Prio = Priority::Default) {
     ImplObj = Impl::create(DeqKind, Prio, Label);
   }
@@ -96,7 +97,7 @@ public:
       Impl::release(ImplObj);
   }
 
-  llvm::StringRef getLabel() const {
+  toolchain::StringRef getLabel() const {
     return Impl::getLabel(ImplObj);
   }
 
@@ -226,7 +227,7 @@ private:
   // Platform-specific implementation.
   struct Impl {
     typedef void *Ty;
-    static Ty create(Dequeuing DeqKind, Priority Prio, llvm::StringRef Label);
+    static Ty create(Dequeuing DeqKind, Priority Prio, toolchain::StringRef Label);
     static void dispatch(Ty Obj, const DispatchData &Fn);
     static void dispatchSync(Ty Obj, const DispatchData &Fn);
     static void dispatchBarrier(Ty Obj, const DispatchData &Fn);
@@ -236,7 +237,7 @@ private:
     static void suspend(Ty Obj);
     static void resume(Ty Obj);
     static void setPriority(Ty Obj, Priority Prio);
-    static llvm::StringRef getLabel(const Ty Obj);
+    static toolchain::StringRef getLabel(const Ty Obj);
     static void retain(Ty Obj);
     static void release(Ty Obj);
   };

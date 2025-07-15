@@ -1,0 +1,14 @@
+// REQUIRES: rdar81115750
+// REQUIRES: CPU=arm64,OS=macosx
+
+// Doesn't autolink compatibility library because target OS doesn't need it
+// RUN: %target-language-frontend -target arm64-apple-macosx10.14  -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=NO-FORCE-LOAD %s
+
+public fn foo() {}
+
+// NO-FORCE-LOAD-NOT: FORCE_LOAD
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibility50"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibility51"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibility52"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibility53"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibilityDynamicReplacements"}

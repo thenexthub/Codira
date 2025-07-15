@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// This file implements Swift markup AST nodes.
+/// This file implements Codira markup AST nodes.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -32,7 +33,7 @@ Document::Document(ArrayRef<MarkupASTNode*> Children)
 }
 
 Document *Document::create(MarkupContext &MC,
-                           ArrayRef<swift::markup::MarkupASTNode *> Children) {
+                           ArrayRef<language::markup::MarkupASTNode *> Children) {
   void *Mem = MC.allocate(totalSizeToAlloc<MarkupASTNode *>(Children.size()),
                           alignof(Document));
   return new (Mem) Document(Children);
@@ -154,7 +155,7 @@ Paragraph::Paragraph(ArrayRef<MarkupASTNode *> Children)
 }
 
 Paragraph *Paragraph::create(MarkupContext &MC,
-                             ArrayRef<swift::markup::MarkupASTNode *> Children) {
+                             ArrayRef<language::markup::MarkupASTNode *> Children) {
   void *Mem = MC.allocate(totalSizeToAlloc<MarkupASTNode *>(Children.size()),
                           alignof(Paragraph));
   return new (Mem) Paragraph(Children);
@@ -197,7 +198,7 @@ Emphasis::Emphasis(ArrayRef<MarkupASTNode *> Children)
 }
 
 Emphasis *Emphasis::create(MarkupContext &MC,
-                           ArrayRef<swift::markup::MarkupASTNode *> Children) {
+                           ArrayRef<language::markup::MarkupASTNode *> Children) {
   void *Mem = MC.allocate(totalSizeToAlloc<MarkupASTNode *>(Children.size()),
                           alignof(Emphasis));
   return new (Mem) Emphasis(Children);
@@ -210,7 +211,7 @@ Strong::Strong(ArrayRef<MarkupASTNode *> Children)
 }
 
 Strong *Strong::create(MarkupContext &MC,
-                       ArrayRef<swift::markup::MarkupASTNode *> Children) {
+                       ArrayRef<language::markup::MarkupASTNode *> Children) {
   void *Mem = MC.allocate(totalSizeToAlloc<MarkupASTNode *>(Children.size()),
                           alignof(Strong));
   return new (Mem) Strong(Children);
@@ -254,7 +255,7 @@ ArrayRef<MarkupASTNode *> MarkupASTNode::getChildren() {
 #include "language/Markup/ASTNodes.def"
   }
 
-  llvm_unreachable("Unhandled ASTNodeKind in switch.");
+  toolchain_unreachable("Unhandled ASTNodeKind in switch.");
 }
 
 ArrayRef<const MarkupASTNode *> MarkupASTNode::getChildren() const {
@@ -267,44 +268,44 @@ return cast<Id>(this)->getChildren();
 #include "language/Markup/ASTNodes.def"
   }
 
-  llvm_unreachable("Unhandled ASTNodeKind in switch.");
+  toolchain_unreachable("Unhandled ASTNodeKind in switch.");
 }
 
-void swift::markup::printInlinesUnder(const MarkupASTNode *Node,
-                                     llvm::raw_ostream &OS,
+void language::markup::printInlinesUnder(const MarkupASTNode *Node,
+                                     toolchain::raw_ostream &OS,
                                      bool PrintDecorators) {
   auto printChildren = [](const ArrayRef<const MarkupASTNode *> Children,
-                          llvm::raw_ostream &OS) {
+                          toolchain::raw_ostream &OS) {
     for (auto Child = Children.begin(); Child != Children.end(); ++Child)
-      swift::markup::printInlinesUnder(*Child, OS);
+      language::markup::printInlinesUnder(*Child, OS);
   };
 
   switch (Node->getKind()) {
-  case swift::markup::ASTNodeKind::HTML: {
+  case language::markup::ASTNodeKind::HTML: {
     auto H = cast<HTML>(Node);
     OS << H->getLiteralContent();
     break;
   }
-  case swift::markup::ASTNodeKind::InlineHTML: {
+  case language::markup::ASTNodeKind::InlineHTML: {
     auto IH = cast<InlineHTML>(Node);
     OS << IH->getLiteralContent();
     break;
   }
-  case swift::markup::ASTNodeKind::HRule:
+  case language::markup::ASTNodeKind::HRule:
     OS << '\n';
     break;
-  case swift::markup::ASTNodeKind::Text: {
+  case language::markup::ASTNodeKind::Text: {
     auto T = cast<Text>(Node);
     OS << T->getLiteralContent();
     break;
   }
-  case swift::markup::ASTNodeKind::SoftBreak:
+  case language::markup::ASTNodeKind::SoftBreak:
     OS << ' ';
     break;
-  case swift::markup::ASTNodeKind::LineBreak:
+  case language::markup::ASTNodeKind::LineBreak:
     OS << '\n';
     break;
-  case swift::markup::ASTNodeKind::Code: {
+  case language::markup::ASTNodeKind::Code: {
     auto C = cast<Code>(Node);
     if (PrintDecorators)
       OS << '`';
@@ -316,7 +317,7 @@ void swift::markup::printInlinesUnder(const MarkupASTNode *Node,
 
     break;
   }
-  case swift::markup::ASTNodeKind::CodeBlock: {
+  case language::markup::ASTNodeKind::CodeBlock: {
     auto CB = cast<CodeBlock>(Node);
     if (PrintDecorators) OS << "``";
 
@@ -326,14 +327,14 @@ void swift::markup::printInlinesUnder(const MarkupASTNode *Node,
 
     break;
   }
-  case swift::markup::ASTNodeKind::Emphasis: {
+  case language::markup::ASTNodeKind::Emphasis: {
     auto E = cast<Emphasis>(Node);
     if (PrintDecorators) OS << '*';
     printChildren(E->getChildren(), OS);
     if (PrintDecorators) OS << '*';
     break;
   }
-  case swift::markup::ASTNodeKind::Strong: {
+  case language::markup::ASTNodeKind::Strong: {
     auto S = cast<Strong>(Node);
     if (PrintDecorators) OS << "**";
     printChildren(S->getChildren(), OS);
@@ -346,10 +347,10 @@ void swift::markup::printInlinesUnder(const MarkupASTNode *Node,
   OS.flush();
 }
 
-swift::markup::MarkupASTNode *swift::markup::createSimpleField(
+language::markup::MarkupASTNode *language::markup::createSimpleField(
     MarkupContext &MC,
     StringRef Tag,
-    ArrayRef<swift::markup::MarkupASTNode *> Children) {
+    ArrayRef<language::markup::MarkupASTNode *> Children) {
   if (false) {
 
   }
@@ -358,10 +359,10 @@ swift::markup::MarkupASTNode *swift::markup::createSimpleField(
     return Id::create(MC, Children);                                           \
   }
 #include "language/Markup/SimpleFields.def"
-  llvm_unreachable("Given tag not for any simple markup field");
+  toolchain_unreachable("Given tag not for any simple markup field");
 }
 
-bool swift::markup::isAFieldTag(StringRef Tag) {
+bool language::markup::isAFieldTag(StringRef Tag) {
   if (false) {
 
   }
@@ -373,20 +374,20 @@ bool swift::markup::isAFieldTag(StringRef Tag) {
   return false;
 }
 
-void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
+void language::markup::dump(const MarkupASTNode *Node, toolchain::raw_ostream &OS,
                         unsigned indent) {
   auto dumpChildren = [](const ArrayRef<const MarkupASTNode *> Children,
-                         llvm::raw_ostream &OS, unsigned indent) {
+                         toolchain::raw_ostream &OS, unsigned indent) {
     OS << '\n';
     for (auto Child = Children.begin(); Child != Children.end(); ++Child) {
-      swift::markup::dump(*Child, OS, indent + 1);
+      language::markup::dump(*Child, OS, indent + 1);
       if (Child != Children.end() - 1)
         OS << '\n';
     }
   };
 
   auto simpleEscapingPrint = [](StringRef LiteralContent,
-                                llvm::raw_ostream &OS) {
+                                toolchain::raw_ostream &OS) {
     OS << "\"";
     for (auto C : LiteralContent) {
       switch (C) {
@@ -415,12 +416,12 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
 
   OS << '(';
   switch (Node->getKind()) {
-  case swift::markup::ASTNodeKind::Document: {
+  case language::markup::ASTNodeKind::Document: {
     OS << "Document: Children=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::InlineAttributes: {
+  case language::markup::ASTNodeKind::InlineAttributes: {
     auto A = cast<InlineAttributes>(Node);
     OS << "Attribute:";
     OS << " Attributes=" << A->getAttributes();
@@ -428,65 +429,65 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::BlockQuote: {
+  case language::markup::ASTNodeKind::BlockQuote: {
     OS << "BlockQuote: Children=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::List: {
+  case language::markup::ASTNodeKind::List: {
     auto L = cast<List>(Node);
     OS << "List: " << (L->isOrdered() ? "Ordered " : "Unordered ");
     OS << "Items=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::Item: {
+  case language::markup::ASTNodeKind::Item: {
     OS << "Item: Children=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::HTML: {
+  case language::markup::ASTNodeKind::HTML: {
     auto H = cast<HTML>(Node);
     OS << "HTML: Content=";
     simpleEscapingPrint(H->getLiteralContent(), OS);
     break;
   }
-  case swift::markup::ASTNodeKind::InlineHTML: {
+  case language::markup::ASTNodeKind::InlineHTML: {
     auto IH = cast<InlineHTML>(Node);
     OS << "InlineHTML: Content=";
     simpleEscapingPrint(IH->getLiteralContent(), OS);
     break;
   }
-  case swift::markup::ASTNodeKind::Paragraph: {
+  case language::markup::ASTNodeKind::Paragraph: {
     OS << "Paragraph: Children=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::Header: {
+  case language::markup::ASTNodeKind::Header: {
     auto H = cast<Header>(Node);
     OS << "Header: Level=" << H->getLevel();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::HRule: {
+  case language::markup::ASTNodeKind::HRule: {
     OS << "HRule";
     break;
   }
-  case swift::markup::ASTNodeKind::Text: {
+  case language::markup::ASTNodeKind::Text: {
     auto T = cast<Text>(Node);
     OS << "Text: Content=";
     simpleEscapingPrint(T->getLiteralContent(), OS);
     break;
   }
-  case swift::markup::ASTNodeKind::SoftBreak: {
+  case language::markup::ASTNodeKind::SoftBreak: {
     OS << "SoftBreak";
     break;
   }
-  case swift::markup::ASTNodeKind::LineBreak: {
+  case language::markup::ASTNodeKind::LineBreak: {
     OS << "LineBreak";
     break;
   }
-  case swift::markup::ASTNodeKind::CodeBlock: {
+  case language::markup::ASTNodeKind::CodeBlock: {
     auto CB = cast<CodeBlock>(Node);
     OS << "CodeBlock: ";
     OS << "Language=";
@@ -495,24 +496,24 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
     simpleEscapingPrint(CB->getLiteralContent(), OS);
     break;
   }
-  case swift::markup::ASTNodeKind::Code: {
+  case language::markup::ASTNodeKind::Code: {
     auto C = cast<Code>(Node);
     OS << "Code: Content=\"";
     simpleEscapingPrint(C->getLiteralContent(), OS);
     OS << "\"";
     break;
   }
-  case swift::markup::ASTNodeKind::Strong: {
+  case language::markup::ASTNodeKind::Strong: {
     OS << "Strong: Children=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::Emphasis: {
+  case language::markup::ASTNodeKind::Emphasis: {
     OS << "Emphasis: Children=" << Node->getChildren().size();
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::Link: {
+  case language::markup::ASTNodeKind::Link: {
     auto L = cast<Link>(Node);
     OS << "Link: Destination=";
     simpleEscapingPrint(L->getDestination(), OS);
@@ -520,7 +521,7 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::Image: {
+  case language::markup::ASTNodeKind::Image: {
     auto I = cast<Image>(Node);
     OS << "Image: Destination=";
     simpleEscapingPrint(I->getDestination(), OS);
@@ -528,7 +529,7 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
     dumpChildren(Node->getChildren(), OS, indent + 1);
     break;
   }
-  case swift::markup::ASTNodeKind::ParamField: {
+  case language::markup::ASTNodeKind::ParamField: {
     auto PF = cast<ParamField>(Node);
     OS << "ParamField: Name=";
     simpleEscapingPrint(PF->getName(), OS);
@@ -538,7 +539,7 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
   }
 
 #define MARKUP_SIMPLE_FIELD(Id, Keyword, XMLKind) \
-  case swift::markup::ASTNodeKind::Id: { \
+  case language::markup::ASTNodeKind::Id: { \
     auto Field = cast<Id>(Node); \
     OS << #Id << ": Children=" << Field->getChildren().size(); \
     dumpChildren(Node->getChildren(), OS, indent + 1); \
@@ -547,7 +548,7 @@ void swift::markup::dump(const MarkupASTNode *Node, llvm::raw_ostream &OS,
 #include "language/Markup/SimpleFields.def"
 
   default:
-    llvm_unreachable("Can't dump Markup AST Node: unknown node kind");
+    toolchain_unreachable("Can't dump Markup AST Node: unknown node kind");
   }
   OS << ')';
 }

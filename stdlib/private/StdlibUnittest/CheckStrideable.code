@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-public func checkStrideable<S : Strideable>(
+public fn checkStrideable<S : Strideable>(
   instances: [S],
   distances: [S.Stride],
   distanceOracle: (Int, Int) -> S.Stride,
@@ -24,9 +25,9 @@ public func checkStrideable<S : Strideable>(
   file: String = #file, line: UInt = #line
 ) {
   for i in instances.indices {
-    let first = instances[i]
+    immutable first = instances[i]
     for j in instances.indices {
-      let second = instances[j]
+      immutable second = instances[j]
       expectEqual(distanceOracle(i, j), first.distance(to: second))
       expectEqual(second, first.advanced(by: distanceOracle(i, j)))
     }

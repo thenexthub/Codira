@@ -1,0 +1,13 @@
+// RUN: %target-language-ide-test -print-expr-type -fully-qualified-types -source-filename %S/Inputs/ExprType.code -language-version 5 | %FileCheck %s -check-prefix=CHECK-SUGAR
+// RUN: %target-language-ide-test -print-expr-type -fully-qualified-types -source-filename %S/Inputs/ExprType.code -language-version 5 -canonicalize-type | %FileCheck %s -check-prefix=CHECK-CANON
+
+// CHECK-SUGAR: fn foo() -> Int { return <expr type:"Codira.Int">1</expr> }
+// CHECK-SUGAR: fn bar(f: Float) -> Float { return <expr type:"Codira.Float"><expr type:"(Codira.Float) -> Codira.Float">bar</expr>(f: <expr type:"Codira.Float">1</expr>)</expr> }
+// CHECK-SUGAR: fn fooP(_ p: P) { <expr type:"()"><expr type:"(any language_ide_test.P) -> ()">fooP</expr>(<expr type:"any language_ide_test.P">p</expr>)</expr> }
+// CHECK-SUGAR: <expr type:"()"><expr type:"Codira.Int">_</expr> = <expr type:"Codira.Int"><expr type:"[language_ide_test.C]">a</expr>.count</expr></expr>
+// CHECK-SUGAR: <expr type:"()"><expr type:"Codira.String">_</expr> = <expr type:"Codira.String"><expr type:"Codira.Int"><expr type:"(Codira.Int) -> Codira.Int"><expr type:"Codira.Int"><expr type:"Codira.String"><expr type:"[language_ide_test.C]">a</expr>.description</expr>.count</expr>.<expr type:"(Codira.Int) -> (Codira.Int) -> Codira.Int">advanced</expr></expr>(by: <expr type:"Codira.Int">1</expr>)</expr>.description</expr></expr>
+// CHECK-SUGAR: <expr type:"()"><expr type:"Codira.Int?">_</expr> = <expr type:"Codira.Int?"><expr type:"Codira.Int"><expr type:"(Codira.Int) -> Codira.Int"><expr type:"Codira.Int"><expr type:"language_ide_test.S"><expr type:"language_ide_test.S?"><expr type:"[Codira.Int : language_ide_test.S]">a</expr>[<expr type:"Codira.Int">2</expr>]</expr>?</expr>.val</expr>.<expr type:"(Codira.Int) -> (Codira.Int) -> Codira.Int">advanced</expr></expr>(by: <expr type:"Codira.Int">1</expr>)</expr>.byteSwapped</expr></expr>
+
+
+// CHECK-SUGAR: return <expr type:"language_ide_test.MyInt"><expr type:"language_ide_test.MyInt">a</expr> <expr type:"(Codira.Int, Codira.Int) -> Codira.Int">+</expr> <expr type:"language_ide_test.MyInt">b</expr></expr>
+// CHECK-CANON: return <expr type:"Codira.Int"><expr type:"Codira.Int">a</expr> <expr type:"(Codira.Int, Codira.Int) -> Codira.Int">+</expr> <expr type:"Codira.Int">b</expr></expr>

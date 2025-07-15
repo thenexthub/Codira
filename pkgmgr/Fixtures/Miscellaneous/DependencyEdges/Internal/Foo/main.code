@@ -1,3 +1,0 @@
-import Bar
-
-print(bar)

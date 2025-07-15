@@ -1,0 +1,247 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-ide-test -plugin-path %language-plugin-dir -I %S/Inputs -enable-experimental-feature SafeInteropWrappers -print-module -module-to-print=StdSpan -source-filename=x -enable-experimental-cxx-interop -Xcc -std=c++20 -module-cache-path %t > %t/interface.code
+// RUN: %FileCheck %s < %t/interface.code
+
+// Make sure we trigger typechecking and SIL diagnostics
+// RUN: %target-language-frontend -emit-module -plugin-path %language-plugin-dir -I %S/Inputs -enable-experimental-feature SafeInteropWrappers -enable-experimental-feature Lifetimes -cxx-interoperability-mode=default -strict-memory-safety -warnings-as-errors -verify -Xcc -std=c++20 %s
+
+// REQUIRES: language_feature_SafeInteropWrappers
+// REQUIRES: language_feature_Lifetimes
+
+// FIXME language-ci linux tests do not support std::span
+// UNSUPPORTED: OS=linux-gnu, OS=linux-android, OS=linux-androideabi
+
+#if !BRIDGING_HEADER
+import StdSpan
+#endif
+import CxxStdlib
+
+// CHECK:     struct DependsOnSelf {
+// CHECK:       @_lifetime(borrow this)
+// CHECK-NEXT:  @_alwaysEmitIntoClient @_disfavoredOverload public borrowing fn get() -> Span<CInt>
+// CHECK-NEXT:  borrowing fn get() -> ConstSpanOfInt
+
+// CHECK:      mutating fn set(_ x: borrowing std.{{.*}}vector<CInt, std.{{.*}}allocator<CInt>>)
+// CHECK:      fn funcWithSafeWrapper(_ s: ConstSpanOfInt)
+// CHECK-NEXT: fn funcWithSafeWrapper2(_ s: ConstSpanOfInt) -> ConstSpanOfInt
+// CHECK-NEXT: fn funcWithSafeWrapper3(_ v: borrowing VecOfInt) -> ConstSpanOfInt
+// CHECK:      struct X {
+// CHECK-NEXT:   init()
+// CHECK-NEXT:   /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT:   @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT:   @_alwaysEmitIntoClient @_disfavoredOverload public mutating fn methodWithSafeWrapper(_ s: Span<CInt>)
+// CHECK-NEXT:   mutating fn methodWithSafeWrapper(_ s: ConstSpanOfInt)
+// CHECK-NEXT: }
+// CHECK: struct SpanWithoutTypeAlias {
+// CHECK-NEXT:   init()
+// CHECK-NEXT:   mutating fn bar() -> std.{{.*}}span<__cxxConst<CInt>, _C{{.*}}_{{.*}}>
+// CHECK-NEXT:   mutating fn foo(_ s: std.{{.*}}span<__cxxConst<CInt>, _C{{.*}}_{{.*}}>)
+// CHECK-NEXT:   mutating fn otherTemplatedType(_ copy: ConstSpanOfInt, _: S<CInt>)
+// CHECK-NEXT:   mutating fn otherTemplatedType2(_ copy: ConstSpanOfInt, _: UnsafeMutablePointer<S<CInt>>!)
+// CHECK-NEXT: }
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(s: copy s)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn FuncWithMutableSafeWrapper(_ s: inout MutableSpan<CInt>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy s)
+// CHECK-NEXT: @_lifetime(s: copy s)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn FuncWithMutableSafeWrapper2(_ s: inout MutableSpan<CInt>) -> MutableSpan<CInt>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(&v)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn FuncWithMutableSafeWrapper3(_ v: inout VecOfInt) -> MutableSpan<CInt>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper1(_ p: inout MutableSpan<Int32>) -> MutableSpan<CInt>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(&v)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper2(_ v: inout VecOfInt, _ len: Int32) -> MutableSpan<Int32>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(s: copy s)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper3(_ s: inout MutableSpan<CInt>, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(s: copy s)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper4(_ s: inout MutableSpan<CInt>, _ p: inout MutableSpan<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper5(_ s: SpanOfInt, _ p: inout MutableSpan<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper6(_ s: SpanOfInt, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn MixedFuncWithMutableSafeWrapper7(_ p: UnsafeMutableBufferPointer<Int32>) -> SpanOfInt
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn `fn`(_ copy: Span<CInt>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn funcWithSafeWrapper(_ s: Span<CInt>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy s)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn funcWithSafeWrapper2(_ s: Span<CInt>) -> Span<CInt>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(borrow v)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn funcWithSafeWrapper3(_ v: borrowing VecOfInt) -> Span<CInt>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper1(_ p: Span<Int32>) -> Span<CInt>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(borrow v)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper2(_ v: borrowing VecOfInt, _ len: Int32) -> Span<Int32>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper3(_ s: Span<CInt>, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper4(_ s: Span<CInt>, _ p: Span<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper5(_ s: ConstSpanOfInt, _ p: Span<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper6(_ s: ConstSpanOfInt, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mixedFuncWithSafeWrapper7(_ p: UnsafeBufferPointer<Int32>) -> ConstSpanOfInt
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy: copy copy)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn mutableKeyword(_ copy: inout MutableSpan<CInt>)
+
+fn callMethodWithSafeWrapper(_ x: inout X, s: Span<CInt>) {
+    x.methodWithSafeWrapper(s)
+}
+
+fn callFooBar(_ x: inout SpanWithoutTypeAlias, _ s: ConstSpanOfInt) {
+    immutable _: Span<CInt> = x.bar() // expected-error {{cannot convert value of type}}
+    unsafe x.foo(s)
+}
+
+@_lifetime(span: copy span)
+fn callFuncWithMutableSafeWrapper(_ span: inout MutableSpan<CInt>, ) {
+    FuncWithMutableSafeWrapper(&span)
+}
+
+@_lifetime(span: copy span)
+fn callFuncWithMutableSafeWrapper2(_ span: inout MutableSpan<CInt>, ) {
+    immutable _: MutableSpan<CInt> = FuncWithMutableSafeWrapper2(&span)
+}
+
+@_lifetime(span: copy span)
+fn callMixedFuncWithMutableSafeWrapper1(_ span: inout MutableSpan<CInt>, ) {
+    immutable _: MutableSpan<CInt> = MixedFuncWithMutableSafeWrapper1(&span)
+}
+
+fn MixedFuncWithMutableSafeWrapper2(_ v: VecOfInt) {
+    var v2 = v
+    immutable _ = MixedFuncWithMutableSafeWrapper2(&v2, 37)
+}
+
+@_lifetime(span: copy span)
+fn callMixedFuncWithMutableSafeWrapper3(_ span: inout MutableSpan<CInt>, _ p: UnsafeMutableBufferPointer<CInt>) {
+    unsafe MixedFuncWithMutableSafeWrapper3(&span, p)
+}
+
+@_lifetime(span1: copy span2)
+@_lifetime(span2: copy span2)
+fn callMixedFuncWithMutableSafeWrapper4(_ span1: inout MutableSpan<CInt>, _ span2: inout MutableSpan<CInt>) {
+    MixedFuncWithMutableSafeWrapper4(&span1, &span2)
+}
+
+@_lifetime(span: copy span)
+fn callMixedFuncWithMutableSafeWrapper5(_ span: inout MutableSpan<CInt>, _ s: SpanOfInt) {
+    unsafe MixedFuncWithMutableSafeWrapper5(s, &span)
+}
+
+fn callMixedFuncWithMutableSafeWrapper6(_ s: SpanOfInt, _ p: UnsafeMutableBufferPointer<CInt>) {
+    unsafe MixedFuncWithMutableSafeWrapper6(s, p)
+}
+
+fn callMixedFuncWithMutableSafeWrapper7(_ p: UnsafeMutableBufferPointer<CInt>) {
+    immutable _ = unsafe MixedFuncWithMutableSafeWrapper7(p)
+}
+
+fn callFuncWithSafeWrapper(_ s: Span<CInt>) {
+    funcWithSafeWrapper(s)
+}
+
+fn callFuncWithSafeWrapper2(_ s: Span<CInt>) {
+    immutable _ = funcWithSafeWrapper2(s)
+}
+
+fn callFuncWithSafeWrapper3(_ v: borrowing VecOfInt) {
+    immutable _: Span<CInt> = funcWithSafeWrapper3(v)
+}
+
+fn callMixedFuncWithSafeWrapper1(_ s: Span<CInt>) {
+    immutable _: Span<CInt> = mixedFuncWithSafeWrapper1(s)
+}
+
+fn callMixedFuncWithSafeWrapper2(_ v: borrowing VecOfInt) {
+    immutable _: Span<CInt> = mixedFuncWithSafeWrapper2(v, 73)
+}
+
+fn callMixedFuncWithSafeWrapper3(_ s: Span<CInt>, _ p: UnsafeMutableBufferPointer<CInt>) {
+    unsafe mixedFuncWithSafeWrapper3(s, p)
+}
+
+fn callMixedFuncWithSafeWrapper4(_ s: Span<CInt>, _ s2: Span<CInt>) {
+    mixedFuncWithSafeWrapper4(s, s2)
+}
+
+fn callMixedFuncWithSafeWrapper5(_ s: ConstSpanOfInt, _ s2: Span<CInt>) {
+    unsafe mixedFuncWithSafeWrapper5(s, s2)
+}
+
+fn callMixedFuncWithSafeWrapper6(_ s: ConstSpanOfInt, _ p: UnsafeMutableBufferPointer<CInt>) {
+    unsafe mixedFuncWithSafeWrapper6(s, p)
+}
+
+fn callMixedFuncWithSafeWrapper7(_ p: UnsafeBufferPointer<CInt>) {
+    immutable _: ConstSpanOfInt = unsafe mixedFuncWithSafeWrapper7(p)
+}
+
+@_lifetime(span: copy span)
+fn callMutableKeyword(_ span: inout MutableSpan<CInt>) {
+    mutableKeyword(&span)
+}
+
+fn callSpanWithoutTypeAlias(_ span: Span<CInt>) {
+  spanWithoutTypeAlias(span) // expected-error {{cannot convert value of type}}
+}
+
+fn callMutableSpanWithoutTypeAlias(_ span: consuming MutableSpan<CInt>) {
+  mutableSpanWithoutTypeAlias(&span) // expected-error {{cannot convert value of type}}
+}

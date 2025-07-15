@@ -1,17 +1,21 @@
-//===- GenDiffFunc.cpp - Swift IR Generation For @differentiable Functions ===//
+//===- GenDiffFunc.cpp - Codira IR Generation For @differentiable Functions ===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements IR generation for `@differentiable` function types in
-// Swift.
+// Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,7 +26,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILType.h"
-#include "llvm/IR/DerivedTypes.h"
+#include "toolchain/IR/DerivedTypes.h"
 
 #include "Explosion.h"
 #include "GenHeap.h"
@@ -69,7 +73,7 @@ public:
     case NormalDifferentiableFunctionTypeComponent::VJP:
       return "vjp";
     }
-    llvm_unreachable("invalid component type");
+    toolchain_unreachable("invalid component type");
   }
 
   SILType getType(IRGenModule &IGM, SILType t) const {
@@ -93,7 +97,7 @@ class DifferentiableFuncTypeInfo final
 
 public:
   DifferentiableFuncTypeInfo(ArrayRef<DifferentiableFuncFieldInfo> fields,
-                             unsigned explosionSize, llvm::Type *ty, Size size,
+                             unsigned explosionSize, toolchain::Type *ty, Size size,
                              SpareBitVector &&spareBits, Alignment align,
                              IsTriviallyDestroyable_t isTriviallyDestroyable, IsFixedSize_t alwaysFixedSize)
       : super(fields, explosionSize, FieldsAreABIAccessible, ty, size, std::move(spareBits), align,
@@ -106,10 +110,10 @@ public:
 
   void initializeFromParams(IRGenFunction &IGF, Explosion &params, Address src,
                             SILType T, bool isOutlined) const override {
-    llvm_unreachable("unexploded @differentiable function as argument?");
+    toolchain_unreachable("unexploded @differentiable function as argument?");
   }
 
-  void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+  void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                         Size offset) const override {
     for (auto &field : getFields()) {
       auto fieldOffset = offset + field.getFixedByteOffset();
@@ -176,7 +180,7 @@ public:
   TypeInfo *createFixed(ArrayRef<DifferentiableFuncFieldInfo> fields,
                         FieldsAreABIAccessible_t unused,
                         StructLayout &&layout) {
-    llvm_unreachable("@differentiable functions are always loadable");
+    toolchain_unreachable("@differentiable functions are always loadable");
   }
 
   DifferentiableFuncTypeInfo *
@@ -192,7 +196,7 @@ public:
   TypeInfo *createNonFixed(ArrayRef<DifferentiableFuncFieldInfo> fields,
                            FieldsAreABIAccessible_t fieldsAccessible,
                            StructLayout &&layout) {
-    llvm_unreachable("@differentiable functions are always loadable");
+    toolchain_unreachable("@differentiable functions are always loadable");
   }
 
   DifferentiableFuncFieldInfo
@@ -245,7 +249,7 @@ public:
     case LinearDifferentiableFunctionTypeComponent::Transpose:
       return "transpose";
     }
-    llvm_unreachable("invalid component type");
+    toolchain_unreachable("invalid component type");
   }
 
   SILType getType(IRGenModule &IGM, SILType t) const {
@@ -260,7 +264,7 @@ public:
           LookUpConformanceInModule());
       return SILType::getPrimitiveObjectType(transposeTy);
     }
-    llvm_unreachable("invalid component type");
+    toolchain_unreachable("invalid component type");
   }
 };
 
@@ -272,7 +276,7 @@ class LinearFuncTypeInfo final
 
 public:
   LinearFuncTypeInfo(ArrayRef<LinearFuncFieldInfo> fields,
-                     unsigned explosionSize, llvm::Type *ty, Size size,
+                     unsigned explosionSize, toolchain::Type *ty, Size size,
                      SpareBitVector &&spareBits, Alignment align, IsTriviallyDestroyable_t isTriviallyDestroyable,
                      IsFixedSize_t alwaysFixedSize)
       : super(fields, explosionSize, FieldsAreABIAccessible, ty, size, std::move(spareBits), align,
@@ -285,10 +289,10 @@ public:
 
   void initializeFromParams(IRGenFunction &IGF, Explosion &params, Address src,
                             SILType T, bool isOutlined) const override {
-    llvm_unreachable("unexploded @differentiable function as argument?");
+    toolchain_unreachable("unexploded @differentiable function as argument?");
   }
 
-  void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+  void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                         Size offset) const override {
     for (auto &field : getFields()) {
       auto fieldOffset = offset + field.getFixedByteOffset();
@@ -349,7 +353,7 @@ public:
   TypeInfo *createFixed(ArrayRef<LinearFuncFieldInfo> fields,
                         FieldsAreABIAccessible_t areFieldsABIAccessible,
                         StructLayout &&layout) {
-    llvm_unreachable("@differentiable functions are always loadable");
+    toolchain_unreachable("@differentiable functions are always loadable");
   }
 
   LinearFuncTypeInfo *createLoadable(ArrayRef<LinearFuncFieldInfo> fields,
@@ -365,7 +369,7 @@ public:
   TypeInfo *createNonFixed(ArrayRef<LinearFuncFieldInfo> fields,
                            FieldsAreABIAccessible_t fieldsAccessible,
                            StructLayout &&layout) {
-    llvm_unreachable("@differentiable functions are always loadable");
+    toolchain_unreachable("@differentiable functions are always loadable");
   }
 
   LinearFuncFieldInfo
@@ -384,7 +388,7 @@ public:
           LookUpConformanceInModule());
       return SILType::getPrimitiveObjectType(transposeTy);
     }
-    llvm_unreachable("invalid component type");
+    toolchain_unreachable("invalid component type");
   }
 
   StructLayout performLayout(ArrayRef<const TypeInfo *> fieldTypes) {

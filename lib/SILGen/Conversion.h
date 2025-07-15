@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines the Conversion class as well as ConvertingInitialization.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_CONVERSION_H
-#define SWIFT_LOWERING_CONVERSION_H
+#ifndef LANGUAGE_LOWERING_CONVERSION_H
+#define LANGUAGE_LOWERING_CONVERSION_H
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/ExternalUnion.h"
@@ -92,7 +93,7 @@ public:
     case Reabstract:
       return false;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
   
   static bool isReabstractionKind(KindTy kind) {
@@ -110,7 +111,7 @@ public:
     case Subtype:
       return false;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
 private:
@@ -157,7 +158,7 @@ private:
     case Reabstract:
       return Members::indexOf<ReabstractionStorage>();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   ExternalUnion<KindTy, Members, getStorageIndexForKind> Types;
@@ -334,8 +335,8 @@ public:
 
   OptionalInjectionConversion adjustForInitialOptionalInjection() const;
 
-  void dump() const LLVM_ATTRIBUTE_USED;
-  void print(llvm::raw_ostream &out) const;
+  void dump() const TOOLCHAIN_ATTRIBUTE_USED;
+  void print(toolchain::raw_ostream &out) const;
 };
 
 /// Information about how to peephole two conversions.
@@ -600,7 +601,7 @@ public:
   void performPackExpansionInitialization(SILGenFunction &SGF,
                                           SILLocation loc,
                                           SILValue indexWithinComponent,
-                llvm::function_ref<void(Initialization *into)> fn) override;
+                toolchain::function_ref<void(Initialization *into)> fn) override;
 };
 
 } // end namespace Lowering

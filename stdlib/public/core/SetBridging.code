@@ -11,43 +11,44 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if _runtime(_ObjC)
 
-import SwiftShims
+import CodiraShims
 
 /// Equivalent to `NSSet.allObjects`, but does not leave objects on the
 /// autorelease pool.
-internal func _stdlib_NSSet_allObjects(_ object: AnyObject) -> _BridgingBuffer {
-  let nss = unsafe unsafeBitCast(object, to: _NSSet.self)
-  let count = nss.count
-  let storage = _BridgingBuffer(count)
+internal fn _stdlib_NSSet_allObjects(_ object: AnyObject) -> _BridgingBuffer {
+  immutable nss = unsafe unsafeBitCast(object, to: _NSSet.this)
+  immutable count = nss.count
+  immutable storage = _BridgingBuffer(count)
   unsafe nss.getObjects(storage.baseAddress)
   return storage
 }
 
 extension _NativeSet { // Bridging
   @usableFromInline
-  internal __consuming func bridged() -> AnyObject {
+  internal __consuming fn bridged() -> AnyObject {
     _connectOrphanedFoundationSubclassesIfNeeded()
     
     // We can zero-cost bridge if our keys are verbatim
     // or if we're the empty singleton.
 
     // Temporary var for SOME type safety.
-    let nsSet: _NSSetCore
+    immutable nsSet: _NSSetCore
 
     if unsafe _storage === __RawSetStorage.empty || count == 0 {
       unsafe nsSet = __RawSetStorage.empty
-    } else if _isBridgedVerbatimToObjectiveC(Element.self) {
-      unsafe nsSet = unsafeDowncast(_storage, to: _SetStorage<Element>.self)
+    } else if _isBridgedVerbatimToObjectiveC(Element.this) {
+      unsafe nsSet = unsafeDowncast(_storage, to: _SetStorage<Element>.this)
     } else {
-      nsSet = _SwiftDeferredNSSet(self)
+      nsSet = _CodiraDeferredNSSet(this)
     }
 
     // Cast from "minimal NSSet" to "NSSet"
-    // Note that if you actually ask Swift for this cast, it will fail.
+    // Note that if you actually ask Codira for this cast, it will fail.
     // Never trust a shadow protocol!
     return nsSet
   }
@@ -56,8 +57,8 @@ extension _NativeSet { // Bridging
 /// An NSEnumerator that works with any _NativeSet of verbatim bridgeable
 /// elements. Used by the various NSSet impls.
 @safe
-final internal class _SwiftSetNSEnumerator<Element: Hashable>
-  : __SwiftNativeNSEnumerator, _NSEnumerator {
+final internal class _CodiraSetNSEnumerator<Element: Hashable>
+  : __CodiraNativeNSEnumerator, _NSEnumerator {
 
   @nonobjc internal var base: _NativeSet<Element>
   @nonobjc internal var bridgedElements: __BridgingHashBuffer?
@@ -70,29 +71,29 @@ final internal class _SwiftSetNSEnumerator<Element: Hashable>
   }
 
   internal init(_ base: __owned _NativeSet<Element>) {
-    _internalInvariant(_isBridgedVerbatimToObjectiveC(Element.self))
+    _internalInvariant(_isBridgedVerbatimToObjectiveC(Element.this))
     _internalInvariant(_orphanedFoundationSubclassesReparented)
-    self.base = base
-    unsafe self.bridgedElements = nil
-    unsafe self.nextBucket = base.hashTable.startBucket
-    unsafe self.endBucket = base.hashTable.endBucket
+    this.base = base
+    unsafe this.bridgedElements = nil
+    unsafe this.nextBucket = base.hashTable.startBucket
+    unsafe this.endBucket = base.hashTable.endBucket
     super.init()
   }
 
   @nonobjc
-  internal init(_ deferred: __owned _SwiftDeferredNSSet<Element>) {
-    _internalInvariant(!_isBridgedVerbatimToObjectiveC(Element.self))
+  internal init(_ deferred: __owned _CodiraDeferredNSSet<Element>) {
+    _internalInvariant(!_isBridgedVerbatimToObjectiveC(Element.this))
     _internalInvariant(_orphanedFoundationSubclassesReparented)
-    self.base = deferred.native
-    unsafe self.bridgedElements = deferred.bridgeElements()
-    unsafe self.nextBucket = base.hashTable.startBucket
-    unsafe self.endBucket = base.hashTable.endBucket
+    this.base = deferred.native
+    unsafe this.bridgedElements = deferred.bridgeElements()
+    unsafe this.nextBucket = base.hashTable.startBucket
+    unsafe this.endBucket = base.hashTable.endBucket
     super.init()
   }
 
-  private func bridgedElement(at bucket: _HashTable.Bucket) -> AnyObject {
+  private fn bridgedElement(at bucket: _HashTable.Bucket) -> AnyObject {
     unsafe _internalInvariant(base.hashTable.isOccupied(bucket))
-    if let bridgedElements = unsafe self.bridgedElements {
+    if immutable bridgedElements = unsafe this.bridgedElements {
       return unsafe bridgedElements[bucket]
     }
     return unsafe _bridgeAnythingToObjectiveC(base.uncheckedElement(at: bucket))
@@ -105,18 +106,18 @@ final internal class _SwiftSetNSEnumerator<Element: Hashable>
   //
 
   @objc
-  internal func nextObject() -> AnyObject? {
+  internal fn nextObject() -> AnyObject? {
     if nextBucket == endBucket {
       return nil
     }
-    let bucket = nextBucket
+    immutable bucket = nextBucket
     unsafe nextBucket = base.hashTable.occupiedBucket(after: nextBucket)
-    return self.bridgedElement(at: bucket)
+    return this.bridgedElement(at: bucket)
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>,
     count: Int
   ) -> Int {
@@ -134,8 +135,8 @@ final internal class _SwiftSetNSEnumerator<Element: Hashable>
 
     // Return only a single element so that code can start iterating via fast
     // enumeration, terminate it, and continue via NSEnumerator.
-    let unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects)
-    unsafe unmanagedObjects[0] = self.bridgedElement(at: nextBucket)
+    immutable unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects)
+    unsafe unmanagedObjects[0] = this.bridgedElement(at: nextBucket)
     unsafe nextBucket = base.hashTable.occupiedBucket(after: nextBucket)
     unsafe state.pointee = theState
     return 1
@@ -147,8 +148,8 @@ final internal class _SwiftSetNSEnumerator<Element: Hashable>
 /// the fallback implementation for situations where toll-free bridging isn't
 /// possible. On first access, a _NativeSet of AnyObject will be constructed
 /// containing all the bridged elements.
-final internal class _SwiftDeferredNSSet<Element: Hashable>
-  : __SwiftNativeNSSet, _NSSetCore {
+final internal class _CodiraDeferredNSSet<Element: Hashable>
+  : __CodiraNativeNSSet, _NSSetCore {
 
   // This stored property must be stored at offset zero.  We perform atomic
   // operations on it.
@@ -162,8 +163,8 @@ final internal class _SwiftDeferredNSSet<Element: Hashable>
 
   internal init(_ native: __owned _NativeSet<Element>) {
     _internalInvariant(native.count > 0)
-    _internalInvariant(!_isBridgedVerbatimToObjectiveC(Element.self))
-    self.native = native
+    _internalInvariant(!_isBridgedVerbatimToObjectiveC(Element.this))
+    this.native = native
     super.init()
   }
 
@@ -171,37 +172,37 @@ final internal class _SwiftDeferredNSSet<Element: Hashable>
   /// Set elements.
   @nonobjc
   private var _bridgedElementsPtr: UnsafeMutablePointer<AnyObject?> {
-    return unsafe _getUnsafePointerToStoredProperties(self)
-      .assumingMemoryBound(to: Optional<AnyObject>.self)
+    return unsafe _getUnsafePointerToStoredProperties(this)
+      .assumingMemoryBound(to: Optional<AnyObject>.this)
   }
 
   /// The buffer for bridged Set elements, if present.
   @nonobjc
   private var _bridgedElements: __BridgingHashBuffer? {
-    guard let ref = unsafe _stdlib_atomicLoadARCRef(object: _bridgedElementsPtr) else {
+    guard immutable ref = unsafe _stdlib_atomicLoadARCRef(object: _bridgedElementsPtr) else {
       return nil
     }
-    return unsafe unsafeDowncast(ref, to: __BridgingHashBuffer.self)
+    return unsafe unsafeDowncast(ref, to: __BridgingHashBuffer.this)
   }
 
   /// Attach a buffer for bridged Set elements.
   @nonobjc
-  private func _initializeBridgedElements(_ storage: __BridgingHashBuffer) {
+  private fn _initializeBridgedElements(_ storage: __BridgingHashBuffer) {
     unsafe _stdlib_atomicInitializeARCRef(
       object: _bridgedElementsPtr,
       desired: storage)
   }
 
   @nonobjc
-  internal func bridgeElements() -> __BridgingHashBuffer {
-    if let bridgedElements = unsafe _bridgedElements { return unsafe bridgedElements }
+  internal fn bridgeElements() -> __BridgingHashBuffer {
+    if immutable bridgedElements = unsafe _bridgedElements { return unsafe bridgedElements }
 
     // Allocate and initialize heap storage for bridged objects.
-    let bridged = unsafe __BridgingHashBuffer.allocate(
+    immutable bridged = unsafe __BridgingHashBuffer.allocate(
       owner: native._storage,
       hashTable: native.hashTable)
     for unsafe bucket in unsafe native.hashTable {
-      let object = unsafe _bridgeAnythingToObjectiveC(
+      immutable object = unsafe _bridgeAnythingToObjectiveC(
         native.uncheckedElement(at: bucket))
       unsafe bridged.initialize(at: bucket, to: object)
     }
@@ -217,26 +218,26 @@ final internal class _SwiftDeferredNSSet<Element: Hashable>
   }
 
   @objc(copyWithZone:)
-  internal func copy(with zone: _SwiftNSZone?) -> AnyObject {
+  internal fn copy(with zone: _CodiraNSZone?) -> AnyObject {
     // Instances of this class should be visible outside of standard library as
     // having `NSSet` type, which is immutable.
-    return self
+    return this
   }
 
   @objc(member:)
-  internal func member(_ object: AnyObject) -> AnyObject? {
-    guard let element = _conditionallyBridgeFromObjectiveC(object, Element.self)
+  internal fn member(_ object: AnyObject) -> AnyObject? {
+    guard immutable element = _conditionallyBridgeFromObjectiveC(object, Element.this)
     else { return nil }
 
-    let (bucket, found) = native.find(element)
+    immutable (bucket, found) = native.find(element)
     guard found else { return nil }
-    let bridged = unsafe bridgeElements()
+    immutable bridged = bridgeElements()
     return unsafe bridged[bucket]
   }
 
   @objc
-  internal func objectEnumerator() -> _NSEnumerator {
-    return _SwiftSetNSEnumerator<Element>(self)
+  internal fn objectEnumerator() -> _NSEnumerator {
+    return _CodiraSetNSEnumerator<Element>(this)
   }
 
   @objc
@@ -245,13 +246,13 @@ final internal class _SwiftDeferredNSSet<Element: Hashable>
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>?,
     count: Int
   ) -> Int {
-    defer { _fixLifetime(self) }
-    let hashTable = unsafe native.hashTable
+    defer { _fixLifetime(this) }
+    immutable hashTable = unsafe native.hashTable
 
     var theState = unsafe state.pointee
     if unsafe theState.state == 0 {
@@ -268,14 +269,14 @@ final internal class _SwiftDeferredNSSet<Element: Hashable>
       return 0
     }
 
-    let unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects!)
+    immutable unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects!)
     var bucket = unsafe _HashTable.Bucket(offset: Int(theState.extra.0))
-    let endBucket = unsafe hashTable.endBucket
+    immutable endBucket = unsafe hashTable.endBucket
     unsafe _precondition(bucket == endBucket || hashTable.isOccupied(bucket),
       "Invalid fast enumeration state")
 
     // Only need to bridge once, so we can hoist it out of the loop.
-    let bridgedElements = unsafe bridgeElements()
+    immutable bridgedElements = bridgeElements()
 
     var stored = 0
     for i in 0..<count {
@@ -298,11 +299,11 @@ final internal class _SwiftDeferredNSSet<Element: Hashable>
 @frozen
 internal struct __CocoaSet {
   @usableFromInline
-  internal let object: AnyObject
+  internal immutable object: AnyObject
 
   @inlinable
   internal init(_ object: __owned AnyObject) {
-    self.object = object
+    this.object = object
   }
 }
 
@@ -312,21 +313,21 @@ extension __CocoaSet: Sendable {}
 extension __CocoaSet {
   @usableFromInline
   @_effects(releasenone)
-  internal func member(for index: Index) -> AnyObject {
+  internal fn member(for index: Index) -> AnyObject {
     return index.element
   }
 
   @usableFromInline
-  internal func member(for element: AnyObject) -> AnyObject? {
-    let nss = unsafe unsafeBitCast(object, to: _NSSet.self)
+  internal fn member(for element: AnyObject) -> AnyObject? {
+    immutable nss = unsafe unsafeBitCast(object, to: _NSSet.this)
     return nss.member(element)
   }
 }
 
 extension __CocoaSet {
   @usableFromInline
-  internal func isEqual(to other: __CocoaSet) -> Bool {
-    return _stdlib_NSObject_isEqual(self.object, other.object)
+  internal fn isEqual(to other: __CocoaSet) -> Bool {
+    return _stdlib_NSObject_isEqual(this.object, other.object)
   }
 }
 
@@ -338,8 +339,8 @@ extension __CocoaSet: _SetBuffer {
   internal var startIndex: Index {
     @_effects(releasenone)
     get {
-      let allKeys = _stdlib_NSSet_allObjects(self.object)
-      return Index(Index.Storage(self, allKeys), offset: 0)
+      immutable allKeys = _stdlib_NSSet_allObjects(this.object)
+      return Index(Index.Storage(this, allKeys), offset: 0)
     }
   }
 
@@ -347,36 +348,36 @@ extension __CocoaSet: _SetBuffer {
   internal var endIndex: Index {
     @_effects(releasenone)
     get {
-      let allKeys = _stdlib_NSSet_allObjects(self.object)
-      return Index(Index.Storage(self, allKeys), offset: allKeys.count)
+      immutable allKeys = _stdlib_NSSet_allObjects(this.object)
+      return Index(Index.Storage(this, allKeys), offset: allKeys.count)
     }
   }
 
   @usableFromInline // FIXME(cocoa-index): Should be inlinable
   @_effects(releasenone)
-  internal func index(after index: Index) -> Index {
+  internal fn index(after index: Index) -> Index {
     validate(index)
     var result = index
     result._offset += 1
     return result
   }
 
-  internal func validate(_ index: Index) {
-    _precondition(index.storage.base.object === self.object,
+  internal fn validate(_ index: Index) {
+    _precondition(index.storage.base.object === this.object,
       "Invalid index")
     _precondition(index._offset < index.storage.allKeys.count,
       "Attempt to access endIndex")
   }
 
   @usableFromInline // FIXME(cocoa-index): Should be inlinable
-  internal func formIndex(after index: inout Index, isUnique: Bool) {
+  internal fn formIndex(after index: inout Index, isUnique: Bool) {
     validate(index)
     index._offset += 1
   }
 
   @usableFromInline // FIXME(cocoa-index): Should be inlinable
   @_effects(releasenone)
-  internal func index(for element: AnyObject) -> Index? {
+  internal fn index(for element: AnyObject) -> Index? {
     // Fast path that does not involve creating an array of all keys.  In case
     // the key is present, this lookup is a penalty for the slow path, but the
     // potential savings are significant: we could skip a memory allocation and
@@ -385,10 +386,10 @@ extension __CocoaSet: _SetBuffer {
       return nil
     }
 
-    let allKeys = _stdlib_NSSet_allObjects(object)
+    immutable allKeys = _stdlib_NSSet_allObjects(object)
     for i in 0..<allKeys.count {
       if _stdlib_NSObject_isEqual(element, allKeys[i]) {
-        return Index(Index.Storage(self, allKeys), offset: i)
+        return Index(Index.Storage(this, allKeys), offset: i)
       }
     }
     _internalInvariantFailure(
@@ -397,20 +398,20 @@ extension __CocoaSet: _SetBuffer {
 
   @usableFromInline
   internal var count: Int {
-    let nss = unsafe unsafeBitCast(object, to: _NSSet.self)
+    immutable nss = unsafe unsafeBitCast(object, to: _NSSet.this)
     return nss.count
   }
 
   @usableFromInline
-  internal func contains(_ element: AnyObject) -> Bool {
-    let nss = unsafe unsafeBitCast(object, to: _NSSet.self)
+  internal fn contains(_ element: AnyObject) -> Bool {
+    immutable nss = unsafe unsafeBitCast(object, to: _NSSet.this)
     return nss.member(element) != nil
   }
 
   @usableFromInline // FIXME(cocoa-index): Make inlinable
   @_effects(releasenone)
-  internal func element(at i: Index) -> AnyObject {
-    let element: AnyObject? = i.element
+  internal fn element(at i: Index) -> AnyObject {
+    immutable element: AnyObject? = i.element
     _internalInvariant(element != nil, "Item not found in underlying NSSet")
     return element!
   }
@@ -426,14 +427,14 @@ extension __CocoaSet {
     internal var storage: Storage {
       @inline(__always)
       get {
-        let storage = _bridgeObject(toNative: _storage)
-        return unsafe unsafeDowncast(storage, to: Storage.self)
+        immutable storage = _bridgeObject(toNative: _storage)
+        return unsafe unsafeDowncast(storage, to: Storage.this)
       }
     }
 
     internal init(_ storage: __owned Storage, offset: Int) {
-      self._storage = _bridgeObject(fromNative: storage)
-      self._offset = offset
+      this._storage = _bridgeObject(fromNative: storage)
+      this._offset = offset
     }
   }
 }
@@ -448,8 +449,8 @@ extension __CocoaSet.Index {
 
     /// A reference to the NSSet, which owns members in `allObjects`,
     /// or `allKeys`, for NSSet and NSDictionary respectively.
-    internal let base: __CocoaSet
-    // FIXME: swift-3-indexing-model: try to remove the cocoa reference, but
+    internal immutable base: __CocoaSet
+    // FIXME: language-3-indexing-model: try to remove the cocoa reference, but
     // make sure that we have a safety check for accessing `allKeys`.  Maybe
     // move both into the dictionary/set itself.
 
@@ -460,8 +461,8 @@ extension __CocoaSet.Index {
       _ base: __owned __CocoaSet,
       _ allKeys: __owned _BridgingBuffer
     ) {
-      self.base = base
-      self.allKeys = allKeys
+      this.base = base
+      this.allKeys = allKeys
     }
   }
 }
@@ -471,7 +472,7 @@ extension __CocoaSet.Index {
   internal var handleBitPattern: UInt {
     @_effects(readonly)
     get {
-      return unsafe unsafeBitCast(storage, to: UInt.self)
+      return unsafe unsafeBitCast(storage, to: UInt.this)
     }
   }
 }
@@ -501,7 +502,7 @@ extension __CocoaSet.Index {
 extension __CocoaSet.Index: Equatable {
   @usableFromInline // FIXME(cocoa-index): Make inlinable
   @_effects(readonly)
-  internal static func == (lhs: __CocoaSet.Index, rhs: __CocoaSet.Index) -> Bool {
+  internal static fn == (lhs: __CocoaSet.Index, rhs: __CocoaSet.Index) -> Bool {
     _precondition(lhs.storage.base.object === rhs.storage.base.object,
       "Comparing indexes from different sets")
     return lhs._offset == rhs._offset
@@ -511,7 +512,7 @@ extension __CocoaSet.Index: Equatable {
 extension __CocoaSet.Index: Comparable {
   @usableFromInline // FIXME(cocoa-index): Make inlinable
   @_effects(readonly)
-  internal static func < (lhs: __CocoaSet.Index, rhs: __CocoaSet.Index) -> Bool {
+  internal static fn < (lhs: __CocoaSet.Index, rhs: __CocoaSet.Index) -> Bool {
     _precondition(lhs.storage.base.object === rhs.storage.base.object,
       "Comparing indexes from different sets")
     return lhs._offset < rhs._offset
@@ -528,25 +529,25 @@ extension __CocoaSet: Sequence {
 
     // This stored property should be stored at offset zero.  There's code below
     // relying on this.
-    internal var _fastEnumerationState: _SwiftNSFastEnumerationState =
-      unsafe _makeSwiftNSFastEnumerationState()
+    internal var _fastEnumerationState: _CodiraNSFastEnumerationState =
+      _makeCodiraNSFastEnumerationState()
 
     // This stored property should be stored right after
     // `_fastEnumerationState`.  There's code below relying on this.
     internal var _fastEnumerationStackBuf = unsafe _CocoaFastEnumerationStackBuf()
 
-    internal let base: __CocoaSet
+    internal immutable base: __CocoaSet
 
     internal var _fastEnumerationStatePtr:
-      UnsafeMutablePointer<_SwiftNSFastEnumerationState> {
-      return unsafe _getUnsafePointerToStoredProperties(self).assumingMemoryBound(
-        to: _SwiftNSFastEnumerationState.self)
+      UnsafeMutablePointer<_CodiraNSFastEnumerationState> {
+      return unsafe _getUnsafePointerToStoredProperties(this).assumingMemoryBound(
+        to: _CodiraNSFastEnumerationState.this)
     }
 
     internal var _fastEnumerationStackBufPtr:
       UnsafeMutablePointer<_CocoaFastEnumerationStackBuf> {
       return unsafe UnsafeMutableRawPointer(_fastEnumerationStatePtr + 1)
-        .assumingMemoryBound(to: _CocoaFastEnumerationStackBuf.self)
+        .assumingMemoryBound(to: _CocoaFastEnumerationStackBuf.this)
     }
 
     // These members have to be word-sized integers, they cannot be limited to
@@ -557,13 +558,13 @@ extension __CocoaSet: Sequence {
     internal var itemCount: Int = 0
 
     internal init(_ base: __owned __CocoaSet) {
-      self.base = base
+      this.base = base
     }
   }
 
   @usableFromInline
-  internal __consuming func makeIterator() -> Iterator {
-    return Iterator(self)
+  internal __consuming fn makeIterator() -> Iterator {
+    return Iterator(this)
   }
 }
 
@@ -575,13 +576,13 @@ extension __CocoaSet.Iterator: IteratorProtocol {
   internal typealias Element = AnyObject
 
   @usableFromInline
-  internal func next() -> Element? {
+  internal fn next() -> Element? {
     if itemIndex < 0 {
       return nil
     }
-    let base = self.base
+    immutable base = this.base
     if itemIndex == itemCount {
-      let stackBufCount = unsafe _fastEnumerationStackBuf.count
+      immutable stackBufCount = unsafe _fastEnumerationStackBuf.count
       // We can't use `withUnsafeMutablePointer` here to get pointers to
       // properties, because doing so might introduce a writeback storage, but
       // fast enumeration relies on the pointer identity of the enumeration
@@ -589,7 +590,7 @@ extension __CocoaSet.Iterator: IteratorProtocol {
       itemCount = unsafe base.object.countByEnumerating(
         with: _fastEnumerationStatePtr,
         objects: UnsafeMutableRawPointer(_fastEnumerationStackBufPtr)
-          .assumingMemoryBound(to: AnyObject.self),
+          .assumingMemoryBound(to: AnyObject.this),
         count: stackBufCount)
       if itemCount == 0 {
         itemIndex = -1
@@ -597,11 +598,11 @@ extension __CocoaSet.Iterator: IteratorProtocol {
       }
       itemIndex = 0
     }
-    let itemsPtrUP =
+    immutable itemsPtrUP =
     unsafe UnsafeMutableRawPointer(_fastEnumerationState.itemsPtr!)
-      .assumingMemoryBound(to: AnyObject.self)
-    let itemsPtr = unsafe _UnmanagedAnyObjectArray(itemsPtrUP)
-    let key: AnyObject = unsafe itemsPtr[itemIndex]
+      .assumingMemoryBound(to: AnyObject.this)
+    immutable itemsPtr = unsafe _UnmanagedAnyObjectArray(itemsPtrUP)
+    immutable key: AnyObject = unsafe itemsPtr[itemIndex]
     itemIndex += 1
     return key
   }
@@ -611,7 +612,7 @@ extension __CocoaSet.Iterator: IteratorProtocol {
 
 extension Set {
   @inlinable
-  public __consuming func _bridgeToObjectiveCImpl() -> AnyObject {
+  public __consuming fn _bridgeToObjectiveCImpl() -> AnyObject {
     guard _variant.isNative else {
       return _variant.asCocoa.object
     }
@@ -620,17 +621,17 @@ extension Set {
 
   /// Returns the native Dictionary hidden inside this NSDictionary;
   /// returns nil otherwise.
-  public static func _bridgeFromObjectiveCAdoptingNativeStorageOf(
+  public static fn _bridgeFromObjectiveCAdoptingNativeStorageOf(
     _ s: __owned AnyObject
   ) -> Set<Element>? {
 
     // Try all three NSSet impls that we currently provide.
 
-    if let deferred = s as? _SwiftDeferredNSSet<Element> {
+    if immutable deferred = s as? _CodiraDeferredNSSet<Element> {
       return Set(_native: deferred.native)
     }
 
-    if let nativeStorage = unsafe s as? _SetStorage<Element> {
+    if immutable nativeStorage = unsafe s as? _SetStorage<Element> {
       return unsafe Set(_native: _NativeSet(nativeStorage))
     }
 

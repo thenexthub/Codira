@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_BCREADINGEXTRAS_H
-#define SWIFT_SERIALIZATION_BCREADINGEXTRAS_H
+#ifndef LANGUAGE_SERIALIZATION_BCREADINGEXTRAS_H
+#define LANGUAGE_SERIALIZATION_BCREADINGEXTRAS_H
 
-#include "llvm/Bitstream/BitstreamReader.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
 
 namespace language {
 namespace serialization {
 
 /// Saves and restores a BitstreamCursor's bit offset in its stream.
 class BCOffsetRAII {
-  llvm::BitstreamCursor *Cursor;
+  toolchain::BitstreamCursor *Cursor;
   decltype(Cursor->GetCurrentBitNo()) Offset;
 
 public:
-  explicit BCOffsetRAII(llvm::BitstreamCursor &cursor)
+  explicit BCOffsetRAII(toolchain::BitstreamCursor &cursor)
     : Cursor(&cursor), Offset(cursor.GetCurrentBitNo()) {}
 
   void reset() {
@@ -50,6 +51,6 @@ public:
 } // end namespace language
 
 static constexpr const auto AF_DontPopBlockAtEnd =
-  llvm::BitstreamCursor::AF_DontPopBlockAtEnd;
+  toolchain::BitstreamCursor::AF_DontPopBlockAtEnd;
 
 #endif

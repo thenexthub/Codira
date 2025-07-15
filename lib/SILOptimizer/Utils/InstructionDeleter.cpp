@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
@@ -63,6 +64,12 @@ static bool isScopeAffectingInstructionDead(SILInstruction *inst,
   // If the instruction has any use other than end of scope use or destroy_value
   // use, bail out.
   if (!hasOnlyEndOfScopeOrEndOfLifetimeUses(inst)) {
+    return false;
+  }
+
+  // Don't delete dead drop_deinit instruction. They are a marker to eliminate
+  // user-defined deinit and we do not want to lose it.
+  if (isa<DropDeinitInst>(inst)) {
     return false;
   }
 
@@ -235,11 +242,11 @@ void InstructionDeleter::deleteWithUses(SILInstruction *inst, bool fixLifetimes,
   SmallVector<Operand *, 4> toDropUses;
 
   toDeleteInsts.push_back(inst);
-  swift::salvageDebugInfo(inst);
+  language::salvageDebugInfo(inst);
   for (unsigned idx = 0; idx < toDeleteInsts.size(); ++idx) {
     for (SILValue result : toDeleteInsts[idx]->getResults()) {
       // Temporary use vector to avoid iterator invalidation.
-      auto uses = llvm::to_vector<4>(result->getUses());
+      auto uses = toolchain::to_vector<4>(result->getUses());
       for (Operand *use : uses) {
         SILInstruction *user = use->getUser();
         assert(forceDeleteUsers || isIncidentalUse(user)
@@ -248,7 +255,7 @@ void InstructionDeleter::deleteWithUses(SILInstruction *inst, bool fixLifetimes,
 
         toDeleteInsts.push_back(user);
         toDropUses.push_back(use);
-        swift::salvageDebugInfo(user);
+        language::salvageDebugInfo(user);
       }
     }
   }
@@ -271,9 +278,16 @@ void InstructionDeleter::deleteWithUses(SILInstruction *inst, bool fixLifetimes,
       if (fixLifetimes) {
         LoadInst *li = nullptr;
         if (operand.isConsuming()) {
-          SILBuilderWithScope builder(inst);
-          auto *dvi = builder.createDestroyValue(inst->getLoc(), operandValue);
-          getCallbacks().createdNewInst(dvi);
+          if (isa<DropDeinitInst>(operandValue)) {
+            SILBuilderWithScope builder(inst);
+            auto *eli = builder.createEndLifetime(inst->getLoc(), operandValue);
+            getCallbacks().createdNewInst(eli);
+          } else {
+            SILBuilderWithScope builder(inst);
+            auto *dvi =
+                builder.createDestroyValue(inst->getLoc(), operandValue);
+            getCallbacks().createdNewInst(dvi);
+          }
         } else if ((li = dyn_cast<LoadInst>(inst)) &&
                    li->getOwnershipQualifier() ==
                        LoadOwnershipQualifier::Take) {
@@ -341,10 +355,10 @@ static FunctionTest DeleterDeleteIfDeadTest(
     "deleter_delete_if_dead", [](auto &function, auto &arguments, auto &test) {
       auto *inst = arguments.takeInstruction();
       InstructionDeleter deleter;
-      llvm::outs() << "Deleting-if-dead " << *inst;
+      toolchain::outs() << "Deleting-if-dead " << *inst;
       auto deleted = deleter.deleteIfDead(inst);
-      llvm::outs() << "deleteIfDead returned " << deleted << "\n";
-      function.print(llvm::outs());
+      toolchain::outs() << "deleteIfDead returned " << deleted << "\n";
+      function.print(toolchain::outs());
     });
 } // namespace language::test
 
@@ -389,23 +403,23 @@ void InstructionDeleter::recursivelyForceDeleteUsersAndFixLifetimes(
   forceDeleteAndFixLifetimes(inst);
 }
 
-void swift::eliminateDeadInstruction(SILInstruction *inst,
+void language::eliminateDeadInstruction(SILInstruction *inst,
                                      InstModCallbacks callbacks) {
   InstructionDeleter deleter(std::move(callbacks));
   deleter.trackIfDead(inst);
   deleter.cleanupDeadInstructions();
 }
 
-void swift::recursivelyDeleteTriviallyDeadInstructions(
+void language::recursivelyDeleteTriviallyDeadInstructions(
     ArrayRef<SILInstruction *> ia, bool force, InstModCallbacks callbacks) {
   // Delete these instruction and others that become dead after it's deleted.
-  llvm::SmallPtrSet<SILInstruction *, 8> deadInsts;
+  toolchain::SmallPtrSet<SILInstruction *, 8> deadInsts;
   for (auto *inst : ia) {
     // If the instruction is not dead and force is false, do nothing.
     if (force || isInstructionTriviallyDead(inst))
       deadInsts.insert(inst);
   }
-  llvm::SmallPtrSet<SILInstruction *, 8> nextInsts;
+  toolchain::SmallPtrSet<SILInstruction *, 8> nextInsts;
   while (!deadInsts.empty()) {
     for (auto inst : deadInsts) {
       // Call the callback before we mutate the to be deleted instruction in any

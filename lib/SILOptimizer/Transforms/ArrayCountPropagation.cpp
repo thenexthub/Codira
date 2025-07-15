@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 #define DEBUG_TYPE "array-count-propagation"
 
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "language/Basic/Assertions.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
@@ -53,12 +54,12 @@ class ArrayAllocation {
   /// The count of the allocated array.
   SILValue ArrayCount;
   // The calls to Array.count that use this array allocation.
-  llvm::SmallSetVector<ApplyInst *, 16> CountCalls;
+  toolchain::SmallSetVector<ApplyInst *, 16> CountCalls;
   // Array count calls that are dead as a consequence of propagating the count
   // value.
-  llvm::SmallVectorImpl<ApplyInst *> &DeadArrayCountCalls;
+  toolchain::SmallVectorImpl<ApplyInst *> &DeadArrayCountCalls;
 
-  ArrayAllocation(ApplyInst *AI, llvm::SmallVectorImpl<ApplyInst *> &DeadCalls)
+  ArrayAllocation(ApplyInst *AI, toolchain::SmallVectorImpl<ApplyInst *> &DeadCalls)
       : Alloc(AI), DeadArrayCountCalls(DeadCalls) {}
 
   bool propagate();
@@ -69,7 +70,7 @@ class ArrayAllocation {
 
 public:
   static bool tryPropagate(ApplyInst *Inst,
-                           llvm::SmallVectorImpl<ApplyInst *> &DeadCalls) {
+                           toolchain::SmallVectorImpl<ApplyInst *> &DeadCalls) {
     return ArrayAllocation(Inst, DeadCalls).propagate();
   }
 };
@@ -173,7 +174,7 @@ bool ArrayAllocation::recursivelyCollectUses(ValueBase *Def) {
 
 bool ArrayAllocation::propagateCountToUsers() {
   bool HasChanged = false;
-  LLVM_DEBUG(llvm::dbgs() << "Propagating count from " << *Alloc);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Propagating count from " << *Alloc);
   for (auto *Count : CountCalls) {
     assert(ArraySemanticsCall(Count).getKind() == ArrayCallKind::kGetCount &&
            "Expecting a call to count");
@@ -186,7 +187,7 @@ bool ArrayAllocation::propagateCountToUsers() {
     }
 
     for (auto *Use : Uses) {
-      LLVM_DEBUG(llvm::dbgs() << "  to user " << *Use->getUser());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  to user " << *Use->getUser());
       Use->set(ArrayCount);
       HasChanged = true;
     }
@@ -231,6 +232,6 @@ public:
 
 } // end anonymous namespace
 
-SILTransform *swift::createArrayCountPropagation() {
+SILTransform *language::createArrayCountPropagation() {
   return new ArrayCountPropagation();
 }

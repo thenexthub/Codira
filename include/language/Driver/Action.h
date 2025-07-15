@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_ACTION_H
-#define SWIFT_DRIVER_ACTION_H
+#ifndef LANGUAGE_DRIVER_ACTION_H
+#define LANGUAGE_DRIVER_ACTION_H
 
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Driver/Util.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/Chrono.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/Chrono.h"
 
-namespace llvm {
+namespace toolchain {
 namespace opt {
   class Arg;
 }
@@ -88,12 +89,12 @@ public:
 
 class InputAction : public Action {
   virtual void anchor();
-  const llvm::opt::Arg &Input;
+  const toolchain::opt::Arg &Input;
 
 public:
-  InputAction(const llvm::opt::Arg &Input, file_types::ID Type)
+  InputAction(const toolchain::opt::Arg &Input, file_types::ID Type)
       : Action(Action::Kind::Input, Type), Input(Input) {}
-  const llvm::opt::Arg &getInputArg() const { return Input; }
+  const toolchain::opt::Arg &getInputArg() const { return Input; }
 
   static bool classof(const Action *A) {
     return A->getKind() == Action::Kind::Input;
@@ -145,14 +146,14 @@ public:
     return A->getKind() == Action::Kind::CompileJob;
   }
 
-  /// Return a _single_ TY_Swift InputAction, if one exists;
+  /// Return a _single_ TY_Codira InputAction, if one exists;
   /// if 0 or >1 such inputs exist, return nullptr.
-  const InputAction *findSingleSwiftInput() const {
+  const InputAction *findSingleCodiraInput() const {
     auto Inputs = getInputs();
     const InputAction *IA = nullptr;
     for (auto const *I : Inputs) {
       if (auto const *S = dyn_cast<InputAction>(I)) {
-        if (S->getType() == file_types::TY_Swift) {
+        if (S->getType() == file_types::TY_Codira) {
           if (IA == nullptr) {
             IA = S;
           } else {
@@ -227,7 +228,7 @@ class MergeModuleJobAction : public JobAction {
 public:
   MergeModuleJobAction(ArrayRef<const Action *> Inputs)
       : JobAction(Action::Kind::MergeModuleJob, Inputs,
-                  file_types::TY_SwiftModuleFile) {}
+                  file_types::TY_CodiraModuleFile) {}
 
   static bool classof(const Action *A) {
     return A->getKind() == Action::Kind::MergeModuleJob;
@@ -346,9 +347,9 @@ public:
                                  file_types::ID inputType)
     : JobAction(Action::Kind::VerifyModuleInterfaceJob, { ModuleEmitter },
                 file_types::TY_Nothing), inputType(inputType) {
-    assert(inputType == file_types::TY_SwiftModuleInterfaceFile ||
-           inputType == file_types::TY_PrivateSwiftModuleInterfaceFile ||
-           inputType == file_types::TY_PackageSwiftModuleInterfaceFile);
+    assert(inputType == file_types::TY_CodiraModuleInterfaceFile ||
+           inputType == file_types::TY_PrivateCodiraModuleInterfaceFile ||
+           inputType == file_types::TY_PackageCodiraModuleInterfaceFile);
   }
 
   file_types::ID getInputType() const { return inputType; }

@@ -1,0 +1,96 @@
+// This regression test was originally written because the Codira compiler would
+// crash when it tried to instantiate C++ function templates with various types.
+// In particular, instantiating them with Codira types was problematic.
+//
+// Aside from validating that we can successfully instantiate function templates
+// with basic primitive types (e.g., Bool, Int32) and imported C/ObjC/C++ types,
+// this regression test aims to document the current status of C++ function
+// template instantiation.
+//
+// With the following, we check the happy path, that we _can_ successfully emit
+// SIL for certain template instantiations:
+// RUN: %target-language-emit-ir %s -I %S/Inputs -cxx-interoperability-mode=default -disable-availability-checking | %FileCheck %s
+//
+// Some instantiations still cause Codira compiler crashes. These are documented
+// with "FIXME" comments.
+
+import FunctionTemplates
+
+fn takesInt32(x: Int32) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesInt32{{.*}}
+
+fn takesBool(x: Bool) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesBool{{.*}}
+
+fn takesTrue() { takesValue(true) }
+// CHECK: define {{.*}} void @{{.*}}takesTrue{{.*}}
+
+fn takesFalse() { takesValue(false) }
+// CHECK: define {{.*}} void @{{.*}}takesFalse{{.*}}
+
+fn takesPlainStruct(x: PlainStruct) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesPlainStruct{{.*}}
+
+fn takesCxxClass(x: CxxClass) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesCxxClass{{.*}}
+
+fn takesFRT(x: FRT) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesFRT{{.*}}
+
+fn takesSIMD(x: SIMD32<Int32>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesSIMD{{.*}}
+
+fn takesPtrToStruct(x: UnsafePointer<PlainStruct>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesPtrToStruct{{.*}}
+
+fn takesPtrToClass(x: UnsafePointer<CxxClass>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesPtrToClass{{.*}}
+
+fn takesPtrToFRT(x: UnsafePointer<FRT>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesPtrToFRT{{.*}}
+
+fn takesMutPtrToStruct(x: UnsafeMutablePointer<PlainStruct>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesMutPtrToStruct{{.*}}
+
+fn takesMutPtrToClass(x: UnsafeMutablePointer<CxxClass>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesMutPtrToClass{{.*}}
+
+fn takesMutPtrToFRT(x: UnsafeMutablePointer<FRT>) { takesValue(x) }
+// CHECK: define {{.*}} void @{{.*}}takesMutPtrToFRT{{.*}}
+
+fn takesCPtr() {
+  takesValue(intPtr)
+
+  // It's fine if we dereference it, though
+  takesValue(intPtr!)
+}
+
+fn takesCFnPtr() {
+  takesValue(get42) // function symbol
+  // FIXME: optional pointers are not yet supported but they should be; this crashes
+  // takesValue(functionPtrGet42)
+  takesValue(functionPtrGet42!) // dereferenced nullable function pointer
+  takesValue(nonNullFunctionPtrGet42) // non-null function symbol
+}
+
+fn takesRecursively() { takesValue(takesRecursively) }
+fn takesRecursiveClosure() { takesValue({() in takesRecursiveClosure()}) }
+fn takesCodiraClosure() { takesValue({() in ()}) }
+fn takesTakesTrue() { takesValue(takesTrue) }
+
+fn takesCodiraClosureReturningBool() { takesValue({() -> Bool in true}) }
+fn takesCodiraClosureTakingBool() { takesValue({(x: Bool) in ()}) }
+fn takesTakesBool() { takesValue(takesBool) }
+
+fn takesCodiraClosureReturningPlainStruct() { takesValue({() -> PlainStruct in PlainStruct(x: 42)}) }
+fn takesCodiraClosureTakingPlainStruct() { takesValue({(x: PlainStruct) in takesValue(x)}) }
+fn takesTakesPlainStruct() { takesValue(takesPlainStruct) }
+
+fn takesCodiraClosureReturningCxxClass() { takesValue({() -> CxxClass in CxxClass(x: 42)}) }
+fn takesCodiraClosureTakingCxxClass() { takesValue({(x: CxxClass) in takesValue(x)}) }
+fn takesTakesCxxClass() { takesValue(takesCxxClass) }
+
+fn takesCodiraClosureReturningFRT() { takesValue({() -> FRT in FRT()}) }
+fn takesCodiraClosureTakingFRT() { takesValue({(x: FRT) in takesValue(x)}) }
+
+fn takesTakesFRT() { takesValue(takesFRT) }

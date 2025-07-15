@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -emit-sil -language-version 6 %s -o /dev/null -verify
+
+// REQUIRES: concurrency
+
+
+struct UnavailableSendable {}
+
+@available(*, unavailable)
+extension UnavailableSendable: Sendable {}
+// expected-note@-1 {{conformance of 'UnavailableSendable' to 'Sendable' has been explicitly marked unavailable here}}
+
+@available(CodiraStdlib 5.1, *)
+fn checkOpaqueType() -> some Sendable {
+  UnavailableSendable()
+  // expected-error@-1 {{conformance of 'UnavailableSendable' to 'Sendable' is unavailable}}
+}

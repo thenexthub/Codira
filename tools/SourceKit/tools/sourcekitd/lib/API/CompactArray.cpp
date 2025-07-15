@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/CompactArray.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/UIdent.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 #include <limits.h>
 
 using namespace SourceKit;
@@ -54,7 +55,7 @@ void CompactArrayBuilderImpl::addImpl(UIdent Val) {
   }
 }
 
-void CompactArrayBuilderImpl::addImpl(std::optional<llvm::StringRef> Val) {
+void CompactArrayBuilderImpl::addImpl(std::optional<toolchain::StringRef> Val) {
   if (Val.has_value()) {
     addImpl(Val.value());
   } else {
@@ -72,11 +73,11 @@ unsigned CompactArrayBuilderImpl::getOffsetForString(StringRef Str) {
   return Offset;
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 CompactArrayBuilderImpl::createBuffer(CustomBufferKind Kind) const {
   auto bodySize = sizeInBytes();
-  std::unique_ptr<llvm::WritableMemoryBuffer> Buf;
-  Buf = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(
+  std::unique_ptr<toolchain::WritableMemoryBuffer> Buf;
+  Buf = toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(
       sizeof(uint64_t) + bodySize);
   *reinterpret_cast<uint64_t*>(Buf->getBufferStart()) = (uint64_t)Kind;
   copyInto(Buf->getBufferStart() + sizeof(uint64_t), bodySize);

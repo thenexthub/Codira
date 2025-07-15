@@ -1,0 +1,127 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Utils.code \
+// RUN:   -module-name Utils -language-version 5 -I %t \
+// RUN:   -package-name language-utils.log \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Utils.codemodule \
+// RUN:   -emit-module-interface-path %t/Utils.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Utils.private.codeinterface
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Utils.codeinterface) -I %t
+// RUN: %FileCheck %s --check-prefix=CHECK-PUBLIC-UTILS < %t/Utils.codeinterface
+
+// CHECK-PUBLIC-UTILS-NOT: package fn packageFunc()
+// CHECK-PUBLIC-UTILS-NOT: package protocol PackageProto
+// CHECK-PUBLIC-UTILS-NOT: var pkgVar
+// CHECK-PUBLIC-UTILS-NOT: package class PackageKlass
+// CHECK-PUBLIC-UTILS-NOT: package var pkgVar
+// CHECK-PUBLIC-UTILS: -module-name Utils
+// CHECK-PUBLIC-UTILS: -package-name language-utils.log
+// CHECK-PUBLIC-UTILS: public fn publicFunc()
+// CHECK-PUBLIC-UTILS: @usableFromInline
+// CHECK-PUBLIC-UTILS: package fn ufiPackageFunc()
+// CHECK-PUBLIC-UTILS: @usableFromInline
+// CHECK-PUBLIC-UTILS: package protocol UfiPackageProto
+// CHECK-PUBLIC-UTILS: var ufiPkgVar
+// CHECK-PUBLIC-UTILS: @usableFromInline
+// CHECK-PUBLIC-UTILS: package class UfiPackageKlass
+// CHECK-PUBLIC-UTILS: @usableFromInline
+// CHECK-PUBLIC-UTILS: package var ufiPkgVar
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Utils.private.codeinterface) -module-name Utils -I %t
+// RUN: %FileCheck %s --check-prefix=CHECK-PRIVATE-UTILS < %t/Utils.private.codeinterface
+
+// CHECK-PRIVATE-UTILS-NOT: package fn packageFunc()
+// CHECK-PRIVATE-UTILS-NOT: package protocol PackageProto
+// CHECK-PRIVATE-UTILS-NOT: var pkgVar
+// CHECK-PRIVATE-UTILS-NOT: package class PackageKlass
+// CHECK-PRIVATE-UTILS-NOT: package var pkgVar
+// CHECK-PRIVATE-UTILS: -module-name Utils
+// CHECK-PRIVATE-UTILS: -package-name language-utils.log
+// CHECK-PRIVATE-UTILS: public fn publicFunc()
+// CHECK-PRIVATE-UTILS: @usableFromInline
+// CHECK-PRIVATE-UTILS: package fn ufiPackageFunc()
+// CHECK-PRIVATE-UTILS: @usableFromInline
+// CHECK-PRIVATE-UTILS: package protocol UfiPackageProto
+// CHECK-PRIVATE-UTILS: var ufiPkgVar
+// CHECK-PRIVATE-UTILS: @usableFromInline
+// CHECK-PRIVATE-UTILS: package class UfiPackageKlass
+// CHECK-PRIVATE-UTILS: @usableFromInline
+// CHECK-PRIVATE-UTILS: package var ufiPkgVar
+
+// RUN: %target-language-frontend -emit-module %t/Client.code \
+// RUN:   -module-name Client -language-version 5 -I %t \
+// RUN:   -package-name language-utils.log \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Client.codemodule \
+// RUN:   -emit-module-interface-path %t/Client.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Client.private.codeinterface
+
+// RUN: rm -rf %t/Utils.codemodule
+// RUN: rm -rf %t/Client.codemodule
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t -verify
+// RUN: %FileCheck %s --check-prefix=CHECK-PUBLIC-CLIENT < %t/Client.codeinterface
+// CHECK-PUBLIC-CLIENT: -package-name language-utils.log
+// CHECK-PUBLIC-CLIENT: @inlinable public fn clientFunc()
+// CHECK-PUBLIC-CLIENT: publicFunc()
+// CHECK-PUBLIC-CLIENT: ufiPackageFunc()
+// CHECK-PUBLIC-CLIENT: immutable u = UfiPackageKlass()
+// CHECK-PUBLIC-CLIENT: return u.ufiPkgVar
+// CHECK-PUBLIC-CLIENT: public class ClientKlass1 : Utils.UfiPackageProto
+// CHECK-PUBLIC-CLIENT: @usableFromInline
+// CHECK-PUBLIC-CLIENT: package var ufiPkgVar: Codira.String
+// CHECK-PUBLIC-CLIENT: public class ClientKlass2 : Utils.UfiPackageProto
+// CHECK-PUBLIC-CLIENT: public var ufiPkgVar: Codira.String
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.private.codeinterface) -module-name Client -I %t -verify
+
+
+//--- Utils.code
+public fn publicFunc() {}
+
+package fn packageFunc() {}
+@usableFromInline
+package fn ufiPackageFunc() {}
+
+package protocol PackageProto {
+  var pkgVar: String { get set }
+}
+package class PackageKlass: PackageProto {
+  package var pkgVar = ""
+}
+
+@usableFromInline
+package protocol UfiPackageProto {
+  var ufiPkgVar: String { get set }
+}
+
+@usableFromInline
+package class UfiPackageKlass: UfiPackageProto {
+  @usableFromInline
+  package init() {}
+  @usableFromInline
+  package var ufiPkgVar = ""
+}
+
+
+//--- Client.code
+import Utils
+
+@inlinable public fn clientFunc() -> String {
+  publicFunc()
+  ufiPackageFunc()
+  immutable u = UfiPackageKlass()
+  return u.ufiPkgVar
+}
+
+public class ClientKlass1: UfiPackageProto {
+  @usableFromInline
+  package var ufiPkgVar = "B"
+}
+
+public class ClientKlass2: UfiPackageProto {
+  public var ufiPkgVar = "C"
+}

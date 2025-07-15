@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CodeCompletionCache.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Cache.h"
 #include "language/Basic/StringExtras.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/EndianStream.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/EndianStream.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
 using namespace ide;
@@ -35,7 +36,7 @@ namespace language {
       using Key = CodeCompletionCache::Key;
       using Value = CodeCompletionCache::Value;
       using ValueRefCntPtr = CodeCompletionCache::ValueRefCntPtr;
-      sys::Cache<Key, ValueRefCntPtr> TheCache{"swift.libIDE.CodeCompletionCache"};
+      sys::Cache<Key, ValueRefCntPtr> TheCache{"language.libIDE.CodeCompletionCache"};
     };
   } // end namespace ide
 } // end namespace language
@@ -43,9 +44,9 @@ namespace language {
 namespace language {
   namespace sys {
     template<>
-    struct CacheValueCostInfo<swift::ide::CodeCompletionCacheImpl::Value> {
+    struct CacheValueCostInfo<language::ide::CodeCompletionCacheImpl::Value> {
       static size_t
-      getCost(const swift::ide::CodeCompletionCacheImpl::Value &V) {
+      getCost(const language::ide::CodeCompletionCacheImpl::Value &V) {
         return V.Allocator->getTotalMemory();
       }
     };
@@ -62,8 +63,8 @@ CodeCompletionCache::get(const Key &K) {
   std::optional<ValueRefCntPtr> V = TheCache.get(K);
   if (V) {
     // Check whether V is up to date.
-    llvm::sys::fs::file_status ModuleStatus;
-    if (llvm::sys::fs::status(K.ModuleFilename, ModuleStatus) ||
+    toolchain::sys::fs::file_status ModuleStatus;
+    if (toolchain::sys::fs::status(K.ModuleFilename, ModuleStatus) ||
         V.value()->ModuleModificationTime !=
         ModuleStatus.getLastModificationTime()) {
       // Cache is stale.
@@ -82,8 +83,8 @@ void CodeCompletionCache::setImpl(const Key &K, ValueRefCntPtr V,
   {
     assert(!K.ModuleFilename.empty());
 
-    llvm::sys::fs::file_status ModuleStatus;
-    if (llvm::sys::fs::status(K.ModuleFilename, ModuleStatus)) {
+    toolchain::sys::fs::file_status ModuleStatus;
+    if (toolchain::sys::fs::status(K.ModuleFilename, ModuleStatus)) {
       V->ModuleModificationTime = std::chrono::system_clock::now();
       return;
     } else {
@@ -112,7 +113,7 @@ static constexpr uint32_t onDiskCompletionCacheVersion =
 
 /// Deserializes CodeCompletionResults from \p in and stores them in \p V.
 /// \see writeCacheModule.
-static bool readCachedModule(llvm::MemoryBuffer *in,
+static bool readCachedModule(toolchain::MemoryBuffer *in,
                              const CodeCompletionCache::Key &K,
                              CodeCompletionCache::Value &V,
                              bool allowOutOfDate = false) {
@@ -120,7 +121,7 @@ static bool readCachedModule(llvm::MemoryBuffer *in,
   const char *end = in->getBufferEnd();
 
   auto read32le = [end](const char *&cursor) {
-    auto result = llvm::support::endian::read32le(cursor);
+    auto result = toolchain::support::endian::read32le(cursor);
     cursor += sizeof(result);
     assert(cursor <= end);
     (void)end;
@@ -133,13 +134,13 @@ static bool readCachedModule(llvm::MemoryBuffer *in,
     if (version != onDiskCompletionCacheVersion)
       return false; // File written with different format.
 
-    auto mtime = llvm::support::endian::read64le(cursor);
+    auto mtime = toolchain::support::endian::read64le(cursor);
     cursor += sizeof(mtime);
 
     // Check the module file's last modification time.
     if (!allowOutOfDate) {
-      llvm::sys::fs::file_status status;
-      if (llvm::sys::fs::status(K.ModuleFilename, status) ||
+      toolchain::sys::fs::file_status status;
+      if (toolchain::sys::fs::status(K.ModuleFilename, status) ||
           status.getLastModificationTime().time_since_epoch().count() !=
           std::chrono::nanoseconds(mtime).count()) {
         return false; // Out of date, or doesn't exist.
@@ -163,7 +164,7 @@ static bool readCachedModule(llvm::MemoryBuffer *in,
   (void)typesSize; // so it is not seen as "unused" in release builds.
 
   // STRINGS
-  llvm::DenseMap<uint32_t, NullTerminatedStringRef> knownStrings;
+  toolchain::DenseMap<uint32_t, NullTerminatedStringRef> knownStrings;
   auto getString = [&](uint32_t index) -> NullTerminatedStringRef {
     if (index == ~0u)
       return "";
@@ -180,7 +181,7 @@ static bool readCachedModule(llvm::MemoryBuffer *in,
   };
 
   // TYPES
-  llvm::DenseMap<uint32_t, const USRBasedType *> knownTypes;
+  toolchain::DenseMap<uint32_t, const USRBasedType *> knownTypes;
   std::function<const USRBasedType *(uint32_t)> getType =
       [&](uint32_t index) -> const USRBasedType * {
     auto found = knownTypes.find(index);
@@ -272,7 +273,7 @@ static bool readCachedModule(llvm::MemoryBuffer *in,
         new (*V.Allocator) ContextFreeCodeCompletionResult(
             kind, associatedKind, opKind, roles, isSystem,
                                                            hasAsyncAlternative, string, moduleName, briefDocComment,
-            llvm::ArrayRef(assocUSRs).copy(*V.Allocator),
+            toolchain::ArrayRef(assocUSRs).copy(*V.Allocator),
             CodeCompletionResultType(resultTypes), notRecommended, diagSeverity,
             diagMessage, filterName, nameForDiagnostics);
 
@@ -304,10 +305,10 @@ static bool readCachedModule(llvm::MemoryBuffer *in,
 ///
 ///   STRINGS
 ///     * A blob of length-prefixed strings referred to in CHUNKS or RESULTS.
-static void writeCachedModule(llvm::raw_ostream &out,
+static void writeCachedModule(toolchain::raw_ostream &out,
                               const CodeCompletionCache::Key &K,
                               CodeCompletionCache::Value &V) {
-  llvm::support::endian::Writer LE(out, llvm::endianness::little);
+  toolchain::support::endian::Writer LE(out, toolchain::endianness::little);
 
   // HEADER
   // Metadata required for reading the completions.
@@ -320,10 +321,10 @@ static void writeCachedModule(llvm::raw_ostream &out,
   // want to debug the cache itself.
   {
     SmallString<256> scratch;
-    llvm::raw_svector_ostream OSS(scratch);
+    toolchain::raw_svector_ostream OSS(scratch);
     OSS << K.ModuleFilename << "\0";
     OSS << K.ModuleName << "\0";
-    llvm::support::endian::Writer OSSLE(OSS, llvm::endianness::little);
+    toolchain::support::endian::Writer OSSLE(OSS, toolchain::endianness::little);
     OSSLE.write(K.AccessPath.size());
     for (StringRef p : K.AccessPath)
       OSS << p << "\0";
@@ -339,16 +340,16 @@ static void writeCachedModule(llvm::raw_ostream &out,
 
   // String streams for writing to the CHUNKS and STRINGS sections.
   std::string results_;
-  llvm::raw_string_ostream results(results_);
+  toolchain::raw_string_ostream results(results_);
   std::string chunks_;
-  llvm::raw_string_ostream chunks(chunks_);
-  llvm::support::endian::Writer chunksLE(chunks, llvm::endianness::little);
+  toolchain::raw_string_ostream chunks(chunks_);
+  toolchain::support::endian::Writer chunksLE(chunks, toolchain::endianness::little);
   std::string strings_;
-  llvm::raw_string_ostream strings(strings_);
-  llvm::StringMap<uint32_t> knownStrings;
+  toolchain::raw_string_ostream strings(strings_);
+  toolchain::StringMap<uint32_t> knownStrings;
   std::string types_;
-  llvm::raw_string_ostream types(types_);
-  llvm::DenseMap<const USRBasedType *, uint32_t> knownTypes;
+  toolchain::raw_string_ostream types(types_);
+  toolchain::DenseMap<const USRBasedType *, uint32_t> knownTypes;
 
   auto addString = [&strings, &knownStrings](StringRef str) {
     if (str.empty())
@@ -358,7 +359,7 @@ static void writeCachedModule(llvm::raw_ostream &out,
       return found->second;
     }
     auto size = strings.tell();
-    llvm::support::endian::Writer LE(strings, llvm::endianness::little);
+    toolchain::support::endian::Writer LE(strings, toolchain::endianness::little);
     LE.write(static_cast<uint32_t>(str.size()));
     strings << str;
     knownStrings[str] = size;
@@ -383,7 +384,7 @@ static void writeCachedModule(llvm::raw_ostream &out,
     }
 
     auto size = types.tell();
-    llvm::support::endian::Writer LE(types, llvm::endianness::little);
+    toolchain::support::endian::Writer LE(types, toolchain::endianness::little);
     StringRef USR = type->getUSR();
     LE.write(static_cast<uint32_t>(USR.size()));
     types << USR;
@@ -416,7 +417,7 @@ static void writeCachedModule(llvm::raw_ostream &out,
 
   // RESULTS
   {
-    llvm::support::endian::Writer LE(results, llvm::endianness::little);
+    toolchain::support::endian::Writer LE(results, toolchain::endianness::little);
     for (const ContextFreeCodeCompletionResult *R : V.Results) {
       // FIXME: compress bitfield
       LE.write(static_cast<uint8_t>(R->getKind()));
@@ -477,8 +478,8 @@ static std::string getName(StringRef cacheDirectory,
   SmallString<128> name(cacheDirectory);
 
   // cacheDirectory/ModuleName
-  llvm::sys::path::append(name, K.ModuleName);
-  llvm::raw_svector_ostream OSS(name);
+  toolchain::sys::path::append(name, K.ModuleName);
+  toolchain::raw_svector_ostream OSS(name);
 
   // name[-with-enabled-options]
   OSS << (K.ResultsHaveLeadingDot ? "-dot" : "")
@@ -499,9 +500,9 @@ static std::string getName(StringRef cacheDirectory,
     OSS << "-" << component;
 
   // name-<hash of module filename>
-  auto hash = llvm::hash_value(K.ModuleFilename);
+  auto hash = toolchain::hash_value(K.ModuleFilename);
   SmallString<16> hashStr;
-  llvm::APInt(64, uint64_t(hash)).toStringUnsigned(hashStr, /*Radix*/ 36);
+  toolchain::APInt(64, uint64_t(hash)).toStringUnsigned(hashStr, /*Radix*/ 36);
   OSS << "-" << hashStr << ".completions";
 
   return std::string(name.str());
@@ -510,7 +511,7 @@ static std::string getName(StringRef cacheDirectory,
 std::optional<CodeCompletionCache::ValueRefCntPtr>
 OnDiskCodeCompletionCache::get(const Key &K) {
   // Try to find the cached file.
-  auto bufferOrErr = llvm::MemoryBuffer::getFile(getName(cacheDirectory, K));
+  auto bufferOrErr = toolchain::MemoryBuffer::getFile(getName(cacheDirectory, K));
   if (!bufferOrErr)
     return std::nullopt;
 
@@ -527,7 +528,7 @@ std::error_code OnDiskCodeCompletionCache::set(const Key &K, ValueRefCntPtr V) {
     return std::make_error_code(std::errc::no_such_file_or_directory);
 
   // Create the cache directory if it doesn't exist.
-  if (auto err = llvm::sys::fs::create_directories(cacheDirectory))
+  if (auto err = toolchain::sys::fs::create_directories(cacheDirectory))
     return err;
 
   std::string name = getName(cacheDirectory, K);
@@ -535,24 +536,24 @@ std::error_code OnDiskCodeCompletionCache::set(const Key &K, ValueRefCntPtr V) {
   // Create a temporary file to write the results into.
   SmallString<128> tmpName(name + "-%%%%%%");
   int tmpFD;
-  if (auto err = llvm::sys::fs::createUniqueFile(tmpName.str(), tmpFD, tmpName))
+  if (auto err = toolchain::sys::fs::createUniqueFile(tmpName.str(), tmpFD, tmpName))
     return err;
 
   // Write the contents of the buffer.
-  llvm::raw_fd_ostream out(tmpFD, /*shouldClose=*/true);
+  toolchain::raw_fd_ostream out(tmpFD, /*shouldClose=*/true);
   writeCachedModule(out, K, *V);
   out.flush();
   if (out.has_error())
     return std::make_error_code(std::errc::io_error);
 
   // Atomically rename the file into its final location.
-  return llvm::sys::fs::rename(tmpName.str(), name);
+  return toolchain::sys::fs::rename(tmpName.str(), name);
 }
 
 std::optional<CodeCompletionCache::ValueRefCntPtr>
 OnDiskCodeCompletionCache::getFromFile(StringRef filename) {
   // Try to find the cached file.
-  auto bufferOrErr = llvm::MemoryBuffer::getFile(filename);
+  auto bufferOrErr = toolchain::MemoryBuffer::getFile(filename);
   if (!bufferOrErr)
     return std::nullopt;
 

@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend %s -emit-sil -verify
+
+class TuringMachine {
+  fn halt() -> Never {
+    repeat { } while true
+  }
+}
+
+fn diagnose_missing_return_no_error_after_noreturn_method() -> Int {
+  TuringMachine().halt()
+} // no error
+
+fn testUnreachableAfterNoReturnMethod() -> Int {
+  TuringMachine().halt(); // expected-note{{a call to a never-returning function}}
+  return 0; // expected-warning {{will never be executed}}
+}
+

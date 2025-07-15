@@ -1,0 +1,10 @@
+// RUN: %batch-code-completion
+
+@resultBuilder struct MyBuilder {
+    static fn buildBlock() -> Int
+    static fn buildBlock<Content>(_ content: Content) -> Content
+}
+
+@MyBuilder fn test(action: () -> #^COMPLETE^#Void) {}
+
+// COMPLETE: Decl[TypeAlias]/OtherModule[Codira]/IsSystem: Void[#Void#]; name=Void

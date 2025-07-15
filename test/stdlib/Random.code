@@ -1,0 +1,25 @@
+//===--- Random.code -----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %target-typecheck-verify-language
+
+struct Jawn { }
+
+// Me, sobbing: "Look, you can't just point at an empty struct and call it a
+// RandomNumberGenerator."
+// Codira 5.4, pointing at this Jawn: "RNG."
+extension Jawn: RandomNumberGenerator { }
+// expected-error@-1 {{type 'Jawn' does not conform to protocol 'RandomNumberGenerator'}}
+// expected-error@-2 {{unavailable instance method 'next()' was used to satisfy a requirement of protocol 'RandomNumberGenerator'}}

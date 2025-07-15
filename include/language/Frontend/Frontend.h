@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains declarations of utility methods for parsing and
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_H
-#define SWIFT_FRONTEND_H
+#ifndef LANGUAGE_FRONTEND_H
+#define LANGUAGE_FRONTEND_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticEngine.h"
@@ -47,16 +48,16 @@
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
 #include "clang/Basic/FileManager.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/CAS/ActionCache.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Support/BLAKE3.h"
-#include "llvm/Support/HashingOutputBackend.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/TargetParser/Host.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/CAS/ActionCache.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Support/BLAKE3.h"
+#include "toolchain/Support/HashingOutputBackend.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/TargetParser/Host.h"
 
 #include <memory>
 
@@ -72,12 +73,12 @@ class TypeConverter;
 }
 
 struct ModuleBuffers {
-  std::unique_ptr<llvm::MemoryBuffer> ModuleBuffer;
-  std::unique_ptr<llvm::MemoryBuffer> ModuleDocBuffer;
-  std::unique_ptr<llvm::MemoryBuffer> ModuleSourceInfoBuffer;
-  ModuleBuffers(std::unique_ptr<llvm::MemoryBuffer> ModuleBuffer,
-                std::unique_ptr<llvm::MemoryBuffer> ModuleDocBuffer = nullptr,
-                std::unique_ptr<llvm::MemoryBuffer> ModuleSourceInfoBuffer = nullptr):
+  std::unique_ptr<toolchain::MemoryBuffer> ModuleBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> ModuleDocBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> ModuleSourceInfoBuffer;
+  ModuleBuffers(std::unique_ptr<toolchain::MemoryBuffer> ModuleBuffer,
+                std::unique_ptr<toolchain::MemoryBuffer> ModuleDocBuffer = nullptr,
+                std::unique_ptr<toolchain::MemoryBuffer> ModuleSourceInfoBuffer = nullptr):
                   ModuleBuffer(std::move(ModuleBuffer)),
                   ModuleDocBuffer(std::move(ModuleDocBuffer)),
                   ModuleSourceInfoBuffer(std::move(ModuleSourceInfoBuffer)) {}
@@ -107,7 +108,7 @@ class CompilerInvocation {
   ModuleInterfaceOptions ModuleInterfaceOpts;
   CASOptions CASOpts;
   SerializationOptions SerializationOpts;
-  llvm::MemoryBuffer *IDEInspectionTargetBuffer = nullptr;
+  toolchain::MemoryBuffer *IDEInspectionTargetBuffer = nullptr;
 
   /// The offset that IDEInspection wants to further examine in offset of bytes
   /// from the beginning of the main source file.  Valid only if
@@ -141,12 +142,12 @@ public:
   ///
   /// \returns true if there was an error, false on success.
   bool parseArgs(ArrayRef<const char *> Args, DiagnosticEngine &Diags,
-                 SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>>
+                 SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>>
                      *ConfigurationFileBuffers = nullptr,
                  StringRef workingDirectory = {},
                  StringRef mainExecutablePath = {});
 
-  /// Sets specific options based on the given serialized Swift binary data.
+  /// Sets specific options based on the given serialized Codira binary data.
   ///
   /// This is additive, i.e. options are not reset to their default values given
   /// the /absence/ of a flag. However, flags that only have a single value may
@@ -164,14 +165,14 @@ public:
   /// Serialize the command line arguments for emitting them
   /// to DWARF or CodeView and inject SDKPath if necessary.
   static void buildDebugFlags(std::string &Output,
-                              const llvm::opt::ArgList &Args,
+                              const toolchain::opt::ArgList &Args,
                               StringRef SDKPath,
                               StringRef ResourceDir);
 
   /// Configures the diagnostic engine for the invocation's options.
   void setUpDiagnosticEngine(DiagnosticEngine &diags);
 
-  void setTargetTriple(const llvm::Triple &Triple);
+  void setTargetTriple(const toolchain::Triple &Triple);
   void setTargetTriple(StringRef Triple);
 
   StringRef getTargetTriple() const {
@@ -179,7 +180,8 @@ public:
   }
 
   bool requiresCAS() const {
-    return CASOpts.EnableCaching || IRGenOpts.UseCASBackend;
+    return CASOpts.EnableCaching || IRGenOpts.UseCASBackend ||
+           CASOpts.ImportModuleFromCAS;
   }
 
   void setClangModuleCachePath(StringRef Path) {
@@ -254,8 +256,8 @@ public:
   /// Compute the default prebuilt module cache path for a given resource path
   /// and SDK version. This function is also used by LLDB.
   static std::string
-  computePrebuiltCachePath(StringRef RuntimeResourcePath, llvm::Triple target,
-                           std::optional<llvm::VersionTuple> sdkVer);
+  computePrebuiltCachePath(StringRef RuntimeResourcePath, toolchain::Triple target,
+                           std::optional<toolchain::VersionTuple> sdkVer);
 
   /// If we haven't explicitly passed -prebuilt-module-cache-path, set it to
   /// the default value of <resource-dir>/<platform>/prebuilt-modules.
@@ -276,14 +278,14 @@ public:
   /// C++ stdlib is the default for the specified target.
   void computeCXXStdlibOptions();
 
-  /// Computes the runtime resource path relative to the given Swift
+  /// Computes the runtime resource path relative to the given Codira
   /// executable.
   static void computeRuntimeResourcePathFromExecutablePath(
       StringRef mainExecutablePath, bool shared,
-      llvm::SmallVectorImpl<char> &runtimeResourcePath);
+      toolchain::SmallVectorImpl<char> &runtimeResourcePath);
 
-  /// Appends `lib/swift[_static]` to the given path
-  static void appendSwiftLibDir(llvm::SmallVectorImpl<char> &path, bool shared);
+  /// Appends `lib/language[_static]` to the given path
+  static void appendCodiraLibDir(toolchain::SmallVectorImpl<char> &path, bool shared);
 
   void setSDKPath(const std::string &Path);
 
@@ -369,7 +371,7 @@ public:
   /// \param args The arguments to `-module-alias`. If input has `-module-alias Foo=Bar
   ///             -module-alias Baz=Qux`, the args are ['Foo=Bar', 'Baz=Qux'].  The name
   ///             Foo is the name that appears in source files, while it maps to Bar, the name
-  ///             of the binary on disk, /path/to/Bar.swiftmodule(interface), under the hood.
+  ///             of the binary on disk, /path/to/Bar.codemodule(interface), under the hood.
   /// \param diags Used to print diagnostics in case validation of the string args fails.
   ///        See \c ModuleAliasesConverter::computeModuleAliases on validation details.
   /// \return Whether setting module alias map succeeded; false if args validation fails.
@@ -379,7 +381,7 @@ public:
     return FrontendOpts.InputsAndOutputs.getSingleOutputFilename();
   }
 
-  void setIDEInspectionTarget(llvm::MemoryBuffer *Buf, unsigned Offset) {
+  void setIDEInspectionTarget(toolchain::MemoryBuffer *Buf, unsigned Offset) {
     assert(Buf);
     IDEInspectionTargetBuffer = Buf;
     IDEInspectionOffset = Offset;
@@ -388,7 +390,7 @@ public:
     LangOpts.TypoCorrectionLimit = 0;
   }
 
-  std::pair<llvm::MemoryBuffer *, unsigned> getIDEInspectionTarget() const {
+  std::pair<toolchain::MemoryBuffer *, unsigned> getIDEInspectionTarget() const {
     return std::make_pair(IDEInspectionTargetBuffer, IDEInspectionOffset);
   }
 
@@ -421,24 +423,24 @@ public:
     return ImplicitStdlibKind::Stdlib;
   }
 
-  /// Whether the Swift -Onone support library should be implicitly imported.
-  bool shouldImportSwiftONoneSupport() const;
+  /// Whether the Codira -Onone support library should be implicitly imported.
+  bool shouldImportCodiraONoneSupport() const;
 
-  /// Whether the Swift Concurrency support library should be implicitly
+  /// Whether the Codira Concurrency support library should be implicitly
   /// imported.
-  bool shouldImportSwiftConcurrency() const;
+  bool shouldImportCodiraConcurrency() const;
 
-  /// Whether the Swift String Processing support library should be implicitly
+  /// Whether the Codira String Processing support library should be implicitly
   /// imported.
-  bool shouldImportSwiftStringProcessing() const;
+  bool shouldImportCodiraStringProcessing() const;
 
   /// Whether the CXX module should be implicitly imported.
   bool shouldImportCxx() const;
 
   /// Performs input setup common to these tools:
-  /// sil-opt, sil-func-extractor, sil-llvm-gen, and sil-nm.
+  /// sil-opt, sil-fn-extractor, sil-toolchain-gen, and sil-nm.
   /// Return value includes the buffer so caller can keep it alive.
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>
   setUpInputForSILTool(StringRef inputFilename, StringRef moduleNameArg,
                        bool alwaysSetModuleToMain, bool bePrimary,
                        serialization::ExtendedValidationInfo &extendedInfo);
@@ -502,9 +504,9 @@ class CompilerInstance {
   /// CAS Instances.
   /// This needs to be declared before SourceMgr because when using CASFS,
   /// the file buffer provided by CAS needs to outlive the SourceMgr.
-  std::shared_ptr<llvm::cas::ObjectStore> CAS;
-  std::shared_ptr<llvm::cas::ActionCache> ResultCache;
-  std::optional<llvm::cas::ObjectRef> CompileJobBaseKey;
+  std::shared_ptr<toolchain::cas::ObjectStore> CAS;
+  std::shared_ptr<toolchain::cas::ActionCache> ResultCache;
+  std::optional<toolchain::cas::ObjectRef> CompileJobBaseKey;
 
   SourceManager SourceMgr;
   DiagnosticEngine Diagnostics{SourceMgr};
@@ -524,15 +526,15 @@ class CompilerInstance {
   std::unique_ptr<UnifiedStatsReporter> Stats;
 
   /// Virtual OutputBackend.
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OutputBackend> OutputBackend = nullptr;
+  toolchain::IntrusiveRefCntPtr<toolchain::vfs::OutputBackend> OutputBackend = nullptr;
 
   /// CAS OutputBackend.
-  llvm::IntrusiveRefCntPtr<swift::cas::SwiftCASOutputBackend> CASOutputBackend =
+  toolchain::IntrusiveRefCntPtr<language::cas::CodiraCASOutputBackend> CASOutputBackend =
       nullptr;
 
   /// The verification output backend.
-  using HashBackendTy = llvm::vfs::HashingOutputBackend<llvm::BLAKE3>;
-  llvm::IntrusiveRefCntPtr<HashBackendTy> HashBackend;
+  using HashBackendTy = toolchain::vfs::HashingOutputBackend<toolchain::BLAKE3>;
+  toolchain::IntrusiveRefCntPtr<HashBackendTy> HashBackend;
 
   mutable ModuleDecl *MainModule = nullptr;
   SerializedModuleLoaderBase *DefaultSerializedLoader = nullptr;
@@ -548,7 +550,7 @@ class CompilerInstance {
 
   /// Identifies the set of input buffers in the SourceManager that are
   /// considered primaries.
-  llvm::SetVector<unsigned> PrimaryBufferIDs;
+  toolchain::SetVector<unsigned> PrimaryBufferIDs;
 
   /// Return whether there is an entry in PrimaryInputs for buffer \p BufID.
   bool isPrimaryInput(unsigned BufID) const {
@@ -577,33 +579,33 @@ public:
   DiagnosticEngine &getDiags() { return Diagnostics; }
   const DiagnosticEngine &getDiags() const { return Diagnostics; }
 
-  llvm::vfs::FileSystem &getFileSystem() const {
+  toolchain::vfs::FileSystem &getFileSystem() const {
     return *SourceMgr.getFileSystem();
   }
 
-  llvm::vfs::OutputBackend &getOutputBackend() const {
+  toolchain::vfs::OutputBackend &getOutputBackend() const {
     return *OutputBackend;
   }
-  swift::cas::SwiftCASOutputBackend &getCASOutputBackend() const {
+  language::cas::CodiraCASOutputBackend &getCASOutputBackend() const {
     return *CASOutputBackend;
   }
 
   void
-  setOutputBackend(llvm::IntrusiveRefCntPtr<llvm::vfs::OutputBackend> Backend) {
+  setOutputBackend(toolchain::IntrusiveRefCntPtr<toolchain::vfs::OutputBackend> Backend) {
     OutputBackend = std::move(Backend);
   }
-  using HashingBackendPtrTy = llvm::IntrusiveRefCntPtr<HashBackendTy>;
+  using HashingBackendPtrTy = toolchain::IntrusiveRefCntPtr<HashBackendTy>;
   HashingBackendPtrTy getHashingBackend() { return HashBackend; }
 
-  llvm::cas::ObjectStore &getObjectStore() const { return *CAS; }
-  llvm::cas::ActionCache &getActionCache() const { return *ResultCache; }
-  std::shared_ptr<llvm::cas::ActionCache> getSharedCacheInstance() const {
+  toolchain::cas::ObjectStore &getObjectStore() const { return *CAS; }
+  toolchain::cas::ActionCache &getActionCache() const { return *ResultCache; }
+  std::shared_ptr<toolchain::cas::ActionCache> getSharedCacheInstance() const {
     return ResultCache;
   }
-  std::shared_ptr<llvm::cas::ObjectStore> getSharedCASInstance() const {
+  std::shared_ptr<toolchain::cas::ObjectStore> getSharedCASInstance() const {
     return CAS;
   }
-  std::optional<llvm::cas::ObjectRef> getCompilerBaseKey() const {
+  std::optional<toolchain::cas::ObjectRef> getCompilerBaseKey() const {
     return CompileJobBaseKey;
   }
   CachingDiagnosticsProcessor *getCachingDiagnosticsProcessor() const {
@@ -666,21 +668,21 @@ public:
   /// it can actually be imported. Emit a warning, otherwise.
   void verifyImplicitConcurrencyImport();
 
-  /// Whether the Swift Concurrency support library can be imported
+  /// Whether the Codira Concurrency support library can be imported
   /// i.e. if it can be found.
-  bool canImportSwiftConcurrency() const;
+  bool canImportCodiraConcurrency() const;
 
-  /// Whether the Swift Concurrency Shims support Clang library can be imported
+  /// Whether the Codira Concurrency Shims support Clang library can be imported
   /// i.e. if it can be found.
-  bool canImportSwiftConcurrencyShims() const;
+  bool canImportCodiraConcurrencyShims() const;
 
   /// Verify that if an implicit import of the `StringProcessing` module if
   /// expected, it can actually be imported. Emit a warning, otherwise.
   void verifyImplicitStringProcessingImport();
 
-  /// Whether the Swift String Processing support library can be imported
+  /// Whether the Codira String Processing support library can be imported
   /// i.e. if it can be found.
-  bool canImportSwiftStringProcessing() const;
+  bool canImportCodiraStringProcessing() const;
 
   /// Whether the Cxx library can be imported
   bool canImportCxx() const;
@@ -770,13 +772,13 @@ private:
   /// Try to open the module doc file corresponding to the input parameter.
   /// Return None for error, nullptr if no such file exists, or the buffer if
   /// one was found.
-  std::optional<std::unique_ptr<llvm::MemoryBuffer>>
+  std::optional<std::unique_ptr<toolchain::MemoryBuffer>>
   openModuleDoc(const InputFile &input);
 
   /// Try to open the module source info file corresponding to the input parameter.
   /// Return None for error, nullptr if no such file exists, or the buffer if
   /// one was found.
-  std::optional<std::unique_ptr<llvm::MemoryBuffer>>
+  std::optional<std::unique_ptr<toolchain::MemoryBuffer>>
   openModuleSourceInfo(const InputFile &input);
 
 public:
@@ -815,8 +817,8 @@ public:
   bool loadStdlibIfNeeded();
 
   /// If \p fn returns true, exits early and returns true.
-  bool forEachFileToTypeCheck(llvm::function_ref<bool(SourceFile &)> fn);
-  bool forEachSourceFile(llvm::function_ref<bool(SourceFile &)> fn);
+  bool forEachFileToTypeCheck(toolchain::function_ref<bool(SourceFile &)> fn);
+  bool forEachSourceFile(toolchain::function_ref<bool(SourceFile &)> fn);
 
   /// Whether the cancellation of the current operation has been requested.
   bool isCancellationRequested() const;

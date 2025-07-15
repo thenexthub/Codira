@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_LINKING_H
-#define SWIFT_IRGEN_LINKING_H
+#ifndef LANGUAGE_IRGEN_LINKING_H
+#define LANGUAGE_IRGEN_LINKING_H
 
 #include "language/ABI/Coro.h"
 #include "language/AST/Decl.h"
@@ -27,12 +28,12 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILGlobalVariable.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/IR/GlobalObject.h"
-#include "llvm/IR/GlobalValue.h"
-#include "llvm/IR/Module.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/IR/GlobalObject.h"
+#include "toolchain/IR/GlobalValue.h"
+#include "toolchain/IR/Module.h"
 
-namespace llvm {
+namespace toolchain {
 class Triple;
 }
 
@@ -44,7 +45,7 @@ class IRGenModule;
 class Alignment;
 
 /// Determine if the triple uses the DLL storage.
-bool useDllStorage(const llvm::Triple &triple);
+bool useDllStorage(const toolchain::Triple &triple);
 
 class UniversalLinkageInfo {
 public:
@@ -53,7 +54,7 @@ public:
   bool UseDLLStorage;
   bool Internalize;
 
-  /// True iff are multiple llvm modules.
+  /// True iff are multiple toolchain modules.
   bool HasMultipleIGMs;
 
   /// When this is true, the linkage for forward-declared private symbols will
@@ -66,23 +67,23 @@ public:
 
   explicit UniversalLinkageInfo(IRGenModule &IGM);
 
-  UniversalLinkageInfo(const llvm::Triple &triple, bool hasMultipleIGMs,
+  UniversalLinkageInfo(const toolchain::Triple &triple, bool hasMultipleIGMs,
                        bool forcePublicDecls, bool isStaticLibrary,
                        bool mergeableSymbols);
 
-  /// In case of multiple llvm modules (in multi-threaded compilation) all
+  /// In case of multiple toolchain modules (in multi-threaded compilation) all
   /// private decls must be visible from other files.
   bool shouldAllPrivateDeclsBeVisibleFromOtherFiles() const {
     return HasMultipleIGMs;
   }
-  /// In case of multiple llvm modules, private lazy protocol
+  /// In case of multiple toolchain modules, private lazy protocol
   /// witness table accessors could be emitted by two different IGMs during
   /// IRGen into different object files and the linker would complain about
   /// duplicate symbols.
   bool needLinkerToMergeDuplicateSymbols() const { return HasMultipleIGMs; }
 
   /// This is used by the LLDB expression evaluator since an expression's
-  /// llvm::Module may need to access private symbols defined in the
+  /// toolchain::Module may need to access private symbols defined in the
   /// expression's context. This flag ensures that private accessors are
   /// forward-declared as public external in the expression's module.
   bool forcePublicDecls() const { return ForcePublicDecls; }
@@ -98,7 +99,7 @@ inline bool isEmbedded(CanType t) {
   return t->getASTContext().LangOpts.hasFeature(Feature::Embedded);
 }
 
-// Metadata is not generated and not allowed to be referenced in Embedded Swift,
+// Metadata is not generated and not allowed to be referenced in Embedded Codira,
 // expect for classes (both generic and non-generic), dynamic self, and
 // class-bound existentials.
 inline bool isMetadataAllowedInEmbedded(CanType t) {
@@ -135,7 +136,7 @@ class LinkEntity {
   /// ValueDecl*, SILFunction*, or TypeBase*, depending on Kind.
   void *Pointer;
 
-  /// ProtocolConformance*, depending on Kind.
+  /// ProtocolConformance* or SILDifferentiabilityWitness*, depending on Kind.
   void *SecondaryPointer;
 
   /// A hand-rolled bitfield with the following layout:
@@ -247,8 +248,8 @@ class LinkEntity {
     /// An Objective-C metaclass reference.  The pointer is a ClassDecl*.
     ObjCMetaclass,
 
-    /// A swift metaclass-stub reference.  The pointer is a ClassDecl*.
-    SwiftMetaclassStub,
+    /// A language metaclass-stub reference.  The pointer is a ClassDecl*.
+    CodiraMetaclassStub,
 
     /// A callback used by newer Objective-C runtimes to initialize class
     /// metadata for classes where getClassMetadataStrategy() is equal to
@@ -256,7 +257,7 @@ class LinkEntity {
     ObjCMetadataUpdateFunction,
 
     /// A stub that we emit to allow Clang-generated code to statically refer
-    /// to Swift classes with resiliently-sized metadata, since the metadata
+    /// to Codira classes with resiliently-sized metadata, since the metadata
     /// is not statically-emitted. Used when getClassMetadataStrategy() is
     /// equal to ClassMetadataStrategy::Resilient.
     ObjCResilientClassStub,
@@ -382,8 +383,8 @@ class LinkEntity {
     DynamicallyReplaceableFunctionImpl,
 
     /// The once token used by cacheCanonicalSpecializedMetadata, by way of
-    /// swift_getCanonicalSpecializedMetadata and
-    /// swift_getCanonicalPrespecializedGenericMetadata, to
+    /// language_getCanonicalSpecializedMetadata and
+    /// language_getCanonicalPrespecializedGenericMetadata, to
     /// ensure that canonical prespecialized generic records are only added to
     /// the metadata cache once.
     CanonicalPrespecializedGenericTypeCachingOnceToken,
@@ -510,7 +511,7 @@ class LinkEntity {
     /// A reference to a metaclass-stub for a statically specialized generic
     /// class.
     /// The pointer is a canonical TypeBase*.
-    CanonicalSpecializedGenericSwiftMetaclassStub,
+    CanonicalSpecializedGenericCodiraMetaclassStub,
 
     /// An access function for prespecialized type metadata.
     /// The pointer is a canonical TypeBase*.
@@ -522,7 +523,7 @@ class LinkEntity {
     NoncanonicalSpecializedGenericTypeMetadata,
 
     /// A cache variable for noncanonical specialized type metadata, to be
-    /// passed to swift_getCanonicalSpecializedMetadata.
+    /// passed to language_getCanonicalSpecializedMetadata.
     /// The pointer is a canonical TypeBase*.
     NoncanonicalSpecializedGenericTypeMetadataCacheVariable,
 
@@ -545,11 +546,11 @@ class LinkEntity {
 
     /// The thunk provided for partially applying a function at some values
     /// which are captured.
-    /// The pointer is an llvm::Function*.
+    /// The pointer is an toolchain::Function*.
     PartialApplyForwarder,
 
     /// An async function pointer to a partial apply forwarder.
-    /// The pointer is the llvm::Function* for a partial apply forwarder.
+    /// The pointer is the toolchain::Function* for a partial apply forwarder.
     PartialApplyForwarderAsyncFunctionPointer,
 
     /// An async function pointer to a function which is known to exist whose
@@ -592,7 +593,7 @@ class LinkEntity {
     DistributedThunkCoroFunctionPointer,
 
     /// An coro function pointer to a partial apply forwarder.
-    /// The pointer is the llvm::Function* for a partial apply forwarder.
+    /// The pointer is the toolchain::Function* for a partial apply forwarder.
     PartialApplyForwarderCoroFunctionPointer,
 
     /// An coro function pointer to a function which is known to exist whose
@@ -605,17 +606,17 @@ class LinkEntity {
     /// The pointer is a SILFunction*.
     DistributedAccessorCoroFunctionPointer,
 
-    /// An allocator to be passed to swift_coro_alloc and swift_coro_dealloc.
+    /// An allocator to be passed to language_coro_alloc and language_coro_dealloc.
     CoroAllocator,
   };
-  friend struct llvm::DenseMapInfo<LinkEntity>;
+  friend struct toolchain::DenseMapInfo<LinkEntity>;
 
   Kind getKind() const {
     return Kind(LINKENTITY_GET_FIELD(Data, Kind));
   }
 
-  friend llvm::hash_code hash_value(const LinkEntity &Entity) {
-    return llvm::hash_combine(Entity.Pointer, Entity.SecondaryPointer,
+  friend toolchain::hash_code hash_value(const LinkEntity &Entity) {
+    return toolchain::hash_combine(Entity.Pointer, Entity.SecondaryPointer,
                               Entity.Data);
   }
 
@@ -717,7 +718,7 @@ class LinkEntity {
       if (requirement == associate) return result;
       result++;
     }
-    llvm_unreachable("didn't find associated type in protocol?");
+    toolchain_unreachable("didn't find associated type in protocol?");
   }
 
   static AssociatedTypeDecl *
@@ -727,7 +728,7 @@ class LinkEntity {
       if (index == 0) return associate;
       index--;
     }
-    llvm_unreachable("didn't find associated type in protocol?");
+    toolchain_unreachable("didn't find associated type in protocol?");
   }
 
   // We store associated conformances using their index in the requirement
@@ -744,7 +745,7 @@ class LinkEntity {
       }
       ++index;
     }
-    llvm_unreachable("requirement not found in protocol");
+    toolchain_unreachable("requirement not found in protocol");
   }
 
   // We store associated conformances using their index in the requirement
@@ -775,8 +776,8 @@ class LinkEntity {
   void
   setForDifferentiabilityWitness(Kind kind,
                                  const SILDifferentiabilityWitness *witness) {
-    Pointer = const_cast<void *>(static_cast<const void *>(witness));
-    SecondaryPointer = nullptr;
+    Pointer = nullptr;
+    SecondaryPointer = const_cast<void *>(static_cast<const void *>(witness));
     Data = LINKENTITY_SET_FIELD(Kind, unsigned(kind));
   }
 
@@ -826,7 +827,7 @@ public:
       kind = Kind::DispatchThunkAllocator;
       break;
     default:
-      llvm_unreachable("Bad SILDeclRef for dispatch thunk");
+      toolchain_unreachable("Bad SILDeclRef for dispatch thunk");
     }
 
     LinkEntity entity;
@@ -859,7 +860,7 @@ public:
       kind = Kind::MethodDescriptorAllocator;
       break;
     default:
-      llvm_unreachable("Bad SILDeclRef for method descriptor");
+      toolchain_unreachable("Bad SILDeclRef for method descriptor");
     }
 
     LinkEntity entity;
@@ -903,9 +904,9 @@ public:
     return entity;
   }
 
-  static LinkEntity forSwiftMetaclassStub(ClassDecl *decl) {
+  static LinkEntity forCodiraMetaclassStub(ClassDecl *decl) {
     LinkEntity entity;
-    entity.setForDecl(Kind::SwiftMetaclassStub, decl);
+    entity.setForDecl(Kind::CodiraMetaclassStub, decl);
     return entity;
   }
 
@@ -1046,7 +1047,7 @@ public:
   }
 
   static LinkEntity forPropertyDescriptor(AbstractStorageDecl *decl) {
-    assert(decl->exportsPropertyDescriptor());
+    assert((bool)decl->getPropertyDescriptorGenericSignature());
     LinkEntity entity;
     entity.setForDecl(Kind::PropertyDescriptor, decl);
     return entity;
@@ -1096,8 +1097,8 @@ public:
   }
 
   static LinkEntity forValueWitness(CanType concreteType, ValueWitness witness) {
-    // Explicitly allowed in embedded Swift because we generate value witnesses
-    // (but not witness tables) for Swift Concurrency usage.
+    // Explicitly allowed in embedded Codira because we generate value witnesses
+    // (but not witness tables) for Codira Concurrency usage.
     LinkEntity entity;
     entity.Pointer = concreteType.getPointer();
     entity.Data = LINKENTITY_SET_FIELD(Kind, unsigned(Kind::ValueWitness))
@@ -1327,9 +1328,9 @@ public:
   }
 
   static LinkEntity
-  forSpecializedGenericSwiftMetaclassStub(CanType concreteType) {
+  forSpecializedGenericCodiraMetaclassStub(CanType concreteType) {
     LinkEntity entity;
-    entity.setForType(Kind::CanonicalSpecializedGenericSwiftMetaclassStub,
+    entity.setForType(Kind::CanonicalSpecializedGenericCodiraMetaclassStub,
                       concreteType);
     return entity;
   }
@@ -1397,7 +1398,7 @@ public:
     }
 
     default:
-      llvm_unreachable("Link entity kind cannot have an async function pointer");
+      toolchain_unreachable("Link entity kind cannot have an async function pointer");
     }
 
     return entity;
@@ -1436,9 +1437,9 @@ public:
     return entity;
   }
 
-  static LinkEntity forAccessibleFunctionRecord(SILFunction *func) {
+  static LinkEntity forAccessibleFunctionRecord(SILFunction *fn) {
     LinkEntity entity;
-    entity.Pointer = func;
+    entity.Pointer = fn;
     entity.SecondaryPointer = nullptr;
     entity.Data =
         LINKENTITY_SET_FIELD(Kind, unsigned(Kind::AccessibleFunctionRecord));
@@ -1482,13 +1483,13 @@ public:
       break;
 
     default:
-      llvm_unreachable("Link entity is not an async function pointer");
+      toolchain_unreachable("Link entity is not an async function pointer");
     }
 
     return entity;
   }
 
-  static LinkEntity forPartialApplyForwarder(llvm::Function *function) {
+  static LinkEntity forPartialApplyForwarder(toolchain::Function *function) {
     LinkEntity entity;
     entity.Pointer = function;
     entity.SecondaryPointer = nullptr;
@@ -1564,7 +1565,7 @@ public:
     }
 
     default:
-      llvm_unreachable("Link entity kind cannot have an coro function pointer");
+      toolchain_unreachable("Link entity kind cannot have an coro function pointer");
     }
 
     return entity;
@@ -1627,13 +1628,13 @@ public:
       break;
 
     default:
-      llvm_unreachable("Link entity is not an coro function pointer");
+      toolchain_unreachable("Link entity is not an coro function pointer");
     }
 
     return entity;
   }
 
-  void mangle(ASTContext &Ctx, llvm::raw_ostream &out) const;
+  void mangle(ASTContext &Ctx, toolchain::raw_ostream &out) const;
   void mangle(ASTContext &Ctx, SmallVectorImpl<char> &buffer) const;
   std::string mangleAsString(ASTContext &Ctx) const;
 
@@ -1687,7 +1688,7 @@ public:
 
   SILDifferentiabilityWitness *getSILDifferentiabilityWitness() const {
     assert(getKind() == Kind::DifferentiabilityWitness);
-    return reinterpret_cast<SILDifferentiabilityWitness *>(Pointer);
+    return reinterpret_cast<SILDifferentiabilityWitness *>(SecondaryPointer);
   }
 
   const RootProtocolConformance *getRootProtocolConformance() const {
@@ -1842,7 +1843,7 @@ public:
   
   /// Get the default LLVM type to use for forward declarations of this
   /// entity.
-  llvm::Type *getDefaultDeclarationType(IRGenModule &IGM) const;
+  toolchain::Type *getDefaultDeclarationType(IRGenModule &IGM) const;
 
   /// Determine whether entity that represents a symbol is in TEXT segment.
   bool isText() const;
@@ -1868,9 +1869,9 @@ private:
 };
 
 struct IRLinkage {
-  llvm::GlobalValue::LinkageTypes Linkage;
-  llvm::GlobalValue::VisibilityTypes Visibility;
-  llvm::GlobalValue::DLLStorageClassTypes DLLStorage;
+  toolchain::GlobalValue::LinkageTypes Linkage;
+  toolchain::GlobalValue::VisibilityTypes Visibility;
+  toolchain::GlobalValue::DLLStorageClassTypes DLLStorage;
 
   static const IRLinkage InternalLinkOnceODR;
   static const IRLinkage InternalWeakODR;
@@ -1886,9 +1887,9 @@ class ApplyIRLinkage {
   IRLinkage IRL;
 public:
   ApplyIRLinkage(IRLinkage IRL) : IRL(IRL) {}
-  void to(llvm::GlobalValue *GV, bool definition = true) const {
-    llvm::Module *M = GV->getParent();
-    const llvm::Triple Triple(M->getTargetTriple());
+  void to(toolchain::GlobalValue *GV, bool definition = true) const {
+    toolchain::Module *M = GV->getParent();
+    const toolchain::Triple Triple(M->getTargetTriple());
 
     GV->setLinkage(IRL.Linkage);
     GV->setVisibility(IRL.Visibility);
@@ -1902,10 +1903,10 @@ public:
     // COMDATs cannot be applied to declarations.  If we have a definition,
     // apply the COMDAT.
     if (definition)
-      if (IRL.Linkage == llvm::GlobalValue::LinkOnceODRLinkage ||
-          IRL.Linkage == llvm::GlobalValue::WeakODRLinkage)
+      if (IRL.Linkage == toolchain::GlobalValue::LinkOnceODRLinkage ||
+          IRL.Linkage == toolchain::GlobalValue::WeakODRLinkage)
         if (Triple.supportsCOMDAT())
-          if (llvm::GlobalObject *GO = dyn_cast<llvm::GlobalObject>(GV))
+          if (toolchain::GlobalObject *GO = dyn_cast<toolchain::GlobalObject>(GV))
             GO->setComdat(M->getOrInsertComdat(GV->getName()));
   }
 };
@@ -1914,7 +1915,7 @@ public:
 class LinkInfo {
   LinkInfo() = default;
 
-  llvm::SmallString<32> Name;
+  toolchain::SmallString<32> Name;
   IRLinkage IRL;
   ForDefinition_t ForDefinition;
 
@@ -1924,7 +1925,7 @@ public:
                       ForDefinition_t forDefinition);
 
   static LinkInfo get(const UniversalLinkageInfo &linkInfo,
-                      ModuleDecl *swiftModule,
+                      ModuleDecl *languageModule,
                       const LinkEntity &entity,
                       ForDefinition_t forDefinition);
 
@@ -1935,13 +1936,13 @@ public:
   StringRef getName() const {
     return Name.str();
   }
-  llvm::GlobalValue::LinkageTypes getLinkage() const {
+  toolchain::GlobalValue::LinkageTypes getLinkage() const {
     return IRL.Linkage;
   }
-  llvm::GlobalValue::VisibilityTypes getVisibility() const {
+  toolchain::GlobalValue::VisibilityTypes getVisibility() const {
     return IRL.Visibility;
   }
-  llvm::GlobalValue::DLLStorageClassTypes getDLLStorage() const {
+  toolchain::GlobalValue::DLLStorageClassTypes getDLLStorage() const {
     return IRL.DLLStorage;
   }
 
@@ -1951,15 +1952,15 @@ public:
   static bool isUsed(IRLinkage IRL);
 };
 
-StringRef encodeForceLoadSymbolName(llvm::SmallVectorImpl<char> &buf,
+StringRef encodeForceLoadSymbolName(toolchain::SmallVectorImpl<char> &buf,
                                     StringRef name);
 }
 }
 
 /// Allow LinkEntity to be used as a key for a DenseMap.
-namespace llvm {
-template <> struct DenseMapInfo<swift::irgen::LinkEntity> {
-  using LinkEntity = swift::irgen::LinkEntity;
+namespace toolchain {
+template <> struct DenseMapInfo<language::irgen::LinkEntity> {
+  using LinkEntity = language::irgen::LinkEntity;
   static LinkEntity getEmptyKey() {
     LinkEntity entity;
     entity.Pointer = nullptr;

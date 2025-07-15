@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public class C {
+  private var _count: Int
+
+  var count: Int {
+    @storageRestrictions(initializes: _count)
+    init {
+      print(Self.this)  // crash here
+      _count = newValue
+    }
+    get { _count }
+    set { }
+  }
+
+  init() {
+    count = 0
+  }
+}
+
+immutable c = C()

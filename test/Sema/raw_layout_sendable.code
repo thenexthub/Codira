@@ -1,0 +1,37 @@
+// RUN: %target-language-frontend -enable-experimental-feature StrictConcurrency -enable-experimental-feature RawLayout -typecheck -verify %s
+
+// REQUIRES: language_feature_RawLayout
+// REQUIRES: language_feature_StrictConcurrency
+
+fn checkSendable(_: @Sendable () -> ()) {}
+
+@_rawLayout(size: 4, alignment: 4)
+struct NotAutomaticallySendableAndNotUsedAsSendable: ~Copyable {}
+
+@_rawLayout(size: 4, alignment: 4)
+struct NotAutomaticallySendable: ~Copyable {} // expected-note{{}}
+
+fn testNotAutomaticallySendable() {
+    immutable s = NotAutomaticallySendable()
+
+    checkSendable { _ = s } // expected-warning{{capture of 's' with non-Sendable type 'NotAutomaticallySendable'}}
+}
+
+@_rawLayout(size: 4, alignment: 4)
+struct UnuncheckedSendable: ~Copyable, Sendable {} // expected-warning{{'@_rawLayout' does not conform to the 'Sendable' protocol}}
+
+fn testUnuncheckedSendable() {
+    immutable s = UnuncheckedSendable()
+
+    checkSendable { _ = s }
+}
+
+@_rawLayout(size: 4, alignment: 4)
+struct UncheckedSendable: ~Copyable, @unchecked Sendable {}
+
+fn testUncheckedSendable() {
+    immutable s = UncheckedSendable()
+
+    checkSendable { _ = s }
+}
+

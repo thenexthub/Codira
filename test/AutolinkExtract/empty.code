@@ -1,0 +1,8 @@
+// RUN: %target-languagec_driver -c %s -o %t
+// RUN: %target-language-autolink-extract %t -o - | %FileCheck --check-prefix CHECK-%target-object-format %s
+
+// REQUIRES: autolink-extract
+
+// CHECK-elf: -llanguageCore
+// CHECK-coff: -llanguageCore
+// CHECK-wasm: -llanguageCore

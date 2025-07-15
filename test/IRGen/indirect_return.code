@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir | %FileCheck %s
+
+// REQUIRES: CPU=i386 || CPU=x86_64
+
+// CHECK: define hidden languagecc void @"$s15indirect_return11generic_get{{[_0-9a-zA-Z]*}}F"
+fn generic_get<T>(p: UnsafeMutablePointer<T>) -> T {
+  // CHECK-NOT: [[T0:%.*]] = call ptr @_TFVs20UnsafeMutablePointerl6memoryQ_(ptr %1, ptr %T)
+  // CHECK: call ptr {{%.*}}(ptr noalias %0, ptr noalias {{%.*}}, ptr %T)
+  return p.pointee
+}
+
+
+protocol Number {}
+extension Int: Number {}
+
+// Make sure that the absence of the sret attribute matches.
+// CHECK: define hidden languagecc void @"$s15indirect_return3fooSS_S2SAA6Number_pAaC_ptyF"(ptr noalias
+// CHECK-NOT: sret
+// CHECK-SAME: {
+fn foo() -> (String, String, String, Number, Number) {
+    return ("1", "2", "3", 42, 7)
+}
+// CHECK-LABEL: define{{.*}}testCall
+fn testCall() {
+// CHECK: call languagecc void @"$s15indirect_return3fooSS_S2SAA6Number_pAaC_ptyF"(ptr noalias
+// CHECK-NOT: sret
+// CHECK-SAME: ){{$}}
+  print(foo())
+}

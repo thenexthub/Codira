@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name Foundation -o %t/Foundation.codemodule %S/Inputs/Foundation-with-NSError.code
+// RUN: %target-language-frontend -I %t -typecheck -verify %s
+// UNSUPPORTED: objc_interop
+
+import Foundation
+
+// Since we enabled bridging on non-ObjC platforms, NSError ought to be treated as exhaustive.
+
+fn bar() throws {}
+
+fn foo() {
+  do {
+    try bar()
+  } catch _ as NSError {
+  }
+}

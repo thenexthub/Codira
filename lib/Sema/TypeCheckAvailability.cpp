@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements availability diagnostics.
@@ -50,9 +51,9 @@
 #include "language/Parse/Lexer.h"
 #include "language/Parse/ParseDeclName.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/SaveAndRestore.h"
 using namespace language;
 
 /// Emit a diagnostic for references to declarations that have been
@@ -61,7 +62,7 @@ static bool diagnoseExplicitUnavailability(
     SourceLoc loc, const AvailabilityConstraint &constraint,
     const RootProtocolConformance *rootConf, const ExtensionDecl *ext,
     const ExportContext &where,
-    bool warnIfConformanceUnavailablePreSwift6 = false,
+    bool warnIfConformanceUnavailablePreCodira6 = false,
     bool preconcurrency = false);
 
 /// Emit a diagnostic for references to declarations that have been
@@ -69,13 +70,13 @@ static bool diagnoseExplicitUnavailability(
 static bool diagnoseExplicitUnavailability(
     const ValueDecl *D, SourceRange R, const AvailabilityConstraint &constraint,
     const ExportContext &Where, DeclAvailabilityFlags Flags,
-    llvm::function_ref<void(InFlightDiagnostic &, StringRef)>
+    toolchain::function_ref<void(InFlightDiagnostic &, StringRef)>
         attachRenameFixIts);
 
 static bool diagnoseSubstitutionMapAvailability(
     SourceLoc loc, SubstitutionMap subs, const ExportContext &where,
     Type depTy = Type(), Type replacementTy = Type(),
-    bool warnIfConformanceUnavailablePreSwift6 = false,
+    bool warnIfConformanceUnavailablePreCodira6 = false,
     bool suppressParameterizationCheckForOptional = false,
     bool preconcurrency = false);
 
@@ -87,7 +88,7 @@ diagnoseTypeReprAvailability(const TypeRepr *T, const ExportContext &where,
 ExportContext::ExportContext(DeclContext *DC,
                              AvailabilityContext availability,
                              FragileFunctionKind kind,
-                             llvm::SmallVectorImpl<UnsafeUse> *unsafeUses,
+                             toolchain::SmallVectorImpl<UnsafeUse> *unsafeUses,
                              bool spi, bool exported,
                              bool implicit)
     : DC(DC), Availability(availability), FragileKind(kind),
@@ -258,20 +259,20 @@ static bool hasActiveAvailableAttribute(const Decl *D, ASTContext &ctx) {
   return false;
 }
 
-static bool shouldAllowReferenceToUnavailableInSwiftDeclaration(
+static bool shouldAllowReferenceToUnavailableInCodiraDeclaration(
     const Decl *D, const ExportContext &where) {
   auto *DC = where.getDeclContext();
   auto *SF = DC->getParentSourceFile();
 
-  // Unavailable-in-Swift declarations shouldn't be referenced directly in
+  // Unavailable-in-Codira declarations shouldn't be referenced directly in
   // source. However, they can be referenced in implicit declarations that are
-  // printed in .swiftinterfaces.
+  // printed in .codeinterfaces.
   if (!SF || SF->Kind != SourceFileKind::Interface)
     return false;
 
   if (auto constructor = dyn_cast_or_null<ConstructorDecl>(DC->getAsDecl())) {
     // Designated initializers inherited from an Obj-C superclass may have
-    // parameters that are unavailable-in-Swift.
+    // parameters that are unavailable-in-Codira.
     if (constructor->isObjC())
       return true;
   }
@@ -447,7 +448,7 @@ static const Decl *findContainingDeclaration(SourceRange ReferenceRange,
     // count as DeclContexts of their own but which can still introduce
     // availability.
     if (auto *IDC = dyn_cast<IterableDeclContext>(D)) {
-      auto BestMember = llvm::find_if(IDC->getMembers(),
+      auto BestMember = toolchain::find_if(IDC->getMembers(),
                                       ContainsReferenceRange);
       if (BestMember != IDC->getMembers().end())
         return *BestMember;
@@ -467,7 +468,7 @@ static const Decl *findContainingDeclaration(SourceRange ReferenceRange,
   if (!SF)
     return nullptr;
 
-  auto BestTopLevelDecl = llvm::find_if(SF->getTopLevelDecls(),
+  auto BestTopLevelDecl = toolchain::find_if(SF->getTopLevelDecls(),
                                         ContainsReferenceRange);
   if (BestTopLevelDecl != SF->getTopLevelDecls().end())
     return *BestTopLevelDecl;
@@ -759,7 +760,7 @@ static void fixAvailabilityByAddingVersionCheck(
 
   std::string IfText;
   {
-    llvm::raw_string_ostream Out(IfText);
+    toolchain::raw_string_ostream Out(IfText);
 
     SourceLoc ReplaceLocEnd =
         Lexer::getLocForEndOfToken(Context.SourceMgr, RangeToWrap.End);
@@ -849,7 +850,7 @@ static void fixAvailability(SourceRange ReferenceRange,
 
 static void diagnosePotentialUnavailability(
     SourceRange ReferenceRange,
-    llvm::function_ref<InFlightDiagnostic(AvailabilityDomain,
+    toolchain::function_ref<InFlightDiagnostic(AvailabilityDomain,
                                           AvailabilityRange)>
         Diagnose,
     const DeclContext *ReferenceDC, AvailabilityDomain Domain,
@@ -872,7 +873,7 @@ static void diagnosePotentialUnavailability(
 bool TypeChecker::checkAvailability(SourceRange ReferenceRange,
                                     AvailabilityRange PlatformRange,
                                     const DeclContext *ReferenceDC,
-                                    llvm::function_ref<InFlightDiagnostic(
+                                    toolchain::function_ref<InFlightDiagnostic(
                                         AvailabilityDomain, AvailabilityRange)>
                                         Diagnose) {
   ASTContext &ctx = ReferenceDC->getASTContext();
@@ -1050,7 +1051,7 @@ static bool diagnosePotentialUnavailability(
     if (behaviorLimit >= DiagnosticBehavior::Warning)
       err.limitBehavior(behaviorLimit);
     else
-      err.warnUntilSwiftVersion(6);
+      err.warnUntilCodiraVersion(6);
 
     // Direct a fixit to the error if an existing guard is nearly-correct
     if (fixAvailabilityByNarrowingNearbyVersionCheck(loc, dc, domain,
@@ -1093,7 +1094,7 @@ static void fixItAvailableAttrRename(InFlightDiagnostic &diag,
   if (isa<AccessorDecl>(renamedDecl))
     return;
 
-  ParsedDeclName parsed = swift::parseDeclName(newName);
+  ParsedDeclName parsed = language::parseDeclName(newName);
   if (!parsed)
     return;
 
@@ -1290,7 +1291,7 @@ static void fixItAvailableAttrRename(InFlightDiagnostic &diag,
       bool shouldEmitRenameFixit = true;
       if (auto *CE = dyn_cast_or_null<CallExpr>(call)) {
         SmallString<64> callContextName;
-        llvm::raw_svector_ostream name(callContextName);
+        toolchain::raw_svector_ostream name(callContextName);
         if (auto *DCE = dyn_cast<DotSyntaxCallExpr>(CE->getDirectCallee())) {
           if (auto *TE = dyn_cast<TypeExpr>(DCE->getBase())) {
             TE->getTypeRepr()->print(name);
@@ -1361,7 +1362,7 @@ static void fixItAvailableAttrRename(InFlightDiagnostic &diag,
     return;
 
   SmallVector<Identifier, 4> argumentLabelIDs;
-  llvm::transform(parsed.ArgumentLabels, std::back_inserter(argumentLabelIDs),
+  toolchain::transform(parsed.ArgumentLabels, std::back_inserter(argumentLabelIDs),
                   [&ctx](StringRef labelStr) -> Identifier {
                     return labelStr.empty() ? Identifier()
                                             : ctx.getIdentifier(labelStr);
@@ -1370,7 +1371,7 @@ static void fixItAvailableAttrRename(InFlightDiagnostic &diag,
   // Coerce the `argumentLabelIDs` to the user supplied arguments.
   // e.g:
   //   @available(.., renamed: "new(w:x:y:z:)")
-  //   func old(a: Int, b: Int..., c: String="", d: Int=0){}
+  //   fn old(a: Int, b: Int..., c: String="", d: Int=0){}
   //   old(a: 1, b: 2, 3, 4, d: 5)
   // coerce
   //   argumentLabelIDs = {"w", "x", "y", "z"}
@@ -1452,7 +1453,7 @@ namespace {
 static std::optional<ReplacementDeclKind>
 describeRename(ASTContext &ctx, StringRef newName, const ValueDecl *D,
                SmallVectorImpl<char> &nameBuf) {
-  ParsedDeclName parsed = swift::parseDeclName(newName);
+  ParsedDeclName parsed = language::parseDeclName(newName);
   if (!parsed)
     return std::nullopt;
 
@@ -1470,7 +1471,7 @@ describeRename(ASTContext &ctx, StringRef newName, const ValueDecl *D,
     return std::nullopt;
   }
 
-  llvm::raw_svector_ostream name(nameBuf);
+  toolchain::raw_svector_ostream name(nameBuf);
 
   if (!parsed.ContextName.empty())
     name << parsed.ContextName << '.';
@@ -1625,7 +1626,7 @@ static bool diagnoseIfDeprecated(SourceLoc loc,
   return true;
 }
 
-void swift::diagnoseOverrideOfUnavailableDecl(ValueDecl *override,
+void language::diagnoseOverrideOfUnavailableDecl(ValueDecl *override,
                                               const ValueDecl *base,
                                               SemanticAvailableAttr attr) {
   ASTContext &ctx = override->getASTContext();
@@ -1699,7 +1700,7 @@ bool shouldHideDomainNameForConstraintDiagnostic(
     return true;
   case AvailabilityDomain::Kind::Platform:
     return false;
-  case AvailabilityDomain::Kind::SwiftLanguage:
+  case AvailabilityDomain::Kind::CodiraLanguage:
     switch (constraint.getReason()) {
     case AvailabilityConstraint::Reason::UnconditionallyUnavailable:
     case AvailabilityConstraint::Reason::UnavailableForDeployment:
@@ -1716,7 +1717,7 @@ bool diagnoseExplicitUnavailability(SourceLoc loc,
                                     const RootProtocolConformance *rootConf,
                                     const ExtensionDecl *ext,
                                     const ExportContext &where,
-                                    bool warnIfConformanceUnavailablePreSwift6,
+                                    bool warnIfConformanceUnavailablePreCodira6,
                                     bool preconcurrency) {
   if (!constraint.isUnavailable())
     return false;
@@ -1730,7 +1731,7 @@ bool diagnoseExplicitUnavailability(SourceLoc loc,
 
   auto type = rootConf->getType();
   auto proto = rootConf->getProtocol()->getDeclaredInterfaceType();
-  auto domain = constraint.getDomain();
+  auto domainAndRange = constraint.getDomainAndRange(ctx);
   auto attr = constraint.getAttr();
 
   // Downgrade unavailable Sendable conformance diagnostics where
@@ -1741,10 +1742,10 @@ bool diagnoseExplicitUnavailability(SourceLoc loc,
   EncodedDiagnosticMessage EncodedMessage(attr.getMessage());
   diags
       .diagnose(loc, diag::conformance_availability_unavailable, type, proto,
-                shouldHideDomainNameForConstraintDiagnostic(constraint), domain,
-                EncodedMessage.Message)
+                shouldHideDomainNameForConstraintDiagnostic(constraint),
+                domainAndRange.getDomain(), EncodedMessage.Message)
       .limitBehaviorWithPreconcurrency(behavior, preconcurrency)
-      .warnUntilSwiftVersionIf(warnIfConformanceUnavailablePreSwift6, 6);
+      .warnUntilCodiraVersionIf(warnIfConformanceUnavailablePreCodira6, 6);
 
   switch (constraint.getReason()) {
   case AvailabilityConstraint::Reason::UnconditionallyUnavailable:
@@ -1755,22 +1756,23 @@ bool diagnoseExplicitUnavailability(SourceLoc loc,
     break;
   case AvailabilityConstraint::Reason::UnavailableForDeployment:
     diags.diagnose(ext, diag::conformance_availability_introduced_in_version,
-                   type, proto, domain, attr.getIntroducedRange(ctx).value());
+                   type, proto, domainAndRange.getDomain(),
+                   domainAndRange.getRange());
     break;
   case AvailabilityConstraint::Reason::Obsoleted:
     diags
         .diagnose(ext, diag::conformance_availability_obsoleted, type, proto,
-                  domain, attr.getObsoletedRange(ctx).value())
+                  domainAndRange.getDomain(), domainAndRange.getRange())
         .highlight(attr.getParsedAttr()->getRange());
     break;
   case AvailabilityConstraint::Reason::PotentiallyUnavailable:
-    llvm_unreachable("unexpected constraint");
+    toolchain_unreachable("unexpected constraint");
   }
   return true;
 }
 
 std::optional<AvailabilityConstraint>
-swift::getUnsatisfiedAvailabilityConstraint(const Decl *decl,
+language::getUnsatisfiedAvailabilityConstraint(const Decl *decl,
                                             const DeclContext *referenceDC,
                                             SourceLoc referenceLoc) {
   return getAvailabilityConstraintsForDecl(
@@ -1874,7 +1876,7 @@ static bool diagnoseTypedThrowsAvailability(
 ///    struct X<T> {}
 ///    extension X: P where T: Y {}
 ///
-///     func f<Y: ~Copyable>(...) {
+///     fn f<Y: ~Copyable>(...) {
 ///       let x: X<Y> = ...
 ///       _ = x as? any P   // <- cast should fail
 ///     }
@@ -1962,7 +1964,7 @@ static bool checkTypeMetadataAvailabilityInternal(CanType type,
 
 /// Check whether type metadata is available for the given type (and its
 /// component types).
-bool swift::checkTypeMetadataAvailability(Type type,
+bool language::checkTypeMetadataAvailability(Type type,
                                           SourceRange refLoc,
                                           const DeclContext *refDC) {
   if (!type) return false;
@@ -2104,21 +2106,21 @@ static void checkFunctionConversionAvailability(Type srcType, Type destType,
 bool diagnoseExplicitUnavailability(
     const ValueDecl *D, SourceRange R, const AvailabilityConstraint &constraint,
     const ExportContext &Where, DeclAvailabilityFlags Flags,
-    llvm::function_ref<void(InFlightDiagnostic &, StringRef)>
+    toolchain::function_ref<void(InFlightDiagnostic &, StringRef)>
         attachRenameFixIts) {
   if (!constraint.isUnavailable())
     return false;
 
   auto Attr = constraint.getAttr();
-  if (Attr.getDomain().isSwiftLanguage() && !Attr.isVersionSpecific()) {
-    if (shouldAllowReferenceToUnavailableInSwiftDeclaration(D, Where))
+  if (Attr.getDomain().isCodiraLanguage() && !Attr.isVersionSpecific()) {
+    if (shouldAllowReferenceToUnavailableInCodiraDeclaration(D, Where))
       return false;
   }
 
   SourceLoc Loc = R.Start;
   ASTContext &ctx = D->getASTContext();
   auto &diags = ctx.Diags;
-  auto domain = constraint.getDomain();
+  auto domainAndRange = constraint.getDomainAndRange(ctx);
 
   // TODO: Consider removing this.
   // ObjC keypaths components weren't checked previously, so errors are demoted
@@ -2154,14 +2156,11 @@ bool diagnoseExplicitUnavailability(
     // Skip the note emitted below.
     return true;
   } else {
-    auto unavailableDiagnosticDomain = domain;
-    AvailabilityInference::updateAvailabilityDomainForFallback(
-        Attr, ctx, unavailableDiagnosticDomain);
     EncodedDiagnosticMessage EncodedMessage(message);
     diags
         .diagnose(Loc, diag::availability_decl_unavailable, D,
                   shouldHideDomainNameForConstraintDiagnostic(constraint),
-                  unavailableDiagnosticDomain, EncodedMessage.Message)
+                  domainAndRange.getDomain(), EncodedMessage.Message)
         .highlight(R)
         .limitBehavior(limit);
   }
@@ -2174,18 +2173,18 @@ bool diagnoseExplicitUnavailability(
     break;
   case AvailabilityConstraint::Reason::UnavailableForDeployment:
     diags
-        .diagnose(D, diag::availability_introduced_in_version, D, domain,
-                  Attr.getIntroducedRange(ctx).value())
+        .diagnose(D, diag::availability_introduced_in_version, D,
+                  domainAndRange.getDomain(), domainAndRange.getRange())
         .highlight(sourceRange);
     break;
   case AvailabilityConstraint::Reason::Obsoleted:
     diags
-        .diagnose(D, diag::availability_obsoleted, D, domain,
-                  Attr.getObsoletedRange(ctx).value())
+        .diagnose(D, diag::availability_obsoleted, D,
+                  domainAndRange.getDomain(), domainAndRange.getRange())
         .highlight(sourceRange);
     break;
   case AvailabilityConstraint::Reason::PotentiallyUnavailable:
-    llvm_unreachable("unexpected constraint");
+    toolchain_unreachable("unexpected constraint");
     break;
   }
   return true;
@@ -2592,7 +2591,7 @@ private:
 
   /// Walk the given expression in the member access context.
   void walkInContext(Expr *E, MemberAccessContext AccessContext) {
-    llvm::SaveAndRestore<MemberAccessContext>
+    toolchain::SaveAndRestore<MemberAccessContext>
       C(this->AccessContext, AccessContext);
     E->walk(*this);
   }
@@ -2702,6 +2701,7 @@ diagnoseDeclUnsafe(ConcreteDeclRef declRef, SourceRange R,
 
   SourceLoc diagLoc = call ? call->getLoc() : R.Start;
   enumerateUnsafeUses(declRef, diagLoc, call != nullptr,
+                      /*skipTypeCheck=*/false,
                       [&](UnsafeUse unsafeUse) {
     unsafeUses->push_back(unsafeUse);
     return false;
@@ -2747,7 +2747,7 @@ bool ExprAvailabilityWalker::diagnoseDeclRefAvailability(
     if (diagnoseSubstitutionMapAvailability(
             R.Start, declRef.getSubstitutions(), Where,
             Type(), Type(),
-            /*warnIfConformanceUnavailablePreSwift6*/false,
+            /*warnIfConformanceUnavailablePreCodira6*/false,
             /*suppressParameterizationCheckForOptional*/false,
             /*preconcurrency*/D->preconcurrency())) {
       return true;
@@ -2780,9 +2780,9 @@ diagnoseDeclAsyncAvailability(const ValueDecl *D, SourceRange R,
     }
   }
 
-  // In Swift 6 we previously didn't coerce macro arguments to parameter types,
+  // In Codira 6 we previously didn't coerce macro arguments to parameter types,
   // so closure arguments may be treated as async in cases where they weren't in
-  // Swift 6. As such we need to warn if the use is within a closure macro
+  // Codira 6. As such we need to warn if the use is within a closure macro
   // argument until the next language mode.
   auto shouldWarnUntilFutureVersion = [&]() {
     auto *CE = dyn_cast<ClosureExpr>(noAsyncDC);
@@ -2797,9 +2797,9 @@ diagnoseDeclAsyncAvailability(const ValueDecl *D, SourceRange R,
     if (D->preconcurrency()) {
       diag.limitBehavior(DiagnosticBehavior::Warning);
     } else if (shouldWarnUntilFutureVersion()) {
-      diag.warnUntilFutureSwiftVersion();
+      diag.warnUntilFutureCodiraVersion();
     } else {
-      diag.warnUntilSwiftVersion(6);
+      diag.warnUntilCodiraVersion(6);
     }
 
     if (!attr->getRename().empty()) {
@@ -2821,9 +2821,9 @@ diagnoseDeclAsyncAvailability(const ValueDecl *D, SourceRange R,
     auto diag = ctx.Diags.diagnose(diagLoc, diag::async_unavailable_decl, D,
                                    attr->Message);
     if (shouldWarnUntilFutureVersion()) {
-      diag.warnUntilFutureSwiftVersion();
+      diag.warnUntilFutureCodiraVersion();
     } else {
-      diag.warnUntilSwiftVersion(6);
+      diag.warnUntilCodiraVersion(6);
     }
   }
   D->diagnose(diag::decl_declared_here, D);
@@ -2832,7 +2832,7 @@ diagnoseDeclAsyncAvailability(const ValueDecl *D, SourceRange R,
 
 /// Diagnose uses of unavailable declarations. Returns true if a diagnostic
 /// was emitted.
-bool swift::diagnoseDeclAvailability(const ValueDecl *D, SourceRange R,
+bool language::diagnoseDeclAvailability(const ValueDecl *D, SourceRange R,
                                      const Expr *call,
                                      const ExportContext &Where,
                                      DeclAvailabilityFlags Flags) {
@@ -2893,23 +2893,25 @@ bool swift::diagnoseDeclAvailability(const ValueDecl *D, SourceRange R,
     return false;
 
   // Diagnose (and possibly signal) for potential unavailability
-  auto domain = constraint->getDomain();
-  auto requiredRange = constraint->getPotentiallyUnavailableRange(ctx);
-  if (!requiredRange)
+  if (!constraint->isPotentiallyAvailable())
     return false;
+
+  auto domainAndRange = constraint->getDomainAndRange(ctx);
+  auto domain = domainAndRange.getDomain();
+  auto requiredRange = domainAndRange.getRange();
 
   if (Flags.contains(
           DeclAvailabilityFlag::
               AllowPotentiallyUnavailableAtOrBelowDeploymentTarget) &&
-      requiresDeploymentTargetOrEarlier(domain, *requiredRange, ctx))
+      requiresDeploymentTargetOrEarlier(domain, requiredRange, ctx))
     return false;
 
   if (accessor) {
     bool forInout = Flags.contains(DeclAvailabilityFlag::ForInout);
     diagnosePotentialAccessorUnavailability(accessor, R, DC, domain,
-                                            *requiredRange, forInout);
+                                            requiredRange, forInout);
   } else {
-    if (!diagnosePotentialUnavailability(D, R, DC, domain, *requiredRange))
+    if (!diagnosePotentialUnavailability(D, R, DC, domain, requiredRange))
       return false;
   }
 
@@ -2967,8 +2969,8 @@ ExprAvailabilityWalker::diagnoseIncDecRemoval(const ValueDecl *D, SourceRange R)
     // If we emit a deprecation diagnostic, produce a fixit hint as well.
     auto diag =
         Context.Diags.diagnose(R.Start, diag::availability_decl_unavailable, D,
-                               true, AvailabilityDomain::forSwiftLanguage(),
-                               "it has been removed in Swift 3");
+                               true, AvailabilityDomain::forCodiraLanguage(),
+                               "it has been removed in Codira 3");
     if (isa<PrefixUnaryExpr>(call)) {
       // Prefix: remove the ++ or --.
       diag.fixItRemove(call->getFn()->getSourceRange());
@@ -3016,7 +3018,7 @@ ExprAvailabilityWalker::diagnoseMemoryLayoutMigration(const ValueDecl *D,
   EncodedDiagnosticMessage EncodedMessage(Attr.getMessage());
   auto diag = Context.Diags.diagnose(
       R.Start, diag::availability_decl_unavailable, D, true,
-      AvailabilityDomain::forSwiftLanguage(), EncodedMessage.Message);
+      AvailabilityDomain::forCodiraLanguage(), EncodedMessage.Message);
   diag.highlight(R);
 
   StringRef Prefix = "MemoryLayout<";
@@ -3054,7 +3056,7 @@ ExprAvailabilityWalker::diagnoseMemoryLayoutMigration(const ValueDecl *D,
 }
 
 /// Diagnose uses of unavailable declarations.
-void swift::diagnoseExprAvailability(const Expr *E, DeclContext *DC) {
+void language::diagnoseExprAvailability(const Expr *E, DeclContext *DC) {
   auto where = ExportContext::forFunctionBody(DC, E->getStartLoc());
   if (where.isImplicit())
     return;
@@ -3106,7 +3108,7 @@ public:
 };
 }
 
-void swift::diagnoseStmtAvailability(const Stmt *S, DeclContext *DC) {
+void language::diagnoseStmtAvailability(const Stmt *S, DeclContext *DC) {
   StmtAvailabilityWalker walker(S, DC);
   const_cast<Stmt*>(S)->walk(walker);
 }
@@ -3268,7 +3270,7 @@ public:
         Loc, subs, Where,
         /*depTy=*/Type(),
         /*replacementTy=*/Type(),
-        /*warnIfConformanceUnavailablePreSwift6=*/false,
+        /*warnIfConformanceUnavailablePreCodira6=*/false,
         /*suppressParameterizationCheckForOptional=*/ty->isOptional(),
         /*preconcurrency*/ty->getAnyNominal()->preconcurrency());
     return Action::Continue;
@@ -3308,7 +3310,7 @@ public:
 
 }
 
-void swift::diagnoseTypeAvailability(const TypeRepr *TR, Type T, SourceLoc loc,
+void language::diagnoseTypeAvailability(const TypeRepr *TR, Type T, SourceLoc loc,
                                      const ExportContext &where,
                                      DeclAvailabilityFlags flags) {
   if (diagnoseTypeReprAvailability(TR, where, flags))
@@ -3322,16 +3324,23 @@ void swift::diagnoseTypeAvailability(const TypeRepr *TR, Type T, SourceLoc loc,
 static void diagnoseMissingConformance(
     SourceLoc loc, Type type, ProtocolDecl *proto, const DeclContext *fromDC,
     bool preconcurrency) {
-  assert(proto->isSpecificProtocol(KnownProtocolKind::Sendable));
-  diagnoseMissingSendableConformance(loc, type, fromDC, preconcurrency);
+  assert(proto->isSpecificProtocol(KnownProtocolKind::Sendable) ||
+         proto->isSpecificProtocol(KnownProtocolKind::SendableMetatype));
+
+  if (proto->isSpecificProtocol(KnownProtocolKind::Sendable))
+    diagnoseMissingSendableConformance(loc, type, fromDC, preconcurrency);
+
+  if (proto->isSpecificProtocol(KnownProtocolKind::SendableMetatype))
+    diagnoseMissingSendableMetatypeConformance(loc, type, fromDC,
+                                               preconcurrency);
 }
 
 bool
-swift::diagnoseConformanceAvailability(SourceLoc loc,
+language::diagnoseConformanceAvailability(SourceLoc loc,
                                        ProtocolConformanceRef conformance,
                                        const ExportContext &where,
                                        Type depTy, Type replacementTy,
-                                       bool warnIfConformanceUnavailablePreSwift6,
+                                       bool warnIfConformanceUnavailablePreCodira6,
                                        bool preconcurrency) {
   assert(!where.isImplicit());
 
@@ -3344,7 +3353,7 @@ swift::diagnoseConformanceAvailability(SourceLoc loc,
     for (auto patternConf : pack->getPatternConformances()) {
       diagnosed |= diagnoseConformanceAvailability(
           loc, patternConf, where, depTy, replacementTy,
-          warnIfConformanceUnavailablePreSwift6,
+          warnIfConformanceUnavailablePreCodira6,
           preconcurrency);
     }
     return diagnosed;
@@ -3397,7 +3406,7 @@ swift::diagnoseConformanceAvailability(SourceLoc loc,
 
   if (auto *ext = dyn_cast<ExtensionDecl>(rootConf->getDeclContext())) {
     if (TypeChecker::diagnoseConformanceExportability(loc, rootConf, ext, where,
-                                                      warnIfConformanceUnavailablePreSwift6)) {
+                                                      warnIfConformanceUnavailablePreCodira6)) {
       maybeEmitAssociatedTypeNote();
       return true;
     }
@@ -3407,18 +3416,18 @@ swift::diagnoseConformanceAvailability(SourceLoc loc,
             .getPrimaryConstraint();
     if (constraint) {
       if (diagnoseExplicitUnavailability(loc, *constraint, rootConf, ext, where,
-                                         warnIfConformanceUnavailablePreSwift6,
+                                         warnIfConformanceUnavailablePreCodira6,
                                          preconcurrency)) {
         maybeEmitAssociatedTypeNote();
         return true;
       }
 
       // Diagnose (and possibly signal) for potential unavailability
-      if (auto requiredRange =
-              constraint->getPotentiallyUnavailableRange(ctx)) {
+      if (constraint->isPotentiallyAvailable()) {
+        auto domainAndRange = constraint->getDomainAndRange(ctx);
         if (diagnosePotentialUnavailability(rootConf, ext, loc, DC,
-                                            constraint->getDomain(),
-                                            *requiredRange)) {
+                                            domainAndRange.getDomain(),
+                                            domainAndRange.getRange())) {
           maybeEmitAssociatedTypeNote();
           return true;
         }
@@ -3438,7 +3447,7 @@ swift::diagnoseConformanceAvailability(SourceLoc loc,
   SubstitutionMap subConformanceSubs = concreteConf->getSubstitutionMap();
   if (diagnoseSubstitutionMapAvailability(loc, subConformanceSubs, where,
                                           depTy, replacementTy,
-                                          warnIfConformanceUnavailablePreSwift6,
+                                          warnIfConformanceUnavailablePreCodira6,
                                           preconcurrency))
     return true;
 
@@ -3447,14 +3456,14 @@ swift::diagnoseConformanceAvailability(SourceLoc loc,
 
 bool diagnoseSubstitutionMapAvailability(
     SourceLoc loc, SubstitutionMap subs, const ExportContext &where, Type depTy,
-    Type replacementTy, bool warnIfConformanceUnavailablePreSwift6,
+    Type replacementTy, bool warnIfConformanceUnavailablePreCodira6,
     bool suppressParameterizationCheckForOptional,
     bool preconcurrency) {
   bool hadAnyIssues = false;
   for (ProtocolConformanceRef conformance : subs.getConformances()) {
     if (diagnoseConformanceAvailability(loc, conformance, where,
                                         depTy, replacementTy,
-                                        warnIfConformanceUnavailablePreSwift6,
+                                        warnIfConformanceUnavailablePreCodira6,
                                         preconcurrency))
       hadAnyIssues = true;
   }
@@ -3481,10 +3490,10 @@ static bool declNeedsExplicitAvailability(const Decl *decl) {
   if (!ctx.supportsVersionedAvailability())
     return false;
 
-  // Don't enforce explicit availability requirements in .swiftinterface files.
+  // Don't enforce explicit availability requirements in .codeinterface files.
   // These diagnostics are only designed to be emitted when building from
   // source.
-  if (decl->getDeclContext()->isInSwiftinterface())
+  if (decl->getDeclContext()->isInCodirainterface())
     return false;
 
   // Skip non-public decls.
@@ -3511,7 +3520,7 @@ static bool declNeedsExplicitAvailability(const Decl *decl) {
   return safeRangeUnderApprox.isAlwaysAvailable();
 }
 
-void swift::checkExplicitAvailability(Decl *decl) {
+void language::checkExplicitAvailability(Decl *decl) {
   // Skip if the command line option was not set and
   // accessors as we check the pattern binding decl instead.
   auto &ctx = decl->getASTContext();
@@ -3558,7 +3567,7 @@ void swift::checkExplicitAvailability(Decl *decl) {
     if (pbd->getNumPatternEntries() == 0)
       return;
 
-    llvm::SmallVector<VarDecl *, 2> vars;
+    toolchain::SmallVector<VarDecl *, 2> vars;
     pbd->getPattern(0)->collectVariables(vars);
     if (vars.empty())
       return;
@@ -3578,7 +3587,7 @@ void swift::checkExplicitAvailability(Decl *decl) {
 
       std::string AttrText;
       {
-         llvm::raw_string_ostream Out(AttrText);
+         toolchain::raw_string_ostream Out(AttrText);
 
          StringRef OriginalIndent = Lexer::getIndentationForLine(
            ctx.SourceMgr, InsertLoc);

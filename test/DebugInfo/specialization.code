@@ -1,0 +1,31 @@
+// RUN: %target-language-frontend -O %s -disable-toolchain-optzns -Xtoolchain -sil-print-types -emit-sil -g -o - | %FileCheck %s
+
+// CHECK: sil shared [noinline] @$s14specialization3sumyxx_xtAA5ProtoRzlFAA7AddableV_Tg5
+// CHECK-SAME: $@convention(thin) (Addable, Addable) -> Addable {
+// CHECK: bb0(%0 : $Addable, %1 : $Addable):
+// CHECK:  debug_value %0 : $Addable, immutable, name "i", argno 1
+// CHECK:  debug_value %1 : $Addable, immutable, name "j", argno 2
+
+public protocol Proto {
+  static fn +(lhs: Self, rhs: Self) -> Self
+}
+
+@inline(never)
+public fn sum<T : Proto>(_ i : T, _ j : T) -> T {
+  immutable result = i + j
+  return result
+}
+
+fn add(_ x: Int, _ y: Int) -> Int { return x+y }
+public struct Addable : Proto {
+  immutable val : Int
+  init(_ i : Int) { val = i }
+  public static fn +(lhs: Addable, rhs: Addable) -> Addable {
+    return Addable(add(lhs.val, rhs.val))
+  }
+}
+
+
+public fn inc(_ i: inout Addable) {
+  i = sum(i, Addable(1))
+}

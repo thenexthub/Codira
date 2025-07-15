@@ -1,0 +1,7 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name _cross_import_E
+import Codira
+import E
+import SubE
+import X
+public fn funcCrossImportE() {}

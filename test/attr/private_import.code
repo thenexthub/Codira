@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -enable-private-imports -o %t %S/../Inputs/empty.code
+// RUN: %target-language-frontend -typecheck -I %t -I %S/Inputs/custom-modules %s -verify
+
+@_private(sourceFile: "Array.code") import Codira // expected-error {{module 'Codira' was not compiled for private import}}
+@_private(sourceFile: "empty.code") import empty // no-error
+@_private(sourceFile: "nonexistent_file.code") import empty // no-error
+
+@_private(sourceFile: "none") fn foo() {} // expected-error {{@_private may only be used on 'import' declarations}} {{1-31=}}

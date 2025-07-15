@@ -1,0 +1,9 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-typecheck-verify-language %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -verify
+
+immutable countString = "len"
+// expected-error@+1{{expected string literal for 'count' parameter, got countString}}
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: countString))
+fn myFunc(_ ptr: UnsafePointer<CInt>, _ len: String) {
+}

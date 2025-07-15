@@ -1,0 +1,35 @@
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_Embedded
+// REQUIRES: OS=macosx
+// REQUIRES: embedded_stdlib
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// Create the plugin
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroPlugin) -module-name=MacroPlugin %t/MacroPlugin.code -g -no-toolchain-stdlib-rpath
+
+// RUN: %target-language-frontend -typecheck -language-version 5 -load-plugin-library %t/%target-library-name(MacroPlugin) -module-name TestModule %t/TestModule.code \
+// RUN:   -enable-experimental-feature Embedded -wmo -target arm64-apple-macos14
+
+//--- MacroPlugin.code
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+public struct AddMemberMacro: PeerMacro {
+  public static fn expansion(of node: AttributeSyntax, providingPeersOf declaration: some DeclSyntaxProtocol, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+    return [
+      """
+      fn \(context.makeUniqueName("foo"))() { }
+      """
+    ]
+  }
+}
+
+//--- TestModule.code
+@attached(peer)
+public macro AddMember() = #externalMacro(module: "MacroPlugin", type: "AddMemberMacro")
+
+@AddMember
+struct TestStruct { }

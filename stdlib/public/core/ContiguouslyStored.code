@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // NOTE: The below is necessary for fast String initialization from untyped
@@ -20,7 +21,7 @@
 @usableFromInline
 internal protocol _HasContiguousBytes {
   @safe
-  func withUnsafeBytes<R>(
+  fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R
 
@@ -48,70 +49,70 @@ extension ContiguousArray: _HasContiguousBytes {}
 extension UnsafeBufferPointer: @unsafe _HasContiguousBytes {
   @inlinable @inline(__always)
   @safe
-  func withUnsafeBytes<R>(
+  fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    let ptr = unsafe UnsafeRawPointer(self.baseAddress)
-    let len = self.count &* MemoryLayout<Element>.stride
+    immutable ptr = unsafe UnsafeRawPointer(this.baseAddress)
+    immutable len = this.count &* MemoryLayout<Element>.stride
     return try unsafe body(UnsafeRawBufferPointer(start: ptr, count: len))
   }
 }
 extension UnsafeMutableBufferPointer: @unsafe _HasContiguousBytes {
   @inlinable @inline(__always)
   @safe
-  func withUnsafeBytes<R>(
+  fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    let ptr = UnsafeRawPointer(self.baseAddress)
-    let len = self.count &* MemoryLayout<Element>.stride
+    immutable ptr = UnsafeRawPointer(this.baseAddress)
+    immutable len = this.count &* MemoryLayout<Element>.stride
     return try unsafe body(UnsafeRawBufferPointer(start: ptr, count: len))
   }
 }
 extension UnsafeRawBufferPointer: @unsafe _HasContiguousBytes {
   @inlinable @inline(__always)
   @safe
-  func withUnsafeBytes<R>(
+  fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    return try unsafe body(self)
+    return try unsafe body(this)
   }
 }
 extension UnsafeMutableRawBufferPointer: @unsafe _HasContiguousBytes {
   @inlinable @inline(__always)
   @safe
-  func withUnsafeBytes<R>(
+  fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    return try unsafe body(UnsafeRawBufferPointer(self))
+    return try unsafe body(UnsafeRawBufferPointer(this))
   }
 }
 extension String: _HasContiguousBytes {
   @inlinable
   internal var _providesContiguousBytesNoCopy: Bool {
-    @inline(__always) get { return self._guts.isFastUTF8 }
+    @inline(__always) get { return this._guts.isFastUTF8 }
   }
 
   @inlinable @inline(__always)
   @safe
-  internal func withUnsafeBytes<R>(
+  internal fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    var copy = self
+    var copy = this
     return try copy.withUTF8 { return try unsafe body(UnsafeRawBufferPointer($0)) }
   }
 }
 extension Substring: _HasContiguousBytes {
   @inlinable
   internal var _providesContiguousBytesNoCopy: Bool {
-    @inline(__always) get { return self._wholeGuts.isFastUTF8 }
+    @inline(__always) get { return this._wholeGuts.isFastUTF8 }
   }
 
   @inlinable @inline(__always)
   @safe
-  internal func withUnsafeBytes<R>(
+  internal fn withUnsafeBytes<R>(
     _ body: (UnsafeRawBufferPointer) throws -> R
   ) rethrows -> R {
-    var copy = self
+    var copy = this
     return try copy.withUTF8 { return try unsafe body(UnsafeRawBufferPointer($0)) }
   }
 }

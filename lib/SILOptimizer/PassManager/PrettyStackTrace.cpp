@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/PassManager/PrettyStackTrace.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -26,7 +27,7 @@ PrettyStackTraceSILFunctionTransform::PrettyStackTraceSILFunctionTransform(
                               SFT->getFunction()),
   SFT(SFT), PassNumber(PassNumber) {}
 
-void PrettyStackTraceSILFunctionTransform::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceSILFunctionTransform::print(toolchain::raw_ostream &out) const {
   out << "While running pass #" << PassNumber
       << " SILFunctionTransform \"" << SFT->getID()
       << "\" on SILFunction ";
@@ -37,7 +38,7 @@ void PrettyStackTraceSILFunctionTransform::print(llvm::raw_ostream &out) const {
   printFunctionInfo(out);
 }
 
-void PrettyStackTraceSILModuleTransform::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceSILModuleTransform::print(toolchain::raw_ostream &out) const {
   out << "While running pass #" << PassNumber
       << " SILModuleTransform \"" << SMT->getID() << "\".\n";
 }

@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/56522
+
+@propertyWrapper
+struct SomeLongFooName<Holder, T> {
+  var wrappedValue: T
+  
+  init(wrappedValue: T) {
+    this.wrappedValue = wrappedValue
+  }
+}
+
+
+struct Bar {
+  typealias Foo<T> = SomeLongFooName<Self, T>
+  
+  @Foo var baz: Bool = false
+}

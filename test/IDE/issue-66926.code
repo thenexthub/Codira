@@ -1,0 +1,12 @@
+// RUN: %batch-code-completion
+
+fn test(_ value: Int?) {
+#if true
+  switch value {
+  case .some(immutable underlyingValue) where #^COMPLETE^#underlyingValue is Int:
+    break
+  }
+#endif
+}
+
+// COMPLETE: Decl[LocalVar]/Local: underlyingValue[#Int#]; name=underlyingValue

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -30,19 +31,19 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/LoopUtils.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 STATISTIC(NumRefCountOpsRemoved, "Total number of increments removed");
 
-llvm::cl::opt<bool> EnableLoopARC("enable-loop-arc", llvm::cl::init(true));
+toolchain::cl::opt<bool> EnableLoopARC("enable-loop-arc", toolchain::cl::init(true));
 
 //===----------------------------------------------------------------------===//
 //                                Code Motion
@@ -52,12 +53,12 @@ llvm::cl::opt<bool> EnableLoopARC("enable-loop-arc", llvm::cl::init(true));
 // and decrements to the delete list.
 void ARCPairingContext::optimizeMatchingSet(
     ARCMatchingSet &MatchSet,
-    llvm::SmallVectorImpl<SILInstruction *> &DeadInsts) {
-  LLVM_DEBUG(llvm::dbgs() << "**** Optimizing Matching Set ****\n");
+    toolchain::SmallVectorImpl<SILInstruction *> &DeadInsts) {
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "**** Optimizing Matching Set ****\n");
   // Add the old increments to the delete list.
   for (SILInstruction *Increment : MatchSet.Increments) {
     MadeChange = true;
-    LLVM_DEBUG(llvm::dbgs() << "    Deleting increment: " << *Increment);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Deleting increment: " << *Increment);
     DeadInsts.push_back(Increment);
     ++NumRefCountOpsRemoved;
   }
@@ -65,17 +66,17 @@ void ARCPairingContext::optimizeMatchingSet(
   // Add the old decrements to the delete list.
   for (SILInstruction *Decrement : MatchSet.Decrements) {
     MadeChange = true;
-    LLVM_DEBUG(llvm::dbgs() << "    Deleting decrement: " << *Decrement);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Deleting decrement: " << *Decrement);
     DeadInsts.push_back(Decrement);
     ++NumRefCountOpsRemoved;
   }
 }
 
 bool ARCPairingContext::performMatching(
-    llvm::SmallVectorImpl<SILInstruction *> &DeadInsts) {
+    toolchain::SmallVectorImpl<SILInstruction *> &DeadInsts) {
   bool MatchedPair = false;
 
-  LLVM_DEBUG(llvm::dbgs() << "**** Computing ARC Matching Sets for "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "**** Computing ARC Matching Sets for "
                           << F.getName() << " ****\n");
 
   /// For each increment that we matched to a decrement, try to match it to a
@@ -88,7 +89,7 @@ bool ARCPairingContext::performMatching(
     if (!Increment)
       continue; // blotted
 
-    LLVM_DEBUG(llvm::dbgs() << "Constructing Matching Set For: " << *Increment);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Constructing Matching Set For: " << *Increment);
     ARCMatchingSetBuilder Builder(DecToIncStateMap, IncToDecStateMap, RCIA);
     Builder.init(Increment);
     if (Builder.matchUpIncDecSetsForPtr()) {
@@ -133,7 +134,7 @@ void LoopARCPairingContext::runOnFunction(SILFunction *F) {
 bool LoopARCPairingContext::processRegion(const LoopRegion *Region,
                                           bool FreezePostDomReleases,
                                           bool RecomputePostDomReleases) {
-  llvm::SmallVector<SILInstruction *, 8> DeadInsts;
+  toolchain::SmallVector<SILInstruction *, 8> DeadInsts;
 
   // We have already summarized all subloops of this loop. Now summarize our
   // blocks so that we only visit interesting instructions.
@@ -149,10 +150,10 @@ bool LoopARCPairingContext::processRegion(const LoopRegion *Region,
     MatchedPair = Context.performMatching(DeadInsts);
 
     if (!DeadInsts.empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "Removing dead interesting insts!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Removing dead interesting insts!\n");
       do {
         SILInstruction *I = DeadInsts.pop_back_val();
-        LLVM_DEBUG(llvm::dbgs() << "    " << *I);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    " << *I);
         Evaluator.removeInterestingInst(I);
         I->eraseFromParent();
       } while (!DeadInsts.empty());
@@ -190,7 +191,7 @@ processFunctionWithoutLoopSupport(SILFunction &F, bool FreezePostDomReleases,
   if (F.isGlobalInitOnceFunction())
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "***** Processing " << F.getName() << " *****\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** Processing " << F.getName() << " *****\n");
 
   bool Changed = false;
   BlockARCPairingContext Context(F, AA, POTA, RCIA, EAFI, PTFI);
@@ -213,11 +214,11 @@ processFunctionWithoutLoopSupport(SILFunction &F, bool FreezePostDomReleases,
       break;
 
     // Otherwise, perform another iteration.
-    LLVM_DEBUG(llvm::dbgs() << "\n<<< Made a Change! "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n<<< Made a Change! "
                                "Reprocessing Function! >>>\n");
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n");
 
   // Return true if we moved or deleted any instructions.
   return Changed;
@@ -238,7 +239,7 @@ static bool processFunctionWithLoopSupport(
   if (F.isGlobalInitOnceFunction())
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "***** Processing " << F.getName() << " *****\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** Processing " << F.getName() << " *****\n");
 
   LoopARCPairingContext Context(F, AA, LRFI, LI, RCFI, EAFI, PTFI);
   return Context.process();
@@ -308,6 +309,6 @@ class ARCSequenceOpts : public SILFunctionTransform {
 } // end anonymous namespace
 
 
-SILTransform *swift::createARCSequenceOpts() {
+SILTransform *language::createARCSequenceOpts() {
   return new ARCSequenceOpts();
 }

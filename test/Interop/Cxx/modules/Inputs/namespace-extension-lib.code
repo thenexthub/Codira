@@ -1,0 +1,23 @@
+import Namespaces
+
+#if RESILIENT
+
+extension Namespace.SimpleTypealias {
+  public static fn test() -> Int { 42 }
+}
+
+#else
+
+extension Namespace.Parent {
+  public static fn test() -> Int { 42 }
+}
+
+extension Namespace.Parent.Child {
+  public static fn test() -> Int { 52 }
+}
+
+extension Namespace.NestedNamespace.NestedStruct {
+  public fn test() -> Int { 62 }
+}
+
+#endif

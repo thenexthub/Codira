@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_DOC_STRUCTURE_ARRAY_H
-#define LLVM_SOURCEKITD_DOC_STRUCTURE_ARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_DOC_STRUCTURE_ARRAY_H
+#define TOOLCHAIN_SOURCEKITD_DOC_STRUCTURE_ARRAY_H
 
 #include "sourcekitd/Internal.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 namespace sourcekitd {
 
@@ -37,17 +38,17 @@ public:
                          unsigned NameOffset, unsigned NameLength,
                          unsigned BodyOffset, unsigned BodyLength,
                          unsigned DocOffset, unsigned DocLength,
-                         llvm::StringRef DisplayName, llvm::StringRef TypeName,
-                         llvm::StringRef RuntimeName,
-                         llvm::StringRef SelectorName,
-                         llvm::ArrayRef<llvm::StringRef> InheritedTypes,
-                         llvm::ArrayRef<std::tuple<SourceKit::UIdent, unsigned, unsigned>> Attrs);
+                         toolchain::StringRef DisplayName, toolchain::StringRef TypeName,
+                         toolchain::StringRef RuntimeName,
+                         toolchain::StringRef SelectorName,
+                         toolchain::ArrayRef<toolchain::StringRef> InheritedTypes,
+                         toolchain::ArrayRef<std::tuple<SourceKit::UIdent, unsigned, unsigned>> Attrs);
 
   void addElement(SourceKit::UIdent Kind, unsigned Offset, unsigned Length);
 
   void endSubStructure();
 
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer();
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer();
 
 private:
   struct Implementation;
@@ -56,4 +57,4 @@ private:
 
 } // end namespace sourcekitd
 
-#endif // LLVM_SOURCEKITD_DOC_STRUCTURE_ARRAY_H
+#endif // TOOLCHAIN_SOURCEKITD_DOC_STRUCTURE_ARRAY_H

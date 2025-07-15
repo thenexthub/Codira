@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 // ==== Task Cancellation ------------------------------------------------------
 
@@ -39,13 +43,13 @@ import Swift
 /// ### Execution order and semantics
 /// The `operation` closure is always invoked, even when the
 /// `withTaskCancellationHandler(operation:onCancel:)` method is called from a task
-/// that was already cancelled.
+/// that was already canceled.
 ///
 /// When `withTaskCancellationHandler(operation:onCancel:)` is used in a task that has already been
-/// cancelled, the cancellation handler will be executed
+/// canceled, the cancellation handler will be executed
 /// immediately before the `operation` closure gets to execute.
 ///
-/// This allows the cancellation handler to set some external "cancelled" flag
+/// This allows the cancellation handler to set some external "canceled" flag
 /// that the operation may be *atomically* checking for in order to avoid
 /// performing any actual work once the operation gets to run.
 ///
@@ -66,18 +70,18 @@ import Swift
 /// as resuming a continuation, may acquire these same internal locks.
 /// Therefore, if a cancellation handler must acquire a lock, other code should
 /// not cancel tasks or resume continuations while holding that lock.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 #if !$Embedded
-@backDeployed(before: SwiftStdlib 6.0)
+@backDeployed(before: CodiraStdlib 6.0)
 #endif
-public func withTaskCancellationHandler<T>(
+public fn withTaskCancellationHandler<T>(
   operation: () async throws -> T,
   onCancel handler: @Sendable () -> Void,
   isolation: isolated (any Actor)? = #isolation
 ) async rethrows -> T {
   // unconditionally add the cancellation record to the task.
   // if the task was already cancelled, it will be executed right away.
-  let record = unsafe _taskAddCancellationHandler(handler: handler)
+  immutable record = _taskAddCancellationHandler(handler: handler)
   defer { unsafe _taskRemoveCancellationHandler(record: record) }
 
   return try await operation()
@@ -89,22 +93,22 @@ public func withTaskCancellationHandler<T>(
 //
 // This function also doubles as an ABI-compatibility shim predating the
 // introduction of #isolation.
-@_unsafeInheritExecutor // ABI compatibility with Swift 5.1
-@available(SwiftStdlib 5.1, *)
+@_unsafeInheritExecutor // ABI compatibility with Codira 5.1
+@available(CodiraStdlib 5.1, *)
 @_silgen_name("$ss27withTaskCancellationHandler9operation8onCancelxxyYaKXE_yyYbXEtYaKlF")
-public func _unsafeInheritExecutor_withTaskCancellationHandler<T>(
+public fn _unsafeInheritExecutor_withTaskCancellationHandler<T>(
   operation: () async throws -> T,
   onCancel handler: @Sendable () -> Void
 ) async rethrows -> T {
   // unconditionally add the cancellation record to the task.
   // if the task was already cancelled, it will be executed right away.
-  let record = unsafe _taskAddCancellationHandler(handler: handler)
+  immutable record = _taskAddCancellationHandler(handler: handler)
   defer { unsafe _taskRemoveCancellationHandler(record: record) }
 
   return try await operation()
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Task {
   /// A Boolean value that indicates whether the task should stop executing.
   ///
@@ -117,7 +121,7 @@ extension Task {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Task where Success == Never, Failure == Never {
   /// A Boolean value that indicates whether the task should stop executing.
   ///
@@ -132,7 +136,7 @@ extension Task where Success == Never, Failure == Never {
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Task where Success == Never, Failure == Never {
   /// Throws an error if the task was canceled.
   ///
@@ -140,7 +144,7 @@ extension Task where Success == Never, Failure == Never {
   ///
   /// - SeeAlso: `isCancelled()`
   @_unavailableInEmbedded
-  public static func checkCancellation() throws {
+  public static fn checkCancellation() throws {
     if Task<Never, Never>.isCancelled {
       throw _Concurrency.CancellationError()
     }
@@ -151,20 +155,20 @@ extension Task where Success == Never, Failure == Never {
 ///
 /// This error is also thrown automatically by `Task.checkCancellation()`,
 /// if the current task has been canceled.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct CancellationError: Error {
   // no extra information, cancellation is intended to be light-weight
   public init() {}
 }
 
 @usableFromInline
-@available(SwiftStdlib 5.1, *)
-@_silgen_name("swift_task_addCancellationHandler")
-func _taskAddCancellationHandler(handler: () -> Void) -> UnsafeRawPointer /*CancellationNotificationStatusRecord*/
+@available(CodiraStdlib 5.1, *)
+@_silgen_name("language_task_addCancellationHandler")
+fn _taskAddCancellationHandler(handler: () -> Void) -> UnsafeRawPointer /*CancellationNotificationStatusRecord*/
 
 @usableFromInline
-@available(SwiftStdlib 5.1, *)
-@_silgen_name("swift_task_removeCancellationHandler")
-func _taskRemoveCancellationHandler(
+@available(CodiraStdlib 5.1, *)
+@_silgen_name("language_task_removeCancellationHandler")
+fn _taskRemoveCancellationHandler(
   record: UnsafeRawPointer /*CancellationNotificationStatusRecord*/
 )

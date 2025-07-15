@@ -1,4 +1,4 @@
-//===--- ASTScopeImpl.h - Swift AST Object-Oriented Scope --------*- C++-*-===//
+//===--- ASTScopeImpl.h - Codira AST Object-Oriented Scope --------*- C++-*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file defines the ASTScopeImpl class ontology, which
-/// describes the scopes that exist within a Swift AST.
+/// describes the scopes that exist within a Codira AST.
 ///
 /// Each scope has four basic functions: printing for debugging, creation of
 /// itself and its children, obtaining its SourceRange (for lookup), and looking
@@ -28,8 +29,8 @@
 ///   does not get to see the symbols in the class or its ancestors.
 ///
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_AST_SCOPE_H
-#define SWIFT_AST_AST_SCOPE_H
+#ifndef LANGUAGE_AST_AST_SCOPE_H
+#define LANGUAGE_AST_AST_SCOPE_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/CatchNode.h"
@@ -37,12 +38,12 @@
 #include "language/AST/SimpleRequest.h"
 #include "language/Basic/Compiler.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/NullablePtr.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 
 /// In case there's a bug in the ASTScope lookup system, suggest that the user
@@ -52,7 +53,7 @@
   assert((predicate) && message)
 
 #define ASTScope_unreachable(message)                                          \
-  llvm_unreachable(message)
+  toolchain_unreachable(message)
 
 namespace language {
 
@@ -78,7 +79,7 @@ class GenericParamList;
 class TrailingWhereClause;
 class ParameterList;
 class PatternBindingEntry;
-class SpecializeAttr;
+class AbstractSpecializeAttr;
 class GenericContext;
 class DeclName;
 class StmtConditionElement;
@@ -103,8 +104,8 @@ struct AnnotatedInsertionPoint {
 
 namespace ast_scope {
 
-void simple_display(llvm::raw_ostream &out, const ASTScopeImpl *);
-void simple_display(llvm::raw_ostream &out, const ScopeCreator *);
+void simple_display(toolchain::raw_ostream &out, const ASTScopeImpl *);
+void simple_display(toolchain::raw_ostream &out, const ScopeCreator *);
 
 SourceLoc extractNearestSourceLoc(std::tuple<ASTScopeImpl *, ScopeCreator *>);
 
@@ -163,7 +164,7 @@ private:
   ///   the parent chain is available. Null at the root.
   /// The int:
   /// - A flag indicating if the scope has been expanded yet or not.
-  llvm::PointerIntPair<ASTScopeImpl *, 1> parentAndWasExpanded;
+  toolchain::PointerIntPair<ASTScopeImpl *, 1> parentAndWasExpanded;
 
   /// Child scopes, sorted by source range.
   Children storedChildren;
@@ -252,27 +253,27 @@ public:
   std::string getClassName() const;
 
   /// Print out this scope for debugging/reporting purposes.
-  void print(llvm::raw_ostream &out, unsigned level = 0, bool lastChild = false,
+  void print(toolchain::raw_ostream &out, unsigned level = 0, bool lastChild = false,
              bool printChildren = true) const;
 
-  void printRange(llvm::raw_ostream &out) const;
+  void printRange(toolchain::raw_ostream &out) const;
 
-  void printParents(llvm::raw_ostream &out) const;
+  void printParents(toolchain::raw_ostream &out) const;
 
 protected:
-  virtual void printSpecifics(llvm::raw_ostream &out) const {}
+  virtual void printSpecifics(toolchain::raw_ostream &out) const {}
   virtual NullablePtr<const void> addressForPrinting() const;
 
 public:
-  SWIFT_DEBUG_DUMP;
-  SWIFT_DEBUG_DUMPER(dumpParents());
+  LANGUAGE_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMPER(dumpParents());
 
   void dumpOneScopeMapLocation(std::pair<unsigned, unsigned> lineColumn);
 
 private:
   [[noreturn]]
   void abortWithVerificationError(
-      llvm::function_ref<void(llvm::raw_ostream &)> messageFn) const;
+      toolchain::function_ref<void(toolchain::raw_ostream &)> messageFn) const;
 
 #pragma mark - Scope tree creation
 public:
@@ -304,7 +305,7 @@ public:
   unqualifiedLookup(SourceFile *, SourceLoc, DeclConsumer);
 
   /// Entry point into ASTScopeImpl-land for labeled statement lookups.
-  static llvm::SmallVector<LabeledStmt *, 4>
+  static toolchain::SmallVector<LabeledStmt *, 4>
   lookupLabeledStmts(SourceFile *sourceFile, SourceLoc loc);
 
   static std::pair<CaseStmt *, CaseStmt *>
@@ -312,7 +313,7 @@ public:
 
   static void lookupEnclosingMacroScope(
       SourceFile *sourceFile, SourceLoc loc,
-      llvm::function_ref<bool(ASTScope::PotentialMacro)> consume);
+      toolchain::function_ref<bool(ASTScope::PotentialMacro)> consume);
 
   static ABIAttr *lookupEnclosingABIAttributeScope(
       SourceFile *sourceFile, SourceLoc loc);
@@ -358,7 +359,7 @@ protected:
   /// GenericParamScope. In every case, the generics on the type decl must be
   /// searched, but only once. And they must be searched *before* the generic
   /// parameters. For instance, the following is correct: \code class
-  /// ShadowingGenericParameter<T> { \code   typealias T = Int;  func foo (t :
+  /// ShadowingGenericParameter<T> { \code   typealias T = Int;  fn foo (t :
   /// T) {} \code } \code ShadowingGenericParameter<String>().foo(t: "hi")
   ///
   /// So keep track of the last generic param list searched to avoid
@@ -443,7 +444,7 @@ public:
   getSourceRangeOfThisASTNode(bool omitAssertions = false) const override;
 
 protected:
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   void buildFullyExpandedTree();
@@ -621,7 +622,7 @@ public:
 protected:
   bool
   lookupLocalsOrMembers(ASTScopeImpl::DeclConsumer consumer) const override;
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   NullablePtr<const ASTScopeImpl> getLookupLimit() const override;
@@ -786,7 +787,7 @@ public:
 
 protected:
   ASTScopeImpl *expandSpecifically(ScopeCreator &) override;
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   NullablePtr<const void> addressForPrinting() const override {
@@ -821,7 +822,7 @@ public:
   getSourceRangeOfThisASTNode(bool omitAssertions = false) const override;
 
 protected:
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
   bool lookupLocalsOrMembers(DeclConsumer) const override;
 
@@ -837,13 +838,13 @@ public:
   }
 };
 
-/// The parameters for an abstract function (init/func/deinit)., subscript, and
+/// The parameters for an abstract function (init/fn/deinit)., subscript, and
 /// enum element
 class ParameterListScope final : public ASTScopeImpl {
 public:
   ParameterList *const params;
   /// For get functions in subscript declarations,
-  /// a lookup into the subscript parameters must count as the get func context.
+  /// a lookup into the subscript parameters must count as the get fn context.
   const NullablePtr<DeclContext> matchingContext;
 
   ParameterListScope(ParameterList *params,
@@ -1027,7 +1028,7 @@ public:
   Pattern *getPattern() const;
 
 protected:
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   Decl *getDecl() const { return decl; }
@@ -1150,7 +1151,7 @@ private:
 protected:
   ASTScopeImpl *expandSpecifically(ScopeCreator &) override;
   bool lookupLocalsOrMembers(DeclConsumer) const override;
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
   bool isLabeledStmtLookupTerminator() const override;
 
 public:
@@ -1244,10 +1245,10 @@ public:
 /// The \c _@specialize attribute.
 class SpecializeAttributeScope final : public ASTScopeImpl {
 public:
-  SpecializeAttr *const specializeAttr;
+  AbstractSpecializeAttr *const specializeAttr;
   AbstractFunctionDecl *const whatWasSpecialized;
 
-  SpecializeAttributeScope(SpecializeAttr *specializeAttr,
+  SpecializeAttributeScope(AbstractSpecializeAttr *specializeAttr,
                            AbstractFunctionDecl *whatWasSpecialized)
       : ASTScopeImpl(ScopeKind::SpecializeAttribute),
         specializeAttr(specializeAttr), whatWasSpecialized(whatWasSpecialized) {
@@ -1320,7 +1321,7 @@ public:
   getSourceRangeOfThisASTNode(bool omitAssertions = false) const override;
 
 protected:
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   Decl *getDecl() const { return decl; }
@@ -1374,7 +1375,7 @@ public:
   getSourceRangeOfThisASTNode(bool omitAssertions = false) const override;
 
 protected:
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   Decl *getDecl() const { return decl; }
@@ -1432,7 +1433,7 @@ public:
   getSourceRangeOfThisASTNode(bool omitAssertions = false) const override;
 
 protected:
-  void printSpecifics(llvm::raw_ostream &out) const override;
+  void printSpecifics(toolchain::raw_ostream &out) const override;
 
 public:
   Decl *getDecl() const { return decl; }
@@ -1903,4 +1904,4 @@ public:
 } // namespace ast_scope
 } // namespace language
 
-#endif // SWIFT_AST_AST_SCOPE_H
+#endif // LANGUAGE_AST_AST_SCOPE_H

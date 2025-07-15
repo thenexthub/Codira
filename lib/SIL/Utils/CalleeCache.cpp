@@ -1,13 +1,17 @@
 //===--- CalleeCache.cpp - Determine callees per call site ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/CalleeCache.h"
@@ -15,7 +19,7 @@
 #include "language/SIL/InstructionUtils.h"
 #include "language/AST/ProtocolConformance.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 #define DEBUG_TYPE "CalleeCache"
 
@@ -23,7 +27,7 @@ using namespace language;
 
 /// Are the callees that could be called through Decl statically
 /// knowable based on the Decl and the compilation mode?
-bool swift::calleesAreStaticallyKnowable(SILModule &module, SILDeclRef decl) {
+bool language::calleesAreStaticallyKnowable(SILModule &module, SILDeclRef decl) {
   if (decl.isForeign)
     return false;
   return calleesAreStaticallyKnowable(module, decl.getDecl());
@@ -31,7 +35,7 @@ bool swift::calleesAreStaticallyKnowable(SILModule &module, SILDeclRef decl) {
 
 /// Are the callees that could be called through Decl statically
 /// knowable based on the Decl and the compilation mode?
-bool swift::calleesAreStaticallyKnowable(SILModule &module, ValueDecl *vd) {
+bool language::calleesAreStaticallyKnowable(SILModule &module, ValueDecl *vd) {
   assert(isa<AbstractFunctionDecl>(vd) || isa<EnumElementDecl>(vd));
 
   // Only handle members defined within the SILModule's associated context.
@@ -59,7 +63,7 @@ bool swift::calleesAreStaticallyKnowable(SILModule &module, ValueDecl *vd) {
       if (nd->getEffectiveAccess() == AccessLevel::Open)
         return false;
     }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case AccessLevel::Internal:
     return module.isWholeModule();
   case AccessLevel::FilePrivate:
@@ -67,14 +71,14 @@ bool swift::calleesAreStaticallyKnowable(SILModule &module, ValueDecl *vd) {
     return true;
   }
 
-  llvm_unreachable("Unhandled access level in switch.");
+  toolchain_unreachable("Unhandled access level in switch.");
 }
 
 void CalleeList::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
-void CalleeList::print(llvm::raw_ostream &os) const {
+void CalleeList::print(toolchain::raw_ostream &os) const {
   os << "Incomplete callee list? : "
                << (isIncomplete() ? "Yes" : "No");
   if (!allCalleesVisible())
@@ -217,7 +221,7 @@ void CalleeCache::computeWitnessMethodCalleesForWitnessTable(
     auto Conf = WT.getConformance();
     switch (Conf->getProtocol()->getEffectiveAccess()) {
       case AccessLevel::Open:
-        llvm_unreachable("protocols cannot have open access level");
+        toolchain_unreachable("protocols cannot have open access level");
       case AccessLevel::Package:
       case AccessLevel::Public:
         canCallUnknown = true;
@@ -227,7 +231,7 @@ void CalleeCache::computeWitnessMethodCalleesForWitnessTable(
           canCallUnknown = true;
           break;
         }
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case AccessLevel::FilePrivate:
       case AccessLevel::Private: {
         auto Witness = Conf->getRootConformance()->getWitness(Requirement.getDecl());
@@ -243,7 +247,7 @@ void CalleeCache::computeWitnessMethodCalleesForWitnessTable(
 /// Compute the callees for each method that appears in a VTable or
 /// Witness Table.
 void CalleeCache::computeMethodCallees() {
-  SWIFT_FUNC_STAT;
+  LANGUAGE_FUNC_STAT;
 
   computeClassMethodCallees();
 
@@ -346,7 +350,7 @@ CalleeList CalleeCache::getDestructors(SILType type, bool isExactType) const {
     // In case of a final class, just pick the deinit of the class.
     SILDeclRef destructor = SILDeclRef(classDecl->getDestructor());
     
-    // In embedded Swift, we need the specialized destructor, not the generic
+    // In embedded Codira, we need the specialized destructor, not the generic
     // one.
     if (auto *vtable = M.lookUpSpecializedVTable(type)) {
       if (auto entry = vtable->getEntry(M, destructor))

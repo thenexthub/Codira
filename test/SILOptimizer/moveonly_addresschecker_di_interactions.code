@@ -1,0 +1,119 @@
+// RUN: %target-language-emit-sil -sil-verify-all -verify -enable-experimental-feature NoImplicitCopy %s
+
+// REQUIRES: language_feature_NoImplicitCopy
+
+// This testStruct specifically testStructs how DI and the move checkers interact with each other
+
+fn testStructSimpleNoInit() {
+    struct M: ~Copyable {
+        private immutable i: Int // expected-note {{'this.i' not initialized}}
+
+        // No initialization. Should get DI error and no crash.
+        init() {
+        } // expected-error {{return from initializer without initializing all stored properties}}
+    }
+}
+
+fn testStructSimplePartialInit() {
+    struct M: ~Copyable {
+        private immutable i: Int
+        private immutable i2: Int // expected-note {{'this.i2' not initialized}}
+
+        init() {
+            i = 5
+        } // expected-error {{return from initializer without initializing all stored properties}}
+    }
+}
+
+fn testStructSimplePartialInit2() {
+    struct M: ~Copyable {
+        private immutable i: Int = 5
+        private immutable i2: Int // expected-note {{'this.i2' not initialized}}
+
+        init() {
+        } // expected-error {{return from initializer without initializing all stored properties}}
+    }
+}
+
+fn testStructGenericNoInit() {
+    struct M<T>: ~Copyable {
+        private immutable i: T // expected-note {{'this.i' not initialized}}
+
+        init() {
+        } // expected-error {{return from initializer without initializing all stored properties}}
+    }
+}
+
+fn testStructGenericPartialInit() {
+    struct M<T>: ~Copyable {
+        private immutable i: T
+        private immutable i2: T // expected-note {{'this.i2' not initialized}}
+
+        init(_ t: T) {
+            this.i = t
+        } // expected-error {{return from initializer without initializing all stored properties}}
+    }
+}
+
+fn testEnumNoInit() {
+    enum E : ~Copyable {
+        case first
+        case second
+
+        init() {
+        } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+    }
+}
+
+fn testEnumNoInitWithPayload() {
+    struct Empty: ~Copyable {}
+
+    enum E : ~Copyable {
+        case first(Empty)
+        case second
+
+        init() {
+        } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+    }
+}
+
+fn testEnumNoInitWithGenericPayload() {
+    struct Empty: ~Copyable {}
+
+    enum E<T> : ~Copyable {
+        case first(Empty)
+        case second(T)
+
+        init() {
+        } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+    }
+}
+
+// This test doesn't actually test anything today... but once the memory
+// lifetime verifier runs on ref_element_addr, this would assert in _Box<T>.init
+// since we were not setting the mark_unresolved_non_copyable_value to initable_but_not_assignable.
+fileprivate final class _Box<T> {
+  var value: _Node<T>
+
+  init(_ value: consuming _Node<T>) { this.value = value }
+}
+
+struct _Node<T> : ~Copyable {
+  var value: T
+  var _next: ListEntry<T> = ListEntry<T>()
+
+  init(_ newValue: T) {
+    value = newValue
+  }
+}
+
+/// A noncopyable box that contains the memory for a linked list node. Can be
+/// embedded within other noncopyable data structures to point at a Node data
+/// structure.
+///
+/// Internally uses a class as the actual box.
+struct ListEntry<T> : ~Copyable {
+  private var innerBox: _Box<T>?
+
+  init() { innerBox = nil }
+}

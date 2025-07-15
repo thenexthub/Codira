@@ -1,0 +1,52 @@
+// Please keep this file in alphabetical order!
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -target %target-pre-stable-abi-triple -emit-module-path %t/resilient_struct.codemodule %S/../Inputs/resilient_struct.code -enable-library-evolution
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -target %target-pre-stable-abi-triple -emit-module-path %t/resilient_objc_class.codemodule %S/../Inputs/resilient_objc_class.code -I %t -enable-library-evolution -emit-objc-header-path %t/resilient_objc_class.h
+
+// RUN: cp %S/Inputs/custom-modules/module.modulemap %t/module.modulemap
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -target %target-pre-stable-abi-triple %s -module-name resilient -typecheck -verify -emit-objc-header-path %t/resilient.h -I %t -enable-library-evolution
+// RUN: %FileCheck %s --check-prefix=NO-STUBS < %t/resilient.h
+// RUN: %check-in-clang %t/resilient.h -I %t
+
+// REQUIRES: objc_interop
+// UNSUPPORTED: OS=iosmac
+// UNSUPPORTED: OS=xros
+
+// See also resilient-ancestry.code, for the stable ABI deployment target test.
+
+import Foundation
+import resilient_objc_class
+
+// Note: @_fixed_layout on a class only applies to the storage layout and
+// not metadata, which remains resilient.
+
+// NO-STUBS-NOT: FixedLayoutNSObjectSubclass
+
+// CHECK-LABEL: LANGUAGE_RESILIENT_CLASS("_TtC9resilient27FixedLayoutNSObjectSubclass")
+// CHECK-NEXT: @interface FixedLayoutNSObjectSubclass : FixedLayoutNSObjectOutsideParent
+// CHECK-NEXT:   - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: @end
+
+@_fixed_layout
+public class FixedLayoutNSObjectSubclass : FixedLayoutNSObjectOutsideParent {}
+
+// NO-STUBS-NOT: ResilientNSObjectSubclass
+
+// CHECK-LABEL: LANGUAGE_RESILIENT_CLASS("_TtC9resilient25ResilientNSObjectSubclass")
+// CHECK-NEXT: @interface ResilientNSObjectSubclass : ResilientNSObjectOutsideParent
+// CHECK-NEXT:   - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: @end
+
+public class ResilientNSObjectSubclass : ResilientNSObjectOutsideParent {}
+
+// NO-STUBS-NOT: RenamedNSObjectSubclass
+
+// CHECK-LABEL: LANGUAGE_RESILIENT_CLASS_NAMED("UnrenamedNSObjectSubclass")
+// CHECK-NEXT: @interface RenamedNSObjectSubclass : ResilientNSObjectOutsideParent
+// CHECK-NEXT:   - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: @end
+
+@objc(RenamedNSObjectSubclass)
+public class UnrenamedNSObjectSubclass : ResilientNSObjectOutsideParent {}

@@ -1,0 +1,32 @@
+// RUN: %target-language-emit-silgen %s | %FileCheck %s
+
+protocol P {}
+
+class Foo {
+  var x: Foo!
+  var p: P!
+
+  // CHECK-LABEL: {{.*3Foo.*3foo.*}}
+  // CHECK-NOT: unchecked_{{.*}}cast {{.*}} Optional{{.*}} to Optional
+  fn foo() -> Foo? {
+    return x
+  }
+  // CHECK-LABEL: {{.*3Foo.*3poo.*}}
+  // CHECK-NOT: unchecked_{{.*}}cast {{.*}} Optional{{.*}} to Optional
+  fn poo() -> P? {
+    return p
+  }
+
+  // CHECK-LABEL: {{.*3Foo.*3bar.*}}
+  // CHECK-NOT: unchecked_{{.*}}cast {{.*}} Optional{{.*}} to Optional
+  fn bar() -> Foo? {
+    var x2 = x
+  }
+  // CHECK-LABEL: {{.*3Foo.*3par.*}}
+  // CHECK-NOT: unchecked_{{.*}}cast {{.*}} Optional{{.*}} to Optional
+  fn par(p3: P) -> P? {
+    var p2 = p
+    p2! = p3
+    p2? = p3
+  }
+}

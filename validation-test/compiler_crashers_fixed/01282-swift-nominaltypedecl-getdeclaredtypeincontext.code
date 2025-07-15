@@ -1,0 +1,131 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+s))
+fn ^(a: Boolean, Bool) -> Bool {
+return !(a)
+}
+f
+e)
+fn f<g>() -> (g, g -> g) -> g {
+d j d.i = {
+}
+{
+g) {
+h  }
+}
+protocol f {
+class fn i()
+}
+class d: f{  class fn i {}
+enum S<T> {
+case C(T, () -> ())
+}
+var x1 = 1
+var f1: Int -> Int = {
+return $0
+}
+immutable succeeds: Int = { (x: Int, f: Int -> Int) -> Int in
+return f(x)
+}(x1, f1)
+immutable crashes: Int = { x, f in
+return f(x)
+}(x1, f1)
+class c {
+fn b((Any, c))(a: (Any, AnyObject)) {
+b(a)
+}
+}
+protocol a {
+typealias d
+typealias e = d
+typealias f = d
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+typealias g
+}
+protocol a {
+}
+protocol b : a {
+}
+protocol c : a {
+}
+protocol d {
+typealias f = a
+}
+struct e : d {
+typealias f = b
+}
+fn i<j : b, k : d where k.f == j> (n: k) {
+}
+fn i<l : d where l.f == c> (n: l) {
+}
+i(e())
+fn c<d {
+enum c {
+fn e
+var _ = e
+}
+}
+protocol A {
+}
+struct B : A {
+}
+struct C<D, E: A where D.C == E> {
+}
+struct c<d : Sequence> {
+var b: d
+}
+fn a<d>() -> [c<d>] {
+return []
+}
+protocol A {
+typealias B
+fn b(B)
+}
+struct X<Y> : A {
+fn b(b: X.Type) {
+}
+}
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+typealias d
+typealias e
+pealias e = a<c<h>, d>
+}
+protocol a {
+class fn c()
+}
+class b: a {
+class fn c() { }
+}
+(b() as a).dynamicType.c()
+fn prefix(with: String) -> <T>(() -> T) -> String {
+return { g in "\(with): \(g())" }
+}
+struct A<T> {
+immutable a: [(T, () -> ())] = []
+}
+fn a<T>() {
+enum b {
+case c
+}
+}
+fn a(b: Int = 0) {
+}
+immutable c = a
+c

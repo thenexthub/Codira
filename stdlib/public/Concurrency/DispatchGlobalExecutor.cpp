@@ -1,12 +1,12 @@
 ///===--- DispatchGlobalExecutor.inc ------------------------*- C++ -*--===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===------------------------------------------------------------------===///
 ///
@@ -15,15 +15,15 @@
 /// This file is included into GlobalExecutor.cpp only when Dispatch
 /// integration is enabled.  It is expected to define the following
 /// functions:
-///   swift_task_asyncMainDrainQueueImpl
-///   swift_task_checkIsolatedImpl
-///   swift_task_donateThreadToGlobalExecutorUntilImpl
-///   swift_task_enqueueGlobalImpl
-///   swift_task_enqueueGlobalWithDeadlineImpl
-///   swift_task_enqueueGlobalWithDelayImpl
-///   swift_task_enqueueMainExecutorImpl
-///   swift_task_getMainExecutorImpl
-///   swift_task_isMainExecutorImpl
+///   language_task_asyncMainDrainQueueImpl
+///   language_task_checkIsolatedImpl
+///   language_task_donateThreadToGlobalExecutorUntilImpl
+///   language_task_enqueueGlobalImpl
+///   language_task_enqueueGlobalWithDeadlineImpl
+///   language_task_enqueueGlobalWithDelayImpl
+///   language_task_enqueueMainExecutorImpl
+///   language_task_getMainExecutorImpl
+///   language_task_isMainExecutorImpl
 /// as well as any Dispatch-specific functions for the runtime.
 ///
 ///===------------------------------------------------------------------===///
@@ -34,7 +34,7 @@
 #include "language/Runtime/Concurrency.h"
 #include "language/Runtime/EnvironmentVariables.h"
 
-#if SWIFT_CONCURRENCY_ENABLE_DISPATCH
+#if LANGUAGE_CONCURRENCY_ENABLE_DISPATCH
 #include "language/Runtime/HeapObject.h"
 #include <dispatch/dispatch.h>
 #if defined(_WIN32)
@@ -48,18 +48,22 @@
 
 #if __has_include(<dispatch/private.h>)
 #include <dispatch/private.h>
-#define SWIFT_CONCURRENCY_HAS_DISPATCH_PRIVATE 1
+#define LANGUAGE_CONCURRENCY_HAS_DISPATCH_PRIVATE 1
 #endif
 
 #include "Error.h"
 #include "ExecutorImpl.h"
 #include "TaskPrivate.h"
 
+#ifndef NSEC_PER_SEC
+#define NSEC_PER_SEC 1000000000ull
+#endif
+
 using namespace language;
 
 /// The function passed to dispatch_async_f to execute a job.
-static void __swift_run_job(void *_job) {
-  SwiftJob *job = (SwiftJob*) _job;
+static void __language_run_job(void *_job) {
+  CodiraJob *job = (CodiraJob*) _job;
   auto metadata =
       reinterpret_cast<const DispatchClassMetadata *>(job->metadata);
   metadata->VTableInvoke(job, nullptr, 0);
@@ -78,7 +82,7 @@ static void initializeDispatchEnqueueFunc(dispatch_queue_t queue, void *obj,
 /// A function pointer to the function used to enqueue a Job onto a dispatch
 /// queue. Initially set to initializeDispatchEnqueueFunc, so that the first
 /// call will initialize it. initializeDispatchEnqueueFunc sets it to point
-/// either to dispatch_async_swift_job when it's available, otherwise to
+/// either to dispatch_async_language_job when it's available, otherwise to
 /// dispatchEnqueueDispatchAsync.
 static std::atomic<dispatchEnqueueFuncType> dispatchEnqueueFunc{
     initializeDispatchEnqueueFunc};
@@ -86,38 +90,44 @@ static std::atomic<dispatchEnqueueFuncType> dispatchEnqueueFunc{
 /// A small adapter that dispatches a Job onto a queue using dispatch_async_f.
 static void dispatchEnqueueDispatchAsync(dispatch_queue_t queue, void *obj,
                                          dispatch_qos_class_t qos) {
-  dispatch_async_f(queue, obj, __swift_run_job);
+  dispatch_async_f(queue, obj, __language_run_job);
 }
 
 static void initializeDispatchEnqueueFunc(dispatch_queue_t queue, void *obj,
                                           dispatch_qos_class_t qos) {
-  dispatchEnqueueFuncType func = nullptr;
+  dispatchEnqueueFuncType fn = nullptr;
 
   // Always fall back to plain dispatch_async_f for back-deployed concurrency.
-#if !defined(SWIFT_CONCURRENCY_BACK_DEPLOYMENT)
-#if SWIFT_CONCURRENCY_HAS_DISPATCH_PRIVATE
-  if (SWIFT_RUNTIME_WEAK_CHECK(dispatch_async_swift_job))
-    func = SWIFT_RUNTIME_WEAK_USE(dispatch_async_swift_job);
+#if !defined(LANGUAGE_CONCURRENCY_BACK_DEPLOYMENT)
+#if LANGUAGE_CONCURRENCY_HAS_DISPATCH_PRIVATE
+  if (LANGUAGE_RUNTIME_WEAK_CHECK(dispatch_async_language_job))
+    fn = LANGUAGE_RUNTIME_WEAK_USE(dispatch_async_language_job);
 #elif defined(_WIN32)
-  func = function_cast<dispatchEnqueueFuncType>(
-      GetProcAddress(LoadLibraryW(L"dispatch.dll"),
-      "dispatch_async_swift_job"));
+#if CodiraConcurrency_HAS_DISPATCH_ASYNC_LANGUAGE_JOB
+#if defined(dispatch_STATIC)
+  fn = dispatch_async_language_job;
 #else
-  func = function_cast<dispatchEnqueueFuncType>(
-      dlsym(RTLD_NEXT, "dispatch_async_swift_job"));
+  fn = function_cast<dispatchEnqueueFuncType>(
+      GetProcAddress(LoadLibraryW(L"dispatch.dll"),
+      "dispatch_async_language_job"));
+#endif
+#endif
+#else
+  fn = function_cast<dispatchEnqueueFuncType>(
+      dlsym(RTLD_NEXT, "dispatch_async_language_job"));
 #endif
 #endif
 
-  if (!func)
-    func = dispatchEnqueueDispatchAsync;
+  if (!fn)
+    fn = dispatchEnqueueDispatchAsync;
 
-  dispatchEnqueueFunc.store(func, std::memory_order_relaxed);
+  dispatchEnqueueFunc.store(fn, std::memory_order_relaxed);
 
-  func(queue, obj, qos);
+  fn(queue, obj, qos);
 }
 
 /// Enqueue a Job onto a dispatch queue using dispatchEnqueueFunc.
-static void dispatchEnqueue(dispatch_queue_t queue, SwiftJob *job,
+static void dispatchEnqueue(dispatch_queue_t queue, CodiraJob *job,
                             dispatch_qos_class_t qos, void *executorQueue) {
   job->schedulerPrivate[Job::DispatchQueueIndex] = executorQueue;
   dispatchEnqueueFunc.load(std::memory_order_relaxed)(queue, job, qos);
@@ -127,18 +137,18 @@ static constexpr size_t globalQueueCacheCount =
     static_cast<size_t>(JobPriority::UserInteractive) + 1;
 static std::atomic<dispatch_queue_t> globalQueueCache[globalQueueCacheCount];
 
-#if defined(__APPLE__) && !defined(SWIFT_CONCURRENCY_BACK_DEPLOYMENT)
+#if defined(__APPLE__) && !defined(LANGUAGE_CONCURRENCY_BACK_DEPLOYMENT)
 static constexpr size_t dispatchQueueCooperativeFlag = 4;
 #else
 extern "C" void dispatch_queue_set_width(dispatch_queue_t dq, long width);
 #endif
 
-static dispatch_queue_t getGlobalQueue(SwiftJobPriority priority) {
+static dispatch_queue_t getGlobalQueue(CodiraJobPriority priority) {
   size_t numericPriority = static_cast<size_t>(priority);
   if (numericPriority >= globalQueueCacheCount)
-    swift_Concurrency_fatalError(0, "invalid job priority %#zx", numericPriority);
+    language_Concurrency_fatalError(0, "invalid job priority %#zx", numericPriority);
 
-#ifdef SWIFT_CONCURRENCY_BACK_DEPLOYMENT
+#ifdef LANGUAGE_CONCURRENCY_BACK_DEPLOYMENT
   std::memory_order loadOrder = std::memory_order_acquire;
 #else
   std::memory_order loadOrder = std::memory_order_relaxed;
@@ -146,17 +156,17 @@ static dispatch_queue_t getGlobalQueue(SwiftJobPriority priority) {
 
   auto *ptr = &globalQueueCache[numericPriority];
   auto queue = ptr->load(loadOrder);
-  if (SWIFT_LIKELY(queue))
+  if (LANGUAGE_LIKELY(queue))
     return queue;
 
-#if defined(SWIFT_CONCURRENCY_BACK_DEPLOYMENT) || !defined(__APPLE__)
+#if defined(LANGUAGE_CONCURRENCY_BACK_DEPLOYMENT) || !defined(__APPLE__)
   const int DISPATCH_QUEUE_WIDTH_MAX_LOGICAL_CPUS = -3;
 
   // Create a new cooperative concurrent queue and swap it in.
   dispatch_queue_attr_t newQueueAttr = dispatch_queue_attr_make_with_qos_class(
       DISPATCH_QUEUE_CONCURRENT, (dispatch_qos_class_t)priority, 0);
   dispatch_queue_t newQueue = dispatch_queue_create(
-      "Swift global concurrent queue", newQueueAttr);
+      "Codira global concurrent queue", newQueueAttr);
   dispatch_queue_set_width(newQueue, DISPATCH_QUEUE_WIDTH_MAX_LOGICAL_CPUS);
 
   if (!ptr->compare_exchange_strong(queue, newQueue,
@@ -191,7 +201,7 @@ static dispatch_queue_t getGlobalQueue(SwiftJobPriority priority) {
 // Get a queue suitable for dispatch_after. Use the cooperative queues on OS
 // versions where they work with dispatch_after, and use a standard global
 // queue where cooperative queues don't work.
-static dispatch_queue_t getTimerQueue(SwiftJobPriority priority) {
+static dispatch_queue_t getTimerQueue(CodiraJobPriority priority) {
   // On newer OSes, we can use the cooperative queues.
   if (__builtin_available(macOS 12.3, iOS 15.4, tvOS 15.4, watchOS 8.5, *))
     return getGlobalQueue(priority);
@@ -200,8 +210,8 @@ static dispatch_queue_t getTimerQueue(SwiftJobPriority priority) {
   return dispatch_get_global_queue((dispatch_qos_class_t)priority, /*flags*/ 0);
 }
 
-extern "C" SWIFT_CC(swift)
-void swift_dispatchEnqueueGlobal(SwiftJob *job) {
+extern "C" LANGUAGE_CC(language)
+void language_dispatchEnqueueGlobal(CodiraJob *job) {
   assert(job && "no job provided");
   // We really want four things from the global execution service:
   //  - Enqueuing work should have minimal runtime and memory overhead.
@@ -232,7 +242,7 @@ void swift_dispatchEnqueueGlobal(SwiftJob *job) {
   // the priorities of work added to this queue using Dispatch's public
   // API, but as discussed above, that is less important than avoiding
   // performance problems.
-  SwiftJobPriority priority = swift_job_getPriority(job);
+  CodiraJobPriority priority = language_job_getPriority(job);
 
   auto queue = getGlobalQueue(priority);
 
@@ -244,17 +254,17 @@ void swift_dispatchEnqueueGlobal(SwiftJob *job) {
 #define DISPATCH_WALLTIME_MASK  (1ULL << 62)
 #define DISPATCH_TIME_MAX_VALUE (DISPATCH_WALLTIME_MASK - 1)
 
-struct __swift_job_source {
+struct __language_job_source {
   dispatch_source_t source;
-  SwiftJob *job;
+  CodiraJob *job;
 };
 
-static void _swift_run_job_leeway(struct __swift_job_source *jobSource) {
+static void _language_run_job_leeway(struct __language_job_source *jobSource) {
   dispatch_source_t source = jobSource->source;
   dispatch_release(source);
-  SwiftJob *job = jobSource->job;
-  swift_job_dealloc(job, jobSource);
-  __swift_run_job(job);
+  CodiraJob *job = jobSource->job;
+  language_job_dealloc(job, jobSource);
+  __language_run_job(job);
 }
 
 #if defined(__i386__) || defined(__x86_64__) || !defined(__APPLE__)
@@ -294,56 +304,66 @@ platform_time(uint64_t nsec) {
 #endif
 
 static inline dispatch_time_t
-clock_and_value_to_time(int clock, long long deadline) {
+clock_and_value_to_time(int clock, long long sec, long long nsec) {
+  uint64_t deadline;
+  if (sec < 0 || sec == 0 && nsec < 0)
+    deadline = 0;
+  else if (__builtin_mul_overflow(sec, NSEC_PER_SEC, &deadline)
+      || __builtin_add_overflow(nsec, deadline, &deadline)) {
+    deadline = UINT64_MAX;
+  }
   uint64_t value = platform_time((uint64_t)deadline);
   if (value >= DISPATCH_TIME_MAX_VALUE) {
     return DISPATCH_TIME_FOREVER;
   }
   switch (clock) {
-  case swift_clock_id_suspending:
+  case language_clock_id_suspending:
     return value;
-  case swift_clock_id_continuous:
+  case language_clock_id_continuous:
     return value | DISPATCH_UP_OR_MONOTONIC_TIME_MASK;
+  case language_clock_id_wall: {
+    struct timespec ts = {
+      .tv_sec = static_cast<decltype(ts.tv_sec)>(sec),
+      .tv_nsec = static_cast<decltype(ts.tv_nsec)>(nsec)
+    };
+    return dispatch_walltime(&ts, 0);
+  }
   }
   __builtin_unreachable();
 }
 
-extern "C" SWIFT_CC(swift)
-void swift_dispatchEnqueueWithDeadline(bool global,
+extern "C" LANGUAGE_CC(language)
+void language_dispatchEnqueueWithDeadline(bool global,
                                        long long sec,
                                        long long nsec,
                                        long long tsec,
                                        long long tnsec,
-                                       int clock, SwiftJob *job) {
+                                       int clock, CodiraJob *job) {
   assert(job && "no job provided");
 
-  SwiftJobPriority priority = swift_job_getPriority(job);
+  CodiraJobPriority priority = language_job_getPriority(job);
 
   dispatch_queue_t queue;
 
   if (global) {
     queue = getTimerQueue(priority);
 
-    job->schedulerPrivate[SwiftJobDispatchQueueIndex] =
+    job->schedulerPrivate[CodiraJobDispatchQueueIndex] =
       DISPATCH_QUEUE_GLOBAL_EXECUTOR;
   } else {
     queue = dispatch_get_main_queue();
 
-    job->schedulerPrivate[SwiftJobDispatchQueueIndex] = queue;
+    job->schedulerPrivate[CodiraJobDispatchQueueIndex] = queue;
   }
 
-  uint64_t deadline;
-  if (__builtin_mul_overflow(sec, NSEC_PER_SEC, &deadline)
-      || __builtin_add_overflow(nsec, deadline, &deadline)) {
-    deadline = UINT64_MAX;
-  }
-
-  dispatch_time_t when = clock_and_value_to_time(clock, deadline);
+  dispatch_time_t when = clock_and_value_to_time(clock, sec, nsec);
 
   if (tnsec != -1) {
     uint64_t leeway;
-    if (__builtin_mul_overflow(tsec, NSEC_PER_SEC, &leeway)
-        || __builtin_add_overflow(tnsec, deadline, &leeway)) {
+    if (tsec < 0 || tsec == 0 && tnsec < 0)
+      leeway = 0;
+    else if (__builtin_mul_overflow(tsec, NSEC_PER_SEC, &leeway)
+             || __builtin_add_overflow(tnsec, leeway, &leeway)) {
       leeway = UINT64_MAX;
     }
 
@@ -351,30 +371,30 @@ void swift_dispatchEnqueueWithDeadline(bool global,
       dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
     dispatch_source_set_timer(source, when, DISPATCH_TIME_FOREVER, leeway);
 
-    size_t sz = sizeof(struct __swift_job_source);
+    size_t sz = sizeof(struct __language_job_source);
 
-    struct __swift_job_source *jobSource =
-      (struct __swift_job_source *)swift_job_alloc(job, sz);
+    struct __language_job_source *jobSource =
+      (struct __language_job_source *)language_job_alloc(job, sz);
 
     jobSource->job = job;
     jobSource->source = source;
 
     dispatch_set_context(source, jobSource);
     dispatch_source_set_event_handler_f(source,
-      (dispatch_function_t)&_swift_run_job_leeway);
+      (dispatch_function_t)&_language_run_job_leeway);
 
     dispatch_activate(source);
   } else {
     dispatch_after_f(when, queue, (void *)job,
-      (dispatch_function_t)&__swift_run_job);
+      (dispatch_function_t)&__language_run_job);
   }
 }
 
-extern "C" SWIFT_CC(swift)
-void swift_dispatchEnqueueMain(SwiftJob *job) {
+extern "C" LANGUAGE_CC(language)
+void language_dispatchEnqueueMain(CodiraJob *job) {
   assert(job && "no job provided");
 
-  SwiftJobPriority priority = swift_job_getPriority(job);
+  CodiraJobPriority priority = language_job_getPriority(job);
 
   // This is an inline function that compiles down to a pointer to a global.
   auto mainQueue = dispatch_get_main_queue();
@@ -382,9 +402,9 @@ void swift_dispatchEnqueueMain(SwiftJob *job) {
   dispatchEnqueue(mainQueue, job, (dispatch_qos_class_t)priority, mainQueue);
 }
 
-void swift::swift_task_enqueueOnDispatchQueue(Job *job,
+void language::language_task_enqueueOnDispatchQueue(Job *job,
                                               HeapObject *_queue) {
   JobPriority priority = job->getPriority();
   auto queue = reinterpret_cast<dispatch_queue_t>(_queue);
-  dispatchEnqueue(queue, (SwiftJob *)job, (dispatch_qos_class_t)priority, queue);
+  dispatchEnqueue(queue, (CodiraJob *)job, (dispatch_qos_class_t)priority, queue);
 }

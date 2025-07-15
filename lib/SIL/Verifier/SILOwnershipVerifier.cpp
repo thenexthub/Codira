@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-ownership-verifier"
@@ -23,6 +24,7 @@
 #include "language/AST/Decl.h"
 #include "language/AST/GenericEnvironment.h"
 #include "language/AST/Module.h"
+#include "language/AST/SemanticAttrs.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
@@ -44,12 +46,12 @@
 #include "language/SIL/ScopedAddressUtils.h"
 #include "language/SIL/TypeLowering.h"
 
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 #include <algorithm>
 
@@ -65,16 +67,16 @@ using namespace language;
 // verification in SILBuilder. This causes errors to be printed twice, once when
 // we build the IR and a second time when we perform a full verification of the
 // IR. For testing purposes, we just want the later.
-llvm::cl::opt<bool> IsSILOwnershipVerifierTestingEnabled(
+toolchain::cl::opt<bool> IsSILOwnershipVerifierTestingEnabled(
     "sil-ownership-verifier-enable-testing",
-    llvm::cl::desc("Put the sil ownership verifier in testing mode. See "
+    toolchain::cl::desc("Put the sil ownership verifier in testing mode. See "
                    "comment in SILOwnershipVerifier.cpp above option for more "
                    "information."));
 
 /// This is an option to turn off ownership verification on a specific file. We
 /// still emit code as if we are in ownership mode, but we do not verify. This
 /// is useful for temporarily turning off verification on tests.
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
     DisableOwnershipVerification("disable-sil-ownership-verification");
 
 //===----------------------------------------------------------------------===//
@@ -176,17 +178,17 @@ bool SILValueOwnershipChecker::check() {
   if (result.has_value())
     return result.value();
 
-  LLVM_DEBUG(llvm::dbgs() << "Verifying ownership of: " << *value);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Verifying ownership of: " << *value);
   result = checkUses();
   if (!result.value()) {
     return false;
   }
 
   SmallVector<Operand *, 32> allLifetimeEndingUsers;
-  llvm::copy(lifetimeEndingUsers, std::back_inserter(allLifetimeEndingUsers));
+  toolchain::copy(lifetimeEndingUsers, std::back_inserter(allLifetimeEndingUsers));
   SmallVector<Operand *, 32> allRegularUsers;
-  llvm::copy(regularUsers, std::back_inserter(allRegularUsers));
-  llvm::copy(extendLifetimeUses, std::back_inserter(allRegularUsers));
+  toolchain::copy(regularUsers, std::back_inserter(allRegularUsers));
+  toolchain::copy(extendLifetimeUses, std::back_inserter(allRegularUsers));
 
   LinearLifetimeChecker checker(deadEndBlocks);
   auto linearLifetimeResult = checker.checkValue(value, allLifetimeEndingUsers,
@@ -208,7 +210,7 @@ bool SILValueOwnershipChecker::isCompatibleDefUse(
 
   auto constraint = op->getOwnershipConstraint();
   errorBuilder.handleMalformedSIL([&]() {
-    llvm::errs() << "Have operand with incompatible ownership?!\n"
+    toolchain::errs() << "Have operand with incompatible ownership?!\n"
                  << "Value: " << op->get() << "User: " << *user
                  << "Operand Number: " << op->getOperandNumber() << '\n'
                  << "Conv: " << ownershipKind << '\n'
@@ -252,14 +254,14 @@ bool SILValueOwnershipChecker::gatherNonGuaranteedUsers(
     // First do a quick check if we have a consuming use. If so, stash the value
     // and continue.
     if (op->isLifetimeEnding()) {
-      LLVM_DEBUG(llvm::dbgs() << "Lifetime Ending User: " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Lifetime Ending User: " << *user);
       lifetimeEndingUsers.push_back(op);
       continue;
     }
 
     // Otherwise, we have a non lifetime ending user. Add it to our non lifetime
     // ending user list.
-    LLVM_DEBUG(llvm::dbgs() << "Regular User: " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Regular User: " << *user);
     nonLifetimeEndingUsers.push_back(op);
 
     // If we do not have an owned value at this point, continue, we do not have
@@ -363,7 +365,7 @@ bool SILValueOwnershipChecker::gatherUsers(
 
     if (PhiOperand(op) &&
         op->getOperandOwnership() == OperandOwnership::GuaranteedForwarding) {
-      LLVM_DEBUG(llvm::dbgs() << "Regular User: " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Regular User: " << *user);
       nonLifetimeEndingUsers.push_back(op);
       continue;
     }
@@ -386,7 +388,7 @@ bool SILValueOwnershipChecker::gatherUsers(
         // The only exception is a `borrowed-from` instruction.
         if (op->get() != value && !isa<BorrowedFromInst>(op->get())) {
           errorBuilder.handleMalformedSIL([&] {
-            llvm::errs() << "Invalid End Borrow!\n"
+            toolchain::errs() << "Invalid End Borrow!\n"
                          << "Original Value: " << value
                          << "End Borrow: " << *op->getUser() << "\n";
           });
@@ -396,7 +398,7 @@ bool SILValueOwnershipChecker::gatherUsers(
 
         // Otherwise, track this as a lifetime ending use of our underlying
         // value and continue.
-        LLVM_DEBUG(llvm::dbgs() << "Lifetime Ending User: " << *user);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Lifetime Ending User: " << *user);
         lifetimeEndingUsers.push_back(op);
         continue;
       }
@@ -442,7 +444,7 @@ bool SILValueOwnershipChecker::gatherUsers(
       if (auto interiorPointerOperand = InteriorPointerOperand::get(op)) {
         std::function<void(Operand *)> onError = [&](Operand *op) {
           errorBuilder.handleMalformedSIL([&] {
-            llvm::errs() << "Could not recognize address user of interior "
+            toolchain::errs() << "Could not recognize address user of interior "
                             "pointer operand!\n"
                          << "Interior Pointer Operand: "
                          << *interiorPointerOperand.operand->getUser()
@@ -455,14 +457,14 @@ bool SILValueOwnershipChecker::gatherUsers(
       }
 
       // Finally add the op to the non lifetime ending user list.
-      LLVM_DEBUG(llvm::dbgs() << "Regular User: " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Regular User: " << *user);
       nonLifetimeEndingUsers.push_back(op);
       continue;
     }
 
     // At this point since we have a forwarded subobject, we know this is a non
     // lifetime ending user.
-    LLVM_DEBUG(llvm::dbgs() << "Regular User: " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Regular User: " << *user);
     nonLifetimeEndingUsers.push_back(op);
 
     // At this point, we know that we must have a forwarded subobject. Since
@@ -548,7 +550,7 @@ bool SILValueOwnershipChecker::checkDeadEnds(
   for (auto *use : regularUses) {
     if (!liveness.isWithinBoundary(use->getUser(), /*deadEndBlocks=*/nullptr)) {
       allWithinBoundary |= errorBuilder.handleMalformedSIL([&] {
-        llvm::errs()
+        toolchain::errs()
             << "Owned value without lifetime ending uses whose regular use "
                "isn't enclosed within extend_lifetime instructions:\n"
             << "Value: " << value << '\n'
@@ -564,7 +566,7 @@ bool SILValueOwnershipChecker::checkFunctionArgWithoutLifetimeEndingUses(
     ArrayRef<Operand *> extendLifetimeUses) {
   switch (arg->getOwnershipKind()) {
   case OwnershipKind::Any:
-    llvm_unreachable("Value can not have any ownership kind?!");
+    toolchain_unreachable("Value can not have any ownership kind?!");
   case OwnershipKind::Guaranteed:
   case OwnershipKind::Unowned:
   case OwnershipKind::None:
@@ -577,7 +579,7 @@ bool SILValueOwnershipChecker::checkFunctionArgWithoutLifetimeEndingUses(
     return true;
 
   return !errorBuilder.handleMalformedSIL([&] {
-    llvm::errs() << "Owned function parameter without lifetime ending uses!\n"
+    toolchain::errs() << "Owned function parameter without lifetime ending uses!\n"
                  << "Value: " << *arg << '\n';
   });
 }
@@ -587,7 +589,7 @@ bool SILValueOwnershipChecker::checkYieldWithoutLifetimeEndingUses(
     ArrayRef<Operand *> extendLifetimeUses) {
   switch (yield->getOwnershipKind()) {
   case OwnershipKind::Any:
-    llvm_unreachable("value with any ownership kind?!");
+    toolchain_unreachable("value with any ownership kind?!");
   case OwnershipKind::Unowned:
   case OwnershipKind::None:
     return true;
@@ -597,7 +599,7 @@ bool SILValueOwnershipChecker::checkYieldWithoutLifetimeEndingUses(
       return true;
     }
     return !errorBuilder.handleMalformedSIL([&] {
-      llvm::errs() << "Owned yield without lifetime ending uses!\n"
+      toolchain::errs() << "Owned yield without lifetime ending uses!\n"
                    << "Value: " << *yield << '\n';
     });
   case OwnershipKind::Guaranteed:
@@ -639,7 +641,7 @@ bool SILValueOwnershipChecker::checkValueWithoutLifetimeEndingUses(
   if (value->getOwnershipKind() == OwnershipKind::None)
     return true;
 
-  LLVM_DEBUG(llvm::dbgs() << "No lifetime ending users?! Bailing early.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "No lifetime ending users?! Bailing early.\n");
   if (auto *arg = dyn_cast<SILFunctionArgument>(value)) {
     if (checkFunctionArgWithoutLifetimeEndingUses(arg, regularUses,
                                                   extendLifetimeUses)) {
@@ -661,13 +663,22 @@ bool SILValueOwnershipChecker::checkValueWithoutLifetimeEndingUses(
     }
   }
 
+  if (auto *uoc = dyn_cast<UncheckedOwnershipConversionInst>(value)) {
+    // When converting from `unowned`, which can happen for ObjectiveC blocks,
+    // we don't require and scope-ending instruction. This falls in the category:
+    // "trust me, I know what I'm doing".
+    if (uoc->getOperand()->getOwnershipKind() == OwnershipKind::Unowned) {
+      return true;
+    }
+  }
+
   // If we have an unowned value, then again there is nothing left to do.
   if (value->getOwnershipKind() == OwnershipKind::Unowned)
     return true;
 
   if (auto *parentBlock = value->getParentBlock()) {
     if (checkDeadEnds(parentBlock, regularUses, extendLifetimeUses)) {
-      LLVM_DEBUG(llvm::dbgs() << "Ignoring transitively unreachable value "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Ignoring transitively unreachable value "
                               << "without users!\n"
                               << "    Value: " << *value << '\n');
       return true;
@@ -677,14 +688,14 @@ bool SILValueOwnershipChecker::checkValueWithoutLifetimeEndingUses(
   if (value->getOwnershipKind() != OwnershipKind::None) {
     return !errorBuilder.handleMalformedSIL([&] {
       if (value->getOwnershipKind() == OwnershipKind::Owned) {
-        llvm::errs() << "Error! Found a leaked owned value that was never "
+        toolchain::errs() << "Error! Found a leaked owned value that was never "
                         "consumed.\n";
       } else {
-        llvm::errs() << "Non trivial values, non address values, and non "
+        toolchain::errs() << "Non trivial values, non address values, and non "
                         "guaranteed function args must have at least one "
                         "lifetime ending use?!\n";
       }
-      llvm::errs() << "Value: " << *value << '\n';
+      toolchain::errs() << "Value: " << *value << '\n';
     });
   }
 
@@ -693,30 +704,30 @@ bool SILValueOwnershipChecker::checkValueWithoutLifetimeEndingUses(
 
 bool SILValueOwnershipChecker::isGuaranteedFunctionArgWithLifetimeEndingUses(
     SILFunctionArgument *arg,
-    const llvm::SmallVectorImpl<Operand *> &lifetimeEndingUsers) const {
+    const toolchain::SmallVectorImpl<Operand *> &lifetimeEndingUsers) const {
   if (arg->getOwnershipKind() != OwnershipKind::Guaranteed)
     return true;
 
   return errorBuilder.handleMalformedSIL([&] {
-    llvm::errs() << "Guaranteed function parameter with lifetime ending uses!\n"
+    toolchain::errs() << "Guaranteed function parameter with lifetime ending uses!\n"
                  << "Value: " << *arg;
     for (const auto *use : lifetimeEndingUsers) {
-      llvm::errs() << "Lifetime Ending User: " << *use->getUser();
+      toolchain::errs() << "Lifetime Ending User: " << *use->getUser();
     }
-    llvm::errs() << '\n';
+    toolchain::errs() << '\n';
   });
 }
 
 bool SILValueOwnershipChecker::isSubobjectProjectionWithLifetimeEndingUses(
     SILValue value,
-    const llvm::SmallVectorImpl<Operand *> &lifetimeEndingUsers) const {
+    const toolchain::SmallVectorImpl<Operand *> &lifetimeEndingUsers) const {
   return errorBuilder.handleMalformedSIL([&] {
-    llvm::errs() << "Subobject projection with lifetime ending uses!\n"
+    toolchain::errs() << "Subobject projection with lifetime ending uses!\n"
                  << "Value: " << *value;
     for (const auto *use : lifetimeEndingUsers) {
-      llvm::errs() << "Lifetime Ending User: " << *use->getUser();
+      toolchain::errs() << "Lifetime Ending User: " << *use->getUser();
     }
-    llvm::errs() << '\n';
+    toolchain::errs() << '\n';
   });
 }
 
@@ -750,14 +761,14 @@ bool SILValueOwnershipChecker::
     return true;
   }
   return errorBuilder.handleMalformedSIL([&] {
-    llvm::errs() << "Malformed @guaranteed phi!\n"
+    toolchain::errs() << "Malformed @guaranteed phi!\n"
                  << "Phi: " << *phi;
-    llvm::errs() << "Guaranteed forwarding operands not found on all paths!\n";
+    toolchain::errs() << "Guaranteed forwarding operands not found on all paths!\n";
   });
 }
 
 bool SILValueOwnershipChecker::checkUses() {
-  LLVM_DEBUG(llvm::dbgs() << "    Gathering and classifying uses!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Gathering and classifying uses!\n");
 
   // First go through V and gather up its uses. While we do this we:
   //
@@ -797,7 +808,7 @@ bool SILValueOwnershipChecker::checkUses() {
     return true;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Found lifetime ending users! Performing "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found lifetime ending users! Performing "
                              "initial checks\n");
 
   // See if we have a guaranteed function address. Guaranteed function addresses
@@ -836,7 +847,7 @@ bool disableOwnershipVerification(const SILModule &mod) {
   if (DisableOwnershipVerification)
     return true;
   if (mod.getASTContext().blockListConfig.hasBlockListAction(
-          mod.getSwiftModule()->getRealName().str(),
+          mod.getCodiraModule()->getRealName().str(),
           BlockListKeyKind::ModuleName,
           BlockListAction::ShouldDisableOwnershipVerification)) {
     return true;
@@ -859,6 +870,14 @@ void SILInstruction::verifyOperandOwnership(
   if (!getModule().getOptions().VerifyAll)
     return;
 #endif
+
+  if (getModule().getOptions().VerifyNone) {
+    return;
+  }
+
+  if (getFunction()->hasSemanticsAttr(semantics::NO_SIL_VERIFICATION)) {
+    return;
+  }
 
   // If SILOwnership is not enabled, do not perform verification.
   if (!getModule().getOptions().VerifySILOwnership)
@@ -899,11 +918,11 @@ void SILInstruction::verifyOperandOwnership(
 
     if (!checkOperandOwnershipInvariants(&op, silConv)) {
       errorBuilder->handleMalformedSIL([&] {
-        llvm::errs() << "Found an operand with invalid invariants.\n";
-        llvm::errs() << "Value: " << op.get();
-        llvm::errs() << "Instruction:\n";
-        printInContext(llvm::errs());
-        llvm::errs() << "OperandOwnership: " << op.getOperandOwnership()
+        toolchain::errs() << "Found an operand with invalid invariants.\n";
+        toolchain::errs() << "Value: " << op.get();
+        toolchain::errs() << "Instruction:\n";
+        printInContext(toolchain::errs());
+        toolchain::errs() << "OperandOwnership: " << op.getOperandOwnership()
                      << "\n";
       });
     }
@@ -913,13 +932,13 @@ void SILInstruction::verifyOperandOwnership(
       SILValue opValue = op.get();
       auto valueOwnershipKind = opValue->getOwnershipKind();
       errorBuilder->handleMalformedSIL([&] {
-        llvm::errs() << "Found an operand with a value that is not compatible "
+        toolchain::errs() << "Found an operand with a value that is not compatible "
                         "with the operand's operand ownership kind map.\n";
-        llvm::errs() << "Value: " << opValue;
-        llvm::errs() << "Value Ownership Kind: " << valueOwnershipKind << "\n";
-        llvm::errs() << "Instruction:\n";
-        printInContext(llvm::errs());
-        llvm::errs() << "Constraint: " << constraint << "\n";
+        toolchain::errs() << "Value: " << opValue;
+        toolchain::errs() << "Value Ownership Kind: " << valueOwnershipKind << "\n";
+        toolchain::errs() << "Instruction:\n";
+        printInContext(toolchain::errs());
+        toolchain::errs() << "Constraint: " << constraint << "\n";
       });
     }
   }

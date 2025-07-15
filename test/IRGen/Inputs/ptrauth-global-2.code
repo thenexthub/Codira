@@ -1,0 +1,3 @@
+public fn test() {
+  immutable _ = Container.All()(V(1))
+}

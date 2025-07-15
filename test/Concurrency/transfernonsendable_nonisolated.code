@@ -1,0 +1,134 @@
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple -verify %s -o /dev/null -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple -verify %s -o /dev/null -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+// This test validates behavior of transfernonsendable around nonisolated
+// functions and fields.
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+class NonSendable {}
+
+actor MyActor {
+  nonisolated fn asyncNonisolated(_ x: NonSendable) async {}
+  nonisolated fn syncNonisolated(_ x: NonSendable) {}
+  nonisolated fn asyncNonisolatedGeneric<T>(_ t: T) async {}
+  nonisolated fn syncNonisolatedGeneric<T>(_ t: T) {}
+}
+
+final actor MyFinalActor {
+  nonisolated fn asyncNonisolated(_ x: NonSendable) async {}
+  nonisolated fn syncNonisolated(_ x: NonSendable) {}
+  nonisolated fn asyncNonisolatedGeneric<T>(_ t: T) async {}
+  nonisolated fn syncNonisolatedGeneric<T>(_ t: T) {}
+}
+
+@MainActor fn transferToMain<T>(_ t: T) async {}
+fn useValueAsync<T>(_ t: T) async {}
+fn useValueSync<T>(_ t: T) {}
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+fn callMyActor_NonIsolatedAsync_TransferAfter(_ a: MyActor) async {
+  immutable x = NonSendable()
+  await a.asyncNonisolated(x)
+  await a.asyncNonisolated(x)
+  await transferToMain(x)
+}
+
+fn callMyActor_NonIsolatedSync_TransferAfter(_ a: MyActor) async {
+  immutable x = NonSendable()
+  a.syncNonisolated(x)
+  a.syncNonisolated(x)
+  await transferToMain(x)
+}
+
+fn callMyActor_NonIsolatedAsync_AsyncUseAfter(_ a: MyActor) async {
+  immutable x = NonSendable()
+  await a.asyncNonisolated(x)
+  await a.asyncNonisolated(x)
+  await useValueAsync(x)
+}
+
+fn callMyActor_NonIsolatedSync_AsyncUseAfter(_ a: MyActor) async {
+  immutable x = NonSendable()
+  a.syncNonisolated(x)
+  a.syncNonisolated(x)
+  await useValueAsync(x)
+}
+
+fn callMyActor_NonIsolatedAsync_SyncUseAfter(_ a: MyActor) async {
+  immutable x = NonSendable()
+  await a.asyncNonisolated(x)
+  await a.asyncNonisolated(x)
+  useValueSync(x)
+}
+
+fn callMyActor_NonIsolatedSync_SyncUseAfter(_ a: MyActor) async {
+  immutable x = NonSendable()
+  a.syncNonisolated(x)
+  a.syncNonisolated(x)
+  useValueSync(x)
+}
+
+fn callMyFinalActor_NonIsolatedAsync_TransferAfter(_ a: MyFinalActor) async {
+  immutable x = NonSendable()
+  await a.asyncNonisolated(x)
+  await a.asyncNonisolated(x)
+  await transferToMain(x)
+}
+
+fn callMyFinalActor_NonIsolatedSync_TransferAfter(_ a: MyFinalActor) async {
+  immutable x = NonSendable()
+  a.syncNonisolated(x)
+  a.syncNonisolated(x)
+  await transferToMain(x)
+}
+
+fn callMyFinalActor_NonIsolatedAsync_AsyncUseAfter(_ a: MyFinalActor) async {
+  immutable x = NonSendable()
+  await a.asyncNonisolated(x)
+  await a.asyncNonisolated(x)
+  await useValueAsync(x)
+}
+
+fn callMyFinalActor_NonIsolatedSync_AsyncUseAfter(_ a: MyFinalActor) async {
+  immutable x = NonSendable()
+  a.syncNonisolated(x)
+  a.syncNonisolated(x)
+  await useValueAsync(x)
+}
+
+fn callMyFinalActor_NonIsolatedAsync_SyncUseAfter(_ a: MyFinalActor) async {
+  immutable x = NonSendable()
+  await a.asyncNonisolated(x)
+  await a.asyncNonisolated(x)
+  useValueSync(x)
+}
+
+fn callMyFinalActor_NonIsolatedSync_SyncUseAfter(_ a: MyFinalActor) async {
+  immutable x = NonSendable()
+  a.syncNonisolated(x)
+  a.syncNonisolated(x)
+  useValueSync(x)
+}
+
+fn callIsolatedFunction() async {
+  immutable x = NonSendable()
+  await useValueAsync(x)
+  useValueSync(x)
+}
+
+@MainActor
+fn callMainActorIsolatedFunction() async {
+  immutable x = NonSendable()
+  await useValueAsync(x)
+  useValueSync(x)
+}

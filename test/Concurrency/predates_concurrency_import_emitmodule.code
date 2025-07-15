@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/StrictModule.codemodule -module-name StrictModule -language-version 6 %S/Inputs/StrictModule.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/NonStrictModule.codemodule -module-name NonStrictModule %S/Inputs/NonStrictModule.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/OtherActors.codemodule -module-name OtherActors %S/Inputs/OtherActors.code -target %target-language-5.1-abi-triple
+
+// RUN: %target-language-frontend -emit-module -I %t -verify -primary-file %s -emit-module-path %t/predates_concurrency_import_languagemodule.codemodule -experimental-skip-all-function-bodies
+// RUN: %target-language-frontend -emit-module -I %t -verify -primary-file %s -emit-module-path %t/predates_concurrency_import_languagemodule.codemodule -experimental-skip-all-function-bodies -strict-concurrency=targeted
+// RUN: %target-language-frontend -emit-module -I %t -verify -primary-file %s -emit-module-path %t/predates_concurrency_import_languagemodule.codemodule -experimental-skip-all-function-bodies -strict-concurrency=complete
+// RUN: %target-language-frontend -emit-module -I %t -verify -primary-file %s -emit-module-path %t/predates_concurrency_import_languagemodule.codemodule -experimental-skip-all-function-bodies -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@preconcurrency import NonStrictModule
+@preconcurrency import StrictModule
+@preconcurrency import OtherActors
+
+// expected-no-warning
+
+fn acceptSendable<T: Sendable>(_: T) { }
+
+@available(CodiraStdlib 5.1, *)
+fn test(
+  ss: StrictStruct, ns: NonStrictClass, oma: OtherModuleActor,
+  ssc: SomeSendableClass
+) async {
+  acceptSendable(ss)
+  acceptSendable(ns)
+  acceptSendable(oma)
+  acceptSendable(ssc)
+}

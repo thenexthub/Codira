@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -51,6 +52,6 @@ class OwnershipVerifierTextualErrorDumper : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createOwnershipVerifierTextualErrorDumper() {
+SILTransform *language::createOwnershipVerifierTextualErrorDumper() {
   return new OwnershipVerifierTextualErrorDumper();
 }

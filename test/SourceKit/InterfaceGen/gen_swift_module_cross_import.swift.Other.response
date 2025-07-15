@@ -1,0 +1,145 @@
+public fn fromOther()
+
+
+// MARK: - C Additions
+
+import B
+import C
+
+// Available when C is imported with Other
+/// This has some interesting documentation that shouldn't be separated from
+/// the decl when we print the comment detailing its required bystanders in the
+/// generated interface of 'Other'.
+public fn from_OtherCAdditions()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 12,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 26,
+    key.length: 23
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 29,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 50,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 57,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 59,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 66,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 69,
+    key.length: 43
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 112,
+    key.length: 77
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 189,
+    key.length: 80
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 269,
+    key.length: 36
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 305,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 312,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 317,
+    key.length: 20
+  }
+]
+[
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 57,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 66,
+    key.length: 1
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromOther()",
+    key.offset: 7,
+    key.length: 16,
+    key.nameoffset: 12,
+    key.namelength: 11,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "from_OtherCAdditions()",
+    key.offset: 312,
+    key.length: 27,
+    key.nameoffset: 317,
+    key.namelength: 22,
+    key.docoffset: 112,
+    key.doclength: 193,
+    key.attributes: [
+      {
+        key.offset: 305,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  }
+]

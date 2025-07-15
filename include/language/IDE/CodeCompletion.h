@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODECOMPLETION_H
-#define SWIFT_IDE_CODECOMPLETION_H
+#ifndef LANGUAGE_IDE_CODECOMPLETION_H
+#define LANGUAGE_IDE_CODECOMPLETION_H
 
 #include "language/IDE/CodeCompletionConsumer.h"
 #include "language/IDE/CodeCompletionContext.h"
@@ -55,11 +56,11 @@ std::string removeCodeCompletionTokens(StringRef Input,
                                        unsigned *CompletionOffset);
 
 template <typename T>
-ArrayRef<T> copyArray(llvm::BumpPtrAllocator &Allocator,
+ArrayRef<T> copyArray(toolchain::BumpPtrAllocator &Allocator,
                             ArrayRef<T> Arr) {
   T *Buffer = Allocator.Allocate<T>(Arr.size());
   std::copy(Arr.begin(), Arr.end(), Buffer);
-  return llvm::ArrayRef(Buffer, Arr.size());
+  return toolchain::ArrayRef(Buffer, Arr.size());
 }
 
 bool isDynamicLookup(Type T);
@@ -95,4 +96,4 @@ void addSuperKeyword(CodeCompletionResultSink &Sink, DeclContext *DC);
 } // end namespace ide
 } // end namespace language
 
-#endif // SWIFT_IDE_CODECOMPLETION_H
+#endif // LANGUAGE_IDE_CODECOMPLETION_H

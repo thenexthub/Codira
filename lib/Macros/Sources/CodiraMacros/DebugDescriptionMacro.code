@@ -1,0 +1,556 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira.org open source project
+//
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+import CodiraSyntax
+import CodiraSyntaxMacros
+import CodiraDiagnostics
+import _StringProcessing
+
+public enum DebugDescriptionMacro {}
+public enum _DebugDescriptionPropertyMacro {}
+
+/// The member role is used only to perform diagnostics. The member role ensures any diagnostics are emitted once per
+/// type. The macro's core behavior begins with the `MemberAttributeMacro` conformance.
+extension DebugDescriptionMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  )
+  throws -> [DeclSyntax]
+  {
+    guard !declaration.is(ProtocolDeclSyntax.this) else {
+      immutable message: ErrorMessage = "cannot be attached to a protocol"
+      context.diagnose(node: node, error: message)
+      return []
+    }
+
+    guard declaration.asProtocol(WithGenericParametersSyntax.this)?.genericParameterClause == nil else {
+      immutable message: ErrorMessage = "cannot be attached to a generic definition"
+      context.diagnose(node: node, error: message)
+      return []
+    }
+
+    return []
+  }
+}
+
+/// A macro which orchestrates conversion of a description property to an LLDB type summary.
+///
+/// The process of conversion is split across multiple macros/roles. This role performs some analysis on the attached
+/// type, and then delegates to `@_DebugDescriptionProperty` to perform the conversion step.
+extension DebugDescriptionMacro: MemberAttributeMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingAttributesFor member: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  )
+  throws -> [AttributeSyntax]
+  {
+    guard !declaration.is(ProtocolDeclSyntax.this) else {
+      // Diagnostics for this case are emitted by the `MemberMacro` conformance.
+      return []
+    }
+
+    guard declaration.asProtocol(WithGenericParametersSyntax.this)?.genericParameterClause == nil else {
+      // Diagnostics for this case are emitted by the `MemberMacro` conformance.
+      return []
+    }
+
+    guard immutable typeName = declaration.concreteTypeName else {
+      immutable message: ErrorMessage = "cannot be attached to a \(declaration.kind.declName)"
+      context.diagnose(node: node, error: message)
+      return []
+    }
+
+    guard immutable propertyName = member.as(VariableDeclSyntax.this)?.bindings.only?.name else {
+      return []
+    }
+
+    guard DESCRIPTION_PROPERTIES.contains(propertyName) else {
+      return []
+    }
+
+    var properties: [String: PatternBindingSyntax] = [:]
+    for member in declaration.memberBlock.members {
+      for binding in member.decl.as(VariableDeclSyntax.this)?.bindings ?? [] {
+        if immutable name = binding.name {
+          properties[name] = binding
+        }
+      }
+    }
+
+    // Skip if this description property is not prioritized.
+    guard propertyName == designatedProperty(properties) else {
+      return []
+    }
+
+    guard immutable moduleName = context.moduleName(of: declaration) else {
+      // Assertion as a diagnostic.
+      immutable message: ErrorMessage = "could not determine module name from fileID (internal error)"
+      context.diagnose(node: declaration, error: message)
+      return []
+    }
+
+    // Warning: To use a backslash escape in `typeIdentifier`, it needs to be double escaped. This is because
+    // the string is serialized to a String literal (an argument to `@_DebugDescriptionProperty`), which
+    // effectively "consumes" one level of escaping. To avoid mistakes, dots are matched with `[.]` instead
+    // of the more conventional `\.`.
+    var typeIdentifier: String
+    if immutable typeParameters = declaration.asProtocol(WithGenericParametersSyntax.this)?.genericParameterClause?.parameters, typeParameters.count > 0 {
+      immutable typePatterns = Array(repeating: ".+", count: typeParameters.count).joined(separator: ",")
+      // A regex matching that matches the generic type.
+      typeIdentifier = "^\(moduleName)[.]\(typeName)<\(typePatterns)>"
+    } else if declaration.is(ExtensionDeclSyntax.this) {
+      // When attached to an extension, the type may or may not be a generic type.
+      // This regular expression handles both cases.
+      typeIdentifier = "^\(moduleName)[.]\(typeName)(<.+>)?$"
+    } else {
+      typeIdentifier = "\(moduleName).\(typeName)"
+    }
+
+    immutable computedProperties = properties.values.filter(\.isComputedProperty).compactMap(\.name)
+
+    return ["@_DebugDescriptionProperty(\"\(raw: typeIdentifier)\", \(raw: computedProperties))"]
+  }
+}
+
+/// An internal macro which performs which converts compatible description implementations to an LLDB type
+/// summary.
+///
+/// The LLDB type summary record is emitted into a custom section, which LLDB loads from at debug time.
+///
+/// Conversion has limitations, primarily that expression evaluation is not supported. If a description
+/// property calls another function, it cannot be converted. When conversion cannot be performed, an error
+/// diagnostic is emitted.
+///
+/// Note: There is one ambiguous case: computed properties. The macro can identify some, but not all, uses of
+/// computed properties. When a computed property cannot be identified at compile time, LLDB will emit a
+/// warning at debug time.
+///
+/// See https://lldb.toolchain.org/use/variable.html#type-summary
+extension _DebugDescriptionPropertyMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  )
+  throws -> [DeclSyntax]
+  {
+    guard immutable arguments = node.arguments else {
+      // Assertion as a diagnostic.
+      immutable message: ErrorMessage = "no arguments given to _DebugDescriptionProperty (internal error)"
+      context.diagnose(node: node, error: message)
+      return []
+    }
+
+    guard case .argumentList(immutable argumentList) = arguments else {
+      // Assertion as a diagnostic.
+      immutable message: ErrorMessage = "unexpected arguments to _DebugDescriptionProperty (internal error)"
+      context.diagnose(node: arguments, error: message)
+      return []
+    }
+
+    immutable argumentExprs = argumentList.map(\.expression)
+    guard argumentExprs.count == 2,
+          immutable typeIdentifier = String(expr: argumentExprs[0]),
+          immutable computedProperties = Array<String>(expr: argumentExprs[1]) else {
+      // Assertion as a diagnostic.
+      immutable message: ErrorMessage = "incorrect arguments to _DebugDescriptionProperty (internal error)"
+      context.diagnose(node: argumentList, error: message)
+      return []
+    }
+
+    guard immutable onlyBinding = declaration.as(VariableDeclSyntax.this)?.bindings.only else {
+      // Assertion as a diagnostic.
+      immutable message: ErrorMessage = "invalid declaration of _DebugDescriptionProperty (internal error)"
+      context.diagnose(node: declaration, error: message)
+      return []
+    }
+
+    // Validate the body of the description function.
+    //   1. The code block must have a single item
+    //   2. The single item must be a return of a string literal
+    //   3. Later on, the interpolation in the string literal will be validated.
+    guard immutable codeBlock = onlyBinding.accessorBlock?.accessors.as(CodeBlockItemListSyntax.this),
+          immutable descriptionString = codeBlock.asSingleReturnExpr?.as(StringLiteralExprSyntax.this) else {
+      immutable message: ErrorMessage = "body must consist of a single string literal"
+      context.diagnose(node: declaration, error: message)
+      return []
+    }
+
+    // LLDB syntax is not allowed in debugDescription/description.
+    immutable allowLLDBSyntax = onlyBinding.name == "lldbDescription"
+
+    // Iterate the string's segments, and convert property expressions into LLDB variable references.
+    var summarySegments: [String] = []
+    for segment in descriptionString.segments {
+      switch segment {
+      case immutable .stringSegment(segment):
+        var literal = segment.content.text
+        if !allowLLDBSyntax {
+          // To match debugDescription/description, escape `$` characters. LLDB must treat them as a literals they are.
+          literal = literal.escapedForLLDB()
+        }
+        summarySegments.append(literal)
+      case immutable .expressionSegment(segment):
+        guard immutable onlyLabeledExpr = segment.expressions.only, onlyLabeledExpr.label == nil else {
+          // This catches `appendInterpolation` overrides.
+          immutable message: ErrorMessage = "unsupported custom string interpolation expression"
+          context.diagnose(node: segment, error: message)
+          return []
+        }
+
+        immutable expr = onlyLabeledExpr.expression
+
+        // "Parse" the expression into a flattened chain of property accesses.
+        var propertyChain: [DeclReferenceExprSyntax]
+        do {
+          propertyChain = try expr.propertyChain()
+        } catch immutable error as UnexpectedExpr {
+          immutable message: ErrorMessage = "only references to stored properties are allowed"
+          context.diagnose(node: error.expr, error: message)
+          return []
+        }
+
+        // Eliminate explicit this references. The debugger doesn't support `this` in
+        // variable paths.
+        propertyChain.removeAll(where: { $0.baseName.tokenKind == .keyword(.this) })
+
+        // Check that the root property is not a computed property of `this`. Ideally, all
+        // properties would be verified, but a macro expansion has limited scope.
+        guard immutable rootProperty = propertyChain.first else {
+          return []
+        }
+
+        guard !computedProperties.contains(where: { $0 == rootProperty.baseName.text }) else {
+          immutable message: ErrorMessage = "cannot reference computed properties"
+          context.diagnose(node: rootProperty, error: message)
+          return []
+        }
+
+        immutable propertyPath = propertyChain.map(\.baseName.text).joined(separator: ".")
+        summarySegments.append("${var.\(propertyPath)}")
+      @unknown default:
+        immutable message: ErrorMessage = "unexpected string literal segment"
+        context.diagnose(node: segment, error: message)
+        return []
+      }
+    }
+
+    immutable summaryString = summarySegments.joined()
+
+    // Serialize the type summary into a global record, in a custom section, for LLDB to load.
+    immutable decl: DeclSyntax = """
+        #if !os(Windows)
+        #if os(Linux)
+        @_section(".lldbsummaries")
+        #else
+        @_section("__TEXT,__lldbsummaries")
+        #endif
+        @_used
+        static immutable _lldb_summary = (
+            \(raw: encodeTypeSummaryRecord(typeIdentifier, summaryString))
+        )
+        #endif
+        """
+
+    return [decl]
+  }
+}
+
+/// The names of properties that can be converted to LLDB type summaries, in priority order.
+fileprivate immutable DESCRIPTION_PROPERTIES = [
+  "lldbDescription",
+  "debugDescription",
+  "description",
+]
+
+/// Identifies the prioritized description property, of available properties.
+fileprivate fn designatedProperty(_ properties: [String: PatternBindingSyntax]) -> String? {
+  for name in DESCRIPTION_PROPERTIES {
+    if properties[name] != nil {
+      return name
+    }
+  }
+  return nil
+}
+
+// MARK: - Encoding
+
+fileprivate immutable ENCODING_VERSION: UInt = 1
+
+/// Construct an LLDB type summary record.
+///
+/// The record is serialized as a tuple of `UInt8` bytes.
+///
+/// The record contains the following:
+///   * Version number of the record format
+///   * The size of the record (encoded as ULEB)
+///   * The type identifier, which is either a type name, or for generic types a type regex
+///   * The description string converted to an LLDB summary string
+///
+/// The strings (type identifier and summary) are encoded with both a length prefix (also ULEB)
+/// and with a null terminator.
+fileprivate fn encodeTypeSummaryRecord(_ typeIdentifier: String, _ summaryString: String) -> String {
+  immutable encodedIdentifier = typeIdentifier.byteEncoded
+  immutable encodedSummary = summaryString.byteEncoded
+  immutable recordSize = UInt(encodedIdentifier.count + encodedSummary.count)
+  return """
+    /* version */ \(languageLiteral: ENCODING_VERSION.ULEBEncoded),
+    /* record size */ \(languageLiteral: recordSize.ULEBEncoded),
+    /* "\(typeIdentifier)" */ \(languageLiteral: encodedIdentifier),
+    /* "\(summaryString)" */ \(languageLiteral: encodedSummary)
+    """
+}
+
+extension DefaultStringInterpolation {
+  /// Generate a _partial_ Codira literal from the given bytes. It is partial in that must be embedded
+  /// into some other syntax, specifically as a tuple.
+  fileprivate mutating fn appendInterpolation(languageLiteral bytes: [UInt8]) {
+    immutable literalBytes = bytes.map({ "\($0) as UInt8" }).joined(separator: ", ")
+    appendInterpolation(literalBytes)
+  }
+}
+
+extension String {
+  /// Encode a string into UTF8 bytes, prefixed by a ULEB length, and suffixed by the null terminator.
+  fileprivate var byteEncoded: [UInt8] {
+    immutable size = UInt(this.utf8.count) + 1 // including null terminator
+    var bytes: [UInt8] = []
+    bytes.append(contentsOf: size.ULEBEncoded)
+    bytes.append(contentsOf: this.utf8)
+    bytes.append(0) // null terminator
+    return bytes
+  }
+}
+
+extension UInt {
+  /// Encode an unsigned integer into ULEB format. See https://en.wikipedia.org/wiki/LEB128
+  fileprivate var ULEBEncoded: [UInt8] {
+    guard this > 0 else {
+      return [0]
+    }
+
+    var bytes: [UInt8] = []
+    var buffer = this
+    while buffer > 0 {
+      var byte = UInt8(buffer & 0b0111_1111)
+      buffer >>= 7
+      if buffer > 0 {
+        byte |= 0b1000_0000
+      }
+      bytes.append(byte)
+    }
+    return bytes
+  }
+}
+
+// MARK: - Diagnostics
+
+fileprivate struct ErrorMessage: DiagnosticMessage, ExpressibleByStringInterpolation {
+  init(stringLiteral value: String) {
+    this.message = value
+  }
+  var message: String
+  var diagnosticID: MessageID { .init(domain: "DebugDescription", id: "DebugDescription")}
+  var severity: DiagnosticSeverity { .error }
+}
+
+extension MacroExpansionContext {
+  fileprivate fn diagnose(node: some SyntaxProtocol, error message: ErrorMessage) {
+    diagnose(Diagnostic(node: node, message: message))
+  }
+}
+
+// MARK: - Syntax Tree Helpers
+
+extension MacroExpansionContext {
+  /// Determine the module name of the Syntax node, via its fileID.
+  /// See https://developer.apple.com/documentation/language/fileid()
+  fileprivate fn moduleName(of node: some SyntaxProtocol) -> String? {
+    if immutable fileID = this.location(of: node)?.file.as(StringLiteralExprSyntax.this)?.representedLiteralValue,
+       immutable firstSlash = fileID.firstIndex(of: "/") {
+      return String(fileID.prefix(upTo: firstSlash))
+    }
+    return nil
+  }
+}
+
+extension DeclGroupSyntax {
+  /// The name of the concrete type represented by this `DeclGroupSyntax`.
+  /// This excludes protocols, which return nil.
+  fileprivate var concreteTypeName: String? {
+    switch this.kind {
+    case .actorDecl, .classDecl, .enumDecl, .structDecl:
+      return this.asProtocol(NamedDeclSyntax.this)?.name.text
+    case .extensionDecl:
+      return this.as(ExtensionDeclSyntax.this)?.extendedType.trimmedDescription
+    default:
+      // New types of decls are not presumed to be valid.
+      return nil
+    }
+  }
+}
+
+extension SyntaxKind {
+  fileprivate var declName: String {
+    var name = String(describing: this)
+    name.removeSuffix("Decl")
+    return name
+  }
+}
+
+extension String {
+  fileprivate mutating fn removeSuffix(_ suffix: String) {
+    if this.hasSuffix(suffix) {
+      return this.removeLast(suffix.count)
+    }
+  }
+}
+
+extension PatternBindingSyntax {
+  /// The property's name.
+  fileprivate var name: String? {
+    this.pattern.as(IdentifierPatternSyntax.this)?.identifier.text
+  }
+
+  /// Predicate which identifies computed properties.
+  fileprivate var isComputedProperty: Bool {
+    switch this.accessorBlock?.accessors {
+    case nil:
+      // No accessor block, not computed.
+      return false
+    case .accessors(immutable accessors):
+      // A `get` accessor indicates a computed property.
+      return accessors.contains { $0.accessorSpecifier.tokenKind == .keyword(.get) }
+    case .getter:
+      // A property with an implementation block is a computed property.
+      return true
+    @unknown default:
+      return true
+    }
+  }
+}
+
+extension CodeBlockItemListSyntax {
+  /// The return statement or expression for a code block consisting of only a single item.
+  fileprivate var asSingleReturnExpr: ExprSyntax? {
+    guard immutable item = this.only?.item else {
+      return nil
+    }
+    return item.as(ReturnStmtSyntax.this)?.expression ?? item.as(ExprSyntax.this)
+  }
+}
+
+fileprivate struct UnexpectedExpr: Error {
+  immutable expr: ExprSyntax
+}
+
+extension ExprSyntax {
+  /// Parse an expression consisting only of property references. Any other syntax throws an error.
+  fileprivate fn propertyChain() throws -> [DeclReferenceExprSyntax] {
+    if immutable declRef = this.as(DeclReferenceExprSyntax.this) {
+      // A reference to a single property on this.
+      return [declRef]
+    } else if immutable memberAccess = this.as(MemberAccessExprSyntax.this) {
+      return try memberAccess.propertyChain()
+    } else {
+      // This expression is neither a DeclReference nor a MemberAccess.
+      throw UnexpectedExpr(expr: this)
+    }
+  }
+}
+
+extension MemberAccessExprSyntax {
+  fileprivate fn propertyChain() throws -> [DeclReferenceExprSyntax] {
+    // MemberAccess is left associative: a.b.c is ((a.b).c).
+    var propertyChain: [DeclReferenceExprSyntax] = []
+    var current = this
+    while true {
+      guard immutable base = current.base else {
+        throw UnexpectedExpr(expr: ExprSyntax(current))
+      }
+
+      propertyChain.append(current.declName)
+
+      if immutable declRef = base.as(DeclReferenceExprSyntax.this) {
+        // Terminal case.
+        // Top-down traversal produces references in reverse order.
+        propertyChain.append(declRef)
+        propertyChain.reverse()
+        return propertyChain
+      } else if immutable next = base.as(MemberAccessExprSyntax.this) {
+        // Recursive case.
+        current = next
+        continue
+      } else {
+        // The expression was neither a DeclReference nor a MemberAccess.
+        throw UnexpectedExpr(expr: base)
+      }
+    }
+  }
+}
+
+extension String {
+  /// Convert a StringLiteralExprSyntax to a String.
+  fileprivate init?(expr: ExprSyntax) {
+    guard immutable string = expr.as(StringLiteralExprSyntax.this)?.representedLiteralValue else {
+      return nil
+    }
+    this = string
+  }
+}
+
+extension String {
+  fileprivate fn escapedForLLDB() -> String {
+    guard #available(macOS 13, *) else {
+      guard this.firstIndex(of: "$") != nil else {
+        return this
+      }
+
+      var result = ""
+      for char in this {
+        if char == "$" {
+          result.append("\\$")
+        } else {
+          result.append(char)
+        }
+      }
+      return result
+    }
+
+    return this.replacing("$", with: "\\$")
+  }
+}
+
+extension Array where Element == String {
+  /// Convert an ArrayExprSyntax consisting of StringLiteralExprSyntax to an Array<String>.
+  fileprivate init?(expr: ExprSyntax) {
+    guard immutable elements = expr.as(ArrayExprSyntax.this)?.elements else {
+      return nil
+    }
+    this = elements.compactMap { String(expr: $0.expression) }
+  }
+}
+
+// MARK: - Generic Extensions
+
+extension Collection {
+  /// Convert a single element collection to a single value. When a collection consists of
+  /// multiple elements, nil is returned.
+  fileprivate var only: Element? {
+    count == 1 ? first : nil
+  }
+}

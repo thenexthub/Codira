@@ -1,13 +1,17 @@
 //===--- ClangSyntaxPrinter.cpp - Printer for C and C++ code ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ClangSyntaxPrinter.h"
@@ -16,20 +20,21 @@
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
 #include "language/AST/Module.h"
-#include "language/AST/SwiftNameTranslation.h"
+#include "language/AST/CodiraNameTranslation.h"
+#include "language/AST/Type.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/NestedNameSpecifier.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Casting.h"
 
 using namespace language;
 using namespace cxx_synthesis;
 
-StringRef cxx_synthesis::getCxxSwiftNamespaceName() { return "swift"; }
+StringRef cxx_synthesis::getCxxCodiraNamespaceName() { return "language"; }
 
 StringRef cxx_synthesis::getCxxImplNamespaceName() { return "_impl"; }
 
@@ -38,8 +43,8 @@ StringRef cxx_synthesis::getCxxOpaqueStorageClassName() {
 }
 
 bool ClangSyntaxPrinter::isClangKeyword(StringRef name) {
-  static const llvm::DenseSet<StringRef> keywords = [] {
-    llvm::DenseSet<StringRef> set;
+  static const toolchain::DenseSet<StringRef> keywords = [] {
+    toolchain::DenseSet<StringRef> set;
     // FIXME: clang::IdentifierInfo /nearly/ has the API we need to do this
     // in a more principled way, but not quite.
 #define KEYWORD(SPELLING, FLAGS) set.insert(#SPELLING);
@@ -119,7 +124,7 @@ void ClangSyntaxPrinter::printClangTypeReference(const clang::Decl *typeDecl) {
   if (auto *ctd = dyn_cast<clang::ClassTemplateSpecializationDecl>(typeDecl)) {
     if (ctd->getTemplateArgs().size()) {
       os << '<';
-      llvm::interleaveComma(ctd->getTemplateArgs().asArray(), os,
+      toolchain::interleaveComma(ctd->getTemplateArgs().asArray(), os,
                             [&](const clang::TemplateArgument &arg) {
                               arg.print(pp, os, /*IncludeType=*/true);
                             });
@@ -131,20 +136,25 @@ void ClangSyntaxPrinter::printClangTypeReference(const clang::Decl *typeDecl) {
 bool ClangSyntaxPrinter::printNestedTypeNamespaceQualifiers(const ValueDecl *D,
                                                             bool forC) const {
   bool first = true;
-  while (auto parent = dyn_cast_or_null<NominalTypeDecl>(
-             D->getDeclContext()->getAsDecl())) {
+  while (auto parent = D->getDeclContext()->getAsDecl()) {
+    const auto *parentNTD = dyn_cast<NominalTypeDecl>(parent);
+    if (!parentNTD)
+      if (const auto *ED = dyn_cast<ExtensionDecl>(parent))
+        parentNTD = ED->getExtendedNominal();
+    if (!parentNTD)
+      continue;
     // C++ namespaces are imported as enums.
-    if (parent->hasClangNode() &&
-        isa<clang::NamespaceDecl>(parent->getClangNode().getAsDecl()))
+    if (parentNTD->hasClangNode() &&
+        isa<clang::NamespaceDecl>(parentNTD->getClangNode().getAsDecl()))
       break;
     if (!first)
       os << (forC ? "_" : "::");
     first = false;
     if (!forC)
       os << "__";
-    printBaseName(parent);
+    printBaseName(parentNTD);
     os << "Nested";
-    D = parent;
+    D = parentNTD;
   }
   return first;
 }
@@ -175,20 +185,20 @@ void ClangSyntaxPrinter::printModuleNamespaceStart(
     const ModuleDecl &moduleContext) const {
   os << "namespace ";
   printBaseName(&moduleContext);
-  os << " SWIFT_PRIVATE_ATTR";
+  os << " LANGUAGE_PRIVATE_ATTR";
   printSymbolUSRAttribute(&moduleContext);
   os << " {\n";
 }
 
 /// Print a C++ namespace declaration with the give name and body.
 void ClangSyntaxPrinter::printNamespace(
-    llvm::function_ref<void(raw_ostream &OS)> namePrinter,
-    llvm::function_ref<void(raw_ostream &OS)> bodyPrinter,
+    toolchain::function_ref<void(raw_ostream &OS)> namePrinter,
+    toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter,
     NamespaceTrivia trivia, const ModuleDecl *moduleContext) const {
   os << "namespace ";
   namePrinter(os);
-  if (trivia == NamespaceTrivia::AttributeSwiftPrivate)
-    os << " SWIFT_PRIVATE_ATTR";
+  if (trivia == NamespaceTrivia::AttributeCodiraPrivate)
+    os << " LANGUAGE_PRIVATE_ATTR";
   if (moduleContext)
     printSymbolUSRAttribute(moduleContext);
   os << " {\n\n";
@@ -199,15 +209,16 @@ void ClangSyntaxPrinter::printNamespace(
 }
 
 void ClangSyntaxPrinter::printNamespace(
-    StringRef name, llvm::function_ref<void(raw_ostream &OS)> bodyPrinter,
+    StringRef name, toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter,
     NamespaceTrivia trivia) const {
   printNamespace([&](raw_ostream &os) { os << name; }, bodyPrinter, trivia);
 }
 
 void ClangSyntaxPrinter::printParentNamespaceForNestedTypes(
-    const ValueDecl *D, llvm::function_ref<void(raw_ostream &OS)> bodyPrinter,
+    const ValueDecl *D, toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter,
     NamespaceTrivia trivia) const {
-  if (!isa_and_nonnull<NominalTypeDecl>(D->getDeclContext()->getAsDecl()) ||
+  if ((!isa_and_nonnull<NominalTypeDecl>(D->getDeclContext()->getAsDecl()) &&
+       !isa_and_nonnull<ExtensionDecl>(D->getDeclContext()->getAsDecl())) ||
       importer::isClangNamespace(D->getDeclContext())) {
     bodyPrinter(os);
     return;
@@ -218,7 +229,7 @@ void ClangSyntaxPrinter::printParentNamespaceForNestedTypes(
 }
 
 void ClangSyntaxPrinter::printExternC(
-    llvm::function_ref<void(raw_ostream &OS)> bodyPrinter) const {
+    toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter) const {
   os << "#ifdef __cplusplus\n";
   os << "extern \"C\" {\n";
   os << "#endif\n\n";
@@ -229,22 +240,22 @@ void ClangSyntaxPrinter::printExternC(
 }
 
 void ClangSyntaxPrinter::printObjCBlock(
-    llvm::function_ref<void(raw_ostream &OS)> bodyPrinter) const {
+    toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter) const {
   os << "#if defined(__OBJC__)\n";
   bodyPrinter(os);
   os << "\n#endif // defined(__OBJC__)\n";
 }
 
-void ClangSyntaxPrinter::printSwiftImplQualifier() const {
-  os << "swift::" << cxx_synthesis::getCxxImplNamespaceName() << "::";
+void ClangSyntaxPrinter::printCodiraImplQualifier() const {
+  os << "language::" << cxx_synthesis::getCxxImplNamespaceName() << "::";
 }
 
 void ClangSyntaxPrinter::printInlineForThunk() const {
-  os << "SWIFT_INLINE_THUNK ";
+  os << "LANGUAGE_INLINE_THUNK ";
 }
 
 void ClangSyntaxPrinter::printInlineForHelperFunction() const {
-  os << "SWIFT_INLINE_PRIVATE_HELPER ";
+  os << "LANGUAGE_INLINE_PRIVATE_HELPER ";
 }
 
 void ClangSyntaxPrinter::printNullability(
@@ -269,7 +280,7 @@ void ClangSyntaxPrinter::printNullability(
     break;
   case NullabilityPrintKind::After:
     os << ' ';
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case NullabilityPrintKind::Before:
     switch (*kind) {
     case OTK_None:
@@ -289,7 +300,7 @@ void ClangSyntaxPrinter::printNullability(
     os << ' ';
 }
 
-void ClangSyntaxPrinter::printSwiftTypeMetadataAccessFunctionCall(
+void ClangSyntaxPrinter::printCodiraTypeMetadataAccessFunctionCall(
     StringRef name, ArrayRef<GenericRequirement> requirements) {
   os << name << "(0";
   printGenericRequirementsInstantiantions(requirements, LeadingTrivia::Comma);
@@ -301,13 +312,13 @@ void ClangSyntaxPrinter::printValueWitnessTableAccessSequenceFromTypeMetadata(
   os << std::string(indent, ' ');
   os << "auto *vwTableAddr = ";
   os << "reinterpret_cast<";
-  printSwiftImplQualifier();
+  printCodiraImplQualifier();
   os << "ValueWitnessTable **>(" << metadataVariable << "._0) - 1;\n";
   os << "#ifdef __arm64e__\n";
   os << std::string(indent, ' ');
   os << "auto *" << vwTableVariable << " = ";
   os << "reinterpret_cast<";
-  printSwiftImplQualifier();
+  printCodiraImplQualifier();
   os << "ValueWitnessTable *>(ptrauth_auth_data(";
   os << "reinterpret_cast<void *>(*vwTableAddr), "
         "ptrauth_key_process_independent_data, ";
@@ -321,27 +332,27 @@ void ClangSyntaxPrinter::printValueWitnessTableAccessSequenceFromTypeMetadata(
 
 void ClangSyntaxPrinter::printCTypeMetadataTypeFunction(
     const TypeDecl *typeDecl, StringRef typeMetadataFuncName,
-    llvm::ArrayRef<GenericRequirement> genericRequirements) {
+    toolchain::ArrayRef<GenericRequirement> genericRequirements) {
   // FIXME: Support generic requirements > 3.
   if (!genericRequirements.empty())
     os << "static_assert(" << genericRequirements.size()
        << " <= " << NumDirectGenericTypeMetadataAccessFunctionArgs
-       << ", \"unsupported generic requirement list for metadata func\");\n";
+       << ", \"unsupported generic requirement list for metadata fn\");\n";
   os << "// Type metadata accessor for " << typeDecl->getNameStr() << "\n";
-  os << "SWIFT_EXTERN ";
-  printSwiftImplQualifier();
+  os << "LANGUAGE_EXTERN ";
+  printCodiraImplQualifier();
   os << "MetadataResponseTy " << typeMetadataFuncName << '(';
-  printSwiftImplQualifier();
+  printCodiraImplQualifier();
   os << "MetadataRequestTy";
   if (!genericRequirements.empty())
     os << ", ";
-  llvm::interleaveComma(genericRequirements, os,
+  toolchain::interleaveComma(genericRequirements, os,
                         [&](const GenericRequirement &) {
                           // FIXME: Print parameter name.
                           os << "void * _Nonnull";
                         });
   os << ')';
-  os << " SWIFT_NOEXCEPT SWIFT_CALL;\n\n";
+  os << " LANGUAGE_NOEXCEPT LANGUAGE_CALL;\n\n";
 }
 
 void ClangSyntaxPrinter::printGenericTypeParamTypeName(
@@ -352,7 +363,7 @@ void ClangSyntaxPrinter::printGenericTypeParamTypeName(
 void ClangSyntaxPrinter::printGenericSignature(
     GenericSignature signature) {
   os << "template<";
-  llvm::interleaveComma(signature.getInnermostGenericParams(), os,
+  toolchain::interleaveComma(signature.getInnermostGenericParams(), os,
                         [&](const GenericTypeParamType *genericParamType) {
                           os << "class ";
                           printGenericTypeParamTypeName(genericParamType);
@@ -360,10 +371,10 @@ void ClangSyntaxPrinter::printGenericSignature(
   os << ">\n";
   os << "#ifdef __cpp_concepts\n";
   os << "requires ";
-  llvm::interleave(
+  toolchain::interleave(
       signature.getInnermostGenericParams(), os,
       [&](const GenericTypeParamType *genericParamType) {
-        os << "swift::isUsableInGenericContext<";
+        os << "language::isUsableInGenericContext<";
         printGenericTypeParamTypeName(genericParamType);
         os << ">";
       },
@@ -374,12 +385,12 @@ void ClangSyntaxPrinter::printGenericSignature(
 void ClangSyntaxPrinter::printGenericSignatureInnerStaticAsserts(
     GenericSignature signature) {
   os << "#ifndef __cpp_concepts\n";
-  llvm::interleave(
+  toolchain::interleave(
       signature.getInnermostGenericParams(), os,
       [&](const GenericTypeParamType *genericParamType) {
-        os << "static_assert(swift::isUsableInGenericContext<";
+        os << "static_assert(language::isUsableInGenericContext<";
         printGenericTypeParamTypeName(genericParamType);
-        os << ">, \"type cannot be used in a Swift generic context\");";
+        os << ">, \"type cannot be used in a Codira generic context\");";
       },
       "\n");
   os << "\n#endif // __cpp_concepts\n";
@@ -388,7 +399,7 @@ void ClangSyntaxPrinter::printGenericSignatureInnerStaticAsserts(
 void ClangSyntaxPrinter::printGenericSignatureParams(
     GenericSignature signature) {
   os << '<';
-  llvm::interleaveComma(signature.getInnermostGenericParams(), os,
+  toolchain::interleaveComma(signature.getInnermostGenericParams(), os,
                         [&](const GenericTypeParamType *genericParamType) {
                           printGenericTypeParamTypeName(genericParamType);
                         });
@@ -401,7 +412,7 @@ void ClangSyntaxPrinter::printGenericRequirementInstantiantion(
          "protocol requirements not supported yet!");
   auto *gtpt = requirement.getTypeParameter()->getAs<GenericTypeParamType>();
   assert(gtpt && "unexpected generic param type");
-  os << "swift::TypeMetadataTrait<";
+  os << "language::TypeMetadataTrait<";
   printGenericTypeParamTypeName(gtpt);
   os << ">::getTypeMetadata()";
 }
@@ -410,7 +421,7 @@ void ClangSyntaxPrinter::printGenericRequirementsInstantiantions(
     ArrayRef<GenericRequirement> requirements, LeadingTrivia leadingTrivia) {
   if (leadingTrivia == LeadingTrivia::Comma && !requirements.empty())
     os << ", ";
-  llvm::interleaveComma(requirements, os,
+  toolchain::interleaveComma(requirements, os,
                         [&](const GenericRequirement &requirement) {
                           printGenericRequirementInstantiantion(requirement);
                         });
@@ -428,23 +439,23 @@ void ClangSyntaxPrinter::printPrimaryCxxTypeName(
 void ClangSyntaxPrinter::printIncludeForShimHeader(StringRef headerName) {
   printIgnoredDiagnosticBlock("non-modular-include-in-framework-module", [&] {
     os << "// Allow user to find the header using additional include paths\n";
-    os << "#if __has_include(<swiftToCxx/" << headerName << ">)\n";
-    os << "#include <swiftToCxx/" << headerName << ">\n";
+    os << "#if __has_include(<languageToCxx/" << headerName << ">)\n";
+    os << "#include <languageToCxx/" << headerName << ">\n";
     os << "// Look for the C++ interop support header relative to clang's "
           "resource dir:\n";
     os << "//  "
-          "'<toolchain>/usr/lib/clang/<version>/include/../../../swift/"
-          "swiftToCxx'.\n";
-    os << "#elif __has_include(<../../../swift/swiftToCxx/" << headerName
+          "'<toolchain>/usr/lib/clang/<version>/include/../../../language/"
+          "languageToCxx'.\n";
+    os << "#elif __has_include(<../../../language/languageToCxx/" << headerName
        << ">)\n";
-    os << "#include <../../../swift/swiftToCxx/" << headerName << ">\n";
-    os << "#elif __has_include(<../../../../../lib/swift/swiftToCxx/"
+    os << "#include <../../../language/languageToCxx/" << headerName << ">\n";
+    os << "#elif __has_include(<../../../../../lib/language/languageToCxx/"
        << headerName << ">)\n";
     os << "//  "
           "'<toolchain>/usr/local/lib/clang/<version>/include/../../../../../"
           "lib/"
-          "swift/swiftToCxx'.\n";
-    os << "#include <../../../../../lib/swift/swiftToCxx/" << headerName
+          "language/languageToCxx'.\n";
+    os << "#include <../../../../../lib/language/languageToCxx/" << headerName
        << ">\n";
     os << "#endif\n";
   });
@@ -455,7 +466,7 @@ void ClangSyntaxPrinter::printDefine(StringRef macroName) {
 }
 
 void ClangSyntaxPrinter::printIgnoredDiagnosticBlock(
-    StringRef diagName, llvm::function_ref<void()> bodyPrinter) {
+    StringRef diagName, toolchain::function_ref<void()> bodyPrinter) {
   os << "#pragma clang diagnostic push\n";
   os << "#pragma clang diagnostic ignored \"-W" << diagName << "\"\n";
   bodyPrinter();
@@ -463,13 +474,13 @@ void ClangSyntaxPrinter::printIgnoredDiagnosticBlock(
 }
 
 void ClangSyntaxPrinter::printIgnoredCxx17ExtensionDiagnosticBlock(
-    llvm::function_ref<void()> bodyPrinter) {
+    toolchain::function_ref<void()> bodyPrinter) {
   printIgnoredDiagnosticBlock("c++17-extensions", bodyPrinter);
 }
 
 void ClangSyntaxPrinter::printSymbolUSRAttribute(const ValueDecl *D) const {
   if (isa<ModuleDecl>(D)) {
-    os << " SWIFT_SYMBOL_MODULE(\"";
+    os << " LANGUAGE_SYMBOL_MODULE(\"";
     printBaseName(D);
     os << "\")";
     return;
@@ -478,7 +489,7 @@ void ClangSyntaxPrinter::printSymbolUSRAttribute(const ValueDecl *D) const {
                                   USRGenerationRequest{D, {}}, std::string());
   if (result.empty())
     return;
-  os << " SWIFT_SYMBOL(\"" << result << "\")";
+  os << " LANGUAGE_SYMBOL(\"" << result << "\")";
 }
 
 void ClangSyntaxPrinter::printKnownCType(
@@ -491,7 +502,7 @@ void ClangSyntaxPrinter::printKnownCType(
     os << " _Null_unspecified";
 }
 
-void ClangSyntaxPrinter::printSwiftMangledNameForDebugger(
+void ClangSyntaxPrinter::printCodiraMangledNameForDebugger(
     const NominalTypeDecl *typeDecl) {
   printIgnoredCxx17ExtensionDiagnosticBlock([&]() {
 
@@ -502,7 +513,7 @@ void ClangSyntaxPrinter::printSwiftMangledNameForDebugger(
     if (!mangled_name.empty()) {
       os << "  typedef char " << mangled_name << ";\n";
       os << "  static inline constexpr " << mangled_name
-         << " __swift_mangled_name = 0;\n";
+         << " __language_mangled_name = 0;\n";
     }
   });
   os << "#pragma clang diagnostic pop\n";

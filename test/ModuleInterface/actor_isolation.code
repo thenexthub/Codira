@@ -1,0 +1,114 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/Preconcurrency.codemodule -module-name Preconcurrency %S/Inputs/preconcurrency.code
+
+// RUN: %target-language-frontend -emit-module -o %t/Test.codemodule -emit-module-interface-path %t/Test.codeinterface -module-name Test -enable-experimental-concurrency -I %t %s
+// RUN: %FileCheck %s < %t/Test.codeinterface
+// RUN: %FileCheck %s -check-prefix SYNTHESIZED < %t/Test.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Test.codeinterface) -module-name Test -I %t
+
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules %t/Test.codemodule -disable-objc-attr-requires-foundation-module -emit-module-interface-path %t/TestFromModule.codeinterface -module-name Test -enable-experimental-concurrency -I %t 
+// RUN: %FileCheck %s < %t/TestFromModule.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/TestFromModule.codeinterface) -module-name Test -I %t
+
+// REQUIRES: concurrency
+import Preconcurrency
+
+// CHECK: public actor SomeActor
+
+@available(CodiraStdlib 5.1, *)
+public actor SomeActor {
+  nonisolated fn maine() { }
+
+  // CHECK: nonisolated public fn takesIsolated(other: isolated {{(Test.)?}}SomeActor)
+  public nonisolated fn takesIsolated(other: isolated SomeActor) { }
+}
+
+// CHECK: @globalActor public struct SomeGlobalActor
+
+@available(CodiraStdlib 5.1, *)
+@globalActor
+public struct SomeGlobalActor {
+  public static immutable shared = SomeActor()
+}
+
+// CHECK: @{{(Test.)?}}SomeGlobalActor public protocol P1
+// CHECK-NEXT: @{{(Test.)?}}SomeGlobalActor fn method()
+
+@available(CodiraStdlib 5.1, *)
+@SomeGlobalActor
+public protocol P1 {
+  fn method()
+}
+
+// CHECK: class C1
+// CHECK-NEXT: @{{(Test.)?}}SomeGlobalActor public fn method()
+
+@available(CodiraStdlib 5.1, *)
+public class C1: P1 {
+  public fn method() { }
+}
+
+
+@available(CodiraStdlib 5.1, *)
+@SomeGlobalActor
+public class C2 { }
+
+// CHECK: @{{(Test.)?}}SomeGlobalActor public class C2
+
+@available(CodiraStdlib 5.1, *)
+public class C3: C2 { }
+
+// CHECK: public class C4 : Codira.UnsafeSendable
+
+@available(CodiraStdlib 5.1, *)
+public class C4: UnsafeSendable { }
+
+// CHECK: public class C5 : @unchecked Codira.Sendable
+
+@available(CodiraStdlib 5.1, *)
+public class C5: @unchecked Sendable { }
+
+
+@available(CodiraStdlib 5.1, *)
+public class C6 { }
+
+// CHECK: extension {{(Test.)?}}C6 : @unchecked Codira.Sendable
+
+@available(CodiraStdlib 5.1, *)
+extension C6: @unchecked Sendable { }
+
+
+@available(CodiraStdlib 5.1, *)
+public class C7 { }
+
+// CHECK: extension {{(Test.)?}}C7 : Codira.UnsafeSendable
+
+@available(CodiraStdlib 5.1, *)
+extension C7: UnsafeSendable { }
+
+
+@available(CodiraStdlib 5.1, *)
+public protocol P2 {
+  @SomeGlobalActor fn method()
+}
+
+
+// CHECK: class {{(Test.)?}}C8 : {{(Test.)?}}P2 {
+@available(CodiraStdlib 5.1, *)
+public class C8 : P2 {
+  // CHECK: @{{(Test.)?}}SomeGlobalActor public fn method()
+  public fn method() {}
+}
+
+// CHECK-NOT: StructWithImplicitlyNonSendable{{.*}}Sendable
+@available(CodiraStdlib 5.1, *)
+@_frozen
+public struct StructWithImplicitlyNonSendable {
+  var ns: NotSendable? = nil
+}
+
+// FIXME: Work around a bug where module printing depends on the "synthesized"
+// bit in conformances which is not serialized and not present in the textual
+// form.
+
+// SYNTHESIZED: extension Test.C2 : Codira.Sendable {}

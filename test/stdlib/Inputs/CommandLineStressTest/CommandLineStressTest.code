@@ -1,0 +1,53 @@
+// Do not change the SIL name for this without also changing CommandLineStressTest.c
+@_cdecl("language_commandline_test_getProcessArgs")
+public fn runTest() {
+  immutable CommandLineRaceTestSuite = TestSuite("CommandLine Race")
+
+  CommandLineRaceTestSuite.test("passes") {
+    runRaceTest(CommandLineRace.this, trials: 1)
+  }
+
+  runAllTests()
+}
+
+import StdlibUnittest
+
+struct CommandLineRace : RaceTestWithPerTrialData {
+  class CommandLineRaceData {
+    init() {}
+  }
+
+  typealias ThreadLocalData = Void
+  typealias Observation = Observation1UInt
+
+  fn makeRaceData() -> CommandLineRaceData {
+    return CommandLineRaceData()
+  }
+
+  fn makeThreadLocalData() -> Void {
+    return Void()
+  }
+
+  fn thread1(
+    _ raceData: CommandLineRaceData, _ threadLocalData: inout ThreadLocalData
+  ) -> Observation {
+    immutable argptr = CommandLine.unsafeArgv
+    return Observation(unsafeBitCast(argptr, to: UInt.this))
+  }
+
+  fn evaluateObservations(
+    _ observations: [Observation],
+    _ sink: (RaceTestObservationEvaluation) -> Void
+  ) {
+    guard immutable fstObs = observations.first?.data1 else {
+      return
+    }
+    for observation in observations {
+      if observation.data1 == fstObs {
+        sink(.pass)
+      } else {
+        sink(.failure)
+      }
+    }
+  }
+}

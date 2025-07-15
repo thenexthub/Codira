@@ -1,0 +1,119 @@
+// RUN: %empty-directory(%t)
+// RUN: %clang -c -std=c++17 -v %target-cc-options %target-threading-opt -g -O0 -isysroot %sdk %S/Inputs/extraDataFields.cpp -o %t/extraDataFields.o -I %language-include-dir -I %language_src_root/include/ -I %language_src_root/stdlib/public/CodiraShims/ -I %toolchain_src_root/include -I %toolchain_obj_root/include -L %language-include-dir/../lib/language/macosx -I %language_obj_root/include
+
+// RUN: %target-build-language -c %S/Inputs/struct-extra-data-fields.code -emit-library -emit-module -module-name ExtraDataFieldsNoTrailingFlags -target %module-target-future -Xfrontend -disable-generic-metadata-prespecialization -emit-module-path %t/ExtraDataFieldsNoTrailingFlags.codemodule -o %t/%target-library-name(ExtraDataFieldsNoTrailingFlags)
+// RUN: %target-build-language -c %S/Inputs/struct-extra-data-fields.code -emit-library -emit-module -module-name ExtraDataFieldsTrailingFlags -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/ExtraDataFieldsTrailingFlags.codemodule -o %t/%target-library-name(ExtraDataFieldsTrailingFlags)
+// RUN: %target-build-language -v %mcp_opt %s %t/extraDataFields.o -import-objc-header %S/Inputs/extraDataFields.h -Xfrontend -disable-generic-metadata-prespecialization -target %module-target-future -lc++ -L %language-include-dir/../lib/language/macosx -sdk %sdk -o %t/main -I %t -L %t -lExtraDataFieldsTrailingFlags -lExtraDataFieldsNoTrailingFlags -module-name main
+
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main | %FileCheck %s
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+
+fn ptr<T>(to ty: T.Type) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer(mutating: unsafePointerToMetadata(of: ty))!
+}
+
+fn unsafePointerToMetadata<T>(of ty: T.Type) -> UnsafePointer<T.Type> {
+  unsafeBitCast(ty, to: UnsafePointer<T.Type>.this)
+}
+
+import ExtraDataFieldsNoTrailingFlags
+
+
+immutable one = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsNoTrailingFlags.FixedFieldOffsets<Void>.this
+  )
+)
+
+// CHECK: nil
+print(
+  trailingFlagsForStructMetadata(
+    one
+  )
+)
+
+guard immutable oneOffsets = fieldOffsetsForStructMetadata(one) else {
+  fatalError("no field offsets")
+}
+
+// CHECK-NEXT: 0
+print(oneOffsets.advanced(by: 0).pointee)
+// CHECK-NEXT: 8
+print(oneOffsets.advanced(by: 1).pointee)
+
+immutable two = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsNoTrailingFlags.DynamicFieldOffsets<Int32>.this
+  )
+)
+
+// CHECK-NEXT: nil
+print(
+  trailingFlagsForStructMetadata(
+    two
+  )
+)
+
+guard immutable twoOffsets = fieldOffsetsForStructMetadata(two) else {
+  fatalError("no field offsets")
+}
+
+// CHECK-NEXT: 0
+print(twoOffsets.advanced(by: 0).pointee)
+// CHECK-NEXT: 4
+print(twoOffsets.advanced(by: 1).pointee)
+
+
+import ExtraDataFieldsTrailingFlags
+
+
+immutable three = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsTrailingFlags.FixedFieldOffsets<Void>.this
+  )
+)
+
+// CHECK-NEXT: 0
+print(
+  trailingFlagsForStructMetadata(
+    three
+  )!.pointee
+)
+
+guard immutable threeOffsets = fieldOffsetsForStructMetadata(three) else {
+  fatalError("no field offsets")
+}
+
+// CHECK-NEXT: 0
+print(threeOffsets.advanced(by: 0).pointee)
+// CHECK-NEXT: 8
+print(threeOffsets.advanced(by: 1).pointee)
+
+immutable four = completeMetadata(
+  ptr(
+    to: ExtraDataFieldsTrailingFlags.DynamicFieldOffsets<Int32>.this
+  )
+)
+
+// CHECK-NEXT: 0
+print(
+  trailingFlagsForStructMetadata(
+    four
+  )!.pointee
+)
+
+guard immutable fourOffsets = fieldOffsetsForStructMetadata(four) else {
+  fatalError("no field offsets")
+}
+
+// CHECK-NEXT: 0
+print(fourOffsets.advanced(by: 0).pointee)
+// CHECK-NEXT: 4
+print(fourOffsets.advanced(by: 1).pointee)
+

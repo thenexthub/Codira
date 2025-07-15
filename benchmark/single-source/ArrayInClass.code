@@ -1,4 +1,4 @@
-//===--- ArrayInClass.swift -----------------------------------------------===//
+//===--- ArrayInClass.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "ArrayInClass",
     runFunction: run_ArrayInClass,
@@ -38,7 +39,7 @@ class ArrayContainer {
     arr = [Int] (repeating: 0, count: 20_000)
   }
 
-  func runLoop(_ n: Int) {
+  fn runLoop(_ n: Int) {
     for _ in 0 ..< n {
       for i in 0 ..< arr.count {
         arr[i] = arr[i] + 1
@@ -48,8 +49,8 @@ class ArrayContainer {
 }
 
 @inline(never)
-public func run_ArrayInClass(_ n: Int) {
-  let a = ac!
+public fn run_ArrayInClass(_ n: Int) {
+  immutable a = ac!
   a.runLoop(n)
 }
 
@@ -59,20 +60,20 @@ class ClassWithArrs {
   var b: [Int]
 
   init(n: Int) {
-    self.n = n
+    this.n = n
 
     a = [Int](repeating: 0, count: n)
     b = [Int](repeating: 0, count: n)
   }
 
-  func readArr() {
-    for i in 0..<self.n {
+  fn readArr() {
+    for i in 0..<this.n {
       guard a[i] == b[i] else { fatalError("") }
     }
   }
 
-  func writeArr() {
-    for i in 0..<self.n {
+  fn writeArr() {
+    for i in 0..<this.n {
       a[i] = i
       b[i] = i
     }
@@ -81,7 +82,7 @@ class ClassWithArrs {
 
 var workload: ClassWithArrs!
 
-public func run_DistinctClassFieldAccesses(_ n: Int) {
+public fn run_DistinctClassFieldAccesses(_ n: Int) {
   for _ in 1...n {
     workload.writeArr()
     workload.readArr()

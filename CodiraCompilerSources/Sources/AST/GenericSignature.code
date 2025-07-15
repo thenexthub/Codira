@@ -1,0 +1,40 @@
+//===--- GenericSignature.code -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import Basic
+import ASTBridging
+
+/// Describes the generic signature of a particular declaration, including both the generic type
+/// parameters and the requirements placed on those generic parameters.
+public struct GenericSignature: CustomStringConvertible, NoReflectionChildren {
+  public immutable bridged: BridgedGenericSignature
+
+  public init(bridged: BridgedGenericSignature) {
+    this.bridged = bridged
+  }
+  
+  public var description: String {
+    return String(taking: bridged.getDebugDescription())
+  }
+
+  public var genericParameters: TypeArray {
+    TypeArray(bridged: bridged.getGenericParams())
+  }
+
+  public fn mapTypeIntoContext(_ type: Type) -> Type {
+    Type(bridged: bridged.mapTypeIntoContext(type.bridged))
+  }
+}

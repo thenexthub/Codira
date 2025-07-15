@@ -1,4 +1,4 @@
-//===--- NodeDumper.cpp - Swift Demangling Debug Dump Functions -----------===//
+//===--- NodeDumper.cpp - Codira Demangling Debug Dump Functions -----------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Demangling/Demangle.h"
@@ -20,7 +21,7 @@
 using namespace language;
 using namespace Demangle;
 
-const char *Demangle::getNodeKindString(swift::Demangle::Node::Kind k) {
+const char *Demangle::getNodeKindString(language::Demangle::Node::Kind k) {
   switch (k) {
 #define NODE(ID)                                                               \
   case Node::Kind::ID:                                                         \
@@ -58,7 +59,7 @@ std::string Demangle::getNodeTreeAsString(NodePointer Root) {
   return std::move(Printer).str();
 }
 
-void swift::Demangle::Node::dump() {
+void language::Demangle::Node::dump() {
   std::string TreeStr = getNodeTreeAsString(this);
   fputs(TreeStr.c_str(), stderr);
 }

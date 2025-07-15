@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITION_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITION_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITION_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITION_H
 
 #include "language/Basic/type_traits.h"
 #include "language/Basic/ImmutablePointerSet.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 #include <cstdint>
 
 namespace language {
@@ -28,7 +29,7 @@ namespace language {
 class RCIdentityFunctionInfo;
 class ConsumedArgToEpilogueReleaseMatcher;
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 //                           RCStateTransitionKind
@@ -148,10 +149,10 @@ public:
 static_assert(IsTriviallyCopyable<RCStateTransition>::value,
               "RCStateTransitions must be trivially copyable");
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
-raw_ostream &operator<<(raw_ostream &os, swift::RCStateTransitionKind Kind);
-} // end llvm namespace
+namespace toolchain {
+raw_ostream &operator<<(raw_ostream &os, language::RCStateTransitionKind Kind);
+} // end toolchain namespace
 
 #endif

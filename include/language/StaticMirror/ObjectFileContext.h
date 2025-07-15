@@ -1,4 +1,4 @@
-//===---------------- ObjectFileContext.h - Swift Compiler ---------------===//
+//===---------------- ObjectFileContext.h - Codira Compiler ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_OBJECT_FILE_CONTEXT_H
-#define SWIFT_OBJECT_FILE_CONTEXT_H
+#ifndef LANGUAGE_OBJECT_FILE_CONTEXT_H
+#define LANGUAGE_OBJECT_FILE_CONTEXT_H
 
 #include "language/RemoteInspection/ReflectionContext.h"
 
-namespace llvm {
+namespace toolchain {
 namespace object {
 template <typename Type>
 class ELFObjectFile;
 class ELFObjectFileBase;
 class MachOObjectFile;
 } // namespace object
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 namespace static_mirror {
 
-using ReadBytesResult = swift::remote::MemoryReader::ReadBytesResult;
+using ReadBytesResult = language::remote::MemoryReader::ReadBytesResult;
 
 class Image {
 private:
@@ -38,30 +39,34 @@ private:
     uint64_t Addr;
     StringRef Contents;
   };
-  const llvm::object::ObjectFile *O;
+  const toolchain::object::ObjectFile *O;
   uint64_t HeaderAddress;
   std::vector<Segment> Segments;
   struct DynamicRelocation {
+    /// The symbol name that the pointer refers to. Empty if only an absolute
+    /// address is available.
     StringRef Symbol;
-    uint64_t Offset;
+    // The offset (if the symbol is available), or the resolved remote address
+    // if the symbol is empty.
+    uint64_t OffsetOrAddress;
   };
-  llvm::DenseMap<uint64_t, DynamicRelocation> DynamicRelocations;
+  toolchain::DenseMap<uint64_t, DynamicRelocation> DynamicRelocations;
 
-  void scanMachO(const llvm::object::MachOObjectFile *O);
+  void scanMachO(const toolchain::object::MachOObjectFile *O);
 
   template <typename ELFT>
-  void scanELFType(const llvm::object::ELFObjectFile<ELFT> *O);
+  void scanELFType(const toolchain::object::ELFObjectFile<ELFT> *O);
 
-  void scanELF(const llvm::object::ELFObjectFileBase *O);
+  void scanELF(const toolchain::object::ELFObjectFileBase *O);
 
-  void scanCOFF(const llvm::object::COFFObjectFile *O);
+  void scanCOFF(const toolchain::object::COFFObjectFile *O);
 
   bool isMachOWithPtrAuth() const;
 
 public:
-  explicit Image(const llvm::object::ObjectFile *O);
+  explicit Image(const toolchain::object::ObjectFile *O);
 
-  const llvm::object::ObjectFile *getObjectFile() const { return O; }
+  const toolchain::object::ObjectFile *getObjectFile() const { return O; }
 
   unsigned getBytesInAddress() const { return O->getBytesInAddress(); }
 
@@ -91,17 +96,22 @@ class ObjectMemoryReader : public reflection::MemoryReader {
   };
   std::vector<ImageEntry> Images;
 
+  uint64_t PtrauthMask = 0;
+
   std::pair<const Image *, uint64_t>
   decodeImageIndexAndAddress(uint64_t Addr) const;
 
-  uint64_t encodeImageIndexAndAddress(const Image *image,
-                                      uint64_t imageAddr) const;
+  remote::RemoteAddress
+  encodeImageIndexAndAddress(const Image *image,
+                             remote::RemoteAddress imageAddr) const;
 
   StringRef getContentsAtAddress(uint64_t Addr, uint64_t Size);
 
+  uint64_t getPtrauthMask();
+
 public:
   explicit ObjectMemoryReader(
-      const std::vector<const llvm::object::ObjectFile *> &ObjectFiles);
+      const std::vector<const toolchain::object::ObjectFile *> &ObjectFiles);
 
   ArrayRef<ImageEntry> getImages() const { return Images; }
 
@@ -113,7 +123,7 @@ public:
   // TODO: We could consult the dynamic symbol tables of the images to
   // implement this.
   reflection::RemoteAddress getSymbolAddress(const std::string &name) override {
-    return reflection::RemoteAddress(nullptr);
+    return reflection::RemoteAddress();
   }
 
   ReadBytesResult readBytes(reflection::RemoteAddress Addr,
@@ -138,16 +148,16 @@ struct ReflectionContextHolder {
 };
 
 template <typename T>
-T unwrap(llvm::Expected<T> value) {
+T unwrap(toolchain::Expected<T> value) {
   if (value)
     return std::move(value.get());
-  llvm::errs() << "swift-reflection-test error: " << toString(value.takeError())
+  toolchain::errs() << "language-reflection-test error: " << toString(value.takeError())
                << "\n";
   exit(EXIT_FAILURE);
 }
 
 std::unique_ptr<ReflectionContextHolder> makeReflectionContextForObjectFiles(
-    const std::vector<const llvm::object::ObjectFile *> &objectFiles,
+    const std::vector<const toolchain::object::ObjectFile *> &objectFiles,
     bool objcInterOp);
 
 std::unique_ptr<ReflectionContextHolder> makeReflectionContextForMetadataReader(
@@ -157,4 +167,4 @@ std::unique_ptr<ReflectionContextHolder> makeReflectionContextForMetadataReader(
 } // end namespace static_mirror
 } // end namespace language
 
-#endif // SWIFT_OBJECT_FILE_CONTEXT_H
+#endif // LANGUAGE_OBJECT_FILE_CONTEXT_H

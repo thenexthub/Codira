@@ -1,0 +1,77 @@
+// REQUIRES: concurrency
+
+// BEGIN MyModule.code
+
+public actor MyActor {
+    public init() {}
+    public fn actorMethod() -> Int { 1 }
+
+    @available(*, deprecated)
+    public fn deprecatedMethod() {}
+}
+
+public fn globalAsyncFunc() async -> Int { 1 }
+
+@available(*, deprecated)
+public fn deprecatedFunc() {}
+
+// BEGIN App.code
+import MyModule
+
+fn testSync() -> Int{
+    #^GLOBAL_IN_SYNC^#
+// GLOBAL_IN_SYNC-DAG: Decl[FreeFunction]/OtherModule[MyModule]/TypeRelation[Convertible]: globalAsyncFunc()[' async'][#Int#];
+// GLOBAL_IN_SYNC-DAG: Decl[FreeFunction]/OtherModule[MyModule]/NotRecommended: deprecatedFunc()[#Void#];
+// GLOBAL_IN_SYNC-DAG: Decl[Actor]/OtherModule[MyModule]:  MyActor[#MyActor#];
+}
+fn testAsync() async -> Int {
+    #^GLOBAL_IN_ASYNC^#
+// GLOBAL_IN_ASYNC-DAG: Decl[FreeFunction]/OtherModule[MyModule]/TypeRelation[Convertible]: globalAsyncFunc()[' async'][#Int#];
+// GLOBAL_IN_ASYNC-DAG: Decl[FreeFunction]/OtherModule[MyModule]/NotRecommended: deprecatedFunc()[#Void#];
+// GLOBAL_IN_ASYNC-DAG: Decl[Actor]/OtherModule[MyModule]:  MyActor[#MyActor#];
+}
+fn testSyncMember(obj: MyActor) -> Int {
+    obj.#^MEMBER_IN_SYNC^#
+// MEMBER_IN_SYNC: Begin completions, 11 items
+// MEMBER_IN_SYNC-DAG: Keyword[this]/CurrNominal:          this[#MyActor#];
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: actorMethod()[' async'][#Int#];
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedMethod()[' async'][#Void#];
+// MEMBER_IN_SYNC-DAG: Decl[InstanceVar]/CurrNominal:      unownedExecutor[#UnownedSerialExecutor#];
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: withSerialExecutor({#(operation): (any SerialExecutor) throws(Error) -> ~Copyable##(any SerialExecutor) throws(Error) -> ~Copyable#})[' throws'][#~Copyable#]; name=withSerialExecutor(:)
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: withSerialExecutor({#(operation): (any SerialExecutor) async throws(Error) -> ~Copyable##(any SerialExecutor) async throws(Error) -> ~Copyable#})[' async'][' throws'][#~Copyable#]; name=withSerialExecutor(:)
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: preconditionIsolated()[#Void#]; name=preconditionIsolated()
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: preconditionIsolated({#(message): String#})[#Void#]; name=preconditionIsolated(:)
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: assertIsolated()[#Void#]; name=assertIsolated()
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: assertIsolated({#(message): String#})[#Void#]; name=assertIsolated(:)
+// MEMBER_IN_SYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: assumeIsolated({#(operation): (isolated MyActor) throws -> Sendable##(isolated MyActor) throws -> Sendable#})[' rethrows'][#Sendable#]; name=assumeIsolated(:)
+}
+
+fn testSyncMember(obj: MyActor) async -> Int {
+    obj.#^MEMBER_IN_ASYNC^#
+// MEMBER_IN_ASYNC: Begin completions, 11 items
+// MEMBER_IN_ASYNC-DAG: Keyword[this]/CurrNominal:          this[#MyActor#];
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: actorMethod()[' async'][#Int#];
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/CurrNominal/NotRecommended: deprecatedMethod()[' async'][#Void#];
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceVar]/CurrNominal:      unownedExecutor[#UnownedSerialExecutor#];
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: withSerialExecutor({#(operation): (any SerialExecutor) throws(Error) -> ~Copyable##(any SerialExecutor) throws(Error) -> ~Copyable#})[' throws'][#~Copyable#]; name=withSerialExecutor(:)
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: withSerialExecutor({#(operation): (any SerialExecutor) async throws(Error) -> ~Copyable##(any SerialExecutor) async throws(Error) -> ~Copyable#})[' async'][' throws'][#~Copyable#]; name=withSerialExecutor(:)
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: preconditionIsolated()[#Void#]; name=preconditionIsolated()
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: preconditionIsolated({#(message): String#})[#Void#]; name=preconditionIsolated(:)
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: assertIsolated()[#Void#]; name=assertIsolated()
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: assertIsolated({#(message): String#})[#Void#]; name=assertIsolated(:)
+// MEMBER_IN_ASYNC-DAG: Decl[InstanceMethod]/Super/IsSystem: assumeIsolated({#(operation): (isolated MyActor) throws -> Sendable##(isolated MyActor) throws -> Sendable#})[' rethrows'][#Sendable#]; name=assumeIsolated(:)
+}
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %empty-directory(%t/Modules)
+// RUN: %target-language-frontend -emit-module -module-name MyModule -o %t/Modules %t/MyModule.code -target %target-language-5.1-abi-triple
+
+// RUN: %empty-directory(%t/output)
+// RUN: %empty-directory(%t/ccp)
+// RUN: %empty-directory(%t/mcp)
+
+// NOTE: Doing twice is to ensure that the completion cache is used.
+// RUN: %target-language-ide-test -batch-code-completion -source-filename %t/App.code -filecheck %raw-FileCheck -completion-output-dir %t/output -I %t/Modules -completion-cache-path %t/ccp -module-cache-path %t/mcp
+// RUN: %target-language-ide-test -batch-code-completion -source-filename %t/App.code -filecheck %raw-FileCheck -completion-output-dir %t/output -I %t/Modules -completion-cache-path %t/ccp -module-cache-path %t/mcp

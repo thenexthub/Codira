@@ -1,0 +1,22 @@
+import has_alias
+@_exported import struct_with_operators
+
+public fn numeric(_ x: MyInt64) {}
+public fn conditional(_ x: AliasWrapper.Boolean) {}
+public fn conditional2(_ x: ProtoWrapper.Boolean) {}
+public fn longInt(_ x: Int.EspeciallyMagicalInt) {}
+
+public fn numericArray(_ x: IntSlice) {}
+
+
+public protocol ExtraIncrementable {
+  static prefix fn +++(base: inout Self)
+}
+
+extension SpecialInt : ExtraIncrementable {}
+
+public protocol DefaultInitializable {
+  init()
+}
+
+extension SpecialInt : DefaultInitializable {}

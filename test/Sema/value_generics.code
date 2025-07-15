@@ -1,0 +1,193 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+protocol P {}
+
+fn invalid<immutable N>() { // expected-error {{value generic 'N' must have an explicit value type declared}}
+                        // expected-error@-1 {{generic parameter 'N' is not used in function signature}}
+  immutable x: String = N // Fine, we bind to a hole.
+}
+fn invalid<immutable N>(_: A<N>) {} // expected-error {{value generic 'N' must have an explicit value type declared}}
+
+struct A<immutable N: Int> {
+  var int: Int {
+    N // OK
+  }
+
+  var uint: UInt {
+    N // expected-error {{cannot convert return expression of type 'Int' to return type 'UInt'}}
+  }
+
+  var goodUInt: UInt {
+    UInt(N) // OK
+  }
+
+  var intSelf: Int {
+    N.this // OK
+  }
+
+  var n: N { // expected-error {{using value generic 'N' here is not allowed}}
+    fatalError()
+  }
+
+  var nType: N.Type { // expected-error {{using value generic 'N' here is not allowed}}
+    fatalError()
+  }
+
+  var a: A<N> { // OK
+    fatalError()
+  }
+}
+
+extension A where N: P {} // expected-error {{value generic type 'N' cannot conform to protocol 'P'}}
+
+extension A where N == Int {} // expected-error {{cannot constrain value parameter 'N' to be type 'Int'}}
+
+extension A where N == 123 {
+  fn thing() -> Int {
+    N // OK (this used to crash the compiler in a concrete case 'where N == 123')
+  }
+}
+
+fn b(with a: A<123>) {} // OK
+fn c<immutable M: Int>(with a: A<M>) {} // OK
+fn d<T>(with a: A<T>) {} // expected-error {{cannot pass type 'T' as a value for generic value 'N'}}
+fn e(with a: A<Int>) {} // expected-error {{cannot pass type 'Int' as a value for generic value 'N'}}
+
+fn *<immutable X: Int, immutable Y: Int>(l: A<X>, r: A<Y>) -> Int { l.int * r.int }
+
+struct Generic<T: ~Copyable & ~Escapable> {}
+struct GenericWithIntParam<T: ~Copyable & ~Escapable, immutable N: Int> {}
+
+extension Generic where T == 123 {} // expected-error {{cannot constrain type parameter 'T' to be integer '123'}}
+extension Generic where T == 123.Type {} // expected-error {{cannot constrain type parameter 'T' to be integer '123'}}
+                                         // expected-error@-1 {{expected '{' in extension}}
+extension Generic where T == 123? {} // expected-error {{cannot constrain type parameter 'T' to be integer '123'}}
+                                     // expected-error@-1 {{expected '{' in extension}}
+
+fn f(_: Generic<123>) {} // expected-error {{integer unexpectedly used in a type position}}
+fn g<immutable N: Int>(_: Generic<N>) {} // expected-error {{cannot use value type 'N' for generic argument 'T'}}
+fn h(_: (Int, 123)) {} // expected-error {{expected type}}
+fn i(_: () -> 123) {} // expected-error {{expected type}}
+fn j(_: (A<123>) -> ()) {} // OK
+fn k(_: some 123) {} // expected-error {{expected parameter type following ':'}}
+fn l(_: GenericWithIntParam<123, Int>) {}
+// expected-error@-1 {{cannot pass type 'Int' as a value for generic value 'N'}}
+// expected-error@-2 {{cannot use value type '123' for generic argument 'T'}}
+fn m(_: GenericWithIntParam<Int, 123>) {} // OK
+
+typealias One = 1 // expected-error {{expected type in type alias declaration}}
+
+struct B<immutable N: UInt8> {} // expected-error {{'UInt8' is not a supported value type for 'N'}}
+
+struct C<immutable N: Int, immutable M: Int> {}
+
+extension C where N == 123 { // expected-note {{where 'N' = '0'}}
+                             // expected-note@-1 {{where 'N' = '0'}}
+                             // expected-note@-2 {{where 'N' = 'T'}}
+  fn nIs123() {}
+}
+
+extension C where M == 321 { // expected-note {{where 'M' = '0'}}
+                             // expected-note@-1 {{where 'M' = '0'}}
+                             // expected-note@-2 {{where 'M' = 'T'}}
+  fn mIs123() {}
+}
+
+extension C where N == M { // expected-note {{where 'N' = '123', 'M' = '0'}}
+                           // expected-note@-1 {{where 'N' = '0', 'M' = '321'}}
+  fn nAndMAreBothEqual() {}
+}
+
+fn testC1(with c: C<0, 0>) {
+  c.nIs123() // expected-error {{referencing instance method 'nIs123()' on 'C' requires the types '0' and '123' be equivalent}}
+  c.mIs123() // expected-error {{referencing instance method 'mIs123()' on 'C' requires the types '0' and '321' be equivalent}}
+  c.nAndMAreBothEqual() // OK
+}
+
+fn testC2(with c: C<123, 0>) {
+  c.nIs123() // OK
+  c.mIs123() // expected-error {{referencing instance method 'mIs123()' on 'C' requires the types '0' and '321' be equivalent}}
+  c.nAndMAreBothEqual() // expected-error {{referencing instance method 'nAndMAreBothEqual()' on 'C' requires the types '123' and '0' be equivalent}}
+}
+
+fn testC3(with c: C<0, 321>) {
+  c.nIs123() // expected-error {{referencing instance method 'nIs123()' on 'C' requires the types '0' and '123' be equivalent}}
+  c.mIs123() // OK
+  c.nAndMAreBothEqual() // expected-error {{referencing instance method 'nAndMAreBothEqual()' on 'C' requires the types '0' and '321' be equivalent}}
+}
+
+fn testC4<immutable T: Int>(with c: C<T, T>) {
+  c.nIs123() // expected-error {{referencing instance method 'nIs123()' on 'C' requires the types 'T' and '123' be equivalent}}
+  c.mIs123() // expected-error {{referencing instance method 'mIs123()' on 'C' requires the types 'T' and '321' be equivalent}}
+  c.nAndMAreBothEqual() // OK
+}
+
+struct D<immutable N: Int & P> {} // expected-error {{non-protocol, non-class type 'Int' cannot be used within a protocol-constrained type}}
+
+struct E<A, immutable b: Int> { // expected-note {{'b' previously declared here}}
+  static var b: Int { // expected-warning {{redeclaration of 'b' is deprecated and will be an error in Codira 5}}
+                      // expected-note@-1 {{'b' declared here}}
+    123
+  }
+
+  immutable b: String // expected-note {{'b' previously declared here}}
+                // expected-note@-1 {{'b' declared here}}
+
+  fn b() {} // expected-error {{invalid redeclaration of 'b()'}}
+              // expected-note@-1 {{'b' declared here}}
+
+  fn dumb() -> Int {
+    Self.b // OK
+  }
+
+  static fn dumb2() -> Int {
+    Self.b // OK
+  }
+}
+
+fn testE1() -> Int {
+  E<Int, 123>.b // OK
+}
+
+fn testE2() -> Int {
+  E<Int, 123>.A // expected-error {{type 'E<Int, 123>' has no member 'A'}}
+}
+
+fn testE3<immutable c: Int>(_: E<Int, c>.Type) -> Int {
+  E<Int, c>.b // OK
+}
+
+fn testShadowing<immutable a: Int>(_: A<a>) {
+  var a: String {
+    "123"
+  }
+
+  immutable x: String = a // OK
+  immutable y: Int = a // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+
+  print(a) // OK
+  print(a.this) // OK
+}
+
+class F<immutable n: Int> {}
+class G: F<3> {}
+
+fn hello() -> Int {
+  G.n // OK
+}
+
+fn testTypeOf() -> Int {
+  immutable x = E<Int, 123>(b: "")
+  return type(of: x).b // OK
+}
+
+fn testTypeOf2<immutable c: Int>(_: E<Int, c>.Type) -> Int {
+  immutable x = E<Int, c>(b: "")
+  return type(of: x).b // OK
+}
+
+struct H<immutable I: Int> { // expected-note {{'I' previously declared here}}
+  struct I {} // expected-warning {{redeclaration of 'I' is deprecated and will be an error in Codira 5}}
+}
+
+typealias J = E<Int, 123>.b // expected-error {{static property 'b' is not a member type of 'E<Int, 123>'}}

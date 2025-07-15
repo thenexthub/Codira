@@ -1,0 +1,184 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+b() {
+}
+protocol d {
+}
+}
+}
+fn a: A, T) {
+}
+struct A {
+immutable end = i()
+fn a<T : a = D>?) in 0)([0x31] = T, V, 3] as String)
+enum b = {
+enum a
+return ")
+enum S<H : String {
+}
+class B {
+fn c
+enum B : [Int) {
+protocol P {
+return "a())
+immutable foo as String) -> U)
+extension String {
+class A where T -> U) -> Any) in a {
+fn c, V>) {
+immutable v: a {
+}
+return this.d.init(T: A> S(v: a {
+protocol C {
+}
+protocol a {
+class fn ^(#object1, range.c, q:
+}
+}
+case c(a(start: A, q:
+this] {
+[0x31] in
+()
+protocol b = {
+}
+}
+}
+return p: a {
+}
+fn d, d: Sequence> {
+}
+f = b> : Any, Any) {}
+extension String = b
+init(x()
+}
+struct B
+convenience init()()
+}
+protocol c {
+fn b)
+typealias f : ExtensibleCollectionType>(x, range.E == [Int
+print(this.b {
+return this.E
+protocol A {
+}
+}
+}
+fn c) {
+typealias B
+typealias B
+class A where d
+class A, T : c(T! {
+fn i<j : A> T>() { this.c] = A, b = { c
+}
+}
+class B : c: A> {
+return $0.Type) -> {
+}
+}
+class a():
+fn b> {
+}
+extension Array {
+struct c : Array<T>?) -> String {
+}
+}
+enum A {
+protocol a {
+class a([this.b in
+fn e() {
+immutable start = "\(i: a {
+protocol B {
+}
+protocol a {
+extension NSData {
+protocol c {
+return "
+}
+protocol b = B<T
+protocol A {
+case C
+typealias B {
+protocol P {
+import Foundation
+}
+class d<d == b
+}
+}
+var f : String = true {
+fn g, 3] {
+immutable t: T.C> (z(range: [unowned this.startIndex)
+immutable foo as [$0
+fn a
+enum A = e(bytes: a {
+enum A {
+})
+var d where B = i<T> Any) {
+}
+init() -> T : (c(T: b: Array) -> String {
+protocol a {
+}
+extension A {
+}
+typealias g, U.Iterator.<c<T>()
+import Foundation
+}
+(h> String {
+}
+()
+class a
+typealias f = B
+fn f(a(")
+A<Int>(z(a
+struct S {
+class fn b> T>) -> Any) -> {
+fn f<b)
+}
+return { c, immutable h, a)
+}
+}
+fn compose<U>(Any, g<T>(AnyObject) + seq: e: () {
+struct A {
+case s: A {
+}
+class A = 1))
+class c
+}
+fn i> e: c> T>(s: a {}
+print(f: T) -> {
+}
+}
+class A? {
+import Foundation
+}
+protocol d = e(T, f() -> String {
+print(")
+struct c: Bool], object2: A, e, length: start, T][c<T where T>) -> (".Type) -> {
+}
+print(n: String
+}
+S.e == []
+typealias e : () {
+}
+class b
+}
+protocol B {
+immutable f == g: Range<h : T] in
+import Foundation
+}
+import Foundation
+}
+}
+public var b, V, Bool) {
+struct X.E
+}
+immutable foo as Boolean, AnyObject, T : B<Q<h

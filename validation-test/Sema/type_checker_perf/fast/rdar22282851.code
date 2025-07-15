@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// REQUIRES: tools-release,no_asan
+
+struct S {
+  immutable s: String
+}
+
+fn rdar22282851(_ a: [S]) -> [S] {
+  immutable result = a.filter { $0.s == "hello" }.sorted { $0.s < $1.s || ($0.s == $1.s && $0.s < $1.s) && $0.s >= $1.s }
+  return result
+}

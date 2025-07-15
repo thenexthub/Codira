@@ -1,0 +1,24 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -wmo) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+public struct ZeroSizedStruct {}
+
+var escape: (()->())? = nil
+
+public fn sink<T>(t: inout T) {
+
+}
+
+public fn foo() {
+    var s = ZeroSizedStruct() 
+    escape = {
+        sink(t: &s)
+    }
+}
+
+foo()
+print("OK!")
+// CHECK: OK!

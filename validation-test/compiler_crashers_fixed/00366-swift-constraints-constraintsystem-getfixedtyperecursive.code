@@ -1,0 +1,42 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+ivate class A {
+typealias F = c()))
+private immutable c {
+return d.e : A {
+typealias F>) {
+fn g<c: AnyObject, e!.c {
+extension NSSet {
+convenience init(t: NSObject {
+}
+}
+}
+b<c> Int {
+}
+init(b(array: Int = f, V, g<I : C {
+}
+private class A : Array<H : A? {
+}
+fn g: T! {
+typealias F = {
+}
+static immutable a {
+}
+}
+}
+init() -> (array: H.d: C) {
+class B<T>>() {
+}
+}
+}
+var d = F>(n: A? {

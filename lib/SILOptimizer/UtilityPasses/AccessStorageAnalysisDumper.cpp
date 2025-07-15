@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-accessed-storage-analysis-dumper"
@@ -21,7 +22,7 @@
 #include "language/SILOptimizer/Analysis/AccessStorageAnalysis.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -34,19 +35,19 @@ class AccessStorageAnalysisDumper : public SILModuleTransform {
     auto *analysis = PM->getAnalysis<AccessStorageAnalysis>();
 
     for (auto &fn : *getModule()) {
-      llvm::outs() << "@" << fn.getName() << "\n";
+      toolchain::outs() << "@" << fn.getName() << "\n";
       if (fn.empty()) {
-        llvm::outs() << "<unknown>\n";
+        toolchain::outs() << "<unknown>\n";
         continue;
       }
       const FunctionAccessStorage &summary = analysis->getEffects(&fn);
-      summary.print(llvm::outs());
+      summary.print(toolchain::outs());
     }
   }
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createAccessStorageAnalysisDumper() {
+SILTransform *language::createAccessStorageAnalysisDumper() {
   return new AccessStorageAnalysisDumper();
 }

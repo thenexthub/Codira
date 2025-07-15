@@ -1,0 +1,9 @@
+// RUN: %target-languagec_driver -warn-language3-objc-inference-minimal -driver-print-jobs %s 2>&1 | %FileCheck -check-prefix=CHECK-MINIMAL %s
+// RUN: %target-languagec_driver -warn-language3-objc-inference-complete -warn-language3-objc-inference-minimal -driver-print-jobs %s 2>&1 | %FileCheck -check-prefix=CHECK-MINIMAL %s
+// RUN: %target-languagec_driver -warn-language3-objc-inference-complete -driver-print-jobs %s 2>&1 | %FileCheck -check-prefix=CHECK-COMPLETE %s
+// RUN: %target-languagec_driver -warn-language3-objc-inference-minimal -warn-language3-objc-inference-complete -driver-print-jobs %s 2>&1 | %FileCheck -check-prefix=CHECK-COMPLETE %s
+
+// REQUIRES: objc_interop
+
+// CHECK-MINIMAL: -warn-language3-objc-inference-minimal
+// CHECK-COMPLETE: -warn-language3-objc-inference-complete

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/DictionaryKeys.h"
@@ -21,14 +22,14 @@
 #include "SourceKit/Support/UIdent.h"
 #include "language/Basic/LoadDynamicLibrary.h"
 #include "language/Basic/StringExtras.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/Threading.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/YAMLParser.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/SourceMgr.h"
+#include "toolchain/Support/Threading.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/YAMLParser.h"
 #include <mutex>
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -40,9 +41,9 @@
 
 using namespace SourceKit;
 using namespace sourcekitd;
-using llvm::ArrayRef;
-using llvm::StringRef;
-using llvm::raw_ostream;
+using toolchain::ArrayRef;
+using toolchain::StringRef;
+using toolchain::raw_ostream;
 
 #define KEY(NAME, CONTENT) UIdent sourcekitd::Key##NAME(CONTENT);
 #include "SourceKit/Core/ProtocolUIDs.def"
@@ -76,7 +77,7 @@ bool sourcekitd::compareDictKeys(UIdent LHS, UIdent RHS) {
 
 namespace {
 
-/// This a near-copy of llvm::function_ref, but that exposes its members
+/// This a near-copy of toolchain::function_ref, but that exposes its members
 /// publicly so we can efficiently wrap the applier functions below.
 template <typename Fn>
 class applier_function_ref;
@@ -252,18 +253,18 @@ void sourcekitd::enableLogging(StringRef LoggerName) {
 // Public API
 //===----------------------------------------------------------------------===//
 
-static llvm::sys::Mutex GlobalInitMtx;
+static toolchain::sys::Mutex GlobalInitMtx;
 static unsigned gInitRefCount = 0;
 
 bool sourcekitd::initializeClient() {
-  llvm::sys::ScopedLock L(GlobalInitMtx);
+  toolchain::sys::ScopedLock L(GlobalInitMtx);
   ++gInitRefCount;
   if (gInitRefCount > 1)
     return false;
 
   static std::once_flag flag;
   std::call_once(flag, []() {
-    llvm::install_fatal_error_handler(fatal_error_handler, 0);
+    toolchain::install_fatal_error_handler(fatal_error_handler, 0);
     sourcekitd::enableLogging("sourcekit");
   });
 
@@ -271,7 +272,7 @@ bool sourcekitd::initializeClient() {
 }
 
 bool sourcekitd::shutdownClient() {
-  llvm::sys::ScopedLock L(GlobalInitMtx);
+  toolchain::sys::ScopedLock L(GlobalInitMtx);
   --gInitRefCount;
   if (gInitRefCount > 0)
     return false;
@@ -280,7 +281,7 @@ bool sourcekitd::shutdownClient() {
 
 extern "C" const char __dso_handle[];
 
-static void withCurrentLibraryPath(llvm::function_ref<void(const char *)> body) {
+static void withCurrentLibraryPath(toolchain::function_ref<void(const char *)> body) {
 #if defined(_WIN32) && !defined(__CYGWIN__)
   char path[MAX_PATH];
   HMODULE currentModule = NULL;
@@ -307,14 +308,14 @@ static void withCurrentLibraryPath(llvm::function_ref<void(const char *)> body) 
 
 static void loadPlugin(StringRef plugin, PluginInitParams &pluginParams) {
   std::string err;
-  auto *handle = swift::loadLibrary(plugin.str().c_str(), &err);
+  auto *handle = language::loadLibrary(plugin.str().c_str(), &err);
   if (!handle) {
     LOG_WARN("plugin-loading",
              "failed to load plugin '" << plugin << "': " << err);
     return;
   }
 
-  auto *plugin_init_2 = (sourcekitd_plugin_initialize_2_t)swift::getAddressOfSymbol(
+  auto *plugin_init_2 = (sourcekitd_plugin_initialize_2_t)language::getAddressOfSymbol(
       handle, "sourcekitd_plugin_initialize_2");
   if (plugin_init_2) {
     withCurrentLibraryPath([&](const char *currentLibraryPath) {
@@ -324,7 +325,7 @@ static void loadPlugin(StringRef plugin, PluginInitParams &pluginParams) {
   }
 
   // Fall back to the legacy sourcekitd_plugin_initialize function.
-  auto *plugin_init = (sourcekitd_plugin_initialize_t)swift::getAddressOfSymbol(
+  auto *plugin_init = (sourcekitd_plugin_initialize_t)language::getAddressOfSymbol(
       handle, "sourcekitd_plugin_initialize");
   if (plugin_init) {
     plugin_init(&pluginParams);
@@ -358,24 +359,24 @@ void
 sourcekitd_response_description_dump(sourcekitd_response_t resp) {
   // Avoid colors here, we don't properly detect that the debug window inside
   // Xcode doesn't support colors.
-  llvm::SmallString<128> Desc;
-  llvm::raw_svector_ostream OS(Desc);
+  toolchain::SmallString<128> Desc;
+  toolchain::raw_svector_ostream OS(Desc);
   printResponse(resp, OS);
-  llvm::errs() << OS.str() << '\n';
+  toolchain::errs() << OS.str() << '\n';
 }
 
 void
 sourcekitd_response_description_dump_filedesc(sourcekitd_response_t resp,
                                               int fd) {
-  llvm::raw_fd_ostream OS(fd, /*shouldClose=*/false);
+  toolchain::raw_fd_ostream OS(fd, /*shouldClose=*/false);
   printResponse(resp, OS);
   OS << '\n';
 }
 
 char *
 sourcekitd_response_description_copy(sourcekitd_response_t resp) {
-  llvm::SmallString<128> Desc;
-  llvm::raw_svector_ostream OS(Desc);
+  toolchain::SmallString<128> Desc;
+  toolchain::raw_svector_ostream OS(Desc);
   printResponse(resp, OS);
   return strdup(Desc.c_str());
 }
@@ -388,7 +389,7 @@ sourcekitd_uid_get_from_cstr(const char *string) {
 
 sourcekitd_uid_t
 sourcekitd_uid_get_from_buf(const char *buf, size_t length) {
-  return SKDUIDFromUIdent(UIdent(llvm::StringRef(buf, length)));
+  return SKDUIDFromUIdent(UIdent(toolchain::StringRef(buf, length)));
 }
 
 size_t
@@ -407,16 +408,16 @@ void
 sourcekitd_request_description_dump(sourcekitd_object_t obj) {
   // Avoid colors here, we don't properly detect that the debug window inside
   // Xcode doesn't support colors.
-  llvm::SmallString<128> Desc;
-  llvm::raw_svector_ostream OS(Desc);
+  toolchain::SmallString<128> Desc;
+  toolchain::raw_svector_ostream OS(Desc);
   printRequestObject(obj, OS);
-  llvm::errs() << OS.str() << '\n';
+  toolchain::errs() << OS.str() << '\n';
 }
 
 char *
 sourcekitd_request_description_copy(sourcekitd_object_t obj) {
-  llvm::SmallString<128> Desc;
-  llvm::raw_svector_ostream OS(Desc);
+  toolchain::SmallString<128> Desc;
+  toolchain::raw_svector_ostream OS(Desc);
   printRequestObject(obj, OS);
   return strdup(Desc.c_str());
 }
@@ -569,7 +570,7 @@ sourcekitd_variant_array_get_value(sourcekitd_variant_t array, size_t index) {
   if (auto fn = VAR_FN(array, array_get_value))
     return fn(array, index);
 
-  llvm::report_fatal_error("Trying to index an empty array.");
+  toolchain::report_fatal_error("Trying to index an empty array.");
 }
 
 const char *
@@ -751,32 +752,32 @@ void
 sourcekitd_variant_description_dump(sourcekitd_variant_t obj) {
   // Avoid colors here, we don't properly detect that the debug window inside
   // Xcode doesn't support colors.
-  llvm::SmallString<128> Desc;
-  llvm::raw_svector_ostream OS(Desc);
+  toolchain::SmallString<128> Desc;
+  toolchain::raw_svector_ostream OS(Desc);
   printVariant(obj, OS);
-  llvm::errs() << OS.str() << '\n';
+  toolchain::errs() << OS.str() << '\n';
 }
 
 void
 sourcekitd_variant_description_dump_filedesc(sourcekitd_variant_t obj, int fd) {
-  llvm::raw_fd_ostream OS(fd, /*shouldClose=*/false);
+  toolchain::raw_fd_ostream OS(fd, /*shouldClose=*/false);
   printVariant(obj, OS);
   OS << '\n';
 }
 
 char *
 sourcekitd_variant_description_copy(sourcekitd_variant_t obj) {
-  llvm::SmallString<128> Desc;
-  llvm::raw_svector_ostream OS(Desc);
+  toolchain::SmallString<128> Desc;
+  toolchain::raw_svector_ostream OS(Desc);
   printVariant(obj, OS);
   return strdup(Desc.c_str());
 }
 
 char *
 sourcekitd_variant_json_description_copy(sourcekitd_variant_t obj) {
-  llvm::SmallString<128> Desc;
+  toolchain::SmallString<128> Desc;
   {
-    llvm::raw_svector_ostream OS(Desc);
+    toolchain::raw_svector_ostream OS(Desc);
     VariantPrinter(OS, /*Indent=*/0, /*PrintAsJSON=*/true).visit(obj);
   }
   return strdup(Desc.c_str());
@@ -788,19 +789,19 @@ public:
   sourcekitd_object_t parse(StringRef YAMLStr, std::string &Error);
 
 private:
-  sourcekitd_object_t createObjFromNode(llvm::yaml::Node *Value,
+  sourcekitd_object_t createObjFromNode(toolchain::yaml::Node *Value,
                                         std::string &Error);
-  bool parseDict(sourcekitd_object_t Dict, llvm::yaml::MappingNode *Node,
+  bool parseDict(sourcekitd_object_t Dict, toolchain::yaml::MappingNode *Node,
                   std::string &Error);
-  bool parseArray(sourcekitd_object_t Array, llvm::yaml::SequenceNode *Node,
+  bool parseArray(sourcekitd_object_t Array, toolchain::yaml::SequenceNode *Node,
                    std::string &Error);
-  void initError(StringRef Desc, llvm::yaml::Node *Node, std::string &Error);
-  sourcekitd_object_t withError(StringRef Desc, llvm::yaml::Node *Node,
+  void initError(StringRef Desc, toolchain::yaml::Node *Node, std::string &Error);
+  sourcekitd_object_t withError(StringRef Desc, toolchain::yaml::Node *Node,
                                 std::string &Error) {
     initError(Desc, Node, Error);
     return nullptr;
   }
-  bool withBoolError(StringRef Desc, llvm::yaml::Node *Node,
+  bool withBoolError(StringRef Desc, toolchain::yaml::Node *Node,
                      std::string &Error) {
     initError(Desc, Node, Error);
     return true;
@@ -821,14 +822,14 @@ sourcekitd_request_create_from_yaml(const char *yaml, char **error) {
 
 sourcekitd_object_t YAMLRequestParser::parse(StringRef YAMLStr,
                                              std::string &Error) {
-  llvm::SourceMgr SM;
-  llvm::yaml::Stream YAMLStream(YAMLStr, SM);
-  llvm::yaml::document_iterator I = YAMLStream.begin();
+  toolchain::SourceMgr SM;
+  toolchain::yaml::Stream YAMLStream(YAMLStr, SM);
+  toolchain::yaml::document_iterator I = YAMLStream.begin();
   if (I == YAMLStream.end()) {
     Error = "Error while parsing";
     return nullptr;
   }
-  llvm::yaml::Node *Root = I->getRoot();
+  toolchain::yaml::Node *Root = I->getRoot();
   if (Root == nullptr) {
     Error = "Error while parsing";
     return nullptr;
@@ -838,8 +839,8 @@ sourcekitd_object_t YAMLRequestParser::parse(StringRef YAMLStr,
 }
 
 sourcekitd_object_t YAMLRequestParser::createObjFromNode(
-                                  llvm::yaml::Node *Value, std::string &Error) {
-  if (auto Array = dyn_cast<llvm::yaml::SequenceNode>(Value)) {
+                                  toolchain::yaml::Node *Value, std::string &Error) {
+  if (auto Array = dyn_cast<toolchain::yaml::SequenceNode>(Value)) {
     sourcekitd_object_t Val = sourcekitd_request_array_create(nullptr, 0);
     if (parseArray(Val, Array, Error)) {
       sourcekitd_request_release(Val);
@@ -848,7 +849,7 @@ sourcekitd_object_t YAMLRequestParser::createObjFromNode(
     return Val;
   }
 
-  if (auto Map = dyn_cast<llvm::yaml::MappingNode>(Value)) {
+  if (auto Map = dyn_cast<toolchain::yaml::MappingNode>(Value)) {
     sourcekitd_object_t Val =
         sourcekitd_request_dictionary_create(nullptr, nullptr, 0);
     if (parseDict(Val, Map, Error)) {
@@ -858,7 +859,7 @@ sourcekitd_object_t YAMLRequestParser::createObjFromNode(
     return Val;
   }
 
-  if (auto ValueString = dyn_cast<llvm::yaml::ScalarNode>(Value)) {
+  if (auto ValueString = dyn_cast<toolchain::yaml::ScalarNode>(Value)) {
     StringRef Raw = ValueString->getRawValue().trim();
     SmallString<32> ValueStorage;
     if (Raw[0] == '\"') {
@@ -883,21 +884,21 @@ sourcekitd_object_t YAMLRequestParser::createObjFromNode(
 
 
 bool YAMLRequestParser::parseDict(sourcekitd_object_t Dict,
-                                  llvm::yaml::MappingNode *Node,
+                                  toolchain::yaml::MappingNode *Node,
                                   std::string &Error) {
 
-  for (llvm::yaml::MappingNode::iterator KVI = Node->begin(),
+  for (toolchain::yaml::MappingNode::iterator KVI = Node->begin(),
                                          KVE = Node->end();
        KVI != KVE; ++KVI) {
-    llvm::yaml::Node *Value = (*KVI).getValue();
-    if (Value == nullptr || isa<llvm::yaml::NullNode>(Value))
+    toolchain::yaml::Node *Value = (*KVI).getValue();
+    if (Value == nullptr || isa<toolchain::yaml::NullNode>(Value))
       return withBoolError("Expected value", (*KVI).getKey(), Error);
 
     sourcekitd_object_t Val = createObjFromNode(Value, Error);
     if (!Val)
       return true;
 
-    auto KeyString = dyn_cast<llvm::yaml::ScalarNode>((*KVI).getKey());
+    auto KeyString = dyn_cast<toolchain::yaml::ScalarNode>((*KVI).getKey());
     if (KeyString == nullptr) {
       sourcekitd_request_release(Val);
       return withBoolError("Expected string as key", (*KVI).getKey(), Error);
@@ -915,9 +916,9 @@ bool YAMLRequestParser::parseDict(sourcekitd_object_t Dict,
 }
 
 bool YAMLRequestParser::parseArray(sourcekitd_object_t Array,
-                                   llvm::yaml::SequenceNode *Node,
+                                   toolchain::yaml::SequenceNode *Node,
                                    std::string &Error) {
-  for (llvm::yaml::SequenceNode::iterator AI = Node->begin(),
+  for (toolchain::yaml::SequenceNode::iterator AI = Node->begin(),
                                           AE = Node->end();
        AI != AE; ++AI) {
     sourcekitd_object_t Val = createObjFromNode(&*AI, Error);
@@ -930,11 +931,11 @@ bool YAMLRequestParser::parseArray(sourcekitd_object_t Array,
   return false;
 }
 
-void YAMLRequestParser::initError(StringRef Desc, llvm::yaml::Node *Node,
+void YAMLRequestParser::initError(StringRef Desc, toolchain::yaml::Node *Node,
                                   std::string &Error) {
   Error = Desc.str();
   Error += " at: ";
-  llvm::SMRange Range = Node->getSourceRange();
+  toolchain::SMRange Range = Node->getSourceRange();
   StringRef Text(Range.Start.getPointer(),
                  Range.End.getPointer() - Range.Start.getPointer());
   Error.append(Text.begin(), Text.end());
@@ -1149,7 +1150,7 @@ void sourcekitd_plugin_initialize_register_custom_buffer(
   params.registerCustomBuffer(kind, funcs);
 }
 
-void *sourcekitd_plugin_initialize_get_swift_ide_inspection_instance(
+void *sourcekitd_plugin_initialize_get_language_ide_inspection_instance(
     sourcekitd_plugin_initialize_params_t _params) {
   auto &params = *static_cast<sourcekitd::PluginInitParams *>(_params);
   return params.opaqueIDEInspectionInstance;
@@ -1190,7 +1191,7 @@ VariantFunctions *sourcekitd::getPluginVariantFunctions(size_t BufKind) {
   size_t index = BufKind - (size_t)CustomBufferKind::CustomBufferKind_End;
   if (index >= PluginVariantFunctions.size() ||
       PluginVariantFunctions[index] == nullptr) {
-    llvm::report_fatal_error(
+    toolchain::report_fatal_error(
         "unknown custom buffer kind; possible plugin loading failure");
   }
   return PluginVariantFunctions[index];

@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+
+// >> first try when no library evolution is specified
+// RUN: %target-language-frontend -emit-module -o %t/SorryModule.codemodule %S/Inputs/discard_module_defining.code %S/Inputs/discard_module_adjacent.code
+// RUN: %target-typecheck-verify-language -I %t
+
+// >> now again with library evolution; we expect the same result.
+// RUN: %target-language-frontend -enable-library-evolution -emit-module -o %t/SorryModule.codemodule %S/Inputs/discard_module_defining.code %S/Inputs/discard_module_adjacent.code
+// RUN: %target-typecheck-verify-language -I %t
+
+// "Sorry" is meaningless
+import SorryModule
+
+extension Regular {
+  __consuming fn delete() {
+    // FIXME: rdar://108933330 (cannot define struct deinit with -enable-library-evolution)
+//    discard this // DISABLED-error {{can only 'discard' from the same module defining type 'Regular'}}
+  }
+}
+
+extension Frozen {
+  __consuming fn delete() {
+    discard this // expected-error {{can only 'discard' from the same module defining type 'Frozen'}}
+  }
+}

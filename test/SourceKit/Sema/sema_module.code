@@ -1,0 +1,7 @@
+// RUN: %sourcekitd-test -req=sema %s -- %s | %FileCheck %s
+Codira.String
+Codira
+// CHECK: key.kind: source.lang.code.ref.struct,
+// CHECK: key.severity: source.diagnostic.severity.error,
+// CHECK-NEXT: key.id: "value_of_metatype_type",
+// CHECK-NEXT: key.description: "expected member name or initializer call after type name",

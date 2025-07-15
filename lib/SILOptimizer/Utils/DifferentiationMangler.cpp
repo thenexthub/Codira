@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/DifferentiationMangler.h"
@@ -27,7 +28,7 @@ using namespace Mangle;
 
 /// Mangles the generic signature and get its mangling tree. This is necessary
 /// because the derivative generic signature's requirements may contain names
-/// which repeat the contents of the original function name. To follow Swift's
+/// which repeat the contents of the original function name. To follow Codira's
 /// mangling scheme, these repetitions must be mangled as substitutions.
 /// Therefore, we build mangling trees in `DifferentiationMangler` and let the
 /// remangler take care of substitutions.

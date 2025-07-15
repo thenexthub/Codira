@@ -1,0 +1,14 @@
+// REQUIRES: VENDOR=apple
+// REQUIRES: OS=macosx
+// UNSUPPORTED: CPU=i386
+
+// RUN: %empty-directory(%t)
+
+// RUN: echo "public fn foo() -> some CustomStringConvertible { 32 }" > %t/source1.code
+// RUN: echo "" > %t/source2.code
+
+// RUN: %target-build-language -target %target-cpu-apple-macosx10.15 -module-name multifile %t/source1.code  %t/source2.code -Xfrontend -validate-tbd-against-ir=all -emit-tbd -emit-tbd-path %t/multifile.tbd -Xfrontend -tbd-install_name -Xfrontend multifile -enable-library-evolution -emit-module
+
+// RUN: %validate-json %t/multifile.tbd | %FileCheck %s 
+
+// CHECK: s9multifile3fooQryFQOMQ

@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -typecheck -verify %s %S/main1.code
+
+// Serialized partial AST support:
+// RUN: %target-language-frontend -module-name main -emit-module-path %t.codemodule -primary-file %s %S/main1.code
+// RUN: %target-language-frontend -module-name main -parse-as-library -typecheck %t.codemodule -primary-file %S/main1.code -verify -verify-ignore-unknown
+
+@main // expected-error{{'main' attribute can only apply to one type in a module}}
+class EvilMain {
+  static fn main() {
+  }
+}
+
+// FIXME: Remove -verify-ignore-unknown.
+// <unknown>:0: error: unexpected error produced: 'NSApplicationMain' attribute can only apply to one class in a module

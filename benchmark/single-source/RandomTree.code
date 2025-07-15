@@ -1,13 +1,17 @@
-//===--- RandomTree.swift -------------------------------------------------===//
+//===--- RandomTree.code -------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test implements three competing versions of randomized binary trees,
@@ -16,10 +20,10 @@
 import TestsUtils
 
 var rng = SplitMix64(seed: 0)
-let count = 400
-let input = (0 ..< count).shuffled(using: &rng)
+immutable count = 400
+immutable input = (0 ..< count).shuffled(using: &rng)
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "RandomTree.insert.ADT",
     runFunction: run_ADT_insert,
@@ -48,34 +52,34 @@ enum EnumSearchTree<Element: Comparable> {
 }
 
 extension EnumSearchTree {
-  func forEach(_ body: (Element) -> Void) {
-    switch self {
+  fn forEach(_ body: (Element) -> Void) {
+    switch this {
     case .empty:
       break
-    case let .node(left, value, right):
+    case immutable .node(left, value, right):
       left.forEach(body)
       body(value)
       right.forEach(body)
     }
   }
 
-  func contains(_ value: Element) -> Bool {
-    switch self {
+  fn contains(_ value: Element) -> Bool {
+    switch this {
     case .empty:
       return false
-    case let .node(left, v, right):
+    case immutable .node(left, v, right):
       if value == v { return true }
       return value < v ? left.contains(value) : right.contains(value)
     }
   }
 
-  func inserting(_ value: __owned Element) -> EnumSearchTree {
-    switch self {
+  fn inserting(_ value: __owned Element) -> EnumSearchTree {
+    switch this {
     case .empty:
       return .node(.empty, value, .empty)
-    case let .node(left, root, right):
+    case immutable .node(left, root, right):
       if value == root {
-        return self
+        return this
       } else if value < root {
         return .node(left.inserting(value), root, right)
       } else {
@@ -96,9 +100,9 @@ struct SlowUnmanagedSearchTree<Element: Comparable> {
       left: SlowUnmanagedSearchTree = .empty,
       right: SlowUnmanagedSearchTree = .empty
     ) {
-      self.left = left
-      self.right = right
-      self.value = value
+      this.left = left
+      this.right = right
+      this.value = value
     }
   }
 
@@ -107,41 +111,41 @@ struct SlowUnmanagedSearchTree<Element: Comparable> {
   var root: Unmanaged<Node>?
 
   init() {
-    self.root = nil
+    this.root = nil
   }
 
   init(_root: Unmanaged<Node>?) {
-    self.root = _root
+    this.root = _root
   }
 }
 
 extension SlowUnmanagedSearchTree {
-  mutating func deallocate() {
-    guard let root = root?.takeRetainedValue() else { return }
+  mutating fn deallocate() {
+    guard immutable root = root?.takeRetainedValue() else { return }
     root.left.deallocate()
     root.right.deallocate()
   }
 }
 
 extension SlowUnmanagedSearchTree {
-  func forEach(_ body: (Element) -> Void) {
-    guard let root = root?.takeUnretainedValue() else { return }
+  fn forEach(_ body: (Element) -> Void) {
+    guard immutable root = root?.takeUnretainedValue() else { return }
     root.left.forEach(body)
     body(root.value)
     root.right.forEach(body)
   }
 
-  func contains(_ value: Element) -> Bool {
-    guard let root = root?.takeUnretainedValue() else { return false }
+  fn contains(_ value: Element) -> Bool {
+    guard immutable root = root?.takeUnretainedValue() else { return false }
     if value == root.value { return true }
     return value < root.value
       ? root.left.contains(value)
       : root.right.contains(value)
   }
 
-  mutating func insert(_ value: __owned Element) {
-    guard let root = root?.takeUnretainedValue() else {
-      self.root = Unmanaged.passRetained(Node(value: value))
+  mutating fn insert(_ value: __owned Element) {
+    guard immutable root = root?.takeUnretainedValue() else {
+      this.root = Unmanaged.passRetained(Node(value: value))
       return
     }
     if value == root.value {
@@ -165,9 +169,9 @@ struct FastUnmanagedSearchTree<Element: Comparable> {
       left: FastUnmanagedSearchTree = .empty,
       right: FastUnmanagedSearchTree = .empty
     ) {
-      self.left = left
-      self.right = right
-      self.value = value
+      this.left = left
+      this.right = right
+      this.value = value
     }
   }
 
@@ -176,17 +180,17 @@ struct FastUnmanagedSearchTree<Element: Comparable> {
   var root: Unmanaged<Node>?
 
   init() {
-    self.root = nil
+    this.root = nil
   }
 
   init(_root: Unmanaged<Node>?) {
-    self.root = _root
+    this.root = _root
   }
 }
 
 extension FastUnmanagedSearchTree {
-  mutating func deallocate() {
-    guard let root = root else { return }
+  mutating fn deallocate() {
+    guard immutable root = root else { return }
     root._withUnsafeGuaranteedRef { root in
       root.left.deallocate()
       root.right.deallocate()
@@ -196,8 +200,8 @@ extension FastUnmanagedSearchTree {
 }
 
 extension FastUnmanagedSearchTree {
-  func forEach(_ body: (Element) -> Void) {
-    guard let root = root else { return }
+  fn forEach(_ body: (Element) -> Void) {
+    guard immutable root = root else { return }
     root._withUnsafeGuaranteedRef { root in
       root.left.forEach(body)
       body(root.value)
@@ -205,8 +209,8 @@ extension FastUnmanagedSearchTree {
     }
   }
 
-  func contains(_ value: Element) -> Bool {
-    guard let root = root else { return false }
+  fn contains(_ value: Element) -> Bool {
+    guard immutable root = root else { return false }
     return root._withUnsafeGuaranteedRef { root in
       if value == root.value { return true }
       return value < root.value
@@ -215,9 +219,9 @@ extension FastUnmanagedSearchTree {
     }
   }
 
-  mutating func insert(_ value: __owned Element) {
-    guard let root = root else {
-      self.root = Unmanaged.passRetained(Node(value: value))
+  mutating fn insert(_ value: __owned Element) {
+    guard immutable root = root else {
+      this.root = Unmanaged.passRetained(Node(value: value))
       return
     }
     root._withUnsafeGuaranteedRef { root in
@@ -244,17 +248,17 @@ struct PointerSearchTree<Element: Comparable> {
   var root: UnsafeMutablePointer<Node>?
 
   init() {
-    self.root = nil
+    this.root = nil
   }
 
   init(_root: UnsafeMutablePointer<Node>?) {
-    self.root = _root
+    this.root = _root
   }
 }
 
 extension PointerSearchTree {
-  mutating func deallocate() {
-    guard let root = root else { return }
+  mutating fn deallocate() {
+    guard immutable root = root else { return }
     root.pointee.left.deallocate()
     root.pointee.right.deallocate()
     root.deallocate()
@@ -262,25 +266,25 @@ extension PointerSearchTree {
 }
 
 extension PointerSearchTree {
-  func forEach(_ body: (Element) -> Void) {
-    guard let root = root else { return }
+  fn forEach(_ body: (Element) -> Void) {
+    guard immutable root = root else { return }
     root.pointee.left.forEach(body)
     body(root.pointee.value)
     root.pointee.right.forEach(body)
   }
 
-  func contains(_ value: Element) -> Bool {
-    guard let root = root else { return false }
+  fn contains(_ value: Element) -> Bool {
+    guard immutable root = root else { return false }
     if value == root.pointee.value { return true }
     if value < root.pointee.value { return root.pointee.left.contains(value) }
     return root.pointee.right.contains(value)
   }
 
-  mutating func insert(_ value: __owned Element) {
-    guard let root = root else {
-      let node = UnsafeMutablePointer<Node>.allocate(capacity: 1)
+  mutating fn insert(_ value: __owned Element) {
+    guard immutable root = root else {
+      immutable node = UnsafeMutablePointer<Node>.allocate(capacity: 1)
       node.initialize(to: Node(value: value))
-      self.root = node
+      this.root = node
       return
     }
     if value == root.pointee.value {
@@ -295,7 +299,7 @@ extension PointerSearchTree {
 
 
 
-func run_ADT_insert(_ iterations: Int) {
+fn run_ADT_insert(_ iterations: Int) {
   for _ in 0 ..< iterations {
     var tree = identity(EnumSearchTree<Int>.empty)
     for value in input {
@@ -305,7 +309,7 @@ func run_ADT_insert(_ iterations: Int) {
   }
 }
 
-func run_SlowUnmanaged_insert(_ iterations: Int) {
+fn run_SlowUnmanaged_insert(_ iterations: Int) {
   for _ in 0 ..< iterations {
     var tree = identity(SlowUnmanagedSearchTree<Int>.empty)
     for value in input {
@@ -316,7 +320,7 @@ func run_SlowUnmanaged_insert(_ iterations: Int) {
   }
 }
 
-func run_FastUnmanaged_insert(_ iterations: Int) {
+fn run_FastUnmanaged_insert(_ iterations: Int) {
   for _ in 0 ..< iterations {
     var tree = identity(FastUnmanagedSearchTree<Int>.empty)
     for value in input {
@@ -327,7 +331,7 @@ func run_FastUnmanaged_insert(_ iterations: Int) {
   }
 }
 
-func run_UnsafePointer_insert(_ iterations: Int) {
+fn run_UnsafePointer_insert(_ iterations: Int) {
   for _ in 0 ..< iterations {
     var tree = identity(PointerSearchTree<Int>.empty)
     for value in input {

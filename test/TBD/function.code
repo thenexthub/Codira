@@ -1,0 +1,41 @@
+// REQUIRES: VENDOR=apple 
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-testing
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=all %s -enable-testing -O
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -parse-as-library -module-name test %s -emit-tbd -emit-tbd-path %t/typecheck.tbd -tbd-install_name test 
+// RUN: %target-language-frontend -emit-ir -parse-as-library -module-name test %s -emit-tbd -emit-tbd-path %t/emit-ir.tbd -tbd-install_name test
+// RUN: %toolchain-readtapi --compare %t/typecheck.tbd %t/emit-ir.tbd
+
+public fn publicNoArgs() {}
+public fn publicSomeArgs(_: Int, x: Int) {}
+public fn publicWithDefault(_: Int = 0) {}
+
+internal fn internalNoArgs() {}
+internal fn internalSomeArgs(_: Int, x: Int) {}
+internal fn internalWithDefault(_: Int = 0) {}
+
+private fn privateNoArgs() {}
+private fn privateSomeArgs(_: Int, x: Int) {}
+private fn privateWithDefault(_: Int = 0) {}
+
+public dynamic fn publicDynamic() {}
+
+@_dynamicReplacement(for: publicDynamic())
+public fn replacementForPublicDynamic() {}
+
+@_cdecl("c_publicNoArgs") public fn publicNoArgsCDecl() {}
+@_cdecl("c_publicSomeArgs") public fn publicSomeArgsCDecl(_: Int, x: Int) {}
+@_cdecl("c_publicWithDefault") public fn publicWithDefaultCDecl(_: Int = 0) {}
+
+@_cdecl("c_internalNoArgs") internal fn internalNoArgsCDecl() {}
+@_cdecl("c_internalSomeArgs") internal fn internalSomeArgsCDecl(_: Int, x: Int) {}
+@_cdecl("c_internalWithDefault") internal fn internalWithDefaultCDecl(_: Int = 0) {}
+
+@_silgen_name("silgen_publicNoArgs") public fn publicNoArgsSilgenNameDecl()
+@_silgen_name("silgen_publicSomeArgs") public fn publicSomeArgsSilgenNameDecl(_: Int, x: Int)
+
+@_silgen_name("silgen_internalNoArgs") internal fn internalNoArgsSilgenNameDecl()
+@_silgen_name("silgen_internalSomeArgs") internal fn internalSomeArgsSilgenNameDecl(_: Int, x: Int)

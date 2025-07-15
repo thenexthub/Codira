@@ -1,4 +1,4 @@
-//===--- AvailabilityRange.h - Swift Availability Range ---------*- C++ -*-===//
+//===--- AvailabilityRange.h - Codira Availability Range ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the AvailabilityRange utility.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AVAILABILITY_RANGE_H
-#define SWIFT_AST_AVAILABILITY_RANGE_H
+#ifndef LANGUAGE_AST_AVAILABILITY_RANGE_H
+#define LANGUAGE_AST_AVAILABILITY_RANGE_H
 
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/VersionTuple.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/VersionTuple.h"
 #include <optional>
 
 namespace language {
@@ -41,19 +42,19 @@ class VersionRange {
   //    x.y.x: all versions greater than or equal to x.y.z
 
   /// The sentinel version tuple representing a range containing all versions.
-  constexpr static llvm::VersionTuple getAllTuple() {
-    return llvm::VersionTuple(0x7FFFFFFE);
+  constexpr static toolchain::VersionTuple getAllTuple() {
+    return toolchain::VersionTuple(0x7FFFFFFE);
   }
 
   /// The sentinel version tuple representing an empty range.
-  constexpr static llvm::VersionTuple getEmptyTuple() {
-    return llvm::VersionTuple(0x7FFFFFFF);
+  constexpr static toolchain::VersionTuple getEmptyTuple() {
+    return toolchain::VersionTuple(0x7FFFFFFF);
   }
 
   // A version range is either an extremal value (Empty, All) or
   // a single version tuple value representing the lower end point x.y.z of a
   // range [x.y.z, +Inf).
-  llvm::VersionTuple LowerEndpoint;
+  toolchain::VersionTuple LowerEndpoint;
 
 public:
   /// Returns true if the range of versions is empty, or false otherwise.
@@ -71,7 +72,7 @@ public:
   bool hasLowerEndpoint() const { return isValidVersion(LowerEndpoint); }
 
   /// Returns the range's lower endpoint.
-  const llvm::VersionTuple &getLowerEndpoint() const {
+  const toolchain::VersionTuple &getLowerEndpoint() const {
     assert(hasLowerEndpoint());
     return LowerEndpoint;
   }
@@ -128,7 +129,7 @@ public:
     }
 
     // The g.l.b of [v1, +Inf), [v2, +Inf) is [max(v1,v2), +Inf)
-    const llvm::VersionTuple maxVersion =
+    const toolchain::VersionTuple maxVersion =
         std::max(this->getLowerEndpoint(), Other.getLowerEndpoint());
 
     LowerEndpoint = maxVersion;
@@ -149,7 +150,7 @@ public:
     }
 
     // The l.u.b of [v1, +Inf), [v2, +Inf) is [min(v1,v2), +Inf)
-    const llvm::VersionTuple minVersion =
+    const toolchain::VersionTuple minVersion =
         std::min(this->getLowerEndpoint(), Other.getLowerEndpoint());
 
     LowerEndpoint = minVersion;
@@ -174,21 +175,21 @@ public:
 
   /// Returns false if the given version tuple cannot be used as a lower
   /// endpoint for `VersionRange`.
-  static bool isValidVersion(const llvm::VersionTuple &EndPoint) {
+  static bool isValidVersion(const toolchain::VersionTuple &EndPoint) {
     return EndPoint != getAllTuple() && EndPoint != getEmptyTuple();
   }
 
   /// Returns a version range representing all versions greater than or equal
   /// to the passed-in version.
-  static VersionRange allGTE(const llvm::VersionTuple &EndPoint) {
+  static VersionRange allGTE(const toolchain::VersionTuple &EndPoint) {
     ASSERT(isValidVersion(EndPoint));
     return VersionRange(EndPoint);
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const;
+  void Profile(toolchain::FoldingSetNodeID &ID) const;
 
 private:
-  VersionRange(const llvm::VersionTuple &LowerEndpoint)
+  VersionRange(const toolchain::VersionTuple &LowerEndpoint)
       : LowerEndpoint(LowerEndpoint) {}
 };
 
@@ -207,7 +208,7 @@ class AvailabilityRange {
   VersionRange Range;
 
 public:
-  explicit AvailabilityRange(llvm::VersionTuple LowerEndpoint)
+  explicit AvailabilityRange(toolchain::VersionTuple LowerEndpoint)
       : Range(VersionRange::allGTE(LowerEndpoint)) {}
   explicit AvailabilityRange(VersionRange Range) : Range(Range) {}
 
@@ -249,7 +250,7 @@ public:
   /// direct comparison of raw versions.
   ///
   /// Only call when `hasMinimumVersion()` returns true.
-  llvm::VersionTuple getRawMinimumVersion() const {
+  toolchain::VersionTuple getRawMinimumVersion() const {
     return Range.getLowerEndpoint();
   }
 

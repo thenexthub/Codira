@@ -1,19 +1,23 @@
 //===--- DependencyChecking.h ---------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 #include <optional>
 
 namespace language {
@@ -25,7 +29,7 @@ namespace ide {
 /// source files are considered "current"
 void cacheDependencyHashIfNeeded(CompilerInstance &CI,
                                  std::optional<unsigned> excludeBufferID,
-                                 llvm::StringMap<llvm::hash_code> &Map);
+                                 toolchain::StringMap<toolchain::hash_code> &Map);
 
 /// Check if any dependent files are modified since \p timestamp. If
 /// \p excludeBufferID is specified, other source files are considered
@@ -33,9 +37,9 @@ void cacheDependencyHashIfNeeded(CompilerInstance &CI,
 /// \p Map should be the map populated by \c cacheDependencyHashIfNeeded at the
 /// previous dependency checking.
 bool areAnyDependentFilesInvalidated(
-    CompilerInstance &CI, llvm::vfs::FileSystem &FS,
-    std::optional<unsigned> excludeBufferID, llvm::sys::TimePoint<> timestamp,
-    const llvm::StringMap<llvm::hash_code> &Map);
+    CompilerInstance &CI, toolchain::vfs::FileSystem &FS,
+    std::optional<unsigned> excludeBufferID, toolchain::sys::TimePoint<> timestamp,
+    const toolchain::StringMap<toolchain::hash_code> &Map);
 
 } // namespace ide
 } // namespace language

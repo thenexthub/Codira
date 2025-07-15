@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/Internal-XPC.h"
 #include "sourcekitd/Logging.h"
 #include "sourcekitd/Service.h"
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/Concurrency.h"
 #include "SourceKit/Support/UIdent.h"
 #include "SourceKit/Support/Logging.h"
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/Errno.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Threading.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/Errno.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Threading.h"
 
 #include <csignal>
 #include <xpc/xpc.h>
@@ -65,7 +66,7 @@ done:
 namespace {
 /// Associates sourcekitd_uid_t to a UIdent.
 class SKUIDToUIDMap {
-  typedef llvm::DenseMap<void *, UIdent> MapTy;
+  typedef toolchain::DenseMap<void *, UIdent> MapTy;
   MapTy Map;
   WorkQueue Queue{ WorkQueue::Dequeuing::Concurrent, "UIDMap" };
 
@@ -193,8 +194,8 @@ public:
 };
 }
 
-static void getToolchainPrefixPath(llvm::SmallVectorImpl<char> &Path) {
-  std::string executablePath = llvm::sys::fs::getMainExecutable(
+static void getToolchainPrefixPath(toolchain::SmallVectorImpl<char> &Path) {
+  std::string executablePath = toolchain::sys::fs::getMainExecutable(
       "sourcekit",
       reinterpret_cast<void *>(&anchorForGetMainExecutableInXPCService));
   Path.append(executablePath.begin(), executablePath.end());
@@ -211,27 +212,20 @@ static void getToolchainPrefixPath(llvm::SmallVectorImpl<char> &Path) {
 
   // Get it to usr.
   for (unsigned i = 0; i < MainExeLibNestingLevel; ++i)
-    llvm::sys::path::remove_filename(Path);
+    toolchain::sys::path::remove_filename(Path);
 }
 
 static std::string getRuntimeLibPath() {
-  llvm::SmallString<128> path;
+  toolchain::SmallString<128> path;
   getToolchainPrefixPath(path);
-  llvm::sys::path::append(path, "lib");
+  toolchain::sys::path::append(path, "lib");
   return path.str().str();
 }
 
-static std::string getSwiftExecutablePath() {
-  llvm::SmallString<128> path;
+static std::string getCodiraExecutablePath() {
+  toolchain::SmallString<128> path;
   getToolchainPrefixPath(path);
-  llvm::sys::path::append(path, "bin", "swift-frontend");
-  return path.str().str();
-}
-
-static std::string getDiagnosticDocumentationPath() {
-  llvm::SmallString<128> path;
-  getToolchainPrefixPath(path);
-  llvm::sys::path::append(path, "share", "doc", "swift", "diagnostics");
+  toolchain::sys::path::append(path, "bin", "language-frontend");
   return path.str().str();
 }
 
@@ -345,9 +339,9 @@ static void getInitializationInfo(xpc_connection_t peer) {
   uint64_t Delay = xpc_dictionary_get_uint64(reply, xpc::KeySemaEditorDelay);
 
   if (Delay != 0) {
-    llvm::SmallString<4> Buf;
+    toolchain::SmallString<4> Buf;
     {
-      llvm::raw_svector_ostream OS(Buf);
+      toolchain::raw_svector_ostream OS(Buf);
       OS << Delay;
     }
     setenv("SOURCEKIT_DELAY_SEMA_EDITOR", Buf.c_str(), /*overwrite=*/1);
@@ -364,7 +358,7 @@ static void getInitializationInfo(xpc_connection_t peer) {
     sourcekitd::PluginInitParams pluginParams(
         /*isClientOnly=*/false, sourcekitd::pluginRegisterRequestHandler,
         sourcekitd::pluginRegisterCancellationHandler,
-        sourcekitd::pluginGetOpaqueSwiftIDEInspectionInstance());
+        sourcekitd::pluginGetOpaqueCodiraIDEInspectionInstance());
     sourcekitd::loadPlugins(registeredPlugins, pluginParams);
   });
 
@@ -408,7 +402,7 @@ static void fatal_error_handler(void *user_data, const char *reason,
 
 int main(int argc, const char *argv[]) {
   std::signal(SIGTERM, SIG_DFL);
-  llvm::install_fatal_error_handler(fatal_error_handler, 0);
+  toolchain::install_fatal_error_handler(fatal_error_handler, 0);
   sourcekitd::enableLogging("sourcekit-serv");
   sourcekitd_set_uid_handlers(
       ^sourcekitd_uid_t(const char *uidStr) {
@@ -417,8 +411,7 @@ int main(int argc, const char *argv[]) {
       ^const char *(sourcekitd_uid_t uid) {
         return xpcUIdentFromSKDUID(uid).c_str();
       });
-  sourcekitd::initializeService(getSwiftExecutablePath(), getRuntimeLibPath(),
-                                getDiagnosticDocumentationPath(),
+  sourcekitd::initializeService(getCodiraExecutablePath(), getRuntimeLibPath(),
                                 postNotification);
 
   // Increase the file descriptor limit.
@@ -431,11 +424,11 @@ int main(int argc, const char *argv[]) {
       if (setrlimit(RLIMIT_NOFILE, &l) == 0) {
         LOG_INFO_FUNC(Low, "bumped file descriptor limit to " << FDLimit);
       } else {
-        LOG_WARN_FUNC("setrlimit failed: " << llvm::sys::StrError());
+        LOG_WARN_FUNC("setrlimit failed: " << toolchain::sys::StrError());
       }
     }
   } else {
-    LOG_WARN_FUNC("getrlimit failed: " << llvm::sys::StrError());
+    LOG_WARN_FUNC("getrlimit failed: " << toolchain::sys::StrError());
   }
 
   auto msgHandlingQueueAttr = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,

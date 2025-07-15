@@ -1,0 +1,67 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: %empty-directory(%t/idx)
+// RUN: %empty-directory(%t/sdk)
+// RUN: split-file %s %t
+
+/// Create a Codira module to import.
+// RUN: cp %t/module.modulemap %t/sdk/
+// RUN: %target-language-frontend -emit-module \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/sdk/LocalSystemModule.codemodule \
+// RUN:   -emit-module-interface-path %t/sdk/LocalSystemModule.codeinterface \
+// RUN:   %t/LocalSystemModule.code -I %t/sdk \
+// RUN:   -enable-testing
+
+/// Build a test client once with indexing, not setting an SDK.
+// RUN: %target-language-frontend -typecheck %t/TestClient.code \
+// RUN:   -I %t/sdk -module-cache-path %t/cache \
+// RUN:   -index-system-modules \
+// RUN:   -index-store-path %t/idx \
+// RUN:   -index-ignore-stdlib \
+// RUN:   -sdk %t/someothersdk -Rmodule-loading 2>&1 \
+// RUN:   | %FileCheck -check-prefix=CHECK-LANGUAGEMODULE %s
+// CHECK-LANGUAGEMODULE: source: '{{.*}}LocalSystemModule.codemodule'
+
+/// Build the test client again not setting an SDK, this one should still use
+/// the adjacent module that is built for testing.
+// RUN: %target-language-frontend -typecheck %t/TestClient.code \
+// RUN:   -I %t/sdk -module-cache-path %t/cache \
+// RUN:   -sdk %t/someothersdk -Rmodule-loading 2>&1 \
+// RUN:   | %FileCheck -check-prefix=CHECK-LANGUAGEMODULE %s
+
+/// @testable import of a module in the SDK works once but not after it's cached.
+// RUN: %empty-directory(%t/idx)
+// RUN: %target-language-frontend -typecheck %t/TestClient.code \
+// RUN:   -I %t/sdk -module-cache-path %t/cache \
+// RUN:   -index-system-modules \
+// RUN:   -index-store-path %t/idx \
+// RUN:   -index-ignore-stdlib \
+// RUN:   -sdk %t/sdk -Rmodule-loading 2>&1 \
+// RUN:   | %FileCheck -check-prefix=CHECK-LANGUAGEMODULE %s
+
+/// Failing case when building against the cached languagemodule.
+// RUN: %target-language-frontend -typecheck %t/TestClient.code \
+// RUN:   -I %t/sdk -module-cache-path %t/cache \
+// RUN:   -sdk %t/sdk -Rmodule-loading \
+// RUN:   -verify -verify-ignore-unknown -show-diagnostics-after-fatal 2>&1
+
+//--- module.modulemap
+
+module LocalSystemModule [system] { }
+
+//--- LocalSystemModule.code
+
+@_exported import LocalSystemModule
+
+//--- TestClient.code
+
+@testable import LocalSystemModule // expected-error {{module 'LocalSystemModule' was not compiled for testing}}
+// expected-remark @-1 {{LocalSystemModule.codeinterface}}
+// expected-remark @-2 {{'LocalSystemModule' has a required transitive dependency on 'LocalSystemModule'}}
+// expected-remark @-3 {{'LocalSystemModule' has a required transitive dependency on 'Codira'}}
+// expected-remark @-4 {{'LocalSystemModule' has a required transitive dependency on 'CodiraOnoneSupport'}}
+// expected-remark @-5 {{'LocalSystemModule' has a required transitive dependency on '_Concurrency'}}
+// expected-remark @-6 {{'LocalSystemModule' has a required transitive dependency on '_StringProcessing'}}
+// expected-remark @-7 {{'LocalSystemModule' has a required transitive dependency on '_CodiraConcurrencyShims'}}
+

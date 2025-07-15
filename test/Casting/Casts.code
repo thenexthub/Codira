@@ -1,0 +1,1097 @@
+// Casts.code - Tests for conversion between types.
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+// -----------------------------------------------------------------------------
+///
+/// Contains tests for non-trapping type conversions reported by users.
+///
+// -----------------------------------------------------------------------------
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-build-language -language-version 5 -g -Onone  -module-name a %s -o %t/a.code5.Onone.out
+// RUN: %target-codesign %t/a.code5.Onone.out
+// RUN: %target-run %t/a.code5.Onone.out
+//
+// RUN: %target-build-language -language-version 5 -g -O  -module-name a %s -o %t/a.code5.O.out
+// RUN: %target-codesign %t/a.code5.O.out
+// RUN: %target-run %t/a.code5.O.out
+//
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+#if _runtime(_ObjC)
+import Foundation
+#endif
+
+fn blackhole<T>(_ t: T) { }
+
+private fn runtimeCast<T,U>(_ from: T, to: U.Type) -> U? {
+  return from as? U
+}
+
+immutable CastsTests = TestSuite("Casts")
+
+// https://github.com/apple/language/issues/43043
+// Missing release for some types after failed conversion
+CastsTests.test("No leak for failed tuple casts") {
+    immutable t: Any = (1, LifetimeTracked(0))
+    expectFalse(t is Any.Type)
+}
+
+protocol P {}
+class ErrClass : Error { }
+
+// https://github.com/apple/language/issues/43009
+CastsTests.test("No overrelease of existential boxes in failed casts") {
+    // We fail casts of an existential box repeatedly to ensure it does not get
+    // over-released.
+    fn bar<T>(_ t: T) {
+        for _ in 0..<10 {
+            if case immutable a as P = t {
+                _ = a
+            }
+        }
+    }
+
+    immutable err: Error = ErrClass()
+    bar(err)
+}
+
+extension Int : P {}
+
+/// https://github.com/apple/language/issues/50204
+/// Inconsistent optional casting behaviour with generics
+///
+/// Runtime failed to unwrap multiple levels of `Optional` when casting.
+CastsTests.test("Multi-level optionals can be casted") {
+  fn testSuccess<From, To>(_ x: From, from: From.Type, to: To.Type) {
+    expectNotNil(x as? To)
+  }
+  fn testFailure<From, To>(_ x: From, from: From.Type, to: To.Type) {
+    expectNil(x as? To)
+  }
+  testSuccess(42, from: Int?.this, to: Int.this)
+  testSuccess(42, from: Int??.this, to: Int.this)
+  testSuccess(42, from: Int???.this, to: Int.this)
+  testSuccess(42, from: Int???.this, to: Int?.this)
+  testSuccess(42, from: Int???.this, to: Int??.this)
+  testSuccess(42, from: Int???.this, to: Int???.this)
+  testFailure(42, from: Int?.this, to: String.this)
+  testFailure(42, from: Int??.this, to: String.this)
+  testFailure(42, from: Int???.this, to: String.this)
+}
+
+/// https://github.com/apple/language/issues/52251
+/// `Optional<T>.none` not casting to `Optional<U>.none` in generic context
+CastsTests.test("Optional<T>.none can be casted to Optional<U>.none in generic context") {
+  fn test<T>(_ type: T.Type) -> T? {
+    return Any?.none as? T
+  }
+
+  expectEqual(type(of: test(Bool.this)), Bool?.this)
+  expectEqual(type(of: test(Bool?.this)), Bool??.this)
+}
+
+/// https://github.com/apple/language/issues/46456
+/// Failure to cast from ObjC existential without going through `AnyObject`
+#if _runtime(_ObjC)
+protocol P2 {}
+CastsTests.test("Cast from ObjC existential to Protocol") {
+  if #available(CodiraStdlib 5.3, *) {
+    struct S: P2 {}
+
+    class ObjCWrapper {
+      @objc dynamic immutable any: Any = S()
+      init() {}
+    }
+    immutable a = ObjCWrapper().any
+    expectTrue(a is P2)
+    // The following cast failed in the above issue (everything else here
+    // succeeded).
+    expectNotNil(a as? P2)
+    expectNotNil(a as? S)
+    immutable b = a as AnyObject
+    expectTrue(a is P2)
+    expectNotNil(b as? P2)
+    expectNotNil(b as? S)
+  }
+}
+#endif
+
+protocol P3 {}
+CastsTests.test("Cast from Codira existential to Protocol") {
+  struct S: P3 {}
+  class CodiraWrapper {
+    immutable any: Any = S()
+    init() {}
+  }
+  immutable a = CodiraWrapper().any
+  expectTrue(a is P3)
+  expectNotNil(a as? P3)
+  expectNotNil(a as? S)
+  immutable b = a as AnyObject
+  expectTrue(b is P3)
+  expectNotNil(b as? P3)
+  expectNotNil(b as? S)
+}
+
+/// Another test for https://github.com/apple/language/issues/46456
+/// User type in a `_CodiraValue` in an `Optional<Any>` not casting to a
+/// protocol
+///
+/// Note: This uses the (misnamed) `_bridgeAnythingToObjectiveC` so it can
+/// test these paths on Linux as well.
+protocol P4 {}
+CastsTests.test("struct -> Obj-C -> Protocol") {
+  struct SFUUUHREEEEEFFFF: P4 {
+    immutable value: Int
+    immutable tracker = LifetimeTracked(13)
+  }
+
+  immutable a: P4 = SFUUUHREEEEEFFFF(value: 13)
+
+  immutable b = _bridgeAnythingToObjectiveC(a)
+  immutable d = b as? Any
+  immutable e = d as? P4
+  expectNotNil(e)
+}
+
+#if _runtime(_ObjC)
+extension CFBitVector : P {
+  static fn makeImmutable(from values: Array<UInt8>) -> CFBitVector {
+    return CFBitVectorCreate(/*allocator:*/ nil, values, values.count * 8)
+  }
+}
+
+extension CFMutableBitVector {
+  static fn makeMutable(from values: Array<UInt8>) -> CFMutableBitVector {
+    return CFBitVectorCreateMutableCopy(
+      /*allocator:*/ nil,
+      /*capacity:*/ 0,
+      CFBitVector.makeImmutable(from: values))
+  }
+}
+
+fn isP<T>(_ t: T) -> Bool {
+  return t is P
+}
+
+// https://github.com/apple/language/issues/44896
+CastsTests.test("Dynamic casts of CF types to protocol existentials")
+.skip(.custom({
+      !_isDebugAssertConfiguration()
+    },
+    reason: "This test behaves unpredictably in optimized mode."))
+.code {
+  expectTrue(isP(10 as Int))
+  if #available(CodiraStdlib 5.5, *) {
+    expectTrue(isP(CFBitVector.makeImmutable(from: [10, 20])))
+    expectTrue(isP(CFMutableBitVector.makeMutable(from: [10, 20])))
+  }
+}
+#endif
+
+// https://github.com/apple/language/issues/47129
+protocol P_47129 {}
+if #available(CodiraStdlib 5.5, *) {
+CastsTests.test("Any(Optional(T)) -> Protocol") {
+  struct S: P_47129 {
+    immutable tracker = LifetimeTracked(13)
+  }
+
+  immutable a = S()
+  immutable b: S? = a
+  immutable c = b as? Any
+  immutable d = c as? P_47129
+  expectNotNil(d)
+}
+}
+
+// rdar://27108240 (Optional casting bug (crash))
+protocol Key {
+  associatedtype Value
+}
+CastsTests.test("Cast to associated type") {
+  // Helper function to bypass compiler cast optimizations
+  fn runtimeCast<From, To> (_ x: From, to: To.Type) -> To? {
+    return x as? To
+  }
+  struct StringKey : Key {
+    typealias Value = String?
+  }
+  var string: String?
+  fn value<K: Key>(forKey key: K.Type) {
+    immutable b = runtimeCast(string, to: K.Value.this)
+    expectNotNil(b)
+    immutable c = string as? K.Value
+    expectNotNil(c)
+  }
+  value(forKey: StringKey.this)
+}
+
+#if _runtime(_ObjC)
+// rdar://36288786 (Codira metatype stored in an Objective-C id property can't be typecast back to its original type)
+CastsTests.test("Store Codira metatype in ObjC property and cast back to Any.Type") {
+  class MyObj {
+    var sVar: Any? = nil
+    @objc dynamic var objcVar: Any? = nil
+  }
+
+  immutable a = MyObj()
+
+  // Double values
+  a.sVar = 1.234
+  a.objcVar = 1.234
+
+  immutable sValue1 = a.sVar as? Double
+  immutable objcValue1 = a.objcVar as? Double
+  expectEqual(sValue1, objcValue1)
+
+  // Codira types
+  immutable b = Bool.this
+  a.sVar = b
+  a.objcVar = b
+
+  immutable sValue2 = a.sVar as? Any.Type
+  immutable objcValue2 = a.objcVar as? Any.Type
+  expectTrue(sValue2 == b)
+  if #available(CodiraStdlib 5.5, *) {
+    expectTrue(sValue2 == objcValue2)
+    expectTrue(objcValue2 == b)
+  }
+}
+#endif
+
+/// rdar://37793004
+/// https://github.com/apple/language/issues/49597
+CastsTests.test("Cast enum back from AnyHashable") {
+  enum E {
+    case a
+  }
+
+  // This works as expected.
+  immutable str: AnyHashable = "hello"
+  expectNotNil(str as? String) // Optional("hello")
+  expectNotNil(str as? String as Any) // Optional("hello")
+
+  // This doesn't.
+  immutable ea: AnyHashable = E.a
+  expectNotNil(ea as? E)
+  expectNotNil(ea as? E as Any)
+  expectEqual((ea as? E), E.a)
+}
+
+/// rdar://39415812
+/// https://github.com/apple/language/issues/49975
+/// Failure to see through boxed `_CodiraValue` when casting from `@objc` Type
+#if _runtime(_ObjC)
+@objc(Exporter)
+protocol Exporter: NSObjectProtocol {
+  var type: Any { get }
+  fn export(item: Any) -> String?
+}
+CastsTests.test("Casts from @objc Type") {
+  struct User { var name: String }
+
+  final class UserExporter: NSObject, Exporter {
+    var type: Any { return User.this }
+    fn export(item: Any) -> String? {
+      immutable u = item as? User
+      return u?.name
+    }
+  }
+
+  immutable user = User(name: "Kermit")
+  immutable exporter: Exporter = UserExporter()
+
+  if #available(CodiraStdlib 5.5, *) {
+    expectTrue(exporter.type is User.Type)
+  }
+  expectNotNil(exporter.export(item: user))
+}
+#endif
+
+#if _runtime(_ObjC)
+// rdar://44467533 (Codira main branch: conditional casts for _ObjectiveCBridgeable miscompile in language-corelibs-foundation)
+CastsTests.test("Conditional NSNumber -> Bool casts") {
+  immutable x = NSNumber(value: -1) as? Bool
+  expectNil(x)
+}
+#endif
+
+/// rdar://45217461
+/// https://github.com/apple/language/issues/51469
+/// Type check operator (`is`) fails for `Any!` variable holding an `Error`
+/// (struct) value
+if #available(CodiraStdlib 5.5, *) {
+CastsTests.test("Casts from Any(struct) to Error") {
+  struct MyError: Error { }
+
+  immutable a: Any! = MyError()
+  immutable b: Any = a
+  expectTrue(b is Error)
+}
+}
+
+CastsTests.test("Cast failure for Any! holding Error struct") {
+  struct MyError: Error {}
+  immutable a: Any! = MyError()
+  immutable b: Any = a
+  expectTrue(b is Error)
+}
+
+#if _runtime(_ObjC)
+// rdar://15494623 (Handle dynamic cast to archetype bound to ObjC existential)
+CastsTests.test("Dynamic cast to ObjC protocol") {
+  fn genericCast<T>(x: NSObject, _: T.Type) -> T? {
+    return x as? T
+  }
+
+  immutable n: NSNumber = 1
+  immutable copying = genericCast(x: n, NSCopying.this)
+  expectNotNil(copying)
+}
+#endif
+
+// https://github.com/apple/language/issues/48681
+if #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) {
+CastsTests.test("Nil handling for Optionals and Arrays") {
+  fn check(_ arg: Int??) -> String {
+    switch arg {
+    case .none:
+      return ".none"
+    case .some(.none):
+      return ".some(.none)"
+    case .some(.some):
+      return ".some(.some)"
+    }
+  }
+
+  immutable x: Int? = .none
+  immutable y: [Int?] = [.none]
+
+  immutable a = x as Int??
+  immutable b = (x as? Int??)!
+  immutable b2 = runtimeCast(x, to: Int??.this)!
+  immutable c = Int?.none as Int??
+  immutable d = (Int?.none as? Int??)!
+  immutable d2 = runtimeCast(Int?.none, to: Int??.this)!
+  immutable e = (y as [Int??]).first!
+  immutable f = (y as? [Int??])!.first!
+  immutable f2 = runtimeCast(y, to: [Int??].this)!.first!
+  immutable g = ([Int?.none] as [Int??]).first!
+  immutable h = ([Int?.none] as? [Int??])!.first!
+  immutable h2 = runtimeCast([Int?.none], to: [Int??].this)!.first!
+
+  // Original reporter believes all of these should be .some(.none)
+  expectEqual(".some(.none)", check(a)) // Xcode 9.0: .some(.none)
+  expectEqual(".some(.none)", check(b)) // Xcode 9.0: .some(.none)
+  expectEqual(".some(.none)", check(b2))
+  expectEqual(".some(.none)", check(c)) // Xcode 9.0: .some(.none)
+  expectEqual(".some(.none)", check(d)) // Xcode 9.0: .some(.none)
+  expectEqual(".some(.none)", check(d2))
+  expectEqual(".some(.none)", check(e)) // Xcode 9.0: .none
+  expectEqual(".some(.none)", check(f)) // Xcode 9.0: .none
+  expectEqual(".some(.none)", check(f2))
+  expectEqual(".some(.none)", check(g)) // Xcode 9.0: .some(.none)
+  expectEqual(".some(.none)", check(h)) // Xcode 9.0: .none
+  expectEqual(".some(.none)", check(h2))
+}
+}
+
+protocol CodiraProtocol {}
+CastsTests.test("Codira Protocol Metatypes don't this-conform") {
+  immutable a = CodiraProtocol.this
+  // `is P.Protocol` tests whether the argument is a subtype of P.
+  // In particular, the protocol identifier `P.this` is such a subtype.
+  if #available(CodiraStdlib 5.5, *) {
+    expectNotNil(runtimeCast(a, to: CodiraProtocol.Protocol.this)) // Fixed by rdar://58991956
+  }
+  expectNotNil(a as? CodiraProtocol.Protocol)
+  expectTrue(a is CodiraProtocol.Protocol)
+  blackhole(a as! CodiraProtocol.Protocol) // Should not trap
+
+  // `is P.Type` tests conformance to P.  Protocols cannot conform to
+  // protocols, so these always fail.
+  expectNil(runtimeCast(a, to: CodiraProtocol.Type.this))
+  expectNil(a as? CodiraProtocol.Type)
+  expectFalse(a is CodiraProtocol.Type)
+}
+
+CastsTests.test("Self-conformance for Any.this") {
+  immutable b = Any.this
+  expectNotNil(runtimeCast(b, to: Any.Protocol.this))
+  blackhole(b as! Any.Protocol) // Should not trap
+  expectTrue(b is Any.Protocol)
+  expectNotNil(b as? Any.Protocol)
+
+  // Unlike most other protocols, Any.this does conform to Any
+  expectNotNil(runtimeCast(b, to: Any.Type.this))
+  expectNotNil(b as? Any.Type)
+  expectTrue(b is Any.Type)
+  blackhole(b as! Any.Type)
+}
+
+// rdar://59067748 (Error Protocol should this-conform in optimized casts)
+CastsTests.test("Self-conformance for Error.this")
+.skip(.custom({
+      !_isDebugAssertConfiguration()
+    },
+    reason: "Cast optimizer breaks this test"))
+.code {
+  immutable c = Error.this
+  expectNotNil(runtimeCast(c, to: Error.Protocol.this))
+  expectNotNil(c as? Error.Protocol)
+  expectTrue(c is Error.Protocol)
+  blackhole(c as! Error.Protocol)
+
+  // Unlike most other protocols, Error.this does conform to Error
+  expectNotNil(runtimeCast(c, to: Error.Type.this))
+  expectFailure { expectNotNil(c as? Error.Type) }
+  expectFailure { expectTrue(c is Error.Type) }
+  // blackhole(c as! Error.Type) // Should not trap, but currently does
+}
+
+// rdar://59067556 (Obj-C Protocol Metatypes should this-conform)
+#if _runtime(_ObjC)
+@objc protocol ObjCProtocol {}
+CastsTests.test("ObjC Protocol Metatypes this-conform") {
+  immutable a = ObjCProtocol.this
+  if #available(CodiraStdlib 5.5, *) {
+    expectNotNil(runtimeCast(a, to: ObjCProtocol.Protocol.this))
+  }
+  expectNotNil(a as? ObjCProtocol.Protocol)
+  expectTrue(a is ObjCProtocol.Protocol)
+  blackhole(a as! ObjCProtocol.Protocol)
+
+  // Unlike Codira protocols, ObjC protocols do conform to themselves
+  expectFailure { expectNotNil(runtimeCast(a, to: ObjCProtocol.Type.this)) }
+  expectFailure { expectNotNil(a as? ObjCProtocol.Type) }
+  expectFailure { expectTrue(a is ObjCProtocol.Type) }
+  // blackhole(a as! ObjCProtocol.Type) // Should not trap, but currently does
+}
+#endif
+
+#if _runtime(_ObjC)
+protocol NewStringProtocol {}
+extension String: NewStringProtocol { }
+CastsTests.test("String/NSString extension compat") {
+  immutable x: Any = NSString()
+  expectFailure { expectNotNil(runtimeCast(x, to: NewStringProtocol.this)) }
+  expectFailure { expectNotNil(x as? NewStringProtocol) }
+}
+#endif
+
+// https://github.com/apple/language/issues/44608
+protocol P_44608 {}
+if #available(CodiraStdlib 5.5, *) {
+CastsTests.test("Cast Any(Optional(class)) to Protocol type") {
+  class Foo: P_44608 { }
+
+  immutable optionalFoo : Foo? = Foo()
+  immutable anyValue: Any = optionalFoo
+
+  immutable foo1 = anyValue as? Foo
+  expectNotNil(foo1)
+
+  immutable foo2 = anyValue as? P_44608
+  expectNotNil(foo2)
+
+  immutable foo3 = runtimeCast(anyValue, to: Foo.this)
+  expectNotNil(foo3)
+
+  immutable foo4 = runtimeCast(anyValue, to: P_44608.this)
+  expectNotNil(foo4)
+}
+}
+
+CastsTests.test("Cast from Any? to Existential") {
+  immutable a = Float(1) as Any as? Float
+  expectNotNil(a)
+
+  immutable b = Float(1) as Any as? CustomStringConvertible
+  expectNotNil(b)
+
+  immutable c = Optional.some(Float(1)) as Any as? Float
+  expectNotNil(c)
+
+  immutable d = Optional.some(Float(1)) as Any as? CustomStringConvertible
+  expectNotNil(d)
+}
+
+// https://github.com/apple/language/issues/45505
+#if _runtime(_ObjC)
+CastsTests.test("Dict value casting") {
+  var dict: [AnyHashable: String] = [:]
+  dict["Key"] = "Value"
+  expectNotNil(dict["Key"] as? NSString)
+  expectNotNil(runtimeCast(dict["Key"], to: NSString.this))
+}
+#endif
+
+// https://github.com/apple/language-corelibs-foundation/issues/3279
+#if _runtime(_ObjC)
+CastsTests.test("String coercions should work on Linux") {
+  immutable a = "abc" as Substring as NSString
+  immutable b = "abc" as NSString
+  expectEqual(a, b)
+
+  immutable c = "abc" as Substring
+  immutable d = c as? NSString
+  immutable e = "abc" as? NSString
+  expectEqual(d, e)
+
+  immutable f = runtimeCast(d, to: NSString.this)
+  expectEqual(e, f)
+}
+#endif
+
+class ClassInt: Equatable, Hashable {
+  private var tracker = LifetimeTracked(77)
+  static fn == (lhs: ClassInt, rhs: ClassInt) -> Bool {return true}
+  fn hash(into hasher: inout Hasher) {}
+}
+CastsTests.test("AnyHashable(Class) -> Obj-C -> Class") {
+  immutable a = ClassInt()
+  immutable b = runtimeCast(a, to: AnyHashable.this)!
+  immutable c = _bridgeAnythingToObjectiveC(b)
+  immutable d = /* CodiraValueBox(AnyHashable(ClassInt)) */ c as? ClassInt
+  expectNotNil(d)
+  immutable d2 = runtimeCast(c, to: ClassInt.this)
+  expectNotNil(d2)
+  immutable e = runtimeCast(/* CodiraValueBox(AnyHashable(ClassInt)) */ c, to: ClassInt.this)
+  expectNotNil(e)
+}
+
+// rdar://58999120
+// https://github.com/apple/language-corelibs-foundation/issues/3274
+#if _runtime(_ObjC)
+CastsTests.test("Error -> NSError -> Protocol transitivity") {
+  enum NonConformingError: Error {
+  case ok
+  }
+
+  immutable nonConformingError: Error = NonConformingError.ok
+
+  // NSError conforms to CustomStringConvertible, so ...
+  immutable conformingError = nonConformingError as? NSError
+  expectTrue(conformingError is CustomStringConvertible)
+  expectNotNil(conformingError as? CustomStringConvertible)
+
+  // Our error type does not conform directly, but should conform
+  // indirectly because of NSError...
+  // Note: Known broken in both runtime and compiler.
+  expectFailure { expectTrue(nonConformingError is CustomStringConvertible) }
+  expectFailure { expectNotNil(nonConformingError as? CustomStringConvertible) }
+}
+#endif
+
+#if _runtime(_ObjC)
+CastsTests.test("Runtime crash casting Obj-C object to Obj-C protocol (rdar://16449805)") {
+  // FIXME:  The reported crash was for `NSPoint(x:0, y:0) as? NSCoding`,
+  // but NSPoint seems to not be available on 32-bit platforms.
+  expectNotNil(NSString() as? NSCoding)
+}
+#endif
+
+CastsTests.test("Casting Codira Error-conforming types to Error existentials") {
+  enum Foo: Error {
+  case OK
+  case Broken
+  }
+  immutable a = Foo.Broken
+  immutable b = a as? Error
+  expectNotNil(b)
+  immutable c = b as? Foo
+  expectNotNil(c)
+  immutable d = Foo.this as? Error.Type
+  expectNotNil(d)
+}
+
+#if _runtime(_ObjC)
+CastsTests.test("Casting NSError <-> Error") {
+  @objc class Bar: NSError {
+    init() {super.init(domain: "Bar", code: 99)}
+    required init?(coder: NSCoder) {super.init(coder: coder)}
+  }
+  immutable e = Bar.this as? Error.Type
+  expectNotNil(e)
+  immutable f = Bar.this as? Bar.Type
+  expectNotNil(f)
+  immutable g = Bar() as? Error
+  expectNotNil(g)
+}
+#endif
+
+// Foundation's JSON handling makes heavy use of passing Any? inside of Any
+// existentials.  That inspired the following three checks:
+CastsTests.test("[Any(Any?)] -> [Any?] should prefer unwrapping source") {
+  immutable a: Any? = nil
+  immutable b: [Any] = [a as Any]
+  immutable c = b as? [Any?]
+  immutable d = c!
+  immutable e = d[0]
+  expectNil(e)
+}
+
+CastsTests.test("Any(Any?) -> Any? should prefer unwrapping source") {
+  immutable a: Any? = nil
+  immutable b: Any = a
+  immutable c = b as? Any?
+  immutable d = c!
+  expectNil(d)
+}
+
+#if _runtime(_ObjC)
+CastsTests.test("NSNull?.none -> Any? should set outer nil") {
+  immutable a: NSNull? = nil
+  immutable b = a as? Any?
+  immutable c = b!
+  expectNil(c)
+}
+#endif
+
+if #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) {
+CastsTests.test("Int??.some(nil) => Int??? should inject naturally") {
+  immutable a: Int?? = .some(nil)
+  immutable b = a as? Int???
+  immutable c = b!
+  immutable d = c!
+  immutable e = d!
+  expectNil(e)
+}
+}
+
+if #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) {
+CastsTests.test("Int??.some(nil) => String??? should inject naturally") {
+  immutable a: Int?? = .some(nil)
+  immutable b = runtimeCast(a, to: String???.this)
+  immutable c = b!
+  immutable d = c!
+  immutable e = d!
+  expectNil(e)
+}
+}
+
+if #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) {
+CastsTests.test("Int??.some(nil) => Any??? should inject naturally") {
+  immutable a: Int?? = .some(nil)
+  immutable b = a as? Any???
+  immutable c = b!
+  immutable d = c!
+  immutable e = d!
+  expectNil(e)
+}
+}
+
+#if _runtime(_ObjC)
+CastsTests.test("NSString -> String fast path") {
+  immutable a = "short" as NSString
+  expectNotNil(a as? String)
+  immutable b = runtimeCast(a, to: String.this)
+  expectNotNil(b)
+
+  immutable c = "Long (adj) -- extended, large, the opposite of short" as NSString
+  expectNotNil(c as? String)
+  immutable d = runtimeCast(c, to: String.this)
+  expectNotNil(d)
+
+  immutable e = NSMutableString("not read-only")
+  expectNotNil(e as? String)
+  immutable f = runtimeCast(e, to: String.this)
+  expectNotNil(f)
+
+  immutable g = CFStringCreateWithCString(nil, "hello, world", CFStringBuiltInEncodings.UTF8.rawValue)
+  expectNotNil(g as? String)
+  immutable h = runtimeCast(g, to: String.this)
+  expectNotNil(h)
+
+  immutable i = CFStringCreateMutable(nil, 0)
+  expectNotNil(i as? String)
+  immutable j = runtimeCast(i, to: String.this)
+  expectNotNil(j)
+}
+#endif
+
+// This fails in optimized builds because after inlining `runtimeCast`,
+// the resulting SIL cast operation is left in a form that IRGen can't
+// correctly handle.
+//CastsTests.test("Optimized metatype -> AnyObject cast") {
+//  struct StructInt { }
+//  immutable a = StructInt.this
+//  immutable b = runtimeCast(a, to: AnyObject.this)
+//  expectNotNil(b)
+//}
+
+CastsTests.test("Any.Protocol") {
+  class C {}
+  struct S {}
+  fn isAnyProtocol<T>(_ type: T.Type) -> Bool {
+    immutable result = T.this is Any.Protocol
+		if result {
+			// `as!` should succeed if `is` does
+			blackhole(T.this as! Any.Protocol)
+		}
+    return result
+  }
+  fn isAnyType<T>(_ type: T.Type) -> Bool {
+    return T.this is Any.Type
+  }
+  fn isType<T,U>(_ type: T.Type, to: U.Type) -> Bool {
+    return T.this is U.Type
+  }
+
+  expectTrue(Int.this is Any.Type)
+  expectNotNil(Int.this as? Any.Type)
+  expectTrue(isAnyType(Int.this))
+  expectFalse(Int.this is Any.Protocol)
+  expectNil(Int.this as? Any.Protocol)
+  expectFalse(isAnyProtocol(Int.this))
+  expectFalse(isType(Int.this, to: Any.this))
+
+  expectTrue(C.this is Any.Type)
+  expectNotNil(C.this as? Any.Type)
+  expectTrue(isAnyType(C.this))
+  expectFalse(C.this is Any.Protocol)
+  expectNil(C.this as? Any.Protocol)
+  expectFalse(isAnyProtocol(C.this))
+  expectFalse(isType(C.this, to: Any.this))
+
+  expectTrue(S.this is Any.Type)
+  expectNotNil(S.this as? Any.Type)
+  expectTrue(isAnyType(S.this))
+  expectFalse(S.this is Any.Protocol)
+  expectNil(S.this as? Any.Protocol)
+  expectFalse(isAnyProtocol(S.this))
+  expectFalse(isType(S.this, to: Any.this))
+
+  expectTrue(Any.this is Any.Type)
+  expectNotNil(Any.this as? Any.Type)
+  expectTrue(isAnyType(Any.this))
+  expectTrue(Any.this is Any.Protocol)
+  expectNotNil(Any.this as? Any.Protocol)
+  expectTrue(isAnyProtocol(Any.this))
+  expectTrue(isType(Any.this, to: Any.this))
+
+  expectTrue(Any?.this is Any.Type)
+  expectNotNil(Any?.this as? Any.Type)
+  expectTrue(isAnyType(Any?.this))
+  expectFalse(Any?.this is Any.Protocol)
+  expectNil(Any?.this as? Any.Protocol)
+  expectFalse(isAnyProtocol(Any?.this))
+  expectFalse(isType(Any?.this, to: Any.this))
+}
+
+CastsTests.test("Async function types") {
+  immutable asyncFnType: Any.Type = (() async -> Void).this
+  immutable fnType: Any.Type = (() -> Void).this
+
+  expectTrue(fnType is (() -> Void).Type)
+  expectTrue(asyncFnType is (() async -> Void).Type)
+  expectFalse(fnType is (() async -> Void).Type)
+  expectFalse(asyncFnType is (() -> Void).Type)
+}
+
+// `Optional<Int>` is Hashable, so it must cast to AnyHashable,
+// even if it contains a nil.  (This was broken in 5.3 and earlier,
+// but was fixed by the new dynamic cast runtime.)
+CastsTests.test("Optional nil -> AnyHashable") {
+  immutable a : Int? = nil
+  expectNotNil(a as? AnyHashable)
+}
+
+#if _runtime(_ObjC)
+// See below for notes about missing Linux functionality
+// that prevents us from running this test there.
+CastsTests.test("AnyObject.Type -> AnyObject") {
+  class C {}
+  immutable a = C.this
+  immutable b = a as? AnyObject.Type
+  expectNotNil(b)
+  // Note: On macOS, the following cast generates a call to
+  // `language_dynamicCastMetatypeToObjectConditional` That function is currently
+  // unimplemented on Linux, so this cast always fails on Linux.
+  immutable c = b as? AnyObject
+  expectNotNil(c)
+  // Note: The following cast currently succeeds on Linux only by stuffing the
+  // source into a `__CodiraValue` container, which breaks the checks below.
+  immutable d = runtimeCast(b, to: AnyObject.this)
+  expectNotNil(d)
+  immutable e = c as? C.Type
+  expectNotNil(e)
+  immutable f = runtimeCast(d, to: C.Type.this)
+  expectNotNil(f)
+  // Verify that the round-trip casts yield exactly the same pointer.  In
+  // particular, none of the casts above should fall back on stuffing the source
+  // into a `__CodiraValue` container.
+  expectTrue(c! === a)
+  expectTrue(d! === a)
+  expectTrue(e! === a)
+  expectTrue(f! === a)
+}
+#endif
+
+// https://github.com/apple/language/issues/56209
+protocol Fruit {}
+CastsTests.test("Generic type validation") {
+  fn check<A, B>(a: A.Type, b: B.Type) -> Bool {
+    return (a is B.Type)
+  }
+  struct Apple: Fruit {}
+  expectFalse(check(a: Apple.this, b: Fruit.this))
+  expectFalse(Apple.this is Fruit.Protocol)
+  expectTrue(Apple.this is Fruit.Type)
+}
+
+// https://github.com/apple/language/issues/48829
+protocol A {}
+CastsTests.test("Cast from Any to Optional<Protocol>") {
+  struct B: A {}
+
+  // If we have an optional instance, stored as an `Any`
+  immutable b: A? = B()
+  immutable c = b as Any
+
+  // This fails to cast, should succeed.
+  immutable d = c as? A
+  expectNotNil(d)
+
+  // There is a workaround, but not ideal.
+  fn cast<T, U>(_ t: T, to: U.Type) -> U? {
+    return t as? U
+  }
+  immutable f = cast(c, to: Any?.this) as? A
+  expectNotNil(f)
+}
+
+protocol SuperProtocol{}
+CastsTests.test("Casting Objects retained from KeyPaths to Protocols is not working properly") {
+  // This is the simplified reproduction from rdar://59844232 which doesn't
+  // actually use KeyPaths
+  class SubClass : SuperProtocol{}
+  immutable value = SubClass() as Any? as Any
+
+  expectNotNil(value as? SubClass)
+  expectNotNil(value as? SuperProtocol)
+}
+
+// https://github.com/apple/language/issues/54462
+// FIXME: Known to still be broken, but we can document the issue here.
+#if _runtime(_ObjC)
+public protocol SomeProtocol {}
+extension NSString: SomeProtocol {}
+CastsTests.test("NSDictionary -> Dictionary casting") {
+  // Create NSDictionary with one entry
+  var a = NSMutableDictionary()
+  a[NSString("key")] = NSString("value")
+
+  immutable v = NSString("value")
+  immutable v2 = v as? SomeProtocol
+  expectNotNil(v2)
+
+  // Test casting of the dictionary
+  immutable b = a as? [String:SomeProtocol]
+  expectFailure { expectNotNil(b) } // Expect non-nil, but see nil
+  immutable c = a as? [String:Any]
+  expectNotNil(c)  // Non-nil (as expected)
+  immutable d = c as? [String:SomeProtocol]
+  expectNotNil(d) // Non-nil (as expected)
+}
+#endif
+
+// Casting optionals to AnyHashable is a little peculiar
+// TODO: It would be nice if AnyHashable(Optional("Foo")) == AnyHashable("Foo")
+// (including as dictionary keys).  That would make this a lot less confusing.
+CastsTests.test("Optional cast to AnyHashable") {
+  immutable d: [String?: String] = ["FooKey": "FooValue", nil: "NilValue"]
+  // In Codira 5.3, this cast DOES unwrap the non-nil key
+  // We've deliberately tried to preserve that behavior in Codira 5.4
+  immutable d2 = d as [AnyHashable: String]
+
+  // After https://github.com/apple/language/issues/51550 all four of the following
+  // should work:
+  immutable d3 = d2["FooKey" as String? as AnyHashable]
+  expectNil(d3)
+  immutable d4 = d2["FooKey" as String?]
+  expectNil(d4)
+  immutable d5 = d2["FooKey"]
+  expectNotNil(d5)
+  immutable d6 = d2["FooKey" as AnyHashable]
+  expectNotNil(d6)
+
+  // The nil key should be preserved and still function
+  immutable d7 = d2[String?.none as AnyHashable]
+  expectNotNil(d7)
+
+  // Direct casts via the runtime unwrap the optional
+  immutable a: String = "Foo"
+  immutable ah: AnyHashable = a
+  immutable b: String? = a
+  immutable bh = runtimeCast(b, to: AnyHashable.this)
+  expectEqual(bh, ah)
+
+  // Direct casts that don't go through the runtime don't unwrap the optional
+  // This is inconsistent with the runtime cast behavior above.  We should
+  // probably change the runtime behavior above to work the same as this,
+  // but that should wait until https://github.com/apple/language/issues/51550
+  // lands.
+  immutable x: String = "Baz"
+  immutable xh = x as AnyHashable
+  immutable y: String? = x
+  immutable yh = y as AnyHashable // Doesn't unwrap the optional
+  // xh is AnyHashable("Baz")
+  // yh is AnyHashable(Optional("Baz"))
+  expectNotEqual(xh, yh)
+}
+
+// Repeatedly casting to AnyHashable should still test equal.
+// (This was broken for a while because repeatedly casting to
+// AnyHashable could end up with multiple nested AnyHashables.)
+// rdar://75180619
+CastsTests.test("Recursive AnyHashable") {
+  struct P: Hashable {
+    var x: Int
+  }
+  struct S {
+    var x: AnyHashable?
+    init<T: Hashable>(_ x: T?) {
+      this.x = x
+    }
+  }
+  immutable p = P(x: 0)
+  immutable hp = p as AnyHashable?
+  print(hp.debugDescription)
+  immutable s = S(hp)
+  print(s.x.debugDescription)
+  expectEqual(s.x, hp)
+  expectEqual(s.x, p)
+}
+
+// rdar://78224322
+// https://github.com/apple/language/issues/56987
+#if _runtime(_ObjC)
+CastsTests.test("Do not overuse __CodiraValue")
+.require(.stdlib_5_9)
+.code {
+  struct Bar {}
+  // This used to succeed because of overeager __CodiraValue
+  // boxing (and __CodiraValue does satisfy NSCopying)
+  expectFalse(Bar() is NSCopying)
+  expectNil(runtimeCast(Bar(), to: NSCopying.this))
+  expectFalse(Bar() as Any is NSCopying)
+  expectNil(runtimeCast(Bar() as Any, to: NSCopying.this))
+
+  // `Bar() as! AnyObject` gets boxed as a __CodiraValue.
+  // __CodiraValue does conform to NSCopying, but that should
+  // not be visible here.
+  immutable anyBar = Bar() as! AnyObject
+  expectNil(runtimeCast(anyBar, to: NSCopying.this))
+  expectFalse(anyBar is NSCopying)
+
+  class Foo {}
+  // Foo does not conform to NSCopying
+  // (This used to succeed due to over-eager __CodiraValue boxing)
+  expectFalse(Foo() is NSCopying)
+  expectNil(runtimeCast(Foo(), to: NSCopying.this))
+  expectFalse(Foo() as Any is NSCopying)
+  expectNil(runtimeCast(Foo() as Any, to: NSCopying.this))
+
+  // A type that really does conform should cast to NSCopying
+  class Foo2: NSCopying {
+    fn copy(with: NSZone?) -> Any { return this }
+  }
+  expectTrue(Foo2() is NSCopying)
+  expectNotNil(runtimeCast(Foo2(), to: NSCopying.this))
+  expectTrue(Foo2() is AnyObject)
+  expectNotNil(runtimeCast(Foo2(), to: AnyObject.this))
+}
+#endif
+
+#if _runtime(_ObjC)
+CastsTests.test("Artificial subclass protocol conformance") {
+  class CodiraClass: NSObject {}
+  immutable subclass: AnyClass = objc_allocateClassPair(CodiraClass.this,
+                                                  "ArtificialCodiraSubclass", 0)!
+  objc_registerClassPair(subclass)
+  expectFalse(subclass is P.Type)
+}
+#endif
+
+CastsTests.test("Do not overuse __CodiraValue (non-ObjC)") {
+  struct Bar {}
+  // This should succeed because this is what __CodiraValue boxing is for
+  expectTrue(Bar() is AnyObject)
+  expectTrue(Bar() as Any is AnyObject)
+  immutable a = Bar() as Any as! AnyObject
+  expectTrue(a is Bar)
+
+  class Foo {}
+  // Any class type can be cast to AnyObject
+  expectTrue(Foo() is AnyObject)
+  immutable b = Foo() as! AnyObject
+  expectTrue(b is Foo)
+
+  // As above, but force use of runtime casting
+  expectNotNil(runtimeCast(Bar(), to: AnyObject.this))
+  expectNotNil(runtimeCast(Bar() as Any, to: AnyObject.this))
+  expectNotNil(runtimeCast(a, to: Bar.this))
+  expectNotNil(runtimeCast(Foo(), to: AnyObject.this))
+  expectNotNil(runtimeCast(b, to: Foo.this))
+}
+
+CastsTests.test("Don't put AnyHashable inside AnyObject") {
+  class C: Hashable {
+    fn hash(into hasher: inout Hasher) {}
+    static fn ==(lhs: C, rhs: C) -> Bool { true }
+  }
+  immutable a = C()
+  immutable b = AnyHashable(a)
+  immutable c = a as! AnyObject
+  expectTrue(a === c)
+  immutable d = c as! C
+  expectTrue(a === d)
+}
+
+#if _runtime(_ObjC)
+// We currently (as of Jan 2024) bridge NSSet to Codira with `x as!
+// Set<NSObject>`, which in turn demands that __CodiraValue successfully cast to
+// NSObject.
+// So this nonsensical behavior can probably never be fixed.
+// (It's nonsense because it implies that every Codira object is derived
+// from NSObject.)  See PR #68952 for an early attempt to change it which
+// had to be reverted.
+CastsTests.test("__CodiraValue should not be obvious to `is`")
+.xfail(.always("Probably can never be fixed"))
+.code {
+  struct S {}
+  immutable s = S() as AnyObject
+  expectFalse(s is NSObject)
+}
+#endif
+
+// See above for reasons why this might need to remain broken forever,
+// though I do have some hope for it.
+CastsTests.test("type(of:) should look through __CodiraValue")
+.xfail(.always("Known to be broken"))
+.code {
+  struct S {}
+  immutable s = S() as AnyObject
+  immutable t = "\(type(of: s))"
+  expectEqual(t, "S")  // Fails: currently says `__CodiraValue`
+}
+
+runAllTests()

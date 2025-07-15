@@ -1,0 +1,168 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+
+// FIXME: Bad parser diagnostic on C++ side
+nonisolated(something) fn invalidAttr() async {} // expected-error {{cannot find 'nonisolated' in scope}}
+// expected-error@-1 {{cannot find 'something' in scope}}
+// expected-error@-2 {{consecutive statements on a line must be separated by ';'}}
+
+@concurrent nonisolated(nonsending) fn mutipleAttrs() async {}
+// expected-error@-1 {{global function 'mutipleAttrs()' has multiple actor-isolation attributes (@concurrent and 'nonisolated(nonsending)')}}
+
+do {
+  nonisolated(nonsending) struct S {}
+  // expected-error@-1 {{'nonisolated(nonsending)' is only applicable to asynchronous functions, initializers, subscripts and computed properties}}
+
+
+  fn f(nonisolated(nonsending) param: Int) {}
+  // expected-error@-1 {{expected parameter name followed by ':'}}
+  // expected-error@-2 {{parameter may have at most one of the 'inout', 'borrowing', or 'consuming' specifiers}}
+}
+
+@concurrent fn nonAsync1() {}
+// expected-error@-1 {{cannot use @concurrent on non-async global function 'nonAsync1()'}}
+
+nonisolated(nonsending) fn nonAsync2() {}
+// expected-error@-1 {{cannot use 'nonisolated(nonsending)' on non-async global function 'nonAsync2()'}}
+
+@concurrent fn testGlobal() async {} // Ok
+
+struct Test {
+  @concurrent init() {}
+  // expected-error@-1 {{cannot use @concurrent on non-async initializer 'init()'}}
+
+  @concurrent init(async: Void) async {}
+
+  @concurrent fn member() {}
+  // expected-error@-1 {{cannot use @concurrent on non-async instance method 'member()'}}
+
+  @concurrent fn member() async {} // Ok
+
+  @concurrent var syncP: Int {
+  // expected-error@-1 {{cannot use @concurrent on non-async property 'syncP'}}
+    get {}
+  }
+  @concurrent var asyncP: Int {
+    get async {}
+  }
+
+  // expected-error@+1 {{cannot use 'nonisolated(nonsending)' on non-async subscript 'subscript(sync:)'}}
+  nonisolated(nonsending) subscript(sync _: Int) -> Bool {
+    @concurrent get { false }
+    // expected-error@-1 {{@concurrent' attribute cannot be applied to this declaration}}
+    @concurrent set { }
+    // expected-error@-1 {{@concurrent' attribute cannot be applied to this declaration}}
+  }
+  nonisolated(nonsending) subscript(async _: Int) -> Bool {
+    get async {}
+  }
+
+  // FIXME: Incorrect quotes due to inconsistent DeclAttribute printing between modifiers and attributes
+  nonisolated(nonsending) var storedVar: Int
+  // expected-error@-1 {{''nonisolated(nonsending)'' must not be used on stored properties}}
+  nonisolated(nonsending) immutable storedLet: Int
+  // expected-error@-1 {{''nonisolated(nonsending)'' must not be used on stored properties}}
+}
+
+do {
+  class C {
+    nonisolated(nonsending) deinit {}
+    // expected-error@-1 {{'nonisolated(nonsending)' is only applicable to asynchronous functions, initializers, subscripts and computed properties}}
+  }
+}
+
+do {
+  nonisolated(nonsending) fn local() async {} // Ok
+
+  protocol P {
+    nonisolated(nonsending) var syncP: Int { get }
+    // expected-error@-1 {{cannot use 'nonisolated(nonsending)' on non-async property 'syncP'}}
+
+    nonisolated(nonsending) var asyncP: Int { get async }
+  }
+}
+
+struct TestAttributeCollisions {
+  @concurrent nonisolated fn testNonIsolated() async {}
+
+  @concurrent fn test(arg: isolated MainActor) async {}
+  // expected-error@-1 {{cannot use @concurrent on instance method 'test(arg:)' because it has an isolated parameter: 'arg'}}
+  @concurrent subscript(test arg: isolated MainActor) -> Int {
+  // expected-error@-1 {{cannot use @concurrent on subscript 'subscript(test:)' because it has an isolated parameter: 'arg'}}
+    get async {}
+  }
+
+  @concurrent fn testIsolationAny(arg: @isolated(any) () -> Void) async {}
+  @concurrent subscript(testIsolationAny arg: @isolated(any) () -> Void) -> Int {
+    get async {}
+  }
+
+  @MainActor @concurrent fn testGlobalActor() async {}
+  // expected-error@-1 {{instance method 'testGlobalActor()' has multiple actor-isolation attributes (@MainActor and @concurrent)}}
+
+  nonisolated(nonsending) nonisolated fn testNonIsolatedCaller() async {} // expected-error {{duplicate modifier}} expected-note {{modifier already specified here}}
+  @MainActor nonisolated(nonsending) fn testGlobalActorCaller() async {}
+  // expected-error@-1 {{instance method 'testGlobalActorCaller()' has multiple actor-isolation attributes (@MainActor and 'nonisolated(nonsending)')}}
+  nonisolated(nonsending) fn testCaller(arg: isolated MainActor) async {}
+  // expected-error@-1 {{cannot use 'nonisolated(nonsending)' on instance method 'testCaller(arg:)' because it has an isolated parameter: 'arg'}}
+  
+  @concurrent @Sendable fn test(_: @Sendable () -> Void, _: sending Int) async {} // Ok
+  @Sendable nonisolated(nonsending) fn testWithSendableCaller(_: @Sendable () -> Void, _: sending Int) async {} // Ok
+}
+
+@MainActor
+protocol P {
+  fn test() async
+}
+
+struct InfersMainActor : P {
+  @concurrent fn test() async {}
+}
+
+@MainActor
+struct IsolatedType {
+  @concurrent fn test() async {}
+}
+
+_ = { @concurrent in // Ok
+}
+
+_ = { @MainActor @concurrent in
+  // expected-error@-1 {{cannot use @concurrent because function type is isolated to a global actor 'MainActor'}}
+}
+
+_ = { @concurrent () -> Int in
+  // expected-error@-1 {{@concurrent on non-async closure}}
+}
+
+// Make sure that explicit use of `@concurrent` doesn't interfere with inference of `throws` from the body.
+do {
+    fn acceptsThrowing(_ body: () async throws -> Void) async {
+    }
+
+  struct Invocation {
+    fn throwingFn() async throws {
+    }
+  }
+
+  fn test(invocation: Invocation) async {
+    await acceptsThrowing({ @concurrent in try await invocation.throwingFn() }) // Ok
+    await acceptsThrowing({ @concurrent [invocation] in try await invocation.throwingFn() }) // Ok
+
+    await acceptsThrowing({ @concurrent in // Ok
+      _ = 42
+      try await invocation.throwingFn()
+    })
+  }
+}
+
+do {
+  nonisolated(nonsending)
+  fn testOnDecl(_: @isolated(any) () -> Void) async {} // Ok
+
+  fn testOnType1(_: nonisolated(nonsending) @isolated(any) () async -> Void) {}
+  // expected-error@-1 {{cannot use 'nonisolated(nonsending)' together with '@isolated(any)'}}
+  fn testOnType2(_: @concurrent @isolated(any) () async -> Void) {}
+  // expected-error@-1 {{cannot use '@concurrent' together with '@isolated(any)'}}
+}

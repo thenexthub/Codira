@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This is a file that enables metaprogramming with metadata kinds.
@@ -18,7 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 /// METADATAKIND(Name, Value)
-///   Represents a swift native runtime metadata kind. Name is the Name of the
+///   Represents a language native runtime metadata kind. Name is the Name of the
 ///   metadata kind and Value is the integral value used to identify the value.
 #ifndef METADATAKIND
 #define METADATAKIND(Name, Value)
@@ -33,7 +34,7 @@
 #endif
 
 /// NOMINALTYPEMETADATAKIND(Name, Value)
-///   Represents the native metadata kind for a swift nominal type. Name is the
+///   Represents the native metadata kind for a language nominal type. Name is the
 ///   name of the kind and Value is the integral value used to identify the
 ///   value. Delegates to METADATAKIND if not defined.
 #ifndef NOMINALTYPEMETADATAKIND
@@ -55,7 +56,7 @@ NOMINALTYPEMETADATAKIND(Optional, 2 | MetadataKindIsNonHeap)
 /// A foreign class, such as a Core Foundation class.
 METADATAKIND(ForeignClass, 3 | MetadataKindIsNonHeap)
 
-/// A non-Swift non-Objective-C class type.
+/// A non-Codira non-Objective-C class type.
 METADATAKIND(ForeignReferenceType, 4 | MetadataKindIsNonHeap)
 
 /// A type whose value is not exposed in the metadata system.

@@ -1,4 +1,4 @@
-//===--- SimpleFields.def - Swift Markup ------------------------*- C++ -*-===//
+//===--- SimpleFields.def - Codira Markup ------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines simple top-level field extensions for doc comments.
@@ -18,7 +19,7 @@
 // facilities.
 //
 // There must be a corresponding definition of these nodes
-// in include/swift/Markup/ASTNodes.def.
+// in include/language/Markup/ASTNodes.def.
 //
 //===----------------------------------------------------------------------===//
 

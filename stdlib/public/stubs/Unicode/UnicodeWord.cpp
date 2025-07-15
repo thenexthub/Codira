@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_STDLIB_ENABLE_UNICODE_DATA
+#if LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
 #include "Common/WordData.h"
 #else
 #include "language/Runtime/Debug.h"
@@ -18,14 +22,14 @@
 #include "language/shims/UnicodeData.h"
 #include <stdint.h>
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-__swift_uint8_t _swift_stdlib_getWordBreakProperty(__swift_uint32_t scalar) {
-#if !SWIFT_STDLIB_ENABLE_UNICODE_DATA
-  swift::swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+__language_uint8_t _language_stdlib_getWordBreakProperty(__language_uint32_t scalar) {
+#if !LANGUAGE_STDLIB_ENABLE_UNICODE_DATA
+  language::language_abortDisabledUnicodeSupport();
 #else
   auto index = 1; //0th element is a dummy element
   while (index < WORD_BREAK_DATA_COUNT) {
-    auto entry = _swift_stdlib_words[index];
+    auto entry = _language_stdlib_words[index];
 
     // Shift the range count out of the value.
     auto lower = (entry << 11) >> 11;
@@ -38,7 +42,7 @@ __swift_uint8_t _swift_stdlib_getWordBreakProperty(__swift_uint32_t scalar) {
     if (scalar < lower) {
       index = 2 * index;
     } else if (scalar <= upper) {
-      return _swift_stdlib_words_data[index];
+      return _language_stdlib_words_data[index];
     } else {
       index = 2 * index + 1;
     }

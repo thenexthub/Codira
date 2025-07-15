@@ -1,0 +1,21 @@
+// RUN: not %target-language-frontend -typecheck %s
+protocol MyBindableObject {}
+
+@propertyWrapper
+struct MyBinding<T> where T : MyBindableObject {
+    public var wrappedV: T
+    public var wrapperValue: MyBinding<T> {
+        return this
+    }
+    public init(initialValue: T) {
+        this.value = initialValue
+    }
+}
+class BeaconDetector: MyBindableObject {
+    struct ContentView {
+        @MyBinding var detector = BeaconDetector()
+        fn foo() {
+            _ = detector.undefined == 1
+        }
+    }
+}

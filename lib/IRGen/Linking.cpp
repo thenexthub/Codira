@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements name mangling for IRGen entities with linkage.
@@ -26,9 +27,9 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/SIL/SILGlobalVariable.h"
 #include "language/SIL/FormalLinkage.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include "MetadataRequest.h"
 
@@ -37,48 +38,48 @@ using namespace irgen;
 using namespace Mangle;
 
 const IRLinkage IRLinkage::InternalLinkOnceODR = {
-  llvm::GlobalValue::LinkOnceODRLinkage,
-  llvm::GlobalValue::HiddenVisibility,
-  llvm::GlobalValue::DefaultStorageClass,
+  toolchain::GlobalValue::LinkOnceODRLinkage,
+  toolchain::GlobalValue::HiddenVisibility,
+  toolchain::GlobalValue::DefaultStorageClass,
 };
 
 const IRLinkage IRLinkage::InternalWeakODR = {
-  llvm::GlobalValue::WeakODRLinkage,
-  llvm::GlobalValue::HiddenVisibility,
-  llvm::GlobalValue::DefaultStorageClass,
+  toolchain::GlobalValue::WeakODRLinkage,
+  toolchain::GlobalValue::HiddenVisibility,
+  toolchain::GlobalValue::DefaultStorageClass,
 };
 
 const IRLinkage IRLinkage::Internal = {
-  llvm::GlobalValue::InternalLinkage,
-  llvm::GlobalValue::DefaultVisibility,
-  llvm::GlobalValue::DefaultStorageClass,
+  toolchain::GlobalValue::InternalLinkage,
+  toolchain::GlobalValue::DefaultVisibility,
+  toolchain::GlobalValue::DefaultStorageClass,
 };
 
 const IRLinkage IRLinkage::ExternalCommon = {
-  llvm::GlobalValue::CommonLinkage,
-  llvm::GlobalValue::DefaultVisibility,
-  llvm::GlobalValue::DLLExportStorageClass,
+  toolchain::GlobalValue::CommonLinkage,
+  toolchain::GlobalValue::DefaultVisibility,
+  toolchain::GlobalValue::DLLExportStorageClass,
 };
 
 const IRLinkage IRLinkage::ExternalImport = {
-  llvm::GlobalValue::ExternalLinkage,
-  llvm::GlobalValue::DefaultVisibility,
-  llvm::GlobalValue::DLLImportStorageClass,
+  toolchain::GlobalValue::ExternalLinkage,
+  toolchain::GlobalValue::DefaultVisibility,
+  toolchain::GlobalValue::DLLImportStorageClass,
 };
 
 const IRLinkage IRLinkage::ExternalWeakImport = {
-  llvm::GlobalValue::ExternalWeakLinkage,
-  llvm::GlobalValue::DefaultVisibility,
-  llvm::GlobalValue::DLLImportStorageClass,
+  toolchain::GlobalValue::ExternalWeakLinkage,
+  toolchain::GlobalValue::DefaultVisibility,
+  toolchain::GlobalValue::DLLImportStorageClass,
 };
 
 const IRLinkage IRLinkage::ExternalExport = {
-  llvm::GlobalValue::ExternalLinkage,
-  llvm::GlobalValue::DefaultVisibility,
-  llvm::GlobalValue::DLLExportStorageClass,
+  toolchain::GlobalValue::ExternalLinkage,
+  toolchain::GlobalValue::DefaultVisibility,
+  toolchain::GlobalValue::DLLExportStorageClass,
 };
 
-bool swift::irgen::useDllStorage(const llvm::Triple &triple) {
+bool language::irgen::useDllStorage(const toolchain::Triple &triple) {
   return triple.isOSBinFormatCOFF() && !triple.isOSCygMing();
 }
 
@@ -88,7 +89,7 @@ UniversalLinkageInfo::UniversalLinkageInfo(IRGenModule &IGM)
                            IGM.IRGen.Opts.InternalizeSymbols,
                            IGM.IRGen.Opts.MergeableSymbols) {}
 
-UniversalLinkageInfo::UniversalLinkageInfo(const llvm::Triple &triple,
+UniversalLinkageInfo::UniversalLinkageInfo(const toolchain::Triple &triple,
                                            bool hasMultipleIGMs,
                                            bool forcePublicDecls,
                                            bool isStaticLibrary,
@@ -113,7 +114,7 @@ LinkEntity LinkEntity::forSILGlobalVariable(SILGlobalVariable *G,
 
 /// Mangle this entity into the given buffer.
 void LinkEntity::mangle(ASTContext &Ctx, SmallVectorImpl<char> &buffer) const {
-  llvm::raw_svector_ostream stream(buffer);
+  toolchain::raw_svector_ostream stream(buffer);
   mangle(Ctx, stream);
 }
 
@@ -128,14 +129,14 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
   IRGenMangler mangler(Ctx);
   switch (getKind()) {
   case Kind::DispatchThunk: {
-    auto *func = cast<FuncDecl>(getDecl());
-    return mangler.mangleDispatchThunk(func);
+    auto *fn = cast<FuncDecl>(getDecl());
+    return mangler.mangleDispatchThunk(fn);
   }
 
   case Kind::DispatchThunkDerivative: {
-    auto *func = cast<AbstractFunctionDecl>(getDecl());
+    auto *fn = cast<AbstractFunctionDecl>(getDecl());
     auto *derivativeId = getAutoDiffDerivativeFunctionIdentifier();
-    return mangler.mangleDerivativeDispatchThunk(func, derivativeId);
+    return mangler.mangleDerivativeDispatchThunk(fn, derivativeId);
   }
 
   case Kind::DispatchThunkInitializer: {
@@ -151,14 +152,14 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
   }
 
   case Kind::MethodDescriptor: {
-    auto *func = cast<FuncDecl>(getDecl());
-    return mangler.mangleMethodDescriptor(func);
+    auto *fn = cast<FuncDecl>(getDecl());
+    return mangler.mangleMethodDescriptor(fn);
   }
 
   case Kind::MethodDescriptorDerivative: {
-    auto *func = cast<AbstractFunctionDecl>(getDecl());
+    auto *fn = cast<AbstractFunctionDecl>(getDecl());
     auto *derivativeId = getAutoDiffDerivativeFunctionIdentifier();
-    return mangler.mangleDerivativeMethodDescriptor(func, derivativeId);
+    return mangler.mangleDerivativeMethodDescriptor(fn, derivativeId);
   }
 
   case Kind::MethodDescriptorInitializer: {
@@ -220,7 +221,7 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
       case TypeMetadataAddress::AddressPoint:
         return mangler.mangleTypeMetadataFull(getType());
     }
-    llvm_unreachable("invalid metadata address");
+    toolchain_unreachable("invalid metadata address");
 
   case Kind::NoncanonicalSpecializedGenericTypeMetadata:
     return mangler.mangleNoncanonicalTypeMetadata(getType());
@@ -236,10 +237,10 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
     return mangler.mangleTypeMetadataPattern(
                                         cast<NominalTypeDecl>(getDecl()));
 
-  case Kind::SwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
     return mangler.mangleClassMetaClass(cast<ClassDecl>(getDecl()));
 
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
     return mangler.mangleSpecializedGenericClassMetaClass(getType());
 
   case Kind::ObjCMetadataUpdateFunction:
@@ -252,7 +253,7 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
     case TypeMetadataAddress::AddressPoint:
       return mangler.mangleObjCResilientClassStub(cast<ClassDecl>(getDecl()));
     }
-    llvm_unreachable("invalid metadata address");
+    toolchain_unreachable("invalid metadata address");
 
   case Kind::ClassMetadataBaseOffset:               // class metadata base offset
     return mangler.mangleClassMetadataBaseOffset(cast<ClassDecl>(getDecl()));
@@ -388,25 +389,25 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
     // An Objective-C class reference reference. The symbol is private, so
     // the mangling is unimportant; it should just be readable in LLVM IR.
   case Kind::ObjCClassRef: {
-    llvm::SmallString<64> tempBuffer;
+    toolchain::SmallString<64> tempBuffer;
     StringRef name = cast<ClassDecl>(getDecl())->getObjCRuntimeName(tempBuffer);
     std::string Result("OBJC_CLASS_REF_$_");
     Result.append(name.data(), name.size());
     return Result;
   }
 
-    // An Objective-C class reference;  not a swift mangling.
+    // An Objective-C class reference;  not a language mangling.
   case Kind::ObjCClass: {
-    llvm::SmallString<64> TempBuffer;
+    toolchain::SmallString<64> TempBuffer;
     StringRef Name = cast<ClassDecl>(getDecl())->getObjCRuntimeName(TempBuffer);
     std::string Result("OBJC_CLASS_$_");
     Result.append(Name.data(), Name.size());
     return Result;
   }
 
-    // An Objective-C metaclass reference;  not a swift mangling.
+    // An Objective-C metaclass reference;  not a language mangling.
   case Kind::ObjCMetaclass: {
-    llvm::SmallString<64> TempBuffer;
+    toolchain::SmallString<64> TempBuffer;
     StringRef Name = cast<ClassDecl>(getDecl())->getObjCRuntimeName(TempBuffer);
     std::string Result("OBJC_METACLASS_$_");
     Result.append(Name.data(), Name.size());
@@ -520,7 +521,7 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
   }
   case Kind::PartialApplyForwarder: {
     std::string Result;
-    Result = std::string(static_cast<llvm::Function *>(Pointer)->getName());
+    Result = std::string(static_cast<toolchain::Function *>(Pointer)->getName());
     return Result;
   }
 
@@ -583,15 +584,15 @@ std::string LinkEntity::mangleAsString(ASTContext &Ctx) const {
   case Kind::CoroAllocator: {
     switch (getCoroAllocatorKind()) {
     case CoroAllocatorKind::Stack:
-      llvm::report_fatal_error("attempting to mangle the coro stack allocator");
+      toolchain::report_fatal_error("attempting to mangle the coro stack allocator");
     case CoroAllocatorKind::Async:
-      return "_swift_coro_async_allocator";
+      return "_language_coro_async_allocator";
     case CoroAllocatorKind::Malloc:
-      return "_swift_coro_malloc_allocator";
+      return "_language_coro_malloc_allocator";
     }
   }
   }
-  llvm_unreachable("bad entity kind!");
+  toolchain_unreachable("bad entity kind!");
 }
 
 SILDeclRef::Kind LinkEntity::getSILDeclRefKind() const {
@@ -613,7 +614,7 @@ SILDeclRef::Kind LinkEntity::getSILDeclRefKind() const {
     return static_cast<SILDeclRef::Kind>(
         reinterpret_cast<uintptr_t>(SecondaryPointer));
   default:
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 }
 
@@ -713,7 +714,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
                            forDefinition);
     }
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   case Kind::NoncanonicalSpecializedGenericTypeMetadata:
@@ -745,7 +746,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
     case MetadataAccessStrategy::NonUniqueAccessor:
       return SILLinkage::Shared;
     }
-    llvm_unreachable("bad metadata access kind");
+    toolchain_unreachable("bad metadata access kind");
 
   case Kind::CanonicalSpecializedGenericTypeMetadataAccessFunction:
     return SILLinkage::Shared;
@@ -769,7 +770,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
                            forDefinition);
     }
     }
-    llvm_unreachable("invalid metadata address");
+    toolchain_unreachable("invalid metadata address");
   }
 
   case Kind::EnumCase: {
@@ -827,7 +828,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
   case Kind::BaseConformanceDescriptor:
   case Kind::ObjCClass:
   case Kind::ObjCMetaclass:
-  case Kind::SwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
   case Kind::NominalTypeDescriptor:
   case Kind::NominalTypeDescriptorRecord:
   case Kind::ClassMetadataBaseOffset:
@@ -842,7 +843,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
   case Kind::OpaqueTypeDescriptorAccessorVar:
     return getSILLinkage(getDeclLinkage(getDecl()), forDefinition);
 
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
     // Prespecialization of the same generic class' metaclass may be requested
     // multiple times within the same module, so it needs to be uniqued.
     return SILLinkage::Shared;
@@ -964,7 +965,7 @@ SILLinkage LinkEntity::getLinkage(ForDefinition_t forDefinition) const {
   case Kind::CoroAllocator:
     return SILLinkage::Shared;
   }
-  llvm_unreachable("bad link entity kind");
+  toolchain_unreachable("bad link entity kind");
 }
 
 bool LinkEntity::isContextDescriptor() const {
@@ -1001,7 +1002,7 @@ bool LinkEntity::isContextDescriptor() const {
   case Kind::ObjCMetaclass:
   case Kind::ObjCMetadataUpdateFunction:
   case Kind::ObjCResilientClassStub:
-  case Kind::SwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
   case Kind::ClassMetadataBaseOffset:
   case Kind::TypeMetadataPattern:
   case Kind::TypeMetadataInstantiationCache:
@@ -1048,7 +1049,7 @@ bool LinkEntity::isContextDescriptor() const {
   case Kind::OpaqueTypeDescriptorAccessorKey:
   case Kind::OpaqueTypeDescriptorAccessorVar:
   case Kind::DifferentiabilityWitness:
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
   case Kind::NoncanonicalSpecializedGenericTypeMetadata:
   case Kind::NoncanonicalSpecializedGenericTypeMetadataCacheVariable:
   case Kind::CanonicalPrespecializedGenericTypeCachingOnceToken:
@@ -1069,10 +1070,10 @@ bool LinkEntity::isContextDescriptor() const {
   case Kind::CoroAllocator:
     return false;
   }
-  llvm_unreachable("invalid descriptor");
+  toolchain_unreachable("invalid descriptor");
 }
 
-llvm::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
+toolchain::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
   switch (getKind()) {
   case Kind::ModuleDescriptor:
   case Kind::ExtensionDescriptor:
@@ -1099,17 +1100,17 @@ llvm::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
     return IGM.ObjCClassPtrTy;
   case Kind::ObjCClass:
   case Kind::ObjCMetaclass:
-  case Kind::SwiftMetaclassStub:
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
     return IGM.ObjCClassStructTy;
   case Kind::TypeMetadataLazyCacheVariable:
   case Kind::NoncanonicalSpecializedGenericTypeMetadataCacheVariable:
     return IGM.TypeMetadataPtrTy;
   case Kind::TypeMetadataDemanglingCacheVariable:
-    return llvm::StructType::get(IGM.Int32Ty, IGM.Int32Ty);
+    return toolchain::StructType::get(IGM.Int32Ty, IGM.Int32Ty);
   case Kind::TypeMetadataSingletonInitializationCache:
     // TODO: put a cache variable on IGM
-    return llvm::StructType::get(IGM.getLLVMContext(),
+    return toolchain::StructType::get(IGM.getLLVMContext(),
                                  {IGM.TypeMetadataPtrTy, IGM.Int8PtrTy});
   case Kind::TypeMetadata:
   case Kind::NoncanonicalSpecializedGenericTypeMetadata:
@@ -1122,7 +1123,7 @@ llvm::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
     case TypeMetadataAddress::AddressPoint:
       return IGM.TypeMetadataStructTy;
     }
-    llvm_unreachable("invalid metadata address");
+    toolchain_unreachable("invalid metadata address");
     
   case Kind::TypeMetadataPattern:
     // TODO: Use a real type?
@@ -1133,7 +1134,7 @@ llvm::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
 
   case Kind::TypeMetadataInstantiationCache:
     // TODO: put a cache variable on IGM
-    return llvm::ArrayType::get(IGM.Int8PtrTy,
+    return toolchain::ArrayType::get(IGM.Int8PtrTy,
                                 NumGenericMetadataPrivateDataWords);
   case Kind::ReflectionBuiltinDescriptor:
   case Kind::ReflectionFieldDescriptor:
@@ -1173,7 +1174,7 @@ llvm::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
     case TypeMetadataAddress::AddressPoint:
       return IGM.ObjCResilientClassStubTy;
     }
-    llvm_unreachable("invalid metadata address");
+    toolchain_unreachable("invalid metadata address");
   case Kind::DifferentiabilityWitness:
     return IGM.DifferentiabilityWitnessTy;
   case Kind::CanonicalPrespecializedGenericTypeCachingOnceToken:
@@ -1207,7 +1208,7 @@ llvm::Type *LinkEntity::getDefaultDeclarationType(IRGenModule &IGM) const {
   case Kind::CoroAllocator:
     return IGM.CoroAllocatorTy;
   default:
-    llvm_unreachable("declaration LLVM type not specified");
+    toolchain_unreachable("declaration LLVM type not specified");
   }
 }
 
@@ -1262,8 +1263,8 @@ Alignment LinkEntity::getAlignment(IRGenModule &IGM) const {
   case Kind::ProtocolWitnessTable:
   case Kind::ProtocolWitnessTablePattern:
   case Kind::ObjCMetaclass:
-  case Kind::SwiftMetaclassStub:
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
   case Kind::DynamicallyReplaceableFunctionVariable:
   case Kind::DynamicallyReplaceableFunctionVariableAST:
   case Kind::DynamicallyReplaceableFunctionKey:
@@ -1291,7 +1292,7 @@ Alignment LinkEntity::getAlignment(IRGenModule &IGM) const {
   case Kind::SILFunction:
     return Alignment(1);
   default:
-    llvm_unreachable("alignment not specified");
+    toolchain_unreachable("alignment not specified");
   }
 }
 
@@ -1325,7 +1326,7 @@ bool LinkEntity::isText() const {
     return true;
   case Kind::DispatchThunkAsyncFunctionPointer:
   case Kind::DistributedThunkAsyncFunctionPointer:
-  case Kind::SwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
   case Kind::ObjCResilientClassStub:
   case Kind::OpaqueTypeDescriptorAccessorVar:
   case Kind::DynamicallyReplaceableFunctionVariableAST:
@@ -1392,7 +1393,7 @@ bool LinkEntity::isText() const {
   case Kind::DistributedAccessorAsyncPointer:
   case Kind::ProtocolWitnessTableLazyCacheVariable:
   case Kind::ProtocolDescriptorRecord:
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
   case Kind::NoncanonicalSpecializedGenericTypeMetadata:
   case Kind::AccessibleFunctionRecord:
   case Kind::CoroFunctionPointer:
@@ -1472,7 +1473,7 @@ bool LinkEntity::isWeakImported(ModuleDecl *module) const {
   case Kind::ObjCClass:
   case Kind::ObjCClassRef:
   case Kind::ObjCMetaclass:
-  case Kind::SwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
   case Kind::ClassMetadataBaseOffset:
   case Kind::NominalTypeDescriptor:
   case Kind::NominalTypeDescriptorRecord:
@@ -1498,7 +1499,7 @@ bool LinkEntity::isWeakImported(ModuleDecl *module) const {
     // modules compiled with older compilers and should be weak linked.
     return (getDecl()->isWeakImported(module) || getDecl()->isStatic());
 
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
     return getType()->getClassOrBoundGenericClass()->isWeakImported(module);
 
   case Kind::ProtocolWitnessTable:
@@ -1574,7 +1575,7 @@ bool LinkEntity::isWeakImported(ModuleDecl *module) const {
   }
   }
 
-  llvm_unreachable("Bad link entity kind");
+  toolchain_unreachable("Bad link entity kind");
 }
 
 DeclContext *LinkEntity::getDeclContextForEmission() const {
@@ -1596,7 +1597,7 @@ DeclContext *LinkEntity::getDeclContextForEmission() const {
   case Kind::FieldOffset:
   case Kind::ObjCClass:
   case Kind::ObjCMetaclass:
-  case Kind::SwiftMetaclassStub:
+  case Kind::CodiraMetaclassStub:
   case Kind::ObjCMetadataUpdateFunction:
   case Kind::ObjCResilientClassStub:
   case Kind::ClassMetadataBaseOffset:
@@ -1628,7 +1629,7 @@ DeclContext *LinkEntity::getDeclContextForEmission() const {
   case Kind::DistributedAccessor:
     return getDecl()->getDeclContext();
 
-  case Kind::CanonicalSpecializedGenericSwiftMetaclassStub:
+  case Kind::CanonicalSpecializedGenericCodiraMetaclassStub:
     return getType()->getClassOrBoundGenericClass()->getDeclContext();
 
   case Kind::SILFunction:
@@ -1715,7 +1716,7 @@ DeclContext *LinkEntity::getDeclContextForEmission() const {
         .getDeclContextForEmission();
   }
   }
-  llvm_unreachable("invalid decl kind");
+  toolchain_unreachable("invalid decl kind");
 }
 
 bool LinkEntity::isAlwaysSharedLinkage() const {

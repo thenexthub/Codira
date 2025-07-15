@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t/src)
+// RUN: split-file %s %t/src
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %t/src/main.code \
+// RUN:   -import-objc-header %t/src/Test.h \
+// RUN:   -module-name main -I %t -verify
+
+// REQUIRES: objc_interop
+
+//--- Test.h
+@import Foundation;
+
+extern const unsigned char TestDir[];
+
+extern NSString * _Nonnull __TestDir __attribute__((language_name("TestDir")));
+
+//--- main.code
+import Foundation
+
+fn test() {
+  print(TestDir)
+}

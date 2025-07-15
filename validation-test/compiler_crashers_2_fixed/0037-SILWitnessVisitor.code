@@ -1,0 +1,11 @@
+// RUN: not %target-language-frontend %s -emit-silgen
+
+protocol FooType {
+  fn bar(b: Int)
+}
+
+extension FooType {
+  fn bar(a: Int, b: Int) {}
+}
+
+struct Foo : FooType {}

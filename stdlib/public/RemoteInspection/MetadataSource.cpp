@@ -1,4 +1,4 @@
-//===--- MetadataSource.cpp - Swift Metadata Sources for Reflection -------===//
+//===--- MetadataSource.cpp - Codira Metadata Sources for Reflection -------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 
 #include "language/RemoteInspection/MetadataSource.h"
 #include <iostream>

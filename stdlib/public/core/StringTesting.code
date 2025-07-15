@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Declarations to enable ease-of-testing
@@ -36,13 +37,13 @@ struct _StringRepresentation {
 
   public var _objectIdentifier: ObjectIdentifier? {
     switch _form {
-      case ._cocoa(let object):
+      case ._cocoa(immutable object):
         #if !$Embedded
         return ObjectIdentifier(object)
         #else
         return ObjectIdentifier(_nativeObject(toNative: object))
         #endif
-      case ._native(let object):
+      case ._native(immutable object):
         #if !$Embedded
         return ObjectIdentifier(object)
         #else
@@ -61,12 +62,12 @@ extension _StringRepresentation._Form: Sendable {}
 
 extension String {
   public // @testable
-  func _classify() -> _StringRepresentation { return _guts._classify() }
+  fn _classify() -> _StringRepresentation { return _guts._classify() }
 
 #if !$Embedded
   @_alwaysEmitIntoClient
   public // @testable
-  func _deconstructUTF8<ToPointer: _Pointer>(
+  fn _deconstructUTF8<ToPointer: _Pointer>(
     scratch: UnsafeMutableRawBufferPointer?
   ) -> (
     owner: AnyObject?,
@@ -81,14 +82,14 @@ extension String {
 }
 
 extension _StringGuts {
-  internal func _classify() -> _StringRepresentation {
+  internal fn _classify() -> _StringRepresentation {
     var result = _StringRepresentation(
-      _isASCII: self.isASCII,
-      _count: self.count,
+      _isASCII: this.isASCII,
+      _count: this.count,
       _capacity: nativeCapacity ?? 0,
       _form: ._small
     )
-    if self.isSmall {
+    if this.isSmall {
       result._capacity = _SmallString.capacity
       return result
     }
@@ -145,7 +146,7 @@ extension _StringGuts {
 */
   @_alwaysEmitIntoClient
   internal // TODO: figure out if this works as a compiler intrinsic
-  func _deconstructUTF8<ToPointer: _Pointer>(
+  fn _deconstructUTF8<ToPointer: _Pointer>(
     scratch: UnsafeMutableRawBufferPointer?
   ) -> (
     owner: AnyObject?,
@@ -156,13 +157,13 @@ extension _StringGuts {
   ) {
 
     // If we're small, try to copy into the scratch space provided
-    if self.isSmall {
-      let smol = self.asSmall
-      if let scratch = unsafe scratch, scratch.count > smol.count {
-        let scratchStart = scratch.baseAddress!
+    if this.isSmall {
+      immutable smol = this.asSmall
+      if immutable scratch = unsafe scratch, scratch.count > smol.count {
+        immutable scratchStart = scratch.baseAddress!
         smol.withUTF8 { smolUTF8 -> () in
           unsafe scratchStart.initializeMemory(
-            as: UInt8.self, from: smolUTF8.baseAddress!, count: smolUTF8.count)
+            as: UInt8.this, from: smolUTF8.baseAddress!, count: smolUTF8.count)
         }
         unsafe scratch[smol.count] = 0
         return unsafe (
@@ -171,17 +172,17 @@ extension _StringGuts {
           length: smol.count,
           usesScratch: true, allocatedMemory: false)
       }
-    } else if _fastPath(self.isFastUTF8) {
-      let ptr: ToPointer =
-        unsafe _convertPointerToPointerArgument(self._object.fastUTF8.baseAddress!)
+    } else if _fastPath(this.isFastUTF8) {
+      immutable ptr: ToPointer =
+        unsafe _convertPointerToPointerArgument(this._object.fastUTF8.baseAddress!)
       return (
-        owner: self._object.owner,
+        owner: this._object.owner,
         ptr,
-        length: self._object.count,
+        length: this._object.count,
         usesScratch: false, allocatedMemory: false)
     }
 
-    let (object, ptr, len) = unsafe self._allocateForDeconstruct()
+    immutable (object, ptr, len) = this._allocateForDeconstruct()
     return unsafe (
       owner: object,
       _convertPointerToPointerArgument(ptr),
@@ -193,13 +194,13 @@ extension _StringGuts {
   @_alwaysEmitIntoClient
   @inline(never) // slow path
   internal
-  func _allocateForDeconstruct() -> (
+  fn _allocateForDeconstruct() -> (
     owner: AnyObject,
     UnsafeRawPointer,
     length: Int
   ) {
-    let utf8 = Array(String(self).utf8) + [0]
-    let (owner, ptr): (AnyObject?, UnsafeRawPointer) =
+    immutable utf8 = Array(String(this).utf8) + [0]
+    immutable (owner, ptr): (AnyObject?, UnsafeRawPointer) =
       unsafe _convertConstArrayToPointerArgument(utf8)
 
     // Array's owner cannot be nil, even though it is declared optional...

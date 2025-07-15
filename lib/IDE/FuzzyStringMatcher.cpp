@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
 #include "language/IDE/FuzzyStringMatcher.h"
 #include "clang/Basic/CharInfo.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallString.h"
 
 using namespace language;
 using namespace language::ide;
@@ -104,7 +105,7 @@ struct Range {
 
 static void
 populateTokenTable(SmallVectorImpl<Range> &tokens,
-                   llvm::MutableArrayRef<unsigned> characterToTokenIndex,
+                   toolchain::MutableArrayRef<unsigned> characterToTokenIndex,
                    StringRef candidate) {
   unsigned start = 0;
   characterToTokenIndex[0] = 0;
@@ -153,7 +154,7 @@ struct CandidateSpecificMatcher {
 
   CandidateSpecificMatcher(StringRef pattern, StringRef lowercasePattern,
                            StringRef candidate,
-                           const llvm::BitVector &charactersInPattern,
+                           const toolchain::BitVector &charactersInPattern,
                            unsigned &firstPatternPos);
 
   /// Calculates the candidate's score, matching the candidate from
@@ -209,7 +210,7 @@ double FuzzyStringMatcher::scoreCandidate(StringRef candidate) const {
 
 CandidateSpecificMatcher::CandidateSpecificMatcher(
     StringRef pattern, StringRef lowercasePattern, StringRef candidate,
-    const llvm::BitVector &charactersInPattern, unsigned &firstPatternPos)
+    const toolchain::BitVector &charactersInPattern, unsigned &firstPatternPos)
     : pattern(pattern), lowercasePattern(lowercasePattern),
       candidate(candidate) {
 

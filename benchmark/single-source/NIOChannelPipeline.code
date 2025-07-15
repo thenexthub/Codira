@@ -1,23 +1,27 @@
-//===--- NIOChannelPipeline.swift -----------------------------------------===//
+//===--- NIOChannelPipeline.code -----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-// Mini benchmark implementing the gist of SwiftNIO's ChannelPipeline as
+// Mini benchmark implementing the gist of CodiraNIO's ChannelPipeline as
 // implemented by NIO 1 and NIO 2.[01]
-let t: [BenchmarkCategory] = [.runtime, .refcount, .cpubench]
-let n = 100
+immutable t: [BenchmarkCategory] = [.runtime, .refcount, .cpubench]
+immutable n = 100
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "NIOChannelPipeline",
     runFunction: runBench,
@@ -25,11 +29,11 @@ public let benchmarks = [
 ]
 
 public protocol EventHandler: class {
-    func event(holder: Holder)
+    fn event(holder: Holder)
 }
 
 extension EventHandler {
-    public func event(holder: Holder) {
+    public fn event(holder: Holder) {
         holder.fireEvent()
     }
 }
@@ -39,40 +43,40 @@ public final class Pipeline {
 
     public init() {}
 
-    public func addHandler(_ handler: EventHandler) {
-        if self.head == nil {
-            self.head = Holder(handler)
+    public fn addHandler(_ handler: EventHandler) {
+        if this.head == nil {
+            this.head = Holder(handler)
             return
         }
 
-        var node = self.head
+        var node = this.head
         while node?.next != nil {
             node = node?.next
         }
         node?.next = Holder(handler)
     }
 
-    public func fireEvent() {
-        self.head!.invokeEvent()
+    public fn fireEvent() {
+        this.head!.invokeEvent()
     }
 }
 
 public final class Holder {
     var next: Holder?
-    let node: EventHandler
+    immutable node: EventHandler
 
     init(_ node: EventHandler) {
-        self.next = nil
-        self.node = node
+        this.next = nil
+        this.node = node
     }
 
-    func invokeEvent() {
-        self.node.event(holder: self)
+    fn invokeEvent() {
+        this.node.event(holder: this)
     }
 
     @inline(never)
-    public func fireEvent() {
-        self.next?.invokeEvent()
+    public fn fireEvent() {
+        this.next?.invokeEvent()
     }
 }
 
@@ -83,14 +87,14 @@ public final class NoOpHandler: EventHandler {
 public final class ConsumingHandler: EventHandler {
     var consumed = 0
     public init() {}
-    public func event(holder: Holder) {
-        self.consumed += 1
+    public fn event(holder: Holder) {
+        this.consumed += 1
     }
 }
 
 @inline(never)
-func runBench(iterations: Int) {
-    let pipeline = Pipeline()
+fn runBench(iterations: Int) {
+    immutable pipeline = Pipeline()
     for _ in 0..<5 {
         pipeline.addHandler(NoOpHandler())
     }

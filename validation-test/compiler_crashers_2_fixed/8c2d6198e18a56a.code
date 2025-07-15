@@ -1,0 +1,4 @@
+// {"signature":"$s11languageASTGen15parseSourceFile6buffer10moduleName8filename14declContextPtr4kindSVSo16BridgedStringRefV_A2ISvSgSo0n9GenerateddE4KindVtF"}
+// RUN: not %target-language-frontend -typecheck %s
+// REQUIRES: language_language_parser
+#sourceLocation """\("

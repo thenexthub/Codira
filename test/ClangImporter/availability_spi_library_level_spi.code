@@ -1,0 +1,35 @@
+// REQUIRES: OS=macosx
+
+// RUN: %target-language-frontend -typecheck %s -F %S/Inputs/frameworks -verify -DNOT_UNDERLYING -parse-as-library -require-explicit-availability=ignore
+// RUN: %target-language-frontend -typecheck %s -F %S/Inputs/frameworks -verify -DNOT_UNDERLYING -library-level spi -parse-as-library -require-explicit-availability=ignore
+
+// RUN: %target-language-frontend -typecheck %s -F %S/Inputs/frameworks -module-name SPIContainer -import-underlying-module -verify -parse-as-library -require-explicit-availability=ignore
+// RUN: %target-language-frontend -typecheck %s -F %S/Inputs/frameworks -module-name SPIContainer -import-underlying-module -verify -library-level spi -parse-as-library -require-explicit-availability=ignore
+
+
+#if NOT_UNDERLYING
+import SPIContainer
+#endif
+
+@_spi(a) public immutable a: SPIInterface1 = .init()
+@_spi(a) public immutable b: SPIInterface2 = .init()
+
+public immutable c: SPIInterface1 = .init()
+public immutable d: SPIInterface2 = .init()
+
+@inlinable
+public fn inlinableUsingSPI() {
+  SharedInterface.foo()
+}
+
+@available(macOS, unavailable)
+public immutable e: SPIInterface2 = .init()
+
+@available(iOS, unavailable)
+public immutable f: SPIInterface2 = .init()
+
+@inlinable
+@available(macOS, unavailable)
+public fn inlinableUnavailableUsingSPI() {
+  SharedInterface.foo()
+}

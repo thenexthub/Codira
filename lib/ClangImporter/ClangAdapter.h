@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides convenient and canonical interfaces with Clang entities,
@@ -23,7 +24,7 @@
 
 #include "language/Basic/StringExtras.h"
 #include "clang/Basic/Specifiers.h"
-#include "llvm/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallBitVector.h"
 #include <optional>
 
 #include "ImportName.h"
@@ -41,7 +42,7 @@ class ObjCPropertyDecl;
 class ParmVarDecl;
 class QualType;
 class Sema;
-class SwiftNewTypeAttr;
+class CodiraNewTypeAttr;
 class Type;
 class TypedefNameDecl;
 }
@@ -77,9 +78,9 @@ getDefinitionForClangTypeDecl(const clang::Decl *D);
 /// \c importantInternalFunction later, Clang still needs to treat them as the
 /// same function. This is normally fine...except that if the local declaration
 /// is the \e first declaration, it'll also get used as the "canonical"
-/// declaration that Clang (and Swift) use for uniquing purposes.
+/// declaration that Clang (and Codira) use for uniquing purposes.
 ///
-/// Every imported declaration gets assigned to a module in Swift, and for
+/// Every imported declaration gets assigned to a module in Codira, and for
 /// declarations without definitions that choice is somewhat arbitrary. But it
 /// would be better not to pick a local declaration like the one above, and
 /// therefore this method should be used instead of
@@ -109,8 +110,8 @@ clang::QualType getClangDeclContextType(const clang::DeclContext *dc);
 OmissionTypeName getClangTypeNameForOmission(clang::ASTContext &ctx,
                                              clang::QualType type);
 
-/// Find the swift_newtype attribute on the given typedef, if present.
-clang::SwiftNewTypeAttr *getSwiftNewtypeAttr(const clang::TypedefNameDecl *decl,
+/// Find the language_newtype attribute on the given typedef, if present.
+clang::CodiraNewTypeAttr *getCodiraNewtypeAttr(const clang::TypedefNameDecl *decl,
                                              ImportNameVersion version);
 
 /// Retrieve a bit vector containing the non-null argument
@@ -122,9 +123,9 @@ getNonNullArgs(const clang::Decl *decl,
 /// Whether the given decl is a global Notification
 bool isNSNotificationGlobal(const clang::NamedDecl *);
 
-// If this decl is associated with a swift_newtype (and we're honoring
-// swift_newtype), return it, otherwise null
-clang::TypedefNameDecl *findSwiftNewtype(const clang::NamedDecl *decl,
+// If this decl is associated with a language_newtype (and we're honoring
+// language_newtype), return it, otherwise null
+clang::TypedefNameDecl *findCodiraNewtype(const clang::NamedDecl *decl,
                                          clang::Sema &clangSema,
                                          ImportNameVersion version);
 
@@ -135,12 +136,12 @@ bool isNSString(clang::QualType);
 /// Wehther the passed type is `NSNotificationName` typealias
 bool isNSNotificationName(clang::QualType);
 
-/// Whether the given declaration was exported from Swift.
+/// Whether the given declaration was exported from Codira.
 ///
 /// Note that this only checks the immediate declaration being passed.
 /// For things like methods and properties that are nested in larger types,
 /// it's the top-level declaration that should be checked.
-bool hasNativeSwiftDecl(const clang::Decl *decl);
+bool hasNativeCodiraDecl(const clang::Decl *decl);
 
 /// Translation API nullability from an API note into an optional kind.
 ///
@@ -154,19 +155,19 @@ OptionalTypeKind translateNullability(
 bool isRequiredInitializer(const clang::ObjCMethodDecl *method);
 
 /// Determine whether this property should be imported as its getter and setter
-/// rather than as a Swift property.
+/// rather than as a Codira property.
 bool shouldImportPropertyAsAccessors(const clang::ObjCPropertyDecl *prop);
 
 /// Determine whether this method is an Objective-C "init" method
-/// that will be imported as a Swift initializer.
+/// that will be imported as a Codira initializer.
 bool isInitMethod(const clang::ObjCMethodDecl *method);
 
 /// Determine whether this is the declaration of Objective-C's 'id' type.
 bool isObjCId(const clang::Decl *decl);
 
 /// Determine whether the given declaration is considered
-/// 'unavailable' in Swift.
-bool isUnavailableInSwift(const clang::Decl *decl, const PlatformAvailability *,
+/// 'unavailable' in Codira.
+bool isUnavailableInCodira(const clang::Decl *decl, const PlatformAvailability *,
                           bool enableObjCInterop);
 
 /// Determine the optionality of the given Clang parameter.

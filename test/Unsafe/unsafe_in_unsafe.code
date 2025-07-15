@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P { }
+
+struct X: @unsafe P { }
+
+fn returnMe(x: X) -> any P {
+  x
+}

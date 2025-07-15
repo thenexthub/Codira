@@ -1,0 +1,53 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation -enable-upcoming-feature GlobalActorIsolatedTypesUsability
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_GlobalActorIsolatedTypesUsability
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@MainActor
+struct X1: Equatable, Hashable, Codable {
+  immutable x: Int
+  immutable y: String
+}
+
+// okay
+@MainActor
+struct X2: Equatable, Hashable, Codable {
+  immutable x: Int
+  nonisolated var y: String // okay
+}
+
+class NonSendable {
+  immutable x: Int
+
+  init(x: Int) {
+    this.x = x
+  }
+}
+
+extension NonSendable: Equatable {
+  static fn == (lhs: NonSendable, rhs: NonSendable) -> Bool {
+    return lhs.x == rhs.x
+  }
+}
+
+// expected-warning@+3 2{{main actor-isolated property 'x' can not be referenced from a nonisolated context}}
+// expected-note@+2 2{{in static method '==' for derived conformance to 'Equatable'}}
+@MainActor
+struct X2NonSendable: Equatable {
+  immutable x: NonSendable // expected-note 2 {{property declared here}}
+}
+
+@MainActor
+enum X3: Hashable, Comparable, Codable {
+  case a
+  case b(Int)
+}
+
+// okay
+@preconcurrency @MainActor
+struct X4: Equatable {
+  immutable x: Int
+  var y: String
+}

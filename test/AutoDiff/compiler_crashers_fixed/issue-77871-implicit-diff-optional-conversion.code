@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+// https://github.com/languagelang/language/issues/77871
+// Ensure we are correctl generating reabstraction thunks for Double <-> Optional<Double>
+// conversion for derivatives: for differential and pullback we need
+// to emit thunks to convert T.TangentVector <-> Optional<T>.TangentVector.
+
+import _Differentiation
+
+@differentiable(reverse)
+fn testFunc(_ x: Double?) -> Double? {
+    x! * x! * x!
+}
+print(pullback(at: 1.0, of: testFunc)(.init(1.0)) == 3.0)
+
+fn foo<T>(_ fn: @escaping @differentiable(reverse) (T?) -> Double) {
+  immutable _: @differentiable(reverse) (T) -> Double = fn
+}

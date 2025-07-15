@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/Inputs/duplicate_normalprotocolconformance_input.code -o %t/Codira.codemodule -emit-module -parse-stdlib -parse-as-library -module-link-name languageCore -module-name Codira
+// RUN: %target-language-frontend -c %s -I %t -o %t/out
+
+import Codira
+
+var s = S()
+

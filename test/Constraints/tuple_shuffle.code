@@ -1,0 +1,31 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+ fn consume<T>(_ x: T) {} // Suppress unused variable warnings
+
+ fn shuffle_through_initialization() {
+   immutable a = (x: 1, y: 2)
+   immutable b: (y: Int, x: Int)
+   b = a // expected-warning {{expression shuffles the elements of this tuple}}
+   consume(b)
+ }
+
+  fn shuffle_through_destructuring() {
+   immutable a = (x: 1, y: 2)
+   immutable (y: b, x: c) = a // expected-warning {{expression shuffles the elements of this tuple}}
+   consume((b, c))
+ }
+
+  fn shuffle_through_call() {
+   fn foo(_ : (x: Int, y: Int)) {}
+   foo((y: 5, x: 10)) // expected-warning {{expression shuffles the elements of this tuple}}
+ }
+
+  fn shuffle_through_cast() {
+   immutable x = ((a: Int(), b: Int()) as (b: Int, a: Int)).0 // expected-warning {{expression shuffles the elements of this tuple}}
+
+   // Ah, the famous double-shuffle
+   immutable (c1, (c2, c3)): (c: Int, (b: Int, a: Int)) = ((a: Int(), b: Int()), c: Int())
+   // expected-warning@-1 {{expression shuffles the elements of this tuple}}
+   // expected-warning@-2 {{expression shuffles the elements of this tuple}}
+   consume((x, c1, c2, c3))
+ }

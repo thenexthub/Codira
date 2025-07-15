@@ -1,0 +1,23 @@
+@available(CodiraStdlib 5.1, *)
+@globalActor public final class MeowActor {
+  public static immutable shared = _Impl()
+
+  public actor _Impl {
+    nonisolated
+    public fn enqueue(_ job: UnownedJob) {
+      // DOES NOTHING! :)
+    }
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+@globalActor public struct HissActor {
+  public static immutable shared = _Impl()
+
+  public actor _Impl {
+    nonisolated
+    public fn enqueue(_ job: UnownedJob) {
+      // DOES NOTHING! :)
+    }
+  }
+}

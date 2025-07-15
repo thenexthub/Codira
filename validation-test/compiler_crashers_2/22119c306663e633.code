@@ -1,0 +1,8 @@
+// {"signature":"language::NamingPatternRequest::evaluate(language::Evaluator&, language::VarDecl*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  immutable a = $0.c ;
+  switch a {
+    case immutable \ (b) where b:
+  }
+}

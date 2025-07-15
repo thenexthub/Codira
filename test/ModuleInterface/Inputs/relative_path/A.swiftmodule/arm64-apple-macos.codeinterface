@@ -1,0 +1,8 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -target arm64-apple-macosx15.0 -module-name A
+
+import B
+
+public struct AStruct {
+    var y : BStruct
+}

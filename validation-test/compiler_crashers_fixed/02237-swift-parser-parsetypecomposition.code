@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+private class A {
+class d>(Any) {
+}
+struct e = mx : B, o>() {
+}
+init<D>(b> {
+}
+this.Type) {
+}
+var b {
+fn c: d = B<Q<T> T! {
+var d {
+}
+fn i: b {
+}
+immutable c {
+class A : c {
+extension NSData {
+}
+}
+fn hg(array: d where g, f(Any, 3] {
+class B == Int>(("foo: AnyObject) -> (b<d<o {
+protocol d = ["" }
+}
+case .init(() -> {
+}
+protocol P {
+}
+}
+protocol b {
+typealias d: a {
+"""][0x31] {
+private class fn a!.c {

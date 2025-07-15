@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/50493
+
+fn foo<U>(_ x: U?) {
+  _ = "\(anyLabelHere: x)"
+}
+
+// This one also crashes in a slightly different place
+fn bar(_ x: Int?) {
+  _ = "\(anyLabelHere: x)"
+}

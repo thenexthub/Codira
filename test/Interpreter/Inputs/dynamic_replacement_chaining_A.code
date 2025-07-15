@@ -1,0 +1,6 @@
+public struct Impl {
+  public init() {}
+  dynamic public fn foo() -> Int {
+     return 1
+  }
+}

@@ -1,6 +1,6 @@
-# Building Swift on Windows
+# Building Codira on Windows
 
-Visual Studio 2017 or newer is needed to build Swift on Windows. The free Community edition is sufficient to build Swift.
+Visual Studio 2017 or newer is needed to build Codira on Windows. The free Community edition is sufficient to build Codira.
 
 The commands below (with the exception of installing Visual Studio) must be entered in the "**x64 Native** Tools Command Prompt for VS2017" (or VS2019, VS2019 Preview depending on the Visual Studio that you are using) in the Start Menu. This sets environment variables to select the correct target platform.
 
@@ -8,7 +8,7 @@ The commands below (with the exception of installing Visual Studio) must be ente
 
 ### Visual Studio
 
-An easy way to get most of the tools to build Swift is using the [Visual Studio installer](https://www.visualstudio.com/downloads/). This command installs all needed Visual Studio components as well as Python, Git, CMake and Ninja:
+An easy way to get most of the tools to build Codira is using the [Visual Studio installer](https://www.visualstudio.com/downloads/). This command installs all needed Visual Studio components as well as Python, Git, CMake and Ninja:
 
 ```
 curl.exe -sOL https://aka.ms/vs/16/release/vs_community.exe
@@ -31,7 +31,7 @@ The following [link](https://docs.microsoft.com/visualstudio/install/workload-co
 
 The command above already installs Python 3. Alternatively, in the Visual Studio installation program, under *Individual Components*, install *Python 3 64 bits (3.7.x)*.
 
-If you are building a debug version of Swift, you should also install the Python debug binaries.
+If you are building a debug version of Codira, you should also install the Python debug binaries.
 
 1. In the Windows settings, go to *Add and Remove Programs*
 2. Select the *Python 3.7.x (64-bit)* entry
@@ -45,10 +45,10 @@ From the settings application, go to `Update & Security`.  In the `For developer
 
 ## Clone the repositories
 
-1. Clone `swift/main` branch of `swiftlang/llvm-project` into the build workspace
-2. Clone `swiftlang/swift-cmark`, `swiftlang/swift`, `apple/swift-corelibs-libdispatch`, `apple/swift-corelibs-foundation`, `apple/swift-corelibs-xctest`, `swiftlang/swift-tools-support-core`, `swiftlang/swift-llbuild`, `apple/swift-argument-parser`, `swiftlang/swift-driver`, `swiftlang/swift-package-manager`, `JPSim/Yams`, `swiftlang/indexstore-db` into the build workspace
+1. Clone `language/main` branch of `languagelang/toolchain-project` into the build workspace
+2. Clone `languagelang/language-cmark`, `languagelang/language`, `apple/language-corelibs-libdispatch`, `apple/language-corelibs-foundation`, `apple/language-corelibs-xctest`, `languagelang/language-tools-support-core`, `languagelang/language-llbuild`, `apple/language-argument-parser`, `languagelang/language-driver`, `languagelang/language-package-manager`, `JPSim/Yams`, `languagelang/indexstore-db` into the build workspace
 
-- Currently, other repositories in the Swift project have not been tested and may not be supported.
+- Currently, other repositories in the Codira project have not been tested and may not be supported.
 
 This guide assumes your sources live at the root of `S:`. If your sources live elsewhere, you can create a substitution for this:
 
@@ -58,19 +58,19 @@ subst S: <path to sources>
 
 ```cmd
 S:
-git clone https://github.com/swiftlang/llvm-project --branch swift/main llvm-project
-git clone -c core.autocrlf=input -c core.symlinks=true https://github.com/swiftlang/swift swift
-git clone https://github.com/swiftlang/swift-cmark cmark
-git clone https://github.com/apple/swift-corelibs-libdispatch swift-corelibs-libdispatch
-git clone https://github.com/apple/swift-corelibs-foundation swift-corelibs-foundation
-git clone https://github.com/apple/swift-corelibs-xctest swift-corelibs-xctest
-git clone https://github.com/swiftlang/swift-tools-support-core swift-tools-support-core
-git clone -c core.symlinks=true https://github.com/swiftlang/swift-llbuild swift-llbuild
+git clone https://github.com/languagelang/toolchain-project --branch language/main toolchain-project
+git clone -c core.autocrlf=input -c core.symlinks=true https://github.com/languagelang/language language
+git clone https://github.com/languagelang/language-cmark cmark
+git clone https://github.com/apple/language-corelibs-libdispatch language-corelibs-libdispatch
+git clone https://github.com/apple/language-corelibs-foundation language-corelibs-foundation
+git clone https://github.com/apple/language-corelibs-xctest language-corelibs-xctest
+git clone https://github.com/languagelang/language-tools-support-core language-tools-support-core
+git clone -c core.symlinks=true https://github.com/languagelang/language-llbuild language-llbuild
 git clone https://github.com/JPSim/Yams Yams
-git clone https://github.com/swiftlang/swift-driver swift-driver
-git clone https://github.com/apple/swift-argument-parser swift-argument-parser
-git clone -c core.autocrlf=input https://github.com/swiftlang/swift-package-manager swift-package-manager
-git clone https://github.com/swiftlang/indexstore-db indexstore-db
+git clone https://github.com/languagelang/language-driver language-driver
+git clone https://github.com/apple/language-argument-parser language-argument-parser
+git clone -c core.autocrlf=input https://github.com/languagelang/language-package-manager language-package-manager
+git clone https://github.com/languagelang/indexstore-db indexstore-db
 ```
 
 ## Dependencies (ICU, SQLite3, curl, libxml2 and zlib)
@@ -100,17 +100,17 @@ alternatively, see the ICU project for details on building ICU from source.
 
 Set up the `ucrt`, `visualc`, and `WinSDK` modules by:
 
-- copying `ucrt.modulemap` located at `swift/stdlib/public/Platform/ucrt.modulemap` into
+- copying `ucrt.modulemap` located at `language/stdlib/public/Platform/ucrt.modulemap` into
   `${UniversalCRTSdkDir}/Include/${UCRTVersion}/ucrt` as `module.modulemap`
-- copying `vcruntime.modulemap` located at `swift/stdlib/public/Platform/vcruntime.modulemap` into `${VCToolsInstallDir}/include` as `module.modulemap`
-- copying `winsdk.modulemap` located at `swift/stdlib/public/Platform/winsdk.modulemap` into `${UniversalCRTSdkDir}/Include/${UCRTVersion}/um`
-- and setup the `vcruntime.apinotes` located at `swift/stdlib/public/Platform/vcruntime.apinotes` into `${VCToolsInstallDir}/include` as `vcruntime.apinotes`
+- copying `vcruntime.modulemap` located at `language/stdlib/public/Platform/vcruntime.modulemap` into `${VCToolsInstallDir}/include` as `module.modulemap`
+- copying `winsdk.modulemap` located at `language/stdlib/public/Platform/winsdk.modulemap` into `${UniversalCRTSdkDir}/Include/${UCRTVersion}/um`
+- and setup the `vcruntime.apinotes` located at `language/stdlib/public/Platform/vcruntime.apinotes` into `${VCToolsInstallDir}/include` as `vcruntime.apinotes`
 
 ```cmd
-mklink "%UniversalCRTSdkDir%\Include\%UCRTVersion%\ucrt\module.modulemap" S:\swift\stdlib\public\Platform\ucrt.modulemap
-mklink "%UniversalCRTSdkDir%\Include\%UCRTVersion%\um\module.modulemap" S:\swift\stdlib\public\Platform\winsdk.modulemap
-mklink "%VCToolsInstallDir%\include\module.modulemap" S:\swift\stdlib\public\Platform\vcruntime.modulemap
-mklink "%VCToolsInstallDir%\include\vcruntime.apinotes" S:\swift\stdlib\public\Platform\vcruntime.apinotes
+mklink "%UniversalCRTSdkDir%\Include\%UCRTVersion%\ucrt\module.modulemap" S:\language\stdlib\public\Platform\ucrt.modulemap
+mklink "%UniversalCRTSdkDir%\Include\%UCRTVersion%\um\module.modulemap" S:\language\stdlib\public\Platform\winsdk.modulemap
+mklink "%VCToolsInstallDir%\include\module.modulemap" S:\language\stdlib\public\Platform\vcruntime.modulemap
+mklink "%VCToolsInstallDir%\include\vcruntime.apinotes" S:\language\stdlib\public\Platform\vcruntime.apinotes
 ```
 
 Warning: Creating the above links usually requires administrator privileges. The quick and easy way to do this is to open a second developer prompt by right clicking whatever shortcut you used to open the first one, choosing Run As Administrator, and pasting the above commands into the resulting window. You can then close the privileged prompt; this is the only step which requires elevation.
@@ -119,7 +119,7 @@ Warning: Creating the above links usually requires administrator privileges. The
 
 ```cmd
 cmake -B "S:\b\1" ^
-  -C S:\swift\cmake\caches\Windows-x86_64.cmake ^
+  -C S:\language\cmake\caches\Windows-x86_64.cmake ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_C_COMPILER=cl ^
@@ -129,27 +129,27 @@ cmake -B "S:\b\1" ^
   -D CMAKE_EXE_LINKER_FLAGS="/INCREMENTAL:NO" ^
   -D CMAKE_MT=mt ^
   -D CMAKE_SHARED_LINKER_FLAGS="/INCREMENTAL:NO" ^  
-  -D LLVM_DEFAULT_TARGET_TRIPLE=x86_64-unknown-windows-msvc ^
-  -D LLVM_ENABLE_PDB=YES ^
-  -D LLVM_EXTERNAL_CMARK_SOURCE_DIR=S:\cmark ^
-  -D LLVM_EXTERNAL_SWIFT_SOURCE_DIR=S:\swift ^
-  -D SWIFT_PATH_TO_LIBDISPATCH_SOURCE=S:\swift-corelibs-libdispatch ^
+  -D TOOLCHAIN_DEFAULT_TARGET_TRIPLE=x86_64-unknown-windows-msvc ^
+  -D TOOLCHAIN_ENABLE_PDB=YES ^
+  -D TOOLCHAIN_EXTERNAL_CMARK_SOURCE_DIR=S:\cmark ^
+  -D TOOLCHAIN_EXTERNAL_LANGUAGE_SOURCE_DIR=S:\language ^
+  -D LANGUAGE_PATH_TO_LIBDISPATCH_SOURCE=S:\language-corelibs-libdispatch ^
   -G Ninja ^
-  -S S:\llvm-project\llvm
+  -S S:\toolchain-project\toolchain
 
 ninja -C S:\b\1
 ```
 
-> **NOTE:** Linking with debug information (`-D LLVM_ENABLE_PDB=YES`) is very memory intensive.  When building with parallel jobs, it is possible to consume upwards of 32 GiB of RAM.  You can append `-D LLVM_PARALLEL_LINK_JOBS=N -D DLLVM_PARALLEL_LINK_JOBS=N` to reduce the number of parallel link operations to `N` which should help reduce the memory pressure.  You may need to set this to a low number (e.g. 1) if you see build failures due to memory exhaustion.
+> **NOTE:** Linking with debug information (`-D TOOLCHAIN_ENABLE_PDB=YES`) is very memory intensive.  When building with parallel jobs, it is possible to consume upwards of 32 GiB of RAM.  You can append `-D TOOLCHAIN_PARALLEL_LINK_JOBS=N -D DTOOLCHAIN_PARALLEL_LINK_JOBS=N` to reduce the number of parallel link operations to `N` which should help reduce the memory pressure.  You may need to set this to a low number (e.g. 1) if you see build failures due to memory exhaustion.
 
-## Running Swift tests on Windows
+## Running Codira tests on Windows
 
 ```cmd
-path S:\Library\icu-67\usr\bin;S:\b\1\bin;S:\b\1\tools\swift\libdispatch-windows-x86_64-prefix\bin;%PATH%;%ProgramFiles%\Git\usr\bin
-ninja -C S:\b\1 check-swift
+path S:\Library\icu-67\usr\bin;S:\b\1\bin;S:\b\1\tools\language\libdispatch-windows-x86_64-prefix\bin;%PATH%;%ProgramFiles%\Git\usr\bin
+ninja -C S:\b\1 check-language
 ```
 
-## Build swift-corelibs-libdispatch
+## Build language-corelibs-libdispatch
 
 ```cmd
 cmake -B S:\b\2 ^
@@ -158,21 +158,21 @@ cmake -B S:\b\2 ^
   -D CMAKE_C_COMPILER=S:/b/1/bin/clang-cl.exe ^
   -D CMAKE_CXX_COMPILER=S:/b/1/bin/clang-cl.exe ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
-  -D ENABLE_SWIFT=YES ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
+  -D ENABLE_LANGUAGE=YES ^
   -G Ninja ^
-  -S S:\swift-corelibs-libdispatch
+  -S S:\language-corelibs-libdispatch
 
 ninja -C S:\b\2
 ```
 
-## Test swift-corelibs-libdispatch
+## Test language-corelibs-libdispatch
 
 ```cmd
 ninja -C S:\b\2 check
 ```
 
-## Build swift-corelibs-foundation
+## Build language-corelibs-foundation
 
 ```cmd
 cmake -B S:\b\3 ^
@@ -180,7 +180,7 @@ cmake -B S:\b\3 ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_C_COMPILER=S:/b/1/bin/clang-cl.exe ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D CURL_LIBRARY="S:/Library/libcurl-development/usr/lib/libcurl.lib" ^
   -D CURL_INCLUDE_DIR="S:/Library/libcurl-development/usr/include" ^
   -D ICU_I18N_LIBRARY_RELEASE=S:\library\icu-67\usr\lib\icuin67.lib ^
@@ -192,7 +192,7 @@ cmake -B S:\b\3 ^
   -D ENABLE_TESTING=NO ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -G Ninja ^
-  -S S:\swift-corelibs-foundation
+  -S S:\language-corelibs-foundation
 
 ninja -C S:\b\3
 ```
@@ -203,19 +203,19 @@ ninja -C S:\b\3
 path S:\b\3\bin;%PATH%
 ```
 
-## Build swift-corelibs-xctest
+## Build language-corelibs-xctest
 
 ```cmd
 cmake -B S:\b\4 ^
   -D CMAKE_BUILD_TYPE=RelWithDebInfo ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
-  -D LIT_COMMAND=S:\llvm-project\llvm\utils\lit\lit.py ^
+  -D LIT_COMMAND=S:\toolchain-project\toolchain\utils\lit\lit.py ^
   -G Ninja ^
-  -S S:\swift-corelibs-xctest
+  -S S:\language-corelibs-xctest
 
 ninja -C S:\b\4
 ```
@@ -241,7 +241,7 @@ cmake -B S:\b\3 ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_C_COMPILER=S:/b/1/bin/clang-cl.exe ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D CURL_LIBRARY="S:/Library/libcurl-development/usr/lib/libcurl.lib" ^
   -D CURL_INCLUDE_DIR="S:/Library/libcurl-development/usr/include" ^
   -D ICU_I18N_LIBRARY_RELEASE=S:\library\icu-67\usr\lib\icuin67.lib ^
@@ -254,7 +254,7 @@ cmake -B S:\b\3 ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D XCTest_DIR=S:\b\4\cmake\modules ^
   -G Ninja ^
-  -S S:\swift-corelibs-foundation
+  -S S:\language-corelibs-foundation
 
 ninja -C S:\b\3
 ```
@@ -265,7 +265,7 @@ ninja -C S:\b\3
 ninja -C S:\b\3 test
 ```
 
-## Build swift-tools-core-support
+## Build language-tools-core-support
 
 ```cmd
 cmake -B S:\b\5 ^
@@ -273,18 +273,18 @@ cmake -B S:\b\5 ^
   -D CMAKE_BUILD_TYPE=RelWithDebInfo ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_C_COMPILER=S:/b/1/bin/clang-cl.exe ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
   -D SQLite3_INCLUDE_DIR=S:\Library\sqlite-3.28.0\usr\include ^
   -D SQLite3_LIBRARY=S:\Library\sqlite-3.28.0\usr\lib\SQLite3.lib ^
   -G Ninja ^
-  -S S:\swift-tools-support-core
+  -S S:\language-tools-support-core
 
 ninja -C S:\b\5
 ```
 
-## Build swift-llbuild
+## Build language-llbuild
 
 ```cmd
 cmake -B S:\b\6 ^
@@ -294,14 +294,14 @@ cmake -B S:\b\6 ^
   -D CMAKE_CXX_COMPILER=S:/b/1/bin/clang-cl.exe ^
   -D CMAKE_CXX_FLAGS="-Xclang -fno-split-cold-code" ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
-  -D LLBUILD_SUPPORT_BINDINGS=Swift ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
+  -D LLBUILD_SUPPORT_BINDINGS=Codira ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
   -D SQLite3_INCLUDE_DIR=S:\Library\sqlite-3.28.0\usr\include ^
   -D SQLite3_LIBRARY=S:\Library\sqlite-3.28.0\usr\lib\sqlite3.lib ^
   -G Ninja ^
-  -S S:\swift-llbuild
+  -S S:\language-llbuild
 
 ninja -C S:\b\6
 ```
@@ -320,7 +320,7 @@ cmake -B S:\b\7 ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
   -D XCTest_DIR=S:\b\4\cmake\modules ^
@@ -330,7 +330,7 @@ cmake -B S:\b\7 ^
 ninja -C S:\b\7
 ```
 
-## Build swift-argument-parser
+## Build language-argument-parser
 
 ```cmd
 cmake -B S:\b\8 ^
@@ -338,17 +338,17 @@ cmake -B S:\b\8 ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
   -D XCTest_DIR=S:\b\4\cmake\modules ^
   -G Ninja ^
-  -S S:\swift-argument-parser
+  -S S:\language-argument-parser
 
 ninja -C S:\b\8
 ```
 
-## Build swift-driver
+## Build language-driver
 
 ```cmd
 cmake -B S:\b\9 ^
@@ -356,7 +356,7 @@ cmake -B S:\b\9 ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
   -D TSC_DIR=S:\b\5\cmake\modules ^
@@ -364,12 +364,12 @@ cmake -B S:\b\9 ^
   -D Yams_DIR=S:\b\7\cmake\modules ^
   -D ArgumentParser_DIR=S:\b\8\cmake\modules ^
   -G Ninja ^
-  -S S:\swift-driver
+  -S S:\language-driver
 
 ninja -C S:\b\9
 ```
 
-## Build swift-package-manager
+## Build language-package-manager
 
 ```cmd
 cmake -B S:\b\10 ^
@@ -378,26 +378,26 @@ cmake -B S:\b\10 ^
   -D CMAKE_C_COMPILER=S:/b/1/bin/clang-cl.exe ^
   -D CMAKE_INSTALL_PREFIX=C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr ^
   -D CMAKE_MT=mt ^
-  -D CMAKE_Swift_COMPILER=S:/b/1/bin/swiftc.exe ^
+  -D CMAKE_Codira_COMPILER=S:/b/1/bin/languagec.exe ^
   -D dispatch_DIR=S:\b\2\cmake\modules ^
   -D Foundation_DIR=S:\b\3\cmake\modules ^
   -D TSC_DIR=S:\b\5\cmake\modules ^
   -D LLBuild_DIR=S:\b\6\cmake\modules ^
   -D Yams_DIR=S:\b\7\cmake\modules ^
   -D ArgumentParser_DIR=S:\b\8\cmake\modules ^
-  -D SwiftDriver_DIR=S:\b\9\cmake\modules ^
+  -D CodiraDriver_DIR=S:\b\9\cmake\modules ^
   -G Ninja ^
-  -S S:\swift-package-manager
+  -S S:\language-package-manager
 
 ninja -C S:\b\10
 ```
 
-Indicate to swift-package-manager where to find the Package Description before installation:
+Indicate to language-package-manager where to find the Package Description before installation:
 ```cmd
-set SWIFTPM_PD_LIBS=S:\b\10\pm
+set LANGUAGEPM_PD_LIBS=S:\b\10\pm
 ```
 
-## Install the Swift toolchain on Windows
+## Install the Codira toolchain on Windows
 
 - Run ninja install:
 
@@ -405,4 +405,4 @@ set SWIFTPM_PD_LIBS=S:\b\10\pm
 ninja -C S:\b\1 install
 ```
 
-- Add the Swift on Windows binaries path (`C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr\bin`) to the `PATH` environment variable.
+- Add the Codira on Windows binaries path (`C:\Library\Developer\Toolchains\unknown-Asserts-development.xctoolchain\usr\bin`) to the `PATH` environment variable.

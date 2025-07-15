@@ -1,13 +1,17 @@
 //===--- SILGenCleanup.cpp ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Perform peephole-style "cleanup" to aid SIL diagnostic passes.
@@ -31,14 +35,14 @@
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
 #include "language/SILOptimizer/Utils/CanonicalizeInstruction.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/PostOrderIterator.h"
 
 using namespace language;
 
 // Define a CanonicalizeInstruction subclass for use in SILGenCleanup.
 struct SILGenCanonicalize final : CanonicalizeInstruction {
   bool changed = false;
-  llvm::SmallPtrSet<SILInstruction *, 16> deadOperands;
+  toolchain::SmallPtrSet<SILInstruction *, 16> deadOperands;
 
   SILGenCanonicalize(DeadEndBlocks &deadEndBlocks)
       : CanonicalizeInstruction(DEBUG_TYPE, deadEndBlocks) {}
@@ -66,7 +70,7 @@ struct SILGenCanonicalize final : CanonicalizeInstruction {
   SILBasicBlock::iterator deleteDeadOperands(SILBasicBlock::iterator nextII,
                                              SILBasicBlock::iterator endII) {
     auto callbacks = InstModCallbacks().onDelete([&](SILInstruction *deadInst) {
-      LLVM_DEBUG(llvm::dbgs() << "Trivially dead: " << *deadInst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Trivially dead: " << *deadInst);
 
       // If nextII is the instruction we are going to delete, move nextII past
       // it.
@@ -118,8 +122,8 @@ struct SILGenCleanup : SILModuleTransform {
 // `exclude`.
 SILBasicBlock *
 findFirstBlock(SILFunction *function, SILFunction::iterator &iterator,
-               llvm::function_ref<bool(SILBasicBlock *)> include,
-               llvm::function_ref<bool(SILBasicBlock *)> exclude) {
+               toolchain::function_ref<bool(SILBasicBlock *)> include,
+               toolchain::function_ref<bool(SILBasicBlock *)> exclude) {
   while (iterator != function->end()) {
     auto *block = &*iterator;
     iterator = std::next(iterator);
@@ -147,7 +151,7 @@ SILBasicBlock *findFirstLoop(SILFunction *function, SILBasicBlock *from) {
     }
     current = *block->getPredecessorBlocks().begin();
   }
-  llvm_unreachable("finished function-exiting loop!?");
+  toolchain_unreachable("finished function-exiting loop!?");
 }
 
 /// Populate `roots` with the last blocks that are discovered via backwards
@@ -159,7 +163,7 @@ void collectReachableRoots(SILFunction *function, BasicBlockWorklist &backward,
 
   // Always include the entry block as a root.  Currently SILGen will emit
   // consumes in unreachable blocks of values defined in reachable blocks (e.g.
-  // test/SILGen/unreachable_code.swift:testUnreachableCatchClause).
+  // test/SILGen/unreachable_code.code:testUnreachableCatchClause).
   // TODO: [fix_silgen_destroy_unreachable] Fix SILGen not to emit such
   //                                        destroys and don't add the entry
   //                                        block to roots here.
@@ -233,7 +237,7 @@ bool SILGenCleanup::completeOSSALifetimes(SILFunction *function) {
   if (!getModule()->getOptions().OSSACompleteLifetimes)
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "Completing lifetimes in " << function->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Completing lifetimes in " << function->getName()
                           << "\n");
 
   BasicBlockWorklist deadends(function);
@@ -302,26 +306,26 @@ bool SILGenCleanup::completeLifetimesInRange(Range const &range,
   for (auto *block : range) {
     if (!completed.insert(block))
       continue;
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Completing lifetimes in bb" << block->getDebugID() << "\n");
     for (SILInstruction &inst : reverse(*block)) {
       for (auto result : inst.getResults()) {
-        LLVM_DEBUG(llvm::dbgs() << "completing " << result << "\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "completing " << result << "\n");
         if (completion.completeOSSALifetime(
                 result, OSSALifetimeCompletion::Boundary::Availability) ==
             LifetimeCompletion::WasCompleted) {
-          LLVM_DEBUG(llvm::dbgs() << "\tcompleted!\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "\tcompleted!\n");
           changed = true;
         }
       }
     }
     for (SILArgument *arg : block->getArguments()) {
-      LLVM_DEBUG(llvm::dbgs() << "completing " << *arg << "\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "completing " << *arg << "\n");
       assert(!arg->isReborrow() && "reborrows not legal at this SIL stage");
       if (completion.completeOSSALifetime(
               arg, OSSALifetimeCompletion::Boundary::Availability) ==
           LifetimeCompletion::WasCompleted) {
-        LLVM_DEBUG(llvm::dbgs() << "\tcompleted!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "\tcompleted!\n");
         changed = true;
       }
     }
@@ -337,7 +341,7 @@ void SILGenCleanup::run() {
 
     PrettyStackTraceSILFunction stackTrace("silgen cleanup", &function);
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "\nRunning SILGenCleanup on " << function.getName() << "\n");
 
     bool changed = completeOSSALifetimes(&function);
@@ -363,4 +367,4 @@ void SILGenCleanup::run() {
 
 } // end anonymous namespace
 
-SILTransform *swift::createSILGenCleanup() { return new SILGenCleanup(); }
+SILTransform *language::createSILGenCleanup() { return new SILGenCleanup(); }

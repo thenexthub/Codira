@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ModuleNameLookup.h"
@@ -20,7 +21,9 @@
 #include "language/AST/NameLookup.h"
 #include "language/AST/NameLookupRequests.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/raw_ostream.h"
+#include "clang/AST/Attr.h"
+#include "clang/AST/ExprCXX.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace namelookup;
@@ -93,7 +96,7 @@ private:
   void doLocalLookup(ModuleDecl *module, ImportPath::Access path,
                      OptionSet<ModuleLookupFlags> flags,
                      SmallVectorImpl<ValueDecl *> &localDecls) {
-    // If this import is specific to some named decl ("import Swift.Int")
+    // If this import is specific to some named decl ("import Codira.Int")
     // then filter out any lookups that don't match.
     if (!path.matches(name))
       return;
@@ -132,7 +135,7 @@ private:
 
 } // end anonymous namespace
 
-bool swift::declIsVisibleToNameLookup(
+bool language::declIsVisibleToNameLookup(
     const ValueDecl *decl, const DeclContext *moduleScopeContext,
     NLOptions options) {
   // NL_IgnoreAccessControl only applies to the current module. If
@@ -281,9 +284,46 @@ void ModuleNameLookup<LookupStrategy>::lookupInModule(
   if (decls.size() - initialCount <= 1)
     return;
 
+  // Some functions like `memchr` are defined both in libc and in libc++.
+  // Importing both would result in ambiguities, but there are some attributes
+  // that mark the preferred overloads. See _LIBCPP_PREFERRED_OVERLOAD.
+  toolchain::SmallPtrSet<ValueDecl *, 4> declsToRemove;
+  bool hasPreferredOverload = false;
+  for (auto decl : decls)
+    if (const auto *clangDecl = decl->getClangDecl()) {
+      if (clangDecl->hasAttr<clang::EnableIfAttr>()) {
+        // FIXME: at some point we might want to call into Clang to implement
+        // the full enable_if semantics including the constant evaluation of the
+        // conditions. For now, just look for the first enable_if(true, "...")
+        // and assume all the rest of the enable_ifs evaluate to true.
+        bool thisDeclHasPreferredOverload = false;
+        for (auto clangAttr :
+             clangDecl->specific_attrs<clang::EnableIfAttr>()) {
+          if (auto litExpr =
+                  dyn_cast<clang::CXXBoolLiteralExpr>(clangAttr->getCond())) {
+            if (litExpr->getValue()) {
+              thisDeclHasPreferredOverload = hasPreferredOverload = true;
+              break;
+            }
+          }
+        }
+        if (!thisDeclHasPreferredOverload)
+          declsToRemove.insert(decl);
+      } else
+        declsToRemove.insert(decl);
+    }
+
+  if (hasPreferredOverload) {
+    decls.erase(std::remove_if(decls.begin() + initialCount, decls.end(),
+                               [&](ValueDecl *d) -> bool {
+                                 return declsToRemove.contains(d);
+                               }),
+                decls.end());
+  }
+
   // Remove duplicated declarations, which can happen when the same module is
   // imported with multiple access paths.
-  llvm::SmallPtrSet<ValueDecl *, 4> knownDecls;
+  toolchain::SmallPtrSet<ValueDecl *, 4> knownDecls;
   decls.erase(std::remove_if(decls.begin() + initialCount, decls.end(),
                              [&](ValueDecl *d) -> bool {
                                return !knownDecls.insert(d).second;
@@ -333,7 +373,7 @@ void namelookup::lookupVisibleDeclsInModule(
                         NL_QualifiedDefault);
 }
 
-void namelookup::simple_display(llvm::raw_ostream &out, ResolutionKind kind) {
+void namelookup::simple_display(toolchain::raw_ostream &out, ResolutionKind kind) {
   switch (kind) {
   case ResolutionKind::Overloadable:
     out << "Overloadable";
@@ -345,5 +385,5 @@ void namelookup::simple_display(llvm::raw_ostream &out, ResolutionKind kind) {
     out << "MacrosOnly";
     return;
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }

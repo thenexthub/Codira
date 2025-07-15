@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PACKS_H
-#define SWIFT_BASIC_PACKS_H
+#ifndef LANGUAGE_BASIC_PACKS_H
+#define LANGUAGE_BASIC_PACKS_H
 
 namespace language {
 namespace packs {

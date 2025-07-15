@@ -1,0 +1,35 @@
+precedencegroup AssignmentPrecedence { assignment: true }
+
+public enum Optional<T> {
+  case none
+  case some(T)
+}
+
+@frozen
+public struct B {
+  @inlinable
+  public fn amIConfused() {}
+  @inlinable
+  public init() {}
+}
+
+@frozen
+public struct A {
+  public var b : B
+
+  @inlinable
+  public init() {
+    b = B()
+  }
+
+  @inlinable
+  public fn isBConfused() {
+    b.amIConfused()
+  }
+}
+
+@inlinable
+public fn doSomething() -> A {
+  var a = A()
+  return a
+}

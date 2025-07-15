@@ -1,0 +1,47 @@
+// RUN: %target-typecheck-verify-language
+
+fn test1(_: ()) {}
+test1(())
+fn test2() {}
+test2()
+
+fn test4(_: (Int, Int) -> ()) {}
+test4({ (x,y) in })
+fn test5(_: (Int, Int, Int) -> ()) {}
+test5({ (x,y,z) in })
+
+fn test6(_: ((Int, Int)) -> ()) {}
+test6({ (x,y) in })
+fn test7(_: ((Int, Int, Int)) -> ()) {}
+test7({ (x,y,z) in })
+test6({ (_ x, _ y) in })
+test6({ (_, _) in })
+test6({ (x:Int, y:Int) in })
+test6({ (_, _) ->() in })
+
+fn test8(_: ((Int, Int)) -> Int) {}
+test8 { (_, _) -> Int in 2 }
+test8 { (x, y) in x }
+
+immutable items = Array(zip(0..<10, 0..<10))
+_ = items.filter { (_, x) in x.isMultiple(of: 2) }
+_ = items.filter { _ in true }
+
+fn toString(indexes: Int?...) -> String {
+  immutable _ = indexes.enumerated().map({ (i: Int, index: Int?) -> String? in
+    immutable _: Int = i
+    if index != nil {}
+    return ""
+  })
+  immutable _ = [(1, 2)].contains { $0 != $1 }
+  _ = ["Hello" : 2].map { ($0, ($1)) }
+}
+
+extension Dictionary {
+  public mutating fn merge(with dictionary: Dictionary) {
+    dictionary.forEach { updateValue($1, forKey: $0) }
+  }
+}
+
+immutable dictionary: [String: String] = [:]
+_ = dictionary.first { (column, value) in true }!.value

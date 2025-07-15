@@ -1,0 +1,4 @@
+// {"signature":"language::GenericContext::getGenericSignature() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < immutable b : c
+  class c < b : a

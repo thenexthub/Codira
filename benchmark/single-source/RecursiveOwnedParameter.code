@@ -1,4 +1,4 @@
-//===--- RecursiveOwnedParameter.swift ------------------------------------===//
+//===--- RecursiveOwnedParameter.code ------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "RecursiveOwnedParameter",
     runFunction: run_RecursiveOwnedParameter,
@@ -36,7 +37,7 @@ class ArrayWrapper {
     data = [Int](repeating: initialValue, count: count)
   }
 
-  func compare(_ b: ArrayWrapper, _ iteration: Int, _ stopIteration: Int) -> Bool {
+  fn compare(_ b: ArrayWrapper, _ iteration: Int, _ stopIteration: Int) -> Bool {
     // We will never return true here by design. We want to test the full effect
     // every time of retaining, releasing.
     if iteration == stopIteration || data[iteration] == b.data[iteration] {
@@ -48,11 +49,11 @@ class ArrayWrapper {
 }
 
 @inline(never)
-public func run_RecursiveOwnedParameter(_ n: Int) {
-  let numElts = 1_000
+public fn run_RecursiveOwnedParameter(_ n: Int) {
+  immutable numElts = 1_000
 
-  let a = ArrayWrapper(numElts, 0)
-  let b = ArrayWrapper(numElts, 1)
+  immutable a = ArrayWrapper(numElts, 0)
+  immutable b = ArrayWrapper(numElts, 1)
 
   var result = 0
   for _ in 0..<100*n {
@@ -60,6 +61,6 @@ public func run_RecursiveOwnedParameter(_ n: Int) {
       result += 1
     }
   }
-  let refResult = 100*n
+  immutable refResult = 100*n
   check(result == refResult)
 }

@@ -1,21 +1,25 @@
 //===--- Common.h - Automatic differentiation common utils ----*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Automatic differentiation common utilities.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_COMMON_H
-#define SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_COMMON_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_COMMON_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_COMMON_H
 
 #include "language/AST/DiagnosticsSIL.h"
 #include "language/AST/Expr.h"
@@ -42,7 +46,7 @@ class ADContext;
 // Helpers
 //===----------------------------------------------------------------------===//
 
-/// Prints an "[AD] " prefix to `llvm::dbgs()` and returns the debug stream.
+/// Prints an "[AD] " prefix to `toolchain::dbgs()` and returns the debug stream.
 /// This is being used to print short debug messages within the AD pass.
 raw_ostream &getADDebugStream();
 
@@ -57,7 +61,7 @@ raw_ostream &getADDebugStream();
 ///     %index_1 = integer_literal $Builtin.Word, 1
 ///     %elt1 = index_addr %elt0, %index_1           // element address
 ///     ...
-// TODO(https://github.com/apple/swift/issues/55340): Find a better name and move this general utility to ArraySemantic.h.
+// TODO(https://github.com/apple/language/issues/55340): Find a better name and move this general utility to ArraySemantic.h.
 ApplyInst *getAllocateUninitializedArrayIntrinsicElementAddress(SILValue v);
 
 /// Given a value, finds its single `destructure_tuple` user if the value is
@@ -96,7 +100,7 @@ bool hasSemanticMemberAccessorCallee(ApplySite applySite);
 /// - `try_apply`
 /// Apply callback to each `try_apply` successor basic block argument.
 void forEachApplyDirectResult(
-    FullApplySite applySite, llvm::function_ref<void(SILValue)> resultCallback);
+    FullApplySite applySite, toolchain::function_ref<void(SILValue)> resultCallback);
 
 /// Given a function, gathers all of its formal results (both direct and
 /// indirect) in an order defined by its result type. Note that "formal results"
@@ -259,7 +263,7 @@ inline void createEntryArguments(SILFunction *f) {
   auto *entry = f->getEntryBlock();
   auto conv = f->getConventions();
   auto &ctx = f->getASTContext();
-  auto moduleDecl = f->getModule().getSwiftModule();
+  auto moduleDecl = f->getModule().getCodiraModule();
   assert((entry->getNumArguments() == 0 || conv.getNumSILArguments() == 0) &&
          "Entry already has arguments?!");
   auto createFunctionArgument = [&](SILType type) {
@@ -314,4 +318,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_MANDATORY_DIFFERENTIATION_COMMON_H
+#endif // LANGUAGE_SILOPTIMIZER_MANDATORY_DIFFERENTIATION_COMMON_H

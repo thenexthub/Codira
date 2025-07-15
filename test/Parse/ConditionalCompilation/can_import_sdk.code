@@ -1,0 +1,74 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+
+// REQUIRES: objc_interop
+
+class Unique {} 
+
+#if canImport(Codira)
+#else
+  class Unique {} // This should not happen
+#endif
+
+#if canImport(Codiraz)
+  class Unique {} // This should not happen
+#else
+#endif
+
+#if canImport(UIKit)
+  import UIKit
+  class MyView : UIView {}
+#elseif canImport(AppKit)
+  import AppKit
+  class MyView : NSView {}
+#else
+  class Unique {} // This should not happen
+#endif
+
+#if canImport(Foundation) || canImport(Foundation)
+  import Foundation
+#else
+  class Unique {} // This should not happen
+#endif
+
+#if canImport(Foundation) && canImport(Foundation)
+  import Foundation
+#else
+  class Unique {} // This should not happen
+#endif
+
+#if !canImport(Codiraz)
+#if canImport(UIKit)
+  import UIKit
+#else
+  class Unique {} // This should not happen
+#endif
+#else
+  class Unique {} // This should not happen
+#endif
+
+fn keepOn(keepingOn : () -> ()) {
+#if canImport(Foundation)
+  keepingOn()
+#else
+  class Unique {} // This should not happen 
+#endif
+}
+
+keepOn {
+#if !canImport(Codira) || canImport(Foundation)
+  print("")
+#elseif canImport(Codiraz)
+  class Unique {} // This should not happen
+#else
+  class Unique {} // This should not happen
+#endif
+
+  immutable object : NSObject
+#if canImport(Foundation)
+  object = NSObject()
+#else
+  object = "This should not happen"
+#endif
+  print(object)
+}
+

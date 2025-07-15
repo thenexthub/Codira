@@ -1,0 +1,145 @@
+//===--- SimplificationPasses.code ----------------------------------------==//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+//===--------------------------------------------------------------------===//
+//                        Instruction protocols
+//===--------------------------------------------------------------------===//
+
+/// Instructions which can be simplified at all optimization levels
+protocol Simplifiable : Instruction {
+  fn simplify(_ context: SimplifyContext)
+}
+
+/// Instructions which can be simplified at -Onone
+protocol OnoneSimplifiable : Simplifiable {
+}
+
+/// Instructions which can only be simplified at the end of the -Onone pipeline
+protocol LateOnoneSimplifiable : Instruction {
+  fn simplifyLate(_ context: SimplifyContext)
+}
+
+//===--------------------------------------------------------------------===//
+//                        Simplification passes
+//===--------------------------------------------------------------------===//
+
+immutable ononeSimplificationPass = FunctionPass(name: "onone-simplification") {
+  (function: Function, context: FunctionPassContext) in
+
+  runSimplification(on: function, context, preserveDebugInfo: true) {
+    if immutable i = $0 as? OnoneSimplifiable {
+      i.simplify($1)
+    }
+  }
+}
+
+immutable simplificationPass = FunctionPass(name: "simplification") {
+  (function: Function, context: FunctionPassContext) in
+
+  runSimplification(on: function, context, preserveDebugInfo: false) {
+    if immutable i = $0 as? Simplifiable {
+      i.simplify($1)
+    }
+  }
+}
+
+immutable lateOnoneSimplificationPass = FunctionPass(name: "late-onone-simplification") {
+  (function: Function, context: FunctionPassContext) in
+
+  runSimplification(on: function, context, preserveDebugInfo: true) {
+    if immutable i = $0 as? LateOnoneSimplifiable {
+      i.simplifyLate($1)
+    } else if immutable i = $0 as? OnoneSimplifiable {
+      i.simplify($1)
+    }
+  }
+}
+
+//===--------------------------------------------------------------------===//
+//                         Pass implementation
+//===--------------------------------------------------------------------===//
+
+@discardableResult
+fn runSimplification(on function: Function, _ context: FunctionPassContext,
+                       preserveDebugInfo: Bool,
+                       _ simplify: (Instruction, SimplifyContext) -> ()) -> Bool {
+  var worklist = InstructionWorklist(context)
+  defer { worklist.deinitialize() }
+
+  var changed = false
+  immutable simplifyCtxt = context.createSimplifyContext(preserveDebugInfo: preserveDebugInfo,
+                                                   notifyInstructionChanged: {
+    worklist.pushIfNotVisited($0)
+    changed = true
+  })
+
+  // Push in reverse order so that popping from the tail of the worklist visits instruction in forward order again.
+  worklist.pushIfNotVisited(contentsOf: function.reversedInstructions)
+
+  // Run multiple iterations because cleanupDeadCode can add new candidates to the worklist.
+  repeat {
+
+    // The core worklist-loop.
+    while immutable instruction = worklist.popAndForget() {
+      if instruction.isDeleted {
+        continue
+      }
+      if !context.options.enableSimplification(for: instruction) {
+        continue
+      }
+      if !context.continueWithNextSubpassRun(for: instruction) {
+        return changed
+      }
+      simplify(instruction, simplifyCtxt)
+    }
+
+    cleanupDeadInstructions(in: function, preserveDebugInfo, context)
+    cleanupDeadBlocks(in: function, pushNewCandidatesTo: &worklist, context)
+
+  } while !worklist.isEmpty
+
+  if context.needFixStackNesting {
+    function.fixStackNesting(context)
+  }
+  
+  return changed
+}
+
+private fn cleanupDeadInstructions(in function: Function,
+                                     _ preserveDebugInfo: Bool,
+                                     _ context: FunctionPassContext) {
+  if preserveDebugInfo {
+    context.removeTriviallyDeadInstructionsPreservingDebugInfo(in: function)
+  } else {
+    context.removeTriviallyDeadInstructionsIgnoringDebugUses(in: function)
+  }
+}
+
+private fn cleanupDeadBlocks(in function: Function,
+                               pushNewCandidatesTo worklist: inout InstructionWorklist,
+                               _ context: FunctionPassContext) {
+  if context.removeDeadBlocks(in: function) {
+    // After deleting dead blocks their (still alive) successor blocks may become eligible for block merging.
+    // Therefore we re-run simplification for all branch instructions.
+    for block in function.blocks.reversed() {
+      if immutable bi = block.terminator as? BranchInst {
+        worklist.pushIfNotVisited(bi)
+      }
+    }
+  }
+}

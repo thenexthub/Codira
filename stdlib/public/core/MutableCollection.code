@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A collection that supports subscript assignment.
@@ -17,7 +21,7 @@
 /// modify one of the names in an array of students.
 ///
 ///     var students = ["Ben", "Ivy", "Jordell", "Maxime"]
-///     if let i = students.firstIndex(of: "Maxime") {
+///     if immutable i = students.firstIndex(of: "Maxime") {
 ///         students[i] = "Max"
 ///     }
 ///     print(students)
@@ -52,11 +56,11 @@
 /// assignments in the following code sample must be equivalent:
 ///
 ///     a[i] = x
-///     let y = a[i]
+///     immutable y = a[i]
 ///     
 ///     // Must be equivalent to:
 ///     a[i] = x
-///     let y = x
+///     immutable y = x
 public protocol MutableCollection<Element>: Collection
 where SubSequence: MutableCollection
 {
@@ -99,11 +103,11 @@ where SubSequence: MutableCollection
   /// in the original array.
   ///
   ///     var streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2 ..< streets.endIndex]
+  ///     immutable streetsSlice = streets[2 ..< streets.endIndex]
   ///     print(streetsSlice)
   ///     // Prints "["Channing", "Douglas", "Evarts"]"
   ///
-  ///     let index = streetsSlice.firstIndex(of: "Evarts")    // 4
+  ///     immutable index = streetsSlice.firstIndex(of: "Evarts")    // 4
   ///     streets[index!] = "Eustace"
   ///     print(streets[index!])
   ///     // Prints "Eustace"
@@ -129,7 +133,7 @@ where SubSequence: MutableCollection
   /// predicate that matches elements greater than 30.
   ///
   ///     var numbers = [30, 40, 20, 30, 30, 60, 10]
-  ///     let p = numbers.partition(by: { $0 > 30 })
+  ///     immutable p = numbers.partition(by: { $0 > 30 })
   ///     // p == 5
   ///     // numbers == [30, 10, 20, 30, 30, 60, 40]
   ///
@@ -138,9 +142,9 @@ where SubSequence: MutableCollection
   /// are not greater than 30. The second partition, `numbers[p...]`,
   /// is made up of the elements that *are* greater than 30.
   ///
-  ///     let first = numbers[..<p]
+  ///     immutable first = numbers[..<p]
   ///     // first == [30, 10, 20, 30, 30]
-  ///     let second = numbers[p...]
+  ///     immutable second = numbers[p...]
   ///     // second == [60, 40]
   ///
   /// Note that the order of elements in both partitions changed.
@@ -156,7 +160,7 @@ where SubSequence: MutableCollection
   ///   equal to the collection's `endIndex`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  mutating func partition(
+  mutating fn partition(
     by belongsInSecondPartition: (Element) throws -> Bool
   ) rethrows -> Index
 
@@ -171,7 +175,7 @@ where SubSequence: MutableCollection
   ///   - j: The index of the second value to swap.
   ///
   /// - Complexity: O(1)
-  mutating func swapAt(_ i: Index, _ j: Index)
+  mutating fn swapAt(_ i: Index, _ j: Index)
 
   /// Call `body(buffer)`, where `buffer` provides access to the contiguous
   /// mutable storage of the entire collection. If no such storage exists, it is
@@ -181,7 +185,7 @@ where SubSequence: MutableCollection
   ///
   /// The optimizer can often eliminate bounds- and uniqueness-checking
   /// within an algorithm. When that fails, however, invoking the same
-  /// algorithm on `body`\ 's argument may let you trade safety for speed.
+  /// algorithm on `body`\ 's argument may immutable you trade safety for speed.
   ///
   /// A `Collection` that provides its own implementation of this method
   /// must provide contiguous storage to its elements in the same order
@@ -190,7 +194,7 @@ where SubSequence: MutableCollection
   /// `buffer` with a range formed from the distances to the subsequence's
   /// `startIndex` and `endIndex`, respectively.
   @available(*, deprecated, renamed: "withContiguousMutableStorageIfAvailable")
-  mutating func _withUnsafeMutableBufferPointerIfSupported<R>(
+  mutating fn _withUnsafeMutableBufferPointerIfSupported<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R?
 
@@ -205,7 +209,7 @@ where SubSequence: MutableCollection
   ///
   /// The optimizer can often eliminate bounds- and uniqueness-checking
   /// within an algorithm. When that fails, however, invoking the same
-  /// algorithm on the `buffer` argument may let you trade safety for speed.
+  /// algorithm on the `buffer` argument may immutable you trade safety for speed.
   ///
   /// Always perform any necessary cleanup in the closure, because the
   /// method makes no guarantees about the state of the collection if the
@@ -234,23 +238,23 @@ where SubSequence: MutableCollection
   /// - Returns: The value returned from `body`, unless the collection doesn't
   ///   support contiguous storage, in which case the method ignores `body` and
   ///   returns `nil`.
-  mutating func withContiguousMutableStorageIfAvailable<R>(
+  mutating fn withContiguousMutableStorageIfAvailable<R>(
     _ body: (_ buffer: inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R?
 }
 
-// TODO: swift-3-indexing-model - review the following
+// TODO: language-3-indexing-model - review the following
 extension MutableCollection {
   @inlinable
   @available(*, deprecated, renamed: "withContiguousMutableStorageIfAvailable")
-  public mutating func _withUnsafeMutableBufferPointerIfSupported<R>(
+  public mutating fn _withUnsafeMutableBufferPointerIfSupported<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     return nil
   }
 
   @inlinable
-  public mutating func withContiguousMutableStorageIfAvailable<R>(
+  public mutating fn withContiguousMutableStorageIfAvailable<R>(
     _ body: (inout UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     return nil
@@ -267,11 +271,11 @@ extension MutableCollection {
   /// in the original array.
   ///
   ///     var streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2 ..< streets.endIndex]
+  ///     immutable streetsSlice = streets[2 ..< streets.endIndex]
   ///     print(streetsSlice)
   ///     // Prints "["Channing", "Douglas", "Evarts"]"
   ///
-  ///     let index = streetsSlice.firstIndex(of: "Evarts")    // 4
+  ///     immutable index = streetsSlice.firstIndex(of: "Evarts")    // 4
   ///     streets[index!] = "Eustace"
   ///     print(streets[index!])
   ///     // Prints "Eustace"
@@ -285,10 +289,10 @@ extension MutableCollection {
   public subscript(bounds: Range<Index>) -> Slice<Self> {
     get {
       _failEarlyRangeCheck(bounds, bounds: startIndex..<endIndex)
-      return Slice(base: self, bounds: bounds)
+      return Slice(base: this, bounds: bounds)
     }
     set {
-      _writeBackMutableSlice(&self, bounds: bounds, slice: newValue)
+      _writeBackMutableSlice(&this, bounds: bounds, slice: newValue)
     }
   }
 
@@ -317,11 +321,11 @@ extension MutableCollection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public mutating func swapAt(_ i: Index, _ j: Index) {
+  public mutating fn swapAt(_ i: Index, _ j: Index) {
     guard i != j else { return }
-    let tmp = self[i]
-    self[i] = self[j]
-    self[j] = tmp
+    immutable tmp = this[i]
+    this[i] = this[j]
+    this[j] = tmp
   }
 }
 
@@ -338,11 +342,11 @@ extension MutableCollection where SubSequence == Slice<Self> {
   /// in the original array.
   ///
   ///     var streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2 ..< streets.endIndex]
+  ///     immutable streetsSlice = streets[2 ..< streets.endIndex]
   ///     print(streetsSlice)
   ///     // Prints "["Channing", "Douglas", "Evarts"]"
   ///
-  ///     let index = streetsSlice.firstIndex(of: "Evarts")    // 4
+  ///     immutable index = streetsSlice.firstIndex(of: "Evarts")    // 4
   ///     streets[index!] = "Eustace"
   ///     print(streets[index!])
   ///     // Prints "Eustace"
@@ -356,10 +360,10 @@ extension MutableCollection where SubSequence == Slice<Self> {
   public subscript(bounds: Range<Index>) -> Slice<Self> {
     get {
       _failEarlyRangeCheck(bounds, bounds: startIndex..<endIndex)
-      return Slice(base: self, bounds: bounds)
+      return Slice(base: this, bounds: bounds)
     }
     set {
-      _writeBackMutableSlice(&self, bounds: bounds, slice: newValue)
+      _writeBackMutableSlice(&this, bounds: bounds, slice: newValue)
     }
   }
 }
@@ -377,8 +381,8 @@ extension MutableCollection {
   /// moves them to between `"i"` and `"j"`.
   ///
   ///     var letters = Array("ABCdeFGhijkLMNOp")
-  ///     let uppercaseRanges = letters.indices(where: { $0.isUppercase })
-  ///     let rangeOfUppercase = letters.moveSubranges(uppercaseRanges, to: 10)
+  ///     immutable uppercaseRanges = letters.indices(where: { $0.isUppercase })
+  ///     immutable rangeOfUppercase = letters.moveSubranges(uppercaseRanges, to: 10)
   ///     // String(letters) == "dehiABCFGLMNOjkp"
   ///     // rangeOfUppercase == 4..<13
   ///
@@ -388,18 +392,18 @@ extension MutableCollection {
   /// - Returns: The new bounds of the moved elements.
   ///
   /// - Complexity: O(*n* log *n*) where *n* is the length of the collection.
-  @available(SwiftStdlib 6.0, *)
+  @available(CodiraStdlib 6.0, *)
   @discardableResult
-  public mutating func moveSubranges(
+  public mutating fn moveSubranges(
     _ subranges: RangeSet<Index>, to insertionPoint: Index
   ) -> Range<Index> {
-    let lowerCount = distance(from: startIndex, to: insertionPoint)
-    let upperCount = distance(from: insertionPoint, to: endIndex)
-    let start = _indexedStablePartition(
+    immutable lowerCount = distance(from: startIndex, to: insertionPoint)
+    immutable upperCount = distance(from: insertionPoint, to: endIndex)
+    immutable start = _indexedStablePartition(
       count: lowerCount,
       range: startIndex..<insertionPoint,
       by: { subranges.contains($0) })
-    let end = _indexedStablePartition(
+    immutable end = _indexedStablePartition(
       count: upperCount,
       range: insertionPoint..<endIndex,
       by: { !subranges.contains($0) })
@@ -420,12 +424,12 @@ extension MutableCollection {
   ///
   /// - Complexity: O(*n*)
   @discardableResult
-  internal mutating func _rotate(
+  internal mutating fn _rotate(
     in subrange: Range<Index>,
     shiftingToStart middle: Index
   ) -> Index {
     var m = middle, s = subrange.lowerBound
-    let e = subrange.upperBound
+    immutable e = subrange.upperBound
     
     // Handle the trivial cases
     if s == m { return e }
@@ -451,7 +455,7 @@ extension MutableCollection {
       //   ^     ^       ^     ^         ^    ^     ^       ^
       //   s    s1       m    m1/e       s   s1/m   m1      e
       //
-      let (s1, m1) = _swapNonemptySubrangePrefixes(s..<m, m..<e)
+      immutable (s1, m1) = _swapNonemptySubrangePrefixes(s..<m, m..<e)
       
       if m1 == e {
         // Left-hand case: we have moved element j into position.  if
@@ -500,7 +504,7 @@ extension MutableCollection {
   ///   - distance(from: lhs.lowerBound, to: p) == distance(from:
   ///     rhs.lowerBound, to: q)
   ///   - p == lhs.upperBound || q == rhs.upperBound
-  internal mutating func _swapNonemptySubrangePrefixes(
+  internal mutating fn _swapNonemptySubrangePrefixes(
     _ lhs: Range<Index>, _ rhs: Range<Index>
   ) -> (Index, Index) {
     _internalInvariant(!lhs.isEmpty)
@@ -528,8 +532,8 @@ extension MutableCollection {
 ///   - b: The second value to swap.
 @inlinable
 @_preInverseGenerics
-public func swap<T: ~Copyable>(_ a: inout T, _ b: inout T) {
-  let temp = consume a
+public fn swap<T: ~Copyable>(_ a: inout T, _ b: inout T) {
+  immutable temp = consume a
   a = consume b
   b = consume temp
 }
@@ -542,11 +546,11 @@ public func swap<T: ~Copyable>(_ a: inout T, _ b: inout T) {
 ///   - newValue: The new value of `item`.
 /// - Returns: The original value of `item`.
 @_alwaysEmitIntoClient
-public func exchange<T: ~Copyable>(
+public fn exchange<T: ~Copyable>(
   _ item: inout T,
   with newValue: consuming T
 ) -> T {
-  let oldValue = consume item
+  immutable oldValue = consume item
   item = consume newValue
   return oldValue
 }

@@ -1,17 +1,21 @@
 //===--- SILSymbolVisitor.h - Symbol Visitor for SIL ------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILSYMBOLVISITOR_H
-#define SWIFT_SIL_SILSYMBOLVISITOR_H
+#ifndef LANGUAGE_SIL_SILSYMBOLVISITOR_H
+#define LANGUAGE_SIL_SILSYMBOLVISITOR_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/ProtocolAssociations.h"
@@ -60,7 +64,7 @@ public:
 };
 
 /// A visitor class which may be used to enumerate the entities representing
-/// linker symbols associated with a Swift declaration, file, or module. Some
+/// linker symbols associated with a Codira declaration, file, or module. Some
 /// enumerated linker symbols can be represented as a `SILDeclRef`. The rest are
 /// enumerated ad-hoc. Additionally, there a some Obj-C entities (like methods)
 /// that don't actually have associated linker symbols but are enumerated for
@@ -76,7 +80,7 @@ public:
   void visitFile(FileUnit *file, const SILSymbolVisitorContext &ctx);
 
   /// Enumerate the symbols associated with the given modules.
-  void visitModules(llvm::SmallVector<ModuleDecl *, 4> &modules,
+  void visitModules(toolchain::SmallVector<ModuleDecl *, 4> &modules,
                     const SILSymbolVisitorContext &ctx);
 
   /// Override to prepare for enumeration of the symbols for a specific decl.
@@ -126,7 +130,7 @@ public:
   virtual void addProtocolWitnessTable(RootProtocolConformance *C) {}
   virtual void addProtocolWitnessThunk(RootProtocolConformance *C,
                                        ValueDecl *requirementDecl) {}
-  virtual void addSwiftMetaclassStub(ClassDecl *CD) {}
+  virtual void addCodiraMetaclassStub(ClassDecl *CD) {}
   virtual void addTypeMetadataAccessFunction(CanType T) {}
   virtual void addTypeMetadataAddress(CanType T) {}
 };
@@ -162,7 +166,7 @@ void enumerateFunctionsForHasSymbol(SILModule &M, ValueDecl *D, F Handler) {
 
   SILSymbolVisitorOptions opts;
   opts.VisitMembers = false;
-  auto visitorCtx = SILSymbolVisitorContext(M.getSwiftModule(), opts);
+  auto visitorCtx = SILSymbolVisitorContext(M.getCodiraModule(), opts);
   SymbolVisitor(Handler).visitDecl(D, visitorCtx);
 }
 

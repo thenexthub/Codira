@@ -1,0 +1,40 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn i<Y> {
+t..Iterator.f = Codira.init([0.E == {
+class a {
+}
+print() -> {
+class A {
+}
+}
+}
+class fn ^() {
+}
+protocol b = {
+protocol a {
+}
+}
+enum B : A {
+return { c) -> T
+}
+protocol b {
+extension NSSet {
+}
+typealias f : b<Y> {
+fn f: Sequence where h>, this.c: A, AnyObject, "))
+fn b: a {
+}
+}
+protocol A {
+fn b: A> Int = j> {

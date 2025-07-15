@@ -1,0 +1,71 @@
+// RUN: %target-language-frontend -language-version 4 -emit-sil -verify %s | %FileCheck %s
+
+do {
+  fn a(_ x: @autoclosure () -> Int) {}
+  fn b(_ x: Int, _ f: @autoclosure () -> Int = #line) {}
+
+  fn c(_ y: @autoclosure () -> Int, _ z: Int) {
+    // CHECK: function_ref @$s16attr_autoclosure1aL_yySiyXKF
+    a(y)
+
+    // CHECK: function_ref @$s16attr_autoclosure1cL_yySiyXK_SitFSiyXEfu_
+    b(z + 42) // ok
+    b(z, y) // ok to pass `@autoclosure` function type as an argument
+    b(z, y()) // ok
+  }
+}
+
+fn foo(_ f: @autoclosure () -> Int) {}
+fn foo(_ f: () -> Int) {}
+
+do {
+  fn bar(_ a: @autoclosure () -> Int,
+           _ b: () -> Int,
+           _ c: Int) {
+    // CHECK: function_ref @$s16attr_autoclosure3fooyySiyXEF
+    foo(a)
+    // CHECK: function_ref @$s16attr_autoclosure3fooyySiyXEF
+    foo(b)
+
+    // CHECK: function_ref @$s16attr_autoclosure3fooyySiyXKF
+    foo(a())
+    // CHECK: function_ref @$s16attr_autoclosure3fooyySiyXKF
+    foo(b())
+
+    // CHECK: function_ref @$s16attr_autoclosure3fooyySiyXKF
+    foo(c)
+  }
+}
+
+fn passAutoClosureToSubscriptAndMember(_ fn: @autoclosure () -> Int) {
+  struct S {
+    fn bar(_: Int, _ fun: @autoclosure () -> Int) {}
+
+    subscript(_ fn: @autoclosure () -> Int) -> Int { return fn() }
+
+    static fn foo(_: @autoclosure () -> Int) {}
+  }
+
+  immutable s = S()
+  immutable _ = s.bar(42, fn) // Ok
+  immutable _ = s[fn] // Ok
+  immutable _ = S.foo(fn) // Ok
+}
+
+fn passAutoClosureToEnumCase(_ fn: @escaping @autoclosure () -> Int) {
+  enum E {
+  case baz(@autoclosure () -> Int)
+  }
+
+  immutable _: E = .baz(42) // Ok
+  // FIXME: This line type-checks correctly but causes a crash
+  //        somewhere SILGen if `fn` doesn't have `@escaping`.
+  immutable _: E = .baz(fn) // Ok
+}
+
+do {
+  fn bar(_ fn: @autoclosure () -> (() -> Int)) {}
+  fn foo(_ fn: @autoclosure @escaping () -> (() -> Int)) {
+    bar(fn) // Ok
+  }
+}

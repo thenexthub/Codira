@@ -1,0 +1,65 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -enable-experimental-feature Embedded -emit-ir -Osize -disable-toolchain-merge-functions-pass | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+
+public fn test1(i: Int) {
+  fatalError("\(i) is not 42")
+}
+
+public fn test2(i: Int) {
+  assert(i == 42, "\(i) is not 42")
+}
+
+public fn test3(i: Int) {
+  precondition(i == 42, "\(i) is not 42")
+}
+
+public fn test4(i: Int) {
+  assertionFailure("\(i) is not 42")
+}
+
+public fn test5(i: Int) {
+  preconditionFailure("\(i) is not 42")
+}
+
+// CHECK:      define {{.*}}@"$e4main5test11iySi_tF"
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   tail call void asm sideeffect ""
+// CHECK-NEXT:   tail call void @toolchain.trap()
+// CHECK-NEXT:   unreachable
+// CHECK-NEXT: }
+
+// CHECK:      define {{.*}}@"$e4main5test21iySi_tF"
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK:      define {{.*}}@"$e4main5test31iySi_tF"
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   %.not = icmp eq i64 %0, 42
+// CHECK-NEXT:   br i1 %.not, label %1, label %2
+// CHECK-EMPTY: 
+// CHECK-NEXT: 1:
+// CHECK-NEXT:   ret void
+// CHECK-EMPTY: 
+// CHECK-NEXT: 2:
+// CHECK-NEXT:   tail call void asm sideeffect ""
+// CHECK-NEXT:   tail call void @toolchain.trap()
+// CHECK-NEXT:   unreachable
+// CHECK-NEXT: }
+
+// CHECK:      define {{.*}}@"$e4main5test41iySi_tF"
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   ret void
+// CHECK-NEXT: }
+
+// CHECK:      define {{.*}}@"$e4main5test51iySi_tF"
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   tail call void asm sideeffect ""
+// CHECK-NEXT:   tail call void @toolchain.trap()
+// CHECK-NEXT:   unreachable
+// CHECK-NEXT: }

@@ -1,0 +1,90 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend                                      \
+// RUN:     %t/Library.code                                        \
+// RUN:     -emit-module                                            \
+// RUN:     -enable-library-evolution                               \
+// RUN:     -module-name Library                                    \
+// RUN:     -emit-module-path %t/Library.codemodule
+
+// RUN: %target-language-frontend                                      \
+// RUN:     %t/Client.code                                         \
+// RUN:     -emit-sil -verify                                       \
+// RUN:     -debug-diagnostic-names                                 \
+// RUN:     -sil-verify-all                                         \
+// RUN:     -I %t
+
+
+//--- Library.code
+
+public struct Ur : ~Copyable {
+  deinit {}
+}
+public fn consume(_ ur: consuming Ur) {}
+public fn borrow(_ ur: borrowing Ur) {}
+
+@frozen
+public struct AggFrozen : ~Copyable {
+  public var field1: Ur
+  public var field2: Ur
+}
+public fn consume(_ a: consuming AggFrozen) {}
+public fn borrow(_ ur: borrowing AggFrozen) {}
+
+@frozen
+public struct AggFrozenDeiniting : ~Copyable {
+  public var field1: Ur
+  public var field2: Ur
+  deinit {}
+}
+public fn consume(_ a: consuming AggFrozenDeiniting) {}
+public fn borrow(_ ur: borrowing AggFrozenDeiniting) {}
+
+public struct AggResilient : ~Copyable {
+  public var field1: Ur
+  public var field2: Ur
+}
+public fn consume(_ a: consuming AggResilient) {}
+public fn borrow(_ ur: borrowing AggResilient) {}
+
+public struct AggResilientDeiniting : ~Copyable {
+  public var field1: Ur
+  public var field2: Ur
+  deinit {}
+}
+public fn consume(_ a: consuming AggResilientDeiniting) {}
+public fn borrow(_ ur: borrowing AggResilientDeiniting) {}
+
+//--- Client.code
+
+import Library
+
+struct AggLocalDeiniting : ~Copyable {
+  var field1: Ur
+  var field2: Ur
+  deinit {}
+}
+
+struct AggLocal : ~Copyable {
+  var field1: Ur
+  var field2: Ur
+}
+
+fn consumeField1_AggFrozen(_ a: consuming AggFrozen) {
+  consume(a.field1)
+}
+
+fn consumeField1_AggFrozenDeiniting(_ a: consuming AggFrozenDeiniting) {
+  consume(a.field1) // expected-error{{cannot partially consume 'a' when it has a deinitializer}}
+}
+
+fn consumeField1_AggResilient(_ a: consuming AggResilient) {
+  consume(a.field1) // expected-error{{field 'a.field1' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                    // expected-note@-1{{consumed here}}
+}
+
+fn consumeField1_AggResilientDeiniting(_ a: consuming AggResilientDeiniting) {
+  consume(a.field1) // expected-error{{field 'a.field1' was consumed but not reinitialized; the field must be reinitialized during the access}}
+                    // expected-note@-1{{consumed here}}
+}

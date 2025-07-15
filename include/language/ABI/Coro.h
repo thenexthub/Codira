@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing the coroutine ABI.
+// Codira ABI describing the coroutine ABI.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_CORO_H
-#define SWIFT_ABI_CORO_H
+#ifndef LANGUAGE_ABI_CORO_H
+#define LANGUAGE_ABI_CORO_H
 
 #include "language/Basic/FlagSet.h"
 #include <cstddef>
@@ -29,7 +30,7 @@ namespace language {
 enum class CoroAllocatorKind : uint8_t {
   // stacksave/stackrestore
   Stack = 0,
-  // swift_task_alloc/swift_task_dealloc_through
+  // language_task_alloc/language_task_dealloc_through
   Async = 1,
   // malloc/free
   Malloc = 2,
@@ -69,14 +70,14 @@ struct CoroAllocator {
   CoroDealllocateFn deallocate;
 
   /// Whether the allocator should deallocate memory on calls to
-  /// swift_coro_dealloc.
+  /// language_coro_dealloc.
   bool shouldDeallocateImmediately() {
     // Currently, only the "mallocator" should immediately deallocate in
-    // swift_coro_dealloc.  It must because the ABI does not provide a means for
+    // language_coro_dealloc.  It must because the ABI does not provide a means for
     // the callee to return its allocations to the caller.
     //
     // Async allocations can be deferred until the first non-coroutine caller
-    // from where swift_task_dealloc_through can be called and passed the
+    // from where language_task_dealloc_through can be called and passed the
     // caller-allocated fixed-per-callee-sized-frame.
     // Stack allocations just pop the stack.
     return flags.shouldDeallocateImmediately();

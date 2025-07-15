@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/Test.codemodule -emit-module-interface-path %t/Test.codeinterface -module-name Test  %s
+// RUN: %FileCheck %s < %t/Test.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Test.codeinterface) -module-name Test
+
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules %t/Test.codemodule -disable-objc-attr-requires-foundation-module -emit-module-interface-path %t/TestFromModule.codeinterface -module-name Test 
+// RUN: %FileCheck %s < %t/TestFromModule.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/TestFromModule.codeinterface) -module-name Test
+
+// REQUIRES: concurrency
+// REQUIRES: objc_interop
+
+import Foundation
+
+// CHECK-LABEL: @objc @_inheritsConvenienceInitializers
+// CHECK: public actor SomeActor : ObjectiveC.NSObject {
+// CHECK: @objc override public init()
+@available(CodiraStdlib 5.1, *)
+public actor SomeActor: NSObject {
+}

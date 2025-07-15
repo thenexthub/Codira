@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ToolChains.h"
 
 #include "language/AST/DiagnosticsDriver.h"
-#include "language/AST/PlatformKind.h"
+#include "language/AST/PlatformKindUtils.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Platform.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/STLExtras.h"
@@ -32,43 +33,43 @@
 #include "clang/Basic/DarwinSDKInfo.h"
 #include "clang/Basic/Version.h"
 #include "clang/Driver/Util.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Program.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Program.h"
+#include "toolchain/Support/VersionTuple.h"
 
 using namespace language;
 using namespace language::driver;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 std::string
-toolchains::Darwin::findProgramRelativeToSwiftImpl(StringRef name) const {
-  StringRef swiftPath = getDriver().getSwiftProgramPath();
-  StringRef swiftBinDir = llvm::sys::path::parent_path(swiftPath);
+toolchains::Darwin::findProgramRelativeToCodiraImpl(StringRef name) const {
+  StringRef languagePath = getDriver().getCodiraProgramPath();
+  StringRef languageBinDir = toolchain::sys::path::parent_path(languagePath);
 
   // See if we're in an Xcode toolchain.
   bool hasToolchain = false;
-  llvm::SmallString<128> path{swiftBinDir};
-  llvm::sys::path::remove_filename(path); // bin
-  llvm::sys::path::remove_filename(path); // usr
-  if (llvm::sys::path::extension(path) == ".xctoolchain") {
+  toolchain::SmallString<128> path{languageBinDir};
+  toolchain::sys::path::remove_filename(path); // bin
+  toolchain::sys::path::remove_filename(path); // usr
+  if (toolchain::sys::path::extension(path) == ".xctoolchain") {
     hasToolchain = true;
-    llvm::sys::path::remove_filename(path); // *.xctoolchain
-    llvm::sys::path::remove_filename(path); // Toolchains
-    llvm::sys::path::append(path, "usr", "bin");
+    toolchain::sys::path::remove_filename(path); // *.xctoolchain
+    toolchain::sys::path::remove_filename(path); // Toolchains
+    toolchain::sys::path::append(path, "usr", "bin");
   }
 
-  StringRef paths[] = {swiftBinDir, path};
-  auto pathsRef = llvm::ArrayRef(paths);
+  StringRef paths[] = {languageBinDir, path};
+  auto pathsRef = toolchain::ArrayRef(paths);
   if (!hasToolchain)
     pathsRef = pathsRef.drop_back();
 
-  auto result = llvm::sys::findProgramByName(name, pathsRef);
+  auto result = toolchain::sys::findProgramByName(name, pathsRef);
   if (result)
     return result.get();
   return {};
@@ -94,7 +95,7 @@ toolchains::Darwin::constructInvocation(const InterpretJobAction &job,
 }
 
 static StringRef
-getDarwinLibraryNameSuffixForTriple(const llvm::Triple &triple) {
+getDarwinLibraryNameSuffixForTriple(const toolchain::Triple &triple) {
   const DarwinPlatformKind kind = getDarwinPlatformKind(triple);
   switch (kind) {
   case DarwinPlatformKind::MacOS:
@@ -121,7 +122,7 @@ getDarwinLibraryNameSuffixForTriple(const llvm::Triple &triple) {
   case DarwinPlatformKind::VisionOSSimulator:
     return "xrossim";
   }
-  llvm_unreachable("Unsupported Darwin platform");
+  toolchain_unreachable("Unsupported Darwin platform");
 }
 
 std::string toolchains::Darwin::sanitizerRuntimeLibName(StringRef Sanitizer,
@@ -180,10 +181,10 @@ static void addLinkSanitizerLibArgsForDarwin(const ArgList &Args,
 ///
 /// We get the "currently active" part by passing through the DEVELOPER_DIR
 /// environment variable (along with the rest of the environment).
-static bool findXcodeClangPath(llvm::SmallVectorImpl<char> &path) {
+static bool findXcodeClangPath(toolchain::SmallVectorImpl<char> &path) {
   assert(path.empty());
 
-  auto xcrunPath = llvm::sys::findProgramByName("xcrun");
+  auto xcrunPath = toolchain::sys::findProgramByName("xcrun");
   if (!xcrunPath.getError()) {
     // Explicitly ask for the default toolchain so that we don't find a Clang
     // included with an open-source toolchain.
@@ -209,22 +210,22 @@ static bool findXcodeClangPath(llvm::SmallVectorImpl<char> &path) {
 }
 
 static bool findXcodeClangLibPath(const Twine &libName,
-                                  llvm::SmallVectorImpl<char> &path) {
+                                  toolchain::SmallVectorImpl<char> &path) {
   assert(path.empty());
 
   if (!findXcodeClangPath(path)) {
     return false;
   }
-  llvm::sys::path::remove_filename(path); // 'clang'
-  llvm::sys::path::remove_filename(path); // 'bin'
-  llvm::sys::path::append(path, "lib", libName);
+  toolchain::sys::path::remove_filename(path); // 'clang'
+  toolchain::sys::path::remove_filename(path); // 'bin'
+  toolchain::sys::path::append(path, "lib", libName);
   return true;
 }
 
 static void addVersionString(const ArgList &inputArgs, ArgStringList &arguments,
-                             llvm::VersionTuple version) {
-  llvm::SmallString<8> buf;
-  llvm::raw_svector_ostream os{buf};
+                             toolchain::VersionTuple version) {
+  toolchain::SmallString<8> buf;
+  toolchain::raw_svector_ostream os{buf};
   os << version.getMajor() << '.' << version.getMinor().value_or(0) << '.'
      << version.getSubminor().value_or(0);
   arguments.push_back(inputArgs.MakeArgString(os.str()));
@@ -246,24 +247,24 @@ toolchains::Darwin::addLinkerInputArgs(InvocationInfo &II,
     addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                            file_types::TY_TBD);
     addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                           file_types::TY_LLVM_BC);
+                           file_types::TY_TOOLCHAIN_BC);
     addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
     addInputsOfType(Arguments, context.InputActions, file_types::TY_TBD);
-    addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+    addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
   }
 
 
   if (context.OI.CompilerMode == OutputInfo::Mode::SingleCompile)
     addInputsOfType(Arguments, context.Inputs, context.Args,
-                    file_types::TY_SwiftModuleFile, "-add_ast_path");
+                    file_types::TY_CodiraModuleFile, "-add_ast_path");
   else
     addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                           file_types::TY_SwiftModuleFile, "-add_ast_path");
+                           file_types::TY_CodiraModuleFile, "-add_ast_path");
 
-  // Add all .swiftmodule file inputs as arguments, preceded by the
+  // Add all .codemodule file inputs as arguments, preceded by the
   // "-add_ast_path" linker option.
   addInputsOfType(Arguments, context.InputActions,
-                  file_types::TY_SwiftModuleFile, "-add_ast_path");
+                  file_types::TY_CodiraModuleFile, "-add_ast_path");
 }
 
 void toolchains::Darwin::addLTOLibArgs(ArgStringList &Arguments,
@@ -275,17 +276,17 @@ void toolchains::Darwin::addLTOLibArgs(ArgStringList &Arguments,
   } else {
     // Check for relative libLTO.dylib. This would be the expected behavior in an
     // Xcode toolchain.
-    StringRef P = llvm::sys::path::parent_path(getDriver().getSwiftProgramPath());
-    llvm::SmallString<128> LibLTOPath(P);
-    llvm::sys::path::remove_filename(LibLTOPath); // Remove '/bin'
-    llvm::sys::path::append(LibLTOPath, "lib");
-    llvm::sys::path::append(LibLTOPath, "libLTO.dylib");
-    if (llvm::sys::fs::exists(LibLTOPath)) {
+    StringRef P = toolchain::sys::path::parent_path(getDriver().getCodiraProgramPath());
+    toolchain::SmallString<128> LibLTOPath(P);
+    toolchain::sys::path::remove_filename(LibLTOPath); // Remove '/bin'
+    toolchain::sys::path::append(LibLTOPath, "lib");
+    toolchain::sys::path::append(LibLTOPath, "libLTO.dylib");
+    if (toolchain::sys::fs::exists(LibLTOPath)) {
       Arguments.push_back("-lto_library");
       Arguments.push_back(context.Args.MakeArgString(LibLTOPath));
     } else {
       // Use libLTO.dylib from the default toolchain if a relative one does not exist.
-      llvm::SmallString<128> LibLTOPath;
+      toolchain::SmallString<128> LibLTOPath;
       if (findXcodeClangLibPath("libLTO.dylib", LibLTOPath)) {
         Arguments.push_back("-lto_library");
         Arguments.push_back(context.Args.MakeArgString(LibLTOPath));
@@ -338,7 +339,7 @@ bool jobMatchesFilter(LinkKind jobKind, BackDeployLibFilter filter) {
   case BackDeployLibFilter::all:
     return true;
   }
-  llvm_unreachable("unhandled back deploy lib filter!");
+  toolchain_unreachable("unhandled back deploy lib filter!");
 }
 
 }
@@ -349,26 +350,26 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
                                         const JobContext &context) const {
 
   // Link compatibility libraries, if we're deploying back to OSes that
-  // have an older Swift runtime.
+  // have an older Codira runtime.
   SmallString<128> SharedResourceDirPath;
   getResourceDirPath(SharedResourceDirPath, context.Args, /*Shared=*/true);
-  std::optional<llvm::VersionTuple> runtimeCompatibilityVersion;
+  std::optional<toolchain::VersionTuple> runtimeCompatibilityVersion;
 
   if (context.Args.hasArg(options::OPT_runtime_compatibility_version)) {
     auto value = context.Args.getLastArgValue(
                                     options::OPT_runtime_compatibility_version);
     if (value == "5.0") {
-      runtimeCompatibilityVersion = llvm::VersionTuple(5, 0);
+      runtimeCompatibilityVersion = toolchain::VersionTuple(5, 0);
     } else if (value == "5.1") {
-      runtimeCompatibilityVersion = llvm::VersionTuple(5, 1);
+      runtimeCompatibilityVersion = toolchain::VersionTuple(5, 1);
     } else if (value == "5.5") {
-      runtimeCompatibilityVersion = llvm::VersionTuple(5, 5);
+      runtimeCompatibilityVersion = toolchain::VersionTuple(5, 5);
     } else if (value == "5.6") {
-      runtimeCompatibilityVersion = llvm::VersionTuple(5, 6);
+      runtimeCompatibilityVersion = toolchain::VersionTuple(5, 6);
     } else if (value == "5.8") {
-      runtimeCompatibilityVersion = llvm::VersionTuple(5, 8);
+      runtimeCompatibilityVersion = toolchain::VersionTuple(5, 8);
     } else if (value == "6.0") {
-      runtimeCompatibilityVersion = llvm::VersionTuple(6, 0);
+      runtimeCompatibilityVersion = toolchain::VersionTuple(6, 0);
     } else if (value == "none") {
       runtimeCompatibilityVersion = std::nullopt;
     } else {
@@ -376,11 +377,11 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
     }
   } else if (job.getKind() == LinkKind::Executable) {
     runtimeCompatibilityVersion
-                   = getSwiftRuntimeCompatibilityVersionForTarget(getTriple());
+                   = getCodiraRuntimeCompatibilityVersionForTarget(getTriple());
   }
   
   if (runtimeCompatibilityVersion) {
-    auto addBackDeployLib = [&](llvm::VersionTuple version,
+    auto addBackDeployLib = [&](toolchain::VersionTuple version,
                                 BackDeployLibFilter filter,
                                 StringRef libraryName,
                                 bool forceLoad) {
@@ -392,9 +393,9 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
       
       SmallString<128> BackDeployLib;
       BackDeployLib.append(SharedResourceDirPath);
-      llvm::sys::path::append(BackDeployLib, "lib" + libraryName + ".a");
+      toolchain::sys::path::append(BackDeployLib, "lib" + libraryName + ".a");
       
-      if (llvm::sys::fs::exists(BackDeployLib)) {
+      if (toolchain::sys::fs::exists(BackDeployLib)) {
         if (forceLoad)
           Arguments.push_back("-force_load");
         Arguments.push_back(context.Args.MakeArgString(BackDeployLib));
@@ -403,7 +404,7 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
 
     #define BACK_DEPLOYMENT_LIB(Version, Filter, LibraryName, ForceLoad) \
       addBackDeployLib(                                                  \
-          llvm::VersionTuple Version, BackDeployLibFilter::Filter,       \
+          toolchain::VersionTuple Version, BackDeployLibFilter::Filter,       \
           LibraryName, ForceLoad);
     #include "language/Frontend/BackDeploymentLibs.def"
   }
@@ -423,9 +424,9 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
                            options::OPT_no_toolchain_stdlib_rpath, false)) {
     // If the user has explicitly asked for a toolchain stdlib, we should
     // provide one using -rpath. This used to be the default behaviour but it
-    // was considered annoying in at least the SwiftPM scenario (see
-    // https://github.com/apple/swift/issues/44576) and is obsolete in all
-    // scenarios of deploying for Swift-in-the-OS. We keep it here as an
+    // was considered annoying in at least the CodiraPM scenario (see
+    // https://github.com/apple/language/issues/44576) and is obsolete in all
+    // scenarios of deploying for Codira-in-the-OS. We keep it here as an
     // optional behaviour so that people downloading snapshot toolchains for
     // testing new stdlibs will be able to link to the stdlib bundled in
     // that toolchain.
@@ -433,35 +434,35 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
       Arguments.push_back("-rpath");
       Arguments.push_back(context.Args.MakeArgString(path));
     }
-  } else if (!tripleRequiresRPathForSwiftLibrariesInOS(getTriple()) ||
+  } else if (!tripleRequiresRPathForCodiraLibrariesInOS(getTriple()) ||
              context.Args.hasArg(options::OPT_no_stdlib_rpath)) {
-    // If targeting an OS with Swift in /usr/lib/swift, the LC_ID_DYLIB
+    // If targeting an OS with Codira in /usr/lib/language, the LC_ID_DYLIB
     // install_name the stdlib will be an absolute path like
-    // /usr/lib/swift/libswiftCore.dylib, and we do not need to provide an rpath
+    // /usr/lib/language/liblanguageCore.dylib, and we do not need to provide an rpath
     // at all.
     //
     // Also, if the user explicitly asks for no rpath entry, we assume they know
     // what they're doing and do not add one here.
   } else {
     // The remaining cases are back-deploying (to OSs predating
-    // Swift-in-the-OS). In these cases, the stdlib will be giving us (via
+    // Codira-in-the-OS). In these cases, the stdlib will be giving us (via
     // stdlib/linker-support/magic-symbols-for-install-name.c) an LC_ID_DYLIB
-    // install_name that is rpath-relative, like @rpath/libswiftCore.dylib.
+    // install_name that is rpath-relative, like @rpath/liblanguageCore.dylib.
     //
     // If we're linking an app bundle, it's possible there's an embedded stdlib
     // in there, in which case we'd want to put @executable_path/../Frameworks
     // in the rpath to find and prefer it, but (a) we don't know when we're
     // linking an app bundle and (b) we probably _never_ will be because Xcode
-    // links using clang, not the swift driver.
+    // links using clang, not the language driver.
     //
     // So that leaves us with the case of linking a command-line app. These are
     // only supported by installing a secondary package that puts some frozen
-    // Swift-in-OS libraries in the /usr/lib/swift location. That's the best we
+    // Codira-in-OS libraries in the /usr/lib/language location. That's the best we
     // can give for rpath, though it might fail at runtime if the support
     // package isn't installed.
     Arguments.push_back("-rpath");
-    Arguments.push_back(context.Args.MakeArgString("/usr/lib/swift"));
-    // We don’t need an rpath for /System/iOSSupport/usr/lib/swift because:
+    Arguments.push_back(context.Args.MakeArgString("/usr/lib/language"));
+    // We don’t need an rpath for /System/iOSSupport/usr/lib/language because:
     // 1. The standard library and overlays were part of the OS before
     //    Catalyst was introduced, so they are always available for Catalyst.
     // 2. The _Concurrency back-deployment library is zippered, whereas only
@@ -472,7 +473,7 @@ toolchains::Darwin::addArgsToLinkStdlib(ArgStringList &Arguments,
 void
 toolchains::Darwin::addProfileGenerationArgs(ArgStringList &Arguments,
                                              const JobContext &context) const {
-  const llvm::Triple &Triple = getTriple();
+  const toolchain::Triple &Triple = getTriple();
   if (context.Args.hasArg(options::OPT_profile_generate)) {
     SmallString<128> LibProfile;
     getClangLibraryPath(context.Args, LibProfile);
@@ -497,30 +498,30 @@ toolchains::Darwin::addProfileGenerationArgs(ArgStringList &Arguments,
       Sim = "sim";
     }
 
-    llvm::sys::path::append(LibProfile,
+    toolchain::sys::path::append(LibProfile,
                             "libclang_rt.profile_" + RT + Sim + ".a");
 
     // FIXME: Continue accepting the old path for simulator libraries for now.
-    if (!Sim.empty() && !llvm::sys::fs::exists(LibProfile)) {
-      llvm::sys::path::remove_filename(LibProfile);
-      llvm::sys::path::append(LibProfile, "libclang_rt.profile_" + RT + ".a");
+    if (!Sim.empty() && !toolchain::sys::fs::exists(LibProfile)) {
+      toolchain::sys::path::remove_filename(LibProfile);
+      toolchain::sys::path::append(LibProfile, "libclang_rt.profile_" + RT + ".a");
     }
 
     Arguments.push_back(context.Args.MakeArgString(LibProfile));
   }
 }
 
-std::optional<llvm::VersionTuple>
-toolchains::Darwin::getTargetSDKVersion(const llvm::Triple &triple) const {
+std::optional<toolchain::VersionTuple>
+toolchains::Darwin::getTargetSDKVersion(const toolchain::Triple &triple) const {
   if (!SDKInfo)
     return std::nullopt;
-  return swift::getTargetSDKVersion(*SDKInfo, triple);
+  return language::getTargetSDKVersion(*SDKInfo, triple);
 }
 
 void
 toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
                                             const JobContext &context) const {
-  auto addPlatformVersionArg = [&](const llvm::Triple &triple) {
+  auto addPlatformVersionArg = [&](const toolchain::Triple &triple) {
     // Compute the name of the platform for the linker.
     const char *platformName;
     if (tripleIsMacCatalystEnvironment(triple)) {
@@ -558,18 +559,18 @@ toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
     }
 
     // Compute the platform version.
-    llvm::VersionTuple osVersion;
+    toolchain::VersionTuple osVersion;
     if (tripleIsMacCatalystEnvironment(triple)) {
       osVersion = triple.getiOSVersion();
 
       if (osVersion.getMajor() < 14 && triple.isAArch64()) {
         // Mac Catalyst on arm was introduced with an iOS deployment target of
         // 14.0; the linker doesn't want to see a deployment target before that.
-        osVersion = llvm::VersionTuple(/*Major=*/14, /*Minor=*/0);
+        osVersion = toolchain::VersionTuple(/*Major=*/14, /*Minor=*/0);
       } else if (osVersion.getMajor() < 13) {
         // Mac Catalyst was introduced with an iOS deployment target of 13.1;
         // the linker doesn't want to see a deployment target before that.
-        osVersion = llvm::VersionTuple(/*Major=*/13, /*Minor=*/1);
+        osVersion = toolchain::VersionTuple(/*Major=*/13, /*Minor=*/1);
       }
     } else {
       switch (getDarwinPlatformKind((triple))) {
@@ -579,7 +580,7 @@ toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
         // The first deployment of arm64 for macOS is version 10.16;
         if (triple.isAArch64() && osVersion.getMajor() <= 10 &&
             osVersion.getMinor().value_or(0) < 16) {
-          osVersion = llvm::VersionTuple(/*Major=*/10, /*Minor=*/16);
+          osVersion = toolchain::VersionTuple(/*Major=*/10, /*Minor=*/16);
           osVersion = canonicalizePlatformVersion(PlatformKind::macOS,
                                                   osVersion);
         }
@@ -595,7 +596,7 @@ toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
         // the linker doesn't want to see a deployment target before that.
         if (triple.isSimulatorEnvironment() && triple.isAArch64() &&
             osVersion.getMajor() < 14) {
-          osVersion = llvm::VersionTuple(/*Major=*/14, /*Minor=*/0);
+          osVersion = toolchain::VersionTuple(/*Major=*/14, /*Minor=*/0);
         }
 
         break;
@@ -610,7 +611,7 @@ toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
         // The first deployment of 64-bit xrOS simulator is version 1.0.
         if (triple.isArch64Bit() && triple.isSimulatorEnvironment() &&
             osVersion.getMajor() < 1) {
-          osVersion = llvm::VersionTuple(/*Major=*/1, /*Minor=*/0);
+          osVersion = toolchain::VersionTuple(/*Major=*/1, /*Minor=*/0);
         }
 
         break;
@@ -619,7 +620,7 @@ toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
 
     // Compute the SDK version.
     auto sdkVersion = getTargetSDKVersion(triple)
-        .value_or(llvm::VersionTuple());
+        .value_or(toolchain::VersionTuple());
 
     Arguments.push_back("-platform_version");
     Arguments.push_back(platformName);
@@ -635,17 +636,17 @@ toolchains::Darwin::addDeploymentTargetArgs(ArgStringList &Arguments,
   }
 }
 
-static unsigned getDWARFVersionForTriple(const llvm::Triple &triple) {
-  llvm::VersionTuple osVersion;
+static unsigned getDWARFVersionForTriple(const toolchain::Triple &triple) {
+  toolchain::VersionTuple osVersion;
   const DarwinPlatformKind kind = getDarwinPlatformKind(triple);
   // Default to DWARF 2 on OS X 10.10 / iOS 8 and lower.
   // Default to DWARF 4 on OS X 10.11 - macOS 14 / iOS - iOS 17.
   switch (kind) {
   case DarwinPlatformKind::MacOS:
     triple.getMacOSXVersion(osVersion);
-    if (osVersion < llvm::VersionTuple(10, 11))
+    if (osVersion < toolchain::VersionTuple(10, 11))
       return 2;
-    if (osVersion < llvm::VersionTuple(15))
+    if (osVersion < toolchain::VersionTuple(15))
       return 4;
     return 5;
   case DarwinPlatformKind::IPhoneOSSimulator:
@@ -653,31 +654,31 @@ static unsigned getDWARFVersionForTriple(const llvm::Triple &triple) {
   case DarwinPlatformKind::TvOS:
   case DarwinPlatformKind::TvOSSimulator:
     osVersion = triple.getiOSVersion();
-   if (osVersion < llvm::VersionTuple(9))
+   if (osVersion < toolchain::VersionTuple(9))
      return 2;
-    if (osVersion < llvm::VersionTuple(18))
+    if (osVersion < toolchain::VersionTuple(18))
       return 4;
     return 5;
   case DarwinPlatformKind::WatchOS:
   case DarwinPlatformKind::WatchOSSimulator:
     osVersion = triple.getWatchOSVersion();
-    if (osVersion < llvm::VersionTuple(11))
+    if (osVersion < toolchain::VersionTuple(11))
       return 4;
     return 5;
   case DarwinPlatformKind::VisionOS:
   case DarwinPlatformKind::VisionOSSimulator:
     osVersion = triple.getOSVersion();
-    if (osVersion < llvm::VersionTuple(2))
+    if (osVersion < toolchain::VersionTuple(2))
       return 4;
     return 5;
   }
-  llvm_unreachable("unsupported platform kind");
+  toolchain_unreachable("unsupported platform kind");
 }
 
 void toolchains::Darwin::addCommonFrontendArgs(
     const OutputInfo &OI, const CommandOutput &output,
-    const llvm::opt::ArgList &inputArgs,
-    llvm::opt::ArgStringList &arguments) const {
+    const toolchain::opt::ArgList &inputArgs,
+    toolchain::opt::ArgStringList &arguments) const {
   ToolChain::addCommonFrontendArgs(OI, output, inputArgs, arguments);
 
   if (auto sdkVersion = getTargetSDKVersion(getTriple())) {
@@ -694,10 +695,10 @@ void toolchains::Darwin::addCommonFrontendArgs(
   }
   std::string dwarfVersion;
   {
-    llvm::raw_string_ostream os(dwarfVersion);
+    toolchain::raw_string_ostream os(dwarfVersion);
     os << "-dwarf-version=";
     if (OI.DWARFVersion)
-      os << *OI.DWARFVersion;
+      os << std::to_string(*OI.DWARFVersion);
     else
       os << getDWARFVersionForTriple(getTriple());
   }
@@ -707,22 +708,22 @@ void toolchains::Darwin::addCommonFrontendArgs(
 /// Add the frontend arguments needed to find external plugins in standard
 /// locations based on the base path.
 static void addExternalPluginFrontendArgs(
-    StringRef basePath, const llvm::opt::ArgList &inputArgs,
-    llvm::opt::ArgStringList &arguments) {
-  // Plugin server: $BASE/usr/bin/swift-plugin-server
+    StringRef basePath, const toolchain::opt::ArgList &inputArgs,
+    toolchain::opt::ArgStringList &arguments) {
+  // Plugin server: $BASE/usr/bin/language-plugin-server
   SmallString<128> pluginServer;
-  llvm::sys::path::append(
-      pluginServer, basePath, "usr", "bin", "swift-plugin-server");
+  toolchain::sys::path::append(
+      pluginServer, basePath, "usr", "bin", "language-plugin-server");
 
   SmallString<128> pluginDir;
-  llvm::sys::path::append(pluginDir, basePath, "usr", "lib");
-  llvm::sys::path::append(pluginDir, "swift", "host", "plugins");
+  toolchain::sys::path::append(pluginDir, basePath, "usr", "lib");
+  toolchain::sys::path::append(pluginDir, "language", "host", "plugins");
   arguments.push_back("-external-plugin-path");
   arguments.push_back(inputArgs.MakeArgString(pluginDir + "#" + pluginServer));
 
   pluginDir.clear();
-  llvm::sys::path::append(pluginDir, basePath, "usr", "local", "lib");
-  llvm::sys::path::append(pluginDir, "swift", "host", "plugins");
+  toolchain::sys::path::append(pluginDir, basePath, "usr", "local", "lib");
+  toolchain::sys::path::append(pluginDir, "language", "host", "plugins");
   arguments.push_back("-external-plugin-path");
   arguments.push_back(inputArgs.MakeArgString(pluginDir + "#" + pluginServer));
 }
@@ -730,8 +731,8 @@ static void addExternalPluginFrontendArgs(
 void toolchains::Darwin::addPlatformSpecificPluginFrontendArgs(
     const OutputInfo &OI,
     const CommandOutput &output,
-    const llvm::opt::ArgList &inputArgs,
-    llvm::opt::ArgStringList &arguments) const {
+    const toolchain::opt::ArgList &inputArgs,
+    toolchain::opt::ArgStringList &arguments) const {
   // Add SDK-relative directories for plugins.
   if (!OI.SDKPath.empty()) {
     addExternalPluginFrontendArgs(OI.SDKPath, inputArgs, arguments);
@@ -740,20 +741,20 @@ void toolchains::Darwin::addPlatformSpecificPluginFrontendArgs(
   // Add platform-relative directories for plugins.
   if (!OI.SDKPath.empty()) {
     SmallString<128> platformPath;
-    llvm::sys::path::append(platformPath, OI.SDKPath);
-    llvm::sys::path::remove_filename(platformPath); // specific SDK
-    llvm::sys::path::remove_filename(platformPath); // SDKs
-    llvm::sys::path::remove_filename(platformPath); // Developer
+    toolchain::sys::path::append(platformPath, OI.SDKPath);
+    toolchain::sys::path::remove_filename(platformPath); // specific SDK
+    toolchain::sys::path::remove_filename(platformPath); // SDKs
+    toolchain::sys::path::remove_filename(platformPath); // Developer
 
-    StringRef platformName = llvm::sys::path::filename(platformPath);
+    StringRef platformName = toolchain::sys::path::filename(platformPath);
     if (platformName.ends_with("Simulator.platform")){
       StringRef devicePlatformName =
           platformName.drop_back(strlen("Simulator.platform"));
-      llvm::sys::path::remove_filename(platformPath); // Platform
-      llvm::sys::path::append(platformPath, devicePlatformName + "OS.platform");
+      toolchain::sys::path::remove_filename(platformPath); // Platform
+      toolchain::sys::path::append(platformPath, devicePlatformName + "OS.platform");
     }
 
-    llvm::sys::path::append(platformPath, "Developer");
+    toolchain::sys::path::append(platformPath, "Developer");
     addExternalPluginFrontendArgs(platformPath, inputArgs, arguments);
   }
 }
@@ -766,10 +767,10 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
 
   if (context.Args.hasFlag(options::OPT_static_executable,
                            options::OPT_no_static_executable, false)) {
-    llvm::report_fatal_error("-static-executable is not supported on Darwin");
+    toolchain::report_fatal_error("-static-executable is not supported on Darwin");
   }
 
-  const llvm::Triple &Triple = getTriple();
+  const toolchain::Triple &Triple = getTriple();
 
   // Configure the toolchain.
   // By default, use the system `ld` to link.
@@ -779,7 +780,7 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
 
     // If there is a 'ld' in the toolchain folder, use that instead.
     if (auto toolchainLD =
-            llvm::sys::findProgramByName("ld", {toolchainPath})) {
+            toolchain::sys::findProgramByName("ld", {toolchainPath})) {
       LD = context.Args.MakeArgString(toolchainLD.get());
     }
   }
@@ -791,7 +792,7 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
 
   switch (job.getKind()) {
   case LinkKind::None:
-    llvm_unreachable("invalid link kind");
+    toolchain_unreachable("invalid link kind");
   case LinkKind::Executable:
     // The default for ld; no extra flags necessary.
     break;
@@ -799,7 +800,7 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
     Arguments.push_back("-dylib");
     break;
   case LinkKind::StaticLibrary:
-    llvm_unreachable("the dynamic linker cannot build static libraries");
+    toolchain_unreachable("the dynamic linker cannot build static libraries");
   }
 
   assert(Triple.isOSDarwin());
@@ -810,15 +811,15 @@ toolchains::Darwin::constructInvocation(const DynamicLinkJobAction &job,
   // Always link the regular compiler_rt if it's present.
   //
   // Note: Normally we'd just add this unconditionally, but it's valid to build
-  // Swift and use it as a linker without building compiler_rt.
+  // Codira and use it as a linker without building compiler_rt.
   SmallString<128> CompilerRTPath;
   getClangLibraryPath(context.Args, CompilerRTPath);
-  llvm::sys::path::append(
+  toolchain::sys::path::append(
       CompilerRTPath,
       Twine("libclang_rt.") +
         getDarwinLibraryNameSuffixForTriple(Triple) +
         ".a");
-  if (llvm::sys::fs::exists(CompilerRTPath))
+  if (toolchain::sys::fs::exists(CompilerRTPath))
     Arguments.push_back(context.Args.MakeArgString(CompilerRTPath));
 
   if (job.shouldPerformLTO()) {
@@ -905,11 +906,11 @@ toolchains::Darwin::constructInvocation(const StaticLinkJobAction &job,
     addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                            file_types::TY_Object);
     addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                           file_types::TY_LLVM_BC);
+                           file_types::TY_TOOLCHAIN_BC);
   }
 
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
-  addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+  addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
 
   Arguments.push_back("-o");
 
@@ -937,7 +938,7 @@ std::string toolchains::Darwin::getGlobalDebugPathRemapping() const {
 
 static void validateDeploymentTarget(const toolchains::Darwin &TC,
                                      DiagnosticEngine &diags,
-                                     const llvm::opt::ArgList &args) {
+                                     const toolchain::opt::ArgList &args) {
   // Check minimum supported OS versions.
   auto triple = TC.getTriple();
   if (triple.isMacOSX()) {
@@ -970,7 +971,7 @@ static void validateDeploymentTarget(const toolchains::Darwin &TC,
 
 static void validateTargetVariant(const toolchains::Darwin &TC,
                                   DiagnosticEngine &diags,
-                                  const llvm::opt::ArgList &args,
+                                  const toolchain::opt::ArgList &args,
                                   StringRef defaultTarget) {
   if (TC.getTargetVariant().has_value()) {
     auto target = TC.getTriple();
@@ -986,7 +987,7 @@ static void validateTargetVariant(const toolchains::Darwin &TC,
 
 void 
 toolchains::Darwin::validateArguments(DiagnosticEngine &diags,
-                                      const llvm::opt::ArgList &args,
+                                      const toolchain::opt::ArgList &args,
                                       StringRef defaultTarget) const {
   // Validating apple platforms deployment targets.
   validateDeploymentTarget(*this, diags, args);
@@ -1010,11 +1011,11 @@ toolchains::Darwin::validateOutputInfo(DiagnosticEngine &diags,
   // If we have been provided with an SDK, go read the SDK information.
   if (!outputInfo.SDKPath.empty()) {
     auto SDKInfoOrErr = clang::parseDarwinSDKInfo(
-        *llvm::vfs::getRealFileSystem(), outputInfo.SDKPath);
+        *toolchain::vfs::getRealFileSystem(), outputInfo.SDKPath);
     if (SDKInfoOrErr) {
       SDKInfo = *SDKInfoOrErr;
     } else {
-      llvm::consumeError(SDKInfoOrErr.takeError());
+      toolchain::consumeError(SDKInfoOrErr.takeError());
       diags.diagnose(SourceLoc(), diag::warn_drv_darwin_sdk_invalid_settings);
     }
   }

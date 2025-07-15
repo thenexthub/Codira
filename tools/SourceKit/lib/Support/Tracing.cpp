@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/Tracing.h"
 
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/YAMLTraits.h"
 
 using namespace SourceKit;
-using namespace llvm;
-using swift::OptionSet;
+using namespace toolchain;
+using language::OptionSet;
 
-static llvm::sys::Mutex consumersLock;
+static toolchain::sys::Mutex consumersLock;
 // Must hold consumersLock to access.
 static std::vector<trace::TraceConsumer *> consumers;
 // Must hold consumersLock to modify, but can be read any time.
@@ -41,12 +42,12 @@ bool trace::enabled(OperationKind op) {
 
 // Trace start of perform sema call, returns OpId
 uint64_t trace::startOperation(trace::OperationKind OpKind,
-                               const trace::SwiftInvocation &Inv,
+                               const trace::CodiraInvocation &Inv,
                                const trace::StringPairs &OpArgs) {
   static std::atomic<uint64_t> operationId(0);
   auto OpId = ++operationId;
   if (trace::anyEnabled()) {
-    llvm::sys::ScopedLock L(consumersLock);
+    toolchain::sys::ScopedLock L(consumersLock);
     for (auto *consumer : consumers) {
       consumer->operationStarted(OpId, OpKind, Inv, OpArgs);
     }
@@ -58,7 +59,7 @@ uint64_t trace::startOperation(trace::OperationKind OpKind,
 void trace::operationFinished(uint64_t OpId, trace::OperationKind OpKind,
                               ArrayRef<DiagnosticEntryInfo> Diagnostics) {
   if (trace::anyEnabled()) {
-    llvm::sys::ScopedLock L(consumersLock);
+    toolchain::sys::ScopedLock L(consumersLock);
     for (auto *consumer : consumers) {
       consumer->operationFinished(OpId, OpKind, Diagnostics);
     }
@@ -77,13 +78,13 @@ static void updateTracedOperations() {
 
 // Register trace consumer
 void trace::registerConsumer(trace::TraceConsumer *Consumer) {
-  llvm::sys::ScopedLock L(consumersLock);
+  toolchain::sys::ScopedLock L(consumersLock);
   consumers.push_back(Consumer);
   updateTracedOperations();
 }
 
 void trace::unregisterConsumer(trace::TraceConsumer *Consumer) {
-  llvm::sys::ScopedLock L(consumersLock);
+  toolchain::sys::ScopedLock L(consumersLock);
   consumers.erase(std::remove(consumers.begin(), consumers.end(), Consumer),
                   consumers.end());
   updateTracedOperations();

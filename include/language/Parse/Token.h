@@ -11,21 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the Token interface.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TOKEN_H
-#define SWIFT_TOKEN_H
+#ifndef LANGUAGE_TOKEN_H
+#define LANGUAGE_TOKEN_H
 
 #include "language/Basic/SourceLoc.h"
-#include "language/Basic/LLVM.h"
-#include "language/Parse/Token.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Config.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
 
 namespace language {
 
@@ -126,7 +126,7 @@ public:
     default:
       return false;
     }
-    llvm_unreachable("Unhandled case in switch!");
+    toolchain_unreachable("Unhandled case in switch!");
   }
 
   /// Checks whether the token is either a postfix operator, or is a token that
@@ -140,7 +140,7 @@ public:
     default:
       return false;
     }
-    llvm_unreachable("Unhandled case in switch!");
+    toolchain_unreachable("Unhandled case in switch!");
   }
 
   bool isAnyOperator() const {
@@ -192,15 +192,16 @@ public:
     if (isNot(tok::identifier) || isEscapedIdentifier() || Text.empty())
       return false;
 
-    return llvm::StringSwitch<bool>(Text)
+    return toolchain::StringSwitch<bool>(Text)
 #define CONTEXTUAL_CASE(KW) .Case(#KW, true)
 #define CONTEXTUAL_DECL_ATTR(KW, ...) CONTEXTUAL_CASE(KW)
 #define CONTEXTUAL_DECL_ATTR_ALIAS(KW, ...) CONTEXTUAL_CASE(KW)
 #define CONTEXTUAL_SIMPLE_DECL_ATTR(KW, ...) CONTEXTUAL_CASE(KW)
 #include "language/AST/DeclAttr.def"
 #undef CONTEXTUAL_CASE
-      .Case("macro", true)
-      .Default(false);
+        .Case("macro", true)
+        .Case("using", true)
+        .Default(false);
   }
 
   bool isContextualPunctuator(StringRef ContextPunc) const {
@@ -269,6 +270,9 @@ public:
     }
   }
 
+  /// True if the token is an editor placeholder.
+  bool isEditorPlaceholder() const;
+
   /// True if the string literal token is multiline.
   bool isMultilineString() const {
     return MultilineString;
@@ -288,7 +292,7 @@ public:
   /// getLoc - Return a source location identifier for the specified
   /// offset in the current file.
   SourceLoc getLoc() const {
-    return SourceLoc(llvm::SMLoc::getFromPointer(Text.begin()));
+    return SourceLoc(toolchain::SMLoc::getFromPointer(Text.begin()));
   }
 
   unsigned getLength() const { return Text.size(); }
@@ -303,17 +307,17 @@ public:
 
   CharSourceRange getCommentRange() const {
     if (CommentLength == 0)
-      return CharSourceRange(SourceLoc(llvm::SMLoc::getFromPointer(Text.begin())),
+      return CharSourceRange(SourceLoc(toolchain::SMLoc::getFromPointer(Text.begin())),
                              0);
     auto TrimedComment = trimComment();
     return CharSourceRange(
-      SourceLoc(llvm::SMLoc::getFromPointer(TrimedComment.begin())),
+      SourceLoc(toolchain::SMLoc::getFromPointer(TrimedComment.begin())),
       TrimedComment.size());
   }
   
   SourceLoc getCommentStart() const {
     if (CommentLength == 0) return SourceLoc();
-    return SourceLoc(llvm::SMLoc::getFromPointer(trimComment().begin()));
+    return SourceLoc(toolchain::SMLoc::getFromPointer(trimComment().begin()));
   }
 
   StringRef getRawText() const {
@@ -347,10 +351,10 @@ public:
 } // end namespace language
 
 
-namespace llvm {
+namespace toolchain {
   template <typename T> struct isPodLike;
   template <>
-  struct isPodLike<swift::Token> { static const bool value = true; };
-} // end namespace llvm
+  struct isPodLike<language::Token> { static const bool value = true; };
+} // end namespace toolchain
 
 #endif

@@ -3,13 +3,13 @@
 # utils/update_confusables.py - Utility to update definitions of unicode
 # confusables
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import os.path
 import re
@@ -23,7 +23,7 @@ def _usage(program_name):
 
 def _help(program_name):
     return '{}\n\n'.format(_usage(program_name)) + \
-        'This script generates include/swift/Parse/Confusables.def from ' \
+        'This script generates include/language/Parse/Confusables.def from ' \
         'utils/UnicodeData/confusables.txt.\n' \
         'The latest version of the data file can be found at ' \
         'ftp://ftp.unicode.org/Public/security/latest/confusables.txt.'
@@ -75,21 +75,25 @@ def main(args=sys.argv):
                                       normal, normalName))
 
     defFilePath = os.path.abspath(
-        os.path.join(basepath, "..", "include/swift/Parse/Confusables.def")
+        os.path.join(basepath, "..", "include/language/Parse/Confusables.def")
     )
     with open(defFilePath, 'w') as f:
         f.write("//===--- Confusables.def - Confusable unicode characters")
         f.write(" ------------------===//")
         header = '''
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 ////////////////////////////////////////////////////////////////////////////////

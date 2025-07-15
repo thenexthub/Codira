@@ -1,0 +1,15 @@
+// RUN: %batch-code-completion
+
+fn takeClosure(_ body: () -> Void) {}
+
+fn test() {
+  immutable myVar = 1
+  takeClosure {
+    do {
+      #^COMPLETE^#
+// COMPLETE: Decl[LocalVar]/Local: myVar[#Int#];
+    } catch immutable error as Int {
+    } catch immutable error {
+    }
+  }
+}

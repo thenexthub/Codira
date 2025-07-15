@@ -1,0 +1,56 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: env LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION=1.0.0.0.1 \
+// RUN:   %target-language-frontend -emit-module -module-name Foo -o %t/match/Foo.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/match/Foo.codeinterface -enable-library-evolution %t/foo.code
+
+// RUN: env LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION=1.0.0.1 \
+// RUN:   %target-language-frontend -emit-module -module-name Foo -o %t/new/Foo.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/new/Foo.codeinterface -enable-library-evolution %t/foo.code
+
+// RUN: env LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION=1.0.0.0.2 \
+// RUN:   %target-language-frontend -emit-module -module-name Foo -o %t/revision/Foo.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/revision/Foo.codeinterface -enable-library-evolution %t/foo.code
+
+// RUN: env LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION=1.0.0.0.1 \
+// RUN:   %target-language-frontend -scan-dependencies -scanner-module-validation -module-name Test -O -module-load-mode prefer-binary \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %t/main.code -o %t/deps-1.json -language-version 5 -I %t/match
+
+// RUN: %FileCheck %s --check-prefix=BINARY --input-file=%t/deps-1.json
+
+// RUN: env LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION=1.0.0.0.1 \
+// RUN:   %target-language-frontend -scan-dependencies -scanner-module-validation -module-name Test -O -module-load-mode prefer-binary \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %t/main.code -o %t/deps-2.json -language-version 5 -I %t/new
+
+// RUN: %FileCheck %s --check-prefix=TEXTUAL --input-file=%t/deps-2.json
+
+// RUN: env LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION=1.0.0.0.1 \
+// RUN:   %target-language-frontend -scan-dependencies -scanner-module-validation -module-name Test -O -module-load-mode prefer-binary \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %t/main.code -o %t/deps-3.json -language-version 5 -I %t/revision
+
+// RUN: %FileCheck %s --check-prefix=BINARY --input-file=%t/deps-3.json
+
+// BINARY:      "directDependencies": [
+// BINARY-NEXT:   {
+// BINARY-NEXT:     "languagePrebuiltExternal": "Foo"
+// BINARY-NEXT:   }
+// BINARY-NEXT: ]
+
+// TEXTUAL:      "directDependencies": [
+// TEXTUAL-NEXT:   {
+// TEXTUAL-NEXT:     "language": "Foo"
+// TEXTUAL-NEXT:   }
+// TEXTUAL-NEXT: ]
+
+//--- foo.code
+public fn foo() {}
+
+//--- main.code
+import Foo

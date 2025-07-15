@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+//--- a.code
+
+class A {
+  var b: B
+  var c: B
+}
+
+//--- b.code
+
+class B {
+  var a: A
+}
+
+//--- dummy.code
+
+// REQUIRES: language_language_parser
+// RUN: %sourcekitd-test -req=related-idents -pos=3:10 %t/a.code -- %t/a.code %t/b.code -o implicit_vis.o | %FileCheck -check-prefix=CHECK1 %s
+
+// CHECK1: START RANGES
+// CHECK1: 3:10 - 1
+// CHECK1: 4:10 - 1
+// CHECK1: END RANGES

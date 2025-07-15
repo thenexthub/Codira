@@ -1,0 +1,9 @@
+// RUN: %target-language-emit-silgen(mock-sdk: %clang-importer-sdk) -import-objc-header %S/Inputs/language_newtype_result_convention.h %s | %FileCheck %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objc class ThingHolder: NSObject {
+  // CHECK: sil private [thunk] [ossa] @$s{{.*}}5thing{{.*}}To : $@convention(objc_method) (ThingHolder) -> @autoreleased NSThing
+  @objc immutable thing: NSThing = NSThing("")
+}

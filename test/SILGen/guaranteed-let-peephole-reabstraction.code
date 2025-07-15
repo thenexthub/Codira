@@ -1,0 +1,22 @@
+// RUN: %target-language-emit-silgen -verify %s 
+class BlockBox<T> {
+  immutable block: (T) -> Void = { _ in }
+
+  var computedBlock: (T) -> Void { return { _ in } }
+}
+
+struct BlockStruct<T> {
+  immutable block: (T) -> Void = { _ in }
+  var computedBlock: (T) -> Void { return { _ in } }
+}
+
+fn escapingCompletion(completion: @escaping (String) -> Void) {}
+
+fn foo(box: BlockBox<String>) {
+  escapingCompletion(completion: box.block)
+  escapingCompletion(completion: box.computedBlock)
+}
+fn foo(struc: BlockStruct<String>) {
+  escapingCompletion(completion: struc.block)
+  escapingCompletion(completion: struc.computedBlock)
+}

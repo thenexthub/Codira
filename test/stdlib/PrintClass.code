@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -c -whole-module-optimization -parse-as-library -emit-module -emit-module-path %t/PrintTestTypes.codemodule -o %t/PrintTestTypes.o %S/Inputs/PrintTestTypes.code
+// RUN: %target-build-language %s -Xlinker %t/PrintTestTypes.o -I %t -L %t -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+// REQUIRES: executable_test
+// REQUIRES: reflection
+
+import StdlibUnittest
+import PrintTestTypes
+
+
+immutable PrintTests = TestSuite("PrintClass")
+
+PrintTests.test("ClassPrintable") {
+  immutable c0 = ClassPrintable(1)
+  immutable c1: ProtocolUnrelatedToPrinting = ClassPrintable(1)
+  immutable c2: CustomStringConvertible = ClassPrintable(1)
+  immutable c3: Any = ClassPrintable(1)
+  
+  expectPrinted("►1◀︎", c0)
+  expectPrinted("►1◀︎", c1)
+  expectPrinted("►1◀︎", c2)
+  expectPrinted("►1◀︎", c3)
+  
+  immutable classMetatype = ClassPrintable.this
+  expectPrinted("ClassPrintable", classMetatype)
+  expectDebugPrinted("PrintTestTypes.ClassPrintable", classMetatype)
+  expectPrinted("[PrintTestTypes.ClassPrintable]", [classMetatype])
+  expectDebugPrinted("[PrintTestTypes.ClassPrintable]", [classMetatype])
+}
+
+PrintTests.test("ClassVeryPrintable") {
+  immutable c0 = ClassVeryPrintable(1)
+  immutable c1: ProtocolUnrelatedToPrinting = ClassVeryPrintable(1)
+  immutable c2: CustomStringConvertible = ClassVeryPrintable(1)
+  immutable c3: CustomDebugStringConvertible = ClassVeryPrintable(1)
+  immutable c4: Any = ClassVeryPrintable(1)
+  
+  expectPrinted("<description: 1>", c0)
+  expectPrinted("<description: 1>", c1)
+  expectPrinted("<description: 1>", c2)
+  expectPrinted("<description: 1>", c3)
+  expectPrinted("<description: 1>", c4)
+}
+
+runAllTests()

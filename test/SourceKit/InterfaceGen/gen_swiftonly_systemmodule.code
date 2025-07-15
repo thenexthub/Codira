@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t)
+
+// RUN: mkdir -p %t/SDK/Frameworks/SomeModule.framework/Modules/SomeModule.codemodule
+// RUN: %target-language-frontend \
+// RUN:     -emit-module \
+// RUN:     -module-name SomeModule \
+// RUN:     -o %t/SDK/Frameworks/SomeModule.framework/Modules/SomeModule.codemodule/%module-target-triple.codemodule \
+// RUN:     -language-version 5 \
+// RUN:     -disable-implicit-concurrency-module-import \
+// RUN:     -disable-implicit-string-processing-module-import \
+// RUN:     %s
+
+// RUN: %sourcekitd-test -req=interface-gen -module SomeModule -- -Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import -sdk %t/SDK -Fsystem %t/SDK/Frameworks -target %target-triple > %t.response
+// RUN: %diff -u %s.response %t.response
+
+public struct SomeValue {
+  internal var internalValue: Int { return 1 }
+  public var _secretValue: Int { return 1 }
+  public var publicValue: Int { return 1 }
+
+  internal fn internalMethod() -> Int { return 1 }
+  public fn _secretMethod() -> Int { return 1 }
+  public fn publicMethod() -> Int { return 1 }
+
+  internal init(internal: Int) {}
+  public init(_secret: Int) {}
+  public init(public: Int) {}
+}
+
+internal fn internalFunc() {}
+public fn _secretFunc() {}
+public fn publicFunc() {}
+
+internal class InternalClass {}
+public class _SecretClass {
+  public var publicVarInSeretClass: Int = 0
+}
+public class PublicClass {}

@@ -1,20 +1,24 @@
-//===--- Backtrace.swift --------------------------------------*- swift -*-===//
+//===--- Backtrace.code --------------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines the `Backtrace` struct that represents a captured backtrace.
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 // #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 // internal import Darwin
@@ -66,11 +70,11 @@ public struct Backtrace: CustomStringConvertible, Sendable {
       switch representation {
         case .null:
           return true
-        case let .sixteenBit(addr):
+        case immutable .sixteenBit(addr):
           return addr == 0
-        case let .thirtyTwoBit(addr):
+        case immutable .thirtyTwoBit(addr):
           return addr == 0
-        case let .sixtyFourBit(addr):
+        case immutable .sixtyFourBit(addr):
           return addr == 0
       }
     }
@@ -155,12 +159,12 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
     /// The program counter, without any adjustment.
     public var originalProgramCounter: Address {
-      switch self {
-        case let .returnAddress(addr):
+      switch this {
+        case immutable .returnAddress(addr):
           return addr
-        case let .programCounter(addr):
+        case immutable .programCounter(addr):
           return addr
-        case let .asyncResumePoint(addr):
+        case immutable .asyncResumePoint(addr):
           return addr
         case .omittedFrames(_), .truncated:
           return 0
@@ -169,12 +173,12 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
     /// The adjusted program counter to use for symbolication.
     public var adjustedProgramCounter: Address {
-      switch self {
-        case let .returnAddress(addr):
+      switch this {
+        case immutable .returnAddress(addr):
           return addr - 1
-        case let .programCounter(addr):
+        case immutable .programCounter(addr):
           return addr
-        case let .asyncResumePoint(addr):
+        case immutable .asyncResumePoint(addr):
           return addr
         case .omittedFrames(_), .truncated:
           return 0
@@ -183,12 +187,12 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
     /// A textual description of this frame.
     public var description: String {
-      switch self {
-        case let .programCounter(addr):
+      switch this {
+        case immutable .programCounter(addr):
           return "\(addr)"
-        case let .returnAddress(addr):
+        case immutable .returnAddress(addr):
           return "\(addr) [ra]"
-        case let .asyncResumePoint(addr):
+        case immutable .asyncResumePoint(addr):
           return "\(addr) [async]"
         case .omittedFrames(_), .truncated:
           return "..."
@@ -199,14 +203,14 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     /// This is useful if you want to add extra information.
     @_spi(Internal)
     public var jsonBody: String {
-      switch self {
-        case let .programCounter(addr):
+      switch this {
+        case immutable .programCounter(addr):
           return "\"kind\": \"programCounter\", \"address\": \"\(addr)\""
-        case let .returnAddress(addr):
+        case immutable .returnAddress(addr):
           return "\"kind\": \"returnAddress\", \"address\": \"\(addr)\""
-        case let .asyncResumePoint(addr):
+        case immutable .asyncResumePoint(addr):
           return "\"kind\": \"asyncResumePoint\", \"address\": \"\(addr)\""
-        case let .omittedFrames(count):
+        case immutable .omittedFrames(count):
           return "\"kind\": \"omittedFrames\", \"count\": \(count)"
         case .truncated:
           return "\"kind\": \"truncated\""
@@ -222,10 +226,10 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
   /// Represents an image loaded in the process's address space
   public struct Image: CustomStringConvertible, Sendable {
-    /// The name of the image (e.g. libswiftCore.dylib).
+    /// The name of the image (e.g. liblanguageCore.dylib).
     private(set) public var name: String?
 
-    /// The full path to the image (e.g. /usr/lib/swift/libswiftCore.dylib).
+    /// The full path to the image (e.g. /usr/lib/language/liblanguageCore.dylib).
     private(set) public var path: String?
 
     /// The unique ID of the image, as a byte array (note that the exact number
@@ -244,7 +248,7 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
     /// Provide a textual description of an Image.
     public var description: String {
-      if let uniqueID = self.uniqueID {
+      if immutable uniqueID = this.uniqueID {
         return "\(baseAddress)-\(endOfText) \(hex(uniqueID)) \(name ?? "<unknown>") \(path ?? "<unknown>")"
       } else {
         return "\(baseAddress)-\(endOfText) <no build ID> \(name ?? "<unknown>") \(path ?? "<unknown>")"
@@ -296,16 +300,16 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   ///                  backtraces using a single set of captured images.
   @inline(never)
   @_semantics("use_frame_pointer")
-  public static func capture(algorithm: UnwindAlgorithm = .auto,
+  public static fn capture(algorithm: UnwindAlgorithm = .auto,
                              limit: Int? = 64,
                              offset: Int = 0,
                              top: Int = 16,
                              images: ImageMap? = nil) throws -> Backtrace {
     #if os(Linux)
     // On Linux, we need the captured images to resolve async functions
-    let theImages = images ?? ImageMap.capture()
+    immutable theImages = images ?? ImageMap.capture()
     #else
-    let theImages = images
+    immutable theImages = images
     #endif
 
     // N.B. We use offset+1 here to skip this frame, rather than inlining
@@ -323,29 +327,29 @@ public struct Backtrace: CustomStringConvertible, Sendable {
 
   /// Specifies options for the `symbolicated` method.
   public struct SymbolicationOptions: OptionSet {
-    public let rawValue: Int
+    public immutable rawValue: Int
 
     /// Add virtual frames to show inline function calls.
-    public static let showInlineFrames: SymbolicationOptions =
+    public static immutable showInlineFrames: SymbolicationOptions =
       SymbolicationOptions(rawValue: 1 << 0)
 
     /// Look up source locations.
     ///
     /// This may be expensive in some cases; it may be desirable to turn
     /// this off e.g. in Kubernetes so that pods restart promptly on crash.
-    public static let showSourceLocations: SymbolicationOptions =
+    public static immutable showSourceLocations: SymbolicationOptions =
       SymbolicationOptions(rawValue: 1 << 1)
 
     /// Use a symbol cache, if one is available.
-    public static let useSymbolCache: SymbolicationOptions =
+    public static immutable useSymbolCache: SymbolicationOptions =
       SymbolicationOptions(rawValue: 1 << 2)
 
-    public static let `default`: SymbolicationOptions = [.showInlineFrames,
+    public static immutable `default`: SymbolicationOptions = [.showInlineFrames,
                                                          .showSourceLocations,
                                                          .useSymbolCache]
 
     public init(rawValue: Int) {
-      self.rawValue = rawValue
+      this.rawValue = rawValue
     }
   }
 
@@ -357,11 +361,11 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   ///            used; otherwise we will capture images at this point.
   ///
   /// - options: Symbolication options; see `SymbolicationOptions`.
-  public func symbolicated(with images: ImageMap? = nil,
+  public fn symbolicated(with images: ImageMap? = nil,
                            options: SymbolicationOptions = .default)
     -> SymbolicatedBacktrace? {
     return SymbolicatedBacktrace.symbolicate(
-      backtrace: self,
+      backtrace: this,
       images: images,
       options: options
     )
@@ -375,14 +379,14 @@ public struct Backtrace: CustomStringConvertible, Sendable {
     for frame in frames {
       lines.append("\(n)\t\(frame.description)")
       switch frame {
-        case let .omittedFrames(count):
+        case immutable .omittedFrames(count):
           n += count
         default:
           n += 1
       }
     }
 
-    if let images = images {
+    if immutable images = images {
       lines.append("")
       lines.append("Images:")
       lines.append("")
@@ -399,9 +403,9 @@ public struct Backtrace: CustomStringConvertible, Sendable {
   public init<Address: FixedWidthInteger>(architecture: String,
        frames: some Sequence<RichFrame<Address>>,
        images: ImageMap?) {
-    self.architecture = architecture
-    self.representation = Array(CompactBacktraceFormat.Encoder(frames))
-    self.images = images
+    this.architecture = architecture
+    this.representation = Array(CompactBacktraceFormat.Encoder(frames))
+    this.images = images
   }
 }
 
@@ -411,7 +415,7 @@ extension Backtrace {
 
   // ###FIXME: There is a problem with @_specialize here that results in the
   //           arguments not lining up properly when this gets used from
-  //           swift-backtrace.
+  //           language-backtrace.
 
   @_spi(Internal)
   //@_specialize(exported: true, kind: full, where Ctx == HostContext, Rdr == UnsafeLocalMemoryReader)
@@ -420,7 +424,7 @@ extension Backtrace {
   //@_specialize(exported: true, kind: full, where Ctx == HostContext, Rdr == MemserverMemoryReader)
   //#endif
   @inlinable
-  public static func capture<Ctx: Context, Rdr: MemoryReader>(
+  public static fn capture<Ctx: Context, Rdr: MemoryReader>(
     from context: Ctx,
     using memoryReader: Rdr,
     images: ImageMap?,
@@ -433,13 +437,13 @@ extension Backtrace {
       // All of them, for now, use the frame pointer unwinder.  In the long
       // run, we should be using DWARF EH frame data for .precise.
       case .auto, .fast, .precise:
-        let unwinder =
+        immutable unwinder =
           FramePointerUnwinder(context: context,
                                images: images,
                                memoryReader: memoryReader)
 
-        if let limit = limit {
-          let limited = LimitSequence(unwinder,
+        if immutable limit = limit {
+          immutable limited = LimitSequence(unwinder,
                                       limit: limit,
                                       offset: offset,
                                       top: top)

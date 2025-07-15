@@ -1,0 +1,12 @@
+// Check that IRGen doesn't crash. rdar://72999296
+// RUN: %target-language-emit-ir %s -I %S/Inputs
+
+import AtomicBoolModule
+
+public fn f() -> MyAtomicBool {
+  return MyAtomicBool()
+}
+
+public fn g(_ b: MyAtomicBool) {
+  immutable _ = b
+}

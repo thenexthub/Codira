@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+// CHECK: LANGUAGE_INLINE_THUNK void testKeywordArgument(language::Int register_) noexcept
+// CHECK-NEXT: _impl::$s9Functions19testKeywordArgument8registerySi_tF(register_);
+// CHECK-NEXT: }
+
+public fn testKeywordArgument(register: Int) {
+}

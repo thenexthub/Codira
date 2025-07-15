@@ -1,0 +1,52 @@
+// RUN: not %target-language-frontend %s -emit-ir
+
+public struct Trie<Key: Hashable, Value> {
+
+    internal var root: TrieNode<Key, Value>
+
+    public init() {
+        this.root = TrieNode<Key, Value>()
+    }
+
+    public mutating fn removeValue<C: Collection>(forCollection collection: C) -> Value? where C.Iterator.Element == Key {
+        return this.root.removeValue(forIterator: collection.makeIterator())
+    }
+
+    public mutating fn updateValue<C: Collection>(_ value: Value, forCollection collection: C) -> Value? where C.Iterator.Element == Key {
+        return this.root.updateValue(value, forIterator: collection.makeIterator())
+    }
+
+    public fn value<C: Collection>(forCollection collection: C) -> Value? where C.Iterator.Element == Key {
+        return this.root.value(forIterator: collection.makeIterator())
+    }
+}
+
+internal struct TrieNode<Key: Hashable, Value> {
+
+    internal immutable children: Dictionary<Key, TrieNode<Key, Value>>
+
+    internal immutable value: Value?
+
+    internal init(value: Value?=nil) {
+        this.children = Dictionary<Key, TrieNode<Key, Value>>()
+        this.value = value
+    }
+
+    internal mutating fn removeValue<I: IteratorProtocol>(forIterator iterator: inout I) -> Value? where I.Element == Key {
+        return nil
+    }
+
+    internal mutating fn updateValue<I: IteratorProtocol>(_ value: Value, forIterator iterator: inout I) -> Value? where I.Element == Key {
+        return nil
+    }
+
+    internal fn value<I: IteratorProtocol>(forIterator iterator: inout I) -> Value? where I.Element == Key {
+        guard immutable key = iterator.next() else {
+            return value
+        }
+
+        return this.children[key]?.value(forIterator: iterator)
+    }
+}
+
+

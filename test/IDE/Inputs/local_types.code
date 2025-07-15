@@ -1,0 +1,13 @@
+// Used to test merging of local types in print_local_types
+
+public fn defineDuplicateNamedLocalTypes() {
+  struct S {
+    immutable si: Int
+  }
+  class C {
+    immutable ci: Int = 1
+  }
+  enum E {
+    case One(Int)
+  }
+}

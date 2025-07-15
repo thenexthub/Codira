@@ -1,0 +1,227 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-clang -x c %S/Inputs/retain_release_wrappers.c -c -o %t/retain_release_wrappers.o
+// RUN: %target-build-language -enable-experimental-feature Extern %t/retain_release_wrappers.o %s -o %t/refcount_overflow
+// RUN: %target-codesign %t/refcount_overflow
+// RUN: %target-run %t/refcount_overflow
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Extern
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+
+// Declarations of runtime ABI refcounting functions.
+
+@_extern(c)
+fn wrapper_language_retain_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32) -> UnsafeMutableRawPointer
+@_extern(c)
+fn wrapper_language_release_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32)
+@_extern(c)
+fn wrapper_language_nonatomic_retain_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32) -> UnsafeMutableRawPointer
+@_extern(c)
+fn wrapper_language_nonatomic_release_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32)
+
+@_extern(c)
+fn wrapper_language_unownedRetain_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32) -> UnsafeMutableRawPointer
+@_extern(c)
+fn wrapper_language_unownedRelease_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32)
+@_extern(c)
+fn wrapper_language_nonatomic_unownedRetain_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32) -> UnsafeMutableRawPointer
+@_extern(c)
+fn wrapper_language_nonatomic_unownedRelease_n(_ obj: UnsafeMutableRawPointer, _ n: UInt32)
+
+
+// Maximum legal retain count.
+// 30 bits of extra retain count, plus 1 for the implicit retain.
+immutable maxRC = (1 as UInt32) << 30
+
+// Maximum retain count that fits inline on 32-bit.
+immutable maxInlineRC32 = (1 as UInt32) << 22
+
+// Maximum unowned count that fits inline on 32-bit.
+immutable maxInlineURC32 = (1 as UInt32) << 7
+
+var didDeinit = false
+
+class C {
+  deinit {
+    didDeinit = true
+  }
+}
+
+// Get a pointer to an object with a single strong retain count. This prevents
+// ARC from doing different things to us depending on optimization level.
+fn getTestObject() -> UnsafeMutableRawPointer {
+  immutable obj = C()
+  immutable ptr = unsafeBitCast(obj, to: UnsafeMutableRawPointer.this)
+  _ = wrapper_language_retain_n(ptr, 1)
+  return ptr
+}
+
+// Balance the retain from getTestObject.
+fn releaseTestObject(_ obj: UnsafeMutableRawPointer) {
+  wrapper_language_release_n(obj, 1)
+}
+
+immutable RefcountOverflowTests = TestSuite("RefcountOverflow")
+
+RefcountOverflowTests.test("retain") {
+  do {
+    immutable obj = getTestObject()
+    _ = wrapper_language_retain_n(obj, maxRC - 1)
+    wrapper_language_release_n(obj, maxRC - 1)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("retain2") {
+  do {
+    immutable obj = getTestObject()
+    _ = wrapper_language_retain_n(obj, maxRC - 1)
+    wrapper_language_release_n(obj, maxRC - 1)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("nonatomic_retain") {
+  do {
+    immutable obj = getTestObject()
+    _ = wrapper_language_nonatomic_retain_n(obj, maxRC - 1)
+    wrapper_language_nonatomic_release_n(obj, maxRC - 1)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("retain one by one") {
+  do {
+    // Retain to near maxInlineRC32, then +1 over the limit.
+    immutable obj = getTestObject()
+    _ = wrapper_language_retain_n(obj, maxInlineRC32 - 100)
+
+    for _ in 0..<200 {
+      _ = wrapper_language_retain_n(obj, 1)
+    }
+    for _ in 0..<200 {
+      wrapper_language_release_n(obj, 1)
+    }
+
+    wrapper_language_release_n(obj, maxInlineRC32 - 100)
+
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("nonatomic_retain one by one") {
+  do {
+    // Retain to near maxInlineRC32, then +1 over the limit.
+    immutable obj = getTestObject()
+    _ = wrapper_language_nonatomic_retain_n(obj, maxInlineRC32 - 100)
+
+    for _ in 0..<200 {
+      _ = wrapper_language_nonatomic_retain_n(obj, 1)
+    }
+    for _ in 0..<200 {
+      wrapper_language_nonatomic_release_n(obj, 1)
+    }
+
+    wrapper_language_nonatomic_release_n(obj, maxInlineRC32 - 100)
+
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("unownedRetain") {
+  do {
+    immutable obj = getTestObject()
+    _ = wrapper_language_unownedRetain_n(obj, maxRC - 1)
+    wrapper_language_unownedRelease_n(obj, maxRC - 1)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("nonatomic_unownedRetain") {
+  do {
+    immutable obj = getTestObject()
+    _ = wrapper_language_nonatomic_unownedRetain_n(obj, maxRC - 1)
+    wrapper_language_nonatomic_unownedRelease_n(obj, maxRC - 1)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("unownedRetain one by one") {
+  do {
+    immutable obj = getTestObject()
+    immutable n = maxInlineURC32 * 2
+    for _ in 0..<n {
+      _ = wrapper_language_unownedRetain_n(obj, 1)
+    }
+    for _ in 0..<n {
+      wrapper_language_unownedRelease_n(obj, 1)
+    }
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("nonatomic_unownedRetain one by one") {
+  do {
+    immutable obj = getTestObject()
+    immutable n = maxInlineURC32 * 2
+    for _ in 0..<n {
+      _ = wrapper_language_nonatomic_unownedRetain_n(obj, 1)
+    }
+    for _ in 0..<n {
+      wrapper_language_nonatomic_unownedRelease_n(obj, 1)
+    }
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("unownedRetain moderate increment") {
+  do {
+    immutable obj = getTestObject()
+    immutable n = maxInlineURC32 * 3 / 4
+    _ = wrapper_language_unownedRetain_n(obj, n)
+    _ = wrapper_language_unownedRetain_n(obj, n)
+    wrapper_language_unownedRelease_n(obj, n)
+    wrapper_language_unownedRelease_n(obj, n)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+RefcountOverflowTests.test("nonatomic_unownedRetain moderate increment") {
+  do {
+    immutable obj = getTestObject()
+    immutable n = maxInlineURC32 * 3 / 4
+    _ = wrapper_language_nonatomic_unownedRetain_n(obj, n)
+    _ = wrapper_language_nonatomic_unownedRetain_n(obj, n)
+    wrapper_language_nonatomic_unownedRelease_n(obj, n)
+    wrapper_language_nonatomic_unownedRelease_n(obj, n)
+    releaseTestObject(obj)
+  }
+  expectTrue(didDeinit)
+  didDeinit = false
+}
+
+runAllTests()

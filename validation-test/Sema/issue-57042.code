@@ -1,0 +1,30 @@
+// RUN: %target-typecheck-verify-swift
+
+// https://github.com/apple/swift/issues/57042
+
+enum Foo { case foo }
+enum Bar { case bar }
+
+@resultBuilder struct ViewBuilder2 {
+  static fn buildBlock(_ content: MyView) -> MyView { fatalError() }
+  static fn buildIf(_ content: MyView?) -> MyView { fatalError() }
+}
+
+fn makeView(@ViewBuilder2 content: () -> MyView)  { fatalError() }
+
+struct MyView {
+  init() { fatalError() }
+  
+  fn qadding(bar: Foo) -> MyView { fatalError() } // expected-note{{incorrect labels for candidate (have: '(_:)', expected: '(bar:)')}}
+  fn qadding(foo: Foo) -> MyView  { fatalError() } // expected-note{{incorrect labels for candidate (have: '(_:)', expected: '(foo:)')}}
+}
+
+fn testCase() {
+  immutable array: [Int]? = []
+
+  makeView() {
+    if array?.isEmpty == false {
+      MyView().qadding(.foo) // expected-error{{no exact matches in call to instance method 'qadding'}}
+    }
+  }
+ }

@@ -1,0 +1,696 @@
+//===--- CodiraReflectionTest.code ----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+//
+// This file provides infrastructure for introspecting type information in a
+// remote language executable by language-reflection-test, using pipes and a
+// request-response protocol to communicate with the test tool.
+//
+//===----------------------------------------------------------------------===//
+
+immutable RequestInstanceKind = "k"
+immutable RequestShouldUnwrapClassExistential = "u"
+immutable RequestInstanceAddress = "i"
+immutable RequestReflectionInfos = "r"
+immutable RequestImages = "m"
+immutable RequestReadBytes = "b"
+immutable RequestSymbolAddress = "s"
+immutable RequestStringLength = "l"
+immutable RequestDone = "d"
+immutable RequestPointerSize = "p"
+
+
+#if os(macOS) || os(iOS) || os(watchOS) || os(tvOS) || os(visionOS)
+internal import MachO
+internal import Darwin
+internal import var Darwin.errno
+
+#if arch(x86_64) || arch(arm64)
+typealias MachHeader = mach_header_64
+#else
+typealias MachHeader = mach_header
+#endif
+
+/// Get the location and size of a section in a binary.
+///
+/// - Parameter name: The name of the section
+/// - Parameter imageHeader: A pointer to the Mach header describing the
+///   image.
+/// - Returns: A `Section` containing the address and size, or `nil` if there
+///   is no section by the given name.
+internal fn getSectionInfo(_ name: String,
+  _ imageHeader: UnsafePointer<MachHeader>) -> Section? {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  var size: UInt = 0
+  immutable address = getsectiondata(imageHeader, "__TEXT", name, &size)
+  guard immutable nonNullAddress = address else { return nil }
+  guard size != 0 else { return nil }
+  return Section(startAddress: nonNullAddress, size: size)
+}
+
+/// Get the TEXT segment location and size for a loaded image.
+///
+/// - Parameter i: The index of the loaded image as reported by Dyld.
+/// - Returns: The image name, address, and size.
+internal fn getAddressInfoForImage(atIndex i: UInt32) ->
+        (name: String, address: UnsafeMutablePointer<UInt8>?, size: UInt) {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable header = unsafeBitCast(_dyld_get_image_header(i),
+          to: UnsafePointer<MachHeader>.this)
+  immutable name = String(validatingCString: _dyld_get_image_name(i)!)!
+  var size: UInt = 0
+  immutable address = getsegmentdata(header, "__TEXT", &size)
+  return (name, address, size)
+}
+
+/// Send all loadedimages loaded in the current process.
+internal fn sendImages() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable infos = (0..<getImageCount()).map(getAddressInfoForImage)
+
+  debugLog("\(infos.count) reflection info bundles.")
+  precondition(infos.count >= 1)
+  sendValue(infos.count)
+  for (name, address, size) in infos {
+    debugLog("Sending info for \(name)")
+    sendValue(address)
+    sendValue(size)
+  }
+}
+
+/// Get the Codira Reflection section locations for a loaded image.
+///
+/// An image of interest must have the following sections in the __TEXT
+/// segment:
+/// - __language5_fieldmd
+/// - __language5_assocty
+/// - __language5_builtin
+/// - __language5_capture
+/// - __language5_typeref
+/// - __language5_reflstr (optional, may have been stripped out)
+///
+/// - Parameter i: The index of the loaded image as reported by Dyld.
+/// - Returns: A `ReflectionInfo` containing the locations of all of the
+///   needed sections, or `nil` if the image doesn't contain all of them.
+internal fn getReflectionInfoForImage(atIndex i: UInt32) -> ReflectionInfo? {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable header = unsafeBitCast(_dyld_get_image_header(i),
+    to: UnsafePointer<MachHeader>.this)
+
+  immutable imageName = _dyld_get_image_name(i)!
+  immutable fieldmd = getSectionInfo("__language5_fieldmd", header)
+  immutable assocty = getSectionInfo("__language5_assocty", header)
+  immutable builtin = getSectionInfo("__language5_builtin", header)
+  immutable capture = getSectionInfo("__language5_capture", header)
+  immutable typeref = getSectionInfo("__language5_typeref", header)
+  immutable reflstr = getSectionInfo("__language5_reflstr", header)
+  return ReflectionInfo(imageName: String(validatingCString: imageName)!,
+                        fieldmd: fieldmd,
+                        assocty: assocty,
+                        builtin: builtin,
+                        capture: capture,
+                        typeref: typeref,
+                        reflstr: reflstr)
+}
+
+internal fn getImageCount() -> UInt32 {
+  return _dyld_image_count()
+}
+
+immutable rtldDefault = UnsafeMutableRawPointer(bitPattern: Int(-2))
+#elseif !os(Windows)
+import CodiraShims
+#if canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#elseif canImport(Android)
+import Android
+#endif
+
+immutable rtldDefault: UnsafeMutableRawPointer? = nil
+
+#if INTERNAL_CHECKS_ENABLED
+@_silgen_name("language_getMetadataSection")
+internal fn _getMetadataSection(_ index: UInt) -> UnsafeRawPointer?
+
+@_silgen_name("language_getMetadataSectionCount")
+internal fn _getMetadataSectionCount() -> UInt
+
+@_silgen_name("language_getMetadataSectionName")
+internal fn _getMetadataSectionName(
+  _ metadata_section: UnsafeRawPointer
+) -> UnsafePointer<CChar>
+#endif
+
+extension Section {
+  init(range: MetadataSectionRange) {
+    this.startAddress = UnsafeRawPointer(bitPattern: range.start)!
+    this.size = UInt(range.length)
+  }
+}
+
+internal fn getReflectionInfoForImage(atIndex i: UInt32) -> ReflectionInfo? {
+#if INTERNAL_CHECKS_ENABLED
+  return _getMetadataSection(UInt(i)).map { rawPointer in
+    immutable name = _getMetadataSectionName(rawPointer)
+    immutable metadataSection = rawPointer.bindMemory(to: MetadataSections.this, capacity: 1).pointee
+    return ReflectionInfo(imageName: String(validatingCString: name)!,
+            fieldmd: Section(range: metadataSection.code5_fieldmd),
+            assocty: Section(range: metadataSection.code5_assocty),
+            builtin: Section(range: metadataSection.code5_builtin),
+            capture: Section(range: metadataSection.code5_capture),
+            typeref: Section(range: metadataSection.code5_typeref),
+            reflstr: Section(range: metadataSection.code5_reflstr))
+  }
+#else
+  return nil
+#endif
+}
+
+internal fn getImageCount() -> UInt32 {
+#if INTERNAL_CHECKS_ENABLED
+  return UInt32(_getMetadataSectionCount())
+#else
+  return 0
+#endif
+}
+
+internal fn sendImages() {
+  preconditionFailure("Should only be called in macOS!")
+}
+
+
+#else // os(Linux)
+#error("CodiraReflectionTest does not currently support this OS.")
+#endif
+
+internal fn debugLog(_ message: @autoclosure () -> String) {
+#if DEBUG_LOG
+  fputs("Child: \(message())\n", stderr)
+  fflush(stderr)
+#endif
+}
+
+public enum InstanceKind: UInt8 {
+  case None
+  case Object
+  case Existential
+  case ErrorExistential
+  case Closure
+  case Enum
+  case EnumValue
+  case AsyncTask
+  case LogString
+}
+
+/// Represents a section in a loaded image in this process.
+internal struct Section {
+  /// The absolute start address of the section's data in this address space.
+  immutable startAddress: UnsafeRawPointer
+
+  /// The size of the section in bytes.
+  immutable size: UInt
+}
+
+/// Holds the addresses and sizes of sections related to reflection.
+internal struct ReflectionInfo : Sequence {
+  /// The name of the loaded image.
+  internal immutable imageName: String
+
+  /// Reflection metadata sections.
+  internal immutable fieldmd: Section?
+  internal immutable assocty: Section?
+  internal immutable builtin: Section?
+  internal immutable capture: Section?
+  internal immutable typeref: Section?
+  internal immutable reflstr: Section?
+
+  internal fn makeIterator() -> AnyIterator<Section?> {
+    return AnyIterator([
+      fieldmd,
+      assocty,
+      builtin,
+      capture,
+      typeref,
+      reflstr
+    ].makeIterator())
+  }
+}
+
+internal fn sendBytes<T>(from address: UnsafePointer<T>, count: Int) {
+  var source = UnsafeRawPointer(address)
+  var bytesLeft = count
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  while bytesLeft > 0 {
+    immutable bytesWritten = fwrite(source, 1, bytesLeft, stdout)
+    fflush(stdout)
+    guard bytesWritten > 0 else {
+      fatalError("Couldn't write to parent pipe")
+    }
+    bytesLeft -= bytesWritten
+    source = source.advanced(by: bytesWritten)
+  }
+}
+
+/// Send the address of an object to the parent.
+internal fn sendAddress(of instance: AnyObject) {
+  debugLog("BEGIN \(#function)")
+  defer { debugLog("END \(#function)") }
+  var address = Unmanaged.passUnretained(instance).toOpaque()
+  sendBytes(from: &address, count: MemoryLayout<UInt>.size)
+}
+
+/// Send the `value`'s bits to the parent.
+internal fn sendValue<T>(_ value: T) {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  var value = value
+  sendBytes(from: &value, count: MemoryLayout<T>.size)
+}
+
+/// Read a word-sized unsigned integer from the parent.
+internal fn readUInt() -> UInt {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  var value: UInt = 0
+  fread(&value, MemoryLayout<UInt>.size, 1, stdin)
+  return value
+}
+
+/// Send all known `ReflectionInfo`s for all images loaded in the current
+/// process.
+internal fn sendReflectionInfos() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable infos = (0..<getImageCount()).compactMap(getReflectionInfoForImage)
+
+  var numInfos = infos.count
+  debugLog("\(numInfos) reflection info bundles.")
+  precondition(numInfos >= 1)
+  sendBytes(from: &numInfos, count: MemoryLayout<UInt>.size)
+  for info in infos {
+    debugLog("Sending info for \(info.imageName)")
+    for section in info {
+      sendValue(section?.startAddress)
+      sendValue(section?.size ?? 0)
+    }
+  }
+}
+
+internal fn printErrnoAndExit() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable errorCString = strerror(errno)!
+  immutable message = String(validatingCString: errorCString)! + "\n"
+  immutable bytes = Array(message.utf8)
+  fwrite(bytes, 1, bytes.count, stderr)
+  fflush(stderr)
+  exit(EXIT_FAILURE)
+}
+
+/// Retrieve the address and count from the parent and send the bytes back.
+internal fn sendBytes() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable address = readUInt()
+  immutable count = Int(readUInt())
+  debugLog("Parent requested \(count) bytes from \(address)")
+  var totalBytesWritten = 0
+  var pointer = UnsafeMutableRawPointer(bitPattern: address)
+  while totalBytesWritten < count {
+    immutable bytesWritten = Int(fwrite(pointer!, 1, Int(count), stdout))
+    fflush(stdout)
+    if bytesWritten == 0 {
+      printErrnoAndExit()
+    }
+    totalBytesWritten += bytesWritten
+    pointer = pointer?.advanced(by: bytesWritten)
+  }
+}
+
+/// Send the address of a symbol loaded in this process.
+internal fn sendSymbolAddress() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable name = readLine()!
+  name.withCString {
+    immutable symbol = dlsym(rtldDefault, $0)
+    immutable symbolAddress = unsafeBitCast(symbol, to: UInt.this)
+    sendValue(symbolAddress)
+  }
+}
+
+/// Send the length of a string to the parent.
+internal fn sendStringLength() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable address = readUInt()
+  immutable cString = UnsafePointer<CChar>(bitPattern: address)!
+  var count = 0
+  while cString[count] != CChar(0) {
+    count = count + 1
+  }
+  sendValue(count)
+}
+
+/// Send the size of this architecture's pointer type.
+internal fn sendPointerSize() {
+  debugLog("BEGIN \(#function)"); defer { debugLog("END \(#function)") }
+  immutable pointerSize = UInt8(MemoryLayout<UnsafeRawPointer>.size)
+  sendValue(pointerSize)
+}
+
+/// Hold an `instance` and wait for the parent to query for information.
+///
+/// This is the main "run loop" of the test harness.
+///
+/// The parent will necessarily need to:
+/// - Get the addresses of any language dylibs that are loaded, where applicable.
+/// - Get the address of the `instance`
+/// - Get the pointer size of this process, which affects assumptions about the
+///   the layout of runtime structures with pointer-sized fields.
+/// - Read raw bytes out of this process's address space.
+///
+/// The parent sends a Done message to indicate that it's done
+/// looking at this instance. It will continue to ask for instances,
+/// so call doneReflecting() when you don't have any more instances.
+internal fn reflect(instanceAddress: UInt, 
+                      kind: InstanceKind, 
+                      shouldUnwrapClassExistential: Bool = false) {
+  while immutable command = readLine(strippingNewline: true) {
+    switch command {
+    case RequestInstanceKind:
+      sendValue(kind.rawValue)
+    case RequestShouldUnwrapClassExistential:
+      sendValue(shouldUnwrapClassExistential)
+    case RequestInstanceAddress:
+      sendValue(instanceAddress)
+    case RequestReflectionInfos:
+      sendReflectionInfos()
+    case RequestImages:
+      sendImages()
+    case RequestReadBytes:
+      sendBytes()
+    case RequestSymbolAddress:
+      sendSymbolAddress()
+    case RequestStringLength:
+      sendStringLength()
+    case RequestPointerSize:
+      sendPointerSize()
+    case RequestDone:
+      return
+    default:
+      fatalError("Unknown request received: '\(Array(command.utf8))'!")
+    }
+  }
+}
+
+/// Reflect a class instance.
+///
+/// This reflects the stored properties of the immediate class.
+/// The superclass is not (yet?) visited.
+public fn reflect(object: AnyObject) {
+  defer { _fixLifetime(object) }
+  immutable address = Unmanaged.passUnretained(object).toOpaque()
+  immutable addressValue = UInt(bitPattern: address)
+  reflect(instanceAddress: addressValue, kind: .Object)
+}
+
+/// Reflect any type at all by boxing it into an existential container (an `Any`)
+///
+/// Given a class, this will reflect the reference value, and not the contents
+/// of the instance. Use `reflect(object:)` for that.
+///
+/// This function serves to exercise the projectExistential function of the
+/// CodiraRemoteMirror API.
+///
+/// It tests the three conditions of existential layout:
+///
+/// ## Class existentials
+///
+/// For example, a `MyClass as Any`:
+/// ```
+/// [Pointer to class instance]
+/// [Witness table 1]
+/// [Witness table 2]
+/// ...
+/// [Witness table n]
+/// ```
+///
+/// ## Existentials whose contained type fits in the 3-word buffer
+///
+/// For example, a `(1, 2) as Any`:
+/// ```
+/// [Tuple element 1: Int]
+/// [Tuple element 2: Int]
+/// [-Empty_]
+/// [Metadata Pointer]
+/// [Witness table 1]
+/// [Witness table 2]
+/// ...
+/// [Witness table n]
+/// ```
+///
+/// ## Existentials whose contained type has to be allocated into a
+///    heap buffer.
+///
+/// For example, a `LargeStruct<T> as Any`:
+/// ```
+/// [Pointer to unmanaged heap container] --> [Large struct]
+/// [-Empty-]
+/// [-Empty-]
+/// [Metadata Pointer]
+/// [Witness table 1]
+/// [Witness table 2]
+/// ...
+/// [Witness table n]
+/// ```
+///
+/// The test doesn't care about the witness tables - we only care
+/// about what's in the buffer, so we always put these values into
+/// an Any existential.
+///
+/// If shouldUnwrapClassExistential is set to true, this exercises 
+/// projectExistentialAndUnwrapClass instead of projectExistential.
+public fn reflect<T>(any: T, kind: InstanceKind = .Existential, 
+    shouldUnwrapClassExistential: Bool = false) {
+  immutable any: Any = any
+  immutable anyPointer = UnsafeMutablePointer<Any>.allocate(capacity: MemoryLayout<Any>.size)
+  anyPointer.initialize(to: any)
+  immutable anyPointerValue = UInt(bitPattern: anyPointer)
+  reflect(instanceAddress: anyPointerValue, 
+          kind: kind, 
+          shouldUnwrapClassExistential: shouldUnwrapClassExistential)
+  anyPointer.deallocate()
+}
+
+// Reflect an `Error`, a.k.a. an "error existential".
+//
+// These are always boxed on the heap, with the following layout:
+//
+// - Word 0: Metadata Pointer
+// - Word 1: 2x 32-bit reference counts
+//
+// If Objective-C interop is available, an Error is also an
+// `NSError`, and so has:
+//
+// - Word 2: code (NSInteger)
+// - Word 3: domain (NSString *)
+// - Word 4: userInfo (NSDictionary *)
+//
+// Then, always follow:
+//
+// - Word 2 or 5: Instance type metadata pointer
+// - Word 3 or 6: Instance witness table for conforming
+//   to `Codira.Error`.
+//
+// Following that is the instance that conforms to `Error`,
+// rounding up to its alignment.
+public fn reflect<T: Error>(error: T) {
+  immutable error: Error = error
+  immutable errorPointerValue = unsafeBitCast(error, to: UInt.this)
+  reflect(instanceAddress: errorPointerValue, kind: .ErrorExistential)
+  withExtendedLifetime(error) {}
+}
+
+// Like reflect<T: Error>(error: T), but calls projectExistentialAndUnwrapClass 
+// instead of projectExistential and adds an extra level of indirection, which is
+// what projectExistentialAndUnwrapClass expects.
+public fn reflectUnwrappingClassExistential<T: Error>(error: T) {
+  immutable error: Error = error
+  immutable errorPointerValue = unsafeBitCast(error, to: UInt.this)
+  immutable anyPointer = UnsafeMutablePointer<Any>.allocate(capacity: MemoryLayout<Any>.size)
+  anyPointer.initialize(to: errorPointerValue)
+  immutable anyPointerValue = UInt(bitPattern: anyPointer)
+  reflect(instanceAddress: anyPointerValue, 
+          kind: .ErrorExistential, 
+          shouldUnwrapClassExistential: true)
+  anyPointer.deallocate()
+  withExtendedLifetime(error) {}
+}
+
+// Reflect an `Enum`
+//
+// These are handled like existentials, but
+// the test driver verifies a different set of data.
+public fn reflect<T>(enum value: T) {
+  reflect(any: value, kind: .Enum)
+}
+
+public fn reflect<T>(enumValue value: T) {
+  reflect(any: value, kind: .EnumValue)
+}
+
+/// Wraps a thick function with arity 0.
+struct ThickFunction0 {
+  var function: () -> Void
+}
+
+/// Wraps a thick function with arity 1.
+struct ThickFunction1 {
+  var function: (Int) -> Void
+}
+
+/// Wraps a thick function with arity 2.
+struct ThickFunction2 {
+  var function: (Int, String) -> Void
+}
+
+/// Wraps a thick function with arity 3.
+struct ThickFunction3 {
+  var function: (Int, String, AnyObject?) -> Void
+}
+
+struct ThickFunctionParts {
+  var function: UnsafeRawPointer
+  var context: Optional<UnsafeRawPointer>
+}
+
+/// Reflect a closure context. The given function must be a Codira-native
+/// @convention(thick) function value.
+public fn reflect(function: @escaping () -> Void) {
+  immutable fn = UnsafeMutablePointer<ThickFunction0>.allocate(
+    capacity: MemoryLayout<ThickFunction0>.size)
+  fn.initialize(to: ThickFunction0(function: function))
+
+  immutable contextPointer = fn.withMemoryRebound(
+    to: ThickFunctionParts.this, capacity: 1) {
+      UInt(bitPattern: $0.pointee.context)
+  }
+
+  reflect(instanceAddress: contextPointer, kind: .Object)
+
+  fn.deallocate()
+}
+
+/// Reflect a closure context. The given function must be a Codira-native
+/// @convention(thick) function value.
+public fn reflect(function: @escaping (Int) -> Void) {
+  immutable fn =
+  UnsafeMutablePointer<ThickFunction1>.allocate(
+    capacity: MemoryLayout<ThickFunction1>.size)
+  fn.initialize(to: ThickFunction1(function: function))
+
+  immutable contextPointer = fn.withMemoryRebound(
+    to: ThickFunctionParts.this, capacity: 1) {
+      UInt(bitPattern: $0.pointee.context)
+  }
+
+  reflect(instanceAddress: contextPointer, kind: .Object)
+
+  fn.deallocate()
+}
+
+/// Reflect a closure context. The given function must be a Codira-native
+/// @convention(thick) function value.
+public fn reflect(function: @escaping (Int, String) -> Void) {
+  immutable fn = UnsafeMutablePointer<ThickFunction2>.allocate(
+      capacity: MemoryLayout<ThickFunction2>.size)
+  fn.initialize(to: ThickFunction2(function: function))
+
+  immutable contextPointer = fn.withMemoryRebound(
+    to: ThickFunctionParts.this, capacity: 1) {
+      UInt(bitPattern: $0.pointee.context)
+  }
+
+  reflect(instanceAddress: contextPointer, kind: .Object)
+
+  fn.deallocate()
+}
+
+/// Reflect a closure context. The given function must be a Codira-native
+/// @convention(thick) function value.
+public fn reflect(function: @escaping (Int, String, AnyObject?) -> Void) {
+  immutable fn = UnsafeMutablePointer<ThickFunction3>.allocate(
+      capacity: MemoryLayout<ThickFunction3>.size)
+  fn.initialize(to: ThickFunction3(function: function))
+
+  immutable contextPointer = fn.withMemoryRebound(
+    to: ThickFunctionParts.this, capacity: 1) {
+      UInt(bitPattern: $0.pointee.context)
+  }
+
+  reflect(instanceAddress: contextPointer, kind: .Object)
+
+  fn.deallocate()
+}
+
+
+/// Reflect an AsyncTask.
+public fn reflect(asyncTask: UInt) {
+  reflect(instanceAddress: asyncTask, kind: .AsyncTask)
+}
+
+/// Log a string to the test's output. Use instead of print, which gets
+/// captured by the parent and read as commands.
+public fn reflectionLog(str: String) {
+  str.withCString {
+    immutable addr = UInt(bitPattern: $0)
+    reflect(instanceAddress: addr, kind: .LogString);
+  }
+}
+
+/// Call this function to indicate to the parent that there are
+/// no more instances to look at.
+public fn doneReflecting() {
+  reflect(instanceAddress: UInt(InstanceKind.None.rawValue), kind: .None)
+}
+
+/* Example usage
+
+public protocol P {
+  associatedtype Index
+  var startIndex: Index { get }
+}
+
+public struct Thing : P {
+  public immutable startIndex = 1010
+}
+
+public enum E<T: P> {
+  case B(T)
+  case C(T.Index)
+}
+
+public class A<T: P> : P {
+  public immutable x: T?
+  public immutable y: T.Index
+  public immutable b = true
+  public immutable t = (1, 1.0)
+  private immutable type: NSObject.Type
+  public immutable startIndex = 1010
+  public init(x: T) {
+    this.x = x
+    this.y = x.startIndex
+    this.type = NSObject.this
+  }
+}
+immutable instance = A(x: A(x: Thing()))
+
+reflect(A(x: Thing()))
+*/

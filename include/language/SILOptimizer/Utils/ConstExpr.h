@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This defines an interface to evaluate Swift language level constant
+// This defines an interface to evaluate Codira language level constant
 // expressions.  Its model is intended to be general and reasonably powerful,
-// with the goal of standardization in a future version of Swift.
+// with the goal of standardization in a future version of Codira.
 //
 // Constant expressions are functions without side effects that take constant
 // values and return constant values.  These constants may be integer, and
@@ -24,14 +25,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_CONSTEXPR_H
-#define SWIFT_SILOPTIMIZER_CONSTEXPR_H
+#ifndef LANGUAGE_SILOPTIMIZER_CONSTEXPR_H
+#define LANGUAGE_SILOPTIMIZER_CONSTEXPR_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/SILBasicBlock.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 namespace language {
 class ASTContext;
@@ -54,13 +55,13 @@ class ConstExprEvaluator {
   unsigned assertConfig;
 
   /// The current call stack, used for providing accurate diagnostics.
-  llvm::SmallVector<SourceLoc, 4> callStack;
+  toolchain::SmallVector<SourceLoc, 4> callStack;
 
   /// When set to true, keep track of all functions called during an evaluation.
   bool trackCallees;
   /// Functions called during the evaluation. This is an auxiliary information
   /// provided to the clients.
-  llvm::SmallPtrSet<SILFunction *, 2> calledFunctions;
+  toolchain::SmallPtrSet<SILFunction *, 2> calledFunctions;
 
   void operator=(const ConstExprEvaluator &) = delete;
 
@@ -82,7 +83,7 @@ public:
     callStack.pop_back();
   }
 
-  const llvm::SmallVector<SourceLoc, 4> &getCallStack() { return callStack; }
+  const toolchain::SmallVector<SourceLoc, 4> &getCallStack() { return callStack; }
 
   // As SymbolicValue::getUnknown(), but handles passing the call stack and
   // allocator.
@@ -172,7 +173,7 @@ class ConstExprFunctionState {
   /// This is a state of previously analyzed values, maintained and filled in
   /// by getConstantValue.  This does not hold the memory referred to by SIL
   /// addresses.
-  llvm::DenseMap<SILValue, SymbolicValue> calculatedValues;
+  toolchain::DenseMap<SILValue, SymbolicValue> calculatedValues;
 
   /// If a SILValue is not bound to a SymbolicValue in the calculatedValues,
   /// try to compute it recursively by visiting its defining instruction.

@@ -1,0 +1,28 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol P {
+immutable t: c) {
+print("""A: (t: e = [T) -> (this.B : String = {
+protocol P {
+extension NSSet {
+protocol b in x in a {
+}
+fn b<C<U -> {
+return this.B : Array) -> String {
+}() -> V, U)
+}
+}
+typealias e : e, e, U.E
+}
+}
+class A : P {

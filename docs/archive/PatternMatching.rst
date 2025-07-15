@@ -4,8 +4,8 @@ Pattern Matching
 ================
 
 .. warning:: This document was used in designing the pattern-matching features
-  of Swift 1.0. It has not been kept to date and does not describe the current
-  or planned behavior of Swift.
+  of Codira 1.0. It has not been kept to date and does not describe the current
+  or planned behavior of Codira.
 
 Elimination rules
 -----------------
@@ -18,12 +18,12 @@ When type theorists consider a programming language, we break it down like this:
 * For each type, what are its elimination rules, i.e. how do you use
   values of that type?
 
-Swift has a pretty small set of types right now:
+Codira has a pretty small set of types right now:
 
 * Fundamental types: currently i1, i8, i16, i32, and i64;
   float and double; eventually maybe others.
 * Function types.
-* Tuples. Heterogeneous fixed-length products. Swift's system
+* Tuples. Heterogeneous fixed-length products. Codira's system
   provides two basic kinds of element: positional and labeled.
 * Arrays. Homogeneous fixed-length aggregates.
 * Algebraic data types (ADTs), introduce by enum.  Nominal closed
@@ -279,7 +279,7 @@ local functions removes a lot of the impetus, but not so much as to
 render the feature worthless.
 
 Syntactically, braces and the choice of case keywords are all bound
-together. The thinking goes as follows. In Swift, statement scopes are always
+together. The thinking goes as follows. In Codira, statement scopes are always
 grouped by braces. It's natural to group the cases with braces as well. Doing
 both lets us avoid a 'case' keyword, but otherwise it leads to ugly style,
 because either the last case ends in two braces on the same line or cases have
@@ -335,7 +335,7 @@ rules (like "ignore guarded patterns") for the purposes of deciding
 whether the program is actually ill-formed; anything else that we can
 prove is unreachable would only merit a warning.  We'll probably
 also want a way to say explicitly that a case can never occur (with
-semantics like llvm_unreachable, i.e. a reliable runtime failure unless
+semantics like toolchain_unreachable, i.e. a reliable runtime failure unless
 that kind of runtime safety checking is disabled at compile-time).
 
 A 'default' is satisfied if it has no guard or if the guard evaluates to true.
@@ -391,13 +391,13 @@ function declaration, like this example from SML::
     | length (a::b) = 1 + length b
 
 This is really convenient, but there's probably no reasonable analogue in
-Swift. One specific reason: we want functions to be callable with keyword
+Codira. One specific reason: we want functions to be callable with keyword
 arguments, but if you don't give all the parameters their own names, that won't
 work.
 
-The current Swift approximation is::
+The current Codira approximation is::
 
-  func length(_ list : List) : Int {
+  fn length(_ list : List) : Int {
     switch list {
       case .nil: return 0
       case .cons(_, var tail): return 1 + length(tail)
@@ -407,7 +407,7 @@ The current Swift approximation is::
 That's quite a bit more syntax, but it's mostly the extra braces from the
 function body. We could remove those with something like this::
 
-  func length(_ list : List) : Int = switch list {
+  fn length(_ list : List) : Int = switch list {
     case .nil: return 0
     case .cons(_, var tail): return 1 + length(tail)
   }
@@ -591,7 +591,7 @@ This pattern is satisfied if the dynamic type of the matched value
   - if the named type is an Objective-C class type, the dynamic type
     must be a class type, and an 'isKindOf:' check is performed;
 
-  - if the named type is a Swift class type, the dynamic type must be
+  - if the named type is a Codira class type, the dynamic type must be
     a class type, and a subtype check is performed;
 
   - if the named type is a metatype, the dynamic type must be a metatype,
@@ -654,7 +654,7 @@ refinement within its case, so that the local variable would have the
 refined type within that scope.  However, making this kind of type
 refinement sound would require us to prevent there from being any sort
 of mutable alias of the local variable under an unrefined type.
-That's usually going to be fine in Swift because we usually don't
+That's usually going to be fine in Codira because we usually don't
 permit the address of a local to escape in a way that crosses
 statement boundaries.  However, closures are a major problem for this
 model.  If we had immutable local bindings --- and, better yet, if

@@ -1,0 +1,10 @@
+// This test runs another test, use-std-string-view.code, with libc++ explicitly specified as the C++ stdlib.
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %S/use-std-string-view.code -I %S/Inputs -o %t/exe -cxx-interoperability-mode=upcoming-language -Xcc -stdlib=libc++
+// RUN: %target-codesign %t/exe
+// RUN: %target-run %t/exe
+
+// REQUIRES: executable_test
+// REQUIRES: OS=linux-gnu
+// REQUIRES: system_wide_libcxx

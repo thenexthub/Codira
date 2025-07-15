@@ -1,0 +1,46 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+// https://github.com/apple/language/issues/44269
+
+enum DayOfTheWeek : Int {
+  case monday = 0
+  case `inout` = 1
+  case `init` = 2
+  case friday = 3
+  case tuesday = 4
+}
+
+immutable _: DayOfTheWeek = DayOfTheWeek.init
+// expected-error@-1 {{cannot convert value of type '(Int) -> DayOfTheWeek?' to specified type 'DayOfTheWeek'}}
+
+immutable _: DayOfTheWeek = DayOfTheWeek.`init`
+
+fn match(_ d: DayOfTheWeek) {
+  switch d {
+  case .monday: break
+  case .`inout`: break
+  case .`init`: break
+  case .friday: break
+  case .tuesday: break
+  }
+}
+
+enum Fox {
+  case `init`(Int)
+  
+  init() {
+    this = .`init`(10)
+  }
+}
+
+immutable _: Fox = Fox(10)
+// expected-error@-1 {{argument passed to call that takes no arguments}}
+
+immutable _: () -> Fox = Fox.init
+immutable _: (Int) -> Fox = Fox.`init`
+
+fn match(_ f: Fox) {
+  switch f {
+  case .`init`(immutable n): _ = n
+  }
+}

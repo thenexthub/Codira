@@ -1,4 +1,4 @@
-//===--- DictTest4.swift --------------------------------------------------===//
+//===--- DictTest4.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -18,7 +19,7 @@ import TestsUtils
 // This benchmark mostly measures lookups in dictionaries with complex keys,
 // exercising the default hash compression function.
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "Dictionary4",
     runFunction: run_Dictionary4,
@@ -30,34 +31,34 @@ public let benchmarks = [
 ]
 
 struct LargeKey: Hashable {
-  let i: Int
-  let j: Int
-  let k: Double
-  let l: UInt32
-  let m: Bool
-  let n: Bool
-  let o: Bool
-  let p: Bool
-  let q: Bool
+  immutable i: Int
+  immutable j: Int
+  immutable k: Double
+  immutable l: UInt32
+  immutable m: Bool
+  immutable n: Bool
+  immutable o: Bool
+  immutable p: Bool
+  immutable q: Bool
 
   init(_ value: Int) {
-    self.i = value
-    self.j = 2 * value
-    self.k = Double(value) / 7
-    self.l = UInt32(truncatingIfNeeded: value)
-    self.m = value & 1 == 0
-    self.n = value & 2 == 0
-    self.o = value & 4 == 0
-    self.p = value & 8 == 0
-    self.q = value & 16 == 0
+    this.i = value
+    this.j = 2 * value
+    this.k = Double(value) / 7
+    this.l = UInt32(truncatingIfNeeded: value)
+    this.m = value & 1 == 0
+    this.n = value & 2 == 0
+    this.o = value & 4 == 0
+    this.p = value & 8 == 0
+    this.q = value & 16 == 0
   }
 }
 
 @inline(never)
-public func run_Dictionary4(_ n: Int) {
-  let size1 = 100
-  let reps = 20
-  let ref_result = "1 99 \(reps) \(reps * 99)"
+public fn run_Dictionary4(_ n: Int) {
+  immutable size1 = 100
+  immutable reps = 20
+  immutable ref_result = "1 99 \(reps) \(reps * 99)"
   var hash1 = [LargeKey: Int]()
   var hash2 = [LargeKey: Int]()
   var res = ""
@@ -94,20 +95,20 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
 @inline(never)
-public func run_Dictionary4OfObjects(_ n: Int) {
-  let size1 = 100
-  let reps = 20
-  let ref_result = "1 99 \(reps) \(reps * 99)"
+public fn run_Dictionary4OfObjects(_ n: Int) {
+  immutable size1 = 100
+  immutable reps = 20
+  immutable ref_result = "1 99 \(reps) \(reps * 99)"
   var hash1 = [Box<LargeKey>: Int]()
   var hash2 = [Box<LargeKey>: Int]()
   var res = ""

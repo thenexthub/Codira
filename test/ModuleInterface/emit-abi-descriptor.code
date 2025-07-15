@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/Foo.codemodule)
+// RUN: %empty-directory(%t/ResourceDir/%target-sdk-name/prebuilt-modules/Foo.codemodule)
+// RUN: echo "public fn foo() {}" > %t/Foo.code
+// RUN: echo "public enum DisplayStyle { case tuple, optional, collection }" >> %t/Foo.code
+
+// RUN: echo "public fn bar() {}" > %t/Bar.code
+
+// RUN: %target-language-frontend -emit-module %t/Foo.code -module-name Foo -emit-module-interface-path %t/Foo.codeinterface
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo.codeinterface -o %t/Foo.codemodule -module-name Foo -emit-abi-descriptor-path %t/Foo.json
+
+// RUN: %FileCheck %s < %t/Foo.json
+
+// RUN: %target-language-frontend -emit-module -module-name Bar -emit-module-path %t/Bar.codemodule -emit-abi-descriptor-path %t/Bar.json %t/Bar.code
+
+// RUN: %FileCheck %s < %t/Bar.json
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Foo~partial1.codemodule %t/Foo.code -module-name FooBar
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Foo~partial2.codemodule %t/Bar.code -module-name FooBar
+// RUN: %target-language-frontend -merge-modules -emit-module -emit-module-path %t/FooBar.codemodule %t/Foo~partial1.codemodule %t/Foo~partial2.codemodule -module-name FooBar -emit-abi-descriptor-path %t/FooBar.json
+
+// RUN: %FileCheck %s < %t/FooBar.json
+
+// RUN: %target-language-frontend -c -emit-module -emit-module-path %t/FooC.codemodule %t/Foo.code -module-name Foo -emit-abi-descriptor-path %t/Foo-c.json -o %t/Foo.o
+
+// RUN: %FileCheck %s < %t/Foo-c.json
+
+// CHECK: "kind": "Root"
+// CHECK-NEXT: "name":
+// CHECK-NEXT: "printedName":
+// CHECK: "kind": "Function"

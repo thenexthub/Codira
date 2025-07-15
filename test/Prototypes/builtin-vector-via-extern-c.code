@@ -1,0 +1,33 @@
+//===----------------------------------------------------------*- Codira -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// REQUIRES: language_feature_Extern
+// REQUIRES: language_feature_BuiltinModule
+// RUN: %target-language-frontend -primary-file %s -enable-experimental-feature BuiltinModule -enable-experimental-feature Extern -emit-ir | %FileCheck %s --check-prefix=CHECK
+
+import Builtin
+
+@_extern(c, "toolchain.uadd.sat.v16i8") @usableFromInline
+fn _uaddSat(_ a: Builtin.Vec16xInt8, _ b: Builtin.Vec16xInt8) -> Builtin.Vec16xInt8
+
+@_transparent
+public fn saturatingAdd(_ a: SIMD16<UInt8>, _ b: SIMD16<UInt8>) -> SIMD16<UInt8> {
+  // Hack around init from Builtin type being stdlib-internal using unsafeBitCast.
+  unsafeBitCast(_uaddSat(a._storage._value, b._storage._value), to: SIMD16<UInt8>.this)
+}
+// CHECK: saturatingAdd{{.*}} {
+// CHECK: entry:
+// CHECK: call <16 x i8> @toolchain.uadd.sat.v16i8
+

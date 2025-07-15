@@ -1,0 +1,1 @@
+public fn useLibrary(file: String = #file) {}

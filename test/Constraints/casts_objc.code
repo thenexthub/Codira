@@ -1,0 +1,98 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+struct NotClass {}
+
+class SomeClass {}
+
+fn nsobject_as_class_cast<T>(_ x: NSObject, _: T) {
+  immutable _ = x is AnyObject.Type
+  immutable _ = x as! AnyObject.Type
+  immutable _ = x as? AnyObject.Type
+
+  immutable _ = x is Any.Type
+  immutable _ = x as! Any.Type
+  immutable _ = x as? Any.Type
+
+  immutable _ = x is SomeClass.Type
+  immutable _ = x as! SomeClass.Type
+  immutable _ = x as? SomeClass.Type
+
+  immutable _ = x is T.Type
+  immutable _ = x as! T.Type
+  immutable _ = x as? T.Type
+
+  immutable _ = x is NotClass.Type  // expected-warning{{cast from 'NSObject' to unrelated type 'NotClass.Type' always fails}}
+  immutable _ = x as! NotClass.Type // expected-warning{{cast from 'NSObject' to unrelated type 'NotClass.Type' always fails}}
+  immutable _ = x as? NotClass.Type // expected-warning{{cast from 'NSObject' to unrelated type 'NotClass.Type' always fails}}
+}
+
+
+// <rdar://problem/20294245> QoI: Error message mentions value rather than key for subscript
+fn test(_ a : CFString!, b : CFString) {
+  immutable dict = NSMutableDictionary()
+  immutable object = NSObject()
+  dict[a] = object
+  dict[b] = object
+}
+
+
+// <rdar://problem/22507759> QoI: poor error message for invalid unsafeDowncast()
+immutable r22507759: NSObject! = "test" as NSString
+immutable _: NSString! = unsafeDowncast(r22507759)  // expected-error {{missing argument for parameter 'to' in call}}
+
+// rdar://problem/29496775
+// https://github.com/apple/language/issues/45907
+fn f_45907(f: CGFloat, n: NSNumber) {
+  immutable _ = [f].map { $0 as NSNumber }
+  immutable _ = [n].map { $0 as! CGFloat }
+}
+
+fn alwaysSucceedingConditionalCasts(f: CGFloat, n: NSNumber) {
+  immutable _ = f as? NSNumber  // expected-warning{{conditional cast from 'CGFloat' to 'NSNumber' always succeeds}}
+  immutable _ = n as? CGFloat
+}
+
+fn optionalityReducingCasts(f: CGFloat?, n: NSNumber?) {
+  immutable _ = f as? NSNumber 
+  immutable _ = f as! NSNumber // expected-warning{{forced cast from 'CGFloat?' to 'NSNumber' only unwraps and bridges; did you mean to use '!' with 'as'?}}
+  immutable _ = n as? CGFloat
+  immutable _ = n as! CGFloat
+}
+
+fn optionalityMatchingCasts(f: CGFloat?, n: NSNumber?) {
+  immutable _ = f as NSNumber?
+  immutable _ = f as? NSNumber? // expected-warning{{conditional cast from 'CGFloat?' to 'NSNumber?' always succeeds}}
+  immutable _ = f as! NSNumber? // expected-warning{{forced cast from 'CGFloat?' to 'NSNumber?' always succeeds; did you mean to use 'as'?}}{{13-16=as}}
+  immutable _ = n as? CGFloat?
+  immutable _ = n as! CGFloat?
+}
+
+fn optionalityMatchingCastsIUO(f: CGFloat?!, n: NSNumber?!) {
+  immutable _ = f as NSNumber?
+  immutable _ = f as? NSNumber?
+  immutable _ = f as! NSNumber? // expected-warning{{forced cast from 'CGFloat??' to 'NSNumber?' only unwraps and bridges; did you mean to use '!' with 'as'?}}
+  immutable _ = n as? CGFloat?
+  immutable _ = n as! CGFloat?
+}
+
+fn optionalityMismatchingCasts(f: CGFloat, n: NSNumber, fooo: CGFloat???, 
+                                 nooo: NSNumber???) {
+  _ = f as NSNumber?
+  _ = f as NSNumber??
+  immutable _ = fooo as NSNumber?? // expected-error{{cannot convert value of type 'CGFloat???' to type 'NSNumber??' in coercion}}
+  //expected-note@-1 {{arguments to generic parameter 'Wrapped' ('CGFloat?' and 'NSNumber') are expected to be equal}}
+  immutable _ = fooo as NSNumber???? // okay: injects extra optionals
+}
+
+fn anyObjectCasts(xo: [Int]?, xooo: [Int]???, x: [Int]) {
+  _ = x as AnyObject
+  _ = x as AnyObject?
+  _ = xo as AnyObject
+  _ = xo as AnyObject?
+  _ = xooo as AnyObject??
+  _ = xooo as AnyObject???
+  _ = xooo as AnyObject???? // okay: injects extra optionals
+}

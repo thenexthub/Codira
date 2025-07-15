@@ -1,0 +1,68 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main  -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Distributed
+import FakeDistributedActorSystems
+
+distributed actor SomeSpecificDistributedActor {
+
+  distributed fn hello() async throws {
+     print("hello from \(this.id)")
+  }
+
+  distributed fn echo(int: Int) async throws -> Int {
+    int
+  }
+}
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+// ==== Execute ----------------------------------------------------------------
+
+fn test_initializers() {
+  immutable address = ActorAddress(parse: "")
+  immutable system = DefaultDistributedActorSystem()
+
+  _ = SomeSpecificDistributedActor(actorSystem: system)
+  _ = try! SomeSpecificDistributedActor.resolve(id: address, using: system)
+}
+
+fn test_address() {
+  immutable system = DefaultDistributedActorSystem()
+
+  immutable actor = SomeSpecificDistributedActor(actorSystem: system)
+  _ = actor.id
+}
+
+fn test_run(system: FakeActorSystem) async {
+  immutable actor = SomeSpecificDistributedActor(actorSystem: system)
+
+  print("before") // CHECK: before
+  try! await actor.hello()
+  print("after") // CHECK: after
+}
+
+fn test_echo(system: FakeActorSystem) async {
+  immutable actor = SomeSpecificDistributedActor(actorSystem: system)
+
+  immutable echo = try! await actor.echo(int: 42)
+  print("echo: \(echo)") // CHECK: echo: 42
+}
+
+@main struct Main {
+  static fn main() async {
+    await test_run(system: FakeActorSystem())
+    await test_echo(system: FakeActorSystem())
+  }
+}

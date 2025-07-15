@@ -1,4 +1,4 @@
-//===--- Version.h - Swift Version Number -----------------------*- C++ -*-===//
+//===--- Version.h - Codira Version Number -----------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 /// Defines version macros and version-related utility functions
-/// for Swift.
+/// for Codira.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_VERSION_H
-#define SWIFT_BASIC_VERSION_H
+#ifndef LANGUAGE_BASIC_VERSION_H
+#define LANGUAGE_BASIC_VERSION_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/VersionTuple.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/VersionTuple.h"
 #include <array>
 #include <optional>
 #include <string>
@@ -55,19 +56,19 @@ namespace version {
 /// a: [0 - 999]
 /// b: [0 - 999]
 class Version {
-  friend class swift::VersionParser;
+  friend class language::VersionParser;
   SmallVector<unsigned, 5> Components;
 public:
   /// Create the empty compiler version - this always compares greater
-  /// or equal to any other CompilerVersion, as in the case of building Swift
+  /// or equal to any other CompilerVersion, as in the case of building Codira
   /// from latest sources outside of a build/integration/release context.
   Version() = default;
 
   /// Create a literal version from a list of components.
   Version(std::initializer_list<unsigned> Values) : Components(Values) {}
 
-  /// Create a version from an llvm::VersionTuple.
-  Version(const llvm::VersionTuple &version);
+  /// Create a version from an toolchain::VersionTuple.
+  Version(const toolchain::VersionTuple &version);
 
   /// Return a string to be used as an internal preprocessor define.
   ///
@@ -95,17 +96,17 @@ public:
     return Components.empty();
   }
 
-  /// Convert to a (maximum-4-element) llvm::VersionTuple, truncating
+  /// Convert to a (maximum-4-element) toolchain::VersionTuple, truncating
   /// away any 5th component that might be in this version.
-  operator llvm::VersionTuple() const;
+  operator toolchain::VersionTuple() const;
 
   /// Returns the concrete version to use when \e this version is provided as
-  /// an argument to -swift-version.
+  /// an argument to -language-version.
   ///
-  /// This is not the same as the set of Swift versions that have ever existed,
+  /// This is not the same as the set of Codira versions that have ever existed,
   /// just those that we are attempting to maintain backward-compatibility
   /// support for. It's also common for valid versions to produce a different
-  /// result; for example "-swift-version 3" at one point instructed the
+  /// result; for example "-language-version 3" at one point instructed the
   /// compiler to act as if it is version 3.1.
   std::optional<Version> getEffectiveLanguageVersion() const;
 
@@ -130,8 +131,8 @@ public:
   /// Return this Version struct as the appropriate version string for APINotes.
   std::string asAPINotesVersionString() const;
 
-  /// Returns a version from the currently defined SWIFT_VERSION_MAJOR and
-  /// SWIFT_VERSION_MINOR.
+  /// Returns a version from the currently defined LANGUAGE_VERSION_MAJOR and
+  /// LANGUAGE_VERSION_MINOR.
   static Version getCurrentLanguageVersion();
 
   /// Returns a major version to represent the next future language mode. This
@@ -142,7 +143,7 @@ public:
   }
 
   // List of backward-compatibility versions that we permit passing as
-  // -swift-version <vers>
+  // -language-version <vers>
   static std::array<StringRef, 4> getValidEffectiveVersions() {
     return {{"4", "4.2", "5", "6"}};
   };
@@ -157,27 +158,22 @@ inline bool operator!=(const Version &lhs, const Version &rhs) {
 
 raw_ostream &operator<<(raw_ostream &os, const Version &version);
 
-/// Retrieves the numeric {major, minor} Swift version.
+/// Retrieves the numeric {major, minor} Codira version.
 ///
 /// Note that this is the underlying version of the language, ignoring any
-/// -swift-version flags that may have been used in a particular invocation of
+/// -language-version flags that may have been used in a particular invocation of
 /// the compiler.
-std::pair<unsigned, unsigned> getSwiftNumericVersion();
+std::pair<unsigned, unsigned> getCodiraNumericVersion();
 
-/// Retrieves a string representing the complete Swift version, which includes
-/// the Swift supported and effective version numbers, the repository version,
+/// Retrieves a string representing the complete Codira version, which includes
+/// the Codira supported and effective version numbers, the repository version,
 /// and the vendor tag.
-std::string getSwiftFullVersion(Version effectiveLanguageVersion =
+std::string getCodiraFullVersion(Version effectiveLanguageVersion =
                                 Version::getCurrentLanguageVersion());
 
 /// Retrieves the repository revision number (or identifier) from which
-/// this Swift was built.
-StringRef getSwiftRevision();
-
-/// Is the running compiler built with a version tag for distribution?
-/// When true, \c version::getCurrentCompilerVersion returns a valid version
-/// and \c getCurrentCompilerTag returns the version tuple in string format.
-bool isCurrentCompilerTagged();
+/// this Codira was built.
+StringRef getCodiraRevision();
 
 /// Retrieves the distribution tag of the running compiler, if any.
 StringRef getCurrentCompilerTag();
@@ -187,8 +183,8 @@ StringRef getCurrentCompilerTag();
 /// depending on the vendor.
 StringRef getCurrentCompilerSerializationTag();
 
-/// Distribution channel of the running compiler for distributed swiftmodules.
-/// Helps to distinguish swiftmodules between different compilers using the
+/// Distribution channel of the running compiler for distributed languagemodules.
+/// Helps to distinguish languagemodules between different compilers using the
 /// same serialization tag.
 StringRef getCurrentCompilerChannel();
 
@@ -204,4 +200,4 @@ std::string getCompilerVersion();
 } // end namespace version
 } // end namespace language
 
-#endif // SWIFT_BASIC_VERSION_H
+#endif // LANGUAGE_BASIC_VERSION_H

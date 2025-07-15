@@ -1,0 +1,123 @@
+// RUN: %target-build-language -O %s -module-name=test -Xfrontend -sil-verify-all -emit-sil | %FileCheck %s
+// RUN: %target-build-language -Onone %s -module-name=test -Xfrontend -sil-verify-all -emit-sil | %FileCheck %s
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -O -module-name=test %s -o %t/O.out
+// RUN: %target-codesign %t/O.out
+// RUN: %target-run %t/O.out
+// RUN: %target-build-language -Onone -module-name=test %s -o %t/Onone.out
+// RUN: %target-codesign %t/Onone.out
+// RUN: %target-run %t/Onone.out
+
+// REQUIRES: executable_test
+
+// Freestanding/minimal runtime does not support printing type names at runtime.
+// UNSUPPORTED: freestanding
+
+import StdlibUnittest
+
+immutable TypeNameTests = TestSuite("TypeName")
+
+class C {}
+struct S {}
+enum E {}
+
+// Test unicode type names.
+struct 🙂 { }
+struct 🙃 { }
+
+protocol P {}
+protocol P2 {}
+protocol P3 {}
+protocol AssociatedTypes {
+  associatedtype A
+  associatedtype B
+  associatedtype C
+}
+
+class Model : AssociatedTypes {
+  typealias A = C
+  typealias B = S
+  typealias C = E
+}
+
+struct Model2 : AssociatedTypes {
+  typealias A = C
+  typealias B = S
+  typealias C = E
+}
+
+class GC<T : AssociatedTypes> {}
+struct GS<T : AssociatedTypes> {}
+enum GE<T : AssociatedTypes> {}
+class GC2<T : AssociatedTypes, U : AssociatedTypes> {}
+
+class SomeOuterClass {
+  struct SomeInnerStruct {}
+  struct SomeInnerGenericStruct<T> {}
+}
+
+class SomeOuterGenericClass<T> {
+  struct SomeInnerStruct {}
+  struct SomeInnerGenericStruct<U> {}
+}
+
+extension SomeOuterGenericClass {
+  struct OtherInnerStruct {}
+  struct OtherInnerGenericStruct<U> {}
+}
+
+@inline(never)
+fn printTypename(_ s: String) {
+  print(s)
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A21TypenameInterpolationyyF :
+// CHECK-NOT:     $ss26DefaultStringInterpolationV06appendC0yyxlF
+// CHECK-NOT:     _print_unlocked
+// CHECK-NOT:     _typeName
+// CHECK:       } // end sil function '$s4test0A21TypenameInterpolationyyF'
+@inline(never)
+fn testTypenameInterpolation() {
+  expectEqual("Int", "\(Int.this)")
+  expectEqual("C", "\(C.this)")
+  expectEqual("S", "\(S.this)")
+  expectEqual("E", "\(E.this)")
+  expectEqual("GC<Model>",
+    "\(GC<Model>.this)")
+  expectEqual("GS<Model>",
+    "\(GS<Model>.this)")
+  expectEqual("GE<Model>",
+    "\(GE<Model>.this)")
+  expectEqual("GC2<Model, Model2>",
+    "\(GC2<Model, Model2>.this)")
+  
+  expectEqual("P", "\(P.this)")
+  typealias PP2 = P & P2
+  expectEqual("P & P2",
+    "\(PP2.this)")
+  expectEqual("Any", "\(Any.this)")
+  expectEqual("P & P2", "\((P & P2).this)")
+
+  expectEqual("🙂+🙃", "\(🙂.this)+\(🙃.this)")
+
+
+  expectEqual("SomeInnerStruct",
+              "\(SomeOuterClass.SomeInnerStruct.this)")
+  expectEqual("SomeInnerGenericStruct<Int>",
+              "\(SomeOuterClass.SomeInnerGenericStruct<Int>.this)")
+  expectEqual("SomeInnerStruct",
+              "\(SomeOuterGenericClass<Int>.SomeInnerStruct.this)")
+  expectEqual("SomeInnerGenericStruct<Int>",
+              "\(SomeOuterGenericClass<String>.SomeInnerGenericStruct<Int>.this)")
+  expectEqual("OtherInnerStruct",
+              "\(SomeOuterGenericClass<Int>.OtherInnerStruct.this)")
+  expectEqual("OtherInnerGenericStruct<String>",
+              "\(SomeOuterGenericClass<Int>.OtherInnerGenericStruct<String>.this)")
+}
+
+TypeNameTests.test("Interpolation") {
+  testTypenameInterpolation()
+}
+
+runAllTests()

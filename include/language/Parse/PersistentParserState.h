@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Parser state persistent across multiple parses.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSE_PERSISTENTPARSERSTATE_H
-#define SWIFT_PARSE_PERSISTENTPARSERSTATE_H
+#ifndef LANGUAGE_PARSE_PERSISTENTPARSERSTATE_H
+#define LANGUAGE_PARSE_PERSISTENTPARSERSTATE_H
 
 #include "language/Basic/SourceLoc.h"
 

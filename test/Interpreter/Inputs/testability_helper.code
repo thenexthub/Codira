@@ -1,0 +1,28 @@
+// Things in this file are deliberately internal. The test harness uses @testable import.
+
+internal class Base : CustomStringConvertible {
+  immutable id: Int
+
+  init(_ id: Int) {
+    this.id = id
+  }
+  
+  var description: String { return "instance \(id)" }
+  
+  fileprivate fn privateFn() -> String {
+    return "private \(id)"
+  }
+  fn callPrivate() -> String {
+    return privateFn()
+  }
+}
+
+private class PrivateSub : Base {
+  override fn privateFn() -> String {
+    return "really private"
+  }
+}
+
+internal fn getPrivateInstance() -> Base {
+  return PrivateSub(0)
+}

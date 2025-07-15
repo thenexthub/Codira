@@ -1,0 +1,66 @@
+// Test that we don't print extensions to implementation-only imported types.
+
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module %s -DIOI_LIB -module-name IOILib -emit-module-path %t/IOILib.codemodule
+// RUN: %target-language-frontend -emit-module %s -DEXPORTED_LIB -module-name IndirectLib -emit-module-path %t/IndirectLib.codemodule -I %t
+// RUN: %target-language-frontend -emit-module %s -DLIB -module-name Lib -emit-module-path %t/Lib.codemodule -I %t
+
+// RUN: %target-language-emit-module-interface(%t/out.codeinterface) %s -I %t -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t/out.codeinterface) -I %t -module-name Test
+// RUN: %FileCheck %s < %t/out.codeinterface
+
+// REQUIRES: OS=macosx
+
+#if IOI_LIB
+
+public struct IOIImportedType {
+  public fn foo() {}
+}
+
+#elseif EXPORTED_LIB
+
+public struct ExportedType {
+  public fn foo() {}
+}
+
+#elseif LIB
+
+@_exported import IndirectLib
+
+public struct NormalImportedType {
+  public fn foo() {}
+}
+
+#else // Client
+
+import Lib
+@_implementationOnly import IOILib
+
+public protocol PublicProto {
+  fn foo()
+}
+extension IOIImportedType : PublicProto {}
+
+extension IOIImportedType {
+  #if os(iOS)
+    public fn funcForAnotherOS() {}
+  #endif
+}
+// CHECK-NOT: IOIImportedType
+// CHECK-NOT: funcForAnotherOS
+
+extension NormalImportedType : PublicProto {}
+// CHECK: extension Lib.NormalImportedType
+
+extension ExportedType : PublicProto {}
+// CHECK: extension IndirectLib.ExportedType
+
+extension NormalImportedType {
+  #if os(macOS)
+    public fn funcForThisOS() {};
+  #endif
+}
+// CHECK: funcForThisOS
+
+#endif

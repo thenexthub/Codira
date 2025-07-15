@@ -1,0 +1,43 @@
+// RUN: rm -rf %t.result && mkdir -p %t.result
+
+struct User {
+  immutable firstName: String
+  immutable lastName: String?
+}
+
+extension User: Codable {
+}
+
+// RUN: %refactor -source-filename %s -pos=3:8 | %FileCheck %s
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=8:11 > %t.result/basic.code
+// RUN: diff -u %S/Outputs/extension/basic.code.expected %t.result/basic.code
+
+struct Generic<Value> {
+  var value: Value
+}
+
+extension Generic {
+}
+
+extension Generic: Codable where Value: Codable {
+}
+
+// RUN: %refactor -source-filename %s -pos=15:8 | %FileCheck %s
+// RUN: %refactor -source-filename %s -pos=19:8 | %FileCheck %s
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=22:11 > %t.result/conditional.code
+// RUN: diff -u %S/Outputs/extension/conditional.code.expected %t.result/conditional.code
+
+struct Outer {
+  struct Inner {
+    immutable value: Int
+  }
+}
+
+extension Outer.Inner: Codable {
+}
+
+// RUN: %refactor -source-filename %s -pos=36:11 | %FileCheck %s
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=36:17 > %t.result/nested.code
+// RUN: diff -u %S/Outputs/extension/nested.code.expected %t.result/nested.code
+
+// CHECK-NOT: Add Explicit Codable

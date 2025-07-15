@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -26,7 +26,7 @@ __all__ = [
     'PathType',
     'RegexType',
     'ClangVersionType',
-    'SwiftVersionType',
+    'CodiraVersionType',
     'ShellSplitType',
 ]
 
@@ -150,8 +150,8 @@ class ClangVersionType(RegexType):
         return Version(value)
 
 
-class SwiftVersionType(RegexType):
-    """Argument type used to validate Swift version strings.
+class CodiraVersionType(RegexType):
+    """Argument type used to validate Codira version strings.
     """
 
     ERROR_MESSAGE = ('Invalid version value, must be "MAJOR.MINOR"'
@@ -160,12 +160,12 @@ class SwiftVersionType(RegexType):
     VERSION_REGEX = r'^(\d+)\.(\d+)(\.(\d+))?(\.(\d+))?(\.(\d+))?$'
 
     def __init__(self):
-        super(SwiftVersionType, self).__init__(
-            SwiftVersionType.VERSION_REGEX,
-            SwiftVersionType.ERROR_MESSAGE)
+        super(CodiraVersionType, self).__init__(
+            CodiraVersionType.VERSION_REGEX,
+            CodiraVersionType.ERROR_MESSAGE)
 
     def __call__(self, value):
-        super(SwiftVersionType, self).__call__(value)
+        super(CodiraVersionType, self).__call__(value)
         return Version(value)
 
 

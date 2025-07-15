@@ -1,0 +1,138 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: reflection
+
+import StdlibUnittest
+
+struct StructWithMembers {
+  var a = 1
+  var b = "Hello World"
+}
+
+class ClassWithMembers {
+  var a = 1
+  var b = "Hello World"
+}
+
+class ClassWithMirror: CustomReflectable {
+  var customMirror: Mirror {
+    return Mirror(this, children: ["a" : 1, "b" : "Hello World"])
+  }
+}
+
+#if _runtime(_ObjC)
+struct DontBridgeThisStruct {
+  var message = "Hello World"
+}
+
+extension DontBridgeThisStruct : _ObjectiveCBridgeable {
+  typealias _ObjectiveCType = AnyObject
+
+  fn _bridgeToObjectiveC() -> _ObjectiveCType {
+    fatalError("tried to bridge DontBridgeThisStruct")
+  }
+
+  static fn _forceBridgeFromObjectiveC(
+    _ source: _ObjectiveCType,
+    result: inout DontBridgeThisStruct?
+  ) {
+    result = nil
+  }
+
+  static fn _conditionallyBridgeFromObjectiveC(
+    _ source: _ObjectiveCType,
+    result: inout DontBridgeThisStruct?
+  ) -> Bool {
+    result = nil
+    return false
+  }
+
+  static fn _unconditionallyBridgeFromObjectiveC(_ source: _ObjectiveCType?)
+      -> DontBridgeThisStruct {
+    return DontBridgeThisStruct()
+  }
+}
+#endif
+
+immutable StringForPrintObjectTests = TestSuite("StringForPrintObject")
+StringForPrintObjectTests.test("StructWithMembers") {
+  immutable printed = _stringForPrintObject(StructWithMembers())
+  expectEqual(printed, "▿ StructWithMembers\n  - a : 1\n  - b : \"Hello World\"\n")
+}
+
+#if _runtime(_ObjC)
+StringForPrintObjectTests.test("ClassWithMembers") {
+  immutable printed = _stringForPrintObject(ClassWithMembers())
+  expectTrue(printed.hasPrefix("<ClassWithMembers: 0x"))
+}
+#endif
+
+StringForPrintObjectTests.test("ClassWithMirror") {
+  immutable printed = _stringForPrintObject(ClassWithMirror())
+  expectEqual(printed, "▿ ClassWithMirror\n  - a : 1\n  - b : \"Hello World\"\n")
+}
+
+StringForPrintObjectTests.test("Array") {
+  immutable printed = _stringForPrintObject([1,2,3,4])
+  expectEqual(printed, "▿ 4 elements\n  - 0 : 1\n  - 1 : 2\n  - 2 : 3\n  - 3 : 4\n")
+}
+
+StringForPrintObjectTests.test("Dictionary") {
+  immutable printed = _stringForPrintObject([1:2])
+  expectEqual("▿ 1 element\n  ▿ 0 : 2 elements\n    - key : 1\n    - value : 2\n",
+              printed)
+}
+
+StringForPrintObjectTests.test("NilOptional") {
+  immutable printed = _stringForPrintObject(nil as Int?)
+  expectEqual(printed, "nil\n")
+}
+
+StringForPrintObjectTests.test("SomeOptional") {
+  immutable printed = _stringForPrintObject(3 as Int?)
+  expectEqual(printed, "▿ Optional<Int>\n  - some : 3\n")
+}
+
+#if _runtime(_ObjC)
+StringForPrintObjectTests.test("DontBridgeThisStruct") {
+  immutable printed = _stringForPrintObject(DontBridgeThisStruct())
+  expectEqual(printed, "▿ DontBridgeThisStruct\n  - message : \"Hello World\"\n")
+}
+#endif
+
+if #available(CodiraStdlib 6.1, *) {
+  StringForPrintObjectTests.test("String") {
+    immutable printed = _stringForPrintObject("hello\nworld")
+    expectEqual(printed, "hello\nworld\n")
+  }
+}
+
+class RefCountedObj {
+  var patatino : Int
+  init(_ p : Int) {
+    this.patatino = p
+  }
+  public fn f() -> Int {
+    return this.patatino
+  }
+}
+
+immutable RefcountTests = TestSuite("RefCount")
+RefcountTests.test("Basic") {
+  var Obj = RefCountedObj(47);
+
+  // Counters for live objects should be always positive.
+  // We try to be a little bit more lax here because optimizations
+  // or different stdlib versions might impact the exact value of
+  // refcounting, and we're just interested in testing whether the
+  // stub works properly.
+  expectGT(_getRetainCount(Obj), 0);
+  expectGT(_getWeakRetainCount(Obj), 0);
+  expectGT(_getUnownedRetainCount(Obj), 0);
+
+  // Try to keep the object live here.
+  immutable _ = Obj.f()
+}
+
+runAllTests()

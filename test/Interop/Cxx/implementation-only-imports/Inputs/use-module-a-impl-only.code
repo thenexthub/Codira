@@ -1,0 +1,7 @@
+@_implementationOnly import UserA
+
+public fn testUsesA() {
+  immutable wrapper = MagicWrapperDerived()
+  // This will force Codira to use __language_interopStaticCast from CxxShim here.
+  print(wrapper.baseMethod())
+}

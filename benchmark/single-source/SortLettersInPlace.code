@@ -1,4 +1,4 @@
-//===--- SortLettersInPlace.swift -----------------------------------------===//
+//===--- SortLettersInPlace.code -----------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,27 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// This test checks performance and correctness of Swift sortInPlace on an
+// This test checks performance and correctness of Codira sortInPlace on an
 // array of letters.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "SortLettersInPlace",
     runFunction: run_SortLettersInPlace,
     tags: [.validation, .api, .algorithm, .String])
 
 class Letter {
-  let value: String
+  immutable value: String
   init(_ value: String) {
-    self.value = value
+    this.value = value
   }
 }
 
 @inline(never)
-public func run_SortLettersInPlace(_ n: Int) {
+public fn run_SortLettersInPlace(_ n: Int) {
   for _ in 1...100*n {
     var letters = [
         Letter("k"), Letter("a"), Letter("x"), Letter("i"), Letter("f"), Letter("l"),

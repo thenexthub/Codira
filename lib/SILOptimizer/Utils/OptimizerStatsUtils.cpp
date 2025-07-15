@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -68,9 +69,9 @@
 ///       Duration is the duration of the transformation.
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Process.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Process.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/SourceManager.h"
 #include "language/SIL/DebugUtils.h"
@@ -162,117 +163,117 @@ public:
 
 StatsOnlyInstructionsOpt StatsOnlyInstructionsOptLoc;
 
-/// Use this option like -Xllvm -sil-stats-only-instructions=strong_retain,alloc_stack
+/// Use this option like -Xtoolchain -sil-stats-only-instructions=strong_retain,alloc_stack
 /// If you need to track all kinds of SILInstructions, you can use
 /// -sil-stats-only-instructions=all
-llvm::cl::opt<StatsOnlyInstructionsOpt, true, llvm::cl::parser<std::string>>
+toolchain::cl::opt<StatsOnlyInstructionsOpt, true, toolchain::cl::parser<std::string>>
     StatsOnlyInstructions(
         "sil-stats-only-instructions",
-        llvm::cl::desc(
+        toolchain::cl::desc(
             "Comma separated list of SIL instruction names, whose stats "
             "should be collected"),
-        llvm::cl::Hidden, llvm::cl::ZeroOrMore,
-        llvm::cl::value_desc("instruction name"),
-        llvm::cl::location(StatsOnlyInstructionsOptLoc),
-        llvm::cl::ValueRequired);
+        toolchain::cl::Hidden, toolchain::cl::ZeroOrMore,
+        toolchain::cl::value_desc("instruction name"),
+        toolchain::cl::location(StatsOnlyInstructionsOptLoc),
+        toolchain::cl::ValueRequired);
 
 /// Dump as much statistics as possible, ignore any thresholds.
-llvm::cl::opt<bool> SILStatsDumpAll(
-    "sil-stats-dump-all", llvm::cl::init(false),
-    llvm::cl::desc("Dump all SIL module and SIL function stats"));
+toolchain::cl::opt<bool> SILStatsDumpAll(
+    "sil-stats-dump-all", toolchain::cl::init(false),
+    toolchain::cl::desc("Dump all SIL module and SIL function stats"));
 
 /// Dump statistics about the SILModule.
-llvm::cl::opt<bool> SILStatsModules(
-    "sil-stats-modules", llvm::cl::init(false),
-    llvm::cl::desc("Enable computation of statistics for SIL modules"));
+toolchain::cl::opt<bool> SILStatsModules(
+    "sil-stats-modules", toolchain::cl::init(false),
+    toolchain::cl::desc("Enable computation of statistics for SIL modules"));
 
 /// Dump statistics about SILFunctions.
-llvm::cl::opt<bool> SILStatsFunctions(
-    "sil-stats-functions", llvm::cl::init(false),
-    llvm::cl::desc("Enable computation of statistics for SIL functions"));
+toolchain::cl::opt<bool> SILStatsFunctions(
+    "sil-stats-functions", toolchain::cl::init(false),
+    toolchain::cl::desc("Enable computation of statistics for SIL functions"));
 
 /// Dump statistics about lost debug variables.
-llvm::cl::opt<bool> SILStatsLostVariables(
-    "sil-stats-lost-variables", llvm::cl::init(false),
-    llvm::cl::desc("Dump lost debug variables stats"));
+toolchain::cl::opt<bool> SILStatsLostVariables(
+    "sil-stats-lost-variables", toolchain::cl::init(false),
+    toolchain::cl::desc("Dump lost debug variables stats"));
 
 /// The name of the output file for optimizer counters.
-llvm::cl::opt<std::string> SILStatsOutputFile(
-    "sil-stats-output-file", llvm::cl::init(""),
-    llvm::cl::desc("The name of the output file for optimizer counters"));
+toolchain::cl::opt<std::string> SILStatsOutputFile(
+    "sil-stats-output-file", toolchain::cl::init(""),
+    toolchain::cl::desc("The name of the output file for optimizer counters"));
 
 /// A threshold in percents for the SIL basic block counters.
-llvm::cl::opt<double> BlockCountDeltaThreshold(
-    "sil-stats-block-count-delta-threshold", llvm::cl::init(1),
-    llvm::cl::desc(
+toolchain::cl::opt<double> BlockCountDeltaThreshold(
+    "sil-stats-block-count-delta-threshold", toolchain::cl::init(1),
+    toolchain::cl::desc(
         "Threshold for reporting changed basic block count numbers"));
 
 /// A threshold in percents for the SIL instructions counters.
-llvm::cl::opt<double> InstCountDeltaThreshold(
-    "sil-stats-inst-count-delta-threshold", llvm::cl::init(1),
-    llvm::cl::desc(
+toolchain::cl::opt<double> InstCountDeltaThreshold(
+    "sil-stats-inst-count-delta-threshold", toolchain::cl::init(1),
+    toolchain::cl::desc(
         "Threshold for reporting changed instruction count numbers"));
 
 /// A threshold in percents for the SIL functions counters.
-llvm::cl::opt<double> FunctionCountDeltaThreshold(
-    "sil-stats-function-count-delta-threshold", llvm::cl::init(1),
-    llvm::cl::desc("Threshold for reporting changed function count numbers"));
+toolchain::cl::opt<double> FunctionCountDeltaThreshold(
+    "sil-stats-function-count-delta-threshold", toolchain::cl::init(1),
+    toolchain::cl::desc("Threshold for reporting changed function count numbers"));
 
 /// A threshold in percents for the counters of memory used by the compiler.
-llvm::cl::opt<double> UsedMemoryDeltaThreshold(
-    "sil-stats-used-memory-delta-threshold", llvm::cl::init(5),
-    llvm::cl::desc("Threshold for reporting changed memory usage numbers"));
+toolchain::cl::opt<double> UsedMemoryDeltaThreshold(
+    "sil-stats-used-memory-delta-threshold", toolchain::cl::init(5),
+    toolchain::cl::desc("Threshold for reporting changed memory usage numbers"));
 
-llvm::cl::opt<double> UsedMemoryMinDeltaThreshold(
-  "sil-stats-used-memory-min-threshold", llvm::cl::init(1),
-    llvm::cl::desc("Min threshold for reporting changed memory usage numbers"));
+toolchain::cl::opt<double> UsedMemoryMinDeltaThreshold(
+  "sil-stats-used-memory-min-threshold", toolchain::cl::init(1),
+    toolchain::cl::desc("Min threshold for reporting changed memory usage numbers"));
 
 /// A threshold in percents for the basic blocks counter inside a SILFunction.
 /// Has effect only if it is used together with -sil-stats-functions.
-llvm::cl::opt<double> FuncBlockCountDeltaThreshold(
-    "sil-stats-func-block-count-delta-threshold", llvm::cl::init(200),
-    llvm::cl::desc("Threshold for reporting changed basic block count numbers "
+toolchain::cl::opt<double> FuncBlockCountDeltaThreshold(
+    "sil-stats-fn-block-count-delta-threshold", toolchain::cl::init(200),
+    toolchain::cl::desc("Threshold for reporting changed basic block count numbers "
                    "for a function"));
 
 /// A minimal threshold (in number of basic blocks) for the basic blocks counter
 /// inside a SILFunction. Only functions with more basic blocks than this
 /// threshold are reported. Has effect only if it is used together with
 /// -sil-stats-functions.
-llvm::cl::opt<int> FuncBlockCountMinThreshold(
-    "sil-stats-func-block-count-min-threshold", llvm::cl::init(50),
-    llvm::cl::desc(
+toolchain::cl::opt<int> FuncBlockCountMinThreshold(
+    "sil-stats-fn-block-count-min-threshold", toolchain::cl::init(50),
+    toolchain::cl::desc(
         "Min threshold for reporting changed basic block count numbers "
         "for a function"));
 
 /// A threshold in percents for the SIL instructions counter inside a
 /// SILFunction. Has effect only if it is used together with
 /// -sil-stats-functions.
-llvm::cl::opt<double> FuncInstCountDeltaThreshold(
-    "sil-stats-func-inst-count-delta-threshold", llvm::cl::init(200),
-    llvm::cl::desc("Threshold for reporting changed instruction count numbers "
+toolchain::cl::opt<double> FuncInstCountDeltaThreshold(
+    "sil-stats-fn-inst-count-delta-threshold", toolchain::cl::init(200),
+    toolchain::cl::desc("Threshold for reporting changed instruction count numbers "
                    "for a function"));
 
 /// A minimal threshold (in number of instructions) for the SIL instructions
 /// counter inside a SILFunction. Only functions with more instructions than
 /// this threshold are reported. Has effect only if it is used together with
 /// -sil-stats-functions.
-llvm::cl::opt<int> FuncInstCountMinThreshold(
-    "sil-stats-func-inst-count-min-threshold", llvm::cl::init(300),
-    llvm::cl::desc(
+toolchain::cl::opt<int> FuncInstCountMinThreshold(
+    "sil-stats-fn-inst-count-min-threshold", toolchain::cl::init(300),
+    toolchain::cl::desc(
         "Min threshold for reporting changed instruction count numbers "
         "for a function"));
 
 /// Track only statistics for a function with a given name.
 /// Has effect only if it is used together with -sil-stats-functions.
-llvm::cl::opt<std::string> StatsOnlyFunctionName(
-    "sil-stats-only-function", llvm::cl::init(""),
-    llvm::cl::desc("Function name, whose stats should be tracked"));
+toolchain::cl::opt<std::string> StatsOnlyFunctionName(
+    "sil-stats-only-function", toolchain::cl::init(""),
+    toolchain::cl::desc("Function name, whose stats should be tracked"));
 
 /// Track only statistics for a function whose name contains a given substring.
 /// Has effect only if it is used together with -sil-stats-functions.
-llvm::cl::opt<std::string> StatsOnlyFunctionsNamePattern(
-    "sil-stats-only-functions", llvm::cl::init(""),
-    llvm::cl::desc(
+toolchain::cl::opt<std::string> StatsOnlyFunctionsNamePattern(
+    "sil-stats-only-functions", toolchain::cl::init(""),
+    toolchain::cl::desc(
         "Pattern of a function name, whose stats should be tracked"));
 
 /// Stats for a SIL function.
@@ -287,12 +288,12 @@ struct FunctionStat {
   /// Instruction counts per SILInstruction kind.
   InstructionCounts InstCounts;
 
-  using VarID = std::tuple<const SILDebugScope *, llvm::StringRef,
+  using VarID = std::tuple<const SILDebugScope *, toolchain::StringRef,
                            unsigned, unsigned>;
-  llvm::StringSet<> VarNames;
-  llvm::DenseSet<FunctionStat::VarID> DebugVariables;
-  llvm::DenseSet<const SILDebugScope *> VisitedScope;
-  llvm::DenseMap<VarID, const SILDebugScope *> InlinedAts;
+  toolchain::StringSet<> VarNames;
+  toolchain::DenseSet<FunctionStat::VarID> DebugVariables;
+  toolchain::DenseSet<const SILDebugScope *> VisitedScope;
+  toolchain::DenseMap<VarID, const SILDebugScope *> InlinedAts;
 
   FunctionStat(SILFunction *F, bool NewFunc = false);
   FunctionStat() {}
@@ -303,7 +304,7 @@ struct FunctionStat {
   FunctionStat &operator=(const FunctionStat &) = delete;
   FunctionStat &operator=(FunctionStat &&) = default;
 
-  void print(llvm::raw_ostream &stream) const {
+  void print(toolchain::raw_ostream &stream) const {
     stream << "FunctionStat("
            << "blocks = " << BlockCount << ", Inst = " << InstCount << ")\n";
   }
@@ -315,7 +316,7 @@ struct FunctionStat {
 
   bool operator!=(const FunctionStat &rhs) const { return !(*this == rhs); }
 
-  void dump() { print(llvm::errs()); }
+  void dump() { print(toolchain::errs()); }
 };
 
 /// Stats a single SIL module.
@@ -361,7 +362,7 @@ struct ModuleStat {
 
   /// Add the stats about current memory usage.
   void addMemoryStat() {
-    UsedMemory = llvm::sys::Process::GetMallocUsage();
+    UsedMemory = toolchain::sys::Process::GetMallocUsage();
   }
 
   /// Add the stats about created and deleted instructions.
@@ -370,7 +371,7 @@ struct ModuleStat {
     DeletedInstCount = SILInstruction::getNumDeletedInstructions();
   }
 
-  void print(llvm::raw_ostream &stream) const {
+  void print(toolchain::raw_ostream &stream) const {
     stream << "ModuleStat(functions = " << FunctionCount
            << ", blocks = " << BlockCount << ", Inst = " << InstCount
            << ", UsedMemory = " << UsedMemory / (1024 * 1024)
@@ -379,7 +380,7 @@ struct ModuleStat {
            << ")\n";
   }
 
-  void dump() { print(llvm::errs()); }
+  void dump() { print(toolchain::errs()); }
 
   bool operator==(const ModuleStat &rhs) const {
     return FunctionCount == rhs.FunctionCount && BlockCount == rhs.BlockCount &&
@@ -401,14 +402,14 @@ struct InstCountVisitor : SILInstructionVisitor<InstCountVisitor> {
   const bool &NewFunc;
   InstructionCounts &InstCounts;
 
-  llvm::StringSet<> &VarNames;
-  llvm::DenseSet<FunctionStat::VarID> &DebugVariables;
-  llvm::DenseMap<FunctionStat::VarID, const SILDebugScope *> &InlinedAts;
+  toolchain::StringSet<> &VarNames;
+  toolchain::DenseSet<FunctionStat::VarID> &DebugVariables;
+  toolchain::DenseMap<FunctionStat::VarID, const SILDebugScope *> &InlinedAts;
 
   InstCountVisitor(
-      InstructionCounts &InstCounts, llvm::StringSet<> &VarNames,
-      llvm::DenseSet<FunctionStat::VarID> &DebugVariables,
-      llvm::DenseMap<FunctionStat::VarID, const SILDebugScope *> &InlinedAts,
+      InstructionCounts &InstCounts, toolchain::StringSet<> &VarNames,
+      toolchain::DenseSet<FunctionStat::VarID> &DebugVariables,
+      toolchain::DenseMap<FunctionStat::VarID, const SILDebugScope *> &InlinedAts,
       bool &NewFunc)
       : NewFunc(NewFunc), InstCounts(InstCounts), VarNames(VarNames),
         DebugVariables(DebugVariables), InlinedAts(InlinedAts) {}
@@ -440,7 +441,7 @@ struct InstCountVisitor : SILInstructionVisitor<InstCountVisitor> {
     if (!varInfo)
       return;
 
-    llvm::StringRef UniqueName = VarNames.insert(varInfo->Name).first->getKey();
+    toolchain::StringRef UniqueName = VarNames.insert(varInfo->Name).first->getKey();
     unsigned line = 0, col = 0;
     if (varInfo->Loc && varInfo->Loc->getSourceLoc().isValid()) {
       std::tie(line, col) = inst->getModule().getSourceManager()
@@ -502,7 +503,7 @@ public:
 /// Aggregated statistics for the whole SILModule and all SILFunctions belonging
 /// to it.
 class AccumulatedOptimizerStats {
-  using FunctionStats = llvm::DenseMap<const SILFunction *, FunctionStat>;
+  using FunctionStats = toolchain::DenseMap<const SILFunction *, FunctionStat>;
 
   /// Current stats for each function.
   FunctionStats FuncStats;
@@ -613,29 +614,29 @@ public:
 /// The output stream to be used for writing the collected statistics.
 /// Use the unique_ptr to ensure that the file is properly closed upon
 /// exit.
-std::unique_ptr<llvm::raw_ostream, void(*)(llvm::raw_ostream *)>
+std::unique_ptr<toolchain::raw_ostream, void(*)(toolchain::raw_ostream *)>
     stats_output_stream = {nullptr, nullptr};
 
 /// Return the output stream to be used for logging the collected statistics.
-llvm::raw_ostream &stats_os() {
+toolchain::raw_ostream &stats_os() {
   // Initialize the stream if it is not initialized yet.
   if (!stats_output_stream) {
     // If there is user-defined output file name, use it.
     if (!SILStatsOutputFile.empty()) {
       // Try to open the file.
       std::error_code EC;
-      auto fd_stream = std::make_unique<llvm::raw_fd_ostream>(
-          SILStatsOutputFile, EC, llvm::sys::fs::OpenFlags::OF_Text);
+      auto fd_stream = std::make_unique<toolchain::raw_fd_ostream>(
+          SILStatsOutputFile, EC, toolchain::sys::fs::OpenFlags::OF_Text);
       if (!fd_stream->has_error() && !EC) {
         stats_output_stream = {fd_stream.release(),
-                               [](llvm::raw_ostream *d) { delete d; }};
+                               [](toolchain::raw_ostream *d) { delete d; }};
         return *stats_output_stream.get();
       }
       fd_stream->clear_error();
-      llvm::errs() << SILStatsOutputFile << " : " << EC.message() << "\n";
+      toolchain::errs() << SILStatsOutputFile << " : " << EC.message() << "\n";
     }
-    // Otherwise use llvm::errs() as output. No need to destroy it at the end.
-    stats_output_stream = {&llvm::errs(), [](llvm::raw_ostream *d) {}};
+    // Otherwise use toolchain::errs() as output. No need to destroy it at the end.
+    stats_output_stream = {&toolchain::errs(), [](toolchain::raw_ostream *d) {}};
   }
   return *stats_output_stream.get();
 }
@@ -687,7 +688,7 @@ void printCounterChange(StringRef Kind, StringRef CounterName, double Delta,
   stats_os() << Ctx.getPassNumber();
   stats_os() << ", ";
 
-  llvm::format_provider<double>::format(Delta, stats_os(), "f8");
+  toolchain::format_provider<double>::format(Delta, stats_os(), "f8");
   stats_os() << ", ";
 
   stats_os() << OldValue;
@@ -735,7 +736,7 @@ bool isFirstTimeData(int Old, int New) {
 /// \p DbgValScope, return false otherwise.
 bool isScopeChildOfOrEqualTo(const SILDebugScope *Scope,
                              const SILDebugScope *DbgValScope) {
-  llvm::DenseSet<const SILDebugScope *> VisitedScope;
+  toolchain::DenseSet<const SILDebugScope *> VisitedScope;
   while (Scope != nullptr) {
     if (VisitedScope.find(Scope) == VisitedScope.end()) {
       VisitedScope.insert(Scope);
@@ -1107,7 +1108,7 @@ FunctionStat::FunctionStat(SILFunction *F, bool NewFunc) : NewFunc(NewFunc) {
 /// \param M SILModule to be processed
 /// \param Transform the SIL transformation that was just executed
 /// \param PM the PassManager being used
-void swift::updateSILModuleStatsAfterTransform(SILModule &M,
+void language::updateSILModuleStatsAfterTransform(SILModule &M,
                                                SILTransform *Transform,
                                                SILPassManager &PM,
                                                int PassNumber, int Duration) {
@@ -1122,7 +1123,7 @@ void swift::updateSILModuleStatsAfterTransform(SILModule &M,
 // This is just a hook for possible extensions in the future.
 // It could be used e.g. to detect sequences of consecutive executions
 // of the same transform.
-void swift::updateSILModuleStatsBeforeTransform(SILModule &M,
+void language::updateSILModuleStatsBeforeTransform(SILModule &M,
                                                 SILTransform *Transform,
                                                 SILPassManager &PM,
                                                 int PassNumber) {
@@ -1130,6 +1131,6 @@ void swift::updateSILModuleStatsBeforeTransform(SILModule &M,
     return;
 }
 
-SILAnalysis *swift::createOptimizerStatsAnalysis(SILModule *M) {
+SILAnalysis *language::createOptimizerStatsAnalysis(SILModule *M) {
   return new OptimizerStatsAnalysis(M);
 }

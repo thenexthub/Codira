@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t --leading-lines
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -verify
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault \
+// RUN:   -verify
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault \
+// RUN:   -warnings-as-errors -Wwarning ImplementationOnlyDeprecated \
+// RUN:   -verify
+
+
+// REQUIRES: language_feature_InternalImportsByDefault
+
+//--- Lib.code
+public struct SomeType {}
+
+//--- Client.code
+@_implementationOnly import Lib
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}} {{1-21=internal}}
+
+internal fn foo(_: SomeType) {}

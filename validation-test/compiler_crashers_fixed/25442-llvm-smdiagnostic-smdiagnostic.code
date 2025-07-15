@@ -1,0 +1,264 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+immutable a {
+}
+struct a
+struct Q {
+class A {
+enum b { ()
+{
+struct B{
+return
+immutable l = B
+struct d{ e () {
+{{struct S<I:C{
+{
+{
+class d:a{
+{
+if{struct B:B:d<T where S
+0
+struct S<e{
+d
+}
+class A
+{
+}
+init( ) {
+" " " [ 1
+enum A {
+{
+{}
+import F
+typealias B<T where B : b
+}
+}
+}
+immutable f = B<T where g
+class a
+{class a{
+class x {}
+}
+struct S
+struct S<T where g:d<e{
+typealias e) {}
+struct Q {
+protocol c {
+0
+}
+struct a
+{
+class A{
+enum {
+struct B<e{
+}
+protocol A{
+fn b
+struct A{
+{
+enum A {
+fn d{}
+{
+}
+{
+{
+}
+}
+}protocol e (
+}
+a {struct S<T , length: () -> Void{
+}
+fn b
+var _ T : b
+}
+var : b
+{
+fn g: (
+}
+{
+{
+protocol c {
+}
+a<d
+fn i {}
+}
+}
+}
+fn i {
+struct A {
+0
+var : b
+class B{
+}}}
+}
+struct A {
+}
+struct A {
+" " " [ 1
+}
+immutable closure: b(
+" () -> Void in
+}
+}}
+fn g: b
+struct d <e:a{
+}
+0
+protocol c {
+fn a
+" E
+class a{
+init( ) {
+immutable a {
+" E
+fn g: b
+}
+struct B{
+var f=a{}
+class x {
+fn g:B{
+struct c { () -> Void{
+a {
+enum A {
+struct A{
+d<
+}
+}}}
+protocol c {
+A {
+class a{
+" [ 1
+}
+B {
+}
+" E
+}}
+struct S<Y {
+struct B {
+}
+fn g
+}
+class x {
+}
+struct S<I:e:d{
+}
+immutable l = B<T where g:t
+}
+class A{
+d<T where g
+}}protocol A{
+import F
+}
+fn g
+}
+}
+class B<T where I:B
+{class d<T where S<T where B : b
+}
+immutable l = B<e) = { e () {class B<T where g:e{
+}
+B : () {
+}
+{
+struct B{
+class x {
+}
+_ = b(
+{
+{
+{
+}
+typealias B<i: b {
+enum A {
+}
+enum b { e () {
+_ = f = { )-> Void in
+0
+struct d <T where g:t
+{
+}}
+fn b
+}protocol c {
+}
+fn i {
+}
+struct B{
+{
+{
+protocol c {
+init( ) {
+{
+B {
+protocol c { )-> Void{
+}}}}
+" " [ 1
+}
+typealias e:B<d
+}
+a<I:B
+struct S
+{
+var f=a{
+}
+struct S
+class a
+}
+var _ T where S<e{
+}
+{
+" " (
+if{
+{
+protocol c {
+{
+}
+}
+}
+enum S<i: b {
+{
+fn b
+immutable a {
+protocol e {
+struct A {
+{
+struct a{
+a{
+a{struct A
+typealias e{
+}
+class a{
+{
+struct d <e) = B<
+}
+" E
+a {struct d:a
+}
+struct c
+}
+class A {
+}
+{{
+{
+protocol c {}
+immutable a {
+enum A {
+protocol A{
+}
+a<T where g:d
+}
+protocol c {{
+enum b {struct B
+{
+}
+immutable f {
+_ = { () -> {struct d <T where I

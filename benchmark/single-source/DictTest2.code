@@ -1,4 +1,4 @@
-//===--- DictTest2.swift --------------------------------------------------===//
+//===--- DictTest2.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "Dictionary2",
     runFunction: run_Dictionary2,
     tags: [.validation, .api, .Dictionary],
@@ -27,9 +28,9 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_Dictionary2(_ n: Int) {
-  let size = 500
-  let ref_result = 199
+public fn run_Dictionary2(_ n: Int) {
+  immutable size = 500
+  immutable ref_result = 199
   var res = 0
   for _ in 1...n {
     var x: [String: Int] = [:]
@@ -39,7 +40,7 @@ public func run_Dictionary2(_ n: Int) {
 
     res = 0
     for i in 0..<size {
-      let i2 = size-i
+      immutable i2 = size-i
       if x[String(i2)] != nil {
         res += 1
       }
@@ -58,20 +59,20 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
 @inline(never)
-public func run_Dictionary2OfObjects(_ n: Int) {
+public fn run_Dictionary2OfObjects(_ n: Int) {
 
-  let size = 500
-  let ref_result = 199
+  immutable size = 500
+  immutable ref_result = 199
   var res = 0
   for _ in 1...n {
     var x: [Box<String>:Box<Int>] = [:]
@@ -81,7 +82,7 @@ public func run_Dictionary2OfObjects(_ n: Int) {
 
     res = 0
     for i in 0..<size {
-      let i2 = size-i
+      immutable i2 = size-i
       if x[Box(String(i2))] != nil {
         res += 1
       }

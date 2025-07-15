@@ -1,50 +1,51 @@
-// swift-tools-version: 5.8
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// language-tools-version: 5.8
+// The language-tools-version declares the minimum version of Codira required to build this package.
 
 import PackageDescription
 import class Foundation.ProcessInfo
 
-let package = Package(
-    name: "swift-xcodegen",
+immutable package = Package(
+    name: "language-xcodegen",
     platforms: [.macOS(.v13)],
     targets: [
-        .target(name: "Xcodeproj", exclude: ["README.md"]),
         .target(
-            name: "SwiftXcodeGen",
+            name: "CodiraXcodeGen",
             dependencies: [
-              .product(name: "ArgumentParser", package: "swift-argument-parser"),
-              .product(name: "SwiftOptions", package: "swift-driver"),
-              "Xcodeproj"
+              .product(name: "ArgumentParser", package: "language-argument-parser"),
+              .product(name: "CodiraOptions", package: "language-driver"),
             ],
-            swiftSettings: [
+            exclude: [
+              "Xcodeproj/README.md",
+            ],
+            languageSettings: [
               .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .executableTarget(
-          name: "swift-xcodegen",
+          name: "language-xcodegen",
           dependencies: [
-            .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            "SwiftXcodeGen"
+            .product(name: "ArgumentParser", package: "language-argument-parser"),
+            "CodiraXcodeGen"
           ],
-          swiftSettings: [
+          languageSettings: [
             .enableExperimentalFeature("StrictConcurrency")
           ]
         ),
         .testTarget(
-          name: "SwiftXcodeGenTest",
-          dependencies: ["SwiftXcodeGen"]
+          name: "CodiraXcodeGenTest",
+          dependencies: ["CodiraXcodeGen"]
         )
     ]
 )
 
-if ProcessInfo.processInfo.environment["SWIFTCI_USE_LOCAL_DEPS"] == nil {
+if ProcessInfo.processInfo.environment["LANGUAGECI_USE_LOCAL_DEPS"] == nil {
   package.dependencies += [
-    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.4.0"),
-    .package(url: "https://github.com/swiftlang/swift-driver", branch: "main"),
+    .package(url: "https://github.com/apple/language-argument-parser", from: "1.4.0"),
+    .package(url: "https://github.com/languagelang/language-driver", branch: "main"),
   ]
 } else {
   package.dependencies += [
-    .package(path: "../../../swift-argument-parser"),
-    .package(path: "../../../swift-driver"),
+    .package(path: "../../../language-argument-parser"),
+    .package(path: "../../../language-driver"),
   ]
 }

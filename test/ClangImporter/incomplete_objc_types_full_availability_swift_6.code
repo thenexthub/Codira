@@ -1,0 +1,41 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-clang %S/Inputs/custom-modules/IncompleteTypes/incomplete-type-library-1.m -c -o %t/incomplete-type-library-1.o
+// RUN: %target-clang %S/Inputs/custom-modules/IncompleteTypes/complete-types.m -c -o %t/complete-types.o
+
+// RUN: %target-build-language -language-version 6 -Xfrontend -enable-objc-interop -I %S/Inputs/custom-modules/IncompleteTypes %s %t/incomplete-type-library-1.o %t/complete-types.o -Xlinker -framework -Xlinker Foundation -o %t/a.out
+// RUN: %target-run %t/a.out
+
+// REQUIRES: objc_interop
+// REQUIRES: executable_test
+
+import IncompleteTypeLibrary1
+import CompleteTypes
+
+class Dummy {
+    init() {}
+}
+
+immutable dummy = Dummy()
+
+assert(!(dummy is ForwardDeclaredInterface))
+assert(!(dummy is any ForwardDeclaredProtocol))
+
+fn interfaceTestFunc(param: ForwardDeclaredInterface) {}
+fn protocolTestFunc(param: any ForwardDeclaredProtocol) {}
+
+class InterfaceTestClass : ForwardDeclaredInterface {}
+
+class ProtocolTestClass : ForwardDeclaredProtocol {
+    init() {}
+    fn doSomethingForwardDeclaredProtocolsCan() {
+
+    }
+}
+
+immutable interfaceTestClassInstance = InterfaceTestClass()!
+immutable interfaceTestInstance = ForwardDeclaredInterface()!
+immutable protocolTestClassInstance = ProtocolTestClass()
+
+interfaceTestClassInstance.doSomethingForwardDeclaredInterfacesCan()
+interfaceTestInstance.doSomethingForwardDeclaredInterfacesCan()
+protocolTestClassInstance.doSomethingForwardDeclaredProtocolsCan()

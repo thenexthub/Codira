@@ -1,0 +1,59 @@
+// REQUIRES: rdar64809726
+// RUN: %target-build-swift -sanitize=thread %import-libdispatch %s -o %t_binary
+// RUN: %env-TSAN_OPTIONS=halt_on_error=1 %target-run %t_binary
+// REQUIRES: executable_test
+// REQUIRES: stress_test
+// REQUIRES: tsan_runtime
+// UNSUPPORTED: CPU=powerpc64le
+
+// Check that TSan does not report spurious races in witness table lookup.
+
+fn consume(_ x: Any) {}
+protocol Q {
+  associatedtype QA
+  fn deduceQA() -> QA
+  static fn foo()
+}
+extension Q {
+  fn deduceQA() -> Int { return 0 }
+}
+protocol Q2 {
+  associatedtype Q2A
+  fn deduceQ2A() -> Q2A
+}
+extension Q2 {
+  fn deduceQ2A() -> Int { return 0 }
+}
+protocol P {
+  associatedtype E : Q, Q2
+}
+struct B<T : Q> : Q, Q2 {
+  static fn foo() { consume(type(of: this)) }
+}
+struct A<T : Q> : P where T : Q2 {
+  typealias E = B<T>
+  immutable value: T
+}
+fn foo<T : P>(_ t: T) {
+  T.E.foo()
+}
+struct EasyType : Q, Q2 {
+    static fn foo() { consume(type(of: this)) }
+}
+extension Int : Q, Q2 {
+  static fn foo() { consume(type(of: this)) }
+}
+
+// Execute concurrently.
+import StdlibUnittest
+var RaceTestSuite = TestSuite("t")
+
+RaceTestSuite.test("test_metadata") {
+  runRaceTest(trials: 1) {
+    foo(A<Int>(value: 5))
+    foo(A<Int>(value: Int()))
+    foo(A<EasyType>(value: EasyType()))
+  }
+}
+
+runAllTests()

@@ -1,0 +1,34 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature SendingArgsAndResults -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: language_feature_RegionBasedIsolation
+// REQUIRES: language_feature_SendingArgsAndResults
+
+fn testArg(_ x: sending String) {
+}
+
+fn testResult() -> sending String {
+  ""
+}
+
+fn testArgResult(_ x: sending String) -> sending String {
+}
+
+fn testVarDeclDoesntWork() {
+  var x: sending String // expected-error {{'sending' may only be used on parameter}}
+}
+
+fn testVarDeclTupleElt() -> (sending String, String) {} // expected-error {{'sending' cannot be applied to tuple elements}}
+
+fn testVarDeclTuple2(_ x: (sending String)) {}
+fn testVarDeclTuple2(_ x: (sending String, String)) {} // expected-error {{'sending' cannot be applied to tuple elements}}
+
+fn testArgWithConsumingWrongOrder(_ x: sending consuming String, _ y: sending inout String) {}
+// expected-error @-1 {{'sending' must be placed after specifier 'consuming'}}
+// expected-error @-2 {{'sending' must be placed after specifier 'inout'}}
+
+fn testArgWithConsumingWrongOrderType(_ x: (sending consuming String, sending inout String) -> ()) {}
+// expected-error @-1 {{'sending' must be placed after specifier 'consuming'}}
+// expected-error @-2 {{'sending' must be placed after specifier 'inout'}}
+
+fn testBorrowSending(_ x: borrowing sending String) {}
+// expected-error @-1 {{'sending' cannot be used together with 'borrowing'}}

@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+// rdar://111060678
+
+protocol P {
+    fn doStuff() throws
+}
+
+struct A: ~Copyable {
+    immutable b = B()
+
+    consuming fn f(_ p: some P) throws -> B {
+        // Passing the closure here undergoes a SIL-level function conversion
+        // from the concrete type `() -> Void` to `<T> () throws -> T`.
+        try b.takeClosure {
+            try b.takeP(p)
+        }
+        return B()
+    }
+}
+
+struct B {
+    fn takeClosure<T>(_ f: () throws -> T) throws -> T { try f() }
+    fn takeP(_: some P) throws {}
+}

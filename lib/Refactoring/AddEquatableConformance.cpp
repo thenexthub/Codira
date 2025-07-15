@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "RefactoringActions.h"
@@ -33,7 +37,7 @@ class AddEquatableContext {
   ArrayRef<InheritedEntry> ProtocolsLocations;
 
   /// Array of all conformed protocols
-  SmallVector<swift::ProtocolDecl *, 2> Protocols;
+  SmallVector<language::ProtocolDecl *, 2> Protocols;
 
   /// Start location of declaration,
   /// a place to write protocol name
@@ -138,7 +142,7 @@ SourceLoc AddEquatableContext::getInsertStartLoc() {
 std::string AddEquatableContext::getInsertionTextForProtocol() {
   StringRef ProtocolName = getProtocolName(KnownProtocolKind::Equatable);
   std::string Buffer;
-  llvm::raw_string_ostream OS(Buffer);
+  toolchain::raw_string_ostream OS(Buffer);
   if (ProtocolsLocations.empty()) {
     OS << ": " << ProtocolName;
     return Buffer;
@@ -172,7 +176,7 @@ AddEquatableContext::getInsertionTextForFunction(SourceManager &SM) {
     Printer << "}";
   };
   std::string Buffer;
-  llvm::raw_string_ostream OS(Buffer);
+  toolchain::raw_string_ostream OS(Buffer);
   ExtraIndentStreamPrinter Printer(OS, Indent);
   Printer.printNewline();
   if (!isMembersRangeEmpty()) {
@@ -227,7 +231,7 @@ void AddEquatableContext::printFunctionBody(ASTPrinter &Printer,
                                             StringRef ExtraIndent,
                                             ParameterList *Params) {
   SmallString<128> Return;
-  llvm::raw_svector_ostream SS(Return);
+  toolchain::raw_svector_ostream SS(Return);
   SS << tok::kw_return;
   StringRef Space = " ";
   StringRef AdditionalSpace = "       ";

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTWalker.h"
@@ -30,7 +31,7 @@ using namespace ide;
 
 namespace {
 
-using StringBuilder = llvm::SmallString<64>;
+using StringBuilder = toolchain::SmallString<64>;
 
 static bool isOnSameLine(SourceManager &SM, SourceLoc L, SourceLoc R) {
   return Lexer::getLocForStartOfLine(SM, L) ==
@@ -593,7 +594,7 @@ private:
     // Walk through error expressions.
     if (auto *EE = dyn_cast<ErrorExpr>(E)) {
       if (auto *OE = EE->getOriginalExpr()) {
-        llvm::SaveAndRestore<ASTWalker::ParentTy>(Parent, EE);
+        toolchain::SaveAndRestore<ASTWalker::ParentTy>(Parent, EE);
         OE->walk(*this);
       }
       return Action::Continue(E);
@@ -708,7 +709,7 @@ class OutdentChecker: protected RangeWalker {
   SourceRange CheckRange; ///< The source range to consider.
   RangeKind CheckRangeKind; ///< Whether \c CheckRange is open or closed.
   bool IsOutdenting = false; ///< Tracks whether a seen range prevents indenting.
-  llvm::DenseMap<SourceLoc, ContextOverride> LineStartToOverride;
+  toolchain::DenseMap<SourceLoc, ContextOverride> LineStartToOverride;
 
   explicit OutdentChecker(SourceManager &SM,
                           SourceRange CheckRange,  RangeKind CheckRangeKind)
@@ -866,7 +867,7 @@ class OutdentChecker: protected RangeWalker {
       return !SM.isBeforeInBuffer(L, CheckRange.Start) &&
         (R.isInvalid() || !SM.isBeforeInBuffer(CheckRange.End, R));
     }
-    llvm_unreachable("invalid range kind");
+    toolchain_unreachable("invalid range kind");
   }
 
 public:
@@ -1193,7 +1194,7 @@ class FormatWalker : public ASTWalker {
 
   SourceLoc TargetLocation;
   SourceLoc TargetLineLoc;
-  llvm::SmallPtrSet<void *, 16> NodesToSkip;
+  toolchain::SmallPtrSet<void *, 16> NodesToSkip;
   ArrayRef<Token>::iterator CurrentTokIt;
 
   /// The innermost indent context of the target location.
@@ -1465,7 +1466,7 @@ private:
     // set StringLiteralRange if needed for each segment.
     if (auto *ISL = dyn_cast<InterpolatedStringLiteralExpr>(E)) {
       if (Action.shouldVisitChildren()) {
-        llvm::SaveAndRestore<ASTWalker::ParentTy>(Parent, ISL);
+        toolchain::SaveAndRestore<ASTWalker::ParentTy>(Parent, ISL);
         SourceLoc PrevStringStart = ISL->getStartLoc();
         ISL->forEachSegment(SF.getASTContext(),
                             [&](bool IsInterpolation, CallExpr *CE) {
@@ -1498,7 +1499,7 @@ private:
     if (auto *EE = dyn_cast<ErrorExpr>(E)) {
       if (Action.shouldVisitChildren()) {
         if (auto *OE = EE->getOriginalExpr()) {
-          llvm::SaveAndRestore<ASTWalker::ParentTy>(Parent, EE);
+          toolchain::SaveAndRestore<ASTWalker::ParentTy>(Parent, EE);
           OE->walk(*this);
         }
         return Action::SkipNode(E);
@@ -2928,7 +2929,7 @@ public:
                                            FormatContext &FC,
                                            StringRef Text) {
     if (FC.isExact()) {
-      StringRef Line = swift::ide::getTextForLine(LineIndex, Text, /*Trim*/true);
+      StringRef Line = language::ide::getTextForLine(LineIndex, Text, /*Trim*/true);
       StringBuilder Builder;
       FC.padToExactColumn(Builder, FmtOptions);
       Builder.append(Line);
@@ -2938,7 +2939,7 @@ public:
     // Take the current indent position of the context, then add the number of
     // indents specified.
     auto LineAndColumn = FC.indentLineAndColumn();
-    size_t ExpandedIndent = swift::ide::getExpandedIndentForLine(LineAndColumn.first,
+    size_t ExpandedIndent = language::ide::getExpandedIndentForLine(LineAndColumn.first,
                                                                  FmtOptions, Text);
 
     if (FC.shouldAddIndentForLine()) {
@@ -2963,7 +2964,7 @@ public:
     }
 
     // Reformat the specified line with the calculated indent.
-    StringRef Line = swift::ide::getTextForLine(LineIndex, Text, /*Trim*/true);
+    StringRef Line = language::ide::getTextForLine(LineIndex, Text, /*Trim*/true);
     std::string IndentedLine;
     if (FmtOptions.UseTabs)
       IndentedLine.assign(ExpandedIndent / FmtOptions.TabWidth, '\t');
@@ -2978,8 +2979,8 @@ public:
 };
 } //anonymous namespace
 
-size_t swift::ide::getOffsetOfLine(unsigned LineIndex, StringRef Text) {
-  //  SourceLoc start = SourceLoc(llvm::SMLoc::getFromPointer(Text.begin()));
+size_t language::ide::getOffsetOfLine(unsigned LineIndex, StringRef Text) {
+  //  SourceLoc start = SourceLoc(toolchain::SMLoc::getFromPointer(Text.begin()));
   // FIXME: We should have a cached line map in EditableTextBuffer, for now
   // we just do the slow naive thing here.
   size_t LineOffset = 0;
@@ -2999,8 +3000,8 @@ size_t swift::ide::getOffsetOfLine(unsigned LineIndex, StringRef Text) {
   return LineOffset;
 }
 
-size_t swift::ide::getOffsetOfLine(unsigned LineIndex, StringRef Text, bool Trim) {
-  size_t LineOffset = swift::ide::getOffsetOfLine(LineIndex, Text);
+size_t language::ide::getOffsetOfLine(unsigned LineIndex, StringRef Text, bool Trim) {
+  size_t LineOffset = language::ide::getOffsetOfLine(LineIndex, Text);
   if (!Trim)
     return LineOffset;
   // Skip leading whitespace.
@@ -3010,14 +3011,14 @@ size_t swift::ide::getOffsetOfLine(unsigned LineIndex, StringRef Text, bool Trim
   return LineOffset;
 }
 
-llvm::StringRef swift::ide::getTextForLine(unsigned LineIndex, StringRef Text,
+toolchain::StringRef language::ide::getTextForLine(unsigned LineIndex, StringRef Text,
                                            bool Trim) {
   size_t LineOffset = getOffsetOfLine(LineIndex, Text, Trim);
   size_t LineEnd = Text.find_first_of("\r\n", LineOffset);
   return Text.slice(LineOffset, LineEnd);
 }
 
-size_t swift::ide::getExpandedIndentForLine(unsigned LineIndex,
+size_t language::ide::getExpandedIndentForLine(unsigned LineIndex,
                                             CodeFormatOptions Options,
                                             StringRef Text) {
   size_t LineOffset = getOffsetOfLine(LineIndex, Text);
@@ -3034,7 +3035,7 @@ size_t swift::ide::getExpandedIndentForLine(unsigned LineIndex,
   return Indent;
 }
 
-std::pair<LineRange, std::string> swift::ide::reformat(LineRange Range,
+std::pair<LineRange, std::string> language::ide::reformat(LineRange Range,
                                                        CodeFormatOptions Options,
                                                        SourceManager &SM,
                                                        SourceFile &SF) {

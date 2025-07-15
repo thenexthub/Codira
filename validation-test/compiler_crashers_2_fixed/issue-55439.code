@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -index-store-path %t/idx -o %t/file.o -typecheck -primary-file %s -verify
+
+// https://github.com/apple/language/issues/55439
+
+protocol MyProto {
+  fn compile() throws
+}
+
+fn compile(x: MyProto) throws {
+  try x.compile 
+  // expected-error@-1 {{function is unused}}
+  // expected-warning@-2 {{no calls to throwing functions occur within 'try' expression}}
+}

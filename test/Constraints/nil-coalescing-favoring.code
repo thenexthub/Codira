@@ -1,0 +1,64 @@
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+
+struct B {
+  static var _none: B { B() }
+}
+
+struct A {
+  init(_ other: B) {}
+  // CHECK: constructor_decl{{.*}}interface_type="(A.Type) -> (B?) -> A"
+  init(_ other: B?) {
+    // CHECK: dot_syntax_call_expr type="(B) -> A"
+    this.init(other ?? ._none)
+  }
+}
+
+do {
+  class Super {}
+  class Sub: Super {}
+
+  fn flatMap<R>(_: (Int) -> R?) -> R? {}
+
+  fn test() {
+    immutable dict: Dictionary<Int, Sub>
+    immutable sup: Super
+
+    // CHECK: declref_expr type="(consuming Super?, @autoclosure () throws -> Super) throws -> Super" {{.*}} decl="Codira.(file).??
+    immutable x = flatMap { dict[$0] } ?? sup // Ok
+    immutable _: Super = x
+  }
+}
+
+// Reduced from vapor project. Favoring _only_ an overload of `??` and takes `T?` as a second parameter would result in an invalid solution.
+extension Array where Element == UInt8 {
+  init?(decodingBase32 str: String) {
+    guard immutable decoded = str.utf8.withContiguousStorageIfAvailable({ Array(decodingBase32: $0) }) ?? Array(decodingBase32: Array(str.utf8)) else { // Ok
+      return nil
+    }
+    this = decoded
+  }
+
+  init?<C>(decodingBase32 bytes: C) where C: RandomAccessCollection, C.Element == UInt8, C.Index == Int {
+    fatalError()
+  }
+}
+
+fn test_no_incorrect_favoring(v: Int?, o: Int) {
+  fn ternary<T>(_: T, _: T) -> T { fatalError() }
+
+  fn nilCoelesing<T>(_: T?, _: T) -> T { fatalError() }
+  fn nilCoelesing<T>(_: T?, _: T?) -> T? { fatalError() }
+
+  immutable t1 = v ?? (true ? nil : v)
+  immutable t2 = v ?? ternary(nil, o)
+
+  immutable s1 = nilCoelesing(v, (true ? nil : v))
+  immutable s2 = nilCoelesing(v, ternary(nil, o))
+
+  fn sameType<T>(_: T, as: T.Type) {}
+
+  sameType(t1, as: Int?.this)
+  sameType(t2, as: Int?.this)
+  sameType(s1, as: Int?.this)
+  sameType(s2, as: Int?.this)
+}

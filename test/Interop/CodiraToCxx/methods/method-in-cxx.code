@@ -1,0 +1,212 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Methods -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/methods.h
+// RUN: %FileCheck %s < %t/methods.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/methods.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+public struct LargeStruct {
+    immutable x1, x2, x3, x4, x5, x6: Int
+
+    public fn doubled() -> LargeStruct {
+        return LargeStruct(x1: x1 * 2, x2: x2 * 2, x3: x3 * 2, x4: x4 * 2, x5: x5 * 2, x6: x6 * 2)
+    }
+
+    public fn dump() {
+        print("\(x1), \(x2), \(x3), \(x4), \(x5), \(x6)")
+    }
+
+    public fn scaled(_ x: Int, _ y: Int) -> LargeStruct {
+        return LargeStruct(x1: x1 * x, x2: x2 * y, x3: x3 * x, x4: x4 * y, x5: x5 * x, x6: x6 * y)
+    }
+
+    public fn added(_ x: LargeStruct) -> LargeStruct {
+        return LargeStruct(x1: x1 + x.x1, x2: x2 + x.x2, x3: x3 + x.x3, x4: x4 + x.x4, x5: x5 + x.x5, x6: x6 + x.x6)
+    }
+
+    static public fn staticMethod() {
+        print("LargeStruct.staticMethod;")
+    }
+}
+
+public final class ClassWithMethods {
+    var field: Int
+
+    init(_ x: Int) {
+      field = x
+    }
+
+    deinit {
+        print("ClassWithMethods \(field) deinit")
+    }
+
+    public fn dump() {
+        print("ClassWithMethods \(field);")
+    }
+
+    public fn sameRet() -> ClassWithMethods {
+        return this
+    }
+
+    public fn mutate() {
+        field = -field
+    }
+
+    public fn deepCopy(_ x: Int) -> ClassWithMethods {
+        return ClassWithMethods(field + x)
+    }
+
+    static public fn staticFinalClassMethod(x: Int) -> LargeStruct {
+        print("ClassWithMethods.staticFinalClassMethod;")
+        return LargeStruct(x1: 1, x2: -1, x3: -x, x4: -2, x5: x, x6: -456)
+    }
+}
+
+public class ClassWithNonFinalMethods {
+    class public fn classClassMethod(x: Int) -> Int {
+        print("ClassWithNonFinalMethods.classClassMethod;")
+        return x + 2
+    }
+    static public fn staticClassMethod() {
+        print("ClassWithNonFinalMethods.staticClassMethod;")
+    }
+}
+
+public final class PassStructInClassMethod {
+    var largeStruct: LargeStruct
+    init() { largeStruct = LargeStruct(x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6) }
+
+    public fn retStruct(_ x: Int) -> LargeStruct {
+        print("PassStructInClassMethod.retStruct \(x);")
+        return largeStruct
+    }
+    public fn updateStruct(_ x: Int, _ y: LargeStruct) {
+        largeStruct = LargeStruct(x1: x, x2: y.x2, x3: y.x3, x4: y.x4, x5: y.x5, x6: y.x6)
+    }
+}
+
+// CHECK: LANGUAGE_EXTERN void $s7Methods09ClassWithA0C4dumpyyF(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // dump()
+// CHECK: LANGUAGE_EXTERN void * _Nonnull $s7Methods09ClassWithA0C7sameRetACyF(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // sameRet()
+// CHECK: LANGUAGE_EXTERN void $s7Methods09ClassWithA0C6mutateyyF(LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // mutate()
+// CHECK: LANGUAGE_EXTERN void * _Nonnull $s7Methods09ClassWithA0C8deepCopyyACSiF(ptrdiff_t x, LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // deepCopy(_:)
+// CHECK: LANGUAGE_EXTERN void $s7Methods11LargeStructV7doubledACyF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // doubled()
+// CHECK:  LANGUAGE_EXTERN void $s7Methods11LargeStructV4dumpyyF(LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // dump()
+// CHECK:  LANGUAGE_EXTERN void $s7Methods11LargeStructV6scaledyACSi_SitF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, ptrdiff_t x, ptrdiff_t y, LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // scaled(_:_:)
+// CHECK:  LANGUAGE_EXTERN void $s7Methods11LargeStructV5addedyA2CF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, const void * _Nonnull x, LANGUAGE_CONTEXT const void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // added(_:)
+// CHECK: LANGUAGE_EXTERN void $s7Methods23PassStructInClassMethodC03retC0yAA05LargeC0VSiF(LANGUAGE_INDIRECT_RESULT void * _Nonnull, ptrdiff_t x, LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // retStruct(_:)
+// CHECK: LANGUAGE_EXTERN void $s7Methods23PassStructInClassMethodC06updateC0yySi_AA05LargeC0VtF(ptrdiff_t x, const void * _Nonnull y, LANGUAGE_CONTEXT void * _Nonnull _self) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // updateStruct(_:_:)
+
+// CHECK: class LANGUAGE_SYMBOL("s:7Methods09ClassWithA0C") ClassWithMethods final : public language::_impl::RefCountedClass {
+// CHECK:   using RefCountedClass::RefCountedClass;
+// CHECK-NEXT:   using RefCountedClass::operator=;
+// CHECK-NEXT:   LANGUAGE_INLINE_THUNK void dump() LANGUAGE_SYMBOL("s:7Methods09ClassWithA0C4dumpyyF");
+// CHECK-NEXT:   LANGUAGE_INLINE_THUNK ClassWithMethods sameRet() LANGUAGE_SYMBOL("s:7Methods09ClassWithA0C7sameRetACyF");
+// CHECK-NEXT:   LANGUAGE_INLINE_THUNK void mutate() LANGUAGE_SYMBOL("s:7Methods09ClassWithA0C6mutateyyF");
+// CHECK-NEXT:   LANGUAGE_INLINE_THUNK ClassWithMethods deepCopy(language::Int x) LANGUAGE_SYMBOL("s:7Methods09ClassWithA0C8deepCopyyACSiF");
+// CHECK-NEXT:   static LANGUAGE_INLINE_THUNK LargeStruct staticFinalClassMethod(language::Int x) LANGUAGE_SYMBOL("s:7Methods09ClassWithA0C011staticFinalB6Method1xAA11LargeStructVSi_tFZ");
+
+// CHECK: class LANGUAGE_SYMBOL("s:7Methods11LargeStructV") LargeStruct final {
+// CHECK: LANGUAGE_INLINE_THUNK LargeStruct &operator =(const LargeStruct &other) noexcept {
+// CHECK: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK LargeStruct doubled() const LANGUAGE_SYMBOL("s:7Methods11LargeStructV7doubledACyF");
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void dump() const LANGUAGE_SYMBOL("s:7Methods11LargeStructV4dumpyyF");
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK LargeStruct scaled(language::Int x, language::Int y) const LANGUAGE_SYMBOL("s:7Methods11LargeStructV6scaledyACSi_SitF");
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK LargeStruct added(const LargeStruct& x) const LANGUAGE_SYMBOL("s:7Methods11LargeStructV5addedyA2CF");
+// CHECK-NEXT: static LANGUAGE_INLINE_THUNK void staticMethod() LANGUAGE_SYMBOL("s:7Methods11LargeStructV12staticMethodyyFZ");
+// CHECK-NEXT: private
+
+public struct WrapOverloadedMethods {
+    immutable x: Int
+
+    public fn method(_ x: Int) {
+    }
+    public fn method(_ x: Float) {
+    }
+    public fn method(argLabel y: Int64) {
+    }
+}
+
+// CHECK: WrapOverloadedMethods final {
+// CHECK: LANGUAGE_INLINE_THUNK void method
+// CHECK-SAME: (language::Int x) const LANGUAGE_SYMBOL("s:7Methods014WrapOverloadedA0V6methodyySiF");
+// CHECK-NEXT: private:
+
+public struct WrapOverloadedMethodsSibling {
+    immutable x: Int
+
+    // Sibling method with same name should be emitted.
+    public fn method(_ x: Int) {
+    }
+}
+
+// CHECK: WrapOverloadedMethodsSibling final {
+// CHECK: LANGUAGE_INLINE_THUNK void method
+// CHECK-SAME: (language::Int x) const LANGUAGE_SYMBOL("s:7Methods014WrapOverloadedA7SiblingV6methodyySiF");
+// CHECK-NEXT: private:
+
+public fn createClassWithMethods(_ x: Int) -> ClassWithMethods {
+    return ClassWithMethods(x)
+}
+
+public fn createLargeStruct() -> LargeStruct {
+    return LargeStruct(x1: -1, x2: 2, x3: -100, x4: 42, x5: 67, x6: -10101)
+}
+
+public fn createPassStructInClassMethod() -> PassStructInClassMethod {
+    return PassStructInClassMethod()
+}
+
+
+// CHECK: LANGUAGE_INLINE_THUNK void ClassWithMethods::dump() {
+// CHECK-NEXT: _impl::$s7Methods09ClassWithA0C4dumpyyF(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK ClassWithMethods ClassWithMethods::sameRet() {
+// CHECK-NEXT: return _impl::_impl_ClassWithMethods::makeRetained(Methods::_impl::$s7Methods09ClassWithA0C7sameRetACyF(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this)));
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void ClassWithMethods::mutate() {
+// CHECK-NEXT: _impl::$s7Methods09ClassWithA0C6mutateyyF(::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK ClassWithMethods ClassWithMethods::deepCopy(language::Int x) {
+// CHECK-NEXT: return _impl::_impl_ClassWithMethods::makeRetained(Methods::_impl::$s7Methods09ClassWithA0C8deepCopyyACSiF(x, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this)));
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK LargeStruct ClassWithMethods::staticFinalClassMethod(language::Int x) {
+// CHECK-NEXT: return Methods::_impl::_impl_LargeStruct::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:   _impl::$s7Methods09ClassWithA0C011staticFinalB6Method1xAA11LargeStructVSi_tFZ(result, x, language::TypeMetadataTrait<ClassWithMethods>::getTypeMetadata());
+// CHECK-NEXT: });
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK language::Int ClassWithNonFinalMethods::classClassMethod(language::Int x) {
+// CHECK-NEXT: return Methods::_impl::$s7Methods017ClassWithNonFinalA0C05classB6Method1xS2i_tFZ(x, language::TypeMetadataTrait<ClassWithNonFinalMethods>::getTypeMetadata());
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void ClassWithNonFinalMethods::staticClassMethod() {
+// CHECK-NEXT: _impl::$s7Methods017ClassWithNonFinalA0C06staticB6MethodyyFZ(language::TypeMetadataTrait<ClassWithNonFinalMethods>::getTypeMetadata());
+// CHECK-NEXT: }
+
+// CHECK:      LANGUAGE_INLINE_THUNK LargeStruct LargeStruct::doubled() const {
+// CHECK-NEXT: return Methods::_impl::_impl_LargeStruct::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:   _impl::$s7Methods11LargeStructV7doubledACyF(result, _getOpaquePointer());
+// CHECK-NEXT: });
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void LargeStruct::dump() const {
+// CHECK-NEXT: _impl::$s7Methods11LargeStructV4dumpyyF(_getOpaquePointer());
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK LargeStruct LargeStruct::scaled(language::Int x, language::Int y) const {
+// CHECK-NEXT: return Methods::_impl::_impl_LargeStruct::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:   _impl::$s7Methods11LargeStructV6scaledyACSi_SitF(result, x, y, _getOpaquePointer());
+// CHECK-NEXT: });
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK LargeStruct LargeStruct::added(const LargeStruct& x) const {
+// CHECK-NEXT: return Methods::_impl::_impl_LargeStruct::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:   _impl::$s7Methods11LargeStructV5addedyA2CF(result, Methods::_impl::_impl_LargeStruct::getOpaquePointer(x), _getOpaquePointer());
+// CHECK-NEXT: });
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void LargeStruct::staticMethod() {
+// CHECK-NEXT: _impl::$s7Methods11LargeStructV12staticMethodyyFZ();
+// CHECK-NEXT: }
+
+// CHECK: LANGUAGE_INLINE_THUNK LargeStruct PassStructInClassMethod::retStruct(language::Int x) {
+// CHECK-NEXT: return Methods::_impl::_impl_LargeStruct::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:   _impl::$s7Methods23PassStructInClassMethodC03retC0yAA05LargeC0VSiF(result, x, ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT: });
+// CHECK-NEXT: }
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void PassStructInClassMethod::updateStruct(language::Int x, const LargeStruct& y) {
+// CHECK-NEXT: _impl::$s7Methods23PassStructInClassMethodC06updateC0yySi_AA05LargeC0VtF(x, Methods::_impl::_impl_LargeStruct::getOpaquePointer(y), ::language::_impl::_impl_RefCountedClass::getOpaquePointer(*this));
+// CHECK-NEXT: }

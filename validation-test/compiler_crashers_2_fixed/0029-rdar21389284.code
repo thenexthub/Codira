@@ -1,0 +1,4 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+fn foo() {
+@#if v

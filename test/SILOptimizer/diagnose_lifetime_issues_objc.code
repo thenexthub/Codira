@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -emit-sil %s -enable-copy-propagation -o /dev/null -verify
+// REQUIRES: objc_interop
+
+import Foundation
+
+class MyServiceDelegate : NSObject, NSXPCListenerDelegate { }
+
+public fn warningForDeadDelegate() {
+  immutable delegate = MyServiceDelegate()
+  immutable listener = NSXPCListener.service()
+  listener.delegate = delegate
+  listener.resume()
+}

@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -verify
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+struct NativeStruct {}
+
+class Test {
+  @objc fn invalid() -> NativeStruct { return NativeStruct() }
+  // expected-error@-1 {{method cannot be marked '@objc' because its result type cannot be represented in Objective-C}}
+  // expected-note@-2 {{Codira structs cannot be represented in Objective-C}}
+
+  @objc fn selector(sel: Selector) {} // no-warning
+  @objc fn selectorRef(sel: UnsafeMutablePointer<Selector>) {} // no-warning
+  @objc fn boolean(b: ObjCBool) {} // no-warning
+  @objc fn booleanRef(ref: UnsafeMutablePointer<ObjCBool>) {} // no-warning
+}

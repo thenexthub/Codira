@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the BasicBlockData utility
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_BASICBLOCKDATA_H
-#define SWIFT_SIL_BASICBLOCKDATA_H
+#ifndef LANGUAGE_SIL_BASICBLOCKDATA_H
+#define LANGUAGE_SIL_BASICBLOCKDATA_H
 
 #include "language/SIL/SILFunction.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/STLExtras.h"
 
 namespace language {
 
@@ -50,7 +51,7 @@ namespace language {
 template <typename Data, unsigned N = 32>
 class BasicBlockData {
   SILFunction *function;
-  llvm::SmallVector<Data, N> data;
+  toolchain::SmallVector<Data, N> data;
 
   /// The data is valid if validForBlockOrder matches the function's
   /// BlockListChangeIdx.
@@ -124,7 +125,7 @@ public:
   /// The \p init function must return the initial data for a block. If not
   /// provided, all data is constructed with the Data() default constructor.
   BasicBlockData(SILFunction *function,
-                 llvm::function_ref<Data(SILBasicBlock *block)> init =
+                 toolchain::function_ref<Data(SILBasicBlock *block)> init =
                    // Would be nice to simply write constructDefaultData in
                    // closure syntax, but I didn't get it compile under Windows.
                    constructDefaultData) :
@@ -133,7 +134,7 @@ public:
     // blocks it is still better than to risk multiple mallocs.
     data.reserve(function->size());
     bool blockListChanged = false;
-    for (auto blockAndIdx : llvm::enumerate(*function)) {
+    for (auto blockAndIdx : toolchain::enumerate(*function)) {
       SILBasicBlock &block = blockAndIdx.value();
       int idx = blockAndIdx.index();
       if (block.index != idx) {
@@ -206,7 +207,7 @@ public:
   
   /// If \p block is a new block, i.e. created after this BasicBlockData was
   /// constructed, creates a new Data with \p init and returns it.
-  Data &get(SILBasicBlock *block, llvm::function_ref<Data()> init) {
+  Data &get(SILBasicBlock *block, toolchain::function_ref<Data()> init) {
     if (block->index < 0) {
       assert(validForBlockOrder == function->BlockListChangeIdx &&
              "BasicBlockData invalid because the function's block list changed");
@@ -244,6 +245,6 @@ public:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

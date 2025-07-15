@@ -1,0 +1,68 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn j<f: l: e -> e = {
+{
+l) {
+m  }
+}
+protocol k {
+}
+class e: k{  class fn j
+protocol d : b { fn b
+fn d(e:  = { (g: h, f: h -> h) -> h in
+}
+enum S<T> : P {
+fn f<T>() -> T -> T {
+}
+}
+protocol P {
+}
+}
+struct c<d : Sequence> {
+var b:  [c<d>] {
+}
+protocol a {
+}
+class b: a {
+}
+fn f<T : Boolean>(b: T) {
+}
+fn e() {
+}
+}
+protocol c : b { fn b
+otocol A {
+}
+struct  }
+}
+fn c<i>() -> (i, i -> i) -> i {
+k b k.i = {
+}
+{
+i) {
+k  }
+}
+protoch) -> b {
+f) -> j) -> > j {
+}
+}
+protocol h : e { fn e
+fn r(d: t, k: t) -> (((t, t) -> t) -i g {
+}
+struct e<j> : g {
+fn e(
+h s: n -> n = {
+}
+l o: n = { (d: n, o: n -> n) -> n q
+return o(d)
+}

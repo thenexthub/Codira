@@ -1,0 +1,47 @@
+/// Test the loading order of module interfaces between the SDK and the
+/// prebuilt cache. The order should be:
+///
+/// 1. languagemodule in the local cache (not tested here)
+/// 2. languagemodule next to the languageinterface file
+/// 3. If it's a private languageinterface, rebuild the languagemodule from the private languageinterface
+/// 4. languagemodule in the prebuilt-module cache
+/// 5. Rebuild the languagemodule from the languageinterface file and keep in the local cache
+
+/// Create folders for a) our Codira module, b) the module cache, and c) a
+/// fake resource dir with a default prebuilt module cache inside.
+// RUN: %empty-directory(%t/MyModule.codemodule)
+// RUN: %empty-directory(%t/ModuleCache)
+// RUN: %empty-directory(%t/ResourceDir/%target-sdk-name/prebuilt-modules/MyModule.codemodule)
+
+/// Define two sets of public API.
+// RUN: echo 'public fn nextToCodirainterface() {}' > %t/NextToCodirainterface.code
+// RUN: echo 'public fn prebuiltModule() {}' > %t/PrebuiltModule.code
+
+/// Compile this into a module in the SDK.
+// RUN: %target-language-frontend -emit-module %t/NextToCodirainterface.code -o %t/MyModule.codemodule/%target-languagemodule-name -module-name MyModule -parse-stdlib -emit-module-interface-path %t/MyModule.codemodule/%target-languageinterface-name -emit-private-module-interface-path %t/MyModule.codemodule/%target-private-languageinterface-name
+
+/// Also put a module with a different API into the default prebuilt cache under the same name to detect when its picked.
+// RUN: %target-language-frontend -emit-module %t/PrebuiltModule.code -o %t/ResourceDir/%target-sdk-name/prebuilt-modules/MyModule.codemodule/%target-languagemodule-name -module-name MyModule -parse-stdlib
+
+/// Import this module and expect to use the languagemodule next to the languageinterface.
+// RUN: %target-language-frontend -typecheck -resource-dir %t/ResourceDir -I %t %s -parse-stdlib -module-cache-path %t/ModuleCache -sdk %t -D FIRST_NEXT_TO_LANGUAGEINTERFACE
+
+/// Remove the languagemodule next to the languageinterface, the compiler should rebuild from the private languageinterface.
+// RUN: rm %t/MyModule.codemodule/%target-languagemodule-name
+// RUN: %target-language-frontend -typecheck -resource-dir %t/ResourceDir -I %t %s -parse-stdlib -module-cache-path %t/ModuleCache -sdk %t -D FIRST_NEXT_TO_LANGUAGEINTERFACE
+
+/// Remove the private languageinterface and import again to use the prebuilt languagemodule.
+// RUN: rm %t/MyModule.codemodule/%target-private-languageinterface-name
+// RUN: %target-language-frontend -typecheck -resource-dir %t/ResourceDir -I %t %s -parse-stdlib -module-cache-path %t/ModuleCache -sdk %t -D THEN_PREBUILT_MODULE
+
+import MyModule
+
+#if FIRST_NEXT_TO_LANGUAGEINTERFACE
+
+nextToCodirainterface()
+
+#elseif THEN_PREBUILT_MODULE
+
+prebuiltModule()
+
+#endif

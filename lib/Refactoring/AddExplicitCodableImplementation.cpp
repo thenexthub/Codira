@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "RefactoringActions.h"
@@ -51,7 +55,7 @@ class AddCodableContext {
   /// Get the token location where the text should be inserted after.
   SourceLoc getInsertStartLoc() const {
     // Prefer the end of elements.
-    for (auto *member : llvm::reverse(IDC->getParsedMembers())) {
+    for (auto *member : toolchain::reverse(IDC->getParsedMembers())) {
       if (isa<AccessorDecl>(member) || isa<VarDecl>(member)) {
         // These are part of 'PatternBindingDecl' but are hoisted in AST.
         continue;
@@ -76,7 +80,7 @@ class AddCodableContext {
     }
   }
 
-  void printInsertText(llvm::raw_ostream &OS) const {
+  void printInsertText(toolchain::raw_ostream &OS) const {
     auto &ctx = IDC->getDecl()->getASTContext();
 
     PrintOptions Options = PrintOptions::printDeclarations();
@@ -103,7 +107,7 @@ class AddCodableContext {
       auto *enumD = dyn_cast<EnumDecl>(member);
       if (!enumD || !enumD->isSynthesized())
         continue;
-      llvm::SmallVector<ProtocolConformance *, 1> codingKeyConformance;
+      toolchain::SmallVector<ProtocolConformance *, 1> codingKeyConformance;
       if (!enumD->lookupConformance(codingKeyProto, codingKeyConformance))
         continue;
 
@@ -171,7 +175,7 @@ public:
 
   void getInsertion(SourceLoc &insertLoc, std::string &insertText) const {
     insertLoc = getInsertStartLoc();
-    llvm::raw_string_ostream OS(insertText);
+    toolchain::raw_string_ostream OS(insertText);
     printInsertText(OS);
   }
 };

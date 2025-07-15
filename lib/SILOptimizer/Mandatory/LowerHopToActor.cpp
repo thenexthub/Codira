@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "insert-hop-to-executor"
@@ -23,7 +24,7 @@
 #include "language/SILOptimizer/Analysis/DominanceAnalysis.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/ScopedHashTable.h"
+#include "toolchain/ADT/ScopedHashTable.h"
 
 using namespace language;
 
@@ -59,7 +60,7 @@ class LowerHopToActor {
 
   /// A map from an actor value to the dominating instruction that
   /// will derive the executor.
-  llvm::ScopedHashTable<SILValue, SILInstruction *>
+  toolchain::ScopedHashTable<SILValue, SILInstruction *>
       ExecutorDerivationForActor;
 
   /// A multi-map from a dominating {hop_to_|extract_}executor instruction
@@ -219,7 +220,7 @@ SILValue LowerHopToActor::emitGetExecutor(SILBuilderWithScope &B,
   /// Emit the instructions to derive an executor value from an actor value.
   auto getExecutorFor = [&](SILValue actor) -> SILValue {
     // If the actor type is a default actor, go ahead and devirtualize here.
-    auto module = F->getModule().getSwiftModule();
+    auto module = F->getModule().getCodiraModule();
     CanType actorType = actor->getType().getASTType();
 
     // Determine if the actor is a "default actor" in which case we'll build a default
@@ -276,7 +277,7 @@ SILValue LowerHopToActor::emitGetExecutor(SILBuilderWithScope &B,
   if (auto wrappedActor = actorType->getOptionalObjectType()) {
     assert(makeOptional);
 
-    if (B.hasOwnership() && actor->getOwnershipKind() == OwnershipKind::Owned) {
+    if (B.hasOwnership() && actor->getOwnershipKind() != OwnershipKind::Guaranteed) {
       actor = B.createBeginBorrow(loc, actor);
       needEndBorrow = true;
     }
@@ -353,6 +354,6 @@ class LowerHopToActorPass : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createLowerHopToActor() {
+SILTransform *language::createLowerHopToActor() {
   return new LowerHopToActorPass();
 }

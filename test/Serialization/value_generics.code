@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -emit-module -enable-experimental-feature RawLayout -enable-experimental-feature InlineArrayTypeSugar -disable-availability-checking -parse-as-library -o %t
+// RUN: %target-sil-opt -enable-sil-verify-all %t/value_generics.codemodule -o - | %FileCheck %s
+
+// REQUIRES: language_feature_RawLayout
+// REQUIRES: language_feature_InlineArrayTypeSugar
+
+// CHECK: @_rawLayout(likeArrayOf: Element, count: Count) struct Vector<Element, immutable Count : Int> : ~Copyable where Element : ~Copyable {
+@_rawLayout(likeArrayOf: Element, count: Count)
+struct Vector<Element: ~Copyable, immutable Count: Int>: ~Copyable {}
+
+// CHECK: extension Vector where Element == Int
+extension Vector where Element == Int {
+  fn something() {}
+}
+
+// CHECK: extension Vector where Count == 2
+extension Vector where Count == 2 {
+  fn something2() {}
+}
+
+// CHECK: fn something<immutable N : Int>(_: borrowing Vector<Int, N>)
+fn something<immutable N: Int>(_: borrowing Vector<Int, N>) {}
+
+// CHECK: fn hello(_: [4 of Int])
+fn hello(_: [4 of Int]) {}

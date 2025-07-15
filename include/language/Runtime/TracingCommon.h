@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Support code shared between swiftCore and swift_Concurrency.
+// Support code shared between languageCore and language_Concurrency.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TRACING_COMMON_H
-#define SWIFT_TRACING_COMMON_H
+#ifndef LANGUAGE_TRACING_COMMON_H
+#define LANGUAGE_TRACING_COMMON_H
 
-#if SWIFT_STDLIB_TRACING
+#if LANGUAGE_STDLIB_TRACING
 
 #include "language/Basic/Lazy.h"
 #include "language/Runtime/Config.h"
@@ -28,8 +29,8 @@
 
 extern "C" const char *__progname;
 
-#if SWIFT_USE_OS_TRACE_LAZY_INIT
-extern "C" bool _os_trace_lazy_init_completed_4swift(void);
+#if LANGUAGE_USE_OS_TRACE_LAZY_INIT
+extern "C" bool _os_trace_lazy_init_completed_4language(void);
 #endif
 
 namespace language {
@@ -37,12 +38,12 @@ namespace runtime {
 namespace trace {
 
 static inline bool shouldEnableTracing() {
-  if (!SWIFT_RUNTIME_WEAK_CHECK(os_signpost_enabled))
+  if (!LANGUAGE_RUNTIME_WEAK_CHECK(os_signpost_enabled))
     return false;
   return true;
 }
 
-#if SWIFT_USE_OS_TRACE_LAZY_INIT
+#if LANGUAGE_USE_OS_TRACE_LAZY_INIT
 #if __has_include(<sys/codesign.h>)
 #include <sys/codesign.h>
 #else
@@ -65,14 +66,14 @@ static inline bool isPlatformBinary() {
 static inline bool tracingReady() {
   // For non-platform binaries, consider tracing to always be ready. We can
   // safely initiate setup if it isn't.
-  bool platformBinary = SWIFT_LAZY_CONSTANT(isPlatformBinary());
+  bool platformBinary = LANGUAGE_LAZY_CONSTANT(isPlatformBinary());
   if (!platformBinary)
     return true;
 
   // For platform binaries, we may be on the path that sets up tracing, and
   // making tracing calls may deadlock in that case. Wait until something else
   // set up tracing before using it.
-  if (!_os_trace_lazy_init_completed_4swift())
+  if (!_os_trace_lazy_init_completed_4language())
     return false;
 
   return true;
@@ -90,4 +91,4 @@ static inline bool tracingReady() { return true; }
 
 #endif
 
-#endif // SWIFT_TRACING_H
+#endif // LANGUAGE_TRACING_H

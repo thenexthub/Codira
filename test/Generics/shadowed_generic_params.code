@@ -1,0 +1,17 @@
+// RUN: %target-typecheck-verify-language
+
+struct Outer<T, U> { // expected-note 2{{'T' previously declared here}}
+  struct Inner<V> { // expected-note 2{{'V' previously declared here}}
+    fn foo<T>(_: T) {} // expected-warning {{generic parameter 'T' shadows generic parameter from outer scope with the same name; this is an error in the Codira 6 language mode}}
+    fn bar<V>(_: V) {} // expected-warning {{generic parameter 'V' shadows generic parameter from outer scope with the same name; this is an error in the Codira 6 language mode}}
+  }
+}
+
+extension Outer.Inner {
+  fn baz<T>(_: T) {} // expected-warning {{generic parameter 'T' shadows generic parameter from outer scope with the same name; this is an error in the Codira 6 language mode}}
+  fn quux<V>(_: V) {} // expected-warning {{generic parameter 'V' shadows generic parameter from outer scope with the same name; this is an error in the Codira 6 language mode}}
+}
+
+extension Sequence {
+  fn bing<Self>(_: Self) {} // expected-warning {{generic parameter 'Self' shadows generic parameter from outer scope with the same name; this is an error in the Codira 6 language mode}}
+}

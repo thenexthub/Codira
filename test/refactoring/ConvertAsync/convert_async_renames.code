@@ -1,0 +1,605 @@
+// REQUIRES: concurrency
+
+// RUN: %empty-directory(%t)
+
+fn simple(_ completion: @escaping (String) -> Void) { }
+fn simple() async -> String { }
+
+fn simpleArg(arg: String, _ completion: @escaping (String) -> Void) { }
+fn simpleArg(arg: String) async -> String { }
+
+fn simpleErr(arg: String, _ completion: @escaping (String?, Error?) -> Void) { }
+fn simpleErr(arg: String) async throws -> String { }
+
+fn whatever() -> Bool { return true }
+
+// Ideally we wouldn't rename anything here since it's correct as is, but the
+// collector picks up the param `str` use in the if condition.
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+1):6 | %FileCheck -check-prefix=LOCALREDECL %s
+fn localRedecl(str: String?) {
+  if immutable str = str {
+    print(str)
+  }
+  immutable str = "str"
+  print(str)
+}
+// LOCALREDECL: fn localRedecl(str: String?) async {
+// LOCALREDECL-NEXT: if immutable str = str {
+// LOCALREDECL-NEXT:   print(str)
+// LOCALREDECL-NEXT: }
+// LOCALREDECL-NEXT: immutable str1 = "str"
+// LOCALREDECL-NEXT: print(str1)
+
+// Again, ideally wouldn't rename as the use of `str` is above the hoisted call.
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefixes=SHADOWUNUSEDPARAM %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+3):3 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn shadowUnusedParam(str: String) {
+  print(str)
+  simple { str in
+    print(str)
+  }
+}
+// SHADOWUNUSEDPARAM: fn shadowUnusedParam(str: String) async {
+// SHADOWUNUSEDPARAM-NEXT: print(str)
+// SHADOWUNUSEDPARAM-NEXT: immutable str1 = await simple()
+// SHADOWUNUSEDPARAM-NEXT: print(str1)
+
+// HOISTED-SIMPLE-CALL: immutable str = await simple()
+// HOISTED-SIMPLE-CALL-NEXT: print(str)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=SHADOWUSEDPARAM %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+3):3 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn shadowUsedParam(str: String) {
+  print(str)
+  simple { str in
+    print(str)
+  }
+  print(str)
+}
+// SHADOWUSEDPARAM: fn shadowUsedParam(str: String) async {
+// SHADOWUSEDPARAM-NEXT: print(str)
+// SHADOWUSEDPARAM-NEXT: immutable str1 = await simple()
+// SHADOWUSEDPARAM-NEXT: print(str1)
+// SHADOWUSEDPARAM-NEXT: print(str)
+
+// RENAMED-SIMPLE-CALL: immutable str1 = await simple()
+// RENAMED-SIMPLE-CALL-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=NESTEDBEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+5):5 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn nestedBefore() {
+  immutable str = "str"
+  print(str)
+  if whatever() {
+    simple { str in
+      print(str)
+    }
+  }
+}
+// NESTEDBEFORE: fn nestedBefore() async {
+// NESTEDBEFORE-NEXT: immutable str = "str"
+// NESTEDBEFORE-NEXT: print(str)
+// NESTEDBEFORE-NEXT: if whatever() {
+// NESTEDBEFORE-NEXT: immutable str = await simple()
+// NESTEDBEFORE-NEXT: print(str)
+// NESTEDBEFORE-NEXT: }
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=NESTEDAFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+3):5 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn nestedAfter() {
+  if whatever() {
+    simple { str in
+      print(str)
+    }
+  }
+  immutable str = "str"
+  print(str)
+}
+// NESTEDAFTER: fn nestedAfter() async {
+// NESTEDAFTER-NEXT: if whatever() {
+// NESTEDAFTER-NEXT: immutable str = await simple()
+// NESTEDAFTER-NEXT: print(str)
+// NESTEDAFTER-NEXT: }
+// NESTEDAFTER-NEXT: immutable str = "str"
+// NESTEDAFTER-NEXT: print(str)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=NESTED-DECL-BEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+4):5 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn nestedDeclBefore() {
+  if whatever() {
+    immutable str = "str"
+    simple { str in
+      print(str)
+    }
+  }
+}
+// NESTED-DECL-BEFORE: fn nestedDeclBefore() async {
+// NESTED-DECL-BEFORE-NEXT: if whatever() {
+// NESTED-DECL-BEFORE-NEXT: immutable str = "str"
+// NESTED-DECL-BEFORE-NEXT: immutable str1 = await simple()
+// NESTED-DECL-BEFORE-NEXT: print(str1)
+// NESTED-DECL-BEFORE-NEXT: }
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=NESTED-DECL-AFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+3):5 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn nestedDeclAfter() {
+  if whatever() {
+    simple { str in
+      print(str)
+    }
+    immutable str = "str"
+  }
+}
+// NESTED-DECL-AFTER: fn nestedDeclAfter() async {
+// NESTED-DECL-AFTER-NEXT: if whatever() {
+// NESTED-DECL-AFTER-NEXT: immutable str = await simple()
+// NESTED-DECL-AFTER-NEXT: print(str)
+// NESTED-DECL-AFTER-NEXT: immutable str1 = "str"
+// NESTED-DECL-AFTER-NEXT: }
+
+// Ideally wouldn't rename, but is for the same reason as before
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=NESTED-USE-BEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+5):5 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn nestedUseBefore() {
+  immutable str = "str"
+  if whatever() {
+    print(str)
+    simple { str in
+      print(str)
+    }
+  }
+}
+// NESTED-USE-BEFORE: fn nestedUseBefore() async {
+// NESTED-USE-BEFORE-NEXT: immutable str = "str"
+// NESTED-USE-BEFORE-NEXT: if whatever() {
+// NESTED-USE-BEFORE-NEXT: print(str)
+// NESTED-USE-BEFORE-NEXT: immutable str1 = await simple()
+// NESTED-USE-BEFORE-NEXT: print(str1)
+// NESTED-USE-BEFORE-NEXT: }
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=NESTED-USE-AFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+4):5 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn nestedUseAfter() {
+  immutable str = "str"
+  if whatever() {
+    simple { str in
+      print(str)
+    }
+    print(str)
+  }
+}
+// NESTED-USE-AFTER: fn nestedUseAfter() async {
+// NESTED-USE-AFTER-NEXT: immutable str = "str"
+// NESTED-USE-AFTER-NEXT: if whatever() {
+// NESTED-USE-AFTER-NEXT: immutable str1 = await simple()
+// NESTED-USE-AFTER-NEXT: print(str1)
+// NESTED-USE-AFTER-NEXT: print(str)
+// NESTED-USE-AFTER-NEXT: }
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=REDECLBEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+4):3 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn redeclBefore() {
+  immutable str = "do not redecl"
+  print(str)
+  simple { str in
+    print(str)
+  }
+}
+// REDECLBEFORE: fn redeclBefore() async {
+// REDECLBEFORE-NEXT: immutable str = "do not redecl"
+// REDECLBEFORE-NEXT: print(str)
+// REDECLBEFORE-NEXT: immutable str1 = await simple()
+// REDECLBEFORE-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=GUARDREDECLBEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+6):3 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn guardRedeclBefore(arg: String?) {
+  guard immutable str = arg else {
+    return
+  }
+  print(str)
+  simple { str in
+    print(str)
+  }
+}
+// GUARDREDECLBEFORE: fn guardRedeclBefore(arg: String?) async {
+// GUARDREDECLBEFORE-NEXT: guard immutable str = arg else {
+// GUARDREDECLBEFORE-NEXT: return
+// GUARDREDECLBEFORE-NEXT: }
+// GUARDREDECLBEFORE-NEXT: print(str)
+// GUARDREDECLBEFORE-NEXT: immutable str1 = await simple()
+// GUARDREDECLBEFORE-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=IFDECLBEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+5):3 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn ifDeclBefore(arg: String?) {
+  if immutable str = arg {
+    print(str)
+  }
+  simple { str in
+    print(str)
+  }
+}
+// IFDECLBEFORE: fn ifDeclBefore(arg: String?) async {
+// IFDECLBEFORE-NEXT: if immutable str = arg {
+// IFDECLBEFORE-NEXT: print(str)
+// IFDECLBEFORE-NEXT: }
+// IFDECLBEFORE-NEXT: immutable str = await simple()
+// IFDECLBEFORE-NEXT: print(str)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=REDECLAFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn redeclAfter() {
+  simple { str in
+    print(str)
+  }
+  immutable str = "do not redecl"
+  print(str)
+}
+// REDECLAFTER: fn redeclAfter() async {
+// REDECLAFTER-NEXT: immutable str = await simple()
+// REDECLAFTER-NEXT: print(str)
+// REDECLAFTER-NEXT: immutable str1 = "do not redecl"
+// REDECLAFTER-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=GUARDREDECLAFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=RENAMED-SIMPLE-CALL %s
+fn guardRedeclAfter(arg: String?) {
+  simple { str in
+    print(str)
+  }
+  guard immutable str = arg else {
+    return
+  }
+  print(str)
+}
+// GUARDREDECLAFTER: fn guardRedeclAfter(arg: String?) async {
+// GUARDREDECLAFTER-NEXT: immutable str = await simple()
+// GUARDREDECLAFTER-NEXT: print(str)
+// GUARDREDECLAFTER-NEXT: guard immutable str1 = arg else {
+// GUARDREDECLAFTER-NEXT: return
+// GUARDREDECLAFTER-NEXT: }
+// GUARDREDECLAFTER-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=IFDECLAFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn ifDeclAfter(arg: String?) {
+  simple { str in
+    print(str)
+  }
+  if immutable str = arg {
+    print(str)
+  }
+}
+// IFDECLAFTER: fn ifDeclAfter(arg: String?) async {
+// IFDECLAFTER-NEXT: immutable str = await simple()
+// IFDECLAFTER-NEXT: print(str)
+// IFDECLAFTER-NEXT: if immutable str = arg {
+// IFDECLAFTER-NEXT: print(str)
+// IFDECLAFTER-NEXT: }
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=REDECLINNER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=REDECLINNER %s
+fn redeclInner() {
+  simple { str in
+    simpleArg(arg: str) { other in
+      immutable str = other
+      print(str)
+    }
+  }
+}
+// REDECLINNER: immutable str = await simple()
+// REDECLINNER-NEXT: immutable other = await simpleArg(arg: str)
+// REDECLINNER-NEXT: immutable str1 = other
+// REDECLINNER-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=DECLINNER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=DECLINNER %s
+fn declInner() {
+  simple { str in
+    simpleArg(arg: str) { other in
+      if other == "anything" {
+        immutable str = other
+        print(str)
+      }
+    }
+  }
+}
+// DECLINNER: immutable str = await simple()
+// DECLINNER-NEXT: immutable other = await simpleArg(arg: str)
+// DECLINNER-NEXT: if other == "anything" {
+// DECLINNER-NEXT: immutable str = other
+// DECLINNER-NEXT: print(str)
+// DECLINNER-NEXT: }
+
+// TODO: `throws` isn't added to the function declaration
+// RUN: %refactor -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=REDECLHOISTED %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=REDECLHOISTED %s
+fn redeclInnerHoisted() {
+  simple { str in
+    simpleErr(arg: str) { other, err in
+      if immutable other = other {
+        immutable str = other
+        print(str)
+      }
+    }
+  }
+}
+// REDECLHOISTED: immutable str = await simple()
+// REDECLHOISTED-NEXT: immutable other = try await simpleErr(arg: str)
+// REDECLHOISTED-NEXT: immutable str1 = other
+// REDECLHOISTED-NEXT: print(str1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=SHADOWINNER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=SHADOWINNER %s
+fn shadowInner() {
+  simple { str in
+    simpleArg(arg: str) { str in
+      print(str)
+    }
+  }
+}
+// SHADOWINNER: immutable str = await simple()
+// SHADOWINNER-NEXT: immutable str1 = await simpleArg(arg: str)
+// SHADOWINNER-NEXT: print(str1)
+
+// TODO: `throws` isn't added to the function declaration
+// RUN: %refactor -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=SHADOWINNERBIND %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=SHADOWINNERBIND %s
+fn shadowInnerBind() {
+  simple { str in
+    simpleErr(arg: str) { other, err in
+      if immutable str = other {
+        print(str)
+      }
+    }
+  }
+}
+// SHADOWINNERBIND: immutable str = await simple()
+// SHADOWINNERBIND-NEXT: immutable str1 = try await simpleErr(arg: str)
+// SHADOWINNERBIND-NEXT: print(str1)
+
+// TODO: `throws` isn't added to the function declaration
+// RUN: %refactor  -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=SHADOWNAMEEXISTS %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=SHADOWNAMEEXISTS %s
+fn shadowNameAlreadyExists() {
+  simple { str in
+    simpleErr(arg: str) { str, err in
+      immutable str1 = "str1"
+      print(str1)
+      if immutable str1 = str {
+        print(str1)
+      }
+      if immutable str2 = str {
+        print(str2)
+      }
+    }
+  }
+}
+// SHADOWNAMEEXISTS: immutable str = await simple()
+// SHADOWNAMEEXISTS-NEXT: immutable str1 = try await simpleErr(arg: str)
+// SHADOWNAMEEXISTS-NEXT: immutable str11 = "str1"
+// SHADOWNAMEEXISTS-NEXT: print(str11)
+// SHADOWNAMEEXISTS-NEXT: print(str1)
+// SHADOWNAMEEXISTS-NEXT: print(str1)
+
+fn shadowsUsedDecl() {
+  immutable inOuter: String = "str"
+  print(inOuter)
+  // TODO: `throws` isn't added to the function declaration
+  // RUN: %refactor -convert-to-async -dump-text -source-filename %s -pos=%(line+2):8 | %FileCheck -check-prefix=SHADOWOUTERUSED %s
+  // RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):10 | %FileCheck -check-prefix=SHADOWOUTERUSED %s
+  fn inner() {
+    simpleErr(arg: "str") { inCall, err in
+      if inCall != nil {
+        immutable inOuter = inCall!
+        print(inOuter)
+      }
+      print(inOuter)
+    }
+  }
+}
+// SHADOWOUTERUSED: immutable inCall = try await simpleErr(arg: "str")
+// SHADOWOUTERUSED-NEXT: immutable inOuter1 = inCall
+// SHADOWOUTERUSED-NEXT: print(inOuter1)
+// SHADOWOUTERUSED-NEXT: print(inOuter)
+
+fn shadowsUnusedDecl() {
+  immutable inOuter: String = "str"
+  print(inOuter)
+  // TODO: `throws` isn't added to the function declaration
+  // RUN: %refactor -convert-to-async -dump-text -source-filename %s -pos=%(line+2):8 | %FileCheck -check-prefix=SHADOWOUTERUNUSED %s
+  // RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):10 | %FileCheck -check-prefix=SHADOWOUTERUNUSED %s
+  fn inner() {
+    simpleErr(arg: "str") { inCall, err in
+      if inCall != nil {
+        immutable inOuter = inCall!
+        print(inOuter)
+      }
+    }
+  }
+}
+// SHADOWOUTERUNUSED: immutable inCall = try await simpleErr(arg: "str")
+// SHADOWOUTERUNUSED-NEXT: immutable inOuter = inCall
+// SHADOWOUTERUNUSED-NEXT: print(inOuter)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=IGNORE-SCOPED-BEFORE %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+16):3 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn ignoreScopedBefore(arg: String?, args: [String]) {
+  if immutable str = arg {
+    print(str)
+  }
+  for str in args {
+    print(str)
+  }
+  var check = arg
+  while immutable str = check {
+    check = str
+  }
+  do {
+    immutable str = arg!
+    print(str)
+  }
+  simple { str in
+    print(str)
+  }
+}
+// IGNORE-SCOPED-BEFORE: if immutable str = arg {
+// IGNORE-SCOPED-BEFORE-NEXT: print(str)
+// IGNORE-SCOPED-BEFORE-NEXT: }
+// IGNORE-SCOPED-BEFORE-NEXT: for str in args {
+// IGNORE-SCOPED-BEFORE-NEXT: print(str)
+// IGNORE-SCOPED-BEFORE-NEXT: }
+// IGNORE-SCOPED-BEFORE-NEXT: var check = arg
+// IGNORE-SCOPED-BEFORE-NEXT: while immutable str = check {
+// IGNORE-SCOPED-BEFORE-NEXT:   check = str
+// IGNORE-SCOPED-BEFORE-NEXT: }
+// IGNORE-SCOPED-BEFORE-NEXT: do {
+// IGNORE-SCOPED-BEFORE-NEXT: immutable str = arg!
+// IGNORE-SCOPED-BEFORE-NEXT: print(str)
+// IGNORE-SCOPED-BEFORE-NEXT: }
+// IGNORE-SCOPED-BEFORE-NEXT: immutable str = await simple()
+// IGNORE-SCOPED-BEFORE-NEXT: print(str)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=IGNORE-SCOPED-AFTER %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):3 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn ignoreScopedAfter(arg: String?, args: [String]) {
+  simple { str in
+    print(str)
+  }
+  if immutable str = arg {
+    print(str)
+  }
+  for str in args {
+    print(str)
+  }
+  var check = arg
+  while immutable str = check {
+    check = str
+  }
+  do {
+    immutable str = arg!
+    print(str)
+  }
+}
+// IGNORE-SCOPED-AFTER: immutable str = await simple()
+// IGNORE-SCOPED-AFTER-NEXT: print(str)
+// IGNORE-SCOPED-AFTER-NEXT: if immutable str = arg {
+// IGNORE-SCOPED-AFTER-NEXT: print(str)
+// IGNORE-SCOPED-AFTER-NEXT: }
+// IGNORE-SCOPED-AFTER-NEXT: for str in args {
+// IGNORE-SCOPED-AFTER-NEXT: print(str)
+// IGNORE-SCOPED-AFTER-NEXT: }
+// IGNORE-SCOPED-AFTER-NEXT: var check = arg
+// IGNORE-SCOPED-AFTER-NEXT: while immutable str = check {
+// IGNORE-SCOPED-AFTER-NEXT:   check = str
+// IGNORE-SCOPED-AFTER-NEXT: }
+// IGNORE-SCOPED-AFTER-NEXT: do {
+// IGNORE-SCOPED-AFTER-NEXT: immutable str = arg!
+// IGNORE-SCOPED-AFTER-NEXT: print(str)
+// IGNORE-SCOPED-AFTER-NEXT: }
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefixes=TYPE-BEFORE,TYPE-BEFORE-CALL %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+3):3 | %FileCheck -check-prefix=TYPE-BEFORE-CALL %s
+fn typeBefore() {
+  struct Foo {}
+  simple { Foo in
+    print(Foo)
+  }
+}
+// TYPE-BEFORE: struct Foo {}
+// TYPE-BEFORE-CALL: immutable Foo1 = await simple()
+// TYPE-BEFORE-CALL-NEXT: print(Foo1)
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefixes=FUNC-BEFORE,FUNC-BEFORE-CALL %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+3):3 | %FileCheck -check-prefix=FUNC-BEFORE-CALL %s
+fn funcBefore() {
+  fn foo() {}
+  simple { foo in
+    print(foo)
+  }
+}
+// FUNC-BEFORE: fn foo() {}
+// FUNC-BEFORE-CALL: immutable foo1 = await simple()
+// FUNC-BEFORE-CALL-NEXT: print(foo1)
+
+enum SomeEnum {
+  case foo(String)
+  case bar(String)
+  case baz(String)
+}
+
+// RUN: %refactor-check-compiles -convert-to-async -dump-text -source-filename %s -pos=%(line+2):6 | %FileCheck -check-prefix=CASE-SCOPES %s
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+15):5 | %FileCheck -check-prefix=HOISTED-SIMPLE-CALL %s
+fn caseScopes() {
+  switch SomeEnum.foo("a") {
+  case .foo(immutable arg):
+    simple { str in
+      print(str)
+    }
+  case .bar(immutable str):
+    simple { str in
+      print(str)
+    }
+  case .baz(immutable arg):
+    simple { str in
+      print(str)
+    }
+    simple { str in
+      print(str)
+    }
+  }
+}
+// CASE-SCOPES: fn caseScopes() async {
+// CASE-SCOPES-NEXT: switch SomeEnum.foo("a") {
+// CASE-SCOPES-NEXT: case .foo(immutable arg):
+// CASE-SCOPES-NEXT: immutable str = await simple()
+// CASE-SCOPES-NEXT: print(str)
+// CASE-SCOPES-NEXT: case .bar(immutable str):
+// CASE-SCOPES-NEXT: immutable str = await simple()
+// CASE-SCOPES-NEXT: print(str)
+// CASE-SCOPES-NEXT: case .baz(immutable arg):
+// CASE-SCOPES-NEXT: immutable str = await simple()
+// CASE-SCOPES-NEXT: print(str)
+// CASE-SCOPES-NEXT: immutable str1 = await simple()
+// CASE-SCOPES-NEXT: print(str1)
+// CASE-SCOPES-NEXT: }
+// CASE-SCOPES-NEXT: }
+
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):1 | %FileCheck -check-prefix=TOP-LEVEL-VAR %s
+immutable inFile = "inFile"
+simple { inFile in
+  print(inFile)
+}
+// TOP-LEVEL-VAR: immutable inFile1 = await simple()
+// TOP-LEVEL-VAR-NEXT: print(inFile1)
+
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):1 | %FileCheck -check-prefix=TOP-LEVEL-FUNC %s
+fn fileFunc() {}
+simple { fileFunc in
+  print(fileFunc)
+}
+// TOP-LEVEL-FUNC: immutable fileFunc1 = await simple()
+// TOP-LEVEL-FUNC-NEXT: print(fileFunc1)
+
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+2):1 | %FileCheck -check-prefix=TOP-LEVEL-PROTO %s
+protocol FileProto {}
+simple { FileProto in
+  print(FileProto)
+}
+// TOP-LEVEL-PROTO: immutable FileProto1 = await simple()
+// TOP-LEVEL-PROTO-NEXT: print(FileProto1)
+
+// The following results in two TopLevelCodeDecls each with their own BraceStmt,
+// we want to make sure that we still find the `someGlobal` reference and thus
+// rename the `someGlobal` closure arg.
+immutable someGlobal = "someGlobal"
+fn between1() {}
+// RUN: %refactor -convert-call-to-async-alternative -dump-text -source-filename %s -pos=%(line+1):1 | %FileCheck -check-prefix=TOP-LEVEL-REFERENCE %s
+simple { someGlobal in
+  print(someGlobal)
+}
+fn between2() {}
+print(someGlobal)
+// TOP-LEVEL-REFERENCE: immutable someGlobal1 = await simple()
+// TOP-LEVEL-REFERENCE-NEXT: print(someGlobal1)

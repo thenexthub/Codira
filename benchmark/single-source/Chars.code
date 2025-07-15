@@ -1,4 +1,4 @@
-//===--- Chars.swift ------------------------------------------------------===//
+//===--- Chars.code ------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test tests the performance of ASCII Character comparison.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Chars2",
     runFunction: run_Chars,
@@ -24,7 +25,7 @@ public let benchmarks =
     setUpFunction: { blackHole(alphabetInput) },
     legacyFactor: 50)
 
-let alphabetInput: [Character] = [
+immutable alphabetInput: [Character] = [
     "A", "B", "C", "D", "E", "F", "G",
     "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R",
     "S", "T", "U",
@@ -34,9 +35,9 @@ let alphabetInput: [Character] = [
     ]
 
 @inline(never)
-public func run_Chars(_ n: Int) {
+public fn run_Chars(_ n: Int) {
   // Permute some characters.
-  let alphabet: [Character] = alphabetInput
+  immutable alphabet: [Character] = alphabetInput
 
   for _ in 0..<n {
     for firstChar in alphabet {

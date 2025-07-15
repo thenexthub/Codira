@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_ARGUMENTSCOPE_H
-#define SWIFT_SILGEN_ARGUMENTSCOPE_H
+#ifndef LANGUAGE_SILGEN_ARGUMENTSCOPE_H
+#define LANGUAGE_SILGEN_ARGUMENTSCOPE_H
 
 #include "FormalEvaluation.h"
 #include "SILGenFunction.h"
@@ -41,7 +42,7 @@ public:
 
   ~ArgumentScope() {
     if (normalScope.isValid() || !formalEvalScope.isPopped()) {
-      llvm_unreachable("ArgumentScope that wasn't popped?!");
+      toolchain_unreachable("ArgumentScope that wasn't popped?!");
     }
   }
 

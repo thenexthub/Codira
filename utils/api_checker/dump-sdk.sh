@@ -13,7 +13,7 @@ XCTestMac="$MacSDKPath/../../Library/Frameworks/"
 XCTestIphone="$IphoneOSSDKPath/../../Library/Frameworks/"
 XCTestTV="$AppleTVOSSDKPath/../../Library/Frameworks/"
 
-BASEDIR="$DIR/../../swift-sdk-digests/"
+BASEDIR="$DIR/../../language-sdk-digests/"
 
 mkdir -p "${BASEDIR}"
 
@@ -23,8 +23,8 @@ mkdir "/tmp/SDKDump"
 
 XCODE_VER=$(xcodebuild -version | sed '1d' | sed 's/Build version //g')
 
-SWIFT_VER=${SWIFT_VER-3}
-echo "SWIFT VERSION: ${SWIFT_VER}"
+LANGUAGE_VER=${LANGUAGE_VER-3}
+echo "LANGUAGE VERSION: ${LANGUAGE_VER}"
 
 function sdk_info() {
   echo "Xcode Build: $XCODE_VER"
@@ -36,14 +36,14 @@ function sdk_info() {
 
 sdk_info
 
-XCODE_VER=-base-$SWIFT_VER
+XCODE_VER=-base-$LANGUAGE_VER
 
 if [[ -z "$MODULE" ]]; then
-  $SWIFT_API_DIGESTER -target x86_64-apple-macosx10.15 -o "$BASEDIR/macos$XCODE_VER.json" -dump-sdk -sdk "$MacSDKPath" -module-list-file "/tmp/modules-osx.txt" -F "$XCTestMac" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target arm64-apple-ios13.5 -o "$BASEDIR/ios$XCODE_VER.json" -dump-sdk -sdk "$IphoneOSSDKPath" -module-list-file "/tmp/modules-iphoneos.txt" -F "$XCTestIphone" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target arm64-apple-tvos13.4 -o "$BASEDIR/tvos$XCODE_VER.json" -dump-sdk -sdk "$AppleTVOSSDKPath" -module-list-file "/tmp/modules-tvos.txt" -F "$XCTestTV" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target armv7k-apple-watchos6.2 -o "$BASEDIR/watchos$XCODE_VER.json" -dump-sdk -sdk "$WatchOSSDKPath" -module-list-file "/tmp/modules-watchos.txt" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target x86_64-apple-macosx10.15 -o "$BASEDIR/macos-stdlib$XCODE_VER.json" -dump-sdk -sdk "$MacSDKPath" -module Swift -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
+  $LANGUAGE_API_DIGESTER -target x86_64-apple-macosx10.15 -o "$BASEDIR/macos$XCODE_VER.json" -dump-sdk -sdk "$MacSDKPath" -module-list-file "/tmp/modules-osx.txt" -F "$XCTestMac" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target arm64-apple-ios13.5 -o "$BASEDIR/ios$XCODE_VER.json" -dump-sdk -sdk "$IphoneOSSDKPath" -module-list-file "/tmp/modules-iphoneos.txt" -F "$XCTestIphone" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target arm64-apple-tvos13.4 -o "$BASEDIR/tvos$XCODE_VER.json" -dump-sdk -sdk "$AppleTVOSSDKPath" -module-list-file "/tmp/modules-tvos.txt" -F "$XCTestTV" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target armv7k-apple-watchos6.2 -o "$BASEDIR/watchos$XCODE_VER.json" -dump-sdk -sdk "$WatchOSSDKPath" -module-list-file "/tmp/modules-watchos.txt" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target x86_64-apple-macosx10.15 -o "$BASEDIR/macos-stdlib$XCODE_VER.json" -dump-sdk -sdk "$MacSDKPath" -module Codira -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
 else
   ALL_MODULE_DIR="$BASEDIR/Xcode$XCODE_VER"
   rm -rf "$ALL_MODULE_DIR"
@@ -57,9 +57,9 @@ else
   MODULE_DIR="$ALL_MODULE_DIR/$MODULE"
   rm -rf "$MODULE_DIR"
   mkdir "$MODULE_DIR"
-  $SWIFT_API_DIGESTER -target x86_64-apple-macosx10.15 -o "$MODULE_DIR/macos.json" -dump-sdk -sdk "$MacSDKPath" -module "$MODULE" -F "$XCTestMac" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target arm64-apple-ios13.5 -o "$MODULE_DIR/ios.json" -dump-sdk -sdk "$IphoneOSSDKPath" -module "$MODULE" -F "$XCTestIphone" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target arm64-apple-tvos13.4 -o "$MODULE_DIR/tvos.json" -dump-sdk -sdk "$AppleTVOSSDKPath" -module "$MODULE" -F "$XCTestTV" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
-  $SWIFT_API_DIGESTER -target armv7k-apple-watchos6.2 -o "$MODULE_DIR/watchos.json" -dump-sdk -sdk "$WatchOSSDKPath" -module "$MODULE" -module-cache-path "$DumpDir/ModuleCache" -swift-version $SWIFT_VER
+  $LANGUAGE_API_DIGESTER -target x86_64-apple-macosx10.15 -o "$MODULE_DIR/macos.json" -dump-sdk -sdk "$MacSDKPath" -module "$MODULE" -F "$XCTestMac" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target arm64-apple-ios13.5 -o "$MODULE_DIR/ios.json" -dump-sdk -sdk "$IphoneOSSDKPath" -module "$MODULE" -F "$XCTestIphone" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target arm64-apple-tvos13.4 -o "$MODULE_DIR/tvos.json" -dump-sdk -sdk "$AppleTVOSSDKPath" -module "$MODULE" -F "$XCTestTV" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
+  $LANGUAGE_API_DIGESTER -target armv7k-apple-watchos6.2 -o "$MODULE_DIR/watchos.json" -dump-sdk -sdk "$WatchOSSDKPath" -module "$MODULE" -module-cache-path "$DumpDir/ModuleCache" -language-version $LANGUAGE_VER
   done
 fi

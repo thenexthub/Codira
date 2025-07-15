@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_SYNTAX_MODEL_H
-#define SWIFT_IDE_SYNTAX_MODEL_H
+#ifndef LANGUAGE_IDE_SYNTAX_MODEL_H
+#define LANGUAGE_IDE_SYNTAX_MODEL_H
 
 #include "language/AST/Attr.h"
 #include "language/Basic/SourceLoc.h"
@@ -207,5 +208,5 @@ public:
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_SYNTAX_MODEL_H
+#endif // LANGUAGE_IDE_SYNTAX_MODEL_H
 

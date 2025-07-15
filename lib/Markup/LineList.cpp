@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/RawComment.h"
@@ -23,7 +24,7 @@ using namespace markup;
 
 std::string LineList::str() const {
   std::string Result;
-  llvm::raw_string_ostream Stream(Result);
+  toolchain::raw_string_ostream Stream(Result);
   if (Lines.empty())
     return "";
 
@@ -46,15 +47,15 @@ std::string LineList::str() const {
   return Result;
 }
 
-size_t swift::markup::measureIndentation(StringRef Text) {
-  static constexpr llvm::StringLiteral IndentChars(" \v\f\t");
+size_t language::markup::measureIndentation(StringRef Text) {
+  static constexpr toolchain::StringLiteral IndentChars(" \v\f\t");
   size_t FirstNonIndentPos = Text.find_first_not_of(IndentChars);
   if (FirstNonIndentPos == StringRef::npos)
     return Text.size();
   return FirstNonIndentPos;
 }
 
-void LineListBuilder::addLine(llvm::StringRef Text, swift::SourceRange Range) {
+void LineListBuilder::addLine(toolchain::StringRef Text, language::SourceRange Range) {
   Lines.push_back({Text, Range});
 }
 
@@ -78,7 +79,7 @@ static unsigned measureASCIIArt(StringRef S, unsigned NumLeadingSpaces) {
   return 0;
 }
 
-LineList MarkupContext::getLineList(swift::RawComment RC) {
+LineList MarkupContext::getLineList(language::RawComment RC) {
   LineListBuilder Builder(*this);
 
   for (const auto &C : RC.Comments) {
@@ -104,13 +105,13 @@ LineList MarkupContext::getLineList(swift::RawComment RC) {
       else if (Cleaned.ends_with("/"))
         Cleaned = Cleaned.drop_back(1);
 
-      swift::SourceLoc CleanedStartLoc =
+      language::SourceLoc CleanedStartLoc =
           C.Range.getStart().getAdvancedLocOrInvalid(CommentMarkerBytes);
 
       // Determine if we have leading decorations in this block comment.
       bool HasASCIIArt = false;
-      if (swift::startsWithNewline(Cleaned)) {
-        unsigned NewlineBytes = swift::measureNewline(Cleaned);
+      if (language::startsWithNewline(Cleaned)) {
+        unsigned NewlineBytes = language::measureNewline(Cleaned);
         Cleaned = Cleaned.drop_front(NewlineBytes);
         CleanedStartLoc = CleanedStartLoc.getAdvancedLocOrInvalid(NewlineBytes);
         HasASCIIArt = measureASCIIArt(Cleaned, C.ColumnIndent - 1) != 0;
@@ -137,7 +138,7 @@ LineList MarkupContext::getLineList(swift::RawComment RC) {
         Builder.addLine(Line, { CleanedStartLoc, CleanedEndLoc });
 
         Cleaned = Cleaned.drop_front(Pos);
-        unsigned NewlineBytes = swift::measureNewline(Cleaned);
+        unsigned NewlineBytes = language::measureNewline(Cleaned);
         Cleaned = Cleaned.drop_front(NewlineBytes);
         Pos += NewlineBytes;
         CleanedStartLoc = CleanedStartLoc.getAdvancedLocOrInvalid(Pos);

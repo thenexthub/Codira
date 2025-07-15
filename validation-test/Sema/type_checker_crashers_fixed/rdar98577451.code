@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-swift -disable-availability-checking
+
+protocol P {
+  associatedtype T
+  fn f() -> T
+}
+
+struct S: P {
+  fn f() -> some Any { return 3 }
+}
+
+struct G<T> {
+  typealias Foo = (T?, S.T)
+}
+
+fn f<T>(t: T) -> G<T>.Foo {
+  return (t, S().f()) // Ok
+}

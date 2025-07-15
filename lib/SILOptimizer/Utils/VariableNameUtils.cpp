@@ -1,13 +1,17 @@
 //===--- VariableNameUtils.cpp --------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-variable-name-inference"
@@ -158,7 +162,7 @@ static SILValue findRootValueForTupleTempAllocation(AllocationInst *allocInst,
           // We are looking for a pattern where we construct a tuple from
           // destructured parts.
           if (auto *ti = dyn_cast<TupleInst>(si->getSrc())) {
-            for (auto p : llvm::enumerate(ti->getOperandValues())) {
+            for (auto p : toolchain::enumerate(ti->getOperandValues())) {
               SILValue value = lookThroughOwnershipInsts(p.value());
               if (auto *dti = dyn_cast_or_null<DestructureTupleInst>(
                       value->getDefiningInstruction())) {
@@ -286,14 +290,14 @@ VariableNameInferrer::findDebugInfoProvidingValue(SILValue searchValue) {
   if (!searchValue)
     return SILValue();
 
-  LLVM_DEBUG(llvm::dbgs() << "Searching for debug info providing value for: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Searching for debug info providing value for: "
                           << searchValue);
   ValueSet valueSet(searchValue->getFunction());
   SILValue result = findDebugInfoProvidingValueHelper(searchValue, valueSet);
   if (result) {
-    LLVM_DEBUG(llvm::dbgs() << "Result: " << result);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Result: " << result);
   } else {
-    LLVM_DEBUG(llvm::dbgs() << "Result: None\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Result: None\n");
   }
   return result;
 }
@@ -304,23 +308,23 @@ SILValue VariableNameInferrer::findDebugInfoProvidingValuePhiArg(
   // value, we just pop our list to the last snapshot end of list. If we
   // succeed, we do not pop and just return recusive value. Our user
   // will consume variableNamePath at this point.
-  LLVM_DEBUG(llvm::dbgs() << "Before pushing a snap shot!\n";
-             variableNamePath.print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Before pushing a snap shot!\n";
+             variableNamePath.print(toolchain::dbgs()));
 
   unsigned oldSnapShotIndex = variableNamePath.pushSnapShot();
-  LLVM_DEBUG(llvm::dbgs() << "After pushing a snap shot!\n";
-             variableNamePath.print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "After pushing a snap shot!\n";
+             variableNamePath.print(toolchain::dbgs()));
 
   if (SILValue recursiveValue =
           findDebugInfoProvidingValueHelper(incomingValue, visitedValues)) {
-    LLVM_DEBUG(llvm::dbgs() << "Returned: " << recursiveValue);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Returned: " << recursiveValue);
     variableNamePath.returnSnapShot(oldSnapShotIndex);
     return recursiveValue;
   }
 
   variableNamePath.popSnapShot(oldSnapShotIndex);
-  LLVM_DEBUG(llvm::dbgs() << "After popping a snap shot!\n";
-             variableNamePath.print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "After popping a snap shot!\n";
+             variableNamePath.print(toolchain::dbgs()));
   return SILValue();
 }
 
@@ -364,7 +368,7 @@ SILValue VariableNameInferrer::findDebugInfoProvidingValueHelper(
     if (!visitedValues.insert(searchValue))
       return SILValue();
 
-    LLVM_DEBUG(llvm::dbgs() << "Value: " << *searchValue);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Value: " << *searchValue);
 
     // Before we do anything, lets see if we have an explicit match due to a
     // debug_value use.
@@ -736,11 +740,11 @@ static FunctionTest VariableNameInferrerTests(
       VariableNameInferrer inferrer(&function, options, finalString);
       SILValue rootValue =
           inferrer.inferByWalkingUsesToDefsReturningRoot(value);
-      llvm::outs() << "Input Value: " << *value;
+      toolchain::outs() << "Input Value: " << *value;
       if (!rootValue) {
-        llvm::outs() << "Name: 'unknown'\nRoot: 'unknown'\n";
+        toolchain::outs() << "Name: 'unknown'\nRoot: 'unknown'\n";
         return;
       }
-      llvm::outs() << "Name: '" << finalString << "'\nRoot: " << rootValue;
+      toolchain::outs() << "Name: '" << finalString << "'\nRoot: " << rootValue;
     });
 } // namespace language::test

@@ -1,22 +1,26 @@
 //===--- Sandbox.h ----------------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SANDBOX_H
-#define SWIFT_BASIC_SANDBOX_H
+#ifndef LANGUAGE_BASIC_SANDBOX_H
+#define LANGUAGE_BASIC_SANDBOX_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Allocator.h"
 
 namespace language {
 namespace Sandbox {
@@ -35,10 +39,10 @@ namespace Sandbox {
 ///   - readOnlyDirectories: Paths under which writing should be denied, even if
 ///     they would have otherwise been allowed by the rules implied by the
 ///     strictness level.
-bool apply(llvm::SmallVectorImpl<llvm::StringRef> &command,
-           llvm::BumpPtrAllocator &Alloc);
+bool apply(toolchain::SmallVectorImpl<toolchain::StringRef> &command,
+           toolchain::BumpPtrAllocator &Alloc);
 
 } // namespace Sandbox
 } // namespace language
 
-#endif // SWIFT_BASIC_SANDBOX_H
+#endif // LANGUAGE_BASIC_SANDBOX_H

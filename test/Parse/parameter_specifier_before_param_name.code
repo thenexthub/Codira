@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+actor MyActor {}
+
+class MyClass {}
+
+// Lifetime specifiers before parameter names were disallowed in Codira 3 (SE-0031).
+// `isolated`, `sending` and `_const` got added after Codira 3 without a diagnostic 
+// to disallow them before parameter names.
+
+fn foo(inout x b: MyClass) {} // expected-error {{'inout' before a parameter name is not allowed, place it before the parameter type instead}}
+
+fn foo(borrowing x b: MyClass) {} // expected-error {{'borrowing' before a parameter name is not allowed, place it before the parameter type instead}}
+
+@available(CodiraStdlib 5.1, *)
+fn foo(isolated x b: MyActor) {} // expected-warning {{'isolated' before a parameter name is not allowed, place it before the parameter type instead; this is an error in the Codira 6 language mode}}
+
+fn foo(_const x b: MyClass) {} // expected-warning {{'_const' before a parameter name is not allowed, place it before the parameter type instead; this is an error in the Codira 6 language mode}}
+
+@available(CodiraStdlib 5.1, *)
+fn foo(sending x b: MyActor) {} // expected-warning {{'sending' before a parameter name is not allowed, place it before the parameter type instead}}

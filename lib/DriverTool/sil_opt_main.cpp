@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This is a tool for reading sil files and running sil passes on them. The
@@ -22,8 +23,8 @@
 #include "language/AST/SILOptions.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/InitializeSwiftModules.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/InitializeCodiraModules.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Basic/QuotedString.h"
 #include "language/Frontend/DiagnosticVerifier.h"
 #include "language/Frontend/Frontend.h"
@@ -40,19 +41,19 @@
 #include "language/Serialization/SerializedSILLoader.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/ManagedStatic.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/TargetSelect.h"
+#include "toolchain/Support/YAMLTraits.h"
 #include <cstdio>
 using namespace language;
 
-namespace cl = llvm::cl;
+namespace cl = toolchain::cl;
 
 namespace {
 
@@ -64,16 +65,16 @@ enum class OptGroup {
   Lowering
 };
 
-std::optional<bool> toOptionalBool(llvm::cl::boolOrDefault defaultable) {
+std::optional<bool> toOptionalBool(toolchain::cl::boolOrDefault defaultable) {
   switch (defaultable) {
-  case llvm::cl::BOU_TRUE:
+  case toolchain::cl::BOU_TRUE:
     return true;
-  case llvm::cl::BOU_FALSE:
+  case toolchain::cl::BOU_FALSE:
     return false;
-  case llvm::cl::BOU_UNSET:
+  case toolchain::cl::BOU_UNSET:
     return std::nullopt;
   }
-  llvm_unreachable("Bad case for llvm::cl::boolOrDefault!");
+  toolchain_unreachable("Bad case for toolchain::cl::boolOrDefault!");
 }
 
 enum class EnforceExclusivityMode {
@@ -106,7 +107,7 @@ convertSILOptToRawStrictConcurrencyLevel(SILOptStrictConcurrency level) {
   }
 }
 
-namespace llvm {
+namespace toolchain {
 
 inline raw_ostream &
 operator<<(raw_ostream &os, const std::optional<CopyPropagationOption> option) {
@@ -166,7 +167,7 @@ public:
 
   StringRef getValueName() const override { return "CopyPropagationOption"; }
 
-  // Instantiate the macro PRINT_OPT_DIFF of llvm_project's CommandLine.cpp at
+  // Instantiate the macro PRINT_OPT_DIFF of toolchain_project's CommandLine.cpp at
   // Optional<CopyPropagationOption>.
   void printOptionDiff(const Option &O, std::optional<CopyPropagationOption> V,
                        OptionValue<std::optional<CopyPropagationOption>> D,
@@ -189,133 +190,133 @@ public:
   }
 };
 } // end namespace cl
-} // end namespace llvm
+} // end namespace toolchain
 
 struct SILOptOptions {
-  llvm::cl::opt<std::string>
-  InputFilename = llvm::cl::opt<std::string>(llvm::cl::desc("input file"), llvm::cl::init("-"),
-                llvm::cl::Positional);
+  toolchain::cl::opt<std::string>
+  InputFilename = toolchain::cl::opt<std::string>(toolchain::cl::desc("input file"), toolchain::cl::init("-"),
+                toolchain::cl::Positional);
 
-  llvm::cl::opt<std::string>
-  OutputFilename = llvm::cl::opt<std::string>("o", llvm::cl::desc("output filename"));
+  toolchain::cl::opt<std::string>
+  OutputFilename = toolchain::cl::opt<std::string>("o", toolchain::cl::desc("output filename"));
 
-  llvm::cl::list<std::string>
-  ImportPaths = llvm::cl::list<std::string>("I", llvm::cl::desc("add a directory to the import search path"));
+  toolchain::cl::list<std::string>
+  ImportPaths = toolchain::cl::list<std::string>("I", toolchain::cl::desc("add a directory to the import search path"));
 
-  llvm::cl::list<std::string>
-  FrameworkPaths = llvm::cl::list<std::string>("F", llvm::cl::desc("add a directory to the framework search path"));
+  toolchain::cl::list<std::string>
+  FrameworkPaths = toolchain::cl::list<std::string>("F", toolchain::cl::desc("add a directory to the framework search path"));
 
-  llvm::cl::list<std::string>
-  VFSOverlays = llvm::cl::list<std::string>("vfsoverlay", llvm::cl::desc("add a VFS overlay"));
+  toolchain::cl::list<std::string>
+  VFSOverlays = toolchain::cl::list<std::string>("vfsoverlay", toolchain::cl::desc("add a VFS overlay"));
 
-  llvm::cl::opt<std::string>
-  ModuleName = llvm::cl::opt<std::string>("module-name", llvm::cl::desc("The name of the module if processing"
+  toolchain::cl::opt<std::string>
+  ModuleName = toolchain::cl::opt<std::string>("module-name", toolchain::cl::desc("The name of the module if processing"
                                            " a module. Necessary for processing "
                                            "stdin."));
 
-  llvm::cl::opt<bool>
-  EnableLibraryEvolution = llvm::cl::opt<bool>("enable-library-evolution",
-                         llvm::cl::desc("Compile the module to export resilient "
+  toolchain::cl::opt<bool>
+  EnableLibraryEvolution = toolchain::cl::opt<bool>("enable-library-evolution",
+                         toolchain::cl::desc("Compile the module to export resilient "
                                         "interfaces for all public declarations by "
                                         "default"));
 
-  llvm::cl::opt<bool>
-  StrictImplicitModuleContext = llvm::cl::opt<bool>("strict-implicit-module-context",
-                              llvm::cl::desc("Enable the strict forwarding of compilation "
+  toolchain::cl::opt<bool>
+  StrictImplicitModuleContext = toolchain::cl::opt<bool>("strict-implicit-module-context",
+                              toolchain::cl::desc("Enable the strict forwarding of compilation "
                                              "context to downstream implicit module dependencies"));
 
-  llvm::cl::opt<bool>
-  DisableSILOwnershipVerifier = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool>
+  DisableSILOwnershipVerifier = toolchain::cl::opt<bool>(
       "disable-sil-ownership-verifier",
-      llvm::cl::desc(
+      toolchain::cl::desc(
           "Do not verify SIL ownership invariants during SIL verification"));
 
-  llvm::cl::opt<bool>
-  EnableSILOpaqueValues = llvm::cl::opt<bool>("enable-sil-opaque-values",
-                        llvm::cl::desc("Compile the module with sil-opaque-values enabled."));
+  toolchain::cl::opt<bool>
+  EnableSILOpaqueValues = toolchain::cl::opt<bool>("enable-sil-opaque-values",
+                        toolchain::cl::desc("Compile the module with sil-opaque-values enabled."));
 
-  llvm::cl::opt<bool>
-  EnableOSSACompleteLifetimes = llvm::cl::opt<bool>("enable-ossa-complete-lifetimes",
-                        llvm::cl::desc("Require linear OSSA lifetimes after SILGenCleanup."));
-  llvm::cl::opt<bool>
-  EnableOSSAVerifyComplete = llvm::cl::opt<bool>("enable-ossa-verify-complete",
-                        llvm::cl::desc("Verify linear OSSA lifetimes after SILGenCleanup."));
+  toolchain::cl::opt<bool>
+  EnableOSSACompleteLifetimes = toolchain::cl::opt<bool>("enable-ossa-complete-lifetimes",
+                        toolchain::cl::desc("Require linear OSSA lifetimes after SILGenCleanup."));
+  toolchain::cl::opt<bool>
+  EnableOSSAVerifyComplete = toolchain::cl::opt<bool>("enable-ossa-verify-complete",
+                        toolchain::cl::desc("Verify linear OSSA lifetimes after SILGenCleanup."));
 
-  llvm::cl::opt<bool>
-  EnableObjCInterop = llvm::cl::opt<bool>("enable-objc-interop",
-                    llvm::cl::desc("Enable Objective-C interoperability."));
+  toolchain::cl::opt<bool>
+  EnableObjCInterop = toolchain::cl::opt<bool>("enable-objc-interop",
+                    toolchain::cl::desc("Enable Objective-C interoperability."));
 
-  llvm::cl::opt<bool>
-  DisableObjCInterop = llvm::cl::opt<bool>("disable-objc-interop",
-                     llvm::cl::desc("Disable Objective-C interoperability."));
+  toolchain::cl::opt<bool>
+  DisableObjCInterop = toolchain::cl::opt<bool>("disable-objc-interop",
+                     toolchain::cl::desc("Disable Objective-C interoperability."));
 
-  llvm::cl::opt<bool>
-  DisableImplicitModules = llvm::cl::opt<bool>("disable-implicit-swift-modules",
-                     llvm::cl::desc("Disable implicit swift modules."));
+  toolchain::cl::opt<bool>
+  DisableImplicitModules = toolchain::cl::opt<bool>("disable-implicit-language-modules",
+                     toolchain::cl::desc("Disable implicit language modules."));
 
-  llvm::cl::opt<std::string>
-  ExplicitSwiftModuleMapPath = llvm::cl::opt<std::string>(
-    "explicit-swift-module-map-file",
-    llvm::cl::desc("Explict swift module map file path"));
+  toolchain::cl::opt<std::string>
+  ExplicitCodiraModuleMapPath = toolchain::cl::opt<std::string>(
+    "explicit-language-module-map-file",
+    toolchain::cl::desc("Explict language module map file path"));
 
-  llvm::cl::list<std::string>
-  ExperimentalFeatures = llvm::cl::list<std::string>("enable-experimental-feature",
-                       llvm::cl::desc("Enable the given experimental feature."));
+  toolchain::cl::list<std::string>
+  ExperimentalFeatures = toolchain::cl::list<std::string>("enable-experimental-feature",
+                       toolchain::cl::desc("Enable the given experimental feature."));
 
-  llvm::cl::list<std::string> UpcomingFeatures = llvm::cl::list<std::string>(
+  toolchain::cl::list<std::string> UpcomingFeatures = toolchain::cl::list<std::string>(
       "enable-upcoming-feature",
-      llvm::cl::desc("Enable the given upcoming feature."));
+      toolchain::cl::desc("Enable the given upcoming feature."));
 
-  llvm::cl::opt<bool>
-  EnableExperimentalConcurrency = llvm::cl::opt<bool>("enable-experimental-concurrency",
-                     llvm::cl::desc("Enable experimental concurrency model."));
+  toolchain::cl::opt<bool>
+  EnableExperimentalConcurrency = toolchain::cl::opt<bool>("enable-experimental-concurrency",
+                     toolchain::cl::desc("Enable experimental concurrency model."));
 
-  llvm::cl::opt<llvm::cl::boolOrDefault> EnableLexicalLifetimes =
-      llvm::cl::opt<llvm::cl::boolOrDefault>(
-          "enable-lexical-lifetimes", llvm::cl::init(llvm::cl::BOU_UNSET),
-          llvm::cl::desc("Enable lexical lifetimes."));
+  toolchain::cl::opt<toolchain::cl::boolOrDefault> EnableLexicalLifetimes =
+      toolchain::cl::opt<toolchain::cl::boolOrDefault>(
+          "enable-lexical-lifetimes", toolchain::cl::init(toolchain::cl::BOU_UNSET),
+          toolchain::cl::desc("Enable lexical lifetimes."));
 
-  llvm::cl::opt<llvm::cl::boolOrDefault>
-  EnableExperimentalMoveOnly = llvm::cl::opt<llvm::cl::boolOrDefault>(
-      "enable-experimental-move-only", llvm::cl::init(llvm::cl::BOU_UNSET),
-      llvm::cl::desc("Enable experimental move-only semantics."));
+  toolchain::cl::opt<toolchain::cl::boolOrDefault>
+  EnableExperimentalMoveOnly = toolchain::cl::opt<toolchain::cl::boolOrDefault>(
+      "enable-experimental-move-only", toolchain::cl::init(toolchain::cl::BOU_UNSET),
+      toolchain::cl::desc("Enable experimental move-only semantics."));
 
-  llvm::cl::opt<bool> EnablePackMetadataStackPromotion = llvm::cl::opt<bool>(
-      "enable-pack-metadata-stack-promotion", llvm::cl::init(true),
-      llvm::cl::desc(
+  toolchain::cl::opt<bool> EnablePackMetadataStackPromotion = toolchain::cl::opt<bool>(
+      "enable-pack-metadata-stack-promotion", toolchain::cl::init(true),
+      toolchain::cl::desc(
           "Whether to skip heapifying stack metadata packs when possible."));
 
-  llvm::cl::opt<bool>
-  EnableExperimentalDistributed = llvm::cl::opt<bool>("enable-experimental-distributed",
-                     llvm::cl::desc("Enable experimental distributed actors."));
+  toolchain::cl::opt<bool>
+  EnableExperimentalDistributed = toolchain::cl::opt<bool>("enable-experimental-distributed",
+                     toolchain::cl::desc("Enable experimental distributed actors."));
 
-  llvm::cl::opt<bool>
-  VerifyExclusivity = llvm::cl::opt<bool>("enable-verify-exclusivity",
-                    llvm::cl::desc("Verify the access markers used to enforce exclusivity."));
+  toolchain::cl::opt<bool>
+  VerifyExclusivity = toolchain::cl::opt<bool>("enable-verify-exclusivity",
+                    toolchain::cl::desc("Verify the access markers used to enforce exclusivity."));
 
-  llvm::cl::opt<bool>
-  EnableSpeculativeDevirtualization = llvm::cl::opt<bool>("enable-spec-devirt",
-                    llvm::cl::desc("Enable Speculative Devirtualization pass."));
+  toolchain::cl::opt<bool>
+  EnableSpeculativeDevirtualization = toolchain::cl::opt<bool>("enable-spec-devirt",
+                    toolchain::cl::desc("Enable Speculative Devirtualization pass."));
 
-  llvm::cl::opt<bool>
-  EnableAsyncDemotion = llvm::cl::opt<bool>("enable-async-demotion",
-                    llvm::cl::desc("Enables an optimization pass to demote async functions."));
+  toolchain::cl::opt<bool>
+  EnableAsyncDemotion = toolchain::cl::opt<bool>("enable-async-demotion",
+                    toolchain::cl::desc("Enables an optimization pass to demote async functions."));
 
-  llvm::cl::opt<bool>
-  EnableThrowsPrediction = llvm::cl::opt<bool>("enable-throws-prediction",
-                     llvm::cl::desc("Enables optimization assumption that functions rarely throw errors."));
+  toolchain::cl::opt<bool>
+  EnableThrowsPrediction = toolchain::cl::opt<bool>("enable-throws-prediction",
+                     toolchain::cl::desc("Enables optimization assumption that functions rarely throw errors."));
 
-  llvm::cl::opt<bool>
-  EnableNoReturnCold = llvm::cl::opt<bool>("enable-noreturn-prediction",
-                     llvm::cl::desc("Enables optimization assumption that calls to no-return functions are cold."));
+  toolchain::cl::opt<bool>
+  EnableNoReturnCold = toolchain::cl::opt<bool>("enable-noreturn-prediction",
+                     toolchain::cl::desc("Enables optimization assumption that calls to no-return functions are cold."));
 
-  llvm::cl::opt<bool>
-  EnableMoveInoutStackProtection = llvm::cl::opt<bool>("enable-move-inout-stack-protector",
-                    llvm::cl::desc("Enable the stack protector by moving values to temporaries."));
+  toolchain::cl::opt<bool>
+  EnableMoveInoutStackProtection = toolchain::cl::opt<bool>("enable-move-inout-stack-protector",
+                    toolchain::cl::desc("Enable the stack protector by moving values to temporaries."));
 
-  llvm::cl::opt<bool> EnableOSSAModules = llvm::cl::opt<bool>(
-      "enable-ossa-modules", llvm::cl::init(true),
-      llvm::cl::desc("Do we always serialize SIL in OSSA form? If "
+  toolchain::cl::opt<bool> EnableOSSAModules = toolchain::cl::opt<bool>(
+      "enable-ossa-modules", toolchain::cl::init(true),
+      toolchain::cl::desc("Do we always serialize SIL in OSSA form? If "
                      "this is disabled we do not serialize in OSSA "
                      "form when optimizing."));
 
@@ -333,18 +334,18 @@ struct SILOptOptions {
                  clEnumValN(EnforceExclusivityMode::None, "none",
                             "No exclusivity checking.")));
 
-  llvm::cl::opt<std::string>
-  ResourceDir = llvm::cl::opt<std::string>("resource-dir",
-      llvm::cl::desc("The directory that holds the compiler resource files"));
+  toolchain::cl::opt<std::string>
+  ResourceDir = toolchain::cl::opt<std::string>("resource-dir",
+      toolchain::cl::desc("The directory that holds the compiler resource files"));
 
-  llvm::cl::opt<std::string>
-  SDKPath = llvm::cl::opt<std::string>("sdk", llvm::cl::desc("The path to the SDK for use with the clang "
+  toolchain::cl::opt<std::string>
+  SDKPath = toolchain::cl::opt<std::string>("sdk", toolchain::cl::desc("The path to the SDK for use with the clang "
                                 "importer."),
-          llvm::cl::init(""));
+          toolchain::cl::init(""));
 
-  llvm::cl::opt<std::string>
-  Target = llvm::cl::opt<std::string>("target", llvm::cl::desc("target triple"),
-         llvm::cl::init(llvm::sys::getDefaultTargetTriple()));
+  toolchain::cl::opt<std::string>
+  Target = toolchain::cl::opt<std::string>("target", toolchain::cl::desc("target triple"),
+         toolchain::cl::init(toolchain::sys::getDefaultTargetTriple()));
 
   // This primarily determines semantics of debug information. The compiler does
   // not directly expose a "preserve debug info mode". It is derived from the
@@ -355,21 +356,21 @@ struct SILOptOptions {
   // compile at -Onone should compile at -O. However, it is difficult to guarantee
   // identical diagnostic output given the changes in SIL caused by debug info
   // preservation.
-  llvm::cl::opt<OptimizationMode>
-    OptModeFlag = llvm::cl::opt<OptimizationMode>(
-      "opt-mode", llvm::cl::desc("optimization mode"),
-      llvm::cl::values(clEnumValN(OptimizationMode::NoOptimization, "none",
+  toolchain::cl::opt<OptimizationMode>
+    OptModeFlag = toolchain::cl::opt<OptimizationMode>(
+      "opt-mode", toolchain::cl::desc("optimization mode"),
+      toolchain::cl::values(clEnumValN(OptimizationMode::NoOptimization, "none",
                                   "preserve debug info"),
                        clEnumValN(OptimizationMode::ForSize, "size",
                                   "ignore debug info, reduce size"),
                        clEnumValN(OptimizationMode::ForSpeed, "speed",
                                   "ignore debug info, reduce runtime")),
-      llvm::cl::init(OptimizationMode::NotSet));
+      toolchain::cl::init(OptimizationMode::NotSet));
 
-  llvm::cl::opt<IRGenDebugInfoLevel>
-    IRGenDebugInfoLevelArg = llvm::cl::opt<IRGenDebugInfoLevel>(
-      "irgen-debuginfo-level", llvm::cl::desc("IRGen debug info level"),
-      llvm::cl::values(clEnumValN(IRGenDebugInfoLevel::None, "none",
+  toolchain::cl::opt<IRGenDebugInfoLevel>
+    IRGenDebugInfoLevelArg = toolchain::cl::opt<IRGenDebugInfoLevel>(
+      "irgen-debuginfo-level", toolchain::cl::desc("IRGen debug info level"),
+      toolchain::cl::values(clEnumValN(IRGenDebugInfoLevel::None, "none",
                                   "No debug info"),
                        clEnumValN(IRGenDebugInfoLevel::LineTables, "line-tables",
                                   "Line tables only"),
@@ -377,122 +378,122 @@ struct SILOptOptions {
                                   "Line tables + AST type references"),
                        clEnumValN(IRGenDebugInfoLevel::DwarfTypes, "dwarf-types",
                                   "Line tables + AST type refs + Dwarf types")),
-      llvm::cl::init(IRGenDebugInfoLevel::ASTTypes));
+      toolchain::cl::init(IRGenDebugInfoLevel::ASTTypes));
 
-  llvm::cl::opt<OptGroup>
-    OptimizationGroup = llvm::cl::opt<OptGroup>(
-      llvm::cl::desc("Predefined optimization groups:"),
-      llvm::cl::values(
+  toolchain::cl::opt<OptGroup>
+    OptimizationGroup = toolchain::cl::opt<OptGroup>(
+      toolchain::cl::desc("Predefined optimization groups:"),
+      toolchain::cl::values(
           clEnumValN(OptGroup::Diagnostics, "diagnostics",
                      "Run diagnostic passes"),
           clEnumValN(OptGroup::Performance, "O", "Run performance passes"),
           clEnumValN(OptGroup::OnonePerformance, "Onone-performance",
                      "Run Onone perf passes"),
           clEnumValN(OptGroup::Lowering, "lowering", "Run lowering passes")),
-      llvm::cl::init(OptGroup::Unknown));
+      toolchain::cl::init(OptGroup::Unknown));
 
-  llvm::cl::list<PassKind>
-  Passes = llvm::cl::list<PassKind>(llvm::cl::desc("Passes:"),
-         llvm::cl::values(
+  toolchain::cl::list<PassKind>
+  Passes = toolchain::cl::list<PassKind>(toolchain::cl::desc("Passes:"),
+         toolchain::cl::values(
   #define PASS(ID, TAG, NAME) clEnumValN(PassKind::ID, TAG, NAME),
   #include "language/SILOptimizer/PassManager/Passes.def"
          clEnumValN(0, "", "")));
 
-  llvm::cl::opt<bool>
-  PrintStats = llvm::cl::opt<bool>("print-stats", llvm::cl::desc("Print various statistics"));
+  toolchain::cl::opt<bool>
+  PrintStats = toolchain::cl::opt<bool>("print-stats", toolchain::cl::desc("Print various statistics"));
 
-  llvm::cl::opt<bool>
-  VerifyMode = llvm::cl::opt<bool>("verify",
-             llvm::cl::desc("verify diagnostics against expected-"
+  toolchain::cl::opt<bool>
+  VerifyMode = toolchain::cl::opt<bool>("verify",
+             toolchain::cl::desc("verify diagnostics against expected-"
                             "{error|warning|note} annotations"));
 
-  llvm::cl::list<std::string> VerifyAdditionalPrefixes =
-      llvm::cl::list<std::string>(
+  toolchain::cl::list<std::string> VerifyAdditionalPrefixes =
+      toolchain::cl::list<std::string>(
           "verify-additional-prefix",
-          llvm::cl::desc("Check for diagnostics with the prefix "
+          toolchain::cl::desc("Check for diagnostics with the prefix "
                          "expected-<PREFIX> as well as expected-"));
 
-  llvm::cl::opt<unsigned>
-  AssertConfId = llvm::cl::opt<unsigned>("assert-conf-id", llvm::cl::Hidden,
-               llvm::cl::init(0));
+  toolchain::cl::opt<unsigned>
+  AssertConfId = toolchain::cl::opt<unsigned>("assert-conf-id", toolchain::cl::Hidden,
+               toolchain::cl::init(0));
 
-  llvm::cl::opt<int>
-  SILInlineThreshold = llvm::cl::opt<int>("sil-inline-threshold", llvm::cl::Hidden,
-                     llvm::cl::init(-1));
+  toolchain::cl::opt<int>
+  SILInlineThreshold = toolchain::cl::opt<int>("sil-inline-threshold", toolchain::cl::Hidden,
+                     toolchain::cl::init(-1));
 
   // Legacy option name still in use. The frontend uses -sil-verify-all.
-  llvm::cl::opt<bool>
-  EnableSILVerifyAll = llvm::cl::opt<bool>("enable-sil-verify-all",
-                     llvm::cl::Hidden,
-                     llvm::cl::init(true),
-                     llvm::cl::desc("Run sil verifications after every pass."));
+  toolchain::cl::opt<bool>
+  EnableSILVerifyAll = toolchain::cl::opt<bool>("enable-sil-verify-all",
+                     toolchain::cl::Hidden,
+                     toolchain::cl::init(true),
+                     toolchain::cl::desc("Run sil verifications after every pass."));
 
-  llvm::cl::opt<bool>
-  SILVerifyAll = llvm::cl::opt<bool>("sil-verify-all",
-               llvm::cl::Hidden,
-               llvm::cl::init(true),
-               llvm::cl::desc("Run sil verifications after every pass."));
+  toolchain::cl::opt<bool>
+  SILVerifyAll = toolchain::cl::opt<bool>("sil-verify-all",
+               toolchain::cl::Hidden,
+               toolchain::cl::init(true),
+               toolchain::cl::desc("Run sil verifications after every pass."));
 
-  llvm::cl::opt<bool>
-  SILVerifyNone = llvm::cl::opt<bool>("sil-verify-none",
-                llvm::cl::Hidden,
-                llvm::cl::init(false),
-                llvm::cl::desc("Completely disable SIL verification"));
+  toolchain::cl::opt<bool>
+  SILVerifyNone = toolchain::cl::opt<bool>("sil-verify-none",
+                toolchain::cl::Hidden,
+                toolchain::cl::init(false),
+                toolchain::cl::desc("Completely disable SIL verification"));
 
   /// Customize the default behavior
-  llvm::cl::opt<bool>
-    EnableASTVerifier = llvm::cl::opt<bool>(
-      "enable-ast-verifier", llvm::cl::Hidden, llvm::cl::init(false),
-      llvm::cl::desc("Override the default behavior and Enable the ASTVerifier"));
+  toolchain::cl::opt<bool>
+    EnableASTVerifier = toolchain::cl::opt<bool>(
+      "enable-ast-verifier", toolchain::cl::Hidden, toolchain::cl::init(false),
+      toolchain::cl::desc("Override the default behavior and Enable the ASTVerifier"));
 
-  llvm::cl::opt<bool>
-    DisableASTVerifier = llvm::cl::opt<bool>(
-      "disable-ast-verifier", llvm::cl::Hidden, llvm::cl::init(false),
-      llvm::cl::desc(
+  toolchain::cl::opt<bool>
+    DisableASTVerifier = toolchain::cl::opt<bool>(
+      "disable-ast-verifier", toolchain::cl::Hidden, toolchain::cl::init(false),
+      toolchain::cl::desc(
           "Override the default behavior and force disable the ASTVerifier"));
 
-  llvm::cl::opt<bool>
-  RemoveRuntimeAsserts = llvm::cl::opt<bool>("remove-runtime-asserts",
-                       llvm::cl::Hidden,
-                       llvm::cl::init(false),
-                       llvm::cl::desc("Remove runtime assertions (cond_fail)."));
+  toolchain::cl::opt<bool>
+  RemoveRuntimeAsserts = toolchain::cl::opt<bool>("remove-runtime-asserts",
+                       toolchain::cl::Hidden,
+                       toolchain::cl::init(false),
+                       toolchain::cl::desc("Remove runtime assertions (cond_fail)."));
 
-  llvm::cl::opt<bool>
-  EmitVerboseSIL = llvm::cl::opt<bool>("emit-verbose-sil",
-                 llvm::cl::desc("Emit locations during sil emission."));
+  toolchain::cl::opt<bool>
+  EmitVerboseSIL = toolchain::cl::opt<bool>("emit-verbose-sil",
+                 toolchain::cl::desc("Emit locations during sil emission."));
 
-  llvm::cl::opt<bool>
-  EmitSIB = llvm::cl::opt<bool>("emit-sib", llvm::cl::desc("Emit serialized AST + SIL file(s)"));
+  toolchain::cl::opt<bool>
+  EmitSIB = toolchain::cl::opt<bool>("emit-sib", toolchain::cl::desc("Emit serialized AST + SIL file(s)"));
 
-  llvm::cl::opt<bool>
-  Serialize = llvm::cl::opt<bool>("serialize", llvm::cl::desc("Emit serialized AST + SIL file(s)"));
+  toolchain::cl::opt<bool>
+  Serialize = toolchain::cl::opt<bool>("serialize", toolchain::cl::desc("Emit serialized AST + SIL file(s)"));
 
-  llvm::cl::opt<std::string>
-  ModuleCachePath = llvm::cl::opt<std::string>("module-cache-path", llvm::cl::desc("Clang module cache path"));
+  toolchain::cl::opt<std::string>
+  ModuleCachePath = toolchain::cl::opt<std::string>("module-cache-path", toolchain::cl::desc("Clang module cache path"));
 
-  llvm::cl::opt<bool>
-      EmitSortedSIL = llvm::cl::opt<bool>("emit-sorted-sil", llvm::cl::Hidden, llvm::cl::init(false),
-                    llvm::cl::desc("Sort Functions, VTables, Globals, "
+  toolchain::cl::opt<bool>
+      EmitSortedSIL = toolchain::cl::opt<bool>("emit-sorted-sil", toolchain::cl::Hidden, toolchain::cl::init(false),
+                    toolchain::cl::desc("Sort Functions, VTables, Globals, "
                                    "WitnessTables by name to ease diffing."));
 
-  llvm::cl::opt<bool>
-  DisableASTDump = llvm::cl::opt<bool>("sil-disable-ast-dump", llvm::cl::Hidden,
-                 llvm::cl::init(false),
-                 llvm::cl::desc("Do not dump AST."));
+  toolchain::cl::opt<bool>
+  DisableASTDump = toolchain::cl::opt<bool>("sil-disable-ast-dump", toolchain::cl::Hidden,
+                 toolchain::cl::init(false),
+                 toolchain::cl::desc("Do not dump AST."));
 
-  llvm::cl::opt<bool>
-  PerformWMO = llvm::cl::opt<bool>("wmo", llvm::cl::desc("Enable whole-module optimizations"));
+  toolchain::cl::opt<bool>
+  PerformWMO = toolchain::cl::opt<bool>("wmo", toolchain::cl::desc("Enable whole-module optimizations"));
 
-  llvm::cl::opt<bool>
-  EnableExperimentalStaticAssert = llvm::cl::opt<bool>(
-      "enable-experimental-static-assert", llvm::cl::Hidden,
-      llvm::cl::init(false), llvm::cl::desc("Enable experimental #assert"));
+  toolchain::cl::opt<bool>
+  EnableExperimentalStaticAssert = toolchain::cl::opt<bool>(
+      "enable-experimental-static-assert", toolchain::cl::Hidden,
+      toolchain::cl::init(false), toolchain::cl::desc("Enable experimental #assert"));
 
-  llvm::cl::opt<bool>
-  EnableExperimentalDifferentiableProgramming = llvm::cl::opt<bool>(
-      "enable-experimental-differentiable-programming", llvm::cl::Hidden,
-      llvm::cl::init(false),
-      llvm::cl::desc("Enable experimental differentiable programming"));
+  toolchain::cl::opt<bool>
+  EnableExperimentalDifferentiableProgramming = toolchain::cl::opt<bool>(
+      "enable-experimental-differentiable-programming", toolchain::cl::Hidden,
+      toolchain::cl::init(false),
+      toolchain::cl::desc("Enable experimental differentiable programming"));
 
   cl::opt<std::string>
     PassRemarksPassed = cl::opt<std::string>(
@@ -531,11 +532,11 @@ struct SILOptOptions {
       cl::value_desc("format"), cl::init("yaml"));
 
   // Strict Concurrency
-  llvm::cl::opt<SILOptStrictConcurrency> StrictConcurrencyLevel =
-      llvm::cl::opt<SILOptStrictConcurrency>(
+  toolchain::cl::opt<SILOptStrictConcurrency> StrictConcurrencyLevel =
+      toolchain::cl::opt<SILOptStrictConcurrency>(
           "strict-concurrency", cl::desc("strict concurrency level"),
-          llvm::cl::init(SILOptStrictConcurrency::None),
-          llvm::cl::values(
+          toolchain::cl::init(SILOptStrictConcurrency::None),
+          toolchain::cl::values(
               clEnumValN(SILOptStrictConcurrency::Complete, "complete",
                          "Enable complete strict concurrency"),
               clEnumValN(SILOptStrictConcurrency::Targeted, "targeted",
@@ -545,85 +546,85 @@ struct SILOptOptions {
               clEnumValN(SILOptStrictConcurrency::None, "disabled",
                          "Strict concurrency disabled")));
 
-  llvm::cl::opt<bool>
-      EnableCxxInterop = llvm::cl::opt<bool>("enable-experimental-cxx-interop",
-                       llvm::cl::desc("Enable C++ interop."),
-                       llvm::cl::init(false));
+  toolchain::cl::opt<bool>
+      EnableCxxInterop = toolchain::cl::opt<bool>("enable-experimental-cxx-interop",
+                       toolchain::cl::desc("Enable C++ interop."),
+                       toolchain::cl::init(false));
 
-  llvm::cl::opt<bool>
-      IgnoreAlwaysInline = llvm::cl::opt<bool>("ignore-always-inline",
-                         llvm::cl::desc("Ignore [always_inline] attribute."),
-                         llvm::cl::init(false));
+  toolchain::cl::opt<bool>
+      IgnoreAlwaysInline = toolchain::cl::opt<bool>("ignore-always-inline",
+                         toolchain::cl::desc("Ignore [always_inline] attribute."),
+                         toolchain::cl::init(false));
   using CPStateOpt =
-      llvm::cl::opt<std::optional<CopyPropagationOption>,
+      toolchain::cl::opt<std::optional<CopyPropagationOption>,
                     /*ExternalStorage*/ false,
-                    llvm::cl::parser<std::optional<CopyPropagationOption>>>;
+                    toolchain::cl::parser<std::optional<CopyPropagationOption>>>;
   CPStateOpt
   CopyPropagationState = CPStateOpt(
         "enable-copy-propagation",
-        llvm::cl::desc("Whether to run the copy propagation pass: "
+        toolchain::cl::desc("Whether to run the copy propagation pass: "
                        "'true', 'false', or 'requested-passes-only'."));
 
-  llvm::cl::opt<bool> BypassResilienceChecks = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool> BypassResilienceChecks = toolchain::cl::opt<bool>(
       "bypass-resilience-checks",
-      llvm::cl::desc("Ignore all checks for module resilience."));
+      toolchain::cl::desc("Ignore all checks for module resilience."));
 
-  llvm::cl::opt<bool> DebugDiagnosticNames = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool> DebugDiagnosticNames = toolchain::cl::opt<bool>(
       "debug-diagnostic-names",
-      llvm::cl::desc("Include diagnostic names when printing"));
+      toolchain::cl::desc("Include diagnostic names when printing"));
 
-  llvm::cl::opt<swift::UnavailableDeclOptimization>
+  toolchain::cl::opt<language::UnavailableDeclOptimization>
       UnavailableDeclOptimization =
-          llvm::cl::opt<swift::UnavailableDeclOptimization>(
+          toolchain::cl::opt<language::UnavailableDeclOptimization>(
               "unavailable-decl-optimization",
-              llvm::cl::desc("Optimization mode for unavailable declarations"),
-              llvm::cl::values(
-                  clEnumValN(swift::UnavailableDeclOptimization::None, "none",
+              toolchain::cl::desc("Optimization mode for unavailable declarations"),
+              toolchain::cl::values(
+                  clEnumValN(language::UnavailableDeclOptimization::None, "none",
                              "Don't optimize unavailable decls"),
-                  clEnumValN(swift::UnavailableDeclOptimization::Stub, "stub",
+                  clEnumValN(language::UnavailableDeclOptimization::Stub, "stub",
                              "Lower unavailable functions to stubs"),
                   clEnumValN(
-                      swift::UnavailableDeclOptimization::Complete, "complete",
+                      language::UnavailableDeclOptimization::Complete, "complete",
                       "Eliminate unavailable decls from lowered SIL/IR")),
-              llvm::cl::init(swift::UnavailableDeclOptimization::None));
+              toolchain::cl::init(language::UnavailableDeclOptimization::None));
 
-  llvm::cl::list<std::string> ClangXCC = llvm::cl::list<std::string>(
+  toolchain::cl::list<std::string> ClangXCC = toolchain::cl::list<std::string>(
       "Xcc",
-      llvm::cl::desc("option to pass to clang"));
+      toolchain::cl::desc("option to pass to clang"));
 
-  llvm::cl::opt<std::string> SwiftVersionString = llvm::cl::opt<std::string>(
-      "swift-version",
-      llvm::cl::desc(
-          "The swift version to assume AST declarations correspond to"));
+  toolchain::cl::opt<std::string> CodiraVersionString = toolchain::cl::opt<std::string>(
+      "language-version",
+      toolchain::cl::desc(
+          "The language version to assume AST declarations correspond to"));
 
-  llvm::cl::opt<bool> EnableAddressDependencies = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool> EnableAddressDependencies = toolchain::cl::opt<bool>(
       "enable-address-dependencies",
-      llvm::cl::desc("Enable enforcement of lifetime dependencies on addressable values."));
+      toolchain::cl::desc("Enable enforcement of lifetime dependencies on addressable values."));
 
-  llvm::cl::opt<bool> EnableCalleeAllocatedCoroAbi = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool> EnableCalleeAllocatedCoroAbi = toolchain::cl::opt<bool>(
       "enable-callee-allocated-coro-abi",
-      llvm::cl::desc("Override per-platform settings and use yield_once_2."),
-      llvm::cl::init(false));
-  llvm::cl::opt<bool> DisableCalleeAllocatedCoroAbi = llvm::cl::opt<bool>(
+      toolchain::cl::desc("Override per-platform settings and use yield_once_2."),
+      toolchain::cl::init(false));
+  toolchain::cl::opt<bool> DisableCalleeAllocatedCoroAbi = toolchain::cl::opt<bool>(
       "disable-callee-allocated-coro-abi",
-      llvm::cl::desc(
+      toolchain::cl::desc(
           "Override per-platform settings and don't use yield_once_2."),
-      llvm::cl::init(false));
+      toolchain::cl::init(false));
 
-  llvm::cl::opt<bool> MergeableTraps = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool> MergeableTraps = toolchain::cl::opt<bool>(
       "mergeable-traps",
-      llvm::cl::desc("Enable cond_fail merging."));
+      toolchain::cl::desc("Enable cond_fail merging."));
 };
 
 /// Regular expression corresponding to the value given in one of the
 /// -pass-remarks* command line flags. Passes whose name matches this regexp
 /// will emit a diagnostic.
-static std::shared_ptr<llvm::Regex> createOptRemarkRegex(StringRef Val) {
-  std::shared_ptr<llvm::Regex> Pattern = std::make_shared<llvm::Regex>(Val);
+static std::shared_ptr<toolchain::Regex> createOptRemarkRegex(StringRef Val) {
+  std::shared_ptr<toolchain::Regex> Pattern = std::make_shared<toolchain::Regex>(Val);
   if (!Val.empty()) {
     std::string RegexError;
     if (!Pattern->isValid(RegexError))
-      llvm::report_fatal_error("Invalid regular expression '" + Val +
+      toolchain::report_fatal_error("Invalid regular expression '" + Val +
                                    "' in -sil-remarks: " + RegexError,
                                false);
   }
@@ -644,7 +645,7 @@ static void runCommandLineSelectedPasses(SILModule *Module,
   if (Module->getOptions().VerifyAll) {
     Module->verify();
     SILPassManager pm(Module, isMandatory, IRGenMod);
-    pm.runSwiftModuleVerification();
+    pm.runCodiraModuleVerification();
   }
 }
 
@@ -667,20 +668,20 @@ getASTOverrideKind(const SILOptOptions &options) {
 
 int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
   INITIALIZE_LLVM();
-  llvm::setBugReportMsg(SWIFT_CRASH_BUG_REPORT_MESSAGE  "\n");
-  llvm::EnablePrettyStackTraceOnSigInfoForThisThread();
+  toolchain::setBugReportMsg(LANGUAGE_CRASH_BUG_REPORT_MESSAGE  "\n");
+  toolchain::EnablePrettyStackTraceOnSigInfoForThisThread();
 
   SILOptOptions options;
 
-  llvm::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Swift SIL optimizer\n");
+  toolchain::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Codira SIL optimizer\n");
 
   if (options.PrintStats)
-    llvm::EnableStatistics();
+    toolchain::EnableStatistics();
 
   CompilerInvocation Invocation;
 
   Invocation.setMainExecutablePath(
-      llvm::sys::fs::getMainExecutable(argv[0], MainAddr));
+      toolchain::sys::fs::getMainExecutable(argv[0], MainAddr));
 
   // Give the context the list of search paths to use for modules.
   std::vector<SearchPathOptions::SearchPath> ImportPaths;
@@ -715,15 +716,15 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   Invocation.getFrontendOptions().DisableImplicitModules =
     options.DisableImplicitModules;
-  Invocation.getSearchPathOptions().ExplicitSwiftModuleMapPath =
-    options.ExplicitSwiftModuleMapPath;
+  Invocation.getSearchPathOptions().ExplicitCodiraModuleMapPath =
+    options.ExplicitCodiraModuleMapPath;
 
-  // Set the module cache path. If not passed in we use the default swift module
+  // Set the module cache path. If not passed in we use the default language module
   // cache.
   Invocation.getClangImporterOptions().ModuleCachePath = options.ModuleCachePath;
   Invocation.setParseStdlib();
-  if (options.SwiftVersionString.size()) {
-    auto vers = VersionParser::parseVersionString(options.SwiftVersionString,
+  if (options.CodiraVersionString.size()) {
+    auto vers = VersionParser::parseVersionString(options.CodiraVersionString,
                                                   SourceLoc(), nullptr);
     bool isValid = false;
     if (vers.has_value()) {
@@ -734,8 +735,8 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
       }
     }
     if (!isValid) {
-      llvm::errs() << "error: invalid swift version "
-                   << options.SwiftVersionString << '\n';
+      toolchain::errs() << "error: invalid language version "
+                   << options.CodiraVersionString << '\n';
       exit(-1);
     }
   }
@@ -768,15 +769,15 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
   for (auto &featureName : options.UpcomingFeatures) {
     auto feature = Feature::getUpcomingFeature(featureName);
     if (!feature) {
-      llvm::errs() << "error: unknown upcoming feature "
+      toolchain::errs() << "error: unknown upcoming feature "
                    << QuotedString(featureName) << "\n";
       exit(-1);
     }
 
     if (auto firstVersion = feature->getLanguageVersion()) {
-      if (Invocation.getLangOptions().isSwiftVersionAtLeast(*firstVersion)) {
-        llvm::errs() << "error: upcoming feature " << QuotedString(featureName)
-                     << " is already enabled as of Swift version "
+      if (Invocation.getLangOptions().isCodiraVersionAtLeast(*firstVersion)) {
+        toolchain::errs() << "error: upcoming feature " << QuotedString(featureName)
+                     << " is already enabled as of Codira version "
                      << *firstVersion << '\n';
         exit(-1);
       }
@@ -788,7 +789,7 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
     if (auto feature = Feature::getExperimentalFeature(featureName)) {
       Invocation.getLangOptions().enableFeature(*feature);
     } else {
-      llvm::errs() << "error: unknown experimental feature "
+      toolchain::errs() << "error: unknown experimental feature "
                    << QuotedString(featureName) << "\n";
       exit(-1);
     }
@@ -796,9 +797,7 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   Invocation.getLangOptions().EnableObjCInterop =
     options.EnableObjCInterop ? true :
-    options.DisableObjCInterop ? false : llvm::Triple(options.Target).isOSDarwin();
-
-  Invocation.getLangOptions().enableFeature(Feature::LayoutPrespecialization);
+    options.DisableObjCInterop ? false : toolchain::Triple(options.Target).isOSDarwin();
 
   Invocation.getLangOptions().OptimizationRemarkPassedPattern =
       createOptRemarkRegex(options.PassRemarksPassed);
@@ -834,7 +833,7 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
   }
 
   // If we have strict concurrency set as a feature and were told to turn off
-  // region based isolation... do so now.
+  // region-based isolation... do so now.
   if (Invocation.getLangOptions().hasFeature(Feature::StrictConcurrency)) {
     Invocation.getLangOptions().enableFeature(Feature::RegionBasedIsolation);
   }
@@ -961,7 +960,7 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
   // CompilerInstance is initializer below based on Invocation.
 
   serialization::ExtendedValidationInfo extendedInfo;
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
       Invocation.setUpInputForSILTool(options.InputFilename, options.ModuleName,
                                       /*alwaysSetModuleToMain*/ false,
                                       /*bePrimary*/ !options.PerformWMO, extendedInfo);
@@ -1001,7 +1000,7 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::errs() << InstanceSetupError << '\n';
+    toolchain::errs() << InstanceSetupError << '\n';
     // Rather than finish Diag processing, exit -1 here to show we failed to
     // setup here. The reason we do this is if the setup fails, we want to fail
     // hard. We shouldn't be testing that we setup correctly with
@@ -1029,14 +1028,14 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
   SILMod->setSerializeSILAction([]{});
 
   if (!options.RemarksFilename.empty()) {
-    llvm::Expected<llvm::remarks::Format> formatOrErr =
-        llvm::remarks::parseFormat(options.RemarksFormat);
-    if (llvm::Error E = formatOrErr.takeError()) {
+    toolchain::Expected<toolchain::remarks::Format> formatOrErr =
+        toolchain::remarks::parseFormat(options.RemarksFormat);
+    if (toolchain::Error E = formatOrErr.takeError()) {
       CI.getDiags().diagnose(SourceLoc(),
                              diag::error_creating_remark_serializer,
                              toString(std::move(E)));
       HadError = true;
-      SILOpts.OptRecordFormat = llvm::remarks::Format::YAML;
+      SILOpts.OptRecordFormat = toolchain::remarks::Format::YAML;
     } else {
       SILOpts.OptRecordFormat = *formatOrErr;
     }
@@ -1069,16 +1068,16 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
   }
 
   if (options.EmitSIB || options.Serialize) {
-    llvm::SmallString<128> OutputFile;
+    toolchain::SmallString<128> OutputFile;
     if (options.OutputFilename.size()) {
       OutputFile = options.OutputFilename;
     } else if (options.ModuleName.size()) {
       OutputFile = options.ModuleName;
-      llvm::sys::path::replace_extension(
+      toolchain::sys::path::replace_extension(
           OutputFile, file_types::getExtension(file_types::TY_SIB));
     } else {
       OutputFile = CI.getMainModule()->getName().str();
-      llvm::sys::path::replace_extension(
+      toolchain::sys::path::replace_extension(
           OutputFile, file_types::getExtension(file_types::TY_SIB));
     }
 
@@ -1098,12 +1097,12 @@ int sil_opt_main(ArrayRef<const char *> argv, void *MainAddr) {
     SILOpts.EmitVerboseSIL = options.EmitVerboseSIL;
     SILOpts.EmitSortedSIL = options.EmitSortedSIL;
     if (OutputFile == "-") {
-      SILMod->print(llvm::outs(), CI.getMainModule(), SILOpts, !options.DisableASTDump);
+      SILMod->print(toolchain::outs(), CI.getMainModule(), SILOpts, !options.DisableASTDump);
     } else {
       std::error_code EC;
-      llvm::raw_fd_ostream OS(OutputFile, EC, llvm::sys::fs::OF_None);
+      toolchain::raw_fd_ostream OS(OutputFile, EC, toolchain::sys::fs::OF_None);
       if (EC) {
-        llvm::errs() << "while opening '" << OutputFile << "': "
+        toolchain::errs() << "while opening '" << OutputFile << "': "
                      << EC.message() << '\n';
         return finishDiagProcessing(1);
       }

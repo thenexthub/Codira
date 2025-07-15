@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::Constraint::Constraint(language::constraints::ConstraintKind, language::Type, language::Type, language::constraints::ConstraintLocator*, toolchain::SmallPtrSetImpl<language::TypeVariableType*>&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+extension _UIntBuffer {
+  a {
+    struct b : OptionSet

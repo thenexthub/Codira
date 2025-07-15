@@ -1,0 +1,90 @@
+/// Test the languageinterfaces and @_spiOnly.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Generate dependencies
+// RUN: %target-language-frontend -emit-module %S/Inputs/ioi_helper.code \
+// RUN:   -module-name A_SPIOnlyImported -emit-module-path %t/A_SPIOnlyImported.codemodule
+// RUN: %target-language-frontend -emit-module %t/Empty.code \
+// RUN:   -module-name ConstantSPIOnly -emit-module-path %t/ConstantSPIOnly.codemodule
+// RUN: %target-language-frontend -emit-module %t/Empty.code \
+// RUN:   -module-name InconsistentIOI -emit-module-path %t/InconsistentIOI.codemodule
+// RUN: %target-language-frontend -emit-module %t/Empty.code \
+// RUN:   -module-name InconsistentPublic -emit-module-path %t/InconsistentPublic.codemodule
+// RUN: %target-language-frontend -emit-module %t/Empty.code \
+// RUN:   -module-name IOIImported -emit-module-path %t/IOIImported.codemodule
+// RUN: %target-language-frontend -emit-module %t/Empty.code \
+// RUN:   -module-name SPIImported -emit-module-path %t/SPIImported.codemodule
+
+/// Test the generated languageinterface.
+// RUN: %target-language-frontend -typecheck %t/FileA.code %t/FileB.code \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -language-version 5 -enable-library-evolution -module-name Main -I %t \
+// RUN:   -emit-module-interface-path %t/Main.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Main.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Main.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Main.private.codeinterface) \
+// RUN:   -module-name Main -I %t
+// RUN: %FileCheck -check-prefix=CHECK-PUBLIC %s < %t/Main.codeinterface
+// RUN: %FileCheck -check-prefix=CHECK-PRIVATE %s < %t/Main.private.codeinterface
+
+/// Test the case of a library-level=SPI where even the public languageinterface
+/// also has SPI details.
+// RUN: %target-language-frontend -typecheck %t/FileA.code %t/FileB.code \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -language-version 5 -enable-library-evolution -module-name SPIMain -I %t \
+// RUN:   -emit-module-interface-path %t/SPIMain.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/SPIMain.private.codeinterface \
+// RUN:   -library-level spi
+// RUN: %target-language-typecheck-module-from-interface(%t/SPIMain.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/SPIMain.private.codeinterface) \
+// RUN:   -module-name SPIMain -I %t
+// RUN: %FileCheck -check-prefix=CHECK-PRIVATE %s < %t/SPIMain.codeinterface
+// RUN: %FileCheck -check-prefix=CHECK-PRIVATE %s < %t/SPIMain.private.codeinterface
+
+//--- Empty.code
+//--- FileA.code
+
+/// We don't need or want the flag in the languageinterface
+// CHECK-PUBLIC-NOT: -experimental-spi-only-imports
+// CHECK-PRIVATE-NOT: -experimental-spi-only-imports
+
+@_spiOnly @_spi(SomeSPIGroup) import A_SPIOnlyImported
+// CHECK-PUBLIC-NOT: A_SPIOnlyImported
+// CHECK-PRIVATE: {{^}}@_spiOnly @_spi(SomeSPIGroup) import A_SPIOnlyImported
+
+/// This is also imported as SPI only via FileB.code
+@_spiOnly import ConstantSPIOnly
+// CHECK-PUBLIC-NOT: ConstantSPIOnly
+// CHECK-PRIVATE: {{^}}@_spiOnly import ConstantSPIOnly
+
+/// This is also imported as SPI only via FileB.code
+@_implementationOnly import InconsistentIOI
+// CHECK-PUBLIC-NOT: InconsistentIOI
+// CHECK-PRIVATE: {{^}}@_spiOnly import InconsistentIOI
+
+/// This is also imported as SPI only via FileB.code
+import InconsistentPublic
+// CHECK-PUBLIC: {{^}}import InconsistentPublic
+// CHECK-PRIVATE: {{^}}import InconsistentPublic
+
+@_implementationOnly import IOIImported
+// CHECK-PUBLIC-NOT: IOIImported
+// CHECK-PRIVATE-NOT: IOIImported
+
+@_spi(dummy) import SPIImported
+// CHECK-PUBLIC: {{^}}import SPIImported
+// CHECK-PRIVATE: @_spi{{.*}} import SPIImported
+
+@_spi(X)
+extension IOIPublicStruct {
+  public fn foo() {}
+}
+// CHECK-PUBLIC-NOT: A_SPIOnlyImported.IOIPublicStruct
+// CHECK-PRIVATE: @_spi{{.*}} extension A_SPIOnlyImported.IOIPublicStruct
+
+//--- FileB.code
+@_spiOnly import ConstantSPIOnly
+@_spiOnly import InconsistentPublic
+@_spiOnly import InconsistentIOI

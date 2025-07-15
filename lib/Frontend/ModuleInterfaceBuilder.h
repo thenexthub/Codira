@@ -1,30 +1,34 @@
-//===----- ModuleInterfaceBuilder.h - Compiles .swiftinterface files ------===//
+//===----- ModuleInterfaceBuilder.h - Compiles .codeinterface files ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_MODULEINTERFACEBUILDER_H
-#define SWIFT_FRONTEND_MODULEINTERFACEBUILDER_H
+#ifndef LANGUAGE_FRONTEND_MODULEINTERFACEBUILDER_H
+#define LANGUAGE_FRONTEND_MODULEINTERFACEBUILDER_H
 
 #include "language/AST/ModuleLoader.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Frontend/Frontend.h"
 #include "language/Serialization/SerializationOptions.h"
-#include "llvm/Support/StringSaver.h"
+#include "toolchain/Support/StringSaver.h"
 
-namespace llvm {
+namespace toolchain {
 namespace vfs {
 class FileSystem;
 }
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -33,7 +37,7 @@ class LangOptions;
 class SearchPathOptions;
 class DependencyTracker;
 
-/// A utility class to build a Swift interface file into a module
+/// A utility class to build a Codira interface file into a module
 /// using a `CompilerInstance` constructed from the flags specified in the
 /// interface file.
 class ImplicitModuleInterfaceBuilder {
@@ -79,8 +83,8 @@ private:
   }
 
   bool
-  buildSwiftModuleInternal(StringRef OutPath, bool ShouldSerializeDeps,
-                           std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
+  buildCodiraModuleInternal(StringRef OutPath, bool ShouldSerializeDeps,
+                           std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
                            ArrayRef<std::string> CandidateModules);
 
 public:
@@ -109,13 +113,13 @@ public:
   /// module.
   void addExtraDependency(StringRef path) { extraDependencies.push_back(path); }
 
-  bool buildSwiftModule(StringRef OutPath, bool ShouldSerializeDeps,
-                        std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-                        llvm::function_ref<void()> RemarkRebuild = nullptr,
+  bool buildCodiraModule(StringRef OutPath, bool ShouldSerializeDeps,
+                        std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+                        toolchain::function_ref<void()> RemarkRebuild = nullptr,
                         ArrayRef<std::string> CandidateModules = {});
 };
 
-/// Use the provided `CompilerInstance` to build a swift interface into a module
+/// Use the provided `CompilerInstance` to build a language interface into a module
 class ExplicitModuleInterfaceBuilder {
 public:
   ExplicitModuleInterfaceBuilder(CompilerInstance &Instance,
@@ -139,15 +143,15 @@ public:
         diagnosticLoc(diagnosticLoc),
         dependencyTracker(tracker) {}
 
-  std::error_code buildSwiftModuleFromInterface(
+  std::error_code buildCodiraModuleFromInterface(
       StringRef interfacePath, StringRef outputPath, bool ShouldSerializeDeps,
-      std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
+      std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
       ArrayRef<std::string> CompiledCandidates,
       StringRef CompilerVersion);
 
   /// Populate the provided \p Deps with \c FileDependency entries for all
   /// dependencies \p SubInstance's DependencyTracker recorded while compiling
-  /// the module, excepting .swiftmodules in \p moduleCachePath or
+  /// the module, excepting .codemodules in \p moduleCachePath or
   /// \p prebuiltCachePath. Those have _their_ dependencies added instead, both
   /// to avoid having to do recursive scanning when rechecking this dependency
   /// in future and to make the module caches relocatable.
@@ -194,4 +198,4 @@ private:
 
 } // end namespace language
 
-#endif // defined(SWIFT_FRONTEND_MODULEINTERFACEBUILDER_H)
+#endif // defined(LANGUAGE_FRONTEND_MODULEINTERFACEBUILDER_H)

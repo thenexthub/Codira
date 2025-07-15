@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines type checking requests.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_TYPE_CHECK_REQUESTS_H
-#define SWIFT_TYPE_CHECK_REQUESTS_H
+#ifndef LANGUAGE_TYPE_CHECK_REQUESTS_H
+#define LANGUAGE_TYPE_CHECK_REQUESTS_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/ASTTypeIDs.h"
@@ -39,9 +40,9 @@
 #include "language/Basic/Statistic.h"
 #include "language/Basic/TaggedUnion.h"
 #include "language/Basic/TypeID.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -67,7 +68,7 @@ struct PropertyWrapperLValueness;
 struct PropertyWrapperMutability;
 class RequirementRepr;
 class ReturnStmt;
-class SpecializeAttr;
+class AbstractSpecializeAttr;
 class TrailingWhereClause;
 class TypeAliasDecl;
 class TypeLoc;
@@ -80,10 +81,10 @@ class StorageImplInfo;
 
 /// Display a nominal type or extension thereof.
 void simple_display(
-    llvm::raw_ostream &out,
-    const llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> &value);
+    toolchain::raw_ostream &out,
+    const toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> &value);
 
-void simple_display(llvm::raw_ostream &out, ASTContext *ctx);
+void simple_display(toolchain::raw_ostream &out, ASTContext *ctx);
 
 /// Emulates the following enum with associated values:
 /// enum InheritedTypeResult {
@@ -152,7 +153,7 @@ class InheritedTypeRequest
     : public SimpleRequest<
           InheritedTypeRequest,
           InheritedTypeResult(
-              llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *>,
+              toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *>,
               unsigned, TypeResolutionStage),
           RequestFlags::SeparatelyCached> {
 public:
@@ -164,7 +165,7 @@ private:
   // Evaluation.
   InheritedTypeResult
   evaluate(Evaluator &evaluator,
-           llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+           toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
            unsigned index, TypeResolutionStage stage) const;
 
   const InheritedEntry &getInheritedEntry() const;
@@ -237,7 +238,7 @@ public:
 /// by the given declaration.
 class OverriddenDeclsRequest :
   public SimpleRequest<OverriddenDeclsRequest,
-                       llvm::TinyPtrVector<ValueDecl *>(ValueDecl *),
+                       toolchain::TinyPtrVector<ValueDecl *>(ValueDecl *),
                        RequestFlags::SeparatelyCached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -246,14 +247,14 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  llvm::TinyPtrVector<ValueDecl *>
+  toolchain::TinyPtrVector<ValueDecl *>
   evaluate(Evaluator &evaluator, ValueDecl *decl) const;
 
 public:
   // Separate caching.
   bool isCached() const { return true; }
-  std::optional<llvm::TinyPtrVector<ValueDecl *>> getCachedResult() const;
-  void cacheResult(llvm::TinyPtrVector<ValueDecl *> value) const;
+  std::optional<toolchain::TinyPtrVector<ValueDecl *>> getCachedResult() const;
+  void cacheResult(toolchain::TinyPtrVector<ValueDecl *> value) const;
 };
 
 /// Determine whether the given declaration is exposed to Objective-C.
@@ -297,7 +298,7 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, CtorInitializerKind initKind);
+void simple_display(toolchain::raw_ostream &out, CtorInitializerKind initKind);
 
 /// Computes the kind of initializer for a given \c ConstructorDecl
 class InitKindRequest :
@@ -319,8 +320,8 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, BodyInitKind initKind);
-void simple_display(llvm::raw_ostream &out, BodyInitKindAndExpr initKindAndExpr);
+void simple_display(toolchain::raw_ostream &out, BodyInitKind initKind);
+void simple_display(toolchain::raw_ostream &out, BodyInitKindAndExpr initKindAndExpr);
 
 /// Computes the kind of initializer call (self.init or super.init) performed
 /// in the body of a \c ConstructorDecl
@@ -478,9 +479,31 @@ public:
   bool isCached() const { return true; }
 };
 
+class RawConformanceIsolationRequest :
+    public SimpleRequest<RawConformanceIsolationRequest,
+                         std::optional<ActorIsolation>(NormalProtocolConformance *),
+                         RequestFlags::SeparatelyCached |
+                         RequestFlags::SplitCached> {
+public:
+  using SimpleRequest::SimpleRequest;
+
+private:
+  friend SimpleRequest;
+
+  // Evaluation.
+  std::optional<ActorIsolation>
+  evaluate(Evaluator &evaluator, NormalProtocolConformance *conformance) const;
+
+public:
+  // Separate caching.
+  bool isCached() const { return true; }
+  std::optional<std::optional<ActorIsolation>> getCachedResult() const;
+  void cacheResult(std::optional<ActorIsolation> result) const;
+};
+
 class ConformanceIsolationRequest :
     public SimpleRequest<ConformanceIsolationRequest,
-                         ActorIsolation(ProtocolConformance *),
+                         ActorIsolation(NormalProtocolConformance *),
                          RequestFlags::SeparatelyCached |
                          RequestFlags::SplitCached> {
 public:
@@ -491,7 +514,7 @@ private:
 
   // Evaluation.
   ActorIsolation
-  evaluate(Evaluator &evaluator, ProtocolConformance *conformance) const;
+  evaluate(Evaluator &evaluator, NormalProtocolConformance *conformance) const;
 
 public:
   // Separate caching.
@@ -650,8 +673,8 @@ struct WhereClauseOwner {
 
   /// The source of the where clause, which can be a generic parameter list
   /// or a declaration that can have a where clause.
-  llvm::PointerUnion<GenericParamList *, TrailingWhereClause *,
-                     SpecializeAttr *, DifferentiableAttr *>
+  toolchain::PointerUnion<GenericParamList *, TrailingWhereClause *,
+                     AbstractSpecializeAttr *, DifferentiableAttr *>
       source;
 
   WhereClauseOwner() : dc(nullptr) {}
@@ -665,7 +688,7 @@ struct WhereClauseOwner {
   WhereClauseOwner(DeclContext *dc, TrailingWhereClause *where)
       : dc(dc), source(where) {}
 
-  WhereClauseOwner(DeclContext *dc, SpecializeAttr *attr)
+  WhereClauseOwner(DeclContext *dc, AbstractSpecializeAttr *attr)
       : dc(dc), source(attr) {}
 
   WhereClauseOwner(DeclContext *dc, DifferentiableAttr *attr)
@@ -674,7 +697,7 @@ struct WhereClauseOwner {
   SourceLoc getLoc() const;
 
   friend hash_code hash_value(const WhereClauseOwner &owner) {
-    return llvm::hash_value(owner.source.getOpaqueValue());
+    return toolchain::hash_value(owner.source.getOpaqueValue());
   }
 
   operator bool() const {
@@ -700,11 +723,11 @@ struct WhereClauseOwner {
   /// for any of the requirements.
   bool
   visitRequirements(TypeResolutionStage stage,
-                    llvm::function_ref<bool(Requirement, RequirementRepr *)>
+                    toolchain::function_ref<bool(Requirement, RequirementRepr *)>
                         callback) const &&;
 };
 
-void simple_display(llvm::raw_ostream &out, const WhereClauseOwner &owner);
+void simple_display(toolchain::raw_ostream &out, const WhereClauseOwner &owner);
 
 /// Retrieve a requirement from the where clause of the given declaration.
 class RequirementRequest :
@@ -739,14 +762,14 @@ public:
 };
 
 struct USRGenerationOptions {
-  /// @brief Whether to emit USRs using the Swift declaration when it is
-  /// synthesized from a Clang based declaration. Useful in cases where Swift
+  /// @brief Whether to emit USRs using the Codira declaration when it is
+  /// synthesized from a Clang based declaration. Useful in cases where Codira
   /// declarations are synthesized from Clang nodes but the caller actually
-  /// wants the USR of the Swift declaration.
+  /// wants the USR of the Codira declaration.
   bool distinguishSynthesizedDecls;
 
-  friend llvm::hash_code hash_value(const USRGenerationOptions &options) {
-    return llvm::hash_value(options.distinguishSynthesizedDecls);
+  friend toolchain::hash_code hash_value(const USRGenerationOptions &options) {
+    return toolchain::hash_value(options.distinguishSynthesizedDecls);
   }
 
   friend bool operator==(const USRGenerationOptions &lhs,
@@ -760,7 +783,7 @@ struct USRGenerationOptions {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const USRGenerationOptions &options);
 
 /// Generate the USR for the given declaration.
@@ -803,7 +826,7 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, const KnownProtocolKind);
+void simple_display(toolchain::raw_ostream &out, const KnownProtocolKind);
 
 /// Pretty-print the given declaration into a buffer and return a source
 /// location that refers to the declaration in that buffer.
@@ -871,7 +894,7 @@ public:
 /// refers.
 class AttachedPropertyWrappersRequest :
     public SimpleRequest<AttachedPropertyWrappersRequest,
-                         llvm::TinyPtrVector<CustomAttr *>(VarDecl *),
+                         toolchain::TinyPtrVector<CustomAttr *>(VarDecl *),
                          RequestFlags::SeparatelyCached |
                          RequestFlags::SplitCached> {
 public:
@@ -881,14 +904,14 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  llvm::TinyPtrVector<CustomAttr *>
+  toolchain::TinyPtrVector<CustomAttr *>
   evaluate(Evaluator &evaluator, VarDecl *) const;
 
 public:
   // Separate caching.
   bool isCached() const { return true; }
-  std::optional<llvm::TinyPtrVector<CustomAttr *>> getCachedResult() const;
-  void cacheResult(llvm::TinyPtrVector<CustomAttr *> result) const;
+  std::optional<toolchain::TinyPtrVector<CustomAttr *>> getCachedResult() const;
+  void cacheResult(toolchain::TinyPtrVector<CustomAttr *> result) const;
 };
 
 /// Request the raw (possibly unbound generic) type of the property wrapper
@@ -1056,9 +1079,9 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, FragileFunctionKind value);
+void simple_display(toolchain::raw_ostream &out, FragileFunctionKind value);
 
-void simple_display(llvm::raw_ostream &out, ResilienceExpansion value);
+void simple_display(toolchain::raw_ostream &out, ResilienceExpansion value);
 
 class PolymorphicEffectKindRequest :
     public SimpleRequest<PolymorphicEffectKindRequest,
@@ -1134,7 +1157,7 @@ private:
 
   // Evaluation.
   SelfAccessKind
-  evaluate(Evaluator &evaluator, FuncDecl *func) const;
+  evaluate(Evaluator &evaluator, FuncDecl *fn) const;
 
 public:
   // Separate caching.
@@ -1457,11 +1480,11 @@ public:
 class GetDistributedThunkRequest
     : public SimpleRequest<GetDistributedThunkRequest,
                            FuncDecl *(
-                               llvm::PointerUnion<AbstractStorageDecl *,
+                               toolchain::PointerUnion<AbstractStorageDecl *,
                                                   AbstractFunctionDecl *>),
                            RequestFlags::Cached> {
   using Originator =
-      llvm::PointerUnion<AbstractStorageDecl *, AbstractFunctionDecl *>;
+      toolchain::PointerUnion<AbstractStorageDecl *, AbstractFunctionDecl *>;
 
 public:
   using SimpleRequest::SimpleRequest;
@@ -1535,7 +1558,7 @@ public:
 /// requirement.
 class GetDistributedMethodWitnessedProtocolRequirements :
     public SimpleRequest<GetDistributedMethodWitnessedProtocolRequirements,
-                         llvm::ArrayRef<ValueDecl *> (AbstractFunctionDecl *),
+                         toolchain::ArrayRef<ValueDecl *> (AbstractFunctionDecl *),
                          RequestFlags::Cached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -1543,7 +1566,7 @@ public:
 private:
   friend SimpleRequest;
 
-  llvm::ArrayRef<ValueDecl *> evaluate(
+  toolchain::ArrayRef<ValueDecl *> evaluate(
       Evaluator &evaluator,
       AbstractFunctionDecl *nominal) const;
 
@@ -1584,7 +1607,7 @@ using CustomAttrNominalPair = std::pair<CustomAttr *, NominalTypeDecl *>;
 class GlobalActorAttributeRequest
     : public SimpleRequest<GlobalActorAttributeRequest,
                            std::optional<CustomAttrNominalPair>(
-                               llvm::PointerUnion<Decl *, ClosureExpr *>),
+                               toolchain::PointerUnion<Decl *, ClosureExpr *>),
                            RequestFlags::SeparatelyCached |
                            RequestFlags::SplitCached> {
 public:
@@ -1596,7 +1619,7 @@ private:
   // Evaluation.
   std::optional<CustomAttrNominalPair>
   evaluate(Evaluator &evaluator,
-           llvm::PointerUnion<Decl *, ClosureExpr *>) const;
+           toolchain::PointerUnion<Decl *, ClosureExpr *>) const;
 
 public:
   // Separate caching.
@@ -1635,7 +1658,7 @@ public:
 private:
   friend SimpleRequest;
 
-  bool evaluate(Evaluator &evaluator, ValueDecl *func) const;
+  bool evaluate(Evaluator &evaluator, ValueDecl *fn) const;
 };
 
 /// Request whether the storage has a mutating getter.
@@ -1651,7 +1674,7 @@ private:
 
   // Evaluation.
   bool
-  evaluate(Evaluator &evaluator, AbstractStorageDecl *func) const;
+  evaluate(Evaluator &evaluator, AbstractStorageDecl *fn) const;
 
 public:
   // Separate caching.
@@ -1673,7 +1696,7 @@ private:
 
   // Evaluation.
   bool
-  evaluate(Evaluator &evaluator, AbstractStorageDecl *func) const;
+  evaluate(Evaluator &evaluator, AbstractStorageDecl *fn) const;
 
 public:
   // Separate caching.
@@ -1735,7 +1758,7 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  BraceStmt *evaluate(Evaluator &evaluator, AbstractFunctionDecl *func) const;
+  BraceStmt *evaluate(Evaluator &evaluator, AbstractFunctionDecl *fn) const;
 
 public:
   // Separate caching.
@@ -1792,8 +1815,8 @@ public:
     return Node;
   }
 
-  friend llvm::hash_code hash_value(const TypeCheckASTNodeAtLocContext &ctx) {
-    return llvm::hash_combine(ctx.DC, ctx.Node);
+  friend toolchain::hash_code hash_value(const TypeCheckASTNodeAtLocContext &ctx) {
+    return toolchain::hash_combine(ctx.DC, ctx.Node);
   }
 
   friend bool operator==(const TypeCheckASTNodeAtLocContext &lhs,
@@ -1816,7 +1839,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const TypeCheckASTNodeAtLocContext &ctx);
 
 /// Request to typecheck a function body element at the given source location.
@@ -2129,7 +2152,7 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, AncestryFlags value);
+void simple_display(toolchain::raw_ostream &out, AncestryFlags value);
 
 class AbstractGenericSignatureRequest :
     public SimpleRequest<AbstractGenericSignatureRequest,
@@ -2199,7 +2222,7 @@ public:
   void noteCycleStep(DiagnosticEngine &diags) const;
 };
 
-void simple_display(llvm::raw_ostream &out, const TypeLoc source);
+void simple_display(toolchain::raw_ostream &out, const TypeLoc source);
 
 class ExtendedTypeRequest
     : public SimpleRequest<ExtendedTypeRequest,
@@ -2673,8 +2696,8 @@ struct PrecedenceGroupDescriptor {
 
   SourceLoc getLoc() const;
 
-  friend llvm::hash_code hash_value(const PrecedenceGroupDescriptor &owner) {
-    return llvm::hash_combine(owner.dc,
+  friend toolchain::hash_code hash_value(const PrecedenceGroupDescriptor &owner) {
+    return toolchain::hash_combine(owner.dc,
                               owner.ident.getAsOpaquePointer(),
                               owner.nameLoc.getOpaquePointerValue());
   }
@@ -2692,7 +2715,7 @@ struct PrecedenceGroupDescriptor {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const PrecedenceGroupDescriptor &d);
+void simple_display(toolchain::raw_ostream &out, const PrecedenceGroupDescriptor &d);
 
 class ValidatePrecedenceGroupRequest
     : public SimpleRequest<ValidatePrecedenceGroupRequest,
@@ -3266,7 +3289,7 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, Initializer *init);
+void simple_display(toolchain::raw_ostream &out, Initializer *init);
 
 /// Computes the fully type-checked caller-side default argument within the
 /// context of the call site that it will be inserted into.
@@ -3314,7 +3337,7 @@ public:
 
 class SpecializeAttrTargetDeclRequest
     : public SimpleRequest<SpecializeAttrTargetDeclRequest,
-                           ValueDecl *(const ValueDecl *, SpecializeAttr *),
+                           ValueDecl *(const ValueDecl *, AbstractSpecializeAttr *),
                            RequestFlags::Cached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -3324,7 +3347,7 @@ private:
 
   // Evaluation.
   ValueDecl *evaluate(Evaluator &evaluator, const ValueDecl *vd,
-                      SpecializeAttr *attr) const;
+                      AbstractSpecializeAttr *attr) const;
 
 public:
   // Caching.
@@ -3404,7 +3427,7 @@ public:
 /// List SPI group ids declared on a decl.
 class SPIGroupsRequest :
     public SimpleRequest<SPIGroupsRequest,
-                         llvm::ArrayRef<Identifier>(const Decl *),
+                         toolchain::ArrayRef<Identifier>(const Decl *),
                          RequestFlags::SeparatelyCached |
                          RequestFlags::SplitCached> {
 public:
@@ -3414,13 +3437,13 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  llvm::ArrayRef<Identifier>
+  toolchain::ArrayRef<Identifier>
   evaluate(Evaluator &evaluator, const Decl *decl) const;
 
 public:
   bool isCached() const { return true; }
-  std::optional<llvm::ArrayRef<Identifier>> getCachedResult() const;
-  void cacheResult(llvm::ArrayRef<Identifier> result) const;
+  std::optional<toolchain::ArrayRef<Identifier>> getCachedResult() const;
+  void cacheResult(toolchain::ArrayRef<Identifier> result) const;
 };
 
 
@@ -3557,7 +3580,7 @@ public:
 };
 
 using ProtocolConformanceLookupResult = std::vector<ProtocolConformance *>;
-void simple_display(llvm::raw_ostream &out, ConformanceLookupKind kind);
+void simple_display(toolchain::raw_ostream &out, ConformanceLookupKind kind);
 
 /// Lookup and expand all conformances in the given context.
 ///
@@ -3632,14 +3655,14 @@ public:
 
 class UnresolvedMacroReference {
 private:
-  llvm::PointerUnion<FreestandingMacroExpansion *, CustomAttr *>
+  toolchain::PointerUnion<FreestandingMacroExpansion *, CustomAttr *>
     pointer;
 
 public:
   UnresolvedMacroReference(FreestandingMacroExpansion *exp) : pointer(exp) {}
   UnresolvedMacroReference(CustomAttr *attr) : pointer(attr) {}
   UnresolvedMacroReference(
-      llvm::PointerUnion<FreestandingMacroExpansion *, CustomAttr *> pointer)
+      toolchain::PointerUnion<FreestandingMacroExpansion *, CustomAttr *> pointer)
       : pointer(pointer) {}
 
   FreestandingMacroExpansion *getFreestanding() const {
@@ -3669,7 +3692,7 @@ public:
     return lhs.getOpaqueValue() == rhs.getOpaqueValue();
   }
 
-  friend llvm::hash_code hash_value(const UnresolvedMacroReference &ref) {
+  friend toolchain::hash_code hash_value(const UnresolvedMacroReference &ref) {
     return reinterpret_cast<ptrdiff_t>(ref.pointer.getOpaqueValue());
   }
 
@@ -3680,7 +3703,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const UnresolvedMacroReference &ref);
 
 /// Resolve a given custom attribute to an attached macro declaration.
@@ -3869,7 +3892,7 @@ private:
                 TypeRepr *repr) const;
 };
 
-void simple_display(llvm::raw_ostream &out, const TypeResolution *resolution);
+void simple_display(toolchain::raw_ostream &out, const TypeResolution *resolution);
 SourceLoc extractNearestSourceLoc(const TypeRepr *repr);
 
 /// Checks to see if any of the imports in a module use \c @_implementationOnly
@@ -3939,7 +3962,7 @@ public:
 /// Report default imports if other imports of the same target from this
 /// module have an explicitly defined access level. In such a case, all imports
 /// of the target module need an explicit access level or it may be made public
-/// by error. This applies only to pre-Swift 6 mode.
+/// by error. This applies only to pre-Codira 6 mode.
 class CheckInconsistentAccessLevelOnImport
     : public SimpleRequest<CheckInconsistentAccessLevelOnImport,
                            evaluator::SideEffect(SourceFile *),
@@ -4037,7 +4060,7 @@ enum class CustomAttrTypeKind {
   GlobalActor,
 };
 
-void simple_display(llvm::raw_ostream &out, CustomAttrTypeKind value);
+void simple_display(toolchain::raw_ostream &out, CustomAttrTypeKind value);
 
 class CustomAttrTypeRequest
     : public SimpleRequest<CustomAttrTypeRequest,
@@ -4100,7 +4123,7 @@ public:
 
 class ConditionalRequirementsRequest
     : public SimpleRequest<ConditionalRequirementsRequest,
-                           llvm::ArrayRef<Requirement>(
+                           toolchain::ArrayRef<Requirement>(
                                NormalProtocolConformance *),
                            RequestFlags::Cached> {
 public:
@@ -4110,7 +4133,7 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  llvm::ArrayRef<Requirement> evaluate(Evaluator &evaluator,
+  toolchain::ArrayRef<Requirement> evaluate(Evaluator &evaluator,
                                        NormalProtocolConformance *decl) const;
 
 public:
@@ -4147,7 +4170,7 @@ enum class DeclRuntimeAvailability : uint8_t {
   /// The decl is potentially available at runtime. If it is unavailable at
   /// compile time in the current module, it may still be considered available
   /// at compile time by other modules with different settings. For example, a
-  /// decl that is obsolete in Swift 5 is still available to other modules that
+  /// decl that is obsolete in Codira 5 is still available to other modules that
   /// are compiled for an earlier language mode.
   PotentiallyAvailable,
 
@@ -4390,7 +4413,7 @@ private:
       break;
     }
     default:
-      llvm_unreachable("Unhandled case in switch!");
+      toolchain_unreachable("Unhandled case in switch!");
     }
   }
 
@@ -4856,9 +4879,9 @@ public:
   bool isCached() const { return true; }
 };
 
-/// Check @cdecl-style attributes for compatibility with the foreign language.
-class TypeCheckCDeclAttributeRequest
-    : public SimpleRequest<TypeCheckCDeclAttributeRequest,
+/// Check @cdecl functions for compatibility with the foreign language.
+class TypeCheckCDeclFunctionRequest
+    : public SimpleRequest<TypeCheckCDeclFunctionRequest,
                            evaluator::SideEffect(FuncDecl *FD,
                                                  CDeclAttr *attr),
                            RequestFlags::Cached> {
@@ -4875,10 +4898,29 @@ public:
   bool isCached() const { return true; }
 };
 
-void simple_display(llvm::raw_ostream &out, ASTNode node);
-void simple_display(llvm::raw_ostream &out, Type value);
-void simple_display(llvm::raw_ostream &out, const TypeRepr *TyR);
-void simple_display(llvm::raw_ostream &out, ImplicitMemberAction action);
+/// Check @cdecl enums for compatibility with C.
+class TypeCheckCDeclEnumRequest
+    : public SimpleRequest<TypeCheckCDeclEnumRequest,
+                           evaluator::SideEffect(EnumDecl *ED,
+                                                 CDeclAttr *attr),
+                           RequestFlags::Cached> {
+public:
+  using SimpleRequest::SimpleRequest;
+
+private:
+  friend SimpleRequest;
+
+  evaluator::SideEffect
+  evaluate(Evaluator &evaluator, EnumDecl *ED, CDeclAttr *attr) const;
+
+public:
+  bool isCached() const { return true; }
+};
+
+void simple_display(toolchain::raw_ostream &out, ASTNode node);
+void simple_display(toolchain::raw_ostream &out, Type value);
+void simple_display(toolchain::raw_ostream &out, const TypeRepr *TyR);
+void simple_display(toolchain::raw_ostream &out, ImplicitMemberAction action);
 
 /// Computes whether a module is part of the stdlib or contained within the
 /// SDK or the platform directory. If no SDK was specified, falls back to
@@ -4959,7 +5001,7 @@ public:
 class SerializeAttrGenericSignatureRequest
     : public SimpleRequest<SerializeAttrGenericSignatureRequest,
                            GenericSignature(const AbstractFunctionDecl *,
-                                            SpecializeAttr *),
+                                            AbstractSpecializeAttr *),
                            RequestFlags::SeparatelyCached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -4969,7 +5011,7 @@ private:
 
   GenericSignature evaluate(Evaluator &evaluator,
                             const AbstractFunctionDecl *decl,
-                            SpecializeAttr *attr) const;
+                            AbstractSpecializeAttr *attr) const;
 
 public:
   // Separate caching.
@@ -5095,8 +5137,7 @@ public:
 class LifetimeDependenceInfoRequest
     : public SimpleRequest<
           LifetimeDependenceInfoRequest,
-          std::optional<llvm::ArrayRef<LifetimeDependenceInfo>>(
-              AbstractFunctionDecl *),
+          std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>(ValueDecl *),
           RequestFlags::SeparatelyCached | RequestFlags::SplitCached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -5104,16 +5145,16 @@ public:
 private:
   friend SimpleRequest;
 
-  std::optional<llvm::ArrayRef<LifetimeDependenceInfo>>
-  evaluate(Evaluator &evaluator, AbstractFunctionDecl *AFD) const;
+  std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>
+  evaluate(Evaluator &evaluator, ValueDecl *AFD) const;
 
 public:
   // Separate caching.
   bool isCached() const { return true; }
-  std::optional<std::optional<llvm::ArrayRef<LifetimeDependenceInfo>>>
+  std::optional<std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>>>
   getCachedResult() const;
   void cacheResult(
-      std::optional<llvm::ArrayRef<LifetimeDependenceInfo>> value) const;
+      std::optional<toolchain::ArrayRef<LifetimeDependenceInfo>> value) const;
 };
 
 class CaptureInfoRequest :
@@ -5127,7 +5168,7 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  CaptureInfo evaluate(Evaluator &evaluator, AbstractFunctionDecl *func) const;
+  CaptureInfo evaluate(Evaluator &evaluator, AbstractFunctionDecl *fn) const;
 
 public:
   // Separate caching.
@@ -5256,13 +5297,13 @@ private:
                              ASTContext *ctx) const;
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     RegexLiteralPatternFeatureKind kind);
 SourceLoc extractNearestSourceLoc(RegexLiteralPatternFeatureKind kind);
 
 class GenericTypeParamDeclGetValueTypeRequest
     : public SimpleRequest<GenericTypeParamDeclGetValueTypeRequest,
-                           Type(GenericTypeParamDecl *decl),
+                           Type(const GenericTypeParamDecl *decl),
                            RequestFlags::Cached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -5270,7 +5311,7 @@ public:
 private:
   friend SimpleRequest;
 
-  Type evaluate(Evaluator &evaluator, GenericTypeParamDecl *decl) const;
+  Type evaluate(Evaluator &evaluator, const GenericTypeParamDecl *decl) const;
 
 public:
   bool isCached() const { return true; }
@@ -5335,42 +5376,55 @@ public:
   void cacheResult(std::optional<SemanticAvailabilitySpec> value) const;
 };
 
-class SourceFileLangOptionsRequest
-    : public SimpleRequest<SourceFileLangOptionsRequest,
-                           SourceFileLangOptions(SourceFile *),
+class DefaultIsolationInSourceFileRequest
+    : public SimpleRequest<DefaultIsolationInSourceFileRequest,
+                           std::optional<DefaultIsolation>(const SourceFile *),
                            RequestFlags::Cached> {
-
 public:
   using SimpleRequest::SimpleRequest;
 
 private:
   friend SimpleRequest;
 
-  SourceFileLangOptions evaluate(Evaluator &evaluator,
-                                 SourceFile *sourceFile) const;
+  std::optional<DefaultIsolation> evaluate(Evaluator &evaluator,
+                                           const SourceFile *file) const;
 
 public:
   bool isCached() const { return true; }
-  std::optional<SourceFileLangOptions> getCachedResult() const;
-  void cacheResult(SourceFileLangOptions value) const;
 };
 
-#define SWIFT_TYPEID_ZONE TypeChecker
-#define SWIFT_TYPEID_HEADER "swift/AST/TypeCheckerTypeIDZone.def"
+class ModuleHasTypeCheckerPerformanceHacksEnabledRequest
+    : public SimpleRequest<ModuleHasTypeCheckerPerformanceHacksEnabledRequest,
+                           bool(const ModuleDecl *),
+                           RequestFlags::Cached> {
+public:
+  using SimpleRequest::SimpleRequest;
+
+private:
+  friend SimpleRequest;
+
+  bool evaluate(Evaluator &evaluator, const ModuleDecl *module) const;
+
+public:
+  bool isCached() const { return true; }
+};
+
+#define LANGUAGE_TYPEID_ZONE TypeChecker
+#define LANGUAGE_TYPEID_HEADER "language/AST/TypeCheckerTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
   template<>                                                                   \
   inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,              \
                               const RequestType &request) {                    \
     ++stats.getFrontendCounters().RequestType;                                 \
   }
 #include "language/AST/TypeCheckerTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_TYPE_CHECK_REQUESTS_H
+#endif // LANGUAGE_TYPE_CHECK_REQUESTS_H

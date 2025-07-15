@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -I %S/Inputs -enable-experimental-cxx-interop -typecheck %s
+// REQUIRES: objc_interop
+
+import CenumsNSOptions
+
+immutable foo = CFunctionReturningNSOption()
+CFunctionTakingNSOption(foo)
+immutable foo2 = NSOptionTypeCheckTest.methodReturningNSOption()
+NSOptionTypeCheckTest.methodTakingNSOption(foo)

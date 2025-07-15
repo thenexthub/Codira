@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for representing a buffer or collection of buffers to
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_INITIALIZATION_H
-#define SWIFT_LOWERING_INITIALIZATION_H
+#ifndef LANGUAGE_LOWERING_INITIALIZATION_H
+#define LANGUAGE_LOWERING_INITIALIZATION_H
 
 #include "ManagedValue.h"
 #include "language/SIL/AbstractionPattern.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 #include <memory>
 
 namespace language {
@@ -100,14 +101,14 @@ public:
   /// A hack that should be removed relating to the initialization of
   /// global values.
   virtual bool isInPlaceInitializationOfGlobal() const {
-    llvm_unreachable("didn't implement isInPlaceInitializationOfGlobal");
+    toolchain_unreachable("didn't implement isInPlaceInitializationOfGlobal");
   }
   
   /// Begin an in-place initialization, given that
   /// canPerformInPlaceInitialization() returned true.
   virtual SILValue
   getAddressForInPlaceInitialization(SILGenFunction &SGF, SILLocation loc) {
-    llvm_unreachable("Must implement if getAddressForInPlaceInitialization "
+    toolchain_unreachable("Must implement if getAddressForInPlaceInitialization "
                      "returns true");
   }
 
@@ -121,8 +122,8 @@ public:
   virtual void performPackExpansionInitialization(SILGenFunction &SGF,
                                                   SILLocation loc,
                                               SILValue indexWithinComponent,
-                       llvm::function_ref<void(Initialization *into)> fn) {
-    llvm_unreachable("Must implement if canPerformPackExpansionInitialization"
+                       toolchain::function_ref<void(Initialization *into)> fn) {
+    toolchain_unreachable("Must implement if canPerformPackExpansionInitialization"
                      "returns true");
   }
 
@@ -147,7 +148,7 @@ public:
   virtual SILValue getAddressForInPlacePackInitialization(SILGenFunction &SGF,
                                                           SILLocation loc,
                                                           SILType eltAddrTy) {
-    llvm_unreachable("Must implement if canPerformInPlacePackInitialization"
+    toolchain_unreachable("Must implement if canPerformInPlacePackInitialization"
                      "returns true");
   }
   
@@ -175,7 +176,7 @@ public:
   virtual MutableArrayRef<InitializationPtr>
   splitIntoTupleElements(SILGenFunction &SGF, SILLocation loc, CanType type,
                          SmallVectorImpl<InitializationPtr> &buf) {
-    llvm_unreachable("Must implement if canSplitIntoTupleElements "
+    toolchain_unreachable("Must implement if canSplitIntoTupleElements "
                      "returns true");
   }
 
@@ -207,7 +208,7 @@ public:
   /// Perform post-initialization bookkeeping for this initialization,
   /// given that it wasn't actually initialized.
   virtual void finishUninitialized(SILGenFunction &SGF) {
-    llvm_unreachable("Initialization subclass does not support being left "
+    toolchain_unreachable("Initialization subclass does not support being left "
                      "uninitialized");
   }
 
@@ -224,7 +225,7 @@ private:
 /// Abstract base class for single-buffer initializations.  These are
 /// initializations that have an addressable memory object to be stored into.
 class SingleBufferInitialization : virtual public Initialization {
-  llvm::TinyPtrVector<CleanupHandle::AsPointer> SplitCleanups;
+  toolchain::TinyPtrVector<CleanupHandle::AsPointer> SplitCleanups;
 public:
   SingleBufferInitialization() {}
   
@@ -420,7 +421,7 @@ public:
   void performPackExpansionInitialization(SILGenFunction &SGF,
                                           SILLocation loc,
                                           SILValue indexWithinComponent,
-                  llvm::function_ref<void(Initialization *into)> fn) override;
+                  toolchain::function_ref<void(Initialization *into)> fn) override;
 
   bool canPerformInPlacePackInitialization(GenericEnvironment *env,
                                            SILType eltAddrTy) const override;
@@ -439,7 +440,7 @@ public:
   void copyOrInitValueInto(SILGenFunction &SGF, SILLocation loc,
                            ManagedValue explodedElement,
                            bool isInit) override {
-    llvm_unreachable("cannot call copyOrInitValueInto on pack initializations");
+    toolchain_unreachable("cannot call copyOrInitValueInto on pack initializations");
   }
 
   void finishInitialization(SILGenFunction &SGF) override;
@@ -527,7 +528,7 @@ public:
   void performPackExpansionInitialization(SILGenFunction &SGF,
                                           SILLocation loc,
                                           SILValue indexWithinComponent,
-                llvm::function_ref<void(Initialization *into)> fn) override;
+                toolchain::function_ref<void(Initialization *into)> fn) override;
 
   void copyOrInitValueInto(SILGenFunction &SGF, SILLocation loc,
                            ManagedValue value, bool isInit) override;

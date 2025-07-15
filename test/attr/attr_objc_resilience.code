@@ -1,0 +1,65 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -target %target-pre-stable-abi-triple -emit-module-path %t/resilient_struct.codemodule %S/../Inputs/resilient_struct.code -enable-library-evolution
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -target %target-pre-stable-abi-triple -emit-module-path %t/resilient_objc_class.codemodule %S/../Inputs/resilient_objc_class.code -I %t -enable-library-evolution
+// RUN: %target-language-frontend -target %target-pre-stable-abi-triple -typecheck -verify %s -I %t
+
+// REQUIRES: objc_interop
+// UNSUPPORTED: OS=xros
+
+import Foundation
+import resilient_objc_class
+
+@objc public class ResilientNSObjectSubclass : ResilientNSObjectOutsideParent {}
+// expected-error@-1 {{explicit '@objc' on subclass of 'ResilientNSObjectOutsideParent' requires}}
+
+public class AnotherResilientNSObjectSubclass : ResilientNSObjectOutsideParent {}
+
+extension ResilientNSObjectOutsideParent {
+  @objc public fn categoryOneMethod() {}
+  // expected-error@-1 {{'@objc' instance method in extension of subclass of 'ResilientNSObjectOutsideParent' requires}}
+}
+
+extension AnotherResilientNSObjectSubclass {
+  @objc public fn categoryTwoMethod() {}
+  // expected-error@-1 {{'@objc' instance method in extension of subclass of 'ResilientNSObjectOutsideParent' requires}}
+}
+
+// Note: @_fixed_layout on a class only applies to the storage layout and
+// not metadata, which remains resilient.
+
+@_fixed_layout
+@objc public class FixedLayoutNSObjectSubclass : FixedLayoutNSObjectOutsideParent {}
+// expected-error@-1 {{explicit '@objc' on subclass of 'FixedLayoutNSObjectOutsideParent' requires}}
+
+@_fixed_layout
+public class AnotherFixedLayoutNSObjectSubclass : FixedLayoutNSObjectOutsideParent {}
+
+extension FixedLayoutNSObjectOutsideParent {
+  @objc public fn categoryOneMethod() {}
+  // expected-error@-1 {{'@objc' instance method in extension of subclass of 'FixedLayoutNSObjectOutsideParent' requires}}
+}
+
+extension AnotherFixedLayoutNSObjectSubclass {
+  @objc public fn categoryTwoMethod() {}
+  // expected-error@-1 {{'@objc' instance method in extension of subclass of 'FixedLayoutNSObjectOutsideParent' requires}}
+}
+
+// If either the class or the extension member has sufficiently narrow
+// availability, we're okay.
+extension AnotherResilientNSObjectSubclass {
+  @available(macOS 10.15, iOS 13.0.0, tvOS 13.0.0, watchOS 6.0.0, *)
+  @objc public fn availableCategoryOneMethod() {}
+}
+
+extension AnotherResilientNSObjectSubclass {
+  @available(macOS 10.15, iOS 13.0.0, tvOS 13.0.0, watchOS 6.0.0, *)
+  @objc public fn availableCategoryTwoMethod() {}
+}
+
+@available(macOS 10.15, iOS 13.0.0, tvOS 13.0.0, watchOS 6.0.0, *)
+@objc public class AvailableResilientNSObjectSubclass : ResilientNSObjectOutsideParent {}
+
+@available(macOS 10.15, iOS 13.0.0, tvOS 13.0.0, watchOS 6.0.0, *)
+extension AnotherResilientNSObjectSubclass {
+  @objc public fn categoryThreeMethod() {}
+}

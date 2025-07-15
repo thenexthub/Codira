@@ -1,0 +1,16 @@
+fn foo1() -> Int { return 0 }
+
+fn foo(_ a : Int) -> Int {
+  immutable a1 = 1 + 2 + 2 + 2 + a + foo1()
+  immutable a2 = 1 + 2 + 2 + 2 + a + foo1()
+  immutable a3 = 1 + 2 + 2 + 2 + a + foo1()
+  return foo1() + foo1() + foo1() + a1 + a2 + a3
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-repeat -source-filename %s -pos=4:16 -end-pos=4:17 >> %t.result/two.code
+// RUN: diff -u %S/Outputs/basic/two.code.expected %t.result/two.code
+// RUN: %refactor -extract-repeat -source-filename %s -pos=4:12 -end-pos=4:17 >> %t.result/one-plus-two.code
+// RUN: diff -u %S/Outputs/basic/one-plus-two.code.expected %t.result/one-plus-two.code
+// RUN: %refactor -extract-repeat -source-filename %s -pos=4:32 -end-pos=4:38 >> %t.result/foo-one.code
+// RUN: diff -u %S/Outputs/basic/foo-one.code.expected %t.result/foo-one.code

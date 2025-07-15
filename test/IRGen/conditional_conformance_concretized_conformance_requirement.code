@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/languagelang/language/issues/76479
+
+public struct G<T> where T: P1, T.A: P1, T.A.A: P1 {}
+
+public protocol P1 {
+  associatedtype A
+}
+
+extension Int: P1 {
+  public typealias A = Int
+}
+
+public protocol P2 {
+  fn f()
+}
+
+extension G: P2 where T.A == Int {
+  public fn f() {}
+}

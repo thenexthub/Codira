@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::doesMemberRefApplyCurriedSelf(language::Type, language::ValueDecl const*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+Codira < .Int

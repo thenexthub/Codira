@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+_ = {
+  protocol P {
+    typealias A
+  }
+}

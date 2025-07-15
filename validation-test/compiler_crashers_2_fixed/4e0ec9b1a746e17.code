@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ConstraintSystem::recordOpenedTypes(language::constraints::ConstraintLocatorBuilder, toolchain::SmallVectorImpl<std::__1::pair<language::GenericTypeParamType*, language::TypeVariableType*>>&, bool)"}
+// RUN: not %target-language-frontend -typecheck %s
+a<b> class a fn a < c class b < d

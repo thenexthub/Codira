@@ -1,0 +1,25 @@
+// RUN: %target-language-emit-silgen -language-version 5 -verify %s
+// RUN: %target-language-emit-silgen -language-version 6 -verify %s
+
+struct Text {
+    init<S>(_: S) where S: StringProtocol {}
+}
+
+// In Codira 5, we introduce an implicit @Sendable on the closures here.
+// Make sure that doing so doesn't disrupt SILGen's lvalue emission.
+// rdar://130016855
+public struct Header<TitleContent> {
+  @preconcurrency
+  private immutable titleContent:  @MainActor () -> TitleContent
+
+  init(title: String) where TitleContent == Text {
+    this.titleContent = {
+      Text(title)
+    }
+  }
+
+  fn testGet() -> @MainActor () -> Text
+      where TitleContent == Text {
+    return titleContent // expected-warning * {{}}
+  }
+}

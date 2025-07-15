@@ -10,6 +10,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgsToFrontendOutputsConverter.h"
@@ -24,17 +25,17 @@
 #include "language/Option/Options.h"
 #include "language/Option/SanitizerOptions.h"
 #include "language/Strings.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/LineIterator.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/LineIterator.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 bool ArgsToFrontendOutputsConverter::convert(
     std::vector<std::string> &mainOutputs,
@@ -84,15 +85,15 @@ bool ArgsToFrontendOutputsConverter::convert(
 std::optional<std::vector<std::string>>
 ArgsToFrontendOutputsConverter::readOutputFileList(const StringRef filelistPath,
                                                    DiagnosticEngine &diags) {
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> buffer =
-      llvm::MemoryBuffer::getFile(filelistPath);
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> buffer =
+      toolchain::MemoryBuffer::getFile(filelistPath);
   if (!buffer) {
     diags.diagnose(SourceLoc(), diag::cannot_open_file, filelistPath,
                    buffer.getError().message());
     return std::nullopt;
   }
   std::vector<std::string> outputFiles;
-  for (StringRef line : make_range(llvm::line_iterator(*buffer.get()), {})) {
+  for (StringRef line : make_range(toolchain::line_iterator(*buffer.get()), {})) {
     outputFiles.push_back(line.str());
   }
   return outputFiles;
@@ -113,7 +114,7 @@ OutputFilesComputer::getOutputFilenamesFromCommandLineOrFilelist(
 }
 
 std::optional<OutputFilesComputer> OutputFilesComputer::create(
-    const llvm::opt::ArgList &args, DiagnosticEngine &diags,
+    const toolchain::opt::ArgList &args, DiagnosticEngine &diags,
     const FrontendInputsAndOutputs &inputsAndOutputs, OutputOptInfo optInfo) {
   std::optional<std::vector<std::string>> outputArguments =
       getOutputFilenamesFromCommandLineOrFilelist(args, diags, optInfo.SingleID,
@@ -122,7 +123,7 @@ std::optional<OutputFilesComputer> OutputFilesComputer::create(
     return std::nullopt;
   const StringRef outputDirectoryArgument =
       outputArguments->size() == 1 &&
-              llvm::sys::fs::is_directory(outputArguments->front())
+              toolchain::sys::fs::is_directory(outputArguments->front())
           ? StringRef(outputArguments->front())
           : StringRef();
   ArrayRef<std::string> outputFileArguments =
@@ -163,7 +164,7 @@ OutputFilesComputer::OutputFilesComputer(
     std::vector<std::string> outputFileArguments,
     const StringRef outputDirectoryArgument, const StringRef firstInput,
     const FrontendOptions::ActionType requestedAction,
-    const llvm::opt::Arg *moduleNameArg, const StringRef suffix,
+    const toolchain::opt::Arg *moduleNameArg, const StringRef suffix,
     const bool hasTextualOutput, OutputOptInfo optInfo)
     : Diags(diags), InputsAndOutputs(inputsAndOutputs),
       OutputFileArguments(outputFileArguments),
@@ -200,7 +201,7 @@ OutputFilesComputer::computeOutputFile(StringRef outputArg,
   // Return an empty string to signify no output.
   // The frontend does not currently produce a diagnostic
   // if a -o argument is present for such an action
-  // for instance swiftc -frontend -o foo -interpret foo.swift
+  // for instance languagec -frontend -o foo -interpret foo.code
   if (!FrontendOptions::doesActionProduceOutput(RequestedAction))
     return std::string();
 
@@ -245,16 +246,16 @@ OutputFilesComputer::determineBaseNameOfOutput(const InputFile &input) const {
       input.isPrimary()
           ? input.getFileName()
           : ModuleNameArg ? ModuleNameArg->getValue() : FirstInput;
-  return llvm::sys::path::stem(nameToStem).str();
+  return toolchain::sys::path::stem(nameToStem).str();
 }
 
 std::string
 OutputFilesComputer::deriveOutputFileFromParts(StringRef dir,
                                                StringRef base) const {
   assert(!base.empty());
-  llvm::SmallString<128> path(dir);
-  llvm::sys::path::append(path, base);
-  llvm::sys::path::replace_extension(path, Suffix);
+  toolchain::SmallString<128> path(dir);
+  toolchain::sys::path::append(path, base);
+  toolchain::sys::path::replace_extension(path, Suffix);
   return std::string(path.str());
 }
 
@@ -301,6 +302,47 @@ SupplementaryOutputPathsComputer::computeOutputPaths() const {
       });
   if (hadError)
     return std::nullopt;
+
+  // In WMO mode compute supplementary output paths for optimization record
+  // data (opt-remarks). We need one path per LLVMModule that will be created as
+  // part of wmo.
+  if (!InputsAndOutputs.hasPrimaryInputs()) {
+    unsigned i = 0;
+    InputsAndOutputs.forEachInput([&](const InputFile &input) -> bool {
+      // First input is already computed.
+      if (InputsAndOutputs.firstInput().getFileName() == input.getFileName()) {
+        ++i;
+        return false;
+      }
+      SupplementaryOutputPaths outputs;
+
+      // Compute auxiliar opt record paths.
+      if(OutputFiles.size() > 1) {
+        StringRef defaultSupplementaryOutputPathExcludingExtension =
+            deriveDefaultSupplementaryOutputPathExcludingExtension(
+              OutputFiles[i], input);
+
+        auto YAMLOptRecordPath = determineSupplementaryOutputFilename(
+          options::OPT_save_optimization_record,
+          "",
+          file_types::TY_YAMLOptRecord, "",
+          defaultSupplementaryOutputPathExcludingExtension, true);
+        outputs.YAMLOptRecordPath = YAMLOptRecordPath;
+
+        auto bitstreamOptRecordPath = determineSupplementaryOutputFilename(
+          options::OPT_save_optimization_record,
+          "",
+          file_types::TY_BitstreamOptRecord, "",
+          defaultSupplementaryOutputPathExcludingExtension, true);
+
+        outputs.BitstreamOptRecordPath = bitstreamOptRecordPath;
+      }
+
+      outputPaths.emplace_back(std::move(outputs));
+      ++i;
+      return false;
+    });
+  }
   return outputPaths;
 }
 
@@ -320,8 +362,6 @@ SupplementaryOutputPathsComputer::getSupplementaryOutputPathsFromArguments()
       options::OPT_emit_reference_dependencies_path);
   auto serializedDiagnostics = getSupplementaryFilenamesFromArguments(
       options::OPT_serialize_diagnostics_path);
-  auto fixItsOutput = getSupplementaryFilenamesFromArguments(
-      options::OPT_emit_fixits_path);
   auto loadedModuleTrace = getSupplementaryFilenamesFromArguments(
       options::OPT_emit_loaded_module_trace_path);
   auto TBD = getSupplementaryFilenamesFromArguments(options::OPT_emit_tbd_path);
@@ -346,7 +386,7 @@ SupplementaryOutputPathsComputer::getSupplementaryOutputPathsFromArguments()
       options::OPT_save_optimization_record_path);
   if (!clangHeaderOutput || !moduleOutput || !moduleDocOutput ||
       !dependenciesFile || !referenceDependenciesFile ||
-      !serializedDiagnostics || !fixItsOutput || !loadedModuleTrace || !TBD ||
+      !serializedDiagnostics || !loadedModuleTrace || !TBD ||
       !moduleInterfaceOutput || !privateModuleInterfaceOutput || !packageModuleInterfaceOutput ||
       !moduleSourceInfoOutput || !moduleSummaryOutput || !abiDescriptorOutput ||
       !moduleSemanticInfoOutput || !optRecordOutput) {
@@ -364,7 +404,6 @@ SupplementaryOutputPathsComputer::getSupplementaryOutputPathsFromArguments()
     sop.DependenciesFilePath = (*dependenciesFile)[i];
     sop.ReferenceDependenciesFilePath = (*referenceDependenciesFile)[i];
     sop.SerializedDiagnosticsPath = (*serializedDiagnostics)[i];
-    sop.FixItsOutputPath = (*fixItsOutput)[i];
     sop.LoadedModuleTracePath = (*loadedModuleTrace)[i];
     sop.TBDPath = (*TBD)[i];
     sop.ModuleInterfaceOutputPath = (*moduleInterfaceOutput)[i];
@@ -419,42 +458,42 @@ static bool shouldEmitFineModuleTrace(FrontendOptions::ActionType action) {
   // Other partial compilation jobs, such as emitting modules, only typecheck partially
   // so walking into every function bodies may be risky.
   switch(action) {
-  case swift::FrontendOptions::ActionType::Typecheck:
-  case swift::FrontendOptions::ActionType::EmitSILGen:
-  case swift::FrontendOptions::ActionType::EmitSIL:
-  case swift::FrontendOptions::ActionType::EmitAssembly:
-  case swift::FrontendOptions::ActionType::EmitLoweredSIL:
-  case swift::FrontendOptions::ActionType::EmitIRGen:
-  case swift::FrontendOptions::ActionType::EmitIR:
-  case swift::FrontendOptions::ActionType::EmitBC:
-  case swift::FrontendOptions::ActionType::EmitObject:
+  case language::FrontendOptions::ActionType::Typecheck:
+  case language::FrontendOptions::ActionType::EmitSILGen:
+  case language::FrontendOptions::ActionType::EmitSIL:
+  case language::FrontendOptions::ActionType::EmitAssembly:
+  case language::FrontendOptions::ActionType::EmitLoweredSIL:
+  case language::FrontendOptions::ActionType::EmitIRGen:
+  case language::FrontendOptions::ActionType::EmitIR:
+  case language::FrontendOptions::ActionType::EmitBC:
+  case language::FrontendOptions::ActionType::EmitObject:
     return true;
-  case swift::FrontendOptions::ActionType::NoneAction:
-  case swift::FrontendOptions::ActionType::Parse:
-  case swift::FrontendOptions::ActionType::ResolveImports:
-  case swift::FrontendOptions::ActionType::DumpParse:
-  case swift::FrontendOptions::ActionType::DumpInterfaceHash:
-  case swift::FrontendOptions::ActionType::DumpAST:
-  case swift::FrontendOptions::ActionType::PrintAST:
-  case swift::FrontendOptions::ActionType::PrintASTDecl:
-  case swift::FrontendOptions::ActionType::DumpScopeMaps:
-  case swift::FrontendOptions::ActionType::DumpAvailabilityScopes:
-  case swift::FrontendOptions::ActionType::EmitImportedModules:
-  case swift::FrontendOptions::ActionType::EmitPCH:
-  case swift::FrontendOptions::ActionType::EmitModuleOnly:
-  case swift::FrontendOptions::ActionType::MergeModules:
-  case swift::FrontendOptions::ActionType::CompileModuleFromInterface:
-  case swift::FrontendOptions::ActionType::TypecheckModuleFromInterface:
-  case swift::FrontendOptions::ActionType::EmitSIBGen:
-  case swift::FrontendOptions::ActionType::EmitSIB:
-  case swift::FrontendOptions::ActionType::Immediate:
-  case swift::FrontendOptions::ActionType::REPL:
-  case swift::FrontendOptions::ActionType::DumpTypeInfo:
-  case swift::FrontendOptions::ActionType::EmitPCM:
-  case swift::FrontendOptions::ActionType::DumpPCM:
-  case swift::FrontendOptions::ActionType::ScanDependencies:
-  case swift::FrontendOptions::ActionType::PrintVersion:
-  case swift::FrontendOptions::ActionType::PrintArguments:
+  case language::FrontendOptions::ActionType::NoneAction:
+  case language::FrontendOptions::ActionType::Parse:
+  case language::FrontendOptions::ActionType::ResolveImports:
+  case language::FrontendOptions::ActionType::DumpParse:
+  case language::FrontendOptions::ActionType::DumpInterfaceHash:
+  case language::FrontendOptions::ActionType::DumpAST:
+  case language::FrontendOptions::ActionType::PrintAST:
+  case language::FrontendOptions::ActionType::PrintASTDecl:
+  case language::FrontendOptions::ActionType::DumpScopeMaps:
+  case language::FrontendOptions::ActionType::DumpAvailabilityScopes:
+  case language::FrontendOptions::ActionType::EmitImportedModules:
+  case language::FrontendOptions::ActionType::EmitPCH:
+  case language::FrontendOptions::ActionType::EmitModuleOnly:
+  case language::FrontendOptions::ActionType::MergeModules:
+  case language::FrontendOptions::ActionType::CompileModuleFromInterface:
+  case language::FrontendOptions::ActionType::TypecheckModuleFromInterface:
+  case language::FrontendOptions::ActionType::EmitSIBGen:
+  case language::FrontendOptions::ActionType::EmitSIB:
+  case language::FrontendOptions::ActionType::Immediate:
+  case language::FrontendOptions::ActionType::REPL:
+  case language::FrontendOptions::ActionType::DumpTypeInfo:
+  case language::FrontendOptions::ActionType::EmitPCM:
+  case language::FrontendOptions::ActionType::DumpPCM:
+  case language::FrontendOptions::ActionType::ScanDependencies:
+  case language::FrontendOptions::ActionType::PrintVersion:
+  case language::FrontendOptions::ActionType::PrintArguments:
     return false;
   }
 }
@@ -476,7 +515,7 @@ SupplementaryOutputPathsComputer::computeOutputPathsForOneInput(
   auto referenceDependenciesFilePath = determineSupplementaryOutputFilename(
       OPT_emit_reference_dependencies,
       pathsFromArguments.ReferenceDependenciesFilePath,
-      file_types::TY_SwiftDeps, "",
+      file_types::TY_CodiraDeps, "",
       defaultSupplementaryOutputPathExcludingExtension);
 
   auto constValuesOutputPath = determineSupplementaryOutputFilename(
@@ -506,20 +545,20 @@ SupplementaryOutputPathsComputer::computeOutputPathsForOneInput(
   // We piggy-back on the loadedModuleTracePath to decide (1) whether
   // to emit the fine module Trace file, and (2) where to emit the fine module
   // trace file if the path isn't explicitly given by
-  // SWIFT_COMPILER_FINE_GRAINED_TRACE_PATH.
+  // LANGUAGE_COMPILER_FINE_GRAINED_TRACE_PATH.
   // FIXME: we probably need to move this to a frontend argument.
-  llvm::SmallString<128> FineModuleTracePath;
+  toolchain::SmallString<128> FineModuleTracePath;
   if (!loadedModuleTracePath.empty() &&
       shouldEmitFineModuleTrace(RequestedAction) &&
       !Args.hasArg(OPT_disable_fine_module_tracing)) {
-    if (const char *P = ::getenv("SWIFT_COMPILER_FINE_GRAINED_TRACE_PATH")) {
+    if (const char *P = ::getenv("LANGUAGE_COMPILER_FINE_GRAINED_TRACE_PATH")) {
       StringRef FilePath = P;
-      llvm::sys::path::append(FineModuleTracePath, FilePath);
+      toolchain::sys::path::append(FineModuleTracePath, FilePath);
     } else {
-      llvm::sys::path::append(FineModuleTracePath, loadedModuleTracePath);
-      llvm::sys::path::remove_filename(FineModuleTracePath);
-      llvm::sys::path::append(FineModuleTracePath,
-                              ".CODE_FINE_DEPENDENCY_TRACE.json");
+      toolchain::sys::path::append(FineModuleTracePath, loadedModuleTracePath);
+      toolchain::sys::path::remove_filename(FineModuleTracePath);
+      toolchain::sys::path::append(FineModuleTracePath,
+                              ".code_FINE_DEPENDENCY_TRACE.json");
     }
   }
 
@@ -529,16 +568,16 @@ SupplementaryOutputPathsComputer::computeOutputPathsForOneInput(
 
   auto moduleDocOutputPath = determineSupplementaryOutputFilename(
       OPT_emit_module_doc, pathsFromArguments.ModuleDocOutputPath,
-      file_types::TY_SwiftModuleDocFile, "",
+      file_types::TY_CodiraModuleDocFile, "",
       defaultSupplementaryOutputPathExcludingExtension);
 
   auto moduleSourceInfoOutputPath = determineSupplementaryOutputFilename(
       OPT_emit_module_source_info, pathsFromArguments.ModuleSourceInfoOutputPath,
-      file_types::TY_SwiftSourceInfoFile, "",
+      file_types::TY_CodiraSourceInfoFile, "",
       defaultSupplementaryOutputPathExcludingExtension);
   auto moduleSummaryOutputPath = determineSupplementaryOutputFilename(
       OPT_emit_module_summary, pathsFromArguments.ModuleSummaryOutputPath,
-      file_types::TY_SwiftModuleSummaryFile, "",
+      file_types::TY_CodiraModuleSummaryFile, "",
       defaultSupplementaryOutputPathExcludingExtension);
 
   // There is no non-path form of -emit-interface-path
@@ -567,15 +606,15 @@ SupplementaryOutputPathsComputer::computeOutputPathsForOneInput(
 
   auto moduleOutputPath = determineSupplementaryOutputFilename(
       emitModuleOption, pathsFromArguments.ModuleOutputPath,
-      file_types::TY_SwiftModuleFile, mainOutputIfUsableForModule,
+      file_types::TY_CodiraModuleFile, mainOutputIfUsableForModule,
       defaultSupplementaryOutputPathExcludingExtension);
 
   auto YAMLOptRecordPath = determineSupplementaryOutputFilename(
-      OPT_save_optimization_record_path, pathsFromArguments.YAMLOptRecordPath,
+      OPT_save_optimization_record, pathsFromArguments.YAMLOptRecordPath,
       file_types::TY_YAMLOptRecord, "",
       defaultSupplementaryOutputPathExcludingExtension);
   auto bitstreamOptRecordPath = determineSupplementaryOutputFilename(
-      OPT_save_optimization_record_path, pathsFromArguments.BitstreamOptRecordPath,
+      OPT_save_optimization_record, pathsFromArguments.BitstreamOptRecordPath,
       file_types::TY_BitstreamOptRecord, "",
       defaultSupplementaryOutputPathExcludingExtension);
 
@@ -612,7 +651,7 @@ StringRef SupplementaryOutputPathsComputer::
     return outputFilename;
 
   if (input.isPrimary() && input.getFileName() != "-")
-    return llvm::sys::path::filename(input.getFileName());
+    return toolchain::sys::path::filename(input.getFileName());
 
   return ModuleName;
 }
@@ -621,21 +660,45 @@ std::string
 SupplementaryOutputPathsComputer::determineSupplementaryOutputFilename(
     options::ID emitOpt, std::string pathFromArguments, file_types::ID type,
     StringRef mainOutputIfUsable,
-    StringRef defaultSupplementaryOutputPathExcludingExtension) const {
+    StringRef defaultSupplementaryOutputPathExcludingExtension,
+    bool forceDefaultSupplementaryOutputPathExcludingExtension) const {
+
+  auto hasEmitOptArg = [&] () -> bool {
+    if (Args.hasArg(emitOpt))
+      return true;
+    if (emitOpt == options::OPT_save_optimization_record &&
+        Args.hasArg(options::OPT_save_optimization_record_EQ))
+      return true;
+    return false;
+  };
+
+  auto computeDefaultSupplementaryOutputPathExcludingExtension =
+    [&] () -> std::string {
+      toolchain::SmallString<128> path(
+        defaultSupplementaryOutputPathExcludingExtension);
+
+      toolchain::sys::path::replace_extension(path, file_types::getExtension(type));
+      return path.str().str();
+    };
+
+  if (forceDefaultSupplementaryOutputPathExcludingExtension) {
+    if (!hasEmitOptArg()) {
+      return std::string();
+    }
+    return computeDefaultSupplementaryOutputPathExcludingExtension();
+  }
 
   if (!pathFromArguments.empty())
     return pathFromArguments;
 
-  if (!Args.hasArg(emitOpt))
+  if (!hasEmitOptArg())
     return std::string();
 
   if (!mainOutputIfUsable.empty()) {
     return mainOutputIfUsable.str();
   }
 
-  llvm::SmallString<128> path(defaultSupplementaryOutputPathExcludingExtension);
-  llvm::sys::path::replace_extension(path, file_types::getExtension(type));
-  return path.str().str();
+  return computeDefaultSupplementaryOutputPathExcludingExtension();
 }
 
 void SupplementaryOutputPathsComputer::deriveModulePathParameters(
@@ -655,7 +718,7 @@ void SupplementaryOutputPathsComputer::deriveModulePathParameters(
       RequestedAction == FrontendOptions::ActionType::EmitModuleOnly || isSIB;
 
   extension = file_types::getExtension(isSIB ? file_types::TY_SIB
-                                             : file_types::TY_SwiftModuleFile)
+                                             : file_types::TY_CodiraModuleFile)
                   .str();
 
   mainOutputIfUsable = canUseMainOutputForModule && !OutputFiles.empty()
@@ -712,9 +775,9 @@ SupplementaryOutputPathsComputer::readSupplementaryOutputFileMap() const {
     }
   }
 
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> buffer = nullptr;
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> buffer = nullptr;
   for (unsigned I = 0; I < BadFileDescriptorRetryCount + 1; ++I) {
-    buffer = llvm::MemoryBuffer::getFile(supplementaryFileMapPath);
+    buffer = toolchain::MemoryBuffer::getFile(supplementaryFileMapPath);
     if (buffer)
       break;
     if (buffer.getError().value() != EBADF)
@@ -725,12 +788,12 @@ SupplementaryOutputPathsComputer::readSupplementaryOutputFileMap() const {
                    supplementaryFileMapPath, buffer.getError().message());
     return std::nullopt;
   }
-  llvm::Expected<OutputFileMap> OFM =
+  toolchain::Expected<OutputFileMap> OFM =
       OutputFileMap::loadFromBuffer(std::move(buffer.get()), "");
   if (auto Err = OFM.takeError()) {
     Diags.diagnose(SourceLoc(),
                    diag::error_unable_to_load_supplementary_output_file_map,
-                   supplementaryFileMapPath, llvm::toString(std::move(Err)));
+                   supplementaryFileMapPath, toolchain::toString(std::move(Err)));
     return std::nullopt;
   }
 

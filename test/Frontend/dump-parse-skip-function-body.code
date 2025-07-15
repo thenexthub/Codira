@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -dump-parse -experimental-skip-all-function-bodies %s | %FileCheck %s
+
+fn foo() {
+  print("hello")
+}
+// CHECK-NOT: brace_stmt

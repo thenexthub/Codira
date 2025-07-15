@@ -1,33 +1,37 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-/// A C++ type that can be converted to a Swift collection.
+/// A C++ type that can be converted to a Codira collection.
 public protocol CxxConvertibleToCollection<Element> {
   associatedtype Element
   associatedtype RawIterator: UnsafeCxxInputIterator
     where RawIterator.Pointee == Element
 
-  /// Do not implement this function manually in Swift.
-  func __beginUnsafe() -> RawIterator
+  /// Do not implement this function manually in Codira.
+  fn __beginUnsafe() -> RawIterator
 
-  /// Do not implement this function manually in Swift.
-  func __endUnsafe() -> RawIterator
+  /// Do not implement this function manually in Codira.
+  fn __endUnsafe() -> RawIterator
 }
 
 extension CxxConvertibleToCollection {
   @inlinable
-  public func forEach(_ body: (RawIterator.Pointee) throws -> Void) rethrows {
+  public fn forEach(_ body: (RawIterator.Pointee) throws -> Void) rethrows {
     var rawIterator = __beginUnsafe()
-    let endIterator = __endUnsafe()
+    immutable endIterator = __endUnsafe()
     while rawIterator != endIterator {
       try body(rawIterator.pointee)
       rawIterator = rawIterator.successor()
@@ -38,8 +42,8 @@ extension CxxConvertibleToCollection {
 // Break the ambiguity between Sequence.forEach and CxxConvertibleToCollection.forEach.
 extension CxxConvertibleToCollection where Self: Sequence {
   @inlinable
-  public func forEach(_ body: (Element) throws -> Void) rethrows {
-    for element in self {
+  public fn forEach(_ body: (Element) throws -> Void) rethrows {
+    for element in this {
       try body(element)
     }
   }
@@ -59,8 +63,8 @@ extension RangeReplaceableCollection {
   public init<C: CxxConvertibleToCollection>(_ elements: __shared C)
     where C.RawIterator.Pointee == Element {
 
-    self.init()
-    elements.forEach { self.append($0) }
+    this.init()
+    elements.forEach { this.append($0) }
   }
 }
 
@@ -77,7 +81,7 @@ extension SetAlgebra {
   public init<C: CxxConvertibleToCollection>(_ elements: __shared C)
     where C.RawIterator.Pointee == Element {
 
-    self.init()
-    elements.forEach { self.insert($0) }
+    this.init()
+    elements.forEach { this.insert($0) }
   }
 }

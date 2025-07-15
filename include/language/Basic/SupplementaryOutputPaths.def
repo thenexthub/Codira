@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines all the Supplemtary Output Path variables and their
@@ -18,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// The path to which we should emit a header file that exposes the Swift
+/// The path to which we should emit a header file that exposes the Codira
 /// declarations to C, Objective-C and C++ clients for the module.
 ///
 /// Currently only makes sense when the compiler has whole module knowledge.
@@ -27,18 +28,18 @@
 /// the header is emitted in single-file mode, since it needs whole-module
 /// information.
 ///
-/// \sa swift::printAsClangHeader
+/// \sa language::printAsClangHeader
 OUTPUT(ClangHeaderOutputPath, TY_ClangHeader)
 
 /// The path to which we should emit a serialized module.
 /// It is valid whenever there are any inputs.
 ///
 /// This binary format is used to describe the interface of a module when
-/// imported by client source code. The swiftmodule format is described in
+/// imported by client source code. The languagemodule format is described in
 /// docs/Serialization.md.
 ///
-/// \sa swift::serialize
-OUTPUT(ModuleOutputPath, TY_SwiftModuleFile)
+/// \sa language::serialize
+OUTPUT(ModuleOutputPath, TY_CodiraModuleFile)
 
 /// The path to which we should emit a module source information file.
 /// It is valid whenever there are any inputs.
@@ -46,8 +47,8 @@ OUTPUT(ModuleOutputPath, TY_SwiftModuleFile)
 /// This binary format stores source locations and other information about the
 /// declarations in a module.
 ///
-/// \sa swift::serialize
-OUTPUT(ModuleSourceInfoOutputPath, TY_SwiftSourceInfoFile)
+/// \sa language::serialize
+OUTPUT(ModuleSourceInfoOutputPath, TY_CodiraSourceInfoFile)
 
 /// The path to which we should emit a module documentation file.
 /// It is valid whenever there are any inputs.
@@ -55,32 +56,32 @@ OUTPUT(ModuleSourceInfoOutputPath, TY_SwiftSourceInfoFile)
 /// This binary format stores doc comments and other information about the
 /// declarations in a module.
 ///
-/// \sa swift::serialize
-OUTPUT(ModuleDocOutputPath, TY_SwiftModuleDocFile)
+/// \sa language::serialize
+OUTPUT(ModuleDocOutputPath, TY_CodiraModuleDocFile)
 
 /// The path to which we should output a Make-style dependencies file.
 /// It is valid whenever there are any inputs.
 ///
-/// Swift's compilation model means that Make-style dependencies aren't
+/// Codira's compilation model means that Make-style dependencies aren't
 /// well-suited to model fine-grained dependencies. See docs/Driver.md for
 /// more information.
 ///
 /// \sa ReferenceDependenciesFilePath
 OUTPUT(DependenciesFilePath, TY_Dependencies)
 
-/// The path to which we should output a Swift "reference dependencies" file.
+/// The path to which we should output a Codira "reference dependencies" file.
 /// It is valid whenever there are any inputs.
 ///
 /// "Reference dependencies" track dependencies on a more fine-grained level
-/// than just "this file depends on that file". With Swift's "implicit
+/// than just "this file depends on that file". With Codira's "implicit
 /// visibility" within a module, that becomes very important for any sort of
-/// incremental build. These files are consumed by the Swift driver to decide
+/// incremental build. These files are consumed by the Codira driver to decide
 /// whether a source file needs to be recompiled during a build. See
 /// docs/DependencyAnalysis.md for more information.
 ///
-/// \sa swift::emitReferenceDependencies
+/// \sa language::emitReferenceDependencies
 /// \sa DependencyGraph
-OUTPUT(ReferenceDependenciesFilePath, TY_SwiftDeps)
+OUTPUT(ReferenceDependenciesFilePath, TY_CodiraDeps)
 
 /// Path to a file which should contain serialized diagnostics for this
 /// frontend invocation.
@@ -89,7 +90,7 @@ OUTPUT(ReferenceDependenciesFilePath, TY_SwiftDeps)
 /// want machine-parseable diagnostics. There's a bit more information on
 /// how clients might use this in docs/Driver.md.
 ///
-/// \sa swift::serialized_diagnostics::createConsumer
+/// \sa language::serialized_diagnostics::createConsumer
 OUTPUT(SerializedDiagnosticsPath, TY_SerializedDiagnostics)
 
 /// The path to which we should output fix-its as source edits.
@@ -97,16 +98,16 @@ OUTPUT(SerializedDiagnosticsPath, TY_SerializedDiagnostics)
 /// This is a JSON-based format that is used by the migrator, but is not
 /// really vetted for anything else.
 ///
-/// \sa swift::writeEditsInJson
-OUTPUT(FixItsOutputPath, TY_SwiftFixIt)
+/// \sa language::writeEditsInJson
+OUTPUT(FixItsOutputPath, TY_CodiraFixIt)
 
 /// The path to which we should output a loaded module trace file.
 /// It is valid whenever there are any inputs.
 ///
 /// The file is appended to, and consists of line-delimited JSON objects,
 /// where each line is of the form `{ "name": NAME, "target": TARGET,
-/// "swiftmodules": [PATH, PATH, ...] }`, representing the (real-path) PATHs
-/// to each .swiftmodule that was loaded while building module NAME for target
+/// "languagemodules": [PATH, PATH, ...] }`, representing the (real-path) PATHs
+/// to each .codemodule that was loaded while building module NAME for target
 /// TARGET. This format is subject to arbitrary change, however.
 OUTPUT(LoadedModuleTracePath, TY_ModuleTrace)
 OUTPUT(FineModuleTracePath,   TY_FineModuleTrace)
@@ -119,7 +120,7 @@ OUTPUT(FineModuleTracePath,   TY_FineModuleTrace)
 ///
 /// Only makes sense when the compiler has whole-module knowledge.
 ///
-/// \sa swift::writeTBDFile
+/// \sa language::writeTBDFile
 OUTPUT(TBDPath, TY_TBD)
 
 /// The path to which we should emit a module interface, which can
@@ -130,8 +131,8 @@ OUTPUT(TBDPath, TY_TBD)
 ///
 /// Currently only makes sense when the compiler has whole-module knowledge.
 ///
-/// \sa swift::emitSwiftInterface
-OUTPUT(ModuleInterfaceOutputPath, TY_SwiftModuleInterfaceFile)
+/// \sa language::emitCodiraInterface
+OUTPUT(ModuleInterfaceOutputPath, TY_CodiraModuleInterfaceFile)
 
 /// The path to which we should emit a private module interface.
 ///
@@ -139,7 +140,7 @@ OUTPUT(ModuleInterfaceOutputPath, TY_SwiftModuleInterfaceFile)
 ///
 /// \sa ModuleInterfaceOutputPath
 OUTPUT(PrivateModuleInterfaceOutputPath,
-            TY_PrivateSwiftModuleInterfaceFile)
+            TY_PrivateCodiraModuleInterfaceFile)
 
 /// The path to which we should emit a package module interface.
 ///
@@ -147,21 +148,21 @@ OUTPUT(PrivateModuleInterfaceOutputPath,
 ///
 /// \sa ModuleInterfaceOutputPath
 OUTPUT(PackageModuleInterfaceOutputPath,
-            TY_PackageSwiftModuleInterfaceFile)
+            TY_PackageCodiraModuleInterfaceFile)
 
 /// The path to which we should emit module summary file.
-OUTPUT(ModuleSummaryOutputPath, TY_SwiftModuleSummaryFile)
+OUTPUT(ModuleSummaryOutputPath, TY_CodiraModuleSummaryFile)
 
 /// The output path to generate ABI baseline.
-OUTPUT(ABIDescriptorOutputPath, TY_SwiftABIDescriptor)
+OUTPUT(ABIDescriptorOutputPath, TY_CodiraABIDescriptor)
 
 /// The output path to the module's API description.
-OUTPUT(APIDescriptorOutputPath, TY_SwiftAPIDescriptor)
+OUTPUT(APIDescriptorOutputPath, TY_CodiraAPIDescriptor)
 
 /// The output path for extracted compile-time-known value information
 OUTPUT(ConstValuesOutputPath, TY_ConstValues)
 
-/// The output path of Swift semantic info for this module.
+/// The output path of Codira semantic info for this module.
 OUTPUT(ModuleSemanticInfoOutputPath, TY_ModuleSemanticInfo)
 
 /// The output path for YAML optimization record file.

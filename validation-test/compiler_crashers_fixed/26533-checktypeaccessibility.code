@@ -1,0 +1,29 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+{}}struct B<S<{forb
+enum a{
+protocol A {
+0.C((e = B<T:A{{ P).C
+immutable = B<T {
+} {
+Void{
+c
+"\(){
+class a{
+class d:b{
+immutable end = B:A< {
+immutable a{
+immutable end = BInt>: bVoid{< T where " - > Void
+} }
+class B<T where T: d }}struct S <e{
+class B<T where g: b { fn a{

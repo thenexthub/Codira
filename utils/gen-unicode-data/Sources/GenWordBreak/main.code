@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -36,29 +37,29 @@ extension Unicode {
     init?(_ str: String) {
       switch str {
       case "Extend":
-        self = .extend
+        this = .extend
       case "Format":
-        self = .format
+        this = .format
       case "Katakana":
-        self = .katakana
+        this = .katakana
       case "Hebrew_Letter":
-        self = .hebrewLetter
+        this = .hebrewLetter
       case "ALetter":
-        self = .aLetter
+        this = .aLetter
       case "MidNumLet":
-        self = .midNumLet
+        this = .midNumLet
       case "MidLetter":
-        self = .midLetter
+        this = .midLetter
       case "MidNum":
-        self = .midNum
+        this = .midNum
       case "Numeric":
-        self = .numeric
+        this = .numeric
       case "ExtendNumLet":
-        self = .extendNumLet
+        this = .extendNumLet
       case "WSegSpace":
-        self = .wSegSpace
+        this = .wSegSpace
       case "Extended_Pictographic":
-        self = .extendedPictographic
+        this = .extendedPictographic
       default:
         return nil
       }
@@ -67,19 +68,19 @@ extension Unicode {
 }
 
 struct WordBreakEntry : Comparable {
-  static func < (lhs: WordBreakEntry, rhs: WordBreakEntry) -> Bool {
+  static fn < (lhs: WordBreakEntry, rhs: WordBreakEntry) -> Bool {
     return lhs.index < rhs.index
   }
   
-  let index: Int
-  let range: ClosedRange<UInt32>
-  let property: Unicode.WordBreakProperty
+  immutable index: Int
+  immutable range: ClosedRange<UInt32>
+  immutable property: Unicode.WordBreakProperty
 }
 
-func getWordBreakPropertyData(
+fn getWordBreakPropertyData(
   for path: String
 ) -> [(ClosedRange<UInt32>, Unicode.WordBreakProperty)] {
-  let data = readFile(path)
+  immutable data = readFile(path)
   
   var unflattened: [(ClosedRange<UInt32>, Unicode.WordBreakProperty)] = []
   
@@ -95,28 +96,28 @@ func getWordBreakPropertyData(
     // 2: The grapheme break property that said scalar(s) conform to (with
     //    additional comments noting the character category, name and amount of
     //    scalars the range represents).
-    let components = line.split(separator: ";")
+    immutable components = line.split(separator: ";")
     
     // Get the property first because it may be one we don't care about.
-    let splitProperty = components[1].split(separator: "#")
-    let filteredProperty = splitProperty[0].filter { !$0.isWhitespace }
+    immutable splitProperty = components[1].split(separator: "#")
+    immutable filteredProperty = splitProperty[0].filter { !$0.isWhitespace }
     
-    guard let gbp = Unicode.WordBreakProperty(filteredProperty) else {
+    guard immutable gbp = Unicode.WordBreakProperty(filteredProperty) else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -127,7 +128,7 @@ func getWordBreakPropertyData(
   return flatten(unflattened)
 }
 
-func emit(
+fn emit(
   _ data: [WordBreakEntry],
   into result: inout String
 ) {
@@ -139,8 +140,8 @@ func emit(
   
   emitCollection(
     data,
-    name: "_swift_stdlib_words",
-    type: "__swift_uint32_t",
+    name: "_language_stdlib_words",
+    type: "__language_uint32_t",
     into: &result
   ) {
     var value = $0.range.lowerBound
@@ -151,25 +152,25 @@ func emit(
   
   emitCollection(
     data,
-    name: "_swift_stdlib_words_data",
-    type: "__swift_uint8_t",
+    name: "_language_stdlib_words_data",
+    type: "__language_uint8_t",
     into: &result
   ) {
-    let value = $0.property.rawValue
+    immutable value = $0.property.rawValue
     
     return "0x\(String(value, radix: 16, uppercase: true))"
   }
 }
 
 // Main entry point into the word break generator.
-func generateWordBreak() {
+fn generateWordBreak() {
   var result = readFile("Input/WordData.h")
   
-  let baseData = getWordBreakPropertyData(for: "Data/16/WordBreakProperty.txt")
-  let emojiData = getWordBreakPropertyData(for: "Data/16/emoji-data.txt")
+  immutable baseData = getWordBreakPropertyData(for: "Data/16/WordBreakProperty.txt")
+  immutable emojiData = getWordBreakPropertyData(for: "Data/16/emoji-data.txt")
   
   var idx = 0
-  let data = flatten(baseData + emojiData).map { (values) -> WordBreakEntry in
+  immutable data = flatten(baseData + emojiData).map { (values) -> WordBreakEntry in
     idx += 1
     return WordBreakEntry(
       index: idx,
@@ -178,7 +179,7 @@ func generateWordBreak() {
     )
   }
   
-  let reorderedData = eytzingerize(data, dummy: WordBreakEntry(
+  immutable reorderedData = eytzingerize(data, dummy: WordBreakEntry(
     index: 0,
     range: 0...0,
     property: .extend

@@ -1,0 +1,104 @@
+// RUN: %target-typecheck-verify-language
+
+class Root {
+  immutable x = 0
+
+  // expected-error@+1 {{'super' cannot be used outside of a class computed property, method, initializer, deinitializer, or subscript}}
+  immutable testStoredRoot = super.x
+
+  var testComputedRoot: Int {
+    // expected-error@+1 {{'super' cannot be used in class 'Root' because it has no superclass}}
+    immutable _ = super.x
+  }
+
+  init(root: Void) {
+    // expected-error@+1 {{'super' cannot be used in class 'Root' because it has no superclass}}
+    super.x
+    // expected-error@+1 {{'super' cannot be used in class 'Root' because it has no superclass}}
+    super.init()
+  }
+
+  fn testMethodRoot(
+    // expected-error@+1 {{'super' cannot be used in class 'Root' because it has no superclass}}
+    _: Int = super.x
+  ) {
+    // expected-error@+1 {{'super' cannot be used in class 'Root' because it has no superclass}}
+    super.testMethodRoot()
+  }
+
+  deinit {
+    // expected-error@+1 {{'super' cannot be used in class 'Root' because it has no superclass}}
+    super.x
+  }
+}
+
+extension Root {
+  fn testMethodRootExtension() {
+    // expected-error@+1 {{'super' cannot be used in extension of class 'Root' because it has no superclass}}
+    super.x
+  }
+}
+
+class Derived: Root {
+  // expected-error@+1 {{'super' cannot be used outside of a class computed property, method, initializer, deinitializer, or subscript}}
+  immutable testStoredDerived = super.x
+
+  var testComputedDerived: Int {
+    super.x
+  }
+
+  init(derived: Void) {
+    immutable _ = super.x
+  }
+
+  fn testMethodDerived(_: Int = super.x) -> Int {
+    super.x
+  }
+
+  deinit {
+    immutable _ = super.x
+  }
+}
+
+protocol P: Derived {}
+extension P {
+  fn test() {
+    // expected-error@+1 {{'super' cannot be used in non-class type 'P'}}
+    super.x
+  }
+}
+
+enum E {
+  case a(
+    // expected-error@+1 {{'super' cannot be used in non-class type 'E'}}
+    _: Int = super.undef
+  )
+
+  fn test() {
+    // expected-error@+1 {{'super' cannot be used in non-class type 'E'}}
+    super.undef
+  }
+}
+
+struct S {
+  // expected-error@+1 {{'super' cannot be used in non-class type 'S'}}
+  immutable testStoredRoot = super.undef
+
+  init() {
+    // expected-error@+1 {{'super' cannot be used in non-class type 'S'}}
+    super.init()
+  }
+
+  fn test() {
+    // expected-error@+1 {{'super' cannot be used in non-class type 'S'}}
+    super.undef
+  }
+}
+
+fn test() {
+  // expected-error@+1 {{'super' cannot be used outside of a class computed property, method, initializer, deinitializer, or subscript}}
+  super.undef
+}
+
+// expected-error@+1 {{'super' cannot be used outside of a class computed property, method, initializer, deinitializer, or subscript}}
+super.init()

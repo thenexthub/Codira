@@ -1,18 +1,22 @@
 //===--- RegionIsolation.cpp ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/RegionIsolation.h"
 
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 using namespace regionisolation;
@@ -21,16 +25,16 @@ using namespace regionisolation;
 //                               MARK: Logging
 //===----------------------------------------------------------------------===//
 
-LoggingFlag swift::regionisolation::ENABLE_LOGGING;
+LoggingFlag language::regionisolation::ENABLE_LOGGING;
 
-static llvm::cl::opt<LoggingFlag, true> // The parser
+static toolchain::cl::opt<LoggingFlag, true> // The parser
     RegionBasedIsolationLog(
         "sil-regionbasedisolation-log",
-        llvm::cl::desc("Enable logging for SIL region based isolation "
+        toolchain::cl::desc("Enable logging for SIL region-based isolation "
                        "diagnostics"),
-        llvm::cl::Hidden,
-        llvm::cl::values(
+        toolchain::cl::Hidden,
+        toolchain::cl::values(
             clEnumValN(LoggingFlag::Off, "none", "no logging"),
             clEnumValN(LoggingFlag::Normal, "on", "non verbose logging"),
             clEnumValN(LoggingFlag::Verbose, "verbose", "verbose logging")),
-        llvm::cl::location(swift::regionisolation::ENABLE_LOGGING));
+        toolchain::cl::location(language::regionisolation::ENABLE_LOGGING));

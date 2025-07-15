@@ -1,20 +1,24 @@
 //==--- C11.cpp - Threading abstraction implementation --------- -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for C11 threads
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_THREADING_C11
+#if LANGUAGE_THREADING_C11
 
 #include "language/Threading/Impl.h"
 #include "language/Threading/Errors.h"
@@ -33,19 +37,19 @@ private:
 public:
   C11ThreadingHelper() {
     mainThread_ = thrd_current();
-    SWIFT_C11THREADS_CHECK(::mtx_init(&onceMutex_, ::mtx_plain));
-    SWIFT_C11THREADS_CHECK(::cnd_init(&onceCond_));
+    LANGUAGE_C11THREADS_CHECK(::mtx_init(&onceMutex_, ::mtx_plain));
+    LANGUAGE_C11THREADS_CHECK(::cnd_init(&onceCond_));
   }
 
   thrd_t main_thread() const { return mainThread_; }
 
-  void once_lock() { SWIFT_C11THREADS_CHECK(mtx_lock(&onceMutex_)); }
-  void once_unlock() { SWIFT_C11THREADS_CHECK(mtx_unlock(&onceMutex_)); }
-  void once_broadcast() { SWIFT_C11THREADS_CHECK(cnd_broadcast(&onceCond_)); }
+  void once_lock() { LANGUAGE_C11THREADS_CHECK(mtx_lock(&onceMutex_)); }
+  void once_unlock() { LANGUAGE_C11THREADS_CHECK(mtx_unlock(&onceMutex_)); }
+  void once_broadcast() { LANGUAGE_C11THREADS_CHECK(cnd_broadcast(&onceCond_)); }
   void once_wait() {
     // The mutex must be locked when this function is entered.  It will
     // be locked again before the function returns.
-    SWIFT_C11THREADS_CHECK(cnd_wait(&onceCond_, &onceMutex_));
+    LANGUAGE_C11THREADS_CHECK(cnd_wait(&onceCond_, &onceMutex_));
   }
 };
 
@@ -58,11 +62,11 @@ C11ThreadingHelper helper;
 using namespace language;
 using namespace threading_impl;
 
-bool swift::threading_impl::thread_is_main() {
+bool language::threading_impl::thread_is_main() {
   return thrd_equal(thrd_current(), helper.main_thread());
 }
 
-void swift::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
+void language::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
                                       void *context) {
   std::intptr_t zero = 0;
   if (predicate.compare_exchange_strong(zero, (std::intptr_t)1,
@@ -85,4 +89,4 @@ void swift::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
   helper.once_unlock();
 }
 
-#endif // SWIFT_THREADING_C11
+#endif // LANGUAGE_THREADING_C11

@@ -1,0 +1,16 @@
+fn foo() {
+  _ = 1234567
+  _ = 1234567.12345
+  _ = +1234567
+  _ = -1234567
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -simplify-long-number -source-filename %s -pos=2:9 > %t.result/Integer.code
+// RUN: diff -u %S/Outputs/Integer.expected %t.result/Integer.code
+// RUN: %refactor -simplify-long-number -source-filename %s -pos=3:9 > %t.result/Float.code
+// RUN: diff -u %S/Outputs/Float.expected %t.result/Float.code
+// RUN: %refactor -simplify-long-number -source-filename %s -pos=4:11 > %t.result/PositiveInteger.code
+// RUN: diff -u %S/Outputs/PositiveInteger.expected %t.result/PositiveInteger.code
+// RUN: %refactor -simplify-long-number -source-filename %s -pos=5:7 > %t.result/NegativeInteger.code
+// RUN: diff -u %S/Outputs/NegativeInteger.expected %t.result/NegativeInteger.code

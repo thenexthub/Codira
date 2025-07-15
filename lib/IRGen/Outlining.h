@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for outlined value witnesses.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_OUTLINING_H
-#define SWIFT_IRGEN_OUTLINING_H
+#ifndef LANGUAGE_IRGEN_OUTLINING_H
+#define LANGUAGE_IRGEN_OUTLINING_H
 
 #include "IRGen.h"
 #include "LocalTypeDataKind.h"
 #include "language/AST/SubstitutionMap.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/TaggedUnion.h"
 #include "language/IRGen/GenericRequirement.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/MapVector.h"
 
-namespace llvm {
+namespace toolchain {
   class Value;
   class Type;
 }
@@ -112,9 +113,9 @@ public:
   void emitCallToOutlinedRelease(Address addr, SILType T, const TypeInfo &ti,
                                  Atomicity atomicity) const;
 
-  void addPolymorphicArguments(SmallVectorImpl<llvm::Value *> &args) const;
+  void addPolymorphicArguments(SmallVectorImpl<toolchain::Value *> &args) const;
   void
-  addPolymorphicParameterTypes(SmallVectorImpl<llvm::Type *> &paramTys) const;
+  addPolymorphicParameterTypes(SmallVectorImpl<toolchain::Type *> &paramTys) const;
   void bindPolymorphicParameters(IRGenFunction &helperIGF,
                                  Explosion &params) const;
   void materialize();
@@ -137,8 +138,8 @@ private:
   ///   }
   ///   case collecting(Collecting)
   ///   enum Collected {
-  ///     case elements([LocalTypeDataKey : llvm::Value *])
-  ///     case environment(SubstitutionMap [GenericRequirement : llvm::Value *])
+  ///     case elements([LocalTypeDataKey : toolchain::Value *])
+  ///     case environment(SubstitutionMap [GenericRequirement : toolchain::Value *])
   ///   }
   ///   case collected(Collected)
   /// }
@@ -189,7 +190,7 @@ private:
             return payload.get<MetadataForRepresentation>().ty;
           }
         };
-        llvm::SmallVector<Element, 4> elements;
+        toolchain::SmallVector<Element, 4> elements;
       };
       struct Environment {};
       using Payload = TaggedUnion<Elements, Environment>;
@@ -228,10 +229,10 @@ private:
     class Collected {
     public:
       struct Elements {
-        llvm::MapVector<LocalTypeDataKey, llvm::Value *> Values;
+        toolchain::MapVector<LocalTypeDataKey, toolchain::Value *> Values;
       };
       struct Environment {
-        llvm::MapVector<GenericRequirement, llvm::Value *> Requirements;
+        toolchain::MapVector<GenericRequirement, toolchain::Value *> Requirements;
         SubstitutionMap Subs;
       };
 

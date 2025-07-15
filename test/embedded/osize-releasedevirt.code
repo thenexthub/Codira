@@ -1,0 +1,14 @@
+// RUN: %target-language-emit-ir -Osize %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public fn foo() {
+    bar([42])
+}
+
+fn bar(_: UnsafePointer<UInt?>) {
+}
+
+// CHECK: define {{.*}}@{{_*}}main{{.*}}(

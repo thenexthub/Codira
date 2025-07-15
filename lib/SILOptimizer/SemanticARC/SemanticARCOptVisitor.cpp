@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -48,7 +49,7 @@ bool SemanticARCOptVisitor::optimize() {
     // re-run the worklist so that we can
     // properly seeded the ARC peephole map.
     ctx.assumingAtFixedPoint = true;
-    SWIFT_DEFER { ctx.assumingAtFixedPoint = false; };
+    LANGUAGE_DEFER { ctx.assumingAtFixedPoint = false; };
 
     // Add everything in visitedSinceLastMutation to the worklist so we
     // recompute our fixed point.

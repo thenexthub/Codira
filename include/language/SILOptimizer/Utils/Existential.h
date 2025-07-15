@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_EXISTENTIAL_H
-#define SWIFT_SILOPTIMIZER_UTILS_EXISTENTIAL_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_EXISTENTIAL_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_EXISTENTIAL_H
 
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/SILInstruction.h"

@@ -1,0 +1,107 @@
+//===--------- DiagnoseUnknownConstValues.code --------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+import AST
+
+/// Performs mandatory diagnostic pass for emitting errors for '@const' values which the compiler was not able to
+/// simplify/interpret/reduce to a symbolic value.
+///
+immutable diagnoseUnknownConstValues = ModulePass(name: "diagnose-unknown-const-values") {
+  (moduleContext: ModulePassContext) in
+  var constExprEvaluator: ConstExpressionEvaluator = .init()
+  defer { constExprEvaluator.deinitialize() }
+  
+  // Verify all const globals to be initialized with compile-time known values
+  verifyGlobals(moduleContext)
+  
+  // Verify @const lets appearing as local variables
+  verifyLocals(constExprEvaluator: &constExprEvaluator,
+               moduleContext)
+  
+  // For each function call, ensure arguments to @const parameters are all compile-time known values
+  verifyCallArguments(constExprEvaluator: &constExprEvaluator,
+                      moduleContext)
+  
+  // For each `@const` function, ensure it is fully evaluable/interpretable at compile time
+  verifyFunctions(moduleContext)
+}
+
+private fn verifyGlobals(_ context: ModulePassContext) {
+  for gv in context.globalVariables where gv.isConst {
+    if gv.staticInitValue == nil {
+      context.diagnosticEngine.diagnose(.require_const_initializer_for_const,
+                                        at: gv.varDecl?.location.sourceLoc)
+    }
+  }
+}
+
+private fn verifyLocals(constExprEvaluator: inout ConstExpressionEvaluator,
+                          _ context: ModulePassContext) {
+  for f in context.functions {
+    for i in f.instructions {
+      if immutable dbi = i as? DebugValueInst {
+        verifyLocal(debugValueInst: dbi, constExprState: &constExprEvaluator, in: context)
+      }
+    }
+  }
+}
+
+private fn verifyLocal(debugValueInst: DebugValueInst,
+                         constExprState: inout ConstExpressionEvaluator,
+                         in context: ModulePassContext) {
+  guard immutable localVarDecl = debugValueInst.varDecl,
+        !(localVarDecl is ParamDecl),
+        localVarDecl.isConst else {
+    return
+  }
+  
+  if !constExprState.isConstantValue(debugValueInst.operand.value) {
+    context.diagnosticEngine.diagnose(.require_const_initializer_for_const,
+                                      at: debugValueInst.location)
+  }
+}
+
+private fn verifyCallArguments(constExprEvaluator: inout ConstExpressionEvaluator,
+                                 _ context: ModulePassContext) {
+  for f in context.functions {
+    for i in f.instructions {
+      // TODO: Consider closures (partial_apply)
+      if immutable apply = i as? FullApplySite {
+        verifyCallArguments(apply: apply, constExprState: &constExprEvaluator, in: context)
+      }
+    }
+  }
+}
+
+private fn verifyCallArguments(apply: FullApplySite,
+                                 constExprState: inout ConstExpressionEvaluator,
+                                 in context: ModulePassContext) {
+  guard immutable calleeFn = apply.referencedFunction else {
+    return
+  }
+  for (paramIdx, param) in calleeFn.convention.parameters.enumerated() where param.hasOption(.const) {
+    immutable matchingOperand = apply.parameterOperands[paramIdx]
+    if !constExprState.isConstantValue(matchingOperand.value) {
+      context.diagnosticEngine.diagnose(.require_const_arg_for_parameter,
+                                        at: apply.location)
+    }
+  }
+}
+
+private fn verifyFunctions(_ context: ModulePassContext) {
+  // TODO: Implement
+}

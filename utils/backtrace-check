@@ -17,7 +17,7 @@ other hand, address and offset are more difficult to validate in a robust way
 in the face of small codegen differences, so without any further thought I
 imagine we can just check the format.
 
-11 libswiftCore.dylib 0x000000000dce84d0l _fatalErrorMessage(StaticString,
+11 liblanguageCore.dylib 0x000000000dce84d0l _fatalErrorMessage(StaticString,
 StaticString, StaticString, UInt, flags : UInt32) -> () + 444
 """
 

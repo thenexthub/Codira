@@ -1,12 +1,12 @@
 //===--- DerivedConformanceAdditiveArithmetic.cpp ---------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2018 - 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2018 - 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -16,8 +16,8 @@
 // Currently, this is gated by a frontend flag:
 // `-enable-experimental-additive-arithmetic-derivation`.
 //
-// Swift Evolution pitch thread:
-// https://forums.swift.org/t/additivearithmetic-conformance-synthesis-for-structs/26159
+// Codira Evolution pitch thread:
+// https://forums.code.org/t/additivearithmetic-conformance-synthesis-for-structs/26159
 //
 //===----------------------------------------------------------------------===//
 
@@ -52,7 +52,7 @@ static StringRef getMathOperatorName(MathOperator op) {
   case Subtract:
     return "-";
   }
-  llvm_unreachable("invalid math operator kind");
+  toolchain_unreachable("invalid math operator kind");
 }
 
 bool DerivedConformance::canDeriveAdditiveArithmetic(NominalTypeDecl *nominal,
@@ -74,7 +74,7 @@ bool DerivedConformance::canDeriveAdditiveArithmetic(NominalTypeDecl *nominal,
   // All stored properties must conform to `AdditiveArithmetic`.
   auto &C = nominal->getASTContext();
   auto *proto = C.getProtocol(KnownProtocolKind::AdditiveArithmetic);
-  return llvm::all_of(structDecl->getStoredProperties(), [&](VarDecl *v) {
+  return toolchain::all_of(structDecl->getStoredProperties(), [&](VarDecl *v) {
     if (v->getInterfaceType()->hasError())
       return false;
     auto varType = DC->mapTypeIntoContext(v->getValueInterfaceType());
@@ -147,7 +147,7 @@ deriveBodyMathOperator(AbstractFunctionDecl *funcDecl, MathOperator op) {
   };
 
   // Create array of member operator call expressions.
-  llvm::SmallVector<Argument, 2> memberOpArgs;
+  toolchain::SmallVector<Argument, 2> memberOpArgs;
   for (auto member : nominal->getStoredProperties()) {
     memberOpArgs.emplace_back(SourceLoc(), member->getName(),
                               createMemberOpExpr(member));
@@ -265,7 +265,7 @@ deriveBodyPropertyGetter(AbstractFunctionDecl *funcDecl, ProtocolDecl *proto,
   };
 
   // Create array of `member.<property>` expressions.
-  llvm::SmallVector<Argument, 2> args;
+  toolchain::SmallVector<Argument, 2> args;
   for (auto member : nominal->getStoredProperties()) {
     args.emplace_back(SourceLoc(), member->getName(),
                       createMemberPropertyExpr(member));

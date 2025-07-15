@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the Identifier interface.
@@ -21,9 +22,9 @@
 #include "language/AST/Identifier.h"
 #include "language/Basic/Assertions.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/ConvertUTF.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/ConvertUTF.h"
 #include "clang/Basic/CharInfo.h"
 using namespace language;
 
@@ -31,17 +32,17 @@ constexpr const Identifier::Aligner DeclBaseName::SubscriptIdentifierData{};
 constexpr const Identifier::Aligner DeclBaseName::ConstructorIdentifierData{};
 constexpr const Identifier::Aligner DeclBaseName::DestructorIdentifierData{};
 
-raw_ostream &llvm::operator<<(raw_ostream &OS, Identifier I) {
+raw_ostream &toolchain::operator<<(raw_ostream &OS, Identifier I) {
   if (I.get() == nullptr)
     return OS << "_";
   return OS << I.get();
 }
 
-raw_ostream &llvm::operator<<(raw_ostream &OS, DeclBaseName D) {
+raw_ostream &toolchain::operator<<(raw_ostream &OS, DeclBaseName D) {
   return OS << D.userFacingName();
 }
 
-raw_ostream &llvm::operator<<(raw_ostream &OS, DeclName I) {
+raw_ostream &toolchain::operator<<(raw_ostream &OS, DeclName I) {
   if (I.isSimpleName())
     return OS << I.getBaseName();
 
@@ -53,20 +54,22 @@ raw_ostream &llvm::operator<<(raw_ostream &OS, DeclName I) {
   return OS;
 }
 
-void swift::simple_display(llvm::raw_ostream &out, DeclName name) {
+void language::simple_display(toolchain::raw_ostream &out, DeclName name) {
   out << "'" << name << "'";
 }
 
-raw_ostream &llvm::operator<<(raw_ostream &OS, DeclNameRef I) {
+raw_ostream &toolchain::operator<<(raw_ostream &OS, DeclNameRef I) {
+  if (I.hasModuleSelector())
+    OS << I.getModuleSelector() << "::";
   OS << I.getFullName();
   return OS;
 }
 
-void swift::simple_display(llvm::raw_ostream &out, DeclNameRef name) {
+void language::simple_display(toolchain::raw_ostream &out, DeclNameRef name) {
   out << "'" << name << "'";
 }
 
-raw_ostream &llvm::operator<<(raw_ostream &OS, swift::ObjCSelector S) {
+raw_ostream &toolchain::operator<<(raw_ostream &OS, language::ObjCSelector S) {
   unsigned n = S.getNumArgs();
   if (n == 0) {
     OS << S.getSelectorPieces()[0];
@@ -153,23 +156,29 @@ bool DeclName::isCompoundName(StringRef baseName,
 }
 
 void DeclName::dump() const {
-  llvm::errs() << *this << "\n";
+  toolchain::errs() << *this << "\n";
 }
 
-StringRef DeclName::getString(llvm::SmallVectorImpl<char> &scratch,
+StringRef DeclName::getString(toolchain::SmallVectorImpl<char> &scratch,
                               bool skipEmptyArgumentNames) const {
   {
-    llvm::raw_svector_ostream out(scratch);
+    toolchain::raw_svector_ostream out(scratch);
     print(out, skipEmptyArgumentNames);
   }
 
   return StringRef(scratch.data(), scratch.size());
 }
 
-llvm::raw_ostream &DeclName::print(llvm::raw_ostream &os,
-                                   bool skipEmptyArgumentNames) const {
+toolchain::raw_ostream &DeclName::print(toolchain::raw_ostream &os,
+                                   bool skipEmptyArgumentNames,
+                                   bool escapeIfNeeded) const {
   // Print the base name.
-  os << getBaseName();
+  auto baseName = getBaseName();
+  if (escapeIfNeeded && baseName.mustAlwaysBeEscaped()) {
+    os << "`" << baseName << "`";
+  } else {
+    os << baseName;
+  }
 
   // If this is a simple name, we're done.
   if (isSimpleName())
@@ -194,34 +203,49 @@ llvm::raw_ostream &DeclName::print(llvm::raw_ostream &os,
 
   // Print the argument names.
   os << "(";
-  for (auto c : getArgumentNames()) {
-    os << c << ':';
+  for (auto argName : getArgumentNames()) {
+    if (escapeIfNeeded && argName.mustAlwaysBeEscaped()) {
+      os << "`" << argName << "`";
+    } else {
+      os << argName;
+    }
+    os << ':';
   }
   os << ")";
   return os;
 
 }
 
-llvm::raw_ostream &DeclName::printPretty(llvm::raw_ostream &os) const {
+toolchain::raw_ostream &DeclName::printPretty(toolchain::raw_ostream &os) const {
   return print(os, /*skipEmptyArgumentNames=*/!isSpecial());
 }
 
 void DeclNameRef::dump() const {
-  llvm::errs() << *this << "\n";
+  toolchain::errs() << *this << "\n";
 }
 
-StringRef DeclNameRef::getString(llvm::SmallVectorImpl<char> &scratch,
-                             bool skipEmptyArgumentNames) const {
-  return FullName.getString(scratch, skipEmptyArgumentNames);
+StringRef DeclNameRef::getString(toolchain::SmallVectorImpl<char> &scratch,
+                                 bool skipEmptyArgumentNames) const {
+  {
+    toolchain::raw_svector_ostream out(scratch);
+    print(out, skipEmptyArgumentNames);
+  }
+
+  return StringRef(scratch.data(), scratch.size());
 }
 
-llvm::raw_ostream &DeclNameRef::print(llvm::raw_ostream &os,
-                                  bool skipEmptyArgumentNames) const {
-  return FullName.print(os, skipEmptyArgumentNames);
+toolchain::raw_ostream &
+DeclNameRef::print(toolchain::raw_ostream &os,
+                   bool skipEmptyArgumentNames) const {
+  if (hasModuleSelector())
+    os << getModuleSelector() << "::";
+  return getFullName().print(os, skipEmptyArgumentNames);
 }
 
-llvm::raw_ostream &DeclNameRef::printPretty(llvm::raw_ostream &os) const {
-  return FullName.printPretty(os);
+toolchain::raw_ostream &DeclNameRef::printPretty(toolchain::raw_ostream &os) const {
+  if (hasModuleSelector())
+    os << getModuleSelector() << "::";
+  return getFullName().printPretty(os);
 }
 
 ObjCSelector::ObjCSelector(ASTContext &ctx, unsigned numArgs,
@@ -296,7 +320,7 @@ ObjCSelectorFamily ObjCSelector::getSelectorFamily() const {
   else return ObjCSelectorFamily::None;
 }
 
-StringRef ObjCSelector::getString(llvm::SmallVectorImpl<char> &scratch) const {
+StringRef ObjCSelector::getString(toolchain::SmallVectorImpl<char> &scratch) const {
   // Fast path for zero-argument selectors.
   if (getNumArgs() == 0) {
     auto name = getSelectorPieces()[0];
@@ -306,13 +330,13 @@ StringRef ObjCSelector::getString(llvm::SmallVectorImpl<char> &scratch) const {
   }
 
   scratch.clear();
-  llvm::raw_svector_ostream os(scratch);
+  toolchain::raw_svector_ostream os(scratch);
   os << *this;
   return os.str();
 }
 
 void ObjCSelector::dump() const {
-  llvm::errs() << *this << "\n";
+  toolchain::errs() << *this << "\n";
 }
 
 

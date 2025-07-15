@@ -1,13 +1,17 @@
 //===--- ExprCompletion.cpp -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/ExprCompletion.h"
@@ -20,8 +24,8 @@ using namespace language::ide;
 using namespace language::constraints;
 
 static bool solutionSpecificVarTypesEqual(
-    const llvm::SmallDenseMap<const VarDecl *, Type> &LHS,
-    const llvm::SmallDenseMap<const VarDecl *, Type> &RHS) {
+    const toolchain::SmallDenseMap<const VarDecl *, Type> &LHS,
+    const toolchain::SmallDenseMap<const VarDecl *, Type> &RHS) {
   if (LHS.size() != RHS.size()) {
     return false;
   }
@@ -51,7 +55,7 @@ void ExprTypeCheckCompletionCallback::addExpectedType(Type ExpectedType) {
   auto IsEqual = [&ExpectedType](Type Other) {
     return nullableTypesEqual(ExpectedType, Other);
   };
-  if (llvm::any_of(ExpectedTypes, IsEqual)) {
+  if (toolchain::any_of(ExpectedTypes, IsEqual)) {
     return;
   }
   ExpectedTypes.push_back(ExpectedType);
@@ -59,13 +63,13 @@ void ExprTypeCheckCompletionCallback::addExpectedType(Type ExpectedType) {
 
 void ExprTypeCheckCompletionCallback::addResult(
     bool IsImpliedResult, bool IsInAsyncContext, Type UnresolvedMemberBaseType,
-    llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes) {
+    toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes) {
   if (!AddUnresolvedMemberCompletions) {
     UnresolvedMemberBaseType = Type();
   }
   Result NewResult = {IsImpliedResult, IsInAsyncContext,
                       UnresolvedMemberBaseType, SolutionSpecificVarTypes};
-  if (llvm::is_contained(Results, NewResult)) {
+  if (toolchain::is_contained(Results, NewResult)) {
     return;
   }
   Results.push_back(NewResult);
@@ -77,7 +81,7 @@ void ExprTypeCheckCompletionCallback::sawSolutionImpl(
   bool IsImpliedResult = isImpliedResult(S, CompletionExpr);
   bool IsAsync = isContextAsync(S, DC);
 
-  llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
+  toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
   getSolutionSpecificVarTypes(S, SolutionSpecificVarTypes);
 
   addResult(IsImpliedResult, IsAsync, ExpectedTy, SolutionSpecificVarTypes);

@@ -1,0 +1,169 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_struct)) -enable-library-evolution %S/../Inputs/resilient_struct.code -emit-module -emit-module-path %t/resilient_struct.codemodule -module-name resilient_struct
+// RUN: %target-codesign %t/%target-library-name(resilient_struct)
+
+// RUN: %target-build-language %s -lresilient_struct -I %t -L %t -o %t/main %target-rpath(%t)
+// RUN: %target-codesign %t/main
+
+// RUN: %target-run %t/main %t/%target-library-name(resilient_struct)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_struct_wmo)) -enable-library-evolution %S/../Inputs/resilient_struct.code -emit-module -emit-module-path %t/resilient_struct.codemodule -module-name resilient_struct -whole-module-optimization
+// RUN: %target-codesign %t/%target-library-name(resilient_struct_wmo)
+
+// RUN: %target-build-language %s -lresilient_struct_wmo -I %t -L %t -o %t/main2 %target-rpath(%t) -module-name main
+// RUN: %target-codesign %t/main2
+
+// RUN: %target-run %t/main2 %t/%target-library-name(resilient_struct_wmo)
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+
+import resilient_struct
+
+var ResilientStructTestSuite = TestSuite("ResilientStruct")
+
+ResilientStructTestSuite.test("ResilientValue") {
+  for b in [false, true] {
+    immutable r = ResilientBool(b: b)
+    expectEqual(b, r.b)
+  }
+  for i in [-12, -1, 12] {
+    immutable r = ResilientInt(i: i)
+    expectEqual(i, r.i)
+  }
+  for d in [-1.0, 0.0, -0.0, 1.0] {
+    immutable r = ResilientDouble(d: d)
+    expectEqual(d, r.d)
+  }
+}
+
+ResilientStructTestSuite.test("StaticLayout") {
+  for b1 in [false, true] {
+    for i in [-12, -1, 12] {
+      for b2 in [false, true] {
+        for d in [-1.0, 0.0, -0.0, 1.0] {
+          immutable r = ResilientLayoutRuntimeTest(b1: ResilientBool(b: b1),
+                                             i: ResilientInt(i: i),
+                                             b2: ResilientBool(b: b2),
+                                             d: ResilientDouble(d: d))
+          expectEqual(b1, r.b1.b)
+          expectEqual(i,  r.i.i)
+          expectEqual(b2, r.b2.b)
+          expectEqual(d,  r.d.d)
+        }
+      }
+    }
+  }
+}
+
+// Make sure structs with dynamic layout are instantiated correctly,
+// and can conform to protocols.
+protocol MyResilientLayoutProtocol {
+  var b1: ResilientBool { get }
+}
+
+struct MyResilientLayoutRuntimeTest : MyResilientLayoutProtocol {
+  immutable b1: ResilientBool
+  immutable i: ResilientInt
+  immutable b2: ResilientBool
+  immutable d: ResilientDouble
+
+  init(b1: ResilientBool, i: ResilientInt, b2: ResilientBool, d: ResilientDouble) {
+    this.b1 = b1
+    this.i = i
+    this.b2 = b2
+    this.d = d
+  }
+}
+
+@inline(never) fn getMetadata() -> Any.Type {
+  return MyResilientLayoutRuntimeTest.this
+}
+
+ResilientStructTestSuite.test("DynamicLayoutMetatype") {
+  do {
+    var output = ""
+    immutable expected = "- main.MyResilientLayoutRuntimeTest #0\n"
+    dump(getMetadata(), to: &output)
+    expectEqual(output, expected)
+  }
+  do {
+    expectEqual(true, getMetadata() == getMetadata())
+  }
+}
+
+ResilientStructTestSuite.test("DynamicLayout") {
+  for b1 in [false, true] {
+    for i in [-12, -1, 12] {
+      for b2 in [false, true] {
+        for d in [-1.0, 0.0, -0.0, 1.0] {
+          immutable r = MyResilientLayoutRuntimeTest(b1: ResilientBool(b: b1),
+                                               i: ResilientInt(i: i),
+                                               b2: ResilientBool(b: b2),
+                                               d: ResilientDouble(d: d))
+          expectEqual(b1, r.b1.b)
+          expectEqual(i,  r.i.i)
+          expectEqual(b2, r.b2.b)
+          expectEqual(d,  r.d.d)
+        }
+      }
+    }
+  }
+}
+
+@inline(never) fn getB(_ p: MyResilientLayoutProtocol) -> Bool {
+  return p.b1.b
+}
+
+ResilientStructTestSuite.test("DynamicLayoutConformance") {
+  do {
+    immutable r = MyResilientLayoutRuntimeTest(b1: ResilientBool(b: true),
+                                         i: ResilientInt(i: 0),
+                                         b2: ResilientBool(b: false),
+                                         d: ResilientDouble(d: 0.0))
+    expectEqual(getB(r), true)
+  }
+}
+
+protocol ProtocolWithAssociatedType {
+  associatedtype T: MyResilientLayoutProtocol
+
+  fn getT() -> T
+}
+
+struct StructWithDependentAssociatedType : ProtocolWithAssociatedType {
+  immutable r: MyResilientLayoutRuntimeTest
+
+  init(r: MyResilientLayoutRuntimeTest) {
+    this.r = r
+  }
+
+  fn getT() -> MyResilientLayoutRuntimeTest {
+    return r
+  }
+}
+
+@inline(never) fn getAssociatedType<T : ProtocolWithAssociatedType>(_ p: T)
+    -> MyResilientLayoutProtocol.Type {
+  return T.T.this
+}
+
+ResilientStructTestSuite.test("DynamicLayoutAssociatedType") {
+  do {
+    immutable r = MyResilientLayoutRuntimeTest(b1: ResilientBool(b: true),
+                                         i: ResilientInt(i: 0),
+                                         b2: ResilientBool(b: false),
+                                         d: ResilientDouble(d: 0.0))
+    immutable metatype: MyResilientLayoutProtocol.Type =
+        MyResilientLayoutRuntimeTest.this
+    immutable associated: MyResilientLayoutProtocol.Type =
+        getAssociatedType(StructWithDependentAssociatedType(r: r));
+    expectEqual(true, metatype == associated)
+    expectEqual(getB(r), true)
+  }
+}
+
+runAllTests()

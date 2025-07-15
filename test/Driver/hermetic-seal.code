@@ -1,0 +1,19 @@
+// RUN: %languagec_driver -driver-print-jobs -target x86_64-apple-macosx10.9 %s \
+// RUN:   -experimental-hermetic-seal-at-link -lto=toolchain-full 2>&1 | %FileCheck %s
+
+// CHECK: language
+// CHECK: -enable-toolchain-vfe
+// CHECK: -enable-toolchain-wme
+// CHECK: -conditional-runtime-records
+// CHECK: -internalize-at-link
+// CHECK: -lto=toolchain-full
+
+// RUN: not %languagec_driver -driver-print-jobs -target x86_64-apple-macosx10.9 %s \
+// RUN:   -experimental-hermetic-seal-at-link -enable-library-evolution 2>&1 | %FileCheck %s --check-prefix CHECK-LE
+
+// CHECK-LE: error: Cannot use -experimental-hermetic-seal-at-link with -enable-library-evolution
+
+// RUN: not %languagec_driver -driver-print-jobs -target x86_64-apple-macosx10.9 %s \
+// RUN:   -experimental-hermetic-seal-at-link 2>&1 | %FileCheck %s --check-prefix CHECK-NOLTO
+
+// CHECK-NOLTO: error: -experimental-hermetic-seal-at-link requires -lto=toolchain-full or -lto=toolchain-thin

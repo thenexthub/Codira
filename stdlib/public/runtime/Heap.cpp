@@ -1,4 +1,4 @@
-//===--- Heap.cpp - Swift Language Heap Logic -----------------------------===//
+//===--- Heap.cpp - Codira Language Heap Logic -----------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Implementations of the Swift heap
+// Implementations of the Codira heap
 //
 //===----------------------------------------------------------------------===//
 
@@ -25,7 +26,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <string.h>
-#if defined(__APPLE__) && SWIFT_STDLIB_HAS_DARWIN_LIBMALLOC
+#if defined(__APPLE__) && LANGUAGE_STDLIB_HAS_DARWIN_LIBMALLOC
 #include "language/Basic/Lazy.h"
 #include <malloc/malloc.h>
 #endif
@@ -59,20 +60,20 @@ static constexpr size_t MALLOC_ALIGN_MASK = alignof(std::max_align_t) - 1;
 
 // This assert ensures that manually allocated memory always uses the
 // AlignedAlloc path. The stdlib will use "default" alignment for any user
-// requested alignment less than or equal to _swift_MinAllocationAlignment. The
-// runtime must ensure that any alignment > _swift_MinAllocationAlignment also
+// requested alignment less than or equal to _language_MinAllocationAlignment. The
+// runtime must ensure that any alignment > _language_MinAllocationAlignment also
 // uses the "aligned" deallocation path.
-static_assert(_swift_MinAllocationAlignment > MALLOC_ALIGN_MASK,
-              "Swift's default alignment must exceed platform malloc mask.");
+static_assert(_language_MinAllocationAlignment > MALLOC_ALIGN_MASK,
+              "Codira's default alignment must exceed platform malloc mask.");
 
 // When alignMask == ~(size_t(0)), allocation uses the "default"
-// _swift_MinAllocationAlignment. This is different than calling swift_slowAlloc
-// with `alignMask == _swift_MinAllocationAlignment - 1` because it forces
+// _language_MinAllocationAlignment. This is different than calling language_slowAlloc
+// with `alignMask == _language_MinAllocationAlignment - 1` because it forces
 // the use of AlignedAlloc. This allows manually allocated to memory to always
 // be deallocated with AlignedFree without knowledge of its original allocation
 // alignment.
 static size_t computeAlignment(size_t alignMask) {
-  return (alignMask == ~(size_t(0))) ? _swift_MinAllocationAlignment
+  return (alignMask == ~(size_t(0))) ? _language_MinAllocationAlignment
                                      : alignMask + 1;
 }
 
@@ -85,7 +86,7 @@ static size_t computeAlignment(size_t alignMask) {
 // i.e. 0 < alignment <= _minAllocationAlignment:
 //   The runtime may use either malloc or AlignedAlloc, and the standard library
 //   must deallocate using an identical alignment.
-void *swift::swift_slowAlloc(size_t size, size_t alignMask) {
+void *language::language_slowAlloc(size_t size, size_t alignMask) {
   void *p;
   // This check also forces "default" alignment to use AlignedAlloc.
   if (alignMask <= MALLOC_ALIGN_MASK) {
@@ -94,13 +95,13 @@ void *swift::swift_slowAlloc(size_t size, size_t alignMask) {
     size_t alignment = computeAlignment(alignMask);
     p = AlignedAlloc(size, alignment);
   }
-  if (!p) swift::swift_abortAllocationFailure(size, alignMask);
+  if (!p) language::language_abortAllocationFailure(size, alignMask);
   return p;
 }
 
-void *swift::swift_slowAllocTyped(size_t size, size_t alignMask,
+void *language::language_slowAllocTyped(size_t size, size_t alignMask,
                                   MallocTypeId typeId) {
-#if SWIFT_STDLIB_HAS_MALLOC_TYPE
+#if LANGUAGE_STDLIB_HAS_MALLOC_TYPE
   if (__builtin_available(macOS 15, iOS 17, tvOS 17, watchOS 10, *)) {
     void *p;
     // This check also forces "default" alignment to use malloc_memalign().
@@ -116,19 +117,19 @@ void *swift::swift_slowAllocTyped(size_t size, size_t alignMask,
       if (err != 0)
         p = nullptr;
     }
-    if (!p) swift::swift_abortAllocationFailure(size, alignMask);
+    if (!p) language::language_abortAllocationFailure(size, alignMask);
     return p;
   }
 #endif
-  return swift_slowAlloc(size, alignMask);
+  return language_slowAlloc(size, alignMask);
 }
 
-void *swift::swift_coroFrameAlloc(size_t size,
+void *language::language_coroFrameAlloc(size_t size,
                                   MallocTypeId typeId) {
-#if SWIFT_STDLIB_HAS_MALLOC_TYPE
+#if LANGUAGE_STDLIB_HAS_MALLOC_TYPE
   if (__builtin_available(macOS 15, iOS 17, tvOS 17, watchOS 10, *)) {
     void *p = malloc_type_malloc(size, typeId);
-    if (!p) swift::swift_abortAllocationFailure(size, 0);
+    if (!p) language::language_abortAllocationFailure(size, 0);
     return p;
   }
 #endif
@@ -138,7 +139,7 @@ void *swift::swift_coroFrameAlloc(size_t size,
 // Unknown alignment is specified by passing alignMask == ~(size_t(0)), forcing
 // the AlignedFree deallocation path for unknown alignment. The memory
 // deallocated with unknown alignment must have been allocated with either
-// "default" alignment, or alignment > _swift_MinAllocationAlignment, to
+// "default" alignment, or alignment > _language_MinAllocationAlignment, to
 // guarantee that it was allocated with AlignedAlloc.
 //
 // The standard library assumes the following behavior:
@@ -151,7 +152,7 @@ void *swift::swift_coroFrameAlloc(size_t size,
 // i.e. 0 < alignment <= _minAllocationAlignment:
 //   The runtime may use either `free` or AlignedFree as long as it is
 //   consistent with allocation with the same alignment.
-static void swift_slowDeallocImpl(void *ptr, size_t alignMask) {
+static void language_slowDeallocImpl(void *ptr, size_t alignMask) {
   if (alignMask <= MALLOC_ALIGN_MASK) {
     free(ptr);
   } else {
@@ -159,11 +160,11 @@ static void swift_slowDeallocImpl(void *ptr, size_t alignMask) {
   }
 }
 
-void swift::swift_slowDealloc(void *ptr, size_t bytes, size_t alignMask) {
-  swift_slowDeallocImpl(ptr, alignMask);
+void language::language_slowDealloc(void *ptr, size_t bytes, size_t alignMask) {
+  language_slowDeallocImpl(ptr, alignMask);
 }
 
-void swift::swift_clearSensitive(void *ptr, size_t bytes) {
+void language::language_clearSensitive(void *ptr, size_t bytes) {
   // TODO: use memset_s if available
   // Though, it shouldn't make too much difference because the optimizer cannot remove
   // the following memset without inlining this library function.

@@ -1,0 +1,3 @@
+// {"signature":"language::ExprPatternMatchRequest::evaluate(language::Evaluator&, language::ExprPattern const*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a { b(c : a){{guard case.b = c

@@ -1,0 +1,7 @@
+enum MyEnum {
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+  case test(artifactID: String, hostTriple: Triple)
+// CHECK: enumerator/Codira | test(artifactID:hostTriple:)
+// CHECK: param/Codira | artifactID
+// CHECK: param/Codira | hostTriple
+}

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Support code for interfacing with OS voucher calls.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_VOUCHERSUPPORT_H
-#define SWIFT_CONCURRENCY_VOUCHERSUPPORT_H
+#ifndef LANGUAGE_CONCURRENCY_VOUCHERSUPPORT_H
+#define LANGUAGE_CONCURRENCY_VOUCHERSUPPORT_H
 
 #include "Concurrency/Task.h"
 #include "Concurrency/VoucherShims.h"
@@ -29,7 +30,7 @@ namespace language {
 
 /// A class which manages voucher adoption for Job and Task objects.
 class VoucherManager {
-  /// The original voucher that was set on the thread before Swift started
+  /// The original voucher that was set on the thread before Codira started
   /// doing async work. This must be restored on the thread after we finish
   /// async work.
   std::optional<voucher_t> OriginalVoucher;
@@ -42,7 +43,7 @@ class VoucherManager {
 
 public:
   VoucherManager() {
-    SWIFT_TASK_DEBUG_LOG("[%p] Constructing VoucherManager", this);
+    LANGUAGE_TASK_DEBUG_LOG("[%p] Constructing VoucherManager", this);
   }
 
   /// Clean up after completing async work, restoring the original voucher on
@@ -54,17 +55,17 @@ public:
       return;
 
     if (OriginalVoucher) {
-      SWIFT_TASK_DEBUG_LOG("[%p] Restoring original voucher %p", this,
+      LANGUAGE_TASK_DEBUG_LOG("[%p] Restoring original voucher %p", this,
                            *OriginalVoucher);
-      if (swift_voucher_needs_adopt(*OriginalVoucher)) {
+      if (language_voucher_needs_adopt(*OriginalVoucher)) {
         auto previous = voucher_adopt(*OriginalVoucher);
-        swift_voucher_release(previous);
+        language_voucher_release(previous);
       } else {
-        swift_voucher_release(*OriginalVoucher);
+        language_voucher_release(*OriginalVoucher);
       }
       OriginalVoucher = std::nullopt;
     } else
-      SWIFT_TASK_DEBUG_LOG("[%p] Leaving empty VoucherManager", this);
+      LANGUAGE_TASK_DEBUG_LOG("[%p] Leaving empty VoucherManager", this);
   }
 
   ~VoucherManager() { assert(!OriginalVoucher); }
@@ -77,20 +78,20 @@ public:
     if (vouchersAreDisabled())
       return;
 
-    SWIFT_TASK_DEBUG_LOG("[%p] Swapping jobs to %p", this, job);
+    LANGUAGE_TASK_DEBUG_LOG("[%p] Swapping jobs to %p", this, job);
     assert(job);
-    assert(job->Voucher != SWIFT_DEAD_VOUCHER);
+    assert(job->Voucher != LANGUAGE_DEAD_VOUCHER);
 
     voucher_t previous;
-    if (swift_voucher_needs_adopt(job->Voucher)) {
+    if (language_voucher_needs_adopt(job->Voucher)) {
       // If we need to adopt the voucher, do so, and grab the old one.
-      SWIFT_TASK_DEBUG_LOG("[%p] Swapping jobs to %p, adopting voucher %p",
+      LANGUAGE_TASK_DEBUG_LOG("[%p] Swapping jobs to %p, adopting voucher %p",
                            this, job, job->Voucher);
       previous = voucher_adopt(job->Voucher);
     } else {
       // If we don't need to adopt the voucher, take the voucher out of Job
       // directly.
-      SWIFT_TASK_DEBUG_LOG(
+      LANGUAGE_TASK_DEBUG_LOG(
           "[%p] Swapping jobs to to %p, voucher %p does not need adoption",
           this, job, job->Voucher);
       previous = job->Voucher;
@@ -98,16 +99,16 @@ public:
 
     // Either way, we've taken ownership of the job's voucher, so mark the job
     // as having a dead voucher.
-    job->Voucher = SWIFT_DEAD_VOUCHER;
+    job->Voucher = LANGUAGE_DEAD_VOUCHER;
     if (!OriginalVoucher) {
       // If we don't yet have an original voucher, then save the one we grabbed
       // above to restore later.
       OriginalVoucher = previous;
-      SWIFT_TASK_DEBUG_LOG("[%p] Saved original voucher %p", this, previous);
+      LANGUAGE_TASK_DEBUG_LOG("[%p] Saved original voucher %p", this, previous);
     } else {
       // We already have an original voucher. The one we grabbed above is not
       // needed. We own it, so destroy it here.
-      swift_voucher_release(previous);
+      language_voucher_release(previous);
     }
   }
 
@@ -117,12 +118,12 @@ public:
     if (vouchersAreDisabled())
       return;
 
-    SWIFT_TASK_DEBUG_LOG("[%p] Restoring %svoucher on task %p", this,
+    LANGUAGE_TASK_DEBUG_LOG("[%p] Restoring %svoucher on task %p", this,
                          OriginalVoucher ? "" : "missing ", task);
     assert(OriginalVoucher);
-    assert(task->Voucher == SWIFT_DEAD_VOUCHER);
+    assert(task->Voucher == LANGUAGE_DEAD_VOUCHER);
 
-    if (swift_voucher_needs_adopt(*OriginalVoucher)) {
+    if (language_voucher_needs_adopt(*OriginalVoucher)) {
       // Adopt the execution thread's original voucher. The task's voucher is
       // the one currently adopted, and is returned by voucher_adopt.
       task->Voucher = voucher_adopt(*OriginalVoucher);

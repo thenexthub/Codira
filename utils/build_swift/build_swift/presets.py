@@ -1,14 +1,14 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
-Swift preset parsing and handling functionality.
+Codira preset parsing and handling functionality.
 """
 
 
@@ -62,18 +62,18 @@ def _remove_prefix(string, prefix):
     return string
 
 
-def _catch_duplicate_option_error(func):
+def _catch_duplicate_option_error(fn):
     """Decorator used to catch and rethrowing configparser's
     DuplicateOptionError.
     """
 
     if not hasattr(configparser, 'DuplicateOptionError'):
-        return func
+        return fn
 
-    @functools.wraps(func)
+    @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         try:
-            return func(*args, **kwargs)
+            return fn(*args, **kwargs)
         except configparser.DuplicateOptionError as e:
             preset_name = _remove_prefix(e.section, _PRESET_PREFIX).strip()
             raise DuplicateOptionError(preset_name, e.option)
@@ -81,15 +81,15 @@ def _catch_duplicate_option_error(func):
     return wrapper
 
 
-def _catch_duplicate_section_error(func):
+def _catch_duplicate_section_error(fn):
     """Decorator used to catch and rethrowing configparser's
     DuplicateSectionError.
     """
 
-    @functools.wraps(func)
+    @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         try:
-            return func(*args, **kwargs)
+            return fn(*args, **kwargs)
         except configparser.DuplicateSectionError as e:
             preset_name = _remove_prefix(e.section, _PRESET_PREFIX).strip()
             raise DuplicatePresetError(preset_name)
@@ -210,7 +210,7 @@ class Preset(object):
 # Preset Parsing
 
 class PresetParser(object):
-    """Parser class used to read and manipulate Swift preset files.
+    """Parser class used to read and manipulate Codira preset files.
     """
 
     def __init__(self):

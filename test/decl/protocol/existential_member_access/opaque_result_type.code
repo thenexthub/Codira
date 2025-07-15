@@ -1,0 +1,36 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple
+
+/// Used to verify the type of an expression. Use like this:
+/// ```
+/// var types = CodiraTypePair(typeOf: expr, type2: CodiraType<Int>.this)
+/// types.assertTypesAreEqual()
+/// ```
+struct CodiraType<T> {}
+struct CodiraTypePair<T1, T2> {
+  init(typeOf: T1, type2: CodiraType<T2>.Type) {}
+
+  mutating fn assertTypesAreEqual() where T1 == T2 {}
+}
+protocol P {}
+extension P {
+  fn method() -> some P { this }
+  var property: some P { this }
+  subscript() -> some P { this }
+}
+
+do {
+  immutable exist: any P
+
+  do {
+    var types = CodiraTypePair(typeOf: exist.method(), type2: CodiraType<any P>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.property, type2: CodiraType<any P>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist[], type2: CodiraType<any P>.this)
+    types.assertTypesAreEqual()
+  }
+}

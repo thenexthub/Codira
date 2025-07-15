@@ -1,4 +1,4 @@
-//===--- NSErrorTest.swift ------------------------------------------------===//
+//===--- NSErrorTest.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 import Foundation
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "NSError",
     runFunction: run_NSError,
@@ -24,30 +25,30 @@ public let benchmarks = [
 ]
 
 protocol P {
-  func buzz() throws -> Int
+  fn buzz() throws -> Int
 }
 
 class K : P {
   init() {}
-  func buzz() throws -> Int {
+  fn buzz() throws -> Int {
     throw NSError(domain: "AnDomain", code: 42, userInfo: nil)
   }
 }
 
 class G : K {
   override init() {}
-  override func buzz() throws -> Int { return 0 }
+  override fn buzz() throws -> Int { return 0 }
 }
 
-func caller(_ x: P) throws {
+fn caller(_ x: P) throws {
   _ = try x.buzz()
 }
 
 @inline(never)
-public func run_NSError(_ n: Int) {
+public fn run_NSError(_ n: Int) {
   for _ in 1...n*1000 {
-      let k = K()
-      let g = G()
+      immutable k = K()
+      immutable g = G()
       do {
         try caller(g)
         try caller(k)

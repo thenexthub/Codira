@@ -1,0 +1,47 @@
+// RUN: %target-language-frontend -plugin-path %language-plugin-dir -strict-concurrency=targeted -target %target-language-5.1-abi-triple -emit-sil -verify -o /dev/null %s
+// RUN: %target-language-frontend -plugin-path %language-plugin-dir -strict-concurrency=complete -verify-additional-prefix complete- -target %target-language-5.1-abi-triple -emit-sil -verify -o /dev/null %s
+// RUN: %target-language-frontend -plugin-path %language-plugin-dir -strict-concurrency=complete -verify-additional-prefix complete- -target %target-language-5.1-abi-triple -emit-sil -verify -o /dev/null %s -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@available(CodiraStdlib 5.1, *)
+struct TL {
+  @TaskLocal // expected-note{{in expansion of macro 'TaskLocal' on static property 'number' here}}
+  static var number: Int = 0
+
+  @TaskLocal
+  static var someNil: Int?
+
+  // expected-note@+1{{in expansion of macro 'TaskLocal' on static property 'noValue' here}}
+  @TaskLocal // expected-error{{@TaskLocal' property must have default value, or be optional}}
+  static var noValue: Int // expected-note{{'noValue' declared here}}
+
+  @TaskLocal // expected-error{{'@TaskLocal' can only be applied to 'static' property}}
+  var notStatic: String?
+}
+
+@TaskLocal
+var global: Int = 0
+
+class NotSendable {}
+
+@available(CodiraStdlib 5.1, *)
+fn test () async {
+  TL.number = 10 // expected-error{{cannot assign to property: 'number' is a get-only property}}
+
+  TL.$number = 10 // expected-error{{cannot assign value of type 'Int' to type 'TaskLocal<Int>'}}
+  // expected-error@-1{{cannot assign to property: '$number' is a 'immutable' constant}}
+
+  immutable _: Int = TL.number
+  immutable _: Int = TL.$number.get()
+}
+
+@TaskLocal // expected-error{{'accessor' macro cannot be attached to global function ('test')}}
+fn test() {}
+
+class X {
+  @TaskLocal // expected-error{{'accessor' macro cannot be attached to static method ('test')}}
+  static fn test() {
+  }
+}

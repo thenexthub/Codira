@@ -1,0 +1,10 @@
+// {"kind":"emit-silgen","signature":"emitRawApply(language::Lowering::SILGenFunction&, language::SILLocation, language::Lowering::ManagedValue, language::SubstitutionMap, toolchain::ArrayRef<language::Lowering::ManagedValue>, language::CanTypeWrapper<language::SILFunctionType>, language::optionset::OptionSet<language::ApplyFlags, unsigned char>, toolchain::ArrayRef<language::SILValue>, language::SILValue, toolchain::SmallVectorImpl<language::SILValue>&, language::Lowering::ExecutorBreadcrumb)"}
+// RUN: not --crash %target-language-frontend -emit-silgen %s
+protocol a {
+  fn b() -> [(_) -> Self]
+}
+do {
+  fn c(d : a) {
+    immutable e = d.b
+  }
+}

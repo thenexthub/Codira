@@ -1,4 +1,4 @@
-//===--- SymbolGraphOptions.h - Swift SymbolGraph Options -----------------===//
+//===--- SymbolGraphOptions.h - Codira SymbolGraph Options -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/TargetParser/Triple.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/TargetParser/Triple.h"
 
 #include "language/AST/AttrKind.h"
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHOPTIONS_H
-#define SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHOPTIONS_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHOPTIONS_H
+#define LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHOPTIONS_H
 
 namespace language {
 namespace symbolgraphgen {
@@ -30,7 +31,7 @@ struct SymbolGraphOptions {
   StringRef OutputDir = {};
 
   /// The target of the module.
-  llvm::Triple Target = {};
+  toolchain::Triple Target = {};
   /// Pretty-print the JSON with newlines and indentation.
   bool PrettyPrint = false;
 
@@ -59,7 +60,7 @@ struct SymbolGraphOptions {
   /// Whether to include documentation for clang nodes or not.
   bool IncludeClangDocs = false;
 
-  /// Whether to emit "swift.extension" symbols for extensions to external types
+  /// Whether to emit "language.extension" symbols for extensions to external types
   /// along with "extensionTo" relationships instead of directly associating
   /// members and conformances with the extended nominal.
   bool EmitExtensionBlockSymbols = false;
@@ -72,11 +73,11 @@ struct SymbolGraphOptions {
 
   /// If this has a value specifies an explicit allow list of reexported module
   /// names that should be included symbol graph.
-  std::optional<llvm::ArrayRef<StringRef>> AllowedReexportedModules = {};
+  std::optional<toolchain::ArrayRef<StringRef>> AllowedReexportedModules = {};
 
   /// If set, a list of availability platforms to restrict (or block) when
   /// rendering symbol graphs.
-  std::optional<llvm::DenseSet<StringRef>> AvailabilityPlatforms = {};
+  std::optional<toolchain::DenseSet<StringRef>> AvailabilityPlatforms = {};
 
   /// Whether `AvailabilityPlatforms` is an allow list or a block list.
   bool AvailabilityIsBlockList = false;
@@ -85,4 +86,4 @@ struct SymbolGraphOptions {
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHOPTIONS_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHOPTIONS_H

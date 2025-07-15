@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains RCStateTransitionVisitors for performing ARC dataflow. It
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITIONVISITORS_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITIONVISITORS_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITIONVISITORS_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_RCSTATETRANSITIONVISITORS_H
 
 #include "ARCBBState.h"
 #include "ARCRegionState.h"
@@ -51,11 +52,11 @@ public:
     return asImpl().visit ## K(N);
 #include "RCStateTransition.def"
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 //                      RCStateTransitionDataflowResult
@@ -92,12 +93,12 @@ struct RCStateTransitionDataflowResult {
   ~RCStateTransitionDataflowResult() = default;
 };
 
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 raw_ostream &operator<<(raw_ostream &os,
-                        swift::RCStateTransitionDataflowResult Kind);
-} // end llvm namespace
+                        language::RCStateTransitionDataflowResult Kind);
+} // end toolchain namespace
 
 //===----------------------------------------------------------------------===//
 //                       BottomUpDataflowRCStateVisitor
@@ -136,7 +137,7 @@ public:
   DataflowResult visitStrongIncrement(SILNode *N);
 };
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 //                       TopDownDataflowRCStateVisitor
@@ -180,7 +181,7 @@ private:
   DataflowResult visitStrongAllocBox(AllocBoxInst *ABI);
 };
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 //                       Forward Template Declarations
@@ -196,6 +197,6 @@ extern template class TopDownDataflowRCStateVisitor<
     ARCSequenceDataflowEvaluator::ARCBBState>;
 extern template class TopDownDataflowRCStateVisitor<ARCRegionState>;
 
-} // end swift namespace
+} // end language namespace
 
 #endif

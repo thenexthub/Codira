@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-inliner"
@@ -31,50 +32,152 @@
 #include "language/SILOptimizer/Utils/PerformanceInlinerUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 STATISTIC(NumFunctionsInlined, "Number of functions inlined");
 
-llvm::cl::opt<bool> PrintShortestPathInfo(
-    "print-shortest-path-info", llvm::cl::init(false),
-    llvm::cl::desc("Print shortest-path information for inlining"));
+toolchain::cl::opt<bool> PrintShortestPathInfo(
+    "print-shortest-path-info", toolchain::cl::init(false),
+    toolchain::cl::desc("Print shortest-path information for inlining"));
 
-llvm::cl::opt<bool> EnableSILInliningOfGenerics(
-  "sil-inline-generics", llvm::cl::init(false),
-  llvm::cl::desc("Enable inlining of generics"));
+toolchain::cl::opt<bool> EnableSILInliningOfGenerics(
+  "sil-inline-generics", toolchain::cl::init(false),
+  toolchain::cl::desc("Enable inlining of generics"));
 
-llvm::cl::opt<bool>
-    EnableSILAggressiveInlining("sil-aggressive-inline", llvm::cl::init(false),
-                               llvm::cl::desc("Enable aggressive inlining"));
+toolchain::cl::opt<bool>
+    EnableSILAggressiveInlining("sil-aggressive-inline", toolchain::cl::init(false),
+                               toolchain::cl::desc("Enable aggressive inlining"));
 
-llvm::cl::opt<bool> EnableVerifyAfterInlining(
-    "sil-inline-verify-after-inline", llvm::cl::init(false),
-    llvm::cl::desc("Run sil verification after inlining all found callee apply "
+toolchain::cl::opt<bool> EnableVerifyAfterInlining(
+    "sil-inline-verify-after-inline", toolchain::cl::init(false),
+    toolchain::cl::desc("Run sil verification after inlining all found callee apply "
                    "sites into a caller."));
 
-llvm::cl::opt<bool> SILPrintInliningCallee(
-    "sil-print-inlining-callee", llvm::cl::init(false),
-    llvm::cl::desc("Print functions that are inlined into other functions."));
+toolchain::cl::opt<bool> SILPrintInliningCallee(
+    "sil-print-inlining-callee", toolchain::cl::init(false),
+    toolchain::cl::desc("Print functions that are inlined into other functions."));
 
-llvm::cl::opt<bool> SILPrintInliningCallerBefore(
-    "sil-print-inlining-caller-before", llvm::cl::init(false),
-    llvm::cl::desc(
+toolchain::cl::opt<bool> SILPrintInliningCallerBefore(
+    "sil-print-inlining-caller-before", toolchain::cl::init(false),
+    toolchain::cl::desc(
         "Print functions into which another function is about to be inlined."));
 
-llvm::cl::opt<bool> SILPrintInliningCallerAfter(
-    "sil-print-inlining-caller-after", llvm::cl::init(false),
-    llvm::cl::desc(
+toolchain::cl::opt<bool> SILPrintInliningCallerAfter(
+    "sil-print-inlining-caller-after", toolchain::cl::init(false),
+    toolchain::cl::desc(
         "Print functions into which another function has been inlined."));
 
-llvm::cl::opt<bool> EnableVerifyAfterEachInlining(
-    "sil-inline-verify-after-each-inline", llvm::cl::init(false),
-    llvm::cl::desc(
+toolchain::cl::opt<bool> EnableVerifyAfterEachInlining(
+    "sil-inline-verify-after-each-inline", toolchain::cl::init(false),
+    toolchain::cl::desc(
         "Run sil verification after inlining each found callee apply "
         "site into a caller."));
+
+//===----------------------------------------------------------------------===//
+//                           Heuristics
+//===----------------------------------------------------------------------===//
+
+/// The following constants define the cost model for inlining. Some constants
+/// are also defined in ShortestPathAnalysis.
+
+toolchain::cl::opt<int> RemovedCallBenefit(
+    "sil-inline-removed-call-benefit", toolchain::cl::init(20),
+    toolchain::cl::desc("The base value for every call: it represents the benefit "
+                   "of removing the call overhead itself."));
+
+toolchain::cl::opt<int> RemovedCoroutineCallBenefit(
+    "sil-inline-removed-coroutine-call-benefit", toolchain::cl::init(300),
+    toolchain::cl::desc("The benefit of inlining a `begin_apply`."));
+
+toolchain::cl::opt<int> RemovedClosureBenefit(
+    "sil-inline-removed-closure-benefit",
+    toolchain::cl::init(RemovedCallBenefit + 50),
+    toolchain::cl::desc(
+        "The benefit if the operand of an apply gets constant e.g. if a "
+        "closure is passed to an apply instruction in the callee."));
+
+toolchain::cl::opt<int> RemovedLoadBenefit(
+    "sil-inline-removed-load-benefit", toolchain::cl::init(RemovedCallBenefit + 5),
+    toolchain::cl::desc("The benefit if a load can (probably) eliminated because it "
+                   "loads from a stack location in the caller."));
+
+toolchain::cl::opt<int> RemovedStoreBenefit(
+    "sil-inline-removed-store-benefit", toolchain::cl::init(RemovedCallBenefit + 10),
+    toolchain::cl::desc("The benefit if a store can (probably) eliminated because "
+                   "it stores to a stack location in the caller."));
+
+toolchain::cl::opt<int> RemovedTerminatorBenefit(
+    "sil-inline-removed-terminator-benefit",
+    toolchain::cl::init(RemovedCallBenefit + 10),
+    toolchain::cl::desc("The benefit if the condition of a terminator instruction "
+                   "gets constant due to inlining."));
+
+toolchain::cl::opt<int>
+    RefCountBenefit("sil-inline-ref-count-benefit",
+                    toolchain::cl::init(RemovedCallBenefit + 20),
+                    toolchain::cl::desc("The benefit if a retain/release can "
+                                   "(probably) be eliminated after inlining."));
+
+toolchain::cl::opt<int> FastPathBuiltinBenefit(
+    "sil-inline-fast-path-builtin-benefit",
+    toolchain::cl::init(RemovedCallBenefit + 40),
+    toolchain::cl::desc("The benefit of a onFastPath builtin."));
+
+toolchain::cl::opt<int> DevirtualizedCallBenefit(
+    "sil-inline-devirtualized-call-benefit",
+    toolchain::cl::init(RemovedCallBenefit + 300),
+    toolchain::cl::desc("The benefit of being able to devirtualize a call."));
+
+toolchain::cl::opt<int> GenericSpecializationBenefit(
+    "sil-inline-generic-specialization-benefit",
+    toolchain::cl::init(RemovedCallBenefit + 300),
+    toolchain::cl::desc("The benefit of being able to produce a generic "
+                   "specialization for a call."));
+
+toolchain::cl::opt<int> ExclusivityBenefit(
+    "sil-inline-exclusivity-benefit", toolchain::cl::init(RemovedCallBenefit + 10),
+    toolchain::cl::desc("The benefit of inlining an exclusivity-containing callee. "
+                   "The exclusivity needs to be: dynamic, has no nested "
+                   "conflict and addresses known storage"));
+
+toolchain::cl::opt<int> OSizeClassMethodBenefit(
+    "sil-inline-o-size-class-method-benefit", toolchain::cl::init(5),
+    toolchain::cl::desc("The benefit of inlining class methods with -Osize. We only "
+                   "inline very small class methods with -Osize."));
+
+toolchain::cl::opt<int> GlobalInitBenefit(
+    "sil-inline-global-init-benefit", toolchain::cl::init(100),
+    toolchain::cl::desc("The benefit of inlining constructors into global initializers."));
+
+toolchain::cl::opt<int> TrivialFunctionThreshold(
+    "sil-inline-trivial-function-threshold", toolchain::cl::init(18),
+    toolchain::cl::desc("Approximately up to this cost level a function can be "
+                   "inlined without increasing the code size."));
+
+toolchain::cl::opt<int> BlockLimitDenominator(
+    "sil-inline-block-limit-denominator", toolchain::cl::init(3000),
+    toolchain::cl::desc("Configuration for the \"soft\" caller block limit. When "
+                   "changing make sure you update BlockLimitMaxIntNumerator."));
+
+toolchain::cl::opt<int> BlockLimitMaxIntNumerator(
+    "sil-inline-block-limit-max-int-numerator", toolchain::cl::init(18608),
+    toolchain::cl::desc("Computations with BlockLimitDenominator will overflow with "
+                   "numerators >= this value. This equals cbrt(INT_MAX) * "
+                   "cbrt(BlockLimitDenominator); we hardcode its value because "
+                   "std::cbrt() is not constexpr."));
+
+toolchain::cl::opt<int> OverallCallerBlockLimit(
+    "sil-inline-overall-caller-block-limit", toolchain::cl::init(400),
+    toolchain::cl::desc("No inlining is done if the caller has more than this "
+                   "number of blocks."));
+
+toolchain::cl::opt<int> DefaultApplyLength(
+    "sil-inline-default-apply-length", toolchain::cl::init(10),
+    toolchain::cl::desc("The assumed execution length of a function call."));
 
 //===----------------------------------------------------------------------===//
 //                           Printing Helpers
@@ -114,81 +217,12 @@ class SILPerformanceInliner {
   IsSelfRecursiveAnalysis *SRA;
 
   // For keys of SILFunction and SILLoop.
-  llvm::DenseMap<SILFunction *, ShortestPathAnalysis *> SPAs;
-  llvm::SpecificBumpPtrAllocator<ShortestPathAnalysis> SPAAllocator;
+  toolchain::DenseMap<SILFunction *, ShortestPathAnalysis *> SPAs;
+  toolchain::SpecificBumpPtrAllocator<ShortestPathAnalysis> SPAAllocator;
 
   ColdBlockInfo CBI;
 
   OptRemark::Emitter &ORE;
-
-  /// The following constants define the cost model for inlining. Some constants
-  /// are also defined in ShortestPathAnalysis.
-  enum {
-    /// The base value for every call: it represents the benefit of removing the
-    /// call overhead itself.
-    RemovedCallBenefit = 20,
-
-    /// The benefit of inlining a `begin_apply`.
-    RemovedCoroutineCallBenefit = 300,
-
-    /// The benefit if the operand of an apply gets constant, e.g. if a closure
-    /// is passed to an apply instruction in the callee.
-    RemovedClosureBenefit = RemovedCallBenefit + 50,
-
-    /// The benefit if a load can (probably) eliminated because it loads from
-    /// a stack location in the caller.
-    RemovedLoadBenefit = RemovedCallBenefit + 5,
-
-    /// The benefit if a store can (probably) eliminated because it stores to
-    /// a stack location in the caller.
-    RemovedStoreBenefit = RemovedCallBenefit + 10,
-
-    /// The benefit if the condition of a terminator instruction gets constant
-    /// due to inlining.
-    RemovedTerminatorBenefit = RemovedCallBenefit + 10,
-
-    /// The benefit if a retain/release can (probably) be eliminated after
-    /// inlining.
-    RefCountBenefit = RemovedCallBenefit + 20,
-
-    /// The benefit of a onFastPath builtin.
-    FastPathBuiltinBenefit = RemovedCallBenefit + 40,
-
-    /// The benefit of being able to devirtualize a call.
-    DevirtualizedCallBenefit = RemovedCallBenefit + 300,
-
-    /// The benefit of being able to produce a generic
-    /// specialization for a call.
-    GenericSpecializationBenefit = RemovedCallBenefit + 300,
-
-    /// The benefit of inlining an exclusivity-containing callee.
-    /// The exclusivity needs to be: dynamic,
-    /// has no nested conflict and addresses known storage
-    ExclusivityBenefit = RemovedCallBenefit + 10,
-
-    /// The benefit of inlining class methods with -Osize.
-    /// We only inline very small class methods with -Osize.
-    OSizeClassMethodBenefit = 5,
-
-    /// Approximately up to this cost level a function can be inlined without
-    /// increasing the code size.
-    TrivialFunctionThreshold = 18,
-
-    /// Configuration for the "soft" caller block limit. When changing, make
-    /// sure you update BlockLimitMaxIntNumerator.
-    BlockLimitDenominator = 3000,
-
-    /// Computations with BlockLimitDenominator will overflow with numerators
-    /// >= this value. This equals cbrt(INT_MAX) * cbrt(BlockLimitDenominator);
-    /// we hardcode its value because std::cbrt() is not constexpr.
-    BlockLimitMaxIntNumerator = 18608,
-
-    /// No inlining is done if the caller has more than this number of blocks.
-    OverallCallerBlockLimit = 400,
-
-    /// The assumed execution length of a function call.
-    DefaultApplyLength = 10
-  };
 
   OptimizationMode OptMode;
 
@@ -196,7 +230,7 @@ class SILPerformanceInliner {
   SILFunction *LastPrintedCaller = nullptr;
   void dumpCaller(SILFunction *Caller) {
     if (Caller != LastPrintedCaller) {
-      llvm::dbgs() << "\nInline into caller: " << Caller->getName() << '\n';
+      toolchain::dbgs() << "\nInline into caller: " << Caller->getName() << '\n';
       LastPrintedCaller = Caller;
     }
   }
@@ -213,10 +247,10 @@ class SILPerformanceInliner {
   bool profileBasedDecision(
       const FullApplySite &AI, int Benefit, SILFunction *Callee, int CalleeCost,
       int &NumCallerBlocks,
-      const llvm::DenseMapIterator<
-          swift::SILBasicBlock *, uint64_t,
-          llvm::DenseMapInfo<swift::SILBasicBlock *>,
-          llvm::detail::DenseMapPair<swift::SILBasicBlock *, uint64_t>, true>
+      const toolchain::DenseMapIterator<
+          language::SILBasicBlock *, uint64_t,
+          toolchain::DenseMapInfo<language::SILBasicBlock *>,
+          toolchain::detail::DenseMapPair<language::SILBasicBlock *, uint64_t>, true>
           &bbIt);
 
   bool isAutoDiffLinearMapWithControlFlow(FullApplySite AI);
@@ -226,12 +260,12 @@ class SILPerformanceInliner {
   bool isProfitableToInline(
       FullApplySite AI, Weight CallerWeight, ConstantTracker &callerTracker,
       int &NumCallerBlocks,
-      const llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap);
+      const toolchain::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap);
 
   bool decideInWarmBlock(
       FullApplySite AI, Weight CallerWeight, ConstantTracker &callerTracker,
       int &NumCallerBlocks,
-      const llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap);
+      const toolchain::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap);
 
   bool decideInColdBlock(FullApplySite AI, SILFunction *Callee, int numCallerBlocks);
 
@@ -267,10 +301,10 @@ static bool canSpecializeGeneric(ApplySite AI, SILFunction *F,
 bool SILPerformanceInliner::profileBasedDecision(
     const FullApplySite &AI, int Benefit, SILFunction *Callee, int CalleeCost,
     int &NumCallerBlocks,
-    const llvm::DenseMapIterator<
-        swift::SILBasicBlock *, uint64_t,
-        llvm::DenseMapInfo<swift::SILBasicBlock *>,
-        llvm::detail::DenseMapPair<swift::SILBasicBlock *, uint64_t>, true>
+    const toolchain::DenseMapIterator<
+        language::SILBasicBlock *, uint64_t,
+        toolchain::DenseMapInfo<language::SILBasicBlock *>,
+        toolchain::detail::DenseMapPair<language::SILBasicBlock *, uint64_t>, true>
         &bbIt) {
   if (CalleeCost < TrivialFunctionThreshold) {
     // We do not increase code size below this threshold
@@ -279,8 +313,8 @@ bool SILPerformanceInliner::profileBasedDecision(
   auto callerCount = bbIt->getSecond();
   if (callerCount < 1) {
     // Never called - do not inline
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "profiled decision: NO, "
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "profiled decision: NO, "
                                "reason= Never Called.\n");
     return false;
   }
@@ -290,24 +324,24 @@ bool SILPerformanceInliner::profileBasedDecision(
     auto calleCountVal = calleeCount.getValue();
     auto percent = (long double)callerCount / (long double)calleCountVal;
     if (percent < 0.8) {
-      LLVM_DEBUG(dumpCaller(AI.getFunction());
-                 llvm::dbgs() << "profiled decision: NO, reason=SI "
+      TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+                 toolchain::dbgs() << "profiled decision: NO, reason=SI "
                               << std::to_string(percent) << "%\n");
       return false;
     }
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "profiled decision: YES, reason=SI "
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "profiled decision: YES, reason=SI "
                             << std::to_string(percent) << "%\n");
   } else {
     // No callee count - use a "modified" aggressive IHF for now
     if (CalleeCost > Benefit && callerCount < 100) {
-      LLVM_DEBUG(dumpCaller(AI.getFunction());
-                 llvm::dbgs() << "profiled decision: NO, reason=IHF "
+      TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+                 toolchain::dbgs() << "profiled decision: NO, reason=IHF "
                               << callerCount << '\n');
       return false;
     }
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "profiled decision: YES, reason=IHF "
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "profiled decision: YES, reason=IHF "
                             << callerCount << '\n');
   }
   // We're gonna inline!
@@ -317,7 +351,7 @@ bool SILPerformanceInliner::profileBasedDecision(
 
 // Checks if `FAI` can be traced back to a specifically named,
 // input enum function argument. If so, the callsite
-// containing function is a linear map in Swift Autodiff.
+// containing function is a linear map in Codira Autodiff.
 bool SILPerformanceInliner::isAutoDiffLinearMapWithControlFlow(
     FullApplySite FAI) {
   static const std::string LinearMapBranchTracingEnumPrefix = "_AD__";
@@ -402,20 +436,28 @@ bool SILPerformanceInliner::isTupleWithAllocsOrPartialApplies(SILValue val) {
 // recognized as VJPs by this function. However, this is not a hard limitation
 // and can be fixed.
 bool isFunctionAutodiffVJP(SILFunction *callee) {
-  swift::Demangle::Context Ctx;
+  language::Demangle::Context Ctx;
   if (auto *Root = Ctx.demangleSymbolAsNode(callee->getName())) {
     if (auto *node = Root->findByKind(
-            swift::Demangle::Node::Kind::AutoDiffFunctionKind, 3)) {
+            language::Demangle::Node::Kind::AutoDiffFunctionKind, 3)) {
       if (node->hasIndex()) {
         auto index = (char)node->getIndex();
-        auto ADFunctionKind = swift::Demangle::AutoDiffFunctionKind(index);
-        if (ADFunctionKind == swift::Demangle::AutoDiffFunctionKind::VJP) {
+        auto ADFunctionKind = language::Demangle::AutoDiffFunctionKind(index);
+        if (ADFunctionKind == language::Demangle::AutoDiffFunctionKind::VJP) {
           return true;
         }
       }
     }
   }
 
+  return false;
+}
+
+bool isAllocator(SILFunction *callee) {
+  language::Demangle::Context Ctx;
+  if (auto *Root = Ctx.demangleSymbolAsNode(callee->getName())) {
+    return Root->findByKind(language::Demangle::Node::Kind::Allocator, 3) != nullptr;
+  }
   return false;
 }
 
@@ -486,10 +528,18 @@ static bool hasConstantArguments(FullApplySite fas) {
   return true;
 }
 
+static bool hasConstantEnumArgument(FullApplySite fas) {
+  for (SILValue arg : fas.getArguments()) {
+    if (isa<EnumInst>(arg))
+      return true;
+  }
+  return false;
+}
+
 bool SILPerformanceInliner::isProfitableToInline(
     FullApplySite AI, Weight CallerWeight, ConstantTracker &callerTracker,
     int &NumCallerBlocks,
-    const llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap) {
+    const toolchain::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap) {
   SILFunction *Callee = AI.getReferencedFunctionOrNull();
   assert(Callee);
   bool IsGeneric = AI.hasSubstitutions();
@@ -548,14 +598,21 @@ bool SILPerformanceInliner::isProfitableToInline(
              << NV("Callee", Callee);
     });
 
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "    pure-call decision " << Callee->getName()
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "    pure-call decision " << Callee->getName()
                             << '\n');
     return true;
   }
 
   if (Callee->hasSemanticsAttr(semantics::OPTIMIZE_SIL_INLINE_CONSTANT_ARGUMENTS) &&
       hasConstantArguments(AI)) {
+    return true;
+  }
+
+  // If there is a "constant" enum argument to a synthesized enum comparison,
+  // we can always inline it, because most of it will be constant folded anyway.
+  if (Callee->hasSemanticsAttr(semantics::DERIVED_ENUM_EQUALS) &&
+      hasConstantEnumArgument(AI)) {
     return true;
   }
 
@@ -580,7 +637,7 @@ bool SILPerformanceInliner::isProfitableToInline(
     CalleeSPA->analyze(CBI, [](FullApplySite FAS) {
       // We don't compute SPA for another call-level. Functions called from
       // the callee are assumed to have DefaultApplyLength.
-      return DefaultApplyLength;
+      return DefaultApplyLength.getValue();
     });
   }
 
@@ -632,11 +689,11 @@ bool SILPerformanceInliner::isProfitableToInline(
           // TODO: Do we need to tweak inlining benefits given to pullbacks
           // (with and without control-flow)?
 
-          // For linear maps in Swift Autodiff, callees may be passed as an
+          // For linear maps in Codira Autodiff, callees may be passed as an
           // argument, however, they may be hidden behind a branch-tracing
           // enum (tracing execution flow of the original function).
           //
-          // If we can establish that we are inside of a Swift Autodiff linear
+          // If we can establish that we are inside of a Codira Autodiff linear
           // map and that the branch tracing input enum is wrapping pullback
           // closures, then we can update this function's benefit with
           // `RemovedClosureBenefit` because inlining will (probably) eliminate
@@ -675,7 +732,7 @@ bool SILPerformanceInliner::isProfitableToInline(
             isa<SuperMethodInst>(def)) {
           // TODO: Take AI.getSubstitutions() into account.
           if (canDevirtualizeApply(FAI, nullptr)) {
-            LLVM_DEBUG(llvm::dbgs() << "Devirtualization will be possible "
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "Devirtualization will be possible "
                                        "after inlining for the call:\n";
                        FAI.getInstruction()->dumpInContext());
             BlockW.updateBenefit(Benefit, DevirtualizedCallBenefit);
@@ -687,7 +744,7 @@ bool SILPerformanceInliner::isProfitableToInline(
           auto CalleeF = FAI.getCalleeFunction();
           if (!canSpecializeGeneric(FAI, CalleeF, SubMap))
             continue;
-          LLVM_DEBUG(llvm::dbgs() << "Generic specialization will be possible "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Generic specialization will be possible "
                                      "after inlining for the call:\n";
                      FAI.getInstruction()->dumpInContext());
           BlockW.updateBenefit(Benefit, GenericSpecializationBenefit);
@@ -759,6 +816,12 @@ bool SILPerformanceInliner::isProfitableToInline(
     Benefit = std::max(Benefit, ExclusivityBenefitWeight);
   }
 
+  if (AI.getFunction()->isGlobalInitOnceFunction() && isAllocator(Callee)) {
+    // Inlining constructors into global initializers increase the changes that
+    // the global can be initialized statically.
+    CallerWeight.updateBenefit(Benefit, GlobalInitBenefit);
+  }
+
   if (AI.getFunction()->isThunk()) {
     // Only inline trivial functions into thunks (which will not increase the
     // code size).
@@ -766,8 +829,8 @@ bool SILPerformanceInliner::isProfitableToInline(
       return false;
     }
 
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "    decision {" << CalleeCost << " into thunk} "
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "    decision {" << CalleeCost << " into thunk} "
                             << Callee->getName() << '\n');
     return true;
   }
@@ -825,8 +888,8 @@ bool SILPerformanceInliner::isProfitableToInline(
 
   NumCallerBlocks += Callee->size();
 
-  LLVM_DEBUG(dumpCaller(AI.getFunction());
-             llvm::dbgs() << "    decision {c=" << CalleeCost
+  TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+             toolchain::dbgs() << "    decision {c=" << CalleeCost
                           << ", b=" << Benefit
                           << ", l=" << CalleeSPA->getScopeLength(CalleeEntry, 0)
                           << ", c-w=" << CallerWeight
@@ -896,10 +959,10 @@ static std::optional<bool> shouldInlineGeneric(FullApplySite AI,
   // Do not inline @_semantics functions when compiling the stdlib,
   // because they need to be preserved, so that the optimizer
   // can properly optimize a user code later.
-  ModuleDecl *SwiftModule = Callee->getModule().getSwiftModule();
+  ModuleDecl *CodiraModule = Callee->getModule().getCodiraModule();
   if ((Callee->hasSemanticsAttrThatStartsWith("array.") ||
        Callee->hasSemanticsAttrThatStartsWith("fixed_storage.")) &&
-      (SwiftModule->isStdlibModule() || SwiftModule->isOnoneSupportModule()))
+      (CodiraModule->isStdlibModule() || CodiraModule->isOnoneSupportModule()))
     return false;
 
   // Do not inline into thunks.
@@ -945,7 +1008,7 @@ static std::optional<bool> shouldInlineGeneric(FullApplySite AI,
 bool SILPerformanceInliner::decideInWarmBlock(
     FullApplySite AI, Weight CallerWeight, ConstantTracker &callerTracker,
     int &NumCallerBlocks,
-    const llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap) {
+    const toolchain::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap) {
   if (AI.hasSubstitutions()) {
     // Only inline generics if definitively clear that it should be done.
     auto ShouldInlineGeneric = shouldInlineGeneric(AI, NumCallerBlocks);
@@ -956,8 +1019,8 @@ bool SILPerformanceInliner::decideInWarmBlock(
   SILFunction *Callee = AI.getReferencedFunctionOrNull();
 
   if (isInlineAlwaysCallSite(Callee, NumCallerBlocks)) {
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "    always-inline decision "
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "    always-inline decision "
                             << Callee->getName() << '\n');
     return true;
   }
@@ -979,8 +1042,8 @@ bool SILPerformanceInliner::decideInColdBlock(FullApplySite AI,
   }
 
   if (isInlineAlwaysCallSite(Callee, numCallerBlocks)) {
-    LLVM_DEBUG(dumpCaller(AI.getFunction());
-               llvm::dbgs() << "    always-inline decision "
+    TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+               toolchain::dbgs() << "    always-inline decision "
                             << Callee->getName() << '\n');
     return true;
   }
@@ -994,8 +1057,8 @@ bool SILPerformanceInliner::decideInColdBlock(FullApplySite AI,
         return false;
     }
   }
-  LLVM_DEBUG(dumpCaller(AI.getFunction());
-             llvm::dbgs() << "    cold decision {" << CalleeCost << "} "
+  TOOLCHAIN_DEBUG(dumpCaller(AI.getFunction());
+             toolchain::dbgs() << "    cold decision {" << CalleeCost << "} "
                           << Callee->getName() << '\n');
   return true;
 }
@@ -1006,7 +1069,7 @@ bool SILPerformanceInliner::decideInColdBlock(FullApplySite AI,
 /// the additional weight is for _another_ function than the current handled
 /// callee.
 static void addWeightCorrection(FullApplySite FAS,
-                        llvm::DenseMap<FullApplySite, int> &WeightCorrections) {
+                        toolchain::DenseMap<FullApplySite, int> &WeightCorrections) {
   SILFunction *Callee = FAS.getReferencedFunctionOrNull();
   if (Callee && Callee->hasSemanticsAttr(semantics::ARRAY_UNINITIALIZED)) {
     // We want to inline the argument to an array.uninitialized call, because
@@ -1030,8 +1093,8 @@ static bool containsWeight(TermInst *inst) {
 }
 
 static void
-addToBBCounts(llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap,
-              uint64_t numToAdd, swift::TermInst *termInst) {
+addToBBCounts(toolchain::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap,
+              uint64_t numToAdd, language::TermInst *termInst) {
   for (auto &succ : termInst->getSuccessors()) {
     auto *currBB = succ.getBB();
     assert(BBToWeightMap.find(currBB) != BBToWeightMap.end() &&
@@ -1042,7 +1105,7 @@ addToBBCounts(llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap,
 
 static void
 calculateBBWeights(SILFunction *Caller, DominanceInfo *DT,
-                   llvm::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap) {
+                   toolchain::DenseMap<SILBasicBlock *, uint64_t> &BBToWeightMap) {
   auto entryCount = Caller->getEntryCount();
   if (!entryCount) {
     // No profile for function - return
@@ -1113,7 +1176,7 @@ void SILPerformanceInliner::collectAppliesToInline(
   DominanceInfo *DT = DA->get(Caller);
   SILLoopInfo *LI = LA->get(Caller);
 
-  llvm::DenseMap<FullApplySite, int> WeightCorrections;
+  toolchain::DenseMap<FullApplySite, int> WeightCorrections;
 
   // Compute the shortest-path analysis for the caller.
   ShortestPathAnalysis *SPA = getSPA(Caller, LI);
@@ -1132,7 +1195,7 @@ void SILPerformanceInliner::collectAppliesToInline(
         CalleeSPA->analyze(CBI, [](FullApplySite FAS) {
           // We don't compute SPA for another call-level. Functions called from
           // the callee are assumed to have DefaultApplyLength.
-          return DefaultApplyLength;
+          return DefaultApplyLength.getValue();
         });
       }
       int CalleeLength = CalleeSPA->getScopeLength(&Callee->front(), 0);
@@ -1155,7 +1218,7 @@ void SILPerformanceInliner::collectAppliesToInline(
   DominanceOrder domOrder(&Caller->front(), DT, Caller->size());
   int NumCallerBlocks = (int)Caller->size();
 
-  llvm::DenseMap<SILBasicBlock *, uint64_t> BBToWeightMap;
+  toolchain::DenseMap<SILBasicBlock *, uint64_t> BBToWeightMap;
   calculateBBWeights(Caller, DT, BBToWeightMap);
 
   // Go through all instructions and find candidates for inlining.
@@ -1222,7 +1285,7 @@ void SILPerformanceInliner::collectAppliesToInline(
   }
 
   // Calculate how many times a callee is called from this caller.
-  llvm::DenseMap<SILFunction *, unsigned> CalleeCount;
+  toolchain::DenseMap<SILFunction *, unsigned> CalleeCount;
   for (auto AI : InitialCandidates) {
     SILFunction *Callee = AI.getReferencedFunctionOrNull();
     assert(Callee && "apply_inst does not have a direct callee anymore");
@@ -1249,7 +1312,7 @@ bool SILPerformanceInliner::inlineCallsIntoFunction(SILFunction *Caller) {
   if (!Caller->shouldOptimize())
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "Inlining calls into " << Caller->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Inlining calls into " << Caller->getName()
                           << "\n");
   // First step: collect all the functions we want to inline.  We
   // don't change anything yet so that the dominator information
@@ -1266,7 +1329,7 @@ bool SILPerformanceInliner::inlineCallsIntoFunction(SILFunction *Caller) {
   // Second step: do the actual inlining.
   // We inline in reverse order, because for very large blocks with many applies
   // to inline, splitting the block at every apply would be quadratic.
-  for (auto AI : llvm::reverse(AppliesToInline)) {
+  for (auto AI : toolchain::reverse(AppliesToInline)) {
     SILFunction *Callee = AI.getReferencedFunctionOrNull();
     assert(Callee && "apply_inst does not have a direct callee anymore");
 
@@ -1278,12 +1341,12 @@ bool SILPerformanceInliner::inlineCallsIntoFunction(SILFunction *Caller) {
     // ownership... do not inline. The two modes are incompatible, so skip this
     // apply site for now.
     if (!Callee->hasOwnership() && Caller->hasOwnership()) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Not inlining non-ossa " << Caller->getName() << "\n");
       continue;
     }
 
-    LLVM_DEBUG(dumpCaller(Caller); llvm::dbgs()
+    TOOLCHAIN_DEBUG(dumpCaller(Caller); toolchain::dbgs()
                                    << "    inline [" << Callee->size() << "->"
                                    << Caller->size() << "] "
                                    << Callee->getName() << "\n");
@@ -1328,7 +1391,7 @@ bool SILPerformanceInliner::inlineCallsIntoFunction(SILFunction *Caller) {
       }
 
       Caller->verify();
-      pm->runSwiftFunctionVerification(Caller);
+      pm->runCodiraFunctionVerification(Caller);
     }
   }
   deleter.cleanupDeadInstructions();
@@ -1347,7 +1410,7 @@ bool SILPerformanceInliner::inlineCallsIntoFunction(SILFunction *Caller) {
   // the inliner without running the entire inliner.
   if (EnableVerifyAfterInlining) {
     Caller->verify();
-    pm->runSwiftFunctionVerification(Caller);
+    pm->runCodiraFunctionVerification(Caller);
   }
 
   return true;
@@ -1427,21 +1490,21 @@ public:
 };
 } // end anonymous namespace
 
-SILTransform *swift::createAlwaysInlineInliner() {
+SILTransform *language::createAlwaysInlineInliner() {
   return new SILPerformanceInlinerPass(InlineSelection::OnlyInlineAlways,
                                        "InlineAlways Performance Inliner");
 }
 
 /// Create an inliner pass that does not inline functions that are marked with
 /// the @_semantics or @_effects attributes.
-SILTransform *swift::createEarlyPerfInliner() {
+SILTransform *language::createEarlyPerfInliner() {
   return new SILPerformanceInlinerPass(
     InlineSelection::NoSemanticsAndEffects, "Early Performance Inliner");
 }
 
 /// Create an inliner pass that inlines all functions that are marked with
 /// the @_semantics, @_effects or global_init attributes.
-SILTransform *swift::createPerfInliner() {
+SILTransform *language::createPerfInliner() {
   return new SILPerformanceInlinerPass(
     InlineSelection::Everything, "Performance Inliner");
 }

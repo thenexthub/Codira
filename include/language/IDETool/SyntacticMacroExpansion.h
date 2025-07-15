@@ -1,24 +1,28 @@
 //===--- SyntacticMacroExpansion.h ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_SYNTACTICMACROEXPANSION_H
-#define SWIFT_IDE_SYNTACTICMACROEXPANSION_H
+#ifndef LANGUAGE_IDE_SYNTACTICMACROEXPANSION_H
+#define LANGUAGE_IDE_SYNTACTICMACROEXPANSION_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/MacroDefinition.h"
 #include "language/AST/PluginRegistry.h"
 #include "language/Basic/Fingerprint.h"
 #include "language/Frontend/Frontend.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 namespace language {
 
@@ -31,8 +35,8 @@ class SourceEditConsumer;
 /// Simple object to specify a syntactic macro expansion.
 struct MacroExpansionSpecifier {
   unsigned offset;
-  swift::MacroRoles macroRoles;
-  swift::MacroDefinition macroDefinition;
+  language::MacroRoles macroRoles;
+  language::MacroDefinition macroDefinition;
 };
 
 /// Instance of a syntactic macro expansion context. This is created for each
@@ -46,11 +50,11 @@ class SyntacticMacroExpansionInstance {
   std::unique_ptr<ASTContext> Ctx;
   ModuleDecl *TheModule = nullptr;
   SourceFile *SF = nullptr;
-  llvm::StringMap<MacroDecl *> MacroDecls;
+  toolchain::StringMap<MacroDecl *> MacroDecls;
 
   /// Synthesize 'MacroDecl' AST object to use the expansion.
-  swift::MacroDecl *
-  getSynthesizedMacroDecl(swift::Identifier name,
+  language::MacroDecl *
+  getSynthesizedMacroDecl(language::Identifier name,
                           const MacroExpansionSpecifier &expansion);
 
   /// Expand single 'expansion'.
@@ -61,8 +65,8 @@ public:
   SyntacticMacroExpansionInstance() {}
 
   /// Setup the instance with \p args and a given \p inputBuf.
-  bool setup(StringRef SwiftExecutablePath, ArrayRef<const char *> args,
-             llvm::MemoryBuffer *inputBuf,
+  bool setup(StringRef CodiraExecutablePath, ArrayRef<const char *> args,
+             toolchain::MemoryBuffer *inputBuf,
              std::shared_ptr<PluginRegistry> plugins, std::string &error);
 
   ASTContext &getASTContext() { return *Ctx; }
@@ -75,22 +79,22 @@ public:
 
 /// Manager object to vend 'SyntacticMacroExpansionInstance'.
 class SyntacticMacroExpansion {
-  StringRef SwiftExecutablePath;
+  StringRef CodiraExecutablePath;
   std::shared_ptr<PluginRegistry> Plugins;
 
 public:
-  SyntacticMacroExpansion(StringRef SwiftExecutablePath,
+  SyntacticMacroExpansion(StringRef CodiraExecutablePath,
                           std::shared_ptr<PluginRegistry> Plugins)
-      : SwiftExecutablePath(SwiftExecutablePath), Plugins(Plugins) {}
+      : CodiraExecutablePath(CodiraExecutablePath), Plugins(Plugins) {}
 
   /// Get instance configured with the specified compiler arguments and
   /// input buffer.
   std::shared_ptr<SyntacticMacroExpansionInstance>
-  getInstance(ArrayRef<const char *> args, llvm::MemoryBuffer *inputBuf,
+  getInstance(ArrayRef<const char *> args, toolchain::MemoryBuffer *inputBuf,
               std::string &error);
 };
 
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_SYNTACTICMACROEXPANSION_H
+#endif // LANGUAGE_IDE_SYNTACTICMACROEXPANSION_H

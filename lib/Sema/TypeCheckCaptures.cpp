@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements computing capture info for closure expressions and named
@@ -33,7 +34,7 @@
 #include "language/AST/TypeWalker.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 using namespace language;
 
 namespace {
@@ -41,25 +42,25 @@ namespace {
 class FindCapturedVars : public ASTWalker {
   ASTContext &Context;
   SmallVector<CapturedValue, 4> Captures;
-  llvm::SmallDenseMap<ValueDecl*, unsigned, 4> captureEntryNumber;
+  toolchain::SmallDenseMap<ValueDecl*, unsigned, 4> captureEntryNumber;
 
   /// Opened element environments introduced by `for ... in repeat`
   /// statements.
-  llvm::SetVector<GenericEnvironment *> VisitingForEachEnv;
+  toolchain::SetVector<GenericEnvironment *> VisitingForEachEnv;
 
   /// Opened element environments introduced by `repeat` expressions.
-  llvm::SetVector<GenericEnvironment *> VisitingPackExpansionEnv;
+  toolchain::SetVector<GenericEnvironment *> VisitingPackExpansionEnv;
 
   /// A set of local generic environments we've encountered that were not
   /// in the above stack; those are the captures.
   ///
   /// Once we can capture opened existentials, opened existential environments
   /// can go here too.
-  llvm::SetVector<GenericEnvironment *> CapturedEnvironments;
+  toolchain::SetVector<GenericEnvironment *> CapturedEnvironments;
 
   /// The captured types.
   SmallVector<CapturedType, 4> CapturedTypes;
-  llvm::SmallDenseMap<CanType, unsigned, 4> CapturedTypeEntryNumber;
+  toolchain::SmallDenseMap<CanType, unsigned, 4> CapturedTypeEntryNumber;
 
   SourceLoc GenericParamCaptureLoc;
   SourceLoc DynamicSelfCaptureLoc;
@@ -360,9 +361,9 @@ public:
         // ban this outright, but people rely on code like this working:
         //
         // do {
-        //   func local() {}
+        //   fn local() {}
         //   class C {
-        //     func method() { local() }
+        //     fn method() { local() }
         //   }
         // }
         if (!isa<FuncDecl>(D)) {
@@ -512,7 +513,7 @@ public:
 
     // Accessing @objc members doesn't require type metadata.
     // rdar://problem/27796375 -- allocating init entry points for ObjC
-    // initializers are generated as true Swift generics, so reify type
+    // initializers are generated as true Codira generics, so reify type
     // parameters.
     if (auto memberRef = dyn_cast<MemberRefExpr>(E))
       return !memberRef->getMember().getDecl()->hasClangNode();
@@ -597,7 +598,7 @@ public:
           && erasure->getSubExpr()->getType()->is<ArchetypeType>())
         return false;
 
-      // Erasure to a Swift protocol always captures the type metadata from
+      // Erasure to a Codira protocol always captures the type metadata from
       // its subexpression.
       checkType(erasure->getSubExpr()->getType(),
                 erasure->getSubExpr()->getLoc());
@@ -747,6 +748,31 @@ public:
 
 } // end anonymous namespace
 
+/// Given that a local function is isolated to the given var, should we
+/// force a capture of the var?
+static bool shouldCaptureIsolationInLocalFunc(AbstractFunctionDecl *AFD,
+                                              VarDecl *var) {
+  assert(isa<ParamDecl>(var));
+
+  // Don't try to capture an isolated parameter of the function itself.
+  if (var->getDeclContext() == AFD)
+    return false;
+
+  // We only *need* to force a capture of the isolation in an async function
+  // (in which case it's needed for executor switching) or if we're in the
+  // mode that forces an executor check in all synchronous functions. But
+  // it's a simpler rule if we just do it unconditionally.
+
+  // However, don't do it for the implicit functions that represent defer
+  // bodies, where it is both unnecessary and likely to lead to bad diagnostics.
+  // We already suppress the executor check in defer bodies.
+  if (auto FD = dyn_cast<FuncDecl>(AFD))
+    if (FD->isDeferBody())
+      return false;
+
+  return true;
+}
+
 CaptureInfo CaptureInfoRequest::evaluate(Evaluator &evaluator,
                                          AbstractFunctionDecl *AFD) const {
   auto type = AFD->getInterfaceType();
@@ -764,16 +790,13 @@ CaptureInfo CaptureInfoRequest::evaluate(Evaluator &evaluator,
     finder.checkType(type, AFD->getLoc());
   }
 
-  if (AFD->isLocalCapture() && AFD->hasAsync()) {
+  if (AFD->isLocalCapture()) {
     // If a local function inherits isolation from the enclosing context,
     // make sure we capture the isolated parameter, if we haven't already.
     auto actorIsolation = getActorIsolation(AFD);
     if (actorIsolation.getKind() == ActorIsolation::ActorInstance) {
       if (auto *var = actorIsolation.getActorInstance()) {
-        assert(isa<ParamDecl>(var));
-        // Don't capture anything if the isolation parameter is a parameter
-        // of the local function.
-        if (var->getDeclContext() != AFD)
+        if (shouldCaptureIsolationInLocalFunc(AFD, var))
           finder.addCapture(CapturedValue(var, 0, AFD->getLoc()));
       }
     }

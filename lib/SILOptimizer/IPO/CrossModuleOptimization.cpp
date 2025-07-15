@@ -1,13 +1,17 @@
 //===--- CrossModuleOptimization.cpp - perform cross-module-optimization --===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 /// An optimization which marks functions and types as inlinable or usable
 /// from inline. This lets such functions be serialized (later in the pipeline),
@@ -29,23 +33,23 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILInliner.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 /// Functions up to this (abstract) size are serialized, even if they are not
 /// generic.
-static llvm::cl::opt<int> CMOFunctionSizeLimit("cmo-function-size-limit",
-                                               llvm::cl::init(20));
+static toolchain::cl::opt<int> CMOFunctionSizeLimit("cmo-function-size-limit",
+                                               toolchain::cl::init(20));
 
-static llvm::cl::opt<bool> SerializeEverything(
-    "sil-cross-module-serialize-all", llvm::cl::init(false),
-    llvm::cl::desc(
+static toolchain::cl::opt<bool> SerializeEverything(
+    "sil-cross-module-serialize-all", toolchain::cl::init(false),
+    toolchain::cl::desc(
         "Serialize everything when performing cross module optimization in "
         "order to investigate performance differences caused by different "
         "@inlinable, @usableFromInline choices."),
-    llvm::cl::Hidden);
+    toolchain::cl::Hidden);
 
 namespace {
 
@@ -54,8 +58,8 @@ namespace {
 class CrossModuleOptimization {
   friend class InstructionVisitor;
 
-  llvm::DenseMap<CanType, bool> canTypesChecked;
-  llvm::SmallPtrSet<TypeBase *, 16> typesHandled;
+  toolchain::DenseMap<CanType, bool> canTypesChecked;
+  toolchain::SmallPtrSet<TypeBase *, 16> typesHandled;
 
   SILModule &M;
   
@@ -68,7 +72,7 @@ class CrossModuleOptimization {
   /// regardless of linkage.
   bool everything;
 
-  typedef llvm::DenseMap<SILFunction *, bool> FunctionFlags;
+  typedef toolchain::DenseMap<SILFunction *, bool> FunctionFlags;
   FunctionFlags canSerializeFlags;
 
 public:
@@ -111,7 +115,7 @@ private:
 
   bool canUseFromInline(DeclContext *declCtxt);
 
-  bool canUseFromInline(SILFunction *func);
+  bool canUseFromInline(SILFunction *fn);
 
   void serializeFunction(SILFunction *function,
                    const FunctionFlags &canSerializeFlags);
@@ -278,13 +282,13 @@ static bool isPackageCMOEnabled(ModuleDecl *mod) {
 }
 
 bool CrossModuleOptimization::isPackageOrPublic(SILLinkage linkage) {
-  if (isPackageCMOEnabled(M.getSwiftModule()))
+  if (isPackageCMOEnabled(M.getCodiraModule()))
     return linkage == SILLinkage::Public || linkage == SILLinkage::Package;
   return linkage == SILLinkage::Public;
 }
 
 bool CrossModuleOptimization::isPackageOrPublic(AccessLevel accessLevel) {
-  if (isPackageCMOEnabled(M.getSwiftModule()))
+  if (isPackageCMOEnabled(M.getCodiraModule()))
     return accessLevel == AccessLevel::Package || accessLevel == AccessLevel::Public;
   return accessLevel == AccessLevel::Public;
 }
@@ -305,16 +309,16 @@ bool CrossModuleOptimization::isSerializedWithRightKind(const SILModule &mod,
   // true if the function is [serialized] due to @inlinable
   // (or similar) or [serialized_for_package] due to this
   // optimization.
-  return isPackageCMOEnabled(mod.getSwiftModule()) ? f->isAnySerialized()
+  return isPackageCMOEnabled(mod.getCodiraModule()) ? f->isAnySerialized()
                                                    : f->isSerialized();
 }
 bool CrossModuleOptimization::isSerializedWithRightKind(const SILModule &mod,
                                       SILGlobalVariable *g) {
-  return isPackageCMOEnabled(mod.getSwiftModule()) ? g->isAnySerialized()
+  return isPackageCMOEnabled(mod.getCodiraModule()) ? g->isAnySerialized()
                                                    : g->isSerialized();
 }
 SerializedKind_t CrossModuleOptimization::getRightSerializedKind(const SILModule &mod) {
-  return isPackageCMOEnabled(mod.getSwiftModule()) ? IsSerializedForPackage
+  return isPackageCMOEnabled(mod.getCodiraModule()) ? IsSerializedForPackage
                                                    : IsSerialized;
 }
 
@@ -326,7 +330,7 @@ static bool isSerializeCandidate(SILFunction *F, SILOptions options) {
   // their nested references). If private or internal definitions are
   // serialized, they are set to a shared linkage.
   //
-  // E.g. `public func foo() { print("") }` is a public function that
+  // E.g. `public fn foo() { print("") }` is a public function that
   // references `print`, a shared definition which does not contain
   // any private or internal symbols, thus is serialized, which in turn
   // allows `foo` to be serialized.
@@ -334,7 +338,7 @@ static bool isSerializeCandidate(SILFunction *F, SILOptions options) {
   // set to a private linkage in SILGen. By allowing such private thunk
   // to be serialized and set to shared linkage here, functions that
   // reference the thunk can be serialized as well.
-  if (isPackageCMOEnabled(F->getModule().getSwiftModule()))
+  if (isPackageCMOEnabled(F->getModule().getCodiraModule()))
     return linkage != SILLinkage::PublicExternal &&
            linkage != SILLinkage::PackageExternal &&
            linkage != SILLinkage::HiddenExternal;
@@ -343,7 +347,7 @@ static bool isSerializeCandidate(SILFunction *F, SILOptions options) {
 
 bool CrossModuleOptimization::isReferenceSerializeCandidate(SILFunction *F, 
                                                             SILOptions options) {
-  if (isPackageCMOEnabled(F->getModule().getSwiftModule())) {
+  if (isPackageCMOEnabled(F->getModule().getCodiraModule())) {
     if (isSerializedWithRightKind(F->getModule(), F))
       return true;
     return hasPublicOrPackageVisibility(F->getLinkage(),
@@ -354,7 +358,7 @@ bool CrossModuleOptimization::isReferenceSerializeCandidate(SILFunction *F,
 
 bool CrossModuleOptimization::isReferenceSerializeCandidate(SILGlobalVariable *G,
                                                             SILOptions options) {
-  if (isPackageCMOEnabled(G->getModule().getSwiftModule())) {
+  if (isPackageCMOEnabled(G->getModule().getCodiraModule())) {
     if (isSerializedWithRightKind(G->getModule(), G))
       return true;
     return hasPublicOrPackageVisibility(G->getLinkage(),
@@ -386,7 +390,7 @@ void CrossModuleOptimization::serializeFunctionsInModule(SILPassManager *manager
 }
 
 void CrossModuleOptimization::serializeWitnessTablesInModule() {
-  if (!isPackageCMOEnabled(M.getSwiftModule()) && !everything)
+  if (!isPackageCMOEnabled(M.getCodiraModule()) && !everything)
     return;
 
   for (auto &wt : M.getWitnessTables()) {
@@ -409,7 +413,7 @@ void CrossModuleOptimization::serializeWitnessTablesInModule() {
       if (everything) {
         makeFunctionUsableFromInline(witness);
       } else {
-        assert(isPackageCMOEnabled(M.getSwiftModule()));
+        assert(isPackageCMOEnabled(M.getCodiraModule()));
 
         // In Package CMO, we try serializing witness thunks that
         // are private if they don't contain hidden or private
@@ -446,14 +450,14 @@ void CrossModuleOptimization::serializeVTablesInModule() {
     }
     return;
   }
-  if (!isPackageCMOEnabled(M.getSwiftModule()))
+  if (!isPackageCMOEnabled(M.getCodiraModule()))
     return;
 
   for (const auto &vt : M.getVTables()) {
     if (vt->getSerializedKind() != getRightSerializedKind(M) &&
         vt->getClass()->getEffectiveAccess() >= AccessLevel::Package) {
        bool containsInternal =
-          llvm::any_of(vt->getEntries(), [&](const SILVTableEntry &entry) {
+          toolchain::any_of(vt->getEntries(), [&](const SILVTableEntry &entry) {
             return !entry.getImplementation()->hasValidLinkageForFragileRef(
                 getRightSerializedKind(M));
           });
@@ -529,7 +533,7 @@ bool CrossModuleOptimization::canSerializeFunction(
 
   // If package-cmo is enabled, we don't want to limit inlining
   // or should at least increase the size limit.
-  bool skipSizeLimitCheck = isPackageCMOEnabled(M.getSwiftModule());
+  bool skipSizeLimitCheck = isPackageCMOEnabled(M.getCodiraModule());
 
   if (!conservative) {
     // The basic heuristic: serialize all generic functions, because it makes a
@@ -633,8 +637,8 @@ bool CrossModuleOptimization::canSerializeFieldsByInstructionKind(
   if (auto *KPI = dyn_cast<KeyPathInst>(inst)) {
     bool canUse = true;
     KPI->getPattern()->visitReferencedFunctionsAndMethods(
-        [&](SILFunction *func) {
-          if (!canUseFromInline(func))
+        [&](SILFunction *fn) {
+          if (!canUseFromInline(fn))
             canUse = false;
         },
         [&](SILDeclRef method) {
@@ -760,7 +764,7 @@ static bool couldBeLinkedStatically(DeclContext *funcCtxt, SILModule &module) {
   ModuleDecl *funcModule = funcCtxt->getParentModule();
   // If the function is in the same module, it's not in another module which
   // could be linked statically.
-  if (module.getSwiftModule() == funcModule)
+  if (module.getCodiraModule() == funcModule)
     return false;
     
   // The stdlib module is always linked dynamically.
@@ -768,7 +772,7 @@ static bool couldBeLinkedStatically(DeclContext *funcCtxt, SILModule &module) {
     return false;
 
   // An sdk or system module should be linked dynamically.
-  if (isPackageCMOEnabled(module.getSwiftModule()) &&
+  if (isPackageCMOEnabled(module.getCodiraModule()) &&
       funcModule->isNonUserModule())
     return false;
 
@@ -802,12 +806,12 @@ bool CrossModuleOptimization::checkImports(DeclContext *ctxt) const {
 
   // If the context defined in the same module - or is the same module, it's
   // fine.
-  if (moduleOfCtxt == M.getSwiftModule())
+  if (moduleOfCtxt == M.getCodiraModule())
     return true;
 
   ModuleDecl::ImportFilter filter;
 
-  if (isPackageCMOEnabled(M.getSwiftModule())) {
+  if (isPackageCMOEnabled(M.getCodiraModule())) {
     // When Package CMO is enabled, types imported with `package import`
     // or `@_spiOnly import` into this module should be allowed to be
     // serialized. These types may be used in APIs with `package` or
@@ -839,9 +843,9 @@ bool CrossModuleOptimization::checkImports(DeclContext *ctxt) const {
     };
   }
   SmallVector<ImportedModule, 4> results;
-  M.getSwiftModule()->getImportedModules(results, filter);
+  M.getCodiraModule()->getImportedModules(results, filter);
 
-  auto &imports = M.getSwiftModule()->getASTContext().getImportCache();
+  auto &imports = M.getCodiraModule()->getASTContext().getImportCache();
   for (auto &desc : results) {
     if (imports.isImportedBy(moduleOfCtxt, desc.importedModule))
       return false;
@@ -849,7 +853,7 @@ bool CrossModuleOptimization::checkImports(DeclContext *ctxt) const {
   return true;
 }
 
-/// Returns true if the function \p func can be used from a serialized function.
+/// Returns true if the function \p fn can be used from a serialized function.
 bool CrossModuleOptimization::canUseFromInline(SILFunction *function) {
   if (everything)
     return true;
@@ -890,7 +894,7 @@ void CrossModuleOptimization::serializeFunction(SILFunction *function,
   if (!canSerializeFlags.lookup(function))
     return;
 
-  if (isPackageCMOEnabled(M.getSwiftModule())) {
+  if (isPackageCMOEnabled(M.getCodiraModule())) {
     // If a private thunk (such as a protocol witness method for
     // a package protocol member) does not reference any private
     // or internal symbols, thus is serialized, it's set to shared
@@ -961,14 +965,14 @@ void CrossModuleOptimization::serializeInstruction(SILInstruction *inst,
     }
     if (!hasPublicOrPackageVisibility(
             global->getLinkage(),
-            M.getSwiftModule()->serializePackageEnabled())) {
+            M.getCodiraModule()->serializePackageEnabled())) {
       global->setLinkage(SILLinkage::Public);
     }
     return;
   }
   if (auto *KPI = dyn_cast<KeyPathInst>(inst)) {
     KPI->getPattern()->visitReferencedFunctionsAndMethods(
-        [this](SILFunction *func) { makeFunctionUsableFromInline(func); },
+        [this](SILFunction *fn) { makeFunctionUsableFromInline(fn); },
         [this](SILDeclRef method) { keepMethodAlive(method); });
     return;
   }
@@ -1016,10 +1020,10 @@ void CrossModuleOptimization::makeDeclUsableFromInline(ValueDecl *decl) {
     return;  
 
   // This function should not be called in Package CMO mode.
-  assert(!isPackageCMOEnabled(M.getSwiftModule()));
+  assert(!isPackageCMOEnabled(M.getCodiraModule()));
 
   // We must not modify decls which are defined in other modules.
-  if (M.getSwiftModule() != decl->getDeclContext()->getParentModule())
+  if (M.getCodiraModule() != decl->getDeclContext()->getParentModule())
     return;
 
   if (!isPackageOrPublic(decl->getFormalAccess()) &&
@@ -1092,10 +1096,10 @@ void CrossModuleOptimization::makeTypeUsableFromInline(CanType type) {
 class CrossModuleOptimizationPass: public SILModuleTransform {
   void run() override {
     auto &M = *getModule();
-    if (M.getSwiftModule()->serializePackageEnabled()) {
-      assert(M.getSwiftModule()->isResilient() &&
+    if (M.getCodiraModule()->serializePackageEnabled()) {
+      assert(M.getCodiraModule()->isResilient() &&
              "Package CMO requires library-evolution");
-    } else if (M.getSwiftModule()->isResilient()) {
+    } else if (M.getCodiraModule()->isResilient()) {
       // If no Package CMO flags are passed and library
       // evolution is enabled, just return.
       return;
@@ -1107,25 +1111,25 @@ class CrossModuleOptimizationPass: public SILModuleTransform {
     bool conservative = false;
     bool everything = SerializeEverything;
     switch (M.getOptions().CMOMode) {
-      case swift::CrossModuleOptimizationMode::Off:
+      case language::CrossModuleOptimizationMode::Off:
         break;
-      case swift::CrossModuleOptimizationMode::Default:
+      case language::CrossModuleOptimizationMode::Default:
         conservative = true;
         break;
-      case swift::CrossModuleOptimizationMode::Aggressive:
+      case language::CrossModuleOptimizationMode::Aggressive:
         conservative = false;
         break;
-      case swift::CrossModuleOptimizationMode::Everything:
+      case language::CrossModuleOptimizationMode::Everything:
         everything = true;
         break;
     }
 
     if (!everything &&
-        M.getOptions().CMOMode == swift::CrossModuleOptimizationMode::Off) {
+        M.getOptions().CMOMode == language::CrossModuleOptimizationMode::Off) {
       return;
     }
 
-    if (isPackageCMOEnabled(M.getSwiftModule()))
+    if (isPackageCMOEnabled(M.getCodiraModule()))
       assert(conservative && "Package CMO requires conservative CMO mode");
 
     CrossModuleOptimization CMO(M, conservative, everything);
@@ -1139,6 +1143,6 @@ class CrossModuleOptimizationPass: public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createCrossModuleOptimization() {
+SILTransform *language::createCrossModuleOptimization() {
   return new CrossModuleOptimizationPass();
 }

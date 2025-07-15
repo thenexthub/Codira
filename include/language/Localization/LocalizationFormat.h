@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the format for localized diagnostic messages.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOCALIZATIONFORMAT_H
-#define SWIFT_LOCALIZATIONFORMAT_H
+#ifndef LANGUAGE_LOCALIZATIONFORMAT_H
+#define LANGUAGE_LOCALIZATIONFORMAT_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Bitstream/BitstreamReader.h"
-#include "llvm/Support/EndianStream.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/OnDiskHashTable.h"
-#include "llvm/Support/StringSaver.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
+#include "toolchain/Support/EndianStream.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/OnDiskHashTable.h"
+#include "toolchain/Support/StringSaver.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -50,17 +51,17 @@ enum LocalizationProducerState : uint8_t {
 };
 
 class DefToStringsConverter {
-  llvm::ArrayRef<const char *> IDs;
-  llvm::ArrayRef<const char *> Messages;
+  toolchain::ArrayRef<const char *> IDs;
+  toolchain::ArrayRef<const char *> Messages;
 
 public:
-  DefToStringsConverter(llvm::ArrayRef<const char *> ids,
-                        llvm::ArrayRef<const char *> messages)
+  DefToStringsConverter(toolchain::ArrayRef<const char *> ids,
+                        toolchain::ArrayRef<const char *> messages)
     : IDs(ids), Messages(messages) {
     assert(IDs.size() == Messages.size());
   }
 
-  void convert(llvm::raw_ostream &out);
+  void convert(toolchain::raw_ostream &out);
 };
 
 class LocalizationWriterInfo {
@@ -68,28 +69,28 @@ public:
   using key_type = uint32_t;
   using key_type_ref = const uint32_t &;
   using data_type = std::string;
-  using data_type_ref = llvm::StringRef;
+  using data_type_ref = toolchain::StringRef;
   using hash_value_type = uint32_t;
   using offset_type = uint32_t;
 
   hash_value_type ComputeHash(key_type_ref key) { return key; }
 
-  std::pair<offset_type, offset_type> EmitKeyDataLength(llvm::raw_ostream &out,
+  std::pair<offset_type, offset_type> EmitKeyDataLength(toolchain::raw_ostream &out,
                                                         key_type_ref key,
                                                         data_type_ref data) {
     offset_type dataLength = static_cast<offset_type>(data.size());
-    llvm::support::endian::write<offset_type>(out, dataLength,
-                                              llvm::endianness::little);
+    toolchain::support::endian::write<offset_type>(out, dataLength,
+                                              toolchain::endianness::little);
     // No need to write the key length; it's constant.
     return {sizeof(key_type), dataLength};
   }
 
-  void EmitKey(llvm::raw_ostream &out, key_type_ref key, unsigned len) {
+  void EmitKey(toolchain::raw_ostream &out, key_type_ref key, unsigned len) {
     assert(len == sizeof(key_type));
-    llvm::support::endian::write<key_type>(out, key, llvm::endianness::little);
+    toolchain::support::endian::write<key_type>(out, key, toolchain::endianness::little);
   }
 
-  void EmitData(llvm::raw_ostream &out, key_type_ref key, data_type_ref data,
+  void EmitData(toolchain::raw_ostream &out, key_type_ref key, data_type_ref data,
                 unsigned len) {
     out << data;
   }
@@ -98,8 +99,8 @@ public:
 class LocalizationReaderInfo {
 public:
   using internal_key_type = uint32_t;
-  using external_key_type = swift::DiagID;
-  using data_type = llvm::StringRef;
+  using external_key_type = language::DiagID;
+  using data_type = toolchain::StringRef;
   using hash_value_type = uint32_t;
   using offset_type = uint32_t;
 
@@ -120,14 +121,14 @@ public:
   static std::pair<offset_type, offset_type>
   ReadKeyDataLength(const unsigned char *&data) {
     offset_type dataLength =
-        llvm::support::endian::readNext<offset_type, llvm::endianness::little,
-                                        llvm::support::unaligned>(data);
+        toolchain::support::endian::readNext<offset_type, toolchain::endianness::little,
+                                        toolchain::support::unaligned>(data);
     return {sizeof(uint32_t), dataLength};
   }
 
   internal_key_type ReadKey(const unsigned char *data, offset_type length) {
-    return llvm::support::endian::readNext<
-        internal_key_type, llvm::endianness::little, llvm::support::unaligned>(
+    return toolchain::support::endian::readNext<
+        internal_key_type, toolchain::endianness::little, toolchain::support::unaligned>(
         data);
   }
 
@@ -139,7 +140,7 @@ public:
 
 class SerializedLocalizationWriter {
   using offset_type = LocalizationWriterInfo::offset_type;
-  llvm::OnDiskChainedHashTableGenerator<LocalizationWriterInfo> generator;
+  toolchain::OnDiskChainedHashTableGenerator<LocalizationWriterInfo> generator;
 
 public:
   /// Enqueue the given diagnostic to be included in a serialized translations
@@ -149,7 +150,7 @@ public:
   ///           'cannot_convert_argument'.
   /// \param translation The localized diagnostic message for the given
   ///                    identifier.
-  void insert(swift::DiagID id, llvm::StringRef translation);
+  void insert(language::DiagID id, toolchain::StringRef translation);
 
   /// Write out previously inserted diagnostic translations into the given
   /// location.
@@ -158,7 +159,7 @@ public:
   /// supposed to be a file with '.db' postfix.
   /// \returns true if all diagnostic
   /// messages have been successfully serialized, false otherwise.
-  bool emit(llvm::StringRef filePath);
+  bool emit(toolchain::StringRef filePath);
 };
 
 class LocalizationProducer {
@@ -167,15 +168,15 @@ class LocalizationProducer {
 public:
   /// If the  message isn't available/localized in current context
   /// return the fallback default message.
-  virtual llvm::StringRef getMessageOr(swift::DiagID id,
-                                       llvm::StringRef defaultMessage);
+  virtual toolchain::StringRef getMessageOr(language::DiagID id,
+                                       toolchain::StringRef defaultMessage);
 
   /// \returns a `SerializedLocalizationProducer` pointer if the serialized
   /// diagnostics file available, otherwise returns a
   /// `StringsLocalizationProducer` if the `.strings` file is available. If both
   /// files aren't available returns a `nullptr`.
   static std::unique_ptr<LocalizationProducer>
-  producerFor(llvm::StringRef locale, llvm::StringRef path);
+  producerFor(toolchain::StringRef locale, toolchain::StringRef path);
 
   virtual ~LocalizationProducer() {}
 
@@ -190,7 +191,7 @@ protected:
 
   /// Retrieve a message for the given diagnostic id.
   /// \returns empty string if message couldn't be found.
-  virtual llvm::StringRef getMessage(swift::DiagID id) const = 0;
+  virtual toolchain::StringRef getMessage(language::DiagID id) const = 0;
 };
 
 class StringsLocalizationProducer final : public LocalizationProducer {
@@ -199,38 +200,38 @@ class StringsLocalizationProducer final : public LocalizationProducer {
   std::vector<std::string> diagnostics;
 
 public:
-  explicit StringsLocalizationProducer(llvm::StringRef filePath)
+  explicit StringsLocalizationProducer(toolchain::StringRef filePath)
       : LocalizationProducer(), filePath(filePath) {}
 
   /// Iterate over all of the available (non-empty) translations
   /// maintained by this producer, callback gets each translation
   /// with its unique identifier.
   void forEachAvailable(
-      llvm::function_ref<void(swift::DiagID, llvm::StringRef)> callback);
+      toolchain::function_ref<void(language::DiagID, toolchain::StringRef)> callback);
 
 protected:
   bool initializeImpl() override;
-  llvm::StringRef getMessage(swift::DiagID id) const override;
+  toolchain::StringRef getMessage(language::DiagID id) const override;
 
 private:
-  static void readStringsFile(llvm::MemoryBuffer *in,
+  static void readStringsFile(toolchain::MemoryBuffer *in,
                               std::vector<std::string> &diagnostics);
 };
 
 class SerializedLocalizationProducer final : public LocalizationProducer {
   using SerializedLocalizationTable =
-      llvm::OnDiskIterableChainedHashTable<LocalizationReaderInfo>;
+      toolchain::OnDiskIterableChainedHashTable<LocalizationReaderInfo>;
   using offset_type = LocalizationReaderInfo::offset_type;
-  std::unique_ptr<llvm::MemoryBuffer> Buffer;
+  std::unique_ptr<toolchain::MemoryBuffer> Buffer;
   std::unique_ptr<SerializedLocalizationTable> SerializedTable;
 
 public:
   explicit SerializedLocalizationProducer(
-      std::unique_ptr<llvm::MemoryBuffer> buffer);
+      std::unique_ptr<toolchain::MemoryBuffer> buffer);
 
 protected:
   bool initializeImpl() override;
-  llvm::StringRef getMessage(swift::DiagID id) const override;
+  toolchain::StringRef getMessage(language::DiagID id) const override;
 };
 
 } // namespace diag

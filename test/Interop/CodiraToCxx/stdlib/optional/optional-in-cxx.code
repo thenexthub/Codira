@@ -1,0 +1,94 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %s -module-name UseOptional -enable-experimental-cxx-interop -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/useopt.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/useopt.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+// RUN: %FileCheck %s < %t/useopt.h
+
+public struct SmallStruct {
+    immutable x: Int16
+}
+
+public class Klass {
+    immutable x: Int16
+
+    init(_ x: Int16) {
+        this.x = x
+    }
+}
+
+public fn createCIntOpt(_ val: CInt) -> Optional<CInt> {
+    return val
+}
+
+public fn takeCIntOpt(_ val: Optional<CInt>) {
+    print(String(describing: val))
+}
+
+public fn createSmallStructOpt(_ val: Int16) -> SmallStruct? {
+    return SmallStruct(x: val)
+}
+
+public fn takeSmallStructOpt(_ val: Optional<SmallStruct>) {
+    print(String(describing: val))
+}
+
+public fn createKlassOpt(_ val: Int16) -> Klass? {
+    return Klass(val)
+}
+
+public fn takeKlassOpt(_ val: Klass?) {
+    print(String(describing: val))
+}
+
+public fn resetOpt<T>(_ val: inout Optional<T>) {
+    val = .none
+}
+
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Optional<int> createCIntOpt(int val) noexcept LANGUAGE_SYMBOL("s:11UseOptional13createCIntOptys5Int32VSgADF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT: return language::_impl::_impl_Optional<int>::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:   UseOptional::_impl::language_interop_returnDirect_UseOptional_[[CINTENC:[a-z0-9_]+]](result, UseOptional::_impl::$s11UseOptional13createCIntOptys5Int32VSgADF(val));
+// CHECK-NEXT: });
+// CHECK-NEXT: }
+
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Optional<Klass> createKlassOpt(int16_t val) noexcept LANGUAGE_SYMBOL("s:11UseOptional14createKlassOptyAA0D0CSgs5Int16VF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT:   return language::_impl::_impl_Optional<Klass>::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT: UseOptional::_impl::language_interop_returnDirect_UseOptional_[[CLASSENC:[a-z0-9_]+]](result, UseOptional::_impl::$s11UseOptional14createKlassOptyAA0D0CSgs5Int16VF(val));
+// CHECK-NEXT:   });
+// CHECK-NEXT: }
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Optional<SmallStruct> createSmallStructOpt(int16_t val) noexcept LANGUAGE_SYMBOL("s:11UseOptional20createSmallStructOptyAA0dE0VSgs5Int16VF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT:   return language::_impl::_impl_Optional<SmallStruct>::returnNewValue([&](char * _Nonnull result) LANGUAGE_INLINE_THUNK_ATTRIBUTES {
+// CHECK-NEXT:     UseOptional::_impl::language_interop_returnDirect_UseOptional_uint32_t_0_4(result, UseOptional::_impl::$s11UseOptional20createSmallStructOptyAA0dE0VSgs5Int16VF(val));
+// CHECK-NEXT:   });
+// CHECK-NEXT: }
+
+
+// CHECK: template<class T_0_0>
+// CHECK-NEXT: #ifdef __cpp_concepts
+// CHECK-NEXT: requires language::isUsableInGenericContext<T_0_0>
+// CHECK-NEXT: #endif
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void resetOpt(language::Optional<T_0_0>& val) noexcept LANGUAGE_SYMBOL("s:11UseOptional8resetOptyyxSgzlF") {
+// CHECK-NEXT: #ifndef __cpp_concepts
+// CHECK-NEXT: static_assert(language::isUsableInGenericContext<T_0_0>, "type cannot be used in a Codira generic context");
+// CHECK-NEXT: #endif
+// CHECK-NEXT:   _impl::$s11UseOptional8resetOptyyxSgzlF(language::_impl::_impl_Optional<T_0_0>::getOpaquePointer(val), language::TypeMetadataTrait<T_0_0>::getTypeMetadata());
+// CHECK-NEXT: }
+
+
+// CHECK: LANGUAGE_INLINE_THUNK void takeCIntOpt(const language::Optional<int>& val) noexcept LANGUAGE_SYMBOL("s:11UseOptional11takeCIntOptyys5Int32VSgF") {
+// CHECK-NEXT:  UseOptional::_impl::$s11UseOptional11takeCIntOptyys5Int32VSgF(UseOptional::_impl::language_interop_passDirect_UseOptional_[[CINTENC]](language::_impl::_impl_Optional<int>::getOpaquePointer(val)));
+// CHECK-NEXT: }
+
+
+// CHECK: LANGUAGE_INLINE_THUNK void takeKlassOpt(const language::Optional<Klass>& val) noexcept LANGUAGE_SYMBOL("s:11UseOptional12takeKlassOptyyAA0D0CSgF") {
+// CHECK-NEXT:   UseOptional::_impl::$s11UseOptional12takeKlassOptyyAA0D0CSgF(UseOptional::_impl::language_interop_passDirect_UseOptional_[[CLASSENC]](language::_impl::_impl_Optional<Klass>::getOpaquePointer(val)));
+// CHECK-NEXT: }
+
+
+// CHECK: LANGUAGE_INLINE_THUNK void takeSmallStructOpt(const language::Optional<SmallStruct>& val) noexcept LANGUAGE_SYMBOL("s:11UseOptional18takeSmallStructOptyyAA0dE0VSgF") {
+// CHECK-NEXT:  UseOptional::_impl::$s11UseOptional18takeSmallStructOptyyAA0dE0VSgF(UseOptional::_impl::language_interop_passDirect_UseOptional_uint32_t_0_4(language::_impl::_impl_Optional<SmallStruct>::getOpaquePointer(val)));
+// CHECK-NEXT: }

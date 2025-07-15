@@ -1,0 +1,37 @@
+// RUN: %target-run-simple-language(-cxx-interoperability-mode=default -I %S/Inputs) | %FileCheck %s
+
+// REQUIRES: executable_test
+
+import SimpleStructs
+
+fn printCxxStructPrivateFields() {
+    immutable s = HasPrivateFieldsOnly(1, 2)
+    print(s)
+}
+
+fn printCxxStructPublicFields() {
+    immutable s = HasPublicFieldsOnly(1, 2)
+    print(s)
+}
+
+fn printCxxStructPrivatePublicProtectedFields() {
+    immutable s = HasPrivatePublicProtectedFields(1, 2, 3, 4, 5, 6)
+    print(s)
+}
+
+fn printCxxStructNested() {
+    immutable s = Outer()
+    print(s)
+}
+
+printCxxStructPrivateFields() 
+// CHECK: HasPrivateFieldsOnly()
+
+printCxxStructPublicFields()
+// CHECK: HasPublicFieldsOnly(publ1: 1, publ2: 2)
+
+printCxxStructPrivatePublicProtectedFields()
+// CHECK: HasPrivatePublicProtectedFields(publ1: 2, publ2: 6)
+
+printCxxStructNested()
+// CHECK: Outer(publStruct: {{.*}}.HasPrivatePublicProtectedFields(publ1: 8, publ2: 12))

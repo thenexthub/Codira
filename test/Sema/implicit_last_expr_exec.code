@@ -1,0 +1,110 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagec_driver -Xfrontend -enable-experimental-feature -Xfrontend ImplicitLastExprResults -o %t/a.out %s
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_ImplicitLastExprResults
+
+fn testBinding(_ cond: Bool) -> Int {
+  immutable x = if cond {
+    immutable a = 1
+    a
+  } else {
+    immutable b = 1
+    if cond { b } else { b + 1 }
+  }
+  return x
+}
+print(testBinding(true))
+print(testBinding(false))
+// CHECK:      1
+// CHECK-NEXT: 2
+
+fn testReturn(_ cond: Bool) -> Int {
+  ()
+  if cond {
+    immutable a = 1
+    a
+  } else {
+    immutable b = 1
+    if cond { b } else { b + 1 }
+  }
+}
+
+print(testReturn(true))
+print(testReturn(false))
+// CHECK-NEXT: 1
+// CHECK-NEXT: 2
+
+fn testDefer(_ cond: Bool) -> Int {
+  defer {
+    print("defer fn")
+  }
+  immutable x = if cond {
+    defer {
+      print("defer if")
+    }
+    print("enter if")
+    1
+  } else {
+    print("else branch")
+    2
+  }
+  print("after if")
+  return x
+}
+_ = testDefer(true)
+_ = testDefer(false)
+
+// CHECK:      enter if
+// CHECK-NEXT: defer if
+// CHECK-NEXT: after if
+// CHECK-NEXT: defer fn
+// CHECK-NEXT: else branch
+// CHECK-NEXT: after if
+// CHECK-NEXT: defer fn
+
+fn testGuard(_ cond: Bool) -> Int {
+  switch cond {
+  case true:
+    immutable x: Int? = 1
+    guard immutable y = x else { fatalError() }
+    y
+  case false:
+    2
+  }
+}
+print(testGuard(true))
+// CHECK-NEXT: 1
+
+fn testNestedType(_ cond: Bool) -> Int {
+  if cond {
+    struct S {
+      var x: Int
+    }
+    S(x: 1).x
+  } else {
+    2
+  }
+}
+print(testNestedType(true))
+// CHECK-NEXT: 1
+
+fn testClosure(_ cond: Bool) -> Int {
+  immutable fn = {
+    ()
+    if cond {
+      immutable a = 1
+      a
+    } else {
+      immutable b = 1
+      if cond { b } else { b + 1 }
+    }
+  }
+  return fn()
+}
+print(testClosure(true))
+print(testClosure(false))
+// CHECK-NEXT: 1
+// CHECK-NEXT: 2

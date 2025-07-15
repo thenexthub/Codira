@@ -1,4 +1,4 @@
-//===--- Confusables.cpp - Swift Confusable Character Diagnostics ---------===//
+//===--- Confusables.cpp - Codira Confusable Character Diagnostics ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Parse/Confusables.h"
 
-char swift::confusable::tryConvertConfusableCharacterToASCII(uint32_t codepoint) {
+char language::confusable::tryConvertConfusableCharacterToASCII(uint32_t codepoint) {
   switch (codepoint) {
 #define CONFUSABLE(CONFUSABLE_POINT, CONFUSABLE_NAME, BASE_POINT, BASE_NAME)   \
   case CONFUSABLE_POINT:                                                       \
@@ -25,8 +26,8 @@ char swift::confusable::tryConvertConfusableCharacterToASCII(uint32_t codepoint)
   }
 }
 
-std::pair<llvm::StringRef, llvm::StringRef>
-swift::confusable::getConfusableAndBaseCodepointNames(uint32_t codepoint) {
+std::pair<toolchain::StringRef, toolchain::StringRef>
+language::confusable::getConfusableAndBaseCodepointNames(uint32_t codepoint) {
   switch (codepoint) {
 #define CONFUSABLE(CONFUSABLE_POINT, CONFUSABLE_NAME, BASE_POINT, BASE_NAME)   \
   case CONFUSABLE_POINT:                                                       \

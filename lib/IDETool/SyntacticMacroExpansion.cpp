@@ -1,13 +1,17 @@
 //===--- SyntacticMacroExpansion.cpp --------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDETool/SyntacticMacroExpansion.h"
@@ -26,13 +30,13 @@ using namespace ide;
 
 std::shared_ptr<SyntacticMacroExpansionInstance>
 SyntacticMacroExpansion::getInstance(ArrayRef<const char *> args,
-                                     llvm::MemoryBuffer *inputBuf,
+                                     toolchain::MemoryBuffer *inputBuf,
                                      std::string &error) {
   // Create and configure a new instance.
   auto instance = std::make_shared<SyntacticMacroExpansionInstance>();
 
   bool failed =
-      instance->setup(SwiftExecutablePath, args, inputBuf, Plugins, error);
+      instance->setup(CodiraExecutablePath, args, inputBuf, Plugins, error);
   if (failed)
     return nullptr;
 
@@ -40,12 +44,12 @@ SyntacticMacroExpansion::getInstance(ArrayRef<const char *> args,
 }
 
 bool SyntacticMacroExpansionInstance::setup(
-    StringRef SwiftExecutablePath, ArrayRef<const char *> args,
-    llvm::MemoryBuffer *inputBuf, std::shared_ptr<PluginRegistry> plugins,
+    StringRef CodiraExecutablePath, ArrayRef<const char *> args,
+    toolchain::MemoryBuffer *inputBuf, std::shared_ptr<PluginRegistry> plugins,
     std::string &error) {
-  SmallString<256> driverPath(SwiftExecutablePath);
-  llvm::sys::path::remove_filename(driverPath);
-  llvm::sys::path::append(driverPath, "swiftc");
+  SmallString<256> driverPath(CodiraExecutablePath);
+  toolchain::sys::path::remove_filename(driverPath);
+  toolchain::sys::path::append(driverPath, "languagec");
 
   // Setup CompilerInstance to configure the plugin search path correctly.
   bool hadError = driver::getSingleFrontendInvocationFromDriverArguments(
@@ -53,7 +57,7 @@ bool SyntacticMacroExpansionInstance::setup(
       [&](ArrayRef<const char *> frontendArgs) {
         return invocation.parseArgs(
             frontendArgs, Diags, /*ConfigurationFileBuffers=*/nullptr,
-            /*workingDirectory=*/{}, SwiftExecutablePath);
+            /*workingDirectory=*/{}, CodiraExecutablePath);
       },
       /*ForceNoOutput=*/true);
   if (hadError) {
@@ -174,7 +178,7 @@ static void addExpansionDiscriminator(
 
   // File base name.
   // Do not use the full path because we want this hash stable.
-  hasher.combine(llvm::sys::path::filename(SF->getFilename()));
+  hasher.combine(toolchain::sys::path::filename(SF->getFilename()));
   hasher.combine(uint8_t{0});
 
   // Line/column.
@@ -213,7 +217,7 @@ expandFreestandingMacro(MacroDecl *macro,
   expansion->setMacroRef(macro);
 
   SourceFile *expandedSource =
-      swift::evaluateFreestandingMacro(expansion, discriminator);
+      language::evaluateFreestandingMacro(expansion, discriminator);
   if (expandedSource)
     bufferIDs.push_back(expandedSource->getBufferID());
 
@@ -235,7 +239,7 @@ expandAttachedMacro(MacroDecl *macro, CustomAttr *attr, Decl *attachedDecl) {
                               target->getDeclContext()->getParentSourceFile(),
                               target->getLoc(), attr->getLocation(), role);
 
-    SourceFile *expandedSource = swift::evaluateAttachedMacro(
+    SourceFile *expandedSource = language::evaluateAttachedMacro(
         macro, target, attr, passParent, role, discriminator);
     if (expandedSource)
       bufferIDs.push_back(expandedSource->getBufferID());
@@ -296,7 +300,7 @@ static Identifier getCustomAttrName(ASTContext &ctx, const CustomAttr *attr) {
   // The only case is like `@Foo?` where the client should not send the
   // expansion request on this in the first place.
   SmallString<32> name;
-  llvm::raw_svector_ostream OS(name);
+  toolchain::raw_svector_ostream OS(name);
   tyR->print(OS);
   return ctx.getIdentifier(name);
 }

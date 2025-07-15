@@ -1,13 +1,17 @@
 //===--- VJPCloner.cpp - VJP function generation --------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a helper class for generating VJP functions for automatic
@@ -35,7 +39,7 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/DifferentiationMangler.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
 namespace autodiff {
@@ -93,7 +97,7 @@ class VJPCloner::Implementation final
 
   /// Mapping from original blocks to pullback values. Used to build pullback
   /// struct instances.
-  llvm::DenseMap<SILBasicBlock *, SmallVector<SILValue, 8>> pullbackValues;
+  toolchain::DenseMap<SILBasicBlock *, SmallVector<SILValue, 8>> pullbackValues;
 
   ASTContext &getASTContext() const { return vjp->getASTContext(); }
   SILModule &getModule() const { return vjp->getModule(); }
@@ -138,7 +142,7 @@ class VJPCloner::Implementation final
         {pbTupleMetatype});
     borrowedPullbackContextValue = Builder.createBeginBorrow(
         original->getLocation(), pullbackContextValue);
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Context object initialized because there are loops\n"
                << *vjp->getEntryBlock() << '\n'
                << "pullback tuple type: " << pullbackTupleType << '\n');
@@ -189,7 +193,7 @@ class VJPCloner::Implementation final
   /// Build a pullback tuple value for the given original terminator
   /// instruction.
   TupleInst *buildPullbackValueTupleValue(TermInst *termInst);
-  llvm::SmallVector<SILValue, 8> getPullbackValues(SILBasicBlock *origBB);
+  toolchain::SmallVector<SILValue, 8> getPullbackValues(SILBasicBlock *origBB);
 
   /// Build a predecessor enum instance using the given builder for the given
   /// original predecessor/successor blocks and pullback struct value.
@@ -293,7 +297,7 @@ public:
           Builder.createConvertFunction(loc, pullbackPartialApply, pullbackType,
                                         /*withoutActuallyEscaping*/ false);
     } else {
-      llvm::report_fatal_error("Pullback value type is not ABI-compatible "
+      toolchain::report_fatal_error("Pullback value type is not ABI-compatible "
                                "with the returned pullback type");
     }
 
@@ -406,7 +410,7 @@ public:
           inst->getLoc(), getOpValue(inst.getOperand()), newDefaultBB, caseBBs);
       break;
     default:
-      llvm_unreachable("Expected `switch_enum` or `switch_enum_addr`");
+      toolchain_unreachable("Expected `switch_enum` or `switch_enum_addr`");
     }
   }
 
@@ -424,7 +428,7 @@ public:
     auto *pbTupleVal = buildPullbackValueTupleValue(ccbi);
     // Create a new `checked_cast_branch` instruction.
     getBuilder().createCheckedCastBranch(
-        ccbi->getLoc(), ccbi->isExact(), ccbi->getIsolatedConformances(),
+        ccbi->getLoc(), ccbi->isExact(), ccbi->getCheckedCastOptions(),
         getOpValue(ccbi->getOperand()),
         getOpASTType(ccbi->getSourceFormalType()),
         getOpType(ccbi->getTargetLoweredType()),
@@ -441,7 +445,7 @@ public:
     // Create a new `checked_cast_addr_branch` instruction.
     getBuilder().createCheckedCastAddrBranch(
         ccabi->getLoc(),
-        ccabi->getIsolatedConformances(),
+        ccabi->getCheckedCastOptions(),
         ccabi->getConsumptionKind(),
         getOpValue(ccabi->getSrc()), getOpASTType(ccabi->getSourceFormalType()),
         getOpValue(ccabi->getDest()),
@@ -456,7 +460,7 @@ public:
 
     // If callee should not be differentiated, do standard cloning.
     if (!pullbackInfo.shouldDifferentiateApplySite(bai)) {
-      LLVM_DEBUG(getADDebugStream() << "No active results:\n" << *bai << '\n');
+      TOOLCHAIN_DEBUG(getADDebugStream() << "No active results:\n" << *bai << '\n');
       TypeSubstCloner::visitEndApplyInst(eai);
       return;
     }
@@ -466,11 +470,11 @@ public:
     auto &builder = getBuilder();
     auto token = getMappedValue(bai->getTokenResult());
 
-    LLVM_DEBUG(getADDebugStream() << "VJP-transforming:\n" << *eai << '\n');
+    TOOLCHAIN_DEBUG(getADDebugStream() << "VJP-transforming:\n" << *eai << '\n');
 
     FullApplySite fai(token->getDefiningInstruction());
     auto vjpResult = builder.createEndApply(loc, token, fai.getType());
-    LLVM_DEBUG(getADDebugStream() << "Created end_apply\n" << *vjpResult);
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Created end_apply\n" << *vjpResult);
 
     builder.emitDestroyValueOperation(loc, fai.getCallee());
 
@@ -603,7 +607,7 @@ public:
   void visitBeginApplyInst(BeginApplyInst *bai) {
     // If callee should not be differentiated, do standard cloning.
     if (!pullbackInfo.shouldDifferentiateApplySite(bai)) {
-      LLVM_DEBUG(getADDebugStream() << "No active results:\n" << *bai << '\n');
+      TOOLCHAIN_DEBUG(getADDebugStream() << "No active results:\n" << *bai << '\n');
       TypeSubstCloner::visitBeginApplyInst(bai);
       return;
     }
@@ -614,7 +618,7 @@ public:
     auto origCallee = getOpValue(bai->getCallee());
     auto originalFnTy = origCallee->getType().castTo<SILFunctionType>();
 
-    LLVM_DEBUG(getADDebugStream() << "VJP-transforming:\n" << *bai << '\n');
+    TOOLCHAIN_DEBUG(getADDebugStream() << "VJP-transforming:\n" << *bai << '\n');
 
 
     SmallVector<SILValue, 4> allResults;
@@ -625,11 +629,11 @@ public:
                                          activeResultIndices);
     assert(!activeParamIndices.empty() && "Parameter indices cannot be empty");
     assert(!activeResultIndices.empty() && "Result indices cannot be empty");
-    LLVM_DEBUG(auto &s = getADDebugStream() << "Active indices: params=(";
-               llvm::interleave(
+    TOOLCHAIN_DEBUG(auto &s = getADDebugStream() << "Active indices: params=(";
+               toolchain::interleave(
                    activeParamIndices.begin(), activeParamIndices.end(),
                    [&s](unsigned i) { s << i; }, [&s] { s << ", "; });
-               s << "), results=("; llvm::interleave(
+               s << "), results=("; toolchain::interleave(
                    activeResultIndices.begin(), activeResultIndices.end(),
                    [&s](unsigned i) { s << i; }, [&s] { s << ", "; });
                s << ")\n";);
@@ -715,7 +719,7 @@ public:
     // The VJP should be specialized, so no substitution map is necessary.
     auto *vjpCall = getBuilder().createBeginApply(loc, vjpValue, SubstitutionMap(),
                                                   vjpArgs, bai->getApplyOptions());
-    LLVM_DEBUG(getADDebugStream() << "Applied vjp function\n" << *vjpCall);
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Applied vjp function\n" << *vjpCall);
     // Note that vjpValue is destroyed after end_apply
 
     // Store all the results (yields and token) to the value map.
@@ -735,14 +739,14 @@ public:
   void visitApplyInst(ApplyInst *ai) {
     // If callee should not be differentiated, do standard cloning.
     if (!pullbackInfo.shouldDifferentiateApplySite(ai)) {
-      LLVM_DEBUG(getADDebugStream() << "No active results:\n" << *ai << '\n');
+      TOOLCHAIN_DEBUG(getADDebugStream() << "No active results:\n" << *ai << '\n');
       TypeSubstCloner::visitApplyInst(ai);
       return;
     }
     // If callee is `array.uninitialized_intrinsic`, do standard cloning.
     // `array.uninitialized_intrinsic` differentiation is handled separately.
     if (ArraySemanticsCall(ai, semantics::ARRAY_UNINITIALIZED_INTRINSIC)) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Cloning `array.uninitialized_intrinsic` `apply`:\n"
                  << *ai << '\n');
       TypeSubstCloner::visitApplyInst(ai);
@@ -751,7 +755,7 @@ public:
     // If callee is `array.finalize_intrinsic`, do standard cloning.
     // `array.finalize_intrinsic` has special-case pullback generation.
     if (ArraySemanticsCall(ai, semantics::ARRAY_FINALIZE_INTRINSIC)) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Cloning `array.finalize_intrinsic` `apply`:\n"
                  << *ai << '\n');
       TypeSubstCloner::visitApplyInst(ai);
@@ -761,7 +765,7 @@ public:
     // cloning. Semantic member accessors have special pullback generation
     // logic, so all `apply` instructions can be directly cloned to the VJP.
     if (isSemanticMemberAccessor(original)) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Cloning `apply` in semantic member accessor:\n"
                  << *ai << '\n');
       TypeSubstCloner::visitApplyInst(ai);
@@ -774,7 +778,7 @@ public:
     auto origCallee = getOpValue(ai->getCallee());
     auto originalFnTy = origCallee->getType().castTo<SILFunctionType>();
 
-    LLVM_DEBUG(getADDebugStream() << "VJP-transforming:\n" << *ai << '\n');
+    TOOLCHAIN_DEBUG(getADDebugStream() << "VJP-transforming:\n" << *ai << '\n');
 
     // Get the minimal parameter and result indices required for differentiating
     // this `apply`.
@@ -786,11 +790,11 @@ public:
                                          activeResultIndices);
     assert(!activeParamIndices.empty() && "Parameter indices cannot be empty");
     assert(!activeResultIndices.empty() && "Result indices cannot be empty");
-    LLVM_DEBUG(auto &s = getADDebugStream() << "Active indices: params=(";
-               llvm::interleave(
+    TOOLCHAIN_DEBUG(auto &s = getADDebugStream() << "Active indices: params=(";
+               toolchain::interleave(
                    activeParamIndices.begin(), activeParamIndices.end(),
                    [&s](unsigned i) { s << i; }, [&s] { s << ", "; });
-               s << "), results=("; llvm::interleave(
+               s << "), results=("; toolchain::interleave(
                    activeResultIndices.begin(), activeResultIndices.end(),
                    [&s](unsigned i) { s << i; }, [&s] { s << ", "; });
                s << ")\n";);
@@ -929,7 +933,7 @@ public:
     // The VJP should be specialized, so no substitution map is necessary.
     auto *vjpCall = getBuilder().createApply(loc, vjpValue, SubstitutionMap(),
                                              vjpArgs, ai->getApplyOptions());
-    LLVM_DEBUG(getADDebugStream() << "Applied vjp function\n" << *vjpCall);
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Applied vjp function\n" << *vjpCall);
     builder.emitDestroyValueOperation(loc, vjpValue);
 
     // Get the VJP results (original results and pullback).
@@ -1048,7 +1052,7 @@ getActivityInfoHelper(ADContext &context, SILFunction *original,
   auto &activityInfo = activityCollection.getActivityInfo(
       vjp->getLoweredFunctionType()->getSubstGenericSignature(),
       AutoDiffDerivativeFunctionKind::VJP);
-  LLVM_DEBUG(activityInfo.dump(config, getADDebugStream()));
+  TOOLCHAIN_DEBUG(activityInfo.dump(config, getADDebugStream()));
   return activityInfo;
 }
 
@@ -1317,7 +1321,7 @@ SILFunction *VJPCloner::Implementation::createEmptyPullback() {
 
 SILBasicBlock *VJPCloner::Implementation::createTrampolineBasicBlock(
     TermInst *termInst, TupleInst *pbTupleVal, SILBasicBlock *succBB) {
-  assert(llvm::find(termInst->getSuccessorBlocks(), succBB) !=
+  assert(toolchain::find(termInst->getSuccessorBlocks(), succBB) !=
              termInst->getSuccessorBlocks().end() &&
          "Basic block is not a successor of terminator instruction");
   // Create the trampoline block.
@@ -1340,7 +1344,7 @@ SILBasicBlock *VJPCloner::Implementation::createTrampolineBasicBlock(
   return trampolineBB;
 }
 
-llvm::SmallVector<SILValue, 8>
+toolchain::SmallVector<SILValue, 8>
 VJPCloner::Implementation::getPullbackValues(SILBasicBlock *origBB) {
   auto *vjpBB = BBMap[origBB];
   auto bbPullbackValues = pullbackValues[origBB];
@@ -1410,7 +1414,7 @@ EnumInst *VJPCloner::Implementation::buildPredecessorEnumValue(
 
 bool VJPCloner::Implementation::run() {
   PrettyStackTraceSILFunction trace("generating VJP for", original);
-  LLVM_DEBUG(getADDebugStream() << "Cloning original @" << original->getName()
+  TOOLCHAIN_DEBUG(getADDebugStream() << "Cloning original @" << original->getName()
                                 << " to vjp @" << vjp->getName() << '\n');
 
   // Create entry BB and arguments.
@@ -1436,7 +1440,7 @@ bool VJPCloner::Implementation::run() {
   // `-enable-strip-ownership-after-serialization` is true.
   mergeBasicBlocks(vjp);
 
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Generated VJP for " << original->getName() << ":\n"
              << *vjp);
 

@@ -1,0 +1,22 @@
+// RUN: %target-typecheck-verify-language -enable-upcoming-feature ImplicitOpenExistentials
+// RUN: %target-typecheck-verify-language -language-version 6
+
+// REQUIRES: language_feature_ImplicitOpenExistentials
+
+#if _runtime(_ObjC)
+@objc
+protocol X {}
+
+fn foo<T: X>(_ val: T.Type) {}
+
+fn bar(_ val: X.Type) {
+  // Only succeeds when we're allowed to open an @objc existential.
+  foo(val)
+}
+#endif
+
+fn takeError<E: Error>(_ error: E) { }
+
+fn passError(error: any Error) {
+  takeError(error)  // okay
+}

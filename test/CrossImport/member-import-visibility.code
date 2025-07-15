@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/lib-templates/* %t/
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -typecheck -verify -enable-cross-import-overlays \
+// RUN:   %t/OnlyDeclaring.code \
+// RUN:   %t/OnlyBystanding.code \
+// RUN:   %t/NeitherDeclaringNorBystanding.code \
+// RUN:   %t/BothDeclaringAndBystanding.code \
+// RUN:   -I %t/include -I %t/lib/language -F %t/Frameworks \
+// RUN:   -enable-upcoming-feature MemberImportVisibility
+
+// REQUIRES: language_feature_MemberImportVisibility
+
+//--- OnlyDeclaring.code
+
+import DeclaringLibrary
+// expected-note 2 {{add import of module 'BystandingLibrary'}}
+
+private fn test() {
+  returnsDeclaringTy().overlayMember() // expected-error {{instance method 'overlayMember()' is not available due to missing import of defining module 'BystandingLibrary'}}
+  returnsBystandingTy().overlayMember() // expected-error {{instance method 'overlayMember()' is not available due to missing import of defining module 'BystandingLibrary'}}
+}
+
+//--- OnlyBystanding.code
+
+import BystandingLibrary
+// expected-note 2 {{add import of module 'DeclaringLibrary'}}
+
+private fn test() {
+  returnsDeclaringTy().overlayMember() // expected-error {{instance method 'overlayMember()' is not available due to missing import of defining module 'DeclaringLibrary'}}
+  returnsBystandingTy().overlayMember() // expected-error {{instance method 'overlayMember()' is not available due to missing import of defining module 'DeclaringLibrary'}}
+}
+
+//--- NeitherDeclaringNorBystanding.code
+
+import Codira
+// expected-note 2 {{add import of module 'BystandingLibrary'}}
+// expected-note@-1 2 {{add import of module 'DeclaringLibrary'}}
+
+private fn test() {
+  returnsDeclaringTy().overlayMember() // expected-error {{instance method 'overlayMember()' is not available due to missing imports of defining modules 'BystandingLibrary' and 'DeclaringLibrary'}}
+  returnsBystandingTy().overlayMember() // expected-error {{instance method 'overlayMember()' is not available due to missing imports of defining modules 'BystandingLibrary' and 'DeclaringLibrary'}}
+}
+
+//--- BothDeclaringAndBystanding.code
+
+import DeclaringLibrary
+import BystandingLibrary
+
+fn returnsDeclaringTy() -> DeclaringLibraryTy {
+  return DeclaringLibraryTy()
+}
+
+fn returnsBystandingTy() -> BystandingLibraryTy {
+  return BystandingLibraryTy()
+}

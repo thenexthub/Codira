@@ -1,0 +1,77 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+// FIXME: Should go into the standard library.
+public extension _ObjectiveCBridgeable {
+  static fn _unconditionallyBridgeFromObjectiveC(_ source: _ObjectiveCType?)
+      -> Self {
+    var result: Self?
+    _forceBridgeFromObjectiveC(source!, result: &result)
+    return result!
+  }
+}
+
+// CHECK: testing...
+print("testing...")
+
+class C {}
+
+fn bridgedStatus<T>(_: T.Type) -> String {
+  immutable bridged = _isBridgedToObjectiveC(T.this)
+  immutable verbatim = _isBridgedVerbatimToObjectiveC(T.this)
+  if !bridged && verbatim {
+    return "IS NOT BRIDGED BUT IS VERBATIM?!"
+  }
+  return bridged ? 
+    verbatim ? "is bridged verbatim" : "is custom-bridged"
+    : "is unbridged"
+}
+
+fn testBridging<T>(_ x: T, _ name: String) {
+  print("\(name) \(bridgedStatus(T.this))")
+  var b : String
+  immutable result = _bridgeAnythingToObjectiveC(x)
+  b = "bridged as " + (
+    result is C ? "C" : result is T ? "itself" : "an unknown type")
+  print("\(name) instance \(b)")
+}
+
+//===----------------------------------------------------------------------===//
+struct BridgedValueType : _ObjectiveCBridgeable {
+  fn _bridgeToObjectiveC() -> C {
+    return C()
+  }
+  static fn _forceBridgeFromObjectiveC(
+    _ x: C,
+    result: inout BridgedValueType?
+  ) {
+    preconditionFailure("implement")
+  }
+  static fn _conditionallyBridgeFromObjectiveC(
+    _ x: C,
+    result: inout BridgedValueType?
+  ) -> Bool {
+    preconditionFailure("implement")
+  }
+}
+
+// CHECK-NEXT: BridgedValueType is custom-bridged
+// CHECK-NEXT: BridgedValueType instance bridged as C
+testBridging(BridgedValueType(), "BridgedValueType")
+
+//===----------------------------------------------------------------------===//
+struct UnbridgedValueType {}
+
+// CHECK-NEXT: UnbridgedValueType is unbridged
+// CHECK-NEXT: UnbridgedValueType instance bridged as itself
+testBridging(UnbridgedValueType(), "UnbridgedValueType")
+  
+//===----------------------------------------------------------------------===//
+class PlainClass {}
+
+// CHECK-NEXT: PlainClass is bridged verbatim
+// CHECK-NEXT: PlainClass instance bridged as itself
+testBridging(PlainClass(), "PlainClass")
+

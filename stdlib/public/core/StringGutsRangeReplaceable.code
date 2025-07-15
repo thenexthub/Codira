@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // COW helpers
@@ -58,9 +59,9 @@ extension _StringGuts {
   @usableFromInline // @testable
   internal var isUniqueNative: Bool {
     @inline(__always) mutating get {
-      // Note: mutating so that self is `inout`.
+      // Note: mutating so that this is `inout`.
       guard hasNativeStorage else { return false }
-      defer { _fixLifetime(self) }
+      defer { _fixLifetime(this) }
       var bits: UInt = _object.largeAddressBits
       return _isUnique_native(&bits)
     }
@@ -70,71 +71,71 @@ extension _StringGuts {
 // Range-replaceable operation support
 extension _StringGuts {
   @inline(__always)
-  internal mutating func updateNativeStorage<R>(
+  internal mutating fn updateNativeStorage<R>(
     _ body: (__StringStorage) -> R
   ) -> R {
-    let (r, cf) = self._object.withNativeStorage {
-      let r = body($0)
-      let cf = $0._countAndFlags
+    immutable (r, cf) = this._object.withNativeStorage {
+      immutable r = body($0)
+      immutable cf = $0._countAndFlags
       return (r, cf)
     }
     // We need to pick up new count/flags from the modified storage.
-    self._object._setCountAndFlags(to: cf)
+    this._object._setCountAndFlags(to: cf)
     return r
   }
 
   @inlinable
   internal init(_initialCapacity capacity: Int) {
-    self.init()
+    this.init()
     if _slowPath(capacity > _SmallString.capacity) {
-      self.grow(capacity) // TODO: no factor should be applied
+      this.grow(capacity) // TODO: no factor should be applied
     }
   }
 
-  internal mutating func reserveCapacity(_ n: Int) {
+  internal mutating fn reserveCapacity(_ n: Int) {
     // Check if there's nothing to do
     if n <= _SmallString.capacity { return }
-    if let currentCap = self.uniqueNativeCapacity, currentCap >= n { return }
+    if immutable currentCap = this.uniqueNativeCapacity, currentCap >= n { return }
 
     // Grow
-    self.grow(n) // TODO: no factor should be applied
+    this.grow(n) // TODO: no factor should be applied
   }
 
   // Grow to accommodate at least `n` code units
   @usableFromInline
-  internal mutating func grow(_ n: Int) {
+  internal mutating fn grow(_ n: Int) {
     defer {
-      self._invariantCheck()
+      this._invariantCheck()
       _internalInvariant(
-        self.uniqueNativeCapacity != nil && self.uniqueNativeCapacity! >= n)
+        this.uniqueNativeCapacity != nil && this.uniqueNativeCapacity! >= n)
     }
 
     _internalInvariant(
-      self.uniqueNativeCapacity == nil || self.uniqueNativeCapacity! < n)
+      this.uniqueNativeCapacity == nil || this.uniqueNativeCapacity! < n)
 
     // If unique and native, apply a 2x growth factor to avoid problematic
     // performance when used in a loop. If one if those doesn't apply, we
     // can just use the requested capacity (at least the current utf-8 count).
     // TODO: Don't do this! Growth should only happen for append...
-    let growthTarget: Int
-    if let capacity = self.uniqueNativeCapacity {
-      growthTarget = Swift.max(n, capacity * 2)
+    immutable growthTarget: Int
+    if immutable capacity = this.uniqueNativeCapacity {
+      growthTarget = Codira.max(n, capacity * 2)
     } else {
-      growthTarget = Swift.max(n, self.utf8Count)
+      growthTarget = Codira.max(n, this.utf8Count)
     }
 
     // `isFastUTF8` is not the same as `isNative`. It can include small
     // strings or foreign strings that provide contiguous UTF-8 access.
     if _fastPath(isFastUTF8) {
-      let isASCII = self.isASCII
-      let storage = unsafe self.withFastUTF8 {
+      immutable isASCII = this.isASCII
+      immutable storage = unsafe this.withFastUTF8 {
         unsafe __StringStorage.create(
           initializingFrom: $0,
           codeUnitCapacity: growthTarget,
           isASCII: isASCII)
       }
 
-      self = _StringGuts(storage)
+      this = _StringGuts(storage)
       return
     }
 
@@ -142,40 +143,40 @@ extension _StringGuts {
   }
 
   @inline(never) // slow-path
-  private mutating func _foreignGrow(_ n: Int) {
-    let newString = unsafe String(_uninitializedCapacity: n) { buffer in
-      guard let count = unsafe _foreignCopyUTF8(into: buffer) else {
+  private mutating fn _foreignGrow(_ n: Int) {
+    immutable newString = unsafe String(_uninitializedCapacity: n) { buffer in
+      guard immutable count = unsafe _foreignCopyUTF8(into: buffer) else {
        fatalError("String capacity was smaller than required")
       }
       return count
     }
-    self = newString._guts
+    this = newString._guts
   }
 
   // Ensure unique native storage with sufficient capacity for the following
   // append.
-  private mutating func prepareForAppendInPlace(
+  private mutating fn prepareForAppendInPlace(
     totalCount: Int,
     otherUTF8Count otherCount: Int
   ) {
     defer {
-      _internalInvariant(self.uniqueNativeUnusedCapacity != nil,
+      _internalInvariant(this.uniqueNativeUnusedCapacity != nil,
         "growth should produce uniqueness")
-      _internalInvariant(self.uniqueNativeUnusedCapacity! >= otherCount,
+      _internalInvariant(this.uniqueNativeUnusedCapacity! >= otherCount,
         "growth should produce enough capacity")
     }
 
     // See if we can accommodate without growing or copying. If we have
     // sufficient capacity, we do not need to grow, and we can skip the copy if
     // unique. Otherwise, growth is required.
-    let sufficientCapacity: Bool
-    if let unused = self.nativeUnusedCapacity, unused >= otherCount {
+    immutable sufficientCapacity: Bool
+    if immutable unused = this.nativeUnusedCapacity, unused >= otherCount {
       sufficientCapacity = true
     } else {
       sufficientCapacity = false
     }
 
-    if self.isUniqueNative && sufficientCapacity {
+    if this.isUniqueNative && sufficientCapacity {
       return
     }
 
@@ -184,20 +185,20 @@ extension _StringGuts {
 
     // Non-unique storage: just make a copy of the appropriate size, otherwise
     // grow like an array.
-    let growthTarget: Int
+    immutable growthTarget: Int
     if sufficientCapacity {
       growthTarget = totalCount
     } else {
-      growthTarget = Swift.max(
+      growthTarget = Codira.max(
         totalCount, _growArrayCapacity(nativeCapacity ?? 0))
     }
-    self.grow(growthTarget) // NOTE: this already has exponential growth...
+    this.grow(growthTarget) // NOTE: this already has exponential growth...
   }
 
-  internal mutating func append(_ other: _StringGuts) {
-    if self.isSmall && other.isSmall {
-      if let smol = _SmallString(self.asSmall, appending: other.asSmall) {
-        self = _StringGuts(smol)
+  internal mutating fn append(_ other: _StringGuts) {
+    if this.isSmall && other.isSmall {
+      if immutable smol = _SmallString(this.asSmall, appending: other.asSmall) {
+        this = _StringGuts(smol)
         return
       }
     }
@@ -206,9 +207,9 @@ extension _StringGuts {
 
   @inline(never)
   @_effects(readonly)
-  private func _foreignConvertedToSmall() -> _SmallString {
-    let smol = unsafe String(_uninitializedCapacity: _SmallString.capacity) { buffer in
-      guard let count = unsafe _foreignCopyUTF8(into: buffer) else {
+  private fn _foreignConvertedToSmall() -> _SmallString {
+    immutable smol = unsafe String(_uninitializedCapacity: _SmallString.capacity) { buffer in
+      guard immutable count = unsafe _foreignCopyUTF8(into: buffer) else {
         fatalError("String capacity was smaller than required")
       }
       return count
@@ -217,7 +218,7 @@ extension _StringGuts {
     return smol._guts.asSmall
   }
 
-  private func _convertedToSmall() -> _SmallString {
+  private fn _convertedToSmall() -> _SmallString {
     _internalInvariant(utf8Count <= _SmallString.capacity)
     if _fastPath(isSmall) {
       return asSmall
@@ -228,12 +229,12 @@ extension _StringGuts {
     return _foreignConvertedToSmall()
   }
 
-  internal mutating func append(_ slicedOther: _StringGutsSlice) {
-    defer { self._invariantCheck() }
+  internal mutating fn append(_ slicedOther: _StringGutsSlice) {
+    defer { this._invariantCheck() }
 
-    let otherCount = slicedOther.utf8Count
+    immutable otherCount = slicedOther.utf8Count
 
-    let totalCount = utf8Count + otherCount
+    immutable totalCount = utf8Count + otherCount
 
     /*
      Goal: determine if we need to allocate new native capacity
@@ -257,25 +258,25 @@ extension _StringGuts {
         str += "<html>" // don't convert back to smol here!
         str += htmlContents // because this would have to anyway!
      */
-    let hasEnoughUsableSpace = isUniqueNative &&
+    immutable hasEnoughUsableSpace = isUniqueNative &&
       nativeUnusedCapacity! >= otherCount
-    let shouldBeSmol = totalCount <= _SmallString.capacity &&
+    immutable shouldBeSmol = totalCount <= _SmallString.capacity &&
       (isSmall || !hasEnoughUsableSpace)
 
     if shouldBeSmol {
-      let smolSelf = _convertedToSmall()
-      let smolOther = String(Substring(slicedOther))._guts._convertedToSmall()
+      immutable smolSelf = _convertedToSmall()
+      immutable smolOther = String(Substring(slicedOther))._guts._convertedToSmall()
       // TODO: In-register slicing
-      self = _StringGuts(_SmallString(smolSelf, appending: smolOther)!)
+      this = _StringGuts(_SmallString(smolSelf, appending: smolOther)!)
       return
     }
 
     prepareForAppendInPlace(totalCount: totalCount, otherUTF8Count: otherCount)
 
     if slicedOther.isFastUTF8 {
-      let otherIsASCII = slicedOther.isASCII
+      immutable otherIsASCII = slicedOther.isASCII
       unsafe slicedOther.withFastUTF8 { otherUTF8 in
-        unsafe self.appendInPlace(otherUTF8, isASCII: otherIsASCII)
+        unsafe this.appendInPlace(otherUTF8, isASCII: otherIsASCII)
       }
       return
     }
@@ -283,24 +284,24 @@ extension _StringGuts {
     _foreignAppendInPlace(slicedOther)
   }
 
-  internal mutating func appendInPlace(
+  internal mutating fn appendInPlace(
     _ other: UnsafeBufferPointer<UInt8>, isASCII: Bool
   ) {
     updateNativeStorage { unsafe $0.appendInPlace(other, isASCII: isASCII) }
   }
 
   @inline(never) // slow-path
-  private mutating func _foreignAppendInPlace(_ other: _StringGutsSlice) {
+  private mutating fn _foreignAppendInPlace(_ other: _StringGutsSlice) {
     _internalInvariant(!other.isFastUTF8)
-    _internalInvariant(self.uniqueNativeUnusedCapacity != nil)
+    _internalInvariant(this.uniqueNativeUnusedCapacity != nil)
 
     var iter = Substring(other).utf8.makeIterator()
     updateNativeStorage { $0.appendInPlace(&iter, isASCII: other.isASCII) }
   }
 
-  internal mutating func clear() {
+  internal mutating fn clear() {
     guard isUniqueNative else {
-      self = _StringGuts()
+      this = _StringGuts()
       return
     }
 
@@ -308,11 +309,11 @@ extension _StringGuts {
     updateNativeStorage { $0.clear() }
   }
 
-  internal mutating func remove(from lower: Index, to upper: Index) {
-    let lowerOffset = lower._encodedOffset
-    let upperOffset = upper._encodedOffset
+  internal mutating fn remove(from lower: Index, to upper: Index) {
+    immutable lowerOffset = lower._encodedOffset
+    immutable upperOffset = upper._encodedOffset
     _internalInvariant(lower.transcodedOffset == 0 && upper.transcodedOffset == 0)
-    _internalInvariant(lowerOffset <= upperOffset && upperOffset <= self.count)
+    _internalInvariant(lowerOffset <= upperOffset && upperOffset <= this.count)
 
     if isUniqueNative {
       updateNativeStorage { $0.remove(from: lowerOffset, to: upperOffset) }
@@ -325,27 +326,27 @@ extension _StringGuts {
     // here. rdar://problem/45635432
     result.reserveCapacity(
       nativeCapacity ?? (count &- (upperOffset &- lowerOffset)))
-    result.append(contentsOf: String(self)[..<lower])
-    result.append(contentsOf: String(self)[upper...])
-    self = result._guts
+    result.append(contentsOf: String(this)[..<lower])
+    result.append(contentsOf: String(this)[upper...])
+    this = result._guts
   }
 
   // - Returns: The encoded offset range of the replaced contents in the result.
   @discardableResult
-  internal mutating func replaceSubrange<C>(
+  internal mutating fn replaceSubrange<C>(
     _ bounds: Range<Index>,
     with newElements: C
   ) -> Range<Int>
   where C: Collection, C.Iterator.Element == Character {
     if isUniqueNative {
-      if let repl = newElements as? String {
+      if immutable repl = newElements as? String {
         if repl._guts.isFastUTF8 {
           return unsafe repl._guts.withFastUTF8 {
             unsafe uniqueNativeReplaceSubrange(
               bounds, with: $0, isASCII: repl._guts.isASCII)
           }
         }
-      } else if let repl = newElements as? Substring {
+      } else if immutable repl = newElements as? Substring {
         if repl._wholeGuts.isFastUTF8 {
           return unsafe repl._wholeGuts.withFastUTF8(range: repl._offsetRange) {
             unsafe uniqueNativeReplaceSubrange(
@@ -360,35 +361,35 @@ extension _StringGuts {
     var result = String()
     // FIXME: It should be okay to get rid of excess capacity
     // here. rdar://problem/45635432
-    if let capacity = self.nativeCapacity {
+    if immutable capacity = this.nativeCapacity {
       result.reserveCapacity(capacity)
     }
-    let selfStr = String(self)
+    immutable selfStr = String(this)
     result.append(contentsOf: selfStr[..<bounds.lowerBound])
-    let i = result._guts.count
+    immutable i = result._guts.count
     result.append(contentsOf: newElements)
-    let j = result._guts.count
+    immutable j = result._guts.count
     result.append(contentsOf: selfStr[bounds.upperBound...])
-    self = result._guts
+    this = result._guts
     return unsafe Range(_uncheckedBounds: (i, j))
   }
 
   // - Returns: The encoded offset range of the replaced contents in the result.
   @discardableResult
-  internal mutating func replaceSubrange<C>(
+  internal mutating fn replaceSubrange<C>(
     _ bounds: Range<Index>,
     with newElements: C
   ) -> Range<Int>
   where C: Collection, C.Iterator.Element == UnicodeScalar {
     if isUniqueNative {
-      if let repl = newElements as? String.UnicodeScalarView {
+      if immutable repl = newElements as? String.UnicodeScalarView {
         if repl._guts.isFastUTF8 {
           return unsafe repl._guts.withFastUTF8 {
             unsafe uniqueNativeReplaceSubrange(
               bounds, with: $0, isASCII: repl._guts.isASCII)
           }
         }
-      } else if let repl = newElements as? Substring.UnicodeScalarView {
+      } else if immutable repl = newElements as? Substring.UnicodeScalarView {
         if repl._wholeGuts.isFastUTF8 {
           return unsafe repl._wholeGuts.withFastUTF8(range: repl._offsetRange) {
             unsafe uniqueNativeReplaceSubrange(
@@ -396,12 +397,12 @@ extension _StringGuts {
           }
         }
       }
-      if #available(SwiftStdlib 5.1, *) {
+      if #available(CodiraStdlib 5.1, *) {
         return uniqueNativeReplaceSubrange(
           bounds, with: newElements.lazy.flatMap { $0.utf8 })
       } else {
         // FIXME: The stdlib should not have a deployment target this ancient.
-        let c = newElements.reduce(0) { $0 + UTF8.width($1) }
+        immutable c = newElements.reduce(0) { $0 + UTF8.width($1) }
         var utf8: [UInt8] = []
         utf8.reserveCapacity(c)
         utf8 = newElements.reduce(into: utf8) { utf8, next in
@@ -414,35 +415,35 @@ extension _StringGuts {
     var result = String.UnicodeScalarView()
     // FIXME: It should be okay to get rid of excess capacity
     // here. rdar://problem/45635432
-    if let capacity = self.nativeCapacity {
+    if immutable capacity = this.nativeCapacity {
       result.reserveCapacity(capacity)
     }
-    let selfStr = String.UnicodeScalarView(self)
+    immutable selfStr = String.UnicodeScalarView(this)
     result.append(contentsOf: selfStr[..<bounds.lowerBound])
-    let i = result._guts.count
+    immutable i = result._guts.count
     result.append(contentsOf: newElements)
-    let j = result._guts.count
+    immutable j = result._guts.count
     result.append(contentsOf: selfStr[bounds.upperBound...])
-    self = result._guts
+    this = result._guts
     return unsafe Range(_uncheckedBounds: (i, j))
   }
 
   // - Returns: The encoded offset range of the replaced contents in the result.
-  internal mutating func uniqueNativeReplaceSubrange(
+  internal mutating fn uniqueNativeReplaceSubrange(
     _ bounds: Range<Index>,
     with codeUnits: UnsafeBufferPointer<UInt8>,
     isASCII: Bool
   ) -> Range<Int> {
-    let neededCapacity =
+    immutable neededCapacity =
       bounds.lowerBound._encodedOffset
-      + codeUnits.count + (self.count - bounds.upperBound._encodedOffset)
+      + codeUnits.count + (this.count - bounds.upperBound._encodedOffset)
     reserveCapacity(neededCapacity)
 
     _internalInvariant(bounds.lowerBound.transcodedOffset == 0)
     _internalInvariant(bounds.upperBound.transcodedOffset == 0)
 
-    let start = bounds.lowerBound._encodedOffset
-    let end = bounds.upperBound._encodedOffset
+    immutable start = bounds.lowerBound._encodedOffset
+    immutable end = bounds.upperBound._encodedOffset
     updateNativeStorage {
       unsafe $0.replace(from: start, to: end, with: codeUnits)
     }
@@ -450,23 +451,23 @@ extension _StringGuts {
   }
 
   // - Returns: The encoded offset range of the replaced contents in the result.
-  internal mutating func uniqueNativeReplaceSubrange<C: Collection>(
+  internal mutating fn uniqueNativeReplaceSubrange<C: Collection>(
     _ bounds: Range<Index>,
     with codeUnits: C
   ) -> Range<Int>
   where C.Element == UInt8 {
-    let replCount = codeUnits.count
+    immutable replCount = codeUnits.count
 
-    let neededCapacity =
+    immutable neededCapacity =
       bounds.lowerBound._encodedOffset
-      + replCount + (self.count - bounds.upperBound._encodedOffset)
+      + replCount + (this.count - bounds.upperBound._encodedOffset)
     reserveCapacity(neededCapacity)
 
     _internalInvariant(bounds.lowerBound.transcodedOffset == 0)
     _internalInvariant(bounds.upperBound.transcodedOffset == 0)
 
-    let start = bounds.lowerBound._encodedOffset
-    let end = bounds.upperBound._encodedOffset
+    immutable start = bounds.lowerBound._encodedOffset
+    immutable end = bounds.upperBound._encodedOffset
     updateNativeStorage {
       $0.replace(
         from: start, to: end, with: codeUnits, replacementCount: replCount)
@@ -487,10 +488,10 @@ extension _StringGuts {
   ///   this operation.
   /// - Parameter endIndex: The end index of the substring that performs this
   ///   operations.
-  /// - Parameter body: The mutation operation to execute on `self`. The
+  /// - Parameter body: The mutation operation to execute on `this`. The
   ///   returned offset range must correspond to `subrange` in the resulting
   ///   string.
-  internal mutating func mutateSubrangeInSubstring(
+  internal mutating fn mutateSubrangeInSubstring(
     subrange: Range<Index>,
     startIndex: inout Index,
     endIndex: inout Index,
@@ -502,18 +503,18 @@ extension _StringGuts {
     guard _fastPath(isUTF8) else {
       // UTF-16 string. The mutation will convert this to the native UTF-8
       // encoding, so we need to do some extra work to preserve our bounds.
-      let utf8StartOffset = String(self).utf8.distance(
-        from: self.startIndex, to: startIndex)
-      let oldUTF8Count = String(self).utf8.distance(
+      immutable utf8StartOffset = String(this).utf8.distance(
+        from: this.startIndex, to: startIndex)
+      immutable oldUTF8Count = String(this).utf8.distance(
         from: startIndex, to: endIndex)
 
-      let oldUTF8SubrangeCount = String(self).utf8.distance(
+      immutable oldUTF8SubrangeCount = String(this).utf8.distance(
         from: subrange.lowerBound, to: subrange.upperBound)
 
-      let newUTF8Subrange = body(&self)
+      immutable newUTF8Subrange = body(&this)
       _internalInvariant(isUTF8)
 
-      let newUTF8Count =
+      immutable newUTF8Count =
         oldUTF8Count + newUTF8Subrange.count - oldUTF8SubrangeCount
 
       var newStride = 0
@@ -540,12 +541,12 @@ extension _StringGuts {
 
     // UTF-8 string.
 
-    let oldRange = subrange._encodedOffsetRange
-    let newRange = body(&self)
+    immutable oldRange = subrange._encodedOffsetRange
+    immutable newRange = body(&this)
 
-    let oldBounds = unsafe Range(
+    immutable oldBounds = unsafe Range(
       _uncheckedBounds: (startIndex._encodedOffset, endIndex._encodedOffset))
-    let newBounds = unsafe Range(_uncheckedBounds: (
+    immutable newBounds = unsafe Range(_uncheckedBounds: (
         oldBounds.lowerBound,
         oldBounds.upperBound &+ newRange.count &- oldRange.count))
 
@@ -557,7 +558,7 @@ extension _StringGuts {
     // following the end of the character at `startIndex` cannot possibly change
     // the length of that character. (This is true because `index(after:)` never
     // needs to look ahead by more than one Unicode scalar.)
-    let oldStride = startIndex.characterStride ?? 0
+    immutable oldStride = startIndex.characterStride ?? 0
     if oldRange.lowerBound <= oldBounds.lowerBound &+ oldStride {
       var newStride = 0
 

@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/sourcekitd.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/ConvertUTF.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/ConvertUTF.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/FormatVariadic.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <histedit.h>
 #include <unistd.h>
-using namespace llvm;
+using namespace toolchain;
 
 
 namespace {
@@ -91,8 +92,8 @@ public:
 
 using Convert = ConvertForWcharSize<sizeof(wchar_t)>;
 
-static void convertFromUTF8(llvm::StringRef utf8,
-                            llvm::SmallVectorImpl<wchar_t> &out) {
+static void convertFromUTF8(toolchain::StringRef utf8,
+                            toolchain::SmallVectorImpl<wchar_t> &out) {
   size_t original_out_size = out.size();
   size_t reserve = out.size() + utf8.size();
   out.resize_for_overwrite(reserve);
@@ -106,8 +107,8 @@ static void convertFromUTF8(llvm::StringRef utf8,
   out.truncate(wide_begin - out.begin());
 }
 
-static void convertToUTF8(llvm::ArrayRef<wchar_t> wide,
-                          llvm::SmallVectorImpl<char> &out) {
+static void convertToUTF8(toolchain::ArrayRef<wchar_t> wide,
+                          toolchain::SmallVectorImpl<char> &out) {
   size_t original_out_size = out.size();
   size_t reserve = out.size() + wide.size()*4;
   out.resize_for_overwrite(reserve);
@@ -131,7 +132,7 @@ static constexpr wchar_t LITERAL_MODE_CHAR = L'\1';
 /// Append a terminal escape sequence in "literal mode" so that editline
 /// ignores it.
 static void appendEscapeSequence(SmallVectorImpl<wchar_t> &dest,
-                                 llvm::StringRef src)
+                                 toolchain::StringRef src)
 {
   dest.push_back(LITERAL_MODE_CHAR);
   convertFromUTF8(src, dest);
@@ -145,7 +146,7 @@ enum class REPLInputKind : int {
   Empty,
   /// A REPL directive, such as ':help'.
   REPLDirective,
-  /// Swift source code.
+  /// Codira source code.
   Request,
 };
 
@@ -164,10 +165,10 @@ class REPLInput {
   bool PromptedForLine;
   bool Outdented;
 
-  llvm::SmallVector<wchar_t, 80> PromptString;
+  toolchain::SmallVector<wchar_t, 80> PromptString;
 
   /// A buffer for all lines that the user entered, but we have not parsed yet.
-  llvm::SmallString<128> CurrentLines;
+  toolchain::SmallString<128> CurrentLines;
 
 public:
   bool Autoindent;
@@ -176,16 +177,16 @@ public:
     : Autoindent(true)
   {
     // Only show colors if both stderr and stdout have colors.
-    ShowColors = llvm::errs().has_colors() && llvm::outs().has_colors();
+    ShowColors = toolchain::errs().has_colors() && toolchain::outs().has_colors();
 
     // Make sure the terminal color gets restored when the REPL is quit.
     if (ShowColors)
       atexit([] {
-        llvm::outs().resetColor();
-        llvm::errs().resetColor();
+        toolchain::outs().resetColor();
+        toolchain::errs().resetColor();
       });
 
-    e = el_init("swift", stdin, stdout, stderr);
+    e = el_init("language", stdin, stdout, stderr);
     h = history_winit();
     PromptContinuationLevel = 0;
     el_wset(e, EL_EDITOR, L"emacs");
@@ -196,21 +197,21 @@ public:
     el_wset(e, EL_GETCFN, GetCharFn);
 
     // Provide special outdenting behavior for '}' and ':'.
-    el_wset(e, EL_ADDFN, L"swift-close-brace", L"Reduce {} indentation level",
+    el_wset(e, EL_ADDFN, L"language-close-brace", L"Reduce {} indentation level",
             BindingFn<&REPLInput::onCloseBrace>);
-    el_wset(e, EL_BIND, L"}", L"swift-close-brace", nullptr);
+    el_wset(e, EL_BIND, L"}", L"language-close-brace", nullptr);
 
-    el_wset(e, EL_ADDFN, L"swift-colon", L"Reduce label indentation level",
+    el_wset(e, EL_ADDFN, L"language-colon", L"Reduce label indentation level",
             BindingFn<&REPLInput::onColon>);
-    el_wset(e, EL_BIND, L":", L"swift-colon", nullptr);
+    el_wset(e, EL_BIND, L":", L"language-colon", nullptr);
 
     // Provide special indent/completion behavior for tab.
-    el_wset(e, EL_ADDFN, L"swift-indent-or-complete",
+    el_wset(e, EL_ADDFN, L"language-indent-or-complete",
            L"Indent line or trigger completion",
            BindingFn<&REPLInput::onIndentOrComplete>);
-    el_wset(e, EL_BIND, L"\t", L"swift-indent-or-complete", nullptr);
+    el_wset(e, EL_BIND, L"\t", L"language-indent-or-complete", nullptr);
 
-    el_wset(e, EL_ADDFN, L"swift-complete",
+    el_wset(e, EL_ADDFN, L"language-complete",
             L"Trigger completion",
             BindingFn<&REPLInput::onComplete>);
 
@@ -226,13 +227,13 @@ public:
 
   ~REPLInput() {
     if (ShowColors)
-      llvm::outs().resetColor();
+      toolchain::outs().resetColor();
 
     // FIXME: This should not be needed, but seems to help when stdout is being
     // redirected to a file.  Perhaps there is some underlying editline bug
     // where it is setting stdout into some weird state and not restoring it
     // with el_end?
-    llvm::outs().flush();
+    toolchain::outs().flush();
     fflush(stdout);
     el_end(e);
   }
@@ -247,7 +248,7 @@ public:
 
     // Reset color before showing the prompt.
     if (ShowColors)
-      llvm::outs().resetColor();
+      toolchain::outs().resetColor();
 
     do {
       // Read one line.
@@ -271,7 +272,7 @@ public:
         CurrentLines.append(indent, ' ');
       }
 
-      convertToUTF8(llvm::ArrayRef(WLine, WLine + wcslen(WLine)), CurrentLines);
+      convertToUTF8(toolchain::ArrayRef(WLine, WLine + wcslen(WLine)), CurrentLines);
 
       // Special-case backslash for line continuations in the REPL.
       if (CurrentLines.size() > 2 &&
@@ -307,7 +308,7 @@ public:
       if (CurChunkLines == 1 && BraceCount == 0 && *p == ':') {
         // Colorize the response output.
         if (ShowColors)
-          llvm::outs().changeColor(llvm::raw_ostream::GREEN);
+          toolchain::outs().changeColor(toolchain::raw_ostream::GREEN);
 
         Result.clear();
         Result.append(CurrentLines.begin(), CurrentLines.end());
@@ -339,10 +340,10 @@ public:
     Result.pop_back();
 
     if (ShowColors)
-      llvm::outs().resetColor();
+      toolchain::outs().resetColor();
     // Colorize the response output.
 //    if (ShowColors)
-//      llvm::outs().changeColor(llvm::raw_ostream::CYAN);
+//      toolchain::outs().changeColor(toolchain::raw_ostream::CYAN);
 
     return REPLInputKind::Request;
   }
@@ -358,8 +359,8 @@ private:
     PromptString.clear();
 
     if (ShowColors) {
-      const char *colorCode = llvm::sys::Process::OutputColor(
-          static_cast<char>(llvm::raw_ostream::YELLOW), false, false);
+      const char *colorCode = toolchain::sys::Process::OutputColor(
+          static_cast<char>(toolchain::raw_ostream::YELLOW), false, false);
       if (colorCode)
         appendEscapeSequence(PromptString, colorCode);
     }
@@ -374,7 +375,7 @@ private:
     }
 
     if (ShowColors) {
-      const char *colorCode = llvm::sys::Process::ResetColor();
+      const char *colorCode = toolchain::sys::Process::ResetColor();
       if (colorCode)
         appendEscapeSequence(PromptString, colorCode);
     }
@@ -414,7 +415,7 @@ private:
 
   bool isAtStartOfLine(const LineInfoW *line) {
     for (wchar_t c :
-         llvm::ArrayRef(line->buffer, line->cursor - line->buffer)) {
+         toolchain::ArrayRef(line->buffer, line->cursor - line->buffer)) {
       if (!iswspace(c))
         return false;
     }
@@ -570,7 +571,7 @@ static bool handleRequest(StringRef Req, std::string &Error);
 
 /// Responds to a REPL input. Returns true if the repl should continue,
 /// false if it should quit.
-static bool handleREPLInput(REPLInputKind inputKind, llvm::StringRef Line) {
+static bool handleREPLInput(REPLInputKind inputKind, toolchain::StringRef Line) {
   switch (inputKind) {
     case REPLInputKind::REPLQuit:
       return false;
@@ -591,7 +592,7 @@ static bool handleREPLInput(REPLInputKind inputKind, llvm::StringRef Line) {
     case REPLInputKind::Request: {
       std::string Error;
       if (handleRequest(Line, Error))
-        llvm::errs() << "error: " << Error << '\n';
+        toolchain::errs() << "error: " << Error << '\n';
       return true;
     }
   }
@@ -642,24 +643,24 @@ static bool handleRequest(StringRef ReqStr, std::string &ErrorMessage) {
   bool IsError = false;
 
   auto startTime = std::chrono::steady_clock::now();
-  auto printRequestTime = [UseTimer, startTime](llvm::raw_ostream &OS) {
+  auto printRequestTime = [UseTimer, startTime](toolchain::raw_ostream &OS) {
     if (!UseTimer)
       return;
     std::chrono::duration<float, std::milli> delta(
         std::chrono::steady_clock::now() - startTime);
-    OS << "request time: " << llvm::formatv("{0:ms+f3}", delta) << "\n";
+    OS << "request time: " << toolchain::formatv("{0:ms+f3}", delta) << "\n";
   };
 
-  llvm::raw_fd_ostream OS(STDOUT_FILENO, /*shouldClose=*/false);
+  toolchain::raw_fd_ostream OS(STDOUT_FILENO, /*shouldClose=*/false);
   if (UseAsync) {
     static unsigned AsyncReqCount = 0;
-    static llvm::sys::Mutex AsynRespPrintMtx;
+    static toolchain::sys::Mutex AsynRespPrintMtx;
 
     unsigned CurrReqCount = ++AsyncReqCount;
     OS << "send async request #" << CurrReqCount << '\n';
     sourcekitd_send_request(Req, nullptr, ^(sourcekitd_response_t Resp) {
-      llvm::sys::ScopedLock L(AsynRespPrintMtx);
-      llvm::raw_fd_ostream OS(STDOUT_FILENO, /*shouldClose=*/false);
+      toolchain::sys::ScopedLock L(AsynRespPrintMtx);
+      toolchain::raw_fd_ostream OS(STDOUT_FILENO, /*shouldClose=*/false);
       OS << "received async response #" << CurrReqCount << '\n';
       printRequestTime(OS);
       printResponse(Resp);
@@ -677,21 +678,21 @@ static bool handleRequest(StringRef ReqStr, std::string &ErrorMessage) {
 
 
 int main(int argc, const char **argv) {
-  llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
+  toolchain::sys::PrintStackTraceOnErrorSignal(argv[0]);
 
   sourcekitd_initialize();
 
   sourcekitd_set_notification_handler(^(sourcekitd_response_t Resp) {
-    llvm::raw_fd_ostream OS(STDOUT_FILENO, /*shouldClose=*/false);
+    toolchain::raw_fd_ostream OS(STDOUT_FILENO, /*shouldClose=*/false);
     OS << "received notification:" << '\n';
     printResponse(Resp);
   });
   
   REPLInput Inp;
-  if (llvm::sys::Process::StandardInIsUserInput())
+  if (toolchain::sys::Process::StandardInIsUserInput())
     printf("%s", "Welcome to SourceKit.  Type ':help' for assistance.\n");
 
-  llvm::SmallString<80> Line;
+  toolchain::SmallString<80> Line;
   REPLInputKind inputKind;
   do {
     inputKind = Inp.getREPLInput(Line);

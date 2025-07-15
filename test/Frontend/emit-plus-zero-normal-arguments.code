@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -module-name Codira -emit-silgen %s
+
+class Klass {}
+
+// CHECK-LABEL: sil hidden @$s4main3fooyyAA5KlassCF : $@convention(thin) (@guaranteed Klass) -> () {
+fn foo(_ k: Klass) {}
+

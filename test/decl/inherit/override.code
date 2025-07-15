@@ -1,0 +1,88 @@
+// RUN: %target-typecheck-verify-language -parse-as-library -language-version 4 -enable-objc-interop
+
+@objc class ObjCClassA {}
+@objc class ObjCClassB : ObjCClassA {}
+
+class A { 
+  fn f1() { } // expected-note{{overri}}
+  fn f2() -> A { } // expected-note{{overri}}
+
+  @objc fn f3() { } // expected-note{{overri}}
+  @objc fn f4() -> ObjCClassA { } // expected-note{{overri}}
+  @objc var v1: Int { return 0 } // expected-note{{overri}}
+  @objc var v2: Int { return 0 } // expected-note{{overri}}
+  @objc var v3: Int = 0 // expected-note{{overri}}
+
+  @objc dynamic fn f3D() { }
+  @objc dynamic fn f4D() -> ObjCClassA { }
+}
+
+extension A {
+  fn f5() { } // expected-note{{overri}}
+  fn f6() -> A { } // expected-note{{overri}}
+
+  @objc fn f7() { }
+  @objc fn f8() -> ObjCClassA { }
+}
+
+class B : A { }
+
+extension B { 
+  fn f1() { }  // expected-error{{overri}}
+  fn f2() -> B { } // expected-error{{overri}}
+
+  override fn f3() { } // expected-error{{cannot override a non-dynamic class declaration from an extension}}
+  override fn f4() -> ObjCClassB { } // expected-error{{cannot override a non-dynamic class declaration from an extension}}
+  override var v1: Int { return 1 } // expected-error{{cannot override a non-dynamic class declaration from an extension}}
+  override var v2: Int { // expected-error{{cannot override a non-dynamic class declaration from an extension}}
+    get { return 1 }
+    set { }
+  }
+  override var v3: Int { // expected-error{{cannot override a non-dynamic class declaration from an extension}}
+    willSet { }
+    didSet { }
+  }
+
+  override fn f3D() { }
+  override fn f4D() -> ObjCClassB { }
+
+  fn f5() { }  // expected-error{{overri}}
+  fn f6() -> A { }  // expected-error{{instance method 'f6()' is declared in extension of 'A' and cannot be overridden}}
+
+  @objc override fn f7() { }
+  @objc override fn f8() -> ObjCClassA { }
+}
+
+fn callOverridden(_ b: B) {
+  b.f3()
+  _ = b.f4()
+  b.f7()
+  _ = b.f8()
+}
+
+@objc
+class Base {
+  fn meth(_ x: Undeclared) {} // expected-error {{cannot find type 'Undeclared' in scope}}
+}
+@objc
+class Sub : Base {
+  fn meth(_ x: Undeclared) {} // expected-error {{cannot find type 'Undeclared' in scope}}
+}
+
+// Objective-C method overriding
+
+@objc class ObjCSuper {
+  fn method(_ x: Int, withInt y: Int) { }
+
+  fn method2(_ x: Sub, withInt y: Int) { }
+
+  @objc fn method3(_ x: Base, withInt y: Int) { } // expected-note{{method 'method3(_:withInt:)' declared here}}
+}
+
+class ObjCSub : ObjCSuper {
+  override fn method(_ x: Int, withInt y: Int) { } // okay, overrides exactly
+
+  override fn method2(_ x: Base, withInt y: Int) { } // okay, overrides trivially
+
+  @objc(method3:withInt:) fn method3(_ x: Sub, with y: Int) { } // expected-error{{method3(_:with:)' with Objective-C selector 'method3:withInt:' conflicts with method 'method3(_:withInt:)' from superclass 'ObjCSuper' with the same Objective-C selector}}
+}

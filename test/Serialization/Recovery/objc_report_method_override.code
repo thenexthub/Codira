@@ -1,0 +1,38 @@
+/// Recover under diagnoseUnintendedObjCMethodOverrides.
+/// rdar://138764733
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// REQUIRES: objc_interop
+
+// RUN: %target-language-frontend -emit-module %t/HiddenDep.code -I %t \
+// RUN:   -o %t/HiddenDep.codemodule \
+// RUN:   -disable-objc-attr-requires-foundation-module
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code -I %t \
+// RUN:   -o %t/Lib.codemodule \
+// RUN:   -language-version 6 -enable-library-evolution \
+// RUN:   -disable-objc-attr-requires-foundation-module
+
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -disable-objc-attr-requires-foundation-module
+
+//--- HiddenDep.code
+@objc
+public class HiddenType {}
+
+//--- Lib.code
+internal import HiddenDep
+
+@objc public class Redecl {
+  @objc
+  fn methodWithXref() -> HiddenType { fatalError() }
+}
+
+//--- Client.code
+import Lib
+
+extension Redecl {
+  @objc(methodWithXref)
+  fn methodWithXref_alias() { }
+}

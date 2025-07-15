@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/../Inputs/empty.code
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// RUN: touch %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+// RUN: echo -n 'a' > %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+// RUN: echo -n 'abcd' > %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+// RUN: echo -n 'abcde' > %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+import empty // expected-error{{malformed compiled module}}

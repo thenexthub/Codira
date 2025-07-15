@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgumentScope.h"
@@ -91,12 +92,12 @@ static bool shouldBridgeThroughError(SILGenModule &SGM, CanType type,
   return (bool) lookupConformance(type, errorProtocol);
 }
 
-/// Bridge the given Swift value to its corresponding Objective-C
+/// Bridge the given Codira value to its corresponding Objective-C
 /// object, using the appropriate witness for the
 /// _ObjectiveCBridgeable._bridgeToObjectiveC requirement.
 static std::optional<ManagedValue>
 emitBridgeNativeToObjectiveC(SILGenFunction &SGF, SILLocation loc,
-                             ManagedValue swiftValue, CanType swiftValueType,
+                             ManagedValue languageValue, CanType languageValueType,
                              CanType bridgedType,
                              ProtocolConformance *conformance) {
   // Find the _bridgeToObjectiveC requirement.
@@ -130,7 +131,7 @@ emitBridgeNativeToObjectiveC(SILGenFunction &SGF, SILLocation loc,
          "Generic witnesses not supported");
 
   auto *dc = cast<FuncDecl>(witness)->getDeclContext();
-  auto typeSubMap = swiftValueType->getContextSubstitutionMap(dc);
+  auto typeSubMap = languageValueType->getContextSubstitutionMap(dc);
 
   // Substitute into the witness function type.
   witnessFnTy = witnessFnTy.substGenericArgs(SGF.SGM.M, typeSubMap,
@@ -143,9 +144,9 @@ emitBridgeNativeToObjectiveC(SILGenFunction &SGF, SILLocation loc,
 
   ArgumentScope scope(SGF, loc);
 
-  swiftValue = SGF.emitSubstToOrigValue(loc, swiftValue,
+  languageValue = SGF.emitSubstToOrigValue(loc, languageValue,
                                         origSelfType,
-                                        swiftValueType,
+                                        languageValueType,
                                         SGFContext());
 
   // The witness may be more abstract than the concrete value we're bridging,
@@ -157,16 +158,16 @@ emitBridgeNativeToObjectiveC(SILGenFunction &SGF, SILLocation loc,
   SILFunctionConventions witnessConv(witnessFnTy.castTo<SILFunctionType>(),
                                      SGF.SGM.M);
   if (witnessConv.isSILIndirect(witnessConv.getParameters()[0])
-      && !swiftValue.getType().isAddress()) {
-    auto tmp = SGF.emitTemporaryAllocation(loc, swiftValue.getType());
-    swiftValue = SGF.emitManagedStoreBorrow(
-        loc, swiftValue.borrow(SGF, loc).getValue(), tmp);
+      && !languageValue.getType().isAddress()) {
+    auto tmp = SGF.emitTemporaryAllocation(loc, languageValue.getType());
+    languageValue = SGF.emitManagedStoreBorrow(
+        loc, languageValue.borrow(SGF, loc).getValue(), tmp);
   }
 
   // Call the witness.
   SILValue bridgedValue =
       SGF.B.createApply(loc, witnessRef, typeSubMap,
-                        swiftValue.borrow(SGF, loc).getValue());
+                        languageValue.borrow(SGF, loc).getValue());
 
   auto bridgedMV = SGF.emitManagedRValueWithCleanup(bridgedValue);
   bridgedMV = scope.popPreservingValue(bridgedMV);
@@ -178,7 +179,7 @@ emitBridgeNativeToObjectiveC(SILGenFunction &SGF, SILLocation loc,
   return bridgedMV;
 }
 
-/// Bridge the given Objective-C object to its corresponding Swift
+/// Bridge the given Objective-C object to its corresponding Codira
 /// value, using the appropriate witness for the
 /// _ObjectiveCBridgeable._unconditionallyBridgeFromObjectiveC requirement.
 static std::optional<ManagedValue>
@@ -210,7 +211,7 @@ emitBridgeObjectiveCToNative(SILGenFunction &SGF, SILLocation loc,
   // Determine the substitutions.
   auto witnessFnTy = witnessRef->getType().castTo<SILFunctionType>();
 
-  CanType swiftValueType = conformance->getType()->getCanonicalType();
+  CanType languageValueType = conformance->getType()->getCanonicalType();
   auto genericSig = witnessFnTy->getInvocationGenericSignature();
   SubstitutionMap typeSubMap = witness.getSubstitutions();
 
@@ -227,7 +228,7 @@ emitBridgeObjectiveCToNative(SILGenFunction &SGF, SILLocation loc,
   auto metatypeParam = witnessFnTy->getParameters()[1];
   assert(isa<MetatypeType>(metatypeParam.getInterfaceType()) &&
          cast<MetatypeType>(metatypeParam.getInterfaceType()).getInstanceType()
-           == swiftValueType);
+           == languageValueType);
   SILValue metatypeValue = SGF.B.createMetatype(
       loc, metatypeParam.getSILStorageType(SGF.SGM.M, witnessFnTy,
                                            SGF.getTypeExpansionContext()));
@@ -242,7 +243,7 @@ emitBridgeObjectiveCToNative(SILGenFunction &SGF, SILLocation loc,
   CalleeTypeInfo calleeTypeInfo(
       witnessFnTy,
       AbstractionPattern(genericSig, formalResultTy),
-      swiftValueType);
+      languageValueType);
   SGFContext context;
   ResultPlanPtr resultPlan =
       ResultPlanBuilder::computeResultPlan(SGF, calleeTypeInfo, loc, context);
@@ -257,31 +258,31 @@ emitBridgeObjectiveCToNative(SILGenFunction &SGF, SILLocation loc,
 
 static ManagedValue emitBridgeBoolToObjCBool(SILGenFunction &SGF,
                                              SILLocation loc,
-                                             ManagedValue swiftBool) {
-  // func _convertBoolToObjCBool(Bool) -> ObjCBool
+                                             ManagedValue languageBool) {
+  // fn _convertBoolToObjCBool(Bool) -> ObjCBool
   SILValue boolToObjCBoolFn
     = SGF.emitGlobalFunctionRef(loc, SGF.SGM.getBoolToObjCBoolFn());
 
   SILValue result = SGF.B.createApply(loc, boolToObjCBoolFn,
-                                      {}, swiftBool.forward(SGF));
+                                      {}, languageBool.forward(SGF));
   return SGF.emitManagedRValueWithCleanup(result);
 }
 
 static ManagedValue emitBridgeBoolToDarwinBoolean(SILGenFunction &SGF,
                                                   SILLocation loc,
-                                                  ManagedValue swiftBool) {
-  // func _convertBoolToDarwinBoolean(Bool) -> DarwinBoolean
+                                                  ManagedValue languageBool) {
+  // fn _convertBoolToDarwinBoolean(Bool) -> DarwinBoolean
   SILValue boolToDarwinBooleanFn
     = SGF.emitGlobalFunctionRef(loc, SGF.SGM.getBoolToDarwinBooleanFn());
 
   SILValue result = SGF.B.createApply(loc, boolToDarwinBooleanFn,
-                                      {}, swiftBool.forward(SGF));
+                                      {}, languageBool.forward(SGF));
   return SGF.emitManagedRValueWithCleanup(result);
 }
 
 static ManagedValue emitBridgeBoolToWindowsBool(SILGenFunction &SGF,
                                                 SILLocation L, ManagedValue b) {
-  // func _convertToWindowsBool(Bool) -> WindowsBool
+  // fn _convertToWindowsBool(Bool) -> WindowsBool
   SILValue F = SGF.emitGlobalFunctionRef(L, SGF.SGM.getBoolToWindowsBoolFn());
   SILValue R = SGF.B.createApply(L, F, {}, b.forward(SGF));
   return SGF.emitManagedRValueWithCleanup(R);
@@ -291,7 +292,7 @@ static ManagedValue emitBridgeForeignBoolToBool(SILGenFunction &SGF,
                                                 SILLocation loc,
                                                 ManagedValue foreignBool,
                                                 SILDeclRef bridgingFnRef) {
-  // func _convertObjCBoolToBool(ObjCBool) -> Bool
+  // fn _convertObjCBoolToBool(ObjCBool) -> Bool
   SILValue bridgingFn = SGF.emitGlobalFunctionRef(loc, bridgingFnRef);
 
   SILValue result = SGF.B.createApply(loc, bridgingFn, {},
@@ -347,9 +348,9 @@ static ManagedValue emitManagedParameter(SILGenFunction &SGF, SILLocation loc,
   case ParameterConvention::Pack_Guaranteed:
   case ParameterConvention::Pack_Owned:
   case ParameterConvention::Pack_Inout:
-    llvm_unreachable("unexpected convention");
+    toolchain_unreachable("unexpected convention");
   }
-  llvm_unreachable("bad convention");
+  toolchain_unreachable("bad convention");
 }
 
 /// Get the type of each parameter, filtering out empty tuples.
@@ -454,7 +455,7 @@ static void buildFuncToBlockInvokeBody(SILGenFunction &SGF,
       case ParameterConvention::Pack_Guaranteed:
       case ParameterConvention::Pack_Owned:
       case ParameterConvention::Pack_Inout:
-        llvm_unreachable("indirect params to blocks not supported");
+        toolchain_unreachable("indirect params to blocks not supported");
       }
       
       SILValue blockCopy = SGF.B.createCopyBlock(loc, v);
@@ -608,7 +609,7 @@ ManagedValue SILGenFunction::emitFuncToBlock(SILLocation loc,
     // Ultimately we may need to capture generic parameters in block storage, but
     // that will require a redesign of the interface to support dependent-layout
     // context. Currently we don't capture anything directly into a block but a
-    // Swift closure, but that's totally dumb.
+    // Codira closure, but that's totally dumb.
     if (genericSig)
       extInfo = extInfo.intoBuilder().withIsPseudogeneric().build();
   }
@@ -1356,12 +1357,12 @@ emitObjCThunkArguments(SILGenFunction &SGF, SILLocation loc, SILDeclRef thunk,
       SGF.SGM.M, subs, SGF.getTypeExpansionContext());
   auto objcFormalFnTy = substGenericArgs(objcInfo.LoweredType, subs);
 
-  auto swiftInfo =
+  auto languageInfo =
       SGF.SGM.Types.getConstantInfo(SGF.getTypeExpansionContext(), native);
-  auto swiftFnTy = swiftInfo.SILFnType->substGenericArgs(
+  auto languageFnTy = languageInfo.SILFnType->substGenericArgs(
       SGF.SGM.M, subs, SGF.getTypeExpansionContext());
-  auto swiftFormalFnTy = substGenericArgs(swiftInfo.LoweredType, subs);
-  SILFunctionConventions swiftConv(swiftFnTy, SGF.SGM.M);
+  auto languageFormalFnTy = substGenericArgs(languageInfo.LoweredType, subs);
+  SILFunctionConventions languageConv(languageFnTy, SGF.SGM.M);
 
   SmallVector<ManagedValue, 8> bridgedArgs;
   bridgedArgs.reserve(objcFnTy->getParameters().size());
@@ -1369,15 +1370,15 @@ emitObjCThunkArguments(SILGenFunction &SGF, SILLocation loc, SILDeclRef thunk,
   auto bridgedFormalTypes = getParameterTypes(objcFormalFnTy.getParams());
   bridgedFormalResultTy = objcFormalFnTy.getResult();
 
-  auto nativeFormalTypes = getParameterTypes(swiftFormalFnTy.getParams());
-  nativeFormalResultTy = swiftFormalFnTy.getResult();
+  auto nativeFormalTypes = getParameterTypes(languageFormalFnTy.getParams());
+  nativeFormalResultTy = languageFormalFnTy.getResult();
 
   // Emit the other arguments, taking ownership of arguments if necessary.
   auto inputs = objcFnTy->getParameters();
-  auto nativeInputs = swiftFnTy->getParameters();
-  auto fnConv = SGF.silConv.getFunctionConventions(swiftFnTy);
+  auto nativeInputs = languageFnTy->getParameters();
+  auto fnConv = SGF.silConv.getFunctionConventions(languageFnTy);
   bool nativeInputsHasImplicitIsolatedParam = false;
-  if (auto param = swiftFnTy->maybeGetIsolatedParameter())
+  if (auto param = languageFnTy->maybeGetIsolatedParameter())
     nativeInputsHasImplicitIsolatedParam = param->hasOption(SILParameterInfo::ImplicitLeading);
   assert(nativeInputs.size() - unsigned(nativeInputsHasImplicitIsolatedParam) == bridgedFormalTypes.size());
   assert(nativeInputs.size() - unsigned(nativeInputsHasImplicitIsolatedParam) == nativeFormalTypes.size());
@@ -1431,8 +1432,8 @@ emitObjCThunkArguments(SILGenFunction &SGF, SILLocation loc, SILDeclRef thunk,
            + unsigned(foreignAsync.has_value())
         == objcFnTy->getParameters().size() &&
          "objc inputs don't match number of arguments?!");
-  assert(bridgedArgs.size() == swiftFnTy->getParameters().size() - bool(nativeInputsHasImplicitIsolatedParam) &&
-         "swift inputs don't match number of arguments?!");
+  assert(bridgedArgs.size() == languageFnTy->getParameters().size() - bool(nativeInputsHasImplicitIsolatedParam) &&
+         "language inputs don't match number of arguments?!");
   assert((foreignErrorSlot || !foreignError) &&
          "didn't find foreign error slot");
 
@@ -1443,8 +1444,8 @@ emitObjCThunkArguments(SILGenFunction &SGF, SILLocation loc, SILDeclRef thunk,
     // from potentially nil-unsound ObjC callers.
     ManagedValue native = SGF.emitBridgedToNativeValue(
         loc, bridgedArgs[i], bridgedFormalTypes[i], nativeFormalTypes[i],
-        swiftFnTy->getParameters()[i].getSILStorageType(
-            SGF.SGM.M, swiftFnTy, SGF.getTypeExpansionContext()),
+        languageFnTy->getParameters()[i].getSILStorageType(
+            SGF.SGM.M, languageFnTy, SGF.getTypeExpansionContext()),
         SGFContext(),
         /*isCallResult*/ true);
     SILValue argValue;
@@ -1512,7 +1513,7 @@ SILFunction *SILGenFunction::emitNativeAsyncToForeignThunk(SILDeclRef thunk) {
   }
   
   // Create the closure implementation function. It has the same signature,
-  // but is swiftcc and async.
+  // but is languagecc and async.
   auto closureExtInfo = objcFnTy->getExtInfo().intoBuilder()
     .withRepresentation(SILFunctionTypeRepresentation::Thin)
     .withAsync()
@@ -1567,7 +1568,7 @@ void SILGenFunction::emitNativeToForeignThunk(SILDeclRef thunk) {
 
   // If we're calling a native non-designated class initializer, we have to
   // discard the `self` object we were given, since
-  // Swift convenience initializers only have allocating entry points that
+  // Codira convenience initializers only have allocating entry points that
   // create whole new objects.
   bool isInitializingToAllocatingInitThunk = false;
   if (native.kind == SILDeclRef::Kind::Initializer) {
@@ -1613,7 +1614,7 @@ void SILGenFunction::emitNativeToForeignThunk(SILDeclRef thunk) {
     if (F.isAsync()) {
       // Hop to the actor for the method's actor constraint.
       // Note that, since an async native-to-foreign thunk only ever runs in a
-      // task purpose-built for running the Swift async code triggering the
+      // task purpose-built for running the Codira async code triggering the
       // completion handler, there is no need for us to hop back to the existing
       // executor, since the task will end after we invoke the completion handler.
       emitPrologGlobalActorHop(loc, isolation->getGlobalActor());
@@ -1627,13 +1628,13 @@ void SILGenFunction::emitNativeToForeignThunk(SILDeclRef thunk) {
 
   // Find the foreign error and async conventions if we have one.
   if (thunk.hasDecl()) {
-    if (auto func = dyn_cast<AbstractFunctionDecl>(thunk.getDecl())) {
-      foreignError = func->getForeignErrorConvention();
-      foreignAsync = func->getForeignAsyncConvention();
+    if (auto fn = dyn_cast<AbstractFunctionDecl>(thunk.getDecl())) {
+      foreignError = fn->getForeignErrorConvention();
+      foreignAsync = fn->getForeignAsyncConvention();
     }
   }
 
-  // If we are bridging a Swift method with Any return value(s), create a
+  // If we are bridging a Codira method with Any return value(s), create a
   // stack allocation to hold the result(s), since Any is address-only.
   SmallVector<SILValue, 4> args;
   SILFunctionConventions funcConv = F.getConventions();
@@ -1678,13 +1679,13 @@ void SILGenFunction::emitNativeToForeignThunk(SILDeclRef thunk) {
       args.push_back(emitNonIsolatedIsolation(loc).getValue());
       break;
     case ActorIsolation::ActorInstance:
-      llvm::report_fatal_error("Should never see this");
+      toolchain::report_fatal_error("Should never see this");
       break;
     case ActorIsolation::GlobalActor:
       args.push_back(emitLoadGlobalActorExecutor(isolation->getGlobalActor()));
       break;
     case ActorIsolation::Erased:
-      llvm::report_fatal_error("Should never see this");
+      toolchain::report_fatal_error("Should never see this");
       break;
     }
   }
@@ -1719,7 +1720,7 @@ void SILGenFunction::emitNativeToForeignThunk(SILDeclRef thunk) {
   SILFunctionConventions objcConv(CanSILFunctionType(objcFnTy), SGM.M);
   SILFunctionConventions nativeConv(CanSILFunctionType(nativeInfo.SILFnType),
                                     SGM.M);
-  auto swiftResultTy = F.mapTypeIntoContext(
+  auto languageResultTy = F.mapTypeIntoContext(
       nativeConv.getSILResultType(getTypeExpansionContext()));
   auto objcResultTy = objcConv.getSILResultType(getTypeExpansionContext());
 
@@ -1942,7 +1943,7 @@ void SILGenFunction::emitNativeToForeignThunk(SILDeclRef thunk) {
     {
       B.emitBlock(normalBB);
       SILValue nativeResult =
-          normalBB->createPhiArgument(swiftResultTy, OwnershipKind::Owned);
+          normalBB->createPhiArgument(languageResultTy, OwnershipKind::Owned);
 
       if (foreignAsync) {
         // If the function is async, pass the results as the success argument(s)
@@ -2267,7 +2268,7 @@ void SILGenFunction::emitForeignToNativeThunk(SILDeclRef thunk) {
         case ParameterConvention::Pack_Guaranteed:
         case ParameterConvention::Pack_Owned:
         case ParameterConvention::Pack_Inout:
-          llvm_unreachable("bridging a parameter pack?");
+          toolchain_unreachable("bridging a parameter pack?");
         }
 
         while (maybeAddForeignArg());

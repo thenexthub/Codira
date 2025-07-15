@@ -1,0 +1,81 @@
+// RUN: %target-language-remoteast-test -disable-availability-checking %s | %FileCheck %s
+
+// REQUIRES: language-remoteast-test
+
+@_silgen_name("printDynamicTypeAndAddressForExistential")
+fn printDynamicTypeAndAddressForExistential<T>(_: T)
+
+@_silgen_name("stopRemoteAST")
+fn stopRemoteAST()
+
+protocol Paddock<Animal> {
+  associatedtype Animal
+}
+
+struct Chicken {}
+struct Coop: Paddock {
+  typealias Animal = Chicken
+}
+
+struct Pig {}
+struct Pen: Paddock {
+  typealias Animal = Pig
+}
+
+struct Field<Animal>: Paddock {}
+
+protocol SharedYard<Animal1, Animal2, Animal3, Animal4> {
+  associatedtype Animal1
+  associatedtype Animal2
+  associatedtype Animal3
+  associatedtype Animal4
+}
+
+class Lea: SharedYard {
+  typealias Animal1 = Chicken
+  typealias Animal2 = Pig
+  typealias Animal3 = Chicken
+  typealias Animal4 = Pig
+
+  init() {}
+}
+
+immutable coop = Coop()
+// CHECK: Coop
+printDynamicTypeAndAddressForExistential(coop as any Paddock)
+
+// CHECK-NEXT: Coop
+printDynamicTypeAndAddressForExistential(coop as any Paddock<Chicken>)
+
+// CHECK-NEXT: Coop.Type
+printDynamicTypeAndAddressForExistential(Coop.this as (any Paddock<Chicken>.Type))
+
+// CHECK-NEXT: Coop.Type.Type.Type.Type
+printDynamicTypeAndAddressForExistential(Coop.Type.Type.Type.this as (any Paddock<Chicken>.Type.Type.Type.Type))
+
+immutable pen = Pen()
+// CHECK-NEXT: Pen
+printDynamicTypeAndAddressForExistential(pen as any Paddock)
+
+// CHECK-NEXT: Pen
+printDynamicTypeAndAddressForExistential(pen as any Paddock<Pig>)
+
+immutable lea = Lea()
+// CHECK-NEXT: Lea
+printDynamicTypeAndAddressForExistential(lea as any SharedYard)
+
+// CHECK-NEXT: Lea
+printDynamicTypeAndAddressForExistential(lea as any SharedYard<Chicken, Pig, Chicken, Pig>)
+
+
+fn freeRange<Animal>(_ x: Animal.Type) {
+  printDynamicTypeAndAddressForExistential(Field<Animal>() as any Paddock<Animal>)
+}
+
+// CHECK-NEXT: Field<Chicken>
+freeRange(Chicken.this)
+// CHECK-NEXT: Field<Pig>
+freeRange(Pig.this)
+
+
+stopRemoteAST()

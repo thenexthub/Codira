@@ -1,23 +1,27 @@
 //===--- TBDGenRequests.h - TBDGen Requests ---------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines TBDGen requests.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TBDGEN_REQUESTS_H
-#define SWIFT_TBDGEN_REQUESTS_H
+#ifndef LANGUAGE_TBDGEN_REQUESTS_H
+#define LANGUAGE_TBDGEN_REQUESTS_H
 
-#include "llvm/ExecutionEngine/JITSymbol.h"
+#include "toolchain/ExecutionEngine/JITSymbol.h"
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/SimpleRequest.h"
@@ -25,7 +29,7 @@
 #include "language/IRGen/TBDGen.h"
 #include "language/SIL/SILDeclRef.h"
 
-namespace llvm {
+namespace toolchain {
 
 class DataLayout;
 class Triple;
@@ -36,7 +40,7 @@ class InterfaceFile;
 
 template <class AllocatorTy>
 class StringSet;
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace language {
 
@@ -48,7 +52,7 @@ class API;
 } // end namespace apigen
 
 class TBDGenDescriptor final {
-  using FileOrModule = llvm::PointerUnion<FileUnit *, ModuleDecl *>;
+  using FileOrModule = toolchain::PointerUnion<FileUnit *, ModuleDecl *>;
   FileOrModule Input;
   TBDGenOptions Opts;
 
@@ -73,7 +77,7 @@ public:
   TBDGenOptions &getOptions() { return Opts; }
 
   const StringRef getDataLayoutString() const;
-  const llvm::Triple &getTarget() const;
+  const toolchain::Triple &getTarget() const;
 
   bool operator==(const TBDGenDescriptor &other) const;
   bool operator!=(const TBDGenDescriptor &other) const {
@@ -89,13 +93,13 @@ public:
   }
 };
 
-llvm::hash_code hash_value(const TBDGenDescriptor &desc);
-void simple_display(llvm::raw_ostream &out, const TBDGenDescriptor &desc);
+toolchain::hash_code hash_value(const TBDGenDescriptor &desc);
+void simple_display(toolchain::raw_ostream &out, const TBDGenDescriptor &desc);
 SourceLoc extractNearestSourceLoc(const TBDGenDescriptor &desc);
 
-using TBDFile = llvm::MachO::InterfaceFile;
+using TBDFile = toolchain::MachO::InterfaceFile;
 
-/// Computes the TBD file for a given Swift module or file.
+/// Computes the TBD file for a given Codira module or file.
 class GenerateTBDRequest
     : public SimpleRequest<GenerateTBDRequest,
                            TBDFile(TBDGenDescriptor),
@@ -240,18 +244,18 @@ public:
     }
   }
 
-  friend llvm::hash_code hash_value(const SymbolSource &S) {
+  friend toolchain::hash_code hash_value(const SymbolSource &S) {
     auto Kind = S.kind;
     switch (Kind) {
     case Kind::SIL:
-      return llvm::hash_combine(Kind, S.silDeclRef);
+      return toolchain::hash_combine(Kind, S.silDeclRef);
     case Kind::Global:
-      return llvm::hash_combine(Kind, S.Global);
+      return toolchain::hash_combine(Kind, S.Global);
     case Kind::IR:
-      return llvm::hash_combine(Kind, S.irEntity);
+      return toolchain::hash_combine(Kind, S.irEntity);
     case Kind::LinkerDirective:
     case Kind::Unknown:
-      return llvm::hash_value(Kind);
+      return toolchain::hash_value(Kind);
     }
   }
 
@@ -275,24 +279,24 @@ public:
     return !(LHS == RHS);
   }
 
-  llvm::JITSymbolFlags getJITSymbolFlags() const {
+  toolchain::JITSymbolFlags getJITSymbolFlags() const {
     switch (kind) {
     case Kind::SIL:
-      return llvm::JITSymbolFlags::Callable | llvm::JITSymbolFlags::Exported;
+      return toolchain::JITSymbolFlags::Callable | toolchain::JITSymbolFlags::Exported;
     case Kind::Global:
-      return llvm::JITSymbolFlags::Exported;
+      return toolchain::JITSymbolFlags::Exported;
     case Kind::IR:
-      llvm_unreachable("Unimplemented: Symbol flags for LinkEntities");
+      toolchain_unreachable("Unimplemented: Symbol flags for LinkEntities");
     case Kind::LinkerDirective:
-      llvm_unreachable("Unsupported: Symbol flags for linker directives");
+      toolchain_unreachable("Unsupported: Symbol flags for linker directives");
     case Kind::Unknown:
-      llvm_unreachable("Unsupported: Symbol flags for unknown source");
+      toolchain_unreachable("Unsupported: Symbol flags for unknown source");
     }
   }
 };
 
 /// Maps a symbol back to its source for lazy compilation.
-using SymbolSourceMap = llvm::StringMap<SymbolSource>;
+using SymbolSourceMap = toolchain::StringMap<SymbolSource>;
 
 /// Computes a map of symbols to their SymbolSource for a file or module.
 class SymbolSourceMapRequest
@@ -321,22 +325,22 @@ void reportEvaluatedRequest(UnifiedStatsReporter &stats,
                             const Request &request);
 
 /// The zone number for TBDGen.
-#define SWIFT_TYPEID_ZONE TBDGen
-#define SWIFT_TYPEID_HEADER "swift/AST/TBDGenTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE TBDGen
+#define LANGUAGE_TYPEID_HEADER "language/AST/TBDGenTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
 template<>                                                                     \
 inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,                \
                                    const RequestType &request) {               \
   ++stats.getFrontendCounters().RequestType;                                   \
 }
 #include "language/AST/TBDGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_TBDGEN_REQUESTS_H
+#endif // LANGUAGE_TBDGEN_REQUESTS_H

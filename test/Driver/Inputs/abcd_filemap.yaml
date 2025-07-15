@@ -1,0 +1,27 @@
+"":
+  language-dependencies: "master.yaml"
+"a.code":
+  object: "a.o"
+  dependencies: "a.d"
+  diagnostics: "a.dia"
+  language-dependencies: "a.codedeps"
+"b.code":
+  object: "b.o"
+  dependencies: "b.d"
+  diagnostics: "b.dia"
+  language-dependencies: "b.codedeps"
+"c.code":
+  object: "c.o"
+  dependencies: "c.d"
+  diagnostics: "c.dia"
+  language-dependencies: "c.codedeps"
+"d.code":
+  object: "d.o"
+  dependencies: "d.d"
+  diagnostics: "d.dia"
+  language-dependencies: "d.codedeps"
+"main.code":
+  object: "main.o"
+  dependencies: "main.d"
+  diagnostics: "main.dia"
+  language-dependencies: "main.codedeps"

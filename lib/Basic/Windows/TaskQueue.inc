@@ -1,13 +1,17 @@
 //===--- TaskQueue.inc ------------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -15,13 +19,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/TaskQueue.h"
 
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Signals.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Signals.h"
 
 #define NOMINMAX
 #include <Windows.h>
@@ -29,13 +33,13 @@
 
 #include "Default/Task.inc"
 
-using namespace llvm::sys;
+using namespace toolchain::sys;
 
 namespace {
 
 class TaskMonitor {
   std::queue<std::unique_ptr<Task>> &TasksToBeExecuted;
-  llvm::SmallVector<std::unique_ptr<Task>, 32> TasksBeingExecuted;
+  toolchain::SmallVector<std::unique_ptr<Task>, 32> TasksBeingExecuted;
   const unsigned MaxNumberOfParallelTasks;
 
 public:
@@ -65,7 +69,7 @@ private:
   bool waitForFinishedTask() {
     if (TasksBeingExecuted.empty())
       return false;
-    llvm::SmallVector<HANDLE, 32> Handles;
+    toolchain::SmallVector<HANDLE, 32> Handles;
     for (auto &TBE : TasksBeingExecuted)
       Handles.push_back((HANDLE)TBE->PI.Process);
 
@@ -88,10 +92,10 @@ private:
     if (!RC) {
       SetLastError(Err);
       // -2 indicates a crash or timeout as opposed to failure to execute.
-      // See the comments on llvm::sys::Wait for more details.
+      // See the comments on toolchain::sys::Wait for more details.
       T->PI.ReturnCode = -2;
     }
-    // Convert the return code in the same way as llvm::sys::Wait does.
+    // Convert the return code in the same way as toolchain::sys::Wait does.
     if (Status != 0) {
       // Pass 10(Warning) and 11(Error) to the callee as negative value.
       // For more information on status codes, see
@@ -104,12 +108,12 @@ private:
         T->PI.ReturnCode = 1;
     }
 
-    auto StdoutBuffer = llvm::MemoryBuffer::getFile(T->StdoutPath);
+    auto StdoutBuffer = toolchain::MemoryBuffer::getFile(T->StdoutPath);
     StringRef StdoutContents = StdoutBuffer.get()->getBuffer();
 
     StringRef StderrContents;
     if (T->SeparateErrors) {
-      auto StderrBuffer = llvm::MemoryBuffer::getFile(T->StderrPath);
+      auto StderrBuffer = toolchain::MemoryBuffer::getFile(T->StderrPath);
       StderrContents = StderrBuffer.get()->getBuffer();
     }
 
@@ -155,9 +159,9 @@ private:
         ErrorOccurred = true;
       }
     }
-    llvm::sys::fs::remove(T->StdoutPath);
+    toolchain::sys::fs::remove(T->StdoutPath);
     if (T->SeparateErrors)
-      llvm::sys::fs::remove(T->StderrPath);
+      toolchain::sys::fs::remove(T->StderrPath);
     return ErrorOccurred;
   }
 

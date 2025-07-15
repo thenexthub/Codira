@@ -1,0 +1,3 @@
+// {"signature":"(anonymous namespace)::ExprRewriter::coerceCallArguments(language::ArgumentList*, language::AnyFunctionType*, language::ConcreteDeclRef, language::ApplyExpr*, language::constraints::ConstraintLocatorBuilder, toolchain::ArrayRef<language::AppliedPropertyWrapper>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<b, each c>(body : (repeat each c)->b) { body(

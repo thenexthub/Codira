@@ -1,4 +1,4 @@
-//===--- BitCount.swift ---------------------------------------------------===//
+//===--- BitCount.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// This test checks performance of Swift bit count.
+// This test checks performance of Codira bit count.
 // and mask operator.
 // rdar://problem/22151678
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "BitCount",
     runFunction: run_BitCount,
     tags: [.validation, .algorithm])
 
-func countBitSet(_ num: Int) -> Int {
-  let bits = MemoryLayout<Int>.size * 8
+fn countBitSet(_ num: Int) -> Int {
+  immutable bits = MemoryLayout<Int>.size * 8
   var cnt: Int = 0
   var mask: Int = 1
   for _ in 0...bits {
@@ -38,7 +39,7 @@ func countBitSet(_ num: Int) -> Int {
 }
 
 @inline(never)
-public func run_BitCount(_ n: Int) {
+public fn run_BitCount(_ n: Int) {
   var sum = 0
   for _ in 1...1000*n {
     // Check some results.

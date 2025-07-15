@@ -1,0 +1,5 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+// RUN: %target-language-frontend -typecheck -playground %t/main.code -verify
+
+var $a = 2 // expected-error {{cannot declare entity named '$a'}}

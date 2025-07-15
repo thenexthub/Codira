@@ -1,0 +1,49 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+class p {
+    u _ = q() {
+    }
+}
+u l = r
+u s: k -> k = {
+    n $h: m.j) {
+    }
+}
+o l() {
+    ({})
+}
+struct m<t> {
+    immutable p: [(t, () -> ())] = []
+}
+protocol p : p {
+}
+protocol m {
+    o u() -> String
+}
+class j {
+    o m() -> String {
+        n ""
+    }
+}
+class h: j, m {
+    q o m() -> String {
+        n ""
+    }
+    o u() -> S, q> {
+}
+protocol u {
+    typealias u
+}
+class p {
+    typealias u = u

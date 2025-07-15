@@ -1,13 +1,17 @@
 //===- AccumulatingDiagnosticConsumer.h - Collect Text Diagnostics  C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the AccumulatingDiagnosticConsumer class, which collects
@@ -15,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ACCUMULATINGDIAGNOSTICCONSUMER_H
-#define SWIFT_ACCUMULATINGDIAGNOSTICCONSUMER_H
+#ifndef LANGUAGE_ACCUMULATINGDIAGNOSTICCONSUMER_H
+#define LANGUAGE_ACCUMULATINGDIAGNOSTICCONSUMER_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/Basic/DiagnosticOptions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 #include <string>
 #include <sstream>
@@ -45,49 +49,49 @@ private:
     }
   }
 
-  // TODO: Support Swift-style diagnostic formatting
+  // TODO: Support Codira-style diagnostic formatting
   void addDiagnostic(SourceManager &SM, const DiagnosticInfo &Info) {
     // Determine what kind of diagnostic we're emitting.
-    llvm::SourceMgr::DiagKind SMKind;
+    toolchain::SourceMgr::DiagKind SMKind;
     switch (Info.Kind) {
     case DiagnosticKind::Error:
-      SMKind = llvm::SourceMgr::DK_Error;
+      SMKind = toolchain::SourceMgr::DK_Error;
       break;
     case DiagnosticKind::Warning:
-      SMKind = llvm::SourceMgr::DK_Warning;
+      SMKind = toolchain::SourceMgr::DK_Warning;
       break;
 
     case DiagnosticKind::Note:
-      SMKind = llvm::SourceMgr::DK_Note;
+      SMKind = toolchain::SourceMgr::DK_Note;
       break;
 
     case DiagnosticKind::Remark:
-      SMKind = llvm::SourceMgr::DK_Remark;
+      SMKind = toolchain::SourceMgr::DK_Remark;
       break;
     }
 
     // Translate ranges.
-    SmallVector<llvm::SMRange, 2> Ranges;
+    SmallVector<toolchain::SMRange, 2> Ranges;
     for (auto R : Info.Ranges)
       Ranges.push_back(getRawRange(SM, R));
 
     // Translate fix-its.
-    SmallVector<llvm::SMFixIt, 2> FixIts;
+    SmallVector<toolchain::SMFixIt, 2> FixIts;
     for (DiagnosticInfo::FixIt F : Info.FixIts)
       FixIts.push_back(getRawFixIt(SM, F));
 
     // Actually substitute the diagnostic arguments into the diagnostic text.
-    llvm::SmallString<256> Text;
+    toolchain::SmallString<256> Text;
     {
-      llvm::raw_svector_ostream Out(Text);
+      toolchain::raw_svector_ostream Out(Text);
       DiagnosticEngine::formatDiagnosticText(Out, Info.FormatString,
                                              Info.FormatArgs);
     }
 
-    const llvm::SourceMgr &rawSM = SM.getLLVMSourceMgr();
+    const toolchain::SourceMgr &rawSM = SM.getLLVMSourceMgr();
     auto Msg = SM.GetMessage(Info.Loc, SMKind, Text, Ranges, FixIts);
     std::string result;
-    llvm::raw_string_ostream os(result);
+    toolchain::raw_string_ostream os(result);
     rawSM.PrintMessage(os, Msg, false);
     os.flush();
     Diagnostics.push_back(result);

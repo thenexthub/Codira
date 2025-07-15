@@ -1,0 +1,119 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn kj<ts>() -> (ts, ts -> ts) -> ts {
+   nm ml nm.p = {
+}
+ {
+   ts) {
+        ji  }
+}
+protocol kj {
+   class fn p()
+}
+class nm: kj{  class fn p {}
+x nm<q> {
+    hg ts(q, () -> ())
+}
+dc ji = po
+dc qp: m -> m = {
+    cb $w
+}
+immutable e: m = { (c: m, kj: m -> m) -> m on
+    cb kj(c)
+}(ji, qp)
+immutable u: m = { c, kj on
+    cb kj(c)
+}(ji, qp)
+class c {
+    fn hg((r, c))(rq: (r, y)) {
+        hg(rq)
+    }
+}
+protocol rq hg<ji : c, p : c ih ji.ts == p> : rq {
+}
+class hg<ji, p> {
+}
+protocol c {
+    o ts
+}
+protocol rq {
+}
+protocol hg : rq {
+}
+protocol c : rq {
+}
+protocol nm {
+  o kj = rq
+}
+gf e : nm {
+  o kj = hg
+}
+fn p<ml : hg, ml : nm ih ml.kj == ml> (cb: ml) {
+}
+fn p<v : nm ih v.kj == c> (cb: v) {
+}
+p(e())
+fn c<nm {
+    x c {
+        fn e
+        dc _ = e
+    }
+}
+protocol kj {
+}
+gf v : kj {
+}
+gf ts<hg, p: kj ih hg.ts == p> {
+}
+gf c<nm : ut> {
+    dc hg: nm
+}
+fn rq<nm>() -> [c<nm>] {
+    cb []
+}
+protocol kj {
+    o v
+    fn hg(v)
+}
+gf rq<Y> : kj {
+    fn hg(hg: rq.lk) {
+    }
+}
+class rq<kj : hg, ts : hg ih kj.nm == ts> {
+}
+protocol hg {
+    o nm
+    o e
+fe e = rq<c<ji>, nm>
+}
+protocol rq {
+    class fn c()
+}
+class hg: rq {
+    class fn c() { }
+}
+(hg() s rq).t.c()
+fn sr(ed: ml) -> <q>(() -> q) -> ml {
+  cb { ts on "\(ed): \(ts())" }
+}
+gf kj<q> {
+    immutable rq: [(q, () -> ())] = []
+}
+fn() {
+    x hg {
+        hg c
+    }
+}
+fn rq(hg: m = w) {
+}
+immutable c = rq

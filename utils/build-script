@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
-The ultimate tool for building Swift.
+The ultimate tool for building Codira.
 """
 
 
@@ -21,27 +21,27 @@ import re
 import sys
 import time
 
-from build_swift.build_swift import argparse
-from build_swift.build_swift import defaults
-from build_swift.build_swift import driver_arguments
-from build_swift.build_swift import migration
-from build_swift.build_swift import presets
-from build_swift.build_swift.constants import BUILD_SCRIPT_IMPL_PATH
-from build_swift.build_swift.constants import SWIFT_BUILD_ROOT
-from build_swift.build_swift.constants import SWIFT_REPO_NAME
-from build_swift.build_swift.constants import SWIFT_SOURCE_ROOT
+from build_language.build_language import argparse
+from build_language.build_language import defaults
+from build_language.build_language import driver_arguments
+from build_language.build_language import migration
+from build_language.build_language import presets
+from build_language.build_language.constants import BUILD_SCRIPT_IMPL_PATH
+from build_language.build_language.constants import LANGUAGE_BUILD_ROOT
+from build_language.build_language.constants import LANGUAGE_REPO_NAME
+from build_language.build_language.constants import LANGUAGE_SOURCE_ROOT
 
-from swift_build_support.swift_build_support import build_script_invocation
-from swift_build_support.swift_build_support import shell
-from swift_build_support.swift_build_support import targets
-from swift_build_support.swift_build_support import workspace
-from swift_build_support.swift_build_support.cmake import CMake
-from swift_build_support.swift_build_support.targets import StdlibDeploymentTarget
-from swift_build_support.swift_build_support.toolchain import host_toolchain
-from swift_build_support.swift_build_support.utils \
+from language_build_support.code_build_support import build_script_invocation
+from language_build_support.code_build_support import shell
+from language_build_support.code_build_support import targets
+from language_build_support.code_build_support import workspace
+from language_build_support.code_build_support.cmake import CMake
+from language_build_support.code_build_support.targets import StdlibDeploymentTarget
+from language_build_support.code_build_support.toolchain import host_toolchain
+from language_build_support.code_build_support.utils \
     import exit_rejecting_arguments
-from swift_build_support.swift_build_support.utils import fatal_error
-from swift_build_support.swift_build_support.utils import log_analyzer
+from language_build_support.code_build_support.utils import fatal_error
+from language_build_support.code_build_support.utils import log_analyzer
 
 
 # -----------------------------------------------------------------------------
@@ -214,7 +214,7 @@ def validate_arguments(toolchain, args):
         fatal_error(
             "build-script no longer supports Xcode project generation, you "
             "should use utils/generate-xcode instead, see "
-            "https://github.com/swiftlang/swift/blob/main/docs/HowToGuides/"
+            "https://github.com/languagelang/language/blob/main/docs/HowToGuides/"
             "GettingStarted.md#using-ninja-with-xcode for more info"
         )
 
@@ -244,7 +244,7 @@ def validate_arguments(toolchain, args):
         'build_playgroundsupport',
         'build_sourcekitlsp',
         'build_toolchainbenchmarks',
-        'build_swift_inspect',
+        'build_language_inspect',
         'tsan_libdispatch_test',
     ]
     has_target_needing_toolchain = \
@@ -257,7 +257,7 @@ def validate_arguments(toolchain, args):
 
 def default_stdlib_deployment_targets(args):
     """
-    Return targets for the Swift stdlib, based on the build machine.
+    Return targets for the Codira stdlib, based on the build machine.
     If the build machine is not one of the recognized ones, return None.
     """
 
@@ -321,10 +321,10 @@ def apply_default_arguments(toolchain, args):
         args.stdlib_deployment_targets = [
             target.name for target in stdlib_targets]
 
-    # SwiftPM and XCTest have a dependency on Foundation.
+    # CodiraPM and XCTest have a dependency on Foundation.
     # On OS X, Foundation is built automatically using xcodebuild.
     # On Linux, we must ensure that it is built manually.
-    if ((args.build_swiftpm or args.build_xctest) and
+    if ((args.build_languagepm or args.build_xctest) and
             platform.system() != "Darwin"):
         args.build_foundation = True
 
@@ -341,14 +341,14 @@ def apply_default_arguments(toolchain, args):
 
     if args.relocate_xdg_cache_home_under_build_subdir:
         cache_under_build_subdir = os.path.join(
-            SWIFT_BUILD_ROOT, args.build_subdir, '.cache')
+            LANGUAGE_BUILD_ROOT, args.build_subdir, '.cache')
         if args.verbose_build:
             print("Relocating XDG_CACHE_HOME to {}".format(cache_under_build_subdir))
         workspace.relocate_xdg_cache_home_under(cache_under_build_subdir)
 
     if args.install_destdir is None:
         args.install_destdir = os.path.join(
-            SWIFT_BUILD_ROOT, args.build_subdir,
+            LANGUAGE_BUILD_ROOT, args.build_subdir,
             '{}-{}'.format('toolchain', args.host_target))
 
     # Add optional stdlib-deployment-targets
@@ -378,14 +378,14 @@ def apply_default_arguments(toolchain, args):
         args.build_android = False
 
     # Include the Darwin supported architectures in the CMake options.
-    if args.swift_darwin_supported_archs:
+    if args.code_darwin_supported_archs:
         args.extra_cmake_options.append(
-            '-DSWIFT_DARWIN_SUPPORTED_ARCHS:STRING={}'.format(
-                args.swift_darwin_supported_archs))
+            '-DLANGUAGE_DARWIN_SUPPORTED_ARCHS:STRING={}'.format(
+                args.code_darwin_supported_archs))
 
         # Remove unsupported Darwin archs from the standard library
         # deployment targets.
-        supported_archs = args.swift_darwin_supported_archs.split(';')
+        supported_archs = args.code_darwin_supported_archs.split(';')
         targets = StdlibDeploymentTarget.get_targets_by_name(
             args.stdlib_deployment_targets)
 
@@ -400,7 +400,7 @@ def apply_default_arguments(toolchain, args):
         # to avoid picking up a stale value that can cause
         # build failures
         args.extra_cmake_options.append(
-            '-USWIFT_DARWIN_SUPPORTED_ARCHS')
+            '-ULANGUAGE_DARWIN_SUPPORTED_ARCHS')
 
     # Filter out any macOS stdlib deployment targets that are not supported
     # by the macOS SDK.
@@ -415,10 +415,10 @@ def apply_default_arguments(toolchain, args):
     ]
 
     # Include the Darwin module-only architectures in the CMake options.
-    if args.swift_darwin_module_archs:
+    if args.code_darwin_module_archs:
         args.extra_cmake_options.append(
-            '-DSWIFT_DARWIN_MODULE_ARCHS:STRING={}'.format(
-                args.swift_darwin_module_archs))
+            '-DLANGUAGE_DARWIN_MODULE_ARCHS:STRING={}'.format(
+                args.code_darwin_module_archs))
     if (args.infer_cross_compile_hosts_on_darwin and
             platform.system() == "Darwin"):
         args.cross_compile_hosts = _infer_cross_compile_hosts_on_darwin(
@@ -459,7 +459,7 @@ def get_running_arch(dry_run):
 def parse_preset_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""Builds Swift using a preset.""")
+        description="""Builds Codira using a preset.""")
     parser.add_argument(
         "-n", "--dry-run",
         help="print the commands that would be executed, but do not execute "
@@ -500,7 +500,7 @@ def parse_preset_args():
         help="use sccache",
         action=argparse.actions.StoreTrueAction,
         nargs=argparse.Nargs.OPTIONAL,
-        default=os.environ.get('SWIFT_USE_SCCACHE') == '1')
+        default=os.environ.get('LANGUAGE_USE_SCCACHE') == '1')
     parser.add_argument(
         "--cmake-c-launcher",
         help="the absolute path to set CMAKE_C_COMPILER_LAUNCHER",
@@ -531,8 +531,8 @@ def parse_preset_args():
         action=argparse.actions.StoreTrueAction,
         nargs=argparse.Nargs.OPTIONAL)
     parser.add_argument(
-        "--swiftsyntax-install-prefix",
-        help="specify the directory to where SwiftSyntax should be installed")
+        "--languagesyntax-install-prefix",
+        help="specify the directory to where CodiraSyntax should be installed")
     parser.add_argument(
         "--build-dir",
         help="specify the directory where build artifact should be stored")
@@ -557,12 +557,12 @@ def main_preset():
     if len(args.preset_file_names) == 0:
         args.preset_file_names = [
             os.path.join(
-                SWIFT_SOURCE_ROOT, SWIFT_REPO_NAME, "utils",
+                LANGUAGE_SOURCE_ROOT, LANGUAGE_REPO_NAME, "utils",
                 "build-presets.ini")
         ]
 
         user_presets_file = os.path.join(os.path.expanduser("~"),
-                                         '.swift-build-presets')
+                                         '.code-build-presets')
         if os.path.isfile(user_presets_file):
             args.preset_file_names.append(user_presets_file)
 
@@ -601,7 +601,7 @@ def main_preset():
     except presets.PresetError as e:
         fatal_error(str(e))
 
-    preset_args = migration.migrate_swift_sdks(preset.args)
+    preset_args = migration.migrate_language_sdks(preset.args)
 
     if args.distcc and (args.cmake_c_launcher or args.cmake_cxx_launcher):
         fatal_error(
@@ -627,10 +627,10 @@ def main_preset():
         build_script_args += ["--jobs", str(args.build_jobs)]
     if args.lit_jobs:
         build_script_args += ["--lit-jobs", str(args.lit_jobs)]
-    if args.swiftsyntax_install_prefix:
-        build_script_args += ["--install-swiftsyntax",
+    if args.codesyntax_install_prefix:
+        build_script_args += ["--install-languagesyntax",
                               "--install-destdir",
-                              args.swiftsyntax_install_prefix]
+                              args.codesyntax_install_prefix]
     if args.build_dir:
         build_script_args += ["--build-dir", args.build_dir]
     if args.cmake_c_launcher:
@@ -699,8 +699,8 @@ def main_normal():
     apply_default_arguments(toolchain, args)
 
     cmake = CMake(args=args, toolchain=toolchain)
-    toolchain.cmake = cmake.get_cmake_path(source_root=SWIFT_SOURCE_ROOT,
-                                           build_root=SWIFT_BUILD_ROOT)
+    toolchain.cmake = cmake.get_cmake_path(source_root=LANGUAGE_SOURCE_ROOT,
+                                           build_root=LANGUAGE_BUILD_ROOT)
     args.cmake = toolchain.cmake
 
     # Create the build script invocation.
@@ -772,16 +772,16 @@ def main_normal():
 # -----------------------------------------------------------------------------
 
 def main():
-    if not SWIFT_SOURCE_ROOT:
+    if not LANGUAGE_SOURCE_ROOT:
         fatal_error(
             "could not infer source root directory " +
-            "(forgot to set $SWIFT_SOURCE_ROOT environment variable?)")
+            "(forgot to set $LANGUAGE_SOURCE_ROOT environment variable?)")
 
-    if not os.path.isdir(SWIFT_SOURCE_ROOT):
+    if not os.path.isdir(LANGUAGE_SOURCE_ROOT):
         fatal_error(
-            "source root directory \'" + SWIFT_SOURCE_ROOT +
+            "source root directory \'" + LANGUAGE_SOURCE_ROOT +
             "\' does not exist " +
-            "(forgot to set $SWIFT_SOURCE_ROOT environment variable?)")
+            "(forgot to set $LANGUAGE_SOURCE_ROOT environment variable?)")
 
     validate_xcode_compatibility()
 

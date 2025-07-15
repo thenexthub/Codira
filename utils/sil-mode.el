@@ -1,12 +1,12 @@
 ;;===--- sil-mode.el ------------------------------------------------------===;;
 ;;
-;; This source file is part of the Swift.org open source project
+;; This source file is part of the Codira.org open source project
 ;;
-;; Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+;; Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 ;; Licensed under Apache License v2.0 with Runtime Library Exception
 ;;
-;; See https://swift.org/LICENSE.txt for license information
-;; See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+;; See https://language.org/LICENSE.txt for license information
+;; See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ;;
 ;;===----------------------------------------------------------------------===;;
 
@@ -28,7 +28,7 @@
    ;; Integer literals
    '("\\b[-]?[0-9]+\\b" . font-lock-preprocessor-face)
    ;; Decl and type keywords
-   `(,(regexp-opt '("class" "init" "deinit" "extension" "func"
+   `(,(regexp-opt '("class" "init" "deinit" "extension" "fn"
                     "import" "protocol" "static" "struct" "subscript"
                     "typealias" "enum" "var" "let" "where"  "sil_vtable"
                     "sil_global" "private" "public" "internal" "override"
@@ -127,7 +127,7 @@
                     "explicit_copy_value")
                   'words) . font-lock-keyword-face)
    ;; Enums. *NOTE* We do not include enum itself here since enum is a
-   ;; swift declaration as well handled at the top.
+   ;; language declaration as well handled at the top.
    `(,(regexp-opt '("init_enum_data_addr" "unchecked_enum_data"
                     "unchecked_take_enum_data_addr" "inject_enum_addr"
                     "select_enum" "select_enum_addr")
@@ -280,8 +280,8 @@
 
 (defcustom sil-mode-viewcfg-command-default "viewcfg"
   "The path to the viewcfg command that should be used to dump
-  partial cfgs if we can not find viewcfg locally ourselves using swift-project-settings")
-;; TODO: If we have swift-project-settings enabled, we will know the swift
+  partial cfgs if we can not find viewcfg locally ourselves using language-project-settings")
+;; TODO: If we have language-project-settings enabled, we will know the language
 ;; source root directory. This will let us just use the absolute path to
 ;; viewcfg.
 (defun get-viewcfg-command() sil-mode-viewcfg-command-default)

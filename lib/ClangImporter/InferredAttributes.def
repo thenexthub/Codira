@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // This file describes set of attributes that can be inferred for
 // Objective-C classes when they come from a known module.

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILWitnessTable class, which is used to map a protocol
@@ -22,15 +23,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILWITNESSTABLE_H
-#define SWIFT_SIL_SILWITNESSTABLE_H
+#ifndef LANGUAGE_SIL_SILWITNESSTABLE_H
+#define LANGUAGE_SIL_SILWITNESSTABLE_H
 
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILDeclRef.h"
 #include "language/SIL/SILFunction.h"
 #include "language/AST/ProtocolConformanceRef.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/ADT/ilist.h"
 
 namespace language {
 
@@ -42,7 +43,7 @@ enum SerializedKind_t : uint8_t;
 
 /// A mapping from each requirement of a protocol to the SIL-level entity
 /// satisfying the requirement for a concrete type.
-class SILWitnessTable : public llvm::ilist_node<SILWitnessTable>,
+class SILWitnessTable : public toolchain::ilist_node<SILWitnessTable>,
                         public SILAllocated<SILWitnessTable>
 {
 public:
@@ -151,7 +152,7 @@ public:
       Method.Witness = nullptr;
     }
 
-    void print(llvm::raw_ostream &out, bool verbose,
+    void print(toolchain::raw_ostream &out, bool verbose,
                const PrintOptions &options) const;
   };
 
@@ -319,27 +320,27 @@ public:
   /// return \c true, while \c fn returning \c false will let it continue.
   static bool enumerateWitnessTableConditionalConformances(
       const ProtocolConformance *conformance,
-      llvm::function_ref<bool(unsigned, CanType, ProtocolDecl *)> fn);
+      toolchain::function_ref<bool(unsigned, CanType, ProtocolDecl *)> fn);
 
   /// Print the witness table.
-  void print(llvm::raw_ostream &OS, bool Verbose = false) const;
+  void print(toolchain::raw_ostream &OS, bool Verbose = false) const;
 
   /// Dump the witness table to stderr.
   void dump() const;
 };
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILWitnessTable
 //===----------------------------------------------------------------------===//
 
-namespace llvm {
+namespace toolchain {
   
 template <>
-struct ilist_traits<::swift::SILWitnessTable> :
-public ilist_node_traits<::swift::SILWitnessTable> {
-  using SILWitnessTable = ::swift::SILWitnessTable;
+struct ilist_traits<::language::SILWitnessTable> :
+public ilist_node_traits<::language::SILWitnessTable> {
+  using SILWitnessTable = ::language::SILWitnessTable;
 
 public:
   static void deleteNode(SILWitnessTable *WT) { WT->~SILWitnessTable(); }
@@ -348,6 +349,6 @@ private:
   void createNode(const SILWitnessTable &);
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 #endif

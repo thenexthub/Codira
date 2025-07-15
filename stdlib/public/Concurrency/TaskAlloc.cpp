@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A task-local allocator that obeys a stack discipline.
@@ -43,7 +44,7 @@ static TaskAllocator &allocator(AsyncTask *task) {
   if (task)
     return task->Private.get().Allocator;
 
-#if !SWIFT_CONCURRENCY_EMBEDDED
+#if !LANGUAGE_CONCURRENCY_EMBEDDED
   // FIXME: this fall-back shouldn't be necessary, but it's useful
   // for now, since the current execution tests aren't setting up a task
   // properly.
@@ -55,33 +56,33 @@ static TaskAllocator &allocator(AsyncTask *task) {
 #endif
 }
 
-void *swift::swift_task_alloc(size_t size) {
-  return allocator(swift_task_getCurrent()).alloc(size);
+void *language::language_task_alloc(size_t size) {
+  return allocator(language_task_getCurrent()).alloc(size);
 }
 
-void *swift::_swift_task_alloc_specific(AsyncTask *task, size_t size) {
+void *language::_language_task_alloc_specific(AsyncTask *task, size_t size) {
   return allocator(task).alloc(size);
 }
 
-void swift::swift_task_dealloc(void *ptr) {
-  allocator(swift_task_getCurrent()).dealloc(ptr);
+void language::language_task_dealloc(void *ptr) {
+  allocator(language_task_getCurrent()).dealloc(ptr);
 }
 
-void swift::_swift_task_dealloc_specific(AsyncTask *task, void *ptr) {
+void language::_language_task_dealloc_specific(AsyncTask *task, void *ptr) {
   allocator(task).dealloc(ptr);
 }
 
-void swift::swift_task_dealloc_through(void *ptr) {
-  allocator(swift_task_getCurrent()).deallocThrough(ptr);
+void language::language_task_dealloc_through(void *ptr) {
+  allocator(language_task_getCurrent()).deallocThrough(ptr);
 }
-void *swift::swift_job_allocate(Job *job, size_t size) {
+void *language::language_job_allocate(Job *job, size_t size) {
   if (!job->isAsyncTask())
     return nullptr;
 
   return allocator(static_cast<AsyncTask *>(job)).alloc(size);
 }
 
-void swift::swift_job_deallocate(Job *job, void *ptr) {
+void language::language_job_deallocate(Job *job, void *ptr) {
   if (!job->isAsyncTask())
     return;
 

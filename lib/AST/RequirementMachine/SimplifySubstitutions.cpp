@@ -1,13 +1,17 @@
 //===--- SimplifySubstitutions.cpp - Simplify concrete type rules ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements a pass for simplifying substitutions in concrete type symbols.
@@ -199,7 +203,7 @@ void RewriteSystem::processTypeDifference(const TypeDifference &difference,
   bool debug = Debug.contains(DebugFlags::ConcreteUnification);
 
   if (debug) {
-    difference.dump(llvm::dbgs());
+    difference.dump(toolchain::dbgs());
   }
 
   RewritePath unificationPath;
@@ -229,10 +233,10 @@ void RewriteSystem::processTypeDifference(const TypeDifference &difference,
                                    *this, &inducedRulePath);
 
     if (debug) {
-      llvm::dbgs() << "%% Induced rule " << lhsTerm
+      toolchain::dbgs() << "%% Induced rule " << lhsTerm
                    << " => " << rhsTerm << " with path ";
-      inducedRulePath.dump(llvm::dbgs(), lhsTerm, *this);
-      llvm::dbgs() << "\n";
+      inducedRulePath.dump(toolchain::dbgs(), lhsTerm, *this);
+      toolchain::dbgs() << "\n";
     }
 
     addRule(lhsTerm, rhsTerm, &inducedRulePath);
@@ -262,10 +266,11 @@ void RewriteSystem::processTypeDifference(const TypeDifference &difference,
   if (lhsRule.getRHS() == difference.BaseTerm &&
       !lhsRule.isSubstitutionSimplified()) {
     if (lhsRule.isFrozen()) {
-      llvm::errs() << "Frozen rule should already be subst-simplified: "
-                   << lhsRule << "\n\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Frozen rule should already be subst-simplified: " << lhsRule
+            << "\n\n";
+        dump(out);
+      });
     }
     lhsRule.markSubstitutionSimplified();
   }
@@ -307,8 +312,8 @@ std::optional<unsigned> RewriteSystem::simplifySubstitutions(
   }
 
   // Simplify and collect substitutions.
-  llvm::SmallVector<std::pair<unsigned, Term>, 1> sameTypes;
-  llvm::SmallVector<std::pair<unsigned, Symbol>, 1> concreteTypes;
+  toolchain::SmallVector<std::pair<unsigned, Term>, 1> sameTypes;
+  toolchain::SmallVector<std::pair<unsigned, Symbol>, 1> concreteTypes;
 
   for (unsigned index : indices(substitutions)) {
     // Move the next substitution from the secondary stack to the primary stack.

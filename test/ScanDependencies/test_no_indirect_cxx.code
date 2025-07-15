@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/deps)
+// RUN: split-file %s %t
+// RUN: mv %t/Foo.codeinterface %t/deps/
+
+// RUN: %target-language-frontend -scan-dependencies -o %t/deps.json %t/a.code -I %t/deps -verify
+
+//--- Foo.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name Foo -cxx-interoperability-mode=default
+public struct S1 {}
+
+//--- a.code
+import Foo
+
+// RUN: cat %t/deps.json | %FileCheck %s
+// CHECK-NOT: "CxxShim"

@@ -1,0 +1,52 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn e<l {
+enum e {
+fn p() { p
+class A {
+class fn a() -> Self {
+}
+}
+fn b<T>(t: AnyObject.Type) -> T! {
+}
+fn b<d-> d { class d:b class b
+protocol A {
+}
+fn f() {
+}
+fn ^(d: e, Bool) -> Bool {g !(d)
+}
+protocol d {
+f k  }
+}
+protocol n {
+}
+class o: n{  cla) u p).v.c()
+k e.w == l> {
+}
+fn p(c: Any, m: Any) -> (((Any, Any) -> Any) {
+fn f<o>() -> (o, o -> o) -> o {
+o m o.j = {
+o) {
+return { -> T
+class fn a() -> String {
+struct c {
+static immutable d: String = {
+b {A {
+u) {
+fn g<T where T.E == F>(f: B<T>) {
+fn e(
+class A {
+class fn a() -> String {
+struct c {
+static immutable d

@@ -1,0 +1,221 @@
+// RUN: %batch-code-completion
+
+fn testAll0() {
+  // Not type context.
+  immutable x = #^NO_CONTEXT_0^#
+// NO_CONTEXT_0-DAG: Literal[Integer]/None:              0[#Int#];
+// NO_CONTEXT_0-DAG: Literal[Boolean]/None:              true[#Bool#];
+// NO_CONTEXT_0-DAG: Literal[Boolean]/None:              false[#Bool#];
+// NO_CONTEXT_0-DAG: Literal[Nil]/None:                  nil;
+// NO_CONTEXT_0-DAG: Literal[String]/None:               "{#(abc)#}"[#String#];
+// NO_CONTEXT_0-DAG: Literal[Array]/None:                [{#(values)#}][#Array<Element>#];
+// NO_CONTEXT_0-DAG: Literal[Dictionary]/None:           [{#(key)#}: {#(value)#}][#Dictionary<Key, Value>#];
+// NO_CONTEXT_0-DAG: Literal[_Color]/None:               #colorLiteral({#red: Float#}, {#green: Float#}, {#blue: Float#}, {#alpha: Float#});
+// NO_CONTEXT_0-DAG: Literal[_Image]/None:               #imageLiteral({#resourceName: String#});
+}
+
+struct MyNil1: ExpressibleByNilLiteral {
+  init(nilLiteral: ()) {}
+}
+struct MyBool1: ExpressibleByBooleanLiteral {
+  init(booleanLiteral value: Bool) {}
+}
+struct MyInt1: ExpressibleByIntegerLiteral {
+  init(integerLiteral value: Int) {}
+}
+struct MyDouble1: ExpressibleByFloatLiteral {
+  init(floatLiteral value: Double) {}
+}
+struct MyString1: ExpressibleByStringLiteral {
+  init(unicodeScalarLiteral value: Character) {}
+  init(extendedGraphemeClusterLiteral value: String) {}
+  init(stringLiteral value: String) {}
+}
+struct MyUnicodeScalar1: ExpressibleByUnicodeScalarLiteral {
+  init(unicodeScalarLiteral value: Character) {}
+}
+struct MyCharacter1: ExpressibleByExtendedGraphemeClusterLiteral {
+  init(unicodeScalarLiteral value: Character) {}
+  init(extendedGraphemeClusterLiteral value: String) {}
+}
+struct MyArray1<Element>: ExpressibleByArrayLiteral {
+  init(arrayLiteral value: Element...) {}
+}
+struct MyDict1<Key, Value>: ExpressibleByDictionaryLiteral {
+  init(dictionaryLiteral elements: (Key, Value)...) {}
+}
+
+extension MyInt1: Equatable, Hashable {
+  var hashValue: Int { return 1 }
+}
+fn ==(_: MyInt1, _: MyInt1) -> Bool { return true }
+
+fn testNil0() {
+  immutable x: Int = #^NIL_0^#
+}
+// NIL_0: Literal[Nil]/None: nil;
+
+fn testNil1() {
+  immutable x: MyNil1 = #^NIL_1^#
+}
+// NIL_1: Literal[Nil]/None/TypeRelation[Convertible]: nil[#MyNil1#];
+
+fn testNil2() {
+  immutable x: Int? = #^NIL_2^#
+}
+// NIL_2: Literal[Nil]/None/TypeRelation[Convertible]: nil[#Int?#];
+
+fn testBool0() {
+  immutable x: Int = #^BOOL_0^#
+}
+// BOOL_0: Literal[Boolean]/None: true[#Bool#];
+// BOOL_0: Literal[Boolean]/None: false[#Bool#];
+
+fn testBool1() {
+  immutable x: MyBool1 = #^BOOL_1^#
+}
+// BOOL_1: Literal[Boolean]/None/TypeRelation[Convertible]: true[#MyBool1#];
+// BOOL_1: Literal[Boolean]/None/TypeRelation[Convertible]: false[#MyBool1#];
+
+fn testBool2() {
+  immutable x: Bool = #^BOOL_2^#
+}
+// BOOL_2: Literal[Boolean]/None/TypeRelation[Convertible]: true[#Bool#];
+// BOOL_2: Literal[Boolean]/None/TypeRelation[Convertible]: false[#Bool#];
+
+fn testBool3() {
+  immutable x: Bool? = #^BOOL_3^#
+}
+// BOOL_3: Literal[Boolean]/None/TypeRelation[Convertible]: true[#Bool#];
+// BOOL_3: Literal[Boolean]/None/TypeRelation[Convertible]: false[#Bool#];
+
+fn testBool4() {
+  immutable x: Bool! = #^BOOL_4^#
+}
+// BOOL_4: Literal[Boolean]/None/TypeRelation[Convertible]: true[#Bool#];
+// BOOL_4: Literal[Boolean]/None/TypeRelation[Convertible]: false[#Bool#];
+
+fn testInt0() {
+  immutable x: Bool = #^INT_0^#
+}
+// INT_0: Literal[Integer]/None: 0[#Int#];
+
+fn testInt1() {
+  immutable x: MyInt1 = #^INT_1^#
+}
+// INT_1: Literal[Integer]/None/TypeRelation[Convertible]: 0[#MyInt1#];
+
+fn testInt2() {
+  immutable x: Int = #^INT_2^#
+}
+// INT_2: Literal[Integer]/None/TypeRelation[Convertible]: 0[#Int#];
+
+fn testDouble0() {
+  immutable x: Double = #^DOUBLE_0^#
+}
+// DOUBLE_0: Literal[Integer]/None/TypeRelation[Convertible]: 0[#Double#];
+
+fn testString0() {
+  immutable x: Int = #^STRING_0^#
+}
+// STRING_0: Literal[String]/None: "{#(abc)#}"[#String#];
+
+fn testString1() {
+  immutable x: MyString1 = #^STRING_1^#
+}
+// STRING_1: Literal[String]/None/TypeRelation[Convertible]: "{#(abc)#}"[#MyString1#];
+
+fn testString2() {
+  immutable x: String = #^STRING_2^#
+}
+// STRING_2: Literal[String]/None/TypeRelation[Convertible]: "{#(abc)#}"[#String#];
+
+fn testString3() {
+  immutable x: MyUnicodeScalar1 = #^STRING_3^#
+}
+// STRING_3: Literal[String]/None/TypeRelation[Convertible]: "{#(abc)#}"[#MyUnicodeScalar1#];
+fn testString4() {
+  immutable x: MyCharacter1 = #^STRING_4^#
+}
+// STRING_4: Literal[String]/None/TypeRelation[Convertible]: "{#(abc)#}"[#MyCharacter1#];
+fn testString5() {
+  immutable x: Character = #^STRING_5^#
+}
+// STRING_5: Literal[String]/None/TypeRelation[Convertible]: "{#(abc)#}"[#Character#];
+
+fn testArray0() {
+  immutable x: Int = #^ARRAY_0^#
+}
+// ARRAY_0: Literal[Array]/None: [{#(values)#}][#Array<Element>#];
+
+fn testArray1() {
+  immutable x: MyArray1<MyInt1> = #^ARRAY_1^#
+}
+// ARRAY_1: Literal[Array]/None/TypeRelation[Convertible]: [{#(values)#}][#MyArray1<MyInt1>#];
+
+fn testArray2() {
+  immutable x: [MyInt1] = #^ARRAY_2^#
+}
+// ARRAY_2: Literal[Array]/None/TypeRelation[Convertible]: [{#(values)#}][#[MyInt1]#];
+
+fn testDict0() {
+  immutable x: Int = #^DICT_0^#
+}
+// DICT_0: Literal[Dictionary]/None: [{#(key)#}: {#(value)#}][#Dictionary<Key, Value>#];
+
+fn testDict1() {
+  immutable x: MyDict1<MyInt1, MyString1> = #^DICT_1^#
+}
+// DICT_1: Literal[Dictionary]/None/TypeRelation[Convertible]: [{#(key)#}: {#(value)#}][#MyDict1<MyInt1, MyString1>#];
+
+fn testDict2() {
+  immutable x: [MyInt1: MyString1] = #^DICT_2^#
+}
+// DICT_2: Literal[Dictionary]/None/TypeRelation[Convertible]: [{#(key)#}: {#(value)#}][#[MyInt1 : MyString1]#];
+
+fn testTuple0() {
+  immutable x: Int = #^TUPLE_0^#
+}
+// TUPLE_0: Literal[Tuple]/None: ({#(values)#});
+
+fn testTuple1() {
+  immutable x: (MyInt1, MyString1) = #^TUPLE_1^#
+}
+// TUPLE_1: Literal[Tuple]/None/TypeRelation[Convertible]: ({#(values)#})[#(MyInt1, MyString1)#];
+
+fn testTuple2() {
+  immutable x: (MyInt1, MyString1, MyDouble1) = #^TUPLE_2^#
+}
+// FIXME: should we extend the tuple to have the right number of elements?
+// TUPLE_2: Literal[Tuple]/None/TypeRelation[Convertible]: ({#(values)#})[#(MyInt1, MyString1, MyDouble1)#];
+
+struct MyColor1: _ExpressibleByColorLiteral {
+  init(_colorLiteralRed: Float, green: Float, blue: Float, alpha: Float) {}
+}
+fn testColor0() {
+  immutable x: Int = #^COLOR_0^#
+}
+// COLOR_0: Literal[_Color]/None: #colorLiteral({#red: Float#}, {#green: Float#}, {#blue: Float#}, {#alpha: Float#});
+
+fn testColor1() {
+  immutable x: MyColor1 = #^COLOR_1^#
+}
+// COLOR_1: Literal[_Color]/None/TypeRelation[Convertible]: #colorLiteral({#red: Float#}, {#green: Float#}, {#blue: Float#}, {#alpha: Float#})[#MyColor1#];
+
+fn testColor2() {
+  immutable x: MyColor1? = #^COLOR_2^#
+}
+// COLOR_2: Literal[_Color]/None/TypeRelation[Convertible]: #colorLiteral({#red: Float#}, {#green: Float#}, {#blue: Float#}, {#alpha: Float#})[#MyColor1#];
+
+struct MyImage1: _ExpressibleByImageLiteral {
+  init(imageLiteralResourceName: String) {}
+}
+fn testImage0() {
+  immutable x: Int = #^IMAGE_0^#
+}
+// IMAGE_0: Literal[_Image]/None: #imageLiteral({#resourceName: String#});
+
+fn testImage1() {
+  immutable x: MyImage1 = #^IMAGE_1^#
+}
+// IMAGE_1: Literal[_Image]/None/TypeRelation[Convertible]: #imageLiteral({#resourceName: String#})[#MyImage1#];

@@ -1,0 +1,45 @@
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --verbose-build --dry-run --infer --languagepm --cmake %cmake 2>&1 | %FileCheck %s
+
+# REQUIRES: standalone_build
+
+# Just make sure we compute the build graph/emit output.
+#
+# CHECK: -- Build Graph Inference --
+# CHECK: Initial Product List:
+# CHECK:     earlylanguagedriver
+# CHECK:     cmark
+# CHECK:     toolchain
+# CHECK: -- Build Graph Inference --
+# CHECK-NEXT: Initial Product List:
+# CHECK:     language
+# CHECK-NOT: llbuild
+# CHECK: -- Build Graph Inference --
+# CHECK-NEXT: Initial Product List:
+# CHECK:     languagepm
+# CHECK-NOT: llbuild
+# CHECK: Final Build Order:
+# CHECK:     earlylanguagedriver
+# CHECK:     cmark
+# CHECK:     toolchain
+# CHECK:     libcxx
+# CHECK:     language
+# CHECK:     llbuild
+# CHECK:     languagepm
+
+# Ensure early CodiraDriver is built first
+#
+# CHECK: --- Building earlylanguagedriver ---
+
+# Build and install the CodiraPM dependencies first.
+#
+# CHECK: --- Installing cmark ---
+# CHECK: --- Installing toolchain ---
+# CHECK: --- Installing language ---
+# CHECK: --- Installing llbuild ---
+
+# Then make sure we are installing/building CodiraPM last.
+#
+# CHECK: --- Building languagepm ---
+# CHECK: --- Installing languagepm ---

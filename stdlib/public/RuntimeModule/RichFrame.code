@@ -1,4 +1,4 @@
-//===--- RichFrame.swift --------------------------------------*- swift -*-===//
+//===--- RichFrame.code --------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines the default rich frame storage type used by `Backtrace`
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 @_spi(Internal)
 public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable {
@@ -83,12 +84,12 @@ public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable 
 
   /// The program counter, without any adjustment.
   public var originalProgramCounter: Address {
-    switch self {
-      case let .returnAddress(addr):
+    switch this {
+      case immutable .returnAddress(addr):
         return addr
-      case let .programCounter(addr):
+      case immutable .programCounter(addr):
         return addr
-      case let .asyncResumePoint(addr):
+      case immutable .asyncResumePoint(addr):
         return addr
       case .omittedFrames, .truncated:
         return 0
@@ -97,12 +98,12 @@ public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable 
 
   /// The adjusted program counter to use for symbolication.
   public var adjustedProgramCounter: Address {
-    switch self {
-      case let .returnAddress(addr):
+    switch this {
+      case immutable .returnAddress(addr):
         return addr - 1
-      case let .programCounter(addr):
+      case immutable .programCounter(addr):
         return addr
-      case let .asyncResumePoint(addr):
+      case immutable .asyncResumePoint(addr):
         return addr
       case .omittedFrames, .truncated:
         return 0
@@ -111,12 +112,12 @@ public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable 
 
   /// A textual description of this frame.
   public var description: String {
-    switch self {
-      case let .programCounter(addr):
+    switch this {
+      case immutable .programCounter(addr):
         return "\(hex(addr))"
-      case let .returnAddress(addr):
+      case immutable .returnAddress(addr):
         return "\(hex(addr)) [ra]"
-      case let .asyncResumePoint(addr):
+      case immutable .asyncResumePoint(addr):
         return "\(hex(addr)) [async]"
       case .omittedFrames, .truncated:
         return "..."
@@ -126,7 +127,7 @@ public enum RichFrame<T: FixedWidthInteger>: CustomStringConvertible, Equatable 
 
 extension RichFrame: LimitableElement {
   // LimitableElement wants to call this "omitted"
-  public static func omitted(_ count: Int) -> Self {
+  public static fn omitted(_ count: Int) -> Self {
     return .omittedFrames(count)
   }
 }
@@ -134,16 +135,16 @@ extension RichFrame: LimitableElement {
 extension Backtrace.Frame {
   init<T>(_ frame: RichFrame<T>) {
     switch frame {
-      case let .returnAddress(addr):
-        self = .returnAddress(Backtrace.Address(addr)!)
-      case let .programCounter(addr):
-        self = .programCounter(Backtrace.Address(addr)!)
-      case let .asyncResumePoint(addr):
-        self = .asyncResumePoint(Backtrace.Address(addr)!)
-      case let .omittedFrames(count):
-        self = .omittedFrames(count)
+      case immutable .returnAddress(addr):
+        this = .returnAddress(Backtrace.Address(addr)!)
+      case immutable .programCounter(addr):
+        this = .programCounter(Backtrace.Address(addr)!)
+      case immutable .asyncResumePoint(addr):
+        this = .asyncResumePoint(Backtrace.Address(addr)!)
+      case immutable .omittedFrames(count):
+        this = .omittedFrames(count)
       case .truncated:
-        self = .truncated
+        this = .truncated
     }
   }
 }

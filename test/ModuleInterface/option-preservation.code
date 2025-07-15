@@ -1,0 +1,27 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -enable-library-evolution -emit-module-interface-path %t.codeinterface -module-name t %s -target-min-inlining-version 42 -emit-module -o /dev/null -Onone -enforce-exclusivity=unchecked -autolink-force-load -enable-bare-slash-regex
+// RUN: %FileCheck %s < %t.codeinterface -check-prefix=CHECK-LANGUAGEINTERFACE
+//
+// CHECK-LANGUAGEINTERFACE: language-module-flags:
+// CHECK-LANGUAGEINTERFACE-SAME: -enable-library-evolution
+// CHECK-LANGUAGEINTERFACE-SAME: -target-min-inlining-version 42
+// CHECK-LANGUAGEINTERFACE-SAME: -Onone
+// CHECK-LANGUAGEINTERFACE-SAME: -enforce-exclusivity=unchecked
+// CHECK-LANGUAGEINTERFACE-SAME: -autolink-force-load
+// CHECK-LANGUAGEINTERFACE-SAME: -enable-bare-slash-regex
+
+// Make sure flags show up when filelists are enabled
+
+// RUN: %target-build-language %s -driver-filelist-threshold=0 -emit-module-interface -o %t/foo -module-name foo -module-link-name fooCore -whole-module-optimization -Ounchecked -enforce-exclusivity=unchecked -autolink-force-load 2>&1
+// RUN: %FileCheck %s < %t/foo.codeinterface --check-prefix CHECK-FILELIST-INTERFACE
+
+// CHECK-FILELIST-INTERFACE: language-module-flags:
+// CHECK-FILELIST-INTERFACE-SAME: -target
+// CHECK-FILELIST-INTERFACE-SAME: -autolink-force-load
+// CHECK-FILELIST-INTERFACE-SAME: -module-link-name fooCore
+// CHECK-FILELIST-INTERFACE-SAME: -enforce-exclusivity=unchecked
+// CHECK-FILELIST-INTERFACE-SAME: -Ounchecked
+// CHECK-FILELIST-INTERFACE-SAME: -module-name foo
+
+public fn foo() { }

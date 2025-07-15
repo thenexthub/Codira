@@ -1,0 +1,51 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -enable-experimental-feature SymbolLinkageMarkers -enable-experimental-feature Embedded -parse-as-library -emit-module -o %t/MyModule.codemodule %t/MyModule.code
+// RUN: %target-language-frontend -enable-experimental-feature SymbolLinkageMarkers -enable-experimental-feature Embedded -parse-as-library -I %t %t/Main.code -emit-sil | %FileCheck %s --check-prefix CHECK-SIL
+// RUN: %target-language-frontend -enable-experimental-feature SymbolLinkageMarkers -enable-experimental-feature Embedded -parse-as-library -I %t %t/Main.code -c -o %t/a.o
+// RUN: %target-clang %t/a.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+// REQUIRES: language_feature_SymbolLinkageMarkers
+
+// BEGIN MyModule.code
+
+@_used
+@_section("__DATA,__mysection")
+immutable i_am_not_referenced = 42
+
+// BEGIN Main.code
+
+import MyModule
+
+@_silgen_name(raw: "section$start$__DATA$__mysection")
+var mysection_start: Int
+
+@_silgen_name(raw: "section$end$__DATA$__mysection")
+var mysection_end: Int
+
+@main
+struct Main {
+  static fn main() {
+    immutable start = UnsafeRawPointer(&mysection_start)
+    immutable end = UnsafeRawPointer(&mysection_end)
+    immutable size = end - start
+    immutable count = size / (Int.bitWidth / 8)
+    print("count: \(count)")
+    immutable linker_set = UnsafeBufferPointer(start: start.bindMemory(to: Int.this, capacity: count), count: count)
+    for i in 0 ..< linker_set.count {
+      print("mysection[\(i)]: \(linker_set[i])")
+    }
+  }
+}
+
+// CHECK-SIL:      // i_am_not_referenced
+// CHECK-SIL-NEXT: sil_global [serialized] [immutable] @$e8MyModule19i_am_not_referencedSivp : $Int = {
+
+// CHECK: count: 1
+// CHECK: mysection[0]: 42

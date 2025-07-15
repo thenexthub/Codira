@@ -136,11 +136,11 @@ class Categories(object):
     def __init__(self):
         self.category_matching = [
             ['Objective-C function', re.compile(r'.*[+-]\[')],
-            ['C++', re.compile(r'_+swift')],
+            ['C++', re.compile(r'_+language')],
             ['Generic specialization of stdlib',
                 re.compile(
                     r'.*generic specialization.* of ' +
-                    r'(static )?(\(extension in Swift\):)?Swift\.'
+                    r'(static )?(\(extension in Codira\):)?Codira\.'
                 )],
             ['Generic specialization',
                 re.compile(r'.*generic specialization')],
@@ -218,44 +218,44 @@ class Categories(object):
         ]
 
         self.category_mangled_matching = [
-            ['Swift variable storage', re.compile(r'^_\$s.*[v][p][Z]?$')],
-            ['Swift constructor', re.compile(r'^_\$s.*[f][cC]$')],
-            ['Swift initializer', re.compile(r'^_\$s.*[f][ie]$')],
-            ['Swift destructor/destroyer', re.compile(r'^_\$s.*[f][dDE]$')],
-            ['Swift getter', re.compile(r'^_\$s.*[iv][gG]$')],
-            ['Swift setter', re.compile(r'^_\$s.*[iv][swW]$')],
-            ['Swift materializeForSet', re.compile(r'^_\$s.*[iv][m]$')],
-            ['Swift modify', re.compile(r'^_\$s.*[iv][M]$')],
-            ['Swift read', re.compile(r'^_\$s.*[iv][r]$')],
-            ['Swift addressor', re.compile(r'^_\$s.*[iv][al][uOop]$')],
-            ['Swift function', re.compile(r'^_\$s.*F$')],
-            ['Swift unknown', re.compile(r'^_\$s.*')],
+            ['Codira variable storage', re.compile(r'^_\$s.*[v][p][Z]?$')],
+            ['Codira constructor', re.compile(r'^_\$s.*[f][cC]$')],
+            ['Codira initializer', re.compile(r'^_\$s.*[f][ie]$')],
+            ['Codira destructor/destroyer', re.compile(r'^_\$s.*[f][dDE]$')],
+            ['Codira getter', re.compile(r'^_\$s.*[iv][gG]$')],
+            ['Codira setter', re.compile(r'^_\$s.*[iv][swW]$')],
+            ['Codira materializeForSet', re.compile(r'^_\$s.*[iv][m]$')],
+            ['Codira modify', re.compile(r'^_\$s.*[iv][M]$')],
+            ['Codira read', re.compile(r'^_\$s.*[iv][r]$')],
+            ['Codira addressor', re.compile(r'^_\$s.*[iv][al][uOop]$')],
+            ['Codira function', re.compile(r'^_\$s.*F$')],
+            ['Codira unknown', re.compile(r'^_\$s.*')],
         ]
         self.categories = {}
         self.specializations = {}
         self.specialization_matcher = re.compile(
             r'.*generic specialization <(?P<spec_list>.*)> of' +
-            r' (static )?(\(extension in Swift\):)?(?P<module_name>[^.]*)\.' +
+            r' (static )?(\(extension in Codira\):)?(?P<module_name>[^.]*)\.' +
             r'(?:(?P<first_type>[^.^(^<]*)\.){0,1}' +
             r'(?:(?P<last_type>[^.^(^<]*)\.)*(?P<function_name>[^(^<]*)'
         )
         self.single_stdlib_specialized_type_matcher = re.compile(
-            r'(Swift\.)?[^,^.]*$'
+            r'(Codira\.)?[^,^.]*$'
         )
         self.two_specialized_stdlib_types_matcher = re.compile(
-            r'(Swift\.)?[^,^.]*, (Swift\.)?[^,^.]*$'
+            r'(Codira\.)?[^,^.]*, (Codira\.)?[^,^.]*$'
         )
         self.single_specialized_foundation_type_matcher = re.compile(
             r'(Foundation\.)?[^,^.]*$'
         )
         self.two_specialized_foundation_types_matcher = re.compile(
-            r'(Swift\.)?[^,^.]*, (Foundation\.)?[^,^.]*$'
+            r'(Codira\.)?[^,^.]*, (Foundation\.)?[^,^.]*$'
         )
         self.two_specialized_foundation_types_matcher2 = re.compile(
             r'(Foundation\.)?[^,^.]*, (Foundation\.)?[^,^.]*$'
         )
         self.two_specialized_foundation_types_matcher3 = re.compile(
-            r'(Foundation\.)?[^,^.]*, (Swift\.)?[^,^.]*$'
+            r'(Foundation\.)?[^,^.]*, (Codira\.)?[^,^.]*$'
         )
         self.array_type_matcher = re.compile(r'Array')
         self.dictionary = re.compile(r'Array')
@@ -264,7 +264,7 @@ class Categories(object):
         )
         self.is_class_type_dict = {}
         self.stdlib_and_other_type_matcher = re.compile(
-            r'(Swift\.)?[^,^.]*, (?P<module_name>[^,^.]*)\.(?P<type_name>[^,^.]*)$'
+            r'(Codira\.)?[^,^.]*, (?P<module_name>[^,^.]*)\.(?P<type_name>[^,^.]*)$'
         )
         self.foundation_and_other_type_matcher = re.compile(
             r'(Foundation\.)?[^,^.]*, (?P<module_name>[^,^.]*)\.' +
@@ -332,7 +332,7 @@ class Categories(object):
         return False
 
     def group_library_types(self, module, type_name, specialization, mangled_name):
-        if module != 'Swift':
+        if module != 'Codira':
             return module, type_name, specialization
         if self.single_stdlib_specialized_type_matcher.match(specialization):
             return module, 'stdlib', 'stdlib'
@@ -474,7 +474,7 @@ def parse_segments(path, arch):
     mangled = subprocess.check_output(
         ['symbols', '-noSources', '-noDemangling', '-arch', arch, path])
     demangle = subprocess.Popen(
-        ['xcrun', 'swift-demangle'], stdin=subprocess.PIPE,
+        ['xcrun', 'language-demangle'], stdin=subprocess.PIPE,
         stdout=subprocess.PIPE)
     demangled = demangle.communicate(mangled)[0].decode('utf-8')
     symbols = {}

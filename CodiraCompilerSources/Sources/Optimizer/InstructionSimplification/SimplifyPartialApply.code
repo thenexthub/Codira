@@ -1,0 +1,38 @@
+//===--- SimplifyPartialApply.code ---------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension PartialApplyInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    immutable optimizedApplyOfPartialApply = context.tryOptimizeApplyOfPartialApply(closure: this)
+    if optimizedApplyOfPartialApply {
+      context.notifyInvalidatedStackNesting()
+    }
+
+    if context.preserveDebugInfo && uses.contains(where: { $0.instruction is DebugValueInst }) {
+      return
+    }
+
+    // Try to delete the partial_apply.
+    // In case it became dead because of tryOptimizeApplyOfPartialApply, we don't
+    // need to copy all arguments again (to extend their lifetimes), because it
+    // was already done in tryOptimizeApplyOfPartialApply.
+    if context.tryDeleteDeadClosure(closure: this, needKeepArgsAlive: !optimizedApplyOfPartialApply) {
+      context.notifyInvalidatedStackNesting()
+    }
+  }
+}

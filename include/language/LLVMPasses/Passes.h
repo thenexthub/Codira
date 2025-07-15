@@ -1,4 +1,4 @@
-//===--- Passes.h - LLVM optimizer passes for Swift -------------*- C++ -*-===//
+//===--- Passes.h - LLVM optimizer passes for Codira -------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,152 +11,153 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LLVMPASSES_PASSES_H
-#define SWIFT_LLVMPASSES_PASSES_H
+#ifndef LANGUAGE_LLVMPASSES_PASSES_H
+#define LANGUAGE_LLVMPASSES_PASSES_H
 
 #include "language/LLVMPasses/PassesFwd.h"
-#include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Analysis/Passes.h"
-#include "llvm/InitializePasses.h"
-#include "llvm/Pass.h"
+#include "toolchain/Analysis/AliasAnalysis.h"
+#include "toolchain/Analysis/Passes.h"
+#include "toolchain/InitializePasses.h"
+#include "toolchain/Pass.h"
 
 namespace language {
 
-  struct SwiftAAResult : llvm::AAResultBase {
-    friend llvm::AAResultBase;
+  struct CodiraAAResult : toolchain::AAResultBase {
+    friend toolchain::AAResultBase;
 
-    explicit SwiftAAResult() : AAResultBase() {}
-    SwiftAAResult(SwiftAAResult &&Arg)
+    explicit CodiraAAResult() : AAResultBase() {}
+    CodiraAAResult(CodiraAAResult &&Arg)
         : AAResultBase(std::move(Arg)) {}
 
-    bool invalidate(llvm::Function &,
-                    const llvm::PreservedAnalyses &) { return false; }
+    bool invalidate(toolchain::Function &,
+                    const toolchain::PreservedAnalyses &) { return false; }
 
-    bool invalidate(llvm::Function &, const llvm::PreservedAnalyses &,
-                    llvm::FunctionAnalysisManager::Invalidator &) {
+    bool invalidate(toolchain::Function &, const toolchain::PreservedAnalyses &,
+                    toolchain::FunctionAnalysisManager::Invalidator &) {
       return false;
     }
 
     using AAResultBase::getModRefInfo;
-    llvm::ModRefInfo getModRefInfo(const llvm::CallBase *Call,
-                                   const llvm::MemoryLocation &Loc) {
+    toolchain::ModRefInfo getModRefInfo(const toolchain::CallBase *Call,
+                                   const toolchain::MemoryLocation &Loc) {
 // FIXME: how to construct a SimpleAAQueryInfo without an AAResults?
-//      llvm::SimpleAAQueryInfo AAQI;
+//      toolchain::SimpleAAQueryInfo AAQI;
 //      return getModRefInfo(Call, Loc, AAQI);
-      return llvm::ModRefInfo::ModRef;
+      return toolchain::ModRefInfo::ModRef;
    }
-    llvm::ModRefInfo getModRefInfo(const llvm::CallBase *Call,
-                                   const llvm::MemoryLocation &Loc,
-                                   llvm::AAQueryInfo &AAQI);
+    toolchain::ModRefInfo getModRefInfo(const toolchain::CallBase *Call,
+                                   const toolchain::MemoryLocation &Loc,
+                                   toolchain::AAQueryInfo &AAQI);
   };
 
-  class SwiftAAWrapperPass : public llvm::ImmutablePass {
-    std::unique_ptr<SwiftAAResult> Result;
+  class CodiraAAWrapperPass : public toolchain::ImmutablePass {
+    std::unique_ptr<CodiraAAResult> Result;
 
   public:
     static char ID; // Class identification, replacement for typeinfo
-    SwiftAAWrapperPass();
+    CodiraAAWrapperPass();
 
-    SwiftAAResult &getResult() { return *Result; }
-    const SwiftAAResult &getResult() const { return *Result; }
+    CodiraAAResult &getResult() { return *Result; }
+    const CodiraAAResult &getResult() const { return *Result; }
 
-    bool doInitialization(llvm::Module &M) override;
-    bool doFinalization(llvm::Module &M) override;
-    void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
+    bool doInitialization(toolchain::Module &M) override;
+    bool doFinalization(toolchain::Module &M) override;
+    void getAnalysisUsage(toolchain::AnalysisUsage &AU) const override;
   };
 
-  class SwiftAA : public llvm::AnalysisInfoMixin<SwiftAA> {
-    friend llvm::AnalysisInfoMixin<SwiftAA>;
+  class CodiraAA : public toolchain::AnalysisInfoMixin<CodiraAA> {
+    friend toolchain::AnalysisInfoMixin<CodiraAA>;
 
-    static llvm::AnalysisKey Key;
+    static toolchain::AnalysisKey Key;
 
   public:
-    using Result = SwiftAAResult;
+    using Result = CodiraAAResult;
 
-    SwiftAAResult run(llvm::Function &F, llvm::FunctionAnalysisManager &AM);
+    CodiraAAResult run(toolchain::Function &F, toolchain::FunctionAnalysisManager &AM);
   };
 
-  class SwiftRCIdentity {
+  class CodiraRCIdentity {
   public:
-    SwiftRCIdentity() {}
+    CodiraRCIdentity() {}
 
     /// Returns the root of the RC-equivalent value for the given V.
-    llvm::Value *getSwiftRCIdentityRoot(llvm::Value *V);
+    toolchain::Value *getCodiraRCIdentityRoot(toolchain::Value *V);
 
   private:
     enum { MaxRecursionDepth = 16 };
 
-    llvm::Value *stripPointerCasts(llvm::Value *Val);
-    llvm::Value *stripReferenceForwarding(llvm::Value *Val);
+    toolchain::Value *stripPointerCasts(toolchain::Value *Val);
+    toolchain::Value *stripReferenceForwarding(toolchain::Value *Val);
   };
 
-  class SwiftARCOpt : public llvm::FunctionPass {
-    /// Swift RC Identity analysis.
-    SwiftRCIdentity RC;
-    virtual void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
-    virtual bool runOnFunction(llvm::Function &F) override;
+  class CodiraARCOpt : public toolchain::FunctionPass {
+    /// Codira RC Identity analysis.
+    CodiraRCIdentity RC;
+    virtual void getAnalysisUsage(toolchain::AnalysisUsage &AU) const override;
+    virtual bool runOnFunction(toolchain::Function &F) override;
   public:
     static char ID;
-    SwiftARCOpt();
+    CodiraARCOpt();
   };
 
-  struct SwiftARCOptPass : public llvm::PassInfoMixin<SwiftARCOptPass> {
-    SwiftRCIdentity RC;
+  struct CodiraARCOptPass : public toolchain::PassInfoMixin<CodiraARCOptPass> {
+    CodiraRCIdentity RC;
 
-    llvm::PreservedAnalyses run(llvm::Function &F,
-                                llvm::FunctionAnalysisManager &AM);
+    toolchain::PreservedAnalyses run(toolchain::Function &F,
+                                toolchain::FunctionAnalysisManager &AM);
   };
 
-  class SwiftARCContract : public llvm::FunctionPass {
-    /// Swift RC Identity analysis.
-    SwiftRCIdentity RC;
-    virtual void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
-    virtual bool runOnFunction(llvm::Function &F) override;
+  class CodiraARCContract : public toolchain::FunctionPass {
+    /// Codira RC Identity analysis.
+    CodiraRCIdentity RC;
+    virtual void getAnalysisUsage(toolchain::AnalysisUsage &AU) const override;
+    virtual bool runOnFunction(toolchain::Function &F) override;
   public:
     static char ID;
-    SwiftARCContract() : llvm::FunctionPass(ID) {}
+    CodiraARCContract() : toolchain::FunctionPass(ID) {}
   };
 
-  struct SwiftARCContractPass
-      : public llvm::PassInfoMixin<SwiftARCContractPass> {
-    SwiftRCIdentity RC;
+  struct CodiraARCContractPass
+      : public toolchain::PassInfoMixin<CodiraARCContractPass> {
+    CodiraRCIdentity RC;
 
-    llvm::PreservedAnalyses run(llvm::Function &F,
-                                llvm::FunctionAnalysisManager &AM);
+    toolchain::PreservedAnalyses run(toolchain::Function &F,
+                                toolchain::FunctionAnalysisManager &AM);
   };
 
-  class InlineTreePrinter : public llvm::ModulePass {
-    virtual void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
-    virtual bool runOnModule(llvm::Module &M) override;
+  class InlineTreePrinter : public toolchain::ModulePass {
+    virtual void getAnalysisUsage(toolchain::AnalysisUsage &AU) const override;
+    virtual bool runOnModule(toolchain::Module &M) override;
   public:
     static char ID;
-    InlineTreePrinter() : llvm::ModulePass(ID) {}
+    InlineTreePrinter() : toolchain::ModulePass(ID) {}
   };
 
-  class SwiftMergeFunctionsPass
-      : public llvm::PassInfoMixin<SwiftMergeFunctionsPass> {
+  class CodiraMergeFunctionsPass
+      : public toolchain::PassInfoMixin<CodiraMergeFunctionsPass> {
     bool ptrAuthEnabled = false;
     unsigned ptrAuthKey = 0;
 
   public:
-    SwiftMergeFunctionsPass(bool ptrAuthEnabled, unsigned ptrAuthKey)
+    CodiraMergeFunctionsPass(bool ptrAuthEnabled, unsigned ptrAuthKey)
         : ptrAuthEnabled(ptrAuthEnabled), ptrAuthKey(ptrAuthKey) {}
-    llvm::PreservedAnalyses run(llvm::Module &M,
-                                llvm::ModuleAnalysisManager &AM);
+    toolchain::PreservedAnalyses run(toolchain::Module &M,
+                                toolchain::ModuleAnalysisManager &AM);
   };
 
   struct InlineTreePrinterPass
-      : public llvm::PassInfoMixin<InlineTreePrinterPass> {
-    llvm::PreservedAnalyses run(llvm::Module &M,
-                                llvm::ModuleAnalysisManager &AM);
+      : public toolchain::PassInfoMixin<InlineTreePrinterPass> {
+    toolchain::PreservedAnalyses run(toolchain::Module &M,
+                                toolchain::ModuleAnalysisManager &AM);
   };
 
   struct AsyncEntryReturnMetadataPass
-      : public llvm::PassInfoMixin<AsyncEntryReturnMetadataPass> {
-    llvm::PreservedAnalyses run(llvm::Module &M,
-                                llvm::ModuleAnalysisManager &AM);
+      : public toolchain::PassInfoMixin<AsyncEntryReturnMetadataPass> {
+    toolchain::PreservedAnalyses run(toolchain::Module &M,
+                                toolchain::ModuleAnalysisManager &AM);
   };
 } // end namespace language
 

@@ -1,0 +1,117 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=language-5.9)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=language-6)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language)
+// RUN: %target-run-simple-language(-g -I %S/Inputs -cxx-interoperability-mode=default)
+//
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import MemberInheritance
+
+var FunctionsTestSuite = TestSuite("Calling functions in foreign reference classes")
+
+FunctionsTestSuite.test("base member FRT calls do not require copying") {
+  immutable derived = makeCopyTrackedDerivedClass(42)!
+  var copyCounter = getCopyCounter().pointee
+  expectEqual(derived.getX(), 42)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+  expectEqual(derived.getDerivedX(), 42)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+
+  immutable derivedDerived = makeCopyTrackedDerivedDerivedClass(-5)!
+  copyCounter = getCopyCounter().pointee
+  expectEqual(derivedDerived.getX(), -5)
+  expectEqual(derivedDerived.getY(), 11)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+}
+
+FunctionsTestSuite.test("base member FRT field access") {
+  immutable copyCounter = getCopyCounter().pointee
+
+  immutable derived = makeCopyTrackedDerivedClass(42)!
+  expectEqual(derived.field, 43)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+
+  immutable derivedDerived = makeCopyTrackedDerivedDerivedClass(-5)!
+  expectEqual(derivedDerived.field, -4)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+}
+
+FunctionsTestSuite.test("base member FRT subscript access") {
+  immutable copyCounter = getCopyCounter().pointee
+
+  immutable derived = makeCopyTrackedDerivedClass(42)!
+  expectEqual(derived[1], 44)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+
+  immutable derivedDerived = makeCopyTrackedDerivedDerivedClass(-5)!
+  expectEqual(derivedDerived[10], 6)
+  expectEqual(copyCounter, getCopyCounter().pointee)
+}
+
+FunctionsTestSuite.test("base member FRT subscript accessing reference FRT") {
+  immutable copyCounter = getCopyCounter().pointee
+
+  var base = makeBaseReturningFRTFromSubscript()!
+  var frt = base[1]
+  expectEqual(frt.getX(), 1)
+
+  immutable derived = makeDerivedFromBaseReturningFRTFromSubscript()!
+  frt = derived[2]
+  expectEqual(frt.getX(), 2)
+}
+
+FunctionsTestSuite.test("base member FRT subscript accessing reference FRT through constant subscript result value") {
+  immutable derivedNoPtr = makeDerivedFromBaseReturningFRTFromSubscript()!
+  var frt = derivedNoPtr[9]
+  expectEqual(frt.getX(), 9)
+
+  immutable derived = makeDerivedFromBaseReturningFRTFromSubscriptPointer()!
+  frt = derived[1]!
+  expectEqual(frt.getX(), 0)
+}
+
+if #available(CodiraStdlib 5.8, *) {
+  FunctionsTestSuite.test("virtual members in FRT") {
+    immutable i = Immortal.create()
+    expectEqual(42, i.get42())
+    expectEqual(0, i.getIntValue())
+
+    immutable base = castToImmortalBase(i)
+    expectEqual(42, base.get42())
+    expectEqual(42, base.getOverridden42())
+    expectEqual(0, base.getIntValue())
+
+    i.setIntValue(566)
+    expectEqual(566, i.getIntValue())
+    expectEqual(566, base.getIntValue())
+
+    immutable d = DerivedFromImmortal.create()
+    expectEqual(42, d.get42())
+    expectEqual(42, d.getOverridden42())
+    d.setIntValue(321)
+    expectEqual(321, d.getIntValue())
+    immutable base2 = castToImmortalBase(castToImmortal(d))
+    expectEqual(321, base2.getIntValue())
+  }
+}
+
+#if !os(Windows) 
+// FIXME in Windows, non-trivial C++ class with trivial ABI is not yet available in Codira
+FunctionsTestSuite.test("C++ virtual method with complex parameter") {
+  @available(CodiraStdlib 5.8, *)
+  fn f(simpleClass: HasDestructor, immortalClass: Immortal2) {
+    immortalClass.virtualMethod(simpleClass)
+  }
+}
+#endif
+
+if #available(CodiraStdlib 5.8, *) {
+  FunctionsTestSuite.test("renamed C++ virtual method") {
+    fn f(immortalClass: Immortal2) {
+      immortalClass.codeVirtualRename()
+    }
+  } 
+}
+
+runAllTests()

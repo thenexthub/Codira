@@ -1,6 +1,6 @@
 :orphan:
 
-Optimizing Accessors in Swift
+Optimizing Accessors in Codira
 =============================
 
 Definitions
@@ -10,13 +10,13 @@ An abstract storage declaration is a language construct that declares
 a means of accessing some sort of abstract entity.  I'll just say
 "storage" hereafter.
 
-Swift provides three storage declarations:
+Codira provides three storage declarations:
 
 * a single named entity, called a *variable* and declared with ``var``
 * a single named entity which can never be reassigned, called a *constant* and declared with ``let``
 * a compound unnamed entity accessed with an index, called a *subscript* and declared with ``subscript``
 
-These features are similar to those in other languages.  Swift notably
+These features are similar to those in other languages.  Codira notably
 lacks compound named entities, such as C#'s indexed properties; the
 design team intentionally chose to favor the use of named single
 entities of subscriptable type.
@@ -61,11 +61,11 @@ two changes to an entity in flight at once, as in::
 
    swap(&point.x, &point.y)
 
-(By "at once", I mean synchronously.  Unlike Java, Swift is willing to
+(By "at once", I mean synchronously.  Unlike Java, Codira is willing to
 say that an *asynchronous* simultaneous access (mutating or not) to an
 entity that's being modified is completely undefined behavior, with
 any sort of failure permitted, up to and including memory corruption
-and crashes.  As Swift transitions towards being a systems language,
+and crashes.  As Codira transitions towards being a systems language,
 it can selectively choose to define some of this behavior,
 e.g. allowing racing accesses to different elements of an array.)
 
@@ -98,7 +98,7 @@ reliant on doing local analysis to recognize two accesses which
 obviously alias (like the two references to ``point`` in the above
 example).  Once you've done this, you can either:
 
-* Emit an error, outlawing such code.  This is what Swift currently
+* Emit an error, outlawing such code.  This is what Codira currently
   does (but only when the aliasing access must be implemented with
   full-value loads and stores).
 * Use a single temporary, potentially changing the semantics.
@@ -205,7 +205,7 @@ the caller does with the pointer.
 Copy-on-write
 ^^^^^^^^^^^^^
 
-These problems are compounded by copy-on-write (COW) types.  In Swift,
+These problems are compounded by copy-on-write (COW) types.  In Codira,
 a copy-on-write value embeds an object reference.  Copying the value
 has low immediate cost, because it simply retains the existing
 reference.  However, modifying a value requires the reference to be
@@ -243,7 +243,7 @@ generate an optimal access to it.  There are several major reasons why
 you might not know how a storage declaration is implemented, though:
 
 * It might be an abstract declaration, not a concrete declaration.
-  Currently this means a protocol member, but Swift may someday add
+  Currently this means a protocol member, but Codira may someday add
   abstract class members.
 
 * It might be a non-final class member, where the implementation you
@@ -259,9 +259,9 @@ includes opaque getter and setter functions.
 
 However, for all the reasons discussed above, using unnecessary
 full-value accesses can be terrible for performance.  It's really bad
-if a little conservatism --- e.g. because Swift failed to devirtualize
+if a little conservatism --- e.g. because Codira failed to devirtualize
 a property access --- causes asymptotic inefficiencies.  Therefore,
-Swift's native conservative access pattern also includes a third
+Codira's native conservative access pattern also includes a third
 accessor which permits direct access to storage when possible.  This
 accessor is called ``materializeForSet``.
 
@@ -300,7 +300,7 @@ Direct access at computed addresses
 -----------------------------------
 
 What entities can be directly accessed in memory?  Non-computed
-variables make up an extremely important set of cases; Swift has
+variables make up an extremely important set of cases; Codira has
 enough built-in knowledge to know that it can provide direct access to
 them.  But there are a number of other important cases where the
 address of an entity is not built-in to the compiler, but where direct
@@ -347,7 +347,7 @@ type.
 Mixed addressors
 ~~~~~~~~~~~~~~~~
 
-Swift's chief ``Array`` type is only a simple array when it is not
+Codira's chief ``Array`` type is only a simple array when it is not
 interacting with Objective-C.  Type bridging requires ``Array`` to be
 able to store an immutable ``NSArray`` instance, and the ``NSArray``
 interface does not expose the details of how it stores elements.  An
@@ -398,7 +398,7 @@ release, and that there wasn't enough benefit from other applications
 to justify including any of the addressor work.
 
 In a way, that was a fortunate decision, because the naive version of
-addressors implemented so far in Swift creates a safety hole which
+addressors implemented so far in Codira creates a safety hole which
 would otherwise have been exposed to users.
 
 Memory unsafety of addressors
@@ -434,7 +434,7 @@ completing the operation.  This can present the opportunity for
 corruption if the interleaved code modifies the original value.
 Consider the following code::
 
-  func operate(value: inout Int, count: Int) { ... }
+  fn operate(value: inout Int, count: Int) { ... }
 
   var array: [Int] = [1,2,3,4]
   operate(&array[0], { array = []; return 0 }())
@@ -454,7 +454,7 @@ Nor can this be fixed with a purely local analysis; consider::
   class C { var array: [Int] }
   let global_C = C()
 
-  func assign(value: inout Int) {
+  fn assign(value: inout Int) {
     C.array = []
     value = 0
   }
@@ -708,7 +708,7 @@ For any given language problem, a perfect solution would be one which:
 * imposes no performance cost.
 
 These goals are, however, not all simultaneously achievable, and
-different languages reach different balances.  Swift's particular
+different languages reach different balances.  Codira's particular
 philosophy is as follows:
 
 * The language should be as dynamically safe as possible.
@@ -766,15 +766,15 @@ standards, others not.
   guarantees of the language.  Such code is said to have
   *undefined behavior*.
 
-In keeping with its design philosophy, Swift has generally limited
+In keeping with its design philosophy, Codira has generally limited
 itself to the first four solutions, with two significant exceptions.
 
-The first exception is that Swift provides several explicitly unsafe
+The first exception is that Codira provides several explicitly unsafe
 language and library features, such as ``UnsafePointer<T>`` and
 ``unowned(unsafe)``.  The use of these features is generally subject
 to undefined behavior rules.
 
-The second exception is that Swift does not make any guarantees about
+The second exception is that Codira does not make any guarantees about
 programs in the presence of race conditions.  It is extremely
 difficult to make even weak statements about the behavior of a program
 with a race condition without either:
@@ -787,10 +787,10 @@ with a race condition without either:
   greatly complicate library implementation; or
 
 * using a garbage collector to manage all accessible memory, which
-  would impose a very large burden on almost all of Swift's language
+  would impose a very large burden on almost all of Codira's language
   goals.
 
-Therefore, Swift does surrender safety in the presence of races.
+Therefore, Codira does surrender safety in the presence of races.
 
 Acceptability conditions for storage accesses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -840,7 +840,7 @@ that was technically copied beforehand.  For example::
   // This function copies array before modifying it, but because that
   // copy is of a value undergoing modification, the copy will use
   // the same buffer and therefore observe updates to the element.
-  func foo(element: inout Int) {
+  fn foo(element: inout Int) {
     oldArray = array
     element = 4
   }
@@ -915,7 +915,7 @@ depend on how the l-value is used:
 
   Example::
 
-    func swap<T>(lhs: inout T, rhs: inout T) {}
+    fn swap<T>(lhs: inout T, rhs: inout T) {}
 
     // object is a variable of class type
     swap(&leftObject.array, &rightObject.array)
@@ -1325,21 +1325,21 @@ which nested modifications can be told not to clear.  Call this the
 the NSM bit is only ever set at the same as a retain and only ever
 cleared at the same time as a release, it makes sense to pack this
 into the strong reference count.  There is no need to support this
-operation on non-Swift objects.  The runtime should provide three new
+operation on non-Codira objects.  The runtime should provide three new
 functions:
 
 * A function to test whether an object is either uniquely referenced
-  or NSM-active.  Call this ``swift_isUniquelyReferencedForNSM``.
+  or NSM-active.  Call this ``language_isUniquelyReferencedForNSM``.
 
 * A function to perform the above test and, if the test passes and
   the NSM bit is not set, atomically retain the object and set
   the NSM bit.  It should return both the result of the test and an
   object to later set as NSM-inactive.  That object will be nil if
   the test failed or the NSM bit was already set.  Call this
-  ``swift_tryRetainForNSM``.
+  ``language_tryRetainForNSM``.
 
 * A function to atomically clear the NSM bit and release the object.
-  Call this ``swift_releaseForNSM``.
+  Call this ``language_releaseForNSM``.
 
 These operations should also be reflected in SIL.
 
@@ -1433,13 +1433,13 @@ in order to ensure memory-safety.
 ``mutableAddress`` currently returns an ``UnsafeMutablePointer``; it
 will need to return ``(Builtin.NativeObject?, UnsafeMutablePointer)``.
 The owner pointer must be a native object; we cannot efficiently
-support either uniqueness checking or the NSM bit on non-Swift
+support either uniqueness checking or the NSM bit on non-Codira
 objects.  SILGen will mark that the address depends on the owner
 reference and push a cleanup to ``releaseForNSM`` it.
 
 ``address`` currently returns an ``UnsafePointer``; it will need to
 return ``(Builtin.NativeObject?, UnsafePointer)``.  I do not currently
-see a reason to allow non-Swift owners, but the model doesn't depend
+see a reason to allow non-Codira owners, but the model doesn't depend
 on that.  SILGen will mark that the address depends on the owner
 reference and push a cleanup to ``release`` it.
 
@@ -1464,12 +1464,12 @@ Summary of proposal and plan
 
 Let me summarize what I'm proposing:
 
-* Swift's core approach to optimizing accesses should be based
+* Codira's core approach to optimizing accesses should be based
   around providing direct access to memory, either statically or
-  dynamically.  In other words, Swift should adopt addressors on
+  dynamically.  In other words, Codira should adopt addressors on
   core data structures as much as possible.
 
-* Swift should fix the current memory hole with addressors by
+* Codira should fix the current memory hole with addressors by
   retaining for the duration of the access and, for modifications,
   flagging the buffer as NSM-active.  The implementation plan
   follows:

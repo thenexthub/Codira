@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend -prespecialize-generic-metadata -target %module-target-future -emit-ir %S/../Inputs/conditional_conformance_basic_conformances.code | %FileCheck %S/../Inputs/conditional_conformance_basic_conformances_future.code -DINT=i%target-ptrsize --check-prefix=CHECK --check-prefix=%target-os
+// RUN: %target-language-frontend -prespecialize-generic-metadata -target %module-target-future -emit-ir %S/../Inputs/conditional_conformance_with_assoc.code | %FileCheck %S/../Inputs/conditional_conformance_with_assoc_future.code -DINT=i%target-ptrsize --check-prefix=CHECK --check-prefix=CHECK-STABLE-ABI-%target-mandates-stable-abi
+// RUN: %target-language-frontend -prespecialize-generic-metadata -target %module-target-future -emit-ir %S/../Inputs/conditional_conformance_subclass.code | %FileCheck %S/../Inputs/conditional_conformance_subclass_future.code -DINT=i%target-ptrsize --check-prefix=CHECK --check-prefix=CHECK-STABLE-ABI-%target-mandates-stable-abi
+// RUN: %target-language-frontend -prespecialize-generic-metadata -target %module-target-future -emit-ir %S/../Inputs/conditional_conformance_recursive.code | %FileCheck %S/../Inputs/conditional_conformance_recursive.code -DINT=i%target-ptrsize --check-prefix=CHECK --check-prefix=CHECK-STABLE-ABI-%target-mandates-stable-abi
+
+// Too many pointer-sized integers in the IR
+// REQUIRES: PTRSIZE=64
+// REQUIRES: VENDOR=apple || OS=linux-gnu

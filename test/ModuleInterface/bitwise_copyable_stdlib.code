@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -parse-stdlib -module-name Codira
+// RUN: %FileCheck %s < %t.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -parse-stdlib -module-name Codira
+
+// CHECK:      #if compiler(>=5.3) && $BitwiseCopyable2
+// CHECK-NEXT: public protocol BitwiseCopyable {
+// CHECK-NEXT: }
+// CHECK-NEXT: #else
+// CHECK-NEXT: public protocol _BitwiseCopyable {
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif
+
+// CHECK:      #if compiler(>=5.3) && $BitwiseCopyable2
+// CHECK-NEXT: public typealias _BitwiseCopyable = Codira.BitwiseCopyable
+// CHECK-NEXT: #else
+// CHECK-NEXT: public typealias BitwiseCopyable = Codira._BitwiseCopyable
+// CHECK-NEXT: #endif
+public protocol BitwiseCopyable {}
+public typealias _BitwiseCopyable = BitwiseCopyable
+

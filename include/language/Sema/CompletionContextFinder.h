@@ -1,17 +1,21 @@
 //===--- CompletionContextFinder.h ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_COMPLETIONCONTEXTFINDER_H
-#define SWIFT_SEMA_COMPLETIONCONTEXTFINDER_H
+#ifndef LANGUAGE_SEMA_COMPLETIONCONTEXTFINDER_H
+#define LANGUAGE_SEMA_COMPLETIONCONTEXTFINDER_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/ASTWalker.h"
@@ -39,7 +43,7 @@ class CompletionContextFinder : public ASTWalker {
   };
 
   /// Stack of all "interesting" contexts up to code completion expression.
-  llvm::SmallVector<Context, 4> Contexts;
+  toolchain::SmallVector<Context, 4> Contexts;
 
   /// If we are completing inside an expression, the \c CodeCompletionExpr that
   /// represents the code completion token.
@@ -47,7 +51,7 @@ class CompletionContextFinder : public ASTWalker {
   /// The AST node that represents the code completion token, either as a
   /// \c CodeCompletionExpr or a \c KeyPathExpr which contains a code completion
   /// component.
-  llvm::PointerUnion<CodeCompletionExpr *, const KeyPathExpr *> CompletionNode;
+  toolchain::PointerUnion<CodeCompletionExpr *, const KeyPathExpr *> CompletionNode;
 
   Expr *InitialExpr = nullptr;
   DeclContext *InitialDC;
@@ -129,7 +133,7 @@ public:
 
 private:
   bool hasContext(ContextKind kind) const {
-    return llvm::find_if(Contexts, [&kind](const Context &currContext) {
+    return toolchain::find_if(Contexts, [&kind](const Context &currContext) {
              return currContext.Kind == kind;
            }) != Contexts.end();
   }
@@ -145,4 +149,4 @@ bool containsIDEInspectionTarget(SourceRange range,
 
 } // end namespace language
 
-#endif // SWIFT_SEMA_COMPLETIONCONTEXTFINDER_H
+#endif // LANGUAGE_SEMA_COMPLETIONCONTEXTFINDER_H

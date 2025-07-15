@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,10 +16,10 @@
 #ifndef WORD_DATA_H
 #define WORD_DATA_H
 
-#include "language/shims/SwiftStdint.h"
+#include "language/shims/CodiraStdint.h"
 
 #define WORD_BREAK_DATA_COUNT 1155
-static const __swift_uint32_t _swift_stdlib_words[1155] = {
+static const __language_uint32_t _language_stdlib_words[1155] = {
   0x200000, 0x60FE4D, 0x4801C00, 0xE11A33, 0x600D54, 0xE02DA0, 0x211075, 0x81D53B, 0x4009C7,
   0x8012C2, 0xA02119, 0x20A8FF, 0x5410787, 0x2113B7, 0x1416130, 0x141EE29, 0x2006D5, 0x1400B66,
   0x2800F71, 0xA01880, 0x601FC2, 0x202716, 0x200A610, 0xC0AB09, 0x6A10140, 0x2610B60, 0x41123F,
@@ -151,7 +151,7 @@ static const __swift_uint32_t _swift_stdlib_words[1155] = {
   0x200D4E, 0x200D57, 0x400D62, 0xC00D7A,
 };
 
-static const __swift_uint8_t _swift_stdlib_words_data[1155] = {
+static const __language_uint8_t _language_stdlib_words_data[1155] = {
   0x0, 0x9, 0x4, 0x0, 0x4, 0x4, 0x4, 0x4, 0x0, 0x4, 0x4, 0x0, 0x4, 0x4, 0x8, 0x4, 0x4, 0x8, 0x0,
   0x4, 0x4, 0xB, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x4, 0x2, 0x4, 0x4, 0x4, 0x0, 0x4, 0x4, 0x0, 0x0,
   0x0, 0x8, 0x0, 0xB, 0xB, 0xB, 0xB, 0x4, 0x4, 0x3, 0x4, 0x4, 0x4, 0x0, 0x4, 0x4, 0x4, 0x0, 0x4,

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the list of witnesses required to attest that a
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_VALUEWITNESS_H
-#define SWIFT_IRGEN_VALUEWITNESS_H
+#ifndef LANGUAGE_IRGEN_VALUEWITNESS_H
+#define LANGUAGE_IRGEN_VALUEWITNESS_H
 
 namespace language {
 namespace irgen {

@@ -1,4 +1,4 @@
-//===--- GenTuple.cpp - Swift IR Generation For Tuple Types ---------------===//
+//===--- GenTuple.cpp - Codira IR Generation For Tuple Types ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements IR generation for tuple types in Swift.  This
+//  This file implements IR generation for tuple types in Codira.  This
 //  includes creating the IR type as well as emitting the primitive access
 //  operations.
 //
@@ -32,7 +33,7 @@
 #include "language/Basic/Mangler.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILType.h"
-#include "llvm/IR/DerivedTypes.h"
+#include "toolchain/IR/DerivedTypes.h"
 
 #include "GenHeap.h"
 #include "GenRecord.h"
@@ -59,7 +60,7 @@ namespace {
       : public ResilientTypeInfo<DynamicTupleTypeInfo>
   {
   public:
-    DynamicTupleTypeInfo(llvm::Type *T,
+    DynamicTupleTypeInfo(toolchain::Type *T,
                          IsCopyable_t copyable)
       : ResilientTypeInfo(T, copyable, IsABIAccessible) {}
 
@@ -74,7 +75,7 @@ namespace {
 
 const TypeInfo *
 TypeConverter::convertDynamicTupleType(IsCopyable_t copyable) {
-  llvm::Type *storageType = IGM.OpaqueTy;
+  toolchain::Type *storageType = IGM.OpaqueTy;
   return new DynamicTupleTypeInfo(storageType, copyable);
 }
 
@@ -105,23 +106,23 @@ namespace {
   };
   
   /// Project a tuple offset from a tuple metadata structure.
-  static llvm::Value *loadTupleOffsetFromMetadata(IRGenFunction &IGF,
-                                                  llvm::Value *metadata,
-                                                  llvm::Value *index) {
+  static toolchain::Value *loadTupleOffsetFromMetadata(IRGenFunction &IGF,
+                                                  toolchain::Value *metadata,
+                                                  toolchain::Value *index) {
     auto asTuple = IGF.Builder.CreateBitCast(metadata,
                                              IGF.IGM.TupleTypeMetadataPtrTy);
 
-    llvm::Value *indices[] = {
+    toolchain::Value *indices[] = {
         IGF.IGM.getSize(Size(0)),                   // (*tupleType)
-        llvm::ConstantInt::get(IGF.IGM.Int32Ty, 3), //   .Elements
+        toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 3), //   .Elements
         index,                                      //     [index]
-        llvm::ConstantInt::get(IGF.IGM.Int32Ty, 1)  //       .Offset
+        toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 1)  //       .Offset
     };
     auto slot = IGF.Builder.CreateInBoundsGEP(IGF.IGM.TupleTypeMetadataTy,
                                               asTuple, indices);
 
     std::string name;
-    if (auto *constantIndex = dyn_cast<llvm::ConstantInt>(index))
+    if (auto *constantIndex = dyn_cast<toolchain::ConstantInt>(index))
       name = (metadata->getName() + "." +
               Twine(constantIndex->getValue().getLimitedValue()) + ".offset")
                 .str();
@@ -132,8 +133,8 @@ namespace {
                                   IGF.IGM.getPointerAlignment(), name);
   }
 
-  static llvm::Value *loadTupleOffsetFromMetadata(IRGenFunction &IGF,
-                                                  llvm::Value *metadata,
+  static toolchain::Value *loadTupleOffsetFromMetadata(IRGenFunction &IGF,
+                                                  toolchain::Value *metadata,
                                                   unsigned index) {
     return loadTupleOffsetFromMetadata(IGF, metadata,
                                        IGF.IGM.getSize(Size(index)));
@@ -165,7 +166,7 @@ namespace {
   
       // Otherwise, project from the base.
       auto fieldRange = field.getProjectionRange();
-      ArrayRef<llvm::Value *> element = tuple.getRange(fieldRange.first,
+      ArrayRef<toolchain::Value *> element = tuple.getRange(fieldRange.first,
                                                        fieldRange.second);
       out.add(element);
     }
@@ -207,7 +208,7 @@ namespace {
       case ElementLayout::Kind::NonFixed:
         return std::nullopt;
       }
-      llvm_unreachable("bad element layout kind");
+      toolchain_unreachable("bad element layout kind");
     }
 
     std::optional<unsigned> getElementStructIndex(IRGenModule &IGM,
@@ -221,11 +222,11 @@ namespace {
     void initializeFromParams(IRGenFunction &IGF, Explosion &params,
                               Address src, SILType T,
                               bool isOutlined) const override {
-      llvm_unreachable("unexploded tuple as argument?");
+      toolchain_unreachable("unexploded tuple as argument?");
     }
     
     void verify(IRGenTypeVerifierFunction &IGF,
-                llvm::Value *metadata,
+                toolchain::Value *metadata,
                 SILType tupleType) const override {
       auto fields = asImpl().getFields();
       for (unsigned i : indices(fields)) {
@@ -240,7 +241,7 @@ namespace {
 
           IGF.verifyValues(metadata, runtimeOffset,
                      IGF.IGM.getSize(fixedOffset),
-                     llvm::Twine("offset of tuple element ") + llvm::Twine(i));
+                     toolchain::Twine("offset of tuple element ") + toolchain::Twine(i));
           break;
         }
         
@@ -262,7 +263,7 @@ namespace {
     LoadableTupleTypeInfo(ArrayRef<TupleFieldInfo> fields,
                           FieldsAreABIAccessible_t areFieldsABIAccessible,
                           unsigned explosionSize,
-                          llvm::Type *ty,
+                          toolchain::Type *ty,
                           Size size, SpareBitVector &&spareBits,
                           Alignment align,
                           IsTriviallyDestroyable_t isTriviallyDestroyable,
@@ -276,7 +277,7 @@ namespace {
                           alwaysFixedSize, isABIAccessible)
       {}
 
-    void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+    void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                           Size offset) const override {
       for (auto &field : getFields()) {
         auto fieldOffset = offset + field.getFixedByteOffset();
@@ -327,7 +328,7 @@ namespace {
     // FIXME: Spare bits between tuple elements.
     FixedTupleTypeInfo(ArrayRef<TupleFieldInfo> fields,
                        FieldsAreABIAccessible_t areFieldsABIAccessible,
-                       llvm::Type *ty,
+                       toolchain::Type *ty,
                        Size size, SpareBitVector &&spareBits, Alignment align,
                        IsTriviallyDestroyable_t isTriviallyDestroyable,
                        IsBitwiseTakable_t isBT,
@@ -381,7 +382,7 @@ namespace {
       assert(TheType.is<TupleType>());
     }
 
-    llvm::Value *getOffsetForIndex(IRGenFunction &IGF, unsigned index) override {
+    toolchain::Value *getOffsetForIndex(IRGenFunction &IGF, unsigned index) override {
       // Fetch the metadata as a tuple type.  We cache this because
       // we might repeatedly need the bitcast.
       auto metadata = IGF.emitTypeMetadataRefForLayout(TheType);
@@ -397,7 +398,7 @@ namespace {
   public:
     NonFixedTupleTypeInfo(ArrayRef<TupleFieldInfo> fields,
                           FieldsAreABIAccessible_t fieldsABIAccessible,
-                          llvm::Type *T,
+                          toolchain::Type *T,
                           Alignment minAlign, IsTriviallyDestroyable_t isTriviallyDestroyable,
                           IsBitwiseTakable_t isBT,
                           IsCopyable_t isCopyable,
@@ -439,8 +440,8 @@ namespace {
           fields, T, getBestKnownAlignment().getValue(), *this);
     }
 
-    llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                         llvm::Value *numEmptyCases,
+    toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                         toolchain::Value *numEmptyCases,
                                          Address structAddr,
                                          SILType structType,
                                          bool isOutlined) const override {
@@ -451,8 +452,8 @@ namespace {
     }
 
     void storeEnumTagSinglePayload(IRGenFunction &IGF,
-                                   llvm::Value *index,
-                                   llvm::Value *numEmptyCases,
+                                   toolchain::Value *index,
+                                   toolchain::Value *numEmptyCases,
                                    Address structAddr,
                                    SILType structType,
                                    bool isOutlined) const override {
@@ -540,7 +541,7 @@ namespace {
 const TypeInfo *TypeConverter::convertTupleType(TupleType *tuple) {
   if (tuple->containsPackExpansionType()) {
     auto *bitwiseCopyableProtocol =
-        IGM.getSwiftModule()->getASTContext().getProtocol(
+        IGM.getCodiraModule()->getASTContext().getProtocol(
             KnownProtocolKind::BitwiseCopyable);
     if (bitwiseCopyableProtocol && checkConformance(
                                        tuple, bitwiseCopyableProtocol)) {
@@ -587,14 +588,14 @@ Address irgen::projectTupleElementAddress(IRGenFunction &IGF,
 Address irgen::projectTupleElementAddressByDynamicIndex(IRGenFunction &IGF,
                                                         Address tuple,
                                                         SILType tupleType,
-                                                        llvm::Value *index,
+                                                        toolchain::Value *index,
                                                         SILType elementType) {
   auto *metadata = IGF.emitTypeMetadataRefForLayout(tupleType);
 
 
-  llvm::BasicBlock *trueBB = nullptr, *falseBB = nullptr, *restBB = nullptr;
-  llvm::BasicBlock *unwrappedBB = nullptr;
-  llvm::Value *unwrappedOffset = nullptr;
+  toolchain::BasicBlock *trueBB = nullptr, *falseBB = nullptr, *restBB = nullptr;
+  toolchain::BasicBlock *unwrappedBB = nullptr;
+  toolchain::Value *unwrappedOffset = nullptr;
 
   auto loweredTupleType = tupleType.castTo<TupleType>();
   if (loweredTupleType->getNumScalarElements() <= 1) {
@@ -604,7 +605,7 @@ Address irgen::projectTupleElementAddressByDynamicIndex(IRGenFunction &IGF,
     CanPackType packType = loweredTupleType.getInducedPackType();
     auto *shapeExpression = IGF.emitPackShapeExpression(packType);
   
-    auto *one = llvm::ConstantInt::get(IGF.IGM.SizeTy, 1);
+    auto *one = toolchain::ConstantInt::get(IGF.IGM.SizeTy, 1);
     auto *isOne = IGF.Builder.CreateICmpEQ(shapeExpression, one);
 
     trueBB = IGF.createBasicBlock("vanishing-tuple");
@@ -616,7 +617,7 @@ Address irgen::projectTupleElementAddressByDynamicIndex(IRGenFunction &IGF,
 
     // If the length is 1, the offset is just zero.
     unwrappedBB = IGF.Builder.GetInsertBlock();
-    unwrappedOffset = llvm::ConstantInt::get(IGF.IGM.Int32Ty, 0);
+    unwrappedOffset = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 0);
 
     restBB = IGF.createBasicBlock("tuple-rest");
     IGF.Builder.CreateBr(restBB);
@@ -624,8 +625,8 @@ Address irgen::projectTupleElementAddressByDynamicIndex(IRGenFunction &IGF,
     IGF.Builder.emitBlock(falseBB);
   }
 
-  llvm::Value *tupleOffset = nullptr;
-  llvm::BasicBlock *tupleBB = nullptr;
+  toolchain::Value *tupleOffset = nullptr;
+  toolchain::BasicBlock *tupleBB = nullptr;
 
   {
     ConditionalDominanceScope scope(IGF);
@@ -635,7 +636,7 @@ Address irgen::projectTupleElementAddressByDynamicIndex(IRGenFunction &IGF,
   }
 
   // Control flow join with the one-element case.
-  llvm::Value *result = nullptr;
+  toolchain::Value *result = nullptr;
   if (unwrappedOffset != nullptr) {
     IGF.Builder.CreateBr(restBB);
     IGF.Builder.emitBlock(restBB);
@@ -671,10 +672,10 @@ irgen::getPhysicalTupleElementStructIndex(IRGenModule &IGM, SILType tupleType,
 }
 
 /// Emit a string encoding the labels in the given tuple type.
-llvm::Constant *irgen::getTupleLabelsString(IRGenModule &IGM,
+toolchain::Constant *irgen::getTupleLabelsString(IRGenModule &IGM,
                                             CanTupleType type) {
   bool hasLabels = false;
-  llvm::SmallString<128> buffer;
+  toolchain::SmallString<128> buffer;
   for (auto &elt : type->getElements()) {
     if (elt.hasName()) {
       hasLabels = true;
@@ -692,7 +693,7 @@ llvm::Constant *irgen::getTupleLabelsString(IRGenModule &IGM,
 
   // If there are no labels, use a null pointer.
   if (!hasLabels) {
-    return llvm::ConstantPointerNull::get(IGM.Int8PtrTy);
+    return toolchain::ConstantPointerNull::get(IGM.Int8PtrTy);
   }
 
   // Otherwise, create a new string literal.
@@ -700,11 +701,11 @@ llvm::Constant *irgen::getTupleLabelsString(IRGenModule &IGM,
   return IGM.getAddrOfGlobalString(buffer);
 }
 
-llvm::Value *irgen::emitTupleTypeMetadataLength(IRGenFunction &IGF,
-                                                llvm::Value *metadata) {
-  llvm::Value *indices[] = {
+toolchain::Value *irgen::emitTupleTypeMetadataLength(IRGenFunction &IGF,
+                                                toolchain::Value *metadata) {
+  toolchain::Value *indices[] = {
       IGF.IGM.getSize(Size(0)),                   // (*tupleType)
-      llvm::ConstantInt::get(IGF.IGM.Int32Ty, 1)  //   .NumElements
+      toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 1)  //   .NumElements
   };
   auto slot = IGF.Builder.CreateInBoundsGEP(IGF.IGM.TupleTypeMetadataTy,
                                             metadata, indices);
@@ -713,14 +714,14 @@ llvm::Value *irgen::emitTupleTypeMetadataLength(IRGenFunction &IGF,
                                 IGF.IGM.getPointerAlignment());
 }
 
-llvm::Value *irgen::emitTupleTypeMetadataElementType(IRGenFunction &IGF,
-                                                     llvm::Value *metadata,
-                                                     llvm::Value *index) {
-  llvm::Value *indices[] = {
+toolchain::Value *irgen::emitTupleTypeMetadataElementType(IRGenFunction &IGF,
+                                                     toolchain::Value *metadata,
+                                                     toolchain::Value *index) {
+  toolchain::Value *indices[] = {
       IGF.IGM.getSize(Size(0)),                   // (*tupleType)
-      llvm::ConstantInt::get(IGF.IGM.Int32Ty, 3), //   .Elements
+      toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 3), //   .Elements
       index,                                      //     [index]
-      llvm::ConstantInt::get(IGF.IGM.Int32Ty, 0)  //       .Metadata
+      toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 0)  //       .Metadata
   };
   auto slot = IGF.Builder.CreateInBoundsGEP(IGF.IGM.TupleTypeMetadataTy,
                                             metadata, indices);

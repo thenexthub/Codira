@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/LoopInfo.h"
 #include "language/SIL/Dominance.h"
-#include "llvm/Support/GenericLoopInfoImpl.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/GenericLoopInfoImpl.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 // Instantiate template members.
-template class llvm::LoopBase<SILBasicBlock, SILLoop>;
-template class llvm::LoopInfoBase<SILBasicBlock, SILLoop>;
+template class toolchain::LoopBase<SILBasicBlock, SILLoop>;
+template class toolchain::LoopInfoBase<SILBasicBlock, SILLoop>;
 
 
 void SILLoop::dump() const {
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  print(llvm::dbgs());
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+  print(toolchain::dbgs());
 #endif
 }
 

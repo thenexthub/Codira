@@ -1,0 +1,59 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+[]
+}
+protocol p {
+}
+protocol g : p {
+}
+n    j  }
+}
+protocol k {
+   class fn q()
+}
+class n: k{  class fn q {}
+fn r<e: t, s where j<s> == e.m { fn g
+k q<n : t> {
+    q g: n
+}
+fn p<n>() ->(b: T) {
+}
+f(true as Boolean)
+f> {
+ c(d ())
+}
+fn b(e)-> <d>(() -> d)
+d ""
+e}
+class d {
+    fn b((Any, d)typealias b = b
+d> Bool {
+    e !(f)
+ []
+}
+f
+m)
+        return ""
+    }
+}
+class C: B, A {
+    over  }
+}
+fn e<T where T: A, T: B>(t: T) {
+    t.c()
+}
+fn a<T>() -> (T -> T) -> T {
+ T, T -> T) ->)fn typealias F = Int
+    fn g<T where T.E == F>(f: B<T>) {
+    }
+}

@@ -1,0 +1,124 @@
+public fn fromOverlaidClangFramework()
+
+public fn fromOverlaidClangFrameworkOverlay()
+
+
+// MARK: - BystandingLibrary Additions
+
+// Available when BystandingLibrary is imported with OverlaidClangFramework
+public fn fromOverlaidClangFrameworkCrossImport()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 12,
+    key.length: 26
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 42,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 49,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 54,
+    key.length: 33
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 92,
+    key.length: 39
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 95,
+    key.length: 35
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 132,
+    key.length: 76
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 208,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 215,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 220,
+    key.length: 37
+  }
+]
+<<NULL>>
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromOverlaidClangFramework()",
+    key.offset: 7,
+    key.length: 33,
+    key.nameoffset: 12,
+    key.namelength: 28,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromOverlaidClangFrameworkOverlay()",
+    key.offset: 49,
+    key.length: 40,
+    key.nameoffset: 54,
+    key.namelength: 35,
+    key.attributes: [
+      {
+        key.offset: 42,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromOverlaidClangFrameworkCrossImport()",
+    key.offset: 215,
+    key.length: 44,
+    key.nameoffset: 220,
+    key.namelength: 39,
+    key.attributes: [
+      {
+        key.offset: 208,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  }
+]

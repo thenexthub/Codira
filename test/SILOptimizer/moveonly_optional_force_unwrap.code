@@ -1,0 +1,152 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+struct NC: ~Copyable {
+    borrowing fn borrow() {}
+    mutating fn mutate() {}
+    consuming fn consume() {}
+}
+
+fn borrow(_: borrowing NC) {}
+fn consume(_: consuming NC) {}
+fn mutate(_: inout NC) {}
+
+fn unwrapBorrow_Borrow(x: borrowing NC?) {
+    x!.borrow()
+    borrow(x!)
+
+    x!.borrow()
+    borrow(x!)
+}
+
+fn unwrapConsume_Borrow(x: borrowing NC?) { // expected-error{{cannot be consumed}}
+    x!.consume() // expected-note{{consumed here}}
+    consume(x!) // expected-note{{consumed here}}
+
+    x!.consume() // expected-note{{consumed here}}
+    consume(x!) // expected-note{{consumed here}}
+}
+
+fn unwrapBorrowMutateConsume_Consume(x: consuming NC?) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    consume(x!)
+}
+
+fn unwrapBorrowMutateConsume2_Consume(x: consuming NC?) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    x!.consume()
+}
+
+fn unwrapBorrowMutateConsumeBorrow_Consume(x: consuming NC?) { // expected-error {{used after consume}}
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    consume(x!) // expected-note{{consumed here}}
+
+    x!.borrow() // expected-note{{used here}}
+    borrow(x!)
+}
+
+fn unwrapBorrowMutateConsumeMutate_Consume(x: consuming NC?) { // expected-error {{used after consume}}
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    consume(x!) // expected-note{{consumed here}}
+
+    x!.mutate() // expected-note{{used here}}
+    mutate(&x!)
+}
+
+fn unwrapBorrowMutateConsumeInitBorrow_Consume(x: consuming NC?, y: consuming NC?) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    consume(x!)
+
+    x = y
+
+    x!.borrow()
+    borrow(x!)
+}
+
+fn unwrapBorrowMutateConsumeInitMutate_Consume(x: consuming NC?, y: consuming NC?) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    consume(x!)
+
+    x = y
+
+    x!.mutate()
+    mutate(&x!)
+}
+
+fn unwrapBorrowMutateConsumeInitBorrowMutateConsume_Consume(x: consuming NC?, y: consuming NC?) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+    
+    consume(x!)
+
+    x = y
+
+    x!.mutate()
+    x!.borrow()
+    mutate(&x!)
+    borrow(x!)
+
+    consume(x!)
+}
+
+fn unwrapBorrowMutate_Mutate(x: inout NC?) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+}
+
+fn unwrapBorrowMutateConsume_Mutate(x: inout NC?) { // expected-error {{missing reinitialization}}
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+
+    x!.consume() // expected-note {{consumed here}}
+}
+
+fn unwrapBorrowMutateConsumeInit_Mutate(x: inout NC?, y: consuming NC) {
+    x!.borrow()
+    x!.mutate()
+
+    borrow(x!)
+    mutate(&x!)
+
+    x!.consume() // expected-note{{consumed here}}
+
+    x! = y // expected-error{{cannot partially reinitialize}}
+}

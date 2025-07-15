@@ -1,0 +1,24 @@
+// RUN: %target-typecheck-verify-language -import-objc-header %S/Inputs/sdk-bridging-header.h
+// RUN: not %target-language-frontend -typecheck %s -import-objc-header %S/Inputs/bad-bridging-header.h 2>&1 | %FileCheck -check-prefix=CHECK-FATAL %s
+
+// RUN: %target-typecheck-verify-language -Xcc -include -Xcc %S/Inputs/sdk-bridging-header.h -import-objc-header %S/../Inputs/empty.code
+
+// RUN: not %target-language-frontend -typecheck %s -Xcc -include -Xcc %S/Inputs/bad-bridging-header.h 2>&1 | %FileCheck -check-prefix=CHECK-INCLUDE %s
+// RUN: not %target-language-frontend -typecheck %s -Xcc -include -Xcc %S/Inputs/bad-bridging-header.h -import-objc-header %S/../Inputs/empty.code 2>&1 | %FileCheck -check-prefix=CHECK-INCLUDE %s
+// RUN: not %target-language-frontend -typecheck %s -Xcc -include -Xcc %S/Inputs/bad-bridging-header.h -import-objc-header %S/Inputs/sdk-bridging-header.h 2>&1 | %FileCheck -check-prefix=CHECK-INCLUDE %s
+
+// CHECK-FATAL: failed to import bridging header
+
+// CHECK-INCLUDE: error: 'this-header-does-not-exist.h' file not found
+// CHECK-INCLUDE: error: cannot find 'MyPredicate' in scope
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+immutable `true` = MyPredicate.`true`()
+immutable not = MyPredicate.not()
+immutable and = MyPredicate.and([])
+immutable or = MyPredicate.or([not, and])
+
+_ = MyPredicate.foobar() // expected-error{{type 'MyPredicate' has no member 'foobar'}}

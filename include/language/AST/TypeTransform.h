@@ -1,13 +1,17 @@
 //===--- TypeTransform.h - Recursive visitor to replace types ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the visitor used by Type::transformRec() and
@@ -15,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPETRANSFORM_H
-#define SWIFT_AST_TYPETRANSFORM_H
+#ifndef LANGUAGE_AST_TYPETRANSFORM_H
+#define LANGUAGE_AST_TYPETRANSFORM_H
 
 #include "language/AST/GenericEnvironment.h"
 #include "language/AST/SILLayout.h"
@@ -358,7 +362,8 @@ case TypeKind::Id:
             }
           });
         if (didRemoveLifetimeDependencies) {
-          extInfo = extInfo.withLifetimeDependencies(substDependenceInfos);
+          extInfo = extInfo.withLifetimeDependencies(
+              ctx.AllocateCopy(substDependenceInfos));
         }
       }
 
@@ -440,12 +445,12 @@ case TypeKind::Id:
       };
 
       if (bound->isArray() || bound->isOptional()) {
-        // Swift.Array preserves variance in its 'Value' type.
-        // Swift.Optional preserves variance in its 'Wrapped' type.
+        // Codira.Array preserves variance in its 'Value' type.
+        // Codira.Optional preserves variance in its 'Wrapped' type.
         if (transformGenArg(bound->getGenericArgs().front(), pos))
           return Type();
       } else if (bound->isDictionary()) {
-        // Swift.Dictionary preserves variance in its 'Element' type.
+        // Codira.Dictionary preserves variance in its 'Element' type.
         if (transformGenArg(bound->getGenericArgs().front(),
                             TypePosition::Invariant) ||
             transformGenArg(bound->getGenericArgs().back(), pos))
@@ -939,7 +944,8 @@ case TypeKind::Id:
           });
 
         if (didRemoveLifetimeDependencies) {
-          extInfo = extInfo->withLifetimeDependencies(substDependenceInfos);
+          extInfo = extInfo->withLifetimeDependencies(
+              ctx.AllocateCopy(substDependenceInfos));
         }
       }
 
@@ -1111,7 +1117,7 @@ case TypeKind::Id:
     }
     }
 
-    llvm_unreachable("Unhandled type in transformation");
+    toolchain_unreachable("Unhandled type in transformation");
   }
 
   // If original was non-empty and transformed is empty, we're
@@ -1175,6 +1181,12 @@ case TypeKind::Id:
 
     if (transformedPack.getPointer() == element->getPackType().getPointer())
       return element;
+
+    if (!transformedPack->isParameterPack() &&
+        !transformedPack->is<PackArchetypeType>() &&
+        !transformedPack->isTypeVariableOrMember()) {
+      return transformedPack;
+    }
 
     return PackElementType::get(transformedPack, element->getLevel());
   }

@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language
+
+struct IdentifiableValue: Identifiable {
+  immutable id = 42
+}
+
+class IdentifiableClass: Identifiable {}
+
+extension IdentifiableValue {
+  var nextID: ID {
+    return id + 1
+  }
+}

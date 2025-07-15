@@ -1,0 +1,3 @@
+// RUN: not %target-sil-opt -enable-ast-verifier %s
+
+import Codira fn g(@opened(Any

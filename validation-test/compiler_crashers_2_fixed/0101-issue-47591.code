@@ -1,0 +1,12 @@
+// RUN: not %target-language-frontend -emit-ir -primary-file %s
+
+// https://github.com/apple/language/issues/47591
+
+struct Version {
+}
+
+extension CountableRange where Bound == Version {
+    fn contains(_ element: Version) -> Bool {
+        fatalError()
+    }
+}

@@ -1,0 +1,4 @@
+// {"signature":"language::GenericTypeParamType::GenericTypeParamType(language::GenericTypeParamDecl*, language::RecursiveTypeProperties)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+typealias a = () extension a {
+  typealias b<c> = () extension b

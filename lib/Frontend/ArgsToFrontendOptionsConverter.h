@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_ARGSTOFRONTENDOPTIONSCONVERTER_H
-#define SWIFT_FRONTEND_ARGSTOFRONTENDOPTIONSCONVERTER_H
+#ifndef LANGUAGE_FRONTEND_ARGSTOFRONTENDOPTIONSCONVERTER_H
+#define LANGUAGE_FRONTEND_ARGSTOFRONTENDOPTIONSCONVERTER_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticEngine.h"
 #include "language/Frontend/FrontendOptions.h"
 #include "language/Option/Options.h"
-#include "llvm/Option/ArgList.h"
+#include "toolchain/Option/ArgList.h"
 
 #include <vector>
 
@@ -29,7 +30,7 @@ namespace language {
 class ArgsToFrontendOptionsConverter {
 private:
   DiagnosticEngine &Diags;
-  const llvm::opt::ArgList &Args;
+  const toolchain::opt::ArgList &Args;
   FrontendOptions &Opts;
 
   std::optional<std::vector<std::string>>
@@ -44,7 +45,7 @@ private:
   bool computeMainAndSupplementaryOutputFilenames();
   void computeDumpScopeMapLocations();
   void computeHelpOptions();
-  void computeImplicitImportModuleNames(llvm::opt::OptSpecifier id,
+  void computeImplicitImportModuleNames(toolchain::opt::OptSpecifier id,
                                         bool isTestable);
   void computeImportObjCHeaderOptions();
   void computeLLVMArgs();
@@ -63,7 +64,7 @@ private:
 
 public:
   ArgsToFrontendOptionsConverter(DiagnosticEngine &Diags,
-                                 const llvm::opt::ArgList &Args,
+                                 const toolchain::opt::ArgList &Args,
                                  FrontendOptions &Opts)
       : Diags(Diags), Args(Args), Opts(Opts) {}
 
@@ -73,10 +74,10 @@ public:
   /// options will be saved here. These should only be used for debugging
   /// purposes.
   bool convert(
-      SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> *buffers);
+      SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> *buffers);
 
   static FrontendOptions::ActionType
-  determineRequestedAction(const llvm::opt::ArgList &);
+  determineRequestedAction(const toolchain::opt::ArgList &);
 };
 
 class ModuleAliasesConverter {
@@ -86,7 +87,7 @@ public:
   /// \param args The arguments to `-module-alias`. If input has `-module-alias Foo=Bar
   ///             -module-alias Baz=Qux`, the args are ['Foo=Bar', 'Baz=Qux'].  The name
   ///             Foo is the name that appears in source files, while it maps to Bar, the name
-  ///             of the binary on disk, /path/to/Bar.swiftmodule(interface), under the hood.
+  ///             of the binary on disk, /path/to/Bar.codemodule(interface), under the hood.
   /// \param options FrontendOptions containing the module alias map to set args to.
   /// \param diags Used to print diagnostics in case validation of the args fails.
   /// \return Whether the validation passed and successfully set the module alias map
@@ -97,4 +98,4 @@ public:
 
 } // namespace language
 
-#endif /* SWIFT_FRONTEND_ARGSTOFRONTENDOPTIONSCONVERTER_H */
+#endif /* LANGUAGE_FRONTEND_ARGSTOFRONTENDOPTIONSCONVERTER_H */

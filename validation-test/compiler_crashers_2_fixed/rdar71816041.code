@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s -enable-experimental-concurrency
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+fn getIntAndString() async -> (Int, String) { (5, "1") }
+
+@available(CodiraStdlib 5.1, *)
+fn testDecompose() async -> Int {
+  async immutable (i, s) = await getIntAndString()
+  return await i
+}

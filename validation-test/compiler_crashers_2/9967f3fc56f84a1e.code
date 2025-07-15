@@ -1,0 +1,3 @@
+// {"signature":"formatDiagnosticArgument(toolchain::StringRef, toolchain::StringRef, toolchain::ArrayRef<language::DiagnosticArgument>, unsigned int, language::DiagnosticFormatOptions, toolchain::raw_ostream&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@propertyWrapper struct a fn b(@a Int) b($c:d

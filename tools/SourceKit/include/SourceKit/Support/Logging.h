@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_LOGGING_H
-#define LLVM_SOURCEKIT_SUPPORT_LOGGING_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_LOGGING_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_LOGGING_H
 
-#include "SourceKit/Core/LLVM.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/raw_ostream.h"
+#include "SourceKit/Core/Toolchain.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class format_object_base;
 }
 
@@ -41,7 +42,7 @@ typedef IntrusiveRefCntPtr<Logger> LogRef;
 ///     *Log << "stuff";
 ///   }
 /// \endcode
-class Logger : public llvm::RefCountedBase<Logger> {
+class Logger : public toolchain::RefCountedBase<Logger> {
 public:
   enum class Level : uint8_t {
     /// No logging.
@@ -60,7 +61,7 @@ private:
   std::string Name;
   Level CurrLevel;
   SmallString<64> Msg;
-  llvm::raw_svector_ostream LogOS;
+  toolchain::raw_svector_ostream LogOS;
 
   static std::string LoggerName;
   static Level LoggingLevel;
@@ -74,19 +75,19 @@ public:
     LoggingLevel = LogLevel;
   }
 
-  static LogRef make(llvm::StringRef Name, Level LogLevel) {
+  static LogRef make(toolchain::StringRef Name, Level LogLevel) {
     if (isLoggingEnabledForLevel(LogLevel)) return new Logger(Name, LogLevel);
     return nullptr;
   }
 
-  Logger(llvm::StringRef Name, Level LogLevel)
+  Logger(toolchain::StringRef Name, Level LogLevel)
     : Name(Name), CurrLevel(LogLevel), LogOS(Msg) { }
   ~Logger();
 
-  llvm::raw_ostream &getOS() { return LogOS; }
+  toolchain::raw_ostream &getOS() { return LogOS; }
 
   Logger &operator<<(SourceKit::UIdent UID);
-  Logger &operator<<(llvm::StringRef Str) { LogOS << Str; return *this; }
+  Logger &operator<<(toolchain::StringRef Str) { LogOS << Str; return *this; }
   Logger &operator<<(const char *Str) { if (Str) LogOS << Str; return *this; }
   Logger &operator<<(unsigned long N) { LogOS << N; return *this; }
   Logger &operator<<(long N) { LogOS << N ; return *this; }
@@ -95,7 +96,7 @@ public:
   Logger &operator<<(char C) { LogOS << C; return *this; }
   Logger &operator<<(unsigned char C) { LogOS << C; return *this; }
   Logger &operator<<(signed char C) { LogOS << C; return *this; }
-  Logger &operator<<(const llvm::format_object_base &Fmt);
+  Logger &operator<<(const toolchain::format_object_base &Fmt);
 };
 
 } // namespace SourceKit

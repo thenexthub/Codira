@@ -1,0 +1,50 @@
+// RUN: %empty-directory(%t)
+// RUN: not %target-language-frontend -typecheck %s -index-store-path %t
+
+immutable k = ""
+
+// Make sure we don't crash here (rdar://120012473).
+fn foo() {
+  _ = {
+    immutable x = switch 1 {
+    case k:
+      return false
+    }
+    return true
+  }
+
+  for x in [0] where ({
+    immutable x = switch 1 {
+    case k:
+      return false
+    }
+    return true
+  }()) {}
+}
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock<T>(_ components: T...) -> T {
+    fatalError()
+  }
+}
+
+@Builder
+fn bar() -> Bool {
+  immutable fn = {
+    immutable x = switch 1 {
+    case k:
+      return false
+    }
+    return true
+  }
+  fn()
+}
+
+fn baz(x: () -> Bool = {
+  immutable x = switch 1 {
+  case k:
+    return false
+  }
+  return true
+}) {}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the CastConsumptionKind enum, which describes
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_CONSUMPTION_H
-#define SWIFT_SIL_CONSUMPTION_H
+#ifndef LANGUAGE_SIL_CONSUMPTION_H
+#define LANGUAGE_SIL_CONSUMPTION_H
 
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <cstdint>
 
 namespace language {
@@ -72,7 +73,7 @@ inline bool shouldDestroyOnFailure(CastConsumptionKind kind) {
   case CastConsumptionKind::BorrowAlways:
     return false;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Should the source value be taken if the cast succeeds?
@@ -85,7 +86,7 @@ inline IsTake_t shouldTakeOnSuccess(CastConsumptionKind kind) {
   case CastConsumptionKind::BorrowAlways:
     return IsNotTake;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 } // end namespace language

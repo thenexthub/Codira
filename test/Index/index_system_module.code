@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/my_system_overlay/my_system_overlay.code -Xcc -I -Xcc %S/Inputs/my_system_overlay
+// RUN: %target-language-ide-test -print-indexed-symbols -module-to-print my_system_overlay -source-filename %s -I %t -Xcc -I -Xcc %S/Inputs/my_system_overlay > %t.out
+// RUN: %FileCheck %s -input-file=%t.out
+// RUN: %FileCheck -check-prefix NEGATIVE %s -input-file=%t.out
+
+// CHECK: function/Codira | some_func() | [[SOMEFUNC_USR:.*]] | Def | rel: 0
+// CHECK: class/Codira | BaseCls | [[BASECLS_USR:.*]] | Def | rel: 0
+// CHECK: instance-method/Codira | theMeth() | [[BASECLSMETH_USR:.*]] | Def,Dyn,RelChild | rel: 1
+// CHECK-NEXT: RelChild | class/Codira | BaseCls | [[BASECLS_USR]]
+// CHECK: class/Codira | SubCls | [[SUBCLS_USR:.*]] | Def | rel: 0
+// CHECK: class/Codira | BaseCls | [[BASECLS_USR]] | Ref,RelBase | rel: 1
+// CHECK-NEXT: RelBase | class/Codira | SubCls | [[SUBCLS_USR]]
+// CHECK: instance-method/Codira | theMeth() | [[SUBCLSMETH_USR:.*]] | Def,Dyn,RelChild,RelOver | rel: 2
+// CHECK-NEXT: RelOver | instance-method/Codira | theMeth() | [[BASECLSMETH_USR]]
+// CHECK-NEXT: RelChild | class/Codira | SubCls | [[SUBCLS_USR]]
+
+// NEGATIVE-NOT: SECRET

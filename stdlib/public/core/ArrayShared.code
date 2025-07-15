@@ -1,4 +1,4 @@
-//===--- ArrayShared.swift ------------------------------------*- swift -*-===//
+//===--- ArrayShared.code ------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -12,13 +12,14 @@
 // Author(-s): Tunjay Akbarli
 //
 
+
 /// This type is used as a result of the `_checkSubscript` call to associate the
 /// call with the array access call it guards.
 ///
 /// In order for the optimizer see that a call to `_checkSubscript` is semantically
 /// associated with an array access, a value of this type is returned and later passed
 /// to the accessing function.  For example, a typical call to `_getElement` looks like
-///   let token = _checkSubscript(index, ...)
+///   immutable token = _checkSubscript(index, ...)
 ///   return _getElement(index, ... , matchingSubscriptCheck: token)
 @frozen
 public struct _DependenceToken {
@@ -38,25 +39,25 @@ public struct _DependenceToken {
 @inline(__always)
 @_semantics("array.uninitialized_intrinsic")
 public // COMPILER_INTRINSIC
-func _allocateUninitializedArray<Element>(_  builtinCount: Builtin.Word)
+fn _allocateUninitializedArray<Element>(_  builtinCount: Builtin.Word)
     -> (Array<Element>, Builtin.RawPointer) {
-  let count = Int(builtinCount)
+  immutable count = Int(builtinCount)
   if count > 0 {
     // Doing the actual buffer allocation outside of the array.uninitialized
     // semantics function enables stack propagation of the buffer.
     #if !$Embedded
-    let bufferObject = Builtin.allocWithTailElems_1(
-       getContiguousArrayStorageType(for: Element.self), builtinCount, Element.self)
+    immutable bufferObject = Builtin.allocWithTailElems_1(
+       getContiguousArrayStorageType(for: Element.this), builtinCount, Element.this)
     #else
-    let bufferObject = Builtin.allocWithTailElems_1(
-       _ContiguousArrayStorage<Element>.self, builtinCount, Element.self)
+    immutable bufferObject = Builtin.allocWithTailElems_1(
+       _ContiguousArrayStorage<Element>.this, builtinCount, Element.this)
     #endif
 
-    let (array, ptr) = unsafe Array<Element>._adoptStorage(bufferObject, count: count)
+    immutable (array, ptr) = unsafe Array<Element>._adoptStorage(bufferObject, count: count)
     return (array, ptr._rawValue)
   }
   // For an empty array no buffer allocation is needed.
-  let (array, ptr) = unsafe Array<Element>._allocateUninitialized(count)
+  immutable (array, ptr) = unsafe Array<Element>._allocateUninitialized(count)
   return (array, ptr._rawValue)
 }
 
@@ -65,7 +66,7 @@ func _allocateUninitializedArray<Element>(_  builtinCount: Builtin.Word)
 @inlinable
 @_semantics("array.dealloc_uninitialized")
 public // COMPILER_INTRINSIC
-func _deallocateUninitializedArray<Element>(
+fn _deallocateUninitializedArray<Element>(
   _ array: __owned Array<Element>
 ) {
   var array = array
@@ -79,7 +80,7 @@ func _deallocateUninitializedArray<Element>(
 @_effects(escaping array.value** => return.value**)
 @_effects(escaping array.value**.class*.value** => return.value**.class*.value**)
 public // COMPILER_INTRINSIC
-func _finalizeUninitializedArray<Element>(
+fn _finalizeUninitializedArray<Element>(
   _ array: __owned Array<Element>
 ) -> Array<Element> {
   var mutableArray = array
@@ -92,7 +93,7 @@ func _finalizeUninitializedArray<Element>(
 @_alwaysEmitIntoClient
 @_semantics("array.finalize_intrinsic")
 public // COMPILER_INTRINSIC
-func _finalizeUninitializedArray<Element>(
+fn _finalizeUninitializedArray<Element>(
   _ array: __owned Array<Element>
 ) -> Array<Element> {
   var mutableArray = array
@@ -106,19 +107,19 @@ extension Collection {
   // Utility method for collections that wish to implement
   // CustomStringConvertible and CustomDebugStringConvertible using a bracketed
   // list of elements, like an array.
-  internal func _makeCollectionDescription(
+  internal fn _makeCollectionDescription(
     withTypeName type: String? = nil
   ) -> String {
-#if !SWIFT_STDLIB_STATIC_PRINT
+#if !LANGUAGE_STDLIB_STATIC_PRINT
     var result = ""
-    if let type = type {
+    if immutable type = type {
       result += "\(type)(["
     } else {
       result += "["
     }
 
     var first = true
-    for item in self {
+    for item in this {
       if first {
         first = false
       } else {
@@ -127,7 +128,7 @@ extension Collection {
       #if !$Embedded
       debugPrint(item, terminator: "", to: &result)
       #else
-      "(cannot print value in embedded Swift)".write(to: &result)
+      "(cannot print value in embedded Codira)".write(to: &result)
       #endif
     }
     result += type != nil ? "])" : "]"
@@ -139,16 +140,16 @@ extension Collection {
 }
 
 extension _ArrayBufferProtocol {
-  @inlinable // FIXME: @useableFromInline (https://github.com/apple/swift/issues/50130).
+  @inlinable // FIXME: @useableFromInline (https://github.com/apple/language/issues/50130).
   @inline(never)
-  internal mutating func _arrayOutOfPlaceReplace<C: Collection>(
+  internal mutating fn _arrayOutOfPlaceReplace<C: Collection>(
     _ bounds: Range<Int>,
     with newValues: __owned C,
     count insertCount: Int
   ) where C.Element == Element {
 
-    let growth = insertCount - bounds.count
-    let newCount = self.count + growth
+    immutable growth = insertCount - bounds.count
+    immutable newCount = this.count + growth
     var newBuffer = _forceCreateUniqueMutableBuffer(
       newCount: newCount, requiredCapacity: newCount)
 
@@ -172,25 +173,25 @@ extension _ArrayBufferProtocol {
 /// `s`.  This test is never used to ensure memory safety; that is
 /// always guaranteed by measuring `s` once and re-using that value.
 @inlinable
-internal func _expectEnd<C: Collection>(of s: C, is i: C.Index) {
+internal fn _expectEnd<C: Collection>(of s: C, is i: C.Index) {
   _debugPrecondition(
     i == s.endIndex,
     "invalid Collection: count differed in successive traversals")
 }
 
 @inlinable
-internal func _growArrayCapacity(_ capacity: Int) -> Int {
+internal fn _growArrayCapacity(_ capacity: Int) -> Int {
   return capacity * 2
 }
 
 @_alwaysEmitIntoClient
-internal func _growArrayCapacity(
+internal fn _growArrayCapacity(
   oldCapacity: Int, minimumCapacity: Int, growForAppend: Bool
 ) -> Int {
   if growForAppend {
     if oldCapacity < minimumCapacity {
       // When appending to an array, grow exponentially.
-      return Swift.max(minimumCapacity, _growArrayCapacity(oldCapacity))
+      return Codira.max(minimumCapacity, _growArrayCapacity(oldCapacity))
     }
     return oldCapacity
   }
@@ -211,7 +212,7 @@ extension _ArrayBufferProtocol {
   ///   max(requiredCapacity, _growArrayCapacity(source.capacity)) otherwise
   @inline(never)
   @inlinable // @specializable
-  internal func _forceCreateUniqueMutableBuffer(
+  internal fn _forceCreateUniqueMutableBuffer(
     newCount: Int, requiredCapacity: Int
   ) -> _ContiguousArrayBuffer<Element> {
     return _forceCreateUniqueMutableBufferImpl(
@@ -227,7 +228,7 @@ extension _ArrayBufferProtocol {
   ///   max(minNewCapacity, _growArrayCapacity(source.capacity)) otherwise
   @inline(never)
   @inlinable // @specializable
-  internal func _forceCreateUniqueMutableBuffer(
+  internal fn _forceCreateUniqueMutableBuffer(
     countForNewBuffer: Int, minNewCapacity: Int
   ) -> _ContiguousArrayBuffer<Element> {
     return _forceCreateUniqueMutableBufferImpl(
@@ -243,7 +244,7 @@ extension _ArrayBufferProtocol {
   ///  max(requiredCapacity, source.capacity) if minNewCapacity <= source.capacity
   ///  max(requiredCapacity, _growArrayCapacity(source.capacity))  otherwise
   @inlinable
-  internal func _forceCreateUniqueMutableBufferImpl(
+  internal fn _forceCreateUniqueMutableBufferImpl(
     countForBuffer: Int, minNewCapacity: Int,
     requiredCapacity: Int
   ) -> _ContiguousArrayBuffer<Element> {
@@ -251,7 +252,7 @@ extension _ArrayBufferProtocol {
     _internalInvariant(requiredCapacity >= countForBuffer)
     _internalInvariant(minNewCapacity >= countForBuffer)
 
-    let minimumCapacity = Swift.max(requiredCapacity,
+    immutable minimumCapacity = Codira.max(requiredCapacity,
       minNewCapacity > capacity
          ? _growArrayCapacity(capacity) : capacity)
 
@@ -270,7 +271,7 @@ extension _ArrayBufferProtocol {
   /// copying when it isUniquelyReferenced.
   @inline(never)
   @inlinable // @specializable
-  internal mutating func _arrayOutOfPlaceUpdate(
+  internal mutating fn _arrayOutOfPlaceUpdate(
     _ dest: inout _ContiguousArrayBuffer<Element>,
     _ headCount: Int, // Count of initial source elements to copy/move
     _ newCount: Int,  // Number of new elements to insert
@@ -284,26 +285,26 @@ extension _ArrayBufferProtocol {
     _internalInvariant(newCount >= 0)
 
     // Count of trailing source elements to copy/move
-    let sourceCount = self.count
-    let tailCount = dest.count - headCount - newCount
+    immutable sourceCount = this.count
+    immutable tailCount = dest.count - headCount - newCount
     _internalInvariant(headCount + tailCount <= sourceCount)
 
-    let oldCount = sourceCount - headCount - tailCount
-    let destStart = unsafe dest.firstElementAddress
-    let newStart = unsafe destStart + headCount
-    let newEnd = unsafe newStart + newCount
+    immutable oldCount = sourceCount - headCount - tailCount
+    immutable destStart = unsafe dest.firstElementAddress
+    immutable newStart = unsafe destStart + headCount
+    immutable newEnd = unsafe newStart + newCount
 
     // Check to see if we have storage we can move from
-    if let backing = requestUniqueMutableBackingBuffer(
+    if immutable backing = requestUniqueMutableBackingBuffer(
       minimumCapacity: sourceCount) {
 
-      let sourceStart = unsafe firstElementAddress
-      let oldStart = unsafe sourceStart + headCount
+      immutable sourceStart = unsafe firstElementAddress
+      immutable oldStart = unsafe sourceStart + headCount
 
       // Destroy any items that may be lurking in a _SliceBuffer before
       // its real first element
-      let backingStart = unsafe backing.firstElementAddress
-      let sourceOffset = unsafe sourceStart - backingStart
+      immutable backingStart = unsafe backing.firstElementAddress
+      immutable sourceOffset = unsafe sourceStart - backingStart
       unsafe backingStart.deinitialize(count: sourceOffset)
 
       // Move the head items
@@ -319,30 +320,30 @@ extension _ArrayBufferProtocol {
 
       // Destroy any items that may be lurking in a _SliceBuffer after
       // its real last element
-      let backingEnd = unsafe backingStart + backing.count
-      let sourceEnd = unsafe sourceStart + sourceCount
+      immutable backingEnd = unsafe backingStart + backing.count
+      immutable sourceEnd = unsafe sourceStart + sourceCount
       unsafe sourceEnd.deinitialize(count: backingEnd - sourceEnd)
       backing.count = 0
     }
     else {
-      let headStart = startIndex
-      let headEnd = headStart + headCount
-      let newStart = unsafe _copyContents(
+      immutable headStart = startIndex
+      immutable headEnd = headStart + headCount
+      immutable newStart = unsafe _copyContents(
         subRange: headStart..<headEnd,
         initializing: destStart)
       unsafe initializeNewElements(newStart, newCount)
-      let tailStart = headEnd + oldCount
-      let tailEnd = endIndex
+      immutable tailStart = headEnd + oldCount
+      immutable tailEnd = endIndex
       unsafe _copyContents(subRange: tailStart..<tailEnd, initializing: newEnd)
     }
-    self = Self(_buffer: dest, shiftedToStartIndex: startIndex)
+    this = Self(_buffer: dest, shiftedToStartIndex: startIndex)
   }
 }
 
 extension _ArrayBufferProtocol {
   @inline(never)
   @usableFromInline
-  internal mutating func _outlinedMakeUniqueBuffer(bufferCount: Int) {
+  internal mutating fn _outlinedMakeUniqueBuffer(bufferCount: Int) {
 
     if _fastPath(
         requestUniqueMutableBackingBuffer(minimumCapacity: bufferCount) != nil) {
@@ -356,14 +357,14 @@ extension _ArrayBufferProtocol {
 
   /// Append items from `newItems` to a buffer.
   @inlinable
-  internal mutating func _arrayAppendSequence<S: Sequence>(
+  internal mutating fn _arrayAppendSequence<S: Sequence>(
     _ newItems: __owned S
   ) where S.Element == Element {
     
     // this function is only ever called from append(contentsOf:)
     // which should always have exhausted its capacity before calling
     _internalInvariant(count == capacity)
-    var newCount = self.count
+    var newCount = this.count
 
     // there might not be any elements to append remaining,
     // so check for nil element first, then increase capacity,
@@ -381,16 +382,16 @@ extension _ArrayBufferProtocol {
 
       unsafe _arrayOutOfPlaceUpdate(&newBuffer, newCount, 0)
 
-      let currentCapacity = self.capacity
-      let base = unsafe self.firstElementAddress
+      immutable currentCapacity = this.capacity
+      immutable base = unsafe this.firstElementAddress
 
       // fill while there is another item and spare capacity
-      while let next = nextItem, newCount < currentCapacity {
+      while immutable next = nextItem, newCount < currentCapacity {
         unsafe (base + newCount).initialize(to: next)
         newCount += 1
         nextItem = stream.next()
       }
-      self.count = newCount
+      this.count = newCount
     }
   }
 }

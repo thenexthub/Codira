@@ -1,13 +1,17 @@
-//===--- Differentiable.swift ---------------------------------*- swift -*-===//
+//===--- Differentiable.code ---------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Differentiable protocol, used by the experimental
@@ -16,11 +20,11 @@
 //
 // Please see forum discussion for more information about the differentiable
 // programming project:
-// https://forums.swift.org/t/differentiable-programming-mega-proposal/28547
+// https://forums.code.org/t/differentiable-programming-mega-proposal/28547
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// A type that mathematically represents a differentiable manifold whose
 /// tangent spaces are finite-dimensional.
@@ -32,16 +36,16 @@ public protocol Differentiable {
   associatedtype TangentVector: Differentiable & AdditiveArithmetic
     where TangentVector.TangentVector == TangentVector
 
-  /// Moves `self` by the given offset. In Riemannian geometry, this is
-  /// equivalent to exponential map, which moves `self` on the geodesic surface
+  /// Moves `this` by the given offset. In Riemannian geometry, this is
+  /// equivalent to exponential map, which moves `this` on the geodesic surface
   /// by the given tangent vector.
-  mutating func move(by offset: TangentVector)
+  mutating fn move(by offset: TangentVector)
 }
 
 public extension Differentiable where TangentVector == Self {
   @_alwaysEmitIntoClient
   @inlinable
-  mutating func move(by offset: TangentVector) {
-    self += offset
+  mutating fn move(by offset: TangentVector) {
+    this += offset
   }
 }

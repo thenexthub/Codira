@@ -1,33 +1,33 @@
-set(swift_stdlib_unittest_compile_flags)
+set(language_stdlib_unittest_compile_flags)
 
-add_swift_target_library(swiftStdlibCollectionUnittest ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_STDLIB
+add_language_target_library(languageStdlibCollectionUnittest ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_STDLIB
   # This file should be listed the first.  Module name is inferred from the
   # filename.
-  StdlibCollectionUnittest.swift
+  StdlibCollectionUnittest.code
 
-  CheckCollectionInstance.swift
-  CheckCollectionType.swift
-  CheckMutableCollectionType.swift
-  CheckRangeReplaceableCollectionType.swift
-  CheckRangeReplaceableSliceType.swift
-  CheckSequenceInstance.swift
-  CheckSequenceType.swift
-  COWLoggingArray.swift
-  LoggingWrappers.swift
-  MinimalCollections.swift
-  RangeSelection.swift
-  WriteBackMutableSlice.swift
+  CheckCollectionInstance.code
+  CheckCollectionType.code
+  CheckMutableCollectionType.code
+  CheckRangeReplaceableCollectionType.code
+  CheckRangeReplaceableSliceType.code
+  CheckSequenceInstance.code
+  CheckSequenceType.code
+  COWLoggingArray.code
+  LoggingWrappers.code
+  MinimalCollections.code
+  RangeSelection.code
+  WriteBackMutableSlice.code
 
-  SWIFT_MODULE_DEPENDS StdlibUnittest
-  SWIFT_MODULE_DEPENDS_ANDROID Android
-  SWIFT_MODULE_DEPENDS_LINUX Glibc
-  SWIFT_MODULE_DEPENDS_LINUX_STATIC Musl
-  SWIFT_MODULE_DEPENDS_FREEBSD Glibc
-  SWIFT_MODULE_DEPENDS_OPENBSD Glibc
-  SWIFT_MODULE_DEPENDS_CYGWIN Glibc
-  SWIFT_MODULE_DEPENDS_HAIKU Glibc
-  SWIFT_MODULE_DEPENDS_WINDOWS CRT
-  SWIFT_COMPILE_FLAGS ${swift_stdlib_unittest_compile_flags} ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+  LANGUAGE_MODULE_DEPENDS StdlibUnittest
+  LANGUAGE_MODULE_DEPENDS_ANDROID Android
+  LANGUAGE_MODULE_DEPENDS_LINUX Glibc
+  LANGUAGE_MODULE_DEPENDS_LINUX_STATIC Musl
+  LANGUAGE_MODULE_DEPENDS_FREEBSD Glibc
+  LANGUAGE_MODULE_DEPENDS_OPENBSD Glibc
+  LANGUAGE_MODULE_DEPENDS_CYGWIN Glibc
+  LANGUAGE_MODULE_DEPENDS_HAIKU Glibc
+  LANGUAGE_MODULE_DEPENDS_WINDOWS CRT
+  LANGUAGE_COMPILE_FLAGS ${language_stdlib_unittest_compile_flags} ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
   INSTALL_IN_COMPONENT stdlib-experimental
-  DARWIN_INSTALL_NAME_DIR "${SWIFT_DARWIN_STDLIB_PRIVATE_INSTALL_NAME_DIR}"
+  DARWIN_INSTALL_NAME_DIR "${LANGUAGE_DARWIN_STDLIB_PRIVATE_INSTALL_NAME_DIR}"
   MACCATALYST_BUILD_FLAVOR "zippered")

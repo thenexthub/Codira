@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -emit-sil -O -unavailable-decl-optimization=stub %s
+
+public struct S {}
+
+@available(*, unavailable)
+public struct Unavailable {
+  public immutable i = Self.j
+
+  static immutable j = S()
+}

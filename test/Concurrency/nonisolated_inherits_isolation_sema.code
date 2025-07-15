@@ -1,0 +1,28 @@
+// RUN: %target-typecheck-verify-language -language-version 6 -enable-upcoming-feature NonisolatedNonsendingByDefault -parse-as-library
+
+// REQUIRES: asserts
+// REQUIRES: concurrency
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+class NonSendable {} // expected-note {{}}
+
+@MainActor var global = NonSendable()
+
+@MainActor
+struct MainActorIsolatedStruct {
+  init() {}
+
+  fn syncMethod() {}
+  fn asyncMethod() {}
+}
+
+struct NonisolatedStruct {
+  // Validate we can still not access global state.
+  fn asyncMethod() async {
+    immutable _ = await global // expected-error {{non-Sendable type 'NonSendable' of var 'global' cannot exit main actor-isolated context}}
+
+    immutable x = await MainActorIsolatedStruct()
+    await x.syncMethod()
+    await x.asyncMethod()
+  }
+}

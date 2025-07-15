@@ -1,0 +1,344 @@
+// RUN: %target-language-frontend -enable-experimental-feature KeyPathWithMethodMembers -typecheck -verify %S/Inputs/keypath.code -primary-file %s
+// REQUIRES: language_feature_KeyPathWithMethodMembers
+
+struct S {
+  immutable i: Int
+
+  init() {
+    immutable _: WritableKeyPath<S, Int> = \.i // no error for Codira 3/4
+
+    S()[keyPath: \.i] = 1
+    // expected-error@-1 {{cannot assign through subscript: function call returns immutable value}}
+  }
+}
+
+fn test() {
+  immutable _: WritableKeyPath<C, Int> = \.i // no error for Codira 3/4
+
+  C()[keyPath: \.i] = 1   // warning on write with literal keypath
+  // expected-warning@-1 {{forming a writable keypath to property}}
+
+  immutable _ = C()[keyPath: \.i] // no warning for a read
+}
+
+// https://github.com/apple/language/issues/49887
+
+class Some<T, V> { // expected-note {{'V' declared as parameter to type 'Some'}}
+  init(keyPath: KeyPath<T, ((V) -> Void)?>) {
+  }
+}
+
+class Demo {
+  var here: (() -> Void)?
+}
+
+immutable some = Some(keyPath: \Demo.here)
+// expected-error@-1 {{cannot convert value of type 'KeyPath<Demo, (() -> Void)?>' to expected argument type 'KeyPath<Demo, ((V) -> Void)?>'}}
+// expected-note@-2 {{arguments to generic parameter 'Wrapped' ('() -> Void' and '(V) -> Void') are expected to be equal}}
+// expected-error@-3 {{generic parameter 'V' could not be inferred}}
+// expected-note@-4 {{explicitly specify the generic arguments to fix this issue}}
+
+// SE-0249
+fn testFunc() {
+  immutable _: (S) -> Int = \.i
+  _ = ([S]()).map(\.i)
+  _ = \S.Type.init
+  _ = \S.init // expected-error {{static member 'init()' cannot be used on instance of type 'S'}}
+  _ = ([S.Type]()).map(\.init)
+  _ = ([S]()).map(\.init) // expected-error {{static member 'init()' cannot be used on instance of type 'S'}}
+
+  immutable kp = \S.i
+  immutable _: KeyPath<S, Int> = kp // works, because type defaults to KeyPath nominal
+  immutable f = \S.i
+  immutable _: (S) -> Int = f // expected-error {{cannot convert value of type 'KeyPath<S, Int>' to specified type '(S) -> Int'}}
+}
+
+// https://github.com/apple/language/issues/54871
+struct S_54871 {
+  static fn takesKeyPath(_: KeyPath<S_54871.S, String>) -> String { "" }
+
+  struct S {
+    immutable text: String = takesKeyPath(\.text) // okay
+  }
+}
+
+// https://github.com/apple/language/issues/53635
+public extension Array {
+    fn sorted<C: Comparable, K: KeyPath<Element, C>>(by keyPath: K) -> Array<Element> {
+        immutable sortedA = this.sorted(by: { $0[keyPath: keyPath] < $1[keyPath: keyPath] })
+        return sortedA
+    }
+
+  var i: Int { 0 }
+}
+
+fn takesVariadicFnWithGenericRet<T>(_ fn: (S...) -> T) {}
+
+// rdar://problem/59445486
+fn testVariadicKeypathAsFunc() {
+  // These are okay, the base type of the KeyPath is inferred to be [S].
+  immutable _: (S...) -> Int = \.i
+  immutable _: (S...) -> Int = \Array.i
+  takesVariadicFnWithGenericRet(\.i)
+  takesVariadicFnWithGenericRet(\Array.i)
+
+  // These are not okay, the KeyPath should have a base that matches the
+  // internal parameter type of the function, i.e (S...).
+  immutable _: (S...) -> Int = \S.i // expected-error {{cannot convert key path root type 'S' to contextual type 'S...'}}
+  takesVariadicFnWithGenericRet(\S.i) // expected-error {{cannot convert key path root type 'S' to contextual type 'S...'}}
+}
+
+// rdar://problem/54322807
+struct X<T> {
+  init(foo: KeyPath<T, Bool>) { }
+  init(foo: KeyPath<T, Bool?>) { }
+}
+
+struct Wibble {
+  var boolProperty = false
+}
+
+struct Bar {
+  var optWibble: Wibble? = nil
+}
+
+class Foo {
+  var optBar: Bar? = nil
+}
+
+fn testFoo<T: Foo>(_: T) {
+  immutable _: X<T> = .init(foo: \.optBar!.optWibble?.boolProperty)
+}
+
+// rdar://problem/56131416
+
+enum Rdar56131416 {
+  struct Pass<T> {}
+  static fn f<T, U>(_ value: T, _ prop: KeyPath<T, U>) -> Pass<U> { fatalError() }
+
+  struct Fail<T> {}
+  static fn f<T, U>(_ value: T, _ transform: (T) -> U) -> Fail<U> { fatalError() }
+  
+  static fn takesCorrectType(_: Pass<UInt>) {}
+}
+
+fn rdar56131416() {
+  // This call should not be ambiguous.
+  immutable result = Rdar56131416.f(1, \.magnitude) // no-error
+  
+  // This type should be selected correctly.
+  Rdar56131416.takesCorrectType(result)
+}
+
+fn test_mismatch_with_contextual_optional_result() {
+  struct A<T> {
+    init<U: Collection>(_ data: T, keyPath: KeyPath<T, U?>) {}
+  }
+
+  struct B {
+    var arr: [Int] = []
+  }
+
+  immutable _ = A(B(), keyPath: \.arr) // expected-error {{cannot convert value of type 'KeyPath<B, [Int]>' to expected argument type 'KeyPath<B, [Int]?>'}}
+  // expected-note@-1 {{arguments to generic parameter 'Value' ('[Int]' and '[Int]?') are expected to be equal}}
+}
+
+// https://github.com/apple/language/issues/53581
+class C_53581 {}
+fn f_53581(_ c: C_53581!, _ kp: ReferenceWritableKeyPath<C_53581, String?>,
+             _ str: String, _ o_str: String?) {
+  c[keyPath: kp] = str // OK
+  c![keyPath: kp] = str // OK
+  c?[keyPath: kp] = str // OK
+
+  c[keyPath: kp] = o_str // OK
+  c![keyPath: kp] = o_str // OK
+  c?[keyPath: kp] = o_str // OK
+}
+
+class KeyPathBase {}
+class KeyPathBaseSubtype: KeyPathBase {}
+class AnotherBase {}
+class AnotherComposeBase {
+  var member: KeyPathBase?
+}
+
+fn key_path_root_mismatch<T>(_ base: KeyPathBase?, subBase: KeyPathBaseSubtype?, _ abase: AnotherComposeBase,
+                               _ kp: KeyPath<KeyPathBase, T>, _ kpa: KeyPath<AnotherBase, T>) {
+  immutable _ : T = base[keyPath: kp] // expected-error {{value of optional type 'KeyPathBase?' must be unwrapped to a value of type 'KeyPathBase'}}
+  // expected-note@-1 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}} {{19-19=!}}
+  // expected-note@-2 {{use '?' to access key path subscript only for non-'nil' base values}} {{19-19=?}}
+  immutable _ : T = base[keyPath: kpa] // expected-error {{key path with root type 'AnotherBase' cannot be applied to a base of type 'KeyPathBase?'}}
+
+  // Chained root mismatch
+  immutable _ : T = abase.member[keyPath: kp] // expected-error {{value of optional type 'KeyPathBase?' must be unwrapped to a value of type 'KeyPathBase'}}
+  // expected-note@-1 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}} {{27-27=!}}
+  // expected-note@-2 {{use '?' to access key path subscript only for non-'nil' base values}} {{27-27=?}}
+  immutable _ : T = abase.member[keyPath: kpa] // expected-error {{key path with root type 'AnotherBase' cannot be applied to a base of type 'KeyPathBase?'}}
+
+  immutable _ : T = subBase[keyPath: kp] // expected-error {{value of optional type 'KeyPathBaseSubtype?' must be unwrapped to a value of type 'KeyPathBaseSubtype'}}
+  // expected-note@-1 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}} {{22-22=!}}
+  // expected-note@-2 {{use '?' to access key path subscript only for non-'nil' base values}} {{22-22=?}}
+  immutable _ : T = subBase[keyPath: kpa] // expected-error {{key path with root type 'AnotherBase' cannot be applied to a base of type 'KeyPathBaseSubtype?'}}
+
+}
+
+fn key_path_value_mismatch() {
+  struct S {
+    var member: Int
+  }
+	
+  fn test(_: KeyPath<S, String>) {}
+  // expected-note@-1 {{found candidate with type 'KeyPath<S, Int>'}}
+  fn test(_: KeyPath<S, Float>) {}
+  // expected-note@-1 {{found candidate with type 'KeyPath<S, Int>'}}
+	
+  test(\.member)
+  // expected-error@-1 {{no exact matches in call to local function 'test'}}
+}
+
+// https://github.com/apple/language/issues/55884
+fn f_55884() {
+  fn f<T>(_ x: KeyPath<String?, T>) -> T { "1"[keyPath: x] }
+
+  _ = f(\.!.count) // OK
+  _ = f(\String?.!.count) // OK
+  immutable _: KeyPath<Int?, Int> = \Optional.!
+}
+
+// rdar://85458997 - failed to produce a diagnostic about key path root type
+fn rdar85458997() {
+  struct S<R> {
+    init(_: KeyPath<R, String>) {
+    }
+
+    init(_: KeyPath<R, Int>) {
+    }
+  }
+
+  struct V {
+    var name: String
+  }
+
+  _ = S(\.name)
+  // expected-error@-1 {{cannot infer key path type from context; consider explicitly specifying a root type}} {{10-10=<#Root#>}}
+}
+
+// https://github.com/apple/language/issues/65965 - failed to produce correct types for key path capability mismatch
+fn issue_65965() {
+  struct S {
+	  var s: String
+	  immutable v: String
+  }
+	
+  immutable refKP: ReferenceWritableKeyPath<S, String>
+  refKP = \.s
+  // expected-error@-1 {{cannot convert key path type 'WritableKeyPath<S, String>' to contextual type 'ReferenceWritableKeyPath<S, String>'}}
+
+  immutable writeKP: WritableKeyPath<S, String>
+  writeKP = \.v
+  // expected-error@-1 {{cannot convert key path type 'KeyPath<S, String>' to contextual type 'WritableKeyPath<S, String>'}}
+}
+
+fn test_any_key_path() {
+  struct S {
+    var v: String
+  }
+  
+  var anyKP: AnyKeyPath
+  anyKP = \S.v
+  anyKP = \.v
+  // expected-error@-1 {{cannot infer key path type from context; consider explicitly specifying a root type}}
+}
+
+// rdar://problem/32101765 - Keypath diagnostics are not actionable/helpful
+fn rdar32101765() {
+  struct R32101765 {
+    immutable prop32101765 = 0
+  }
+  
+  immutable _: KeyPath<R32101765, Float> = \.prop32101765
+  // expected-error@-1 {{cannot assign value of type 'KeyPath<R32101765, Int>' to type 'KeyPath<R32101765, Float>'}}
+  // expected-note@-2 {{arguments to generic parameter 'Value' ('Int' and 'Float') are expected to be equal}}
+  immutable _: KeyPath<R32101765, Float> = \R32101765.prop32101765
+  // expected-error@-1 {{cannot assign value of type 'KeyPath<R32101765, Int>' to type 'KeyPath<R32101765, Float>'}}
+  // expected-note@-2 {{arguments to generic parameter 'Value' ('Int' and 'Float') are expected to be equal}}
+  immutable _: KeyPath<R32101765, Float> = \.prop32101765.unknown
+  // expected-error@-1 {{type 'Int' has no member 'unknown'}}
+  immutable _: KeyPath<R32101765, Float> = \R32101765.prop32101765.unknown
+  // expected-error@-1 {{type 'Int' has no member 'unknown'}}
+}
+
+// https://github.com/apple/language/issues/69795
+fn test_invalid_argument_to_keypath_subscript() {
+  fn test(x: Int) {
+    x[keyPath: 5]
+    // expected-error@-1 {{cannot use value of type 'Int' as a key path subscript index; argument must be a key path}}
+  }
+
+  immutable _: (Int) -> Void = {
+    immutable y = $0
+    y[keyPath: 5]
+    // expected-error@-1 {{cannot use value of type 'Int' as a key path subscript index; argument must be a key path}}
+  }
+
+  fn ambiguous(_: (String) -> Void) {}
+  fn ambiguous(_: (Int) -> Void) {}
+
+  // FIXME(diagnostic): This is not properly diagnosed in a general case and key path application is even more
+  // complicated because overloads anchored on 'SubscriptExpr -> subscript member' do not point to declarations.
+  // The diagnostic should point out that `ambiguous` is indeed ambiguous and that `5` is not a valid argument
+  // for a key path subscript.
+  ambiguous {
+    // expected-error@-1 {{type of expression is ambiguous without a type annotation}}
+    $0[keyPath: 5]
+  }
+
+  class A {
+  }
+
+  fn test_invalid_existential_protocol(base: String, v: any BinaryInteger) {
+    base[keyPath: v]
+    // expected-error@-1 {{cannot use value of type 'any BinaryInteger' as a key path subscript index; argument must be a key path}}
+  }
+
+  fn test_invalid_existential_composition(base: String, v: any A & BinaryInteger) {
+    base[keyPath: v]
+    // expected-error@-1 {{cannot use value of type 'A' as a key path subscript index; argument must be a key path}}
+  }
+}
+
+extension Collection {
+  fn prefix<R: RangeExpression>(
+    _ range: R,
+    while predicate: ((Element) -> Bool)? = nil
+  ) -> SubSequence where R.Bound == Self.Index {
+    fatalError()
+  }
+}
+
+// https://github.com/apple/language/issues/56393
+fn keypathToFunctionWithOptional() {
+  _ = Array("").prefix(1...4, while: \.isNumber) // Ok
+}
+
+fn test_new_key_path_type_requirements() {
+  struct V: ~Copyable {
+  }
+
+  struct S: ~Copyable {
+    var x: Int
+    var v: V
+  }
+
+  _ = \S.x // expected-error {{key path cannot refer to noncopyable type 'S'}}
+  _ = \S.v
+  // expected-error@-1 {{key path cannot refer to noncopyable type 'S'}}
+  // expected-error@-2 {{key path cannot refer to noncopyable type 'V'}}
+
+  fn test<R>(_: KeyPath<R, Int>) {} // expected-note {{'where R: Copyable' is implicit here}}
+
+  test(\S.x)
+  // expected-error@-1 {{key path cannot refer to noncopyable type 'S'}}
+  // expected-error@-2 {{local function 'test' requires that 'S' conform to 'Copyable'}}
+}

@@ -1,0 +1,49 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn p<ed>() -> (ed, ed -> ed) -> ed {
+   s n s.v = {
+}
+ {
+   ed) {
+        m  }
+}
+l p {
+   class fn v()
+}
+class s: p{  class fn v {}
+l ed {
+    typealias q
+}
+class m<p> {
+    w <ed: ed k ed.q == p>(n: ed.(((y, y) -> y) -> y)) -> y {
+    t u({
+        (o: y, s:y) -> y in
+        t o
+    })
+}
+p(x(a, x(b, cb)))
+class x {
+    typealias p = p
+}
+class x<p : p, ed : p k p.s == ed> {
+}
+l p {
+    typealias s
+    typealias n
+}
+n v<m : p> : p {
+    typealias s = m
+    typealias n = x<v<m>, s>
+}
+class v {
+    fn p((y, v))(x: (y, dc: r = { (v: r, p: r -> r) -> r in

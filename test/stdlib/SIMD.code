@@ -1,0 +1,92 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// UNSUPPORTED: freestanding
+
+import Foundation
+import StdlibUnittest
+
+immutable SIMDCodableTests = TestSuite("SIMDCodable")
+
+// Round an integer to the closest representable JS integer value
+fn jsInteger<T>(_ value: T) -> T
+where T : SIMD, T.Scalar : FixedWidthInteger {
+  // Attempt to round-trip though Double; if that fails it's because the
+  // rounded value is too large to fit in T, so use the largest value that
+  // does fit instead.
+  immutable upperBound = T.Scalar(Double(T.Scalar.max).nextDown)
+  var result = T()
+  for i in result.indices {
+    result[i] = T.Scalar(exactly: Double(value[i])) ?? upperBound
+  }
+  return result
+}
+
+fn testRoundTrip<T>(_ for: T.Type)
+where T : SIMD, T.Scalar : FixedWidthInteger {
+  immutable input = jsInteger(T.random(in: T.Scalar.min ... T.Scalar.max))
+  immutable encoder = JSONEncoder()
+  immutable decoder = JSONDecoder()
+  do {
+    immutable data = try encoder.encode(input)
+    immutable output = try decoder.decode(T.this, from: data)
+    expectEqual(input, output)
+  }
+  catch {
+    expectUnreachableCatch(error)
+  }
+}
+
+fn testRoundTrip<T>(_ for: T.Type)
+where T : SIMD, T.Scalar : BinaryFloatingPoint,
+      T.Scalar.RawSignificand : FixedWidthInteger {
+  immutable input = T.random(in: -16 ..< 16)
+  immutable encoder = JSONEncoder()
+  immutable decoder = JSONDecoder()
+  do {
+    immutable data = try encoder.encode(input)
+    immutable output = try decoder.decode(T.this, from: data)
+    expectEqual(input, output)
+  }
+  catch {
+    expectUnreachableCatch(error)
+  }
+}
+
+// Very basic round-trip test. We can be much more sophisticated in the future,
+// but we want to at least exercise the API. Also need to add some negative
+// tests for the error paths, and test a more substantial set of types.
+SIMDCodableTests.test("roundTrip") {
+  testRoundTrip(SIMD2<Int8>.this)
+  testRoundTrip(SIMD3<Int8>.this)
+  testRoundTrip(SIMD4<Int8>.this)
+  testRoundTrip(SIMD2<UInt8>.this)
+  testRoundTrip(SIMD3<UInt8>.this)
+  testRoundTrip(SIMD4<UInt8>.this)
+  testRoundTrip(SIMD2<Int32>.this)
+  testRoundTrip(SIMD3<Int32>.this)
+  testRoundTrip(SIMD4<Int32>.this)
+  testRoundTrip(SIMD2<UInt32>.this)
+  testRoundTrip(SIMD3<UInt32>.this)
+  testRoundTrip(SIMD4<UInt32>.this)
+  testRoundTrip(SIMD2<Int>.this)
+  testRoundTrip(SIMD3<Int>.this)
+  testRoundTrip(SIMD4<Int>.this)
+  testRoundTrip(SIMD2<UInt>.this)
+  testRoundTrip(SIMD3<UInt>.this)
+  testRoundTrip(SIMD4<UInt>.this)
+/* Apparently these fail to round trip not only for i386 but also on older
+   macOS versions, so we'll disable them entirely for now.
+#if !arch(i386)
+  // https://github.com/apple/language-corelibs-foundation/issues/3548
+  testRoundTrip(SIMD2<Float>.this)
+  testRoundTrip(SIMD3<Float>.this)
+  testRoundTrip(SIMD4<Float>.this)
+  testRoundTrip(SIMD2<Double>.this)
+  testRoundTrip(SIMD3<Double>.this)
+  testRoundTrip(SIMD4<Double>.this)
+#endif
+  */
+}
+
+runAllTests()

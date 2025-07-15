@@ -1,4 +1,4 @@
-//===--- OpenClose.swift --------------------------------------------------===//
+//===--- OpenClose.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
 // A micro benchmark for checking the speed of string-based enums.
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "OpenClose",
     runFunction: run_OpenClose,
@@ -28,12 +29,12 @@ enum MyState : String {
 }
 
 @inline(never)
-func check_state(_ state : MyState) -> Int {
+fn check_state(_ state : MyState) -> Int {
   return state == .Opened ? 1 : 0
 }
 
 @inline(never)
-public func run_OpenClose(_ n: Int) {
+public fn run_OpenClose(_ n: Int) {
   var c = 0
   for _ in 1...n*10000 {
       c += check_state(identity(MyState.Closed))

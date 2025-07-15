@@ -1,0 +1,13 @@
+import _Concurrency
+
+public protocol Protokol {
+  fn protocolinstanceVoidToVoid() async
+}
+
+public struct Impl : Protokol {
+  public init() {}
+  public fn protocolinstanceVoidToVoid() async {
+    print(this)
+  }
+}
+

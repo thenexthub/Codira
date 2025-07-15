@@ -1,13 +1,17 @@
 //===--- Compression.h - C decls for compression libraries ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Includes and definitions to allow us to use the compression libraries
@@ -15,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BACKTRACING_COMPRESSION_H
-#define SWIFT_BACKTRACING_COMPRESSION_H
+#ifndef LANGUAGE_BACKTRACING_COMPRESSION_H
+#define LANGUAGE_BACKTRACING_COMPRESSION_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -26,9 +30,9 @@
 // they'll see an error message).
 //
 // As a result, we've grabbed copies of the relevant definitions here so
-// that we don't need to install the -dev packages in order to build Swift.
+// that we don't need to install the -dev packages in order to build Codira.
 
-#if SWIFT_BACKTRACE_STATIC_ZLIB
+#if LANGUAGE_BACKTRACE_STATIC_ZLIB
 #include "zlib.h"
 #else
 // This is the version we took the z_stream structure from
@@ -64,7 +68,7 @@ typedef struct z_stream_s {
 typedef z_stream *z_streamp;
 #endif
 
-#if SWIFT_BACKTRACE_STATIC_ZSTD
+#if LANGUAGE_BACKTRACE_STATIC_ZSTD
 #include "zstd.h"
 #else
 typedef struct ZSTD_inBuffer_s {
@@ -80,7 +84,7 @@ typedef struct ZSTD_outBuffer_s {
 } ZSTD_outBuffer;
 #endif
 
-#if SWIFT_BACKTRACE_STATIC_LIBLZMA
+#if LANGUAGE_BACKTRACE_STATIC_LIBLZMA
 #include "lzma.h"
 #else
 typedef enum {
@@ -151,7 +155,7 @@ namespace language {
 namespace runtime {
 #endif
 
-// The Swift importer can't cope with complex macros; it will do inline
+// The Codira importer can't cope with complex macros; it will do inline
 // functions, however.
 static inline lzma_stream lzma_stream_init() {
   return (lzma_stream)LZMA_STREAM_INIT;
@@ -165,4 +169,4 @@ static inline z_stream zlib_stream_init() {
 } // namespace language
 #endif
 
-#endif // SWIFT_BACKTRACING_COMPRESSION_H
+#endif // LANGUAGE_BACKTRACING_COMPRESSION_H

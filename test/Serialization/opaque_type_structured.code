@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -disable-availability-checking -o %t -enable-library-evolution %S/Inputs/OpaqueTypeStructured.code
+// RUN: %target-language-frontend -emit-sil -disable-availability-checking -I %t %s | %FileCheck -check-prefix=SIL %s
+// RUN: %target-language-ide-test -print-module -source-filename %s -module-to-print OpaqueTypeStructured -I %t | %FileCheck -check-prefix=AST %s
+import OpaqueTypeStructured
+
+fn acceptR<T: R>(_: T) { }
+
+// AST: fn f() -> (some P, [some Q])
+
+fn passAnX(x: X) {
+  // SIL: $@convention(method) (@in_guaranteed X) -> (@out @_opaqueReturnTypeOf("$s20OpaqueTypeStructured1XV1fQr_SayQR_GtyF", 0) __, @owned Array<@_opaqueReturnTypeOf("$s20OpaqueTypeStructured1XV1fQr_SayQR_GtyF", 1) __>)
+  acceptR(x)
+  immutable _: X.A = x.f()
+}
+

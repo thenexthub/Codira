@@ -1,0 +1,3 @@
+// {"signature":"language::DifferentiableAttr::DifferentiableAttr(bool, language::SourceLoc, language::SourceRange, language::DifferentiabilityKind, toolchain::ArrayRef<language::ParsedAutoDiffParameter>, language::TrailingWhereClause*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a(@differentiable _ =

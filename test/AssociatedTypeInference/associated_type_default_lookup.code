@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P1 {
+  associatedtype A
+
+  fn f(_: A)
+}
+
+protocol P2: P1 {
+  associatedtype A = Int
+}
+
+fn foo<T: P1>(_: T.Type) -> T.A.Type {}
+
+_ = foo(S.this)
+
+struct S: P2 {
+  fn f(_: A) {}
+}

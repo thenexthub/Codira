@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CodeCompletionResultType.h"
@@ -27,7 +28,7 @@ using namespace ide;
 using TypeRelation = CodeCompletionResultTypeRelation;
 
 #define DEBUG_TYPE "CodeCompletionResultType"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 // MARK: - Utilities
 
@@ -69,10 +70,10 @@ USRBasedTypeContext::USRBasedTypeContext(const ExpectedTypeContext *TypeContext,
 
     // If the contextual type is an opaque return type, make the protocol a
     // contextual type. E.g. if we have
-    //   func foo() -> some View { #^COMPLETE^# }
+    //   fn foo() -> some View { #^COMPLETE^# }
     // we should show items conforming to `View` as convertible.
     if (auto OpaqueType = possibleTy->getAs<OpaqueTypeArchetypeType>()) {
-      llvm::SmallVector<const USRBasedType *, 1> USRTypes;
+      toolchain::SmallVector<const USRBasedType *, 1> USRTypes;
       if (auto Superclass = OpaqueType->getSuperclass()) {
         USRTypes.push_back(USRBasedType::fromType(Superclass, Arena));
       }
@@ -191,7 +192,7 @@ const USRBasedType *USRBasedType::fromType(Type Ty, USRBasedTypeArena &Arena) {
   }
 
   SmallString<32> USR;
-  llvm::raw_svector_ostream OS(USR);
+  toolchain::raw_svector_ostream OS(USR);
   printTypeUSR(Ty, OS);
 
   // Check the USRBasedType cache in the arena as quickly as possible to avoid
@@ -202,9 +203,9 @@ const USRBasedType *USRBasedType::fromType(Type Ty, USRBasedTypeArena &Arena) {
     return ExistingTypeIt->second;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "enter USRBasedType(" << Ty << ", USR = "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "enter USRBasedType(" << Ty << ", USR = "
                           << USR << ")\n";
-             Ty->dump(llvm::dbgs()););
+             Ty->dump(toolchain::dbgs()););
 
   SmallVector<const USRBasedType *, 2> Supertypes;
   ;
@@ -213,7 +214,7 @@ const USRBasedType *USRBasedType::fromType(Type Ty, USRBasedTypeArena &Arena) {
       for (auto *inherited : Proto->getAllInheritedProtocols()) {
         if (!inherited->isSpecificProtocol(KnownProtocolKind::Sendable) &&
             !inherited->getInvertibleProtocolKind()) {
-          LLVM_DEBUG(llvm::dbgs() << "Adding inherited protocol "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Adding inherited protocol "
                                   << inherited->getName()
                                   << "\n";);
           Supertypes.push_back(USRBasedType::fromType(
@@ -248,7 +249,7 @@ const USRBasedType *USRBasedType::fromType(Type Ty, USRBasedTypeArena &Arena) {
           // USR mangling produces the type 'Any' for the protocol type.
           continue;
         }
-        LLVM_DEBUG(llvm::dbgs() << "Adding conformed protocol "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Adding conformed protocol "
                                 << Conformance->getProtocol()->getName()
                                 << "\n";);
         Supertypes.push_back(USRBasedType::fromType(
@@ -286,31 +287,31 @@ const USRBasedType *USRBasedType::fromType(Type Ty, USRBasedTypeArena &Arena) {
 
   Type Superclass = getSuperclass(Ty);
   while (Superclass) {
-    LLVM_DEBUG(llvm::dbgs() << "Adding superclass "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Adding superclass "
                             << Superclass
                             << "\n";);
     Supertypes.push_back(USRBasedType::fromType(Superclass, Arena));
     Superclass = getSuperclass(Superclass);
   }
 
-  assert(llvm::all_of(Supertypes, [&USR](const USRBasedType *Ty) {
+  assert(toolchain::all_of(Supertypes, [&USR](const USRBasedType *Ty) {
     if (Ty->getUSR() == USR) {
-      LLVM_DEBUG(llvm::dbgs() << "Duplicate USR: " << USR << "\n";);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Duplicate USR: " << USR << "\n";);
     }
     return Ty->getUSR() != USR;
   }) && "Circular supertypes?");
 
-  llvm::SmallPtrSet<const USRBasedType *, 2> ImpliedSupertypes;
+  toolchain::SmallPtrSet<const USRBasedType *, 2> ImpliedSupertypes;
   for (auto Supertype : Supertypes) {
     ImpliedSupertypes.insert(Supertype->getSupertypes().begin(),
                              Supertype->getSupertypes().end());
   }
-  llvm::erase_if(Supertypes, [&ImpliedSupertypes](const USRBasedType *Ty) {
+  toolchain::erase_if(Supertypes, [&ImpliedSupertypes](const USRBasedType *Ty) {
     return ImpliedSupertypes.contains(Ty);
   });
 
-  LLVM_DEBUG(llvm::dbgs() << "leave USRBasedType(" << Ty << ")\n";
-             Ty->dump(llvm::dbgs()););
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "leave USRBasedType(" << Ty << ")\n";
+             Ty->dump(toolchain::dbgs()););
 
   return USRBasedType::fromUSR(USR, Supertypes, ::getCustomAttributeKinds(Ty),
                                Arena);
@@ -322,7 +323,7 @@ TypeRelation USRBasedType::typeRelation(const USRBasedType *ResultType,
   if (this == VoidType) {
     // We don't report Void <-> Void matches because that would boost
     // methods returning Void in e.g.
-    // func foo() { #^COMPLETE^# }
+    // fn foo() { #^COMPLETE^# }
     // because #^COMPLETE^# is implicitly returned. But that's not very
     // helpful.
     return TypeRelation::Unknown;
@@ -466,17 +467,17 @@ calculateMaxTypeRelation(Type Ty, const ExpectedTypeContext &typeContext,
 }
 
 bool CodeCompletionResultType::isBackedByUSRs() const {
-  return llvm::all_of(
+  return toolchain::all_of(
       getResultTypes(),
       [](const PointerUnion<Type, const USRBasedType *> &ResultType) {
         return ResultType.is<const USRBasedType *>();
       });
 }
 
-llvm::SmallVector<const USRBasedType *, 1>
+toolchain::SmallVector<const USRBasedType *, 1>
 CodeCompletionResultType::getUSRBasedResultTypes(
     USRBasedTypeArena &Arena) const {
-  llvm::SmallVector<const USRBasedType *, 1> USRBasedTypes;
+  toolchain::SmallVector<const USRBasedType *, 1> USRBasedTypes;
   auto ResultTypes = getResultTypes();
   USRBasedTypes.reserve(ResultTypes.size());
   for (auto ResultType : ResultTypes) {

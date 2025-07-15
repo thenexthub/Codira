@@ -1,0 +1,118 @@
+{
+  key.dependencies: [
+    {
+      key.kind: source.lang.code.import.module.code,
+      key.name: "Codira",
+      key.filepath: Codira.codemodule,
+      key.is_system: 1
+    },
+    {
+      key.kind: source.lang.code.import.module.code,
+      key.name: "_Concurrency",
+      key.filepath: _Concurrency.codemodule,
+      key.is_system: 1,
+      key.dependencies: [
+        {
+          key.kind: source.lang.code.import.module.code,
+          key.name: "Codira",
+          key.filepath: Codira.codemodule,
+          key.is_system: 1
+        }
+      ]
+    },
+    {
+      key.kind: source.lang.code.import.module.code,
+      key.name: "ObjectiveC",
+      key.filepath: ObjectiveC.codemodule,
+      key.is_system: 1,
+      key.dependencies: [
+        {
+          key.kind: source.lang.code.import.module.clang,
+          key.name: "ObjectiveC",
+          key.filepath: ObjectiveC.pcm,
+          key.is_system: 1
+        },
+        {
+          key.kind: source.lang.code.import.module.code,
+          key.name: "Codira",
+          key.filepath: Codira.codemodule,
+          key.is_system: 1
+        },
+        {
+          key.kind: source.lang.code.import.module.code,
+          key.name: "CodiraOnoneSupport",
+          key.filepath: CodiraOnoneSupport.codemodule,
+          key.is_system: 1,
+          key.dependencies: [
+            {
+              key.kind: source.lang.code.import.module.code,
+              key.name: "Codira",
+              key.filepath: Codira.codemodule,
+              key.is_system: 1
+            }
+          ]
+        },
+        {
+          key.kind: source.lang.code.import.module.code,
+          key.name: "_Concurrency",
+          key.filepath: _Concurrency.codemodule,
+          key.is_system: 1
+        },
+        {
+          key.kind: source.lang.code.import.module.code,
+          key.name: "_StringProcessing",
+          key.filepath: _StringProcessing.codemodule,
+          key.is_system: 1,
+          key.dependencies: [
+            {
+              key.kind: source.lang.code.import.module.code,
+              key.name: "Codira",
+              key.filepath: Codira.codemodule,
+              key.is_system: 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  key.entities: [
+    {
+      key.kind: source.lang.code.ref.module,
+      key.name: "ObjectiveC",
+      key.usr: "c:@M@ObjectiveC",
+      key.line: 8,
+      key.column: 8
+    },
+    {
+      key.kind: source.lang.code.decl.var.global,
+      key.name: "v",
+      key.usr: "s:4main1vSo8NSObjectCSgvp",
+      key.line: 9,
+      key.column: 5,
+      key.entities: [
+        {
+          key.kind: source.lang.code.decl.function.accessor.getter,
+          key.usr: "s:4main1vSo8NSObjectCSgvg",
+          key.line: 9,
+          key.column: 5,
+          key.is_implicit: 1
+        },
+        {
+          key.kind: source.lang.code.decl.function.accessor.setter,
+          key.usr: "s:4main1vSo8NSObjectCSgvs",
+          key.line: 9,
+          key.column: 5,
+          key.is_implicit: 1
+        }
+      ],
+      key.effective_access: source.decl.effective_access.internal
+    },
+    {
+      key.kind: source.lang.code.ref.class,
+      key.name: "NSObject",
+      key.usr: "c:objc(cs)NSObject",
+      key.line: 9,
+      key.column: 8
+    }
+  ]
+}

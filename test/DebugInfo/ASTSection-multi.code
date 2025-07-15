@@ -1,0 +1,52 @@
+// REQUIRES: OS=linux-gnu
+// REQUIRES: executable_test
+// REQUIRES: language_tools_extra
+
+// Test that concatenated .code_ast sections of various sizes can be parsed.
+
+// RUN: %empty-directory(%t)
+
+// RUN: echo "public immutable a0 = 0"  >%t/a0.code
+
+// RUN: echo "public immutable a1 = 0"  >%t/a1.code
+// RUN: echo "public immutable b1 = 0" >>%t/a1.code
+
+// RUN: echo "public immutable a2 = 0"  >%t/a2.code
+// RUN: echo "public immutable b2 = 0" >>%t/a2.code
+// RUN: echo "public immutable c2 = 0" >>%t/a2.code
+
+// RUN: echo "public immutable a3 = 0"  >%t/a3.code
+// RUN: echo "public immutable b3 = 0" >>%t/a3.code
+// RUN: echo "public immutable c3 = 0" >>%t/a3.code
+// RUN: echo "public immutable d3 = 0" >>%t/a3.code
+
+// RUN: %target-build-language %t/a0.code -c -g -o %t/a0.o -parse-as-library
+// RUN: %target-build-language %t/a1.code -c -g -o %t/a1.o -parse-as-library
+// RUN: %target-build-language %t/a2.code -c -g -o %t/a2.o -parse-as-library
+// RUN: %target-build-language %t/a3.code -c -g -o %t/a3.o -parse-as-library
+
+// RUN: %target-build-language %t/a0.code -emit-module -emit-module-path %t/a0.codemodule
+// RUN: %target-build-language %t/a1.code -emit-module -emit-module-path %t/a1.codemodule
+// RUN: %target-build-language %t/a2.code -emit-module -emit-module-path %t/a2.codemodule
+// RUN: %target-build-language %t/a3.code -emit-module -emit-module-path %t/a3.codemodule
+
+// RUN: %target-language-modulewrap %t/a0.codemodule -o %t/a0-mod.o
+// RUN: %target-language-modulewrap %t/a1.codemodule -o %t/a1-mod.o
+// RUN: %target-language-modulewrap %t/a2.codemodule -o %t/a2-mod.o
+// RUN: %target-language-modulewrap %t/a3.codemodule -o %t/a3-mod.o
+
+// RUN: %target-build-language -o %t/a.out %s \
+// RUN:                     %t/a0.o %t/a0-mod.o \
+// RUN:                     %t/a1.o %t/a1-mod.o \
+// RUN:                     %t/a2.o %t/a2-mod.o \
+// RUN:                     %t/a3.o %t/a3-mod.o
+
+// RUN: %lldb-moduleimport-test -verbose %t/a.out | %FileCheck %s
+// CHECK-DAG: Importing a0...
+// CHECK-DAG: Import successful!
+// CHECK-DAG: Importing a1...
+// CHECK-DAG: Import successful!
+// CHECK-DAG: Importing a2...
+// CHECK-DAG: Import successful!
+// CHECK-DAG: Importing a3...
+

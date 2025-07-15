@@ -58,7 +58,7 @@ CURSOR_REFACTORING(AddExplicitCodableImplementation, "Add Explicit Codable Imple
 
 CURSOR_REFACTORING(ConvertCallToAsyncAlternative, "Convert Call to Async Alternative", convert.call-to-async)
 
-CURSOR_REFACTORING(ConvertToAsync, "Convert Function to Async", convert.func-to-async)
+CURSOR_REFACTORING(ConvertToAsync, "Convert Function to Async", convert.fn-to-async)
 
 CURSOR_REFACTORING(AddAsyncAlternative, "Add Async Alternative", add.async-alternative)
 

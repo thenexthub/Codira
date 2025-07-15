@@ -1,0 +1,7 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/Globals.codemodule %S/Globals.code
+// RUN: %target-language-frontend -I %t %s -g -emit-ir -o - | %FileCheck %s
+import Globals
+// No debug info should be emitted for an externally defined global variable.
+// CHECK-NOT: !DIGlobalVariable({{.*}}global
+global = 23

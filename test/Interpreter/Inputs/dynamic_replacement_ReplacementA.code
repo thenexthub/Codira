@@ -1,0 +1,8 @@
+@_weakLinked import LibA
+
+extension A {
+  @_dynamicReplacement(for: printThis())
+  fn _replacementForPrintThis() {
+    Codira.print("replacement")
+  }
+}

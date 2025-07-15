@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements Type::walk.
@@ -341,11 +342,11 @@ public:
     case TypeWalker::Action::Continue:
       return false;
     case TypeWalker::Action::SkipNode:
-      llvm_unreachable("SkipChildren is not valid for a post-visit check");
+      toolchain_unreachable("SkipChildren is not valid for a post-visit check");
     case TypeWalker::Action::Stop:
       return true;
     }
-    llvm_unreachable("bad TypeWalker::Action");
+    toolchain_unreachable("bad TypeWalker::Action");
   }
 };
 

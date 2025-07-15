@@ -1,0 +1,86 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library -verify %s
+
+// REQUIRES: OS=macosx
+
+import Foundation
+
+public class CodiraClass {
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' instance method}}
+  @objc final public fn objCMethod() {}
+}
+
+public class ObjCClass: NSObject {
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final instance method}}
+  public fn method() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' instance method}}
+  @objc public fn objcMethod() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' instance method}}
+  @objc final public fn finalObjcMethod() {}
+
+  @backDeployed(before: macOS 12.0)
+  final public fn finalMethod() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final instance method}}
+  @nonobjc public fn nonObjCMethod() {}
+
+  @backDeployed(before: macOS 12.0)
+  @nonobjc final public fn finalNonObjCMethod() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final property}}
+  public var property: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' property}}
+  @objc public var objCProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' property}}
+  @objc public final var finalObjCProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0)
+  public final var finalProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final property}}
+  @nonobjc public var nonObjCProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0)
+  @nonobjc public final var finalNonObjCProperty: [Int] { [1] }
+}
+
+extension DummyClass {
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final instance method}}
+  public fn method() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' instance method}}
+  @objc public fn objcMethod() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' instance method}}
+  @objc final public fn finalObjcMethod() {}
+
+  @backDeployed(before: macOS 12.0)
+  final public fn finalMethod() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final instance method}}
+  @nonobjc public fn nonObjCMethod() {}
+
+  @backDeployed(before: macOS 12.0)
+  @nonobjc final public fn finalNonObjCMethod() {}
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final property}}
+  public var property: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' property}}
+  @objc public var objCProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' must not be used on an '@objc' property}}
+  @objc public final var finalObjCProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0)
+  public final var finalProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0) // expected-error {{'@backDeployed' cannot be applied to a non-final property}}
+  @nonobjc public var nonObjCProperty: [Int] { [1] }
+
+  @backDeployed(before: macOS 12.0)
+  @nonobjc public final var finalNonObjCProperty: [Int] { [1] }
+}

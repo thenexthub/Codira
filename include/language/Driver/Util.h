@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_UTIL_H
-#define SWIFT_DRIVER_UTIL_H
+#ifndef LANGUAGE_DRIVER_UTIL_H
+#define LANGUAGE_DRIVER_UTIL_H
 
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallVector.h"
 
-namespace llvm {
+namespace toolchain {
 namespace opt {
   class Arg;
 } // end namespace opt
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace language {
 
 namespace driver {
   /// An input argument from the command line and its inferred type.
-  using InputPair = std::pair<file_types::ID, const llvm::opt::Arg *>;
+  using InputPair = std::pair<file_types::ID, const toolchain::opt::Arg *>;
   /// Type used for a list of input arguments.
   using InputFileList = SmallVector<InputPair, 16>;
 

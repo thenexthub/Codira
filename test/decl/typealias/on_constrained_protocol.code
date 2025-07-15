@@ -1,0 +1,55 @@
+// RUN: %target-typecheck-verify-language
+
+// typealias on constrained extension
+
+protocol ConstrainedTypealias {
+  associatedtype MyAssocType	
+}
+extension ConstrainedTypealias where MyAssocType == String { // expected-note {{requirement specified as 'Self.MyAssocType' == 'String' [with Self = Self]}} (from useConstrainedTypealiasInExtension)
+  typealias Content = String 
+}
+extension ConstrainedTypealias where MyAssocType == Int {
+  fn useConstrainedTypealiasInExtension() -> Content {} // expected-error {{'Self.Content' (aka 'String') requires the types 'Int' and 'String' be equivalent}}
+}
+fn useTypealiasOnConstrainedExtension() -> ConstrainedTypealias.Content {}
+
+// define different typealiases on differently constrained extensions
+
+protocol DoubleOverloadedTypealias {
+  associatedtype MyAssocType
+}
+extension DoubleOverloadedTypealias where MyAssocType == String { // expected-note {{requirement specified as 'Self.MyAssocType' == 'String' [with Self = Self]}} (from useDoubleOverloadedTypealiasInExtension)
+  typealias Content = String // expected-note {{found candidate with type 'String'}} (from useDoubleOverloadedTypealias)
+}
+extension DoubleOverloadedTypealias where MyAssocType == Int {
+  typealias Content = Int // expected-note {{found candidate with type 'Int'}} (from useDoubleOverloadedTypealias)
+  fn useDoubleOverloadedTypealiasInExtension() -> Content {} // expected-error {{'Self.Content' (aka 'String') requires the types 'Int' and 'String' be equivalent}}
+}
+fn useDoubleOverloadedTypealias() -> DoubleOverloadedTypealias.Content {} // expected-error {{ambiguous type name 'Content' in 'DoubleOverloadedTypealias'}}
+
+// define the same typealias on differently constrained extensions
+
+protocol DoubleOverloadedSameTypealias {
+  associatedtype MyAssocType
+}
+extension DoubleOverloadedSameTypealias where MyAssocType == String { // expected-note {{requirement specified as 'Self.MyAssocType' == 'String' [with Self = Self]}} (from useDoubleOverloadedSameTypealiasInExtension)
+  typealias Content = Int
+}
+extension DoubleOverloadedSameTypealias where MyAssocType == Int {
+  typealias Content = Int
+  fn useDoubleOverloadedSameTypealiasInExtension() -> Content {} // expected-error {{'Self.Content' (aka 'Int') requires the types 'Int' and 'String' be equivalent}}
+}
+fn useDoubleOverloadedSameTypealias() -> DoubleOverloadedSameTypealias.Content {}
+
+// Overload associatedtype with typealias
+// https://github.com/apple/language/issues/50805
+
+protocol MarkerProtocol {}
+protocol ProtocolWithAssoctype {
+  associatedtype MyAssocType // expected-note {{found this candidate}} (from useAssocTypeInExtension) expected-note {{found candidate with type 'Self.MyAssocType'}} (from useAssocTypeOutsideExtension)
+}
+extension ProtocolWithAssoctype where Self: MarkerProtocol {
+  typealias MyAssocType = Int // expected-note {{found this candidate}} (from useAssocTypeInExtension) expected-note {{found candidate with type 'Int'}} (from useAssocTypeOutsideExtension)
+  fn useAssocTypeInExtension() -> MyAssocType {} // expected-error {{'MyAssocType' is ambiguous for type lookup in this context}}
+}
+fn useAssocTypeOutsideExtension() -> ProtocolWithAssoctype.MyAssocType {} // expected-error {{ambiguous type name 'MyAssocType' in 'ProtocolWithAssoctype'}}

@@ -1,4 +1,4 @@
-//===--- NameLookup.h - Swift Name Lookup Routines --------------*- C++ -*-===//
+//===--- NameLookup.h - Codira Name Lookup Routines --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for performing name lookup.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_NAME_LOOKUP_H
-#define SWIFT_AST_NAME_LOOKUP_H
+#ifndef LANGUAGE_AST_NAME_LOOKUP_H
+#define LANGUAGE_AST_NAME_LOOKUP_H
 
 #include "language/AST/ASTVisitor.h"
 #include "language/AST/CatchNode.h"
@@ -31,7 +32,7 @@
 #include "language/Basic/NullablePtr.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "language/AST/TypeRepr.h"
 
 namespace language {
@@ -59,11 +60,11 @@ private:
   /// The declaration context through which we found \c Value. For instance,
   /// \code
   /// class BaseClass {
-  ///   func foo() {}
+  ///   fn foo() {}
   /// }
   ///
   /// class DerivedClass : BaseClass {
-  ///   func bar() {}
+  ///   fn bar() {}
   /// }
   /// \endcode
   ///
@@ -73,8 +74,8 @@ private:
   /// Another example:
   /// \code
   /// class BaseClass {
-  ///   func bar() {}
-  ///   func foo() {}
+  ///   fn bar() {}
+  ///   fn foo() {}
   /// }
   /// \endcode
   ///
@@ -91,12 +92,12 @@ private:
   /// initializer, which unlike a non-lazy property can reference \c self.
   /// \code
   ///  class Outer {
-  ///    static func s()
-  ///    func i()
+  ///    static fn s()
+  ///    fn i()
   ///    class Inner {
-  ///      static func ss()
-  ///      func ii() {
-  ///        func F() {
+  ///      static fn ss()
+  ///      fn ii() {
+  ///        fn F() {
   ///          ii() // OK! implicitly self.ii; BaseDC is the method
   ///          s()  // OK! s() is defined in an outer type; BaseDC is the type
   ///          ss() // error: must write /Inner.ss() here since its static
@@ -140,7 +141,7 @@ public:
     return lhs.BaseDC == rhs.BaseDC && lhs.Value == rhs.Value;
   }
 
-  void print(llvm::raw_ostream &) const;
+  void print(toolchain::raw_ostream &) const;
 };
 
 /// The result of name lookup.
@@ -167,16 +168,16 @@ public:
   bool empty() const { return innerResults().empty(); }
 
   ArrayRef<LookupResultEntry> innerResults() const {
-    return llvm::ArrayRef(Results).take_front(IndexOfFirstOuterResult);
+    return toolchain::ArrayRef(Results).take_front(IndexOfFirstOuterResult);
   }
 
   ArrayRef<LookupResultEntry> outerResults() const {
-    return llvm::ArrayRef(Results).drop_front(IndexOfFirstOuterResult);
+    return toolchain::ArrayRef(Results).drop_front(IndexOfFirstOuterResult);
   }
 
   /// \returns An array of both the inner and outer results.
   ArrayRef<LookupResultEntry> allResults() const {
-    return llvm::ArrayRef(Results);
+    return toolchain::ArrayRef(Results);
   }
 
   const LookupResultEntry& operator[](unsigned index) const {
@@ -223,7 +224,7 @@ public:
 
   /// Filter out any results that aren't accepted by the given predicate.
   void
-  filter(llvm::function_ref<bool(LookupResultEntry, /*isOuter*/ bool)> pred);
+  filter(toolchain::function_ref<bool(LookupResultEntry, /*isOuter*/ bool)> pred);
 
   /// Shift down results by dropping inner results while keeping outer
   /// results (if any), the innermost of which are recognized as inner
@@ -266,7 +267,7 @@ enum class UnqualifiedLookupFlags {
 
 using UnqualifiedLookupOptions = OptionSet<UnqualifiedLookupFlags>;
 
-void simple_display(llvm::raw_ostream &out, UnqualifiedLookupOptions options);
+void simple_display(toolchain::raw_ostream &out, UnqualifiedLookupOptions options);
 
 inline UnqualifiedLookupOptions operator|(UnqualifiedLookupFlags flag1,
                                           UnqualifiedLookupFlags flag2) {
@@ -290,7 +291,7 @@ enum class DeclVisibilityKind {
   /// \code
   ///   struct A {
   ///     typealias Foo = Int
-  ///     func f() {
+  ///     fn f() {
   ///       // (1)
   ///     }
   ///   }
@@ -304,10 +305,10 @@ enum class DeclVisibilityKind {
   /// For example, 'foo' is visible at (1) because of this.
   /// \code
   /// protocol P {
-  ///   func foo()
+  ///   fn foo()
   /// }
   /// struct A : P {
-  ///   func bar() {
+  ///   fn bar() {
   ///     // (1)
   ///   }
   /// }
@@ -330,7 +331,7 @@ enum class DeclVisibilityKind {
   ///   struct A {
   ///     typealias Foo = Int
   ///     struct B {
-  ///       func foo() {
+  ///       fn foo() {
   ///         // (1)
   ///       }
   ///     }
@@ -464,7 +465,7 @@ class UsableFilteringDeclConsumer final : public VisibleDeclConsumer {
   const DeclContext *DC;
   const DeclContext *typeContext;
   SourceLoc Loc;
-  llvm::DenseMap<DeclBaseName, std::pair<ValueDecl *, DeclVisibilityKind>>
+  toolchain::DenseMap<DeclBaseName, std::pair<ValueDecl *, DeclVisibilityKind>>
       SeenNames;
   VisibleDeclConsumer &ChainedConsumer;
 
@@ -593,20 +594,25 @@ bool isInMacroArgument(SourceFile *sourceFile, SourceLoc loc);
 /// names for the purposes of (other) name lookup.
 void forEachPotentialResolvedMacro(
     DeclContext *moduleScopeCtx, DeclNameRef macroName, MacroRole role,
-    llvm::function_ref<void(MacroDecl *, const MacroRoleAttr *)> body
+    toolchain::function_ref<void(MacroDecl *, const MacroRoleAttr *)> body
 );
 
 /// For each macro with the given role that might be attached to the given
 /// declaration, call the body.
 void forEachPotentialAttachedMacro(
     Decl *decl, MacroRole role,
-    llvm::function_ref<void(MacroDecl *macro, const MacroRoleAttr *)> body
+    toolchain::function_ref<void(MacroDecl *macro, const MacroRoleAttr *)> body
 );
 
 } // end namespace namelookup
 
 /// Describes an inherited nominal entry.
 struct InheritedNominalEntry : Located<NominalTypeDecl *> {
+  /// The `TypeRepr` of the inheritance clause entry from which this nominal was
+  /// sourced, if any. For example, if this is a conformance to `Y` declared as
+  /// `struct S: X, Y & Z {}`, this is the `TypeRepr` for `Y & Z`.
+  TypeRepr *inheritedTypeRepr;
+
   ConformanceAttributes attributes;
 
   /// Whether this inherited entry was suppressed via "~".
@@ -615,10 +621,10 @@ struct InheritedNominalEntry : Located<NominalTypeDecl *> {
   InheritedNominalEntry() { }
 
   InheritedNominalEntry(NominalTypeDecl *item, SourceLoc loc,
-                        ConformanceAttributes attributes,
-                        bool isSuppressed)
-      : Located(item, loc), attributes(attributes),
-        isSuppressed(isSuppressed) {}
+                        TypeRepr *inheritedTypeRepr,
+                        ConformanceAttributes attributes, bool isSuppressed)
+      : Located(item, loc), inheritedTypeRepr(inheritedTypeRepr),
+        attributes(attributes), isSuppressed(isSuppressed) {}
 };
 
 /// Retrieve the set of nominal type declarations that are directly
@@ -628,8 +634,8 @@ struct InheritedNominalEntry : Located<NominalTypeDecl *> {
 /// Add anything we find to the \c result vector. If we come across the
 /// AnyObject type, set \c anyObject true.
 void getDirectlyInheritedNominalTypeDecls(
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
-    unsigned i, llvm::SmallVectorImpl<InheritedNominalEntry> &result,
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+    unsigned i, toolchain::SmallVectorImpl<InheritedNominalEntry> &result,
     InvertibleProtocolSet &inverses, bool &anyObject);
 
 /// Retrieve the set of nominal type declarations that are directly
@@ -638,14 +644,14 @@ void getDirectlyInheritedNominalTypeDecls(
 ///
 /// If we come across the AnyObject type, set \c anyObject true.
 SmallVector<InheritedNominalEntry, 4> getDirectlyInheritedNominalTypeDecls(
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl,
     InvertibleProtocolSet &inverses, bool &anyObject);
 
 /// Retrieve the set of nominal type declarations that appear as the
 /// constraint type of any "Self" constraints in the where clause of the
 /// given protocol or protocol extension.
 SelfBounds getSelfBoundsFromWhereClause(
-    llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl);
+    toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> decl);
 
 /// Retrieve the set of nominal type declarations that appear as the
 /// constraint type of any "Self" constraints in the generic signature of the
@@ -787,7 +793,7 @@ public:
   /// \returns the set of labeled statements visible from the given source
   /// location, with the innermost labeled statement first and proceeding
   /// to the outermost labeled statement.
-  static llvm::SmallVector<LabeledStmt *, 4>
+  static toolchain::SmallVector<LabeledStmt *, 4>
   lookupLabeledStmts(SourceFile *sourceFile, SourceLoc loc);
 
   /// Look for the directly enclosing case statement and the next case
@@ -803,7 +809,7 @@ public:
   lookupFallthroughSourceAndDest(SourceFile *sourceFile, SourceLoc loc);
 
   using PotentialMacro =
-      llvm::PointerUnion<FreestandingMacroExpansion *, CustomAttr *>;
+      toolchain::PointerUnion<FreestandingMacroExpansion *, CustomAttr *>;
 
   /// Look up the scope tree for the nearest enclosing macro scope at
   /// the given source location.
@@ -816,7 +822,7 @@ public:
   ///                   continue up the scope tree.
   static void lookupEnclosingMacroScope(
       SourceFile *sourceFile, SourceLoc loc,
-      llvm::function_ref<bool(PotentialMacro macro)> consume);
+      toolchain::function_ref<bool(PotentialMacro macro)> consume);
 
   /// Look up the scope tree for the nearest enclosing ABI attribute at
   /// the given source location.
@@ -836,7 +842,7 @@ public:
   /// For example, given this code:
   ///
   /// \code
-  /// func f() throws {
+  /// fn f() throws {
   ///   do {
   ///     try g() // A
   ///   } catch {
@@ -849,8 +855,8 @@ public:
   /// statement. At the point marked B, the catch node is the function itself.
   static CatchNode lookupCatchNode(ModuleDecl *module, SourceLoc loc);
 
-  SWIFT_DEBUG_DUMP;
-  void print(llvm::raw_ostream &) const;
+  LANGUAGE_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &) const;
   void dumpOneScopeMapLocation(std::pair<unsigned, unsigned>);
 
 private:

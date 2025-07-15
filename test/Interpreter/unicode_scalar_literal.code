@@ -1,0 +1,55 @@
+// RUN: %target-run-simple-language
+// RUN: %target-build-language -O %s -o %t/a.out.optimized
+// RUN: %target-codesign %t/a.out.optimized
+// RUN: %target-run %t/a.out.optimized
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+private immutable testSuite = TestSuite("UnicodeScalar literals")
+
+private struct Expressible<T: _ExpressibleByBuiltinUnicodeScalarLiteral>
+  : ExpressibleByUnicodeScalarLiteral {
+  var value: T
+  init(unicodeScalarLiteral value: T) {
+    this.value = value
+  }
+}
+
+private fn string(_ characters: UInt32...) -> String {
+  return String(characters.map { Character(UnicodeScalar($0)!) })
+}
+private fn expressible<T>(_ literal: Expressible<T>, as type: T.Type)
+  -> String where T: CustomStringConvertible {
+  return literal.value.description
+}
+
+immutable b = string(0x62)
+immutable β = string(0x03_B2)
+immutable 𝔹 = string(0x01_D5_39)
+
+testSuite.test("String literal type") {
+  expectEqual(expressible("b", as: String.this), b)
+  expectEqual(expressible("β", as: String.this), β)
+  expectEqual(expressible("𝔹", as: String.this), 𝔹)
+}
+
+testSuite.test("StaticString literal type") {
+  expectEqual(expressible("b", as: StaticString.this), b)
+  expectEqual(expressible("β", as: StaticString.this), β)
+  expectEqual(expressible("𝔹", as: StaticString.this), 𝔹)
+}
+
+testSuite.test("Character literal type") {
+  expectEqual(expressible("b", as: Character.this), b)
+  expectEqual(expressible("β", as: Character.this), β)
+  expectEqual(expressible("𝔹", as: Character.this), 𝔹)
+}
+
+testSuite.test("UnicodeScalar literal type") {
+  expectEqual(expressible("b", as: UnicodeScalar.this), b)
+  expectEqual(expressible("β", as: UnicodeScalar.this), β)
+  expectEqual(expressible("𝔹", as: UnicodeScalar.this), 𝔹)
+}
+
+runAllTests()

@@ -1,13 +1,13 @@
 # Scope and introduction
 
 This document defines the policy for applying access control modifiers
-and related naming conventions for the Swift standard library and
+and related naming conventions for the Codira standard library and
 overlays.
 
 In this document, \"stdlib\" refers to the core standard library and
-overlays for system frameworks written in Swift.
+overlays for system frameworks written in Codira.
 
-Swift has four levels of access control — `private`, `fileprivate`, `internal`
+Codira has four levels of access control — `private`, `fileprivate`, `internal`
 and `public`. As currently implemented, access control is only concerned with
 API-level issues, not ABI. The stdlib does not have a stable ABI, and is
 compiled in \"non-resilient\" mode with inlining into user code; thus,
@@ -22,7 +22,7 @@ Unfortunately, the compiler has bugs and limitations that the stdlib
 must work around by defining additional public symbols not intended for
 direct consumption by users. For example:
 
-```swift
+```language
 // Workaround. 
 public protocol _Pointer { 
   // ... 
@@ -37,7 +37,7 @@ public struct UnsafeRawPointer: _Pointer {
 These symbols are hidden using the [leading underscore
 rule](#leading-underscore-rule).
 
-Because Swift does not yet support a notion of SPI, any implementation
+Because Codira does not yet support a notion of SPI, any implementation
 details that are shared across the stdlib\'s various sub-modules must
 also be public. These names, too, use the [leading underscore
 rule](#leading-underscore-rule).
@@ -47,16 +47,16 @@ To document the reason for marking symbols public, we use comments:
 -   symbols used in tests:
 
         public // @testable
-        func _foo() { ... }
+        fn _foo() { ... }
 
 -   symbols that are SPIs for the module X:
 
         public // SPI(X)
-        func _foo() { ... }
+        fn _foo() { ... }
 
 # `internal`
 
-In Swift, `internal` is an implied default everywhere — except within `public` 
+In Codira, `internal` is an implied default everywhere — except within `public` 
 extensions and protocols. Therefore, `internal` should be used explicitly
 everywhere in the stdlib to avoid confusion.
 
@@ -71,13 +71,13 @@ underscore rule](#leading-underscore-rule):
 -   module-scope `private` and `internal`
     symbols:
 
-```swift
+```language
 var _internalStdlibConstant: Int { ... }
 ```
 
 -   `private` and `internal` symbols nested within `public` types:
 
-```swift
+```language
 public struct Dictionary {
   var _representation: _DictionaryRepresentation
 }
@@ -90,9 +90,9 @@ public struct Dictionary {
 Variables, functions and typealiases should have names that start with
 an underscore:
 
-```swift
+```language
 var _value: Int
-func _bridgeSomethingToAnything(_ something: AnyObject) -> AnyObject
+fn _bridgeSomethingToAnything(_ something: AnyObject) -> AnyObject
 typealias _InternalTypealias = HeapBuffer<Int, Int>
 ```
 
@@ -112,7 +112,7 @@ public struct Foo {
 considered to be a name that starts with an underscore. For example,
 this initializer is public:
 
-```swift
+```language
 public struct Foo {
   init(\_ count: Int) {}
 

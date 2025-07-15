@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,14 +19,14 @@
 /// Promotes captures from 'inout' (i.e. by-reference) to by-value
 /// ==============================================================
 ///
-/// Swift's closure model is that all local variables are capture by reference.
+/// Codira's closure model is that all local variables are capture by reference.
 /// This produces a very simple programming model which is great to use, but
 /// relies on the optimizer to promote by-ref captures to by-value (i.e.
 /// by-copy) captures for decent performance. Consider this simple example:
 ///
-///   func foo(a : () -> ()) {} // assume this has an unknown body
+///   fn foo(a : () -> ()) {} // assume this has an unknown body
 ///
-///   func bar() {
+///   fn bar() {
 ///     var x = 42
 ///
 ///     foo({ print(x) })
@@ -60,11 +61,11 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "llvm/ADT/BitVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/BitVector.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <tuple>
 
 using namespace language;
@@ -72,8 +73,8 @@ using namespace language;
 STATISTIC(NumCapturesPromoted, "Number of captures promoted");
 
 namespace {
-using IndicesSet = llvm::SmallSet<unsigned, 4>;
-using PartialApplyIndicesMap = llvm::DenseMap<PartialApplyInst *, IndicesSet>;
+using IndicesSet = toolchain::SmallSet<unsigned, 4>;
+using PartialApplyIndicesMap = toolchain::DenseMap<PartialApplyInst *, IndicesSet>;
 } // anonymous namespace
 
 //===----------------------------------------------------------------------===//
@@ -185,7 +186,7 @@ public:
 /// Store the reachability matrix: ToBlock -> FromBlocks.
 class ReachabilityInfo {
   SILFunction *f;
-  llvm::DenseMap<SILBasicBlock *, unsigned> blockMap;
+  toolchain::DenseMap<SILBasicBlock *, unsigned> blockMap;
   ReachingBlockSet::ReachingBlockMatrix matrix;
 
 public:
@@ -218,7 +219,7 @@ void ReachabilityInfo::compute() {
   matrix = ReachingBlockSet::allocateMatrix(n);
   ReachingBlockSet newSet = ReachingBlockSet::allocateSet(n);
 
-  LLVM_DEBUG(llvm::dbgs() << "Computing Reachability for " << f->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Computing Reachability for " << f->getName()
                           << " with " << n << " blocks.\n");
 
   // Iterate to a fix point, two times for a topological DAG.
@@ -254,13 +255,13 @@ void ReachabilityInfo::compute() {
           curSet.set(predID);
         }
       }
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                      << "  Block " << blockMap[&block] << " reached by ";
                  for (unsigned i
                       : range(n)) {
                    if (curSet.test(i))
-                     llvm::dbgs() << i << " ";
-                 } llvm::dbgs()
+                     toolchain::dbgs() << i << " ";
+                 } toolchain::dbgs()
                  << "\n");
     }
   } while (madeChange);
@@ -331,8 +332,8 @@ private:
   ResilienceExpansion resilienceExpansion;
   SILFunction *origF;
   IndicesSet &promotableIndices;
-  llvm::DenseMap<SILArgument *, SILValue> boxArgumentMap;
-  llvm::DenseMap<ProjectBoxInst *, SILValue> projectBoxArgumentMap;
+  toolchain::DenseMap<SILArgument *, SILValue> boxArgumentMap;
+  toolchain::DenseMap<ProjectBoxInst *, SILValue> projectBoxArgumentMap;
 };
 
 } // end anonymous namespace
@@ -363,7 +364,7 @@ computeNewArgInterfaceTypes(SILFunction *f, IndicesSet &promotableIndices,
   auto fnConv = f->getConventions();
   auto parameters = fnConv.funcTy->getParameters();
 
-  LLVM_DEBUG(llvm::dbgs() << "Preparing New Args!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Preparing New Args!\n");
 
   auto &types = f->getModule().Types;
 
@@ -376,11 +377,11 @@ computeNewArgInterfaceTypes(SILFunction *f, IndicesSet &promotableIndices,
     // the arg index when working with PromotableIndices.
     unsigned argIndex = index + fnConv.getSILArgIndexOfFirstParam();
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "Index: " << index << "; PromotableIndices: "
                    << (promotableIndices.count(argIndex) ? "yes" : "no")
                    << " Param: ";
-               param.print(llvm::dbgs()));
+               param.print(toolchain::dbgs()));
 
     if (!promotableIndices.count(argIndex)) {
       outTys.push_back(param);
@@ -812,7 +813,7 @@ struct EscapeMutationScanningState {
   bool sawProjectBoxInst;
 
   /// The global partial_apply -> index map.
-  llvm::DenseMap<PartialApplyInst *, unsigned> &globalIndexMap;
+  toolchain::DenseMap<PartialApplyInst *, unsigned> &globalIndexMap;
 };
 
 } // end anonymous namespace
@@ -926,7 +927,7 @@ getPartialApplyArgMutationsAndEscapes(PartialApplyInst *pai,
 
 bool isPartialApplyNonEscapingUser(Operand *currentOp, PartialApplyInst *pai,
                                    EscapeMutationScanningState &state) {
-  LLVM_DEBUG(llvm::dbgs() << "    Found partial: " << *pai);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found partial: " << *pai);
 
   unsigned opNo = currentOp->getOperandNumber();
   assert(opNo != 0 && "Alloc box used as callee of partial apply?");
@@ -937,7 +938,7 @@ bool isPartialApplyNonEscapingUser(Operand *currentOp, PartialApplyInst *pai,
   if (state.globalIndexMap.count(pai)) {
     // TODO: Is it correct to treat this like an escape? We are just currently
     // flagging all failures as warnings.
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL! Already seen.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL! Already seen.\n");
     state.accumulatedEscapes.push_back(currentOp);
     return false;
   }
@@ -957,7 +958,7 @@ bool isPartialApplyNonEscapingUser(Operand *currentOp, PartialApplyInst *pai,
   // It is not safe to look at the content of dynamically replaceable functions
   // since this pass looks at the content of Fn.
   if (!fn || !fn->isDefinition() || fn->isDynamicallyReplaceable()) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL! Not a direct function definition "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL! Not a direct function definition "
                                "reference.\n");
     state.accumulatedEscapes.push_back(currentOp);
     return false;
@@ -974,7 +975,7 @@ bool isPartialApplyNonEscapingUser(Operand *currentOp, PartialApplyInst *pai,
          "promoting compound box not implemented yet");
   if (getSILBoxFieldType(TypeExpansionContext(*fn), boxTy, mod.Types, 0)
           .isAddressOnly(*f)) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL! Box is an address only "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL! Box is an address only "
                                "argument!\n");
     state.accumulatedEscapes.push_back(currentOp);
     return false;
@@ -984,15 +985,15 @@ bool isPartialApplyNonEscapingUser(Operand *currentOp, PartialApplyInst *pai,
   // it does, then conservatively refuse to promote any captures of this
   // value.
   if (getPartialApplyArgMutationsAndEscapes(pai, boxArg, state)) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL: Have a mutation or escape of a "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL: Have a mutation or escape of a "
                                "partial apply arg?!\n");
     return false;
   }
 
   // Record the index and continue.
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
              << "        Partial apply does not escape, may be optimizable!\n");
-  LLVM_DEBUG(llvm::dbgs() << "        Index: " << index << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Index: " << index << "\n");
   state.globalIndexMap.insert(std::make_pair(pai, index));
   return true;
 }
@@ -1058,7 +1059,7 @@ public:
   ///
   /// These are considered to be escapes.
   bool visitSILInstruction(SILInstruction *inst) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "    FAIL! Have unknown escaping user: " << *inst);
     markCurrentOpAsEscape();
     return false;
@@ -1083,7 +1084,7 @@ public:
     SILFunctionConventions substConv(ai->getSubstCalleeType(), ai->getModule());
     auto convention = substConv.getSILArgumentConvention(argIndex);
     if (!convention.isIndirectConvention()) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "    FAIL! Found non indirect apply user: " << *ai);
       markCurrentOpAsEscape();
       return false;
@@ -1151,7 +1152,7 @@ public:
 
   bool visitStoreInst(StoreInst *si) {
     if (currentOp.get()->getOperandNumber() != 1) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAIL! Found store of pointer: " << *si);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAIL! Found store of pointer: " << *si);
       markCurrentOpAsEscape();
       return false;
     }
@@ -1161,7 +1162,7 @@ public:
 
   bool visitAssignInst(AssignInst *ai) {
     if (currentOp.get()->getOperandNumber() != 1) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAIL! Found store of pointer: " << *ai);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAIL! Found store of pointer: " << *ai);
       markCurrentOpAsEscape();
       return false;
     }
@@ -1185,11 +1186,11 @@ static bool isNonEscapingUse(Operand *initialOp,
 
 static bool isProjectBoxNonEscapingUse(ProjectBoxInst *pbi,
                                        EscapeMutationScanningState &state) {
-  LLVM_DEBUG(llvm::dbgs() << "    Found project box: " << *pbi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found project box: " << *pbi);
 
   for (Operand *addrOp : pbi->getUses()) {
     if (!isNonEscapingUse(addrOp, state)) {
-      LLVM_DEBUG(llvm::dbgs() << "    FAIL! Has escaping user of addr:"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FAIL! Has escaping user of addr:"
                               << *addrOp->getUser());
       return false;
     }
@@ -1275,12 +1276,12 @@ static void diagnoseInvalidCaptureByConcurrentClosure(
     const EscapeMutationScanningState &state, SILInstruction *mutatingUser) {
   auto captureCausingUses = state.accumulatedCaptureCausingUses.find(pai);
   if (!captureCausingUses) {
-    llvm::errs() << "Didn't find capture causing use of partial apply: "
+    toolchain::errs() << "Didn't find capture causing use of partial apply: "
                  << *pai;
-    llvm::errs() << "Original Func: " << pai->getFunction()->getName() << '\n';
-    llvm::errs() << "Partial Applied Func: "
+    toolchain::errs() << "Original Func: " << pai->getFunction()->getName() << '\n';
+    toolchain::errs() << "Partial Applied Func: "
                  << pai->getReferencedFunctionOrNull()->getName() << '\n';
-    llvm::report_fatal_error("standard compiler error");
+    toolchain::report_fatal_error("standard compiler error");
   }
 
   auto &astCtx = pai->getFunction()->getASTContext();
@@ -1313,8 +1314,8 @@ static void diagnoseInvalidCaptureByConcurrentClosure(
 /// argument list is added to IM.
 static bool
 examineAllocBoxInst(AllocBoxInst *abi, ReachabilityInfo &ri,
-                    llvm::DenseMap<PartialApplyInst *, unsigned> &im) {
-  LLVM_DEBUG(llvm::dbgs() << "Visiting alloc box: " << *abi);
+                    toolchain::DenseMap<PartialApplyInst *, unsigned> &im) {
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting alloc box: " << *abi);
   EscapeMutationScanningState state{{}, {}, {}, false, im};
 
   // Scan the box for escaping or mutating uses.
@@ -1323,17 +1324,17 @@ examineAllocBoxInst(AllocBoxInst *abi, ReachabilityInfo &ri,
   }
 
   if (!state.accumulatedEscapes.empty()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Found escaping uses! Can not optimize this alloc box?!\n");
     while (!state.accumulatedEscapes.empty()) {
       auto *escapingUse = state.accumulatedEscapes.pop_back_val();
-      LLVM_DEBUG(llvm::dbgs() << "Escaping use: " << *escapingUse->getUser());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Escaping use: " << *escapingUse->getUser());
     }
     return false;
   }
 
   state.accumulatedCaptureCausingUses.setFrozen();
-  LLVM_DEBUG(llvm::dbgs() << "We can optimize this alloc box!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "We can optimize this alloc box!\n");
 
   // Helper lambda function to determine if instruction b is strictly after
   // instruction a, assuming both are in the same basic block.
@@ -1349,7 +1350,7 @@ examineAllocBoxInst(AllocBoxInst *abi, ReachabilityInfo &ri,
     return false;
   };
 
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
              << "Checking for any mutations that invalidate captures...\n");
   // Loop over all mutations to possibly invalidate captures.
   for (auto *use : state.accumulatedMutations) {
@@ -1369,8 +1370,8 @@ examineAllocBoxInst(AllocBoxInst *abi, ReachabilityInfo &ri,
           diagnoseInvalidCaptureByConcurrentClosure(abi, pai, state, user);
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "    Invalidating: " << *pai);
-        LLVM_DEBUG(llvm::dbgs() << "    Because of user: " << *user);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Invalidating: " << *pai);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Because of user: " << *user);
         auto prev = iter++;
         im.erase(prev);
         continue;
@@ -1380,12 +1381,12 @@ examineAllocBoxInst(AllocBoxInst *abi, ReachabilityInfo &ri,
 
     // If there are no valid captures left, then stop.
     if (im.empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "    Ran out of valid captures... bailing!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Ran out of valid captures... bailing!\n");
       return false;
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    We can optimize this box!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    We can optimize this box!\n");
   return true;
 }
 
@@ -1439,7 +1440,7 @@ static SILValue getOrCreateProjectBoxHelper(SILValue partialOperand) {
 /// Change the base in mark_dependence.
 static void
 mapMarkDependenceArguments(SingleValueInstruction *root,
-                           llvm::DenseMap<SILValue, SILValue> &map,
+                           toolchain::DenseMap<SILValue, SILValue> &map,
                            SmallVectorImpl<SILInstruction *> &toDelete) {
   SmallVector<Operand *, 16> useWorklist(root->getUses());
   for (auto *use : useWorklist) {
@@ -1500,8 +1501,8 @@ processPartialApplyInst(SILOptFunctionBuilder &funcBuilder,
   unsigned opCount = pai->getNumOperands() - pai->getNumTypeDependentOperands();
   SmallVector<SILValue, 16> args;
   auto numIndirectResults = calleeConv.getNumIndirectSILResults();
-  llvm::DenseMap<SILValue, SILValue> capturedMap;
-  llvm::SmallSet<SILValue, 16> newCaptures;
+  toolchain::DenseMap<SILValue, SILValue> capturedMap;
+  toolchain::SmallSet<SILValue, 16> newCaptures;
   for (; opNo != opCount; ++opNo) {
     unsigned index = opNo - 1 + firstIndex;
     if (!promotableIndices.count(index)) {
@@ -1583,7 +1584,7 @@ static void constructMapFromPartialApplyToPromotableIndices(
 
   // This is a map from each partial apply to a single index which is a
   // promotable box variable for the alloc_box currently being considered.
-  llvm::DenseMap<PartialApplyInst *, unsigned> incrementalIndexMap;
+  toolchain::DenseMap<PartialApplyInst *, unsigned> incrementalIndexMap;
 
   // Consider all alloc_box instructions in the function.
   for (auto &block : *f) {
@@ -1597,7 +1598,7 @@ static void constructMapFromPartialApplyToPromotableIndices(
             partialApplyIndicesAccumulator[indexPair.first].insert(
                 indexPair.second);
         }
-        LLVM_DEBUG(llvm::dbgs() << "\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n");
       }
     }
   }
@@ -1635,16 +1636,16 @@ class CapturePromotionPass : public SILModuleTransform {
 } // end anonymous namespace
 
 void CapturePromotionPass::processFunction(
-    SILFunction *func, SmallVectorImpl<SILFunction *> &worklist) {
-  assert(func->hasOwnership() &&
+    SILFunction *fn, SmallVectorImpl<SILFunction *> &worklist) {
+  assert(fn->hasOwnership() &&
          "Only can perform capture promotion on functions with ownership. All "
          "functions in raw SIL should have OSSA now out of SILGen");
-  LLVM_DEBUG(llvm::dbgs() << "******** Performing Capture Promotion on: "
-                          << func->getName() << "********\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "******** Performing Capture Promotion on: "
+                          << fn->getName() << "********\n");
   // This is a map from each partial apply to a set of indices of promotable
   // box variables.
   PartialApplyIndicesMap indicesMap;
-  constructMapFromPartialApplyToPromotableIndices(func, indicesMap);
+  constructMapFromPartialApplyToPromotableIndices(fn, indicesMap);
 
   // Do the actual promotions; all promotions on a single partial_apply are
   // handled together.
@@ -1655,9 +1656,9 @@ void CapturePromotionPass::processFunction(
         processPartialApplyInst(funcBuilder, pai, indicesPair.second, worklist);
     (void)clonedFn;
   }
-  invalidateAnalysis(func, SILAnalysis::InvalidationKind::FunctionBody);
+  invalidateAnalysis(fn, SILAnalysis::InvalidationKind::FunctionBody);
 }
 
-SILTransform *swift::createCapturePromotion() {
+SILTransform *language::createCapturePromotion() {
   return new CapturePromotionPass();
 }

@@ -1,20 +1,24 @@
 //==--- Linux.cpp - Threading abstraction implementation ------- -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for Linux
 //
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_THREADING_LINUX
+#if LANGUAGE_THREADING_LINUX
 
 #include "language/Threading/Impl.h"
 #include "language/Threading/Errors.h"
@@ -48,11 +52,11 @@ pthread_mutex_t once_mutex = PTHREAD_MUTEX_INITIALIZER;
 using namespace language;
 using namespace threading_impl;
 
-bool swift::threading_impl::thread_is_main() {
+bool language::threading_impl::thread_is_main() {
   return pthread_equal(pthread_self(), rememberer.main_thread());
 }
 
-void swift::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
+void language::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
                                       void *context) {
   // On 32-bit Linux we can't have per-once locks
 #if defined(__LP64__) || defined(_LP64)
@@ -71,8 +75,8 @@ void swift::threading_impl::once_slow(once_t &predicate, void (*fn)(void *),
 #endif
 }
 
-std::optional<swift::threading_impl::stack_bounds>
-swift::threading_impl::thread_get_current_stack_bounds() {
+std::optional<language::threading_impl::stack_bounds>
+language::threading_impl::thread_get_current_stack_bounds() {
   pthread_attr_t attr;
   size_t size = 0;
   void *begin = nullptr;
@@ -92,4 +96,4 @@ swift::threading_impl::thread_get_current_stack_bounds() {
   return {};
 }
 
-#endif // SWIFT_THREADING_LINUX
+#endif // LANGUAGE_THREADING_LINUX

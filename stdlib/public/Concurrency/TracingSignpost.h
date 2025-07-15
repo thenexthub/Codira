@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Concurrency tracing implemented with the os_signpost API.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_TRACINGSIGNPOST_H
-#define SWIFT_CONCURRENCY_TRACINGSIGNPOST_H
+#ifndef LANGUAGE_CONCURRENCY_TRACINGSIGNPOST_H
+#define LANGUAGE_CONCURRENCY_TRACINGSIGNPOST_H
 
 #include "TaskPrivate.h"
 #include "Tracing.h"
@@ -34,7 +35,7 @@
 // Compatibility notes:
 //
 // These signposts can be read by external software that isn't synced with the
-// Swift runtime build. Changes here must be considered carefully to avoid
+// Codira runtime build. Changes here must be considered carefully to avoid
 // breaking users of these signposts.
 //
 // We may:
@@ -49,23 +50,23 @@
 // * Change event names.
 // * Change subsystem names.
 
-#define SWIFT_LOG_ACTOR_LIFETIME_NAME "actor_lifetime"
-#define SWIFT_LOG_ACTOR_DEALLOCATE_NAME "actor_deallocate"
-#define SWIFT_LOG_ACTOR_ENQUEUE_NAME "actor_enqueue"
-#define SWIFT_LOG_ACTOR_DEQUEUE_NAME "actor_dequeue"
-#define SWIFT_LOG_ACTOR_STATE_CHANGED_NAME "actor_state_changed"
-#define SWIFT_LOG_ACTOR_JOB_QUEUE_NAME "actor_job_queue"
-#define SWIFT_LOG_TASK_LIFETIME_NAME "task_lifetime"
-#define SWIFT_LOG_TASK_FLAGS_CHANGED_NAME "task_flags_changed"
-#define SWIFT_LOG_TASK_STATUS_CHANGED_NAME "task_status_changed"
-#define SWIFT_LOG_TASK_WAIT_NAME "task_wait"
-#define SWIFT_LOG_TASK_CONTINUATION "task_continuation"
-#define SWIFT_LOG_TASK_CONTINUATION_AWAIT "task_continuation_await"
-#define SWIFT_LOG_JOB_ENQUEUE_GLOBAL_NAME "job_enqueue_global"
-#define SWIFT_LOG_JOB_ENQUEUE_GLOBAL_WITH_DELAY_NAME                           \
+#define LANGUAGE_LOG_ACTOR_LIFETIME_NAME "actor_lifetime"
+#define LANGUAGE_LOG_ACTOR_DEALLOCATE_NAME "actor_deallocate"
+#define LANGUAGE_LOG_ACTOR_ENQUEUE_NAME "actor_enqueue"
+#define LANGUAGE_LOG_ACTOR_DEQUEUE_NAME "actor_dequeue"
+#define LANGUAGE_LOG_ACTOR_STATE_CHANGED_NAME "actor_state_changed"
+#define LANGUAGE_LOG_ACTOR_JOB_QUEUE_NAME "actor_job_queue"
+#define LANGUAGE_LOG_TASK_LIFETIME_NAME "task_lifetime"
+#define LANGUAGE_LOG_TASK_FLAGS_CHANGED_NAME "task_flags_changed"
+#define LANGUAGE_LOG_TASK_STATUS_CHANGED_NAME "task_status_changed"
+#define LANGUAGE_LOG_TASK_WAIT_NAME "task_wait"
+#define LANGUAGE_LOG_TASK_CONTINUATION "task_continuation"
+#define LANGUAGE_LOG_TASK_CONTINUATION_AWAIT "task_continuation_await"
+#define LANGUAGE_LOG_JOB_ENQUEUE_GLOBAL_NAME "job_enqueue_global"
+#define LANGUAGE_LOG_JOB_ENQUEUE_GLOBAL_WITH_DELAY_NAME                           \
   "job_enqueue_global_with_delay"
-#define SWIFT_LOG_JOB_ENQUEUE_MAIN_EXECUTOR_NAME "job_enqueue_main_executor"
-#define SWIFT_LOG_JOB_RUN_NAME "job_run"
+#define LANGUAGE_LOG_JOB_ENQUEUE_MAIN_EXECUTOR_NAME "job_enqueue_main_executor"
+#define LANGUAGE_LOG_JOB_RUN_NAME "job_run"
 
 namespace language {
 namespace concurrency {
@@ -73,7 +74,7 @@ namespace trace {
 
 extern os_log_t ActorLog;
 extern os_log_t TaskLog;
-extern swift::once_t LogsToken;
+extern language::once_t LogsToken;
 extern bool TracingEnabled;
 
 void setupLogs(void *unused);
@@ -85,7 +86,7 @@ void setupLogs(void *unused);
   do {                                                                         \
     if (!runtime::trace::tracingReady())                                       \
       return __VA_ARGS__;                                                      \
-    swift::once(LogsToken, setupLogs, nullptr);                                \
+    language::once(LogsToken, setupLogs, nullptr);                                \
     if (!TracingEnabled)                                                       \
       return __VA_ARGS__;                                                      \
   } while (0)
@@ -101,15 +102,15 @@ void setupLogs(void *unused);
 inline void actor_create(HeapObject *actor) {
   ENSURE_LOGS();
 
-  // Do an explicit enabled check here to avoid the cost of swift_getTypeName in
+  // Do an explicit enabled check here to avoid the cost of language_getTypeName in
   // the common case.
   if (!os_signpost_enabled(ActorLog))
     return;
 
-  auto typeName = swift_getTypeName(swift_getObjectType(actor), true);
+  auto typeName = language_getTypeName(language_getObjectType(actor), true);
 
   auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-  os_signpost_interval_begin(ActorLog, id, SWIFT_LOG_ACTOR_LIFETIME_NAME,
+  os_signpost_interval_begin(ActorLog, id, LANGUAGE_LOG_ACTOR_LIFETIME_NAME,
                              "actor=%p typeName:%.*s", actor,
                              (int)typeName.length, typeName.data);
 }
@@ -117,14 +118,14 @@ inline void actor_create(HeapObject *actor) {
 inline void actor_destroy(HeapObject *actor) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-  os_signpost_interval_end(ActorLog, id, SWIFT_LOG_ACTOR_LIFETIME_NAME,
+  os_signpost_interval_end(ActorLog, id, LANGUAGE_LOG_ACTOR_LIFETIME_NAME,
                            "actor=%p", actor);
 }
 
 inline void actor_deallocate(HeapObject *actor) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-  os_signpost_event_emit(ActorLog, id, SWIFT_LOG_ACTOR_DEALLOCATE_NAME,
+  os_signpost_event_emit(ActorLog, id, LANGUAGE_LOG_ACTOR_DEALLOCATE_NAME,
                          "actor=%p", actor);
 }
 
@@ -132,7 +133,7 @@ inline void actor_enqueue(HeapObject *actor, Job *job) {
   if (AsyncTask *task = dyn_cast<AsyncTask>(job)) {
     ENSURE_LOGS();
     auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-    os_signpost_event_emit(ActorLog, id, SWIFT_LOG_ACTOR_ENQUEUE_NAME,
+    os_signpost_event_emit(ActorLog, id, LANGUAGE_LOG_ACTOR_ENQUEUE_NAME,
                            "actor=%p task=%" PRId64, actor, task->getTaskId());
   }
 }
@@ -141,7 +142,7 @@ inline void actor_dequeue(HeapObject *actor, Job *job) {
   if (AsyncTask *task = dyn_cast_or_null<AsyncTask>(job)) {
     ENSURE_LOGS();
     auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-    os_signpost_event_emit(ActorLog, id, SWIFT_LOG_ACTOR_DEQUEUE_NAME,
+    os_signpost_event_emit(ActorLog, id, LANGUAGE_LOG_ACTOR_DEQUEUE_NAME,
                            "actor=%p task=%" PRId64, actor, task->getTaskId());
   }
 }
@@ -151,7 +152,7 @@ inline void actor_state_changed(HeapObject *actor, Job *firstJob, uint8_t state,
                                 bool isPriorityEscalated, uint8_t maxPriority) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-  os_signpost_event_emit(ActorLog, id, SWIFT_LOG_ACTOR_STATE_CHANGED_NAME,
+  os_signpost_event_emit(ActorLog, id, LANGUAGE_LOG_ACTOR_STATE_CHANGED_NAME,
                          "actor=%p needsPreprocessing=%d "
                          "state=%u isDistributedRemote=%{bool}d "
                          "isPriorityEscalated=%{bool}d, maxPriority=%u",
@@ -176,7 +177,7 @@ inline void actor_note_job_queue(HeapObject *actor, Job *first,
       jobCount++;
 
   auto id = os_signpost_id_make_with_pointer(ActorLog, actor);
-  os_signpost_event_emit(ActorLog, id, SWIFT_LOG_ACTOR_JOB_QUEUE_NAME,
+  os_signpost_event_emit(ActorLog, id, LANGUAGE_LOG_ACTOR_JOB_QUEUE_NAME,
                          "actor=%p jobCount=%u", actor, jobCount);
 }
 
@@ -192,7 +193,7 @@ inline void task_create(AsyncTask *task, AsyncTask *parent, TaskGroup *group,
   auto id = os_signpost_id_make_with_pointer(TaskLog, task);
   auto parentID = parent ? parent->getTaskId() : 0;
   os_signpost_interval_begin(
-      TaskLog, id, SWIFT_LOG_TASK_LIFETIME_NAME,
+      TaskLog, id, LANGUAGE_LOG_TASK_LIFETIME_NAME,
       "task=%" PRId64
       " resumefn=%p jobPriority=%u isChildTask=%{bool}d, isFuture=%{bool}d "
       "isGroupChildTask=%{bool}d isAsyncLetTask=%{bool}d parent=%" PRId64
@@ -207,7 +208,7 @@ inline void task_create(AsyncTask *task, AsyncTask *parent, TaskGroup *group,
 inline void task_destroy(AsyncTask *task) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, task);
-  os_signpost_interval_end(TaskLog, id, SWIFT_LOG_TASK_LIFETIME_NAME,
+  os_signpost_interval_end(TaskLog, id, LANGUAGE_LOG_TASK_LIFETIME_NAME,
                            "task=%" PRId64 "", task->getTaskId());
 }
 
@@ -217,7 +218,7 @@ inline void task_status_changed(AsyncTask *task, uint8_t maxPriority,
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, task);
   os_signpost_event_emit(
-      TaskLog, id, SWIFT_LOG_TASK_STATUS_CHANGED_NAME,
+      TaskLog, id, LANGUAGE_LOG_TASK_STATUS_CHANGED_NAME,
       "task=%" PRId64 " resumefn=%p "
       "maxPriority=%u, isCancelled=%{bool}d "
       "isEscalated=%{bool}d, isRunning=%{bool}d, isEnqueued=%{bool}d",
@@ -231,7 +232,7 @@ inline void task_flags_changed(AsyncTask *task, uint8_t jobPriority,
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, task);
   os_signpost_event_emit(
-      TaskLog, id, SWIFT_LOG_TASK_FLAGS_CHANGED_NAME,
+      TaskLog, id, LANGUAGE_LOG_TASK_FLAGS_CHANGED_NAME,
       "task=%" PRId64 " jobPriority=%u isChildTask=%{bool}d, isFuture=%{bool}d "
                       "isGroupChildTask=%{bool}d isAsyncLetTask=%{bool}d",
       task->getTaskId(), jobPriority, isChildTask, isFuture, isGroupChildTask,
@@ -242,7 +243,7 @@ inline void task_wait(AsyncTask *task, AsyncTask *waitingOn, uintptr_t status) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, task);
   auto waitingID = waitingOn ? waitingOn->getTaskId() : 0;
-  os_signpost_interval_begin(TaskLog, id, SWIFT_LOG_TASK_WAIT_NAME,
+  os_signpost_interval_begin(TaskLog, id, LANGUAGE_LOG_TASK_WAIT_NAME,
                              "task=%" PRId64 " waitingOnTask=%" PRId64
                              " status=0x%" PRIxPTR,
                              task->getTaskId(), waitingID, status);
@@ -250,7 +251,7 @@ inline void task_wait(AsyncTask *task, AsyncTask *waitingOn, uintptr_t status) {
 
 inline void task_resume(AsyncTask *task) {
   auto id = os_signpost_id_make_with_pointer(TaskLog, task);
-  os_signpost_interval_end(TaskLog, id, SWIFT_LOG_TASK_WAIT_NAME,
+  os_signpost_interval_end(TaskLog, id, LANGUAGE_LOG_TASK_WAIT_NAME,
                            "task=%" PRId64, task->getTaskId());
 }
 
@@ -258,7 +259,7 @@ inline void task_continuation_init(AsyncTask *task,
                                    ContinuationAsyncContext *context) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, context);
-  os_signpost_interval_begin(TaskLog, id, SWIFT_LOG_TASK_CONTINUATION,
+  os_signpost_interval_begin(TaskLog, id, LANGUAGE_LOG_TASK_CONTINUATION,
                              "task=%" PRId64 " context=%p", task->getTaskId(),
                              context);
 }
@@ -266,7 +267,7 @@ inline void task_continuation_init(AsyncTask *task,
 inline void task_continuation_await(ContinuationAsyncContext *context) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, context);
-  os_signpost_event_emit(TaskLog, id, SWIFT_LOG_TASK_CONTINUATION_AWAIT,
+  os_signpost_event_emit(TaskLog, id, LANGUAGE_LOG_TASK_CONTINUATION_AWAIT,
                          "context=%p", context);
 }
 
@@ -274,7 +275,7 @@ inline void task_continuation_resume(ContinuationAsyncContext *context,
                                      bool error) {
   ENSURE_LOGS();
   auto id = os_signpost_id_make_with_pointer(TaskLog, context);
-  os_signpost_interval_end(TaskLog, id, SWIFT_LOG_TASK_CONTINUATION,
+  os_signpost_interval_end(TaskLog, id, LANGUAGE_LOG_TASK_CONTINUATION,
                            "context=%p error=%{bool}d", context, error);
 }
 
@@ -282,7 +283,7 @@ inline void job_enqueue_global(Job *job) {
   if (AsyncTask *task = dyn_cast<AsyncTask>(job)) {
     ENSURE_LOGS();
     auto id = os_signpost_id_make_with_pointer(TaskLog, job);
-    os_signpost_event_emit(TaskLog, id, SWIFT_LOG_JOB_ENQUEUE_GLOBAL_NAME,
+    os_signpost_event_emit(TaskLog, id, LANGUAGE_LOG_JOB_ENQUEUE_GLOBAL_NAME,
                            "task=%" PRId64, task->getTaskId());
   }
 }
@@ -292,7 +293,7 @@ inline void job_enqueue_global_with_delay(unsigned long long delay, Job *job) {
     ENSURE_LOGS();
     auto id = os_signpost_id_make_with_pointer(TaskLog, job);
     os_signpost_event_emit(
-        TaskLog, id, SWIFT_LOG_JOB_ENQUEUE_GLOBAL_WITH_DELAY_NAME,
+        TaskLog, id, LANGUAGE_LOG_JOB_ENQUEUE_GLOBAL_WITH_DELAY_NAME,
         "task=%" PRId64 " delay=%llu", task->getTaskId(), delay);
   }
 }
@@ -302,7 +303,7 @@ inline void job_enqueue_main_executor(Job *job) {
     ENSURE_LOGS();
     auto id = os_signpost_id_make_with_pointer(TaskLog, job);
     os_signpost_event_emit(TaskLog, id,
-                           SWIFT_LOG_JOB_ENQUEUE_MAIN_EXECUTOR_NAME,
+                           LANGUAGE_LOG_JOB_ENQUEUE_MAIN_EXECUTOR_NAME,
                            "task=%" PRId64, task->getTaskId());
   }
 }
@@ -316,7 +317,7 @@ inline job_run_info job_run_begin(Job *job) {
     ENSURE_LOGS(invalidInfo());
     auto handle = os_signpost_id_generate(TaskLog);
     auto taskId = task->getTaskId();
-    os_signpost_interval_begin(TaskLog, handle, SWIFT_LOG_JOB_RUN_NAME,
+    os_signpost_interval_begin(TaskLog, handle, LANGUAGE_LOG_JOB_RUN_NAME,
                                "task=%" PRId64, taskId);
     return { taskId, handle };
   }
@@ -326,7 +327,7 @@ inline job_run_info job_run_begin(Job *job) {
 inline void job_run_end(job_run_info info) {
   if (info.handle != OS_SIGNPOST_ID_INVALID) {
     ENSURE_LOGS();
-    os_signpost_interval_end(TaskLog, info.handle, SWIFT_LOG_JOB_RUN_NAME,
+    os_signpost_interval_end(TaskLog, info.handle, LANGUAGE_LOG_JOB_RUN_NAME,
                              "task=%" PRId64, info.taskId);
   }
 }

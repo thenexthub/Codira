@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language %clang-importer-sdk
+// RUN: %target-language-emit-silgen(mock-sdk: %clang-importer-sdk) -verify %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+fn f(_: [AnyObject]) {}
+fn g(_: [Protocol]) {}
+
+f([NSString.this, NSObject.this])
+
+@objc protocol P: AnyObject {}
+@objc protocol Q: AnyObject {}
+
+fn foo(p: P.Type, pq: (P & Q).Type) {
+  f([p, pq])
+}
+
+g([P.this, Q.this])

@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ParameterList class and support logic.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_PARAMETERLIST_H
-#define SWIFT_AST_PARAMETERLIST_H
+#ifndef LANGUAGE_AST_PARAMETERLIST_H
+#define LANGUAGE_AST_PARAMETERLIST_H
 
 #include "language/AST/Decl.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
 
@@ -34,7 +35,7 @@ class SubstitutionMap;
 class alignas(ParamDecl *) ParameterList final :
     // FIXME: Do we really just want to allocate these pointer-aligned?
     public ASTAllocated<std::aligned_storage<8, 8>::type>,
-    private llvm::TrailingObjects<ParameterList, ParamDecl *> {
+    private toolchain::TrailingObjects<ParameterList, ParamDecl *> {
   friend TrailingObjects;
 
   SourceLoc LParenLoc, RParenLoc;
@@ -146,7 +147,7 @@ public:
   SourceLoc getStartLoc() const { return getSourceRange().Start; }
   SourceLoc getEndLoc() const { return getSourceRange().End; }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, unsigned Indent = 0) const;
   
   //  void print(raw_ostream &OS) const;

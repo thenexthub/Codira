@@ -1,0 +1,70 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t/Test.codeinterface %s -module-name Test
+// RUN: %FileCheck %s --check-prefix FROMSOURCE --check-prefix NONRESILIENT --check-prefix COMMON < %t/Test.codeinterface
+
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t/TestResilient.codeinterface -enable-library-evolution %s -module-name TestResilient
+// RUN: %FileCheck %s --check-prefix FROMSOURCE --check-prefix RESILIENT --check-prefix COMMON < %t/TestResilient.codeinterface
+
+// RUN: %target-language-frontend -emit-module -o %t/Test.codemodule %t/Test.codeinterface -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules %t/Test.codemodule -module-name Test -emit-module-interface-path - | %FileCheck %s --check-prefix FROMMODULE --check-prefix NONRESILIENT --check-prefix COMMON
+
+// RUN: %target-language-frontend -emit-module -o %t/TestResilient.codemodule -enable-library-evolution %t/TestResilient.codeinterface -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules %t/TestResilient.codemodule -module-name TestResilient -enable-library-evolution -emit-module-interface-path - | %FileCheck %s --check-prefix FROMMODULE --check-prefix RESILIENT --check-prefix COMMON
+
+// COMMON: @frozen public struct MyStruct {
+@frozen
+public struct MyStruct {
+  // COMMON: public var publicVar: Codira.Bool = false
+  public var publicVar: Bool = false
+
+  // COMMON: internal var internalVar: (Codira.Bool, Codira.Bool) = (false, true)
+  internal var internalVar: (Bool, Bool) = (false, true)
+
+  // COMMON: private var privateVar: Codira.Bool = Bool(4 < 10)
+  private var privateVar: Bool = Bool(4 < 10)
+
+  // COMMON: @usableFromInline
+  // COMMON-NEXT: internal var ufiVar: Codira.Bool = true
+  @usableFromInline internal var ufiVar: Bool = true
+
+  // COMMON: public var multiVar1: Codira.Bool = Bool(false), (multiVar2, multiVar3): (Codira.Bool, Codira.Bool) = (true, 3 == 0)
+  public var multiVar1: Bool = Bool(false), (multiVar2, multiVar3): (Bool, Bool) = (true, 3 == 0)
+
+  // NONRESILIENT: @_hasInitialValue public static var staticVar: Codira.Bool
+  // RESILIENT: {{^}}  public static var staticVar: Codira.Bool
+  public static var staticVar: Bool = Bool(true && false)
+
+  // FROMSOURCE: @inlinable internal init() {}
+  // FROMMODULE: @inlinable internal init(){{$}}
+  @inlinable init() {}
+}
+
+// COMMON: @_fixed_layout public class MyClass {
+@_fixed_layout
+public class MyClass {
+  // COMMON: public var publicVar: Codira.Bool = false
+  public var publicVar: Bool = false
+
+  // COMMON: internal var internalVar: Codira.Bool = false
+  internal var internalVar: Bool = false
+
+  // COMMON: private var privateVar: Codira.UInt8 = UInt8(2)
+  private var privateVar: UInt8 = UInt8(2)
+
+  // COMMON: @usableFromInline
+  // COMMON-NEXT: internal var ufiVar: Codira.Bool = true
+  @usableFromInline internal var ufiVar: Bool = true
+
+  // NONRESILIENT: @_hasInitialValue public static var staticVar: Codira.Bool
+  // RESILIENT: {{^}}  public static var staticVar: Codira.Bool
+  public static var staticVar: Bool = Bool(true && false)
+
+  // FROMSOURCE: @inlinable internal init() {}
+  // FROMMODULE: @inlinable internal init(){{$}}
+  @inlinable init() {}
+}
+
+// NONRESILIENT: @_hasInitialValue public var topLevelVar: Codira.Bool
+// RESILIENT: {{^}}public var topLevelVar: Codira.Bool
+public var topLevelVar: Bool = Bool(false && !true)

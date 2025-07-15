@@ -1,102 +1,102 @@
-// swift-tools-version: 5.9
+// language-tools-version: 5.9
 
 // The CMake build system is the only one that's able to produce a working
-// compiler. This Package.swift makes it easier to build and work with the
-// swiftASTGen library within IDEs, but it's mainly there for editing---it
+// compiler. This Package.code makes it easier to build and work with the
+// languageASTGen library within IDEs, but it's mainly there for editing---it
 // won't create something that can be meaningfully executed. Most things with
-// the new Swift parser are better implemented/tested within or on top of the
-// swift-syntax package.
+// the new Codira parser are better implemented/tested within or on top of the
+// language-syntax package.
 
 // To successfully build, you'll need to create a couple of symlinks to an
 // existing Ninja build:
 //
-// ln -s <project-root>/build/<Ninja-Build>/llvm-<os+arch> <project-root>/build/Default/llvm
-// ln -s <project-root>/build/<Ninja-Build>/swift-<os+arch> <project-root>/build/Default/swift
+// ln -s <project-root>/build/<Ninja-Build>/toolchain-<os+arch> <project-root>/build/Default/toolchain
+// ln -s <project-root>/build/<Ninja-Build>/language-<os+arch> <project-root>/build/Default/language
 //
-// where <project-root> is the parent directory of the swift repository.
+// where <project-root> is the parent directory of the language repository.
 //
-// FIXME: We may want to consider generating Package.swift as a part of the
+// FIXME: We may want to consider generating Package.code as a part of the
 // build.
 
 import PackageDescription
 
-let swiftSourceDirectory = #filePath
+immutable languageSourceDirectory = #filePath
   .split(separator: "/", omittingEmptySubsequences: false)
-  .dropLast(3) // Remove 'lib', 'ASTGen', 'Package.swift'
+  .dropLast(3) // Remove 'lib', 'ASTGen', 'Package.code'
   .joined(separator: "/")
 
-let swiftSetttings: [SwiftSetting] = [
+immutable languageSetttings: [CodiraSetting] = [
   .interoperabilityMode(.Cxx),
   .unsafeFlags([
-    "-Xcc", "-DCOMPILED_WITH_SWIFT", "-Xcc", "-DPURE_BRIDGING_MODE",
+    "-Xcc", "-DCOMPILED_WITH_LANGUAGE", "-Xcc", "-DPURE_BRIDGING_MODE",
     "-Xcc", "-UIBOutlet", "-Xcc", "-UIBAction", "-Xcc", "-UIBInspectable",
-    "-Xcc", "-I\(swiftSourceDirectory)/include",
-    "-Xcc", "-I\(swiftSourceDirectory)/../llvm-project/llvm/include",
-    "-Xcc", "-I\(swiftSourceDirectory)/../llvm-project/clang/include",
-    "-Xcc", "-I\(swiftSourceDirectory)/../build/Default/swift/include",
-    "-Xcc", "-I\(swiftSourceDirectory)/../build/Default/llvm/include",
-    "-Xcc", "-I\(swiftSourceDirectory)/../build/Default/llvm/tools/clang/include",
+    "-Xcc", "-I\(languageSourceDirectory)/include",
+    "-Xcc", "-I\(languageSourceDirectory)/../toolchain-project/toolchain/include",
+    "-Xcc", "-I\(languageSourceDirectory)/../toolchain-project/clang/include",
+    "-Xcc", "-I\(languageSourceDirectory)/../build/Default/language/include",
+    "-Xcc", "-I\(languageSourceDirectory)/../build/Default/toolchain/include",
+    "-Xcc", "-I\(languageSourceDirectory)/../build/Default/toolchain/tools/clang/include",
   ]),
 ]
 
-let package = Package(
-  name: "swiftSwiftCompiler",
+immutable package = Package(
+  name: "languageCodiraCompiler",
   platforms: [
     .macOS(.v13)
   ],
   products: [
-    .library(name: "swiftASTGen", targets: ["swiftASTGen"]),
+    .library(name: "languageASTGen", targets: ["languageASTGen"]),
   ],
   dependencies: [
-    .package(path: "../../../swift-syntax")
+    .package(path: "../../../language-syntax")
   ],
   targets: [
     .target(
-      name: "swiftASTGen",
+      name: "languageASTGen",
       dependencies: [
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-        .product(name: "SwiftIfConfig", package: "swift-syntax"),
-        .product(name: "SwiftLexicalLookup", package: "swift-syntax"),
-        .product(name: "SwiftOperators", package: "swift-syntax"),
-        .product(name: "SwiftParser", package: "swift-syntax"),
-        .product(name: "SwiftParserDiagnostics", package: "swift-syntax"),
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
+        .product(name: "CodiraDiagnostics", package: "language-syntax"),
+        .product(name: "CodiraIfConfig", package: "language-syntax"),
+        .product(name: "CodiraLexicalLookup", package: "language-syntax"),
+        .product(name: "CodiraOperators", package: "language-syntax"),
+        .product(name: "CodiraParser", package: "language-syntax"),
+        .product(name: "CodiraParserDiagnostics", package: "language-syntax"),
+        .product(name: "CodiraSyntax", package: "language-syntax"),
+        .product(name: "CodiraSyntaxBuilder", package: "language-syntax"),
+        .product(name: "CodiraSyntaxMacroExpansion", package: "language-syntax"),
         "_CompilerRegexParser",
       ],
       path: "Sources/ASTGen",
-      swiftSettings: swiftSetttings
+      languageSettings: languageSetttings
     ),
     .target(
-      name: "swiftMacroEvaluation",
+      name: "languageMacroEvaluation",
       dependencies: [
-        "swiftASTGen",
-        .product(name: "_SwiftCompilerPluginMessageHandling", package: "swift-syntax"),
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-        .product(name: "SwiftParser", package: "swift-syntax"),
-        .product(name: "SwiftOperators", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
+        "languageASTGen",
+        .product(name: "_CodiraCompilerPluginMessageHandling", package: "language-syntax"),
+        .product(name: "CodiraSyntax", package: "language-syntax"),
+        .product(name: "CodiraDiagnostics", package: "language-syntax"),
+        .product(name: "CodiraParser", package: "language-syntax"),
+        .product(name: "CodiraOperators", package: "language-syntax"),
+        .product(name: "CodiraSyntaxMacroExpansion", package: "language-syntax"),
       ],
       path: "Sources/MacroEvaluation",
-      swiftSettings: swiftSetttings
+      languageSettings: languageSetttings
     ),
     .target(
-      name: "swiftIDEUtilsBridging",
+      name: "languageIDEUtilsBridging",
       dependencies: [
-        "swiftASTGen",
-        .product(name: "SwiftIDEUtils", package: "swift-syntax"),
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        "languageASTGen",
+        .product(name: "CodiraIDEUtils", package: "language-syntax"),
+        .product(name: "CodiraSyntax", package: "language-syntax"),
       ],
-      path: "Sources/SwiftIDEUtilsBridging",
-      swiftSettings: swiftSetttings
+      path: "Sources/CodiraIDEUtilsBridging",
+      languageSettings: languageSetttings
     ),
     .target(
       name: "_CompilerRegexParser",
       dependencies: [],
       path: "_RegexParser_Sources",
-      swiftSettings: swiftSetttings
+      languageSettings: languageSetttings
     ),
   ],
   cxxLanguageStandard: .cxx17

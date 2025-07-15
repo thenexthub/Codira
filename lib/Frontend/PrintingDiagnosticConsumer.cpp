@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the PrintingDiagnosticConsumer class.
@@ -22,14 +23,14 @@
 #include "language/AST/DiagnosticBridge.h"
 #include "language/AST/DiagnosticEngine.h"
 #include "language/Basic/ColorUtils.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Bridging/ASTGen.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -47,9 +48,9 @@ void PrintingDiagnosticConsumer::handleDiagnostic(SourceManager &SM,
     return;
 
   switch (FormattingStyle) {
-  case DiagnosticOptions::FormattingStyle::Swift: {
-#if SWIFT_BUILD_SWIFT_SYNTAX
-    // Use the swift-syntax formatter.
+  case DiagnosticOptions::FormattingStyle::Codira: {
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+    // Use the language-syntax formatter.
     auto bufferStack = DiagnosticBridge::getSourceBufferStack(SM, Info.Loc);
     if (Info.Kind != DiagnosticKind::Note || bufferStack.empty())
       DiagBridge.flush(Stream, /*includeTrailingBreak=*/true,
@@ -63,7 +64,7 @@ void PrintingDiagnosticConsumer::handleDiagnostic(SourceManager &SM,
     return;
 #else
     // Fall through when we don't have the new diagnostics renderer available.
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 #endif
   }
 
@@ -77,7 +78,7 @@ void PrintingDiagnosticConsumer::handleDiagnostic(SourceManager &SM,
 }
 
 void PrintingDiagnosticConsumer::flush(bool includeTrailingBreak) {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   DiagBridge.flush(Stream, includeTrailingBreak,
                    /*forceColors=*/ForceColors);
 #endif
@@ -87,7 +88,7 @@ bool PrintingDiagnosticConsumer::finishProcessing() {
   // If there's an in-flight snippet, flush it.
   flush(false);
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   // Print out footnotes for any category that was referenced.
   DiagBridge.printCategoryFootnotes(Stream, ForceColors);
 #endif
@@ -100,43 +101,43 @@ void PrintingDiagnosticConsumer::printDiagnostic(SourceManager &SM,
                                                  const DiagnosticInfo &Info) {
 
   // Determine what kind of diagnostic we're emitting.
-  llvm::SourceMgr::DiagKind SMKind;
+  toolchain::SourceMgr::DiagKind SMKind;
   switch (Info.Kind) {
   case DiagnosticKind::Error:
-    SMKind = llvm::SourceMgr::DK_Error;
+    SMKind = toolchain::SourceMgr::DK_Error;
     break;
   case DiagnosticKind::Warning:
-    SMKind = llvm::SourceMgr::DK_Warning;
+    SMKind = toolchain::SourceMgr::DK_Warning;
     break;
 
   case DiagnosticKind::Note:
-    SMKind = llvm::SourceMgr::DK_Note;
+    SMKind = toolchain::SourceMgr::DK_Note;
     break;
 
   case DiagnosticKind::Remark:
-    SMKind = llvm::SourceMgr::DK_Remark;
+    SMKind = toolchain::SourceMgr::DK_Remark;
     break;
   }
 
   // Translate ranges.
-  SmallVector<llvm::SMRange, 2> Ranges;
+  SmallVector<toolchain::SMRange, 2> Ranges;
   for (auto R : Info.Ranges)
     Ranges.push_back(getRawRange(SM, R));
 
   // Translate fix-its.
-  SmallVector<llvm::SMFixIt, 2> FixIts;
+  SmallVector<toolchain::SMFixIt, 2> FixIts;
   for (DiagnosticInfo::FixIt F : Info.FixIts)
     FixIts.push_back(getRawFixIt(SM, F));
 
   // Display the diagnostic.
   ColoredStream coloredErrs{Stream};
   raw_ostream &out = ForceColors ? coloredErrs : Stream;
-  const llvm::SourceMgr &rawSM = SM.getLLVMSourceMgr();
+  const toolchain::SourceMgr &rawSM = SM.getLLVMSourceMgr();
   
   // Actually substitute the diagnostic arguments into the diagnostic text.
-  llvm::SmallString<256> Text;
+  toolchain::SmallString<256> Text;
   {
-    llvm::raw_svector_ostream Out(Text);
+    toolchain::raw_svector_ostream Out(Text);
     DiagnosticEngine::formatDiagnosticText(Out, Info.FormatString,
                                            Info.FormatArgs);
 
@@ -149,11 +150,11 @@ void PrintingDiagnosticConsumer::printDiagnostic(SourceManager &SM,
   rawSM.PrintMessage(out, Msg, ForceColors);
 }
 
-llvm::SMDiagnostic
-SourceManager::GetMessage(SourceLoc Loc, llvm::SourceMgr::DiagKind Kind,
+toolchain::SMDiagnostic
+SourceManager::GetMessage(SourceLoc Loc, toolchain::SourceMgr::DiagKind Kind,
                           const Twine &Msg,
-                          ArrayRef<llvm::SMRange> Ranges,
-                          ArrayRef<llvm::SMFixIt> FixIts,
+                          ArrayRef<toolchain::SMRange> Ranges,
+                          ArrayRef<toolchain::SMFixIt> FixIts,
                           bool EmitMacroExpansionFiles) const {
 
   // First thing to do: find the current buffer containing the specified
@@ -184,7 +185,7 @@ SourceManager::GetMessage(SourceLoc Loc, llvm::SourceMgr::DiagKind Kind,
     // Convert any ranges to column ranges that only intersect the line of the
     // location.
     for (unsigned i = 0, e = Ranges.size(); i != e; ++i) {
-      llvm::SMRange R = Ranges[i];
+      toolchain::SMRange R = Ranges[i];
       if (!R.isValid()) continue;
 
       // If the line doesn't contain any part of the range, then ignore it.
@@ -193,9 +194,9 @@ SourceManager::GetMessage(SourceLoc Loc, llvm::SourceMgr::DiagKind Kind,
 
       // Ignore pieces of the range that go onto other lines.
       if (R.Start.getPointer() < LineStart)
-        R.Start = llvm::SMLoc::getFromPointer(LineStart);
+        R.Start = toolchain::SMLoc::getFromPointer(LineStart);
       if (R.End.getPointer() > LineEnd)
-        R.End = llvm::SMLoc::getFromPointer(LineEnd);
+        R.End = toolchain::SMLoc::getFromPointer(LineEnd);
 
       // Translate from SMLoc ranges to column ranges.
       // FIXME: Handle multibyte characters.
@@ -206,7 +207,7 @@ SourceManager::GetMessage(SourceLoc Loc, llvm::SourceMgr::DiagKind Kind,
     LineAndCol = getPresumedLineAndColumnForLoc(Loc);
   }
 
-  return llvm::SMDiagnostic(LLVMSourceMgr, Loc.Value, BufferID,
+  return toolchain::SMDiagnostic(LLVMSourceMgr, Loc.Value, BufferID,
                             LineAndCol.first,
                             LineAndCol.second-1, Kind, Msg.str(),
                             LineStr, ColRanges, FixIts);
@@ -215,7 +216,7 @@ SourceManager::GetMessage(SourceLoc Loc, llvm::SourceMgr::DiagKind Kind,
 // These must come after the declaration of AnnotatedSourceSnippet due to the
 // `currentSnippet` member.
 PrintingDiagnosticConsumer::PrintingDiagnosticConsumer(
-    llvm::raw_ostream &stream)
+    toolchain::raw_ostream &stream)
     : Stream(stream) {}
 
 PrintingDiagnosticConsumer::~PrintingDiagnosticConsumer() {

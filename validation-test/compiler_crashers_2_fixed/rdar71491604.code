@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend %s -emit-ir -enable-library-evolution -enable-experimental-concurrency
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+public protocol P {
+  fn f() async
+}

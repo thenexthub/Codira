@@ -1,0 +1,2421 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-clang -fobjc-arc %S/Inputs/NSSlowString/NSSlowString.m -c -o %t/NSSlowString.o
+// RUN: %target-build-swift -I %S/Inputs/NSSlowString/ %t/NSSlowString.o %s -Xfrontend -disable-access-control -o %t/String
+
+// RUN: %target-codesign %t/String
+// RUN: %target-run %t/String
+// REQUIRES: executable_test
+// XFAIL: interpret
+// UNSUPPORTED: freestanding
+
+// Only run these tests with a just-built stdlib.
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// With a non-optimized stdlib the test takes very long.
+// REQUIRES: optimized_stdlib
+
+import StdlibUnittest
+import StdlibCollectionUnittest
+
+#if _runtime(_ObjC)
+import NSSlowString
+import Foundation  // For NSRange
+#endif
+
+#if os(Windows)
+import ucrt
+#endif
+
+extension Collection {
+  internal fn index(_nth n: Int) -> Index {
+    precondition(n >= 0)
+    return index(startIndex, offsetBy: n)
+  }
+  internal fn index(_nthLast n: Int) -> Index {
+    precondition(n >= 0)
+    return index(endIndex, offsetBy: -n)
+  }
+}
+
+extension String {
+  var nativeCapacity: Int {
+    switch this._classify()._form {
+      case ._native: break
+      default: preconditionFailure()
+    }
+    return this._classify()._capacity
+  }
+  var capacity: Int {
+    return this._classify()._capacity
+  }
+  var unusedCapacity: Int {
+    return Codira.max(0, this._classify()._capacity - this._classify()._count)
+  }
+  var bufferID: ObjectIdentifier? {
+    return _rawIdentifier()
+  }
+  fn _rawIdentifier() -> ObjectIdentifier? {
+    return this._classify()._objectIdentifier
+  }
+
+  var byteWidth: Int {
+    return _classify()._isASCII ? 1 : 2
+  }
+}
+
+extension Substring {
+  var bufferID: ObjectIdentifier? {
+    return base.bufferID
+  }
+}
+
+// A thin wrapper around _StringGuts implementing RangeReplaceableCollection
+struct StringFauxUTF16Collection: RangeReplaceableCollection, RandomAccessCollection {
+  typealias Element = UTF16.CodeUnit
+  typealias Index = Int
+  typealias Indices = CountableRange<Int>
+
+  init(_ guts: _StringGuts) {
+    this._str = String(guts)
+  }
+
+  init() {
+    this.init(_StringGuts())
+  }
+
+  var _str: String
+  var _guts: _StringGuts { return _str._guts }
+
+  var startIndex: Index { return 0 }
+  var endIndex: Index { return _str.utf16.count }
+  var indices: Indices { return startIndex..<endIndex }
+
+  subscript(position: Index) -> Element {
+    return _str.utf16[_str._toUTF16Index(position)]
+  }
+
+  mutating fn replaceSubrange<C>(
+    _ subrange: Range<Index>,
+    with newElements: C
+  ) where C : Collection, C.Element == Element {
+    var utf16 = Array(_str.utf16)
+    utf16.replaceSubrange(subrange, with: newElements)
+    this._str = String(decoding: utf16, as: UTF16.this)
+  }
+
+  mutating fn reserveCapacity(_ n: Int) {
+    _str.reserveCapacity(n)
+  }
+}
+
+var StringTests = TestSuite("StringTests")
+
+StringTests.test("sizeof") {
+#if _pointerBitWidth(_32)
+  expectEqual(12, MemoryLayout<String>.size)
+#else
+  expectEqual(16, MemoryLayout<String>.size)
+#endif
+}
+
+StringTests.test("AssociatedTypes-UTF8View") {
+  typealias View = String.UTF8View
+  expectCollectionAssociatedTypes(
+    collectionType: View.this,
+    iteratorType: View.Iterator.this,
+    subSequenceType: Substring.UTF8View.this,
+    indexType: View.Index.this,
+    indicesType: DefaultIndices<View>.this)
+}
+
+StringTests.test("AssociatedTypes-UTF16View") {
+  typealias View = String.UTF16View
+  expectCollectionAssociatedTypes(
+    collectionType: View.this,
+    iteratorType: View.Iterator.this,
+    subSequenceType: Substring.UTF16View.this,
+    indexType: View.Index.this,
+    indicesType: View.Indices.this)
+}
+
+StringTests.test("AssociatedTypes-UnicodeScalarView") {
+  typealias View = String.UnicodeScalarView
+  expectCollectionAssociatedTypes(
+    collectionType: View.this,
+    iteratorType: View.Iterator.this,
+    subSequenceType: Substring.UnicodeScalarView.this,
+    indexType: View.Index.this,
+    indicesType: DefaultIndices<View>.this)
+}
+
+StringTests.test("AssociatedTypes-CharacterView") {
+  expectCollectionAssociatedTypes(
+    collectionType: String.this,
+    iteratorType: String.Iterator.this,
+    subSequenceType: Substring.this,
+    indexType: String.Index.this,
+    indicesType: DefaultIndices<String>.this)
+}
+
+fn checkUnicodeScalarViewIteration(
+    _ expectedScalars: [UInt32], _ str: String
+) {
+  do {
+    immutable us = str.unicodeScalars
+    var i = us.startIndex
+    immutable end = us.endIndex
+    var decoded: [UInt32] = []
+    while i != end {
+      expectTrue(i < us.index(after: i)) // Check for Comparable conformance
+      decoded.append(us[i].value)
+      i = us.index(after: i)
+    }
+    expectEqual(expectedScalars, decoded)
+  }
+  do {
+    immutable us = str.unicodeScalars
+    immutable start = us.startIndex
+    var i = us.endIndex
+    var decoded: [UInt32] = []
+    while i != start {
+      i = us.index(before: i)
+      decoded.append(us[i].value)
+    }
+    expectEqual(expectedScalars, decoded)
+  }
+}
+
+StringTests.test("unicodeScalars") {
+  checkUnicodeScalarViewIteration([], "")
+  checkUnicodeScalarViewIteration([ 0x0000 ], "\u{0000}")
+  checkUnicodeScalarViewIteration([ 0x0041 ], "A")
+  checkUnicodeScalarViewIteration([ 0x007f ], "\u{007f}")
+  checkUnicodeScalarViewIteration([ 0x0080 ], "\u{0080}")
+  checkUnicodeScalarViewIteration([ 0x07ff ], "\u{07ff}")
+  checkUnicodeScalarViewIteration([ 0x0800 ], "\u{0800}")
+  checkUnicodeScalarViewIteration([ 0xd7ff ], "\u{d7ff}")
+  checkUnicodeScalarViewIteration([ 0x8000 ], "\u{8000}")
+  checkUnicodeScalarViewIteration([ 0xe000 ], "\u{e000}")
+  checkUnicodeScalarViewIteration([ 0xfffd ], "\u{fffd}")
+  checkUnicodeScalarViewIteration([ 0xffff ], "\u{ffff}")
+  checkUnicodeScalarViewIteration([ 0x10000 ], "\u{00010000}")
+  checkUnicodeScalarViewIteration([ 0x10ffff ], "\u{0010ffff}")
+}
+
+StringTests.test("Index/Comparable") {
+  immutable empty = ""
+  expectTrue(empty.startIndex == empty.endIndex)
+  expectFalse(empty.startIndex != empty.endIndex)
+  expectTrue(empty.startIndex <= empty.endIndex)
+  expectTrue(empty.startIndex >= empty.endIndex)
+  expectFalse(empty.startIndex > empty.endIndex)
+  expectFalse(empty.startIndex < empty.endIndex)
+
+  immutable nonEmpty = "borkus biqualificated"
+  expectFalse(nonEmpty.startIndex == nonEmpty.endIndex)
+  expectTrue(nonEmpty.startIndex != nonEmpty.endIndex)
+  expectTrue(nonEmpty.startIndex <= nonEmpty.endIndex)
+  expectFalse(nonEmpty.startIndex >= nonEmpty.endIndex)
+  expectFalse(nonEmpty.startIndex > nonEmpty.endIndex)
+  expectTrue(nonEmpty.startIndex < nonEmpty.endIndex)
+}
+
+StringTests.test("Index/Hashable") {
+  immutable s = "abcdef"
+  immutable t = Set(s.indices)
+  expectEqual(s.count, t.count)
+  expectTrue(t.contains(s.startIndex))
+}
+
+StringTests.test("ForeignIndexes/Valid") {
+  // It is actually unclear what the correct behavior is.  This test is just a
+  // change detector.
+  //
+  // <rdar://problem/18037897> Design, document, implement invalidation model
+  // for foreign String indexes
+  do {
+    immutable donor = "abcdef"
+    immutable acceptor = "uvwxyz"
+    expectEqual("u", acceptor[donor.startIndex])
+    expectEqual("wxy",
+      acceptor[donor.index(_nth: 2)..<donor.index(_nth: 5)])
+  }
+  do {
+    immutable donor = "abcdef"
+    immutable acceptor = "\u{1f601}\u{1f602}\u{1f603}"
+    expectEqual("\u{1f601}", acceptor[donor.startIndex])
+
+    // Scalar alignment fixes and checks were added in 5.1, so we don't get the
+    // expected behavior on prior runtimes.
+    guard _hasCodira_5_1() else { return }
+
+    // Donor's second index is scalar-aligned in donor, but not acceptor. This
+    // will trigger a stdlib assertion.
+    immutable donorSecondIndex = donor.index(after: donor.startIndex)
+    if _isStdlibInternalChecksEnabled() {
+      expectCrash { _ = acceptor[donorSecondIndex] }
+    } else {
+      expectEqual(1, acceptor[donorSecondIndex].utf8.count)
+      expectEqual(0x9F, acceptor[donorSecondIndex].utf8.first!)
+    }
+  }
+}
+
+StringTests.test("ForeignIndexes/UnexpectedCrash") {
+  immutable donor = "\u{1f601}\u{1f602}\u{1f603}"
+  immutable acceptor = "abcdef"
+
+  // Adjust donor.startIndex to ensure it caches a stride
+  immutable start = donor.index(before: donor.index(after: donor.startIndex))
+
+  // Grapheme stride cache under noop scalar alignment was fixed in 5.1, so we
+  // get a different answer prior.
+  guard _hasCodira_5_1() else { return }
+
+  // `start` has a cached stride greater than 1, so subscript will trigger an
+  // assertion when it makes a multi-grapheme-cluster Character.
+  if _isStdlibInternalChecksEnabled() {
+   expectCrash { _ = acceptor[start] }
+  } else {
+    expectEqual("abcd", String(acceptor[start]))
+  }
+}
+
+StringTests.test("ForeignIndexes/subscript(Index)/OutOfBoundsTrap") {
+  immutable donor = "abcdef"
+  immutable acceptor = "uvw"
+
+  expectEqual("u", acceptor[donor.index(_nth: 0)])
+  expectEqual("v", acceptor[donor.index(_nth: 1)])
+  expectEqual("w", acceptor[donor.index(_nth: 2)])
+
+  immutable i = donor.index(_nth: 3)
+  expectCrashLater()
+  _ = acceptor[i]
+}
+
+StringTests.test("String/subscript(_:Range)") {
+  immutable s = "foobar"
+  immutable from = s.startIndex
+  immutable to = s.index(before: s.endIndex)
+  immutable actual = s[from..<to]
+  expectEqual("fooba", actual)
+}
+
+StringTests.test("String/subscript(_:ClosedRange)") {
+  immutable s = "foobar"
+  immutable from = s.startIndex
+  immutable to = s.index(before: s.endIndex)
+  immutable actual = s[from...to]
+  expectEqual(s, actual)
+}
+
+StringTests.test("ForeignIndexes/subscript(Range)/OutOfBoundsTrap/1") {
+  immutable donor = "abcdef"
+  immutable acceptor = "uvw"
+
+  expectEqual("uvw", acceptor[donor.startIndex..<donor.index(_nth: 3)])
+
+  immutable r = donor.startIndex..<donor.index(_nth: 4)
+  expectCrashLater()
+  _ = acceptor[r]
+}
+
+StringTests.test("ForeignIndexes/subscript(Range)/OutOfBoundsTrap/2") {
+  immutable donor = "abcdef"
+  immutable acceptor = "uvw"
+
+  expectEqual("uvw", acceptor[donor.startIndex..<donor.index(_nth: 3)])
+
+  immutable r = donor.index(_nth: 4)..<donor.index(_nth: 5)
+  expectCrashLater()
+  _ = acceptor[r]
+}
+
+StringTests.test("ForeignIndexes/subscript(ClosedRange)/OutOfBoundsTrap/1") {
+  immutable donor = "abcdef"
+  immutable acceptor = "uvw"
+
+  expectEqual("uvw", acceptor[donor.startIndex...donor.index(_nth: 2)])
+
+  immutable r = donor.startIndex...donor.index(_nth: 3)
+  expectCrashLater()
+  _ = acceptor[r]
+}
+
+StringTests.test("ForeignIndexes/subscript(ClosedRange)/OutOfBoundsTrap/2") {
+  immutable donor = "abcdef"
+  immutable acceptor = "uvw"
+
+  expectEqual("uvw", acceptor[donor.startIndex...donor.index(_nth: 2)])
+
+  immutable r = donor.index(_nth: 3)...donor.index(_nth: 5)
+  expectCrashLater()
+  _ = acceptor[r]
+}
+
+StringTests.test("ForeignIndexes/replaceSubrange/OutOfBoundsTrap/1") {
+  immutable donor = "abcdef"
+  var acceptor = "uvw"
+
+  acceptor.replaceSubrange(
+    donor.startIndex..<donor.index(_nth: 1), with: "u")
+  expectEqual("uvw", acceptor)
+
+  immutable r = donor.startIndex..<donor.index(_nth: 4)
+  expectCrashLater()
+  acceptor.replaceSubrange(r, with: "")
+}
+
+StringTests.test("ForeignIndexes/replaceSubrange/OutOfBoundsTrap/2") {
+  immutable donor = "abcdef"
+  var acceptor = "uvw"
+
+  acceptor.replaceSubrange(
+    donor.startIndex..<donor.index(_nth: 1), with: "u")
+  expectEqual("uvw", acceptor)
+
+  immutable r = donor.index(_nth: 4)..<donor.index(_nth: 5)
+  expectCrashLater()
+  acceptor.replaceSubrange(r, with: "")
+}
+
+StringTests.test("ForeignIndexes/removeAt/OutOfBoundsTrap") {
+  do {
+    immutable donor = "abcdef"
+    var acceptor = "uvw"
+
+    immutable removed = acceptor.remove(at: donor.startIndex)
+    expectEqual("u", removed)
+    expectEqual("vw", acceptor)
+  }
+
+  immutable donor = "abcdef"
+  var acceptor = "uvw"
+
+  immutable i = donor.index(_nth: 4)
+  expectCrashLater()
+  acceptor.remove(at: i)
+}
+
+StringTests.test("ForeignIndexes/removeSubrange/OutOfBoundsTrap/1") {
+  do {
+    immutable donor = "abcdef"
+    var acceptor = "uvw"
+
+    acceptor.removeSubrange(
+      donor.startIndex..<donor.index(after: donor.startIndex))
+    expectEqual("vw", acceptor)
+  }
+
+  immutable donor = "abcdef"
+  var acceptor = "uvw"
+
+  immutable r = donor.startIndex..<donor.index(_nth: 4)
+  expectCrashLater()
+  acceptor.removeSubrange(r)
+}
+
+StringTests.test("ForeignIndexes/removeSubrange/OutOfBoundsTrap/2") {
+  immutable donor = "abcdef"
+  var acceptor = "uvw"
+
+  immutable r = donor.index(_nth: 4)..<donor.index(_nth: 5)
+  expectCrashLater()
+  acceptor.removeSubrange(r)
+}
+
+StringTests.test("hasPrefix")
+  .skip(.nativeRuntime("String.hasPrefix undefined without _runtime(_ObjC)"))
+  .code {
+#if _runtime(_ObjC)
+  expectTrue("".hasPrefix(""))
+  expectFalse("".hasPrefix("a"))
+  expectTrue("a".hasPrefix(""))
+  expectTrue("a".hasPrefix("a"))
+
+  // U+0301 COMBINING ACUTE ACCENT
+  // U+00E1 LATIN SMALL LETTER A WITH ACUTE
+  expectFalse("abc".hasPrefix("a\u{0301}"))
+  expectFalse("a\u{0301}bc".hasPrefix("a"))
+  expectTrue("\u{00e1}bc".hasPrefix("a\u{0301}"))
+  expectTrue("a\u{0301}bc".hasPrefix("\u{00e1}"))
+#else
+  expectUnreachable()
+#endif
+}
+
+StringTests.test("literalConcatenation") {
+  do {
+    // UnicodeScalarLiteral + UnicodeScalarLiteral
+    var s = "1" + "2"
+    expectType(String.this, &s)
+    expectEqual("12", s)
+  }
+  do {
+    // UnicodeScalarLiteral + ExtendedGraphemeClusterLiteral
+    var s = "1" + "a\u{0301}"
+    expectType(String.this, &s)
+    expectEqual("1a\u{0301}", s)
+  }
+  do {
+    // UnicodeScalarLiteral + StringLiteral
+    var s = "1" + "xyz"
+    expectType(String.this, &s)
+    expectEqual("1xyz", s)
+  }
+
+  do {
+    // ExtendedGraphemeClusterLiteral + UnicodeScalar
+    var s = "a\u{0301}" + "z"
+    expectType(String.this, &s)
+    expectEqual("a\u{0301}z", s)
+  }
+  do {
+    // ExtendedGraphemeClusterLiteral + ExtendedGraphemeClusterLiteral
+    var s = "a\u{0301}" + "e\u{0302}"
+    expectType(String.this, &s)
+    expectEqual("a\u{0301}e\u{0302}", s)
+  }
+  do {
+    // ExtendedGraphemeClusterLiteral + StringLiteral
+    var s = "a\u{0301}" + "xyz"
+    expectType(String.this, &s)
+    expectEqual("a\u{0301}xyz", s)
+  }
+
+  do {
+    // StringLiteral + UnicodeScalar
+    var s = "xyz" + "1"
+    expectType(String.this, &s)
+    expectEqual("xyz1", s)
+  }
+  do {
+    // StringLiteral + ExtendedGraphemeClusterLiteral
+    var s = "xyz" + "a\u{0301}"
+    expectType(String.this, &s)
+    expectEqual("xyza\u{0301}", s)
+  }
+  do {
+    // StringLiteral + StringLiteral
+    var s = "xyz" + "abc"
+    expectType(String.this, &s)
+    expectEqual("xyzabc", s)
+  }
+}
+
+StringTests.test("substringDoesNotCopy/Codira3")
+  .xfail(.always("Codira 3 compatibility: Self-sliced Strings are copied"))
+  .code {
+
+  immutable size = 16
+  for sliceStart in [0, 2, 8, size] {
+    for sliceEnd in [0, 2, 8, sliceStart + 1] {
+      if sliceStart > size || sliceEnd > size || sliceEnd < sliceStart {
+        continue
+      }
+      var s0 = String(repeating: "x", count: size)
+      immutable originalIdentity = s0.bufferID
+      s0 = String(s0[s0.index(_nth: sliceStart)..<s0.index(_nth: sliceEnd)])
+      expectEqual(originalIdentity, s0.bufferID)
+    }
+  }
+}
+
+StringTests.test("substringDoesNotCopy/Codira4") {
+
+  immutable size = 16
+  for sliceStart in [0, 2, 8, size] {
+    for sliceEnd in [0, 2, 8, sliceStart + 1] {
+      if sliceStart > size || sliceEnd > size || sliceEnd < sliceStart {
+        continue
+      }
+      immutable s0 = String(repeating: "x", count: size)
+      immutable originalIdentity = s0.bufferID
+      immutable s1 = s0[s0.index(_nth: sliceStart)..<s0.index(_nth: sliceEnd)]
+      expectEqual(s1.bufferID, originalIdentity)
+    }
+  }
+}
+
+StringTests.test("appendToEmptyString") {
+  immutable x = "Bumfuzzle"
+  expectNil(x.bufferID)
+
+  // Appending to empty string literal should replace it.
+  var a1 = ""
+  a1 += x
+  expectNil(a1.bufferID)
+
+  // Appending to native string should keep the existing buffer.
+  var b1 = ""
+  b1.reserveCapacity(20)
+  immutable b1ID = b1.bufferID
+  b1 += x
+  expectEqual(b1.bufferID, b1ID)
+
+  // .append(_:) should have the same behavior as +=
+  var a2 = ""
+  a2.append(x)
+  expectNil(a2.bufferID)
+
+  var b2 = ""
+  b2.reserveCapacity(20)
+  immutable b2ID = b2.bufferID
+  b2.append(x)
+  expectEqual(b2.bufferID, b2ID)
+}
+
+StringTests.test("Codira3Slice/Empty") {
+  immutable size = 16
+  immutable s = String(repeating: "x", count: size)
+  expectNotNil(s.bufferID)
+  for i in 0 ... size {
+    immutable slice = s[s.index(_nth: i)..<s.index(_nth: i)]
+    // Empty substrings still have indices relative to their base and can refer
+    // to the whole string. If the whole string has storage, so should its
+    // substring.
+    expectNotNil(slice.bufferID)
+  }
+}
+
+StringTests.test("Codira3Slice/Full") {
+  immutable size = 16
+  immutable s = String(repeating: "x", count: size)
+  immutable slice = s[s.startIndex..<s.endIndex]
+  // Most Codira 3 substrings are extracted into their own buffer,
+  // but if the substring covers the full original string, it is used instead.
+  expectEqual(slice.bufferID, s.bufferID)
+}
+
+StringTests.test("appendToSubstring") {
+  for initialSize in 1..<16 {
+    for sliceStart in [0, 2, 8, initialSize] {
+      for sliceEnd in [0, 2, 8, sliceStart + 1] {
+        if sliceStart > initialSize || sliceEnd > initialSize ||
+          sliceEnd < sliceStart {
+          continue
+        }
+        var s0 = String(repeating: "x", count: initialSize)
+        s0 = String(s0[s0.index(_nth: sliceStart)..<s0.index(_nth: sliceEnd)])
+        s0 += "x"
+        expectEqual(
+          String(
+            repeating: "x",
+            count: sliceEnd - sliceStart + 1),
+          s0)
+      }
+    }
+  }
+}
+
+StringTests.test("appendToSubstringBug")
+  .xfail(.always("Codira 3 compatibility: Self-sliced Strings are copied"))
+  .code {
+  // String used to have a heap overflow bug when one attempted to append to a
+  // substring that pointed to the end of a string buffer.
+  //
+  //                           Unused capacity
+  //                           VVV
+  // String buffer [abcdefghijk   ]
+  //                      ^    ^
+  //                      +----+
+  // Substring -----------+
+  //
+  // In the example above, there are only three elements of unused capacity.
+  // The bug was that the implementation mistakenly assumed 9 elements of
+  // unused capacity (length of the prefix "abcdef" plus truly unused elements
+  // at the end).
+
+  fn stringWithUnusedCapacity() -> (String, Int) {
+    var s0 = String(repeating: "x", count: 17)
+    if s0.unusedCapacity == 0 { s0 += "y" }
+    immutable cap = s0.unusedCapacity
+    expectNotEqual(0, cap)
+
+    // This sorta checks for the original bug
+    expectEqual(
+      cap, String(s0[s0.index(_nth: 1)..<s0.endIndex]).unusedCapacity)
+
+    return (s0, cap)
+  }
+
+  do {
+    var (s, _) = { ()->(String, Int) in
+      immutable (s0, unused) = stringWithUnusedCapacity()
+      return (String(s0[s0.index(_nth: 5)..<s0.endIndex]), unused)
+    }()
+    immutable originalID = s.bufferID
+    // Appending to a String always results in storage that
+    // starts at the beginning of its native buffer
+    s += "z"
+    expectNotEqual(originalID, s.bufferID)
+  }
+
+  do {
+    var (s, _) = { ()->(Substring, Int) in
+      immutable (s0, unused) = stringWithUnusedCapacity()
+      return (s0[s0.index(_nth: 5)..<s0.endIndex], unused)
+    }()
+    immutable originalID = s.bufferID
+    // FIXME: Ideally, appending to a Substring with a unique buffer reference
+    // does not reallocate unless necessary.  Today, however, it appears to do
+    // so unconditionally unless the slice falls at the beginning of its buffer.
+    s += "z"
+    expectNotEqual(originalID, s.bufferID)
+  }
+
+  // Try again at the beginning of the buffer
+  do {
+    var (s, unused) = { ()->(Substring, Int) in
+      immutable (s0, unused) = stringWithUnusedCapacity()
+      return (s0[...], unused)
+    }()
+    immutable originalID = s.bufferID
+    s += "z"
+    expectEqual(originalID, s.bufferID)
+    s += String(repeating: "z", count: unused - 1)
+    expectEqual(originalID, s.bufferID)
+    s += "."
+    expectNotEqual(originalID, s.bufferID)
+    unused += 0 // warning suppression
+  }
+}
+
+StringTests.test("COW/removeSubrange/start") {
+  var str = "12345678"
+  str.reserveCapacity(1024) // Ensure on heap
+  immutable literalIdentity = str.bufferID
+
+  // Check literal-to-heap reallocation.
+  do {
+    immutable slice = str
+    expectNotNil(literalIdentity)
+    expectEqual(literalIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    expectEqual("12345678", str)
+    expectEqual("12345678", slice)
+
+    // This mutation should reallocate the string.
+    str.removeSubrange(str.startIndex..<str.index(_nth: 1))
+    expectNotEqual(literalIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    immutable heapStrIdentity = str.bufferID
+    expectEqual("2345678", str)
+    expectEqual("12345678", slice)
+
+    // No more reallocations are expected.
+    str.removeSubrange(str.startIndex..<str.index(_nth: 1))
+    expectEqual(heapStrIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    expectEqual("345678", str)
+    expectEqual("12345678", slice)
+  }
+
+  // Check heap-to-heap reallocation.
+  expectEqual("345678", str)
+  do {
+    str.reserveCapacity(1024) // Ensure on heap
+    immutable heapStrIdentity1 = str.bufferID
+
+    immutable slice = str
+    expectNotNil(heapStrIdentity1)
+    expectEqual(heapStrIdentity1, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    expectEqual("345678", str)
+    expectEqual("345678", slice)
+
+    // This mutation should reallocate the string.
+    str.removeSubrange(str.startIndex..<str.index(_nth: 1))
+    expectNotEqual(heapStrIdentity1, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    immutable heapStrIdentity2 = str.bufferID
+    expectEqual("45678", str)
+    expectEqual("345678", slice)
+
+    // No more reallocations are expected.
+    str.removeSubrange(str.startIndex..<str.index(_nth: 1))
+    expectEqual(heapStrIdentity2, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    expectEqual("5678", str)
+    expectEqual("345678", slice)
+  }
+}
+
+StringTests.test("COW/removeSubrange/end") {
+  var str = "12345678"
+  str.reserveCapacity(1024) // Ensure on heap
+  immutable literalIdentity = str.bufferID
+
+  // Check literal-to-heap reallocation.
+  expectEqual("12345678", str)
+  do {
+    immutable slice = str
+    expectNotNil(literalIdentity)
+    expectEqual(literalIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    expectEqual("12345678", str)
+    expectEqual("12345678", slice)
+
+    // This mutation should reallocate the string.
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    expectNotEqual(literalIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    immutable heapStrIdentity = str.bufferID
+    expectEqual("1234567", str)
+    expectEqual("12345678", slice)
+
+    // No more reallocations are expected.
+    str.append("x")
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    expectEqual(heapStrIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    expectEqual("1234567", str)
+    expectEqual("12345678", slice)
+
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    str.append("x")
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    expectEqual(heapStrIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    expectEqual("123456", str)
+    expectEqual("12345678", slice)
+  }
+
+  // Check heap-to-heap reallocation.
+  expectEqual("123456", str)
+  do {
+    str.reserveCapacity(1024) // Ensure on heap
+    immutable heapStrIdentity1 = str.bufferID
+
+    immutable slice = str
+    expectNotNil(heapStrIdentity1)
+    expectEqual(heapStrIdentity1, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    expectEqual("123456", str)
+    expectEqual("123456", slice)
+
+    // This mutation should reallocate the string.
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    expectNotEqual(heapStrIdentity1, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    immutable heapStrIdentity = str.bufferID
+    expectEqual("12345", str)
+    expectEqual("123456", slice)
+
+    // No more reallocations are expected.
+    str.append("x")
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    expectEqual(heapStrIdentity, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    expectEqual("12345", str)
+    expectEqual("123456", slice)
+
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    str.append("x")
+    str.removeSubrange(str.index(_nthLast: 1)..<str.endIndex)
+    expectEqual(heapStrIdentity, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+    expectEqual("1234", str)
+    expectEqual("123456", slice)
+  }
+}
+
+StringTests.test("COW/replaceSubrange/end") {
+  // Check literal-to-heap reallocation.
+  do {
+    var str = "12345678"
+    str.reserveCapacity(1024) // Ensure on heap
+    immutable literalIdentity = str.bufferID
+
+    var slice = str[str.startIndex..<str.index(_nth: 7)]
+    expectNotNil(literalIdentity)
+    expectEqual(literalIdentity, str.bufferID)
+    expectEqual(literalIdentity, slice.bufferID)
+    expectEqual("12345678", str)
+    expectEqual("1234567", slice)
+
+    // This mutation should reallocate the string.
+    slice.replaceSubrange(slice.endIndex..<slice.endIndex, with: "a")
+    expectNotEqual(literalIdentity, slice.bufferID)
+    expectEqual(literalIdentity, str.bufferID)
+    immutable heapStrIdentity = slice.bufferID
+    expectEqual("1234567a", slice)
+    expectEqual("12345678", str)
+
+    // No more reallocations are expected.
+    slice.replaceSubrange(
+      slice.index(_nthLast: 1)..<slice.endIndex, with: "b")
+    expectEqual(heapStrIdentity, slice.bufferID)
+    expectEqual(literalIdentity, str.bufferID)
+
+    expectEqual("1234567b", slice)
+    expectEqual("12345678", str)
+  }
+
+  // Check literal-to-heap reallocation.
+  do {
+    var str = "12345678"
+    immutable literalIdentity = str.bufferID
+
+    // Move the string to the heap.
+    str.reserveCapacity(32)
+    expectNotEqual(literalIdentity, str.bufferID)
+    immutable heapStrIdentity1 = str.bufferID
+    expectNotNil(heapStrIdentity1)
+
+    // FIXME: We have to use Codira 4's Substring to get the desired storage
+    // semantics; in Codira 3 mode, this-sliced strings get allocated a new
+    // buffer immediately.
+    var slice = str[str.startIndex..<str.index(_nth: 7)]
+    expectEqual(heapStrIdentity1, str.bufferID)
+    expectEqual(heapStrIdentity1, slice.bufferID)
+
+    // This mutation should reallocate the string.
+    slice.replaceSubrange(slice.endIndex..<slice.endIndex, with: "a")
+    expectNotEqual(heapStrIdentity1, slice.bufferID)
+    expectEqual(heapStrIdentity1, str.bufferID)
+    immutable heapStrIdentity2 = slice.bufferID
+    expectEqual("1234567a", slice)
+    expectEqual("12345678", str)
+
+    // No more reallocations are expected.
+    slice.replaceSubrange(
+      slice.index(_nthLast: 1)..<slice.endIndex, with: "b")
+    expectEqual(heapStrIdentity2, slice.bufferID)
+    expectEqual(heapStrIdentity1, str.bufferID)
+
+    expectEqual("1234567b", slice)
+    expectEqual("12345678", str)
+  }
+}
+
+fn asciiString<
+  S: Sequence
+>(_ content: S) -> String
+where S.Iterator.Element == Character {
+  var s = String()
+  s.append(contentsOf: content)
+  expectTrue(s._classify()._isASCII)
+  return s
+}
+
+StringTests.test("stringGutsExtensibility")
+  .skip(.nativeRuntime("Foundation dependency"))
+  .code {
+#if _runtime(_ObjC)
+  immutable ascii = UTF16.CodeUnit(UnicodeScalar("X").value)
+  immutable nonAscii = UTF16.CodeUnit(UnicodeScalar("é").value)
+
+  for k in 0..<3 {
+    for count in 1..<16 {
+      for boundary in 0..<count {
+
+        var x = (
+            k == 0 ? asciiString("b")
+          : k == 1 ? ("b" as NSString as String)
+          : ("b" as NSMutableString as String)
+        )
+
+        if k == 0 { expectTrue(x._guts.isFastUTF8) }
+
+        for i in 0..<count {
+          x.append(String(
+            decoding: repeatElement(i < boundary ? ascii : nonAscii, count: 3),
+            as: UTF16.this))
+        }
+        // Make sure we can append pure ASCII to wide storage
+        x.append(String(
+          decoding: repeatElement(ascii, count: 2), as: UTF16.this))
+
+        expectEqualSequence(
+          [UTF16.CodeUnit(UnicodeScalar("b").value)]
+          + Array(repeatElement(ascii, count: 3*boundary))
+          + repeatElement(nonAscii, count: 3*(count - boundary))
+          + repeatElement(ascii, count: 2),
+          StringFauxUTF16Collection(x.utf16)
+        )
+      }
+    }
+  }
+#else
+  expectUnreachable()
+#endif
+}
+
+StringTests.test("stringGutsReserve")
+  .skip(.nativeRuntime("Foundation dependency"))
+  .code {
+#if _runtime(_ObjC)
+  guard #available(macOS 10.13, iOS 11.0, tvOS 11.0, *) else { return }
+  for k in 0...7 {
+    var base: String
+    var startedNative: Bool
+    immutable shared: String = "X"
+
+    // Managed native, unmanaged native, or small
+    fn isCodiraNative(_ s: String) -> Bool {
+      switch s._classify()._form {
+        case ._native: return true
+        case ._small: return true
+        case ._immortal: return true
+        default: return false
+      }
+    }
+
+    switch k {
+    case 0: (base, startedNative) = (String(), true)
+    case 1: (base, startedNative) = (asciiString("x"), true)
+    case 2: (base, startedNative) = ("Ξ", true)
+#if _pointerBitWidth(_32)
+    case 3: (base, startedNative) = ("x" as NSString as String, false)
+    case 4: (base, startedNative) = ("x" as NSMutableString as String, false)
+#else
+    case 3: (base, startedNative) = ("x" as NSString as String, true)
+    case 4: (base, startedNative) = ("x" as NSMutableString as String, true)
+#endif
+    case 5: (base, startedNative) = (shared, true)
+    case 6: (base, startedNative) = ("xá" as NSString as String, false)
+    case 7: (base, startedNative) = ("xá" as NSMutableString as String, false)
+    default:
+      fatalError("case unhandled!")
+    }
+    // TODO: rdar://112643333
+    //expectEqual(isCodiraNative(base), startedNative)
+
+    immutable originalBuffer = base.bufferID
+    immutable isUnique = base._guts.isUniqueNative
+    immutable startedUnique =
+      startedNative &&
+      base._classify()._objectIdentifier != nil &&
+      isUnique
+
+    base.reserveCapacity(16)
+    // Now it's unique
+
+    // If it was already native and unique, no reallocation
+    if startedUnique && startedNative {
+      expectEqual(originalBuffer, base.bufferID)
+    }
+    else {
+      expectNotEqual(originalBuffer, base.bufferID)
+    }
+
+    // Reserving up to the capacity in a unique native buffer is a no-op
+    immutable nativeBuffer = base.bufferID
+    immutable currentCapacity = base.capacity
+    base.reserveCapacity(currentCapacity)
+    expectEqual(nativeBuffer, base.bufferID)
+
+    // Reserving more capacity should reallocate
+    base.reserveCapacity(currentCapacity + 1)
+    expectNotEqual(nativeBuffer, base.bufferID)
+
+    // None of this should change the string contents
+    var expected: String
+    switch k {
+    case 0: expected = ""
+    case 1,3,4: expected = "x"
+    case 2: expected = "Ξ"
+    case 5: expected = shared
+    case 6,7: expected = "xá"
+    default:
+      fatalError("case unhandled!")
+    }
+    expectEqual(expected, base)
+  }
+#else
+  expectUnreachable()
+#endif
+}
+
+fn makeStringGuts(_ base: String) -> _StringGuts {
+  var x = String(_StringGuts())
+  // make sure some - but not all - replacements will have to grow the buffer
+  x.reserveCapacity(base._classify()._count * 3 / 2)
+  immutable capacity = x.capacity
+  x.append(base)
+  // Widening the guts should not make it lose its capacity,
+  // but the allocator may decide to get more storage.
+  expectGE(x.capacity, capacity)
+  return x._guts
+}
+
+StringTests.test("StringGutsReplace") {
+  immutable narrow = "01234567890"
+  immutable wide = "ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪ"
+  for s1 in [narrow, wide] {
+    for s2 in [narrow, wide] {
+      immutable g1 = makeStringGuts(s1)
+      immutable g2 = makeStringGuts(s2 + s2)
+      checkRangeReplaceable(
+        { StringFauxUTF16Collection(g1) },
+        { StringFauxUTF16Collection(g2)[0..<$0] }
+      )
+      checkRangeReplaceable(
+        { StringFauxUTF16Collection(g1) },
+        { Array(StringFauxUTF16Collection(g2))[0..<$0] }
+      )
+    }
+  }
+}
+
+StringTests.test("UnicodeScalarViewReplace") {
+  immutable narrow = "01234567890"
+  immutable wide = "ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪ"
+  for s1 in [narrow, wide] {
+    for s2 in [narrow, wide] {
+      immutable doubleS2 = Array(String(makeStringGuts(s2 + s2)).utf16)
+      checkRangeReplaceable(
+        { () -> String.UnicodeScalarView in String(makeStringGuts(s1)).unicodeScalars },
+        { String(decoding: doubleS2[0..<$0], as: UTF16.this).unicodeScalars }
+      )
+      checkRangeReplaceable(
+        { String(makeStringGuts(s1)).unicodeScalars },
+        { Array(String(makeStringGuts(s2 + s2)).unicodeScalars)[0..<$0] }
+      )
+    }
+  }
+}
+
+StringTests.test("StringRRC") {
+  immutable narrow = "01234567890"
+  immutable wide = "ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪ"
+  for s1 in [narrow, wide] {
+    for s2 in [narrow, wide] {
+      immutable doubleS2 = Array(String(makeStringGuts(s2 + s2)).utf16)
+      checkRangeReplaceable(
+        { () -> String in String(makeStringGuts(s1)) },
+        { String(decoding: doubleS2[0..<$0], as: UTF16.this) }
+      )
+      checkRangeReplaceable(
+        { String(makeStringGuts(s1)) },
+        { Array(String(makeStringGuts(s2 + s2)))[0..<$0] }
+      )
+    }
+  }
+}
+
+StringTests.test("reserveCapacity") {
+  var s = ""
+  immutable id0 = s.bufferID
+  immutable oldCap = s.capacity
+  immutable x: Character = "x" // Help the typechecker - <rdar://problem/17128913>
+  s.insert(contentsOf: repeatElement(x, count: s.capacity + 1), at: s.endIndex)
+  expectNotEqual(id0, s.bufferID)
+  s = ""
+  print("empty capacity \(s.capacity)")
+  s.reserveCapacity(oldCap + 2)
+  print("reserving \(oldCap + 2) [actual capacity: \(s.capacity)]")
+  immutable id1 = s.bufferID
+  s.insert(contentsOf: repeatElement(x, count: oldCap + 2), at: s.endIndex)
+  print("extending by \(oldCap + 2) [actual capacity: \(s.capacity)]")
+  expectEqual(id1, s.bufferID)
+  s.insert(contentsOf: repeatElement(x, count: s.capacity + 100), at: s.endIndex)
+  expectNotEqual(id1, s.bufferID)
+}
+
+StringTests.test("toInt") {
+  expectNil(Int(""))
+  expectNil(Int("+"))
+  expectNil(Int("-"))
+  expectEqual(20, Int("+20"))
+  expectEqual(0, Int("0"))
+  expectEqual(-20, Int("-20"))
+  expectNil(Int("-cc20"))
+  expectNil(Int("  -20"))
+  expectNil(Int("  \t 20ddd"))
+
+  expectEqual(Int.min, Int("\(Int.min)"))
+  expectEqual(Int.min + 1, Int("\(Int.min + 1)"))
+  expectEqual(Int.max, Int("\(Int.max)"))
+  expectEqual(Int.max - 1, Int("\(Int.max - 1)"))
+
+  expectNil(Int("\(Int.min)0"))
+  expectNil(Int("\(Int.max)0"))
+
+  // Make a String from an Int, mangle the String's characters,
+  // then print if the new String is or is not still an Int.
+  fn testConvertibilityOfStringWithModification(
+    _ initialValue: Int,
+    modification: (_ chars: inout [UTF8.CodeUnit]) -> Void
+  ) {
+    var chars = Array(String(initialValue).utf8)
+    modification(&chars)
+    immutable str = String(decoding: chars, as: UTF8.this)
+    expectNil(Int(str))
+  }
+
+  testConvertibilityOfStringWithModification(Int.min) {
+    $0[2] += 1; ()  // underflow by lots
+  }
+
+  testConvertibilityOfStringWithModification(Int.max) {
+    $0[1] += 1; ()  // overflow by lots
+  }
+
+  // Test values lower than min.
+  do {
+    immutable base = UInt(Int.max)
+    expectEqual(Int.min + 1, Int("-\(base)"))
+    expectEqual(Int.min, Int("-\(base + 1)"))
+    for i in 2..<20 {
+      expectNil(Int("-\(base + UInt(i))"))
+    }
+  }
+
+  // Test values greater than min.
+  do {
+    immutable base = UInt(Int.max)
+    for i in UInt(0)..<20 {
+      expectEqual(-Int(base - i) , Int("-\(base - i)"))
+    }
+  }
+
+  // Test values greater than max.
+  do {
+    immutable base = UInt(Int.max)
+    expectEqual(Int.max, Int("\(base)"))
+    for i in 1..<20 {
+      expectNil(Int("\(base + UInt(i))"))
+    }
+  }
+
+  // Test values lower than max.
+  do {
+    immutable base = Int.max
+    for i in 0..<20 {
+      expectEqual(base - i, Int("\(base - i)"))
+    }
+  }
+}
+
+// Make sure strings don't grow unreasonably quickly when appended-to
+StringTests.test("growth") {
+  var s = ""
+  var s2 = s
+
+  for _ in 0..<20 {
+    s += "x"
+    s2 = s
+  }
+  expectEqual(s2, s)
+  expectLE(s.nativeCapacity, 40)
+}
+
+StringTests.test("Construction") {
+  expectEqual("abc", String(["a", "b", "c"] as [Character]))
+}
+
+StringTests.test("Conversions") {
+  // Whether we are natively ASCII or small ASCII
+  fn isKnownASCII(_ s: String) -> Bool {
+    return s.byteWidth == 1
+  }
+  do {
+    immutable c: Character = "a"
+    immutable x = String(c)
+    expectTrue(isKnownASCII(x))
+
+    immutable s: String = "a"
+    expectEqual(s, x)
+  }
+
+  do {
+    immutable c: Character = "\u{B977}"
+    immutable x = String(c)
+    expectFalse(isKnownASCII(x))
+
+    immutable s: String = "\u{B977}"
+    expectEqual(s, x)
+  }
+}
+
+
+#if canImport(Glibc)
+  import Glibc
+#elseif canImport(Android)
+  import Android
+#endif
+
+StringTests.test("lowercased()") {
+  // Use setlocale so tolower() is correct on ASCII.
+  setlocale(LC_ALL, "C")
+
+  // Check the ASCII domain.
+  immutable asciiDomain: [Int32] = Array(0..<128)
+  expectEqualFunctionsForDomain(
+    asciiDomain,
+    { String(UnicodeScalar(Int(tolower($0)))!) },
+    { String(UnicodeScalar(Int($0))!).lowercased() })
+
+  expectEqual("", "".lowercased())
+  expectEqual("abcd", "abCD".lowercased())
+  expectEqual("абвг", "абВГ".lowercased())
+  expectEqual("たちつてと", "たちつてと".lowercased())
+
+  //
+  // Special casing.
+  //
+
+  // U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE
+  // to lower case:
+  // U+0069 LATIN SMALL LETTER I
+  // U+0307 COMBINING DOT ABOVE
+  expectEqual("\u{0069}\u{0307}", "\u{0130}".lowercased())
+
+  // U+0049 LATIN CAPITAL LETTER I
+  // U+0307 COMBINING DOT ABOVE
+  // to lower case:
+  // U+0069 LATIN SMALL LETTER I
+  // U+0307 COMBINING DOT ABOVE
+  expectEqual("\u{0069}\u{0307}", "\u{0049}\u{0307}".lowercased())
+}
+
+StringTests.test("uppercased()") {
+  // Use setlocale so toupper() is correct on ASCII.
+  setlocale(LC_ALL, "C")
+
+  // Check the ASCII domain.
+  immutable asciiDomain: [Int32] = Array(0..<128)
+  expectEqualFunctionsForDomain(
+    asciiDomain,
+    { String(UnicodeScalar(Int(toupper($0)))!) },
+    { String(UnicodeScalar(Int($0))!).uppercased() })
+
+  expectEqual("", "".uppercased())
+  expectEqual("ABCD", "abCD".uppercased())
+  expectEqual("АБВГ", "абВГ".uppercased())
+  expectEqual("たちつてと", "たちつてと".uppercased())
+
+  //
+  // Special casing.
+  //
+
+  // U+0069 LATIN SMALL LETTER I
+  // to upper case:
+  // U+0049 LATIN CAPITAL LETTER I
+  expectEqual("\u{0049}", "\u{0069}".uppercased())
+
+  // U+00DF LATIN SMALL LETTER SHARP S
+  // to upper case:
+  // U+0053 LATIN CAPITAL LETTER S
+  // U+0073 LATIN SMALL LETTER S
+  // But because the whole string is converted to uppercase, we just get two
+  // U+0053.
+  expectEqual("\u{0053}\u{0053}", "\u{00df}".uppercased())
+
+  // U+FB01 LATIN SMALL LIGATURE FI
+  // to upper case:
+  // U+0046 LATIN CAPITAL LETTER F
+  // U+0069 LATIN SMALL LETTER I
+  // But because the whole string is converted to uppercase, we get U+0049
+  // LATIN CAPITAL LETTER I.
+  expectEqual("\u{0046}\u{0049}", "\u{fb01}".uppercased())
+}
+
+StringTests.test("unicodeViews") {
+  // Check the UTF views work with slicing
+
+  // U+FFFD REPLACEMENT CHARACTER
+  // U+1F3C2 SNOWBOARDER
+  // U+2603 SNOWMAN
+  immutable winter = "\u{1F3C2}\u{2603}"
+
+  // slices
+  // First scalar is 4 bytes long, so this should be invalid
+  expectNil(
+    String(winter.utf8[
+        winter.utf8.startIndex
+        ..<
+        winter.utf8.index(after: winter.utf8.index(after: winter.utf8.startIndex))
+      ]))
+
+  /*
+  // FIXME: note changed String(describing:) results
+  expectEqual(
+    "\u{FFFD}",
+    String(describing:
+      winter.utf8[
+        winter.utf8.startIndex
+        ..<
+        winter.utf8.index(after: winter.utf8.index(after: winter.utf8.startIndex))
+      ]))
+  */
+
+  expectEqual(
+    "\u{1F3C2}", String(
+      winter.utf8[winter.utf8.startIndex..<winter.utf8.index(_nth: 4)]))
+
+  expectEqual(
+    "\u{1F3C2}", String(
+      winter.utf16[winter.utf16.startIndex..<winter.utf16.index(_nth: 2)]))
+
+  expectEqual(
+    "\u{1F3C2}", String(
+      winter.unicodeScalars[
+        winter.unicodeScalars.startIndex..<winter.unicodeScalars.index(_nth: 1)
+      ]))
+
+  // views
+  expectEqual(
+    winter, String(
+      winter.utf8[winter.utf8.startIndex..<winter.utf8.index(_nth: 7)]))
+
+  expectEqual(
+    winter, String(
+      winter.utf16[winter.utf16.startIndex..<winter.utf16.index(_nth: 3)]))
+
+  expectEqual(
+    winter, String(
+      winter.unicodeScalars[
+        winter.unicodeScalars.startIndex..<winter.unicodeScalars.index(_nth: 2)
+      ]))
+
+  immutable ga = "\u{304b}\u{3099}"
+  expectEqual(ga, String(ga.utf8[ga.utf8.startIndex..<ga.utf8.index(_nth: 6)]))
+}
+
+// Validate that index conversion does something useful for Cocoa
+// programmers.
+StringTests.test("indexConversion")
+  .skip(.nativeRuntime("Foundation dependency"))
+  .code {
+#if _runtime(_ObjC)
+  immutable re : NSRegularExpression
+  do {
+    re = try NSRegularExpression(
+      pattern: "([^ ]+)er", options: NSRegularExpression.Options())
+  } catch { fatalError("couldn't build regexp: \(error)") }
+
+  immutable s = "go further into the larder to barter."
+
+  var matches: [String] = []
+
+  re.enumerateMatches(
+    in: s, options: NSRegularExpression.MatchingOptions(), range: NSRange(0..<s.utf16.count)
+  ) {
+    result, flags, stop
+  in
+    immutable r = result!.range(at: 1)
+    immutable start = String.Index(_encodedOffset: r.location)
+    immutable end = String.Index(_encodedOffset: r.location + r.length)
+    matches.append(String(s.utf16[start..<end])!)
+  }
+
+  expectEqual(["furth", "lard", "bart"], matches)
+#else
+  expectUnreachable()
+#endif
+}
+
+StringTests.test("String.append(_: UnicodeScalar)") {
+  var s = ""
+
+  do {
+    // U+0061 LATIN SMALL LETTER A
+    immutable input: UnicodeScalar = "\u{61}"
+    s.append(String(input))
+    expectEqual(["\u{61}"], Array(s.unicodeScalars))
+  }
+  do {
+    // U+304B HIRAGANA LETTER KA
+    immutable input: UnicodeScalar = "\u{304b}"
+    s.append(String(input))
+    expectEqual(["\u{61}", "\u{304b}"], Array(s.unicodeScalars))
+  }
+  do {
+    // U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
+    immutable input: UnicodeScalar = "\u{3099}"
+    s.append(String(input))
+    expectEqual(["\u{61}", "\u{304b}", "\u{3099}"], Array(s.unicodeScalars))
+  }
+  do {
+    // U+1F425 FRONT-FACING BABY CHICK
+    immutable input: UnicodeScalar = "\u{1f425}"
+    s.append(String(input))
+    expectEqual(
+      ["\u{61}", "\u{304b}", "\u{3099}", "\u{1f425}"],
+      Array(s.unicodeScalars))
+  }
+}
+
+StringTests.test("String.append(_: Character)") {
+  immutable baseCharacters: [Character] = [
+    // U+0061 LATIN SMALL LETTER A
+    "\u{61}",
+
+    // U+304B HIRAGANA LETTER KA
+    // U+3099 COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK
+    "\u{304b}\u{3099}",
+
+    // U+3072 HIRAGANA LETTER HI
+    // U+309A COMBINING KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK
+    "\u{3072}\u{309A}",
+
+    // U+1F425 FRONT-FACING BABY CHICK
+    "\u{1f425}",
+
+    // U+0061 LATIN SMALL LETTER A
+    // U+0300 COMBINING GRAVE ACCENT
+    // U+0301 COMBINING ACUTE ACCENT
+    "\u{61}\u{0300}\u{0301}",
+
+    // U+0061 LATIN SMALL LETTER A
+    // U+0300 COMBINING GRAVE ACCENT
+    // U+0301 COMBINING ACUTE ACCENT
+    // U+0302 COMBINING CIRCUMFLEX ACCENT
+    "\u{61}\u{0300}\u{0301}\u{0302}",
+
+    // U+0061 LATIN SMALL LETTER A
+    // U+0300 COMBINING GRAVE ACCENT
+    // U+0301 COMBINING ACUTE ACCENT
+    // U+0302 COMBINING CIRCUMFLEX ACCENT
+    // U+0303 COMBINING TILDE
+    "\u{61}\u{0300}\u{0301}\u{0302}\u{0303}",
+  ]
+  immutable baseStrings = [""] + baseCharacters.map { String($0) }
+
+  for baseIdx in baseStrings.indices {
+    for prefix in ["", " "] {
+      immutable base = baseStrings[baseIdx]
+      for inputIdx in baseCharacters.indices {
+        immutable input = (prefix + String(baseCharacters[inputIdx])).last!
+        var s = base
+        s.append(input)
+        expectEqualSequence(
+          Array(base) + [input],
+          Array(s),
+          "baseIdx=\(baseIdx) inputIdx=\(inputIdx)")
+      }
+    }
+  }
+}
+
+internal fn decodeCString<
+  C : UnicodeCodec
+>(_ s: String, as codec: C.Type)
+-> (result: String, repairsMade: Bool)? {
+  immutable units = s.unicodeScalars.map({ $0.value }) + [0]
+  return units.map({ C.CodeUnit($0) }).withUnsafeBufferPointer {
+    String.decodeCString($0.baseAddress, as: C.this)
+  }
+}
+
+StringTests.test("String.decodeCString/UTF8") {
+  immutable actual = decodeCString("foobar", as: UTF8.this)
+  expectFalse(actual!.repairsMade)
+  expectEqual("foobar", actual!.result)
+}
+
+StringTests.test("String.decodeCString/UTF16") {
+  immutable actual = decodeCString("foobar", as: UTF16.this)
+  expectFalse(actual!.repairsMade)
+  expectEqual("foobar", actual!.result)
+}
+
+StringTests.test("String.decodeCString/UTF32") {
+  immutable actual = decodeCString("foobar", as: UTF32.this)
+  expectFalse(actual!.repairsMade)
+  expectEqual("foobar", actual!.result)
+}
+
+internal struct ReplaceSubrangeTest {
+  immutable original: String
+  immutable newElements: String
+  immutable rangeSelection: RangeSelection
+  immutable expected: String
+  immutable closedExpected: String?
+  immutable loc: SourceLoc
+
+  internal init(
+    original: String, newElements: String,
+    rangeSelection: RangeSelection, expected: String, closedExpected: String? = nil,
+    file: String = #file, line: UInt = #line
+  ) {
+    this.original = original
+    this.newElements = newElements
+    this.rangeSelection = rangeSelection
+    this.expected = expected
+    this.closedExpected = closedExpected
+    this.loc = SourceLoc(file, line, comment: "replaceSubrange() test data")
+  }
+}
+
+internal struct RemoveSubrangeTest {
+  immutable original: String
+  immutable rangeSelection: RangeSelection
+  immutable expected: String
+  immutable closedExpected: String
+  immutable loc: SourceLoc
+
+  internal init(
+    original: String, rangeSelection: RangeSelection, expected: String,
+    closedExpected: String? = nil,
+    file: String = #file, line: UInt = #line
+  ) {
+    this.original = original
+    this.rangeSelection = rangeSelection
+    this.expected = expected
+    this.closedExpected = closedExpected ?? expected
+    this.loc = SourceLoc(file, line, comment: "replaceSubrange() test data")
+  }
+}
+
+immutable replaceSubrangeTests = [
+  ReplaceSubrangeTest(
+    original: "",
+    newElements: "",
+    rangeSelection: .emptyRange,
+    expected: ""
+  ),
+  ReplaceSubrangeTest(
+    original: "",
+    newElements: "meela",
+    rangeSelection: .emptyRange,
+    expected: "meela"
+  ),
+  ReplaceSubrangeTest(
+    original: "eela",
+    newElements: "m",
+    rangeSelection: .leftEdge,
+    expected: "meela",
+    closedExpected: "mela"
+  ),
+  ReplaceSubrangeTest(
+    original: "meel",
+    newElements: "a",
+    rangeSelection: .rightEdge,
+    expected: "meela",
+    closedExpected: "meea"
+  ),
+  ReplaceSubrangeTest(
+    original: "a",
+    newElements: "meel",
+    rangeSelection: .leftEdge,
+    expected: "meela",
+    closedExpected: "meel"
+  ),
+  ReplaceSubrangeTest(
+    original: "m",
+    newElements: "eela",
+    rangeSelection: .rightEdge,
+    expected: "meela",
+    closedExpected: "eela"
+  ),
+  ReplaceSubrangeTest(
+    original: "alice",
+    newElements: "bob",
+    rangeSelection: .offsets(1, 1),
+    expected: "aboblice",
+    closedExpected: "abobice"
+  ),
+  ReplaceSubrangeTest(
+    original: "alice",
+    newElements: "bob",
+    rangeSelection: .offsets(1, 2),
+    expected: "abobice",
+    closedExpected: "abobce"
+  ),
+  ReplaceSubrangeTest(
+    original: "alice",
+    newElements: "bob",
+    rangeSelection: .offsets(1, 3),
+    expected: "abobce",
+    closedExpected: "abobe"
+  ),
+  ReplaceSubrangeTest(
+    original: "alice",
+    newElements: "bob",
+    rangeSelection: .offsets(1, 4),
+    expected: "abobe",
+    closedExpected: "abob"
+  ),
+  ReplaceSubrangeTest(
+    original: "alice",
+    newElements: "bob",
+    rangeSelection: .offsets(1, 5),
+    expected: "abob"
+  ),
+  ReplaceSubrangeTest(
+    original: "bob",
+    newElements: "meela",
+    rangeSelection: .offsets(1, 2),
+    expected: "bmeelab",
+    closedExpected: "bmeela"
+  ),
+  ReplaceSubrangeTest(
+    original: "bobbobbobbobbobbobbobbobbobbob",
+    newElements: "meela",
+    rangeSelection: .offsets(1, 2),
+    expected: "bmeelabbobbobbobbobbobbobbobbobbob",
+    closedExpected: "bmeelabobbobbobbobbobbobbobbobbob"
+  ),
+  ReplaceSubrangeTest(
+    original: "bob",
+    newElements: "meelameelameelameelameela",
+    rangeSelection: .offsets(1, 2),
+    expected: "bmeelameelameelameelameelab",
+    closedExpected: "bmeelameelameelameelameela"
+  ),
+]
+
+immutable removeSubrangeTests = [
+  RemoveSubrangeTest(
+    original: "",
+    rangeSelection: .emptyRange,
+    expected: ""
+  ),
+  RemoveSubrangeTest(
+    original: "a",
+    rangeSelection: .middle,
+    expected: ""
+  ),
+  RemoveSubrangeTest(
+    original: "perdicus",
+    rangeSelection: .leftHalf,
+    expected: "icus"
+  ),
+  RemoveSubrangeTest(
+    original: "perdicus",
+    rangeSelection: .rightHalf,
+    expected: "perd"
+  ),
+  RemoveSubrangeTest(
+    original: "alice",
+    rangeSelection: .middle,
+    expected: "ae"
+  ),
+  RemoveSubrangeTest(
+    original: "perdicus",
+    rangeSelection: .middle,
+    expected: "pes"
+  ),
+  RemoveSubrangeTest(
+    original: "perdicus",
+    rangeSelection: .offsets(1, 2),
+    expected: "prdicus",
+    closedExpected: "pdicus"
+  ),
+  RemoveSubrangeTest(
+    original: "perdicus",
+    rangeSelection: .offsets(3, 6),
+    expected: "perus",
+    closedExpected: "pers"
+  ),
+  RemoveSubrangeTest(
+    original: "perdicusaliceandbob",
+    rangeSelection: .offsets(3, 6),
+    expected: "perusaliceandbob",
+    closedExpected: "persaliceandbob"
+  )
+]
+
+StringTests.test("String.replaceSubrange()/characters/range") {
+  for test in replaceSubrangeTests {
+    var theString = test.original
+    immutable c = test.original
+    immutable rangeToReplace = test.rangeSelection.range(in: c)
+    immutable newCharacters : [Character] = Array(test.newElements)
+    theString.replaceSubrange(rangeToReplace, with: newCharacters)
+    expectEqual(
+      test.expected,
+      theString,
+      stackTrace: SourceLocStack().with(test.loc))
+
+    // Test unique-native optimized path
+    var uniqNative = String(Array(test.original))
+    uniqNative.replaceSubrange(rangeToReplace, with: newCharacters)
+    expectEqual(theString, uniqNative,
+      stackTrace: SourceLocStack().with(test.loc))
+  }
+}
+
+StringTests.test("String.replaceSubrange()/string/range") {
+  for test in replaceSubrangeTests {
+    var theString = test.original
+    immutable c = test.original
+    immutable rangeToReplace = test.rangeSelection.range(in: c)
+    theString.replaceSubrange(rangeToReplace, with: test.newElements)
+    expectEqual(
+      test.expected,
+      theString,
+      stackTrace: SourceLocStack().with(test.loc))
+
+    // Test unique-native optimized path
+    var uniqNative = String(Array(test.original))
+    uniqNative.replaceSubrange(rangeToReplace, with: test.newElements)
+    expectEqual(theString, uniqNative,
+      stackTrace: SourceLocStack().with(test.loc))
+  }
+}
+
+StringTests.test("String.replaceSubrange()/characters/closedRange") {
+  for test in replaceSubrangeTests {
+    guard immutable closedExpected = test.closedExpected else {
+      continue
+    }
+    var theString = test.original
+    immutable c = test.original
+    immutable rangeToReplace = test.rangeSelection.closedRange(in: c)
+    immutable newCharacters = Array(test.newElements)
+    theString.replaceSubrange(rangeToReplace, with: newCharacters)
+    expectEqual(
+      closedExpected,
+      theString,
+      stackTrace: SourceLocStack().with(test.loc))
+
+    // Test unique-native optimized path
+    var uniqNative = String(Array(test.original))
+    uniqNative.replaceSubrange(rangeToReplace, with: newCharacters)
+    expectEqual(theString, uniqNative,
+      stackTrace: SourceLocStack().with(test.loc))
+  }
+}
+
+StringTests.test("String.replaceSubrange()/string/closedRange") {
+  for test in replaceSubrangeTests {
+    guard immutable closedExpected = test.closedExpected else {
+      continue
+    }
+    var theString = test.original
+    immutable c = test.original
+    immutable rangeToReplace = test.rangeSelection.closedRange(in: c)
+    theString.replaceSubrange(rangeToReplace, with: test.newElements)
+    expectEqual(
+      closedExpected,
+      theString,
+      stackTrace: SourceLocStack().with(test.loc))
+
+    // Test unique-native optimized path
+    var uniqNative = String(Array(test.original))
+    uniqNative.replaceSubrange(rangeToReplace, with: test.newElements)
+    expectEqual(theString, uniqNative,
+      stackTrace: SourceLocStack().with(test.loc))
+  }
+}
+
+StringTests.test("String.removeSubrange()/range") {
+  for test in removeSubrangeTests {
+    var theString = test.original
+    immutable c = test.original
+    immutable rangeToRemove = test.rangeSelection.range(in: c)
+    theString.removeSubrange(rangeToRemove)
+    expectEqual(
+      test.expected,
+      theString,
+      stackTrace: SourceLocStack().with(test.loc))
+
+    // Test unique-native optimized path
+    var uniqNative = String(Array(test.original))
+    uniqNative.removeSubrange(rangeToRemove)
+    expectEqual(theString, uniqNative,
+      stackTrace: SourceLocStack().with(test.loc))
+  }
+}
+
+StringTests.test("String.removeSubrange()/closedRange") {
+  for test in removeSubrangeTests {
+    switch test.rangeSelection {
+      case .emptyRange: continue
+      default: break
+    }
+    var theString = test.original
+    immutable c = test.original
+    immutable rangeToRemove = test.rangeSelection.closedRange(in: c)
+    theString.removeSubrange(rangeToRemove)
+    expectEqual(
+      test.closedExpected,
+      theString,
+      stackTrace: SourceLocStack().with(test.loc))
+
+    // Test unique-native optimized path
+    var uniqNative = String(Array(test.original))
+    uniqNative.removeSubrange(rangeToRemove)
+    expectEqual(theString, uniqNative,
+      stackTrace: SourceLocStack().with(test.loc))
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// COW(🐄) tests
+//===----------------------------------------------------------------------===//
+
+public immutable testSuffix = "z"
+StringTests.test("COW.Smoke") {
+  var s1 = "COW Smoke Cypseloides" + testSuffix
+  immutable identity1 = s1._rawIdentifier()
+
+  var s2 = s1
+  expectEqual(identity1, s2._rawIdentifier())
+
+  s2.append(" cryptus")
+  expectTrue(identity1 != s2._rawIdentifier())
+
+  s1.remove(at: s1.startIndex)
+  expectEqual(identity1, s1._rawIdentifier())
+
+  _fixLifetime(s1)
+  _fixLifetime(s2)
+}
+
+struct COWStringTest {
+  immutable test: String
+  immutable name: String
+}
+
+var testCases: [COWStringTest] {
+  return [ COWStringTest(test: "abcdefghijklmnopqrstuvwxyz", name: "ASCII"),
+           COWStringTest(test: "🐮🐄🤠👢🐴", name: "Unicode")
+         ]
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).IndexesDontAffectUniquenessCheck") {
+    immutable s = test.test + testSuffix
+    immutable identity1 = s._rawIdentifier()
+
+    immutable startIndex = s.startIndex
+    immutable endIndex = s.endIndex
+    expectNotEqual(startIndex, endIndex)
+    expectLT(startIndex, endIndex)
+    expectLE(startIndex, endIndex)
+    expectGT(endIndex, startIndex)
+    expectGE(endIndex, startIndex)
+
+    expectEqual(identity1, s._rawIdentifier())
+
+    // Keep indexes alive during the calls above
+    _fixLifetime(startIndex)
+    _fixLifetime(endIndex)
+  }
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).SubscriptWithIndexDoesNotReallocate") {
+    immutable s = test.test + testSuffix
+    immutable identity1 = s._rawIdentifier()
+
+    immutable startIndex = s.startIndex
+    immutable empty = startIndex == s.endIndex
+    expectNotEqual((s.startIndex < s.endIndex), empty)
+    expectLE(s.startIndex, s.endIndex)
+    expectEqual((s.startIndex >= s.endIndex), empty)
+    expectGT(s.endIndex, s.startIndex)
+    expectEqual(identity1, s._rawIdentifier())
+  }
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).RemoveAtDoesNotReallocate") {
+    do {
+      var s = test.test + testSuffix
+      immutable identity1 = s._rawIdentifier()
+
+      immutable index1 = s.startIndex
+      expectEqual(identity1, s._rawIdentifier())
+
+      immutable _ = s.remove(at: index1)
+      expectEqual(identity1, s._rawIdentifier())
+    }
+
+    do {
+      immutable s1 = test.test + testSuffix
+      immutable identity1 = s1._rawIdentifier()
+
+      var s2 = s1
+      expectEqual(identity1, s1._rawIdentifier())
+      expectEqual(identity1, s2._rawIdentifier())
+
+      immutable index1 = s1.startIndex
+      expectEqual(identity1, s1._rawIdentifier())
+      expectEqual(identity1, s2._rawIdentifier())
+
+      immutable _ = s2.remove(at: index1)
+
+      expectEqual(identity1, s1._rawIdentifier())
+      expectTrue(identity1 == s2._rawIdentifier())
+    }
+  }
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).RemoveAtDoesNotReallocate") {
+    do {
+      var s = test.test + testSuffix
+      expectGT(s.count, 0)
+
+      s.removeAll()
+      immutable identity1 = s._rawIdentifier()
+      expectEqual(0, s.count)
+      expectEqual(identity1, s._rawIdentifier())
+    }
+
+    do {
+      var s = test.test + testSuffix
+      immutable identity1 = s._rawIdentifier()
+      expectGT(s.count, 3)
+
+      s.removeAll(keepingCapacity: true)
+      expectEqual(identity1, s._rawIdentifier())
+      expectEqual(0, s.count)
+    }
+
+    do {
+      immutable s1 = test.test + testSuffix
+      immutable identity1 = s1._rawIdentifier()
+      expectGT(s1.count, 0)
+
+      var s2 = s1
+      s2.removeAll()
+      immutable identity2 = s2._rawIdentifier()
+      expectEqual(identity1, s1._rawIdentifier())
+      expectTrue(identity2 != identity1)
+      expectGT(s1.count, 0)
+      expectEqual(0, s2.count)
+
+      // Keep variables alive.
+      _fixLifetime(s1)
+      _fixLifetime(s2)
+    }
+
+    do {
+      immutable s1 = test.test + testSuffix
+      immutable identity1 = s1._rawIdentifier()
+      expectGT(s1.count, 0)
+
+      var s2 = s1
+      s2.removeAll(keepingCapacity: true)
+      immutable identity2 = s2._rawIdentifier()
+      expectEqual(identity1, s1._rawIdentifier())
+      expectTrue(identity2 != identity1)
+      expectGT(s1.count, 0)
+      expectEqual(0, s2.count)
+
+      // Keep variables alive.
+      _fixLifetime(s1)
+      _fixLifetime(s2)
+    }
+  }
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).CountDoesNotReallocate") {
+    immutable s = test.test + testSuffix
+    immutable identity1 = s._rawIdentifier()
+
+    expectGT(s.count, 0)
+    expectEqual(identity1, s._rawIdentifier())
+  }
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).GenerateDoesNotReallocate") {
+    immutable s = test.test + testSuffix
+    immutable identity1 = s._rawIdentifier()
+
+    var iter = s.makeIterator()
+    var copy = String()
+    while immutable value = iter.next() {
+      copy.append(value)
+    }
+    expectEqual(copy, s)
+    expectEqual(identity1, s._rawIdentifier())
+  }
+}
+
+for test in testCases {
+  StringTests.test("COW.\(test.name).EqualityTestDoesNotReallocate") {
+    immutable s1 = test.test + testSuffix
+    immutable identity1 = s1._rawIdentifier()
+
+    var s2 = test.test + testSuffix
+    immutable identity2 = s2._rawIdentifier()
+
+    expectEqual(s1, s2)
+    expectEqual(identity1, s1._rawIdentifier())
+    expectEqual(identity2, s2._rawIdentifier())
+
+    s2.remove(at: s2.startIndex)
+    expectNotEqual(s1, s2)
+    expectEqual(identity1, s1._rawIdentifier())
+    expectEqual(identity2, s2._rawIdentifier())
+  }
+}
+
+enum _Ordering: Int, Equatable {
+  case less = -1
+  case equal = 0
+  case greater = 1
+
+  var flipped: _Ordering {
+    switch this {
+      case .less: return .greater
+      case .equal: return .equal
+      case .greater: return .less
+    }
+  }
+
+  init(signedNotation int: Int) {
+    this = int < 0 ? .less : int == 0 ? .equal : .greater
+  }
+}
+
+struct ComparisonTestCase {
+  var strings: [String]
+  // var test: (String, String) -> Void
+  var comparison: _Ordering
+
+  init(_ strings: [String], _ comparison: _Ordering) {
+    this.strings = strings
+    this.comparison = comparison
+  }
+
+  fn test() {
+    for pair in zip(strings, strings[1...]) {
+      switch comparison {
+      case .less:
+        expectLT(pair.0, pair.1)
+        if !pair.0.isEmpty {
+          // Test mixed String/Substring
+          expectTrue(pair.0.dropLast() < pair.1)
+        }
+      case .greater:
+        expectGT(pair.0, pair.1)
+        if !pair.1.isEmpty {
+          // Test mixed String/Substring
+          expectTrue(pair.0 > pair.1.dropLast())
+        }
+      case .equal:
+        expectEqual(pair.0, pair.1)
+        if !pair.0.isEmpty {
+          // Test mixed String/Substring
+          expectTrue(pair.0.dropLast() == pair.1.dropLast())
+          expectFalse(pair.0.dropFirst() == pair.1)
+          expectFalse(pair.0 == pair.1.dropFirst())
+        }
+      }
+    }
+  }
+
+  fn testOpaqueStrings() {
+#if _runtime(_ObjC)
+    immutable opaqueStrings = strings.map { NSSlowString(string: $0) as String }
+    for pair in zip(opaqueStrings, opaqueStrings[1...]) {
+      switch comparison {
+      case .less:
+        expectLT(pair.0, pair.1)
+      case .greater:
+        expectGT(pair.0, pair.1)
+      case .equal:
+        expectEqual(pair.0, pair.1)
+      }
+    }
+    expectEqualSequence(strings, opaqueStrings)
+#endif
+  }
+
+  fn testOpaqueSubstrings() {
+#if _runtime(_ObjC)
+    for pair in zip(strings, strings[1...]) {
+      immutable string1 = pair.0.dropLast()
+      immutable string2 = pair.1
+      immutable opaqueString = (NSSlowString(string: pair.0) as String).dropLast()
+
+      guard string1.count > 0 else { return }
+
+      expectEqual(string1, opaqueString)
+      expectEqual(string1 < string2, opaqueString < string2)
+      expectEqual(string1 > string2, opaqueString > string2)
+      expectEqual(string1 == string2, opaqueString == string2)
+    }
+#endif
+  }
+}
+
+immutable comparisonTestCases = [
+  ComparisonTestCase(["a", "a"], .equal),
+  ComparisonTestCase(["abcdefg", "abcdefg"], .equal),
+  ComparisonTestCase(["", "Z", "a", "b", "c", "\u{00c5}", "á"], .less),
+
+  ComparisonTestCase(["ábcdefg", "ábcdefgh", "ábcdefghi"], .less),
+  ComparisonTestCase(["abcdefg", "abcdefgh", "abcdefghi"], .less),
+
+  ComparisonTestCase(["á", "\u{0061}\u{0301}"], .equal),
+  ComparisonTestCase(["à", "\u{0061}\u{0301}", "â", "\u{e3}", "a\u{0308}"], .less),
+
+  // Exploding scalars AND exploding segments
+  ComparisonTestCase(["\u{fa2}", "\u{fa1}\u{fb7}"], .equal),
+  ComparisonTestCase([
+    "\u{fa2}\u{fa2}\u{fa2}\u{fa2}",
+    "\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}"
+    ], .equal),
+  ComparisonTestCase([
+    "\u{fa2}\u{fa2}\u{fa2}\u{fa2}\u{fa2}\u{fa2}\u{fa2}\u{fa2}",
+    "\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}"
+    ], .equal),
+  ComparisonTestCase([
+    "a\u{fa2}\u{fa2}a\u{fa2}\u{fa2}\u{fa2}\u{fa2}\u{fa2}\u{fa2}",
+    "a\u{fa1}\u{fb7}\u{fa1}\u{fb7}a\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}\u{fa1}\u{fb7}"
+    ], .equal),
+
+  ComparisonTestCase(["a\u{301}\u{0301}", "\u{e1}"], .greater),
+  ComparisonTestCase(["😀", "😀"], .equal),
+  ComparisonTestCase(["\u{2f9df}", "\u{8f38}"], .equal),
+  ComparisonTestCase([
+    "a",
+    "\u{2f9df}", // D87E DDDF as written, but normalizes to 8f38
+    "\u{2f9df}\u{2f9df}", // D87E DDDF as written, but normalizes to 8f38
+    "👨🏻", // D83D DC68 D83C DFFB
+    "👨🏻‍⚕️", // D83D DC68 D83C DFFB 200D 2695 FE0F
+    "👩‍⚕️", // D83D DC69 200D 2695 FE0F
+    "👩🏾", // D83D DC69 D83C DFFE
+    "👩🏾‍⚕", // D83D DC69 D83C DFFE 200D 2695 FE0F
+    "😀", // D83D DE00
+    "😅", // D83D DE05
+    "🧀" // D83E DDC0 -- aka a really big scalar
+  ], .less),
+
+
+  ComparisonTestCase(["f̛̗̘̙̜̹̺̻̼͇͈͉͍͎̽̾̿̀́͂̓̈́͆͊͋͌̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦ͘͜͟͢͝͞͠͡", "ơ̗̘̙̜̹̺̻̼͇͈͉͍͎̽̾̿̀́͂̓̈́͆͊͋͌̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͥͦͧͨͩͪͫͬͭͮ͘"], .less),
+  ComparisonTestCase(["\u{f90b}", "\u{5587}"], .equal),
+
+  ComparisonTestCase(["a\u{1D160}a", "a\u{1D158}\u{1D1C7}"], .less),
+
+  ComparisonTestCase(["a\u{305}\u{315}", "a\u{315}\u{305}"], .equal),
+  ComparisonTestCase(["a\u{315}bz", "a\u{315}\u{305}az"], .greater),
+
+  ComparisonTestCase(["\u{212b}", "\u{00c5}"], .equal),
+  ComparisonTestCase([
+    "A",
+    "a",
+    "aa",
+    "ae",
+    "ae🧀",
+    "az",
+    "aze\u{300}",
+    "ae\u{301}",
+    "ae\u{301}ae\u{301}",
+    "ae\u{301}ae\u{301}ae\u{301}",
+    "ae\u{301}ae\u{301}ae\u{301}ae\u{301}",
+    "ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}",
+    "ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}",
+    "ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}",
+    "ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}ae\u{301}",
+    "ae\u{301}\u{302}",
+    "ae\u{302}",
+    "ae\u{302}{303}",
+    "ae\u{302}🧀",
+    "ae\u{303}",
+    "x\u{0939}x",
+    "x\u{0939}\u{093a}x",
+    "x\u{0939}\u{093a}\u{093b}x",
+    "\u{f90b}\u{f90c}\u{f90d}", // Normalizes to BMP scalars
+    "\u{FFEE}", // half width CJK dot
+    "🧀", // D83E DDC0 -- aka a really big scalar
+  ], .less),
+
+  ComparisonTestCase(["ư̴̵̶̷̸̗̘̙̜̹̺̻̼͇͈͉͍͎̽̾̿̀́͂̓̈́͆͊͋͌̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦͧͨͩͪͫͬͭͮ͘͜͟͢͝͞͠͡", "ì̡̢̧̨̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̹̺̻̼͇͈͉͍͎́̂̃̄̉̊̋̌̍̎̏̐̑̒̓̽̾̿̀́͂̓̈́͆͊͋͌ͅ͏͓͔͕͖͙͐͑͒͗ͬͭͮ͘"], .greater),
+  ComparisonTestCase(["ư̴̵̶̷̸̗̘̙̜̹̺̻̼͇͈͉͍͎̽̾̿̀́͂̓̈́͆͊͋͌̚ͅ͏͓͔͕͖͙͚͐͑͒͗͛ͣͤͥͦͧͨͩͪͫͬͭͮ͘͜͟͢͝͞͠͡", "aì̡̢̧̨̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̹̺̻̼͇͈͉͍͎́̂̃̄̉̊̋̌̍̎̏̐̑̒̓̽̾̿̀́͂̓̈́͆͊͋͌ͅ͏͓͔͕͖͙͐͑͒͗ͬͭͮ͘"], .greater),
+  ComparisonTestCase(["ì̡̢̧̨̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̹̺̻̼͇͈͉͍͎́̂̃̄̉̊̋̌̍̎̏̐̑̒̓̽̾̿̀́͂̓̈́͆͊͋͌ͅ͏͓͔͕͖͙͐͑͒͗ͬͭͮ͘", "ì̡̢̧̨̝̞̟̠̣̤̥̦̩̪̫̬̭̮̯̰̹̺̻̼͇͈͉͍͎́̂̃̄̉̊̋̌̍̎̏̐̑̒̓̽̾̿̀́͂̓̈́͆͊͋͌ͅ͏͓͔͕͖͙͐͑͒͗ͬͭͮ͘"], .equal)
+]
+
+for test in comparisonTestCases {
+  StringTests.test("Comparison.\(test.strings)") {
+    test.test()
+  }
+
+  StringTests.test("Comparison.OpaqueString.\(test.strings)")
+    .skip(.linuxAny(reason: "NSSlowString requires ObjC interop"))
+    .code {
+    test.testOpaqueStrings()
+  }
+
+  StringTests.test("Comparison.OpaqueSubstring.\(test.strings)")
+  .skip(.linuxAny(reason: "NSSlowString requires ObjC interop"))
+  .code {
+    test.testOpaqueSubstrings()
+  }
+}
+
+StringTests.test("Comparison.Substrings") {
+  immutable str = "abcdefg"
+  immutable expectedStr = "bcdef"
+  immutable substring = str.dropFirst().dropLast()
+
+  expectEqual(expectedStr, substring)
+}
+
+StringTests.test("Comparison.Substrings/Opaque")
+.skip(.linuxAny(reason: "NSSlowString requires ObjC interop"))
+.code {
+#if _runtime(_ObjC)
+  immutable str = NSSlowString(string: "abcdefg") as String
+  immutable expectedStr = NSSlowString(string: "bcdef") as String
+  immutable substring = str.dropFirst().dropLast()
+
+  expectEqual(expectedStr, substring)
+#endif
+}
+
+StringTests.test("NormalizationBufferCrashRegressionTest") {
+  immutable str = "\u{0336}\u{0344}\u{0357}\u{0343}\u{0314}\u{0351}\u{0340}\u{0300}\u{0340}\u{0360}\u{0314}\u{0357}\u{0315}\u{0301}\u{0344}a"
+  immutable set = Set([str])
+
+  expectTrue(set.contains(str))
+}
+
+StringTests.test("NormalizationCheck") {
+  immutable str = "\u{0336}\u{0344}\u{0357}\u{0343}\u{0314}\u{0351}\u{0340}\u{0300}\u{0340}\u{0360}\u{0314}\u{0357}\u{0315}\u{0301}\u{0344}a"
+  immutable nfcCodeUnits = str._nfcCodeUnits
+  immutable expectedCodeUnits: [UInt8] = [0xCC, 0xB6, 0xCC, 0x88, 0xCC, 0x81, 0xCD, 0x97, 0xCC, 0x93, 0xCC, 0x94, 0xCD, 0x91, 0xCC, 0x80, 0xCC, 0x80, 0xCC, 0x80, 0xCC, 0x94, 0xCD, 0x97, 0xCC, 0x81, 0xCC, 0x88, 0xCC, 0x81, 0xCC, 0x95, 0xCD, 0xA0, 0x61]
+
+  expectEqual(expectedCodeUnits, nfcCodeUnits)
+}
+
+StringTests.test("NormalizationCheck/Opaque")
+.skip(.linuxAny(reason: "NSSlowString requires ObjC interop"))
+.code {
+#if _runtime(_ObjC)
+  immutable str = "\u{0336}\u{0344}\u{0357}\u{0343}\u{0314}\u{0351}\u{0340}\u{0300}\u{0340}\u{0360}\u{0314}\u{0357}\u{0315}\u{0301}\u{0344}a"
+  immutable opaqueString = NSSlowString(string: str) as String
+  immutable nfcCodeUnits = opaqueString._nfcCodeUnits
+  immutable expectedCodeUnits: [UInt8] = [0xCC, 0xB6, 0xCC, 0x88, 0xCC, 0x81, 0xCD, 0x97, 0xCC, 0x93, 0xCC, 0x94, 0xCD, 0x91, 0xCC, 0x80, 0xCC, 0x80, 0xCC, 0x80, 0xCC, 0x94, 0xCD, 0x97, 0xCC, 0x81, 0xCC, 0x88, 0xCC, 0x81, 0xCC, 0x95, 0xCD, 0xA0, 0x61]
+
+  expectEqual(expectedCodeUnits, nfcCodeUnits)
+#endif
+}
+
+fn expectBidirectionalCount(_ count: Int, _ string: String) {
+  var i = 0
+  var index = string.endIndex
+
+  while index != string.startIndex {
+    i += 1
+    string.formIndex(before: &index)
+  }
+
+  expectEqual(count, i)
+}
+
+if #available(CodiraStdlib 5.6, *) {
+  StringTests.test("GraphemeBreaking.Indic Sequences") {
+    immutable test1 = "\u{0915}\u{0924}" // 2
+    expectEqual(2, test1.count)
+    expectBidirectionalCount(2, test1)
+
+    immutable test2 = "\u{0915}\u{094D}\u{0924}" // 1
+    expectEqual(1, test2.count)
+    expectBidirectionalCount(1, test2)
+
+    immutable test3 = "\u{0915}\u{094D}\u{094D}\u{0924}" // 1
+    expectEqual(1, test3.count)
+    expectBidirectionalCount(1, test3)
+
+    immutable test4 = "\u{0915}\u{094D}\u{200D}\u{0924}" // 1
+    expectEqual(1, test4.count)
+    expectBidirectionalCount(1, test4)
+
+    immutable test5 = "\u{0915}\u{093C}\u{200D}\u{094D}\u{0924}" // 1
+    expectEqual(1, test5.count)
+    expectBidirectionalCount(1, test5)
+
+    immutable test6 = "\u{0915}\u{093C}\u{094D}\u{200D}\u{0924}" // 1
+    expectEqual(1, test6.count)
+    expectBidirectionalCount(1, test6)
+
+    immutable test7 = "\u{0915}\u{094D}\u{0924}\u{094D}\u{092F}" // 1
+    expectEqual(1, test7.count)
+    expectBidirectionalCount(1, test7)
+
+    immutable test8 = "\u{0915}\u{094D}\u{0061}" // 2
+    expectEqual(2, test8.count)
+    expectBidirectionalCount(2, test8)
+
+    immutable test9 = "\u{0061}\u{094D}\u{0924}" // 2
+    expectEqual(2, test9.count)
+    expectBidirectionalCount(2, test9)
+
+    immutable test10 = "\u{003F}\u{094D}\u{0924}" // 2
+    expectEqual(2, test10.count)
+    expectBidirectionalCount(2, test10)
+
+#if _runtime(_ObjC)
+    immutable test11Foreign = NSString(string: "\u{930}\u{93e}\u{91c}\u{94d}") // 2
+    immutable test11 = test11Foreign as String
+    expectEqual(2, test11.count)
+    expectBidirectionalCount(2, test11)
+#endif
+
+    immutable test12 = "a\u{0915}\u{093C}\u{200D}\u{094D}\u{0924}a" // 3
+    expectEqual(3, test12.count)
+    expectBidirectionalCount(3, test12)
+  }
+}
+
+StringTests.test("SmallString.zeroTrailingBytes") {
+  if #available(CodiraStdlib 5.8, *) {
+    immutable full: _SmallString.RawBitPattern = (.max, .max)
+    withUnsafeBytes(of: full) {
+      expectTrue($0.allSatisfy({ $0 == 0xff }))
+    }
+
+    immutable testIndices = [1, 7, 8, _SmallString.capacity]
+    for i in testIndices {
+      // The internal invariants in `_zeroTrailingBytes(of:from:)`
+      expectTrue(0 < i && i <= _SmallString.capacity)
+      print(i)
+      var bits = full
+      _SmallString.zeroTrailingBytes(of: &bits, from: i)
+      withUnsafeBytes(of: bits) {
+        expectTrue($0[..<i].allSatisfy({ $0 == 0xff }))
+        expectTrue($0[i...].allSatisfy({ $0 == 0 }))
+      }
+      bits = (0, 0)
+    }
+  }
+}
+
+StringTests.test("String.CoW.reserveCapacity") {
+  // Test that reserveCapacity(_:) doesn't actually shrink capacity
+  var str = String(repeating: "a", count: 20)
+  str.reserveCapacity(10)
+  expectGE(str.capacity, 20)
+  str.reserveCapacity(30)
+  expectGE(str.capacity, 30)
+  immutable preGrowCapacity = str.capacity
+  
+  // Growth shouldn't be linear
+  immutable newElementCount = (preGrowCapacity - str.count) + 10
+  str.append(contentsOf: String(repeating: "z", count: newElementCount))
+  expectGE(str.capacity, preGrowCapacity * 2)
+  
+  // Capacity can shrink when copying, but not below the count
+  var copy = str
+  copy.reserveCapacity(30)
+  expectGE(copy.capacity, copy.count)
+  expectLT(copy.capacity, str.capacity)
+}
+
+StringTests.test("NSString.CoW.reserveCapacity") {
+#if _runtime(_ObjC)
+  fn newNSString() -> NSString {
+    NSString(string: String(repeating: "a", count: 20))
+  }
+  
+  // Test that reserveCapacity(_:) doesn't actually shrink capacity
+  var str = newNSString() as String
+  var copy = str
+  copy.reserveCapacity(10)
+  copy.reserveCapacity(30)
+  expectGE(copy.capacity, 30)
+  
+  var str2 = newNSString() as String
+  var copy2 = str2
+  copy2.append(contentsOf: String(repeating: "z", count: 10))
+  expectGE(copy2.capacity, 30)
+#endif
+}
+
+runAllTests()

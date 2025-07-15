@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines the visitor that finds all symbols in a swift AST.
+//  This file defines the visitor that finds all symbols in a language AST.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_TBDGEN_TBDGENVISITOR_H
-#define SWIFT_TBDGEN_TBDGENVISITOR_H
+#ifndef LANGUAGE_TBDGEN_TBDGENVISITOR_H
+#define LANGUAGE_TBDGEN_TBDGENVISITOR_H
 
 #include "language/AST/ASTMangler.h"
 #include "language/AST/FileUnit.h"
 #include "language/AST/Module.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/IRGen/IRSymbolVisitor.h"
 #include "language/IRGen/Linking.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/TextAPI/InterfaceFile.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/TextAPI/InterfaceFile.h"
 
 using namespace language::irgen;
-using StringSet = llvm::StringSet<>;
+using StringSet = toolchain::StringSet<>;
 
-namespace llvm {
+namespace toolchain {
 class DataLayout;
 }
 
@@ -64,9 +65,9 @@ class APIRecorder {
 public:
   virtual ~APIRecorder() {}
 
-  virtual void addSymbol(StringRef name, llvm::MachO::EncodeKind kind,
+  virtual void addSymbol(StringRef name, toolchain::MachO::EncodeKind kind,
                          SymbolSource source, Decl *decl,
-                         llvm::MachO::SymbolFlags flags) {}
+                         toolchain::MachO::SymbolFlags flags) {}
   virtual void addObjCInterface(const ClassDecl *decl) {}
   virtual void addObjCCategory(const ExtensionDecl *decl) {}
   virtual void addObjCMethod(const GenericContext *ctx, SILDeclRef method) {}
@@ -75,37 +76,37 @@ public:
 class SimpleAPIRecorder final : public APIRecorder {
 public:
   using SymbolCallbackFn =
-      llvm::function_ref<void(StringRef, llvm::MachO::EncodeKind, SymbolSource,
-                              Decl *, llvm::MachO::SymbolFlags)>;
+      toolchain::function_ref<void(StringRef, toolchain::MachO::EncodeKind, SymbolSource,
+                              Decl *, toolchain::MachO::SymbolFlags)>;
 
-  SimpleAPIRecorder(SymbolCallbackFn func) : func(func) {}
+  SimpleAPIRecorder(SymbolCallbackFn fn) : fn(fn) {}
 
-  void addSymbol(StringRef symbol, llvm::MachO::EncodeKind kind,
+  void addSymbol(StringRef symbol, toolchain::MachO::EncodeKind kind,
                  SymbolSource source, Decl *decl,
-                 llvm::MachO::SymbolFlags flags) override {
-    func(symbol, kind, source, decl, flags);
+                 toolchain::MachO::SymbolFlags flags) override {
+    fn(symbol, kind, source, decl, flags);
   }
 
 private:
-  SymbolCallbackFn func;
+  SymbolCallbackFn fn;
 };
 
 class TBDGenVisitor : public IRSymbolVisitor {
 #ifndef NDEBUG
   /// Tracks the symbols emitted to ensure we don't emit any duplicates.
-  llvm::StringSet<> DuplicateSymbolChecker;
+  toolchain::StringSet<> DuplicateSymbolChecker;
 #endif
 
-  std::optional<llvm::DataLayout> DataLayout = std::nullopt;
+  std::optional<toolchain::DataLayout> DataLayout = std::nullopt;
   const StringRef DataLayoutDescription;
 
   UniversalLinkageInfo UniversalLinkInfo;
-  ModuleDecl *SwiftModule;
+  ModuleDecl *CodiraModule;
   const TBDGenOptions &Opts;
   APIRecorder &recorder;
 
-  using EncodeKind = llvm::MachO::EncodeKind;
-  using SymbolFlags = llvm::MachO::SymbolFlags;
+  using EncodeKind = toolchain::MachO::EncodeKind;
+  using SymbolFlags = toolchain::MachO::SymbolFlags;
 
   std::vector<Decl*> DeclStack;
   std::unique_ptr<std::map<std::string, InstallNameStore>>
@@ -122,13 +123,13 @@ class TBDGenVisitor : public IRSymbolVisitor {
   bool addClassMetadata(ClassDecl *CD);
 
 public:
-  TBDGenVisitor(const llvm::Triple &target, const StringRef dataLayoutString,
-                ModuleDecl *swiftModule, const TBDGenOptions &opts,
+  TBDGenVisitor(const toolchain::Triple &target, const StringRef dataLayoutString,
+                ModuleDecl *languageModule, const TBDGenOptions &opts,
                 APIRecorder &recorder)
       : DataLayoutDescription(dataLayoutString),
         UniversalLinkInfo(target, opts.HasMultipleIGMs, /*forcePublic*/ false,
                           /*static=*/false, /*mergeableSymbols*/false),
-        SwiftModule(swiftModule), Opts(opts), recorder(recorder),
+        CodiraModule(languageModule), Opts(opts), recorder(recorder),
         previousInstallNameMap(parsePreviousModuleInstallNameMap()) {}
 
   /// Create a new visitor using the target and layout information from a

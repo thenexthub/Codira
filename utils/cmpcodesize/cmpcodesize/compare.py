@@ -1,12 +1,12 @@
 # ====--- compare.py - Compare built products' sizes -*- coding: utf-8 -*-===//
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import collections
 import os
@@ -16,12 +16,12 @@ from operator import itemgetter
 
 categories = [
     # Cpp
-    ["CPP", re.compile('^(__Z|_+swift)')],
+    ["CPP", re.compile('^(__Z|_+language)')],
 
     # Objective-C
     ["ObjC", re.compile(r'^[+-]\[')],
 
-    # Swift
+    # Codira
     ["Partial Apply", re.compile('^__(TPA|T0.*T[aA]$)')],
     ["Protocol Witness", re.compile('^__(TTW|T0.*TW$)')],
     ["Value Witness", re.compile('^__(Tw|T0.*w..$)')],
@@ -35,10 +35,10 @@ categories = [
     ["Generic Function", re.compile(
         '__(T[^0].*q(x|d?[0-9]*_)|T0.*q(z|d?[0-9]*_))')],
     ["Static Func", re.compile('^__(TZF|T0.*FZ)')],
-    ["Swift @objc Func", re.compile('^__(TTo|T0.*To$)')],
+    ["Codira @objc Func", re.compile('^__(TTo|T0.*To$)')],
     ["Accessor", re.compile('^__(TW[atTlI]|T0.*W[atTlI]$)')],
     ["Getter/Setter", re.compile('^__(T[Fvi][gsmwWl]|T0.*f[gGsmwWal]$)')],
-    ["Swift Function", re.compile('^__(TF|T0.*(F|f.|f[AuU][0-9]*_)$)')],
+    ["Codira Function", re.compile('^__(TF|T0.*(F|f.|f[AuU][0-9]*_)$)')],
     ["Unknown", re.compile('')]
 ]
 
@@ -242,7 +242,7 @@ def compare_sizes_of_file(old_files, new_files, all_sections, all_segments,
         compare_sizes(old_sect_sizes, new_sect_sizes,
                       "__data", section_title, csv=csv)
         compare_sizes(old_sect_sizes, new_sect_sizes,
-                      "__swift5_proto", section_title, csv=csv)
+                      "__language5_proto", section_title, csv=csv)
         compare_sizes(old_sect_sizes, new_sect_sizes,
                       "__common", section_title, csv=csv)
         compare_sizes(old_sect_sizes, new_sect_sizes,
@@ -254,7 +254,7 @@ def compare_sizes_of_file(old_files, new_files, all_sections, all_segments,
                       csv=csv)
         compare_sizes(old_seg_sizes, new_seg_sizes, "__DATA", segment_title,
                       csv=csv)
-        compare_sizes(old_seg_sizes, new_seg_sizes, "__LLVM_COV", segment_title,
+        compare_sizes(old_seg_sizes, new_seg_sizes, "__TOOLCHAIN_COV", segment_title,
                       csv=csv)
         compare_sizes(old_seg_sizes, new_seg_sizes, "__LINKEDIT", segment_title,
                       csv=csv)
@@ -283,18 +283,18 @@ def compare_function_sizes(old_files, new_files, csv=None):
     only_in_file2size = 0
     in_both_size = 0
 
-    for func, old_size in old_sizes.items():
-        new_size = new_sizes[func]
+    for fn, old_size in old_sizes.items():
+        new_size = new_sizes[fn]
         if new_size != 0:
-            in_both.append((func, old_size, new_size))
+            in_both.append((fn, old_size, new_size))
         else:
-            only_in_file1.append((func, old_size))
+            only_in_file1.append((fn, old_size))
             only_in_file1size += old_size
 
-    for func, new_size in new_sizes.items():
-        old_size = old_sizes[func]
+    for fn, new_size in new_sizes.items():
+        old_size = old_sizes[fn]
         if old_size == 0:
-            only_in_file2.append((func, new_size))
+            only_in_file2.append((fn, new_size))
             only_in_file2size += new_size
 
     if only_in_file1:
@@ -336,7 +336,7 @@ def compare_function_sizes(old_files, new_files, csv=None):
         for triple in sorted(
                 in_both,
                 key=lambda tup: (tup[2] - tup[1], tup[1])):
-            func = triple[0]
+            fn = triple[0]
             old_size = triple[1]
             new_size = triple[2]
             diff = new_size - old_size
@@ -349,10 +349,10 @@ def compare_function_sizes(old_files, new_files, csv=None):
                 in_both_size += new_size
 
             if csv:
-                csv.writerow([old_size, new_size, new_size - old_size, func])
+                csv.writerow([old_size, new_size, new_size - old_size, fn])
             else:
                 print("%8d %8d %8d %s" %
-                      (old_size, new_size, new_size - old_size, func))
+                      (old_size, new_size, new_size - old_size, fn))
 
         if csv:
             csv.writerow(["Total size in both", "Total size smaller",

@@ -1,0 +1,5 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language -O -whole-module-optimization %S/main.code %S/Inputs/other.code
+
+print( g.a )

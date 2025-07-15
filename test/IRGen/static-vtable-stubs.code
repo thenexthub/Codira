@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -parse-as-library -static -O -module-name M -c -primary-file %t/A.code %t/B.code -S -emit-ir -o - | %FileCheck %t/A.code -check-prefix CHECK
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -parse-as-library -static -O -module-name M -c %t/A.code -primary-file %t/B.code -S -emit-ir -o - | %FileCheck %t/B.code -check-prefix CHECK
+
+// Verify that we can link successfully.
+// RUN: %target-build-language -target %target-language-5.1-abi-triple -O %t/A.code %t/B.code -o %t/a.out
+
+// REQUIRES: concurrency
+
+//--- A.code
+open class C {
+  private var i: [ObjectIdentifier:Any] = [:]
+
+  private fn foo() async {}
+}
+
+// CHECK: @"$s1M1CC3foo33_{{.*}}Tu" = hidden global %language.async_func_pointer <{ {{.*}} @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvg"
+
+// CHECK: @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvs" = hidden alias void (), ptr @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvg"
+// CHECK: @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvM" = hidden alias void (), ptr @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvg"
+
+// CHECK: define hidden void @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvg"()
+// CHECK: entry:
+// CHECK:   tail call void @language_deletedMethodError()
+
+//--- B.code
+final class D: C {
+}
+
+// CHECK: declare languagecc ptr @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvg"(ptr languageself) #0
+// CHECK: declare languagecc void @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvs"(ptr, ptr languageself) #0
+// CHECK: declare languagecc { ptr, ptr } @"$s1M1CC1i33_807E3D81CC6CDD898084F3279464DDF9LLSDySOypGvM"(ptr noalias dereferenceable({{32|16}}), ptr languageself) #0
+
+@main
+struct Main {
+  static fn main() {
+  }
+}
+

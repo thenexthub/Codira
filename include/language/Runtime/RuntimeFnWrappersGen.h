@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Helper functions providing the LLVM IR generation for runtime entry points.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_RUNTIME_RUNTIMEFNWRAPPERSGEN_H
-#define SWIFT_RUNTIME_RUNTIMEFNWRAPPERSGEN_H
+#ifndef LANGUAGE_RUNTIME_RUNTIMEFNWRAPPERSGEN_H
+#define LANGUAGE_RUNTIME_RUNTIMEFNWRAPPERSGEN_H
 
 #include "language/SIL/RuntimeEffect.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/IR/Module.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/IR/Module.h"
 
 namespace language {
 
@@ -38,22 +39,22 @@ enum class RuntimeAvailability {
   ConditionallyAvailable
 };
 
-/// Generate an llvm declaration for a runtime entry with a
+/// Generate an toolchain declaration for a runtime entry with a
 /// given name, return types, argument types, attributes and
 /// a calling convention.
-llvm::Constant *getRuntimeFn(llvm::Module &Module, llvm::Constant *&cache,
+toolchain::Constant *getRuntimeFn(toolchain::Module &Module, toolchain::Constant *&cache,
                              const char *ModuleName, char const *FunctionName,
-                             llvm::CallingConv::ID cc,
+                             toolchain::CallingConv::ID cc,
                              RuntimeAvailability availability,
-                             llvm::ArrayRef<llvm::Type *> retTypes,
-                             llvm::ArrayRef<llvm::Type *> argTypes,
-                             llvm::ArrayRef<llvm::Attribute::AttrKind> attrs,
-                             llvm::ArrayRef<llvm::MemoryEffects> memEffects,
+                             toolchain::ArrayRef<toolchain::Type *> retTypes,
+                             toolchain::ArrayRef<toolchain::Type *> argTypes,
+                             toolchain::ArrayRef<toolchain::Attribute::AttrKind> attrs,
+                             toolchain::ArrayRef<toolchain::MemoryEffects> memEffects,
                              irgen::IRGenModule *IGM = nullptr);
 
-llvm::FunctionType *getRuntimeFnType(llvm::Module &Module,
-                             llvm::ArrayRef<llvm::Type *> retTypes,
-                             llvm::ArrayRef<llvm::Type *> argTypes);
+toolchain::FunctionType *getRuntimeFnType(toolchain::Module &Module,
+                             toolchain::ArrayRef<toolchain::Type *> retTypes,
+                             toolchain::ArrayRef<toolchain::Type *> argTypes);
 
 } // namespace language
 #endif

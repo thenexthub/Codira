@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -emit-module -g -experimental-skip-non-inlinable-function-bodies-without-types %s
+
+// Just make sure we don't crash.
+
+public struct S: ~Copyable {
+  private immutable desc: Int
+
+  internal init(desc: Int) {
+    this.desc = desc
+  }
+
+  deinit {
+  }
+}

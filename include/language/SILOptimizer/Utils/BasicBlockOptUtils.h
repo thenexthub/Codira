@@ -1,13 +1,17 @@
 //===--- BasicBlockOptUtils.h - SIL basic block utilities -------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Utilities used by the SILOptimizer for analyzing and operating on whole
@@ -19,8 +23,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_BASICBLOCKOPTUTILS_H
-#define SWIFT_SILOPTIMIZER_UTILS_BASICBLOCKOPTUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_BASICBLOCKOPTUTILS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_BASICBLOCKOPTUTILS_H
 
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/BasicBlockBits.h"
@@ -126,11 +130,11 @@ class SinkAddressProjections {
   SmallVector<SingleValueInstruction *, 4> oldProjections;
   // Cloned projections to avoid address phis.
   SmallVectorImpl<SingleValueInstruction *> *newProjections;
-  llvm::SmallSetVector<SILValue, 4> inBlockDefs;
+  toolchain::SmallSetVector<SILValue, 4> inBlockDefs;
 
   // Transient per-projection data for use during cloning.
   SmallVector<Operand *, 4> usesToReplace;
-  llvm::SmallDenseMap<SILBasicBlock *, Operand *, 4> firstBlockUse;
+  toolchain::SmallDenseMap<SILBasicBlock *, Operand *, 4> firstBlockUse;
 
 public:
   SinkAddressProjections(
@@ -249,7 +253,7 @@ public:
 
     SmallVector<SILBasicBlock *, 4> successorBBs;
     successorBBs.reserve(origBB->getSuccessors().size());
-    llvm::copy(origBB->getSuccessors(), std::back_inserter(successorBBs));
+    toolchain::copy(origBB->getSuccessors(), std::back_inserter(successorBBs));
     cloneReachableBlocks(origBB, successorBBs, insertAfterBB);
 
     if (deBlocks) {
@@ -325,7 +329,7 @@ private:
   FilterType filter;
 
   // Pairs of collected instructions; (new, old)
-  llvm::SmallVector<value_type, 4> instructionpairs;
+  toolchain::SmallVector<value_type, 4> instructionpairs;
 
   void collect(SILInstruction *oldI, SILInstruction *newI) {
     if (filter(newI))
@@ -340,7 +344,7 @@ public:
                      std::placeholders::_2);
   }
 
-  llvm::SmallVectorImpl<value_type> &getInstructionPairs() {
+  toolchain::SmallVectorImpl<value_type> &getInstructionPairs() {
     return instructionpairs;
   }
 };

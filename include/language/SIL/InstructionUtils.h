@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_INSTRUCTIONUTILS_H
-#define SWIFT_SIL_INSTRUCTIONUTILS_H
+#ifndef LANGUAGE_SIL_INSTRUCTIONUTILS_H
+#define LANGUAGE_SIL_INSTRUCTIONUTILS_H
 
 #include "language/SIL/InstWrappers.h"
 #include "language/SIL/RuntimeEffect.h"
@@ -231,7 +232,7 @@ SILValue getStaticOverloadForSpecializedPolymorphicBuiltin(BuiltinInst *bi);
 /// If visitor returns false, we stop processing early. We return true if we
 /// visited all of the tuple elements without the visitor returing false.
 bool visitExplodedTupleType(SILType type,
-                            llvm::function_ref<bool(SILType)> callback);
+                            toolchain::function_ref<bool(SILType)> callback);
 
 /// Visit the exploded leaf elements of a tuple type that contains potentially
 /// a tree of tuples.
@@ -239,7 +240,7 @@ bool visitExplodedTupleType(SILType type,
 /// If visitor returns false, we stop processing early. We return true if we
 /// visited all of the tuple elements without the visitor returing false.
 bool visitExplodedTupleValue(SILValue value,
-                             llvm::function_ref<SILValue(SILValue, std::optional<unsigned>)> callback);
+                             toolchain::function_ref<SILValue(SILValue, std::optional<unsigned>)> callback);
 
 std::pair<SILFunction *, SILWitnessTable *>
 lookUpFunctionInWitnessTable(WitnessMethodInst *wmi, SILModule::LinkingMode linkingMode);
@@ -249,6 +250,13 @@ lookUpFunctionInWitnessTable(WitnessMethodInst *wmi, SILModule::LinkingMode link
 /// False if expanding a type is invalid. For example, expanding a
 /// struct-with-deinit drops the deinit.
 bool shouldExpand(SILModule &module, SILType ty);
+
+/// Returns true if `arg` is mutated.
+/// if `ignoreDestroys` is true, `destroy_addr` instructions are ignored.
+/// `defaultIsMutating` specifies the state of instructions which are not explicitly handled.
+/// For historical reasons this utility is implemented in SILVerifier.cpp.
+bool isIndirectArgumentMutated(SILFunctionArgument *arg, bool ignoreDestroys = false,
+                               bool defaultIsMutating = false);
 
 } // end namespace language
 

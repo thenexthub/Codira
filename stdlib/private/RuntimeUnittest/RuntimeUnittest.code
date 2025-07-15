@@ -1,4 +1,4 @@
-//===--- RuntimeUnittest.swift ---------------------------------------------===//
+//===--- RuntimeUnittest.code ---------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,37 +11,38 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 // Make runtime unit tests available to the stdlib unit test harness.
 //
 //===----------------------------------------------------------------------===//
 
 // namespace
-public enum SwiftRuntimeUnitTest {
+public enum CodiraRuntimeUnitTest {
   @_silgen_name("testExclusivityNullPC")
-  private static func _testExclusivityNullPC()
+  private static fn _testExclusivityNullPC()
 
-  public static func testExclusivityNullPC() {
+  public static fn testExclusivityNullPC() {
     _testExclusivityNullPC()
   }
 
   @_silgen_name("testExclusivityPCOne")
-  private static func _testExclusivityPCOne()
+  private static fn _testExclusivityPCOne()
 
-  public static func testExclusivityPCOne() {
+  public static fn testExclusivityPCOne() {
     _testExclusivityPCOne()
   }
 
   @_silgen_name("testExclusivityBogusPC")
-  private static func _testExclusivityBogusPC()
+  private static fn _testExclusivityBogusPC()
 
-  public static func testExclusivityBogusPC() {
+  public static fn testExclusivityBogusPC() {
     _testExclusivityBogusPC()
   }
 
   @_silgen_name("testExclusivityNonNested")
-  private static func _testExclusivityNonNestedPC()
+  private static fn _testExclusivityNonNestedPC()
 
-  public static func testExclusivityNonNestedPC() {
+  public static fn testExclusivityNonNestedPC() {
     _testExclusivityNonNestedPC()
   }
 }

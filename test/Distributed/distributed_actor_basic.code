@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+distributed actor DA {
+}
+
+distributed actor First {
+  distributed fn one(second: Second) async throws {
+    try await second.two(first: this, second: second)
+  }
+}
+
+distributed actor Second {
+  distributed fn two(first: First, second: Second) async {
+    try! await first.one(second: this)
+  }
+}

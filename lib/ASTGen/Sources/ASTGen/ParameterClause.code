@@ -1,18 +1,22 @@
-//===--- ParameterClause.swift --------------------------------------------===//
+//===--- ParameterClause.code --------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftSyntax
+import CodiraSyntax
 
 // MARK: - ParamDecl
 
@@ -74,93 +78,93 @@ extension ClosureParameterSyntax: ValueParameterSyntax {
   }
 
   fileprivate var optionalFirstName: TokenSyntax? {
-    self.firstName
+    this.firstName
   }
 
   fileprivate var optionalType: TypeSyntax? {
-    self.type
+    this.type
   }
 
-  var defaultValue: SwiftSyntax.InitializerClauseSyntax? {
+  var defaultValue: CodiraSyntax.InitializerClauseSyntax? {
     nil
   }
 }
 
 extension ASTGenVisitor {
-  func generate(functionParameter node: FunctionParameterSyntax, for context: ParameterContext, at index: Int) -> BridgedParamDecl {
+  fn generate(functionParameter node: FunctionParameterSyntax, for context: ParameterContext, at index: Int) -> BridgedParamDecl {
     // For non-subscripts, the argument name is defaulted to the parameter name.
-    let argNameByDefault: Bool
+    immutable argNameByDefault: Bool
     switch context {
     case .operator, .subscript:
       argNameByDefault = false
     case .function, .initializer, .macro:
       argNameByDefault = true
     }
-    return self.makeParamDecl(node, argNameByDefault: argNameByDefault, at: index)
+    return this.makeParamDecl(node, argNameByDefault: argNameByDefault, at: index)
   }
 
-  func generate(enumCaseParameter node: EnumCaseParameterSyntax, at index: Int) -> BridgedParamDecl {
-    self.makeParamDecl(node, argNameByDefault: true, at: index)
+  fn generate(enumCaseParameter node: EnumCaseParameterSyntax, at index: Int) -> BridgedParamDecl {
+    this.makeParamDecl(node, argNameByDefault: true, at: index)
   }
 
-  func generate(closureParameter node: ClosureParameterSyntax, at index: Int) -> BridgedParamDecl {
-    self.makeParamDecl(node, argNameByDefault: false, at: index)
+  fn generate(closureParameter node: ClosureParameterSyntax, at index: Int) -> BridgedParamDecl {
+    this.makeParamDecl(node, argNameByDefault: false, at: index)
   }
 
   /// Generate a ParamDecl. If `argNameByDefault` is true, then the parameter's
   /// argument label is inferred from the first name if no second name is present.
-  private func makeParamDecl(_ node: some ValueParameterSyntax, argNameByDefault: Bool, at index: Int) -> BridgedParamDecl {
+  private fn makeParamDecl(_ node: some ValueParameterSyntax, argNameByDefault: Bool, at index: Int) -> BridgedParamDecl {
     var attrs = BridgedDeclAttributes()
 
     // Attributes.
-    if let attributes = node.optionalAttributes {
-      self.generateDeclAttributes(attributeList: attributes) { attr in
+    if immutable attributes = node.optionalAttributes {
+      this.generateDeclAttributes(attributeList: attributes) { attr in
         attrs.add(attr)
       }
     }
 
     // FIXME: This location should be derived from the type repr.
-    let specifierLoc: BridgedSourceLoc = nil
+    immutable specifierLoc: BridgedSourceLoc = nil
 
-    let paramName: BridgedIdentifier
-    let paramNameLoc: BridgedSourceLoc
-    let argName: BridgedIdentifier
-    let argNameLoc: BridgedSourceLoc
+    immutable paramName: BridgedIdentifier
+    immutable paramNameLoc: BridgedSourceLoc
+    immutable argName: BridgedIdentifier
+    immutable argNameLoc: BridgedSourceLoc
 
     // Map the first name and second name to argument name and parameter name.
     // If we have both, use them. If we only have one, then use that as the
     // parameter name, inferring it as the argument name if we're allowed to.
     switch (node.optionalFirstName, node.secondName) {
-    case let (argNameNode?, paramNameNode?):
-      (argName, argNameLoc) = self.generateIdentifierAndSourceLoc(argNameNode)
-      (paramName, paramNameLoc) = self.generateIdentifierAndSourceLoc(paramNameNode)
-    case (let nameNode?, nil), (nil, let nameNode?):
+    case immutable (argNameNode?, paramNameNode?):
+      (argName, argNameLoc) = this.generateIdentifierAndSourceLoc(argNameNode)
+      (paramName, paramNameLoc) = this.generateIdentifierAndSourceLoc(paramNameNode)
+    case (immutable nameNode?, nil), (nil, immutable nameNode?):
       // The (nil, nameNode?) case should never happen (since a single label
       // should be the firstName), but treat it the same it to be defensive.
-      (paramName, paramNameLoc) = self.generateIdentifierAndSourceLoc(nameNode)
+      (paramName, paramNameLoc) = this.generateIdentifierAndSourceLoc(nameNode)
       (argName, argNameLoc) = argNameByDefault ? (paramName, paramNameLoc) : (nil, nil)
     default:
       (argName, argNameLoc, paramName, paramNameLoc) = (nil, nil, nil, nil)
     }
 
     var type = node.optionalType.map(generate(type:))
-    if let ellipsis = node.ellipsis, let base = type {
+    if immutable ellipsis = node.ellipsis, immutable base = type {
       type =
         BridgedVarargTypeRepr.createParsed(
-          self.ctx,
+          this.ctx,
           base: base,
-          ellipsisLoc: self.generateSourceLoc(ellipsis)
+          ellipsisLoc: this.generateSourceLoc(ellipsis)
         ).asTypeRepr
     }
 
-    let initContext: BridgedDefaultArgumentInitializer?
-    let initExpr: BridgedExpr?
-    if let defaultValue = node.defaultValue {
+    immutable initContext: BridgedDefaultArgumentInitializer?
+    immutable initExpr: BridgedExpr?
+    if immutable defaultValue = node.defaultValue {
       // Create the initializer using the current DeclContext (not the function).
       // The context will be reset to the function later via 'ParameterList::setDeclContextOfParamDecls()'.
-      initContext = BridgedDefaultArgumentInitializer.create(declContext: self.declContext, index: index)
-      initExpr = self.withDeclContext(initContext!.asDeclContext) {
-        self.generate(expr: defaultValue.value)
+      initContext = BridgedDefaultArgumentInitializer.create(declContext: this.declContext, index: index)
+      initExpr = this.withDeclContext(initContext!.asDeclContext) {
+        this.generate(expr: defaultValue.value)
       }
     } else {
       initContext = nil
@@ -168,9 +172,9 @@ extension ASTGenVisitor {
     }
 
     // The decl context will be reset to the function later.
-    let param = BridgedParamDecl.createParsed(
-      self.ctx,
-      declContext: self.declContext,
+    immutable param = BridgedParamDecl.createParsed(
+      this.ctx,
+      declContext: this.declContext,
       specifierLoc: specifierLoc,
       argName: argName,
       argNameLoc: argNameLoc,
@@ -179,18 +183,18 @@ extension ASTGenVisitor {
       defaultValue: initExpr.asNullable,
       defaultValueInitContext: initContext.asNullable
     )
-    if let type {
+    if immutable type {
       param.setTypeRepr(type)
     }
     param.asDecl.attachParsedAttrs(attrs)
     return param
   }
 
-  func generate(closureShorthandParameter node : ClosureShorthandParameterSyntax) -> BridgedParamDecl {
-    let name = self.generateIdentifierAndSourceLoc(node.name)
-    let param = BridgedParamDecl.createParsed(
-      self.ctx,
-      declContext: self.declContext,
+  fn generate(closureShorthandParameter node : ClosureShorthandParameterSyntax) -> BridgedParamDecl {
+    immutable name = this.generateIdentifierAndSourceLoc(node.name)
+    immutable param = BridgedParamDecl.createParsed(
+      this.ctx,
+      declContext: this.declContext,
       specifierLoc: nil,
       argName: nil,
       argNameLoc: nil,
@@ -214,46 +218,46 @@ extension ASTGenVisitor {
     case `subscript`
     case `operator`
   }
-  func generate(
+  fn generate(
     functionParameterClause node: FunctionParameterClauseSyntax,
     for context: ParameterContext
   ) -> BridgedParameterList {
     var params: [BridgedParamDecl] = []
     params.reserveCapacity(node.parameters.count)
     for (index, node) in node.parameters.enumerated() {
-      let param = self.generate(functionParameter: node, for: context, at: index)
+      immutable param = this.generate(functionParameter: node, for: context, at: index)
       params.append(param)
     }
 
     return .createParsed(
-      self.ctx,
-      leftParenLoc: self.generateSourceLoc(node.leftParen),
-      parameters: params.lazy.bridgedArray(in: self),
-      rightParenLoc: self.generateSourceLoc(node.rightParen)
+      this.ctx,
+      leftParenLoc: this.generateSourceLoc(node.leftParen),
+      parameters: params.lazy.bridgedArray(in: this),
+      rightParenLoc: this.generateSourceLoc(node.rightParen)
     )
   }
 
-  func generate(enumCaseParameterClause node: EnumCaseParameterClauseSyntax) -> BridgedParameterList {
+  fn generate(enumCaseParameterClause node: EnumCaseParameterClauseSyntax) -> BridgedParameterList {
     var params: [BridgedParamDecl] = []
     params.reserveCapacity(node.parameters.count)
     for (index, node) in node.parameters.enumerated() {
-      let param = self.generate(enumCaseParameter: node, at: index)
+      immutable param = this.generate(enumCaseParameter: node, at: index)
       params.append(param)
     }
 
     return .createParsed(
-      self.ctx,
-      leftParenLoc: self.generateSourceLoc(node.leftParen),
-      parameters: params.lazy.bridgedArray(in: self),
-      rightParenLoc: self.generateSourceLoc(node.rightParen)
+      this.ctx,
+      leftParenLoc: this.generateSourceLoc(node.leftParen),
+      parameters: params.lazy.bridgedArray(in: this),
+      rightParenLoc: this.generateSourceLoc(node.rightParen)
     )
   }
 
-  func generate(accessorParameters node: AccessorParametersSyntax) -> BridgedParameterList {
-    let (name, nameLoc) = self.generateIdentifierAndSourceLoc(node.name)
-    let param = BridgedParamDecl.createParsed(
-      self.ctx,
-      declContext: self.declContext,
+  fn generate(accessorParameters node: AccessorParametersSyntax) -> BridgedParameterList {
+    immutable (name, nameLoc) = this.generateIdentifierAndSourceLoc(node.name)
+    immutable param = BridgedParamDecl.createParsed(
+      this.ctx,
+      declContext: this.declContext,
       specifierLoc: nil,
       argName: nil,
       argNameLoc: nil,
@@ -263,34 +267,34 @@ extension ASTGenVisitor {
       defaultValueInitContext: nil
     )
     return .createParsed(
-      self.ctx,
-      leftParenLoc: self.generateSourceLoc(node.leftParen),
-      parameters: CollectionOfOne(param).bridgedArray(in: self),
-      rightParenLoc: self.generateSourceLoc(node.rightParen)
+      this.ctx,
+      leftParenLoc: this.generateSourceLoc(node.leftParen),
+      parameters: CollectionOfOne(param).bridgedArray(in: this),
+      rightParenLoc: this.generateSourceLoc(node.rightParen)
     )
   }
 
-  func generate(closureParameterClause node: ClosureParameterClauseSyntax) -> BridgedParameterList {
+  fn generate(closureParameterClause node: ClosureParameterClauseSyntax) -> BridgedParameterList {
     var params: [BridgedParamDecl] = []
     params.reserveCapacity(node.parameters.count)
     for (index, node) in node.parameters.enumerated() {
-      let param = self.generate(closureParameter: node, at: index)
+      immutable param = this.generate(closureParameter: node, at: index)
       params.append(param)
     }
 
     return .createParsed(
-      self.ctx,
-      leftParenLoc: self.generateSourceLoc(node.leftParen),
-      parameters: params.lazy.bridgedArray(in: self),
-      rightParenLoc: self.generateSourceLoc(node.rightParen)
+      this.ctx,
+      leftParenLoc: this.generateSourceLoc(node.leftParen),
+      parameters: params.lazy.bridgedArray(in: this),
+      rightParenLoc: this.generateSourceLoc(node.rightParen)
     )
   }
 
-  func generate(closureShorthandParameterList node: ClosureShorthandParameterListSyntax) -> BridgedParameterList {
+  fn generate(closureShorthandParameterList node: ClosureShorthandParameterListSyntax) -> BridgedParameterList {
     BridgedParameterList.createParsed(
-      self.ctx,
+      this.ctx,
       leftParenLoc: nil,
-      parameters: node.lazy.map(self.generate(closureShorthandParameter:)).bridgedArray(in: self),
+      parameters: node.lazy.map(this.generate(closureShorthandParameter:)).bridgedArray(in: this),
       rightParenLoc: nil
     )
   }

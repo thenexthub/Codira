@@ -1,0 +1,37 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class A : b {
+private class B {
+struct c {
+}
+protocol b = Codira.c {
+}
+class A<h: d where f.h : b = { this)")
+immutable c {
+fn f<T -> d>() { c<d: Collection where T, k : b<T) {
+}
+}
+}
+}
+}
+struct S<U -> {
+if c {
+}
+struct Q<T> String {
+}
+immutable a {
+}
+class c {
+}
+class A<j : b() {
+immutable h.g : Exte

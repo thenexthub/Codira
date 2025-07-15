@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/CASOutputBackends.h"
@@ -21,28 +22,29 @@
 #include "language/Frontend/CompileJobCacheKey.h"
 #include "language/Frontend/CompileJobCacheResult.h"
 #include "clang/Frontend/CompileJobCacheResult.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/CAS/HierarchicalTreeBuilder.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/CAS/HierarchicalTreeBuilder.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/Mutex.h"
 #include <optional>
 
-#define DEBUG_TYPE "swift-cas-backend"
+#define DEBUG_TYPE "language-cas-backend"
 
 using namespace language;
-using namespace llvm;
-using namespace llvm::cas;
-using namespace llvm::vfs;
+using namespace toolchain;
+using namespace toolchain::cas;
+using namespace toolchain::vfs;
 
 namespace {
-class SwiftCASOutputFile final : public OutputFileImpl {
+class CodiraCASOutputFile final : public OutputFileImpl {
 public:
   Error keep() override { return OnKeep(Path, Bytes); }
   Error discard() override { return Error::success(); }
   raw_pwrite_stream &getOS() override { return OS; }
 
-  using OnKeepType = llvm::unique_function<Error(StringRef, StringRef)>;
-  SwiftCASOutputFile(StringRef Path, OnKeepType OnKeep)
+  using OnKeepType = toolchain::unique_function<Error(StringRef, StringRef)>;
+  CodiraCASOutputFile(StringRef Path, OnKeepType OnKeep)
       : Path(Path.str()), OS(Bytes), OnKeep(std::move(OnKeep)) {}
 
 private:
@@ -54,9 +56,9 @@ private:
 } // namespace
 
 namespace language::cas {
-void SwiftCASOutputBackend::anchor() {}
+void CodiraCASOutputBackend::anchor() {}
 
-class SwiftCASOutputBackend::Implementation {
+class CodiraCASOutputBackend::Implementation {
 public:
   Implementation(ObjectStore &CAS, ActionCache &Cache, ObjectRef BaseKey,
                  const FrontendInputsAndOutputs &InputsAndOutputs,
@@ -67,13 +69,13 @@ public:
     initBackend(InputsAndOutputs);
   }
 
-  llvm::Expected<std::unique_ptr<llvm::vfs::OutputFileImpl>>
-  createFileImpl(llvm::StringRef ResolvedPath,
-                 std::optional<llvm::vfs::OutputConfig> Config) {
+  toolchain::Expected<std::unique_ptr<toolchain::vfs::OutputFileImpl>>
+  createFileImpl(toolchain::StringRef ResolvedPath,
+                 std::optional<toolchain::vfs::OutputConfig> Config) {
     auto ProducingInput = OutputToInputMap.find(ResolvedPath);
     if (ProducingInput == OutputToInputMap.end() &&
         ResolvedPath.starts_with(Opts.SymbolGraphOutputDir)) {
-      return std::make_unique<SwiftCASOutputFile>(
+      return std::make_unique<CodiraCASOutputFile>(
           ResolvedPath, [this](StringRef Path, StringRef Bytes) -> Error {
             bool Shortened = Path.consume_front(Opts.SymbolGraphOutputDir);
             assert(Shortened && "symbol graph path outside output dir");
@@ -100,9 +102,9 @@ public:
 
     // Uncached output kind.
     if (!isStoredDirectly(OutputType))
-      return std::make_unique<llvm::vfs::NullOutputFileImpl>();
+      return std::make_unique<toolchain::vfs::NullOutputFileImpl>();
 
-    return std::make_unique<SwiftCASOutputFile>(
+    return std::make_unique<CodiraCASOutputFile>(
         ResolvedPath,
         [this, InputIndex, OutputType](StringRef Path,
                                        StringRef Bytes) -> Error {
@@ -115,16 +117,22 @@ public:
   Error storeImpl(StringRef Path, StringRef Bytes, unsigned InputIndex,
                   file_types::ID OutputKind);
 
+  // Return true if all the outputs are produced for the given index.
+  bool addProducedOutput(unsigned InputIndex, file_types::ID OutputKind,
+                         ObjectRef BytesRef);
   Error finalizeCacheKeysFor(unsigned InputIndex);
 
 private:
-  friend class SwiftCASOutputBackend;
+  friend class CodiraCASOutputBackend;
   ObjectStore &CAS;
   ActionCache &Cache;
   ObjectRef BaseKey;
   const FrontendInputsAndOutputs &InputsAndOutputs;
   const FrontendOptions &Opts;
   FrontendOptions::ActionType Action;
+
+  // Lock for updating output file status.
+  toolchain::sys::SmartMutex<true> OutputLock;
 
   // Map from output path to the input index and output kind.
   StringMap<std::pair<unsigned, file_types::ID>> OutputToInputMap;
@@ -135,53 +143,53 @@ private:
   SmallVector<ObjectRef> SymbolGraphOutputRefs;
 };
 
-SwiftCASOutputBackend::SwiftCASOutputBackend(
+CodiraCASOutputBackend::CodiraCASOutputBackend(
     ObjectStore &CAS, ActionCache &Cache, ObjectRef BaseKey,
     const FrontendInputsAndOutputs &InputsAndOutputs,
     const FrontendOptions &Opts, FrontendOptions::ActionType Action)
-    : Impl(*new SwiftCASOutputBackend::Implementation(
+    : Impl(*new CodiraCASOutputBackend::Implementation(
           CAS, Cache, BaseKey, InputsAndOutputs, Opts, Action)) {}
 
-SwiftCASOutputBackend::~SwiftCASOutputBackend() { delete &Impl; }
+CodiraCASOutputBackend::~CodiraCASOutputBackend() { delete &Impl; }
 
-bool SwiftCASOutputBackend::isStoredDirectly(file_types::ID Kind) {
+bool CodiraCASOutputBackend::isStoredDirectly(file_types::ID Kind) {
   return !file_types::isProducedFromDiagnostics(Kind) &&
          Kind != file_types::TY_Dependencies;
 }
 
-IntrusiveRefCntPtr<OutputBackend> SwiftCASOutputBackend::cloneImpl() const {
-  return makeIntrusiveRefCnt<SwiftCASOutputBackend>(
+IntrusiveRefCntPtr<OutputBackend> CodiraCASOutputBackend::cloneImpl() const {
+  return makeIntrusiveRefCnt<CodiraCASOutputBackend>(
       Impl.CAS, Impl.Cache, Impl.BaseKey, Impl.InputsAndOutputs, Impl.Opts,
       Impl.Action);
 }
 
 Expected<std::unique_ptr<OutputFileImpl>>
-SwiftCASOutputBackend::createFileImpl(StringRef ResolvedPath,
+CodiraCASOutputBackend::createFileImpl(StringRef ResolvedPath,
                                       std::optional<OutputConfig> Config) {
   return Impl.createFileImpl(ResolvedPath, Config);
 }
 
-file_types::ID SwiftCASOutputBackend::getOutputFileType(StringRef Path) const {
-  return file_types::lookupTypeForExtension(llvm::sys::path::extension(Path));
+file_types::ID CodiraCASOutputBackend::getOutputFileType(StringRef Path) const {
+  return file_types::lookupTypeForExtension(toolchain::sys::path::extension(Path));
 }
 
-Error SwiftCASOutputBackend::storeImpl(StringRef Path, StringRef Bytes,
+Error CodiraCASOutputBackend::storeImpl(StringRef Path, StringRef Bytes,
                                        unsigned InputIndex,
                                        file_types::ID OutputKind) {
   return Impl.storeImpl(Path, Bytes, InputIndex, OutputKind);
 }
 
-Error SwiftCASOutputBackend::storeCachedDiagnostics(unsigned InputIndex,
+Error CodiraCASOutputBackend::storeCachedDiagnostics(unsigned InputIndex,
                                                     StringRef Bytes) {
   return storeImpl("<cached-diagnostics>", Bytes, InputIndex,
                    file_types::ID::TY_CachedDiagnostics);
 }
 
-Error SwiftCASOutputBackend::storeMakeDependenciesFile(StringRef OutputFilename,
-                                                       llvm::StringRef Bytes) {
+Error CodiraCASOutputBackend::storeMakeDependenciesFile(StringRef OutputFilename,
+                                                       toolchain::StringRef Bytes) {
   auto Input = Impl.OutputToInputMap.find(OutputFilename);
   if (Input == Impl.OutputToInputMap.end())
-    return llvm::createStringError("InputIndex for output file not found!");
+    return toolchain::createStringError("InputIndex for output file not found!");
   auto InputIndex = Input->second.first;
   assert(Input->second.second == file_types::TY_Dependencies &&
          "wrong output type");
@@ -189,22 +197,24 @@ Error SwiftCASOutputBackend::storeMakeDependenciesFile(StringRef OutputFilename,
                    file_types::TY_Dependencies);
 }
 
-Error SwiftCASOutputBackend::storeMCCASObjectID(StringRef OutputFilename,
-                                                llvm::cas::CASID ID) {
+Error CodiraCASOutputBackend::storeMCCASObjectID(StringRef OutputFilename,
+                                                toolchain::cas::CASID ID) {
   auto Input = Impl.OutputToInputMap.find(OutputFilename);
   if (Input == Impl.OutputToInputMap.end())
-    return llvm::createStringError("InputIndex for output file not found!");
+    return toolchain::createStringError("InputIndex for output file not found!");
   auto InputIndex = Input->second.first;
   auto MCRef = Impl.CAS.getReference(ID);
   if (!MCRef)
     return createStringError("Invalid CASID: " + ID.toString() +
                              ". No associated ObjectRef found!");
 
-  Impl.OutputRefs[InputIndex].insert({file_types::TY_Object, *MCRef});
-  return Impl.finalizeCacheKeysFor(InputIndex);
+  if (Impl.addProducedOutput(InputIndex, file_types::TY_Object, *MCRef))
+    return Impl.finalizeCacheKeysFor(InputIndex);
+
+  return Error::success();
 }
 
-void SwiftCASOutputBackend::Implementation::initBackend(
+void CodiraCASOutputBackend::Implementation::initBackend(
     const FrontendInputsAndOutputs &InputsAndOutputs) {
   // FIXME: The output to input map might not be enough for example all the
   // outputs can be written to `-`, but the backend cannot distinguish which
@@ -221,6 +231,12 @@ void SwiftCASOutputBackend::Implementation::initBackend(
     Input.getPrimarySpecificPaths()
         .SupplementaryOutputs.forEachSetOutputAndType(
             [&](const std::string &Out, file_types::ID ID) {
+              // FIXME: Opt Remarks are not setup correctly to be cached and
+              // didn't go through the output backend. Do not cache them.
+              if (ID == file_types::ID::TY_YAMLOptRecord ||
+                  ID == file_types::ID::TY_BitstreamOptRecord)
+                return;
+
               if (!file_types::isProducedFromDiagnostics(ID))
                 OutputToInputMap.insert({Out, {Index, ID}});
             });
@@ -240,37 +256,43 @@ void SwiftCASOutputBackend::Implementation::initBackend(
   OutputRefs.resize(InputsAndOutputs.getAllInputs().size());
 }
 
-Error SwiftCASOutputBackend::Implementation::storeImpl(
+Error CodiraCASOutputBackend::Implementation::storeImpl(
     StringRef Path, StringRef Bytes, unsigned InputIndex,
     file_types::ID OutputKind) {
   std::optional<ObjectRef> BytesRef;
   if (Error E = CAS.storeFromString(std::nullopt, Bytes).moveInto(BytesRef))
     return E;
 
-  LLVM_DEBUG(llvm::dbgs() << "DEBUG: producing CAS output of type \'"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "DEBUG: producing CAS output of type \'"
                           << file_types::getTypeName(OutputKind)
                           << "\' for input \'" << InputIndex << "\': \'"
                           << CAS.getID(*BytesRef).toString() << "\'\n";);
 
-  OutputRefs[InputIndex].insert({OutputKind, *BytesRef});
-
-  return finalizeCacheKeysFor(InputIndex);
+  if (addProducedOutput(InputIndex, OutputKind, *BytesRef))
+    return finalizeCacheKeysFor(InputIndex);
+  return Error::success();
 }
 
-Error SwiftCASOutputBackend::Implementation::finalizeCacheKeysFor(
+bool CodiraCASOutputBackend::Implementation::addProducedOutput(
+    unsigned InputIndex, file_types::ID OutputKind,
+    ObjectRef BytesRef) {
+  toolchain::sys::SmartScopedLock<true> LockOutput(OutputLock);
+  auto &ProducedOutputs = OutputRefs[InputIndex];
+  ProducedOutputs.insert({OutputKind, BytesRef});
+
+  return toolchain::all_of(OutputToInputMap, [&](auto &E) {
+    return (E.second.first != InputIndex ||
+            ProducedOutputs.count(E.second.second));
+  });
+}
+
+Error CodiraCASOutputBackend::Implementation::finalizeCacheKeysFor(
     unsigned InputIndex) {
-  auto ProducedOutputs = OutputRefs[InputIndex];
+  const auto &ProducedOutputs = OutputRefs[InputIndex];
   assert(!ProducedOutputs.empty() && "Expect outputs for this input");
 
-  // If not all outputs for the input are emitted, return.
-  if (!llvm::all_of(OutputToInputMap, [&](auto &E) {
-        return (E.second.first != InputIndex ||
-                ProducedOutputs.count(E.second.second));
-      }))
-    return Error::success();
-
   std::vector<std::pair<file_types::ID, ObjectRef>> OutputsForInput;
-  llvm::for_each(ProducedOutputs, [&OutputsForInput](auto E) {
+  toolchain::for_each(ProducedOutputs, [&OutputsForInput](auto E) {
     OutputsForInput.emplace_back(E.first, E.second);
   });
   if (InputIndex == InputsAndOutputs.getIndexOfFirstOutputProducingInput() &&
@@ -281,7 +303,7 @@ Error SwiftCASOutputBackend::Implementation::finalizeCacheKeysFor(
     OutputsForInput.emplace_back(file_types::ID::TY_SymbolGraphFile, *SGRef);
   }
   // Sort to a stable ordering for deterministic output cache object.
-  llvm::sort(OutputsForInput,
+  toolchain::sort(OutputsForInput,
              [](auto &LHS, auto &RHS) { return LHS.first < RHS.first; });
 
   std::optional<ObjectRef> Result;
@@ -303,14 +325,14 @@ Error SwiftCASOutputBackend::Implementation::finalizeCacheKeysFor(
             clang::cas::CompileJobCacheResult::OutputKind::Dependencies,
             Outs.second);
       else
-        llvm_unreachable("Unexpected output when compiling clang module");
+        toolchain_unreachable("Unexpected output when compiling clang module");
     }
 
     if (auto Err = Builder.build(CAS).moveInto(Result))
       return Err;
 
   } else {
-    swift::cas::CompileJobCacheResult::Builder Builder;
+    language::cas::CompileJobCacheResult::Builder Builder;
 
     for (auto &Outs : OutputsForInput)
       Builder.addOutput(Outs.first, Outs.second);
@@ -323,15 +345,15 @@ Error SwiftCASOutputBackend::Implementation::finalizeCacheKeysFor(
   if (!CacheKey)
     return CacheKey.takeError();
 
-  LLVM_DEBUG(llvm::dbgs() << "DEBUG: writing cache entry for input \'"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "DEBUG: writing cache entry for input \'"
                           << InputIndex << "\': \'"
                           << CAS.getID(*CacheKey).toString() << "\' => \'"
                           << CAS.getID(*Result).toString() << "\'\n";);
 
   if (auto E = Cache.put(CAS.getID(*CacheKey), CAS.getID(*Result))) {
-    // If `SWIFT_STRICT_CAS_ERRORS` environment is set, do not attempt to
+    // If `LANGUAGE_STRICT_CAS_ERRORS` environment is set, do not attempt to
     // recover from error.
-    if (::getenv("SWIFT_STRICT_CAS_ERRORS"))
+    if (::getenv("LANGUAGE_STRICT_CAS_ERRORS"))
       return E;
     // Failed to update the action cache, this can happen when there is a
     // non-deterministic output from compiler. Check that the cache entry is
@@ -349,7 +371,7 @@ Error SwiftCASOutputBackend::Implementation::finalizeCacheKeysFor(
     // should be sent to a DiagnosticEngine but CASBackend lives longer than
     // diagnostic engine and needs to capture all diagnostic outputs before
     // sending this request.
-    llvm::errs() << "error: failed to update cache: " << toString(std::move(E))
+    toolchain::errs() << "error: failed to update cache: " << toString(std::move(E))
                  << "\n";
   }
 

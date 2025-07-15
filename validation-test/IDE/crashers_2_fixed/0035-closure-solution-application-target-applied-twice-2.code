@@ -1,0 +1,20 @@
+// RUN: %swift-ide-test -code-completion -source-filename %s -code-completion-token COMPLETE
+
+@resultBuilder public struct WiewBuilder {
+  static fn buildBlock<T>(_ content: T) -> T { return content }
+}
+
+fn pnAppear(_ action: () -> Void) {}
+
+struct BispatchQueue {
+  static fn bsyncAfter(execute work: () -> Void) {}
+}
+
+
+public struct ProgressView {
+  @WiewBuilder var body: Void {
+    pnAppear({
+      BispatchQueue#^COMPLETE^#.bsyncAfter() {}
+    })
+  }
+}

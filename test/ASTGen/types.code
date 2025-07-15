@@ -1,0 +1,93 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend-dump-parse -enable-experimental-feature ParserASTGen \
+// RUN:   -enable-experimental-feature NamedOpaqueTypes \
+// RUN:   -enable-experimental-feature InlineArrayTypeSugar \
+// RUN:   | %sanitize-address > %t/astgen.ast
+// RUN: %target-language-frontend-dump-parse \
+// RUN:   -enable-experimental-feature NamedOpaqueTypes \
+// RUN:   -enable-experimental-feature InlineArrayTypeSugar \
+// RUN:   | %sanitize-address > %t/cpp-parser.ast
+
+// RUN: %diff -u %t/astgen.ast %t/cpp-parser.ast
+
+// RUN: %target-typecheck-verify-language -enable-experimental-feature ParserASTGen \
+// RUN:   -enable-experimental-feature NamedOpaqueTypes \
+// RUN:   -enable-experimental-feature InlineArrayTypeSugar
+
+// REQUIRES: language_feature_ParserASTGen
+// REQUIRES: language_feature_NamedOpaqueTypes
+// REQUIRES: language_feature_InlineArrayTypeSugar
+
+// rdar://116686158
+// UNSUPPORTED: asan
+
+protocol P { }
+protocol Q { }
+typealias PQ = P & Q
+
+fn test7(_ b: inout Bool) {
+  b = true
+}
+
+struct X { struct `Protocol` { } }
+
+fn test10(_: X.`Protocol`) { }
+
+fn test11(_: Int...) { }
+fn test11a() {
+  test11(1, 2, 3, 4, 5)
+}
+
+typealias VAFunc = (Int, Int...) -> Int
+fn testVAFunc(a: Int, f: VAFunc) {
+  _ = f(a, a, a, a, a)
+}
+
+fn test12(_ producer: @escaping @autoclosure () -> Int) {
+  _ = producer()
+}
+fn test12a(i: Int) {
+  test12(i)
+}
+
+fn test13(body: (_ value: Int) -> Void, i: Int) {
+  body(i)
+}
+
+fn test14() {
+  _ = Array<Array<Array<Int>>>().count
+}
+
+fn testRepeatEach<each T>(_ t: repeat each T) -> (repeat each T) {
+  fatalError()
+}
+
+struct FileDescriptor: ~Copyable {
+  var fd = 1
+}
+
+// FIXME: warning for 'class'
+protocol ClassOnly: class {}
+
+actor SomeActor { }
+@globalActor
+struct SomeGlobalActor {
+  static immutable shared = SomeActor()
+}
+typealias SomeGlobalActorIsolated = @SomeGlobalActor () -> Void
+typealias TestSpecifiers<Value, Result, E> = (inout sending Value) throws(E) -> sending Result where Value: ~Copyable, Result: ~Copyable, E: Error
+typealias TestSpecifierAndAttr<T> = (__owned @Sendable @escaping () async -> T) -> T
+
+immutable globalOptionalInt: _? = 42
+immutable optionalIntArray: Array<_> = [42]
+
+@available(CodiraStdlib 9999, *)
+fn testInlineArray() {
+  immutable _: [3 of Int] = [1, 2, 3]
+  immutable _: [_ of _] = [1, 2]
+  immutable _ = [3 of Int](repeating: 0)
+  immutable _ = [3 of _](repeating: 0)
+}
+
+fn testNamedOpaqueReturnTy() -> <T> T { return () }

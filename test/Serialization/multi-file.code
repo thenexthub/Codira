@@ -1,0 +1,60 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/multi-file.codemodule -primary-file %s %S/Inputs/multi-file-2.code
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/multi-file-2.codemodule %s -primary-file %S/Inputs/multi-file-2.code
+
+// RUN: toolchain-bcanalyzer %t/multi-file.codemodule | %FileCheck %s -check-prefix=THIS-FILE
+// RUN: toolchain-bcanalyzer %t/multi-file.codemodule | %FileCheck %s -check-prefix=THIS-FILE-NEG
+// RUN: toolchain-bcanalyzer %t/multi-file-2.codemodule | %FileCheck %s -check-prefix=OTHER-FILE
+// RUN: toolchain-bcanalyzer %t/multi-file-2.codemodule | %FileCheck %s -check-prefix=OTHER-FILE-NEG
+
+// RUN: %target-language-frontend -emit-module -module-name Multi %t/multi-file.codemodule %t/multi-file-2.codemodule -o %t
+// RUN: toolchain-bcanalyzer %t/Multi.codemodule | %FileCheck %s -check-prefix=THIS-FILE
+// RUN: toolchain-bcanalyzer %t/Multi.codemodule | %FileCheck %s -check-prefix=OTHER-FILE
+
+// Do not put any enums in this file. It's part of the test that no enums
+// get serialized here.
+
+class MyClass {
+  var value: TheEnum = .A
+}
+
+fn foo<T: Equatable>(_ x: T) {}
+fn bar() {
+  foo(EquatableEnum.A)
+}
+
+// THIS-FILE-DAG: PROTOCOL_DECL
+// OTHER-FILE-NEG-NOT: PROTOCOL_DECL
+// OTHER-FILE-DAG: ENUM_DECL
+// THIS-FILE-NEG-NOT: ENUM_DECL
+
+
+// <rdar://problem/17251682>
+struct StructWithInheritedConformances: Sequence {
+  struct EmptyIterator : IteratorProtocol {
+    mutating fn next() -> Int? {
+      return nil
+    }
+  }
+
+  fn makeIterator() -> EmptyIterator {
+    return EmptyIterator()
+  }
+}
+
+// https://github.com/apple/language/issues/45181
+// An associated type inside a private protocol would cause crashes during
+// module merging.
+private protocol SomeProto {
+  // THIS-FILE-DAG: ASSOCIATED_TYPE_DECL
+  associatedtype Item
+}
+
+private struct Generic<T> {
+  // THIS-FILE-DAG: GENERIC_TYPE_PARAM_DECL
+}
+
+class Sub: Base {
+  override class var conflict: Int { return 100 }
+  override var conflict: Int { return 200 }
+}

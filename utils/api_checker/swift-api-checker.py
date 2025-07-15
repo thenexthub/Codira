@@ -76,8 +76,8 @@ def prepare_module_list(platform, file, verbose, module_filter_flags,
     if verbose:
         cmd.extend(['--v'])
     check_call(cmd, verbose=verbose, output=file)
-    # Always include fixed swift modules
-    write_fixed_module(file, platform, 'swift', verbose)
+    # Always include fixed language modules
+    write_fixed_module(file, platform, 'language', verbose)
     # Check if we need fixed clang modules
     if include_fixed_clang_modules:
         write_fixed_module(file, platform, 'clang', verbose)
@@ -86,7 +86,7 @@ def prepare_module_list(platform, file, verbose, module_filter_flags,
 def get_api_digester_path(tool_path):
     if tool_path:
         return tool_path
-    return check_output(['xcrun', '--find', 'swift-api-digester'])
+    return check_output(['xcrun', '--find', 'language-api-digester'])
 
 
 def create_directory(path):
@@ -112,7 +112,7 @@ class DumpConfig:
         self.abi = abi
         if self.platform == 'macosx':
             # We need this input search path for CreateML
-            self.inputs.extend([self.sdk + '/usr/lib/swift/'])
+            self.inputs.extend([self.sdk + '/usr/lib/language/'])
         # This is where XCTest is
         self.frameworks = [self.sdk + '/../../Library/Frameworks/']
         if self.platform.startswith('iosmac'):
@@ -121,7 +121,7 @@ class DumpConfig:
                 '/System/iOSSupport/System/Library/Frameworks'
             self.frameworks.extend([iOSSupport])
         self._environ = dict(os.environ)
-        self._environ['SWIFT_FORCE_MODULE_LOADING'] = 'prefer-interface'
+        self._environ['LANGUAGE_FORCE_MODULE_LOADING'] = 'prefer-interface'
         self.verbose = verbose
 
     def dumpZipperedContent(self, cmd, output, module):
@@ -138,19 +138,19 @@ class DumpConfig:
         current_cmd.extend(['-o', file_path])
         check_call(current_cmd, env=self._environ, verbose=self.verbose)
 
-    def run(self, output, module, swift_ver, opts,
+    def run(self, output, module, language_ver, opts,
             module_filter_flags, include_fixed_clang_modules,
             separate_by_module, zippered):
         cmd = [self.tool_path, '-sdk', self.sdk, '-target',
                self.target, '-dump-sdk', '-module-cache-path',
-               '/tmp/ModuleCache', '-swift-version',
-               swift_ver, '-abort-on-module-fail']
+               '/tmp/ModuleCache', '-language-version',
+               language_ver, '-abort-on-module-fail']
         for path in self.frameworks:
-            cmd.extend(['-iframework', path])
+            cmd.extend(['-Fsystem', path])
         for path in self.inputs:
             cmd.extend(['-I', path])
         if self.abi:
-            cmd.extend(['-abi', '-swift-only'])
+            cmd.extend(['-abi', '-language-only'])
         cmd.extend(['-' + o for o in opts])
         if self.verbose:
             cmd.extend(['-v'])
@@ -203,18 +203,18 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description='''
-A convenient wrapper for swift-api-digester.
+A convenient wrapper for language-api-digester.
 ''')
 
     basic_group = parser.add_argument_group('Basic')
 
     basic_group.add_argument('--tool-path', default=None, help='''
-        the path to a swift-api-digester; if not specified, the script will
+        the path to a language-api-digester; if not specified, the script will
         use the one from the toolchain
         ''')
 
     basic_group.add_argument('--action', default='', help='''
-        the action to perform for swift-api-digester
+        the action to perform for language-api-digester
         ''')
 
     basic_group.add_argument('--target', default=None, help='''
@@ -225,8 +225,8 @@ A convenient wrapper for swift-api-digester.
         the output file of the module baseline should end with .json
         ''')
 
-    basic_group.add_argument('--swift-version', default='5', help='''
-        Swift version to use; default is 5
+    basic_group.add_argument('--language-version', default='5', help='''
+        Codira version to use; default is 5
         ''')
 
     basic_group.add_argument('--module', default=None, help='''
@@ -234,11 +234,11 @@ A convenient wrapper for swift-api-digester.
         ''')
 
     basic_group.add_argument('--module-filter', default='', help='''
-        the action to perform for swift-api-digester
+        the action to perform for language-api-digester
         ''')
 
     basic_group.add_argument('--opts', nargs='+', default=[], help='''
-        additional flags to pass to swift-api-digester
+        additional flags to pass to language-api-digester
         ''')
 
     basic_group.add_argument('--v',
@@ -286,11 +286,11 @@ A convenient wrapper for swift-api-digester.
         if args.module_filter == '':
             module_filter_flags = []
             include_fixed_clang_modules = True
-        elif args.module_filter == 'swift-frameworks-only':
-            module_filter_flags = ['--swift-frameworks-only']
+        elif args.module_filter == 'language-frameworks-only':
+            module_filter_flags = ['--language-frameworks-only']
             include_fixed_clang_modules = False
-        elif args.module_filter == 'swift-overlay-only':
-            module_filter_flags = ['--swift-overlay-only']
+        elif args.module_filter == 'language-overlay-only':
+            module_filter_flags = ['--language-overlay-only']
             include_fixed_clang_modules = False
         else:
             fatal_error("cannot recognize --module-filter")
@@ -301,7 +301,7 @@ A convenient wrapper for swift-api-digester.
                             abi=args.abi,
                             verbose=args.v)
         runner.run(output=args.output, module=args.module,
-                   swift_ver=args.swift_version, opts=args.opts,
+                   language_ver=args.code_version, opts=args.opts,
                    module_filter_flags=module_filter_flags,
                    include_fixed_clang_modules=include_fixed_clang_modules,
                    separate_by_module=args.separate_by_module,

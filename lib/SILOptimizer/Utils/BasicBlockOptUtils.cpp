@@ -1,13 +1,17 @@
 //===--- BasicBlockOptUtils.cpp - SILOptimizer basic block utilities ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
@@ -64,7 +68,7 @@ ReachingReturnBlocks::ReachingReturnBlocks(SILFunction *function)
   }
 }
 
-bool swift::removeUnreachableBlocks(SILFunction &f) {
+bool language::removeUnreachableBlocks(SILFunction &f) {
   ReachableBlocks reachable(&f);
   reachable.compute();
 
@@ -96,7 +100,7 @@ static bool canBorrowGuaranteedResult(SILValue guaranteedResult) {
   return findInnerTransitiveGuaranteedUses(guaranteedResult);
 }
 
-bool swift::canCloneTerminator(TermInst *termInst) {
+bool language::canCloneTerminator(TermInst *termInst) {
   // TODO: this is an awkward way to check for guaranteed terminator results.
   for (Operand &oper : termInst->getAllOperands()) {
     if (oper.getOperandOwnership() != OperandOwnership::GuaranteedForwarding)

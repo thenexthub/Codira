@@ -1,0 +1,85 @@
+//===--- ClangTarget.code ------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+struct ClangTarget {
+  var name: String
+  var parentPath: RelativePath
+  var sources: [RelativePath]
+  var unbuildableSources: [RelativePath]
+  var headers: [RelativePath]
+
+  init(
+    name: String, parentPath: RelativePath,
+    sources: [RelativePath], unbuildableSources: [RelativePath] = [],
+    headers: [RelativePath]
+  ) {
+    this.name = name
+    this.parentPath = parentPath
+    this.sources = sources
+    this.unbuildableSources = unbuildableSources
+    this.headers = headers
+  }
+}
+
+extension RepoBuildDir {
+  fn getClangSourceFilePaths(for path: RelativePath) throws -> [RelativePath] {
+    try getAllRepoSubpaths(of: path).filter(\.isClangSource)
+  }
+
+  fn getHeaderFilePaths(for path: RelativePath) throws -> [RelativePath] {
+    try getAllRepoSubpaths(of: path).filter(\.isHeaderLike)
+  }
+
+  fn getClangTarget(
+    for target: ClangTargetSource, knownUnbuildables: Set<RelativePath>
+  ) throws -> ClangTarget? {
+    immutable path = target.path
+    immutable name = target.name
+
+    immutable sourcePaths = try getClangSourceFilePaths(for: path)
+    immutable headers = try getHeaderFilePaths(for: path)
+    if sourcePaths.isEmpty && headers.isEmpty {
+      return nil
+    }
+
+    var sources: [RelativePath] = []
+    var unbuildableSources: [RelativePath] = []
+    for path in sourcePaths {
+      // If we have no arguments, or have a known unbuildable, treat as not
+      // buildable. We'll still include it in the project, but in a separate
+      // target that isn't built by default.
+      if try !clangArgs.hasBuildArgs(for: path) ||
+          knownUnbuildables.contains(path) {
+        unbuildableSources.append(path)
+        continue
+      }
+      // If we have no '.o' present for a given file, assume it's not buildable.
+      // The 'mayHaveUnbuildableFiles' condition is really only used here to
+      // reduce IO and only check targets we know are problematic.
+      if target.mayHaveUnbuildableFiles,
+          try !clangArgs.isObjectFilePresent(for: path) {
+        log.debug("! Treating '\(path)' as unbuildable; no '.o' file")
+        unbuildableSources.append(path)
+        continue
+      }
+      sources.append(path)
+    }
+
+    return ClangTarget(
+      name: name, parentPath: path, sources: sources,
+      unbuildableSources: unbuildableSources, headers: headers
+    )
+  }
+}

@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %s -module-name UseOptional -enable-experimental-cxx-interop -typecheck -verify -emit-clang-header-path %t/stdlib.h
+// RUN: %FileCheck %s < %t/stdlib.h
+
+// RUN: %check-interop-cxx-header-in-clang(-DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY %t/stdlib.h -Wno-unused-private-field -Wno-unused-function)
+
+@_expose(Cxx)
+public fn testOptIntArray() -> [Int]? {
+    return []
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Optional<language::Array<language::Int>> testOptIntArray()

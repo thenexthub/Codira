@@ -1,0 +1,31 @@
+//===--- CodiraStatistics.def - ----------------------------------*- C++ -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LANGUAGE_STATISTIC
+#error "must define LANGUAGE_STATISTIC to use"
+#endif
+
+/// LANGUAGE_STATISTIC(VAR_NAME, UNIQUE_ID, DESCRIPTION)
+
+LANGUAGE_STATISTIC(numASTBuilds, num-ast-builds, "# of ASTs built or rebuilt")
+LANGUAGE_STATISTIC(numASTsInMem, num-asts-in-memory, "# of ASTs currently in memory")
+LANGUAGE_STATISTIC(maxASTsInMem, max-asts-in-memory, "maximum # of ASTs ever in memory at once")
+LANGUAGE_STATISTIC(numASTCacheHits, num-ast-cache-hits, "# of ASTs found in the cache without rebuilding")
+LANGUAGE_STATISTIC(numASTsUsedWithSnapshots, num-ast-snapshot-uses, "# of ASTs used with snapshots without rebuilding")
+
+LANGUAGE_STATISTIC(numOpenDocs, num-open-documents, "# of editor documents currently open")
+LANGUAGE_STATISTIC(maxOpenDocs, max-open-documents, "maximum # of editor documents ever open at once")
+
+#undef LANGUAGE_STATISTIC

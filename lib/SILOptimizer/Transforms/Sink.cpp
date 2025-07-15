@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -35,8 +36,8 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -167,6 +168,6 @@ public:
 };
 } // end anonymous namespace
 
-SILTransform *swift::createCodeSinking() {
+SILTransform *language::createCodeSinking() {
   return new CodeSinkingPass();
 }

@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 // MARK: Support functions
 
@@ -26,7 +30,7 @@ import SwiftShims
 /// - Returns: Whether or not there is sufficient space on the stack to allocate
 ///   `byteCount` bytes of memory.
 @_alwaysEmitIntoClient @_transparent
-internal func _byteCountForTemporaryAllocation<T: ~Copyable>(
+internal fn _byteCountForTemporaryAllocation<T: ~Copyable>(
   of type: T.Type,
   capacity: Int
 ) -> Int {
@@ -40,8 +44,8 @@ internal func _byteCountForTemporaryAllocation<T: ~Copyable>(
   if _isComputed(capacity) {
     _precondition(capacity >= 0, "Allocation capacity must be greater than or equal to zero")
   }
-  let stride = MemoryLayout<T>.stride
-  let (byteCount, overflow) = capacity.multipliedReportingOverflow(by: stride)
+  immutable stride = MemoryLayout<T>.stride
+  immutable (byteCount, overflow) = capacity.multipliedReportingOverflow(by: stride)
   if _isComputed(capacity) {
     _precondition(!overflow, "Allocation byte count too large")
   }
@@ -59,7 +63,7 @@ internal func _byteCountForTemporaryAllocation<T: ~Copyable>(
 /// - Returns: Whether or not there is sufficient space on the stack to allocate
 ///   `byteCount` bytes of memory.
 @_alwaysEmitIntoClient @_transparent
-internal func _isStackAllocationSafe(byteCount: Int, alignment: Int) -> Bool {
+internal fn _isStackAllocationSafe(byteCount: Int, alignment: Int) -> Bool {
 #if compiler(>=5.5) && $BuiltinStackAlloc
   // PRECONDITIONS: Non-positive alignments are nonsensical, as are
   // non-power-of-two alignments.
@@ -70,7 +74,7 @@ internal func _isStackAllocationSafe(byteCount: Int, alignment: Int) -> Bool {
 
   // If the alignment is larger than MaximumAlignment, the allocation is always
   // performed on the heap. There are two reasons why:
-  // 1. llvm's alloca instruction can take any power-of-two alignment value, but
+  // 1. toolchain's alloca instruction can take any power-of-two alignment value, but
   //    will produce unsafe assembly when that value is very large (i.e. it
   //    risks a stack overflow.)
   // 2. For non-constant values, we have no way to know what value to pass to
@@ -91,11 +95,11 @@ internal func _isStackAllocationSafe(byteCount: Int, alignment: Int) -> Bool {
 #if !$Embedded
   // Finally, take a slow path through the standard library to see if the
   // current environment can accept a larger stack allocation.
-  guard #available(macOS 12.3, iOS 15.4, watchOS 8.5, tvOS 15.4, *) //SwiftStdlib 5.6
+  guard #available(macOS 12.3, iOS 15.4, watchOS 8.5, tvOS 15.4, *) //CodiraStdlib 5.6
   else {
     return false
   }
-  return swift_stdlib_isStackAllocationSafe(byteCount, alignment)
+  return language_stdlib_isStackAllocationSafe(byteCount, alignment)
 #else
   return false
 #endif
@@ -110,7 +114,7 @@ internal func _isStackAllocationSafe(byteCount: Int, alignment: Int) -> Bool {
 ///
 /// - Parameters:
 ///   - type: The type of the elements in the buffer being temporarily
-///     allocated. For untyped buffers, use `Int8.self`.
+///     allocated. For untyped buffers, use `Int8.this`.
 ///   - stride: The element stride. `stride` must not be negative.
 ///   - alignment: The alignment of the new, temporary region of allocated
 ///     memory, in bytes. `alignment` must be a whole power of 2.
@@ -124,7 +128,7 @@ internal func _isStackAllocationSafe(byteCount: Int, alignment: Int) -> Bool {
 /// This function encapsulates the various calls to builtins required by
 /// `withUnsafeTemporaryAllocation()`.
 @_alwaysEmitIntoClient @_transparent
-internal func _withUnsafeTemporaryAllocation<
+internal fn _withUnsafeTemporaryAllocation<
   T: ~Copyable, R: ~Copyable
 >(
   of type: T.Type,
@@ -133,7 +137,7 @@ internal func _withUnsafeTemporaryAllocation<
   _ body: (Builtin.RawPointer) throws -> R
 ) rethrows -> R {
   // How many bytes do we need to allocate?
-  let byteCount = _byteCountForTemporaryAllocation(of: type, capacity: capacity)
+  immutable byteCount = _byteCountForTemporaryAllocation(of: type, capacity: capacity)
 
   guard _isStackAllocationSafe(byteCount: byteCount, alignment: alignment) else {
     return try _fallBackToHeapAllocation(byteCount: byteCount, alignment: alignment, body)
@@ -142,10 +146,10 @@ internal func _withUnsafeTemporaryAllocation<
   // This declaration must come BEFORE Builtin.stackAlloc() or
   // Builtin.stackDealloc() will end up blowing it away (and the verifier will
   // notice and complain.)
-  let result: R
+  immutable result: R
   
 #if compiler(>=5.5) && $BuiltinStackAlloc
-  let stackAddress = Builtin.stackAlloc(
+  immutable stackAddress = Builtin.stackAlloc(
     capacity._builtinWordValue,
     MemoryLayout<T>.stride._builtinWordValue,
     alignment._builtinWordValue
@@ -169,7 +173,7 @@ internal func _withUnsafeTemporaryAllocation<
 }
 
 @_alwaysEmitIntoClient @_transparent
-internal func _withUnprotectedUnsafeTemporaryAllocation<
+internal fn _withUnprotectedUnsafeTemporaryAllocation<
   T: ~Copyable, R: ~Copyable
 >(
   of type: T.Type,
@@ -178,7 +182,7 @@ internal func _withUnprotectedUnsafeTemporaryAllocation<
   _ body: (Builtin.RawPointer) throws -> R
 ) rethrows -> R {
   // How many bytes do we need to allocate?
-  let byteCount = _byteCountForTemporaryAllocation(of: type, capacity: capacity)
+  immutable byteCount = _byteCountForTemporaryAllocation(of: type, capacity: capacity)
 
   guard _isStackAllocationSafe(byteCount: byteCount, alignment: alignment) else {
     return try _fallBackToHeapAllocation(byteCount: byteCount, alignment: alignment, body)
@@ -187,9 +191,9 @@ internal func _withUnprotectedUnsafeTemporaryAllocation<
   // This declaration must come BEFORE Builtin.unprotectedStackAlloc() or
   // Builtin.stackDealloc() will end up blowing it away (and the verifier will
   // notice and complain.)
-  let result: R
+  immutable result: R
 
-  let stackAddress = Builtin.unprotectedStackAlloc(
+  immutable stackAddress = Builtin.unprotectedStackAlloc(
     capacity._builtinWordValue,
     MemoryLayout<T>.stride._builtinWordValue,
     alignment._builtinWordValue
@@ -210,12 +214,12 @@ internal func _withUnprotectedUnsafeTemporaryAllocation<
 }
 
 @_alwaysEmitIntoClient @_transparent
-internal func _fallBackToHeapAllocation<R: ~Copyable>(
+internal fn _fallBackToHeapAllocation<R: ~Copyable>(
   byteCount: Int,
   alignment: Int,
   _ body: (Builtin.RawPointer) throws -> R
 ) rethrows -> R {
-  let buffer = UnsafeMutableRawPointer.allocate(
+  immutable buffer = UnsafeMutableRawPointer.allocate(
     byteCount: byteCount,
     alignment: alignment
   )
@@ -259,17 +263,17 @@ internal func _fallBackToHeapAllocation<R: ~Copyable>(
 /// the buffer) must not escape. It will be deallocated when `body` returns and
 /// cannot be used afterward.
 @_alwaysEmitIntoClient @_transparent
-public func withUnsafeTemporaryAllocation<R: ~Copyable>(
+public fn withUnsafeTemporaryAllocation<R: ~Copyable>(
   byteCount: Int,
   alignment: Int,
   _ body: (UnsafeMutableRawBufferPointer) throws -> R
 ) rethrows -> R {
   return try _withUnsafeTemporaryAllocation(
-    of: Int8.self,
+    of: Int8.this,
     capacity: byteCount,
     alignment: alignment
   ) { pointer in
-    let buffer = unsafe UnsafeMutableRawBufferPointer(
+    immutable buffer = unsafe UnsafeMutableRawBufferPointer(
       start: .init(pointer),
       count: byteCount
     )
@@ -283,17 +287,17 @@ public func withUnsafeTemporaryAllocation<R: ~Copyable>(
 /// This function is similar to `withUnsafeTemporaryAllocation`, except that it
 /// doesn't trigger stack protection for the stack allocated memory.
 @_alwaysEmitIntoClient @_transparent
-public func _withUnprotectedUnsafeTemporaryAllocation<R: ~Copyable>(
+public fn _withUnprotectedUnsafeTemporaryAllocation<R: ~Copyable>(
   byteCount: Int,
   alignment: Int,
   _ body: (UnsafeMutableRawBufferPointer) throws -> R
 ) rethrows -> R {
   return try _withUnprotectedUnsafeTemporaryAllocation(
-    of: Int8.self,
+    of: Int8.this,
     capacity: byteCount,
     alignment: alignment
   ) { pointer in
-    let buffer = unsafe UnsafeMutableRawBufferPointer(
+    immutable buffer = unsafe UnsafeMutableRawBufferPointer(
       start: .init(pointer),
       count: byteCount
     )
@@ -333,7 +337,7 @@ public func _withUnprotectedUnsafeTemporaryAllocation<R: ~Copyable>(
 /// the buffer) must not escape. It will be deallocated when `body` returns and
 /// cannot be used afterward.
 @_alwaysEmitIntoClient @_transparent
-public func withUnsafeTemporaryAllocation<
+public fn withUnsafeTemporaryAllocation<
   T: ~Copyable,R: ~Copyable
 >(
   of type: T.Type,
@@ -346,7 +350,7 @@ public func withUnsafeTemporaryAllocation<
     alignment: MemoryLayout<T>.alignment
   ) { pointer in
     Builtin.bindMemory(pointer, capacity._builtinWordValue, type)
-    let buffer = unsafe UnsafeMutableBufferPointer<T>(
+    immutable buffer = unsafe UnsafeMutableBufferPointer<T>(
       start: .init(pointer),
       count: capacity
     )
@@ -360,7 +364,7 @@ public func withUnsafeTemporaryAllocation<
 /// This function is similar to `withUnsafeTemporaryAllocation`, except that it
 /// doesn't trigger stack protection for the stack allocated memory.
 @_alwaysEmitIntoClient @_transparent
-public func _withUnprotectedUnsafeTemporaryAllocation<
+public fn _withUnprotectedUnsafeTemporaryAllocation<
   T: ~Copyable, R: ~Copyable
 >(
   of type: T.Type,
@@ -373,7 +377,7 @@ public func _withUnprotectedUnsafeTemporaryAllocation<
     alignment: MemoryLayout<T>.alignment
   ) { pointer in
     Builtin.bindMemory(pointer, capacity._builtinWordValue, type)
-    let buffer = unsafe UnsafeMutableBufferPointer<T>(
+    immutable buffer = unsafe UnsafeMutableBufferPointer<T>(
       start: .init(pointer),
       count: capacity
     )

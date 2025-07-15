@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass eliminates store only alloc_ref objects that have destructors
@@ -48,8 +49,8 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -65,7 +66,7 @@ STATISTIC(DeadKeyPathEliminated,
 STATISTIC(DeadAllocApplyEliminated,
           "number of allocating Apply instructions removed");
 
-using UserList = llvm::SmallSetVector<SILInstruction *, 16>;
+using UserList = toolchain::SmallSetVector<SILInstruction *, 16>;
 
 namespace {
 
@@ -107,16 +108,16 @@ static SILFunction *getDestructor(AllocRefInstBase *ARI) {
   SILDeclRef Ref(Destructor);
   SILFunction *Fn = ARI->getModule().lookUpFunction(Ref);
   if (!Fn || Fn->empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "    Could not find destructor.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Could not find destructor.\n");
     return nullptr;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Found destructor!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found destructor!\n");
 
   // If the destructor has an objc_method calling convention, we cannot
   // analyze it since it could be swapped out from under us at runtime.
   if (Fn->getRepresentation() == SILFunctionTypeRepresentation::ObjCMethod) {
-    LLVM_DEBUG(llvm::dbgs() << "        Found Objective-C destructor. Can't "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found Objective-C destructor. Can't "
                "analyze!\n");
     return nullptr;
   }
@@ -149,17 +150,17 @@ static DestructorEffects doesDestructorHaveSideEffects(AllocRefInstBase *ARI) {
          "Destructor should have only one argument, self.");
   SILArgument *Self = Fn->begin()->getArgument(0);
 
-  LLVM_DEBUG(llvm::dbgs() << "    Analyzing destructor.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Analyzing destructor.\n");
 
   // For each BB in the destructor...
   for (auto &BB : *Fn) {
     // For each instruction I in BB...
     for (auto &I : BB) {
-      LLVM_DEBUG(llvm::dbgs() << "        Visiting: " << I);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Visiting: " << I);
 
       // If I has no side effects, we can ignore it.
       if (!I.mayHaveSideEffects()) {
-        LLVM_DEBUG(llvm::dbgs() << "            SAFE! Instruction has no side "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            SAFE! Instruction has no side "
                    "effects.\n");
         continue;
       }
@@ -181,28 +182,28 @@ static DestructorEffects doesDestructorHaveSideEffects(AllocRefInstBase *ARI) {
           // just in case.
           assert(RefInst->getNumOperands() == 1 &&
                  "Make sure RefInst only has one argument.");
-          LLVM_DEBUG(llvm::dbgs() << "            SAFE! Ref count operation on "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "            SAFE! Ref count operation on "
                                      "Self.\n");
           continue;
         }
-        LLVM_DEBUG(llvm::dbgs() << "            UNSAFE! Ref count operation "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            UNSAFE! Ref count operation "
                                    "not on self.\n");
         return DestructorEffects::Unknown;
       }
       if (auto *destroy = dyn_cast<DestroyValueInst>(&I)) {
         if (stripCasts(destroy->getOperand()) == Self) {
-          LLVM_DEBUG(llvm::dbgs() << "            SAFE! Ref count operation on "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "            SAFE! Ref count operation on "
                                      "Self.\n");
           continue;
         }
-        LLVM_DEBUG(llvm::dbgs() << "            UNSAFE! Ref count operation "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            UNSAFE! Ref count operation "
                                    "not on self.\n");
         return DestructorEffects::Unknown;
       }
 
       // dealloc_stack can be ignored.
       if (isa<DeallocStackInst>(I)) {
-        LLVM_DEBUG(llvm::dbgs() << "            SAFE! dealloc_stack can be "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            SAFE! dealloc_stack can be "
                    "ignored.\n");
         continue;
       }
@@ -215,10 +216,10 @@ static DestructorEffects doesDestructorHaveSideEffects(AllocRefInstBase *ARI) {
       // cannot be eliminated.
       if (auto *DeallocRef = dyn_cast<DeallocRefInst>(&I)) {
         if (stripCasts(DeallocRef->getOperand()) == Self) {
-          LLVM_DEBUG(llvm::dbgs() <<"            SAFE! dealloc_ref on self.\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() <<"            SAFE! dealloc_ref on self.\n");
           continue;
         } else {
-          LLVM_DEBUG(llvm::dbgs() << "            UNSAFE! dealloc_ref on value "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "            UNSAFE! dealloc_ref on value "
                      "besides self.\n");
           return DestructorEffects::Unknown;
         }
@@ -227,7 +228,7 @@ static DestructorEffects doesDestructorHaveSideEffects(AllocRefInstBase *ARI) {
       // Storing into the object can be ignored.
       if (auto *SI = dyn_cast<StoreInst>(&I))
         if (stripAddressProjections(SI->getDest()) == Self) {
-          LLVM_DEBUG(llvm::dbgs() << "            SAFE! Instruction is a store "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "            SAFE! Instruction is a store "
                      "into self.\n");
           continue;
         }
@@ -247,7 +248,7 @@ static DestructorEffects doesDestructorHaveSideEffects(AllocRefInstBase *ARI) {
           continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "            UNSAFE! Unknown instruction.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            UNSAFE! Unknown instruction.\n");
       // Otherwise, we can't remove the deallocation completely.
       return DestructorEffects::Unknown;
     }
@@ -348,7 +349,7 @@ static bool onlyStoresToTailObjects(BuiltinInst *destroyArray,
     return false;
   int numDestroyed = literal->getValue().getSExtValue();
   
-  SILFunction *func = destroyArray->getFunction();
+  SILFunction *fn = destroyArray->getFunction();
   SILBasicBlock *storesBlock = nullptr;
 
   // Check if the destroyArray destroys the tail elements of allocRef.
@@ -386,7 +387,7 @@ static bool onlyStoresToTailObjects(BuiltinInst *destroyArray,
       return false;
 
     // We don't care about trivial stores.
-    if (store->getSrc()->getType().isTrivial(*func))
+    if (store->getSrc()->getType().isTrivial(*fn))
       continue;
     
     // Check if it's a store to the tail elements.
@@ -430,7 +431,7 @@ hasUnremovableUsers(SILInstruction *allocation, UserList *Users,
   SmallVector<SILInstruction *, 16> Worklist;
   Worklist.push_back(allocation);
 
-  LLVM_DEBUG(llvm::dbgs() << "    Analyzing Use Graph.");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Analyzing Use Graph.");
 
   SmallVector<RefElementAddrInst *, 8> refElementAddrs;
 
@@ -440,12 +441,12 @@ hasUnremovableUsers(SILInstruction *allocation, UserList *Users,
   while (!Worklist.empty()) {
     SILInstruction *I = Worklist.pop_back_val();
 
-    LLVM_DEBUG(llvm::dbgs() << "        Visiting: " << *I);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Visiting: " << *I);
 
     // Insert the instruction into our InvolvedInstructions set.  If we have
     // already seen it, then don't reprocess all of the uses.
     if (Users && !Users->insert(I)) {
-      LLVM_DEBUG(llvm::dbgs() << "        Already seen skipping...\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Already seen skipping...\n");
       continue;
     } else if (auto *rea = dyn_cast<RefElementAddrInst>(I)) {
       if (rea != allocation && !rea->getType().isTrivial(*rea->getFunction()))
@@ -456,7 +457,7 @@ hasUnremovableUsers(SILInstruction *allocation, UserList *Users,
       destroyArray = cast<BuiltinInst>(I);
     } else if (!canZapInstruction(I, acceptRefCountInsts,
                                   onlyAcceptTrivialStores)) {
-      LLVM_DEBUG(llvm::dbgs() << "        Found instruction we can't zap...\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found instruction we can't zap...\n");
       return true;
     }
 
@@ -471,7 +472,7 @@ hasUnremovableUsers(SILInstruction *allocation, UserList *Users,
         // users which would be an escape.
         if (auto *SI = dyn_cast<StoreInst>(User))
           if (Op->get() == SI->getSrc()) {
-            LLVM_DEBUG(llvm::dbgs() << "        Found store of pointer. "
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found store of pointer. "
                                        "Failure: "
                                     << *SI);
             return true;
@@ -517,7 +518,7 @@ class DeadObjectAnalysis {
   // Map each address projection of this object to a list of stores.
   // Do not iterate over this map's entries.
   using AddressToStoreMap =
-    llvm::DenseMap<IndexTrieNode*, llvm::SmallVector<StoreInst*, 4> >;
+    toolchain::DenseMap<IndexTrieNode*, toolchain::SmallVector<StoreInst*, 4> >;
 
   // The value of the object's address at the point of allocation.
   SILValue NewAddrValue;
@@ -620,7 +621,7 @@ recursivelyCollectInteriorUses(ValueBase *DefInst,
     if (auto *Store = dyn_cast<StoreInst>(User)) {
       // Bail if this address is stored to another object.
       if (Store->getDest() != DefInst) {
-        LLVM_DEBUG(llvm::dbgs() <<"        Found an escaping store: " << *User);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() <<"        Found an escaping store: " << *User);
         return false;
       }
       IndexTrieNode *StoreAddrNode = AddressNode;
@@ -688,14 +689,14 @@ recursivelyCollectInteriorUses(ValueBase *DefInst,
         continue;
       }
       ArraySemanticsCall AS(svi);
-      if (AS.getKind() == swift::ArrayCallKind::kArrayFinalizeIntrinsic) {
+      if (AS.getKind() == language::ArrayCallKind::kArrayFinalizeIntrinsic) {
         if (!recursivelyCollectInteriorUses(svi, AddressNode, IsInteriorAddress))
           return false;
         continue;
       }
     }
     // Otherwise bail.
-    LLVM_DEBUG(llvm::dbgs() << "        Found an escaping use: " << *User);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found an escaping use: " << *User);
     return false;
   }
   return true;
@@ -704,7 +705,7 @@ recursivelyCollectInteriorUses(ValueBase *DefInst,
 // Track the lifetime, release points, and released values referenced by a
 // newly allocated object.
 bool DeadObjectAnalysis::analyze() {
-  LLVM_DEBUG(llvm::dbgs() << "    Analyzing nontrivial dead object: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Analyzing nontrivial dead object: "
                           << NewAddrValue);
 
   // Populate AllValues, AddressProjectionTrie, and StoredLocations.
@@ -781,7 +782,7 @@ static bool isAllocatingApply(SILInstruction *Inst) {
 namespace {
 class DeadObjectElimination : public SILFunctionTransform {
 
-  llvm::DenseMap<SILType, DestructorEffects> DestructorAnalysisCache;
+  toolchain::DenseMap<SILType, DestructorEffects> DestructorAnalysisCache;
 
   InstructionDeleter deleter;
   DominanceInfo *domInfo = nullptr;
@@ -809,7 +810,7 @@ class DeadObjectElimination : public SILFunctionTransform {
                                   const UserList &users);
 
   bool getDeadInstsAfterInitializerRemoved(
-    ApplyInst *AI, llvm::SmallVectorImpl<SILInstruction *> &ToDestroy);
+    ApplyInst *AI, toolchain::SmallVectorImpl<SILInstruction *> &ToDestroy);
   bool removeAndReleaseArray(
     SingleValueInstruction *NewArrayValue, DeadEndBlocks &DEBlocks);
 
@@ -817,7 +818,7 @@ class DeadObjectElimination : public SILFunctionTransform {
     DeadEndBlocks DEBlocks(&Fn);
     DestructorAnalysisCache.clear();
 
-    LLVM_DEBUG(llvm::dbgs() << "Processing " << Fn.getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing " << Fn.getName() << "\n");
 
     bool Changed = false;
 
@@ -938,7 +939,7 @@ bool DeadObjectElimination::processAllocRef(AllocRefInstBase *ARI) {
   if (hasUnremovableUsers(ARI, &UsersToRemove,
       /*acceptRefCountInsts=*/ destructorEffects != DestructorEffects::Unknown,
       /*onlyAcceptTrivialStores*/false)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found a use that cannot be zapped...\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found a use that cannot be zapped...\n");
     return false;
   }
 
@@ -990,7 +991,7 @@ bool DeadObjectElimination::processAllocRef(AllocRefInstBase *ARI) {
   // Remove the AllocRef and all of its users.
   removeInstructions(
     ArrayRef<SILInstruction*>(UsersToRemove.begin(), UsersToRemove.end()));
-  LLVM_DEBUG(llvm::dbgs() << "    Success! Eliminating alloc_ref.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Success! Eliminating alloc_ref.\n");
 
   ++DeadAllocRefEliminated;
   return true;
@@ -1006,7 +1007,7 @@ bool DeadObjectElimination::processAllocStack(AllocStackInst *ASI) {
   UserList UsersToRemove;
   if (hasUnremovableUsers(ASI, &UsersToRemove, /*acceptRefCountInsts=*/true,
                           onlyAcceptTrivialStores)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found a use that cannot be zapped...\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found a use that cannot be zapped...\n");
     return false;
   }
 
@@ -1040,7 +1041,7 @@ bool DeadObjectElimination::processAllocStack(AllocStackInst *ASI) {
   // Remove the AllocRef and all of its users.
   removeInstructions(
     ArrayRef<SILInstruction*>(UsersToRemove.begin(), UsersToRemove.end()));
-  LLVM_DEBUG(llvm::dbgs() << "    Success! Eliminating alloc_stack.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Success! Eliminating alloc_stack.\n");
 
   ++DeadAllocStackEliminated;
   return true;
@@ -1050,7 +1051,7 @@ bool DeadObjectElimination::processKeyPath(KeyPathInst *KPI) {
   UserList UsersToRemove;
   if (hasUnremovableUsers(KPI, &UsersToRemove, /*acceptRefCountInsts=*/ true,
       /*onlyAcceptTrivialStores*/ false)) {
-    LLVM_DEBUG(llvm::dbgs() << "    Found a use that cannot be zapped...\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found a use that cannot be zapped...\n");
     return false;
   }
 
@@ -1091,7 +1092,7 @@ bool DeadObjectElimination::processKeyPath(KeyPathInst *KPI) {
   // Remove the keypath and all of its users.
   removeInstructions(
     ArrayRef<SILInstruction*>(UsersToRemove.begin(), UsersToRemove.end()));
-  LLVM_DEBUG(llvm::dbgs() << "    Success! Eliminating keypath.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Success! Eliminating keypath.\n");
 
   ++DeadKeyPathEliminated;
   return true;
@@ -1101,7 +1102,7 @@ bool DeadObjectElimination::processKeyPath(KeyPathInst *KPI) {
 /// an alloc_ref to initialize in place, validate that we are able to continue
 /// optimizing and return To
 bool DeadObjectElimination::getDeadInstsAfterInitializerRemoved(
-    ApplyInst *AI, llvm::SmallVectorImpl<SILInstruction *> &ToDestroy) {
+    ApplyInst *AI, toolchain::SmallVectorImpl<SILInstruction *> &ToDestroy) {
   assert(ToDestroy.empty() && "We assume that ToDestroy is empty, so on "
                               "failure we can clear without worrying about the "
                               "caller accumulating and thus our eliminating "
@@ -1249,7 +1250,7 @@ bool DeadObjectElimination::processAllocApply(ApplyInst *AI,
   if (!isAllocatingApply(AI))
     return false;
 
-  llvm::SmallVector<SILInstruction *, 8> instsDeadAfterInitializerRemoved;
+  toolchain::SmallVector<SILInstruction *, 8> instsDeadAfterInitializerRemoved;
   if (!getDeadInstsAfterInitializerRemoved(AI,
                                            instsDeadAfterInitializerRemoved))
     return false;
@@ -1257,7 +1258,7 @@ bool DeadObjectElimination::processAllocApply(ApplyInst *AI,
   if (!removeAndReleaseArray(AI, DEBlocks))
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "    Success! Eliminating apply allocate(...).\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Success! Eliminating apply allocate(...).\n");
 
   auto *ARI = dyn_cast<AllocRefInst>(AI->getArgument(0));
 
@@ -1305,6 +1306,6 @@ bool DeadObjectElimination::insertCompensatingReleases(SILInstruction *before,
 //                              Top Level Driver
 //===----------------------------------------------------------------------===//
 
-SILTransform *swift::createDeadObjectElimination() {
+SILTransform *language::createDeadObjectElimination() {
   return new DeadObjectElimination();
 }

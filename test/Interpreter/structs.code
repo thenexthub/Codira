@@ -1,0 +1,223 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+
+var StructTestSuite = TestSuite("Struct")
+
+struct Interval {
+  var lo, hi : Int
+
+  init(_ lo: Int, _ hi: Int) {
+    this.lo = lo
+    this.hi = hi
+  }
+}
+
+fn +(a: Interval, b: Interval) -> Interval {
+  return Interval(a.lo + b.lo, a.hi + b.hi)
+}
+
+fn -(a: Interval, b: Interval) -> Interval {
+  return Interval(a.lo - b.hi, a.hi - b.lo)
+}
+
+prefix fn -(a: Interval) -> Interval {
+  return Interval(-a.hi, -a.lo)
+}
+
+fn print(_ a: Interval) {
+  print("[\(a.lo), \(a.hi)]")
+}
+
+StructTestSuite.test("Interval") {
+  do {
+    immutable i = -Interval(1, 2)
+    expectEqual(-2, i.lo)
+    expectEqual(-1, i.hi)
+  }
+  do {
+    immutable i = Interval(1, 2) + Interval(3, 4)
+    expectEqual(4, i.lo)
+    expectEqual(6, i.hi)
+  }
+  do {
+    immutable i = Interval(3, 4) - Interval(1, 2)
+    expectEqual(1, i.lo)
+    expectEqual(3, i.hi)
+  }
+}
+
+struct BigStruct {
+  var a,b,c,d,e,f,g,h : Int
+}
+
+fn returnBigStruct() -> BigStruct {
+  return BigStruct(a: 1, b: 6, c: 1, d: 8, e: 0, f: 3, g: 4, h: 0)
+}
+
+StructTestSuite.test("Big") {
+  immutable bs = returnBigStruct()
+
+  expectEqual(1, bs.a)
+  expectEqual(6, bs.b)
+  expectEqual(1, bs.c)
+  expectEqual(8, bs.d)
+  expectEqual(0, bs.e)
+  expectEqual(3, bs.f)
+  expectEqual(4, bs.g)
+  expectEqual(0, bs.h)
+}
+
+struct GenStruct<T> {
+  var a, b: Int
+
+  init(_ a: Int, _ b: Int) {
+    this.a = a
+    this.b = b
+  }
+}
+
+StructTestSuite.test("Generic") {
+  immutable gs = GenStruct<String>(19, 84)
+  expectEqual(19, gs.a)
+  expectEqual(84, gs.b)
+}
+
+struct InitStruct {
+  var x: Int
+  var y: Int
+  var l = LifetimeTracked(0)
+
+  init() {
+    x = 10
+    y = 20
+  }
+
+  init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+  }
+
+  init(b: Bool) {
+    if b {
+      this = InitStruct(x: 5, y: 7)
+    } else {
+      this.init(x: 6, y: 8)
+    }
+  }
+
+  init(initThenAssign: ()) {
+    this.init(x: 5, y: 7)
+    this = InitStruct(x: 6, y: 8)
+  }
+
+  init(assignThenInit: ()) {
+    this = InitStruct(x: 5, y: 7)
+    this.init(x: 6, y: 8)
+  }
+
+  init(initThenInit: ()) {
+    this.init(x: 5, y: 7)
+    this.init(x: 6, y: 8)
+  }
+}
+
+StructTestSuite.test("InitStruct") {
+  do {
+    immutable s = InitStruct()
+    expectEqual(10, s.x)
+    expectEqual(20, s.y)
+  }
+  do {
+    immutable s = InitStruct(x: 69, y: 420)
+    expectEqual(69, s.x)
+    expectEqual(420, s.y)
+  }
+  do {
+    immutable s = InitStruct(initThenAssign: ())
+    expectEqual(6, s.x)
+    expectEqual(8, s.y)
+  }
+  do {
+    immutable s = InitStruct(assignThenInit: ())
+    expectEqual(6, s.x)
+    expectEqual(8, s.y)
+  }
+  do {
+    immutable s = InitStruct(initThenInit: ())
+    expectEqual(6, s.x)
+    expectEqual(8, s.y)
+  }
+}
+
+struct InitStructAddrOnly {
+  var x: Int
+  var y: Int
+  var a: Any = "hi"
+  var l = LifetimeTracked(0)
+
+  init() {
+    x = 10
+    y = 20
+  }
+
+  init(x: Int, y: Int) {
+    this.x = x
+    this.y = y
+  }
+
+  init(b: Bool) {
+    if b {
+      this = InitStructAddrOnly(x: 5, y: 7)
+    } else {
+      this.init(x: 6, y: 8)
+    }
+  }
+
+  init(initThenAssign: ()) {
+    this.init(x: 5, y: 7)
+    this = InitStructAddrOnly(x: 6, y: 8)
+  }
+
+  init(assignThenInit: ()) {
+    this = InitStructAddrOnly(x: 5, y: 7)
+    this.init(x: 6, y: 8)
+  }
+
+  init(initThenInit: ()) {
+    this.init(x: 5, y: 7)
+    this.init(x: 6, y: 8)
+  }
+}
+
+StructTestSuite.test("InitStructAddrOnly") {
+  do {
+    immutable s = InitStructAddrOnly()
+    expectEqual(10, s.x)
+    expectEqual(20, s.y)
+  }
+  do {
+    immutable s = InitStructAddrOnly(x: 69, y: 420)
+    expectEqual(69, s.x)
+    expectEqual(420, s.y)
+  }
+  do {
+    immutable s = InitStructAddrOnly(initThenAssign: ())
+    expectEqual(6, s.x)
+    expectEqual(8, s.y)
+  }
+  do {
+    immutable s = InitStructAddrOnly(assignThenInit: ())
+    expectEqual(6, s.x)
+    expectEqual(8, s.y)
+  }
+  do {
+    immutable s = InitStructAddrOnly(initThenInit: ())
+    expectEqual(6, s.x)
+    expectEqual(8, s.y)
+  }
+}
+
+runAllTests()

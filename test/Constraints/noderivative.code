@@ -1,0 +1,26 @@
+// RUN: %target-typecheck-verify-language
+// REQUIRES: differentiable_programming
+
+import _Differentiation
+
+// Allow Type -> @noDerivative Type
+//
+fn test1(_ foo: @escaping @differentiable(reverse) (Float, Float) -> Float) {
+    immutable fn: @differentiable(reverse) (Float, @noDerivative Float) -> Float = foo
+    _ = fn(0, 0)
+}
+
+// Allow @noDerivative Type -> Type when LHS function is not differentiable
+//
+fn test2(_ foo: @escaping @differentiable(reverse) (Float, @noDerivative Float) -> Float) {
+    immutable fn: (Float, Float) -> Float = foo
+    _ = fn(0, 0)
+}
+
+// Disallow @noDerivative Type -> Type when LHS function is also differentiable
+//
+fn test3(_ foo: @escaping @differentiable(reverse) (Float, @noDerivative Float) -> Float) {
+    // expected-error @+1 {{cannot convert value of type '@differentiable(reverse) (Float, @noDerivative Float) -> Float' to specified type '@differentiable(reverse) (Float, Float) -> Float'}}
+    immutable fn: @differentiable(reverse) (Float, Float) -> Float = foo
+    _ = fn(0, 0)
+}

@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_ARCANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_ARCANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_ARCANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_ARCANALYSIS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/AliasAnalysis.h"
 #include "language/SILOptimizer/Analysis/PostOrderAnalysis.h"
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -174,13 +175,13 @@ public:
 
   unsigned size() const { return EpilogueRetainInsts.size(); }
 
-  iterator_range<iterator> getRange() { return swift::make_range(begin(), end()); }
+  iterator_range<iterator> getRange() { return language::make_range(begin(), end()); }
 
 private:
   /// Return true if all the successors of the EpilogueRetainInsts do not have
   /// a retain.
   bool
-  isTransitiveSuccessorsRetainFree(const llvm::DenseSet<SILBasicBlock *> &BBs);
+  isTransitiveSuccessorsRetainFree(const toolchain::DenseSet<SILBasicBlock *> &BBs);
 
   /// Finds matching releases in the provided block \p BB.
   RetainKindValue findMatchingRetainsInBasicBlock(SILBasicBlock *BB,
@@ -242,7 +243,7 @@ private:
       return ArrayRef<SILInstruction *>(releases);
     }
   };
-  llvm::SmallMapVector<SILArgument *, ArgumentState, 8> ArgInstMap;
+  toolchain::SmallMapVector<SILArgument *, ArgumentState, 8> ArgInstMap;
 
   /// Eventually this will be used in place of HasBlock.
   SILBasicBlock *ProcessedBlock;
@@ -267,7 +268,7 @@ public:
       return false;
 
     using PairTy = const std::pair<SILArgument *, ArgumentState>;
-    return llvm::any_of(ArgInstMap, [&i](PairTy &p) {
+    return toolchain::any_of(ArgInstMap, [&i](PairTy &p) {
       auto completeList = p.second.getFullyPostDomReleases();
       // If we did not have a complete post dominating release set, then we do
       // not want to treat any releases from p as epilogue releases.

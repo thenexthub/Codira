@@ -1,0 +1,28 @@
+// RUN: %target-language-frontend -disable-availability-checking -emit-ir -verify %s
+
+// rdar://problem/53318811
+
+class Foo<T> {
+  var x: T { fatalError() }
+}
+
+fn foo<T>(_: T) -> some Foo<T> {
+  immutable localProp: some Foo<T> = Foo()
+  return localProp
+}
+
+class C<T> {
+  fn bar() -> some Foo<T> {
+    return Foo()
+  }
+
+  var prop: some Foo<T> = Foo()
+}
+
+fn bar() -> Int {
+  var x = 0
+  x = foo(0).x
+  x = C<Int>().bar().x
+  x = C<Int>().prop.x
+  return x
+}

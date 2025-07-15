@@ -1,0 +1,93 @@
+# REQUIRES: standalone_build
+# REQUIRES: OS=macosx
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: split-file %s %t
+
+# Even though we are running build-script with dry-run,
+# symbol extraction runs real commands against the file system.
+# Thus we generate a series of files
+# to target each of the cases handled by the code
+# RUN: mkdir -p %t/destdir
+# RUN: %languagec_driver %t/hello.code -o %t/destdir/language-demangle
+# RUN: ln -s %t/destdir/language-demangle %t/destdir/language-api-digester
+# RUN: cp %t/language-util.py %t/destdir/
+# RUN: chmod a+x %t/destdir/language-util.py
+# RUN: %languagec_driver %t/dylib.code -emit-library -o %t/destdir/liblanguageDemangle.dylib
+# RUN: %languagec_driver %t/dylib.code -emit-library -static -o %t/destdir/liblanguageASTSectionImporter.a 
+# Targets marked with INSTALL_WITH_SHARED are executable (e.g. compatibility libraries)
+# RUN: cp %t/destdir/liblanguageASTSectionImporter.a %t/destdir/liblanguageCompatibility51.a
+# RUN: chmod a+x %t/destdir/liblanguageCompatibility51.a
+# RUN: mkdir -p %t/symroot/macosx-%target-cpu
+
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script-impl --dry-run --enable-extract-symbol-dry-run-test=1 --build-dir=%t/build --workspace=%language_src_root/.. --cmake %cmake --only-execute macosx-%target-cpu-extractsymbols --host-cc /usr/bin/true --darwin-install-extract-symbols=1 --host-target=macosx-%target-cpu --install-symroot=%t/symroot --install-destdir=%t/destdir --build-jobs=1 > %t/build-script-impl-output.txt 2>&1
+# RUN: %FileCheck --input-file=%t/build-script-impl-output.txt %s
+# RUN: %FileCheck --input-file=%t/build-script-impl-output.txt --check-prefixes CHECK-SKIPPED %s
+
+# CHECK: --- Extracting symbols ---
+
+# Ensure we copy executable regular files to the symroot
+# CHECK-LABEL: cpio
+# CHECK-DAG: language-demangle
+# CHECK-DAG: language-util.py
+# CHECK-DAG: liblanguageDemangle.dylib
+# CHECK-DAG: liblanguageCompatibility51.a
+
+# Ensure we extract symbols only for executables and
+# and dylibs
+# CHECK-LABEL: command": "dsymutil", "start"
+# CHECK-DAG: dsymutil {{.*}}language-demangle
+# CHECK-DAG: dsymutil {{.*}}liblanguageDemangle.dylib
+
+# Ensure we strip executables, shared libraries and static
+# libraries
+# CHECK-LABEL: xcrun_find_tool strip
+# CHECK-DAG: strip {{.*}}language-demangle
+# CHECK-DAG: strip {{.*}}liblanguageDemangle.dylib
+# CHECK-DAG: strip {{.*}}liblanguageASTSectionImporter.a
+# CHECK-DAG: strip {{.*}}liblanguageCompatibility51.a
+# CHECK-DAG: strip {{.*}}language-util.py
+
+# Ensure we codesign dylibds
+# CHECK-LABEL: xcrun_find_tool codesign
+# CHECK: codesign {{.*}}liblanguageDemangle.dylib
+
+# CHECK-SKIPPED: --- Extracting symbols ---
+
+# Ensure symroot does not contain symlinks and static archives
+# that are not executable
+# CHECK-SKIPPED-LABEL: cpio
+# CHECK-SKIPPED-NOT: language-api-digester
+# CHECK-SKIPPED-NOT: liblanguageASTSectionImporter.a
+
+# Ensure we don't extract symbols for static archives, symlinks
+# and Python scripts
+# CHECK-SKIPPED-LABEL: command": "dsymutil", "start"
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}liblanguageASTSectionImporter.a
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}liblanguageCompatibility51.a
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}language-util.py
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}language-api-digester
+
+# Ensure we don't strip symlinks
+# CHECK-SKIPPED-LABEL: xcrun_find_tool strip
+# CHECK-SKIPPED-NOT: strip {{.*}}language-api-digester
+
+# Ensure we don't codesign executables, symlinks,
+# static archives and python scripts
+# CHECK-SKIPPED-LABEL: xcrun_find_tool codesign
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-demangle
+# CHECK-SKIPPED-NOT: codesign {{.*}}liblanguageASTSectionImporter.a
+# CHECK-SKIPPED-NOT: codesign {{.*}}liblanguageCompatibility51.a
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-util.py
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-api-digester
+
+#--- hello.code
+print("hello")
+
+#--- dylib.code
+fn greet(person: String) -> String {
+    return "Hello \(person)"
+}
+#--- language-util.py
+print("hello")

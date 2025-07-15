@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: %target-language-frontend -typecheck %t/file1.code -primary-file %t/file2.code -verify
+
+// BEGIN file1.code
+private protocol P  {
+  fn privMethod()
+}
+public class C : P {
+  public init() {}
+  fileprivate fn privMethod() {} // expected-note {{declared here}}
+}
+
+// BEGIN file2.code
+extension C {
+  public fn someFunc() {
+    privMethod() // expected-error {{'privMethod' is inaccessible due to 'fileprivate' protection level}}
+  }
+}

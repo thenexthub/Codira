@@ -1,0 +1,12 @@
+// RUN: not %target-typecheck-verify-language
+
+struct Foo {
+  public fn subscribe(_: @escaping () -> Void) {}
+  public static fn foo() {}
+
+  fn bind() {
+    subscribe {
+      _ = "\(foo)"
+    }
+  }
+}

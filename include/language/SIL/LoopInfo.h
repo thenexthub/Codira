@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LOOPINFO_H
-#define SWIFT_SIL_LOOPINFO_H
+#ifndef LANGUAGE_SIL_LOOPINFO_H
+#define LANGUAGE_SIL_LOOPINFO_H
 
 #include "language/SIL/CFG.h"
 #include "language/SIL/SILBasicBlock.h"
-#include "llvm/Analysis/LoopInfo.h"
-#include "llvm/ADT/iterator_range.h"
+#include "toolchain/Analysis/LoopInfo.h"
+#include "toolchain/ADT/iterator_range.h"
 
 namespace language {
   class DominanceInfo;
@@ -30,9 +31,9 @@ namespace language {
 // Implementation in LoopInfoImpl.h
 #ifdef __GNUC__
 __extension__ extern template
-class llvm::LoopBase<swift::SILBasicBlock, swift::SILLoop>;
+class toolchain::LoopBase<language::SILBasicBlock, language::SILLoop>;
 __extension__ extern template
-class llvm::LoopInfoBase<swift::SILBasicBlock, swift::SILLoop>;
+class toolchain::LoopInfoBase<language::SILBasicBlock, language::SILLoop>;
 #endif
 
 namespace language {
@@ -40,7 +41,7 @@ namespace language {
 class SILLoop;
 
 /// Information about a single natural loop.
-class SILLoop : public llvm::LoopBase<SILBasicBlock, SILLoop> {
+class SILLoop : public toolchain::LoopBase<SILBasicBlock, SILLoop> {
 public:
   SILLoop() {}
   void dump() const;
@@ -62,16 +63,16 @@ public:
   SILFunction *getFunction() const { return getHeader()->getParent(); }
 
 private:
-  friend class llvm::LoopInfoBase<SILBasicBlock, SILLoop>;
+  friend class toolchain::LoopInfoBase<SILBasicBlock, SILLoop>;
 
   explicit SILLoop(SILBasicBlock *BB)
-    : llvm::LoopBase<SILBasicBlock, SILLoop>(BB) {}
+    : toolchain::LoopBase<SILBasicBlock, SILLoop>(BB) {}
 };
 
 /// Information about loops in a function.
 class SILLoopInfo {
-  friend class llvm::LoopBase<SILBasicBlock, SILLoop>;
-  using SILLoopInfoBase = llvm::LoopInfoBase<SILBasicBlock, SILLoop>;
+  friend class toolchain::LoopBase<SILBasicBlock, SILLoop>;
+  using SILLoopInfoBase = toolchain::LoopInfoBase<SILBasicBlock, SILLoop>;
 
   SILLoopInfoBase LI;
   DominanceInfo *Dominance;

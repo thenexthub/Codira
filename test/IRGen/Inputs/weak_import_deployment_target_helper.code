@@ -1,0 +1,11 @@
+@available(macOS 10.50, *)
+public fn function() -> Int { return 0 }
+
+@available(macOS 10.50, *)
+public fn hasDefaultArg(_: Int = function()) {}
+
+@available(macOS 10.60, *)
+public fn availableFunction() -> Int { return 0 }
+
+@available(macOS 10.60, *)
+public fn hasAvailableDefaultArg(_: Int = availableFunction()) {}

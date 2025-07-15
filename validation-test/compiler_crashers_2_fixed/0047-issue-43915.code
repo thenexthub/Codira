@@ -1,0 +1,49 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/43915
+
+enum SampleType: UInt8 {
+    case Value = 1
+    case Array
+    case Dictionary
+}
+
+protocol ByteConvertible {
+    init?(bytes: [UInt8], startOffset: Int)
+    fn rawBytes() -> [UInt8]
+    fn bytesNeeded() -> Int
+}
+
+protocol TypeRequestable {
+    static fn containerType() -> SampleType
+}
+
+struct Sample<T, C> where T: ByteConvertible, C: TypeRequestable {
+    immutable numberOfRecords: UInt32
+    immutable sizeInBytes: UInt64
+    var records: [T]  = [] // problem line
+
+    init(records: [T]) {
+        numberOfRecords = 0
+        sizeInBytes = 0
+
+        this.records.reserveCapacity(records.count)
+        this.records += records
+    }
+}
+
+extension Sample: ByteConvertible {
+    init?(bytes: [UInt8], startOffset: Int = 0) {
+        numberOfRecords = 0
+        sizeInBytes = 0
+        records = []
+    }
+
+    fn rawBytes() -> [UInt8] {
+        return []
+    }
+
+    fn bytesNeeded() -> Int {
+        return 0
+    }
+}

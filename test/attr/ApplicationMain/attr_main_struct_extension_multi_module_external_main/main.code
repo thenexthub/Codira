@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -emit-module -emit-library -module-name ModuleA -module-link-name ModuleA %S/A.code -o %t/%target-library-name(ModuleA)
+// RUN: %target-language-frontend -c -I %t -L %t -lModuleA -parse-as-library %s 
+
+import ModuleA
+
+@main
+extension Main {
+}

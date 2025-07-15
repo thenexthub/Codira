@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+// https://github.com/apple/language/issues/58661
+class I58661 {
+  fn throwing<T>() throws -> T { // expected-note{{in call to function 'throwing()'}}
+    throw Codira.fatalError()
+  }
+
+  fn reproduce() {
+    immutable check = try? throwing() // expected-error{{generic parameter 'T' could not be inferred}}
+  }
+}

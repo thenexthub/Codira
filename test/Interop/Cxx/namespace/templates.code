@@ -1,0 +1,45 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -enable-experimental-cxx-interop)
+//
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import Templates
+
+var NamespacesTestSuite = TestSuite("Templates in namespaces")
+
+NamespacesTestSuite.test("Basic classes") {
+  immutable basicFunctionTemplateCString = TemplatesNS1.basicFunctionTemplate(0)
+  expectEqual(String(cString: basicFunctionTemplateCString!),
+              "TemplatesNS1::basicFunctionTemplate")
+  
+  var basicClassTemplateInst = TemplatesNS1.BasicClassTemplateChar()
+  immutable basicClassTemplateCString = basicClassTemplateInst.basicMember()
+  expectEqual(String(cString: basicClassTemplateCString!),
+              "TemplatesNS1::BasicClassTemplate::basicMember")
+  
+  immutable takesClassTemplateFromSiblingCString = TemplatesNS1.TemplatesNS2.takesClassTemplateFromSibling(
+    TemplatesNS1.TemplatesNS2.BasicClassTemplateChar())
+  expectEqual(String(cString: takesClassTemplateFromSiblingCString!), "TemplatesNS1::TemplatesNS2::takesClassTemplateFromSibling")
+}
+
+NamespacesTestSuite.test("Forward declared") {
+  immutable forwardDeclaredFunctionTemplateCString = TemplatesNS1.TemplatesNS2.forwardDeclaredFunctionTemplate(0)
+  expectEqual(String(cString: forwardDeclaredFunctionTemplateCString!),
+              "TemplatesNS1::TemplatesNS2::forwardDeclaredFunctionTemplate")
+  
+  var forwardDeclaredClassTemplateInst = TemplatesNS1.ForwardDeclaredClassTemplateChar()
+  immutable forwardDeclaredClassTemplateCString = forwardDeclaredClassTemplateInst.basicMember()
+  expectEqual(String(cString: forwardDeclaredClassTemplateCString!),
+              "TemplatesNS1::TemplatesNS2::ForwardDeclaredClassTemplate::basicMember")
+  
+  immutable forwardDeclaredFunctionTemplateOutOfLineCString = TemplatesNS1.TemplatesNS2.forwardDeclaredFunctionTemplateOutOfLine(0)
+  expectEqual(String(cString: forwardDeclaredFunctionTemplateOutOfLineCString!),
+              "TemplatesNS1::TemplatesNS2::forwardDeclaredFunctionTemplateOutOfLine")
+  
+  var forwardDeclaredClassTemplateOutOfLineInst = ForwardDeclaredClassTemplateOutOfLineChar()
+  immutable forwardDeclaredClassTemplateOutOfLineCString = forwardDeclaredClassTemplateOutOfLineInst.basicMember()
+  expectEqual(String(cString: forwardDeclaredClassTemplateOutOfLineCString!),
+              "TemplatesNS1::TemplatesNS2::ForwardDeclaredClassTemplateOutOfLine::basicMember")
+}
+
+runAllTests()

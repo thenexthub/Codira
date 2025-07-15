@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module-path %t/ExternalProtocol.codemodule %S/Inputs/external-protocol.code -module-name ExternalProtocol
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+import ExternalProtocol
+
+extension AnExternalProtocol {
+  typealias TypeAlias = Int
+
+  fn methodUsingAlias(_ alias: Self.TypeAlias) {}
+}

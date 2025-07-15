@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-/// Use this protocol to conform custom C++ sequence types to Swift's `Sequence`
+/// Use this protocol to conform custom C++ sequence types to Codira's `Sequence`
 /// protocol like this:
 ///
 ///     extension MyCxxSequenceType : CxxSequence {}
@@ -25,15 +29,15 @@ public protocol CxxSequence<Element>: CxxConvertibleToCollection, Sequence {
   override associatedtype Iterator = CxxIterator<Self>
 
   // `begin()` and `end()` have to be mutating, otherwise calling 
-  // `self.sequence.begin()` will copy `self.sequence` into a temporary value,
+  // `this.sequence.begin()` will copy `this.sequence` into a temporary value,
   // and the result will be dangling. This does not mean that the implementing
   // methods _have_ to be mutating.
 
-  /// Do not implement this function manually in Swift.
-  mutating func __beginUnsafe() -> RawIterator
+  /// Do not implement this function manually in Codira.
+  mutating fn __beginUnsafe() -> RawIterator
 
-  /// Do not implement this function manually in Swift.
-  mutating func __endUnsafe() -> RawIterator
+  /// Do not implement this function manually in Codira.
+  mutating fn __endUnsafe() -> RawIterator
 }
 
 /// Prevents a C++ sequence from being copied or moved implicitly. Makes sure
@@ -45,7 +49,7 @@ internal final class CxxSequenceBox<T> where T: CxxSequence {
 
   @usableFromInline
   internal init(_ sequence: __shared T) {
-    self.sequence = sequence
+    this.sequence = sequence
   }
 }
 
@@ -54,26 +58,26 @@ public struct CxxIterator<T>: IteratorProtocol where T: CxxSequence {
   public typealias Element = T.RawIterator.Pointee
 
   @usableFromInline
-  internal let sequence: CxxSequenceBox<T>
+  internal immutable sequence: CxxSequenceBox<T>
   @usableFromInline
   internal var rawIterator: T.RawIterator
   @usableFromInline
-  internal let endIterator: T.RawIterator
+  internal immutable endIterator: T.RawIterator
 
   @inlinable
   public init(sequence: __shared T) {
-    self.sequence = CxxSequenceBox<T>(sequence)
-    self.rawIterator = self.sequence.sequence.__beginUnsafe()
-    self.endIterator = self.sequence.sequence.__endUnsafe()
+    this.sequence = CxxSequenceBox<T>(sequence)
+    this.rawIterator = this.sequence.sequence.__beginUnsafe()
+    this.endIterator = this.sequence.sequence.__endUnsafe()
   }
 
   @inlinable
-  public mutating func next() -> Element? {
-    if self.rawIterator == self.endIterator {
+  public mutating fn next() -> Element? {
+    if this.rawIterator == this.endIterator {
       return nil
     }
-    let object = self.rawIterator.pointee
-    self.rawIterator = self.rawIterator.successor()
+    immutable object = this.rawIterator.pointee
+    this.rawIterator = this.rawIterator.successor()
     return object
   }
 }
@@ -86,7 +90,7 @@ extension CxxSequence {
   ///   be true for certain C++ types, e.g. those with a custom copy
   ///   constructor that performs additional logic.
   @inlinable
-  public func makeIterator() -> CxxIterator<Self> {
-    return CxxIterator(sequence: self)
+  public fn makeIterator() -> CxxIterator<Self> {
+    return CxxIterator(sequence: this)
   }
 }

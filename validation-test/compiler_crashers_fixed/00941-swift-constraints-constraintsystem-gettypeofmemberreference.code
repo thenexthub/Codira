@@ -1,0 +1,62 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn c<S {
+i: Any) -> {
+enum b {
+}
+struct Q<c, B, a: C) {
+}
+this.join() {
+enum b : T! {
+var f() -> <d()))) -> V {
+extension NSData {
+return !.b = {
+}
+this.b {
+}
+}
+fn c) -> {
+for c : a {
+}
+}
+extension NSSet {
+private class A : Sequence, b {
+}
+class C<T) -> U -> U {
+}(x)
+var c> {
+}
+}
+}
+}
+extension Array {
+}
+}
+}
+struct A {
+fn c<1 {
+return g() {
+protocol d {
+immutable n1: a : P {
+init() {
+}
+class fn a(x) {
+}
+protocol A {
+}
+}
+struct Q<T) -> Int {
+}
+}
+}
+if c = F>() {

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass prints all the callsites of every function in the module.
@@ -21,8 +22,8 @@
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/Analysis/CallerAnalysis.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -37,12 +38,12 @@ class CallerAnalysisPrinterPass : public SILModuleTransform {
   /// The entry point to the transformation.
   void run() override {
     auto *CA = getAnalysis<CallerAnalysis>();
-    CA->print(llvm::outs());
+    CA->print(toolchain::outs());
   }
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createCallerAnalysisPrinter() {
+SILTransform *language::createCallerAnalysisPrinter() {
   return new CallerAnalysisPrinterPass();
 }

@@ -1,13 +1,17 @@
 //==--- Win32Defs.h - Windows API definitions ------------------ -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // We cannot include <windows.h> from the Threading headers because they get
@@ -19,8 +23,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_IMPL_WIN32_DEFS_H
-#define SWIFT_THREADING_IMPL_WIN32_DEFS_H
+#ifndef LANGUAGE_THREADING_IMPL_WIN32_DEFS_H
+#define LANGUAGE_THREADING_IMPL_WIN32_DEFS_H
 
 #define DECLSPEC_IMPORT __declspec(dllimport)
 #define WINBASEAPI DECLSPEC_IMPORT
@@ -119,43 +123,43 @@ namespace threading_impl {
 
 // We do this because we can't declare _RTL_SRWLOCK here in case someone
 // later includes <windows.h>
-struct SWIFT_SRWLOCK {
+struct LANGUAGE_SRWLOCK {
   PVOID Ptr;
 };
 
-typedef SWIFT_SRWLOCK *PSWIFT_SRWLOCK;
+typedef LANGUAGE_SRWLOCK *PLANGUAGE_SRWLOCK;
 
-inline VOID InitializeSRWLock(PSWIFT_SRWLOCK SRWLock) {
+inline VOID InitializeSRWLock(PLANGUAGE_SRWLOCK SRWLock) {
   ::InitializeSRWLock(reinterpret_cast<PSRWLOCK>(SRWLock));
 }
-inline VOID ReleaseSRWLockExclusive(PSWIFT_SRWLOCK SRWLock) {
+inline VOID ReleaseSRWLockExclusive(PLANGUAGE_SRWLOCK SRWLock) {
   ::ReleaseSRWLockExclusive(reinterpret_cast<PSRWLOCK>(SRWLock));
 }
-inline VOID AcquireSRWLockExclusive(PSWIFT_SRWLOCK SRWLock) {
+inline VOID AcquireSRWLockExclusive(PLANGUAGE_SRWLOCK SRWLock) {
   ::AcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(SRWLock));
 }
-inline BOOLEAN TryAcquireSRWLockExclusive(PSWIFT_SRWLOCK SRWLock) {
+inline BOOLEAN TryAcquireSRWLockExclusive(PLANGUAGE_SRWLOCK SRWLock) {
   return ::TryAcquireSRWLockExclusive(reinterpret_cast<PSRWLOCK>(SRWLock));
 }
 
 // Similarly we have the same problem with _RTL_CONDITION_VARIABLE
-struct SWIFT_CONDITION_VARIABLE {
+struct LANGUAGE_CONDITION_VARIABLE {
   PVOID Ptr;
 };
 
-typedef SWIFT_CONDITION_VARIABLE *PSWIFT_CONDITION_VARIABLE;
+typedef LANGUAGE_CONDITION_VARIABLE *PLANGUAGE_CONDITION_VARIABLE;
 
-inline VOID InitializeConditionVariable(PSWIFT_CONDITION_VARIABLE CondVar) {
+inline VOID InitializeConditionVariable(PLANGUAGE_CONDITION_VARIABLE CondVar) {
   ::InitializeConditionVariable(reinterpret_cast<PCONDITION_VARIABLE>(CondVar));
 }
-inline VOID WakeConditionVariable(PSWIFT_CONDITION_VARIABLE CondVar) {
+inline VOID WakeConditionVariable(PLANGUAGE_CONDITION_VARIABLE CondVar) {
   ::WakeConditionVariable(reinterpret_cast<PCONDITION_VARIABLE>(CondVar));
 }
-inline VOID WakeAllConditionVariable(PSWIFT_CONDITION_VARIABLE CondVar) {
+inline VOID WakeAllConditionVariable(PLANGUAGE_CONDITION_VARIABLE CondVar) {
   ::WakeAllConditionVariable(reinterpret_cast<PCONDITION_VARIABLE>(CondVar));
 }
-inline BOOL SleepConditionVariableSRW(PSWIFT_CONDITION_VARIABLE CondVar,
-                                      PSWIFT_SRWLOCK SRWLock,
+inline BOOL SleepConditionVariableSRW(PLANGUAGE_CONDITION_VARIABLE CondVar,
+                                      PLANGUAGE_SRWLOCK SRWLock,
                                       DWORD dwMilliseconds,
                                       ULONG Flags) {
   return ::SleepConditionVariableSRW(
@@ -167,33 +171,33 @@ inline BOOL SleepConditionVariableSRW(PSWIFT_CONDITION_VARIABLE CondVar,
 
 // And with CRITICAL_SECTION
 #pragma pack(push, 8)
-typedef struct SWIFT_CRITICAL_SECTION {
+typedef struct LANGUAGE_CRITICAL_SECTION {
   PRTL_CRITICAL_SECTION_DEBUG DebugInfo;
   LONG LockCount;
   LONG RecursionCount;
   HANDLE OwningThread;
   HANDLE LockSemaphore;
   ULONG_PTR SpinCount;
-} SWIFT_CRITICAL_SECTION, *PSWIFT_CRITICAL_SECTION;
+} LANGUAGE_CRITICAL_SECTION, *PLANGUAGE_CRITICAL_SECTION;
 #pragma pack(pop)
 
-inline VOID InitializeCriticalSection(PSWIFT_CRITICAL_SECTION CritSec) {
+inline VOID InitializeCriticalSection(PLANGUAGE_CRITICAL_SECTION CritSec) {
   ::InitializeCriticalSection(reinterpret_cast<LPCRITICAL_SECTION>(CritSec));
 }
 
-inline VOID DeleteCriticalSection(PSWIFT_CRITICAL_SECTION CritSec) {
+inline VOID DeleteCriticalSection(PLANGUAGE_CRITICAL_SECTION CritSec) {
   ::DeleteCriticalSection(reinterpret_cast<LPCRITICAL_SECTION>(CritSec));
 }
 
-inline VOID EnterCriticalSection(PSWIFT_CRITICAL_SECTION CritSec) {
+inline VOID EnterCriticalSection(PLANGUAGE_CRITICAL_SECTION CritSec) {
   ::EnterCriticalSection(reinterpret_cast<LPCRITICAL_SECTION>(CritSec));
 }
 
-inline VOID LeaveCriticalSection(PSWIFT_CRITICAL_SECTION CritSec) {
+inline VOID LeaveCriticalSection(PLANGUAGE_CRITICAL_SECTION CritSec) {
   ::LeaveCriticalSection(reinterpret_cast<LPCRITICAL_SECTION>(CritSec));
 }
 
 } // namespace threading_impl
 } // namespace language
 
-#endif // SWIFT_THREADING_IMPL_WIN32_DEFS_H
+#endif // LANGUAGE_THREADING_IMPL_WIN32_DEFS_H

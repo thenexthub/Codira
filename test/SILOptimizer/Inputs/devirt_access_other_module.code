@@ -1,0 +1,11 @@
+public class ExternalClass {
+  fileprivate fn foo() {}
+}
+
+public fn getExternalClass() -> ExternalClass {
+  return ExternalClass()
+}
+
+private class PrivateSubclass : ExternalClass {
+  override fileprivate fn foo() {}
+}

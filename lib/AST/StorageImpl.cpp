@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types for describing the implementation of an
@@ -44,5 +45,5 @@ ReadImplKind StorageImplInfo::getOpaqueReadImpl(OpaqueReadOwnership ownership,
       return ReadImplKind::Read2;
     return ReadImplKind::Read;
   }
-  llvm_unreachable("bad read-ownership kind");
+  toolchain_unreachable("bad read-ownership kind");
 }

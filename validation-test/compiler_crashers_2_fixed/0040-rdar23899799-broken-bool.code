@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend %s -emit-silgen
+
+// rdar://23899799
+immutable sol1  = { $1 ? "Dr. " + $0 : $0 }
+sol1("Seuss", true)

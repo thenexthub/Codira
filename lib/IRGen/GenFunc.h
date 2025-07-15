@@ -1,4 +1,4 @@
-//===--- GenFunc.h - Swift IR generation for functions ----------*- C++ -*-===//
+//===--- GenFunc.h - Codira IR generation for functions ----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the function and
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENFUNC_H
-#define SWIFT_IRGEN_GENFUNC_H
+#ifndef LANGUAGE_IRGEN_GENFUNC_H
+#define LANGUAGE_IRGEN_GENFUNC_H
 
 #include "language/AST/Types.h"
 
-namespace llvm {
+namespace toolchain {
   class Function;
   class Value;
 }
@@ -43,14 +44,14 @@ namespace irgen {
   /// Load the stored isolation of an @isolated(any) function type, which
   /// is assumed to be at a known offset within a closure object.
   void emitExtractFunctionIsolation(IRGenFunction &IGF,
-                                    llvm::Value *fnContext,
+                                    toolchain::Value *fnContext,
                                     Explosion &result);
   
   /// Emit the block header into a block storage slot.
   void emitBlockHeader(IRGenFunction &IGF,
                        Address storage,
                        CanSILBlockStorageType blockTy,
-                       llvm::Constant *invokeFunction,
+                       toolchain::Constant *invokeFunction,
                        CanSILFunctionType invokeTy,
                        ForeignFunctionInfo foreignInfo);
 
@@ -58,16 +59,16 @@ namespace irgen {
   /// partial set of argument values.
   std::optional<StackAddress> emitFunctionPartialApplication(
       IRGenFunction &IGF, SILFunction &SILFn, const FunctionPointer &fnPtr,
-      llvm::Value *fnContext, Explosion &args,
+      toolchain::Value *fnContext, Explosion &args,
       ArrayRef<SILParameterInfo> argTypes, SubstitutionMap subs,
       CanSILFunctionType origType, CanSILFunctionType substType,
       CanSILFunctionType outType, Explosion &out, bool isOutlined);
   CanType getArgumentLoweringType(CanType type, SILParameterInfo paramInfo,
                                   bool isNoEscape);
 
-  /// Stub function that weakly links againt the swift_coroFrameAlloc
+  /// Stub function that weakly links againt the language_coroFrameAlloc
   /// function. This is required for back-deployment.
-  llvm::Constant *getCoroFrameAllocStubFn(IRGenModule &IGM);
+  toolchain::Constant *getCoroFrameAllocStubFn(IRGenModule &IGM);
 } // end namespace irgen
 } // end namespace language
 

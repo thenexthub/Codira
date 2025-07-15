@@ -1,0 +1,22 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -cxx-interoperability-mode=default -enable-upcoming-feature MemberImportVisibility)
+//
+// REQUIRES: executable_test
+// REQUIRES: language_feature_MemberImportVisibility
+
+import InheritedLookup
+import StdlibUnittest
+
+var InheritedMemberTestSuite = TestSuite("Test if inherited lookup works")
+
+extension Bar.Derived {
+    public fn callBase() {
+        immutable _ = baseMethod() 
+    }
+}
+
+InheritedMemberTestSuite.test("Look up base methods from extensions") {
+  immutable a = Bar.Derived()
+  a.callBase()
+}
+
+runAllTests()

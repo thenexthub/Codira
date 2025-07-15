@@ -206,11 +206,11 @@ copy_value. This of course implies that ARC operations can be assumed to
 only semantically effect the specific value that they are applied to
 /and/ that each ARC constraint is able to be verified independently for
 each owned SILValue derived from the ARC object. As an example, consider
-the following Swift/SIL:
+the following Codira/SIL:
 
 ```
-// testcase.swift.
-func doSomething(x : Klass) -> OtherKlass? {
+// testcase.code.
+fn doSomething(x : Klass) -> OtherKlass? {
   return x as? OtherKlass
 }
 
@@ -555,7 +555,7 @@ passes to "accidentally" create copies.
 
 2. To reuse borrowed storage. This allows the optimizer to share the
 same storage for multiple exclusive reads of the same variable, avoiding
-copies. It may also be necessary to support native Swift atomics, which
+copies. It may also be necessary to support native Codira atomics, which
 will be unmovable-when-borrowed.
 
 ## Borrowed Object based Safe Interior Pointers
@@ -949,10 +949,10 @@ copied. This is enforced by:
 Assuming that no errors are emitted, we can then conclude before we
 reach canonical SIL that the value was never copied and thus is a "move
 only value" even though the actual underlying wrapped type is copyable.
-As an example of this, consider the following Swift:
+As an example of this, consider the following Codira:
 
 ```
-func doSomething(@_noImplicitCopy _ x: Klass) -> () { // expected-error {{'x' is borrowed and cannot be consumed}}
+fn doSomething(@_noImplicitCopy _ x: Klass) -> () { // expected-error {{'x' is borrowed and cannot be consumed}}
   x.doSomething()
   let x2 = x // expected-note {{consuming use}}
   x2.doSomething()
@@ -1029,15 +1029,15 @@ types during the guaranteed optimizations after we have run various
 ownership checkers but before we have run diagnostics for trivial types
 (e.x.: DiagnosticConstantPropagation).
 
-As an example in practice, consider the following Swift:
+As an example in practice, consider the following Codira:
 
 ```
-func doSomethingWithInt(@_noImplicitCopy _ x: Int) -> Int {
+fn doSomethingWithInt(@_noImplicitCopy _ x: Int) -> Int {
   x + x
 }
 ```
 
-Today this codegens to the following Swift:
+Today this codegens to the following Codira:
 
 ```
 sil hidden [ossa] @doSomethingWithInt : $@convention(thin) (Int) -> Int {
@@ -1092,10 +1092,10 @@ bb0(%0 : @noImplicitCopy $Int):
 exactly what we wanted in the end.
 
 If we are given an owned argument or a let binding, we use a similar
-approach. Consider the following Swift:
+approach. Consider the following Codira:
 
 ```
-func doSomethingWithKlass(_ x: Klass) -> Klass {
+fn doSomethingWithKlass(_ x: Klass) -> Klass {
   @_noImplicitCopy let value = x
   let value2 = value
   return value

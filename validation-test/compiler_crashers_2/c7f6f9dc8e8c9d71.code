@@ -1,0 +1,12 @@
+// {"signature":"language::constraints::ConstraintSystem::setBuilderTransformedBody(language::AnyFunctionRef, language::NominalTypeDecl*, language::NullablePtr<language::VarDecl>, language::NullablePtr<language::BraceStmt>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  @resultBuilder struct b
+  }
+  struct c < d {
+    init(@b content : () -> d
+  }
+  extension c : a
+    struct b {
+e {
+  c {

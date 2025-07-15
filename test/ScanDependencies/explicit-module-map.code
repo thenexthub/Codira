@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/inputs
+// RUN: echo "/// Some cool comments" > %t/foo.code
+// RUN: echo "public fn foo() {}" >> %t/foo.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/inputs/Foo.codemodule -emit-module-doc-path %t/inputs/Foo.codedoc -emit-module-source-info -emit-module-source-info-path %t/inputs/Foo.codesourceinfo -module-cache-path %t.module-cache %t/foo.code -module-name Foo
+
+// RUN: echo "[{" > %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Foo\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/t/inputs/Foo.codemodule\"," >> %/t/inputs/map.json
+// RUN: echo "\"docPath\": \"%/t/inputs/Foo.codedoc\"," >> %/t/inputs/map.json
+// RUN: echo "\"sourceInfoPath\": \"%/t/inputs/Foo.codesourceinfo\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/stdlib_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/ononesupport_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_Concurrency\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/concurrency_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_StringProcessing\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/string_processing_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=Foo -enable-languagesourceinfo -source-filename %s -explicit-language-module-map-file %t/inputs/map.json | %FileCheck %s
+
+// CHECK: foo.code:2:13: Func/foo RawComment=[/// Some cool comments

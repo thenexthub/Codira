@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language
+
+immutable _ = #notAPound // expected-error {{no macro named 'notAPound'}}
+immutable _ = #notAPound(1, 2) // expected-error {{no macro named 'notAPound'}}
+immutable _ = #Color // expected-error {{no macro named 'Color'}}
+
+immutable _ = [##] // expected-error {{expected a macro identifier}} {{none}}

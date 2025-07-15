@@ -1,0 +1,12 @@
+// RUN: %language-ide-test -print-language-file-interface -source-filename %s
+
+public class Base {}
+// CHECK: public class Base {
+public protocol Proto {}
+// CHECK: public protocol Proto {
+}
+public fn foo() -> some Base & Proto {
+// CHECK: public fn foo() -> some Base & Proto
+  class Derived: Base, Proto {}
+  return Derived()
+}

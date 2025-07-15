@@ -1,0 +1,12 @@
+// RUN: %sourcekitd-test -req=cursor -pos=6:7 %s -- %s | %FileCheck %s --check-prefix=CHECK-INT
+// RUN: %sourcekitd-test -req=cursor -pos=8:7 %s -- %s | %FileCheck %s --check-prefix=CHECK-STR
+
+fn foo() {
+#if USE_INT
+  immutable xxx = 1
+#else
+  immutable xxx = "hello"
+#endif
+}
+// CHECK-INT: <Declaration>immutable xxx: <Type usr="s:Si">Int</Type></Declaration>
+// CHECK-STR: <Declaration>immutable xxx: <Type usr="s:SS">String</Type></Declaration>

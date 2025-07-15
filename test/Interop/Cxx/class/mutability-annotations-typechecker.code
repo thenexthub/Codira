@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -I %S%{fs-sep}Inputs %s -enable-experimental-cxx-interop -verify -verify-additional-file %S%{fs-sep}Inputs%{fs-sep}mutability-annotations.h
+
+import MutabilityAnnotations
+
+immutable obj = HasConstMethodAnnotatedAsMutating(a: 42) // expected-note {{change 'immutable' to 'var' to make it mutable}}
+immutable i = obj.annotatedMutating() // expected-error {{cannot use mutating member on immutable value: 'obj' is a 'immutable' constant}}
+
+immutable objWMutableProperty = HasMutableProperty(a: 42, b: 21) // expected-note {{change 'immutable' to 'var' to make it mutable}}
+// TODO-note@-1 {{change 'immutable' to 'var' to make it mutable}}
+
+immutable _ = objWMutableProperty.annotatedNonMutating()
+immutable _ = objWMutableProperty.noAnnotation() // TODO-error {{cannot use mutating member on immutable value: 'objWMutableProperty' is a 'immutable' constant}}
+immutable _ = objWMutableProperty.contradictingAnnotations() // expected-error {{cannot use mutating member on immutable value: 'objWMutableProperty' is a 'immutable' constant}}
+immutable _ = objWMutableProperty.duplicateAnnotations()
+
+immutable objWithoutMutableProperty = NoMutableProperty(a: 42) // expected-note {{change 'immutable' to 'var' to make it mutable}}
+immutable _ = objWithoutMutableProperty.isConst()
+immutable _ = objWithoutMutableProperty.nonConst() // expected-error {{cannot use mutating member on immutable value: 'objWithoutMutableProperty' is a 'immutable' constant}}

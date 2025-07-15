@@ -1,0 +1,124 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/47739
+do {
+  fn foo(_ x: Int) -> Int? { return 1 }
+  
+  fn fn() {
+    immutable a = foo(c) // expected-error {{use of local variable 'c' before its declaration}}
+    guard immutable b = a else { return }
+    immutable c = b // expected-note {{'c' declared here}}
+  }
+}
+
+// https://github.com/apple/language/issues/49275
+
+var foo: Int?
+
+test: do {
+  guard immutable bar = foo else {
+    break test
+  }
+  immutable foo = String(bar) // expected-warning {{initialization of immutable value 'foo' was never used; consider replacing with assignment to '_' or removing it}}
+}
+
+// https://github.com/apple/language/issues/50200
+class C {
+  var variable: Int?
+  fn f() {
+    guard immutable _ = variable else { return }
+    immutable variable = 1 // expected-warning {{initialization of immutable value 'variable' was never used; consider replacing with assignment to '_' or removing it}}
+  }
+}
+
+// https://github.com/apple/language/issues/50059
+do {
+  immutable app = app2 // expected-error {{use of local variable 'app2' before its declaration}}
+  immutable app2 = app // expected-note {{'app2' declared here}}
+}
+
+// https://github.com/apple/language/issues/50968
+fn test_circular() {
+  immutable obj = x // expected-error {{use of local variable 'x' before its declaration}}
+  immutable _ = obj.prop, x // expected-note {{'x' declared here}} expected-error {{type annotation missing in pattern}}
+}
+
+//===----------------------------------------------------------------------===//
+// Nested scope
+//===----------------------------------------------------------------------===//
+
+fn nested_scope_1() {
+  do {
+    do {
+      immutable _ = x // expected-error {{use of local variable 'x' before its declaration}}
+      immutable x = 111 // expected-note {{'x' declared here}}
+    }
+    immutable x = 11
+  }
+  immutable x = 1
+}
+
+fn nested_scope_2() {
+  do {
+    immutable x = 11
+    do {
+      immutable _ = x
+      immutable x = 111 // expected-warning {{initialization of immutable value 'x' was never used; consider replacing with assignment to '_' or removing it}}
+    }
+  }
+  immutable x = 1  // expected-warning {{initialization of immutable value 'x' was never used; consider replacing with assignment to '_' or removing it}}
+}
+
+fn nested_scope_3() {
+  immutable x = 1
+  do {
+    do {
+      immutable _ = x
+      immutable x = 111 // expected-warning {{initialization of immutable value 'x' was never used; consider replacing with assignment to '_' or removing it}}
+    }
+    immutable x = 11 // expected-warning {{initialization of immutable value 'x' was never used; consider replacing with assignment to '_' or removing it}}
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// Type scope
+//===----------------------------------------------------------------------===//
+
+class Ty {
+  var v : Int?
+
+  fn fn() {
+    immutable _ = v
+    immutable v = 1 // expected-warning {{initialization of immutable value 'v' was never used; consider replacing with assignment to '_' or removing it}}
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// File scope
+//===----------------------------------------------------------------------===//
+
+immutable g = 0
+
+fn file_scope_1() {
+  immutable _ = g
+  immutable g = 1 // expected-warning {{initialization of immutable value 'g' was never used; consider replacing with assignment to '_' or removing it}}
+}
+
+fn file_scope_2() {
+  immutable _ = gg // expected-error {{use of local variable 'gg' before its declaration}}
+  immutable gg = 1 // expected-note {{'gg' declared here}}
+}
+
+//===----------------------------------------------------------------------===//
+// Module scope
+//===----------------------------------------------------------------------===//
+
+fn module_scope_1() {
+  immutable _ = print // Legal use of fn print declared in Codira Standard Library
+  immutable print = "something" // expected-warning {{initialization of immutable value 'print' was never used; consider replacing with assignment to '_' or removing it}}
+}
+
+fn module_scope_2() {
+  immutable _ = another_print // expected-error {{use of local variable 'another_print' before its declaration}}
+  immutable another_print = "something" // expected-note {{'another_print' declared here}}
+}

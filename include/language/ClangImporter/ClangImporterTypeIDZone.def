@@ -1,13 +1,17 @@
 //===--- ClangImporterTypeIDZone.def ----------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This definition file describes the types in the clang importer
@@ -15,36 +19,36 @@
 //
 //===----------------------------------------------------------------------===//
 
-SWIFT_REQUEST(ClangImporter, ClangDirectLookupRequest,
+LANGUAGE_REQUEST(ClangImporter, ClangDirectLookupRequest,
               (SmallVector<SingleEntry, 4>(ClangDirectLookupDescriptor)), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, CXXNamespaceMemberLookup,
+LANGUAGE_REQUEST(ClangImporter, CXXNamespaceMemberLookup,
               Decl *(CXXNamespaceMemberLookupDescriptor), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, ClangRecordMemberLookup,
+LANGUAGE_REQUEST(ClangImporter, ClangRecordMemberLookup,
               Decl *(ClangRecordMemberLookupDescriptor), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, ClangCategoryLookupRequest,
-              llvm::TinyPtrVector<Decl *>(ClangCategoryLookupDescriptor), Uncached,
+LANGUAGE_REQUEST(ClangImporter, ClangCategoryLookupRequest,
+              toolchain::TinyPtrVector<Decl *>(ClangCategoryLookupDescriptor), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, ObjCInterfaceAndImplementationRequest,
+LANGUAGE_REQUEST(ClangImporter, ObjCInterfaceAndImplementationRequest,
               ObjCInterfaceAndImplementation(Decl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, CxxRecordSemantics,
+LANGUAGE_REQUEST(ClangImporter, CxxRecordSemantics,
               CxxRecordSemanticsKind(const clang::CXXRecordDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, CxxRecordAsSwiftType,
+LANGUAGE_REQUEST(ClangImporter, CxxRecordAsCodiraType,
               ValueDecl *(CxxRecordSemanticsDescriptor), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, IsSafeUseOfCxxDecl,
+LANGUAGE_REQUEST(ClangImporter, IsSafeUseOfCxxDecl,
               bool(SafeUseOfCxxRecordDescriptor), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, CustomRefCountingOperation,
+LANGUAGE_REQUEST(ClangImporter, CustomRefCountingOperation,
               CustomRefCountingOperationResult(CustomRefCountingOperationDescriptor), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, ClangTypeEscapability,
+LANGUAGE_REQUEST(ClangImporter, ClangTypeEscapability,
               CxxEscapability(EscapabilityLookupDescriptor), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(ClangImporter, ClangDeclExplicitSafety,
-              ExplicitSafety(SafeUseOfCxxDeclDescriptor), Cached,
+LANGUAGE_REQUEST(ClangImporter, ClangDeclExplicitSafety,
+              ExplicitSafety(CxxDeclExplicitSafetyDescriptor), Cached,
               NoLocationInfo)

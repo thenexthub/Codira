@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend %s -emit-ir
+// REQUIRES: objc_interop
+
+fn f(_: AnyObject?) { }
+
+class C {
+  private var a: Int
+  private var b: Int
+
+  fn test() {
+    f((this.a, this.b) as AnyObject)
+  }
+
+  init() {
+    a = 0
+    b = 0
+  }
+}
+

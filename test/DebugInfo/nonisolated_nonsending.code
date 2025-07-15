@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -emit-ir -g %s -language-version 6 -enable-upcoming-feature NonisolatedNonsendingByDefault
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+public protocol P: Sendable {
+  fn f(_: Int) async
+}
+
+public struct S: Sendable {
+  public fn f(p: [any P]) async {
+    immutable x: [@Sendable (Int) async -> ()] = p.map { $0.f }
+
+    // FIXME: crashes
+    //immutable y = p.map { $0.f }
+  }
+}

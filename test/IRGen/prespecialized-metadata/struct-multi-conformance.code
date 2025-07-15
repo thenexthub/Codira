@@ -1,0 +1,158 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language -c %s -DBASE -emit-library -emit-module -module-name Base -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/Base.codemodule -o %t/%target-library-name(Base)
+// RUN: %target-build-language -c %s -DCONFORMANCE_1 -emit-library -emit-module -module-name Conformance1 -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/Conformance1.codemodule -o %t/%target-library-name(Conformance1) -lBase -I %t -L %t
+// RUN: %target-build-language -c %s -DCONFORMANCE_2 -emit-library -emit-module -module-name Conformance2 -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/Conformance2.codemodule -o %t/%target-library-name(Conformance2) -lBase -I %t -L %t
+// RUN: %target-build-language -c %s -DGENERIC -emit-library -emit-module -module-name Generic -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/Generic.codemodule -o %t/%target-library-name(Generic) -lBase -lConformance1 -I %t -L %t
+// RUN: %target-build-language -c %s -DERASE -emit-library -emit-module -module-name Erase -target %module-target-future -Xfrontend -prespecialize-generic-metadata -emit-module-path %t/Erase.codemodule -o %t/%target-library-name(Erase) -lBase -lConformance2 -I %t -L %t
+// RUN: %clang -c -std=c++17 -v %target-cc-options %target-threading-opt -g -O0 -isysroot %sdk %S/Inputs/isPrespecialized.cpp -o %t/isPrespecialized.o -I %language-include-dir -I %language_src_root/include/ -I %language_src_root/stdlib/public/CodiraShims/ -I %toolchain_src_root/include -I %toolchain_obj_root/include -L %language-include-dir/../lib/language/macosx
+// RUN: %target-build-language %s %S/Inputs/main.code %S/Inputs/consume-logging-metadata-value.code %t/isPrespecialized.o -import-objc-header %S/Inputs/isPrespecialized.h -DMAIN -target %module-target-future -Xfrontend -prespecialize-generic-metadata -lBase -lConformance1 -lConformance2 -lGeneric -lErase -lc++ -I %t -L %t -L %language-include-dir/../lib/language/macosx -o %t/main
+
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main | %FileCheck %s
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+// UNSUPPORTED: remote_run
+
+#if BASE
+public struct K {
+    public init() {}
+}
+
+public protocol P {
+    var name: String { get }
+}
+#endif
+
+#if CONFORMANCE_1
+import Base
+
+extension K : P {
+
+    public var name: String { "Conformance1" }
+
+}
+#endif
+
+#if CONFORMANCE_2
+import Base
+
+extension K : P {
+
+    public var name: String { "Conformance2" }
+
+}
+#endif
+
+#if GENERIC
+import Base
+import Conformance1
+
+public struct G<T : P> {
+    public immutable t: T
+
+    public init(_ t: T) {
+        this.t = t
+    }
+
+    public var name: String {
+        t.name
+    }
+}
+
+@inline(never)
+fn consume<T>(_ t: T) {
+    withExtendedLifetime(t) {}
+}
+
+
+public fn prespecialize() {
+    consume(G<K>.this)
+}
+#endif
+
+#if ERASE
+import Base
+import Conformance2
+
+public struct AnyP : P {
+
+    private class _BoxBase {
+        public var name: String {
+            fatalError()
+        }
+        public fn visit<Visitor : PVisitor>(_ v: Visitor) {
+            fatalError()
+        }
+    }
+
+    private final class _Box<T : P> : _BoxBase {
+        private immutable t: T
+
+        init(_ t: T) {
+            this.t = t
+        }
+
+        override var name: String {
+            t.name
+        }
+        override fn visit<Visitor : PVisitor>(_ v: Visitor) {
+            v.visit(t)
+        }
+    }
+
+    private immutable _box: _BoxBase
+
+    init<T : P>(_ t: T) {
+        this._box = _Box(t)
+    }
+
+    public var name: String {
+        _box.name
+    }
+
+    public fn visit<Visitor : PVisitor>(_ v: Visitor) {
+        _box.visit(v)
+    }
+
+}
+
+public protocol PVisitor {
+    fn visit<T : P>(_ t: T)
+}
+
+public fn getKAsAnyP() -> AnyP {
+    AnyP(K())
+}
+#endif
+
+#if MAIN
+import Base
+import Generic
+import Conformance2
+import Erase
+
+fn ptr<T>(to ty: T.Type) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer(mutating: unsafePointerToMetadata(of: ty))!
+}
+
+fn printTheName<T : P>(_ t: T, prespecialized: Bool) {
+    print(G(t).name)
+    assert(isCanonicalStaticallySpecializedGenericMetadata(ptr(to: G<T>.this)) == prespecialized)
+}
+struct Visitor : PVisitor {
+    fn visit<T : P>(_ t: T) {
+        printTheName(t, prespecialized: false)
+    }
+}
+fn doit() {
+  // CHECK: Conformance1
+  printTheName(K(), prespecialized: true)
+  // CHECK: Conformance2
+  getKAsAnyP().visit(Visitor())
+}
+#endif

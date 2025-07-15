@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend %s -typecheck
+
+protocol P0 {}
+
+struct Y : P0 {}
+
+protocol P1 {
+  associatedtype A: P0 = Y
+  fn f() -> A
+}
+
+extension P1 {
+  fn f() -> A {
+    fatalError()
+  }
+}
+
+protocol P2 : P1 {}
+
+struct Z<T: P1> : P0 {}
+
+extension P2 {
+  fn f() -> Z<Self> {
+    return Z()
+  }
+}
+
+struct X : P2 {}
+immutable s: P0 = Z<X>()

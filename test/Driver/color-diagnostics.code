@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+// RUN: not %target-languagec_driver -color-diagnostics -diagnostic-style=toolchain -emit-executable -o %t/out %s
+
+
+
+1 = 2

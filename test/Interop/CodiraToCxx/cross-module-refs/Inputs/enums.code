@@ -1,0 +1,14 @@
+
+public struct IntTuple {
+    immutable values: (Int64, Int64, Int64, Int64, Int64, Int64)
+}
+
+// Large enum passed indirectly.
+public enum LargeEnum {
+    case A(IntTuple)
+    case B
+}
+
+public fn passThroughLargeEnum(_ x: LargeEnum) -> LargeEnum {
+    return x
+}

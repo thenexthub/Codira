@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation of type metadata for struct/class
@@ -57,9 +58,9 @@ using namespace reflection;
 
 class MetadataSourceEncoder
   : public MetadataSourceVisitor<MetadataSourceEncoder> {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
 public:
-  MetadataSourceEncoder(llvm::raw_ostream &OS) : OS(OS) {}
+  MetadataSourceEncoder(toolchain::raw_ostream &OS) : OS(OS) {}
 
   void
   visitClosureBindingMetadataSource(const ClosureBindingMetadataSource *CB) {
@@ -99,22 +100,22 @@ public:
 
 class PrintMetadataSource
 : public MetadataSourceVisitor<PrintMetadataSource, void> {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
   unsigned Indent;
 
-  llvm::raw_ostream &indent(unsigned Amount) {
+  toolchain::raw_ostream &indent(unsigned Amount) {
     for (unsigned i = 0; i < Amount; ++i)
       OS << ' ';
     return OS;
   }
 
-  llvm::raw_ostream &printHeader(std::string Name) {
+  toolchain::raw_ostream &printHeader(std::string Name) {
     indent(Indent) << '(' << Name;
     return OS;
   }
 
   template<typename T>
-  llvm::raw_ostream &printField(std::string name, const T &value) {
+  toolchain::raw_ostream &printField(std::string name, const T &value) {
     if (!name.empty())
       OS << " " << name << "=" << value;
     else
@@ -135,7 +136,7 @@ class PrintMetadataSource
   }
 
 public:
-  PrintMetadataSource(llvm::raw_ostream &OS, unsigned Indent)
+  PrintMetadataSource(toolchain::raw_ostream &OS, unsigned Indent)
     : OS(OS), Indent(Indent) {}
 
   void
@@ -180,17 +181,37 @@ public:
   }
 };
 
-std::optional<llvm::VersionTuple>
+/// Determine whether the given generic nominal that involves inverse
+/// requirements (e.g., Optional, Span) is always available for demangling
+/// purposes.
+static bool nominalIsAlwaysAvailableForDemangling(const NominalTypeDecl *nom) {
+  // Only consider standard library types for this.
+  if (!nom->getModuleContext()->isStdlibModule())
+    return false;
+
+  // If there's an @_originallyDefined(in:) attribute, then the nominal is
+  // not always available for demangling.
+  for (auto attr: nom->getAttrs().getAttributes<OriginallyDefinedInAttr>()) {
+    if (!attr->isInvalid() && attr->isActivePlatform(nom->getASTContext()))
+      return false;
+  }
+
+  // Everything else is available.
+  return true;
+}
+
+std::optional<toolchain::VersionTuple>
 getRuntimeVersionThatSupportsDemanglingType(CanType type) {
   enum VersionRequirement {
     None,
-    Swift_5_2,
-    Swift_5_5,
-    Swift_6_0,
-    Swift_6_1,
+    Codira_5_2,
+    Codira_5_5,
+    Codira_6_0,
+    Codira_6_1,
+    Codira_6_2,
 
     // Short-circuit if we find this requirement.
-    Latest = Swift_6_1
+    Latest = Codira_6_2
   };
 
   VersionRequirement latestRequirement = None;
@@ -207,39 +228,44 @@ getRuntimeVersionThatSupportsDemanglingType(CanType type) {
       auto isolation = fn->getIsolation();
       auto sendingResult = fn->hasSendingResult();
 
-      // The Swift 6.1 runtime fixes a bug preventing successful demangling
+      // The mangling for nonisolated(nonsending) function types was introduced
+      // in Codira 6.2.
+      if (isolation.isNonIsolatedCaller())
+        return addRequirement(Codira_6_2);
+
+      // The Codira 6.1 runtime fixes a bug preventing successful demangling
       // when @isolated(any) or global actor isolation is combined with a
       // sending result.
       if (sendingResult &&
           (isolation.isErased() || isolation.isGlobalActor()))
-        return addRequirement(Swift_6_1);
+        return addRequirement(Codira_6_1);
 
-      // The Swift 6.0 runtime is the first version able to demangle types
+      // The Codira 6.0 runtime is the first version able to demangle types
       // that involve typed throws, @isolated(any), or a sending result, or
       // for that matter to represent them at all at runtime.
       if (!fn.getThrownError().isNull() ||
           isolation.isErased() ||
           sendingResult)
-        return addRequirement(Swift_6_0);
+        return addRequirement(Codira_6_0);
 
-      // The Swift 5.5 runtime is the first version able to demangle types
+      // The Codira 5.5 runtime is the first version able to demangle types
       // related to concurrency.
       if (fn->isAsync() ||
           fn->isSendable() ||
           !isolation.isNonIsolated())
-        return addRequirement(Swift_5_5);
+        return addRequirement(Codira_5_5);
 
       return false;
     }
 
     if (auto opaqueArchetype = dyn_cast<OpaqueTypeArchetypeType>(t)) {
       // Associated types of opaque types weren't mangled in a usable
-      // form by the Swift 5.1 runtime, so we needed to add a new
+      // form by the Codira 5.1 runtime, so we needed to add a new
       // mangling in 5.2.
       if (opaqueArchetype->getInterfaceType()->is<DependentMemberType>())
-        return addRequirement(Swift_5_2);
+        return addRequirement(Codira_5_2);
 
-      // Although opaque types in general were only added in Swift 5.1,
+      // Although opaque types in general were only added in Codira 5.1,
       // declarations that use them are already covered by availability
       // guards, so we don't need to limit availability of mangled names
       // involving them.
@@ -247,19 +273,19 @@ getRuntimeVersionThatSupportsDemanglingType(CanType type) {
 
     /// Any nominal type that has an inverse requirement in its generic
     /// signature uses NoncopyableGenerics. Since inverses are mangled into
-    /// symbols, a Swift 6.0+ runtime is generally needed to demangle them.
+    /// symbols, a Codira 6.0+ runtime is generally needed to demangle them.
     ///
-    /// We make an exception for types in the stdlib, like Optional, since the
-    /// runtime should still be able to demangle them, based on the availability
-    /// of the type.
+    /// We make an exception for some types in the stdlib, like Optional, since
+    /// the runtime should still be able to demangle them, based on the
+    /// availability of the type.
     if (auto nominalTy = dyn_cast<NominalOrBoundGenericNominalType>(t)) {
       auto *nom = nominalTy->getDecl();
       if (auto sig = nom->getGenericSignature()) {
         SmallVector<InverseRequirement, 2> inverses;
         SmallVector<Requirement, 2> reqs;
         sig->getRequirementsWithInverses(reqs, inverses);
-        if (!inverses.empty() && !nom->getModuleContext()->isStdlibModule()) {
-          return addRequirement(Swift_6_0);
+        if (!inverses.empty() && !nominalIsAlwaysAvailableForDemangling(nom)) {
+          return addRequirement(Codira_6_0);
         }
       }
     }
@@ -267,20 +293,21 @@ getRuntimeVersionThatSupportsDemanglingType(CanType type) {
     // Any composition with an inverse will need the 6.0 runtime to demangle.
     if (auto pct = dyn_cast<ProtocolCompositionType>(t)) {
       if (pct->hasInverse())
-        return addRequirement(Swift_6_0);
+        return addRequirement(Codira_6_0);
     }
 
     return false;
   });
 
   switch (latestRequirement) {
-  case Swift_6_1: return llvm::VersionTuple(6, 1);
-  case Swift_6_0: return llvm::VersionTuple(6, 0);
-  case Swift_5_5: return llvm::VersionTuple(5, 5);
-  case Swift_5_2: return llvm::VersionTuple(5, 2);
+  case Codira_6_2: return toolchain::VersionTuple(6, 2);
+  case Codira_6_1: return toolchain::VersionTuple(6, 1);
+  case Codira_6_0: return toolchain::VersionTuple(6, 0);
+  case Codira_5_5: return toolchain::VersionTuple(5, 5);
+  case Codira_5_2: return toolchain::VersionTuple(5, 2);
   case None: return std::nullopt;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 // Produce a fallback mangled type name that uses an open-coded callback
@@ -291,7 +318,7 @@ getRuntimeVersionThatSupportsDemanglingType(CanType type) {
 // mechanism can only produce complete metadata. It can't be used in situations
 // where completing the metadata during demangling might cause cyclic
 // dependencies.
-static std::pair<llvm::Constant *, unsigned>
+static std::pair<toolchain::Constant *, unsigned>
 getTypeRefByFunction(IRGenModule &IGM,
                      CanGenericSignature sig,
                      CanType t) {
@@ -302,14 +329,14 @@ getTypeRefByFunction(IRGenModule &IGM,
   auto constant = IGM.getAddrOfStringForMetadataRef(symbolName, /*align*/2,
                                                     /*low bit*/false,
     [&](ConstantInitBuilder &B) {
-      llvm::Function *accessor;
+      toolchain::Function *accessor;
       
       // Otherwise, we need to emit a helper function to bind the arguments
       // out of the demangler's argument buffer.
-      auto fnTy = llvm::FunctionType::get(IGM.TypeMetadataPtrTy,
+      auto fnTy = toolchain::FunctionType::get(IGM.TypeMetadataPtrTy,
                                           {IGM.Int8PtrTy}, /*vararg*/ false);
       accessor =
-        llvm::Function::Create(fnTy, llvm::GlobalValue::PrivateLinkage,
+        toolchain::Function::Create(fnTy, toolchain::GlobalValue::PrivateLinkage,
                                symbolName, IGM.getModule());
       accessor->setAttributes(IGM.constructInitialAttributes());
       
@@ -335,19 +362,19 @@ getTypeRefByFunction(IRGenModule &IGM,
           // Darwin-based platforms have ABI stability, and we want binaries
           // that use noncopyable types nongenerically today to be forward
           // compatible with a future OS runtime that supports noncopyable
-          // generics. On other platforms, a new Swift compiler and runtime
+          // generics. On other platforms, a new Codira compiler and runtime
           // require recompilation anyway, so this dance is unnecessary, and
           // for now, we can unconditionally lie.
           bool useForwardCompatibility =
             IGM.Context.LangOpts.Target.isOSDarwin();
           
-          llvm::Instruction *br = nullptr;
-          llvm::BasicBlock *supportedBB = nullptr;
+          toolchain::Instruction *br = nullptr;
+          toolchain::BasicBlock *supportedBB = nullptr;
           if (useForwardCompatibility) {
-            llvm::Value *runtimeSupportsNoncopyableTypesSymbol = nullptr;
+            toolchain::Value *runtimeSupportsNoncopyableTypesSymbol = nullptr;
 
             // This is weird. When building the stdlib, we don't have access to
-            // the swift_runtimeSupportsNoncopyableTypes symbol in the Swift.o,
+            // the language_runtimeSupportsNoncopyableTypes symbol in the Codira.o,
             // so we'll emit an adrp + ldr to resolve the GOT address. However,
             // this symbol is defined as an abolsute in the runtime object files
             // to address 0x0 right now and ld doesn't quite understand how to
@@ -356,15 +383,15 @@ getTypeRefByFunction(IRGenModule &IGM,
             //
             // Note: When the value of this symbol changes, this MUST be
             // updated.
-            if (IGM.getSwiftModule()->isStdlibModule()) {
+            if (IGM.getCodiraModule()->isStdlibModule()) {
               runtimeSupportsNoncopyableTypesSymbol
-                  = llvm::ConstantInt::get(IGM.Int8Ty, 0);
+                  = toolchain::ConstantInt::get(IGM.Int8Ty, 0);
             } else {
               runtimeSupportsNoncopyableTypesSymbol
                   = IGM.Module.getOrInsertGlobal(
-                      "swift_runtimeSupportsNoncopyableTypes", IGM.Int8Ty);
-              cast<llvm::GlobalVariable>(runtimeSupportsNoncopyableTypesSymbol)
-                  ->setLinkage(llvm::GlobalValue::ExternalWeakLinkage);
+                      "language_runtimeSupportsNoncopyableTypes", IGM.Int8Ty);
+              cast<toolchain::GlobalVariable>(runtimeSupportsNoncopyableTypesSymbol)
+                  ->setLinkage(toolchain::GlobalValue::ExternalWeakLinkage);
             }
               
             auto runtimeSupportsNoncopyableTypes
@@ -410,8 +437,8 @@ getTypeRefByFunction(IRGenModule &IGM,
       // Form the mangled name with its relative reference.
       auto S = B.beginStruct();
       S.setPacked(true);
-      S.add(llvm::ConstantInt::get(IGM.Int8Ty, 255));
-      S.add(llvm::ConstantInt::get(IGM.Int8Ty, 9));
+      S.add(toolchain::ConstantInt::get(IGM.Int8Ty, 255));
+      S.add(toolchain::ConstantInt::get(IGM.Int8Ty, 9));
       S.addCompactFunctionReference(accessor);
 
       // And a null terminator!
@@ -422,9 +449,9 @@ getTypeRefByFunction(IRGenModule &IGM,
   return {constant, 6};
 }
 
-bool swift::irgen::mangledNameIsUnknownToDeployTarget(IRGenModule &IGM,
+bool language::irgen::mangledNameIsUnknownToDeployTarget(IRGenModule &IGM,
                                                       CanType type) {
-  if (auto runtimeCompatVersion = getSwiftRuntimeCompatibilityVersionForTarget(
+  if (auto runtimeCompatVersion = getCodiraRuntimeCompatibilityVersionForTarget(
           IGM.Context.LangOpts.Target)) {
     if (auto minimumSupportedRuntimeVersion =
             getRuntimeVersionThatSupportsDemanglingType(type)) {
@@ -436,7 +463,7 @@ bool swift::irgen::mangledNameIsUnknownToDeployTarget(IRGenModule &IGM,
   return false;
 }
 
-static std::pair<llvm::Constant *, unsigned>
+static std::pair<toolchain::Constant *, unsigned>
 getTypeRefImpl(IRGenModule &IGM,
                CanType type,
                CanGenericSignature sig,
@@ -449,7 +476,7 @@ getTypeRefImpl(IRGenModule &IGM,
     
   case MangledTypeRefRole::FieldMetadata: {
     // We want to keep fields of noncopyable type from being exposed to
-    // in-process runtime reflection libraries in older Swift runtimes, since
+    // in-process runtime reflection libraries in older Codira runtimes, since
     // they more than likely assume they can copy field values, and the language
     // support for noncopyable types as dynamic or generic types isn't yet
     // implemented as of the writing of this comment. If the type is
@@ -493,7 +520,7 @@ getTypeRefImpl(IRGenModule &IGM,
       return getTypeRefByFunction(IGM, sig, type);
     }
   }
-  LLVM_FALLTHROUGH;
+  TOOLCHAIN_FALLTHROUGH;
 
   case MangledTypeRefRole::DefaultAssociatedTypeWitness:
   case MangledTypeRefRole::Metadata:
@@ -526,21 +553,21 @@ getTypeRefImpl(IRGenModule &IGM,
           SymbolicName.runtimeSizeInBytes()};
 }
 
-std::pair<llvm::Constant *, unsigned>
+std::pair<toolchain::Constant *, unsigned>
 IRGenModule::getTypeRef(CanType type, CanGenericSignature sig,
                         MangledTypeRefRole role) {
   type = substOpaqueTypesWithUnderlyingTypes(type);
   return getTypeRefImpl(*this, type, sig, role);
 }
 
-std::pair<llvm::Constant *, unsigned>
+std::pair<toolchain::Constant *, unsigned>
 IRGenModule::getTypeRef(Type type, GenericSignature genericSig,
                         MangledTypeRefRole role) {
   return getTypeRef(type->getReducedType(genericSig),
                     genericSig.getCanonicalSignature(), role);
 }
 
-std::pair<llvm::Constant *, unsigned>
+std::pair<toolchain::Constant *, unsigned>
 IRGenModule::getLoweredTypeRef(SILType loweredType,
                                CanGenericSignature genericSig,
                                MangledTypeRefRole role) {
@@ -556,7 +583,7 @@ IRGenModule::getLoweredTypeRef(SILType loweredType,
 /// TODO: Currently this uses a stub mangling that just refers to an accessor
 /// function. We need to fully develop the mangling with the ability to refer
 /// to dependent conformances to be able to use mangled strings.
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::emitWitnessTableRefString(CanType type,
                                       ProtocolConformanceRef conformance,
                                       GenericSignature origGenericSig,
@@ -582,10 +609,10 @@ IRGenModule::emitWitnessTableRefString(CanType type,
       [&](ConstantInitBuilder &B) {
         // Build a stub that loads the necessary bindings from the key path's
         // argument buffer then fetches the metadata.
-        auto fnTy = llvm::FunctionType::get(WitnessTablePtrTy,
+        auto fnTy = toolchain::FunctionType::get(WitnessTablePtrTy,
                                             {Int8PtrTy}, /*vararg*/ false);
         auto accessorThunk =
-          llvm::Function::Create(fnTy, llvm::GlobalValue::PrivateLinkage,
+          toolchain::Function::Create(fnTy, toolchain::GlobalValue::PrivateLinkage,
                                  symbolName, getModule());
         accessorThunk->setAttributes(constructInitialAttributes());
         
@@ -615,8 +642,8 @@ IRGenModule::emitWitnessTableRefString(CanType type,
         // Form the mangled name with its relative reference.
         auto S = B.beginStruct();
         S.setPacked(true);
-        S.add(llvm::ConstantInt::get(Int8Ty, 255));
-        S.add(llvm::ConstantInt::get(Int8Ty, 9));
+        S.add(toolchain::ConstantInt::get(Int8Ty, 255));
+        S.add(toolchain::ConstantInt::get(Int8Ty, 9));
         S.addCompactFunctionReference(accessorThunk);
 
         // And a null terminator!
@@ -627,7 +654,7 @@ IRGenModule::emitWitnessTableRefString(CanType type,
 }
 
 
-llvm::Constant *IRGenModule::getMangledAssociatedConformance(
+toolchain::Constant *IRGenModule::getMangledAssociatedConformance(
                                   const NormalProtocolConformance *conformance,
                                   const AssociatedConformance &requirement) {
   // Figure out the name of the symbol to be used for the conformance.
@@ -644,7 +671,7 @@ llvm::Constant *IRGenModule::getMangledAssociatedConformance(
   }
 
   // Get the accessor for this associated conformance.
-  llvm::Function *accessor;
+  toolchain::Function *accessor;
   unsigned char kind;
   if (conformance) {
     kind = 7;
@@ -659,33 +686,33 @@ llvm::Constant *IRGenModule::getMangledAssociatedConformance(
   ConstantInitBuilder B(*this);
   auto S = B.beginStruct();
   S.setPacked(true);
-  S.add(llvm::ConstantInt::get(Int8Ty, 255));
-  S.add(llvm::ConstantInt::get(Int8Ty, kind));
+  S.add(toolchain::ConstantInt::get(Int8Ty, 255));
+  S.add(toolchain::ConstantInt::get(Int8Ty, kind));
   S.addCompactFunctionReference(accessor);
 
   // And a null terminator!
   S.addInt(Int8Ty, 0);
 
   auto finished = S.finishAndCreateFuture();
-  auto var = new llvm::GlobalVariable(Module, finished.getType(),
+  auto var = new toolchain::GlobalVariable(Module, finished.getType(),
                                       /*constant*/ true,
-                                      llvm::GlobalValue::LinkOnceODRLinkage,
+                                      toolchain::GlobalValue::LinkOnceODRLinkage,
                                       nullptr,
                                       symbolName);
   ApplyIRLinkage(IRLinkage::InternalLinkOnceODR).to(var);
-  var->setAlignment(llvm::MaybeAlign(2));
+  var->setAlignment(toolchain::MaybeAlign(2));
   setTrueConstGlobal(var);
   var->setSection(getReflectionTypeRefSectionName());
 
   finished.installInGlobal(var);
 
   // Drill down to the i8* at the beginning of the constant.
-  auto addr = llvm::ConstantExpr::getBitCast(var, Int8PtrTy);
+  auto addr = toolchain::ConstantExpr::getBitCast(var, Int8PtrTy);
 
   // Set the low bit.
   unsigned bit = ProtocolRequirementFlags::AssociatedTypeMangledNameBit;
-  auto bitConstant = llvm::ConstantInt::get(IntPtrTy, bit);
-  addr = llvm::ConstantExpr::getGetElementPtr(Int8Ty, addr, bitConstant);
+  auto bitConstant = toolchain::ConstantInt::get(IntPtrTy, bit);
+  addr = toolchain::ConstantExpr::getGetElementPtr(Int8Ty, addr, bitConstant);
 
   // Update the entry.
   entry = {var, addr};
@@ -706,7 +733,7 @@ protected:
   
   // Collect any builtin types referenced from this type.
   void addBuiltinTypeRefs(CanType type) {
-    if (IGM.getSwiftModule()->isStdlibModule()) {
+    if (IGM.getCodiraModule()->isStdlibModule()) {
       type.visit([&](CanType t) {
         if (isa<BuiltinType>(t))
           IGM.BuiltinTypes.insert(t);
@@ -775,27 +802,27 @@ protected:
 
   // A function signature for a lambda wrapping an IRGenModule::getAddrOf*
   // method.
-  using GetAddrOfEntityFn = llvm::Constant* (IRGenModule &, ConstantInit);
+  using GetAddrOfEntityFn = toolchain::Constant* (IRGenModule &, ConstantInit);
 
-  llvm::GlobalVariable *
-  emit(std::optional<llvm::function_ref<GetAddrOfEntityFn>> getAddr,
+  toolchain::GlobalVariable *
+  emit(std::optional<toolchain::function_ref<GetAddrOfEntityFn>> getAddr,
        const char *section) {
     layout();
 
-    llvm::GlobalVariable *var;
+    toolchain::GlobalVariable *var;
 
     // Some reflection records have a mangled symbol name, for uniquing
     // imported type metadata.
     if (getAddr) {
       auto init = B.finishAndCreateFuture();
 
-      var = cast<llvm::GlobalVariable>((*getAddr)(IGM, init));
+      var = cast<toolchain::GlobalVariable>((*getAddr)(IGM, init));
       var->setConstant(true);
     // Others, such as capture descriptors, do not have a name.
     } else {
-      var = B.finishAndCreateGlobal("\x01l__swift5_reflection_descriptor",
+      var = B.finishAndCreateGlobal("\x01l__language5_reflection_descriptor",
                                     Alignment(4), /*isConstant*/ true,
-                                    llvm::GlobalValue::PrivateLinkage);
+                                    toolchain::GlobalValue::PrivateLinkage);
     }
 
     var->setSection(section);
@@ -812,8 +839,8 @@ protected:
     return var;
   }
 
-  llvm::GlobalVariable *emit(std::nullopt_t none, const char *section) {
-    return emit(std::optional<llvm::function_ref<GetAddrOfEntityFn>>(),
+  toolchain::GlobalVariable *emit(std::nullopt_t none, const char *section) {
+    return emit(std::optional<toolchain::function_ref<GetAddrOfEntityFn>>(),
                 section);
   }
 
@@ -852,10 +879,10 @@ public:
     : ReflectionMetadataBuilder(IGM), Conformance(Conformance),
       AssociatedTypes(AssociatedTypes) {}
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getAssociatedTypeMetadataSectionName();
-    llvm::GlobalVariable *var = ReflectionMetadataBuilder::emit(
-        [&](IRGenModule &IGM, ConstantInit init) -> llvm::Constant * {
+    toolchain::GlobalVariable *var = ReflectionMetadataBuilder::emit(
+        [&](IRGenModule &IGM, ConstantInit init) -> toolchain::Constant * {
           return IGM.getAddrOfReflectionAssociatedTypeDescriptor(Conformance,
                                                                  init);
         },
@@ -921,7 +948,7 @@ private:
       break;
     }
     case Field::MissingMember:
-      llvm_unreachable("emitting reflection for type with missing member");
+      toolchain_unreachable("emitting reflection for type with missing member");
     case Field::DefaultActorStorage:
       flags.setIsArtificial();
       break;
@@ -949,35 +976,13 @@ private:
     B.addInt16(uint16_t(kind));
     B.addInt16(FieldRecordSize);
 
-    // Filter to select which fields we'll export FieldDescriptors for.
-    auto exportable_field =
-      [](Field field) {
-        // Don't export private C++ fields that were imported as private Swift fields.
-        // The type of a private field might not have all the type witness
-        // operations that Swift requires, for instance,
-        // `std::unique_ptr<IncompleteType>` would not have a destructor.
-        if (field.getKind() == Field::Kind::Var &&
-            field.getVarDecl()->getClangDecl() &&
-            field.getVarDecl()->getFormalAccess() == AccessLevel::Private)
-          return false;
-        // All other fields are exportable
-        return true;
-      };
-
-    // Count exportable fields
-    int exportableFieldCount = 0;
-    forEachField(IGM, NTD, [&](Field field) {
-      if (exportable_field(field)) {
-        ++exportableFieldCount;
-      }
-    });
-
     // Emit exportable fields, prefixed with a count
-    B.addInt32(exportableFieldCount);
+    B.addInt32(countExportableFields(IGM, NTD));
+
+    // Filter to select which fields we'll export FieldDescriptor for.
     forEachField(IGM, NTD, [&](Field field) {
-      if (exportable_field(field)) {
+      if (isExportableField(field))
         addField(field);
-      }
     });
   }
 
@@ -1072,7 +1077,7 @@ private:
       break;
 
     default:
-      llvm_unreachable("Not a nominal type");
+      toolchain_unreachable("Not a nominal type");
       break;
     }
   }
@@ -1082,10 +1087,10 @@ public:
                            const NominalTypeDecl * NTD)
     : ReflectionMetadataBuilder(IGM), NTD(NTD) {}
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getFieldTypeMetadataSectionName();
-    llvm::GlobalVariable *var = ReflectionMetadataBuilder::emit(
-        [&](IRGenModule &IGM, ConstantInit definition) -> llvm::Constant * {
+    toolchain::GlobalVariable *var = ReflectionMetadataBuilder::emit(
+        [&](IRGenModule &IGM, ConstantInit definition) -> toolchain::Constant * {
           return IGM.getAddrOfReflectionFieldDescriptor(
               NTD->getDeclaredType()->getCanonicalType(), definition);
         },
@@ -1142,10 +1147,10 @@ public:
              && "should only be used for known empty types");
   }
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getFieldTypeMetadataSectionName();
     return ReflectionMetadataBuilder::emit(
-      [&](IRGenModule &IGM, ConstantInit definition) -> llvm::Constant* {
+      [&](IRGenModule &IGM, ConstantInit definition) -> toolchain::Constant* {
         return IGM.getAddrOfReflectionFieldDescriptor(
           NTD->getDeclaredType()->getCanonicalType(), definition);
       },
@@ -1198,10 +1203,10 @@ public:
     B.addInt32(ti->getFixedExtraInhabitantCount(IGM));
   }
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getBuiltinTypeMetadataSectionName();
     return ReflectionMetadataBuilder::emit(
-      [&](IRGenModule &IGM, ConstantInit definition) -> llvm::Constant * {
+      [&](IRGenModule &IGM, ConstantInit definition) -> toolchain::Constant * {
         return IGM.getAddrOfReflectionBuiltinDescriptor(type, definition);
       },
       section);
@@ -1280,7 +1285,7 @@ public:
     }
   }
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getMultiPayloadEnumDescriptorSectionName();
     return ReflectionMetadataBuilder::emit(std::nullopt, section);
   }
@@ -1306,7 +1311,7 @@ public:
     addLoweredTypeRef(BoxedType, genericSig);
   }
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getCaptureDescriptorMetadataSectionName();
     return ReflectionMetadataBuilder::emit(std::nullopt, section);
   }
@@ -1321,7 +1326,7 @@ public:
 /// If the standard library's Mirror type ever gains the ability to reflect
 /// closure contexts, we should use MangledTypeRefRole::Metadata below.
 class CaptureDescriptorBuilder : public ReflectionMetadataBuilder {
-  swift::reflection::MetadataSourceBuilder SourceBuilder;
+  language::reflection::MetadataSourceBuilder SourceBuilder;
   CanSILFunctionType OrigCalleeType;
   CanSILFunctionType SubstCalleeType;
   SubstitutionMap Subs;
@@ -1364,7 +1369,7 @@ public:
       B.addInt32(0);
     } else {
       SmallString<16> EncodeBuffer;
-      llvm::raw_svector_ostream OS(EncodeBuffer);
+      toolchain::raw_svector_ostream OS(EncodeBuffer);
       switch (Kind) {
       case Entry::Kind::Value:
         OS << "v";
@@ -1409,8 +1414,8 @@ public:
     auto ElementTypes =
         Layout.getElementTypes().slice(Layout.getIndexAfterBindings());
     for (auto ElementType : ElementTypes) {
-      auto SwiftType = ElementType.getASTType();
-      if (SwiftType->hasLocalArchetype())
+      auto CodiraType = ElementType.getASTType();
+      if (CodiraType->hasLocalArchetype())
         return true;
     }
 
@@ -1519,7 +1524,7 @@ public:
 
       case GenericRequirement::Kind::WitnessTable:
       case GenericRequirement::Kind::WitnessTablePack:
-        llvm_unreachable("Bad kind");
+        toolchain_unreachable("Bad kind");
       }
 
       // The metadata might be reached via a non-trivial path (eg,
@@ -1542,11 +1547,11 @@ public:
     std::vector<SILType> CaptureTypes;
 
     for (auto ElementType : getElementTypes()) {
-      auto SwiftType = ElementType.getASTType();
+      auto CodiraType = ElementType.getASTType();
 
       // Erase pseudogeneric captures down to AnyObject.
       if (OrigCalleeType->isPseudogeneric()) {
-        SwiftType = SwiftType.transformRec([&](Type t) -> std::optional<Type> {
+        CodiraType = CodiraType.transformRec([&](Type t) -> std::optional<Type> {
           if (auto *archetype = t->getAs<ArchetypeType>()) {
             assert(archetype->requiresClass() && "don't know what to do");
             return IGM.Context.getAnyObjectType();
@@ -1560,11 +1565,11 @@ public:
       // affect representation.
       //
       // For now, eliminate substitutions from the capture representation.
-      SwiftType =
-        SwiftType->replaceSubstitutedSILFunctionTypesWithUnsubstituted(IGM.getSILModule())
+      CodiraType =
+        CodiraType->replaceSubstitutedSILFunctionTypesWithUnsubstituted(IGM.getSILModule())
                  ->getCanonicalType();
 
-      CaptureTypes.push_back(SILType::getPrimitiveObjectType(SwiftType));
+      CaptureTypes.push_back(SILType::getPrimitiveObjectType(CodiraType));
     }
 
     return CaptureTypes;
@@ -1594,7 +1599,7 @@ public:
     }
   }
 
-  llvm::GlobalVariable *emit() {
+  toolchain::GlobalVariable *emit() {
     auto section = IGM.getCaptureDescriptorMetadataSectionName();
     return ReflectionMetadataBuilder::emit(std::nullopt, section);
   }
@@ -1604,27 +1609,27 @@ static std::string getReflectionSectionName(IRGenModule &IGM,
                                             StringRef LongName,
                                             StringRef FourCC) {
   SmallString<50> SectionName;
-  llvm::raw_svector_ostream OS(SectionName);
+  toolchain::raw_svector_ostream OS(SectionName);
   switch (IGM.TargetInfo.OutputObjectFormat) {
-  case llvm::Triple::DXContainer:
-  case llvm::Triple::GOFF:
-  case llvm::Triple::SPIRV:
-  case llvm::Triple::UnknownObjectFormat:
-    llvm_unreachable("unknown object format");
-  case llvm::Triple::XCOFF:
-  case llvm::Triple::COFF:
+  case toolchain::Triple::DXContainer:
+  case toolchain::Triple::GOFF:
+  case toolchain::Triple::SPIRV:
+  case toolchain::Triple::UnknownObjectFormat:
+    toolchain_unreachable("unknown object format");
+  case toolchain::Triple::XCOFF:
+  case toolchain::Triple::COFF:
     assert(FourCC.size() <= 4 &&
            "COFF section name length must be <= 8 characters");
     OS << ".sw5" << FourCC << "$B";
     break;
-  case llvm::Triple::ELF:
-  case llvm::Triple::Wasm:
-    OS << "swift5_" << LongName;
+  case toolchain::Triple::ELF:
+  case toolchain::Triple::Wasm:
+    OS << "language5_" << LongName;
     break;
-  case llvm::Triple::MachO:
+  case toolchain::Triple::MachO:
     assert(LongName.size() <= 7 &&
            "Mach-O section name length must be <= 16 characters");
-    OS << "__TEXT,__swift5_" << LongName << ", regular";
+    OS << "__TEXT,__language5_" << LongName << ", regular";
     break;
   }
   return std::string(OS.str());
@@ -1672,12 +1677,12 @@ const char *IRGenModule::getMultiPayloadEnumDescriptorSectionName() {
   return MultiPayloadEnumDescriptorSection.c_str();
 }
 
-llvm::Constant *IRGenModule::getAddrOfFieldName(StringRef Name) {
+toolchain::Constant *IRGenModule::getAddrOfFieldName(StringRef Name) {
   auto &entry = FieldNames[Name];
   if (entry.second)
     return entry.second;
 
-  llvm::SmallString<256> ReflName;
+  toolchain::SmallString<256> ReflName;
   if (Lexer::identifierMustAlwaysBeEscaped(Name)) {
     Mangle::Mangler::appendRawIdentifierForRuntime(Name.str(), ReflName);
   } else {
@@ -1689,35 +1694,35 @@ llvm::Constant *IRGenModule::getAddrOfFieldName(StringRef Name) {
   return entry.second;
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfBoxDescriptor(SILType BoxedType,
                                     CanGenericSignature genericSig) {
   if (IRGen.Opts.ReflectionMetadata != ReflectionMetadataMode::Runtime)
-    return llvm::Constant::getNullValue(CaptureDescriptorPtrTy);
+    return toolchain::Constant::getNullValue(CaptureDescriptorPtrTy);
 
   BoxDescriptorBuilder builder(*this, BoxedType, genericSig);
   auto var = builder.emit();
 
-  return llvm::ConstantExpr::getBitCast(var, CaptureDescriptorPtrTy);
+  return toolchain::ConstantExpr::getBitCast(var, CaptureDescriptorPtrTy);
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfCaptureDescriptor(SILFunction &Caller,
                                         CanSILFunctionType OrigCalleeType,
                                         CanSILFunctionType SubstCalleeType,
                                         SubstitutionMap Subs,
                                         const HeapLayout &Layout) {
   if (IRGen.Opts.ReflectionMetadata != ReflectionMetadataMode::Runtime)
-    return llvm::Constant::getNullValue(CaptureDescriptorPtrTy);
+    return toolchain::Constant::getNullValue(CaptureDescriptorPtrTy);
 
   if (CaptureDescriptorBuilder::hasLocalArchetype(OrigCalleeType, Layout))
-    return llvm::Constant::getNullValue(CaptureDescriptorPtrTy);
+    return toolchain::Constant::getNullValue(CaptureDescriptorPtrTy);
 
   CaptureDescriptorBuilder builder(*this,
                                    OrigCalleeType, SubstCalleeType, Subs,
                                    Layout);
   auto var = builder.emit();
-  return llvm::ConstantExpr::getBitCast(var, CaptureDescriptorPtrTy);
+  return toolchain::ConstantExpr::getBitCast(var, CaptureDescriptorPtrTy);
 }
 
 void IRGenModule::
@@ -1752,7 +1757,7 @@ emitAssociatedTypeMetadataRecord(const RootProtocolConformance *conformance) {
   builder.emit();
 }
 
-llvm::ArrayRef<CanType> IRGenModule::getOrCreateSpecialStlibBuiltinTypes() {
+toolchain::ArrayRef<CanType> IRGenModule::getOrCreateSpecialStlibBuiltinTypes() {
   if (SpecialStdlibBuiltinTypes.empty()) {
     SpecialStdlibBuiltinTypes.push_back(Context.TheNativeObjectType);
     SpecialStdlibBuiltinTypes.push_back(Context.getAnyObjectType());
@@ -1781,7 +1786,7 @@ void IRGenModule::emitBuiltinReflectionMetadata() {
     return;
   }
 
-  if (getSwiftModule()->isStdlibModule()) {
+  if (getCodiraModule()->isStdlibModule()) {
     auto SpecialBuiltins = getOrCreateSpecialStlibBuiltinTypes();
     BuiltinTypes.insert(SpecialBuiltins.begin(), SpecialBuiltins.end());
   }
@@ -1886,11 +1891,11 @@ void IRGenModule::emitReflectionMetadataVersion() {
     return;
 
   auto Init =
-    llvm::ConstantInt::get(Int16Ty, SWIFT_REFLECTION_METADATA_VERSION);
-  auto Version = new llvm::GlobalVariable(Module, Int16Ty, /*constant*/ true,
-                                          llvm::GlobalValue::LinkOnceODRLinkage,
+    toolchain::ConstantInt::get(Int16Ty, LANGUAGE_REFLECTION_METADATA_VERSION);
+  auto Version = new toolchain::GlobalVariable(Module, Int16Ty, /*constant*/ true,
+                                          toolchain::GlobalValue::LinkOnceODRLinkage,
                                           Init,
-                                          "__swift_reflection_version");
+                                          "__language_reflection_version");
   ApplyIRLinkage(IRLinkage::InternalLinkOnceODR).to(Version);
   addUsedGlobal(Version);
 }

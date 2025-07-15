@@ -1,0 +1,4 @@
+// RUN: %target-language-frontend --version | %FileCheck %s
+
+// CHECK: Codira version
+// CHECK-NEXT: Target

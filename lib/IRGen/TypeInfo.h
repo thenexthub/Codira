@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the interface used to perform primitive
-// operations on swift values and objects.
+// operations on language values and objects.
 //
 // This interface is supplemented in two ways:
 //   - FixedTypeInfo provides a number of operations meaningful only
@@ -25,15 +26,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_TYPEINFO_H
-#define SWIFT_IRGEN_TYPEINFO_H
+#ifndef LANGUAGE_IRGEN_TYPEINFO_H
+#define LANGUAGE_IRGEN_TYPEINFO_H
 
 #include "IRGen.h"
 #include "Outlining.h"
 #include "language/AST/ReferenceCounting.h"
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/MapVector.h"
 
-namespace llvm {
+namespace toolchain {
   class Constant;
   class Twine;
   class Type;
@@ -103,7 +104,7 @@ protected:
   union {
     uint64_t OpaqueBits;
 
-    SWIFT_INLINE_BITFIELD_BASE(TypeInfo,
+    LANGUAGE_INLINE_BITFIELD_BASE(TypeInfo,
                              bitmax(NumSpecialTypeInfoKindBits,8)+6+1+1+1+1+3+1+1,
       /// The kind of supplemental API this type has, if any.
       Kind : bitmax(NumSpecialTypeInfoKindBits,8),
@@ -142,7 +143,7 @@ protected:
     /// NOTE: Until one can define statically sized inline arrays in the
     /// language, defining an extremely large object is quite impractical.
     /// For now: "4 GiB should be more than good enough."
-    SWIFT_INLINE_BITFIELD_FULL(FixedTypeInfo, TypeInfo, 32,
+    LANGUAGE_INLINE_BITFIELD_FULL(FixedTypeInfo, TypeInfo, 32,
       : NumPadBits,
 
       /// The storage size of this type in bytes.  This may be zero even
@@ -155,7 +156,7 @@ protected:
 
   enum { InvalidSubclassKind = 0x7 };
 
-  TypeInfo(llvm::Type *Type, Alignment A, IsTriviallyDestroyable_t pod,
+  TypeInfo(toolchain::Type *Type, Alignment A, IsTriviallyDestroyable_t pod,
            IsBitwiseTakable_t bitwiseTakable,
            IsCopyable_t copyable,
            IsFixedSize_t alwaysFixedSize,
@@ -164,7 +165,7 @@ protected:
     assert(stik >= SpecialTypeInfoKind::Fixed || !alwaysFixedSize);
     Bits.OpaqueBits = 0;
     Bits.TypeInfo.Kind = unsigned(stik);
-    Bits.TypeInfo.AlignmentShift = llvm::Log2_32(A.getValue());
+    Bits.TypeInfo.AlignmentShift = toolchain::Log2_32(A.getValue());
     Bits.TypeInfo.TriviallyDestroyable = pod;
     Bits.TypeInfo.BitwiseTakable = bitwiseTakable >= IsBitwiseTakableOnly;
     Bits.TypeInfo.BitwiseBorrowable =
@@ -178,7 +179,7 @@ protected:
   /// Change the minimum alignment of a stored value of this type.
   void setStorageAlignment(Alignment alignment) {
     auto Prev = Bits.TypeInfo.AlignmentShift;
-    auto Next = llvm::Log2_32(alignment.getValue());
+    auto Next = toolchain::Log2_32(alignment.getValue());
     assert(Next >= Prev && "Alignment can only increase");
     (void)Prev;
     Bits.TypeInfo.AlignmentShift = Next;
@@ -195,7 +196,7 @@ private:
 
   /// The LLVM representation of a stored value of this type.  For
   /// non-fixed types, this is really useful only for forming pointers to it.
-  llvm::Type *StorageType;
+  toolchain::Type *StorageType;
 
   mutable NativeConventionSchema *nativeReturnSchema = nullptr;
   mutable NativeConventionSchema *nativeParameterSchema = nullptr;
@@ -299,7 +300,7 @@ public:
       return IsFixedSize_t(Bits.TypeInfo.AlwaysFixedSize);
     }
 
-    llvm_unreachable("Not a valid ResilienceExpansion.");
+    toolchain_unreachable("Not a valid ResilienceExpansion.");
   }
 
   /// Whether this type is known to be loadable in the local
@@ -309,7 +310,7 @@ public:
     return IsLoadable_t(getSpecialTypeInfoKind() >= SpecialTypeInfoKind::Loadable);
   }
 
-  llvm::Type *getStorageType() const { return StorageType; }
+  toolchain::Type *getStorageType() const { return StorageType; }
 
   Alignment getBestKnownAlignment() const {
     auto Shift = Bits.TypeInfo.AlignmentShift;
@@ -317,31 +318,31 @@ public:
   }
 
   /// Given a generic pointer to this type, produce an Address for it.
-  Address getAddressForPointer(llvm::Value *ptr) const;
+  Address getAddressForPointer(toolchain::Value *ptr) const;
 
   /// Produce an undefined pointer to an object of this type.
   Address getUndefAddress() const;
     
   /// Return the size and alignment of this type.
-  virtual llvm::Value *getSize(IRGenFunction &IGF, SILType T) const = 0;
-  virtual llvm::Value *getAlignmentMask(IRGenFunction &IGF, SILType T) const = 0;
-  virtual llvm::Value *getStride(IRGenFunction &IGF, SILType T) const = 0;
-  virtual llvm::Value *getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const = 0;
-  virtual llvm::Value *getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const = 0;
-  virtual llvm::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
+  virtual toolchain::Value *getSize(IRGenFunction &IGF, SILType T) const = 0;
+  virtual toolchain::Value *getAlignmentMask(IRGenFunction &IGF, SILType T) const = 0;
+  virtual toolchain::Value *getStride(IRGenFunction &IGF, SILType T) const = 0;
+  virtual toolchain::Value *getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const = 0;
+  virtual toolchain::Value *getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const = 0;
+  virtual toolchain::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
                                                  SILType T) const = 0;
 
   /// Return the statically-known size of this type, or null if it is
   /// not known.
-  virtual llvm::Constant *getStaticSize(IRGenModule &IGM) const = 0;
+  virtual toolchain::Constant *getStaticSize(IRGenModule &IGM) const = 0;
 
   /// Return the statically-known alignment mask for this type, or
   /// null if it is not known.
-  virtual llvm::Constant *getStaticAlignmentMask(IRGenModule &IGM) const = 0;
+  virtual toolchain::Constant *getStaticAlignmentMask(IRGenModule &IGM) const = 0;
 
   /// Return the statically-known stride size of this type, or null if
   /// it is not known.
-  virtual llvm::Constant *getStaticStride(IRGenModule &IGM) const = 0;
+  virtual toolchain::Constant *getStaticStride(IRGenModule &IGM) const = 0;
 
   /// Add the information for exploding values of this type to the
   /// given schema.
@@ -358,7 +359,7 @@ public:
 
   /// Allocate a variable of this type on the stack.
   virtual StackAddress allocateStack(IRGenFunction &IGF, SILType T,
-                                     const llvm::Twine &name) const = 0;
+                                     const toolchain::Twine &name) const = 0;
 
   /// Deallocate a variable of this type.
   virtual void deallocateStack(IRGenFunction &IGF, StackAddress addr,
@@ -437,10 +438,10 @@ public:
                                              = nullptr) const;
 
   /// Should optimizations be enabled which rely on the representation
-  /// for this type being a single Swift-retainable object pointer?
+  /// for this type being a single Codira-retainable object pointer?
   ///
   /// \return false by default
-  bool isSingleSwiftRetainablePointer(ResilienceExpansion expansion) const {
+  bool isSingleCodiraRetainablePointer(ResilienceExpansion expansion) const {
     ReferenceCounting refcounting;
     return (isSingleRetainablePointer(expansion, &refcounting) &&
             refcounting == ReferenceCounting::Native);
@@ -454,7 +455,7 @@ public:
   /// with extra inhabitants up to the given index.
   ///
   /// An example of this is retainable pointers. The first extra inhabitant for
-  /// these types is the null pointer, on which swift_retain is a harmless
+  /// these types is the null pointer, on which language_retain is a harmless
   /// no-op. If this predicate returns true, then a single-payload enum with
   /// this type as its payload (like Optional<T>) can avoid additional branching
   /// on the enum tag for value witness operations.
@@ -463,16 +464,16 @@ public:
   
   /// Get the tag of a single payload enum with a payload of this type (\p T) e.g
   /// Optional<T>.
-  virtual llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                               llvm::Value *numEmptyCases,
+  virtual toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                               toolchain::Value *numEmptyCases,
                                                Address enumAddr,
                                                SILType T,
                                                bool isOutlined) const = 0;
 
   /// Store the tag of a single payload enum with a payload of this type.
   virtual void storeEnumTagSinglePayload(IRGenFunction &IGF,
-                                         llvm::Value *whichCase,
-                                         llvm::Value *numEmptyCases,
+                                         toolchain::Value *whichCase,
+                                         toolchain::Value *numEmptyCases,
                                          Address enumAddr,
                                          SILType T,
                                          bool isOutlined) const = 0;
@@ -485,10 +486,10 @@ public:
   /// Most places in IRGen shouldn't be using this.
   ///
   /// knownXICount can be null.
-  llvm::Value *getExtraInhabitantTagDynamic(IRGenFunction &IGF,
+  toolchain::Value *getExtraInhabitantTagDynamic(IRGenFunction &IGF,
                                             Address address,
                                             SILType T,
-                                            llvm::Value *knownXICount,
+                                            toolchain::Value *knownXICount,
                                             bool isOutlined) const;
 
   /// Store an extra-inhabitant tag for the given type, which is known to be
@@ -497,7 +498,7 @@ public:
   ///
   /// Most places in IRGen shouldn't be using this.
   void storeExtraInhabitantTagDynamic(IRGenFunction &IGF,
-                                      llvm::Value *index,
+                                      toolchain::Value *index,
                                       Address address,
                                       SILType T,
                                       bool isOutlined) const;
@@ -509,7 +510,7 @@ public:
   FixedPacking getFixedPacking(IRGenModule &IGM) const;
   
   /// Index into an array of objects of this type.
-  Address indexArray(IRGenFunction &IGF, Address base, llvm::Value *offset,
+  Address indexArray(IRGenFunction &IGF, Address base, toolchain::Value *offset,
                      SILType T) const;
 
   /// Round up the address value \p base to the alignment of type \p T. 
@@ -518,20 +519,20 @@ public:
 
   /// Destroy an array of objects of this type in memory.
   virtual void destroyArray(IRGenFunction &IGF, Address base,
-                            llvm::Value *count, SILType T) const;
+                            toolchain::Value *count, SILType T) const;
   
   /// Initialize an array of objects of this type in memory by copying the
   /// values from another array. The arrays must not overlap.
   virtual void initializeArrayWithCopy(IRGenFunction &IGF,
                                        Address dest,
                                        Address src,
-                                       llvm::Value *count, SILType T) const;
+                                       toolchain::Value *count, SILType T) const;
   
   /// Initialize an array of objects of this type in memory by taking the
   /// values from another array. The array must not overlap.
   virtual void initializeArrayWithTakeNoAlias(IRGenFunction &IGF,
                                        Address dest, Address src,
-                                       llvm::Value *count, SILType T) const;
+                                       toolchain::Value *count, SILType T) const;
 
   /// Initialize an array of objects of this type in memory by taking the
   /// values from another array. The destination array may overlap the head of
@@ -539,7 +540,7 @@ public:
   /// order.
   virtual void initializeArrayWithTakeFrontToBack(IRGenFunction &IGF,
                                        Address dest, Address src,
-                                       llvm::Value *count, SILType T) const;
+                                       toolchain::Value *count, SILType T) const;
   
   /// Initialize an array of objects of this type in memory by taking the
   /// values from another array. The destination array may overlap the tail of
@@ -547,12 +548,12 @@ public:
   /// order.
   virtual void initializeArrayWithTakeBackToFront(IRGenFunction &IGF,
                                        Address dest, Address src,
-                                       llvm::Value *count, SILType T) const;
+                                       toolchain::Value *count, SILType T) const;
 
   /// Assign to an array of objects of this type in memory by copying the
   /// values from another array. The array must not overlap.
   virtual void assignArrayWithCopyNoAlias(IRGenFunction &IGF, Address dest,
-                                          Address src, llvm::Value *count,
+                                          Address src, toolchain::Value *count,
                                           SILType T) const;
 
   /// Assign to an array of objects of this type in memory by copying the
@@ -560,7 +561,7 @@ public:
   /// the source array because the elements are taken as if in front-to-back
   /// order.
   virtual void assignArrayWithCopyFrontToBack(IRGenFunction &IGF, Address dest,
-                                              Address src, llvm::Value *count,
+                                              Address src, toolchain::Value *count,
                                               SILType T) const;
 
   /// Assign to an array of objects of this type in memory by copying the
@@ -568,13 +569,13 @@ public:
   /// the source array because the elements are taken as if in back-to-front
   /// order.
   virtual void assignArrayWithCopyBackToFront(IRGenFunction &IGF, Address dest,
-                                              Address src, llvm::Value *count,
+                                              Address src, toolchain::Value *count,
                                               SILType T) const;
 
   /// Assign to an array of objects of this type in memory by taking the
   /// values from another array. The array must not overlap.
   virtual void assignArrayWithTake(IRGenFunction &IGF, Address dest,
-                                   Address src, llvm::Value *count,
+                                   Address src, toolchain::Value *count,
                                    SILType T) const;
 
   /// Collect all the metadata necessary in order to perform value
@@ -591,7 +592,7 @@ public:
   /// Emit verifier code that compares compile-time constant knowledge of
   /// this kind of type's traits to its runtime manifestation.
   virtual void verify(IRGenTypeVerifierFunction &IGF,
-                      llvm::Value *typeMetadata,
+                      toolchain::Value *typeMetadata,
                       SILType T) const;
   /// Perform \p invocation with the appropriate metadata collector for use in
   /// emitting an outlined value function of a value operation that can be
@@ -602,7 +603,7 @@ public:
   bool withWitnessableMetadataCollector(
       IRGenFunction &IGF, SILType T, LayoutIsNeeded_t needsLayout,
       DeinitIsNeeded_t needsDeinit,
-      llvm::function_ref<void(OutliningMetadataCollector &)> invocation) const;
+      toolchain::function_ref<void(OutliningMetadataCollector &)> invocation) const;
 
   void callOutlinedCopy(IRGenFunction &IGF, Address dest, Address src,
                         SILType T, IsInitialization_t isInit,

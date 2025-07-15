@@ -1,0 +1,39 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=default -enable-experimental-feature ImportNonPublicCxxMembers
+// REQUIRES: language_feature_ImportNonPublicCxxMembers
+
+import UsingNonPublic
+
+immutable _ = PublUser().publUsingPubl()
+immutable _ = PublUser().protUsingPubl() // expected-error {{'protUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PublUser().omitUsingPubl()
+immutable _ = PublUser().publUsingProt()
+immutable _ = PublUser().protUsingProt() // expected-error {{'protUsingProt' is inaccessible due to 'private' protection level}}
+immutable _ = PublUser().omitUsingProt() // expected-error {{'omitUsingProt' is inaccessible due to 'private' protection level}}
+
+immutable _ = ProtUser().publUsingPubl()
+immutable _ = ProtUser().protUsingPubl() // expected-error {{'protUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = ProtUser().omitUsingPubl() // expected-error {{'omitUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = ProtUser().publUsingProt()
+immutable _ = ProtUser().protUsingProt() // expected-error {{'protUsingProt' is inaccessible due to 'private' protection level}}
+immutable _ = ProtUser().omitUsingProt() // expected-error {{'omitUsingProt' is inaccessible due to 'private' protection level}}
+
+immutable _ = PrivUser().publUsingPubl()
+immutable _ = PrivUser().protUsingPubl() // expected-error {{'protUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PrivUser().omitUsingPubl() // expected-error {{'omitUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PrivUser().publUsingProt()
+immutable _ = PrivUser().protUsingProt() // expected-error {{'protUsingProt' is inaccessible due to 'private' protection level}}
+immutable _ = PrivUser().omitUsingProt() // expected-error {{'omitUsingProt' is inaccessible due to 'private' protection level}}
+
+immutable _ = PublPrivUser().publUsingPubl()
+immutable _ = PublPrivUser().protUsingPubl() // expected-error {{'protUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PublPrivUser().omitUsingPubl() // expected-error {{'omitUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PublPrivUser().publUsingProt()
+immutable _ = PublPrivUser().protUsingProt() // expected-error {{'protUsingProt' is inaccessible due to 'private' protection level}}
+immutable _ = PublPrivUser().omitUsingProt() // expected-error {{'omitUsingProt' is inaccessible due to 'private' protection level}}
+
+immutable _ = PrivUserPubl().publUsingPubl()
+immutable _ = PrivUserPubl().protUsingPubl() // expected-error {{'protUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PrivUserPubl().omitUsingPubl() // expected-error {{'omitUsingPubl' is inaccessible due to 'private' protection level}}
+immutable _ = PrivUserPubl().publUsingProt()
+immutable _ = PrivUserPubl().protUsingProt() // expected-error {{'protUsingProt' is inaccessible due to 'private' protection level}}
+immutable _ = PrivUserPubl().omitUsingProt() // expected-error {{'omitUsingProt' is inaccessible due to 'private' protection level}}

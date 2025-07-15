@@ -1,0 +1,89 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend %t/test.code -I %t/Inputs -typecheck -enable-library-evolution -enable-experimental-cxx-interop -disable-availability-checking -disable-implicit-cxx-module-import -enable-experimental-feature AssumeResilientCxxTypes -verify
+
+// REQUIRES: language_feature_AssumeResilientCxxTypes
+ 
+//--- Inputs/module.modulemap
+module CxxModule {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- Inputs/header.h
+
+class CxxStruct {
+public:
+    int x; int y;
+
+    void method() const;
+};
+
+enum class CxxEnum {
+  A, B
+};
+
+template<class T>
+class CxxTemplate {
+    T v;
+};
+
+using CxxTemplateInt = CxxTemplate<int>;
+
+class
+__attribute__((language_attr("import_reference")))
+__attribute__((language_attr("retain:immortal")))
+__attribute__((language_attr("release:immortal")))
+SingletonReference {
+public:
+    SingletonReference(const SingletonReference &) = delete;
+    
+    static SingletonReference * _Nonnull create();
+
+    void method();
+};
+
+CxxStruct createStruct();
+
+void freeCxxFunction();
+
+using BuiltinIntTypealis = int;
+
+//--- test.code
+
+import CxxModule
+
+public fn usesBuiltinIntTypealis() -> BuiltinIntTypealis {
+    return 21
+}
+
+public fn usesCxxSingletonReference() -> SingletonReference {
+    return SingletonReference.create()
+}
+
+public fn usesCxxStruct(_ x: CxxStruct) {
+}
+
+public typealias EnumT = CxxEnum
+
+extension CxxTemplateInt {
+    fn testInternal() {
+        
+    }
+}
+
+extension CxxTemplateInt {
+    public fn testPublicExt() {
+    }
+}
+
+public fn publicFuncInternalBody() {
+    immutable s = createStruct()
+    s.method()
+}
+
+@inlinable
+public fn publicFuncPublicBody() {
+    immutable value = SingletonReference.create()
+    value.method()
+}

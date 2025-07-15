@@ -1,0 +1,93 @@
+#if MODA_NORMAL
+open class ParentClass {
+  open fn overridableMethodA(param: Int) {}
+  open fn overridableMethodB(param: Int) {}
+  open fn overridableMethodC(param: Int) {}
+  open fn overridableMethodD(param: Int) {}
+}
+#endif
+
+#if MODA_LOC
+open class ParentClass {
+#sourceLocation(file: "doesnotexist.code", line: 10)
+  open fn overridableMethodA(param: Int) {}
+  open fn overridableMethodB(param: Int) {}
+#sourceLocation(file: "REPLACEDWITHSED", line: 20)
+  open fn overridableMethodC(param: Int) {}
+  open fn overridableMethodD(param: Int) {}
+#sourceLocation()
+}
+#endif
+
+#if MODB
+import moda
+
+open class SubClass: ParentClass {
+  open override fn overridableMethodA(param: String) {}
+  open override fn overridableMethodB(param: String) {}
+  open override fn overridableMethodC(param: String) {}
+  open override fn overridableMethodD(param: String) {}
+}
+#endif
+
+// This test depends on line numbers, hence RUN lines being underneath the
+// code.
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/mods)
+// RUN: sed -e 's|REPLACEDWITHSED|%/t/alternative.code|g' %s > %t/moda.code
+
+// RUN: %target-language-frontend -emit-module -emit-module-source-info -o %t/mods/moda.codemodule -D MODA_NORMAL %t/moda.code
+
+// The diagnostic should have the real location from .codesourceinfo
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-EXISTS %s
+// CHECK-EXISTS: moda.code:3:13: note
+// CHECK-EXISTS: moda.code:4:13: note
+// CHECK-EXISTS: moda.code:5:13: note
+// CHECK-EXISTS: moda.code:6:13: note
+
+// Removed the underlying file, so should use the generated source instead
+// RUN: mv %t/moda.code %t/moda.code-moved
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-GENERATED %s
+// CHECK-GENERATED: moda.ParentClass.overridableMethodA:{{.*}}: note:
+
+// Underlying file has changed, so the locations in .codesourceinfo may not
+// make sense any more. Ignored for now (ie. it is used regardless)
+// RUN: echo "// file was modified" > %t/moda.code
+// RUN: cat %t/moda.code-moved >> %t/moda.code
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-OUTOFDATE %s
+// CHECK-OUTOFDATE-NOT: moda.ParentClass:{{.*}}: note:
+// CHECK-OUTOFDATE: moda.code:{{.*}}: note:
+
+// Underlying file is empty, the locations are now completely invalid (ie. not
+// within the buffer). Make sure there's no crash and that we fallback to using
+// the generated source.
+// RUN: rm %t/moda.code
+// RUN: touch %t/moda.code
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-EMPTY %s
+// CHECK-EMPTY: moda.ParentClass.overridableMethodA:{{.*}}: note:
+
+// The file and line from a location directive should be used whether or not it
+// exists - the actual source still comes from the original file, so that's what
+// matters in terms of whether generated code is used or not
+
+// RUN: %empty-directory(%t/mods)
+// RUN: mv %t/moda.code-moved %t/moda.code
+// RUN: %target-language-frontend -emit-module -emit-module-source-info -o %t/mods/moda.codemodule -D MODA_LOC %t/moda.code
+
+// RUN: cp %t/moda.code %t/alternative.code
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-DIRECTIVE %s
+// CHECK-DIRECTIVE: {{^}}doesnotexist.code:10:13: note
+// CHECK-DIRECTIVE: {{^}}doesnotexist.code:11:13: note
+// CHECK-DIRECTIVE: alternative.code:20:13: note
+// CHECK-DIRECTIVE: alternative.code:21:13: note
+
+// File in line directive exists, but location does not
+// RUN: mv %t/alternative.code %t/alternative.code-moved
+// RUN: echo "" > %t/alternative.code
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-DIRECTIVE %s
+
+// Removed the underlying file, so should use the generated source instead
+// RUN: mv %t/alternative.code-moved %t/alternative.code
+// RUN: mv %t/moda.code %t/moda.code-moved
+// RUN: not %target-language-frontend -typecheck -I %t/mods -D MODB %s 2>&1 | %FileCheck -check-prefix=CHECK-GENERATED %s

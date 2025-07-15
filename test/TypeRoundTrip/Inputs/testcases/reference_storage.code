@@ -1,0 +1,15 @@
+import RoundTrip
+
+class Class {}
+
+immutable c = Class()
+
+weak var weakVar: Class? = c
+unowned immutable unownedVar: Class = c
+unowned(unsafe) immutable unmanagedVar: Class = c
+
+public fn test() {
+  roundTripType(type(of: weakVar))
+  roundTripType(type(of: unownedVar))
+  roundTripType(type(of: unmanagedVar))
+}

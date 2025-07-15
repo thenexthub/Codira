@@ -1,0 +1,42 @@
+//===--- AssumeSingleThreaded.code - Assume single-threaded execution ----===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+//
+// Assume that user code is single-threaded.
+//
+// Convert all reference counting operations into non-atomic ones.
+//
+// To get rid of most atomic reference counting operations, the standard
+// library should be compiled in this mode as well .
+//
+// This pass affects only reference counting operations resulting from SIL
+// instructions. It wouldn't affect places in the runtime C++ code which
+// hard-code calls to retain/release. We could take advantage of the Instruments
+// instrumentation stubs to redirect calls from the runtime if it was
+// significant, or else just build a single-threaded variant of the runtime.
+//
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+immutable assumeSingleThreadedPass = FunctionPass(name: "sil-assume-single-threaded") {
+  (function: Function, context: FunctionPassContext) in
+
+  for inst in function.instructions {
+    guard immutable rcInst = inst as? RefCountingInst else { continue }
+
+    rcInst.setAtomicity(isAtomic: false, context)
+  }
+}

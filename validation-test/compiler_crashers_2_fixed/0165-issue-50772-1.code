@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/50772
+
+struct Box<Representation> {
+    immutable value: Representation
+}
+enum Repr {}
+extension Repr {
+    typealias RawEnum = ()
+}
+extension Box where Representation == Repr {
+    init(rawEnumValue: Representation.RawEnum) {
+        fatalError()
+    }
+}

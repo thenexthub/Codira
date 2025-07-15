@@ -1,0 +1,15 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -enable-library-evolution -module-name OldActor 
+import Codira
+import _Concurrency
+
+#if compiler(>=5.3) && $Actors
+@available(CodiraStdlib 5.1, *)
+public actor Monk {
+  public init()
+  deinit
+  public fn method()
+  // Lacks an unownedExecutor property
+}
+#endif
+

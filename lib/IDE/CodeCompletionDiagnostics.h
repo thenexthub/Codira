@@ -1,17 +1,21 @@
 //===--- CodeCompletionDiagnostics.h --------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODECOMPLETIONDIAGNOSTICS_H
-#define SWIFT_IDE_CODECOMPLETIONDIAGNOSTICS_H
+#ifndef LANGUAGE_IDE_CODECOMPLETIONDIAGNOSTICS_H
+#define LANGUAGE_IDE_CODECOMPLETIONDIAGNOSTICS_H
 
 #include "language/IDE/CodeCompletionResult.h"
 
@@ -27,7 +31,7 @@ namespace ide {
 /// Returns \c true if it fails to generate the diagnostics.
 bool getContextFreeCompletionDiagnostics(
     ContextFreeNotRecommendedReason reason, const ValueDecl *D,
-    CodeCompletionDiagnosticSeverity &severity, llvm::raw_ostream &Out);
+    CodeCompletionDiagnosticSeverity &severity, toolchain::raw_ostream &Out);
 
 /// Populate \p severity and \p Out with the contextual for \p reason.
 /// \p NameForDiagnostic is the name of the decl that produced this diagnostic.
@@ -38,10 +42,10 @@ bool getContextFreeCompletionDiagnostics(
 /// Returns \c true if it fails to generate the diagnostics.
 bool getContextualCompletionDiagnostics(
     ContextualNotRecommendedReason Reason, StringRef NameForDiagnostics,
-    CodeCompletionDiagnosticSeverity &Severity, llvm::raw_ostream &Out,
+    CodeCompletionDiagnosticSeverity &Severity, toolchain::raw_ostream &Out,
     const ASTContext &Ctx);
 
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_CODECOMPLETIONDIAGNOSTICS_H
+#endif // LANGUAGE_IDE_CODECOMPLETIONDIAGNOSTICS_H

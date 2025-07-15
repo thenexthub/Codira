@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LLVMPASSES_ARCENTRYPOINTBUILDER_H
-#define SWIFT_LLVMPASSES_ARCENTRYPOINTBUILDER_H
+#ifndef LANGUAGE_LLVMPASSES_ARCENTRYPOINTBUILDER_H
+#define LANGUAGE_LLVMPASSES_ARCENTRYPOINTBUILDER_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/NullablePtr.h"
 #include "language/Runtime/Config.h"
 #include "language/Runtime/RuntimeFnWrappersGen.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Module.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/IR/IRBuilder.h"
+#include "toolchain/IR/Module.h"
 
 namespace language {
 
 namespace RuntimeConstants {
-  const auto ReadNone = llvm::Attribute::ReadNone;
-  const auto ReadOnly = llvm::Attribute::ReadOnly;
-  const auto NoReturn = llvm::Attribute::NoReturn;
-  const auto NoUnwind = llvm::Attribute::NoUnwind;
-  const auto ZExt = llvm::Attribute::ZExt;
-  const auto FirstParamReturned = llvm::Attribute::Returned;
+  const auto ReadNone = toolchain::Attribute::ReadNone;
+  const auto ReadOnly = toolchain::Attribute::ReadOnly;
+  const auto NoReturn = toolchain::Attribute::NoReturn;
+  const auto NoUnwind = toolchain::Attribute::NoUnwind;
+  const auto ZExt = toolchain::Attribute::ZExt;
+  const auto FirstParamReturned = toolchain::Attribute::Returned;
 }
 
 using namespace RuntimeConstants;
@@ -42,17 +43,17 @@ using namespace RuntimeConstants;
 /// IRBuilder and a constant Cache. It cannot be moved or copied. It is meant
 /// to be created once and passed around by reference.
 class ARCEntryPointBuilder {
-  using IRBuilder = llvm::IRBuilder<>;
-  using Constant = llvm::Constant;
-  using Type = llvm::Type;
-  using Function = llvm::Function;
-  using Instruction = llvm::Instruction;
-  using CallInst = llvm::CallInst;
-  using Value = llvm::Value;
-  using Module = llvm::Module;
-  using AttributeList = llvm::AttributeList;
-  using Attribute = llvm::Attribute;
-  using APInt = llvm::APInt;
+  using IRBuilder = toolchain::IRBuilder<>;
+  using Constant = toolchain::Constant;
+  using Type = toolchain::Type;
+  using Function = toolchain::Function;
+  using Instruction = toolchain::Instruction;
+  using CallInst = toolchain::CallInst;
+  using Value = toolchain::Value;
+  using Module = toolchain::Module;
+  using AttributeList = toolchain::AttributeList;
+  using Attribute = toolchain::Attribute;
+  using APInt = toolchain::APInt;
   
   // The builder which we are wrapping.
   IRBuilder B;
@@ -72,22 +73,22 @@ class ARCEntryPointBuilder {
   NullablePtr<Type> ObjectPtrTy;
   NullablePtr<Type> BridgeObjectPtrTy;
 
-  llvm::CallingConv::ID DefaultCC;
+  toolchain::CallingConv::ID DefaultCC;
 
-  llvm::CallInst *CreateCall(Constant *Fn, Value *V) {
+  toolchain::CallInst *CreateCall(Constant *Fn, Value *V) {
     CallInst *CI = B.CreateCall(
-        cast<llvm::FunctionType>(cast<llvm::Function>(Fn)->getValueType()), Fn,
+        cast<toolchain::FunctionType>(cast<toolchain::Function>(Fn)->getValueType()), Fn,
         V);
-    if (auto Fun = llvm::dyn_cast<llvm::Function>(Fn))
+    if (auto Fun = toolchain::dyn_cast<toolchain::Function>(Fn))
       CI->setCallingConv(Fun->getCallingConv());
     return CI;
   }
 
-  llvm::CallInst *CreateCall(Constant *Fn, llvm::ArrayRef<Value *> Args) {
+  toolchain::CallInst *CreateCall(Constant *Fn, toolchain::ArrayRef<Value *> Args) {
     CallInst *CI = B.CreateCall(
-        cast<llvm::FunctionType>(cast<llvm::Function>(Fn)->getValueType()), Fn,
+        cast<toolchain::FunctionType>(cast<toolchain::Function>(Fn)->getValueType()), Fn,
         Args);
-    if (auto Fun = llvm::dyn_cast<llvm::Function>(Fn))
+    if (auto Fun = toolchain::dyn_cast<toolchain::Function>(Fn))
       CI->setCallingConv(Fun->getCallingConv());
     return CI;
   }
@@ -95,7 +96,7 @@ class ARCEntryPointBuilder {
 public:
   ARCEntryPointBuilder(Function &F)
       : B(&*F.begin()), Retain(), ObjectPtrTy(),
-        DefaultCC(SWIFT_DEFAULT_LLVM_CC) { }
+        DefaultCC(LANGUAGE_DEFAULT_TOOLCHAIN_CC) { }
 
   ~ARCEntryPointBuilder() = default;
   ARCEntryPointBuilder(ARCEntryPointBuilder &&) = delete;
@@ -194,7 +195,7 @@ public:
   bool isNonAtomic(CallInst *I) {
     // If we have an intrinsic, we know it must be an objc intrinsic. All objc
     // intrinsics are atomic today.
-    if (I->getIntrinsicID() != llvm::Intrinsic::not_intrinsic)
+    if (I->getIntrinsicID() != toolchain::Intrinsic::not_intrinsic)
       return false;
     return (I->getCalledFunction()->getName().contains("nonatomic"));
   }
@@ -205,7 +206,7 @@ public:
 
   /// Perform a pointer cast of pointer value \p V to \p Ty if \p V has a
   /// different type than \p Ty. If \p V equals \p Ty, just return V.
-  llvm::Value *maybeCast(llvm::Value *V, llvm::Type *Ty) {
+  toolchain::Value *maybeCast(toolchain::Value *V, toolchain::Type *Ty) {
     if (V->getType() == Ty)
       return V;
     return B.CreatePointerCast(V, Ty);
@@ -216,33 +217,33 @@ private:
     return *B.GetInsertBlock()->getModule();
   }
 
-  /// getRetain - Return a callable function for swift_retain.
+  /// getRetain - Return a callable function for language_retain.
   Constant *getRetain(CallInst *OrigI) {
     if (Retain)
       return Retain.get();
     auto *ObjectPtrTy = getObjectPtrTy();
 
-    llvm::Constant *cache = nullptr;
+    toolchain::Constant *cache = nullptr;
     Retain = getRuntimeFn(
-        getModule(), cache, "Swift",
-        isNonAtomic(OrigI) ? "swift_nonatomic_retain" : "swift_retain",
+        getModule(), cache, "Codira",
+        isNonAtomic(OrigI) ? "language_nonatomic_retain" : "language_retain",
         DefaultCC, RuntimeAvailability::AlwaysAvailable, {ObjectPtrTy},
         {ObjectPtrTy}, {NoUnwind, FirstParamReturned}, {});
 
     return Retain.get();
   }
 
-  /// getRelease - Return a callable function for swift_release.
+  /// getRelease - Return a callable function for language_release.
   Constant *getRelease(CallInst *OrigI) {
     if (Release)
       return Release.get();
     auto *ObjectPtrTy = getObjectPtrTy();
     auto *VoidTy = Type::getVoidTy(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
-    Release = getRuntimeFn(getModule(), cache, "Swift",
-                           isNonAtomic(OrigI) ? "swift_nonatomic_release"
-                                              : "swift_release",
+    toolchain::Constant *cache = nullptr;
+    Release = getRuntimeFn(getModule(), cache, "Codira",
+                           isNonAtomic(OrigI) ? "language_nonatomic_release"
+                                              : "language_release",
                            DefaultCC, RuntimeAvailability::AlwaysAvailable,
                            {VoidTy}, {ObjectPtrTy}, {NoUnwind}, {});
 
@@ -257,35 +258,35 @@ private:
     auto &M = getModule();
     auto AttrList = AttributeList::get(M.getContext(), 1, Attribute::NoCapture);
     AttrList = AttrList.addFnAttribute(M.getContext(), Attribute::NoUnwind);
-    CheckUnowned = cast<llvm::Function>(
-        M.getOrInsertFunction("swift_checkUnowned", AttrList,
+    CheckUnowned = cast<toolchain::Function>(
+        M.getOrInsertFunction("language_checkUnowned", AttrList,
                               Type::getVoidTy(M.getContext()), ObjectPtrTy)
             .getCallee());
-    if (llvm::Triple(M.getTargetTriple()).isOSBinFormatCOFF() &&
-        !llvm::Triple(M.getTargetTriple()).isOSCygMing())
-      if (auto *F = llvm::dyn_cast<llvm::Function>(CheckUnowned.get()))
-        F->setDLLStorageClass(llvm::GlobalValue::DLLImportStorageClass);
+    if (toolchain::Triple(M.getTargetTriple()).isOSBinFormatCOFF() &&
+        !toolchain::Triple(M.getTargetTriple()).isOSCygMing())
+      if (auto *F = toolchain::dyn_cast<toolchain::Function>(CheckUnowned.get()))
+        F->setDLLStorageClass(toolchain::GlobalValue::DLLImportStorageClass);
     return CheckUnowned.get();
   }
 
-  /// getRetainN - Return a callable function for swift_retain_n.
+  /// getRetainN - Return a callable function for language_retain_n.
   Constant *getRetainN(CallInst *OrigI) {
     if (RetainN)
       return RetainN.get();
     auto *ObjectPtrTy = getObjectPtrTy();
     auto *Int32Ty = Type::getInt32Ty(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
+    toolchain::Constant *cache = nullptr;
     RetainN = getRuntimeFn(
-        getModule(), cache, "Swift",
-        isNonAtomic(OrigI) ? "swift_nonatomic_retain_n" : "swift_retain_n",
+        getModule(), cache, "Codira",
+        isNonAtomic(OrigI) ? "language_nonatomic_retain_n" : "language_retain_n",
         DefaultCC, RuntimeAvailability::AlwaysAvailable, {ObjectPtrTy},
         {ObjectPtrTy, Int32Ty}, {NoUnwind, FirstParamReturned}, {});
 
     return RetainN.get();
   }
 
-  /// Return a callable function for swift_release_n.
+  /// Return a callable function for language_release_n.
   Constant *getReleaseN(CallInst *OrigI) {
     if (ReleaseN)
       return ReleaseN.get();
@@ -293,10 +294,10 @@ private:
     auto *Int32Ty = Type::getInt32Ty(getModule().getContext());
     auto *VoidTy = Type::getVoidTy(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
-    ReleaseN = getRuntimeFn(getModule(), cache, "Swift",
-                            isNonAtomic(OrigI) ? "swift_nonatomic_release_n"
-                                               : "swift_release_n",
+    toolchain::Constant *cache = nullptr;
+    ReleaseN = getRuntimeFn(getModule(), cache, "Codira",
+                            isNonAtomic(OrigI) ? "language_nonatomic_release_n"
+                                               : "language_release_n",
                             DefaultCC, RuntimeAvailability::AlwaysAvailable,
                             {VoidTy}, {ObjectPtrTy, Int32Ty}, {NoUnwind}, {});
 
@@ -304,25 +305,25 @@ private:
   }
 
   /// getUnknownObjectRetainN - Return a callable function for
-  /// swift_unknownObjectRetain_n.
+  /// language_unknownObjectRetain_n.
   Constant *getUnknownObjectRetainN(CallInst *OrigI) {
     if (UnknownObjectRetainN)
       return UnknownObjectRetainN.get();
     auto *ObjectPtrTy = getObjectPtrTy();
     auto *Int32Ty = Type::getInt32Ty(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
+    toolchain::Constant *cache = nullptr;
     UnknownObjectRetainN = getRuntimeFn(
-        getModule(), cache, "Swift",
-        isNonAtomic(OrigI) ? "swift_nonatomic_unknownObjectRetain_n"
-                           : "swift_unknownObjectRetain_n",
+        getModule(), cache, "Codira",
+        isNonAtomic(OrigI) ? "language_nonatomic_unknownObjectRetain_n"
+                           : "language_unknownObjectRetain_n",
         DefaultCC, RuntimeAvailability::AlwaysAvailable, {ObjectPtrTy},
         {ObjectPtrTy, Int32Ty}, {NoUnwind, FirstParamReturned}, {});
 
     return UnknownObjectRetainN.get();
   }
 
-  /// Return a callable function for swift_unknownObjectRelease_n.
+  /// Return a callable function for language_unknownObjectRelease_n.
   Constant *getUnknownObjectReleaseN(CallInst *OrigI) {
     if (UnknownObjectReleaseN)
       return UnknownObjectReleaseN.get();
@@ -330,35 +331,35 @@ private:
     auto *Int32Ty = Type::getInt32Ty(getModule().getContext());
     auto *VoidTy = Type::getVoidTy(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
+    toolchain::Constant *cache = nullptr;
     UnknownObjectReleaseN = getRuntimeFn(
-        getModule(), cache, "Swift",
-        isNonAtomic(OrigI) ? "swift_nonatomic_unknownObjectRelease_n"
-                           : "swift_unknownObjectRelease_n",
+        getModule(), cache, "Codira",
+        isNonAtomic(OrigI) ? "language_nonatomic_unknownObjectRelease_n"
+                           : "language_unknownObjectRelease_n",
         DefaultCC, RuntimeAvailability::AlwaysAvailable, {VoidTy},
         {ObjectPtrTy, Int32Ty}, {NoUnwind}, {});
 
     return UnknownObjectReleaseN.get();
   }
 
-  /// Return a callable function for swift_bridgeRetain_n.
+  /// Return a callable function for language_bridgeRetain_n.
   Constant *getBridgeRetainN(CallInst *OrigI) {
     if (BridgeRetainN)
       return BridgeRetainN.get();
     auto *BridgeObjectPtrTy = getBridgeObjectPtrTy();
     auto *Int32Ty = Type::getInt32Ty(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
+    toolchain::Constant *cache = nullptr;
     BridgeRetainN = getRuntimeFn(
-        getModule(), cache, "Swift",
-        isNonAtomic(OrigI) ? "swift_nonatomic_bridgeObjectRetain_n"
-                           : "swift_bridgeObjectRetain_n",
+        getModule(), cache, "Codira",
+        isNonAtomic(OrigI) ? "language_nonatomic_bridgeObjectRetain_n"
+                           : "language_bridgeObjectRetain_n",
         DefaultCC, RuntimeAvailability::AlwaysAvailable, {BridgeObjectPtrTy},
         {BridgeObjectPtrTy, Int32Ty}, {NoUnwind}, {});
     return BridgeRetainN.get();
   }
 
-  /// Return a callable function for swift_bridgeRelease_n.
+  /// Return a callable function for language_bridgeRelease_n.
   Constant *getBridgeReleaseN(CallInst *OrigI) {
     if (BridgeReleaseN)
       return BridgeReleaseN.get();
@@ -367,11 +368,11 @@ private:
     auto *Int32Ty = Type::getInt32Ty(getModule().getContext());
     auto *VoidTy = Type::getVoidTy(getModule().getContext());
 
-    llvm::Constant *cache = nullptr;
+    toolchain::Constant *cache = nullptr;
     BridgeReleaseN = getRuntimeFn(
-        getModule(), cache, "Swift",
-        isNonAtomic(OrigI) ? "swift_nonatomic_bridgeObjectRelease_n"
-                           : "swift_bridgeObjectRelease_n",
+        getModule(), cache, "Codira",
+        isNonAtomic(OrigI) ? "language_nonatomic_bridgeObjectRelease_n"
+                           : "language_bridgeObjectRelease_n",
         DefaultCC, RuntimeAvailability::AlwaysAvailable, {VoidTy},
         {BridgeObjectPtrTy, Int32Ty}, {NoUnwind}, {});
     return BridgeReleaseN.get();
@@ -379,26 +380,26 @@ private:
 
   Type *getNamedOpaquePtrTy(StringRef name) {
     auto &M = getModule();
-    if (auto *ty = llvm::StructType::getTypeByName(M.getContext(), name)) {
+    if (auto *ty = toolchain::StructType::getTypeByName(M.getContext(), name)) {
       return ty->getPointerTo();
     }
 
     // Otherwise, create an anonymous struct type.
-    auto *ty = llvm::StructType::create(M.getContext(), name);
+    auto *ty = toolchain::StructType::create(M.getContext(), name);
     return ty->getPointerTo();
   }
 
   Type *getObjectPtrTy() {
     if (ObjectPtrTy)
       return ObjectPtrTy.get();
-    ObjectPtrTy = getNamedOpaquePtrTy("swift.refcounted");
+    ObjectPtrTy = getNamedOpaquePtrTy("language.refcounted");
     return ObjectPtrTy.get();
   }
 
   Type *getBridgeObjectPtrTy() {
     if (BridgeObjectPtrTy)
       return BridgeObjectPtrTy.get();
-    BridgeObjectPtrTy = getNamedOpaquePtrTy("swift.bridge");
+    BridgeObjectPtrTy = getNamedOpaquePtrTy("language.bridge");
     return BridgeObjectPtrTy.get();
   }
 
@@ -409,7 +410,7 @@ private:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif
 

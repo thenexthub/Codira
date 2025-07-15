@@ -1,0 +1,18 @@
+// RUN: %language_driver_plain --driver-mode=languagec -sdk '""' -driver-print-actions %s 2>&1 | %FileCheck -check-prefix=CHECK-LANGUAGEC-%target-object-format %s
+// RUN: %language_driver_plain -sdk '""' -driver-print-actions %s --driver-mode=languagec 2>&1 | %FileCheck -check-prefix=CHECK-LANGUAGE %s
+
+// CHECK-LANGUAGEC-macho: 0: input, "{{.*}}driver_mode.code", language
+// CHECK-LANGUAGEC-macho: 1: compile, {0}, object
+// CHECK-LANGUAGEC-macho: 2: link, {1}, image
+
+// CHECK-LANGUAGEC-elf: 0: input, "{{.*}}driver_mode.code", language
+// CHECK-LANGUAGEC-elf: 1: compile, {0}, object
+// CHECK-LANGUAGEC-elf: 2: language-autolink-extract, {1}, autolink
+// CHECK-LANGUAGEC-elf: 3: link, {1, 2}, image
+
+// CHECK-LANGUAGEC-coff: 0: input, "{{.*}}driver_mode.code", language
+// CHECK-LANGUAGEC-coff: 1: compile, {0}, object
+// CHECK-LANGUAGEC-coff: 2: link, {1}, image
+
+// CHECK-LANGUAGE: 0: input, "{{.*}}driver_mode.code", language
+// CHECK-LANGUAGE: 1: interpret, {0}, none

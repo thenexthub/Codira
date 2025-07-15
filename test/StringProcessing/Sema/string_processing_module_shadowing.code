@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/ShadowsStringProcessing.codemodule -module-name ShadowsStringProcessing %S/Inputs/ShadowsStringProcessing.code -disable-availability-checking
+// RUN: %target-typecheck-verify-language -I %t -disable-availability-checking
+
+import ShadowsStringProcessing
+
+fn f(_ t : Regex<Substring>) -> Bool {
+  return t.someProperty == "123"
+}
+
+fn g(_: _StringProcessing.Regex<Substring>) {}

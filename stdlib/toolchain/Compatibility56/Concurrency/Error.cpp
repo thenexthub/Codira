@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Concurrency/Error.h"
 
-// swift::fatalError is not exported from libswiftCore and not shared, so define another
+// language::fatalError is not exported from liblanguageCore and not shared, so define another
 // internal function instead.
-SWIFT_NORETURN void swift::swift_Concurrency_fatalError(uint32_t flags, const char *format, ...) {
+LANGUAGE_NORETURN void language::language_Concurrency_fatalError(uint32_t flags, const char *format, ...) {
   abort();
 }

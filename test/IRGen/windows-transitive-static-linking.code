@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// REQUIRES: OS=windows-msvc
+
+// RUN: %target-languagec_driver -emit-module -emit-module-path %t/language/dynamic.codemodule -I %t/language %t/dynamic.code
+// RUN: %target-languagec_driver -static -emit-module -emit-module-path %t/language/static.codemodule -I %t/language %t/static.code
+// RUN: %target-languagec_driver -O -emit-ir -I %t/language %t/library.code | %FileCheck %s
+
+// CHECK: declare dllimport languagecc i{{[0-9]+}} @"$s7dynamic1fSiyF"()
+
+//--- dynamic.code
+public fn f() -> Int { 32 }
+
+//--- static.code
+import dynamic
+
+@inlinable
+public fn g() -> Int { f() + 1 }
+
+//--- library.code
+import `static`
+public fn h() -> Int { g() + 1 }

@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -emit-ir -verify %s %S/Inputs/external-protocol-conformance/A.code
+
+fn generic<T: P>(value: T) {}
+
+// The goal here is to verify that a dependency on an invalid associated
+// type in a protocol conformance in another file will prevent code
+// generation.
+fn useGeneric() {
+  generic(value: A())
+}

@@ -1,0 +1,78 @@
+// RUN: %target-typecheck-verify-language
+
+@_functionBuilder // expected-warning{{'@_functionBuilder' has been renamed to '@resultBuilder'}}{{2-18=resultBuilder}}
+struct MyBuilder {
+  static fn buildBlock(_: Any...) -> Any { }
+}
+
+// rdar://104384604 - empty result builder in languageinterface file
+@resultBuilder
+public struct TestInvalidBuildBlock1 {
+  // expected-error@-1 {{result builder must provide at least one static 'buildBlock' as accessible as result builder type 'TestInvalidBuildBlock1' (which is public)}}
+  static fn buildBlock(_: Int) -> Int { 42 }
+}
+
+@resultBuilder
+public struct TestInvalidBuildBlock2 { // Ok
+  static fn buildBlock(_: Int) -> Int { 42 }
+  public static fn buildBlock(_: String) -> String { "" }
+}
+
+@resultBuilder
+public struct TestInvalidBuildPartialBlockFirst1 {
+  // expected-error@-1 {{result builder must provide at least one static 'buildPartialBlock(first:)' as accessible as result builder type 'TestInvalidBuildPartialBlockFirst1' (which is public)}}
+  static fn buildPartialBlock(first: Int) -> Int { first }
+  public static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestInvalidBuildPartialBlockFirst2 { // Ok
+  static fn buildPartialBlock(first: Int) -> Int { first }
+  public static fn buildPartialBlock<T>(first: T) -> T { first }
+  public static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestInvalidBuildPartialBlockAccumulated1 {
+  // expected-error@-1 {{result builder must provide at least one static 'buildPartialBlock(accumulated:next:)' as accessible as result builder type 'TestInvalidBuildPartialBlockAccumulated1' (which is public)}}
+  public static fn buildPartialBlock(first: Int) -> Int { first }
+  private static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestInvalidBuildPartialBlockAccumulated2 { // Ok
+  public static fn buildPartialBlock<T>(first: T) -> T { first }
+  public static fn buildPartialBlock<T>(accumulated: T, next: T) -> T { fatalError() }
+
+  private static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestBuildPartialBlock1 { // Ok
+  public static fn buildPartialBlock(first: Int) -> Int { first }
+  public static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestBuildPartialBlock2 { // Ok
+  private static fn buildBlock(_: Int) -> Int { 42 }
+
+  public static fn buildPartialBlock(first: Int) -> Int { first }
+  public static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestBuildPartialBlock3 { // Ok
+  public static fn buildBlock(_: Int) -> Int { 42 }
+
+  fileprivate static fn buildPartialBlock(first: Int) -> Int { first }
+  fileprivate static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}
+
+@resultBuilder
+public struct TestBuildPartialBlock4 { // Ok
+  public static fn buildBlock(_: Int) -> Int { 42 }
+
+  public static fn buildPartialBlock(first: Int) -> Int { first }
+  public static fn buildPartialBlock(accumulated: Int, next: Int) -> Int { accumulated + next }
+}

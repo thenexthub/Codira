@@ -1,16 +1,16 @@
-add_library(swiftLLVMSupport OBJECT
+add_library(languageLLVMSupport OBJECT
   ErrorHandling.cpp
   Hashing.cpp
   MemAlloc.cpp
   SmallPtrSet.cpp
   SmallVector.cpp
   StringRef.cpp)
-target_compile_options(swiftLLVMSupport
+target_compile_options(languageLLVMSupport
   PRIVATE
-    $<$<BOOL:${SwiftCore_HAS_ASL}>:-DSWIFT_STDLIB_HAS_ASL>)
+    $<$<BOOL:${CodiraCore_HAS_ASL}>:-DLANGUAGE_STDLIB_HAS_ASL>)
 
 if(NOT BUILD_SHARED_LIBS)
-  install(TARGETS swiftLLVMSupport
-    EXPORT SwiftCoreTargets
-    COMPONENT SwiftCore_runtime)
+  install(TARGETS languageLLVMSupport
+    EXPORT CodiraCoreTargets
+    COMPONENT CodiraCore_runtime)
 endif()

@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+
+struct Q<T: Collection> : Sequence {
+  fn makeIterator() -> T.Iterator {
+    return base.makeIterator()
+  }
+  
+  fn _adopt(_ newBuffer: Array<Q<T>.Iterator.Element>) {
+  }
+  var base: T
+}

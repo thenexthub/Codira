@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/build/host)
+// RUN: %empty-directory(%t/cache)
+// RUN: split-file %s %t
+
+/// Modules loaded from within lib/language/host should also be rebuilt from
+/// their interface (which actually means anything within resource-dir/host).
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -parse-stdlib -module-cache-path %t/cache \
+// RUN:   -o %t/build/host -emit-module-interface-path %t/build/host/Lib.codeinterface
+
+// RUN: %target-language-frontend -typecheck %t/Client.code \
+// RUN:   -resource-dir %t/build -I %t/build/host \
+// RUN:   -parse-stdlib -module-cache-path %t/cache \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck %s
+
+// CHECK: remark: loaded module 'Lib'; source: '{{.*}}{{/|\\}}host{{/|\\}}Lib.codeinterface', loaded: '{{.*}}{{/|\\}}cache{{/|\\}}Lib-{{.*}}.codemodule'
+
+//--- Lib.code
+public fn foo() {}
+
+//--- Client.code
+import Lib
+foo()

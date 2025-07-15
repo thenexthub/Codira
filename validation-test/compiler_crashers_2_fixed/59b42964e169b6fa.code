@@ -1,0 +1,8 @@
+// {"signature":"language::ProtocolConformanceRef::getProtocol() const"}
+// RUN: not %target-language-frontend -typecheck %s
+   fn a<each b {
+                   enum c {
+                    case struct  var d: e      struct e {
+                    g: c          }
+                     f {
+                    d.g == .struct 

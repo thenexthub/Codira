@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "raw-sil-inst-lowering"
@@ -22,7 +23,7 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 
 STATISTIC(numAssignRewritten, "Number of assigns rewritten");
 
@@ -32,7 +33,7 @@ using namespace language;
 /// if it is an initialization or an assignment.  If it is an assignment,
 /// a live-in value can be provided to optimize out the reload.
 static void lowerAssignInstruction(SILBuilderWithScope &b, AssignInst *inst) {
-  LLVM_DEBUG(llvm::dbgs() << "  *** Lowering [isInit="
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Lowering [isInit="
                           << unsigned(inst->getOwnershipQualifier())
                           << "]: " << *inst << "\n");
 
@@ -158,7 +159,7 @@ static void getAssignByWrapperArgsRecursively(SmallVectorImpl<SILValue> &args,
     case SILArgumentConvention::Pack_Guaranteed:
     case SILArgumentConvention::Pack_Owned:
     case SILArgumentConvention::Pack_Out:
-      llvm_unreachable("wrong convention for setter/initializer src argument");
+      toolchain_unreachable("wrong convention for setter/initializer src argument");
   }
   args.push_back(src);
   ++argIdx;
@@ -186,8 +187,8 @@ static void emitInitAccessorInitialValueArgument(
 static void
 lowerAssignByWrapperInstruction(SILBuilderWithScope &b,
                                 AssignByWrapperInst *inst,
-                                llvm::SmallSetVector<SILValue, 8> &toDelete) {
-  LLVM_DEBUG(llvm::dbgs() << "  *** Lowering " << *inst << "\n");
+                                toolchain::SmallSetVector<SILValue, 8> &toDelete) {
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Lowering " << *inst << "\n");
 
   ++numAssignRewritten;
 
@@ -202,7 +203,7 @@ lowerAssignByWrapperInstruction(SILBuilderWithScope &b,
              "assign_by_wrapper must have a valid mode");
       // In case DefiniteInitialization already gave up with an error, just
       // treat the assign_by_wrapper as an "init".
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case AssignByWrapperInst::Initialization:
     case AssignByWrapperInst::Assign: {
       SILValue initFn = inst->getInitializer();
@@ -268,8 +269,8 @@ lowerAssignByWrapperInstruction(SILBuilderWithScope &b,
 static void
 lowerAssignOrInitInstruction(SILBuilderWithScope &b,
                              AssignOrInitInst *inst,
-                             llvm::SmallSetVector<SILValue, 8> &toDelete) {
-  LLVM_DEBUG(llvm::dbgs() << "  *** Lowering " << *inst << "\n");
+                             toolchain::SmallSetVector<SILValue, 8> &toDelete) {
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  *** Lowering " << *inst << "\n");
 
   ++numAssignRewritten;
 
@@ -283,7 +284,7 @@ lowerAssignOrInitInstruction(SILBuilderWithScope &b,
              "assign_or_init must have a valid mode");
       // In case DefiniteInitialization already gave up with an error, just
       // treat the assign_or_init as an "init".
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case AssignOrInitInst::Init: {
       SILValue initFn = inst->getInitializer();
       CanSILFunctionType fTy = initFn->getType().castTo<SILFunctionType>();
@@ -427,7 +428,7 @@ static bool lowerRawSILOperations(SILFunction &fn) {
   bool changed = false;
 
   for (auto &bb : fn) {
-    llvm::SmallSetVector<SILValue, 8> toDelete;
+    toolchain::SmallSetVector<SILValue, 8> toDelete;
 
     auto i = bb.begin(), e = bb.end();
     while (i != e) {
@@ -519,6 +520,6 @@ class RawSILInstLowering : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createRawSILInstLowering() {
+SILTransform *language::createRawSILInstLowering() {
   return new RawSILInstLowering();
 }

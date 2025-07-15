@@ -1,0 +1,16 @@
+enum E {
+  case e1
+  case e2
+}
+fn foo(e : E) {
+  switch (e) {
+  default:
+    return
+  }
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %sourcekitd-test -req=refactoring.expand.default -pos=7:7 %s -- %s > %t.result/expand-default.code.expected
+// RUN: %diff -u %S/expand-default.code.expected %t.result/expand-default.code.expected
+
+// REQUIRES: OS=macosx || OS=linux-gnu

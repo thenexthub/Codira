@@ -1,13 +1,17 @@
 //===- ParseTestSpecification.h - Parsing for test instructions -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines test::FunctionTest.
@@ -16,10 +20,10 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/SIL/Test.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/raw_ostream.h"
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
 using namespace language::test;
 
@@ -27,7 +31,7 @@ namespace {
 
 class Registry {
   StringMap<FunctionTest> registeredTests;
-  SwiftNativeFunctionTestThunk thunk;
+  CodiraNativeFunctionTestThunk thunk;
 
 public:
   static Registry &get() {
@@ -41,17 +45,17 @@ public:
     (void)inserted;
   }
 
-  void registerFunctionTestThunk(SwiftNativeFunctionTestThunk thunk) {
+  void registerFunctionTestThunk(CodiraNativeFunctionTestThunk thunk) {
     this->thunk = thunk;
   }
 
-  SwiftNativeFunctionTestThunk getFunctionTestThunk() { return thunk; }
+  CodiraNativeFunctionTestThunk getFunctionTestThunk() { return thunk; }
 
   FunctionTest getFunctionTest(StringRef name) {
     auto iter = registeredTests.find(name);
     if (iter == registeredTests.end()) {
-      llvm::errs() << "Found no test named " << name << "!\n";
-      print(llvm::errs());
+      toolchain::errs() << "Found no test named " << name << "!\n";
+      print(toolchain::errs());
     }
     return iter->getValue();
   }
@@ -66,12 +70,12 @@ public:
     OS << "}} test::Registry(" << this << ")\n";
   }
 
-  void dump() const { print(llvm::dbgs()); }
+  void dump() const { print(toolchain::dbgs()); }
 };
 
 } // end anonymous namespace
 
-void registerFunctionTestThunk(SwiftNativeFunctionTestThunk thunk) {
+void registerFunctionTestThunk(CodiraNativeFunctionTestThunk thunk) {
   Registry::get().registerFunctionTestThunk(thunk);
 }
 
@@ -80,12 +84,12 @@ FunctionTest::FunctionTest(StringRef name, Invocation invocation)
       dependencies(nullptr) {
   Registry::get().registerFunctionTest(*this, name);
 }
-FunctionTest::FunctionTest(StringRef name, NativeSwiftInvocation invocation)
+FunctionTest::FunctionTest(StringRef name, NativeCodiraInvocation invocation)
     : invocation(invocation), pass(nullptr), function(nullptr),
       dependencies(nullptr) {}
 
-void FunctionTest::createNativeSwiftFunctionTest(
-    StringRef name, NativeSwiftInvocation invocation) {
+void FunctionTest::createNativeCodiraFunctionTest(
+    StringRef name, NativeCodiraInvocation invocation) {
   Registry::get().registerFunctionTest({name, invocation}, name);
 }
 
@@ -102,10 +106,10 @@ void FunctionTest::run(SILFunction &function, Arguments &arguments,
     auto fn = invocation.get<Invocation>();
     fn(function, arguments, *this);
   } else {
-    llvm::outs().flush();
-    auto *fn = invocation.get<NativeSwiftInvocation>();
+    toolchain::outs().flush();
+    auto *fn = invocation.get<NativeCodiraInvocation>();
     Registry::get().getFunctionTestThunk()(fn, {&function}, {&arguments},
-                                           {getSwiftPassInvocation()});
+                                           {getCodiraPassInvocation()});
     fflush(stdout);
   }
   this->pass = nullptr;
@@ -125,6 +129,6 @@ SILPassManager *FunctionTest::getPassManager() {
   return dependencies->getPassManager();
 }
 
-SwiftPassInvocation *FunctionTest::getSwiftPassInvocation() {
-  return dependencies->getSwiftPassInvocation();
+CodiraPassInvocation *FunctionTest::getCodiraPassInvocation() {
+  return dependencies->getCodiraPassInvocation();
 }

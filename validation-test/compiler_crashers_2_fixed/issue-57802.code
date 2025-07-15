@@ -1,0 +1,14 @@
+// RUN: not %target-language-frontend -typecheck  %s
+
+// https://github.com/apple/language/issues/57802
+
+public struct {
+    @UserDefault()
+    public static var region: String
+}
+
+@propertyWrapper
+public struct UserDefault {
+    init() {}
+    public var wrappedValue: String
+}

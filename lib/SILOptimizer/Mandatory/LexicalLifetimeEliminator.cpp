@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-lexical-lifetime-eliminator"
@@ -74,6 +75,6 @@ class LexicalLifetimeEliminatorPass : public SILFunctionTransform {
 
 } // anonymous namespace
 
-SILTransform *swift::createLexicalLifetimeEliminator() {
+SILTransform *language::createLexicalLifetimeEliminator() {
   return new LexicalLifetimeEliminatorPass();
 }

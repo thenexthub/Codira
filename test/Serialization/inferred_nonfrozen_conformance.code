@@ -1,0 +1,36 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module %t/Library.code -emit-module-path %t/Library.codemodule -module-name Library
+// RUN: %target-language-frontend -typecheck -verify -strict-concurrency=complete -language-version 6 %s -I %t
+
+//--- Library.code
+
+@frozen public enum Numquam {}
+
+@_fixed_layout public struct Nunca {} // expected-warning {{}}
+
+//--- Client.code
+
+public protocol WithSendable {
+  associatedtype AssocSendable : Sendable
+}
+
+extension Numquam : WithSendable {
+  public typealias AssocSendable = Numquam
+}
+
+extension Nunca : WithSendable {
+  public typealias AssocSendable = Nunca
+}
+
+public protocol WithBitwiseCopyable {
+  associatedtype AssocBitwiseCopyable : BitwiseCopyable
+}
+
+extension Numquam : WithBitwiseCopyable {
+  public typealias AssocBitwiseCopyable = Numquam
+}
+
+extension Nunca : WithBitwiseCopyable {
+  public typealias AssocBitwiseCopyable = Nunca
+}

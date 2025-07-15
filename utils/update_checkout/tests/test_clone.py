@@ -1,12 +1,12 @@
 # ===--- test_clone.py ----------------------------------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2018 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2018 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https:#swift.org/LICENSE.txt for license information
-# See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https:#language.org/LICENSE.txt for license information
+# See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ===----------------------------------------------------------------------===#
 
@@ -29,6 +29,17 @@ class CloneTestCase(scheme_mock.SchemeMockTestCase):
         for repo in self.get_all_repos():
             repo_path = os.path.join(self.source_root, repo)
             self.assertTrue(os.path.isdir(repo_path))
+
+    def test_clone_with_additional_scheme(self):
+        output = self.call([self.update_checkout_path,
+                            '--config', self.config_path,
+                            '--config', self.additional_config_path,
+                            '--source-root', self.source_root,
+                            '--clone',
+                            '--scheme', 'extra'])
+
+        # Test that we're actually checking out the 'extra' scheme based on the output
+        self.assertIn(b"git checkout refs/heads/main", output)
 
 
 class SchemeWithMissingRepoTestCase(scheme_mock.SchemeMockTestCase):

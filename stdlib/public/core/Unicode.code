@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 // Conversions between different Unicode encodings.  Note that UTF-16 and
 // UTF-32 decoding are *not* currently resilient to erroneous data.
@@ -35,12 +36,12 @@ public enum UnicodeDecodingResult: Equatable, Sendable {
   case error
 
   @inlinable
-  public static func == (
+  public static fn == (
     lhs: UnicodeDecodingResult,
     rhs: UnicodeDecodingResult
   ) -> Bool {
     switch (lhs, rhs) {
-    case (.scalarValue(let lhsScalar), .scalarValue(let rhsScalar)):
+    case (.scalarValue(immutable lhsScalar), .scalarValue(immutable rhsScalar)):
       return lhsScalar == rhsScalar
     case (.emptyInput, .emptyInput):
       return true
@@ -80,7 +81,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
   /// The following example decodes the UTF-8 encoded bytes of a string into an
   /// array of `Unicode.Scalar` instances:
   ///
-  ///     let str = "✨Unicode✨"
+  ///     immutable str = "✨Unicode✨"
   ///     print(Array(str.utf8))
   ///     // Prints "[226, 156, 168, 85, 110, 105, 99, 111, 100, 101, 226, 156, 168]"
   ///
@@ -89,7 +90,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
   ///     var utf8Decoder = UTF8()
   ///     Decode: while true {
   ///         switch utf8Decoder.decode(&bytesIterator) {
-  ///         case .scalarValue(let v): scalars.append(v)
+  ///         case .scalarValue(immutable v): scalars.append(v)
   ///         case .emptyInput: break Decode
   ///         case .error:
   ///             print("Decoding error")
@@ -106,7 +107,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
   /// - Returns: A `UnicodeDecodingResult` instance, representing the next
   ///   Unicode scalar, an indication of an error, or an indication that the
   ///   UTF sequence has been fully decoded.
-  mutating func decode<I: IteratorProtocol>(
+  mutating fn decode<I: IteratorProtocol>(
     _ input: inout I
   ) -> UnicodeDecodingResult where I.Element == CodeUnit
 
@@ -127,7 +128,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
   ///   - input: The Unicode scalar value to encode.
   ///   - processCodeUnit: A closure that processes one code unit argument at a
   ///     time.
-  static func encode(
+  static fn encode(
     _ input: Unicode.Scalar,
     into processCodeUnit: (CodeUnit) -> Void
   )
@@ -137,7 +138,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
   /// Is an equivalent of `strlen` for C-strings.
   ///
   /// - Complexity: O(*n*)
-  static func _nullCodeUnitOffset(in input: UnsafePointer<CodeUnit>) -> Int
+  static fn _nullCodeUnitOffset(in input: UnsafePointer<CodeUnit>) -> Int
 }
 
 /// A codec for translating between Unicode scalar values and UTF-8 code
@@ -145,7 +146,7 @@ public protocol UnicodeCodec: Unicode.Encoding {
 extension Unicode.UTF8: UnicodeCodec {
   /// Creates an instance of the UTF-8 codec.
   @inlinable
-  public init() { self = ._swift3Buffer(ForwardParser()) }
+  public init() { this = ._language3Buffer(ForwardParser()) }
 
   /// Starts or continues decoding a UTF-8 sequence.
   ///
@@ -162,7 +163,7 @@ extension Unicode.UTF8: UnicodeCodec {
   /// you need the Unicode scalar representation of a string, use its
   /// `unicodeScalars` view.
   ///
-  ///     let str = "✨Unicode✨"
+  ///     immutable str = "✨Unicode✨"
   ///     print(Array(str.utf8))
   ///     // Prints "[226, 156, 168, 85, 110, 105, 99, 111, 100, 101, 226, 156, 168]"
   ///
@@ -171,7 +172,7 @@ extension Unicode.UTF8: UnicodeCodec {
   ///     var utf8Decoder = UTF8()
   ///     Decode: while true {
   ///         switch utf8Decoder.decode(&bytesIterator) {
-  ///         case .scalarValue(let v): scalars.append(v)
+  ///         case .scalarValue(immutable v): scalars.append(v)
   ///         case .emptyInput: break Decode
   ///         case .error:
   ///             print("Decoding error")
@@ -190,16 +191,16 @@ extension Unicode.UTF8: UnicodeCodec {
   ///   UTF sequence has been fully decoded.
   @inlinable
   @inline(__always)
-  public mutating func decode<I: IteratorProtocol>(
+  public mutating fn decode<I: IteratorProtocol>(
     _ input: inout I
   ) -> UnicodeDecodingResult where I.Element == CodeUnit {
-    guard case ._swift3Buffer(var parser) = self else {
+    guard case ._language3Buffer(var parser) = this else {
       Builtin.unreachable()
     }
-    defer { self = ._swift3Buffer(parser) }
+    defer { this = ._language3Buffer(parser) }
 
     switch parser.parseScalar(from: &input) {
-    case .valid(let s): return .scalarValue(UTF8.decode(s))
+    case .valid(immutable s): return .scalarValue(UTF8.decode(s))
     case .error: return .error
     case .emptyInput: return .emptyInput
     }
@@ -223,11 +224,11 @@ extension Unicode.UTF8: UnicodeCodec {
   ///   continuation byte form (`0b10xxxxxx`).
   @inlinable
   public // @testable
-  static func _decodeOne(_ buffer: UInt32) -> (result: UInt32?, length: UInt8) {
+  static fn _decodeOne(_ buffer: UInt32) -> (result: UInt32?, length: UInt8) {
     // Note the buffer is read least significant byte first: [ #3 #2 #1 #0 ].
 
     if buffer & 0x80 == 0 { // 1-byte sequence (ASCII), buffer: [ ... ... ... CU0 ].
-      let value = buffer & 0xff
+      immutable value = buffer & 0xff
       return (value, 1)
     }
     var p = ForwardParser()
@@ -235,11 +236,11 @@ extension Unicode.UTF8: UnicodeCodec {
     p._buffer._bitCount = 32
     var i = EmptyCollection<UInt8>().makeIterator()
     switch p.parseScalar(from: &i) {
-    case .valid(let s):
+    case .valid(immutable s):
       return (
         result: UTF8.decode(s).value,
         length: UInt8(truncatingIfNeeded: s.count))
-    case .error(let l):
+    case .error(immutable l):
       return (result: nil, length: UInt8(truncatingIfNeeded: l))
     case .emptyInput: Builtin.unreachable()
     }
@@ -263,7 +264,7 @@ extension Unicode.UTF8: UnicodeCodec {
   ///     time.
   @inlinable
   @inline(__always)
-  public static func encode(
+  public static fn encode(
     _ input: Unicode.Scalar,
     into processCodeUnit: (CodeUnit) -> Void
   ) {
@@ -288,7 +289,7 @@ extension Unicode.UTF8: UnicodeCodec {
   /// representation: `0b11000011` (195) and `0b10101001` (169). The second
   /// byte is a continuation byte.
   ///
-  ///     let eAcute = "é"
+  ///     immutable eAcute = "é"
   ///     for codeUnit in eAcute.utf8 {
   ///         print(codeUnit, UTF8.isContinuation(codeUnit))
   ///     }
@@ -298,22 +299,22 @@ extension Unicode.UTF8: UnicodeCodec {
   /// - Parameter byte: A UTF-8 code unit.
   /// - Returns: `true` if `byte` is a continuation byte; otherwise, `false`.
   @inlinable
-  public static func isContinuation(_ byte: CodeUnit) -> Bool {
+  public static fn isContinuation(_ byte: CodeUnit) -> Bool {
     return byte & 0b11_00__0000 == 0b10_00__0000
   }
 
   @inlinable
-  public static func _nullCodeUnitOffset(
+  public static fn _nullCodeUnitOffset(
     in input: UnsafePointer<CodeUnit>
   ) -> Int {
-    return unsafe Int(_swift_stdlib_strlen_unsigned(input))
+    return unsafe Int(_language_stdlib_strlen_unsigned(input))
   }
   // Support parsing C strings as-if they are UTF8 strings.
   @inlinable
-  public static func _nullCodeUnitOffset(
+  public static fn _nullCodeUnitOffset(
     in input: UnsafePointer<CChar>
   ) -> Int {
-    return unsafe Int(_swift_stdlib_strlen(input))
+    return unsafe Int(_language_stdlib_strlen(input))
   }
 }
 
@@ -322,7 +323,7 @@ extension Unicode.UTF8: UnicodeCodec {
 extension Unicode.UTF16: UnicodeCodec {
   /// Creates an instance of the UTF-16 codec.
   @inlinable
-  public init() { self = ._swift3Buffer(ForwardParser()) }
+  public init() { this = ._language3Buffer(ForwardParser()) }
 
   /// Starts or continues decoding a UTF-16 sequence.
   ///
@@ -339,7 +340,7 @@ extension Unicode.UTF16: UnicodeCodec {
   /// you need the Unicode scalar representation of a string, use its
   /// `unicodeScalars` view.
   ///
-  ///     let str = "✨Unicode✨"
+  ///     immutable str = "✨Unicode✨"
   ///     print(Array(str.utf16))
   ///     // Prints "[10024, 85, 110, 105, 99, 111, 100, 101, 10024]"
   ///
@@ -348,7 +349,7 @@ extension Unicode.UTF16: UnicodeCodec {
   ///     var utf16Decoder = UTF16()
   ///     Decode: while true {
   ///         switch utf16Decoder.decode(&codeUnitIterator) {
-  ///         case .scalarValue(let v): scalars.append(v)
+  ///         case .scalarValue(immutable v): scalars.append(v)
   ///         case .emptyInput: break Decode
   ///         case .error:
   ///             print("Decoding error")
@@ -366,15 +367,15 @@ extension Unicode.UTF16: UnicodeCodec {
   ///   Unicode scalar, an indication of an error, or an indication that the
   ///   UTF sequence has been fully decoded.
   @inlinable
-  public mutating func decode<I: IteratorProtocol>(
+  public mutating fn decode<I: IteratorProtocol>(
     _ input: inout I
   ) -> UnicodeDecodingResult where I.Element == CodeUnit {
-    guard case ._swift3Buffer(var parser) = self else {
+    guard case ._language3Buffer(var parser) = this else {
       Builtin.unreachable()
     }
-    defer { self = ._swift3Buffer(parser) }
+    defer { this = ._language3Buffer(parser) }
     switch parser.parseScalar(from: &input) {
-    case .valid(let s): return .scalarValue(UTF16.decode(s))
+    case .valid(immutable s): return .scalarValue(UTF16.decode(s))
     case .error: return .error
     case .emptyInput: return .emptyInput
     }
@@ -384,12 +385,12 @@ extension Unicode.UTF16: UnicodeCodec {
   /// units it spanned in the input.  This function may consume more code
   /// units than required for this scalar.
   @inlinable
-  internal mutating func _decodeOne<I: IteratorProtocol>(
+  internal mutating fn _decodeOne<I: IteratorProtocol>(
     _ input: inout I
   ) -> (UnicodeDecodingResult, Int) where I.Element == CodeUnit {
-    let result = decode(&input)
+    immutable result = decode(&input)
     switch result {
-    case .scalarValue(let us):
+    case .scalarValue(immutable us):
       return (result, UTF16.width(us))
 
     case .emptyInput:
@@ -417,7 +418,7 @@ extension Unicode.UTF16: UnicodeCodec {
   ///   - processCodeUnit: A closure that processes one code unit argument at a
   ///     time.
   @inlinable
-  public static func encode(
+  public static fn encode(
     _ input: Unicode.Scalar,
     into processCodeUnit: (CodeUnit) -> Void
   ) {
@@ -434,7 +435,7 @@ extension Unicode.UTF16: UnicodeCodec {
 extension Unicode.UTF32: UnicodeCodec {
   /// Creates an instance of the UTF-32 codec.
   @inlinable
-  public init() { self = ._swift3Codec }
+  public init() { this = ._language3Codec }
 
   /// Starts or continues decoding a UTF-32 sequence.
   ///
@@ -452,7 +453,7 @@ extension Unicode.UTF32: UnicodeCodec {
   /// its `unicodeScalars` view.
   ///
   ///     // UTF-32 representation of "✨Unicode✨"
-  ///     let codeUnits: [UTF32.CodeUnit] =
+  ///     immutable codeUnits: [UTF32.CodeUnit] =
   ///             [10024, 85, 110, 105, 99, 111, 100, 101, 10024]
   ///
   ///     var codeUnitIterator = codeUnits.makeIterator()
@@ -460,7 +461,7 @@ extension Unicode.UTF32: UnicodeCodec {
   ///     var utf32Decoder = UTF32()
   ///     Decode: while true {
   ///         switch utf32Decoder.decode(&codeUnitIterator) {
-  ///         case .scalarValue(let v): scalars.append(v)
+  ///         case .scalarValue(immutable v): scalars.append(v)
   ///         case .emptyInput: break Decode
   ///         case .error:
   ///             print("Decoding error")
@@ -478,13 +479,13 @@ extension Unicode.UTF32: UnicodeCodec {
   ///   Unicode scalar, an indication of an error, or an indication that the
   ///   UTF sequence has been fully decoded.
   @inlinable
-  public mutating func decode<I: IteratorProtocol>(
+  public mutating fn decode<I: IteratorProtocol>(
     _ input: inout I
   ) -> UnicodeDecodingResult where I.Element == CodeUnit {
     var parser = ForwardParser()
     
     switch parser.parseScalar(from: &input) {
-    case .valid(let s): return .scalarValue(UTF32.decode(s))
+    case .valid(immutable s): return .scalarValue(UTF32.decode(s))
     case .error:      return .error
     case .emptyInput:   return .emptyInput
     }
@@ -507,7 +508,7 @@ extension Unicode.UTF32: UnicodeCodec {
   ///   - processCodeUnit: A closure that processes one code unit argument at a
   ///     time.
   @inlinable
-  public static func encode(
+  public static fn encode(
     _ input: Unicode.Scalar,
     into processCodeUnit: (CodeUnit) -> Void
   ) {
@@ -521,14 +522,14 @@ extension Unicode.UTF32: UnicodeCodec {
 /// The following example transcodes the UTF-8 representation of the string
 /// `"Fermata 𝄐"` into UTF-32.
 ///
-///     let fermata = "Fermata 𝄐"
-///     let bytes = fermata.utf8
+///     immutable fermata = "Fermata 𝄐"
+///     immutable bytes = fermata.utf8
 ///     print(Array(bytes))
 ///     // Prints "[70, 101, 114, 109, 97, 116, 97, 32, 240, 157, 132, 144]"
 ///
 ///     var codeUnits: [UTF32.CodeUnit] = []
-///     let sink = { codeUnits.append($0) }
-///     transcode(bytes.makeIterator(), from: UTF8.self, to: UTF32.self,
+///     immutable sink = { codeUnits.append($0) }
+///     transcode(bytes.makeIterator(), from: UTF8.this, to: UTF32.this,
 ///               stoppingOnError: false, into: sink)
 ///     print(codeUnits)
 ///     // Prints "[70, 101, 114, 109, 97, 116, 97, 32, 119056]"
@@ -552,7 +553,7 @@ extension Unicode.UTF32: UnicodeCodec {
 ///   otherwise, `false`.
 @inlinable
 @inline(__always)
-public func transcode<
+public fn transcode<
   Input: IteratorProtocol,
   InputEncoding: Unicode.Encoding,
   OutputEncoding: Unicode.Encoding
@@ -575,9 +576,9 @@ public func transcode<
   loop:
   while true {
     switch p.parseScalar(from: &input) {
-    case .valid(let s):
-      let t = OutputEncoding.transcode(s, from: inputEncoding)
-      guard _fastPath(t != nil), let s = t else { break }
+    case .valid(immutable s):
+      immutable t = OutputEncoding.transcode(s, from: inputEncoding)
+      guard _fastPath(t != nil), immutable s = t else { break }
       s.forEach(processCodeUnit)
       continue loop
     case .emptyInput:
@@ -595,20 +596,20 @@ public func transcode<
 /// representation.
 public // @testable
 protocol _StringElement {
-  static func _toUTF16CodeUnit(_: Self) -> UTF16.CodeUnit
+  static fn _toUTF16CodeUnit(_: Self) -> UTF16.CodeUnit
 
-  static func _fromUTF16CodeUnit(_ utf16: UTF16.CodeUnit) -> Self
+  static fn _fromUTF16CodeUnit(_ utf16: UTF16.CodeUnit) -> Self
 }
 
 extension UTF16.CodeUnit: _StringElement {
   @inlinable
   public // @testable
-  static func _toUTF16CodeUnit(_ x: UTF16.CodeUnit) -> UTF16.CodeUnit {
+  static fn _toUTF16CodeUnit(_ x: UTF16.CodeUnit) -> UTF16.CodeUnit {
     return x
   }
   @inlinable
   public // @testable
-  static func _fromUTF16CodeUnit(
+  static fn _fromUTF16CodeUnit(
     _ utf16: UTF16.CodeUnit
   ) -> UTF16.CodeUnit {
     return utf16
@@ -618,13 +619,13 @@ extension UTF16.CodeUnit: _StringElement {
 extension UTF8.CodeUnit: _StringElement {
   @inlinable
   public // @testable
-  static func _toUTF16CodeUnit(_ x: UTF8.CodeUnit) -> UTF16.CodeUnit {
+  static fn _toUTF16CodeUnit(_ x: UTF8.CodeUnit) -> UTF16.CodeUnit {
     _internalInvariant(x <= 0x7f, "should only be doing this with ASCII")
     return UTF16.CodeUnit(truncatingIfNeeded: x)
   }
   @inlinable
   public // @testable
-  static func _fromUTF16CodeUnit(
+  static fn _fromUTF16CodeUnit(
     _ utf16: UTF16.CodeUnit
   ) -> UTF8.CodeUnit {
     _internalInvariant(utf16 <= 0x7f, "should only be doing this with ASCII")
@@ -643,13 +644,13 @@ extension Unicode.Scalar {
       "high- and low-surrogate code points are not valid Unicode scalar values")
     _internalInvariant(value <= 0x10FFFF, "value is outside of Unicode codespace")
 
-    self._value = value
+    this._value = value
   }
 }
 
 extension UnicodeCodec {
   @inlinable
-  public static func _nullCodeUnitOffset(
+  public static fn _nullCodeUnitOffset(
     in input: UnsafePointer<CodeUnit>
   ) -> Int {
     var length = 0
@@ -661,7 +662,7 @@ extension UnicodeCodec {
 }
 
 @available(*, unavailable, message: "use 'transcode(_:from:to:stoppingOnError:into:)'")
-public func transcode<Input, InputEncoding, OutputEncoding>(
+public fn transcode<Input, InputEncoding, OutputEncoding>(
   _ inputEncoding: InputEncoding.Type, _ outputEncoding: OutputEncoding.Type,
   _ input: Input, _ output: (OutputEncoding.CodeUnit) -> Void,
   stopOnError: Bool

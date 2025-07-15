@@ -1,0 +1,162 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+
+// Run the scanner once, emitting the serialized scanner cache
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -Rdependency-scan-cache -serialize-dependency-scan-cache -dependency-scan-cache-path %t/cache.moddepcache -module-cache-path %t/clang-module-cache %s -o %t/deps_initial.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4 -enable-cross-import-overlays 2>&1 | %FileCheck %s -check-prefix CHECK-REMARK-SAVE
+
+// Run the scanner again, but now re-using previously-serialized cache
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -Rdependency-scan-cache -load-dependency-scan-cache -dependency-scan-cache-path %t/cache.moddepcache -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4 -enable-cross-import-overlays 2>&1 | %FileCheck %s -check-prefix CHECK-REMARK-LOAD
+
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json &>/dev/null
+// RUN: %FileCheck %s < %t/deps.json
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import C
+import E
+import G
+import SubE
+
+// CHECK-REMARK-SAVE: remark: Incremental module scan: Serializing module scanning dependency cache to:
+// CHECK-REMARK-LOAD: remark: Incremental module scan: Re-using serialized module scanning dependency cache from:
+
+// CHECK: "mainModuleName": "deps"
+
+/// --------Main module
+// CHECK-LABEL: "modulePath": "deps.codemodule",
+// CHECK-NEXT: sourceFiles
+// CHECK-NEXT: module_deps_cache_reuse.code
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-NEXT:   {
+// CHECK-DAG:     "clang": "C"
+// CHECK-DAG:     "language": "E"
+// CHECK-DAG:     "clang": "F"
+// CHECK-DAG:     "language": "G"
+// CHECK-DAG:     "language": "SubE"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-DAG:     "language": "_Concurrency"
+// CHECK-DAG:     "language": "_StringProcessing"
+// CHECK-DAG:     "language": "_cross_import_E"
+// CHECK-DAG:     "clang": "_CodiraConcurrencyShims"
+// CHECK: ],
+
+// CHECK:      "contextHash":
+// CHECK-NOT: "error: cannot open Codira placeholder dependency module map from"
+// CHECK: "bridgingHeader":
+// CHECK-NEXT: "path":
+// CHECK-SAME: Bridging.h
+
+// CHECK-NEXT: "sourceFiles":
+// CHECK-NEXT: Bridging.h
+// CHECK-NEXT: BridgingOther.h
+
+// CHECK: "moduleDependencies": [
+// CHECK-NEXT: "F"
+// CHECK-NEXT: ]
+
+// CHECK: "languageOverlayDependencies": [
+// CHECK-DAG: "language": "F"
+// CHECK-DAG: "language": "A"
+
+/// --------Clang module C
+// CHECK-LABEL: "modulePath": "{{.*}}/C-{{.*}}.pcm",
+
+// CHECK: "sourceFiles": [
+// CHECK-DAG: module.modulemap
+// CHECK-DAG: C.h
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK: "clang": "B"
+
+// CHECK: "moduleMapPath"
+// CHECK-SAME: module.modulemap
+
+// CHECK: "contextHash"
+// CHECK-SAME: "{{.*}}"
+
+// CHECK: "commandLine": [
+// CHECK-NEXT: "-frontend"
+// CHECK-NOT: "BUILD_DIR/bin/clang"
+// CHECK: "-emit-pcm",
+// CHECK: "-module-name",
+// CHECK-NEXT: "C"
+// CHECK: "-direct-clang-cc1-module-build"
+
+/// --------Clang module B
+// CHECK-LABEL: "modulePath": "{{.*}}/B-{{.*}}.pcm",
+
+// CHECK-NEXT: sourceFiles
+// CHECK-DAG: module.modulemap
+// CHECK-DAG: B.h
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK: "clang": "A"
+// CHECK-NEXT: }
+
+/// --------Codira module F
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}F-{{.*}}.codemodule",
+// CHECK-NEXT: "sourceFiles": [
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-NEXT:   {
+// CHECK-DAG:     "clang": "F"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK: ],
+
+/// --------Codira module A
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}A-{{.*}}.codemodule",
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "A"
+// CHECK-DAG:   "language": "Codira"
+
+/// --------Codira module G
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}G-{{.*}}.codemodule"
+// CHECK: "directDependencies"
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "G"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-DAG:   "language": "CodiraOnoneSupport"
+// CHECK: ],
+// CHECK-NEXT: "linkLibraries": [
+// CHECK-NEXT: ],
+// CHECK: "details": {
+
+// CHECK: "commandLine": [
+// CHECK: "-compile-module-from-interface"
+// CHECK: "-target"
+// CHECK: "-module-name"
+// CHECK: "G"
+// CHECK: "-language-version"
+// CHECK: "5"
+// CHECK: ],
+// CHECK: "contextHash": "{{.*}}",
+
+/// --------Codira module E
+// CHECK: "language": "E"
+// CHECK-LABEL: modulePath": "{{.*}}{{/|\\}}E-{{.*}}.codemodule"
+// CHECK: "directDependencies"
+// CHECK-NEXT: {
+// CHECK: "language": "Codira"
+
+// CHECK: "moduleInterfacePath"
+// CHECK-SAME: E.codeinterface
+
+/// --------Codira module Codira
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}Codira-{{.*}}.codemodule",
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK: "clang": "CodiraShims"
+
+/// --------Clang module CodiraShims
+// CHECK-LABEL: "modulePath": "{{.*}}/CodiraShims-{{.*}}.pcm",
+

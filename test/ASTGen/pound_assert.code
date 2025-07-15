@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-dump-parse -enable-experimental-feature ParserASTGen \
+// RUN:   -enable-experimental-feature StaticAssert \
+// RUN:   | %sanitize-address > %t/astgen.ast
+// RUN: %target-language-frontend-dump-parse \
+// RUN:   -enable-experimental-feature StaticAssert \
+// RUN:   | %sanitize-address > %t/cpp-parser.ast
+
+// RUN: %diff -u %t/astgen.ast %t/cpp-parser.ast
+
+// RUN: %target-language-emit-sil -verify %s -enable-experimental-feature ParserASTGen \
+// RUN:   -enable-experimental-feature StaticAssert
+
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_ParserASTGen
+// REQUIRES: language_feature_StaticAssert
+
+fn testPoundAssert() {
+#assert(1 == 1.0, "1 must be 1.0") // OK
+#assert(1 == 1.5, "1 is 1.5 ??") // expected-error {{1 is 1.5 ??}}
+}

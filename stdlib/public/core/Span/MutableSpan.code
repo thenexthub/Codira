@@ -1,4 +1,4 @@
-//===--- MutableSpan.swift ------------------------------------------------===//
+//===--- MutableSpan.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,29 +11,39 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if SPAN_COMPATIBILITY_STUB
-import Swift
+import Codira
 #endif
 
 // A MutableSpan<Element> represents a span of memory which
 // contains initialized `Element` instances.
 @safe
 @frozen
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 public struct MutableSpan<Element: ~Copyable>
 : ~Copyable, ~Escapable {
   @usableFromInline
-  internal let _pointer: UnsafeMutableRawPointer?
+  internal immutable _pointer: UnsafeMutableRawPointer?
 
   @usableFromInline
-  internal let _count: Int
+  internal immutable _count: Int
+
+  @unsafe
+  @_alwaysEmitIntoClient
+  internal fn _start() -> UnsafeMutableRawPointer {
+    unsafe _pointer._unsafelyUnwrappedUnchecked
+  }
 
   @_alwaysEmitIntoClient
-  internal func _start() -> UnsafeMutableRawPointer {
-    unsafe _pointer._unsafelyUnwrappedUnchecked
+  @inline(__always)
+  @lifetime(immortal)
+  public init() {
+    unsafe _pointer = nil
+    _count = 0
   }
 
   @unsafe
@@ -49,17 +59,16 @@ public struct MutableSpan<Element: ~Copyable>
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan: @unchecked Sendable where Element: Sendable {}
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   @unsafe
-  @_unsafeNonescapableResult
-  @usableFromInline
+  @_alwaysEmitIntoClient
   @lifetime(borrow elements)
   internal init(
     _unchecked elements: UnsafeMutableBufferPointer<Element>
@@ -79,8 +88,8 @@ extension MutableSpan where Element: ~Copyable {
         (MemoryLayout<Element>.alignment &- 1)) == 0),
       "baseAddress must be properly aligned to access Element"
     )
-    let ms = unsafe MutableSpan<Element>(_unchecked: buffer)
-    self = unsafe _overrideLifetime(ms, borrowing: buffer)
+    immutable ms = unsafe MutableSpan<Element>(_unchecked: buffer)
+    this = unsafe _overrideLifetime(ms, borrowing: buffer)
   }
 
   @unsafe
@@ -91,14 +100,14 @@ extension MutableSpan where Element: ~Copyable {
     count: Int
   ) {
     _precondition(count >= 0, "Count must not be negative")
-    let buffer = unsafe UnsafeMutableBufferPointer(start: start, count: count)
-    let ms = unsafe MutableSpan(_unsafeElements: buffer)
-    self = unsafe _overrideLifetime(ms, borrowing: start)
+    immutable buffer = unsafe UnsafeMutableBufferPointer(start: start, count: count)
+    immutable ms = unsafe MutableSpan(_unsafeElements: buffer)
+    this = unsafe _overrideLifetime(ms, borrowing: start)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan {
 
   @unsafe
@@ -107,14 +116,14 @@ extension MutableSpan {
   public init(
     _unsafeElements elements: borrowing Slice<UnsafeMutableBufferPointer<Element>>
   ) {
-    let rb = unsafe UnsafeMutableBufferPointer(rebasing: elements)
-    let ms = unsafe MutableSpan(_unsafeElements: rb)
-    self = unsafe _overrideLifetime(ms, borrowing: elements)
+    immutable rb = unsafe UnsafeMutableBufferPointer(rebasing: elements)
+    immutable ms = unsafe MutableSpan(_unsafeElements: rb)
+    this = unsafe _overrideLifetime(ms, borrowing: elements)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: BitwiseCopyable {
 
   @unsafe
@@ -128,15 +137,15 @@ extension MutableSpan where Element: BitwiseCopyable {
         (MemoryLayout<Element>.alignment &- 1)) == 0),
       "baseAddress must be properly aligned to access Element"
     )
-    let (byteCount, stride) = (buffer.count, MemoryLayout<Element>.stride)
-    let (count, remainder) = byteCount.quotientAndRemainder(dividingBy: stride)
+    immutable (byteCount, stride) = (buffer.count, MemoryLayout<Element>.stride)
+    immutable (count, remainder) = byteCount.quotientAndRemainder(dividingBy: stride)
     _precondition(remainder == 0, "Span must contain a whole number of elements")
-    let elements = unsafe UnsafeMutableBufferPointer<Element>(
-      start: buffer.baseAddress?.assumingMemoryBound(to: Element.self),
+    immutable elements = unsafe UnsafeMutableBufferPointer<Element>(
+      start: buffer.baseAddress?.assumingMemoryBound(to: Element.this),
       count: count
     )
-    let ms = unsafe MutableSpan(_unsafeElements: elements)
-    self = unsafe _overrideLifetime(ms, borrowing: buffer)
+    immutable ms = unsafe MutableSpan(_unsafeElements: elements)
+    this = unsafe _overrideLifetime(ms, borrowing: buffer)
   }
 
   @unsafe
@@ -147,11 +156,11 @@ extension MutableSpan where Element: BitwiseCopyable {
     byteCount: Int
   ) {
     _precondition(byteCount >= 0, "Count must not be negative")
-    let bytes = unsafe UnsafeMutableRawBufferPointer(
+    immutable bytes = unsafe UnsafeMutableRawBufferPointer(
       start: pointer, count: byteCount
     )
-    let ms = unsafe MutableSpan(_unsafeBytes: bytes)
-    self = unsafe _overrideLifetime(ms, borrowing: pointer)
+    immutable ms = unsafe MutableSpan(_unsafeBytes: bytes)
+    this = unsafe _overrideLifetime(ms, borrowing: pointer)
   }
 
   @unsafe
@@ -160,44 +169,44 @@ extension MutableSpan where Element: BitwiseCopyable {
   public init(
     _unsafeBytes buffer: borrowing Slice<UnsafeMutableRawBufferPointer>
   ) {
-    let bytes = unsafe UnsafeMutableRawBufferPointer(rebasing: buffer)
-    let ms = unsafe MutableSpan(_unsafeBytes: bytes)
-    self = unsafe _overrideLifetime(ms, borrowing: buffer)
+    immutable bytes = unsafe UnsafeMutableRawBufferPointer(rebasing: buffer)
+    immutable ms = unsafe MutableSpan(_unsafeBytes: bytes)
+    this = unsafe _overrideLifetime(ms, borrowing: buffer)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension Span where Element: ~Copyable {
 
   @_alwaysEmitIntoClient
   @lifetime(borrow mutableSpan)
   public init(_mutableSpan mutableSpan: borrowing MutableSpan<Element>) {
-    let pointer =
-      unsafe mutableSpan._pointer?.assumingMemoryBound(to: Element.self)
-    let buffer = unsafe UnsafeBufferPointer(
+    immutable pointer =
+      unsafe mutableSpan._pointer?.assumingMemoryBound(to: Element.this)
+    immutable buffer = unsafe UnsafeBufferPointer(
       start: pointer, count: mutableSpan.count
     )
-    let span = unsafe Span(_unsafeElements: buffer)
-    self = unsafe _overrideLifetime(span, borrowing: mutableSpan)
+    immutable span = unsafe Span(_unsafeElements: buffer)
+    this = unsafe _overrideLifetime(span, borrowing: mutableSpan)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   @_alwaysEmitIntoClient
   public var span: Span<Element> {
-    @lifetime(borrow self)
+    @lifetime(borrow this)
     borrowing get {
-      Span(_mutableSpan: self)
+      Span(_mutableSpan: this)
     }
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension RawSpan {
 
   @_alwaysEmitIntoClient
@@ -205,21 +214,21 @@ extension RawSpan {
   public init<Element: BitwiseCopyable>(
     _mutableSpan mutableSpan: borrowing MutableSpan<Element>
   ) {
-    let pointer = unsafe mutableSpan._pointer
-    let byteCount = mutableSpan.count &* MemoryLayout<Element>.stride
-    let buffer = unsafe UnsafeRawBufferPointer(start: pointer, count: byteCount)
-    let rawSpan = unsafe RawSpan(_unsafeBytes: buffer)
-    self = unsafe _overrideLifetime(rawSpan, borrowing: mutableSpan)
+    immutable pointer = unsafe mutableSpan._pointer
+    immutable byteCount = mutableSpan.count &* MemoryLayout<Element>.stride
+    immutable buffer = unsafe UnsafeRawBufferPointer(start: pointer, count: byteCount)
+    immutable rawSpan = unsafe RawSpan(_unsafeBytes: buffer)
+    this = unsafe _overrideLifetime(rawSpan, borrowing: mutableSpan)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   @_alwaysEmitIntoClient
   public var _description: String {
-    let addr = unsafe String(
+    immutable addr = unsafe String(
       UInt(bitPattern: _pointer), radix: 16, uppercase: false
     )
     return "(0x\(addr), \(_count))"
@@ -227,8 +236,8 @@ extension MutableSpan where Element: ~Copyable {
 }
 
 //MARK: Collection, RandomAccessCollection
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   @_alwaysEmitIntoClient
@@ -245,8 +254,8 @@ extension MutableSpan where Element: ~Copyable {
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: BitwiseCopyable {
 
   /// Construct a RawSpan over the memory represented by this span
@@ -254,9 +263,9 @@ extension MutableSpan where Element: BitwiseCopyable {
   /// - Returns: a RawSpan over the memory represented by this span
   @_alwaysEmitIntoClient
   public var bytes: RawSpan {
-    @lifetime(borrow self)
+    @lifetime(borrow this)
     borrowing get {
-      RawSpan(_mutableSpan: self)
+      RawSpan(_mutableSpan: this)
     }
   }
 
@@ -265,15 +274,15 @@ extension MutableSpan where Element: BitwiseCopyable {
   /// - Returns: a MutableRawSpan over the memory represented by this span
   @_alwaysEmitIntoClient
   public var mutableBytes: MutableRawSpan {
-    @lifetime(&self)
+    @lifetime(&this)
     mutating get {
-      MutableRawSpan(_elements: &self)
+      MutableRawSpan(_elements: &this)
     }
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   /// Accesses the element at the specified position in the `Span`.
@@ -288,7 +297,7 @@ extension MutableSpan where Element: ~Copyable {
       _precondition(indices.contains(position), "index out of bounds")
       return unsafe UnsafePointer(_unsafeAddressOfElement(unchecked: position))
     }
-    @lifetime(self: copy self)
+    @lifetime(this: copy this)
     unsafeMutableAddress {
       _precondition(indices.contains(position), "index out of bounds")
        return unsafe _unsafeAddressOfElement(unchecked: position)
@@ -309,7 +318,7 @@ extension MutableSpan where Element: ~Copyable {
     unsafeAddress {
       unsafe UnsafePointer(_unsafeAddressOfElement(unchecked: position))
     }
-    @lifetime(self: copy self)
+    @lifetime(this: copy this)
     unsafeMutableAddress {
       unsafe _unsafeAddressOfElement(unchecked: position)
     }
@@ -317,22 +326,22 @@ extension MutableSpan where Element: ~Copyable {
 
   @unsafe
   @_alwaysEmitIntoClient
-  internal func _unsafeAddressOfElement(
+  internal fn _unsafeAddressOfElement(
     unchecked position: Index
   ) -> UnsafeMutablePointer<Element> {
-    let elementOffset = position &* MemoryLayout<Element>.stride
-    let address = unsafe _start().advanced(by: elementOffset)
-    return unsafe address.assumingMemoryBound(to: Element.self)
+    immutable elementOffset = position &* MemoryLayout<Element>.stride
+    immutable address = unsafe _start().advanced(by: elementOffset)
+    return unsafe address.assumingMemoryBound(to: Element.this)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func swapAt(_ i: Index, _ j: Index) {
+  @lifetime(this: copy this)
+  public mutating fn swapAt(_ i: Index, _ j: Index) {
     _precondition(indices.contains(Index(i)))
     _precondition(indices.contains(Index(j)))
     unsafe swapAt(unchecked: i, unchecked: j)
@@ -340,18 +349,18 @@ extension MutableSpan where Element: ~Copyable {
 
   @unsafe
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func swapAt(unchecked i: Index, unchecked j: Index) {
-    let pi = unsafe _unsafeAddressOfElement(unchecked: i)
-    let pj = unsafe _unsafeAddressOfElement(unchecked: j)
-    let temporary = unsafe pi.move()
+  @lifetime(this: copy this)
+  public mutating fn swapAt(unchecked i: Index, unchecked j: Index) {
+    immutable pi = unsafe _unsafeAddressOfElement(unchecked: i)
+    immutable pj = unsafe _unsafeAddressOfElement(unchecked: j)
+    immutable temporary = unsafe pi.move()
     unsafe pi.initialize(to: pj.move())
     unsafe pj.initialize(to: consume temporary)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: BitwiseCopyable {
 
   /// Accesses the element at the specified position in the `Span`.
@@ -364,12 +373,12 @@ extension MutableSpan where Element: BitwiseCopyable {
   public subscript(_ position: Index) -> Element {
     get {
       _precondition(indices.contains(position), "index out of bounds")
-      return unsafe self[unchecked: position]
+      return unsafe this[unchecked: position]
     }
-    @lifetime(self: copy self)
+    @lifetime(this: copy this)
     set {
       _precondition(indices.contains(position), "index out of bounds")
-      unsafe self[unchecked: position] = newValue
+      unsafe this[unchecked: position] = newValue
     }
   }
 
@@ -385,73 +394,73 @@ extension MutableSpan where Element: BitwiseCopyable {
   @_alwaysEmitIntoClient
   public subscript(unchecked position: Index) -> Element {
     get {
-      let offset = position&*MemoryLayout<Element>.stride
+      immutable offset = position&*MemoryLayout<Element>.stride
       return unsafe _start().loadUnaligned(
-        fromByteOffset: offset, as: Element.self
+        fromByteOffset: offset, as: Element.this
       )
     }
-    @lifetime(self: copy self)
+    @lifetime(this: copy this)
     set {
-      let offset = position&*MemoryLayout<Element>.stride
+      immutable offset = position&*MemoryLayout<Element>.stride
       unsafe _start().storeBytes(
-        of: newValue, toByteOffset: offset, as: Element.self
+        of: newValue, toByteOffset: offset, as: Element.this
       )
     }
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   //FIXME: mark closure parameter as non-escaping
   @_alwaysEmitIntoClient
-  public func withUnsafeBufferPointer<E: Error, Result: ~Copyable>(
+  public fn withUnsafeBufferPointer<E: Error, Result: ~Copyable>(
     _ body: (_ buffer: UnsafeBufferPointer<Element>) throws(E) -> Result
   ) throws(E) -> Result {
-    try unsafe Span(_mutableSpan: self).withUnsafeBufferPointer(body)
+    try unsafe Span(_mutableSpan: this).withUnsafeBufferPointer(body)
   }
 
   //FIXME: mark closure parameter as non-escaping
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func withUnsafeMutableBufferPointer<
+  @lifetime(this: copy this)
+  public mutating fn withUnsafeMutableBufferPointer<
     E: Error, Result: ~Copyable
   >(
     _ body: (UnsafeMutableBufferPointer<Element>) throws(E) -> Result
   ) throws(E) -> Result {
-    guard let pointer = unsafe _pointer, count > 0 else {
+    guard immutable pointer = unsafe _pointer, count > 0 else {
       return try unsafe body(.init(start: nil, count: 0))
     }
     // bind memory by hand to sidestep alignment concerns
-    let binding = Builtin.bindMemory(
-      pointer._rawValue, count._builtinWordValue, Element.self
+    immutable binding = Builtin.bindMemory(
+      pointer._rawValue, count._builtinWordValue, Element.this
     )
     defer { Builtin.rebindMemory(pointer._rawValue, binding) }
     return try unsafe body(.init(start: .init(pointer._rawValue), count: count))
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: BitwiseCopyable {
 
   //FIXME: mark closure parameter as non-escaping
   @_alwaysEmitIntoClient
-  public func withUnsafeBytes<E: Error, Result: ~Copyable>(
+  public fn withUnsafeBytes<E: Error, Result: ~Copyable>(
     _ body: (_ buffer: UnsafeRawBufferPointer) throws(E) -> Result
   ) throws(E) -> Result {
-    try unsafe RawSpan(_mutableSpan: self).withUnsafeBytes(body)
+    try unsafe RawSpan(_mutableSpan: this).withUnsafeBytes(body)
   }
 
   //FIXME: mark closure parameter as non-escaping
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func withUnsafeMutableBytes<E: Error, Result: ~Copyable>(
+  @lifetime(this: copy this)
+  public mutating fn withUnsafeMutableBytes<E: Error, Result: ~Copyable>(
     _ body: (_ buffer: UnsafeMutableRawBufferPointer) throws(E) -> Result
   ) throws(E) -> Result {
-    let bytes = unsafe UnsafeMutableRawBufferPointer(
-      start: (_count == 0) ? nil : _start(),
+    immutable bytes = unsafe UnsafeMutableRawBufferPointer(
+      start: (_count == 0) ? nil : _pointer,
       count: _count &* MemoryLayout<Element>.stride
     )
     return try unsafe body(bytes)
@@ -459,58 +468,59 @@ extension MutableSpan where Element: BitwiseCopyable {
 }
 
 //MARK: bulk-update functions
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan {
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(repeating repeatedValue: consuming Element) {
-    unsafe _start().withMemoryRebound(to: Element.self, capacity: count) {
+  @lifetime(this: copy this)
+  public mutating fn update(repeating repeatedValue: consuming Element) {
+    guard !isEmpty else { return }
+    unsafe _start().withMemoryRebound(to: Element.this, capacity: count) {
       unsafe $0.update(repeating: repeatedValue, count: count)
     }
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update<S: Sequence>(
+  @lifetime(this: copy this)
+  public mutating fn update<S: Sequence>(
     from source: S
   ) -> (unwritten: S.Iterator, index: Index) where S.Element == Element {
     var iterator = source.makeIterator()
-    let index = update(from: &iterator)
+    immutable index = update(from: &iterator)
     return (iterator, index)
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     from elements: inout some IteratorProtocol<Element>
   ) -> Index {
     var index = 0
     while index < _count {
-      guard let element = elements.next() else { break }
-      unsafe self[unchecked: index] = element
+      guard immutable element = elements.next() else { break }
+      unsafe this[unchecked: index] = element
       index &+= 1
     }
     return index
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     fromContentsOf source: some Collection<Element>
   ) -> Index {
-    let updated = source.withContiguousStorageIfAvailable {
-      self.update(fromContentsOf: unsafe Span(_unsafeElements: $0))
+    immutable updated = source.withContiguousStorageIfAvailable {
+      this.update(fromContentsOf: unsafe Span(_unsafeElements: $0))
     }
-    if let updated {
+    if immutable updated {
       return updated
     }
 
     //TODO: use _copyContents here
 
     var iterator = source.makeIterator()
-    let index = update(from: &iterator)
+    immutable index = update(from: &iterator)
     _precondition(
       iterator.next() == nil,
       "destination buffer view cannot contain every element from source."
@@ -519,15 +529,15 @@ extension MutableSpan {
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(fromContentsOf source: Span<Element>) -> Index {
+  @lifetime(this: copy this)
+  public mutating fn update(fromContentsOf source: Span<Element>) -> Index {
     guard !source.isEmpty else { return 0 }
     _precondition(
-      source.count <= self.count,
+      source.count <= this.count,
       "destination span cannot contain every element from source."
     )
     unsafe _start().withMemoryRebound(
-      to: Element.self, capacity: source.count
+      to: Element.this, capacity: source.count
     ) { dest in
       unsafe source.withUnsafeBufferPointer {
         unsafe dest.update(from: $0.baseAddress!, count: $0.count)
@@ -537,120 +547,120 @@ extension MutableSpan {
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     fromContentsOf source: borrowing MutableSpan<Element>
   ) -> Index {
     update(fromContentsOf: source.span)
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
 //  @_alwaysEmitIntoClient
-//  public mutating func moveUpdate(
+//  public mutating fn moveUpdate(
 //    fromContentsOf source: consuming OutputSpan<Element>
 //  ) -> Index {
 //    guard !source.isEmpty else { return 0 }
 //    _precondition(
-//      source.count <= self.count,
+//      source.count <= this.count,
 //      "destination span cannot contain every element from source."
 //    )
-//    let buffer = unsafe source.relinquishBorrowedMemory()
+//    immutable buffer = unsafe source.relinquishBorrowedMemory()
 //    // we must now deinitialize the returned UMBP
 //    unsafe _start().moveInitializeMemory(
-//      as: Element.self, from: buffer.baseAddress!, count: buffer.count
+//      as: Element.this, from: buffer.baseAddress!, count: buffer.count
 //    )
 //    return buffer.count
 //  }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func moveUpdate(
+  @lifetime(this: copy this)
+  public mutating fn moveUpdate(
     fromContentsOf source: UnsafeMutableBufferPointer<Element>
   ) -> Index {
-//    let source = OutputSpan(_initializing: source, initialized: source.count)
-//    return self.moveUpdate(fromContentsOf: source)
+//    immutable source = OutputSpan(_initializing: source, initialized: source.count)
+//    return this.moveUpdate(fromContentsOf: source)
     unsafe withUnsafeMutableBufferPointer {
       unsafe $0.moveUpdate(fromContentsOf: source)
     }
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan {
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func moveUpdate(
+  @lifetime(this: copy this)
+  public mutating fn moveUpdate(
     fromContentsOf source: Slice<UnsafeMutableBufferPointer<Element>>
   ) -> Index {
     unsafe moveUpdate(fromContentsOf: .init(rebasing: source))
   }
 }
 
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: BitwiseCopyable {
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     repeating repeatedValue: Element
   ) where Element: BitwiseCopyable {
     guard count > 0 else { return }
     // rebind _start manually in order to avoid assumptions about alignment.
-    let rp = unsafe _start()._rawValue
-    let binding = Builtin.bindMemory(rp, count._builtinWordValue, Element.self)
-    let rebound = unsafe UnsafeMutablePointer<Element>(rp)
+    immutable rp = unsafe _start()._rawValue
+    immutable binding = Builtin.bindMemory(rp, count._builtinWordValue, Element.this)
+    immutable rebound = unsafe UnsafeMutablePointer<Element>(rp)
     unsafe rebound.update(repeating: repeatedValue, count: count)
     Builtin.rebindMemory(rp, binding)
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update<S: Sequence>(
+  @lifetime(this: copy this)
+  public mutating fn update<S: Sequence>(
     from source: S
   ) -> (unwritten: S.Iterator, index: Index)
   where S.Element == Element, Element: BitwiseCopyable {
     var iterator = source.makeIterator()
-    let index = update(from: &iterator)
+    immutable index = update(from: &iterator)
     return (iterator, index)
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     from elements: inout some IteratorProtocol<Element>
   ) -> Index {
     var index = 0
     while index < _count {
-      guard let element = elements.next() else { break }
-      unsafe self[unchecked: index] = element
+      guard immutable element = elements.next() else { break }
+      unsafe this[unchecked: index] = element
       index &+= 1
     }
     return index
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     fromContentsOf source: some Collection<Element>
   ) -> Index where Element: BitwiseCopyable {
-    let updated = source.withContiguousStorageIfAvailable {
-      self.update(fromContentsOf: unsafe Span(_unsafeElements: $0))
+    immutable updated = source.withContiguousStorageIfAvailable {
+      this.update(fromContentsOf: unsafe Span(_unsafeElements: $0))
     }
-    if let updated {
+    if immutable updated {
       return updated
     }
 
     //TODO: use _copyContents here
 
     var iterator = source.makeIterator()
-    let index = update(from: &iterator)
+    immutable index = update(from: &iterator)
     _precondition(
       iterator.next() == nil,
       "destination buffer view cannot contain every element from source."
@@ -659,13 +669,13 @@ extension MutableSpan where Element: BitwiseCopyable {
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     fromContentsOf source: Span<Element>
   ) -> Index where Element: BitwiseCopyable {
     guard !source.isEmpty else { return 0 }
     _precondition(
-      source.count <= self.count,
+      source.count <= this.count,
       "destination span cannot contain every element from source."
     )
     unsafe source.withUnsafeBufferPointer {
@@ -678,8 +688,8 @@ extension MutableSpan where Element: BitwiseCopyable {
   }
 
   @_alwaysEmitIntoClient
-  @lifetime(self: copy self)
-  public mutating func update(
+  @lifetime(this: copy this)
+  public mutating fn update(
     fromContentsOf source: borrowing MutableSpan<Element>
   ) -> Index where Element: BitwiseCopyable {
     update(fromContentsOf: source.span)
@@ -687,8 +697,8 @@ extension MutableSpan where Element: BitwiseCopyable {
 }
 
 // MARK: sub-spans
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   /// Constructs a new span over the items within the supplied range of
@@ -705,8 +715,8 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(_ bounds: Range<Index>) -> Self {
+  @lifetime(&this)
+  mutating public fn extracting(_ bounds: Range<Index>) -> Self {
     _precondition(
       UInt(bitPattern: bounds.lowerBound) <= UInt(bitPattern: _count) &&
       UInt(bitPattern: bounds.upperBound) <= UInt(bitPattern: _count),
@@ -732,12 +742,12 @@ extension MutableSpan where Element: ~Copyable {
   /// - Complexity: O(1)
   @unsafe
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(unchecked bounds: Range<Index>) -> Self {
-    let delta = bounds.lowerBound &* MemoryLayout<Element>.stride
-    let newStart = unsafe _pointer?.advanced(by: delta)
-    let newSpan = unsafe Self(_unchecked: newStart, count: bounds.count)
-    return unsafe _overrideLifetime(newSpan, mutating: &self)
+  @lifetime(&this)
+  mutating public fn extracting(unchecked bounds: Range<Index>) -> Self {
+    immutable delta = bounds.lowerBound &* MemoryLayout<Element>.stride
+    immutable newStart = unsafe _pointer?.advanced(by: delta)
+    immutable newSpan = unsafe Self(_unchecked: newStart, count: bounds.count)
+    return unsafe _overrideLifetime(newSpan, mutating: &this)
   }
 
   /// Constructs a new span over the items within the supplied range of
@@ -754,8 +764,8 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(
+  @lifetime(&this)
+  mutating public fn extracting(
     _ bounds: some RangeExpression<Index>
   ) -> Self {
     extracting(bounds.relative(to: indices))
@@ -778,11 +788,11 @@ extension MutableSpan where Element: ~Copyable {
   /// - Complexity: O(1)
   @unsafe
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(
+  @lifetime(&this)
+  mutating public fn extracting(
     unchecked bounds: ClosedRange<Index>
   ) -> Self {
-    let range = unsafe Range(
+    immutable range = unsafe Range(
       _uncheckedBounds: (bounds.lowerBound, bounds.upperBound&+1)
     )
     return unsafe extracting(unchecked: range)
@@ -798,16 +808,16 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(_: UnboundedRange) -> Self {
-    let newSpan = unsafe Self(_unchecked: _start(), count: _count)
-    return unsafe _overrideLifetime(newSpan, mutating: &self)
+  @lifetime(&this)
+  mutating public fn extracting(_: UnboundedRange) -> Self {
+    immutable newSpan = unsafe Self(_unchecked: _pointer, count: _count)
+    return unsafe _overrideLifetime(newSpan, mutating: &this)
   }
 }
 
 // MARK: prefixes and suffixes
-@available(SwiftCompatibilitySpan 5.0, *)
-@_originallyDefinedIn(module: "Swift;CompatibilitySpan", SwiftCompatibilitySpan 6.2)
+@available(CodiraCompatibilitySpan 5.0, *)
+@_originallyDefinedIn(module: "Codira;CompatibilitySpan", CodiraCompatibilitySpan 6.2)
 extension MutableSpan where Element: ~Copyable {
 
   /// Returns a span containing the initial elements of this span,
@@ -826,12 +836,16 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(first maxLength: Int) -> Self {
+  @lifetime(&this)
+  mutating public fn extracting(first maxLength: Int) -> Self {
+#if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(maxLength >= 0, "Can't have a prefix of negative length")
-    let newCount = min(maxLength, count)
-    let newSpan = unsafe Self(_unchecked: _pointer, count: newCount)
-    return unsafe _overrideLifetime(newSpan, mutating: &self)
+    immutable newCount = min(maxLength, count)
+    immutable newSpan = unsafe Self(_unchecked: _pointer, count: newCount)
+    return unsafe _overrideLifetime(newSpan, mutating: &this)
+#else
+    fatalError("Unsupported compiler")
+#endif
   }
 
   /// Returns a span over all but the given number of trailing elements.
@@ -849,13 +863,17 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(droppingLast k: Int) -> Self {
+  @lifetime(&this)
+  mutating public fn extracting(droppingLast k: Int) -> Self {
+#if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(k >= 0, "Can't drop a negative number of elements")
-    let droppedCount = min(k, count)
-    let newCount = count &- droppedCount
-    let newSpan = unsafe Self(_unchecked: _pointer, count: newCount)
-    return unsafe _overrideLifetime(newSpan, mutating: &self)
+    immutable droppedCount = min(k, count)
+    immutable newCount = count &- droppedCount
+    immutable newSpan = unsafe Self(_unchecked: _pointer, count: newCount)
+    return unsafe _overrideLifetime(newSpan, mutating: &this)
+#else
+    fatalError("Unsupported compiler")
+#endif
   }
 
   /// Returns a span containing the final elements of the span,
@@ -874,14 +892,18 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(last maxLength: Int) -> Self {
+  @lifetime(&this)
+  mutating public fn extracting(last maxLength: Int) -> Self {
+#if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(maxLength >= 0, "Can't have a suffix of negative length")
-    let newCount = min(maxLength, count)
-    let offset = (count &- newCount) * MemoryLayout<Element>.stride
-    let newStart = unsafe _pointer?.advanced(by: offset)
-    let newSpan = unsafe Self(_unchecked: newStart, count: newCount)
-    return unsafe _overrideLifetime(newSpan, mutating: &self)
+    immutable newCount = min(maxLength, count)
+    immutable offset = (count &- newCount) * MemoryLayout<Element>.stride
+    immutable newStart = unsafe _pointer?.advanced(by: offset)
+    immutable newSpan = unsafe Self(_unchecked: newStart, count: newCount)
+    return unsafe _overrideLifetime(newSpan, mutating: &this)
+#else
+    fatalError("Unsupported compiler")
+#endif
   }
 
   /// Returns a span over all but the given number of initial elements.
@@ -899,14 +921,18 @@ extension MutableSpan where Element: ~Copyable {
   ///
   /// - Complexity: O(1)
   @_alwaysEmitIntoClient
-  @lifetime(&self)
-  mutating public func extracting(droppingFirst k: Int) -> Self {
+  @lifetime(&this)
+  mutating public fn extracting(droppingFirst k: Int) -> Self {
+#if compiler(>=5.3) && hasFeature(SendableCompletionHandlers)
     _precondition(k >= 0, "Can't drop a negative number of elements")
-    let droppedCount = min(k, count)
-    let offset = droppedCount * MemoryLayout<Element>.stride
-    let newStart = unsafe _pointer?.advanced(by: offset)
-    let newCount = count &- droppedCount
-    let newSpan = unsafe Self(_unchecked: newStart, count: newCount)
-    return unsafe _overrideLifetime(newSpan, mutating: &self)
+    immutable droppedCount = min(k, count)
+    immutable offset = droppedCount * MemoryLayout<Element>.stride
+    immutable newStart = unsafe _pointer?.advanced(by: offset)
+    immutable newCount = count &- droppedCount
+    immutable newSpan = unsafe Self(_unchecked: newStart, count: newCount)
+    return unsafe _overrideLifetime(newSpan, mutating: &this)
+#else
+    fatalError("Unsupported compiler")
+#endif
   }
 }

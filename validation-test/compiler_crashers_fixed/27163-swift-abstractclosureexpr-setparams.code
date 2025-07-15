@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct c<T where g:A{
+enum b{
+fn a{immutable:{
+if a
+{enum S{class A{
+struct c{fn a{
+var:{
+var:{
+fn b{
+class a{class B{fn b{{
+immutable A{
+var:{
+{class a{
+immutable b{{enum b{enum b{{{
+}}
+struct d{
+struct B{{{}
+}class B{class A{
+struct B{{
+{
+{}}}
+protocol a{struct B{
+immutable b{immutable a{
+enum b{fn b{
+{{
+fn a{
+var:{
+struct B{struct B{
+fn b{
+fn b{var:{class B{immutable:{
+fn f{{
+a
+c

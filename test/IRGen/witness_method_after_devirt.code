@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-ir -verify %s 
+
+protocol BaseProtocol {
+    static fn run()
+}
+
+protocol DerivedProtocol: BaseProtocol {
+}
+
+struct Foo: DerivedProtocol {
+    static fn run() { }
+}
+
+@inline(never)
+fn test() {
+    immutable t: DerivedProtocol.Type = Foo.this
+    t.run()
+}

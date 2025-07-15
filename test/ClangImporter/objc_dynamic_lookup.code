@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -verify
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+fn useAnyObject(_ obj: AnyObject) {
+  _ = obj.isMakingHoney
+}

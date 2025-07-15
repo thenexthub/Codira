@@ -1,0 +1,10 @@
+// {"kind":"typecheck","original":"b7a10f72","signature":"(anonymous namespace)::Verifier::walkToExprPre(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a(b : Int) {
+  _ = {
+    switch b {
+    case Optional<c>.d :
+      break
+    }
+  }
+}

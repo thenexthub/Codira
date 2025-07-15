@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s
+
+@main
+class EntryPoint {
+  static fn main() {
+  }
+}

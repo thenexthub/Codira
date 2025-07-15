@@ -1,0 +1,108 @@
+// RUN: %target-language-frontend -parse -verify %s
+
+/// Good
+
+@transpose(of: foo)
+fn transpose(v: Float) -> Float
+
+@transpose(of: foo(_:_:))
+fn transpose(v: Float) -> Float
+
+@transpose(of: wrt, wrt: 0)
+fn transpose(v: Float) -> Float
+
+@transpose(of: foo, wrt: 0)
+fn transpose(v: Float) -> Float
+
+@transpose(of: foo, wrt: (0, 1))
+fn transpose(v: Float) -> (Float, Float)
+
+@transpose(of: foo, wrt: (this, 0, 1, 2))
+fn transpose(v: Float) -> (Float, Float, Float, Float)
+
+// Qualified declaration.
+@transpose(of: A.B.C.foo(x:y:_:z:))
+fn transpose(v: Float) -> Float
+
+// Qualified declaration with specialized generic type.
+@transpose(of: A<T>.B<U, V>.C.foo(x:y:_:z:))
+fn transpose(v: Float) -> Float
+
+// Qualified operator.
+// TODO(TF-1065): Consider disallowing qualified operators.
+@transpose(of: Codira.Float.+)
+fn transpose(v: Float) -> Float
+
+// Qualified leading-period operator (confusing).
+// TODO(TF-1065): Consider disallowing qualified operators.
+@transpose(of: Codira.Float..<)
+fn transpose(v: Float) -> Float
+
+// `init` keyword edge case.
+@transpose(of: Codira.Float.init(_:))
+fn transpose(v: Float) -> Float
+
+// `subscript` keyword edge case.
+@transpose(of: Codira.Array.subscript(_:))
+fn transpose(v: Float) -> Float
+
+/// Bad
+
+// expected-error @+2 {{expected an original function name}}
+// expected-error @+1 {{expected declaration}}
+@transpose(of: 3)
+fn transpose(v: Float) -> Float
+
+// expected-error @+1 {{expected label 'wrt:' in '@transpose' attribute}}
+@transpose(of: foo, blah)
+fn transpose(v: Float) -> Float
+
+// expected-error @+1 {{expected a colon ':' after 'wrt'}}
+@transpose(of: foo, wrt)
+fn transpose(v: Float) -> Float
+
+// expected-error @+1 {{unexpected ',' separator}}
+@transpose(of: foo,)
+fn transpose(v: Float) -> Float
+
+// expected-error @+2 {{expected ')' in 'transpose' attribute}}
+// expected-error @+1 {{expected declaration}}
+@transpose(of: foo, wrt: 0,)
+fn transpose(v: Float) -> Float
+
+// expected-error @+1 {{expected a parameter, which can be a function parameter index or 'this'}}
+@transpose(of: foo, wrt: v)
+fn transpose(v: Float) -> Float
+
+// expected-error @+1 {{expected a parameter, which can be a function parameter index or 'this'}}
+@transpose(of: foo, wrt: (0, v))
+fn transpose(v: Float) -> Float
+
+// NOTE: The "expected ',' separator" diagnostic is not ideal.
+// Ideally, the diagnostic should point out that `Codira.Float.+(_:_)` is
+// not a valid declaration name (missing colon after second argument label).
+// expected-error @+2 {{expected ',' separator}}
+// expected-error @+1 {{expected declaration}}
+@transpose(of: Codira.Float.+(_:_))
+fn transpose(v: Float) -> Float
+
+// NOTE: The "expected ',' separator" diagnostic is not ideal.
+// Ideally, the diagnostic should point out that `Codira.Float.+.a` is
+// not a valid declaration name.
+// expected-error @+2 {{expected ',' separator}}
+// expected-error @+1 {{expected declaration}}
+@transpose(of: Codira.Float.+.a)
+fn transpose(v: Float) -> Float
+
+// TF-1168: missing comma before `wrt:`.
+// expected-error @+2 {{expected ',' separator}}
+// expected-error @+1 {{expected declaration}}
+@transpose(of: foo wrt: x)
+fn transpose(v: Float) -> Float
+
+fn testLocalTransposeRegistration() {
+  // Transpose registration can only be non-local.
+  // expected-error @+1 {{attribute '@transpose' can only be used in a non-local scope}}
+  @transpose(of: +)
+  fn transpose(_ x: Float) -> (Float, Float)
+}

@@ -1,12 +1,16 @@
-# swift_build_support/products/wasisysroot.py -------------------*- python -*-
+# language_build_support/products/wasisysroot.py -------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-# Copyright (c) 2023 Apple Inc. and the Swift project authors
-# Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
+
 #
 # ----------------------------------------------------------------------------
 
@@ -14,7 +18,7 @@ import multiprocessing
 import os
 
 from . import cmake_product
-from . import llvm
+from . import toolchain
 from . import product
 from .. import shell
 
@@ -50,35 +54,36 @@ class WASILibc(product.Product):
 
     def _build(self, host_target, thread_model='single', target_triple='wasm32-wasi'):
         build_root = os.path.dirname(self.build_dir)
-        llvm_build_bin_dir = os.path.join(
-            '..', build_root, '%s-%s' % ('llvm', host_target), 'bin')
-        llvm_tools_path = self.args.native_llvm_tools_path or llvm_build_bin_dir
-        clang_tools_path = self.args.native_clang_tools_path or llvm_build_bin_dir
+
+        if self.args.build_runtime_with_host_compiler:
+            clang_path = self.toolchain.cc
+            ar_path = self.toolchain.toolchain_ar
+            nm_path = self.toolchain.toolchain_nm
+        else:
+            toolchain_build_bin_dir = os.path.join(
+                '..', build_root, '%s-%s' % ('toolchain', host_target), 'bin')
+            toolchain_tools_path = self.args.native_toolchain_tools_path or toolchain_build_bin_dir
+            clang_tools_path = self.args.native_clang_tools_path or toolchain_build_bin_dir
+            clang_path = os.path.join(clang_tools_path, 'clang')
+            ar_path = os.path.join(toolchain_tools_path, 'toolchain-ar')
+            nm_path = os.path.join(toolchain_tools_path, 'toolchain-nm')
+
         build_jobs = self.args.build_jobs or multiprocessing.cpu_count()
 
         sysroot_build_dir = WASILibc.sysroot_build_path(
             build_root, host_target, target_triple)
-        # FIXME: Manually create an empty dir that is usually created during
-        # check-symbols. The directory is required during sysroot installation step.
-        os.makedirs(os.path.join(sysroot_build_dir, "share"), exist_ok=True)
 
         sysroot_install_path = WASILibc.sysroot_install_path(build_root, target_triple)
         shell.call([
             'make', 'install',
             '-j', str(build_jobs),
-            # FIXME: wasi-libc's pre-defined macro list does not expect
-            # `__FPCLASS_XXX`, which is introduced by the LLVM 17, yet.
-            # So skip the symbol check step by treating the phony target
-            # as very old file.
-            # https://github.com/llvm/llvm-project/commit/7dd387d2971d7759cadfffeb2082439f6c7ddd49
-            '--old-file=check-symbols',
             '-C', self.source_dir,
             'OBJDIR=' + os.path.join(self.build_dir, 'obj-' + thread_model),
             'SYSROOT=' + sysroot_build_dir,
             'INSTALL_DIR=' + sysroot_install_path,
-            'CC=' + os.path.join(clang_tools_path, 'clang'),
-            'AR=' + os.path.join(llvm_tools_path, 'llvm-ar'),
-            'NM=' + os.path.join(llvm_tools_path, 'llvm-nm'),
+            'CC=' + clang_path,
+            'AR=' + ar_path,
+            'NM=' + nm_path,
             'THREAD_MODEL=' + thread_model,
             'TARGET_TRIPLE=' + target_triple,
         ])
@@ -91,9 +96,13 @@ class WASILibc(product.Product):
                 if not os.path.exists(dest_path):
                     shell.symlink("wasm32-wasi", dest_path)
 
+            dest_path = os.path.join(sysroot_install_path, "lib", "wasip1")
+            if not os.path.exists(dest_path):
+                shell.symlink("wasi", dest_path)
+
     @classmethod
     def get_dependencies(cls):
-        return [llvm.LLVM]
+        return [toolchain.LLVM]
 
     @classmethod
     def sysroot_build_path(cls, build_root, host_target, target_triple):
@@ -117,7 +126,7 @@ class WASILibc(product.Product):
 class WasmLLVMRuntimeLibs(cmake_product.CMakeProduct):
     @classmethod
     def product_source_name(cls):
-        return os.path.join("llvm-project", "runtimes")
+        return os.path.join("toolchain-project", "runtimes")
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -139,53 +148,68 @@ class WasmLLVMRuntimeLibs(cmake_product.CMakeProduct):
         return False
 
     def build(self, host_target):
-        self._build(host_target)
+        self._build(host_target, enable_wasi_threads=False,
+                    compiler_rt_os_dir='wasi', target_triple='wasm32-wasi')
+        self._build(host_target, enable_wasi_threads=True,
+                    compiler_rt_os_dir='wasip1', target_triple='wasm32-wasip1-threads')
 
-    def _build(self, host_target, enable_wasi_threads=False,
-               compiler_rt_os_dir='wasi', target_triple='wasm32-wasi'):
+    def _build(self, host_target, enable_wasi_threads, compiler_rt_os_dir, target_triple):
+        cmake = cmake_product.CMakeProduct(
+            args=self.args,
+            toolchain=self.toolchain,
+            source_dir=self.source_dir,
+            build_dir=os.path.join(self.build_dir, target_triple))
+
         build_root = os.path.dirname(self.build_dir)
-        llvm_build_bin_dir = os.path.join(
-            '..', build_root, '%s-%s' % ('llvm', host_target), 'bin')
-        llvm_tools_path = self.args.native_llvm_tools_path or llvm_build_bin_dir
-        clang_tools_path = self.args.native_clang_tools_path or llvm_build_bin_dir
+
+        if self.args.build_runtime_with_host_compiler:
+            cc_path = self.toolchain.cc
+            cxx_path = self.toolchain.cxx
+            ar_path = self.toolchain.toolchain_ar
+            ranlib_path = self.toolchain.toolchain_ranlib
+        else:
+            toolchain_build_bin_dir = os.path.join(
+                '..', build_root, '%s-%s' % ('toolchain', host_target), 'bin')
+            toolchain_tools_path = cmake.args.native_toolchain_tools_path or toolchain_build_bin_dir
+            clang_tools_path = cmake.args.native_clang_tools_path or toolchain_build_bin_dir
+            ar_path = os.path.join(toolchain_tools_path, 'toolchain-ar')
+            ranlib_path = os.path.join(toolchain_tools_path, 'toolchain-ranlib')
+            cc_path = os.path.join(clang_tools_path, 'clang')
+            cxx_path = os.path.join(clang_tools_path, 'clang++')
 
         cmake_has_threads = 'TRUE' if enable_wasi_threads else 'FALSE'
 
-        self.cmake_options.define(
+        cmake.cmake_options.define(
             'CMAKE_SYSROOT:PATH',
             WASILibc.sysroot_build_path(build_root, host_target, target_triple))
         enable_runtimes = ['libcxx', 'libcxxabi', 'compiler-rt']
-        self.cmake_options.define('LLVM_ENABLE_RUNTIMES:STRING',
-                                  ';'.join(enable_runtimes))
+        cmake.cmake_options.define('TOOLCHAIN_ENABLE_RUNTIMES:STRING',
+                                   ';'.join(enable_runtimes))
 
         libdir_suffix = '/' + target_triple
-        self.cmake_options.define('LIBCXX_LIBDIR_SUFFIX:STRING', libdir_suffix)
-        self.cmake_options.define('LIBCXXABI_LIBDIR_SUFFIX:STRING', libdir_suffix)
-        self.cmake_options.define('CMAKE_STAGING_PREFIX:PATH', '/')
+        cmake.cmake_options.define('LIBCXX_LIBDIR_SUFFIX:STRING', libdir_suffix)
+        cmake.cmake_options.define('LIBCXXABI_LIBDIR_SUFFIX:STRING', libdir_suffix)
+        cmake.cmake_options.define('CMAKE_STAGING_PREFIX:PATH', '/')
 
-        self.cmake_options.define('COMPILER_RT_DEFAULT_TARGET_ARCH:STRING', 'wasm32')
-        self.cmake_options.define('COMPILER_RT_DEFAULT_TARGET_ONLY:BOOL', 'TRUE')
-        self.cmake_options.define('COMPILER_RT_BAREMETAL_BUILD:BOOL', 'TRUE')
-        self.cmake_options.define('COMPILER_RT_BUILD_XRAY:BOOL', 'FALSE')
-        self.cmake_options.define('COMPILER_RT_BUILD_PROFILE:BOOL', 'TRUE')
-        self.cmake_options.define('COMPILER_RT_INCLUDE_TESTS:BOOL', 'FALSE')
-        self.cmake_options.define('COMPILER_RT_HAS_FPIC_FLAG:BOOL', 'FALSE')
-        self.cmake_options.define('COMPILER_RT_EXCLUDE_ATOMIC_BUILTIN:BOOL', 'FALSE')
-        self.cmake_options.define('COMPILER_RT_OS_DIR:STRING', compiler_rt_os_dir)
+        cmake.cmake_options.define('COMPILER_RT_DEFAULT_TARGET_ARCH:STRING', 'wasm32')
+        cmake.cmake_options.define('COMPILER_RT_DEFAULT_TARGET_ONLY:BOOL', 'TRUE')
+        cmake.cmake_options.define('COMPILER_RT_BAREMETAL_BUILD:BOOL', 'TRUE')
+        cmake.cmake_options.define('COMPILER_RT_BUILD_XRAY:BOOL', 'FALSE')
+        cmake.cmake_options.define('COMPILER_RT_BUILD_PROFILE:BOOL', 'TRUE')
+        cmake.cmake_options.define('COMPILER_RT_INCLUDE_TESTS:BOOL', 'FALSE')
+        cmake.cmake_options.define('COMPILER_RT_HAS_FPIC_FLAG:BOOL', 'FALSE')
+        cmake.cmake_options.define('COMPILER_RT_EXCLUDE_ATOMIC_BUILTIN:BOOL', 'FALSE')
+        cmake.cmake_options.define('COMPILER_RT_OS_DIR:STRING', compiler_rt_os_dir)
 
-        self.cmake_options.define('CMAKE_C_COMPILER_WORKS:BOOL', 'TRUE')
-        self.cmake_options.define('CMAKE_CXX_COMPILER_WORKS:BOOL', 'TRUE')
+        cmake.cmake_options.define('CMAKE_C_COMPILER_WORKS:BOOL', 'TRUE')
+        cmake.cmake_options.define('CMAKE_CXX_COMPILER_WORKS:BOOL', 'TRUE')
 
-        self.cmake_options.define('CMAKE_SYSTEM_NAME:STRING', 'WASI')
-        self.cmake_options.define('CMAKE_SYSTEM_PROCESSOR:STRING', 'wasm32')
-        self.cmake_options.define('CMAKE_AR:FILEPATH',
-                                  os.path.join(llvm_tools_path, 'llvm-ar'))
-        self.cmake_options.define('CMAKE_RANLIB:FILEPATH',
-                                  os.path.join(llvm_tools_path, 'llvm-ranlib'))
-        self.cmake_options.define('CMAKE_C_COMPILER:FILEPATH',
-                                  os.path.join(clang_tools_path, 'clang'))
-        self.cmake_options.define('CMAKE_CXX_COMPILER:STRING',
-                                  os.path.join(clang_tools_path, 'clang++'))
+        cmake.cmake_options.define('CMAKE_SYSTEM_NAME:STRING', 'WASI')
+        cmake.cmake_options.define('CMAKE_SYSTEM_PROCESSOR:STRING', 'wasm32')
+        cmake.cmake_options.define('CMAKE_AR:FILEPATH', ar_path)
+        cmake.cmake_options.define('CMAKE_RANLIB:FILEPATH', ranlib_path)
+        cmake.cmake_options.define('CMAKE_C_COMPILER:FILEPATH', cc_path)
+        cmake.cmake_options.define('CMAKE_CXX_COMPILER:STRING', cxx_path)
 
         c_flags = []
         # Explicitly disable exceptions even though it's usually implicitly disabled by
@@ -196,51 +220,46 @@ class WasmLLVMRuntimeLibs(cmake_product.CMakeProduct):
         if enable_wasi_threads:
             c_flags.append('-pthread')
             cxx_flags.append('-pthread')
-        self.cmake_options.define('CMAKE_C_FLAGS:STRING', ' '.join(c_flags))
-        self.cmake_options.define('CMAKE_CXX_FLAGS:STRING', ' '.join(cxx_flags))
+        cmake.cmake_options.define('CMAKE_C_FLAGS:STRING', ' '.join(c_flags))
+        cmake.cmake_options.define('CMAKE_CXX_FLAGS:STRING', ' '.join(cxx_flags))
 
-        self.cmake_options.define('CMAKE_C_COMPILER_TARGET:STRING', target_triple)
-        self.cmake_options.define('CMAKE_CXX_COMPILER_TARGET:STRING', target_triple)
+        cmake.cmake_options.define('CMAKE_C_COMPILER_TARGET:STRING', target_triple)
+        cmake.cmake_options.define('CMAKE_CXX_COMPILER_TARGET:STRING', target_triple)
 
-        self.cmake_options.define('CXX_SUPPORTS_CXX11:BOOL', 'TRUE')
+        cmake.cmake_options.define('CXX_SUPPORTS_CXX11:BOOL', 'TRUE')
 
-        self.cmake_options.define('LIBCXX_ENABLE_THREADS:BOOL', cmake_has_threads)
-        self.cmake_options.define('LIBCXX_HAS_PTHREAD_API:BOOL', cmake_has_threads)
-        self.cmake_options.define('LIBCXX_HAS_EXTERNAL_THREAD_API:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXX_BUILD_EXTERNAL_THREAD_LIBRARY:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXX_HAS_WIN32_THREAD_API:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXX_ENABLE_SHARED:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXX_ENABLE_EXPERIMENTAL_LIBRARY:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXX_ENABLE_EXCEPTIONS:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXX_ENABLE_FILESYSTEM:BOOL', 'TRUE')
-        self.cmake_options.define('LIBCXX_CXX_ABI', 'libcxxabi')
-        self.cmake_options.define('LIBCXX_HAS_MUSL_LIBC:BOOL', 'TRUE')
+        cmake.cmake_options.define('LIBCXX_ENABLE_THREADS:BOOL', cmake_has_threads)
+        cmake.cmake_options.define('LIBCXX_HAS_PTHREAD_API:BOOL', cmake_has_threads)
+        cmake.cmake_options.define('LIBCXX_HAS_EXTERNAL_THREAD_API:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXX_BUILD_EXTERNAL_THREAD_LIBRARY:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXX_HAS_WIN32_THREAD_API:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXX_ENABLE_SHARED:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXX_ENABLE_EXPERIMENTAL_LIBRARY:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXX_ENABLE_EXCEPTIONS:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXX_ENABLE_FILESYSTEM:BOOL', 'TRUE')
+        cmake.cmake_options.define('LIBCXX_CXX_ABI', 'libcxxabi')
+        cmake.cmake_options.define('LIBCXX_HAS_MUSL_LIBC:BOOL', 'TRUE')
 
-        self.cmake_options.define('LIBCXX_ABI_VERSION', '2')
-        self.cmake_options.define('LIBCXXABI_ENABLE_EXCEPTIONS:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXXABI_ENABLE_SHARED:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXXABI_USE_LLVM_UNWINDER:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXXABI_SILENT_TERMINATE:BOOL', 'TRUE')
-        self.cmake_options.define('LIBCXXABI_ENABLE_THREADS:BOOL', cmake_has_threads)
-        self.cmake_options.define('LIBCXXABI_HAS_PTHREAD_API:BOOL', cmake_has_threads)
-        self.cmake_options.define('LIBCXXABI_HAS_EXTERNAL_THREAD_API:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXXABI_BUILD_EXTERNAL_THREAD_LIBRARY:BOOL',
-                                  'FALSE')
-        self.cmake_options.define('LIBCXXABI_HAS_WIN32_THREAD_API:BOOL', 'FALSE')
-        self.cmake_options.define('LIBCXXABI_ENABLE_PIC:BOOL', 'FALSE')
-        self.cmake_options.define('UNIX:BOOL', 'TRUE')
+        cmake.cmake_options.define('LIBCXX_ABI_VERSION', '2')
+        cmake.cmake_options.define('LIBCXXABI_ENABLE_EXCEPTIONS:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXXABI_ENABLE_SHARED:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXXABI_USE_TOOLCHAIN_UNWINDER:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXXABI_SILENT_TERMINATE:BOOL', 'TRUE')
+        cmake.cmake_options.define('LIBCXXABI_ENABLE_THREADS:BOOL', cmake_has_threads)
+        cmake.cmake_options.define('LIBCXXABI_HAS_PTHREAD_API:BOOL', cmake_has_threads)
+        cmake.cmake_options.define('LIBCXXABI_HAS_EXTERNAL_THREAD_API:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXXABI_BUILD_EXTERNAL_THREAD_LIBRARY:BOOL',
+                                   'FALSE')
+        cmake.cmake_options.define('LIBCXXABI_HAS_WIN32_THREAD_API:BOOL', 'FALSE')
+        cmake.cmake_options.define('LIBCXXABI_ENABLE_PIC:BOOL', 'FALSE')
+        cmake.cmake_options.define('UNIX:BOOL', 'TRUE')
 
-        self.build_with_cmake([], self.args.build_variant, [],
-                              prefer_native_toolchain=True)
-        self.install_with_cmake(
+        cmake.build_with_cmake([], cmake.args.build_variant, [],
+                               prefer_native_toolchain=not self.args.build_runtime_with_host_compiler,
+                               ignore_extra_cmake_options=True)
+        cmake.install_with_cmake(
             ["install"], WASILibc.sysroot_install_path(build_root, target_triple))
 
     @classmethod
     def get_dependencies(cls):
-        return [WASILibc, llvm.LLVM]
-
-
-class WasmThreadsLLVMRuntimeLibs(WasmLLVMRuntimeLibs):
-    def build(self, host_target):
-        self._build(host_target, enable_wasi_threads=True,
-                    compiler_rt_os_dir='wasip1', target_triple='wasm32-wasip1-threads')
+        return [WASILibc, toolchain.LLVM]

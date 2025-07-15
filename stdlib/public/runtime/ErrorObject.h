@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This implements the object representation of the standard Error
@@ -18,28 +19,28 @@
 // implementation is designed to interoperate efficiently with Cocoa libraries
 // by:
 // - allowing for NSError and CFError objects to "toll-free bridge" to
-//   Error existentials, which allows for cheap Cocoa to Swift interop
-// - allowing a native Swift error to lazily "become" an NSError when
-//   passed into Cocoa, allowing for cheap Swift to Cocoa interop
+//   Error existentials, which allows for cheap Cocoa to Codira interop
+// - allowing a native Codira error to lazily "become" an NSError when
+//   passed into Cocoa, allowing for cheap Codira to Cocoa interop
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef __SWIFT_RUNTIME_ERROROBJECT_H__
-#define __SWIFT_RUNTIME_ERROROBJECT_H__
+#ifndef __LANGUAGE_RUNTIME_ERROROBJECT_H__
+#define __LANGUAGE_RUNTIME_ERROROBJECT_H__
 
 #include "language/Runtime/Error.h"
 #include "language/Runtime/Metadata.h"
-#include "languageHashableSupport.h"
+#include "CodiraHashableSupport.h"
 
 #include <atomic>
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 # include <CoreFoundation/CoreFoundation.h>
 # include <objc/objc.h>
 #endif
 
 namespace language {
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 
 // Copied from CoreFoundation/CFRuntime.h.
 struct CFRuntimeBase {
@@ -47,9 +48,9 @@ struct CFRuntimeBase {
   void *opaque2;
 };
 
-/// When ObjC interop is enabled, SwiftError uses an NSError-layout-compatible
+/// When ObjC interop is enabled, CodiraError uses an NSError-layout-compatible
 /// header.
-struct SwiftErrorHeader {
+struct CodiraErrorHeader {
   // CFError has a CF refcounting header. NSError reserves a word after the
   // 'isa' in order to be layout-compatible.
   CFRuntimeBase base;
@@ -62,35 +63,35 @@ struct SwiftErrorHeader {
 
 #else
 
-/// When ObjC interop is disabled, SwiftError uses a normal Swift heap object
+/// When ObjC interop is disabled, CodiraError uses a normal Codira heap object
 /// header.
-using SwiftErrorHeader = HeapObject;
+using CodiraErrorHeader = HeapObject;
 
 #endif
 
-/// The layout of the Swift Error box.
-struct SwiftError : SwiftErrorHeader {
-  // By inheriting OpaqueNSError, the SwiftError structure reserves enough
+/// The layout of the Codira Error box.
+struct CodiraError : CodiraErrorHeader {
+  // By inheriting OpaqueNSError, the CodiraError structure reserves enough
   // space within itself to lazily emplace an NSError instance, and gets
   // Core Foundation's refcounting scheme.
 
-  /// The type of Swift error value contained in the box.
-  /// This member is only available for native Swift errors.
+  /// The type of Codira error value contained in the box.
+  /// This member is only available for native Codira errors.
   const Metadata *type;
 
   /// The witness table for `Error` conformance.
-  /// This member is only available for native Swift errors.
+  /// This member is only available for native Codira errors.
   const WitnessTable *errorConformance;
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   /// The base type that introduces the `Hashable` conformance.
-  /// This member is only available for native Swift errors.
+  /// This member is only available for native Codira errors.
   /// This member is lazily-initialized.
   /// Instead of using it directly, call `getHashableBaseType()`.
   mutable std::atomic<const Metadata *> hashableBaseType;
 
   /// The witness table for `Hashable` conformance.
-  /// This member is only available for native Swift errors.
+  /// This member is only available for native Codira errors.
   /// This member is lazily-initialized.
   /// Instead of using it directly, call `getHashableConformance()`.
   mutable std::atomic<const hashable_support::HashableWitnessTable *> hashableConformance;
@@ -98,16 +99,16 @@ struct SwiftError : SwiftErrorHeader {
 
   /// Get a pointer to the value contained inside the indirectly-referenced
   /// box reference.
-  static const OpaqueValue *getIndirectValue(const SwiftError * const *ptr) {
+  static const OpaqueValue *getIndirectValue(const CodiraError * const *ptr) {
     // If the box is a bridged NSError, then the box's address is itself the
     // value.
     if ((*ptr)->isPureNSError())
       return reinterpret_cast<const OpaqueValue *>(ptr);
     return (*ptr)->getValue();
   }
-  static OpaqueValue *getIndirectValue(SwiftError * const *ptr) {
+  static OpaqueValue *getIndirectValue(CodiraError * const *ptr) {
     return const_cast<OpaqueValue *>(getIndirectValue(
-                                  const_cast<const SwiftError * const *>(ptr)));
+                                  const_cast<const CodiraError * const *>(ptr)));
   }
   
   /// Get a pointer to the value, which is tail-allocated after
@@ -126,10 +127,10 @@ struct SwiftError : SwiftErrorHeader {
   }
   OpaqueValue *getValue() {
     return const_cast<OpaqueValue*>(
-             const_cast<const SwiftError *>(this)->getValue());
+             const_cast<const CodiraError *>(this)->getValue());
   }
   
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   // True if the object is really an NSError or CFError instance.
   // The type and errorConformance fields don't exist in an NSError.
   bool isPureNSError() const;
@@ -137,7 +138,7 @@ struct SwiftError : SwiftErrorHeader {
   bool isPureNSError() const { return false; }
 #endif
   
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   /// Get the type of the contained value.
   const Metadata *getType() const;
   /// Get the Error protocol witness table for the contained type.
@@ -149,7 +150,7 @@ struct SwiftError : SwiftErrorHeader {
   const WitnessTable *getErrorConformance() const { return errorConformance; }
 #endif
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   /// Get the base type that conforms to `Hashable`.
   /// Returns NULL if the type does not conform.
   const Metadata *getHashableBaseType() const;
@@ -160,21 +161,21 @@ struct SwiftError : SwiftErrorHeader {
 #endif
 
   // Don't copy or move, please.
-  SwiftError(const SwiftError &) = delete;
-  SwiftError(SwiftError &&) = delete;
-  SwiftError &operator=(const SwiftError &) = delete;
-  SwiftError &operator=(SwiftError &&) = delete;
+  CodiraError(const CodiraError &) = delete;
+  CodiraError(CodiraError &&) = delete;
+  CodiraError &operator=(const CodiraError &) = delete;
+  CodiraError &operator=(CodiraError &&) = delete;
 };
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 
 /// Initialize an Error box to make it usable as an NSError instance.
 ///
 /// errorObject is assumed to be passed at +1 and consumed in this function.
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_SPI
-id _swift_stdlib_bridgeErrorToNSError(SwiftError *errorObject);
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
+id _language_stdlib_bridgeErrorToNSError(CodiraError *errorObject);
 
-/// Attempt to dynamically cast an NSError object to a Swift ErrorType
+/// Attempt to dynamically cast an NSError object to a Codira ErrorType
 /// implementation using the _ObjectiveCBridgeableErrorType protocol or by
 /// putting it directly into an Error existential.
 bool tryDynamicCastNSErrorObjectToValue(HeapObject *object,
@@ -182,7 +183,7 @@ bool tryDynamicCastNSErrorObjectToValue(HeapObject *object,
                                         const Metadata *destType,
                                         DynamicCastFlags flags);
 
-/// Attempt to dynamically cast an NSError instance to a Swift ErrorType
+/// Attempt to dynamically cast an NSError instance to a Codira ErrorType
 /// implementation using the _ObjectiveCBridgeableErrorType protocol or by
 /// putting it directly into an Error existential.
 ///
@@ -214,15 +215,15 @@ id dynamicCastValueToNSError(OpaqueValue *src,
 
 } // namespace language
 
-#if SWIFT_OBJC_INTEROP
-// internal func _getErrorEmbeddedNSErrorIndirect<T : Error>(
+#if LANGUAGE_OBJC_INTEROP
+// internal fn _getErrorEmbeddedNSErrorIndirect<T : Error>(
 //   _ x: UnsafePointer<T>) -> AnyObject?
 #define getErrorEmbeddedNSErrorIndirect \
   MANGLE_SYM(s32_getErrorEmbeddedNSErrorIndirectyyXlSgSPyxGs0B0RzlF)
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
-id getErrorEmbeddedNSErrorIndirect(const swift::OpaqueValue *error,
-                                   const swift::Metadata *T,
-                                   const swift::WitnessTable *Error);
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
+id getErrorEmbeddedNSErrorIndirect(const language::OpaqueValue *error,
+                                   const language::Metadata *T,
+                                   const language::WitnessTable *Error);
 #endif
 
 #endif

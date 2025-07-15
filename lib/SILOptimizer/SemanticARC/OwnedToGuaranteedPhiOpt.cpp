@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -55,7 +56,7 @@ static bool canEliminatePhi(
     // NOTE: If this linear search is too slow, we can change the multimap to
     // sort the mapped to list by pointer instead of insertion order. In such a
     // case, we could then bisect.
-    if (llvm::find(optimizableIntroducerRange,
+    if (toolchain::find(optimizableIntroducerRange,
                    incomingValueOperand.getOperand()) ==
         optimizableIntroducerRange.end()) {
       return false;
@@ -87,7 +88,7 @@ static bool canEliminatePhi(
   // said, lets assert that.
   {
     SmallVector<OwnedValueIntroducer, 32> uniqueCheck;
-    llvm::copy(ownedValueIntroducerAccumulator,
+    toolchain::copy(ownedValueIntroducerAccumulator,
                std::back_inserter(uniqueCheck));
     sortUnique(uniqueCheck);
     assert(
@@ -113,7 +114,7 @@ static bool getIncomingJoinedLiveRangeOperands(
   }
 
   if (auto *svi = dyn_cast<SingleValueInstruction>(joinedLiveRange)) {
-    return llvm::all_of(svi->getAllOperands(), [&](const Operand &op) {
+    return toolchain::all_of(svi->getAllOperands(), [&](const Operand &op) {
       // skip type dependent operands.
       if (op.isTypeDependent())
         return true;
@@ -126,7 +127,7 @@ static bool getIncomingJoinedLiveRangeOperands(
     });
   }
 
-  llvm_unreachable("Unhandled joined live range?!");
+  toolchain_unreachable("Unhandled joined live range?!");
 }
 
 //===----------------------------------------------------------------------===//
@@ -135,19 +136,19 @@ static bool getIncomingJoinedLiveRangeOperands(
 
 // This needs `SemanticARCOptVisitor::performGuaranteedCopyValueOptimization` to
 // run before so that joinedOwnedIntroducerToConsumedOperands is populated.
-bool swift::semanticarc::tryConvertOwnedPhisToGuaranteedPhis(Context &ctx) {
+bool language::semanticarc::tryConvertOwnedPhisToGuaranteedPhis(Context &ctx) {
   bool madeChange = false;
 
   // First freeze our multi-map so we can use it for map queries. Also, setup a
   // defer of the reset so we do not forget to reset the map when we are done.
   ctx.joinedOwnedIntroducerToConsumedOperands.setFrozen();
-  SWIFT_DEFER { ctx.joinedOwnedIntroducerToConsumedOperands.reset(); };
+  LANGUAGE_DEFER { ctx.joinedOwnedIntroducerToConsumedOperands.reset(); };
 
   // Now for each phi argument that we have in our multi-map...
   SmallVector<OwnershipPhiOperand, 4> incomingValueOperandList;
   SmallVector<OwnedValueIntroducer, 4> ownedValueIntroducers;
   for (auto pair : ctx.joinedOwnedIntroducerToConsumedOperands.getRange()) {
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       incomingValueOperandList.clear();
       ownedValueIntroducers.clear();
     };
@@ -239,7 +240,7 @@ bool swift::semanticarc::tryConvertOwnedPhisToGuaranteedPhis(Context &ctx) {
                                                  ctx.instModCallbacks);
         continue;
       }
-      llvm_unreachable("Unhandled optimizable introducer!");
+      toolchain_unreachable("Unhandled optimizable introducer!");
     }
 
     // Now go through and update our original incoming value array now that we

@@ -1,0 +1,16 @@
+public class Problem1: BaseProblem
+{
+    override fn run() -> Int
+    {
+        return 1
+    }
+}
+
+
+public class Problem2: BaseProblem
+{
+    override fn run() -> Int
+    {
+        return 2
+    }
+}

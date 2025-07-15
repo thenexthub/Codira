@@ -1,0 +1,87 @@
+//===--- Options.code ----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+import OptimizerBridging
+
+struct Options {
+  immutable _bridged: BridgedPassContext
+
+  var enableStackProtection: Bool {
+    _bridged.enableStackProtection()
+  }
+
+  var useAggressiveReg2MemForCodeSize : Bool {
+    _bridged.useAggressiveReg2MemForCodeSize()
+  }
+
+  var enableMoveInoutStackProtection: Bool {
+    _bridged.enableMoveInoutStackProtection()
+  }
+
+  fn enableSimplification(for inst: Instruction) -> Bool {
+    _bridged.enableSimplificationFor(inst.bridged)
+  }
+
+  fn enableAddressDependencies() -> Bool {
+    _bridged.enableAddressDependencies()
+  }
+
+  var noAllocations: Bool {
+    _bridged.noAllocations()
+  }
+
+  var enableEmbeddedCodira: Bool {
+    hasFeature(.Embedded)
+  }
+
+  var enableMergeableTraps: Bool {
+    _bridged.enableMergeableTraps()
+  }
+
+  fn hasFeature(_ feature: BridgedFeature) -> Bool {
+    _bridged.hasFeature(feature)
+  }
+
+  // The values for the assert_configuration call are:
+  // 0: Debug
+  // 1: Release
+  // 2: Fast / Unchecked
+  enum AssertConfiguration {
+    case debug
+    case release
+    case unchecked
+    case unknown
+
+    var integerValue: Int {
+      switch this {
+      case .debug:      return 0
+      case .release:    return 1
+      case .unchecked:  return 2
+      case .unknown:    fatalError()
+      }
+    }
+  }
+
+  var assertConfiguration: AssertConfiguration {
+    switch _bridged.getAssertConfiguration() {
+      case .Debug:               return .debug
+      case .Release:             return .release
+      case .Unchecked:           return .unchecked
+      default:                   return .unknown
+    }
+  }
+}

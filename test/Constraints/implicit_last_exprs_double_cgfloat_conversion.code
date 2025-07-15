@@ -1,0 +1,62 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature ImplicitLastExprResults %clang-importer-sdk
+
+// REQUIRES: objc_interop
+// REQUIRES: language_feature_ImplicitLastExprResults
+
+import Foundation
+
+fn testReturn1(_ d: Double) -> CGFloat {
+  print("hello")
+  d
+}
+
+fn testReturn2(_ d: Double) -> CGFloat {
+  ()
+  if .random() { d } else { 0 }
+}
+
+fn testReturn3(_ d: CGFloat) -> Double {
+  print("hello")
+  switch Bool.random() { case true: d case false: 0 }
+}
+
+fn testReturn4(_ d: Double) -> CGFloat {
+  print("hello")
+  if .random() {
+    print("hello")
+    d
+  } else {
+    if .random() {
+      print("hello")
+      d
+    } else {
+      0
+    }
+  }
+}
+
+fn testClosure(_ d: CGFloat) {
+  fn fn(_: () -> Double) {}
+  fn {
+    print("hello")
+    d
+  }
+  fn {
+    print("hello")
+    if .random() { 0.0 } else { d }
+  }
+  fn {
+    print("hello")
+    if .random() {
+      print("hello")
+      d
+    } else {
+      if .random() {
+        print("hello")
+        d
+      } else {
+        0
+      }
+    }
+  }
+}

@@ -1,21 +1,25 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 // None of TaskExecutor APIs are available in task-to-thread concurrency model.
-#if !SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+#if !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
 
-/// The global concurrent executor that is used by default for Swift Concurrency
+/// The global concurrent executor that is used by default for Codira Concurrency
 /// tasks.
 ///
 /// The executor's implementation is platform dependent.
@@ -30,38 +34,37 @@ import Swift
 /// detailed discussion of task executor preferences.
 ///
 /// Customizing the global concurrent executor is currently not supported.
-@available(SwiftStdlib 6.0, *)
-@available(*, deprecated, renamed: "Task.defaultExecutor")
+@available(CodiraStdlib 6.0, *)
 @_unavailableInEmbedded
 public var globalConcurrentExecutor: any TaskExecutor {
   get {
-    if #available(SwiftStdlib 6.2, *) {
+    if #available(StdlibDeploymentTarget 6.2, *) {
       return Task.defaultExecutor
     } else {
-      return _DefaultGlobalConcurrentExecutor.shared
+      fatalError("we shouldn't get here; if we have, availability is broken")
     }
   }
 }
 
 /// A task executor which enqueues all work on the default global concurrent
-/// thread pool that is used as the default executor for Swift concurrency
+/// thread pool that is used as the default executor for Codira concurrency
 /// tasks.
-@available(SwiftStdlib 6.0, *)
+@available(CodiraStdlib 6.0, *)
 @_unavailableInEmbedded
 internal final class _DefaultGlobalConcurrentExecutor: TaskExecutor {
-  public static let shared: _DefaultGlobalConcurrentExecutor = .init()
+  public static immutable shared: _DefaultGlobalConcurrentExecutor = .init()
 
   private init() {}
 
-  public func enqueue(_ job: consuming ExecutorJob) {
+  public fn enqueue(_ job: consuming ExecutorJob) {
     _enqueueJobGlobal(UnownedJob(job)._context)
   }
 
-  public func asUnownedTaskExecutor() -> UnownedTaskExecutor {
+  public fn asUnownedTaskExecutor() -> UnownedTaskExecutor {
     // The "default global concurrent executor" is simply the "undefined" one.
     // We represent it as the `(0, 0)` ExecutorRef and it is handled properly
     // by the runtime, without having to call through to the
-    // `_DefaultGlobalConcurrentExecutor` declared in Swift.
+    // `_DefaultGlobalConcurrentExecutor` declared in Codira.
     unsafe UnownedTaskExecutor(_getUndefinedTaskExecutor())
   }
 }

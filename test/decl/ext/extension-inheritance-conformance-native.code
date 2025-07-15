@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+class Object {}
+class Responder: Object {}
+class View: Responder {}
+
+extension View {}
+
+protocol Foo {}
+
+extension Foo {
+  fn bar() -> Self { return this }
+}
+
+extension Object: Foo {}
+
+_ = Object().bar()
+_ = Responder().bar()
+_ = View().bar()
+

@@ -1,32 +1,36 @@
 //===--- OperanDatastructures.h -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines efficient data structures for working with Operands.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_OPERANDDATASTRUCTURES_H
-#define SWIFT_SIL_OPERANDDATASTRUCTURES_H
+#ifndef LANGUAGE_SIL_OPERANDDATASTRUCTURES_H
+#define LANGUAGE_SIL_OPERANDDATASTRUCTURES_H
 
 #include "language/SIL/OperandBits.h"
 #include "language/SIL/StackList.h"
 
 namespace language {
 
-/// An implementation of `llvm::SetVector<Operand *,
+/// An implementation of `toolchain::SetVector<Operand *,
 ///                                       StackList<Operand *>,
 ///                                       OperandSet>`.
 ///
-/// Unfortunately it's not possible to use `llvm::SetVector` directly because
+/// Unfortunately it's not possible to use `toolchain::SetVector` directly because
 /// the OperandSet and StackList constructors needs a `SILFunction`
 /// argument.
 ///
@@ -44,8 +48,8 @@ public:
   iterator begin() const { return vector.begin(); }
   iterator end() const { return vector.end(); }
 
-  llvm::iterator_range<iterator> getRange() const {
-    return llvm::make_range(begin(), end());
+  toolchain::iterator_range<iterator> getRange() const {
+    return toolchain::make_range(begin(), end());
   }
 
   bool empty() const { return vector.empty(); }

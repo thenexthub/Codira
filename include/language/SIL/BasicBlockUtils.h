@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_BASICBLOCKUTILS_H
-#define SWIFT_SIL_BASICBLOCKUTILS_H
+#ifndef LANGUAGE_SIL_BASICBLOCKUTILS_H
+#define LANGUAGE_SIL_BASICBLOCKUTILS_H
 
 #include "language/SIL/BasicBlockBits.h"
 #include "language/SIL/BasicBlockDatastructures.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -43,7 +44,7 @@ void changeBranchTarget(TermInst *T, unsigned edgeIdx, SILBasicBlock *newDest,
 /// Returns the arguments values on the specified CFG edge. If necessary, may
 /// add create new SILPHIArguments, using `NewEdgeBB` as the placeholder.
 void getEdgeArgs(TermInst *T, unsigned edgeIdx, SILBasicBlock *newEdgeBB,
-                 llvm::SmallVectorImpl<SILValue> &args);
+                 toolchain::SmallVectorImpl<SILValue> &args);
 
 /// Splits the edge from terminator.
 ///
@@ -67,9 +68,13 @@ void mergeBasicBlockWithSingleSuccessor(SILBasicBlock *BB,
 /// This utility is needed to determine if the a value definition can have a
 /// lack of users ignored along a specific path.
 class DeadEndBlocks {
-  llvm::SetVector<const SILBasicBlock *> reachableBlocks;
+  toolchain::SetVector<const SILBasicBlock *> reachableBlocks;
   const SILFunction *f;
   bool didComputeValue = false;
+
+  /// When non-null, indicates whether dead-end blocks are present
+  /// in the current function.
+  std::optional<bool> hasAnyDeadEnds = std::nullopt;
 
   void compute();
 
@@ -86,6 +91,17 @@ public:
       didComputeValue = true;
     }
     return reachableBlocks.count(block) == 0;
+  }
+
+  /// Returns true iff none of the function's blocks is a dead-end.
+  /// Note: The underlying value is lazily computed & cached.
+  bool isEmpty() {
+    if (!hasAnyDeadEnds.has_value()) {
+      hasAnyDeadEnds = toolchain::any_of(
+          *f, [this](const SILBasicBlock &BB) { return isDeadEnd(&BB); });
+    }
+
+    return !hasAnyDeadEnds.value();
   }
 
   /// Return true if this dead end blocks has computed its internal cache yet.
@@ -234,7 +250,7 @@ struct SILCFGBackwardDFS {
   };
 
   /// The region in reverse post-order.
-  auto reversePostOrder() { return llvm::reverse(postOrder()); }
+  auto reversePostOrder() { return toolchain::reverse(postOrder()); }
 };
 } // namespace language
 

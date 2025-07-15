@@ -1,0 +1,3 @@
+// {"signature":"language::TuplePatternElt& toolchain::SmallVectorTemplateBase<language::TuplePatternElt, true>::growAndEmplaceBack<language::Identifier, language::SourceLoc, language::Pattern*&>(language::Identifier&&, language::SourceLoc&&, language::Pattern*&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+switch { case .a(&b

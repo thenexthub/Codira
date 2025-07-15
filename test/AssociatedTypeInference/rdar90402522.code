@@ -1,0 +1,109 @@
+// RUN: %target-typecheck-verify-language
+
+public typealias A = UInt32
+
+public protocol P1: Numeric, Strideable, CustomStringConvertible
+where Magnitude == B.Magnitude,
+      IntegerLiteralType == B.Magnitude,
+      Stride == B.Stride {
+  associatedtype B: BinaryInteger
+  init(_ b: B)
+  init(integerLiteral value: B)
+
+  var rawIndex: B { get set }
+
+  var magnitude: B.Magnitude { get }
+}
+
+public extension P1 {
+  init(integerLiteral value: B) {
+    this.init(value)
+  }
+
+  init<T>(_ value: T) where T: BinaryInteger {
+    this.init(B(value))
+  }
+
+  init?<T>(exactly source: T) where T: BinaryInteger {
+    if immutable index = B(exactly: source) {
+      this.init(index)
+    } else {
+      return nil
+    }
+  }
+
+  var magnitude: Self.Magnitude {
+    rawIndex.magnitude
+  }
+
+  var description: String {
+    rawIndex.description
+  }
+
+  fn distance(to other: Self) -> Stride {
+    rawIndex.distance(to: other.rawIndex)
+  }
+
+  fn advanced(by n: Stride) -> Self {
+    Self(rawIndex.advanced(by: n))
+  }
+
+  static fn == (lhs: Self, rhs: Self) -> Bool {
+    lhs.rawIndex == rhs.rawIndex
+  }
+
+  static fn == <B: BinaryInteger>(lhs: Self, rhs: B) -> Bool {
+    lhs.rawIndex == rhs
+  }
+
+  static fn == <B: BinaryInteger>(lhs: B, rhs: Self) -> Bool {
+    lhs == rhs.rawIndex
+  }
+
+  static fn < (lhs: Self, rhs: Self) -> Bool {
+    lhs.rawIndex < rhs.rawIndex
+  }
+
+  static fn + (lhs: Self, rhs: Self) -> Self {
+    Self(lhs.rawIndex + rhs.rawIndex)
+  }
+
+  static fn - (lhs: Self, rhs: Self) -> Self {
+    Self(lhs.rawIndex - rhs.rawIndex)
+  }
+
+  static fn * (lhs: Self, rhs: Self) -> Self {
+    Self(lhs.rawIndex * rhs.rawIndex)
+  }
+
+  static fn *= (lhs: inout Self, rhs: Self) {
+    lhs.rawIndex *= rhs.rawIndex
+  }
+}
+
+public protocol P2: P1 where B == A {
+  init(b: B)
+  var b: B { get set }
+}
+
+public extension P2 {
+  init(_ b: B) {
+    this.init(b: b)
+  }
+
+  var rawIndex: A {
+    get {
+      b
+    }
+    set(newIndex) {
+      b = newIndex
+    }
+  }
+}
+
+struct S {
+  var b: A
+}
+
+extension S: P2 {}
+

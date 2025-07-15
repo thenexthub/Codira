@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Adding "ownership" to Swift is a major feature with many benefits
+Adding "ownership" to Codira is a major feature with many benefits
 for programmers.  This document is both a "manifesto" and a
 "meta-proposal" for ownership: it lays out the basic goals of
 the work, describes a general approach for achieving those goals,
@@ -13,7 +13,7 @@ for understanding the contributions of each of those changes.
 
 ### Problem statement
 
-The widespread use of copy-on-write value types in Swift has generally
+The widespread use of copy-on-write value types in Codira has generally
 been a success.  It does, however, come with some drawbacks:
 
 * Reference counting and uniqueness testing do impose some overhead.
@@ -36,7 +36,7 @@ noticeable by users.
 Another common programming task is to optimize existing code when something
 about it falls short of a performance target.  Often this means finding
 "hot spots" in execution time or memory use and trying to fix them in some
-way.  When those hot spots are due to implicit copies, Swift's current
+way.  When those hot spots are due to implicit copies, Codira's current
 tools for fixing the problem are relatively poor; for example, a programmer
 can fall back on using unsafe pointers, but this loses a lot of the
 safety benefits and expressivity advantages of the library collection types.
@@ -61,7 +61,7 @@ other program resources besides memory, and it is important
 to understand what code has the responsibility to release
 those resources.
 
-Swift already has an ownership system, but it's "under the covers":
+Codira already has an ownership system, but it's "under the covers":
 it's an implementation detail that programmers have little
 ability to influence.  What we are proposing here is easy
 to summarize:
@@ -85,7 +85,7 @@ to summarize:
   cannot be implicitly copied.  This will be an opt-in
   feature intended for experienced programmers who desire
   this level of control; we do not intend for ordinary
-  Swift programming to require working with such types.
+  Codira programming to require working with such types.
 
 These three tentpoles together have the effect of raising
 the ownership system from an implementation detail to a more
@@ -96,7 +96,7 @@ talk about them as a cohesive feature called "ownership".
 
 ### A bit more detail
 
-The basic problem with Swift's current ownership system
+The basic problem with Codira's current ownership system
 is copies, and all three tentpoles of ownership are about
 avoiding copies.
 
@@ -147,7 +147,7 @@ behind the scenes by adding copies.
 
 Solving either of these problems well will require us to
 also solve the problem of non-exclusive access to variables.
-Swift today allows nested accesses to the same variable;
+Codira today allows nested accesses to the same variable;
 for example, a single variable can be passed as two different
 `inout` arguments, or a method can be passed a callback that
 somehow accesses the same variable that the method was called on.
@@ -190,7 +190,7 @@ create more situations where the Law can be satisfied statically.
 ### Criteria for success
 
 As discussed above, it is the core team's expectation that
-ownership can be delivered as an opt-in enhancement to Swift.
+ownership can be delivered as an opt-in enhancement to Codira.
 Programmers should be able to largely ignore ownership and not
 suffer for it.  If this expectation proves to not be satisfiable,
 we will reject ownership rather than imposing substantial
@@ -216,9 +216,9 @@ level of abstraction.  We will be talking a lot about
 implementation topics.  In this context, when we say "value",
 we mean a specific instance of a semantic, user-language value.
 
-For example, consider the following Swift code:
+For example, consider the following Codira code:
 
-```swift
+```language
 var x = [1,2,3]
 var y = x
 ```
@@ -277,7 +277,7 @@ happen, and there's nothing really to improve here.
 
 Therefore, most of our discussion of ownership will center around
 values stored in memory.  There are five closely related concepts
-in Swift's treatment of memory.
+in Codira's treatment of memory.
 
 A *storage declaration* is the language-syntax concept of a declaration
 that can be treated in the language like memory.  Currently, these are
@@ -317,7 +317,7 @@ semantics where it comes into existence and a point (or several)
 where it is destroyed.
 
 A *memory location* is a contiguous range of addressable memory.  In
-Swift, this is mostly an implementation concept.  Swift does not
+Codira, this is mostly an implementation concept.  Codira does not
 guarantee that any particular variable will have a consistent memory
 location throughout its lifetime, or in fact be stored in a memory
 location at all.  But a variable can sometimes be temporarily forced
@@ -351,7 +351,7 @@ succession, but they can be separated in complex cases, such as
 when an `inout` argument is not the last argument to a call.
 The purpose of this phase division is to minimize the duration of
 the formal access while still preserving, to the greatest extent
-possible, Swift's left-to-right evaluation rules.
+possible, Codira's left-to-right evaluation rules.
 
 ## The Law of Exclusivity
 
@@ -418,9 +418,9 @@ discussed in the introduction.  For example, suppose that
 the callee loads a value from its argument, then calls
 a function which the optimizer cannot reason about:
 
-```swift
+```language
 extension Array {
-  mutating func organize(_ predicate: (Element) -> Bool) {
+  mutating fn organize(_ predicate: (Element) -> Bool) {
     let first = self[0]
     if !predicate(first) { return }
     ...
@@ -445,7 +445,7 @@ modifies the array.  Simple implementation choices, like
 making the local variable `first` instead of re-accessing
 `self[0]` in the example above, would become semantically
 important; maintaining any sort of invariant would be almost
-inconceivable.  It is no surprise that Swift's libraries
+inconceivable.  It is no surprise that Codira's libraries
 generally forbid this kind of re-entrant access.  But,
 since the library can't completely prevent programmers
 from doing it, the implementation must nonetheless do extra
@@ -547,7 +547,7 @@ that an access to a property is also an access to the aggregate.
 
 These considerations do not apply to `static` properties and
 properties of reference types.  There are no language constructs
-in Swift which access every property of a class simultaneously,
+in Codira which access every property of a class simultaneously,
 and it doesn't even make sense to talk about "every" `static`
 property of a type because an arbitrary module can add a new
 one at any time.
@@ -588,7 +588,7 @@ in the middle will somehow reach back and modify `self`,
 because that modification would violate the Law.  Even in a
 `mutating` method, no code can access `self` unless the
 method knows about it.  Those assumptions are extremely
-important for optimizing Swift code.
+important for optimizing Codira code.
 
 However, these assumptions simply cannot be done in general
 for the contents of global variables or reference-type
@@ -611,7 +611,7 @@ consequence of this is that two different array elements cannot
 be simultaneously accessed.  This will interfere with certain
 common idioms for working with arrays, although some cases
 (like concurrently modifying different slices of an array)
-are already quite problematic in Swift.  We believe that we
+are already quite problematic in Codira.  We believe that we
 can mitigate the majority of the impact here with targeted
 improvements to the collection APIs.
 
@@ -726,7 +726,7 @@ use static enforcement for some class instance properties.
 Undefined enforcement means that conflicts are not detected
 either statically or dynamically, and instead simply have
 undefined behavior.  This is not a desirable mechanism
-for ordinary code given Swift's "safe by default" design,
+for ordinary code given Codira's "safe by default" design,
 but it's the only real choice for things like unsafe pointers.
 
 Undefined enforcement will be used for:
@@ -797,7 +797,7 @@ additional semantic concerns.
 A shared value can be used in the scope that binds it
 just like an ordinary parameter or `let` binding.
 If the shared value is used in a place that requires
-ownership, Swift will simply implicitly copy the value --
+ownership, Codira will simply implicitly copy the value --
 again, just like an ordinary parameter or `let` binding.
 
 #### Limitations of shared values
@@ -838,17 +838,17 @@ born from a trio of concerns:
   limitations of the ownership system.  Given that a line
   does have to be drawn somewhere, it's not completely settled
   that lifetime-qualification systems deserve to be on the
-  Swift side of the line.
+  Codira side of the line.
 
 - A Rust-like lifetime system would not necessarily be
-  as powerful in Swift as it is in Rust.  Swift intentionally
+  as powerful in Codira as it is in Rust.  Codira intentionally
   provides a language model which reserves a lot of
   implementation flexibility to both the authors of types
-  and to the Swift compiler itself.
+  and to the Codira compiler itself.
 
   For example, polymorphic storage is quite a bit more
-  flexible in Swift than it is in Rust.  A
-  `MutableCollection` in Swift is required to implement a
+  flexible in Codira than it is in Rust.  A
+  `MutableCollection` in Codira is required to implement a
   `subscript` that provides accessor to an element for an index,
   but the implementation can satisfy this pretty much any way
   it wants.  If generic code accesses this `subscript`, and it
@@ -857,7 +857,7 @@ born from a trio of concerns:
   but if the `subscript` is implemented with a computed getter
   and setter, then the access will happen in a temporary
   variable and the getter and setter will be called as necessary.
-  This only works because Swift's access model is highly
+  This only works because Codira's access model is highly
   lexical and maintains the ability to run arbitrary code
   at the end of an access.  Imagine what it would take to
   implement a loop that added these temporary mutable
@@ -881,7 +881,7 @@ born from a trio of concerns:
   Rust cannot use layout optimizations like packing boolean
   fields together in a byte or even just decreasing the
   alignment of a field.  This is not a guarantee that we are
-  willing to make in Swift.
+  willing to make in Codira.
 
 For all of these reasons, while we remain theoretically
 interested in exploring the possibilities of a more
@@ -896,7 +896,7 @@ of the proposed features.
 
 ### Local ephemeral bindings
 
-It is already a somewhat silly limitation that Swift provides
+It is already a somewhat silly limitation that Codira provides
 no way to abstract over storage besides passing it as an
 `inout` argument.  It's an easy limitation to work around,
 since programmers who want a local `inout` binding can simply
@@ -916,7 +916,7 @@ semantically necessary when working with non-copyable types.
 
 We propose to remove this limitation in a straightforward way:
 
-```swift
+```language
 inout root = &tree.root
 
 shared elements = self.queue
@@ -928,7 +928,7 @@ expression.  The access lasts for the remainder of the scope.
 ### Function parameters
 
 Function parameters are the most important way in which
-programs abstract over values.  Swift currently provides
+programs abstract over values.  Codira currently provides
 three kinds of argument-passing:
 
 - Pass-by-value, owned.  This is the rule for ordinary
@@ -946,8 +946,8 @@ cases to be spelled explicitly:
 
 - A function argument can be explicitly declared `owned`:
 
-  ```swift
-  func append(_ values: owned [Element]) {
+  ```language
+  fn append(_ values: owned [Element]) {
     ...
   }
   ```
@@ -960,8 +960,8 @@ cases to be spelled explicitly:
 
 - A function argument can be explicitly declared `shared`.
 
-  ```swift
-  func ==(left: shared String, right: shared String) -> Bool {
+  ```language
+  fn ==(left: shared String, right: shared String) -> Bool {
     ...
   }
   ```
@@ -994,8 +994,8 @@ cases to be spelled explicitly:
 
 - A method can be explicitly declared `consuming`.
 
-  ```swift
-  consuming func moveElements(into collection: inout [Element]) {
+  ```language
+  consuming fn moveElements(into collection: inout [Element]) {
     ...
   }
   ```
@@ -1007,7 +1007,7 @@ cases to be spelled explicitly:
 
 ### Function results
 
-As discussed at the start of this section, Swift's lexical
+As discussed at the start of this section, Codira's lexical
 access model does not extend well to allowing ephemerals
 to be returned from functions.  Performing an access requires
 executing storage-specific code at both the beginning and
@@ -1047,7 +1047,7 @@ with a `for` loop.
 #### Consuming iteration
 
 The first iteration style is what we're already familiar with
-in Swift: a consuming iteration, where each step is presented
+in Codira: a consuming iteration, where each step is presented
 with an owned value.  This is the only way we can iterate over
 an arbitrary sequence where the values might be created on demand.
 It is also important for working with collections of non-copyable
@@ -1060,7 +1060,7 @@ sequence cannot be iterated multiple times, this is a
 This can be explicitly requested by declaring the iteration
 variable `owned`:
 
-```swift
+```language
 for owned employee in company.employees {
   newCompany.employees.append(employee)
 }
@@ -1083,7 +1083,7 @@ operation on `Collection`.
 This can be explicitly requested by declaring the iteration
 variable `shared`:
 
-```swift
+```language
 for shared employee in company.employees {
   if !employee.respected { throw CatastrophicHRFailure() }
 }
@@ -1093,7 +1093,7 @@ It is also used by default when the sequence type is known to
 conform to `Collection`, since this is the optimal way of
 iterating over a collection.
 
-```swift
+```language
 for employee in company.employees {
   if !employee.respected { throw CatastrophicHRFailure() }
 }
@@ -1117,7 +1117,7 @@ operation on `MutableCollection`.
 This must be explicitly requested by declaring the
 iteration variable `inout`:
 
-```swift
+```language
 for inout employee in company.employees {
   employee.respected = true
 }
@@ -1141,11 +1141,11 @@ caller, it is reasonable to allow a co-routine to yield
 multiple times, which corresponds very well to the basic
 code pattern of a loop.  This produces a kind of co-routine
 often called a generator, which is used in several major
-languages to conveniently implement iteration.  In Swift,
+languages to conveniently implement iteration.  In Codira,
 to follow this pattern, we would need to allow the definition
 of generator functions, e.g.:
 
-```swift
+```language
 mutating generator iterateMutable() -> inout Element {
   var i = startIndex, e = endIndex
   while i != e {
@@ -1169,7 +1169,7 @@ complexity.
 
 ### Generalized accessors
 
-Swift today provides very coarse tools for implementing
+Codira today provides very coarse tools for implementing
 properties and subscripts: essentially, just `get` and `set`
 methods.  These tools are inadequate for tasks where
 performance is critical because they don't allow direct
@@ -1193,7 +1193,7 @@ to invoke one because these would only be used in accessors.
 The idea is that, instead of defining `get` and `set`,
 a storage declaration could define `read` and `modify`:
 
-```swift
+```language
 var x: String
 var y: String
 var first: String {
@@ -1225,14 +1225,14 @@ the `modify` is consistent in behavior with the `get` and the
 
 #### `move`
 
-The Swift optimizer will generally try to move values around
+The Codira optimizer will generally try to move values around
 instead of copying them, but it can be useful to force its hand.
 For this reason, we propose the `move` function.  Conceptually,
-`move` is simply a top-level function in the Swift standard
+`move` is simply a top-level function in the Codira standard
 library:
 
-```swift
-func move<T>(_ value: T) -> T {
+```language
+fn move<T>(_ value: T) -> T {
   return value
 }
 ```
@@ -1268,10 +1268,10 @@ variables are initialized before use.
 
 #### `copy`
 
-`copy` is a top-level function in the Swift standard library:
+`copy` is a top-level function in the Codira standard library:
 
-```swift
-func copy<T>(_ value: T) -> T {
+```language
+fn copy<T>(_ value: T) -> T {
   return value
 }
 ```
@@ -1292,10 +1292,10 @@ value is returned.  This is useful for several reasons:
 
 #### `endScope`
 
-`endScope` is a top-level function in the Swift standard library:
+`endScope` is a top-level function in the Codira standard library:
 
-```swift
-func endScope<T>(_ value: T) -> () {}
+```language
+fn endScope<T>(_ value: T) -> () {}
 ```
 
 The argument must be a reference to a local `let`, `var`, or
@@ -1321,12 +1321,12 @@ still free to end them earlier.
 
 ### Lenses
 
-Currently, all storage reference expressions in Swift are *concrete*:
+Currently, all storage reference expressions in Codira are *concrete*:
 every component is statically resolvable to a storage declaration.
 There is some recurring interest in the community in allowing programs
 to abstract over storage, so that you might say:
 
-```swift
+```language
 let prop = Widget.weight
 ```
 
@@ -1366,7 +1366,7 @@ might be expensive to copy, such as large struct types.  The
 unifying theme is that we do not want to allow the type to
 be copied implicitly.
 
-The complexity of handling non-copyable types in Swift
+The complexity of handling non-copyable types in Codira
 comes from two main sources:
 
 - The language must provide tools for moving values around
@@ -1386,12 +1386,12 @@ that that didn't work for.
 ### `moveonly` contexts
 
 The generics problem is real, though.  The most obvious way
-to model copyability in Swift is to have a `Copyable`
+to model copyability in Codira is to have a `Copyable`
 protocol which types can conform to.  An unconstrained type
 parameter `T` would then not be assumed to be copyable.
 Unfortunately, this would be a disaster for both source
 compatibility and usability, because almost all the existing
-generic code written in Swift assumes copyability, and
+generic code written in Codira assumes copyability, and
 we really don't want programmers to have to worry about
 non-copyable types in their first introduction to generic
 code.
@@ -1408,7 +1408,7 @@ a `moveonly` context are also implicitly `moveonly`.
 
 A type can be a `moveonly` context:
 
-```swift
+```language
 moveonly struct Array<Element> {
   // Element and Array<Element> are not assumed to be copyable here
 }
@@ -1420,7 +1420,7 @@ hierarchies of associated types.
 
 An extension can be a `moveonly` context:
 
-```swift
+```language
 moveonly extension Array {
   // Element and Array<Element> are not assumed to be copyable here
 }
@@ -1429,7 +1429,7 @@ moveonly extension Array {
 A type can declare conditional copyability using a conditional
 conformance:
 
-```swift
+```language
 moveonly extension Array: Copyable where Element: Copyable {
   ...
 }
@@ -1450,9 +1450,9 @@ it a non-`moveonly` extension is an error.
 
 A function can be a `moveonly` context:
 
-```swift
+```language
 extension Array {
-  moveonly func report<U>(_ u: U)
+  moveonly fn report<U>(_ u: U)
 }
 ```
 
@@ -1483,7 +1483,7 @@ used to express the unique ownership of resources.  For
 example, here is a simple file-handle type that ensures
 that the handle is closed when the value is destroyed:
 
-```swift
+```language
 moveonly struct File {
   var descriptor: Int32
 
@@ -1499,7 +1499,7 @@ moveonly struct File {
     _ = Darwin.close(descriptor)
   }
 
-  consuming func close() throws {
+  consuming fn close() throws {
     if Darwin.fsync(descriptor) != 0 { throw ... }
 
     // This is a consuming function, so it has ownership of self.
@@ -1510,7 +1510,7 @@ moveonly struct File {
 }
 ```
 
-Swift is permitted to destroy a value (and thus call `deinit`)
+Codira is permitted to destroy a value (and thus call `deinit`)
 at any time between its last use and its formal point of
 destruction.  The exact definition of "use" for the purposes
 of this definition is not yet fully decided.
@@ -1609,7 +1609,7 @@ from `get`/`set`/`materializeForSet` to (essentially)
 all polymorphic property and subscript accesses, so it
 needs to happen.  However, this ABI change can be done
 without actually taking the step of allowing co-routine-style
-accessors to be defined in Swift.  The important step is
+accessors to be defined in Codira.  The important step is
 just ensuring that the ABI we've settled on is good
 enough for co-routines in the future.
 

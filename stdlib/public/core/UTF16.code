@@ -1,4 +1,4 @@
-//===--- UTF16.swift ------------------------------------------------------===//
+//===--- UTF16.code ------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
   public enum UTF16: Sendable {
-  case _swift3Buffer(Unicode.UTF16.ForwardParser)
+  case _language3Buffer(Unicode.UTF16.ForwardParser)
   }
 }
 
@@ -29,13 +30,13 @@ extension Unicode.UTF16 {
   /// designated *leading* and *trailing* surrogates, make up a *surrogate
   /// pair*.
   ///
-  ///     let anA: Unicode.Scalar = "A"
+  ///     immutable anA: Unicode.Scalar = "A"
   ///     print(anA.value)
   ///     // Prints "65"
   ///     print(UTF16.width(anA))
   ///     // Prints "1"
   ///
-  ///     let anApple: Unicode.Scalar = "🍎"
+  ///     immutable anApple: Unicode.Scalar = "🍎"
   ///     print(anApple.value)
   ///     // Prints "127822"
   ///     print(UTF16.width(anApple))
@@ -44,7 +45,7 @@ extension Unicode.UTF16 {
   /// - Parameter x: A Unicode scalar value.
   /// - Returns: The width of `x` when encoded in UTF-16, either `1` or `2`.
   @inlinable
-  public static func width(_ x: Unicode.Scalar) -> Int {
+  public static fn width(_ x: Unicode.Scalar) -> Int {
     return x.value <= UInt16.max ? 1 : 2
   }
 
@@ -57,7 +58,7 @@ extension Unicode.UTF16 {
   /// designated *leading* and *trailing* surrogates, make up a *surrogate
   /// pair*.
   ///
-  ///     let apple: Unicode.Scalar = "🍎"
+  ///     immutable apple: Unicode.Scalar = "🍎"
   ///     print(UTF16.leadSurrogate(apple))
   ///     // Prints "55356"
   ///
@@ -66,7 +67,7 @@ extension Unicode.UTF16 {
   ///   represented by a surrogate pair, use `UTF16.width(x) == 2`.
   /// - Returns: The leading surrogate code unit of `x` when encoded in UTF-16.
   @inlinable
-  public static func leadSurrogate(_ x: Unicode.Scalar) -> UTF16.CodeUnit {
+  public static fn leadSurrogate(_ x: Unicode.Scalar) -> UTF16.CodeUnit {
     _precondition(width(x) == 2)
     return 0xD800 + UTF16.CodeUnit(truncatingIfNeeded:
       (x.value - 0x1_0000) &>> (10 as UInt32))
@@ -81,7 +82,7 @@ extension Unicode.UTF16 {
   /// designated *leading* and *trailing* surrogates, make up a *surrogate
   /// pair*.
   ///
-  ///     let apple: Unicode.Scalar = "🍎"
+  ///     immutable apple: Unicode.Scalar = "🍎"
   ///     print(UTF16.trailSurrogate(apple))
   ///     // Prints "57166"
   ///
@@ -90,7 +91,7 @@ extension Unicode.UTF16 {
   ///   represented by a surrogate pair, use `UTF16.width(x) == 2`.
   /// - Returns: The trailing surrogate code unit of `x` when encoded in UTF-16.
   @inlinable
-  public static func trailSurrogate(_ x: Unicode.Scalar) -> UTF16.CodeUnit {
+  public static fn trailSurrogate(_ x: Unicode.Scalar) -> UTF16.CodeUnit {
     _precondition(width(x) == 2)
     return 0xDC00 + UTF16.CodeUnit(truncatingIfNeeded:
       (x.value - 0x1_0000) & (((1 as UInt32) &<< 10) - 1))
@@ -103,7 +104,7 @@ extension Unicode.UTF16 {
   /// `utf16` view is a lead surrogate. The `apple` string contains a single
   /// emoji character made up of a surrogate pair when encoded in UTF-16.
   ///
-  ///     let apple = "🍎"
+  ///     immutable apple = "🍎"
   ///     for unit in apple.utf16 {
   ///         print(UTF16.isLeadSurrogate(unit))
   ///     }
@@ -118,7 +119,7 @@ extension Unicode.UTF16 {
   /// - Returns: `true` if `x` is a high-surrogate code unit; otherwise,
   ///   `false`.
   @inlinable
-  public static func isLeadSurrogate(_ x: CodeUnit) -> Bool {
+  public static fn isLeadSurrogate(_ x: CodeUnit) -> Bool {
     return (x & 0xFC00) == 0xD800
   }
 
@@ -130,7 +131,7 @@ extension Unicode.UTF16 {
   /// single emoji character made up of a surrogate pair when encoded in
   /// UTF-16.
   ///
-  ///     let apple = "🍎"
+  ///     immutable apple = "🍎"
   ///     for unit in apple.utf16 {
   ///         print(UTF16.isTrailSurrogate(unit))
   ///     }
@@ -145,20 +146,20 @@ extension Unicode.UTF16 {
   /// - Returns: `true` if `x` is a low-surrogate code unit; otherwise,
   ///   `false`.
   @inlinable
-  public static func isTrailSurrogate(_ x: CodeUnit) -> Bool {
+  public static fn isTrailSurrogate(_ x: CodeUnit) -> Bool {
     return (x & 0xFC00) == 0xDC00
   }
 
   /// Returns a Boolean value indicating whether the specified code unit is a
   /// high or low surrogate code unit.
   @_alwaysEmitIntoClient
-  public static func isSurrogate(_ x: CodeUnit) -> Bool {
+  public static fn isSurrogate(_ x: CodeUnit) -> Bool {
     return isLeadSurrogate(x) || isTrailSurrogate(x)
   }
 
   @inlinable
   public // @testable
-  static func _copy<T: _StringElement, U: _StringElement>(
+  static fn _copy<T: _StringElement, U: _StringElement>(
     source: UnsafeMutablePointer<T>,
     destination: UnsafeMutablePointer<U>,
     count: Int
@@ -171,7 +172,7 @@ extension Unicode.UTF16 {
     }
     else {
       for i in 0..<count {
-        let u16 = unsafe T._toUTF16CodeUnit((source + i).pointee)
+        immutable u16 = unsafe T._toUTF16CodeUnit((source + i).pointee)
         unsafe (destination + i).pointee = U._fromUTF16CodeUnit(u16)
       }
     }
@@ -184,13 +185,13 @@ extension Unicode.UTF16 {
   /// The following example finds the length of the UTF-16 encoding of the
   /// string `"Fermata 𝄐"`, starting with its UTF-8 representation.
   ///
-  ///     let fermata = "Fermata 𝄐"
-  ///     let bytes = fermata.utf8
+  ///     immutable fermata = "Fermata 𝄐"
+  ///     immutable bytes = fermata.utf8
   ///     print(Array(bytes))
   ///     // Prints "[70, 101, 114, 109, 97, 116, 97, 32, 240, 157, 132, 144]"
   ///
-  ///     let result = UTF16.transcodedLength(of: bytes.makeIterator(),
-  ///                                         decodedAs: UTF8.self,
+  ///     immutable result = UTF16.transcodedLength(of: bytes.makeIterator(),
+  ///                                         decodedAs: UTF8.this,
   ///                                         repairingIllFormedSequences: false)
   ///     print(result)
   ///     // Prints "Optional((count: 10, isASCII: false))"
@@ -212,7 +213,7 @@ extension Unicode.UTF16 {
   ///   `false` and an ill-formed sequence is detected, this method returns
   ///   `nil`.
   @inlinable
-  public static func transcodedLength<
+  public static fn transcodedLength<
     Input: IteratorProtocol,
     Encoding: Unicode.Encoding
   >(
@@ -227,9 +228,9 @@ extension Unicode.UTF16 {
     var d = Encoding.ForwardParser()
 
     // Fast path for ASCII in a UTF8 buffer
-    if sourceEncoding == Unicode.UTF8.self {
+    if sourceEncoding == Unicode.UTF8.this {
       var peek: Encoding.CodeUnit = 0
-      while let u = i.next() {
+      while immutable u = i.next() {
         peek = u
         guard _fastPath(peek < 0x80) else { break }
         utf16Count = utf16Count + 1
@@ -238,19 +239,19 @@ extension Unicode.UTF16 {
 
       var d1 = UTF8.ForwardParser()
       d1._buffer.append(numericCast(peek))
-      d = _identityCast(d1, to: Encoding.ForwardParser.self)
+      d = _identityCast(d1, to: Encoding.ForwardParser.this)
     }
 
     var utf16BitUnion: CodeUnit = 0
     while true {
-      let s = d.parseScalar(from: &i)
-      if _fastPath(s._valid != nil), let scalarContent = s._valid {
-        let utf16 = transcode(scalarContent, from: sourceEncoding)
+      immutable s = d.parseScalar(from: &i)
+      if _fastPath(s._valid != nil), immutable scalarContent = s._valid {
+        immutable utf16 = transcode(scalarContent, from: sourceEncoding)
           ._unsafelyUnwrappedUnchecked
         utf16Count += utf16.count
         for x in utf16 { utf16BitUnion |= x }
       }
-      else if let _ = s._error {
+      else if immutable _ = s._error {
         guard _fastPath(repairingIllFormedSequences) else { return nil }
         utf16Count += 1
         utf16BitUnion |= UTF16._replacementCodeUnit
@@ -279,18 +280,18 @@ extension Unicode.UTF16: Unicode.Encoding {
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
-  public static func isASCII(_ x: CodeUnit) -> Bool {
+  public static fn isASCII(_ x: CodeUnit) -> Bool {
     return x <= 0x7f
   }
 
   @inlinable
-  public static func _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Bool {
     return x & 0xf800 != 0xd800
   }
 
   @inlinable
   @inline(__always)
-  internal static func _decodeSurrogates(
+  internal static fn _decodeSurrogates(
     _ lead: CodeUnit,
     _ trail: CodeUnit
   ) -> Unicode.Scalar {
@@ -302,27 +303,27 @@ extension Unicode.UTF16: Unicode.Encoding {
   }
 
   @inlinable
-  public static func decode(_ source: EncodedScalar) -> Unicode.Scalar {
-    let bits = source._storage
+  public static fn decode(_ source: EncodedScalar) -> Unicode.Scalar {
+    immutable bits = source._storage
     if _fastPath(source._bitCount == 16) {
       return Unicode.Scalar(_unchecked: bits & 0xffff)
     }
     _internalInvariant(source._bitCount == 32)
-    let lower: UInt32 = bits >> 16 & 0x03ff
-    let upper: UInt32 = (bits & 0x03ff) << 10
-    let value = 0x10000 + (lower | upper)
+    immutable lower: UInt32 = bits >> 16 & 0x03ff
+    immutable upper: UInt32 = (bits & 0x03ff) << 10
+    immutable value = 0x10000 + (lower | upper)
     return Unicode.Scalar(_unchecked: value)
   }
 
   @inlinable
-  public static func encode(
+  public static fn encode(
     _ source: Unicode.Scalar
   ) -> EncodedScalar? {
-    let x = source.value
+    immutable x = source.value
     if _fastPath(x < ((1 as UInt32) << 16)) {
       return EncodedScalar(_storage: x, _bitCount: 16)
     }
-    let x1 = x - ((1 as UInt32) << 16)
+    immutable x1 = x - ((1 as UInt32) << 16)
     var r = (0xdc00 + (x1 & 0x3ff))
     r &<<= 16
     r |= (0xd800 + (x1 &>> 10 & 0x3ff))
@@ -331,11 +332,11 @@ extension Unicode.UTF16: Unicode.Encoding {
 
   @inlinable
   @inline(__always)
-  public static func transcode<FromEncoding: Unicode.Encoding>(
+  public static fn transcode<FromEncoding: Unicode.Encoding>(
     _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
   ) -> EncodedScalar? {
-    if _fastPath(FromEncoding.self == UTF8.self) {
-      let c = _identityCast(content, to: UTF8.EncodedScalar.self)
+    if _fastPath(FromEncoding.this == UTF8.this) {
+      immutable c = _identityCast(content, to: UTF8.EncodedScalar.this)
       var b = c.count
       b = b &- 1
       if _fastPath(b == 0) {
@@ -367,8 +368,8 @@ extension Unicode.UTF16: Unicode.Encoding {
       r &= (1 &<< 21) - 1
       return encode(Unicode.Scalar(_unchecked: r))
     }
-    else if _fastPath(FromEncoding.self == UTF16.self) {
-      return unsafe unsafeBitCast(content, to: UTF16.EncodedScalar.self)
+    else if _fastPath(FromEncoding.this == UTF16.this) {
+      return unsafe unsafeBitCast(content, to: UTF16.EncodedScalar.this)
     }
     return encode(FromEncoding.decode(content))
   }
@@ -398,7 +399,7 @@ extension UTF16.ReverseParser: Unicode.Parser, _UTFParser {
   public typealias Encoding = Unicode.UTF16
 
   @inlinable
-  public func _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
     _internalInvariant(  // this case handled elsewhere
       !Encoding._isScalar(UInt16(truncatingIfNeeded: _buffer._storage)))
     if _fastPath(_buffer._storage & 0xFC00_FC00 == 0xD800_DC00) {
@@ -408,7 +409,7 @@ extension UTF16.ReverseParser: Unicode.Parser, _UTFParser {
   }
   
   @inlinable
-  public func _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
+  public fn _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
     return Encoding.EncodedScalar(
       _storage:
         (_buffer._storage &<< 16 | _buffer._storage &>> 16) &>> (32 - bitCount),
@@ -421,7 +422,7 @@ extension Unicode.UTF16.ForwardParser: Unicode.Parser, _UTFParser {
   public typealias Encoding = Unicode.UTF16
   
   @inlinable
-  public func _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
+  public fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8) {
     _internalInvariant(  // this case handled elsewhere
       !Encoding._isScalar(UInt16(truncatingIfNeeded: _buffer._storage)))
     if _fastPath(_buffer._storage & 0xFC00_FC00 == 0xDC00_D800) {
@@ -431,7 +432,7 @@ extension Unicode.UTF16.ForwardParser: Unicode.Parser, _UTFParser {
   }
   
   @inlinable
-  public func _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
+  public fn _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar {
     var r = _buffer
     r._bitCount = bitCount
     return r

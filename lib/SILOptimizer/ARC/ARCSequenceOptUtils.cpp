@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ARCSequenceOptUtils.h"
@@ -46,7 +47,7 @@ bool isARCSignificantTerminator(TermInst *TI) {
     return true;
   }
 
-  llvm_unreachable("Unhandled TermKind in switch.");
+  toolchain_unreachable("Unhandled TermKind in switch.");
 }
 
-} // end namespace 'swift'
+} // end namespace 'language'

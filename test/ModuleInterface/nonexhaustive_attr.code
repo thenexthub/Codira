@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -enable-experimental-feature NonexhaustiveAttribute -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -enable-experimental-feature NonexhaustiveAttribute -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -module-name Library
+// RUN: %FileCheck %s < %t/Library.codeinterface
+
+// REQUIRES: language_feature_NonexhaustiveAttribute
+
+// CHECK: #if compiler(>=5.3) && $NonexhaustiveAttribute
+// CHECK-NEXT: @nonexhaustive public enum E {
+// CHECK-NEXT: }
+// CHECK-NEXT: #else
+// CHECK-NEXT: public enum E {
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif
+@nonexhaustive
+public enum E {
+}
+
+// CHECK: #if compiler(>=5.3) && $NonexhaustiveAttribute
+// CHECK-NEXT: @nonexhaustive(warn) public enum F {
+// CHECK: #else
+// CHECK-NEXT: public enum F {
+// CHECK: #endif
+@nonexhaustive(warn)
+public enum F {
+  case a
+}

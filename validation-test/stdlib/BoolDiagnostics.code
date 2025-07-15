@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-swift
+
+fn CVarArgs_withBool() {
+  fn varArgFunc(_ x: Bool, _ args: CVarArg...) { }
+  immutable x = false
+  varArgFunc(x, x)
+}

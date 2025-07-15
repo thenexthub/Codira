@@ -1,4 +1,4 @@
-//===--- ThreadLocalStorage.swift -----------------------------------------===//
+//===--- ThreadLocalStorage.code -----------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,43 +11,44 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 // For testing purposes, a thread-safe counter to guarantee that destructors get
 // called by pthread.
 #if INTERNAL_CHECKS_ENABLED
 internal class _TLSAtomicInt {
   internal var value: Int
-  internal init() { self.value = 0 }
+  internal init() { this.value = 0 }
 
   internal var valuePtr: UnsafeMutablePointer<Int> {
-    return unsafe _getUnsafePointerToStoredProperties(self).assumingMemoryBound(
-      to: Int.self)
+    return unsafe _getUnsafePointerToStoredProperties(this).assumingMemoryBound(
+      to: Int.this)
   }
 
-  internal func increment() {
-    _ = unsafe _swift_stdlib_atomicFetchAddInt(
+  internal fn increment() {
+    _ = unsafe _language_stdlib_atomicFetchAddInt(
       object: valuePtr,
       operand: 1)
   }
 
-  internal func load() -> Int {
-    return unsafe _swift_stdlib_atomicLoadInt(object: valuePtr)
+  internal fn load() -> Int {
+    return unsafe _language_stdlib_atomicLoadInt(object: valuePtr)
   }
 }
 
-internal let _destroyTLSCounter = _TLSAtomicInt()
+internal immutable _destroyTLSCounter = _TLSAtomicInt()
 
 public // @testable
-func _loadDestroyTLSCounter() -> Int {
+fn _loadDestroyTLSCounter() -> Int {
   return _destroyTLSCounter.load()
 }
 
 #endif
 
-// Thread local storage for all of the Swift standard library
+// Thread local storage for all of the Codira standard library
 //
 // @moveonly/@pointeronly: shouldn't be used as a value, only through its
 // pointer. Similarly, shouldn't be created, except by
@@ -59,21 +60,21 @@ internal struct _ThreadLocalStorage {
 
   // Get the current thread's TLS pointer. On first call for a given thread,
   // creates and initializes a new one.
-  internal static func getPointer()
+  internal static fn getPointer()
     -> UnsafeMutablePointer<_ThreadLocalStorage>
   {
-    return unsafe _swift_stdlib_threadLocalStorageGet().assumingMemoryBound(
-      to: _ThreadLocalStorage.self)
+    return unsafe _language_stdlib_threadLocalStorageGet().assumingMemoryBound(
+      to: _ThreadLocalStorage.this)
   }
 }
 
 // Destructor to register with pthreads. Responsible for deallocating any memory
 // owned.
 @_silgen_name("_stdlib_destroyTLS")
-internal func _destroyTLS(_ ptr: UnsafeMutableRawPointer?) {
+internal fn _destroyTLS(_ ptr: UnsafeMutableRawPointer?) {
   unsafe _internalInvariant(ptr != nil,
     "_destroyTLS was called, but with nil...")
-  let tlsPtr = unsafe ptr!.assumingMemoryBound(to: _ThreadLocalStorage.self)
+  immutable tlsPtr = unsafe ptr!.assumingMemoryBound(to: _ThreadLocalStorage.this)
   unsafe tlsPtr.deinitialize(count: 1)
   unsafe tlsPtr.deallocate()
 
@@ -84,10 +85,10 @@ internal func _destroyTLS(_ ptr: UnsafeMutableRawPointer?) {
 }
 
 @_silgen_name("_stdlib_createTLS")
-internal func _createThreadLocalStorage()
+internal fn _createThreadLocalStorage()
   -> UnsafeMutablePointer<_ThreadLocalStorage>
 {
-  let tlsPtr: UnsafeMutablePointer<_ThreadLocalStorage>
+  immutable tlsPtr: UnsafeMutablePointer<_ThreadLocalStorage>
     = UnsafeMutablePointer<_ThreadLocalStorage>.allocate(
       capacity: 1
   )

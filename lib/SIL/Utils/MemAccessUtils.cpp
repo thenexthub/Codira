@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-access-utils"
@@ -27,7 +28,7 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILUndef.h"
 #include "language/SIL/Test.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -262,11 +263,11 @@ protected:
         || isa<BuiltinRawPointerType>(type.getASTType())) {
       return;
     }
-    llvm::errs() << "Visiting ";
-    sourceAddr->print(llvm::errs());
-    llvm::errs() << "  not an address ";
-    nextAddr->print(llvm::errs());
-    nextAddr->getFunction()->print(llvm::errs());
+    toolchain::errs() << "Visiting ";
+    sourceAddr->print(toolchain::errs());
+    toolchain::errs() << "  not an address ";
+    nextAddr->print(toolchain::errs());
+    nextAddr->getFunction()->print(toolchain::errs());
     assert(false);
   }
 };
@@ -364,7 +365,7 @@ public:
 //                            MARK: Standalone API
 //===----------------------------------------------------------------------===//
 
-SILValue swift::getTypedAccessAddress(SILValue address) {
+SILValue language::getTypedAccessAddress(SILValue address) {
   assert(address->getType().isAddress());
   SILValue accessAddress =
       FindAccessBaseVisitor(NestedAccessType::StopAtAccessBegin,
@@ -379,17 +380,17 @@ static FunctionTest
     GetTypedAccessAddress("get_typed_access_address",
                           [](auto &function, auto &arguments, auto &test) {
                             auto address = arguments.takeValue();
-                            function.print(llvm::outs());
-                            llvm::outs() << "Address: " << address;
+                            function.print(toolchain::outs());
+                            toolchain::outs() << "Address: " << address;
                             auto access = getTypedAccessAddress(address);
-                            llvm::outs() << "Access: " << access;
+                            toolchain::outs() << "Access: " << access;
                           });
 } // end namespace language::test
 
 // TODO: When the optimizer stops stripping begin_access markers and SILGen
 // protects all memory operations with at least an "unsafe" access scope, then
 // we should be able to assert that this returns a BeginAccessInst.
-SILValue swift::getAccessScope(SILValue address) {
+SILValue language::getAccessScope(SILValue address) {
   assert(address->getType().isAddress());
   return FindAccessBaseVisitor(NestedAccessType::StopAtAccessBegin,
                                IgnoreStorageCast)
@@ -397,7 +398,7 @@ SILValue swift::getAccessScope(SILValue address) {
 }
 
 // This is allowed to be called on a non-address pointer type.
-SILValue swift::getAccessBase(SILValue address) {
+SILValue language::getAccessBase(SILValue address) {
   return FindAccessBaseVisitor(NestedAccessType::IgnoreAccessBegin,
                                IgnoreStorageCast)
       .findPossibleBaseAddress(address);
@@ -408,10 +409,10 @@ static FunctionTest GetAccessBaseTest("get_access_base",
                                       [](auto &function, auto &arguments,
                                          auto &test) {
                                         auto address = arguments.takeValue();
-                                        function.print(llvm::outs());
-                                        llvm::outs() << "Address: " << address;
+                                        function.print(toolchain::outs());
+                                        toolchain::outs() << "Address: " << address;
                                         auto base = getAccessBase(address);
-                                        llvm::outs() << "Base: " << base;
+                                        toolchain::outs() << "Base: " << base;
                                       });
 } // end namespace language::test
 
@@ -428,7 +429,7 @@ static bool isLetForBase(SILValue base) {
   return false;
 }
 
-bool swift::isLetAddress(SILValue address) {
+bool language::isLetAddress(SILValue address) {
   SILValue base = getAccessBase(address);
   if (!base)
     return false;
@@ -440,7 +441,7 @@ bool swift::isLetAddress(SILValue address) {
 //                      MARK: Deinitialization barriers.
 //===----------------------------------------------------------------------===//
 
-bool swift::mayAccessPointer(SILInstruction *instruction) {
+bool language::mayAccessPointer(SILInstruction *instruction) {
   assert(!FullApplySite::isa(instruction) && !isa<EndApplyInst>(instruction) &&
          !isa<AbortApplyInst>(instruction));
   if (!instruction->mayReadOrWriteMemory())
@@ -460,7 +461,7 @@ bool swift::mayAccessPointer(SILInstruction *instruction) {
   return retval;
 }
 
-bool swift::mayLoadWeakOrUnowned(SILInstruction *instruction) {
+bool language::mayLoadWeakOrUnowned(SILInstruction *instruction) {
   assert(!FullApplySite::isa(instruction) && !isa<EndApplyInst>(instruction) &&
          !isa<AbortApplyInst>(instruction));
   if (isa<BuiltinInst>(instruction)) {
@@ -474,7 +475,7 @@ bool swift::mayLoadWeakOrUnowned(SILInstruction *instruction) {
 
 /// Conservatively, whether this instruction could involve a synchronization
 /// point like a memory barrier, lock or syscall.
-bool swift::maySynchronize(SILInstruction *instruction) {
+bool language::maySynchronize(SILInstruction *instruction) {
   assert(!FullApplySite::isa(instruction) && !isa<EndApplyInst>(instruction) &&
          !isa<AbortApplyInst>(instruction));
   if (isa<BuiltinInst>(instruction)) {
@@ -483,7 +484,7 @@ bool swift::maySynchronize(SILInstruction *instruction) {
   return isa<HopToExecutorInst>(instruction);
 }
 
-bool swift::mayBeDeinitBarrierNotConsideringSideEffects(SILInstruction *instruction) {
+bool language::mayBeDeinitBarrierNotConsideringSideEffects(SILInstruction *instruction) {
   if (FullApplySite::isa(instruction) || isa<EndApplyInst>(instruction) ||
       isa<AbortApplyInst>(instruction)) {
     return true;
@@ -522,7 +523,7 @@ const char *AccessRepresentation::getKindName(AccessStorage::Kind k) {
   case Tail:
     return "Tail";
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 // 'value' remains invalid. AccessBase or AccessStorage must initialize it
@@ -663,7 +664,7 @@ getReferenceFromBase(SILValue base, AccessRepresentation::Kind kind) {
   case AccessBase::Unidentified:
   case AccessBase::Argument:
   case AccessBase::Global:
-    llvm_unreachable("Not object storage");
+    toolchain_unreachable("Not object storage");
     break;
   case AccessBase::Box:
     return cast<ProjectBoxInst>(base)->getOperand();
@@ -701,10 +702,10 @@ getNonRefNonGlobalDecl(SILValue base, AccessRepresentation::Kind kind) {
   case AccessBase::Box:
   case AccessBase::Class:
   case AccessBase::Tail:
-    llvm_unreachable("Cannot handle reference access");
+    toolchain_unreachable("Cannot handle reference access");
 
   case AccessBase::Global:
-    llvm_unreachable("Cannot handle global access");
+    toolchain_unreachable("Cannot handle global access");
 
   case AccessBase::Stack:
     return cast<AllocStackInst>(base)->getDecl();
@@ -721,7 +722,7 @@ getNonRefNonGlobalDecl(SILValue base, AccessRepresentation::Kind kind) {
   case AccessBase::Unidentified:
     return nullptr;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 const ValueDecl *AccessBase::getDecl() const {
@@ -765,7 +766,7 @@ bool AccessBase::hasLocalOwnershipLifetime() const {
   case AccessBase::Tail:
     return getReference()->getOwnershipKind() != OwnershipKind::None;
   case AccessBase::Nested:
-    llvm_unreachable("unexpected storage");
+    toolchain_unreachable("unexpected storage");
   };
 }
 
@@ -788,13 +789,13 @@ void AccessBase::print(raw_ostream &os) const {
   }
 }
 
-LLVM_ATTRIBUTE_USED void AccessBase::dump() const { print(llvm::dbgs()); }
+TOOLCHAIN_ATTRIBUTE_USED void AccessBase::dump() const { print(toolchain::dbgs()); }
 
 //===----------------------------------------------------------------------===//
 //                          MARK: FindReferenceRoot
 //===----------------------------------------------------------------------===//
 
-bool swift::isIdentityPreservingRefCast(SingleValueInstruction *svi) {
+bool language::isIdentityPreservingRefCast(SingleValueInstruction *svi) {
   // Ignore both copies and other identity and ownership preserving casts
   return isa<CopyValueInst>(svi) || isa<BeginBorrowInst>(svi) ||
          isa<EndInitLetRefInst>(svi) || isa<BeginDeallocRefInst>(svi) ||
@@ -811,7 +812,7 @@ bool swift::isIdentityPreservingRefCast(SingleValueInstruction *svi) {
 // The SILVerifier checks that none of these operations cast a trivial value to
 // a reference except unconditional_checked_cast[_value], which is checked By
 // SILDynamicCastInst::isRCIdentityPreserving().
-bool swift::isIdentityAndOwnershipPreservingRefCast(
+bool language::isIdentityAndOwnershipPreservingRefCast(
     SingleValueInstruction *svi) {
   switch (svi->getKind()) {
   default:
@@ -886,7 +887,7 @@ protected:
 
 } // end anonymous namespace
 
-SILValue swift::findReferenceRoot(SILValue ref) {
+SILValue language::findReferenceRoot(SILValue ref) {
   return FindReferenceRoot().findRoot(ref);
 }
 
@@ -894,7 +895,7 @@ SILValue swift::findReferenceRoot(SILValue ref) {
 // reborrow. In either case, the phi argument's ownership is independent from
 // the phi itself. The client assumes that the returned root is in the same
 // lifetime or borrow scope of the access.
-SILValue swift::findOwnershipReferenceRoot(SILValue ref) {
+SILValue language::findOwnershipReferenceRoot(SILValue ref) {
   while (auto *svi = dyn_cast<SingleValueInstruction>(ref)) {
     if (isIdentityAndOwnershipPreservingRefCast(svi)) {
       ref = svi->getOperand(0);
@@ -905,7 +906,7 @@ SILValue swift::findOwnershipReferenceRoot(SILValue ref) {
   return ref;
 }
 
-void swift::findGuaranteedReferenceRoots(SILValue referenceValue,
+void language::findGuaranteedReferenceRoots(SILValue referenceValue,
                                          bool lookThroughNestedBorrows,
                                          SmallVectorImpl<SILValue> &roots) {
   ValueWorklist worklist(referenceValue->getFunction());
@@ -949,7 +950,7 @@ void swift::findGuaranteedReferenceRoots(SILValue referenceValue,
 ///
 /// TODO: Add a component path to a ReferenceRoot abstraction and handle
 /// that within FindReferenceRoot.
-SILValue swift::findOwnershipReferenceAggregate(SILValue ref) {
+SILValue language::findOwnershipReferenceAggregate(SILValue ref) {
   SILValue root = ref;
   while(true) {
     root = findOwnershipReferenceRoot(root);
@@ -1012,7 +1013,7 @@ AccessStorage::AccessStorage(SILValue base, Kind kind)
 
 void AccessStorage::visitRoots(
     SILFunction *function,
-    llvm::function_ref<bool(SILValue)> visitor) const {
+    toolchain::function_ref<bool(SILValue)> visitor) const {
   if (SILValue root = getRoot()) {
     visitor(root);
     return;
@@ -1081,7 +1082,7 @@ void AccessStorage::print(raw_ostream &os) const {
   }
 }
 
-LLVM_ATTRIBUTE_USED void AccessStorage::dump() const { print(llvm::dbgs()); }
+TOOLCHAIN_ATTRIBUTE_USED void AccessStorage::dump() const { print(toolchain::dbgs()); }
 
 void AccessStorageWithBase::print(raw_ostream &os) const {
   if (base)
@@ -1091,8 +1092,8 @@ void AccessStorageWithBase::print(raw_ostream &os) const {
   storage.print(os);
 }
 
-LLVM_ATTRIBUTE_USED void AccessStorageWithBase::dump() const {
-  print(llvm::dbgs());
+TOOLCHAIN_ATTRIBUTE_USED void AccessStorageWithBase::dump() const {
+  print(toolchain::dbgs());
 }
 
 namespace {
@@ -1217,10 +1218,10 @@ static FunctionTest ComputeAccessStorage("compute_access_storage",
                                       [](auto &function, auto &arguments,
                                          auto &test) {
                                         auto address = arguments.takeValue();
-                                        function.print(llvm::outs());
-                                        llvm::outs() << "Address: " << address;
+                                        function.print(toolchain::outs());
+                                        toolchain::outs() << "Address: " << address;
                                         auto accessStorage = AccessStorage::compute(address);
-                                        accessStorage.print(llvm::outs());
+                                        accessStorage.print(toolchain::outs());
                                       });
 } // end namespace language::test
 
@@ -1301,7 +1302,7 @@ class AccessPathVisitor : public FindAccessVisitorImpl<AccessPathVisitor> {
 
   // Only access projections affect this path. Since they are not allowed
   // beyond phis, this path is not part of AccessPathVisitor::Result.
-  llvm::SmallVector<AccessPath::Index, 8> reversePath;
+  toolchain::SmallVector<AccessPath::Index, 8> reversePath;
   // Holds a non-zero value if an index_addr has been processed without yet
   // creating a path index for it.
   int pendingOffset = 0;
@@ -1338,7 +1339,7 @@ protected:
   // Return the trie node corresponding to the current state of reversePath.
   AccessPath::PathNode computeForwardPath() {
     IndexTrieNode *forwardPath = module->getIndexTrieRoot();
-    for (AccessPath::Index nextIndex : llvm::reverse(reversePath)) {
+    for (AccessPath::Index nextIndex : toolchain::reverse(reversePath)) {
       forwardPath = forwardPath->getChild(nextIndex.getEncoding());
     }
     return AccessPath::PathNode(forwardPath);
@@ -1394,7 +1395,7 @@ public:
       addPathOffset(AccessPath::UnknownOffset);
     } else if (projIdx.isValid()) {
       if (pendingOffset) {
-        LLVM_DEBUG(llvm::dbgs() << "Subobject projection with offset index: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Subobject projection with offset index: "
                                 << *projectedAddr);
         // Return an invalid result even though findAccessStorage() may be
         // able to find valid storage, because an offset from a subobject is an
@@ -1405,7 +1406,7 @@ public:
           AccessPath::Index::forSubObjectProjection(projIdx.Index));
     } else {
       // Ignore everything in getAccessProjectionOperand that is an access
-      // projection with no affect on the access path.
+      // projection with no effect on the access path.
       assert(isa<OpenExistentialAddrInst>(projectedAddr) ||
              isa<InitEnumDataAddrInst>(projectedAddr) ||
              isa<UncheckedTakeEnumDataAddrInst>(projectedAddr)
@@ -1439,8 +1440,8 @@ AccessPathWithBase AccessPathWithBase::computeInScope(SILValue address) {
       .findAccessPath(address);
 }
 
-bool swift::visitProductLeafAccessPathNodes(
-    SILValue address, TypeExpansionContext tec, SILModule &module,
+bool language::visitProductLeafAccessPathNodes(
+    SILValue address, TypeExpansionContext tec, SILFunction &function,
     std::function<void(AccessPath::PathNode, SILType)> visitor) {
   auto rootPath = AccessPath::compute(address);
   if (!rootPath.isValid()) {
@@ -1464,7 +1465,8 @@ bool swift::visitProductLeafAccessPathNodes(
         visitor(AccessPath::PathNode(node), silType);
         continue;
       }
-      if (decl->isCxxNonTrivial()) {
+      if (decl->isCxxNonTrivial() || !silType.isEscapable(function) ||
+          silType.isMoveOnly()) {
         visitor(AccessPath::PathNode(node), silType);
         continue;
       }
@@ -1472,7 +1474,8 @@ bool swift::visitProductLeafAccessPathNodes(
       for (auto *field : decl->getStoredProperties()) {
         auto *fieldNode = node->getChild(index);
         worklist.push_back(
-            {silType.getFieldType(field, module, tec), fieldNode});
+            {silType.getFieldType(field, function.getModule(), tec),
+             fieldNode});
         ++index;
       }
     } else {
@@ -1494,8 +1497,8 @@ void AccessPath::Index::print(raw_ostream &os) const {
   }
 }
 
-LLVM_ATTRIBUTE_USED void AccessPath::Index::dump() const {
-  print(llvm::dbgs());
+TOOLCHAIN_ATTRIBUTE_USED void AccessPath::Index::dump() const {
+  print(toolchain::dbgs());
 }
 
 static void recursivelyPrintPath(AccessPath::PathNode node, raw_ostream &os) {
@@ -1535,7 +1538,7 @@ void AccessPath::print(raw_ostream &os) const {
   printPath(os);
 }
 
-LLVM_ATTRIBUTE_USED void AccessPath::dump() const { print(llvm::dbgs()); }
+TOOLCHAIN_ATTRIBUTE_USED void AccessPath::dump() const { print(toolchain::dbgs()); }
 
 void AccessPathWithBase::print(raw_ostream &os) const {
   if (base)
@@ -1545,8 +1548,8 @@ void AccessPathWithBase::print(raw_ostream &os) const {
   accessPath.print(os);
 }
 
-LLVM_ATTRIBUTE_USED void AccessPathWithBase::dump() const {
-  print(llvm::dbgs());
+TOOLCHAIN_ATTRIBUTE_USED void AccessPathWithBase::dump() const {
+  print(toolchain::dbgs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -1617,7 +1620,7 @@ class AccessPathDefUseTraversal {
   struct DFSEntry {
     // Next potential use to visit and flag indicating whether traversal has
     // reached the access base yet.
-    llvm::PointerIntPair<Operand *, 1, bool> useAndIsRef;
+    toolchain::PointerIntPair<Operand *, 1, bool> useAndIsRef;
     int pathCursor; // position within pathIndices
     int offset;     // index_addr offsets seen prior to this use
 
@@ -1983,7 +1986,7 @@ AccessPathDefUseTraversal::visitSingleValueUser(SingleValueInstruction *svi,
     return IgnoredUse;
 
   // open_existential_addr and unchecked_take_enum_data_addr are classified as
-  // access projections, but they also modify memory. Both see through them and
+  // access projections, but they also modify memory. Both look through them and
   // also report them as uses.
   case SILInstructionKind::OpenExistentialAddrInst:
   case SILInstructionKind::UncheckedTakeEnumDataAddrInst:
@@ -2056,12 +2059,12 @@ bool AccessPathDefUseTraversal::visitUser(DFSEntry dfs) {
   return visitor.visitExactUse(use);
 }
 
-bool swift::visitAccessPathUses(AccessUseVisitor &visitor,
+bool language::visitAccessPathUses(AccessUseVisitor &visitor,
                                 AccessPath accessPath, SILFunction *function) {
   return AccessPathDefUseTraversal(visitor, accessPath, function).visitUses();
 }
 
-bool swift::visitAccessPathBaseUses(AccessUseVisitor &visitor,
+bool language::visitAccessPathBaseUses(AccessUseVisitor &visitor,
                                     AccessPathWithBase accessPathWithBase,
                                     SILFunction *function) {
   return AccessPathDefUseTraversal(visitor, accessPathWithBase, function)
@@ -2077,16 +2080,16 @@ struct AccessUseTestVisitor : public AccessUseVisitor {
   bool visitUse(Operand *op, AccessUseType useTy) override {
     switch (useTy) {
     case AccessUseType::Exact:
-      llvm::errs() << "Exact Use: ";
+      toolchain::errs() << "Exact Use: ";
       break;
     case AccessUseType::Inner:
-      llvm::errs() << "Inner Use: ";
+      toolchain::errs() << "Inner Use: ";
       break;
     case AccessUseType::Overlapping:
-      llvm::errs() << "Overlapping Use ";
+      toolchain::errs() << "Overlapping Use ";
       break;
     }
-    llvm::errs() << *op->getUser();
+    toolchain::errs() << *op->getUser();
     return true;
   }
 };
@@ -2095,16 +2098,16 @@ static FunctionTest AccessPathBaseTest("accesspath", [](auto &function,
                                                         auto &arguments,
                                                         auto &test) {
   auto value = arguments.takeValue();
-  function.print(llvm::outs());
-  llvm::outs() << "Access path for: " << value;
+  function.print(toolchain::outs());
+  toolchain::outs() << "Access path for: " << value;
   auto accessPathWithBase = AccessPathWithBase::compute(value);
-  llvm::outs() << "  base: " << accessPathWithBase.base;
+  toolchain::outs() << "  base: " << accessPathWithBase.base;
   AccessUseTestVisitor visitor;
   visitAccessPathBaseUses(visitor, accessPathWithBase, &function);
 });
 } // end namespace language::test
 
-bool swift::visitAccessStorageUses(AccessUseVisitor &visitor,
+bool language::visitAccessStorageUses(AccessUseVisitor &visitor,
                                    AccessStorage storage,
                                    SILFunction *function) {
   IndexTrieNode *emptyPath = function->getModule().getIndexTrieRoot();
@@ -2277,7 +2280,7 @@ static bool isScratchBuffer(SILValue value) {
   return value->getType().is<BuiltinUnsafeValueBufferType>();
 }
 
-bool swift::memInstMustInitialize(Operand *memOper) {
+bool language::memInstMustInitialize(Operand *memOper) {
   SILValue address = memOper->get();
 
   SILInstruction *memInst = memOper->getUser();
@@ -2320,7 +2323,7 @@ bool swift::memInstMustInitialize(Operand *memOper) {
 }
 
 Operand *
-swift::getSingleInitAllocStackUse(AllocStackInst *asi,
+language::getSingleInitAllocStackUse(AllocStackInst *asi,
                                   SmallVectorImpl<Operand *> *destroyingUses) {
   // For now, we just look through projections and rely on memInstMustInitialize
   // to classify all other uses as init or not.
@@ -2335,7 +2338,7 @@ swift::getSingleInitAllocStackUse(AllocStackInst *asi,
         || isa<OpenExistentialAddrInst>(user)) {
       // Look through address projections.
       for (SILValue r : user->getResults()) {
-        llvm::copy(r->getUses(), std::back_inserter(worklist));
+        toolchain::copy(r->getUses(), std::back_inserter(worklist));
       }
       continue;
     }
@@ -2414,7 +2417,7 @@ swift::getSingleInitAllocStackUse(AllocStackInst *asi,
 
 /// Return true if the given address value is produced by a special address
 /// producer that is only used for local initialization, not formal access.
-bool swift::isAddressForLocalInitOnly(SILValue sourceAddr) {
+bool language::isAddressForLocalInitOnly(SILValue sourceAddr) {
   switch (sourceAddr->getKind()) {
   default:
     return false;
@@ -2436,7 +2439,7 @@ bool swift::isAddressForLocalInitOnly(SILValue sourceAddr) {
 
 // Return true if the given apply invokes a global addressor defined in another
 // module.
-bool swift::isExternalGlobalAddressor(ApplyInst *AI) {
+bool language::isExternalGlobalAddressor(ApplyInst *AI) {
   FullApplySite apply(AI);
   auto *funcRef = apply.getReferencedFunctionOrNull();
   if (!funcRef)
@@ -2447,7 +2450,7 @@ bool swift::isExternalGlobalAddressor(ApplyInst *AI) {
 
 // Return true if the given StructExtractInst extracts the RawPointer from
 // Unsafe[Mutable]Pointer.
-bool swift::isUnsafePointerExtraction(StructExtractInst *SEI) {
+bool language::isUnsafePointerExtraction(StructExtractInst *SEI) {
   if (!isa<BuiltinRawPointerType>(SEI->getType().getASTType()))
     return false;
 
@@ -2461,16 +2464,16 @@ bool swift::isUnsafePointerExtraction(StructExtractInst *SEI) {
 // from a switch_enum. This is a valid pattern at any SIL stage resulting in a
 // block-type phi. In later SIL stages, the optimizer may form address-type
 // phis, causing this assert if called on those cases.
-void swift::checkSwitchEnumBlockArg(SILPhiArgument *arg) {
+void language::checkSwitchEnumBlockArg(SILPhiArgument *arg) {
   assert(!arg->getType().isAddress());
   SILBasicBlock *Pred = arg->getParent()->getSinglePredecessorBlock();
   if (!Pred || !isa<SwitchEnumInst>(Pred->getTerminator())) {
     arg->dump();
-    llvm_unreachable("unexpected box source.");
+    toolchain_unreachable("unexpected box source.");
   }
 }
 
-bool swift::isPossibleFormalAccessStorage(const AccessStorage &storage,
+bool language::isPossibleFormalAccessStorage(const AccessStorage &storage,
                                           SILFunction *F) {
   switch (storage.getKind()) {
   case AccessStorage::Nested:
@@ -2526,7 +2529,7 @@ bool swift::isPossibleFormalAccessStorage(const AccessStorage &storage,
   return true;
 }
 
-SILBasicBlock::iterator swift::removeBeginAccess(BeginAccessInst *beginAccess) {
+SILBasicBlock::iterator language::removeBeginAccess(BeginAccessInst *beginAccess) {
   while (!beginAccess->use_empty()) {
     Operand *op = *beginAccess->use_begin();
 
@@ -2552,7 +2555,7 @@ SILBasicBlock::iterator swift::removeBeginAccess(BeginAccessInst *beginAccess) {
 // including arguments to @noescape functions that are passed as closures to
 // the current call.
 static void visitApplyAccesses(ApplySite apply,
-                               llvm::function_ref<void(Operand *)> visitor) {
+                               toolchain::function_ref<void(Operand *)> visitor) {
   for (Operand &oper : apply.getArgumentOperands()) {
     // Consider any address-type operand an access. Whether it is read or modify
     // depends on the argument convention.
@@ -2575,12 +2578,12 @@ static void visitApplyAccesses(ApplySite apply,
 }
 
 static void visitBuiltinAddress(BuiltinInst *builtin,
-                                llvm::function_ref<void(Operand *)> visitor) {
+                                toolchain::function_ref<void(Operand *)> visitor) {
   if (auto kind = builtin->getBuiltinKind()) {
     switch (kind.value()) {
     default:
       builtin->dump();
-      llvm_unreachable("unexpected builtin memory access.");
+      toolchain_unreachable("unexpected builtin memory access.");
 
     // Handle builtin "generic_add"<V>($*V, $*V, $*V) and the like.
 #define BUILTIN(Id, Name, Attrs)
@@ -2660,6 +2663,7 @@ static void visitBuiltinAddress(BuiltinInst *builtin,
       
     // zeroInitializer with an address operand zeroes the address.
     case BuiltinValueKind::ZeroInitializer:
+    case BuiltinValueKind::PrepareInitialization:
       if (builtin->getAllOperands().size() > 0) {
         visitor(&builtin->getAllOperands()[0]);
       }
@@ -2695,23 +2699,23 @@ static void visitBuiltinAddress(BuiltinInst *builtin,
       // the default case.
     default:
       return;
-    case llvm::Intrinsic::memcpy:
-    case llvm::Intrinsic::memmove:
+    case toolchain::Intrinsic::memcpy:
+    case toolchain::Intrinsic::memmove:
       // Currently ignored because the access is on a RawPointer.
       // visitor(&builtin->getAllOperands()[0]);
       // visitor(&builtin->getAllOperands()[1]);
       return;
-    case llvm::Intrinsic::memset:
+    case toolchain::Intrinsic::memset:
       // Currently ignored because the access is on a RawPointer.
       // visitor(&builtin->getAllOperands()[0]);
       return;
     }
   }
-  llvm_unreachable("Must be either a builtin or intrinsic.");
+  toolchain_unreachable("Must be either a builtin or intrinsic.");
 }
 
-void swift::visitAccessedAddress(SILInstruction *I,
-                                 llvm::function_ref<void(Operand *)> visitor) {
+void language::visitAccessedAddress(SILInstruction *I,
+                                 toolchain::function_ref<void(Operand *)> visitor) {
   assert(I->mayReadOrWriteMemory());
 
   // Reference counting instructions do not access user visible memory.
@@ -2734,7 +2738,7 @@ void swift::visitAccessedAddress(SILInstruction *I,
   switch (I->getKind()) {
   default:
     I->dump();
-    llvm_unreachable("unexpected memory access.");
+    toolchain_unreachable("unexpected memory access.");
 
   case SILInstructionKind::AssignInst:
   case SILInstructionKind::AssignByWrapperInst:
@@ -2812,6 +2816,7 @@ void swift::visitAccessedAddress(SILInstruction *I,
   case SILInstructionKind::BeginBorrowInst:
   case SILInstructionKind::BeginCOWMutationInst:
   case SILInstructionKind::EndCOWMutationInst:
+  case SILInstructionKind::EndCOWMutationAddrInst:
   case SILInstructionKind::BeginUnpairedAccessInst:
   case SILInstructionKind::BindMemoryInst:
   case SILInstructionKind::RebindMemoryInst:

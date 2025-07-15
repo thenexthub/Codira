@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file contains the cache schema for swift cached compile job result.
+// This file contains the cache schema for language cached compile job result.
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,11 +23,11 @@
 
 using namespace language;
 using namespace language::cas;
-using namespace llvm;
-using namespace llvm::cas;
+using namespace toolchain;
+using namespace toolchain::cas;
 
 Error CompileJobCacheResult::forEachOutput(
-    llvm::function_ref<Error(Output)> Callback) const {
+    toolchain::function_ref<Error(Output)> Callback) const {
   size_t Count = getNumOutputs();
   for (size_t I = 0; I < Count; ++I) {
     file_types::ID Kind = getOutputKind(I);
@@ -38,7 +39,7 @@ Error CompileJobCacheResult::forEachOutput(
 }
 
 Error CompileJobCacheResult::forEachLoadedOutput(
-    llvm::function_ref<Error(Output, std::optional<ObjectProxy>)> Callback) {
+    toolchain::function_ref<Error(Output, std::optional<ObjectProxy>)> Callback) {
   // Kick-off materialization for all outputs concurrently.
   SmallVector<std::future<AsyncProxyValue>, 4> FutureOutputs;
   size_t Count = getNumOutputs();
@@ -57,7 +58,7 @@ Error CompileJobCacheResult::forEachLoadedOutput(
         OccurredError = Obj.takeError();
       else
         OccurredError =
-            llvm::joinErrors(std::move(*OccurredError), Obj.takeError());
+            toolchain::joinErrors(std::move(*OccurredError), Obj.takeError());
       continue;
     }
     Outputs.push_back(*Obj);
@@ -88,7 +89,7 @@ CompileJobCacheResult::getOutput(file_types::ID Kind) const {
   return {};
 }
 
-Error CompileJobCacheResult::print(llvm::raw_ostream &OS) {
+Error CompileJobCacheResult::print(toolchain::raw_ostream &OS) {
   return forEachOutput([&](Output O) -> Error {
     OS << file_types::getTypeName(O.Kind) << "    " << getCAS().getID(O.Object)
        << '\n';
@@ -141,7 +142,7 @@ Error CompileJobCacheResult::Builder::addOutput(StringRef Path,
       return Error::success();
     }
   }
-  return llvm::createStringError(llvm::inconvertibleErrorCode(),
+  return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                  "cached output file has unknown path '" +
                                      Path + "'");
 }
@@ -156,15 +157,15 @@ Expected<ObjectRef> CompileJobCacheResult::Builder::build(ObjectStore &CAS) {
   return CAS.store(Refs, {(char *)Impl.Kinds.begin(), Impl.Kinds.size()});
 }
 
-static constexpr llvm::StringLiteral CompileJobResultSchemaName =
-    "swift::cas::schema::compile_job_result::v1";
+static constexpr toolchain::StringLiteral CompileJobResultSchemaName =
+    "language::cas::schema::compile_job_result::v1";
 
 char CompileJobResultSchema::ID = 0;
 
 CompileJobResultSchema::CompileJobResultSchema(ObjectStore &CAS)
     : CompileJobResultSchema::RTTIExtends(CAS),
       KindRef(
-          llvm::cantFail(CAS.storeFromString({}, CompileJobResultSchemaName))) {
+          toolchain::cantFail(CAS.storeFromString({}, CompileJobResultSchemaName))) {
 }
 
 Expected<CompileJobCacheResult>
@@ -173,7 +174,7 @@ CompileJobResultSchema::load(ObjectRef Ref) const {
   if (!Proxy)
     return Proxy.takeError();
   if (!isNode(*Proxy))
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                    "not a compile job result");
   return CompileJobCacheResult(*Proxy);
 }

@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/ExponentialGrowthAppendingBinaryByteStream.h"
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
 
 Error ExponentialGrowthAppendingBinaryByteStream::readBytes(

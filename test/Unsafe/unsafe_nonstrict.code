@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language
+
+@unsafe fn unsafeFunc() { }
+
+@unsafe
+struct UnsafeType { }
+
+protocol P { }
+
+struct X: @unsafe P { }
+
+fn acceptP<T: P>(_: T) { }
+
+fn testItAll(ut: UnsafeType, x: X, i: Int) {
+  _ = unsafe ut
+  unsafe acceptP(x)
+  _ = unsafe i // expected-warning{{no unsafe operations occur within 'unsafe' expression}}
+}

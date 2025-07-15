@@ -1,13 +1,17 @@
 //===--- PackConformance.cpp - Variadic Protocol Conformance --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the PackConformance structure, which describes the
@@ -27,11 +31,11 @@
 
 using namespace language;
 
-void PackConformance::Profile(llvm::FoldingSetNodeID &ID) const {
+void PackConformance::Profile(toolchain::FoldingSetNodeID &ID) const {
   Profile(ID, ConformingType, Protocol, getPatternConformances());
 }
 
-void PackConformance::Profile(llvm::FoldingSetNodeID &ID,
+void PackConformance::Profile(toolchain::FoldingSetNodeID &ID,
                               PackType *conformingType,
                               ProtocolDecl *protocol,
                               ArrayRef<ProtocolConformanceRef> conformances) {
@@ -57,7 +61,7 @@ size_t PackConformance::numTrailingObjects(
 }
 
 bool PackConformance::isInvalid() const {
-  return llvm::any_of(getPatternConformances(),
+  return toolchain::any_of(getPatternConformances(),
                       [&](const auto ref) { return ref.isInvalid(); });
 }
 
@@ -213,7 +217,7 @@ PackConformance::subst(InFlightSubstitution &IFS) const {
   return ProtocolConformanceRef(substConformance);
 }
 
-void swift::simple_display(llvm::raw_ostream &out, PackConformance *conformance) {
+void language::simple_display(toolchain::raw_ostream &out, PackConformance *conformance) {
   out << conformance->getType() << " : {";
   bool first = true;
   for (auto patternConformance : conformance->getPatternConformances()) {

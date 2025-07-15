@@ -1,4 +1,4 @@
-//===--- SourceLoader.cpp - Import .swift files as modules ----------------===//
+//===--- SourceLoader.cpp - Import .code files as modules ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// A simple module loader that loads .swift source files.
+/// A simple module loader that loads .code source files.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -27,21 +28,21 @@
 #include "language/AST/SourceFile.h"
 #include "language/Parse/PersistentParserState.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/PrefixMapper.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/PrefixMapper.h"
+#include "toolchain/Support/SaveAndRestore.h"
 #include <system_error>
 
 using namespace language;
 
 // FIXME: Basically the same as SerializedModuleLoader.
-using FileOrError = llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>;
+using FileOrError = toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>;
 
 static FileOrError findModule(ASTContext &ctx, Identifier moduleID,
                               SourceLoc importLoc) {
-  llvm::SmallString<128> inputFilename;
+  toolchain::SmallString<128> inputFilename;
   // Find a module with an actual, physical name on disk, in case
   // -module-alias is used (otherwise same).
   //
@@ -52,9 +53,9 @@ static FileOrError findModule(ASTContext &ctx, Identifier moduleID,
 
   for (const auto &Path : ctx.SearchPathOpts.getImportSearchPaths()) {
     inputFilename = Path.Path;
-    llvm::sys::path::append(inputFilename, moduleNameRef);
+    toolchain::sys::path::append(inputFilename, moduleNameRef);
     inputFilename.append(".code");
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
+    toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
       ctx.SourceMgr.getFileSystem()->getBufferForFile(inputFilename.str());
 
     // Return if we loaded a file
@@ -77,7 +78,7 @@ void SourceLoader::collectVisibleTopLevelModuleNames(
 bool SourceLoader::canImportModule(ImportPath::Module path, SourceLoc loc,
                                    ModuleVersionInfo *versionInfo,
                                    bool isTestableDependencyLookup) {
-  // FIXME: Swift submodules?
+  // FIXME: Codira submodules?
   if (path.hasSubmodule())
     return false;
 
@@ -101,7 +102,7 @@ bool SourceLoader::canImportModule(ImportPath::Module path, SourceLoc loc,
 ModuleDecl *SourceLoader::loadModule(SourceLoc importLoc,
                                      ImportPath::Module path,
                                      bool AllowMemoryCache) {
-  // FIXME: Swift submodules?
+  // FIXME: Codira submodules?
   if (path.size() > 1)
     return nullptr;
 
@@ -118,7 +119,7 @@ ModuleDecl *SourceLoader::loadModule(SourceLoc importLoc,
 
     return nullptr;
   }
-  std::unique_ptr<llvm::MemoryBuffer> inputFile =
+  std::unique_ptr<toolchain::MemoryBuffer> inputFile =
     std::move(inputFileOrError.get());
 
   if (dependencyTracker)
@@ -155,16 +156,4 @@ void SourceLoader::loadExtensions(NominalTypeDecl *nominal,
                                   unsigned previousGeneration) {
   // Type-checking the source automatically loads all extensions; there's
   // nothing to do here.
-}
-
-ModuleDependencyVector
-SourceLoader::getModuleDependencies(Identifier moduleName,
-                                    StringRef moduleOutputPath, StringRef sdkModuleOutputPath,
-                                    const llvm::DenseSet<clang::tooling::dependencies::ModuleID> &alreadySeenClangModules,
-                                    clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-                                    InterfaceSubContextDelegate &delegate,
-                                    llvm::PrefixMapper* mapper,
-                                    bool isTestableImport) {
-  // FIXME: Implement?
-  return {};
 }

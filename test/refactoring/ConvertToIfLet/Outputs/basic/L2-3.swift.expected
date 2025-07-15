@@ -1,0 +1,25 @@
+fn foo(idxOpt: Int?) {
+  if let idx = idxOpt {
+print(idx)
+}
+}
+
+fn bar(fooOpt: Int?) {
+  guard let foo = fooOpt else {
+    return
+  }
+  let incrementedFoo = foo + 1
+  print(incrementedFoo)
+}
+
+fn fooBar(idxOpt: Int?) {
+  guard let idx = idxOpt else {
+    print("nil")
+    return
+  }
+  print(idx)
+}
+
+
+
+

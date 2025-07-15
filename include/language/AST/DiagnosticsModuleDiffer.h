@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
-/// This file defines diagnostics for the Swift module differ.
+/// This file defines diagnostics for the Codira module differ.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICS_MODULE_DIFFER_H
-#define SWIFT_DIAGNOSTICS_MODULE_DIFFER_H
+#ifndef LANGUAGE_DIAGNOSTICS_MODULE_DIFFER_H
+#define LANGUAGE_DIAGNOSTICS_MODULE_DIFFER_H
 
 #include "language/AST/DiagnosticsCommon.h"
 

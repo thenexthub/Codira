@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(swift-inspect
-  LANGUAGES C CXX Swift)
+project(language-inspect
+  LANGUAGES C CXX Codira)
 
 include(FetchContent)
 
@@ -15,7 +15,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 FetchContent_Declare(ArgumentParser
-  GIT_REPOSITORY  https://github.com/apple/swift-argument-parser
+  GIT_REPOSITORY  https://github.com/apple/language-argument-parser
   GIT_TAG         1.5.0
   GIT_SHALLOW     TRUE
   EXCLUDE_FROM_ALL
@@ -33,14 +33,14 @@ target_include_directories(SymbolicationShims INTERFACE
   Sources/SymbolicationShims)
 
 if(WIN32)
-  add_library(SwiftInspectClientInterface INTERFACE)
-  target_include_directories(SwiftInspectClientInterface INTERFACE
-    Sources/SwiftInspectClientInterface)
+  add_library(CodiraInspectClientInterface INTERFACE)
+  target_include_directories(CodiraInspectClientInterface INTERFACE
+    Sources/CodiraInspectClientInterface)
 
-  add_library(SwiftInspectClient SHARED
-    Sources/SwiftInspectClient/SwiftInspectClient.cpp)
-  target_link_libraries(SwiftInspectClient PRIVATE
-    SwiftInspectClientInterface)
+  add_library(CodiraInspectClient SHARED
+    Sources/CodiraInspectClient/CodiraInspectClient.cpp)
+  target_link_libraries(CodiraInspectClient PRIVATE
+    CodiraInspectClientInterface)
 endif()
 
 if (ANDROID)
@@ -54,63 +54,63 @@ endif()
 if(ANDROID OR LINUX)
   add_library(LinuxSystemHeaders INTERFACE)
   target_include_directories(LinuxSystemHeaders INTERFACE
-    Sources/SwiftInspectLinux/SystemHeaders)
+    Sources/CodiraInspectLinux/SystemHeaders)
 
-  add_library(SwiftInspectLinux STATIC
-    Sources/SwiftInspectLinux/ElfFile.swift
-    Sources/SwiftInspectLinux/LinkMap.swift
-    Sources/SwiftInspectLinux/MemoryMap.swift
-    Sources/SwiftInspectLinux/Process.swift
-    Sources/SwiftInspectLinux/ProcFS.swift
-    Sources/SwiftInspectLinux/PTrace.swift
-    Sources/SwiftInspectLinux/RegisterSet.swift
-    Sources/SwiftInspectLinux/SymbolCache.swift)
-  target_compile_options(SwiftInspectLinux PRIVATE
+  add_library(CodiraInspectLinux STATIC
+    Sources/CodiraInspectLinux/ElfFile.code
+    Sources/CodiraInspectLinux/LinkMap.code
+    Sources/CodiraInspectLinux/MemoryMap.code
+    Sources/CodiraInspectLinux/Process.code
+    Sources/CodiraInspectLinux/ProcFS.code
+    Sources/CodiraInspectLinux/PTrace.code
+    Sources/CodiraInspectLinux/RegisterSet.code
+    Sources/CodiraInspectLinux/SymbolCache.code)
+  target_compile_options(CodiraInspectLinux PRIVATE
     -Xcc -D_GNU_SOURCE)
-  target_link_libraries(SwiftInspectLinux PUBLIC
+  target_link_libraries(CodiraInspectLinux PUBLIC
     LinuxSystemHeaders)
 endif()
 
-add_executable(swift-inspect
-  Sources/swift-inspect/Operations/DumpArray.swift
-  Sources/swift-inspect/Operations/DumpCacheNodes.swift
-  Sources/swift-inspect/Operations/DumpConcurrency.swift
-  Sources/swift-inspect/Operations/DumpConformanceCache.swift
-  Sources/swift-inspect/Operations/DumpGenericMetadata.swift
-  Sources/swift-inspect/Operations/DumpRawMetadata.swift
-  Sources/swift-inspect/AndroidRemoteProcess.swift
-  Sources/swift-inspect/Backtrace.swift
-  Sources/swift-inspect/DarwinRemoteProcess.swift
-  Sources/swift-inspect/LinuxRemoteProcess.swift
-  Sources/swift-inspect/main.swift
-  Sources/swift-inspect/Process.swift
-  Sources/swift-inspect/RemoteMirror+Extensions.swift
-  Sources/swift-inspect/RemoteProcess.swift
-  Sources/swift-inspect/String+Extensions.swift
-  Sources/swift-inspect/Symbolication+Extensions.swift
-  Sources/swift-inspect/WindowsRemoteProcess.swift
-  Sources/swift-inspect/WinSDK+Extentions.swift)
-target_compile_options(swift-inspect PRIVATE
+add_executable(language-inspect
+  Sources/language-inspect/Operations/DumpArray.code
+  Sources/language-inspect/Operations/DumpCacheNodes.code
+  Sources/language-inspect/Operations/DumpConcurrency.code
+  Sources/language-inspect/Operations/DumpConformanceCache.code
+  Sources/language-inspect/Operations/DumpGenericMetadata.code
+  Sources/language-inspect/Operations/DumpRawMetadata.code
+  Sources/language-inspect/AndroidRemoteProcess.code
+  Sources/language-inspect/Backtrace.code
+  Sources/language-inspect/DarwinRemoteProcess.code
+  Sources/language-inspect/LinuxRemoteProcess.code
+  Sources/language-inspect/main.code
+  Sources/language-inspect/Process.code
+  Sources/language-inspect/RemoteMirror+Extensions.code
+  Sources/language-inspect/RemoteProcess.code
+  Sources/language-inspect/String+Extensions.code
+  Sources/language-inspect/Symbolication+Extensions.code
+  Sources/language-inspect/WindowsRemoteProcess.code
+  Sources/language-inspect/WinSDK+Extentions.code)
+target_compile_options(language-inspect PRIVATE
   -parse-as-library)
-target_link_libraries(swift-inspect PRIVATE
+target_link_libraries(language-inspect PRIVATE
   ArgumentParser
-  swiftRemoteMirror)
+  languageRemoteMirror)
 if(WIN32)
-  target_link_libraries(swift-inspect PRIVATE
-    SwiftInspectClientInterface)
+  target_link_libraries(language-inspect PRIVATE
+    CodiraInspectClientInterface)
 endif()
 if(ANDROID)
-  target_link_libraries(swift-inspect PRIVATE
+  target_link_libraries(language-inspect PRIVATE
     AndroidCLib)
 endif()
 if(ANDROID OR LINUX)
-  target_link_libraries(swift-inspect PRIVATE
-    SwiftInspectLinux)
+  target_link_libraries(language-inspect PRIVATE
+    CodiraInspectLinux)
 endif()
 
-install(TARGETS swift-inspect
+install(TARGETS language-inspect
   DESTINATION bin)
 if(WIN32)
-  install(TARGETS SwiftInspectClient
+  install(TARGETS CodiraInspectClient
     RUNTIME DESTINATION bin)
 endif()

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the database of always-available statistic counters.
@@ -35,7 +36,7 @@ DRIVER_STATISTIC(NumDriverJobsRun)
 
 /// Total number of jobs (frontend, merge-modules, link, etc.) which _could_
 /// have been run by the driver, but that it decided to skip due to analysis of
-/// the dependency graph induced by .swiftdeps files. This, added together with
+/// the dependency graph induced by .codedeps files. This, added together with
 /// the number of driver jobs run (above) should be relatively constant
 /// run-over-run.
 DRIVER_STATISTIC(NumDriverJobsSkipped)
@@ -177,9 +178,9 @@ FRONTEND_STATISTIC(Parse, NumFunctionsParsed)
 /// Number of full braced decl list parsed.
 FRONTEND_STATISTIC(Parse, NumIterableDeclContextParsed)
 
-#define SWIFT_REQUEST(ZONE, NAME, SIG, CACHE, LocOptions) FRONTEND_STATISTIC(Parse, NAME)
+#define LANGUAGE_REQUEST(ZONE, NAME, SIG, CACHE, LocOptions) FRONTEND_STATISTIC(Parse, NAME)
 #include "language/AST/ParseTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 /// Number of conformances that were deserialized by this frontend job.
 FRONTEND_STATISTIC(Sema, NumConformancesDeserialized)
@@ -263,14 +264,14 @@ FRONTEND_STATISTIC(Sema, NumTypesDeserialized)
 /// Number of lazy iterable declaration contexts left unloaded.
 FRONTEND_STATISTIC(Sema, NumUnloadedLazyIterableDeclContexts)
 
-/// Number of Swift 6 errors, including those that are downgraded to
-/// warnings in Swift 5 mode.
-FRONTEND_STATISTIC(Sema, NumSwift6Errors)
+/// Number of Codira 6 errors, including those that are downgraded to
+/// warnings in Codira 5 mode.
+FRONTEND_STATISTIC(Sema, NumCodira6Errors)
 
 /// Number of lookups into a module and its imports.
 
 /// All type check requests go into the Sema area.
-#define SWIFT_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(Sema, NAME)
+#define LANGUAGE_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(Sema, NAME)
 #include "language/AST/AccessTypeIDZone.def"
 #include "language/AST/NameLookupTypeIDZone.def"
 #include "language/AST/TypeCheckerTypeIDZone.def"
@@ -278,11 +279,11 @@ FRONTEND_STATISTIC(Sema, NumSwift6Errors)
 #include "language/IDE/IDERequestIDZone.def"
 #include "language/ClangImporter/ClangImporterTypeIDZone.def"
 #include "language/ConstExtract/ConstExtractTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
-#define SWIFT_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(SILGen, NAME)
+#define LANGUAGE_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(SILGen, NAME)
 #include "language/AST/SILGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 /// The next 10 statistics count 5 kinds of SIL entities present
 /// after the SILGen and SILOpt phases. The entities are functions,
@@ -294,9 +295,9 @@ FRONTEND_STATISTIC(SILModule, NumSILGenWitnessTables)
 FRONTEND_STATISTIC(SILModule, NumSILGenDefaultWitnessTables)
 FRONTEND_STATISTIC(SILModule, NumSILGenGlobalVariables)
 
-#define SWIFT_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(SILOptimizer, NAME)
+#define LANGUAGE_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(SILOptimizer, NAME)
 #include "language/AST/SILOptimizerTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 FRONTEND_STATISTIC(SILModule, NumSILOptFunctions)
 FRONTEND_STATISTIC(SILModule, NumSILOptVtables)
@@ -304,9 +305,9 @@ FRONTEND_STATISTIC(SILModule, NumSILOptWitnessTables)
 FRONTEND_STATISTIC(SILModule, NumSILOptDefaultWitnessTables)
 FRONTEND_STATISTIC(SILModule, NumSILOptGlobalVariables)
 
-#define SWIFT_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(IRGen, NAME)
+#define LANGUAGE_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(IRGen, NAME)
 #include "language/AST/IRGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 /// The next 10 statistics count kinds of LLVM entities produced
 /// during the IRGen phase: globals, functions, aliases, ifuncs,
@@ -328,8 +329,8 @@ FRONTEND_STATISTIC(IRModule, NumGOTEntries)
 /// the .o file you find on disk after the frontend exits.
 FRONTEND_STATISTIC(LLVM, NumLLVMBytesOutput)
 
-#define SWIFT_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(TBDGen, NAME)
+#define LANGUAGE_REQUEST(ZONE, NAME, Sig, Caching, LocOptions) FRONTEND_STATISTIC(TBDGen, NAME)
 #include "language/AST/TBDGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 #endif

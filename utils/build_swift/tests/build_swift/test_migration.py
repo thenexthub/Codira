@@ -1,20 +1,20 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import platform
 import unittest
 
-from build_swift import argparse
-from build_swift import migration
-from build_swift.constants import BUILD_SCRIPT_IMPL_PATH
+from build_language import argparse
+from build_language import migration
+from build_language.constants import BUILD_SCRIPT_IMPL_PATH
 
-from swift_build_support.swift_build_support.targets import StdlibDeploymentTarget
+from language_build_support.code_build_support.targets import StdlibDeploymentTarget
 
 
 # -----------------------------------------------------------------------------
@@ -33,26 +33,26 @@ def _get_sdk_target_names(sdk_names):
 
 
 # -----------------------------------------------------------------------------
-# Migrate Swift SDKs
+# Migrate Codira SDKs
 
-class TestMigrateSwiftSDKsMeta(type):
+class TestMigrateCodiraSDKsMeta(type):
     """Metaclass used to dynamically generate test methods.
     """
 
     def __new__(cls, name, bases, attrs):
-        # Generate tests for migrating each Swift SDK
+        # Generate tests for migrating each Codira SDK
         for sdk_name in StdlibDeploymentTarget.get_all_migrated_sdks():
-            test_name = 'test_migrate_swift_sdk_{}'.format(sdk_name)
-            attrs[test_name] = cls.generate_migrate_swift_sdks_test(sdk_name)
+            test_name = 'test_migrate_language_sdk_{}'.format(sdk_name)
+            attrs[test_name] = cls.generate_migrate_language_sdks_test(sdk_name)
 
-        return super(TestMigrateSwiftSDKsMeta, cls).__new__(
+        return super(TestMigrateCodiraSDKsMeta, cls).__new__(
             cls, name, bases, attrs)
 
     @classmethod
-    def generate_migrate_swift_sdks_test(cls, sdk_name):
+    def generate_migrate_language_sdks_test(cls, sdk_name):
         def test(self):
-            args = ['--swift-sdks={}'.format(sdk_name)]
-            args = migration.migrate_swift_sdks(args)
+            args = ['--language-sdks={}'.format(sdk_name)]
+            args = migration.migrate_language_sdks(args)
 
             target_names = _get_sdk_target_names([sdk_name])
             self.assertListEqual(args, [
@@ -62,21 +62,21 @@ class TestMigrateSwiftSDKsMeta(type):
         return test
 
 
-class TestMigrateSwiftSDKs(unittest.TestCase, metaclass=TestMigrateSwiftSDKsMeta):
+class TestMigrateCodiraSDKs(unittest.TestCase, metaclass=TestMigrateCodiraSDKsMeta):
 
-    def test_empty_swift_sdks(self):
-        args = migration.migrate_swift_sdks(['--swift-sdks='])
+    def test_empty_language_sdks(self):
+        args = migration.migrate_language_sdks(['--language-sdks='])
         self.assertListEqual(args, ['--stdlib-deployment-targets='])
 
-    def test_multiple_swift_sdk_flags(self):
+    def test_multiple_language_sdk_flags(self):
         sdks = ['OSX', 'IOS', 'IOS_SIMULATOR']
 
         args = [
-            '--swift-sdks=',
-            '--swift-sdks={}'.format(';'.join(sdks))
+            '--language-sdks=',
+            '--language-sdks={}'.format(';'.join(sdks))
         ]
 
-        args = migration.migrate_swift_sdks(args)
+        args = migration.migrate_language_sdks(args)
         target_names = _get_sdk_target_names(sdks)
 
         self.assertListEqual(args, [
@@ -131,18 +131,18 @@ class TestMigrateParseArgs(unittest.TestCase):
 
     def test_forward_impl_args(self):
         parser = argparse.ArgumentParser()
-        parser.add_argument('--skip-test-swift',
-                            dest='impl_skip_test_swift',
+        parser.add_argument('--skip-test-language',
+                            dest='impl_skip_test_language',
                             action='store_true')
-        parser.add_argument('--install-swift',
-                            dest='impl_install_swift',
+        parser.add_argument('--install-language',
+                            dest='impl_install_language',
                             action='store_true')
 
         args = migration.parse_args(
-            parser, ['--skip-test-swift', '--install-swift'])
+            parser, ['--skip-test-language', '--install-language'])
 
         expected = argparse.Namespace(
-            build_script_impl_args=['--skip-test-swift', '--install-swift'])
+            build_script_impl_args=['--skip-test-language', '--install-language'])
 
         self.assertEqual(args, expected)
 

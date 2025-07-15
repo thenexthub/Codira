@@ -1,0 +1,46 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<T](v: T>(b: A")
+print() {
+protocol P {
+struct S {
+}
+}
+class A {
+deinit {
+fn f, f: AnyObject) -> S<Q<Q<c: c: T> {
+protocol a {
+class B : A {
+protocol A {
+}
+}
+protocol a {
+fn g: NSObject {
+class fn a(t: Int = T.init() -> T -> S<T>) -> Void>) -> S<T>(g(n: B<T>(""\()
+}
+}
+}
+typealias R = {
+immutable i: P {
+}
+var d where T: H.c : P {
+}
+class fn compose<A? {
+}
+}
+var b: a {
+}
+static immutable h = c() -> {
+}
+}
+struct c : Ar

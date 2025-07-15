@@ -1,6 +1,6 @@
 # Introduction
 
-This document is intended to discuss current issues in and possible future expansions of Swift's model for ABI-stable _library evolution,_ described in [LibraryEvolution.rst][]. Like other "manifesto" documents in the Swift community, it sets out related tasks in service of a general goal, though this is still an exploration of the space more than a to-do list.
+This document is intended to discuss current issues in and possible future expansions of Codira's model for ABI-stable _library evolution,_ described in [LibraryEvolution.rst][]. Like other "manifesto" documents in the Codira community, it sets out related tasks in service of a general goal, though this is still an exploration of the space more than a to-do list.
 
 [LibraryEvolution.rst]: ./LibraryEvolution.rst
 
@@ -10,37 +10,37 @@ This document is intended to discuss current issues in and possible future expan
 
 ## Recompiling changes a protocol's implementation		
 
-```swift
+```language
 // Library, version 1
 protocol MagicType {}
 protocol Wearable {}
-func use<T: MagicType>(_ item: T) {}
+fn use<T: MagicType>(_ item: T) {}
 ```
 
-```swift
+```language
 // Client, version 1
 struct Amulet : MagicType, Wearable {}
 use(Amulet())
 ```
 
-```swift
+```language
 // Library, version 2
 protocol MagicType {
   @available(dishwasherOS 2.0, *)
-  func equip()
+  fn equip()
 }
 extension MagicType {
   @available(dishwasherOS 2.0, *)
-  func equip() { print("Equipped.") }
+  fn equip() { print("Equipped.") }
 }
 
 protocol Wearable {}
 extension Wearable where Self: MagicType {
   @available(dishwasherOS 2.0, *)
-  func equip() { print("You put it on.") }
+  fn equip() { print("You put it on.") }
 }
 
-func use<T: MagicType>(_ item: T) { item.equip() }
+fn use<T: MagicType>(_ item: T) { item.equip() }
 ```
 
 Let's say we're running dishwasherOS 2.0. Before the client is recompiled, the implementation of `equip()` used for `Amulet` instances can only be the default implementation, i.e. the one that prints "Equipped". However, recompiling the client will result in the constrained implementation being considered a "better" match for the protocol requirement, thus changing the behavior of the program.
@@ -111,7 +111,7 @@ Developers with performance-sensitive use cases may want to promise more specifi
 
 - "maximum size N/alignment A": Promises that the type's size and required alignment are at most N bits and A bits, respectively. (Both may be smaller.) This would make it easier for the compiler to work with values on the stack.
 
-(Neither of these names / spellings are final. The name "trivial" comes from C++, though Swift's trivial is closer to C++'s "[trivially copyable][]".)
+(Neither of these names / spellings are final. The name "trivial" comes from C++, though Codira's trivial is closer to C++'s "[trivially copyable][]".)
 
 Both of these annotations are things the compiler already knows when a type is declared, but writing them explicitly (a) allows the developer to check that they've made something properly optimizable, and (b) promises not to change that behavior between releases, even if, say, stored properties are added to or removed from a struct.
 
@@ -122,7 +122,7 @@ Both of these annotations are things the compiler already knows when a type is d
 
 The compiler actually has basic support for frozen classes, which allow stored properties to be accessed directly by offset from the class reference. There's no real reason why this can't be supported more generally, but confusion around *what's* being frozen and the rarity of wanting to make this promise anyway kept it out of [SE-0260][].
 
-[SE-0260]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0260-library-evolution.md
+[SE-0260]: https://github.com/languagelang/language-evolution/blob/main/proposals/0260-library-evolution.md
 
 
 # Generalized Availability Model
@@ -131,14 +131,14 @@ This section is focused on various ways to extend the OS-version-based availabil
 
 ## Per-library availability
 
-As a placeholder, imagine replacing OS versions with library versions in the various parts of Swift's availability checking syntax:
+As a placeholder, imagine replacing OS versions with library versions in the various parts of Codira's availability checking syntax:
 
-```swift
+```language
 // Client code
 @available(Magician 1.5)
 class CrystalBallView : MagicView { /*...*/ }
 
-func scareMySiblings() {
+fn scareMySiblings() {
   if #available(Magician 1.2) {
     summonDemons()
   } else {
@@ -168,7 +168,7 @@ Code within a library may generally use all other entities declared within the l
 
 ### Declaring library version dependencies
 
-Swift's current OS-based availability model includes the notion of a _minimum deployment target,_ the version of an OS that must be present for the program being compiled to run at all. For example, a program compiled with a minimum deployment target of iOS 9.2 will not launch on iOS 9.0.
+Codira's current OS-based availability model includes the notion of a _minimum deployment target,_ the version of an OS that must be present for the program being compiled to run at all. For example, a program compiled with a minimum deployment target of iOS 9.2 will not launch on iOS 9.0.
 
 The generalized model suggests being able to make similar guarantees for individual libraries. For example, a client program may depend on version 1.1 of the "Magician" library; trying to run using version 1.0 will result in errors. By declaring this at compile-time, the client code can omit `@available` and `#available` checks that are satisfied by the minimum library version.
 
@@ -191,14 +191,14 @@ The use of deployments allows clients to only have to think about aggregate depe
 
 There are lots of details to figure out here, including how to distribute this information. In particular, just like libraries publish the history of their own APIs, a deployment must publish the history of their included library versions, i.e. not just that OS X 10.10 contains Foundation 1151.16 and AppKit 1343, but also that OS X 10.9 contains Foundation 1056 and AppKit 1265, and that OS X 10.8 contains Foundation 945.0 and AppKit 1187, and so on, back to the earliest version of the deployment that is supported.
 
-Obviously, formalizing a model here is probably most useful for people distributing ABI-stable Swift libraries as part of an OS, i.e. Apple.
+Obviously, formalizing a model here is probably most useful for people distributing ABI-stable Codira libraries as part of an OS, i.e. Apple.
 
 
 # Automated Tooling
 
 ## ABI Checker
 
-The Swift repository has a basic ABI checker in the form of swift-api-digester. This tool looks at two versions of a library and determines if there are any changes which are known to be unsafe (say, changing the type of a function parameter). It would be nice™ to integrate this into SwiftPM and Xcode in some way.
+The Codira repository has a basic ABI checker in the form of language-api-digester. This tool looks at two versions of a library and determines if there are any changes which are known to be unsafe (say, changing the type of a function parameter). It would be nice™ to integrate this into CodiraPM and Xcode in some way.
 
 ## Automatic Versioning
 

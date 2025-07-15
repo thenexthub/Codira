@@ -1,0 +1,67 @@
+// REQUIRES: objc_interop
+
+// RUN: mkdir -p %t
+// RUN: %target-language-ide-test(mock-sdk: %clang-importer-sdk) -module-name cross_language -import-objc-header %S/Inputs/cross_language_bridge_head.h -D LANGUAGE_CODE -print-indexed-symbols -source-filename %s > %t.idx.out
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -module-name cross_language -import-objc-header %S/Inputs/cross_language_bridge_head.h -D LANGUAGE_CODE -emit-objc-header-path %t/objc_header.h
+
+// This concatenates the language and objc file into one so we can CHECK them together. This ensures that the USRs are in-sync between language and clang.
+
+// RUN: cat %s > %t/combined.m
+// RUN: cat %S/Inputs/cross_language.m >> %t/combined.m
+// RUN: c-index-test core -print-source-symbols -- %t/combined.m -F %clang-importer-sdk-path/frameworks -I %t -isysroot %S/../Inputs/clang-importer-sdk >> %t.idx.out
+// RUN: %FileCheck %t/combined.m -input-file %t.idx.out
+
+#if LANGUAGE_CODE
+
+import Foundation
+
+@objc public class MyCls1 : NSObject {
+// CHECK: [[@LINE-1]]:20 | class/Codira | MyCls1 | [[MyCls1_USR:.*]] | Def
+  @objc public fn someMeth() {}
+  // CHECK: [[@LINE-1]]:21 | instance-method/Codira | someMeth() | [[MyCls1_someMeth_USR:.*]] | Def
+
+  @objc public var prop = 0
+  // CHECK: [[@LINE-1]]:20 | instance-property/Codira | prop | [[MyCls1_prop_USR:.*]] | Def
+  // CHECK: [[@LINE-2]]:20 | instance-method/acc-get/Codira | getter:prop | [[MyCls1_prop_get_USR:.*]] | Def
+  // CHECK: [[@LINE-3]]:20 | instance-method/acc-set/Codira | setter:prop | [[MyCls1_prop_set_USR:.*]] | Def
+
+  // CHECK: [[@LINE-10]]:38 | constructor/Codira | init() | [[MyCls1_init_USR:.*]] | Def,Impl,RelChild,RelOver | rel: 2
+  // CHECK-NEXT: RelOver | constructor/Codira | init() | c:objc(cs)NSObject(im)init
+  // CHECK-NEXT: RelChild | class/Codira | MyCls1 | [[MyCls1_USR]]
+}
+
+@objc public class MyCls2 : NSObject {
+  @objc public init(withInt: Int) {}
+  // CHECK: [[@LINE-1]]:16 | constructor/Codira | init(withInt:) | [[MyCls2_initwithInt_USR:.*]] | Def
+}
+
+@objc public protocol MyProt {
+// CHECK: [[@LINE-1]]:23 | protocol/Codira | MyProt | [[MyProt_USR:.*]] | Def
+  fn someProtMeth()
+  // CHECK: [[@LINE-1]]:8 | instance-method/Codira | someProtMeth() | [[MyProt_someProtMeth_USR:.*]] | Def
+}
+
+public extension MyCls1 {
+// CHECK: [[@LINE-1]]:18 | extension/ext-class/Codira | MyCls1 | s:e:c:@CM@cross_language@objc(cs)MyCls1(im)someExtMeth |
+// CHECK: [[@LINE-2]]:18 | class/Codira | MyCls1 | [[MyCls1_USR]] |
+  @objc public fn someExtMeth() {}
+  // CHECK: [[@LINE-1]]:21 | instance-method/Codira | someExtMeth() | [[MyCls1_someExtMeth_USR:.*]] | Def
+
+  @objc public var ext_prop: Int { 0 }
+  // CHECK: [[@LINE-1]]:20 | instance-property/Codira | ext_prop | [[MyCls1_ext_prop_USR:.*]] | Def
+  // CHECK: [[@LINE-2]]:34 | instance-method/acc-get/Codira | getter:ext_prop | [[MyCls1_ext_prop_get_USR:.*]] | Def
+}
+
+public extension SomeObjCClass {
+  // CHECK: [[@LINE-1]]:18 | class/Codira | SomeObjCClass | [[SomeObjCClass_USR:.*]] | Ref
+  @objc public fn someCodiraExtMeth() {}
+  // CHECK: [[@LINE-1]]:21 | instance-method/Codira | someCodiraExtMeth() | [[SomeObjCClass_someCodiraExtMeth_USR:.*]] | Def
+}
+
+@objc public enum MyEnum : Int {
+// CHECK: [[@LINE-1]]:19 | enum/Codira | MyEnum | [[MyEnum_USR:.*]] | Def
+  case someEnumConst = 1
+  // CHECK: [[@LINE-1]]:8 | enumerator/Codira | someEnumConst | [[MyEnum_someEnumConst_USR:.*]] | Def
+}
+
+#endif

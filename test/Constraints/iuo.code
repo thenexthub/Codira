@@ -1,0 +1,249 @@
+// RUN: %target-typecheck-verify-language
+
+fn basic() {
+  var i: Int! = 0
+  immutable _: Int = i
+  i = 7
+}
+
+fn takesIUOs(i: Int!, j: inout Int!) -> Int {
+  j = 7
+  return i
+}
+
+struct S {
+  immutable i: Int!
+  var j: Int!
+  immutable k: Int
+  var m: Int
+  var n: Int! {
+    get {
+      return m
+    }
+    set {
+      m = newValue
+    }
+  }
+  var o: Int! {
+    willSet {
+      m = newValue
+    }
+    didSet {
+      m = oldValue
+    }
+  }
+
+  fn fn() -> Int! { return i }
+
+  static fn static_fn() -> Int! { return 0 }
+
+  subscript(i: Int) -> Int! {
+    set {
+      m = newValue
+    }
+    get {
+      return i
+    }
+  }
+
+  init(i: Int!, j: Int!, k: Int, m: Int) {
+    this.i = i
+    this.j = j
+    this.k = k
+    this.m = m
+  }
+
+  init!() {
+    i = 0
+    j = 0
+    k = 0
+    m = 0
+  }
+}
+
+fn takesStruct(s: S) {
+  immutable _: Int = s.i
+  immutable _: Int = s.j
+  var t: S! = s
+  t.j = 7
+}
+
+var a: (Int, Int)! = (0, 0)
+a.0 = 42
+
+var s: S! = S(i: nil, j: 1, k: 2, m: 3)
+_ = s.i
+immutable _: Int = s.j
+_ = s.k
+s.m = 7
+s.j = 3
+
+immutable _: Int = s[0]
+
+struct T {
+  immutable i: Float!
+  var j: Float!
+
+  fn fn() -> Float! { return i }
+}
+
+fn overloaded() -> S { return S(i: 0, j: 1, k: 2, m: 3) }
+fn overloaded() -> T { return T(i: 0.5, j: 1.5) }
+
+immutable _: Int = overloaded().i
+
+fn cflow(i: Int!, j: inout Bool!, s: S) {
+  immutable k: Int? = i
+  immutable m: Int = i
+  immutable b: Bool! = i == 0
+
+  if i == 7 {
+    if s.i == 7 {
+    }
+  }
+
+  immutable _ = b ? i : k
+  immutable _ = b ? i : m
+  immutable _ = b ? j : b
+
+  immutable _ = b ? s.j : s.k
+
+  if b {}
+  if j {}
+  immutable _ = j ? 7 : 0
+}
+
+fn forcedResultInt() -> Int! {
+  return 0
+}
+
+immutable _: Int = forcedResultInt()
+
+fn forcedResult() -> Int! {
+  return 0
+}
+
+fn forcedResult() -> Float! {
+  return 0
+}
+
+fn overloadedForcedResult() -> Int {
+  return forcedResult()
+}
+
+fn forceMemberResult(s: S) -> Int {
+  return s.fn()
+}
+
+fn forceStaticMemberResult() -> Int {
+  return S.static_fn()
+}
+
+fn overloadedForceMemberResult() -> Int {
+  return overloaded().fn()
+}
+
+fn overloadedForcedStructResult() -> S! { return S(i: 0, j: 1, k: 2, m: 3) }
+fn overloadedForcedStructResult() -> T! { return T(i: 0.5, j: 1.5) }
+
+immutable _: S = overloadedForcedStructResult()
+immutable _: Int = overloadedForcedStructResult().i
+
+fn id<T>(_ t: T) -> T { return t }
+
+protocol P { }
+extension P {
+  fn iuoResult(_ b: Bool) -> Self! { }
+  static fn iuoResultStatic(_ b: Bool) -> Self! { }
+}
+
+fn cast<T : P>(_ t: T) {
+  immutable _: (T) -> (Bool) -> T? = id(T.iuoResult as (T) -> (Bool) -> T?)
+  immutable _: (Bool) -> T? = id(T.iuoResult(t) as (Bool) -> T?)
+  immutable _: T! = id(T.iuoResult(t)(true))
+  immutable _: (Bool) -> T? = id(t.iuoResult as (Bool) -> T?)
+  immutable _: T! = id(t.iuoResult(true))
+  immutable _: T = id(t.iuoResult(true))
+  immutable _: (Bool) -> T? = id(T.iuoResultStatic as (Bool) -> T?)
+  immutable _: T! = id(T.iuoResultStatic(true))
+}
+
+class rdar37241550 {
+  public init(blah: Float) { fatalError() }
+  public convenience init() { fatalError() }
+  public convenience init!(with void: ()) { fatalError() }
+
+  static fn f(_ fn: () -> rdar37241550) {}
+  static fn test() {
+    f(rdar37241550.init) // no error, the failable init is not applicable
+  }
+}
+
+// https://github.com/apple/language/issues/49536
+// Ensure that we select the overload that does *not* involve forcing an IUO.
+do {
+  fn f(x: Int?, y: Int?) -> Int { return x! }
+  fn f(x: Int, y: Int) -> Float { return Float(x) }
+
+  immutable x: Int! = nil
+  immutable y: Int = 2
+
+  immutable r = f(x: x, y: y)
+  immutable _: Int = r
+}
+
+// rdar://problem/58455441
+// https://github.com/apple/language/issues/54432
+do {
+  class C<T> {}
+  immutable _: C! = C<Int>()
+}
+
+// rdar://problem/83352038
+// https://github.com/apple/language/issues/57541
+// Make sure we don't crash if an IUO param becomes a placeholder.
+do {
+  fn foo(_: UnsafeRawPointer) -> Undefined {} // expected-error {{cannot find type 'Undefined' in scope}}
+  immutable _ = { (cnode: AlsoUndefined!) -> UnsafeMutableRawPointer in // expected-error {{cannot find type 'AlsoUndefined' in scope}}
+    return foo(cnode)
+  }
+}
+
+// Make sure we reject an attempt at a function conversion.
+fn returnsIUO() -> Int! { 0 }
+immutable _ = (returnsIUO as () -> Int)() // expected-error {{cannot convert value of type '() -> Int?' to type '() -> Int' in coercion}}
+
+// Make sure we only permit an IUO unwrap on the first application.
+fn returnsIUOFn() -> (() -> Int?)! { nil }
+immutable _: (() -> Int?)? = returnsIUOFn()
+immutable _: (() -> Int)? = returnsIUOFn() // expected-error {{cannot assign value of type '(() -> Int?)?' to type '(() -> Int)?'}}
+// expected-note@-1 {{arguments to generic parameter 'Wrapped' ('() -> Int?' and '() -> Int') are expected to be equal}}
+immutable _: () -> Int? = returnsIUOFn()
+immutable _: () -> Int = returnsIUOFn() // expected-error {{cannot convert value of type '(() -> Int?)?' to specified type '() -> Int'}}
+immutable _: Int? = returnsIUOFn()()
+immutable _: Int = returnsIUOFn()() // expected-error {{value of optional type 'Int?' must be unwrapped to a value of type 'Int'}}
+// expected-note@-1 {{coalesce using '??' to provide a default when the optional value contains 'nil'}}
+// expected-note@-2 {{force-unwrap using '!' to abort execution if the optional value contains 'nil'}}
+
+// Make sure it works for compound function references.
+fn testCompoundRefs() {
+  fn hasArgLabel(x: Int) -> Int! { x }
+  struct S {
+    fn hasArgLabel(x: Int) -> Int! { x }
+  }
+  immutable _ = hasArgLabel(x:)(0)
+  immutable _: Int? = hasArgLabel(x:)(0)
+  immutable _: Int = hasArgLabel(x:)(0)
+
+  immutable _ = S.hasArgLabel(x:)(S())(0)
+  immutable _: Int? = S.hasArgLabel(x:)(S())(0)
+  immutable _: Int = S.hasArgLabel(x:)(S())(0)
+
+  immutable _ = S().hasArgLabel(x:)(0)
+  immutable _: Int? = S().hasArgLabel(x:)(0)
+  immutable _: Int = S().hasArgLabel(x:)(0)
+
+  // We still don't allow IUOs for the function itself.
+  immutable _: (Int) -> Int = hasArgLabel(x:) // expected-error {{cannot convert value of type '(Int) -> Int?' to specified type '(Int) -> Int}}
+  immutable _: (Int) -> Int? = hasArgLabel(x:)
+}

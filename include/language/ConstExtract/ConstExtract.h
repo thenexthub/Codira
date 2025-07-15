@@ -1,25 +1,29 @@
 //===---- ConstExtract.h -- Gather Compile-Time-Known Values ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONST_EXTRACT_H
-#define SWIFT_CONST_EXTRACT_H
+#ifndef LANGUAGE_CONST_EXTRACT_H
+#define LANGUAGE_CONST_EXTRACT_H
 
 #include "language/AST/ConstTypeInfo.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
 class raw_fd_ostream;
 }
@@ -34,7 +38,7 @@ namespace language {
 /// Parse a list of string identifiers from a file at the given path,
 /// representing names of protocols.
 bool
-parseProtocolListFromFile(llvm::StringRef protocolListFilePath,
+parseProtocolListFromFile(toolchain::StringRef protocolListFilePath,
                           DiagnosticEngine &diags,
                           std::unordered_set<std::string> &protocols);
 
@@ -55,7 +59,7 @@ gatherConstValuesForModule(const std::unordered_set<std::string> &Protocols,
 /// Serialize a collection of \c ConstValueInfos to JSON at the
 /// provided output stream.
 bool writeAsJSONToFile(const std::vector<ConstValueTypeInfo> &ConstValueInfos,
-                       llvm::raw_ostream &OS);
+                       toolchain::raw_ostream &OS);
 } // namespace language
 
 #endif

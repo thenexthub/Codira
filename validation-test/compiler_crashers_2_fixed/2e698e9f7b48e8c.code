@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ConstraintSystem::simplifyRestrictedConstraintImpl(language::constraints::ConversionRestrictionKind, language::Type, language::Type, language::constraints::ConstraintKind, language::optionset::OptionSet<language::constraints::ConstraintSystem::TypeMatchFlags, unsigned int>, language::constraints::ConstraintLocatorBuilder)"}
+// RUN: not %target-language-frontend -typecheck %s
+struct a < b struct c fn d .0 c<a> struct c < a, e

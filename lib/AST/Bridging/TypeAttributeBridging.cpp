@@ -1,12 +1,12 @@
 //===--- Bridging/TypeAttributeBridging.cpp -------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,43 +26,26 @@ using namespace language;
 // Define `.asTypeAttr` on each BridgedXXXTypeAttr type.
 #define SIMPLE_TYPE_ATTR(...)
 #define TYPE_ATTR(SPELLING, CLASS)                                             \
-  SWIFT_NAME("getter:Bridged" #CLASS "TypeAttr.asTypeAttribute(self:)")        \
+  LANGUAGE_NAME("getter:Bridged" #CLASS "TypeAttr.asTypeAttribute(self:)")        \
   BridgedTypeAttribute Bridged##CLASS##TypeAttr_asTypeAttribute(               \
       Bridged##CLASS##TypeAttr attr) {                                         \
     return attr.unbridged();                                                   \
   }
 #include "language/AST/TypeAttr.def"
 
-BridgedTypeAttrKind BridgedTypeAttrKind_fromString(BridgedStringRef cStr) {
+BridgedOptionalTypeAttrKind
+BridgedOptionalTypeAttrKind_fromString(BridgedStringRef cStr) {
   auto optKind = TypeAttribute::getAttrKindFromString(cStr.unbridged());
-  if (!optKind)
-    return BridgedTypeAttrKindNone;
-  switch (*optKind) {
-#define TYPE_ATTR(_, CLASS)                                                    \
-  case TypeAttrKind::CLASS:                                                    \
-    return BridgedTypeAttrKind##CLASS;
-#include "language/AST/TypeAttr.def"
+  if (!optKind) {
+    return BridgedOptionalTypeAttrKind();
   }
-}
-
-static std::optional<TypeAttrKind> unbridged(BridgedTypeAttrKind kind) {
-  switch (kind) {
-#define TYPE_ATTR(_, CLASS)                                                    \
-  case BridgedTypeAttrKind##CLASS:                                             \
-    return TypeAttrKind::CLASS;
-#include "language/AST/TypeAttr.def"
-  case BridgedTypeAttrKindNone:
-    return std::nullopt;
-  }
-  llvm_unreachable("unhandled enum value");
+  return *optKind;
 }
 
 BridgedTypeAttribute BridgedTypeAttribute_createSimple(
-    BridgedASTContext cContext, BridgedTypeAttrKind cKind,
+    BridgedASTContext cContext, language::TypeAttrKind kind,
     BridgedSourceLoc cAtLoc, BridgedSourceLoc cNameLoc) {
-  auto optKind = unbridged(cKind);
-  assert(optKind && "creating attribute of invalid kind?");
-  return TypeAttribute::createSimple(cContext.unbridged(), *optKind,
+  return TypeAttribute::createSimple(cContext.unbridged(), kind,
                                      cAtLoc.unbridged(), cNameLoc.unbridged());
 }
 
@@ -98,7 +81,7 @@ BridgedIsolatedTypeAttr BridgedIsolatedTypeAttr_createParsed(
     case BridgedIsolatedTypeAttrIsolationKind_DynamicIsolation:
       return IsolatedTypeAttr::IsolationKind::Dynamic;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }();
   return new (cContext.unbridged()) IsolatedTypeAttr(
       cAtLoc.unbridged(), cNameLoc.unbridged(), cParensRange.unbridged(),

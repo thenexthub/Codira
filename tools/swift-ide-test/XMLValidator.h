@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_TEST_XML_VALIDATOR_H
-#define SWIFT_IDE_TEST_XML_VALIDATOR_H
+#ifndef LANGUAGE_IDE_TEST_XML_VALIDATOR_H
+#define LANGUAGE_IDE_TEST_XML_VALIDATOR_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -50,5 +51,5 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_IDE_TEST_XML_VALIDATOR_H
+#endif // LANGUAGE_IDE_TEST_XML_VALIDATOR_H
 

@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-ide-test -F %S/Inputs/custom-frameworks -print-module -source-filename %s -module-to-print=APINotesFrameworkTest -function-definitions=false -language-version 5 | %FileCheck -check-prefix=CHECK-LANGUAGE-5 -check-prefix=CHECK-BOTH %s
+
+// RUN: %target-language-ide-test -F %S/Inputs/custom-frameworks -print-module -source-filename %s -module-to-print=APINotesFrameworkTest -function-definitions=false -language-version 4 | %FileCheck -check-prefix=CHECK-LANGUAGE-4 -check-prefix=CHECK-BOTH %s
+
+// REQUIRES: objc_interop
+
+
+// CHECK-BOTH-LABEL: class TestProperties : Base {
+
+// CHECK-BOTH-DAG: fn accessorsOnly() -> Any
+// CHECK-BOTH-DAG: fn setAccessorsOnly(_ accessorsOnly: Any)
+// CHECK-BOTH-DAG: class fn accessorsOnlyForClass() -> Any
+// CHECK-BOTH-DAG: class fn setAccessorsOnlyForClass(_ accessorsOnlyForClass: Any)
+
+// CHECK-BOTH-DAG: fn accessorsOnlyRO() -> Any
+// CHECK-BOTH-DAG: fn accessorsOnlyWeak() -> Any?
+// CHECK-BOTH-DAG: fn setAccessorsOnlyWeak(_ accessorsOnlyWeak: Any?)
+
+// CHECK-LANGUAGE-5-DAG: var accessorsOnlyInVersion4: Any
+// CHECK-LANGUAGE-5-DAG: class var accessorsOnlyForClassInVersion4: Any
+// CHECK-LANGUAGE-4-DAG: fn accessorsOnlyInVersion4() -> Any
+// CHECK-LANGUAGE-4-DAG: fn setAccessorsOnlyInVersion4(_ accessorsOnlyInVersion4: Any)
+// CHECK-LANGUAGE-4-DAG: class fn accessorsOnlyForClassInVersion4() -> Any
+// CHECK-LANGUAGE-4-DAG: class fn setAccessorsOnlyForClassInVersion4(_ accessorsOnlyForClassInVersion4: Any)
+
+// CHECK-LANGUAGE-5-DAG: fn accessorsOnlyExceptInVersion4() -> Any
+// CHECK-LANGUAGE-5-DAG: fn setAccessorsOnlyExceptInVersion4(_ accessorsOnlyExceptInVersion4: Any)
+// CHECK-LANGUAGE-5-DAG: class fn accessorsOnlyForClassExceptInVersion4() -> Any
+// CHECK-LANGUAGE-5-DAG: class fn setAccessorsOnlyForClassExceptInVersion4(_ accessorsOnlyForClassExceptInVersion4: Any)
+// CHECK-LANGUAGE-4-DAG: var accessorsOnlyExceptInVersion4: Any
+// CHECK-LANGUAGE-4-DAG: class var accessorsOnlyForClassExceptInVersion4: Any
+
+// CHECK-BOTH: {{^}$}}
+
+// CHECK-BOTH-LABEL: class TestPropertiesSub : TestProperties {
+// CHECK-BOTH-DAG: fn accessorsOnly() -> Any
+// CHECK-BOTH-DAG: fn setAccessorsOnly(_ accessorsOnly: Any)
+// CHECK-BOTH-DAG: class fn accessorsOnlyForClass() -> Any
+// CHECK-BOTH-DAG: class fn setAccessorsOnlyForClass(_ accessorsOnlyForClass: Any)
+// CHECK-BOTH: {{^}$}}
+
+// CHECK-BOTH-DAG: fn accessorsOnlyWithNewType() -> Base
+// CHECK-BOTH-DAG: fn setAccessorsOnlyWithNewType(_ accessorsOnlyWithNewType: Base)
+
+// CHECK-BOTH: {{^}$}}
+
+// CHECK-LANGUAGE-4-DAG: fn renamedAndRetyped() -> Any{{$}}
+// CHECK-LANGUAGE-4-DAG: fn setRenamedAndRetyped(_ accessorsOnlyRenamedRetyped: Any?)
+// CHECK-LANGUAGE-5-DAG: var accessorsOnlyRenamedRetyped: Any!
+
+// CHECK-LANGUAGE-4-DAG: class fn renamedAndRetypedClass() -> Any{{$}}
+// CHECK-LANGUAGE-4-DAG: class fn setRenamedAndRetypedClass(_ accessorsOnlyRenamedRetypedClass: Any?)
+// CHECK-LANGUAGE-5-DAG: class var accessorsOnlyRenamedRetypedClass: Any!
+
+// CHECK-BOTH: {{^}$}}

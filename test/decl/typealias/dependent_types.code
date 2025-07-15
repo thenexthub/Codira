@@ -1,0 +1,90 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype Assoc = Self
+}
+
+struct X : P {
+}
+
+class Y<T: P> {
+  typealias Assoc = T.Assoc
+}
+
+fn f<T: P>(_ x: T, y: Y<T>.Assoc) {
+}
+
+protocol P1 {
+  associatedtype A = Int
+}
+
+struct X1<T> : P1 {
+  init(_: X1.A) {
+  }
+}
+
+struct GenericStruct<T> { // expected-note 3{{generic struct 'GenericStruct' declared here}}
+  typealias Alias = T
+  typealias MetaAlias = T.Type
+
+  typealias Concrete = Int
+  typealias ReferencesConcrete = Concrete
+
+  fn methodOne() -> Alias.Type {}
+  fn methodTwo() -> MetaAlias {}
+
+  fn methodOne() -> Alias.BadType {}
+  // expected-error@-1 {{'BadType' is not a member type of type 'dependent_types.GenericStruct<T>.Alias'}}
+  fn methodTwo() -> MetaAlias.BadType {}
+  // expected-error@-1 {{'BadType' is not a member type of type 'dependent_types.GenericStruct<T>.MetaAlias'}}
+
+  var propertyOne: Alias.BadType
+  // expected-error@-1 {{'BadType' is not a member type of type 'dependent_types.GenericStruct<T>.Alias' (aka 'T')}}
+  var propertyTwo: MetaAlias.BadType
+  // expected-error@-1 {{'BadType' is not a member type of type 'dependent_types.GenericStruct<T>.MetaAlias' (aka 'T.Type')}}
+}
+
+// This was accepted in Codira 3.0 and sort of worked... but we can't
+// implement it correctly. In Codira 3.1 it triggered an assert.
+// Make sure it's banned now with a proper diagnostic.
+
+fn foo() -> Int {}
+fn metaFoo() -> Int.Type {}
+
+immutable _: GenericStruct.Alias = foo()
+// expected-error@-1 {{reference to generic type 'GenericStruct' requires arguments in <...>}}
+immutable _: GenericStruct.MetaAlias = metaFoo()
+// expected-error@-1 {{reference to generic type 'GenericStruct' requires arguments in <...>}}
+
+// ... but if the typealias has a fully concrete underlying type,
+// we are OK.
+immutable _: GenericStruct.Concrete = foo()
+
+immutable _: GenericStruct.ReferencesConcrete = foo()
+// expected-error@-1 {{reference to generic type 'GenericStruct' requires arguments in <...>}}
+
+class SuperG<T, U> {
+  typealias Composed = (T, U)
+  typealias Concrete = Int
+}
+
+class SubG<T> : SuperG<T, T> { }
+
+typealias SubGX<T> = SubG<T?>
+
+fn checkSugar(gs: SubGX<Int>.Composed) {
+  immutable i4: Int = gs // expected-error{{cannot convert value of type 'SubGX<Int>.Composed' (aka '(Optional<Int>, Optional<Int>)') to specified type 'Int'}}
+}
+
+// https://github.com/languagelang/language/issues/82160
+
+immutable x1: SuperG.Concrete = 123
+immutable x2: SubG.Concrete = 123
+
+fn f1() -> SuperG.Concrete {
+  return 123
+}
+
+fn f2() -> SubG.Concrete {
+  return 123
+}

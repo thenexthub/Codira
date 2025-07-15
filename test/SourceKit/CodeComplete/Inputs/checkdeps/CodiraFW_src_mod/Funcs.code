@@ -1,0 +1,1 @@
+public fn languageFWFunc_mod() -> Int { return 1 }

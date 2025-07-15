@@ -1,4 +1,4 @@
-//===--- Exclusivity.swift -------------------------------------------------===//
+//===--- Exclusivity.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A set of tests for measuring the enforcement overhead of memory access
@@ -20,31 +21,31 @@
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   // At -Onone
-  // 25% swift_beginAccess
+  // 25% language_beginAccess
   // 15% tlv_get_addr
-  // 15% swift_endAccess
+  // 15% language_endAccess
   BenchmarkInfo(
     name: "ExclusivityGlobal",
     runFunction: run_accessGlobal,
     tags: [.runtime, .cpubench]
   ),
   // At -Onone
-  // 23% swift_retain
-  // 22% swift_release
-  //  9% swift_beginAccess
-  //  3% swift_endAccess
+  // 23% language_retain
+  // 22% language_release
+  //  9% language_beginAccess
+  //  3% language_endAccess
   BenchmarkInfo(
     name: "ExclusivityInMatSet",
     runFunction: run_accessInMatSet,
     tags: [.runtime, .cpubench, .unstable]
   ),
   // At -Onone
-  // 25% swift_release
-  // 23% swift_retain
-  // 16% swift_beginAccess
-  //  8% swift_endAccess
+  // 25% language_release
+  // 23% language_retain
+  // 16% language_beginAccess
+  //  8% language_endAccess
   BenchmarkInfo(
     name: "ExclusivityIndependent",
     runFunction: run_accessIndependent,
@@ -62,11 +63,11 @@ public var globalCounter: Int = 0
 
 // TODO:
 // - Merge begin/endAccess when no calls intervene (~2x speedup).
-// - Move Swift runtime into the OS  (~2x speedup).
+// - Move Codira runtime into the OS  (~2x speedup).
 // - Whole module analysis can remove exclusivity checks (> 10x speedup now, 4x speedup with runtime in OS).
 //   (The global's "public" qualifier should make the benchmark immune to this optimization.)
 @inline(never)
-public func run_accessGlobal(_ n: Int) {
+public fn run_accessGlobal(_ n: Int) {
   globalCounter = 0
   for _ in 1...10000*n {
     globalCounter += 1
@@ -85,22 +86,22 @@ public func run_accessGlobal(_ n: Int) {
 public class C {
   public var counter = 0
 
-  func inc() {
+  fn inc() {
     counter += 1
   }
 }
 
 // Thunk 
 @inline(never)
-func updateClass(_ c: C) {
+fn updateClass(_ c: C) {
   c.inc()
 }
 
 // TODO: Replacing materializeForSet accessors with yield-once
 // accessors should make the callback overhead go away.
 @inline(never)
-public func run_accessInMatSet(_ n: Int) {
-  let c = C()
+public fn run_accessInMatSet(_ n: Int) {
+  immutable c = C()
   for _ in 1...10000*n {
     updateClass(c)
   }
@@ -117,7 +118,7 @@ struct Var {
 }
 
 @inline(never)
-func update(a: inout Var, b: inout Var, c: inout Var, d: inout Var) {
+fn update(a: inout Var, b: inout Var, c: inout Var, d: inout Var) {
   a.val += 1
   b.val += 1
   c.val += 1
@@ -125,12 +126,12 @@ func update(a: inout Var, b: inout Var, c: inout Var, d: inout Var) {
 }
 
 @inline(never)
-public func run_accessIndependent(_ n: Int) {
+public fn run_accessIndependent(_ n: Int) {
   var a = Var()
   var b = Var()
   var c = Var()
   var d = Var()
-  let updateVars = {
+  immutable updateVars = {
     update(a: &a, b: &b, c: &c, d: &d)
   }
   for _ in 1...1000*n {

@@ -1,0 +1,6 @@
+fn getIt 
+struct MyStruct {
+  fn getChildStruct() -> String {
+    return ""
+  }
+}

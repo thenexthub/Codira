@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Methods -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/methods.h
+// RUN: %FileCheck %s < %t/methods.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/methods.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+public struct Struct {
+  public var field: Int16
+
+  init() {
+    field = 0
+  }
+    
+  @available(macOS 11, *)
+  public var getterOnly: Int {
+    return 0
+  }
+
+  @available(*, unavailable, message: "stuff happened")
+  public static var staticUnavailableProp: Int {
+    return 0
+  }
+}
+
+// CHECK:  LANGUAGE_INLINE_THUNK language::Int getGetterOnly() const LANGUAGE_SYMBOL("s:7Methods6StructV10getterOnlySivp") LANGUAGE_AVAILABILITY(macos,introduced=11);
+// CHECK: static LANGUAGE_INLINE_THUNK language::Int getStaticUnavailableProp() LANGUAGE_SYMBOL("s:7Methods6StructV21staticUnavailablePropSivpZ") LANGUAGE_UNAVAILABLE_MSG("stuff happened");
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Int Struct::getGetterOnly() const LANGUAGE_AVAILABILITY(macos,introduced=11) {
+
+// CHECK: LANGUAGE_INLINE_THUNK language::Int Struct::getStaticUnavailableProp() LANGUAGE_UNAVAILABLE_MSG("stuff happened") {

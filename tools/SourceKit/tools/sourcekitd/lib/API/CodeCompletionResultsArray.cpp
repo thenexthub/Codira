@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/CodeCompletionResultsArray.h"
 #include "sourcekitd/CompactArray.h"
 #include "sourcekitd/DictionaryKeys.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/UIdent.h"
 
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace SourceKit;
 using namespace sourcekitd;
@@ -68,7 +69,7 @@ void CodeCompletionResultsArrayBuilder::add(
                         uint8_t(NumBytesToErase));
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 CodeCompletionResultsArrayBuilder::createBuffer() {
   return Impl.Builder.createBuffer(
       CustomBufferKind::CodeCompletionResultsArray);

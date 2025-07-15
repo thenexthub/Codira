@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple  %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple  %s -emit-sil -o /dev/null -verify -strict-concurrency=targeted
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple  %s -emit-sil -o /dev/null -verify -strict-concurrency=complete
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple  %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+fn autoclosureCapture(_: @autoclosure () async throws -> Int) async {}
+fn nonescapingCapture(_: () async throws -> Int) {}
+fn escapingCapture(_: @escaping () async throws -> Int) {}
+
+fn foo() async {
+    async immutable x = 32
+
+    async immutable y = x // expected-error{{not supported}}
+    _ = await y
+
+    await autoclosureCapture(await x)// expected-error{{not supported}}
+    nonescapingCapture { await x }// expected-error{{not supported}}
+    escapingCapture { await x }// expected-error{{not supported}}
+}

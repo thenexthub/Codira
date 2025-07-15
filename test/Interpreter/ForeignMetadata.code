@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+// RUN: %target-build-language -o %t/main %S/Inputs/ForeignTypeMetadata1.code  %S/Inputs/ForeignTypeMetadata2.code %t/main.code -language-version 5
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+useType()

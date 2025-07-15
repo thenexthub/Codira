@@ -1,0 +1,18 @@
+
+public protocol A {
+  static fn a()
+}
+
+public protocol B : A {
+  static fn b()
+}
+
+public struct S { public init() {} }
+
+extension S : A {
+  public static fn a() { }
+}
+
+extension S : B {
+  public static fn b() { }
+}

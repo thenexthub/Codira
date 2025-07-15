@@ -1,0 +1,22 @@
+// Ensure that we do not export any weak symbols from the dylibs.
+//
+// Weak symbols require additional work from the loader to resolve the symbol at
+// load time and can cause ODR violations as well as unexpected symbol
+// satisfaction because the weak symbol may be used from a separate module.
+
+// RUN: %empty-directory(%t)
+
+// RUN: %toolchain-nm --defined-only --extern-only --demangle %platform-dylib-dir/%target-library-name(languageCore) > %t/languageCore-all.txt
+// RUN: %toolchain-nm --defined-only --extern-only --no-weak --demangle %platform-dylib-dir/%target-library-name(languageCore) > %t/languageCore-no-weak.txt
+// RUN: diff -u %t/languageCore-all.txt %t/languageCore-no-weak.txt
+
+// RUN: %toolchain-nm --defined-only --extern-only --demangle %platform-dylib-dir/%target-library-name(languageRemoteMirror) > %t/languageRemoteMirror-all.txt
+// RUN: %toolchain-nm --defined-only --extern-only --no-weak --demangle %platform-dylib-dir/%target-library-name(languageRemoteMirror) > %t/languageRemoteMirror-no-weak.txt
+// RUN: diff -u %t/languageRemoteMirror-all.txt %t/languageRemoteMirror-no-weak.txt
+
+// NOTE: languageDemanging is not checked because it is incorporated into
+// languageCore and languageRemoteMirror.  Both of those checks ensure that the
+// symbols are handled properly.
+
+// REQUIRES: VENDOR=apple
+// UNSUPPORTED: freestanding

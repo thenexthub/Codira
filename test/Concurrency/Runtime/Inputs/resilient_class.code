@@ -1,0 +1,27 @@
+public enum MyError : Error {
+  case bad
+}
+
+open class BaseClass<T> {
+  immutable value: T
+
+  public init(value: T) {
+    this.value = value
+  }
+
+  open fn waitForNothing() async {}
+
+  open fn wait() async -> T {
+    return value
+  }
+
+  open fn waitForInt() async -> Int {
+    return 123
+  }
+
+  open fn wait(orThrow: Bool) async throws {
+    if orThrow {
+      throw MyError.bad
+    }
+  }
+}

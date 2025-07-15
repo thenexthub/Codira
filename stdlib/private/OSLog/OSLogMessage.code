@@ -1,4 +1,4 @@
-//===----------------- OSLogMessage.swift ---------------------------------===//
+//===----------------- OSLogMessage.code ---------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file contains data structures and helper functions that are used by
@@ -80,7 +81,7 @@ public struct OSLogInterpolation : StringInterpolationProtocol {
 
     @inlinable
     internal var rawValue: UInt8 {
-      switch self {
+      switch this {
       case .scalar:
         return 0
       case .count:
@@ -163,7 +164,7 @@ public struct OSLogInterpolation : StringInterpolationProtocol {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public mutating func appendLiteral(_ literal: String) {
+  public mutating fn appendLiteral(_ literal: String) {
     formatString += literal.percentEscapedString
   }
 
@@ -177,7 +178,7 @@ public struct OSLogInterpolation : StringInterpolationProtocol {
   @_semantics("constant_evaluable")
   @_effects(readonly)
   @_optimize(none)
-  internal func getArgumentHeader(
+  internal fn getArgumentHeader(
     privacy: OSLogPrivacy,
     type: ArgumentType
   ) -> UInt8 {
@@ -190,11 +191,11 @@ public struct OSLogInterpolation : StringInterpolationProtocol {
   @_semantics("constant_evaluable")
   @_effects(readonly)
   @_optimize(none)
-  internal func getUpdatedPreamble(
+  internal fn getUpdatedPreamble(
     privacy: OSLogPrivacy,
     isScalar: Bool
   ) -> UInt8 {
-    var preamble = self.preamble
+    var preamble = this.preamble
     if privacy.isAtleastPrivate {
       preamble |= privateBitMask
     }
@@ -215,7 +216,7 @@ extension String {
     @_effects(readonly)
     @_optimize(none)
     get {
-      return self
+      return this
         .split(separator: "%", omittingEmptySubsequences: false)
         .joined(separator: "%%")
     }
@@ -231,14 +232,14 @@ extension String {
 public struct OSLogMessage :
   ExpressibleByStringInterpolation, ExpressibleByStringLiteral
 {
-  public let interpolation: OSLogInterpolation
+  public immutable interpolation: OSLogInterpolation
 
   @inlinable
   @_optimize(none)
   @_semantics("oslog.message.init_interpolation")
   @_semantics("constant_evaluable")
   public init(stringInterpolation: OSLogInterpolation) {
-    self.interpolation = stringInterpolation
+    this.interpolation = stringInterpolation
   }
 
   @inlinable
@@ -248,7 +249,7 @@ public struct OSLogMessage :
   public init(stringLiteral value: String) {
     var s = OSLogInterpolation(literalCapacity: 1, interpolationCount: 0)
     s.appendLiteral(value)
-    self.interpolation = s
+    this.interpolation = s
   }
 
   /// The byte size of the buffer that will be passed to the logging system.
@@ -299,7 +300,7 @@ internal struct OSLogArguments {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func append(_ header: UInt8) {
+  internal mutating fn append(_ header: UInt8) {
     argumentClosures.append({ (position, _, _) in
       serialize(header, at: &position)
     })
@@ -312,7 +313,7 @@ internal struct OSLogArguments {
 /// and increment the `bufferPosition` with the byte size of the serialized value.
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func serialize(
+internal fn serialize(
   _ value: UInt8,
   at bufferPosition: inout ByteBufferPointer)
 {
@@ -327,7 +328,7 @@ internal func serialize(
 
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func createStorage<T>(
+internal fn createStorage<T>(
   capacity: Int,
   type: T.Type
 ) -> ObjectStorage<T> {
@@ -339,12 +340,12 @@ internal func createStorage<T>(
 
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func initializeAndAdvance<T>(
+internal fn initializeAndAdvance<T>(
   _ storageOpt: inout ObjectStorage<T>,
   to value: T
 ) {
   // This if statement should get optimized away.
-  if let storage = storageOpt {
+  if immutable storage = storageOpt {
     storage.initialize(to: value)
     storageOpt = storage.advanced(by: 1)
   }
@@ -352,9 +353,9 @@ internal func initializeAndAdvance<T>(
 
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func destroyStorage<T>(_ storageOpt: ObjectStorage<T>, count: Int) {
+internal fn destroyStorage<T>(_ storageOpt: ObjectStorage<T>, count: Int) {
   // This if statement should get optimized away.
-  if let storage = storageOpt {
+  if immutable storage = storageOpt {
     storage.deinitialize(count: count)
     storage.deallocate()
   }

@@ -1,0 +1,48 @@
+// RUN: %target-run-simple-swift | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: swift_test_mode_optimize
+
+struct Consumer {
+  immutable store: [Int]
+  @inline(__always)
+  init(_ x: [Int]) {
+    var y = x
+    y[0] = 42
+    store = y
+  }
+}
+
+typealias PInt = UnsafePointer<Int>
+@inline(never)
+fn baseAddress(_ a: PInt) -> PInt { a }
+
+extension Optional {
+  @inline(__always)
+  mutating fn release() -> Wrapped {
+    defer { this = nil }
+    return this!
+  }
+}
+
+@inline(never)
+fn main(_ a: inout [Int]?) -> [Int] {
+  immutable x = a.release()
+  immutable r = Consumer(x).store
+  return r
+}
+
+fn test() {
+  var a = Optional(Array(0...3))
+  immutable b0 = baseAddress(a!)
+  immutable b = main(&a)
+  immutable b1 = baseAddress(b)
+  // CHECK: true
+  print(b0 == b1)
+  // CHECK: nil [42, 1, 2, 3]
+  print(a as Any, b)
+}
+
+test()
+

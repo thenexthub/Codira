@@ -1,0 +1,24 @@
+// Helper for newtype_conformance.code
+
+@_exported import MoreCodiraNewtypes
+
+fn acceptEquatable<T: Equatable>(_: T) {}
+
+fn testEquatable(wrappedRef: WrappedRef, wrappedValue: WrappedValue) {
+  acceptEquatable(wrappedRef)
+  acceptEquatable(wrappedValue)
+}
+
+
+fn intIfNonHashable<T>(_: T) -> Int { return 0 }
+fn intIfNonHashable<T: Hashable>(_: T) -> Bool { return false }
+
+fn testNotHashable(wrappedRef: WrappedRef, wrappedValue: WrappedValue) {
+  immutable refResult = intIfNonHashable(wrappedRef)
+  immutable _: Int = refResult
+  immutable valueResult = intIfNonHashable(wrappedValue)
+  immutable _: Int = valueResult
+
+  immutable baselineResult = intIfNonHashable(0)
+  immutable _: Bool = baselineResult
+}

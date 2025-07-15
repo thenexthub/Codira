@@ -1,6 +1,6 @@
-# ARC Optimization for Swift
+# ARC Optimization for Codira
 
-*TODO*: This is an evolving document on ARC optimization in the Swift compiler.
+*TODO*: This is an evolving document on ARC optimization in the Codira compiler.
 Please extend it.
 
 ## Contents
@@ -89,7 +89,7 @@ Talk about how this fits into `@owned` and `@guaranteed` parameters.
 
 ## RC Identity
 
-A core ARC concept in Swift optimization is the concept of
+A core ARC concept in Codira optimization is the concept of
 `Reference Count Identity` (RC Identity) and RC Identity preserving
 instructions. In this section, we:
 
@@ -315,13 +315,13 @@ must not remove retain/release pairs of this form:
 ```sil
 retain X
 retain X
-_swift_isUniquelyReferenced(X)
+_language_isUniquelyReferenced(X)
 release X
 release X
 ```
 
 To prevent removal of the apparently redundant inner retain/release
-pair, the LLVM ARC optimizer should model `_swift_isUniquelyReferenced`
+pair, the LLVM ARC optimizer should model `_language_isUniquelyReferenced`
 as a function that may release X, use X, and exit the program (the
 subsequent release instruction does not prove safety).
 
@@ -336,7 +336,7 @@ argument type:
 reference count: (Builtin.NativeObject, known native class
 reference)
 - Objective-C object types require an additional check that the
-dynamic object type uses native Swift reference counting: (unknown
+dynamic object type uses native Codira reference counting: (unknown
 class reference, class existential)
 - Bridged object types allow the dynamic object type check to be
 bypassed based on the pointer encoding: (Builtin.BridgeObject)
@@ -344,7 +344,7 @@ bypassed based on the pointer encoding: (Builtin.BridgeObject)
 Any of the above types may also be wrapped in an optional. If the static
 argument type is optional, then a null check is also performed.
 
-Thus, is_unique only returns true for non-null, native Swift object
+Thus, is_unique only returns true for non-null, native Codira object
 references with a strong reference count of one.
 
 ### `Builtin.isUnique`
@@ -897,7 +897,7 @@ not needed. We wish to avoid that if it is at all possible.
 
 ## Deinit Model
 
-The semantics around deinits in swift are a common area of confusion.
+The semantics around deinits in language are a common area of confusion.
 This section is not attempting to state where the deinit model may be in
 the future, but is just documenting where things are today in the hopes
 of improving clarity.
@@ -911,9 +911,9 @@ normal control flow.
 3. If the optimizer takes advantage of the lack of sequencing it must
 do so in a way that preserves memory safety.
 
-Consider the following pseudo-Swift example:
+Consider the following pseudo-Codira example:
 
-```swift
+```language
 class D {}
 class D1 : D {}
 class D2 : D {}
@@ -922,7 +922,7 @@ var GLOBAL_D : D = D1()
 
 class C { deinit { GLOBAL_D = D2() } }
 
-func main() {
+fn main() {
   let c = C()
   let d = GLOBAL_D
   useC(c)
@@ -940,8 +940,8 @@ respect to deinits, there are two correct programs here that the
 optimizer can produce: the original and the one where `useC(c)` and
 `GLOBAL_D` are swapped, i.e.:
 
-```swift
-func main() {
+```language
+fn main() {
   let c = C()
   useC(c)
   let d = GLOBAL_D
@@ -954,8 +954,8 @@ it would be an instance of class `D2`. Notice how in both programs though,
 no deinitialized object is accessed. On the other hand, imagine if we
 had split main like so:
 
-```swift
-func main() {
+```language
+fn main() {
   let c = C()
   let d = unsafe_unowned_load(GLOBAL_D)
   useC(c)

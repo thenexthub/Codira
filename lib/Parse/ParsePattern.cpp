@@ -1,4 +1,4 @@
-//===--- ParsePattern.cpp - Swift Language Parser for Patterns ------------===//
+//===--- ParsePattern.cpp - Codira Language Parser for Patterns ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Pattern Parsing and AST Building
@@ -29,9 +30,9 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
 #include "language/Parse/IDEInspectionCallbacks.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 
@@ -183,10 +184,10 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
     // Per SE-0155, enum elements may not have empty parameter lists.
     if (paramContext == ParameterContextKind::EnumElement) {
       decltype(diag::enum_element_empty_arglist) diagnostic;
-      if (Context.isSwiftVersionAtLeast(5)) {
+      if (Context.isCodiraVersionAtLeast(5)) {
         diagnostic = diag::enum_element_empty_arglist;
       } else {
-        diagnostic = diag::enum_element_empty_arglist_swift4;
+        diagnostic = diag::enum_element_empty_arglist_language4;
       }
 
       diagnose(leftParenLoc, diagnostic)
@@ -227,7 +228,7 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
       bool hasSpecifier = false;
       while (isParameterSpecifier()) {
         // Placing 'inout' in front of the parameter specifiers was allowed in
-        // the Swift 2-ish era and got moved to the return type in Swift 3
+        // the Codira 2-ish era and got moved to the return type in Codira 3
         // (SE-0031).
         // But new parameters that don't store there location in
         // `SpecifierLoc` were added afterwards and didn't get diagnosed.
@@ -251,7 +252,7 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
         
         if (Tok.isContextualKeyword("isolated")) {
           diagnose(Tok, diag::parameter_specifier_as_attr_disallowed, Tok.getText())
-                    .warnUntilSwiftVersion(6);
+                    .warnUntilCodiraVersion(6);
           // did we already find an 'isolated' type modifier?
           if (param.IsolatedLoc.isValid()) {
             diagnose(Tok, diag::parameter_specifier_repeated)
@@ -267,7 +268,7 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
 
         if (Tok.isContextualKeyword("_const")) {
           diagnose(Tok, diag::parameter_specifier_as_attr_disallowed, Tok.getText())
-                    .warnUntilSwiftVersion(6);
+                    .warnUntilCodiraVersion(6);
           param.CompileConstLoc = consumeToken();
           continue;
         }
@@ -276,7 +277,7 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
             Tok.isContextualKeyword("sending")) {
           diagnose(Tok, diag::parameter_specifier_as_attr_disallowed,
                    Tok.getText())
-              .warnUntilSwiftVersion(6);
+              .warnUntilCodiraVersion(6);
           if (param.SendingLoc.isValid()) {
             diagnose(Tok, diag::parameter_specifier_repeated)
                 .fixItRemove(Tok.getLoc());
@@ -380,7 +381,7 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
           diagContextKind = EnumElement;
           break;
         default:
-          llvm_unreachable("Unhandled parameter context kind!");
+          toolchain_unreachable("Unhandled parameter context kind!");
         }
         diagnose(param.FirstNameLoc, diag::parameter_operator_keyword_argument,
                  unsigned(diagContextKind))
@@ -426,7 +427,7 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
         param.SecondNameLoc = SourceLoc();
       } else if (isBareType && !Tok.is(tok::code_complete)) {
         // Otherwise, if this is a bare type, then the user forgot to name the
-        // parameter, e.g. "func foo(Int) {}"
+        // parameter, e.g. "fn foo(Int) {}"
         // Don't enter this case if the element could only be parsed as a bare
         // type because a code completion token is positioned here. In this case
         // the user is about to type the parameter label and we shouldn't
@@ -453,14 +454,14 @@ Parser::parseParameterClause(SourceLoc &leftParenLoc,
             // warn about the misuse of this syntax and offer to
             // fix it.
             // An exception to this rule is when the type is declared with type sugar
-            // Reference: https://github.com/apple/swift/issues/54133
+            // Reference: https://github.com/apple/language/issues/54133
             if (isa<OptionalTypeRepr>(param.Type)
                 || isa<ImplicitlyUnwrappedOptionalTypeRepr>(param.Type)) {
                 diagnose(typeStartLoc, diag::parameter_unnamed)
                     .fixItInsert(typeStartLoc, "_: ");
             } else {
                 diagnose(typeStartLoc, diag::parameter_unnamed)
-                    .warnUntilSwiftVersion(6)
+                    .warnUntilCodiraVersion(6)
                     .fixItInsert(typeStartLoc, "_: ");
             }
           }
@@ -532,7 +533,7 @@ validateParameterWithOwnership(Parser &parser,
     parser.diagnose(loc, diag::parameter_specifier_repeated).fixItRemove(loc);
   } else {
     auto specifierName = ParamDecl::getSpecifierSpelling(specifier);
-    llvm::SmallString<128> replacement(specifierName);
+    toolchain::SmallString<128> replacement(specifierName);
     replacement += " ";
     parser
         .diagnose(loc, diag::parameter_specifier_as_attr_disallowed,
@@ -617,9 +618,9 @@ mapParsedParameters(Parser &parser,
       param->setTypeRepr(type);
 
     } else if (paramInfo.SpecifierLoc.isValid()) {
-      llvm::SmallString<16> specifier;
+      toolchain::SmallString<16> specifier;
       {
-        llvm::raw_svector_ostream ss(specifier);
+        toolchain::raw_svector_ostream ss(specifier);
         
         ss << '\'' << ParamDecl::getSpecifierSpelling(paramInfo.SpecifierKind)
            << '\'';
@@ -729,7 +730,7 @@ Parser::parseSingleParameterClause(ParameterContextKind paramContext,
     case ParameterContextKind::EnumElement:
     case ParameterContextKind::Closure:
     case ParameterContextKind::Curried:
-      llvm_unreachable("should never be here");
+      toolchain_unreachable("should never be here");
     }
 
     {
@@ -793,9 +794,9 @@ Parser::parseFunctionArguments(SmallVectorImpl<Identifier> &NamePieces,
 }
 
 /// Parse a function definition signature.
-///   func-signature:
-///     func-arguments ('async'|'reasync')? func-throws? func-signature-result?
-///   func-signature-result:
+///   fn-signature:
+///     fn-arguments ('async'|'reasync')? fn-throws? fn-signature-result?
+///   fn-signature-result:
 ///     '->' type
 ///
 /// Note that this leaves retType as null if unspecified.
@@ -1125,7 +1126,7 @@ ParserResult<Pattern> Parser::parsePattern() {
     // inout. Otherwise, go below.
     if (!Context.LangOpts.hasFeature(Feature::ReferenceBindings))
       break;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case tok::kw_var:
   case tok::kw_let: {
     auto newBindingState = PatternBindingState(Tok);
@@ -1149,12 +1150,12 @@ ParserResult<Pattern> Parser::parsePattern() {
     // In our recursive parse, remember that we're in a let/var/inout
     // pattern. We default to var if we don't have an immediate pattern bidning
     // state.
-    llvm::SaveAndRestore<decltype(InBindingPattern)> T(
+    toolchain::SaveAndRestore<decltype(InBindingPattern)> T(
         InBindingPattern, newBindingState.getPatternBindingStateForIntroducer(
                               VarDecl::Introducer::Var));
 
     // Reset async attribute in parser context.
-    llvm::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
+    toolchain::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
 
     ParserResult<Pattern> subPattern = parsePattern();
     if (subPattern.hasCodeCompletion())
@@ -1412,12 +1413,12 @@ Parser::parseMatchingPatternAsBinding(PatternBindingState newState,
     diagnose(varLoc, diag::let_pattern_in_immutable_context);
 
   // In our recursive parse, remember that we're in a var/let pattern.
-  llvm::SaveAndRestore<decltype(InBindingPattern)> T(
+  toolchain::SaveAndRestore<decltype(InBindingPattern)> T(
       InBindingPattern,
       newState.getPatternBindingStateForIntroducer(VarDecl::Introducer::Var));
 
   // Reset async attribute in parser context.
-  llvm::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
+  toolchain::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
 
   ParserResult<Pattern> subPattern = parseMatchingPattern(isExprBasic);
   if (subPattern.isNull())
@@ -1459,7 +1460,7 @@ static bool canParsePattern(Parser &P) {
   case tok::kw_inout:
     if (!P.Context.LangOpts.hasFeature(Feature::ReferenceBindings))
       return false;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case tok::kw_let:
   case tok::kw_var:
     P.consumeToken();

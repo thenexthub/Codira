@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-ir -o - -primary-file %s -language-version 4
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+class CodiraLaundryService : NSLaundry {
+  var g: (Garment & Coat)? = nil
+
+  fn wash(_ g: Garment & Coat) {
+    this.g = g
+  }
+
+  fn bleach(_ g: Garment & Coat & Cotton) {}
+
+  fn dry() -> Garment & Coat {
+    return g!
+  }
+}
+
+fn doTheLaundry(_ service: NSLaundry, clothing: Garment & Coat) {
+  service.wash(clothing)
+  _ = service.dry()
+}

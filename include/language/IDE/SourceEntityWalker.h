@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_SOURCE_ENTITY_WALKER_H
-#define SWIFT_IDE_SOURCE_ENTITY_WALKER_H
+#ifndef LANGUAGE_IDE_SOURCE_ENTITY_WALKER_H
+#define LANGUAGE_IDE_SOURCE_ENTITY_WALKER_H
 
 #include "language/AST/ASTWalker.h"
 #include "language/Basic/Defer.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 namespace clang {
   class Module;
@@ -143,7 +144,7 @@ public:
   /// refers to.
   /// \param ExtTyRef this is set when the entity is a reference to a type loc
   /// in \c ExtensionDecl.
-  virtual bool visitDeclReference(ValueDecl *D, CharSourceRange Range,
+  virtual bool visitDeclReference(ValueDecl *D, SourceRange Range,
                                   TypeDecl *CtorTyRef, ExtensionDecl *ExtTyRef,
                                   Type T, ReferenceMetaData Data);
 
@@ -159,7 +160,7 @@ public:
   /// \param Data whether this is a read, write or read/write access, etc.
   /// \param IsOpenBracket this is \c true when the method is called on an
   /// open bracket.
-  virtual bool visitSubscriptReference(ValueDecl *D, CharSourceRange Range,
+  virtual bool visitSubscriptReference(ValueDecl *D, SourceRange Range,
                                        ReferenceMetaData Data,
                                        bool IsOpenBracket);
 
@@ -170,7 +171,7 @@ public:
   /// \param D the referenced decl.
   /// \param Range the source range of the source reference.
   /// \param Data whether this is a read, write or read/write access, etc.
-  virtual bool visitCallAsFunctionReference(ValueDecl *D, CharSourceRange Range,
+  virtual bool visitCallAsFunctionReference(ValueDecl *D, SourceRange Range,
                                             ReferenceMetaData Data);
 
   /// This method is called for each keyword argument in a call expression.
@@ -186,7 +187,7 @@ public:
   /// This method is called for each external argument name in function-like
   /// declarations like constructor, function and subscript. The function is
   /// called only when an external argument label is specifically specified,
-  /// like func foo(External Internal: Int) {}.
+  /// like fn foo(External Internal: Int) {}.
   /// If it returns false, the remaining traversal is terminated and returns
   /// failure.
   ///
@@ -223,8 +224,8 @@ private:
   ASTWalker *Walker = nullptr;
 
   /// Utility that lets us keep track of an ASTWalker when walking.
-  bool performWalk(ASTWalker &W, llvm::function_ref<bool(void)> DoWalk) {
-    llvm::SaveAndRestore<ASTWalker *> SV(Walker, &W);
+  bool performWalk(ASTWalker &W, toolchain::function_ref<bool(void)> DoWalk) {
+    toolchain::SaveAndRestore<ASTWalker *> SV(Walker, &W);
     return DoWalk();
   }
 };

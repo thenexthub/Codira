@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/USRGeneration.h"
@@ -19,7 +20,7 @@
 #include "language/AST/ClangModuleLoader.h"
 #include "language/AST/GenericParamList.h"
 #include "language/AST/Module.h"
-#include "language/AST/SwiftNameTranslation.h"
+#include "language/AST/CodiraNameTranslation.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/AST/USRGeneration.h"
 #include "language/Basic/Assertions.h"
@@ -29,9 +30,9 @@
 #include "clang/Index/USRGeneration.h"
 #include "clang/Lex/PreprocessingRecord.h"
 #include "clang/Lex/Preprocessor.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace ide;
@@ -61,7 +62,7 @@ static bool printObjCUSRFragment(const ValueDecl *D, StringRef ObjCName,
   if (!D)
     return true;
 
-  // The Swift module name that the decl originated from. If the decl is
+  // The Codira module name that the decl originated from. If the decl is
   // originating from ObjC code (ObjC module or the bridging header) then this
   // will be empty.
   StringRef ModuleName;
@@ -80,7 +81,7 @@ static bool printObjCUSRFragment(const ValueDecl *D, StringRef ObjCName,
   } else if (isa<VarDecl>(D)) {
     clang::index::generateUSRForObjCProperty(ObjCName, D->isStatic(), OS);
   } else if (isa<ConstructorDecl>(D)) {
-    // init() is a class member in Swift, but an instance method in ObjC.
+    // init() is a class member in Codira, but an instance method in ObjC.
     clang::index::generateUSRForObjCMethod(ObjCName, /*IsInstanceMethod=*/true,
                                            OS);
   } else if (isa<AbstractFunctionDecl>(D)) {
@@ -90,7 +91,7 @@ static bool printObjCUSRFragment(const ValueDecl *D, StringRef ObjCName,
   } else if (isa<EnumElementDecl>(D)) {
     clang::index::generateUSRForEnumConstant(ObjCName, OS);
   } else {
-    llvm_unreachable("Unexpected value decl");
+    toolchain_unreachable("Unexpected value decl");
   }
   return false;
 }
@@ -100,7 +101,7 @@ static bool printObjCUSRContext(const Decl *D, raw_ostream &OS) {
   auto *DC = D->getDeclContext();
   if (auto *Parent = DC->getSelfNominalTypeDecl()) {
     auto *extContextD = dyn_cast<ExtensionDecl>(DC);
-    auto ObjCName = objc_translation::getObjCNameForSwiftDecl(Parent);
+    auto ObjCName = objc_translation::getObjCNameForCodiraDecl(Parent);
     if (printObjCUSRFragment(Parent, ObjCName.first.str(), extContextD, OS))
       return true;
   }
@@ -115,17 +116,17 @@ static bool printObjCUSRForAccessor(const AbstractStorageDecl *ASD,
 
   ObjCSelector Selector;
   switch (Kind) {
-    case swift::AccessorKind::Get:
+    case language::AccessorKind::Get:
       Selector = ASD->getObjCGetterSelector();
       break;
-    case swift::AccessorKind::Set:
+    case language::AccessorKind::Set:
       Selector = ASD->getObjCSetterSelector();
       break;
     default:
-      llvm_unreachable("invalid accessor kind");
+      toolchain_unreachable("invalid accessor kind");
   }
   assert(Selector);
-  llvm::SmallString<128> Buf;
+  toolchain::SmallString<128> Buf;
   clang::index::generateUSRForObjCMethod(Selector.getString(Buf),
                                          ASD->isInstanceMember(), OS);
   return false;
@@ -136,13 +137,13 @@ static bool printObjCUSR(const ValueDecl *D, raw_ostream &OS) {
     return true;
   auto *extContextD = dyn_cast<ExtensionDecl>(D->getDeclContext());
 
-  auto ObjCName = objc_translation::getObjCNameForSwiftDecl(D);
+  auto ObjCName = objc_translation::getObjCNameForCodiraDecl(D);
 
   if (!ObjCName.first.empty())
     return printObjCUSRFragment(D, ObjCName.first.str(), extContextD, OS);
 
   assert(ObjCName.second);
-  llvm::SmallString<128> Buf;
+  toolchain::SmallString<128> Buf;
   return printObjCUSRFragment(D, ObjCName.second.getString(Buf),
                               extContextD, OS);
 }
@@ -173,14 +174,14 @@ static bool shouldUseObjCUSR(const Decl *D) {
   return false;
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const USRGenerationOptions &options) {
   out << "USRGenerationOptions (distinguishSynthesizedDecls: "
       << options.distinguishSynthesizedDecls << ")";
 }
 
 std::string
-swift::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *D,
+language::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *D,
                                       USRGenerationOptions options) const {
   if (auto *VD = dyn_cast<VarDecl>(D))
     D = VD->getCanonicalVarDecl();
@@ -211,7 +212,7 @@ swift::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *D,
       // The clang enum constants are associated with both the static vars and
       // the enum cases.
       // But we want unique USRs for the above symbols, so use the clang USR
-      // for the enum cases, and the Swift USR for the vars.
+      // for the enum cases, and the Codira USR for the vars.
       //
       if (!options.distinguishSynthesizedDecls) {
         return ClangN;
@@ -230,8 +231,8 @@ swift::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *D,
     return ClangN;
   };
 
-  llvm::SmallString<128> Buffer;
-  llvm::raw_svector_ostream OS(Buffer);
+  toolchain::SmallString<128> Buffer;
+  toolchain::raw_svector_ostream OS(Buffer);
 
   if (ClangNode ClangN = interpretAsClangNode(D)) {
     if (auto ClangD = ClangN.getAsDecl()) {
@@ -289,7 +290,7 @@ std::string ide::demangleUSR(StringRef mangled) {
 }
 
 std::string
-swift::MangleLocalTypeDeclRequest::evaluate(Evaluator &evaluator,
+language::MangleLocalTypeDeclRequest::evaluate(Evaluator &evaluator,
                                             const TypeDecl *D) const {
   if (isa<ModuleDecl>(D))
     return std::string(); // Ignore.
@@ -299,7 +300,7 @@ swift::MangleLocalTypeDeclRequest::evaluate(Evaluator &evaluator,
 }
 
 bool ide::printModuleUSR(ModuleEntity Mod, raw_ostream &OS) {
-  if (auto *D = Mod.getAsSwiftModule()) {
+  if (auto *D = Mod.getAsCodiraModule()) {
     StringRef moduleName = D->getRealName().str();
     return clang::index::generateFullUSRForTopLevelModuleName(moduleName, OS);
   } else if (auto ClangM = Mod.getAsClangModule()) {
@@ -321,7 +322,7 @@ bool ide::printValueDeclUSR(const ValueDecl *D, raw_ostream &OS,
 }
 
 bool ide::printAccessorUSR(const AbstractStorageDecl *D, AccessorKind AccKind,
-                           llvm::raw_ostream &OS) {
+                           toolchain::raw_ostream &OS) {
   // AccKind should always be either IsGetter or IsSetter here, based
   // on whether a reference is a mutating or non-mutating use.  USRs
   // aren't supposed to reflect implementation differences like stored

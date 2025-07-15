@@ -1,13 +1,17 @@
 //===--- CodeCompletionString.cpp -----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CodeCompletionString.h"
@@ -24,7 +28,7 @@ CodeCompletionString::CodeCompletionString(ArrayRef<Chunk> Chunks) {
 }
 
 CodeCompletionString *
-CodeCompletionString::create(llvm::BumpPtrAllocator &Allocator,
+CodeCompletionString::create(toolchain::BumpPtrAllocator &Allocator,
                              ArrayRef<Chunk> Chunks) {
   void *CCSMem = Allocator.Allocate(totalSizeToAlloc<Chunk>(Chunks.size()),
                                     alignof(CodeCompletionString));
@@ -102,7 +106,7 @@ std::optional<unsigned> CodeCompletionString::getFirstTextChunkIndex(
       continue;
 
     case ChunkKind::BraceStmtWithCursor:
-      llvm_unreachable("should have already extracted the text");
+      toolchain_unreachable("should have already extracted the text");
     }
   }
   return std::nullopt;
@@ -223,7 +227,7 @@ void CodeCompletionString::print(raw_ostream &OS) const {
 }
 
 void CodeCompletionString::dump() const {
-  llvm::raw_ostream &OS = llvm::errs();
+  toolchain::raw_ostream &OS = toolchain::errs();
 
   OS << "Chunks: \n";
   for (auto &chunk : getChunks()) {

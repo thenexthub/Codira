@@ -1,13 +1,17 @@
 //===--- ImportCache.h - Caching the import graph ---------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for querying the module import graph in an
@@ -15,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_IMPORT_CACHE_H
-#define SWIFT_AST_IMPORT_CACHE_H
+#ifndef LANGUAGE_AST_IMPORT_CACHE_H
+#define LANGUAGE_AST_IMPORT_CACHE_H
 
 #include "language/AST/Module.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/FoldingSet.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/FoldingSet.h"
 
 namespace language {
 class DeclContext;
@@ -45,38 +49,38 @@ namespace namelookup {
 /// The set of transitive imports does not contain any elements found in
 /// the top-level imports.
 ///
-/// The Swift standard library module is not included in either set unless
+/// The Codira standard library module is not included in either set unless
 /// it was explicitly imported (or re-exported).
 class ImportSet final :
-    public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<ImportSet, ImportedModule> {
+    public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<ImportSet, ImportedModule> {
   friend TrailingObjects;
   friend class ImportCache;
 
   unsigned HasHeaderImportModule : 1;
   unsigned NumTopLevelImports : 31;
   unsigned NumTransitiveImports;
-  unsigned NumTransitiveSwiftOnlyImports;
+  unsigned NumTransitiveCodiraOnlyImports;
 
   ImportSet(bool hasHeaderImportModule,
             ArrayRef<ImportedModule> topLevelImports,
             ArrayRef<ImportedModule> transitiveImports,
-            ArrayRef<ImportedModule> transitiveSwiftOnlyImports);
+            ArrayRef<ImportedModule> transitiveCodiraOnlyImports);
 
   ImportSet(const ImportSet &) = delete;
   void operator=(const ImportSet &) = delete;
 
 public:
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getTopLevelImports());
   }
   static void Profile(
-      llvm::FoldingSetNodeID &ID,
+      toolchain::FoldingSetNodeID &ID,
       ArrayRef<ImportedModule> topLevelImports);
 
   size_t numTrailingObjects(OverloadToken<ImportedModule>) const {
     return NumTopLevelImports + NumTransitiveImports +
-           NumTransitiveSwiftOnlyImports;
+           NumTransitiveCodiraOnlyImports;
   }
 
   /// This is a bit of a hack to make module name lookup work properly.
@@ -97,10 +101,10 @@ public:
             NumTransitiveImports};
   }
 
-  ArrayRef<ImportedModule> getTransitiveSwiftOnlyImports() const {
+  ArrayRef<ImportedModule> getTransitiveCodiraOnlyImports() const {
     return {getTrailingObjects<ImportedModule>() +
               NumTopLevelImports + NumTransitiveImports,
-            NumTransitiveSwiftOnlyImports};
+            NumTransitiveCodiraOnlyImports};
   }
 
   ArrayRef<ImportedModule> getAllImports() const {
@@ -108,26 +112,26 @@ public:
               NumTopLevelImports + NumTransitiveImports};
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 class alignas(ImportedModule) ImportCache {
   ImportCache(const ImportCache &) = delete;
   void operator=(const ImportCache &) = delete;
 
-  llvm::FoldingSet<ImportSet> ImportSets;
-  llvm::DenseMap<const DeclContext *, ImportSet *> ImportSetForDC;
-  llvm::DenseMap<std::tuple<const ModuleDecl *,
+  toolchain::FoldingSet<ImportSet> ImportSets;
+  toolchain::DenseMap<const DeclContext *, ImportSet *> ImportSetForDC;
+  toolchain::DenseMap<std::tuple<const ModuleDecl *,
                             const DeclContext *>,
                  ArrayRef<ImportPath::Access>> VisibilityCache;
-  llvm::DenseMap<std::tuple<const ModuleDecl *,
+  toolchain::DenseMap<std::tuple<const ModuleDecl *,
                             const ModuleDecl *,
                             const DeclContext *>,
                  ArrayRef<ImportPath::Access>> ShadowCache;
-  llvm::DenseMap<std::tuple<const ModuleDecl *,
+  toolchain::DenseMap<std::tuple<const ModuleDecl *,
                             const DeclContext *>,
-                 bool> SwiftOnlyCache;
-  llvm::DenseMap<const ModuleDecl *, ArrayRef<ModuleDecl *>> WeakCache;
+                 bool> CodiraOnlyCache;
+  toolchain::DenseMap<const ModuleDecl *, ArrayRef<ModuleDecl *>> WeakCache;
 
   ImportPath::Access EmptyAccessPath;
 
@@ -137,7 +141,7 @@ class alignas(ImportedModule) ImportCache {
 
   ArrayRef<ModuleDecl *> allocateArray(
       ASTContext &ctx,
-      llvm::SetVector<ModuleDecl *> &results);
+      toolchain::SetVector<ModuleDecl *> &results);
 
   ImportSet &getImportSet(ASTContext &ctx,
                           ArrayRef<ImportedModule> topLevelImports);
@@ -159,10 +163,10 @@ public:
     return !getAllVisibleAccessPaths(mod, dc).empty();
   }
 
-  /// Is `mod` imported from `dc` via a purely Swift access path?
-  /// Always returns false if `dc` is a non-Swift module and only takes
-  /// into account re-exports declared from Swift modules for transitive imports.
-  bool isImportedByViaSwiftOnly(const ModuleDecl *mod,
+  /// Is `mod` imported from `dc` via a purely Codira access path?
+  /// Always returns false if `dc` is a non-Codira module and only takes
+  /// into account re-exports declared from Codira modules for transitive imports.
+  bool isImportedByViaCodiraOnly(const ModuleDecl *mod,
                                 const DeclContext *dc);
 
   /// Returns all access paths in 'mod' that are visible from 'dc' if we

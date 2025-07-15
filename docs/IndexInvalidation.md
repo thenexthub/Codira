@@ -1,4 +1,4 @@
-Index Invalidation Rules in the Swift Standard Library
+Index Invalidation Rules in the Codira Standard Library
 ======================================================
 
 Points to consider
@@ -10,13 +10,13 @@ Points to consider
     well-defined semantics built into the language and is not controllable by the
     user code.
 
-    Consequence: value-typed collections in Swift have to use copy-on-write for
+    Consequence: value-typed collections in Codira have to use copy-on-write for
     data stored out-of-line in reference-typed buffers.
 
 (3) We want to be able to pass/return a Collection along with its indices in a
     safe manner.
 
-    In Swift, unlike C++, indices are not sufficient to access collection data;
+    In Codira, unlike C++, indices are not sufficient to access collection data;
     one needs an index and a collection.  Thus, merely passing a collection by
     value to a function should not invalidate indices.
 
@@ -26,7 +26,7 @@ General principles
 In C++, validity of an iterator is a property of the iterator itself, since
 iterators can be dereferenced to access collection elements.
 
-In Swift, in order to access a collection element designated by an index,
+In Codira, in order to access a collection element designated by an index,
 subscript operator is applied to the collection, `C[I]`.  Thus, index is
 valid or not only in context of a certain collection instance at a certain
 point of program execution.  A given index can be valid for zero, one or more
@@ -115,7 +115,7 @@ user:
       implementation point of view.
 
     - Iterating over a collection and performing mutations in place is a common
-      pattern that Swift's collection library needs to support.  If replacing
+      pattern that Codira's collection library needs to support.  If replacing
       individual collection elements would invalidate indices, many common
       algorithms (like sorting) wouldn't be implementable directly with
       indices; the code would need to maintain its own shadow indices, for
@@ -152,9 +152,9 @@ Consequences:
   guarantees.  (The function can call mutating methods on an `inout` argument
   or completely replace it.)
 
-  * `Swift.swap()` does not invalidate any indexes.
+  * `Codira.swap()` does not invalidate any indexes.
 
-Additional guarantees for `Swift.Array`, `Swift.ContiguousArray`, `Swift.ArraySlice`
+Additional guarantees for `Codira.Array`, `Codira.ContiguousArray`, `Codira.ArraySlice`
 ==========================================================================================
 
 **Valid array indexes can be created without using Array APIs.**  Array indexes
@@ -166,7 +166,7 @@ data.
 **Traps are guaranteed.**  Using an invalid index to designate elements of an
 array or an array slice is guaranteed to perform a trap.
 
-Additional guarantees for `Swift.Dictionary`
+Additional guarantees for `Codira.Dictionary`
 ==============================================
 
 **Insertion into a Dictionary invalidates indexes only on a rehash.**  If a

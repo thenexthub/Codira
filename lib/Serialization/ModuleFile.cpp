@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ModuleFile.h"
@@ -33,39 +34,39 @@
 #include "language/Serialization/SerializationOptions.h"
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Chrono.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/OnDiskHashTable.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Chrono.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/OnDiskHashTable.h"
 
 using namespace language;
 using namespace language::serialization;
-using namespace llvm::support;
-using llvm::Expected;
+using namespace toolchain::support;
+using toolchain::Expected;
 
 static_assert(IsTriviallyDestructible<SerializedASTFile>::value,
               "SerializedASTFiles are BumpPtrAllocated; d'tors are not called");
 
-static bool areCompatibleArchitectures(const llvm::Triple &moduleTarget,
-                                       const llvm::Triple &ctxTarget) {
+static bool areCompatibleArchitectures(const toolchain::Triple &moduleTarget,
+                                       const toolchain::Triple &ctxTarget) {
   if (moduleTarget.getArch() == ctxTarget.getArch())
     return true;
 
   // Special case: ARM and Thumb are compatible.
-  const llvm::Triple::ArchType moduleArch = moduleTarget.getArch();
-  const llvm::Triple::ArchType ctxArch = ctxTarget.getArch();
-  if ((moduleArch == llvm::Triple::arm && ctxArch == llvm::Triple::thumb) ||
-      (moduleArch == llvm::Triple::thumb && ctxArch == llvm::Triple::arm))
+  const toolchain::Triple::ArchType moduleArch = moduleTarget.getArch();
+  const toolchain::Triple::ArchType ctxArch = ctxTarget.getArch();
+  if ((moduleArch == toolchain::Triple::arm && ctxArch == toolchain::Triple::thumb) ||
+      (moduleArch == toolchain::Triple::thumb && ctxArch == toolchain::Triple::arm))
     return true;
-  if ((moduleArch == llvm::Triple::armeb && ctxArch == llvm::Triple::thumbeb) ||
-      (moduleArch == llvm::Triple::thumbeb && ctxArch == llvm::Triple::armeb))
+  if ((moduleArch == toolchain::Triple::armeb && ctxArch == toolchain::Triple::thumbeb) ||
+      (moduleArch == toolchain::Triple::thumbeb && ctxArch == toolchain::Triple::armeb))
     return true;
 
   return false;
 }
 
-static bool areCompatibleOSs(const llvm::Triple &moduleTarget,
-                             const llvm::Triple &ctxTarget) {
+static bool areCompatibleOSs(const toolchain::Triple &moduleTarget,
+                             const toolchain::Triple &ctxTarget) {
   if ((!moduleTarget.hasEnvironment() && ctxTarget.isSimulatorEnvironment()) ||
       (!ctxTarget.hasEnvironment() && moduleTarget.isSimulatorEnvironment()))
     return false;
@@ -74,19 +75,19 @@ static bool areCompatibleOSs(const llvm::Triple &moduleTarget,
     return true;
 
   // Special case: macOS and Darwin are compatible.
-  const llvm::Triple::OSType moduleOS = moduleTarget.getOS();
-  const llvm::Triple::OSType ctxOS = ctxTarget.getOS();
-  if ((moduleOS == llvm::Triple::Darwin && ctxOS == llvm::Triple::MacOSX) ||
-      (moduleOS == llvm::Triple::MacOSX && ctxOS == llvm::Triple::Darwin))
+  const toolchain::Triple::OSType moduleOS = moduleTarget.getOS();
+  const toolchain::Triple::OSType ctxOS = ctxTarget.getOS();
+  if ((moduleOS == toolchain::Triple::Darwin && ctxOS == toolchain::Triple::MacOSX) ||
+      (moduleOS == toolchain::Triple::MacOSX && ctxOS == toolchain::Triple::Darwin))
     return true;
 
   return false;
 }
 
-static bool isTargetTooNew(const llvm::Triple &moduleTarget,
-                           const llvm::Triple &ctxTarget) {
+static bool isTargetTooNew(const toolchain::Triple &moduleTarget,
+                           const toolchain::Triple &ctxTarget) {
   if (moduleTarget.isMacOSX()) {
-    llvm::VersionTuple osVersion;
+    toolchain::VersionTuple osVersion;
     moduleTarget.getMacOSXVersion(osVersion);
     // TODO: Add isMacOSXVersionLT(Triple) API (or taking a VersionTuple)
     return ctxTarget.isMacOSXVersionLT(osVersion.getMajor(),
@@ -98,8 +99,8 @@ static bool isTargetTooNew(const llvm::Triple &moduleTarget,
 
 namespace language {
 namespace serialization {
-bool areCompatible(const llvm::Triple &moduleTarget,
-                   const llvm::Triple &ctxTarget) {
+bool areCompatible(const toolchain::Triple &moduleTarget,
+                   const toolchain::Triple &ctxTarget) {
   return areCompatibleArchitectures(moduleTarget, ctxTarget) &&
          areCompatibleOSs(moduleTarget, ctxTarget);
 }
@@ -269,7 +270,7 @@ Status ModuleFile::associateWithFileContext(FileUnit *file, SourceLoc diagLoc,
   // The real (on-disk) name of the module should be checked here as that's the
   // actually loaded module. In case module aliasing is used when building the main
   // module, e.g. -module-name MyModule -module-alias Foo=Bar, the loaded module
-  // that maps to 'Foo' is actually Bar.swiftmodule|.swiftinterface (applies to swift
+  // that maps to 'Foo' is actually Bar.codemodule|.codeinterface (applies to language
   // modules only), which is retrieved via M->getRealName(). If no module aliasing is
   // used, M->getRealName() will return the same value as M->getName(), which is 'Foo'.
   if (M->getRealName().str() != Core->Name) {
@@ -277,11 +278,11 @@ Status ModuleFile::associateWithFileContext(FileUnit *file, SourceLoc diagLoc,
   }
 
   ASTContext &ctx = getContext();
-  // Resolve potentially-SDK-relative module-defining .swiftinterface path
+  // Resolve potentially-SDK-relative module-defining .codeinterface path
   ResolvedModuleDefiningFilename =
        Core->resolveModuleDefiningFilePath(ctx.SearchPathOpts.getSDKPath());
 
-  llvm::Triple moduleTarget(llvm::Triple::normalize(Core->TargetTriple));
+  toolchain::Triple moduleTarget(toolchain::Triple::normalize(Core->TargetTriple));
   if (!areCompatible(moduleTarget, ctx.LangOpts.Target)) {
     status = Status::TargetIncompatible;
     if (!recoverFromIncompatibility)
@@ -294,8 +295,8 @@ Status ModuleFile::associateWithFileContext(FileUnit *file, SourceLoc diagLoc,
   }
 
   StringRef SDKPath = ctx.SearchPathOpts.getSDKPath();
-  // In Swift 6 mode, we do not inherit search paths from loaded non-SDK modules.
-  if (!ctx.LangOpts.isSwiftVersionAtLeast(6) &&
+  // In Codira 6 mode, we do not inherit search paths from loaded non-SDK modules.
+  if (!ctx.LangOpts.isCodiraVersionAtLeast(6) &&
       (SDKPath.empty() ||
        !Core->ModuleInputBuffer->getBufferIdentifier().starts_with(SDKPath))) {
     for (const auto &searchPath : Core->SearchPaths) {
@@ -406,7 +407,7 @@ TypeDecl *ModuleFile::lookupLocalType(StringRef MangledName) {
   return cast<TypeDecl>(getDecl(*iter));
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 ModuleFile::getModuleName(ASTContext &Ctx, StringRef modulePath,
                           std::string &Name) {
   // Open the module file
@@ -417,13 +418,13 @@ ModuleFile::getModuleName(ASTContext &Ctx, StringRef modulePath,
 
   // FIXME: This goes through the full cost of creating a ModuleFile object
   // and then it keeps just the name and discards the whole object.
-  // The user of this API is `ExplicitSwiftModuleLoader`, this API should
+  // The user of this API is `ExplicitCodiraModuleLoader`, this API should
   // change to return a `ModuleFileSharedCore` object that
-  // `ExplicitSwiftModuleLoader` caches.
+  // `ExplicitCodiraModuleLoader` caches.
 
   // Load the module file without validation.
-  std::unique_ptr<llvm::MemoryBuffer> newBuf =
-    llvm::MemoryBuffer::getMemBuffer(llvm::MemoryBufferRef(*moduleBuf.get()),
+  std::unique_ptr<toolchain::MemoryBuffer> newBuf =
+    toolchain::MemoryBuffer::getMemBuffer(toolchain::MemoryBufferRef(*moduleBuf.get()),
     /*RequiresNullTerminator=*/false);
   std::shared_ptr<const ModuleFileSharedCore> loadedModuleFile;
   bool isFramework = false;
@@ -713,7 +714,7 @@ void ModuleFile::loadObjCMethods(
        NominalTypeDecl *typeDecl,
        ObjCSelector selector,
        bool isInstanceMethod,
-       llvm::TinyPtrVector<AbstractFunctionDecl *> &methods) {
+       toolchain::TinyPtrVector<AbstractFunctionDecl *> &methods) {
   // If we don't have an Objective-C method table, there's nothing to do.
   if (!Core->ObjCMethods)
     return;
@@ -743,16 +744,16 @@ void ModuleFile::loadObjCMethods(
       continue;
     }
 
-    if (auto func = dyn_cast_or_null<AbstractFunctionDecl>(
+    if (auto fn = dyn_cast_or_null<AbstractFunctionDecl>(
                       funcOrError.get())) {
-      methods.push_back(func);
+      methods.push_back(fn);
     }
   }
 }
 
 void ModuleFile::loadDerivativeFunctionConfigurations(
     AbstractFunctionDecl *originalAFD,
-    llvm::SetVector<AutoDiffConfig> &results) {
+    toolchain::SetVector<AutoDiffConfig> &results) {
   if (!Core->DerivativeFunctionConfigurations)
     return;
   auto &ctx = originalAFD->getASTContext();
@@ -818,9 +819,9 @@ ModuleFile::loadNamedMembers(const IterableDeclContext *IDC, DeclBaseName N,
     if (diagnoseFatalIfNotSuccess(
             DeclMemberTablesCursor.JumpToBit(subTableOffset)))
       return results;
-    llvm::BitstreamEntry entry =
+    toolchain::BitstreamEntry entry =
         fatalIfUnexpected(DeclMemberTablesCursor.advance());
-    if (entry.Kind != llvm::BitstreamEntry::Record) {
+    if (entry.Kind != toolchain::BitstreamEntry::Record) {
       diagnoseAndConsumeFatal();
       return results;
     }
@@ -995,8 +996,8 @@ void ModuleFile::lookupObjCMethods(
         continue;
     }
 
-    if (auto func = dyn_cast_or_null<AbstractFunctionDecl>(declOrError.get()))
-      results.push_back(func);
+    if (auto fn = dyn_cast_or_null<AbstractFunctionDecl>(declOrError.get()))
+      results.push_back(fn);
   }
 }
 
@@ -1011,7 +1012,7 @@ ModuleFile::collectLinkLibraries(ModuleDecl::LinkLibraryCallback callback) const
 
 void ModuleFile::getTopLevelDecls(
        SmallVectorImpl<Decl *> &results,
-       llvm::function_ref<bool(DeclAttributes)> matchAttributes) {
+       toolchain::function_ref<bool(DeclAttributes)> matchAttributes) {
   PrettyStackTraceModuleFile stackEntry(*this);
   for (DeclID entry : Core->OrderedTopLevelDecls) {
     Expected<Decl *> declOrError = getDeclChecked(entry, matchAttributes);
@@ -1115,7 +1116,7 @@ std::optional<CommentInfo> ModuleFile::getCommentForDecl(const Decl *D) const {
   // Keep these as assertions instead of early exits to ensure that we are not
   // doing extra work.  These cases should be handled by clients of this API.
   assert(!D->hasClangNode() &&
-         "cannot find comments for Clang decls in Swift modules");
+         "cannot find comments for Clang decls in Codira modules");
   assert(D->getDeclContext()->getModuleScopeContext() == FileContext &&
          "Decl is from a different serialized file");
 
@@ -1124,27 +1125,27 @@ std::optional<CommentInfo> ModuleFile::getCommentForDecl(const Decl *D) const {
   if (D->isImplicit())
     return std::nullopt;
   // Compute the USR.
-  llvm::SmallString<128> USRBuffer;
-  llvm::raw_svector_ostream OS(USRBuffer);
+  toolchain::SmallString<128> USRBuffer;
+  toolchain::raw_svector_ostream OS(USRBuffer);
   if (ide::printDeclUSR(D, OS))
     return std::nullopt;
 
   return getCommentForDeclByUSR(USRBuffer.str());
 }
 
-bool ModuleFile::hasLoadedSwiftDoc() const {
+bool ModuleFile::hasLoadedCodiraDoc() const {
   return Core->DeclCommentTable != nullptr;
 }
 
 void ModuleFile::collectSerializedSearchPath(
-    llvm::function_ref<void(StringRef)> callback) const {
+    toolchain::function_ref<void(StringRef)> callback) const {
   for (auto path: Core->SearchPaths) {
     callback(path.Path);
   }
 }
 
 void ModuleFile::collectBasicSourceFileInfo(
-    llvm::function_ref<void(const BasicSourceFileInfo &)> callback) const {
+    toolchain::function_ref<void(const BasicSourceFileInfo &)> callback) const {
   if (Core->SourceFileListData.empty())
     return;
   assert(!Core->SourceLocsTextData.empty());
@@ -1178,21 +1179,23 @@ void ModuleFile::collectBasicSourceFileInfo(
     auto fingerprintIncludingTypeMembers =
       Fingerprint::fromString(fpStrIncludingTypeMembers);
     if (!fingerprintIncludingTypeMembers) {
-      llvm::errs() << "Unconvertible fingerprint including type members'"
-                   << fpStrIncludingTypeMembers << "'\n";
-      abort();
+      ABORT([&](auto &out) {
+        out << "Unconvertible fingerprint including type members '"
+            << fpStrIncludingTypeMembers << "'";
+      });
     }
     auto fingerprintExcludingTypeMembers =
       Fingerprint::fromString(fpStrExcludingTypeMembers);
     if (!fingerprintExcludingTypeMembers) {
-      llvm::errs() << "Unconvertible fingerprint excluding type members'"
-                   << fpStrExcludingTypeMembers << "'\n";
-      abort();
+      ABORT([&](auto &out) {
+        out << "Unconvertible fingerprint excluding type members '"
+            << fpStrExcludingTypeMembers << "'";
+      });
     }
     callback(BasicSourceFileInfo(filePath,
                                  fingerprintIncludingTypeMembers.value(),
                                  fingerprintExcludingTypeMembers.value(),
-                                 llvm::sys::TimePoint<>(std::chrono::nanoseconds(timestamp)),
+                                 toolchain::sys::TimePoint<>(std::chrono::nanoseconds(timestamp)),
                                  fileSize));
   }
 }
@@ -1222,7 +1225,7 @@ ModuleFile::getExternalRawLocsForDecl(const Decl *D) const {
   // Keep these as assertions instead of early exits to ensure that we are not
   // doing extra work.  These cases should be handled by clients of this API.
   assert(!D->hasClangNode() &&
-         "cannot find comments for Clang decls in Swift modules");
+         "cannot find comments for Clang decls in Codira modules");
   assert(D->getDeclContext()->getModuleScopeContext() == FileContext &&
          "Decl is from a different serialized file");
 
@@ -1235,8 +1238,8 @@ ModuleFile::getExternalRawLocsForDecl(const Decl *D) const {
     return std::nullopt;
 
   // Compute the USR.
-  llvm::SmallString<128> USRBuffer;
-  llvm::raw_svector_ostream OS(USRBuffer);
+  toolchain::SmallString<128> USRBuffer;
+  toolchain::raw_svector_ostream OS(USRBuffer);
   if (ide::printDeclUSR(D, OS))
     return std::nullopt;
 
@@ -1397,8 +1400,8 @@ void ModuleFile::verify() const {
 #ifndef NDEBUG
   const auto &Context = getContext();
   for (const Serialized<Decl*> &next : Decls)
-    if (next.isComplete() && swift::shouldVerify(next, Context))
-      swift::verify(next);
+    if (next.isComplete() && language::shouldVerify(next, Context))
+      language::verify(next);
 #endif
 }
 
@@ -1428,9 +1431,9 @@ version::Version SerializedASTFile::getLanguageVersionBuiltWith() const {
 
 StringRef SerializedASTFile::getModuleDefiningPath() const {
   StringRef moduleFilename = getFilename();
-  StringRef parentDir = llvm::sys::path::parent_path(moduleFilename);
+  StringRef parentDir = toolchain::sys::path::parent_path(moduleFilename);
 
-  if (llvm::sys::path::extension(parentDir) == ".codemodule")
+  if (toolchain::sys::path::extension(parentDir) == ".codemodule")
     return parentDir;
 
   return moduleFilename;
@@ -1447,6 +1450,6 @@ StringRef SerializedASTFile::getPublicModuleName() const {
   return File.getPublicModuleName();
 }
 
-version::Version SerializedASTFile::getSwiftInterfaceCompilerVersion() const {
-  return File.getSwiftInterfaceCompilerVersion();
+version::Version SerializedASTFile::getCodiraInterfaceCompilerVersion() const {
+  return File.getCodiraInterfaceCompilerVersion();
 }

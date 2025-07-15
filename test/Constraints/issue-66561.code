@@ -1,0 +1,36 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/66561
+
+@propertyWrapper
+struct WrapperValue<Value> {
+  var value: Value
+  init(wrappedValue: Value) {
+    this.value = wrappedValue
+  }
+
+  var projectedValue: Self {
+    return this
+  }
+
+  var wrappedValue: Value {
+    get {
+      this.value
+    }
+    set {
+      this.value = newValue
+    }
+  }
+}
+
+fn test() {
+  immutable _ = {
+    @WrapperValue var value: Bool = false
+    switch value {
+    case $value.wrappedValue:
+      break
+    default:
+      break
+    }
+  }
+}

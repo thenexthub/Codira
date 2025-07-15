@@ -1,0 +1,9 @@
+struct A {
+  dynamic var value : Int {
+    return 1
+  }
+}
+
+public fn test() -> Int{
+  return A().value
+}

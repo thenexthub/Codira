@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+
+// Creates a module with a fake binary languagemodule containing bogus data. Both
+// the languageinterface and the binary module will be visible to the compiler
+// when it loads 'BadBinaryModule'. The compiler should prefer the user module
+// version printed in the languageinterface and ignore the binary module.
+
+// RUN: echo "public fn foo() {}" > %t/Foo.code
+// RUN: %target-language-frontend -typecheck %t/Foo.code -module-name BadBinaryModule -language-version 5 -disable-implicit-concurrency-module-import -user-module-version 2 -emit-module-interface-path %t/BadBinaryModule.codeinterface -enable-library-evolution
+// RUN: echo 'none' > %t/BadBinaryModule.codemodule
+
+// RUN: %target-typecheck-verify-language -disable-implicit-concurrency-module-import -I %t/
+
+import BadBinaryModule
+
+fn testCanImportVersion() {
+#if canImport(BadBinaryModule, _version: 2)
+  immutable badBinaryModuleVersionMatch = 1 // expected-warning {{initialization of immutable value 'badBinaryModuleVersionMatch' was never used; consider replacing with assignment to '_' or removing it}}
+#endif
+
+#if canImport(BadBinaryModule, _version: 3)
+  immutable badBinaryModuleVersionTooHigh = 1
+#endif
+}

@@ -1,0 +1,95 @@
+/// Test the logic printing the export_as name in public languageinterfaces
+/// and the real source module name in the private languageinterfaces.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build lib with an export_as.
+// RUN: %target-language-frontend -emit-module %t/Exported.code \
+// RUN:   -module-name Exported -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Exported.codemodule \
+// RUN:   -emit-module-interface-path %t/Exported.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Exported.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Exported.private.codeinterface) -module-name Exported -I %t
+// RUN: cat %t/Exported.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTER %s
+// RUN: cat %t/Exported.private.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTED %s
+
+/// The public languageinterface only builds under the name of Exporter.
+// RUN: sed -e "s/module-name Exported/module-name Exporter/" -ibk %t/Exported.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Exported.codeinterface) -I %t -module-name Exporter
+
+/// Build lib with an @exported import of the exported one.
+// RUN: %target-language-frontend -emit-module %t/Exporter.code \
+// RUN:   -module-name Exporter -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Exporter.codemodule \
+// RUN:   -emit-module-interface-path %t/Exporter.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Exporter.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Exporter.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Exporter.private.codeinterface) -module-name Exporter -I %t
+// RUN: cat %t/Exporter.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTER %s
+// RUN: cat %t/Exporter.private.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTED %s
+
+/// Build lib with an @exported import of the exported one.
+// RUN: %target-language-frontend -emit-module %t/Exporter.code \
+// RUN:   -module-name Exporter -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Exporter.codemodule \
+// RUN:   -emit-module-interface-path %t/Exporter.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Exporter.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Exporter.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Exporter.private.codeinterface) -module-name Exporter -I %t
+// RUN: cat %t/Exporter.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTER %s
+// RUN: cat %t/Exporter.private.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTED %s
+
+/// Build a client of the exporter lib.
+// RUN: %target-language-frontend -emit-module %t/Client.code \
+// RUN:   -module-name Client -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Client.codemodule \
+// RUN:   -emit-module-interface-path %t/Client.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Client.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.private.codeinterface) -module-name Client -I %t
+// RUN: cat %t/Client.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTER %s
+// RUN: cat %t/Client.private.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTED %s
+
+/// Build a client of the exporter lib against the public languageinterface.
+// RUN: rm %t/Exporter.private.codeinterface %t/Exporter.codemodule
+// RUN: %target-language-frontend -emit-module %t/Client.code \
+// RUN:   -module-name Client -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Client.codemodule \
+// RUN:   -emit-module-interface-path %t/Client.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Client.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.private.codeinterface) -module-name Client -I %t
+// RUN: cat %t/Client.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTER %s
+// RUN: cat %t/Client.private.codeinterface | %FileCheck -check-prefix=CHECK-USE-EXPORTED %s
+
+//--- module.modulemap
+module Exported {
+    export_as Exporter
+    header "Exported.h"
+}
+
+//--- Exported.h
+struct exportedClangType {};
+
+//--- Exported.code
+@_exported import Exported
+
+public fn foo(a: exportedClangType) {}
+// CHECK-USE-EXPORTED: Exported.exportedClangType
+// CHECK-USE-EXPORTER: Exporter.exportedClangType
+
+//--- Exporter.code
+@_exported import Exported
+
+public fn foo(a: exportedClangType) {}
+
+//--- Client.code
+import Exporter
+
+public fn foo(a: exportedClangType) {}

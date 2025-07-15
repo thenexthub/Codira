@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/StaticInline.h %s -emit-ir | %FileCheck %s
+
+// REQUIRES: objc_interop
+import Foundation
+
+public class Demo: NSObject {
+  public override init() {
+          super.init()
+
+          print(Demo.locale)
+  }
+  // This used to crash a -O.
+  private static immutable locale = staticInlineFun()
+
+}
+
+@inline(never)
+fn testDemo() {
+  immutable a = Demo()
+}
+
+testDemo()
+
+// Make sure the clang importer puts the selectors and co into the toolchain.compiler used variable.
+
+// CHECK: @toolchain.compiler.used = appending global [{{.*}} x ptr] [{{.*}} @"OBJC_CLASSLIST_REFERENCES_$_"{{.*}}@OBJC_METH_VAR_NAME_{{.*}}@OBJC_SELECTOR_REFERENCES_{{.*}}@OBJC_METH_VAR_NAME_.{{.*}}@OBJC_SELECTOR_REFERENCES_.{{.*}}]
+

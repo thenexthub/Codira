@@ -1,28 +1,32 @@
 //===--- SolutionResult.h - Constraint System Solution ----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the SolutionResult class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPECHECK_SOLUTION_RESULT_H
-#define SWIFT_TYPECHECK_SOLUTION_RESULT_H
+#ifndef LANGUAGE_TYPECHECK_SOLUTION_RESULT_H
+#define LANGUAGE_TYPECHECK_SOLUTION_RESULT_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <optional>
 
 namespace language {
 
-using llvm::ArrayRef;
+using toolchain::ArrayRef;
 
 namespace constraints {
 
@@ -140,7 +144,7 @@ public:
     case TooComplex:
       return true;
     }
-    llvm_unreachable("invalid diagnostic kind");
+    toolchain_unreachable("invalid diagnostic kind");
   }
 
   /// Note that the failure has been diagnosed.
@@ -151,4 +155,4 @@ public:
 
 } }
 
-#endif /* SWIFT_TYPECHECK_SOLUTION_RESULT_H */
+#endif /* LANGUAGE_TYPECHECK_SOLUTION_RESULT_H */

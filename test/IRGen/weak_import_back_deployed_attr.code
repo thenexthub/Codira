@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Library.codemodule -parse-as-library %t/Library.code -enable-library-evolution
+
+// RUN: %target-language-frontend -primary-file %t/Client.code -I %t -emit-ir -target %target-cpu-apple-macosx10.50 | %FileCheck %t/Client.code --check-prefix=CHECK-OLD
+// RUN: %target-language-frontend -primary-file %t/Client.code -I %t -emit-ir -target %target-cpu-apple-macosx10.60 | %FileCheck %t/Client.code --check-prefix=CHECK-NEW
+
+// REQUIRES: OS=macosx
+
+//--- Library.code
+
+@available(macOS 10.50, *)
+@backDeployed(before: macOS 10.60)
+public fn backDeployedFunc() {}
+
+//--- Client.code
+
+import Library
+
+// CHECK-OLD: declare extern_weak {{.*}} void @"$s7Library16backDeployedFuncyyF"()
+// CHECK-NEW: declare {{.*}} void @"$s7Library16backDeployedFuncyyF"()
+backDeployedFunc()

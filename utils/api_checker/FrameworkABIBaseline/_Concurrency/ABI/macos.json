@@ -5,8 +5,8 @@
   "children": [
     {
       "kind": "Import",
-      "name": "_SwiftConcurrencyShims",
-      "printedName": "_SwiftConcurrencyShims",
+      "name": "_CodiraConcurrencyShims",
+      "printedName": "_CodiraConcurrencyShims",
       "declKind": "Import",
       "moduleName": "_Concurrency",
       "declAttributes": [
@@ -68,8 +68,8 @@
       "usr": "s:ScA",
       "mangledName": "$sScA",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0 : AnyObject, τ_0_0 : Swift.Sendable>",
-      "sugared_genericSig": "<Self : AnyObject, Self : Swift.Sendable>",
+      "genericSig": "<τ_0_0 : AnyObject, τ_0_0 : Codira.Sendable>",
+      "sugared_genericSig": "<Self : AnyObject, Self : Codira.Sendable>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -108,7 +108,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency23_defaultActorInitializeyyyXlF",
-      "mangledName": "swift_defaultActor_initialize",
+      "mangledName": "language_defaultActor_initialize",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -141,7 +141,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency20_defaultActorDestroyyyyXlF",
-      "mangledName": "swift_defaultActor_destroy",
+      "mangledName": "language_defaultActor_destroy",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -175,7 +175,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency14_enqueueOnMainyyScJF",
-      "mangledName": "swift_task_enqueueMainExecutor",
+      "mangledName": "language_task_enqueueMainExecutor",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -242,7 +242,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency14_asyncLetStart0bC07options9operationyBp_BpSgxyYaYbKXEtlF",
-      "mangledName": "swift_asyncLet_start",
+      "mangledName": "language_asyncLet_start",
       "moduleName": "_Concurrency",
       "genericSig": "<τ_0_0>",
       "sugared_genericSig": "<T>",
@@ -277,7 +277,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency12_asyncLetGet0bC0xBp_tYalF",
-      "mangledName": "swift_asyncLet_wait",
+      "mangledName": "language_asyncLet_wait",
       "moduleName": "_Concurrency",
       "genericSig": "<τ_0_0>",
       "sugared_genericSig": "<T>",
@@ -312,7 +312,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency20_asyncLetGetThrowing0bC0xBp_tYaKlF",
-      "mangledName": "swift_asyncLet_wait_throwing",
+      "mangledName": "language_asyncLet_wait_throwing",
       "moduleName": "_Concurrency",
       "genericSig": "<τ_0_0>",
       "sugared_genericSig": "<T>",
@@ -348,7 +348,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency12_asyncLetEnd0bC0yBp_tF",
-      "mangledName": "swift_asyncLet_end",
+      "mangledName": "language_asyncLet_end",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -386,7 +386,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency13_asyncLet_getyBpBp_BptYaF",
-      "mangledName": "swift_asyncLet_get",
+      "mangledName": "language_asyncLet_get",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -424,7 +424,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency22_asyncLet_get_throwingyBpBp_BptYaKF",
-      "mangledName": "swift_asyncLet_get_throwing",
+      "mangledName": "language_asyncLet_get_throwing",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -463,7 +463,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency16_asyncLet_finishyyBp_BptYaF",
-      "mangledName": "swift_asyncLet_finish",
+      "mangledName": "language_asyncLet_finish",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -527,7 +527,7 @@
             {
               "kind": "TypeNominal",
               "name": "String",
-              "printedName": "Swift.String",
+              "printedName": "Codira.String",
               "hasDefaultArg": true,
               "usr": "s:SS"
             }
@@ -536,8 +536,8 @@
           "usr": "s:ScC12continuation8functionScCyxq_GSccyxq_G_SStcfc",
           "mangledName": "$sScC12continuation8functionScCyxq_GSccyxq_G_SStcfc",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<T, E where E : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<T, E where E : Codira.Error>",
           "init_kind": "Designated"
         },
         {
@@ -561,8 +561,8 @@
           "usr": "s:ScC6resume9returningyxn_tF",
           "mangledName": "$sScC6resume9returningyxn_tF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<T, E where E : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<T, E where E : Codira.Error>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -586,8 +586,8 @@
           "usr": "s:ScC6resume8throwingyq_n_tF",
           "mangledName": "$sScC6resume8throwingyq_n_tF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<T, E where E : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<T, E where E : Codira.Error>",
           "funcSelfKind": "NonMutating"
         }
       ],
@@ -595,8 +595,8 @@
       "usr": "s:ScC",
       "mangledName": "$sScC",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-      "sugared_genericSig": "<T, E where E : Swift.Error>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+      "sugared_genericSig": "<T, E where E : Codira.Error>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -637,14 +637,14 @@
         {
           "kind": "TypeNominal",
           "name": "String",
-          "printedName": "Swift.String",
+          "printedName": "Codira.String",
           "hasDefaultArg": true,
           "usr": "s:SS"
         },
         {
           "kind": "TypeFunc",
           "name": "Function",
-          "printedName": "(_Concurrency.CheckedContinuation<τ_0_0, Swift.Never>) -> ()",
+          "printedName": "(_Concurrency.CheckedContinuation<τ_0_0, Codira.Never>) -> ()",
           "children": [
             {
               "kind": "TypeNominal",
@@ -654,7 +654,7 @@
             {
               "kind": "TypeNominal",
               "name": "CheckedContinuation",
-              "printedName": "_Concurrency.CheckedContinuation<τ_0_0, Swift.Never>",
+              "printedName": "_Concurrency.CheckedContinuation<τ_0_0, Codira.Never>",
               "children": [
                 {
                   "kind": "TypeNominal",
@@ -664,7 +664,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Never",
-                  "printedName": "Swift.Never",
+                  "printedName": "Codira.Never",
                   "usr": "s:s5NeverO"
                 }
               ],
@@ -707,14 +707,14 @@
         {
           "kind": "TypeNominal",
           "name": "String",
-          "printedName": "Swift.String",
+          "printedName": "Codira.String",
           "hasDefaultArg": true,
           "usr": "s:SS"
         },
         {
           "kind": "TypeFunc",
           "name": "Function",
-          "printedName": "(_Concurrency.CheckedContinuation<τ_0_0, any Swift.Error>) -> ()",
+          "printedName": "(_Concurrency.CheckedContinuation<τ_0_0, any Codira.Error>) -> ()",
           "children": [
             {
               "kind": "TypeNominal",
@@ -724,7 +724,7 @@
             {
               "kind": "TypeNominal",
               "name": "CheckedContinuation",
-              "printedName": "_Concurrency.CheckedContinuation<τ_0_0, any Swift.Error>",
+              "printedName": "_Concurrency.CheckedContinuation<τ_0_0, any Codira.Error>",
               "children": [
                 {
                   "kind": "TypeNominal",
@@ -734,7 +734,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Error",
-                  "printedName": "any Swift.Error",
+                  "printedName": "any Codira.Error",
                   "usr": "s:s5ErrorP"
                 }
               ],
@@ -767,8 +767,8 @@
     },
     {
       "kind": "Function",
-      "name": "swift_deletedAsyncMethodError",
-      "printedName": "swift_deletedAsyncMethodError()",
+      "name": "language_deletedAsyncMethodError",
+      "printedName": "language_deletedAsyncMethodError()",
       "children": [
         {
           "kind": "TypeNominal",
@@ -777,8 +777,8 @@
         }
       ],
       "declKind": "Func",
-      "usr": "s:12_Concurrency29swift_deletedAsyncMethodErroryyYaF",
-      "mangledName": "swift_deletedAsyncMethodError",
+      "usr": "s:12_Concurrency29language_deletedAsyncMethodErroryyYaF",
+      "mangledName": "language_deletedAsyncMethodError",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -830,8 +830,8 @@
       "usr": "s:ScF",
       "mangledName": "$sScF",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0 : AnyObject, τ_0_0 : Swift.Sendable>",
-      "sugared_genericSig": "<Self : AnyObject, Self : Swift.Sendable>",
+      "genericSig": "<τ_0_0 : AnyObject, τ_0_0 : Codira.Sendable>",
+      "sugared_genericSig": "<Self : AnyObject, Self : Codira.Sendable>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -1796,7 +1796,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -1819,7 +1819,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -1860,7 +1860,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -1976,7 +1976,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -1998,7 +1998,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Int",
-                      "printedName": "Swift.Int",
+                      "printedName": "Codira.Int",
                       "usr": "s:Si"
                     }
                   ],
@@ -2024,7 +2024,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Int",
-                      "printedName": "Swift.Int",
+                      "printedName": "Codira.Int",
                       "usr": "s:Si"
                     }
                   ],
@@ -2078,7 +2078,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -2200,7 +2200,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "hasDefaultArg": true,
               "usr": "s:Si"
             }
@@ -2327,12 +2327,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -2362,12 +2362,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -2415,12 +2415,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -2543,17 +2543,17 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Optional",
-                  "printedName": "((τ_0_0.Element) async -> Swift.Bool)?",
+                  "printedName": "((τ_0_0.Element) async -> Codira.Bool)?",
                   "children": [
                     {
                       "kind": "TypeFunc",
                       "name": "Function",
-                      "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                      "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                       "children": [
                         {
                           "kind": "TypeNominal",
                           "name": "Bool",
-                          "printedName": "Swift.Bool",
+                          "printedName": "Codira.Bool",
                           "usr": "s:Sb"
                         },
                         {
@@ -2586,17 +2586,17 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Optional",
-                      "printedName": "((τ_0_0.Element) async -> Swift.Bool)?",
+                      "printedName": "((τ_0_0.Element) async -> Codira.Bool)?",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                          "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                           "children": [
                             {
                               "kind": "TypeNominal",
                               "name": "Bool",
-                              "printedName": "Swift.Bool",
+                              "printedName": "Codira.Bool",
                               "usr": "s:Sb"
                             },
                             {
@@ -2632,17 +2632,17 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Optional",
-                      "printedName": "((τ_0_0.Element) async -> Swift.Bool)?",
+                      "printedName": "((τ_0_0.Element) async -> Codira.Bool)?",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                          "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                           "children": [
                             {
                               "kind": "TypeNominal",
                               "name": "Bool",
-                              "printedName": "Swift.Bool",
+                              "printedName": "Codira.Bool",
                               "usr": "s:Sb"
                             },
                             {
@@ -2706,12 +2706,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -2930,12 +2930,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -2965,12 +2965,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -3018,12 +3018,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -3146,12 +3146,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -3181,12 +3181,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "Function",
-                      "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                      "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                       "children": [
                         {
                           "kind": "TypeNominal",
                           "name": "Bool",
-                          "printedName": "Swift.Bool",
+                          "printedName": "Codira.Bool",
                           "usr": "s:Sb"
                         },
                         {
@@ -3227,12 +3227,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -3850,7 +3850,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -3873,7 +3873,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -3899,7 +3899,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -4758,7 +4758,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -4781,7 +4781,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -4822,7 +4822,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -4938,7 +4938,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -4960,7 +4960,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Int",
-                      "printedName": "Swift.Int",
+                      "printedName": "Codira.Int",
                       "usr": "s:Si"
                     }
                   ],
@@ -4986,7 +4986,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Int",
-                      "printedName": "Swift.Int",
+                      "printedName": "Codira.Int",
                       "usr": "s:Si"
                     }
                   ],
@@ -5040,7 +5040,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -5252,12 +5252,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -5287,12 +5287,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -5340,12 +5340,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -5380,7 +5380,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -5403,7 +5403,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -5429,7 +5429,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -5560,12 +5560,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -5595,12 +5595,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "Function",
-                      "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                      "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                       "children": [
                         {
                           "kind": "TypeNominal",
                           "name": "Bool",
-                          "printedName": "Swift.Bool",
+                          "printedName": "Codira.Bool",
                           "usr": "s:Sb"
                         },
                         {
@@ -5641,12 +5641,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -5935,7 +5935,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "hasDefaultArg": true,
               "usr": "s:Si"
             }
@@ -5972,12 +5972,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6020,12 +6020,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6172,7 +6172,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -6208,12 +6208,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6368,18 +6368,18 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6414,18 +6414,18 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6460,7 +6460,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -6473,8 +6473,8 @@
           "usr": "s:Sci12_ConcurrencySQ7ElementRpzrlE8containsySbACYaKF",
           "mangledName": "$sSci12_ConcurrencySQ7ElementRpzrlE8containsySbACYaKF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : _Concurrency.AsyncSequence, τ_0_0.Element : Swift.Equatable>",
-          "sugared_genericSig": "<Self where Self : _Concurrency.AsyncSequence, Self.Element : Swift.Equatable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : _Concurrency.AsyncSequence, τ_0_0.Element : Codira.Equatable>",
+          "sugared_genericSig": "<Self where Self : _Concurrency.AsyncSequence, Self.Element : Codira.Equatable>",
           "declAttributes": [
             "Rethrows",
             "Inlinable"
@@ -6503,12 +6503,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6556,12 +6556,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element, τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element, τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6622,12 +6622,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element, τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element, τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6690,8 +6690,8 @@
           "usr": "s:Sci12_ConcurrencySL7ElementRpzrlE3minACSgyYaKF",
           "mangledName": "$sSci12_ConcurrencySL7ElementRpzrlE3minACSgyYaKF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : _Concurrency.AsyncSequence, τ_0_0.Element : Swift.Comparable>",
-          "sugared_genericSig": "<Self where Self : _Concurrency.AsyncSequence, Self.Element : Swift.Comparable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : _Concurrency.AsyncSequence, τ_0_0.Element : Codira.Comparable>",
+          "sugared_genericSig": "<Self where Self : _Concurrency.AsyncSequence, Self.Element : Codira.Comparable>",
           "declAttributes": [
             "Rethrows",
             "WarnUnqualifiedAccess",
@@ -6723,8 +6723,8 @@
           "usr": "s:Sci12_ConcurrencySL7ElementRpzrlE3maxACSgyYaKF",
           "mangledName": "$sSci12_ConcurrencySL7ElementRpzrlE3maxACSgyYaKF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : _Concurrency.AsyncSequence, τ_0_0.Element : Swift.Comparable>",
-          "sugared_genericSig": "<Self where Self : _Concurrency.AsyncSequence, Self.Element : Swift.Comparable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : _Concurrency.AsyncSequence, τ_0_0.Element : Codira.Comparable>",
+          "sugared_genericSig": "<Self where Self : _Concurrency.AsyncSequence, Self.Element : Codira.Comparable>",
           "declAttributes": [
             "Rethrows",
             "WarnUnqualifiedAccess",
@@ -6814,12 +6814,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -6862,12 +6862,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -7014,12 +7014,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -7070,7 +7070,7 @@
         {
           "kind": "TypeNominal",
           "name": "Bool",
-          "printedName": "Swift.Bool",
+          "printedName": "Codira.Bool",
           "usr": "s:Sb"
         },
         {
@@ -7081,12 +7081,12 @@
         {
           "kind": "TypeFunc",
           "name": "Function",
-          "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+          "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
           "children": [
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -7148,12 +7148,12 @@
         {
           "kind": "TypeFunc",
           "name": "Function",
-          "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+          "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
           "children": [
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -7572,7 +7572,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -7595,7 +7595,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -7621,7 +7621,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -7905,12 +7905,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -7940,12 +7940,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -7993,12 +7993,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -8121,12 +8121,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -8156,12 +8156,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "Function",
-                      "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                      "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                       "children": [
                         {
                           "kind": "TypeNominal",
                           "name": "Bool",
-                          "printedName": "Swift.Bool",
+                          "printedName": "Codira.Bool",
                           "usr": "s:Sb"
                         },
                         {
@@ -8191,7 +8191,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -8214,7 +8214,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -8240,7 +8240,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -8283,7 +8283,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -8306,7 +8306,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -8332,7 +8332,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -8386,12 +8386,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -8609,12 +8609,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -8644,12 +8644,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -8697,12 +8697,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -8825,12 +8825,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -8860,12 +8860,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "Function",
-                      "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                      "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                       "children": [
                         {
                           "kind": "TypeNominal",
                           "name": "Bool",
-                          "printedName": "Swift.Bool",
+                          "printedName": "Codira.Bool",
                           "usr": "s:Sb"
                         },
                         {
@@ -8895,7 +8895,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -8918,7 +8918,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -8944,7 +8944,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -8998,12 +8998,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -9620,7 +9620,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -9643,7 +9643,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -9669,7 +9669,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -10231,7 +10231,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -10254,7 +10254,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -10280,7 +10280,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -10556,12 +10556,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -10591,12 +10591,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -10644,12 +10644,12 @@
             {
               "kind": "TypeFunc",
               "name": "Function",
-              "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+              "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 },
                 {
@@ -10684,7 +10684,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -10707,7 +10707,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -10733,7 +10733,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -10864,12 +10864,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -10899,12 +10899,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "Function",
-                      "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                      "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                       "children": [
                         {
                           "kind": "TypeNominal",
                           "name": "Bool",
-                          "printedName": "Swift.Bool",
+                          "printedName": "Codira.Bool",
                           "usr": "s:Sb"
                         },
                         {
@@ -10945,12 +10945,12 @@
                 {
                   "kind": "TypeFunc",
                   "name": "Function",
-                  "printedName": "(τ_0_0.Element) async throws -> Swift.Bool",
+                  "printedName": "(τ_0_0.Element) async throws -> Codira.Bool",
                   "children": [
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -11493,8 +11493,8 @@
           "usr": "s:ScM3run10resultType4bodyxxm_xyYbKScMYcXEtYaKs8SendableRzlFZ",
           "mangledName": "$sScM3run10resultType4bodyxxm_xyYbKScMYcXEtYaKlFZ",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<T where T : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<T where T : Codira.Sendable>",
           "static": true,
           "declAttributes": [
             "Rethrows",
@@ -11563,8 +11563,8 @@
     },
     {
       "kind": "Function",
-      "name": "_swiftJobRun",
-      "printedName": "_swiftJobRun(_:_:)",
+      "name": "_languageJobRun",
+      "printedName": "_languageJobRun(_:_:)",
       "children": [
         {
           "kind": "TypeNominal",
@@ -11585,8 +11585,8 @@
         }
       ],
       "declKind": "Func",
-      "usr": "s:12_Concurrency12_swiftJobRunyyScJ_ScetF",
-      "mangledName": "swift_job_run",
+      "usr": "s:12_Concurrency12_languageJobRunyyScJ_ScetF",
+      "mangledName": "language_job_run",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -11697,8 +11697,8 @@
               "usr": "s:Scc7contextBcvg",
               "mangledName": "$sScc7contextBcvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<T, E where E : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<T, E where E : Codira.Error>",
               "implicit": true,
               "declAttributes": [
                 "Transparent"
@@ -11725,8 +11725,8 @@
               "usr": "s:Scc7contextBcvs",
               "mangledName": "$sScc7contextBcvs",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<T, E where E : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<T, E where E : Codira.Error>",
               "implicit": true,
               "declAttributes": [
                 "Transparent"
@@ -11748,8 +11748,8 @@
               "usr": "s:Scc7contextBcvM",
               "mangledName": "$sScc7contextBcvM",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<T, E where E : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<T, E where E : Codira.Error>",
               "implicit": true,
               "declAttributes": [
                 "Transparent"
@@ -11763,8 +11763,8 @@
       "usr": "s:Scc",
       "mangledName": "$sScc",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-      "sugared_genericSig": "<T, E where E : Swift.Error>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+      "sugared_genericSig": "<T, E where E : Codira.Error>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -11829,8 +11829,8 @@
               "usr": "s:ScT5_taskBovg",
               "mangledName": "$sScT5_taskBovg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
               "implicit": true,
               "declAttributes": [
                 "Transparent"
@@ -11870,8 +11870,8 @@
               "usr": "s:ScT5valuexvg",
               "mangledName": "$sScT5valuexvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
               "throwing": true,
               "accessorKind": "get"
             }
@@ -11885,7 +11885,7 @@
             {
               "kind": "TypeNominal",
               "name": "Result",
-              "printedName": "Swift.Result<τ_0_0, τ_0_1>",
+              "printedName": "Codira.Result<τ_0_0, τ_0_1>",
               "children": [
                 {
                   "kind": "TypeNominal",
@@ -11914,7 +11914,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Result",
-                  "printedName": "Swift.Result<τ_0_0, τ_0_1>",
+                  "printedName": "Codira.Result<τ_0_0, τ_0_1>",
                   "children": [
                     {
                       "kind": "TypeNominal",
@@ -11934,8 +11934,8 @@
               "usr": "s:ScT6results6ResultOyxq_Gvg",
               "mangledName": "$sScT6results6ResultOyxq_Gvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
               "accessorKind": "get"
             }
           ]
@@ -11955,8 +11955,8 @@
           "usr": "s:ScT6cancelyyF",
           "mangledName": "$sScT6cancelyyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -11990,8 +11990,8 @@
               "usr": "s:ScT12_Concurrencys5NeverORs_rlE5valuexvg",
               "mangledName": "$sScT12_Concurrencys5NeverORs_rlE5valuexvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 == Swift.Never>",
-              "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure == Swift.Never>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 == Codira.Never>",
+              "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure == Codira.Never>",
               "accessorKind": "get"
             }
           ]
@@ -12009,7 +12009,7 @@
             {
               "kind": "TypeNominal",
               "name": "Hasher",
-              "printedName": "Swift.Hasher",
+              "printedName": "Codira.Hasher",
               "paramValueOwnership": "InOut",
               "usr": "s:s6HasherV"
             }
@@ -12018,8 +12018,8 @@
           "usr": "s:ScT4hash4intoys6HasherVz_tF",
           "mangledName": "$sScT4hash4intoys6HasherVz_tF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -12030,7 +12030,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -12048,7 +12048,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -12056,8 +12056,8 @@
               "usr": "s:ScT9hashValueSivg",
               "mangledName": "$sScT9hashValueSivg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
               "implicit": true,
               "accessorKind": "get"
             }
@@ -12071,7 +12071,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12115,8 +12115,8 @@
           "usr": "s:ScT2eeoiySbScTyxq_G_ABtFZ",
           "mangledName": "$sScT2eeoiySbScTyxq_G_ABtFZ",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
           "static": true,
           "funcSelfKind": "NonMutating"
         },
@@ -12154,8 +12154,8 @@
               "usr": "s:ScT12_Concurrencys5NeverORszACRs_rlE15currentPriorityScPvgZ",
               "mangledName": "$sScT12_Concurrencys5NeverORszACRs_rlE15currentPriorityScPvgZ",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Swift.Never, τ_0_1 == Swift.Never>",
-              "sugared_genericSig": "<Success, Failure where Success == Swift.Never, Failure == Swift.Never>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Codira.Never, τ_0_1 == Codira.Never>",
+              "sugared_genericSig": "<Success, Failure where Success == Codira.Never, Failure == Codira.Never>",
               "static": true,
               "accessorKind": "get"
             }
@@ -12176,8 +12176,8 @@
           "usr": "s:ScT12_Concurrencys5NeverORszACRs_rlE5yieldyyYaFZ",
           "mangledName": "$sScT12_Concurrencys5NeverORszACRs_rlE5yieldyyYaFZ",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Swift.Never, τ_0_1 == Swift.Never>",
-          "sugared_genericSig": "<Success, Failure where Success == Swift.Never, Failure == Swift.Never>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Codira.Never, τ_0_1 == Codira.Never>",
+          "sugared_genericSig": "<Success, Failure where Success == Codira.Never, Failure == Codira.Never>",
           "static": true,
           "funcSelfKind": "NonMutating"
         },
@@ -12189,7 +12189,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -12209,7 +12209,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -12217,8 +12217,8 @@
               "usr": "s:ScT11isCancelledSbvg",
               "mangledName": "$sScT11isCancelledSbvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
               "declAttributes": [
                 "Transparent"
               ],
@@ -12234,7 +12234,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -12252,7 +12252,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -12260,8 +12260,8 @@
               "usr": "s:ScT12_Concurrencys5NeverORszACRs_rlE11isCancelledSbvgZ",
               "mangledName": "$sScT12_Concurrencys5NeverORszACRs_rlE11isCancelledSbvgZ",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Swift.Never, τ_0_1 == Swift.Never>",
-              "sugared_genericSig": "<Success, Failure where Success == Swift.Never, Failure == Swift.Never>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Codira.Never, τ_0_1 == Codira.Never>",
+              "sugared_genericSig": "<Success, Failure where Success == Codira.Never, Failure == Codira.Never>",
               "static": true,
               "accessorKind": "get"
             }
@@ -12282,8 +12282,8 @@
           "usr": "s:ScT12_Concurrencys5NeverORszACRs_rlE17checkCancellationyyKFZ",
           "mangledName": "$sScT12_Concurrencys5NeverORszACRs_rlE17checkCancellationyyKFZ",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Swift.Never, τ_0_1 == Swift.Never>",
-          "sugared_genericSig": "<Success, Failure where Success == Swift.Never, Failure == Swift.Never>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Codira.Never, τ_0_1 == Codira.Never>",
+          "sugared_genericSig": "<Success, Failure where Success == Codira.Never, Failure == Codira.Never>",
           "static": true,
           "throwing": true,
           "funcSelfKind": "NonMutating"
@@ -12301,7 +12301,7 @@
             {
               "kind": "TypeNominal",
               "name": "UInt64",
-              "printedName": "Swift.UInt64",
+              "printedName": "Codira.UInt64",
               "usr": "s:s6UInt64V"
             }
           ],
@@ -12309,8 +12309,8 @@
           "usr": "s:ScT12_Concurrencys5NeverORszACRs_rlE5sleepyys6UInt64VYaFZ",
           "mangledName": "$sScT12_Concurrencys5NeverORszACRs_rlE5sleepyys6UInt64VYaFZ",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Swift.Never, τ_0_1 == Swift.Never>",
-          "sugared_genericSig": "<Success, Failure where Success == Swift.Never, Failure == Swift.Never>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Codira.Never, τ_0_1 == Codira.Never>",
+          "sugared_genericSig": "<Success, Failure where Success == Codira.Never, Failure == Codira.Never>",
           "static": true,
           "deprecated": true,
           "declAttributes": [
@@ -12331,7 +12331,7 @@
             {
               "kind": "TypeNominal",
               "name": "UInt64",
-              "printedName": "Swift.UInt64",
+              "printedName": "Codira.UInt64",
               "usr": "s:s6UInt64V"
             }
           ],
@@ -12339,8 +12339,8 @@
           "usr": "s:ScT12_Concurrencys5NeverORszACRs_rlE5sleep11nanosecondsys6UInt64V_tYaKFZ",
           "mangledName": "$sScT12_Concurrencys5NeverORszACRs_rlE5sleep11nanosecondsys6UInt64V_tYaKFZ",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Swift.Never, τ_0_1 == Swift.Never>",
-          "sugared_genericSig": "<Success, Failure where Success == Swift.Never, Failure == Swift.Never>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == Codira.Never, τ_0_1 == Codira.Never>",
+          "sugared_genericSig": "<Success, Failure where Success == Codira.Never, Failure == Codira.Never>",
           "static": true,
           "throwing": true,
           "funcSelfKind": "NonMutating"
@@ -12350,8 +12350,8 @@
       "usr": "s:ScT",
       "mangledName": "$sScT",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-      "sugared_genericSig": "<Success, Failure where Success : Swift.Sendable, Failure : Swift.Error>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+      "sugared_genericSig": "<Success, Failure where Success : Codira.Sendable, Failure : Codira.Error>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -12400,7 +12400,7 @@
             {
               "kind": "TypeNominal",
               "name": "UInt8",
-              "printedName": "Swift.UInt8",
+              "printedName": "Codira.UInt8",
               "usr": "s:s5UInt8V"
             }
           ],
@@ -12421,7 +12421,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "UInt8",
-                  "printedName": "Swift.UInt8",
+                  "printedName": "Codira.UInt8",
                   "usr": "s:s5UInt8V"
                 }
               ],
@@ -12445,7 +12445,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "UInt8",
-                  "printedName": "Swift.UInt8",
+                  "printedName": "Codira.UInt8",
                   "usr": "s:s5UInt8V"
                 }
               ],
@@ -12490,7 +12490,7 @@
             {
               "kind": "TypeNominal",
               "name": "UInt8",
-              "printedName": "Swift.UInt8",
+              "printedName": "Codira.UInt8",
               "usr": "s:s5UInt8V"
             }
           ],
@@ -12786,7 +12786,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12817,7 +12817,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12848,7 +12848,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12879,7 +12879,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12910,7 +12910,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12941,7 +12941,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -12993,7 +12993,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "UInt8",
-                  "printedName": "Swift.UInt8",
+                  "printedName": "Codira.UInt8",
                   "usr": "s:s5UInt8V"
                 }
               ]
@@ -13112,7 +13112,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -13129,7 +13129,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -13208,7 +13208,7 @@
             {
               "kind": "TypeNominal",
               "name": "Hasher",
-              "printedName": "Swift.Hasher",
+              "printedName": "Codira.Hasher",
               "paramValueOwnership": "InOut",
               "usr": "s:s6HasherV"
             }
@@ -13227,7 +13227,7 @@
             {
               "kind": "TypeNominal",
               "name": "Int",
-              "printedName": "Swift.Int",
+              "printedName": "Codira.Int",
               "usr": "s:Si"
             }
           ],
@@ -13245,7 +13245,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Int",
-                  "printedName": "Swift.Int",
+                  "printedName": "Codira.Int",
                   "usr": "s:Si"
                 }
               ],
@@ -13266,7 +13266,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             },
             {
@@ -13339,7 +13339,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency17_enqueueJobGlobalyyBjF",
-      "mangledName": "swift_task_enqueueGlobal",
+      "mangledName": "language_task_enqueueGlobal",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -13368,7 +13368,7 @@
         {
           "kind": "TypeNominal",
           "name": "UInt64",
-          "printedName": "Swift.UInt64",
+          "printedName": "Codira.UInt64",
           "usr": "s:s6UInt64V"
         },
         {
@@ -13379,7 +13379,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency26_enqueueJobGlobalWithDelayyys6UInt64V_BjtF",
-      "mangledName": "swift_task_enqueueGlobalWithDelay",
+      "mangledName": "language_task_enqueueGlobalWithDelay",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -13457,7 +13457,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency14_taskFutureGetyxBoYalF",
-      "mangledName": "swift_task_future_wait",
+      "mangledName": "language_task_future_wait",
       "moduleName": "_Concurrency",
       "genericSig": "<τ_0_0>",
       "sugared_genericSig": "<T>",
@@ -13492,7 +13492,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency22_taskFutureGetThrowingyxBoYaKlF",
-      "mangledName": "swift_task_future_wait_throwing",
+      "mangledName": "language_task_future_wait_throwing",
       "moduleName": "_Concurrency",
       "genericSig": "<τ_0_0>",
       "sugared_genericSig": "<T>",
@@ -13518,7 +13518,7 @@
         {
           "kind": "TypeNominal",
           "name": "Bool",
-          "printedName": "Swift.Bool",
+          "printedName": "Codira.Bool",
           "usr": "s:Sb"
         },
         {
@@ -13529,7 +13529,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency16_taskIsCancelledySbBoF",
-      "mangledName": "swift_task_isCancelled",
+      "mangledName": "language_task_isCancelled",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -13553,7 +13553,7 @@
         {
           "kind": "TypeNominal",
           "name": "Bool",
-          "printedName": "Swift.Bool",
+          "printedName": "Codira.Bool",
           "usr": "s:Sb"
         },
         {
@@ -13564,7 +13564,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency22_taskIsCurrentExecutorySbBeF",
-      "mangledName": "swift_task_isCurrentExecutor",
+      "mangledName": "language_task_isCurrentExecutor",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -13618,7 +13618,7 @@
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency25_reportUnexpectedExecutoryyBp_BwBi1_BwBetF",
-      "mangledName": "swift_task_reportUnexpectedExecutor",
+      "mangledName": "language_task_reportUnexpectedExecutor",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -13820,8 +13820,8 @@
       "usr": "s:12_Concurrency13withTaskGroup2of9returning4bodyq_xm_q_mq_ScGyxGzYaXEtYas8SendableRzr0_lF",
       "mangledName": "_$ss13withTaskGroup2of9returning4bodyq_xm_q_mq_ScGyxGzYaXEtYar0_lF",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable>",
-      "sugared_genericSig": "<ChildTaskResult, GroupResult where ChildTaskResult : Swift.Sendable>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable>",
+      "sugared_genericSig": "<ChildTaskResult, GroupResult where ChildTaskResult : Codira.Sendable>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -13874,7 +13874,7 @@
         {
           "kind": "TypeFunc",
           "name": "Function",
-          "printedName": "(inout _Concurrency.ThrowingTaskGroup<τ_0_0, any Swift.Error>) async throws -> τ_0_1",
+          "printedName": "(inout _Concurrency.ThrowingTaskGroup<τ_0_0, any Codira.Error>) async throws -> τ_0_1",
           "children": [
             {
               "kind": "TypeNominal",
@@ -13884,7 +13884,7 @@
             {
               "kind": "TypeNominal",
               "name": "InOut",
-              "printedName": "inout _Concurrency.ThrowingTaskGroup<τ_0_0, any Swift.Error>"
+              "printedName": "inout _Concurrency.ThrowingTaskGroup<τ_0_0, any Codira.Error>"
             }
           ],
           "typeAttributes": [
@@ -13896,8 +13896,8 @@
       "usr": "s:12_Concurrency21withThrowingTaskGroup2of9returning4bodyq_xm_q_mq_Scgyxs5Error_pGzYaKXEtYaKs8SendableRzr0_lF",
       "mangledName": "_$ss21withThrowingTaskGroup2of9returning4bodyq_xm_q_mq_Scgyxs5Error_pGzYaKXEtYaKr0_lF",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable>",
-      "sugared_genericSig": "<ChildTaskResult, GroupResult where ChildTaskResult : Swift.Sendable>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable>",
+      "sugared_genericSig": "<ChildTaskResult, GroupResult where ChildTaskResult : Codira.Sendable>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -13957,8 +13957,8 @@
               "usr": "s:ScG6_groupBpvg",
               "mangledName": "$sScG6_groupBpvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
               "implicit": true,
               "declAttributes": [
                 "Transparent"
@@ -13995,8 +13995,8 @@
           "usr": "s:ScG5groupScGyxGBp_tcfc",
           "mangledName": "$sScG5groupScGyxGBp_tcfc",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
           "declAttributes": [
             "Inlinable"
           ],
@@ -14025,8 +14025,8 @@
           "usr": "s:ScG4nextxSgyYaF",
           "mangledName": "$sScG4nextxSgyYaF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
           "funcSelfKind": "Mutating"
         },
         {
@@ -14044,8 +14044,8 @@
           "usr": "s:ScG22awaitAllRemainingTasksyyYaF",
           "mangledName": "$sScG22awaitAllRemainingTasksyyYaF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
           "declAttributes": [
             "UsableFromInline"
           ],
@@ -14059,7 +14059,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -14076,7 +14076,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -14084,8 +14084,8 @@
               "usr": "s:ScG7isEmptySbvg",
               "mangledName": "$sScG7isEmptySbvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
               "accessorKind": "get"
             }
           ]
@@ -14105,8 +14105,8 @@
           "usr": "s:ScG9cancelAllyyF",
           "mangledName": "$sScG9cancelAllyyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -14117,7 +14117,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -14134,7 +14134,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -14142,8 +14142,8 @@
               "usr": "s:ScG11isCancelledSbvg",
               "mangledName": "$sScG11isCancelledSbvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
               "accessorKind": "get"
             }
           ]
@@ -14164,8 +14164,8 @@
           "usr": "s:ScG17makeAsyncIteratorScG0C0Vyx_GyF",
           "mangledName": "$sScG17makeAsyncIteratorScG0C0Vyx_GyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -14225,8 +14225,8 @@
                   "usr": "s:ScG8IteratorV5groupScGyxGvg",
                   "mangledName": "$sScG8IteratorV5groupScGyxGvg",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+                  "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
                   "implicit": true,
                   "accessorKind": "get"
                 },
@@ -14258,8 +14258,8 @@
                   "usr": "s:ScG8IteratorV5groupScGyxGvs",
                   "mangledName": "$sScG8IteratorV5groupScGyxGvs",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+                  "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
                   "implicit": true,
                   "accessorKind": "set"
                 },
@@ -14278,8 +14278,8 @@
                   "usr": "s:ScG8IteratorV5groupScGyxGvM",
                   "mangledName": "$sScG8IteratorV5groupScGyxGvM",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+                  "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
                   "implicit": true,
                   "accessorKind": "_modify"
                 }
@@ -14293,7 +14293,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -14316,7 +14316,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -14324,8 +14324,8 @@
                   "usr": "s:ScG8IteratorV8finishedSbvg",
                   "mangledName": "$sScG8IteratorV8finishedSbvg",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+                  "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
                   "implicit": true,
                   "accessorKind": "get"
                 },
@@ -14342,7 +14342,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -14350,8 +14350,8 @@
                   "usr": "s:ScG8IteratorV8finishedSbvs",
                   "mangledName": "$sScG8IteratorV8finishedSbvs",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+                  "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
                   "implicit": true,
                   "accessorKind": "set"
                 },
@@ -14370,8 +14370,8 @@
                   "usr": "s:ScG8IteratorV8finishedSbvM",
                   "mangledName": "$sScG8IteratorV8finishedSbvM",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+                  "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+                  "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
                   "implicit": true,
                   "accessorKind": "_modify"
                 }
@@ -14400,8 +14400,8 @@
               "usr": "s:ScG8IteratorV4nextxSgyYaF",
               "mangledName": "$sScG8IteratorV4nextxSgyYaF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
               "funcSelfKind": "Mutating"
             },
             {
@@ -14419,8 +14419,8 @@
               "usr": "s:ScG8IteratorV6cancelyyF",
               "mangledName": "$sScG8IteratorV6cancelyyF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
               "funcSelfKind": "Mutating"
             }
           ],
@@ -14428,8 +14428,8 @@
           "usr": "s:ScG8IteratorV",
           "mangledName": "$sScG8IteratorV",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
           "intro_Macosx": "10.15",
           "intro_iOS": "13.0",
           "intro_tvOS": "13.0",
@@ -14469,8 +14469,8 @@
       "usr": "s:ScG",
       "mangledName": "$sScG",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-      "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Swift.Sendable>",
+      "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+      "sugared_genericSig": "<ChildTaskResult where ChildTaskResult : Codira.Sendable>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -14569,8 +14569,8 @@
               "usr": "s:Scg6_groupBpvg",
               "mangledName": "$sScg6_groupBpvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
               "implicit": true,
               "declAttributes": [
                 "Transparent"
@@ -14612,8 +14612,8 @@
           "usr": "s:Scg5groupScgyxq_GBp_tcfc",
           "mangledName": "$sScg5groupScgyxq_GBp_tcfc",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "declAttributes": [
             "Inlinable"
           ],
@@ -14634,8 +14634,8 @@
           "usr": "s:Scg22awaitAllRemainingTasksyyYaF",
           "mangledName": "$sScg22awaitAllRemainingTasksyyYaF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "declAttributes": [
             "UsableFromInline"
           ],
@@ -14656,8 +14656,8 @@
           "usr": "s:Scg11_waitForAllyyYaKF",
           "mangledName": "$sScg11_waitForAllyyYaKF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "declAttributes": [
             "UsableFromInline"
           ],
@@ -14687,8 +14687,8 @@
           "usr": "s:Scg4nextxSgyYaKF",
           "mangledName": "$sScg4nextxSgyYaKF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "throwing": true,
           "funcSelfKind": "Mutating"
         },
@@ -14700,12 +14700,12 @@
             {
               "kind": "TypeNominal",
               "name": "Optional",
-              "printedName": "Swift.Result<τ_0_0, τ_0_1>?",
+              "printedName": "Codira.Result<τ_0_0, τ_0_1>?",
               "children": [
                 {
                   "kind": "TypeNominal",
                   "name": "Result",
-                  "printedName": "Swift.Result<τ_0_0, τ_0_1>",
+                  "printedName": "Codira.Result<τ_0_0, τ_0_1>",
                   "children": [
                     {
                       "kind": "TypeNominal",
@@ -14728,8 +14728,8 @@
           "usr": "s:Scg16nextResultForABIs0B0Oyxq_GSgyYaKF",
           "mangledName": "$sScg10nextResults0B0Oyxq_GSgyYaKF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "declAttributes": [
             "UsableFromInline",
             "SILGenName"
@@ -14745,7 +14745,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -14762,7 +14762,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -14770,8 +14770,8 @@
               "usr": "s:Scg7isEmptySbvg",
               "mangledName": "$sScg7isEmptySbvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
               "accessorKind": "get"
             }
           ]
@@ -14791,8 +14791,8 @@
           "usr": "s:Scg9cancelAllyyF",
           "mangledName": "$sScg9cancelAllyyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -14803,7 +14803,7 @@
             {
               "kind": "TypeNominal",
               "name": "Bool",
-              "printedName": "Swift.Bool",
+              "printedName": "Codira.Bool",
               "usr": "s:Sb"
             }
           ],
@@ -14820,7 +14820,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -14828,8 +14828,8 @@
               "usr": "s:Scg11isCancelledSbvg",
               "mangledName": "$sScg11isCancelledSbvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
               "accessorKind": "get"
             }
           ]
@@ -14850,8 +14850,8 @@
           "usr": "s:Scg17makeAsyncIteratorScg0C0Vyxq__GyF",
           "mangledName": "$sScg17makeAsyncIteratorScg0C0Vyxq__GyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "funcSelfKind": "NonMutating"
         },
         {
@@ -14921,8 +14921,8 @@
                   "usr": "s:Scg8IteratorV5groupScgyxq_Gvg",
                   "mangledName": "$sScg8IteratorV5groupScgyxq_Gvg",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "get"
                 },
@@ -14959,8 +14959,8 @@
                   "usr": "s:Scg8IteratorV5groupScgyxq_Gvs",
                   "mangledName": "$sScg8IteratorV5groupScgyxq_Gvs",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "set"
                 },
@@ -14979,8 +14979,8 @@
                   "usr": "s:Scg8IteratorV5groupScgyxq_GvM",
                   "mangledName": "$sScg8IteratorV5groupScgyxq_GvM",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "_modify"
                 }
@@ -14994,7 +14994,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Bool",
-                  "printedName": "Swift.Bool",
+                  "printedName": "Codira.Bool",
                   "usr": "s:Sb"
                 }
               ],
@@ -15017,7 +15017,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -15025,8 +15025,8 @@
                   "usr": "s:Scg8IteratorV8finishedSbvg",
                   "mangledName": "$sScg8IteratorV8finishedSbvg",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "get"
                 },
@@ -15043,7 +15043,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     }
                   ],
@@ -15051,8 +15051,8 @@
                   "usr": "s:Scg8IteratorV8finishedSbvs",
                   "mangledName": "$sScg8IteratorV8finishedSbvs",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "set"
                 },
@@ -15071,8 +15071,8 @@
                   "usr": "s:Scg8IteratorV8finishedSbvM",
                   "mangledName": "$sScg8IteratorV8finishedSbvM",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "_modify"
                 }
@@ -15101,8 +15101,8 @@
               "usr": "s:Scg8IteratorV4nextxSgyYaKF",
               "mangledName": "$sScg8IteratorV4nextxSgyYaKF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
               "throwing": true,
               "funcSelfKind": "Mutating"
             },
@@ -15121,8 +15121,8 @@
               "usr": "s:Scg8IteratorV6cancelyyF",
               "mangledName": "$sScg8IteratorV6cancelyyF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
               "funcSelfKind": "Mutating"
             }
           ],
@@ -15130,8 +15130,8 @@
           "usr": "s:Scg8IteratorV",
           "mangledName": "$sScg8IteratorV",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
           "intro_Macosx": "10.15",
           "intro_iOS": "13.0",
           "intro_tvOS": "13.0",
@@ -15171,8 +15171,8 @@
       "usr": "s:Scg",
       "mangledName": "$sScg",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Swift.Sendable, τ_0_1 : Swift.Error>",
-      "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Swift.Sendable, Failure : Swift.Error>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 : Codira.Sendable, τ_0_1 : Codira.Error>",
+      "sugared_genericSig": "<ChildTaskResult, Failure where ChildTaskResult : Codira.Sendable, Failure : Codira.Error>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -15236,7 +15236,7 @@
         {
           "kind": "TypeNominal",
           "name": "Bool",
-          "printedName": "Swift.Bool",
+          "printedName": "Codira.Bool",
           "usr": "s:Sb"
         },
         {
@@ -15247,13 +15247,13 @@
         {
           "kind": "TypeNominal",
           "name": "Bool",
-          "printedName": "Swift.Bool",
+          "printedName": "Codira.Bool",
           "usr": "s:Sb"
         }
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency24_taskGroupAddPendingTask5group15unconditionallySbBp_SbtF",
-      "mangledName": "swift_taskGroup_addPending",
+      "mangledName": "language_taskGroup_addPending",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -15302,8 +15302,8 @@
           "usr": "s:12_Concurrency9TaskLocalC12wrappedValueACyxGx_tcfc",
           "mangledName": "$s12_Concurrency9TaskLocalC12wrappedValueACyxGx_tcfc",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<Value where Value : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<Value where Value : Codira.Sendable>",
           "init_kind": "Designated"
         },
         {
@@ -15321,8 +15321,8 @@
           "usr": "s:12_Concurrency9TaskLocalC3getxyF",
           "mangledName": "$s12_Concurrency9TaskLocalC3getxyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<Value where Value : Swift.Sendable>",
+          "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<Value where Value : Codira.Sendable>",
           "declAttributes": [
             "Final"
           ],
@@ -15366,14 +15366,14 @@
             {
               "kind": "TypeNominal",
               "name": "String",
-              "printedName": "Swift.String",
+              "printedName": "Codira.String",
               "hasDefaultArg": true,
               "usr": "s:SS"
             },
             {
               "kind": "TypeNominal",
               "name": "UInt",
-              "printedName": "Swift.UInt",
+              "printedName": "Codira.UInt",
               "hasDefaultArg": true,
               "usr": "s:Su"
             }
@@ -15382,8 +15382,8 @@
           "usr": "s:12_Concurrency9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yYaKXESSSutYaKlF",
           "mangledName": "$s12_Concurrency9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yYaKXESSSutYaKlF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_1_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<Value, R where Value : Swift.Sendable>",
+          "genericSig": "<τ_0_0, τ_1_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<Value, R where Value : Codira.Sendable>",
           "declAttributes": [
             "Final",
             "Rethrows",
@@ -15430,14 +15430,14 @@
             {
               "kind": "TypeNominal",
               "name": "String",
-              "printedName": "Swift.String",
+              "printedName": "Codira.String",
               "hasDefaultArg": true,
               "usr": "s:SS"
             },
             {
               "kind": "TypeNominal",
               "name": "UInt",
-              "printedName": "Swift.UInt",
+              "printedName": "Codira.UInt",
               "hasDefaultArg": true,
               "usr": "s:Su"
             }
@@ -15446,8 +15446,8 @@
           "usr": "s:12_Concurrency9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yKXESSSutKlF",
           "mangledName": "$s12_Concurrency9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yKXESSSutKlF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_1_0 where τ_0_0 : Swift.Sendable>",
-          "sugared_genericSig": "<Value, R where Value : Swift.Sendable>",
+          "genericSig": "<τ_0_0, τ_1_0 where τ_0_0 : Codira.Sendable>",
+          "sugared_genericSig": "<Value, R where Value : Codira.Sendable>",
           "declAttributes": [
             "Final",
             "Rethrows",
@@ -15506,8 +15506,8 @@
               "usr": "s:12_Concurrency9TaskLocalC14projectedValueACyxGvg",
               "mangledName": "$s12_Concurrency9TaskLocalC14projectedValueACyxGvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<Value where Value : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<Value where Value : Codira.Sendable>",
               "declAttributes": [
                 "Final"
               ],
@@ -15549,8 +15549,8 @@
               "usr": "s:12_Concurrency9TaskLocalC12wrappedValuexvg",
               "mangledName": "$s12_Concurrency9TaskLocalC12wrappedValuexvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<Value where Value : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<Value where Value : Codira.Sendable>",
               "declAttributes": [
                 "Final"
               ],
@@ -15566,7 +15566,7 @@
             {
               "kind": "TypeNominal",
               "name": "String",
-              "printedName": "Swift.String",
+              "printedName": "Codira.String",
               "usr": "s:SS"
             }
           ],
@@ -15586,7 +15586,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "String",
-                  "printedName": "Swift.String",
+                  "printedName": "Codira.String",
                   "usr": "s:SS"
                 }
               ],
@@ -15594,8 +15594,8 @@
               "usr": "s:12_Concurrency9TaskLocalC11descriptionSSvg",
               "mangledName": "$s12_Concurrency9TaskLocalC11descriptionSSvg",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-              "sugared_genericSig": "<Value where Value : Swift.Sendable>",
+              "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+              "sugared_genericSig": "<Value where Value : Codira.Sendable>",
               "declAttributes": [
                 "Final"
               ],
@@ -15608,8 +15608,8 @@
       "usr": "s:12_Concurrency9TaskLocalC",
       "mangledName": "$s12_Concurrency9TaskLocalC",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0 where τ_0_0 : Swift.Sendable>",
-      "sugared_genericSig": "<Value where Value : Swift.Sendable>",
+      "genericSig": "<τ_0_0 where τ_0_0 : Codira.Sendable>",
+      "sugared_genericSig": "<Value where Value : Codira.Sendable>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",
@@ -15652,13 +15652,13 @@
         {
           "kind": "TypeNominal",
           "name": "String",
-          "printedName": "Swift.String",
+          "printedName": "Codira.String",
           "usr": "s:SS"
         },
         {
           "kind": "TypeNominal",
           "name": "UInt",
-          "printedName": "Swift.UInt",
+          "printedName": "Codira.UInt",
           "usr": "s:Su"
         }
       ],
@@ -15692,12 +15692,12 @@
         {
           "kind": "TypeNominal",
           "name": "UnsafePointer",
-          "printedName": "Swift.UnsafePointer<Swift.Int8>",
+          "printedName": "Codira.UnsafePointer<Codira.Int8>",
           "children": [
             {
               "kind": "TypeNominal",
               "name": "Int8",
-              "printedName": "Swift.Int8",
+              "printedName": "Codira.Int8",
               "usr": "s:s4Int8V"
             }
           ],
@@ -15706,25 +15706,25 @@
         {
           "kind": "TypeNominal",
           "name": "Int",
-          "printedName": "Swift.Int",
+          "printedName": "Codira.Int",
           "usr": "s:Si"
         },
         {
           "kind": "TypeNominal",
           "name": "Bool",
-          "printedName": "Swift.Bool",
+          "printedName": "Codira.Bool",
           "usr": "s:Sb"
         },
         {
           "kind": "TypeNominal",
           "name": "UInt",
-          "printedName": "Swift.UInt",
+          "printedName": "Codira.UInt",
           "usr": "s:Su"
         }
       ],
       "declKind": "Func",
       "usr": "s:12_Concurrency040_reportIllegalTaskLocalBindingWithinWithD5GroupyySPys4Int8VG_SiSbSutF",
-      "mangledName": "swift_task_reportIllegalTaskLocalBindingWithinWithTaskGroup",
+      "mangledName": "language_task_reportIllegalTaskLocalBindingWithinWithTaskGroup",
       "moduleName": "_Concurrency",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
@@ -15837,7 +15837,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Bool",
-                      "printedName": "Swift.Bool",
+                      "printedName": "Codira.Bool",
                       "usr": "s:Sb"
                     },
                     {
@@ -15876,7 +15876,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Hasher",
-                      "printedName": "Swift.Hasher",
+                      "printedName": "Codira.Hasher",
                       "paramValueOwnership": "InOut",
                       "usr": "s:s6HasherV"
                     }
@@ -15898,7 +15898,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Int",
-                      "printedName": "Swift.Int",
+                      "printedName": "Codira.Int",
                       "usr": "s:Si"
                     }
                   ],
@@ -15916,7 +15916,7 @@
                         {
                           "kind": "TypeNominal",
                           "name": "Int",
-                          "printedName": "Swift.Int",
+                          "printedName": "Codira.Int",
                           "usr": "s:Si"
                         }
                       ],
@@ -15968,12 +15968,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0> (_Concurrency.AsyncStream<τ_0_0>.Continuation.YieldResult.Type) -> (Swift.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.YieldResult",
+                      "printedName": "<τ_0_0> (_Concurrency.AsyncStream<τ_0_0>.Continuation.YieldResult.Type) -> (Codira.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.YieldResult",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(Swift.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.YieldResult",
+                          "printedName": "(Codira.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.YieldResult",
                           "children": [
                             {
                               "kind": "TypeNominal",
@@ -15984,12 +15984,12 @@
                             {
                               "kind": "TypeNominal",
                               "name": "Tuple",
-                              "printedName": "(remaining: Swift.Int)",
+                              "printedName": "(remaining: Codira.Int)",
                               "children": [
                                 {
                                   "kind": "TypeNominal",
                                   "name": "Int",
-                                  "printedName": "Swift.Int",
+                                  "printedName": "Codira.Int",
                                   "usr": "s:Si"
                                 }
                               ]
@@ -16161,12 +16161,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0> (_Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy.Type) -> (Swift.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
+                      "printedName": "<τ_0_0> (_Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy.Type) -> (Codira.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(Swift.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
+                          "printedName": "(Codira.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
                           "children": [
                             {
                               "kind": "TypeNominal",
@@ -16177,7 +16177,7 @@
                             {
                               "kind": "TypeNominal",
                               "name": "Int",
-                              "printedName": "Swift.Int",
+                              "printedName": "Codira.Int",
                               "usr": "s:Si"
                             }
                           ]
@@ -16211,12 +16211,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0> (_Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy.Type) -> (Swift.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
+                      "printedName": "<τ_0_0> (_Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy.Type) -> (Codira.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(Swift.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
+                          "printedName": "(Codira.Int) -> _Concurrency.AsyncStream<τ_0_0>.Continuation.BufferingPolicy",
                           "children": [
                             {
                               "kind": "TypeNominal",
@@ -16227,7 +16227,7 @@
                             {
                               "kind": "TypeNominal",
                               "name": "Int",
-                              "printedName": "Swift.Int",
+                              "printedName": "Codira.Int",
                               "usr": "s:Si"
                             }
                           ]
@@ -16467,7 +16467,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Result",
-                  "printedName": "Swift.Result<τ_0_0, Swift.Never>",
+                  "printedName": "Codira.Result<τ_0_0, Codira.Never>",
                   "children": [
                     {
                       "kind": "TypeNominal",
@@ -16477,7 +16477,7 @@
                     {
                       "kind": "TypeNominal",
                       "name": "Never",
-                      "printedName": "Swift.Never",
+                      "printedName": "Codira.Never",
                       "usr": "s:s5NeverO"
                     }
                   ],
@@ -16512,7 +16512,7 @@
               "mangledName": "$sScS12ContinuationV5yieldAB11YieldResultOyyt__GyytRszlF",
               "moduleName": "_Concurrency",
               "genericSig": "<τ_0_0 where τ_0_0 == ()>",
-              "sugared_genericSig": "<Element where Element == Swift.Void>",
+              "sugared_genericSig": "<Element where Element == Codira.Void>",
               "declAttributes": [
                 "DiscardableResult"
               ],
@@ -16841,7 +16841,7 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination.Type) -> (τ_0_1?) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination.Type) -> (τ_0_1?) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination",
                       "children": [
                         {
                           "kind": "TypeFunc",
@@ -16898,7 +16898,7 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination.Type) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination.Type) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.Termination",
                       "children": [
                         {
                           "kind": "TypeNominal",
@@ -16932,8 +16932,8 @@
               "usr": "s:Scs12ContinuationV11TerminationO",
               "mangledName": "$sScs12ContinuationV11TerminationO",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>"
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>"
             },
             {
               "kind": "TypeDecl",
@@ -16948,12 +16948,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult.Type) -> (Swift.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult.Type) -> (Codira.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(Swift.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
+                          "printedName": "(Codira.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
                           "children": [
                             {
                               "kind": "TypeNominal",
@@ -16964,12 +16964,12 @@
                             {
                               "kind": "TypeNominal",
                               "name": "Tuple",
-                              "printedName": "(remaining: Swift.Int)",
+                              "printedName": "(remaining: Codira.Int)",
                               "children": [
                                 {
                                   "kind": "TypeNominal",
                                   "name": "Int",
-                                  "printedName": "Swift.Int",
+                                  "printedName": "Codira.Int",
                                   "usr": "s:Si"
                                 }
                               ]
@@ -17005,7 +17005,7 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult.Type) -> (τ_0_0) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult.Type) -> (τ_0_0) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
                       "children": [
                         {
                           "kind": "TypeFunc",
@@ -17054,7 +17054,7 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult.Type) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult.Type) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.YieldResult",
                       "children": [
                         {
                           "kind": "TypeNominal",
@@ -17088,8 +17088,8 @@
               "usr": "s:Scs12ContinuationV11YieldResultO",
               "mangledName": "$sScs12ContinuationV11YieldResultO",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>"
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>"
             },
             {
               "kind": "TypeDecl",
@@ -17104,7 +17104,7 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy.Type) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy.Type) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
                       "children": [
                         {
                           "kind": "TypeNominal",
@@ -17141,12 +17141,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy.Type) -> (Swift.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy.Type) -> (Codira.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(Swift.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
+                          "printedName": "(Codira.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
                           "children": [
                             {
                               "kind": "TypeNominal",
@@ -17157,7 +17157,7 @@
                             {
                               "kind": "TypeNominal",
                               "name": "Int",
-                              "printedName": "Swift.Int",
+                              "printedName": "Codira.Int",
                               "usr": "s:Si"
                             }
                           ]
@@ -17191,12 +17191,12 @@
                     {
                       "kind": "TypeFunc",
                       "name": "GenericFunction",
-                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy.Type) -> (Swift.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
+                      "printedName": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error> (_Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy.Type) -> (Codira.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
                       "children": [
                         {
                           "kind": "TypeFunc",
                           "name": "Function",
-                          "printedName": "(Swift.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
+                          "printedName": "(Codira.Int) -> _Concurrency.AsyncThrowingStream<τ_0_0, τ_0_1>.Continuation.BufferingPolicy",
                           "children": [
                             {
                               "kind": "TypeNominal",
@@ -17207,7 +17207,7 @@
                             {
                               "kind": "TypeNominal",
                               "name": "Int",
-                              "printedName": "Swift.Int",
+                              "printedName": "Codira.Int",
                               "usr": "s:Si"
                             }
                           ]
@@ -17238,8 +17238,8 @@
               "usr": "s:Scs12ContinuationV15BufferingPolicyO",
               "mangledName": "$sScs12ContinuationV15BufferingPolicyO",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>"
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>"
             },
             {
               "kind": "Function",
@@ -17263,8 +17263,8 @@
               "usr": "s:Scs12ContinuationV5yieldyAB11YieldResultOyxq___GxnF",
               "mangledName": "$sScs12ContinuationV5yieldyAB11YieldResultOyxq___GxnF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
               "declAttributes": [
                 "DiscardableResult"
               ],
@@ -17300,8 +17300,8 @@
               "usr": "s:Scs12ContinuationV6finish8throwingyq_Sgn_tF",
               "mangledName": "$sScs12ContinuationV6finish8throwingyq_Sgn_tF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
               "funcSelfKind": "NonMutating"
             },
             {
@@ -17377,8 +17377,8 @@
                   "usr": "s:Scs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvg",
                   "mangledName": "$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvg",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
                   "accessorKind": "get"
                 },
                 {
@@ -17422,8 +17422,8 @@
                   "usr": "s:Scs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvs",
                   "mangledName": "$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvs",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
                   "accessorKind": "set"
                 },
                 {
@@ -17441,8 +17441,8 @@
                   "usr": "s:Scs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvM",
                   "mangledName": "$sScs12ContinuationV13onTerminationyAB0C0Oyxq___GYbcSgvM",
                   "moduleName": "_Concurrency",
-                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-                  "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+                  "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+                  "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
                   "implicit": true,
                   "accessorKind": "_modify"
                 }
@@ -17462,7 +17462,7 @@
                 {
                   "kind": "TypeNominal",
                   "name": "Result",
-                  "printedName": "Swift.Result<τ_0_0, τ_0_1>",
+                  "printedName": "Codira.Result<τ_0_0, τ_0_1>",
                   "children": [
                     {
                       "kind": "TypeNominal",
@@ -17482,8 +17482,8 @@
               "usr": "s:Scs12ContinuationV5yield4withAB11YieldResultOyxs5Error_p__Gs0E0OyxsAG_pG_tsAG_pRs_rlF",
               "mangledName": "$sScs12ContinuationV5yield4withAB11YieldResultOyxs5Error_p__Gs0E0OyxsAG_pG_tsAG_pRs_rlF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 == any Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure == any Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 == any Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure == any Codira.Error>",
               "declAttributes": [
                 "DiscardableResult"
               ],
@@ -17505,8 +17505,8 @@
               "usr": "s:Scs12ContinuationV5yieldAB11YieldResultOyytq___GyytRszrlF",
               "mangledName": "$sScs12ContinuationV5yieldAB11YieldResultOyytq___GyytRszrlF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == (), τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Element == Swift.Void, Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_0 == (), τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Element == Codira.Void, Failure : Codira.Error>",
               "declAttributes": [
                 "DiscardableResult"
               ],
@@ -17517,8 +17517,8 @@
           "usr": "s:Scs12ContinuationV",
           "mangledName": "$sScs12ContinuationV",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
           "conformances": [
             {
               "kind": "Conformance",
@@ -17598,8 +17598,8 @@
           "usr": "s:Scs_15bufferingPolicy_Scsyxs5Error_pGxm_Scs12ContinuationV09BufferingB0OyxsAB_p__GyAEyxsAB_p_GXEtcsAB_pRs_rlufc",
           "mangledName": "$sScs_15bufferingPolicy_Scsyxs5Error_pGxm_Scs12ContinuationV09BufferingB0OyxsAB_p__GyAEyxsAB_p_GXEtcsAB_pRs_rlufc",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 == any Swift.Error>",
-          "sugared_genericSig": "<Element, Failure where Failure == any Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 == any Codira.Error>",
+          "sugared_genericSig": "<Element, Failure where Failure == any Codira.Error>",
           "init_kind": "Designated"
         },
         {
@@ -17655,8 +17655,8 @@
           "usr": "s:Scs9unfoldingScsyxs5Error_pGxSgyYaKc_tcsAB_pRs_rlufc",
           "mangledName": "$sScs9unfoldingScsyxs5Error_pGxSgyYaKc_tcsAB_pRs_rlufc",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 == any Swift.Error>",
-          "sugared_genericSig": "<Element, Failure where Failure == any Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 == any Codira.Error>",
+          "sugared_genericSig": "<Element, Failure where Failure == any Codira.Error>",
           "init_kind": "Designated"
         },
         {
@@ -17687,8 +17687,8 @@
               "usr": "s:Scs8IteratorV4nextxSgyYaKF",
               "mangledName": "$sScs8IteratorV4nextxSgyYaKF",
               "moduleName": "_Concurrency",
-              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-              "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+              "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+              "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
               "throwing": true,
               "funcSelfKind": "Mutating"
             }
@@ -17697,8 +17697,8 @@
           "usr": "s:Scs8IteratorV",
           "mangledName": "$sScs8IteratorV",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
           "conformances": [
             {
               "kind": "Conformance",
@@ -17739,8 +17739,8 @@
           "usr": "s:Scs17makeAsyncIteratorScs0C0Vyxq__GyF",
           "mangledName": "$sScs17makeAsyncIteratorScs0C0Vyxq__GyF",
           "moduleName": "_Concurrency",
-          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-          "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+          "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+          "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
           "funcSelfKind": "NonMutating"
         }
       ],
@@ -17748,8 +17748,8 @@
       "usr": "s:Scs",
       "mangledName": "$sScs",
       "moduleName": "_Concurrency",
-      "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Swift.Error>",
-      "sugared_genericSig": "<Element, Failure where Failure : Swift.Error>",
+      "genericSig": "<τ_0_0, τ_0_1 where τ_0_1 : Codira.Error>",
+      "sugared_genericSig": "<Element, Failure where Failure : Codira.Error>",
       "intro_Macosx": "10.15",
       "intro_iOS": "13.0",
       "intro_tvOS": "13.0",

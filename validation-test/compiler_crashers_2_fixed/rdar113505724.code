@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public struct G<T> {
+  var value: T { fatalError() }
+}
+
+public fn f<T>(transform: () -> T) {}
+
+public fn g<T, each V>(_ v: repeat G<each V>?, transform: (repeat (each V)?) -> T) {
+  f(transform: { transform(repeat (each v)?.value ?? nil) })
+}

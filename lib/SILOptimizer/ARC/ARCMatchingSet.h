@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_GLOBALARCPAIRINGANALYSIS_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_GLOBALARCPAIRINGANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_GLOBALARCPAIRINGANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_GLOBALARCPAIRINGANALYSIS_H
 
 #include "GlobalARCSequenceDataflow.h"
 #include "GlobalLoopARCSequenceDataflow.h"
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Utils/LoopUtils.h"
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 
 namespace language {
 
@@ -44,10 +45,10 @@ struct ARCMatchingSet {
   SILValue Ptr;
 
   /// The set of reference count increments that were paired.
-  llvm::SetVector<SILInstruction *> Increments;
+  toolchain::SetVector<SILInstruction *> Increments;
 
   /// The set of reference count decrements that were paired.
-  llvm::SetVector<SILInstruction *> Decrements;
+  toolchain::SetVector<SILInstruction *> Decrements;
 
   // This is a data structure that cannot be moved or copied.
   ARCMatchingSet() = default;
@@ -77,8 +78,8 @@ struct ARCMatchingSetBuilder {
   TDMapTy &TDMap;
   BUMapTy &BUMap;
 
-  llvm::SmallVector<SILInstruction *, 8> NewIncrements;
-  llvm::SmallVector<SILInstruction *, 8> NewDecrements;
+  toolchain::SmallVector<SILInstruction *, 8> NewIncrements;
+  toolchain::SmallVector<SILInstruction *, 8> NewDecrements;
   bool MatchedPair;
   ARCMatchingSet MatchSet;
   bool PtrIsGuaranteedArg;
@@ -124,6 +125,6 @@ private:
   std::optional<MatchingSetFlags> matchDecrementsToIncrements();
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

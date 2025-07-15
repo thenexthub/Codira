@@ -1,4 +1,4 @@
-add_swift_host_library(swiftSymbolGraphGen STATIC
+add_language_host_library(languageSymbolGraphGen STATIC
   AvailabilityMixin.cpp
   DeclarationFragmentPrinter.cpp
   Edge.cpp
@@ -8,11 +8,11 @@ add_swift_host_library(swiftSymbolGraphGen STATIC
   SymbolGraphGen.cpp
   SymbolGraphASTWalker.cpp
 
-  LLVM_LINK_COMPONENTS
+  TOOLCHAIN_LINK_COMPONENTS
   TargetParser
   )
 
-target_link_libraries(swiftSymbolGraphGen PRIVATE
-  swiftAST
-  swiftIDE
-  swiftMarkup)
+target_link_libraries(languageSymbolGraphGen PRIVATE
+  languageAST
+  languageIDE
+  languageMarkup)

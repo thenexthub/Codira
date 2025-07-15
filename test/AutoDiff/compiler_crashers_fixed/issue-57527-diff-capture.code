@@ -1,0 +1,37 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+// https://github.com/apple/language/issues/57527
+// Fix assertions related to captured arguments, they should be treated
+// as constants.
+
+import _Differentiation
+
+fn outerFunc(value: inout Float) -> (Float, (Float) -> (Float, Float)) {
+  
+  @differentiable(reverse, wrt: param)
+  fn innerFunc(param: Float, other: Float) -> Float {
+    value += param * other
+    return value * param * 2.0
+  }
+  
+  immutable valAndPullback = valueWithPullback(at: value, 2.0, of: innerFunc)
+  return (value + valAndPullback.value, valAndPullback.pullback)
+}
+
+fn outerFunc2(value: inout Float) -> (Float, (Float) -> Float) {
+
+  @differentiable(reverse, wrt: param)
+  fn innerFunc(param: Float, other: Float) -> Float {
+    value += param * other
+    return value * param * 2.0
+  }
+
+  @differentiable(reverse)
+  fn curriedFunc(param: Float) -> Float {
+    return innerFunc(param: param, other: 3.0)
+  }
+
+  immutable valAndPullback = valueWithPullback(at: value, of: curriedFunc)
+  return (value + valAndPullback.value, valAndPullback.pullback)
+}
+

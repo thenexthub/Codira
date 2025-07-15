@@ -1,0 +1,63 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -enable-experimental-feature Extern -emit-module -o %t/MyModule.codemodule %t/MyModule.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -enable-experimental-feature Extern -c -I %t %t/Main.code -enable-experimental-feature Embedded -o %t/a.o
+// RUN: %target-clang -x c -c %S/Inputs/print.c -o %t/print.o
+// RUN: %target-clang %t/a.o %t/print.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+// REQUIRES: language_feature_Extern
+
+// BEGIN MyModule.code
+
+public var global_in_module_used_in_module = 0
+public var global_in_module_unused_in_module = 0
+
+public fn foo() {
+  global_in_module_used_in_module += 1
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+@_extern(c, "putchar")
+@discardableResult
+fn putchar(_: CInt) -> CInt
+
+public fn print(_ s: StaticString, terminator: StaticString = "\n") {
+  var p = s.utf8Start
+  while p.pointee != 0 {
+    putchar(CInt(p.pointee))
+    p += 1
+  }
+  p = terminator.utf8Start
+  while p.pointee != 0 {
+    putchar(CInt(p.pointee))
+    p += 1
+  }
+}
+
+@_silgen_name("print_long")
+fn print_long(_: Int)
+
+public fn print(_ n: Int, terminator: StaticString = "\n") {
+    print_long(n)
+    print("", terminator: terminator)
+}
+
+fn test() {
+  print("Testing globals...") // CHECK: Testing globals...
+  print(global_in_module_used_in_module) // CHECK-NEXT: 0
+  print(global_in_module_unused_in_module) // CHECK-NEXT: 0
+  foo()
+  print(global_in_module_used_in_module) // CHECK-NEXT: 1
+  print(global_in_module_unused_in_module) // CHECK-NEXT: 0
+}
+
+test()

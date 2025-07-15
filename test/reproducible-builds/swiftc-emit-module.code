@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -O -g -module-name foo -emit-module %s -o %t/run-1.module
+// RUN: %target-build-language -O -g -module-name foo -emit-module %s -o %t/run-2.module
+// RUN: cmp %t/run-1.module %t/run-2.module
+// RUN: cmp %t/run-1.codedoc %t/run-2.codedoc
+print("foo")

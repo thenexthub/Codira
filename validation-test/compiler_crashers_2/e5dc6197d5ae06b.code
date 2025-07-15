@@ -1,0 +1,12 @@
+// {"signature":"language::QueryInterfaceTypeSubstitutions::operator()(language::SubstitutableType*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  typealias b = Int
+}
+protocol c {
+  associatedtype b
+}
+extension a where b == Int
+  extension a where Self : c {
+    protocol Int : c {
+d

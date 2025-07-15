@@ -1,0 +1,82 @@
+/// Test a serialized module contains the module real names when -module-alias flag is passed.
+///
+/// Module 'ClientN' imports 'Lib', and 'Lib' imports module 'XLogging'.
+/// 'XLogging' needs to be aliased due to a collision, so it's aliased 'AppleLogging'.
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+/// 1. AppleLogging
+/// Create AppleLogging.codemodule by aliasing XLogging via -module-alias XLogging=AppleLogging
+// RUN: %target-language-frontend -module-name AppleLogging -module-alias XLogging=AppleLogging %t/FileLogging.code -emit-module -emit-module-path %t/AppleLogging.codemodule
+
+/// Check AppleLogging.codemodule is created
+// RUN: test -f %t/AppleLogging.codemodule
+// RUN: not test -f %t/XLogging.codemodule
+
+/// Check AppleLogging.codemodule correctly contains AppleLogging as module name in the binary
+// RUN: toolchain-bcanalyzer --dump %t/AppleLogging.codemodule | %FileCheck %s -check-prefix=BCANALYZER-FOUND
+// BCANALYZER-FOUND: MODULE_NAME{{.*}}AppleLogging
+
+// RUN: toolchain-bcanalyzer --dump %t/AppleLogging.codemodule | not grep XLogging
+
+/// 2. Lib
+/// Create module Lib that imports XLogging WITH -module-alias XLogging=AppleLogging
+// RUN: %target-language-frontend -module-name Lib %t/FileLib.code -module-alias XLogging=AppleLogging -I %t -emit-module -emit-module-path %t/Lib.codemodule -Rmodule-loading 2> %t/result-Lib.output
+
+/// Check Lib.codemodule is created
+// RUN: test -f %t/Lib.codemodule
+// RUN: test -f %t/AppleLogging.codemodule
+// RUN: not test -f %t/XLogging.codemodule
+
+/// Check AppleLogging.codemodule is loaded, and XLogging.codemodule is not loaded
+// RUN: %FileCheck %s -input-file %t/result-Lib.output -check-prefix CHECK-LOAD1
+// CHECK-LOAD1: remark: loaded module {{.*}}AppleLogging.codemodule
+// RUN: not %FileCheck %s -input-file %t/result-Lib.output -check-prefix CHECK-NOT-LOAD1
+// CHECK-NOT-LOAD1: remark: loaded module {{.*}}XLogging.codemodule
+
+/// Check Lib.codemodule contains AppleLogging and NOT XLogging as an imported module
+/// in the binary
+// RUN: toolchain-bcanalyzer --dump %t/Lib.codemodule | %FileCheck %s -check-prefix=BCANALYZER-IMPORT1
+// BCANALYZER-IMPORT1: IMPORTED_MODULE{{.*}}AppleLogging
+// RUN: toolchain-bcanalyzer --dump %t/Lib.codemodule | not grep XLogging
+
+/// 3. Client
+/// Create a module Client that imports Lib, WITHOUT module aliasing for XLogging
+// RUN: %target-language-frontend -module-name Client %t/FileClient.code -I %t -emit-module -emit-module-path %t/Client.codemodule -Rmodule-loading 2> %t/result-Client.output
+
+/// Check Client.codemodule is created and Lib.codemodule and AppleLogging.codemodule are loaded
+// RUN: test -f %t/Client.codemodule
+// RUN: test -f %t/Lib.codemodule
+// RUN: test -f %t/AppleLogging.codemodule
+// RUN: not test -f %t/XLogging.codemodule
+
+// RUN: %FileCheck %s -input-file %t/result-Client.output -check-prefix CHECK-LOAD2
+// CHECK-LOAD2: remark: loaded module {{.*}}Lib.codemodule
+
+/// Check Client.codemodule contains Lib as an imported module in the binary
+// RUN: toolchain-bcanalyzer --dump %t/Client.codemodule | %FileCheck %s -check-prefix=BCANALYZER-IMPORT2
+// BCANALYZER-IMPORT2: IMPORTED_MODULE{{.*}}Lib
+// RUN: toolchain-bcanalyzer --dump %t/Client.codemodule | not grep XLogging
+
+
+// BEGIN FileLogging.code
+public struct Logger {
+  public init() {}
+}
+public fn setup() -> XLogging.Logger? {
+  return Logger()
+}
+
+// BEGIN FileLib.code
+import XLogging
+
+public fn start() {
+  _ = XLogging.setup()
+}
+
+// BEGIN FileClient.code
+import Lib
+public fn rubLib() {
+  Lib.start()
+}

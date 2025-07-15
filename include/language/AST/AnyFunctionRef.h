@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ANY_FUNCTION_REF_H
-#define SWIFT_AST_ANY_FUNCTION_REF_H
+#ifndef LANGUAGE_AST_ANY_FUNCTION_REF_H
+#define LANGUAGE_AST_ANY_FUNCTION_REF_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Expr.h"
@@ -22,9 +23,9 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Compiler.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include <optional>
 
 namespace language {
@@ -35,7 +36,7 @@ class CaptureInfo;
 class AnyFunctionRef {
   PointerUnion<AbstractFunctionDecl *, AbstractClosureExpr *> TheFunction;
 
-  friend struct llvm::DenseMapInfo<AnyFunctionRef>;
+  friend struct toolchain::DenseMapInfo<AnyFunctionRef>;
   
   AnyFunctionRef(decltype(TheFunction) TheFunction)
     : TheFunction(TheFunction) {}
@@ -85,7 +86,7 @@ public:
   }
 
   bool hasExternalPropertyWrapperParameters() const {
-    return llvm::any_of(*getParameters(), [](const ParamDecl *param) {
+    return toolchain::any_of(*getParameters(), [](const ParamDecl *param) {
       return param->hasExternalPropertyWrapper();
     });
   }
@@ -137,7 +138,7 @@ public:
       return;
     }
 
-    llvm_unreachable("autoclosures don't have statement bodies");
+    toolchain_unreachable("autoclosures don't have statement bodies");
   }
 
   void setTypecheckedBody(BraceStmt *stmt) {
@@ -153,7 +154,7 @@ public:
       return;
     }
 
-    llvm_unreachable("autoclosures don't have statement bodies");
+    toolchain_unreachable("autoclosures don't have statement bodies");
   }
 
   /// Returns a boolean value indicating whether the body, if any, contains
@@ -198,7 +199,7 @@ public:
       // Closures are never @objc.
       return false;
     }
-    llvm_unreachable("unexpected AnyFunctionRef representation");
+    toolchain_unreachable("unexpected AnyFunctionRef representation");
   }
   
   SourceLoc getLoc(bool SerializedOK = true) const {
@@ -208,22 +209,22 @@ public:
     if (auto ce = TheFunction.dyn_cast<AbstractClosureExpr *>()) {
       return ce->getLoc();
     }
-    llvm_unreachable("unexpected AnyFunctionRef representation");
+    toolchain_unreachable("unexpected AnyFunctionRef representation");
   }
 
 // Disable "only for use within the debugger" warning.
-#if SWIFT_COMPILER_IS_MSVC
+#if LANGUAGE_COMPILER_IS_MSVC
 #pragma warning(push)
 #pragma warning(disable: 4996)
 #endif
-  SWIFT_DEBUG_DUMP {
+  LANGUAGE_DEBUG_DUMP {
     if (auto afd = TheFunction.dyn_cast<AbstractFunctionDecl *>()) {
       return afd->dump();
     }
     if (auto ce = TheFunction.dyn_cast<AbstractClosureExpr *>()) {
       return ce->dump();
     }
-    llvm_unreachable("unexpected AnyFunctionRef representation");
+    toolchain_unreachable("unexpected AnyFunctionRef representation");
   }
   
   GenericEnvironment *getGenericEnvironment() const {
@@ -233,7 +234,7 @@ public:
     if (auto ce = TheFunction.dyn_cast<AbstractClosureExpr *>()) {
       return ce->getGenericEnvironmentOfContext();
     }
-    llvm_unreachable("unexpected AnyFunctionRef representation");
+    toolchain_unreachable("unexpected AnyFunctionRef representation");
   }
 
   GenericSignature getGenericSignature() const {
@@ -243,7 +244,7 @@ public:
     if (auto ce = TheFunction.dyn_cast<AbstractClosureExpr *>()) {
       return ce->getGenericSignatureOfContext();
     }
-    llvm_unreachable("unexpected AnyFunctionRef representation");
+    toolchain_unreachable("unexpected AnyFunctionRef representation");
   }
 
   DeclAttributes getDeclAttributes() const {
@@ -274,7 +275,7 @@ public:
     return nullptr;
   }
 
-  using MacroCallback = llvm::function_ref<void(CustomAttr *, MacroDecl *)>;
+  using MacroCallback = toolchain::function_ref<void(CustomAttr *, MacroDecl *)>;
 
   void
   forEachAttachedMacro(MacroRole role,
@@ -302,8 +303,8 @@ public:
      return lhs.TheFunction != rhs.TheFunction;
    }
 
-  friend llvm::hash_code hash_value(AnyFunctionRef fn) {
-    using llvm::hash_value;
+  friend toolchain::hash_code hash_value(AnyFunctionRef fn) {
+    using toolchain::hash_value;
     return hash_value(fn.TheFunction.getOpaqueValue());
   }
 
@@ -334,21 +335,21 @@ private:
     return {};
   }
 };
-#if SWIFT_COMPILER_IS_MSVC
+#if LANGUAGE_COMPILER_IS_MSVC
 #pragma warning(pop)
 #endif
 
-void simple_display(llvm::raw_ostream &out, AnyFunctionRef fn);
+void simple_display(toolchain::raw_ostream &out, AnyFunctionRef fn);
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct DenseMapInfo<swift::AnyFunctionRef> {
-  using PointerUnion = decltype(swift::AnyFunctionRef::TheFunction);
+struct DenseMapInfo<language::AnyFunctionRef> {
+  using PointerUnion = decltype(language::AnyFunctionRef::TheFunction);
   using PointerUnionTraits = DenseMapInfo<PointerUnion>;
-  using AnyFunctionRef = swift::AnyFunctionRef;
+  using AnyFunctionRef = language::AnyFunctionRef;
 
   static inline AnyFunctionRef getEmptyKey() {
     return AnyFunctionRef(PointerUnionTraits::getEmptyKey());
@@ -366,4 +367,4 @@ struct DenseMapInfo<swift::AnyFunctionRef> {
 
 }
 
-#endif // LLVM_SWIFT_AST_ANY_FUNCTION_REF_H
+#endif // TOOLCHAIN_LANGUAGE_AST_ANY_FUNCTION_REF_H

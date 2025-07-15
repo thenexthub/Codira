@@ -1,4 +1,4 @@
-//===--- DictionaryBridge.swift -------------------------------------------===//
+//===--- DictionaryBridge.code -------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // benchmark to test the performance of bridging an NSDictionary to a
-// Swift.Dictionary.
+// Codira.Dictionary.
 
 import Foundation
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "DictionaryBridge",
     runFunction: run_DictionaryBridge,
@@ -29,12 +30,12 @@ public let benchmarks =
 class Thing : NSObject {
 
   required override init() {
-    let c = type(of: self).col()
+    immutable c = type(of: this).col()
     check(c!.count == 10)
   }
 
-  private class func col() -> [String : AnyObject]? {
-    let dict = NSMutableDictionary()
+  private class fn col() -> [String : AnyObject]? {
+    immutable dict = NSMutableDictionary()
     dict.setValue(1, forKey: "one")
     dict.setValue(2, forKey: "two")
     dict.setValue(3, forKey: "three")
@@ -49,8 +50,8 @@ class Thing : NSObject {
     return NSDictionary(dictionary: dict) as? [String: AnyObject]
   }
 
-  class func mk() -> Thing {
-    return self.init()
+  class fn mk() -> Thing {
+    return this.init()
   }
 }
 
@@ -63,7 +64,7 @@ class Stuff {
 #endif
 
 @inline(never)
-public func run_DictionaryBridge(_ n: Int) {
+public fn run_DictionaryBridge(_ n: Int) {
 #if _runtime(_ObjC)
     for _ in 1...100*n {
       autoreleasepool {

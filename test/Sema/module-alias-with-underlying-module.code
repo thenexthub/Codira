@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -typecheck -module-name MyModule \
+// RUN:     -language-version 5 \
+// RUN:     -o %t/MyModule.codemodule \
+// RUN:     %t/MyModuleOk.code -I%t
+
+// RUN: %target-language-frontend -typecheck -module-name MyModule \
+// RUN:     -language-version 5 \
+// RUN:     -o %t/MyModule.codemodule \
+// RUN:     %t/MyModule.code -I%t \
+// RUN:     -module-alias Mod___MyModule=MyModule
+
+//--- module.modulemap
+module MyModule {
+    header "MyModule.h"
+}
+
+//--- MyModule.h
+struct UnderlyingType {};
+
+//--- MyModuleOk.code
+
+@_exported import MyModule
+public fn refToUnderlying(_ a: MyModule.UnderlyingType) {}
+
+//--- MyModule.code
+
+@_exported import Mod___MyModule
+public fn refToUnderlying(_ a: Mod___MyModule.UnderlyingType) {}

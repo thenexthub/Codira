@@ -1,0 +1,33 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+import Foundation
+fn g: B<T -> {
+c> : String {
+}
+init <T> Self {
+deinit {
+var f = b<H : C {
+}
+}
+}
+typealias F = { c: C> {
+var b in x in x in a {
+}
+protocol A where T) -> {
+}
+}
+}
+protocol P {
+}
+class B<T where A.c: P {
+var b = c

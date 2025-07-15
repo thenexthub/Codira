@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SwitchEnumBuilder.h"
@@ -78,13 +79,13 @@ void SwitchEnumBuilder::emit() && {
   SwitchEnumInst *switchEnum = nullptr;
   {
     // TODO: We could store the data in CaseBB form and not have to do this.
-    llvm::SmallVector<DeclBlockPair, 8> caseBlocks;
-    llvm::SmallVector<ProfileCounter, 8> caseBlockCounts;
-    llvm::transform(caseDataArray, std::back_inserter(caseBlocks),
+    toolchain::SmallVector<DeclBlockPair, 8> caseBlocks;
+    toolchain::SmallVector<ProfileCounter, 8> caseBlockCounts;
+    toolchain::transform(caseDataArray, std::back_inserter(caseBlocks),
                     [](NormalCaseData &caseData) -> DeclBlockPair {
                       return {caseData.decl, caseData.block};
                     });
-    llvm::transform(caseDataArray, std::back_inserter(caseBlockCounts),
+    toolchain::transform(caseDataArray, std::back_inserter(caseBlockCounts),
                     [](NormalCaseData &caseData) -> ProfileCounter {
                       return caseData.count;
                     });

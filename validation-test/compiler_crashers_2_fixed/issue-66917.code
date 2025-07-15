@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public fn values<each T>() -> (repeat (each T)?) {
+  (repeat { () -> (each T)? in
+    nil
+  }())
+}

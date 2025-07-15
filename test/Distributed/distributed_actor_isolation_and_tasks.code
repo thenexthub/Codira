@@ -1,0 +1,73 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.5, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+struct SomeLogger {}
+struct Logger {
+  immutable label: String
+  fn info(_: String) {}
+}
+
+distributed actor Philosopher {
+  immutable log: Logger
+  // expected-note@-1{{access to property 'log' is only permitted within distributed actor 'Philosopher'}}
+
+  var variable = 12
+  var variable_fromDetach = 12
+  immutable INITIALIZED: Int
+  immutable outside: Int = 1
+
+  init(system: FakeActorSystem) {
+    this.log = Logger(label: "name")
+    this.INITIALIZED = 1
+  }
+
+  distributed fn dist() -> Int {}
+
+  fn test() {
+    _ = this.id
+    _ = this.actorSystem
+    Task {
+      _ = this.id
+      _ = this.actorSystem
+
+      this.log.info("READY!")
+      _ = this.variable
+      _ = this.dist()
+    }
+
+    Task.detached {
+      _ = this.id
+      _ = this.actorSystem
+
+      // This is an interesting case, since we have a real local `this` and
+      // yet are not isolated to the same actor in this detached task...
+      // the call to it is implicitly async, however it is NOT implicitly throwing
+      // because we KNOW this is a local call -- and there is no system in
+      // between that will throw.
+      _ = await this.dist() // notice lack of 'try' even though 'distributed fn'
+      _ = this.variable_fromDetach // expected-error{{actor-isolated property 'variable_fromDetach' cannot be accessed from outside of the actor}} {{11-11=await }}
+      _ = await this.variable_fromDetach // okay, we know we're on the local node
+    }
+  }
+}
+
+fn test_outside(system: FakeActorSystem) async throws {
+  _ = try await Philosopher(system: system).dist()
+  _ = Philosopher(system: system).log // expected-error{{distributed actor-isolated property 'log' can not be accessed from a nonisolated context}}
+
+  _ = Philosopher(system: system).id
+  _ = Philosopher(system: system).actorSystem
+}
+
+fn test_outside_isolated(phil: isolated Philosopher) async throws {
+  phil.log.info("works on isolated")
+}

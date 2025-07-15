@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines utilities for resolving types.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_TYPE_CHECK_TYPE_H
-#define SWIFT_SEMA_TYPE_CHECK_TYPE_H
+#ifndef LANGUAGE_SEMA_TYPE_CHECK_TYPE_H
+#define LANGUAGE_SEMA_TYPE_CHECK_TYPE_H
 
 #include "language/AST/Type.h"
 #include "language/AST/TypeResolutionStage.h"
@@ -317,7 +318,7 @@ public:
     case Context::RawLayoutAttr:
       return false;
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
   /// Whether a generic constraint type is implicitly an
@@ -566,16 +567,16 @@ public:
 /// out of them.
 ///
 /// \returns the \c null type on failure.
-using OpenUnboundGenericTypeFn = llvm::function_ref<Type(UnboundGenericType *)>;
+using OpenUnboundGenericTypeFn = toolchain::function_ref<Type(UnboundGenericType *)>;
 
 /// A function reference used to handle a PlaceholderTypeRepr.
 using HandlePlaceholderTypeReprFn =
-    llvm::function_ref<Type(ASTContext &, PlaceholderTypeRepr *)>;
+    toolchain::function_ref<Type(ASTContext &, PlaceholderTypeRepr *)>;
 
 /// A function reference used to replace pack elements with opened
 /// element archetypes when resolving a \c PackElementTypeRepr.
 using OpenPackElementFn =
-    llvm::function_ref<Type(Type, PackElementTypeRepr *)>;
+    toolchain::function_ref<Type(Type, PackElementTypeRepr *)>;
 
 /// Handles the resolution of types within a given declaration context,
 /// which might involve resolving generic parameters to a particular
@@ -752,4 +753,4 @@ bool diagnoseMissingOwnership(ParamSpecifier ownership,
 
 } // end namespace language
 
-#endif /* SWIFT_SEMA_TYPE_CHECK_TYPE_H */
+#endif /* LANGUAGE_SEMA_TYPE_CHECK_TYPE_H */

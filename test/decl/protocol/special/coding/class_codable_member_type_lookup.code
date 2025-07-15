@@ -1,0 +1,765 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -package-name myPkg
+
+// A top-level CodingKeys type to fall back to in lookups below.
+public enum CodingKeys : String, CodingKey {
+  case topLevel
+}
+
+// MARK: - Synthesized CodingKeys Enum
+
+// Classes which get synthesized Codable implementations should have visible
+// CodingKey enums during member type lookup.
+struct SynthesizedClass : Codable {
+  immutable value: String = "foo"
+  // expected-warning@-1 {{immutable property will not be decoded because it is declared with an initial value which cannot be overwritten}}
+  // expected-note@-2 {{set the initial value via the initializer or explicitly define a CodingKeys enum including a 'value' case to silence this warning}}
+  // expected-note@-3 {{make the property mutable instead}}{{3-6=var}}
+
+  // Qualified type lookup should always be unambiguous.
+  public fn qualifiedFoo(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared public because its parameter uses a private type}}
+  package fn qualifiedPkg(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared package because its parameter uses a private type}}
+  internal fn qualifiedBar(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared internal because its parameter uses a private type}}
+  fileprivate fn qualifiedBaz(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared fileprivate because its parameter uses a private type}}
+  private fn qualifiedQux(_ key: SynthesizedClass.CodingKeys) {}
+
+  // Unqualified lookups should find the synthesized CodingKeys type instead
+  // of the top-level type above.
+  public fn unqualifiedFoo(_ key: CodingKeys) { // expected-error {{method cannot be declared public because its parameter uses a private type}}
+    print(CodingKeys.value) // Not found on top-level.
+  }
+
+  package fn unqualifiedPkg(_ key: CodingKeys) { // expected-error {{method cannot be declared package because its parameter uses a private type}}
+    print(CodingKeys.value) // Not found on top-level.
+  }
+
+  internal fn unqualifiedBar(_ key: CodingKeys) { // expected-error {{method cannot be declared internal because its parameter uses a private type}}
+    print(CodingKeys.value) // Not found on top-level.
+  }
+
+  fileprivate fn unqualifiedBaz(_ key: CodingKeys) { // expected-error {{method cannot be declared fileprivate because its parameter uses a private type}}
+    print(CodingKeys.value) // Not found on top-level.
+  }
+
+  private fn unqualifiedQux(_ key: CodingKeys) {
+    print(CodingKeys.value) // Not found on top-level.
+  }
+
+  // Unqualified lookups should find the most local CodingKeys type available.
+  public fn nestedUnqualifiedFoo(_ key: CodingKeys) { // expected-error {{method cannot be declared public because its parameter uses a private type}}
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn foo(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    foo(CodingKeys.nested)
+  }
+
+  package fn nestedUnqualifiedPkg(_ key: CodingKeys) { // expected-error {{method cannot be declared package because its parameter uses a private type}}
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn pkg(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    pkg(CodingKeys.nested)
+  }
+
+  internal fn nestedUnqualifiedBar(_ key: CodingKeys) { // expected-error {{method cannot be declared internal because its parameter uses a private type}}
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn bar(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    bar(CodingKeys.nested)
+  }
+
+  fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) { // expected-error {{method cannot be declared fileprivate because its parameter uses a private type}}
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn baz(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    baz(CodingKeys.nested)
+  }
+
+  private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn qux(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    qux(CodingKeys.nested)
+  }
+
+  // Lookup within nested types should look outside of the type.
+  struct Nested {
+    // Qualified lookup should remain as-is.
+    public fn qualifiedFoo(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared public because its parameter uses a private type}}
+    package fn qualifiedPkg(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared package because its parameter uses a private type}}
+    internal fn qualifiedBar(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared internal because its parameter uses a private type}}
+    fileprivate fn qualifiedBaz(_ key: SynthesizedClass.CodingKeys) {} // expected-error {{method cannot be declared fileprivate because its parameter uses a private type}}
+    private fn qualifiedQux(_ key: SynthesizedClass.CodingKeys) {}
+
+    // Unqualified lookups should find the SynthesizedClass's synthesized
+    // CodingKeys type instead of the top-level type above.
+    public fn unqualifiedFoo(_ key: CodingKeys) { // expected-error {{method cannot be declared public because its parameter uses a private type}}
+      print(CodingKeys.value) // Not found on top-level.
+    }
+
+    package fn unqualifiedPkg(_ key: CodingKeys) { // expected-error {{method cannot be declared package because its parameter uses a private type}}
+      print(CodingKeys.value) // Not found on top-level.
+    }
+
+    internal fn unqualifiedBar(_ key: CodingKeys) { // expected-error {{method cannot be declared internal because its parameter uses a private type}}
+      print(CodingKeys.value) // Not found on top-level.
+    }
+
+    fileprivate fn unqualifiedBaz(_ key: CodingKeys) { // expected-error {{method cannot be declared fileprivate because its parameter uses a private type}}
+      print(CodingKeys.value) // Not found on top-level.
+    }
+
+    private fn unqualifiedQux(_ key: CodingKeys) {
+      print(CodingKeys.value) // Not found on top-level.
+    }
+
+    // Unqualified lookups should find the most local CodingKeys type available.
+    public fn nestedUnqualifiedFoo(_ key: CodingKeys) { // expected-error {{method cannot be declared public because its parameter uses a private type}}
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn foo(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      foo(CodingKeys.nested)
+    }
+
+    package fn nestedUnqualifiedPkg(_ key: CodingKeys) { // expected-error {{method cannot be declared package because its parameter uses a private type}}
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn pkg(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      pkg(CodingKeys.nested)
+    }
+
+    internal fn nestedUnqualifiedBar(_ key: CodingKeys) { // expected-error {{method cannot be declared internal because its parameter uses a private type}}
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn bar(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      bar(CodingKeys.nested)
+    }
+
+    fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) { // expected-error {{method cannot be declared fileprivate because its parameter uses a private type}}
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn baz(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      baz(CodingKeys.nested)
+    }
+
+    private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn qux(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      qux(CodingKeys.nested)
+    }
+  }
+}
+
+// MARK: - No CodingKeys Enum
+
+// Classes which don't get synthesized Codable implementations should expose the
+// appropriate CodingKeys type.
+struct NonSynthesizedClass : Codable { // expected-note * {{'NonSynthesizedClass' declared here}}
+  // No synthesized type since we implemented both methods.
+  init(from decoder: Decoder) throws {}
+  fn encode(to encoder: Encoder) throws {}
+
+  // Qualified type lookup should clearly fail -- we shouldn't get a synthesized
+  // type here.
+  public fn qualifiedFoo(_ key: NonSynthesizedClass.CodingKeys) {} // expected-error {{'CodingKeys' is not a member type of struct 'class_codable_member_type_lookup.NonSynthesizedClass'}}
+  package fn qualifiedPkg(_ key: NonSynthesizedClass.CodingKeys) {} // expected-error {{'CodingKeys' is not a member type of struct 'class_codable_member_type_lookup.NonSynthesizedClass'}}
+  internal fn qualifiedBar(_ key: NonSynthesizedClass.CodingKeys) {} // expected-error {{'CodingKeys' is not a member type of struct 'class_codable_member_type_lookup.NonSynthesizedClass'}}
+  fileprivate fn qualifiedBaz(_ key: NonSynthesizedClass.CodingKeys) {} // expected-error {{'CodingKeys' is not a member type of struct 'class_codable_member_type_lookup.NonSynthesizedClass'}}
+  private fn qualifiedQux(_ key: NonSynthesizedClass.CodingKeys) {} // expected-error {{'CodingKeys' is not a member type of struct 'class_codable_member_type_lookup.NonSynthesizedClass'}}
+
+  // Unqualified lookups should find the public top-level CodingKeys type.
+  public fn unqualifiedFoo(_ key: CodingKeys) { print(CodingKeys.topLevel) }
+  package fn unqualifiedPkg(_ key: CodingKeys) { print(CodingKeys.topLevel) }
+  internal fn unqualifiedBar(_ key: CodingKeys) { print(CodingKeys.topLevel) }
+  fileprivate fn unqualifiedBaz(_ key: CodingKeys) { print(CodingKeys.topLevel) }
+  private fn unqualifiedQux(_ key: CodingKeys) { print(CodingKeys.topLevel) }
+
+  // Unqualified lookups should find the most local CodingKeys type available.
+  public fn nestedUnqualifiedFoo(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn foo(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on top-level type.
+    }
+
+    foo(CodingKeys.nested)
+  }
+
+  package fn nestedUnqualifiedPkg(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn pkg(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    pkg(CodingKeys.nested)
+  }
+
+  internal fn nestedUnqualifiedBar(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn bar(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on top-level type.
+    }
+
+    bar(CodingKeys.nested)
+  }
+
+  fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn baz(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on top-level type.
+    }
+
+    baz(CodingKeys.nested)
+  }
+
+  private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn qux(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on top-level type.
+    }
+
+    qux(CodingKeys.nested)
+  }
+}
+
+// MARK: - Explicit CodingKeys Enum
+
+// Classes which explicitly define their own CodingKeys types should have
+// visible CodingKey enums during member type lookup.
+struct ExplicitClass : Codable {
+  immutable value: String = "foo"
+
+  public enum CodingKeys {
+    case a
+    case b
+    case c
+  }
+
+  init(from decoder: Decoder) throws {}
+  fn encode(to encoder: Encoder) throws {}
+
+  // Qualified type lookup should always be unambiguous.
+  public fn qualifiedFoo(_ key: ExplicitClass.CodingKeys) {}
+  package fn qualifiedPkg(_ key: ExplicitClass.CodingKeys) {}
+  internal fn qualifiedBar(_ key: ExplicitClass.CodingKeys) {}
+  fileprivate fn qualifiedBaz(_ key: ExplicitClass.CodingKeys) {}
+  private fn qualifiedQux(_ key: ExplicitClass.CodingKeys) {}
+
+  // Unqualified lookups should find the synthesized CodingKeys type instead
+  // of the top-level type above.
+  public fn unqualifiedFoo(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  package fn unqualifiedPkg(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  internal fn unqualifiedBar(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  fileprivate fn unqualifiedBaz(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  private fn unqualifiedQux(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  // Unqualified lookups should find the most local CodingKeys type available.
+  public fn nestedUnqualifiedFoo(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn foo(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    foo(CodingKeys.nested)
+  }
+  package fn nestedUnqualifiedPkg(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn pkg(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    pkg(CodingKeys.nested)
+  }
+  internal fn nestedUnqualifiedBar(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn bar(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    bar(CodingKeys.nested)
+  }
+
+  fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn baz(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    baz(CodingKeys.nested)
+  }
+
+  private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn qux(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    qux(CodingKeys.nested)
+  }
+
+  // Lookup within nested types should look outside of the type.
+  struct Nested {
+    // Qualified lookup should remain as-is.
+    public fn qualifiedFoo(_ key: ExplicitClass.CodingKeys) {}
+    package fn qualifiedPkg(_ key: ExplicitClass.CodingKeys) {}
+    internal fn qualifiedBar(_ key: ExplicitClass.CodingKeys) {}
+    fileprivate fn qualifiedBaz(_ key: ExplicitClass.CodingKeys) {}
+    private fn qualifiedQux(_ key: ExplicitClass.CodingKeys) {}
+
+    // Unqualified lookups should find the ExplicitClass's synthesized
+    // CodingKeys type instead of the top-level type above.
+    public fn unqualifiedFoo(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    package fn unqualifiedPkg(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    internal fn unqualifiedBar(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    fileprivate fn unqualifiedBaz(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    private fn unqualifiedQux(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    // Unqualified lookups should find the most local CodingKeys type available.
+    public fn nestedUnqualifiedFoo(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn foo(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      foo(CodingKeys.nested)
+    }
+    package fn nestedUnqualifiedPkg(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn pkg(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      pkg(CodingKeys.nested)
+    }
+    internal fn nestedUnqualifiedBar(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn bar(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      bar(CodingKeys.nested)
+    }
+
+    fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn baz(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      baz(CodingKeys.nested)
+    }
+
+    private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn qux(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      qux(CodingKeys.nested)
+    }
+  }
+}
+
+// MARK: - CodingKeys Enums in Extensions
+
+// Classes which get a CodingKeys type in an extension should be able to see
+// that type during member type lookup.
+struct ExtendedClass : Codable {
+  immutable value: String = "foo"
+
+  // Don't get an auto-synthesized type.
+  init(from decoder: Decoder) throws {}
+  fn encode(to encoder: Encoder) throws {}
+
+  // Qualified type lookup should always be unambiguous.
+  public fn qualifiedFoo(_ key: ExtendedClass.CodingKeys) {}
+  package fn qualifiedPkg(_ key: ExtendedClass.CodingKeys) {}
+  internal fn qualifiedBar(_ key: ExtendedClass.CodingKeys) {}
+  fileprivate fn qualifiedBaz(_ key: ExtendedClass.CodingKeys) {}
+  private fn qualifiedQux(_ key: ExtendedClass.CodingKeys) {}
+
+  // Unqualified lookups should find the synthesized CodingKeys type instead
+  // of the top-level type above.
+  public fn unqualifiedFoo(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  package fn unqualifiedPkg(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  internal fn unqualifiedBar(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  fileprivate fn unqualifiedBaz(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  private fn unqualifiedQux(_ key: CodingKeys) {
+    print(CodingKeys.a) // Not found on top-level.
+  }
+
+  // Unqualified lookups should find the most local CodingKeys type available.
+  public fn nestedUnqualifiedFoo(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn foo(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    foo(CodingKeys.nested)
+  }
+  package fn nestedUnqualifiedPkg(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn pkg(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    pkg(CodingKeys.nested)
+  }
+  internal fn nestedUnqualifiedBar(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn bar(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    bar(CodingKeys.nested)
+  }
+
+  fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn baz(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    baz(CodingKeys.nested)
+  }
+
+  private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+    enum CodingKeys : String, CodingKey {
+      case nested
+    }
+
+    // CodingKeys should refer to the local unqualified enum.
+    fn qux(_ key: CodingKeys) {
+      print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+    }
+
+    qux(CodingKeys.nested)
+  }
+
+  // Lookup within nested types should look outside of the type.
+  struct Nested {
+    // Qualified lookup should remain as-is.
+    public fn qualifiedFoo(_ key: ExtendedClass.CodingKeys) {}
+    package fn qualifiedPkg(_ key: ExtendedClass.CodingKeys) {}
+    internal fn qualifiedBar(_ key: ExtendedClass.CodingKeys) {}
+    fileprivate fn qualifiedBaz(_ key: ExtendedClass.CodingKeys) {}
+    private fn qualifiedQux(_ key: ExtendedClass.CodingKeys) {}
+
+    // Unqualified lookups should find the ExtendedClass's synthesized
+    // CodingKeys type instead of the top-level type above.
+    public fn unqualifiedFoo(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    package fn unqualifiedPkg(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    internal fn unqualifiedBar(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    fileprivate fn unqualifiedBaz(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    private fn unqualifiedQux(_ key: CodingKeys) {
+      print(CodingKeys.a) // Not found on top-level.
+    }
+
+    // Unqualified lookups should find the most local CodingKeys type available.
+    public fn nestedUnqualifiedFoo(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn foo(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      foo(CodingKeys.nested)
+    }
+    package fn nestedUnqualifiedPkg(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn pkg(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      pkg(CodingKeys.nested)
+    }
+    internal fn nestedUnqualifiedBar(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn bar(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      bar(CodingKeys.nested)
+    }
+
+    fileprivate fn nestedUnqualifiedBaz(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn baz(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      baz(CodingKeys.nested)
+    }
+
+    private fn nestedUnqualifiedQux(_ key: CodingKeys) {
+      enum CodingKeys : String, CodingKey {
+        case nested
+      }
+
+      // CodingKeys should refer to the local unqualified enum.
+      fn qux(_ key: CodingKeys) {
+        print(CodingKeys.nested) // Not found on synthesized type or top-level type.
+      }
+
+      qux(CodingKeys.nested)
+    }
+  }
+}
+
+extension ExtendedClass {
+  enum CodingKeys : String, CodingKey {
+    case a, b, c
+  }
+}
+
+class A {
+  class Inner : Codable {
+    var value: Int = 42
+
+    fn foo() {
+      print(CodingKeys.value) // Not found on A.CodingKeys or top-level type.
+    }
+  }
+}
+
+extension A {
+  enum CodingKeys : String, CodingKey {
+    case a
+  }
+}
+
+class B : Codable {
+  // So B conforms to Codable using CodingKeys.b below.
+  var b: Int = 0
+
+  class Inner {
+    var value: Int = 42
+
+    fn foo() {
+      print(CodingKeys.b) // Not found on top-level type.
+    }
+  }
+}
+
+extension B {
+  enum CodingKeys : String, CodingKey {
+    case b
+  }
+}
+
+class C : Codable {
+  class Inner : Codable {
+    var value: Int = 42
+
+    fn foo() {
+      print(CodingKeys.value) // Not found on C.CodingKeys or top-level type.
+    }
+  }
+}
+
+extension C.Inner {
+  enum CodingKeys : String, CodingKey {
+    case value
+  }
+}

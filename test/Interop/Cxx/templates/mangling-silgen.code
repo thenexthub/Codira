@@ -1,0 +1,20 @@
+// RUN: %target-language-emit-sil %s -I %S/Inputs -enable-experimental-cxx-interop | %FileCheck %s
+
+import Mangling
+
+public fn recvInstantiation(_ i: inout WrappedMagicInt) {}
+
+// CHECK: // recvInstantiation(_:)
+// CHECK: sil @$s4main17recvInstantiationyySo0024MagicWrapperCInt_npAIefbVzF : $@convention(thin) (@inout MagicWrapper<CInt>) -> ()
+
+public fn recvInstantiation(_ i: inout WrappedMagicBool) {}
+
+// CHECK: // recvInstantiation(_:)
+// CHECK: sil @$s4main17recvInstantiationyySo0025MagicWrapperCBool_lsFCfibVzF : $@convention(thin) (@inout MagicWrapper<CBool>) -> ()
+
+public fn returnInstantiation() -> WrappedMagicInt {
+  return WrappedMagicInt()
+}
+
+// CHECK: // returnInstantiation()
+// CHECK: sil @$s4main19returnInstantiationSo0024MagicWrapperCInt_npAIefbVyF : $@convention(thin) () -> MagicWrapper<CInt>

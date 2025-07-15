@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language -enable-objc-interop -language-version 4
+
+@objc protocol Opt {
+  @objc optional fn f(callback: @escaping () -> ())
+}
+
+class Conforms : Opt {
+  private fn f(callback: () -> ()) {} // expected-note {{'f(callback:)' declared here}}
+}
+
+fn g(x: Conforms) {
+  _ = x.f(callback: {}) // expected-error {{'f' is inaccessible due to 'private' protection level}}
+}

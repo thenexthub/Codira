@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the demangler Context.
@@ -24,7 +25,7 @@
 
 namespace language {
 namespace Demangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 //////////////////////////////////
 // Context member functions     //
@@ -41,8 +42,8 @@ void Context::clear() {
   D->clear();
 }
 
-NodePointer Context::demangleSymbolAsNode(llvm::StringRef MangledName) {
-#if SWIFT_SUPPORT_OLD_MANGLING
+NodePointer Context::demangleSymbolAsNode(toolchain::StringRef MangledName) {
+#if LANGUAGE_SUPPORT_OLD_MANGLING
   if (isMangledName(MangledName)) {
     return D->demangleSymbol(MangledName);
   }
@@ -52,13 +53,13 @@ NodePointer Context::demangleSymbolAsNode(llvm::StringRef MangledName) {
 #endif
 }
 
-NodePointer Context::demangleTypeAsNode(llvm::StringRef MangledName) {
+NodePointer Context::demangleTypeAsNode(toolchain::StringRef MangledName) {
   return D->demangleType(MangledName);
 }
 
-#if SWIFT_STDLIB_HAS_TYPE_PRINTING
+#if LANGUAGE_STDLIB_HAS_TYPE_PRINTING
 
-std::string Context::demangleSymbolAsString(llvm::StringRef MangledName,
+std::string Context::demangleSymbolAsString(toolchain::StringRef MangledName,
                                             const DemangleOptions &Options) {
   NodePointer root = demangleSymbolAsNode(MangledName);
   if (!root) return MangledName.str();
@@ -69,7 +70,13 @@ std::string Context::demangleSymbolAsString(llvm::StringRef MangledName,
   return demangling;
 }
 
-std::string Context::demangleTypeAsString(llvm::StringRef MangledName,
+void Context::demangleSymbolAsString(toolchain::StringRef MangledName,
+                                     NodePrinter &Printer) {
+  NodePointer root = demangleSymbolAsNode(MangledName);
+  nodeToString(root, Printer);
+}
+
+std::string Context::demangleTypeAsString(toolchain::StringRef MangledName,
                                           const DemangleOptions &Options) {
   NodePointer root = demangleTypeAsNode(MangledName);
   if (!root) return MangledName.str();
@@ -85,10 +92,10 @@ std::string Context::demangleTypeAsString(llvm::StringRef MangledName,
 // Removes a '.<n>' suffix from \p Name. <n> is either a number or a combination of
 // '.<other-text>.<n>'.
 // Such symbols are produced in IRGen or in LLVM optimizations.
-static llvm::StringRef stripSuffix(llvm::StringRef Name) {
+static toolchain::StringRef stripSuffix(toolchain::StringRef Name) {
   // A suffix always ends with a digit. Do this quick check to avoid scanning through the whole
   // symbol name if the symbol has no suffix (= the common case).
-  if (swift::Mangle::isDigit(Name.back())) {
+  if (language::Mangle::isDigit(Name.back())) {
     size_t dotPos = Name.find('.');
     if (dotPos != StringRef::npos) {
       Name = Name.substr(0, dotPos);
@@ -98,12 +105,12 @@ static llvm::StringRef stripSuffix(llvm::StringRef Name) {
 }
 
 // Removes a 'TQ<index>' or 'TY<index>' from \p Name.
-static llvm::StringRef stripAsyncContinuation(llvm::StringRef Name) {
+static toolchain::StringRef stripAsyncContinuation(toolchain::StringRef Name) {
   if (!Name.ends_with("_"))
     return Name;
 
   StringRef Stripped = Name.drop_back();
-  while (!Stripped.empty() && swift::Mangle::isDigit(Stripped.back()))
+  while (!Stripped.empty() && language::Mangle::isDigit(Stripped.back()))
     Stripped = Stripped.drop_back();
 
   if (Stripped.ends_with("TQ") || Stripped.ends_with("TY"))
@@ -112,14 +119,14 @@ static llvm::StringRef stripAsyncContinuation(llvm::StringRef Name) {
   return Name;
 }
 
-bool Context::isThunkSymbol(llvm::StringRef MangledName) {
+bool Context::isThunkSymbol(toolchain::StringRef MangledName) {
   if (isMangledName(MangledName)) {
     MangledName = stripAsyncContinuation(stripSuffix(MangledName));
     // First do a quick check
     if (MangledName.ends_with("TA") ||  // partial application forwarder
         MangledName.ends_with("Ta") ||  // ObjC partial application forwarder
-        MangledName.ends_with("To") ||  // swift-as-ObjC thunk
-        MangledName.ends_with("TO") ||  // ObjC-as-swift thunk
+        MangledName.ends_with("To") ||  // language-as-ObjC thunk
+        MangledName.ends_with("TO") ||  // ObjC-as-language thunk
         MangledName.ends_with("TR") ||  // reabstraction thunk helper function
         MangledName.ends_with("Tr") ||  // reabstraction thunk
         MangledName.ends_with("TW") ||  // protocol witness thunk
@@ -151,8 +158,8 @@ bool Context::isThunkSymbol(llvm::StringRef MangledName) {
   if (MangledName.starts_with("_T")) {
     // Old mangling.
     StringRef Remaining = MangledName.substr(2);
-    if (Remaining.starts_with("To") ||   // swift-as-ObjC thunk
-        Remaining.starts_with("TO") ||   // ObjC-as-swift thunk
+    if (Remaining.starts_with("To") ||   // language-as-ObjC thunk
+        Remaining.starts_with("TO") ||   // ObjC-as-language thunk
         Remaining.starts_with("PA_") ||  // partial application forwarder
         Remaining.starts_with("PAo_")) { // ObjC partial application forwarder
       return true;
@@ -161,7 +168,7 @@ bool Context::isThunkSymbol(llvm::StringRef MangledName) {
   return false;
 }
 
-std::string Context::getThunkTarget(llvm::StringRef MangledName) {
+std::string Context::getThunkTarget(toolchain::StringRef MangledName) {
   if (!isThunkSymbol(MangledName))
     return std::string();
 
@@ -198,7 +205,7 @@ std::string Context::getThunkTarget(llvm::StringRef MangledName) {
   return std::string("_T") + Remaining.substr(2).str();
 }
 
-bool Context::hasSwiftCallingConvention(llvm::StringRef MangledName) {
+bool Context::hasCodiraCallingConvention(toolchain::StringRef MangledName) {
   Node *Global = demangleSymbolAsNode(MangledName);
   if (!Global || Global->getKind() != Node::Kind::Global ||
       Global->getNumChildren() == 0)
@@ -206,7 +213,7 @@ bool Context::hasSwiftCallingConvention(llvm::StringRef MangledName) {
 
   Node *TopLevel = Global->getFirstChild();
   switch (TopLevel->getKind()) {
-    // Functions, which don't have the swift calling conventions:
+    // Functions, which don't have the language calling conventions:
     case Node::Kind::TypeMetadataAccessFunction:
     case Node::Kind::ValueWitness:
     case Node::Kind::ProtocolWitnessTableAccessor:
@@ -223,7 +230,7 @@ bool Context::hasSwiftCallingConvention(llvm::StringRef MangledName) {
   return true;
 }
 
-std::string Context::getModuleName(llvm::StringRef mangledName) {
+std::string Context::getModuleName(toolchain::StringRef mangledName) {
   NodePointer node = demangleSymbolAsNode(mangledName);
   while (node) {
     switch (node->getKind()) {
@@ -268,7 +275,7 @@ std::string Context::getModuleName(llvm::StringRef mangledName) {
 // Public utility functions     //
 //////////////////////////////////
 
-#if SWIFT_STDLIB_HAS_TYPE_PRINTING
+#if LANGUAGE_STDLIB_HAS_TYPE_PRINTING
 
 std::string demangleSymbolAsString(const char *MangledName,
                                    size_t MangledNameLength,
@@ -276,6 +283,11 @@ std::string demangleSymbolAsString(const char *MangledName,
   Context Ctx;
   return Ctx.demangleSymbolAsString(StringRef(MangledName, MangledNameLength),
                                     Options);
+}
+
+void demangleSymbolAsString(StringRef MangledName, NodePrinter &Printer) {
+  Context Ctx;
+  return Ctx.demangleSymbolAsString(MangledName, Printer);
 }
 
 std::string demangleTypeAsString(const char *MangledName,
@@ -288,6 +300,6 @@ std::string demangleTypeAsString(const char *MangledName,
 
 #endif
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // namespace Demangle
 } // namespace language

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// This is a semi-complete modulemap that maps glibc's headers in a roughly
@@ -21,8 +22,8 @@
 ///
 /// It's not named just Glibc so that it doesn't conflict in the event of a
 /// future official glibc modulemap.
-module SwiftGlibc [system] {
-% if CMAKE_SDK in ["LINUX", "OPENBSD"]:
+module CodiraGlibc [system] {
+% if CMAKE_SDK in ["LINUX", "FREEBSD", "OPENBSD"]:
       link "m"
 % end
 % if CMAKE_SDK in ["LINUX", "FREEBSD", "OPENBSD", "CYGWIN"]:
@@ -44,7 +45,7 @@ module SwiftGlibc [system] {
   link "execinfo"
 % end
 
-  header "SwiftGlibc.h"
+  header "CodiraGlibc.h"
 
   // <assert.h>'s use of NDEBUG requires textual inclusion. 
   textual header "assert.h"

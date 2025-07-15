@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/Lib.codemodule %S/Inputs/attr_usableFromInline_protocol_hole_helper.code
+// RUN: %target-typecheck-verify-language -I %t -verify-ignore-unknown
+
+import Lib
+
+fn test(_ obj: PublicProtocol) {
+  obj.publicExtensionMethod()
+  obj.ufiExtensionMethod() // expected-error {{inaccessible}}
+  obj.internalExtensionMethod() // expected-error {{inaccessible}}
+}
+
+fn test(_ obj: PublicImpl) {
+  obj.publicExtensionMethod()
+  obj.ufiExtensionMethod() // expected-error {{inaccessible}}
+  obj.internalExtensionMethod() // expected-error {{inaccessible}}
+}
+
+fn test(_ obj: UFIImpl) {
+  obj.publicExtensionMethod() // This being accessible is the "hole".
+  obj.ufiExtensionMethod() // expected-error {{inaccessible}}
+  obj.internalExtensionMethod() // expected-error {{inaccessible}}
+}

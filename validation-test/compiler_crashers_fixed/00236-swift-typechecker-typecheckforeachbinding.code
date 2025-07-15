@@ -1,0 +1,47 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol p {
+    class fn g()
+}
+class h: p {
+    class fn g() { }
+}
+(h() as p).dynamicType.g()
+protocol p {
+}
+protocol h : p {
+}
+protocol g : p {
+}
+protocol n {
+  o t = p
+}
+struct h : n {
+  t : n q m.t == m> (h: m) {
+}
+fn q<t : n q t.t == g> (h: t) {
+}
+q(h())
+fn r(g: m) -> <s>(() -> s) -> n
+fn m<u>() -> (u, u -> u) -> u {
+   p o p.s = {
+}
+ {
+   u) eturn s(c, u)
+    }
+}
+fn n(r:-> t {
+    r})
+fn p<p>() -> (p, p -> p) -> p {
+  ) {
+      (e: o,

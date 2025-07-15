@@ -1,4 +1,4 @@
-//===---- ExistentialSpecializerTransform.h - Existential Specializer -----===//
+//===--- ExistentialTransform.h - Existential Specializer -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This contains utilities for transforming existential args to generics.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_EXISTENTIALTRANSFORM_H
-#define SWIFT_SIL_EXISTENTIALTRANSFORM_H
+#ifndef LANGUAGE_SIL_EXISTENTIALTRANSFORM_H
+#define LANGUAGE_SIL_EXISTENTIALTRANSFORM_H
 #include "FunctionSignatureOpts.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
@@ -26,9 +27,9 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -54,14 +55,14 @@ class ExistentialTransform {
   Mangle::FunctionSignatureSpecializationMangler &Mangler;
 
   /// List of arguments and their descriptors to specialize
-  llvm::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
+  toolchain::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
       &ExistentialArgDescriptor;
 
   /// Argument to Generic Type Map for NewF.
-  llvm::SmallDenseMap<int, GenericTypeParamType *> ArgToGenericTypeMap;
+  toolchain::SmallDenseMap<int, GenericTypeParamType *> ArgToGenericTypeMap;
 
   /// Allocate the argument descriptors.
-  llvm::SmallVector<ArgumentDescriptor, 4> &ArgumentDescList;
+  toolchain::SmallVector<ArgumentDescriptor, 4> &ArgumentDescList;
 
   /// Create the Devirtualized Inner Function.
   void createExistentialSpecializedFunction();
@@ -86,8 +87,8 @@ public:
   ExistentialTransform(
       SILOptFunctionBuilder &FunctionBuilder, SILFunction *F,
       Mangle::FunctionSignatureSpecializationMangler &Mangler,
-      llvm::SmallVector<ArgumentDescriptor, 4> &ADL,
-      llvm::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
+      toolchain::SmallVector<ArgumentDescriptor, 4> &ADL,
+      toolchain::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
           &ExistentialArgDescriptor)
       : FunctionBuilder(FunctionBuilder), F(F), NewF(nullptr), Mangler(Mangler),
         ExistentialArgDescriptor(ExistentialArgDescriptor),

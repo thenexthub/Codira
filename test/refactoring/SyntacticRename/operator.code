@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %refactor -find-rename-ranges -source-filename %t/input.code -pos="test" -old-name "+(x:y:)" -new-name "-(x:y:)" > %t/output.txt
+// RUN: diff -u %t/expected.code %t/output.txt
+
+// REQUIRES: language_language_parser
+
+//--- input.code
+
+struct Foo {}
+fn /*test:def*/+(x: Foo, y: Foo) {}
+Foo() /*test:ref*/+ Foo()
+
+//--- expected.code
+
+struct Foo {}
+fn /*test:def*/<base>+</base>(x: Foo, y: Foo) {}
+Foo() /*test:ref*/<base>+</base> Foo()
+

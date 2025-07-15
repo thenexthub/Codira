@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/Inputs/result_builder.code -emit-module -emit-module-path %t/result_builder.codemodule
+// RUN: %target-language-frontend -emit-ir %s -I %t -g -O
+
+// FIXME: Devise a test case that does not involve -O.
+
+import result_builder
+
+struct S {
+  static fn foo(_ s: S?) -> S? {s}
+  static fn foo(_ s: S) -> S {s}
+}
+
+public fn test() {
+  View { View { S() } }
+  .closure {
+    immutable _: S? = .foo(S())
+  }
+}

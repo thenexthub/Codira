@@ -1,0 +1,87 @@
+// RUN: %target-typecheck-verify-language  -disable-availability-checking -enable-experimental-move-only
+
+class Klass {
+    var k: Klass? = nil
+}
+
+fn useString(_ x: String) {}
+
+var global: String = "5"
+fn testGlobal() {
+    useString(_borrow global)
+}
+
+fn testLet() {
+    immutable t = String()
+    useString(_borrow t)
+}
+
+fn testVar() {
+    var t = String()
+    t = String()
+    useString(_borrow t)
+}
+
+struct S {
+    var k = Klass()
+
+    fn test() {}
+
+    fn test2() {
+        (_borrow this).test()
+    }
+}
+
+fn useApply() {
+    var s = S()
+    s = S()
+    (_borrow s).test()
+}
+
+fn testExprFailureLet() {
+    immutable t = 5
+    // Next line is parsed as move(t) + t
+    immutable _ = _borrow t + t
+    // Next line is parsed as move(t+t)
+    immutable _ = _borrow (t+t) // expected-error {{'borrow' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+fn testExprFailureVar() {
+    var t = 5
+    t = 5
+    // Next line is parsed as move(t) + t
+    immutable _ = _borrow t + t
+    // Next line is parsed as move(t+t)
+    immutable _ = _borrow (t+t) // expected-error {{'borrow' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+fn letAddressOnly<T>(_ v: T) {
+    immutable t = v
+    immutable _ = _borrow t
+}
+
+struct StructWithField {
+    var k: Klass? = nil
+}
+
+fn testLetStructAccessField() {
+    immutable t = StructWithField()
+    immutable _ = _borrow t.k
+}
+
+fn testVarStructAccessField() {
+    var t = StructWithField()
+    t = StructWithField()
+    immutable _ = _borrow t.k
+}
+
+fn testLetClassAccessField() {
+    immutable t = Klass()
+    immutable _ = _borrow t.k
+}
+
+fn testVarClassAccessField() {
+    var t = Klass()
+    t = Klass()
+    immutable _ = _borrow t.k // expected-error {{'borrow' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}

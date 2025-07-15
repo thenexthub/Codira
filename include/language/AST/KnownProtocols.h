@@ -11,15 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_KNOWNPROTOCOLS_H
-#define SWIFT_AST_KNOWNPROTOCOLS_H
+#ifndef LANGUAGE_AST_KNOWNPROTOCOLS_H
+#define LANGUAGE_AST_KNOWNPROTOCOLS_H
 
 #include "language/ABI/InvertibleProtocols.h"
+#include "language/Basic/InlineBitfield.h"
 #include "language/Config.h"
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
 }
 
@@ -50,14 +52,14 @@ enum : unsigned { NumKnownProtocolKindBits =
   countBitsUsed(static_cast<unsigned>(NumKnownProtocols - 1)) };
 
 /// Retrieve the name of the given known protocol.
-llvm::StringRef getProtocolName(KnownProtocolKind kind);
+toolchain::StringRef getProtocolName(KnownProtocolKind kind);
 
 std::optional<RepressibleProtocolKind>
 getRepressibleProtocolKind(KnownProtocolKind kp);
 
 KnownProtocolKind getKnownProtocolKind(RepressibleProtocolKind ip);
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const RepressibleProtocolKind &value);
 
 /// MARK: Invertible protocols
@@ -82,17 +84,17 @@ getInvertibleProtocolKind(KnownProtocolKind kp);
 /// Returns the KnownProtocolKind corresponding to an InvertibleProtocolKind.
 KnownProtocolKind getKnownProtocolKind(InvertibleProtocolKind ip);
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const InvertibleProtocolKind &value);
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 template <typename T, typename Enable>
 struct DenseMapInfo;
 template <>
-struct DenseMapInfo<swift::RepressibleProtocolKind> {
-  using RepressibleProtocolKind = swift::RepressibleProtocolKind;
+struct DenseMapInfo<language::RepressibleProtocolKind> {
+  using RepressibleProtocolKind = language::RepressibleProtocolKind;
   using Impl = DenseMapInfo<uint8_t>;
   static inline RepressibleProtocolKind getEmptyKey() {
     return (RepressibleProtocolKind)Impl::getEmptyKey();
@@ -108,6 +110,6 @@ struct DenseMapInfo<swift::RepressibleProtocolKind> {
     return LHS == RHS;
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
 #endif

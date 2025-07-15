@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements IR generation for outlined value operations in Swift.
+//  This file implements IR generation for outlined value operations in Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -185,7 +186,7 @@ void OutliningMetadataCollector::materialize() {
 }
 
 void OutliningMetadataCollector::addPolymorphicArguments(
-    SmallVectorImpl<llvm::Value *> &args) const {
+    SmallVectorImpl<toolchain::Value *> &args) const {
   assert(hasFinished());
   if (state == State::Kind::Empty)
     return;
@@ -210,7 +211,7 @@ void OutliningMetadataCollector::addPolymorphicArguments(
 }
 
 void OutliningMetadataCollector::addPolymorphicParameterTypes(
-    SmallVectorImpl<llvm::Type *> &paramTys) const {
+    SmallVectorImpl<toolchain::Type *> &paramTys) const {
   assert(hasFinished());
   if (state == State::Kind::Empty)
     return;
@@ -244,7 +245,7 @@ void OutliningMetadataCollector::bindPolymorphicParameters(
     // Note that our parameter IGF intentionally shadows the IGF that this
     // collector was built with.
     for (auto &pair : collected.getElements().Values) {
-      llvm::Value *arg = params.claimNext();
+      toolchain::Value *arg = params.claimNext();
 
       auto key = pair.first;
       assert(key.Kind.isAnyTypeMetadata());
@@ -286,7 +287,7 @@ irgen::getTypeAndGenericSignatureForManglingOutlineFunction(SILType type) {
 bool TypeInfo::withWitnessableMetadataCollector(
     IRGenFunction &IGF, SILType T, LayoutIsNeeded_t mayNeedLayout,
     DeinitIsNeeded_t needsDeinit,
-    llvm::function_ref<void(OutliningMetadataCollector &)> invocation) const {
+    toolchain::function_ref<void(OutliningMetadataCollector &)> invocation) const {
   bool needsCollector = false;
   LayoutIsNeeded_t needsLayout = LayoutIsNotNeeded;
   if (!T.hasLocalArchetype() &&
@@ -335,7 +336,7 @@ void TypeInfo::callOutlinedCopy(IRGenFunction &IGF, Address dest, Address src,
   } else if (isInit == IsNotInitialization && isTake == IsNotTake) {
     return emitAssignWithCopyCall(IGF, T, dest, src);
   }
-  llvm_unreachable("unknown case");
+  toolchain_unreachable("unknown case");
 }
 
 void OutliningMetadataCollector::emitCallToOutlinedCopy(
@@ -343,14 +344,14 @@ void OutliningMetadataCollector::emitCallToOutlinedCopy(
     IsInitialization_t isInit, IsTake_t isTake) const {
   assert(hasFinished());
   assert(!needsDeinit);
-  llvm::SmallVector<llvm::Value *, 4> args;
+  toolchain::SmallVector<toolchain::Value *, 4> args;
   args.push_back(IGF.Builder.CreateElementBitCast(src, ti.getStorageType())
                             .getAddress());
   args.push_back(IGF.Builder.CreateElementBitCast(dest, ti.getStorageType())
                             .getAddress());
   addPolymorphicArguments(args);
 
-  llvm::Constant *outlinedFn;
+  toolchain::Constant *outlinedFn;
   if (isInit && isTake) {
     outlinedFn =
       IGF.IGM.getOrCreateOutlinedInitializeWithTakeFunction(T, ti, *this);
@@ -365,8 +366,8 @@ void OutliningMetadataCollector::emitCallToOutlinedCopy(
       IGF.IGM.getOrCreateOutlinedAssignWithCopyFunction(T, ti, *this);
   }
 
-  llvm::CallInst *call = IGF.Builder.CreateCall(
-      cast<llvm::Function>(outlinedFn)->getFunctionType(), outlinedFn, args);
+  toolchain::CallInst *call = IGF.Builder.CreateCall(
+      cast<toolchain::Function>(outlinedFn)->getFunctionType(), outlinedFn, args);
   call->setCallingConv(IGF.IGM.DefaultCC);
 }
 
@@ -383,7 +384,7 @@ static bool canUseValueWitnessForValueOp(IRGenModule &IGM, SILType T) {
   if (!IGM.getSILModule().isTypeMetadataForLayoutAccessible(T))
     return false;
 
-  // No value witness tables in embedded Swift.
+  // No value witness tables in embedded Codira.
   if (IGM.Context.LangOpts.hasFeature(Feature::Embedded))
     return false;
 
@@ -400,7 +401,7 @@ static bool canUseValueWitnessForValueOp(IRGenModule &IGM, SILType T) {
   return true;
 }
 
-llvm::Constant *IRGenModule::getOrCreateOutlinedInitializeWithTakeFunction(
+toolchain::Constant *IRGenModule::getOrCreateOutlinedInitializeWithTakeFunction(
                               SILType T, const TypeInfo &ti,
                               const OutliningMetadataCollector &collector) {
   auto manglingBits = getTypeAndGenericSignatureForManglingOutlineFunction(T);
@@ -421,7 +422,7 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedInitializeWithTakeFunction(
       });
 }
 
-llvm::Constant *IRGenModule::getOrCreateOutlinedInitializeWithCopyFunction(
+toolchain::Constant *IRGenModule::getOrCreateOutlinedInitializeWithCopyFunction(
                               SILType T, const TypeInfo &ti,
                               const OutliningMetadataCollector &collector) {
   auto manglingBits = getTypeAndGenericSignatureForManglingOutlineFunction(T);
@@ -442,7 +443,7 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedInitializeWithCopyFunction(
       });
 }
 
-llvm::Constant *IRGenModule::getOrCreateOutlinedAssignWithTakeFunction(
+toolchain::Constant *IRGenModule::getOrCreateOutlinedAssignWithTakeFunction(
                               SILType T, const TypeInfo &ti,
                               const OutliningMetadataCollector &collector) {
   auto manglingBits = getTypeAndGenericSignatureForManglingOutlineFunction(T);
@@ -463,7 +464,7 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedAssignWithTakeFunction(
       });
 }
 
-llvm::Constant *IRGenModule::getOrCreateOutlinedAssignWithCopyFunction(
+toolchain::Constant *IRGenModule::getOrCreateOutlinedAssignWithCopyFunction(
                               SILType T, const TypeInfo &ti,
                               const OutliningMetadataCollector &collector) {
   auto manglingBits = getTypeAndGenericSignatureForManglingOutlineFunction(T);
@@ -484,7 +485,7 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedAssignWithCopyFunction(
       });
 }
 
-llvm::Constant *IRGenModule::getOrCreateOutlinedCopyAddrHelperFunction(
+toolchain::Constant *IRGenModule::getOrCreateOutlinedCopyAddrHelperFunction(
                               SILType T, const TypeInfo &ti,
                               const OutliningMetadataCollector &collector,
                               StringRef funcName,
@@ -492,16 +493,16 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedCopyAddrHelperFunction(
   assert(collector.hasFinished());
   auto ptrTy = ti.getStorageType()->getPointerTo();
 
-  llvm::SmallVector<llvm::Type *, 4> paramTys;
+  toolchain::SmallVector<toolchain::Type *, 4> paramTys;
   paramTys.push_back(ptrTy);
   paramTys.push_back(ptrTy);
   collector.addPolymorphicParameterTypes(paramTys);
 
   IRLinkage *linkage = nullptr;
   IRLinkage privateLinkage = {
-    llvm::GlobalValue::PrivateLinkage,
-    llvm::GlobalValue::DefaultVisibility,
-    llvm::GlobalValue::DefaultStorageClass,
+    toolchain::GlobalValue::PrivateLinkage,
+    toolchain::GlobalValue::DefaultVisibility,
+    toolchain::GlobalValue::DefaultStorageClass,
   };
   auto &TL =
     getSILModule().Types.getTypeLowering(T, TypeExpansionContext::minimal());
@@ -548,7 +549,7 @@ void OutliningMetadataCollector::emitCallToOutlinedDestroy(
     Address addr, SILType T, const TypeInfo &ti) const {
   assert(hasFinished());
   assert(needsDeinit);
-  llvm::SmallVector<llvm::Value *, 4> args;
+  toolchain::SmallVector<toolchain::Value *, 4> args;
   args.push_back(IGF.Builder.CreateElementBitCast(addr, ti.getStorageType())
                             .getAddress());
   addPolymorphicArguments(args);
@@ -556,12 +557,12 @@ void OutliningMetadataCollector::emitCallToOutlinedDestroy(
   auto outlinedFn =
     IGF.IGM.getOrCreateOutlinedDestroyFunction(T, ti, *this);
 
-  llvm::CallInst *call = IGF.Builder.CreateCall(
-      cast<llvm::Function>(outlinedFn)->getFunctionType(), outlinedFn, args);
+  toolchain::CallInst *call = IGF.Builder.CreateCall(
+      cast<toolchain::Function>(outlinedFn)->getFunctionType(), outlinedFn, args);
   call->setCallingConv(IGF.IGM.DefaultCC);
 }
 
-llvm::Constant *IRGenModule::getOrCreateOutlinedDestroyFunction(
+toolchain::Constant *IRGenModule::getOrCreateOutlinedDestroyFunction(
                               SILType T, const TypeInfo &ti,
                               const OutliningMetadataCollector &collector) {
   IRGenMangler mangler(T.getASTContext());
@@ -571,9 +572,9 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedDestroyFunction(
 
   IRLinkage *linkage = nullptr;
   IRLinkage privateLinkage = {
-    llvm::GlobalValue::PrivateLinkage,
-    llvm::GlobalValue::DefaultVisibility,
-    llvm::GlobalValue::DefaultStorageClass,
+    toolchain::GlobalValue::PrivateLinkage,
+    toolchain::GlobalValue::DefaultVisibility,
+    toolchain::GlobalValue::DefaultStorageClass,
   };
   auto &TL =
     getSILModule().Types.getTypeLowering(T, TypeExpansionContext::minimal());
@@ -586,7 +587,7 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedDestroyFunction(
   }
 
   auto ptrTy = ti.getStorageType()->getPointerTo();
-  llvm::SmallVector<llvm::Type *, 4> paramTys;
+  toolchain::SmallVector<toolchain::Type *, 4> paramTys;
   paramTys.push_back(ptrTy);
   collector.addPolymorphicParameterTypes(paramTys);
 
@@ -610,9 +611,9 @@ llvm::Constant *IRGenModule::getOrCreateOutlinedDestroyFunction(
       linkage);
 }
 
-llvm::Constant *IRGenModule::getOrCreateRetainFunction(const TypeInfo &ti,
+toolchain::Constant *IRGenModule::getOrCreateRetainFunction(const TypeInfo &ti,
                                                        SILType t,
-                                                       llvm::Type *llvmType,
+                                                       toolchain::Type *toolchainType,
                                                        Atomicity atomicity) {
   auto *loadableTI = cast<LoadableTypeInfo>(&ti);
   IRGenMangler mangler(t.getASTContext());
@@ -620,9 +621,9 @@ llvm::Constant *IRGenModule::getOrCreateRetainFunction(const TypeInfo &ti,
     getTypeAndGenericSignatureForManglingOutlineFunction(t);
   auto funcName = mangler.mangleOutlinedRetainFunction(manglingBits.first,
                                                        manglingBits.second);
-  llvm::Type *argTys[] = {llvmType};
+  toolchain::Type *argTys[] = {toolchainType};
   return getOrCreateHelperFunction(
-      funcName, llvmType, argTys,
+      funcName, toolchainType, argTys,
       [&](IRGenFunction &IGF) {
         auto it = IGF.CurFn->arg_begin();
         Address addr(&*it++, loadableTI->getStorageType(),
@@ -651,18 +652,18 @@ void OutliningMetadataCollector::emitCallToOutlinedRelease(
   assert(hasFinished());
   assert(!needsLayout);
   assert(needsDeinit);
-  llvm::SmallVector<llvm::Value *, 4> args;
+  toolchain::SmallVector<toolchain::Value *, 4> args;
   args.push_back(addr.getAddress());
   addPolymorphicArguments(args);
-  auto *outlinedF = cast<llvm::Function>(IGF.IGM.getOrCreateReleaseFunction(
+  auto *outlinedF = cast<toolchain::Function>(IGF.IGM.getOrCreateReleaseFunction(
       ti, T, addr.getAddress()->getType(), atomicity, *this));
-  llvm::CallInst *call =
+  toolchain::CallInst *call =
       IGF.Builder.CreateCall(outlinedF->getFunctionType(), outlinedF, args);
   call->setCallingConv(IGF.IGM.DefaultCC);
 }
 
-llvm::Constant *IRGenModule::getOrCreateReleaseFunction(
-    const TypeInfo &ti, SILType t, llvm::Type *ptrTy, Atomicity atomicity,
+toolchain::Constant *IRGenModule::getOrCreateReleaseFunction(
+    const TypeInfo &ti, SILType t, toolchain::Type *ptrTy, Atomicity atomicity,
     const OutliningMetadataCollector &collector) {
   auto *loadableTI = cast<LoadableTypeInfo>(&ti);
   IRGenMangler mangler(t.getASTContext());
@@ -670,7 +671,7 @@ llvm::Constant *IRGenModule::getOrCreateReleaseFunction(
     getTypeAndGenericSignatureForManglingOutlineFunction(t);
   auto funcName = mangler.mangleOutlinedReleaseFunction(manglingBits.first,
                                                         manglingBits.second);
-  llvm::SmallVector<llvm::Type *, 4> argTys;
+  toolchain::SmallVector<toolchain::Type *, 4> argTys;
   argTys.push_back(ptrTy);
   collector.addPolymorphicParameterTypes(argTys);
   return getOrCreateHelperFunction(

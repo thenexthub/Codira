@@ -130,7 +130,7 @@ def main():
         }
     }
 
-    # FIXME: Record source versions for LLVM, Swift, etc.?
+    # FIXME: Record source versions for LLVM, Codira, etc.?
     lnt_results['Run'] = {
         'Start Time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
         'End Time': end_time.strftime('%Y-%m-%d %H:%M:%S'),

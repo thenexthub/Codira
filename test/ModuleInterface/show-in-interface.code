@@ -1,0 +1,8 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface)
+// RUN: %FileCheck %s < %t.codeinterface
+
+// CHECK: @_show_in_interface public protocol _UnderscoredProtocol {
+// CHECK-NEXT: }
+@_show_in_interface
+public protocol _UnderscoredProtocol {}

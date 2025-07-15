@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides basic declarations and utilities for working with
@@ -18,29 +19,29 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_CFG_H
-#define SWIFT_SIL_CFG_H
+#ifndef LANGUAGE_SIL_CFG_H
+#define LANGUAGE_SIL_CFG_H
 
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/GraphTraits.h"
+#include "toolchain/ADT/GraphTraits.h"
 
 #if defined(__has_include)
-#if __has_include("llvm/Support/CfgTraits.h")
-#include "llvm/Support/CfgTraits.h"
-#define SWIFT_LLVM_HAS_CFGTRAITS_H
+#if __has_include("toolchain/Support/CfgTraits.h")
+#include "toolchain/Support/CfgTraits.h"
+#define LANGUAGE_TOOLCHAIN_HAS_CFGTRAITS_H
 #endif
 #endif
 
-namespace llvm {
+namespace toolchain {
 
 //===----------------------------------------------------------------------===//
 // GraphTraits for SILBasicBlock
 //===----------------------------------------------------------------------===//
 
-template <> struct GraphTraits<swift::SILBasicBlock *> {
-  using ChildIteratorType = swift::SILBasicBlock::succblock_iterator;
-  using Node = swift::SILBasicBlock;
+template <> struct GraphTraits<language::SILBasicBlock *> {
+  using ChildIteratorType = language::SILBasicBlock::succblock_iterator;
+  using Node = language::SILBasicBlock;
   using NodeRef = Node *;
 
   static NodeRef getEntryNode(NodeRef BB) { return BB; }
@@ -51,9 +52,9 @@ template <> struct GraphTraits<swift::SILBasicBlock *> {
   static ChildIteratorType child_end(NodeRef N) { return N->succblock_end(); }
 };
 
-template <> struct GraphTraits<const swift::SILBasicBlock*> {
-  using ChildIteratorType = swift::SILBasicBlock::const_succblock_iterator;
-  using Node = const swift::SILBasicBlock;
+template <> struct GraphTraits<const language::SILBasicBlock*> {
+  using ChildIteratorType = language::SILBasicBlock::const_succblock_iterator;
+  using Node = const language::SILBasicBlock;
   using NodeRef = Node *;
 
   static NodeRef getEntryNode(NodeRef BB) { return BB; }
@@ -64,11 +65,11 @@ template <> struct GraphTraits<const swift::SILBasicBlock*> {
   static ChildIteratorType child_end(NodeRef N) { return N->succblock_end(); }
 };
 
-template <> struct GraphTraits<Inverse<swift::SILBasicBlock*> > {
-  using ChildIteratorType = swift::SILBasicBlock::pred_iterator;
-  using Node = swift::SILBasicBlock;
+template <> struct GraphTraits<Inverse<language::SILBasicBlock*> > {
+  using ChildIteratorType = language::SILBasicBlock::pred_iterator;
+  using Node = language::SILBasicBlock;
   using NodeRef = Node *;
-  static NodeRef getEntryNode(Inverse<swift::SILBasicBlock *> G) {
+  static NodeRef getEntryNode(Inverse<language::SILBasicBlock *> G) {
     return G.Graph;
   }
   static inline ChildIteratorType child_begin(NodeRef N) {
@@ -79,12 +80,12 @@ template <> struct GraphTraits<Inverse<swift::SILBasicBlock*> > {
   }
 };
 
-template <> struct GraphTraits<Inverse<const swift::SILBasicBlock*> > {
-  using ChildIteratorType = swift::SILBasicBlock::pred_iterator;
-  using Node = const swift::SILBasicBlock;
+template <> struct GraphTraits<Inverse<const language::SILBasicBlock*> > {
+  using ChildIteratorType = language::SILBasicBlock::pred_iterator;
+  using Node = const language::SILBasicBlock;
   using NodeRef = Node *;
 
-  static NodeRef getEntryNode(Inverse<const swift::SILBasicBlock *> G) {
+  static NodeRef getEntryNode(Inverse<const language::SILBasicBlock *> G) {
     return G.Graph;
   }
   static inline ChildIteratorType child_begin(NodeRef N) {
@@ -96,14 +97,14 @@ template <> struct GraphTraits<Inverse<const swift::SILBasicBlock*> > {
 };
 
 template <>
-struct GraphTraits<swift::SILFunction *>
-    : public GraphTraits<swift::SILBasicBlock *> {
-  using GraphType = swift::SILFunction *;
-  using NodeRef = swift::SILBasicBlock *;
+struct GraphTraits<language::SILFunction *>
+    : public GraphTraits<language::SILBasicBlock *> {
+  using GraphType = language::SILFunction *;
+  using NodeRef = language::SILBasicBlock *;
 
   static NodeRef getEntryNode(GraphType F) { return &F->front(); }
 
-  using nodes_iterator = pointer_iterator<swift::SILFunction::iterator>;
+  using nodes_iterator = pointer_iterator<language::SILFunction::iterator>;
   static nodes_iterator nodes_begin(GraphType F) {
     return nodes_iterator(F->begin());
   }
@@ -113,14 +114,14 @@ struct GraphTraits<swift::SILFunction *>
   static unsigned size(GraphType F) { return F->size(); }
 };
 
-template <> struct GraphTraits<Inverse<swift::SILFunction*> >
-    : public GraphTraits<Inverse<swift::SILBasicBlock*> > {
-  using GraphType = Inverse<swift::SILFunction *>;
+template <> struct GraphTraits<Inverse<language::SILFunction*> >
+    : public GraphTraits<Inverse<language::SILBasicBlock*> > {
+  using GraphType = Inverse<language::SILFunction *>;
   using NodeRef = NodeRef;
 
   static NodeRef getEntryNode(GraphType F) { return &F.Graph->front(); }
 
-  using nodes_iterator = pointer_iterator<swift::SILFunction::iterator>;
+  using nodes_iterator = pointer_iterator<language::SILFunction::iterator>;
   static nodes_iterator nodes_begin(GraphType F) {
     return nodes_iterator(F.Graph->begin());
   }
@@ -130,13 +131,13 @@ template <> struct GraphTraits<Inverse<swift::SILFunction*> >
   static unsigned size(GraphType F) { return F.Graph->size(); }
 };
 
-#ifdef SWIFT_LLVM_HAS_CFGTRAITS_H
+#ifdef LANGUAGE_TOOLCHAIN_HAS_CFGTRAITS_H
 
 class SILCfgTraitsBase : public CfgTraitsBase {
 public:
-  using ParentType = swift::SILFunction;
-  using BlockRef = swift::SILBasicBlock *;
-  using ValueRef = swift::SILInstruction *;
+  using ParentType = language::SILFunction;
+  using BlockRef = language::SILBasicBlock *;
+  using ValueRef = language::SILInstruction *;
 
   static CfgBlockRef wrapRef(BlockRef block) {
     return makeOpaque<CfgBlockRefTag>(block);
@@ -154,49 +155,49 @@ public:
 /// \brief CFG traits for SIL IR.
 class SILCfgTraits : public CfgTraits<SILCfgTraitsBase, SILCfgTraits> {
 public:
-  explicit SILCfgTraits(swift::SILFunction * /*parent*/) {}
+  explicit SILCfgTraits(language::SILFunction * /*parent*/) {}
 
-  static swift::SILFunction *getBlockParent(swift::SILBasicBlock *block) {
+  static language::SILFunction *getBlockParent(language::SILBasicBlock *block) {
     return block->getParent();
   }
 
-  static auto predecessors(swift::SILBasicBlock *block) {
+  static auto predecessors(language::SILBasicBlock *block) {
     return block->getPredecessorBlocks();
   }
-  static auto successors(swift::SILBasicBlock *block) {
+  static auto successors(language::SILBasicBlock *block) {
     return block->getSuccessors();
   }
 
   /// Get the defining block of a value if it is an instruction, or null
   /// otherwise.
   static BlockRef getValueDefBlock(ValueRef value) {
-    if (auto *instruction = dyn_cast<swift::SILInstruction>(value))
+    if (auto *instruction = dyn_cast<language::SILInstruction>(value))
       return instruction->getParent();
     return nullptr;
   }
 
   struct block_iterator
-      : iterator_adaptor_base<block_iterator, swift::SILFunction::iterator> {
-    using Base = iterator_adaptor_base<block_iterator, swift::SILFunction::iterator>;
+      : iterator_adaptor_base<block_iterator, language::SILFunction::iterator> {
+    using Base = iterator_adaptor_base<block_iterator, language::SILFunction::iterator>;
 
     block_iterator() = default;
 
-    explicit block_iterator(swift::SILFunction::iterator i) : Base(i) {}
+    explicit block_iterator(language::SILFunction::iterator i) : Base(i) {}
 
-    swift::SILBasicBlock *operator*() const { return &Base::operator*(); }
+    language::SILBasicBlock *operator*() const { return &Base::operator*(); }
   };
 
-  static iterator_range<block_iterator> blocks(swift::SILFunction *function) {
+  static iterator_range<block_iterator> blocks(language::SILFunction *function) {
     return {block_iterator(function->begin()), block_iterator(function->end())};
   }
 
   struct value_iterator
-      : iterator_adaptor_base<value_iterator, swift::SILBasicBlock::iterator> {
-    using Base = iterator_adaptor_base<value_iterator, swift::SILBasicBlock::iterator>;
+      : iterator_adaptor_base<value_iterator, language::SILBasicBlock::iterator> {
+    using Base = iterator_adaptor_base<value_iterator, language::SILBasicBlock::iterator>;
 
     value_iterator() = default;
 
-    explicit value_iterator(swift::SILBasicBlock::iterator i) : Base(i) {}
+    explicit value_iterator(language::SILBasicBlock::iterator i) : Base(i) {}
 
     ValueRef operator*() const { return &Base::operator*(); }
   };
@@ -217,13 +218,13 @@ public:
   };
 };
 
-template <> struct CfgTraitsFor<swift::SILBasicBlock> {
+template <> struct CfgTraitsFor<language::SILBasicBlock> {
   using CfgTraits = SILCfgTraits;
 };
 
 #endif
 
-} // end llvm namespace
+} // end toolchain namespace
 
 #endif
 

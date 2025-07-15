@@ -1,4 +1,4 @@
-//===--- TypeJoinMeet.cpp - Swift Type "join" and "meet"  -----------------===//
+//===--- TypeJoinMeet.cpp - Codira Type "join" and "meet"  -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the "join" operation for types (and, eventually,
@@ -23,7 +24,7 @@
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 #include <optional>
 using namespace language;
 
@@ -141,7 +142,7 @@ CanType TypeJoin::getSuperclassJoin(CanType first, CanType second) {
 
   /// Walk the superclasses of `first` looking for `second`. Record them
   /// for our second step.
-  llvm::SmallPtrSet<CanType, 8> superclassesOfFirst;
+  toolchain::SmallPtrSet<CanType, 8> superclassesOfFirst;
   for (Type super = first; super; super = super->getSuperclass()) {
     auto canSuper = super->getCanonicalType();
 
@@ -167,7 +168,7 @@ CanType TypeJoin::getSuperclassJoin(CanType first, CanType second) {
 }
 
 CanType TypeJoin::visitErrorType(CanType second) {
-  llvm_unreachable("join with ErrorType not supported");
+  toolchain_unreachable("join with ErrorType not supported");
   return second;
 }
 
@@ -313,7 +314,7 @@ CanType TypeJoin::visitArchetypeType(CanType second) {
 }
 
 CanType TypeJoin::visitGenericTypeParamType(CanType second) {
-  llvm_unreachable("Saw GenericTypeParamType in TypeJoin::join");
+  toolchain_unreachable("Saw GenericTypeParamType in TypeJoin::join");
 }
 
 CanType TypeJoin::visitDependentMemberType(CanType second) {

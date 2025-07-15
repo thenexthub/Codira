@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
-#define SWIFT_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
+#ifndef LANGUAGE_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
+#define LANGUAGE_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
 
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Edit/EditsReceiver.h"
 #include "clang/Rewrite/Core/RewriteBuffer.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace language {
 namespace migrator {
@@ -49,10 +50,10 @@ public:
   virtual void replace(clang::CharSourceRange Range, StringRef Text) override;
 
   /// Print the result of all of the edits to the given output stream.
-  void printResult(llvm::raw_ostream &OS) const;
+  void printResult(toolchain::raw_ostream &OS) const;
 };
 
 } // end namespace migrator
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
+#endif // LANGUAGE_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H

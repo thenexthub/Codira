@@ -3,8 +3,8 @@
 Unified Function Syntax via Selector Splitting
 ==============================================
 
-.. warning:: This document was used in planning Swift 1.0; it has not been kept
-  up to date and does not describe the current or planned behavior of Swift. In
+.. warning:: This document was used in planning Codira 1.0; it has not been kept
+  up to date and does not describe the current or planned behavior of Codira. In
   particular, we experimented with preposition-based splitting and decided
   against it.
 
@@ -67,7 +67,7 @@ where '_' is a placeholder for an argument with no name.
 
 Calling Syntax
 --------------
-By splitting selectors into a base name and argument names, Swift's
+By splitting selectors into a base name and argument names, Codira's
 keyword-argument calling syntax works naturally::
 
   tableView.moveRow(atIndex: i, toIndex: j)
@@ -78,7 +78,7 @@ have no object argument, i.e.,::
 
   NSMakeRange(location: loc, length: len)
 
-assuming that we had argument names for C functions or a Swift overlay
+assuming that we had argument names for C functions or a Codira overlay
 that provided them. It also nicely handles cases where argument names
 aren't available, e.g.,::
 
@@ -94,7 +94,7 @@ The existing "selector-style" declaration syntax can be extended to
 better support declaring functions with separate base names and first
 argument names, i.e.::
 
-  func moveRow atIndex(Int) toIndex(Int)
+  fn moveRow atIndex(Int) toIndex(Int)
 
 However, this declaration looks very little like the call site, which
 uses a parenthesized argument list, commas, and colons. Let's
@@ -102,28 +102,28 @@ eliminate the "selector-style" declaration syntax entirely. We can use
 the existing ("tuple-style") declaration syntax to mirror the call
 syntax directly::
 
-  func moveRow(_ atIndex: Int, toIndex: Int)
+  fn moveRow(_ atIndex: Int, toIndex: Int)
 
 Now, sometimes the argument name that works well at the call site
 doesn't work well for the body of the function. For example, splitting
 the selector for ``UIView``'s ``contentHuggingPriorityForAxis:``
 results in::
 
-  func contentHuggingPriority(_ forAxis: UILayoutConstraintAxis) -> UILayoutPriority
+  fn contentHuggingPriority(_ forAxis: UILayoutConstraintAxis) -> UILayoutPriority
 
 The name ``forAxis`` works well at the call site, but not within the
 function body. So, we allow one to specify the name of the parameter
 for the body of the function::
 
-  func contentHuggingPriority(forAxis axis: UILayoutConstraintAxis) -> UILayoutPriority {
+  fn contentHuggingPriority(forAxis axis: UILayoutConstraintAxis) -> UILayoutPriority {
     // use 'axis' in the body
   }
 
 One can use '_' in either the argument or parameter name position to
 specify that there is no name. For example::
 
-  func f(_ a: Int)  // no argument name; parameter name is 'a'
-  func g(b _: Int)  // argument name is 'b'; no parameter name
+  fn f(_ a: Int)  // no argument name; parameter name is 'a'
+  fn g(b _: Int)  // argument name is 'b'; no parameter name
 
 The first function doesn't support keyword arguments; it is what an
 imported C or C++ function would use. The second function supports a
@@ -157,7 +157,7 @@ backticks, as in this reference to an optional method in a delegate::
 Initializers
 ------------
 Objective-C ``init`` methods correspond to initializers in
-Swift. Swift splits the selector name after the ``init``. For example,
+Codira. Codira splits the selector name after the ``init``. For example,
 ``NSView``'s ``initWithFrame:`` method becomes the initializer::
 
   init(withFrame: NSRect)
@@ -189,18 +189,18 @@ Handling Poor Mappings
 The split-at-last-preposition heuristic works well for a significant
 number of selectors, but it is not perfect. Therefore, we will
 introduce an attribute into Objective-C that allows one to specify the
-Swift method name for that Objective-C API. For example, by default,
+Codira method name for that Objective-C API. For example, by default,
 the ``NSURL`` method ``+bookmarkDataWithContentsOfURL:error:`` will
-come into Swift as::
+come into Codira as::
 
-  class func bookmarkDataWithContents(ofURL bookmarkFileURL: NSURL, error: inout NSError) -> NSData
+  class fn bookmarkDataWithContents(ofURL bookmarkFileURL: NSURL, error: inout NSError) -> NSData
 
 However, one can provide a different mapping with the ``method_name``
 attribute::
 
   + (NSData *)bookmarkDataWithContentsOfURL:(NSURL *)bookmarkFileURL error:(NSError **)error __attribute__((method_name(bookmarkData(withContentsOfURL:error:))))
 
-This attribute specifies the Swift method name corresponding to that
+This attribute specifies the Codira method name corresponding to that
 selector. Presumably, the ``method_name`` attribute will be wrapped in
 a macro supplied by Foundation, i.e.,::
 
@@ -208,7 +208,7 @@ a macro supplied by Foundation, i.e.,::
 
 For 1.0, it is not feasible to mark up the Objective-C headers in the
 various SDKs. Therefore, the compiler will contain a list of mapping
-from Objective-C selectors to Swift method names. Post-1.0, we can
+from Objective-C selectors to Codira method names. Post-1.0, we can
 migrate these mappings to the headers.
 
 A mapping in the other direction is also important, allowing one to
@@ -243,9 +243,9 @@ indicates that keyword arguments are required and cannot be reordered
 in calls to that function, i.e.::
 
   @call_arguments(strict)
-  func moveRow(_ atIndex:Int, toIndex:Int)
+  fn moveRow(_ atIndex:Int, toIndex:Int)
 
-Swift's Objective-C importer will automatically add this to all
+Codira's Objective-C importer will automatically add this to all
 imported Objective-C methods, so that Cocoa APIs will retain their
 sentence structure.
 
@@ -269,11 +269,11 @@ this call becomes::
 In addition to improving the call site, this eliminates the need to
 rename parameters as often at the declaration site, i.e., this::
 
-  class func color(withRed red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) -> NSColor
+  class fn color(withRed red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) -> NSColor
 
 becomes::
 
-  class func color(_ red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) -> NSColor
+  class fn color(_ red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) -> NSColor
 
 Note that we only perform this removal for ``with`` and ``for``; other
 prepositions tend to have important meaning associated with them, and
@@ -300,7 +300,7 @@ name when computing the selector, so that this maps to
 initializer from a superclass or we are implementing a method to conform
 to a protocol, the selector can be deduced from method/initializer in
 the superclass or protocol. In those cases where new API is being
-defined in Swift where the selector requires a preposition, one would
+defined in Codira where the selector requires a preposition, one would
 use the ``objc`` attribute with a selector::
 
   @objc(initWithFrame:)

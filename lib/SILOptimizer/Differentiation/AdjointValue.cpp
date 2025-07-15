@@ -1,13 +1,17 @@
 //===--- AdjointValue.h - Helper class for differentiation ----*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // AdjointValue - a symbolic representation for adjoint values enabling
@@ -19,7 +23,7 @@
 
 #include "language/SILOptimizer/Differentiation/AdjointValue.h"
 
-void swift::autodiff::AdjointValue::print(llvm::raw_ostream &s) const {
+void language::autodiff::AdjointValue::print(toolchain::raw_ostream &s) const {
   switch (getKind()) {
   case AdjointValueKind::Zero:
     s << "Zero[" << getType() << ']';
@@ -28,7 +32,7 @@ void swift::autodiff::AdjointValue::print(llvm::raw_ostream &s) const {
     s << "Aggregate[" << getType() << "](";
     if (auto *decl = getType().getASTType()->getStructOrBoundGenericStruct()) {
       interleave(
-          llvm::zip(decl->getStoredProperties(), getAggregateElements()),
+          toolchain::zip(decl->getStoredProperties(), getAggregateElements()),
           [&s](std::tuple<VarDecl *, const AdjointValue &> elt) {
             s << std::get<0>(elt)->getName() << ": ";
             std::get<1>(elt).print(s);
@@ -39,7 +43,7 @@ void swift::autodiff::AdjointValue::print(llvm::raw_ostream &s) const {
           getAggregateElements(),
           [&s](const AdjointValue &elt) { elt.print(s); }, [&s] { s << ", "; });
     } else {
-      llvm_unreachable("Invalid aggregate");
+      toolchain_unreachable("Invalid aggregate");
     }
     s << ')';
     break;

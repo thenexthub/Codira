@@ -1,0 +1,100 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend %t/languageMod.code -module-name CodiraMod -typecheck -verify -emit-clang-header-path %t/languageMod.h -I %t -enable-experimental-cxx-interop -Xcc -DFIRSTPASS
+
+// RUN: %target-language-frontend %t/languageMod.code -module-name CodiraMod -emit-module -o %t/CodiraMod.codemodule -I %t -enable-experimental-cxx-interop -Xcc -DFIRSTPASS
+
+// RUN: %target-language-ide-test -print-module -module-to-print=CodiraMod -module-to-print=CodiraToCxxTest -I %t -source-filename=x -enable-experimental-cxx-interop -Xcc -DLANGUAGE_CXX_INTEROP_HIDE_LANGUAGE_ERROR | %FileCheck --check-prefix=INTERFACE %s
+
+// RUN: %target-language-frontend -typecheck %t/languageMod.code -module-name CodiraMod -I %t -enable-experimental-cxx-interop -Xcc -DLANGUAGE_CXX_INTEROP_HIDE_LANGUAGE_ERROR -DSECOND_PASS -emit-sil -o - | %FileCheck --check-prefix=SIL %s
+
+// UNSUPPORTED: OS=windows-msvc
+
+//--- header.h
+#ifndef FIRSTPASS
+#include "languageMod.h"
+
+CodiraMod::ExposedToCxx createCodiraClassInCxx();
+
+void passCodiraClassToCxx(CodiraMod::ExposedToCxx value);
+
+CodiraMod::ExposedToCxx * returnClassByPtr();
+CodiraMod::ExposedToCxx & returnClassByRef();
+const CodiraMod::ExposedToCxx & returnClassByRefConst();
+
+// INTERFACE: fn createCodiraClassInCxx() -> ExposedToCxx
+// INTERFACE: fn passCodiraClassToCxx(_ value: ExposedToCxx)
+// INTERFACE: fn returnClassByPtr() -> OpaquePointer!
+// INTERFACE-NOT: returnClassByRef
+
+class __attribute__((language_attr("import_owned"))) InClass {
+public:
+    CodiraMod::ExposedToCxx value;
+
+    InClass(CodiraMod::ExposedToCxx value) : value(value) {}
+
+    inline CodiraMod::ExposedToCxx getValue() const {
+        return value;
+    }
+};
+
+// INTERFACE: struct InClass {
+// INTERFACE:   init(_ value: ExposedToCxx)
+// INTERFACE:   fn getValue() -> ExposedToCxx
+// INTERFACE: }
+
+#endif
+
+//--- module.modulemap
+module CodiraToCxxTest {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- languageMod.code
+import CodiraToCxxTest
+
+public class ExposedToCxx {
+    public init() {
+        i = 0
+        print("ExposedToCxx.init")
+    }
+    deinit {
+        print("ExposedToCxx\(i).deinit")
+    }
+
+    public final fn testMethod() {
+        print("ExposedToCxx\(i).testMethod")
+    }
+
+    public var i: Int
+}
+
+#if SECOND_PASS
+
+fn testCodiraClassFromCxxInCodira() {
+    immutable classInstance = createCodiraClassInCxx()
+    passCodiraClassToCxx(classInstance)
+}
+
+testCodiraClassFromCxxInCodira()
+
+fn testCodiraClassInClass() {
+    immutable v = InClass(ExposedToCxx())
+    v.getValue().testMethod()
+}
+
+testCodiraClassInClass()
+
+#endif
+
+// SIL-LABEL: @$s8CodiraMod04testa14ClassFromCxxInA0yyF : $@convention(thin) () -> ()
+// SIL: function_ref @{{_Z21createCodiraClassInCxxv|"\?createCodiraClassInCxx@@YA?AVExposedToCxx@CodiraMod@@XZ"}} : $@convention(c) () -> @owned ExposedToCxx
+// SIL: apply {{.*}} : $@convention(c) () -> @owned ExposedToCxx
+// SIL: function_ref @{{_Z19passCodiraClassToCxxN8CodiraMod12ExposedToCxxE|"\?passCodiraClassToCxx@@YAXVExposedToCxx@CodiraMod@@@Z"}} : $@convention(c) (@in_guaranteed ExposedToCxx) -> ()
+// SIL: apply {{.*}} : $@convention(c) (@in_guaranteed ExposedToCxx) -> ()
+
+// SIL-LABEL: @$s8CodiraMod04testa7ClassInD0yyF : $@convention(thin) () -> () {
+// SIL: $@convention(c) (@in_guaranteed ExposedToCxx) -> @out InClass
+// SIL: $@convention(cxx_method) (@in_guaranteed InClass) -> @owned ExposedToCxx

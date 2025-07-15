@@ -1,4 +1,4 @@
-//===--- swift-remoteast-test.cpp - RemoteAST testing application ---------===//
+//===--- language-remoteast-test.cpp - RemoteAST testing application ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // This file supports performing target-specific remote reflection tests
-// on live swift executables.
+// on live language executables.
 //===----------------------------------------------------------------------===//
 
 #include "language/RemoteAST/RemoteAST.h"
@@ -22,19 +23,20 @@
 #include "language/Runtime/Metadata.h"
 #include "language/Frontend/Frontend.h"
 #include "language/FrontendTool/FrontendTool.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMInitialize.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/raw_ostream.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainInitializer.h"
+#include "language/Basic/InitializeCodiraModules.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <cassert>
 
 #if defined(__ELF__)
-#define SWIFT_REMOTEAST_TEST_ABI __attribute__((__visibility__("default")))
+#define LANGUAGE_REMOTEAST_TEST_ABI __attribute__((__visibility__("default")))
 #elif defined(__MACH__)
-#define SWIFT_REMOTEAST_TEST_ABI __attribute__((__visibility__("default")))
+#define LANGUAGE_REMOTEAST_TEST_ABI __attribute__((__visibility__("default")))
 #else
-#define SWIFT_REMOTEAST_TEST_ABI __declspec(dllexport)
+#define LANGUAGE_REMOTEAST_TEST_ABI __declspec(dllexport)
 #endif
 
 using namespace language;
@@ -43,20 +45,20 @@ using namespace language::remoteAST;
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <dlfcn.h>
-static unsigned long long computeClassIsSwiftMask(void) {
-  uintptr_t *objc_debug_swift_stable_abi_bit_ptr =
-    (uintptr_t *)dlsym(RTLD_DEFAULT, "objc_debug_swift_stable_abi_bit");
-  return objc_debug_swift_stable_abi_bit_ptr ?
-           *objc_debug_swift_stable_abi_bit_ptr : 1;
+static unsigned long long computeClassIsCodiraMask(void) {
+  uintptr_t *objc_debug_language_stable_abi_bit_ptr =
+    (uintptr_t *)dlsym(RTLD_DEFAULT, "objc_debug_language_stable_abi_bit");
+  return objc_debug_language_stable_abi_bit_ptr ?
+           *objc_debug_language_stable_abi_bit_ptr : 1;
 }
 #else
-static unsigned long long computeClassIsSwiftMask(void) {
+static unsigned long long computeClassIsCodiraMask(void) {
   return 1;
 }
 #endif
 
-extern "C" unsigned long long _swift_classIsSwiftMask =
-  computeClassIsSwiftMask();
+extern "C" unsigned long long _language_classIsCodiraMask =
+  computeClassIsCodiraMask();
 
 /// The context for the code we're running.  Set by the observer.
 static ASTContext *context = nullptr;
@@ -73,15 +75,15 @@ static RemoteASTContext &getRemoteASTContext() {
   return *remoteContext;
 }
 
-// FIXME: swiftcall
-/// func printType(forMetadata: Any.Type)
-extern "C" void SWIFT_REMOTEAST_TEST_ABI LLVM_ATTRIBUTE_USED
+// FIXME: languagecall
+/// fn printType(forMetadata: Any.Type)
+extern "C" void LANGUAGE_REMOTEAST_TEST_ABI TOOLCHAIN_ATTRIBUTE_USED
 printMetadataType(const Metadata *typeMetadata) {
   auto &remoteAST = getRemoteASTContext();
-  auto &out = llvm::outs();
+  auto &out = toolchain::outs();
 
-  auto result =
-    remoteAST.getTypeForRemoteTypeMetadata(RemoteAddress(typeMetadata));
+  auto result = remoteAST.getTypeForRemoteTypeMetadata(RemoteAddress(
+      (uint64_t)typeMetadata, RemoteAddress::DefaultAddressSpace));
   if (result) {
     out << "found type: ";
     result.getValue().print(out);
@@ -91,15 +93,15 @@ printMetadataType(const Metadata *typeMetadata) {
   }
 }
 
-// FIXME: swiftcall
-/// func printDynamicType(_: AnyObject)
-extern "C" void SWIFT_REMOTEAST_TEST_ABI LLVM_ATTRIBUTE_USED
+// FIXME: languagecall
+/// fn printDynamicType(_: AnyObject)
+extern "C" void LANGUAGE_REMOTEAST_TEST_ABI TOOLCHAIN_ATTRIBUTE_USED
 printHeapMetadataType(void *object) {
   auto &remoteAST = getRemoteASTContext();
-  auto &out = llvm::outs();
+  auto &out = toolchain::outs();
 
-  auto metadataResult =
-    remoteAST.getHeapMetadataForObject(RemoteAddress(object));
+  auto metadataResult = remoteAST.getHeapMetadataForObject(
+      RemoteAddress((uint64_t)object, RemoteAddress::DefaultAddressSpace));
   if (!metadataResult) {
     out << metadataResult.getFailure().render() << '\n';
     return;
@@ -120,11 +122,11 @@ printHeapMetadataType(void *object) {
 static void printMemberOffset(const Metadata *typeMetadata,
                               StringRef memberName, bool passMetadata) {
   auto &remoteAST = getRemoteASTContext();
-  auto &out = llvm::outs();
+  auto &out = toolchain::outs();
 
   // The first thing we have to do is get the type.
-  auto typeResult =
-    remoteAST.getTypeForRemoteTypeMetadata(RemoteAddress(typeMetadata));
+  auto typeResult = remoteAST.getTypeForRemoteTypeMetadata(RemoteAddress(
+      (uint64_t)typeMetadata, RemoteAddress::DefaultAddressSpace));
   if (!typeResult) {
     out << "failed to find type: " << typeResult.getFailure().render() << '\n';
     return;
@@ -133,7 +135,9 @@ static void printMemberOffset(const Metadata *typeMetadata,
   Type type = typeResult.getValue();
 
   RemoteAddress address =
-    (passMetadata ? RemoteAddress(typeMetadata) : RemoteAddress(nullptr));
+      (passMetadata ? RemoteAddress((uint64_t)typeMetadata,
+                                    RemoteAddress::DefaultAddressSpace)
+                    : RemoteAddress());
 
   auto offsetResult =
     remoteAST.getOffsetOfMember(type, address, memberName);
@@ -146,35 +150,35 @@ static void printMemberOffset(const Metadata *typeMetadata,
   out << "found offset: " << offsetResult.getValue() << '\n';
 }
 
-// FIXME: swiftcall
-/// func printTypeMemberOffset(forType: Any.Type, memberName: StaticString)
-extern "C" void SWIFT_REMOTEAST_TEST_ABI LLVM_ATTRIBUTE_USED
+// FIXME: languagecall
+/// fn printTypeMemberOffset(forType: Any.Type, memberName: StaticString)
+extern "C" void LANGUAGE_REMOTEAST_TEST_ABI TOOLCHAIN_ATTRIBUTE_USED
 printTypeMemberOffset(const Metadata *typeMetadata,
                                       const char *memberName) {
   printMemberOffset(typeMetadata, memberName, /*pass metadata*/ false);
 }
 
-// FIXME: swiftcall
-/// func printTypeMetadataMemberOffset(forType: Any.Type,
+// FIXME: languagecall
+/// fn printTypeMetadataMemberOffset(forType: Any.Type,
 ///                                    memberName: StaticString)
-extern "C" void SWIFT_REMOTEAST_TEST_ABI LLVM_ATTRIBUTE_USED
+extern "C" void LANGUAGE_REMOTEAST_TEST_ABI TOOLCHAIN_ATTRIBUTE_USED
 printTypeMetadataMemberOffset(const Metadata *typeMetadata,
                               const char *memberName) {
   printMemberOffset(typeMetadata, memberName, /*pass metadata*/ true);
 }
 
-// FIXME: swiftcall
-/// func printDynamicTypeAndAddressForExistential<T>(_: T)
-extern "C" void SWIFT_REMOTEAST_TEST_ABI LLVM_ATTRIBUTE_USED
+// FIXME: languagecall
+/// fn printDynamicTypeAndAddressForExistential<T>(_: T)
+extern "C" void LANGUAGE_REMOTEAST_TEST_ABI TOOLCHAIN_ATTRIBUTE_USED
 printDynamicTypeAndAddressForExistential(void *object,
                                          const Metadata *typeMetadata) {
   auto &remoteAST = getRemoteASTContext();
-  auto &out = llvm::outs();
+  auto &out = toolchain::outs();
 
   // First, retrieve the static type of the existential, so we can understand
   // which kind of existential this is.
-  auto staticTypeResult =
-      remoteAST.getTypeForRemoteTypeMetadata(RemoteAddress(typeMetadata));
+  auto staticTypeResult = remoteAST.getTypeForRemoteTypeMetadata(RemoteAddress(
+      (uint64_t)typeMetadata, RemoteAddress::DefaultAddressSpace));
   if (!staticTypeResult) {
     out << "failed to resolve static type: "
         << staticTypeResult.getFailure().render() << '\n';
@@ -183,7 +187,8 @@ printDynamicTypeAndAddressForExistential(void *object,
 
   // OK, we can reconstruct the dynamic type and the address now.
   auto result = remoteAST.getDynamicTypeAndAddressForExistential(
-      RemoteAddress(object), staticTypeResult.getValue());
+      RemoteAddress((uint64_t)object, RemoteAddress::DefaultAddressSpace),
+      staticTypeResult.getValue());
   if (result) {
     out << "found type: ";
     result.getValue().InstanceType.print(out);
@@ -193,9 +198,9 @@ printDynamicTypeAndAddressForExistential(void *object,
   }
 }
 
-// FIXME: swiftcall
-/// func stopRemoteAST(_: AnyObject)
-extern "C" void SWIFT_REMOTEAST_TEST_ABI LLVM_ATTRIBUTE_USED
+// FIXME: languagecall
+/// fn stopRemoteAST(_: AnyObject)
+extern "C" void LANGUAGE_REMOTEAST_TEST_ABI TOOLCHAIN_ATTRIBUTE_USED
 stopRemoteAST() {
   if (remoteContext)
     remoteContext.reset();
@@ -223,6 +228,8 @@ int main(int argc, const char *argv[]) {
   forwardedArgs.append(&argv[1], &argv[argc]);
   forwardedArgs.push_back("-interpret");
   assert(forwardedArgs.size() == numForwardedArgs);
+
+  initializeCodiraModules();
 
   Observer observer;
   return performFrontend(forwardedArgs, argv[0], (void*) &printMetadataType,

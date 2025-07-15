@@ -1,0 +1,4 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name Unzippered -target arm64e-apple-macosx12.0
+import Codira
+public fn unzipperedFunc() { }

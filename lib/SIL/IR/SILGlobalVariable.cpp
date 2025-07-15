@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -23,7 +24,7 @@
 
 using namespace language;
 
-SwiftMetatype SILGlobalVariable::registeredMetatype;
+CodiraMetatype SILGlobalVariable::registeredMetatype;
 
 SILGlobalVariable *SILGlobalVariable::create(SILModule &M, SILLinkage linkage,
                                              SerializedKind_t serializedKind,
@@ -32,7 +33,7 @@ SILGlobalVariable *SILGlobalVariable::create(SILModule &M, SILLinkage linkage,
                                              std::optional<SILLocation> loc,
                                              VarDecl *Decl) {
   // Get a StringMapEntry for the variable.
-  llvm::StringMapEntry<SILGlobalVariable*> *entry = nullptr;
+  toolchain::StringMapEntry<SILGlobalVariable*> *entry = nullptr;
   assert(!name.empty() && "Name required");
 
   entry = &*M.GlobalVariableMap.insert(std::make_pair(name, nullptr)).first;
@@ -51,7 +52,7 @@ SILGlobalVariable::SILGlobalVariable(SILModule &Module, SILLinkage Linkage,
                                      StringRef Name, SILType LoweredType,
                                      std::optional<SILLocation> Loc,
                                      VarDecl *Decl)
-    : SwiftObjectHeader(registeredMetatype), Module(Module), Name(Name),
+    : LanguageObjectHeader(registeredMetatype), Module(Module), Name(Name),
       LoweredType(LoweredType), Location(Loc.value_or(SILLocation::invalid())),
       Linkage(unsigned(Linkage)), HasLocation(Loc.has_value()), VDecl(Decl) {
   setSerializedKind(serializedKind);
@@ -69,7 +70,7 @@ bool SILGlobalVariable::isPossiblyUsedExternally() const {
     return true;
 
   SILLinkage linkage = getLinkage();
-  return swift::isPossiblyUsedExternally(linkage, getModule().isWholeModule());
+  return language::isPossiblyUsedExternally(linkage, getModule().isWholeModule());
 }
 
 bool SILGlobalVariable::shouldBePreservedForDebugger() const {
@@ -158,7 +159,7 @@ static SILGlobalVariable *getStaticallyInitializedVariable(SILFunction *AddrF) {
   return GAI->getReferencedGlobal();
 }
 
-SILGlobalVariable *swift::getVariableOfGlobalInit(SILFunction *AddrF) {
+SILGlobalVariable *language::getVariableOfGlobalInit(SILFunction *AddrF) {
   if (!AddrF->isGlobalInit())
     return nullptr;
 
@@ -177,7 +178,7 @@ SILGlobalVariable *swift::getVariableOfGlobalInit(SILFunction *AddrF) {
   return getVariableOfStaticInitializer(InitF);
 }
 
-SILFunction *swift::getCalleeOfOnceCall(BuiltinInst *BI) {
+SILFunction *language::getCalleeOfOnceCall(BuiltinInst *BI) {
   assert(BI->getNumOperands() == 2 && "once call should have 2 operands.");
 
   auto Callee = BI->getOperand(1);
@@ -192,7 +193,7 @@ SILFunction *swift::getCalleeOfOnceCall(BuiltinInst *BI) {
 }
 
 // Find the globalinit_func by analyzing the body of the addressor.
-SILFunction *swift::findInitializer(SILFunction *AddrF,
+SILFunction *language::findInitializer(SILFunction *AddrF,
                                     BuiltinInst *&CallToOnce) {
   // We only handle a single SILBasicBlock for now.
   if (AddrF->size() != 1)
@@ -223,7 +224,7 @@ SILFunction *swift::findInitializer(SILFunction *AddrF,
   return callee;
 }
 
-SILGlobalVariable *swift::getVariableOfStaticInitializer(SILFunction *InitFunc) {
+SILGlobalVariable *language::getVariableOfStaticInitializer(SILFunction *InitFunc) {
   // We only handle a single SILBasicBlock for now.
   if (InitFunc->size() != 1)
     return nullptr;

@@ -1,4 +1,4 @@
-//===--- StrToInt.swift ---------------------------------------------------===//
+//===--- StrToInt.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test checks performance of String to Int conversion.
 // It is reported to be very slow: <rdar://problem/17255477>
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "StrToInt",
     runFunction: run_StrToInt,
@@ -25,9 +26,9 @@ public let benchmarks =
     legacyFactor: 10)
 
 @inline(never)
-public func run_StrToInt(_ n: Int) {
+public fn run_StrToInt(_ n: Int) {
   // 64 numbers from -500_000 to 500_000 generated randomly
-  let input = ["-237392", "293715", "126809", "333779", "-362824", "144198",
+  immutable input = ["-237392", "293715", "126809", "333779", "-362824", "144198",
                "-394973", "-163669", "-7236", "376965", "-400783", "-118670",
                "454728", "-38915", "136285", "-448481", "-499684", "68298",
                "382671", "105432", "-38385", "39422", "-267849", "-439886",
@@ -38,8 +39,8 @@ public func run_StrToInt(_ n: Int) {
                "-417439", "167337", "96598", "-264104", "-186029", "98480",
                "-316727", "483808", "300149", "-405877", "-98938", "283685",
                "-247856", "-46975", "346060", "160085",]
-  let ref_result = 517492
-  func doOneIter(_ arr: [String]) -> Int {
+  immutable ref_result = 517492
+  fn doOneIter(_ arr: [String]) -> Int {
     var r = 0
     for n in arr {
       r += Int(n)!

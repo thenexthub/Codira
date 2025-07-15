@@ -1,9 +1,9 @@
 
 
-add_swift_host_library(swiftASTSectionImporter STATIC
+add_language_host_library(languageASTSectionImporter STATIC
   ASTSectionImporter.cpp
-  LLVM_LINK_COMPONENTS core)
-target_link_libraries(swiftASTSectionImporter PRIVATE
-  swiftBasic)
+  TOOLCHAIN_LINK_COMPONENTS core)
+target_link_libraries(languageASTSectionImporter PRIVATE
+  languageBasic)
 
-set_swift_llvm_is_available(swiftASTSectionImporter)
+set_language_toolchain_is_available(languageASTSectionImporter)

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/Module.h"
@@ -46,7 +47,7 @@ bool parentDeclIsPrivate(const ValueDecl *VD, SymbolGraph *Graph) {
 
 } // anonymous namespace
 
-void Edge::serialize(llvm::json::OStream &OS) const {
+void Edge::serialize(toolchain::json::OStream &OS) const {
   OS.object([&](){
     OS.attribute("kind", Kind.Name);
     SmallString<256> SourceUSR, TargetUSR;
@@ -63,7 +64,7 @@ void Edge::serialize(llvm::json::OStream &OS) const {
 
     if (TargetModuleName != Graph->M.getName().str()) {
       SmallString<128> Scratch(TargetModuleName);
-      llvm::raw_svector_ostream PathOS(Scratch);
+      toolchain::raw_svector_ostream PathOS(Scratch);
       PathOS << '.';
       Target.printPath(PathOS);
       OS.attribute("targetFallback", Scratch.str());
@@ -76,7 +77,7 @@ void Edge::serialize(llvm::json::OStream &OS) const {
           ConformanceExtension->getExtendedProtocolDecl(),
           FilteredRequirements);
       if (!FilteredRequirements.empty()) {
-        OS.attributeArray("swiftConstraints", [&](){
+        OS.attributeArray("languageConstraints", [&](){
           for (const auto &Req : FilteredRequirements) {
             ::serialize(Req, OS);
           }
@@ -91,7 +92,7 @@ void Edge::serialize(llvm::json::OStream &OS) const {
     if (InheritingDecl && !parentDeclIsPrivate(InheritingDecl, Graph)) {
       Symbol inheritedSym(Graph, InheritingDecl, nullptr);
       SmallString<256> USR, Display;
-      llvm::raw_svector_ostream DisplayOS(Display);
+      toolchain::raw_svector_ostream DisplayOS(Display);
       
       inheritedSym.getUSR(USR);
       inheritedSym.printPath(DisplayOS);

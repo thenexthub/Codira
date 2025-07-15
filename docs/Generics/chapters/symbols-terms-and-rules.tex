@@ -4,7 +4,7 @@
 
 \chapter{Symbols, Terms, and Rules}\label{symbols terms rules}
 
-\lettrine{O}{ur motivation} for translating a \index{monoid presentation}monoid presentation into a generic signature was to show that there are theoretical limits to what we can accept. In comparison, the translation of a generic signature into a monoid presentation is an eminently practical matter. We ended \ChapRef{rqm basic operation} by saying that a requirement machine consists of rewrite rules. We now make this precise. As with did with the derived requirements formalism in \SecRef{derived req}, we gradually reveal the full encoding. We begin with the core of the Swift generics model: \index{unbound type parameter!in requirement machine}unbound type parameters, conformance requirements, and same-type requirements between type parameters. We prove a correctness result, and then extend the encoding to cover bound type parameters and the other requirement kinds.
+\lettrine{O}{ur motivation} for translating a \index{monoid presentation}monoid presentation into a generic signature was to show that there are theoretical limits to what we can accept. In comparison, the translation of a generic signature into a monoid presentation is an eminently practical matter. We ended \ChapRef{rqm basic operation} by saying that a requirement machine consists of rewrite rules. We now make this precise. As with did with the derived requirements formalism in \SecRef{derived req}, we gradually reveal the full encoding. We begin with the core of the Codira generics model: \index{unbound type parameter!in requirement machine}unbound type parameters, conformance requirements, and same-type requirements between type parameters. We prove a correctness result, and then extend the encoding to cover bound type parameters and the other requirement kinds.
 
 \paragraph{Core model.}
 Let $G$ be a \index{generic signature!requirement machine}generic signature. We recall from \SecRef{protocol component} that if~\tP\ is some protocol, then $G\prec\tP$ means that $G$ \index{protocol dependency set}depends on~\tP. We now introduce a certain \index{monoid presentation!of requirement machine}monoid presentation~$\AR$, called the \IndexDefinition{requirement machine!monoid presentation}\emph{requirement machine} for~$G$.
@@ -169,7 +169,7 @@ This idea of ``cleaving'' a term in two will be key in the inductive step of the
 
 \newcommand{\Path}{\mathsf{path}\,}
 
-\begin{theorem}\label{derivation to path swift}
+\begin{theorem}\label{derivation to path language}
 Let $G$ be a generic signature, and let $\AR$ be the requirement machine for~$G$.
 \begin{enumerate}
 \item If $G\vdash\TP$ for some type parameter \tT\ and protocol \tP, then $\Term(\tT)\cdot\pP \sim \Term(\tT)$.
@@ -244,7 +244,7 @@ We only need $p_2$ to construct our new rewrite path, by \index{rewrite path whi
 By induction, this completely defines ``$\mathsf{path}$'', so we apply it to our original requirement and get the desired result. \FigRef{derivation to path figure} \index{rewrite graph!in requirement machine}shows each rewrite path we constructed.
 \end{proof}
 
-\begin{figure}\captionabove{Rewrite paths defined by \ThmRef{derivation to path swift}, as paths in the rewrite graph}\label{derivation to path figure}
+\begin{figure}\captionabove{Rewrite paths defined by \ThmRef{derivation to path language}, as paths in the rewrite graph}\label{derivation to path figure}
 \centering
 
 \begin{tabular}{cc}
@@ -628,7 +628,7 @@ We proceed as in Case~7, except we must flip the same-type requirement around vi
 
 The specific statement we are looking for falls out from the preceding theorem:
 
-\begin{corollary}\label{path to derivation swift}
+\begin{corollary}\label{path to derivation language}
 Let $G$ be a generic signature, and let $\AR$ be the requirement machine for~$G$. Assume $G$ is well-formed.
 \begin{enumerate}
 \item If $\Term(\tT)\cdot\pP \sim \Term(\tT)$ for some valid type parameter \tT, then $G \vdash \TP$.
@@ -655,7 +655,7 @@ Translating our rewrite path gives us $G\vdash\TU$ which we keep, together with 
 
 \paragraph{The decision procedure.} Recall the four basic generic signature queries that describe the equivalence class structure of a generic signature, from \SecRef{genericsigqueries}. We saw the first two are fundamental from a theoretical standpoint.
 
-Taken together, \CorollaryRef{convergent decidable}, \ThmRef{derivation to path swift}, and \CorollaryRef{path to derivation swift} say that if we have a well-formed generic signature~$G$ presented by a \index{convergent rewriting system}convergent rewriting system~$\AR$, and the given type parameters are \index{valid type parameter!generic signature query}valid, then:
+Taken together, \CorollaryRef{convergent decidable}, \ThmRef{derivation to path language}, and \CorollaryRef{path to derivation language} say that if we have a well-formed generic signature~$G$ presented by a \index{convergent rewriting system}convergent rewriting system~$\AR$, and the given type parameters are \index{valid type parameter!generic signature query}valid, then:
 \begin{enumerate}
 \item $G\vdash\TP$ \textbf{if and only if} $\Term(\tT)\cdot\pP$ has the same normal form as $\Term(\tT)$.
 \item $G\vdash\TU$ \textbf{if and only if} $\Term(\tT)$ has the same normal form as $\Term(\tU)$.
@@ -677,7 +677,7 @@ Apply the normal form algorithm to $\Term(\tT)$ and $\Term(\tU)$ and check if we
 
 \section{Symbols}\label{rqm symbols}
 
-We've now described how the core model of Swift generics translates requirements into rewrite rules. We defined these rules over an alphabet of generic parameter, name, and protocol symbols. The remainder of this chapter describes the full model of Swift generics as it is actually implemented. Going forward, there is less mathematical rigor than before, and more of a focus on practical concerns.
+We've now described how the core model of Codira generics translates requirements into rewrite rules. We defined these rules over an alphabet of generic parameter, name, and protocol symbols. The remainder of this chapter describes the full model of Codira generics as it is actually implemented. Going forward, there is less mathematical rigor than before, and more of a focus on practical concerns.
 
 We begin by expanding our alphabet with a few more symbol kinds, to encode both bound type parameters, and the other requirement kinds. While our correctness results only relied on the symmetric term equivalence relation, in the implementation we use the \index{normal form algorithm}normal form algorithm to get something computable, so we will define a reduction order on our alphabet as well.
 
@@ -789,7 +789,7 @@ The next three symbol kinds appear when we build rewrite rules for \index{layout
 
 \paragraph{Layout symbols.} The $\layoutsym{AnyObject}$ \index{layout symbol}layout symbol represents the \texttt{AnyObject} layout constraint we introduced in \DefRef{requirement def}. It appears when we translate a layout requirement $\ConfReq{T}{AnyObject}$ into a rule $\Term(\tT)\cdot\layoutsym{AnyObject} \sim \Term(\tT)$.
 
-We also mentioned the \verb|_NativeClass| layout constraint in \SecRef{genericsigqueries}. This constraint cannot be stated directly by the user, but it is implied by a superclass requirement to a Swift-native class. These two layout symbols are ordered as follows:
+We also mentioned the \verb|_NativeClass| layout constraint in \SecRef{genericsigqueries}. This constraint cannot be stated directly by the user, but it is implied by a superclass requirement to a Codira-native class. These two layout symbols are ordered as follows:
 \[\layoutsym{AnyObject} < \layoutsym{\char`_NativeClass}\]
 
 \paragraph{Superclass and concrete type symbols.}
@@ -1203,7 +1203,7 @@ The protocol machine for \tSequence\ consists of rule (1) through (5) together w
 \begin{example}
 Finally, we revisit the generic signature from \ExRef{rqm first example} in the full model. Suppose the user's program states this declaration:
 \begin{Verbatim}
-func allEqual<T: Sequence, U: Sequence>(_ t: T, _ u: U)
+fn allEqual<T: Sequence, U: Sequence>(_ t: T, _ u: U)
     where T.Element: Equatable,
           T.Element == U.Element {...}
 \end{Verbatim}
@@ -1352,12 +1352,12 @@ The name symbol \nV\ remains on the left-hand side, and cannot be eliminated. Th
 \begin{example}
 We can now state a declaration with a \texttt{where} clause that refers to our type alias \nV:
 \begin{Verbatim}
-func walk<E, G: Graph>(_: G, _: (G.Vertex) -> E)
+fn walk<E, G: Graph>(_: G, _: (G.Vertex) -> E)
     where G.Vertex: Equatable {}
 \end{Verbatim}
 The derived requirements formalism does not explain protocol type aliases, and the subject type of the conformance requirement $\ConfReq{\rU.Vertex}{Equatable}$ is not a consequence of the theory; there is no associated type named \texttt{Vertex}. However, in the implementation, we will see that we get the same generic signature as if we wrote the requirement as $\ConfReq{\rU.Edge.Elt}{Equatable}$:
 \begin{Verbatim}
-func walk<E, G: Graph>(_: G, _: (G.Vertex) -> E)
+fn walk<E, G: Graph>(_: G, _: (G.Vertex) -> E)
     where G.Edge.Elt: Equatable {}
 \end{Verbatim}
 
@@ -1396,7 +1396,7 @@ extension Graph {
   typealias Bad = Self.Edge.Elt
 }
 
-func walk<G: Graph>(_: G) where G.Bad: Equatable {}
+fn walk<G: Graph>(_: G) where G.Bad: Equatable {}
 // error: `Bad' was defined in extension of protocol `Graph'
 // and cannot be referenced from a `where' clause
 \end{Verbatim}

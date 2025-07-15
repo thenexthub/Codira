@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/protocol_with_self_conforming_existential_other.code -emit-module-path %t/protocol_with_self_conforming_existential_other.codemodule
+// RUN: %target-language-frontend -emit-silgen %s -I %t
+
+import protocol_with_self_conforming_existential_other
+
+// Declare a type conforming to P2, to force deserializing its
+// requirement signature.
+
+struct MyP2: P2 {}
+

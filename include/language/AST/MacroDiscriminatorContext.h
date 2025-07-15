@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_MACRO_DISCRIMINATOR_CONTEXT_H
-#define SWIFT_AST_MACRO_DISCRIMINATOR_CONTEXT_H
+#ifndef LANGUAGE_AST_MACRO_DISCRIMINATOR_CONTEXT_H
+#define LANGUAGE_AST_MACRO_DISCRIMINATOR_CONTEXT_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Expr.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 namespace language {
 
 /// Describes the context of a macro expansion for the purpose of
 /// computing macro expansion discriminators.
 struct MacroDiscriminatorContext
-    : public llvm::PointerUnion<DeclContext *, FreestandingMacroExpansion *> {
+    : public toolchain::PointerUnion<DeclContext *, FreestandingMacroExpansion *> {
   using PointerUnion::PointerUnion;
 
   static MacroDiscriminatorContext getParentOf(FreestandingMacroExpansion *expansion);
@@ -40,4 +41,4 @@ struct MacroDiscriminatorContext
 
 }
 
-#endif // SWIFT_AST_MACRO_DISCRIMINATOR_CONTEXT_H
+#endif // LANGUAGE_AST_MACRO_DISCRIMINATOR_CONTEXT_H

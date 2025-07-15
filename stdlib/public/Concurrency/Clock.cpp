@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Concurrency.h"
@@ -36,16 +37,20 @@
 
 #include "Error.h"
 
+#ifndef NSEC_PER_SEC
+#define NSEC_PER_SEC 1000000000ull
+#endif
+
 using namespace language;
 
-SWIFT_EXPORT_FROM(swift_Concurrency)
-SWIFT_CC(swift)
-void swift_get_time(
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+LANGUAGE_CC(language)
+void language_get_time(
   long long *seconds,
   long long *nanoseconds,
-  swift_clock_id clock_id) {
+  language_clock_id clock_id) {
   switch (clock_id) {
-    case swift_clock_id_continuous: {
+    case language_clock_id_continuous: {
       struct timespec continuous;
 #if defined(__linux__)
       clock_gettime(CLOCK_BOOTTIME, &continuous);
@@ -54,7 +59,7 @@ void swift_get_time(
 #elif (defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__wasi__))
       clock_gettime(CLOCK_MONOTONIC, &continuous);
 #elif defined(_WIN32)
-      // This needs to match what swift-corelibs-libdispatch does
+      // This needs to match what language-corelibs-libdispatch does
 
       // QueryInterruptTimePrecise() outputs a value measured in 100ns
       // units. We must divide the output by 10,000,000 to get a value in
@@ -78,7 +83,7 @@ void swift_get_time(
       *nanoseconds = continuous.tv_nsec;
       return;
     }
-    case swift_clock_id_suspending: {
+    case language_clock_id_suspending: {
       struct timespec suspending;
 #if defined(__linux__)
       clock_gettime(CLOCK_MONOTONIC, &suspending);
@@ -89,7 +94,7 @@ void swift_get_time(
 #elif (defined(__OpenBSD__) || defined(__FreeBSD__))
       clock_gettime(CLOCK_UPTIME, &suspending);
 #elif defined(_WIN32)
-      // This needs to match what swift-corelibs-libdispatch does
+      // This needs to match what language-corelibs-libdispatch does
 
       // QueryUnbiasedInterruptTimePrecise() outputs a value measured in 100ns
       // units. We must divide the output by 10,000,000 to get a value in
@@ -112,20 +117,43 @@ void swift_get_time(
       *seconds = suspending.tv_sec;
       *nanoseconds = suspending.tv_nsec;
       return;
+    case language_clock_id_wall:
+      struct timespec wall;
+#if defined(__linux__) || defined(__APPLE__) || defined(__wasi__) || defined(__OpenBSD__) || defined(__FreeBSD__)
+      clock_gettime(CLOCK_REALTIME, &wall);
+#elif defined(_WIN32)
+      // This needs to match what language-corelibs-libdispatch does
+
+      static const uint64_t kNTToUNIXBiasAdjustment = 11644473600 * NSEC_PER_SEC;
+      // FILETIME is 100-nanosecond intervals since January 1, 1601 (UTC).
+      FILETIME ft;
+      ULARGE_INTEGER li;
+      GetSystemTimePreciseAsFileTime(&ft);
+      li.LowPart = ft.dwLowDateTime;
+      li.HighPart = ft.dwHighDateTime;
+      ULONGLONG ns = li.QuadPart * 100ull - kNTToUNIXBiasAdjustment;
+      wall.tv_sec = ns / 1000000000ull;
+      wall.tv_nsec = ns % 1000000000ull;
+#else
+#error Missing platform wall time definition
+#endif
+      *seconds = wall.tv_sec;
+      *nanoseconds = wall.tv_nsec;
+      return;
     }
   }
-  swift_Concurrency_fatalError(0, "Fatal error: invalid clock ID %d\n",
+  language_Concurrency_fatalError(0, "Fatal error: invalid clock ID %d\n",
                                clock_id);
 }
 
-SWIFT_EXPORT_FROM(swift_Concurrency)
-SWIFT_CC(swift)
-void swift_get_clock_res(
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+LANGUAGE_CC(language)
+void language_get_clock_res(
   long long *seconds,
   long long *nanoseconds,
-  swift_clock_id clock_id) {
+  language_clock_id clock_id) {
 switch (clock_id) {
-    case swift_clock_id_continuous: {
+    case language_clock_id_continuous: {
       struct timespec continuous;
 #if defined(__linux__)
       clock_getres(CLOCK_BOOTTIME, &continuous);
@@ -148,7 +176,7 @@ switch (clock_id) {
       *nanoseconds = continuous.tv_nsec;
       return;
     }
-    case swift_clock_id_suspending: {
+    case language_clock_id_suspending: {
       struct timespec suspending;
 #if defined(__linux__)
       clock_getres(CLOCK_MONOTONIC_RAW, &suspending);
@@ -173,14 +201,28 @@ switch (clock_id) {
       *nanoseconds = suspending.tv_nsec;
       return;
     }
+    case language_clock_id_wall: {
+      struct timespec wall;
+#if defined(__linux__) || defined(__APPLE__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__wasi__)
+      clock_getres(CLOCK_REALTIME, &wall);
+#elif defined(_WIN32)
+      wall.tv_sec = 0;
+      wall.tv_nsec = 100;
+#else
+#error Missing platform wall time definition
+#endif
+      *seconds = wall.tv_sec;
+      *nanoseconds = wall.tv_nsec;
+      return;
+    }
   }
-  swift_Concurrency_fatalError(0, "Fatal error: invalid clock ID %d\n",
+  language_Concurrency_fatalError(0, "Fatal error: invalid clock ID %d\n",
                                clock_id);
 }
 
-SWIFT_EXPORT_FROM(swift_Concurrency)
-SWIFT_CC(swift)
-void swift_sleep(
+LANGUAGE_EXPORT_FROM(language_Concurrency)
+LANGUAGE_CC(language)
+void language_sleep(
   long long seconds,
   long long nanoseconds) {
 #if defined(_WIN32)
@@ -207,7 +249,7 @@ void swift_sleep(
   ts.tv_sec = seconds;
   ts.tv_nsec = nanoseconds;
   while (nanosleep(&ts, &ts) == -1 && errno == EINTR);
-#elif WE_HAVE_STD_THIS_THREAD && !defined(SWIFT_THREADING_NONE)
+#elif WE_HAVE_STD_THIS_THREAD && !defined(LANGUAGE_THREADING_NONE)
   auto duration
     = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
       std::chrono::seconds(seconds) + std::chrono::nanoseconds(nanoseconds)

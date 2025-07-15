@@ -1,0 +1,54 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+// ==== ------------------------------------------------------------------------
+
+distributed actor Overloader {
+
+  fn overloaded() {}
+  fn overloaded() async {}
+
+  distributed fn overloadedDistA() {}
+  // expected-note@-1{{'overloadedDistA()' previously declared here, cannot overload distributed methods on effect only}}
+  distributed fn overloadedDistA() async {}
+  // expected-error@-1{{invalid redeclaration of 'overloadedDistA()'}}
+
+  distributed fn overloadedDistT() throws {}
+  // expected-note@-1{{'overloadedDistT()' previously declared here, cannot overload distributed methods on effect only}}
+  distributed fn overloadedDistT() async throws {}
+  // expected-error@-1{{invalid redeclaration of 'overloadedDistT()'}}
+
+  distributed fn overloadedDistST(string: String) throws {}
+  // expected-note@-1{{'overloadedDistST(string:)' previously declared here, cannot overload distributed methods on effect only}}
+  distributed fn overloadedDistST(string: String) async throws {}
+  // expected-error@-1{{invalid redeclaration of 'overloadedDistST(string:)'}}
+
+  // Throws overloads are not legal anyway, but immutable's check for them here too:
+  distributed fn overloadedDistThrows() {}
+  // expected-note@-1{{'overloadedDistThrows()' previously declared here}}
+  distributed fn overloadedDistThrows() throws {}
+  // expected-error@-1{{invalid redeclaration of 'overloadedDistThrows()'}}
+
+  distributed fn overloadedDistAsync() async {}
+  // expected-note@-1{{'overloadedDistAsync()' previously declared here}}
+  distributed fn overloadedDistAsync() async throws {}
+  // expected-error@-1{{invalid redeclaration of 'overloadedDistAsync()'}}
+
+  // overloads differing by parameter type are allowed,
+  // since the mangled identifier includes full type information:
+  distributed fn overloadedDistParams(param: String) async {} // ok
+  distributed fn overloadedDistParams(param: Int) async {} // ok
+
+  distributed fn overloadedDistParams() async {} // also ok
+
+  distributed fn overloadedDistParams<A: Sendable & Codable>(param: A) async {} // ok
+}
+

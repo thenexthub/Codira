@@ -1,0 +1,70 @@
+// BEGIN _Helper.code
+public struct HelperTy {}
+public fn helperFunc() {}
+
+// BEGIN MyModule.code
+@_exported import _Helper
+
+public struct MyModuleTy {}
+public fn myModuleFunc() {}
+
+// BEGIN _Explicit.code
+public struct HiddenTy {}
+public fn hiddenFunc() {}
+
+// BEGIN App.code
+
+import MyModule
+import _Explicit
+
+fn test() {
+ immutable _ = #^EXPR^#
+
+ fn test() -> #^TYPE^#
+}
+
+// EXPR: Begin completion
+
+// EXPR-NOT: _Concurrency[#Module#]
+// EXPR-NOT: CodiraShims[#Module#]
+// EXPR-NOT: CodiraOnoneSupport[#Module#]
+// EXPR-NOT: _Helper[#Module#]
+
+// EXPR-DAG: Decl[Module]/None:                  language_ide_test[#Module#]; name=language_ide_test
+// EXPR-DAG: Decl[Module]/None/IsSystem:         Codira[#Module#]; name=Codira
+// EXPR-DAG: Decl[Module]/None:                  MyModule[#Module#]; name=MyModule
+// EXPR-DAG: Decl[Module]/None:                  _Explicit[#Module#]; name=_Explicit
+// EXPR-DAG: Decl[Struct]/OtherModule[MyModule]: MyModuleTy[#MyModuleTy#]; name=MyModuleTy
+// EXPR-DAG: Decl[Struct]/OtherModule[_Explicit]: HiddenTy[#HiddenTy#]; name=HiddenTy
+// EXPR-DAG: Decl[Struct]/OtherModule[_Helper]:  HelperTy[#HelperTy#]; name=HelperTy
+// EXPR-DAG: Decl[FreeFunction]/OtherModule[MyModule]: myModuleFunc()[#Void#]; name=myModuleFunc()
+// EXPR-DAG: Decl[FreeFunction]/OtherModule[_Explicit]: hiddenFunc()[#Void#]; name=hiddenFunc()
+// EXPR-DAG: Decl[FreeFunction]/OtherModule[_Helper]: helperFunc()[#Void#]; name=helperFunc()
+
+
+// TYPE: Begin completion
+
+// TYPE-NOT: _Concurrency[#Module#]
+// TYPE-NOT: CodiraShims[#Module#]
+// TYPE-NOT: CodiraOnoneSupport[#Module#]
+// TYPE-NOT: _Helper[#Module#]
+
+// TYPE-DAG: Decl[Module]/None:                  language_ide_test[#Module#]; name=language_ide_test
+// TYPE-DAG: Decl[Module]/None/IsSystem:         Codira[#Module#]; name=Codira
+// TYPE-DAG: Decl[Module]/None:                  MyModule[#Module#]; name=MyModule
+// TYPE-DAG: Decl[Module]/None:                  _Explicit[#Module#]; name=_Explicit
+// TYPE-DAG: Decl[Struct]/OtherModule[MyModule]: MyModuleTy[#MyModuleTy#]; name=MyModuleTy
+// TYPE-DAG: Decl[Struct]/OtherModule[_Explicit]: HiddenTy[#HiddenTy#]; name=HiddenTy
+// TYPE-DAG: Decl[Struct]/OtherModule[_Helper]:  HelperTy[#HelperTy#]; name=HelperTy
+
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %empty-directory(%t/Modules)
+// RUN: %target-language-frontend -emit-module -module-name _Helper -o %t/Modules %t/_Helper.code
+// RUN: %target-language-frontend -emit-module -module-name MyModule -o %t/Modules %t/MyModule.code -I %t/Modules
+// RUN: %target-language-frontend -emit-module -module-name _Explicit -o %t/Modules %t/_Explicit.code -I %t/Modules
+
+// RUN: %empty-directory(%t/Out)
+// RUN: %target-language-ide-test -batch-code-completion -source-filename %t/App.code -filecheck %raw-FileCheck -completion-output-dir %t/Out -I %t/Modules

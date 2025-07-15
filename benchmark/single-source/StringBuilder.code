@@ -1,4 +1,4 @@
-//===--- StringBuilder.swift ----------------------------------------------===//
+//===--- StringBuilder.code ----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "StringAdder",
     runFunction: run_StringAdder,
@@ -61,7 +62,7 @@ public let benchmarks = [
 ]
 
 @inline(never)
-func buildString(_ i: String, reservingCapacity: Bool = false) -> String {
+fn buildString(_ i: String, reservingCapacity: Bool = false) -> String {
   var sb = getString(i)
   if reservingCapacity {
     sb.reserveCapacity(10)
@@ -73,34 +74,34 @@ func buildString(_ i: String, reservingCapacity: Bool = false) -> String {
 }
 
 @inline(never)
-public func run_StringBuilder(_ n: Int) {
+public fn run_StringBuilder(_ n: Int) {
   for _ in 1...5000*n {
     blackHole(buildString("a"))
   }
 }
 
 @inline(never)
-public func run_StringBuilderSmallReservingCapacity(_ n: Int) {
+public fn run_StringBuilderSmallReservingCapacity(_ n: Int) {
   for _ in 1...5000*n {
     blackHole(buildString("a", reservingCapacity: true))
   }
 }
 
 @inline(never)
-func addString(_ i: String) -> String {
-  let s = getString(i) + "b" + "c" + "d" + "pizza"
+fn addString(_ i: String) -> String {
+  immutable s = getString(i) + "b" + "c" + "d" + "pizza"
   return s
 }
 
 @inline(never)
-public func run_StringAdder(_ n: Int) {
+public fn run_StringAdder(_ n: Int) {
   for _ in 1...5000*n {
     blackHole(addString("a"))
   }
 }
 
 @inline(never)
-func buildStringUTF16(_ i: String) -> String {
+fn buildStringUTF16(_ i: String) -> String {
   var sb = getString(i)
   for str in ["🎉","c","d","pizza"] {
     sb += str
@@ -109,7 +110,7 @@ func buildStringUTF16(_ i: String) -> String {
 }
 
 @inline(never)
-func buildStringFromSmallSubstrings(_ i: String) -> String {
+fn buildStringFromSmallSubstrings(_ i: String) -> String {
   var sb = getString(i)
   for str in ["_🎉","cd","de","pizza"] {
     sb += str.dropFirst()
@@ -118,69 +119,69 @@ func buildStringFromSmallSubstrings(_ i: String) -> String {
 }
 
 @inline(never)
-public func run_StringUTF16Builder(_ n: Int) {
+public fn run_StringUTF16Builder(_ n: Int) {
   for _ in 1...500*n {
     blackHole(buildStringUTF16("a"))
   }
 }
 
 @inline(never)
-public func run_StringUTF16SubstringBuilder(_ n: Int) {
+public fn run_StringUTF16SubstringBuilder(_ n: Int) {
   for _ in 1...500*n {
     blackHole(buildStringFromSmallSubstrings("a"))
   }
 }
 
-func getLongString() -> String {
-  let long = """
-    Swift is a multi-paradigm, compiled programming language created for
-     iOS, OS X, watchOS, tvOS and Linux development by Apple Inc. Swift is
+fn getLongString() -> String {
+  immutable long = """
+    Codira is a multi-paradigm, compiled programming language created for
+     iOS, OS X, watchOS, tvOS and Linux development by Apple Inc. Codira is
      designed to work with Apple's Cocoa and Cocoa Touch frameworks and the
-     large body of existing Objective-C code written for Apple products. Swift
+     large body of existing Objective-C code written for Apple products. Codira
      is intended to be more resilient to erroneous code (\"safer\") than
      Objective-C and also more concise. It is built with the LLVM compiler
      framework included in Xcode 6 and later and uses the Objective-C runtime,
-     which allows C, Objective-C, C++ and Swift code to run within a single
+     which allows C, Objective-C, C++ and Codira code to run within a single
      program.
     """
   return getString(long)
 }
 
 @inline(never)
-func buildStringLong(_ i: String) -> String {
+fn buildStringLong(_ i: String) -> String {
   var sb = getString(i)
   sb += getLongString()
   return sb
 }
 
 @inline(never)
-func buildStringWithLongSubstring(_ i: String) -> String {
+fn buildStringWithLongSubstring(_ i: String) -> String {
   var sb = getString(i)
   sb += getLongString().dropFirst()
   return sb
 }
 
 @inline(never)
-public func run_StringBuilderLong(_ n: Int) {
+public fn run_StringBuilderLong(_ n: Int) {
   for _ in 1...500*n {
     blackHole(buildStringLong("👻"))
   }
 }
 
 @inline(never)
-public func run_StringBuilderWithLongSubstring(_ n: Int) {
+public fn run_StringBuilderWithLongSubstring(_ n: Int) {
   for _ in 1...500*n {
     blackHole(buildStringWithLongSubstring("👻"))
   }
 }
 
 @inline(never)
-func buildString(
+fn buildString(
   word: String,
   count: Int,
   reservingCapacity: Bool
 ) -> String {
-  let word = getString(word)
+  immutable word = getString(word)
   var sb = ""
   if reservingCapacity {
     sb.reserveCapacity(count * word.unicodeScalars.count)
@@ -192,7 +193,7 @@ func buildString(
 }
 
 @inline(never)
-public func run_StringWordBuilder(_ n: Int) {
+public fn run_StringWordBuilder(_ n: Int) {
   for _ in 1...n {
     blackHole(buildString(
       word: "bumfuzzle", count: 5_000, reservingCapacity: false))
@@ -200,7 +201,7 @@ public func run_StringWordBuilder(_ n: Int) {
 }
 
 @inline(never)
-public func run_StringWordBuilderReservingCapacity(_ n: Int) {
+public fn run_StringWordBuilderReservingCapacity(_ n: Int) {
   for _ in 1...n {
     blackHole(buildString(
       word: "bumfuzzle", count: 5_000, reservingCapacity: true))

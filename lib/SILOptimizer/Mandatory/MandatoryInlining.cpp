@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "mandatory-inlining"
@@ -30,15 +31,15 @@
 #include "language/SILOptimizer/Utils/SILInliner.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/ImmutableSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/ImmutableSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
-using DenseFunctionSet = llvm::DenseSet<SILFunction *>;
-using ImmutableFunctionSet = llvm::ImmutableSet<SILFunction *>;
+using DenseFunctionSet = toolchain::DenseSet<SILFunction *>;
+using ImmutableFunctionSet = toolchain::ImmutableSet<SILFunction *>;
 
 STATISTIC(NumMandatoryInlines,
           "Number of function application sites inlined by the mandatory "
@@ -48,13 +49,13 @@ STATISTIC(NumMandatoryInlines,
 //                           Printing Helpers
 //===----------------------------------------------------------------------===//
 
-extern llvm::cl::opt<bool> SILPrintInliningCallee;
+extern toolchain::cl::opt<bool> SILPrintInliningCallee;
 
-extern llvm::cl::opt<bool> SILPrintInliningCallerBefore;
+extern toolchain::cl::opt<bool> SILPrintInliningCallerBefore;
 
-extern llvm::cl::opt<bool> SILPrintInliningCallerAfter;
+extern toolchain::cl::opt<bool> SILPrintInliningCallerAfter;
 
-extern llvm::cl::opt<bool> EnableVerifyAfterEachInlining;
+extern toolchain::cl::opt<bool> EnableVerifyAfterEachInlining;
 
 extern void printInliningDetailsCallee(StringRef passName, SILFunction *caller,
                                        SILFunction *callee);
@@ -118,12 +119,12 @@ static  bool fixupReferenceCounts(
     switch (convention) {
     case ParameterConvention::Indirect_In_CXX:
     case ParameterConvention::Indirect_In:
-      llvm_unreachable("Missing indirect copy");
+      toolchain_unreachable("Missing indirect copy");
 
     case ParameterConvention::Pack_Owned:
     case ParameterConvention::Pack_Guaranteed:
       // FIXME: can these happen?
-      llvm_unreachable("Missing pack owned<->guaranteed conversions");
+      toolchain_unreachable("Missing pack owned<->guaranteed conversions");
 
     case ParameterConvention::Indirect_Inout:
     case ParameterConvention::Indirect_InoutAliasable:
@@ -761,9 +762,9 @@ getCalleeFunction(SILFunction *F, FullApplySite AI, bool &IsThick,
   if (!CalleeFunction->canBeInlinedIntoCaller(F->getSerializedKind())) {
     if (F->isAnySerialized() &&
         !CalleeFunction->hasValidLinkageForFragileRef(F->getSerializedKind())) {
-      llvm::errs() << "caller: " << F->getName() << "\n";
-      llvm::errs() << "callee: " << CalleeFunction->getName() << "\n";
-      llvm_unreachable("Should never be inlining a resilient function into "
+      toolchain::errs() << "caller: " << F->getName() << "\n";
+      toolchain::errs() << "callee: " << CalleeFunction->getName() << "\n";
+      toolchain_unreachable("Should never be inlining a resilient function into "
                        "a fragile function");
     }
     return nullptr;
@@ -921,7 +922,7 @@ runOnFunctionRecursively(SILOptFunctionBuilder &FuncBuilder, SILPassManager *pm,
       // process the inlined body after inlining, because the inlining may
       // have exposed new inlining opportunities beyond those present in
       // the inlined function when processed independently.
-      LLVM_DEBUG(llvm::errs() << "Inlining @" << CalleeFunction->getName()
+      TOOLCHAIN_DEBUG(toolchain::errs() << "Inlining @" << CalleeFunction->getName()
                               << " into @" << InnerAI.getFunction()->getName()
                               << "\n");
 
@@ -1081,6 +1082,6 @@ class MandatoryInlining : public SILModuleTransform {
 };
 } // end anonymous namespace
 
-SILTransform *swift::createMandatoryInlining() {
+SILTransform *language::createMandatoryInlining() {
   return new MandatoryInlining();
 }

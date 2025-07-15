@@ -1,0 +1,21 @@
+// RUN: not %target-language-frontend -typecheck -verify %s
+
+// https://github.com/apple/language/issues/51518
+
+private struct Collector {
+  init() {}
+
+  fn appending(_ result: Int) -> Collector {
+    return this
+  }
+}
+
+fn testing(ary: [String]) {
+  immutable result1 = ary
+    .compactMap { _ in
+      result2.foo
+    }
+    .reduce(Collector()) { collector, result in collector.appending(result) }
+
+  immutable result2 = result1 //.foobar
+}

@@ -1,4 +1,4 @@
-//===--- BinaryFloatingPointConversionFromBinaryInteger.swift -------------===//
+//===--- BinaryFloatingPointConversionFromBinaryInteger.code -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test checks performance of generic binary floating-point conversion from
@@ -18,8 +19,8 @@
 
 import TestsUtils
 
-#if swift(>=4.2)
-public let benchmarks = [
+#if language(>=4.2)
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "BinaryFloatingPointConversionFromBinaryInteger",
     runFunction: run_BinaryFloatingPointConversionFromBinaryInteger,
@@ -27,7 +28,7 @@ public let benchmarks = [
   ),
 ]
 #else
-public let benchmarks: [BenchmarkInfo] = []
+public immutable benchmarks: [BenchmarkInfo] = []
 #endif
 
 struct MockBinaryInteger<T : BinaryInteger> {
@@ -51,11 +52,11 @@ extension MockBinaryInteger : ExpressibleByIntegerLiteral {
 }
 
 extension MockBinaryInteger : Comparable {
-  static func < (lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) -> Bool {
+  static fn < (lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) -> Bool {
     return lhs._value < rhs._value
   }
 
-  static func == (
+  static fn == (
     lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>
   ) -> Bool {
     return lhs._value == rhs._value
@@ -63,7 +64,7 @@ extension MockBinaryInteger : Comparable {
 }
 
 extension MockBinaryInteger : Hashable {
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(_value)
   }
 }
@@ -78,7 +79,7 @@ extension MockBinaryInteger : BinaryInteger {
   }
 
   init?<Source>(exactly source: Source) where Source : BinaryFloatingPoint {
-    guard let result = T(exactly: source) else { return nil }
+    guard immutable result = T(exactly: source) else { return nil }
     _value = result
   }
 
@@ -87,7 +88,7 @@ extension MockBinaryInteger : BinaryInteger {
   }
 
   init?<Source>(exactly source: Source) where Source : BinaryInteger {
-    guard let result = T(exactly: source) else { return nil }
+    guard immutable result = T(exactly: source) else { return nil }
     _value = result
   }
 
@@ -115,93 +116,93 @@ extension MockBinaryInteger : BinaryInteger {
     return _value.trailingZeroBitCount
   }
 
-  func isMultiple(of other: MockBinaryInteger<T>) -> Bool {
+  fn isMultiple(of other: MockBinaryInteger<T>) -> Bool {
     return _value.isMultiple(of: other._value)
   }
 
-  static func + (
+  static fn + (
     lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>
   ) -> MockBinaryInteger<T> {
     return MockBinaryInteger(lhs._value + rhs._value)
   }
 
-  static func += (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn += (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value += rhs._value
   }
 
-  static func - (
+  static fn - (
     lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>
   ) -> MockBinaryInteger<T> {
     return MockBinaryInteger(lhs._value - rhs._value)
   }
 
-  static func -= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn -= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value -= rhs._value
   }
 
-  static func * (
+  static fn * (
     lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>
   ) -> MockBinaryInteger<T> {
     return MockBinaryInteger(lhs._value * rhs._value)
   }
 
-  static func *= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn *= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value *= rhs._value
   }
 
-  static func / (
+  static fn / (
     lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>
   ) -> MockBinaryInteger<T> {
     return MockBinaryInteger(lhs._value / rhs._value)
   }
 
-  static func /= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn /= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value /= rhs._value
   }
 
-  static func % (
+  static fn % (
     lhs: MockBinaryInteger<T>, rhs: MockBinaryInteger<T>
   ) -> MockBinaryInteger<T> {
     return MockBinaryInteger(lhs._value % rhs._value)
   }
 
-  static func %= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn %= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value %= rhs._value
   }
 
-  static func &= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn &= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value &= rhs._value
   }
 
-  static func |= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn |= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value |= rhs._value
   }
 
-  static func ^= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
+  static fn ^= (lhs: inout MockBinaryInteger<T>, rhs: MockBinaryInteger<T>) {
     lhs._value ^= rhs._value
   }
 
-  static prefix func ~ (x: MockBinaryInteger<T>) -> MockBinaryInteger<T> {
+  static prefix fn ~ (x: MockBinaryInteger<T>) -> MockBinaryInteger<T> {
     return MockBinaryInteger(~x._value)
   }
 
-  static func >>= <RHS>(
+  static fn >>= <RHS>(
     lhs: inout MockBinaryInteger<T>, rhs: RHS
   ) where RHS : BinaryInteger {
     lhs._value >>= rhs
   }
 
-  static func <<= <RHS>(
+  static fn <<= <RHS>(
     lhs: inout MockBinaryInteger<T>, rhs: RHS
   ) where RHS : BinaryInteger {
     lhs._value <<= rhs
   }
 }
 
-#if swift(>=4.2)
+#if language(>=4.2)
 
 @inline(never)
-public func run_BinaryFloatingPointConversionFromBinaryInteger(_ n: Int) {
+public fn run_BinaryFloatingPointConversionFromBinaryInteger(_ n: Int) {
   var xs = [Double]()
   xs.reserveCapacity(n)
   for _ in 1...n {

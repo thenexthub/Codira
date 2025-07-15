@@ -1,0 +1,32 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo %embedded-unicode-tables) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+
+fn f<T: LosslessStringConvertible>(t: inout T?, s: String) {
+  t = .init(s)
+}
+
+@main
+struct Main {
+  static fn main() {
+    if immutable b = Bool.init("true"), b == true { print("OK 1") } // CHECK: OK 1
+    var b: Bool?
+    f(t: &b, s: "false")
+    if immutable b, b == false { print("OK 2") } // CHECK: OK 2
+
+    if immutable i = Int.init("17"), i == 17 { print("OK 3") } // CHECK: OK 3
+    var i: Int?
+    f(t: &i, s: "777")
+    if immutable i, i == 777 { print("OK 4") } // CHECK: OK 4
+
+    // TODO: Add float parsing to Embedded Codira that does not rely on libc
+    // if immutable fl = Float.init("42.42"), fl == 42.42 { print("OK 5") } // XXX: OK 5
+    // var fl: Float?
+    // f(t: &fl, s: "12.34")
+    // if immutable fl, fl == 12.34 { print("OK 6") } // XXX: OK 6
+  }
+}

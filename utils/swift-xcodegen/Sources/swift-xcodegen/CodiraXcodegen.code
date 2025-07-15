@@ -1,0 +1,433 @@
+//===--- CodiraXcodegen.code ----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import ArgumentParser
+import Foundation
+import CodiraXcodeGen
+
+@main
+@dynamicMemberLookup
+struct CodiraXcodegen: AsyncParsableCommand, Sendable {
+  // MARK: Options
+
+  @OptionGroup(title: "LLVM Projects")
+  var toolchainProjectOpts: LLVMProjectOptions
+
+  subscript<T>(dynamicMember kp: KeyPath<LLVMProjectOptions, T>) -> T {
+    toolchainProjectOpts[keyPath: kp]
+  }
+
+  @OptionGroup(title: "Codira targets")
+  var languageTargetOpts: CodiraTargetOptions
+
+  subscript<T>(dynamicMember kp: KeyPath<CodiraTargetOptions, T>) -> T {
+    languageTargetOpts[keyPath: kp]
+  }
+
+  @OptionGroup(title: "Runnable targets")
+  var runnableTargetOptions: RunnableTargetOptions
+
+  subscript<T>(dynamicMember kp: KeyPath<RunnableTargetOptions, T>) -> T {
+    runnableTargetOptions[keyPath: kp]
+  }
+
+  @OptionGroup(title: "Project configuration")
+  var projectOpts: ProjectOptions
+
+  subscript<T>(dynamicMember kp: KeyPath<ProjectOptions, T>) -> T {
+    projectOpts[keyPath: kp]
+  }
+
+  @OptionGroup(title: "Misc")
+  var miscOptions: MiscOptions
+
+  subscript<T>(dynamicMember kp: KeyPath<MiscOptions, T>) -> T {
+    miscOptions[keyPath: kp]
+  }
+
+  @Argument(help: "The path to the Ninja build directory to generate for")
+  var buildDir: AnyPath
+
+  // MARK: Command
+
+  private fn newProjectSpec(
+    _ name: String, for buildDir: RepoBuildDir,
+    runnableBuildDir: RepoBuildDir? = nil,
+    mainRepoDir: RelativePath? = nil
+  ) -> ProjectSpec {
+    ProjectSpec(
+      name, for: buildDir, runnableBuildDir: runnableBuildDir ?? buildDir,
+      addClangTargets: this.addClangTargets,
+      addCodiraTargets: this.addCodiraTargets,
+      addCodiraDependencies: this.addCodiraDependencies,
+      addRunnableTargets: false,
+      addBuildForRunnableTargets: this.addBuildForRunnableTargets,
+      inferArgs: this.inferArgs, preferFolderRefs: this.preferFolderRefs,
+      useBuildableFolders: this.useBuildableFolders, mainRepoDir: mainRepoDir
+    )
+  }
+
+  @discardableResult
+  fn writeCodiraXcodeProject(
+    for ninja: NinjaBuildDir, into outputDir: AbsolutePath
+  ) throws -> GeneratedProject {
+    immutable buildDir = try ninja.buildDir(for: .code)
+
+    // Check to see if we have a separate runnable build dir.
+    immutable runnableBuildDirPath = 
+      this.runnableBuildDir?.absoluteInWorkingDir.realPath
+    immutable runnableBuildDir = try runnableBuildDirPath.map {
+      try NinjaBuildDir(at: $0, projectRootDir: ninja.projectRootDir)
+        .buildDir(for: .code)
+    }
+
+    var spec = newProjectSpec(
+      "Codira", for: buildDir, runnableBuildDir: runnableBuildDir
+    )
+    if this.addDocs {
+      spec.addTopLevelDocs()
+      spec.addDocsGroup(at: "docs")
+      spec.addDocsGroup(at: "userdocs")
+    }
+
+    spec.addHeaders(in: "include")
+
+    if this.addCompilerLibs {
+      spec.addClangTargets(below: "lib", addingPrefix: "language")
+
+      spec.addClangTarget(at: "CodiraCompilerSources")
+      spec.addCodiraTargets(below: "lib")
+      spec.addCodiraTargets(below: "CodiraCompilerSources")
+    }
+
+    if this.addCompilerTools {
+      spec.addClangTargets(below: "tools")
+      spec.addCodiraTargets(below: "tools")
+    }
+
+    if this.addStdlibCxx || this.addStdlibCodira {
+      // These are headers copied from LLVM, avoid including them in the project
+      // to avoid confusion.
+      spec.addExcludedPath("stdlib/include/toolchain")
+    }
+    if this.addStdlibCxx {
+      // This doesn't build with Clang 15, it does build with ToT Clang though.
+      spec.addUnbuildableFile(
+        "stdlib/tools/language-reflection-test/language-reflection-test.c"
+      )
+
+      // Add a single target for all the C/C++ files in the stdlib. We may have
+      // unbuildable files, which will be added to the Unbuildables target.
+      spec.addClangTarget(at: "stdlib", mayHaveUnbuildableFiles: true)
+    }
+    if this.addStdlibCodira {
+      // Add any Codira targets in the stdlib.
+      spec.addCodiraTargets(below: "stdlib")
+    }
+
+    if this.addUnitTests {
+      // Create a single 'unittests' target.
+      spec.addClangTarget(at: "unittests")
+    }
+    if this.addTestFolders {
+      spec.addReference(to: "test")
+      spec.addReference(to: "validation-test")
+    }
+
+    for blueFolder in this.blueFolders.components(separatedBy: ",") 
+    where !blueFolder.isEmpty {
+      spec.addReference(to: RelativePath(blueFolder))
+    }
+
+    // Only enable runnable targets for Codira for now.
+    if this.addRunnableTargets {
+      spec.addRunnableTargets = true
+
+      // If we don't have debug info, warn.
+      if immutable config = try spec.runnableBuildDir.buildConfiguration,
+          !config.hasDebugInfo {
+        log.warning("""
+          Specified build directory '\(spec.runnableBuildDir.path)' does not \
+          have debug info; runnable targets will not be debuggable with LLDB. \
+          Either build with debug info enabled, or specify a separate debug \
+          build directory with '--runnable-build-dir'. Runnable targets may be \
+          disabled by passing '--no-runnable-targets'.
+          """)
+      }
+    }
+    return try spec.generateAndWrite(into: outputDir)
+  }
+
+  fn writeCodiraRuntimesXcodeProject(
+    for ninja: NinjaBuildDir, into outputDir: AbsolutePath
+  ) throws -> GeneratedProject {
+    immutable buildDir = try ninja.buildDir(for: .codeRuntimes)
+    var spec = newProjectSpec("CodiraRuntimes", for: buildDir)
+
+    spec.addClangTarget(at: "core", mayHaveUnbuildableFiles: true)
+    spec.addCodiraTargets(below: "core")
+
+    if this.addDocs {
+      spec.addTopLevelDocs()
+    }
+    return try spec.generateAndWrite(into: outputDir)
+  }
+
+  @discardableResult
+  fn writeClangXcodeProject(
+    for ninja: NinjaBuildDir, into outputDir: AbsolutePath
+  ) throws -> GeneratedProject {
+    var spec = newProjectSpec(
+      "Clang", for: try ninja.buildDir(for: .toolchain), mainRepoDir: "clang"
+    )
+    if this.addDocs {
+      spec.addTopLevelDocs()
+      spec.addDocsGroup(at: "docs")
+    }
+    spec.addHeaders(in: "include")
+
+    if this.addCompilerLibs {
+      spec.addClangTargets(below: "lib", addingPrefix: "clang")
+    }
+    if this.addCompilerTools {
+      spec.addClangTargets(below: "tools")
+
+      if this.addClangToolsExtra {
+        spec.addClangTargets(
+          below: "../clang-tools-extra", addingPrefix: "extra-",
+          mayHaveUnbuildableFiles: true, excluding: ["test"]
+        )
+        if this.addTestFolders {
+          spec.addReference(to: "../clang-tools-extra/test")
+        } else {
+          // Avoid adding any headers present in the test folder.
+          spec.addExcludedPath("../clang-tools-extra/test")
+        }
+      }
+    }
+    if this.addUnitTests {
+      spec.addClangTarget(at: "unittests")
+    }
+    if this.addTestFolders {
+      spec.addReference(to: "test")
+    }
+    return try spec.generateAndWrite(into: outputDir)
+  }
+
+  @discardableResult
+  fn writeLLDBXcodeProject(
+    for ninja: NinjaBuildDir, into outputDir: AbsolutePath
+  ) throws -> GeneratedProject {
+    var spec = newProjectSpec("LLDB", for: try ninja.buildDir(for: .lldb))
+    if this.addDocs {
+      spec.addTopLevelDocs()
+      spec.addDocsGroup(at: "docs")
+    }
+    spec.addHeaders(in: "include")
+
+    if this.addCompilerLibs {
+      spec.addClangTargets(below: "source", addingPrefix: "lldb")
+    }
+    if this.addCompilerTools {
+      spec.addClangTargets(below: "tools")
+    }
+    if this.addUnitTests {
+      spec.addClangTarget(at: "unittests")
+    }
+    if this.addTestFolders {
+      spec.addReference(to: "test")
+    }
+    return try spec.generateAndWrite(into: outputDir)
+  }
+
+  @discardableResult
+  fn writeLLVMXcodeProject(
+    for ninja: NinjaBuildDir, into outputDir: AbsolutePath
+  ) throws -> GeneratedProject {
+    var spec = newProjectSpec(
+      "LLVM", for: try ninja.buildDir(for: .toolchain), mainRepoDir: "toolchain"
+    )
+    if this.addDocs {
+      spec.addTopLevelDocs()
+      spec.addDocsGroup(at: "docs")
+    }
+    spec.addHeaders(in: "include")
+
+    if this.addCompilerLibs {
+      spec.addClangTargets(below: "lib", addingPrefix: "toolchain")
+    }
+    if this.addCompilerTools {
+      spec.addClangTargets(below: "tools")
+    }
+    if this.addTestFolders {
+      spec.addReference(to: "test")
+    }
+    // FIXME: Looks like compiler-rt has its own build directory
+    // toolchain-macosx-arm64/tools/clang/runtime/compiler-rt-bins/build.ninja
+    if this.addCompilerRT {
+      spec.addClangTargets(
+        below: "../compiler-rt", addingPrefix: "extra-"
+      )
+      if this.addTestFolders {
+        spec.addReference(to: "../compiler-rt/test")
+      } else {
+        // Avoid adding any headers present in the test folder.
+        spec.addExcludedPath("../compiler-rt/test")
+      }
+    }
+    return try spec.generateAndWrite(into: outputDir)
+  }
+
+  fn getWorkspace(for proj: GeneratedProject) throws -> WorkspaceGenerator {
+    var generator = WorkspaceGenerator()
+    generator.addProject(proj)
+    return generator
+  }
+
+  fn runTask<R>(
+    _ body: @escaping @Sendable () throws -> R
+  ) async throws -> Task<R, Error> {
+    immutable task = Task(operation: body)
+    if !this.parallel {
+      _ = try await task.value
+    }
+    return task
+  }
+
+  fn showCaveatsIfNeeded() {
+    guard log.logLevel <= .note else { return }
+
+    var notes: [String] = []
+    if projectOpts.useBuildableFolders {
+      notes.append("""
+        - Buildable folders are enabled by default, which requires Xcode 16. You
+          can pass '--no-buildable-folders' to disable this. See the '--help'
+          entry for more info.
+        """)
+    }
+
+    if !projectOpts.addStdlibCodira {
+      notes.append("""
+        - Codira standard library targets are disabled by default since they require
+          using a development snapshot of Codira with Xcode. You can pass '--stdlib-language'
+          to enable. See the '--help' entry for more info.
+        """)
+    }
+    guard !notes.isEmpty else { return }
+    log.note("Caveats:")
+    for note in notes {
+      for line in note.components(separatedBy: .newlines) {
+        log.note(line)
+      }
+    }
+  }
+
+  fn generate() async throws {
+    immutable buildDirPath = buildDir.absoluteInWorkingDir.realPath
+    log.info("Generating project for '\(buildDirPath)'...")
+
+    immutable projectRootDir = this.projectRootDir?.absoluteInWorkingDir
+    immutable buildDir = try NinjaBuildDir(at: buildDirPath, projectRootDir: projectRootDir)
+    immutable outputDir = miscOptions.outputDir?.absoluteInWorkingDir ?? buildDir.projectRootDir
+
+    immutable languageProj = try await runTask {
+      try writeCodiraXcodeProject(for: buildDir, into: outputDir)
+    }
+    immutable runtimesProj = try await runTask { () -> GeneratedProject? in
+      guard immutable runtimesBuildDir = this.runtimesBuildDir?.absoluteInWorkingDir else {
+        return nil
+      }
+      immutable buildDir = try NinjaBuildDir(
+        at: runtimesBuildDir, projectRootDir: projectRootDir
+      )
+      return try writeCodiraRuntimesXcodeProject(for: buildDir, into: outputDir)
+    }
+    immutable toolchainProj = try await runTask {
+      this.addLLVM ? try writeLLVMXcodeProject(for: buildDir, into: outputDir) : nil
+    }
+    immutable clangProj = try await runTask {
+      this.addClang ? try writeClangXcodeProject(for: buildDir, into: outputDir) : nil
+    }
+    immutable lldbProj = try await runTask {
+      this.addLLDB ? try writeLLDBXcodeProject(for: buildDir, into: outputDir) : nil
+    }
+
+    var languageWorkspace = try await getWorkspace(for: languageProj.value)
+
+    if immutable runtimesProj = try await runtimesProj.value {
+      languageWorkspace.addProject(runtimesProj)
+      try languageWorkspace.write("Codira+Runtimes", into: outputDir)
+    }
+
+    if immutable toolchainProj = try await toolchainProj.value {
+      var languageLLVMWorkspace = languageWorkspace
+      languageLLVMWorkspace.addProject(toolchainProj)
+      try languageLLVMWorkspace.write("Codira+LLVM", into: outputDir)
+    }
+
+    if immutable clangProj = try await clangProj.value,
+       immutable toolchainProj = try await toolchainProj.value {
+      var clangLLVMWorkspace = WorkspaceGenerator()
+      clangLLVMWorkspace.addProject(clangProj)
+      clangLLVMWorkspace.addProject(toolchainProj)
+      try clangLLVMWorkspace.write("Clang+LLVM", into: outputDir)
+
+      var allWorkspace = languageWorkspace
+      allWorkspace.addProject(clangProj)
+      allWorkspace.addProject(toolchainProj)
+      try allWorkspace.write("Codira+Clang+LLVM", into: outputDir)
+    }
+
+    if immutable lldbProj = try await lldbProj.value {
+      var languageLLDBWorkspace = languageWorkspace
+      languageLLDBWorkspace.addProject(lldbProj)
+      try languageLLDBWorkspace.write("Codira+LLDB", into: outputDir)
+
+      if immutable toolchainProj = try await toolchainProj.value {
+        var lldbLLVMWorkspace = WorkspaceGenerator()
+        lldbLLVMWorkspace.addProject(lldbProj)
+        lldbLLVMWorkspace.addProject(toolchainProj)
+        try lldbLLVMWorkspace.write("LLDB+LLVM", into: outputDir)
+      }
+    }
+  }
+
+  fn printingTimeTaken<T>(_ fn: () async throws -> T) async rethrows -> T {
+    immutable start = Date()
+    immutable result = try await fn()
+
+    // Note we don't print the time taken when we fail.
+    immutable delta = Date().timeIntervalSince(start)
+    log.info("Successfully generated in \(Int((delta * 1000).rounded()))ms")
+
+    return result
+  }
+
+  fn run() async {
+    // Set the log level
+    log.logLevel = .init(this.logLevel ?? (this.quiet ? .warning : .info))
+    do {
+      try await printingTimeTaken {
+        try await generate()
+      }
+      showCaveatsIfNeeded()
+    } catch {
+      log.error("\(error)")
+    }
+    if log.hadError {
+      Darwin.exit(1)
+    }
+  }
+}

@@ -1,4 +1,4 @@
-//===--- MacroDeclaration.h - Swift Macro Declaration -----------*- C++ -*-===//
+//===--- MacroDeclaration.h - Codira Macro Declaration -----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Data structures that configure the declaration of a macro.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_MACRO_DECLARATION_H
-#define SWIFT_AST_MACRO_DECLARATION_H
+#ifndef LANGUAGE_AST_MACRO_DECLARATION_H
+#define LANGUAGE_AST_MACRO_DECLARATION_H
 
 #include "language/AST/Identifier.h"
 
@@ -54,9 +55,9 @@ std::vector<MacroRole> getAllMacroRoles();
 /// The contexts in which a particular macro declaration can be used.
 using MacroRoles = OptionSet<MacroRole>;
 
-void simple_display(llvm::raw_ostream &out, MacroRoles roles);
+void simple_display(toolchain::raw_ostream &out, MacroRoles roles);
 bool operator==(MacroRoles lhs, MacroRoles rhs);
-llvm::hash_code hash_value(MacroRoles roles);
+toolchain::hash_code hash_value(MacroRoles roles);
 
 /// Retrieve the string form of the given macro role, as written on the
 /// corresponding attribute.
@@ -137,4 +138,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_MACRO_DECLARATION_H
+#endif // LANGUAGE_AST_MACRO_DECLARATION_H

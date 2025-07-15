@@ -1,12 +1,12 @@
 ///===--- Hooks.cpp - Concurrency hook variables --------------------------===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===----------------------------------------------------------------------===///
 ///
@@ -22,12 +22,12 @@
 #include "TaskPrivate.h"
 
 // Define all the hooks
-#define SWIFT_CONCURRENCY_HOOK(returnType, name, ...)           \
-  swift::name##_hook_t swift::name##_hook = nullptr
-#define SWIFT_CONCURRENCY_HOOK0(returnType, name)               \
-  swift::name##_hook_t swift::name##_hook = nullptr
-#define SWIFT_CONCURRENCY_HOOK_OVERRIDE0(returnType, name)      \
-  swift::name##_hook_t swift::name##_hook = nullptr
+#define LANGUAGE_CONCURRENCY_HOOK(returnType, name, ...)           \
+  language::name##_hook_t language::name##_hook = nullptr
+#define LANGUAGE_CONCURRENCY_HOOK0(returnType, name)               \
+  language::name##_hook_t language::name##_hook = nullptr
+#define LANGUAGE_CONCURRENCY_HOOK_OVERRIDE0(returnType, name)      \
+  language::name##_hook_t language::name##_hook = nullptr
 
 #include "language/Runtime/ConcurrencyHooks.def"
 
@@ -37,103 +37,105 @@ using namespace language;
 // types from `ExecutorHooks.h`, we need to make an Orig version containing
 // appropriate type casts in each case.
 
-SWIFT_CC(swift) static void
-swift_task_enqueueGlobalOrig(Job *job) {
-  swift_task_enqueueGlobalImpl(reinterpret_cast<SwiftJob *>(job));
+LANGUAGE_CC(language) static void
+language_task_enqueueGlobalOrig(Job *job) {
+  language_task_enqueueGlobalImpl(reinterpret_cast<CodiraJob *>(job));
 }
 
 void
-swift::swift_task_enqueueGlobal(Job *job) {
-  _swift_tsan_release(job);
+language::language_task_enqueueGlobal(Job *job) {
+  _language_tsan_release(job);
 
   concurrency::trace::job_enqueue_global(job);
 
-  if (SWIFT_UNLIKELY(swift_task_enqueueGlobal_hook)) {
-    swift_task_enqueueGlobal_hook(job, swift_task_enqueueGlobalOrig);
+  if (LANGUAGE_UNLIKELY(language_task_enqueueGlobal_hook)) {
+    language_task_enqueueGlobal_hook(job, language_task_enqueueGlobalOrig);
   } else {
-    swift_task_enqueueGlobalOrig(job);
+    language_task_enqueueGlobalOrig(job);
   }
 }
 
-SWIFT_CC(swift) static void
-swift_task_enqueueGlobalWithDelayOrig(JobDelay delay, Job *job) {
-  swift_task_enqueueGlobalWithDelayImpl(
-      static_cast<SwiftJobDelay>(delay), reinterpret_cast<SwiftJob *>(job));
+LANGUAGE_CC(language) static void
+language_task_enqueueGlobalWithDelayOrig(JobDelay delay, Job *job) {
+  language_task_enqueueGlobalWithDelayImpl(
+      static_cast<CodiraJobDelay>(delay), reinterpret_cast<CodiraJob *>(job));
 }
 
 void
-swift::swift_task_enqueueGlobalWithDelay(JobDelay delay, Job *job) {
+language::language_task_enqueueGlobalWithDelay(JobDelay delay, Job *job) {
   concurrency::trace::job_enqueue_global_with_delay(delay, job);
 
-  if (SWIFT_UNLIKELY(swift_task_enqueueGlobalWithDelay_hook))
-    swift_task_enqueueGlobalWithDelay_hook(
-      delay, job, swift_task_enqueueGlobalWithDelayOrig);
+  if (LANGUAGE_UNLIKELY(language_task_enqueueGlobalWithDelay_hook))
+    language_task_enqueueGlobalWithDelay_hook(
+      delay, job, language_task_enqueueGlobalWithDelayOrig);
   else
-    swift_task_enqueueGlobalWithDelayOrig(delay, job);
+    language_task_enqueueGlobalWithDelayOrig(delay, job);
 }
 
-SWIFT_CC(swift) static void
-swift_task_enqueueGlobalWithDeadlineOrig(
+LANGUAGE_CC(language) static void
+language_task_enqueueGlobalWithDeadlineOrig(
     long long sec,
     long long nsec,
     long long tsec,
     long long tnsec,
     int clock, Job *job) {
-  swift_task_enqueueGlobalWithDeadlineImpl(sec, nsec, tsec, tnsec, clock,
-                                           reinterpret_cast<SwiftJob *>(job));
+  language_task_enqueueGlobalWithDeadlineImpl(sec, nsec, tsec, tnsec, clock,
+                                           reinterpret_cast<CodiraJob *>(job));
 }
 
 void
-swift::swift_task_enqueueGlobalWithDeadline(
+language::language_task_enqueueGlobalWithDeadline(
     long long sec,
     long long nsec,
     long long tsec,
     long long tnsec,
     int clock, Job *job) {
-  if (SWIFT_UNLIKELY(swift_task_enqueueGlobalWithDeadline_hook))
-    swift_task_enqueueGlobalWithDeadline_hook(
+  if (LANGUAGE_UNLIKELY(language_task_enqueueGlobalWithDeadline_hook))
+    language_task_enqueueGlobalWithDeadline_hook(
         sec, nsec, tsec, tnsec, clock, job,
-        swift_task_enqueueGlobalWithDeadlineOrig);
+        language_task_enqueueGlobalWithDeadlineOrig);
   else
-    swift_task_enqueueGlobalWithDeadlineOrig(sec, nsec, tsec, tnsec, clock, job);
+    language_task_enqueueGlobalWithDeadlineOrig(sec, nsec, tsec, tnsec, clock, job);
 }
 
-SWIFT_CC(swift) static void
-swift_task_checkIsolatedOrig(SerialExecutorRef executor) {
-  swift_task_checkIsolatedImpl(*reinterpret_cast<SwiftExecutorRef *>(&executor));
+LANGUAGE_CC(language) static void
+language_task_checkIsolatedOrig(SerialExecutorRef executor) {
+  language_task_checkIsolatedImpl(*reinterpret_cast<CodiraExecutorRef *>(&executor));
 }
 
 void
-swift::swift_task_checkIsolated(SerialExecutorRef executor) {
-  if (SWIFT_UNLIKELY(swift_task_checkIsolated_hook))
-    swift_task_checkIsolated_hook(executor, swift_task_checkIsolatedOrig);
+language::language_task_checkIsolated(SerialExecutorRef executor) {
+  if (LANGUAGE_UNLIKELY(language_task_checkIsolated_hook))
+    language_task_checkIsolated_hook(executor, language_task_checkIsolatedOrig);
   else
-    swift_task_checkIsolatedOrig(executor);
+    language_task_checkIsolatedOrig(executor);
 }
 
-SWIFT_CC(swift) static bool
-swift_task_isIsolatingCurrentContextOrig(SerialExecutorRef executor) {
-  return swift_task_isIsolatingCurrentContextImpl(
-      *reinterpret_cast<SwiftExecutorRef *>(&executor));
+LANGUAGE_CC(language) static int8_t
+language_task_isIsolatingCurrentContextOrig(SerialExecutorRef executor) {
+  return language_task_isIsolatingCurrentContextImpl(
+      *reinterpret_cast<CodiraExecutorRef *>(&executor));
 }
 
-bool
-swift::swift_task_isIsolatingCurrentContext(SerialExecutorRef executor) {
-  if (SWIFT_UNLIKELY(swift_task_isIsolatingCurrentContext_hook))
-    return swift_task_isIsolatingCurrentContext_hook(executor, swift_task_isIsolatingCurrentContextOrig);
-  else
-    return swift_task_isIsolatingCurrentContextOrig(executor);
+int8_t
+language::language_task_isIsolatingCurrentContext(SerialExecutorRef executor) {
+  if (LANGUAGE_UNLIKELY(language_task_isIsolatingCurrentContext_hook)) {
+    return language_task_isIsolatingCurrentContext_hook(
+        executor, language_task_isIsolatingCurrentContextOrig);
+  } else {
+    return language_task_isIsolatingCurrentContextOrig(executor);
+  }
 }
 
-// Implemented in Swift because we need to obtain the user-defined flags on the executor ref.
+// Implemented in Codira because we need to obtain the user-defined flags on the executor ref.
 //
 // We could inline this with effort, though.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
-extern "C" SWIFT_CC(swift)
-swift::SerialExecutorRef _task_serialExecutor_getExecutorRef(
-        swift::HeapObject *executor, const swift::Metadata *selfType,
-        const swift::SerialExecutorWitnessTable *wtable);
+extern "C" LANGUAGE_CC(language)
+language::SerialExecutorRef _task_serialExecutor_getExecutorRef(
+        language::HeapObject *executor, const language::Metadata *selfType,
+        const language::SerialExecutorWitnessTable *wtable);
 #pragma clang diagnostic pop
 
 /// WARNING: This method is expected to CRASH in new runtimes, and cannot be
@@ -141,85 +143,85 @@ swift::SerialExecutorRef _task_serialExecutor_getExecutorRef(
 /// implement a "only log warnings" actor isolation checking mode, and it would
 /// no be able handle more complex situations, as `SerialExecutor.checkIsolated`
 /// is able to (by calling into dispatchPrecondition on old runtimes).
-static SWIFT_CC(swift) bool
-swift_task_isOnExecutorImpl(swift::HeapObject *executor,
-                            const swift::Metadata *selfType,
-                            const swift::SerialExecutorWitnessTable *wtable)
+static LANGUAGE_CC(language) bool
+language_task_isOnExecutorImpl(language::HeapObject *executor,
+                            const language::Metadata *selfType,
+                            const language::SerialExecutorWitnessTable *wtable)
 {
   auto executorRef = _task_serialExecutor_getExecutorRef(executor,
                                                          selfType,
                                                          wtable);
-  return swift_task_isCurrentExecutor(executorRef);
+  return language_task_isCurrentExecutor(executorRef);
 }
 
 bool
-swift::swift_task_isOnExecutor(HeapObject *executor,
+language::language_task_isOnExecutor(HeapObject *executor,
                                const Metadata *selfType,
                                const SerialExecutorWitnessTable *wtable) {
-  if (SWIFT_UNLIKELY(swift_task_isOnExecutor_hook))
-    return swift_task_isOnExecutor_hook(
-             executor, selfType, wtable, swift_task_isOnExecutorImpl);
+  if (LANGUAGE_UNLIKELY(language_task_isOnExecutor_hook))
+    return language_task_isOnExecutor_hook(
+             executor, selfType, wtable, language_task_isOnExecutorImpl);
   else
-    return swift_task_isOnExecutorImpl(executor, selfType, wtable);
+    return language_task_isOnExecutorImpl(executor, selfType, wtable);
 }
 
-SWIFT_CC(swift) static void
-swift_task_enqueueMainExecutorOrig(Job *job) {
-  swift_task_enqueueMainExecutorImpl(reinterpret_cast<SwiftJob *>(job));
+LANGUAGE_CC(language) static void
+language_task_enqueueMainExecutorOrig(Job *job) {
+  language_task_enqueueMainExecutorImpl(reinterpret_cast<CodiraJob *>(job));
 }
 
 void
-swift::swift_task_enqueueMainExecutor(Job *job) {
+language::language_task_enqueueMainExecutor(Job *job) {
   concurrency::trace::job_enqueue_main_executor(job);
-  if (SWIFT_UNLIKELY(swift_task_enqueueMainExecutor_hook))
-    swift_task_enqueueMainExecutor_hook(job, swift_task_enqueueMainExecutorOrig);
+  if (LANGUAGE_UNLIKELY(language_task_enqueueMainExecutor_hook))
+    language_task_enqueueMainExecutor_hook(job, language_task_enqueueMainExecutorOrig);
   else
-    swift_task_enqueueMainExecutorOrig(job);
+    language_task_enqueueMainExecutorOrig(job);
 }
 
-SWIFT_CC(swift) static swift::SerialExecutorRef
-swift_task_getMainExecutorOrig() {
-  auto ref = swift_task_getMainExecutorImpl();
+LANGUAGE_CC(language) static language::SerialExecutorRef
+language_task_getMainExecutorOrig() {
+  auto ref = language_task_getMainExecutorImpl();
   return *reinterpret_cast<SerialExecutorRef *>(&ref);
 }
 
-swift::SerialExecutorRef
-swift::swift_task_getMainExecutor() {
-  if (SWIFT_UNLIKELY(swift_task_getMainExecutor_hook))
-    return swift_task_getMainExecutor_hook(swift_task_getMainExecutorOrig);
+language::SerialExecutorRef
+language::language_task_getMainExecutor() {
+  if (LANGUAGE_UNLIKELY(language_task_getMainExecutor_hook))
+    return language_task_getMainExecutor_hook(language_task_getMainExecutorOrig);
   else {
-    return swift_task_getMainExecutorOrig();
+    return language_task_getMainExecutorOrig();
   }
 }
 
-SWIFT_CC(swift) static bool
-swift_task_isMainExecutorOrig(SerialExecutorRef executor) {
-  return swift_task_isMainExecutorImpl(
-           *reinterpret_cast<SwiftExecutorRef *>(&executor));
+LANGUAGE_CC(language) static bool
+language_task_isMainExecutorOrig(SerialExecutorRef executor) {
+  return language_task_isMainExecutorImpl(
+           *reinterpret_cast<CodiraExecutorRef *>(&executor));
 }
 
 bool
-swift::swift_task_isMainExecutor(SerialExecutorRef executor) {
-  if (SWIFT_UNLIKELY(swift_task_isMainExecutor_hook))
-    return swift_task_isMainExecutor_hook(
-             executor, swift_task_isMainExecutorOrig);
+language::language_task_isMainExecutor(SerialExecutorRef executor) {
+  if (LANGUAGE_UNLIKELY(language_task_isMainExecutor_hook))
+    return language_task_isMainExecutor_hook(
+             executor, language_task_isMainExecutorOrig);
   else
-    return swift_task_isMainExecutorOrig(executor);
+    return language_task_isMainExecutorOrig(executor);
 }
 
-SWIFT_CC(swift) static void
-swift_task_donateThreadToGlobalExecutorUntilOrig(bool (*condition)(void *),
+LANGUAGE_CC(language) static void
+language_task_donateThreadToGlobalExecutorUntilOrig(bool (*condition)(void *),
                                                  void *context) {
-  return swift_task_donateThreadToGlobalExecutorUntilImpl(condition, context);
+  return language_task_donateThreadToGlobalExecutorUntilImpl(condition, context);
 }
 
-void swift::
-swift_task_donateThreadToGlobalExecutorUntil(bool (*condition)(void *),
+void language::
+language_task_donateThreadToGlobalExecutorUntil(bool (*condition)(void *),
                                              void *context) {
-  if (SWIFT_UNLIKELY(swift_task_donateThreadToGlobalExecutorUntil_hook))
-    return swift_task_donateThreadToGlobalExecutorUntil_hook(
+  if (LANGUAGE_UNLIKELY(language_task_donateThreadToGlobalExecutorUntil_hook))
+    return language_task_donateThreadToGlobalExecutorUntil_hook(
               condition, context,
-              swift_task_donateThreadToGlobalExecutorUntilOrig);
+              language_task_donateThreadToGlobalExecutorUntilOrig);
   else
-    return swift_task_donateThreadToGlobalExecutorUntilOrig(condition, context);
+    return language_task_donateThreadToGlobalExecutorUntilOrig(condition, context);
 }

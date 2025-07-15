@@ -1,4 +1,4 @@
-//===--- Verifier.cpp - Verification of Swift SIL Code --------------------===//
+//===--- Verifier.cpp - Verification of Codira SIL Code --------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-verifier"
@@ -38,6 +39,7 @@
 #include "language/SIL/DebugUtils.h"
 #include "language/SIL/Dominance.h"
 #include "language/SIL/DynamicCasts.h"
+#include "language/SIL/InstructionUtils.h"
 #include "language/SIL/MemAccessUtils.h"
 #include "language/SIL/OwnershipLiveness.h"
 #include "language/SIL/OwnershipUtils.h"
@@ -54,12 +56,12 @@
 #include "language/SIL/SILVisitor.h"
 #include "language/SIL/ScopedAddressUtils.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 #include <memory>
 
@@ -69,19 +71,19 @@ using Lowering::AbstractionPattern;
 
 // This flag controls the default behaviour when hitting a verification
 // failure (abort/exit).
-static llvm::cl::opt<bool> AbortOnFailure(
+static toolchain::cl::opt<bool> AbortOnFailure(
                               "verify-abort-on-failure",
-                              llvm::cl::init(true));
+                              toolchain::cl::init(true));
 
-static llvm::cl::opt<bool> ContinueOnFailure("verify-continue-on-failure",
-                                             llvm::cl::init(false));
+static toolchain::cl::opt<bool> ContinueOnFailure("verify-continue-on-failure",
+                                             toolchain::cl::init(false));
 
-static llvm::cl::opt<bool> DumpModuleOnFailure("verify-dump-module-on-failure",
-                                             llvm::cl::init(false));
+static toolchain::cl::opt<bool> DumpModuleOnFailure("verify-dump-module-on-failure",
+                                             toolchain::cl::init(false));
 
 // This verification is affects primarily debug info and end users don't derive
 // a benefit from seeing its results.
-static llvm::cl::opt<bool> VerifyDIHoles("verify-di-holes", llvm::cl::init(
+static toolchain::cl::opt<bool> VerifyDIHoles("verify-di-holes", toolchain::cl::init(
 #ifndef NDEBUG
                                                                 true
 #else
@@ -89,15 +91,15 @@ static llvm::cl::opt<bool> VerifyDIHoles("verify-di-holes", llvm::cl::init(
 #endif
                                                                 ));
 
-static llvm::cl::opt<bool> SkipConvertEscapeToNoescapeAttributes(
-    "verify-skip-convert-escape-to-noescape-attributes", llvm::cl::init(false));
+static toolchain::cl::opt<bool> SkipConvertEscapeToNoescapeAttributes(
+    "verify-skip-convert-escape-to-noescape-attributes", toolchain::cl::init(false));
 
 // Allow unit tests to gradually migrate toward -allow-critical-edges=false.
-static llvm::cl::opt<bool> AllowCriticalEdges("allow-critical-edges",
-                                              llvm::cl::init(true));
-extern llvm::cl::opt<bool> SILPrintDebugInfo;
+static toolchain::cl::opt<bool> AllowCriticalEdges("allow-critical-edges",
+                                              toolchain::cl::init(true));
+extern toolchain::cl::opt<bool> SILPrintDebugInfo;
 
-void swift::verificationFailure(const Twine &complaint,
+void language::verificationFailure(const Twine &complaint,
               const SILInstruction *atInstruction,
               const SILArgument *atArgument,
               const std::function<void()> &extraContext) {
@@ -111,32 +113,32 @@ void swift::verificationFailure(const Twine &complaint,
     funcName = f->getName();
   }
   if (ContinueOnFailure) {
-    llvm::dbgs() << "Begin Error in function " << funcName << "\n";
+    toolchain::dbgs() << "Begin Error in function " << funcName << "\n";
   }
 
-  llvm::dbgs() << "SIL verification failed: " << complaint << "\n";
+  toolchain::dbgs() << "SIL verification failed: " << complaint << "\n";
   if (extraContext)
     extraContext();
 
   if (atInstruction) {
-    llvm::dbgs() << "Verifying instruction:\n";
-    atInstruction->printInContext(llvm::dbgs());
+    toolchain::dbgs() << "Verifying instruction:\n";
+    atInstruction->printInContext(toolchain::dbgs());
   } else if (atArgument) {
-    llvm::dbgs() << "Verifying argument:\n";
-    atArgument->printInContext(llvm::dbgs());
+    toolchain::dbgs() << "Verifying argument:\n";
+    atArgument->printInContext(toolchain::dbgs());
   }
   if (ContinueOnFailure) {
-    llvm::dbgs() << "End Error in function " << funcName << "\n";
+    toolchain::dbgs() << "End Error in function " << funcName << "\n";
     return;
   }
 
   if (f) {
-    llvm::dbgs() << "In function:\n";
-    f->print(llvm::dbgs());
+    toolchain::dbgs() << "In function:\n";
+    f->print(toolchain::dbgs());
     if (DumpModuleOnFailure) {
       // Don't do this by default because modules can be _very_ large.
-      llvm::dbgs() << "In module:\n";
-      f->getModule().print(llvm::dbgs());
+      toolchain::dbgs() << "In module:\n";
+      f->getModule().print(toolchain::dbgs());
     }
   }
 
@@ -241,7 +243,7 @@ bool checkResilience(DeclType *D, ModuleDecl *accessingModule,
 
 template <typename DeclType>
 bool checkResilience(DeclType *D, const SILFunction &f) {
-  return checkResilience(D, f.getModule().getSwiftModule(),
+  return checkResilience(D, f.getModule().getCodiraModule(),
                          f.getResilienceExpansion(),
                          f.getSerializedKind());
 }
@@ -278,7 +280,7 @@ namespace {
 void verifyKeyPathComponent(SILModule &M,
                             TypeExpansionContext typeExpansionContext,
                             SerializedKind_t serializedKind,
-                            llvm::function_ref<void(bool, StringRef)> require,
+                            toolchain::function_ref<void(bool, StringRef)> require,
                             CanType &baseTy,
                             CanType leafTy,
                             const KeyPathPatternComponent &component,
@@ -384,7 +386,7 @@ void verifyKeyPathComponent(SILModule &M,
             "property decl should be a member of the base with the same type "
             "as the component");
     require(property->hasStorage(), "property must be stored");
-    require(!checkResilience(property, M.getSwiftModule(),
+    require(!checkResilience(property, M.getCodiraModule(),
                              expansion, serializedKind),
             "cannot access storage of resilient property");
     auto propertyTy =
@@ -575,6 +577,11 @@ void verifyKeyPathComponent(SILModule &M,
 /// open_existential_addr. We should expand it as needed.
 struct ImmutableAddressUseVerifier {
   SmallVector<Operand *, 32> worklist;
+  bool ignoreDestroys;
+  bool defaultIsMutating;
+
+  ImmutableAddressUseVerifier(bool ignoreDestroys = false, bool defaultIsMutating = false)
+    : ignoreDestroys(ignoreDestroys), defaultIsMutating(defaultIsMutating) {}
 
   bool isConsumingOrMutatingArgumentConvention(SILArgumentConvention conv) {
     switch (conv) {
@@ -607,7 +614,7 @@ struct ImmutableAddressUseVerifier {
       assert(conv.isIndirectConvention() && "Expect an indirect convention");
       return true; // return something "conservative".
     }
-    llvm_unreachable("covered switch isn't covered?!");
+    toolchain_unreachable("covered switch isn't covered?!");
   }
 
   bool isConsumingOrMutatingApplyUse(Operand *use) {
@@ -658,7 +665,7 @@ struct ImmutableAddressUseVerifier {
   bool isAddrCastToNonConsuming(SingleValueInstruction *i) {
     // Check if any of our uses are consuming. If none of them are consuming, we
     // are good to go.
-    return llvm::none_of(i->getUses(), [&](Operand *use) -> bool {
+    return toolchain::none_of(i->getUses(), [&](Operand *use) -> bool {
       auto *inst = use->getUser();
       switch (inst->getKind()) {
       default:
@@ -673,7 +680,7 @@ struct ImmutableAddressUseVerifier {
   }
 
   bool isMutatingOrConsuming(SILValue address) {
-    llvm::copy(address->getUses(), std::back_inserter(worklist));
+    toolchain::copy(address->getUses(), std::back_inserter(worklist));
     while (!worklist.empty()) {
       auto *use = worklist.pop_back_val();
       auto *inst = use->getUser();
@@ -707,10 +714,9 @@ struct ImmutableAddressUseVerifier {
           }
         }
 
-        // Otherwise this is a builtin that we are not expecting to see, so bail
-        // and assert.
-        llvm::errs() << "Unhandled, unexpected builtin instruction: " << *inst;
-        llvm_unreachable("invoking standard assertion failure");
+        // Otherwise this is a builtin that we are not expecting to see.
+        if (defaultIsMutating)
+          return true;
         break;
       }
       case SILInstructionKind::MarkDependenceInst:
@@ -728,8 +734,8 @@ struct ImmutableAddressUseVerifier {
         if (cast<DebugValueInst>(inst)->hasAddrVal())
           break;
         else {
-          llvm::errs() << "Unhandled, unexpected instruction: " << *inst;
-          llvm_unreachable("invoking standard assertion failure");
+          toolchain::errs() << "Unhandled, unexpected instruction: " << *inst;
+          toolchain_unreachable("invoking standard assertion failure");
         }
       case SILInstructionKind::AddressToPointerInst:
         // We assume that the user is attempting to do something unsafe since we
@@ -778,7 +784,9 @@ struct ImmutableAddressUseVerifier {
         else
           break;
       case SILInstructionKind::DestroyAddrInst:
-        return true;
+        if (!ignoreDestroys)
+          return true;
+        break;
       case SILInstructionKind::UpcastInst:
       case SILInstructionKind::UncheckedAddrCastInst: {
         if (isAddrCastToNonConsuming(cast<SingleValueInstruction>(inst))) {
@@ -795,7 +803,7 @@ struct ImmutableAddressUseVerifier {
       case SILInstructionKind::CheckedCastAddrBranchInst:
         switch (cast<CheckedCastAddrBranchInst>(inst)->getConsumptionKind()) {
         case CastConsumptionKind::BorrowAlways:
-          llvm_unreachable("checked_cast_addr_br cannot have BorrowAlways");
+          toolchain_unreachable("checked_cast_addr_br cannot have BorrowAlways");
         case CastConsumptionKind::CopyOnSuccess:
           break;
         case CastConsumptionKind::TakeAlways:
@@ -821,9 +829,10 @@ struct ImmutableAddressUseVerifier {
         if (cast<OpenExistentialAddrInst>(inst)->getAccessKind() !=
             OpenedExistentialAccess::Immutable)
           return true;
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case SILInstructionKind::MoveOnlyWrapperToCopyableAddrInst:
       case SILInstructionKind::CopyableToMoveOnlyWrapperAddrInst:
+      case SILInstructionKind::VectorBaseAddrInst:
       case SILInstructionKind::StructElementAddrInst:
       case SILInstructionKind::TupleElementAddrInst:
       case SILInstructionKind::IndexAddrInst:
@@ -834,25 +843,23 @@ struct ImmutableAddressUseVerifier {
       case SILInstructionKind::PackElementGetInst:
         // Add these to our worklist.
         for (auto result : inst->getResults()) {
-          llvm::copy(result->getUses(), std::back_inserter(worklist));
+          toolchain::copy(result->getUses(), std::back_inserter(worklist));
         }
         break;
       case SILInstructionKind::UncheckedTakeEnumDataAddrInst: {
         if (!cast<UncheckedTakeEnumDataAddrInst>(inst)->isDestructive()) {
           for (auto result : inst->getResults()) {
-            llvm::copy(result->getUses(), std::back_inserter(worklist));
+            toolchain::copy(result->getUses(), std::back_inserter(worklist));
           }
           break;
         }
-        llvm::errs() << "Unhandled, unexpected instruction: " << *inst;
-        llvm_unreachable("invoking standard assertion failure");
-        break;
+        return true;
       }
       case SILInstructionKind::TuplePackElementAddrInst: {
         if (&cast<TuplePackElementAddrInst>(inst)->getOperandRef(
               TuplePackElementAddrInst::TupleOperand) == use) {
           for (auto result : inst->getResults()) {
-            llvm::copy(result->getUses(), std::back_inserter(worklist));
+            toolchain::copy(result->getUses(), std::back_inserter(worklist));
           }
 
           break;
@@ -868,8 +875,8 @@ struct ImmutableAddressUseVerifier {
         return false;
       }
       default:
-        llvm::errs() << "Unhandled, unexpected instruction: " << *inst;
-        llvm_unreachable("invoking standard assertion failure");
+        if (defaultIsMutating)
+          return true;
         break;
       }
     }
@@ -893,16 +900,16 @@ static void checkAddressWalkerCanVisitAllTransitiveUses(SILValue address) {
   if (std::move(visitor).walk(address) != AddressUseKind::Unknown)
     return;
 
-  llvm::errs() << "TransitiveAddressWalker walker failed to know how to visit "
+  toolchain::errs() << "TransitiveAddressWalker walker failed to know how to visit "
                   "a user when visiting: "
                << *address;
   if (badUsers.size()) {
-    llvm::errs() << "Bad Users:\n";
+    toolchain::errs() << "Bad Users:\n";
     for (auto *user : badUsers) {
-      llvm::errs() << "    " << *user;
+      toolchain::errs() << "    " << *user;
     }
   }
-  llvm::report_fatal_error("invoking standard assertion failure");
+  toolchain::report_fatal_error("invoking standard assertion failure");
 }
 
 /// The SIL verifier walks over a SIL function / basic block / instruction,
@@ -923,7 +930,7 @@ class SILVerifier : public SILVerifierBase<SILVerifier> {
   std::unique_ptr<DominanceInfo> Dominance;
 
   // Used for dominance checking within a basic block.
-  llvm::DenseMap<const SILInstruction *, unsigned> InstNumbers;
+  toolchain::DenseMap<const SILInstruction *, unsigned> InstNumbers;
 
   /// TODO: LifetimeCompletion: Remove.
   std::shared_ptr<DeadEndBlocks> DEBlocks;
@@ -937,12 +944,12 @@ class SILVerifier : public SILVerifierBase<SILVerifier> {
 
   /// A cache of the isOperandInValueUse check. When we process an operand, we
   /// fix this for each of its uses.
-  llvm::DenseSet<std::pair<SILValue, const Operand *>> isOperandInValueUsesCache;
+  toolchain::DenseSet<std::pair<SILValue, const Operand *>> isOperandInValueUsesCache;
 
   /// Used for checking all equivalent variables have the same type
-  using VarID = std::tuple<const SILDebugScope *, llvm::StringRef, SILLocation>;
-  llvm::DenseMap<VarID, SILType> DebugVarTypes;
-  llvm::StringSet<> VarNames;
+  using VarID = std::tuple<const SILDebugScope *, toolchain::StringRef, SILLocation>;
+  toolchain::DenseMap<VarID, SILType> DebugVarTypes;
+  toolchain::StringSet<> VarNames;
 
   /// Check that this operand appears in the use-chain of the value it uses.
   bool isOperandInValueUses(const Operand *operand) {
@@ -1056,7 +1063,13 @@ public:
     
     auto objectTy = value->getType().unwrapOptionalType();
     
-    require(objectTy.isReferenceCounted(F.getModule()),
+    // Immortal C++ foreign reference types are represented as trivially lowered
+    // types since they do not require retain/release calls.
+    bool isImmortalFRT = objectTy.isForeignReferenceType() &&
+                         objectTy.getASTType()->getReferenceCounting() ==
+                             ReferenceCounting::None;
+
+    require(objectTy.isReferenceCounted(F.getModule()) || isImmortalFRT,
             valueDescription + " must have reference semantics");
   }
   
@@ -1099,13 +1112,13 @@ public:
   /// Assert that two types are equal.
   void requireSameType(Type type1, Type type2, const Twine &complaint) {
     _require(type1->isEqual(type2), complaint,
-             [&] { llvm::dbgs() << "  " << type1 << "\n  " << type2 << '\n'; });
+             [&] { toolchain::dbgs() << "  " << type1 << "\n  " << type2 << '\n'; });
   }
 
   /// Assert that two types are equal.
   void requireSameType(SILType type1, SILType type2, const Twine &complaint) {
     _require(type1 == type2, complaint,
-             [&] { llvm::dbgs() << "  " << type1 << "\n  " << type2 << '\n'; });
+             [&] { toolchain::dbgs() << "  " << type1 << "\n  " << type2 << '\n'; });
   }
 
   SynthesisContext getSynthesisContext() {
@@ -1138,15 +1151,15 @@ public:
                                          SILFunction &inFunction) {
     auto complain = [=](const char *msg) -> std::function<void()> {
       return [=]{
-        llvm::dbgs() << "  " << msg << '\n'
+        toolchain::dbgs() << "  " << msg << '\n'
                      << "  " << type1 << "\n  " << type2 << '\n';
       };
     };
     auto complainBy = [=](std::function<void()> msg) -> std::function<void()> {
       return [=]{
         msg();
-        llvm::dbgs() << '\n';
-        llvm::dbgs() << "  " << type1 << "\n  " << type2 << '\n';
+        toolchain::dbgs() << '\n';
+        toolchain::dbgs() << "  " << type1 << "\n  " << type2 << '\n';
       };
     };
 
@@ -1159,7 +1172,7 @@ public:
       _require(false, what, complain(Result.getMessage().data()));
     } else {
       _require(false, what, complainBy([=] {
-                 llvm::dbgs() << " " << Result.getMessage().data()
+                 toolchain::dbgs() << " " << Result.getMessage().data()
                               << ".\nParameter: " << Result.getPayload();
                }));
     }
@@ -1187,7 +1200,7 @@ public:
   template <class T>
   T *requireValueKind(SILValue value, const Twine &what) {
     auto match = dyn_cast<T>(value);
-    _require(match != nullptr, what, [=] { llvm::dbgs() << value; });
+    _require(match != nullptr, what, [=] { toolchain::dbgs() << value; });
     return match;
   }
 
@@ -1201,7 +1214,7 @@ public:
 
   SILVerifier(const SILFunction &F, CalleeCache *calleeCache,
               bool SingleFunction, bool checkLinearLifetime)
-      : M(F.getModule().getSwiftModule()), F(F),
+      : M(F.getModule().getCodiraModule()), F(F),
         calleeCache(calleeCache),
         fnConv(F.getConventionsInContext()), TC(F.getModule().Types),
         SingleFunction(SingleFunction),
@@ -1578,7 +1591,7 @@ public:
       SSAType = inst->getOperand(0)->getType();
       break;
     default:
-      llvm_unreachable("impossible instruction kind");
+      toolchain_unreachable("impossible instruction kind");
     }
     
     SILType DebugVarTy = varInfo->Type ? *varInfo->Type :
@@ -1634,7 +1647,7 @@ public:
 
     // Check that every var info with the same name, scope and location, refer
     // to a variable of the same type
-    llvm::StringRef UniqueName = VarNames.insert(varInfo->Name).first->getKey();
+    toolchain::StringRef UniqueName = VarNames.insert(varInfo->Name).first->getKey();
     if (!varInfo->Loc)
       varInfo->Loc = inst->getLoc();
     if (!varInfo->Loc)
@@ -1884,12 +1897,12 @@ public:
 
     if (subs.getGenericSignature().getCanonicalSignature() !=
           fnTy->getInvocationGenericSignature().getCanonicalSignature()) {
-      llvm::dbgs() << "substitution map's generic signature: ";
-      subs.getGenericSignature()->print(llvm::dbgs());
-      llvm::dbgs() << "\n";
-      llvm::dbgs() << "callee's generic signature: ";
-      fnTy->getInvocationGenericSignature()->print(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "substitution map's generic signature: ";
+      subs.getGenericSignature()->print(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
+      toolchain::dbgs() << "callee's generic signature: ";
+      fnTy->getInvocationGenericSignature()->print(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
       require(false,
               "Substitution map does not match callee in apply instruction");
     }
@@ -1902,7 +1915,7 @@ public:
   void checkApplyTypeDependentArguments(ApplySite AS) {
     SILInstruction *AI = AS.getInstruction();
 
-    llvm::DenseSet<SILInstruction *> allOpeningInsts;
+    toolchain::DenseSet<SILInstruction *> allOpeningInsts;
     unsigned hasDynamicSelf = 0;
 
     // Function to collect local archetypes in allOpeningInsts and set
@@ -2159,31 +2172,31 @@ public:
       "callee result type does not match end_apply result type");
   }
 
-  void verifyLLVMIntrinsic(BuiltinInst *BI, llvm::Intrinsic::ID ID) {
-    // Certain llvm intrinsic require constant values as their operands.
+  void verifyLLVMIntrinsic(BuiltinInst *BI, toolchain::Intrinsic::ID ID) {
+    // Certain toolchain intrinsic require constant values as their operands.
     // Consequently, these must not be phi nodes (aka. basic block arguments).
     switch (ID) {
     default:
       break;
-    case llvm::Intrinsic::ctlz: // llvm.ctlz
-    case llvm::Intrinsic::cttz: // llvm.cttz
+    case toolchain::Intrinsic::ctlz: // toolchain.ctlz
+    case toolchain::Intrinsic::cttz: // toolchain.cttz
       break;
-    case llvm::Intrinsic::memcpy:
-    case llvm::Intrinsic::memmove:
-    case llvm::Intrinsic::memset:
+    case toolchain::Intrinsic::memcpy:
+    case toolchain::Intrinsic::memmove:
+    case toolchain::Intrinsic::memset:
       require(!isa<SILArgument>(BI->getArguments()[3]),
               "isvolatile argument of memory intrinsics must be an integer "
               "literal");
       break;
-    case llvm::Intrinsic::lifetime_start:
-    case llvm::Intrinsic::lifetime_end:
-    case llvm::Intrinsic::invariant_start:
+    case toolchain::Intrinsic::lifetime_start:
+    case toolchain::Intrinsic::lifetime_end:
+    case toolchain::Intrinsic::invariant_start:
       require(!isa<SILArgument>(BI->getArguments()[0]),
               "size argument of memory use markers must be an integer literal");
       break;
-    case llvm::Intrinsic::invariant_end:
+    case toolchain::Intrinsic::invariant_end:
       require(!isa<SILArgument>(BI->getArguments()[1]),
-              "llvm.invariant.end parameter #2 must be an integer literal");
+              "toolchain.invariant.end parameter #2 must be an integer literal");
       break;
     }
   }
@@ -2240,7 +2253,7 @@ public:
     SILFunctionConventions substConv(substTy, F.getModule());
     unsigned appliedArgStartIdx =
         substConv.getNumSILArguments() - PAI->getNumArguments();
-    for (auto p : llvm::enumerate(PAI->getArguments())) {
+    for (auto p : toolchain::enumerate(PAI->getArguments())) {
       unsigned argIdx = appliedArgStartIdx + p.index();
       requireSameType(
           p.value()->getType(),
@@ -2350,20 +2363,20 @@ public:
               "partial_apply context argument must have the same convention "
               "as the resulting function's callee convention");
       
-      auto isSwiftRefcounted = [](SILType t) -> bool {
+      auto isCodiraRefcounted = [](SILType t) -> bool {
         if (t.is<SILBoxType>())
           return true;
         if (t.getASTType() == t.getASTContext().TheNativeObjectType)
           return true;
         if (auto clazz = t.getClassOrBoundGenericClass())
-          // Must be a class defined in Swift.
-          return clazz->hasKnownSwiftImplementation();
+          // Must be a class defined in Codira.
+          return clazz->hasKnownCodiraImplementation();
         return false;
       };
       
-      // The context argument must be a swift-refcounted box or class.
-      require(isSwiftRefcounted(PAI->getArguments().front()->getType()),
-              "partial_apply context argument must be swift-refcounted");
+      // The context argument must be a language-refcounted box or class.
+      require(isCodiraRefcounted(PAI->getArguments().front()->getType()),
+              "partial_apply context argument must be language-refcounted");
     }
   }
 
@@ -2375,8 +2388,8 @@ public:
   }
 
   void checkBuiltinInst(BuiltinInst *BI) {
-    // Check for special constraints on llvm intrinsics.
-    if (BI->getIntrinsicInfo().ID != llvm::Intrinsic::not_intrinsic) {
+    // Check for special constraints on toolchain intrinsics.
+    if (BI->getIntrinsicInfo().ID != toolchain::Intrinsic::not_intrinsic) {
       verifyLLVMIntrinsic(BI, BI->getIntrinsicInfo().ID);
       return;
     }
@@ -2384,7 +2397,8 @@ public:
     auto builtinKind = BI->getBuiltinKind();
     auto arguments = BI->getArguments();
 
-    if (builtinKind == BuiltinValueKind::ZeroInitializer) {
+    if (builtinKind == BuiltinValueKind::ZeroInitializer ||
+        builtinKind == BuiltinValueKind::PrepareInitialization) {
       require(!BI->getSubstitutions(),
               "zeroInitializer has no generic arguments as a SIL builtin");
       if (arguments.size() == 0) {
@@ -2457,7 +2471,7 @@ public:
                   "result of createAsyncTask");
       require(arguments.size() == 7,
               "createAsyncTask expects seven arguments");
-      requireType(arguments[0]->getType(), _object(_swiftInt),
+      requireType(arguments[0]->getType(), _object(_languageInt),
                   "first argument of createAsyncTask");
       requireType(arguments[1]->getType(), _object(_optional(_executor)),
                   "second argument of createAsyncTask");
@@ -2465,7 +2479,7 @@ public:
                   "third argument of createAsyncTask");
       requireType(arguments[3]->getType(), _object(_optional(_executor)),
                   "fourth argument of createAsyncTask");
-      if (F.getASTContext().getProtocol(swift::KnownProtocolKind::TaskExecutor)) {
+      if (F.getASTContext().getProtocol(language::KnownProtocolKind::TaskExecutor)) {
         requireType(arguments[4]->getType(),
                     _object(_optional(_existential(_taskExecutor))),
                     "fifth argument of createAsyncTask");
@@ -2858,7 +2872,7 @@ public:
       }
       if (!scopedAddressLiveness->isWithinBoundary(user,
                                                    /*deadEndBlocks=*/nullptr)) {
-        llvm::errs() << "User found outside scope: " << *user;
+        toolchain::errs() << "User found outside scope: " << *user;
         return false;
       }
     }
@@ -5311,7 +5325,7 @@ public:
   }
 
   void checkReturnInst(ReturnInst *RI) {
-    LLVM_DEBUG(RI->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(RI->print(toolchain::dbgs()));
 
     SILType functionResultType =
         F.getLoweredType(F.mapTypeIntoContext(fnConv.getSILResultType(
@@ -5321,16 +5335,16 @@ public:
                 fnConv.getSILResultType(F.getTypeExpansionContext())
                     .getCategory());
     SILType instResultType = RI->getOperand()->getType();
-    LLVM_DEBUG(llvm::dbgs() << "function return type: ";
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "function return type: ";
                functionResultType.dump();
-               llvm::dbgs() << "return inst type: ";
+               toolchain::dbgs() << "return inst type: ";
                instResultType.dump(););
     requireSameType(functionResultType, instResultType,
                     "return value type does not match return type of function");
   }
 
   void checkThrowInst(ThrowInst *TI) {
-    LLVM_DEBUG(TI->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(TI->print(toolchain::dbgs()));
 
     require(fnConv.funcTy->hasErrorResult(),
             "throw in function that doesn't have an error result");
@@ -5342,9 +5356,9 @@ public:
             .getCategoryType(fnConv.getSILErrorType(F.getTypeExpansionContext())
                                  .getCategory());
     SILType instResultType = TI->getOperand()->getType();
-    LLVM_DEBUG(llvm::dbgs() << "function error result type: ";
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "function error result type: ";
                functionResultType.dump();
-               llvm::dbgs() << "throw operand type: ";
+               toolchain::dbgs() << "throw operand type: ";
                instResultType.dump(););
     requireSameType(
         functionResultType, instResultType,
@@ -5386,7 +5400,7 @@ public:
 
     // Find the set of enum elements for the type so we can verify
     // exhaustiveness.
-    llvm::DenseSet<EnumElementDecl*> unswitchedElts;
+    toolchain::DenseSet<EnumElementDecl*> unswitchedElts;
     eDecl->getAllElements(unswitchedElts);
 
     // Verify the set of enum cases we dispatch on.
@@ -5418,7 +5432,7 @@ public:
 
     // If the select is non-exhaustive, we require a default.
     bool isExhaustive =
-        eDecl->isEffectivelyExhaustive(F.getModule().getSwiftModule(),
+        eDecl->isEffectivelyExhaustive(F.getModule().getCodiraModule(),
                                        F.getResilienceExpansion());
     require((isExhaustive && unswitchedElts.empty()) || SEO.hasDefault(),
             "nonexhaustive select_:enum must have a default destination");
@@ -5489,7 +5503,7 @@ public:
 
     // Find the set of enum elements for the type so we can verify
     // exhaustiveness.
-    llvm::DenseSet<EnumElementDecl*> unswitchedElts;
+    toolchain::DenseSet<EnumElementDecl*> unswitchedElts;
 
     auto checkSwitchCase = [&](EnumElementDecl *elt, SILBasicBlock *dest) {
       require(elt->getDeclContext() == uDecl,
@@ -5557,7 +5571,7 @@ public:
     // If the switch is non-exhaustive, we require a default.
     if (!switchEnum->hasDefault()) {
       bool isExhaustive = uDecl->isEffectivelyExhaustive(
-          F.getModule().getSwiftModule(), F.getResilienceExpansion());
+          F.getModule().getCodiraModule(), F.getResilienceExpansion());
       require(isExhaustive
                   && (unswitchedElts.size() == uDecl->getNumElements()),
               "nonexhaustive switch_enum must have a default destination");
@@ -5600,7 +5614,7 @@ public:
 
     // Find the set of enum elements for the type so we can verify
     // exhaustiveness.
-    llvm::DenseSet<EnumElementDecl*> unswitchedElts;
+    toolchain::DenseSet<EnumElementDecl*> unswitchedElts;
     uDecl->getAllElements(unswitchedElts);
 
     // Verify the set of enum cases we dispatch on.
@@ -5632,7 +5646,7 @@ public:
 
     // If the switch is non-exhaustive, we require a default.
     bool isExhaustive =
-        uDecl->isEffectivelyExhaustive(F.getModule().getSwiftModule(),
+        uDecl->isEffectivelyExhaustive(F.getModule().getCodiraModule(),
                                        F.getResilienceExpansion());
     require((isExhaustive && unswitchedElts.empty()) || SOI->hasDefault(),
             "nonexhaustive switch_enum_addr must have a default destination");
@@ -5706,7 +5720,7 @@ public:
     if (!F.hasOwnership())
       return;
 
-    require(llvm::all_of(cbi->getOperandValues(),
+    require(toolchain::all_of(cbi->getOperandValues(),
                          [&](SILValue v) -> bool {
                            return v->getType().isTrivial(*cbi->getFunction());
                          }),
@@ -6239,11 +6253,11 @@ public:
   /// Collect the opened element archetypes in the named type that
   /// are opened by an instruction using the given pack-indexing
   /// instruction.
-  llvm::DenseMap<CanType, CanPackType>
+  toolchain::DenseMap<CanType, CanPackType>
   collectOpenedElementArchetypeBindings(CanType type,
                                         AnyPackIndexInst *indexedBy) {
-    llvm::DenseSet<GenericEnvironment *> visited;
-    llvm::DenseMap<CanType, CanPackType> result;
+    toolchain::DenseSet<GenericEnvironment *> visited;
+    toolchain::DenseMap<CanType, CanPackType> result;
 
     type.visit([&](CanType type) {
       auto opened = dyn_cast<ElementArchetypeType>(type);
@@ -6518,14 +6532,14 @@ public:
   void verifyEntryBlock(SILBasicBlock *entry) {
     require(entry->pred_empty(), "entry block cannot have predecessors");
 
-    LLVM_DEBUG(
-        llvm::dbgs() << "Argument types for entry point BB:\n";
+    TOOLCHAIN_DEBUG(
+        toolchain::dbgs() << "Argument types for entry point BB:\n";
         for (auto *arg
              : make_range(entry->args_begin(), entry->args_end()))
             arg->getType()
                 .dump();
-        llvm::dbgs() << "Input types for SIL function type ";
-        F.getLoweredFunctionType()->print(llvm::dbgs()); llvm::dbgs() << ":\n";
+        toolchain::dbgs() << "Input types for SIL function type ";
+        F.getLoweredFunctionType()->print(toolchain::dbgs()); toolchain::dbgs() << ":\n";
         for (auto paramTy
              : fnConv.getParameterSILTypes(F.getTypeExpansionContext())) {
           paramTy.dump();
@@ -6546,9 +6560,9 @@ public:
       if (bbarg->getType() != mappedTy &&
           bbarg->getType() != F.getLoweredType(mappedTy.getASTType())
                                   .getCategoryType(mappedTy.getCategory())) {
-        llvm::errs() << what << " type mismatch!\n";
-        llvm::errs() << "  argument: "; bbarg->dump();
-        llvm::errs() << "  expected: "; mappedTy.dump();
+        toolchain::errs() << what << " type mismatch!\n";
+        toolchain::errs() << "  argument: "; bbarg->dump();
+        toolchain::errs() << "  expected: "; mappedTy.dump();
         matched = false;
       }
 
@@ -6561,9 +6575,9 @@ public:
           F, mappedTy, fnConv.getSILArgumentConvention(bbarg->getIndex()));
 
       if (bbarg->getOwnershipKind() != ownershipkind) {
-        llvm::errs() << what << " ownership kind mismatch!\n";
-        llvm::errs() << "  argument: " << bbarg->getOwnershipKind() << '\n';
-        llvm::errs() << "  expected: " << ownershipkind << '\n';
+        toolchain::errs() << what << " ownership kind mismatch!\n";
+        toolchain::errs() << "  argument: " << bbarg->getOwnershipKind() << '\n';
+        toolchain::errs() << "  expected: " << ownershipkind << '\n';
         matched = false;
       }
     };
@@ -6807,7 +6821,7 @@ public:
     // sending.
     require(FTy->hasSendingResult() ==
                 (FTy->getResults().size() &&
-                 llvm::all_of(FTy->getResults(),
+                 toolchain::all_of(FTy->getResults(),
                               [](SILResultInfo result) {
                                 return result.hasOption(
                                     SILResultInfo::IsSending);
@@ -6857,7 +6871,7 @@ public:
     // Do a traversal of the basic blocks.
     // Note that we intentionally don't verify these properties in blocks
     // that can't be reached from the entry block.
-    llvm::DenseMap<SILBasicBlock*, VerifyFlowSensitiveRulesDetails::BBState> visitedBBs;
+    toolchain::DenseMap<SILBasicBlock*, VerifyFlowSensitiveRulesDetails::BBState> visitedBBs;
     SmallVector<SILBasicBlock*, 16> Worklist;
     visitedBBs.try_emplace(&*F->begin());
     Worklist.push_back(&*F->begin());
@@ -6898,8 +6912,8 @@ public:
           require(!state.Stack.empty(),
                   "stack dealloc with empty stack");
           if (op != state.Stack.back()) {
-            llvm::errs() << "Recent stack alloc: " << *state.Stack.back();
-            llvm::errs() << "Matching stack alloc: " << *op;
+            toolchain::errs() << "Recent stack alloc: " << *state.Stack.back();
+            toolchain::errs() << "Matching stack alloc: " << *op;
             require(op == state.Stack.back(),
                     "stack dealloc does not match most recent stack alloc");
           }
@@ -7073,7 +7087,7 @@ public:
 
     // This check only makes sense at -Onone. Optimizations,
     // e.g. inlining, can move scopes around.
-    llvm::DenseSet<const SILDebugScope *> AlreadySeenScopes;
+    toolchain::DenseSet<const SILDebugScope *> AlreadySeenScopes;
     if (BB->getParent()->getEffectiveOptimizationMode() !=
         OptimizationMode::NoOptimization)
       return;
@@ -7106,7 +7120,7 @@ public:
       //
       //        where the RHS of the assignment gets run first and then the
       //        result is copied into the LHS.
-      if (!llvm::isa<BeginBorrowInst>(&SI) || !llvm::isa<CopyValueInst>(&SI))
+      if (!toolchain::isa<BeginBorrowInst>(&SI) || !toolchain::isa<CopyValueInst>(&SI))
         continue;
 
       // If we haven't seen this debug scope yet, update the
@@ -7148,21 +7162,21 @@ public:
         continue;
       }
       if (DS != LastSeenScope) {
-        llvm::errs() << "Broken instruction!\n"; 
+        toolchain::errs() << "Broken instruction!\n"; 
         SI.dump();
 #ifndef NDEBUG
-        llvm::errs() << "in scope\n";
+        toolchain::errs() << "in scope\n";
         DS->print(SI.getFunction()->getModule());
 #endif
-        llvm::errs() << "Previous, non-contiguous scope set by";
+        toolchain::errs() << "Previous, non-contiguous scope set by";
         LastSeenScopeInst->dump();
 #ifndef NDEBUG
-        llvm::errs() << "in scope\n";
+        toolchain::errs() << "in scope\n";
         LastSeenScope->print(SI.getFunction()->getModule());
 #endif
-        llvm::errs() << "Please report a bug on bugs.swift.org\n";
-        llvm::errs() <<
-          "Pass -Xllvm -verify-di-holes=false to disable the verification\n";
+        toolchain::errs() << "Please report a bug on bugs.code.org\n";
+        toolchain::errs() <<
+          "Pass -Xtoolchain -verify-di-holes=false to disable the verification\n";
         // Turn on debug info printing so that the log actually shows the bad
         // scopes.
         SILPrintDebugInfo.setValue(true);
@@ -7189,7 +7203,7 @@ public:
     // Visit all basic blocks in the RPOT order.
     // This ensures that any open_existential instructions, which
     // open archetypes, are seen before the uses of these archetypes.
-    llvm::ReversePostOrderTraversal<SILFunction *> RPOT(F);
+    toolchain::ReversePostOrderTraversal<SILFunction *> RPOT(F);
     BasicBlockSet VisitedBBs(F);
     for (auto Iter = RPOT.begin(), E = RPOT.end(); Iter != E; ++Iter) {
       auto *BB = *Iter;
@@ -7212,8 +7226,8 @@ public:
   // have this basic block in its predecessor/successor list.
   void verifyPredecessorSucessorStructure(SILFunction *f) {
     using PredSuccPair = std::pair<SILBasicBlock *, SILBasicBlock *>;
-    llvm::DenseSet<PredSuccPair> foundSuccessors;
-    llvm::DenseSet<PredSuccPair> foundPredecessors;
+    toolchain::DenseSet<PredSuccPair> foundSuccessors;
+    toolchain::DenseSet<PredSuccPair> foundPredecessors;
 
     for (auto &block : *f) {
       for (SILBasicBlock *succ : block.getSuccessorBlocks()) {
@@ -7388,6 +7402,11 @@ public:
 #undef require
 #undef requireObjectType
 
+bool language::isIndirectArgumentMutated(SILFunctionArgument *arg, bool ignoreDestroys,
+                                      bool defaultIsMutating) {
+  return ImmutableAddressUseVerifier(ignoreDestroys, defaultIsMutating).isMutatingOrConsuming(arg);
+}
+
 //===----------------------------------------------------------------------===//
 //                     Out of Line Verifier Run Functions
 //===----------------------------------------------------------------------===//
@@ -7421,6 +7440,10 @@ void SILFunction::verify(CalleeCache *calleeCache,
                          bool checkLinearLifetime) const {
   if (!verificationEnabled(getModule()))
     return;
+
+  if (hasSemanticsAttr(semantics::NO_SIL_VERIFICATION)) {
+    return;
+  }
 
   // Please put all checks in visitSILFunction in SILVerifier, not here. This
   // ensures that the pretty stack trace in the verifier is included with the
@@ -7491,7 +7514,7 @@ void SILProperty::verify(const SILModule &M) const {
 
   auto require = [&](bool reqt, StringRef message) {
       if (!reqt) {
-        llvm::errs() << message << "\n";
+        toolchain::errs() << message << "\n";
         assert(false && "invoking standard assertion failure");
       }
     };
@@ -7573,7 +7596,7 @@ void SILVTable::verify(const SILModule &M) const {
     // The vtable entry must be ABI-compatible with the overridden vtable slot.
     SmallString<32> baseName;
     {
-      llvm::raw_svector_ostream os(baseName);
+      toolchain::raw_svector_ostream os(baseName);
       entry.getMethod().print(os);
     }
 
@@ -7651,57 +7674,111 @@ void SILVTable::verify(const SILModule &M) const {
 }
 
 /// Verify that a witness table follows invariants.
-void SILWitnessTable::verify(const SILModule &M) const {
-  if (!verificationEnabled(M))
+void SILWitnessTable::verify(const SILModule &mod) const {
+  if (!verificationEnabled(mod))
     return;
 
   if (isDeclaration())
     assert(getEntries().empty() &&
            "A witness table declaration should not have any entries.");
 
-  for (const Entry &E : getEntries())
-    if (E.getKind() == SILWitnessTable::WitnessKind::Method) {
-      SILFunction *F = E.getMethodWitness().Witness;
-      if (F) {
-        // If a SILWitnessTable is going to be serialized, it must only
-        // reference public or serializable functions.
-        if (isAnySerialized()) {
-          assert(F->hasValidLinkageForFragileRef(getSerializedKind()) &&
-                 "Fragile witness tables should not reference "
-                 "less visible functions.");
-        }
+  for (const Entry &entry : getEntries()) {
+    if (entry.getKind() != SILWitnessTable::WitnessKind::Method)
+      continue;
 
-        assert(F->getLoweredFunctionType()->getRepresentation() ==
-               SILFunctionTypeRepresentation::WitnessMethod &&
-               "Witnesses must have witness_method representation.");
-      }
+    auto *witnessFunction = entry.getMethodWitness().Witness;
+    if (!witnessFunction)
+      continue;
+
+    // If a SILWitnessTable is going to be serialized, it must only
+    // reference public or serializable functions.
+    if (isAnySerialized()) {
+      assert(
+          witnessFunction->hasValidLinkageForFragileRef(getSerializedKind()) &&
+          "Fragile witness tables should not reference "
+          "less visible functions.");
     }
+
+    assert(witnessFunction->getLoweredFunctionType()->getRepresentation() ==
+               SILFunctionTypeRepresentation::WitnessMethod &&
+           "Witnesses must have witness_method representation.");
+
+    if (mod.getStage() != SILStage::Lowered &&
+        !mod.getASTContext().LangOpts.hasFeature(Feature::Embedded)) {
+      // Note the direction of the compatibility check: the witness
+      // function must be compatible with being used as the requirement
+      // type.
+      auto baseInfo = witnessFunction->getModule().Types.getConstantInfo(
+          TypeExpansionContext::minimal(),
+          entry.getMethodWitness().Requirement);
+      SmallString<32> baseName;
+      {
+        toolchain::raw_svector_ostream os(baseName);
+        entry.getMethodWitness().Requirement.print(os);
+      }
+
+      SILVerifier(*witnessFunction, /*calleeCache=*/nullptr,
+                  /*SingleFunction=*/true,
+                  /*checkLinearLifetime=*/false)
+          .requireABICompatibleFunctionTypes(
+              witnessFunction->getLoweredFunctionType(),
+              baseInfo.getSILType().castTo<SILFunctionType>(),
+              "witness table entry for " + baseName + " must be ABI-compatible",
+              *witnessFunction);
+    }
+  }
 }
 
 /// Verify that a default witness table follows invariants.
-void SILDefaultWitnessTable::verify(const SILModule &M) const {
-#ifndef NDEBUG
-  for (const Entry &E : getEntries()) {
+void SILDefaultWitnessTable::verify(const SILModule &mod) const {
+  if (!verificationEnabled(mod))
+    return;
+
+  for (const Entry &entry : getEntries()) {
     // FIXME: associated type witnesses.
-    if (!E.isValid() || E.getKind() != SILWitnessTable::Method)
+    if (!entry.isValid() || entry.getKind() != SILWitnessTable::Method)
       continue;
 
-    SILFunction *F = E.getMethodWitness().Witness;
-    if (!F)
+    auto *witnessFunction = entry.getMethodWitness().Witness;
+    if (!witnessFunction)
       continue;
 
 #if 0
     // FIXME: For now, all default witnesses are private.
-    assert(F->hasValidLinkageForFragileRef(IsSerialized) &&
+    assert(witnessFunction->hasValidLinkageForFragileRef(IsSerialized) &&
            "Default witness tables should not reference "
            "less visible functions.");
 #endif
 
-    assert(F->getLoweredFunctionType()->getRepresentation() ==
-           SILFunctionTypeRepresentation::WitnessMethod &&
+    assert(witnessFunction->getLoweredFunctionType()->getRepresentation() ==
+               SILFunctionTypeRepresentation::WitnessMethod &&
            "Default witnesses must have witness_method representation.");
+
+    if (mod.getStage() != SILStage::Lowered &&
+        !mod.getASTContext().LangOpts.hasFeature(Feature::Embedded)) {
+      // Note the direction of the compatibility check: the witness
+      // function must be compatible with being used as the requirement
+      // type.
+      auto baseInfo = witnessFunction->getModule().Types.getConstantInfo(
+          TypeExpansionContext::minimal(),
+          entry.getMethodWitness().Requirement);
+      SmallString<32> baseName;
+      {
+        toolchain::raw_svector_ostream os(baseName);
+        entry.getMethodWitness().Requirement.print(os);
+      }
+
+      SILVerifier(*witnessFunction, /*calleeCache=*/nullptr,
+                  /*SingleFunction=*/true,
+                  /*checkLinearLifetime=*/false)
+          .requireABICompatibleFunctionTypes(
+              witnessFunction->getLoweredFunctionType(),
+              baseInfo.getSILType().castTo<SILFunctionType>(),
+              "default witness table entry for " + baseName +
+                  " must be ABI-compatible",
+              *witnessFunction);
+    }
   }
-#endif
 }
 
 /// Verify that a global variable follows invariants.
@@ -7744,12 +7821,12 @@ void SILModule::verify(CalleeCache *calleeCache,
     return;
 
   // Uniquing set to catch symbol name collisions.
-  llvm::DenseSet<StringRef> symbolNames;
+  toolchain::DenseSet<StringRef> symbolNames;
 
   // Check all functions.
   for (const SILFunction &f : *this) {
     if (!symbolNames.insert(f.getName()).second) {
-      llvm::errs() << "Symbol redefined: " << f.getName() << "!\n";
+      toolchain::errs() << "Symbol redefined: " << f.getName() << "!\n";
       assert(false && "triggering standard assertion failure routine");
     }
     f.verify(calleeCache, /*singleFunction*/ false, isCompleteOSSA, checkLinearLifetime);
@@ -7758,18 +7835,18 @@ void SILModule::verify(CalleeCache *calleeCache,
   // Check all globals.
   for (const SILGlobalVariable &g : getSILGlobals()) {
     if (!symbolNames.insert(g.getName()).second) {
-      llvm::errs() << "Symbol redefined: " << g.getName() << "!\n";
+      toolchain::errs() << "Symbol redefined: " << g.getName() << "!\n";
       assert(false && "triggering standard assertion failure routine");
     }
     g.verify();
   }
 
   // Check all vtables and the vtable cache.
-  llvm::DenseSet<ClassDecl*> vtableClasses;
+  toolchain::DenseSet<ClassDecl*> vtableClasses;
   unsigned EntriesSZ = 0;
   for (const auto &vt : getVTables()) {
     if (!vt->isSpecialized() && !vtableClasses.insert(vt->getClass()).second) {
-      llvm::errs() << "Vtable redefined: " << vt->getClass()->getName() << "!\n";
+      toolchain::errs() << "Vtable redefined: " << vt->getClass()->getName() << "!\n";
       assert(false && "triggering standard assertion failure routine");
     }
     vt->verify(*this);
@@ -7777,7 +7854,7 @@ void SILModule::verify(CalleeCache *calleeCache,
     for (auto entry : vt->getEntries()) {
       if (VTableEntryCache.find({vt, entry.getMethod()}) ==
           VTableEntryCache.end()) {
-        llvm::errs() << "Vtable entry for function: "
+        toolchain::errs() << "Vtable entry for function: "
                      << entry.getImplementation()->getName()
                      << "not in cache!\n";
         assert(false && "triggering standard assertion failure routine");
@@ -7789,14 +7866,14 @@ void SILModule::verify(CalleeCache *calleeCache,
          "Cache size is not equal to true number of VTable entries");
 
   // Check all witness tables.
-  LLVM_DEBUG(llvm::dbgs() <<"*** Checking witness tables for duplicates ***\n");
-  llvm::DenseSet<llvm::PointerIntPair<ProtocolConformance *, 1, bool>> wtableConformances;
+  TOOLCHAIN_DEBUG(toolchain::dbgs() <<"*** Checking witness tables for duplicates ***\n");
+  toolchain::DenseSet<toolchain::PointerIntPair<ProtocolConformance *, 1, bool>> wtableConformances;
   for (const SILWitnessTable &wt : getWitnessTables()) {
-    LLVM_DEBUG(llvm::dbgs() << "Witness Table:\n"; wt.dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Witness Table:\n"; wt.dump());
     auto conformance = wt.getConformance();
     if (!wtableConformances.insert({conformance, wt.isSpecialized()}).second) {
-      llvm::errs() << "Witness table redefined: ";
-      conformance->printName(llvm::errs());
+      toolchain::errs() << "Witness table redefined: ";
+      conformance->printName(toolchain::errs());
       assert(false && "triggering standard assertion failure routine");
     }
     if (wt.isSpecialized()) {
@@ -7809,13 +7886,13 @@ void SILModule::verify(CalleeCache *calleeCache,
   }
 
   // Check all default witness tables.
-  LLVM_DEBUG(llvm::dbgs() << "*** Checking default witness tables for "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Checking default witness tables for "
              "duplicates ***\n");
-  llvm::DenseSet<const ProtocolDecl *> defaultWitnessTables;
+  toolchain::DenseSet<const ProtocolDecl *> defaultWitnessTables;
   for (const SILDefaultWitnessTable &wt : getDefaultWitnessTables()) {
-    LLVM_DEBUG(llvm::dbgs() << "Default Witness Table:\n"; wt.dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Default Witness Table:\n"; wt.dump());
     if (!defaultWitnessTables.insert(wt.getProtocol()).second) {
-      llvm::errs() << "Default witness table redefined: ";
+      toolchain::errs() << "Default witness table redefined: ";
       wt.dump();
       assert(false && "triggering standard assertion failure routine");
     }
@@ -7823,7 +7900,7 @@ void SILModule::verify(CalleeCache *calleeCache,
   }
   
   // Check property descriptors.
-  LLVM_DEBUG(llvm::dbgs() << "*** Checking property descriptors ***\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Checking property descriptors ***\n");
   for (auto &prop : getPropertyList()) {
     prop.verify(*this);
   }

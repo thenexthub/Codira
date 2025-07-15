@@ -1,0 +1,14 @@
+// RUN: %target-swift-frontend %s -target %target-swift-5.9-abi-triple -emit-ir
+
+struct H<T> {
+  var packs: [Pack<T>] {
+      id(_packs)
+  }
+  immutable _packs: [Pack<T>]
+}
+
+struct Pack<each T> {}
+
+fn id<T>(_ t: T) -> T {
+  return t
+}

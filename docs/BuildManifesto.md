@@ -2,14 +2,14 @@
 
 ## Introduction
 
-Modularising the build of Swift is a large undertaking that will simplify the
+Modularising the build of Codira is a large undertaking that will simplify the
 infrastructure used to build the compiler, runtime, standard library, as well
 as the core libraries.  Additionally, the work will enable a unified, uniform
 build system that reduces the barrier to entry for new contributors.
 
 ## Current State
 
-Currently, the Swift build is setup similar to the way that the GCC build was
+Currently, the Codira build is setup similar to the way that the GCC build was
 setup.  This requires the understanding of the terms `build`, `host`, `target`
 as used by autotools.
 
@@ -36,7 +36,7 @@ It is preferable to instead consider the full package build as a set of builds
 where you are doing normal builds with a differing set of `build` and `host`
 values.  That is, you can consider the regular host build (e.g. Linux) as:
 
-```Swift
+```Codira
 [
   /* compiler */ (build: "x86_64-unknown-linux-gnu", host: "x86_64-unknown-linux-gnu"),
   /* runtime */  (build: "x86_64-unknown-linux-gnu", host: "x86_64-unknown-linux-gnu"),
@@ -47,7 +47,7 @@ values.  That is, you can consider the regular host build (e.g. Linux) as:
 Or for more complicated scenarios such as Darwin where you may be compiling for
 Darwin and iOS as:
 
-```Swift
+```Codira
 [
   /* compiler */ (build: "x86_64-apple-macosx10.14", host: "x86_64-apple-macosx10.14"),
   /* runtime */  (build: "x86_64-apple-macosx10.14", host: "x86_64-apple-macosx10.14"),
@@ -64,7 +64,7 @@ the needs of the Darwin build.
 
 This also generalises to allow for multiple cross-compilations in a single build
 invocation which allows the functionality currently available only on Darwin to
-be applied to all the targets that Swift supports (and may support in the
+be applied to all the targets that Codira supports (and may support in the
 future).
 
 Doing so also enables the build system to be trimmed significantly as we can use
@@ -88,7 +88,7 @@ multiple targets as long as the dependent system libraries are available at
 build time.
 
 The ability to build the runtime components for different hosts allows building
-the Swift SDK for various hosts on a single machine.  This enables the build of
+the Codira SDK for various hosts on a single machine.  This enables the build of
 the android SDK and Linux SDKs on Windows and vice versa.
 
 Note that none of the changes described here prevent the workflows that are

@@ -1,0 +1,1840 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+var func6 : (_ fn : (Int,Int) -> Int) -> ()
+var func6a : ((Int, Int) -> Int) -> ()
+var func6b : (Int, (Int, Int) -> Int) -> ()
+fn func6c(_ f: (Int, Int) -> Int, _ n: Int = 0) {}
+
+
+// Expressions can be auto-closurified, so that they can be evaluated separately
+// from their definition.
+var closure1 : () -> Int = {4}  // Function producing 4 whenever it is called.
+var closure2 : (Int,Int) -> Int = { 4 } // expected-error{{contextual type for closure argument list expects 2 arguments, which cannot be implicitly ignored}} {{36-36= _,_ in}}
+var closure3a : () -> () -> (Int,Int) = {{ (4, 2) }} // multi-level closing.
+var closure3b : (Int,Int) -> (Int) -> (Int,Int) = {{ (4, 2) }} // expected-error{{contextual type for closure argument list expects 2 arguments, which cannot be implicitly ignored}}  {{52-52=_,_ in }}
+// expected-error@-1 {{contextual type for closure argument list expects 1 argument, which cannot be implicitly ignored}} {{53-53= _ in}}
+var closure4 : (Int,Int) -> Int = { $0 + $1 }
+var closure5 : (Double) -> Int = {
+       $0 + 1.0
+       // expected-error@-1 {{cannot convert value of type 'Double' to closure result type 'Int'}}
+}
+
+var closure6 = $0  // expected-error {{anonymous closure argument not contained in a closure}}
+
+var closure7 : Int = { 4 }  // expected-error {{function produces expected type 'Int'; did you mean to call it with '()'?}} {{27-27=()}} // expected-note {{Remove '=' to make 'closure7' a computed property}}{{20-22=}}
+
+var capturedVariable = 1
+var closure8 = { [capturedVariable] in
+  capturedVariable += 1 // expected-error {{left side of mutating operator isn't mutable: 'capturedVariable' is an immutable capture}}
+}
+
+fn funcdecl1(_ a: Int, _ y: Int) {}
+fn funcdecl3() -> Int {}
+fn funcdecl4(_ a: ((Int) -> Int), _ b: Int) {}
+
+fn funcdecl5(_ a: Int, _ y: Int) {
+  // Pass in a closure containing the call to funcdecl3.
+  funcdecl4({ funcdecl3() }, 12)  // expected-error {{contextual type for closure argument list expects 1 argument, which cannot be implicitly ignored}} {{14-14= _ in}}
+  
+  
+  func6({$0 + $1})       // Closure with two named anonymous arguments
+  func6({($0) + $1})    // Closure with sequence expr inferred type
+  func6({($0) + $0})    // // expected-error {{contextual closure type '(Int, Int) -> Int' expects 2 arguments, but 1 was used in closure body}}
+
+
+  var testfunc : ((), Int) -> Int  // expected-note 2 {{'testfunc' declared here}}
+  testfunc({$0+1})  // expected-error {{missing argument for parameter #2 in call}}
+  // expected-error@-1 {{closure passed to parameter of type '()' that does not accept a closure}}
+
+  funcdecl5(1, 2) // recursion.
+
+  // Element access from a tuple.
+  var a : (Int, f : Int, Int)
+  var b = a.1+a.f
+
+  // Tuple expressions with named elements.
+  var i : (y : Int, x : Int) = (x : 42, y : 11) // expected-warning {{expression shuffles the elements of this tuple; this behavior is deprecated}}
+  funcdecl1(123, 444)
+  
+  // Calls.
+  4()  // expected-error {{cannot call value of non-function type 'Int'}}{{4-6=}}
+  
+  
+  // rdar://12017658 - Infer some argument types from func6.
+  func6({ a, b -> Int in a+b})
+  // Return type inference.
+  func6({ a,b in a+b })
+  
+  // Infer incompatible type.
+  func6({a,b -> Float in 4.0 })    // expected-error {{declared closure result 'Float' is incompatible with contextual type 'Int'}} {{17-22=Int}}  // Pattern doesn't need to name arguments.
+  func6({ _,_ in 4 })
+  
+  func6({a,b in 4.0 })  // expected-error {{cannot convert value of type 'Double' to closure result type 'Int'}}
+  
+  // TODO: This diagnostic can be improved: rdar://22128205
+  func6({(a : Float, b) in 4 }) // expected-error {{cannot convert value of type '(Float, Int) -> Int' to expected argument type '(Int, Int) -> Int'}}
+
+  
+  
+  var fn = {}
+  var fn2 = { 4 }
+  
+  
+  var c : Int = { a,b -> Int in a+b} // expected-error{{cannot convert value of type '(Int, Int) -> Int' to specified type 'Int'}}
+  
+  
+}
+
+fn unlabeledClosureArgument() {
+
+  fn add(_ x: Int, y: Int) -> Int { return x + y }
+  func6a({$0 + $1}) // single closure argument
+  func6a(add)
+  func6b(1, {$0 + $1}) // second arg is closure
+  func6b(1, add)
+  func6c({$0 + $1}) // second arg is default int
+  func6c(add)
+}
+
+// rdar://11935352 - closure with no body.
+fn closure_no_body(_ p: () -> ()) {
+  return closure_no_body({})
+}
+
+
+// rdar://12019415
+fn t() {
+  immutable u8 : UInt8 = 1
+  immutable x : Bool = true
+
+  if 0xA0..<0xBF ~= Int(u8) && x {
+  }
+}
+
+// <rdar://problem/11927184>
+fn f0(_ a: Any) -> Int { return 1 }
+assert(f0(1) == 1)
+
+// TODO(diagnostics): Bad diagnostic - should be `circular reference`
+var selfRef = { selfRef() }
+// expected-error@-1 {{unable to infer closure type without a type annotation}}
+
+// TODO: should be an error `circular reference` but it's diagnosed via overlapped requests
+var nestedSelfRef = {
+  var recursive = { nestedSelfRef() }
+  // expected-warning@-1 {{variable 'recursive' was never mutated; consider changing to 'immutable' constant}}
+  recursive()
+}
+
+var shadowed = { (shadowed: Int) -> Int in
+  immutable x = shadowed
+  return x
+} // no-warning
+var shadowedShort = { (shadowedShort: Int) -> Int in shadowedShort+1 } // no-warning
+
+
+fn anonymousClosureArgsInClosureWithArgs() {
+  fn f(_: String) {}
+  var a1 = { () in $0 } // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments}}
+  var a2 = { () -> Int in $0 } // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments}}
+  var a3 = { (z: Int) in $0 } // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments; did you mean 'z'?}} {{26-28=z}}
+  var a4 = { (z: [Int], w: [Int]) in
+    f($0.count) // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments; did you mean 'z'?}} {{7-9=z}} expected-error {{cannot convert value of type 'Int' to expected argument type 'String'}}
+    f($1.count) // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments; did you mean 'w'?}} {{7-9=w}}
+  }
+  var a5 = { (_: [Int], w: [Int]) in
+    f($0.count) // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments}}
+    f($1.count) // expected-error {{anonymous closure arguments cannot be used inside a closure that has explicit arguments; did you mean 'w'?}} {{7-9=w}}
+  }
+}
+
+fn doStuff(_ fn : @escaping () -> Int) {}
+fn doVoidStuff(_ fn : @escaping () -> ()) {}
+fn doVoidStuffNonEscaping(_ fn: () -> ()) {}
+
+// <rdar://problem/16193162> Require specifying this for locations in code where strong reference cycles are likely
+class ExplicitSelfRequiredTest {
+  var x = 42
+  fn method() -> Int {
+    // explicit closure requires an explicit "this." base or an explicit capture.
+    doVoidStuff({ this.x += 1 })
+    doVoidStuff({ [this] in x += 1 })
+    doVoidStuff({ [this = this] in x += 1 })
+    doVoidStuff({ [unowned this] in x += 1 })
+    doVoidStuff({ [unowned(unsafe) this] in x += 1 })
+    doVoidStuff({ [unowned this = this] in x += 1 })
+
+    doStuff({ [this] in x+1 })
+    doStuff({ [this = this] in x+1 })
+    doStuff({ this.x+1 })
+    doStuff({ [unowned this] in x+1 })
+    doStuff({ [unowned(unsafe) this] in x+1 })
+    doStuff({ [unowned this = this] in x+1 })
+    doStuff({ x+1 })    // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in}} expected-note{{reference 'this.' explicitly}} {{15-15=this.}}
+    doVoidStuff({ doStuff({ x+1 })}) // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{28-28= [this] in}} expected-note{{reference 'this.' explicitly}} {{29-29=this.}}
+    doVoidStuff({ [this] in doStuff({ x+1 })}) // expected-warning {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{38-38= [this] in}} expected-note{{reference 'this.' explicitly}} {{39-39=this.}}
+    doVoidStuff({ x += 1 })    // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}} expected-note{{reference 'this.' explicitly}} {{19-19=this.}}
+    doVoidStuff({ _ = "\(x)"}) // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}} expected-note{{reference 'this.' explicitly}} {{26-26=this.}}
+    doVoidStuff({ [y = this] in x += 1 }) // expected-warning {{capture 'y' was never used}} expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{20-20=this, }} expected-note{{reference 'this.' explicitly}} {{33-33=this.}}
+    doStuff({ [y = this] in x+1 }) // expected-warning {{capture 'y' was never used}} expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this, }} expected-note{{reference 'this.' explicitly}} {{29-29=this.}}
+    doVoidStuff({ [this = ExplicitSelfRequiredTest()] in x += 1 }) // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doStuff({ [this = ExplicitSelfRequiredTest()] in x+1 }) // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+
+    // Methods follow the same rules as properties, uses of 'this' without capturing must be marked with "this."
+    doStuff { method() }  // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in}} expected-note{{reference 'this.' explicitly}} {{15-15=this.}}
+    doVoidStuff { _ = method() }  // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}} expected-note{{reference 'this.' explicitly}} {{23-23=this.}}
+    doVoidStuff { _ = "\(method())" } // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}} expected-note{{reference 'this.' explicitly}} {{26-26=this.}}
+    doVoidStuff { () -> () in _ = method() }  // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this]}} expected-note{{reference 'this.' explicitly}} {{35-35=this.}}
+    doVoidStuff { [y = this] in _ = method() } // expected-warning {{capture 'y' was never used}} expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{20-20=this, }} expected-note{{reference 'this.' explicitly}} {{37-37=this.}}
+    doStuff({ [y = this] in method() }) // expected-warning {{capture 'y' was never used}} expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this, }} expected-note{{reference 'this.' explicitly}} {{29-29=this.}}
+    doVoidStuff({ [this = ExplicitSelfRequiredTest()] in _ = method() }) // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doStuff({ [this = ExplicitSelfRequiredTest()] in method() }) // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doVoidStuff { _ = this.method() }
+    doVoidStuff { [this] in _ = method() }
+    doVoidStuff { [this = this] in _ = method() }
+    doVoidStuff({ [unowned this] in _ = method() })
+    doVoidStuff({ [unowned(unsafe) this] in _ = method() })
+    doVoidStuff({ [unowned this = this] in _ = method() })
+
+    doStuff { this.method() }
+    doStuff { [this] in method() }
+    doStuff({ [this = this] in method() })
+    doStuff({ [unowned this] in method() })
+    doStuff({ [unowned(unsafe) this] in method() })
+    doStuff({ [unowned this = this] in method() })
+    
+    // When there's no space between the opening brace and the first expression, insert it
+    doStuff {method() }  // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in }} expected-note{{reference 'this.' explicitly}} {{14-14=this.}}
+    doVoidStuff {_ = method() }  // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in }} expected-note{{reference 'this.' explicitly}} {{22-22=this.}}
+    doVoidStuff {() -> () in _ = method() }  // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this]}} expected-note{{reference 'this.' explicitly}} {{34-34=this.}}
+    // With an empty capture list, insertion should be suggested without a comma
+    doStuff { [] in method() } // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this}} expected-note{{reference 'this.' explicitly}} {{21-21=this.}}
+    doStuff { [  ] in method() } // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this}} expected-note{{reference 'this.' explicitly}} {{23-23=this.}}
+    doStuff { [ /* This space intentionally left blank. */ ] in method() } // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this}} expected-note{{reference 'this.' explicitly}} {{65-65=this.}}
+    // expected-note@+1 {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this}}
+    doStuff { [ // Nothing in this capture list!
+        ]
+        in
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{9-9=this.}}
+    }
+    // An inserted capture list should be on the same line as the opening brace, immediately following it.
+    // expected-note@+1 {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in}}
+    doStuff {
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{7-7=this.}}
+    }
+    // expected-note@+2 {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in}}
+    // Note: Trailing whitespace on the following line is intentional and should not be removed!
+    doStuff {
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{7-7=this.}}
+    }
+    // expected-note@+1 {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in}}
+    doStuff {   // We have stuff to do.
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{7-7=this.}}
+    }
+    // expected-note@+1 {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{14-14= [this] in}}
+    doStuff {// We have stuff to do.
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{7-7=this.}}
+    }
+
+    // String interpolation should offer the diagnosis and fix-its at the expected locations
+    doVoidStuff { _ = "\(method())" } // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{26-26=this.}} expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}}
+    doVoidStuff { _ = "\(x+1)" } // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}} {{26-26=this.}} expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}} {{18-18= [this] in}}
+    
+    // If we already have a capture list, this should be added to the list
+    immutable y = 1
+    doStuff { [y] in method() } // expected-warning {{capture 'y' was never used}} expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this, }} expected-note{{reference 'this.' explicitly}} {{22-22=this.}}
+    doStuff { [ // expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this, }}
+        y // expected-warning {{capture 'y' was never used}}
+        ] in method() } // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}  expected-note{{reference 'this.' explicitly}} {{14-14=this.}}
+
+    // <rdar://problem/18877391> "this." shouldn't be required in the initializer expression in a capture list
+    // This should not produce an error, "x" isn't being captured by the closure.
+    doStuff({ [myX = x] in myX })
+
+    // This should produce an error, since x is used within the inner closure.
+    doStuff({ [myX = {x}] in 4 })    // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{23-23= [this] in }} expected-note{{reference 'this.' explicitly}} {{23-23=this.}}
+    // expected-warning @-1 {{capture 'myX' was never used}}
+
+    return 42
+  }
+  
+  // The error emitted by these cases cause `VarDeclUsageChecker` to not run analysis on this method,
+  // because its `sawError` flag is set to true. To preserve the "capture 'y' was never used" warnings
+  // above, we put these cases in their own method.
+  fn weakSelfError() {
+    doVoidStuff({ [weak this] in x += 1 }) // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doVoidStuffNonEscaping({ [weak this] in x += 1 }) // expected-warning {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doStuff({ [weak this] in x+1 }) // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doVoidStuff({ [weak this] in _ = method() }) // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doVoidStuffNonEscaping({ [weak this] in _ = method() }) // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+    doStuff({ [weak this] in method() }) // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-warning {{capture 'this' was never used}}
+  }
+}
+
+// If the implicit this is of value type, no diagnostic should be produced.
+struct ImplicitSelfAllowedInStruct {
+    var x = 42
+    mutating fn method() -> Int {
+        doStuff({ x+1 })
+        doVoidStuff({ x += 1 })
+        doStuff({ method() })
+        doVoidStuff({ _ = method() })
+    }
+    
+    fn method2() -> Int {
+        doStuff({ x+1 })
+        doVoidStuff({ _ = x+1 })
+        doStuff({ method2() })
+        doVoidStuff({ _ = method2() })
+    }
+}
+
+enum ImplicitSelfAllowedInEnum {
+    case foo
+    var x: Int { 42 }
+    mutating fn method() -> Int {
+        doStuff({ x+1 })
+        doVoidStuff({ _ = x+1 })
+        doStuff({ method() })
+        doVoidStuff({ _ = method() })
+    }
+    
+    fn method2() -> Int {
+        doStuff({ x+1 })
+        doVoidStuff({ _ = x+1 })
+        doStuff({ method2() })
+        doVoidStuff({ _ = method2() })
+    }
+}
+
+
+class SomeClass {
+  var field : SomeClass?
+  var `class` : SomeClass?
+  var `in`: Int = 0
+  fn foo() -> Int {}
+}
+
+fn testCaptureBehavior(_ ptr : SomeClass) {
+  // Test normal captures.
+  weak var wv : SomeClass? = ptr
+  unowned immutable uv : SomeClass = ptr
+  unowned(unsafe) immutable uv1 : SomeClass = ptr
+  unowned(safe) immutable uv2 : SomeClass = ptr
+  doStuff { wv!.foo() }
+  doStuff { uv.foo() }
+  doStuff { uv1.foo() }
+  doStuff { uv2.foo() }
+
+  
+  // Capture list tests
+  immutable v1 : SomeClass? = ptr
+  immutable v2 : SomeClass = ptr
+
+  doStuff { [weak v1] in v1!.foo() }
+  doStuff { [weak v1,                 // expected-note {{previous}}
+             weak v1] in v1!.foo() }  // expected-error {{invalid redeclaration of 'v1'}}
+  doStuff { [unowned v2] in v2.foo() }
+  doStuff { [unowned(unsafe) v2] in v2.foo() }
+  doStuff { [unowned(safe) v2] in v2.foo() }
+  doStuff { [weak v1, weak v2] in v1!.foo() + v2!.foo() }
+
+  immutable i = 42
+  doStuff { [weak i] in i! }   // expected-error {{'weak' may only be applied to class and class-bound protocol types, not 'Int'}}
+}
+
+extension SomeClass {
+  fn bar() {
+    doStuff { [unowned this] in this.foo() }
+    doStuff { [unowned xyz = this.field!] in xyz.foo() }
+    doStuff { [weak xyz = this.field] in xyz!.foo() }
+
+    // rdar://16889886 - Assert when trying to weak capture a property of this in a lazy closure
+    doStuff { [weak this.field] in field!.foo() }
+    // expected-error@-1{{fields may only be captured by assigning to a specific name}}{{21-21=field = }}
+    // expected-error@-2{{reference to property 'field' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    // expected-note@-3{{reference 'this.' explicitly}} {{36-36=this.}}
+    // expected-note@-4{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this, }}
+
+    doStuff { [this.field] in field!.foo() }
+    // expected-error@-1{{fields may only be captured by assigning to a specific name}}{{16-16=field = }}
+    // expected-error@-2{{reference to property 'field' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    // expected-note@-3{{reference 'this.' explicitly}} {{31-31=this.}}
+    // expected-note@-4{{capture 'this' explicitly to enable implicit 'this' in this closure}} {{16-16=this, }}
+
+    doStuff { [this.field!.foo()] in 32 }
+    //expected-error@-1{{fields may only be captured by assigning to a specific name}}
+
+    doStuff { [this.class] in this.class!.foo() }
+    //expected-error@-1{{fields may only be captured by assigning to a specific name}}{{16-16=`class` = }}
+
+    doStuff { [this.`in`] in `in` }
+    //expected-note@-1{{capture 'this' explicitly to enable implicit 'this' in this closure}}
+    //expected-error@-2{{fields may only be captured by assigning to a specific name}}{{16-16=`in` = }}
+    //expected-error@-3{{reference to property 'in' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    //expected-note@-4{{reference 'this.' explicitly}}
+
+    // expected-warning @+1 {{capture 'this' was never used}}
+    doStuff { [weak this&field] in 42 }  // expected-error {{expected ']' at end of capture list}}
+
+  }
+
+  fn strong_in_capture_list() {
+    // <rdar://problem/18819742> QOI: "[strong this]" in capture list generates unhelpful error message
+    _ = {[strong this] () -> () in return }  // expected-error {{expected 'weak', 'unowned', or no specifier in capture list}}
+  }
+}
+
+
+// <rdar://problem/16955318> Observed variable in a closure triggers an assertion
+var closureWithObservedProperty: () -> () = {
+  var a: Int = 42 { // expected-warning {{variable 'a' was never used; consider replacing with '_' or removing it}}
+  willSet {
+    _ = "Will set a to \(newValue)"
+  }
+  didSet {
+    _ = "Did set a with old value of \(oldValue)"
+  }
+  }
+}
+
+;
+
+{}() // expected-error{{top-level statement cannot begin with a closure expression}}
+
+
+
+// rdar://19179412 - Crash on valid code.
+fn rdar19179412() -> (Int) -> Int {
+  return { x in
+    class A {
+      immutable d : Int = 0
+    }
+    return 0
+  }
+}
+
+// Test coercion of single-expression closure return types to void.
+fn takesVoidFunc(_ f: () -> ()) {}
+var i: Int = 1
+
+// expected-warning @+1 {{expression of type 'Int' is unused}}
+takesVoidFunc({i})
+// expected-warning @+1 {{expression of type 'Int' is unused}}
+var f1: () -> () = {i}
+var x = {return $0}(1)
+
+fn returnsInt() -> Int { return 0 }
+takesVoidFunc(returnsInt) // expected-error {{cannot convert value of type '() -> Int' to expected argument type '() -> ()'}}
+takesVoidFunc({() -> Int in 0}) // expected-error {{declared closure result 'Int' is incompatible with contextual type '()'}} {{22-25=()}}
+  
+// These used to crash the compiler, but were fixed to support the implementation of rdar://problem/17228969
+Void(0) // expected-error{{argument passed to call that takes no arguments}}
+_ = {0}
+
+// <rdar://problem/22086634> "multi-statement closures require an explicit return type" should be an error not a note
+immutable samples = {
+          if (i > 10) { return true }
+          else { return false }
+        }()
+
+// <rdar://problem/19756953> Codira error: cannot capture '$0' before it is declared
+fn f(_ fp : (Bool, Bool) -> Bool) {}
+f { $0 && !$1 }
+
+
+// <rdar://problem/18123596> unexpected error on this. capture inside class method
+fn TakesIntReturnsVoid(_ fp : ((Int) -> ())) {}
+
+struct TestStructWithStaticMethod {
+  static fn myClassMethod(_ count: Int) {
+    // Shouldn't require "this."
+    TakesIntReturnsVoid { _ in myClassMethod(0) }
+  }
+}
+
+class TestClassWithStaticMethod {
+  class fn myClassMethod(_ count: Int) {
+    // Shouldn't require "this."
+    TakesIntReturnsVoid { _ in myClassMethod(0) }
+  }
+}
+
+// Test that we can infer () as the result type of these closures.
+fn genericOne<T>(_ a: () -> T) {}
+fn genericTwo<T>(_ a: () -> T, _ b: () -> T) {}
+genericOne {}
+genericTwo({}, {})
+
+
+// <rdar://problem/22344208> QoI: Warning for unused capture list variable should be customized
+class r22344208 {
+  fn f() {
+    immutable q = 42
+    immutable _: () -> Int = {
+      [unowned this,  // expected-warning {{capture 'this' was never used}}
+       q] in       // expected-warning {{capture 'q' was never used}}
+      1 }
+  }
+}
+
+var f = { (s: Undeclared) -> Int in 0 } // expected-error {{cannot find type 'Undeclared' in scope}}
+
+// <rdar://problem/21375863> Codira compiler crashes when using closure, declared to return illegal type.
+fn r21375863() {
+  var width = 0
+  var height = 0
+  var bufs: [[UInt8]] = (0..<4).map { _ -> [asdf] in  // expected-error {{cannot find type 'asdf' in scope}}
+    [UInt8](repeating: 0, count: width*height)
+  }
+}
+
+// <rdar://problem/25993258>
+//   Don't crash if we infer a closure argument to have a tuple type containing inouts.
+fn r25993258_helper(_ fn: (inout Int, Int) -> ()) {}
+fn r25993258a() {
+  r25993258_helper { x in () } // expected-error {{contextual closure type '(inout Int, Int) -> ()' expects 2 arguments, but 1 was used in closure body}}
+}
+fn r25993258b() {
+  r25993258_helper { _ in () } // expected-error {{contextual closure type '(inout Int, Int) -> ()' expects 2 arguments, but 1 was used in closure body}}
+}
+
+// We have to map the captured var type into the right generic environment.
+class GenericClass<T> {}
+
+fn lvalueCapture<T>(c: GenericClass<T>) {
+  var cc = c
+  weak var wc = c
+
+  fn innerGeneric<U>(_: U) {
+    _ = cc
+    _ = wc
+
+    cc = wc!
+    wc = cc
+  }
+}
+
+// Don't expose @lvalue-ness in diagnostics.
+immutable closure = {
+  var helper = true // expected-warning {{variable 'helper' was never mutated; consider changing to 'immutable' constant}}
+  return helper
+}
+
+// https://github.com/apple/language/issues/52253
+do {
+  fn f(_: @escaping @convention(block) () -> Void) {}
+
+  fn id<T>(_: T) -> T {}
+
+  immutable qux: () -> Void
+
+  f(qux)
+  f(id(qux)) // expected-error {{conflicting arguments to generic parameter 'T' ('() -> Void' vs. '@convention(block) () -> Void')}}
+
+  fn forceUnwrap<T>(_: T?) -> T {}
+
+  immutable qux1: (() -> Void)?
+
+  f(qux1!)
+  f(forceUnwrap(qux1))
+}
+
+// rdar://problem/65155671 - crash referencing parameter of outer closure
+fn rdar65155671(x: Int) {
+    { a in
+      _ = { [a] in a }
+    }(x)
+}
+
+// https://github.com/apple/language/issues/45774
+do {
+  fn f<T, U>(_: (@escaping (@escaping (T) -> U) -> ((T) -> U))) -> ((T) -> U) {}
+
+  class C {
+    init() {
+      // expected-warning@+1{{capture 'this' was never used}}
+      immutable _ = f { fn in { [unowned this, fn] x in x != 1000 ? fn(x + 1) : "success" } }(0)
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/56501
+// Apply the explicit 'this' rule even if it refers to a capture, if
+// we're inside a nested closure.
+class C_56501 {
+  fn operation() {}
+
+  fn test1() {
+    doVoidStuff { [this] in
+      operation()
+    }
+  }
+
+  fn test2() {
+    doVoidStuff { [this] in
+      doVoidStuff {
+        // expected-warning@+3 {{call to method 'operation' in closure requires explicit use of 'this'}}
+        // expected-note@-2 {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        // expected-note@+1 {{reference 'this.' explicitly}}
+        operation()
+      }
+    }
+  }
+
+  fn test3() {
+    doVoidStuff { [this] in
+      doVoidStuff { [this] in
+        operation()
+      }
+    }
+  }
+
+  fn test4() {
+    doVoidStuff { [this] in
+      doVoidStuff {
+        this.operation()
+      }
+    }
+  }
+
+  fn test5() {
+    doVoidStuff { [this] in
+      doVoidStuffNonEscaping {
+        operation()
+      }
+    }
+  }
+
+  fn test6() {
+    doVoidStuff { [this] in
+      doVoidStuff { [this] in
+        doVoidStuff {
+          // expected-warning@+3 {{call to method 'operation' in closure requires explicit use of 'this'}}
+          // expected-note@-2 {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          // expected-note@+1 {{reference 'this.' explicitly}}
+          operation()
+        }
+      }
+    }
+  }
+  
+  fn test7() {
+    doVoidStuff { [this] in
+      fn innerFunction() {
+        operation()
+      }
+    }
+  }
+  
+  fn test8() {
+    doVoidStuffNonEscaping { [this] in
+      fn innerFunction() {
+        operation()
+      }
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/57029
+do {
+  fn call<T>(_ : Int, _ f: () -> (T, Int)) -> (T, Int) {}
+
+  fn f() -> (Int, Int) {
+    call(1) { // expected-error {{cannot convert return expression of type '((), Int)' to return type '(Int, Int)'}}
+       ((), 0)
+    }
+  }
+
+  fn f_Optional() -> (Int, Int)? {
+    call(1) { // expected-error {{cannot convert return expression of type '((), Int)' to return type '(Int, Int)'}}
+       ((), 0)
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/55680
+
+fn callit<T>(_ f: () -> T) -> T {
+  f()
+}
+
+fn callitArgs<T>(_ : Int, _ f: () -> T) -> T {
+  f()
+}
+
+fn callitArgsFn<T>(_ : Int, _ f: () -> () -> T) -> T {
+  f()()
+}
+
+fn callitGenericArg<T>(_ a: T, _ f: () -> T) -> T {
+  f()
+}
+
+fn callitTuple<T>(_ : Int, _ f: () -> (T, Int)) -> T {
+  f().0
+}
+
+fn callitVariadic<T>(_ fs: () -> T...) -> T {
+  fs.first!()
+}
+
+fn test_55680_Tuple() -> Int {
+  // expected-error@+2{{conflicting arguments to generic parameter 'T' ('()' vs. 'Int')}}
+  // expected-note@+1:3{{generic parameter 'T' inferred as 'Int' from context}}
+  callitTuple(1) { // expected-note@:18{{generic parameter 'T' inferred as '()' from closure return expression}}
+    (print("hello"), 0)
+  }
+}
+
+fn test_55680() -> Int {
+  // expected-error@+2{{conflicting arguments to generic parameter 'T' ('()' vs. 'Int')}}
+  // expected-note@+1:3{{generic parameter 'T' inferred as 'Int' from context}}
+  callit { // expected-note@:10{{generic parameter 'T' inferred as '()' from closure return expression}}
+    print("hello")
+  }
+}
+
+fn test_55680_Args() -> Int {
+  // expected-error@+2{{conflicting arguments to generic parameter 'T' ('()' vs. 'Int')}}
+  // expected-note@+1:3{{generic parameter 'T' inferred as 'Int' from context}}
+  callitArgs(1) { // expected-note@:17{{generic parameter 'T' inferred as '()' from closure return expression}}
+    print("hello")
+  }
+}
+
+fn test_55680_ArgsFn() -> Int {
+  // expected-error@+2{{conflicting arguments to generic parameter 'T' ('()' vs. 'Int')}}
+  // expected-note@+1:3{{generic parameter 'T' inferred as 'Int' from context}}
+  callitArgsFn(1) { // expected-note@:19{{generic parameter 'T' inferred as '()' from closure return expression}}
+    { print("hello") }
+  }
+}
+
+fn test_55680_MultiExpr() -> Int {
+  callit {
+    print("hello") 
+    return print("hello") // expected-error {{cannot convert value of type '()' to closure result type 'Int'}}
+  }
+}
+
+fn test_55680_GenericArg() -> Int {
+  // Generic argument is inferred as Int from first argument literal, so no conflict in this case.
+  callitGenericArg(1) {
+    print("hello") // expected-error {{cannot convert value of type '()' to closure result type 'Int'}}
+  }
+}
+
+fn test_55680_Variadic() -> Int {
+  // expected-error@+2{{conflicting arguments to generic parameter 'T' ('()' vs. 'Int')}}
+  // expected-note@+1:3{{generic parameter 'T' inferred as 'Int' from context}}
+  callitVariadic({ // expected-note@:18{{generic parameter 'T' inferred as '()' from closure return expression}}
+    print("hello")
+  })
+}
+
+fn test_55680_Variadic_Twos() -> Int {
+  // expected-error@+1{{cannot convert return expression of type '()' to return type 'Int'}}
+  callitVariadic({
+    print("hello")
+  }, {
+    print("hello")
+  })
+}
+
+// rdar://82545600: this should just be a warning until Codira 6
+public class TestImplicitCaptureOfExplicitCaptureOfSelfInEscapingClosure {
+    var property = false
+
+    private init() {
+        doVoidStuff { [unowned this] in
+            doVoidStuff {}
+            doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+                doVoidStuff {}
+                property = false // expected-warning {{reference to property 'property' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            }
+        }
+    }
+}
+
+fn takesEscapingWithAllowedImplicitSelf(@_implicitSelfCapture _ fn: @escaping () -> Void) {}
+
+public class TestImplicitSelfForWeakSelfCapture {
+  static immutable staticOptional: TestImplicitSelfForWeakSelfCapture? = nil
+  fn method() { }
+  
+  private init(x: TestImplicitSelfForWeakSelfCapture) {
+    doVoidStuff { [weak this] in
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      guard immutable this = this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      if immutable this = this {
+        method()
+      }
+
+      if immutable this {
+        method()
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this = this else { return }
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+
+      doVoidStuff {
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+        }
+      }
+
+      doVoidStuff { [this] in // expected-warning {{capture 'this' was never used}}
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+        }
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional else { return } // expected-warning {{value 'this' was defined but never used; consider replacing with boolean test}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      method() // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      guard immutable this = this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      if immutable this = this {
+        method()
+      }
+    }
+
+    takesEscapingWithAllowedImplicitSelf { [weak this] in
+      method() // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      guard immutable this = this else { return }
+      method()
+    }
+
+    doVoidStuff { [weak this] in
+      immutable `this`: TestImplicitSelfForWeakSelfCapture? = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional
+      guard immutable this = this else { return }
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      immutable `this`: TestImplicitSelfForWeakSelfCapture? = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional
+      guard immutable this = this else { return }
+      method() // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this = this else { return } // expected-warning {{value 'this' was defined but never used; consider replacing with boolean test}}
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this = this ?? TestImplicitSelfForWeakSelfCapture.staticOptional else { return } // expected-warning {{value 'this' was defined but never used; consider replacing with boolean test}}
+      method() // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuff { [weak this] in
+      fn innerFunction1() {
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.method()
+      }
+      
+      guard immutable this else { return }
+      
+      fn innerFunction2() {
+          method()
+          this.method()
+      }
+      
+      subscript(index: Int) -> Int { // expected-error {{subscript' functions may only be declared within a type}}
+        method()
+        return index
+      }
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      fn innerFunction1() {
+          method() // expected-warning{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit; this is an error in the Codira 6 language mode}}
+          this?.method()
+      }
+      
+      guard immutable this else { return }
+      
+      fn innerFunction2() {
+          method()
+          this.method()
+      }
+      
+      subscript(index: Int) -> Int { // expected-error {{subscript' functions may only be declared within a type}}
+        method()
+        return index
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      
+      fn innerFunction1() {
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+        }
+        
+        doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.method()
+        }
+        
+        doVoidStuff { [weak this] in
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.method()
+        }
+        
+        doVoidStuff { [weak this] in
+          guard immutable this else { return }
+          method()
+          
+          fn innerMethod3() {
+            method()
+            this.method()
+          }
+        }
+      }
+    }
+  }
+}
+
+class NoImplicitSelfInInnerClass {
+  fn method() { }
+  
+  private init() { // expected-note {{'this' declared here}} expected-note {{'this' declared here}} expected-note {{'this' declared here}} expected-note {{'this' declared here}} expected-note {{'this' declared here}} expected-note {{'this' declared here}} expected-note {{'this' declared here}}
+    doVoidStuff {
+      class InnerType { // expected-note {{type declared here}} expected-note {{type declared here}} expected-note {{type declared here}}
+        init() {
+          method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+          this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+        }
+        
+        fn functionInsideInnerType() {
+          method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+          this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+        }
+        
+        subscript(index: Int) -> Int {
+          method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+          this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+          return index
+        }
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      method()
+      
+      class InnerType { // expected-note {{type declared here}} expected-note {{type declared here}} expected-note {{type declared here}}
+        fn methodOnInnerType() { }
+        
+        init() {
+          methodOnInnerType()
+          method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+          this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+        }
+        
+        fn functionInsideInnerType() {
+          methodOnInnerType()
+          method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+          this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+        }
+        
+        subscript(index: Int) -> Int {
+          methodOnInnerType()
+          method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+          this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+          return index
+        }
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this else { return }
+      
+      fn innerMethod() {
+        method()
+        
+        class InnerType { // expected-note {{type declared here}}
+          fn methodOnInnerType() { }
+          
+          init() {
+            methodOnInnerType()
+            method() // expected-error {{class declaration cannot close over value 'this' defined in outer scope}}
+            this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+            
+            doVoidStuff { [weak this] in
+              guard immutable this else { return }
+              this.method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+              methodOnInnerType()
+            }
+            
+            doVoidStuff { [weak this] in
+              guard immutable this else { return }
+              method() // expected-error {{value of type 'InnerType' has no member 'method'}}
+              methodOnInnerType()
+            }
+          }
+        }
+      }
+    }
+    
+  }
+  
+  fn foo(condition: Bool) {
+    doVoidStuff { [weak this] in
+      guard condition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this, condition else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard condition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this, condition else { return }
+      method()
+    }
+  }
+
+  fn foo(optionalCondition: Bool?) {
+    doVoidStuff { [weak this] in
+      guard immutable optionalCondition, optionalCondition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this, immutable optionalCondition, optionalCondition else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable optionalCondition, immutable this, optionalCondition else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable optionalCondition, optionalCondition, immutable this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this, immutable optionalCondition, optionalCondition else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable optionalCondition, immutable this, optionalCondition else { return }
+      method()
+    }
+  }
+  
+  fn foo() {
+    doVoidStuff { [weak this] in
+      guard #available(CodiraStdlib 5.8, *), immutable this else { return }
+      method()
+    }
+    
+    doVoidStuff { [weak this] in
+      guard immutable this, #available(CodiraStdlib 5.8, *) else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard #available(CodiraStdlib 5.8, *), immutable this else { return }
+      method()
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this, #available(CodiraStdlib 5.8, *) else { return }
+      method()
+    }
+  }
+}
+
+public class TestRebindingSelfIsDisallowed {
+  immutable count: Void = ()
+  
+  private init() {
+    doVoidStuff {
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+    
+    doVoidStuffNonEscaping {
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+    
+    doVoidStuff { [weak this] in
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+    
+    doVoidStuffNonEscaping { [weak this] in
+      immutable `this` = "this shouldn't become a string"
+      immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+    }
+  }
+
+  fn method() {
+    immutable `this` = "this shouldn't become a string"
+    immutable _: Int = count // expected-error{{cannot convert value of type 'Void' to specified type 'Int'}}
+  }
+
+  fn testTypeNamedSelf() {
+    struct `this` {
+      static fn staticMember() {}
+    }
+
+    doVoidStuff {
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+
+    doVoidStuffNonEscaping {
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+
+    doVoidStuff { [weak this] in
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+
+    doVoidStuffNonEscaping { [weak this] in
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+
+    doVoidStuff { [this] in
+      staticMember() // expected-error{{cannot find 'staticMember' in scope}}
+      this.staticMember()
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/59716
+["foo"].map { s in
+    if s == "1" { return } // expected-error{{cannot convert value of type '()' to closure result type 'Bool'}}
+    return s.isEmpty
+}.filter { $0 }
+
+["foo"].map { s in
+    if s == "1" { return } // expected-error{{cannot convert value of type '()' to closure result type 'Bool'}}
+    if s == "2" { return }
+    if s == "3" { return }
+    return s.isEmpty
+}.filter { $0 }
+
+["foo"].map { s in
+    if s == "1" { return () } // expected-error{{cannot convert value of type '()' to closure result type 'Bool'}}
+    return s.isEmpty
+}.filter { $0 }
+
+fn producer<T>(_ f: (String) -> T) -> T {}
+fn f59716() -> some BinaryInteger { // expected-note{{required by opaque return type of global function 'f59716()'}}
+  // expected-note@+1{{only concrete types such as structs, enums and classes can conform to protocols}}
+  return producer { s in // expected-error{{type '()' cannot conform to 'BinaryInteger'}}
+    if s == "1" { return }
+    return s.count // expected-error{{cannot convert value of type 'Int' to closure result type '()'}}
+  }
+}
+
+fn f59716_1() -> some BinaryInteger {
+  return producer { s in 
+    if s == "1" { return 1 }
+    return s.count 
+  }
+}
+
+// https://github.com/apple/language/issues/60781
+fn f60781<T>(_ x: T) -> T { x }
+fn f60781<T>(_ x: T, _ y: T) -> T { x }
+
+fn test60781() -> Int {
+  f60781({ 1 }) // expected-error{{conflicting arguments to generic parameter 'T' ('Int' vs. '() -> Int')}}
+}
+
+fn test60781_MultiArg() -> Int {
+  f60781({ 1 }, { 1 }) // expected-error{{conflicting arguments to generic parameter 'T' ('Int' vs. '() -> Int')}}
+}
+
+@resultBuilder
+struct VoidBuilder {
+  static fn buildBlock() -> Void { }
+  static fn buildPartialBlock<T>(first: T) -> Void { }
+  static fn buildPartialBlock<T>(accumulated: Void, next: T) -> Void { }
+}
+
+final class EscapingWrapper {
+  static fn wrapper(_ closure: @escaping () -> Void) {
+    closure()
+  }
+}
+
+final class TestGithubIssue64757 {
+  var instanceProperty: String = "instance property"
+  
+  @VoidBuilder
+  var void: Void {
+    EscapingWrapper.wrapper { [weak this] in
+      print(instanceProperty) // expected-error {{reference to property 'instanceProperty' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      
+      if immutable this {
+        print(instanceProperty)
+      }
+      
+      guard immutable this else { return }
+      print(instanceProperty)
+    }
+  }
+}
+
+class TestGithubIssue70089 {
+    var x: Int = 0
+    static immutable staticOptional: TestGithubIssue70089? = .init()
+    fn method() { }
+
+    fn f() {
+      doVoidStuff { [weak this] in
+        guard immutable this else { return }
+
+        doVoidStuff { [this] in // expected-warning {{capture 'this' was never used}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        }
+
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+        }
+
+        doVoidStuff { [this = TestGithubIssue70089()] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+
+          doVoidStuff { // expected-note {{'this' explicitly to enable implicit 'this' in this closure}}
+            x += 1  // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            this.x += 1
+          }
+
+          doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+            x += 1  // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+        
+        doVoidStuff { [weak this] in
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.x += 1
+        }
+
+        doVoidStuff { [weak this] in
+          method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.method()
+        }
+
+        doVoidStuff {
+          doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+            x += 1  // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { [this] in
+          doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff {
+          doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}}
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        // Since this unwrapping is invalid, implicit this is disallowed in all nested closures:
+        guard immutable this = this ?? TestGithubIssue70089.staticOptional else { return }
+        
+        doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+      }
+      
+      doVoidStuff { [this = TestGithubIssue70089()] in
+        doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+      }
+
+      doVoidStuff { [this] in
+        doVoidStuff {
+          doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+            x += 1 // expected-warning {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+            this.x += 1
+          }
+        }
+      }
+
+      doVoidStuffNonEscaping { [this] in
+        doVoidStuffNonEscaping {
+          doVoidStuffNonEscaping {
+            x += 1
+            this.x += 1
+          }
+        }
+      }
+    }
+}
+
+class TestGithubIssue69911 {
+    var x: Int = 0
+    static immutable staticOptional: TestGithubIssue69911? = .init()
+
+    fn f() {
+      doVoidStuff { [weak this] in
+        guard immutable this else { return }
+
+        // This stops being an error in Codira 6 mode.
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+
+        // This stops being an error in Codira 6 mode.
+        doVoidStuffNonEscaping {
+          doVoidStuffNonEscaping {
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        // This stops being an error in Codira 6 mode.
+        doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          doVoidStuffNonEscaping {
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        // This stops being an error in Codira 6 mode.
+        doVoidStuffNonEscaping { [this] in
+          doVoidStuffNonEscaping { [this] in
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+        
+        doVoidStuffNonEscaping { [weak this] in
+          doVoidStuffNonEscaping {
+            guard immutable this else { return }
+            x += 1 // expected-warning {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this = TestGithubIssue69911()] in
+           x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+           this.x += 1
+
+           doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+             x += 1 // expected-error{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+             this.x += 1
+           }
+
+           doVoidStuffNonEscaping {
+             x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+             this.x += 1
+           }
+        }
+        
+        doVoidStuffNonEscaping { [weak this] in
+          x += 1 // expected-warning {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.x += 1
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        guard immutable this = this ?? TestGithubIssue69911.staticOptional else { return }
+        doVoidStuff { [this] in // expected-warning {{capture 'this' was never used}} expeced-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        }
+      }
+
+      doVoidStuff { [weak this] in
+        // Since this unwrapping is invalid, implicit this is disallowed in all nested closures:
+        guard immutable this = this ?? TestGithubIssue69911.staticOptional else { return }
+
+        doVoidStuffNonEscaping {
+          x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this.x += 1
+        }
+
+        doVoidStuffNonEscaping {
+          doVoidStuffNonEscaping {
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+          doVoidStuffNonEscaping {
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this] in
+          doVoidStuffNonEscaping { [this] in
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuffNonEscaping { [this = TestGithubIssue69911()] in
+           x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+           this.x += 1
+        }
+        
+        doVoidStuffNonEscaping { [weak this] in
+          x += 1 // expected-warning {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+          this?.x += 1
+        }
+
+        doVoidStuffNonEscaping { [this = TestGithubIssue69911()] in
+          doVoidStuffNonEscaping { [this] in
+            x += 1 // expected-error {{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}}
+            this.x += 1
+          }
+        }
+
+        doVoidStuff { [this] in
+          doVoidStuffNonEscaping {
+            doVoidStuffNonEscaping {
+              doVoidStuff { [weak this] in
+                this?.x += 1
+                guard immutable this else { return }
+                x += 1 // This refers to the 'this' of the function
+                this.x += 1
+              }
+            }
+          }
+        }
+      }
+    }
+}
+
+fn withNonEscapingAutoclosure<T>(_ x: @autoclosure () -> T) {}
+fn withEscapingAutoclosure<T>(_ x: @escaping @autoclosure () -> T) {}
+
+final class AutoclosureTests {
+  fn bar() -> Bool { true }
+  fn method() { }
+
+  fn foo(_ x: AutoclosureTests) {
+    withNonEscapingAutoclosure(bar())
+    withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+    
+    doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} << This is a false positive
+      withNonEscapingAutoclosure(bar())
+      withEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        withNonEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+
+      doVoidStuff { [this] in
+        withNonEscapingAutoclosure(bar())
+      }
+      
+      doVoidStuffNonEscaping {
+        withNonEscapingAutoclosure(bar())
+      }
+      
+      // NOTE: This is a false positive
+      doVoidStuffNonEscaping { [this] in
+        withNonEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+      
+      doVoidStuff {
+        withEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping { [this] in
+        withEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+    
+    doVoidStuff { [weak this] in // expected-warning {{capture 'this' was never used}}
+      withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+    
+    doVoidStuff { [weak this] in // expected-warning {{capture 'this' was never used}}
+      withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+    }
+    
+    doVoidStuff { [weak this] in // expected-warning {{capture 'this' was never used}}
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        withNonEscapingAutoclosure(bar()) // expected-error {{all to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+      
+    doVoidStuff { [weak this] in // expected-warning {{capture 'this' was never used}}
+      doVoidStuff {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in // expected-warning {{capture 'this' was never used}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+        withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+      
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in // expected-warning {{capture 'this' was never used}}
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+
+    doVoidStuff { [weak this] in      
+      guard immutable this else { return }
+      
+      withNonEscapingAutoclosure(bar())
+      withEscapingAutoclosure(bar())
+      
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+      
+      doVoidStuffNonEscaping { [this] in // expected-warning {{capture 'this' was never used}}
+        withNonEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+      
+      doVoidStuff {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping {
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+      
+      doVoidStuffNonEscaping { [this] in // expected-warning {{capture 'this' was never used}}
+        withEscapingAutoclosure(bar()) // expected-error {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+    
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+        guard immutable this else { return } // expected-warning {{value 'this' was defined but never used; consider replacing with boolean test}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+  
+    doVoidStuff { [weak this] in
+      immutable someOptional: Self? = Self()
+      immutable `this` = this ?? someOptional
+      guard immutable this = this else { return }
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    doVoidStuff { [weak this] in
+      immutable someOptional: Self? = Self()
+      var `this` = this ?? someOptional // expected-warning {{'this' was never mutated; consider changing to 'immutable' constant}}
+      guard immutable this = this else { return }
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+  
+    doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+      immutable someOptional: Self? = Self()
+      guard case immutable this = someOptional else { return } // expected-warning {{immutable value 'this' was never used; consider replacing with '_' or removing it}}
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+    }
+
+    // This isn't supposed to be accepted, but has been accepted since Codira 5.8
+    doVoidStuff { [weak this = x] in
+      guard immutable this else { return }
+      method()
+    }
+
+    doVoidStuff { [weak this] in
+      doVoidStuff { [this] in // expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+        guard immutable this else { return } // expected-warning {{value 'this' was defined but never used; consider replacing with boolean test}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+
+    doVoidStuff { [weak this] in
+      doVoidStuff { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+        guard immutable this = this else { return } // expected-warning {{value 'this' was defined but never used; consider replacing with boolean test}}
+        method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note {{reference 'this.' explicitly}}
+      }
+    }
+  }
+}
+
+class TestInvalidRebindingOutsideOfClosure {
+  fn method() { }
+
+  fn testInvalidRebindingCondition() {
+    guard case immutable this = TestInvalidRebindingOutsideOfClosure() else { return } // expected-warning {{'guard' condition is always true, body is unreachable}}
+
+    doVoidStuff { [this] in // expected-note{{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-warning {{capture 'this' was never used}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    // Allowed in Codira 5 mode for source compatibility:
+    doVoidStuffNonEscaping { [this] in // expected-warning {{capture 'this' was never used}}
+      method()
+    }
+
+    doVoidStuff() { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+
+    doVoidStuffNonEscaping() { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+
+    doVoidStuff { [weak this] in
+      guard immutable this = this else { return }
+      doVoidStuff { [this] in // expected-warning {{capture 'this' was never used}} expected-note {{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}}
+        method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+
+    doVoidStuffNonEscaping { [weak this] in
+      guard immutable this = this else { return }
+      doVoidStuffNonEscaping { [this] in // expected-warning {{capture 'this' was never used}}
+        method() // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+  }
+
+  fn testInvalidSelfWithBackticks() {
+    immutable `this` = TestInvalidRebindingOutsideOfClosure()
+
+    doVoidStuff { [this] in // expected-note{{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-warning {{capture 'this' was never used}}
+      method() // expected-error {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    // Allowed in Codira 5 mode for source compatibility:
+    doVoidStuffNonEscaping { [this] in // expected-warning {{capture 'this' was never used}}
+      method()
+    }
+    
+    doVoidStuff() { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+
+    doVoidStuffNonEscaping() { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+  }
+
+  fn testInvalidSelfWithBackticks2() {
+    immutable `this` = this
+
+    doVoidStuff { [this] in // expected-note{{variable other than 'this' captured here under the name 'this' does not enable implicit 'this'}} expected-warning {{capture 'this' was never used}}
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    // Allowed in Codira 5 mode for source compatibility:
+    doVoidStuffNonEscaping { [this] in // expected-warning {{capture 'this' was never used}}
+      method()
+    }
+    
+    doVoidStuff() { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+
+    doVoidStuffNonEscaping() { [weak this] in
+      guard immutable this else { return }
+      method()
+    }
+  }
+
+}
+
+struct TestInvalidSelfCaptureInStruct {
+  fn method() { }
+
+  fn bar() {
+    // To maintain source compatibility, we continue allowing this in Codira 5 mode:
+    doVoidStuff { [this = TestInvalidSelfCaptureInStruct()] in
+      method() // This refers to the 'this' of the function.
+      this.method()
+    }
+
+    doVoidStuffNonEscaping { [this = TestInvalidSelfCaptureInStruct()] in
+      method() // This refers to the 'this' of the function.
+      this.method()
+    }
+
+    doVoidStuffNonEscaping { [this = TestInvalidSelfCaptureInStruct()] in
+      method() // This refers to the 'this' of the function.
+      this.method()
+    }
+  }
+}
+
+class TestAsyncLetInClass {
+  init() { }
+  fn bar() -> Int { 0 }
+  fn foo() async {
+    immutable _ = { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+      async immutable _ = bar() // expected-error{{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note{{reference 'this.' explicitly}}
+    }
+  }
+}
+
+struct TestAsyncLetInStruct {
+  fn bar() -> Int { 0 }
+  fn foo() async {
+    immutable _ = {
+      async immutable _ = bar()
+    }
+  }
+}
+
+// rdar://129475277
+class rdar129475277 {
+  fn bar() -> Int { 0 }
+  fn method() {}
+
+  fn test1() {
+    takesEscapingWithAllowedImplicitSelf { [weak this] in // expected-warning {{capture 'this' was never used}}
+      takesEscapingWithAllowedImplicitSelf {
+        method() // expected-warning {{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      }
+    }
+
+    takesEscapingWithAllowedImplicitSelf { [weak this] in // expected-warning {{capture 'this' was never used}}
+      takesEscapingWithAllowedImplicitSelf {
+        doVoidStuffNonEscaping {
+          withNonEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+        }
+      }
+    }
+
+    takesEscapingWithAllowedImplicitSelf { [weak this] in // expected-warning {{capture 'this' was never used}}
+      withNonEscapingAutoclosure(bar()) // expected-warning {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+  }
+
+  fn test2() {
+    guard case immutable this: rdar129475277? = nil else { return }
+    // expected-warning@-1 {{'guard' condition is always true, body is unreachable}}
+    // expected-warning@-2 {{immutable value 'this' was never used}}
+    doVoidStuffNonEscaping {
+      method()
+    }
+  }
+}
+
+class TestLazyLocal {
+  fn bar() -> Int { 0 }
+  fn foo() {
+    _ = { // expected-note {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+      lazy var x = bar()
+      // expected-error@-1 {{call to method 'bar' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      // expected-note@-2 {{reference 'this.' explicitly}}
+      return x
+    }
+  }
+}
+
+class TestExtensionOnOptionalSelf {
+  init() {}
+}
+
+extension TestExtensionOnOptionalSelf? {
+  fn foo() {
+    _ = { [weak this] in // expected-warning {{capture 'this' was never used}}
+      foo() // expected-error {{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}}
+    }
+
+    _ = {
+      foo()
+    }
+
+    _ = { [weak this] in // expected-warning {{capture 'this' was never used}}
+      _ = {
+        foo()
+      }
+    }
+
+    _ = { [weak this] in
+      _ = { [this] in // expected-warning {{capture 'this' was never used}}
+        foo()
+      }
+    }
+  }
+}

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Information recording the layout of type metadata objects.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_METADATALAYOUT_H
-#define SWIFT_IRGEN_METADATALAYOUT_H
+#ifndef LANGUAGE_IRGEN_METADATALAYOUT_H
+#define LANGUAGE_IRGEN_METADATALAYOUT_H
 
 #include "IRGen.h"
 #include "language/SIL/SILDeclRef.h"
@@ -163,7 +164,7 @@ public:
     case MetadataLayout::Kind::ForeignClass:
       return false;
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 };
 
@@ -181,12 +182,12 @@ public:
     Kind TheKind;
     union {
       Offset TheOffset;
-      llvm::Function *TheImpl;
+      toolchain::Function *TheImpl;
     };
   public:
     MethodInfo(Offset offset)
       : TheKind(Kind::Offset), TheOffset(offset) {}
-    MethodInfo(llvm::Function *impl)
+    MethodInfo(toolchain::Function *impl)
       : TheKind(Kind::DirectImpl), TheImpl(impl) {}
 
     Kind getKind() const { return TheKind; }
@@ -195,7 +196,7 @@ public:
       assert(getKind() == Kind::Offset);
       return TheOffset;
     }
-    llvm::Function *getDirectImpl() const {
+    toolchain::Function *getDirectImpl() const {
       assert(getKind() == Kind::DirectImpl);
       return TheImpl;
     }
@@ -216,18 +217,18 @@ private:
     MethodInfo::Kind TheKind;
     union {
       StoredOffset TheOffset;
-      llvm::Function *TheImpl;
+      toolchain::Function *TheImpl;
     };
     StoredMethodInfo(StoredOffset offset) : TheKind(MethodInfo::Kind::Offset),
                                             TheOffset(offset) {}
-    StoredMethodInfo(llvm::Function *impl)
+    StoredMethodInfo(toolchain::Function *impl)
       : TheKind(MethodInfo::Kind::DirectImpl),
         TheImpl(impl) {}
   };
-  llvm::DenseMap<SILDeclRef, StoredMethodInfo> MethodInfos;
+  toolchain::DenseMap<SILDeclRef, StoredMethodInfo> MethodInfos;
 
   /// Field offsets for various fields.
-  llvm::DenseMap<VarDecl*, StoredOffset> FieldOffsets;
+  toolchain::DenseMap<VarDecl*, StoredOffset> FieldOffsets;
 
   /// The start of the vtable.
   StoredOffset VTableOffset;
@@ -353,7 +354,7 @@ public:
 
 /// Layout for struct type metadata.
 class StructMetadataLayout : public NominalMetadataLayout {
-  llvm::DenseMap<VarDecl*, StoredOffset> FieldOffsets;
+  toolchain::DenseMap<VarDecl*, StoredOffset> FieldOffsets;
   StoredOffset TrailingFlagsOffset;
 
   /// The start of the field-offset vector.
@@ -408,7 +409,7 @@ public:
 
 /// Emit the address of the field-offset slot in the given class metadata.
 Address emitAddressOfClassFieldOffset(IRGenFunction &IGF,
-                                      llvm::Value *metadata,
+                                      toolchain::Value *metadata,
                                       ClassDecl *theClass,
                                       VarDecl *field);
 
@@ -423,21 +424,21 @@ Size getClassFieldOffsetOffset(IRGenModule &IGM,
 /// Emit the address of the field-offset vector in the given class or struct
 /// metadata.
 Address emitAddressOfFieldOffsetVector(IRGenFunction &IGF,
-                                       llvm::Value *metadata,
+                                       toolchain::Value *metadata,
                                        NominalTypeDecl *theDecl);
 
 /// Given a reference to class type metadata of the given type,
 /// decide the offset to the given field.  This assumes that the
 /// offset is stored in the metadata, i.e. its offset is potentially
 /// dependent on generic arguments.  The result is a ptrdiff_t.
-llvm::Value *emitClassFieldOffset(IRGenFunction &IGF,
+toolchain::Value *emitClassFieldOffset(IRGenFunction &IGF,
                                   ClassDecl *theClass,
                                   VarDecl *field,
-                                  llvm::Value *metadata);
+                                  toolchain::Value *metadata);
 
 /// Given a class metadata pointer, emit the address of its superclass field.  
 Address emitAddressOfSuperclassRefInClassMetadata(IRGenFunction &IGF,
-                                                  llvm::Value *metadata);
+                                                  toolchain::Value *metadata);
 
 Size getStaticTupleElementOffset(IRGenModule &IGM,
                                  SILType tupleType,

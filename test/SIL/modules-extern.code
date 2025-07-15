@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -enable-experimental-feature Extern -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-as-library
+// RUN: %target-language-frontend -enable-experimental-feature Extern -c -I %t %t/Main.code -o %t/a.o
+
+// REQUIRES: language_feature_Extern
+
+// BEGIN MyModule.code
+
+@_extern(c)
+@_alwaysEmitIntoClient
+fn some_c_api()
+
+@_transparent
+public fn publicFuncInAModule() {
+  some_c_api()
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+@_extern(c)
+fn some_c_api()
+
+some_c_api()
+publicFuncInAModule()

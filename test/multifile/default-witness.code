@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -typecheck %S/Inputs/default-witness.code -primary-file %s -enable-library-evolution
+
+public protocol GraphType {
+    fn insert<U>(_: GraphNode<U>, _: GraphNode<U>)
+}
+
+public extension GraphType {
+    fn insert<N: Node>(_: N, _: GraphNode<N.Output>) {}
+}
+

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_EXCLUSIVITYPRIVATE_H
-#define SWIFT_RUNTIME_EXCLUSIVITYPRIVATE_H
+#ifndef LANGUAGE_RUNTIME_EXCLUSIVITYPRIVATE_H
+#define LANGUAGE_RUNTIME_EXCLUSIVITYPRIVATE_H
 
 #include "language/Runtime/Exclusivity.h"
 #include "language/Runtime/Metadata.h"
@@ -131,7 +132,7 @@ public:
 
 #ifndef NDEBUG
   /// Only available with asserts. Intended to be used with
-  /// swift_dumpTrackedAccess().
+  /// language_dumpTrackedAccess().
   void forEach(std::function<void(Access *)> action);
 #endif
 };

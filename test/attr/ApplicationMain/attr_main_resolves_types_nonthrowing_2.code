@@ -1,0 +1,20 @@
+// RUN: %target-run-simple-language(-parse-as-library) | %FileCheck %s
+// REQUIRES: executable_test
+
+protocol P {
+}
+extension P {
+    static fn main() {
+        print("P.main")
+    }
+}
+struct S {
+    static fn main() {
+        print("S.main though neither throw")
+    }
+}
+
+// CHECK: S.main though neither throw
+@main
+extension S : P {}
+

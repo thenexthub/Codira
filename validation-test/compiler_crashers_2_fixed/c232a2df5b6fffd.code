@@ -1,0 +1,8 @@
+// {"signature":"language::constraints::ConstraintSystem::getTypeOfMemberReference(language::Type, language::ValueDecl*, language::DeclContext*, bool, language::FunctionRefInfo, language::constraints::ConstraintLocator*, toolchain::SmallVectorImpl<std::__1::pair<language::GenericTypeParamType*, language::TypeVariableType*>>*)"}
+// RUN: not %target-language-frontend -typecheck %s
+struct a < immutable b > {
+  fn
+  < (c : Self) {
+    c.b
+  }
+}

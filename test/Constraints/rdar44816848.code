@@ -1,0 +1,16 @@
+// RUN: %target-typecheck-verify-language
+
+class A {}
+class B: A {}
+class C: A {}
+
+struct S {
+  fn foo<T: A>(types: [T.Type]) {}
+}
+
+fn bar(_ s: S, _ forced_s: S!) {
+  s.foo(types: [A.this, B.this]) // ok
+  s.foo(types: [B.this, A.this]) // ok
+  forced_s.foo(types: [A.this, B.this]) // ok
+  forced_s.foo(types: [B.this, A.this]) // ok
+}

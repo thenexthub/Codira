@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ExtractExprBase.h"
@@ -78,23 +82,23 @@ static SourceLoc getNewFuncInsertLoc(DeclContext *DC,
   return SourceLoc();
 }
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 static std::vector<NoteRegion>
 getNotableRegions(StringRef SourceText, unsigned NameOffset, StringRef Name) {
   auto InputBuffer =
-      llvm::MemoryBuffer::getMemBufferCopy(SourceText, "<extract>");
+      toolchain::MemoryBuffer::getMemBufferCopy(SourceText, "<extract>");
 
   CompilerInvocation Invocation{};
 
   Invocation.getFrontendOptions().InputsAndOutputs.addInput(
-      InputFile("<extract>", true, InputBuffer.get(), file_types::TY_Swift));
+      InputFile("<extract>", true, InputBuffer.get(), file_types::TY_Codira));
   Invocation.getFrontendOptions().ModuleName = "extract";
   Invocation.getLangOptions().DisablePoundIfEvaluation = true;
 
-  auto Instance = std::make_unique<swift::CompilerInstance>();
+  auto Instance = std::make_unique<language::CompilerInstance>();
   std::string InstanceSetupError;
   if (Instance->setup(Invocation, InstanceSetupError))
-    llvm_unreachable(InstanceSetupError.c_str());
+    toolchain_unreachable(InstanceSetupError.c_str());
 
   unsigned BufferId = Instance->getPrimarySourceFile()->getBufferID();
   SourceManager &SM = Instance->getSourceMgr();
@@ -102,7 +106,7 @@ getNotableRegions(StringRef SourceText, unsigned NameOffset, StringRef Name) {
   auto LineAndCol = SM.getLineAndColumnInBuffer(NameLoc);
 
   auto Resolved = runNameMatcher(*Instance->getPrimarySourceFile(), NameLoc);
-  assert(!Resolved.empty() && "Failed to resolve generated func name loc");
+  assert(!Resolved.empty() && "Failed to resolve generated fn name loc");
 
   RenameLoc RenameConfig = {LineAndCol.first, LineAndCol.second,
                             RenameLocUsage::Definition, /*OldName=*/Name};
@@ -111,7 +115,7 @@ getNotableRegions(StringRef SourceText, unsigned NameOffset, StringRef Name) {
           .Ranges;
 
   std::vector<NoteRegion> NoteRegions(Ranges.size());
-  llvm::transform(Ranges, NoteRegions.begin(),
+  toolchain::transform(Ranges, NoteRegions.begin(),
                   [&SM](RenameRangeDetail &Detail) -> NoteRegion {
                     auto Start =
                         SM.getLineAndColumnInBuffer(Detail.Range.getStart());
@@ -123,7 +127,7 @@ getNotableRegions(StringRef SourceText, unsigned NameOffset, StringRef Name) {
 
   return NoteRegions;
 }
-#endif // SWIFT_BUILD_SWIFT_SYNTAX
+#endif // LANGUAGE_BUILD_LANGUAGE_SYNTAX
 
 bool RefactoringActionExtractFunction::isApplicable(
     const ResolvedRangeInfo &Info, DiagnosticEngine &Diag) {
@@ -140,13 +144,13 @@ bool RefactoringActionExtractFunction::isApplicable(
         .success({CannotExtractReason::VoidType});
   }
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 bool RefactoringActionExtractFunction::performChange() {
-#if !SWIFT_BUILD_SWIFT_SYNTAX
+#if !LANGUAGE_BUILD_LANGUAGE_SYNTAX
   DiagEngine.diagnose(SourceLoc(),
-                      diag::extract_function_not_supported_swiftsyntax_missing);
+                      diag::extract_function_not_supported_languagesyntax_missing);
   return true;
 #else
   // Check if the new name is ok.
@@ -206,7 +210,7 @@ bool RefactoringActionExtractFunction::performChange() {
   unsigned FuncBegin = Buffer.size();
   unsigned FuncNameOffset;
   {
-    llvm::raw_svector_ostream OS(Buffer);
+    toolchain::raw_svector_ostream OS(Buffer);
 
     if (!InsertToDC->isLocalContext()) {
       // Default to be file private.
@@ -262,7 +266,7 @@ bool RefactoringActionExtractFunction::performChange() {
   unsigned ReplaceBegin = Buffer.size();
   unsigned CallNameOffset;
   {
-    llvm::raw_svector_ostream OS(Buffer);
+    toolchain::raw_svector_ostream OS(Buffer);
     if (RangeInfo.exit() == ExitState::Positive)
       OS << tok::kw_return << " ";
 

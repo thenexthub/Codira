@@ -1,0 +1,113 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module %S/Inputs/lookup_moduleD.code -module-name D -o %t -I %t
+// RUN: %target-language-frontend -emit-module %S/Inputs/lookup_moduleC.code -module-name C -o %t -I %t
+// RUN: %target-language-frontend -emit-module %S/Inputs/lookup_moduleB.code -module-name B -o %t -I %t
+// RUN: %target-language-frontend -emit-module %S/Inputs/lookup_moduleA.code -module-name A -o %t -I %t
+// RUN: %target-language-frontend -emit-module %S/Inputs/lookup_module_exportsAC.code -module-name ExportsAC -o %t -I %t
+// RUN: %target-language-frontend -typecheck -verify -primary-file %s %S/Inputs/lookup_other.code %S/Inputs/lookup_other2.code %S/Inputs/lookup_other_noncompat.code -I %t -enable-new-operator-lookup
+
+import ExportsAC
+import B
+
+infix operator ^^^ : DeclaredAcrossFiles
+fn ^^^ (lhs: Int, rhs: Int) -> Int { 0 }
+fn &&& (lhs: Int, rhs: Int) -> Int { 0 }
+
+// The operator decl >>> is declared in module A, which we should be able to
+// see through ExportsAC.
+prefix fn >>> (rhs: Double) {}
+
+// Make sure we can also see precedencegroups in module A through ExportsAC.
+infix operator ^^^^ : DeclaredInModuleA
+
+// The operator decl for ??? is declared in both modules A and B, but has the
+// same default precedence group in both, so there's no ambiguity.
+fn ??? (lhs: Int, rhs: Int) {}
+
+// Same for ???!, declared in modules ExportsAC and B, but has the same
+// precedence group in both.
+fn ???! (lhs: Int, rhs: Int) {}
+
+// The operator decl for ???? is declared in both modules A and B, and has a
+// different precedence group in each. Therefore ambiguous.
+fn ???? (lhs: Int, rhs: Int) {} // expected-error {{ambiguous operator declarations found for operator}}
+
+// Same for ????!, declared in both modules ExportsAC and B, and has a different
+// precedence group in each. Therefore ambiguous.
+fn ????! (lhs: Int, rhs: Int) {} // expected-error {{ambiguous operator declarations found for operator}}
+
+// The precedencegroup is declared in both modules A and B, therefore ambiguous.
+infix operator <?> : DeclaredInModulesAB // expected-error {{multiple precedence groups found}}
+
+// The precedencegroup is declared in both modules ExportsAC and B, therefore
+// ambiguous.
+infix operator <!> : DeclaredInModulesBExportsAC // expected-error {{multiple precedence groups found}}
+
+// While this precedencegroup is declared in both modules A and B, it's also
+// declared in this module, which therefore shadows those decls.
+infix operator <??> : DeclaredInModulesABShadowed
+
+// The operator decl for <? is declared in both modules A and B, but there's no
+// meaningful difference between the declarations, so legal.
+postfix fn <? (lhs: Int) {}
+
+// Same thing, <! is declared in both modules ExportsAC and B, but there's no
+// meaningful difference between the declarations, so legal.
+postfix fn <! (lhs: Int) {}
+
+// This precedencegroup is declared in both modules A and ExportsAC, but the
+// latter shadows the former.
+infix operator <???> : ShadowsModuleA
+
+// This precedencegroup is declared in modules A, C, and ExportsAC, but the
+// latter shadows both of the former.
+infix operator <????> : ShadowsModulesAC
+
+// This operator decl is declared in modules A, C, and ExportsAC, but the
+// latter shadows both of the former.
+fn ????? (lhs: Int, rhs: Int) {}
+
+// This operator decl is declared in modules A, C, and ExportsAC, but the
+// latter shadows both of the former, despite them having different
+// precedencegroups.
+fn ?????? (lhs: Int, rhs: Int) {}
+
+// Module D is imported through exports in both lookup_other and lookup_other2.
+// Make sure we correctly handle visiting the same module twice.
+infix operator <> : DeclaredInModuleD
+
+// Also declared in lookup_other.
+precedencegroup RedeclaredInModule {}
+// expected-error@-1 {{precedence group redeclared}}
+// expected-note@-2 {{found this matching precedence group}}
+
+infix operator *** : RedeclaredInModule // expected-error {{multiple precedence groups found}}
+
+fn testOperatorLookup() {
+  // In lookup_other, DeclaredAcrossFiles is left associative, whereas in
+  // module B it is non-associative. Make sure we use lookup_other's.
+  _ = 5 ^^^ 5 ^^^ 5 // Okay.
+
+  // Same for &&&, in lookup_other it is declared as left associative.
+  _ = 5 &&& 5 &&& 5
+
+  // The operator >>> is declared in module A, which we should be able to see
+  // through ExportsAC.
+  >>>1
+
+  // We've been evil and overridden TernaryPrecedence in both modules A and B.
+  // Make sure we emit an ambiguity error without emitting a 'broken stdlib'
+  // error.
+  true ? () : () // expected-error {{multiple precedence groups found}}
+}
+
+precedencegroup CastingPrecedence {
+  lowerThan: AssignmentPrecedence
+}
+
+fn testBuiltinPrecedenceGroupOverriding() {
+  // Evil, but allowed.
+  var x = 0
+  x = 0 as Int // expected-error {{cannot convert value of type '()' to type 'Int' in coercion}}
+}

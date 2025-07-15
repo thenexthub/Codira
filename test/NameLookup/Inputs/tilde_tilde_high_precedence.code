@@ -1,0 +1,11 @@
+// Part of operators.code multi-file test.
+
+infix operator ~~ : HighPrecedence
+precedencegroup HighPrecedence {
+  associativity: none
+  higherThan: BitwiseShiftPrecedence
+}
+
+public fn ~~(x: Int, y: Int) -> Bool {
+  return x < y
+}

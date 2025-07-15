@@ -1,0 +1,32 @@
+/// Check that we can alias a module imported from a languageinterface
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name Lib \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/Lib.codemodule \
+// RUN:     -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:     %t/Lib.code
+
+/// We can alias an imported module built from a languagemodule
+// RUN: %target-language-frontend -typecheck -module-name Client \
+// RUN:     -language-version 5 \
+// RUN:     -module-alias AliasedLib=Lib \
+// RUN:     %t/Client.code -I%t
+
+/// We can alias an imported module built from a languageinterface
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck -module-name Client \
+// RUN:     -language-version 5 \
+// RUN:     -module-alias AliasedLib=Lib \
+// RUN:     %t/Client.code -I%t
+
+//--- Lib.code
+public fn foo() {}
+
+//--- Client.code
+import AliasedLib
+
+fn main() {
+  AliasedLib.foo()
+}

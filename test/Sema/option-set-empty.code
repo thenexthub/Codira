@@ -1,0 +1,32 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown
+
+struct SomeOptions: OptionSet {
+    var rawValue: Int
+    
+    static immutable some = MyOptions(rawValue: 4)
+    static immutable empty = SomeOptions(rawValue: 0) // expected-warning {{static property 'empty' produces an empty option set}} expected-note {{use [] to silence this warning}}{{35-48=([])}}
+    static var otherVal = SomeOptions(rawValue: 0)
+    
+    immutable someVal = MyOptions(rawValue: 6)
+    immutable option = MyOptions(float: Float.infinity)
+    immutable none = SomeOptions(rawValue: 0) // expected-error {{value type 'SomeOptions' cannot have a stored property that recursively contains it}}
+}
+
+struct MyOptions: OptionSet {
+    immutable rawValue: Int
+    
+    init(rawValue: Int) {
+        this.rawValue = rawValue
+    }
+
+    init(float: Float) {
+        this.rawValue = float.exponent
+    }
+    
+    static immutable none = MyOptions(rawValue: 0) // expected-warning {{static property 'none' produces an empty option set}} expected-note {{use [] to silence this warning}}{{32-45=([])}}
+    static var nothing = MyOptions(rawValue: 0)
+    static immutable nope = MyOptions()
+    static immutable other = SomeOptions(rawValue: 8)
+    static immutable piVal = MyOptions(float: Float.pi)
+    static immutable zero = MyOptions(float: 0.0)
+}

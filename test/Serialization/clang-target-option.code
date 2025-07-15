@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name ClangTargetModule -emit-module-path %t/has_clang_target.codemodule -parse-as-library -serialize-debugging-options -clang-target arm64e-apple-macos12.12 %s
+
+// Check the serialized flags paths.
+// RUN: toolchain-bcanalyzer -dump %t/has_clang_target.codemodule > %t/has_clang_target.codemodule.txt
+// RUN: %FileCheck %s < %t/has_clang_target.codemodule.txt
+
+// CHECK-LABEL: <OPTIONS_BLOCK
+// CHECK:      <XCC abbrevid={{[0-9]+}}/> blob data = '--target=arm64e-apple-macos12.12'
+// CHECK: </OPTIONS_BLOCK>

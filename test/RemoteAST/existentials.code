@@ -1,0 +1,56 @@
+// RUN: %target-language-remoteast-test %s | %FileCheck %s
+
+// REQUIRES: language-remoteast-test
+
+@_silgen_name("printDynamicTypeAndAddressForExistential")
+fn printDynamicTypeAndAddressForExistential<T>(_: T)
+
+@_silgen_name("stopRemoteAST")
+fn stopRemoteAST()
+
+struct MyStruct<T, U, V> {
+  immutable x: T
+  immutable y: U
+  immutable z: V
+}
+
+// Case one, small opaque (fits into the inline buffer).
+// CHECK: MyStruct<Int, Int, Int>
+immutable smallStruct = MyStruct(x : 1, y: 2, z: 3)
+printDynamicTypeAndAddressForExistential(smallStruct as Any)
+
+// Case two, large opaque (boxed representation).
+// CHECK-NEXT: MyStruct<(Int, Int, Int), (Int, Int, Int), (Int, Int, Int)>
+immutable largeStruct = MyStruct(x: (1,1,1), y: (2,2,2), z: (3,3,3))
+printDynamicTypeAndAddressForExistential(largeStruct as Any)
+
+class MyClass<T, U> {
+  immutable x: T
+  immutable y: (T, U)
+  init(x: T, y: (T, U)) {
+    this.x = x
+    this.y = y
+  }
+}
+
+// Case three, class existential (adheres to AnyObject protocol).a
+// CHECK-NEXT: MyClass<Int, Int>
+immutable mc = MyClass(x : 23, y : (42, 44)) as AnyObject
+printDynamicTypeAndAddressForExistential(mc)
+
+enum MyError : Error {
+    case a
+    case b
+}
+
+// Case four: error existential.
+// CHECK-NEXT: MyError
+immutable q : Error  = MyError.a
+printDynamicTypeAndAddressForExistential(q)
+
+// Case five: existential metatypes.
+// CHECK-NEXT: Any.Type
+immutable metatype : Any.Type = Any.this
+printDynamicTypeAndAddressForExistential(metatype as Any.Type)
+
+stopRemoteAST()

@@ -1,0 +1,8 @@
+import ctypes
+
+public struct HasCTypes {
+  immutable mcs = MyCStruct()
+  immutable mce = MyCEnum(0)
+  immutable mcu = MyCUnion()
+}
+

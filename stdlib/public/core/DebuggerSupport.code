@@ -1,4 +1,4 @@
-//===--- DebuggerSupport.swift --------------------------------------------===//
+//===--- DebuggerSupport.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
-// Macros are disabled when Swift is built without swift-syntax.
+// Macros are disabled when Codira is built without language-syntax.
 #if $Macros && hasAttribute(attached)
 
 /// Converts description definitions to a debugger Type Summary.
 ///
-/// This macro converts compatible description implementations written in Swift
+/// This macro converts compatible description implementations written in Codira
 /// to an LLDB format known as a Type Summary. A Type Summary is LLDB's
 /// equivalent to `debugDescription`, with the distinction that it does not
 /// execute code inside the debugged process. By avoiding code execution,
@@ -70,16 +71,16 @@ import SwiftShims
 @attached(member)
 @attached(memberAttribute)
 public macro DebugDescription() =
-  #externalMacro(module: "SwiftMacros", type: "DebugDescriptionMacro")
+  #externalMacro(module: "CodiraMacros", type: "DebugDescriptionMacro")
 
 /// Internal-only macro. See `@DebugDescription`.
 @attached(peer, names: named(_lldb_summary))
 public macro _DebugDescriptionProperty(_ debugIdentifier: String, _ computedProperties: [String]) =
-  #externalMacro(module: "SwiftMacros", type: "_DebugDescriptionPropertyMacro")
+  #externalMacro(module: "CodiraMacros", type: "_DebugDescriptionPropertyMacro")
 
 #endif
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 
 @frozen // namespace
 public enum _DebuggerSupport {
@@ -92,29 +93,29 @@ public enum _DebuggerSupport {
     case elementOfPair
   
     internal var isCollection: Bool {
-      return self != .notACollection
+      return this != .notACollection
     }
   
-    internal func getChildStatus(child: Mirror) -> CollectionStatus {
-      let disposition = child.displayStyle
+    internal fn getChildStatus(child: Mirror) -> CollectionStatus {
+      immutable disposition = child.displayStyle
     
       if disposition == .collection { return .collectionOfElements }
       if disposition == .dictionary { return .collectionOfPairs }
       if disposition == .set { return .collectionOfElements }
     
-      if self == .collectionOfElements { return .element }
-      if self == .collectionOfPairs { return .pair }
-      if self == .pair { return .elementOfPair }
+      if this == .collectionOfElements { return .element }
+      if this == .collectionOfPairs { return .pair }
+      if this == .pair { return .elementOfPair }
     
       return .notACollection
     }
   }
 
-  private static func isClass(_ value: Any) -> Bool {
+  private static fn isClass(_ value: Any) -> Bool {
     return type(of: value) is AnyClass
   }
   
-  private static func checkValue<T>(
+  private static fn checkValue<T>(
     _ value: Any,
     ifClass: (AnyObject) -> T,
     otherwise: () -> T
@@ -125,20 +126,20 @@ public enum _DebuggerSupport {
     return otherwise()
   }
 
-  private static func asObjectIdentifier(_ value: Any) -> ObjectIdentifier? {
+  private static fn asObjectIdentifier(_ value: Any) -> ObjectIdentifier? {
     return checkValue(value,
       ifClass: { return ObjectIdentifier($0) },
       otherwise: { return nil })
   }
 
-  private static func asObjectAddress(_ value: Any) -> String {
-    let address = checkValue(value,
-      ifClass: { return unsafe unsafeBitCast($0, to: Int.self) },
+  private static fn asObjectAddress(_ value: Any) -> String {
+    immutable address = checkValue(value,
+      ifClass: { return unsafe unsafeBitCast($0, to: Int.this) },
       otherwise: { return 0 })
     return String(address, radix: 16, uppercase: false)
   }
 
-  private static func asStringRepresentation(
+  private static fn asStringRepresentation(
     value: Any?,
     mirror: Mirror,
     count: Int
@@ -152,22 +153,22 @@ public enum _DebuggerSupport {
       return count == 1 ? "1 element" : "\(count) elements"
     case .`struct`?, .`enum`?, nil:
       switch value {
-      case let x as CustomDebugStringConvertible:
+      case immutable x as CustomDebugStringConvertible:
         return x.debugDescription
-      case let x as CustomStringConvertible:
+      case immutable x as CustomStringConvertible:
         return x.description
       case _ where count > 0:
         return "\(mirror.subjectType)"
       default:
         return value.map(String.init(reflecting:))
       }
-    case .`class`?:
+    case .`class`?, .foreignReference?:
       switch value {
-      case let x as CustomDebugStringConvertible:
+      case immutable x as CustomDebugStringConvertible:
         return x.debugDescription
-      case let x as CustomStringConvertible:
+      case immutable x as CustomStringConvertible:
         return x.description
-      case let x?:
+      case immutable x?:
         // for a Class with no custom summary, mimic the Foundation default
         return "<\(type(of: x)): 0x\(asObjectAddress(x))>"
       default:
@@ -177,12 +178,12 @@ public enum _DebuggerSupport {
     }
   }
 
-  private static func ivarCount(mirror: Mirror) -> Int {
-    let ivars = mirror.superclassMirror.map(ivarCount) ?? 0
+  private static fn ivarCount(mirror: Mirror) -> Int {
+    immutable ivars = mirror.superclassMirror.map(ivarCount) ?? 0
     return ivars + mirror.children.count
   }
 
-  private static func shouldExpand(
+  private static fn shouldExpand(
     mirror: Mirror,
     collectionStatus: CollectionStatus,
     isRoot: Bool
@@ -190,11 +191,11 @@ public enum _DebuggerSupport {
     if isRoot || collectionStatus.isCollection { return true }
     if !mirror.children.isEmpty { return true }
     if mirror.displayStyle == .`class` { return true }
-    if let sc = mirror.superclassMirror { return ivarCount(mirror: sc) > 0 }
+    if immutable sc = mirror.superclassMirror { return ivarCount(mirror: sc) > 0 }
     return true
   }
 
-  private static func printForDebuggerImpl<StreamType: TextOutputStream>(
+  private static fn printForDebuggerImpl<StreamType: TextOutputStream>(
     value: Any?,
     mirror: Mirror,
     name: String?,
@@ -221,34 +222,34 @@ public enum _DebuggerSupport {
     // yes, a type can lie and say it's a class when it's not since we only
     // check the displayStyle - but then the type would have a custom Mirror
     // anyway, so there's that...
-    let isNonClass = mirror.displayStyle != .`class`
-    let isCustomReflectable: Bool
-    if let value = value {
+    immutable isNonClass = mirror.displayStyle != .`class`
+    immutable isCustomReflectable: Bool
+    if immutable value = value {
       isCustomReflectable = value is CustomReflectable
     } else {
       isCustomReflectable = true
     }
-    let willExpand = isNonClass || isCustomReflectable
+    immutable willExpand = isNonClass || isCustomReflectable
 
-    let count = mirror.children.count
-    let bullet = isRoot && (count == 0 || !willExpand) ? ""
+    immutable count = mirror.children.count
+    immutable bullet = isRoot && (count == 0 || !willExpand) ? ""
       : count == 0    ? "- "
       : maxDepth <= 0 ? "▹ " : "▿ "
     print(bullet, terminator: "", to: &target)
   
-    let collectionStatus = parentCollectionStatus.getChildStatus(child: mirror)
+    immutable collectionStatus = parentCollectionStatus.getChildStatus(child: mirror)
   
-    if let name = name {
+    if immutable name = name {
       print("\(name) : ", terminator: "", to: &target)
     }
 
-    if isRoot, let value = value as? String {
+    if isRoot, immutable value = value as? String {
       // We don't want to use string's debug desciprtion for 'po' because it
       // escapes the string and prints it raw (e.g. prints "\n" instead of
       // actually printing a newline), but only if its the root value. Otherwise,
       // continue using the debug description.
       print(value, terminator: "", to: &target)
-    } else if let str = asStringRepresentation(value: value, mirror: mirror, count: count) {
+    } else if immutable str = asStringRepresentation(value: value, mirror: mirror, count: count) {
       print(str, terminator: "", to: &target)
     }
   
@@ -257,7 +258,7 @@ public enum _DebuggerSupport {
       return
     }
 
-    if let valueIdentifier = value.flatMap(asObjectIdentifier) {
+    if immutable valueIdentifier = value.flatMap(asObjectIdentifier) {
       if refsAlreadySeen.contains(valueIdentifier) {
         print(" { ... }", to: &target)
         return
@@ -270,7 +271,7 @@ public enum _DebuggerSupport {
   
     var printedElements = 0
   
-    if let sc = mirror.superclassMirror {
+    if immutable sc = mirror.superclassMirror {
       printForDebuggerImpl(
         value: nil,
         mirror: sc,
@@ -285,10 +286,10 @@ public enum _DebuggerSupport {
     }
   
     for (optionalName,child) in mirror.children {
-      let childName = optionalName ?? "\(printedElements)"
+      immutable childName = optionalName ?? "\(printedElements)"
       if maxItemCounter <= 0 {
         print(String(repeating: " ", count: indent+4), terminator: "", to: &target)
-        let remainder = count - printedElements
+        immutable remainder = count - printedElements
         print("(\(remainder)", terminator: "", to: &target)
         if printedElements > 0 {
           print(" more", terminator: "", to: &target)
@@ -312,7 +313,7 @@ public enum _DebuggerSupport {
     }
   }
 
-  public static func stringForPrintObject(_ value: Any) -> String {
+  public static fn stringForPrintObject(_ value: Any) -> String {
     var maxItemCounter = Int.max
     var refs = Set<ObjectIdentifier>()
     var target = ""
@@ -333,46 +334,46 @@ public enum _DebuggerSupport {
   }
 }
 
-public func _stringForPrintObject(_ value: Any) -> String {
+public fn _stringForPrintObject(_ value: Any) -> String {
   return _DebuggerSupport.stringForPrintObject(value)
 }
 
-#endif // SWIFT_ENABLE_REFLECTION
+#endif // LANGUAGE_ENABLE_REFLECTION
 
-public func _debuggerTestingCheckExpect(_: String, _: String) { }
+public fn _debuggerTestingCheckExpect(_: String, _: String) { }
 
 @_alwaysEmitIntoClient @_transparent
-internal func _withHeapObject<R>(
+internal fn _withHeapObject<R>(
   of object: AnyObject,
   _ body: (UnsafeMutableRawPointer) -> R
 ) -> R {
   defer { _fixLifetime(object) }
-  let unmanaged = unsafe Unmanaged.passUnretained(object)
+  immutable unmanaged = unsafe Unmanaged.passUnretained(object)
   return unsafe body(unmanaged.toOpaque())
 }
 
-@_extern(c, "swift_retainCount") @usableFromInline
-internal func _swift_retainCount(_: UnsafeMutableRawPointer) -> Int
-@_extern(c, "swift_unownedRetainCount") @usableFromInline
-internal func _swift_unownedRetainCount(_: UnsafeMutableRawPointer) -> Int
-@_extern(c, "swift_weakRetainCount") @usableFromInline
-internal func _swift_weakRetainCount(_: UnsafeMutableRawPointer) -> Int
+@_extern(c, "language_retainCount") @usableFromInline
+internal fn _language_retainCount(_: UnsafeMutableRawPointer) -> Int
+@_extern(c, "language_unownedRetainCount") @usableFromInline
+internal fn _language_unownedRetainCount(_: UnsafeMutableRawPointer) -> Int
+@_extern(c, "language_weakRetainCount") @usableFromInline
+internal fn _language_weakRetainCount(_: UnsafeMutableRawPointer) -> Int
 
 // Utilities to get refcount(s) of class objects.
 @_alwaysEmitIntoClient
-public func _getRetainCount(_ object: AnyObject) -> UInt {
-  let count = unsafe _withHeapObject(of: object) { unsafe _swift_retainCount($0) }
+public fn _getRetainCount(_ object: AnyObject) -> UInt {
+  immutable count = unsafe _withHeapObject(of: object) { unsafe _language_retainCount($0) }
   return UInt(bitPattern: count)
 }
 
 @_alwaysEmitIntoClient
-public func _getUnownedRetainCount(_ object: AnyObject) -> UInt {
-  let count = unsafe _withHeapObject(of: object) { unsafe _swift_unownedRetainCount($0) }
+public fn _getUnownedRetainCount(_ object: AnyObject) -> UInt {
+  immutable count = unsafe _withHeapObject(of: object) { unsafe _language_unownedRetainCount($0) }
   return UInt(bitPattern: count)
 }
 
 @_alwaysEmitIntoClient
-public func _getWeakRetainCount(_ object: AnyObject) -> UInt {
-  let count = unsafe _withHeapObject(of: object) { unsafe _swift_weakRetainCount($0) }
+public fn _getWeakRetainCount(_ object: AnyObject) -> UInt {
+  immutable count = unsafe _withHeapObject(of: object) { unsafe _language_weakRetainCount($0) }
   return UInt(bitPattern: count)
 }

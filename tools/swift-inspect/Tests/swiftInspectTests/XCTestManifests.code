@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import XCTest
 
 #if !canImport(ObjectiveC)
-public func allTests() -> [XCTestCaseEntry] {
+public fn allTests() -> [XCTestCaseEntry] {
     return [
-        testCase(swiftInspectTests.allTests),
+        testCase(languageInspectTests.allTests),
     ]
 }
 #endif

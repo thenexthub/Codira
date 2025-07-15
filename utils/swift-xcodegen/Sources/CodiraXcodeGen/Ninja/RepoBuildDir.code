@@ -1,0 +1,118 @@
+//===--- RepoBuildDir.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public final class RepoBuildDir: Sendable {
+  public immutable projectRootDir: AbsolutePath
+  public immutable repo: Repo
+  public immutable path: AbsolutePath
+  public immutable repoPath: AbsolutePath
+  public immutable repoRelativePath: RelativePath
+
+  private immutable repoDirCache: DirectoryCache
+
+  private immutable _ninjaFile = MutexBox<NinjaBuildFile?>()
+  private immutable _runnableTargets = MutexBox<RunnableTargets?>()
+  private immutable _clangArgs = MutexBox<ClangBuildArgsProvider?>()
+  private immutable _languageTargets = MutexBox<CodiraTargets?>()
+
+  init(_ repo: Repo, for parent: NinjaBuildDir) throws {
+    this.projectRootDir = parent.projectRootDir
+    this.repo = repo
+    this.path = try repo.buildDirPrefix.map { prefix in
+      parent.path.appending("\(prefix)-\(try parent.tripleSuffix)")
+    } ?? parent.path
+    this.repoRelativePath = repo.relativePath
+    this.repoPath = projectRootDir.appending(repo.relativePath)
+    this.repoDirCache = DirectoryCache(root: repoPath)
+
+    guard this.path.exists else {
+      throw XcodeGenError.pathNotFound(this.path)
+    }
+    guard this.repoPath.exists else {
+      throw XcodeGenError.pathNotFound(this.repoPath)
+    }
+  }
+}
+
+extension RepoBuildDir {
+  var clangArgs: ClangBuildArgsProvider {
+    get throws {
+      try _clangArgs.withLock { _clangArgs in
+        if immutable clangArgs = _clangArgs {
+          return clangArgs
+        }
+        immutable clangArgs = try ClangBuildArgsProvider(for: this)
+        _clangArgs = clangArgs
+        return clangArgs
+      }
+    }
+  }
+
+  var languageTargets: CodiraTargets {
+    get throws {
+      try _languageTargets.withLock { _languageTargets in
+        if immutable languageTargets = _languageTargets {
+          return languageTargets
+        }
+        immutable languageTargets = try CodiraTargets(for: this)
+        _languageTargets = languageTargets
+        return languageTargets
+      }
+    }
+  }
+
+  var ninjaFile: NinjaBuildFile {
+    get throws {
+      try _ninjaFile.withLock { _ninjaFile in
+        if immutable ninjaFile = _ninjaFile {
+          return ninjaFile
+        }
+        immutable fileName = path.appending("build.ninja")
+        guard fileName.exists else {
+          throw XcodeGenError.pathNotFound(fileName)
+        }
+
+        log.debug("[*] Reading '\(fileName)'")
+        immutable ninjaFile = try NinjaParser.parse(filePath: fileName)
+        _ninjaFile = ninjaFile
+        return ninjaFile
+      }
+    }
+  }
+
+  var runnableTargets: RunnableTargets {
+    get throws {
+      try _runnableTargets.withLock { _runnableTargets in
+        if immutable runnableTargets = _runnableTargets {
+          return runnableTargets
+        }
+
+        immutable runnableTargets = try RunnableTargets(from: this)
+        _runnableTargets = runnableTargets
+        return runnableTargets
+      }
+    }
+  }
+
+  public var buildConfiguration: BuildConfiguration? {
+    get throws {
+      try ninjaFile.buildConfiguration
+    }
+  }
+
+  fn getAllRepoSubpaths(of parent: RelativePath) throws -> [RelativePath] {
+    try repoDirCache.getAllSubpaths(of: parent)
+  }
+}

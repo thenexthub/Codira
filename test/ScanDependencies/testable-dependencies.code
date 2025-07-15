@@ -1,0 +1,84 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name B -o %t/internal/B.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/internal/B.codeinterface -enable-library-evolution -I %t \
+// RUN:   %t/B.code
+
+// RUN: %target-language-frontend -emit-module -module-name A -o %t/testable/A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/testable/A.codeinterface -enable-library-evolution -I %t/internal -enable-testing \
+// RUN:   %t/A.code
+
+// RUN: %target-language-frontend -emit-module -module-name A -o %t/regular/A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/regular/A.codeinterface -enable-library-evolution -I %t/internal \
+// RUN:   %t/A.code
+
+/// Import testable build, should use binary but no extra dependencies.
+// RUN: %target-language-frontend -scan-dependencies -scanner-module-validation -module-load-mode prefer-serialized -module-name Test %t/main.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -o %t/deps1.json -I %t/testable -language-version 5 -Rmodule-loading
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps1.json Test directDependencies | %FileCheck %s --check-prefix TEST1
+// TEST1:  "languagePrebuiltExternal": "A"
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps1.json A directDependencies | %FileCheck %s --check-prefix EMPTY --allow-empty
+// EMPTY-NOT: B
+
+/// Import regular build, should use binary.
+// RUN: %target-language-frontend -scan-dependencies -scanner-module-validation -module-load-mode prefer-serialized -module-name Test %t/main.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -o %t/deps2.json -I %t/regular -language-version 5 -Rmodule-loading
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps2.json Test directDependencies | %FileCheck %s --check-prefix TEST2
+// TEST2:  "languagePrebuiltExternal": "A"
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps2.json languagePrebuiltExternal:A directDependencies | %FileCheck %s --check-prefix EMPTY --allow-empty
+
+/// Testable import testable build, should use binary, even interface is preferred.
+// RUN: %target-language-frontend -scan-dependencies -scanner-module-validation -module-load-mode prefer-interface -module-name Test %t/testable.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib -enable-testing \
+// RUN:   -o %t/deps3.json -I %t/testable -I %t/internal -language-version 5 -Rmodule-loading
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps3.json Test directDependencies | %FileCheck %s --check-prefix TEST3
+// TEST3:  "languagePrebuiltExternal": "A"
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps3.json languagePrebuiltExternal:A directDependencies | %FileCheck %s --check-prefix TEST3-A
+// TEST3-A:  "language": "B"
+
+/// Testable import sees non-testable module first, keep searching.
+// RUN: %target-language-frontend -scan-dependencies -scanner-module-validation -module-load-mode prefer-interface -module-name Test %t/testable.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib -enable-testing \
+// RUN:   -o %t/deps4.json -I %t/regular -I %t/testable -I %t/internal -language-version 5 -Rmodule-loading 2>&1 | %FileCheck %s --check-prefix WARN
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps4.json Test directDependencies | %FileCheck %s --check-prefix TEST4
+// TEST4:  "languagePrebuiltExternal": "A"
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps4.json languagePrebuiltExternal:A directDependencies | %FileCheck %s --check-prefix TEST4-A
+// TEST4-A:  "language": "B"
+// WARN: warning: module file '{{.*}}{{/|\\}}A.codemodule' is incompatible with this Codira compiler: module built without '-enable-testing'
+
+/// Testable import non-testable build enable testing, warning about the finding then error out.
+// RUN: %target-language-frontend -scan-dependencies -scanner-module-validation -module-load-mode prefer-interface -module-name Test %t/testable.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib -enable-testing \
+// RUN:   -o %t/deps5.json -I %t/regular -language-version 5 -Rmodule-loading 2>&1 | %FileCheck %s --check-prefix ERROR
+// ERROR: error: unable to resolve Codira module dependency to a compatible module: 'A'
+// ERROR: note: found incompatible module '{{.*}}{{/|\\}}A.codemodule': module built without '-enable-testing'
+
+/// Regular import a testable module with no interface, don't load optional dependencies.
+// RUN: rm %t/testable/A.codeinterface
+// RUN: %target-language-frontend -scan-dependencies -scanner-module-validation -module-load-mode prefer-interface -module-name Test %t/main.code \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib -enable-testing \
+// RUN:   -o %t/deps6.json -I %t/testable -language-version 5 -Rmodule-loading
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps6.json Test directDependencies | %FileCheck %s --check-prefix TEST6
+// TEST6:  "languagePrebuiltExternal": "A"
+// RUN: %{python} %S/../CAS/Inputs/CodiraDepsExtractor.py %t/deps6.json languagePrebuiltExternal:A directDependencies | %FileCheck %s --check-prefix EMPTY --allow-empty
+
+
+//--- main.code
+import A
+
+//--- testable.code
+@testable import A
+
+//--- A.code
+internal import B
+@_spi(Testing) public fn a() {}
+
+//--- B.code
+public fn b() {}
+

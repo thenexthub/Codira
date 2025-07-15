@@ -1,0 +1,24 @@
+
+@usableFromInline
+protocol Proto {
+  fn confx()
+}
+
+public struct MyStruct : Proto {
+  @usableFromInline
+  fn confx() {
+  }
+
+  public init() {
+  }
+}
+
+@inline(never)
+@usableFromInline
+fn callit(_ p: Proto) {
+}
+
+@_transparent
+public fn testit(_ n: MyStruct) {
+  callit(n)
+}

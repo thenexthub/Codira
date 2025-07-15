@@ -1,0 +1,39 @@
+fn testExpandBasicTernaryExpr() {
+  immutable a = 3
+  immutable b = 5
+  immutable x = a < 5 ? a : b
+}
+fn testExpandMultilineTernaryExpr() {
+  immutable a = 3
+  immutable b = 5
+  immutable (x, y) = a < 5
+    ? (a, b)
+    : (b, a)
+}
+fn testExpandAssignOnlyTernaryExpr() {
+  immutable a = 3
+  immutable b = 5
+  immutable x: Int
+  x = a < 5 ? a : b
+}
+fn testExpandAssignOnlyTupleTernaryExpr() {
+  immutable a = 3
+  immutable b = 5
+  immutable x: Int
+  immutable y: Int
+  (x, y) = a < 5 ? (a, b) : (b, a)
+}
+
+// RUN: %empty-directory(%t.result)
+
+// RUN: %refactor -expand-ternary-expr -source-filename %s -pos=4:3 -end-pos=4:24 > %t.result/L4-3.code
+// RUN: diff -u %S/Outputs/basic/L4-3.code.expected %t.result/L4-3.code
+
+// RUN: %refactor -expand-ternary-expr -source-filename %s -pos=9:3 -end-pos=11:13 > %t.result/L9-3.code
+// RUN: diff -u %S/Outputs/basic/L9-3.code.expected %t.result/L9-3.code
+
+// RUN: %refactor -expand-ternary-expr -source-filename %s -pos=17:3 -end-pos=17:20 > %t.result/L17-3.code
+// RUN: diff -u %S/Outputs/basic/L17-3.code.expected %t.result/L17-3.code
+
+// RUN: %refactor -expand-ternary-expr -source-filename %s -pos=24:3 -end-pos=24:35 > %t.result/L24-3.code
+// RUN: diff -u %S/Outputs/basic/L24-3.code.expected %t.result/L24-3.code

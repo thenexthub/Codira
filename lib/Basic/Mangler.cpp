@@ -1,4 +1,4 @@
-//===--- Mangler.cpp - Base class for Swift name mangling -----------------===//
+//===--- Mangler.cpp - Base class for Codira name mangling -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Mangler.h"
@@ -20,8 +21,8 @@
 #include "language/Demangling/ManglingMacros.h"
 #include "language/Demangling/Punycode.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/CommandLine.h"
 #include <algorithm>
 
 using namespace language;
@@ -29,9 +30,9 @@ using namespace Mangle;
 
 #ifndef NDEBUG
 
-llvm::cl::opt<bool> PrintSwiftManglingStats(
-    "print-swift-mangling-stats", llvm::cl::init(false),
-    llvm::cl::desc("Print statistics about Swift symbol mangling"));
+toolchain::cl::opt<bool> PrintCodiraManglingStats(
+    "print-language-mangling-stats", toolchain::cl::init(false),
+    toolchain::cl::desc("Print statistics about Codira symbol mangling"));
 
 namespace {
 
@@ -58,12 +59,12 @@ struct OpStatEntry {
   int size;
 };
 
-static llvm::StringMap<OpStatEntry> OpStats;
+static toolchain::StringMap<OpStatEntry> OpStats;
 
 } // end anonymous namespace
 
 void Mangler::recordOpStatImpl(StringRef op, size_t OldPos) {
-  if (PrintSwiftManglingStats) {
+  if (PrintCodiraManglingStats) {
     OpStatEntry &E = OpStats[op];
     ++E.num;
     E.size += Storage.size() - OldPos;
@@ -74,7 +75,7 @@ void Mangler::recordOpStatImpl(StringRef op, size_t OldPos) {
 
 void Mangle::printManglingStats() {
 #ifndef NDEBUG
-  if (!PrintSwiftManglingStats)
+  if (!PrintCodiraManglingStats)
     return;
 
   std::sort(SizeStats.begin(), SizeStats.end(),
@@ -82,7 +83,7 @@ void Mangle::printManglingStats() {
       return LHS.sizeDiff < RHS.sizeDiff;
     });
 
-  llvm::outs() << "Mangling size stats:\n"
+  toolchain::outs() << "Mangling size stats:\n"
                   "  num smaller: " << numSmaller << "\n"
                   "  num larger:  " << numLarger << "\n"
                   "  num equal:   " << numEqual << "\n"
@@ -91,13 +92,13 @@ void Mangle::printManglingStats() {
                   "  new - old size: " << (totalNewSize - totalOldSize) << "\n"
                   "List or larger:\n";
   for (const SizeStatEntry &E : SizeStats) {
-    llvm::outs() << "  delta " << E.sizeDiff << ": " << E.Old << " - " << E.New
+    toolchain::outs() << "  delta " << E.sizeDiff << ": " << E.Old << " - " << E.New
                  << '\n';
   }
   
-  llvm::outs() << "Mangling operator stats:\n";
+  toolchain::outs() << "Mangling operator stats:\n";
 
-  using MapEntry = llvm::StringMapEntry<OpStatEntry>;
+  using MapEntry = toolchain::StringMapEntry<OpStatEntry>;
   std::vector<const MapEntry *> SortedOpStats;
   for (const MapEntry &ME : OpStats) {
     SortedOpStats.push_back(&ME);
@@ -108,10 +109,10 @@ void Mangle::printManglingStats() {
     });
 
   for (const MapEntry *E : SortedOpStats) {
-    llvm::outs() << "  " << E->getKey() << ": num = " << E->getValue().num
+    toolchain::outs() << "  " << E->getKey() << ": num = " << E->getValue().num
                  << ", size = " << E->getValue().size << '\n';
   }
-  llvm::outs() << "  merged substitutions: " << mergedSubsts << "\n"
+  toolchain::outs() << "  merged substitutions: " << mergedSubsts << "\n"
                   "  large substitutions: " << numLargeSubsts << "\n";
 #endif
 }
@@ -162,12 +163,12 @@ std::string Mangler::finalize() {
 
 /// Finish the mangling of the symbol and write the mangled name into
 /// \p stream.
-void Mangler::finalize(llvm::raw_ostream &stream) {
+void Mangler::finalize(toolchain::raw_ostream &stream) {
   std::string result = finalize();
   stream.write(result.data(), result.size());
 }
 
-LLVM_ATTRIBUTE_UNUSED
+TOOLCHAIN_ATTRIBUTE_UNUSED
 static bool treeContains(Demangle::NodePointer Nd, Demangle::Node::Kind Kind) {
   if (Nd->getKind() == Kind)
     return true;
@@ -205,13 +206,13 @@ void Mangler::verify(StringRef nameStr, ManglingFlavor Flavor) {
   Demangler Dem;
   NodePointer Root = Dem.demangleSymbol(nameStr);
   if (!Root || treeContains(Root, Node::Kind::Suffix)) {
-    abortWithPrettyStackTraceMessage([&](auto &out) {
+    ABORT([&](auto &out) {
       out << "Can't demangle: " << nameStr;
     });
   }
   auto mangling = mangleNode(Root, Flavor);
   if (!mangling.isSuccess()) {
-    abortWithPrettyStackTraceMessage([&](auto &out) {
+    ABORT([&](auto &out) {
       out << "Can't remangle: " << nameStr;
     });
   }
@@ -219,7 +220,7 @@ void Mangler::verify(StringRef nameStr, ManglingFlavor Flavor) {
   if (Remangled == nameStr)
     return;
 
-  abortWithPrettyStackTraceMessage([&](auto &out) {
+  ABORT([&](auto &out) {
     out << "Remangling failed:\n";
     out << "original     = " << nameStr << "\n";
     out << "remangled    = " << Remangled;
@@ -235,7 +236,7 @@ void Mangler::appendIdentifier(StringRef ident, bool allowRawIdentifiers) {
   addSubstitution(ident);
 
   if (allowRawIdentifiers && Lexer::identifierMustAlwaysBeEscaped(ident)) {
-    llvm::SmallString<256> escaped;
+    toolchain::SmallString<256> escaped;
     appendRawIdentifierForRuntime(ident, escaped);
     mangleIdentifier(*this, escaped);
   } else {
@@ -246,7 +247,7 @@ void Mangler::appendIdentifier(StringRef ident, bool allowRawIdentifiers) {
 }
 
 void Mangler::appendRawIdentifierForRuntime(
-    StringRef ident, llvm::SmallVectorImpl<char> &buffer) {
+    StringRef ident, toolchain::SmallVectorImpl<char> &buffer) {
   // SE-0451: Raw identifiers retain their backticks as part of their
   // mangling. Additionally, the runtime has historically used spaces
   // (U+0020) as delimiters in some metadata (e.g., tuple element labels
@@ -268,9 +269,9 @@ void Mangler::appendRawIdentifierForRuntime(
 }
 
 void Mangler::dump() const {
-  // FIXME: const_casting because llvm::raw_svector_ostream::str() is
+  // FIXME: const_casting because toolchain::raw_svector_ostream::str() is
   // incorrectly not marked const.
-  llvm::errs() << const_cast<Mangler*>(this)->Buffer.str() << '\n';
+  toolchain::errs() << const_cast<Mangler*>(this)->Buffer.str() << '\n';
 }
 
 bool Mangler::tryMangleSubstitution(const void *ptr) {

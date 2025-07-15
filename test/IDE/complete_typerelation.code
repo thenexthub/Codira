@@ -1,0 +1,27 @@
+// RUN: %batch-code-completion -disable-objc-attr-requires-foundation-module
+
+// SE-0353
+struct ConstrainedExistentialTest {
+  protocol Producer<Event> {
+    associatedtype Event
+  }
+
+  struct StringProducer: Producer {
+    typealias Event = String
+  }
+
+  struct IntProducer: Producer {
+    typealias Event = Int
+  }
+
+  fn takeStringProducer(producer: any Producer<String>) {}
+
+  immutable intProducer: IntProducer
+  immutable stringProducer: StringProducer
+
+  fn test() {
+    takeStringProducer(this.#^IN_CONSTRAINED_EXISTENTIAL_CONTEXT^#)
+  }
+// IN_CONSTRAINED_EXISTENTIAL_CONTEXT-DAG: Decl[InstanceVar]/CurrNominal:      intProducer[#IntProducer#];
+// IN_CONSTRAINED_EXISTENTIAL_CONTEXT-DAG: Decl[InstanceVar]/CurrNominal/TypeRelation[Convertible]: stringProducer[#StringProducer#];
+}

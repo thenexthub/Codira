@@ -1,0 +1,5 @@
+// {"signature":"language::TypeChecker::typeCheckCheckedCast(language::Type, language::Type, language::CheckedCastContextKind, language::DeclContext*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+init(a : () -> ()) {
+  [.init ?? a]
+}

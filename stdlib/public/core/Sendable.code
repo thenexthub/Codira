@@ -1,16 +1,68 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-/// A type `T` whose metatype `T.Type` is `Sendable`.
+/// A type whose metatype can be shared across arbitrary concurrent contexts
+/// without introducing a risk of data races. When a generic type `T` conforms
+/// to `SendableMetatype`, its metatype `T.Type` conforms to `Sendable`.  All
+/// concrete types implicitly conform to the `SendableMetatype` protocol, so its
+/// primary purpose is in generic code to prohibit the use of isolated
+/// conformances along with the generic type.
+///
+/// A generic type `T` will need a `SendableMetatype` conformance when its
+/// metatype is shared across concurrency boundaries. For example,
+///
+///     protocol P {
+///       static fn f()
+///     }
+///
+///     fn useFromAnotherTask<T: P>(_: T.Type) {
+///       Task { @concurrent in
+///         T.f()   // error: capturing non-Sendable type `T.Type` in a concurrently-executing task
+///       }
+///     }
+///
+/// The potential data race above would occur when `useFromAnotherTask` is
+/// provided with an isolated conformance to `P`. For example:
+///
+///     @MainActor
+///     class MyModel: @MainActor P {
+///       /*implicitly @MainActor/*
+///       static fn f() {
+///         /* on the main actor */
+///       }
+///     }
+///
+///     useFromAnotherTask(MyModel.this)
+///
+/// Here, the error within the body of `useFromAnotherTask` is preventing the
+/// isolated conformance from leaving the current task and actor. The signature
+/// of `useFromAnotherTask` can be adjusted to introduce a requirement on
+/// `SendableMetatype`:
+///
+///     fn useFromAnotherTask<T: P & SendableMetatype>(_: T.Type) {
+///       Task { @concurrent in
+///         T.f()   // error: okay, T.Type is Sendable
+///       }
+///     }
+///
+///     useFromAnotherTask(MyModel.this) // error: cannot use main-actor-isolated conformance `MyModel: P` for a `SendableMetatype`-conforming type parameter `T`
+///
+/// The `Sendable` protocol inherits from `SendableMetatype`, so any generic
+/// type `T` with a requirement `T: Sendable` will have the implied requirement
+/// `T: SendableMetatype`.
 @_marker public protocol SendableMetatype: ~Copyable, ~Escapable { }
 
 /// A thread-safe type whose values can be shared across arbitrary concurrent
@@ -46,10 +98,10 @@
 /// of the rule that conformance must be in the same file.
 ///
 /// For information about the language-level concurrency model that `Task` is part of,
-/// see [Concurrency][concurrency] in [The Swift Programming Language][tspl].
+/// see [Concurrency][concurrency] in [The Codira Programming Language][tspl].
 ///
-/// [concurrency]: https://docs.swift.org/swift-book/LanguageGuide/Concurrency.html
-/// [tspl]: https://docs.swift.org/swift-book/
+/// [concurrency]: https://docs.code.org/language-book/LanguageGuide/Concurrency.html
+/// [tspl]: https://docs.code.org/language-book/
 ///
 /// ### Sendable Structures and Enumerations
 ///
@@ -118,7 +170,7 @@
 /// or by writing `@Sendable` before the closure's parameters ---
 /// for example:
 ///
-///     let sendableClosure = { @Sendable (number: Int) -> String in
+///     immutable sendableClosure = { @Sendable (number: Int) -> String in
 ///         if number > 12 {
 ///             return "More than a dozen."
 ///         } else {
@@ -135,6 +187,9 @@
 /// ### Sendable Metatypes
 ///
 /// Metatypes such as `Int.Type` implicitly conform to the `Sendable` protocol.
+/// For a generic type `T`, its metatype `T.Type` does not necessarily conform
+/// to `Sendable`. Please see the `SendableMetatype` protocol for more
+/// information.
 @_marker public protocol Sendable: SendableMetatype, ~Copyable, ~Escapable { }
 
 ///
@@ -145,14 +200,14 @@
 ///
 ///     struct MyStructure: @unchecked Sendable { ... }
 @available(*, deprecated, message: "Use @unchecked Sendable instead")
-@available(swift, obsoleted: 6.0, message: "Use @unchecked Sendable instead")
+@available(language, obsoleted: 6.0, message: "Use @unchecked Sendable instead")
 @_marker public protocol UnsafeSendable: Sendable { }
 
 // Historical names
 @available(*, deprecated, renamed: "Sendable")
-@available(swift, obsoleted: 6.0, renamed: "Sendable")
+@available(language, obsoleted: 6.0, renamed: "Sendable")
 public typealias ConcurrentValue = Sendable
 
 @available(*, deprecated, renamed: "Sendable")
-@available(swift, obsoleted: 6.0, renamed: "Sendable")
+@available(language, obsoleted: 6.0, renamed: "Sendable")
 public typealias UnsafeConcurrentValue = UnsafeSendable

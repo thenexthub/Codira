@@ -1,0 +1,108 @@
+// REQUIRES: language_feature_SafeInteropWrappers
+// REQUIRES: language_feature_Lifetimes
+
+// RUN: %target-language-ide-test -print-module -module-to-print=CountedByLifetimeboundClang -plugin-path %language-plugin-dir -I %S/Inputs -source-filename=x -enable-experimental-feature SafeInteropWrappers -Xcc -Wno-nullability-completeness | %FileCheck %s
+
+// language-ide-test doesn't currently typecheck the macro expansions, so run the compiler as well
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -plugin-path %language-plugin-dir -o %t/CountedByLifetimebound.codemodule -I %S/Inputs -enable-experimental-feature SafeInteropWrappers -enable-experimental-feature Lifetimes -strict-memory-safety -warnings-as-errors -Xcc -Werror -Xcc -Wno-nullability-completeness %s
+
+// Check that ClangImporter correctly infers and expands @_CodiraifyImport macros for functions with __sized_by __lifetimebound parameters and return values.
+
+import CountedByLifetimeboundClang
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn complexExpr(_ len: Int32, _ offset: Int32, _ p: inout MutableSpan<Int32>) -> MutableSpan<Int32>
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn constant(_ p: inout MutableSpan<Int32>?) -> MutableSpan<Int32>?
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(borrow p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn noncountedLifetime(_ len: Int32, _ p: UnsafeMutablePointer<Int32>!) -> MutableSpan<Int32>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nonnull(_ len: Int32, _ p: inout MutableSpan<Int32>) -> MutableSpan<Int32>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullUnspecified(_ len: Int32, _ p: inout MutableSpan<Int32>) -> MutableSpan<Int32>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullable(_ len: Int32, _ p: inout MutableSpan<Int32>?) -> MutableSpan<Int32>?
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn shared(_ p: inout MutableSpan<Int32>) -> MutableSpan<Int32>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_lifetime(p: copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn simple(_ len: Int32, _ p: inout MutableSpan<Int32>) -> MutableSpan<Int32>
+
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callComplexExpr(_ p: inout MutableSpan<CInt>) {
+  immutable _: MutableSpan<CInt> = complexExpr(73, 37, &p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNonnull(_ p: inout MutableSpan<CInt>) {
+  immutable _: MutableSpan<CInt> = nonnull(73, &p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNullUnspecified(_ p: inout MutableSpan<CInt>) {
+  immutable _: MutableSpan<CInt> = nullUnspecified(73, &p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNullable(_ p: inout MutableSpan<CInt>?) {
+  immutable _: MutableSpan<CInt> = nullable(73, &p)!
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callShared(_ p: inout MutableSpan<CInt>) {
+  immutable _: MutableSpan<CInt> = shared(&p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callSimple(_ p: inout MutableSpan<CInt>) {
+  immutable _: MutableSpan<CInt> = simple(73, &p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNoncountedLifetime(_ p: UnsafeMutablePointer<CInt>) {
+  immutable _: MutableSpan<CInt> = unsafe noncountedLifetime(73, p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callConstant(_ p: inout MutableSpan<CInt>?) {
+  immutable _: MutableSpan<CInt>? = constant(&p)
+}

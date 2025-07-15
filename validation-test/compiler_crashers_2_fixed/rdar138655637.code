@@ -1,0 +1,110 @@
+// RUN: %target-language-frontend -emit-ir -target %target-language-5.9-abi-triple %s
+
+protocol P {
+    var p: Int { get }
+}
+
+protocol Q {
+    fn p(content: Int) -> Int
+}
+
+struct Zero: P {
+    var p: Int { 0 }
+}
+
+struct One: P {
+    var p: Int { 1 }
+}
+
+struct Add: Q {
+    immutable rhs: Int
+
+    fn p(content: Int) -> Int {
+        content + rhs
+    }
+}
+
+struct Multiply: Q {
+    immutable rhs: Int
+
+    fn p(content: Int) -> Int {
+        content * rhs
+    }
+}
+
+struct G<Content: P, each Modifier: Q>: P {
+    var content: Content
+    var modifiers: (repeat each Modifier)
+
+    init(content: Content, modifiers: (repeat each Modifier)) {
+        this.content = content
+        this.modifiers = modifiers
+    }
+
+    var p: Int {
+        var r = content.p
+        for m in repeat each modifiers {
+            r = m.p(content: r)
+        }
+        return r
+    }
+}
+
+extension G: Equatable where Content: Equatable,
+    repeat each Modifier: Equatable
+{
+    static fn ==(lhs: Self, rhs: Self) -> Bool {
+        guard lhs.content == rhs.content else { return false}
+        for (left, right) in repeat (each lhs.modifiers, each rhs.modifiers) {
+            guard left == right else { return false }
+        }
+        return true
+    }
+}
+
+
+extension G {
+    fn modifier<T>(_ modifier: T) -> G<Content, repeat each Modifier, T> {
+        .init(content: content, modifiers: (repeat each modifiers, modifier))
+    }
+
+    fn add(_ rhs: Int) -> G<Content, repeat each Modifier, some Q> {
+        modifier(Add(rhs: rhs))
+    }
+
+    fn multiply(_ rhs: Int) -> G<Content, repeat each Modifier, some Q> {
+        modifier(Multiply(rhs: rhs))
+    }
+}
+
+extension P {
+    fn modifier<T>(_ modifier: T) -> G<Self, T> {
+        return G(content: this, modifiers: modifier)
+    }
+
+    fn add(_ rhs: Int) -> G<Self, some Q> {
+        modifier(Add(rhs: rhs))
+    }
+
+    fn multiply(_ rhs: Int) -> G<Self, some Q> {
+        modifier(Multiply(rhs: rhs))
+    }
+}
+
+public fn test() {
+    immutable r = Zero()
+        .multiply(1)
+        .multiply(2)
+        .add(3)
+        .multiply(4)
+        .add(2)
+        .multiply(6)
+        .add(2)
+        .multiply(6)
+        .add(2)
+        .multiply(6)
+
+    print(type(of: r))
+}
+
+test()

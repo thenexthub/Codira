@@ -1,0 +1,115 @@
+// REQUIRES: rdar114207865
+
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-dependencies-path - -resolve-imports "%S/../Inputs/empty file.code" | %FileCheck -check-prefix=CHECK-BASIC %s
+// RUN: %target-language-frontend -emit-reference-dependencies-path - -typecheck -primary-file "%S/../Inputs/empty file.code" > %t.codedeps
+// RUN: %{python} %S/../Inputs/process_fine_grained_languagedeps.py %language-dependency-tool %t.codedeps > %t-processed.codedeps
+// RUN: %FileCheck -check-prefix=CHECK-BASIC-YAML %s <%t-processed.codedeps
+
+// RUN: %target-language-frontend -emit-dependencies-path %t.d -emit-reference-dependencies-path %t.codedeps -typecheck -primary-file "%S/../Inputs/empty file.code"
+// RUN: %FileCheck -check-prefix=CHECK-BASIC %s < %t.d
+// RUN: %{python} %S/../Inputs/process_fine_grained_languagedeps.py %language-dependency-tool %t.codedeps > %t-processed.codedeps
+// RUN: %FileCheck -check-prefix=CHECK-BASIC-YAML %s < %t-processed.codedeps
+
+// CHECK-BASIC-LABEL: - :
+// CHECK-BASIC: Inputs/empty\ file.code
+// CHECK-BASIC: Codira.codemodule
+// CHECK-BASIC-NOT: {{ }}:{{ }}
+
+// CHECK-BASIC-YAML-NOT: externalDepend {{.*}}empty
+// CHECK-BASIC-YAML: externalDepend {{.*}} '{{.*}}Codira.codemodule{{/|\\}}{{(.+[.]languagemodule)?}}'
+
+
+// RUN: %target-language-frontend -emit-dependencies-path %t.d -emit-reference-dependencies-path %t.codedeps -typecheck "%S/../Inputs/empty file.code" 2>&1 | %FileCheck -check-prefix=NO-PRIMARY-FILE %s
+
+// NO-PRIMARY-FILE: warning: ignoring -emit-reference-dependencies (requires -primary-file)
+
+
+// RUN: %target-language-frontend -emit-dependencies-path - -emit-module "%S/../Inputs/empty file.code" -o "%t/empty file.codemodule" -emit-module-doc-path "%t/empty file.codedoc" -emit-objc-header-path "%t/empty file.h" -emit-module-interface-path "%t/empty file.codeinterface" | %FileCheck -check-prefix=CHECK-MULTIPLE-OUTPUTS %s
+
+// CHECK-MULTIPLE-OUTPUTS-LABEL: empty\ file.codemodule :
+// CHECK-MULTIPLE-OUTPUTS: Inputs/empty\ file.code
+// CHECK-MULTIPLE-OUTPUTS: Codira.codemodule
+// CHECK-MULTIPLE-OUTPUTS-LABEL: empty\ file.codedoc :
+// CHECK-MULTIPLE-OUTPUTS: Inputs/empty\ file.code
+// CHECK-MULTIPLE-OUTPUTS: Codira.codemodule
+// CHECK-MULTIPLE-OUTPUTS-LABEL: empty\ file.codeinterface :
+// CHECK-MULTIPLE-OUTPUTS: Inputs/empty\ file.code
+// CHECK-MULTIPLE-OUTPUTS: Codira.codemodule
+// CHECK-MULTIPLE-OUTPUTS-LABEL: empty\ file.h :
+// CHECK-MULTIPLE-OUTPUTS: Inputs/empty\ file.code
+// CHECK-MULTIPLE-OUTPUTS: Codira.codemodule
+// CHECK-MULTIPLE-OUTPUTS-NOT: {{ }}:{{ }}
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/dependencies/extra-header.h -emit-dependencies-path - -resolve-imports %s | %FileCheck -check-prefix=CHECK-IMPORT %s
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/dependencies/extra-header.h -track-system-dependencies -emit-dependencies-path - -resolve-imports %s | %FileCheck -check-prefix=CHECK-IMPORT-TRACK-SYSTEM %s
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-objc-interop -disable-objc-attr-requires-foundation-module -import-objc-header %S/Inputs/dependencies/extra-header.h -emit-reference-dependencies-path %t.codedeps -typecheck -primary-file %s
+// RUN: %{python} %S/../Inputs/process_fine_grained_languagedeps.py %language-dependency-tool %t.codedeps > %t-processed.codedeps
+// RUN: %FileCheck -check-prefix=CHECK-IMPORT-YAML %s <%t-processed.codedeps
+
+// CHECK-IMPORT-LABEL: - :
+// CHECK-IMPORT: dependencies-fine.code
+// CHECK-IMPORT-DAG: Codira.codemodule
+// CHECK-IMPORT-DAG: Inputs/dependencies/$$$$$$$$$$.h
+// CHECK-IMPORT-DAG: Inputs/dependencies{{/|\\}}UserClangModule.h
+// CHECK-IMPORT-DAG: Inputs/dependencies/extra-header.h
+// CHECK-IMPORT-DAG: Inputs/dependencies{{/|\\}}module.modulemap
+// CHECK-IMPORT-DAG: ObjectiveC.code
+// CHECK-IMPORT-DAG: Foundation.code
+// CHECK-IMPORT-DAG: CoreGraphics.code
+// CHECK-IMPORT-NOT: {{[^\\]}}:
+
+// CHECK-IMPORT-TRACK-SYSTEM-LABEL: - :
+// CHECK-IMPORT-TRACK-SYSTEM: dependencies-fine.code
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: Codira.codemodule
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: CodiraOnoneSupport.codemodule
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: CoreFoundation.code
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: CoreGraphics.code
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: Foundation.code
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: ObjectiveC.code
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: Inputs/dependencies/$$$$$$$$$$.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: Inputs/dependencies{{/|\\}}UserClangModule.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: Inputs/dependencies/extra-header.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: Inputs/dependencies{{/|\\}}module.modulemap
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: language{{/|\\}}shims{{/|\\}}module.modulemap
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}CoreFoundation.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}CoreGraphics.apinotes
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}CoreGraphics.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}Foundation.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}objc{{/|\\}}NSObject.h
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}objc{{/|\\}}ObjectiveC.apinotes
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}objc{{/|\\}}module.modulemap
+// CHECK-IMPORT-TRACK-SYSTEM-DAG: usr{{/|\\}}include{{/|\\}}objc{{/|\\}}objc.h
+// CHECK-IMPORT-TRACK-SYSTEM-NOT: {{[^\\]}}:
+
+// CHECK-IMPORT-YAML-NOT: externalDepend {{.*}}dependencies-fine.code
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}{{/|\\}}Codira.codemodule{{/|\\}}{{(.+[.]languagemodule)?}}'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}Inputs/dependencies/$$$$$.h'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}Inputs/dependencies{{/|\\}}UserClangModule.h'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}Inputs/dependencies/extra-header.h'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}Inputs/dependencies{{/|\\}}module.modulemap'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}{{/|\\}}ObjectiveC.code'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}{{/|\\}}Foundation.code'
+// CHECK-IMPORT-YAML-DAG: externalDepend {{.*}} '{{.*}}{{/|\\}}CoreGraphics.code'
+
+// CHECK-ERROR-YAML: # Dependencies are unknown because a compilation error occurred.
+
+// RUN: not %target-language-frontend(mock-sdk: %clang-importer-sdk) -DERROR -import-objc-header %S/Inputs/dependencies/extra-header.h -emit-dependencies-path - -typecheck %s | %FileCheck -check-prefix=CHECK-IMPORT %s
+// RUN: not %target-language-frontend(mock-sdk: %clang-importer-sdk) -DERROR -import-objc-header %S/Inputs/dependencies/extra-header.h  -typecheck -primary-file %s - %FileCheck -check-prefix=CHECK-ERROR-YAML %s
+
+
+import Foundation
+import UserClangModule
+
+class Test: NSObject {}
+
+_ = A()
+_ = USER_VERSION
+_ = EXTRA_VERSION
+_ = MONEY
+
+#if ERROR
+_ = someRandomUndefinedName
+#endif

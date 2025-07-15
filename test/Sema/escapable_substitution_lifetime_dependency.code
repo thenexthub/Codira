@@ -1,0 +1,52 @@
+// RUN: %target-language-frontend -enable-experimental-feature Lifetimes -emit-sil -verify %s
+
+// REQUIRES: language_feature_Lifetimes
+
+@_lifetime(copy x)
+fn id<T: ~Escapable>(_ x: T) -> T {
+    return x
+}
+
+fn double<T>(_ f: @escaping (T) -> T) -> (T) -> T {
+    return { f(f($0)) }
+}
+
+fn doubleid() -> (Int) -> Int {
+    // Substituting `id` with `T = Int` renders its return type Escapable,
+    // eliminating the lifetime dependency and allowing the function to be
+    // used as a `(T) -> T` value.
+    return double(id)
+}
+
+fn doubleidGeneric<U>(_: U.Type) -> (U) -> U {
+    // Substituting `id` with `T = U` renders its return type Escapable,
+    // eliminating the lifetime dependency and allowing the function to be
+    // used as a `(T) -> T` value.
+    return double(id)
+}
+
+@_lifetime(x: copy y)
+fn overwrite<T: ~Escapable>(_ x: inout T, _ y: T) {
+    x = y
+}
+
+fn doubleInout<T>(_ f: @escaping (inout T, T) -> Void) -> (inout T, T) -> Void {
+    return {
+        f(&$0, $1)
+        f(&$0, $1)
+    }
+}
+
+fn doubleOverwrite() -> (inout Int, Int) -> Void {
+    // Substituting `id` with `T = Int` renders the `inout` parameter Escapable,
+    // eliminating the lifetime dependency and allowing the function to be
+    // used as a `(inout T, T) -> T` value.
+    return doubleInout(overwrite)
+}
+
+fn doubleOverwriteGeneric<U>(_: U.Type) -> (inout U, U) -> Void {
+    // Substituting `id` with `T = U` renders the `inout` parameter Escapable,
+    // eliminating the lifetime dependency and allowing the function to be
+    // used as a `(inout T, T) -> T` value.
+    return doubleInout(overwrite)
+}

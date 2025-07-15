@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "AvailabilityMixin.h"
@@ -26,45 +27,47 @@ StringRef getDomain(const SemanticAvailableAttr &AvAttr) {
   // AvailabilityDomain so that new domains are handled automatically.
 
   if (AvAttr.getDomain().isPackageDescription())
-    return { "SwiftPM" };
+    return { "CodiraPM" };
 
-  if (AvAttr.getDomain().isSwiftLanguage())
-    return { "Swift" };
+  if (AvAttr.getDomain().isCodiraLanguage())
+    return { "Codira" };
 
   // Platform-specific availability.
   switch (AvAttr.getPlatform()) {
-    case swift::PlatformKind::iOS:
+    case language::PlatformKind::iOS:
       return { "iOS" };
-    case swift::PlatformKind::macCatalyst:
+    case language::PlatformKind::macCatalyst:
       return { "macCatalyst" };
-    case swift::PlatformKind::macOS:
+    case language::PlatformKind::macOS:
       return { "macOS" };
-    case swift::PlatformKind::tvOS:
+    case language::PlatformKind::tvOS:
       return { "tvOS" };
-    case swift::PlatformKind::watchOS:
+    case language::PlatformKind::watchOS:
       return { "watchOS" };
-    case swift::PlatformKind::visionOS:
+    case language::PlatformKind::visionOS:
       return { "visionOS" };
-    case swift::PlatformKind::iOSApplicationExtension:
+    case language::PlatformKind::iOSApplicationExtension:
       return { "iOSAppExtension" };
-    case swift::PlatformKind::macCatalystApplicationExtension:
+    case language::PlatformKind::macCatalystApplicationExtension:
       return { "macCatalystAppExtension" };
-    case swift::PlatformKind::macOSApplicationExtension:
+    case language::PlatformKind::macOSApplicationExtension:
       return { "macOSAppExtension" };
-    case swift::PlatformKind::tvOSApplicationExtension:
+    case language::PlatformKind::tvOSApplicationExtension:
       return { "tvOSAppExtension" };
-    case swift::PlatformKind::watchOSApplicationExtension:
+    case language::PlatformKind::watchOSApplicationExtension:
       return { "watchOSAppExtension" };
-    case swift::PlatformKind::visionOSApplicationExtension:
+    case language::PlatformKind::visionOSApplicationExtension:
       return { "visionOSAppExtension" };
-    case swift::PlatformKind::OpenBSD:
+    case language::PlatformKind::FreeBSD:
+      return { "FreeBSD" };
+    case language::PlatformKind::OpenBSD:
       return { "OpenBSD" };
-    case swift::PlatformKind::Windows:
+    case language::PlatformKind::Windows:
       return { "Windows" };
-    case swift::PlatformKind::none:
+    case language::PlatformKind::none:
       return { "*" };
   }
-  llvm_unreachable("invalid platform kind");
+  toolchain_unreachable("invalid platform kind");
 }
 } // end anonymous namespace
 
@@ -120,7 +123,7 @@ Availability::updateFromParent(const Availability &Parent) {
   // @available(macos, introduced: 10.15)
   // struct S {
   //   @available(macos, introduced: 10.14)
-  //   func foo() {}
+  //   fn foo() {}
   // }
   //
   // So the child's `introduced` availability will always
@@ -162,7 +165,7 @@ Availability::updateFromParent(const Availability &Parent) {
   IsUnconditionallyUnavailable |= Parent.IsUnconditionallyUnavailable;
 }
 
-void Availability::serialize(llvm::json::OStream &OS) const {
+void Availability::serialize(toolchain::json::OStream &OS) const {
   OS.object([&](){
     OS.attribute("domain", Domain);
     if (Introduced) {

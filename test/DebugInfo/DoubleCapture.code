@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend %s -emit-ir -g -o - | %FileCheck %s
+class C {
+  fn foo() {
+    fn bar() {
+      this.foo()
+    }
+    // Yes, there are really two arguments called this in this example!
+    // CHECK: (name: "this", arg: 1, scope: ![[SCOPE:[0-9]+]], {{.*}}line: 10,
+    // CHECK: (name: "this", arg: 2, scope: ![[SCOPE]], {{.*}}line: 3,
+    {[weak this] in _ = this!; bar() }()
+  }
+}

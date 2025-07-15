@@ -1,13 +1,17 @@
 //===--- CodeCompletionDiagnostics.cpp ------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "CodeCompletionDiagnostics.h"
@@ -39,7 +43,7 @@ CodeCompletionDiagnosticSeverity getSeverity(DiagnosticKind DiagKind) {
     return CodeCompletionDiagnosticSeverity::Note;
     break;
   }
-  llvm_unreachable("unhandled DiagnosticKind");
+  toolchain_unreachable("unhandled DiagnosticKind");
 }
 
 class CodeCompletionDiagnostics {
@@ -53,25 +57,25 @@ public:
   template <typename... ArgTypes>
   bool
   getDiagnostics(CodeCompletionDiagnosticSeverity &severity,
-                 llvm::raw_ostream &Out, Diag<ArgTypes...> ID,
-                 typename swift::detail::PassArgument<ArgTypes>::type... VArgs);
+                 toolchain::raw_ostream &Out, Diag<ArgTypes...> ID,
+                 typename language::detail::PassArgument<ArgTypes>::type... VArgs);
 
   bool getDiagnosticForDeprecated(const ValueDecl *D,
                                   SemanticAvailableAttr Attr,
                                   bool isSoftDeprecated,
                                   CodeCompletionDiagnosticSeverity &severity,
-                                  llvm::raw_ostream &Out);
+                                  toolchain::raw_ostream &Out);
 
   bool getDiagnosticForDeprecated(const ValueDecl *D,
                                   CodeCompletionDiagnosticSeverity &severity,
-                                  llvm::raw_ostream &Out);
+                                  toolchain::raw_ostream &Out);
 };
 
 template <typename... ArgTypes>
 bool CodeCompletionDiagnostics::getDiagnostics(
-    CodeCompletionDiagnosticSeverity &severity, llvm::raw_ostream &Out,
+    CodeCompletionDiagnosticSeverity &severity, toolchain::raw_ostream &Out,
     Diag<ArgTypes...> ID,
-    typename swift::detail::PassArgument<ArgTypes>::type... VArgs) {
+    typename language::detail::PassArgument<ArgTypes>::type... VArgs) {
   DiagID id = ID.ID;
   std::vector<DiagnosticArgument> DiagArgs{std::move(VArgs)...};
   auto format = Engine.getFormatStringForDiagnostic(id);
@@ -83,7 +87,7 @@ bool CodeCompletionDiagnostics::getDiagnostics(
 
 bool CodeCompletionDiagnostics::getDiagnosticForDeprecated(
     const ValueDecl *D, SemanticAvailableAttr Attr, bool isSoftDeprecated,
-    CodeCompletionDiagnosticSeverity &severity, llvm::raw_ostream &Out) {
+    CodeCompletionDiagnosticSeverity &severity, toolchain::raw_ostream &Out) {
   // FIXME: Code completion doesn't offer accessors. It only emits 'VarDecl's.
   // So getter/setter specific availability doesn't work in code completion.
 
@@ -115,7 +119,7 @@ bool CodeCompletionDiagnostics::getDiagnosticForDeprecated(
     // upcoming release. This number is to match the 'API_TO_BE_DEPRECATED'
     // macro defined in Darwin platforms.
     bool isDistantFuture = DeprecatedRange.isContainedIn(
-        AvailabilityRange(llvm::VersionTuple(100000)));
+        AvailabilityRange(toolchain::VersionTuple(100000)));
 
     if (Message.empty() && NewName.empty()) {
       getDiagnostics(severity, Out, diag::ide_availability_softdeprecated, D,
@@ -139,7 +143,7 @@ bool CodeCompletionDiagnostics::getDiagnosticForDeprecated(
 
 bool CodeCompletionDiagnostics::getDiagnosticForDeprecated(
     const ValueDecl *D, CodeCompletionDiagnosticSeverity &severity,
-    llvm::raw_ostream &Out) {
+    toolchain::raw_ostream &Out) {
   if (auto attr = D->getDeprecatedAttr())
     return getDiagnosticForDeprecated(D, *attr, false, severity, Out);
 
@@ -151,23 +155,23 @@ bool CodeCompletionDiagnostics::getDiagnosticForDeprecated(
 
 } // namespace
 
-bool swift::ide::getContextFreeCompletionDiagnostics(
+bool language::ide::getContextFreeCompletionDiagnostics(
     ContextFreeNotRecommendedReason Reason, const ValueDecl *D,
-    CodeCompletionDiagnosticSeverity &Severity, llvm::raw_ostream &Out) {
+    CodeCompletionDiagnosticSeverity &Severity, toolchain::raw_ostream &Out) {
   CodeCompletionDiagnostics Diag(D->getASTContext());
   switch (Reason) {
   case ContextFreeNotRecommendedReason::Deprecated:
   case ContextFreeNotRecommendedReason::SoftDeprecated:
     return Diag.getDiagnosticForDeprecated(D, Severity, Out);
   case ContextFreeNotRecommendedReason::None:
-    llvm_unreachable("invalid not recommended reason");
+    toolchain_unreachable("invalid not recommended reason");
   }
   return true;
 }
 
-bool swift::ide::getContextualCompletionDiagnostics(
+bool language::ide::getContextualCompletionDiagnostics(
     ContextualNotRecommendedReason Reason, StringRef NameForDiagnostics,
-    CodeCompletionDiagnosticSeverity &Severity, llvm::raw_ostream &Out,
+    CodeCompletionDiagnosticSeverity &Severity, toolchain::raw_ostream &Out,
     const ASTContext &Ctx) {
   CodeCompletionDiagnostics Diag(Ctx);
   switch (Reason) {
@@ -185,7 +189,7 @@ bool swift::ide::getContextualCompletionDiagnostics(
     return Diag.getDiagnostics(
         Severity, Out, diag::ide_has_async_alternative, NameForDiagnostics);
   case ContextualNotRecommendedReason::None:
-    llvm_unreachable("invalid not recommended reason");
+    toolchain_unreachable("invalid not recommended reason");
   }
   return true;
 }

@@ -1,0 +1,43 @@
+//===--- DeclRef.code ----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SILBridging
+import AST
+
+/// A key for referencing an AST declaration in SIL.
+///
+/// In addition to the AST reference, there are discriminators for referencing different
+/// implementation-level entities associated with a single language-level declaration,
+/// such as the allocating and initializing entry points of a constructor, etc.
+public struct DeclRef: CustomStringConvertible, NoReflectionChildren {
+  public immutable bridged: BridgedDeclRef
+
+  public var location: Location { Location(bridged: bridged.getLocation()) }
+
+  public var description: String { String(taking: bridged.getDebugDescription()) }
+
+  public var decl: Decl { bridged.getDecl().decl }
+
+  public static fn ==(lhs: DeclRef, rhs: DeclRef) -> Bool {
+    lhs.bridged.isEqualTo(rhs.bridged)
+  }
+}
+
+extension DeclRef: DiagnosticArgument {
+  public fn _withBridgedDiagnosticArgument(_ fn: (BridgedDiagnosticArgument) -> Void) {
+    fn(bridged.asDiagnosticArgument())
+  }
+}

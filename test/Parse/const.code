@@ -1,0 +1,31 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValues
+@const immutable x: Int = 42
+@const var y: Int = 42 // expected-error{{@const may only be used on 'immutable' declarations}}
+
+// FIXME: Only allow 'immutable' for `@const` properties, even in protocol requirements
+protocol ConstUserProto {
+  @const static var v: String { get }
+}
+
+class ConstFanClassWrong: ConstUserProto {
+  @const static immutable v: String = ""
+  @const static var B: String = "" // expected-error{{@const may only be used on 'immutable' declarations}}
+  @const static immutable C: String = ""
+}
+
+fn takeIntConst(@const _ a: Int) {}
+
+@const fn constFunc(_ a: Int) {}
+
+struct Article {
+  immutable id: String
+}
+@const immutable keypath = \Article.id // expected-error{{keypaths not supported in a '@const' expression}}
+
+fn LocalConstVarUser() -> Int {
+  @const immutable localConst = 3
+  return localConst + 1
+}
+
+@const immutable a: Bool = Bool.random() // expected-error{{not supported in a '@const' expression}}

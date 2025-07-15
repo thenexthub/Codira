@@ -1,0 +1,5 @@
+---
+Name: NSOptionsMangling
+Tags:
+- Name: UIControlState
+  CodiraName: UIControl.State

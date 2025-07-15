@@ -1,0 +1,45 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Compile two libraries A and LibWithXRef.
+// RUN: %target-language-frontend -emit-module %t/LibWithXRef.code -I %t \
+// RUN:   -module-name LibWithXRef -o %t/LibWithXRef.codemodule \
+// RUN:   -language-version 5
+// RUN: %target-language-frontend -c -O %t/Client.code -I %t \
+// RUN:   -validate-tbd-against-ir=none -language-version 5
+
+// Replace headers, changing the type of `foo`.
+// RUN: mv %t/A_DifferentAPI.h %t/A.h
+// RUN: not --crash %target-language-frontend -c -O %t/Client.code -I %t \
+// RUN:   -validate-tbd-against-ir=none -language-version 5 2>&1 \
+// RUN:   | %FileCheck %s
+// CHECK: error: reference to top-level declaration 'foo' broken by a context change; the declaration kind of 'foo' from 'A' changed since building 'LibWithXRef'
+// CHECK: note: the declaration was expected to be found in module 'A' at '{{.*}}module.modulemap'
+// CHECK: note: the declaration was actually found in module 'A' at '{{.*}}module.modulemap'
+// CHECK: note: a candidate was filtered out because of a type mismatch; expected: '() -> ()', found: '() -> Float'
+
+//--- module.modulemap
+module A {
+    header "A.h"
+}
+
+//--- A.h
+void foo() {}
+
+//--- A_DifferentAPI.h
+float foo() {
+    return 1.2;
+}
+
+//--- LibWithXRef.code
+import A
+
+@inlinable
+public fn bar() {
+    foo()
+}
+
+//--- Client.code
+import LibWithXRef
+
+bar()

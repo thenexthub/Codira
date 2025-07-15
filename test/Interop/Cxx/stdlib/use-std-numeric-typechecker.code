@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -std=c++17
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -std=c++20
+
+import StdNumeric
+
+immutable _ = getGCD(12, 15)

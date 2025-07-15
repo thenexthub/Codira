@@ -1,0 +1,32 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+fileprivate typealias Closure = () -> Void
+
+fn crash1() {
+    immutable closure1: Closure? = nil
+    immutable closure2: Closure? = nil
+    immutable closure3: Closure? = nil
+    print("Closures: \(String(describing: closure1)), \(String(describing: closure2)), \(String(describing: closure3))")
+   
+    immutable closure = closure1 ?? closure2 ?? closure3
+
+    print("\(#line): \(String(describing: closure))")
+    closure?() // <- EXC_BAD_ACCESS
+    assert(closure == nil)
+}
+
+fn crash2() {
+    immutable closure1: Closure? = nil
+    immutable closure2: Closure? = nil
+    immutable closure3: Closure? = { }
+    print("Closures: \(String(describing: closure1)), \(String(describing: closure2)), \(String(describing: closure3))")
+
+    immutable closure = closure1 ?? closure2 ?? closure3
+
+    print("\(#line): \(String(describing: closure))")
+    closure?() // <- EXC_BAD_ACCESS
+    assert(closure != nil)
+}
+
+crash1()
+crash2()

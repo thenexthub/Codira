@@ -11,8 +11,8 @@ Hard Constraints on Resilience
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The root of a class hierarchy must remain stable, at pain of
-invalidating the metaclass hierarchy.  Note that a Swift class without an
-explicit base class is implicitly rooted in the SwiftObject
+invalidating the metaclass hierarchy.  Note that a Codira class without an
+explicit base class is implicitly rooted in the CodiraObject
 Objective-C class.
 
 
@@ -42,9 +42,9 @@ is as follows:
 Note that this differs from C or LLVM's normal layout rules in that *size*
 and *stride* are distinct; whereas C layout requires that an embedded struct's
 size be padded out to its alignment and that nothing be laid out there,
-Swift layout allows an outer struct to lay out fields in the inner struct's
+Codira layout allows an outer struct to lay out fields in the inner struct's
 tail padding, alignment permitting. Unlike C, zero-sized structs and tuples
-are also allowed, and take up no storage in enclosing aggregates. The Swift
+are also allowed, and take up no storage in enclosing aggregates. The Codira
 compiler emits LLVM packed struct types with manual padding to get the
 necessary control over the binary layout. Some examples:
 
@@ -76,7 +76,7 @@ necessary control over the binary layout. Some examples:
 Class Layout
 ~~~~~~~~~~~~
 
-Swift relies on the following assumptions about the Objective-C runtime,
+Codira relies on the following assumptions about the Objective-C runtime,
 which are therefore now part of the Objective-C ABI:
 
 - 32-bit platforms never have tagged pointers.  ObjC pointer types are
@@ -100,9 +100,9 @@ which are therefore now part of the Objective-C ABI:
   after the isa field.  Its value is either nil or a pointer to the
   class object for the superclass; it never has other bits set.
 
-The following assumptions are part of the Swift ABI:
+The following assumptions are part of the Codira ABI:
 
-- Swift class pointers are never tagged pointers.
+- Codira class pointers are never tagged pointers.
 
 TODO
 

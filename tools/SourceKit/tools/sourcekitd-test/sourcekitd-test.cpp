@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/sourcekitd.h"
@@ -18,21 +19,21 @@
 #include "SourceKit/Support/Concurrency.h"
 #include "TestOptions.h"
 #include "language/Demangling/ManglingMacros.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/ConvertUTF.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Program.h"
-#include "llvm/Support/Regex.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/thread.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/ConvertUTF.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/FormatVariadic.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Program.h"
+#include "toolchain/Support/Regex.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/thread.h"
 #include <fstream>
 #include <optional>
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
@@ -47,7 +48,7 @@
 // FIXME: Platform compatibility.
 #include <dispatch/dispatch.h>
 
-using namespace llvm;
+using namespace toolchain;
 
 using namespace sourcekitd_test;
 
@@ -61,41 +62,41 @@ static int handleTestInvocation(ArrayRef<const char *> Args, TestOptions &InitOp
                                 bool IsFirstInvocation);
 static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
                            const std::string &SourceFile,
-                           std::unique_ptr<llvm::MemoryBuffer> SourceBuf,
+                           std::unique_ptr<toolchain::MemoryBuffer> SourceBuf,
                            TestOptions *InitOpts);
 static void printCursorInfo(sourcekitd_variant_t Info, StringRef Filename,
-                            const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
-                            llvm::raw_ostream &OS);
-static void printNameTranslationInfo(sourcekitd_variant_t Info, llvm::raw_ostream &OS);
+                            const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
+                            toolchain::raw_ostream &OS);
+static void printNameTranslationInfo(sourcekitd_variant_t Info, toolchain::raw_ostream &OS);
 static void printRangeInfo(sourcekitd_variant_t Info, StringRef Filename,
-                           llvm::raw_ostream &OS);
-static void printExpressionType(sourcekitd_variant_t Info, llvm::raw_ostream &OS);
+                           toolchain::raw_ostream &OS);
+static void printExpressionType(sourcekitd_variant_t Info, toolchain::raw_ostream &OS);
 static void printVariableType(sourcekitd_variant_t Info,
-                              llvm::MemoryBuffer *SourceBuf,
-                              llvm::raw_ostream &OS);
+                              toolchain::MemoryBuffer *SourceBuf,
+                              toolchain::raw_ostream &OS);
 static void printDocInfo(sourcekitd_variant_t Info, StringRef Filename);
 static void printInterfaceGen(sourcekitd_variant_t Info, bool CheckASCII);
 static void printSemanticInfo();
 static void printRelatedIdents(sourcekitd_variant_t Info, StringRef Filename,
-                               const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
-                               llvm::raw_ostream &OS);
+                               const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
+                               toolchain::raw_ostream &OS);
 static void printActiveRegions(sourcekitd_variant_t Info, StringRef Filename,
-                               const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
-                               llvm::raw_ostream &OS);
+                               const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
+                               toolchain::raw_ostream &OS);
 static void printFoundInterface(sourcekitd_variant_t Info,
-                                llvm::raw_ostream &OS);
+                                toolchain::raw_ostream &OS);
 static void printFoundUSR(sourcekitd_variant_t Info,
-                          llvm::MemoryBuffer *SourceBuf,
-                          llvm::raw_ostream &OS);
+                          toolchain::MemoryBuffer *SourceBuf,
+                          toolchain::raw_ostream &OS);
 static void printNormalizedDocComment(sourcekitd_variant_t Info);
-static void expandPlaceholders(llvm::MemoryBuffer *SourceBuf,
-                               llvm::raw_ostream &OS);
+static void expandPlaceholders(toolchain::MemoryBuffer *SourceBuf,
+                               toolchain::raw_ostream &OS);
 
 static void printModuleGroupNames(sourcekitd_variant_t Info,
-                                  llvm::raw_ostream &OS);
+                                  toolchain::raw_ostream &OS);
 static void printSyntacticRenameEdits(sourcekitd_variant_t Info,
-                                      llvm::raw_ostream &OS);
-static void printRenameRanges(sourcekitd_variant_t Info, llvm::raw_ostream &OS);
+                                      toolchain::raw_ostream &OS);
+static void printRenameRanges(sourcekitd_variant_t Info, toolchain::raw_ostream &OS);
 static void prepareDemangleRequest(sourcekitd_object_t Req,
                                    const TestOptions &Opts);
 static void printDemangleResults(sourcekitd_variant_t Info, raw_ostream &OS);
@@ -106,21 +107,21 @@ static void printStatistics(sourcekitd_variant_t Info, raw_ostream &OS);
 
 static unsigned
 resolveFromLineCol(unsigned Line, unsigned Col, StringRef Filename,
-                   const llvm::StringMap<TestOptions::VFSFile> &VFSFiles);
+                   const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles);
 static unsigned resolveFromLineCol(unsigned Line, unsigned Col,
-                                   llvm::MemoryBuffer *InputBuf);
+                                   toolchain::MemoryBuffer *InputBuf);
 static std::pair<unsigned, unsigned>
 resolveToLineCol(unsigned Offset, StringRef Filename,
-                 const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
+                 const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
                  bool ExitOnError = true);
 static std::pair<unsigned, unsigned>
-resolveToLineCol(unsigned Offset, llvm::MemoryBuffer *InputBuf,
+resolveToLineCol(unsigned Offset, toolchain::MemoryBuffer *InputBuf,
                  bool ExitOnError = true);
 static std::pair<unsigned, unsigned> resolveToLineColFromBuf(unsigned Offset,
                                                       const char *Buf);
-static llvm::MemoryBuffer *
+static toolchain::MemoryBuffer *
 getBufferForFilename(StringRef Filename,
-                     const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
+                     const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
                      bool ExitOnError = true);
 
 static void notification_receiver(sourcekitd_response_t resp);
@@ -151,7 +152,7 @@ struct AsyncResponseInfo {
   sourcekitd_response_t response = nullptr;
   TestOptions options;
   std::string sourceFilename;
-  std::unique_ptr<llvm::MemoryBuffer> sourceBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> sourceBuffer;
   sourcekitd_request_handle_t requestHandle;
 };
 } // end anonymous namespace
@@ -166,7 +167,7 @@ struct NotificationBuffer {
     notes.push_back(note);
   }
   /// Call the given handler for all notifications currently buffered.
-  void handleNotifications(llvm::function_ref<void(sourcekitd_response_t)> f) {
+  void handleNotifications(toolchain::function_ref<void(sourcekitd_response_t)> f) {
     // Notifications are handled on the main queue.
     dispatch_sync(dispatch_get_main_queue(), ^{
       for (auto note : notes) {
@@ -180,12 +181,12 @@ struct NotificationBuffer {
 static NotificationBuffer notificationBuffer;
 
 static void printRawResponse(sourcekitd_response_t resp) {
-  llvm::outs().flush();
+  toolchain::outs().flush();
   sourcekitd_response_description_dump_filedesc(resp, STDOUT_FILENO);
 }
 
 static void printRawVariant(sourcekitd_variant_t obj) {
-  llvm::outs().flush();
+  toolchain::outs().flush();
   sourcekitd_variant_description_dump_filedesc(obj, STDOUT_FILENO);
 }
 
@@ -203,7 +204,7 @@ static void syncNotificationsWithService() {
   sourcekitd_response_dispose(resp);
   sourcekitd_request_release(req);
   if (noteSyncSemaphore.wait(60 * 1000)) {
-    llvm::report_fatal_error("Test notification not received");
+    toolchain::report_fatal_error("Test notification not received");
   }
 }
 
@@ -225,7 +226,7 @@ static void skt_main(skt_args *args);
 int main(int argc, const char **argv) {
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
     skt_args args = {argc, argv, 0};
-    llvm::thread thread(llvm::thread::DefaultStackSize,
+    toolchain::thread thread(toolchain::thread::DefaultStackSize,
                         skt_main, &args);
     thread.join();
     exit(args.ret);
@@ -237,7 +238,7 @@ int main(int argc, const char **argv) {
 static void skt_main(skt_args *args) {
   int argc = args->argc;
   const char **argv = args->argv;
-  llvm::sys::PrintStackTraceOnErrorSignal(argv[0]);
+  toolchain::sys::PrintStackTraceOnErrorSignal(argv[0]);
 
   sourcekitd_initialize();
 
@@ -248,7 +249,7 @@ static void skt_main(skt_args *args) {
 #define KEY(NAME, CONTENT) Key##NAME = sourcekitd_uid_get_from_cstr(CONTENT);
 #include "SourceKit/Core/ProtocolUIDs.def"
 
-  SemaDiagnosticStage = sourcekitd_uid_get_from_cstr("source.diagnostic.stage.swift.sema");
+  SemaDiagnosticStage = sourcekitd_uid_get_from_cstr("source.diagnostic.stage.code.sema");
 
   NoteDocUpdate = sourcekitd_uid_get_from_cstr("source.notification.editor.documentupdate");
   NoteTest = sourcekitd_uid_get_from_cstr("source.notification.test");
@@ -263,7 +264,7 @@ static void skt_main(skt_args *args) {
   // A test invocation may initialize the options to be used for subsequent
   // invocations.
   TestOptions InitOpts;
-  auto Args = llvm::ArrayRef(argv + 1, argc - 1);
+  auto Args = toolchain::ArrayRef(argv + 1, argc - 1);
   bool firstInvocation = true;
   while (1) {
     unsigned i = 0;
@@ -292,7 +293,7 @@ static void skt_main(skt_args *args) {
 
   for (auto &info : asyncResponses) {
     if (info.semaphore.wait(60 * 1000)) {
-      llvm::report_fatal_error("async request timed out");
+      toolchain::report_fatal_error("async request timed out");
     }
 
     if (handleResponse(info.response, info.options, info.sourceFilename,
@@ -311,9 +312,9 @@ static void skt_main(skt_args *args) {
 
 static inline std::string getInterfaceGenDocumentName() {
   // "Absolute path" on all platforms since handleTestInvocation will attempt to make this absolute
-  llvm::SmallString<64> path = llvm::StringRef("/<interface-gen>");
-  llvm::sys::fs::make_absolute(path);
-  llvm::sys::path::native(path);
+  toolchain::SmallString<64> path = toolchain::StringRef("/<interface-gen>");
+  toolchain::sys::fs::make_absolute(path);
+  toolchain::sys::path::native(path);
   return std::string(path.str());
 }
 
@@ -408,7 +409,7 @@ static bool readPopularAPIList(StringRef filename,
                                std::vector<std::string> &result) {
   std::ifstream in(filename.str());
   if (!in.is_open()) {
-    llvm::errs() << "error opening '" << filename << "'\n";
+    toolchain::errs() << "error opening '" << filename << "'\n";
     return true;
   }
 
@@ -427,7 +428,7 @@ static bool readPopularAPIList(StringRef filename,
 /// {line} and {column} is resolved to 'offset' using \p inputBuf .
 static bool setSyntacticMacroExpansions(sourcekitd_object_t req,
                                         TestOptions &opts,
-                                        llvm::MemoryBuffer *inputBuf) {
+                                        toolchain::MemoryBuffer *inputBuf) {
   SmallVector<sourcekitd_object_t, 4> expansions;
   for (std::string &opt : opts.RequestOptions) {
     SmallVector<StringRef, 3> args;
@@ -436,7 +437,7 @@ static bool setSyntacticMacroExpansions(sourcekitd_object_t req,
 
     if (args.size() != 3 || args[0].getAsInteger(10, line) ||
         args[1].getAsInteger(10, column)) {
-      llvm::errs() << "-req-opts should be {line}:{column}:{json-path}";
+      toolchain::errs() << "-req-opts should be {line}:{column}:{json-path}";
       return true;
     }
     unsigned offset = resolveFromLineCol(line, column, inputBuf);
@@ -446,7 +447,7 @@ static bool setSyntacticMacroExpansions(sourcekitd_object_t req,
     auto expansion = sourcekitd_request_create_from_yaml(Buffer.data(), &Err);
     if (!expansion) {
       assert(Err);
-      llvm::errs() << Err;
+      toolchain::errs() << Err;
       free(Err);
       return true;
     }
@@ -463,16 +464,16 @@ static bool setSyntacticMacroExpansions(sourcekitd_object_t req,
 namespace {
 class PrintingTimer {
   std::string desc;
-  llvm::sys::TimePoint<> start;
-  llvm::raw_ostream &OS;
+  toolchain::sys::TimePoint<> start;
+  toolchain::raw_ostream &OS;
 public:
-  PrintingTimer(std::string desc, llvm::raw_ostream &OS = llvm::errs())
+  PrintingTimer(std::string desc, toolchain::raw_ostream &OS = toolchain::errs())
       : desc(std::move(desc)), start(std::chrono::system_clock::now()), OS(OS) {
   }
   ~PrintingTimer() {
     std::chrono::duration<float, std::milli> delta(
         std::chrono::system_clock::now() - start);
-    OS << desc << ": " << llvm::formatv("{0:ms+f3}", delta) << "\n";
+    OS << desc << ": " << toolchain::formatv("{0:ms+f3}", delta) << "\n";
   }
 };
 }
@@ -494,7 +495,7 @@ static int handleJsonRequestPath(StringRef QueryPath, const TestOptions &Opts) {
   auto Req = sourcekitd_request_create_from_yaml(Buffer.data(), &Err);
   if (!Req) {
     assert(Err);
-    llvm::errs() << Err;
+    toolchain::errs() << Err;
     free(Err);
     return 1;
   }
@@ -508,15 +509,15 @@ static int handleJsonRequestPath(StringRef QueryPath, const TestOptions &Opts) {
 }
 
 static int performShellExecution(ArrayRef<const char *> Args) {
-  llvm::outs().flush();
-  llvm::errs().flush();
-  auto Program = llvm::sys::findProgramByName(Args[0]);
+  toolchain::outs().flush();
+  toolchain::errs().flush();
+  auto Program = toolchain::sys::findProgramByName(Args[0]);
   if (std::error_code ec = Program.getError()) {
-    llvm::errs() << "command not found: " << Args[0] << "\n";
+    toolchain::errs() << "command not found: " << Args[0] << "\n";
     return ec.value();
   }
   SmallVector<StringRef, 8> execArgs(Args.begin(), Args.end());
-  return llvm::sys::ExecuteAndWait(*Program, execArgs);
+  return toolchain::sys::ExecuteAndWait(*Program, execArgs);
 }
 
 static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts);
@@ -567,7 +568,7 @@ static int handleTestInvocation(ArrayRef<const char *> Args,
 
 static void setRefactoringFields(sourcekitd_object_t &Req, TestOptions Opts,
                                  sourcekitd_uid_t RefactoringKind,
-                                 llvm::MemoryBuffer *SourceBuf) {
+                                 toolchain::MemoryBuffer *SourceBuf) {
   unsigned line = Opts.Line;
   unsigned col = Opts.Col;
   if (SourceBuf && Opts.Offset && line == 0) {
@@ -620,10 +621,10 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
   if (!Opts.SourceFile.empty() && Opts.PrimaryFile.empty()) {
     // Only canonicalize if primary file isn't set (since we expect sourcefile
     // to be a relative name otherwise).
-    llvm::SmallString<64> AbsSourceFile;
+    toolchain::SmallString<64> AbsSourceFile;
     AbsSourceFile += Opts.SourceFile;
-    llvm::sys::fs::make_absolute(AbsSourceFile);
-    llvm::sys::path::native(AbsSourceFile);
+    toolchain::sys::fs::make_absolute(AbsSourceFile);
+    toolchain::sys::path::native(AbsSourceFile);
     Opts.SourceFile = std::string(AbsSourceFile.str());
     if (Opts.PrimaryFile.empty()) {
       Opts.PrimaryFile = Opts.SourceFile;
@@ -637,13 +638,13 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
     Opts.SourceText = Buf->getBuffer().str();
   }
 
-  std::unique_ptr<llvm::MemoryBuffer> SourceBuf;
+  std::unique_ptr<toolchain::MemoryBuffer> SourceBuf;
   if (Opts.SourceText.has_value()) {
-    SourceBuf = llvm::MemoryBuffer::getMemBuffer(*Opts.SourceText, Opts.SourceFile);
+    SourceBuf = toolchain::MemoryBuffer::getMemBuffer(*Opts.SourceText, Opts.SourceFile);
   } else if (!Opts.SourceFile.empty() && Opts.PrimaryFile == Opts.SourceFile) {
     // If we have a primary file, that implies that the source file is actually
     // a generated buffer. In that case we can't get the text.
-    SourceBuf = llvm::MemoryBuffer::getMemBuffer(
+    SourceBuf = toolchain::MemoryBuffer::getMemBuffer(
         getBufferForFilename(Opts.SourceFile, Opts.VFSFiles)->getBuffer(),
         Opts.SourceFile);
   }
@@ -672,7 +673,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
   ActiveRequest = Opts.Request;
   switch (Opts.Request) {
   case SourceKitRequest::None:
-    llvm::errs() << "request is not set\n";
+    toolchain::errs() << "request is not set\n";
     // FIXME: This non-zero return value is not propagated as an exit code.
     //        In other words, despite returning 1 here, the program still exits
     //        with a zero (successful) exit code.
@@ -718,7 +719,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
       if (KeyValue.first == "value") {
         KeyValue.second.getAsInteger(0, value);
       } else {
-        llvm::errs() << "unknown parameter '" << KeyValue.first
+        toolchain::errs() << "unknown parameter '" << KeyValue.first
                      << "' in -req-opts";
         return 1;
       }
@@ -789,12 +790,12 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
 
     for (auto &Opt : Opts.RequestOptions) {
       auto KeyValue = StringRef(Opt).split('=');
-      auto key = llvm::StringSwitch<sourcekitd_uid_t>(KeyValue.first)
+      auto key = toolchain::StringSwitch<sourcekitd_uid_t>(KeyValue.first)
         .Case("popular", KeyPopular)
         .Case("unpopular", KeyUnpopular)
         .Default(nullptr);
       if (!key) {
-        llvm::errs() << "invalid key '" << KeyValue.first << "' in -req-opts\n";
+        toolchain::errs() << "invalid key '" << KeyValue.first << "' in -req-opts\n";
         return 1;
       }
 
@@ -879,12 +880,12 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
     sourcekitd_request_dictionary_set_uid(Req, KeyRequest, RequestNameTranslation);
     sourcekitd_request_dictionary_set_int64(Req, KeyOffset, ByteOffset);
     StringRef BaseName;
-    llvm::SmallVector<StringRef, 4> ArgPieces;
+    toolchain::SmallVector<StringRef, 4> ArgPieces;
     sourcekitd_uid_t ArgName;
-    if (!Opts.SwiftName.empty()) {
-      sourcekitd_request_dictionary_set_uid(Req, KeyNameKind, KindNameSwift);
+    if (!Opts.CodiraName.empty()) {
+      sourcekitd_request_dictionary_set_uid(Req, KeyNameKind, KindNameCodira);
       ArgName = KeyArgNames;
-      StringRef Text(Opts.SwiftName);
+      StringRef Text(Opts.CodiraName);
       auto ArgStart = Text.find_first_of('(');
       if (ArgStart == StringRef::npos) {
         BaseName = Text;
@@ -892,14 +893,14 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
         BaseName = Text.substr(0, ArgStart);
         auto ArgEnd = Text.find_last_of(')');
         if (ArgEnd == StringRef::npos) {
-          llvm::errs() << "Swift name is malformed.\n";
+          toolchain::errs() << "Codira name is malformed.\n";
           return 1;
         }
         StringRef AllArgs = Text.substr(ArgStart + 1, ArgEnd - ArgStart - 1);
         AllArgs.split(ArgPieces, ':');
         if (!ArgPieces.empty()) {
           if (!ArgPieces.back().empty()) {
-            llvm::errs() << "Swift name is malformed.\n";
+            toolchain::errs() << "Codira name is malformed.\n";
             return 1;
           }
           ArgPieces.pop_back();
@@ -917,7 +918,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
         ArgPieces.pop_back();
       ArgName = KeySelectorPieces;
     } else {
-      llvm::errs() << "must specify either -swift-name or -objc-name or -objc-selector\n";
+      toolchain::errs() << "must specify either -language-name or -objc-name or -objc-selector\n";
       return 1;
     }
     if (!BaseName.empty()) {
@@ -978,7 +979,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
       sourcekitd_request_dictionary_set_int64(Req, KeyLength, Opts.Length);
     } else {
       if (ByteOffset) {
-        llvm::errs() << "Missing '-length <number>'\n";
+        toolchain::errs() << "Missing '-length <number>'\n";
         return 1;
       }
       // Expand all placeholders.
@@ -1028,7 +1029,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
     return printDiags();
   case SourceKitRequest::ExtractComment:
     if (Opts.SourceFile.empty()) {
-      llvm::errs() << "Missing '<source-file>' \n";
+      toolchain::errs() << "Missing '<source-file>' \n";
       return 1;
     }
     sourcekitd_request_dictionary_set_uid(Req, KeyRequest,
@@ -1041,7 +1042,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
                                             Opts.SynthesizedExtensions);
     if (Opts.ModuleName.empty() && Opts.HeaderPath.empty() &&
         Opts.SourceFile.empty() && Opts.USR.empty()) {
-      llvm::errs() << "Missing '-module <module name>' or '-header <path>'" <<
+      toolchain::errs() << "Missing '-module <module name>' or '-header <path>'" <<
         "or '<source-file>' or '-usr <USR>' \n";
       return 1;
     }
@@ -1050,13 +1051,13 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
                                             RequestEditorOpenInterface);
     } else if (!Opts.USR.empty()) {
       sourcekitd_request_dictionary_set_uid(Req, KeyRequest,
-                                            RequestEditorOpenSwiftTypeInterface);
+                                            RequestEditorOpenCodiraTypeInterface);
     } else if (!Opts.SourceFile.empty()) {
       sourcekitd_request_dictionary_set_uid(Req, KeyRequest,
-                                            RequestEditorOpenSwiftSourceInterface);
+                                            RequestEditorOpenCodiraSourceInterface);
     } else {
-      if (Opts.UsingSwiftArgs)
-          sourcekitd_request_dictionary_set_int64(Req, KeyUsingSwiftArgs, true);
+      if (Opts.UsingCodiraArgs)
+          sourcekitd_request_dictionary_set_int64(Req, KeyUsingCodiraArgs, true);
       else
         compilerArgsAreClang = true;
       sourcekitd_request_dictionary_set_uid(Req, KeyRequest,
@@ -1079,7 +1080,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
 
   case SourceKitRequest::FindInterfaceDoc:
     if (Opts.ModuleName.empty()) {
-      llvm::errs() << "Missing '-module <module name>'\n";
+      toolchain::errs() << "Missing '-module <module name>'\n";
       return 1;
     }
     sourcekitd_request_dictionary_set_uid(Req, KeyRequest, RequestEditorFindInterfaceDoc);
@@ -1087,7 +1088,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
 
   case SourceKitRequest::FindUSR:
     if (Opts.USR.empty()) {
-      llvm::errs() << "Missing '-usr <USR string>'\n";
+      toolchain::errs() << "Missing '-usr <USR string>'\n";
       return 1;
     }
     sourcekitd_request_dictionary_set_uid(Req, KeyRequest, RequestEditorFindUSR);
@@ -1096,7 +1097,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
 
   case SourceKitRequest::ModuleGroups:
     if (Opts.ModuleName.empty()) {
-      llvm::errs() << "Missing '-module <module name>'\n";
+      toolchain::errs() << "Missing '-module <module name>'\n";
       return 1;
     }
     sourcekitd_request_dictionary_set_uid(Req, KeyRequest, RequestModuleGroups);
@@ -1113,7 +1114,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
     sourcekitd_request_dictionary_set_uid(Req, KeyRequest,
                                           RequestFindRenameRanges);
     if (Opts.RenameSpecPath.empty()) {
-      llvm::errs() << "Missing '-rename-spec <file path>'\n";
+      toolchain::errs() << "Missing '-rename-spec <file path>'\n";
       return 1;
     }
     auto Buffer =
@@ -1122,7 +1123,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
     auto RenameSpec = sourcekitd_request_create_from_yaml(Buffer.data(), &Err);
     if (!RenameSpec) {
       assert(Err);
-      llvm::errs() << Err;
+      toolchain::errs() << Err;
       free(Err);
       return 1;
     }
@@ -1199,10 +1200,10 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
     if (!Opts.ModuleCachePath.empty()) {
       if (compilerArgsAreClang) {
         // We need -fmodules or else the clang argument parsing does not honour
-        // -fmodules-cache-path. In reality, the swift ClangImporter will always
+        // -fmodules-cache-path. In reality, the language ClangImporter will always
         // enable modules when importing, so this should only impact the
         // clang argument parsing. This is needed even if the header doesn't
-        // use modules, since Swift itself will import its shims module, and
+        // use modules, since Codira itself will import its shims module, and
         // that needs to honour the -module-cache-path option when testing.
         sourcekitd_request_array_set_string(Args, SOURCEKITD_ARRAY_APPEND, "-fmodules");
         std::string opt = "-fmodules-cache-path=" + Opts.ModuleCachePath;
@@ -1249,17 +1250,17 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
                                             *Opts.SimulateLongRequest);
   }
 
-  if (!Opts.SwiftVersion.empty()) {
+  if (!Opts.CodiraVersion.empty()) {
     if (Opts.PassVersionAsString) {
-      sourcekitd_request_dictionary_set_string(Req, KeySwiftVersion,
-                                               Opts.SwiftVersion.c_str());
+      sourcekitd_request_dictionary_set_string(Req, KeyCodiraVersion,
+                                               Opts.CodiraVersion.c_str());
     } else {
       unsigned ver;
-      if (StringRef(Opts.SwiftVersion).getAsInteger(10, ver)) {
-        llvm::errs() << "error: expected integer for 'swift-version'\n";
+      if (StringRef(Opts.CodiraVersion).getAsInteger(10, ver)) {
+        toolchain::errs() << "error: expected integer for 'language-version'\n";
         return true;
       }
-      sourcekitd_request_dictionary_set_int64(Req, KeySwiftVersion, ver);
+      sourcekitd_request_dictionary_set_int64(Req, KeyCodiraVersion, ver);
     }
   }
 
@@ -1296,7 +1297,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
 
     if (Opts.measureInstructions) {
       int64_t AfterInstructions = getSourceKitInstructionCount();
-      llvm::errs() << "request instructions: "
+      toolchain::errs() << "request instructions: "
                    << (AfterInstructions - BeforeInstructions);
     }
 
@@ -1327,13 +1328,13 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
                             });
 
 #else
-    llvm::report_fatal_error(
+    toolchain::report_fatal_error(
         "-async not supported when sourcekitd is built without blocks support");
 #endif
 
     if (Opts.measureInstructions) {
       int64_t AfterInstructions = getSourceKitInstructionCount();
-      llvm::errs() << "request instructions: "
+      toolchain::errs() << "request instructions: "
                    << (AfterInstructions - BeforeInstructions);
     }
 
@@ -1344,7 +1345,7 @@ static int handleTestInvocation(TestOptions Opts, TestOptions &InitOpts) {
 
 static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
                            const std::string &SourceFile,
-                           std::unique_ptr<llvm::MemoryBuffer> SourceBuf,
+                           std::unique_ptr<toolchain::MemoryBuffer> SourceBuf,
                            TestOptions *InitOpts) {
   bool KeepResponseAlive = false;
   bool IsError = sourcekitd_response_is_error(Resp);
@@ -1356,7 +1357,7 @@ static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
   } else if (Opts.PrintResponseAsJSON) {
     sourcekitd_variant_t Info = sourcekitd_response_get_value(Resp);
     char *json = sourcekitd_variant_json_description_copy(Info);
-    llvm::outs() << json << '\n';
+    toolchain::outs() << json << '\n';
     free(json);
 
   } else if (Opts.PrintRawResponse) {
@@ -1366,10 +1367,10 @@ static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
     sourcekitd_variant_t Info = sourcekitd_response_get_value(Resp);
     switch (Opts.Request) {
     case SourceKitRequest::None:
-      llvm_unreachable("request should be set");
+      toolchain_unreachable("request should be set");
     case SourceKitRequest::PrintAnnotations:
     case SourceKitRequest::PrintDiags:
-      llvm_unreachable("print-annotations/print-diags is handled elsewhere");
+      toolchain_unreachable("print-annotations/print-diags is handled elsewhere");
 
     case SourceKitRequest::EnableCompileNotifications:
       // Ignore the response.  If it was an error it is handled above.
@@ -1432,31 +1433,31 @@ static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
       break;
 
     case SourceKitRequest::RelatedIdents:
-      printRelatedIdents(Info, SourceFile, Opts.VFSFiles, llvm::outs());
+      printRelatedIdents(Info, SourceFile, Opts.VFSFiles, toolchain::outs());
       break;
 
     case SourceKitRequest::ActiveRegions:
-      printActiveRegions(Info, SourceFile, Opts.VFSFiles, llvm::outs());
+      printActiveRegions(Info, SourceFile, Opts.VFSFiles, toolchain::outs());
       break;
 
     case SourceKitRequest::CursorInfo:
-      printCursorInfo(Info, SourceFile, Opts.VFSFiles, llvm::outs());
+      printCursorInfo(Info, SourceFile, Opts.VFSFiles, toolchain::outs());
       break;
 
     case SourceKitRequest::NameTranslation:
-      printNameTranslationInfo(Info, llvm::outs());
+      printNameTranslationInfo(Info, toolchain::outs());
       break;
 
     case SourceKitRequest::RangeInfo:
-      printRangeInfo(Info, SourceFile, llvm::outs());
+      printRangeInfo(Info, SourceFile, toolchain::outs());
       break;
 
     case SourceKitRequest::CollectExpressionType:
-      printExpressionType(Info, llvm::outs());
+      printExpressionType(Info, toolchain::outs());
       break;
 
     case SourceKitRequest::CollectVariableType:
-      printVariableType(Info, SourceBuf.get(), llvm::outs());
+      printVariableType(Info, SourceBuf.get(), toolchain::outs());
       break;
 
     case SourceKitRequest::DocInfo:
@@ -1487,11 +1488,11 @@ static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
       break;
 
     case SourceKitRequest::FindInterfaceDoc:
-      printFoundInterface(Info, llvm::outs());
+      printFoundInterface(Info, toolchain::outs());
       break;
 
     case SourceKitRequest::FindUSR:
-      printFoundUSR(Info, SourceBuf.get(), llvm::outs());
+      printFoundUSR(Info, SourceBuf.get(), toolchain::outs());
       break;
 
     case SourceKitRequest::SyntaxMap:
@@ -1568,23 +1569,23 @@ static bool handleResponse(sourcekitd_response_t Resp, const TestOptions &Opts,
           printRawResponse(Resp);
         } else {
           // Expand all placeholders.
-          expandPlaceholders(SourceBuf.get(), llvm::outs());
+          expandPlaceholders(SourceBuf.get(), toolchain::outs());
         }
         break;
       case SourceKitRequest::ModuleGroups:
-        printModuleGroupNames(Info, llvm::outs());
+        printModuleGroupNames(Info, toolchain::outs());
         break;
 #define SEMANTIC_REFACTORING(KIND, NAME, ID) case SourceKitRequest::KIND:
 #include "language/Refactoring/RefactoringKinds.def"
       case SourceKitRequest::SyntacticMacroExpansion:
-        printSyntacticRenameEdits(Info, llvm::outs());
+        printSyntacticRenameEdits(Info, toolchain::outs());
         break;
       case SourceKitRequest::FindRenameRanges:
       case SourceKitRequest::FindLocalRenameRanges:
-        printRenameRanges(Info, llvm::outs());
+        printRenameRanges(Info, toolchain::outs());
         break;
       case SourceKitRequest::Statistics:
-        printStatistics(Info, llvm::outs());
+        printStatistics(Info, toolchain::outs());
         break;
       case SourceKitRequest::IndexToStore:
         printRawResponse(Resp);
@@ -1629,12 +1630,12 @@ static void getSemanticInfo(sourcekitd_variant_t Info, StringRef Filename) {
   // But only for 1 min.
   bool expired = semaSemaphore.wait(60 * 1000);
   if (expired) {
-    llvm::report_fatal_error("Never got notification for semantic info");
+    toolchain::report_fatal_error("Never got notification for semantic info");
   }
 
   if (Filename != semaName){
-    llvm::report_fatal_error(
-      llvm::Twine("Got notification for different doc name: ") + semaName);
+    toolchain::report_fatal_error(
+      toolchain::Twine("Got notification for different doc name: ") + semaName);
   }
 
   getSemanticInfoImplAfterDocUpdate(
@@ -1687,7 +1688,7 @@ static void notification_receiver(sourcekitd_response_t resp) {
 }
 
 static void printNameTranslationInfo(sourcekitd_variant_t Info,
-                                     llvm::raw_ostream &OS) {
+                                     toolchain::raw_ostream &OS) {
   const char *InternalDiagnostic =
       sourcekitd_variant_dictionary_get_string(Info, KeyInternalDiagnostic);
   if (InternalDiagnostic) {
@@ -1925,8 +1926,8 @@ struct ResponseSymbolInfo {
     return Symbol;
   }
 
-  void print(llvm::raw_ostream &OS, StringRef CurrentFilename,
-             const llvm::StringMap<TestOptions::VFSFile> &VFSFiles) {
+  void print(toolchain::raw_ostream &OS, StringRef CurrentFilename,
+             const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles) {
     if (Kind == nullptr) {
       OS << "<empty symbol info>\n";
       return;
@@ -1999,8 +2000,8 @@ struct ResponseSymbolInfo {
       if (auto PrettyJsonOrErr = json::parse(StringRef(SymbolGraph))) {
         OS << formatv("{0:2}", *PrettyJsonOrErr);
       } else {
-        llvm::handleAllErrors(PrettyJsonOrErr.takeError(),
-                              [&](const llvm::ErrorInfoBase &E) {});
+        toolchain::handleAllErrors(PrettyJsonOrErr.takeError(),
+                              [&](const toolchain::ErrorInfoBase &E) {});
         OS << SymbolGraph;
       }
       OS << "\n";
@@ -2049,8 +2050,8 @@ struct ResponseSymbolInfo {
 };
 
 static void printCursorInfo(sourcekitd_variant_t Info, StringRef FilenameIn,
-                            const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
-                            llvm::raw_ostream &OS) {
+                            const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
+                            toolchain::raw_ostream &OS) {
   const char *InternalDiagnostic =
       sourcekitd_variant_dictionary_get_string(Info, KeyInternalDiagnostic);
   if (InternalDiagnostic) {
@@ -2083,8 +2084,8 @@ static void printCursorInfo(sourcekitd_variant_t Info, StringRef FilenameIn,
                                     });
 
   std::string Filename = FilenameIn.str();
-  llvm::SmallString<256> output;
-  if (!llvm::sys::fs::real_path(Filename, output))
+  toolchain::SmallString<256> output;
+  if (!toolchain::sys::fs::real_path(Filename, output))
     Filename = std::string(output.str());
 
   SymbolInfo.print(OS, Filename, VFSFiles);
@@ -2110,7 +2111,7 @@ static void printCursorInfo(sourcekitd_variant_t Info, StringRef FilenameIn,
 }
 
 static void printRangeInfo(sourcekitd_variant_t Info, StringRef FilenameIn,
-                            llvm::raw_ostream &OS) {
+                            toolchain::raw_ostream &OS) {
   sourcekitd_uid_t KindUID = sourcekitd_variant_dictionary_get_uid(Info,
                                       sourcekitd_uid_get_from_cstr("key.kind"));
   if (KindUID == nullptr) {
@@ -2119,8 +2120,8 @@ static void printRangeInfo(sourcekitd_variant_t Info, StringRef FilenameIn,
   }
 
   std::string Filename = FilenameIn.str();
-  llvm::SmallString<256> output;
-  if (llvm::sys::fs::real_path(Filename, output))
+  toolchain::SmallString<256> output;
+  if (toolchain::sys::fs::real_path(Filename, output))
     Filename = std::string(output.str());
 
   sourcekitd_variant_t OffsetObj =
@@ -2141,7 +2142,7 @@ static void printRangeInfo(sourcekitd_variant_t Info, StringRef FilenameIn,
     OS << "<type>" <<Typename << "</type>\n";
 }
 
-static void printExpressionType(sourcekitd_variant_t Info, llvm::raw_ostream &OS) {
+static void printExpressionType(sourcekitd_variant_t Info, toolchain::raw_ostream &OS) {
   auto TypeBuffer = sourcekitd_variant_dictionary_get_value(Info, KeyExpressionTypeList);
   unsigned Count = sourcekitd_variant_array_get_count(TypeBuffer);
   if (!Count) {
@@ -2166,8 +2167,8 @@ static void printExpressionType(sourcekitd_variant_t Info, llvm::raw_ostream &OS
 }
 
 static void printVariableType(sourcekitd_variant_t Info,
-                              llvm::MemoryBuffer *SourceBuf,
-                              llvm::raw_ostream &OS) {
+                              toolchain::MemoryBuffer *SourceBuf,
+                              toolchain::raw_ostream &OS) {
   auto TypeBuffer =
       sourcekitd_variant_dictionary_get_value(Info, KeyVariableTypeList);
   unsigned Count = sourcekitd_variant_array_get_count(TypeBuffer);
@@ -2196,7 +2197,7 @@ static void printVariableType(sourcekitd_variant_t Info,
 }
 
 static void printFoundInterface(sourcekitd_variant_t Info,
-                                llvm::raw_ostream &OS) {
+                                toolchain::raw_ostream &OS) {
   const char *Name = sourcekitd_variant_dictionary_get_string(Info,
                                                         KeyModuleInterfaceName);
   OS << "DOC: (";
@@ -2219,8 +2220,8 @@ static void printFoundInterface(sourcekitd_variant_t Info,
 }
 
 static void printFoundUSR(sourcekitd_variant_t Info,
-                          llvm::MemoryBuffer *SourceBuf,
-                          llvm::raw_ostream &OS) {
+                          toolchain::MemoryBuffer *SourceBuf,
+                          toolchain::raw_ostream &OS) {
   sourcekitd_variant_t OffsetObj =
       sourcekitd_variant_dictionary_get_value(Info, KeyOffset);
   std::optional<int64_t> Offset;
@@ -2250,7 +2251,7 @@ static void printDocInfo(sourcekitd_variant_t Info, StringRef Filename) {
   const char *text =
       sourcekitd_variant_dictionary_get_string(Info, KeySourceText);
   if (text) {
-    llvm::outs() << text << '\n';
+    toolchain::outs() << text << '\n';
   }
 
   sourcekitd_variant_t annotations =
@@ -2273,7 +2274,7 @@ static void checkTextIsASCII(const char *Text) {
     if (*p & 0x80) {
       auto LineCol = resolveToLineColFromBuf(p - Text, Text);
 
-      llvm::errs() << "!!Interface text is non-ascii!!\n"
+      toolchain::errs() << "!!Interface text is non-ascii!!\n"
                    << "@ " << LineCol.first << ":" << LineCol.second << "\n";
       exit(1);
     }
@@ -2281,7 +2282,7 @@ static void checkTextIsASCII(const char *Text) {
 }
 
 static void printModuleGroupNames(sourcekitd_variant_t Info,
-                                  llvm::raw_ostream &OS) {
+                                  toolchain::raw_ostream &OS) {
   sourcekitd_variant_t Groups =
     sourcekitd_variant_dictionary_get_value(Info, KeyModuleGroups);
   OS << "<GROUPS>\n";
@@ -2318,7 +2319,7 @@ static StringRef getLineColRange(StringRef Text, int64_t StartLine,
 }
 
 static void printSyntacticRenameEdits(sourcekitd_variant_t Info,
-                                      llvm::raw_ostream &OS) {
+                                      toolchain::raw_ostream &OS) {
   sourcekitd_variant_t CategorizedEdits =
     sourcekitd_variant_dictionary_get_value(Info, KeyCategorizedEdits);
   for (unsigned i = 0, e = sourcekitd_variant_array_get_count(CategorizedEdits);
@@ -2387,7 +2388,7 @@ static void printSyntacticRenameEdits(sourcekitd_variant_t Info,
 }
 
 static void printRenameRanges(sourcekitd_variant_t Info,
-                              llvm::raw_ostream &OS) {
+                              toolchain::raw_ostream &OS) {
   sourcekitd_variant_t CategorizedRanges =
       sourcekitd_variant_dictionary_get_value(Info, KeyCategorizedRanges);
   sourcekitd_variant_array_apply(CategorizedRanges, ^bool(
@@ -2429,7 +2430,7 @@ static void printInterfaceGen(sourcekitd_variant_t Info, bool CheckASCII) {
       sourcekitd_variant_dictionary_get_string(Info, KeySourceText);
 
   if (text) {
-    llvm::outs() << text << '\n';
+    toolchain::outs() << text << '\n';
   }
 
   if (CheckASCII) {
@@ -2454,8 +2455,8 @@ static void printInterfaceGen(sourcekitd_variant_t Info, bool CheckASCII) {
 }
 
 static void printRelatedIdents(sourcekitd_variant_t Info, StringRef Filename,
-                               const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
-                               llvm::raw_ostream &OS) {
+                               const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
+                               toolchain::raw_ostream &OS) {
   OS << "START RANGES\n";
   sourcekitd_variant_t Res =
       sourcekitd_variant_dictionary_get_value(Info, KeyResults);
@@ -2473,8 +2474,8 @@ static void printRelatedIdents(sourcekitd_variant_t Info, StringRef Filename,
 }
 
 static void printActiveRegions(sourcekitd_variant_t Info, StringRef Filename,
-                               const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
-                               llvm::raw_ostream &OS) {
+                               const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
+                               toolchain::raw_ostream &OS) {
   OS << "START IF CONFIGS\n";
   sourcekitd_variant_t Res =
       sourcekitd_variant_dictionary_get_value(Info, KeyResults);
@@ -2502,17 +2503,17 @@ static void prepareDemangleRequest(sourcekitd_object_t Req,
   };
 
   if (Opts.Inputs.empty()) {
-    auto input = llvm::MemoryBuffer::getSTDIN();
+    auto input = toolchain::MemoryBuffer::getSTDIN();
     if (!input) {
-      llvm::errs() << input.getError().message() << '\n';
+      toolchain::errs() << input.getError().message() << '\n';
       ::exit(1);
     }
-    llvm::StringRef inputContents = input.get()->getBuffer();
+    toolchain::StringRef inputContents = input.get()->getBuffer();
 
     // This doesn't handle Unicode symbols, but maybe that's okay.
     // Also accept the future mangling prefix.
-    llvm::Regex maybeSymbol("(_T|_?\\$[Ss])[_a-zA-Z0-9$.]+");
-    llvm::SmallVector<llvm::StringRef, 1> matches;
+    toolchain::Regex maybeSymbol("(_T|_?\\$[Ss])[_a-zA-Z0-9$.]+");
+    toolchain::SmallVector<toolchain::StringRef, 1> matches;
     while (maybeSymbol.match(inputContents, &matches)) {
       addName(matches.front());
       auto offset = matches.front().data() - inputContents.data();
@@ -2520,7 +2521,7 @@ static void prepareDemangleRequest(sourcekitd_object_t Req,
     }
 
   } else {
-    for (llvm::StringRef name : Opts.Inputs) {
+    for (toolchain::StringRef name : Opts.Inputs) {
       addName(name);
     }
   }
@@ -2606,7 +2607,7 @@ static void printStatistics(sourcekitd_variant_t Info, raw_ostream &OS) {
 static std::string initializeSource(StringRef Input) {
   std::string result;
   {
-    llvm::raw_string_ostream OS(result);
+    toolchain::raw_string_ostream OS(result);
     StringRef CheckStr = "CHECK";
     size_t Pos = 0;
     while (true) {
@@ -2650,8 +2651,8 @@ firstPlaceholderRange(StringRef Source, unsigned from) {
   return std::nullopt;
 }
 
-static void expandPlaceholders(llvm::MemoryBuffer *SourceBuf,
-                               llvm::raw_ostream &OS) {
+static void expandPlaceholders(toolchain::MemoryBuffer *SourceBuf,
+                               toolchain::raw_ostream &OS) {
   auto syncEdit = [=](unsigned offset, unsigned length, const char *text) {
     auto SourceBufID = SourceBuf->getBufferIdentifier();
     auto req = sourcekitd_request_dictionary_create(nullptr, nullptr, 0);
@@ -2726,7 +2727,7 @@ static void expandPlaceholders(llvm::MemoryBuffer *SourceBuf,
 
 static std::pair<unsigned, unsigned>
 resolveToLineCol(unsigned Offset, StringRef Filename,
-                 const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
+                 const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
                  bool ExitOnError) {
   return resolveToLineCol(Offset,
                           getBufferForFilename(Filename, VFSFiles, ExitOnError),
@@ -2737,13 +2738,13 @@ resolveToLineCol(unsigned Offset, StringRef Filename,
 /// be resolved and \p ExitOnError is \c true, the process exits with an error
 /// message. Otherwise, {0, 0} is returned.
 static std::pair<unsigned, unsigned>
-resolveToLineCol(unsigned Offset, llvm::MemoryBuffer *InputBuf,
+resolveToLineCol(unsigned Offset, toolchain::MemoryBuffer *InputBuf,
                  bool ExitOnError) {
   if (Offset >= InputBuf->getBufferSize()) {
     if (!ExitOnError)
       return {0, 0};
 
-    llvm::errs() << "offset " << Offset << " for filename '"
+    toolchain::errs() << "offset " << Offset << " for filename '"
         << InputBuf->getBufferIdentifier() << "' is too large\n";
     exit(1);
   }
@@ -2769,15 +2770,15 @@ resolveToLineColFromBuf(unsigned Offset, const char *Ptr) {
 
 static unsigned
 resolveFromLineCol(unsigned Line, unsigned Col, StringRef Filename,
-                   const llvm::StringMap<TestOptions::VFSFile> &VFSFiles) {
+                   const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles) {
   return resolveFromLineCol(Line, Col,
                             getBufferForFilename(Filename, VFSFiles));
 }
 
 static unsigned resolveFromLineCol(unsigned Line, unsigned Col,
-                                   llvm::MemoryBuffer *InputBuf) {
+                                   toolchain::MemoryBuffer *InputBuf) {
   if (Line == 0 || Col == 0) {
-    llvm::errs() << "wrong pos format, line/col should start from 1\n";
+    toolchain::errs() << "wrong pos format, line/col should start from 1\n";
     exit(1);
   }
 
@@ -2792,7 +2793,7 @@ static unsigned resolveFromLineCol(unsigned Line, unsigned Col,
     }
   }
   if (Line != 0) {
-    llvm::errs() << "wrong pos format, line too large\n";
+    toolchain::errs() << "wrong pos format, line too large\n";
     exit(1);
   }
   Ptr = LineStart;
@@ -2804,7 +2805,7 @@ static unsigned resolveFromLineCol(unsigned Line, unsigned Col,
       break;
   }
 
-  llvm::errs() << "wrong pos format, column too large\n";
+  toolchain::errs() << "wrong pos format, column too large\n";
   exit(1);
 }
 
@@ -2812,27 +2813,27 @@ static unsigned resolveFromLineCol(unsigned Line, unsigned Col,
 /// filesystem otherwise. If the file could not be opened and \p ExitOnError is
 /// true, the process exits with an error message. Otherwise a buffer
 /// containing "<missing file>" is returned.
-static llvm::MemoryBuffer *
+static toolchain::MemoryBuffer *
 getBufferForFilename(StringRef Filename,
-                     const llvm::StringMap<TestOptions::VFSFile> &VFSFiles,
+                     const toolchain::StringMap<TestOptions::VFSFile> &VFSFiles,
                      bool ExitOnError) {
-  llvm::SmallString<128> nativeName;
-  llvm::sys::path::native(Filename, nativeName);
+  toolchain::SmallString<128> nativeName;
+  toolchain::sys::path::native(Filename, nativeName);
 
   auto VFSFileIt = VFSFiles.find(nativeName);
   auto MappedFilename =
       VFSFileIt == VFSFiles.end() ? Filename : StringRef(VFSFileIt->second.path);
 
-  auto FileBufOrErr = llvm::MemoryBuffer::getFile(MappedFilename);
-  std::unique_ptr<llvm::MemoryBuffer> Buffer;
+  auto FileBufOrErr = toolchain::MemoryBuffer::getFile(MappedFilename);
+  std::unique_ptr<toolchain::MemoryBuffer> Buffer;
   if (!FileBufOrErr) {
     if (ExitOnError) {
-      llvm::errs() << "error opening input file '" << MappedFilename << "' ("
+      toolchain::errs() << "error opening input file '" << MappedFilename << "' ("
                    << FileBufOrErr.getError().message() << ")\n";
       exit(1);
     }
 
-    Buffer = llvm::MemoryBuffer::getMemBuffer("<missing file>");
+    Buffer = toolchain::MemoryBuffer::getMemBuffer("<missing file>");
   } else {
     Buffer = std::move(FileBufOrErr.get());
   }

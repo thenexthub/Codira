@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that can be compared using the relational operators `<`, `<=`, `>=`,
@@ -26,7 +27,7 @@
 /// The most familiar use of relational operators is to compare numbers, as in
 /// the following example:
 ///
-///     let currentTemp = 73
+///     immutable currentTemp = 73
 ///
 ///     if currentTemp >= 90 {
 ///         print("It's a scorcher!")
@@ -69,7 +70,7 @@
 /// `==` operators as static methods of your types. The `==` operator is a
 /// requirement of the `Equatable` protocol, which `Comparable` extends---see
 /// that protocol's documentation for more information about equality in
-/// Swift. Because default implementations of the remainder of the relational
+/// Codira. Because default implementations of the remainder of the relational
 /// operators are provided by the standard library, you'll be able to use
 /// `!=`, `>`, `<=`, and `>=` with instances of your type without any further
 /// code.
@@ -78,16 +79,16 @@
 /// the year, month, and day of a date:
 ///
 ///     struct Date {
-///         let year: Int
-///         let month: Int
-///         let day: Int
+///         immutable year: Int
+///         immutable month: Int
+///         immutable day: Int
 ///     }
 ///
 /// To add `Comparable` conformance to `Date`, first declare conformance to
 /// `Comparable` and implement the `<` operator function.
 ///
 ///     extension Date: Comparable {
-///         static func < (lhs: Date, rhs: Date) -> Bool {
+///         static fn < (lhs: Date, rhs: Date) -> Bool {
 ///             if lhs.year != rhs.year {
 ///                 return lhs.year < rhs.year
 ///             } else if lhs.month != rhs.month {
@@ -105,7 +106,7 @@
 /// Next, implement the `==` operator function, the requirement inherited from
 /// the `Equatable` protocol.
 ///
-///         static func == (lhs: Date, rhs: Date) -> Bool {
+///         static fn == (lhs: Date, rhs: Date) -> Bool {
 ///             return lhs.year == rhs.year && lhs.month == rhs.month
 ///                 && lhs.day == rhs.day
 ///         }
@@ -119,8 +120,8 @@
 /// the date of the first moon landing with the release of David Bowie's song
 /// "Space Oddity":
 ///
-///     let spaceOddity = Date(year: 1969, month: 7, day: 11)   // July 11, 1969
-///     let moonLanding = Date(year: 1969, month: 7, day: 20)   // July 20, 1969
+///     immutable spaceOddity = Date(year: 1969, month: 7, day: 11)   // July 11, 1969
+///     immutable moonLanding = Date(year: 1969, month: 7, day: 20)   // July 20, 1969
 ///     if moonLanding > spaceOddity {
 ///         print("Major Tom stepped through the door first.")
 ///     } else {
@@ -149,7 +150,7 @@ public protocol Comparable: Equatable {
   /// - Parameters:
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
-  static func < (lhs: Self, rhs: Self) -> Bool
+  static fn < (lhs: Self, rhs: Self) -> Bool
 
   /// Returns a Boolean value indicating whether the value of the first
   /// argument is less than or equal to that of the second argument.
@@ -157,7 +158,7 @@ public protocol Comparable: Equatable {
   /// - Parameters:
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
-  static func <= (lhs: Self, rhs: Self) -> Bool
+  static fn <= (lhs: Self, rhs: Self) -> Bool
 
   /// Returns a Boolean value indicating whether the value of the first
   /// argument is greater than or equal to that of the second argument.
@@ -165,7 +166,7 @@ public protocol Comparable: Equatable {
   /// - Parameters:
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
-  static func >= (lhs: Self, rhs: Self) -> Bool
+  static fn >= (lhs: Self, rhs: Self) -> Bool
 
   /// Returns a Boolean value indicating whether the value of the first
   /// argument is greater than that of the second argument.
@@ -173,7 +174,7 @@ public protocol Comparable: Equatable {
   /// - Parameters:
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
-  static func > (lhs: Self, rhs: Self) -> Bool
+  static fn > (lhs: Self, rhs: Self) -> Bool
 }
 
 extension Comparable {
@@ -187,7 +188,7 @@ extension Comparable {
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
   @inlinable
-  public static func > (lhs: Self, rhs: Self) -> Bool {
+  public static fn > (lhs: Self, rhs: Self) -> Bool {
     return rhs < lhs
   }
 
@@ -201,7 +202,7 @@ extension Comparable {
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
   @inlinable
-  public static func <= (lhs: Self, rhs: Self) -> Bool {
+  public static fn <= (lhs: Self, rhs: Self) -> Bool {
     return !(rhs < lhs)
   }
 
@@ -217,7 +218,7 @@ extension Comparable {
   /// - Returns: `true` if `lhs` is greater than or equal to `rhs`; otherwise,
   ///   `false`.
   @inlinable
-  public static func >= (lhs: Self, rhs: Self) -> Bool {
+  public static fn >= (lhs: Self, rhs: Self) -> Bool {
     return !(lhs < rhs)
   }
 }

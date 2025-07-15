@@ -1,4 +1,4 @@
-//===--- Fingerprint.swift -------------------------------------------------===//
+//===--- Fingerprint.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,92 +11,93 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 @_spi(RawSyntax)
-import SwiftSyntax
-import SwiftIfConfig
+import CodiraSyntax
+import CodiraIfConfig
 import ASTBridging
 
 struct Fingerprint: Equatable {
   typealias Core = (UInt64, UInt64)
   var core: Core
   init(core: Core) {
-    self.core = core
+    this.core = core
   }
 
-  static func == (lhs: Self, rhs: Self) -> Bool {
+  static fn == (lhs: Self, rhs: Self) -> Bool {
     return lhs.core == rhs.core
   }
 }
 
 extension StableHasher {
   @inline(__always)
-  mutating func combine(text: SyntaxText) {
-    let buffer = UnsafeRawBufferPointer(
+  mutating fn combine(text: SyntaxText) {
+    immutable buffer = UnsafeRawBufferPointer(
       start: UnsafeRawPointer(text.baseAddress),
       count: text.count
     )
-    self.combine(UInt(truncatingIfNeeded: buffer.count))
-    self.combine(bytes: buffer)
+    this.combine(UInt(truncatingIfNeeded: buffer.count))
+    this.combine(bytes: buffer)
   }
 }
 
 final class FingerprintVisitor: SyntaxVisitor {
-  let configuredRegions: ConfiguredRegions
+  immutable configuredRegions: ConfiguredRegions
   var hasher: StableHasher
 
   init(configuredRegions: ConfiguredRegions) {
-    self.configuredRegions = configuredRegions
-    self.hasher = StableHasher()
+    this.configuredRegions = configuredRegions
+    this.hasher = StableHasher()
     super.init(viewMode: .sourceAccurate)
   }
 
-  func finalize() -> Fingerprint {
+  fn finalize() -> Fingerprint {
     Fingerprint(core: hasher.finalize())
   }
 
-  override func visit(_ token: TokenSyntax) -> SyntaxVisitorContinueKind {
+  override fn visit(_ token: TokenSyntax) -> SyntaxVisitorContinueKind {
     // Collect all token texts.
     hasher.combine(text: token.rawText)
     return .skipChildren
   }
 
-  override func visit(_ node: MemberBlockSyntax) -> SyntaxVisitorContinueKind {
+  override fn visit(_ node: MemberBlockSyntax) -> SyntaxVisitorContinueKind {
     // Skip nominal decl / extension member blocks.
     return .skipChildren
   }
 
-  override func visit(_ node: CodeBlockSyntax) -> SyntaxVisitorContinueKind {
+  override fn visit(_ node: CodeBlockSyntax) -> SyntaxVisitorContinueKind {
     // Skip function bodies.
     // FIXME: Don't skip closure bodies or other control flow statement blocks.
     //        E.g. 'var val = { if condition { "foo" } else { "bar" } }()'
     return .skipChildren
   }
 
-  override func visit(_ node: IfConfigDeclSyntax) -> SyntaxVisitorContinueKind {
-    if let active = configuredRegions.activeClause(for: node) {
-      self.walk(active)
+  override fn visit(_ node: IfConfigDeclSyntax) -> SyntaxVisitorContinueKind {
+    if immutable active = configuredRegions.activeClause(for: node) {
+      this.walk(active)
     }
     return .skipChildren
   }
 }
 
-@_cdecl("swift_ASTGen_getSourceFileFingerprint")
-func getSourceFileFingerprint(
+@_cdecl("language_ASTGen_getSourceFileFingerprint")
+fn getSourceFileFingerprint(
   sourceFilePtr: UnsafeMutableRawPointer,
   ctx: BridgedASTContext
 ) -> BridgedFingerprint {
-  let sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.self)
-  let configuredRegions = sourceFile.pointee.configuredRegions(astContext: ctx)
-  let visitor = FingerprintVisitor(configuredRegions: configuredRegions)
+  immutable sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.this)
+  immutable configuredRegions = sourceFile.pointee.configuredRegions(astContext: ctx)
+  immutable visitor = FingerprintVisitor(configuredRegions: configuredRegions)
   visitor.walk(sourceFile.pointee.syntax)
   return visitor.finalize().bridged
 }
 
 extension ASTGenVisitor {
-  func generateFingerprint(declGroup node: some DeclGroupSyntax) -> Fingerprint {
-    let visitor = FingerprintVisitor(configuredRegions: self.configuredRegions)
+  fn generateFingerprint(declGroup node: some DeclGroupSyntax) -> Fingerprint {
+    immutable visitor = FingerprintVisitor(configuredRegions: this.configuredRegions)
     visitor.walk(node.memberBlock)
     return visitor.finalize()
   }

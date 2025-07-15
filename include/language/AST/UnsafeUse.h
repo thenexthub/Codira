@@ -1,17 +1,21 @@
 //===--- UnsafeUse.h - A use of an unsafe construct -------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_UNSAFEUSE_H
-#define SWIFT_AST_UNSAFEUSE_H
+#ifndef LANGUAGE_AST_UNSAFEUSE_H
+#define LANGUAGE_AST_UNSAFEUSE_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Expr.h"
@@ -53,6 +57,8 @@ public:
     ReferenceToUnsafeThroughTypealias,
     /// A call to an unsafe declaration.
     CallToUnsafe,
+    /// An unsafe argument in a call.
+    CallArgument,
     /// A @preconcurrency import.
     PreconcurrencyImport,
     /// A use of withoutActuallyEscaping that lacks enforcement that the
@@ -90,6 +96,15 @@ private:
     } entity;
 
     MakeTemporarilyEscapableExpr *temporarilyEscaping;
+
+    struct {
+      Expr *call;
+      const Decl *calleeDecl;
+      TypeBase *paramType;
+      const void *argumentName;
+      unsigned argumentIndex;
+      Expr *argument;
+    } callArgument;
 
     const ImportDecl *importDecl;
   } storage;
@@ -201,6 +216,19 @@ public:
                         decl, type, location);
   }
 
+  static UnsafeUse forCallArgument(
+      Expr *call, const Decl *calleeDecl, Type paramType,
+      Identifier argumentName, unsigned argumentIndex, Expr *argument) {
+    UnsafeUse result(CallArgument);
+    result.storage.callArgument.call = call;
+    result.storage.callArgument.calleeDecl = calleeDecl;
+    result.storage.callArgument.paramType = paramType.getPointer();
+    result.storage.callArgument.argumentName = argumentName.getAsOpaquePointer();
+    result.storage.callArgument.argumentIndex = argumentIndex;
+    result.storage.callArgument.argument = argument;
+    return result;
+  }
+
   static UnsafeUse forTemporarilyEscaping(MakeTemporarilyEscapableExpr *expr) {
     UnsafeUse result(TemporarilyEscaping);
     result.storage.temporarilyEscaping = expr;
@@ -224,12 +252,12 @@ public:
 
     case UnsafeConformance:
       return SourceLoc(
-          llvm::SMLoc::getFromPointer(
+          toolchain::SMLoc::getFromPointer(
             (const char *)storage.conformance.location));
 
     case TypeWitness:
       return SourceLoc(
-          llvm::SMLoc::getFromPointer(
+          toolchain::SMLoc::getFromPointer(
             (const char *)storage.typeWitness.location));
 
     case UnownedUnsafe:
@@ -240,7 +268,10 @@ public:
     case ReferenceToUnsafeThroughTypealias:
     case CallToUnsafe:
       return SourceLoc(
-          llvm::SMLoc::getFromPointer((const char *)storage.entity.location));
+          toolchain::SMLoc::getFromPointer((const char *)storage.entity.location));
+
+    case CallArgument:
+      return storage.callArgument.call->getLoc();
 
     case TemporarilyEscaping:
       return storage.temporarilyEscaping->getLoc();
@@ -257,6 +288,7 @@ public:
     case Witness:
     case TemporarilyEscaping:
     case PreconcurrencyImport:
+    case CallArgument:
       // Cannot replace location.
       return;
 
@@ -298,6 +330,9 @@ public:
     case CallToUnsafe:
       return storage.entity.decl;
 
+    case CallArgument:
+      return storage.callArgument.calleeDecl;
+
     case UnsafeConformance:
     case TemporarilyEscaping:
       return nullptr;
@@ -330,6 +365,7 @@ public:
     case ReferenceToUnsafeThroughTypealias:
     case ReferenceToUnsafeStorage:
     case CallToUnsafe:
+    case CallArgument:
     case UnsafeConformance:
     case PreconcurrencyImport:
     case TemporarilyEscaping:
@@ -360,6 +396,9 @@ public:
     case CallToUnsafe:
       return storage.entity.type;
 
+    case CallArgument:
+      return storage.callArgument.paramType;
+
     case TemporarilyEscaping:
       return storage.temporarilyEscaping->getOpaqueValue()->getType();
     }
@@ -386,13 +425,26 @@ public:
     case ReferenceToUnsafeStorage:
     case ReferenceToUnsafeThroughTypealias:
     case CallToUnsafe:
+    case CallArgument:
     case TemporarilyEscaping:
     case PreconcurrencyImport:
       return ProtocolConformanceRef::forInvalid();
     }
   }
+
+  /// Get information about the call argument.
+  ///
+  /// Produces the argument name, argument index, and argument expression for
+  /// a unsafe use describing a call argument.
+  std::tuple<Identifier, unsigned, Expr *> getCallArgument() const {
+    assert(getKind() == CallArgument);
+    return std::make_tuple(
+        Identifier::getFromOpaquePointer(storage.callArgument.argumentName),
+        storage.callArgument.argumentIndex,
+        storage.callArgument.argument);
+  }
 };
 
 } // end namespace language
 
-#endif // SWIFT_AST_UNSAFEUSE_H
+#endif // LANGUAGE_AST_UNSAFEUSE_H

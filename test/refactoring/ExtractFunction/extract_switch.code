@@ -1,0 +1,32 @@
+enum MyEnum {
+  case Case1
+  case Case2
+  case Case3
+}
+
+fn foo2(_ e : MyEnum) -> Int {
+  switch e {
+  case .Case1:
+    break
+  case .Case2:
+    break
+  case .Case3:
+    break
+  }
+  switch e {
+  case .Case1:
+    return 1
+  case .Case2:
+    return 2
+  case .Case3:
+    return 3
+  }
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-function -source-filename %s -pos=8:1 -end-pos=15:4 >> %t.result/Void.code
+// RUN: diff -u %S/Outputs/extract_switch/Void.code.expected %t.result/Void.code
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-function -source-filename %s -pos=16:1 -end-pos=23:4 >> %t.result/Int.code
+// RUN: diff -u %S/Outputs/extract_switch/Int.code.expected %t.result/Int.code
+// REQUIRES: language_language_parser

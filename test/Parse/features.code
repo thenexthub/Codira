@@ -1,0 +1,12 @@
+// RUN: not %target-language-frontend -typecheck %s 2>&1 | %FileCheck --check-prefix=CHECK-WITHOUT %s 
+// RUN: %target-typecheck-verify-language -enable-experimental-static-assert
+// RUN: %target-typecheck-verify-language -enable-experimental-feature StaticAssert
+
+// REQUIRES: language_feature_StaticAssert
+
+#if compiler(>=5.3) && $StaticAssert
+#assert(true)
+#else
+// CHECK-WITHOUT: cannot find 'complete' in scope
+complete junk
+#endif

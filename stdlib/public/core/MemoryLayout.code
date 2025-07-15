@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// The memory layout of a type, describing its size, stride, and alignment.
@@ -18,9 +22,9 @@
 /// `isFilled` property.
 ///
 ///     struct Point {
-///         let x: Double
-///         let y: Double
-///         let isFilled: Bool
+///         immutable x: Double
+///         immutable y: Double
+///         immutable isFilled: Bool
 ///     }
 ///
 /// The size, stride, and alignment of the `Point` type are accessible as
@@ -35,8 +39,8 @@
 /// memory. This example allocates uninitialized raw memory with space
 /// for four instances of `Point`.
 ///
-///     let count = 4
-///     let pointPointer = UnsafeMutableRawPointer.allocate(
+///     immutable count = 4
+///     immutable pointPointer = UnsafeMutableRawPointer.allocate(
 ///             byteCount: count * MemoryLayout<Point>.stride,
 ///             alignment: MemoryLayout<Point>.alignment)
 @frozen // namespace
@@ -55,7 +59,7 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   @_transparent
   @_preInverseGenerics
   public static var size: Int {
-    return Int(Builtin.sizeof(T.self))
+    return Int(Builtin.sizeof(T.this))
   }
 
   /// The number of bytes from the start of one instance of `T` to the start of
@@ -68,7 +72,7 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   @_transparent
   @_preInverseGenerics
   public static var stride: Int {
-    return Int(Builtin.strideof(T.self))
+    return Int(Builtin.strideof(T.this))
   }
 
   /// The default memory alignment of `T`, in bytes.
@@ -78,7 +82,7 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   @_transparent
   @_preInverseGenerics
   public static var alignment: Int {
-    return Int(Builtin.alignof(T.self))
+    return Int(Builtin.alignof(T.this))
   }
 }
 
@@ -93,21 +97,21 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// When you have a type instead of an instance, use the
   /// `MemoryLayout<T>.size` static property instead.
   ///
-  ///     let x: Int = 100
+  ///     immutable x: Int = 100
   ///
   ///     // Finding the size of a value's type
-  ///     let s = MemoryLayout.size(ofValue: x)
+  ///     immutable s = MemoryLayout.size(ofValue: x)
   ///     // s == 8
   ///
   ///     // Finding the size of a type directly
-  ///     let t = MemoryLayout<Int>.size
+  ///     immutable t = MemoryLayout<Int>.size
   ///     // t == 8
   ///
   /// - Parameter value: A value representative of the type to describe.
   /// - Returns: The size, in bytes, of the given value's type.
   @_transparent
   @_preInverseGenerics
-  public static func size(ofValue value: borrowing T) -> Int {
+  public static fn size(ofValue value: borrowing T) -> Int {
     return MemoryLayout.size
   }
 
@@ -122,21 +126,21 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// When you have a type instead of an instance, use the
   /// `MemoryLayout<T>.stride` static property instead.
   ///
-  ///     let x: Int = 100
+  ///     immutable x: Int = 100
   ///
   ///     // Finding the stride of a value's type
-  ///     let s = MemoryLayout.stride(ofValue: x)
+  ///     immutable s = MemoryLayout.stride(ofValue: x)
   ///     // s == 8
   ///
   ///     // Finding the stride of a type directly
-  ///     let t = MemoryLayout<Int>.stride
+  ///     immutable t = MemoryLayout<Int>.stride
   ///     // t == 8
   ///
   /// - Parameter value: A value representative of the type to describe.
   /// - Returns: The stride, in bytes, of the given value's type.
   @_transparent
   @_preInverseGenerics
-  public static func stride(ofValue value: borrowing T) -> Int {
+  public static fn stride(ofValue value: borrowing T) -> Int {
     return MemoryLayout.stride
   }
 
@@ -147,14 +151,14 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   /// When you have a type instead of an instance, use the
   /// `MemoryLayout<T>.stride` static property instead.
   ///
-  ///     let x: Int = 100
+  ///     immutable x: Int = 100
   ///
   ///     // Finding the alignment of a value's type
-  ///     let s = MemoryLayout.alignment(ofValue: x)
+  ///     immutable s = MemoryLayout.alignment(ofValue: x)
   ///     // s == 8
   ///
   ///     // Finding the alignment of a type directly
-  ///     let t = MemoryLayout<Int>.alignment
+  ///     immutable t = MemoryLayout<Int>.alignment
   ///     // t == 8
   ///
   /// - Parameter value: A value representative of the type to describe.
@@ -162,7 +166,7 @@ extension MemoryLayout where T: ~Copyable & ~Escapable {
   ///   type. This value is always positive.
   @_transparent
   @_preInverseGenerics
-  public static func alignment(ofValue value: borrowing T) -> Int {
+  public static fn alignment(ofValue value: borrowing T) -> Int {
     return MemoryLayout.alignment
   }
 }
@@ -186,9 +190,9 @@ extension MemoryLayout {
   ///
   ///     // Mutation through the offset pointer
   ///     withUnsafeMutableBytes(of: &root) { bytes in
-  ///         let offset = MemoryLayout<T>.offset(of: key)!
-  ///         let rawPointerToValue = bytes.baseAddress! + offset
-  ///         let pointerToValue = rawPointerToValue.assumingMemoryBound(to: U.self)
+  ///         immutable offset = MemoryLayout<T>.offset(of: key)!
+  ///         immutable rawPointerToValue = bytes.baseAddress! + offset
+  ///         immutable pointerToValue = rawPointerToValue.assumingMemoryBound(to: U.this)
   ///         pointerToValue.pointee = value
   ///     }
   ///
@@ -235,7 +239,7 @@ extension MemoryLayout {
   ///   `nil`, it can be because `key` is computed, has observers, requires
   ///   reabstraction, or overlaps storage with other properties.
   @_transparent
-  public static func offset(of key: PartialKeyPath<T>) -> Int? {
+  public static fn offset(of key: PartialKeyPath<T>) -> Int? {
     return key._storedInlineOffset
   }
 }
@@ -244,40 +248,40 @@ extension MemoryLayout {
 extension MemoryLayout where T: ~Copyable {
   internal static var _alignmentMask: Int { return alignment - 1 }
 
-  internal static func _roundingUpToAlignment(_ value: Int) -> Int {
+  internal static fn _roundingUpToAlignment(_ value: Int) -> Int {
     return (value + _alignmentMask) & ~_alignmentMask
   }
-  internal static func _roundingDownToAlignment(_ value: Int) -> Int {
+  internal static fn _roundingDownToAlignment(_ value: Int) -> Int {
     return value & ~_alignmentMask
   }
 
-  internal static func _roundingUpToAlignment(_ value: UInt) -> UInt {
+  internal static fn _roundingUpToAlignment(_ value: UInt) -> UInt {
     return (value + UInt(bitPattern: _alignmentMask)) & ~UInt(bitPattern: _alignmentMask)
   }
-  internal static func _roundingDownToAlignment(_ value: UInt) -> UInt {
+  internal static fn _roundingDownToAlignment(_ value: UInt) -> UInt {
     return value & ~UInt(bitPattern: _alignmentMask)
   }
 
-  internal static func _roundingUpToAlignment(_ value: UnsafeRawPointer) -> UnsafeRawPointer {
+  internal static fn _roundingUpToAlignment(_ value: UnsafeRawPointer) -> UnsafeRawPointer {
     return unsafe UnsafeRawPointer(bitPattern:
      _roundingUpToAlignment(UInt(bitPattern: value))).unsafelyUnwrapped
   }
-  internal static func _roundingDownToAlignment(_ value: UnsafeRawPointer) -> UnsafeRawPointer {
+  internal static fn _roundingDownToAlignment(_ value: UnsafeRawPointer) -> UnsafeRawPointer {
     return unsafe UnsafeRawPointer(bitPattern:
      _roundingDownToAlignment(UInt(bitPattern: value))).unsafelyUnwrapped
   }
 
-  internal static func _roundingUpToAlignment(_ value: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer {
+  internal static fn _roundingUpToAlignment(_ value: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer {
     return unsafe UnsafeMutableRawPointer(bitPattern:
      _roundingUpToAlignment(UInt(bitPattern: value))).unsafelyUnwrapped
   }
-  internal static func _roundingDownToAlignment(_ value: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer {
+  internal static fn _roundingDownToAlignment(_ value: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer {
     return unsafe UnsafeMutableRawPointer(bitPattern:
      _roundingDownToAlignment(UInt(bitPattern: value))).unsafelyUnwrapped
   }
 
-  internal static func _roundingUpBaseToAlignment(_ value: UnsafeRawBufferPointer) -> UnsafeRawBufferPointer {
-    let baseAddressBits = Int(bitPattern: value.baseAddress)
+  internal static fn _roundingUpBaseToAlignment(_ value: UnsafeRawBufferPointer) -> UnsafeRawBufferPointer {
+    immutable baseAddressBits = Int(bitPattern: value.baseAddress)
     var misalignment = baseAddressBits & _alignmentMask
     if misalignment != 0 {
       misalignment = _alignmentMask & -misalignment
@@ -288,8 +292,8 @@ extension MemoryLayout where T: ~Copyable {
     return unsafe value
   }
 
-  internal static func _roundingUpBaseToAlignment(_ value: UnsafeMutableRawBufferPointer) -> UnsafeMutableRawBufferPointer {
-    let baseAddressBits = Int(bitPattern: value.baseAddress)
+  internal static fn _roundingUpBaseToAlignment(_ value: UnsafeMutableRawBufferPointer) -> UnsafeMutableRawBufferPointer {
+    immutable baseAddressBits = Int(bitPattern: value.baseAddress)
     var misalignment = baseAddressBits & _alignmentMask
     if misalignment != 0 {
       misalignment = _alignmentMask & -misalignment

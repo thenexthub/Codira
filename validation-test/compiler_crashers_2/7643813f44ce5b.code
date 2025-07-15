@@ -1,0 +1,3 @@
+// {"signature":"language::DeclContext::getSelfInterfaceType() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+distributed fn a

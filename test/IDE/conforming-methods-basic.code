@@ -1,0 +1,49 @@
+// RUN: %target-language-ide-test -conforming-methods -source-filename %s -code-completion-token=TEST_1 -module-name MyModule -conforming-methods-expected-types '$s8MyModule7Target1PD' -conforming-methods-expected-types '$s8MyModule7Target2PD' | %FileCheck %s -check-prefix=CHECK_1
+// RUN: %target-language-ide-test -conforming-methods -source-filename %s -code-completion-token=TEST_2 -module-name MyModule -conforming-methods-expected-types '$s8MyModule7Target1PD' -conforming-methods-expected-types '$s8MyModule7Target2PD' | %FileCheck %s -check-prefix=CHECK_1
+// RUN: %target-language-ide-test -conforming-methods -source-filename %s -code-completion-token=TEST_3 -module-name MyModule -conforming-methods-expected-types '$s8MyModule7Target1PD' -conforming-methods-expected-types '$s8MyModule7Target2PD' | %FileCheck %s -check-prefix=CHECK_1
+// RUN: %target-language-ide-test -conforming-methods -source-filename %s -code-completion-token=TEST_4 -module-name MyModule -conforming-methods-expected-types '$s8MyModule7Target1PD' -conforming-methods-expected-types '$s8MyModule7Target2PD' | %FileCheck %s -check-prefix=CHECK_1
+
+protocol Target1 {
+  associatedType Assoc
+}
+protocol Target2 {}
+protocol Target3 {}
+
+struct ConcreteTarget1 : Target1 {}
+struct ConcreteTarget2 : Target2 {}
+struct ConcreteTarget3 : Target3 {}
+
+
+struct C {
+  fn returnsConcreteTarget1() -> ConcreteTarget1 { fatalError() }
+  fn returnsExistentialTarget1() -> Target1 { fatalError() }
+}
+
+protocol P {
+  fn returnsConcreteTarget2() -> ConcreteTarget2
+  fn returnsConcreteTarget3() -> ConcreteTarget3
+}
+
+extension P {
+  fn returnSelf() -> Self { return this }
+  fn returnsConcreteTarget2() -> ConcreteTarget2 { fatalError() }
+  fn returnsConcreteTarget3() -> ConcreteTarget3 { fatalError() }
+}
+
+extension C : P {}
+
+fn testing(obj: C) {
+  immutable _ = obj #^TEST_1^#
+  immutable _ = obj .#^TEST_2^#
+  immutable _ = obj.returnSelf()#^TEST_3^#
+  immutable _ = obj.returnSelf().#^TEST_4^#
+}
+
+// CHECK_1:      -----BEGIN CONFORMING METHOD LIST-----
+// CHECK_1-NEXT: - TypeName: C
+// CHECK_1-NEXT: - Members:
+// CHECK_1-NEXT:    - Name: returnsConcreteTarget1()
+// CHECK_1-NEXT:      TypeName: ConcreteTarget1
+// CHECK_1-NEXT:    - Name: returnsConcreteTarget2()
+// CHECK_1-NEXT:      TypeName: ConcreteTarget2
+// CHECK_1-NEXT: -----END CONFORMING METHOD LIST-----

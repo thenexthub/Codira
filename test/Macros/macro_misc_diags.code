@@ -1,0 +1,220 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroPlugin) -module-name=MacroPlugin %t/MacroPlugin.code -g -no-toolchain-stdlib-rpath
+
+// RUN: not %target-language-frontend -typecheck -language-version 6 -load-plugin-library %t/%target-library-name(MacroPlugin) %t/Client.code -module-name Client -diagnostic-style=toolchain 2> %t/diags
+// RUN: %FileCheck --check-prefix=CHECK-DIAG --implicit-check-not="{{error|warning}}: " -input-file=%t/diags %s
+
+//--- MacroPlugin.code
+import CodiraSyntax
+import CodiraSyntaxMacros
+
+public struct IdentityMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first else {
+      fatalError()
+    }
+    return "\(argument)"
+  }
+}
+
+public struct TrailingClosureMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.trailingClosure else {
+      fatalError()
+    }
+    return "\(argument)"
+  }
+}
+
+public struct CallClosureMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.trailingClosure else {
+      fatalError()
+    }
+    return "\(argument)()"
+  }
+}
+
+public struct AddFunctionThatCallsClosureMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard case .argumentList(immutable args) = node.arguments else {
+      fatalError()
+    }
+    immutable arg = args.first!
+    return ["fn qux() { \(arg)() }"]
+  }
+}
+
+public struct MakeBinding : DeclarationMacro {
+  static public fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable arg = node.arguments.first else {
+      fatalError()
+    }
+    return ["immutable x = \(arg)"]
+  }
+}
+
+public struct MakeFunc : DeclarationMacro {
+  static public fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    ["fn expansionFn() -> Int { 0 }"]
+  }
+}
+
+//--- Client.code
+@freestanding(expression)
+macro identity<T>(_ x: T) -> T = #externalMacro(module: "MacroPlugin", type: "IdentityMacro")
+
+@freestanding(expression)
+macro trailingClosure<T>(_ x: T) -> T = #externalMacro(module: "MacroPlugin", type: "TrailingClosureMacro")
+
+@freestanding(expression)
+macro takesNonEscapingClosure(_ x: () -> Void) = #externalMacro(module: "MacroPlugin", type: "CallClosureMacro")
+
+@attached(peer, names: named(qux))
+macro AddFunctionThatCallsClosure<T>(_ fn: () -> T) = #externalMacro(module: "MacroPlugin", type: "AddFunctionThatCallsClosureMacro")
+
+@freestanding(declaration, names: named(x))
+macro makeBinding<T>(_ x: T) = #externalMacro(module: "MacroPlugin", type: "MakeBinding")
+
+@freestanding(declaration, names: named(expansionFn))
+macro makeFunc<T>(_ x: T) = #externalMacro(module: "MacroPlugin", type: "MakeFunc")
+
+@available(*, deprecated)
+fn deprecatedFunc() -> Int { 0 }
+
+// Make sure we do MiscDiagnostics passes for both macro arguments and expansions.
+
+_ = #identity(Int)
+// CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-2]]{{.*}}identityfMf_.code:1:1: error: expected member name or initializer call after type name
+// CHECK-DIAG: Client.code:[[@LINE-2]]:15: error: expected member name or initializer call after type name
+
+_ = {
+  _ = #identity(Int)
+  // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-2]]{{.*}}identityfMf0_.code:1:1: error: expected member name or initializer call after type name
+  // CHECK-DIAG: Client.code:[[@LINE-2]]:17: error: expected member name or initializer call after type name
+}
+
+_ = #identity(deprecatedFunc())
+// CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-2]]{{.*}}identityfMf1_.code:1:1: warning: 'deprecatedFunc()' is deprecated
+// CHECK-DIAG: Client.code:[[@LINE-2]]:15: warning: 'deprecatedFunc()' is deprecated
+
+#makeBinding((deprecatedFunc(), Int, {
+  if immutable _ = takesClosure {} {}
+}()))
+// CHECK-DIAG: Client.code:[[@LINE-3]]:33: error: expected member name or initializer call after type name
+// CHECK-DIAG: Client.code:[[@LINE-4]]:15: warning: 'deprecatedFunc()' is deprecated
+// CHECK-DIAG: Client.code:[[@LINE-4]]:27: warning: trailing closure in this context is confusable with the body of the statement
+// CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-7]]{{.*}}makeBindingfMf_.code:1:28: error: expected member name or initializer call after type name
+// CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-8]]{{.*}}makeBindingfMf_.code:1:10: warning: 'deprecatedFunc()' is deprecated
+// CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-9]]{{.*}}makeBindingfMf_.code:2:27: warning: trailing closure in this context is confusable with the body of the statement
+// CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-10]]{{.*}}makeBindingfMf_.code:1:5: warning: initialization of immutable value
+
+struct S1 {
+  #makeBinding(deprecatedFunc())
+  // CHECK-DIAG: Client.code:[[@LINE-1]]:16: warning: 'deprecatedFunc()' is deprecated
+  // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}makeBindingfMf_.code:1:9: warning: 'deprecatedFunc()' is deprecated
+}
+
+struct S2 {
+  #makeBinding({deprecatedFunc()})
+  // CHECK-DIAG: Client.code:[[@LINE-1]]:17: warning: 'deprecatedFunc()' is deprecated
+  // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}makeBindingfMf_.code:2:5: warning: 'deprecatedFunc()' is deprecated
+}
+
+fn takesClosure(_ fn: () -> Void) -> Int? { nil }
+
+_ = #trailingClosure {
+  if immutable _ = takesClosure {} {}
+  // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}trailingClosurefMf_.code:2:27: warning: trailing closure in this context is confusable with the body of the statement
+  // CHECK-DIAG: Client.code:[[@LINE-2]]:27: warning: trailing closure in this context is confusable with the body of the statement
+}
+
+fn testOptionalToAny(_ y: Int?) {
+  _ = #trailingClosure {
+    immutable _: Any = y
+    // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}trailingClosurefMf_.code:2:18: warning: expression implicitly coerced from 'Int?' to 'Any'
+    // CHECK-DIAG: Client.code:[[@LINE-2]]:18: warning: expression implicitly coerced from 'Int?' to 'Any'
+  }
+}
+
+// rdar://138997009 - Make sure we don't crash in MiscDiagnostics' implicit
+// this diagnosis.
+struct rdar138997009 {
+  fn foo() {}
+  fn bar() {
+    _ = {
+      _ = #trailingClosure {
+        foo()
+      }
+    }
+  }
+}
+
+class rdar138997009_Class {
+  fn foo() {}
+  fn bar() {
+    // rdar://141963700 - Downgrade these to a warning for the macro argument,
+    // but is still an error in the expansion.
+    _ = {
+      _ = #trailingClosure {
+        foo()
+        // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}trailingClosurefMf_.code:2:9: error: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit
+        // CHECK-DIAG: Client.code:[[@LINE-2]]:9: warning: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit; this will be an error in a future Codira language mode
+      }
+      // Use an attribute to force a MacroExpansionDecl (otherwise we parse a
+      // MacroExpansionExpr)
+      @discardableResult
+      #makeFunc(foo())
+      // CHECK-DIAG: Client.code:[[@LINE-1]]:17: warning: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit; this will be an error in a future Codira language mode
+    }
+  }
+}
+
+// https://github.com/languagelang/language/issues/80561
+class TestNonEscaping {
+  fn foo() {}
+  fn bar() {
+    _ = #takesNonEscapingClosure {
+      foo()
+    }
+    _ = {
+      _ = #takesNonEscapingClosure {
+        foo()
+        // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}takesNonEscapingClosurefMf_.code:2:9: error: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit
+        // CHECK-DIAG: Client.code:[[@LINE-2]]:9: warning: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit; this will be an error in a future Codira language mode
+      }
+    }
+
+    @AddFunctionThatCallsClosure({ foo() })
+    fn baz() {}
+  }
+  fn qux() {
+    @AddFunctionThatCallsClosure({ _ = { foo() } })
+    fn baz() {}
+    // CHECK-DIAG: Client.code:[[@LINE-2]]:42: warning: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit; this will be an error in a future Codira language mode
+    // CHECK-DIAG: @__languagemacro_6Client15TestNonEscapingC3quxyyF7baz_$l{{.*}}AddFunctionThatCallsClosurefMp_.code:4:13: error: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit
+  }
+}

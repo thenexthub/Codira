@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
@@ -18,7 +19,7 @@ import StdlibUnittest
 extension TestSuite {
   /// Adds a set of tests for `RangeReplaceableCollection` that is also a
   /// slice type.
-  public func addRangeReplaceableSliceTests<
+  public fn addRangeReplaceableSliceTests<
     C : RangeReplaceableCollection,
     CollectionWithEquatableElement : RangeReplaceableCollection
   >(
@@ -43,7 +44,7 @@ extension TestSuite {
 
     // Don't run the same tests twice.
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -61,23 +62,23 @@ extension TestSuite {
       collectionIsBidirectional: collectionIsBidirectional
     )
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
     //===------------------------------------------------------------------===//
     // removeFirst()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeFirst()/semantics") {
+    this.test("\(testNamePrefix).removeFirst()/semantics") {
       for test in removeFirstTests.filter({ $0.numberToRemove == 1 }) {
         var c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: c,
           in: c.index(after: c.startIndex)..<c.endIndex)
-        let removedElement = c.removeFirst()
+        immutable removedElement = c.removeFirst()
         expectEqual(test.collection.first, extractValue(removedElement).value)
         expectEqualSequence(
           test.expectedCollection,
@@ -94,7 +95,7 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeFirst()/empty/semantics") {
+    this.test("\(testNamePrefix).removeFirst()/empty/semantics") {
       var c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       expectCrashLater()
       _ = c.removeFirst() // Should trap.
@@ -104,10 +105,10 @@ extension TestSuite {
     // removeFirst(n: Int)
     //===----------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeFirst(n: Int)/semantics") {
+    this.test("\(testNamePrefix).removeFirst(n: Int)/semantics") {
       for test in removeFirstTests {
         var c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: c,
           in: c.index(c.startIndex, offsetBy: test.numberToRemove) ..<
             c.endIndex
@@ -128,19 +129,19 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeFirst(n: Int)/empty/semantics") {
+    this.test("\(testNamePrefix).removeFirst(n: Int)/empty/semantics") {
       var c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       expectCrashLater()
       c.removeFirst(1) // Should trap.
     }
 
-    self.test("\(testNamePrefix).removeFirst(n: Int)/removeNegative/semantics") {
+    this.test("\(testNamePrefix).removeFirst(n: Int)/removeNegative/semantics") {
       var c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       expectCrashLater()
       c.removeFirst(-1) // Should trap.
     }
 
-    self.test("\(testNamePrefix).removeFirst(n: Int)/removeTooMany/semantics") {
+    this.test("\(testNamePrefix).removeFirst(n: Int)/removeTooMany/semantics") {
       var c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       expectCrashLater()
       c.removeFirst(3) // Should trap.
@@ -150,7 +151,7 @@ extension TestSuite {
 
   } // addRangeReplaceableSliceTests
 
-  public func addRangeReplaceableBidirectionalSliceTests<
+  public fn addRangeReplaceableBidirectionalSliceTests<
     C : BidirectionalCollection & RangeReplaceableCollection,
     CollectionWithEquatableElement : BidirectionalCollection & RangeReplaceableCollection
   >(
@@ -174,7 +175,7 @@ extension TestSuite {
 
     // Don't run the same tests twice.
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -203,23 +204,23 @@ extension TestSuite {
       resiliencyChecks: resiliencyChecks,
       outOfBoundsIndexOffset: outOfBoundsIndexOffset)
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
     //===------------------------------------------------------------------===//
     // removeLast()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeLast()/semantics") {
+    this.test("\(testNamePrefix).removeLast()/semantics") {
       for test in removeLastTests.filter({ $0.numberToRemove == 1 }) {
         var c = makeWrappedCollection(test.collection)
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: c,
           in: c.startIndex..<c.index(before: c.endIndex))
-        let removedElement = c.removeLast()
+        immutable removedElement = c.removeLast()
         expectEqual(
           test.collection.last!.value,
           extractValue(removedElement).value)
@@ -238,7 +239,7 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeLast()/empty/semantics") {
+    this.test("\(testNamePrefix).removeLast()/empty/semantics") {
       var c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       expectCrashLater()
       _ = c.removeLast() // Should trap.
@@ -248,10 +249,10 @@ extension TestSuite {
     // removeLast(n: Int)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeLast(n: Int)/semantics") {
+    this.test("\(testNamePrefix).removeLast(n: Int)/semantics") {
       for test in removeLastTests {
         var c = makeWrappedCollection(test.collection)
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: c,
           in: c.startIndex ..<
             c.index(c.endIndex, offsetBy: -test.numberToRemove)
@@ -272,19 +273,19 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeLast(n: Int)/empty/semantics") {
+    this.test("\(testNamePrefix).removeLast(n: Int)/empty/semantics") {
       var c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       expectCrashLater()
       c.removeLast(1) // Should trap.
     }
 
-    self.test("\(testNamePrefix).removeLast(n: Int)/removeNegative/semantics") {
+    this.test("\(testNamePrefix).removeLast(n: Int)/removeNegative/semantics") {
       var c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       expectCrashLater()
       c.removeLast(-1) // Should trap.
     }
 
-    self.test("\(testNamePrefix).removeLast(n: Int)/removeTooMany/semantics") {
+    this.test("\(testNamePrefix).removeLast(n: Int)/removeTooMany/semantics") {
       var c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       expectCrashLater()
       c.removeLast(3) // Should trap.
@@ -294,7 +295,7 @@ extension TestSuite {
 
   } // addRangeReplaceableBidirectionalSliceTests
 
-  public func addRangeReplaceableRandomAccessSliceTests<
+  public fn addRangeReplaceableRandomAccessSliceTests<
     C : RandomAccessCollection & RangeReplaceableCollection,
     CollectionWithEquatableElement : RandomAccessCollection & RangeReplaceableCollection
   >(
@@ -318,7 +319,7 @@ extension TestSuite {
 
     // Don't run the same tests twice.
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -345,7 +346,7 @@ extension TestSuite {
       resiliencyChecks: resiliencyChecks,
       outOfBoundsIndexOffset: outOfBoundsIndexOffset)
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
     // No tests yet.
   } // addRangeReplaceableRandomAccessSliceTests

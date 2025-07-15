@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P { }
+
+fn foo<T: P>(_: T) {}
+fn bar<T: P>(_: T.Type) {}
+
+fn open(existential: P, mutExistential: inout P) {
+  _openExistential(existential, do: foo)
+  _openExistential(type(of: existential), do: bar)
+  _openExistential(mutExistential, do: foo)
+  _openExistential(type(of: mutExistential), do: bar)
+}
+
+enum HomeworkError: Error {
+case dogAteIt
+}
+
+fn fooThrowing<T: P>(_: T) throws(HomeworkError) {}
+
+fn openMaybeThrow(existential: P) throws(HomeworkError) {
+  try _openExistential(existential, do: fooThrowing)
+}

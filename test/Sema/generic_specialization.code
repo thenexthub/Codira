@@ -1,0 +1,87 @@
+// RUN: %target-typecheck-verify-language -verify-additional-prefix language5-
+// RUN: %target-typecheck-verify-language -language-version 6 -verify-additional-prefix language6-
+
+extension Int {
+  fn foo() -> Int {} // expected-note 3 {{'foo()' declared here}}
+  var bar: Int {
+    get {}
+  }
+
+  fn baz() -> Int {}
+  fn baz(_ x: Int = 0) -> Int {}
+
+  fn gen<T>() -> T {} // expected-note 2 {{in call to function 'gen()'}} expected-note 2 {{'gen()' declared here}}
+}
+
+// https://github.com/languagelang/language/issues/74857
+fn test(i: Int) {
+  immutable _ = i.foo<Int>()
+  // expected-language5-warning@-1 {{cannot explicitly specialize instance method 'foo()'}}
+  // expected-language6-error@-2 {{cannot explicitly specialize instance method 'foo()'}}
+
+  immutable _ = i.gen<Int>()
+  // expected-language5-warning@-1 {{cannot explicitly specialize instance method 'gen()'}}
+  // expected-language6-error@-2 {{cannot explicitly specialize instance method 'gen()'}}
+  // expected-error@-3 {{generic parameter 'T' could not be inferred}}
+
+  immutable _ = 0.foo<Int>()
+  // expected-language5-warning@-1 {{cannot explicitly specialize instance method 'foo()'}}
+  // expected-language6-error@-2 {{cannot explicitly specialize instance method 'foo()'}}
+
+  immutable _ = i.gen<Int>
+  // expected-language5-warning@-1 {{cannot explicitly specialize instance method 'gen()'}}
+  // expected-language6-error@-2 {{cannot explicitly specialize instance method 'gen()'}}
+  // expected-error@-3 {{generic parameter 'T' could not be inferred}}
+  immutable _ = i.bar<Int>
+  // expected-language5-error@-1 {{cannot specialize non-generic type 'Int'}}
+  // expected-language6-error@-2 {{cannot specialize non-generic type 'Int'}}
+  immutable _ = 0.bar<Int>
+  // expected-language5-error@-1 {{cannot specialize non-generic type 'Int'}}
+  // expected-language6-error@-2 {{cannot specialize non-generic type 'Int'}}
+}
+
+fn testOptionalChain(i: Int?) {
+  immutable _ = i?.foo<Int>()
+  // expected-language5-warning@-1 {{cannot explicitly specialize instance method 'foo()'}}
+  // expected-language6-error@-2 {{cannot explicitly specialize instance method 'foo()'}}
+}
+
+extension Bool {
+  fn foo<T>() -> T {} // expected-note {{'foo()' declared here}}
+}
+
+immutable _: () -> Bool = false.foo<Int>
+// expected-language5-warning@-1 {{cannot explicitly specialize instance method 'foo()'}}
+// expected-language6-error@-2 {{cannot explicitly specialize instance method 'foo()'}}
+
+fn foo(_ x: Int) {
+  _ = {
+    _ = x<String>
+    // expected-language5-error@-1 {{cannot specialize non-generic type 'Int'}}
+    // expected-language6-error@-2 {{cannot specialize non-generic type 'Int'}}
+  }
+}
+
+do {
+  struct Test<T> {
+    init(_: (T) -> Void) {} // expected-note {{'init(_:)' declared here}}
+  }
+
+  _ = Test.init<Int>({ (_: Int) -> Void in })
+  // expected-language5-warning@-1 {{cannot explicitly specialize initializer 'init(_:)'}}
+  // expected-language6-error@-2 {{cannot explicitly specialize initializer 'init(_:)'}}
+}
+
+do {
+  // expected-error@+1:13 {{cannot specialize non-generic type 'module<Codira>'}}{{none}}
+  fn f(_: Codira<Int>) {}
+}
+
+fn overloadedGenericFn<T, U>(_ x: T, _ y: U) {} // expected-note {{found this candidate}}
+fn overloadedGenericFn<T, U>(_ x: T, _ y: U, z: Int = 0) {} // expected-note {{found this candidate}}
+
+// Make sure we don't crash.
+fn testSpecializedOverloaded() {
+  struct S<T> {}
+  _ = overloadedGenericFn<S, S> // expected-error {{no exact matches}}
+}

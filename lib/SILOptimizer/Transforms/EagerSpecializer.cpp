@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -44,14 +45,14 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/Generics.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 // Temporary flag.
-llvm::cl::opt<bool> EagerSpecializeFlag(
-    "enable-eager-specializer", llvm::cl::init(true),
-    llvm::cl::desc("Run the eager-specializer pass."));
+toolchain::cl::opt<bool> EagerSpecializeFlag(
+    "enable-eager-specializer", toolchain::cl::init(true),
+    toolchain::cl::desc("Run the eager-specializer pass."));
 
 static void
 cleanupCallArguments(SILBuilder &builder, SILLocation loc,
@@ -292,8 +293,8 @@ static SILValue emitInvocation(SILBuilder &Builder,
 /// Returns the thick metatype for the given SILType.
 /// e.g. $*T -> $@thick T.Type
 static SILType getThickMetatypeType(CanType Ty) {
-  auto SwiftTy = CanMetatypeType::get(Ty, MetatypeRepresentation::Thick);
-  return SILType::getPrimitiveObjectType(SwiftTy);
+  auto CodiraTy = CanMetatypeType::get(Ty, MetatypeRepresentation::Thick);
+  return SILType::getPrimitiveObjectType(CodiraTy);
 }
 
 namespace {
@@ -318,7 +319,7 @@ public:
         Builder(*GenericFunc), Loc(GenericFunc->getLocation()) {
     Builder.setCurrentDebugScope(GenericFunc->getDebugScope());
     IsClassF = Builder.getModule().loadFunction(
-      "_swift_isClassOrObjCExistentialType", SILModule::LinkingMode::LinkAll);
+      "_language_isClassOrObjCExistentialType", SILModule::LinkingMode::LinkAll);
     assert(IsClassF);
   }
 
@@ -595,8 +596,8 @@ void EagerDispatch::emitRefCountedObjectCheck(SILBasicBlock *FailedTypeCheckBB,
 
   auto *SuccessBB = Builder.getFunction().createBasicBlock();
   auto *MayBeClassCheckBB = Builder.getFunction().createBasicBlock();
-  auto *SwiftClassBB = createSplitBranchTarget(SuccessBB, Builder, Loc);
-  Builder.createCondBranch(Loc, Cmp1, SwiftClassBB, MayBeClassCheckBB);
+  auto *CodiraClassBB = createSplitBranchTarget(SuccessBB, Builder, Loc);
+  Builder.createCondBranch(Loc, Cmp1, CodiraClassBB, MayBeClassCheckBB);
 
   Builder.emitBlock(MayBeClassCheckBB);
 
@@ -693,8 +694,8 @@ SILValue EagerDispatch::emitArgumentConversion(
     unsigned ArgIdx = OrigArg->getIndex();
 
     auto CastArg = emitArgumentCast(SubstitutedType, OrigArg, ArgIdx);
-    LLVM_DEBUG(llvm::dbgs() << "  Cast generic arg: ";
-               CastArg->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Cast generic arg: ";
+               CastArg->print(toolchain::dbgs()));
 
     if (!substConv.useLoweredAddresses()) {
       CallArgs.push_back(CastArg);
@@ -772,15 +773,15 @@ static SILFunction *eagerSpecialize(SILOptFunctionBuilder &FuncBuilder,
                                     SmallVectorImpl<SILFunction *> &newFunctions) {
   assert(ReInfo.getSpecializedType());
 
-  LLVM_DEBUG(llvm::dbgs() << "Specializing " << GenericFunc->getName() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Specializing " << GenericFunc->getName() << "\n");
 
-  LLVM_DEBUG(auto FT = GenericFunc->getLoweredFunctionType();
-             llvm::dbgs() << "  Generic Sig:"; llvm::dbgs().indent(2);
-             FT->getInvocationGenericSignature()->print(llvm::dbgs());
-             llvm::dbgs() << "  Generic Env:"; llvm::dbgs().indent(2);
-             GenericFunc->getGenericEnvironment()->dump(llvm::dbgs());
-             llvm::dbgs() << "  Specialize Attr:"; SA.print(llvm::dbgs());
-             llvm::dbgs() << "\n");
+  TOOLCHAIN_DEBUG(auto FT = GenericFunc->getLoweredFunctionType();
+             toolchain::dbgs() << "  Generic Sig:"; toolchain::dbgs().indent(2);
+             FT->getInvocationGenericSignature()->print(toolchain::dbgs());
+             toolchain::dbgs() << "  Generic Env:"; toolchain::dbgs().indent(2);
+             GenericFunc->getGenericEnvironment()->dump(toolchain::dbgs());
+             toolchain::dbgs() << "  Specialize Attr:"; SA.print(toolchain::dbgs());
+             toolchain::dbgs() << "\n");
 
   GenericFuncSpecializer
       FuncSpecializer(FuncBuilder, GenericFunc,
@@ -796,7 +797,7 @@ static SILFunction *eagerSpecialize(SILOptFunctionBuilder &FuncBuilder,
   }
 
   if (!NewFunc) {
-    LLVM_DEBUG(llvm::dbgs() << "  Failed. Cannot specialize function.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Failed. Cannot specialize function.\n");
   } else if (SA.isExported()) {
     NewFunc->setLinkage(NewFunc->isDefinition() ? SILLinkage::Public
                                                 : SILLinkage::PublicExternal);
@@ -816,7 +817,7 @@ void EagerSpecializerTransform::run() {
 
   // Process functions in any order.
   if (!F.shouldOptimize() && !onlyCreatePrespecializations) {
-    LLVM_DEBUG(llvm::dbgs() << "  Cannot specialize function " << F.getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Cannot specialize function " << F.getName()
                             << " because it is marked to be "
                                "excluded from optimizations.\n");
     return;
@@ -870,7 +871,7 @@ void EagerSpecializerTransform::run() {
       ReInfoVec.emplace_back(ReabstractionInfo(F.getModule()));
       continue;
     }
-    ReInfoVec.emplace_back(FuncBuilder.getModule().getSwiftModule(),
+    ReInfoVec.emplace_back(FuncBuilder.getModule().getCodiraModule(),
                            FuncBuilder.getModule().isWholeModule(), targetFunc,
                            SA->getSpecializedSignature(), SA->isExported());
     auto *NewFunc = eagerSpecialize(FuncBuilder, targetFunc, *SA,
@@ -920,10 +921,10 @@ void EagerSpecializerTransform::run() {
   }
 }
 
-SILTransform *swift::createEagerSpecializer() {
+SILTransform *language::createEagerSpecializer() {
   return new EagerSpecializerTransform(false/*onlyCreatePrespecializations*/);
 }
 
-SILTransform *swift::createOnonePrespecializations() {
+SILTransform *language::createOnonePrespecializations() {
   return new EagerSpecializerTransform(true /*onlyCreatePrespecializations*/);
 }

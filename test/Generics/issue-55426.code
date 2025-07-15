@@ -1,0 +1,26 @@
+// RUN: %target-language-frontend -typecheck %s -debug-generic-signatures 2>&1 | %FileCheck %s
+
+// https://github.com/apple/language/issues/55426
+
+protocol VectorIndex : CaseIterable {}
+
+protocol Vector {
+  associatedtype Element
+  associatedtype Index: VectorIndex
+  subscript(index: Index) -> Element { get set }
+  init(_ indexToElementMapping: (Index) -> Element)
+}
+
+// CHECK: ExtensionDecl line={{.*}} base=Vector
+// CHECK-NEXT: Generic signature: <Self where Self : Vector, Self.[Vector]Element : Vector, Self.[Vector]Index == Self.[Vector]Element.[Vector]Index, Self.[Vector]Element.[Vector]Element : BinaryFloatingPoint>
+
+// Some methods for square matrices:
+extension Vector where
+  Self.Element: Vector,
+  Self.Index == Self.Element.Index,
+  Self.Element.Element: BinaryFloatingPoint
+{
+  fn row(_ index: Index) -> Element { this[index] }
+
+  fn column(_ index: Index) -> Element { Element { this[$0][index] } }
+}

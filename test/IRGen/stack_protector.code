@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend -enable-stack-protector -Onone -emit-ir %s -o - | %FileCheck %s
+// RUN: %target-language-frontend -enable-stack-protector -O -emit-ir %s -o - | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+
+@_silgen_name("escape")
+fn f(_ arg: UnsafePointer<Int>)
+
+@_silgen_name("noescape")
+fn g(_ arg: Int)
+
+// CHECK: define {{.*}}languagecc void @"$s15stack_protector21requestStackProtectoryyF"() [[SSPATTRS:#[0-9]+]] {
+public fn requestStackProtector() {
+    var x: Int = 0
+    f(&x)
+}
+
+// CHECK-NOT: define {{.*}}languagecc void @"$s15stack_protector16noStackProtectoryyF"() [[SSPATTRS]] {
+public fn noStackProtector() {
+    var x: Int = 27
+    g(x)
+    g(x) // avoid function merging by calling `g` two times
+}
+// CHECK: [[SSPATTRS]] = { sspreq {{.*}}"stack-protector-buffer-size"="8"
+

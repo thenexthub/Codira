@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This is an analysis that determines the ref count identity (i.e. gc root) of
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_EPILOGUEARCANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_EPILOGUEARCANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_EPILOGUEARCANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_EPILOGUEARCANALYSIS_H
 
 #include "language/SIL/SILValue.h"
 #include "language/SIL/SILArgument.h"
@@ -80,10 +81,10 @@ private:
   std::vector<EpilogueARCBlockState> IndexToStateMap;
 
   /// The epilogue retains or releases.
-  llvm::SmallSetVector<SILInstruction *, 1> EpilogueARCInsts; 
+  toolchain::SmallSetVector<SILInstruction *, 1> EpilogueARCInsts; 
 
   /// The exit blocks of the function.
-  llvm::SmallPtrSet<SILBasicBlock *, 2> ExitBlocks;
+  toolchain::SmallPtrSet<SILBasicBlock *, 2> ExitBlocks;
 
   /// Returns the EpilogueARCBlockState for \p BB. If \p BB is unreachable,
   /// returns None
@@ -152,7 +153,7 @@ public:
   }
 
   /// Reset the epilogue arc instructions. 
-  llvm::SmallSetVector<SILInstruction *, 1> getEpilogueARCInsts() {
+  toolchain::SmallSetVector<SILInstruction *, 1> getEpilogueARCInsts() {
     return EpilogueARCInsts;
   }
 
@@ -228,15 +229,15 @@ public:
 
 /// This class is a simple wrapper around an identity cache.
 class EpilogueARCFunctionInfo {
-  using ARCInstructions = llvm::SmallSetVector<SILInstruction *, 1>;
+  using ARCInstructions = toolchain::SmallSetVector<SILInstruction *, 1>;
 
   EpilogueARCContext Context;
 
   /// The epilogue retain cache.
-  llvm::DenseMap<SILValue, ARCInstructions> EpilogueRetainInstCache;
+  toolchain::DenseMap<SILValue, ARCInstructions> EpilogueRetainInstCache;
 
   /// The epilogue release cache.
-  llvm::DenseMap<SILValue, ARCInstructions> EpilogueReleaseInstCache;
+  toolchain::DenseMap<SILValue, ARCInstructions> EpilogueReleaseInstCache;
 
 public:
   /// Constructor.
@@ -246,7 +247,7 @@ public:
 
   /// Find the epilogue ARC instruction based on the given \p Kind and given
   /// \p Arg.
-  llvm::SmallSetVector<SILInstruction *, 1>
+  toolchain::SmallSetVector<SILInstruction *, 1>
   computeEpilogueARCInstructions(EpilogueARCContext::EpilogueARCKind Kind,
                                  SILValue Arg) {
     auto &ARCCache = Kind == EpilogueARCContext::EpilogueARCKind::Retain ?
@@ -260,7 +261,7 @@ public:
     // data flow is aborted in middle.
     if (!Context.run(Kind, Arg)) {
       Context.reset();
-      return llvm::SmallSetVector<SILInstruction *, 1>();
+      return toolchain::SmallSetVector<SILInstruction *, 1>();
     }
 
     auto Result = Context.getEpilogueARCInsts();
@@ -301,6 +302,6 @@ public:
 
  };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

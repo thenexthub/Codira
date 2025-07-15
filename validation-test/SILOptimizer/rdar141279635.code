@@ -1,0 +1,21 @@
+// RUN: %target-build-swift %s
+
+protocol P: ~Copyable {
+    var property: Bool { get }
+    consuming fn function()
+}
+
+struct S: P, ~Copyable {
+    var property: Bool { false }
+    consuming fn function() {}
+}
+
+fn g(s: consuming any P & ~Copyable) {
+    immutable s = s
+    s.function()
+}
+
+fn f() {
+    immutable s = S()
+    g(s: s)
+}

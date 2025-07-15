@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_OPTIONS_SANITIZER_OPTIONS_H
-#define SWIFT_OPTIONS_SANITIZER_OPTIONS_H
+#ifndef LANGUAGE_OPTIONS_SANITIZER_OPTIONS_H
+#define LANGUAGE_OPTIONS_SANITIZER_OPTIONS_H
 
 #include "language/Basic/Sanitizers.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-// FIXME: This include is just for llvm::SanitizerCoverageOptions. We should
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+// FIXME: This include is just for toolchain::SanitizerCoverageOptions. We should
 // split the header upstream so we don't include so much.
-#include "llvm/Transforms/Instrumentation.h"
+#include "toolchain/Transforms/Instrumentation.h"
 
 namespace language {
 class DiagnosticEngine;
@@ -35,32 +36,32 @@ class DiagnosticEngine;
 //         sanitizer dylib with a given name.
 /// \return Returns a SanitizerKind.
 OptionSet<SanitizerKind> parseSanitizerArgValues(
-    const llvm::opt::ArgList &Args, const llvm::opt::Arg *A,
-    const llvm::Triple &Triple, DiagnosticEngine &Diag,
-    llvm::function_ref<bool(llvm::StringRef, bool)> sanitizerRuntimeLibExists);
+    const toolchain::opt::ArgList &Args, const toolchain::opt::Arg *A,
+    const toolchain::Triple &Triple, DiagnosticEngine &Diag,
+    toolchain::function_ref<bool(toolchain::StringRef, bool)> sanitizerRuntimeLibExists);
 
 OptionSet<SanitizerKind> parseSanitizerRecoverArgValues(
-    const llvm::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
+    const toolchain::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
     DiagnosticEngine &Diags, bool emitWarnings);
 
 /// Parses a -sanitize-coverage= argument's value.
-llvm::SanitizerCoverageOptions parseSanitizerCoverageArgValue(
-        const llvm::opt::Arg *A,
-        const llvm::Triple &Triple,
+toolchain::SanitizerCoverageOptions parseSanitizerCoverageArgValue(
+        const toolchain::opt::Arg *A,
+        const toolchain::Triple &Triple,
         DiagnosticEngine &Diag,
         OptionSet<SanitizerKind> sanitizers);
 
 /// Parse -sanitize-address-use-odr-indicator's value.
 bool parseSanitizerAddressUseODRIndicator(
-    const llvm::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
+    const toolchain::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
     DiagnosticEngine &Diags);
 
 /// Parse -sanitize-stable-abi's value
 bool parseSanitizerUseStableABI(
-    const llvm::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
+    const toolchain::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
     DiagnosticEngine &Diags);
 
 /// Returns the active sanitizers as a comma-separated list.
 std::string getSanitizerList(const OptionSet<SanitizerKind> &Set);
 }
-#endif // SWIFT_OPTIONS_SANITIZER_OPTIONS_H
+#endif // LANGUAGE_OPTIONS_SANITIZER_OPTIONS_H

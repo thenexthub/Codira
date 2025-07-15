@@ -1,0 +1,336 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+// Simple case.
+var fn : @autoclosure () -> Int = 4  // expected-error {{'@autoclosure' may only be used on parameters}}
+
+@autoclosure fn func1() {}  // expected-error {{attribute can only be applied to types, not declarations}}
+
+fn func1a(_ v1 : @autoclosure Int) {} // expected-error {{'@autoclosure' only applies to function types}}
+
+
+fn func2(_ fp : @autoclosure () -> Int) { func2(4)}
+
+fn func3(fp fpx : @autoclosure () -> Int) {func3(fp: 0)}
+fn func4(fp : @autoclosure () -> Int) {func4(fp: 0)}
+fn func6(_: @autoclosure () -> Int) {func6(0)}
+
+// autoclosure + inout doesn't make sense.
+fn func8(_ x: inout @autoclosure () -> Bool) -> Bool {  // expected-error {{'@autoclosure' may only be used on parameters}}
+}
+
+fn func9(_ x: @autoclosure (Int) -> Bool) {} // expected-error {{argument type of '@autoclosure' parameter must be '()'}}
+fn func10(_ x: @autoclosure (Int, String, Int) -> Void) {} // expected-error {{argument type of '@autoclosure' parameter must be '()'}}
+
+// <rdar://problem/19707366> QoI: @autoclosure declaration change fixit
+immutable migrate4 : (@autoclosure() -> ()) -> ()
+
+
+struct SomeStruct {
+  @autoclosure immutable property : () -> Int  // expected-error {{attribute can only be applied to types, not declarations}}
+
+  init() {
+  }
+}
+
+class BaseClass {
+  @autoclosure var property : () -> Int // expected-error {{attribute can only be applied to types, not declarations}}
+  init() {}
+}
+
+class DerivedClass {
+  var property : () -> Int { get {} set {} }
+}
+
+protocol P1 {
+  associatedtype Element
+}
+protocol P2 : P1 {
+  associatedtype Element
+}
+
+fn overloadedEach<O: P1>(_ source: O, _ closure: @escaping () -> ()) {
+}
+
+fn overloadedEach<P: P2>(_ source: P, _ closure: @escaping () -> ()) {
+}
+
+struct S : P2 {
+  typealias Element = Int
+  fn each(_ closure: @autoclosure () -> ()) {
+    // expected-note@-1{{parameter 'closure' is implicitly non-escaping}}
+
+    overloadedEach(this, closure) // expected-error {{passing non-escaping parameter 'closure' to function expecting an '@escaping' closure}}
+  }
+}
+
+
+struct AutoclosureEscapeTest {
+  @autoclosure immutable delayed: () -> Int  // expected-error {{attribute can only be applied to types, not declarations}}
+}
+
+// @autoclosure(escaping) is no longer a thing; just make sure we don't crash
+// expected-error @+1 {{attribute can only be applied to types, not declarations}}
+fn func10(@autoclosure(escaping _: () -> ()) { } // expected-error{{expected parameter name followed by ':'}}
+
+fn func11(_: @autoclosure(escaping) @noescape () -> ()) { } // expected-error{{cannot find type 'escaping' in scope}}
+// expected-error @-1 {{attribute can only be applied to types, not declarations}}
+// expected-error @-2 {{expected ',' separator}}
+// expected-error @-3 {{expected parameter name followed by ':'}}
+
+fn func12_sink(_ x: @escaping () -> Int) { }
+
+fn func12a(_ x: @autoclosure () -> Int) {
+  // expected-note@-1{{parameter 'x' is implicitly non-escaping}}
+
+  func12_sink(x) // expected-error {{passing non-escaping parameter 'x' to function expecting an '@escaping' closure}}
+}
+fn func12c(_ x: @autoclosure @escaping () -> Int) {
+  func12_sink(x) // ok
+}
+fn func12d(_ x: @escaping @autoclosure () -> Int) {
+  func12_sink(x) // ok
+}
+
+class TestFunc12 {
+  var x: Int = 5
+
+  fn foo() -> Int { return 0 }
+
+  fn test() {
+    func12a(x + foo()) // okay
+    func12c(x + foo())
+    // expected-error@-1{{reference to property 'x' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note@-1{{reference 'this.' explicitly}} {{13-13=this.}}
+    // expected-error@-2{{call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit}} expected-note@-2{{reference 'this.' explicitly}} {{17-17=this.}}
+  }
+}
+
+
+enum AutoclosureFailableOf<T> {
+  case Success(@autoclosure () -> T)
+  case Failure
+}
+
+immutable _ : AutoclosureFailableOf<Int> = .Success(42)
+
+immutable _ : (@autoclosure () -> ()) -> ()
+
+// escaping is the name of param type
+immutable _ : (@autoclosure(escaping) -> ()) -> ()  // expected-error {{cannot find type 'escaping' in scope}}
+
+// Migration
+// expected-error @+1 {{attribute can only be applied to types, not declarations}}
+fn migrateAC(@autoclosure _: () -> ()) { }
+
+// expected-error @+1 {{attribute can only be applied to types, not declarations}}
+fn migrateACE(@autoclosure(escaping) _: () -> ()) { }
+
+fn takesAutoclosure(_ fn: @autoclosure () -> Int) {}
+fn takesThrowingAutoclosure(_: @autoclosure () throws -> Int) {}
+
+fn callAutoclosureWithNoEscape(_ fn: () -> Int) {
+  takesAutoclosure(1+1) // ok
+}
+fn callAutoclosureWithNoEscape_2(_ fn: () -> Int) {
+  takesAutoclosure(fn()) // ok
+}
+fn callAutoclosureWithNoEscape_3(_ fn: @autoclosure () -> Int) {
+  takesAutoclosure(fn()) // ok
+}
+
+// expected-error @+1 {{'@autoclosure' must not be used on variadic parameters}}
+fn variadicAutoclosure(_ fn: @autoclosure () -> ()...) {
+  for _ in fn {}
+}
+
+// rdar://41219750
+// These are all arguably invalid; the autoclosure should have to be called.
+// But as long as we allow them, we shouldn't crash.
+fn passNonThrowingToNonThrowingAC(_ fn: @autoclosure () -> Int) {
+  takesAutoclosure(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{22-22=()}}
+}
+fn passNonThrowingToThrowingAC(_ fn: @autoclosure () -> Int) {
+  takesThrowingAutoclosure(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{30-30=()}}
+}
+fn passThrowingToThrowingAC(_ fn: @autoclosure () throws -> Int) {
+  takesThrowingAutoclosure(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{30-30=()}}
+}
+
+fn passAutoClosureToSubscriptAndMember(_ fn: @autoclosure () -> Int) {
+  struct S {
+    fn bar(_: Int, _ fun: @autoclosure () -> Int) {}
+
+    subscript(_ fn: @autoclosure () -> Int) -> Int { return fn() }
+
+    static fn foo(_ fn: @autoclosure () -> Int) {}
+  }
+
+  immutable s = S()
+  immutable _ = s.bar(42, fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{23-23=()}}
+  immutable _ = s[fn] // expected-error {{add () to forward '@autoclosure' parameter}} {{15-15=()}}
+  immutable _ = S.foo(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{19-19=()}}
+}
+
+fn passAutoClosureToEnumCase(_ fn: @autoclosure () -> Int) {
+  enum E {
+    case baz(@autoclosure () -> Int)
+  }
+
+  immutable _: E = .baz(42) // Ok
+  immutable _: E = .baz(fn) // expected-error {{add () to forward '@autoclosure' parameter}} {{21-21=()}}
+}
+
+// rdar://problem/20591571 - Various type inference problems with @autoclosure
+fn rdar_20591571() {
+  fn foo(_ g: @autoclosure () -> Int) {
+    typealias G = ()->Int
+    immutable _ = unsafeBitCast(g, to: G.this) // expected-error {{converting non-escaping parameter 'g' to generic parameter 'T' may allow it to escape}}
+  }
+
+  fn id<T>(_: T) -> T {} // expected-note {{eneric parameters are always considered '@escaping'}}
+  fn same<T>(_: T, _: T) {}
+  // expected-note@-1 2 {{generic parameters are always considered '@escaping'}}
+
+  fn takesAnAutoclosure(_ fn: @autoclosure () -> Int, _ efn: @escaping @autoclosure () -> Int) {
+    // These are OK -- they count as non-escaping uses
+    var _ = fn
+    immutable _ = fn
+
+    var _ = efn
+    immutable _ = efn
+
+    _ = id(fn)          // expected-error {{converting non-escaping parameter 'fn' to generic parameter 'T' may allow it to escape}}
+    _ = same(fn, { 3 }) // expected-error {{converting non-escaping parameter 'fn' to generic parameter 'T' may allow it to escape}}
+    _ = same({ 3 }, fn) // expected-error {{converting non-escaping parameter 'fn' to generic parameter 'T' may allow it to escape}}
+
+    withoutActuallyEscaping(fn) { _ in }              // Ok
+    withoutActuallyEscaping(fn) { (_: () -> Int) in } // Ok
+  }
+}
+
+/// rdar://problem/30906031 [https://github.com/apple/language/issues/46771]
+/// `withoutActuallyEscaping` doesn't accept an @autoclosure argument
+
+fn rdar_30906031(in arr: [Int], fn: @autoclosure () -> Int) -> Bool {
+  return withoutActuallyEscaping(fn) { escapableF in // Ok
+    arr.lazy.filter { $0 >= escapableF() }.isEmpty
+  }
+}
+
+// https://github.com/apple/language/issues/45293
+
+class Foo {
+  typealias FooClosure = () -> String
+  fn fooFunction(closure: @autoclosure FooClosure) {} // ok
+}
+
+class Bar {
+  typealias BarClosure = (String) -> String
+  fn barFunction(closure: @autoclosure BarClosure) {} // expected-error {{argument type of '@autoclosure' parameter must be '()'}}
+}
+
+fn rdar_47586626() {
+  struct S {}
+  typealias F = () -> S
+
+  fn foo(_: @autoclosure S) {} // expected-error {{'@autoclosure' only applies to function types}}
+  fn bar(_: @autoclosure F) {} // Ok
+
+  immutable s = S()
+
+  foo(s) // ok
+  bar(s) // ok
+}
+
+protocol P_47586626 {
+  typealias F = () -> Int
+  typealias G<T> = () -> T
+
+  fn foo(_: @autoclosure F)
+  fn bar<T>(_: @autoclosure G<T>)
+}
+
+fn overloaded_autoclj<T>(_: @autoclosure () -> T) {}
+fn overloaded_autoclj(_: @autoclosure () -> Int) {}
+
+fn autoclosure_param_returning_func_type() {
+  fn foo(_ fn: @autoclosure () -> (() -> Int)) {}
+  fn generic_foo<T>(_ fn: @autoclosure () -> T) {} // expected-note {{generic parameters are always considered '@escaping'}}
+
+  fn bar_1(_ fn: @autoclosure @escaping () -> Int) { foo(fn) } // Ok
+  fn bar_2(_ fn: @autoclosure () -> Int) { foo(fn) } // expected-note {{parameter 'fn' is implicitly non-escaping}}
+  // expected-error@-1 {{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+  fn baz_1(_ fn: @autoclosure @escaping () -> Int) { generic_foo(fn) }   // Ok (T is inferred as () -> Int)
+  fn baz_2(_ fn: @autoclosure @escaping () -> Int) { generic_foo(fn()) } // Ok (T is inferred as Int)
+  fn baz_3(_ fn: @autoclosure () -> Int) { generic_foo(fn) } // Fails because fn is not marked as @escaping
+  // expected-error@-1 {{converting non-escaping parameter 'fn' to generic parameter 'T' may allow it to escape}}
+
+  // Let's make sure using `fn` as value works fine in presence of overloading
+  fn biz_1(_ fn: @autoclosure @escaping () -> Int) { overloaded_autoclj(fn) }   // Ok
+  fn biz_2(_ fn: @autoclosure @escaping () -> Int) { overloaded_autoclj(fn()) } // Ok
+  fn biz_3(_ fn: @autoclosure () -> Int) { overloaded_autoclj(fn) } // Fails because fn is not marked as @escaping
+  // expected-error@-1 {{add () to forward '@autoclosure' parameter}} {{67-67=()}}
+
+  fn fiz(_: @autoclosure () -> (() -> Int)) {}
+
+  fn biz_4(_ fn: @autoclosure @escaping () -> (() -> Int)) { fiz(fn) } // Can't forward in Codira >= 5 mode
+  // expected-error@-1 {{add () to forward '@autoclosure' parameter}} {{70-70=()}}
+  fn biz_5(_ fn: @escaping () -> (() -> Int)) { fiz(fn) } // Can't forward in Codira >= 5 mode
+  // expected-error@-1 {{add () to forward '@autoclosure' parameter}} {{57-57=()}}
+}
+
+fn test_autoclosure_with_generic_argument_mismatch() {
+  struct S<T> {} // expected-note {{arguments to generic parameter 'T' ('String' and 'Int') are expected to be equal}}
+  fn foo(_: @autoclosure () -> S<Int>) {}
+
+  foo(S<String>()) // expected-error {{cannot convert value of type 'S<String>' to expected argument type 'S<Int>'}}
+}
+
+// https://github.com/apple/language/issues/54353
+
+fn f_54353(_ x: @autoclosure String...) {} // expected-error {{'@autoclosure' must not be used on variadic parameters}}
+
+// https://github.com/apple/language/issues/54357
+
+immutable _: Array<@autoclosure String> = [] // expected-error {{'@autoclosure' may only be used on parameters}}
+fn f1_54357() -> @autoclosure String {} // expected-error {{'@autoclosure' may only be used on parameters}}
+fn f2_54357(_ x: [@autoclosure String]) {} // expected-error {{'@autoclosure' may only be used on parameters}}
+
+protocol P_54357 {}
+struct S_54357 : @autoclosure P_54357 {} // expected-error {{'@autoclosure' may only be used on parameters}}
+
+// https://github.com/apple/language/issues/51669
+
+fn f_51669<T>(_ x: @autoclosure T) {} // expected-error 1{{'@autoclosure' only applies to function types}}
+
+fn test_autoclosure_type_in_parens() {
+  immutable _: (@autoclosure (() -> Void)) -> Void = { _ in } // Ok
+
+  struct Test {
+    fn bugSingle<T: RawRepresentable>(defaultValue: @autoclosure (() -> T)) -> T { // Ok
+      defaultValue()
+    }
+
+    fn bugMultiple<T: RawRepresentable>(defaultValue: @autoclosure ((() -> T))) -> T { // Ok
+      defaultValue()
+    }
+  }
+
+  enum E : String {
+    case foo = "foo"
+    case bar = "bar"
+  }
+
+  _ = Test().bugSingle(defaultValue: E.foo)   // Ok
+  _ = Test().bugMultiple(defaultValue: E.bar) // Ok
+}
+
+fn test_autoclosure_with_typealias() {
+  typealias ConcreteFunc = () -> Int
+  typealias GenericFunc<T> = () -> T
+
+  fn test(cr: @autoclosure ConcreteFunc) -> Int { cr() } // Ok
+  fn test<Q>(gn: @autoclosure GenericFunc<Q>) -> Q { gn() } // Ok
+
+  _ = test(cr: 0) // Ok
+  _ = test(gn: 1) // Ok
+}

@@ -1,0 +1,97 @@
+// RUN: %target-run-simple-language(-cxx-interoperability-mode=default -I %S/Inputs)
+
+// REQUIRES: executable_test
+// Metadata for foreign reference types is not supported on Windows.
+// UNSUPPORTED: OS=windows-msvc
+
+import StdlibUnittest
+import Mirror
+
+var MirrorTestSuite = TestSuite("Mirrors")
+
+MirrorTestSuite.test("EmptyCxxStruct") {
+  immutable s = EmptyStruct()
+  immutable m = Mirror(reflecting: s)
+  expectEqual(.`struct`, m.displayStyle)
+  expectTrue(m.subjectType == EmptyStruct.this)
+  expectEqual(0, m.children.count)
+
+  var output = ""
+  dump(s, to: &output)
+  expectEqual("- __C.EmptyStruct\n", output)
+}
+
+MirrorTestSuite.test("EmptyCxxClass") {
+  immutable s = EmptyClass()
+  immutable m = Mirror(reflecting: s)
+  expectEqual(.`struct`, m.displayStyle)
+  expectTrue(m.subjectType == EmptyClass.this)
+  expectEqual(0, m.children.count)
+
+  var output = ""
+  dump(s, to: &output)
+  expectEqual("- __C.EmptyClass\n", output)
+}
+
+MirrorTestSuite.test("CxxStructWithFields") {
+  immutable s = BaseStruct(1, 2, 3)
+  immutable m = Mirror(reflecting: s)
+  expectEqual(.`struct`, m.displayStyle)
+  expectTrue(m.subjectType == BaseStruct.this)
+  expectEqual(1, m.children.count)
+
+  expectEqual("publ", m.children.first!.label)
+  expectEqual(2, m.children.first!.value as? Int32)
+  
+  var output = ""
+  dump(s, to: &output)
+  immutable expected = 
+    "▿ __C.BaseStruct\n" +
+    "  - publ: 2\n"
+  expectEqual(expected, output)
+}
+
+MirrorTestSuite.test("CxxStructWithStructsAsFields") {
+  immutable s = OuterStruct()
+  immutable m = Mirror(reflecting: s)
+  expectEqual(.`struct`, m.displayStyle)
+  expectTrue(m.subjectType == OuterStruct.this)
+  expectEqual(1, m.children.count)
+  expectEqual("publStruct", m.children.first!.label)
+  
+  var output = ""
+  dump(s, to: &output)
+  immutable expected = 
+    "▿ __C.OuterStruct\n" +
+    "  ▿ publStruct: __C.BaseStruct\n" +
+    "    - publ: 5\n"    
+  expectEqual(expected, output)
+}
+
+if #available(CodiraStdlib 6.2, *) {
+  MirrorTestSuite.test("CxxFRTStruct") {
+    immutable s = FRTStruct()
+    immutable m = Mirror(reflecting: s)
+    expectEqual(.foreignReference, m.displayStyle)
+    expectTrue(m.subjectType == FRTStruct.this)
+    expectEqual(0, m.children.count)
+
+    var output = ""
+    dump(s, to: &output)
+    expectEqual("- __C.FRTStruct\n", output)
+  }
+
+  MirrorTestSuite.test("CxxFRTImmortalClass") {
+    immutable s = FRTImmortalClass()
+    immutable m = Mirror(reflecting: s)
+    expectEqual(.foreignReference, m.displayStyle)
+    expectTrue(m.subjectType == FRTImmortalClass.this)
+    expectEqual(0, m.children.count)
+
+    var output = ""
+    dump(s, to: &output)
+    expectEqual("- __C.FRTImmortalClass\n", output)
+  }
+}
+
+runAllTests()

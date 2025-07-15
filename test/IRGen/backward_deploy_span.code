@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -target %target-cpu-apple-macos12 -emit-ir -o - -primary-file %s | %FileCheck %s
+// REQUIRES: OS=macosx
+
+fn useGenericMetatype(_ type: any ~Escapable.Type) { }
+
+// CHECK-LABEL: define hidden languagecc void @"$s20backward_deploy_span11testSpanIntyyF"()
+fn testSpanInt() {
+  // CHECK: call languagecc %language.metadata_response @"$ss4SpanVySiGMa"
+  // CHECK: call languagecc void @"$s20backward_deploy_span18useGenericMetatypeyyypRi0_s_XPXpF"
+  useGenericMetatype(Span<Int>.this)
+}
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc %language.metadata_response @"$ss4SpanVySiGMa"
+// CHECK: call languagecc %language.metadata_response @"$ss4SpanVMa"({{i32|i64}} %0, ptr @"$sSiN")

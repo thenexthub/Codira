@@ -1,12 +1,12 @@
-# swift_build_support/cmake.py - Detect host machine's CMake -*- python -*-
+# language_build_support/cmake.py - Detect host machine's CMake -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 #
@@ -99,7 +99,7 @@ class CMake(object):
 
     def __init__(self, args, toolchain, prefer_native_toolchain=False):
         """If prefer_native_toolchain is set to True, we set the clang, clang++,
-        and Swift compilers from the toolchain explicitly specified by the
+        and Codira compilers from the toolchain explicitly specified by the
         native-*-tools-path options or just installed toolchain if the options
         are not specified. If prefer_native_toolchain is set to False, we use
         system defaults.
@@ -128,10 +128,10 @@ class CMake(object):
         if args.enable_lsan:
             sanitizers.append('Leaks')
         if sanitizers:
-            define("LLVM_USE_SANITIZER", ";".join(sanitizers))
+            define("TOOLCHAIN_USE_SANITIZER", ";".join(sanitizers))
 
         if args.enable_sanitize_coverage:
-            define("LLVM_USE_SANITIZE_COVERAGE", "ON")
+            define("TOOLCHAIN_USE_SANITIZE_COVERAGE", "ON")
 
         if args.export_compile_commands:
             define("CMAKE_EXPORT_COMPILE_COMMANDS", "ON")
@@ -150,19 +150,21 @@ class CMake(object):
             define("CMAKE_CXX_COMPILER_LAUNCHER:PATH", args.cmake_cxx_launcher)
 
         if self.prefer_native_toolchain and product:
-            toolchain_path = product.native_toolchain_path(args.host_target)
-            cmake_swiftc_path = os.getenv('CMAKE_Swift_COMPILER',
-                                          os.path.join(toolchain_path, 'bin', 'swiftc'))
-            define("CMAKE_C_COMPILER:PATH", os.path.join(toolchain_path,
+            clang_tools_path = product.native_clang_tools_path(args.host_target)
+            define("CMAKE_C_COMPILER:PATH", os.path.join(clang_tools_path,
                                                          'bin', 'clang'))
-            define("CMAKE_CXX_COMPILER:PATH", os.path.join(toolchain_path,
+            define("CMAKE_CXX_COMPILER:PATH", os.path.join(clang_tools_path,
                                                            'bin', 'clang++'))
-            define("CMAKE_Swift_COMPILER:PATH", cmake_swiftc_path)
+
+            toolchain_path = product.native_toolchain_path(args.host_target)
+            cmake_languagec_path = os.getenv('CMAKE_Codira_COMPILER',
+                                          os.path.join(toolchain_path, 'bin', 'languagec'))
+            define("CMAKE_Codira_COMPILER:PATH", cmake_languagec_path)
         else:
-            cmake_swiftc_path = os.getenv('CMAKE_Swift_COMPILER', toolchain.swiftc)
+            cmake_languagec_path = os.getenv('CMAKE_Codira_COMPILER', toolchain.codec)
             define("CMAKE_C_COMPILER:PATH", toolchain.cc)
             define("CMAKE_CXX_COMPILER:PATH", toolchain.cxx)
-            define("CMAKE_Swift_COMPILER:PATH", cmake_swiftc_path)
+            define("CMAKE_Codira_COMPILER:PATH", cmake_languagec_path)
         define("CMAKE_LIBTOOL:PATH", toolchain.libtool)
         define("CMAKE_AR:PATH", toolchain.ar)
         define("CMAKE_RANLIB:PATH", toolchain.ranlib)
@@ -170,9 +172,9 @@ class CMake(object):
         if args.clang_user_visible_version:
             major, minor, patch = \
                 args.clang_user_visible_version.components[0:3]
-            define("LLVM_VERSION_MAJOR:STRING", major)
-            define("LLVM_VERSION_MINOR:STRING", minor)
-            define("LLVM_VERSION_PATCH:STRING", patch)
+            define("TOOLCHAIN_VERSION_MAJOR:STRING", major)
+            define("TOOLCHAIN_VERSION_MINOR:STRING", minor)
+            define("TOOLCHAIN_VERSION_PATCH:STRING", patch)
             define("CLANG_VERSION_MAJOR:STRING", major)
             define("CLANG_VERSION_MINOR:STRING", minor)
             define("CLANG_VERSION_PATCH:STRING", patch)
@@ -268,7 +270,7 @@ class CMake(object):
             os.makedirs(cmake_build_dir)
 
         print("--- Bootstrap Local CMake ---", flush=True)
-        from swift_build_support.swift_build_support.utils \
+        from language_build_support.code_build_support.utils \
             import log_time_in_scope
         with log_time_in_scope("Bootstrap Local CMake"):
             cwd = os.getcwd()
@@ -282,14 +284,9 @@ class CMake(object):
         os.chdir(cwd)
         return os.path.join(cmake_build_dir, 'bin', 'cmake')
 
-    # Get the path to CMake to use for the build
-    # This function will not build CMake for Apple platforms.
-    # For other platforms, this builds CMake if a new enough version is not
-    # available.
+    # Get the path to CMake to use for the build, this builds CMake if a new enough
+    # version is not available.
     def get_cmake_path(self, source_root, build_root):
-        if platform.system() == 'Darwin':
-            return self.toolchain.cmake
-
         cmake_source_dir = os.path.join(source_root, 'cmake')
         if not os.path.isdir(cmake_source_dir):
             return self.toolchain.cmake

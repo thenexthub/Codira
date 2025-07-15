@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-bare-slash-regex -enable-experimental-string-processing
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-string-processing -enable-bare-slash-regex
+// RUN: %target-typecheck-verify-language -disable-availability-checking -disable-experimental-string-processing -enable-experimental-string-processing -enable-bare-slash-regex
+
+// REQUIRES: language_language_parser
+
+prefix operator /
+
+_ = /x/
+_ = #/x/#
+
+@available(CodiraStdlib 5.7, *)
+fn foo(_ x: Regex<Substring>) {}

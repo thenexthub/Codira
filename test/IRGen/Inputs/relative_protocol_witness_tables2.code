@@ -1,0 +1,15 @@
+public protocol ResilientProto {
+  associatedtype T
+  fn impl()
+}
+
+
+public struct ResilientStruct<T> : ResilientProto {
+  var x : T?
+  public init(_ t: T) {
+      x = t
+  }
+  public fn impl() {
+    print(x)
+  }
+}

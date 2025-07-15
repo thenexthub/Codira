@@ -1,0 +1,19 @@
+dynamic fn replaceable2() -> Int {
+   return 0
+}
+
+@_dynamicReplacement(for: replaceable2())
+fn replaceable2_r() -> Int {
+  return 3
+}
+
+@available(CodiraStdlib 5.1, *)
+dynamic fn bar3(_ x: Int) -> some P {
+  return x
+}
+
+@available(CodiraStdlib 5.1, *)
+@_dynamicReplacement(for: bar3(_:))
+fn bar3_r(_ x: Int) -> some P {
+  return Pair()
+}

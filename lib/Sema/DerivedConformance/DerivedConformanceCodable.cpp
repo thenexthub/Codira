@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements explicit derivation of the Encodable and Decodable
@@ -31,7 +32,7 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
 
@@ -78,7 +79,7 @@ getVarNameForCoding(VarDecl *var,
 /// Compute the Identifier for the CodingKey of an enum case
 static Identifier caseCodingKeysIdentifier(const ASTContext &C,
                                          EnumElementDecl *elt) {
-  llvm::SmallString<16> scratch;
+  toolchain::SmallString<16> scratch;
   camel_case::appendSentenceCase(scratch, elt->getBaseIdentifier().str());
   scratch += C.Id_CodingKeys.str();
   return C.getIdentifier(scratch.str());
@@ -139,7 +140,7 @@ static NominalTypeDecl *lookupErrorContext(ASTContext &C,
 
 static EnumDecl *
 addImplicitCodingKeys(NominalTypeDecl *target,
-                      llvm::SmallVectorImpl<Identifier> &caseIdentifiers,
+                      toolchain::SmallVectorImpl<Identifier> &caseIdentifiers,
                       Identifier codingKeysEnumIdentifier) {
   auto &C = target->getASTContext();
   assert(target->lookupDirect(DeclName(codingKeysEnumIdentifier)).empty());
@@ -157,6 +158,18 @@ addImplicitCodingKeys(NominalTypeDecl *target,
   enumDecl->setImplicit();
   enumDecl->setSynthesized();
   enumDecl->setAccess(AccessLevel::Private);
+
+  if (!C.LangOpts.hasFeature(Feature::SendableProhibitsMainActorInference)) {
+    switch (C.LangOpts.DefaultIsolationBehavior) {
+    case DefaultIsolation::MainActor:
+      enumDecl->getAttrs().add(NonisolatedAttr::createImplicit(C));
+      break;
+
+    case DefaultIsolation::Nonisolated:
+      // Nothing to do.
+      break;
+    }
+  }
 
   // For classes which inherit from something Encodable or Decodable, we
   // provide case `super` as the first key (to be used in encoding super).
@@ -201,9 +214,9 @@ static EnumDecl *addImplicitCaseCodingKeys(EnumDecl *target,
 
   auto enumIdentifier = caseCodingKeysIdentifier(C, elementDecl);
 
-  llvm::SmallVector<Identifier, 4> caseIdentifiers;
+  toolchain::SmallVector<Identifier, 4> caseIdentifiers;
   if (elementDecl->hasAssociatedValues()) {
-    for (auto entry : llvm::enumerate(*elementDecl->getParameterList())) {
+    for (auto entry : toolchain::enumerate(*elementDecl->getParameterList())) {
       auto *paramDecl = entry.value();
 
       // if the type conforms to {En,De}codable, add it to the enum.
@@ -229,7 +242,7 @@ static EnumDecl *addImplicitCaseCodingKeys(EnumDecl *target,
 static EnumDecl *addImplicitCodingKeys(NominalTypeDecl *target) {
   auto &C = target->getASTContext();
 
-  llvm::SmallVector<Identifier, 4> caseIdentifiers;
+  toolchain::SmallVector<Identifier, 4> caseIdentifiers;
   if (auto *enumDecl = dyn_cast<EnumDecl>(target)) {
     for (auto *elementDecl : enumDecl->getAllElements()) {
       caseIdentifiers.push_back(elementDecl->getBaseIdentifier());
@@ -309,7 +322,7 @@ static EnumDecl *validateCodingKeysType(const DerivedConformance &derived,
 /// \param varDecls The \c var decls to validate against.
 /// \param codingKeysTypeDecl The \c CodingKeys enum decl to validate.
 static bool validateCodingKeysEnum(const DerivedConformance &derived,
-                               llvm::SmallMapVector<Identifier, VarDecl *, 8> varDecls,
+                               toolchain::SmallMapVector<Identifier, VarDecl *, 8> varDecls,
                                TypeDecl *codingKeysTypeDecl,
                                DelayedNotes &delayedNotes) {
   auto *codingKeysDecl = validateCodingKeysType(
@@ -402,7 +415,7 @@ static bool validateCodingKeysEnum_enum(const DerivedConformance &derived,
   if (!enumDecl) {
     return false;
   }
-  llvm::SmallSetVector<Identifier, 4> caseNames;
+  toolchain::SmallSetVector<Identifier, 4> caseNames;
   for (auto *elt : enumDecl->getAllElements()) {
     caseNames.insert(elt->getBaseIdentifier());
   }
@@ -462,7 +475,7 @@ static bool validateCodingKeysEnum(const DerivedConformance &derived,
 
     // Here we'll hold on to properties by name -- when we've validated a property
     // against its CodingKey entry, it will get removed.
-    llvm::SmallMapVector<Identifier, VarDecl *, 8> properties;
+    toolchain::SmallMapVector<Identifier, VarDecl *, 8> properties;
     for (auto *varDecl : derived.Nominal->getStoredProperties()) {
       if (!varDecl->isUserAccessible())
         continue;
@@ -526,9 +539,9 @@ static bool validateCaseCodingKeysEnum(const DerivedConformance &derived,
 
   // Here we'll hold on to parameters by name -- when we've validated a parameter
   // against its CodingKey entry, it will get removed.
-  llvm::SmallMapVector<Identifier, VarDecl *, 8> properties;
+  toolchain::SmallMapVector<Identifier, VarDecl *, 8> properties;
   if (elementDecl->hasAssociatedValues()) {
-    for (auto entry : llvm::enumerate(*elementDecl->getParameterList())) {
+    for (auto entry : toolchain::enumerate(*elementDecl->getParameterList())) {
       auto paramDecl = entry.value();
       if (!paramDecl->isUserAccessible())
         continue;
@@ -702,7 +715,7 @@ static ThrowStmt *createThrowCodingErrorStmt(ASTContext &C, Expr *containerExpr,
       {codingPathExpr, debugMessageExpr, underlyingErrorExpr}, C);
   auto *contextInitCallExpr = CallExpr::createImplicit(C, contextInitCall,
                                                        initArgList);
-  llvm::SmallVector<Expr *, 2> arguments;
+  toolchain::SmallVector<Expr *, 2> arguments;
   if (argument.has_value()) {
     arguments.push_back(argument.value());
   }
@@ -760,13 +773,23 @@ lookupVarDeclForCodingKeysCase(DeclContext *conformanceDC,
     }
   }
 
-  llvm_unreachable("Should have found at least 1 var decl");
+  toolchain_unreachable("Should have found at least 1 var decl");
 }
 
-static TryExpr *createEncodeCall(ASTContext &C, Type codingKeysType,
-                                 EnumElementDecl *codingKey,
-                                 Expr *containerExpr, Expr *varExpr,
-                                 bool useIfPresentVariant) {
+/// If strict memory safety checking is enabled, wrap the expression in an
+/// implicit "unsafe".
+static Expr *wrapInUnsafeIfNeeded(ASTContext &ctx, Expr *expr) {
+  if (ctx.LangOpts.hasFeature(Feature::StrictMemorySafety,
+                              /*allowMigration=*/true))
+    return UnsafeExpr::createImplicit(ctx, expr->getStartLoc(), expr);
+
+  return expr;
+}
+
+static Expr *createEncodeCall(ASTContext &C, Type codingKeysType,
+                              EnumElementDecl *codingKey,
+                              Expr *containerExpr, Expr *varExpr,
+                              bool useIfPresentVariant) {
   // CodingKeys.x
   auto *metaTyRef = TypeExpr::createImplicit(codingKeysType, C);
   auto *keyExpr = new (C) MemberRefExpr(metaTyRef, SourceLoc(), codingKey,
@@ -785,10 +808,10 @@ static TryExpr *createEncodeCall(ASTContext &C, Type codingKeysType,
   // try container.encode(x, forKey: CodingKeys.x)
   auto *tryExpr = new (C) TryExpr(SourceLoc(), callExpr, Type(),
                                   /*Implicit=*/true);
-  return tryExpr;
+  return wrapInUnsafeIfNeeded(C, tryExpr);
 }
 
-/// Synthesizes the body for `func encode(to encoder: Encoder) throws`.
+/// Synthesizes the body for `fn encode(to encoder: Encoder) throws`.
 ///
 /// \param encodeDecl The function decl whose body to synthesize.
 static std::pair<BraceStmt *, bool>
@@ -803,7 +826,7 @@ deriveBodyEncodable_encode(AbstractFunctionDecl *encodeDecl, void *) {
   //     case y
   //   }
   //
-  //   @derived func encode(to encoder: Encoder) throws {
+  //   @derived fn encode(to encoder: Encoder) throws {
   //     var container = encoder.container(keyedBy: CodingKeys.self)
   //     try container.encode(x, forKey: .x)
   //     try container.encode(y, forKey: .y)
@@ -920,7 +943,7 @@ deriveBodyEncodable_encode(AbstractFunctionDecl *encodeDecl, void *) {
     // try super.encode(to: container.superEncoder())
     auto *tryExpr = new (C) TryExpr(SourceLoc(), callExpr, Type(),
                                     /*Implicit=*/true);
-    statements.push_back(tryExpr);
+    statements.push_back(wrapInUnsafeIfNeeded(C, tryExpr));
   }
 
   auto *body = BraceStmt::create(C, SourceLoc(), statements, SourceLoc(),
@@ -995,7 +1018,7 @@ static DeclRefExpr *createContainer(ASTContext &C, DeclContext *DC,
                                     VarDecl::Introducer introducer,
                                     NominalTypeDecl *containerTypeDecl,
                                     VarDecl *target, EnumDecl *codingKeysEnum,
-                                    llvm::SmallVectorImpl<ASTNode> &statements,
+                                    toolchain::SmallVectorImpl<ASTNode> &statements,
                                     bool throws) {
   // let/var container : KeyedDecodingContainer<CodingKeys>
   auto *containerDecl = createKeyedContainer(
@@ -1052,7 +1075,7 @@ deriveBodyEncodable_enum_encode(AbstractFunctionDecl *encodeDecl, void *) {
   //     }
   //   }
   //
-  //   @derived func encode(to encoder: Encoder) throws {
+  //   @derived fn encode(to encoder: Encoder) throws {
   //     var container = encoder.container(keyedBy: CodingKeys.self)
   //     switch self {
   //     case bar(let x):
@@ -1103,8 +1126,10 @@ deriveBodyEncodable_enum_encode(AbstractFunctionDecl *encodeDecl, void *) {
 
   // generate: switch self { }
   auto enumRef =
-      new (C) DeclRefExpr(ConcreteDeclRef(selfRef), DeclNameLoc(),
-                          /*implicit*/ true, AccessSemantics::Ordinary);
+      wrapInUnsafeIfNeeded(
+        C,
+        new (C) DeclRefExpr(ConcreteDeclRef(selfRef), DeclNameLoc(),
+                            /*implicit*/ true, AccessSemantics::Ordinary));
   auto switchStmt = createEnumSwitch(
       C, funcDC, enumRef, enumDecl, codingKeysEnum,
       /*createSubpattern*/ true,
@@ -1156,7 +1181,7 @@ deriveBodyEncodable_enum_encode(AbstractFunctionDecl *encodeDecl, void *) {
           caseStatements.push_back(bindingDecl);
           caseStatements.push_back(nestedContainerDecl);
 
-          for (auto entry : llvm::enumerate(payloadVars)) {
+          for (auto entry : toolchain::enumerate(payloadVars)) {
             auto *payloadVar = entry.value();
             auto *nestedContainerExpr = new (C) DeclRefExpr(
                 ConcreteDeclRef(nestedContainerDecl), DeclNameLoc(),
@@ -1212,7 +1237,7 @@ static FuncDecl *deriveEncodable_encode(DerivedConformance &derived) {
   auto conformanceDC = derived.getConformanceContext();
 
   // Expected type: (Self) -> (Encoder) throws -> ()
-  // Constructed as: func type
+  // Constructed as: fn type
   //                 input: Self
   //                 throws
   //                 output: function type
@@ -1267,11 +1292,11 @@ static FuncDecl *deriveEncodable_encode(DerivedConformance &derived) {
   return encodeDecl;
 }
 
-static TryExpr *createDecodeCall(ASTContext &C, Type resultType,
-                                 Type codingKeysType,
-                                 EnumElementDecl *codingKey,
-                                 Expr *containerExpr,
-                                 bool useIfPresentVariant) {
+static Expr *createDecodeCall(ASTContext &C, Type resultType,
+                              Type codingKeysType,
+                              EnumElementDecl *codingKey,
+                              Expr *containerExpr,
+                              bool useIfPresentVariant) {
   auto methodName = useIfPresentVariant ? C.Id_decodeIfPresent : C.Id_decode;
 
   // Type.self
@@ -1397,7 +1422,7 @@ deriveBodyDecodable_init(AbstractFunctionDecl *initDecl, void *) {
         auto lookupResult =
             codingKeysEnum->lookupDirect(varDecl->getBaseName());
         auto keyExistsInCodingKeys =
-            llvm::any_of(lookupResult, [&](ValueDecl *VD) {
+            toolchain::any_of(lookupResult, [&](ValueDecl *VD) {
               if (isa<EnumElementDecl>(VD)) {
                 return VD->getBaseName() == varDecl->getBaseName();
               }
@@ -1461,7 +1486,7 @@ deriveBodyDecodable_init(AbstractFunctionDecl *initDecl, void *) {
                                                         varDecl->getName());
       auto *assignExpr = new (C) AssignExpr(varExpr, SourceLoc(), tryExpr,
                                             /*Implicit=*/true);
-      statements.push_back(assignExpr);
+      statements.push_back(wrapInUnsafeIfNeeded(C, assignExpr));
     }
   }
 
@@ -1497,7 +1522,7 @@ deriveBodyDecodable_init(AbstractFunctionDecl *initDecl, void *) {
         // try super.init(from: container.superDecoder())
         auto *tryExpr = new (C) TryExpr(SourceLoc(), callExpr, Type(),
                                         /*Implicit=*/true);
-        statements.push_back(tryExpr);
+        statements.push_back(wrapInUnsafeIfNeeded(C, tryExpr));
       } else {
         // The explicit constructor name is a compound name taking no arguments.
         DeclName initName(C, DeclBaseName::createConstructor(),
@@ -1529,7 +1554,7 @@ deriveBodyDecodable_init(AbstractFunctionDecl *initDecl, void *) {
           callExpr = new (C) TryExpr(SourceLoc(), callExpr, Type(),
                                      /*Implicit=*/true);
 
-        statements.push_back(callExpr);
+        statements.push_back(wrapInUnsafeIfNeeded(C, callExpr));
       }
     }
   }
@@ -1732,7 +1757,7 @@ deriveBodyDecodable_enum_init(AbstractFunctionDecl *initDecl, void *) {
             return std::make_tuple(codingKeyCase, body);
           }
 
-          llvm::SmallVector<ASTNode, 3> caseStatements;
+          toolchain::SmallVector<ASTNode, 3> caseStatements;
           auto caseIdentifier = caseCodingKeysIdentifier(C, elt);
           auto *caseCodingKeys =
               lookupEvaluatedCodingKeysEnum(C, targetEnum, caseIdentifier);
@@ -1756,9 +1781,9 @@ deriveBodyDecodable_enum_init(AbstractFunctionDecl *initDecl, void *) {
           caseStatements.push_back(bindingDecl);
           caseStatements.push_back(nestedContainerDecl);
 
-          llvm::SmallVector<Argument, 3> decodeArgs;
+          toolchain::SmallVector<Argument, 3> decodeArgs;
           if (elt->hasAssociatedValues()) {
-            for (auto entry : llvm::enumerate(*elt->getParameterList())) {
+            for (auto entry : toolchain::enumerate(*elt->getParameterList())) {
               auto *paramDecl = entry.value();
               Identifier identifier = getVarNameForCoding(paramDecl);
               if (identifier.empty()) {
@@ -1818,7 +1843,7 @@ deriveBodyDecodable_enum_init(AbstractFunctionDecl *initDecl, void *) {
                 new (C) AssignExpr(selfRef, SourceLoc(), selfCaseExpr,
                                    /*Implicit=*/true);
 
-            caseStatements.push_back(assignExpr);
+            caseStatements.push_back(wrapInUnsafeIfNeeded(C, assignExpr));
           } else {
             // Foo.bar(x:)
             SmallVector<Identifier, 3> scratch;
@@ -1836,7 +1861,7 @@ deriveBodyDecodable_enum_init(AbstractFunctionDecl *initDecl, void *) {
                 new (C) AssignExpr(selfRef, SourceLoc(), caseCallExpr,
                                    /*Implicit=*/true);
 
-            caseStatements.push_back(assignExpr);
+            caseStatements.push_back(wrapInUnsafeIfNeeded(C, assignExpr));
           }
 
           auto body =
@@ -1864,7 +1889,7 @@ static ValueDecl *deriveDecodable_init(DerivedConformance &derived) {
   auto conformanceDC = derived.getConformanceContext();
 
   // Expected type: (Self) -> (Decoder) throws -> (Self)
-  // Constructed as: func type
+  // Constructed as: fn type
   //                 input: Self
   //                 throws
   //                 output: function type
@@ -2011,7 +2036,7 @@ static bool canSynthesize(DerivedConformance &derived, ValueDecl *requirement,
 
   bool allValid = true;
   if (auto *enumDecl = dyn_cast<EnumDecl>(derived.Nominal)) {
-    llvm::SmallSetVector<Identifier, 4> caseNames;
+    toolchain::SmallSetVector<Identifier, 4> caseNames;
     for (auto *elementDecl : enumDecl->getAllElements()) {
       bool duplicate = false;
       if (!caseNames.insert(elementDecl->getBaseIdentifier())) {
@@ -2026,8 +2051,8 @@ static bool canSynthesize(DerivedConformance &derived, ValueDecl *requirement,
       }
 
       if (elementDecl->hasAssociatedValues()) {
-        llvm::SmallMapVector<Identifier, ParamDecl *, 4> params;
-        for (auto entry : llvm::enumerate(*elementDecl->getParameterList())) {
+        toolchain::SmallMapVector<Identifier, ParamDecl *, 4> params;
+        for (auto entry : toolchain::enumerate(*elementDecl->getParameterList())) {
           auto *paramDecl = entry.value();
           Identifier paramIdentifier = getVarNameForCoding(paramDecl);
           bool generatedName = false;

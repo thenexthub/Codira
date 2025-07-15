@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing actors.
+// Codira ABI describing actors.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_ACTOR_BACKDEPLOY56_H
-#define SWIFT_ABI_ACTOR_BACKDEPLOY56_H
+#ifndef LANGUAGE_ABI_ACTOR_BACKDEPLOY56_H
+#define LANGUAGE_ABI_ACTOR_BACKDEPLOY56_H
 
 #include "language/ABI/HeapObject.h"
 #include "language/ABI/MetadataValues.h"
@@ -31,7 +32,7 @@ class alignas(Alignment_DefaultActor) DefaultActor : public HeapObject {
 public:
   // These constructors do not initialize the actor instance, and the
   // destructor does not destroy the actor instance; you must call
-  // swift_defaultActor_{initialize,destroy} yourself.
+  // language_defaultActor_{initialize,destroy} yourself.
   constexpr DefaultActor(const HeapMetadata *metadata)
     : HeapObject(metadata), PrivateData{} {}
 
@@ -44,5 +45,5 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_ABI_ACTOR_BACKDEPLOY56_H
+#endif // LANGUAGE_ABI_ACTOR_BACKDEPLOY56_H
 

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ConformanceDescription type, which records a
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_CONFORMANCEDESCRIPTION_H
-#define SWIFT_IRGEN_CONFORMANCEDESCRIPTION_H
+#ifndef LANGUAGE_IRGEN_CONFORMANCEDESCRIPTION_H
+#define LANGUAGE_IRGEN_CONFORMANCEDESCRIPTION_H
 
-namespace llvm {
+namespace toolchain {
 class Constant;
 }
 
@@ -43,7 +44,7 @@ public:
 
   /// The witness table pattern, which is also a complete witness table
   /// when \c requiresSpecialization is \c false.
-  llvm::Constant *pattern;
+  toolchain::Constant *pattern;
 
   /// The size of the witness table.
   const uint16_t witnessTableSize;
@@ -56,14 +57,14 @@ public:
 
   /// The instantiation function, to be run at the end of witness table
   /// instantiation.
-  llvm::Function *instantiationFn = nullptr;
+  toolchain::Function *instantiationFn = nullptr;
 
   /// The resilient witnesses, if any.
-  SmallVector<llvm::Constant *, 4> resilientWitnesses;
+  SmallVector<toolchain::Constant *, 4> resilientWitnesses;
 
   ConformanceDescription(RootProtocolConformance *conformance,
                          SILWitnessTable *wtable,
-                         llvm::Constant *pattern,
+                         toolchain::Constant *pattern,
                          uint16_t witnessTableSize,
                          uint16_t witnessTablePrivateSize,
                          bool requiresSpecialization)

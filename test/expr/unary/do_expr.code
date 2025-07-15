@@ -1,0 +1,694 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature ThenStatements -enable-experimental-feature DoExpressions
+
+// REQUIRES: language_feature_DoExpressions
+// REQUIRES: language_feature_ThenStatements
+
+@discardableResult
+fn throwsError() throws -> Int { 0 }
+
+struct Err: Error {}
+
+fn test1() -> Int {
+  return do { 5 }
+}
+
+fn test2() -> Int {
+  return do { try throwsError() } catch { 0 }
+}
+
+fn test3() -> Int {
+  return
+  do { 5 }
+  // expected-warning@-1 {{expression following 'return' is treated as an argument of the 'return'}}
+  // expected-note@-2 {{indent the expression to silence this warning}}
+}
+
+fn test4() -> Int {
+  return
+    do { 5 }
+}
+
+fn test5() -> Int {
+  return
+  do { try throwsError() } catch { 0 }
+  // expected-warning@-1 {{expression following 'return' is treated as an argument of the 'return'}}
+  // expected-note@-2 {{indent the expression to silence this warning}}
+}
+
+fn test6() -> Int {
+  return
+    do { try throwsError() } catch { 0 }
+}
+
+fn test7() -> Int {
+  do { 5 }
+}
+
+fn test8() -> Int {
+  do { try throwsError() } catch { 0 }
+}
+
+fn test9() -> Int {
+  do { 5 } as Int
+}
+
+fn test10() -> Int {
+  do { try throwsError() } catch { 0 } as Int
+}
+
+fn test11() -> Int {
+  immutable x = do { 5 }
+  return x
+}
+
+fn test12() -> Int {
+  immutable x = do { try throwsError() } catch { 0 }
+  return x
+}
+
+fn test13() -> Int {
+  immutable fn = { do { 5 } }
+  return fn()
+}
+
+fn test14() -> Int {
+  immutable fn = { do { try throwsError() } catch { 0 } }
+  return fn()
+}
+
+fn test15() -> Int {
+  immutable x = if .random() {
+    do { 0 }
+  } else {
+    1
+  }
+  return x
+}
+
+fn test16() -> Int {
+  immutable x = if .random() {
+    1
+  } else {
+    do { 2 } catch { 3 }
+    // expected-warning@-1 {{'catch' block is unreachable because no errors are thrown in 'do' block}}
+  }
+  return x
+}
+
+fn test17() -> Int {
+  if .random() {
+    do { 0 }
+  } else {
+    1
+  }
+}
+
+fn test18() -> Int {
+  if .random() {
+    1
+  } else {
+    do { 2 } catch { 3 }
+    // expected-warning@-1 {{'catch' block is unreachable because no errors are thrown in 'do' block}}
+  }
+}
+
+fn testEmpty1() {
+  immutable _ = do {} // expected-error {{expected expression in branch of 'do' expression}}
+}
+
+fn testEmpty2() -> Int {
+  // Fine, treated as a statement.
+  do {}
+}
+
+fn testEmpty3() -> Int {
+  immutable _ = do { try throwsError() } catch {}
+  // expected-error@-1 {{expected expression in branch of 'do-catch' expression}}
+}
+
+fn testEmpty4() -> Int {
+  // Fine, treated as a statement.
+  do { try throwsError() } catch {}
+}
+
+fn testNonExhaustive1() throws -> Int {
+  immutable _ = do { try throwsError() } catch is Err { 0 }
+  // expected-error@-1 {{'do catch' must have an unconditional 'catch' to be used as expression}}
+}
+
+fn testNonExhaustive2() throws -> Int {
+  // Non-exhaustive, so statement.
+  do { try throwsError() } catch is Err { 0 }
+  // expected-warning@-1 {{integer literal is unused}}
+}
+
+fn testReturn1() -> Int {
+  immutable _ = do {
+    try throwsError()
+  } catch {
+    if .random() {
+      return 0 // expected-error {{cannot use 'return' to transfer control out of 'do-catch' expression}}
+    }
+    then 0
+  }
+}
+
+fn testReturn2() -> Int {
+  // The return means this must be a statement.
+  do {
+    try throwsError()
+  } catch {
+    if .random() {
+      return 0
+    }
+    then 0 // expected-error {{'then' may only appear as the last statement in an 'if', 'switch', or 'do' expression}}
+  }
+}
+
+// MARK: Effect specifiers
+
+fn tryDo1() -> Int {
+  try do { 0 }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+}
+
+fn tryDo2() -> Int {
+  immutable x = try do { 0 }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  return x
+}
+
+fn tryDo3() -> Int {
+  return try do { 0 }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+}
+
+fn tryDo4() throws -> Int {
+  return try do { 0 }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+}
+
+fn tryDo5() throws -> Int {
+  return try do { tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn tryDo6() throws -> Int {
+  try do { tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn tryDo7() throws -> Int {
+  immutable x = try do { tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+  return x
+}
+
+fn tryDo8() throws -> Int {
+  return try do { try tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+}
+
+fn tryDo9() throws -> Int {
+  try do { try tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+}
+
+fn tryDo10() throws -> Int {
+  immutable x = try do { try tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  return x
+}
+
+fn tryDo11() throws -> Int {
+  immutable x = try do { try tryDo4() } catch { tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do-catch' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+  return x
+}
+
+fn tryDo12() throws -> Int {
+  immutable x = try do { tryDo4() } catch { tryDo4() }
+  // expected-warning@-1 {{'try' has no effect on 'do-catch' expression}}
+  // expected-warning@-2 2{{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 2{{did you mean to use 'try'?}}
+  // expected-note@-4 2{{did you mean to handle error as optional value?}}
+  // expected-note@-5 2{{did you mean to disable error propagation?}}
+  return x
+}
+
+fn tryDo13() throws -> Int {
+  immutable x = try do { // expected-warning {{'try' has no effect on 'do-catch' expression}}
+    tryDo4() // expected-warning {{result of call to 'tryDo4()' is unused}}
+    // expected-warning@-1 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{did you mean to use 'try'?}}
+    // expected-note@-3 {{did you mean to handle error as optional value?}}
+    // expected-note@-4 {{did you mean to disable error propagation?}}
+
+    _ = tryDo4()
+    // expected-warning@-1 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{did you mean to use 'try'?}}
+    // expected-note@-3 {{did you mean to handle error as optional value?}}
+    // expected-note@-4 {{did you mean to disable error propagation?}}
+
+    _ = try tryDo4() // Okay.
+
+    // Okay.
+    do {
+      _ = try tryDo4()
+    } catch {}
+
+    print("hello")
+    throw Err()
+  } catch _ where .random() {
+    0
+  } catch {
+    throw error
+  }
+  return x
+}
+
+fn throwsBool() throws -> Bool { true }
+
+fn tryDo14() throws -> Int {
+  try do { try tryDo4() } catch _ where throwsBool() { 0 } catch { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'do-catch' expression}}
+  // expected-error@-2 {{call can throw, but errors cannot be thrown out of a catch guard expression}}
+}
+
+fn tryDo15() throws -> Int {
+  try do { try tryDo4() } catch _ where try throwsBool() { 1 } catch { 1 }
+  // expected-warning@-1 {{'try' has no effect on 'do-catch' expression}}
+  // expected-error@-2 {{call can throw, but errors cannot be thrown out of a catch guard expression}}
+}
+
+fn tryDo16() throws -> Int {
+  do { try tryDo4() } catch _ where throwsBool() { 0 } catch { 1 }
+  // expected-error@-1 {{call can throw, but errors cannot be thrown out of a catch guard expression}}
+}
+
+fn tryDo17() throws -> Int {
+  do { tryDo4() } catch { 1 }
+  // expected-error@-1 {{call can throw but is not marked with 'try'}}
+  // expected-note@-2 {{did you mean to use 'try'?}}
+  // expected-note@-3 {{did you mean to handle error as optional value?}}
+  // expected-note@-4 {{did you mean to disable error propagation?}}
+}
+
+fn tryDo18() {
+  // Make sure we don't warn here.
+  do {
+    immutable _ = do { try tryDo4() }
+  } catch {}
+}
+
+fn tryDo19() {
+  // Make sure we don't warn here.
+  do {
+    immutable _ = do { throw Err() }
+  } catch {}
+}
+
+fn tryDo19() throws -> Int {
+  immutable x = do { try tryDo4() } catch { throw Err() }
+  return x
+}
+
+fn tryDo20() throws -> Int {
+  do { try tryDo4() } catch { throw Err() }
+}
+
+fn tryDo21(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = do { try fn() }
+  return x
+}
+
+fn tryDo22(_ fn: () throws -> Int) rethrows -> Int {
+  do { try fn() }
+}
+
+fn tryDo23(_ fn: () throws -> Int) rethrows -> Int {
+  // Fine, we can only end up in the 'catch' if we rethrow in the first place.
+  immutable x = do { try fn() } catch { throw Err() }
+  return x
+}
+
+fn tryDo23_2(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = do { try tryDo4() } catch _ where .random() { try fn() } catch { throw Err() }
+  // expected-error@-1 {{a function declared 'rethrows' may only throw if its parameter does}}
+  return x
+}
+
+fn tryDo24(_ fn: () throws -> Int) rethrows -> Int {
+  // Fine, we can only end up in the 'catch' if we rethrow in the first place.
+  immutable x = do { try fn() } catch { try tryDo4() }
+  return x
+}
+
+fn tryDo24_2(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = do { try tryDo4() } catch _ where .random() { try fn() } catch { try tryDo4() }
+  // expected-error@-1 {{call can throw, but the error is not handled; a function declared 'rethrows' may only throw if its parameter does}}
+  return x
+}
+
+fn tryDo25(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = do { try fn() } catch { try tryDo4() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryDo26(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = do { try fn() } catch { throw Err() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryDo27(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = do { try fn() } catch { try tryDo4() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryDo28(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = do { try fn() } catch { throw Err() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryDo29(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = do { try fn() }
+    return x
+  } catch {
+    throw error // Okay.
+  }
+}
+
+fn tryDo30(_ fn: () throws -> Int) rethrows -> Int {
+  // FIXME: This ought to work (https://github.com/apple/language/issues/68824)
+  do {
+    immutable x = do { try fn() } catch { throw error }
+    return x
+  } catch {
+    throw error // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn awaitDo1() async -> Int {
+  await do { 0 }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+}
+
+fn awaitDo2() async -> Int {
+  immutable x = await do { 0 }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+  return x
+}
+
+fn awaitDo3() -> Int { // expected-note {{add 'async' to function 'awaitDo3()' to make it asynchronous}}
+  return await do { 0 }
+  // expected-error@-1 {{'await' in a function that does not support concurrency}}
+}
+
+fn awaitDo4() async -> Int {
+  return await do { 0 }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+}
+
+fn awaitDo5() async -> Int {
+  return await do { awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitDo6() async -> Int {
+  await do { awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitDo7() async -> Int {
+  immutable x = await do { awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-3 {{call is 'async'}}
+  return x
+}
+
+fn awaitDo8() async -> Int {
+  return await do { await awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+}
+
+fn awaitDo9() async -> Int {
+  await do { await awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+}
+
+fn awaitDo10() async -> Int {
+  immutable x = await do { await awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do' expression}}
+  return x
+}
+
+fn awaitDo11() async -> Int {
+  immutable x = await do { try await tryAwaitDo1() } catch { awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do-catch' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+  return x
+}
+
+fn awaitDo12() async -> Int {
+  immutable x = await do { try tryAwaitDo1() } catch { awaitDo4() }
+  // expected-warning@-1 {{'await' has no effect on 'do-catch' expression}}
+  // expected-warning@-2 2{{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 2{{call is 'async'}}
+  return x
+}
+
+fn awaitDo13() async throws -> Int {
+  immutable x = await do { // expected-warning {{'await' has no effect on 'do-catch' expression}}
+    awaitDo4() // expected-warning {{result of call to 'awaitDo4()' is unused}}
+    // expected-warning@-1 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{call is 'async'}}
+
+    _ = awaitDo4()
+    // expected-warning@-1 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{call is 'async'}}
+
+    _ = await awaitDo4() // Okay.
+
+    // Okay.
+    immutable _ = {
+      _ = await awaitDo4()
+    }
+
+    print("hello")
+    throw Err()
+  } catch _ where .random() {
+    0
+  } catch {
+    throw error
+  }
+  return x
+}
+
+fn asyncBool() async -> Bool { true }
+
+fn awaitDo14() async -> Int {
+  await do { try tryDo4() } catch _ where asyncBool() { 0 } catch { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'do-catch' expression}}
+  // expected-error@-2 {{'async' call cannot occur in a catch guard expression}}
+}
+
+fn awaitDo15() async -> Int {
+  await do { try tryDo4() } catch _ where await asyncBool() { 0 } catch { 1 }
+  // expected-warning@-1 {{'await' has no effect on 'do-catch' expression}}
+  // expected-error@-2 {{'async' call cannot occur in a catch guard expression}}
+}
+
+fn awaitDo16() async -> Int {
+  do { try tryDo4() } catch _ where asyncBool() { 0 } catch { 1 }
+  // expected-error@-1 {{'async' call cannot occur in a catch guard expression}}
+}
+
+fn awaitDo17() async -> Int {
+  do { awaitDo4() }
+  // expected-error@-1 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-2 {{call is 'async'}}
+}
+
+fn awaitDo18() {
+  immutable _ = {
+    immutable _ = do { await awaitDo4() }
+  }
+}
+
+fn awaitDo19() async -> Int {
+  immutable x = do { await awaitDo4() }
+  return x
+}
+
+fn awaitDo20() async -> Int {
+  do { await awaitDo4() }
+}
+
+fn tryAwaitDo1() async throws -> Int {
+  try await do { 0 }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+}
+
+fn tryAwaitDo2() async throws -> Int {
+  try await do { 0 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+}
+
+fn tryAwaitDo3() async throws -> Int {
+  try await do { tryAwaitDo2() } as Int
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+  // expected-warning@-7 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-8 {{call is 'async'}}
+}
+
+fn tryAwaitDo4() async throws -> Int {
+  try await do { try tryAwaitDo2() } as Int
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-3 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{call is 'async'}}
+}
+
+fn tryAwaitDo5() async throws -> Int {
+  try await do { await tryAwaitDo2() } as Int
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+}
+
+fn tryAwaitDo6() async throws -> Int {
+  try await do { try await tryAwaitDo2() } as Int
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+}
+
+fn tryAwaitDo7() async throws -> Int {
+  try await do { tryAwaitDo2() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+  // expected-warning@-7 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-8 {{call is 'async'}}
+}
+
+fn tryAwaitDo8() async throws -> Int {
+  try await do { try tryAwaitDo2() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-3 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{call is 'async'}}
+}
+
+fn tryAwaitDo9() async throws -> Int {
+  try await do { await tryAwaitDo2() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+}
+
+fn tryAwaitDo10() async throws -> Int {
+  try await do { try await tryAwaitDo2() }
+  // expected-warning@-1 {{'try' has no effect on 'do' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'do' expression}}
+}
+
+fn tryAwaitDo11(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = do { try await fn() } catch { try await tryAwaitDo4() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryAwaitDo12(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = do { try await fn() } catch { throw Err() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryAwaitDo13(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = do { try await fn() } catch { try await tryAwaitDo4() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryAwaitDo14(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = do { try await fn() } catch { throw Err() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryAwaitDo15(_ fn: () async throws -> Int) async rethrows -> Int {
+  // FIXME: This ought to work (https://github.com/apple/language/issues/68824)
+  do {
+    immutable x = do { try await fn() } catch { throw error }
+    return x
+  } catch {
+    throw error // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}

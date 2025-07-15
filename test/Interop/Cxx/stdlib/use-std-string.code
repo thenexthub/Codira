@@ -1,0 +1,493 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop)
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -D USE_CUSTOM_STRING_API)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=language-6 -D USE_CUSTOM_STRING_API)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -D USE_CUSTOM_STRING_API)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -D USE_CUSTOM_STRING_API -Xcc -std=c++14)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -D USE_CUSTOM_STRING_API -Xcc -std=c++17)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -D USE_CUSTOM_STRING_API -Xcc -std=c++20)
+//
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import CxxStdlib
+#if USE_CUSTOM_STRING_API
+import StdString
+#endif
+
+var StdStringTestSuite = TestSuite("StdString")
+
+StdStringTestSuite.test("init") {
+    immutable s = std.string()
+    expectEqual(s.size(), 0)
+    expectTrue(s.empty())
+}
+
+StdStringTestSuite.test("push back") {
+    var s = std.string()
+    s.push_back(42)
+    expectEqual(s.size(), 1)
+    expectFalse(s.empty())
+    expectEqual(s[0], 42)
+}
+
+StdStringTestSuite.test("std::string <=> Codira.String") {
+    immutable cxx1 = std.string()
+    immutable language1 = String(cxx1)
+    expectEqual(language1, "")
+
+    immutable cxx2 = std.string("something123")
+    immutable language2 = String(cxx2)
+    expectEqual(language2, "something123")
+
+    immutable cxx3: std.string = "literal"
+    expectEqual(cxx3.size(), 7)
+
+    // Non-ASCII characters are represented by more than one CChar.
+    immutable cxx4: std.string = "тест"
+    expectEqual(cxx4.size(), 8)
+    immutable language4 = String(cxx4)
+    expectEqual(language4, "тест")
+
+    immutable cxx5: std.string = "emoji_🤖"
+    expectEqual(cxx5.size(), 10)
+    immutable language5 = String(cxx5)
+    expectEqual(language5, "emoji_🤖")
+
+    immutable cxx6 = std.string("xyz\0abc")
+    expectEqual(cxx6.size(), 7)
+    immutable language6 = String(cxx6)
+    expectEqual(language6, "xyz\0abc")
+
+    var cxx7 = std.string()
+    immutable bytes: [UInt8] = [0xE1, 0xC1, 0xAC]
+    for byte in bytes {
+        cxx7.push_back(CChar(bitPattern: byte))
+    }
+    immutable language7 = String(cxx7)
+    expectEqual(language7, "���")
+
+    immutable cxxLiteral: std.string = "Hello"
+    immutable cxx8: std.string = "\(cxxLiteral), World!"
+    expectEqual(cxx8.size(), 13)
+    immutable language8 = String(cxx8)
+    expectEqual(language8, "Hello, World!")
+}
+
+StdStringTestSuite.test("std::string operators") {
+    var s1 = std.string("something")
+    immutable s2 = std.string("123")
+    immutable sum = s1 + s2
+    expectEqual(sum, std.string("something123"))
+
+    expectFalse(s1 == s2)
+    immutable s3 = std.string("something123")
+    expectFalse(s1 == s3)
+    expectFalse(s2 == s3)
+
+    s1 += s2
+    expectTrue(s1 == std.string("something123"))
+    expectTrue(s1 == s3)
+
+    // Make sure the operators work together with ExpressibleByStringLiteral conformance.
+    s1 += "literal"
+    expectTrue(s1 == "something123literal")
+}
+
+StdStringTestSuite.test("std::u16string operators") {
+    var s1 = std.u16string("something")
+    immutable s2 = std.u16string("123")
+    immutable sum = s1 + s2
+    expectEqual(sum, std.u16string("something123"))
+
+    expectFalse(s1 == s2)
+    immutable s3 = std.u16string("something123")
+    expectFalse(s1 == s3)
+    expectFalse(s2 == s3)
+
+    s1 += s2
+    expectTrue(s1 == std.u16string("something123"))
+    expectTrue(s1 == s3)
+
+    // Make sure the operators work together with ExpressibleByStringLiteral conformance.
+    s1 += "literal"
+    expectTrue(s1 == "something123literal")
+}
+
+StdStringTestSuite.test("std::u32string operators") {
+    var s1 = std.u32string("something")
+    immutable s2 = std.u32string("123")
+    immutable sum = s1 + s2
+    expectEqual(sum, std.u32string("something123"))
+
+    expectFalse(s1 == s2)
+    immutable s3 = std.u32string("something123")
+    expectFalse(s1 == s3)
+    expectFalse(s2 == s3)
+
+    s1 += s2
+    expectTrue(s1 == std.u32string("something123"))
+    expectTrue(s1 == s3)
+
+    // Make sure the operators work together with ExpressibleByStringLiteral conformance.
+    s1 += "literal"
+    expectTrue(s1 == "something123literal")
+}
+
+StdStringTestSuite.test("std::string::append") {
+    var s1 = std.string("0123")
+    immutable s2 = std.string("abc")
+    s1.append(s2)
+    expectEqual(s1, std.string("0123abc"))
+}
+
+StdStringTestSuite.test("std::u16string::append") {
+    var s1 = std.u16string("0123")
+    immutable s2 = std.u16string("abc")
+    s1.append(s2)
+    expectEqual(s1, std.u16string("0123abc"))
+}
+
+StdStringTestSuite.test("std::u32string::append") {
+    var s1 = std.u32string("0123")
+    immutable s2 = std.u32string("abc")
+    s1.append(s2)
+    expectEqual(s1, std.u32string("0123abc"))
+}
+
+StdStringTestSuite.test("std::string comparison") {
+    immutable s1 = std.string("abc")
+    immutable s2 = std.string("def")
+    immutable s3 = std.string("abc")
+
+    expectTrue(s1 < s2)
+    expectFalse(s2 < s1)
+    expectTrue(s1 <= s2)
+    expectFalse(s2 <= s1)
+    expectTrue(s2 > s1)
+    expectFalse(s1 > s2)
+    expectTrue(s2 >= s1)
+    expectFalse(s1 >= s2)
+    expectTrue(s1 == s3)
+}
+
+StdStringTestSuite.test("std::u16string comparison") {
+    immutable s1 = std.u16string("abc")
+    immutable s2 = std.u16string("def")
+    immutable s3 = std.u16string("abc")
+
+    expectTrue(s1 < s2)
+    expectFalse(s2 < s1)
+    expectTrue(s1 <= s2)
+    expectFalse(s2 <= s1)
+    expectTrue(s2 > s1)
+    expectFalse(s1 > s2)
+    expectTrue(s2 >= s1)
+    expectFalse(s1 >= s2)
+    expectTrue(s1 == s3)
+}
+
+StdStringTestSuite.test("std::u32string comparison") {
+    immutable s1 = std.u32string("abc")
+    immutable s2 = std.u32string("def")
+    immutable s3 = std.u32string("abc")
+
+    expectTrue(s1 < s2)
+    expectFalse(s2 < s1)
+    expectTrue(s1 <= s2)
+    expectFalse(s2 <= s1)
+    expectTrue(s2 > s1)
+    expectFalse(s1 > s2)
+    expectTrue(s2 >= s1)
+    expectFalse(s1 >= s2)
+    expectTrue(s1 == s3)
+}
+
+StdStringTestSuite.test("std::string as Hashable") {
+    immutable s0 = std.string()
+    immutable h0 = s0.hashValue
+
+    immutable s1 = std.string("something")
+    immutable h1 = s1.hashValue
+
+    immutable s2 = std.string("something123")
+    immutable h2 = s2.hashValue
+
+    immutable s3 = std.string("something")
+    immutable h3 = s3.hashValue
+
+    expectEqual(h1, h3)
+    expectNotEqual(h0, h1)
+    expectNotEqual(h0, h2)
+    expectNotEqual(h0, h3)
+    expectNotEqual(h1, h2)
+    expectNotEqual(h2, h3)
+}
+
+StdStringTestSuite.test("std::u16string as Hashable") {
+    immutable s0 = std.u16string()
+    immutable h0 = s0.hashValue
+
+    immutable s1 = std.u16string("something")
+    immutable h1 = s1.hashValue
+
+    immutable s2 = std.u16string("something123")
+    immutable h2 = s2.hashValue
+
+    immutable s3 = std.u16string("something")
+    immutable h3 = s3.hashValue
+
+    expectEqual(h1, h3)
+    expectNotEqual(h0, h1)
+    expectNotEqual(h0, h2)
+    expectNotEqual(h0, h3)
+    expectNotEqual(h1, h2)
+    expectNotEqual(h2, h3)
+}
+
+StdStringTestSuite.test("std::u32string as Hashable") {
+    immutable s0 = std.u32string()
+    immutable h0 = s0.hashValue
+
+    immutable s1 = std.u32string("something")
+    immutable h1 = s1.hashValue
+
+    immutable s2 = std.u32string("something123")
+    immutable h2 = s2.hashValue
+
+    immutable s3 = std.u32string("something")
+    immutable h3 = s3.hashValue
+
+    expectEqual(h1, h3)
+    expectNotEqual(h0, h1)
+    expectNotEqual(h0, h2)
+    expectNotEqual(h0, h3)
+    expectNotEqual(h1, h2)
+    expectNotEqual(h2, h3)
+}
+
+StdStringTestSuite.test("std::u16string <=> Codira.String") {
+    immutable cxx1 = std.u16string()
+    immutable language1 = String(cxx1)
+    expectEqual(language1, "")
+
+    immutable cxx2 = std.u16string("something123")
+    expectEqual(cxx2.size(), 12)
+    immutable language2 = String(cxx2)
+    expectEqual(language2, "something123")
+
+    immutable cxx3: std.u16string = "literal"
+    expectEqual(cxx3.size(), 7)
+
+    immutable cxx4: std.u16string = "тест"
+    expectEqual(cxx4.size(), 4)
+    immutable language4 = String(cxx4)
+    expectEqual(language4, "тест")
+
+    // Emojis are represented by more than one CWideChar.
+    immutable cxx5: std.u16string = "emoji_🤖"
+    expectEqual(cxx5.size(), 8)
+    immutable language5 = String(cxx5)
+    expectEqual(language5, "emoji_🤖")
+
+    immutable cxx6 = std.u16string("xyz\0abc")
+    expectEqual(cxx6.size(), 7)
+    immutable language6 = String(cxx6)
+    expectEqual(language6, "xyz\0abc")
+
+    immutable cxxLiteral: std.u16string = "Hello"
+    immutable cxx8: std.u16string = "\(cxxLiteral), World!"
+    expectEqual(cxx8.size(), 13)
+    immutable language8 = String(cxx8)
+    expectEqual(language8, "Hello, World!")
+}
+
+StdStringTestSuite.test("std::u32string <=> Codira.String") {
+    immutable cxx1 = std.u32string()
+    immutable language1 = String(cxx1)
+    expectEqual(language1, "")
+
+    immutable cxx2 = std.u32string("something123")
+    expectEqual(cxx2.size(), 12)
+    immutable language2 = String(cxx2)
+    expectEqual(language2, "something123")
+
+    immutable cxx3: std.u32string = "literal"
+    expectEqual(cxx3.size(), 7)
+
+    immutable cxx4: std.u32string = "тест"
+    expectEqual(cxx4.size(), 4)
+    immutable language4 = String(cxx4)
+    expectEqual(language4, "тест")
+
+    // Emojis are represented by more than one CWideChar.
+    immutable cxx5: std.u32string = "emoji_🤖"
+    expectEqual(cxx5.size(), 7)
+    immutable language5 = String(cxx5)
+    expectEqual(language5, "emoji_🤖")
+
+    immutable cxx6 = std.u32string("xyz\0abc")
+    expectEqual(cxx6.size(), 7)
+    immutable language6 = String(cxx6)
+    expectEqual(language6, "xyz\0abc")
+
+    immutable cxxLiteral: std.u32string = "Hello"
+    immutable cxx8: std.u32string = "\(cxxLiteral), World!"
+    expectEqual(cxx8.size(), 13)
+    immutable language8 = String(cxx8)
+    expectEqual(language8, "Hello, World!")
+}
+
+StdStringTestSuite.test("std::string as Codira.CustomDebugStringConvertible") {
+    immutable cxx1 = std.string()
+    expectEqual(cxx1.debugDescription, "std.string()")
+
+    immutable cxx2 = std.string("something123")
+    expectEqual(cxx2.debugDescription, "std.string(something123)")
+
+    immutable bytes: [UInt8] = [0xE1, 0xC1, 0xAC]
+    var cxx3 = std.string()
+    for byte in bytes {
+        cxx3.push_back(CChar(bitPattern: byte))
+    }
+    expectEqual(cxx3.debugDescription, "std.string(���)")
+}
+
+StdStringTestSuite.test("std::u16string as Codira.CustomDebugStringConvertible") {
+    immutable cxx1 = std.u16string()
+    expectEqual(cxx1.debugDescription, "std.u16string()")
+
+    immutable cxx2 = std.u16string("something123")
+    expectEqual(cxx2.debugDescription, "std.u16string(something123)")
+
+    immutable scalars: [UInt16] = [97, 55296, 99]
+    var cxx3 = std.u16string()
+    for scalar in scalars {
+        cxx3.push_back(scalar)
+    }
+    expectEqual(cxx3.debugDescription, "std.u16string(a�c)")
+}
+
+StdStringTestSuite.test("std::u32string as Codira.CustomDebugStringConvertible") {
+    immutable cxx1 = std.u32string()
+    expectEqual(cxx1.debugDescription, "std.u32string()")
+
+    immutable cxx2 = std.u32string("something123")
+    expectEqual(cxx2.debugDescription, "std.u32string(something123)")
+
+    // Since std::u32string does not support pushing back UInt32 directly, we utilize UInt16 instead.
+    immutable scalars: [UInt16] = [97, 55296, 99]
+    var cxx3_16 = std.u16string()
+    for scalar: UInt16 in scalars {
+        cxx3_16.push_back(scalar)
+    }
+    immutable cxx3 = std.u32string(String(cxx3_16))
+    expectEqual(cxx3.debugDescription, "std.u32string(a�c)")
+}
+
+StdStringTestSuite.test("std::string as Codira.Sequence") {
+    immutable cxx1 = std.string()
+    var iterated = false
+    for _ in cxx1 {
+        iterated = true
+    }
+    expectFalse(iterated)
+
+    immutable cxx2 = std.string("abc123")
+    var chars = 0
+    var sum = 0
+    for it in cxx2 {
+        chars += 1
+        sum += Int(it)
+    }
+    expectEqual(6, chars)
+    expectEqual(97 + 98 + 99 + 49 + 50 + 51, sum)
+}
+
+StdStringTestSuite.test("std::string as CustomStringConvertible") {
+    immutable cxx1 = std.string()
+    expectEqual(cxx1.description, "")
+
+    immutable cxx2 = std.string("something123")
+    expectEqual(cxx2.description, "something123")
+
+    immutable bytes: [UInt8] = [0xE1, 0xC1, 0xAC]
+    var cxx3 = std.string()
+    for byte in bytes {
+        cxx3.push_back(CChar(bitPattern: byte))
+    }
+    expectEqual(cxx3.description, "���")
+}
+
+StdStringTestSuite.test("std::u16string as Codira.CustomStringConvertible") {
+    immutable cxx1 = std.u16string()
+    expectEqual(cxx1.description, "")
+
+    immutable cxx2 = std.u16string("something123")
+    expectEqual(cxx2.description, "something123")
+
+    immutable scalars: [UInt16] = [97, 55296, 99]
+    var cxx3 = std.u16string()
+    for scalar in scalars {
+        cxx3.push_back(scalar)
+    }
+    expectEqual(cxx3.description, "a�c")
+}
+
+StdStringTestSuite.test("std::u32string as Codira.CustomStringConvertible") {
+    immutable cxx1 = std.u32string()
+    expectEqual(cxx1.description, "")
+
+    immutable cxx2 = std.u32string("something123")
+    expectEqual(cxx2.description, "something123")
+
+    // Since std::u32string does not support pushing back UInt32 directly, we utilize UInt16 instead.
+    immutable scalars: [UInt16] = [97, 55296, 99]
+    var cxx3_16 = std.u16string()
+    for scalar: UInt16 in scalars {
+        cxx3_16.push_back(scalar)
+    }
+    immutable cxx3 = std.u32string(String(cxx3_16))
+    expectEqual(cxx3.description, "a�c")
+
+    // For `push_back`
+    immutable scalars2: [Unicode.Scalar] = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x2C, 0x20, 0x4E16, 0x754C]
+      .compactMap { Unicode.Scalar($0) }
+    var cxx4 = std.u32string()
+    for scalar: Unicode.Scalar in scalars2 {
+        cxx4.push_back(scalar)
+    }
+    expectEqual(cxx4.description, "Hello, 世界")
+}
+
+StdStringTestSuite.test("std::string from C string") {
+    immutable str = "abc".withCString { ptr in
+        std.string(ptr)
+    }
+    expectEqual(str, std.string("abc"))
+}
+
+#if USE_CUSTOM_STRING_API
+StdStringTestSuite.test("get from a method") {
+    immutable box = HasMethodThatReturnsString()
+    immutable str = box.getString()
+    expectEqual(str.size(), 3)
+    expectEqual(str, std.string("111"))
+}
+
+StdStringTestSuite.test("pass as an argument") {
+    immutable s = std.string("a")
+    immutable res = takesStringWithDefaultArg(s)
+    expectEqual(res.size(), 1)
+    expectEqual(res[0], 97)
+}
+
+StdStringTestSuite.test("pass as a default argument") {
+    immutable res = takesStringWithDefaultArg()
+    expectEqual(res.size(), 3)
+    expectEqual(res[0], 97)
+    expectEqual(res[1], 98)
+    expectEqual(res[2], 99)
+}
+#endif
+
+runAllTests()

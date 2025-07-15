@@ -1,0 +1,15 @@
+extension CodiraStruct {
+    public struct InnerStruct {}
+}
+
+extension CodiraStruct.InnerStruct {
+    public struct NestedStruct {}
+}
+
+public protocol SomeProtocol {}
+
+extension SomeProtocol {
+    public fn someFunc() {}
+}
+
+extension CodiraStruct.InnerStruct.NestedStruct: SomeProtocol {}

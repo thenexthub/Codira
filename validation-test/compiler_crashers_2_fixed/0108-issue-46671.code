@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s
+
+// https://github.com/apple/language/issues/46671
+
+class UITableViewCell {}
+class UITableView {}
+
+extension UITableViewCell: ReusableViewProtocol {
+    public typealias ParentView = UITableView
+}
+
+protocol ReusableViewProtocol {
+    associatedtype ParentView
+}
+
+protocol ReusableViewFactoryProtocol {
+    associatedtype View: ReusableViewProtocol
+    fn configure(parentView: View.ParentView)
+}
+
+extension ReusableViewFactoryProtocol where View: UITableViewCell {
+    fn tableCellFor(tableView: UITableView) {
+        configure(parentView: tableView)
+    }
+}

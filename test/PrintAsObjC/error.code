@@ -1,0 +1,66 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module-path %t/error.codemodule -emit-objc-header-path %t/error.h -experimental-allow-module-with-compiler-errors %s
+// RUN: %FileCheck --input-file %t/error.h %s
+// RUN: %check-in-clang %t/error.h
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+// TODO: Ideally we'd output invalid decls regardless (so that they could eg. be
+// used in code completion), but we avoid doing so for now to prevent crashes.
+// Revisit later to handle a possibly invalid AST while printing the ObjectiveC
+// header - see https://github.com/apple/language/issues/57414.
+
+@objc class ErrorClass: NSObject {
+// CHECK: @interface ErrorClass
+  @objc immutable member: Int
+  // CHECK: @property {{.*}} NSInteger member;
+
+  @objc immutable invalidMember: undefined
+  // TODO: Missing
+
+  @objc fn method() {}
+  // CHECK: - (void)method;
+
+  @objc fn methodParams(a: Int, b: Int) {}
+  // CHECK: - (void)methodParamsWithA:(NSInteger)a b:(NSInteger)b;
+
+  @objc class fn classMethod() {}
+  // CHECK: + (void)classMethod;
+
+  @objc(objcMethod)
+  fn renamedMethod() {}
+  // CHECK: - (void)objcMethod;
+
+  @objc fn invalidBody() {
+  // CHECK: - (void)invalidBody;
+    undefined
+  }
+
+  @objc fn invalidRet() -> undefined {}
+  // TODO: Missing
+
+  @objc fn invalidParams(a: undefined) {}
+  // TODO: Missing
+
+  @objc(invalid::)
+  fn invalidRenamedMethod() {}
+  // CHECK: - (void)invalidRenamedMethod;
+
+  @objc @undefined fn invalidAttribute() {}
+  // CHECK: - (void)invalidAttribute;
+
+  @objc someundefinedmodifier fn invalidModifier() {}
+  // TODO: someundefinedmodifier treated as a function, so invalidModifier not seen as @objc
+
+  @objc @available
+  fn invalidAvailability() {}
+  // CHECK: - (void)invalidAvailability;
+}
+
+@objc class InvalidParent: undefined {}
+// CHECK: @interface InvalidParent
+
+// Used to crash during sorting due to assumptions regarding the Decl kind
+@objc class ErrorClass: NSObject {}

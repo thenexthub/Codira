@@ -538,7 +538,7 @@ We previously saw in \SecRef{minimal requirements} that the same-type requiremen
 \item The roles of ``left'' and ``right'' are reversed because requirements use a different convention; in a reduced same-type requirement $\SameReq{U}{V}$, we have $\texttt{U} < \texttt{V}$, whereas in a rewrite rule $(u, v)$ we have $v<u$.
 \item Reduced same-type requirements have the ``shortest'' distance between the left-hand and right-hand side, so if \tT, \texttt{U} and \texttt{V} are all equivalent and $\tT<\texttt{U}<\texttt{V}$, the corresponding requirements are $\TU$, $\SameReq{U}{V}$. On the other hand, if we have three terms $t$, $u$ and $v$ with $t<u<v$, then the two corresponding rewrite rules would be $(u, t)$ and $(v, t)$.
 \end{itemize}
-These differences are explained by the original \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder} minimization algorithm, described as finding a minimum \index{spanning tree}spanning tree for a graph of connected components. The notion of reduced requirement output by this algorithm became part of the Swift stable \index{ABI}ABI. In \SecRef{requirement builder} we show that a list of rewrite rules in a reduced rewrite system defines a list of reduced requirements via a certain transformation.
+These differences are explained by the original \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder} minimization algorithm, described as finding a minimum \index{spanning tree}spanning tree for a graph of connected components. The notion of reduced requirement output by this algorithm became part of the Codira stable \index{ABI}ABI. In \SecRef{requirement builder} we show that a list of rewrite rules in a reduced rewrite system defines a list of reduced requirements via a certain transformation.
  
 What we call reduced rewrite systems are sometimes ``normalized'', ``canonical'', or ``inter-reduced'' in the literature. Our rewrite system also implements a third \emph{substitution simplification} pass for rewrite system simplification. Substitution simplification reduces substitution terms appearing in superclass, concrete type and concrete conformance symbols. We will discuss it in \ChapRef{propertymap}.
 
@@ -667,7 +667,7 @@ Here is one possible derivation for this same-type requirement:
 \TransStep{7}{6}{\rT.[P]A.[Q]B}{\rT.A.B}{8}
 \end{gather*}
 
-By \ThmRef{derivation to path swift}, we can transform this derivation into a rewrite path from $\rT\cdot\nA\cdot\nB$ to $\rT\cdot\aPA\cdot\assocsym{Q}{B}$, involving the initial rewrite rules only. We call this path~$p^\prime$:
+By \ThmRef{derivation to path language}, we can transform this derivation into a rewrite path from $\rT\cdot\nA\cdot\nB$ to $\rT\cdot\aPA\cdot\assocsym{Q}{B}$, involving the initial rewrite rules only. We call this path~$p^\prime$:
 \begin{multline*}
 p^\prime := (\ProtoConfInv{\rT}{P})\cdot\nA\cdot\nB \circ \rT\cdot(\AssocIntro{P}{A})\cdot\nB\\
 \circ \rT\cdot(\ProtoConfInv{\aPA}{Q})\cdot\nB \circ \rT\cdot\aPA\cdot(\AssocIntro{Q}{B})
@@ -1049,7 +1049,7 @@ protocol S {
   associatedtype C: S where Self == Self.C.C, Self.B == Self.C.A
 }
 
-func f<T: S>(val: T.C.B) {
+fn f<T: S>(val: T.C.B) {
   let val2: T.A = val
 }
 \end{Verbatim}
@@ -1758,7 +1758,7 @@ Every finitely-presented monoid can be presented by an infinite convergent rewri
 \begin{example}\label{double encoding}
 We end this chapter with one final curiosity. We proved the derived requirements formalism to be undecidable in \SecRef{monoidsasprotocols} by showing that an arbitrary finitely-presented monoid $\AR$ can be encoded in the form of a protocol declaration. In \ChapRef{symbols terms rules} we defined a lowering of a generic signature and its protocol dependencies into a finitely-presented monoid. If we chain both transformations, we see that we can map a finitely-presented monoid to a protocol declaration and then back to a finitely-presented monoid. In what sense does the latter monoid encode the original monoid?
 
-Let $A^*:=\{a,b,c\}$, $R:=\{(ab,c),\,(bc,\varepsilon)\}$, and consider the monoid $M:=\AR$. Written down as a Swift protocol, $M := \Pres{a,b,c}{ab\sim c,\,bc\sim\varepsilon}$ looks like this:
+Let $A^*:=\{a,b,c\}$, $R:=\{(ab,c),\,(bc,\varepsilon)\}$, and consider the monoid $M:=\AR$. Written down as a Codira protocol, $M := \Pres{a,b,c}{ab\sim c,\,bc\sim\varepsilon}$ looks like this:
 \begin{Verbatim}
 protocol P {
   associatedtype A: P
@@ -1800,7 +1800,7 @@ A \IndexDefinition{semigroup}\emph{semigroup} is a set together with an associat
 Every monoid trivially satisfies the semigroup axioms, and thus a free monoid $A^*$ is also a semigroup. However a free monoid $A^*$ is not a \emph{free} semigroup. For example, taking $A:=\{a,b,c\}$, we see among the elements of $A^*$ \emph{viewed as a semigroup}, we have non-trivial identities involving $\varepsilon$, such as $a=\varepsilon a$, $b\varepsilon=b$, and so on. Thus, this cannot be a free semigroup, where $xy\neq x$ and $xy\neq y$ for all $x$, $y\in A^+$. The free monoid $A^*$ \emph{is} a finitely-presented semigroup though; we must add the symbol $e$ to the alphabet, and a pair of rewrite rules $ex\sim e$, $xe\sim e$ for each $x\in A$. For example, as a semigroup, $\{a,b,c\}^*$ has four generators and seven rewrite rules:
 \[\Pres{a,b,c,e}{e\sim e,\,ea\sim a,\,eb\sim b,\,ec\sim c,\,ae\sim a,\,be\sim b,\,ce\sim c}\]
 
-Indeed, we see this set of rewrite rules is just $\mathcal{S}$, so our embedding of the free monoid as a Swift protocol ends up encoding the free monoid as the finitely-presented semigroup $\Pres{A\cup\{e\}}{\mathcal{S}}$, but embedded in an even larger semigroup that also contains name symbols and the set of rules $\mathcal{N}$.
+Indeed, we see this set of rewrite rules is just $\mathcal{S}$, so our embedding of the free monoid as a Codira protocol ends up encoding the free monoid as the finitely-presented semigroup $\Pres{A\cup\{e\}}{\mathcal{S}}$, but embedded in an even larger semigroup that also contains name symbols and the set of rules $\mathcal{N}$.
 
 Now, we imagine that we uncomment the \texttt{where} clause of our protocol \tP, with the two requirements $\SameReq{Self.A.B}{C}$ and $\SameReq{Self.B.C}{Self}$. These requirements contribute two new rewrite rules to our convergent rewriting system; we will call this set $\mathcal{R}$:
 \begin{gather*}
@@ -1830,7 +1830,7 @@ Here, $e:=\pP$, $B$ is a set of name symbols, $\mathcal{N}$ and $\mathcal{S}$ on
 This sub-semigroup is isomorphic to the monoid $\Pres{A}{R\cup\hat{R}}$ and thus $\AR$.
 \end{theorem}
 
-Hence, we see that if we encode a finitely-presented monoid $\AR$ as a protocol~\tP, the Requirement Machine will accept~\tP\ and solve the word problem in $\AR$ if and only if $\AR$ has a convergent presentation compatible with the shortlex order on $A^*$. That's a satisfying conclusion to ``Swift type checking is undecidable.''
+Hence, we see that if we encode a finitely-presented monoid $\AR$ as a protocol~\tP, the Requirement Machine will accept~\tP\ and solve the word problem in $\AR$ if and only if $\AR$ has a convergent presentation compatible with the shortlex order on $A^*$. That's a satisfying conclusion to ``Codira type checking is undecidable.''
 
 Our double encoding of ``a monoid as a protocol as a rewrite system'' introduces many new symbols and rewrite rules not found in the original presentation. It is a remarkable fact of our construction then, that a convergent monoid presentation always maps to a convergent rewriting system where the added detritus can always be ``factored out.''
 \end{example}

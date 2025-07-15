@@ -1,0 +1,5 @@
+class Sub: Super {
+  override fn bar<T>(_: Into<T>) { }
+
+  fn wibble() { }
+}

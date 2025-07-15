@@ -18,17 +18,17 @@ def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
-        A drop-in replacement for a 'swift-refactor -dump-text' call that
+        A drop-in replacement for a 'language-refactor -dump-text' call that
         1. Checks that the file still compiles after the refactoring by doing
-           'swift-refactor -dump-rewritten' and feeding the result to
-           'swift-frontend -typecheck -disable-availability-checking
+           'language-refactor -dump-rewritten' and feeding the result to
+           'language-frontend -typecheck -disable-availability-checking
             -warn-on-editor-placeholder'
-        2. Outputting the result of the 'swift-refactor -dump-text' call
+        2. Outputting the result of the 'language-refactor -dump-text' call
 
         All arguments other than the following will be forwarded to
-        'swift-refactor':
-         - swift-frontend
-         - swift-refactor
+        'language-refactor':
+         - language-frontend
+         - language-refactor
          - temp-dir
          - enable-experimental-concurrency (sent to both)
          - I (sent to both)
@@ -37,12 +37,12 @@ def parse_args():
         """)
 
     parser.add_argument(
-        '-swift-frontend',
-        help='The path to the swift-frontend executable'
+        '-language-frontend',
+        help='The path to the language-frontend executable'
     )
     parser.add_argument(
-        '-swift-refactor',
-        help='The path to the swift-refactor executable'
+        '-language-refactor',
+        help='The path to the language-refactor executable'
     )
     parser.add_argument(
         '-temp-dir',
@@ -53,7 +53,7 @@ def parse_args():
         action='store_true',
         help='''
         Required argument to indicate that the outputted text will be that of
-        swift-refactor -dump-text. This makes this script a drop-in replacement.
+        language-refactor -dump-text. This makes this script a drop-in replacement.
         '''
     )
     parser.add_argument(
@@ -68,8 +68,8 @@ def parse_args():
         '-enable-experimental-concurrency',
         action='store_true',
         help='''
-        Whether to enable experimental concurrency in both swift-refactor and
-        swift-frontend
+        Whether to enable experimental concurrency in both language-refactor and
+        language-frontend
         '''
     )
     parser.add_argument(
@@ -112,7 +112,7 @@ def main():
         extra_both_args += ['-resource-dir', args.resource_dir]
 
     dump_text_output = run_cmd([
-        args.swift_refactor,
+        args.code_refactor,
         '-dump-text',
         '-source-filename', args.source_filename,
         '-rewritten-output-file', temp_file_path,
@@ -121,7 +121,7 @@ def main():
     sys.stdout.write(dump_text_output)
 
     run_cmd([
-        args.swift_frontend,
+        args.code_frontend,
         '-typecheck',
         temp_file_path,
         '-disable-availability-checking',

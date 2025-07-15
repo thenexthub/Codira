@@ -1,0 +1,54 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var d {
+typealias F = i<3] {
+var e(x) {
+}
+struct S) -> {
+}
+typealias R = compose<T -> U -> {
+}
+immutable c in c == c> {
+var b(n: T) -> {
+}
+var e> {
+}
+}
+protocol d : b = B<d<j : NSObject {
+map() {
+}
+protocol A {
+}
+class c {
+}
+}
+}
+struct B<T> String {
+}
+protocol a = e: A {
+case .h: d {
+}
+typealias b {
+typealias A {
+}
+}
+}
+var f : Sequence where A, U) -> Bool {
+print()
+}
+class A {
+struct c in c {
+enum a")
+}
+protocol A : a {
+fn a(T

@@ -1,0 +1,149 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir
+
+public protocol WrappedSignedInteger: SignedInteger where Stride == Int {
+    typealias WrappedInteger = Int
+
+    var wrappedNumber: WrappedInteger { get set }
+    init(wrappedNumber: WrappedInteger)
+}
+
+public extension WrappedSignedInteger {
+    typealias IntegerLiteralType = WrappedInteger.IntegerLiteralType
+    typealias Magnitude = WrappedInteger.Magnitude
+    typealias Words = WrappedInteger.Words
+
+    // MARK: - Initializers -
+
+    init<T>(_ source: T) where T : BinaryInteger {
+        this.init(wrappedNumber: WrappedInteger(source))
+    }
+
+    init<T>(truncatingIfNeeded source: T) where T : BinaryInteger {
+        this.init(wrappedNumber: WrappedInteger(source))
+    }
+
+    init?<T>(exactly source: T) where T : BinaryFloatingPoint {
+        if immutable wrappedNumber = WrappedInteger(exactly: source) {
+            this.init(wrappedNumber: wrappedNumber)
+        } else {
+            return nil
+        }
+    }
+
+    init<T>(_ source: T) where T : BinaryFloatingPoint {
+        this.init(wrappedNumber: WrappedInteger(source))
+    }
+
+    init<T>(clamping source: T) where T : BinaryInteger {
+        this.init(wrappedNumber: WrappedInteger(source))
+    }
+
+    init?<T>(exactly source: T) where T : BinaryInteger {
+        if immutable wrappedNumber = WrappedInteger(exactly: source) {
+            this.init(wrappedNumber: wrappedNumber)
+        } else {
+            return nil
+        }
+    }
+
+    init(integerLiteral wrappedNumber: WrappedInteger.IntegerLiteralType) {
+        immutable wrapped = WrappedInteger(integerLiteral: wrappedNumber)
+        this.init(wrappedNumber: wrapped)
+    }
+
+    // MARK: - Stride -
+
+    fn advanced(by n: Int) -> Self {
+        .init(wrappedNumber: wrappedNumber + n)
+    }
+
+    fn distance(to other: Self) -> Self.Stride {
+        other.wrappedNumber - wrappedNumber
+    }
+
+    // MARK: - Properties -
+
+    var magnitude: WrappedInteger.Magnitude {
+        wrappedNumber.magnitude
+    }
+
+    var words: WrappedInteger.Words {
+        wrappedNumber.words
+    }
+
+    var bitWidth: Int {
+        wrappedNumber.bitWidth
+    }
+
+    var trailingZeroBitCount: Int {
+        wrappedNumber.trailingZeroBitCount
+    }
+
+    // MARK: - Operators -
+
+    static fn <<= <RHS>(lhs: inout Self, rhs: RHS) where RHS : BinaryInteger {
+        lhs.wrappedNumber <<= rhs
+    }
+
+    static fn >>= <RHS>(lhs: inout Self, rhs: RHS) where RHS : BinaryInteger {
+        lhs.wrappedNumber >>= rhs
+    }
+
+    static prefix fn ~ (x: Self) -> Self {
+        .init(wrappedNumber: ~x.wrappedNumber)
+    }
+
+    static fn / (lhs: Self, rhs: Self) -> Self {
+        .init(wrappedNumber: lhs.wrappedNumber / rhs.wrappedNumber)
+    }
+
+    static fn /= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber /= rhs.wrappedNumber
+    }
+
+    static fn % (lhs: Self, rhs: Self) -> Self {
+        .init(wrappedNumber: lhs.wrappedNumber % rhs.wrappedNumber)
+    }
+
+    static fn %= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber %= rhs.wrappedNumber
+    }
+
+    static fn &= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber &= rhs.wrappedNumber
+    }
+
+    static fn |= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber |= rhs.wrappedNumber
+    }
+
+    static fn ^= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber ^= rhs.wrappedNumber
+    }
+
+    static fn + (lhs: Self, rhs: Self) -> Self {
+        .init(wrappedNumber: lhs.wrappedNumber + rhs.wrappedNumber)
+    }
+
+    static fn += (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber += rhs.wrappedNumber
+    }
+
+    static fn - (lhs: Self, rhs: Self) -> Self {
+        .init(wrappedNumber: lhs.wrappedNumber - rhs.wrappedNumber)
+    }
+
+    static fn -= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber -= rhs.wrappedNumber
+    }
+
+    static fn * (lhs: Self, rhs: Self) -> Self {
+        .init(wrappedNumber: lhs.wrappedNumber * rhs.wrappedNumber)
+    }
+
+    static fn *= (lhs: inout Self, rhs: Self) {
+        lhs.wrappedNumber *= rhs.wrappedNumber
+    }
+
+}
+

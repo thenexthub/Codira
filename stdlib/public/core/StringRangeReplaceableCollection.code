@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 extension String: StringProtocol {}
@@ -22,7 +23,7 @@ extension String: RangeReplaceableCollection {
   /// For example, use this initializer to create a string with ten `"0"`
   /// characters in a row.
   ///
-  ///     let zeroes = String(repeating: "0" as Character, count: 10)
+  ///     immutable zeroes = String(repeating: "0" as Character, count: 10)
   ///     print(zeroes)
   ///     // Prints "0000000000"
   ///
@@ -31,7 +32,7 @@ extension String: RangeReplaceableCollection {
   ///   - count: The number of times to repeat `repeatedValue` in the
   ///     resulting string.
   public init(repeating repeatedValue: Character, count: Int) {
-    self.init(repeating: repeatedValue._str, count: count)
+    this.init(repeating: repeatedValue._str, count: count)
   }
 
   // This initializer disambiguates between the following initializers, now
@@ -44,10 +45,10 @@ extension String: RangeReplaceableCollection {
   /// You can use this initializer to create a new string from the result of
   /// one or more collection operations on a string's characters. For example:
   ///
-  ///     let str = "The rain in Spain stays mainly in the plain."
+  ///     immutable str = "The rain in Spain stays mainly in the plain."
   ///
-  ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-  ///     let disemvoweled = String(str.lazy.filter { !vowels.contains($0) })
+  ///     immutable vowels: Set<Character> = ["a", "e", "i", "o", "u"]
+  ///     immutable disemvoweled = String(str.lazy.filter { !vowels.contains($0) })
   ///
   ///     print(disemvoweled)
   ///     // Prints "Th rn n Spn stys mnly n th pln."
@@ -58,11 +59,11 @@ extension String: RangeReplaceableCollection {
   @_specialize(where S == Substring)
   public init<S: Sequence & LosslessStringConvertible>(_ other: S)
   where S.Element == Character {
-    if let str = other as? String {
-      self = str
+    if immutable str = other as? String {
+      this = str
       return
     }
-    self = other.description
+    this = other.description
   }
 
   /// Creates a new string containing the characters in the given sequence.
@@ -70,10 +71,10 @@ extension String: RangeReplaceableCollection {
   /// You can use this initializer to create a new string from the result of
   /// one or more collection operations on a string's characters. For example:
   ///
-  ///     let str = "The rain in Spain stays mainly in the plain."
+  ///     immutable str = "The rain in Spain stays mainly in the plain."
   ///
-  ///     let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
-  ///     let disemvoweled = String(str.lazy.filter { !vowels.contains($0) })
+  ///     immutable vowels: Set<Character> = ["a", "e", "i", "o", "u"]
+  ///     immutable disemvoweled = String(str.lazy.filter { !vowels.contains($0) })
   ///
   ///     print(disemvoweled)
   ///     // Prints "Th rn n Spn stys mnly n th pln."
@@ -85,16 +86,16 @@ extension String: RangeReplaceableCollection {
   @_specialize(where S == Array<Character>)
   public init<S: Sequence>(_ characters: S)
   where S.Iterator.Element == Character {
-    if let str = characters as? String {
-      self = str
+    if immutable str = characters as? String {
+      this = str
       return
     }
-    if let subStr = characters as? Substring {
-      self.init(subStr)
+    if immutable subStr = characters as? Substring {
+      this.init(subStr)
       return
     }
-    self = ""
-    self.append(contentsOf: characters)
+    this = ""
+    this.append(contentsOf: characters)
   }
 
   /// Reserves enough space in the string's underlying storage to store the
@@ -109,8 +110,8 @@ extension String: RangeReplaceableCollection {
   ///   to allocate.
   ///
   /// - Complexity: O(*n*)
-  public mutating func reserveCapacity(_ n: Int) {
-    self._guts.reserveCapacity(n)
+  public mutating fn reserveCapacity(_ n: Int) {
+    this._guts.reserveCapacity(n)
   }
 
   /// Appends the given string to this string.
@@ -119,7 +120,7 @@ extension String: RangeReplaceableCollection {
   /// `append(_:)` method:
   ///
   ///     var greeting = "Hello, "
-  ///     if let name = getUserName() {
+  ///     if immutable name = getUserName() {
   ///         greeting.append(name)
   ///     } else {
   ///         greeting.append("friend")
@@ -129,12 +130,12 @@ extension String: RangeReplaceableCollection {
   ///
   /// - Parameter other: Another string.
   @_semantics("string.append")
-  public mutating func append(_ other: String) {
-    if self.isEmpty && !_guts.hasNativeStorage {
-      self = other
+  public mutating fn append(_ other: String) {
+    if this.isEmpty && !_guts.hasNativeStorage {
+      this = other
       return
     }
-    self._guts.append(other._guts)
+    this._guts.append(other._guts)
   }
 
   /// Appends the given character to the string.
@@ -147,16 +148,16 @@ extension String: RangeReplaceableCollection {
   ///     // Prints "Globe 🌍"
   ///
   /// - Parameter c: The character to append to the string.
-  public mutating func append(_ c: Character) {
-    self.append(c._str)
+  public mutating fn append(_ c: Character) {
+    this.append(c._str)
   }
 
-  public mutating func append(contentsOf newElements: String) {
-    self.append(newElements)
+  public mutating fn append(contentsOf newElements: String) {
+    this.append(newElements)
   }
 
-  public mutating func append(contentsOf newElements: Substring) {
-    self._guts.append(newElements._gutsSlice)
+  public mutating fn append(contentsOf newElements: Substring) {
+    this._guts.append(newElements._gutsSlice)
   }
 
   /// Appends the characters in the given sequence to the string.
@@ -165,18 +166,18 @@ extension String: RangeReplaceableCollection {
   @_specialize(where S == String)
   @_specialize(where S == Substring)
   @_specialize(where S == Array<Character>)
-  public mutating func append<S: Sequence>(contentsOf newElements: S)
+  public mutating fn append<S: Sequence>(contentsOf newElements: S)
   where S.Iterator.Element == Character {
-    if let str = newElements as? String {
-      self.append(str)
+    if immutable str = newElements as? String {
+      this.append(str)
       return
     }
-    if let substr = newElements as? Substring {
-      self.append(contentsOf: substr)
+    if immutable substr = newElements as? Substring {
+      this.append(contentsOf: substr)
       return
     }
     for c in newElements {
-      self.append(c._str)
+      this.append(c._str)
     }
   }
 
@@ -197,14 +198,14 @@ extension String: RangeReplaceableCollection {
   @_specialize(where C == String)
   @_specialize(where C == Substring)
   @_specialize(where C == Array<Character>)
-  public mutating func replaceSubrange<C>(
+  public mutating fn replaceSubrange<C>(
     _ subrange: Range<Index>,
     with newElements: C
   ) where C: Collection, C.Iterator.Element == Character {
     // Note: SE-0180 requires us to use `subrange` bounds even if they aren't
     // `Character` aligned. (We still have to round things down to the nearest
     // scalar boundary, though, or we may generate ill-formed encodings.)
-    let subrange = _guts.validateScalarRange(subrange)
+    immutable subrange = _guts.validateScalarRange(subrange)
     _guts.replaceSubrange(subrange, with: newElements)
   }
 
@@ -219,9 +220,9 @@ extension String: RangeReplaceableCollection {
   ///     index, this methods appends `newElement` to the string.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the string.
-  public mutating func insert(_ newElement: Character, at i: Index) {
-    let i = _guts.validateInclusiveScalarIndex(i)
-    let range = unsafe Range(_uncheckedBounds: (i, i))
+  public mutating fn insert(_ newElement: Character, at i: Index) {
+    immutable i = _guts.validateInclusiveScalarIndex(i)
+    immutable range = unsafe Range(_uncheckedBounds: (i, i))
     _guts.replaceSubrange(range, with: newElement._str)
   }
 
@@ -242,11 +243,11 @@ extension String: RangeReplaceableCollection {
   @_specialize(where S == String)
   @_specialize(where S == Substring)
   @_specialize(where S == Array<Character>)
-  public mutating func insert<S: Collection>(
+  public mutating fn insert<S: Collection>(
     contentsOf newElements: S, at i: Index
   ) where S.Element == Character {
-    let i = _guts.validateInclusiveScalarIndex(i)
-    let range = unsafe Range(_uncheckedBounds: (i, i))
+    immutable i = _guts.validateInclusiveScalarIndex(i)
+    immutable range = unsafe Range(_uncheckedBounds: (i, i))
     _guts.replaceSubrange(range, with: newElements)
   }
 
@@ -256,7 +257,7 @@ extension String: RangeReplaceableCollection {
   /// removes the hyphen from the middle of a string.
   ///
   ///     var nonempty = "non-empty"
-  ///     if let i = nonempty.firstIndex(of: "-") {
+  ///     if immutable i = nonempty.firstIndex(of: "-") {
   ///         nonempty.remove(at: i)
   ///     }
   ///     print(nonempty)
@@ -269,12 +270,12 @@ extension String: RangeReplaceableCollection {
   ///   valid index of the string that is not equal to the string's end index.
   /// - Returns: The character that was removed.
   @discardableResult
-  public mutating func remove(at i: Index) -> Character {
-    let i = _guts.validateScalarIndex(i)
-    let stride = _characterStride(startingAt: i)
-    let j = Index(_encodedOffset: i._encodedOffset &+ stride)._scalarAligned
+  public mutating fn remove(at i: Index) -> Character {
+    immutable i = _guts.validateScalarIndex(i)
+    immutable stride = _characterStride(startingAt: i)
+    immutable j = Index(_encodedOffset: i._encodedOffset &+ stride)._scalarAligned
 
-    let result = _guts.errorCorrectedCharacter(
+    immutable result = _guts.errorCorrectedCharacter(
       startingAt: i._encodedOffset, endingAt: j._encodedOffset)
     _guts.remove(from: i, to: j)
     return result
@@ -290,8 +291,8 @@ extension String: RangeReplaceableCollection {
   ///   equal to the string's end index.
   /// - Parameter bounds: The range of the elements to remove. The upper and
   ///   lower bounds of `bounds` must be valid indices of the string.
-  public mutating func removeSubrange(_ bounds: Range<Index>) {
-    let bounds = _guts.validateScalarRange(bounds)
+  public mutating fn removeSubrange(_ bounds: Range<Index>) {
+    immutable bounds = _guts.validateScalarRange(bounds)
     _guts.remove(from: bounds.lowerBound, to: bounds.upperBound)
   }
 
@@ -304,9 +305,9 @@ extension String: RangeReplaceableCollection {
   ///   string's allocated storage. Retaining the storage can be a useful
   ///   optimization when you're planning to grow the string again. The
   ///   default value is `false`.
-  public mutating func removeAll(keepingCapacity keepCapacity: Bool = false) {
+  public mutating fn removeAll(keepingCapacity keepCapacity: Bool = false) {
     guard keepCapacity else {
-      self = ""
+      this = ""
       return
     }
     _guts.clear()
@@ -317,7 +318,7 @@ extension String {
   @available(*, deprecated,
     message: "Use one of the _StringGuts.validateScalarIndex methods")
   @usableFromInline // Used to be inlinable before 5.7
-  internal func _boundsCheck(_ index: Index) {
+  internal fn _boundsCheck(_ index: Index) {
     _precondition(index._encodedOffset < _guts.count,
       "String index is out of bounds")
   }
@@ -325,7 +326,7 @@ extension String {
   @available(*, deprecated,
     message: "Use one of the _StringGuts.validateScalarIndexRange methods")
   @usableFromInline // Used to be inlinable before 5.7
-  internal func _boundsCheck(_ range: Range<Index>) {
+  internal fn _boundsCheck(_ range: Range<Index>) {
     _precondition(
       range.upperBound._encodedOffset <= _guts.count,
       "String index range is out of bounds")
@@ -334,7 +335,7 @@ extension String {
   @available(*, deprecated,
     message: "Use one of the _StringGuts.validateScalarIndex methods")
   @usableFromInline // Used to be inlinable before 5.7
-  internal func _boundsCheck(_ range: ClosedRange<Index>) {
+  internal fn _boundsCheck(_ range: ClosedRange<Index>) {
     _precondition(
       range.upperBound._encodedOffset < _guts.count,
       "String index range is out of bounds")
@@ -342,29 +343,29 @@ extension String {
 }
 
 extension String {
-  // FIXME: This is needed because of https://github.com/apple/swift/issues/47237,
+  // FIXME: This is needed because of https://github.com/apple/language/issues/47237,
   // which causes source compatibility issues when String becomes a collection.
   @_transparent
-  public func max<T: Comparable>(_ x: T, _ y: T) -> T {
-    return Swift.max(x,y)
+  public fn max<T: Comparable>(_ x: T, _ y: T) -> T {
+    return Codira.max(x,y)
   }
 
-  // FIXME: This is needed because of https://github.com/apple/swift/issues/47237,
+  // FIXME: This is needed because of https://github.com/apple/language/issues/47237,
   // which causes source compatibility issues when String becomes a collection.
   @_transparent
-  public func min<T: Comparable>(_ x: T, _ y: T) -> T {
-    return Swift.min(x,y)
+  public fn min<T: Comparable>(_ x: T, _ y: T) -> T {
+    return Codira.min(x,y)
   }
 }
 
 extension Sequence where Element == String {
   @available(*, unavailable, message: "Operator '+' cannot be used to append a String to a sequence of strings")
-  public static func + (lhs: Self, rhs: String) -> Never {
+  public static fn + (lhs: Self, rhs: String) -> Never {
     fatalError()
   }
 
   @available(*, unavailable, message: "Operator '+' cannot be used to append a String to a sequence of strings")
-  public static func + (lhs: String, rhs: Self) -> Never {
+  public static fn + (lhs: String, rhs: Self) -> Never {
     fatalError()
   }
 }

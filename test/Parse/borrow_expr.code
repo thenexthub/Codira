@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language  -disable-availability-checking -enable-experimental-move-only
+
+var global: Int = 5
+fn testGlobal() {
+    immutable _ = _borrow global
+}
+
+fn testLet() {
+    immutable t = String()
+    immutable _ = _borrow t
+}
+
+fn testVar() {
+    var t = String()
+    t = String()
+    immutable _ = _borrow t
+}
+
+

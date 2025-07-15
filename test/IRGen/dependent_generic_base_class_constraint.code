@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -emit-ir -verify %s
+class GenericClass<T> { }
+
+protocol MyProtocol { }
+
+class MyClass {
+  fn myFunction<T, O: GenericClass<T>>(myArg: O) -> T where T: MyProtocol {
+    fatalError()
+  }
+}
+
+

@@ -11,57 +11,58 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_CASOUTPUTBACKENDS_H
-#define SWIFT_FRONTEND_CASOUTPUTBACKENDS_H
+#ifndef LANGUAGE_FRONTEND_CASOUTPUTBACKENDS_H
+#define LANGUAGE_FRONTEND_CASOUTPUTBACKENDS_H
 
 #include "language/Frontend/FrontendInputsAndOutputs.h"
 #include "language/Frontend/FrontendOptions.h"
-#include "llvm/CAS/ActionCache.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/Support/VirtualOutputBackends.h"
-#include "llvm/Support/VirtualOutputFile.h"
+#include "toolchain/CAS/ActionCache.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
+#include "toolchain/Support/VirtualOutputFile.h"
 
 namespace language::cas {
 
-class SwiftCASOutputBackend : public llvm::vfs::OutputBackend {
+class CodiraCASOutputBackend : public toolchain::vfs::OutputBackend {
   void anchor() override;
 
 protected:
-  llvm::IntrusiveRefCntPtr<OutputBackend> cloneImpl() const override;
+  toolchain::IntrusiveRefCntPtr<OutputBackend> cloneImpl() const override;
 
-  llvm::Expected<std::unique_ptr<llvm::vfs::OutputFileImpl>>
-  createFileImpl(llvm::StringRef ResolvedPath,
-                 std::optional<llvm::vfs::OutputConfig> Config) override;
+  toolchain::Expected<std::unique_ptr<toolchain::vfs::OutputFileImpl>>
+  createFileImpl(toolchain::StringRef ResolvedPath,
+                 std::optional<toolchain::vfs::OutputConfig> Config) override;
 
-  virtual llvm::Error storeImpl(llvm::StringRef Path, llvm::StringRef Bytes,
+  virtual toolchain::Error storeImpl(toolchain::StringRef Path, toolchain::StringRef Bytes,
                                 unsigned InputIndex, file_types::ID OutputKind);
 
 private:
-  file_types::ID getOutputFileType(llvm::StringRef Path) const;
+  file_types::ID getOutputFileType(toolchain::StringRef Path) const;
 
   /// Return true if the file type is stored into CAS Backend directly.
   static bool isStoredDirectly(file_types::ID Kind);
 
 public:
-  SwiftCASOutputBackend(llvm::cas::ObjectStore &CAS,
-                        llvm::cas::ActionCache &Cache,
-                        llvm::cas::ObjectRef BaseKey,
+  CodiraCASOutputBackend(toolchain::cas::ObjectStore &CAS,
+                        toolchain::cas::ActionCache &Cache,
+                        toolchain::cas::ObjectRef BaseKey,
                         const FrontendInputsAndOutputs &InputsAndOutputs,
                         const FrontendOptions &Opts,
                         FrontendOptions::ActionType Action);
-  ~SwiftCASOutputBackend();
+  ~CodiraCASOutputBackend();
 
-  llvm::Error storeCachedDiagnostics(unsigned InputIndex,
-                                     llvm::StringRef Bytes);
+  toolchain::Error storeCachedDiagnostics(unsigned InputIndex,
+                                     toolchain::StringRef Bytes);
 
-  llvm::Error storeMakeDependenciesFile(StringRef OutputFilename,
-                                        llvm::StringRef Bytes);
+  toolchain::Error storeMakeDependenciesFile(StringRef OutputFilename,
+                                        toolchain::StringRef Bytes);
 
   /// Store the MCCAS CASID \p ID as the object file output for the input
   /// that corresponds to the \p OutputFilename
-  llvm::Error storeMCCASObjectID(StringRef OutputFilename, llvm::cas::CASID ID);
+  toolchain::Error storeMCCASObjectID(StringRef OutputFilename, toolchain::cas::CASID ID);
 
 private:
   class Implementation;

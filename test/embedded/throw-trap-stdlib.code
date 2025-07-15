@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -emit-ir %s -enable-experimental-feature Embedded -throws-as-traps | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public fn test() {
+  withUnsafeTemporaryAllocation(byteCount: MemoryLayout<Int>.size, alignment: MemoryLayout<Int>.alignment) { p in
+    p[0] = 42
+  }
+}
+
+// CHECK: language_willThrow

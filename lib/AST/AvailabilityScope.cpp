@@ -1,4 +1,4 @@
-//===--- AvailabilityScope.cpp - Swift Availability Scopes ----------------===//
+//===--- AvailabilityScope.cpp - Codira Availability Scopes ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the AvailabilityScope class.
@@ -85,7 +86,7 @@ AvailabilityScope::createForSourceFile(SourceFile *SF,
   case SourceFileKind::Interface:
     break;
   case SourceFileKind::SIL:
-    llvm_unreachable("unexpected SourceFileKind");
+    toolchain_unreachable("unexpected SourceFileKind");
   }
 
   return new (Ctx) AvailabilityScope(
@@ -234,7 +235,7 @@ AvailabilityScope::findMostRefinedSubContext(SourceLoc Loc, ASTContext &Ctx) {
 }
 
 void AvailabilityScope::dump(SourceManager &SrcMgr) const {
-  dump(llvm::errs(), SrcMgr);
+  dump(toolchain::errs(), SrcMgr);
 }
 
 void AvailabilityScope::dump(raw_ostream &OS, SourceManager &SrcMgr) const {
@@ -266,12 +267,12 @@ SourceLoc AvailabilityScope::getIntroductionLoc() const {
     return SourceLoc();
   }
 
-  llvm_unreachable("Unhandled Reason in switch.");
+  toolchain_unreachable("Unhandled Reason in switch.");
 }
 
 static SourceRange getAvailabilityConditionVersionSourceRange(
     const PoundAvailableInfo *PAI, const DeclContext *ReferenceDC,
-    AvailabilityDomain Domain, const llvm::VersionTuple &Version) {
+    AvailabilityDomain Domain, const toolchain::VersionTuple &Version) {
   SourceRange Range;
   for (auto Spec : PAI->getSemanticAvailabilitySpecs(ReferenceDC)) {
     if (Spec.getDomain() == Domain && Spec.getVersion() == Version) {
@@ -288,7 +289,7 @@ static SourceRange getAvailabilityConditionVersionSourceRange(
 static SourceRange getAvailabilityConditionVersionSourceRange(
     const MutableArrayRef<StmtConditionElement> &Conds,
     const DeclContext *ReferenceDC, AvailabilityDomain Domain,
-    const llvm::VersionTuple &Version) {
+    const toolchain::VersionTuple &Version) {
   SourceRange Range;
   for (auto const &C : Conds) {
     if (C.getKind() == StmtConditionElement::CK_Availability) {
@@ -307,7 +308,7 @@ static SourceRange getAvailabilityConditionVersionSourceRange(
 static SourceRange
 getAvailabilityConditionVersionSourceRange(const Decl *D,
                                            AvailabilityDomain Domain,
-                                           const llvm::VersionTuple &Version) {
+                                           const toolchain::VersionTuple &Version) {
   SourceRange Range;
   for (auto Attr : D->getSemanticAvailableAttrs()) {
     if (Attr.getIntroduced().has_value() &&
@@ -324,7 +325,7 @@ getAvailabilityConditionVersionSourceRange(const Decl *D,
 }
 
 SourceRange AvailabilityScope::getAvailabilityConditionVersionSourceRange(
-    AvailabilityDomain Domain, const llvm::VersionTuple &Version) const {
+    AvailabilityDomain Domain, const toolchain::VersionTuple &Version) const {
   switch (getReason()) {
   case Reason::Decl:
     return ::getAvailabilityConditionVersionSourceRange(Node.getAsDecl(),
@@ -355,7 +356,7 @@ SourceRange AvailabilityScope::getAvailabilityConditionVersionSourceRange(
     return SourceRange();
   }
 
-  llvm_unreachable("Unhandled Reason in switch.");
+  toolchain_unreachable("Unhandled Reason in switch.");
 }
 
 std::optional<const AvailabilityRange>
@@ -385,7 +386,7 @@ AvailabilityScope::getExplicitAvailabilityRange() const {
     return getPlatformAvailabilityRange();
   }
 
-  llvm_unreachable("Unhandled Reason in switch.");
+  toolchain_unreachable("Unhandled Reason in switch.");
 }
 
 static std::string
@@ -494,10 +495,10 @@ StringRef AvailabilityScope::getReasonName(Reason R) {
     return "while_body";
   }
 
-  llvm_unreachable("Unhandled Reason in switch.");
+  toolchain_unreachable("Unhandled Reason in switch.");
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const AvailabilityScope *scope) {
   out << "Scope @" << scope;
 }
@@ -519,18 +520,19 @@ void ExpandChildAvailabilityScopesRequest::cacheResult(
 /// Emit an error message, dump each context with its corresponding label, and
 /// abort.
 static void verificationError(
-    ASTContext &ctx, llvm::StringRef msg,
+    ASTContext &ctx, toolchain::StringRef msg,
     std::initializer_list<std::pair<const char *, const AvailabilityScope *>>
         labelsAndNodes) {
-  llvm::errs() << msg << "\n";
-  for (auto pair : labelsAndNodes) {
-    auto label = std::get<0>(pair);
-    auto scope = std::get<1>(pair);
-    llvm::errs() << label << ":\n";
-    scope->print(llvm::errs(), ctx.SourceMgr);
-    llvm::errs() << "\n";
-  }
-  abort();
+  ABORT([&](auto &out) {
+    out << msg << "\n";
+    for (auto pair : labelsAndNodes) {
+      auto label = std::get<0>(pair);
+      auto scope = std::get<1>(pair);
+      out << label << ":\n";
+      scope->print(out, ctx.SourceMgr);
+      out << "\n";
+    }
+  });
 }
 
 void AvailabilityScope::verify(const AvailabilityScope *parent,

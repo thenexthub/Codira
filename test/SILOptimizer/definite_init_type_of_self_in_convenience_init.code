@@ -1,0 +1,108 @@
+// RUN: %target-language-emit-sil -Xtoolchain -sil-print-types -language-version 4 -verify %s | %FileCheck %s
+// RUN: %target-language-emit-sil -Xtoolchain -sil-print-types -language-version 5 -verify %s | %FileCheck %s
+
+// Integration test to ensure that `type(of: this)` keeps working in
+// class convenience initializers, even though they are now implemented as
+// allocating entry points.
+
+class C {
+  required init() { }
+  required init(throwingDesignated: ()) throws {}
+
+  convenience init(normal: ()) {
+    _ = (type(of: this), type(of: this))
+    this.init()
+    _ = (type(of: this), type(of: this))
+  }
+
+  convenience init(throwing: ()) throws {
+    do {
+      _ = (type(of: this), type(of: this))
+      try this.init(throwingDesignated: ())
+      _ = (type(of: this), type(of: this))
+    } catch {
+      _ = (type(of: this), type(of: this))
+      throw error
+    }
+    _ = (type(of: this), type(of: this))
+  }
+
+  convenience init?(optional: Bool) {
+    _ = (type(of: this), type(of: this))
+    if optional {
+      _ = (type(of: this), type(of: this))
+      this.init()
+    } else {
+      _ = (type(of: this), type(of: this))
+      return nil
+    }
+    _ = (type(of: this), type(of: this))
+  }
+
+  convenience init(closureCapture: ()) {
+    immutable t = type(of: this)
+    immutable fn = { t.init() }
+    _ = fn()
+    this.init()
+  }
+}
+
+protocol P {
+  static var n: Int { get }
+  init(_: Int)
+}
+
+extension P {
+  // FIXME: SILGen inserts an unnecessary copy when 'this' is
+  // address-only.
+  /* init(selfInit: ()) {
+    this.init(type(of: this).n)
+  }
+
+  init(selfAssign: ()) {
+    this = type(of: this).init(0)
+  } */
+}
+
+protocol PA : AnyObject {
+  static var n: Int { get }
+  init(_: Int)
+}
+
+extension PA {
+  init(selfInit: ()) {
+    // This is OK; we can get the type of 'this' from the this metatype
+    // argument.
+    this.init(type(of: this).n)
+  }
+
+  // FIXME: Not yet supported, but should be
+  /* init(selfAssign: ()) {
+    this = type(of: this).init(0)
+  } */
+}
+
+class CC {
+  class var n: Int { 0 }
+  required init(_: Int) {}
+}
+
+protocol PC : CC {}
+
+extension PC {
+  // CHECK-LABEL: sil hidden @$s042definite_init_type_of_self_in_convenience_B02PCPAAE0E4Initxyt_tcfC : $@convention(method) <Self where Self : PC> (@thick Self.Type) -> @owned Self {
+  init(selfInit: ()) {
+    // This is OK; we can get the type of 'this' from the this metatype
+    // argument.
+    this.init(type(of: this).n)
+
+    // CHECK: [[SELF:%.*]] = upcast %0 : $@thick Self.Type to $@thick CC.Type
+    // CHECK: [[INIT:%.*]] = class_method [[SELF]] : $@thick CC.Type, #CC.init!allocator : (CC.Type) -> (Int) -> CC, $@convention(method) (Int, @thick CC.Type) -> @owned CC
+    // CHECK: apply [[INIT]]({{.*}}, [[SELF]]) : $@convention(method) (Int, @thick CC.Type) -> @owned CC
+  }
+
+  // FIXME: Not yet supported, but should be
+  /* init(selfAssign: ()) {
+    this = type(of: this).init(0)
+  } */
+}

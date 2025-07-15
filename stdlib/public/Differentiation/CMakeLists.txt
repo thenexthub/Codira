@@ -1,63 +1,52 @@
 #===--- CMakeLists.txt - Differentiable programming support library ------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2019 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 #===----------------------------------------------------------------------===#
 
-if(SWIFT_STDLIB_ENABLE_VECTOR_TYPES)
-set(swiftDifferentiationSIMDFiles SIMDDifferentiation.swift.gyb)
+if(LANGUAGE_STDLIB_ENABLE_VECTOR_TYPES)
+set(languageDifferentiationSIMDFiles SIMDDifferentiation.code.gyb)
 else()
-set(swiftDifferentiationSIMDFiles)
+set(languageDifferentiationSIMDFiles)
 endif()
 
-if(SWIFT_BUILD_SDK_OVERLAY)
-set(swiftDifferentiationDarwinDependencies Darwin)
-else()
-set(swiftDifferentiationDarwinDependencies)
-endif()
+add_language_target_library(language_Differentiation ${LANGUAGE_STDLIB_LIBRARY_BUILD_TYPES} IS_STDLIB
+  Differentiable.code
+  DifferentialOperators.code
+  DifferentiationUtilities.code
+  AnyDifferentiable.code
+  ArrayDifferentiation.code
+  OptionalDifferentiation.code
 
-add_swift_target_library(swift_Differentiation ${SWIFT_STDLIB_LIBRARY_BUILD_TYPES} IS_STDLIB
-  Differentiable.swift
-  DifferentialOperators.swift
-  DifferentiationUtilities.swift
-  AnyDifferentiable.swift
-  ArrayDifferentiation.swift
-  OptionalDifferentiation.swift
-
-  "${SWIFT_SOURCE_DIR}/stdlib/linker-support/magic-symbols-for-install-name.c"
+  "${LANGUAGE_SOURCE_DIR}/stdlib/linker-support/magic-symbols-for-install-name.c"
 
   GYB_SOURCES
-    FloatingPointDifferentiation.swift.gyb
-    TgmathDerivatives.swift.gyb
-    ${swiftDifferentiationSIMDFiles}
+    FloatingPointDifferentiation.code.gyb
+    TgmathDerivatives.code.gyb
+    ${languageDifferentiationSIMDFiles}
 
-  SWIFT_MODULE_DEPENDS_OSX ${swiftDifferentiationDarwinDependencies}
-  SWIFT_MODULE_DEPENDS_IOS ${swiftDifferentiationDarwinDependencies}
-  SWIFT_MODULE_DEPENDS_TVOS ${swiftDifferentiationDarwinDependencies}
-  SWIFT_MODULE_DEPENDS_WATCHOS ${swiftDifferentiationDarwinDependencies}
-  SWIFT_MODULE_DEPENDS_XROS ${swiftDifferentiationDarwinDependencies}
-  SWIFT_MODULE_DEPENDS_ANDROID Android
-  SWIFT_MODULE_DEPENDS_LINUX Glibc
-  SWIFT_MODULE_DEPENDS_LINUX_STATIC Musl
-  SWIFT_MODULE_DEPENDS_FREEBSD Glibc
-  SWIFT_MODULE_DEPENDS_OPENBSD Glibc
-  SWIFT_MODULE_DEPENDS_CYGWIN Glibc
-  SWIFT_MODULE_DEPENDS_HAIKU Glibc
-  SWIFT_MODULE_DEPENDS_WASI WASILibc
-  SWIFT_MODULE_DEPENDS_WINDOWS CRT
+  LANGUAGE_MODULE_DEPENDS_ANDROID Android
+  LANGUAGE_MODULE_DEPENDS_LINUX Glibc
+  LANGUAGE_MODULE_DEPENDS_LINUX_STATIC Musl
+  LANGUAGE_MODULE_DEPENDS_FREEBSD Glibc
+  LANGUAGE_MODULE_DEPENDS_OPENBSD Glibc
+  LANGUAGE_MODULE_DEPENDS_CYGWIN Glibc
+  LANGUAGE_MODULE_DEPENDS_HAIKU Glibc
+  LANGUAGE_MODULE_DEPENDS_WASI WASILibc
+  LANGUAGE_MODULE_DEPENDS_WINDOWS CRT
 
   C_COMPILE_FLAGS
-    -Dswift_Differentiation_EXPORTS
-  SWIFT_COMPILE_FLAGS
-    ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+    -Dlanguage_Differentiation_EXPORTS
+  LANGUAGE_COMPILE_FLAGS
+    ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
     -parse-stdlib
-  LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
+  LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
   INSTALL_IN_COMPONENT stdlib
-  SWIFT_MODULE_DEPENDS_MACCATALYST ${swiftDifferentiationDarwinDependencies}
+  LANGUAGE_MODULE_DEPENDS_MACCATALYST ${languageDifferentiationDarwinDependencies}
   MACCATALYST_BUILD_FLAVOR "zippered")

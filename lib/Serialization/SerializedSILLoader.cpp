@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "serialized-sil-loader"
@@ -23,7 +24,7 @@
 #include "language/SIL/SILMoveOnlyDeinit.h"
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Serialization/SerializedSILLoader.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -53,7 +54,7 @@ SILFunction *SerializedSILLoader::lookupSILFunction(SILFunction *Callee,
   for (auto &Des : LoadedSILSections) {
     if (auto Func = Des->lookupSILFunction(Callee,
                                       /*declarationOnly*/ onlyUpdateLinkage)) {
-      LLVM_DEBUG(llvm::dbgs() << "Deserialized " << Func->getName() << " from "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Deserialized " << Func->getName() << " from "
                  << Des->getModuleIdentifier().str() << "\n");
       if (!Func->empty())
         return Func;
@@ -68,12 +69,12 @@ SerializedSILLoader::lookupSILFunction(StringRef Name,
                                        std::optional<SILLinkage> Linkage) {
   for (auto &Des : LoadedSILSections) {
     if (auto *Func = Des->lookupSILFunction(Name, /*declarationOnly*/ true)) {
-      LLVM_DEBUG(llvm::dbgs() << "Deserialized " << Func->getName() << " from "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Deserialized " << Func->getName() << " from "
                  << Des->getModuleIdentifier().str() << "\n");
       if (Linkage) {
         // This is not the linkage we are looking for.
         if (Func->getLinkage() != *Linkage) {
-          LLVM_DEBUG(llvm::dbgs()
+          TOOLCHAIN_DEBUG(toolchain::dbgs()
                      << "Wrong linkage for Function: "
                      << Func->getName() << " : "
                      << (int)Func->getLinkage() << "\n");

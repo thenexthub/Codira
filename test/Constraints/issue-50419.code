@@ -1,0 +1,22 @@
+
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/50419
+
+fn f<T>(_ x: T) -> T {
+  return x
+}
+
+fn f<T>(_ x: T?) -> T? {
+  return x
+}
+
+immutable r = f(1)
+immutable _ = r! // expected-error {{cannot force unwrap value of non-optional type 'Int'}}
+
+// https://github.com/apple/language/issues/50434
+
+fn testLazySequence(_ lazySequence: LazySequence<[Int]>?) {
+  immutable value = lazySequence?.compactMap({ $0 as? Int }).first // expected-warning {{conditional cast from 'Int' to 'Int' always succeeds}}
+  immutable _: Int = value!
+}

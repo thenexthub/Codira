@@ -1,0 +1,2154 @@
+// RUN: %target-language-emit-sil -sil-verify-all -verify %s
+
+//////////////////
+// Declarations //
+//////////////////
+
+public class CopyableKlass {}
+
+var boolValue: Bool { return true }
+
+public struct NonTrivialStruct: ~Copyable {
+    var i: Int = 0
+}
+
+public fn borrowVal(_ x: borrowing Int) {}
+public fn borrowVal(_ x: borrowing AggStruct) {}
+public fn borrowVal(_ x: borrowing NonTrivialStruct) {}
+public fn borrowVal(_ x: borrowing AggGenericStruct<CopyableKlass>) {}
+public fn borrowVal<T>(_ x: borrowing AggGenericStruct<T>) {}
+public fn borrowVal(_ x: borrowing EnumTy) {}
+
+public fn consumeVal(_ x: __owned Int) {}
+public fn consumeVal(_ x: __owned NonTrivialStruct) {}
+public fn consumeVal(_ x: __owned String) {}
+public fn consumeVal(_ x: __owned EnumTy) {}
+public fn consumeVal<T>(_ x: __owned AggGenericStruct<T>) {}
+public fn consumeVal(_ x: __owned AggStruct) {}
+public fn consumeVal(_ x: __owned AggGenericStruct<CopyableKlass>) {}
+
+
+public enum NonTrivialEnum: ~Copyable {
+    case first
+    case second((Int, Int))
+    case third(NonTrivialStruct)
+}
+
+///////////
+// Tests //
+///////////
+
+//////////////////////
+// Aggregate Struct //
+//////////////////////
+
+public struct MOIntPair: ~Copyable {
+    var lhs: Int
+    var rhs: Int
+}
+
+public struct AggStruct: ~Copyable {
+    var lhs: Int
+    var center: Int
+    var rhs: Int
+    var pair: MOIntPair
+}
+
+public fn aggStructSimpleChainTest(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggStructSimpleChainTestArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggStructSimpleChainTestOwnedArg(_ x2: __owned AggStruct) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggStructSimpleChainTestOwnedArg2(_ x2: consuming AggStruct) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggStructSimpleNonConsumingUseTest(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn aggStructSimpleNonConsumingUseTestArg(_ x2: borrowing AggStruct) {
+    borrowVal(x2)
+}
+
+public fn aggStructSimpleNonConsumingUseTestOwnedArg(_ x2: __owned AggStruct) {
+    borrowVal(x2)
+}
+
+public fn aggStructSimpleNonConsumingUseTestOwnedArg2(_ x2: consuming AggStruct) {
+    borrowVal(x2)
+}
+
+public fn aggStructMultipleNonConsumingUseTest(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggStructMultipleNonConsumingUseTestArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggStructMultipleNonConsumingUseTestOwnedArg(_ x2: __owned AggStruct) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggStructMultipleNonConsumingUseTestOwnedArg2(_ x2: consuming AggStruct) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggStructUseAfterConsume(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructUseAfterConsumeArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggStructUseAfterConsumeOwnedArg(_ x2: __owned AggStruct) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructUseAfterConsumeOwnedArg2(_ x2: consuming AggStruct) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructDoubleConsume(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructDoubleConsumeArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggStructDoubleConsumeOwnedArg(_ x2: __owned AggStruct) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructDoubleConsumeOwnedArg2(_ x2: consuming AggStruct) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggStructLoopConsume(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructLoopConsumeArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructLoopConsumeOwnedArg(_ x2: __owned AggStruct) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructLoopConsumeOwnedArg2(_ x2: consuming AggStruct) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructDiamond(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggStructDiamondArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggStructDiamondOwnedArg(_ x2: __owned AggStruct) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggStructDiamondOwnedArg2(_ x2: consuming AggStruct) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggStructDiamondInLoop(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+    // expected-note @-1 {{consumed here}}
+    // expected-error @-2 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggStructDiamondInLoopArg(_ x2: borrowing AggStruct) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn aggStructDiamondInLoopOwnedArg(_ x2: __owned AggStruct) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggStructDiamondInLoopOwnedArg2(_ x2: consuming AggStruct) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggStructAccessField(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggStructAccessFieldArg(_ x2: borrowing AggStruct) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggStructAccessFieldOwnedArg(_ x2: __owned AggStruct) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggStructAccessFieldOwnedArg2(_ x2: consuming AggStruct) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggStructConsumeField(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+// TODO: We should error here!
+public fn aggStructConsumeFieldArg(_ x2: borrowing AggStruct) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggStructConsumeFieldOwnedArg(_ x2: __owned AggStruct) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggStructConsumeFieldOwnedArg2(_ x2: consuming AggStruct) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggStructAccessGrandField(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructAccessGrandFieldArg(_ x2: borrowing AggStruct) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructAccessGrandFieldOwnedArg(_ x2: __owned AggStruct) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructAccessGrandFieldOwnedArg2(_ x2: consuming AggStruct) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructConsumeGrandField(_ x: borrowing AggStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+// TODO: This needs to error.
+public fn aggStructConsumeGrandFieldArg(_ x2: borrowing AggStruct) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructConsumeGrandFieldOwnedArg(_ x2: __owned AggStruct) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggStructConsumeGrandFieldOwnedArg2(_ x2: consuming AggStruct) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+//////////////////////////////
+// Aggregate Generic Struct //
+//////////////////////////////
+
+public struct AggGenericStruct<T>: ~Copyable {
+    var lhs: Int
+    var rhs: UnsafeRawPointer
+    var pair: MOIntPair
+}
+
+public fn aggGenericStructSimpleChainTest(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTest(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTest(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructUseAfterConsume(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructUseAfterConsumeArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructUseAfterConsumeOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructUseAfterConsumeOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsume(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsumeArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructDoubleConsumeOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsumeOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructLoopConsume(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamond(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamondOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondInLoop(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+    // expected-note @-1 {{consumed here}}
+    // expected-error @-2 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructAccessField(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeField(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeFieldArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeFieldOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeFieldOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandField(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandField(_ x: borrowing AggGenericStruct<CopyableKlass>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldArg(_ x2: borrowing AggGenericStruct<CopyableKlass>) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldOwnedArg(_ x2: __owned AggGenericStruct<CopyableKlass>) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldOwnedArg2(_ x2: consuming AggGenericStruct<CopyableKlass>) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+////////////////////////////////////////////////////////////
+// Aggregate Generic Struct + Generic But Body is Trivial //
+////////////////////////////////////////////////////////////
+
+public fn aggGenericStructSimpleChainTest<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestArg<T>(_ x2: borrowing AggGenericStruct<T>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleChainTestOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTest<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestArg<T>(_ x2: borrowing AggGenericStruct<T>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructSimpleNonConsumingUseTestOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    borrowVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTest<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestArg<T>(_ x2: borrowing AggGenericStruct<T>) { //expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructMultipleNonConsumingUseTestOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn aggGenericStructUseAfterConsume<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructUseAfterConsumeArg<T>(_ x2: borrowing AggGenericStruct<T>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructUseAfterConsumeOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructUseAfterConsumeOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsume<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsumeArg<T>(_ x2: borrowing AggGenericStruct<T>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn aggGenericStructDoubleConsumeOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructDoubleConsumeOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn aggGenericStructLoopConsume<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeArg<T>(_ x2: borrowing AggGenericStruct<T>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructLoopConsumeOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamond<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondArg<T>(_ x2: borrowing AggGenericStruct<T>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn aggGenericStructDiamondOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn aggGenericStructDiamondInLoop<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+    // expected-note @-1 {{consumed here}}
+    // expected-error @-2 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopArg<T>(_ x2: borrowing AggGenericStruct<T>) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructDiamondInLoopOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn aggGenericStructAccessField<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldArg<T>(_ x2: borrowing AggGenericStruct<T>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessFieldOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    borrowVal(x2.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeField<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeFieldArg<T>(_ x2: borrowing AggGenericStruct<T>) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeFieldOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeFieldOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    consumeVal(x2.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandField<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldArg<T>(_ x2: borrowing AggGenericStruct<T>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructAccessGrandFieldOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    borrowVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        borrowVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandField<T>(_ x: borrowing AggGenericStruct<T>) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldArg<T>(_ x2: borrowing AggGenericStruct<T>) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldOwnedArg<T>(_ x2: __owned AggGenericStruct<T>) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+public fn aggGenericStructConsumeGrandFieldOwnedArg2<T>(_ x2: consuming AggGenericStruct<T>) {
+    consumeVal(x2.pair.lhs)
+    for _ in 0..<1024 {
+        consumeVal(x2.pair.lhs)
+    }
+}
+
+/////////////////////
+// Enum Test Cases //
+/////////////////////
+
+public enum EnumTy: ~Copyable {
+    case klass(NonTrivialStruct)
+    case int(Int)
+
+    fn doSomething() -> Bool { true }
+}
+
+public fn enumSimpleChainTest(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn enumSimpleChainTestArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    immutable y2 = x2 // expected-note {{consumed here}}
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn enumSimpleChainTestOwnedArg(_ x2: __owned EnumTy) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn enumSimpleChainTestOwnedArg2(_ x2: consuming EnumTy) {
+    immutable y2 = x2
+    immutable k2 = y2
+    borrowVal(k2)
+}
+
+public fn enumSimpleNonConsumingUseTest(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+}
+
+public fn enumSimpleNonConsumingUseTestArg(_ x2: borrowing EnumTy) {
+    borrowVal(x2)
+}
+
+public fn enumSimpleNonConsumingUseTestOwnedArg(_ x2: __owned EnumTy) {
+    borrowVal(x2)
+}
+
+public fn enumSimpleNonConsumingUseTestOwnedArg2(_ x2: consuming EnumTy) {
+    borrowVal(x2)
+}
+
+public fn enumMultipleNonConsumingUseTest(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn enumMultipleNonConsumingUseTestArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn enumMultipleNonConsumingUseTestOwnedArg(_ x2: __owned EnumTy) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn enumMultipleNonConsumingUseTestOwnedArg2(_ x2: consuming EnumTy) {
+    borrowVal(x2)
+    borrowVal(x2)
+    consumeVal(x2)
+}
+
+public fn enumUseAfterConsume(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumUseAfterConsumeArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn enumUseAfterConsumeOwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumUseAfterConsumeOwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+    borrowVal(x2)
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumDoubleConsume(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x  // expected-error {{'x2' consumed more than once}}
+                // expected-note @-1 {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumDoubleConsumeArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn enumDoubleConsumeOwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumDoubleConsumeOwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+}
+
+public fn enumLoopConsume(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn enumLoopConsumeArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn enumLoopConsumeOwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}};
+    }
+}
+
+public fn enumLoopConsumeOwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        consumeVal(x2) // expected-note {{consumed here}};
+    }
+}
+
+public fn enumDiamond(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn enumDiamondArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    if boolValue {
+        consumeVal(x2) // expected-note {{consumed here}}
+    } else {
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+}
+
+public fn enumDiamondOwnedArg(_ x2: __owned EnumTy) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn enumDiamondOwnedArg2(_ x2: consuming EnumTy) {
+    if boolValue {
+        consumeVal(x2)
+    } else {
+        consumeVal(x2)
+    }
+}
+
+public fn enumDiamondInLoop(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+    // expected-note @-1 {{consumed here}}
+    // expected-error @-2 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn enumDiamondInLoopArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+      }
+    }
+}
+
+public fn enumDiamondInLoopOwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn enumDiamondInLoopOwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+    // expected-error @-1 {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+      if boolValue {
+          consumeVal(x2) // expected-note {{consumed here}}
+      } else {
+          consumeVal(x2) // expected-note {{consumed here}}
+          // expected-note @-1 {{consumed again here}}
+      }
+    }
+}
+
+public fn enumAssignToVar1(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar1Arg(_ x: borrowing EnumTy, _ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+                                                             // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar1OwnedArg(_ x: borrowing EnumTy, _ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+                                                                          // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar1OwnedArg2(_ x: borrowing EnumTy, _ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+                                                                          // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar2(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn enumAssignToVar2Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x3)
+}
+
+public fn enumAssignToVar2OwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn enumAssignToVar2OwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x2 // expected-note {{consumed again here}}
+    borrowVal(x3)
+}
+
+public fn enumAssignToVar3(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    var x3 = x2
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar3Arg(_ x: borrowing EnumTy, _ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+                                                             // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar3OwnedArg(_ x: borrowing EnumTy, _ x2: __owned EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar3OwnedArg2(_ x: borrowing EnumTy, _ x2: consuming EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar4(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar4Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar4OwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar4OwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' used after consume}}
+               // expected-note @-1 {{consumed here}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5Arg(_ x: borrowing EnumTy, _ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+                                                             // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    // TODO: Need to mark this as the lifetime extending use. We fail
+    // appropriately though.
+    borrowVal(x2)
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5OwnedArg(_ x: borrowing EnumTy, _ x2: __owned EnumTy) { // expected-error {{'x2' used after consume}}
+                                                                          // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumAssignToVar5OwnedArg2(_ x: borrowing EnumTy, _ x2: consuming EnumTy) { // expected-error {{'x2' used after consume}}
+                                                                          // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    var x3 = x2 // expected-note {{consumed here}}
+    borrowVal(x2) // expected-note {{used here}}
+    x3 = x // expected-note {{consumed here}}
+    consumeVal(x3)
+}
+
+public fn enumPatternMatchIfLet1(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed more than once}}
+               // expected-note @-1 {{consumed here}}
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x.i)
+    }
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed again here}}
+        borrowVal(x.i)
+    }
+}
+
+public fn enumPatternMatchIfLet1Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x.i)
+    }
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x.i)
+    }
+}
+
+public fn enumPatternMatchIfLet1OwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed more than once}}
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x)
+    }
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed again here}}
+        borrowVal(x)
+    }
+}
+
+public fn enumPatternMatchIfLet1OwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed more than once}}
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed here}}
+        borrowVal(x)
+    }
+    if case immutable .klass(x) = consume x2 { // expected-note {{consumed again here}}
+        borrowVal(x)
+    }
+}
+
+public fn enumPatternMatchIfLet2(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' consumed in a loop}}
+               // expected-note @-1 {{consumed here}}
+    for _ in 0..<1024 {
+        if case immutable .klass(x) = consume x2 {  // expected-note {{consumed here}}
+            borrowVal(x)
+        }
+    }
+}
+
+public fn enumPatternMatchIfLet2Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    for _ in 0..<1024 {
+        if case immutable .klass(x) = consume x2 {  // expected-note {{consumed here}}
+            borrowVal(x)
+        }
+    }
+}
+
+public fn enumPatternMatchIfLet2OwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        if case immutable .klass(x) = consume x2 {  // expected-note {{consumed here}}
+            borrowVal(x)
+        }
+    }
+}
+
+public fn enumPatternMatchIfLet2OwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' consumed in a loop}}
+    for _ in 0..<1024 {
+        if case immutable .klass(x) = consume x2 {  // expected-note {{consumed here}}
+            borrowVal(x)
+        }
+    }
+}
+
+public fn enumPatternMatchSwitch1(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' used after consume}}
+               // expected-note @-1 {{consumed here}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k):
+        borrowVal(k)
+        borrowVal(x2) // expected-note {{used here}}
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch1Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k):
+        borrowVal(k)
+        // This should be flagged as the use after free use. We are atleast
+        // erroring though.
+        borrowVal(x2)
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch1OwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' used after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k):
+        borrowVal(k)
+        borrowVal(x2) // expected-note {{used here}}
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch1OwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' used after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k):
+        borrowVal(k)
+        borrowVal(x2) // expected-note {{used here}}
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    switch consume x2 {
+    case immutable .klass(k):
+        borrowVal(k)
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k):
+        borrowVal(k)
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2OwnedArg(_ x2: __owned EnumTy) {
+    switch consume x2 {
+    case immutable .klass(k):
+        borrowVal(k)
+    case .int:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2OwnedArg2(_ x2: consuming EnumTy) {
+    switch consume x2 {
+    case immutable .klass(k):
+        borrowVal(k)
+    case .int:
+        break
+    }
+}
+
+// TODO: We can do better here. We should also flag x2
+public fn enumPatternMatchSwitch2WhereClause(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-error {{'x2' used after consume}}
+               // expected-note @-1 {{consumed here}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k)
+           where x2.doSomething(): // expected-note {{used here}}
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClauseArg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k)
+           where x2.doSomething():
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClauseOwnedArg(_ x2: __owned EnumTy) { // expected-error {{'x2' used after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k)
+           where x2.doSomething(): // expected-note {{used here}}
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClauseOwnedArg2(_ x2: consuming EnumTy) { // expected-error {{'x2' used after consume}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k)
+           where x2.doSomething(): // expected-note {{used here}}
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClause2(_ x: borrowing EnumTy) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    switch consume x2 {
+    case immutable .klass(k)
+           where boolValue:
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClause2Arg(_ x2: borrowing EnumTy) { // expected-error {{'x2' is borrowed and cannot be consumed}}
+    switch consume x2 { // expected-note {{consumed here}}
+    case immutable .klass(k)
+           where boolValue:
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClause2OwnedArg(_ x2: __owned EnumTy) {
+    switch consume x2 {
+    case immutable .klass(k)
+           where boolValue:
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+public fn enumPatternMatchSwitch2WhereClause2OwnedArg2(_ x2: consuming EnumTy) {
+    switch consume x2 {
+    case immutable .klass(k)
+           where boolValue:
+        borrowVal(k)
+    case .int:
+        break
+    case .klass:
+        break
+    }
+}
+
+/////////////////////////////
+// Closure and Defer Tests //
+/////////////////////////////
+
+public fn closureClassUseAfterConsume1(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{'x' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    immutable f = { // expected-note {{closure capturing 'x' here}}
+        immutable x2 = x // expected-error {{'x2' consumed more than once}}
+        // expected-note @-1 {{consumed here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureClassUseAfterConsume2(_ argX: borrowing NonTrivialStruct) {
+    immutable f = { (_ x: borrowing NonTrivialStruct) in // expected-error {{'x' is borrowed and cannot be consumed}}
+        immutable x2 = x // expected-error {{'x2' consumed more than once}}
+                   // expected-note @-1 {{consumed here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed again here}}
+    }
+    f(argX)
+}
+
+public fn closureClassUseAfterConsumeArg(_ argX: borrowing NonTrivialStruct) {
+    // TODO: Fix this
+    immutable f = { (_ x2: borrowing NonTrivialStruct) in // expected-error {{'x2' is borrowed and cannot be consumed}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f(argX)
+}
+
+public fn closureCaptureClassUseAfterConsume(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f()
+}
+
+public fn closureCaptureClassUseAfterConsumeError(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f()
+    immutable x3 = x2
+    immutable _ = x3
+}
+
+public fn closureCaptureClassArgUseAfterConsume(_ x2: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    immutable f = { // expected-note {{closure capturing 'x2' here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f()
+}
+
+public fn closureCaptureClassOwnedArgUseAfterConsume(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f()
+}
+
+public fn closureCaptureClassOwnedArgUseAfterConsume2(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    f()
+}
+
+public fn closureCaptureClassOwnedArgUseAfterConsume3(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    f()
+    immutable x3 = x2
+    immutable _ = x3
+}
+
+public fn closureCaptureClassOwnedArgUseAfterConsume4(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    // expected-error @-3 {{'x2' consumed more than once}}
+    immutable f = {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    f()
+    immutable x3 = x2 // expected-note {{consumed here}}
+    consumeVal(x2) // expected-note {{consumed again here}}
+    immutable _ = x3
+}
+
+public fn deferCaptureClassUseAfterConsume(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    defer {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    consumeVal(x) // expected-note {{consumed here}}
+}
+
+public fn deferCaptureClassUseAfterConsume2(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x
+    // expected-note @-1 {{consumed here}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-3 {{'x2' used after consume}}
+    defer { // expected-note {{used here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    immutable x3 = x2 // expected-note {{consumed here}}
+    immutable _ = x3
+}
+
+public fn deferCaptureClassArgUseAfterConsume(_ x2: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    borrowVal(x2)
+    defer {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    consumeVal("foo")
+}
+
+public fn deferCaptureClassOwnedArgUseAfterConsume(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    defer {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    consumeVal("foo")
+}
+
+public fn deferCaptureClassOwnedArgUseAfterConsume2(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of closure capture 'x2' after consume}}
+    defer {
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    consumeVal("foo")
+}
+
+public fn deferCaptureClassOwnedArgUseAfterConsume3(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{'x2' used after consume}}
+    defer { // expected-note {{used here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+    }
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn deferCaptureClassOwnedArgUseAfterConsume4(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' used after consume}}
+    // expected-error @-3 {{'x2' consumed more than once}}
+    defer { // expected-note {{used here}}
+        borrowVal(x2)
+        consumeVal(x2) // expected-note {{consumed here}}
+        consumeVal(x2) // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    }
+    consumeVal(x2) // expected-note {{consumed here}}
+}
+
+public fn closureAndDeferCaptureClassUseAfterConsume(_ x: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+}
+
+public fn closureAndDeferCaptureClassUseAfterConsume2(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        consumeVal(x2) // expected-note {{consumed here}}
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+}
+
+public fn closureAndDeferCaptureClassUseAfterConsume3(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x
+    // expected-note @-1 {{consumed here}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-3 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        consumeVal(x2) // expected-note {{consumed here}}
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+    consumeVal(x2)
+}
+
+public fn closureAndDeferCaptureClassArgUseAfterConsume(_ x2: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = { // expected-note {{closure capturing 'x2' here}}
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+}
+
+public fn closureAndDeferCaptureClassOwnedArgUseAfterConsume(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+}
+
+public fn closureAndDeferCaptureClassOwnedArgUseAfterConsume2(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    immutable f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+}
+
+public fn closureAndDeferCaptureClassOwnedArgUseAfterConsume3(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+    consumeVal(x2)
+}
+
+public fn closureAndDeferCaptureClassOwnedArgUseAfterConsume4(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{missing reinitialization of closure capture 'x2' after consume}}
+    // expected-error @-2 {{'x2' consumed more than once}}
+    immutable f = {
+        defer {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        consumeVal("foo")
+    }
+    f()
+    consumeVal(x2)
+}
+
+public fn closureAndClosureCaptureClassUseAfterConsume(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureAndClosureCaptureClassUseAfterConsume2(_ x: borrowing NonTrivialStruct) { // expected-error {{'x' is borrowed and cannot be consumed}}
+    immutable x2 = x // expected-note {{consumed here}}
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2)
+}
+
+
+public fn closureAndClosureCaptureClassArgUseAfterConsume(_ x2: borrowing NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    // expected-error @-3 {{'x2' cannot be captured by an escaping closure since it is a borrowed parameter}}
+    immutable f = { // expected-note {{closure capturing 'x2' here}}
+        immutable g = { // expected-note {{closure capturing 'x2' here}}
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureAndClosureCaptureClassOwnedArgUseAfterConsume(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureAndClosureCaptureClassOwnedArgUseAfterConsume2(_ x2: consuming NonTrivialStruct) {
+    // expected-error @-1 {{'x2' consumed more than once}}
+    // expected-error @-2 {{missing reinitialization of closure capture 'x2' after consume}}
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+            // expected-note @-1 {{consumed again here}}
+        }
+        g()
+    }
+    f()
+}
+
+public fn closureAndClosureCaptureClassOwnedArgUseAfterConsume3(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2)
+}
+
+public fn closureAndClosureCaptureClassOwnedArgUseAfterConsume4(_ x2: __owned NonTrivialStruct) {
+    // expected-error @-1 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    // expected-error @-2 {{noncopyable 'x2' cannot be consumed when captured by an escaping closure}}
+    immutable f = {
+        immutable g = {
+            borrowVal(x2)
+            consumeVal(x2) // expected-note {{consumed here}}
+            consumeVal(x2) // expected-note {{consumed here}}
+        }
+        g()
+    }
+    f()
+    consumeVal(x2)
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for holding a destructured rvalue with an optional
@@ -43,7 +44,7 @@ ManagedValue ManagedValue::forForwardedRValue(SILGenFunction &SGF,
 
   switch (value->getOwnershipKind()) {
   case OwnershipKind::Any:
-    llvm_unreachable("Invalid ownership for value");
+    toolchain_unreachable("Invalid ownership for value");
 
   case OwnershipKind::Owned:
     return ManagedValue(value, SGF.enterDestroyCleanup(value));
@@ -271,7 +272,7 @@ void ManagedValue::print(raw_ostream &os) const {
 }
 
 void ManagedValue::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void ManagedValue::dump(raw_ostream &os, unsigned indent) const {

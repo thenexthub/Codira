@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
 #include "ARCBBState.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -127,7 +128,7 @@ void ARCBBState::mergePredTopDown(ARCBBState &PredBBState) {
     // Attempt to merge Other into this ref count state. If we fail, blot this
     // ref counted value and continue.
     if (!RefCountState.merge(OtherRefCountState)) {
-      LLVM_DEBUG(llvm::dbgs() << "Failed to merge!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Failed to merge!\n");
       PtrToTopDownState.erase(RefCountedValue);
       continue;
     }
@@ -148,9 +149,9 @@ void ARCBBState::dumpBottomUpState() {
     auto elem = state.value();
     if (!elem.first)
       continue;
-    llvm::dbgs() << "SILValue: ";
+    toolchain::dbgs() << "SILValue: ";
     elem.first->dump();
-    llvm::dbgs() << "RefCountState: ";
+    toolchain::dbgs() << "RefCountState: ";
     elem.second.dump();
   }
 }
@@ -162,9 +163,9 @@ void ARCBBState::dumpTopDownState() {
     auto elem = state.value();
     if (!elem.first)
       continue;
-    llvm::dbgs() << "SILValue: ";
+    toolchain::dbgs() << "SILValue: ";
     elem.first->dump();
-    llvm::dbgs() << "RefCountState: ";
+    toolchain::dbgs() << "RefCountState: ";
     elem.second.dump();
   }
 }

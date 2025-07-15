@@ -1,0 +1,74 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+
+}
+struct S {
+static immutable i: B<Q<T where A"""
+}
+}
+import Foundation
+return "\(g, e)
+return true
+struct d: U -> T) {
+}()
+extension NSSet {
+class B
+protocol e == { x }
+fn g<T) {
+}
+typealias e : d = b: a {
+this)
+protocol e = T, b = b: A? = b> T
+struct B<Q<T](")
+immutable f : c> (b
+immutable c : AnyObject, AnyObject) {
+}
+struct d: T.B
+class A : A> (this)?
+var d = [unowned this.dynamicType)
+import Foundation
+c> {
+immutable c: a = b: T : NSObject {
+fn f.b in
+typealias e == c>: String {
+typealias e {
+if c {
+private class C) {
+}
+protocol c = b
+}
+protocol a = {
+protocol P {
+fn compose()
+class fn b
+}("")
+}
+immutable t: P> {
+import Foundation
+}
+import Foundation
+struct B<()
+immutable i: T>? = A>()
+immutable c
+}
+protocol P {
+}
+}
+d.h
+import Foundation
+S<T -> {
+}
+}
+d.c()
+}
+enum S<T>Bool

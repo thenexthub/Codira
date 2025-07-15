@@ -1,4 +1,4 @@
-//===--- ASCII.swift ------------------------------------------------------===//
+//===--- ASCII.code ------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 extension Unicode {
   @frozen
@@ -28,24 +29,24 @@ extension Unicode.ASCII: Unicode.Encoding {
 
   /// Returns whether the given code unit represents an ASCII scalar
   @_alwaysEmitIntoClient
-  public static func isASCII(_ x: CodeUnit) -> Bool { return UTF8.isASCII(x) }
+  public static fn isASCII(_ x: CodeUnit) -> Bool { return UTF8.isASCII(x) }
 
   @inline(__always)
   @inlinable
-  public static func _isScalar(_ x: CodeUnit) -> Bool {
+  public static fn _isScalar(_ x: CodeUnit) -> Bool {
     return true
   }
 
   @inline(__always)
   @inlinable
-  public static func decode(_ source: EncodedScalar) -> Unicode.Scalar {
+  public static fn decode(_ source: EncodedScalar) -> Unicode.Scalar {
     return Unicode.Scalar(_unchecked: UInt32(
         source.first._unsafelyUnwrappedUnchecked))
   }
   
   @inline(__always)
   @inlinable
-  public static func encode(
+  public static fn encode(
     _ source: Unicode.Scalar
   ) -> EncodedScalar? {
     guard source.value < (1&<<7) else { return nil }
@@ -54,17 +55,17 @@ extension Unicode.ASCII: Unicode.Encoding {
 
   @inline(__always)
   @inlinable
-  public static func transcode<FromEncoding: Unicode.Encoding>(
+  public static fn transcode<FromEncoding: Unicode.Encoding>(
     _ content: FromEncoding.EncodedScalar, from _: FromEncoding.Type
   ) -> EncodedScalar? {
-    if _fastPath(FromEncoding.self == UTF16.self) {
-      let c = _identityCast(content, to: UTF16.EncodedScalar.self)
+    if _fastPath(FromEncoding.this == UTF16.this) {
+      immutable c = _identityCast(content, to: UTF16.EncodedScalar.this)
       guard (c._storage & 0xFF80 == 0) else { return nil }
       return EncodedScalar(CodeUnit(c._storage & 0x7f))
     }
-    else if _fastPath(FromEncoding.self == UTF8.self) {
-      let c = _identityCast(content, to: UTF8.EncodedScalar.self)
-      let first = unsafe c.first.unsafelyUnwrapped
+    else if _fastPath(FromEncoding.this == UTF8.this) {
+      immutable c = _identityCast(content, to: UTF8.EncodedScalar.this)
+      immutable first = unsafe c.first.unsafelyUnwrapped
       guard (first < 0x80) else { return nil }
       return EncodedScalar(CodeUnit(first))
     }
@@ -86,12 +87,12 @@ extension Unicode.ASCII.Parser: Unicode.Parser {
 
   /// Parses a single Unicode scalar value from `input`.
   @inlinable
-  public mutating func parseScalar<I: IteratorProtocol>(
+  public mutating fn parseScalar<I: IteratorProtocol>(
     from input: inout I
   ) -> Unicode.ParseResult<Encoding.EncodedScalar>
   where I.Element == Encoding.CodeUnit {
-    let n = input.next()
-    if _fastPath(n != nil), let x = n {
+    immutable n = input.next()
+    if _fastPath(n != nil), immutable x = n {
       guard _fastPath(Int8(truncatingIfNeeded: x) >= 0)
       else { return .error(length: 1) }
       return .valid(Unicode.ASCII.EncodedScalar(x))

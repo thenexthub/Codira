@@ -1,0 +1,4 @@
+// language-interface-format-version: 1.0
+// language-compiler-version: Apple Codira version 5.9
+// language-module-flags: -target arm64-apple-macos10.13 -enable-library-evolution -language-version 5 -module-name ScannerTestKit
+import Codira

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a typechecker-internal interface to a bunch of
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPECHECKING_TYPECHECKDECL_H
-#define SWIFT_TYPECHECKING_TYPECHECKDECL_H
+#ifndef LANGUAGE_TYPECHECKING_TYPECHECKDECL_H
+#define LANGUAGE_TYPECHECKING_TYPECHECKDECL_H
 
 #include <optional>
 

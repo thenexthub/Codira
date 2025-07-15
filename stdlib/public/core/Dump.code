@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_ENABLE_REFLECTION
+#if LANGUAGE_ENABLE_REFLECTION
 
 /// Dumps the given object's contents using its mirror to the specified output
 /// stream.
@@ -32,7 +33,7 @@
 /// - Returns: The instance passed as `value`.
 @discardableResult
 @_semantics("optimize.sil.specialize.generic.never")
-public func dump<T, TargetStream: TextOutputStream>(
+public fn dump<T, TargetStream: TextOutputStream>(
   _ value: T,
   to target: inout TargetStream,
   name: String? = nil,
@@ -70,7 +71,7 @@ public func dump<T, TargetStream: TextOutputStream>(
 /// - Returns: The instance passed as `value`.
 @discardableResult
 @_semantics("optimize.sil.specialize.generic.never")
-public func dump<T>(
+public fn dump<T>(
   _ value: T,
   name: String? = nil,
   indent: Int = 0,
@@ -89,7 +90,7 @@ public func dump<T>(
 
 /// Dump an object's contents. User code should use dump().
 @_semantics("optimize.sil.specialize.generic.never")
-internal func _dump_unlocked<TargetStream: TextOutputStream>(
+internal fn _dump_unlocked<TargetStream: TextOutputStream>(
   _ value: Any,
   to target: inout TargetStream,
   name: String?,
@@ -103,38 +104,38 @@ internal func _dump_unlocked<TargetStream: TextOutputStream>(
 
   for _ in 0..<indent { target.write(" ") }
 
-  let mirror = Mirror(reflecting: value)
-  let count = mirror.children.count
-  let bullet = count == 0    ? "-"
+  immutable mirror = Mirror(reflecting: value)
+  immutable count = mirror.children.count
+  immutable bullet = count == 0    ? "-"
              : maxDepth <= 0 ? "▹" : "▿"
   target.write(bullet)
   target.write(" ")
 
-  if let name = name {
+  if immutable name = name {
     target.write(name)
     target.write(": ")
   }
   // This takes the place of the old mirror API's 'summary' property
   _dumpPrint_unlocked(value, mirror, &target)
 
-  let id: ObjectIdentifier?
+  immutable id: ObjectIdentifier?
   if type(of: value) is AnyObject.Type {
     // Object is a class (but not an ObjC-bridged struct)
     id = ObjectIdentifier(_unsafeDowncastToAnyObject(fromAny: value))
-  } else if let metatypeInstance = value as? Any.Type {
+  } else if immutable metatypeInstance = value as? Any.Type {
     // Object is a metatype
     id = ObjectIdentifier(metatypeInstance)
   } else {
     id = nil
   }
-  if let theId = id {
-    if let previous = visitedItems[theId] {
+  if immutable theId = id {
+    if immutable previous = visitedItems[theId] {
       target.write(" #")
       _print_unlocked(previous, &target)
       target.write("\n")
       return
     }
-    let identifier = visitedItems.count
+    immutable identifier = visitedItems.count
     visitedItems[theId] = identifier
     target.write(" #")
     _print_unlocked(identifier, &target)
@@ -144,7 +145,7 @@ internal func _dump_unlocked<TargetStream: TextOutputStream>(
 
   guard maxDepth > 0 else { return }
 
-  if let superclassMirror = mirror.superclassMirror {
+  if immutable superclassMirror = mirror.superclassMirror {
     _dumpSuperclass_unlocked(
       mirror: superclassMirror,
       to: &target,
@@ -160,7 +161,7 @@ internal func _dump_unlocked<TargetStream: TextOutputStream>(
       for _ in 0..<(indent+4) {
         _print_unlocked(" ", &target)
       }
-      let remainder = count - i
+      immutable remainder = count - i
       target.write("(")
       _print_unlocked(remainder, &target)
       if i > 0 { target.write(" more") }
@@ -172,7 +173,7 @@ internal func _dump_unlocked<TargetStream: TextOutputStream>(
       return
     }
 
-    let (name, child) = mirror.children[currentIndex]
+    immutable (name, child) = mirror.children[currentIndex]
     mirror.children.formIndex(after: &currentIndex)
     _dump_unlocked(
       child,
@@ -188,7 +189,7 @@ internal func _dump_unlocked<TargetStream: TextOutputStream>(
 /// Dump information about an object's superclass, given a mirror reflecting
 /// that superclass.
 @_semantics("optimize.sil.specialize.generic.never")
-internal func _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
+internal fn _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
   mirror: Mirror,
   to target: inout TargetStream,
   indent: Int,
@@ -201,8 +202,8 @@ internal func _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
 
   for _ in 0..<indent { target.write(" ") }
 
-  let count = mirror.children.count
-  let bullet = count == 0    ? "-"
+  immutable count = mirror.children.count
+  immutable bullet = count == 0    ? "-"
              : maxDepth <= 0 ? "▹" : "▿"
   target.write(bullet)
   target.write(" super: ")
@@ -211,7 +212,7 @@ internal func _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
 
   guard maxDepth > 0 else { return }
 
-  if let superclassMirror = mirror.superclassMirror {
+  if immutable superclassMirror = mirror.superclassMirror {
     _dumpSuperclass_unlocked(
       mirror: superclassMirror,
       to: &target,
@@ -227,7 +228,7 @@ internal func _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
       for _ in 0..<(indent+4) {
         target.write(" ")
       }
-      let remainder = count - i
+      immutable remainder = count - i
       target.write("(")
       _print_unlocked(remainder, &target)
       if i > 0 { target.write(" more") }
@@ -239,7 +240,7 @@ internal func _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
       return
     }
 
-    let (name, child) = mirror.children[currentIndex]
+    immutable (name, child) = mirror.children[currentIndex]
     mirror.children.formIndex(after: &currentIndex)
     _dump_unlocked(
       child,
@@ -252,4 +253,4 @@ internal func _dumpSuperclass_unlocked<TargetStream: TextOutputStream>(
   }
 }
 
-#endif // SWIFT_ENABLE_REFLECTION
+#endif // LANGUAGE_ENABLE_REFLECTION

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines data structures to efficiently support the request
@@ -19,12 +20,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/DependencyCollector.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
-#ifndef SWIFT_AST_REQUEST_CACHE_H
-#define SWIFT_AST_REQUEST_CACHE_H
+#ifndef LANGUAGE_AST_REQUEST_CACHE_H
+#define LANGUAGE_AST_REQUEST_CACHE_H
 
 namespace language {
 
@@ -41,7 +42,7 @@ struct TupleHasDenseMapInfo {};
 template <typename... Ts>
 struct TupleHasDenseMapInfo<
     std::tuple<Ts...>,
-    void_t<decltype(llvm::DenseMapInfo<Ts>::getEmptyKey)...>> {
+    void_t<decltype(toolchain::DenseMapInfo<Ts>::getEmptyKey)...>> {
   using type = void_t<>;
 };
 
@@ -52,7 +53,7 @@ namespace {
 /// Wrapper for a request with additional empty and tombstone states.
 template<typename Request, typename = detail::void_t<>>
 class RequestKey {
-  friend struct llvm::DenseMapInfo<RequestKey>;
+  friend struct toolchain::DenseMapInfo<RequestKey>;
   union {
     char Empty;
     Request Req;
@@ -121,7 +122,7 @@ public:
   friend bool operator!=(const RequestKey &lhs, const RequestKey &rhs) {
     return !(lhs == rhs);
   }
-  friend llvm::hash_code hash_value(const RequestKey &key) {
+  friend toolchain::hash_code hash_value(const RequestKey &key) {
     if (key.Kind != StorageKind::Normal)
       return 1;
     return hash_value(key.Req);
@@ -131,8 +132,8 @@ public:
 template <typename Request>
 class RequestKey<Request, typename detail::TupleHasDenseMapInfo<
                               typename Request::Storage>::type> {
-  friend struct llvm::DenseMapInfo<RequestKey>;
-  using Info = llvm::DenseMapInfo<typename Request::Storage>;
+  friend struct toolchain::DenseMapInfo<RequestKey>;
+  using Info = toolchain::DenseMapInfo<typename Request::Storage>;
 
   Request Req;
 
@@ -155,7 +156,7 @@ public:
   friend bool operator!=(const RequestKey &lhs, const RequestKey &rhs) {
     return !(lhs == rhs);
   }
-  friend llvm::hash_code hash_value(const RequestKey &key) {
+  friend toolchain::hash_code hash_value(const RequestKey &key) {
     return hash_value(key.Req);
   }
 };
@@ -166,18 +167,18 @@ public:
 class PerRequestCache {
   void *Storage;
   std::function<void(void *)> Deleter;
-  std::function<void(llvm::raw_ostream &out, void *)> Dumper;
+  std::function<void(toolchain::raw_ostream &out, void *)> Dumper;
 
   PerRequestCache(void *storage,
                   std::function<void(void *)> deleter,
-                  std::function<void(llvm::raw_ostream &out, void *)> dumper)
+                  std::function<void(toolchain::raw_ostream &out, void *)> dumper)
       : Storage(storage), Deleter(deleter), Dumper(dumper) {}
 
 public:
   PerRequestCache()
     : Storage(nullptr),
       Deleter([](void *) {}),
-      Dumper([](llvm::raw_ostream &, void *) {}) {}
+      Dumper([](toolchain::raw_ostream &, void *) {}) {}
   PerRequestCache(PerRequestCache &&other)
       : Storage(other.Storage),
         Deleter(std::move(other.Deleter)),
@@ -199,15 +200,15 @@ public:
   template <typename Request>
   static PerRequestCache makeEmpty() {
     using Map =
-        llvm::DenseMap<RequestKey<Request>,
+        toolchain::DenseMap<RequestKey<Request>,
                        typename Request::OutputType>;
     return PerRequestCache(new Map(),
                            [](void *ptr) { delete static_cast<Map *>(ptr); },
-                           [](llvm::raw_ostream &out, void *storage) {
+                           [](toolchain::raw_ostream &out, void *storage) {
                              out << TypeID<Request>::getName() << "\t";
                              if (auto *map = static_cast<Map *>(storage)) {
                                out << map->size() << "\t"
-                                   << llvm::capacity_in_bytes(*map);
+                                   << toolchain::capacity_in_bytes(*map);
                              } else {
                                out << "0\t0";
                              }
@@ -216,11 +217,11 @@ public:
   }
 
   template <typename Request>
-  llvm::DenseMap<RequestKey<Request>,
+  toolchain::DenseMap<RequestKey<Request>,
                  typename Request::OutputType> *
   get() const {
     using Map =
-        llvm::DenseMap<RequestKey<Request>,
+        toolchain::DenseMap<RequestKey<Request>,
                        typename Request::OutputType>;
     assert(Storage);
     return static_cast<Map *>(Storage);
@@ -230,13 +231,13 @@ public:
   std::pair<size_t, size_t>
   size() const {
     using Map =
-        llvm::DenseMap<RequestKey<Request>,
+        toolchain::DenseMap<RequestKey<Request>,
                        typename Request::OutputType>;
     if (!Storage)
       return std::make_pair(0, 0);
 
     auto map = static_cast<Map *>(Storage);
-    return std::make_pair(map.size(), llvm::capacity_in_bytes(map));
+    return std::make_pair(map.size(), toolchain::capacity_in_bytes(map));
   }
 
   bool isNull() const { return !Storage; }
@@ -245,7 +246,7 @@ public:
       Deleter(Storage);
   }
 
-  void dump(llvm::raw_ostream &out) {
+  void dump(toolchain::raw_ostream &out) {
     Dumper(out, Storage);
   }
 };
@@ -257,14 +258,14 @@ public:
 /// type erasure overhead for keys and values.
 class RequestCache {
 
-#define SWIFT_TYPEID_ZONE(Name, Id)                                            \
+#define LANGUAGE_TYPEID_ZONE(Name, Id)                                            \
   std::vector<PerRequestCache> Name##ZoneCache;                                \
                                                                                \
   template <                                                                   \
       typename Request, typename ZoneTypes = TypeIDZoneTypes<Zone::Name>,      \
       typename std::enable_if<TypeID<Request>::zone == Zone::Name>::type * =   \
           nullptr>                                                             \
-  llvm::DenseMap<RequestKey<Request>,                                          \
+  toolchain::DenseMap<RequestKey<Request>,                                          \
                  typename Request::OutputType> *                               \
   getCache() {                                                                 \
     auto &caches = Name##ZoneCache;                                            \
@@ -278,11 +279,11 @@ class RequestCache {
     return caches[idx].template get<Request>();                                \
   }
 #include "language/Basic/TypeIDZones.def"
-#undef SWIFT_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_ZONE
 
 public:
   template <typename Request>
-  typename llvm::DenseMap<RequestKey<Request>,
+  typename toolchain::DenseMap<RequestKey<Request>,
                           typename Request::OutputType>::const_iterator
   find_as(const Request &req) {
     auto *cache = getCache<Request>();
@@ -290,7 +291,7 @@ public:
   }
 
   template <typename Request>
-  typename llvm::DenseMap<RequestKey<Request>,
+  typename toolchain::DenseMap<RequestKey<Request>,
                           typename Request::OutputType>::const_iterator
   end() {
     auto *cache = getCache<Request>();
@@ -312,18 +313,18 @@ public:
   }
 
   void clear() {
-#define SWIFT_TYPEID_ZONE(Name, Id) Name##ZoneCache.clear();
+#define LANGUAGE_TYPEID_ZONE(Name, Id) Name##ZoneCache.clear();
 #include "language/Basic/TypeIDZones.def"
-#undef SWIFT_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_ZONE
   }
 
-  void dump(llvm::raw_ostream &out) {
-#define SWIFT_TYPEID_ZONE(Name, Id)                                            \
+  void dump(toolchain::raw_ostream &out) {
+#define LANGUAGE_TYPEID_ZONE(Name, Id)                                            \
     for (auto &entry : Name##ZoneCache) {                                      \
       entry.dump(out);                                                         \
     }
 #include "language/Basic/TypeIDZones.def"
-#undef SWIFT_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_ZONE
   }
 };
 
@@ -356,18 +357,18 @@ public:
   template <typename Request>
   static PerRequestReferences makeEmpty() {
     using Map =
-        llvm::DenseMap<RequestKey<Request>,
+        toolchain::DenseMap<RequestKey<Request>,
                        std::vector<DependencyCollector::Reference>>;
     return PerRequestReferences(new Map(),
                                 [](void *ptr) { delete static_cast<Map *>(ptr); });
   }
 
   template <typename Request>
-  llvm::DenseMap<RequestKey<Request>,
+  toolchain::DenseMap<RequestKey<Request>,
                  std::vector<DependencyCollector::Reference>> *
   get() const {
     using Map =
-        llvm::DenseMap<RequestKey<Request>,
+        toolchain::DenseMap<RequestKey<Request>,
                        std::vector<DependencyCollector::Reference>>;
     assert(Storage);
     return static_cast<Map *>(Storage);
@@ -388,14 +389,14 @@ public:
 /// without type erasure overhead for keys.
 class RequestReferences {
 
-#define SWIFT_TYPEID_ZONE(Name, Id)                                            \
+#define LANGUAGE_TYPEID_ZONE(Name, Id)                                            \
   std::vector<PerRequestReferences> Name##ZoneRefs;                            \
                                                                                \
   template <                                                                   \
       typename Request, typename ZoneTypes = TypeIDZoneTypes<Zone::Name>,      \
       typename std::enable_if<TypeID<Request>::zone == Zone::Name>::type * =   \
           nullptr>                                                             \
-  llvm::DenseMap<RequestKey<Request>,                                          \
+  toolchain::DenseMap<RequestKey<Request>,                                          \
                  std::vector<DependencyCollector::Reference>> *                \
   getRefs() {                                                                  \
     auto &refs = Name##ZoneRefs;                                               \
@@ -409,11 +410,11 @@ class RequestReferences {
     return refs[idx].template get<Request>();                                  \
   }
 #include "language/Basic/TypeIDZones.def"
-#undef SWIFT_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_ZONE
 
 public:
   template <typename Request>
-  typename llvm::DenseMap<RequestKey<Request>,
+  typename toolchain::DenseMap<RequestKey<Request>,
                           std::vector<DependencyCollector::Reference>>::const_iterator
   find_as(const Request &req) {
     auto *refs = getRefs<Request>();
@@ -421,7 +422,7 @@ public:
   }
 
   template <typename Request>
-  typename llvm::DenseMap<RequestKey<Request>,
+  typename toolchain::DenseMap<RequestKey<Request>,
                           std::vector<DependencyCollector::Reference>>::const_iterator
   end() {
     auto *refs = getRefs<Request>();
@@ -442,9 +443,9 @@ public:
   }
 
   void clear() {
-#define SWIFT_TYPEID_ZONE(Name, Id) Name##ZoneRefs.clear();
+#define LANGUAGE_TYPEID_ZONE(Name, Id) Name##ZoneRefs.clear();
 #include "language/Basic/TypeIDZones.def"
-#undef SWIFT_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_ZONE
   }
 };
 
@@ -452,11 +453,11 @@ public:
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template <typename Request, typename Info>
-struct DenseMapInfo<swift::evaluator::RequestKey<Request, Info>> {
-  using RequestKey = swift::evaluator::RequestKey<Request, Info>;
+struct DenseMapInfo<language::evaluator::RequestKey<Request, Info>> {
+  using RequestKey = language::evaluator::RequestKey<Request, Info>;
   static inline RequestKey getEmptyKey() {
     return RequestKey::getEmpty();
   }
@@ -477,6 +478,6 @@ struct DenseMapInfo<swift::evaluator::RequestKey<Request, Info>> {
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_AST_REQUEST_CACHE_H
+#endif // LANGUAGE_AST_REQUEST_CACHE_H

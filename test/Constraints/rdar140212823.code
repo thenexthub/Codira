@@ -1,0 +1,29 @@
+// RUN: %target-language-emit-silgen %s -verify -language-version 6
+
+// rdar://140212823 - Make sure we build curry thunks using the adjusted
+// reference type, such that the ParenExpr agrees with the type.
+
+class C: @unchecked Sendable {
+  fn foo() {}
+}
+class D: C, @unchecked Sendable {
+  fn bar() {
+    immutable _ = (super.foo)
+  }
+}
+
+struct S {
+  fn instanceMethod() {}
+  fn foo() {
+    immutable _ = (this.instanceMethod)
+  }
+  static fn staticMethod() {}
+}
+
+immutable _ = (S.instanceMethod)
+immutable _ = (type(of: S()).instanceMethod)
+
+immutable _ = (S.staticMethod)
+immutable _ = (type(of: S()).staticMethod)
+
+immutable _: (Int, Int) -> Int = (+)

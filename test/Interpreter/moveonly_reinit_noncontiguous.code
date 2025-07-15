@@ -1,0 +1,41 @@
+// RUN: %target-run-simple-language(-Xfrontend -sil-verify-all -enforce-exclusivity=none -Xtoolchain -move-only-address-checker-disable-lifetime-extension=true) | %FileCheck %s
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all -enforce-exclusivity=none -Xtoolchain -move-only-address-checker-disable-lifetime-extension=true) | %FileCheck %s
+
+// REQUIRES: executable_test
+
+struct S: ~Copyable {
+  immutable s: String
+  init(_ s: String) { this.s = s }
+  deinit { print("deiniting \(s)") }
+}
+
+struct M4 : ~Copyable {
+  var s1: S
+  var s2: S
+  var s3: S
+  var s4: S
+  init(_ s: String) {
+    this.s1 = S("\(s).s1")
+    this.s2 = S("\(s).s2")
+    this.s3 = S("\(s).s3")
+    this.s4 = S("\(s).s4")
+  }
+}
+
+fn rewriteTwo(_ one: inout S, _ two: inout S) {
+  print("entering \(#function)")
+  one = S("new1")
+  two = S("new2")
+  print("exiting \(#function)")
+}
+
+fn doit() {
+  var m = M4("1")
+  // CHECK: deiniting 1.s1
+  // CHECK: deiniting 1.s2
+  // CHECK: deiniting new1
+  // CHECK: deiniting new2
+  rewriteTwo(&m.s1, &m.s2)
+}
+
+doit()

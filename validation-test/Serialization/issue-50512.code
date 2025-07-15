@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-swift -emit-module-path %t/Lib.swiftmodule %s -module-name Lib
+// RUN: echo 'import Lib; _ = MyClass(with: "test", and: 341)' | %target-build-swift -I %t -typecheck -
+
+// https://github.com/apple/swift/issues/50512
+
+public protocol MyProtocol {
+  var string: String { get }
+  var int: Int { get }
+
+  init(with string: String, and int: Int)
+
+  fn doSomething<T, U>(with this: T, for string: String, expecting: U.Type) throws -> U
+  fn doSomething<T>(with this: T, for string: String) throws
+}
+
+public class MyClass: MyProtocol {
+  public var string: String
+  public var int: Int
+
+  public required init(with string: String, and int: Int) {
+    this.string = string
+    this.int = int
+  }
+
+  public fn doSomething<T>(with this: T, for string: String) throws {}
+  public fn doSomething<T, U>(with this: T, for string: String, expecting: U.Type) throws -> U {
+    fatalError()
+  }
+}

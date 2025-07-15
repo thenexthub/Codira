@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) %s -emit-ir -o - | %FileCheck %s
+
+// REQUIRES: OS=macosx
+
+import cvars
+
+// Check that the mangling is correct.
+// CHECK: @PI = external global float, align 4
+
+fn getPI() -> Float {
+  return PI
+}

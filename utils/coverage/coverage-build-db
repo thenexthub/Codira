@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # utils/coverage/coverage-build-db - Build sqlite3 database from profdata
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import Queue
 import argparse
@@ -31,7 +31,7 @@ logging.getLogger().addHandler(console)
 
 
 def parse_coverage_log(filepath):
-    """Return parsed coverage intervals from `llvm-profdata show` output at
+    """Return parsed coverage intervals from `toolchain-profdata show` output at
     `filepath`"""
     logging.info('Parsing: %s', filepath)
     test = os.path.basename(os.path.dirname(filepath)).rsplit('.', 1)[0]

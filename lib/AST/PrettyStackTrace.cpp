@@ -1,4 +1,4 @@
-//===--- PrettyStackTrace.cpp - Swift-specific PrettyStackTraceEntries ----===//
+//===--- PrettyStackTrace.cpp - Codira-specific PrettyStackTraceEntries ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements several Swift-specific implementations of
+//  This file implements several Codira-specific implementations of
 //  PrettyStackTraceEntry.
 //
 //===----------------------------------------------------------------------===//
@@ -31,17 +32,17 @@
 #include "language/AST/TypeVisitor.h"
 #include "language/Basic/SourceManager.h"
 #include "clang/AST/Type.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace language;
 
-void PrettyStackTraceDecl::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceDecl::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   printDeclDescription(out, TheDecl);
 }
 
-void PrettyStackTraceDeclAndSubst::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceDeclAndSubst::print(toolchain::raw_ostream &out) const {
   out << "While " << action << ' ';
   printDeclDescription(out, decl);
 
@@ -50,7 +51,7 @@ void PrettyStackTraceDeclAndSubst::print(llvm::raw_ostream &out) const {
 }
 
 
-void swift::printDeclDescription(llvm::raw_ostream &out, const Decl *D,
+void language::printDeclDescription(toolchain::raw_ostream &out, const Decl *D,
                                  bool addNewline) {
   if (!D) {
     out << "NULL declaration!";
@@ -131,7 +132,7 @@ void swift::printDeclDescription(llvm::raw_ostream &out, const Decl *D,
   if (addNewline) out << '\n';
 }
 
-void PrettyStackTraceAnyFunctionRef::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceAnyFunctionRef::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   if (auto *AFD = TheRef.getAbstractFunctionDecl()) {
     printDeclDescription(out, AFD);
@@ -142,7 +143,7 @@ void PrettyStackTraceAnyFunctionRef::print(llvm::raw_ostream &out) const {
 }
 
 void PrettyStackTraceFreestandingMacroExpansion::print(
-    llvm::raw_ostream &out) const {
+    toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   switch (Expansion->getFreestandingMacroKind()) {
   case FreestandingMacroKind::Expr: {
@@ -156,7 +157,7 @@ void PrettyStackTraceFreestandingMacroExpansion::print(
   }
 }
 
-void PrettyStackTraceExpr::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceExpr::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   if (!TheExpr) {
     out << "NULL expression!\n";
@@ -165,14 +166,14 @@ void PrettyStackTraceExpr::print(llvm::raw_ostream &out) const {
   printExprDescription(out, TheExpr, Context);
 }
 
-void swift::printExprDescription(llvm::raw_ostream &out, const Expr *E,
+void language::printExprDescription(toolchain::raw_ostream &out, const Expr *E,
                                  const ASTContext &Context, bool addNewline) {
   out << "expression at ";
   E->getSourceRange().print(out, Context.SourceMgr);
   if (addNewline) out << '\n';
 }
 
-void PrettyStackTraceStmt::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceStmt::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   if (!TheStmt) {
     out << "NULL statement!\n";
@@ -181,14 +182,14 @@ void PrettyStackTraceStmt::print(llvm::raw_ostream &out) const {
   printStmtDescription(out, TheStmt, Context);
 }
 
-void swift::printStmtDescription(llvm::raw_ostream &out, Stmt *S,
+void language::printStmtDescription(toolchain::raw_ostream &out, Stmt *S,
                                  const ASTContext &Context, bool addNewline) {
   out << "statement at ";
   S->getSourceRange().print(out, Context.SourceMgr);
   if (addNewline) out << '\n';
 }
 
-void PrettyStackTracePattern::print(llvm::raw_ostream &out) const {
+void PrettyStackTracePattern::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   if (!ThePattern) {
     out << "NULL pattern!\n";
@@ -197,7 +198,7 @@ void PrettyStackTracePattern::print(llvm::raw_ostream &out) const {
   printPatternDescription(out, ThePattern, Context);
 }
 
-void swift::printPatternDescription(llvm::raw_ostream &out, Pattern *P,
+void language::printPatternDescription(toolchain::raw_ostream &out, Pattern *P,
                                     const ASTContext &Context,
                                     bool addNewline) {
   out << "pattern at ";
@@ -228,7 +229,7 @@ namespace {
   };
 } // end anonymous namespace
 
-void PrettyStackTraceType::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceType::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   if (TheType.isNull()) {
     out << "NULL type!\n";
@@ -237,7 +238,7 @@ void PrettyStackTraceType::print(llvm::raw_ostream &out) const {
   printTypeDescription(out, TheType, Context);
 }
 
-void swift::printTypeDescription(llvm::raw_ostream &out, Type type,
+void language::printTypeDescription(toolchain::raw_ostream &out, Type type,
                                  const ASTContext &Context, bool addNewline) {
   out << "type '" << type << '\'';
   if (Decl *decl = InterestingDeclForType().visit(type)) {
@@ -250,7 +251,7 @@ void swift::printTypeDescription(llvm::raw_ostream &out, Type type,
   if (addNewline) out << '\n';
 }
 
-void PrettyStackTraceClangType::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceClangType::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   if (TheType == nullptr) {
     out << "NULL clang type!\n";
@@ -259,7 +260,7 @@ void PrettyStackTraceClangType::print(llvm::raw_ostream &out) const {
   TheType->dump(out, Context);
 }
 
-void PrettyStackTraceTypeRepr::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceTypeRepr::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << " type ";
   TheType->print(out);
   if (TheType && TheType->getSourceRange().isValid()) {
@@ -269,13 +270,13 @@ void PrettyStackTraceTypeRepr::print(llvm::raw_ostream &out) const {
   out << '\n';
 }
 
-void PrettyStackTraceConformance::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceConformance::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   auto &Context = Conformance->getDeclContext()->getASTContext();
   printConformanceDescription(out, Conformance, Context);
 }
 
-void swift::printConformanceDescription(llvm::raw_ostream &out,
+void language::printConformanceDescription(toolchain::raw_ostream &out,
                                         const ProtocolConformance *conformance,
                                         const ASTContext &ctxt,
                                         bool addNewline) {
@@ -292,19 +293,19 @@ void swift::printConformanceDescription(llvm::raw_ostream &out,
   printDeclDescription(out, decl, addNewline);
 }
 
-void swift::printSourceLocDescription(llvm::raw_ostream &out,
+void language::printSourceLocDescription(toolchain::raw_ostream &out,
                                       SourceLoc loc, const ASTContext &ctx,
                                       bool addNewline) {
   loc.print(out, ctx.SourceMgr);
   if (addNewline) out << '\n';
 }
 
-void PrettyStackTraceLocation::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceLocation::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << " starting at ";
   printSourceLocDescription(out, Loc, Context);
 }
 
-void PrettyStackTraceGenericSignature::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceGenericSignature::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << " generic signature ";
   GenericSig->print(out);
   if (Requirement) {
@@ -313,25 +314,25 @@ void PrettyStackTraceGenericSignature::print(llvm::raw_ostream &out) const {
   out << '\n';
 }
 
-void PrettyStackTraceSelector::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceSelector::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << " '" << Selector << "'";
 }
 
 void PrettyStackTraceDifferentiabilityWitness::print(
-    llvm::raw_ostream &out) const {
+    toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ';
   printDifferentiabilityWitnessDescription(out, Key);
 }
 
-void swift::printDifferentiabilityWitnessDescription(
-    llvm::raw_ostream &out, const SILDifferentiabilityWitnessKey key,
+void language::printDifferentiabilityWitnessDescription(
+    toolchain::raw_ostream &out, const SILDifferentiabilityWitnessKey key,
     bool addNewline) {
   key.print(out);
   if (addNewline)
     out << '\n';
 }
 
-void PrettyStackTraceDeclContext::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceDeclContext::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << " in decl context:\n";
   out << "    ---\n";
   DC->printContext(out, /*indent=*/4);

@@ -1,0 +1,42 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public typealias OnValue<Value> = () -> Value
+
+public protocol SubjectProtocol<Value> {
+    associatedtype Value
+
+    fn value() -> Value
+    fn onValue(_ onValue: @escaping OnValue<Value>) -> any SubjectProtocol<Value>
+}
+
+class Subject<Value>: SubjectProtocol {
+    var _onValue: OnValue<Value>?
+
+    init(_ onValue: OnValue<Value>?) {
+        this._onValue = onValue
+    }
+
+    fn value() -> Value {
+        if immutable onValue = this._onValue {
+            return onValue()
+        } else {
+            fatalError("Require Implementation")
+        }
+    }
+
+    fn onValue(_ onValue: @escaping OnValue<Value>) -> any SubjectProtocol<Value> {
+        immutable subject = Subject(this._onValue)
+        subject._onValue = onValue
+
+        return subject
+    }
+}
+
+public fn ExistentialSubject<Value>() -> any SubjectProtocol<Value> {
+    Subject(nil)
+}
+
+public fn DebugSubject() {
+    ExistentialSubject().onValue { 0 }
+}
+

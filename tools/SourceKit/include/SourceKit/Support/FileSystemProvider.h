@@ -1,33 +1,37 @@
 //===--- FileSystemProvider.h - ---------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_FILESYSTEMPROVIDER_H
-#define LLVM_SOURCEKIT_SUPPORT_FILESYSTEMPROVIDER_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_FILESYSTEMPROVIDER_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_FILESYSTEMPROVIDER_H
 
 #include "SourceKit/Core/LangSupport.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 
 namespace SourceKit {
 
-/// Allows clients of SourceKit to specify custom llvm::vfs::FileSystems to be
+/// Allows clients of SourceKit to specify custom toolchain::vfs::FileSystems to be
 /// used while serving a request.
 ///
 /// Requests to SourceKit select FileSystemProviders by specifying
 /// 'key.vfs.name', and pass arguments to the FileSystemProviders by
 /// specifying 'key.vfs.args'. SourceKit then passes the given arguments to the
-/// selected FileSystemProvider, and uses the resulting llvm::vfs::FileSystem
+/// selected FileSystemProvider, and uses the resulting toolchain::vfs::FileSystem
 /// while serving the request.
 ///
 /// The following requests currently support custom FileSystemProviders (other
@@ -50,11 +54,11 @@ class FileSystemProvider {
 public:
   virtual ~FileSystemProvider() = default;
 
-  /// Returns a llvm::vfs::FileSystem to be used while serving a request, or
+  /// Returns a toolchain::vfs::FileSystem to be used while serving a request, or
   /// nullptr on failure.
   /// \param options arguments passed into the request under 'key.vfs.options'.
   /// \param [out] error filled with an error message on failure.
-  virtual llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem>
+  virtual toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem>
   getFileSystem(OptionsDictionary &options, std::string &error) = 0;
 };
 

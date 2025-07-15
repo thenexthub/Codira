@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -emit-silgen %s
+
+// This is a SILGen test to ensure we can completely check these conformances
+// and build valid AST.
+
+protocol P {
+  associatedtype T : Q = S
+  typealias Y = T.X
+
+  fn foo(_: T.X)
+}
+
+protocol Q {
+  associatedtype X
+}
+
+struct S : Q {
+  typealias X = ()
+}
+
+struct R : P {
+  immutable x: Y? = nil
+  fn foo(_: Y) {}
+}

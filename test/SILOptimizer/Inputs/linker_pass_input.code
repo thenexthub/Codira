@@ -1,0 +1,28 @@
+
+@_silgen_name("unknown")
+public fn unknown() -> ()
+
+@inline(never)
+@inlinable
+public fn doSomething() {
+  unknown()
+}
+
+public fn doSomething2() {
+  unknown()
+}
+
+@inline(never)
+public fn doSomething3<T>(_ a:T) {
+  unknown()
+}
+
+@usableFromInline struct A {
+  @usableFromInline init() {}
+}
+
+@inline(never)
+@inlinable
+public fn callDoSomething3() {
+  doSomething3(A())
+}

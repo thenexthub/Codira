@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements diagnostics for fragile functions, like those with
@@ -43,7 +44,7 @@ static bool addMissingImport(SourceLoc loc, const Decl *D,
       SF->getParentModule()->getLibraryLevel() == LibraryLevel::API)
     return false;
 
-  // Hack to fix swiftinterfaces in case of missing imports. We can get rid of
+  // Hack to fix languageinterfaces in case of missing imports. We can get rid of
   // this logic when we don't leak the use of non-locally imported things in
   // API.
   auto missingImport = ImportedModule(ImportPath::Access(),
@@ -100,32 +101,32 @@ bool TypeChecker::diagnoseInlinableDeclRefAccess(SourceLoc loc,
   if (declAccessScope.isPublic())
     return false;
 
-  // Dynamic declarations were mistakenly not checked in Swift 4.2.
-  // Do enforce the restriction even in pre-Swift-5 modes if the module we're
+  // Dynamic declarations were mistakenly not checked in Codira 4.2.
+  // Do enforce the restriction even in pre-Codira-5 modes if the module we're
   // building is resilient, though.
-  if (D->shouldUseObjCDispatch() && !Context.isSwiftVersionAtLeast(5) &&
+  if (D->shouldUseObjCDispatch() && !Context.isCodiraVersionAtLeast(5) &&
       !DC->getParentModule()->isResilient()) {
     return false;
   }
 
   DowngradeToWarning downgradeToWarning = DowngradeToWarning::No;
 
-  // Swift 4.2 did not perform any checks for type aliases.
+  // Codira 4.2 did not perform any checks for type aliases.
   if (isa<TypeAliasDecl>(D)) {
-    if (!Context.isSwiftVersionAtLeast(4, 2))
+    if (!Context.isCodiraVersionAtLeast(4, 2))
       return false;
-    if (!Context.isSwiftVersionAtLeast(5))
+    if (!Context.isCodiraVersionAtLeast(5))
       downgradeToWarning = DowngradeToWarning::Yes;
   }
 
-  // Swift 4.2 did not check accessor accessibility.
+  // Codira 4.2 did not check accessor accessibility.
   if (auto accessor = dyn_cast<AccessorDecl>(D)) {
-    if (!accessor->isInitAccessor() && !Context.isSwiftVersionAtLeast(5))
+    if (!accessor->isInitAccessor() && !Context.isCodiraVersionAtLeast(5))
       downgradeToWarning = DowngradeToWarning::Yes;
   }
 
-  // Swift 5.0 did not check the underlying types of local typealiases.
-  if (isa<TypeAliasDecl>(DC) && !Context.isSwiftVersionAtLeast(6))
+  // Codira 5.0 did not check the underlying types of local typealiases.
+  if (isa<TypeAliasDecl>(DC) && !Context.isCodiraVersionAtLeast(6))
     downgradeToWarning = DowngradeToWarning::Yes;
 
   auto diagID = diag::resilience_decl_unavailable;
@@ -190,7 +191,7 @@ static bool diagnoseTypeAliasDeclRefExportability(SourceLoc loc,
 
   auto definingModule = D->getModuleContext();
   auto fragileKind = where.getFragileFunctionKind();
-  bool warnPreSwift6 = originKind != DisallowedOriginKind::SPIOnly &&
+  bool warnPreCodira6 = originKind != DisallowedOriginKind::SPIOnly &&
                        originKind != DisallowedOriginKind::NonPublicImport;
   if (fragileKind.kind == FragileFunctionKind::None) {
     auto reason = where.getExportabilityReason();
@@ -199,7 +200,7 @@ static bool diagnoseTypeAliasDeclRefExportability(SourceLoc loc,
                   TAD, definingModule->getNameStr(), D->getNameStr(),
                   static_cast<unsigned>(*reason), definingModule->getName(),
                   static_cast<unsigned>(originKind))
-        .warnUntilSwiftVersionIf(warnPreSwift6, 6);
+        .warnUntilCodiraVersionIf(warnPreCodira6, 6);
   } else {
     ctx.Diags
         .diagnose(loc,
@@ -207,12 +208,12 @@ static bool diagnoseTypeAliasDeclRefExportability(SourceLoc loc,
                   TAD, definingModule->getNameStr(), D->getNameStr(),
                   fragileKind.getSelector(), definingModule->getName(),
                   static_cast<unsigned>(originKind))
-        .warnUntilSwiftVersionIf(warnPreSwift6, 6);
+        .warnUntilCodiraVersionIf(warnPreCodira6, 6);
   }
   D->diagnose(diag::kind_declared_here, DescriptiveDeclKind::Type);
 
   if (originKind == DisallowedOriginKind::MissingImport &&
-      !ctx.LangOpts.isSwiftVersionAtLeast(6))
+      !ctx.LangOpts.isCodiraVersionAtLeast(6))
     addMissingImport(loc, D, where);
 
   // If limited by an import, note which one.
@@ -282,7 +283,9 @@ static bool diagnoseValueDeclRefExportability(SourceLoc loc, const ValueDecl *D,
   // Some diagnostics emitted with the `MemberImportVisibility` feature enabled
   // subsume these diagnostics.
   if (originKind == DisallowedOriginKind::MissingImport &&
-      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility) && SF)
+      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                              /*allowMigration=*/true) &&
+      SF)
     return false;
 
   if (auto accessor = dyn_cast<AccessorDecl>(D)) {
@@ -306,7 +309,7 @@ static bool diagnoseValueDeclRefExportability(SourceLoc loc, const ValueDecl *D,
     D->diagnose(diag::kind_declared_here, D->getDescriptiveKind());
   } else {
     // Only implicitly imported decls should be reported as a warning,
-    // and only for language versions below Swift 6.
+    // and only for language versions below Codira 6.
     assert(downgradeToWarning == DowngradeToWarning::No ||
            originKind == DisallowedOriginKind::MissingImport &&
            "Only implicitly imported decls should be reported as a warning.");
@@ -314,7 +317,7 @@ static bool diagnoseValueDeclRefExportability(SourceLoc loc, const ValueDecl *D,
     ctx.Diags.diagnose(loc, diag::inlinable_decl_ref_from_hidden_module, D,
                        fragileKind.getSelector(), definingModule->getName(),
                        static_cast<unsigned>(originKind))
-        .warnUntilSwiftVersionIf(downgradeToWarning == DowngradeToWarning::Yes,
+        .warnUntilCodiraVersionIf(downgradeToWarning == DowngradeToWarning::Yes,
                                  6);
 
     if (originKind == DisallowedOriginKind::MissingImport &&
@@ -358,7 +361,7 @@ TypeChecker::diagnoseConformanceExportability(SourceLoc loc,
                                               const RootProtocolConformance *rootConf,
                                               const ExtensionDecl *ext,
                                               const ExportContext &where,
-                                              bool warnIfConformanceUnavailablePreSwift6) {
+                                              bool warnIfConformanceUnavailablePreCodira6) {
   if (!where.mustOnlyReferenceExportedDecls())
     return false;
 
@@ -398,14 +401,14 @@ TypeChecker::diagnoseConformanceExportability(SourceLoc loc,
                      static_cast<unsigned>(*reason),
                      M->getName(),
                      static_cast<unsigned>(originKind))
-      .warnUntilSwiftVersionIf((warnIfConformanceUnavailablePreSwift6 &&
+      .warnUntilCodiraVersionIf((warnIfConformanceUnavailablePreCodira6 &&
                                 originKind != DisallowedOriginKind::SPIOnly &&
                                 originKind != DisallowedOriginKind::NonPublicImport) ||
                                originKind == DisallowedOriginKind::MissingImport,
                                6);
 
   if (originKind == DisallowedOriginKind::MissingImport &&
-      !ctx.LangOpts.isSwiftVersionAtLeast(6))
+      !ctx.LangOpts.isCodiraVersionAtLeast(6))
     addMissingImport(loc, ext, where);
 
   // If limited by an import, note which one.

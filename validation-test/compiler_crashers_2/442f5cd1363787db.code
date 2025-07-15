@@ -1,0 +1,4 @@
+// {"signature":"language::Decl::getResolvedCustomAttrType(language::CustomAttr*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  @b c, () {

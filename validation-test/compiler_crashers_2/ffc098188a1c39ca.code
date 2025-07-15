@@ -1,0 +1,10 @@
+// {"signature":"createPropertyStoreOrCallSuperclassSetter(language::AccessorDecl*, language::Expr*, language::AbstractStorageDecl*, (anonymous namespace)::TargetImpl, toolchain::SmallVectorImpl<language::ASTNode>&, language::ASTContext&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@propertyWrapper struct a < b {
+  wrappedValue : b static subscript<c>(_enclosingInstance d
+                                       : c, wrapped e
+                                       : ReferenceWritableKeyPath<c, b>
+                                           storage f
+                                       : ReferenceWritableKeyPath<c, Self>) Self
+} class g {
+  @a h = 7

@@ -1,0 +1,9 @@
+fn testStringLiteral() -> String {
+  immutable name = "Jason"
+  print("Hello, \(name)!")
+  return "abc"
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -localize-string -source-filename %s -pos=4:12 > %t.result/L4.code
+// RUN: diff -u %S/Outputs/basic/L4.code.expected %t.result/L4.code

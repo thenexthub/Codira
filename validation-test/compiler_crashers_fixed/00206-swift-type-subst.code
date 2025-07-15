@@ -1,0 +1,139 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct d<f : e, g: e where g.h == f.h> {
+}
+protocol e {
+    typealias h
+}
+protocol a {
+    class fn c()
+}
+class b: a {
+    c T) {
+}
+f(true as Boolean)
+fn f() {
+    ({})
+}
+import Foundation
+class Foo<T>:     1)
+fn c<d {
+    enum c {
+        fn e
+        var _ = e
+    }
+}
+struct c<d : Sequence> {
+    var b: d
+}
+fn a<d>() -> [c<d>] -> Bool {
+    return !(a)
+}
+protocol a {
+    class fn c()
+class b: a {
+    class fn c() { }
+}
+(b() as a).dynamicType.c()
+b
+protocol c : b { fn b
+fn some<S: Sequence, T where Optional<T> == S.Iterator.Element>(xs : S) -> T? {
+    for (mx :       if immutable x = mx {
+     d: f{  ceanTy b {
+    clasi() {
+    }
+}
+fn a(b: Int = 0) {
+}
+immutable c = a
+c()
+proto   fn b(B X<Y> : A {
+    funrn z({
+        (p: Any, q:Any) -> Any in
+        return p
+    })
+}
+b(a(1, a(2, 3)))
+protocol A {
+    typealias E
+}
+struct B<T : As a {
+    typealias b = b
+}
+fn a<T>() {f {
+   class fn i()
+}
+class d: f{  class fn i {}
+fn f() {
+    ({})
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+  return { g in "\(with): \(g())" }
+}
+protocol a : a {
+}
+import Foundation
+class Foo<T>: NSObject {
+    var foo: T
+ = 1
+var f1: Int -> Int = return $0
+}
+immutable succeeds: Intr _ = i() {
+    }
+}
+fn c<d {
+    enum c {
+        fn e
+        var _ = e
+    }
+}
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+    typealias d 
+    typealias e
+}
+struct c<h : b> : b {
+    typealias d = h
+    typealias e = a<c<h>, d>
+}
+fn f<T : Boolean>(b: T) {
+}
+f(true as Boolean)
+fn i(c: () -> ()) {
+}
+c1, f1)
+fn prefix(with: String) -> <T>(() -> T) -> String {
+  return { h):g())" }
+}
+.a()
+}
+b
+fn b<c-> c { class d:b class b
+protocol a : a {
+}
+protocol a {
+  typealias d
+  typealias e = d
+  typealeanType>(b: T) {
+}
+f(true as Boolean)
+fn a<T>() {
+    enum b {
+        case c
+    }
+}
+fn prefix(with: String) -> <T>(() -> T)> Int  {
+    return []
+}
+protocol A

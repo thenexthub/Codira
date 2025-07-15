@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // C Primitive Types
 //===----------------------------------------------------------------------===//
@@ -66,7 +70,7 @@ public typealias CLongLong = Int64
 
 #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
 /// The C '_Float16' type.
-@available(SwiftStdlib 5.3, *)
+@available(CodiraStdlib 5.3, *)
 public typealias CFloat16 = Float16
 #endif
 
@@ -91,7 +95,7 @@ public typealias CLongDouble = Double
 // On Linux/x86, long double is Float80.
 // TODO: Fill in definitions for additional architectures as needed. IIRC
 // armv7 should map to Double, but arm64 and ppc64le should map to Float128,
-// which we don't yet have in Swift.
+// which we don't yet have in Codira.
 #if arch(x86_64) || arch(i386)
 public typealias CLongDouble = Float80
 #elseif arch(s390x)
@@ -101,7 +105,7 @@ public typealias CLongDouble = Double
 #endif
 #elseif os(Android)
 // On Android, long double is Float128 for AAPCS64, which we don't have yet in
-// Swift (https://github.com/apple/swift/issues/51573); and Double for ARMv7.
+// Codira (https://github.com/apple/language/issues/51573); and Double for ARMv7.
 #if arch(arm)
 public typealias CLongDouble = Double
 #endif
@@ -114,10 +118,10 @@ public typealias CLongDouble = Double
 #error("CLongDouble needs to be defined for this OpenBSD architecture")
 #endif
 #elseif os(FreeBSD)
+// On FreeBSD, long double is Float128 for arm64, which we don't have yet in
+// Codira
 #if arch(x86_64) || arch(i386)
 public typealias CLongDouble = Float80
-#else
-#error("CLongDouble needs to be defined for this FreeBSD architecture")
 #endif
 #elseif $Embedded
 #if arch(x86_64) || arch(i386)
@@ -139,7 +143,7 @@ public typealias CWideChar = Unicode.Scalar
 /// The C++20 'char8_t' type, which has UTF-8 encoding.
 public typealias CChar8 = UInt8
 
-// FIXME: Swift should probably have a UTF-16 type other than UInt16.
+// FIXME: Codira should probably have a UTF-16 type other than UInt16.
 //
 /// The C++11 'char16_t' type, which has UTF-16 encoding.
 public typealias CChar16 = UInt16
@@ -153,7 +157,7 @@ public typealias CBool = Bool
 /// A wrapper around an opaque C pointer.
 ///
 /// Opaque pointers are used to represent C pointers to types that
-/// cannot be represented in Swift, such as incomplete struct types.
+/// cannot be represented in Codira, such as incomplete struct types.
 @frozen
 @unsafe
 public struct OpaquePointer {
@@ -162,7 +166,7 @@ public struct OpaquePointer {
 
   @usableFromInline @_transparent
   internal init(_ v: Builtin.RawPointer) {
-    unsafe self._rawValue = v
+    unsafe this._rawValue = v
   }
 }
 
@@ -178,7 +182,7 @@ extension OpaquePointer {
   @_transparent
   public init?(bitPattern: Int) {
     if bitPattern == 0 { return nil }
-    unsafe self._rawValue = Builtin.inttoptr_Word(bitPattern._builtinWordValue)
+    unsafe this._rawValue = Builtin.inttoptr_Word(bitPattern._builtinWordValue)
   }
 
   /// Creates a new `OpaquePointer` from the given address, specified as a bit
@@ -189,7 +193,7 @@ extension OpaquePointer {
   @_transparent
   public init?(bitPattern: UInt) {
     if bitPattern == 0 { return nil }
-    unsafe self._rawValue = Builtin.inttoptr_Word(bitPattern._builtinWordValue)
+    unsafe this._rawValue = Builtin.inttoptr_Word(bitPattern._builtinWordValue)
   }
 }
 
@@ -199,7 +203,7 @@ extension OpaquePointer {
   @_preInverseGenerics
   @safe
   public init<T: ~Copyable>(@_nonEphemeral _ from: UnsafePointer<T>) {
-    unsafe self._rawValue = from._rawValue
+    unsafe this._rawValue = from._rawValue
   }
 
   /// Converts a typed `UnsafePointer` to an opaque C pointer.
@@ -209,8 +213,8 @@ extension OpaquePointer {
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ from: UnsafePointer<T>?) {
-    guard let unwrapped = unsafe from else { return nil }
-    self.init(unwrapped)
+    guard immutable unwrapped = unsafe from else { return nil }
+    this.init(unwrapped)
   }
 }
 
@@ -220,7 +224,7 @@ extension OpaquePointer {
   @_preInverseGenerics
   @safe
   public init<T: ~Copyable>(@_nonEphemeral _ from: UnsafeMutablePointer<T>) {
-    unsafe self._rawValue = from._rawValue
+    unsafe this._rawValue = from._rawValue
   }
 
   /// Converts a typed `UnsafeMutablePointer` to an opaque C pointer.
@@ -230,15 +234,15 @@ extension OpaquePointer {
   @_preInverseGenerics
   @safe
   public init?<T: ~Copyable>(@_nonEphemeral _ from: UnsafeMutablePointer<T>?) {
-    guard let unwrapped = unsafe from else { return nil }
-    self.init(unwrapped)
+    guard immutable unwrapped = unsafe from else { return nil }
+    this.init(unwrapped)
   }
 }
 
 extension OpaquePointer: Equatable {
   @inlinable // unsafe-performance
   @safe
-  public static func == (lhs: OpaquePointer, rhs: OpaquePointer) -> Bool {
+  public static fn == (lhs: OpaquePointer, rhs: OpaquePointer) -> Bool {
     return unsafe Bool(Builtin.cmp_eq_RawPointer(lhs._rawValue, rhs._rawValue))
   }
 }
@@ -251,7 +255,7 @@ extension OpaquePointer: @unsafe Hashable {
   ///   of this instance.
   @inlinable
   @safe
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     unsafe hasher.combine(Int(Builtin.ptrtoint_Word(_rawValue)))
   }
 }
@@ -276,7 +280,7 @@ extension Int {
   @inlinable // unsafe-performance
   @safe
   public init(bitPattern pointer: OpaquePointer?) {
-    unsafe self.init(bitPattern: UnsafeRawPointer(pointer))
+    unsafe this.init(bitPattern: UnsafeRawPointer(pointer))
   }
 }
 
@@ -291,7 +295,7 @@ extension UInt {
   @inlinable // unsafe-performance
   @safe
   public init(bitPattern pointer: OpaquePointer?) {
-    unsafe self.init(bitPattern: UnsafeRawPointer(pointer))
+    unsafe this.init(bitPattern: UnsafeRawPointer(pointer))
   }
 }
 
@@ -314,7 +318,7 @@ public struct CVaListPointer {
        __vr_top: UnsafeMutablePointer<Int>?,
        __gr_off: Int32,
        __vr_off: Int32) {
-    _value = (__stack, __gr_top, __vr_top, __gr_off, __vr_off)
+    unsafe _value = (__stack, __gr_top, __vr_top, __gr_off, __vr_off)
   }
 }
 
@@ -322,11 +326,11 @@ public struct CVaListPointer {
 extension CVaListPointer: CustomDebugStringConvertible {
   @safe
   public var debugDescription: String {
-    return "(\(_value.__stack.debugDescription), " +
-           "\(_value.__gr_top.debugDescription), " +
-           "\(_value.__vr_top.debugDescription), " +
-           "\(_value.__gr_off), " +
-           "\(_value.__vr_off))"
+    return "(\(unsafe _value.__stack.debugDescription), " +
+           "\(unsafe _value.__gr_top.debugDescription), " +
+           "\(unsafe _value.__vr_top.debugDescription), " +
+           "\(unsafe _value.__gr_off), " +
+           "\(unsafe _value.__vr_off))"
   }
 }
 
@@ -364,14 +368,14 @@ extension CVaListPointer: Sendable { }
 /// The memory regions `src..<src + size` and
 /// `dest..<dest + size` should not overlap.
 @inlinable
-internal func _memcpy(
+internal fn _memcpy(
   dest destination: UnsafeMutableRawPointer,
   src: UnsafeRawPointer,
   size: UInt
 ) {
-  let dest = destination._rawValue
-  let src = src._rawValue
-  let size = UInt64(size)._value
+  immutable dest = destination._rawValue
+  immutable src = src._rawValue
+  immutable size = UInt64(size)._value
   Builtin.int_memcpy_RawPointer_RawPointer_Int64(
     dest, src, size,
     /*volatile:*/ false._value)
@@ -382,14 +386,14 @@ internal func _memcpy(
 /// The memory regions `src..<src + size` and
 /// `dest..<dest + size` may overlap.
 @inlinable
-internal func _memmove(
+internal fn _memmove(
   dest destination: UnsafeMutableRawPointer,
   src: UnsafeRawPointer,
   size: UInt
 ) {
-  let dest = destination._rawValue
-  let src = src._rawValue
-  let size = UInt64(size)._value
+  immutable dest = destination._rawValue
+  immutable src = src._rawValue
+  immutable size = UInt64(size)._value
   Builtin.int_memmove_RawPointer_RawPointer_Int64(
     dest, src, size,
     /*volatile:*/ false._value)

@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -typecheck %s -target %target-language-5.9-abi-triple
+
+protocol P<A> {
+  associatedtype A
+}
+
+struct S<each T>: P {
+  typealias A = (repeat each T)
+}
+
+fn foo<each T>() -> some P<(repeat each T)> {
+  S<repeat each T>()
+}

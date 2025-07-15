@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagexx-frontend -emit-module -o %t/CodiraClassTemplateInNamespaceModule.codemodule %S/Inputs/CodiraClassTemplateInNamespaceModule.code -I %S/Inputs -enable-library-evolution -language-version 5
+// RUN: %target-language-ide-test -print-module -module-to-print=CodiraClassTemplateInNamespaceModule -I %t/ -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// FIXME(https://github.com/apple/language/issues/56589): The following bug needs to be resolved so decls in __ObjC don't disappear.
+// XFAIL: *
+
+// CHECK: import ClassTemplateInNamespaceForCodiraModule
+// CHECK: fn receiveShip(_ i: inout Space.__CxxTemplateInstN5Space4ShipIbEE)
+// CHECK: fn receiveShipWithEngine(_ i: inout Space.__CxxTemplateInstN5Space4ShipIN6Engine8TurbojetEEE)
+
+// CHECK: fn returnShip() -> Space.__CxxTemplateInstN5Space4ShipIbEE
+// CHECK: fn returnShipWithEngine() -> Space.__CxxTemplateInstN5Space4ShipIN6Engine8TurbojetEEE
+

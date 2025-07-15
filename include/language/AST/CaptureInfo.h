@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CAPTURE_INFO_H
-#define SWIFT_AST_CAPTURE_INFO_H
+#ifndef LANGUAGE_AST_CAPTURE_INFO_H
+#define LANGUAGE_AST_CAPTURE_INFO_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeAlignments.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
 class CapturedValue;
@@ -37,10 +38,10 @@ class TypeConverter;
 } // namespace Lowering
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
-template <> struct DenseMapInfo<swift::CapturedValue>;
-} // namespace llvm
+template <> struct DenseMapInfo<language::CapturedValue>;
+} // namespace toolchain
 
 namespace language {
 class ValueDecl;
@@ -59,7 +60,7 @@ class CapturedValue {
 
 public:
   using Storage =
-      llvm::PointerIntPair<llvm::PointerUnion<ValueDecl *, Expr *>, 2,
+      toolchain::PointerIntPair<toolchain::PointerUnion<ValueDecl *, Expr *>, 2,
                            unsigned>;
 
 private:
@@ -69,7 +70,7 @@ private:
   explicit CapturedValue(Storage V, SourceLoc Loc) : Value(V), Loc(Loc) {}
 
 public:
-  friend struct llvm::DenseMapInfo<CapturedValue>;
+  friend struct toolchain::DenseMapInfo<CapturedValue>;
 
   enum {
     /// IsDirect is set when a VarDecl with storage *and* accessors is captured
@@ -145,7 +146,7 @@ public:
   SourceLoc getLoc() const { return loc; }
 };
 
-} // end swift namespace
+} // end language namespace
 
 namespace language {
 
@@ -154,7 +155,7 @@ class DynamicSelfType;
 /// Stores information about captured variables.
 class CaptureInfo {
   class CaptureInfoStorage final
-      : public llvm::TrailingObjects<CaptureInfoStorage,
+      : public toolchain::TrailingObjects<CaptureInfoStorage,
                                      CapturedValue,
                                      GenericEnvironment *,
                                      CapturedType> {
@@ -207,7 +208,7 @@ class CaptureInfo {
     HasGenericParamCaptures = 1 << 0
   };
 
-  llvm::PointerIntPair<const CaptureInfoStorage *, 2, OptionSet<Flags>>
+  toolchain::PointerIntPair<const CaptureInfoStorage *, 2, OptionSet<Flags>>
       StorageAndFlags;
 
 public:
@@ -280,11 +281,11 @@ public:
   /// that was initialized with an isolated parameter.
   VarDecl *getIsolatedParamCapture() const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void print(raw_ostream &OS) const;
 };
 
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_CAPTURE_INFO_H
+#endif // TOOLCHAIN_LANGUAGE_AST_CAPTURE_INFO_H
 

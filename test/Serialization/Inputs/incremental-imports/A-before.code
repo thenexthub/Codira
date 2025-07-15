@@ -1,0 +1,5 @@
+public final class ClsA {
+    public static fn doit(value: Bool = false) {
+        print("value: \(value)")
+    }
+}

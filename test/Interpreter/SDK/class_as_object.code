@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+immutable classes = NSMutableArray()
+classes.add(NSObject.this)
+classes.add(NSString.this)
+classes.add(NSNumber.this)
+
+for obj in classes {
+  print((obj as AnyObject).description)
+}
+// CHECK: NSObject
+// CHECK-NEXT: NSString
+// CHECK-NEXT: NSNumber
+
+print(NSObject.conforms(to: NSCopying.this))
+// CHECK-NEXT: false
+print(NSString.conforms(to: NSCopying.this))
+// CHECK-NEXT: true

@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-#ifndef SWIFT_MARKUP_AST_H
-#define SWIFT_MARKUP_AST_H
+#ifndef LANGUAGE_MARKUP_AST_H
+#define LANGUAGE_MARKUP_AST_H
 
 #include "language/Markup/LineList.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <optional>
 
 namespace language {
@@ -34,16 +35,16 @@ class TagField;
 class ThrowsField;
 class LocalizationKeyField;
 
-/// The basic structure of a doc comment attached to a Swift
+/// The basic structure of a doc comment attached to a Codira
 /// declaration.
 struct CommentParts {
   std::optional<const Paragraph *> Brief;
   ArrayRef<const MarkupASTNode *> BodyNodes;
   ArrayRef<ParamField *> ParamFields;
-  std::optional<const swift::markup::ReturnsField *> ReturnsField;
-  std::optional<const swift::markup::ThrowsField *> ThrowsField;
-  llvm::SmallSetVector<StringRef, 8> Tags;
-  std::optional<const swift::markup::LocalizationKeyField *>
+  std::optional<const language::markup::ReturnsField *> ReturnsField;
+  std::optional<const language::markup::ThrowsField *> ThrowsField;
+  toolchain::SmallSetVector<StringRef, 8> Tags;
+  std::optional<const language::markup::LocalizationKeyField *>
       LocalizationKeyField;
 
   bool isEmpty() const {
@@ -103,7 +104,7 @@ public:
 #pragma mark Markdown Nodes
 
 class Document final : public MarkupASTNode,
-    private llvm::TrailingObjects<Document, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Document, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -128,7 +129,7 @@ public:
 };
 
 class BlockQuote final : public MarkupASTNode,
-    private llvm::TrailingObjects<BlockQuote, MarkupASTNode *> {
+    private toolchain::TrailingObjects<BlockQuote, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -152,7 +153,7 @@ public:
 };
 
 class List final : public MarkupASTNode,
-    private llvm::TrailingObjects<List, MarkupASTNode *> {
+    private toolchain::TrailingObjects<List, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -189,7 +190,7 @@ public:
 };
 
 class Item final : public MarkupASTNode,
-    private llvm::TrailingObjects<Item, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Item, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -256,7 +257,7 @@ public:
 };
 
 class Paragraph final : public MarkupASTNode,
-    private llvm::TrailingObjects<Paragraph, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Paragraph, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -281,7 +282,7 @@ public:
 };
 
 class Header final : public MarkupASTNode,
-    private llvm::TrailingObjects<Header, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Header, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -474,7 +475,7 @@ public:
 };
 
 class Emphasis final : public InlineContent,
-    private llvm::TrailingObjects<Emphasis, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Emphasis, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -498,7 +499,7 @@ public:
 };
 
 class Strong final : public InlineContent,
-    private llvm::TrailingObjects<Strong, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Strong, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -522,7 +523,7 @@ public:
 };
 
 class Link final : public InlineContent,
-    private llvm::TrailingObjects<Link, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Link, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -552,7 +553,7 @@ public:
 };
 
 class Image final : public InlineContent,
-    private llvm::TrailingObjects<Image, MarkupASTNode *> {
+    private toolchain::TrailingObjects<Image, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -592,7 +593,7 @@ public:
   }
 };
 
-class InlineAttributes final : public InlineContent, private llvm::TrailingObjects<Image, MarkupASTNode *> {
+class InlineAttributes final : public InlineContent, private toolchain::TrailingObjects<Image, MarkupASTNode *> {
   friend TrailingObjects;
 
   // Note that inline attributes are like links, in that there are child inline nodes that are
@@ -645,7 +646,7 @@ public:
 };
 
 class ParamField final : public PrivateExtension,
-    private llvm::TrailingObjects<ParamField, MarkupASTNode *> {
+    private toolchain::TrailingObjects<ParamField, MarkupASTNode *> {
   friend TrailingObjects;
 
   size_t NumChildren;
@@ -695,7 +696,7 @@ public:
 
 #define MARKUP_SIMPLE_FIELD(Id, Keyword, XMLKind) \
 class Id final : public PrivateExtension, \
-    private llvm::TrailingObjects<Id, MarkupASTNode *> { \
+    private toolchain::TrailingObjects<Id, MarkupASTNode *> { \
   friend TrailingObjects; \
 \
   size_t NumChildren; \
@@ -762,8 +763,8 @@ MarkupASTNode *createSimpleField(MarkupContext &MC, StringRef Tag,
 
 bool isAFieldTag(StringRef Tag);
 
-void dump(const MarkupASTNode *Node, llvm::raw_ostream &OS, unsigned indent = 0);
-void printInlinesUnder(const MarkupASTNode *Node, llvm::raw_ostream &OS,
+void dump(const MarkupASTNode *Node, toolchain::raw_ostream &OS, unsigned indent = 0);
+void printInlinesUnder(const MarkupASTNode *Node, toolchain::raw_ostream &OS,
                        bool PrintDecorators = false);
 
 
@@ -789,4 +790,4 @@ public:
 } // namespace markup
 } // namespace language
 
-#endif // SWIFT_MARKUP_AST_H
+#endif // LANGUAGE_MARKUP_AST_H

@@ -1,0 +1,90 @@
+// RUN: %target-language-frontend -O -emit-sil %s | %FileCheck %s
+
+// is_same_metatype builtin is no longer used due to rdar://145707064 (Builtin.is_same_metatype should support noncopyable/nonescapable types)
+// XFAIL: rdar145707064
+
+// Check type equality related optimizations.
+
+// CHECK-LABEL: sil @{{.*}}areEqualTypes1{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areEqualTypes1{{.*}}'
+public fn areEqualTypes1<T1, T2>(_ t1: T1.Type, _ t2: T2.Type) -> Bool {
+    return t1 == t2
+}
+
+// CHECK-LABEL: sil @{{.*}}areEqualTypes2{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areEqualTypes2{{.*}}'
+public fn areEqualTypes2<T1, T2>(_ t1: T1.Type, _ t2o: T2.Type?) -> Bool {
+    return t1 == t2o
+}
+
+// CHECK-LABEL: sil @{{.*}}areEqualTypes3{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areEqualTypes3{{.*}}'
+public fn areEqualTypes3<T1, T2>(_ t1o: T1.Type?, _ t2: T2.Type) -> Bool {
+    return t1o == t2
+}
+
+// CHECK-LABEL: sil @{{.*}}areEqualTypes4{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areEqualTypes4{{.*}}'
+public fn areEqualTypes4<T1, T2>(_ t1o: T1.Type?, _ t2o: T2.Type?) -> Bool {
+    return t1o == t2o
+}
+
+// CHECK-LABEL: sil @{{.*}}areEqualTypes5{{.*}} : $@convention(thin)
+// CHECK-NOT: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areEqualTypes5{{.*}}'
+public fn areEqualTypes5<T1>(_ t1o: T1.Type?) -> Bool {
+    return t1o == nil
+}
+
+// CHECK-LABEL: sil @{{.*}}areEqualTypes6{{.*}} : $@convention(thin)
+// CHECK-NOT: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areEqualTypes6{{.*}}'
+public fn areEqualTypes6<T1>(_ t1o: T1.Type?) -> Bool {
+    return nil == t1o
+}
+
+// CHECK-LABEL: sil @{{.*}}areNotEqualTypes1{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areNotEqualTypes1{{.*}}'
+public fn areNotEqualTypes1<T1, T2>(_ t1: T1.Type, _ t2: T2.Type) -> Bool {
+    return t1 != t2
+}
+
+// CHECK-LABEL: sil @{{.*}}areNotEqualTypes2{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areNotEqualTypes2{{.*}}'
+public fn areNotEqualTypes2<T1, T2>(_ t1: T1.Type, _ t2o: T2.Type?) -> Bool {
+    return t1 != t2o
+}
+
+// CHECK-LABEL: sil @{{.*}}areNotEqualTypes3{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areNotEqualTypes3{{.*}}'
+public fn areNotEqualTypes3<T1, T2>(_ t1o: T1.Type?, _ t2: T2.Type) -> Bool {
+    return t1o != t2
+}
+
+// CHECK-LABEL: sil @{{.*}}areNotEqualTypes4{{.*}} : $@convention(thin)
+// CHECK: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areNotEqualTypes4{{.*}}'
+public fn areNotEqualTypes4<T1, T2>(_ t1o: T1.Type?, _ t2o: T2.Type?) -> Bool {
+    return t1o != t2o
+}
+
+// CHECK-LABEL: sil @{{.*}}areNotEqualTypes5{{.*}} : $@convention(thin)
+// CHECK-NOT: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areNotEqualTypes5{{.*}}'
+public fn areNotEqualTypes5<T1>(_ t1o: T1.Type?) -> Bool {
+    return t1o != nil
+}
+
+// CHECK-LABEL: sil @{{.*}}areNotEqualTypes6{{.*}} : $@convention(thin)
+// CHECK-NOT: builtin "is_same_metatype"
+// CHECK: // end sil function '{{.*}}areNotEqualTypes6{{.*}}'
+public fn areNotEqualTypes6<T1>(_ t1o: T1.Type?) -> Bool {
+    return nil != t1o
+}

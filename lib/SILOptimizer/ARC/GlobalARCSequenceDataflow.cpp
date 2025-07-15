@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -27,9 +28,9 @@
 #include "language/SIL/SILSuccessor.h"
 #include "language/SIL/CFG.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -56,7 +57,7 @@ using ARCBBStateInfoHandle = ARCSequenceDataflowEvaluator::ARCBBStateInfoHandle;
 /// NestingDetected will be set to indicate that the block needs to be
 /// reanalyzed if code motion occurs.
 bool ARCSequenceDataflowEvaluator::processBBTopDown(ARCBBState &BBState) {
-  LLVM_DEBUG(llvm::dbgs() << ">>>> Top Down!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << ">>>> Top Down!\n");
 
   SILBasicBlock &BB = BBState.getBB();
 
@@ -89,7 +90,7 @@ bool ARCSequenceDataflowEvaluator::processBBTopDown(ARCBBState &BBState) {
   // For each instruction I in BB...
   for (auto &I : BB) {
 
-    LLVM_DEBUG(llvm::dbgs() << "VISITING:\n    " << I);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING:\n    " << I);
 
     auto Result = DataflowVisitor.visit(I.asSILNode());
 
@@ -144,7 +145,7 @@ void ARCSequenceDataflowEvaluator::mergePredecessors(
     if (!PredDataHandle)
       continue;
 
-    LLVM_DEBUG(llvm::dbgs() << "    Merging Pred: " << PredDataHandle->getID()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Merging Pred: " << PredDataHandle->getID()
                             << "\n");
 
     // If the predecessor is the head of a backedge in our traversal, clear any
@@ -179,7 +180,7 @@ void ARCSequenceDataflowEvaluator::mergePredecessors(
 bool ARCSequenceDataflowEvaluator::processTopDown() {
   bool NestingDetected = false;
 
-  LLVM_DEBUG(llvm::dbgs() << "<<<< Processing Top Down! >>>>\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "<<<< Processing Top Down! >>>>\n");
 
   // For each BB in our reverse post order...
   for (auto *BB : POA->get(&F)->getReversePostOrder()) {
@@ -190,10 +191,10 @@ bool ARCSequenceDataflowEvaluator::processTopDown() {
     //
     // TODO: When data handles are introduced, print that instead. This code
     // should not be touching BBIDs directly.
-    LLVM_DEBUG(llvm::dbgs() << "Processing BB#: " << BBDataHandle.getID()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing BB#: " << BBDataHandle.getID()
                             << "\n");
 
-    LLVM_DEBUG(llvm::dbgs() << "Merging Predecessors!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Merging Predecessors!\n");
     mergePredecessors(BBDataHandle);
 
     // Then perform the basic block optimization.
@@ -224,7 +225,7 @@ bool ARCSequenceDataflowEvaluator::processTopDown() {
 /// the CFG.
 bool ARCSequenceDataflowEvaluator::processBBBottomUp(
     ARCBBState &BBState, bool FreezeOwnedArgEpilogueReleases) {
-  LLVM_DEBUG(llvm::dbgs() << ">>>> Bottom Up!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << ">>>> Bottom Up!\n");
   SILBasicBlock &BB = BBState.getBB();
 
   bool NestingDetected = false;
@@ -249,7 +250,7 @@ bool ARCSequenceDataflowEvaluator::processBBBottomUp(
     SILInstruction &I = *II;
     ++II;
 
-    LLVM_DEBUG(llvm::dbgs() << "VISITING:\n    " << I);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING:\n    " << I);
 
     auto Result = DataflowVisitor.visit(I.asSILNode());
 
@@ -340,7 +341,7 @@ bool ARCSequenceDataflowEvaluator::processBottomUp(
     bool FreezeOwnedArgEpilogueReleases) {
   bool NestingDetected = false;
 
-  LLVM_DEBUG(llvm::dbgs() << "<<<< Processing Bottom Up! >>>>\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "<<<< Processing Bottom Up! >>>>\n");
 
   // For each BB in our post order...
   for (auto *BB : POA->get(&F)->getPostOrder()) {
@@ -349,10 +350,10 @@ bool ARCSequenceDataflowEvaluator::processBottomUp(
 
     // This will always succeed since we have an entry for each BB in our post
     // order.
-    LLVM_DEBUG(llvm::dbgs() << "Processing BB#: " << BBDataHandle.getID()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing BB#: " << BBDataHandle.getID()
                             << "\n");
 
-    LLVM_DEBUG(llvm::dbgs() << "Merging Successors!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Merging Successors!\n");
     mergeSuccessors(BBDataHandle);
 
     // Then perform the basic block optimization.
@@ -384,30 +385,30 @@ bool ARCSequenceDataflowEvaluator::run(bool FreezeOwnedReleases) {
   bool NestingDetected = processBottomUp(FreezeOwnedReleases);
   NestingDetected |= processTopDown();
 
-  LLVM_DEBUG(
-      llvm::dbgs() << "*** Bottom-Up and Top-Down analysis results ***\n");
-  LLVM_DEBUG(dumpDataflowResults());
+  TOOLCHAIN_DEBUG(
+      toolchain::dbgs() << "*** Bottom-Up and Top-Down analysis results ***\n");
+  TOOLCHAIN_DEBUG(dumpDataflowResults());
 
   return NestingDetected;
 }
 
 void ARCSequenceDataflowEvaluator::dumpDataflowResults() {
-  llvm::dbgs() << "IncToDecStateMap:\n";
+  toolchain::dbgs() << "IncToDecStateMap:\n";
   for (auto it : IncToDecStateMap) {
     if (!it.has_value())
       continue;
     auto instAndState = it.value();
-    llvm::dbgs() << "Increment: ";
+    toolchain::dbgs() << "Increment: ";
     instAndState.first->dump();
     instAndState.second.dump();
   }
 
-  llvm::dbgs() << "DecToIncStateMap:\n";
+  toolchain::dbgs() << "DecToIncStateMap:\n";
   for (auto it : DecToIncStateMap) {
     if (!it.has_value())
       continue;
     auto instAndState = it.value();
-    llvm::dbgs() << "Decrement: ";
+    toolchain::dbgs() << "Decrement: ";
     instAndState.first->dump();
     instAndState.second.dump();
   }

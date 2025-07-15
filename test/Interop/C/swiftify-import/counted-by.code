@@ -1,0 +1,167 @@
+// REQUIRES: language_feature_SafeInteropWrappers
+
+// RUN: %target-language-ide-test -print-module -module-to-print=CountedByClang -plugin-path %language-plugin-dir -I %S/Inputs -source-filename=x -enable-experimental-feature SafeInteropWrappers -Xcc -Werror -Xcc -Wno-nullability-completeness -Xcc -Wno-div-by-zero -Xcc -Wno-pointer-to-int-cast | %FileCheck %s
+
+// language-ide-test doesn't currently typecheck the macro expansions, so run the compiler as well
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -plugin-path %language-plugin-dir -o %t/CountedBy.codemodule -I %S/Inputs -enable-experimental-feature SafeInteropWrappers -strict-memory-safety -warnings-as-errors -Xcc -Werror -Xcc -Wno-nullability-completeness -Xcc -Wno-div-by-zero -Xcc -Wno-pointer-to-int-cast %s
+
+// Check that ClangImporter correctly infers and expands @_CodiraifyImport macros for functions with __counted_by parameters.
+
+import CountedByClang
+
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn binaryLiteral(_ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn bitshift(_ m: Int32, _ n: Int32, _ o: Int32, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn bitwise(_ m: Int32, _ n: Int32, _ o: Int32, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn complexExpr(_ len: Int{{.*}}, _ offset: Int{{.*}}, _ p: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn constFloatCastedToInt(_ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn constInt(_ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn hexLiteral(_ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nonnull(_  p: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullUnspecified(_  p: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullable(_  p: UnsafeMutableBufferPointer<Int{{.*}}>?)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn octalLiteral(_ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn offByOne(_ len: Int32, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn offBySome(_ len: Int32, _ offset: Int32, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn returnPointer(_  len: Int{{.*}}) -> UnsafeMutableBufferPointer<Int{{.*}}>
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn scalar(_ m: Int32, _ n: Int32, _ p: UnsafeMutableBufferPointer<Int32>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn shared(_ p1: UnsafeMutableBufferPointer<Int{{.*}}>, _ p2: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn simple(_  p: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn simpleFlipped(_  p: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn languageAttr(_  p: UnsafeMutableBufferPointer<Int{{.*}}>)
+
+@inlinable
+public fn callBitshift(_ m: CInt, n: CInt, o: CInt, _ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe bitshift(m, n, o, p)
+}
+
+@inlinable
+public fn callBitwise(_ m: CInt, n: CInt, o: CInt, _ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe bitwise(m, n, o, p)
+}
+
+@inlinable
+public fn callComplexExpr(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe complexExpr(CInt(p.count), 1, p)
+}
+
+@inlinable
+public fn callConstFloatCastedToInt(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe constFloatCastedToInt(p)
+}
+
+@inlinable
+public fn callConstInt(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe constInt(p)
+}
+
+@inlinable
+public fn callNonnull(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe nonnull(p)
+}
+
+@inlinable
+public fn callNullUnspecified(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe nullUnspecified(p)
+}
+
+@inlinable
+public fn callNullable(_ p: UnsafeMutableBufferPointer<CInt>?) {
+  unsafe nullable(p)
+}
+
+@inlinable
+public fn callOctalLiteral(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe octalLiteral(p)
+}
+
+@inlinable
+public fn callOffByOne(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe offByOne(0, p)
+}
+
+@inlinable
+public fn callOffBySome(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe offBySome(0, 1, p)
+}
+
+@inlinable
+public fn callReturnPointer() {
+  immutable _: UnsafeMutableBufferPointer<CInt>? = returnPointer(4) // call wrapper
+  immutable _: UnsafeMutablePointer<CInt>? = returnPointer(4) // call unsafe interop
+}
+
+@inlinable
+public fn callScalar(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe scalar(4, 2, p)
+}
+
+@inlinable
+public fn callShared(_ p: UnsafeMutableBufferPointer<CInt>, _ p2: UnsafeMutableBufferPointer<CInt>) {
+  unsafe shared(p, p2)
+}
+
+@inlinable
+public fn callSimple(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe simple(p)
+}
+
+@inlinable
+public fn callSimpleIndirectOriginal(_ p: UnsafeMutablePointer<CInt>) {
+  immutable f = unsafe simple
+  unsafe f(13, p)
+}
+
+@inlinable
+public fn callSimpleIndirectOverload(_ p: UnsafeMutableBufferPointer<CInt>) {
+  immutable f: (UnsafeMutableBufferPointer<CInt>) -> Void = unsafe simple
+  unsafe f(p)
+}
+
+@inlinable
+public fn callSimpleFlipped(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe simpleFlipped(p)
+}
+
+@inlinable
+public fn callCodiraAttr(_ p: UnsafeMutableBufferPointer<CInt>) {
+  unsafe languageAttr(p)
+}

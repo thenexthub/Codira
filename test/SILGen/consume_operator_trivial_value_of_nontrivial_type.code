@@ -1,0 +1,11 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+// https://github.com/apple/language/issues/71608
+fn f(x:[Int]?)
+{
+}
+fn g()
+{
+    immutable x:[Int]? = nil
+    f(x: consume x)
+}

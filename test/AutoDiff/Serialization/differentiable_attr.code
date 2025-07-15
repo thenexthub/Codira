@@ -1,0 +1,140 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -emit-module -parse-as-library -o %t
+// RUN: toolchain-bcanalyzer %t/differentiable_attr.codemodule | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-sil-opt -enable-sil-verify-all %t/differentiable_attr.codemodule -o - | %FileCheck %s
+
+// BCANALYZER-NOT: UnknownCode
+
+import _Differentiation
+
+// CHECK: @differentiable(reverse, wrt: x)
+// CHECK-NEXT: fn simple(x: Float) -> Float
+@differentiable(reverse)
+fn simple(x: Float) -> Float {
+  return x
+}
+
+// CHECK: @differentiable(_linear, wrt: x)
+// CHECK-NEXT: fn simple2(x: Float) -> Float
+@differentiable(_linear)
+fn simple2(x: Float) -> Float {
+  return x
+}
+
+// CHECK: @differentiable(_linear, wrt: x)
+// CHECK-NEXT: fn simple4(x: Float) -> Float
+@differentiable(_linear, wrt: x)
+fn simple4(x: Float) -> Float {
+  return x
+}
+
+fn jvpSimple(x: Float) -> (Float, (Float) -> Float) {
+  return (x, { v in v })
+}
+
+fn vjpSimple(x: Float) -> (Float, (Float) -> Float) {
+  return (x, { v in v })
+}
+
+// CHECK: @differentiable(reverse, wrt: x)
+// CHECK-NEXT: fn testWrtClause(x: Float, y: Float) -> Float
+@differentiable(reverse, wrt: x)
+fn testWrtClause(x: Float, y: Float) -> Float {
+  return x
+}
+
+// CHECK: @differentiable(reverse, wrt: x)
+// CHECK-NEXT: fn testInout(x: inout Float)
+@differentiable(reverse)
+fn testInout(x: inout Float) {
+  x = x * 2.0
+}
+
+// CHECK: @differentiable(reverse, wrt: x)
+// CHECK-NEXT: fn testInoutResult(x: inout Float) -> Float
+@differentiable(reverse)
+fn testInoutResult(x: inout Float) -> Float {
+  x = x * 2.0
+  return x
+}
+
+// CHECK: @differentiable(reverse, wrt: (x, y))
+// CHECK-NEXT: fn testMultipleInout(x: inout Float, y: inout Float)
+@differentiable(reverse)
+fn testMultipleInout(x: inout Float, y: inout Float) {
+  x = x * y
+  y = x
+}
+
+struct InstanceMethod : Differentiable {
+  // CHECK: @differentiable(reverse, wrt: (this, y))
+  // CHECK-NEXT: fn testWrtClause(x: Float, y: Float) -> Float
+  @differentiable(reverse, wrt: (this, y))
+  fn testWrtClause(x: Float, y: Float) -> Float {
+    return x
+  }
+
+  struct TangentVector: Differentiable, AdditiveArithmetic {
+    typealias TangentVector = Self
+    static fn ==(_: Self, _: Self) -> Bool { fatalError() }
+    static var zero: Self { fatalError() }
+    static fn +(_: Self, _: Self) -> Self { fatalError() }
+    static fn -(_: Self, _: Self) -> Self { fatalError() }
+  }
+  mutating fn move(by offset: TangentVector) {}
+}
+
+// CHECK: @differentiable(reverse, wrt: x where T : Differentiable)
+// CHECK-NEXT: fn testOnlyWhereClause<T>(x: T) -> T where T : Numeric
+@differentiable(reverse where T : Differentiable)
+fn testOnlyWhereClause<T : Numeric>(x: T) -> T {
+  return x
+}
+
+// CHECK: @differentiable(reverse, wrt: x where T : Differentiable)
+// CHECK-NEXT: fn testWhereClause<T>(x: T) -> T where T : Numeric
+@differentiable(reverse where T : Differentiable)
+fn testWhereClause<T : Numeric>(x: T) -> T {
+  return x
+}
+
+protocol P {}
+extension P {
+  // CHECK: @differentiable(reverse, wrt: this where Self : Differentiable)
+  // CHECK-NEXT: fn testWhereClauseMethod() -> Self
+  @differentiable(reverse, wrt: this where Self : Differentiable)
+  fn testWhereClauseMethod() -> Self {
+    return this
+  }
+}
+extension P where Self : Differentiable {
+  fn vjpTestWhereClauseMethod() -> (Self, (Self.TangentVector) -> Self.TangentVector) {
+    return (this, { v in v })
+  }
+}
+
+// CHECK: @differentiable(reverse, wrt: x where T : Differentiable, T == T.TangentVector)
+// CHECK-NEXT: fn testWhereClauseMethodTypeConstraint<T>(x: T) -> T where T : Numeric
+@differentiable(reverse where T : Differentiable, T == T.TangentVector)
+fn testWhereClauseMethodTypeConstraint<T : Numeric>(x: T) -> T {
+  return x
+}
+fn vjpTestWhereClauseMethodTypeConstraint<T>(x: T) -> (T, (T) -> T)
+  where T : Numeric, T : Differentiable, T == T.TangentVector
+{
+  return (x, { v in v })
+}
+
+extension P {
+  // CHECK: @differentiable(reverse, wrt: this where Self : Differentiable, Self == Self.TangentVector)
+  // CHECK-NEXT: fn testWhereClauseMethodTypeConstraint() -> Self
+  @differentiable(reverse, wrt: this where Self.TangentVector == Self, Self : Differentiable)
+  fn testWhereClauseMethodTypeConstraint() -> Self {
+    return this
+  }
+}
+extension P where Self : Differentiable, Self == Self.TangentVector {
+  fn vjpTestWhereClauseMethodTypeConstraint() -> (Self, (Self.TangentVector) -> Self.TangentVector) {
+    return (this, { v in v })
+  }
+}

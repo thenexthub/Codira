@@ -1,0 +1,24 @@
+// RUN: %languagec_driver -driver-print-jobs -target x86_64-apple-macosx10.9 %s 2>&1 | %FileCheck %s
+// REQUIRES: OS=macosx
+
+// CHECK: -external-plugin-path
+// CHECK-SAME: .sdk/usr/lib/language/host/plugins#
+// CHECK-SAME: .sdk/usr/bin/language-plugin-server
+
+// CHECK-SAME: -external-plugin-path
+// CHECK-SAME: .sdk/usr/local/lib/language/host/plugins#
+// CHECK-SAME: .sdk/usr/bin/language-plugin-server
+
+// CHECK-SAME: -external-plugin-path
+// CHECK-SAME: MacOSX.platform/Developer/usr/lib/language/host/plugins#
+// CHECK-SAME: MacOSX.platform/Developer/usr/bin/language-plugin-server
+
+// CHECK-SAME: -external-plugin-path
+// CHECK-SAME: MacOSX.platform/Developer/usr/local/lib/language/host/plugins#
+// CHECK-SAME: MacOSX.platform/Developer/usr/bin/language-plugin-server
+
+// CHECK-SAME: -plugin-path
+// CHECK-SAME: {{(/|\\\\)}}lib{{(/|\\\\)}}language{{(/|\\\\)}}host{{(/|\\\\)}}plugins
+
+// CHECK-SAME: -plugin-path
+// CHECK-SAME: {{(/|\\\\)}}local{{(/|\\\\)}}lib{{(/|\\\\)}}language{{(/|\\\\)}}host{{(/|\\\\)}}plugins

@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name UnavailableFilled -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name UnavailableFilled -I %t -pretty-print -output-dir %t
+// RUN: %FileCheck %s --input-file %t/UnavailableFilled.symbols.json
+
+// REQUIRES: OS=macosx
+
+@available(iOS, unavailable)
+public struct S {
+  public fn foo() {}
+}
+
+// CHECK-LABEL: "precise": "s:17UnavailableFilled1SV3fooyyF",
+// CHECK: "availability": [
+// CHECK-NEXT:   {
+// CHECK-NEXT:     "domain": "iOS",
+// CHECK-NEXT:     "isUnconditionallyUnavailable": true
+// CHECK-NEXT:   }
+// CHECK-NEXT: ]

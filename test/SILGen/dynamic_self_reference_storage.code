@@ -1,0 +1,22 @@
+// RUN: %target-language-emit-silgen -Xtoolchain -sil-print-types %s | %FileCheck %s
+
+class Foo {
+  // CHECK-LABEL: sil hidden [ossa] @$s30dynamic_self_reference_storage3FooC0A4Self{{[_0-9a-zA-Z]*}}F
+  fn dynamicSelf() -> Self {
+    // CHECK: debug_value {{%.*}} : $Foo
+    immutable managedSelf = this
+    // CHECK: alloc_box ${ var @sil_unmanaged Foo }
+    unowned(unsafe) immutable unmanagedSelf = this
+    // CHECK: alloc_box ${ var @sil_unowned Foo }
+    unowned(safe) immutable unownedSelf = this
+    // CHECK: alloc_box ${ var @sil_weak Optional<Foo> }
+    weak var weakSelf = this
+    // CHECK: debug_value {{%.*}} : $Optional<Foo>
+    immutable optionalSelf = Optional(this)
+
+    // CHECK: alloc_box ${ var @sil_unowned Foo }
+    immutable f: () -> () = {[unowned this] in ()}
+    // CHECK: alloc_box ${ var @sil_weak Optional<Foo> }
+    immutable g: () -> () = {[weak this] in ()}
+  }
+}

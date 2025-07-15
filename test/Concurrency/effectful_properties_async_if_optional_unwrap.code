@@ -1,0 +1,57 @@
+// RUN: %target-language-frontend -parse-as-library -emit-sil -verify %s
+
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+struct Kappa {
+  var maybeData: Int? {
+    get async { 12 }
+  }
+
+  fn take() -> Int? { // expected-note 3{{add 'async' to function 'take()' to make it asynchronous}}
+
+    if immutable data = maybeData { // expected-error{{'async' property access in a function that does not support concurrency}}
+      return data
+    }
+
+    immutable x = maybeData // expected-error{{'async' property access in a function that does not support concurrency}}
+      _ = x
+
+    if immutable maybeData { // expected-error{{'async' property access in a function that does not support concurrency}}
+      return maybeData
+    }
+
+    return nil
+  }
+
+  fn takeAsync() async -> Int? {
+
+    if immutable data = maybeData { // expected-error{{expression is 'async' but is not marked with 'await'}}
+      // expected-note@-1{{property access is 'async'}}
+      return data
+    }
+
+    immutable x = maybeData // expected-error{{expression is 'async' but is not marked with 'await'}}
+    // expected-note@-1{{property access is 'async'}}
+    _ = x
+
+    if immutable maybeData { // expected-error{{expression is 'async' but is not marked with 'await'}}
+      // expected-note@-1{{property access is 'async'}}
+      return maybeData
+    }
+
+    return nil
+  }
+
+  fn illegalSyntax() async -> Int? {
+    // This is NOT valid syntax and we reject it properly,
+    // though we could try to could give a better message
+    if immutable await maybeData { // expected-error{{unwrap condition requires a valid identifier}}
+      // expected-error@-1{{pattern variable binding cannot appear in an expression}}
+      // expected-warning@-2{{no 'async' operations occur within 'await' expression}}
+      return maybeData // expected-error{{expression is 'async' but is not marked with 'await'}}
+      // expected-note@-1{{property access is 'async'}}
+    }
+
+  }
+}

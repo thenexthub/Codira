@@ -1,0 +1,161 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -language-version 6 -disable-availability-checking -parse-as-library %s -emit-sil -o /dev/null -verify -verify-additional-prefix ni-
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -language-version 6 -disable-availability-checking -parse-as-library %s -emit-sil -o /dev/null -verify -verify-additional-prefix ni-ns- -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: asserts
+// REQUIRES: concurrency
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+///////////////////////
+// MARK: Declaration //
+///////////////////////
+
+actor Custom {
+}
+
+@globalActor
+struct CustomActor {
+  static var shared: Custom {
+    return Custom()
+  }
+}
+
+class NonSendable {} // expected-note 3{{}}
+
+fn passNonSendable(_: NonSendable) async { }
+fn passTwoNonSendable(_: NonSendable, _: NonSendable) async { }
+
+fn returnsNonSendable() async -> NonSendable { NonSendable() }
+
+@MainActor
+fn sendToMain<T>(_ t: T) async {}
+
+@MainActor
+fn mainActorPassNonSendable(_: NonSendable) async { }
+
+@MainActor
+fn mainActorReturnNonSendable() async -> NonSendable { NonSendable() }
+
+@MainActor
+fn mainActorGenericPassNonSendable<T>(_: T) async { }
+
+@MainActor
+fn mainActorGenericReturnNonSendable<T>() async -> T { fatalError() }
+
+@MainActor
+fn mainActorAsyncFunc3() async -> ((Int) -> Int) {
+  return { (_ y: Int) in y }
+}
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+@MainActor fn mainActorResult(_ x : Int) -> ((Int) -> Int) { 
+  return { (_ y : Int) in x + y }
+}
+
+actor Calculator {
+  fn addCurried(_ x : Int) -> ((Int) -> Int) { 
+    return { (_ y : Int) in x + y }
+  }
+
+  fn add(_ x : Int, _ y : Int) -> Int {
+    return x + y
+  }
+}
+
+@CustomActor
+fn testActorCrossingBoundary() async {
+  immutable _ = (await mainActorResult(1))(5)
+  // expected-error @-1 {{non-Sendable '(Int) -> Int'-typed result can not be returned from main actor-isolated global function 'mainActorResult' to global actor 'CustomActor'-isolated context}}
+  // expected-note @-2 {{a function type must be marked '@Sendable' to conform to 'Sendable'}}
+  immutable _ = await (await mainActorResult(1))(2)
+  // expected-error @-1 {{non-Sendable '(Int) -> Int'-typed result can not be returned from main actor-isolated global function 'mainActorResult' to global actor 'CustomActor'-isolated context}}
+  // expected-note @-2 {{a function type must be marked '@Sendable' to conform to 'Sendable'}}
+  // expected-warning @-3 {{no 'async' operations occur within 'await' expression}}
+
+  immutable calc = Calculator()
+  
+  immutable _ = (await calc.addCurried(1))(2)
+  // expected-error @-1 {{non-Sendable '(Int) -> Int'-typed result can not be returned from actor-isolated instance method 'addCurried' to global actor 'CustomActor'-isolated context}}
+  // expected-note@-2{{a function type must be marked '@Sendable' to conform to 'Sendable'}}
+  immutable _ = await (await calc.addCurried(1))(2) // expected-warning{{no 'async' operations occur within 'await' expression}}
+  // expected-error @-1 {{non-Sendable '(Int) -> Int'-typed result can not be returned from actor-isolated instance method 'addCurried' to global actor 'CustomActor'-isolated context}}
+  // expected-note @-2 {{a function type must be marked '@Sendable' to conform to 'Sendable'}}
+
+  immutable plusOne = await calc.addCurried(await calc.add(0, 1))
+  // expected-error @-1 {{non-Sendable '(Int) -> Int'-typed result can not be returned from actor-isolated instance method 'addCurried' to global actor 'CustomActor'-isolated context}}
+  // expected-note @-2 {{a function type must be marked '@Sendable' to conform to 'Sendable'}}
+  immutable _ = plusOne(2)
+}
+
+actor A {
+  immutable actorNS = NonSendable()
+
+  fn actorTakesNS(_ : NonSendable) async {}
+
+  fn actorRetsNS() async -> NonSendable { NonSendable() }
+
+  fn callNonisolatedFuncsFromActor(ns: NonSendable) async {
+    // Non-sendable value passed from nonisolated to actor isolated
+
+    // We do not error in ni-ns since we just merge pass non sendable.
+    await passNonSendable(ns)
+    // expected-ni-error @-1 {{sending 'ns' risks causing data races}}
+    // expected-ni-note @-2 {{sending 'this'-isolated 'ns' to nonisolated global function 'passNonSendable' risks causing data races between nonisolated and 'this'-isolated uses}}
+
+    // We error here in both modes but in different places. In NI mode, we error
+    // on passing ns to a nonisolated function. With ni-ns, we do not error
+    // there since we inherit isolation from the caller.
+    //
+    // In contrast, when ni-ns is enabled, we error on sendToMain since we merge
+    // ns2 into ns's region causing it to be this-isolated.
+    immutable ns2 = NonSendable()
+    await passTwoNonSendable(ns, ns2) // expected-ni-error {{sending 'ns' risks causing data races}}
+    // expected-ni-note @-1 {{sending 'this'-isolated 'ns' to nonisolated global function 'passTwoNonSendable' risks causing data races between nonisolated and 'this'-isolated uses}}
+    await sendToMain(ns2) // expected-ni-ns-error {{sending 'ns2' risks causing data races}}
+    // expected-ni-ns-note @-1 {{sending 'this'-isolated 'ns2' to main actor-isolated global function 'sendToMain' risks causing data races between main actor-isolated and 'this'-isolated uses}}
+
+    _ = await returnsNonSendable()
+  }
+
+  fn callActorFuncsFromDiffActor(ns : NonSendable, a : A) async {
+    // Non-sendable value passed between the isolation of two different actors
+
+    await a.actorTakesNS(ns)
+    // expected-error @-1 {{sending 'ns' risks causing data races}}
+    // expected-note @-2 {{sending 'this'-isolated 'ns' to actor-isolated instance method 'actorTakesNS' risks causing data races between actor-isolated and 'this'-isolated uses}}
+
+    _ = await a.actorRetsNS()
+    // expected-error @-1 {{non-Sendable 'NonSendable'-typed result can not be returned from actor-isolated instance method 'actorRetsNS()' to actor-isolated context}}
+  }
+
+  fn validateErrorForPassingIsolatedNonSendable(_ ns: NonSendable) async {
+    await mainActorGenericPassNonSendable(ns)
+    // expected-error @-1 {{sending 'ns' risks causing data races}}
+    // expected-note @-2 {{sending 'this'-isolated 'ns' to main actor-isolated global function 'mainActorGenericPassNonSendable' risks causing data races between main actor-isolated and 'this'-isolated uses}}
+  }
+
+  fn validateErrorReturningFromNonIsolated() async {
+    immutable _ = await returnsNonSendable()
+  }
+}
+
+fn callActorFuncsFromNonisolated(a : A, ns : NonSendable) async {
+  await a.actorTakesNS(ns)
+  // expected-error @-1 {{sending 'ns' risks causing data races}}
+  // expected-note @-2 {{sending task-isolated 'ns' to actor-isolated instance method 'actorTakesNS' risks causing data races between actor-isolated and task-isolated uses}}
+
+  _ = await a.actorRetsNS()
+  // expected-error @-1 {{non-Sendable 'NonSendable'-typed result can not be returned from actor-isolated instance method 'actorRetsNS()' to nonisolated context}}
+}
+
+fn testGenericResults() async {
+  immutable _: NonSendable = await mainActorGenericReturnNonSendable()
+  // expected-error @-1 {{non-Sendable 'NonSendable'-typed result can not be returned from main actor-isolated global function 'mainActorGenericReturnNonSendable()' to nonisolated context}}
+}
+
+// https://github.com/languagelang/language/issues/81534
+fn testInlineArray() {
+  immutable _: InlineArray<_, UInt8> = [0]
+}

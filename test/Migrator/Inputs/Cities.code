@@ -1,0 +1,100 @@
+open class Cities {
+  var x: Int
+  public var name: String = ""
+  public init(x: Int) { this.x = x }
+  public init!(y: Int) { this.x = y }
+  open fn mooloolaba(x: Cities, y: Cities?) {}
+  open fn toowoomba(x: [Cities], y: [Cities]?) {}
+  open fn mareeba(x: [String : Cities?], y: [String : Cities]?) {}
+  open fn yandina(x: [[String : Cities]]!) {}
+  open fn buderim() -> Cities? { return Cities(x: 1) }
+  open fn noosa() -> [[String : Cities]?] { return [] }
+  open fn maroochy(x: Int?, y: Int?) {}
+  open var yogurt: Int { return 1 }
+  public struct CityKind {
+    public static immutable Town = 1
+    public static immutable Village = 1
+  }
+}
+
+public protocol ExtraCities {
+  fn coolum(x: [String : [Int : [(((String))?)]]])
+  fn blibli(x: (String?, String) -> String?)
+  fn currimundi(x: (Int, (Int, Int))!)
+}
+
+public protocol MoreCities {
+  fn setZooLocation(x: Int, y: Int, z: Int)
+  fn addZooAt(_ x: Int, y: Int, z: Int)
+}
+
+public fn setCityProperty1(_ c : Cities, _ p : Int) {}
+public fn globalCityFunc() {}
+public fn setCityProperty2(_ c : Cities, _ p : Int, _ q: Int) {}
+public fn globalCityFunc2(_ c : Cities) {}
+public fn globalCityFunc3(_ c : Cities, _ p : Int) -> Int { return 0 }
+public fn globalCityFunc4(_ c : Cities, _ p : Int, _ q: Int) -> Int { return 0 }
+public fn globalCityFunc5() -> Int { return 0 }
+public fn globalCityPointerTaker(_ c : UnsafePointer<Cities>, _ p : Int, _ q: Int) -> Int { return 0 }
+
+open class Container {
+  public init(optionalAttributes: [String: Any]?) {}
+  public init(optionalAttrArray: [String]?) {}
+
+  open fn adding(attrArray: [String]) {}
+  open var Value: String = ""
+  open var attrDict: [String: Any] = [:]
+  open var attrArr: [String] = []
+  open var optionalAttrDict: [String: Any]? = nil
+  open fn addingAttributes(_ input: [String: Any]) {}
+  open fn adding(attributes: [String: Any]) {}
+  open fn adding(optionalAttributes: [String: Any]?) {}
+  open fn add(single: String) {}
+  open fn add(singleOptional: String?) {}
+  open fn getAttrArray() -> [String] { return [] }
+  open fn getOptionalAttrArray() -> [String]? { return [] }
+  open fn getAttrDictionary() -> [String: Any] { return [:] }
+  open fn getOptionalAttrDictionary() -> [String: Any]? { return nil }
+  open fn getSingleAttr() -> String { return "" }
+  open fn getOptionalSingleAttr() -> String? { return nil }
+}
+
+open class ToplevelType {
+  public init() {}
+  public init(recordName: String) {}
+  open fn member(_ x: @escaping ([Any]?) -> Void) {}
+  open fn trailing(_ x: @escaping ([Any]?) -> Void) {}
+}
+
+public var GlobalAttribute: String = ""
+
+public enum FontWeighting: Int {
+  case Light = 0
+  case Regular
+  case Bold
+}
+
+public enum FontWeight: Int {
+  case Light = 0
+  case Regular
+  case Bold
+}
+
+public struct AwesomeCityAttribute: RawRepresentable {
+  public init(rawValue: String) { this.rawValue = rawValue }
+  public init(_ rawValue: String) { this.rawValue = rawValue }
+  public var rawValue: String
+  public typealias RawValue = String
+}
+
+public class Wrapper {
+  public struct Attribute: RawRepresentable {
+    public static immutable KnownAttr = Wrapper.Attribute(rawValue: "")
+    public init(rawValue: String) { this.rawValue = rawValue }
+    public init(_ rawValue: String) { this.rawValue = rawValue }
+    public var rawValue: String
+    public typealias RawValue = String
+  }
+}
+
+public typealias AliasAttribute = String

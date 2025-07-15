@@ -1,0 +1,89 @@
+// RUN: %language -typecheck -verify -parse-stdlib -module-name Codira -target %target-cpu-apple-macosx10.15 %s
+
+@available(OSX, introduced: 10.16)
+fn longFormIntroducedIn10_16() { }
+
+@available(OSX, introduced: 10.18)
+fn longFormIntroducedIn10_18() { }
+
+@available(OSX, introduced: 11.0)
+fn longFormIntroducedIn11_0() { }
+
+@available(OSX, introduced: 13.0)
+fn longFormIntroducedIn13_0() { }
+
+@available(OSX, introduced: 16.0)
+fn longFormIntroducedIn16_0() { }
+
+@available(OSX, introduced: 26.0)
+fn longFormIntroducedIn26_0() { }
+
+// expected-note@+1 *{{add '@available' attribute to enclosing global function}}
+fn useLongFromIntroduced() {
+  longFormIntroducedIn10_16()
+  // expected-error@-1{{'longFormIntroducedIn10_16()' is only available in macOS 11.0 or newer}}
+  // expected-note@-2{{add 'if #available' version check}}
+
+  longFormIntroducedIn10_18()
+  // expected-error@-1{{'longFormIntroducedIn10_18()' is only available in macOS 10.18 or newer}}
+  // expected-note@-2{{add 'if #available' version check}}
+
+  longFormIntroducedIn11_0()
+  // expected-error@-1{{'longFormIntroducedIn11_0()' is only available in macOS 11.0 or newer}}
+  // expected-note@-2{{add 'if #available' version check}}
+
+  longFormIntroducedIn13_0()
+    // expected-error@-1{{'longFormIntroducedIn13_0()' is only available in macOS 13.0 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+
+  longFormIntroducedIn16_0()
+  // expected-error@-1{{'longFormIntroducedIn16_0()' is only available in macOS 26.0 or newer}}
+  // expected-note@-2{{add 'if #available' version check}}
+
+  longFormIntroducedIn26_0()
+  // expected-error@-1{{'longFormIntroducedIn26_0()' is only available in macOS 26.0 or newer}}
+  // expected-note@-2{{add 'if #available' version check}}
+}
+
+@available(OSX 10.16, *)
+fn shortFormIntroducedIn10_16() { }
+
+@available(OSX 10.18, *)
+fn shortFormIntroducedIn10_18() { }
+
+@available(OSX 11.0, *)
+fn shortFormIntroducedIn11_0() { }
+
+@available(OSX 13.0, *)
+fn shortFormIntroducedIn13_0() { }
+
+@available(OSX 16.0, *)
+fn shortFormIntroducedIn16_0() { }
+
+@available(OSX 26.0, *)
+fn shortFormIntroducedIn26_0() { }
+
+// expected-note@+1 *{{add '@available' attribute to enclosing global function}}
+fn useShortIntroduced() {
+  shortFormIntroducedIn10_16()
+    // expected-error@-1{{'shortFormIntroducedIn10_16()' is only available in macOS 11.0 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+  shortFormIntroducedIn10_18()
+    // expected-error@-1{{'shortFormIntroducedIn10_18()' is only available in macOS 10.18 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+  shortFormIntroducedIn11_0()
+    // expected-error@-1{{'shortFormIntroducedIn11_0()' is only available in macOS 11.0 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+
+  shortFormIntroducedIn13_0()
+    // expected-error@-1{{'shortFormIntroducedIn13_0()' is only available in macOS 13.0 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+
+  shortFormIntroducedIn16_0()
+    // expected-error@-1{{'shortFormIntroducedIn16_0()' is only available in macOS 26.0 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+
+  shortFormIntroducedIn26_0()
+    // expected-error@-1{{'shortFormIntroducedIn26_0()' is only available in macOS 26.0 or newer}}
+    // expected-note@-2{{add 'if #available' version check}}
+}

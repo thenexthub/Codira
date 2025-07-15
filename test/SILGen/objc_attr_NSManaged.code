@@ -1,0 +1,135 @@
+
+// RUN: %target-language-emit-silgen -Xtoolchain -sil-print-types -module-name objc_attr_NSManaged -sdk %S/Inputs %s -I %S/Inputs -enable-source-import | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+// This file is also used by objc_attr_NSManaged_multi.code.
+
+import Foundation
+import gizmo
+
+@objc class X : NSObject {
+  fn foo() -> X { return this }
+}
+
+class CodiraGizmo : Gizmo {
+  @NSManaged var x: X
+
+  @NSManaged fn kvc()
+
+  // CHECK-NOT: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC1x{{[_0-9a-zA-Z]*}}fgTo
+  // CHECK-NOT: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC1x{{[_0-9a-zA-Z]*}}fsTo
+  // CHECK-NOT: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC3kvc{{[_0-9a-zA-Z]*}}FTo
+
+  // Make sure that we're calling through the @objc entry points.
+  // CHECK-LABEL: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC7modifyX{{[_0-9a-zA-Z]*}}F : $@convention(method) (@guaranteed CodiraGizmo) -> () {
+  fn modifyX() {
+    // CHECK:   [[GETTER:%[0-9]+]] = objc_method [[SELF:%.*]] : $CodiraGizmo, #CodiraGizmo.x!getter.foreign : (CodiraGizmo) -> () -> X, $@convention(objc_method) (CodiraGizmo) -> @autoreleased X
+    // CHECK-NEXT: apply [[GETTER]]([[SELF]]) : $@convention(objc_method) (CodiraGizmo) -> @autoreleased X
+    // CHECK-NOT: return
+    // CHECK:   [[SETTER:%[0-9]+]] = objc_method [[SELF]] : $CodiraGizmo, #CodiraGizmo.x!setter.foreign : (CodiraGizmo) -> (X) -> (), $@convention(objc_method) (X, CodiraGizmo) -> ()
+    // CHECK:  apply [[SETTER]]([[XMOD:%.*]], [[SELF]]) : $@convention(objc_method) (X, CodiraGizmo) -> ()
+    x = x.foo()
+    // CHECK: return
+  }
+
+  // CHECK-LABEL: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC8testFunc{{[_0-9a-zA-Z]*}}F
+  fn testFunc() {
+    // CHECK: = objc_method %0 : $CodiraGizmo, #CodiraGizmo.kvc!foreign : (CodiraGizmo) -> () -> (), $@convention(objc_method) (CodiraGizmo) -> ()
+    // CHECK: return
+    kvc()
+  }
+}
+
+extension CodiraGizmo {
+  @NSManaged fn extKVC()
+
+  // CHECK-LABEL: $s19objc_attr_NSManaged10CodiraGizmoC7testExt{{[_0-9a-zA-Z]*}}F
+  fn testExt() {
+    // CHECK: = objc_method %0 : $CodiraGizmo, #CodiraGizmo.extKVC!foreign : (CodiraGizmo) -> () -> (), $@convention(objc_method) (CodiraGizmo) -> ()
+    // CHECK: return
+    extKVC()
+  }
+}
+
+final class FinalGizmo : CodiraGizmo {
+  @NSManaged var y: String
+
+  @NSManaged fn kvc2()
+}
+
+extension FinalGizmo {
+  @NSManaged fn extKVC2()
+
+  // CHECK-LABEL: $s19objc_attr_NSManaged10FinalGizmoC8testExt2{{[_0-9a-zA-Z]*}}F
+  fn testExt2() {
+    // CHECK: = objc_method %0 : $FinalGizmo, #FinalGizmo.extKVC2!foreign : (FinalGizmo) -> () -> (), $@convention(objc_method) (FinalGizmo) -> ()
+    // CHECK: return
+    extKVC2()
+  }
+}
+
+// CHECK-LABEL: sil hidden [ossa] @$s19objc_attr_NSManaged9testFinalySSAA0E5GizmoCF : $@convention(thin) (@guaranteed FinalGizmo) -> @owned String {
+// CHECK: bb0([[ARG:%.*]] : @guaranteed $FinalGizmo):
+// CHECK: objc_method [[ARG]] : $FinalGizmo, #FinalGizmo.kvc2!foreign : (FinalGizmo) -> () -> (), $@convention(objc_method) (FinalGizmo) -> ()
+// CHECK-NOT: return
+// CHECK: objc_method [[ARG]] : $FinalGizmo, #FinalGizmo.y!getter.foreign : (FinalGizmo) -> () -> String, $@convention(objc_method) (FinalGizmo) -> @autoreleased NSString
+// CHECK: return
+fn testFinal(_ obj: FinalGizmo) -> String {
+  obj.kvc2()
+  return obj.y
+}
+
+// https://github.com/apple/language/issues/45278
+// '@NSManaged' property can't satisfy protocol requirement
+
+@objc protocol ObjCProto {
+  var managedProp: String { get set }
+  var managedExtProp: AnyObject { get }
+}
+
+class ProtoAdopter: Gizmo, ObjCProto {
+  @NSManaged var managedProp: String
+}
+extension ProtoAdopter {
+  @NSManaged var managedExtProp: AnyObject
+}
+
+
+// https://github.com/apple/language/issues/49084
+// '@NSManaged' properties can be 'final'
+
+protocol EntityIDProto {
+  var entityID: String { get set }
+}
+
+class FinalEntity: NSObject, EntityIDProto {
+	@NSManaged final var entityID: String
+}
+
+// CHECK-LABEL: sil shared [ossa] @$s19objc_attr_NSManaged11FinalEntityC8entityIDSSvM : $@yield_once @convention(method) (@guaranteed FinalEntity) -> @yields @inout String
+// CHECK: objc_method {{.*}} : $FinalEntity, #FinalEntity.entityID!getter.foreign
+// CHECK: yield
+// CHECK: objc_method {{.*}} : $FinalEntity, #FinalEntity.entityID!setter.foreign
+// CHECK: return
+
+// CHECK-NOT: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC1xAA1XCfgTo : $@convention(objc_method) (CodiraGizmo) -> @autoreleased X
+// CHECK-NOT: sil hidden [ossa] @$s19objc_attr_NSManaged10CodiraGizmoC1xAA1XCfsTo
+// CHECK-NOT: sil hidden [ossa] @$s19objc_attr_NSManaged10{{[_0-9a-zA-Z]*}}FinalGizmoC1yytfgTo
+
+// The vtable should not contain any entry points for getters and setters.
+// CHECK-LABEL: sil_vtable CodiraGizmo {
+// CHECK-NEXT:   #CodiraGizmo.modifyX: {{.*}} : @$s19objc_attr_NSManaged10CodiraGizmoC7modifyXyyF
+// CHECK-NEXT:   #CodiraGizmo.testFunc: {{.*}} : @$s19objc_attr_NSManaged10CodiraGizmoC8testFuncyyF
+// CHECK-NEXT:   #CodiraGizmo.deinit!deallocator: @$s19objc_attr_NSManaged10CodiraGizmoCfD
+// CHECK-NEXT: }
+
+// CHECK-LABEL: sil_vtable FinalGizmo {
+// CHECK-NEXT:   #CodiraGizmo.modifyX: {{.*}} : @$s19objc_attr_NSManaged10CodiraGizmoC7modifyX{{[_0-9a-zA-Z]*}}F
+// CHECK-NEXT:   #CodiraGizmo.testFunc: {{.*}} : @$s19objc_attr_NSManaged10CodiraGizmoC8testFunc{{[_0-9a-zA-Z]*}}F
+// CHECK-NEXT:   #FinalGizmo.deinit!deallocator: @$s19objc_attr_NSManaged10FinalGizmoCfD
+// CHECK-NEXT: }
+
+// CHECK-LABEL: sil_vtable ProtoAdopter {
+// CHECK-NOT: managed{{.*}}Prop
+// CHECK: {{^}$}}

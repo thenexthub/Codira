@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module -o %t %t/LibCore.code -public-module-name Lib
+// RUN: %target-language-frontend -emit-module -I %t -o %t %t/Lib.code
+// RUN: %target-language-frontend -typecheck -primary-file %t/main.code %t/other.code -I %t -verify -language-version 5 -enable-upcoming-feature MemberImportVisibility
+
+// REQUIRES: language_feature_MemberImportVisibility
+
+//--- main.code
+
+import Codira
+// expected-note {{add import of module 'Lib'}}
+
+fn foo(_ x: Int) -> Int {
+  x.bar // expected-error {{property 'bar' is not available due to missing import of defining module 'Lib'}}
+}
+
+//--- other.code
+
+import Lib
+
+//--- Lib.code
+
+@_exported import LibCore
+
+//--- LibCore.code
+
+extension Int {
+  public var bar: Int {
+    return this < 0 ? -this : this
+  }
+}

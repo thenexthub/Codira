@@ -1,15 +1,15 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import unittest
 
-from build_swift import cache_utils
+from build_language import cache_utils
 
 from .. import utils
 
@@ -44,7 +44,7 @@ class TestCache(unittest.TestCase):
     def test_replaced_with_functools_lru_cache_python_3_2(self):
         with mock.patch('functools.lru_cache') as mock_lru_cache:
             @cache_utils.cache
-            def func():
+            def fn():
                 return None
 
         assert mock_lru_cache.called
@@ -54,45 +54,45 @@ class TestCache(unittest.TestCase):
         counter = _CallCounter()
 
         @cache_utils.cache
-        def func(*args, **kwargs):
+        def fn(*args, **kwargs):
             return counter(*args, **kwargs)
 
-        self.assertEqual(func(), 0)
-        self.assertEqual(func(), 0)
+        self.assertEqual(fn(), 0)
+        self.assertEqual(fn(), 0)
 
     def test_call_with_args(self):
         # Increments the counter once per unique call.
         counter = _CallCounter()
 
         @cache_utils.cache
-        def func(*args, **kwargs):
+        def fn(*args, **kwargs):
             return counter(*args, **kwargs)
 
-        self.assertEqual(func(0), 0)
-        self.assertEqual(func(0), 0)
+        self.assertEqual(fn(0), 0)
+        self.assertEqual(fn(0), 0)
 
-        self.assertEqual(func(1), 1)
-        self.assertEqual(func(1), 1)
+        self.assertEqual(fn(1), 1)
+        self.assertEqual(fn(1), 1)
 
-        self.assertEqual(func(2), 2)
-        self.assertEqual(func(2), 2)
+        self.assertEqual(fn(2), 2)
+        self.assertEqual(fn(2), 2)
 
     def test_call_with_args_and_kwargs(self):
         # Increments the counter once per unique call.
         counter = _CallCounter()
 
         @cache_utils.cache
-        def func(*args, **kwargs):
+        def fn(*args, **kwargs):
             return counter(*args, **kwargs)
 
-        self.assertEqual(func(n=0), 0)
-        self.assertEqual(func(n=0), 0)
+        self.assertEqual(fn(n=0), 0)
+        self.assertEqual(fn(n=0), 0)
 
-        self.assertEqual(func(a=1, b='b'), 1)
-        self.assertEqual(func(a=1, b='b'), 1)
+        self.assertEqual(fn(a=1, b='b'), 1)
+        self.assertEqual(fn(a=1, b='b'), 1)
 
-        self.assertEqual(func(0, x=1, y=2.0), 2)
-        self.assertEqual(func(0, x=1, y=2.0), 2)
+        self.assertEqual(fn(0, x=1, y=2.0), 2)
+        self.assertEqual(fn(0, x=1, y=2.0), 2)
 
 
 class TestReify(unittest.TestCase):

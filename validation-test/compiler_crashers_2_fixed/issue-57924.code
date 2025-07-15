@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/57924
+
+protocol P {
+  associatedtype A: Sendable
+}
+
+struct S<T>: P {
+  typealias A = ()
+}

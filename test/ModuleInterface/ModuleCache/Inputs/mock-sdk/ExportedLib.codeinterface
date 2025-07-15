@@ -1,0 +1,11 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name ExportedLib
+
+@_exported import SomeCModule
+
+public struct ExportedInterface {
+  @inlinable public init() {}
+}
+public var testValue: ExportedInterface {
+  @inlinable get { return ExportedInterface() }
+}

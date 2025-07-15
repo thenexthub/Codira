@@ -48,7 +48,7 @@ required for CoW optimization are really guarantees regarding the
 program state that is affected by a CoW methods. These annotations
 should map precisely to a set of effects primitives.
 
-For the sake of discussion, we use of Swift-level syntax for
+For the sake of discussion, we use of Codira-level syntax for
 specifying effects primitives. It may be debatable whether we actually
 want to expose this syntax, but as explained above, some syntax will
 need to be exposed to build optimizable CoW types.
@@ -116,7 +116,7 @@ unspecified state.
 CoW Optimization Requirements
 -----------------------------
 
-Swift-level attributes proposal
+Codira-level attributes proposal
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A copy-on-write (COW) type is implemented in terms of a struct and a set of
@@ -124,7 +124,7 @@ storage objects referenced by this struct. The set of storage objects can
 further provide storage for subobjects.::
 
   class ArrayStorage<T> {
-    func getElement(_ index: Int) -> T {} // Return a 'subobject'.
+    fn getElement(_ index: Int) -> T {} // Return a 'subobject'.
   }
 
   struct Array<T> {
@@ -159,7 +159,7 @@ state.
       var storage: ArrayStorage
 
       @makeunique
-      mutating func makeUnique() {
+      mutating fn makeUnique() {
         if (isUniquelyReferenced(&storage))
           return
         storage = storage.copy()
@@ -169,7 +169,7 @@ state.
 
     @_effects(argonly)
     @selfeffects(make_unique)
-    func makeUnique() {}
+    fn makeUnique() {}
 
 ``@preserve_unique``
 
@@ -185,7 +185,7 @@ state.
       var storage: ArrayStorage
 
       @preserve_unique
-      mutating func replaceSubrange<
+      mutating fn replaceSubrange<
         C : CollectionType where C.Iterator.Element == T
       >(
         _ subRange: Range<Int>, with newElements: C
@@ -195,7 +195,7 @@ state.
       // but we have an attribute for this function that better describes it
       // allowing for more optimization. (See @get_subobject)
       @preserve_unique
-      func getElement(_ index: Int) -> T {
+      fn getElement(_ index: Int) -> T {
         return storage.elementAt(index)
       }
     }
@@ -203,7 +203,7 @@ state.
   Note: In terms of low-level SIL attributes such a method will be marked:::
 
     @self_effects(preserve_unique, nocapture, norelease)
-    func replace<> {}
+    fn replace<> {}
 
 ``@get_subobject``
 
@@ -219,12 +219,12 @@ state.
       var size : Int
 
       @get_subobject
-      func getElement(_ index: Int) -> T {
+      fn getElement(_ index: Int) -> T {
         return storage.elementAt(index)
       }
 
       @get_subobject
-      func getSize() -> Int {
+      fn getSize() -> Int {
         return size
       }
 
@@ -233,7 +233,7 @@ state.
     @_effects(argonly)
     @selfeffects(preserve_unique, nowrite, nocapture, norelease,
                  projects_subobject)
-    func getElement(_ index: Int) -> T {}
+    fn getElement(_ index: Int) -> T {}
 
 .. note::
 
@@ -261,12 +261,12 @@ state.
       var size : Int
 
       @get_subobject_non_bridged
-      func getElement(_ index: Int) -> T {
+      fn getElement(_ index: Int) -> T {
         return storage.elementAt(index)
       }
 
       @get_subobject
-      func getSize() -> Int {
+      fn getSize() -> Int {
         return size
       }
 
@@ -275,7 +275,7 @@ state.
     @nonbridged_effects(argonly)
     @selfeffects(preserve_unique, nowrite, nocapture, norelease,
                  projects_subobject)
-    func getElement(_ index: Int) -> T {}
+    fn getElement(_ index: Int) -> T {}
 
 
 ``@get_subobject_addr``
@@ -291,7 +291,7 @@ state.
       var storage: ArrayStorage
 
       @get_subobject_addr
-      func getElementAddr(_ index: Int) -> UnsafeMutablePointer<T> {
+      fn getElementAddr(_ index: Int) -> UnsafeMutablePointer<T> {
         return storage.elementAddrAt(index)
       }
 
@@ -300,7 +300,7 @@ state.
     @_effects(argonly)
     @selfeffects(preserve_unique, nowrite, nocapture, norelease,
                  projects_subobject_addr)
-    func getElementAddr(_ index: Int) -> T {}
+    fn getElementAddr(_ index: Int) -> T {}
 
 ``@initialize_subobject``
 
@@ -313,7 +313,7 @@ state.
       var storage: ArrayStorage
 
       @initialize_subobject
-      func appendAssumingUniqueStorage(_ elt: T) {
+      fn appendAssumingUniqueStorage(_ elt: T) {
         storage.append(elt)
       }
     }
@@ -322,7 +322,7 @@ state.
 
     @_effects(argonly)
     @selfeffects(preserve_unique, nocapture, norelease)
-    func appendElementAssumingUnique(@norelease @nowrite elt: T) {}
+    fn appendElementAssumingUnique(@norelease @nowrite elt: T) {}
 
 .. note::
 
@@ -342,7 +342,7 @@ state.
       var storage: ArrayStorage
 
       @set_subobject
-      func setElement(_ elt: T, at index: Int) {
+      fn setElement(_ elt: T, at index: Int) {
         storage.set(elt, index)
       }
     }
@@ -358,7 +358,7 @@ state.
 
     @_effects(argonly, T.release)
     @selfeffects(preserve_unique, nocapture)
-    func setElement(@nowrite e: T, index: Int) {
+    fn setElement(@nowrite e: T, index: Int) {
     }
 
 Motivation
@@ -379,14 +379,14 @@ Example:::
     var storage: ArrayStorage<T>
 
     @makeunique
-    func makeUnique() {
+    fn makeUnique() {
       if (isUniquelyReferenced(&storage))
        return;
       storage = storage.copy()
     }
 
     @preserveunique
-    func getElementAddr(_ index: Int) -> UnsafeMutablePointer<T> {
+    fn getElementAddr(_ index: Int) -> UnsafeMutablePointer<T> {
       return storage.elementAddrAt(index)
     }
 
@@ -400,7 +400,7 @@ Example:::
 
 When the optimizer optimizes a loop:::
 
-  func memset(A: inout [Int], value: Int) {
+  fn memset(A: inout [Int], value: Int) {
     for i in 0 .. A.size {
       A[i] = value
       f()
@@ -409,7 +409,7 @@ When the optimizer optimizes a loop:::
 
 It will see the following calls because methods with attributes are not inlined.::
 
-  func memset(A: inout [Int], value: Int) {
+  fn memset(A: inout [Int], value: Int) {
     for i in 0 .. A.size {
       makeUnique(&A)
       addr = getElementAddr(i, &A)
@@ -434,7 +434,7 @@ by a unique name.::
     var array: [Int]
   }
 
-  func copy(_ a : AClass, b : AClass) {
+  fn copy(_ a : AClass, b : AClass) {
     for i in min(a.size, b.size) {
        a.array.append(b.array[i])
     }
@@ -473,7 +473,7 @@ and further releases an element of type T - these are the only side-effects
 according to ``@set_subobject``::
 
  @set_subobject
- func setElement(_ e: T, index: Int) {
+ fn setElement(_ e: T, index: Int) {
    storage->setElement(e, index)
  }
 
@@ -512,7 +512,7 @@ Furthermore, methods marked with ``@get_subobject`` will allow us to remove
 redundant calls to read-only like methods on COW type instances assuming we can
 prove that the instance is not changed in between them.::
 
-  func f(_ a: [Int]) {
+  fn f(_ a: [Int]) {
    @get_subobject
    count(a)
    @get_subobject
@@ -542,7 +542,7 @@ these functions can be inlined, dropping the effects information.
 Without special syntax, specifying a pure function would require::
 
   @_effects(argonly)
-  func foo(@noread @nowrite arg)
+  fn foo(@noread @nowrite arg)
 
 A shorthand, such as @_effects(none) could easily be
 introduced. Typically, this shouldn't be needed because the purity of
@@ -559,7 +559,7 @@ generic arguments::
 
   struct MyContainer<T> {
     var t: T
-    func setElt(_ elt: T) { t = elt }
+    fn setElt(_ elt: T) { t = elt }
   }
 
 With no knowledge of T.deinit() we must assume the worst case. SIL effects
@@ -577,7 +577,7 @@ Solving this requires a system for polymorphic effects. Language
 support for polymorphic effects might look something like this::
 
   @_effects(T.release)
-  func foo<T>(t: T) { ... }
+  fn foo<T>(t: T) { ... }
 
 This would mean that foo's unspecified effects are bounded by the
 unspecified effects of T's deinitializer. The reality of designing
@@ -605,7 +605,7 @@ Purity
 Motivation for Pure Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-An important feature of Swift structs is that they can be defined such
+An important feature of Codira structs is that they can be defined such
 that they have value semantics. The optimizer should then be able to
 reason about these types with knowledge of those value semantics. This
 in turn allows the optimizer to reason about function purity, which is
@@ -616,9 +616,9 @@ optimizing the surrounding code.
 
 For example::
 
-  func bar<T>(t: T) {...}
+  fn bar<T>(t: T) {...}
 
-  func foo<T>(t: T, N: Int) {
+  fn foo<T>(t: T, N: Int) {
     for _ in 1...N {
       bar(t)
       bar(t)
@@ -627,7 +627,7 @@ For example::
 
 With some knowledge of bar() and T can become::
 
-  func foo<T>(t: T, N: Int) {
+  fn foo<T>(t: T, N: Int) {
     bar(t)
   }
 
@@ -690,7 +690,7 @@ Pure Value Types and SIL optimizations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The benefit of having pure value types is that optimizations can treat such
-types as if they were Swift value types, like struct. Member functions of pure
+types as if they were Codira value types, like struct. Member functions of pure
 value types can be annotated with effects, like ``readnone`` for ``getElement``,
 even if the underlying implementation of ``getElement`` reads memory from the
 type's storage.
@@ -700,7 +700,7 @@ the need of sophisticated alias or escape analysis.
 
 Consider this example.::
 
-    func add(_ arr: Array<Int>, i: Int) -> Int {
+    fn add(_ arr: Array<Int>, i: Int) -> Int {
       let e1 = arr[i]
       unknownFunction()
       let e2 = arr[i]
@@ -708,7 +708,7 @@ Consider this example.::
 
 This code is generated to something like::
 
-    func add(_ arr: Array<Int>, i: Int) -> Int {
+    fn add(_ arr: Array<Int>, i: Int) -> Int {
       let e1 = getElement(i, arr)
       unknownFunction()
       let e2 = getElement(i, arr)
@@ -757,7 +757,7 @@ struct but only the referenced storage.
 
 Let's assume we have a setElement function in Array.::
 
-    mutating func setElement(_ i: Int, e: Element) {
+    mutating fn setElement(_ i: Int, e: Element) {
       storage[i] = e
     }
 
@@ -766,9 +766,9 @@ in our example.
 The mutating function forces the array to be placed onto the stack and reloaded
 after the mutating function. This lets the second ``getElement`` function get
 another array parameter which prevents CSE of the two ``getElement`` calls.
-Shown in this swift-SIL pseudo code::
+Shown in this language-SIL pseudo code::
 
-    func add(arr: Array<Int>, i: Int) -> Int {
+    fn add(arr: Array<Int>, i: Int) -> Int {
       var arr = arr
       let e1 = getElement(i, arr)
       store arr to stack_array
@@ -783,7 +783,7 @@ which directly access the storage, are not inlined during high-level SIL.
 Optimizations like code motion could move a store to the storage over a
 ``readnone getElement``.::
 
-    func add(arr: Array<Int>, i: Int) -> Int {
+    fn add(arr: Array<Int>, i: Int) -> Int {
       var arr = arr
       let e1 = getElement(i, arr)
       store arr to stack_array
@@ -814,17 +814,17 @@ Example::
       @cow_storage var storage
 
       @effect(...)
-      func getElement() { return storage.get() }
+      fn getElement() { return storage.get() }
 
       @effect(...)
-      func checkSubscript() { ... }
+      fn checkSubscript() { ... }
 
       subscript { get {          // OK
         checkSubscript()
         return getElement()
       } }
 
-      func getSize() {
+      fn getSize() {
           return storage.size()  // Error!
       }
     }
@@ -894,7 +894,7 @@ and @pure closure would only be permitted to close over pure values.
 Thread Safety
 -------------
 
-The Swift concurrency proposal refers to a ``Copyable`` type. A type
+The Codira concurrency proposal refers to a ``Copyable`` type. A type
 must be Copyable in order to pass it across threads via a
 ``gateway``. The definition of a Copyable type is equivalent to a
 "pure value". However, it was also proposed that the programmer be

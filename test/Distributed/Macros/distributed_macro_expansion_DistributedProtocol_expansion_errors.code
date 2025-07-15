@@ -1,0 +1,25 @@
+// REQUIRES: language_language_parser, asserts
+//
+// UNSUPPORTED: back_deploy_concurrency
+// REQUIRES: concurrency
+// REQUIRES: distributed
+//
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t-scratch)
+
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: not %target-language-frontend -typecheck -target %target-language-5.7-abi-triple -plugin-path %language-plugin-dir -parse-as-library -I %t %S/../Inputs/FakeDistributedActorSystems.code -dump-macro-expansions %s 2>&1 | %FileCheck %s
+
+import Distributed
+
+// These tests check the error output inside of a "bad" expansion;
+//
+// Since we cannot nicely diagnose these problems from the macro itself,
+// as it would need to inspect the type and its extensions and all involved
+// protocols., as at least
+
+// CHECK: macro expansion @Resolvable:1:[[COL:[0-9]+]]: error: distributed actor '$Fail' does not declare ActorSystem it can be used with
+@Resolvable
+protocol Fail: DistributedActor {
+  distributed fn method() -> String
+}

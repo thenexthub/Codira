@@ -1,30 +1,34 @@
 //===--- PackConformance.h - Variadic Protocol Conformance ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the PackConformance structure, which describes the
 // conformance of a type pack parameter to a protocol.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_PACKCONFORMANCE_H
-#define SWIFT_AST_PACKCONFORMANCE_H
+#ifndef LANGUAGE_AST_PACKCONFORMANCE_H
+#define LANGUAGE_AST_PACKCONFORMANCE_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/ProtocolConformanceRef.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/Compiler.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
 
@@ -32,8 +36,8 @@ class PackType;
 
 class alignas(1 << DeclAlignInBits) PackConformance final
   : public ASTAllocated<PackConformance>,
-    public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<PackConformance, ProtocolConformanceRef> {
+    public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<PackConformance, ProtocolConformanceRef> {
   friend class ASTContext;
   friend TrailingObjects;
 
@@ -44,8 +48,8 @@ class alignas(1 << DeclAlignInBits) PackConformance final
   ProtocolDecl *Protocol;
 
 public:
-  void Profile(llvm::FoldingSetNodeID &ID) const;
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  void Profile(toolchain::FoldingSetNodeID &ID) const;
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       PackType *conformingType,
                       ProtocolDecl *protocol,
                       ArrayRef<ProtocolConformanceRef> conformances);
@@ -98,12 +102,12 @@ public:
   /// substitution subsystem.
   ProtocolConformanceRef subst(InFlightSubstitution &IFS) const;
 
-  SWIFT_DEBUG_DUMP;
-  void dump(llvm::raw_ostream &out, unsigned indent = 0) const;
+  LANGUAGE_DEBUG_DUMP;
+  void dump(toolchain::raw_ostream &out, unsigned indent = 0) const;
 };
 
-void simple_display(llvm::raw_ostream &out, PackConformance *conformance);
+void simple_display(toolchain::raw_ostream &out, PackConformance *conformance);
 
 } // end namespace language
 
-#endif // SWIFT_AST_PACKCONFORMANCE_H
+#endif // LANGUAGE_AST_PACKCONFORMANCE_H

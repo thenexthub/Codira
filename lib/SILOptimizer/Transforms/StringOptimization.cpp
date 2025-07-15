@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass performs several optimizations on String operations.
@@ -28,7 +29,7 @@
 #include "language/AST/ParameterList.h"
 #include "language/AST/ASTMangler.h"
 #include "language/Demangling/Demangle.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -83,7 +84,7 @@ class StringOptimization {
   /// Caches the analysis result for an alloc_stack or an inout function
   /// argument, whether it is an "identifiable" object.
   /// See mayWriteToIdentifyableObject().
-  llvm::DenseMap<SILValue, bool> identifiableObjectsCache;
+  toolchain::DenseMap<SILValue, bool> identifiableObjectsCache;
 
 public:
   bool run(SILFunction *F);
@@ -93,7 +94,7 @@ private:
   bool optimizeBlock(SILBasicBlock &block);
   
   bool optimizeStringAppend(ApplyInst *appendCall,
-                            llvm::DenseMap<SILValue, SILValue> &storedStrings);
+                            toolchain::DenseMap<SILValue, SILValue> &storedStrings);
   bool optimizeStringConcat(ApplyInst *concatCall);
   bool optimizeTypeName(ApplyInst *typeNameCall);
   bool optimizeGetCString(ApplyInst *getCStringCall);
@@ -102,7 +103,7 @@ private:
                                    unsigned numArgs);
   StoreInst *isStringStoreToIdentifyableObject(SILInstruction *inst);
   static void invalidateModifiedObjects(SILInstruction *inst,
-                            llvm::DenseMap<SILValue, SILValue> &storedStrings);
+                            toolchain::DenseMap<SILValue, SILValue> &storedStrings);
   static StringInfo getStringInfo(SILValue value);
   static StringInfo getStringFromStaticLet(SILValue value);
 
@@ -134,7 +135,7 @@ bool StringOptimization::optimizeBlock(SILBasicBlock &block) {
   
   /// Maps identifiable objects (alloc_stack, inout parameters) to string values
   /// which are stored in those objects.
-  llvm::DenseMap<SILValue, SILValue> storedStrings;
+  toolchain::DenseMap<SILValue, SILValue> storedStrings;
   
   for (auto iter = block.begin(); iter != block.end();) {
     SILInstruction *inst = &*iter++;
@@ -177,7 +178,7 @@ bool StringOptimization::optimizeBlock(SILBasicBlock &block) {
 
 /// Optimize String.append in case anything is known about the parameters.
 bool StringOptimization::optimizeStringAppend(ApplyInst *appendCall,
-                            llvm::DenseMap<SILValue, SILValue> &storedStrings) {
+                            toolchain::DenseMap<SILValue, SILValue> &storedStrings) {
   SILValue rhs = appendCall->getArgument(0);
   StringInfo rhsString = getStringInfo(rhs);
   
@@ -449,7 +450,7 @@ isStringStoreToIdentifyableObject(SILInstruction *inst) {
       case SILInstructionKind::DebugValueInst:
         if (DebugValueInst::hasAddrVal(user))
           break;
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       default:
         if (!mayWriteToIdentifyableObject(user)) {
           // We don't handle user. It is some instruction which may write to
@@ -467,7 +468,7 @@ isStringStoreToIdentifyableObject(SILInstruction *inst) {
 /// Removes all objects from \p storedStrings which \p inst (potentially)
 /// modifies.
 void StringOptimization::invalidateModifiedObjects(SILInstruction *inst,
-                            llvm::DenseMap<SILValue, SILValue> &storedStrings) {
+                            toolchain::DenseMap<SILValue, SILValue> &storedStrings) {
   // Ignore non-writing instructions, like "load", "dealloc_stack".
   // Note that identifiable objects (= keys in storedStrings) can only have
   // certain kind of instructions as users: all instruction which we handle in
@@ -758,7 +759,7 @@ public:
     if (!F->shouldOptimize())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "*** StringOptimization on function: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** StringOptimization on function: "
                             << F->getName() << " ***\n");
 
     StringOptimization stringOptimization;
@@ -772,6 +773,6 @@ public:
 
 } // end anonymous namespace
 
-SILTransform *swift::createStringOptimization() {
+SILTransform *language::createStringOptimization() {
   return new StringOptimizationPass();
 }

@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %S/../require-layout-generic-arg-closure.code %S/../Inputs/require-layout-generic-class.code %s -o %t/test
+// RUN: %target-codesign %t/test
+// RUN: %target-run %t/test | %FileCheck %s
+
+// REQUIRES: executable_test
+
+fn test() {
+  requestType2(x: 1)
+}
+
+// CHECK: test.Sub<Codira.Int>
+test()

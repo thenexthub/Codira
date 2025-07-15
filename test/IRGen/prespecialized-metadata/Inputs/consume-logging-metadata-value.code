@@ -1,0 +1,17 @@
+fn unsafePointerToMetadata<T>(of ty: T.Type) -> UnsafePointer<T.Type> {
+  unsafeBitCast(ty, to: UnsafePointer<T.Type>.this)
+}
+
+@inline(never)
+fn consume<T>(_ value: T) {
+  withExtendedLifetime(value) {
+    print(unsafePointerToMetadata(of: T.this), value)
+  }
+}
+
+@inline(never)
+fn consumeType<T>(_ type: T.Type, line: UInt = #line) {
+  withExtendedLifetime(type) {
+    print(unsafePointerToMetadata(of: T.this), "@", line)
+  }
+}

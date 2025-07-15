@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Unicode.h"
 #include "language/Basic/Compiler.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ConvertUTF.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/ConvertUTF.h"
 
 using namespace language;
 
@@ -32,7 +33,7 @@ using namespace language;
 // Returns true if lhs and rhs shouldn't be considered as having a grapheme
 // break between them. That is, whether we're overriding the behavior of the
 // hard coded Unicode 8 rules surrounding ZWJ and emoji modifiers.
-static inline bool graphemeBreakOverride(llvm::UTF32 lhs, llvm::UTF32 rhs) {
+static inline bool graphemeBreakOverride(toolchain::UTF32 lhs, toolchain::UTF32 rhs) {
   // Assume ZWJ sequences produce new emoji
   if (lhs == 0x200D) {
     return true;
@@ -51,21 +52,21 @@ static inline bool graphemeBreakOverride(llvm::UTF32 lhs, llvm::UTF32 rhs) {
   return false;
 }
 
-StringRef swift::unicode::extractFirstExtendedGraphemeCluster(StringRef S) {
+StringRef language::unicode::extractFirstExtendedGraphemeCluster(StringRef S) {
   // Extended grapheme cluster segmentation algorithm as described in Unicode
   // Standard Annex #29.
   if (S.empty())
     return StringRef();
 
-  const llvm::UTF8 *SourceStart =
-    reinterpret_cast<const llvm::UTF8 *>(S.data());
+  const toolchain::UTF8 *SourceStart =
+    reinterpret_cast<const toolchain::UTF8 *>(S.data());
 
-  const llvm::UTF8 *SourceNext = SourceStart;
-  llvm::UTF32 C[2];
-  llvm::UTF32 *TargetStart = C;
+  const toolchain::UTF8 *SourceNext = SourceStart;
+  toolchain::UTF32 C[2];
+  toolchain::UTF32 *TargetStart = C;
 
   ConvertUTF8toUTF32(&SourceNext, SourceStart + S.size(), &TargetStart, C + 1,
-                     llvm::lenientConversion);
+                     toolchain::lenientConversion);
   if (TargetStart == C) {
     // The source string contains an ill-formed subsequence at the end.
     return S;
@@ -75,7 +76,7 @@ StringRef swift::unicode::extractFirstExtendedGraphemeCluster(StringRef S) {
   while (true) {
     size_t C1Offset = SourceNext - SourceStart;
     ConvertUTF8toUTF32(&SourceNext, SourceStart + S.size(), &TargetStart, C + 2,
-                       llvm::lenientConversion);
+                       toolchain::lenientConversion);
 
     if (TargetStart == C + 1) {
       // End of source string or the source string contains an ill-formed
@@ -99,15 +100,15 @@ static bool extractFirstUnicodeScalarImpl(StringRef S, unsigned &Scalar) {
   if (S.empty())
     return false;
 
-  const llvm::UTF8 *SourceStart =
-    reinterpret_cast<const llvm::UTF8 *>(S.data());
+  const toolchain::UTF8 *SourceStart =
+    reinterpret_cast<const toolchain::UTF8 *>(S.data());
 
-  const llvm::UTF8 *SourceNext = SourceStart;
-  llvm::UTF32 C;
-  llvm::UTF32 *TargetStart = &C;
+  const toolchain::UTF8 *SourceNext = SourceStart;
+  toolchain::UTF32 C;
+  toolchain::UTF32 *TargetStart = &C;
 
   ConvertUTF8toUTF32(&SourceNext, SourceStart + S.size(), &TargetStart,
-                     TargetStart + 1, llvm::lenientConversion);
+                     TargetStart + 1, toolchain::lenientConversion);
   if (TargetStart == &C) {
     // The source string contains an ill-formed subsequence at the end.
     return false;
@@ -117,12 +118,12 @@ static bool extractFirstUnicodeScalarImpl(StringRef S, unsigned &Scalar) {
   return size_t(SourceNext - SourceStart) == S.size();
 }
 
-bool swift::unicode::isSingleUnicodeScalar(StringRef S) {
+bool language::unicode::isSingleUnicodeScalar(StringRef S) {
   unsigned Scalar;
   return extractFirstUnicodeScalarImpl(S, Scalar);
 }
 
-unsigned swift::unicode::extractFirstUnicodeScalar(StringRef S) {
+unsigned language::unicode::extractFirstUnicodeScalar(StringRef S) {
   unsigned Scalar;
   bool Result = extractFirstUnicodeScalarImpl(S, Scalar);
   assert(Result && "string does not consist of one Unicode scalar");
@@ -130,25 +131,25 @@ unsigned swift::unicode::extractFirstUnicodeScalar(StringRef S) {
   return Scalar;
 }
 
-bool swift::unicode::isWellFormedUTF8(StringRef S) {
-  const llvm::UTF8 *begin = S.bytes_begin();
-  return llvm::isLegalUTF8String(&begin, S.bytes_end());
+bool language::unicode::isWellFormedUTF8(StringRef S) {
+  const toolchain::UTF8 *begin = S.bytes_begin();
+  return toolchain::isLegalUTF8String(&begin, S.bytes_end());
 }
 
-std::string swift::unicode::sanitizeUTF8(StringRef Text) {
-  llvm::SmallString<256> Builder;
+std::string language::unicode::sanitizeUTF8(StringRef Text) {
+  toolchain::SmallString<256> Builder;
   Builder.reserve(Text.size());
-  const llvm::UTF8* Data = reinterpret_cast<const llvm::UTF8*>(Text.begin());
-  const llvm::UTF8* End = reinterpret_cast<const llvm::UTF8*>(Text.end());
-  StringRef Replacement = SWIFT_UTF8("\ufffd");
+  const toolchain::UTF8* Data = reinterpret_cast<const toolchain::UTF8*>(Text.begin());
+  const toolchain::UTF8* End = reinterpret_cast<const toolchain::UTF8*>(Text.end());
+  StringRef Replacement = LANGUAGE_UTF8("\ufffd");
   while (Data < End) {
-    auto Step = llvm::getNumBytesForUTF8(*Data);
+    auto Step = toolchain::getNumBytesForUTF8(*Data);
     if (Data + Step > End) {
       Builder.append(Replacement);
       break;
     }
 
-    if (llvm::isLegalUTF8Sequence(Data, Data + Step)) {
+    if (toolchain::isLegalUTF8Sequence(Data, Data + Step)) {
       Builder.append(Data, Data + Step);
     } else {
 

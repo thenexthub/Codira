@@ -1,0 +1,5 @@
+import Foundation
+import ClangFW // < 500 headers framework
+fn foo() {
+  /* HERE */
+}

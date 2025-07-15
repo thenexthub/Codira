@@ -1,0 +1,14 @@
+fn f0() -> <T> () {
+}
+fn f1() -> <T> Int {
+}
+fn f2() -> <T: SignedInteger, U: SignedInteger> Int {
+}
+
+// RUN: %target-language-ide-test -print-ast-typechecked -enable-experimental-named-opaque-types -source-filename %s | %FileCheck %s -check-prefix=CHECK1
+// CHECK1: {{^}}fn f0() {{{$}}
+// CHECK1: {{^}}}{{$}}
+// CHECK1: {{^}}fn f1() -> <T> Int {{{$}}
+// CHECK1: {{^}}}{{$}}
+// CHECK1: {{^}}fn f2() -> <T : SignedInteger, U : SignedInteger> Int {{{$}}
+// CHECK1: {{^}}}{{$}}

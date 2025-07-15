@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 
-#ifndef SWIFT_MARKUP_SOURCELOC_H
-#define SWIFT_MARKUP_SOURCELOC_H
+#ifndef LANGUAGE_MARKUP_SOURCELOC_H
+#define LANGUAGE_MARKUP_SOURCELOC_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <algorithm>
 #include <cassert>
 #include <utility>
@@ -152,5 +153,5 @@ SourceManager<ExternalSourceLocTy>::toExternalSourceLoc(SourceLoc Loc) const {
 } // namespace markup
 } // namespace language
 
-#endif // SWIFT_MARKUP_SOURCELOC_H
+#endif // LANGUAGE_MARKUP_SOURCELOC_H
 

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-simplify-cfg"
@@ -24,9 +25,9 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/SILInliner.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Allocator.h"
 
 using namespace language;
 
@@ -119,9 +120,9 @@ class CheckedCastBrJumpThreading {
   };
 
   // Contains an entry for each checked_cast_br to be optimized.
-  llvm::SmallVector<Edit *, 8> Edits;
+  toolchain::SmallVector<Edit *, 8> Edits;
 
-  llvm::SpecificBumpPtrAllocator<Edit> EditAllocator;
+  toolchain::SpecificBumpPtrAllocator<Edit> EditAllocator;
 
   // Keeps track of what blocks we change the terminator instruction.
   BasicBlockSet BlocksToEdit;
@@ -512,8 +513,8 @@ areEquivalentConditionsAlongSomePaths(CheckedCastBranchInst *DomCCBI,
       }
 
       // Condition is the same if BB is reached over a pass through Pred.
-      LLVM_DEBUG(llvm::dbgs() << "Condition is the same if reached over ");
-      LLVM_DEBUG(PredBB->print(llvm::dbgs()));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Condition is the same if reached over ");
+      TOOLCHAIN_DEBUG(PredBB->print(toolchain::dbgs()));
 
       // See if it is reached over Success or Failure path.
       SILBasicBlock *DomSuccessBB = DomCCBI->getSuccessBB();

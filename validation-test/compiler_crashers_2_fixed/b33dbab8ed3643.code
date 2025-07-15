@@ -1,0 +1,4 @@
+// {"signature":"language::TypeBase::computeCanonicalType()"}
+// RUN: not %target-language-frontend -typecheck %s
+fn a (Int -> Int = { $0 fn b( () = {}? ) fn b {
+    / 1

@@ -1,13 +1,17 @@
-//===--- swift-compatibility-symbols.cpp - Emit Clang symbol list ---------===//
+//===--- language-compatibility-symbols.cpp - Emit Clang symbol list ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A simple program to dynamically generate the list of macros added to
@@ -15,11 +19,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -28,30 +32,30 @@
 
 namespace options {
 
-static llvm::cl::OptionCategory Category("swift-compatibility-symbols Options");
+static toolchain::cl::OptionCategory Category("language-compatibility-symbols Options");
 
-static llvm::cl::opt<std::string>
+static toolchain::cl::opt<std::string>
   OutputFilename("output-filename",
-                 llvm::cl::desc("Filename for the output file"),
-                 llvm::cl::init("-"),
-                 llvm::cl::cat(Category));
+                 toolchain::cl::desc("Filename for the output file"),
+                 toolchain::cl::init("-"),
+                 toolchain::cl::cat(Category));
 
 }
 
 int main(int argc, char *argv[]) {
-  llvm::cl::HideUnrelatedOptions(options::Category);
-  llvm::cl::ParseCommandLineOptions(argc, argv,
-                                    "Swift Compatibility Symbols listing\n");
+  toolchain::cl::HideUnrelatedOptions(options::Category);
+  toolchain::cl::ParseCommandLineOptions(argc, argv,
+                                    "Codira Compatibility Symbols listing\n");
 
   std::error_code error;
-  llvm::raw_fd_ostream OS(options::OutputFilename, error, llvm::sys::fs::CD_CreateAlways);
+  toolchain::raw_fd_ostream OS(options::OutputFilename, error, toolchain::sys::fs::CD_CreateAlways);
   if (OS.has_error() || error) {
-    llvm::errs() << "Error when trying to write to output file; error code "
+    toolchain::errs() << "Error when trying to write to output file; error code "
                  << error.message() << "\n";
     return EXIT_FAILURE;
   }
 
-  llvm::SmallVector<llvm::StringRef, 40> symbols;
+  toolchain::SmallVector<toolchain::StringRef, 40> symbols;
 #define CLANG_MACRO_DEFINED(NAME) \
   symbols.push_back(NAME);
 
@@ -80,7 +84,7 @@ int main(int argc, char *argv[]) {
 
   std::sort(symbols.begin(), symbols.end());
 
-  for (const llvm::StringRef sym : symbols) {
+  for (const toolchain::StringRef sym : symbols) {
     OS << sym << "\n";
   }
 

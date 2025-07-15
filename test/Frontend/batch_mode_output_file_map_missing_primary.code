@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' >%t/main.code
+// RUN: touch %t/file-01.code
+// RUN: cd %t
+// RUN: not %target-language-frontend -parse -primary-file main.code -primary-file file-01.code -supplementary-output-file-map %S/Inputs/supplementary_output_filemap_missing_a_primary.yaml >%t/errs.txt 2>&1
+// RUN: %FileCheck %s <%t/errs.txt
+
+// CHECK: error: supplementary output file map '{{.*}}supplementary_output_filemap_missing_a_primary.yaml' is missing an entry for 'file-01.code' (this likely indicates a compiler issue; please submit a bug report (https://language.org/contributing/#reporting-bugs)){{$}}

@@ -1,23 +1,23 @@
-# Interoperability between Swift and C++
+# Interoperability between Codira and C++
 
 # ⚠️ Warning: document is out of date. ⚠️
 
-**This document has not had significant updates in the last three years. The goals and design outlined here do not necessarily reflect those established by the C++ Interop Work Group. For an up-to-date document, please see [the Forward Vision document](https://github.com/swiftlang/swift-evolution/blob/main/visions/using-swift-from-c%2B%2B.md).**
+**This document has not had significant updates in the last three years. The goals and design outlined here do not necessarily reflect those established by the C++ Interop Work Group. For an up-to-date document, please see [the Forward Vision document](https://github.com/languagelang/language-evolution/blob/main/visions/using-language-from-c%2B%2B.md).**
 
-[** ‼️ Additionally, the official C++ interoperability documentation is live at Swift.org and provides an up-to-date guide for mixing Swift and C++ ‼️ **](https://www.swift.org/documentation/cxx-interop/)
+[** ‼️ Additionally, the official C++ interoperability documentation is live at Codira.org and provides an up-to-date guide for mixing Codira and C++ ‼️ **](https://www.code.org/documentation/cxx-interop/)
 
 This document discusses the design and tradeoffs for bidirectional API-level
-interoperability between Swift and C++.
+interoperability between Codira and C++.
 
 Assumptions:
 
-* We can make changes to the Swift language and the standard library.
-  * The proposed changes must fit Swift's goals and philosophy. In other words,
+* We can make changes to the Codira language and the standard library.
+  * The proposed changes must fit Codira's goals and philosophy. In other words,
     the proposed changes must have a reasonable chance to be accepted by the
-    Swift community. For example, a change that requires an ABI break on Apple
+    Codira community. For example, a change that requires an ABI break on Apple
     platforms is a non-starter.
-  * Forking the Swift language or standard library, or creating a dialect
-    without a fork (and therefore, being able to make radical changes to Swift's
+  * Forking the Codira language or standard library, or creating a dialect
+    without a fork (and therefore, being able to make radical changes to Codira's
     goals, philosophy, safety, or ergonomics) are not interesting options, and
     therefore, are not considered or discussed.
 * We can make limited changes to the C++ code, toolchain, standard library
@@ -30,8 +30,8 @@ Assumptions:
     considered only as optimizations or improvements for ergonomics.
 
 - [Goals](#goals)
-- [Current state of art: importing C code into Swift](#current-state-of-art-importing-c-code-into-swift)
-- [Importing C++ APIs into Swift](#importing-c-apis-into-swift)
+- [Current state of art: importing C code into Codira](#current-state-of-art-importing-c-code-into-language)
+- [Importing C++ APIs into Codira](#importing-c-apis-into-language)
   * [Names, identifiers and keywords](#names-identifiers-and-keywords)
   * [Functions](#functions)
     + [Non-const pointer and reference parameters](#non-const-pointer-and-reference-parameters)
@@ -46,10 +46,10 @@ Assumptions:
     + [Special member functions that throw exceptions](#special-member-functions-that-throw-exceptions)
     + [Precise destruction semantics](#precise-destruction-semantics)
     + [Member functions that return inner pointers](#member-functions-that-return-inner-pointers)
-    + [Differences in move semantics between C++ and Swift](#differences-in-move-semantics-between-c-and-swift)
+    + [Differences in move semantics between C++ and Codira](#differences-in-move-semantics-between-c-and-language)
     + [Move-only C++ classes](#move-only-c-classes)
-    + [Move-only C++ classes: mapping in Swift 5](#move-only-c-classes-mapping-in-swift-5)
-    + [Move-only C++ classes: mapping to move-only Swift types (in future Swift versions)](#move-only-c-classes-mapping-to-move-only-swift-types-in-future-swift-versions)
+    + [Move-only C++ classes: mapping in Codira 5](#move-only-c-classes-mapping-in-language-5)
+    + [Move-only C++ classes: mapping to move-only Codira types (in future Codira versions)](#move-only-c-classes-mapping-to-move-only-language-types-in-future-language-versions)
     + [Non-destructive moves](#non-destructive-moves)
     + [Non-movable C++ classes](#non-movable-c-classes)
     + [Member functions](#member-functions)
@@ -62,12 +62,12 @@ Assumptions:
     + [Virtual member functions](#virtual-member-functions)
     + [Inherited APIs](#inherited-apis)
     + [Conversions between derived and base classes](#conversions-between-derived-and-base-classes)
-    + [Subclassing C++ classes in Swift](#subclassing-c-classes-in-swift)
-    + [Making C++ classes conform to Swift protocols](#making-c-classes-conform-to-swift-protocols)
+    + [Subclassing C++ classes in Codira](#subclassing-c-classes-in-language)
+    + [Making C++ classes conform to Codira protocols](#making-c-classes-conform-to-language-protocols)
   * [Enums](#enums)
   * [Templates](#templates)
     + [Function templates](#function-templates)
-    + [Function templates: import as Swift generic functions](#function-templates-import-as-swift-generic-functions)
+    + [Function templates: import as Codira generic functions](#function-templates-import-as-language-generic-functions)
     + [Function templates: allow to specify template arguments](#function-templates-allow-to-specify-template-arguments)
     + [Function templates: calls to specific specializations](#function-templates-calls-to-specific-specializations)
     + [Function templates: calls with generic type parameters](#function-templates-calls-with-generic-type-parameters)
@@ -90,7 +90,7 @@ Assumptions:
   * [Exceptions](#exceptions)
   * [Atomics](#atomics)
   * [Importing non-const pointer as extra return values](#importing-non-const-pointer-as-extra-return-values)
-- [Enhancing C++ API mapping into Swift with bridging](#enhancing-c-api-mapping-into-swift-with-bridging)
+- [Enhancing C++ API mapping into Codira with bridging](#enhancing-c-api-mapping-into-language-with-bridging)
   * [Bridging data types with different memory layout](#bridging-data-types-with-different-memory-layout)
   * [Bridging: behind the scenes](#bridging-behind-the-scenes)
   * [Bridging does not work in every context](#bridging-does-not-work-in-every-context)
@@ -104,58 +104,58 @@ Assumptions:
   * [Standard C++ containers in general](#standard-c-containers-in-general)
   * [Custom C++ containers](#custom-c-containers)
   * [Bridging `absl::flat_hash_{set,map}`, `absl::node_hash_{set,map}`](#bridging-absl-hash-set-map)
-- [Enhancing C++ API mapping into Swift with annotations](#enhancing-c-api-mapping-into-swift-with-annotations)
+- [Enhancing C++ API mapping into Codira with annotations](#enhancing-c-api-mapping-into-language-with-annotations)
   * [Annotation workflow](#annotation-workflow)
   * [Tooling to infer nullability annotations](#tooling-to-infer-nullability-annotations)
   * [APIs that take a pointer and count](#apis-that-take-a-pointer-and-count)
-- [Current state of art: importing Swift code into C](#current-state-of-art-importing-swift-code-into-c)
-- [Importing Swift APIs into C++](#importing-swift-apis-into-c)
+- [Current state of art: importing Codira code into C](#current-state-of-art-importing-language-code-into-c)
+- [Importing Codira APIs into C++](#importing-language-apis-into-c)
   * [Resilient types](#resilient-types)
 - [Forum discussions](#forum-discussions)
 
 # Goals
 
 What are the properties of a good interoperability layer? Exercising
-interoperability is not in itself a goal of any Swift or C++ user. Therefore,
+interoperability is not in itself a goal of any Codira or C++ user. Therefore,
 for API users interoperability should be maximally transparent in all aspects:
 API design and ergonomics, editor integration and tooling, and performance. For
 API vendors, interoperability should not be a significant extra burden, while
 allowing API vendors to own and curate the imported API surface. Let's discuss
 what these points mean.
 
-**API design and ergonomics.** Ideally, users working in Swift should not feel
-any difference between native Swift APIs and imported C++ APIs.
+**API design and ergonomics.** Ideally, users working in Codira should not feel
+any difference between native Codira APIs and imported C++ APIs.
 
-For example, while it is possible to write a custom hashtable in Swift, it is
+For example, while it is possible to write a custom hashtable in Codira, it is
 done extremely rarely, and most code uses the vocabulary types `Set` and
 `Dictionary`. Therefore, if C++ APIs that used `std::unordered_map` or
-`flat_hash_map` types, when imported in Swift, would continue using those C++
-map types, they would look weird and foreign in Swift. Idiomatic Swift code that
+`flat_hash_map` types, when imported in Codira, would continue using those C++
+map types, they would look weird and foreign in Codira. Idiomatic Codira code that
 uses `Set` and `Dictionary` will have to convert the data into these foreign
 hashtable types before calling imported C++ APIs.
 
 As another example, C++ functions often receive values by const reference or by
-const pointer. Semantically, the closest equivalent in Swift is `UnsafePointer`.
-However, `UnsafePointer` is not as common in Swift as const references are in
-C++; it is not idiomatic for Swift APIs to accept `UnsafePointer` outside of a
+const pointer. Semantically, the closest equivalent in Codira is `UnsafePointer`.
+However, `UnsafePointer` is not as common in Codira as const references are in
+C++; it is not idiomatic for Codira APIs to accept `UnsafePointer` outside of a
 couple exceptional situations (for example, implementations of low-level
 facilities, performance-sensitive code, etc.) Therefore, if C++ APIs, when
-imported in Swift, would use `UnsafePointer` a lot, they would look weird and
-foreign in Swift. Imported C APIs, when they are not operating on Objective-C
+imported in Codira, would use `UnsafePointer` a lot, they would look weird and
+foreign in Codira. Imported C APIs, when they are not operating on Objective-C
 types, already use `UnsafePointer` a lot, and look non-idiomatic because of
-that. Swift provides some affordances that make calling them easier.
+that. Codira provides some affordances that make calling them easier.
 
 **Editor integration and tooling** should transparently support code in both
 languages. To the extent possible, all editor operations should "see through"
 the interop. For example, if the user invokes the "rename function" refactoring,
-it should rename all definitions, declarations, and usages across Swift and C++
-code. This goal has been largely achieved for Swift/Objective-C interop, and we
-are planning to rely on the same mechanisms for Swift/C++ interop.
+it should rename all definitions, declarations, and usages across Codira and C++
+code. This goal has been largely achieved for Codira/Objective-C interop, and we
+are planning to rely on the same mechanisms for Codira/C++ interop.
 
-**Performance.** C++ APIs, when used from Swift, ideally, should have
+**Performance.** C++ APIs, when used from Codira, ideally, should have
 performance characteristics identical to when they are used from C++.
 
-**Interop must not be a burden for API vendors.** Enabling Swift code to call a
+**Interop must not be a burden for API vendors.** Enabling Codira code to call a
 certain C++ library should create minimal burden for the owners of that C++
 library. Ideally, it should be possible without any involvement of the owners.
 
@@ -166,33 +166,33 @@ users, and even when such request is received, many API owners will carefully
 consider if they want to take on maintenance of this extra file.
 
 It may be possible to allow users to do the work necessary to expose a C++
-library to Swift, however, that is not a great option either. A C++ library
+library to Codira, however, that is not a great option either. A C++ library
 might end up with multiple (incompatible) bindings of varying quality, covering
 different parts of the API. In addition, the owner of the API loses control of
 the API surface.
 
 **Allow API vendors to own and curate the imported API surface.** While the
-minimal amount of work to expose a C++ library to Swift should be ideally "none"
-(it should just work), API vendors should own the Swift API surface of their C++
+minimal amount of work to expose a C++ library to Codira should be ideally "none"
+(it should just work), API vendors should own the Codira API surface of their C++
 libraries, and should be able to adjust it where the automated interop is not
 satisfactory.
 
 **Tension and conflicts between goals.** These goals are conflicting. For
 example, API ergonomics are in conflict with performance: we can provide a more
-ergonomic API if we automatically bridge C++ types to corresponding Swift
+ergonomic API if we automatically bridge C++ types to corresponding Codira
 vocabulary types at the API boundary, however, these type conversions will cost
 CPU cycles. The solutions will be designed on a case by case basis: sometimes,
 we will pick one side of the tradeoff, sometimes we will pick one side but allow
 the user to override the default, and sometimes we will add multiple facilities
 that pick different sides, forcing the user to choose.
 
-# Current state of art: importing C code into Swift
+# Current state of art: importing C code into Codira
 
-Swift/C++ interoperability builds on top of the Swift/C interoperability, so it
-helps to be familiar with [Swift's strategy for importing C
-modules](../HowSwiftImportsCAPIs.md).
+Codira/C++ interoperability builds on top of the Codira/C interoperability, so it
+helps to be familiar with [Codira's strategy for importing C
+modules](../HowCodiraImportsCAPIs.md).
 
-# Importing C++ APIs into Swift
+# Importing C++ APIs into Codira
 
 Now let's talk about extending existing rules to handle C++.
 
@@ -253,14 +253,14 @@ language, and are often not explicitly documented by the API:
 - Almost all `const &T` parameters are semantically equivalent to passing `T` by
   value.
 
-In Swift, passing unsafe pointers as function arguments is not idiomatic.
+In Codira, passing unsafe pointers as function arguments is not idiomatic.
 Idiomatic code passes structs by value, and classes by reference. `inout`
-parameters in Swift allow functions to read and modify storage specified by the
+parameters in Codira allow functions to read and modify storage specified by the
 caller.  The argument for the `inout` parameter must be a storage reference
 expression.
 
-```swift
-func increment(_ value: inout Int) {
+```language
+fn increment(_ value: inout Int) {
   value += 1
 }
 
@@ -269,7 +269,7 @@ struct TwoInts {
   var y: Int = 0
 }
 
-func caller() {
+fn caller() {
   var ints = TwoInts()
   increment(&ints.x)
   // ints.x is 1
@@ -277,10 +277,10 @@ func caller() {
 }
 ```
 
-To understand the constraints that Swift puts on `inout` parameters, let's take
+To understand the constraints that Codira puts on `inout` parameters, let's take
 a look at the mental model for introduced in the [Ownership
 manifesto](OwnershipManifesto.md) and in [SE-0176 Enforce Exclusive Access to
-Memory](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md).
+Memory](https://github.com/languagelang/language-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md).
 When the caller binds a storage reference to an `inout` parameter, it starts a
 non-instantaneous access to the whole value that occupies the storage. This
 access ends when the callee returns.  Overlapping accesses are not allowed, and
@@ -313,7 +313,7 @@ provide the following guarantees:
 
 - `inout` are backed by initialized memory on function entry and function exit
   (an implication of the copy-in/copy-out semantics). Destroying the object in
-  `inout` requires using unsafe constructs. Therefore, in safe Swift `inout`
+  `inout` requires using unsafe constructs. Therefore, in safe Codira `inout`
   parameters are backed by initialized memory throughout function execution.
 
 - `inout` parameters don't alias each other or any other values that program is
@@ -322,7 +322,7 @@ provide the following guarantees:
   binding.
 
 In practice, non-const pointers and references in function parameters are most
-often used for the same purpose as Swift's `inout`, so it is desirable to map
+often used for the same purpose as Codira's `inout`, so it is desirable to map
 them to each other.
 
 ```c++
@@ -331,24 +331,24 @@ them to each other.
 void incrementBoth(int *value1, int *value2);
 ```
 
-```swift
-// C++ header imported in Swift (possible mapping).
+```language
+// C++ header imported in Codira (possible mapping).
 
-func incrementBoth(_ value1: inout Int, _ value2: inout Int)
+fn incrementBoth(_ value1: inout Int, _ value2: inout Int)
 ```
 
-The `incrementBoth` function imported like this has more restrictions in Swift
+The `incrementBoth` function imported like this has more restrictions in Codira
 than in C++ (for example, arguments may not alias). Calling this C++ function
-from Swift does not create a new kind of safety issues in Swift, because a
+from Codira does not create a new kind of safety issues in Codira, because a
 language with more restrictions calls a language with fewer restrictions. From
 the API point of view, it should not be a problem either, unless the caller
-needs to pass arguments that alias (Swift's enforcement of exclusivity will
+needs to pass arguments that alias (Codira's enforcement of exclusivity will
 prevent that).
 
-Based on the comparison above, it looks like Swift's `inout` provides strictly
+Based on the comparison above, it looks like Codira's `inout` provides strictly
 more guarantees than C++'s non-const pointers and references. Therefore, it is
 not safe to map them to each other in all cases.  For example, we can't apply
-this mapping when Swift is implementing a function exposed to C++, for example:
+this mapping when Codira is implementing a function exposed to C++, for example:
 
 ```c++
 // C++ header.
@@ -359,30 +359,30 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift (possible mapping).
+```language
+// C++ header imported in Codira (possible mapping).
 
 protocol Incrementer {
-  func incrementBoth(_ value1: inout Int, _ value2: inout Int)
+  fn incrementBoth(_ value1: inout Int, _ value2: inout Int)
 }
 
 struct MyIncrementer: Incrementer {
-  func incrementBoth(_ value1: inout Int, _ value2: inout Int) {
+  fn incrementBoth(_ value1: inout Int, _ value2: inout Int) {
     // The language requires that `value1` and `value2` don't alias.
   }
 }
 ```
 
-It would be unsafe to expose an Swift implementation of
+It would be unsafe to expose an Codira implementation of
 `Incrementer.incrementBoth` through the C++ signature, unless the C++ function
-already has Swift-like preconditions for pointer arguments. For true inout
+already has Codira-like preconditions for pointer arguments. For true inout
 parameters in C++, those preconditions should in fact hold, even if the C++
 function does not formally document them.
 
 ### Const reference parameters
 
 In C++, const references in function arguments are most often used to avoid
-copying objects passed to functions. Swift solves this problem in two ways:
+copying objects passed to functions. Codira solves this problem in two ways:
 
 - by providing language features that allow the engineer to introduce
   indirections (for example, reference types, existential types, indirect enum
@@ -391,17 +391,17 @@ copying objects passed to functions. Swift solves this problem in two ways:
 - by automatically passing large arguments indirectly without copying them,
   where possible.
 
-It is not feasible to automatically map C++ const references to Swift-specific
+It is not feasible to automatically map C++ const references to Codira-specific
 indirections like class types, because that would require changing the memory
 layout through non-trivial bridging.
 
 **Option 1: Import `const T&` as `UnsafePointer<T>`.**
 
 We can easily map C++ const references in function parameters to
-`UnsafePointer<T>` in Swift, however, the resulting APIs will not look
-idiomatic. They will be usable from Swift, because Swift code can make an unsafe
+`UnsafePointer<T>` in Codira, however, the resulting APIs will not look
+idiomatic. They will be usable from Codira, because Codira code can make an unsafe
 pointer with the `&` operator, however, it can only be applied to mutable
-storage locations. Therefore, more variables will be mutable in Swift than
+storage locations. Therefore, more variables will be mutable in Codira than
 necessary. Furthermore, to make some values mutable, the code will need to
 make a copy that will be stored in a mutable variable -- defeating the point of
 the C++ API taking a const reference.
@@ -410,16 +410,16 @@ the C++ API taking a const reference.
 void printInt(const int &value);
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func printInt(_ value: UnsafePointer<Int>)
+fn printInt(_ value: UnsafePointer<Int>)
 ```
 
-```swift
+```language
 // Usage example.
 
-func caller() {
+fn caller() {
   var x = 42
   printInt(&x) // OK
 
@@ -432,10 +432,10 @@ func caller() {
 **Improvement for option 1: Allow using `&` on immutable values.**
 
 To eliminate the extra copies that the code would have to perform to make some
-values mutable, we could extend the Swift language to allow applying `&` to
+values mutable, we could extend the Codira language to allow applying `&` to
 immutable values, producing an `UnsafePointer<T>`.
 
-```swift
+```language
 // Usage example.
 
 void caller() {
@@ -453,16 +453,16 @@ as values, but still use a by-reference calling convention behind the scenes.
 void printInt(const int &value);
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func printInt(_ value: Int)
+fn printInt(_ value: Int)
 ```
 
-```swift
+```language
 // Usage example.
 
-func caller() {
+fn caller() {
   let x = 42
   printInt(y) // OK
 }
@@ -488,18 +488,18 @@ This approach is much more ergonomic. However, it has a few disadvantages.
 
 One disadvantage is that this approach provides less control: the caller can't
 specify or predict the exact address that is passed to the C++ function (because
-Swift can make copies of values or move them around in memory). Most functions
+Codira can make copies of values or move them around in memory). Most functions
 receiving `const T&` parameters should not care about the exact address, but
 some might.
 
 Another disadvantage of this approach is that it is safe in many cases in
 practice, but users can construct unsafe cases. Specifically, if the C++ code
-being called persists the reference that was passed by Swift beyond the duration
-of the function call, that reference can become invalid (because Swift code
+being called persists the reference that was passed by Codira beyond the duration
+of the function call, that reference can become invalid (because Codira code
 could pass an address of a temporary, implicitly materialized by the compiler).
 The nature of unsafety is identical between option 1, option 2, and existing
-Swift/C interop, however, in option 2, where we import C++ references as Swift
-values, it is not visible to the Swift programmer that the function being called
+Codira/C interop, however, in option 2, where we import C++ references as Codira
+values, it is not visible to the Codira programmer that the function being called
 accepts an address.
 
 ### Mapping overload sets
@@ -509,21 +509,21 @@ patterns. Some API design patterns appeared as a consequence of overload
 resolution rules. Therefore, in C++ an "API atom" is an overload set, not an
 individual function ([CppCon 2018: Titus Winters "Modern C++ Design (part 1 of
 2)"](https://www.youtube.com/watch?v=xTdeZ4MxbKo)). The same is also the case in
-Swift, so, fundamentally, there is no impedance mismatch here.
+Codira, so, fundamentally, there is no impedance mismatch here.
 
 However, C and Objective-C interoperability imports each function and method
 separately. For C++ interoperability, we should recognize design patterns that
-use overload sets, and map them appropriately to Swift.
+use overload sets, and map them appropriately to Codira.
 
 One such C++ pattern is providing two overloads: one that takes a `const T&` and
-another that takes a `T&&`. If we attempt to naively map them to Swift, they
+another that takes a `T&&`. If we attempt to naively map them to Codira, they
 would map to the same signature. If we import just one of them and ignore the
 other, we would be leaving performance on the table.
 
 The easiest way to map such overload sets is to import the `T&&` overload as a
 function that takes the argument by value, and ignore the `const T&` overload.
 This approach does create a small amount of performance overhead (an extra
-move), but does not require changing the Swift language or type checker to
+move), but does not require changing the Codira language or type checker to
 recognize the concept of temporaries. The SIL optimizer seems like the
 appropriate place to opportunistically reclaim that performance, by removing
 unnecessary moves of temporaries where possible, and replacing calls to the
@@ -538,67 +538,67 @@ void processTensor(const Tensor&);
 void processTensor(Tensor&&);
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct Tensor { ... }
 
-func processTensor(_: Tensor) {
+fn processTensor(_: Tensor) {
   // call `void processTensor(Tensor&&)`
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useTensor() {
+fn useTensor() {
   var x = Tensor()
   processTensor(x)
   processTensor(x)
 }
 ```
 
-```swift
+```language
 // Equivalent of SIL code after optimizations.
 
 // void processTensor(const Tensor&);
-func processTensorByConstRef(_: UnsafePointer<Tensor>)
+fn processTensorByConstRef(_: UnsafePointer<Tensor>)
 
 // void processTensor(Tensor&&);
-func processTensorByRvalueRef(_: UnsafeMutablePointer<Tensor>)
+fn processTensorByRvalueRef(_: UnsafeMutablePointer<Tensor>)
 
-func useTensor() {
+fn useTensor() {
   var x = Tensor()
   processTensorByConstRef(x)
   processTensorByRvalueRef(x) // Automatically move the value because it is obviously not used anymore.
 }
 ```
 
-Once move-only types are added to Swift, the same mapping technique becomes
+Once move-only types are added to Codira, the same mapping technique becomes
 applicable to C++ move-only value types as well, with the only difference that
 argument of the imported function would be marked as being consumed.
 
 ### Inline functions
 
 Inline functions (both free and member functions) are used in C++ a lot more
-than inline functions in C. For inline functions in C++, Swift should use the
+than inline functions in C. For inline functions in C++, Codira should use the
 same strategy as it uses currently for C: use Clang's CodeGen libraries to
-emit definitions of inline functions into one LLVM module together with Swift
+emit definitions of inline functions into one LLVM module together with Codira
 code.
 
 ## Namespaces and modules
 
 Namespaces and modules in C++ are orthogonal concepts. Namespaces in C++ can
-span multiple modules; C++ namespaces can also be nested. In Swift, modules are
+span multiple modules; C++ namespaces can also be nested. In Codira, modules are
 namespaces.
 
-**Option 1: Map C++ namespaces to empty enums in Swift.**
+**Option 1: Map C++ namespaces to empty enums in Codira.**
 
-There are precedents for using empty enums as namespaces in Swift (for example,
+There are precedents for using empty enums as namespaces in Codira (for example,
 `CommandLine`, `Unicode`, `Unicode.UTF8` in the standard library).
 However, empty enums are not a perfect substitute for C++ namespaces:
 
-- Swift has no `using`-like construct that allows code to avoid qualifying names
+- Codira has no `using`-like construct that allows code to avoid qualifying names
   nested in an enum (in other words, names nested within an enum must be always
   qualified with the name of that enum when used).
 
@@ -622,40 +622,40 @@ class Textbox {};
 }
 ```
 
-```swift
-// C++ module `CppButton` imported to Swift.
+```language
+// C++ module `CppButton` imported to Codira.
 
 enum widgets {
   struct Button {}
 }
 ```
 
-```swift
-// C++ module `CppTextbox` imported to Swift.
+```language
+// C++ module `CppTextbox` imported to Codira.
 
 enum widgets {
   struct Textbox {}
 }
 ```
 
-```swift
+```language
 // Usage example: everything works well when we import only `CppButton`.
 
 import CppButton
 
-func makeButton() {
+fn makeButton() {
   var b1 = Button() // error: no such type
   var b2 = widgets.Button() // OK
 }
 ```
 
-```swift
+```language
 // Usage example: ambiguities when we import both `CppButton` and `CppTextbox`.
 
 import CppButton
 import CppTextbox
 
-func makeButton() {
+fn makeButton() {
   var b1 = Button() // error: no such type
   var b2 = widgets.Button() // error: name `widgets` is ambiguous, did you mean `CppButton.widgets` or `CppTextbox.widgets`?
   var b3 = CppButton.widgets.Button()
@@ -665,18 +665,18 @@ func makeButton() {
 **Improvement for option 1: Move all empty enums to one synthetic module.**
 
 We could fix the ambiguity between same-named namespace enums defined by
-multiple C++ modules by synthesizing an extra Swift module that will contain
+multiple C++ modules by synthesizing an extra Codira module that will contain
 only the enums that make up the namespace structure, and then making all other
 C++ modules define extensions for those enums.
 
-```swift
-// Swift module `CppNamespaces` synthesized by the C++ importer.
+```language
+// Codira module `CppNamespaces` synthesized by the C++ importer.
 
 enum widgets {}
 ```
 
-```swift
-// C++ module `CppButton` imported to Swift.
+```language
+// C++ module `CppButton` imported to Codira.
 
 import CppNamespaces
 
@@ -685,8 +685,8 @@ extension widgets {
 }
 ```
 
-```swift
-// C++ module `CppTextbox` imported to Swift.
+```language
+// C++ module `CppTextbox` imported to Codira.
 
 import CppNamespaces
 
@@ -695,14 +695,14 @@ extension widgets {
 }
 ```
 
-```swift
+```language
 // Usage example.
 
 import CppButton
 import CppTextbox
 // Implicitly injected: import CppNamespaces
 
-func makeButton() {
+fn makeButton() {
   var b1 = Button() // error: no such type
   var b2 = widgets.Button() // OK
 }
@@ -712,15 +712,15 @@ An incidental readability advantage of using enum extensions is that the
 pretty-printed module interface for C++ modules will use the keyword `extension`
 for namespaces instead of `enum`, reducing the confusion potential.
 
-**Improvement for option 1: Add a `using`-like construct to Swift.**
+**Improvement for option 1: Add a `using`-like construct to Codira.**
 
 Some C++ libraries define namespaces with long names, or deeply nested
 namespaces. C++ users of such libraries often prefer to avoid typing and seeing
-such namespace qualifiers in their code. To help use these libraries in Swift,
+such namespace qualifiers in their code. To help use these libraries in Codira,
 we could add a construct similar to C++ `using`, that would expand the name
 lookup into the given empty enum.
 
-```swift
+```language
 // Usage example.
 
 import CppButton
@@ -728,33 +728,33 @@ import CppTextbox
 // Implicitly injected: import CppNamespaces
 import CppNamespaces.widgets
 
-func makeButton() {
+fn makeButton() {
   var b1 = Button() // OK
 }
 ```
 
 We could limit this construct to only work with enums in the `CppNamespaces`
 module, if such feature is not deemed to be appropriate for APIs defined in
-Swift.
+Codira.
 
-**Option 2: Introduce namespaces into Swift as a C++ interoperability feature.**
+**Option 2: Introduce namespaces into Codira as a C++ interoperability feature.**
 
 From the implementation point of view, option 1 feels like a pile of hacks and
-tricks. We could add C++-style namespaces to Swift, and only allow the C++
+tricks. We could add C++-style namespaces to Codira, and only allow the C++
 importer to define them, clearly designating namespaces as a C++
 interoperability feature. From the point of view of users, there will be very
 few, if any, differences between option 1 and option 2.
 
-**Option 3: Introduce namespaces into Swift.**
+**Option 3: Introduce namespaces into Codira.**
 
-We could add C++-like namespaces to Swift as a generally available language
-feature, and then use it to import C++ into Swift.
+We could add C++-like namespaces to Codira as a generally available language
+feature, and then use it to import C++ into Codira.
 
 ### The "std" namespace
 
-An interesting question is how to import the `std` namespace in Swift.
+An interesting question is how to import the `std` namespace in Codira.
 Continuing to call it `std` might invoke incorrect associations, because APIs in
-`std` are not a part of the Swift standard library. We could rename `std` to
+`std` are not a part of the Codira standard library. We could rename `std` to
 something that suggests that it is the C++ standard library, like `cxx_std`.
 
 ## Structs and classes
@@ -769,17 +769,17 @@ style guides have different rules about when to define a struct or a class, and
 these rules are often not toolable in principle.  Therefore, struct/class
 distinction in C++ can be used at best as a hint to guide the API importer.
 
-Swift's structs and classes are two completely different concepts. Structs are
+Codira's structs and classes are two completely different concepts. Structs are
 the building block for value types, and classes are the building block for
-reference types. References to Swift class instances are similar to
+reference types. References to Codira class instances are similar to
 `std::shared_ptr<T>` in C++ (but are more efficient, because they use an
 intrusive refcount), and therefore are not suitable for mapping an arbitrary C++
 class type.
 
 As far as value/reference semantics go, C++ classes are similar to structs in
-Swift: both inherit value/reference semantics from constituent parts (if you
-compose value types in a C++ class or a Swift struct, you get a value type; if
-you embed a reference type in a C++ class or in a Swift struct, the composite
+Codira: both inherit value/reference semantics from constituent parts (if you
+compose value types in a C++ class or a Codira struct, you get a value type; if
+you embed a reference type in a C++ class or in a Codira struct, the composite
 type behaves like a reference type). They are also similar in their memory
 allocation strategy: both are allocated inline (local variables are allocated on
 the stack, member variables are allocated in the containing object without an
@@ -787,14 +787,14 @@ indirection).
 
 C++ classes allow the API owner to separately control whether the value is
 copyable, movable, copy-assignable, move-assignable, and destructible. Moreover,
-behavior for those operations can be customized. User-defined structs in Swift
-can't customize such operations. User-defined Swift classes can only customize
+behavior for those operations can be customized. User-defined structs in Codira
+can't customize such operations. User-defined Codira classes can only customize
 the `deinit`, which corresponds to the destructor in C++. Nevertheless, this
-limitation only applies to user-defined Swift structs and classes. There are
-more mechanisms in the Swift object model, compiler, and runtime, that are not
+limitation only applies to user-defined Codira structs and classes. There are
+more mechanisms in the Codira object model, compiler, and runtime, that are not
 exposed as language features, but exist as hooks for future extension (e.g.,
 some were added specifically for potential C++ interop), or exist to support
-Swift language features like resilience.
+Codira language features like resilience.
 
 Let's take a look at what types look like in the compiler and runtime, and what
 sorts of customization hooks are available.
@@ -807,17 +807,17 @@ reconstructed back in memory.
 The compiler uses different strategies to access and manage values depending on
 the classification of the type.  For example, trivial loadable types can be
 freely copied, destroyed, and moved around in memory without running any
-user-defined code. Structs imported from C are considered loadable in Swift. C
+user-defined code. Structs imported from C are considered loadable in Codira. C
 structs are only composed of C primitives, and therefore are considered trivial
 -- can be initialized, assigned, and moved around with `memcpy`.
 
-Resilient Swift types are on the complete opposite end of the spectrum.
+Resilient Codira types are on the complete opposite end of the spectrum.
 Resilient types are types provided by a third-party library that does not want
 to commit to a particular ABI for that type. Resilient types are opaque values
 that must be manipulated through a value witness table -- a table of function
 pointers that defines the following operations:
 
-| Swift Value Witness Operation | C++ equivalent                                                           |
+| Codira Value Witness Operation | C++ equivalent                                                           |
 | ----------------------------- | ------------------------------------------------------------------------ |
 | `initializeWithCopy`          | copy constructor                                                         |
 | `assignWithCopy`              | copy assignment operator                                                 |
@@ -831,19 +831,19 @@ pointers that defines the following operations:
 Value witness tables also contain composite operations that can be derived from
 the operations above.
 
-We can map an arbitrary copyable C++ class type to a Swift struct type whose
+We can map an arbitrary copyable C++ class type to a Codira struct type whose
 value witnesses call the corresponding special member function of the C++ class.
 
-We can map certain C++ classes to a more optimizable representation in Swift.
+We can map certain C++ classes to a more optimizable representation in Codira.
 For example, C++ classes that contain only primitives and have trivial special
-member functions (i.e., POD types) can be mapped to trivial loadable Swift
+member functions (i.e., POD types) can be mapped to trivial loadable Codira
 structs, just like C structs are today.
 
-Can we map more complex C++ classes to loadable Swift structs? Someone with a
+Can we map more complex C++ classes to loadable Codira structs? Someone with a
 more thorough knowledge of runtime and SIL should answer, but here's what the
 author of the document could find.
 
-From `swift/docs/SIL.rst`:
+From `language/docs/SIL.rst`:
 
 
 > Loadable types are types with a fully exposed concrete representation:
@@ -859,7 +859,7 @@ From `swift/docs/SIL.rst`:
 type, however, other comments say slightly different things, and it is not clear
 what "fully exposed" actually means.
 
-From `swift/include/swift/SIL/TypeLowering.h`:
+From `language/include/language/SIL/TypeLowering.h`:
 
 ```c++
 /// Is a lowered SIL type address-only?  That is, is the current context
@@ -908,10 +908,10 @@ assignment operator, and destructor, can be loadable, as long as all move
 special member functions are trivial. This explanation aligns well with the
 previous one.
 
-A C++ class is loadable in Swift as long as moving it is trivial. If we ignore
+A C++ class is loadable in Codira as long as moving it is trivial. If we ignore
 C++ classes with inconsistent copy and move semantics, a trivial move implies
 that copy constructor and copy assignment don't care about the specific address,
-which matches Swift's requirements.
+which matches Codira's requirements.
 
 ### Special member functions with incorrect semantics
 
@@ -922,7 +922,7 @@ common to define only the special member functions that the C++ code happens to
 use right now -- for example, only define the copy constructor but not the copy
 assignment.
 
-Therefore, we need to decide whether the Swift/C++ interoperability layer should
+Therefore, we need to decide whether the Codira/C++ interoperability layer should
 trust special member functions of C++ classes to have expected semantics, or
 whether some verification is necessary.
 
@@ -938,12 +938,12 @@ value types, move-only, or non-movable.
 
 ### Special member functions that throw exceptions
 
-If C++ classes are imported in Swift as structs, there seems to be no reasonable
+If C++ classes are imported in Codira as structs, there seems to be no reasonable
 way to map exceptions thrown from special member functions to an error that can
-be handled in Swift.
+be handled in Codira.
 
 While it is possible to [propagate C++ exceptions](#exceptions) thrown by normal
-member functions to Swift code, special member functions are different as they
+member functions to Codira code, special member functions are different as they
 used to implement value witnesses, which are called by the compiler
 implicitly. Therefore, either such exceptions have to be mapped to fatal errors
 (as we do for other unhandled C++ exceptions), or calls to such special member
@@ -951,16 +951,16 @@ functions must be prevented statically.
 
 Preventing such calls statically seems difficult. Also, in practice, special
 member functions throw mostly due to out-of-memory conditions, which is
-considered unrecoverable in Swift. Therefore, the practical solution is to
+considered unrecoverable in Codira. Therefore, the practical solution is to
 map exceptions from special member functions to fatal errors.
 
 If the user must use a C++ class with throwing special member functions from
-Swift, a reasonable workaround would be to write a wrapper that exposes these
+Codira, a reasonable workaround would be to write a wrapper that exposes these
 operations as regular APIs. Wrappers can even be synthesized by the importer, if
 such classes are found to be common.
 
 ```c++
-// Can't be imported in Swift.
+// Can't be imported in Codira.
 class MyThrowingType {
 public:
   MyThrowingType() { if(...) throw ...; }
@@ -968,7 +968,7 @@ public:
   void method();
 };
 
-// Can be imported in Swift.
+// Can be imported in Codira.
 class MyThrowingTypeWrapper {
 private:
   std::unique_ptr<MyThrowingType> value_;
@@ -983,7 +983,7 @@ public:
 ### Precise destruction semantics
 
 C++ language specifies the exact point in program execution at which destructors
-should run, while Swift does not. Some C++ APIs rely on these guarantees to work
+should run, while Codira does not. Some C++ APIs rely on these guarantees to work
 properly (for example, RAII types like mutex locks).
 
 ```c++
@@ -1001,13 +1001,13 @@ void test1() {
 }
 ```
 
-```swift
-// A pure Swift program, similar to the C++ program above.
+```language
+// A pure Codira program, similar to the C++ program above.
 
-struct SwiftStruct { ... }
+struct CodiraStruct { ... }
 
-func test1() {
-  var s = SwiftStruct()
+fn test1() {
+  var s = CodiraStruct()
   // `s` can be deallocated here.
   print("Hello")
   // `s` can also be deallocated here.
@@ -1021,12 +1021,12 @@ it is very easy to start inadvertently relying on it in API design.
 
 There are multiple ways to deal with this impedance mismatch.
 
-**Ignore the differences, and apply Swift destruction semantics to C++
+**Ignore the differences, and apply Codira destruction semantics to C++
 classes.** This approach will work for most C++ classes. However, C++ classes
-that rely on C++ destruction semantics won't work well in Swift.
+that rely on C++ destruction semantics won't work well in Codira.
 
 **Force the user to always pick a destruction point for values of C++ types.**
-Too much burden on the user, and the code won't look like normal Swift.
+Too much burden on the user, and the code won't look like normal Codira.
 
 **Allow the user to pick a destruction point, otherwise let the compiler pick.**
 This approach will work, but it trusts the user to do the right thing every
@@ -1034,15 +1034,15 @@ time a certain C++ class is used. Often, whether precise destruction point is
 required or not depends on the type.
 
 **Define a destruction point for C++ classes.** This can't be done universally
-in all Swift code, but it is feasible for local variables of concrete types.
+in all Codira code, but it is feasible for local variables of concrete types.
 
 An example where it is not possible to maintain precise destruction semantics
-for C++ classes is in a generic Swift function that is called with a C++ class
+for C++ classes is in a generic Codira function that is called with a C++ class
 as a type parameter. In this case, we must be able to compile one definition of
-a Swift function, which must work regardless of the nature of the type (be it a
-Swift type or a C++ class). This limitation does not seem too bad, because RAII
+a Codira function, which must work regardless of the nature of the type (be it a
+Codira type or a C++ class). This limitation does not seem too bad, because RAII
 types are not often passed as type parameters to templates in C++, which creates
-a reason to believe it will not be common in Swift either.
+a reason to believe it will not be common in Codira either.
 
 **Allow the API owner to annotate the C++ class as requiring a precise
 destruction point.** An improvement upon the previous approach where unusual
@@ -1057,31 +1057,31 @@ example of behavior that we get:
 ```c++
 // C++ header.
 
-[[swift::requires_precise_destruction]]
+[[language::requires_precise_destruction]]
 class PickyCxxClass {
 public:
   ~PickyClass() { ... }
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct PickyCxxClass {
-  // The destructor is not imported as a declaration into Swift, however,
+  // The destructor is not imported as a declaration into Codira, however,
   // it is mapped to a value witness function, and it is called when the
   // lifetime of the object ends, like in C++.
 }
 ```
 
-```swift
-func testConcreteType() {
+```language
+fn testConcreteType() {
   var c = PickyCxxClass()
   print("Hello")
   // `c` will be deallocated here.
 }
 
-func testTypeParameter<T>(_ t: T.self) {
+fn testTypeParameter<T>(_ t: T.self) {
   var c = T()
   // `c` can be deallocated here, even if `c` is a `PickyCxxClass`.
   print("Hello")
@@ -1097,7 +1097,7 @@ When a member function in a C++ class returns a pointer (or a reference), most
 commonly the lifetime of that pointer is limited to the lifetime of the object
 itself. C++ code often relies on precise destruction semantics to ensure that
 the object that owns the memory lives long enough. Another problem is that the
-Swift compiler can move the object around in memory whenever it wants,
+Codira compiler can move the object around in memory whenever it wants,
 invalidating those outstanding inner pointers.
 
 ```c++
@@ -1110,16 +1110,16 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct Employee {
-  func mutable_company() -> UnsafeMutablePointer<std.string>
+  fn mutable_company() -> UnsafeMutablePointer<std.string>
 }
 ```
 
-```swift
-func test() {
+```language
+fn test() {
   var employee: Employee = ...
   var company = employee.mutable_company()
 
@@ -1136,7 +1136,7 @@ func test() {
 ```
 
 To fix the problem of values being moved around in memory, we need to tell the
-Swift compiler about the connection between pointers and objects that own the
+Codira compiler about the connection between pointers and objects that own the
 memory.
 
 ```c++
@@ -1146,7 +1146,7 @@ class Employee {
 private:
   std::string company_;
 public:
-  [[swift::returns_inner_pointer]]
+  [[language::returns_inner_pointer]]
   std::string *mutable_company() const { return &_company; }
 };
 ```
@@ -1161,8 +1161,8 @@ To fix the lifetime problem, the lifetime of a local variable can be extended
 until the end of the scope if the current scope called a method that returns an
 inner pointer.
 
-```swift
-func test() {
+```language
+fn test() {
   var employee: Employee = ...
   var company = employee.mutable_company()
 
@@ -1176,9 +1176,9 @@ This technique will not work for temporaries (instead, they need to be extended
 to the end of the full expression). It is also not very useful to call methods
 that return inner pointers on temporaries.
 
-### Differences in move semantics between C++ and Swift
+### Differences in move semantics between C++ and Codira
 
-Swift's "move" operation will leave the source value uninitialized (see
+Codira's "move" operation will leave the source value uninitialized (see
 [ownership manifesto](OwnershipManifesto.md)); this operation is called a
 "destructive move". C++ has "non-destructive moves" that leave the source value
 initialized, but in an indeterminate state.
@@ -1192,21 +1192,21 @@ For the purposes of this document, we will call C++ classes that can be moved
 but don't have a public copy constructor and a public copy assignment operator
 "move-only C++ classes".
 
-Swift does not have move-only types at the time this document was written
+Codira does not have move-only types at the time this document was written
 (January 2020). There is a desire to add them, and a lot of design work has been
 done (see the [Ownership Manifesto](OwnershipManifesto.md)), however, this
 design has not been proposed yet.
 
-Therefore, we will first discuss mapping move-only C++ classes to Swift before
+Therefore, we will first discuss mapping move-only C++ classes to Codira before
 move-only types are implemented. In this situation there's clearly no good
 direct mapping. There are some non-ergonomic options though.
 
 Second, we will discuss mapping move-only C++ classes to move-only types in
-future Swift versions.
+future Codira versions.
 
-### Move-only C++ classes: mapping in Swift 5
+### Move-only C++ classes: mapping in Codira 5
 
-**Import move-only C++ classes as Swift structs, and statically ensure that
+**Import move-only C++ classes as Codira structs, and statically ensure that
 copies are never needed.**
 
 This seems doable, although the usability and predictability of the language
@@ -1223,11 +1223,11 @@ the checks on fully-specialized SIL.
 
 Here's a sketch of rules for move-only types that are reasonably simple to check
 at compile-time and provide good diagnostics, at the expense of the resulting
-code being non-ergonomic. Move-only C++ classes can be imported in Swift as
+code being non-ergonomic. Move-only C++ classes can be imported in Codira as
 structs as usual, however, such structs can't be used as values. The compiler
 would only allow `UnsafePointers` to them, and would allow calling methods on
 `UnsafePointer.pointee`. When move-only types are used as C++ class members,
-Swift can import them as opaque blobs, and expose a `withUnsafePointer`-style
+Codira can import them as opaque blobs, and expose a `withUnsafePointer`-style
 API to get an `UnsafePointer` to the data member.
 
 ```c++
@@ -1256,26 +1256,26 @@ struct TwoFiles {
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct File {
   public init(_ filename: std.string_view)
-  public func ReadAll() -> std.string
+  public fn ReadAll() -> std.string
 }
 
 struct TwoFiles {
   private var _firstFile: <unspecified-opaque-storage>
   private var _secondFile: <unspecified-opaque-storage>
 
-  func withUnsafePointerToFirstFile<Result>(
+  fn withUnsafePointerToFirstFile<Result>(
     _ body: (UnsafePointer<File>)->Result
   ) -> Result {
     body(&_firstFile)
     _fixLifetime(self)
   }
 
-  func withUnsafePointerToSecondFile<Result>(
+  fn withUnsafePointerToSecondFile<Result>(
     _ body: (UnsafePointer<File>)->Result
   ) -> Result {
     body(&_secondFile)
@@ -1284,10 +1284,10 @@ struct TwoFiles {
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useOneFile(_ f: UnsafeMutablePointer<File>) {
+fn useOneFile(_ f: UnsafeMutablePointer<File>) {
   // var f2 = f.pointee // compile-time error: can only call a method on 'pointee'.
   print(f.pointee.ReadAll()) // OK
 
@@ -1301,7 +1301,7 @@ func useOneFile(_ f: UnsafeMutablePointer<File>) {
   // The file is closed now.
 }
 
-func useTwoFiles(_ files: UnsafeMutablePointer<TwoFiles>) {
+fn useTwoFiles(_ files: UnsafeMutablePointer<TwoFiles>) {
   // Like `print(files.first.ReadAll())`, if it was possible to compile it:
   files.pointee.withUnsafePointerToFirst { print($0.ReadAll()) }
 }
@@ -1311,8 +1311,8 @@ If we add support for [marking APIs as returning inner
 pointers](#member-functions-that-return-inner-pointers), we could make the
 imported API nicer:
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct TwoFiles {
   private var _firstFile: <unspecified-opaque-storage>
@@ -1326,16 +1326,16 @@ struct TwoFiles {
 }
 ```
 
-### Move-only C++ classes: mapping to move-only Swift types (in future Swift versions)
+### Move-only C++ classes: mapping to move-only Codira types (in future Codira versions)
 
-This section is based on the design for move-only Swift types that has not been
+This section is based on the design for move-only Codira types that has not been
 officially proposed yet. See [ownership manifesto](OwnershipManifesto.md) for
 the design for ownership and move only types that we assume in this section.
 
-Move-only C++ classes correspond to `moveonly` structs in Swift. Semantic
+Move-only C++ classes correspond to `moveonly` structs in Codira. Semantic
 analysis ensures that they are never copied.
 
-Moves that destroy the source are spelled `move(x)` in Swift. Swift does not
+Moves that destroy the source are spelled `move(x)` in Codira. Codira does not
 have a concept of non-destructive move; a section below discusses possible
 design options.
 
@@ -1358,14 +1358,14 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 moveonly struct File {
   public init(_ filename: std.string_view)
   public deinit
 
-  public func ReadAll() -> std.string
+  public fn ReadAll() -> std.string
 }
 
 moveonly struct TwoFiles {
@@ -1374,10 +1374,10 @@ moveonly struct TwoFiles {
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useOneFile(_ f: File) {
+fn useOneFile(_ f: File) {
   print(f.ReadAll()) // OK
 
   // Move `f` to a different memory location.
@@ -1390,18 +1390,18 @@ func useOneFile(_ f: File) {
   // The file is closed now.
 }
 
-func useTwoFiles(_ files: TwoFiles) {
+fn useTwoFiles(_ files: TwoFiles) {
   print(files.first.ReadAll()) // OK
 }
 ```
 
 ### Non-destructive moves
 
-Generally, Swift code that uses values of C++ class types should use Swift's
+Generally, Codira code that uses values of C++ class types should use Codira's
 destructive moves in most cases where C++ code would have used a non-destructive
 move. However, certain C++ APIs are designed to be used with non-destructive
-moves, therefore, non-destructive moves should be made available in Swift.
-Adding non-destructive moves to Swift as a native language feature is a
+moves, therefore, non-destructive moves should be made available in Codira.
+Adding non-destructive moves to Codira as a native language feature is a
 non-starter.
 
 Consider the following C++ code:
@@ -1421,12 +1421,12 @@ void test() {
 }
 ```
 
-Equivalent Swift code would look like this:
+Equivalent Codira code would look like this:
 
-```swift
-// Equivalent Swift code.
+```language
+// Equivalent Codira code.
 
-func test() {
+fn test() {
   var e: cxx_std.optional<Example> = getExample();
 
   processExample(move(e.value()));
@@ -1440,45 +1440,45 @@ Of course, one could argue that the interoperability layer could provide special
 support for `std::optional`, and make it work with destructive moves better.
 While that is true, the point still stands: there will be C++ APIs that expect
 users to perform non-destructive moves, and should ensure that they are usable
-from Swift without overlays or special compiler support.
+from Codira without overlays or special compiler support.
 
-**Option 1: Non-destructive moves in Swift are swaps with an arbitrary valid
+**Option 1: Non-destructive moves in Codira are swaps with an arbitrary valid
 value.**
 
-It is easy to model a non-destructive move in Swift as a swap with a
+It is easy to model a non-destructive move in Codira as a swap with a
 default-initialized value.
 
-```swift
-// Swift standard library, C++ support module.
+```language
+// Codira standard library, C++ support module.
 
 public protocol DefaultInitializable {
   init()
 }
 
-public moveonly func cxxMove<T: DefaultInitializable>(_ value: inout T) -> T {
+public moveonly fn cxxMove<T: DefaultInitializable>(_ value: inout T) -> T {
   var result = T()
   swap(&value, &result)
   return result
 }
 
-public moveonly func cxxMove(_ value: inout T, replacingWith newValue: T) -> T {
+public moveonly fn cxxMove(_ value: inout T, replacingWith newValue: T) -> T {
   var result = newValue
   swap(&value, &result)
   return result
 }
 ```
 
-```swift
+```language
 // Usage example.
 
 // This function takes a `File` by value, consuming it.
-func consumeFile(_ f: File) { ... }
+fn consumeFile(_ f: File) { ... }
 
-func useArrayOfFiles() {
+fn useArrayOfFiles() {
   var files: [File] = ...
   // consumeFile(files[0]) // compile-time error: can't copy a `File`
 
-  // Swift's move does not help.
+  // Codira's move does not help.
   // consumeFile(move(file[0]))
   // compile-time error: moving one element of an array will cause a
   // double-destruction of `File` when the array is destroyed.
@@ -1492,21 +1492,21 @@ func useArrayOfFiles() {
 
 The advantage of this approach is that we avoid creating "valid but
 indeterminate" values, which can be hazardous. However, such values can be
-passed from C++ to Swift at any time, even if Swift code can't create them
+passed from C++ to Codira at any time, even if Codira code can't create them
 directly. It is also awkward to require the user to come up with a dummy valid
 value when the type is not default-constructible.
 
-**Option 2: Non-destructive moves in Swift invoke the C++ move constructor.**
+**Option 2: Non-destructive moves in Codira invoke the C++ move constructor.**
 
 So, we want to perform a real C++ move and leave a "valid but indeterminate"
-value in the source. For that, we must enable the Swift to call the C++ move
+value in the source. For that, we must enable the Codira to call the C++ move
 constructor.
 
-If `class File` has a move constructor in C++, the imported Swift struct defines
+If `class File` has a move constructor in C++, the imported Codira struct defines
 a corresponding initializer:
 
 ```c++
-// C++ header imported in Swift.
+// C++ header imported in Codira.
 
 public moveonly struct File {
   // File(File &&);
@@ -1514,10 +1514,10 @@ public moveonly struct File {
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useArrayOfFiles() {
+fn useArrayOfFiles() {
   var files: [File] = ...
   consumeFile(File(cxxMovingFrom: &files[0]))
 }
@@ -1529,77 +1529,77 @@ repeating the name of the type, whereas the corresponding C++ construct,
 abbreviated to `.init(cxxMovingFrom: &files[0])`. We can make it more concise by
 synthesizing a helper method in movable types:
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 public moveonly struct File {
   // File(File &&);
   public init(cxxMovingFrom: inout File)
 
-  public mutating func cxxMove() -> File {
+  public mutating fn cxxMove() -> File {
     return File(cxxMovingFrom: &self)
   }
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useArrayOfFiles() {
+fn useArrayOfFiles() {
   var files: [File] = ...
   consumeFile(files[0].cxxMove())
 }
 ```
 
-Although methods are more in line with Swift API design than free functions,
+Although methods are more in line with Codira API design than free functions,
 injecting names into C++ types can backfire due to naming collisions.
 
 Alternatively, we could model non-destructive moves with a free function,
 imitating the C++ syntax. To do this we need a protocol for non-destructively
 movable types, and a free function that calls the move constructor:
 
-```swift
-// Swift standard library, C++ support module.
+```language
+// Codira standard library, C++ support module.
 
 public protocol NonDestructivelyMovable {
   public init(cxxMovingFrom: inout Self)
 }
 
-public moveonly func cxxMove<T: NonDestructivelyMovable>(_ value: inout T) -> T {
+public moveonly fn cxxMove<T: NonDestructivelyMovable>(_ value: inout T) -> T {
   return T(cxxMovingFrom: &value)
 }
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 public moveonly struct File: NonDestructivelyMovable {
   public init(cxxMovingFrom: inout File)
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useArrayOfFiles() {
+fn useArrayOfFiles() {
   var files: [File] = ...
   consumeFile(cxxMove(&files[0]))
 }
 ```
 
-It is also useful to expose the move assignment operation in Swift. Even though
+It is also useful to expose the move assignment operation in Codira. Even though
 move assignment is not necessary to implement `cxxMove()`, it can be used for
 optimization.
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 public moveonly struct File {
   // File(File &&);
   public init(cxxMovingFrom: inout File)
 
   // File& operator=(File &&);
-  public func moveAssignFrom(_ value: inout File)
+  public fn moveAssignFrom(_ value: inout File)
 }
 ```
 
@@ -1613,43 +1613,43 @@ assignment only once).
 By non-movable C++ classes we mean C++ classes that don't have a copy
 constructor or a move constructor.
 
-Swift does not have any struct-like equivalent to non-movable C++ classes, and
+Codira does not have any struct-like equivalent to non-movable C++ classes, and
 there's nothing planned in that area. Therefore, we have to either creatively
-reuse one of existing Swift's features, or add some new features to Swift.
+reuse one of existing Codira's features, or add some new features to Codira.
 
-**Option 1: Map non-movable C++ classes to Swift structs.**
+**Option 1: Map non-movable C++ classes to Codira structs.**
 
-If we want to map all C++ classes to structs in Swift, one approach to make
+If we want to map all C++ classes to structs in Codira, one approach to make
 non-movable C++ classes work is only importing pointers to non-movable types;
 this approach is described in detail in the section about [importing move-only
-types in Swift 5](#move-only-c-classes-mapping-in-swift-5). Non-movable classes
+types in Codira 5](#move-only-c-classes-mapping-in-language-5). Non-movable classes
 in C++ are often used as polymorphic base classes. Allowing to only use pointers
 to such types is not a bad limitation. The primary disadvantage of this approach
 is ergonomics.
 
-**Option 2: Map non-movable C++ classes to Swift classes.**
+**Option 2: Map non-movable C++ classes to Codira classes.**
 
-While Swift structs are a bad match for non-movable C++ classes, Swift classes
-match semantics better. For example, instances of Swift classes, once allocated,
-stay at the same address until `deinit`. Instances of Swift classes are always
+While Codira structs are a bad match for non-movable C++ classes, Codira classes
+match semantics better. For example, instances of Codira classes, once allocated,
+stay at the same address until `deinit`. Instances of Codira classes are always
 worked with indirectly, eliminating the need to move them around in memory.
 
-Although user-defined Swift classes have a certain memory layout determined by
-the Swift compiler (for example, the memory block should start with an object
+Although user-defined Codira classes have a certain memory layout determined by
+the Codira compiler (for example, the memory block should start with an object
 header that contains a metadata pointer and a refcount), that exact memory
-layout is not necessary for a type to successfully masquerade as a Swift class.
-For example, Swift already imports CoreFoundation types as "foreign classes";
+layout is not necessary for a type to successfully masquerade as a Codira class.
+For example, Codira already imports CoreFoundation types as "foreign classes";
 from the user's point of view they look like ordinary classes.
 
-The biggest semantic impedance mismatch between C++ classes and Swift classes is
-that Swift classes are reference-counted. It is certainly possible to import a
-C++ class as a Swift class if it is intrusively reference counted, or wrapped in
+The biggest semantic impedance mismatch between C++ classes and Codira classes is
+that Codira classes are reference-counted. It is certainly possible to import a
+C++ class as a Codira class if it is intrusively reference counted, or wrapped in
 a `shared_ptr`.
 
 But what about non-movable C++ classes that are not reference counted? This
 issue could be worked around by making retain and release operations on C++
 classes be a no-op, and introducing an explicit "delete" operation, effectively
-making C++ class references in Swift equivalent to `UnsafeMutablePointer`.
+making C++ class references in Codira equivalent to `UnsafeMutablePointer`.
 
 ```c++
 // C++ header.
@@ -1667,19 +1667,19 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 class NonMovable {
   // Runs `delete this`.
-  func delete()
+  fn delete()
 
-  func debugPrint()
+  fn debugPrint()
 }
 ```
 
-```swift
-func useNonMovable(nm: NonMovable) {
+```language
+fn useNonMovable(nm: NonMovable) {
   var nm2 = nm
   // `nm2` now points to the same object as `nm`. No reference-counting.
 
@@ -1692,27 +1692,27 @@ func useNonMovable(nm: NonMovable) {
 }
 ```
 
-Everything seems to work really well, except that we broke Swift's safety
-guarantees about classes. Swift manages lifetime of regular user-defined classes
-automatically; in safe Swift code it is not possible to get a dangling class
+Everything seems to work really well, except that we broke Codira's safety
+guarantees about classes. Codira manages lifetime of regular user-defined classes
+automatically; in safe Codira code it is not possible to get a dangling class
 reference; it is also weird that users would have to manually deallocate class
 instances. Therefore, classes imported from C++ would behave very differently
-from user-defined Swift classes; most importantly, they are unsafe. This issue
-seems incompatible with Swift's design and philosophy. Otherwise, importing C++
-classes as Swift classes looks like a viable implementation strategy.
+from user-defined Codira classes; most importantly, they are unsafe. This issue
+seems incompatible with Codira's design and philosophy. Otherwise, importing C++
+classes as Codira classes looks like a viable implementation strategy.
 
 The unsafety issue could be mitigated by adding the word "unsafe" somewhere in
 the source code. For example, importing a non-movable C++ class `Example` as a
-Swift class `UnsafeExample`, or requiring the user to write the keyword "unsafe"
+Codira class `UnsafeExample`, or requiring the user to write the keyword "unsafe"
 before the type name:
 
-```swift
-func useNonMovable(nm: unsafe NonMovable) { ... }
+```language
+fn useNonMovable(nm: unsafe NonMovable) { ... }
 ```
 
 ### Member functions
 
-Member functions of C++ classes are most naturally mapped to methods in Swift
+Member functions of C++ classes are most naturally mapped to methods in Codira
 structs. C++ allows to add various qualifiers to member functions, which we
 discuss in the following sections.
 
@@ -1790,46 +1790,46 @@ obviously: it can pass `other` to another function which will mutate it. It is
 difficult to estimate how common such mutation is, however, it is not an element
 of a common design pattern.
 
-Swift's replacement for C++ const member functions are non-`mutating` functions:
+Codira's replacement for C++ const member functions are non-`mutating` functions:
 
-```swift
+```language
 struct Example {
   private var value: Int = 0
-  mutating func mutatingFunction() { value = 42 }
-  func nonMutatingFunction() {
+  mutating fn mutatingFunction() { value = 42 }
+  fn nonMutatingFunction() {
     // value = 42 // would not compile
     print(value) // OK
   }
 }
 ```
 
-The biggest difference from C++ is that non-`mutating` functions in Swift are
+The biggest difference from C++ is that non-`mutating` functions in Codira are
 really not allowed to mutate `self`; there are no backdoors. Some equivalents of
 C++'s mutation backdoors are disallowed statically, some are disallowed
 dynamically, some are undefined behavior.
 
 The backdoors are disallowed by the exclusivity rule (from [SE-0176 Enforce
 Exclusive Access to
-Memory](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md)):
+Memory](https://github.com/languagelang/language-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md)):
 
 > two accesses to the same variable are not allowed to overlap unless both
 > accesses are reads
 
-If we map C++ classes to Swift structs, how do we map C++'s `const` qualifier on
+If we map C++ classes to Codira structs, how do we map C++'s `const` qualifier on
 member functions? There are a couple of options.
 
-* Ignore `const`, and mark all Swift struct functions as `mutating`. Allow API
+* Ignore `const`, and mark all Codira struct functions as `mutating`. Allow API
   owners to manually annotate functions as non-`mutating`. This is a
   conservative and correct-by-default approach, but it is not ergonomic.
 
-* Map `const` to non-`mutating` in Swift. This approach is very desirable from
+* Map `const` to non-`mutating` in Codira. This approach is very desirable from
   the point of view of ergonomics, however it is not safe in the general case.
   Nevertheless, in many cases such inference will be correct.
 
 How can we make the second, ergonomic, approach safer? First of all, we should
 allow C++ API owners to override the inferred `mutating`/non-`mutating` with an
 annotation. API owners must have control over what their APIs look like in
-Swift.
+Codira.
 
 In addition, the compiler could do a lightweight static analysis to recognize
 common problematic patterns, like `mutable` members and obvious `const_cast`s.
@@ -1858,12 +1858,12 @@ TODO
 ### Getters and setters
 
 Getters and setters in C++ classes most directly correspond to properties in
-Swift. While it is certainly possible to map getters and setters to regular
+Codira. While it is certainly possible to map getters and setters to regular
 methods, properties would be more ergonomic.
 
 First of all, we need to find getter/setter pairs in a C++ class. We would need
 to use name-based heuristics for that, while allowing the API owner to override
-the inference with annotations (specifically, with the `swift_name` attribute).
+the inference with annotations (specifically, with the `language_name` attribute).
 There are a variety of naming styles for getters and setters in C++, but we only
 need to cover the most common ones.
 
@@ -1877,8 +1877,8 @@ patterns are: `SetAaaBbb()`, `setAaaBbb()`, `set_aaa_bbb()`
 Mutable accessors take no arguments and return a `T&` or a `T*`. Typical naming
 patterns are: `MutableAaaBbb()`, `mutableAaaBbb()`, `mutable_aaa_bbb()`.
 
-The C++ importer can synthesize a Swift property from a getter, from a
-getter/setter pair, or from a getter and a mutable accessor. Swift does not have
+The C++ importer can synthesize a Codira property from a getter, from a
+getter/setter pair, or from a getter and a mutable accessor. Codira does not have
 set-only properties, so unpaired setters and mutable accessors will be imported
 as regular methods.
 
@@ -1892,25 +1892,25 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct Employee {
   public var name: std.string { get set }
 }
 ```
 
-```swift
+```language
 // Implementation details of the imported API.
 
 struct Employee {
   // const std::string &getName();
-  private func _getName() -> UnsafePointer<std.string>
+  private fn _getName() -> UnsafePointer<std.string>
 
   // void setName(std::string newName);
-  private mutating func _setName(_ newName: std.string)
+  private mutating fn _setName(_ newName: std.string)
 
-  // Swifty API.
+  // Codiray API.
   public var name: std.string {
     _read {
       yield _getName().pointee
@@ -1925,18 +1925,18 @@ struct Employee {
 Sometimes the type returned by the getter will not match the type taken by the
 setter. For example, the getter can return a `std::string_view`, while a setter
 takes a `std::string`. `std::string_view` is like a `const std::string&`, so it
-makes sense from the API perspective in C++. Swift, however, requires the getter
+makes sense from the API perspective in C++. Codira, however, requires the getter
 and setter to use the same type exactly.
 
 We could teach the C++ importer about the most widely used type pairs, and
 insert the appropriate type conversions in the synthesized property accessors.
 However, these type conversions will carry a performance penalty, and the
-resulting Swift API will be less performant than the original C++ API. For
+resulting Codira API will be less performant than the original C++ API. For
 example, consider a C++ class where a getter returns a `std::string_view`, and
 the setter takes a `std::string`. If we synthesize a `std::string_view` property
-in Swift, its setter would always copy the character data, even though in C++
+in Codira, its setter would always copy the character data, even though in C++
 the setter would move the `std::string`. If we synthesize a `std::string`
-property in Swift, its getter would have to materialize a `std::string` from a
+property in Codira, its getter would have to materialize a `std::string` from a
 `std::string_view`.
 
 Therefore, it seems like the best approach is to teach the C++ importer about
@@ -1947,20 +1947,20 @@ triggered by an annotation in C++ code.
 // C++ header.
 
 // New attribute.
-#define SWIFT_PROPERTY(type, name) __attribute__((swift_property(#type, #name)))
+#define LANGUAGE_PROPERTY(type, name) __attribute__((language_property(#type, #name)))
 
 class Manager {
 public:
-  std::string_view getName() const SWIFT_PROPERTY(std::string, name);
-  void setName(std::string newName) SWIFT_PROPERTY(std::string, name);
+  std::string_view getName() const LANGUAGE_PROPERTY(std::string, name);
+  void setName(std::string newName) LANGUAGE_PROPERTY(std::string, name);
 
   std::span<const Employee> getReports() const;
   void setReports(std::vector<Employee> newReports);
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct Manager {
   // Property is synthesized as requested by the annotation.
@@ -1968,8 +1968,8 @@ struct Manager {
 
   // Property is not synthesized because getter and setter operate on
   // different types.
-  public func getReports() -> std.span<const<Employee>>
-  public func setReports(_ newReports: std.vector<Employee>)
+  public fn getReports() -> std.span<const<Employee>>
+  public fn setReports(_ newReports: std.vector<Employee>)
 };
 ```
 
@@ -1979,29 +1979,29 @@ Pointers to members are quite rare in C++, so not importing them at all, at
 least initially, would not be a big loss. Nevertheless, importing them is
 possible.
 
-Pointers to data members best correspond to keypaths in Swift. (TODO: need an
+Pointers to data members best correspond to keypaths in Codira. (TODO: need an
 example.)
 
 Pointers to member functions could be ergonomically mapped to curried functions,
-just like struct and class methods in Swift can be converted to curried
+just like struct and class methods in Codira can be converted to curried
 functions.
 
-```swift
-// Inspiration from Swift: methods can be converted to curried functions.
+```language
+// Inspiration from Codira: methods can be converted to curried functions.
 
 // A normal user-defined struct.
 struct Point {
   var x: Double
   var y: Double
 
-  func distanceTo(_ line: Line) -> Double { ... }
+  fn distanceTo(_ line: Line) -> Double { ... }
 }
 
 var distanceToFunc: (Point) -> (Line) -> Double = Point.distanceTo
 ```
 
 The only difference is that C++ member function pointers use a different memory
-layout than Swift closures. Therefore, they would need to be imported with a
+layout than Codira closures. Therefore, they would need to be imported with a
 special calling convention, let's call it `@convention(cxx_method)`. Here's an
 example:
 
@@ -2016,14 +2016,14 @@ public:
 void CallMemberFunctionPointer(Point p, double (Point::*ptr)(Line));
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 public struct Point {
-  public func distanceTo(_ line: Line) -> Double { ... }
+  public fn distanceTo(_ line: Line) -> Double { ... }
 }
 
-func CallMemberFunctionPointer(
+fn CallMemberFunctionPointer(
   _ p: Point,
   _ ptr: @convention(cxx_method) (Point) -> (Line) -> Double
 )
@@ -2031,17 +2031,17 @@ func CallMemberFunctionPointer(
 
 ### Virtual member functions
 
-If we map C++ classes to Swift structs, it makes the most sense to map virtual
-member functions to struct methods in Swift. However, Swift structs don't
+If we map C++ classes to Codira structs, it makes the most sense to map virtual
+member functions to struct methods in Codira. However, Codira structs don't
 support inheritance. So, while we can map virtual functions to methods and
 execute C++ dynamic dispatch correctly, we can't express the fact that the
-struct is subclassable, and that the method is overridable in Swift.
+struct is subclassable, and that the method is overridable in Codira.
 
 TODO: design how to map inheritance.
 
 ### Inherited APIs
 
-Swift structs don't allow inheritance. If we map C++ classes as Swift structs,
+Codira structs don't allow inheritance. If we map C++ classes as Codira structs,
 we could replicate APIs from all base classes in every derived class.
 
 ```c++
@@ -2058,22 +2058,22 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 public struct Base {
-  public func doBaseStuff()
+  public fn doBaseStuff()
 }
 
 public struct Derived {
-  public func doBaseStuff()
-  public func doDerivedStuff()
+  public fn doBaseStuff()
+  public fn doDerivedStuff()
 }
 ```
 
 ### Conversions between derived and base classes
 
-Swift structs don't allow inheritance, so it is not possible to directly express
+Codira structs don't allow inheritance, so it is not possible to directly express
 the is-a relationship between derived classes and base classes. The is-a
 relationship is not very important for non-polymorphic C++ classes, where
 inheritance is typically used as an implementation technique, rather than an
@@ -2085,11 +2085,11 @@ cases to consider: converting values and converting pointers.
 
 Converting values of derived type to values of base type is known as "object
 slicing" in C++. It is well-known to be error-prone, but since some C++ APIs
-might rely on it, we should try to expose it in Swift.
+might rely on it, we should try to expose it in Codira.
 
 Object slicing is possible without any language extensions:
 
-```swift
+```language
 var derived: Derived = ...
 var base: Base = UnsafeRawPointer(&derived).load(as: Base.self)
 ```
@@ -2098,7 +2098,7 @@ It is not very ergonomic, but not too bad for an operation that is known to be
 error-prone. APIs that intentionally rely on object slicing could add helper
 methods to types that intentionally participate in slicing:
 
-```swift
+```language
 // Manually written overlay for a C++ API.
 
 extension Base {
@@ -2115,29 +2115,29 @@ Now let's talk about conversions between pointers to derived type and pointers
 to base type. These operations need to be ergonomic only for polymorphic
 classes.
 
-First of all, let's reject extending Swift's type casting operators `as` and
+First of all, let's reject extending Codira's type casting operators `as` and
 `as?` to handle casts between pointers to C++ objects. We need to convert
 between `UnsafePointer<Base>` and `UnsafePointer<Derived>`, which are not
-connected with a subtyping relationship in Swift. Implementing a conversion in
+connected with a subtyping relationship in Codira. Implementing a conversion in
 type casting operators (`as` and `as?`) that does not reflect a subtyping
-relationship is not a good idea. Swift already has a couple of such conversions,
+relationship is not a good idea. Codira already has a couple of such conversions,
 and they cause a lot of complexity in the compiler and the runtime. Moreover,
 sometimes such casting behavior can be unexpected by users. Therefore, we are
 going to explore API-based approaches to express upcasts and downcasts for C++
 objects.
 
 It is important to realize that interleaved accesses to an `UnsafePointer<Base>`
-that aliases an `UnsafePointer<Derived>` violate Swift's type-based aliasing
+that aliases an `UnsafePointer<Derived>` violate Codira's type-based aliasing
 rules. These rules could be relaxed for types imported from C++.
 
-To prevent the user from accidentally violating type-based aliasing rules, Swift
+To prevent the user from accidentally violating type-based aliasing rules, Codira
 intentionally does not provide an easy way to freely convert between pointers of
-unrelated types. Swift allows to temporarily create an aliasing pointer;
+unrelated types. Codira allows to temporarily create an aliasing pointer;
 however, that pointer has a scoped lifetime, and during that scope accessing the
 original pointer is not allowed.
 
-```swift
-// Pointer conversion example in existing Swift language.
+```language
+// Pointer conversion example in existing Codira language.
 
 var basePtr: UnsafePointer<Base> = ...
 basePtr.withMemoryRebound(to: Derived.self) {
@@ -2148,35 +2148,35 @@ basePtr.withMemoryRebound(to: Derived.self) {
 }
 ```
 
-Type conversions are usually expressed as initializers in Swift. However, adding
+Type conversions are usually expressed as initializers in Codira. However, adding
 an initializer to `UnsafePointer` for base/derived C++ class pair is going to
 create a big overload set, which will negatively impact compilation performance.
 Therefore, we should try to distribute the conversion APIs among the imported
 types themselves. The importer could synthesize conversion APIs on base and
 derived classes:
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 public struct Derived {
   @returnsInnerPointer
   public var asBase: UnsafePointer<Base> { get }
 
-  public static func downcast(from basePointer: UnsafePointer<Base>) -> UnsafePointer<Derived>?
+  public static fn downcast(from basePointer: UnsafePointer<Base>) -> UnsafePointer<Derived>?
 }
 
 public struct Base {
-  public static func upcast(from basePointer: UnsafePointer<Derived>) -> UnsafePointer<Base>
+  public static fn upcast(from basePointer: UnsafePointer<Derived>) -> UnsafePointer<Base>
 }
 ```
 
-```swift
+```language
 // Usage example.
 
-func useBasePtr(_ basePtr: UnsafePointer<Base>) { ... }
-func useDerivedPtr(_ derivedPtr: UnsafePointer<Derived>) { ... }
+fn useBasePtr(_ basePtr: UnsafePointer<Base>) { ... }
+fn useDerivedPtr(_ derivedPtr: UnsafePointer<Derived>) { ... }
 
-func testDowncast() {
+fn testDowncast() {
   var d = Derived()
   useBasePtr(d.asBase)
 
@@ -2184,7 +2184,7 @@ func testDowncast() {
   useBasePtr(Base.upcast(from: &d))
 }
 
-func testUpcast(_ basePtr: UnsafePointer<Base>) {
+fn testUpcast(_ basePtr: UnsafePointer<Base>) {
   if let derivedPtr: UnsafePointer<Derived> = Derived.downcast(from: basePtr) {
     useDerivedPtr(derivedPtr)
   }
@@ -2200,26 +2200,26 @@ Let's see what an API based on free functions would look like. We have to
 separate the upcast and downcast APIs because they must return different types:
 upcasts can't fail, while downcasts can.
 
-```swift
-// C++ support module in the Swift standard library.
+```language
+// C++ support module in the Codira standard library.
 
-public func cxxUpcast<Source, Destination>(
+public fn cxxUpcast<Source, Destination>(
   _ source: UnsafePointer<Source>,
   to type: Destination.Type
 ) -> UnsafePointer<Destination>
 
-public func cxxDowncast<Source, Destination>(
+public fn cxxDowncast<Source, Destination>(
   _ source: UnsafePointer<Source>,
   to type: Destination.Type
 ) -> UnsafePointer<Destination>
 
-public func cxxDynamicDowncast<Source, Destination>(
+public fn cxxDynamicDowncast<Source, Destination>(
   _ source: UnsafePointer<Source>,
   to type: Destination.Type
 ) -> UnsafePointer<Destination>?
 ```
 
-The Swift type checker would have special knowledge about these functions, and
+The Codira type checker would have special knowledge about these functions, and
 only allow calling them when `Source` and `Destination` are fully concrete types
 that belong to the same class hierarchy in C++.
 
@@ -2227,18 +2227,18 @@ These functions will know the concrete source and destination types, so they
 will be able to perform any necessary pointer adjustments, therefore multiple
 inheritance and virtual base classes wouldn't be a problem.
 
-### Subclassing C++ classes in Swift
+### Subclassing C++ classes in Codira
 
 TODO
 
-### Making C++ classes conform to Swift protocols
+### Making C++ classes conform to Codira protocols
 
 TODO
 
 ## Enums
 
-In Swift 5, C enums that are not annotated (with either of `enum_extensibility`,
-`NS_ENUM`, or `NS_OPTIONS`) are imported into Swift as structs, and enumerators
+In Codira 5, C enums that are not annotated (with either of `enum_extensibility`,
+`NS_ENUM`, or `NS_OPTIONS`) are imported into Codira as structs, and enumerators
 are imported as computed global variables. This might have been the right call
 for importing Objective-C code, where enums not declared with `NS_ENUM` are
 highly likely to have a "non-enum nature": they are either a bitfield, or just
@@ -2246,13 +2246,13 @@ a bag of constants. C++ has more ways, and more flexible ways to declare
 constants, so using enums in C++ to declare constants is not very idiomatic.
 Bitfield enums are used in C++ though, however, compared to overall enum usage,
 bitfield enums are still rare. Therefore, current strategy of importing
-non-annotated enums as Swift structs is the wrong default for C++.
+non-annotated enums as Codira structs is the wrong default for C++.
 
-There are multiple strategies we could take to import C++ enums into Swift.
+There are multiple strategies we could take to import C++ enums into Codira.
 
 **(1) Adopt the strategy used for C enums in C++**: unannotated C++ enums are
-imported as Swift structs, C++ enums annotated as open/closed are imported as
-Swift enums.
+imported as Codira structs, C++ enums annotated as open/closed are imported as
+Codira enums.
 
 Pros:
 
@@ -2267,8 +2267,8 @@ Cons:
   users would need to add lots of annotations.
 
 **(2) Assume non-annotated C++ enums have "enum nature" and import them
-as non-frozen Swift enums**; (optionally) implement an annotation for C++ enums
-with "non-enum nature" and import such enums as Swift structs.
+as non-frozen Codira enums**; (optionally) implement an annotation for C++ enums
+with "non-enum nature" and import such enums as Codira structs.
 
 Pros:
 
@@ -2320,47 +2320,47 @@ of source breakage.
 
 ## Templates
 
-From 10,000 feet, C++ templates are similar to Swift generics. However, there
+From 10,000 feet, C++ templates are similar to Codira generics. However, there
 are multiple semantic gaps between them.
 
 C++ templates perform a syntactic substitution. Any type that supports the
 syntax invoked in the template is a valid template argument. However, we don't
 know exactly what syntax a type is required to support until we try to
-substitute that type into a template. Generics in Swift are constraint-based and
+substitute that type into a template. Generics in Codira are constraint-based and
 require modular type checking.
 
 C++ templates require instantiation at compile time. It is not possible to
 compile a template without substituting concrete types in. It is not specified
-whether Swift generics are instantiated or not, the compiler can make either
+whether Codira generics are instantiated or not, the compiler can make either
 choice and the user can't tell the difference.
 
-C++ templates support specialization. Swift generics don't allow specialization;
+C++ templates support specialization. Codira generics don't allow specialization;
 they provide a different mechanism (protocol requirements) to make one generic
 function behave differently for different types.
 
 C++ class templates support specialization, which allows defining completely
 different APIs across specializations of the same class. All instantiations of a
-generic type in Swift have the API described in the generic declaration (with
+generic type in Codira have the API described in the generic declaration (with
 type parameters substituted), plus applicable conditional extensions.
 
 C++ templates support non-type template parameters, template
 parameters, and parameter packs (variadic generics), all of which are not
-supported in Swift.
+supported in Codira.
 
 ### Function templates
 
 Since C++ uses an instantiation-based model for templates, the most obvious way
-to import C++ function templates in Swift is to only import full specializations
+to import C++ function templates in Codira is to only import full specializations
 as regular functions. However, it would be most ergonomic to import function
-templates as Swift generic functions. Let's explore both options and see how far
+templates as Codira generic functions. Let's explore both options and see how far
 we can go.
 
-### Function templates: import as Swift generic functions
+### Function templates: import as Codira generic functions
 
 Let's take explicit specializations out of the picture for the purposes of
-presenting the API in Swift. Since overload resolution in C++ ignores
+presenting the API in Codira. Since overload resolution in C++ ignores
 specializations of function templates, we can ignore them, too, when importing a
-function template into Swift.
+function template into Codira.
 
 ```c++
 // C++ header.
@@ -2373,44 +2373,44 @@ template<>
 void functionTemplate(int x) { ... }
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func functionTemplate<T>(_ t: T)
+fn functionTemplate<T>(_ t: T)
 
 // No need to import explicit specializations as separate APIs.
 ```
 
-Of course, when Swift code calls `functionTemplate` with an `Int32`, it should
+Of course, when Codira code calls `functionTemplate` with an `Int32`, it should
 call the correct explicit specialization, `functionTemplate<int>`, even though
-it is not shown in the imported Swift API.
+it is not shown in the imported Codira API.
 
 ### Function templates: allow to specify template arguments
 
-Calls to Swift generic functions always deduce generic arguments from the call.
+Calls to Codira generic functions always deduce generic arguments from the call.
 C++ allows the caller to either deduce the arguments, or specify them
 explicitly. Sometimes it is important to invoke C++ function templates with
 specific template arguments, so it would make sense to expose this capability in
-Swift.
+Codira.
 
-We suggest to allow Swift code to use the angle bracket syntax to explicitly
+We suggest to allow Codira code to use the angle bracket syntax to explicitly
 specify function template arguments at the callsite. If template arguments are
 not specified, we should run template argument deduction. (TODO: explain in more
-detail how template argument deduction will work starting from Swift types.)
+detail how template argument deduction will work starting from Codira types.)
 
-```swift
-// Usage example in Swift.
+```language
+// Usage example in Codira.
 
 functionTemplate<Int>(42)
 ```
 
-How to specify C++ types that map ambiguously into Swift, for example, `int &`
+How to specify C++ types that map ambiguously into Codira, for example, `int &`
 or `int *`, both of which map to `UnsafePointer<Int>`? The C++ support module in
-the Swift standard library could provide Swift typealiases that would map
+the Codira standard library could provide Codira typealiases that would map
 unambiguously to C++.
 
-```swift
-// C++ support module in the Swift standard library.
+```language
+// C++ support module in the Codira standard library.
 
 typealias CxxPointer<T> = UnsafeMutablePointer<T>      // T*
 typealias CxxConstPointer<T> = UnsafePointer<T>        // const T*
@@ -2422,8 +2422,8 @@ typealias CxxRvalueRef<T> = UnsafeMutablePointer<T>    // T&&
 typealias CxxConstRvalueRef<T> = UnsafePointer<T>      // const T&&
 ```
 
-```swift
-// Usage example in Swift.
+```language
+// Usage example in Codira.
 
 var x = 42
 
@@ -2437,73 +2437,73 @@ functionTemplate<CxxConstPointer<Int>>(&x)
 functionTemplate<CxxRef<Int>>(&x)
 ```
 
-Although it is desirable to map rvalue references to Swift's `inout`, it is not
+Although it is desirable to map rvalue references to Codira's `inout`, it is not
 possible to do so when importing a C++ function template as a C++ generic
 function; "inout"-ness of an argument can't change across instantiations of a
-generic function in Swift.
+generic function in Codira.
 
 ### Function templates: calls to specific specializations
 
-From an implementation point of view, it is easy to compile Swift code that
+From an implementation point of view, it is easy to compile Codira code that
 calls C++ function templates if template arguments are concrete types that are
 obvious at the callsite (either deduced or specified explicitly). In other
-words, it is easy to compile the call if Swift compiler can easily deduce which
+words, it is easy to compile the call if Codira compiler can easily deduce which
 specialization of the C++ function template to call. The imported API could
-still look like a Swift generic function:
+still look like a Codira generic function:
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func functionTemplate<T>(_ t: T)
+fn functionTemplate<T>(_ t: T)
 
 // No need to import explicit specializations as separate APIs.
 ```
 
-```swift
-// Usage example in Swift, works.
+```language
+// Usage example in Codira, works.
 
-func callFunctionTemplate() {
+fn callFunctionTemplate() {
   functionTemplate(0) // OK: calls the `functionTemplate<int>` specialization.
 }
 ```
 
-If we stop here, `functionTemplate` would look like a generic function in Swift,
+If we stop here, `functionTemplate` would look like a generic function in Codira,
 but it would not be callable from generic code. This option might be good enough
-for the most basic mapping of function templates in Swift. But can we allow
-calling C++ function templates from Swift generics?
+for the most basic mapping of function templates in Codira. But can we allow
+calling C++ function templates from Codira generics?
 
 ### Function templates: calls with generic type parameters
 
-The primary implementation difficulty in allowing generic Swift code to call C++
+The primary implementation difficulty in allowing generic Codira code to call C++
 function templates is that the C++ compiler can only compile full
-specializations, but Swift generics can run unspecialized.
+specializations, but Codira generics can run unspecialized.
 
-```swift
-// Usage example in Swift.
+```language
+// Usage example in Codira.
 
-func myGenericFunction<T>(_ t: T) {
+fn myGenericFunction<T>(_ t: T) {
   functionTemplate(0) // OK: calls the `functionTemplate<int>` specialization.
 
   functionTemplate(t) // compilation error: can't call a C++ function template, because we don't know what `T` is, and therefore, can't select which specialization to call.
 }
 ```
 
-We could force Swift generics to be instantiated if they use a C++ template.
+We could force Codira generics to be instantiated if they use a C++ template.
 Fully generic entry points will be still emitted to fulfill ABI expectations,
 but they would trap.
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 @_must_specialize
-func functionTemplate<T>(_ t: T)
+fn functionTemplate<T>(_ t: T)
 ```
 
-```swift
-// Usage example in Swift.
+```language
+// Usage example in Codira.
 
 @_must_specialize
-func genericFunction<T>(_ t: T) {
+fn genericFunction<T>(_ t: T) {
   functionTemplate<T>(t) // OK!
 }
 
@@ -2512,31 +2512,31 @@ struct GenericStruct<T> {
   var t: T
 
   @_must_specialize
-  func callGenericFunction() {
+  fn callGenericFunction() {
     genericFunction(t) // OK!
   }
 }
 
-func example() {
+fn example() {
   GenericStruct(42).callGenericFunction()
 }
 ```
 
 We introduce a `@_must_specialize` attribute for generic functions that must be
-instantiated in order to be called. The importer marks all Swift generic
+instantiated in order to be called. The importer marks all Codira generic
 functions that are backed by a C++ template as `@_must_specialize`, and from
-there the Swift compiler infers the attribute for all users.
+there the Codira compiler infers the attribute for all users.
 
 This analysis relies on over-approximating the dynamic callgraph with the static
 callgraph. The static callgraph is feasible to compute in most cases, since
-Swift has very limited ways to abstract over an unspecialized generic function.
-Specifically, Swift does not have generic closures. Swift does allow protocols
+Codira has very limited ways to abstract over an unspecialized generic function.
+Specifically, Codira does not have generic closures. Codira does allow protocols
 to have requirements for generic functions though.
 
 ### Function templates: importing as real generic functions
 
 If we know the complete set of allowed type arguments to a C++ function
-template, we could import it as an actual Swift generic function that performs
+template, we could import it as an actual Codira generic function that performs
 dynamic dispatch.
 
 ```c++
@@ -2552,12 +2552,12 @@ void functionTemplate(int x) { ... }
 
 Let's say it is known that `functionTemplate` can only take `Int` and `UInt`.
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func _cxx_functionTemplate<T>(_ t: T) // Imported as explained before.
+fn _cxx_functionTemplate<T>(_ t: T) // Imported as explained before.
 
-func functionTemplate<T>(_ t: T) {
+fn functionTemplate<T>(_ t: T) {
   if T == Int.self {
     return _cxx_functionTemplate(t as! Int)
   }
@@ -2570,14 +2570,14 @@ func functionTemplate<T>(_ t: T) {
 
 The user can write this code themselves (in an overlay, for example), or if we
 can communicate the allowed list of types to the importer, it can synthesize the
-function for us. Either way, the result is that we get a true generic Swift
+function for us. Either way, the result is that we get a true generic Codira
 function.
 
 ### Class templates
 
 Class templates pose the same challenges as function templates regarding
 separate compilation. In addition to that, we can't ignore explicit
-specializations of class templates when importing the API to Swift.
+specializations of class templates when importing the API to Codira.
 We could ignore explicit specializations of function templates, because they
 don't affect the API. Explicit specializations of class templates can
 dramatically change the API of the type.
@@ -2588,7 +2588,7 @@ A class template instantiation could be imported as a struct named
 `__CxxTemplateInst` plus Itanium mangled type of the instantiation (see the
 `type` production in the Itanium specification). Note that Itanium mangling is
 used on all platforms, regardless of the ABI of the C++ toolchain, to ensure
-that the mangled name is a valid Swift type name (this is not the case for MSVC
+that the mangled name is a valid Codira type name (this is not the case for MSVC
 mangled names). A prefix with a double underscore (to ensure we have a reserved
 C++ identifier) is added to limit the possibility for conflicts with names of
 user-defined structs. The struct is notionally defined in the `__C` module,
@@ -2611,8 +2611,8 @@ typedef MagicWrapper<MagicNumber> WrappedMagicNumber;
 `__CxxTemplateInst12MagicWrapperI11MagicNumberE`. Interface of the imported
 module will look as follows:
 
-```swift
-// C++ header imported to Swift.
+```language
+// C++ header imported to Codira.
 
 struct __CxxTemplateInst12MagicWrapperI11MagicNumberE {
     var t: MagicNumber
@@ -2624,7 +2624,7 @@ typealias WrappedMagicNumber = __CxxTemplateInst12MagicWrapperI11MagicNumberE
 ### Class templates: importing specific specializations
 
 Just like with calls to C++ function templates, it is easy to compile a use of a
-C++ class templates if the usage in Swift code unambiguously specifies which
+C++ class templates if the usage in Codira code unambiguously specifies which
 specialization should be used.
 
 ```c++
@@ -2634,23 +2634,23 @@ template<typename T>
 class ClassTemplate {};
 ```
 
-```swift
-// C++ header imported to Swift.
+```language
+// C++ header imported to Codira.
 
 struct ClassTemplate<T> {}
 ```
 
-```swift
+```language
 // Usage example.
 
-func useClassTemplate() {
+fn useClassTemplate() {
   var x = ClassTemplate<Int32>() // OK, uses `ClassTemplate<int>`.
 }
 ```
 
 If the class template provides specializations with completely different APIs,
 we don't have an issue, because we only need to import specific
-specializations into Swift.
+specializations into Codira.
 
 ```c++
 // C++ header.
@@ -2671,45 +2671,45 @@ class ClassTemplate<std::vector<T>> {
 };
 ```
 
-```swift
-// C++ header imported to Swift.
+```language
+// C++ header imported to Codira.
 
 // A shell of a generic struct only used for name lookup.
 struct ClassTemplate<T> {}
 ```
 
-```swift
+```language
 // Usage example.
 
-func useClassTemplate() {
+fn useClassTemplate() {
   var x1 = ClassTemplate<Int8>() // OK
   var x2 = ClassTemplate<Int32>() // OK
   var x3 = ClassTemplate<cxx_std.vector<Int32>> // OK
 }
 ```
 
-When the Swift compiler sees `ClassTemplate<Int8>`, it translates the type to
-C++, that is, `ClassTemplate<char>`. Then Swift compiler asks the Clang importer
+When the Codira compiler sees `ClassTemplate<Int8>`, it translates the type to
+C++, that is, `ClassTemplate<char>`. Then Codira compiler asks the Clang importer
 to import that specialization. Clang importer instantiates the primary template
 with `T=char` and imports the resulting `ClassTemplate<char>`. Same for all
 other rereferences to `ClassTemplate`. At the end, we get:
 
 ```c++
-// C++ header imported to Swift, as needed for the program above.
+// C++ header imported to Codira, as needed for the program above.
 
 // A shell of a generic struct only used for name lookup.
 struct ClassTemplate<T> {}
 
 struct ClassTemplate<Int8> {
-  func func1()
+  fn func1()
 }
 
 struct ClassTemplate<Int32> {
-  func func2()
+  fn func2()
 }
 
 struct ClassTemplate<cxx_std.vector<Int32>> {
-  func func3()
+  fn func3()
 }
 ```
 
@@ -2726,26 +2726,26 @@ Advantages of this approach:
 Disadvantages of this approach:
 
 * Users can only use complete specializations. In other words, users can't use a
-  C++ template from Swift generic and pass a generic type parameter to the C++
+  C++ template from Codira generic and pass a generic type parameter to the C++
   template.
 
 ### Class templates: using with generic type parameters
 
 Many class templates don't define specializations that dramatically change the
-API, or use features like non-type template parameters that don't exist in Swift
-generics. It is desirable to import such templates as Swift generics directly.
+API, or use features like non-type template parameters that don't exist in Codira
+generics. It is desirable to import such templates as Codira generics directly.
 With a lightweight static analysis, or with annotations in the C++ header, the
 compiler would recognize such a type and import the API shared by all
-instantiations into Swift.
+instantiations into Codira.
 
 Similarly to our treatment of function templates described above, we can
-annotate the transitive closure of generic Swift code that uses C++ class
+annotate the transitive closure of generic Codira code that uses C++ class
 templates with `@_must_specialize`.
 
 ### Class templates: using in generic code through a synthesized protocol
 
 Class templates that have a uniform API across all specializations could be made
-to conform to a Swift protocol, which would facilitate passing them to generic
+to conform to a Codira protocol, which would facilitate passing them to generic
 code.
 
 ```c++
@@ -2757,39 +2757,39 @@ class MyClassTemplate {
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 protocol MyClassTemplateProtocol {
   associatedtype T
-  func func1(_ t: T)
+  fn func1(_ t: T)
 }
 
 struct MyClassTemplate<T> : MyClassTemplateProtocol {}
 ```
 
-In this model, the Swift compiler can still import only specific specializations
-of `MyClassTemplate`. The new part is that the Swift compiler will synthesize a
+In this model, the Codira compiler can still import only specific specializations
+of `MyClassTemplate`. The new part is that the Codira compiler will synthesize a
 protocol, `MyClassTemplateProtocol`, that contains APIs shared by all
-specializations. The Swift compiler will also make every imported specialization
+specializations. The Codira compiler will also make every imported specialization
 of `MyClassTemplate` conform to `MyClassTemplateProtocol`.
 
 This way, we solved the issue of specializations being unrelated types: now they
 all conform to a common protocol, and therefore, generic code can operate
 transparently on any specialization.
 
-```swift
+```language
 // Usage example.
 
-// Use a C++ class template from a Swift generic function without naming a
+// Use a C++ class template from a Codira generic function without naming a
 // specific specialization.
-func useGeneric<SomeSpecialization>(_ classTemplate: SomeSpecialization, _ t: SomeSpecialization.T)
+fn useGeneric<SomeSpecialization>(_ classTemplate: SomeSpecialization, _ t: SomeSpecialization.T)
   where SomeSpecialization: MyClassTemplateProtocol
 {
   classTemplate.func1(t)
 }
 
-func useConcrete() {
+fn useConcrete() {
   var classTemplate = MyClassTemplate<Int32>()
   classTemplate.func1(0)
   useGeneric(classTemplate, 0)
@@ -2799,7 +2799,7 @@ func useConcrete() {
 ### Class templates: importing as real generic structs
 
 If we know the complete set of allowed type arguments to a C++ struct
-template, we could import it as an actual Swift generic struct. Every method of
+template, we could import it as an actual Codira generic struct. Every method of
 that struct will perform dynamic dispatch based on type parameters. See
 the section about function templates for more details.
 
@@ -2832,7 +2832,7 @@ TODO
 
 ## <a name="operator-square-brackets"></a> `operator[]`
 
-`operator[]` semantically maps well to Swift's `subscript`.
+`operator[]` semantically maps well to Codira's `subscript`.
 
 ```c++
 // C++ header.
@@ -2844,8 +2844,8 @@ public:
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct MyCxxContainer {
   public subscript(_ i: Int) -> Double { get set }
@@ -2855,17 +2855,17 @@ struct MyCxxContainer {
 The synthesized `subscript` uses the `_read` and `_modify` generalized accessors
 to forward the memory address to the caller.
 
-```swift
+```language
 // Implementation details of the imported API.
 
 struct MyCxxCollection {
   // const double& operator[](int i) const;
-  private func _operatorBracketsConst(_ i: Int) -> UnsafePointer<Double>
+  private fn _operatorBracketsConst(_ i: Int) -> UnsafePointer<Double>
 
   // double& operator[](int i);
-  private func _operatorBrackets(_: Int) -> UnsafeMutablePointer<Double>
+  private fn _operatorBrackets(_: Int) -> UnsafeMutablePointer<Double>
 
-  // Swifty API.
+  // Codiray API.
   public subscript(_ i: Int) -> Double {
     _read {
       yield _operatorBracketsConst(i).pointee
@@ -2879,9 +2879,9 @@ struct MyCxxCollection {
 
 ## <a name="operator-parentheses"></a> `operator()`
 
-Swift has an equivalent for C++'s `operator()`: `callAsFunction` (introduced in
+Codira has an equivalent for C++'s `operator()`: `callAsFunction` (introduced in
 [SE-0253: Callable values of user-defined nominal
-types](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0253-callable.md)).
+types](https://github.com/languagelang/language-evolution/blob/main/proposals/0253-callable.md)).
 
 ```c++
 // C++ header.
@@ -2893,10 +2893,10 @@ public:
 ```
 
 ```c++
-// C++ header imported in Swift.
+// C++ header imported in Codira.
 
 struct MultiplyIntDouble {
-  public func callAsFunction(_ x: Int, _ y: Double) -> Double { ... }
+  public fn callAsFunction(_ x: Int, _ y: Double) -> Double { ... }
 }
 ```
 
@@ -2911,12 +2911,12 @@ TODO
 
 ### Background
 
-C++ unfortunately has the opposite default to Swift where exception throwing is
+C++ unfortunately has the opposite default to Codira where exception throwing is
 concerned. Any C++ function that is not explicitly marked `noexcept` must be
 assumed to be potentially throwing, even though many such functions don't throw
 in practice.
 
-If we imported all of these functions into Swift as `throws` functions, the code
+If we imported all of these functions into Codira as `throws` functions, the code
 calling them would be littered with `try!`s. Requiring all imported functions (and
 everything they call transitively) to be marked `noexcept` also seems excessively
 burdensome and is not idiomatic C++.
@@ -2924,29 +2924,29 @@ burdensome and is not idiomatic C++.
 ### Baseline functionality: Import functions as non-throwing, terminate on uncaught C++ exceptions
 
 In the first iteration of C++ interop, we will import all C++ functions as
-non-throwing Swift functions. If a C++ function called from Swift throws an
+non-throwing Codira functions. If a C++ function called from Codira throws an
 exception that is not caught within the C++ code, the program will terminate.
 
 This approach is similar to that taken by the [Python interop
-library](https://github.com/pvieito/PythonKit/blob/master/PythonKit/Python.swift),
+library](https://github.com/pvieito/PythonKit/blob/master/PythonKit/Python.code),
 which also terminates the program by default if a Python exception is raised and
 not caught within the Python code.
 
-If exceptions thrown in C++ need to be handled in Swift, this can be done by
+If exceptions thrown in C++ need to be handled in Codira, this can be done by
 writing a C++ wrapper that catches the exception and returns a corresponding
 error object.
 
-### Extended functionality: Optionally propagate exceptions to Swift
+### Extended functionality: Optionally propagate exceptions to Codira
 
-If we find that developers routinely need to handle C++ exceptions in Swift,
+If we find that developers routinely need to handle C++ exceptions in Codira,
 writing C++ wrappers as described above will obviously not be a satisfactory
 solution. In this case, we will add an option to propagate C++ exceptions as
-Swift exceptions; this will be backward compatible with the baseline approach
+Codira exceptions; this will be backward compatible with the baseline approach
 described above.
 
 We again take inspiration from Python interop. There, appending `.throwing` to
 the function name calls a variant of the function that propagates the Python
-exception to Swift.
+exception to Codira.
 
 It isn't really practical to do something exactly analogous in C++ interop. We
 could import each function twice and identify the throwing version by a name
@@ -2955,7 +2955,7 @@ imported classes, and it would not be universal: Name suffixes can't be used
 with constructors or operators; a dummy parameter could be used with most
 constructors, but still doesn't work for default constructors or operators.
 
-Instead, we propose extending Swift with a `throws!` marker. A function marked
+Instead, we propose extending Codira with a `throws!` marker. A function marked
 with `throws!` can potentially throw exceptions, but the function does not need
 to be called with `try`. If the function _is_ called with `try`, exceptions are
 handled as they would be for a normal throwing function. If the function is not
@@ -2967,22 +2967,22 @@ functions; `noexcept` functions would be imported as non-throwing functions.
 
 This brief sketch obviously leaves many questions unanswered on the detailed
 semantics that a `throws!` feature would have, for example whether user-written
-Swift code should be allowed to use `throws!` -- see also [this forum
-discussion](https://forums.swift.org/t/handling-c-exceptions/34823). Before we
+Codira code should be allowed to use `throws!` -- see also [this forum
+discussion](https://forums.code.org/t/handling-c-exceptions/34823). Before we
 take any steps towards implementing C++ exception propagation, we will submit a
-formal Swift Evolution proposal for the `throws!` feature.
+formal Codira Evolution proposal for the `throws!` feature.
 
 The other question to answer is how we would map the C++ exception to a
-corresponding Swift object implementing `Error`. In theory, C++ allows
+corresponding Codira object implementing `Error`. In theory, C++ allows
 objects of any copy-initializable type to be thrown. In practice, most
 user-defined C++ exceptions derive from `std::exception`, so it would be natural
-to propagate C++ exceptions as the Swift-imported equivalent of
+to propagate C++ exceptions as the Codira-imported equivalent of
 `std::exception` and make that type implement `Error`. We could add a separate
 fallback error type (e.g. `CxxUnknownException`) for the case where the
 exception does not derive from `std::exception`.
 
 As `std::exception` is a polymorphic type, the details of how `std::exception`
-will be represented in Swift will need to wait until we have finalized how
+will be represented in Codira will need to wait until we have finalized how
 polymorphism is handled (see also the section on [virtual member
 functions](#virtual-member-functions)).
 
@@ -3002,13 +3002,13 @@ The stack unwinding infrastructure finds the correct personality routine by
 consulting a so-called unwind table, which maps program counter ranges to
 personality routines.
 
-We would define unwind table entries covering all Swift code that does not
+We would define unwind table entries covering all Codira code that does not
 attempt to handle C++ exceptions and have these entries map to a personality
 routine that simply terminates the program.
 
 If exception support is turned off in the C++ compiler by passing `-Xcc
--fno-exceptions` to `swiftc`, we assume that the C++ code never throws
-exceptions and will not emit any unwind table entries for Swift code.
+-fno-exceptions` to `languagec`, we assume that the C++ code never throws
+exceptions and will not emit any unwind table entries for Codira code.
 
 ## Atomics
 
@@ -3018,19 +3018,19 @@ TODO
 
 TODO
 
-# Enhancing C++ API mapping into Swift with bridging
+# Enhancing C++ API mapping into Codira with bridging
 
 ## Bridging data types with different memory layout
 
-When we import a C++ `T` into Swift as a type `U`, in the general case we must
-ensure that `T` and `U` have identical memory layout. For example, Swift's `Int8`
+When we import a C++ `T` into Codira as a type `U`, in the general case we must
+ensure that `T` and `U` have identical memory layout. For example, Codira's `Int8`
 and C++'s `int8_t` have identical memory layout, and therefore, we can import
 `int8_t` as `Int8` everywhere.
 
 If `T` and `U` have even slightly different memory layouts, we must invoke a
 bridging function at the interop boundary. Further sections in this document
 provide many examples of such type pairs, but to give an example, consider
-`std::vector<T>` in C++, which is semantically similar to `Array<T>` in Swift,
+`std::vector<T>` in C++, which is semantically similar to `Array<T>` in Codira,
 but has a completely different memory layout. If we want to map them to one
 another, but must keep the memory layout of both types unchanged, we must
 convert the `std::vector<T>` value into an `Array<T>` value when the program
@@ -3044,17 +3044,17 @@ For example:
 std::vector<int> IncrementVectorValues(std::vector<int> v);
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 // Note: no C++ vectors!
-func IncrementVectorValues(_ v: [CInt]) -> [CInt]
+fn IncrementVectorValues(_ v: [CInt]) -> [CInt]
 ```
 
-```swift
-// Using the imported C++ API in Swift.
+```language
+// Using the imported C++ API in Codira.
 
-func callIncrementVectorValues() -> CInt {
+fn callIncrementVectorValues() -> CInt {
   var xs: [CInt] = IncrementVectorValues([10, 20, 30])
   return xs[0] // = 11.
 }
@@ -3062,41 +3062,41 @@ func callIncrementVectorValues() -> CInt {
 
 ## Bridging: behind the scenes
 
-Here's a simplified description of how Swift implements bridging. Behind the
+Here's a simplified description of how Codira implements bridging. Behind the
 scenes, the function `IncrementVectorValues` is imported as is, with C++ data
 types:
 
 ```c++
-// C header imported in Swift, behind the scenes:
+// C header imported in Codira, behind the scenes:
 
-func _cxx_IncrementVectorValues(std.vector<CInt> v) -> std.vector<CInt>
+fn _cxx_IncrementVectorValues(std.vector<CInt> v) -> std.vector<CInt>
 ```
 
 C++ bridging support code provides a function that converts a `std::vector` to a
-Swift `Array` and vice versa:
+Codira `Array` and vice versa:
 
-```swift
-// Swift standard library, C++ support module.
+```language
+// Codira standard library, C++ support module.
 
-func StdVectorToArray<T>(_ vector: std.vector<T>) -> [T]
-func ArrayToStdVector<T>(_ array: [T]) -> std.vector<T>
+fn StdVectorToArray<T>(_ vector: std.vector<T>) -> [T]
+fn ArrayToStdVector<T>(_ array: [T]) -> std.vector<T>
 ```
 
 Each caller is transformed to call the bridging function:
 
 ```
-// Using the imported C++ API in Swift: code written by the user.
+// Using the imported C++ API in Codira: code written by the user.
 
-func callIncrementVectorValues() -> CInt {
+fn callIncrementVectorValues() -> CInt {
   var xs: [CInt] = IncrementVectorValues([10, 20, 30])
   return xs[0] // = 11.
 }
 ```
 
-```swift
-// Using the imported C++ API in Swift: code rewritten by the type checker.
+```language
+// Using the imported C++ API in Codira: code rewritten by the type checker.
 
-func callGetVector() -> CInt {
+fn callGetVector() -> CInt {
   var xs: [CInt] =
     StdVectorToArray(_cxx_IncrementVectorValues(ArrayToStdVector([10, 20, 30])))
   return xs[0] // = 11.
@@ -3105,7 +3105,7 @@ func callGetVector() -> CInt {
 
 A naive implementation of `StdVectorToArray` and `ArrayToStdVector` would have
 to copy the container's elements.  However, with enough cooperation between the
-C++ standard library and the Swift standard library, Swift `Array` could take
+C++ standard library and the Codira standard library, Codira `Array` could take
 ownership of `std::vector`'s storage and vice versa in O(1), avoiding making a
 copy.  Such cooperation would likely require changing the ABI of at least one of
 the types, so it would not be feasible to implement in all environments.
@@ -3113,7 +3113,7 @@ the types, so it would not be feasible to implement in all environments.
 ## Bridging does not work in every context
 
 Bridging between types with different memory layouts does not work universally.
-For example, just because a C++ type `T` can be bridged to a Swift type `U`, it
+For example, just because a C++ type `T` can be bridged to a Codira type `U`, it
 does not follow that we can bridge a `T*` to an `UnsafeMutablePointer<U>`.
 
 ```c++
@@ -3122,19 +3122,19 @@ does not follow that we can bridge a `T*` to an `UnsafeMutablePointer<U>`.
 const std::vector<int> *GetPtrToVector();
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 // We can't bridge types like in the example below, it is not implementable.
 // The underlying C++ function returns a vector with unclear ownership semantics,
-// but we need to return a pointer to a Swift Array.
-// If the bridging code allocates the Swift Array on the heap, what would own it?
+// but we need to return a pointer to a Codira Array.
+// If the bridging code allocates the Codira Array on the heap, what would own it?
 // If the bridging code does not allocate a new Array, where does it get the
 // storage from?
-func GetPtrToVector() -> UnsafePointer<[CInt]>
+fn GetPtrToVector() -> UnsafePointer<[CInt]>
 
 // OK.
-func GetPtrToVector() -> UnsafePointer<std.vector<CInt>>
+fn GetPtrToVector() -> UnsafePointer<std.vector<CInt>>
 ```
 
 Therefore, we can perform non-trivial bridging only in a limited number of
@@ -3146,50 +3146,50 @@ not require adjusting the memory layout.
 
 ## <a name="bridging-std-function"></a> Bridging `std::function`
 
-`std::function` in C++ is similar to closures in Swift. The primary difference
+`std::function` in C++ is similar to closures in Codira. The primary difference
 is that `std::function` has an empty state, similarly to function pointers,
-while Swift closures don't.
+while Codira closures don't.
 
 Due to allowing an empty state, `std::function` must be mapped to an optional
-Swift closure, unless annotated as non-nullable.
+Codira closure, unless annotated as non-nullable.
 
-To convert a non-empty `std::function` value to a Swift closure, we need to
+To convert a non-empty `std::function` value to a Codira closure, we need to
 define a thunk and allocate a closure context on the heap. The new closure
 context will point to a copy of the `std::function` value. The thunk will use a
-Swift calling convention, and it will forward the arguments to
+Codira calling convention, and it will forward the arguments to
 `std::function::operator()()` using the C++ calling convention.
 
 A thunk like this will not cost much in terms of code size. The primary cost of
 the thunk will come from dynamic dispatch. We will have double dynamic dispatch:
-first one at the callsite that calls the Swift closure and ends up calling the
+first one at the callsite that calls the Codira closure and ends up calling the
 thunk, and second one from the thunk to the C++ code wrapped in `std::function`.
 Another issue is branch predictor pollution: there will be a single thunk
 backing all closures with the same signature. Indirect branches from thunk will
 be difficult to predict for the branch predictor.
 
-There is additional cost contributed by reference counting: closures in Swift
+There is additional cost contributed by reference counting: closures in Codira
 are reference counted, while `std::function` isn't.
 
 Finally, allocating a new closure context on the heap is a cost to be paid on
-every conversion from a C++ `std::function` to a Swift closure.
+every conversion from a C++ `std::function` to a Codira closure.
 
 ## <a name="bridging-std-string"></a> Bridging `std::string`
 
-Ergonomically, the best mapping of C++'s `std::string` is Swift's `String`. Both
+Ergonomically, the best mapping of C++'s `std::string` is Codira's `String`. Both
 types support nul bytes (the conversion has to take them into account and cannot
-assume nul-terminated strings). However, there's a semantic gap: Swift strings
+assume nul-terminated strings). However, there's a semantic gap: Codira strings
 require text to be valid UTF-8.
 
 We have a couple of options to address the UTF-8 issue:
 
-* Trust C++ code to only store UTF-8 text in strings, and map them to Swift's
+* Trust C++ code to only store UTF-8 text in strings, and map them to Codira's
   `String` where possible. Perform a runtime check for UTF-8 validity during the
   conversion. Allow to annotate `std::string`s that store binary data, and map
-  those as either Swift's `Array` or `std::string`.
+  those as either Codira's `Array` or `std::string`.
 
 * Assume `std::string`s store binary data, and map them to according to the
   regular interop rules to `cxx_std.string`. Allow users to annotate UTF-8
-  strings as such, and map them to Swift's `String`.
+  strings as such, and map them to Codira's `String`.
 
 The annotations could be inferred with a dynamic analysis tool that would track
 which `std::string`s contain binary data.
@@ -3203,29 +3203,29 @@ UTF-8 data.
 class Employee {
 public:
   std::string DebugDescription() const;
-  [[swift::import_as_std_string]] std::string SerializedAsProtobuf() const;
+  [[language::import_as_std_string]] std::string SerializedAsProtobuf() const;
 };
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 struct Employee {
-  func DebugDescription() -> String
-  func SerializedAsProtobuf() -> std.string
+  fn DebugDescription() -> String
+  fn SerializedAsProtobuf() -> std.string
 }
 ```
 
-To avoid copying data unnecessarily, we need the C++ and Swift standard
-libraries to cooperate, so that Swift's `String` can take ownership of
+To avoid copying data unnecessarily, we need the C++ and Codira standard
+libraries to cooperate, so that Codira's `String` can take ownership of
 `std::string`'s heap allocation, and vice versa.
 
-Character data in `Swift.String` is stored in a reference-counted object.
-`Swift.String` can take ownership of `std::string` by transferring ownership of
-`std::string` to a newly-allocated reference-counted object. Swift/Objective-C
+Character data in `Codira.String` is stored in a reference-counted object.
+`Codira.String` can take ownership of `std::string` by transferring ownership of
+`std::string` to a newly-allocated reference-counted object. Codira/Objective-C
 bridging of `NSString` already works exactly this way.
 
-On non-Objective-C platforms, `Swift.String` assumes that the character data is
+On non-Objective-C platforms, `Codira.String` assumes that the character data is
 tail-allocated in the reference-counted object; this assumption will have to be
 replaced with a branch. Therefore, adding this sort of bridging on
 non-Objective-C platforms will create a certain (small) performance penalty. It
@@ -3233,73 +3233,73 @@ is important to note that this performance penalty has been always affecting
 Objective-C platforms and it is considered acceptable.
 
 We could eliminate the branch on non-Objective-C platforms by changing
-`Swift.String` there to always use a reference-counted object with an
+`Codira.String` there to always use a reference-counted object with an
 `std::string` in it as the backing storage. The disadvantage of such memory
-layout is that `Swift.String` would need to dereference two levels of
+layout is that `Codira.String` would need to dereference two levels of
 indirection to access to character data, instead of one like we have today.
 
-`std::string` can't take ownership of `Swift.String`'s reference-counted object,
+`std::string` can't take ownership of `Codira.String`'s reference-counted object,
 because `std::string` has no branches in its code that retrieves the pointer to
 the character data and in its deallocation code. Adding branches there is
 certainly possible, but will likely lead to regressions for many C++
-applications, including ones that don't use Swift. Therefore, this approach
+applications, including ones that don't use Codira. Therefore, this approach
 looks like a non-starter.
 
 Therefore, the only viable approach for O(1) bidirectional bridging is having
-`Swift.String` use `std::string` as its backing storage, and taking the penalty
+`Codira.String` use `std::string` as its backing storage, and taking the penalty
 of a double-indirection to access character data.
 
-If one-way C++-to-Swift bridging is sufficient, it can be implemented with a
-branch in the `Swift.String` code that retrieves a pointer to character data.
+If one-way C++-to-Codira bridging is sufficient, it can be implemented with a
+branch in the `Codira.String` code that retrieves a pointer to character data.
 
-We can implement one-way O(1) Swift-to-C++ bridging by embedding a fake
-`std::string` in the `Swift.String` buffer. Such a `std::string` instance would
+We can implement one-way O(1) Codira-to-C++ bridging by embedding a fake
+`std::string` in the `Codira.String` buffer. Such a `std::string` instance would
 not be full-fledged, and would be only good for reading from it; its destructor
 can never be called.
 
 ## <a name="bridging-std-vector"></a> Bridging `std::vector`
 
-Ergonomically, the best mapping of C++'s `std::vector` is Swift's `Array`.
+Ergonomically, the best mapping of C++'s `std::vector` is Codira's `Array`.
 
-Except for the case of `std::vector<bool>`, the constraints for `Swift.Array`
+Except for the case of `std::vector<bool>`, the constraints for `Codira.Array`
 taking ownership of `std::vector`'s element buffer and vice versa are identical
 to string bridging.
 
 ## <a name="bridging-std-set-std-map"></a> Bridging `std::set`, `std::map`
 
-Swift standard library does not provide collections with semantics similar to
-`std::set` and `std::map`, so they can't be meaningfully bridged to any Swift
+Codira standard library does not provide collections with semantics similar to
+`std::set` and `std::map`, so they can't be meaningfully bridged to any Codira
 vocabulary type. Therefore, they will be imported as `std.set` and `std.map`.
 
 It would be useful to provide ergonomic ways to convert `std.set` and `std.map`
-to `Swift.Set` and `Swift.Dictionary`, since `std::set` and `std::map` are
+to `Codira.Set` and `Codira.Dictionary`, since `std::set` and `std::map` are
 sometimes used in C++ APIs (especially older ones) when the element order
 doesn't matter.
 
 ## <a name="bridging-std-unordered-set-std-unordered-map"></a> Bridging `std::unordered_set`, `std::unordered_map`
 
 The most ergonomic mapping of `std::unordered_set` and `std::unordered_map` are
-`Swift.Set` and `Swift.Dictionary`.
+`Codira.Set` and `Codira.Dictionary`.
 
-The constraints for these Swift types taking ownership of C++'s storage buffers
+The constraints for these Codira types taking ownership of C++'s storage buffers
 and vice versa are quite similar to string bridging. An interesting new point to
-highlight is that the `Swift.Set` and `Swift.Dictionary` types would need to use
+highlight is that the `Codira.Set` and `Codira.Dictionary` types would need to use
 the hash function defined in C++ for C++ types. It should be possible to expose
-the C++ hash function in Swift as a conformance to the `Hashable` protocol, or
+the C++ hash function in Codira as a conformance to the `Hashable` protocol, or
 as a conformance to a new C++-specific protocol for hashing.
 
 ## <a name="bridging-std-tuple-std-pair"></a> Bridging `std::tuple`, `std::pair`
 
 Ergonomically, the best mapping of C++'s `std::tuple` and `std::pair` are
-Swift's tuples.
+Codira's tuples.
 
 Tuple and pair elements have to be copied to implement non-trivial bridging. It
 is unreasonable to introduce a dual representation and require a branch to
-access tuple elements either in C++ or Swift.
+access tuple elements either in C++ or Codira.
 
 However, there are only so many different ways to lay out a `std::pair` in
 memory. In fact, it is almost certainly a struct with exactly two data members,
-`first` and `second`, in that order. When `std::pair<T, U>` and Swift's tuple
+`first` and `second`, in that order. When `std::pair<T, U>` and Codira's tuple
 `(T, U)` happen to use the same layout, we could bridge them trivially, without
 copying the data.
 
@@ -3309,8 +3309,8 @@ copying the data.
 std::pair<int, int> *GetPairPtr();
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
 UnsafeMutablePointer<(Int, Int)> GetPairPtr()
 ```
@@ -3319,16 +3319,16 @@ UnsafeMutablePointer<(Int, Int)> GetPairPtr()
 to `std::pair`. For example, `std::tuple` is laid out in forward order by
 libc++, and in backward order by libstdc++. Therefore, if libc++ is used,
 there's a good chance that the memory layout of `std::tuple` matches the memory
-layout of the corresponding Swift tuple, and we could bridge them trivially.
+layout of the corresponding Codira tuple, and we could bridge them trivially.
 
 The disadvantage of the techniques described above is that they depend on
 implementation details of the standard library, and as those change (or if the
-user switches to a different standard library altogether), the API in Swift
+user switches to a different standard library altogether), the API in Codira
 might change as well.
 
 ## <a name="bridging-std-span"></a> Bridging `std::span`
 
-The difficulty with `std::span<T>` is that it has a different API in Swift
+The difficulty with `std::span<T>` is that it has a different API in Codira
 depending on whether `T` is `const` or not.
 
 ```c++
@@ -3342,16 +3342,16 @@ public:
 ```
 
 ```c++
-// C++ standard library imported in Swift.
+// C++ standard library imported in Codira.
 
 // When T is non-const.
 struct span<T> {
-  public func front() -> UnsafeMutablePointer<T>
+  public fn front() -> UnsafeMutablePointer<T>
 }
 
 // When T is const.
 struct span<T> {
-  public func front() -> UnsafePointer<T>
+  public fn front() -> UnsafePointer<T>
 }
 
 // Need to choose one way to import, can't have both!
@@ -3360,20 +3360,20 @@ struct span<T> {
 The easiest way to deal with this is to only import `std::span<T>` as full
 specialization (the fallback way to import templates). However, that would not
 be very ergonomic, and would prevent other templates that use `std::span` from
-being imported as generics in Swift.
+being imported as generics in Codira.
 
 A more ergonomic way would be to import `std::span` as two generic structs in
-Swift, selecting the appropriate one depending on constness.
+Codira, selecting the appropriate one depending on constness.
 
-```swift
-// C++ standard library imported in Swift.
+```language
+// C++ standard library imported in Codira.
 
 struct mutable_span<T> {
-  public func front() -> UnsafeMutablePointer<T>
+  public fn front() -> UnsafeMutablePointer<T>
 }
 
 struct const_span<T> {
-  public func front() -> UnsafePointer<T>
+  public fn front() -> UnsafePointer<T>
 }
 ```
 
@@ -3384,45 +3384,45 @@ std::span<int> GetMutableIntSpan();
 std::span<const int> GetConstIntSpan();
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func GetMutableIntSpan() -> std.mutable_span<Int>
-func GetConstIntSpan() -> std.const_span<Int>
+fn GetMutableIntSpan() -> std.mutable_span<Int>
+fn GetConstIntSpan() -> std.const_span<Int>
 ```
 
 ## Standard C++ containers in general
 
-It seems appropriate to provide an overlay that adds `Swift.Collection`
+It seems appropriate to provide an overlay that adds `Codira.Collection`
 conformances to C++ container types.
 
 ## Custom C++ containers
 
 The importer could try to recognize custom C++ containers and synthesize
-`Swift.Collection` conformances, however, that seems fragile: custom containers
+`Codira.Collection` conformances, however, that seems fragile: custom containers
 often don't implement the complete container API as required by the standard, or
 deviate from it in subtle ways.
 
-It seems best to add `Swift.Collection` conformances in overlays.
+It seems best to add `Codira.Collection` conformances in overlays.
 
 ## <a name="bridging-absl-hash-set-map"></a> Bridging `absl::flat_hash_{set,map}`, `absl::node_hash_{set,map}`
 
 Projects that use Abseil often use Abseil hash tables a lot more than standard
 containers. However the same is also true about other libraries, like Boost or
-Qt. Therefore, privileging a third-party library in C++/Swift interop seems
+Qt. Therefore, privileging a third-party library in C++/Codira interop seems
 inappropriate. Abseil, Boost, and Qt should be treated just like user-written
-code. Library vendors can provide annotations and Swift overlays to improve the
-API in Swift.
+code. Library vendors can provide annotations and Codira overlays to improve the
+API in Codira.
 
-# Enhancing C++ API mapping into Swift with annotations
+# Enhancing C++ API mapping into Codira with annotations
 
 ## Annotation workflow
 
-Annotations in C headers are employed by the Swift / C interop today (for
+Annotations in C headers are employed by the Codira / C interop today (for
 example, nullability annotations). However, these annotations must be added to
 headers manually. How could tools infer annotations?
 
-**Online inference at compile-time.** The Swift compiler could infer annotations
+**Online inference at compile-time.** The Codira compiler could infer annotations
 from information available in the headers. For example:
 
 ```c++
@@ -3431,7 +3431,7 @@ from information available in the headers. For example:
 class Example {
 public:
   int *get_mutable_value() { return &value; }
-  // The Swift compiler infers that the return type is `int * _Nonnull` because
+  // The Codira compiler infers that the return type is `int * _Nonnull` because
   // the function never returns nullptr.
 };
 ```
@@ -3440,7 +3440,7 @@ The problem with this approach is that it is making API decisions based on API
 implementation details, without letting the API owner to intervene. It is going
 to be fragile in the long run: no-op changes to implementation details of C++
 APIs can tip annotation inference one way or the other, and unintentionally
-change the Swift API. Imagine that the example above is refactored to:
+change the Codira API. Imagine that the example above is refactored to:
 
 ```c++
 // example.h
@@ -3452,7 +3452,7 @@ private:
   int *get_mutable_value_impl(); // defined in example.cc
 };
 
-// The Swift compiler does not know whether `get_mutable_value_impl()`
+// The Codira compiler does not know whether `get_mutable_value_impl()`
 // can return nullptr or not, therefore its return type is
 // `int * _Null_unspecified`. Therefore, the return type of
 // `get_mutable_value()` is now changed to `int * _Null_unspecified` as well.
@@ -3476,13 +3476,13 @@ A sidecar annotation file allows to add arbitrary attributes to declarations
 parsed from a header file. You can find examples of such files in the [apinotes
 directory](../apinotes). APINotes files
 are handled by the [APINotes library in
-Clang](https://github.com/swiftlang/llvm-project/tree/apple/main/clang/lib/APINotes).
+Clang](https://github.com/languagelang/toolchain-project/tree/apple/main/clang/lib/APINotes).
 Clang reads an APINotes file alongside the header file; Clang injects attributes
 specified by APINotes into the AST parsed from the header.
 
 ## Tooling to infer nullability annotations
 
-Nullability annotations in C++ headers are useful not only for Swift / C++
+Nullability annotations in C++ headers are useful not only for Codira / C++
 interop; they also document the intended API contract to C++ API users.
 Nullability annotations can be validated by static and dynamic analysis tooling
 in C++ (e.g., UBSan can be extended to detect assignments of `nullptr` to
@@ -3514,7 +3514,7 @@ inferred nullability flags and usage counters are saved to disk.
 ## APIs that take a pointer and count
 
 Many C and C++ APIs take a pointer and count. It would be nice if we could
-import them as a buffer pointer in Swift, given appropriate annotations:
+import them as a buffer pointer in Codira, given appropriate annotations:
 
 ```c++
 // C++ header.
@@ -3523,19 +3523,19 @@ void example(int *xs, int count);
 // TODO: figure out what annotations might look like.
 ```
 
-```swift
-// C++ header imported in Swift.
+```language
+// C++ header imported in Codira.
 
-func example(_ xs: UnsafeMutableBufferPointer<CInt>)
+fn example(_ xs: UnsafeMutableBufferPointer<CInt>)
 ```
 
-# Current state of art: importing Swift code into C
+# Current state of art: importing Codira code into C
 
-The Swift compiler generates a header that C code can use.
+The Codira compiler generates a header that C code can use.
 
 TODO: add details.
 
-# Importing Swift APIs into C++
+# Importing Codira APIs into C++
 
 TODO
 
@@ -3543,14 +3543,14 @@ TODO
 
 The semantic gap here is related to resilient types -- their size is unknown at
 compile time. `std::vector<T>` needs to know `sizeof(T)` at compile time. This
-is a common problem in Swift-to-C++ bridging in general, and it would be solved
-with boxing. Boxes for resilient Swift types would have a fixed size.
+is a common problem in Codira-to-C++ bridging in general, and it would be solved
+with boxing. Boxes for resilient Codira types would have a fixed size.
 
 # Forum discussions
 
-The topic of Swift/C++ interoperability has been discussed on Swift forums
+The topic of Codira/C++ interoperability has been discussed on Codira forums
 before:
 
-* [C++ Interop](https://forums.swift.org/t/c-interop/25567)
-* [C++ / Objective-C++ Interop](https://forums.swift.org/t/c-objective-c-interop/9989)
-* [C++ support in Swift](https://forums.swift.org/t/c-support-in-swift/13313)
+* [C++ Interop](https://forums.code.org/t/c-interop/25567)
+* [C++ / Objective-C++ Interop](https://forums.code.org/t/c-objective-c-interop/9989)
+* [C++ support in Codira](https://forums.code.org/t/c-support-in-language/13313)

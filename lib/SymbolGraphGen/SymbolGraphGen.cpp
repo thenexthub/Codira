@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SymbolGraphGen/SymbolGraphGen.h"
@@ -21,9 +22,9 @@
 #include "language/AST/NameLookup.h"
 #include "language/Sema/IDETypeChecking.h"
 #include "clang/Basic/Module.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/Path.h"
 
 #include "SymbolGraphASTWalker.h"
 
@@ -48,12 +49,12 @@ int serializeSymbolGraph(SymbolGraph &SG,
   FileName.append(".symbols.json");
 
   SmallString<1024> OutputPath(Options.OutputDir);
-  llvm::sys::path::append(OutputPath, FileName);
+  toolchain::sys::path::append(OutputPath, FileName);
 
   return withOutputPath(
       SG.M.getASTContext().Diags, SG.M.getASTContext().getOutputBackend(),
       OutputPath, [&](raw_ostream &OS) {
-        llvm::json::OStream J(OS, Options.PrettyPrint ? 2 : 0);
+        toolchain::json::OStream J(OS, Options.PrettyPrint ? 2 : 0);
         SG.serialize(J);
         return false;
       });
@@ -125,13 +126,13 @@ int symbolgraphgen::emitSymbolGraphForModule(
     importCollector.importFilter = std::move(importFilter);
 
   SmallVector<Decl *, 64> ModuleDecls;
-  swift::getTopLevelDeclsForDisplay(
+  language::getTopLevelDeclsForDisplay(
       M, ModuleDecls, [&importCollector](ModuleDecl *M, SmallVectorImpl<Decl *> &results) {
         M->getDisplayDeclsRecursivelyAndImports(results, importCollector);
       });
 
   if (Options.PrintMessages)
-    llvm::errs() << ModuleDecls.size()
+    toolchain::errs() << ModuleDecls.size()
         << " top-level declarations in this module.\n";
 
   SymbolGraphASTWalker Walker(*M, importCollector.imports,
@@ -142,7 +143,7 @@ int symbolgraphgen::emitSymbolGraphForModule(
   }
 
   if (Options.PrintMessages)
-    llvm::errs()
+    toolchain::errs()
       << "Found " << Walker.MainGraph.Nodes.size() << " symbols and "
       << Walker.MainGraph.Edges.size() << " relationships.\n";
 
@@ -164,13 +165,13 @@ int symbolgraphgen::
 printSymbolGraphForDecl(const ValueDecl *D, Type BaseTy,
                         bool InSynthesizedExtension,
                         const SymbolGraphOptions &Options,
-                        llvm::raw_ostream &OS,
+                        toolchain::raw_ostream &OS,
                         SmallVectorImpl<PathComponent> &ParentContexts,
                         SmallVectorImpl<FragmentInfo> &FragmentInfo) {
   if (!Symbol::supportsKind(D->getKind()))
     return EXIT_FAILURE;
 
-  llvm::json::OStream JOS(OS, Options.PrettyPrint ? 2 : 0);
+  toolchain::json::OStream JOS(OS, Options.PrettyPrint ? 2 : 0);
   ModuleDecl *MD = D->getModuleContext();
   SymbolGraphASTWalker Walker(*MD, Options);
   markup::MarkupContext MarkupCtx;

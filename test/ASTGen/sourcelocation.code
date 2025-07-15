@@ -1,0 +1,40 @@
+fn test(arg: Int) -> Int { 1 }
+
+fn foo() {
+  #sourceLocation(file: "first/foo.code", line: 100)
+  test(arg: 1)
+}
+
+fn bar() {
+  #sourceLocation(file: "second/foo.code", line: 100)
+}
+
+test(arg: 2)
+
+// RUN: %target-language-frontend -emit-silgen -module-name MyMod %s -enable-experimental-feature ParserASTGen -diagnostic-style toolchain \
+// RUN:  2>&1 >/dev/null | %FileCheck --enable-windows-compatibility --strict-whitespace %s
+
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_ParserASTGen
+
+// CHECK:      {{^}}second/foo.code:102:1: warning: result of call to 'test(arg:)' is unused
+// CHECK-NEXT: {{^}}test(arg: 2)
+// CHECK-NEXT: {{^}}^   ~~~~~~~~
+
+// CHECK:      {{^}}first/foo.code:100:3: warning: result of call to 'test(arg:)' is unused
+// CHECK-NEXT: {{^}}  test(arg: 1)
+// CHECK-NEXT: {{^}}  ^   ~~~~~~~~
+
+// CHECK:      {{^SOURCE_DIR[\//]test[/\\]ASTGen[\//]sourcelocation\.code}}:4:25: warning: '#sourceLocation' directive produces '#fileID' string of 'MyMod/foo.code', which conflicts with '#fileID' strings produced by other paths in the module
+// CHECK-NEXT: {{^}}  #sourceLocation(file: "first/foo.code", line: 100)
+// CHECK-NEXT: {{^}}                        ^
+
+// CHECK:      {{^SOURCE_DIR[\//]test[/\\]ASTGen[\//]sourcelocation\.code}}:9:25: warning: '#sourceLocation' directive produces '#fileID' string of 'MyMod/foo.code', which conflicts with '#fileID' strings produced by other paths in the module
+// CHECK-NEXT: {{^}}  #sourceLocation(file: "second/foo.code", line: 100)
+// CHECK-NEXT: {{^}}                        ^
+
+// CHECK:      {{^SOURCE_DIR[\//]test[/\\]ASTGen[\//]sourcelocation\.code}}:9:25: note: change file in '#sourceLocation' to 'first/foo.code'
+// CHECK-NEXT: {{^}}  #sourceLocation(file: "second/foo.code", line: 100)
+// CHECK-NEXT: {{^}}                        ^~~~~~~~~~~~~~~~~~
+// CHECK-NEXT: {{^}}                        "first/foo.code"
+

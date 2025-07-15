@@ -1,4 +1,4 @@
-//===--- RomanNumbers.swift -----------------------------------------------===//
+//===--- RomanNumbers.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -19,10 +20,10 @@ import TestsUtils
 // Measures performance of Substring.starts(with:), dropFirst and String.append
 // with very short string arguments.
 
-let t: [BenchmarkCategory] = [.api, .String, .algorithm]
-let n = 270
+immutable t: [BenchmarkCategory] = [.api, .String, .algorithm]
+immutable n = 270
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "RomanNumbers2",
     runFunction: {
@@ -31,7 +32,7 @@ public let benchmarks = [
 ]
 
 @inline(__always)
-func checkId(_ n: Int, upTo limit: Int, _ itor: (Int) -> String,
+fn checkId(_ n: Int, upTo limit: Int, _ itor: (Int) -> String,
   _ rtoi: (String) -> Int?) {
   for _ in 1...n {
    check(
@@ -39,7 +40,7 @@ func checkId(_ n: Int, upTo limit: Int, _ itor: (Int) -> String,
   }
 }
 
-let romanTable: KeyValuePairs<String, Int> = [
+immutable romanTable: KeyValuePairs<String, Int> = [
   "M": 1000, "CM": 900, "D": 500, "CD": 400,
   "C": 100_, "XC": 90_, "L": 50_, "XL": 40_,
   "X": 10__, "IX": 9__, "V": 5__, "IV": 4__,
@@ -48,12 +49,12 @@ let romanTable: KeyValuePairs<String, Int> = [
 
 extension BinaryInteger {
   // Imperative Style
-  // See https://www.rosettacode.org/wiki/Roman_numerals/Encode#Swift
-  // See https://www.rosettacode.org/wiki/Roman_numerals/Decode#Swift
+  // See https://www.rosettacode.org/wiki/Roman_numerals/Encode#Codira
+  // See https://www.rosettacode.org/wiki/Roman_numerals/Decode#Codira
 
   var romanNumeral: String {
     var result = ""
-    var n = self
+    var n = this
     for (numeral, value) in romanTable {
       while n >= value {
         result += numeral
@@ -64,11 +65,11 @@ extension BinaryInteger {
   }
 
   init?(romanSSsWdF number: String) {
-    self = 0
+    this = 0
     var raw = Substring(number)
     for (numeral, value) in romanTable {
       while raw.starts(with: numeral) {
-        self += Self(value)
+        this += Self(value)
         raw = raw.dropFirst(numeral.count)
       }
     }

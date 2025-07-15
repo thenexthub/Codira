@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides the \c ConstraintLocator class and its related types,
@@ -18,22 +19,22 @@
 // a particular constraint was derived.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_CONSTRAINTLOCATOR_H
-#define SWIFT_SEMA_CONSTRAINTLOCATOR_H
+#ifndef LANGUAGE_SEMA_CONSTRAINTLOCATOR_H
+#define LANGUAGE_SEMA_CONSTRAINTLOCATOR_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/NullablePtr.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <utility>
 
 namespace language {
@@ -113,7 +114,7 @@ enum class ConversionRestrictionKind;
 /// above expression would refer to 'x'. If 'x' had function type, the
 /// path could be further extended with either "-> argument" or "-> result",
 /// to indicate constraints on its argument or result type.
-class ConstraintLocator : public llvm::FoldingSetNode {
+class ConstraintLocator : public toolchain::FoldingSetNode {
 public:
   /// Describes the kind of a particular path element, e.g.,
   /// "tuple element", "call result", "base of member lookup", etc.
@@ -199,9 +200,9 @@ public:
       return getKind() == PathElementKind::ClosureResult;
     }
 
-    void dump(raw_ostream &out) const LLVM_ATTRIBUTE_USED;
-    SWIFT_DEBUG_DUMP {
-      dump(llvm::errs());
+    void dump(raw_ostream &out) const TOOLCHAIN_ATTRIBUTE_USED;
+    LANGUAGE_DEBUG_DUMP {
+      dump(toolchain::errs());
     }
   };
 
@@ -219,7 +220,7 @@ public:
   /// subcomponent.
   ArrayRef<PathElement> getPath() const {
     // FIXME: Alignment.
-    return llvm::ArrayRef(reinterpret_cast<const PathElement *>(this + 1),
+    return toolchain::ArrayRef(reinterpret_cast<const PathElement *>(this + 1),
                           numPathElements);
   }
 
@@ -468,19 +469,19 @@ public:
   Type getWrappedValue() const;
 
   /// Produce a profile of this locator, for use in a folding set.
-  static void Profile(llvm::FoldingSetNodeID &id, ASTNode anchor,
+  static void Profile(toolchain::FoldingSetNodeID &id, ASTNode anchor,
                       ArrayRef<PathElement> path);
 
   /// Produce a profile of this locator, for use in a folding set.
-  void Profile(llvm::FoldingSetNodeID &id) {
+  void Profile(toolchain::FoldingSetNodeID &id) {
     Profile(id, anchor, getPath());
   }
   
   /// Produce a debugging dump of this locator.
-  SWIFT_DEBUG_DUMPER(dump(SourceManager *SM));
-  SWIFT_DEBUG_DUMPER(dump(ConstraintSystem *CS));
+  LANGUAGE_DEBUG_DUMPER(dump(SourceManager *SM));
+  LANGUAGE_DEBUG_DUMPER(dump(ConstraintSystem *CS));
 
-  void dump(SourceManager *SM, raw_ostream &OS) const LLVM_ATTRIBUTE_USED;
+  void dump(SourceManager *SM, raw_ostream &OS) const TOOLCHAIN_ATTRIBUTE_USED;
 
 private:
   /// Initialize a constraint locator with an anchor and a path.
@@ -497,7 +498,7 @@ private:
   /// Note that this routine only handles the allocation and initialization
   /// of the locator. The ConstraintSystem object is responsible for
   /// uniquing via the FoldingSet.
-  static ConstraintLocator *create(llvm::BumpPtrAllocator &allocator,
+  static ConstraintLocator *create(toolchain::BumpPtrAllocator &allocator,
                                    ASTNode anchor, ArrayRef<PathElement> path,
                                    unsigned flags) {
     // FIXME: Alignment.
@@ -532,11 +533,11 @@ inline bool
 isa(const LocatorPathElt &) = delete; // Use LocatorPathElt::is instead.
 
 template <class X>
-inline typename llvm::cast_retty<X, LocatorPathElt>::ret_type
+inline typename toolchain::cast_retty<X, LocatorPathElt>::ret_type
 cast(const LocatorPathElt &) = delete; // Use LocatorPathElt::castTo instead.
 
 template <class X>
-inline typename llvm::cast_retty<X, LocatorPathElt>::ret_type
+inline typename toolchain::cast_retty<X, LocatorPathElt>::ret_type
 dyn_cast(const LocatorPathElt &) = delete; // Use LocatorPathElt::getAs instead.
 
 #define SIMPLE_LOCATOR_PATH_ELT(Name) \
@@ -657,7 +658,7 @@ class LocatorPathElt::TupleType : public StoredPointerElement<TypeBase> {
 public:
   TupleType(Type type)
       : StoredPointerElement(PathElementKind::TupleType, type.getPointer()) {
-    assert(type->getDesugaredType()->is<swift::TupleType>());
+    assert(type->getDesugaredType()->is<language::TupleType>());
   }
 
   Type getType() const { return getStoredPointer(); }
@@ -724,7 +725,7 @@ class LocatorPathElt::PackType : public StoredPointerElement<TypeBase> {
 public:
   PackType(Type type)
       : StoredPointerElement(PathElementKind::PackType, type.getPointer()) {
-    assert(type->getDesugaredType()->is<swift::PackType>());
+    assert(type->getDesugaredType()->is<language::PackType>());
   }
 
   Type getType() const { return getStoredPointer(); }
@@ -1108,7 +1109,7 @@ public:
     if (auto *caseItem = node.dyn_cast<CaseLabelItem *>())
       return caseItem;
 
-    llvm_unreachable("unhandled ASTNode element kind");
+    toolchain_unreachable("unhandled ASTNode element kind");
   }
 
   Stmt *asStmt() const {
@@ -1168,15 +1169,15 @@ public:
 };
 
 class LocatorPathElt::PackExpansionType final
-    : public StoredPointerElement<swift::PackExpansionType> {
+    : public StoredPointerElement<language::PackExpansionType> {
 public:
-  PackExpansionType(swift::PackExpansionType *openedPackExpansionTy)
+  PackExpansionType(language::PackExpansionType *openedPackExpansionTy)
       : StoredPointerElement(PathElementKind::PackExpansionType,
                              openedPackExpansionTy) {
     assert(openedPackExpansionTy);
   }
 
-  swift::PackExpansionType *getOpenedType() const { return getStoredPointer(); }
+  language::PackExpansionType *getOpenedType() const { return getStoredPointer(); }
 
   static bool classof(const LocatorPathElt *elt) {
     return elt->getKind() == PathElementKind::PackExpansionType;
@@ -1221,7 +1222,7 @@ static_assert(isValidCustomPathElement<LocatorPathElt::Name>(), \
 class ConstraintLocatorBuilder {
   /// The constraint locator that this builder extends or the
   /// previous builder in the chain.
-  llvm::PointerUnion<ConstraintLocator *, ConstraintLocatorBuilder *>
+  toolchain::PointerUnion<ConstraintLocator *, ConstraintLocatorBuilder *>
     previous;
 
   /// The current path element, if there is one.
@@ -1230,7 +1231,7 @@ class ConstraintLocatorBuilder {
   /// The current set of flags.
   unsigned summaryFlags;
 
-  ConstraintLocatorBuilder(llvm::PointerUnion<ConstraintLocator *,
+  ConstraintLocatorBuilder(toolchain::PointerUnion<ConstraintLocator *,
                                               ConstraintLocatorBuilder *>
                              previous,
                            LocatorPathElt element,
@@ -1436,13 +1437,13 @@ public:
   }
 
   /// Produce a debugging dump of this locator.
-  SWIFT_DEBUG_DUMPER(dump(SourceManager *SM));
-  SWIFT_DEBUG_DUMPER(dump(ConstraintSystem *CS));
+  LANGUAGE_DEBUG_DUMPER(dump(SourceManager *SM));
+  LANGUAGE_DEBUG_DUMPER(dump(ConstraintSystem *CS));
 
-  void dump(SourceManager *SM, raw_ostream &OS) const LLVM_ATTRIBUTE_USED;
+  void dump(SourceManager *SM, raw_ostream &OS) const TOOLCHAIN_ATTRIBUTE_USED;
 };
 
 } // end namespace constraints
 } // end namespace language
 
-#endif // LLVM_SWIFT_SEMA_CONSTRAINTLOCATOR_H
+#endif // TOOLCHAIN_LANGUAGE_SEMA_CONSTRAINTLOCATOR_H

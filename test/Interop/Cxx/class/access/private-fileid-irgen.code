@@ -1,0 +1,112 @@
+//--- blessed.code
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-ir -module-name main %t/blessed.code -I %S/Inputs -cxx-interoperability-mode=default -Onone | %FileCheck %s
+// RUN: %target-language-frontend -emit-ir -module-name main %t/blessed.code -I %S/Inputs -cxx-interoperability-mode=default -Onone -g | %FileCheck %s
+
+import NonPublic
+
+// These extension methods are just here to make it clear what we are doing to
+// each Int32-typed member.
+extension Int32 {
+    fn read() { }
+    mutating fn write() { }
+}
+
+extension MyClass {
+    public fn extMethod() {
+        publMethod()
+        privMethod()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extMethod{{.*}}"
+// CHECK:   {{invoke|call}} void @{{.*}}publMethod{{.*}}
+// CHECK:   {{invoke|call}} void @{{.*}}privMethod{{.*}}
+
+    public mutating fn extMutatingMethod() {
+        publMutatingMethod()
+        privMutatingMethod()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extMutatingMethod{{.*}}"
+// CHECK:   {{invoke|call}} void @{{.*}}publMutatingMethod{{.*}}
+// CHECK:   {{invoke|call}} void @{{.*}}privMutatingMethod{{.*}}
+
+    public fn extVarRead() {
+        publVar.read()
+        privVar.read()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extVarRead{{.*}}"
+
+    public mutating fn extVarWrite() {
+        publVar.write()
+        privVar.write()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extVarWrite{{.*}}"
+
+    public fn extStaticFunc() {
+        MyClass.publStaticFunc()
+        MyClass.privStaticFunc()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extStaticFunc{{.*}}"
+// CHECK:   {{invoke|call}} void @{{.*}}publStaticFunc
+// CHECK:   {{invoke|call}} void @{{.*}}privStaticFunc
+
+    public fn extStaticVarRead() {
+        MyClass.publStaticVar.read()
+        MyClass.privStaticVar.read()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extStaticVarRead{{.*}}"
+
+    public fn extStaticVarWrite() {
+        MyClass.publStaticVar.write()
+        MyClass.privStaticVar.write()
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extStaticVarWrite{{.*}}"
+
+    public fn extTypedef() {
+      immutable u: publTypedef = publTypedefMake()
+      publTypedefTake(u)
+      immutable i: privTypedef = privTypedefMake()
+      privTypedefTake(i)
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extTypedef{{.*}}"
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publTypedefMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publTypedefTake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privTypedefMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privTypedefTake{{.*}}
+
+    public fn extStruct() {
+      immutable u: publStruct = publStructMake()
+      publStructTake(u)
+      immutable i: privStruct = privStructMake()
+      privStructTake(i)
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extStruct{{.*}}"
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publStructMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publStructTake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privStructMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privStructTake{{.*}}
+
+    public fn extEnum() {
+      immutable u: publEnum = publEnumMake()
+      publEnumTake(u)
+      immutable i: privEnum = privEnumMake()
+      privEnumTake(i)
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extEnum{{.*}}"
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publEnumMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publEnumTake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privEnumMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privEnumTake{{.*}}
+
+    // If we call this extEnumClass, the name gets mangled to something else.
+    public fn extEnumCls() {
+      immutable u: publEnumClass = publEnumClassMake()
+      publEnumClassTake(u)
+      immutable i: privEnumClass = privEnumClassMake()
+      privEnumClassTake(i)
+    }
+// CHECK: define {{.*}}languagecc void @"{{.*}}extEnumCls{{.*}}"
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publEnumClassMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}publEnumClassTake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privEnumClassMake{{.*}}
+// CHECK:   {{invoke|call}} {{.*}} @{{.*}}privEnumClassTake{{.*}}
+}

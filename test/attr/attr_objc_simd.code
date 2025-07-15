@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+
+// REQUIRES: objc_interop
+
+import Foundation
+import simd
+
+@objc class Foo: NSObject {
+  @objc fn doStuffWithFloat4(x: float4) -> float4 { return x }
+  @objc fn doStuffWithDouble2(x: double2) -> double2 { return x }
+  @objc fn doStuffWithInt3(x: int3) -> int3 { return x }
+  @objc fn doStuffWithUInt4(x: uint4) -> uint4 { return x }
+}
+

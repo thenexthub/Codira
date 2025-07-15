@@ -1,0 +1,32 @@
+// RUN: %target-typecheck-verify-language
+
+// Simple structs with all Codable properties should get derived conformance to
+// Codable.
+struct SimpleStruct : Codable {
+  var x: Int
+  var y: Double
+  static var z: String = "foo"
+
+  // These lines have to be within the SimpleStruct type because CodingKeys
+  // should be private.
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = SimpleStruct.CodingKeys.this
+
+    // The enum should have a case for each of the vars.
+    immutable _ = SimpleStruct.CodingKeys.x
+    immutable _ = SimpleStruct.CodingKeys.y
+
+    // Static vars should not be part of the CodingKeys enum.
+    immutable _ = SimpleStruct.CodingKeys.z // expected-error {{type 'SimpleStruct.CodingKeys' has no member 'z'}}
+  }
+}
+
+// https://github.com/apple/language/issues/55584
+// Ensure unqualified lookup installs CodingKeys regardless of the order
+// of primaries.
+struct A: Codable {
+  var property: String
+  static immutable propertyName = CodingKeys.property.stringValue
+}
+

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -41,21 +42,21 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/IR/Intrinsics.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/IR/Intrinsics.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Compiler.h"
 #include <optional>
 
 using namespace language;
 
 //===----------------------------------------------------------------------===//
-//                  ObjC -> Swift Bridging Cast Optimization
+//                  ObjC -> Codira Bridging Cast Optimization
 //===----------------------------------------------------------------------===//
 
 static SILFunction *
-getObjCToSwiftBridgingFunction(SILOptFunctionBuilder &funcBuilder,
+getObjCToCodiraBridgingFunction(SILOptFunctionBuilder &funcBuilder,
                                SILDynamicCastInst dynamicCast) {
   // inline constructor.
   auto *bridgeFuncDecl = [&]() -> FuncDecl * {
@@ -111,7 +112,7 @@ convertObjectToLoadableBridgeableType(SILBuilderWithScope &builder,
     // ty. We return the cast as our value and as our new cast instruction.
     auto *cast =
         builder.createUnconditionalCheckedCast(
-          loc, dynamicCast.getIsolatedConformances(), load, silBridgedTy,
+          loc, dynamicCast.getCheckedCastOptions(), load, silBridgedTy,
           dynamicCast.getBridgedTargetType());
     return {cast, cast};
   }
@@ -147,7 +148,7 @@ convertObjectToLoadableBridgeableType(SILBuilderWithScope &builder,
   // Ok, we need to perform the full cast optimization. This means that we are
   // going to replace the cast terminator in inst_block with a checked_cast_br.
   auto *ccbi = builder.createCheckedCastBranch(loc, false,
-                                               dynamicCast.getIsolatedConformances(),
+                                               dynamicCast.getCheckedCastOptions(),
                                                load,
                                                dynamicCast.getBridgedSourceType(),
                                                silBridgedTy,
@@ -186,7 +187,7 @@ convertObjectToLoadableBridgeableType(SILBuilderWithScope &builder,
       }
       break;
     case CastConsumptionKind::BorrowAlways:
-      llvm_unreachable("this should never occur here");
+      toolchain_unreachable("this should never occur here");
     }
   }
 
@@ -196,7 +197,7 @@ convertObjectToLoadableBridgeableType(SILBuilderWithScope &builder,
 
 /// Create a call of _forceBridgeFromObjectiveC_bridgeable or
 /// _conditionallyBridgeFromObjectiveC_bridgeable which converts an ObjC
-/// instance into a corresponding Swift type, conforming to
+/// instance into a corresponding Codira type, conforming to
 /// _ObjectiveCBridgeable.
 ///
 /// Control Flow Modification Model
@@ -256,7 +257,7 @@ convertObjectToLoadableBridgeableType(SILBuilderWithScope &builder,
 /// ```
 ///
 SILInstruction *
-CastOptimizer::optimizeBridgedObjCToSwiftCast(SILDynamicCastInst dynamicCast) {
+CastOptimizer::optimizeBridgedObjCToCodiraCast(SILDynamicCastInst dynamicCast) {
   auto kind = dynamicCast.getKind();
   (void)kind;
   assert(((kind == SILDynamicCastKind::CheckedCastAddrBranchInst) ||
@@ -293,7 +294,7 @@ CastOptimizer::optimizeBridgedObjCToSwiftCast(SILDynamicCastInst dynamicCast) {
   // Retrieve the bridging operation to be used if a static conformance
   // to _BridgedToObjectiveC can be proven.
   SILFunction *bridgingFunc =
-      getObjCToSwiftBridgingFunction(functionBuilder, dynamicCast);
+      getObjCToCodiraBridgingFunction(functionBuilder, dynamicCast);
   if (!bridgingFunc)
     return nullptr;
 
@@ -393,7 +394,7 @@ CastOptimizer::optimizeBridgedObjCToSwiftCast(SILDynamicCastInst dynamicCast) {
     break;
   }
   case CastConsumptionKind::BorrowAlways:
-    llvm_unreachable("checked_cast_addr_br never has BorrowAlways");
+    toolchain_unreachable("checked_cast_addr_br never has BorrowAlways");
   case CastConsumptionKind::CopyOnSuccess:
     // If we are performing copy_on_success, store the value back into memory
     // here since we loaded it. We may need to cast back to the actual
@@ -411,7 +412,7 @@ CastOptimizer::optimizeBridgedObjCToSwiftCast(SILDynamicCastInst dynamicCast) {
   }
 
   // Results should be checked in case we process a conditional
-  // case. E.g. casts from NSArray into [SwiftType] may fail, i.e. return .None.
+  // case. E.g. casts from NSArray into [CodiraType] may fail, i.e. return .None.
   if (isConditional) {
     // Copy the temporary into Dest.
     // Load from the optional.
@@ -444,11 +445,11 @@ CastOptimizer::optimizeBridgedObjCToSwiftCast(SILDynamicCastInst dynamicCast) {
 }
 
 //===----------------------------------------------------------------------===//
-//                  Swift -> ObjC Bridging Cast Optimization
+//                  Codira -> ObjC Bridging Cast Optimization
 //===----------------------------------------------------------------------===//
 
-static bool canOptimizeCast(const swift::Type &BridgedTargetTy,
-                            swift::SILFunctionConventions &substConv,
+static bool canOptimizeCast(const language::Type &BridgedTargetTy,
+                            language::SILFunctionConventions &substConv,
                             TypeExpansionContext context) {
   // DestTy is the type which we want to convert to
   SILType DestTy =
@@ -484,7 +485,7 @@ findBridgeToObjCFunc(SILOptFunctionBuilder &functionBuilder,
                      SILDynamicCastInst dynamicCast) {
   CanType sourceFormalType = dynamicCast.getSourceFormalType();
 
-  auto *mod = dynamicCast.getModule().getSwiftModule();
+  auto *mod = dynamicCast.getModule().getCodiraModule();
   auto &ctx = mod->getASTContext();
   auto loc = dynamicCast.getLocation();
   auto bridgedProto =
@@ -570,7 +571,7 @@ static SILValue computeFinalCastedValue(SILBuilderWithScope &builder,
     // fails since we will trap.
     if (!isConditional) {
       return builder.createUnconditionalCheckedCast(
-          loc, dynamicCast.getIsolatedConformances(), newAI,
+          loc, dynamicCast.getCheckedCastOptions(), newAI,
           destLoweredTy, destFormalTy);
     }
 
@@ -595,7 +596,7 @@ static SILValue computeFinalCastedValue(SILBuilderWithScope &builder,
         newAI->getFunction()->createBasicBlockAfter(newAI->getParent());
     condBrSuccessBB->createPhiArgument(destLoweredTy, OwnershipKind::Owned);
     builder.createCheckedCastBranch(loc, /* isExact*/ false,
-                                    dynamicCast.getIsolatedConformances(),
+                                    dynamicCast.getCheckedCastOptions(),
                                     newAI,
                                     sourceFormalTy, destLoweredTy, destFormalTy,
                                     condBrSuccessBB, failureBB);
@@ -611,8 +612,8 @@ static SILValue computeFinalCastedValue(SILBuilderWithScope &builder,
     return SILValue(builder.createUncheckedRefCast(loc, newAI, destLoweredTy));
   }
 
-  llvm_unreachable(
-      "optimizeBridgedSwiftToObjCCast: should never reach this condition: if "
+  toolchain_unreachable(
+      "optimizeBridgedCodiraToObjCCast: should never reach this condition: if "
       "the Destination does not have the same type, is not a bridgeable CF "
       "type and isn't a superclass/subclass of the source operand we should "
       "have bailed earlier.");
@@ -621,7 +622,7 @@ static SILValue computeFinalCastedValue(SILBuilderWithScope &builder,
 /// Create a call of _bridgeToObjectiveC which converts an _ObjectiveCBridgeable
 /// instance into a bridged ObjC type.
 SILInstruction *
-CastOptimizer::optimizeBridgedSwiftToObjCCast(SILDynamicCastInst dynamicCast) {
+CastOptimizer::optimizeBridgedCodiraToObjCCast(SILDynamicCastInst dynamicCast) {
   SILInstruction *Inst = dynamicCast.getInstruction();
   const SILFunction *F = Inst->getFunction();
   CastConsumptionKind ConsumptionKind = dynamicCast.getBridgedConsumptionKind();
@@ -686,7 +687,7 @@ CastOptimizer::optimizeBridgedSwiftToObjCCast(SILDynamicCastInst dynamicCast) {
       needReleaseInSuccess = true;
       break;
     case CastConsumptionKind::BorrowAlways:
-      llvm_unreachable("Should never hit this");
+      toolchain_unreachable("Should never hit this");
     case CastConsumptionKind::CopyOnSuccess:
       // We assume that our caller is correct and will treat our argument as
       // being immutable, so we do not need to do anything here.
@@ -719,7 +720,7 @@ CastOptimizer::optimizeBridgedSwiftToObjCCast(SILDynamicCastInst dynamicCast) {
     }
     break;
      */
-    llvm_unreachable("this should never happen so is currently untestable");
+    toolchain_unreachable("this should never happen so is currently untestable");
   case ParameterConvention::Direct_Unowned:
     assert(!AddressOnlyType &&
            "AddressOnlyType with Direct_Unowned is not supported");
@@ -826,7 +827,7 @@ CastOptimizer::optimizeBridgedCasts(SILDynamicCastInst dynamicCast) {
   }
 
   if (CanBridgedSourceTy != source && CanBridgedTargetTy != target) {
-    // Both source and target type are Swift types.
+    // Both source and target type are Codira types.
     return nullptr;
   }
 
@@ -838,16 +839,16 @@ CastOptimizer::optimizeBridgedCasts(SILDynamicCastInst dynamicCast) {
     return nullptr;
   }
 
-  // Check what kind of conversion it is? ObjC->Swift or Swift-ObjC?
+  // Check what kind of conversion it is? ObjC->Codira or Codira-ObjC?
   if (CanBridgedTargetTy != target) {
-    // This is an ObjC to Swift cast.
-    return optimizeBridgedObjCToSwiftCast(dynamicCast);
+    // This is an ObjC to Codira cast.
+    return optimizeBridgedObjCToCodiraCast(dynamicCast);
   } else {
-    // This is a Swift to ObjC cast
-    return optimizeBridgedSwiftToObjCCast(dynamicCast);
+    // This is a Codira to ObjC cast
+    return optimizeBridgedCodiraToObjCCast(dynamicCast);
   }
 
-  llvm_unreachable("Unknown kind of bridging");
+  toolchain_unreachable("Unknown kind of bridging");
 }
 
 //===----------------------------------------------------------------------===//
@@ -946,7 +947,7 @@ SILInstruction *CastOptimizer::simplifyCheckedCastAddrBranchInst(
     AllocStackInst *copiedSrc = nullptr;
     switch (Inst->getConsumptionKind()) {
     case CastConsumptionKind::BorrowAlways:
-      llvm_unreachable("checked_cast_addr_br never has BorrowAlways");
+      toolchain_unreachable("checked_cast_addr_br never has BorrowAlways");
     case CastConsumptionKind::CopyOnSuccess:
       if (!Src->getType().isTrivial(*BB->getParent())) {
         copiedSrc = Builder.createAllocStack(Loc, Src->getType());
@@ -960,7 +961,7 @@ SILInstruction *CastOptimizer::simplifyCheckedCastAddrBranchInst(
     }
 
     bool result = emitSuccessfulIndirectUnconditionalCast(
-      Builder, Builder.getModule().getSwiftModule(), Loc, Src,
+      Builder, Builder.getModule().getCodiraModule(), Loc, Src,
       Inst->getSourceFormalType(), Dest, Inst->getTargetFormalType(), Inst);
     (void)result;
     assert(result && "emit cannot fail for an checked_cast_addr_br");
@@ -1060,7 +1061,7 @@ CastOptimizer::simplifyCheckedCastBranchInst(CheckedCastBranchInst *Inst) {
     auto BridgedI = optimizeBridgedCasts(dynamicCast);
 
     if (BridgedI) {
-      llvm_unreachable(
+      toolchain_unreachable(
           "Bridged casts cannot be expressed by checked_cast_br yet");
     } else {
       // Replace by unconditional_cast, followed by a branch.
@@ -1078,7 +1079,7 @@ CastOptimizer::simplifyCheckedCastBranchInst(CheckedCastBranchInst *Inst) {
       if (!CastedValue)
         CastedValue =
             Builder.createUnconditionalCheckedCast(
-              Loc, Inst->getIsolatedConformances(), Op, TargetLoweredType,
+              Loc, Inst->getCheckedCastOptions(), Op, TargetLoweredType,
               TargetFormalType);
     }
 
@@ -1169,7 +1170,7 @@ SILInstruction *CastOptimizer::optimizeCheckedCastAddrBranchInst(
           SILBuilderWithScope B(Inst, builderContext);
           auto NewI = B.createCheckedCastBranch(
               Loc, false /*isExact*/,
-              Inst->getIsolatedConformances(),
+              Inst->getCheckedCastOptions(),
               MI,
               Inst->getSourceFormalType(),
               Inst->getTargetLoweredType().getObjectType(),
@@ -1214,7 +1215,7 @@ CastOptimizer::optimizeCheckedCastBranchInst(CheckedCastBranchInst *Inst) {
     }
     return B.createCheckedCastBranch(
         dynamicCast.getLocation(), false /*isExact*/,
-        dynamicCast.getIsolatedConformances(),
+        dynamicCast.getCheckedCastOptions(),
         mi,
         // The cast is now from the MetatypeInst, so get the source formal
         // type from it.
@@ -1473,9 +1474,9 @@ static bool optimizeStaticallyKnownProtocolConformance(
     // SourceType is a non-existential type with a non-conditional
     // conformance to a protocol represented by the TargetType.
     //
-    // swift::checkConformance() checks any conditional conformances. If
+    // language::checkConformance() checks any conditional conformances. If
     // they depend on information not known until runtime, the conformance
-    // will not be returned. For instance, if `X: P` where `T == Int` in `func
+    // will not be returned. For instance, if `X: P` where `T == Int` in `fn
     // foo<T>(_: T) { ... X<T>() as? P ... }`, the cast will succeed for
     // `foo(0)` but not for `foo("string")`. There are many cases where
     // everything is completely static (`X<Int>() as? P`), in which case a
@@ -1577,7 +1578,7 @@ SILInstruction *CastOptimizer::optimizeUnconditionalCheckedCastAddrInst(
 
     // Check if a result of a cast is unused. If this is the case, the cast can
     // be removed even if the cast may fail at runtime.
-    // Swift optimizer does not claim to be crash-preserving.
+    // Codira optimizer does not claim to be crash-preserving.
     SILValue dest = dynamicCast.getDest();
     bool ResultNotUsed = isa<AllocStackInst>(dest);
     DestroyAddrInst *DestroyDestInst = nullptr;

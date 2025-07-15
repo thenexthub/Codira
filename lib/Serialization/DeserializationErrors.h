@@ -11,28 +11,29 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_DESERIALIZATIONERRORS_H
-#define SWIFT_SERIALIZATION_DESERIALIZATIONERRORS_H
+#ifndef LANGUAGE_SERIALIZATION_DESERIALIZATIONERRORS_H
+#define LANGUAGE_SERIALIZATION_DESERIALIZATIONERRORS_H
 
 #include "ModuleFile.h"
 #include "ModuleFileSharedCore.h"
 #include "ModuleFormat.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Module.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
 namespace language {
 namespace serialization {
 
 [[nodiscard]]
-static inline std::unique_ptr<llvm::ErrorInfoBase>
-takeErrorInfo(llvm::Error error) {
-  std::unique_ptr<llvm::ErrorInfoBase> result;
-  llvm::handleAllErrors(std::move(error),
-                        [&](std::unique_ptr<llvm::ErrorInfoBase> info) {
+static inline std::unique_ptr<toolchain::ErrorInfoBase>
+takeErrorInfo(toolchain::Error error) {
+  std::unique_ptr<toolchain::ErrorInfoBase> result;
+  toolchain::handleAllErrors(std::move(error),
+                        [&](std::unique_ptr<toolchain::ErrorInfoBase> info) {
     result = std::move(info);
   });
   return result;
@@ -42,16 +43,16 @@ takeErrorInfo(llvm::Error error) {
 /// FatalDeserializationError has already been added to the DiagnosticsEngine
 /// upon creation.
 struct FatalDeserializationError
-    : public llvm::ErrorInfo<FatalDeserializationError> {
+    : public toolchain::ErrorInfo<FatalDeserializationError> {
   static char ID;
   std::string Message;
   FatalDeserializationError(std::string Message) : Message(Message) {}
 
-  void log(llvm::raw_ostream &OS) const override {
+  void log(toolchain::raw_ostream &OS) const override {
     OS << "Deserialization Error: " << Message;
   }
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
@@ -77,14 +78,14 @@ class XRefTracePath {
 
     template <typename T>
     T getDataAs() const {
-      return llvm::PointerLikeTypeTraits<T>::getFromVoidPointer(data);
+      return toolchain::PointerLikeTypeTraits<T>::getFromVoidPointer(data);
     }
 
   public:
     template <typename T>
     PathPiece(Kind K, T value)
       : kind(K),
-        data(llvm::PointerLikeTypeTraits<T>::getAsVoidPointer(value)) {}
+        data(toolchain::PointerLikeTypeTraits<T>::getAsVoidPointer(value)) {}
 
     DeclBaseName getAsBaseName() const {
       switch (kind) {
@@ -101,7 +102,7 @@ class XRefTracePath {
       case Kind::Unknown:
         return Identifier();
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     void print(raw_ostream &os) const {
@@ -236,7 +237,7 @@ public:
   }
 
   DeclBaseName getLastName() const {
-    for (auto &piece : llvm::reverse(path)) {
+    for (auto &piece : toolchain::reverse(path)) {
       DeclBaseName result = piece.getAsBaseName();
       if (!result.empty())
         return result;
@@ -258,7 +259,7 @@ public:
   }
 };
 
-class DeclDeserializationError : public llvm::ErrorInfoBase {
+class DeclDeserializationError : public toolchain::ErrorInfoBase {
   static const char ID;
   void anchor() override;
 
@@ -296,7 +297,7 @@ public:
   static const void *classID() { return &ID; }
 };
 
-class XRefError : public llvm::ErrorInfo<XRefError, DeclDeserializationError> {
+class XRefError : public toolchain::ErrorInfo<XRefError, DeclDeserializationError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -316,12 +317,12 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 class XRefNonLoadedModuleError :
-    public llvm::ErrorInfo<XRefNonLoadedModuleError, DeclDeserializationError> {
+    public toolchain::ErrorInfo<XRefNonLoadedModuleError, DeclDeserializationError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -336,13 +337,13 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 /// Project issue affecting modules. Usually a change in the context between
 /// the time a module was built and when it was imported.
-class ModularizationError : public llvm::ErrorInfo<ModularizationError> {
+class ModularizationError : public toolchain::ErrorInfo<ModularizationError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -413,7 +414,7 @@ public:
   SourceLoc getSourceLoc() const;
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 
   bool isA(const void *const ClassID) const override {
@@ -423,7 +424,7 @@ public:
   static const void *classID() { return &ID; }
 };
 
-class OverrideError : public llvm::ErrorInfo<OverrideError,
+class OverrideError : public toolchain::ErrorInfo<OverrideError,
                                              DeclDeserializationError> {
 private:
   friend ErrorInfo;
@@ -443,16 +444,16 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 // Service class for errors with an underlying cause.
 class ErrorWithUnderlyingReason {
-  std::unique_ptr<llvm::ErrorInfoBase> underlyingReason;
+  std::unique_ptr<toolchain::ErrorInfoBase> underlyingReason;
 
 public:
-  explicit ErrorWithUnderlyingReason (std::unique_ptr<llvm::ErrorInfoBase> reason) :
+  explicit ErrorWithUnderlyingReason (std::unique_ptr<toolchain::ErrorInfoBase> reason) :
     underlyingReason(std::move(reason)) {}
 
   template <typename UnderlyingErrorT>
@@ -473,8 +474,8 @@ public:
   template <typename HandlerT>
   bool diagnoseUnderlyingReason(HandlerT &&handler) {
     if (underlyingReason &&
-        llvm::ErrorHandlerTraits<HandlerT>::appliesTo(*underlyingReason)) {
-      auto error = llvm::ErrorHandlerTraits<HandlerT>::apply(
+        toolchain::ErrorHandlerTraits<HandlerT>::appliesTo(*underlyingReason)) {
+      auto error = toolchain::ErrorHandlerTraits<HandlerT>::apply(
                                                std::forward<HandlerT>(handler),
                                                std::move(underlyingReason));
       if (!error) {
@@ -489,7 +490,7 @@ public:
   }
 };
 
-class TypeError : public llvm::ErrorInfo<TypeError, DeclDeserializationError>,
+class TypeError : public toolchain::ErrorInfo<TypeError, DeclDeserializationError>,
                   public ErrorWithUnderlyingReason {
   friend ErrorInfo;
   static const char ID;
@@ -512,11 +513,11 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
-class ExtensionError : public llvm::ErrorInfo<ExtensionError>,
+class ExtensionError : public toolchain::ErrorInfo<ExtensionError>,
                        public ErrorWithUnderlyingReason {
   friend ErrorInfo;
   static const char ID;
@@ -534,11 +535,11 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
-class SILEntityError : public llvm::ErrorInfo<SILEntityError>,
+class SILEntityError : public toolchain::ErrorInfo<SILEntityError>,
                        public ErrorWithUnderlyingReason {
   friend ErrorInfo;
   static const char ID;
@@ -555,11 +556,11 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
-class SILFunctionTypeMismatch : public llvm::ErrorInfo<SILFunctionTypeMismatch> {
+class SILFunctionTypeMismatch : public toolchain::ErrorInfo<SILFunctionTypeMismatch> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -577,14 +578,14 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 // Decl was not deserialized because its attributes did not match the filter.
 //
 // \sa getDeclChecked
-class DeclAttributesDidNotMatch : public llvm::ErrorInfo<DeclAttributesDidNotMatch> {
+class DeclAttributesDidNotMatch : public toolchain::ErrorInfo<DeclAttributesDidNotMatch> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -597,12 +598,12 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 class InvalidRecordKindError :
-    public llvm::ErrorInfo<InvalidRecordKindError, DeclDeserializationError> {
+    public toolchain::ErrorInfo<InvalidRecordKindError, DeclDeserializationError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -629,13 +630,13 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 // Decl was not deserialized because it's an internal detail maked as unsafe
 // at serialization.
-class UnsafeDeserializationError : public llvm::ErrorInfo<UnsafeDeserializationError, DeclDeserializationError> {
+class UnsafeDeserializationError : public toolchain::ErrorInfo<UnsafeDeserializationError, DeclDeserializationError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -650,12 +651,12 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 class InvalidEnumValueError
-    : public llvm::ErrorInfo<InvalidEnumValueError, DeclDeserializationError> {
+    : public toolchain::ErrorInfo<InvalidEnumValueError, DeclDeserializationError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -676,12 +677,12 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 // Cross-reference to a conformance was not found where it was expected.
-class ConformanceXRefError : public llvm::ErrorInfo<ConformanceXRefError,
+class ConformanceXRefError : public toolchain::ErrorInfo<ConformanceXRefError,
                                                     DeclDeserializationError> {
   friend ErrorInfo;
   static const char ID;
@@ -706,12 +707,12 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
 class InavalidAvailabilityDomainError
-    : public llvm::ErrorInfo<InavalidAvailabilityDomainError> {
+    : public toolchain::ErrorInfo<InavalidAvailabilityDomainError> {
   friend ErrorInfo;
   static const char ID;
   void anchor() override;
@@ -724,11 +725,11 @@ public:
   }
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
-class PrettyStackTraceModuleFile : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceModuleFile : public toolchain::PrettyStackTraceEntry {
   const char *Action;
   const ModuleFile &MF;
 public:
@@ -744,7 +745,7 @@ public:
   }
 };
 
-class PrettyStackTraceModuleFileCore : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceModuleFileCore : public toolchain::PrettyStackTraceEntry {
   const ModuleFileSharedCore &MF;
 public:
   explicit PrettyStackTraceModuleFileCore(ModuleFileSharedCore &module)

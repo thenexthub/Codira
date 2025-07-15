@@ -1,4 +1,4 @@
-//===--- GenOpaque.h - Swift IR generation for opaque values ----*- C++ -*-===//
+//===--- GenOpaque.h - Codira IR generation for opaque values ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides a private interface for interacting with opaque
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENOPAQUE_H
-#define SWIFT_IRGEN_GENOPAQUE_H
+#ifndef LANGUAGE_IRGEN_GENOPAQUE_H
+#define LANGUAGE_IRGEN_GENOPAQUE_H
 
-namespace llvm {
+namespace toolchain {
   class Type;
   class Value;
 }
@@ -45,7 +46,7 @@ namespace irgen {
   /// for one of the witnesses.
   /// If \p areEntriesRelative is true we are emitting code for a relative
   /// protocol witness table.
-  Address slotForLoadOfOpaqueWitness(IRGenFunction &IGF, llvm::Value *table,
+  Address slotForLoadOfOpaqueWitness(IRGenFunction &IGF, toolchain::Value *table,
                                      WitnessIndex index,
                                      bool areEntriesRelative = false);
 
@@ -54,31 +55,31 @@ namespace irgen {
   ///
   /// The load is marked invariant. This should not be used in contexts where
   /// the referenced witness table is still undergoing initialization.
-  llvm::Value *emitInvariantLoadOfOpaqueWitness(IRGenFunction &IGF,
+  toolchain::Value *emitInvariantLoadOfOpaqueWitness(IRGenFunction &IGF,
                                                 bool isProtocolWitness,
-                                                llvm::Value *table,
+                                                toolchain::Value *table,
                                                 WitnessIndex index,
-                                                llvm::Value **slot = nullptr);
+                                                toolchain::Value **slot = nullptr);
 
   /// Given a witness table (protocol or value), load one of the
   /// witnesses.
   ///
   /// The load is marked invariant. This should not be used in contexts where
   /// the referenced witness table is still undergoing initialization.
-  llvm::Value *emitInvariantLoadOfOpaqueWitness(IRGenFunction &IGF,
+  toolchain::Value *emitInvariantLoadOfOpaqueWitness(IRGenFunction &IGF,
                                                 bool isProtocolWitness,
-                                                llvm::Value *table,
-                                                llvm::Value *index,
-                                                llvm::Value **slot = nullptr);
+                                                toolchain::Value *table,
+                                                toolchain::Value *index,
+                                                toolchain::Value **slot = nullptr);
 
   /// Emit a call to do an 'initializeBufferWithCopyOfBuffer' operation.
-  llvm::Value *emitInitializeBufferWithCopyOfBufferCall(IRGenFunction &IGF,
-                                                        llvm::Value *metadata,
+  toolchain::Value *emitInitializeBufferWithCopyOfBufferCall(IRGenFunction &IGF,
+                                                        toolchain::Value *metadata,
                                                         Address destBuffer,
                                                         Address srcBuffer);
 
   /// Emit a call to do an 'initializeBufferWithCopyOfBuffer' operation.
-  llvm::Value *emitInitializeBufferWithCopyOfBufferCall(IRGenFunction &IGF,
+  toolchain::Value *emitInitializeBufferWithCopyOfBufferCall(IRGenFunction &IGF,
                                                         SILType T,
                                                         Address destBuffer,
                                                         Address srcBuffer);
@@ -88,8 +89,8 @@ namespace irgen {
                                   SILType T,
                                   Address destObject,
                                   Address srcObject);
-  llvm::Value *emitInitializeWithCopyCall(IRGenFunction &IGF,
-                                          llvm::Value *metadata, Address dest,
+  toolchain::Value *emitInitializeWithCopyCall(IRGenFunction &IGF,
+                                          toolchain::Value *metadata, Address dest,
                                           Address src);
 
   /// Emit a call to do an 'initializeArrayWithCopy' operation.
@@ -97,36 +98,36 @@ namespace irgen {
                                        SILType T,
                                        Address destObject,
                                        Address srcObject,
-                                       llvm::Value *count);
+                                       toolchain::Value *count);
 
   /// Emit a call to do an 'initializeWithTake' operation.
   void emitInitializeWithTakeCall(IRGenFunction &IGF,
                                   SILType T,
                                   Address destObject,
                                   Address srcObject);
-  llvm::Value *emitInitializeWithTakeCall(IRGenFunction &IGF,
-                                          llvm::Value *metadata, Address dest,
+  toolchain::Value *emitInitializeWithTakeCall(IRGenFunction &IGF,
+                                          toolchain::Value *metadata, Address dest,
                                           Address src);
 
   /// Emit a call to do an 'initializeArrayWithTakeNoAlias' operation.
   void emitInitializeArrayWithTakeNoAliasCall(IRGenFunction &IGF, SILType T,
                                               Address destObject,
                                               Address srcObject,
-                                              llvm::Value *count);
+                                              toolchain::Value *count);
 
   /// Emit a call to do an 'initializeArrayWithTakeFrontToBack' operation.
   void emitInitializeArrayWithTakeFrontToBackCall(IRGenFunction &IGF,
                                                   SILType T,
                                                   Address destObject,
                                                   Address srcObject,
-                                                  llvm::Value *count);
+                                                  toolchain::Value *count);
 
   /// Emit a call to do an 'initializeArrayWithTakeBackToFront' operation.
   void emitInitializeArrayWithTakeBackToFrontCall(IRGenFunction &IGF,
                                                   SILType T,
                                                   Address destObject,
                                                   Address srcObject,
-                                                  llvm::Value *count);
+                                                  toolchain::Value *count);
 
   /// Emit a call to do an 'assignWithCopy' operation.
   void emitAssignWithCopyCall(IRGenFunction &IGF,
@@ -134,26 +135,26 @@ namespace irgen {
                               Address destObject,
                               Address srcObject);
   void emitAssignWithCopyCall(IRGenFunction &IGF,
-                              llvm::Value *metadata,
+                              toolchain::Value *metadata,
                               Address destObject,
                               Address srcObject);
 
   /// Emit a call to do an 'assignArrayWithCopyNoAlias' operation.
   void emitAssignArrayWithCopyNoAliasCall(IRGenFunction &IGF, SILType T,
                                           Address destObject, Address srcObject,
-                                          llvm::Value *count);
+                                          toolchain::Value *count);
 
   /// Emit a call to do an 'assignArrayWithCopyFrontToBack' operation.
   void emitAssignArrayWithCopyFrontToBackCall(IRGenFunction &IGF, SILType T,
                                               Address destObject,
                                               Address srcObject,
-                                              llvm::Value *count);
+                                              toolchain::Value *count);
 
   /// Emit a call to do an 'assignArrayWithCopyBackToFront' operation.
   void emitAssignArrayWithCopyBackToFrontCall(IRGenFunction &IGF, SILType T,
                                               Address destObject,
                                               Address srcObject,
-                                              llvm::Value *count);
+                                              toolchain::Value *count);
 
   /// Emit a call to do an 'assignWithTake' operation.
   void emitAssignWithTakeCall(IRGenFunction &IGF,
@@ -164,35 +165,35 @@ namespace irgen {
   /// Emit a call to do an 'assignArrayWithTake' operation.
   void emitAssignArrayWithTakeCall(IRGenFunction &IGF, SILType T,
                                    Address destObject, Address srcObject,
-                                   llvm::Value *count);
+                                   toolchain::Value *count);
 
   /// Emit a call to do a 'destroy' operation.
   void emitDestroyCall(IRGenFunction &IGF,
                        SILType T,
                        Address object);
 
-  void emitDestroyCall(IRGenFunction &IGF, llvm::Value *metadata,
+  void emitDestroyCall(IRGenFunction &IGF, toolchain::Value *metadata,
                        Address object);
 
   /// Emit a call to do a 'destroyArray' operation.
   void emitDestroyArrayCall(IRGenFunction &IGF,
                             SILType T,
                             Address object,
-                            llvm::Value *count);
+                            toolchain::Value *count);
 
   /// Emit a call to the 'getEnumTagSinglePayload' operation.
-  llvm::Value *emitGetEnumTagSinglePayloadCall(IRGenFunction &IGF, SILType T,
-                                               llvm::Value *numEmptyCases,
+  toolchain::Value *emitGetEnumTagSinglePayloadCall(IRGenFunction &IGF, SILType T,
+                                               toolchain::Value *numEmptyCases,
                                                Address destObject);
 
   /// Emit a call to the 'storeEnumTagSinglePayload' operation.
   void emitStoreEnumTagSinglePayloadCall(IRGenFunction &IGF, SILType T,
-                                         llvm::Value *whichCase,
-                                         llvm::Value *numEmptyCases,
+                                         toolchain::Value *whichCase,
+                                         toolchain::Value *numEmptyCases,
                                          Address destObject);
 
   /// Emit a call to the 'getEnumTag' operation.
-  llvm::Value *emitGetEnumTagCall(IRGenFunction &IGF,
+  toolchain::Value *emitGetEnumTagCall(IRGenFunction &IGF,
                                   SILType T,
                                   Address srcObject);
 
@@ -206,42 +207,42 @@ namespace irgen {
   /// The type must be dynamically known to have enum witnesses.
   void emitDestructiveInjectEnumTagCall(IRGenFunction &IGF,
                                         SILType T,
-                                        llvm::Value *tag,
+                                        toolchain::Value *tag,
                                         Address srcObject);
 
   /// Emit a load of the 'size' value witness.
-  llvm::Value *emitLoadOfSize(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfSize(IRGenFunction &IGF, SILType T);
 
   /// Emit a load of the 'stride' value witness.
-  llvm::Value *emitLoadOfStride(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfStride(IRGenFunction &IGF, SILType T);
 
   /// Emit a load of the 'alignmentMask' value witness.
-  llvm::Value *emitLoadOfAlignmentMask(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfAlignmentMask(IRGenFunction &IGF, SILType T);
 
   /// Emit a load of the 'isTriviallyDestroyable' value witness.
-  llvm::Value *emitLoadOfIsTriviallyDestroyable(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfIsTriviallyDestroyable(IRGenFunction &IGF, SILType T);
 
   /// Emit a load of the 'isBitwiseTakable' value witness.
-  llvm::Value *emitLoadOfIsBitwiseTakable(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfIsBitwiseTakable(IRGenFunction &IGF, SILType T);
 
   /// Emit a load of the 'isInline' value witness.
-  llvm::Value *emitLoadOfIsInline(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfIsInline(IRGenFunction &IGF, SILType T);
 
   /// Emit a load of the 'extraInhabitantCount' value witness.
-  llvm::Value *emitLoadOfExtraInhabitantCount(IRGenFunction &IGF, SILType T);
+  toolchain::Value *emitLoadOfExtraInhabitantCount(IRGenFunction &IGF, SILType T);
 
   /// Emit a stored to the 'extraInhabitantCount' value witness.
-  void emitStoreOfExtraInhabitantCount(IRGenFunction &IGF, llvm::Value *val,
-                                       llvm::Value *metadata);
+  void emitStoreOfExtraInhabitantCount(IRGenFunction &IGF, toolchain::Value *val,
+                                       toolchain::Value *metadata);
 
   /// Returns the IsInline flag and the loaded flags value.
-  std::pair<llvm::Value *, llvm::Value *>
-  emitLoadOfIsInline(IRGenFunction &IGF, llvm::Value *metadata);
+  std::pair<toolchain::Value *, toolchain::Value *>
+  emitLoadOfIsInline(IRGenFunction &IGF, toolchain::Value *metadata);
 
   /// Emits the alignment mask value from a loaded flags value.
-  llvm::Value *emitAlignMaskFromFlags(IRGenFunction &IGF, llvm::Value *flags);
+  toolchain::Value *emitAlignMaskFromFlags(IRGenFunction &IGF, toolchain::Value *flags);
 
-  llvm::Value *emitLoadOfSize(IRGenFunction &IGF, llvm::Value *metadata);
+  toolchain::Value *emitLoadOfSize(IRGenFunction &IGF, toolchain::Value *metadata);
 
   /// Allocate/project/allocate memory for a value of the type in the fixed size
   /// buffer.
@@ -253,31 +254,31 @@ namespace irgen {
                               Address buffer);
 
   using GetExtraInhabitantTagEmitter =
-    llvm::function_ref<llvm::Value*(IRGenFunction &IGF,
+    toolchain::function_ref<toolchain::Value*(IRGenFunction &IGF,
                                     Address addr,
-                                    llvm::Value *xiCount)>;
+                                    toolchain::Value *xiCount)>;
 
-  llvm::Constant *
+  toolchain::Constant *
   getOrCreateGetExtraInhabitantTagFunction(IRGenModule &IGM,
                                            SILType objectType,
                                            const TypeInfo &objectTI,
                                            GetExtraInhabitantTagEmitter emit);
 
-  llvm::Value *
+  toolchain::Value *
   emitGetEnumTagSinglePayloadGenericCall(IRGenFunction &IGF,
                                          SILType payloadType,
                                          const TypeInfo &payloadTI,
-                                         llvm::Value *numExtraCases,
+                                         toolchain::Value *numExtraCases,
                                          Address address,
                                          GetExtraInhabitantTagEmitter emit);
 
   using StoreExtraInhabitantTagEmitter =
-    llvm::function_ref<void(IRGenFunction &IGF,
+    toolchain::function_ref<void(IRGenFunction &IGF,
                             Address addr,
-                            llvm::Value *tag,
-                            llvm::Value *xiCount)>;
+                            toolchain::Value *tag,
+                            toolchain::Value *xiCount)>;
 
-  llvm::Constant *
+  toolchain::Constant *
   getOrCreateStoreExtraInhabitantTagFunction(IRGenModule &IGM,
                                              SILType objectType,
                                              const TypeInfo &objectTI,
@@ -286,8 +287,8 @@ namespace irgen {
   void emitStoreEnumTagSinglePayloadGenericCall(IRGenFunction &IGF,
                                                 SILType payloadType,
                                                 const TypeInfo &payloadTI,
-                                                llvm::Value *index,
-                                                llvm::Value *numExtraCases,
+                                                toolchain::Value *index,
+                                                toolchain::Value *numExtraCases,
                                                 Address address,
                                            StoreExtraInhabitantTagEmitter emit);
 } // end namespace irgen

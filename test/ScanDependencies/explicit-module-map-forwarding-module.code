@@ -1,0 +1,52 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/inputs
+// RUN: echo "/// Some cool comments" > %t/foo.code
+// RUN: echo "public fn foo() {}" >> %t/foo.code
+
+// Step 1: build .codemodule and .codeinterface adjacent to each other from foo.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/inputs/Foo.codemodule -emit-module-doc-path %t/inputs/Foo.codedoc -emit-module-source-info -emit-module-source-info-path %t/inputs/Foo.codesourceinfo -emit-module-interface-path %t/inputs/Foo.codeinterface -module-cache-path %t.module-cache %t/foo.code -module-name Foo
+
+// Step 2: build .codemodule from .codeinterface and give the adjacent .codemodule as a candidate compiled module.
+// RUN: %target-language-frontend -compile-module-from-interface %t/inputs/Foo.codeinterface -o %t/inputs/Foo-from-interface.codemodule -module-name Foo -candidate-module-file %t/inputs/Foo.codemodule
+
+// Step 3: the new .codemodule should be a forwarding module.
+// RUN: %{python} %S/../ModuleInterface/ModuleCache/Inputs/check-is-forwarding-module.py %t/inputs/Foo-from-interface.codemodule
+
+// Step 4: using the forwarding module in explicit module map should be OK.
+// RUN: echo "[{" > %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Foo\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/t/inputs/Foo-from-interface.codemodule\"," >> %/t/inputs/map.json
+// RUN: echo "\"docPath\": \"%/t/inputs/Foo.codedoc\"," >> %/t/inputs/map.json
+// RUN: echo "\"sourceInfoPath\": \"%/t/inputs/Foo.codesourceinfo\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/stdlib_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/ononesupport_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_Concurrency\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/concurrency_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"_StringProcessing\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/string_processing_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Distributed\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/distributed_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=Foo -enable-languagesourceinfo -source-filename %s -explicit-language-module-map-file %t/inputs/map.json | %FileCheck %s
+
+// CHECK: foo.code:2:13: Func/foo RawComment=[/// Some cool comments

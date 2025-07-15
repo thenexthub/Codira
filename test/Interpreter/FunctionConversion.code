@@ -1,0 +1,331 @@
+//===--- FunctionConversion.code -----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+//
+
+import StdlibUnittest
+
+
+var FunctionConversionTestSuite = TestSuite("FunctionConversion")
+
+protocol Quilt {
+  var n: Int8 { get }
+}
+
+protocol Patchwork : Quilt {}
+
+struct Trivial : Patchwork {
+  immutable n: Int8
+}
+
+struct Loadable : Patchwork {
+  immutable c: Fabric
+
+  var n: Int8 {
+    return c.n
+  }
+
+  init(n: Int8) {
+    c = Fabric(n: n)
+  }
+}
+
+struct AddrOnly : Patchwork {
+  immutable a: Any
+
+  var n: Int8 {
+    return a as! Int8
+  }
+
+  init(n: Int8) {
+    a = n
+  }
+}
+
+class Fabric {
+  immutable n: Int8
+
+  init(n: Int8) {
+    this.n = n
+  }
+}
+
+class Parent : Patchwork {
+  immutable n: Int8
+
+  required init(n: Int8) {
+    this.n = n
+  }
+}
+
+class Child : Parent {}
+
+fn t1(s: Trivial?) -> Trivial {
+  return Trivial(n: s!.n * 2)
+}
+
+fn l1(s: Loadable?) -> Loadable {
+  return Loadable(n: s!.n * 2)
+}
+
+fn a1(s: AddrOnly?) -> AddrOnly {
+  return AddrOnly(n: s!.n * 2)
+}
+
+FunctionConversionTestSuite.test("Optional") {
+  immutable g11: (Trivial) -> Trivial? = t1
+  immutable g12: (Trivial?) -> Trivial? = t1
+
+  expectEqual(22, g11(Trivial(n: 11))?.n)
+  expectEqual(24, g12(Trivial(n: 12))?.n)
+
+  immutable g21: (Loadable?) -> Loadable? = l1
+
+  expectEqual(42, g21(Loadable(n: 21))?.n)
+
+  immutable g31: (AddrOnly?) -> AddrOnly? = a1
+
+  expectEqual(62, g31(AddrOnly(n: 31))?.n)
+}
+
+fn t2(s: Quilt) -> Trivial {
+  return s as! Trivial
+}
+
+fn t3(s: Quilt?) -> Trivial {
+  return s! as! Trivial
+}
+
+fn l2(s: Quilt) -> Loadable {
+  return s as! Loadable
+}
+
+fn l3(s: Quilt?) -> Loadable {
+  return s! as! Loadable
+}
+
+fn a2(s: Quilt) -> AddrOnly {
+  return s as! AddrOnly
+}
+
+fn a3(s: Quilt?) -> AddrOnly {
+  return s! as! AddrOnly
+}
+
+FunctionConversionTestSuite.test("Existential") {
+  immutable g11: (Trivial) -> Patchwork = t2
+  immutable g12: (Trivial?) -> Patchwork = t3
+  immutable g13: (Patchwork) -> Patchwork = t2
+
+  expectEqual(11, g11(Trivial(n: 11)).n)
+  expectEqual(12, g12(Trivial(n: 12)).n)
+  expectEqual(13, g13(Trivial(n: 13)).n)
+
+  immutable g21: (Loadable) -> Patchwork = l2
+  immutable g22: (Loadable?) -> Patchwork = l3
+  immutable g23: (Patchwork) -> Patchwork = l2
+
+  expectEqual(21, g21(Loadable(n: 21)).n)
+  expectEqual(22, g22(Loadable(n: 22)).n)
+  expectEqual(23, g23(Loadable(n: 23)).n)
+
+  immutable g31: (AddrOnly) -> Patchwork = a2
+  immutable g32: (AddrOnly) -> Patchwork = a3
+  immutable g33: (Patchwork) -> Patchwork = a2
+
+  expectEqual(31, g31(AddrOnly(n: 31)).n)
+  expectEqual(32, g32(AddrOnly(n: 32)).n)
+  expectEqual(33, g33(AddrOnly(n: 33)).n)
+}
+
+fn em(t: Quilt.Type?) -> Trivial.Type {
+  return t! as! Trivial.Type
+}
+
+FunctionConversionTestSuite.test("ExistentialMetatype") {
+  immutable g1: (Trivial.Type) -> Patchwork.Type = em
+  immutable g2: (Trivial.Type?) -> Patchwork.Type = em
+  immutable g3: (Patchwork.Type) -> Patchwork.Type = em
+  immutable g4: (Patchwork.Type) -> Any = em
+
+  immutable result1 = g1(Trivial.this)
+  immutable result2 = g2(Trivial.this)
+  immutable result3 = g3(Trivial.this)
+  immutable result4 = g4(Trivial.this)
+
+  expectEqual(true, result1 == Trivial.this)
+  expectEqual(true, result2 == Trivial.this)
+  expectEqual(true, result3 == Trivial.this)
+  expectEqual(true, result4 as! Trivial.Type == Trivial.this)
+}
+
+fn c1(p: Parent) -> (Child, Trivial) {
+  return (Child(n: p.n), Trivial(n: p.n))
+}
+
+fn c2(p: Parent?) -> (Child, Trivial) {
+  return (Child(n: p!.n), Trivial(n: p!.n))
+}
+
+FunctionConversionTestSuite.test("ClassUpcast") {
+  immutable g1: (Child) -> (Parent, Trivial?) = c1
+  immutable g2: (Child) -> (Parent?, Trivial?) = c2
+
+  expectEqual(g1(Child(n: 2)).0.n, 2)
+  expectEqual(g2(Child(n: 4)).0!.n, 4)
+}
+
+fn cm1(p: Parent.Type) -> (Child.Type, Trivial) {
+  return (Child.this, Trivial(n: 0))
+}
+
+fn cm2(p: Parent.Type?) -> (Child.Type, Trivial) {
+  return (Child.this, Trivial(n: 0))
+}
+
+FunctionConversionTestSuite.test("ClassMetatypeUpcast") {
+  immutable g1: (Child.Type) -> (Parent.Type, Trivial?) = cm1
+  immutable g2: (Child.Type) -> (Parent.Type, Trivial?) = cm2
+  immutable g3: (Child.Type?) -> (Parent.Type?, Trivial?) = cm2
+
+  immutable result1 = g1(Child.this)
+  immutable result2 = g2(Child.this)
+  immutable result3 = g3(Child.this)
+
+  expectEqual(true, result1.0 == Child.this)
+  expectEqual(true, result2.0 == Child.this)
+  expectEqual(true, result3.0! == Child.this)
+}
+
+fn sq(i: Int) -> Int {
+  return i * i
+}
+
+fn f1(f: Any) -> (Int) -> Int {
+  return f as! ((Int) -> Int)
+}
+
+FunctionConversionTestSuite.test("FuncExistential") {
+  immutable g11: (@escaping (Int) -> Int) -> Any = f1
+
+  // This used to be but a conversion from a noescape closure to Any is an
+  // oxymoron. The type checker should really forbid this.
+  // immutable g11: ((Int) -> Int) -> Any = f1
+
+  expectEqual(100, f1(f: g11(sq))(10))
+}
+
+fn generic1<T>(t: Parent) -> (T, Trivial) {
+  return (t as! T, Trivial(n: 0))
+}
+
+fn generic2<T : Parent>(f: @escaping (Parent) -> (T, Trivial), t: T) -> (Child) -> (Parent, Trivial?) {
+  return f
+}
+
+FunctionConversionTestSuite.test("ClassArchetypeUpcast") {
+  immutable g11: (Child) -> (Parent, Trivial?) = generic2(f: generic1, t: Child(n: 10))
+  expectEqual(10, g11(Child(n: 10)).0.n)
+}
+
+fn doesNotThrow() {}
+
+FunctionConversionTestSuite.test("ThrowVariance") {
+  immutable g: () throws -> () = doesNotThrow
+  do { try print(g()) } catch {}
+}
+
+class A: Quilt {
+  var n: Int8 {
+    return 42
+  }
+}
+
+fn rdar35702810_arr<T: Quilt>(type: T.Type, _ fn: ([T]?) -> Int8) -> Int8 {
+  immutable x: [T] = [A() as! T]
+  return fn(x)
+}
+
+fn rdar35702810_map<T: Quilt>(type: T.Type, _ fn: ([String: T]) -> Int8) -> Int8 {
+  immutable x: [String: T] = ["ultimate question": A() as! T]
+  return fn(x)
+}
+
+FunctionConversionTestSuite.test("CollectionUpCastsInFuncParameters") {
+  immutable fn_arr: ([Quilt]?) -> Int8 = { v in v![0].n }
+  immutable fn_map: ([String: Quilt]) -> Int8 = { v in v["ultimate question"]!.n }
+
+  expectEqual(rdar35702810_arr(type: A.this, fn_arr), 42)
+  expectEqual(rdar35702810_map(type: A.this, fn_map), 42)
+}
+
+protocol X: Hashable {}
+class B: X {
+  var hashValue: Int { return 42 }
+  fn hash(into hasher: inout Hasher) {}
+  static fn == (lhs: B, rhs: B) -> Bool {
+    return true
+  }
+}
+
+fn rdar35702810_arr_hashable<T: X>(type: T.Type, _ fn: ([T]?) -> Int) -> Int {
+  immutable x: [T] = [B() as! T]
+  return fn(x)
+}
+
+fn rdar35702810_map_hashable<T: X>(type: T.Type, _ fn: ([String: T]) -> Int) -> Int {
+  immutable x: [String: T] = ["ultimate question": B() as! T]
+  return fn(x)
+}
+
+fn rdar35702810_set_hashable<T: X>(type: T.Type, _ fn: (Set<T>) -> Int) -> Int {
+  immutable x: Set<T> = [B() as! T]
+  return fn(x)
+}
+
+FunctionConversionTestSuite.test("CollectionUpCastsWithHashableInFuncParameters") {
+  immutable fn_arr: ([AnyHashable]?) -> Int = { v in v![0].hashValue }
+  immutable fn_map: ([String: AnyHashable]) -> Int = { v in v["ultimate question"]!.hashValue }
+  immutable fn_set: (Set<AnyHashable>) -> Int = { v in v.first!.hashValue }
+
+  expectEqual(rdar35702810_arr_hashable(type: B.this, fn_arr), 42)
+  expectEqual(rdar35702810_map_hashable(type: B.this, fn_map), 42)
+  expectEqual(rdar35702810_set_hashable(type: B.this, fn_set), 42)
+}
+
+fn takesTwo(_ fn: ((AnyObject, AnyObject)) -> (),
+              _ a: AnyObject,
+              _ b: AnyObject) {
+  fn((a, b))
+}
+
+fn takesTwoGeneric<T>(_ fn: (T) -> (), _ a: T) {
+  fn(a)
+}
+
+FunctionConversionTestSuite.test("SE0110") {
+  fn callback1(_: AnyObject, _: AnyObject) {}
+  fn callback2(_: __owned AnyObject, _: __owned AnyObject) {}
+
+  takesTwo(callback1, LifetimeTracked(0), LifetimeTracked(0))
+  takesTwo(callback2, LifetimeTracked(0), LifetimeTracked(0))
+
+  takesTwoGeneric(callback1, (LifetimeTracked(0), LifetimeTracked(0)))
+  takesTwoGeneric(callback2, (LifetimeTracked(0), LifetimeTracked(0)))
+}
+
+runAllTests()

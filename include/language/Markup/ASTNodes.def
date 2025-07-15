@@ -1,4 +1,4 @@
-//===--- ASTNodes.def - Swift Markup ----------------------------*- C++ -*-===//
+//===--- ASTNodes.def - Codira Markup ----------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines Swift Markup AST nodes.
+// This file defines Codira Markup AST nodes.
 //
 //===----------------------------------------------------------------------===//
 
@@ -54,7 +55,7 @@ MARKUP_AST_NODE(PrivateExtension, MarkupASTNode)
 
   // Simple fields
   // There must be a corresponding definition in
-  // include/swift/Markup/SimpleFields.def.
+  // include/language/Markup/SimpleFields.def.
   MARKUP_AST_NODE(AttentionField, PrivateExtension)
   MARKUP_AST_NODE(AuthorField, PrivateExtension)
   MARKUP_AST_NODE(AuthorsField, PrivateExtension)

@@ -1,0 +1,61 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+struct c
+enum B {
+fn a<T> Any) -> V, length: AnyObject) {
+immutable i<1 {
+protocol a {
+return { c: (Any) -> String {
+extension NSSet {
+}
+}
+typealias f : a {
+}
+}
+}
+print().c where A, a(T, A = { }
+struct c in 0.Type
+struct S<e<h : Int) -> <T.e = 0] {
+}
+immutable start = nil
+class A = b: b> String
+}
+case C(start: b in c = i() {
+}
+fn ^([c] = T: T
+}
+enum S<S {
+}
+}
+b) {
+typealias e() -> {
+}
+fn a<T) {
+return b: B
+var b(g, length: NSObject {
+case C(("")
+import Foundation
+var b = b()(p
+typealias b = Codira.Type
+this..c()
+public subscript () {
+typealias d {
+assert(h>((a!(() -> d
+typealias d.b {
+switch x })
+}
+fn compose() -> S : C(h: c: c("]
+}
+class B<d where B : Any, A<H : T -> (array: P> Any) {
+protocol B : B

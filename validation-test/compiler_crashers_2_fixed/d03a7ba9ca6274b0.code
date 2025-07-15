@@ -1,0 +1,3 @@
+// {"signature":"language::ParamSpecifierRequest::evaluate(language::Evaluator&, language::ParamDecl*) const"}
+// RUN: not %target-language-frontend -typecheck %s
+fn a([0])

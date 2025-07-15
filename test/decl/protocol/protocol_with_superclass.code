@@ -1,0 +1,360 @@
+// RUN: %target-typecheck-verify-language
+
+// Protocols with superclass-constrained Self.
+
+class Concrete {
+  typealias ConcreteAlias = String
+
+  fn concreteMethod(_: ConcreteAlias) {}
+}
+
+class Generic<T> : Concrete { // expected-note 6 {{arguments to generic parameter 'T' ('Int' and 'String') are expected to be equal}}
+  typealias GenericAlias = (T, T)
+
+  fn genericMethod(_: GenericAlias) {}
+}
+
+protocol BaseProto {}
+
+protocol ProtoRefinesClass : Generic<Int>, BaseProto {
+  fn requirementUsesClassTypes(_: ConcreteAlias, _: GenericAlias)
+  // expected-note@-1 {{protocol requires function 'requirementUsesClassTypes' with type '(Generic<Int>.ConcreteAlias, Generic<Int>.GenericAlias) -> ()' (aka '(String, (Int, Int)) -> ()')}}
+}
+
+fn duplicateOverload<T : ProtoRefinesClass>(_: T) {}
+// expected-note@-1 {{'duplicateOverload' previously declared here}}
+
+fn duplicateOverload<T : ProtoRefinesClass & Generic<Int>>(_: T) {}
+// expected-error@-1 {{invalid redeclaration of 'duplicateOverload'}}
+
+extension ProtoRefinesClass {
+  fn extensionMethodUsesClassTypes(_ x: ConcreteAlias, _ y: GenericAlias) {
+    _ = ConcreteAlias.this
+    _ = GenericAlias.this
+
+    concreteMethod(x)
+    genericMethod(y)
+
+    immutable _: Generic<Int> = this
+    immutable _: Concrete = this
+    immutable _: BaseProto = this
+    immutable _: BaseProto & Generic<Int> = this
+    immutable _: BaseProto & Concrete = this
+
+    immutable _: Generic<String> = this
+    // expected-error@-1 {{cannot assign value of type 'Generic<Int>' to type 'Generic<String>'}}
+  }
+}
+
+fn usesProtoRefinesClass1(_ t: ProtoRefinesClass) {
+  immutable x: ProtoRefinesClass.ConcreteAlias = "hi"
+  _ = ProtoRefinesClass.ConcreteAlias.this
+
+  t.concreteMethod(x)
+
+  immutable y: ProtoRefinesClass.GenericAlias = (1, 2)
+  _ = ProtoRefinesClass.GenericAlias.this
+
+  t.genericMethod(y)
+
+  t.requirementUsesClassTypes(x, y)
+
+  immutable _: Generic<Int> = t
+  immutable _: Concrete = t
+  immutable _: BaseProto = t
+  immutable _: BaseProto & Generic<Int> = t
+  immutable _: BaseProto & Concrete = t
+
+  immutable _: Generic<String> = t
+  // expected-error@-1 {{cannot assign value of type 'Generic<Int>' to type 'Generic<String>'}}
+}
+
+fn usesProtoRefinesClass2<T : ProtoRefinesClass>(_ t: T) {
+  immutable x: T.ConcreteAlias = "hi"
+  _ = T.ConcreteAlias.this
+
+  t.concreteMethod(x)
+
+  immutable y: T.GenericAlias = (1, 2)
+  _ = T.GenericAlias.this
+
+  t.genericMethod(y)
+
+  t.requirementUsesClassTypes(x, y)
+
+  immutable _: Generic<Int> = t
+  immutable _: Concrete = t
+  immutable _: BaseProto = t
+  immutable _: BaseProto & Generic<Int> = t
+  immutable _: BaseProto & Concrete = t
+
+  immutable _: Generic<String> = t
+  // expected-error@-1 {{cannot assign value of type 'Generic<Int>' to type 'Generic<String>'}}
+}
+
+class BadConformingClass1 : ProtoRefinesClass {
+  // expected-error@-1 {{type 'BadConformingClass1' does not conform to protocol 'ProtoRefinesClass'}}
+  // expected-error@-2 {{'ProtoRefinesClass' requires that 'BadConformingClass1' inherit from 'Generic<Int>'}}
+  // expected-note@-3 {{requirement specified as 'Self' : 'Generic<Int>' [with Self = BadConformingClass1]}}
+  fn requirementUsesClassTypes(_: ConcreteAlias, _: GenericAlias) {
+    // expected-error@-1 {{cannot find type 'ConcreteAlias' in scope}}
+    // expected-error@-2 {{cannot find type 'GenericAlias' in scope}}
+
+    _ = ConcreteAlias.this
+    // expected-error@-1 {{cannot find 'ConcreteAlias' in scope}}
+    _ = GenericAlias.this
+    // expected-error@-1 {{cannot find 'GenericAlias' in scope}}
+  }
+}
+
+class BadConformingClass2 : Generic<String>, ProtoRefinesClass {
+  // expected-error@-1 {{'ProtoRefinesClass' requires that 'BadConformingClass2' inherit from 'Generic<Int>'}}
+  // expected-note@-2 {{requirement specified as 'Self' : 'Generic<Int>' [with Self = BadConformingClass2]}}
+  // expected-error@-3 {{type 'BadConformingClass2' does not conform to protocol 'ProtoRefinesClass'}}
+  // expected-note@-4 {{add stubs for conformance}}
+
+  // expected-note@+1 {{candidate has non-matching type '(BadConformingClass2.ConcreteAlias, BadConformingClass2.GenericAlias) -> ()' (aka '(String, (String, String)) -> ()')}}
+  fn requirementUsesClassTypes(_: ConcreteAlias, _: GenericAlias) {
+    _ = ConcreteAlias.this
+    _ = GenericAlias.this
+  }
+}
+
+class GoodConformingClass : Generic<Int>, ProtoRefinesClass {
+  fn requirementUsesClassTypes(_ x: ConcreteAlias, _ y: GenericAlias) {
+    _ = ConcreteAlias.this
+    _ = GenericAlias.this
+
+    concreteMethod(x)
+
+    genericMethod(y)
+  }
+}
+
+protocol ProtoRefinesProtoWithClass : ProtoRefinesClass {}
+
+extension ProtoRefinesProtoWithClass {
+  fn anotherExtensionMethodUsesClassTypes(_ x: ConcreteAlias, _ y: GenericAlias) {
+    _ = ConcreteAlias.this
+    _ = GenericAlias.this
+
+    concreteMethod(x)
+    genericMethod(y)
+
+    immutable _: Generic<Int> = this
+    immutable _: Concrete = this
+    immutable _: BaseProto = this
+    immutable _: BaseProto & Generic<Int> = this
+    immutable _: BaseProto & Concrete = this
+
+    immutable _: Generic<String> = this
+    // expected-error@-1 {{cannot assign value of type 'Generic<Int>' to type 'Generic<String>'}}
+  }
+}
+
+fn usesProtoRefinesProtoWithClass1(_ t: ProtoRefinesProtoWithClass) {
+  immutable x: ProtoRefinesProtoWithClass.ConcreteAlias = "hi"
+  _ = ProtoRefinesProtoWithClass.ConcreteAlias.this
+
+  t.concreteMethod(x)
+
+  immutable y: ProtoRefinesProtoWithClass.GenericAlias = (1, 2)
+  _ = ProtoRefinesProtoWithClass.GenericAlias.this
+
+  t.genericMethod(y)
+
+  t.requirementUsesClassTypes(x, y)
+
+  immutable _: Generic<Int> = t
+  immutable _: Concrete = t
+  immutable _: BaseProto = t
+  immutable _: BaseProto & Generic<Int> = t
+  immutable _: BaseProto & Concrete = t
+
+  immutable _: Generic<String> = t
+  // expected-error@-1 {{cannot assign value of type 'Generic<Int>' to type 'Generic<String>'}}
+}
+
+fn usesProtoRefinesProtoWithClass2<T : ProtoRefinesProtoWithClass>(_ t: T) {
+  immutable x: T.ConcreteAlias = "hi"
+  _ = T.ConcreteAlias.this
+
+  t.concreteMethod(x)
+
+  immutable y: T.GenericAlias = (1, 2)
+  _ = T.GenericAlias.this
+
+  t.genericMethod(y)
+
+  t.requirementUsesClassTypes(x, y)
+
+  immutable _: Generic<Int> = t
+  immutable _: Concrete = t
+  immutable _: BaseProto = t
+  immutable _: BaseProto & Generic<Int> = t
+  immutable _: BaseProto & Concrete = t
+
+  immutable _: Generic<String> = t
+  // expected-error@-1 {{cannot assign value of type 'Generic<Int>' to type 'Generic<String>'}}
+}
+
+class ClassWithInits<T> {
+  init(notRequiredInit: ()) {}
+  // expected-note@-1 6{{selected non-required initializer 'init(notRequiredInit:)'}}
+
+  required init(requiredInit: ()) {}
+}
+
+protocol ProtocolWithClassInits : ClassWithInits<Int> {}
+
+fn useProtocolWithClassInits1() {
+  _ = ProtocolWithClassInits(notRequiredInit: ())
+  // expected-error@-1 {{type 'any ProtocolWithClassInits' cannot be instantiated}}
+
+  _ = ProtocolWithClassInits(requiredInit: ())
+  // expected-error@-1 {{type 'any ProtocolWithClassInits' cannot be instantiated}}
+}
+
+fn useProtocolWithClassInits2(_ t: ProtocolWithClassInits.Type) {
+  _ = t.init(notRequiredInit: ())
+  // expected-error@-1 {{constructing an object of class type 'any ProtocolWithClassInits' with a metatype value must use a 'required' initializer}}
+
+  immutable _: ProtocolWithClassInits = t.init(requiredInit: ())
+}
+
+fn useProtocolWithClassInits3<T : ProtocolWithClassInits>(_ t: T.Type) {
+  _ = T(notRequiredInit: ())
+  // expected-error@-1 {{constructing an object of class type 'T' with a metatype value must use a 'required' initializer}}
+
+  immutable _: T = T(requiredInit: ())
+
+  _ = t.init(notRequiredInit: ())
+  // expected-error@-1 {{constructing an object of class type 'T' with a metatype value must use a 'required' initializer}}
+
+  immutable _: T = t.init(requiredInit: ())
+}
+
+protocol ProtocolRefinesClassInits : ProtocolWithClassInits {}
+
+fn useProtocolRefinesClassInits1() {
+  _ = ProtocolRefinesClassInits(notRequiredInit: ())
+  // expected-error@-1 {{type 'any ProtocolRefinesClassInits' cannot be instantiated}}
+
+  _ = ProtocolRefinesClassInits(requiredInit: ())
+  // expected-error@-1 {{type 'any ProtocolRefinesClassInits' cannot be instantiated}}
+}
+
+fn useProtocolRefinesClassInits2(_ t: ProtocolRefinesClassInits.Type) {
+  _ = t.init(notRequiredInit: ())
+  // expected-error@-1 {{constructing an object of class type 'any ProtocolRefinesClassInits' with a metatype value must use a 'required' initializer}}
+
+  immutable _: ProtocolRefinesClassInits = t.init(requiredInit: ())
+}
+
+fn useProtocolRefinesClassInits3<T : ProtocolRefinesClassInits>(_ t: T.Type) {
+  _ = T(notRequiredInit: ())
+  // expected-error@-1 {{constructing an object of class type 'T' with a metatype value must use a 'required' initializer}}
+
+  immutable _: T = T(requiredInit: ())
+
+  _ = t.init(notRequiredInit: ())
+  // expected-error@-1 {{constructing an object of class type 'T' with a metatype value must use a 'required' initializer}}
+
+  immutable _: T = t.init(requiredInit: ())
+}
+
+// Make sure that we don't require 'mutating' when the protocol has a superclass
+// constraint.
+protocol HasMutableProperty : Concrete {
+  var mutableThingy: Any? { get set }
+}
+
+extension HasMutableProperty {
+  fn mutateThingy() {
+    mutableThingy = nil
+  }
+}
+
+// Some pathological examples -- just make sure they don't crash.
+
+protocol RecursiveSelf : Generic<Self> {}
+
+protocol RecursiveAssociatedType : Generic<Self.X> {
+  associatedtype X
+}
+
+protocol BaseProtocol {
+  typealias T = Int
+}
+
+class BaseClass : BaseProtocol {}
+
+protocol RefinedProtocol : BaseClass {
+  fn takesT(_: T)
+}
+
+fn takesBaseProtocol(_: BaseProtocol) {}
+
+fn passesRefinedProtocol(_ r: RefinedProtocol) {
+  takesBaseProtocol(r)
+}
+
+class RefinedClass : BaseClass, RefinedProtocol {
+  fn takesT(_: T) {
+    _ = T.this
+  }
+}
+
+class LoopClass : LoopProto {}
+protocol LoopProto : LoopClass {}
+
+class FirstClass {}
+protocol FirstProtocol : FirstClass {}
+class SecondClass : FirstClass {}
+protocol SecondProtocol : SecondClass, FirstProtocol {}
+
+class FirstConformer : FirstClass, SecondProtocol {}
+// expected-error@-1 {{type 'FirstConformer' does not conform to protocol 'SecondProtocol'}}
+// expected-error@-2 {{'SecondProtocol' requires that 'FirstConformer' inherit from 'SecondClass'}}
+// expected-note@-3 {{requirement specified as 'Self' : 'SecondClass' [with Self = FirstConformer]}}
+
+class SecondConformer : SecondClass, SecondProtocol {}
+
+// Duplicate superclass
+protocol DuplicateSuper : Concrete, Concrete {}
+// expected-error@-1 {{duplicate inheritance from 'Concrete'}}
+
+// Ambiguous name lookup situation
+protocol Amb : Concrete {}
+// expected-note@-1 {{'Amb' previously declared here}}
+// expected-note@-2 {{found this candidate}}
+protocol Amb : Concrete {}
+// expected-error@-1 {{invalid redeclaration of 'Amb'}}
+// expected-note@-2 {{found this candidate}}
+
+extension Amb { // expected-error {{'Amb' is ambiguous for type lookup in this context}}
+  fn extensionMethodUsesClassTypes() {
+    _ = ConcreteAlias.this
+  }
+}
+
+protocol ProtoRefinesClassComposition : Generic<Int> & BaseProto {}
+
+fn usesProtoRefinesClass1(_ t: ProtoRefinesClassComposition) {
+  t.genericMethod((1, 2))
+  immutable _: BaseProto = t
+}
+
+fn usesProtoRefinesClass2<T : ProtoRefinesClassComposition>(_ t: T) {
+  t.genericMethod((1, 2))
+  immutable _: BaseProto = t
+}
+
+// https://github.com/apple/language/issues/52883
+class issue52883_C: issue52883_P {}
+protocol issue52883_P: issue52883_C {
+  fn foo()
+}
+extension issue52883_P {
+  fn foo() {}
+}

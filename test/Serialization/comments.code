@@ -1,0 +1,120 @@
+// Test the case when we have a single file in a module.
+//
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -module-name comments -package-name comments -emit-module -emit-module-path %t/comments.codemodule -emit-module-doc -emit-module-doc-path %t/comments.codedoc -emit-module-source-info-path %t/comments.codesourceinfo %s
+// RUN: toolchain-bcanalyzer %t/comments.codemodule | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: toolchain-bcanalyzer %t/comments.codedoc | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: toolchain-bcanalyzer %t/comments.codesourceinfo | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=comments -enable-languagesourceinfo -source-filename %s -I %t | %FileCheck %s -check-prefix=FIRST
+
+// Test the case when we have a multiple files in a module.
+//
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -module-name comments -package-name comments -emit-module -emit-module-path %t/first.codemodule -emit-module-doc -emit-module-doc-path %t/first.codedoc -primary-file %s %S/Inputs/def_comments.code -emit-module-source-info-path %t/first.codesourceinfo
+// RUN: %target-language-frontend -module-name comments -package-name comments -emit-module -emit-module-path %t/second.codemodule -emit-module-doc -emit-module-doc-path %t/second.codedoc %s -primary-file %S/Inputs/def_comments.code -emit-module-source-info-path %t/second.codesourceinfo
+// RUN: %target-language-frontend -module-name comments -package-name comments -emit-module -emit-module-path %t/comments.codemodule -emit-module-doc -emit-module-doc-path %t/comments.codedoc %t/first.codemodule %t/second.codemodule -emit-module-source-info-path %t/comments.codesourceinfo
+// RUN: toolchain-bcanalyzer %t/comments.codemodule | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: toolchain-bcanalyzer %t/comments.codedoc | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: toolchain-bcanalyzer %t/comments.codesourceinfo | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=comments -enable-languagesourceinfo -source-filename %s -I %t > %t.printed.txt
+// RUN: %FileCheck %s -check-prefix=FIRST < %t.printed.txt
+// RUN: %FileCheck %s -check-prefix=SECOND < %t.printed.txt
+
+// BCANALYZER-NOT: UnknownCode
+
+/// first_decl_generic_class_1 Aaa.
+public class first_decl_generic_class_1<T> {
+  /// deinit of first_decl_generic_class_1 Aaa.
+  deinit {
+  }
+}
+
+/// first_decl_class_1 Aaa.
+public class first_decl_class_1 {
+
+  /// decl_func_1 Aaa.
+  public fn decl_func_1() {}
+
+  /**
+   * decl_func_3 Aaa.
+   */
+  public fn decl_func_2() {}
+
+  /// decl_func_3 Aaa.
+  /** Bbb. */
+  public fn decl_func_3() {}
+}
+
+/// Comment for bar1
+extension first_decl_class_1 {
+  fn bar1(){}
+}
+
+/// Comment for bar2
+extension first_decl_class_1 {
+  fn bar2(){}
+}
+
+public protocol P1 { }
+
+/// Comment for no member extension
+extension first_decl_class_1 : P1 {}
+
+/// Comment on package function
+package fn first_package_function() {}
+
+/// Comment on SPI function
+@_spi(DocSPI) public fn first_spi_function() {}
+
+// FIRST: comments.code:26:14: Class/first_decl_generic_class_1 RawComment=[/// first_decl_generic_class_1 Aaa.\n]
+// FIRST: comments.code:28:3: Destructor/first_decl_generic_class_1.deinit RawComment=[/// deinit of first_decl_generic_class_1 Aaa.\n]
+// FIRST: comments.code:33:14: Class/first_decl_class_1 RawComment=[/// first_decl_class_1 Aaa.\n]
+// FIRST: comments.code:36:15: Func/first_decl_class_1.decl_func_1 RawComment=[/// decl_func_1 Aaa.\n]
+// FIRST: comments.code:41:15: Func/first_decl_class_1.decl_func_2 RawComment=[/**\n   * decl_func_3 Aaa.\n   */]
+// FIRST: comments.code:45:15: Func/first_decl_class_1.decl_func_3 RawComment=[/// decl_func_3 Aaa.\n/** Bbb. */]
+// FIRST: comments.code:64:14: Func/first_package_function RawComment=[/// Comment on package function\n]
+// FIRST: comments.code:67:27: Func/first_spi_function RawComment=[/// Comment on SPI function\n]
+
+// SECOND: comments.code:49:1: Extension/ RawComment=[/// Comment for bar1\n] BriefComment=[Comment for bar1]
+// SECOND: comments.code:54:1: Extension/ RawComment=[/// Comment for bar2\n] BriefComment=[Comment for bar2]
+// SECOND: comments.code:61:1: Extension/ RawComment=[/// Comment for no member extension\n] BriefComment=[Comment for no member extension]
+// SECOND: comments.code:64:14: Func/first_package_function RawComment=[/// Comment on package function\n]
+// SECOND: comments.code:67:27: Func/first_spi_function RawComment=[/// Comment on SPI function\n]
+// SECOND: Inputs/def_comments.code:2:14: Class/second_decl_class_1 RawComment=[/// second_decl_class_1 Aaa.\n]
+// SECOND: Inputs/def_comments.code:5:15: Struct/second_decl_struct_1
+// SECOND: Inputs/def_comments.code:7:9: Accessor/second_decl_struct_1.<getter for second_decl_struct_1.instanceVar>
+// SECOND: Inputs/def_comments.code:8:9: Accessor/second_decl_struct_1.<setter for second_decl_struct_1.instanceVar>
+// SECOND: Inputs/def_comments.code:10:17: Enum/second_decl_struct_1.NestedEnum
+// SECOND: Inputs/def_comments.code:11:22: TypeAlias/second_decl_struct_1.NestedTypealias
+// SECOND: Inputs/def_comments.code:14:13: Enum/second_decl_enum_1
+// SECOND: Inputs/def_comments.code:15:10: EnumElement/second_decl_enum_1.Case1
+// SECOND: Inputs/def_comments.code:16:10: EnumElement/second_decl_enum_1.Case2
+// SECOND: Inputs/def_comments.code:20:12: Constructor/second_decl_class_2.init
+// SECOND: Inputs/def_comments.code:23:17: Protocol/second_decl_protocol_1
+// SECOND: Inputs/def_comments.code:24:20: AssociatedType/second_decl_protocol_1.NestedTypealias
+// SECOND: Inputs/def_comments.code:25:5: Subscript/second_decl_protocol_1.subscript
+// SECOND: Inputs/def_comments.code:25:35: Accessor/second_decl_protocol_1.<getter for second_decl_protocol_1.subscript>
+// SECOND: Inputs/def_comments.code:25:39: Accessor/second_decl_protocol_1.<setter for second_decl_protocol_1.subscript>
+// SECOND: Inputs/def_comments.code:28:13: Var/decl_var_2 RawComment=none BriefComment=none DocCommentAsXML=none
+// SECOND: Inputs/def_comments.code:28:25: Var/decl_var_3 RawComment=none BriefComment=none DocCommentAsXML=none
+// SECOND: Inputs/def_comments.code:28:25: Var/decl_var_3 RawComment=none BriefComment=none DocCommentAsXML=none
+// SECOND: Inputs/def_comments.code:31:14: Func/second_package_function RawComment=[/// Comment on package function\n]
+// SECOND: Inputs/def_comments.code:34:27: Func/second_spi_function RawComment=[/// Comment on SPI function\n]
+// SECOND: NonExistingSource.code:100000:13: Func/functionAfterPoundSourceLoc
+
+// Package and SPI functions won't show up in the (public) languageinterface
+// INTERFACE: comments.code:26:14: Class/first_decl_generic_class_1 RawComment=[/// first_decl_generic_class_1 Aaa.\n]
+// INTERFACE: comments.code:28:3: Destructor/first_decl_generic_class_1.deinit RawComment=[/// deinit of first_decl_generic_class_1 Aaa.\n]
+// INTERFACE: comments.code:33:14: Class/first_decl_class_1 RawComment=[/// first_decl_class_1 Aaa.\n]
+// INTERFACE: comments.code:36:15: Func/first_decl_class_1.decl_func_1 RawComment=[/// decl_func_1 Aaa.\n]
+// INTERFACE: comments.code:41:15: Func/first_decl_class_1.decl_func_2 RawComment=[/**\n   * decl_func_3 Aaa.\n   */]
+// INTERFACE: comments.code:45:15: Func/first_decl_class_1.decl_func_3 RawComment=[/// decl_func_3 Aaa.\n/** Bbb. */]
+
+// Test the case when we have to import via a .codeinterface file.
+//
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/Hidden)
+// RUN: %target-language-frontend -module-name comments -package-name comments -emit-module -emit-module-path %t/Hidden/comments.codemodule -emit-module-interface-path %t/comments.codeinterface -emit-module-doc -emit-module-doc-path %t/comments.codedoc -emit-module-source-info-path %t/comments.codesourceinfo %s -enable-library-evolution -language-version 5
+// RUN: toolchain-bcanalyzer %t/comments.codedoc | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: toolchain-bcanalyzer %t/comments.codesourceinfo | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-language-ide-test -print-module-comments -module-to-print=comments -enable-languagesourceinfo -source-filename %s -I %t -language-version 5 | %FileCheck %s -check-prefix=INTERFACE

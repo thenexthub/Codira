@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "RefactoringActions.h"
@@ -18,7 +19,7 @@
 
 using namespace language::refactoring;
 
-static std::unique_ptr<llvm::SetVector<Expr *>>
+static std::unique_ptr<toolchain::SetVector<Expr *>>
 findConcatenatedExpressions(const ResolvedRangeInfo &Info, ASTContext &Ctx) {
   Expr *E = nullptr;
 
@@ -36,8 +37,8 @@ findConcatenatedExpressions(const ResolvedRangeInfo &Info, ASTContext &Ctx) {
   assert(E);
 
   struct StringInterpolationExprFinder : public SourceEntityWalker {
-    std::unique_ptr<llvm::SetVector<Expr *>> Bucket =
-        std::make_unique<llvm::SetVector<Expr *>>();
+    std::unique_ptr<toolchain::SetVector<Expr *>> Bucket =
+        std::make_unique<toolchain::SetVector<Expr *>>();
     ASTContext &Ctx;
 
     bool IsValidInterpolation = true;
@@ -102,7 +103,7 @@ findConcatenatedExpressions(const ResolvedRangeInfo &Info, ASTContext &Ctx) {
 }
 
 static void interpolatedExpressionForm(Expr *E, SourceManager &SM,
-                                       llvm::raw_ostream &OS) {
+                                       toolchain::raw_ostream &OS) {
   if (auto *Literal = dyn_cast<StringLiteralExpr>(E)) {
     OS << Literal->getValue();
     return;

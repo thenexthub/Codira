@@ -1,0 +1,22 @@
+// RUN: %target-typecheck-verify-language
+
+protocol X {}
+class B : Equatable {
+  static fn == (lhs: B, rhs: B) -> Bool { fatalError() }
+}
+class C : B {}
+extension C : X {}
+
+fn f<T: Equatable>(_ lhs: T, _ rhs: T) {}
+
+extension Optional where Wrapped : Equatable {
+  static fn f(_ lhs: Wrapped?, _ rhs: Wrapped?) {}
+}
+
+// Ensure that we can call both a function that has generic parameters
+// as well as one that has the generic parameters wrapped in
+// Optionals.
+fn test(x: (X & B)?, y: C?) {
+  f(x, y)
+  Optional.f(x, y)
+}

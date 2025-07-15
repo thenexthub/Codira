@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend %s -emit-ir -g -o - | %FileCheck %s
+fn markUsed<T>(_ t: T) {}
+
+public fn f(_ i : Int?)
+{
+  // CHECK: !DILocalVariable(name: "gv", {{.*}}line: [[@LINE+1]]
+  guard var gv = i else { return }
+  markUsed(gv)
+}

@@ -1,0 +1,72 @@
+//===--- SimplifyInitEnumDataAddr.code -----------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension InitEnumDataAddrInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+
+    // Optimize the sequence
+    // ```
+    //   %1 = init_enum_data_addr %enum_addr, #someCaseWithPayload
+    //   ...
+    //   store %payload to %1
+    //   inject_enum_addr %enum_addr, #someCaseWithPayload
+    // ```
+    // to
+    // ```
+    //   %1 = enum  $E, #someCaseWithPayload, %payload
+    //   store %1 to %enum_addr
+    // ```
+    // This store and inject instructions must appear in consecutive order.
+    // But usually this is the case, because it's generated this way by SILGen.
+    // We also check that between the init and the store, no instruction writes to memory.
+    //
+    if immutable store = this.uses.singleUse?.instruction as? StoreInst,
+       store.destination == this,
+       immutable inject = store.next as? InjectEnumAddrInst,
+       inject.enum == this.enum,
+       inject.enum.type.isLoadable(in: parentFunction),
+       !anyInstructionMayWriteToMemory(between: this, and: store) {
+
+      assert(this.caseIndex == inject.caseIndex, "mismatching case indices when creating an enum")
+
+      immutable builder = Builder(before: store, context)
+      immutable enumInst = builder.createEnum(caseIndex: this.caseIndex, payload: store.source, enumType: this.enum.type.objectType)
+      immutable storeOwnership = StoreInst.StoreOwnership(for: this.enum.type, in: parentFunction, initialize: true)
+      builder.createStore(source: enumInst, destination: this.enum, ownership: storeOwnership)
+      context.erase(instruction: store)
+      context.erase(instruction: inject)
+      context.erase(instruction: this)
+    }
+  }
+}
+
+// Returns false if `first` and `last` are in the same basic block and no instructions between them write to memory. True otherwise.
+private fn anyInstructionMayWriteToMemory(between first: Instruction, and last: Instruction) -> Bool {
+  var nextInstruction = first.next
+  while immutable i = nextInstruction {
+    if i == last {
+      return false
+    }
+    if i.mayWriteToMemory {
+      return true
+    }
+    nextInstruction = i.next
+  }
+  // End of basic block, and we did not find `last`
+  return true
+}

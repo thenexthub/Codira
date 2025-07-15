@@ -1,7 +1,7 @@
-# Swift Compiler Performance
+# Codira Compiler Performance
 
 This document is a guide to understanding, diagnosing and reporting
-compilation-performance problems in the swift compiler. That is: the speed
+compilation-performance problems in the language compiler. That is: the speed
 at which the compiler compiles code, not the speed at which that code runs.
 
 While this guide is lengthy, it should all be relatively
@@ -12,7 +12,7 @@ gradually eliminating noise and focusing on a signal.
 ## Table of Contents
 <!-- TOC -->
 
-- [Swift Compiler Performance](#swift-compiler-performance)
+- [Codira Compiler Performance](#language-compiler-performance)
     - [Table of Contents](#table-of-contents)
     - [Outline of processes and factors affecting compilation performance](#outline-of-processes-and-factors-affecting-compilation-performance)
         - [Compilation modes](#compilation-modes)
@@ -50,33 +50,33 @@ This section is intended to provide a high-level orientation around what the
 compiler is doing when it's run -- beyond the obvious "compiling" -- and what
 major factors influence how much time it spends.
 
-When you compile or run a Swift program, either with Xcode or on the command
-line, you typically invoke `swift` or `swiftc` (the latter is a symbolic link to
+When you compile or run a Codira program, either with Xcode or on the command
+line, you typically invoke `language` or `languagec` (the latter is a symbolic link to
 the former), which is a program that can behave in very different ways depending
 on its arguments.
 
 It may compile or execute code directly, but it will usually instead turn around
-and run one or more copies of `swift` or `swiftc` as subprocesses. In typical
-batch compilation, the first copy of `swiftc` runs as a so-called **driver**
+and run one or more copies of `language` or `languagec` as subprocesses. In typical
+batch compilation, the first copy of `languagec` runs as a so-called **driver**
 process, and it then executes a number of so-called **frontend** subprocesses,
-in a process tree. It's essential, when interpreting Swift compilation, to have
+in a process tree. It's essential, when interpreting Codira compilation, to have
 a clear picture of which processes are run and what they're doing:
 
-  - **Driver**: the top-level `swiftc` process in a tree of
+  - **Driver**: the top-level `languagec` process in a tree of
     subprocesses. Responsible for deciding which files need compiling or
     recompiling and running child processes &mdash; so-called **jobs** &mdash;
     to perform compilation and linking steps. For most of its execution, it is
     idle, waiting for subprocesses to complete.
 
-  - **Frontend Jobs**: subprocesses launched by the driver, running `swift
+  - **Frontend Jobs**: subprocesses launched by the driver, running `language
     -frontend ...` and performing compilation, generating PCH files, merging
     modules, etc. These are the jobs that incur the bulk of the costs of
     compiling.
 
-  - **Other Jobs**: subprocesses launched by the driver, running `ld`, `swift
-    -modulewrap`, `swift-autolink-extract`, `dsymutil`, `dwarfdump` and similar
+  - **Other Jobs**: subprocesses launched by the driver, running `ld`, `language
+    -modulewrap`, `language-autolink-extract`, `dsymutil`, `dwarfdump` and similar
     tools involved in finishing off a batch of work done by the frontend
-    jobs. Some of these will be the `swift` program too, but they're not "doing
+    jobs. Some of these will be the `language` program too, but they're not "doing
     frontend jobs" and so will have completely different profiles.
 
 The set of jobs that are run, and the way they spend their time, is itself
@@ -95,7 +95,7 @@ terms of laziness strategies and approximations.
 There are many different options for controlling the driver and frontend jobs,
 but the two dimensions that cause the most significant variation in behaviour
 are often referred to as _modes_. These modes make the biggest difference, and
-it's important when looking at compilation to be clear on which mode `swiftc` is
+it's important when looking at compilation to be clear on which mode `languagec` is
 running in, and often to perform separate analysis for each mode. The
 significant modes are:
 
@@ -104,7 +104,7 @@ significant modes are:
 
     - **Batch** vs. **single-file** primary-file mode. This distinction refines
     the behaviour of primary-file mode, with the new batch mode added in the
-    Swift 4.2 release cycle. Batching eliminates much of the overhead of
+    Codira 4.2 release cycle. Batching eliminates much of the overhead of
     primary-file mode, and will eventually become the default way of running
     primary-file mode, but until that time it is explicitly enabled by passing
     the `-enable-batch-mode` flag.
@@ -151,18 +151,18 @@ getting perfectly clear:
 
 For example: if your module has 100 files in it:
 
-  - Running `swiftc *.swift` will compile in **single-file mode**, and will thus
+  - Running `languagec *.code` will compile in **single-file mode**, and will thus
     run 100 frontend subprocesses, each of which will parse all 100 inputs (for
     a total of 10,000 parses), and then each subprocess will (in parallel) 
     compile the definitions in its single primary file.
 
-  - Running `swiftc -enable-batch-mode *.swift` will compile in **batch** mode,
+  - Running `languagec -enable-batch-mode *.code` will compile in **batch** mode,
     and on a system with 4 CPUs will run 4 frontend subprocesses, each of which
     will parse all 100 inputs (for a total of 400 parses), and then each subprocess
     will (in parallel) compile the definitions of 25 primary files (one quarter
     of the module in each process).
 
-  - Running `swiftc -wmo *.swift` will compile in **whole-module** mode,
+  - Running `languagec -wmo *.code` will compile in **whole-module** mode,
     and will thus run _one_ frontend subprocess, which then reads all 100 files
     _once_ (for a total of 100 parses) and compiles the definitions in all of them,
     in order (serially).
@@ -204,32 +204,32 @@ is not a recommended configuration.
 
 This document isn't the right place to give a detailed overview of the compiler
 architecture, but it's important to keep in mind that the compiler deals with
-Swift code in memory in 3 major representations, and can therefore be
+Codira code in memory in 3 major representations, and can therefore be
 conceptually divided into 3 major stages, the latter 2 of which behave
 differently depending on optimization mode:
 
   - **ASTs** (Abstract Syntax Trees): this is the representation (defined in the
-    `lib/AST` directory) closest to what's in a source file, produced from Swift
-    source code, Swift modules and Clang modules (in `lib/Parse`,
+    `lib/AST` directory) closest to what's in a source file, produced from Codira
+    source code, Codira modules and Clang modules (in `lib/Parse`,
     `lib/Serialization` and `lib/ClangImporter` respectively) and interpreted by
     resolution, typechecking and high-level semantics functions (in `lib/Sema`)
     early-on in compilation.
 
-  - **SIL** (Swift Intermediate Language): this is a form that's private to the
-    Swift compiler, lower-level and more-explicit than the AST representation,
-    but still higher-level and more Swift-specific than a machine-oriented
+  - **SIL** (Codira Intermediate Language): this is a form that's private to the
+    Codira compiler, lower-level and more-explicit than the AST representation,
+    but still higher-level and more Codira-specific than a machine-oriented
     representation like LLVM. It's defined in `lib/SIL`, produced by code in
     `lib/SILGen` and _optionally optimized_ by code in `lib/SILOptimizer`.
 
   - **LLVM IR** (Low Level Virtual Machine Intermediate Representation): this is
     a form that's an abstract representation of the machine language being
-    compiled for; it doesn't contain any Swift-specific knowledge, rather it's a
-    form the Swift compiler _generates from SIL_ (in `lib/IRGen`) and then hands
-    off as input to the [LLVM backend](http://llvm.org), a library upon which
-    the Swift compiler depends. LLVM has its own _optional optimizations_ that
+    compiled for; it doesn't contain any Codira-specific knowledge, rather it's a
+    form the Codira compiler _generates from SIL_ (in `lib/IRGen`) and then hands
+    off as input to the [LLVM backend](http://toolchain.org), a library upon which
+    the Codira compiler depends. LLVM has its own _optional optimizations_ that
     apply to LLVM IR before it's lowered to machine code.
 
-When running the Swift compiler in optimizing mode, many SIL and LLVM
+When running the Codira compiler in optimizing mode, many SIL and LLVM
 optimizations are turned on, making those phases of compilation (in each
 frontend job) take significantly more time and memory. When running in
 non-optimizing mode, SIL and LLVM IR are still produced and consumed along the
@@ -276,28 +276,28 @@ more frontend jobs than it should.
 
 #### Lazy resolution
 
-Swift source files contain names that refer to definitions outside the enclosing
+Codira source files contain names that refer to definitions outside the enclosing
 file, and frequently outside of the enclosing module. These "external"
 definitions are resolved lazily from two very different locations (both called
 "modules"):
 
   - C/ObjC modules, provided by the Clang importer
-  - Serialized Swift modules
+  - Serialized Codira modules
 
-Despite their differences, both kinds of modules support laziness in the Swift
+Despite their differences, both kinds of modules support laziness in the Codira
 compiler in one crucial way: they are both kinds of _indexed_ binary file
 formats that permit loading _single definitions_ out of by name, without having
 to load the entire contents of the module.
 
-When the Swift compiler manages to be lazy and limit the number of definitions
+When the Codira compiler manages to be lazy and limit the number of definitions
 it tries to load from modules, it can be very fast; the file formats support
-very cheap access. But often the logic in the Swift compiler is unnecessarily
+very cheap access. But often the logic in the Codira compiler is unnecessarily
 conservative about exploiting this potential laziness, and so it loads more
 definitions than it should.
 
 ### Summing up: high level picture of compilation performance
 
-Swift compilation performance varies _significantly_ by at least the following
+Codira compilation performance varies _significantly_ by at least the following
 parameters:
 
   - WMO vs. primary-file (non-WMO) mode, including batching thereof
@@ -305,7 +305,7 @@ parameters:
   - Quantity of incremental work avoided (if in non-WMO)
   - Quantity of external definitions lazily loaded
 
-When approaching Swift compilation performance, it's important to be aware of
+When approaching Codira compilation performance, it's important to be aware of
 these parameters and keep them in mind, as they tend to frame the problem you're
 analyzing: changing one (or any of the factors influencing them, in a project)
 will likely completely change the resulting profile.
@@ -369,14 +369,14 @@ see
 more documentation.
 
 The main way we will use `Instruments.app` is in "Counter" mode, to record and
-analyze a single run of swiftc. We will also use it in simple push-button
+analyze a single run of languagec. We will also use it in simple push-button
 interactive mode, as a normal application. While it's possible to run
 Instruments in batch mode on the command-line, the batch interface is less
 reliable than running it as an interactive application, and frequently causes
 lockups or fails to collect data.
 
 Before starting, you should also be sure you are going to profile a version of
-Swift _without_ DWARF debuginfo; while in theory debuginfo will give a
+Codira _without_ DWARF debuginfo; while in theory debuginfo will give a
 higher-resolution, more-detailed profile, in practice Instruments will often
 stall out and become unresponsive trying to process the additional detail.
 
@@ -406,16 +406,16 @@ Once you're ready, follow these steps:
 ![Instruments Profile with terminal](InstrumentsProfile.png)
 
 In the main panel you can see a time-sorted set of process and call-frame
-samples, which you can filter to show only swift processes by typing `swift` in
+samples, which you can filter to show only language processes by typing `language` in
 the `Input Filter` box at the bottom of the window. Each line in the main panel
 can be expanded by clicking the triangle at its left, showing the callees as
 indented sub-frames.
 
-If you hover over the line corresponding to a specific `swift` process, you'll
+If you hover over the line corresponding to a specific `language` process, you'll
 see a small arrow enclosed in a grey circle to the right of the line. Click on
 it and instruments will shift focus of the main panel to just that process'
 subtree (and recalculate time-percentages accordingly). Once you're focused on a
-specific `swift` process, you can begin looking at its individual stack-frame
+specific `language` process, you can begin looking at its individual stack-frame
 profile.
 
 In the panel to the right of the main panel, you can see the heaviest stack
@@ -423,7 +423,7 @@ trace within the currently-selected line of the main panel. If you click on one
 of the frames in that stack, the main panel will automatically expand every
 level between the current frame and the frame you clicked on. For example,
 clicking 11 frames down the hottest stack, on the frame called
-`swift::ModuleFile::getModule`, will expand the main panel to show something
+`language::ModuleFile::getModule`, will expand the main panel to show something
 like this:
 
 ![Instruments Profile with terminal](InstrumentsExpandedProfile.png)
@@ -448,7 +448,7 @@ copied text, to keep the stack structure readable.
 If you have _two_ profiles and want to compare them, Instruments does have a
 mode for direct diffing between profiles, but it doesn't work when the profiles
 are gathered from different binaries, so for purposes of comparing different
-swift compilers, you'll typically have to do manual comparison of the profiles.
+language compilers, you'll typically have to do manual comparison of the profiles.
 
 ##### Perf
 
@@ -475,9 +475,9 @@ total execution cost, and is often enough to pick out a regression when
 bisecting (see below):
 
 ```
-$ perf stat swiftc t.swift
+$ perf stat languagec t.code
 
- Performance counter stats for 'swiftc t.swift':
+ Performance counter stats for 'languagec t.code':
 
        2140.543052      task-clock (msec)         #    0.966 CPUs utilized
                 17      context-switches          #    0.008 K/sec
@@ -512,7 +512,7 @@ you might need to play with the `--call-graph` and `-e` parameters to get a
 clear picture:
 
 ```
-$ perf record -e cycles -c 10000 --call-graph=lbr swiftc t.swift
+$ perf record -e cycles -c 10000 --call-graph=lbr languagec t.code
 [ perf record: Woken up 5 times to write data ]
 [ perf record: Captured and wrote 1.676 MB perf.data (9731 samples) ]
 ```
@@ -526,7 +526,7 @@ like the following textual user interface, which operates similarly to
 
 #### Diagnostic options
 
-The Swift compiler has a variety of built-in diagnostic options. Some are
+The Codira compiler has a variety of built-in diagnostic options. Some are
 interpreted by the driver, others are interpreted by the frontend jobs that the
 driver runs: these have to be passed on the driver command-line with
 `-Xfrontend` to get passed through to the frontends. In a multi-frontend,
@@ -554,7 +554,7 @@ compilers on hand while you're working.
       Total Execution Time: 0.0001 seconds (0.0490 wall clock)
 
        ---User Time---   --System Time--   --User+System--   ---Wall Time---  --- Name ---
-       0.0000 ( 82.0%)   0.0001 ( 59.5%)   0.0001 ( 69.0%)   0.0284 ( 58.0%)  {compile: t-177627.o <= t.swift}
+       0.0000 ( 82.0%)   0.0001 ( 59.5%)   0.0001 ( 69.0%)   0.0284 ( 58.0%)  {compile: t-177627.o <= t.code}
        0.0000 ( 18.0%)   0.0000 ( 40.5%)   0.0000 ( 31.0%)   0.0206 ( 42.0%)  {link: t <= t-177627.o}
        0.0001 (100.0%)   0.0001 (100.0%)   0.0001 (100.0%)   0.0490 (100.0%)  Total
     ```
@@ -566,10 +566,10 @@ compilers on hand while you're working.
     this:
 
     ```
-    9.16ms  test.swift:15:6 func find<R>(_ range: R, value: R.Element) -> R where R : IteratorProtocol, R.Element : Eq
-    0.28ms  test.swift:27:6 func findIf<R>(_ range: R, predicate: (R.Element) -> Bool) -> R where R : IteratorProtocol
-    2.81ms  test.swift:40:6 func count<R>(_ range: R, value: R.Element) -> Int where R : IteratorProtocol, R.Element : Eq
-    0.64ms  test.swift:51:6 func countIf<R>(_ range: R, predicate: (R.Element) -> Bool) -> Int where R : IteratorProtocol
+    9.16ms  test.code:15:6 fn find<R>(_ range: R, value: R.Element) -> R where R : IteratorProtocol, R.Element : Eq
+    0.28ms  test.code:27:6 fn findIf<R>(_ range: R, predicate: (R.Element) -> Bool) -> R where R : IteratorProtocol
+    2.81ms  test.code:40:6 fn count<R>(_ range: R, value: R.Element) -> Int where R : IteratorProtocol, R.Element : Eq
+    0.64ms  test.code:51:6 fn countIf<R>(_ range: R, predicate: (R.Element) -> Bool) -> Int where R : IteratorProtocol
     ...
     ```
 
@@ -579,12 +579,12 @@ compilers on hand while you're working.
     output looks like this:
 
     ```
-    0.20ms  test.swift:17:16
-    1.82ms  test.swift:18:12
-    6.35ms  test.swift:19:8
-    0.11ms  test.swift:22:5
-    0.02ms  test.swift:24:10
-    0.02ms  test.swift:30:16
+    0.20ms  test.code:17:16
+    1.82ms  test.code:18:12
+    6.35ms  test.code:19:8
+    0.11ms  test.code:22:5
+    0.02ms  test.code:24:10
+    0.02ms  test.code:30:16
     ...
     ```
 
@@ -620,7 +620,7 @@ compilers on hand while you're working.
     ```
 
   - `-Xfrontend -print-clang-stats`: prints counters associated with the clang
-    AST reader, which is operated as a subsystem of the swift compiler when
+    AST reader, which is operated as a subsystem of the language compiler when
     importing definitions from C/ObjC. Its output is added to the end of
     whatever output comes from `-print-stats`, and looks like this:
 
@@ -682,9 +682,9 @@ make a directory in which to output the stats, then compile with the
 
 ```
 $ mkdir /tmp/stats
-$ swiftc -c test.swift -stats-output-dir /tmp/stats
+$ languagec -c test.code -stats-output-dir /tmp/stats
 $ ls /tmp/stats
-stats-1518219149045080-swift-frontend-test-test.swift-x86_64_apple_macosx10.13-o-Onone-531621672.json
+stats-1518219149045080-language-frontend-test-test.code-x86_64_apple_macosx10.13-o-Onone-531621672.json
 $ cat /tmp/stats/*.json
 {
   "AST.NumSourceBuffers": 1,
@@ -694,12 +694,12 @@ $ cat /tmp/stats/*.json
   "AST.NumLoadedModules": 4,
   "AST.NumTotalClangImportedEntities": 0,
   ...
-  "time.swift.Parsing.wall": 5.038023e-03,
-  "time.swift.Parsing.user": 7.200000e-05,
-  "time.swift.Parsing.sys": 4.794000e-03,
-  "time.swift-frontend.test-test.swift-x86_64_apple_macosx10.13-o-Onone.wall": 3.239949e-01,
-  "time.swift-frontend.test-test.swift-x86_64_apple_macosx10.13-o-Onone.user": 2.152100e-02,
-  "time.swift-frontend.test-test.swift-x86_64_apple_macosx10.13-o-Onone.sys": 2.897520e-01
+  "time.code.Parsing.wall": 5.038023e-03,
+  "time.code.Parsing.user": 7.200000e-05,
+  "time.code.Parsing.sys": 4.794000e-03,
+  "time.code-frontend.test-test.code-x86_64_apple_macosx10.13-o-Onone.wall": 3.239949e-01,
+  "time.code-frontend.test-test.code-x86_64_apple_macosx10.13-o-Onone.user": 2.152100e-02,
+  "time.code-frontend.test-test.code-x86_64_apple_macosx10.13-o-Onone.sys": 2.897520e-01
 }
 ```
 
@@ -717,18 +717,18 @@ extra argument to a compilation already using `-stats-output-dir`:
 
 ```
 $ mkdir /tmp/stats
-$ swiftc -c test.swift -stats-output-dir /tmp/stats -trace-stats-events
+$ languagec -c test.code -stats-output-dir /tmp/stats -trace-stats-events
 $ ls /tmp/stats
-stats-1518219460129565-swift-frontend-test-test.swift-x86_64_apple_macosx10.13-o-Onone-1576107381.json
-trace-1518219460129597-swift-frontend-test-test.swift-x86_64_apple_macosx10.13-o-Onone-1471252712.csv
-$ head /tmp/stats/trace-1518219460129597-swift-frontend-test-test.swift-x86_64_apple_macosx10.13-o-Onone-1471252712.csv
+stats-1518219460129565-language-frontend-test-test.code-x86_64_apple_macosx10.13-o-Onone-1576107381.json
+trace-1518219460129597-language-frontend-test-test.code-x86_64_apple_macosx10.13-o-Onone-1471252712.csv
+$ head /tmp/stats/trace-1518219460129597-language-frontend-test-test.code-x86_64_apple_macosx10.13-o-Onone-1471252712.csv
 Time,Live,IsEntry,EventName,CounterName,CounterDelta,CounterValue,EntityName,EntityRange
-40032,0,"entry","typecheck-decl","Sema.NumDeclsDeserialized",91,91,"foo","[test.swift:1:1 - line:1:32]"
-40032,0,"entry","typecheck-decl","Sema.NumLazyGenericEnvironments",40,40,"foo","[test.swift:1:1 - line:1:32]"
-40032,0,"entry","typecheck-decl","Sema.NumLazyIterableDeclContexts",40,40,"foo","[test.swift:1:1 - line:1:32]"
-40032,0,"entry","typecheck-decl","Sema.NumTypesDeserialized",106,106,"foo","[test.swift:1:1 - line:1:32]"
-40032,0,"entry","typecheck-decl","Sema.NumUnloadedLazyIterableDeclContexts",40,40,"foo","[test.swift:1:1 - line:1:32]"
-40135,0,"entry","typecheck-decl","Sema.InterfaceTypeRequest",1,1,"","[test.swift:1:13 - line:1:29]"
+40032,0,"entry","typecheck-decl","Sema.NumDeclsDeserialized",91,91,"foo","[test.code:1:1 - line:1:32]"
+40032,0,"entry","typecheck-decl","Sema.NumLazyGenericEnvironments",40,40,"foo","[test.code:1:1 - line:1:32]"
+40032,0,"entry","typecheck-decl","Sema.NumLazyIterableDeclContexts",40,40,"foo","[test.code:1:1 - line:1:32]"
+40032,0,"entry","typecheck-decl","Sema.NumTypesDeserialized",106,106,"foo","[test.code:1:1 - line:1:32]"
+40032,0,"entry","typecheck-decl","Sema.NumUnloadedLazyIterableDeclContexts",40,40,"foo","[test.code:1:1 - line:1:32]"
+40135,0,"entry","typecheck-decl","Sema.InterfaceTypeRequest",1,1,"","[test.code:1:13 - line:1:29]"
 ...
 ```
 
@@ -739,17 +739,17 @@ an [SQLite database](https://www.sqlite.org) or a command line CSV processor
 such as [`xsv`](https://github.com/BurntSushi/xsv).
 
 ```
-$ cat /tmp/stats/trace-1518219460129597-swift-frontend-test-test.swift-x86_64_apple_macosx10.13-o-Onone-1471252712.csv \
+$ cat /tmp/stats/trace-1518219460129597-language-frontend-test-test.code-x86_64_apple_macosx10.13-o-Onone-1471252712.csv \
    | xsv search --select CounterName DeclsDeserialized \
    | xsv sort --reverse --numeric --select CounterDelta \
    | xsv table
 Time   Live  IsEntry  EventName       CounterName                CounterDelta  CounterValue  EntityName  EntityRange
-43279  0     entry    emit-SIL        Sema.NumDeclsDeserialized  360           517           _           [test.swift:1:17 - line:1:17]
-40032  0     entry    typecheck-decl  Sema.NumDeclsDeserialized  91            91            foo         [test.swift:1:1 - line:1:32]
-41324  735   exit     typecheck-decl  Sema.NumDeclsDeserialized  40            156                       [test.swift:1:13 - line:1:29]
-40432  0     entry    typecheck-decl  Sema.NumDeclsDeserialized  25            116           _           [test.swift:1:17 - line:1:17]
-43712  206   exit     emit-SIL        Sema.NumDeclsDeserialized  18            535           _           [test.swift:1:17 - line:1:17]
-41448  97    exit     typecheck-fn    Sema.NumDeclsDeserialized  1             157           _           [test.swift:1:17 - line:1:17]
+43279  0     entry    emit-SIL        Sema.NumDeclsDeserialized  360           517           _           [test.code:1:17 - line:1:17]
+40032  0     entry    typecheck-decl  Sema.NumDeclsDeserialized  91            91            foo         [test.code:1:1 - line:1:32]
+41324  735   exit     typecheck-decl  Sema.NumDeclsDeserialized  40            156                       [test.code:1:13 - line:1:29]
+40432  0     entry    typecheck-decl  Sema.NumDeclsDeserialized  25            116           _           [test.code:1:17 - line:1:17]
+43712  206   exit     emit-SIL        Sema.NumDeclsDeserialized  18            535           _           [test.code:1:17 - line:1:17]
+41448  97    exit     typecheck-fn    Sema.NumDeclsDeserialized  1             157           _           [test.code:1:17 - line:1:17]
 ```
 
 #### Post-processing tools for diagnostics
@@ -763,12 +763,12 @@ aggregation and analysis tasks.
 
 Here is an example of how to use `-stats-output-dir` together with
 `utils/process-stats-dir.py` to analyze the difference in compilation
-performance between two compilers, say `${OLD}/swiftc` and `${NEW}/swiftc`:
+performance between two compilers, say `${OLD}/languagec` and `${NEW}/languagec`:
 
 ```
 $ mkdir stats-old stats-new
-$ ${OLD}/swiftc -stats-output-dir stats-old test.swift
-$ ${NEW}/swiftc -stats-output-dir stats-new test.swift
+$ ${OLD}/languagec -stats-output-dir stats-old test.code
+$ ${NEW}/languagec -stats-output-dir stats-new test.code
 $ utils/process-stats-dir.py --compare-stats-dirs stats-old stats-new
 old     new     delta_pct       name
 1402939 1430732 1.98    AST.NumASTBytesAllocated
@@ -798,35 +798,35 @@ multiple projects, it can be helpful to select a single project with
 #### Artifact-analysis tools
 
 Many performance issues manifest in the object files or module files produced by
-the Swift compiler -- say, by generating too much code -- so it can sometimes be
+the Codira compiler -- say, by generating too much code -- so it can sometimes be
 helpful to look at the files the compiler outputs directly. The following tools
 are helpful in such cases:
 
-  - `llvm-objdump`, `llvm-otool` and `llvm-size`, `llvm-nm` (which are
+  - `toolchain-objdump`, `toolchain-otool` and `toolchain-size`, `toolchain-nm` (which are
     LLVM-project implementations of the `objdump`, `otool`, `size` and `nm`
     tools) permit analysis of object files: their sizes, their headers, the
     set of symbols within them, and even their complete disassembled contents.
 
-  - `c++filt` and `swift-demangle` are commands that read from stdin and
+  - `c++filt` and `language-demangle` are commands that read from stdin and
     write to stdout, transforming the text they read by _demangling names_
-    in C++ and Swift, respectively. If you ever seen long, ugly symbol names
+    in C++ and Codira, respectively. If you ever seen long, ugly symbol names
     in diagnostic output from a tool reading a binary artifact, it may read
     much better after being piped through one or another of these tools.
 
-  - `llvm-bcanalyzer` can print (in rough form) the contents of LLVM bitcode
-    streams, such as Swift module files and the PCH/PCM files clang stores its
-    serialized ASTs in. The latter requires combining `llvm-objdump` and
-    `llvm-bcanalyzer` in the following fashion: `llvm-objdump --raw-clang-ast
-    file.pcm | llvm-bcanalyzer -dump`
+  - `toolchain-bcanalyzer` can print (in rough form) the contents of LLVM bitcode
+    streams, such as Codira module files and the PCH/PCM files clang stores its
+    serialized ASTs in. The latter requires combining `toolchain-objdump` and
+    `toolchain-bcanalyzer` in the following fashion: `toolchain-objdump --raw-clang-ast
+    file.pcm | toolchain-bcanalyzer -dump`
 
-  - `llvm-dwarfdump` and `llvm-dis` can be used to print textual representations
+  - `toolchain-dwarfdump` and `toolchain-dis` can be used to print textual representations
     of DWARF debug information and LLVM bitcode, respectively. These are usually
     a bit lower-level than necessary when doing performance analysis, but can be
     helpful in certain cases.
 
   - `utils/cmpcodesize/cmpcodesize.py` provides a detailed, organized set of
     size comparisons between the artifacts in a pair of object files emitted by
-    the Swift compiler.
+    the Codira compiler.
 
 #### Minimizers
 
@@ -888,7 +888,7 @@ utils/update-checkout --scheme main --match-timestamp
 git checkout ${CURR}
 if utils/build-script -r
 then
-    V=$(count_instructions ../build/Ninja-ReleaseAssert/swift-linux-x86_64/bin/swiftc -c test.swift)
+    V=$(count_instructions ../build/Ninja-ReleaseAssert/language-linux-x86_64/bin/languagec -c test.code)
     if [ ${V} -gt ${THRESHOLD} ]
     then
         # Bad
@@ -905,9 +905,9 @@ fi
 Note that in the example, the `utils/update-checkout` script is called twice,
 once to reset the adjacent repositories to their head state, and once with the
 `--match-timestamp` argument to match the adjacent repositories to the latest
-point in their history before the timestamp of the primary Swift repository
+point in their history before the timestamp of the primary Codira repository
 being bisected. This mechanism is necessary if the regression range includes
-incompatible changes to `clang`, `llvm` or similar adjacent repositories.
+incompatible changes to `clang`, `toolchain` or similar adjacent repositories.
 
 
 ##### Creduce
@@ -933,9 +933,9 @@ other measurement tools also work, for example using
 
 ```
 #!/bin/sh
-INPUT=test.swift
-OLD=${HOME}/old-toolchain/usr/bin/swift
-NEW=${HOME}/new-toolchain/usr/bin/swift
+INPUT=test.code
+OLD=${HOME}/old-toolchain/usr/bin/language
+NEW=${HOME}/new-toolchain/usr/bin/language
 THRESHOLD=50000000
 VOLD=$(count_instructions ${OLD} -frontend -c ${INPUT})
 VNEW=$(count_instructions ${NEW} -frontend -c ${INPUT})
@@ -960,7 +960,7 @@ use `utils/process-stats-dir.py --compare-to-csv-baseline`, for example.
 
 When all else fails, coding up a manual bisection is often possible given a
 numbered set of testcases. The LLVM project ships with a very generic helper
-script for this, `llvm/util/bisect`, that takes a numeric range and a general
+script for this, `toolchain/util/bisect`, that takes a numeric range and a general
 subprocess and bisects the range until it finds the place the process changes
 from success to failure.
 
@@ -977,7 +977,7 @@ getting slower between versions:
        same host toolchains, same optimizations enabled.
 
      - Ensure both compilers are _release_ compilers _without assertions_ (Note:
-       nightly snapshots from swift.org have assertions turned on.)  You may
+       nightly snapshots from language.org have assertions turned on.)  You may
        also want to build (or download) assertion-enabled compilers for
        finer-grained counter analysis (see below) but keep in mind that they run
        strictly slower and do significantly different work than release
@@ -1021,7 +1021,7 @@ getting slower between versions:
        the section on driver diagnosis.
 
   5. Assuming you're looking at a frontend process: extract the command-line for
-     the single process (of the form `swift -frontend ...`) by running the build
+     the single process (of the form `language -frontend ...`) by running the build
      in verbose mode, and put the command-line in a shell script so you can
      re-run it on its own, without the interference of the driver or other
      processes. Make a copy of the script that runs the old compiler and a
@@ -1062,16 +1062,16 @@ getting slower between versions:
      changes to the compiler (typically a single revision in the git history)
      that caused the regression. If you have more network bandwidth than compute
      power available, you might want to begin this part by downloading snapshots
-     of the compiler from swift.org. While only a handful of recent snapshots
-     are linked on the swift.org webpage, all historical snapshots remain
+     of the compiler from language.org. While only a handful of recent snapshots
+     are linked on the language.org webpage, all historical snapshots remain
      available to download by substituting the appropriate timestamp into the
      snapshot URL. For example, the main-branch, macOS snapshot from June 9
      2017 is available
      at
-     [https://swift.org/builds/development/xcode/swift-DEVELOPMENT-SNAPSHOT-2017-06-09-a/swift-DEVELOPMENT-SNAPSHOT-2017-06-09-a-osx.pkg](https://swift.org/builds/development/xcode/swift-DEVELOPMENT-SNAPSHOT-2017-06-09-a/swift-DEVELOPMENT-SNAPSHOT-2017-06-09-a-osx.pkg),
-     and the July 10 2017, swift-4.0-branch Linux snapshot is
+     [https://language.org/builds/development/xcode/language-DEVELOPMENT-SNAPSHOT-2017-06-09-a/language-DEVELOPMENT-SNAPSHOT-2017-06-09-a-osx.pkg](https://language.org/builds/development/xcode/language-DEVELOPMENT-SNAPSHOT-2017-06-09-a/language-DEVELOPMENT-SNAPSHOT-2017-06-09-a-osx.pkg),
+     and the July 10 2017, language-4.0-branch Linux snapshot is
      at
-     [https://swift.org/builds/swift-4.0-branch/ubuntu1604/swift-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a/swift-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a-ubuntu16.04.tar.gz](https://swift.org/builds/swift-4.0-branch/ubuntu1604/swift-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a/swift-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a-ubuntu16.04.tar.gz).
+     [https://language.org/builds/language-4.0-branch/ubuntu1604/language-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a/language-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a-ubuntu16.04.tar.gz](https://language.org/builds/language-4.0-branch/ubuntu1604/language-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a/language-4.0-DEVELOPMENT-SNAPSHOT-2017-07-10-a-ubuntu16.04.tar.gz).
      While such snapshots have asserts enabled -- so they do not entirely match
      the performance characteristics of release compilers -- it is often the
      case that a regression in a release compiler will still show up in an
@@ -1111,7 +1111,7 @@ comparing these, one can sometimes determine the difference in
 dependency-analysis and job-execution logic, between one compilation and
 another.
 
-It is usually also helpful to look at the `.swiftdeps` files generated by the
+It is usually also helpful to look at the `.codedeps` files generated by the
 driver. These files contain the driver's summary-view of the dependencies
 between entities defined and referenced in each source file; it is from these
 files that the driver decides when a file "needs" to be rebuilt because it
@@ -1134,14 +1134,14 @@ have a bug or design flaw). One tool that's useful for differentiating these
 cases is the `utils/scale-test` script.
 
 Scale-test runs on counters, so it's worth taking a short digression into
-the set of counters that exist in the Swift compiler and how they fit together.
+the set of counters that exist in the Codira compiler and how they fit together.
 
 #### Compiler counters
 
-The Swift compiler has two separate (though related) subsystems for counting
+The Codira compiler has two separate (though related) subsystems for counting
 the work it does.
 
-  1. The LLVM `STATISTIC()` system included by `#include "llvm/ADT/Statistic.h"`
+  1. The LLVM `STATISTIC()` system included by `#include "toolchain/ADT/Statistic.h"`
      and lightly wrapped by `#include "language/Basic/Statistic.h"`. This system
      consists of macros and helper structures for atomic, static counters that
      self-register in a global list. This subsystem is shared with Clang and
@@ -1153,10 +1153,10 @@ the work it does.
      loops in production builds. When present, these counters are reported
      by `-Xfrontend -print-stats`
 
-  2. The Swift-specific `UnifiedStatsReporter` system also included by
+  2. The Codira-specific `UnifiedStatsReporter` system also included by
      `#include "language/Basic/Statistic.h"`. This (newer) system consists of a
-     Swift-specific struct full of counters passed around between subsystems
-     of interest. These counters are _always compiled-in_ to a Swift build,
+     Codira-specific struct full of counters passed around between subsystems
+     of interest. These counters are _always compiled-in_ to a Codira build,
      regardless of build setting. As such, should have _negligible cost_
      when not counting/reporting: as much as possible, access is arranged
      to either involve a non-atomic operation (in an inner loop) or a single
@@ -1200,13 +1200,13 @@ code-generation tool. The process is straightforward:
      ```
 
   2. Run the file under the `utils/scale-test` script. You will at least need to
-     pass a `--swiftc-binary` and `.gyb` template filename; by default, it will
+     pass a `--languagec-binary` and `.gyb` template filename; by default, it will
      test on values of `N` ranging from `10` to `100` in steps of `10`, and fit
      scaling curves to _all_ counters that it measures, printing any that scale
      worse than `O(n^1.2)`. For example, the following will give an initial
      survey of the script above:
      ```
-     $ utils/scale-test --swiftc-binary=/.../usr/bin/swiftc test.swift.gyb
+     $ utils/scale-test --languagec-binary=/.../usr/bin/languagec test.code.gyb
      O(n^0.0) : BasicCalleeAnalysis.computeMethodCallees
      O(n^0.0) : Clang module importer.NumTotalImportedEntities
      O(n^0.0) : Constraint solver largest system.LargestNumDisjunctionTerms
@@ -1252,11 +1252,11 @@ code-generation tool. The process is straightforward:
      interested in the scaling behaviour of, by all means add a new one!
      Statistics are easy to add to a file, it takes only a few simple steps:
      - Add a define like `#define DEBUG_TYPE "subsystem-name"` to the file
-     - Add an include like `#include <swift/Basic/Statistic.h>` to the file
-     - Add `SWIFT_FUNC_STAT;` to the first line of a function to measure
+     - Add an include like `#include <language/Basic/Statistic.h>` to the file
+     - Add `LANGUAGE_FUNC_STAT;` to the first line of a function to measure
      - Optionally, add separate `STATISTIC(SomeStat, "description");`
        definitions and manually increment `SomeStat++;` where you like;
-       `SWIFT_FUNC_STAT;` is just a short-form of declaring and incrementing a
+       `LANGUAGE_FUNC_STAT;` is just a short-form of declaring and incrementing a
        local `STATISTIC()` named by the function.
 
 ## How to report bugs most usefully
@@ -1282,7 +1282,7 @@ internals of the compiler, just time and patience.
     with the fix! Straightforward fixes to performance regressions are likely to
     be merged straight away.
 
-  - Add `STATISTIC()` or `SWIFT_FUNC_STAT`-type counters to the compiler, as
+  - Add `STATISTIC()` or `LANGUAGE_FUNC_STAT`-type counters to the compiler, as
     described in the scale-tests section. Alternatively, if you want a
     counter that will be "always available" in production builds (and
     potentially tracked by Apple's performance-tracking CI system),
@@ -1293,7 +1293,7 @@ internals of the compiler, just time and patience.
     work where it's expected to be constant.
 
   - Add Open Source projects to the
-    [source-compatibility testsuite](https://swift.org/source-compatibility/).
+    [source-compatibility testsuite](https://language.org/source-compatibility/).
     Apple's internal CI infrastructure is now tracking selected non-assert-build
     `UnifiedStatsReporter` counters on those projects, and the team is far
     more likely to catch a regression if it's shown by a project in the testsuite.

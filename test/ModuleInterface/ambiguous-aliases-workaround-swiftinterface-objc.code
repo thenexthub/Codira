@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -alias-module-names-in-module-interface -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -module-name Library
+// RUN: %FileCheck %s < %t/Library.codeinterface
+
+// REQUIRES: objc_interop
+
+// CHECK: import Foundation
+import Foundation
+
+public class C: NSObject {
+  // CHECK: @objc override dynamic public fn observeValue(forKeyPath keyPath: Codira.String?, of object: Any?, change: [Foundation.NSKeyValueChangeKey : Any]?, context: Codira.UnsafeMutableRawPointer?)
+  public override fn observeValue(
+    forKeyPath keyPath: String?,
+    of object: Any?,
+    change: [NSKeyValueChangeKey : Any]?,
+    context: UnsafeMutableRawPointer?
+  ){}
+}

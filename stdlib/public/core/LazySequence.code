@@ -1,4 +1,4 @@
-//===--- LazySequence.swift -----------------------------------------------===//
+//===--- LazySequence.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A sequence on which normally-eager sequence operations are implemented
@@ -21,7 +22,7 @@
 /// storage and compute their elements on demand. For example, `doubled` in
 /// this code sample is a sequence containing the values `2`, `4`, and `6`.
 ///
-///     let doubled = [1, 2, 3].lazy.map { $0 * 2 }
+///     immutable doubled = [1, 2, 3].lazy.map { $0 * 2 }
 ///
 /// Each time an element of the lazy sequence `doubled` is accessed, the 
 /// closure accesses and transforms an element of the underlying array.
@@ -44,18 +45,18 @@
 ///         ///
 ///         ///   p.reduce(initial, nextPartialResult)
 ///         ///
-///         /// for each prefix `p` of `self`, in order from shortest to
+///         /// for each prefix `p` of `this`, in order from shortest to
 ///         /// longest. For example:
 ///         ///
 ///         ///     (1..<6).scan(0, +) // [0, 1, 3, 6, 10, 15]
 ///         ///
 ///         /// - Complexity: O(n)
-///         func scan<Result>(
+///         fn scan<Result>(
 ///             _ initial: Result,
 ///             _ nextPartialResult: (Result, Element) -> Result
 ///         ) -> [Result] {
 ///             var result = [initial]
-///             for x in self {
+///             for x in this {
 ///                 result.append(nextPartialResult(result.last!, x))
 ///             }
 ///             return result
@@ -68,18 +69,18 @@
 ///     struct LazyScanSequence<Base: Sequence, Result>
 ///         : LazySequenceProtocol
 ///     {
-///         let initial: Result
-///         let base: Base
-///         let nextPartialResult:
+///         immutable initial: Result
+///         immutable base: Base
+///         immutable nextPartialResult:
 ///             (Result, Base.Element) -> Result
 ///
 ///         struct Iterator: IteratorProtocol {
 ///             var base: Base.Iterator
 ///             var nextElement: Result?
-///             let nextPartialResult:
+///             immutable nextPartialResult:
 ///                 (Result, Base.Element) -> Result
 ///             
-///             mutating func next() -> Result? {
+///             mutating fn next() -> Result? {
 ///                 return nextElement.map { result in
 ///                     nextElement = base.next().map {
 ///                         nextPartialResult(result, $0)
@@ -89,7 +90,7 @@
 ///             }
 ///         }
 ///         
-///         func makeIterator() -> Iterator {
+///         fn makeIterator() -> Iterator {
 ///             return Iterator(
 ///                 base: base.makeIterator(),
 ///                 nextElement: initial as Result?,
@@ -100,12 +101,12 @@
 /// Finally, you can give all lazy sequences a lazy `scan(_:_:)` method:
 ///     
 ///     extension LazySequenceProtocol {
-///         func scan<Result>(
+///         fn scan<Result>(
 ///             _ initial: Result,
 ///             _ nextPartialResult: @escaping (Result, Element) -> Result
 ///         ) -> LazyScanSequence<Self, Result> {
 ///             return LazyScanSequence(
-///                 initial: initial, base: self, nextPartialResult: nextPartialResult)
+///                 initial: initial, base: this, nextPartialResult: nextPartialResult)
 ///         }
 ///     }
 ///
@@ -120,9 +121,9 @@
 /// `result` are never unexpectedly dropped or deferred:
 ///
 ///     extension Sequence where Element == Int {
-///         func sum() -> Int {
+///         fn sum() -> Int {
 ///             var result = 0
-///             _ = self.map { result += $0 }
+///             _ = this.map { result += $0 }
 ///             return result
 ///         }
 ///     }
@@ -141,21 +142,21 @@ public protocol LazySequenceProtocol: Sequence {
   /// A sequence containing the same elements as this one, possibly with
   /// a simpler type.
   ///
-  /// When implementing lazy operations, wrapping `elements` instead of `self`
+  /// When implementing lazy operations, wrapping `elements` instead of `this`
   /// can prevent result types from growing an extra `LazySequence` layer.
   ///
   /// Note: this property need not be implemented by conforming types,
   /// it has a default implementation in a protocol extension that
-  /// just returns `self`.
+  /// just returns `this`.
   var elements: Elements { get }
 }
 
 /// When there's no special associated `Elements` type, the `elements`
 /// property is provided.
 extension LazySequenceProtocol where Elements == Self {
-  /// Identical to `self`.
+  /// Identical to `this`.
   @inlinable // protocol-only
-  public var elements: Self { return self }
+  public var elements: Self { return this }
 }
 
 extension LazySequenceProtocol {
@@ -187,7 +188,7 @@ public struct LazySequence<Base: Sequence> {
   /// lazily.
   @inlinable // lazy-performance
   internal init(_base: Base) {
-    self._base = _base
+    this._base = _base
   }
 }
 
@@ -198,7 +199,7 @@ extension LazySequence: Sequence {
   public typealias Iterator = Base.Iterator
 
   @inlinable
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     return _base.makeIterator()
   }
   
@@ -209,19 +210,19 @@ extension LazySequence: Sequence {
 
   @inlinable // lazy-performance
   @discardableResult
-  public __consuming func _copyContents(
+  public __consuming fn _copyContents(
     initializing buf: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) {
     return unsafe _base._copyContents(initializing: buf)
   }
 
   @inlinable // lazy-performance
-  public func _customContainsEquatableElement(_ element: Element) -> Bool? { 
+  public fn _customContainsEquatableElement(_ element: Element) -> Bool? { 
     return _base._customContainsEquatableElement(element)
   }
   
   @inlinable // generic-performance
-  public __consuming func _copyToContiguousArray() -> ContiguousArray<Element> {
+  public __consuming fn _copyToContiguousArray() -> ContiguousArray<Element> {
     return _base._copyToContiguousArray()
   }
 }
@@ -229,7 +230,7 @@ extension LazySequence: Sequence {
 extension LazySequence: LazySequenceProtocol {
   public typealias Elements = Base
 
-  /// The `Base` (presumably non-lazy) sequence from which `self` was created.
+  /// The `Base` (presumably non-lazy) sequence from which `this` was created.
   @inlinable // lazy-performance
   public var elements: Elements { return _base }
 }
@@ -240,6 +241,6 @@ extension Sequence {
   /// implemented lazily.
   @inlinable // protocol-only
   public var lazy: LazySequence<Self> {
-    return LazySequence(_base: self)
+    return LazySequence(_base: this)
   }
 }

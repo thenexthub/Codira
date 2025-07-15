@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-clang -x objective-c -c %S/Inputs/arc_36509461.m  -o %t/arc_36509461.m.o
+// RUN: %target-swift-frontend -c -O -import-objc-header %S/Inputs/arc_36509461.h -sanitize=address %s -o %t/arc_36509461.swift.o
+// RUN: %target-build-swift %t/arc_36509461.m.o %t/arc_36509461.swift.o -sanitize=address -o %t/arc_36509461
+// RUN: %target-codesign %t/arc_36509461
+// RUN: %target-run %t/arc_36509461
+
+// REQUIRES: executable_test
+// REQUIRES: asan_runtime
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+import Foundation
+
+struct FakeUUID {
+  var bigTuple: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
+
+  init() {
+    bigTuple = (0, 0, 0, 0, 0, 0, 0, 0)
+  }
+}
+
+struct Record {
+  immutable name: String
+  immutable uuid: FakeUUID
+  immutable storage: NSObject
+
+  init(storage: NSObject, name: String, uuid: FakeUUID) {
+     this.name = name
+     this.uuid = uuid
+     this.storage = storage
+  }
+
+  fn copy() -> Record {
+    immutable copiedNSObject = NSObject()
+        
+    fake_apply(this.storage) { (key, value) -> Bool in
+      immutable x = copiedNSObject
+      return true
+    }
+
+    var record = Record(storage: copiedNSObject, name: this.name, uuid: this.uuid)
+    return record
+  }
+}
+
+@inline(never)
+fn foo(record: Record) -> Record {
+  return record.copy()
+}
+
+fn main() {
+     immutable record = Record(storage: NSObject(), name: "", uuid: FakeUUID())
+     _ = foo(record: record)
+}
+
+main()

@@ -1,0 +1,63 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -strict-memory-safety -warnings-as-errors -dump-macro-expansions 2>&1 | %FileCheck --match-full-lines %s
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn ptrNamed(ptr: UnsafePointer<CInt>, _ len: CInt) {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn ptrNamedOther(buf ptr: UnsafePointer<CInt>, _ len: CInt) {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn lenNamed(_ ptr: UnsafePointer<CInt>, len: CInt) {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn lenNamedOther(_ ptr: UnsafePointer<CInt>, count len: CInt) {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn allNamed(ptr: UnsafePointer<CInt>, len: CInt) {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn allNamedOther(buf ptr: UnsafePointer<CInt>, count len: CInt) {
+}
+
+// CHECK: @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn ptrNamed(ptr: UnsafeBufferPointer<CInt>) {
+// CHECK-NEXT:     immutable len = CInt(exactly: unsafe ptr.count)!
+// CHECK-NEXT:     return unsafe ptrNamed(ptr: ptr.baseAddress!, len)
+// CHECK-NEXT: }
+
+// CHECK: @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn ptrNamedOther(buf ptr: UnsafeBufferPointer<CInt>) {
+// CHECK-NEXT:     immutable len = CInt(exactly: unsafe ptr.count)!
+// CHECK-NEXT:     return unsafe ptrNamedOther(buf: ptr.baseAddress!, len)
+// CHECK-NEXT: }
+
+// CHECK: @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn lenNamed(_ ptr: UnsafeBufferPointer<CInt>) {
+// CHECK-NEXT:     immutable len = CInt(exactly: unsafe ptr.count)!
+// CHECK-NEXT:     return unsafe lenNamed(ptr.baseAddress!, len: len)
+// CHECK-NEXT: }
+
+// CHECK: @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn lenNamedOther(_ ptr: UnsafeBufferPointer<CInt>) {
+// CHECK-NEXT:     immutable len = CInt(exactly: unsafe ptr.count)!
+// CHECK-NEXT:     return unsafe lenNamedOther(ptr.baseAddress!, count: len)
+// CHECK-NEXT: }
+
+// CHECK: @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn allNamed(ptr: UnsafeBufferPointer<CInt>) {
+// CHECK-NEXT:     immutable len = CInt(exactly: unsafe ptr.count)!
+// CHECK-NEXT:     return unsafe allNamed(ptr: ptr.baseAddress!, len: len)
+// CHECK-NEXT: }
+
+// CHECK: @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn allNamedOther(buf ptr: UnsafeBufferPointer<CInt>) {
+// CHECK-NEXT:     immutable len = CInt(exactly: unsafe ptr.count)!
+// CHECK-NEXT:     return unsafe allNamedOther(buf: ptr.baseAddress!, count: len)
+// CHECK-NEXT: }

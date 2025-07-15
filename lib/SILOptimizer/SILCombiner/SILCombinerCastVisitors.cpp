@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-combine"
@@ -30,9 +31,9 @@
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 using namespace language::PatternMatch;
@@ -219,23 +220,6 @@ SILInstruction *SILCombiner::visitUpcastInst(UpcastInst *uci) {
     }
   }
 
-  return nullptr;
-}
-
-SILInstruction *
-SILCombiner::visitUncheckedAddrCastInst(UncheckedAddrCastInst *UADCI) {
-  // These are always safe to perform due to interior pointer ownership
-  // requirements being transitive along addresses.
-
-  Builder.setCurrentDebugScope(UADCI->getDebugScope());
-
-  // (unchecked_addr_cast (unchecked_addr_cast x X->Y) Y->Z)
-  //   ->
-  // (unchecked_addr_cast x X->Z)
-  if (auto *OtherUADCI = dyn_cast<UncheckedAddrCastInst>(UADCI->getOperand()))
-    return Builder.createUncheckedAddrCast(UADCI->getLoc(),
-                                           OtherUADCI->getOperand(),
-                                           UADCI->getType());
   return nullptr;
 }
 
@@ -756,7 +740,7 @@ visitCheckedCastAddrBranchInst(CheckedCastAddrBranchInst *CCABI) {
       case CastConsumptionKind::CopyOnSuccess:
         break;
       case CastConsumptionKind::BorrowAlways:
-        llvm_unreachable("BorrowAlways is not supported on addresses");
+        toolchain_unreachable("BorrowAlways is not supported on addresses");
     }
     builder.emitStoreValueOperation(loc, val, CCABI->getDest(),
                                     StoreOwnershipQualifier::Init);

@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -enable-objc-interop
+
+@objc class HasStaticProperties {
+  @objc class var staticVar1: Int { return 4 }
+}
+
+fn testStaticProperty(classObj: AnyObject.Type) {
+  _ = classObj.staticVar1
+}

@@ -1,0 +1,94 @@
+/// The blocklist can enable loading distributed languageinterfaces by default.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t --leading-lines
+// REQUIRES: VENDOR=apple
+
+/// Setup the SDK and local modules.
+//// SDK module in S/L/F.
+// RUN: %target-language-frontend -emit-module -module-name SDKModule %t/Empty.code \
+// RUN:   -enable-library-evolution -language-version 5 -parse-stdlib \
+// RUN:   -emit-module-path %t/sdk/System/Library/Frameworks/SDKModule.framework/Modules/SDKModule.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/System/Library/Frameworks/SDKModule.framework/Modules/SDKModule.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/System/Library/Frameworks/SDKModule.framework/Modules/SDKModule.codemodule/%target-languageinterface-name) -module-name SDKModule
+
+//// SDK module not in S/L/F.
+// RUN: %target-language-frontend -emit-module -module-name SDKModuleAtUnusualPath %t/Empty.code \
+// RUN:   -enable-library-evolution -language-version 5 -parse-stdlib \
+// RUN:   -emit-module-path %t/sdk/System/Library/OtherFrameworks/SDKModuleAtUnusualPath.framework/Modules/SDKModuleAtUnusualPath.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/System/Library/OtherFrameworks/SDKModuleAtUnusualPath.framework/Modules/SDKModuleAtUnusualPath.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/System/Library/OtherFrameworks/SDKModuleAtUnusualPath.framework/Modules/SDKModuleAtUnusualPath.codemodule/%target-languageinterface-name) -module-name SDKModuleAtUnusualPath
+
+//// Local module.
+// RUN: %target-language-frontend -emit-module -module-name LocalModule %t/Empty.code \
+// RUN:   -enable-library-evolution -language-version 5 -parse-stdlib \
+// RUN:   -emit-module-path %t/not_sdk/LocalModule.codemodule \
+// RUN:   -emit-module-interface-path %t/not_sdk/LocalModule.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/not_sdk/LocalModule.codeinterface) -module-name LocalModule
+
+//// Host resource-dir module.
+// RUN: %target-language-frontend -emit-module -module-name HostResourceDirModule %t/Empty.code \
+// RUN:   -enable-library-evolution -language-version 5 -parse-stdlib \
+// RUN:   -emit-module-path %t/res/host/HostResourceDirModule.codemodule \
+// RUN:   -emit-module-interface-path %t/res/host/HostResourceDirModule.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/res/host/HostResourceDirModule.codeinterface) -module-name HostResourceDirModule
+
+//// Blocklisted module.
+// RUN: %target-language-frontend -emit-module -module-name BlocklistedModule %t/Empty.code \
+// RUN:   -enable-library-evolution -language-version 5 -parse-stdlib \
+// RUN:   -emit-module-path %t/sdk/System/Library/Frameworks/BlocklistedModule.framework/Modules/BlocklistedModule.codemodule/%target-languagemodule-name \
+// RUN:   -emit-module-interface-path %t/sdk/System/Library/Frameworks/BlocklistedModule.framework/Modules/BlocklistedModule.codemodule/%target-languageinterface-name
+// RUN: %target-language-typecheck-module-from-interface(%t/sdk/System/Library/Frameworks/BlocklistedModule.framework/Modules/BlocklistedModule.codemodule/%target-languageinterface-name) -module-name BlocklistedModule
+
+/// Build a client preferring languageinterfaces.
+// RUN: %target-language-frontend -typecheck -module-name Main %t/Client_CodirainterfacesByDefault.code \
+// RUN:   -parse-stdlib -module-cache-path %t/cache \
+// RUN:   -blocklist-file %t/blocklistEnabled.yml \
+// RUN:   -sdk %t/sdk -I %t/not_sdk -resource-dir %t/res -I %t/res/host/ \
+// RUN:   -F %t/sdk/System/Library/OtherFrameworks/ \
+// RUN:   -Rmodule-interface-rebuild -verify
+
+/// Build a client preferring languagemodules.
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-language-frontend -typecheck -module-name Main %t/Client_CodiramodulesByDefault.code \
+// RUN:   -parse-stdlib -module-cache-path %t/cache \
+// RUN:   -blocklist-file %t/blocklistDisabled.yml \
+// RUN:   -sdk %t/sdk -I %t/not_sdk -resource-dir %t/res -I %t/res/host/ \
+// RUN:   -F %t/sdk/System/Library/OtherFrameworks/ \
+// RUN:   -Rmodule-interface-rebuild -verify
+
+//--- Empty.code
+
+//--- Client_CodirainterfacesByDefault.code
+/// New behavior
+import SDKModule // expected-remark {{rebuilding module 'SDKModule' from interface}}
+// expected-note @-1 {{was ignored because the default is to load from module interfaces}}
+import SDKModuleAtUnusualPath // expected-remark {{rebuilding module 'SDKModuleAtUnusualPath' from interface}}
+// expected-note @-1 {{was ignored because the default is to load from module interfaces}}
+import HostResourceDirModule // expected-remark {{rebuilding module 'HostResourceDirModule' from interface}}
+// expected-note @-1 {{was ignored because the default is to load from module interfaces}}
+import LocalModule // expected-note {{not defaulting to module interface because it is a local module, preferring binary module at}}
+import BlocklistedModule // expected-note {{not defaulting to module interface because it was blocklisted, preferring binary module at}}
+
+//--- Client_CodiramodulesByDefault.code
+/// Old behavior
+import SDKModule // expected-remark {{rebuilding module 'SDKModule' from interface}}
+// expected-note @-1 {{was ignored because it belongs to a framework in the SDK}}
+import SDKModuleAtUnusualPath
+import HostResourceDirModule // expected-remark {{rebuilding module 'HostResourceDirModule' from interface}}
+// expected-note @-1 {{was ignored because it's a compiler host module}}
+import LocalModule
+import BlocklistedModule
+
+//--- blocklistDisabled.yml
+---
+ShouldUseBinaryModule:
+  ModuleName:
+    - BlocklistedModule
+
+//--- blocklistEnabled.yml
+---
+ShouldUseBinaryModule:
+  ModuleName:
+    - Codira_UseCodirainterfaceByDefault
+    - BlocklistedModule

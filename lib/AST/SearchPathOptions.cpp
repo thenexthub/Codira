@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/SearchPathOptions.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/Support/Errc.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/Support/Errc.h"
 
 using namespace language;
 
 void ModuleSearchPathLookup::addFilesInPathToLookupTable(
-    llvm::vfs::FileSystem *FS, StringRef SearchPath, ModuleSearchPathKind Kind,
+    toolchain::vfs::FileSystem *FS, StringRef SearchPath, ModuleSearchPathKind Kind,
     bool IsSystem, unsigned SearchPathIndex) {
   std::error_code Error;
   auto entryAlreadyExists = [this](ModuleSearchPathKind Kind,
                                    unsigned SearchPathIndex) -> bool {
-    return llvm::any_of(LookupTable, [&](const auto &LookupTableEntry) {
-      return llvm::any_of(
+    return toolchain::any_of(LookupTable, [&](const auto &LookupTableEntry) {
+      return toolchain::any_of(
           LookupTableEntry.second, [&](ModuleSearchPathPtr ExistingSearchPath) {
             return ExistingSearchPath->getKind() == Kind &&
                    ExistingSearchPath->getIndex() == SearchPathIndex;
@@ -39,39 +40,35 @@ void ModuleSearchPathLookup::addFilesInPathToLookupTable(
   ModuleSearchPathPtr TableEntry =
       new ModuleSearchPath(SearchPath, Kind, IsSystem, SearchPathIndex);
   for (auto Dir = FS->dir_begin(SearchPath, Error);
-       !Error && Dir != llvm::vfs::directory_iterator(); Dir.increment(Error)) {
-    StringRef Filename = llvm::sys::path::filename(Dir->path());
+       !Error && Dir != toolchain::vfs::directory_iterator(); Dir.increment(Error)) {
+    StringRef Filename = toolchain::sys::path::filename(Dir->path());
     LookupTable[Filename].push_back(TableEntry);
   }
 }
 
 void ModuleSearchPathLookup::rebuildLookupTable(const SearchPathOptions *Opts,
-                                                llvm::vfs::FileSystem *FS,
+                                                toolchain::vfs::FileSystem *FS,
                                                 bool IsOSDarwin) {
   clearLookupTable();
 
-  for (auto Entry : llvm::enumerate(Opts->getImportSearchPaths())) {
+  for (auto Entry : toolchain::enumerate(Opts->getImportSearchPaths())) {
     addFilesInPathToLookupTable(FS, Entry.value().Path,
                                 ModuleSearchPathKind::Import,
                                 Entry.value().IsSystem, Entry.index());
   }
 
-  for (auto Entry : llvm::enumerate(Opts->getFrameworkSearchPaths())) {
+  for (auto Entry : toolchain::enumerate(Opts->getFrameworkSearchPaths())) {
     addFilesInPathToLookupTable(FS, Entry.value().Path, ModuleSearchPathKind::Framework,
                                 Entry.value().IsSystem, Entry.index());
   }
 
-  // Apple platforms have extra implicit framework search paths:
-  // $SDKROOT/System/Library/Frameworks/ and $SDKROOT/Library/Frameworks/.
-  if (IsOSDarwin) {
-    for (auto Entry : llvm::enumerate(Opts->getDarwinImplicitFrameworkSearchPaths())) {
-      addFilesInPathToLookupTable(FS, Entry.value(),
-                                  ModuleSearchPathKind::DarwinImplicitFramework,
-                                  /*isSystem=*/true, Entry.index());
-    }
+  for (auto Entry : toolchain::enumerate(Opts->getImplicitFrameworkSearchPaths())) {
+    addFilesInPathToLookupTable(FS, Entry.value(),
+                                ModuleSearchPathKind::ImplicitFramework,
+                                /*isSystem=*/true, Entry.index());
   }
 
-  for (auto Entry : llvm::enumerate(Opts->getRuntimeLibraryImportPaths())) {
+  for (auto Entry : toolchain::enumerate(Opts->getRuntimeLibraryImportPaths())) {
     addFilesInPathToLookupTable(FS, Entry.value(),
                                 ModuleSearchPathKind::RuntimeLibrary,
                                 /*isSystem=*/true, Entry.index());
@@ -84,26 +81,26 @@ void ModuleSearchPathLookup::rebuildLookupTable(const SearchPathOptions *Opts,
 }
 
 static std::string computeSDKPlatformPath(StringRef SDKPath,
-                                          llvm::vfs::FileSystem *FS) {
+                                          toolchain::vfs::FileSystem *FS) {
   if (SDKPath.empty())
     return "";
 
   SmallString<128> platformPath;
   if (auto err = FS->getRealPath(SDKPath, platformPath))
-    llvm::sys::path::append(platformPath, SDKPath);
+    toolchain::sys::path::append(platformPath, SDKPath);
 
-  llvm::sys::path::remove_filename(platformPath); // specific SDK
-  llvm::sys::path::remove_filename(platformPath); // SDKs
-  llvm::sys::path::remove_filename(platformPath); // Developer
+  toolchain::sys::path::remove_filename(platformPath); // specific SDK
+  toolchain::sys::path::remove_filename(platformPath); // SDKs
+  toolchain::sys::path::remove_filename(platformPath); // Developer
 
-  if (!llvm::sys::path::filename(platformPath).ends_with(".platform"))
+  if (!toolchain::sys::path::filename(platformPath).ends_with(".platform"))
     return "";
 
   return platformPath.str().str();
 }
 
 std::optional<StringRef>
-SearchPathOptions::getSDKPlatformPath(llvm::vfs::FileSystem *FS) const {
+SearchPathOptions::getSDKPlatformPath(toolchain::vfs::FileSystem *FS) const {
   if (!SDKPlatformPath)
     SDKPlatformPath = computeSDKPlatformPath(getSDKPath(), FS);
   if (SDKPlatformPath->empty())
@@ -112,40 +109,37 @@ SearchPathOptions::getSDKPlatformPath(llvm::vfs::FileSystem *FS) const {
 }
 
 void SearchPathOptions::dump(bool isDarwin) const {
-  llvm::errs() << "Module import search paths:\n";
-  for (auto Entry : llvm::enumerate(getImportSearchPaths())) {
-    llvm::errs() << "  [" << Entry.index() << "] "
+  toolchain::errs() << "Module import search paths:\n";
+  for (auto Entry : toolchain::enumerate(getImportSearchPaths())) {
+    toolchain::errs() << "  [" << Entry.index() << "] "
                  << (Entry.value().IsSystem ? "(system) " : "(non-system) ")
                  << Entry.value().Path << "\n";
   }
 
-  llvm::errs() << "Framework search paths:\n";
-  for (auto Entry : llvm::enumerate(getFrameworkSearchPaths())) {
-    llvm::errs() << "  [" << Entry.index() << "] "
+  toolchain::errs() << "Framework search paths:\n";
+  for (auto Entry : toolchain::enumerate(getFrameworkSearchPaths())) {
+    toolchain::errs() << "  [" << Entry.index() << "] "
                  << (Entry.value().IsSystem ? "(system) " : "(non-system) ")
                  << Entry.value().Path << "\n";
   }
 
-  if (isDarwin) {
-    llvm::errs() << "Darwin implicit framework search paths:\n";
-    for (auto Entry :
-         llvm::enumerate(getDarwinImplicitFrameworkSearchPaths())) {
-      llvm::errs() << "  [" << Entry.index() << "] " << Entry.value() << "\n";
-    }
+  toolchain::errs() << "Implicit framework search paths:\n";
+  for (auto Entry : toolchain::enumerate(getImplicitFrameworkSearchPaths())) {
+    toolchain::errs() << "  [" << Entry.index() << "] " << Entry.value() << "\n";
   }
 
-  llvm::errs() << "Runtime library import search paths:\n";
-  for (auto Entry : llvm::enumerate(getRuntimeLibraryImportPaths())) {
-    llvm::errs() << "  [" << Entry.index() << "] " << Entry.value() << "\n";
+  toolchain::errs() << "Runtime library import search paths:\n";
+  for (auto Entry : toolchain::enumerate(getRuntimeLibraryImportPaths())) {
+    toolchain::errs() << "  [" << Entry.index() << "] " << Entry.value() << "\n";
   }
 
-  llvm::errs() << "(End of search path lists.)\n";
+  toolchain::errs() << "(End of search path lists.)\n";
 }
 
 SmallVector<const ModuleSearchPath *, 4>
 ModuleSearchPathLookup::searchPathsContainingFile(
-    const SearchPathOptions *Opts, llvm::ArrayRef<std::string> Filenames,
-    llvm::vfs::FileSystem *FS, bool IsOSDarwin) {
+    const SearchPathOptions *Opts, toolchain::ArrayRef<std::string> Filenames,
+    toolchain::vfs::FileSystem *FS, bool IsOSDarwin) {
   if (!State.IsPopulated || State.FileSystem != FS ||
       State.IsOSDarwin != IsOSDarwin || State.Opts != Opts) {
     rebuildLookupTable(Opts, FS, IsOSDarwin);
@@ -160,8 +154,8 @@ ModuleSearchPathLookup::searchPathsContainingFile(
   // import and once as framework search path), these search paths are
   // considered different (because they have different indices/kinds and may
   // thus still be included twice.
-  llvm::SmallVector<const ModuleSearchPath *, 4> Result;
-  llvm::SmallSet<std::pair<ModuleSearchPathKind, unsigned>, 4> ResultIds;
+  toolchain::SmallVector<const ModuleSearchPath *, 4> Result;
+  toolchain::SmallSet<std::pair<ModuleSearchPathKind, unsigned>, 4> ResultIds;
 
   for (auto &Filename : Filenames) {
     if (LookupTable.contains(Filename)) {
@@ -177,7 +171,7 @@ ModuleSearchPathLookup::searchPathsContainingFile(
   // Make sure we maintain the same search paths order that we had used in
   // populateLookupTableIfNecessary after merging results from
   // different filenames.
-  llvm::sort(Result, [](const ModuleSearchPath *Lhs,
+  toolchain::sort(Result, [](const ModuleSearchPath *Lhs,
                         const ModuleSearchPath *Rhs) { return *Lhs < *Rhs; });
   return Result;
 }
@@ -185,37 +179,37 @@ ModuleSearchPathLookup::searchPathsContainingFile(
 /// Loads a VFS YAML file located at \p File using \p BaseFS and adds it to
 /// \p OverlayFS. Returns an error if either loading the \p File failed or it
 /// is invalid.
-static llvm::Error loadAndValidateVFSOverlay(
+static toolchain::Error loadAndValidateVFSOverlay(
     const std::string &File,
-    const llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> &BaseFS,
-    const llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> &OverlayFS) {
+    const toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> &BaseFS,
+    const toolchain::IntrusiveRefCntPtr<toolchain::vfs::OverlayFileSystem> &OverlayFS) {
   auto Buffer = BaseFS->getBufferForFile(File);
   if (!Buffer)
-    return llvm::createFileError(File, Buffer.getError());
+    return toolchain::createFileError(File, Buffer.getError());
 
-  auto VFS = llvm::vfs::getVFSFromYAML(std::move(Buffer.get()), nullptr, File);
+  auto VFS = toolchain::vfs::getVFSFromYAML(std::move(Buffer.get()), nullptr, File);
   if (!VFS)
-    return llvm::createFileError(File, llvm::errc::invalid_argument);
+    return toolchain::createFileError(File, toolchain::errc::invalid_argument);
 
   OverlayFS->pushOverlay(std::move(VFS));
-  return llvm::Error::success();
+  return toolchain::Error::success();
 }
 
-llvm::Expected<llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem>>
+toolchain::Expected<toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem>>
 SearchPathOptions::makeOverlayFileSystem(
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> BaseFS) const {
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> BaseFS) const {
   // TODO: This implementation is different to how Clang reads overlays in.
   // Expose a helper in Clang rather than doing this ourselves.
 
   auto OverlayFS =
-      llvm::makeIntrusiveRefCnt<llvm::vfs::OverlayFileSystem>(BaseFS);
+      toolchain::makeIntrusiveRefCnt<toolchain::vfs::OverlayFileSystem>(BaseFS);
 
-  llvm::Error AllErrors = llvm::Error::success();
+  toolchain::Error AllErrors = toolchain::Error::success();
   bool hasOverlays = false;
   for (const auto &File : VFSOverlayFiles) {
     hasOverlays = true;
     if (auto Err = loadAndValidateVFSOverlay(File, BaseFS, OverlayFS))
-      AllErrors = llvm::joinErrors(std::move(AllErrors), std::move(Err));
+      AllErrors = toolchain::joinErrors(std::move(AllErrors), std::move(Err));
   }
 
   if (AllErrors)

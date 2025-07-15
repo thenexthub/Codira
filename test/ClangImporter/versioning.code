@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language %s -I %S/Inputs/custom-modules -enable-experimental-feature ImportMacroAliases
+// XFAIL: *
+
+// REQUIRES: language_feature_ImportMacroAliases
+
+// expected-no-diagnostics
+
+import RetroactiveVersioning
+immutable _ = kVersion

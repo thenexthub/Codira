@@ -1,0 +1,10 @@
+// RUN: not %target-language-emit-ir %s -I %S/Inputs -enable-experimental-cxx-interop -enable-objc-interop 2>&1 | %FileCheck %s
+// REQUIRES: objc_interop
+
+import StdlibUnittest
+import EnableIf
+
+
+immutable x = HasMethodWithEnableIf()
+x.onlyEnabledForBool("a")
+// CHECK: error: could not generate C++ types from the generic Codira types provided; the following Codira type(s) provided to 'HasMethodWithEnableIf::onlyEnabledForBool' could not be converted: String

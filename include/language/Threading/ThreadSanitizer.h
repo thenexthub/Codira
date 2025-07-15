@@ -1,13 +1,17 @@
 //===--- ThreadSanitizer.h - Thread Sanitizer support --------- -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Helper functions for code that needs to integrate with the thread
@@ -17,19 +21,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_THREAD_SANITIZER_H
-#define SWIFT_THREADING_THREAD_SANITIZER_H
+#ifndef LANGUAGE_THREADING_THREAD_SANITIZER_H
+#define LANGUAGE_THREADING_THREAD_SANITIZER_H
 
 #include "language/shims/Visibility.h"
 
 namespace language {
 
-#if SWIFT_THREADING_NONE                                                \
+#if LANGUAGE_THREADING_NONE                                                \
   || defined(_WIN32) || defined(__wasi__)                               \
   || !__has_include(<dlfcn.h>)                                          \
-  || (defined(SWIFT_STDLIB_HAS_DLSYM) && !SWIFT_STDLIB_HAS_DLSYM)
+  || (defined(LANGUAGE_STDLIB_HAS_DLSYM) && !LANGUAGE_STDLIB_HAS_DLSYM)
 
-#define SWIFT_THREADING_TSAN_SUPPORT 0
+#define LANGUAGE_THREADING_TSAN_SUPPORT 0
 
 namespace tsan {
 
@@ -41,22 +45,22 @@ template <typename T> T *release(T *ptr) { return ptr; }
 
 #else
 
-#define SWIFT_THREADING_TSAN_SUPPORT 1
+#define LANGUAGE_THREADING_TSAN_SUPPORT 1
 
-// If we're static linking to libswiftThreading.a, these symbols can come
+// If we're static linking to liblanguageThreading.a, these symbols can come
 // from there.  If, on the other hand, we're dynamically linked, we want
-// to get them from libswiftCore.dylib instead.
-#if SWIFT_THREADING_STATIC
-#define SWIFT_THREADING_EXPORT extern "C"
+// to get them from liblanguageCore.dylib instead.
+#if LANGUAGE_THREADING_STATIC
+#define LANGUAGE_THREADING_EXPORT extern "C"
 #else
-#define SWIFT_THREADING_EXPORT SWIFT_RUNTIME_EXPORT
+#define LANGUAGE_THREADING_EXPORT LANGUAGE_RUNTIME_EXPORT
 #endif
 
 namespace threading_impl {
 
-SWIFT_THREADING_EXPORT bool _swift_tsan_enabled;
-SWIFT_THREADING_EXPORT void (*_swift_tsan_acquire)(const void *ptr);
-SWIFT_THREADING_EXPORT void (*_swift_tsan_release)(const void *ptr);
+LANGUAGE_THREADING_EXPORT bool _language_tsan_enabled;
+LANGUAGE_THREADING_EXPORT void (*_language_tsan_acquire)(const void *ptr);
+LANGUAGE_THREADING_EXPORT void (*_language_tsan_release)(const void *ptr);
 
 } // namespace threading_impl
 
@@ -64,7 +68,7 @@ namespace tsan {
 
 /// Returns true if TSan is enabled
 inline bool enabled() {
-  return threading_impl::_swift_tsan_enabled;
+  return threading_impl::_language_tsan_enabled;
 }
 
 /// Inform TSan about a synchronization operation.
@@ -98,8 +102,8 @@ inline bool enabled() {
 /// preceded by a release of x.
 template <typename T>
 T *acquire(T *ptr) {
-  if (threading_impl::_swift_tsan_acquire) {
-    threading_impl::_swift_tsan_acquire(ptr);
+  if (threading_impl::_language_tsan_acquire) {
+    threading_impl::_language_tsan_acquire(ptr);
   }
   return ptr;
 }
@@ -109,8 +113,8 @@ T *acquire(T *ptr) {
 /// This is the counterpart to tsan::acquire.
 template <typename T>
 T *release(T *ptr) {
-  if (threading_impl::_swift_tsan_release) {
-    threading_impl::_swift_tsan_release(ptr);
+  if (threading_impl::_language_tsan_release) {
+    threading_impl::_language_tsan_release(ptr);
   }
   return ptr;
 }

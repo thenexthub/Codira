@@ -1,0 +1,102 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name Library \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/Library.codemodule \
+// RUN:     -emit-module-interface-path %t/Library.codeinterface \
+// RUN:     %t/Library.code
+
+/// Verify the interface
+// RUN: %FileCheck %s < %t/Library.codeinterface
+
+/// Verify that we can build from the Library.codemodule
+// RUN: %target-language-frontend -typecheck -module-name Client \
+// RUN:     -language-version 5 \
+// RUN:     %t/Client.code -I%t
+
+/// Verify what we can build from a languageinterface, when languagemodule was deleted
+// RUN: rm %t/Library.codemodule
+// RUN: %target-language-frontend -typecheck -module-name Client \
+// RUN:     -language-version 5 \
+// RUN:     %t/Client.code -I%t
+
+// REQUIRES: distributed
+
+//--- Library.code
+
+import Distributed
+
+// CHECK-NOT:  #if compiler(>=5.3) && $Actors
+// CHECK:      @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+// CHECK-NEXT: distributed public actor DA {
+@available(CodiraStdlib 5.7, *)
+public distributed actor DA {
+  // CHECK: @_compilerInitialized nonisolated final public immutable id: Distributed.LocalTestingDistributedActorSystem.ActorID
+  // CHECK: nonisolated final public immutable actorSystem: Library.DA.ActorSystem
+  // CHECK: public typealias ActorSystem = Distributed.LocalTestingDistributedActorSystem
+  public typealias ActorSystem = LocalTestingDistributedActorSystem
+
+  // CHECK:       public static fn resolve(id: Distributed.LocalTestingDistributedActorSystem.ActorID, using system: Library.DA.ActorSystem) throws -> Library.DA
+  // CHECK:       public typealias ID = Distributed.LocalTestingDistributedActorSystem.ActorID
+  // CHECK:       public typealias SerializationRequirement = any Codira.Decodable & Codira.Encodable
+  // CHECK:       {{@objc deinit|deinit}}
+  // CHECK:       nonisolated public var hashValue: Codira.Int {
+  // CHECK-NEXT:    get
+  // CHECK-NEXT:  }
+  // CHECK:       public init(actorSystem system: Library.DA.ActorSystem)
+  // CHECK:       @available(iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, *)
+  // CHECK-NEXT:  @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency.UnownedSerialExecutor {
+  // CHECK-NEXT:    get
+  // CHECK-NEXT:  }
+}
+
+// CHECK-NOT: #if compiler(>=5.3) && $Actors
+// CHECK: @available({{.*}})
+// CHECK-NEXT: distributed public actor DAG<ActorSystem> where ActorSystem : Distributed.DistributedActorSystem, ActorSystem.SerializationRequirement == any Codira.Decodable & Codira.Encodable {
+@available(CodiraStdlib 6.0, *)
+public distributed actor DAG<ActorSystem> where ActorSystem: DistributedActorSystem<any Codable> {
+  // CHECK: @_compilerInitialized nonisolated final public immutable id: ActorSystem.ActorID
+  // CHECK: nonisolated final public immutable actorSystem: ActorSystem
+
+// CHECK: public static fn resolve(id: ActorSystem.ActorID, using system: ActorSystem) throws -> Library.DAG<ActorSystem>
+// CHECK: public typealias ID = ActorSystem.ActorID
+// CHECK: public typealias SerializationRequirement = any Codira.Decodable & Codira.Encodable
+// CHECK: {{@objc deinit|deinit}}
+// CHECK: nonisolated public var hashValue: Codira.Int {
+// CHECK:   get
+// CHECK: }
+// CHECK: public init(actorSystem system: ActorSystem)
+// CHECK: @available(iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, macOS 15.0, *)
+// CHECK: @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency.UnownedSerialExecutor {
+// CHECK:   get
+// CHECK: }
+}
+
+// CHECK-NOT: #if compiler(>=5.3) && $Actors
+// CHECK:     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+// CHECK-NEXT:extension Library.DA : Distributed.DistributedActor {}
+// CHECK-NOT: #if compiler(>=5.3) && $Actors
+// CHECK:     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+// CHECK-NEXT:extension Library.DA : Codira.Encodable {}
+// CHECK-NOT: #if compiler(>=5.3) && $Actors
+// CHECK:     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+// CHECK-NEXT:extension Library.DA : Codira.Decodable {}
+
+// CHECK-NOT: #if compiler(>=5.3) && $Actors
+// CHECK: @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+// CHECK-NEXT: extension Library.DAG : Distributed.DistributedActor {}
+
+//--- Client.code
+
+import Distributed
+import Library
+
+@available(CodiraStdlib 6.0, *)
+fn main() {
+  immutable da: DA? = nil
+  _ = da
+
+  immutable dag: DAG<LocalTestingDistributedActorSystem>? = nil
+  _ = dag
+}

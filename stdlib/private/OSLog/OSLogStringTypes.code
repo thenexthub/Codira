@@ -1,4 +1,4 @@
-//===----------------- OSLogStringTypes.swift -----------------------------===//
+//===----------------- OSLogStringTypes.code -----------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file defines extensions for interpolating strings into an OSLogMessage.
@@ -44,7 +45,7 @@ extension OSLogInterpolation {
   @inlinable
   @_optimize(none)
   @_semantics("oslog.requires_constant_arguments")
-  public mutating func appendInterpolation(
+  public mutating fn appendInterpolation(
     _ argumentString: @autoclosure @escaping () -> String,
     align: OSLogStringAlignment = .none,
     privacy: OSLogPrivacy = .auto
@@ -55,7 +56,7 @@ extension OSLogInterpolation {
 
     // If minimum column width is specified, append this value first. Note that the
     // format specifier would use a '*' for width e.g. %*s.
-    if let minColumns = align.minimumColumnWidth {
+    if immutable minColumns = align.minimumColumnWidth {
       appendAlignmentArgument(minColumns)
     }
 
@@ -77,13 +78,13 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func addStringHeaders(_ privacy: OSLogPrivacy) {
+  internal mutating fn addStringHeaders(_ privacy: OSLogPrivacy) {
     // Append argument header.
-    let header = getArgumentHeader(privacy: privacy, type: .string)
+    immutable header = getArgumentHeader(privacy: privacy, type: .string)
     arguments.append(header)
 
     // Append number of bytes needed to serialize the argument.
-    let byteCount = pointerSizeInBytes()
+    immutable byteCount = pointerSizeInBytes()
     arguments.append(UInt8(byteCount))
 
     // Increment total byte size by the number of bytes needed for this
@@ -101,12 +102,12 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @_effects(readonly)
   @_optimize(none)
-  internal func getStringFormatSpecifier(
+  internal fn getStringFormatSpecifier(
     _ align: OSLogStringAlignment,
     _ privacy: OSLogPrivacy
   ) -> String {
     var specifier = "%"
-    if let privacySpecifier = privacy.privacySpecifier {
+    if immutable privacySpecifier = privacy.privacySpecifier {
       specifier += "{"
       specifier += privacySpecifier
       specifier += "}"
@@ -114,7 +115,7 @@ extension OSLogInterpolation {
     if case .start = align.anchor {
       specifier += "-"
     }
-    if let _ = align.minimumColumnWidth {
+    if immutable _ = align.minimumColumnWidth {
       specifier += "*"
     }
     specifier += "s"
@@ -129,7 +130,7 @@ extension OSLogArguments {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func append(_ value: @escaping () -> String) {
+  internal mutating fn append(_ value: @escaping () -> String) {
     argumentClosures.append({ (position, _, stringArgumentOwners) in
       serialize(
         value(),
@@ -148,7 +149,7 @@ extension OSLogArguments {
 /// instead of @inline(__always) as it is used in optimize(none) functions.
 @_transparent
 @_alwaysEmitIntoClient
-internal func pointerSizeInBytes() -> Int {
+internal fn pointerSizeInBytes() -> Int {
   return Int.bitWidth &>> logBitsPerByte
 }
 
@@ -156,18 +157,18 @@ internal func pointerSizeInBytes() -> Int {
 /// pointed to by `bufferPosition`.
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func serialize(
+internal fn serialize(
   _ stringValue: String,
   at bufferPosition: inout UnsafeMutablePointer<UInt8>,
   storingStringOwnersIn stringArgumentOwners: inout ObjectStorage<Any>
 ) {
-  let stringPointer =
+  immutable stringPointer =
     getNullTerminatedUTF8Pointer(
       stringValue,
       storingStringOwnersIn: &stringArgumentOwners)
 
-  let byteCount = pointerSizeInBytes()
-  let dest =
+  immutable byteCount = pointerSizeInBytes()
+  immutable dest =
     UnsafeMutableRawBufferPointer(start: bufferPosition, count: byteCount)
   withUnsafeBytes(of: stringPointer) { dest.copyMemory(from: $0) }
   bufferPosition += byteCount
@@ -178,14 +179,14 @@ internal func serialize(
 /// using `stringArgumentOwners`.
 @_alwaysEmitIntoClient
 @inline(never)
-internal func getNullTerminatedUTF8Pointer(
+internal fn getNullTerminatedUTF8Pointer(
   _ stringValue: String,
   storingStringOwnersIn stringArgumentOwners: inout ObjectStorage<Any>
 ) -> UnsafeRawPointer {
-  let (optStorage, bytePointer, _, _, _):
+  immutable (optStorage, bytePointer, _, _, _):
     (AnyObject?, UnsafeRawPointer, Int, Bool, Bool) =
      stringValue._deconstructUTF8(scratch: nil)
-  if let storage = optStorage {
+  if immutable storage = optStorage {
     initializeAndAdvance(&stringArgumentOwners, to: storage)
   } else {
     initializeAndAdvance(&stringArgumentOwners, to: stringValue._guts)

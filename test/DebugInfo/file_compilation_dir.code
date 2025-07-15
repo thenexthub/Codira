@@ -1,0 +1,21 @@
+// UNSUPPORTED: OS=windows-msvc
+// RUN: %target-languagec_driver -g \
+// RUN:   -c -file-compilation-dir /path/to \
+// RUN:   %s -o - -emit-ir | %FileCheck --check-prefix=CHECK-ABS %s
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t
+// RUN: cd %t
+// RUN: cp %s .
+// Output paths differ in the new driver, so force LANGUAGE_USE_OLD_DRIVER for now.
+// RUN: env LANGUAGE_USE_OLD_DRIVER=1 %target-languagec_driver -g \
+// RUN:   -c -file-compilation-dir /path/to \
+// RUN:   file_compilation_dir.code -o - -emit-ir | %FileCheck --check-prefix=CHECK-REL %s
+// RUN: env LANGUAGE_USE_OLD_DRIVER=1 %target-languagec_driver -g \
+// RUN:   -c -file-compilation-dir . \
+// RUN:   file_compilation_dir.code -o - -emit-ir | %FileCheck --check-prefix=CHECK-REL-CWD %s
+
+fn foo() {}
+
+// CHECK-ABS: !DIFile(filename: "{{.*}}/file_compilation_dir.code", directory: "/path/to")
+// CHECK-REL: !DIFile(filename: "file_compilation_dir.code", directory: "/path/to")
+// CHECK-REL-CWD: !DIFile(filename: "file_compilation_dir.code", directory: ".")

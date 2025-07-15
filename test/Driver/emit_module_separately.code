@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: touch %t/file1.code %t/file2.code %t/file3.code
+// RUN: echo 'public fn main() {}' >%t/main.code
+//
+// RUN: %target-languagec_driver -driver-skip-execution -c -emit-module -module-name main -driver-print-jobs %s -experimental-emit-module-separately %t/file1.code %t/file2.code %t/file3.code %t/main.code 2>^1 | %FileCheck -check-prefix NORMAL %s
+// RUN: %target-languagec_driver -driver-skip-execution -c -emit-module -module-name main -driver-print-jobs -incremental %s -experimental-emit-module-separately %t/file1.code %t/file2.code %t/file3.code %t/main.code 2>^1 | %FileCheck -check-prefix INCREMENTAL %s
+
+// Just test that we eat this argument. Only the new driver knows what to do
+// here. The legacy driver will just fall back to a merge-modules job as usual.
+// NORMAL: language
+// NORMAL-NOT: -experimental-emit-module-separately
+
+// INCREMENTAL: language
+// INCREMENTAL: -merge-modules
+// INCREMENTAL-NOT: -experimental-emit-module-separately

@@ -1,0 +1,96 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Make sure the flag `ModuleInterfaceExportAs` doesn't raise an error.
+// RUN: %target-language-frontend -emit-module %t/PrivateLib.code \
+// RUN:   -enable-experimental-feature ModuleInterfaceExportAs
+
+/// Build exportee.
+// RUN: %target-language-frontend -emit-module %t/PrivateLib.code \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -export-as PublicLib \
+// RUN:   -o %t/PrivateLib.codemodule \
+// RUN:   -emit-module-interface-path %t/PrivateLib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/PrivateLib.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/PrivateLib.codeinterface)
+// RUN: %target-language-typecheck-module-from-interface(%t/PrivateLib.private.codeinterface) \
+// RUN:   -module-name PrivateLib
+// RUN: cat %t/PrivateLib.codeinterface | %FileCheck --check-prefixes=PRIVATELIB-PUBLIC %s
+// RUN: cat %t/PrivateLib.private.codeinterface | %FileCheck --check-prefixes=PRIVATELIB-PUBLIC %s
+
+/// Build exporter.
+// RUN: %target-language-frontend -emit-module %t/PublicLib.code -I %t \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -o %t/PublicLib.codemodule \
+// RUN:   -emit-module-interface-path %t/PublicLib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/PublicLib.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/PublicLib.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/PublicLib.private.codeinterface) -I %t \
+// RUN:   -module-name PublicLib
+// RUN: cat %t/PublicLib.codeinterface | %FileCheck --check-prefixes=PUBLICLIB-PUBLIC %s
+// RUN: cat %t/PublicLib.private.codeinterface | %FileCheck --check-prefixes=PUBLICLIB-PRIVATE %s
+
+/// Build client.
+// RUN: %target-language-frontend -emit-module %t/ClientLib.code -I %t \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -o %t/ClientLib.codemodule \
+// RUN:   -emit-module-interface-path %t/ClientLib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientLib.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.private.codeinterface) -I %t -module-name ClientLib
+// RUN: cat %t/ClientLib.codeinterface | %FileCheck --check-prefixes=CLIENT-PUBLIC %s
+// RUN: cat %t/ClientLib.private.codeinterface | %FileCheck --check-prefixes=CLIENT-PRIVATE %s
+
+/// Build client against private languageinterfaces.
+// RUN: rm -f %t/PrivateLib.codemodule %t/PublicLib.codemodule
+// RUN: %target-language-frontend -emit-module %t/ClientLib.code -I %t \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -o %t/ClientLib.codemodule \
+// RUN:   -emit-module-interface-path %t/ClientLib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientLib.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.private.codeinterface) -I %t -module-name ClientLib
+// RUN: cat %t/ClientLib.codeinterface | %FileCheck --check-prefixes=CLIENT-PUBLIC %s
+// RUN: cat %t/ClientLib.private.codeinterface | %FileCheck --check-prefixes=CLIENT-PRIVATE %s
+
+/// Build client against public languageinterfaces, for the same result.
+// RUN: rm -f %t/PrivateLib.private.codeinterface %t/PublicLib.private.codeinterface
+// RUN: %target-language-frontend -emit-module %t/ClientLib.code -I %t \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -o %t/ClientLib.codemodule \
+// RUN:   -emit-module-interface-path %t/ClientLib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientLib.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.private.codeinterface) -I %t -module-name ClientLib
+// RUN: cat %t/ClientLib.codeinterface | %FileCheck --check-prefixes=CLIENT-PUBLIC %s
+// RUN: cat %t/ClientLib.private.codeinterface | %FileCheck --check-prefixes=CLIENT-PRIVATE %s
+
+// REQUIRES: language_feature_ModuleInterfaceExportAs
+
+//--- PrivateLib.code
+
+public struct PrivateNameStruct {}
+
+public fn privateLibUser(_ arg: PrivateNameStruct) {}
+// PRIVATELIB-PUBLIC: arg: PrivateLib.PrivateNameStruct
+
+//--- PublicLib.code
+
+@_exported import PrivateLib
+
+public struct PublicNameStruct {}
+
+public fn publicLibUser(_ arg: PrivateNameStruct) {}
+// PUBLICLIB-PUBLIC: arg: PublicLib.PrivateNameStruct
+// PUBLICLIB-PRIVATE: arg: PrivateLib.PrivateNameStruct
+
+//--- ClientLib.code
+
+import PublicLib
+
+public fn userOfPrivate(_ argUserOfPrivate: PrivateNameStruct) {}
+// CLIENT-PUBLIC: argUserOfPrivate: PublicLib.PrivateNameStruct
+// CLIENT-PRIVATE: argUserOfPrivate: PrivateLib.PrivateNameStruct
+public fn userOfPublic(_ argUserOfPublic: PublicNameStruct) {}
+// CLIENT-PUBLIC: argUserOfPublic: PublicLib.PublicNameStruct
+// CLIENT-PRIVATE: argUserOfPublic: PublicLib.PublicNameStruct

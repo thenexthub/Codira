@@ -1,0 +1,165 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend %t/use-objc-types.code -module-name UseObjCTy -typecheck -verify -emit-clang-header-path %t/UseObjCTy.h -I %t -enable-experimental-cxx-interop -clang-header-expose-decls=all-public
+
+// RUN: %FileCheck %s < %t/UseObjCTy.h
+
+// FIXME: remove once https://github.com/apple/language/pull/60971 lands.
+// RUN: echo "#include \"header.h\"" > %t/full-header.h
+// RUN: cat %t/UseObjCTy.h >> %t/full-header.h
+
+// RUN: %target-interop-build-clangxx -std=gnu++20 -fobjc-arc -c -x objective-c++-header %t/full-header.h -o %t/o.o
+
+// REQUIRES: objc_interop
+
+//--- header.h
+#import <Foundation/Foundation.h>
+
+@interface ObjCKlass
+-(ObjCKlass * _Nonnull) init;
+@end
+
+@protocol ObjCProtocol
+@required
+- (void)method;
+@end
+
+@interface ObjCKlassConforming : NSObject<ObjCProtocol>
+- (ObjCKlassConforming * _Nonnull) init;
+- (void)method;
+@end
+
+typedef NS_OPTIONS(NSUInteger, ObjCKlassState) {
+  ObjCKlassStateNormal  = 0,
+};
+
+//--- ObjCTest.apinotes
+Name: ObjCTest
+Tags:
+- Name: ObjCKlassState
+  CodiraName: ObjCKlass.State
+
+//--- module.modulemap
+module ObjCTest {
+    header "header.h"
+}
+
+//--- use-objc-types.code
+import ObjCTest
+import Foundation
+
+@objc public class HasBlockField : NSObject {
+    @objc var foo: ((ObjCKlass.State) -> Void)?
+}
+
+public fn retObjClass() -> ObjCKlass {
+    return ObjCKlass()
+}
+
+public fn takeObjCClass(_ x: ObjCKlass) {
+}
+
+public fn takeObjCClassInout(_ x: inout ObjCKlass) {
+}
+
+public fn takeObjCClassNullable(_ x: ObjCKlass?) {
+}
+
+public fn retObjClassNullable() -> ObjCKlass? {
+    return nil
+}
+
+public fn takeObjCProtocol(_ x: ObjCProtocol) {
+}
+
+public fn retObjCProtocol() -> ObjCProtocol {
+    return ObjCKlassConforming()
+}
+
+public fn takeObjCProtocolNullable(_ x: ObjCProtocol?) {
+}
+
+public fn retObjCProtocolNullable() -> ObjCProtocol? {
+    return nil
+}
+
+public fn retObjCClassArray() -> [ObjCKlass] {
+    return []
+}
+
+public class KVOCookieMonster {
+   public static fn += (lhs: KVOCookieMonster, rhs: NSKeyValueObservation) {
+      lhs.cookies.append(rhs)
+   }
+
+   private var cookies = Array<NSKeyValueObservation>()
+}
+
+// CHECK: @interface HasBlockField : NSObject
+// CHECK: @property (nonatomic, copy) void (^ _Nullable foo)(ObjCKlassState);
+// CHECK: @end
+// CHECK: LANGUAGE_EXTERN id <ObjCProtocol> _Nonnull $s9UseObjCTy03retB9CProtocolSo0bE0_pyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // retObjCProtocol()
+// CHECK-NEXT: #endif
+// CHECK-NEXT: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_EXTERN id <ObjCProtocol> _Nullable $s9UseObjCTy03retB17CProtocolNullableSo0bE0_pSgyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // retObjCProtocolNullable()
+// CHECK-NEXT: #endif
+// CHECK: ObjCKlass *_Nonnull $s9UseObjCTy03retB5ClassSo0B6CKlassCyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: ObjCKlass *_Nullable $s9UseObjCTy03retB13ClassNullableSo0B6CKlassCSgyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: void $s9UseObjCTy04takeB6CClassyySo0B6CKlassCF(ObjCKlass *_Nonnull x) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: void $s9UseObjCTy04takeB11CClassInoutyySo0B6CKlassCzF(ObjCKlass *_Nonnull __strong * _Nonnull x) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: void $s9UseObjCTy04takeB14CClassNullableyySo0B6CKlassCSgF(ObjCKlass *_Nullable x) LANGUAGE_NOEXCEPT LANGUAGE_CALL;
+// CHECK-NEXT: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s9UseObjCTy04takeB9CProtocolyySo0bE0_pF(id <ObjCProtocol> _Nonnull x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // takeObjCProtocol(_:)
+// CHECK-NEXT: #endif
+// CHECK-NEXT: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_EXTERN void $s9UseObjCTy04takeB17CProtocolNullableyySo0bE0_pSgF(id <ObjCProtocol> _Nullable x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // takeObjCProtocolNullable(_:)
+// CHECK-NEXT: #endif
+
+// CHECK: inline const constexpr bool isUsableInGenericContext<ObjCKlass*> = true;
+// CHECK-NEXT: template<>
+// CHECK-NEXT: struct TypeMetadataTrait<ObjCKlass*> {
+// CHECK-NEXT:   static LANGUAGE_INLINE_PRIVATE_HELPER void * _Nonnull getTypeMetadata() {
+// CHECK-NEXT:     return UseObjCTy::_impl::$sSo9ObjCKlassCMa(0)._0;
+// CHECK-NEXT:   }
+// CHECK-NEXT: };
+
+// CHECK: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK id <ObjCProtocol> _Nonnull retObjCProtocol() noexcept LANGUAGE_SYMBOL("s:9UseObjCTy03retB9CProtocolSo0bE0_pyF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT:  return (__bridge_transfer id <ObjCProtocol>)(__bridge void *)UseObjCTy::_impl::$s9UseObjCTy03retB9CProtocolSo0bE0_pyF();
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif
+
+// CHECK: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK id <ObjCProtocol> _Nullable retObjCProtocolNullable() noexcept LANGUAGE_SYMBOL("s:9UseObjCTy03retB17CProtocolNullableSo0bE0_pSgyF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT: return (__bridge_transfer id <ObjCProtocol>)(__bridge void *)UseObjCTy::_impl::$s9UseObjCTy03retB17CProtocolNullableSo0bE0_pSgyF();
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif
+
+// CHECK: LANGUAGE_INLINE_THUNK ObjCKlass *_Nonnull retObjClass() noexcept LANGUAGE_SYMBOL({{.*}}) LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT: return (__bridge_transfer ObjCKlass *)(__bridge void *)UseObjCTy::_impl::$s9UseObjCTy03retB5ClassSo0B6CKlassCyF();
+
+// CHECK: LANGUAGE_INLINE_THUNK ObjCKlass *_Nullable retObjClassNullable() noexcept LANGUAGE_SYMBOL({{.*}}) LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK-NEXT: return (__bridge_transfer ObjCKlass *)(__bridge void *)UseObjCTy::_impl::$s9UseObjCTy03retB13ClassNullableSo0B6CKlassCSgyF();
+
+// CHECK: void takeObjCClass(ObjCKlass *_Nonnull x) noexcept LANGUAGE_SYMBOL({{.*}}) {
+// CHECK-NEXT: _impl::$s9UseObjCTy04takeB6CClassyySo0B6CKlassCF(x);
+
+// CHECK: LANGUAGE_INLINE_THUNK void takeObjCClassInout(ObjCKlass *_Nonnull __strong & x) noexcept LANGUAGE_SYMBOL({{.*}}) {
+// CHECK-NEXT: _impl::$s9UseObjCTy04takeB11CClassInoutyySo0B6CKlassCzF(&x);
+
+// CHECK: LANGUAGE_INLINE_THUNK void takeObjCClassNullable(ObjCKlass *_Nullable x) noexcept LANGUAGE_SYMBOL({{.*}}) {
+// CHECK-NEXT: _impl::$s9UseObjCTy04takeB14CClassNullableyySo0B6CKlassCSgF(x);
+
+
+// CHECK: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void takeObjCProtocol(id <ObjCProtocol> _Nonnull x) noexcept LANGUAGE_SYMBOL("s:9UseObjCTy04takeB9CProtocolyySo0bE0_pF") {
+// CHECK-NEXT:   UseObjCTy::_impl::$s9UseObjCTy04takeB9CProtocolyySo0bE0_pF(x);
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif
+
+// CHECK: #if defined(__OBJC__)
+// CHECK-NEXT: LANGUAGE_INLINE_THUNK void takeObjCProtocolNullable(id <ObjCProtocol> _Nullable x) noexcept LANGUAGE_SYMBOL("s:9UseObjCTy04takeB17CProtocolNullableyySo0bE0_pSgF") {
+// CHECK-NEXT:   UseObjCTy::_impl::$s9UseObjCTy04takeB17CProtocolNullableyySo0bE0_pSgF(x);
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif

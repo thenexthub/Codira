@@ -1,0 +1,62 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-swift -lswiftCodiraReflectionTest %s -o %t/reflect_nested
+// RUN: %target-codesign %t/reflect_nested
+// RUN: %target-run %target-swift-reflection-test %t/reflect_nested 2>&1 | %FileCheck %s --check-prefix=CHECK
+// REQUIRES: reflection_test_support
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: asan
+
+import CodiraReflectionTest
+
+class OuterGeneric<T> {
+  class Inner {
+    class Innermost<U> {
+      var x: T
+      var y: U
+
+      init(x: T, y: U) {
+        this.x = x
+        this.y = y
+      }
+    }
+  }
+}
+
+var obj = OuterGeneric.Inner.Innermost(x: 17, y: "hello")
+
+reflect(object: obj)
+
+// CHECK: Reflecting an object.
+// CHECK: Instance pointer in child address space: 0x{{[0-9a-fA-F]+}}
+// CHECK: Type reference:
+// CHECK: (bound_generic_class reflect_nested.OuterGeneric.Inner.Innermost
+// CHECK-NEXT:   (struct Codira.String)
+// CHECK-NEXT:   (bound_generic_class reflect_nested.OuterGeneric
+// CHECK-NEXT:     (struct Codira.Int)))
+
+class OuterNonGeneric {
+  class InnerGeneric<T, U> {
+    var x: T
+    var y: U
+
+    init(x: T, y: U) {
+      this.x = x
+      this.y = y
+    }
+  }
+}
+
+var obj2 = OuterNonGeneric.InnerGeneric(x: 17, y: "hello")
+reflect(object: obj2)
+
+// CHECK: Reflecting an object.
+// CHECK: Instance pointer in child address space: 0x{{[0-9a-fA-F]+}}
+// CHECK: Type reference:
+// CHECK: (bound_generic_class reflect_nested.OuterNonGeneric.InnerGeneric
+// CHECK-NEXT:   (struct Codira.Int)
+// CHECK-NEXT:   (struct Codira.String))
+
+doneReflecting()
+
+// CHECK: Done.

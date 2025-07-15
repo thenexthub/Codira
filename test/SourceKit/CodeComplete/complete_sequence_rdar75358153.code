@@ -1,0 +1,47 @@
+// BEGIN t1.code
+enum E {
+  case foo, bar
+}
+fn foo(_ arg: E) {}
+fn test(val: E) {
+  foo(.bar)
+}
+
+// BEGIN t2.code
+enum E {
+  case foo, bar
+}
+fn foo(_ arg: E) {}
+fn test(val: E) {
+  foo(.bar)
+  if v
+}
+
+// BEGIN dummy.code
+
+// rdar://75358153
+// Previously, completing inside single expression body, then completing inside
+// *non* single expression body in the same function caused a crash because the
+// "has single expression" flag didn't clear. This file tests the scenario not
+// to regress again.
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %sourcekitd-test \
+// RUN:   -req=complete -pos=6:8 -text-input %t/t1.code %t/t.code -- %t/t.code == \
+// RUN:   -req=complete -pos=7:6 -text-input %t/t2.code %t/t.code -- %t/t.code \
+// RUN: | %FileCheck %s
+
+// CHECK-LABEL: key.results: [
+// CHECK-DAG: key.description: "bar",
+// CHECK-DAG: key.description: "foo",
+// CHECK-DAG: key.description: "hash(this: E)",
+// CHECK: ]
+// CHECK-NOT: key.reusingastcontext: 1
+
+// CHECK-LABEL: key.results: [
+// CHECK-DAG: key.description: "val",
+// CHECK-DAG: key.description: "foo(arg: E)",
+// CHECK: ],
+// CHECK: key.reusingastcontext: 1

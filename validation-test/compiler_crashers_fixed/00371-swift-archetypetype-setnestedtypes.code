@@ -1,0 +1,46 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn g<H : T! {
+b
+this.E == A> {
+typealias R = b: a {
+struct d<T
+}
+return nil
+class fn g.E == c> T! {
+}
+static immutable t: d = b<T>) -> Int = b
+}
+protocol P {
+typealias e : a {
+protocol a {
+c(this.b = nil
+if true {
+fn call(array: e: c: T where H.e where H.a
+fn b
+}
+typealias F = a
+fn call(x: A()
+}
+[T>("")("")
+S<U : Int
+}
+struct S<T>) -> Int = nil
+}
+immutable d.B<T
+convenience init(this)
+class C<T, AnyObject, f()
+}
+}(f: A")
+class fn a
+re

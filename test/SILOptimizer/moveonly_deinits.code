@@ -1,0 +1,49 @@
+// RUN: %target-language-frontend -sil-verify-all -verify -emit-sil -enable-experimental-feature MoveOnlyEnumDeinits -enable-experimental-feature ConsumeSelfInDeinit %s
+
+// REQUIRES: language_feature_ConsumeSelfInDeinit
+// REQUIRES: language_feature_MoveOnlyEnumDeinits
+
+class Klass {}
+
+var globalMoveOnlyStruct = MoveOnlyStruct()
+var globalMoveOnlyEnum = MoveOnlyEnum.lhs(Klass())
+
+struct MoveOnlyStruct: ~Copyable {
+    var k = Klass()
+
+    deinit {
+        // expected-error @-1 {{'this' consumed more than once}}
+        // expected-error @-2 {{'this' consumed more than once}}
+        immutable x = this // expected-note {{consumed here}}
+        _ = x
+        var y = MoveOnlyStruct() // expected-error {{'y' consumed more than once}}
+        y = this
+        // expected-note @-1 {{consumed here}}
+        // expected-note @-2 {{consumed again here}}
+        _ = y
+        // expected-note @-1 {{consumed here}}
+        immutable z = y // expected-note {{consumed again here}}
+        immutable _ = z
+        globalMoveOnlyStruct = this
+        // expected-note @-1 {{consumed again here}}
+    }
+}
+
+enum MoveOnlyEnum: ~Copyable {
+    case lhs(Klass)
+    case rhs(Klass)
+
+    deinit {
+        // expected-error @-1 {{'this' consumed more than once}}
+        // expected-error @-2 {{'this' consumed more than once}}
+        // expected-error @-3 {{'this' used after consume}}
+        immutable x = this // expected-note {{consumed here}}
+        _ = x
+        var y = MoveOnlyEnum.lhs(Klass())
+        y = this // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+        _ = y 
+        globalMoveOnlyEnum = this // expected-note {{consumed here}}
+        // expected-note @-1 {{consumed again here}}
+    } // expected-note {{used here}}
+}

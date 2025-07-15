@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILRemarkStreamer.h"
 #include "language/AST/DiagnosticsFrontend.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/IR/LLVMContext.h"
+#include "toolchain/IR/LLVMContext.h"
 
 using namespace language;
 
 SILRemarkStreamer::SILRemarkStreamer(
-    std::unique_ptr<llvm::remarks::RemarkStreamer> &&streamer,
-    std::unique_ptr<llvm::raw_fd_ostream> &&stream, const ASTContext &Ctx)
+    std::unique_ptr<toolchain::remarks::RemarkStreamer> &&streamer,
+    std::unique_ptr<toolchain::raw_fd_ostream> &&stream, const ASTContext &Ctx)
     : owner(Owner::SILModule), streamer(std::move(streamer)), context(nullptr),
       remarkStream(std::move(stream)), ctx(Ctx) { }
 
-llvm::remarks::RemarkStreamer &SILRemarkStreamer::getLLVMStreamer() {
+toolchain::remarks::RemarkStreamer &SILRemarkStreamer::getLLVMStreamer() {
   switch (owner) {
   case Owner::SILModule:
     return *streamer.get();
@@ -36,7 +37,7 @@ llvm::remarks::RemarkStreamer &SILRemarkStreamer::getLLVMStreamer() {
   return *streamer.get();
 }
 
-const llvm::remarks::RemarkStreamer &
+const toolchain::remarks::RemarkStreamer &
 SILRemarkStreamer::getLLVMStreamer() const {
   switch (owner) {
   case Owner::SILModule:
@@ -47,7 +48,7 @@ SILRemarkStreamer::getLLVMStreamer() const {
   return *streamer.get();
 }
 
-void SILRemarkStreamer::intoLLVMContext(llvm::LLVMContext &Ctx) & {
+void SILRemarkStreamer::intoLLVMContext(toolchain::LLVMContext &Ctx) & {
   assert(owner == Owner::SILModule);
   Ctx.setMainRemarkStreamer(std::move(streamer));
   context = &Ctx;
@@ -63,29 +64,29 @@ SILRemarkStreamer::create(SILModule &silModule) {
 
   auto &diagEngine = silModule.getASTContext().Diags;
   std::error_code errorCode;
-  auto file = std::make_unique<llvm::raw_fd_ostream>(filename, errorCode,
-                                                     llvm::sys::fs::OF_None);
+  auto file = std::make_unique<toolchain::raw_fd_ostream>(filename, errorCode,
+                                                     toolchain::sys::fs::OF_None);
   if (errorCode) {
     diagEngine.diagnose(SourceLoc(), diag::cannot_open_file, filename,
                         errorCode.message());
     return nullptr;
   }
 
-  llvm::Expected<std::unique_ptr<llvm::remarks::RemarkSerializer>>
-      remarkSerializerOrErr = llvm::remarks::createRemarkSerializer(
-          format, llvm::remarks::SerializerMode::Separate, *file);
-  if (llvm::Error err = remarkSerializerOrErr.takeError()) {
+  toolchain::Expected<std::unique_ptr<toolchain::remarks::RemarkSerializer>>
+      remarkSerializerOrErr = toolchain::remarks::createRemarkSerializer(
+          format, toolchain::remarks::SerializerMode::Separate, *file);
+  if (toolchain::Error err = remarkSerializerOrErr.takeError()) {
     diagEngine.diagnose(SourceLoc(), diag::error_creating_remark_serializer,
                         toString(std::move(err)));
     return nullptr;
   }
 
-  auto mainRS = std::make_unique<llvm::remarks::RemarkStreamer>(
+  auto mainRS = std::make_unique<toolchain::remarks::RemarkStreamer>(
       std::move(*remarkSerializerOrErr), filename);
 
   const auto passes = silModule.getOptions().OptRecordPasses;
   if (!passes.empty()) {
-    if (llvm::Error err = mainRS->setFilter(passes)) {
+    if (toolchain::Error err = mainRS->setFilter(passes)) {
       diagEngine.diagnose(SourceLoc(), diag::error_creating_remark_serializer,
                           toString(std::move(err)));
       return nullptr;

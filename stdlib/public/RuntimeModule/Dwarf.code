@@ -1,13 +1,17 @@
-//===--- Dwarf.swift - DWARF support for Swift ----------------------------===//
+//===--- Dwarf.code - DWARF support for Codira ----------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines various DWARF structures and provides types for working with
@@ -15,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 internal import BacktracingImpl.ImageFormats.Dwarf
 
@@ -24,253 +28,253 @@ internal import BacktracingImpl.ImageFormats.Dwarf
 // To avoid confusion with other similar sets of definitions, we've put ours
 // into a C++ wrapper, which means we need aliases here.
 
-typealias Dwarf_Byte   = swift.runtime.Dwarf_Byte
-typealias Dwarf_Half   = swift.runtime.Dwarf_Half
-typealias Dwarf_Word   = swift.runtime.Dwarf_Word
-typealias Dwarf_Xword  = swift.runtime.Dwarf_Xword
-typealias Dwarf_Sbyte  = swift.runtime.Dwarf_Sbyte
-typealias Dwarf_Sword  = swift.runtime.Dwarf_Sword
-typealias Dwarf_Sxword = swift.runtime.Dwarf_Sxword
+typealias Dwarf_Byte   = language.runtime.Dwarf_Byte
+typealias Dwarf_Half   = language.runtime.Dwarf_Half
+typealias Dwarf_Word   = language.runtime.Dwarf_Word
+typealias Dwarf_Xword  = language.runtime.Dwarf_Xword
+typealias Dwarf_Sbyte  = language.runtime.Dwarf_Sbyte
+typealias Dwarf_Sword  = language.runtime.Dwarf_Sword
+typealias Dwarf_Sxword = language.runtime.Dwarf_Sxword
 
-typealias Dwarf32_Offset = swift.runtime.Dwarf32_Offset
-typealias Dwarf32_Size   = swift.runtime.Dwarf32_Size
-typealias Dwarf32_Length = swift.runtime.Dwarf32_Length
+typealias Dwarf32_Offset = language.runtime.Dwarf32_Offset
+typealias Dwarf32_Size   = language.runtime.Dwarf32_Size
+typealias Dwarf32_Length = language.runtime.Dwarf32_Length
 
-typealias Dwarf64_Offset = swift.runtime.Dwarf64_Offset
-typealias Dwarf64_Size   = swift.runtime.Dwarf64_Size
-typealias Dwarf64_Length = swift.runtime.Dwarf64_Length
+typealias Dwarf64_Offset = language.runtime.Dwarf64_Offset
+typealias Dwarf64_Size   = language.runtime.Dwarf64_Size
+typealias Dwarf64_Length = language.runtime.Dwarf64_Length
 
-typealias Dwarf_UnitType           = swift.runtime.Dwarf_UnitType
-typealias Dwarf_Tag                = swift.runtime.Dwarf_Tag
-typealias Dwarf_ChildDetermination = swift.runtime.Dwarf_ChildDetermination
-typealias Dwarf_Attribute          = swift.runtime.Dwarf_Attribute
-typealias Dwarf_Form               = swift.runtime.Dwarf_Form
+typealias Dwarf_UnitType           = language.runtime.Dwarf_UnitType
+typealias Dwarf_Tag                = language.runtime.Dwarf_Tag
+typealias Dwarf_ChildDetermination = language.runtime.Dwarf_ChildDetermination
+typealias Dwarf_Attribute          = language.runtime.Dwarf_Attribute
+typealias Dwarf_Form               = language.runtime.Dwarf_Form
 
-let DW_OP_addr                = swift.runtime.DW_OP_addr
-let DW_OP_deref               = swift.runtime.DW_OP_deref
-let DW_OP_const1u             = swift.runtime.DW_OP_const1u
-let DW_OP_const1s             = swift.runtime.DW_OP_const1s
-let DW_OP_const2u             = swift.runtime.DW_OP_const2u
-let DW_OP_const2s             = swift.runtime.DW_OP_const2s
-let DW_OP_const4u             = swift.runtime.DW_OP_const4u
-let DW_OP_const4s             = swift.runtime.DW_OP_const4s
-let DW_OP_const8u             = swift.runtime.DW_OP_const8u
-let DW_OP_const8s             = swift.runtime.DW_OP_const8s
-let DW_OP_constu              = swift.runtime.DW_OP_constu
-let DW_OP_consts              = swift.runtime.DW_OP_consts
-let DW_OP_dup                 = swift.runtime.DW_OP_dup
-let DW_OP_drop                = swift.runtime.DW_OP_drop
-let DW_OP_over                = swift.runtime.DW_OP_over
-let DW_OP_pick                = swift.runtime.DW_OP_pick
-let DW_OP_swap                = swift.runtime.DW_OP_swap
-let DW_OP_rot                 = swift.runtime.DW_OP_rot
-let DW_OP_xderef              = swift.runtime.DW_OP_xderef
-let DW_OP_abs                 = swift.runtime.DW_OP_abs
-let DW_OP_and                 = swift.runtime.DW_OP_and
-let DW_OP_div                 = swift.runtime.DW_OP_div
-let DW_OP_minus               = swift.runtime.DW_OP_minus
-let DW_OP_mod                 = swift.runtime.DW_OP_mod
-let DW_OP_mul                 = swift.runtime.DW_OP_mul
-let DW_OP_neg                 = swift.runtime.DW_OP_neg
-let DW_OP_not                 = swift.runtime.DW_OP_not
-let DW_OP_or                  = swift.runtime.DW_OP_or
-let DW_OP_plus                = swift.runtime.DW_OP_plus
-let DW_OP_plus_uconst         = swift.runtime.DW_OP_plus_uconst
-let DW_OP_shl                 = swift.runtime.DW_OP_shl
-let DW_OP_shr                 = swift.runtime.DW_OP_shr
-let DW_OP_shra                = swift.runtime.DW_OP_shra
-let DW_OP_xor                 = swift.runtime.DW_OP_xor
-let DW_OP_bra                 = swift.runtime.DW_OP_bra
-let DW_OP_eq                  = swift.runtime.DW_OP_eq
-let DW_OP_ge                  = swift.runtime.DW_OP_ge
-let DW_OP_gt                  = swift.runtime.DW_OP_gt
-let DW_OP_le                  = swift.runtime.DW_OP_le
-let DW_OP_lt                  = swift.runtime.DW_OP_lt
-let DW_OP_ne                  = swift.runtime.DW_OP_ne
-let DW_OP_skip                = swift.runtime.DW_OP_skip
-let DW_OP_lit0                = swift.runtime.DW_OP_lit0
-let DW_OP_lit1                = swift.runtime.DW_OP_lit1
-let DW_OP_lit2                = swift.runtime.DW_OP_lit2
-let DW_OP_lit3                = swift.runtime.DW_OP_lit3
-let DW_OP_lit4                = swift.runtime.DW_OP_lit4
-let DW_OP_lit5                = swift.runtime.DW_OP_lit5
-let DW_OP_lit6                = swift.runtime.DW_OP_lit6
-let DW_OP_lit7                = swift.runtime.DW_OP_lit7
-let DW_OP_lit8                = swift.runtime.DW_OP_lit8
-let DW_OP_lit9                = swift.runtime.DW_OP_lit9
-let DW_OP_lit10               = swift.runtime.DW_OP_lit10
-let DW_OP_lit11               = swift.runtime.DW_OP_lit11
-let DW_OP_lit12               = swift.runtime.DW_OP_lit12
-let DW_OP_lit13               = swift.runtime.DW_OP_lit13
-let DW_OP_lit14               = swift.runtime.DW_OP_lit14
-let DW_OP_lit15               = swift.runtime.DW_OP_lit15
-let DW_OP_lit16               = swift.runtime.DW_OP_lit16
-let DW_OP_lit17               = swift.runtime.DW_OP_lit17
-let DW_OP_lit18               = swift.runtime.DW_OP_lit18
-let DW_OP_lit19               = swift.runtime.DW_OP_lit19
-let DW_OP_lit20               = swift.runtime.DW_OP_lit20
-let DW_OP_lit21               = swift.runtime.DW_OP_lit21
-let DW_OP_lit22               = swift.runtime.DW_OP_lit22
-let DW_OP_lit23               = swift.runtime.DW_OP_lit23
-let DW_OP_lit24               = swift.runtime.DW_OP_lit24
-let DW_OP_lit25               = swift.runtime.DW_OP_lit25
-let DW_OP_lit26               = swift.runtime.DW_OP_lit26
-let DW_OP_lit27               = swift.runtime.DW_OP_lit27
-let DW_OP_lit28               = swift.runtime.DW_OP_lit28
-let DW_OP_lit29               = swift.runtime.DW_OP_lit29
-let DW_OP_lit30               = swift.runtime.DW_OP_lit30
-let DW_OP_lit31               = swift.runtime.DW_OP_lit31
+immutable DW_OP_addr                = language.runtime.DW_OP_addr
+immutable DW_OP_deref               = language.runtime.DW_OP_deref
+immutable DW_OP_const1u             = language.runtime.DW_OP_const1u
+immutable DW_OP_const1s             = language.runtime.DW_OP_const1s
+immutable DW_OP_const2u             = language.runtime.DW_OP_const2u
+immutable DW_OP_const2s             = language.runtime.DW_OP_const2s
+immutable DW_OP_const4u             = language.runtime.DW_OP_const4u
+immutable DW_OP_const4s             = language.runtime.DW_OP_const4s
+immutable DW_OP_const8u             = language.runtime.DW_OP_const8u
+immutable DW_OP_const8s             = language.runtime.DW_OP_const8s
+immutable DW_OP_constu              = language.runtime.DW_OP_constu
+immutable DW_OP_consts              = language.runtime.DW_OP_consts
+immutable DW_OP_dup                 = language.runtime.DW_OP_dup
+immutable DW_OP_drop                = language.runtime.DW_OP_drop
+immutable DW_OP_over                = language.runtime.DW_OP_over
+immutable DW_OP_pick                = language.runtime.DW_OP_pick
+immutable DW_OP_swap                = language.runtime.DW_OP_swap
+immutable DW_OP_rot                 = language.runtime.DW_OP_rot
+immutable DW_OP_xderef              = language.runtime.DW_OP_xderef
+immutable DW_OP_abs                 = language.runtime.DW_OP_abs
+immutable DW_OP_and                 = language.runtime.DW_OP_and
+immutable DW_OP_div                 = language.runtime.DW_OP_div
+immutable DW_OP_minus               = language.runtime.DW_OP_minus
+immutable DW_OP_mod                 = language.runtime.DW_OP_mod
+immutable DW_OP_mul                 = language.runtime.DW_OP_mul
+immutable DW_OP_neg                 = language.runtime.DW_OP_neg
+immutable DW_OP_not                 = language.runtime.DW_OP_not
+immutable DW_OP_or                  = language.runtime.DW_OP_or
+immutable DW_OP_plus                = language.runtime.DW_OP_plus
+immutable DW_OP_plus_uconst         = language.runtime.DW_OP_plus_uconst
+immutable DW_OP_shl                 = language.runtime.DW_OP_shl
+immutable DW_OP_shr                 = language.runtime.DW_OP_shr
+immutable DW_OP_shra                = language.runtime.DW_OP_shra
+immutable DW_OP_xor                 = language.runtime.DW_OP_xor
+immutable DW_OP_bra                 = language.runtime.DW_OP_bra
+immutable DW_OP_eq                  = language.runtime.DW_OP_eq
+immutable DW_OP_ge                  = language.runtime.DW_OP_ge
+immutable DW_OP_gt                  = language.runtime.DW_OP_gt
+immutable DW_OP_le                  = language.runtime.DW_OP_le
+immutable DW_OP_lt                  = language.runtime.DW_OP_lt
+immutable DW_OP_ne                  = language.runtime.DW_OP_ne
+immutable DW_OP_skip                = language.runtime.DW_OP_skip
+immutable DW_OP_lit0                = language.runtime.DW_OP_lit0
+immutable DW_OP_lit1                = language.runtime.DW_OP_lit1
+immutable DW_OP_lit2                = language.runtime.DW_OP_lit2
+immutable DW_OP_lit3                = language.runtime.DW_OP_lit3
+immutable DW_OP_lit4                = language.runtime.DW_OP_lit4
+immutable DW_OP_lit5                = language.runtime.DW_OP_lit5
+immutable DW_OP_lit6                = language.runtime.DW_OP_lit6
+immutable DW_OP_lit7                = language.runtime.DW_OP_lit7
+immutable DW_OP_lit8                = language.runtime.DW_OP_lit8
+immutable DW_OP_lit9                = language.runtime.DW_OP_lit9
+immutable DW_OP_lit10               = language.runtime.DW_OP_lit10
+immutable DW_OP_lit11               = language.runtime.DW_OP_lit11
+immutable DW_OP_lit12               = language.runtime.DW_OP_lit12
+immutable DW_OP_lit13               = language.runtime.DW_OP_lit13
+immutable DW_OP_lit14               = language.runtime.DW_OP_lit14
+immutable DW_OP_lit15               = language.runtime.DW_OP_lit15
+immutable DW_OP_lit16               = language.runtime.DW_OP_lit16
+immutable DW_OP_lit17               = language.runtime.DW_OP_lit17
+immutable DW_OP_lit18               = language.runtime.DW_OP_lit18
+immutable DW_OP_lit19               = language.runtime.DW_OP_lit19
+immutable DW_OP_lit20               = language.runtime.DW_OP_lit20
+immutable DW_OP_lit21               = language.runtime.DW_OP_lit21
+immutable DW_OP_lit22               = language.runtime.DW_OP_lit22
+immutable DW_OP_lit23               = language.runtime.DW_OP_lit23
+immutable DW_OP_lit24               = language.runtime.DW_OP_lit24
+immutable DW_OP_lit25               = language.runtime.DW_OP_lit25
+immutable DW_OP_lit26               = language.runtime.DW_OP_lit26
+immutable DW_OP_lit27               = language.runtime.DW_OP_lit27
+immutable DW_OP_lit28               = language.runtime.DW_OP_lit28
+immutable DW_OP_lit29               = language.runtime.DW_OP_lit29
+immutable DW_OP_lit30               = language.runtime.DW_OP_lit30
+immutable DW_OP_lit31               = language.runtime.DW_OP_lit31
 
-let DW_OP_reg0                = swift.runtime.DW_OP_reg0
-let DW_OP_reg1                = swift.runtime.DW_OP_reg1
-let DW_OP_reg2                = swift.runtime.DW_OP_reg2
-let DW_OP_reg3                = swift.runtime.DW_OP_reg3
-let DW_OP_reg4                = swift.runtime.DW_OP_reg4
-let DW_OP_reg5                = swift.runtime.DW_OP_reg5
-let DW_OP_reg6                = swift.runtime.DW_OP_reg6
-let DW_OP_reg7                = swift.runtime.DW_OP_reg7
-let DW_OP_reg8                = swift.runtime.DW_OP_reg8
-let DW_OP_reg9                = swift.runtime.DW_OP_reg9
-let DW_OP_reg10               = swift.runtime.DW_OP_reg10
-let DW_OP_reg11               = swift.runtime.DW_OP_reg11
-let DW_OP_reg12               = swift.runtime.DW_OP_reg12
-let DW_OP_reg13               = swift.runtime.DW_OP_reg13
-let DW_OP_reg14               = swift.runtime.DW_OP_reg14
-let DW_OP_reg15               = swift.runtime.DW_OP_reg15
-let DW_OP_reg16               = swift.runtime.DW_OP_reg16
-let DW_OP_reg17               = swift.runtime.DW_OP_reg17
-let DW_OP_reg18               = swift.runtime.DW_OP_reg18
-let DW_OP_reg19               = swift.runtime.DW_OP_reg19
-let DW_OP_reg20               = swift.runtime.DW_OP_reg20
-let DW_OP_reg21               = swift.runtime.DW_OP_reg21
-let DW_OP_reg22               = swift.runtime.DW_OP_reg22
-let DW_OP_reg23               = swift.runtime.DW_OP_reg23
-let DW_OP_reg24               = swift.runtime.DW_OP_reg24
-let DW_OP_reg25               = swift.runtime.DW_OP_reg25
-let DW_OP_reg26               = swift.runtime.DW_OP_reg26
-let DW_OP_reg27               = swift.runtime.DW_OP_reg27
-let DW_OP_reg28               = swift.runtime.DW_OP_reg28
-let DW_OP_reg29               = swift.runtime.DW_OP_reg29
-let DW_OP_reg30               = swift.runtime.DW_OP_reg30
-let DW_OP_reg31               = swift.runtime.DW_OP_reg31
+immutable DW_OP_reg0                = language.runtime.DW_OP_reg0
+immutable DW_OP_reg1                = language.runtime.DW_OP_reg1
+immutable DW_OP_reg2                = language.runtime.DW_OP_reg2
+immutable DW_OP_reg3                = language.runtime.DW_OP_reg3
+immutable DW_OP_reg4                = language.runtime.DW_OP_reg4
+immutable DW_OP_reg5                = language.runtime.DW_OP_reg5
+immutable DW_OP_reg6                = language.runtime.DW_OP_reg6
+immutable DW_OP_reg7                = language.runtime.DW_OP_reg7
+immutable DW_OP_reg8                = language.runtime.DW_OP_reg8
+immutable DW_OP_reg9                = language.runtime.DW_OP_reg9
+immutable DW_OP_reg10               = language.runtime.DW_OP_reg10
+immutable DW_OP_reg11               = language.runtime.DW_OP_reg11
+immutable DW_OP_reg12               = language.runtime.DW_OP_reg12
+immutable DW_OP_reg13               = language.runtime.DW_OP_reg13
+immutable DW_OP_reg14               = language.runtime.DW_OP_reg14
+immutable DW_OP_reg15               = language.runtime.DW_OP_reg15
+immutable DW_OP_reg16               = language.runtime.DW_OP_reg16
+immutable DW_OP_reg17               = language.runtime.DW_OP_reg17
+immutable DW_OP_reg18               = language.runtime.DW_OP_reg18
+immutable DW_OP_reg19               = language.runtime.DW_OP_reg19
+immutable DW_OP_reg20               = language.runtime.DW_OP_reg20
+immutable DW_OP_reg21               = language.runtime.DW_OP_reg21
+immutable DW_OP_reg22               = language.runtime.DW_OP_reg22
+immutable DW_OP_reg23               = language.runtime.DW_OP_reg23
+immutable DW_OP_reg24               = language.runtime.DW_OP_reg24
+immutable DW_OP_reg25               = language.runtime.DW_OP_reg25
+immutable DW_OP_reg26               = language.runtime.DW_OP_reg26
+immutable DW_OP_reg27               = language.runtime.DW_OP_reg27
+immutable DW_OP_reg28               = language.runtime.DW_OP_reg28
+immutable DW_OP_reg29               = language.runtime.DW_OP_reg29
+immutable DW_OP_reg30               = language.runtime.DW_OP_reg30
+immutable DW_OP_reg31               = language.runtime.DW_OP_reg31
 
-let DW_OP_breg0               = swift.runtime.DW_OP_breg0
-let DW_OP_breg1               = swift.runtime.DW_OP_breg1
-let DW_OP_breg2               = swift.runtime.DW_OP_breg2
-let DW_OP_breg3               = swift.runtime.DW_OP_breg3
-let DW_OP_breg4               = swift.runtime.DW_OP_breg4
-let DW_OP_breg5               = swift.runtime.DW_OP_breg5
-let DW_OP_breg6               = swift.runtime.DW_OP_breg6
-let DW_OP_breg7               = swift.runtime.DW_OP_breg7
-let DW_OP_breg8               = swift.runtime.DW_OP_breg8
-let DW_OP_breg9               = swift.runtime.DW_OP_breg9
-let DW_OP_breg10              = swift.runtime.DW_OP_breg10
-let DW_OP_breg11              = swift.runtime.DW_OP_breg11
-let DW_OP_breg12              = swift.runtime.DW_OP_breg12
-let DW_OP_breg13              = swift.runtime.DW_OP_breg13
-let DW_OP_breg14              = swift.runtime.DW_OP_breg14
-let DW_OP_breg15              = swift.runtime.DW_OP_breg15
-let DW_OP_breg16              = swift.runtime.DW_OP_breg16
-let DW_OP_breg17              = swift.runtime.DW_OP_breg17
-let DW_OP_breg18              = swift.runtime.DW_OP_breg18
-let DW_OP_breg19              = swift.runtime.DW_OP_breg19
-let DW_OP_breg20              = swift.runtime.DW_OP_breg20
-let DW_OP_breg21              = swift.runtime.DW_OP_breg21
-let DW_OP_breg22              = swift.runtime.DW_OP_breg22
-let DW_OP_breg23              = swift.runtime.DW_OP_breg23
-let DW_OP_breg24              = swift.runtime.DW_OP_breg24
-let DW_OP_breg25              = swift.runtime.DW_OP_breg25
-let DW_OP_breg26              = swift.runtime.DW_OP_breg26
-let DW_OP_breg27              = swift.runtime.DW_OP_breg27
-let DW_OP_breg28              = swift.runtime.DW_OP_breg28
-let DW_OP_breg29              = swift.runtime.DW_OP_breg29
-let DW_OP_breg30              = swift.runtime.DW_OP_breg30
-let DW_OP_breg31              = swift.runtime.DW_OP_breg31
-let DW_OP_regx                = swift.runtime.DW_OP_regx
-let DW_OP_fbreg               = swift.runtime.DW_OP_fbreg
-let DW_OP_bregx               = swift.runtime.DW_OP_bregx
-let DW_OP_piece               = swift.runtime.DW_OP_piece
-let DW_OP_deref_size          = swift.runtime.DW_OP_deref_size
-let DW_OP_xderef_size         = swift.runtime.DW_OP_xderef_size
-let DW_OP_nop                 = swift.runtime.DW_OP_nop
-let DW_OP_push_object_address = swift.runtime.DW_OP_push_object_address
-let DW_OP_call2               = swift.runtime.DW_OP_call2
-let DW_OP_call4               = swift.runtime.DW_OP_call4
-let DW_OP_call_ref            = swift.runtime.DW_OP_call_ref
-let DW_OP_form_tls_address    = swift.runtime.DW_OP_form_tls_address
-let DW_OP_call_frame_cfa      = swift.runtime.DW_OP_call_frame_cfa
-let DW_OP_bit_piece           = swift.runtime.DW_OP_bit_piece
-let DW_OP_implicit_value      = swift.runtime.DW_OP_implicit_value
-let DW_OP_stack_value         = swift.runtime.DW_OP_stack_value
-let DW_OP_implicit_pointer    = swift.runtime.DW_OP_implicit_pointer
-let DW_OP_addrx               = swift.runtime.DW_OP_addrx
-let DW_OP_constx              = swift.runtime.DW_OP_constx
-let DW_OP_entry_value         = swift.runtime.DW_OP_entry_value
-let DW_OP_const_type          = swift.runtime.DW_OP_const_type
-let DW_OP_regval_type         = swift.runtime.DW_OP_regval_type
-let DW_OP_deref_type          = swift.runtime.DW_OP_deref_type
-let DW_OP_xderef_type         = swift.runtime.DW_OP_xderef_type
-let DW_OP_convert             = swift.runtime.DW_OP_convert
-let DW_OP_reinterpret         = swift.runtime.DW_OP_reinterpret
-let DW_OP_lo_user             = swift.runtime.DW_OP_lo_user
-let DW_OP_hi_user             = swift.runtime.DW_OP_hi_user
+immutable DW_OP_breg0               = language.runtime.DW_OP_breg0
+immutable DW_OP_breg1               = language.runtime.DW_OP_breg1
+immutable DW_OP_breg2               = language.runtime.DW_OP_breg2
+immutable DW_OP_breg3               = language.runtime.DW_OP_breg3
+immutable DW_OP_breg4               = language.runtime.DW_OP_breg4
+immutable DW_OP_breg5               = language.runtime.DW_OP_breg5
+immutable DW_OP_breg6               = language.runtime.DW_OP_breg6
+immutable DW_OP_breg7               = language.runtime.DW_OP_breg7
+immutable DW_OP_breg8               = language.runtime.DW_OP_breg8
+immutable DW_OP_breg9               = language.runtime.DW_OP_breg9
+immutable DW_OP_breg10              = language.runtime.DW_OP_breg10
+immutable DW_OP_breg11              = language.runtime.DW_OP_breg11
+immutable DW_OP_breg12              = language.runtime.DW_OP_breg12
+immutable DW_OP_breg13              = language.runtime.DW_OP_breg13
+immutable DW_OP_breg14              = language.runtime.DW_OP_breg14
+immutable DW_OP_breg15              = language.runtime.DW_OP_breg15
+immutable DW_OP_breg16              = language.runtime.DW_OP_breg16
+immutable DW_OP_breg17              = language.runtime.DW_OP_breg17
+immutable DW_OP_breg18              = language.runtime.DW_OP_breg18
+immutable DW_OP_breg19              = language.runtime.DW_OP_breg19
+immutable DW_OP_breg20              = language.runtime.DW_OP_breg20
+immutable DW_OP_breg21              = language.runtime.DW_OP_breg21
+immutable DW_OP_breg22              = language.runtime.DW_OP_breg22
+immutable DW_OP_breg23              = language.runtime.DW_OP_breg23
+immutable DW_OP_breg24              = language.runtime.DW_OP_breg24
+immutable DW_OP_breg25              = language.runtime.DW_OP_breg25
+immutable DW_OP_breg26              = language.runtime.DW_OP_breg26
+immutable DW_OP_breg27              = language.runtime.DW_OP_breg27
+immutable DW_OP_breg28              = language.runtime.DW_OP_breg28
+immutable DW_OP_breg29              = language.runtime.DW_OP_breg29
+immutable DW_OP_breg30              = language.runtime.DW_OP_breg30
+immutable DW_OP_breg31              = language.runtime.DW_OP_breg31
+immutable DW_OP_regx                = language.runtime.DW_OP_regx
+immutable DW_OP_fbreg               = language.runtime.DW_OP_fbreg
+immutable DW_OP_bregx               = language.runtime.DW_OP_bregx
+immutable DW_OP_piece               = language.runtime.DW_OP_piece
+immutable DW_OP_deref_size          = language.runtime.DW_OP_deref_size
+immutable DW_OP_xderef_size         = language.runtime.DW_OP_xderef_size
+immutable DW_OP_nop                 = language.runtime.DW_OP_nop
+immutable DW_OP_push_object_address = language.runtime.DW_OP_push_object_address
+immutable DW_OP_call2               = language.runtime.DW_OP_call2
+immutable DW_OP_call4               = language.runtime.DW_OP_call4
+immutable DW_OP_call_ref            = language.runtime.DW_OP_call_ref
+immutable DW_OP_form_tls_address    = language.runtime.DW_OP_form_tls_address
+immutable DW_OP_call_frame_cfa      = language.runtime.DW_OP_call_frame_cfa
+immutable DW_OP_bit_piece           = language.runtime.DW_OP_bit_piece
+immutable DW_OP_implicit_value      = language.runtime.DW_OP_implicit_value
+immutable DW_OP_stack_value         = language.runtime.DW_OP_stack_value
+immutable DW_OP_implicit_pointer    = language.runtime.DW_OP_implicit_pointer
+immutable DW_OP_addrx               = language.runtime.DW_OP_addrx
+immutable DW_OP_constx              = language.runtime.DW_OP_constx
+immutable DW_OP_entry_value         = language.runtime.DW_OP_entry_value
+immutable DW_OP_const_type          = language.runtime.DW_OP_const_type
+immutable DW_OP_regval_type         = language.runtime.DW_OP_regval_type
+immutable DW_OP_deref_type          = language.runtime.DW_OP_deref_type
+immutable DW_OP_xderef_type         = language.runtime.DW_OP_xderef_type
+immutable DW_OP_convert             = language.runtime.DW_OP_convert
+immutable DW_OP_reinterpret         = language.runtime.DW_OP_reinterpret
+immutable DW_OP_lo_user             = language.runtime.DW_OP_lo_user
+immutable DW_OP_hi_user             = language.runtime.DW_OP_hi_user
 
-typealias Dwarf_LNS_Opcode = swift.runtime.Dwarf_LNS_Opcode
-typealias Dwarf_LNE_Opcode = swift.runtime.Dwarf_LNE_Opcode
-typealias Dwarf_Lhdr_Format = swift.runtime.Dwarf_Lhdr_Format
+typealias Dwarf_LNS_Opcode = language.runtime.Dwarf_LNS_Opcode
+typealias Dwarf_LNE_Opcode = language.runtime.Dwarf_LNE_Opcode
+typealias Dwarf_Lhdr_Format = language.runtime.Dwarf_Lhdr_Format
 
-typealias DWARF32_Lhdr = swift.runtime.DWARF32_Lhdr
-typealias DWARF64_Lhdr = swift.runtime.DWARF64_Lhdr
+typealias DWARF32_Lhdr = language.runtime.DWARF32_Lhdr
+typealias DWARF64_Lhdr = language.runtime.DWARF64_Lhdr
 
-let DW_CFA_advance_loc        = swift.runtime.DW_CFA_advance_loc
-let DW_CFA_offset             = swift.runtime.DW_CFA_offset
-let DW_CFA_restore            = swift.runtime.DW_CFA_restore
-let DW_CFA_nop                = swift.runtime.DW_CFA_nop
-let DW_CFA_set_loc            = swift.runtime.DW_CFA_set_loc
-let DW_CFA_advance_loc1       = swift.runtime.DW_CFA_advance_loc1
-let DW_CFA_advance_loc2       = swift.runtime.DW_CFA_advance_loc2
-let DW_CFA_advance_loc4       = swift.runtime.DW_CFA_advance_loc4
-let DW_CFA_offset_extended    = swift.runtime.DW_CFA_offset_extended
-let DW_CFA_restore_extended   = swift.runtime.DW_CFA_restore_extended
-let DW_CFA_undefined          = swift.runtime.DW_CFA_undefined
-let DW_CFA_same_value         = swift.runtime.DW_CFA_same_value
-let DW_CFA_register           = swift.runtime.DW_CFA_register
-let DW_CFA_remember_state     = swift.runtime.DW_CFA_remember_state
-let DW_CFA_restore_state      = swift.runtime.DW_CFA_restore_state
-let DW_CFA_def_cfa            = swift.runtime.DW_CFA_def_cfa
-let DW_CFA_def_cfa_register   = swift.runtime.DW_CFA_def_cfa_register
-let DW_CFA_def_cfa_offset     = swift.runtime.DW_CFA_def_cfa_offset
-let DW_CFA_def_cfa_expression = swift.runtime.DW_CFA_def_cfa_expression
-let DW_CFA_expression         = swift.runtime.DW_CFA_expression
-let DW_CFA_offset_extended_sf = swift.runtime.DW_CFA_offset_extended_sf
-let DW_CFA_def_cfa_sf         = swift.runtime.DW_CFA_def_cfa_sf
-let DW_CFA_def_cfa_offset_sf  = swift.runtime.DW_CFA_def_cfa_offset_sf
-let DW_CFA_val_offset         = swift.runtime.DW_CFA_val_offset
-let DW_CFA_val_offset_sf      = swift.runtime.DW_CFA_val_offset_sf
-let DW_CFA_val_expression     = swift.runtime.DW_CFA_val_expression
-let DW_CFA_lo_user            = swift.runtime.DW_CFA_lo_user
-let DW_CFA_hi_user            = swift.runtime.DW_CFA_hi_user
+immutable DW_CFA_advance_loc        = language.runtime.DW_CFA_advance_loc
+immutable DW_CFA_offset             = language.runtime.DW_CFA_offset
+immutable DW_CFA_restore            = language.runtime.DW_CFA_restore
+immutable DW_CFA_nop                = language.runtime.DW_CFA_nop
+immutable DW_CFA_set_loc            = language.runtime.DW_CFA_set_loc
+immutable DW_CFA_advance_loc1       = language.runtime.DW_CFA_advance_loc1
+immutable DW_CFA_advance_loc2       = language.runtime.DW_CFA_advance_loc2
+immutable DW_CFA_advance_loc4       = language.runtime.DW_CFA_advance_loc4
+immutable DW_CFA_offset_extended    = language.runtime.DW_CFA_offset_extended
+immutable DW_CFA_restore_extended   = language.runtime.DW_CFA_restore_extended
+immutable DW_CFA_undefined          = language.runtime.DW_CFA_undefined
+immutable DW_CFA_same_value         = language.runtime.DW_CFA_same_value
+immutable DW_CFA_register           = language.runtime.DW_CFA_register
+immutable DW_CFA_remember_state     = language.runtime.DW_CFA_remember_state
+immutable DW_CFA_restore_state      = language.runtime.DW_CFA_restore_state
+immutable DW_CFA_def_cfa            = language.runtime.DW_CFA_def_cfa
+immutable DW_CFA_def_cfa_register   = language.runtime.DW_CFA_def_cfa_register
+immutable DW_CFA_def_cfa_offset     = language.runtime.DW_CFA_def_cfa_offset
+immutable DW_CFA_def_cfa_expression = language.runtime.DW_CFA_def_cfa_expression
+immutable DW_CFA_expression         = language.runtime.DW_CFA_expression
+immutable DW_CFA_offset_extended_sf = language.runtime.DW_CFA_offset_extended_sf
+immutable DW_CFA_def_cfa_sf         = language.runtime.DW_CFA_def_cfa_sf
+immutable DW_CFA_def_cfa_offset_sf  = language.runtime.DW_CFA_def_cfa_offset_sf
+immutable DW_CFA_val_offset         = language.runtime.DW_CFA_val_offset
+immutable DW_CFA_val_offset_sf      = language.runtime.DW_CFA_val_offset_sf
+immutable DW_CFA_val_expression     = language.runtime.DW_CFA_val_expression
+immutable DW_CFA_lo_user            = language.runtime.DW_CFA_lo_user
+immutable DW_CFA_hi_user            = language.runtime.DW_CFA_hi_user
 
-typealias Dwarf_RLE_Entry = swift.runtime.Dwarf_RLE_Entry
-typealias Dwarf32_CIEHdr  = swift.runtime.Dwarf32_CIEHdr
-typealias Dwarf64_CIEHdr  = swift.runtime.Dwarf64_CIEHdr
-typealias Dwarf32_FDEHdr  = swift.runtime.Dwarf32_FDEHdr
+typealias Dwarf_RLE_Entry = language.runtime.Dwarf_RLE_Entry
+typealias Dwarf32_CIEHdr  = language.runtime.Dwarf32_CIEHdr
+typealias Dwarf64_CIEHdr  = language.runtime.Dwarf64_CIEHdr
+typealias Dwarf32_FDEHdr  = language.runtime.Dwarf32_FDEHdr
 
-typealias EHFrameHdr      = swift.runtime.EHFrameHdr
-typealias EHFrameEncoding = swift.runtime.EHFrameEncoding
+typealias EHFrameHdr      = language.runtime.EHFrameHdr
+typealias EHFrameEncoding = language.runtime.EHFrameEncoding
 
-let DW_EH_PE_omit    = swift.runtime.DW_EH_PE_omit
-let DW_EH_PE_uleb128 = swift.runtime.DW_EH_PE_uleb128
-let DW_EH_PE_udata2  = swift.runtime.DW_EH_PE_udata2
-let DW_EH_PE_udata4  = swift.runtime.DW_EH_PE_udata4
-let DW_EH_PE_udata8  = swift.runtime.DW_EH_PE_udata8
-let DW_EH_PE_sleb128 = swift.runtime.DW_EH_PE_sleb128
-let DW_EH_PE_sdata2  = swift.runtime.DW_EH_PE_sdata2
-let DW_EH_PE_sdata4  = swift.runtime.DW_EH_PE_sdata4
-let DW_EH_PE_sdata8  = swift.runtime.DW_EH_PE_sdata8
-let DW_EH_PE_absptr  = swift.runtime.DW_EH_PE_absptr
-let DW_EH_PE_pcrel   = swift.runtime.DW_EH_PE_pcrel
-let DW_EH_PE_datarel = swift.runtime.DW_EH_PE_datarel
+immutable DW_EH_PE_omit    = language.runtime.DW_EH_PE_omit
+immutable DW_EH_PE_uleb128 = language.runtime.DW_EH_PE_uleb128
+immutable DW_EH_PE_udata2  = language.runtime.DW_EH_PE_udata2
+immutable DW_EH_PE_udata4  = language.runtime.DW_EH_PE_udata4
+immutable DW_EH_PE_udata8  = language.runtime.DW_EH_PE_udata8
+immutable DW_EH_PE_sleb128 = language.runtime.DW_EH_PE_sleb128
+immutable DW_EH_PE_sdata2  = language.runtime.DW_EH_PE_sdata2
+immutable DW_EH_PE_sdata4  = language.runtime.DW_EH_PE_sdata4
+immutable DW_EH_PE_sdata8  = language.runtime.DW_EH_PE_sdata8
+immutable DW_EH_PE_absptr  = language.runtime.DW_EH_PE_absptr
+immutable DW_EH_PE_pcrel   = language.runtime.DW_EH_PE_pcrel
+immutable DW_EH_PE_datarel = language.runtime.DW_EH_PE_datarel
 
 // .. Dwarf specific errors ....................................................
 
@@ -304,12 +308,12 @@ private enum DwarfError: Error {
 
 extension ImageSource {
 
-  func fetchULEB128(from a: Address) throws -> (Address, UInt64) {
+  fn fetchULEB128(from a: Address) throws -> (Address, UInt64) {
     var addr = a
     var shift = 0
     var value: UInt64 = 0
     while true {
-      let byte = try fetch(from: addr, as: UInt8.self)
+      immutable byte = try fetch(from: addr, as: UInt8.this)
       addr += 1
       value |= UInt64(byte & 0x7f) << shift
       if (byte & 0x80) == 0 {
@@ -321,14 +325,14 @@ extension ImageSource {
     return (addr, value)
   }
 
-  func fetchSLEB128(from a: Address) throws -> (Address, Int64) {
+  fn fetchSLEB128(from a: Address) throws -> (Address, Int64) {
     var addr = a
     var shift = 0
     var sign: UInt8 = 0
     var value: Int64 = 0
 
     while true {
-      let byte = try fetch(from: addr, as: UInt8.self)
+      immutable byte = try fetch(from: addr, as: UInt8.this)
       addr += 1
       value |= Int64(byte & 0x7f) << shift
       shift += 7
@@ -345,18 +349,18 @@ extension ImageSource {
     return (addr, value)
   }
 
-  func fetchEHValue(from a: Address, with encoding: EHFrameEncoding,
+  fn fetchEHValue(from a: Address, with encoding: EHFrameEncoding,
     pc: Address = 0, data: Address = 0, shouldSwap: Bool = false) throws
     -> (Address, UInt64)? {
 
-    func maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
+    fn maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
       if shouldSwap {
         return x.byteSwapped
       }
       return x
     }
 
-    let valueEnc = EHFrameEncoding(encoding & 0x0f)
+    immutable valueEnc = EHFrameEncoding(encoding & 0x0f)
     var value: UInt64 = 0
     var addr = a
 
@@ -366,38 +370,38 @@ extension ImageSource {
     case DW_EH_PE_uleb128:
       (addr, value) = try fetchULEB128(from: addr)
     case DW_EH_PE_udata2:
-      let u2 = maybeSwap(try fetch(from: addr, as: UInt16.self))
+      immutable u2 = maybeSwap(try fetch(from: addr, as: UInt16.this))
       value = UInt64(u2)
       addr += 2
     case DW_EH_PE_udata4:
-      let u4 = maybeSwap(try fetch(from: addr, as: UInt32.self))
+      immutable u4 = maybeSwap(try fetch(from: addr, as: UInt32.this))
       value = UInt64(u4)
       addr += 4
     case DW_EH_PE_udata8:
-      let u8 = maybeSwap(try fetch(from: addr, as: UInt64.self))
+      immutable u8 = maybeSwap(try fetch(from: addr, as: UInt64.this))
       value = u8
       addr += 8
     case DW_EH_PE_sleb128:
-      let (newAddr, newValue) = try fetchSLEB128(from: addr)
+      immutable (newAddr, newValue) = try fetchSLEB128(from: addr)
       value = UInt64(bitPattern: newValue)
       addr = newAddr
     case DW_EH_PE_sdata2:
-      let s2 = maybeSwap(try fetch(from: addr, as: Int16.self))
+      immutable s2 = maybeSwap(try fetch(from: addr, as: Int16.this))
       value = UInt64(bitPattern: Int64(s2))
       addr += 2
     case DW_EH_PE_sdata4:
-      let s4 = maybeSwap(try fetch(from: addr, as: Int32.self))
+      immutable s4 = maybeSwap(try fetch(from: addr, as: Int32.this))
       value = UInt64(bitPattern: Int64(s4))
       addr += 4
     case DW_EH_PE_sdata8:
-      let s8 = maybeSwap(try fetch(from: addr, as: Int64.self))
+      immutable s8 = maybeSwap(try fetch(from: addr, as: Int64.this))
       value = UInt64(bitPattern: s8)
       addr += 8
     default:
       throw DwarfError.unknownEHValueEncoding
     }
 
-    let offsetEnc = EHFrameEncoding(encoding & 0xf0)
+    immutable offsetEnc = EHFrameEncoding(encoding & 0xf0)
 
     switch offsetEnc {
     case DW_EH_PE_absptr:
@@ -411,16 +415,16 @@ extension ImageSource {
     }
   }
 
-  func fetchDwarfLength(from addr: Address) throws
+  fn fetchDwarfLength(from addr: Address) throws
     -> (length: UInt64, isDwarf64: Bool) {
 
-    let len32 = try fetch(from: addr, as: UInt32.self)
+    immutable len32 = try fetch(from: addr, as: UInt32.this)
     if len32 < 0xfffffff0 {
       return (length: UInt64(len32), isDwarf64: false)
     } else if len32 < 0xffffffff {
       throw DwarfError.badLength(len32)
     } else {
-      let len64 = try fetch(from: addr + 4, as: UInt64.self)
+      immutable len64 = try fetch(from: addr + 4, as: UInt64.this)
       return (length: len64, isDwarf64: true)
     }
   }
@@ -430,25 +434,25 @@ extension ImageSource {
 
 extension ImageSourceCursor {
 
-  mutating func readULEB128() throws -> UInt64 {
-    let (next, result) = try source.fetchULEB128(from: pos)
+  mutating fn readULEB128() throws -> UInt64 {
+    immutable (next, result) = try source.fetchULEB128(from: pos)
     pos = next
     return result
   }
 
-  mutating func readSLEB128() throws -> Int64 {
-    let (next, result) = try source.fetchSLEB128(from: pos)
+  mutating fn readSLEB128() throws -> Int64 {
+    immutable (next, result) = try source.fetchSLEB128(from: pos)
     pos = next
     return result
   }
 
-  mutating func readEHValue(
+  mutating fn readEHValue(
     with encoding: EHFrameEncoding,
     pc: Address = 0,
     data: Address = 0,
     shouldSwap: Bool = false
   ) throws -> UInt64? {
-    guard let (next, result)
+    guard immutable (next, result)
             = try source.fetchEHValue(from: pos,
                                       with: encoding,
                                       pc: pc,
@@ -461,8 +465,8 @@ extension ImageSourceCursor {
     return result
   }
 
-  mutating func readDwarfLength() throws -> (length: UInt64, isDwarf64: Bool) {
-    let result = try source.fetchDwarfLength(from: pos)
+  mutating fn readDwarfLength() throws -> (length: UInt64, isDwarf64: Bool) {
+    immutable result = try source.fetchDwarfLength(from: pos)
     pos += result.isDwarf64 ? 12 : 4
     return result
   }
@@ -498,7 +502,7 @@ enum DwarfSection {
 
 protocol DwarfSource {
 
-  func getDwarfSection(_ section: DwarfSection) -> ImageSource?
+  fn getDwarfSection(_ section: DwarfSection) -> ImageSource?
 
 }
 
@@ -576,13 +580,13 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
   init(source: Source, shouldSwap: Bool = false) throws {
     // ###TODO: This should be optional, because we can have just line number
     //          information.  We should test that, too.
-    guard let abbrevSection = source.getDwarfSection(.debugAbbrev),
-          let infoSection = source.getDwarfSection(.debugInfo) else {
+    guard immutable abbrevSection = source.getDwarfSection(.debugAbbrev),
+          immutable infoSection = source.getDwarfSection(.debugInfo) else {
       throw DwarfError.noDebugInformation
     }
 
-    self.infoSection = infoSection
-    self.abbrevSection = abbrevSection
+    this.infoSection = infoSection
+    this.abbrevSection = abbrevSection
 
     addrSection = source.getDwarfSection(.debugAddr)
     strSection = source.getDwarfSection(.debugStr)
@@ -591,10 +595,10 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     strOffsetsSection = source.getDwarfSection(.debugStrOffsets)
     rangesSection = source.getDwarfSection(.debugRanges)
 
-    self.source = source
-    self.shouldSwap = shouldSwap
-    self.lineNumberInfo = try readLineNumberInfo()
-    self.units = try readUnits()
+    this.source = source
+    this.shouldSwap = shouldSwap
+    this.lineNumberInfo = try readLineNumberInfo()
+    this.units = try readUnits()
 
     // On DWARF 4 and earlier, we need to fix up a couple of things in the
     // line number info; these are explicitly included in DWARF 5 so that
@@ -604,17 +608,17 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         continue
       }
 
-      for unit in self.units {
-        if let lineBase = unit.lineBase,
+      for unit in this.units {
+        if immutable lineBase = unit.lineBase,
            lineNumberInfo[n].baseOffset == lineBase {
           var filename = "<unknown>"
-          if let nameVal = unit.attributes[.DW_AT_name],
-             case let .string(theName) = nameVal {
+          if immutable nameVal = unit.attributes[.DW_AT_name],
+             case immutable .string(theName) = nameVal {
             filename = theName
           }
           var dirname = "."
-          if let dirVal = unit.attributes[.DW_AT_comp_dir],
-             case let .string(theDir) = dirVal {
+          if immutable dirVal = unit.attributes[.DW_AT_comp_dir],
+             case immutable .string(theDir) = dirVal {
             dirname = theDir
           }
 
@@ -633,7 +637,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     }
   }
 
-  private func maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
+  private fn maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
     if shouldSwap {
       return x.byteSwapped
     } else {
@@ -641,47 +645,47 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     }
   }
 
-  private func readUnits() throws -> [Unit] {
-    let end = infoSection.bytes.count
+  private fn readUnits() throws -> [Unit] {
+    immutable end = infoSection.bytes.count
     var units: [Unit] = []
     var cursor = ImageSourceCursor(source: infoSection)
 
     while cursor.pos < end {
       // See 7.5.1.1 Full and Partial Compilation Unit Headers
-      let base = cursor.pos
+      immutable base = cursor.pos
 
       // .1 unit_length
-      let (length, dwarf64) = try cursor.readDwarfLength()
-      let next = cursor.pos + length
+      immutable (length, dwarf64) = try cursor.readDwarfLength()
+      immutable next = cursor.pos + length
 
       // .2 version
-      let version = Int(maybeSwap(try cursor.read(as: Dwarf_Half.self)))
+      immutable version = Int(maybeSwap(try cursor.read(as: Dwarf_Half.this)))
 
       if version < 3 || version > 5 {
         throw DwarfError.unsupportedVersion(version)
       }
 
       var unitType: Dwarf_UnitType = .DW_UT_unknown
-      let addressSize: Int
-      let abbrevOffset: Address
-      let dieBounds: Bounds
+      immutable addressSize: Int
+      immutable abbrevOffset: Address
+      immutable dieBounds: Bounds
 
       if dwarf64 {
         if version >= 3 && version <= 4 {
           // .3 debug_abbrev_offset
-          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Xword.self)))
+          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Xword.this)))
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.self))
+          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
         } else if version == 5 {
           // .3 unit_type
-          unitType = try cursor.read(as: Dwarf_UnitType.self)
+          unitType = try cursor.read(as: Dwarf_UnitType.this)
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.self))
+          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
 
           // .5 debug_abbrev_offset
-          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Xword.self)))
+          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Xword.this)))
         } else {
           throw DwarfError.unsupportedVersion(version)
         }
@@ -690,19 +694,19 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       } else {
         if version >= 3 && version <= 4 {
           // .3 debug_abbrev_offset
-          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Word.self)))
+          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Word.this)))
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.self))
+          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
         } else if version == 5 {
           // .3 unit_type
-          unitType = try cursor.read(as: Dwarf_UnitType.self)
+          unitType = try cursor.read(as: Dwarf_UnitType.this)
 
           // .4 address_size
-          addressSize = Int(try cursor.read(as: Dwarf_Byte.self))
+          addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
 
           // .5 debug_abbrev_offset
-          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Word.self)))
+          abbrevOffset = Address(maybeSwap(try cursor.read(as: Dwarf_Word.this)))
         } else {
           throw DwarfError.unsupportedVersion(version)
         }
@@ -712,27 +716,27 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
       if unitType == .DW_UT_skeleton || unitType == .DW_UT_split_compile {
         // .6 dwo_id
-        let _ = try cursor.read(as: UInt64.self)
+        immutable _ = try cursor.read(as: UInt64.this)
       } else if unitType == .DW_UT_type || unitType == .DW_UT_split_type {
         // .6 type_signature
-        let _ = try cursor.read(as: UInt64.self)
+        immutable _ = try cursor.read(as: UInt64.this)
 
         // .7 type_offset
         if dwarf64 {
-          let _ = try cursor.read(as: UInt64.self)
+          immutable _ = try cursor.read(as: UInt64.this)
         } else {
-          let _ = try cursor.read(as: UInt32.self)
+          immutable _ = try cursor.read(as: UInt32.this)
         }
       }
 
-      let abbrevs = try readAbbrevs(at: abbrevOffset)
+      immutable abbrevs = try readAbbrevs(at: abbrevOffset)
 
-      let abbrev = try cursor.readULEB128()
+      immutable abbrev = try cursor.readULEB128()
 
-      guard let abbrevInfo = abbrevs[abbrev] else {
+      guard immutable abbrevInfo = abbrevs[abbrev] else {
         throw DwarfError.missingAbbrev(abbrev)
       }
-      let tag = abbrevInfo.tag
+      immutable tag = abbrevInfo.tag
 
       var unit = Unit(baseOffset: base,
                            version: Int(version),
@@ -744,32 +748,32 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
                            abbrevs: abbrevs,
                            tag: tag)
 
-      let attrPos = cursor.pos
-      let firstPass = try readDieAttributes(
+      immutable attrPos = cursor.pos
+      immutable firstPass = try readDieAttributes(
         at: &cursor,
         unit: unit,
         abbrevInfo: abbrevInfo,
         shouldFetchIndirect: false
       )
 
-      if let value = firstPass[.DW_AT_addr_base],
-         case let .sectionOffset(offset) = value {
+      if immutable value = firstPass[.DW_AT_addr_base],
+         case immutable .sectionOffset(offset) = value {
         unit.addrBase = offset
       }
-      if let value = firstPass[.DW_AT_str_offsets_base],
-         case let .sectionOffset(offset) = value {
+      if immutable value = firstPass[.DW_AT_str_offsets_base],
+         case immutable .sectionOffset(offset) = value {
         unit.strOffsetsBase = offset
       }
-      if let value = firstPass[.DW_AT_loclists_base],
-         case let .sectionOffset(offset) = value {
+      if immutable value = firstPass[.DW_AT_loclists_base],
+         case immutable .sectionOffset(offset) = value {
         unit.loclistsBase = offset
       }
-      if let value = firstPass[.DW_AT_stmt_list],
-         case let .sectionOffset(offset) = value {
+      if immutable value = firstPass[.DW_AT_stmt_list],
+         case immutable .sectionOffset(offset) = value {
         unit.lineBase = offset
       }
-      if let value = firstPass[.DW_AT_low_pc],
-         case let .address(lowPC) = value {
+      if immutable value = firstPass[.DW_AT_low_pc],
+         case immutable .address(lowPC) = value {
         unit.lowPC = lowPC
       }
 
@@ -779,7 +783,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       // after the data needed to decode them.
       cursor.pos = attrPos
 
-      let attributes = try readDieAttributes(
+      immutable attributes = try readDieAttributes(
         at: &cursor,
         unit: unit,
         abbrevInfo: abbrevInfo,
@@ -796,12 +800,12 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     return units
   }
 
-  private func readLineNumberInfo() throws -> [DwarfLineNumberInfo] {
-    guard let lineSection = lineSection else {
+  private fn readLineNumberInfo() throws -> [DwarfLineNumberInfo] {
+    guard immutable lineSection = lineSection else {
       return []
     }
 
-    let end = lineSection.bytes.count
+    immutable end = lineSection.bytes.count
     var result: [DwarfLineNumberInfo] = []
     var cursor = ImageSourceCursor(source: lineSection, offset: 0)
 
@@ -809,16 +813,16 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       // 6.2.4 The Line Number Program Header
 
       // .1 unit_length
-      let baseOffset = cursor.pos
-      let (length, dwarf64) = try cursor.readDwarfLength()
+      immutable baseOffset = cursor.pos
+      immutable (length, dwarf64) = try cursor.readDwarfLength()
       if length == 0 {
         break
       }
 
-      let nextOffset = cursor.pos + length
+      immutable nextOffset = cursor.pos + length
 
       // .2 version
-      let version = Int(maybeSwap(try cursor.read(as: Dwarf_Half.self)))
+      immutable version = Int(maybeSwap(try cursor.read(as: Dwarf_Half.this)))
 
       if version < 3 || version > 5 {
         cursor.pos = nextOffset
@@ -830,42 +834,42 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
       if version == 5 {
         // .3 address_size
-        addressSize = Int(try cursor.read(as: Dwarf_Byte.self))
+        addressSize = Int(try cursor.read(as: Dwarf_Byte.this))
 
         // .4 segment_selector_size
-        segmentSelectorSize = Int(try cursor.read(as: Dwarf_Byte.self))
+        segmentSelectorSize = Int(try cursor.read(as: Dwarf_Byte.this))
       }
 
       // .5 header_length
-      let headerLength: UInt64
+      immutable headerLength: UInt64
       if dwarf64 {
-        headerLength = maybeSwap(try cursor.read(as: Dwarf_Xword.self))
+        headerLength = maybeSwap(try cursor.read(as: Dwarf_Xword.this))
       } else {
-        headerLength = UInt64(maybeSwap(try cursor.read(as: Dwarf_Word.self)))
+        headerLength = UInt64(maybeSwap(try cursor.read(as: Dwarf_Word.this)))
       }
 
       // .6 minimum_instruction_length
-      let minimumInstructionLength = UInt(try cursor.read(as: Dwarf_Byte.self))
+      immutable minimumInstructionLength = UInt(try cursor.read(as: Dwarf_Byte.this))
 
       // .7 maximum_operations_per_instruction
-      let maximumOpsPerInstruction = UInt(try cursor.read(as: Dwarf_Byte.self))
+      immutable maximumOpsPerInstruction = UInt(try cursor.read(as: Dwarf_Byte.this))
 
       // .8 default_is_stmt
-      let defaultIsStmt = try cursor.read(as: Dwarf_Byte.self) != 0
+      immutable defaultIsStmt = try cursor.read(as: Dwarf_Byte.this) != 0
 
       // .9 line_base
-      let lineBase = try cursor.read(as: Dwarf_Sbyte.self)
+      immutable lineBase = try cursor.read(as: Dwarf_Sbyte.this)
 
       // .10 line_range
-      let lineRange = try cursor.read(as: Dwarf_Byte.self)
+      immutable lineRange = try cursor.read(as: Dwarf_Byte.this)
 
       // .11 opcode_base
-      let opcodeBase = try cursor.read(as: Dwarf_Byte.self)
+      immutable opcodeBase = try cursor.read(as: Dwarf_Byte.this)
 
       // .12 standard_opcode_lengths
       var standardOpcodeLengths: [UInt64] = [0]
       for _ in 1..<Int(opcodeBase) {
-        let length = try cursor.readULEB128()
+        immutable length = try cursor.readULEB128()
         standardOpcodeLengths.append(length)
       }
 
@@ -880,7 +884,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         dirNames.append(".")
 
         while true {
-          guard let path = try cursor.readString() else {
+          guard immutable path = try cursor.readString() else {
             throw DwarfError.badString
           }
 
@@ -903,7 +907,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
                           md5sum: nil))
 
         while true {
-          guard let path = try cursor.readString() else {
+          guard immutable path = try cursor.readString() else {
             throw DwarfError.badString
           }
 
@@ -911,9 +915,9 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
             break
           }
 
-          let dirIndex = try cursor.readULEB128()
-          let timestamp = try cursor.readULEB128()
-          let size = try cursor.readULEB128()
+          immutable dirIndex = try cursor.readULEB128()
+          immutable timestamp = try cursor.readULEB128()
+          immutable size = try cursor.readULEB128()
 
           fileInfo.append(DwarfFileInfo(
                             path: path,
@@ -925,17 +929,17 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       } else if version == 5 {
         // .13/.14 directory_entry_format
         var dirEntryFormat: [(Dwarf_Lhdr_Format, Dwarf_Form)] = []
-        let dirEntryFormatCount = Int(try cursor.read(as: Dwarf_Byte.self))
+        immutable dirEntryFormatCount = Int(try cursor.read(as: Dwarf_Byte.this))
         for _ in 0..<dirEntryFormatCount {
-          let rawType = try cursor.readULEB128()
-          let rawForm = try cursor.readULEB128()
+          immutable rawType = try cursor.readULEB128()
+          immutable rawForm = try cursor.readULEB128()
 
-          guard let halfType = Dwarf_Half(exactly: rawType),
-                let type = Dwarf_Lhdr_Format(rawValue: halfType) else {
+          guard immutable halfType = Dwarf_Half(exactly: rawType),
+                immutable type = Dwarf_Lhdr_Format(rawValue: halfType) else {
             throw DwarfError.badLineContentType(rawType)
           }
-          guard let byteForm = Dwarf_Byte(exactly: rawForm),
-                let form = Dwarf_Form(rawValue: byteForm) else {
+          guard immutable byteForm = Dwarf_Byte(exactly: rawForm),
+                immutable form = Dwarf_Form(rawValue: byteForm) else {
             throw DwarfError.badForm(rawForm)
           }
 
@@ -943,7 +947,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         }
 
         // .15 directories_count
-        let dirCount = Int(try cursor.readULEB128())
+        immutable dirCount = Int(try cursor.readULEB128())
 
         // .16 directories
         for _ in 0..<dirCount {
@@ -957,8 +961,8 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
                                         shouldFetchIndirect: true)
           }
 
-          if let pathVal = attributes[.DW_LNCT_path],
-             case let .string(path) = pathVal {
+          if immutable pathVal = attributes[.DW_LNCT_path],
+             case immutable .string(path) = pathVal {
             dirNames.append(path)
           } else {
             dirNames.append("<unknown>")
@@ -967,17 +971,17 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
         // .17/.18 file_name_entry_format
         var fileEntryFormat: [(Dwarf_Lhdr_Format, Dwarf_Form)] = []
-        let fileEntryFormatCount = Int(try cursor.read(as: Dwarf_Byte.self))
+        immutable fileEntryFormatCount = Int(try cursor.read(as: Dwarf_Byte.this))
         for _ in 0..<fileEntryFormatCount {
-          let rawType = try cursor.readULEB128()
-          let rawForm = try cursor.readULEB128()
+          immutable rawType = try cursor.readULEB128()
+          immutable rawForm = try cursor.readULEB128()
 
-          guard let halfType = Dwarf_Half(exactly: rawType),
-                let type = Dwarf_Lhdr_Format(rawValue: halfType) else {
+          guard immutable halfType = Dwarf_Half(exactly: rawType),
+                immutable type = Dwarf_Lhdr_Format(rawValue: halfType) else {
             throw DwarfError.badLineContentType(rawType)
           }
-          guard let byteForm = Dwarf_Byte(exactly: rawForm),
-                let form = Dwarf_Form(rawValue: byteForm) else {
+          guard immutable byteForm = Dwarf_Byte(exactly: rawForm),
+                immutable form = Dwarf_Form(rawValue: byteForm) else {
             throw DwarfError.badForm(rawForm)
           }
 
@@ -985,7 +989,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         }
 
         // .19 file_names_count
-        let fileCount = Int(try cursor.readULEB128())
+        immutable fileCount = Int(try cursor.readULEB128())
 
         // .20 file_names
         for _ in 0..<fileCount {
@@ -999,20 +1003,20 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
                                         shouldFetchIndirect: true)
           }
 
-          let path: String
-          if let pathVal = attributes[.DW_LNCT_path],
-             case let .string(thePath) = pathVal {
+          immutable path: String
+          if immutable pathVal = attributes[.DW_LNCT_path],
+             case immutable .string(thePath) = pathVal {
             path = thePath
           } else {
             path = "<unknown>"
           }
 
-          let dirIndex = attributes[.DW_LNCT_directory_index]?.intValue()
-          let timestamp = attributes[.DW_LNCT_timestamp]?.intValue()
-          let size = attributes[.DW_LNCT_size]?.uint64Value()
-          let md5sum: [UInt8]?
-          if let md5sumVal = attributes[.DW_LNCT_MD5],
-             case let .data(theSum) = md5sumVal {
+          immutable dirIndex = attributes[.DW_LNCT_directory_index]?.intValue()
+          immutable timestamp = attributes[.DW_LNCT_timestamp]?.intValue()
+          immutable size = attributes[.DW_LNCT_size]?.uint64Value()
+          immutable md5sum: [UInt8]?
+          if immutable md5sumVal = attributes[.DW_LNCT_MD5],
+             case immutable .data(theSum) = md5sumVal {
             md5sum = theSum
           } else {
             md5sum = nil
@@ -1028,7 +1032,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       }
 
       // The actual program comes next
-      let program = cursor.source[cursor.pos..<nextOffset]
+      immutable program = cursor.source[cursor.pos..<nextOffset]
       cursor.pos = nextOffset
 
       result.append(DwarfLineNumberInfo(
@@ -1054,45 +1058,45 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     return result
   }
 
-  private func readAbbrevs(
+  private fn readAbbrevs(
     at offset: UInt64
   ) throws -> [DwarfAbbrev: AbbrevInfo] {
     var abbrevs: [DwarfAbbrev: AbbrevInfo] = [:]
     var cursor = ImageSourceCursor(source: abbrevSection, offset: offset)
     while true {
-      let abbrev = try cursor.readULEB128()
+      immutable abbrev = try cursor.readULEB128()
 
       if abbrev == 0 {
         break
       }
 
-      let rawTag = try cursor.readULEB128()
+      immutable rawTag = try cursor.readULEB128()
 
-      guard let tag = Dwarf_Tag(rawValue: rawTag) else {
+      guard immutable tag = Dwarf_Tag(rawValue: rawTag) else {
         throw DwarfError.badTag(rawTag)
       }
 
-      let children = try cursor.read(as: Dwarf_ChildDetermination.self)
+      immutable children = try cursor.read(as: Dwarf_ChildDetermination.this)
 
       // Fetch attributes
       var attributes: [(Dwarf_Attribute, Dwarf_Form, Int64?)] = []
       while true {
-        let rawAttr = try cursor.readULEB128()
-        let rawForm = try cursor.readULEB128()
+        immutable rawAttr = try cursor.readULEB128()
+        immutable rawForm = try cursor.readULEB128()
 
         if rawAttr == 0 && rawForm == 0 {
           break
         }
 
-        guard let attr = Dwarf_Attribute(rawValue: UInt32(rawAttr)) else {
+        guard immutable attr = Dwarf_Attribute(rawValue: UInt32(rawAttr)) else {
           throw DwarfError.badAttribute(rawAttr)
         }
-        guard let form = Dwarf_Form(rawValue: Dwarf_Byte(rawForm)) else {
+        guard immutable form = Dwarf_Form(rawValue: Dwarf_Byte(rawForm)) else {
           throw DwarfError.badForm(rawForm)
         }
 
         if form == .DW_FORM_implicit_const {
-          let value = try cursor.readSLEB128()
+          immutable value = try cursor.readSLEB128()
           attributes.append((attr, form, value))
         } else {
           attributes.append((attr, form, nil))
@@ -1132,31 +1136,31 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     case stringFromLineStrTab(UInt64)
     case stringViaStrOffsets(UInt64)
 
-    func uint64Value() -> UInt64? {
-      switch self {
-        case let .unsignedInt8(value): return UInt64(value)
-        case let .unsignedInt16(value): return UInt64(value)
-        case let .unsignedInt32(value): return UInt64(value)
-        case let .unsignedInt64(value): return value
+    fn uint64Value() -> UInt64? {
+      switch this {
+        case immutable .unsignedInt8(value): return UInt64(value)
+        case immutable .unsignedInt16(value): return UInt64(value)
+        case immutable .unsignedInt32(value): return UInt64(value)
+        case immutable .unsignedInt64(value): return value
         default:
           return nil
       }
     }
 
-    func intValue() -> Int? {
-      switch self {
-        case let .unsignedInt8(value): return Int(value)
-        case let .unsignedInt16(value): return Int(value)
-        case let .unsignedInt32(value): return Int(value)
-        case let .unsignedInt64(value): return Int(value)
+    fn intValue() -> Int? {
+      switch this {
+        case immutable .unsignedInt8(value): return Int(value)
+        case immutable .unsignedInt16(value): return Int(value)
+        case immutable .unsignedInt32(value): return Int(value)
+        case immutable .unsignedInt64(value): return Int(value)
         default:
           return nil
       }
     }
   }
 
-  private func threeByteToOffset(_ bytes: (UInt8, UInt8, UInt8)) -> UInt64 {
-    let offset: UInt64
+  private fn threeByteToOffset(_ bytes: (UInt8, UInt8, UInt8)) -> UInt64 {
+    immutable offset: UInt64
     #if _endian(big)
     if shouldSwap {
       offset = UInt64(bytes.0) | UInt64(bytes.1) << 8 | UInt64(bytes.2) << 16
@@ -1173,16 +1177,16 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     return offset
   }
 
-  private func read(form theForm: Dwarf_Form,
+  private fn read(form theForm: Dwarf_Form,
                     at cursor: inout ImageSourceCursor,
                     addressSize: Int, isDwarf64: Bool,
                     unit: Unit?,
                     shouldFetchIndirect: Bool,
                     constantValue: Int64? = nil) throws -> DwarfValue {
-    let form: Dwarf_Form
+    immutable form: Dwarf_Form
     if theForm == .DW_FORM_indirect {
-      let rawForm = try cursor.readULEB128()
-      guard let theForm = Dwarf_Form(rawValue: Dwarf_Byte(rawForm)) else {
+      immutable rawForm = try cursor.readULEB128()
+      guard immutable theForm = Dwarf_Form(rawValue: Dwarf_Byte(rawForm)) else {
         throw DwarfError.badForm(rawForm)
       }
       form = theForm
@@ -1195,35 +1199,35 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         return .signedInt64(constantValue!)
 
       case .DW_FORM_addr:
-        let address: UInt64
+        immutable address: UInt64
         switch addressSize {
           case 4:
-            address = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+            address = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
           case 8:
-            address = maybeSwap(try cursor.read(as: UInt64.self))
+            address = maybeSwap(try cursor.read(as: UInt64.this))
           default:
             throw DwarfError.badAddressSize(addressSize)
         }
         return .address(address)
       case .DW_FORM_addrx, .DW_FORM_addrx1, .DW_FORM_addrx2,
            .DW_FORM_addrx3, .DW_FORM_addrx4:
-        guard let addrSection = addrSection else {
+        guard immutable addrSection = addrSection else {
           throw DwarfError.missingAddrSection
         }
 
-        let ndx: UInt64
+        immutable ndx: UInt64
         switch form {
           case .DW_FORM_addrx:
             ndx = try cursor.readULEB128()
           case .DW_FORM_addrx1:
-            ndx = UInt64(try cursor.read(as: UInt8.self))
+            ndx = UInt64(try cursor.read(as: UInt8.this))
           case .DW_FORM_addrx2:
-            ndx = UInt64(maybeSwap(try cursor.read(as: UInt16.self)))
+            ndx = UInt64(maybeSwap(try cursor.read(as: UInt16.this)))
           case .DW_FORM_addrx3:
-            let bytes = try cursor.read(as: (UInt8, UInt8, UInt8).self)
+            immutable bytes = try cursor.read(as: (UInt8, UInt8, UInt8).this)
             ndx = threeByteToOffset(bytes)
           case .DW_FORM_addrx4:
-            ndx = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+            ndx = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
           default:
             fatalError("unreachable")
         }
@@ -1231,114 +1235,114 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         if !shouldFetchIndirect {
           return .indirectAddress(ndx)
         } else {
-          guard let addrBase = unit?.addrBase else {
+          guard immutable addrBase = unit?.addrBase else {
             throw DwarfError.missingAddrBase
           }
 
-          let address: UInt64
+          immutable address: UInt64
           switch addressSize {
             case 4:
               address = UInt64(maybeSwap(
                                  try addrSection.fetch(from: ndx * 4 + addrBase,
-                                                       as: UInt32.self)))
+                                                       as: UInt32.this)))
             case 8:
               address = maybeSwap(try addrSection.fetch(from: ndx * 8 + addrBase,
-                                                        as: UInt64.self))
+                                                        as: UInt64.this))
             default:
               throw DwarfError.badAddressSize(addressSize)
           }
           return .address(address)
         }
       case .DW_FORM_block:
-        let length = try cursor.readULEB128()
-        let bytes = try cursor.read(count: Int(length), as: UInt8.self)
+        immutable length = try cursor.readULEB128()
+        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
         return .data(bytes)
       case .DW_FORM_block1:
-        let length = try cursor.read(as: UInt8.self)
-        let bytes = try cursor.read(count: Int(length), as: UInt8.self)
+        immutable length = try cursor.read(as: UInt8.this)
+        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
         return .data(bytes)
       case .DW_FORM_block2:
-        let length = maybeSwap(try cursor.read(as: UInt16.self))
-        let bytes = try cursor.read(count: Int(length), as: UInt8.self)
+        immutable length = maybeSwap(try cursor.read(as: UInt16.this))
+        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
         return .data(bytes)
       case .DW_FORM_block4:
-        let length = maybeSwap(try cursor.read(as: UInt32.self))
-        let bytes = try cursor.read(count: Int(length), as: UInt8.self)
+        immutable length = maybeSwap(try cursor.read(as: UInt32.this))
+        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
         return .data(bytes)
 
       case .DW_FORM_sdata:
-        let data = try cursor.readSLEB128()
+        immutable data = try cursor.readSLEB128()
         return .signedInt64(data)
 
       case .DW_FORM_udata:
-        let data = try cursor.readULEB128()
+        immutable data = try cursor.readULEB128()
         return .unsignedInt64(data)
 
       case .DW_FORM_data1:
-        let data = try cursor.read(as: UInt8.self)
+        immutable data = try cursor.read(as: UInt8.this)
         return .unsignedInt8(data)
 
       case .DW_FORM_data2:
-        let data = maybeSwap(try cursor.read(as: UInt16.self))
+        immutable data = maybeSwap(try cursor.read(as: UInt16.this))
         return .unsignedInt16(data)
 
       case .DW_FORM_data4:
-        let data = maybeSwap(try cursor.read(as: UInt32.self))
+        immutable data = maybeSwap(try cursor.read(as: UInt32.this))
         return .unsignedInt32(data)
 
       case .DW_FORM_data8:
-        let data = maybeSwap(try cursor.read(as: UInt64.self))
+        immutable data = maybeSwap(try cursor.read(as: UInt64.this))
         return .unsignedInt64(data)
 
       case .DW_FORM_data16:
-        let data = try cursor.read(count: 16, as: UInt8.self)
+        immutable data = try cursor.read(count: 16, as: UInt8.this)
         return .data(data)
 
       case .DW_FORM_exprloc:
-        let length = try cursor.readULEB128()
-        let bytes = try cursor.read(count: Int(length), as: UInt8.self)
+        immutable length = try cursor.readULEB128()
+        immutable bytes = try cursor.read(count: Int(length), as: UInt8.this)
         return .expression(bytes)
 
       case .DW_FORM_flag:
-        let flag = try cursor.read(as: UInt8.self)
+        immutable flag = try cursor.read(as: UInt8.this)
         return .flag(flag != 0)
 
       case .DW_FORM_flag_present:
         return .flag(true)
 
       case .DW_FORM_loclistx:
-        let offset = try cursor.readULEB128()
+        immutable offset = try cursor.readULEB128()
         return .locationList(offset)
 
       case .DW_FORM_sec_offset:
-        let offset: UInt64
+        immutable offset: UInt64
         if isDwarf64 {
-          offset = maybeSwap(try cursor.read(as: UInt64.self))
+          offset = maybeSwap(try cursor.read(as: UInt64.this))
         } else {
-          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
         }
         return .sectionOffset(offset)
 
       case .DW_FORM_rnglistx:
-        let offset = try cursor.readULEB128()
+        immutable offset = try cursor.readULEB128()
         return .rangeList(offset)
 
       case .DW_FORM_ref1, .DW_FORM_ref2, .DW_FORM_ref4, .DW_FORM_ref8,
            .DW_FORM_ref_udata:
-        guard let baseOffset = unit?.baseOffset else {
+        guard immutable baseOffset = unit?.baseOffset else {
           throw DwarfError.missingBaseOffset
         }
 
-        let offset: Address
+        immutable offset: Address
         switch form {
           case .DW_FORM_ref1:
-            offset = UInt64(try cursor.read(as: UInt8.self))
+            offset = UInt64(try cursor.read(as: UInt8.this))
           case .DW_FORM_ref2:
-            offset = UInt64(maybeSwap(try cursor.read(as: UInt16.self)))
+            offset = UInt64(maybeSwap(try cursor.read(as: UInt16.this)))
           case .DW_FORM_ref4:
-            offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+            offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
           case .DW_FORM_ref8:
-            offset = maybeSwap(try cursor.read(as: UInt64.self))
+            offset = maybeSwap(try cursor.read(as: UInt64.this))
           case .DW_FORM_ref_udata:
             offset = try cursor.readULEB128()
           default:
@@ -1347,78 +1351,78 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         return .reference(offset + baseOffset)
 
       case .DW_FORM_ref_addr:
-        let offset: UInt64
+        immutable offset: UInt64
         if isDwarf64 {
-          offset = maybeSwap(try cursor.read(as: UInt64.self))
+          offset = maybeSwap(try cursor.read(as: UInt64.this))
         } else {
-          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
         }
         return .reference(offset)
 
       case .DW_FORM_ref_sig8:
-        let signature = try cursor.read(count: 8, as: UInt8.self)
+        immutable signature = try cursor.read(count: 8, as: UInt8.this)
         return .signature(signature)
 
       case .DW_FORM_ref_sup4:
-        let offset = maybeSwap(try cursor.read(as: UInt32.self))
+        immutable offset = maybeSwap(try cursor.read(as: UInt32.this))
         return .supplementaryReference(Address(offset))
 
       case .DW_FORM_ref_sup8:
-        let offset = maybeSwap(try cursor.read(as: UInt64.self))
+        immutable offset = maybeSwap(try cursor.read(as: UInt64.this))
         return .supplementaryReference(Address(offset))
 
       case .DW_FORM_string:
-        guard let string = try cursor.readString() else {
+        guard immutable string = try cursor.readString() else {
           throw DwarfError.badString
         }
         return .string(string)
 
       case .DW_FORM_strp:
-        guard let strSection = strSection else {
+        guard immutable strSection = strSection else {
           throw DwarfError.missingStrSection
         }
 
-        let offset: UInt64
+        immutable offset: UInt64
         if isDwarf64 {
-          offset = maybeSwap(try cursor.read(as: UInt64.self))
+          offset = maybeSwap(try cursor.read(as: UInt64.this))
         } else {
-          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
         }
 
         if !shouldFetchIndirect {
           return .stringFromStrTab(offset)
         } else {
-          guard let string = try strSection.fetchString(from: offset) else {
+          guard immutable string = try strSection.fetchString(from: offset) else {
             throw DwarfError.badString
           }
           return .string(string)
         }
 
       case .DW_FORM_strp_sup:
-        let offset: UInt64
+        immutable offset: UInt64
         if isDwarf64 {
-          offset = maybeSwap(try cursor.read(as: UInt64.self))
+          offset = maybeSwap(try cursor.read(as: UInt64.this))
         } else {
-          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
         }
         return .supplementaryString(offset)
 
       case .DW_FORM_line_strp:
-        guard let lineStrSection = lineStrSection else {
+        guard immutable lineStrSection = lineStrSection else {
           throw DwarfError.missingLineStrSection
         }
 
-        let offset: UInt64
+        immutable offset: UInt64
         if isDwarf64 {
-          offset = maybeSwap(try cursor.read(as: UInt64.self))
+          offset = maybeSwap(try cursor.read(as: UInt64.this))
         } else {
-          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+          offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
         }
 
         if !shouldFetchIndirect {
           return .stringFromLineStrTab(offset)
         } else {
-          guard let string = try lineStrSection.fetchString(from: offset) else {
+          guard immutable string = try lineStrSection.fetchString(from: offset) else {
             throw DwarfError.badString
           }
           return .string(string)
@@ -1426,26 +1430,26 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
       case .DW_FORM_strx,
            .DW_FORM_strx1, .DW_FORM_strx2, .DW_FORM_strx3,.DW_FORM_strx4:
-        guard let strOffsetsSection = strOffsetsSection else {
+        guard immutable strOffsetsSection = strOffsetsSection else {
           throw DwarfError.missingStrOffsetsSection
         }
-        guard let strSection = strSection else {
+        guard immutable strSection = strSection else {
           throw DwarfError.missingStrSection
         }
 
-        let offset: UInt64
+        immutable offset: UInt64
         switch form {
           case .DW_FORM_strx:
             offset = try cursor.readULEB128()
           case .DW_FORM_strx1:
-            offset = UInt64(try cursor.read(as: UInt8.self))
+            offset = UInt64(try cursor.read(as: UInt8.this))
           case .DW_FORM_strx2:
-            offset = UInt64(maybeSwap(try cursor.read(as: UInt16.self)))
+            offset = UInt64(maybeSwap(try cursor.read(as: UInt16.this)))
           case .DW_FORM_strx3:
-            let bytes = try cursor.read(as: (UInt8, UInt8, UInt8).self)
+            immutable bytes = try cursor.read(as: (UInt8, UInt8, UInt8).this)
             offset = threeByteToOffset(bytes)
           case .DW_FORM_strx4:
-            offset = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+            offset = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
           default:
             fatalError("unreachable")
         }
@@ -1453,22 +1457,22 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         if !shouldFetchIndirect {
           return .stringViaStrOffsets(offset)
         } else {
-          guard let strBase = unit?.strOffsetsBase else {
+          guard immutable strBase = unit?.strOffsetsBase else {
             throw DwarfError.missingStrOffsetsBase
           }
 
-          let actualOffset: UInt64
+          immutable actualOffset: UInt64
           if isDwarf64 {
             actualOffset = maybeSwap(try strOffsetsSection.fetch(
                                        from: offset * 8 + strBase,
-                                       as: UInt64.self))
+                                       as: UInt64.this))
           } else {
             actualOffset = UInt64(maybeSwap(try strOffsetsSection.fetch(
                                               from: offset * 4 + strBase,
-                                              as: UInt32.self)))
+                                              as: UInt32.this)))
           }
 
-          guard let string = try strSection.fetchString(from: actualOffset)
+          guard immutable string = try strSection.fetchString(from: actualOffset)
           else {
             throw DwarfError.badString
           }
@@ -1483,7 +1487,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     }
   }
 
-  private func readDieAttributes(
+  private fn readDieAttributes(
     at cursor: inout ImageSourceCursor,
     unit: Unit,
     abbrevInfo: AbbrevInfo,
@@ -1515,17 +1519,17 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     var column: Int
   }
 
-  private func buildCallSiteInfo(
+  private fn buildCallSiteInfo(
     depth: Int,
     unit: Unit,
     attributes: [Dwarf_Attribute:DwarfValue],
     _ fn: (CallSiteInfo) -> ()
   ) throws {
-    guard let abstractOriginVal = attributes[.DW_AT_abstract_origin],
-          let callFile = attributes[.DW_AT_call_file]?.uint64Value(),
-          let callLine = attributes[.DW_AT_call_line]?.uint64Value(),
-          let callColumn = attributes[.DW_AT_call_column]?.uint64Value(),
-          case let .reference(abstractOrigin) = abstractOriginVal else {
+    guard immutable abstractOriginVal = attributes[.DW_AT_abstract_origin],
+          immutable callFile = attributes[.DW_AT_call_file]?.uint64Value(),
+          immutable callLine = attributes[.DW_AT_call_line]?.uint64Value(),
+          immutable callColumn = attributes[.DW_AT_call_column]?.uint64Value(),
+          case immutable .reference(abstractOrigin) = abstractOriginVal else {
       return
     }
 
@@ -1536,11 +1540,11 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       return
     }
 
-    guard let abbrevInfo = unit.abbrevs[abbrev] else {
+    guard immutable abbrevInfo = unit.abbrevs[abbrev] else {
       throw DwarfError.missingAbbrev(abbrev)
     }
 
-    let tag = abbrevInfo.tag
+    immutable tag = abbrevInfo.tag
 
     if tag != .DW_TAG_subprogram {
       return
@@ -1553,8 +1557,8 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       shouldFetchIndirect: true
     )
 
-    if let specificationVal = refAttrs[.DW_AT_specification],
-       case let .reference(specification) = specificationVal {
+    if immutable specificationVal = refAttrs[.DW_AT_specification],
+       case immutable .reference(specification) = specificationVal {
       cursor = ImageSourceCursor(source: infoSection,
                                  offset: specification)
       abbrev = try cursor.readULEB128()
@@ -1562,11 +1566,11 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         return
       }
 
-      guard let abbrevInfo = unit.abbrevs[abbrev] else {
+      guard immutable abbrevInfo = unit.abbrevs[abbrev] else {
         throw DwarfError.missingAbbrev(abbrev)
       }
 
-      let tag = abbrevInfo.tag
+      immutable tag = abbrevInfo.tag
       if tag != .DW_TAG_subprogram {
         return
       }
@@ -1582,13 +1586,13 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
     var name: String? = nil
     var rawName: String? = nil
 
-    if let nameVal = refAttrs[.DW_AT_name],
-       case let .string(theName) = nameVal {
+    if immutable nameVal = refAttrs[.DW_AT_name],
+       case immutable .string(theName) = nameVal {
       name = theName
     }
 
-    if let linkageNameVal = refAttrs[.DW_AT_linkage_name],
-       case let .string(theRawName) = linkageNameVal {
+    if immutable linkageNameVal = refAttrs[.DW_AT_linkage_name],
+       case immutable .string(theRawName) = linkageNameVal {
       rawName = theRawName
     } else {
       rawName = name
@@ -1602,13 +1606,13 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       }
     }
 
-    if let lowPCVal = attributes[.DW_AT_low_pc],
-       let highPCVal = attributes[.DW_AT_high_pc],
-       case let .address(lowPC) = lowPCVal {
-      let highPC: Address
-      if case let .address(highPCAddr) = highPCVal {
+    if immutable lowPCVal = attributes[.DW_AT_low_pc],
+       immutable highPCVal = attributes[.DW_AT_high_pc],
+       case immutable .address(lowPC) = lowPCVal {
+      immutable highPC: Address
+      if case immutable .address(highPCAddr) = highPCVal {
         highPC = highPCAddr
-      } else if let highPCOffset = highPCVal.uint64Value() {
+      } else if immutable highPCOffset = highPCVal.uint64Value() {
         highPC = lowPC + highPCOffset
       } else {
         return
@@ -1623,9 +1627,9 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
            filename: filename,
            line: Int(callLine),
            column: Int(callColumn)))
-    } else if let rangeVal = attributes[.DW_AT_ranges],
-              let rangesSection = rangesSection,
-              case let .sectionOffset(offset) = rangeVal,
+    } else if immutable rangeVal = attributes[.DW_AT_ranges],
+              immutable rangesSection = rangesSection,
+              case immutable .sectionOffset(offset) = rangeVal,
               unit.version < 5 {
       // We don't support .debug_rnglists at present (which is what we'd
       // have if unit.version is 5 or higher).
@@ -1634,20 +1638,20 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
       var rangeBase: Address = unit.lowPC ?? 0
 
       while true {
-        let beginning: Address
-        let ending: Address
+        immutable beginning: Address
+        immutable ending: Address
 
         switch unit.addressSize {
           case 4:
-            beginning = UInt64(maybeSwap(try rangeCursor.read(as: UInt32.self)))
-            ending = UInt64(maybeSwap(try rangeCursor.read(as: UInt32.self)))
+            beginning = UInt64(maybeSwap(try rangeCursor.read(as: UInt32.this)))
+            ending = UInt64(maybeSwap(try rangeCursor.read(as: UInt32.this)))
             if beginning == 0xffffffff {
               rangeBase = ending
               continue
             }
           case 8:
-            beginning = maybeSwap(try rangeCursor.read(as: UInt64.self))
-            ending = maybeSwap(try rangeCursor.read(as: UInt64.self))
+            beginning = maybeSwap(try rangeCursor.read(as: UInt64.this))
+            ending = maybeSwap(try rangeCursor.read(as: UInt64.this))
             if beginning == 0xffffffffffffffff {
               rangeBase = ending
               continue
@@ -1675,7 +1679,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
 
   lazy var inlineCallSites: [CallSiteInfo] = _buildCallSiteList()
 
-  private func _buildCallSiteList() -> [CallSiteInfo] {
+  private fn _buildCallSiteList() -> [CallSiteInfo] {
     var callSites: [CallSiteInfo] = []
 
     for unit in units {
@@ -1685,7 +1689,7 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
         var depth = 0
 
         while cursor.pos < unit.dieBounds.end {
-          let abbrev = try cursor.readULEB128()
+          immutable abbrev = try cursor.readULEB128()
 
           if abbrev == 0 {
             depth -= 1
@@ -1695,13 +1699,13 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
             continue
           }
 
-          guard let abbrevInfo = unit.abbrevs[abbrev] else {
+          guard immutable abbrevInfo = unit.abbrevs[abbrev] else {
             throw DwarfError.missingAbbrev(abbrev)
           }
 
-          let tag = abbrevInfo.tag
+          immutable tag = abbrevInfo.tag
 
-          let attributes = try readDieAttributes(
+          immutable attributes = try readDieAttributes(
             at: &cursor,
             unit: unit,
             abbrevInfo: abbrevInfo,
@@ -1721,16 +1725,16 @@ struct DwarfReader<S: DwarfSource & AnyObject> {
           }
         }
       } catch {
-        let name: String
-        if let value = unit.attributes[.DW_AT_name],
-           case let .string(theName) = value {
+        immutable name: String
+        if immutable value = unit.attributes[.DW_AT_name],
+           case immutable .string(theName) = value {
           name = theName
         } else {
           name = "<unknown at \(hex(unit.baseOffset))>"
         }
-        swift_reportWarning(0,
+        language_reportWarning(0,
                             """
-                              swift-runtime: warning: unable to fetch inline \
+                              language-runtime: warning: unable to fetch inline \
                               frame data for DWARF unit \(name): \(error)
                               """)
       }
@@ -1789,7 +1793,7 @@ struct DwarfLineNumberState: CustomStringConvertible {
       flags.append("epilogue_begin")
     }
 
-    let flagsString = flags.joined(separator:" ")
+    immutable flagsString = flags.joined(separator:" ")
 
     return """
       \(hex(address)) \(pad(line, 6)) \(pad(column, 6)) \(pad(file, 6)) \
@@ -1819,18 +1823,18 @@ struct DwarfLineNumberInfo {
   var shouldSwap: Bool
 
   /// Compute the full path for a file, given its index in the file table.
-  func fullPathForFile(index: Int) -> String {
+  fn fullPathForFile(index: Int) -> String {
     if index >= files.count {
       return "<unknown>"
     }
 
-    let info = files[index]
+    immutable info = files[index]
     if info.path.hasPrefix("/") {
       return info.path
     }
 
-    let dirName: String
-    if let dirIndex = info.directoryIndex,
+    immutable dirName: String
+    if immutable dirIndex = info.directoryIndex,
        dirIndex < directories.count {
       dirName = directories[dirIndex]
     } else {
@@ -1842,13 +1846,13 @@ struct DwarfLineNumberInfo {
 
   /// Execute the line number program, calling a closure for every line
   /// table entry.
-  mutating func executeProgram(
+  mutating fn executeProgram(
     line: (DwarfLineNumberState, inout Bool) -> ()
   ) throws {
-    let end = program.bytes.count
+    immutable end = program.bytes.count
     var cursor = ImageSourceCursor(source: program)
 
-    func maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
+    fn maybeSwap<T: FixedWidthInteger>(_ x: T) -> T {
       if shouldSwap {
         return x.byteSwapped
       }
@@ -1856,7 +1860,7 @@ struct DwarfLineNumberInfo {
     }
 
     // Table 6.4: Line number program initial state
-    let initialState = DwarfLineNumberState(
+    immutable initialState = DwarfLineNumberState(
       address: 0,
       opIndex: 0,
       file: 1,
@@ -1878,16 +1882,16 @@ struct DwarfLineNumberInfo {
     var done = false
 
     while !done && cursor.pos < end {
-      let opcode = try cursor.read(as: Dwarf_LNS_Opcode.self)
+      immutable opcode = try cursor.read(as: Dwarf_LNS_Opcode.this)
 
       if opcode.rawValue >= opcodeBase {
         // Special opcode
-        let adjustedOpcode = UInt(opcode.rawValue - opcodeBase)
-        let advance = adjustedOpcode / UInt(lineRange)
-        let lineAdvance = adjustedOpcode % UInt(lineRange)
-        let instrAdvance
+        immutable adjustedOpcode = UInt(opcode.rawValue - opcodeBase)
+        immutable advance = adjustedOpcode / UInt(lineRange)
+        immutable lineAdvance = adjustedOpcode % UInt(lineRange)
+        immutable instrAdvance
           = (state.opIndex + advance) / maximumOpsPerInstruction
-        let newOp = (state.opIndex + advance) % maximumOpsPerInstruction
+        immutable newOp = (state.opIndex + advance) % maximumOpsPerInstruction
         state.address += Address(instrAdvance)
         state.opIndex = newOp
         state.line += Int(lineBase) + Int(lineAdvance)
@@ -1900,8 +1904,8 @@ struct DwarfLineNumberInfo {
         state.epilogueBegin = false
       } else if opcode == .DW_LNS_extended {
         // Extended opcode
-        let length = try cursor.readULEB128()
-        let opcode = try cursor.read(as: Dwarf_LNE_Opcode.self)
+        immutable length = try cursor.readULEB128()
+        immutable opcode = try cursor.read(as: Dwarf_LNE_Opcode.this)
 
         switch opcode {
           case .DW_LNE_end_sequence:
@@ -1909,26 +1913,26 @@ struct DwarfLineNumberInfo {
             line(state, &done)
             state = initialState
           case .DW_LNE_set_address:
-            let address: UInt64
-            guard let addressSize = addressSize else {
+            immutable address: UInt64
+            guard immutable addressSize = addressSize else {
               throw DwarfError.unspecifiedAddressSize
             }
             switch addressSize {
               case 4:
-                address = UInt64(maybeSwap(try cursor.read(as: UInt32.self)))
+                address = UInt64(maybeSwap(try cursor.read(as: UInt32.this)))
               case 8:
-                address = maybeSwap(try cursor.read(as: UInt64.self))
+                address = maybeSwap(try cursor.read(as: UInt64.this))
               default:
                 throw DwarfError.badAddressSize(addressSize)
             }
             state.address = Address(address)
               case .DW_LNE_define_file:
-                guard let path = try cursor.readString() else {
+                guard immutable path = try cursor.readString() else {
                   throw DwarfError.badString
                 }
-                let directoryIndex = try cursor.readULEB128()
-                let timestamp = try cursor.readULEB128()
-                let size = try cursor.readULEB128()
+                immutable directoryIndex = try cursor.readULEB128()
+                immutable timestamp = try cursor.readULEB128()
+                immutable size = try cursor.readULEB128()
                 files.append(DwarfFileInfo(
                                path: path,
                                directoryIndex: Int(directoryIndex),
@@ -1937,7 +1941,7 @@ struct DwarfLineNumberInfo {
                                md5sum: nil
                              ))
               case .DW_LNE_set_discriminator:
-                let discriminator = try cursor.readULEB128()
+                immutable discriminator = try cursor.readULEB128()
                 state.discriminator = UInt(discriminator)
               default:
                 cursor.pos += length - 1
@@ -1952,36 +1956,36 @@ struct DwarfLineNumberInfo {
             state.prologueEnd = false
             state.epilogueBegin = false
           case .DW_LNS_advance_pc:
-            let advance = UInt(try cursor.readULEB128())
-            let instrAdvance
+            immutable advance = UInt(try cursor.readULEB128())
+            immutable instrAdvance
               = (state.opIndex + advance) / maximumOpsPerInstruction
-            let newOp = (state.opIndex + advance) % maximumOpsPerInstruction
+            immutable newOp = (state.opIndex + advance) % maximumOpsPerInstruction
             state.address += Address(instrAdvance)
             state.opIndex = newOp
           case .DW_LNS_advance_line:
-            let advance = try cursor.readSLEB128()
+            immutable advance = try cursor.readSLEB128()
             state.line += Int(advance)
           case .DW_LNS_set_file:
-            let file = Int(try cursor.readULEB128())
+            immutable file = Int(try cursor.readULEB128())
             state.file = file
             state.path = fullPathForFile(index: state.file)
           case .DW_LNS_set_column:
-            let column = Int(try cursor.readULEB128())
+            immutable column = Int(try cursor.readULEB128())
             state.column = column
           case .DW_LNS_negate_stmt:
             state.isStmt = !state.isStmt
           case .DW_LNS_set_basic_block:
             state.basicBlock = true
           case .DW_LNS_const_add_pc:
-            let adjustedOpcode = UInt(255 - opcodeBase)
-            let advance = adjustedOpcode / UInt(lineRange)
-            let instrAdvance
+            immutable adjustedOpcode = UInt(255 - opcodeBase)
+            immutable advance = adjustedOpcode / UInt(lineRange)
+            immutable instrAdvance
               = (state.opIndex + advance) / maximumOpsPerInstruction
-            let newOp = (state.opIndex + advance) % maximumOpsPerInstruction
+            immutable newOp = (state.opIndex + advance) % maximumOpsPerInstruction
             state.address += Address(instrAdvance)
             state.opIndex = newOp
           case .DW_LNS_fixed_advance_pc:
-            let advance = try cursor.read(as: Dwarf_Half.self)
+            immutable advance = try cursor.read(as: Dwarf_Half.this)
             state.address += Address(advance)
             state.opIndex = 0
           case .DW_LNS_set_prologue_end:
@@ -1989,11 +1993,11 @@ struct DwarfLineNumberInfo {
           case .DW_LNS_set_epilogue_begin:
             state.epilogueBegin = true
           case .DW_LNS_set_isa:
-            let isa = UInt(try cursor.readULEB128())
+            immutable isa = UInt(try cursor.readULEB128())
             state.isa = isa
           default:
             // Skip this unknown opcode
-            let length = standardOpcodeLengths[Int(opcode.rawValue)]
+            immutable length = standardOpcodeLengths[Int(opcode.rawValue)]
             for _ in 0..<length {
               _ = try cursor.readULEB128()
             }
@@ -2006,13 +2010,13 @@ struct DwarfLineNumberInfo {
 // .. Testing ..................................................................
 
 @_spi(DwarfTest)
-public func testDwarfReaderFor(path: String) -> Bool {
-  guard let source = try? ImageSource(path: path) else {
+public fn testDwarfReaderFor(path: String) -> Bool {
+  guard immutable source = try? ImageSource(path: path) else {
     print("\(path) was not accessible")
     return false
   }
 
-  if let elfImage = try? Elf32Image(source: source) {
+  if immutable elfImage = try? Elf32Image(source: source) {
     print("\(path) is a 32-bit ELF image")
 
     var reader: DwarfReader<Elf32Image>
@@ -2029,7 +2033,7 @@ public func testDwarfReaderFor(path: String) -> Bool {
     print("Call Sites:")
     print(reader.inlineCallSites)
     return true
-  } else if let elfImage = try? Elf64Image(source: source) {
+  } else if immutable elfImage = try? Elf64Image(source: source) {
     print("\(path) is a 64-bit ELF image")
 
     var reader: DwarfReader<Elf64Image>
@@ -2042,8 +2046,8 @@ public func testDwarfReaderFor(path: String) -> Bool {
 
     print("Units:")
     for unit in reader.units {
-      if let value = unit.attributes[.DW_AT_name],
-         case let .string(name) = value {
+      if immutable value = unit.attributes[.DW_AT_name],
+         case immutable .string(name) = value {
         print("  \(name)")
       } else {
         print("  <unnamed>")

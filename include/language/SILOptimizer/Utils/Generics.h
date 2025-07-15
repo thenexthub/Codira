@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This contains utilities for transforming generics.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_GENERICS_H
-#define SWIFT_SIL_GENERICS_H
+#ifndef LANGUAGE_SIL_GENERICS_H
+#define LANGUAGE_SIL_GENERICS_H
 
 #include "language/AST/SubstitutionMap.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -47,7 +48,7 @@ class Emitter;
 void trySpecializeApplyOfGeneric(
     SILOptFunctionBuilder &FunctionBuilder,
     ApplySite Apply, DeadInstructionSet &DeadApplies,
-    llvm::SmallVectorImpl<SILFunction *> &NewFunctions,
+    toolchain::SmallVectorImpl<SILFunction *> &NewFunctions,
     OptRemark::Emitter &ORE,
     bool isMandatory);
 
@@ -426,9 +427,9 @@ bool isKnownPrespecialization(StringRef SpecName);
 class TypeReplacements {
 private:
   std::optional<SILType> resultType;
-  llvm::MapVector<unsigned, CanType> indirectResultTypes;
-  llvm::MapVector<unsigned, CanType> paramTypeReplacements;
-  llvm::MapVector<unsigned, CanType> yieldTypeReplacements;
+  toolchain::MapVector<unsigned, CanType> indirectResultTypes;
+  toolchain::MapVector<unsigned, CanType> paramTypeReplacements;
+  toolchain::MapVector<unsigned, CanType> yieldTypeReplacements;
 
 public:
   std::optional<SILType> getResultType() const { return resultType; }
@@ -437,7 +438,7 @@ public:
 
   bool hasResultType() const { return resultType.has_value(); }
 
-  const llvm::MapVector<unsigned, CanType> &getIndirectResultTypes() const {
+  const toolchain::MapVector<unsigned, CanType> &getIndirectResultTypes() const {
     return indirectResultTypes;
   }
 
@@ -447,7 +448,7 @@ public:
 
   bool hasIndirectResultTypes() const { return !indirectResultTypes.empty(); }
 
-  const llvm::MapVector<unsigned, CanType> &getParamTypeReplacements() const {
+  const toolchain::MapVector<unsigned, CanType> &getParamTypeReplacements() const {
     return paramTypeReplacements;
   }
 
@@ -459,7 +460,7 @@ public:
     return !paramTypeReplacements.empty();
   }
 
-  const llvm::MapVector<unsigned, CanType> &getYieldTypeReplacements() const {
+  const toolchain::MapVector<unsigned, CanType> &getYieldTypeReplacements() const {
     return yieldTypeReplacements;
   }
 

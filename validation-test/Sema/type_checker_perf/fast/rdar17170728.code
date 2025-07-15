@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// REQUIRES: tools-release,no_asan
+
+immutable i: Int? = 1
+immutable j: Int?
+immutable k: Int? = 2
+
+immutable _ = [i, j, k].reduce(0 as Int?) {
+  $0 != nil && $1 != nil ? $0! + $1! : ($0 != nil ? $0! : ($1 != nil ? $1! : nil))
+}

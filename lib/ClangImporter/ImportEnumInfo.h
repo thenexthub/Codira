@@ -11,19 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides ImportEnumInfo, which describes a Clang enum ready to be
 // imported
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CLANG_IMPORT_ENUM_H
-#define SWIFT_CLANG_IMPORT_ENUM_H
+#ifndef LANGUAGE_CLANG_IMPORT_ENUM_H
+#define LANGUAGE_CLANG_IMPORT_ENUM_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
-#include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/DenseMap.h"
+#include "clang/Lex/Preprocessor.h"
+#include "clang/Sema/Sema.h"
+#include "toolchain/ADT/APSInt.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace clang {
 class EnumDecl;
@@ -35,7 +38,7 @@ namespace language {
 namespace importer {
 
 /// Describes how a particular C enumeration type will be imported
-/// into Swift. All of the possibilities have the same storage
+/// into Codira. All of the possibilities have the same storage
 /// representation, but can be used in different ways.
 enum class EnumKind {
   /// The enumeration type should map to a frozen enum, which means that
@@ -91,7 +94,7 @@ public:
     case EnumKind::Constants:
       return false;
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
   /// For this error enum, extract the name of the error domain constant
@@ -110,7 +113,7 @@ private:
 class EnumInfoCache {
   clang::Preprocessor &clangPP;
 
-  llvm::DenseMap<const clang::EnumDecl *, EnumInfo> enumInfos;
+  toolchain::DenseMap<const clang::EnumDecl *, EnumInfo> enumInfos;
 
   // Never copy
   EnumInfoCache(const EnumInfoCache &) = delete;
@@ -146,7 +149,7 @@ public:
 /// changed from its initial value.
 ///
 /// This is used to derive the common prefix of enum constants so we can elide
-/// it from the Swift interface.
+/// it from the Codira interface.
 StringRef getCommonWordPrefix(StringRef a, StringRef b,
                               bool &followedByNonIdentifier);
 
@@ -167,14 +170,18 @@ StringRef getCommonPluralPrefix(StringRef singular, StringRef plural);
 /// an elaborated type, an unwrapped type is returned.
 const clang::Type *getUnderlyingType(const clang::EnumDecl *decl);
 
-inline bool isCFOptionsMacro(StringRef macroName) {
-  return llvm::StringSwitch<bool>(macroName)
+inline bool isCFOptionsMacro(const clang::NamedDecl *decl,
+                             clang::Preprocessor &preprocessor) {
+  auto loc = decl->getEndLoc();
+  if (!loc.isMacroID())
+    return false;
+  return toolchain::StringSwitch<bool>(preprocessor.getImmediateMacroName(loc))
       .Case("CF_OPTIONS", true)
       .Case("NS_OPTIONS", true)
       .Default(false);
 }
 
-}
-}
+} // namespace importer
+} // namespace language
 
-#endif // SWIFT_CLANG_IMPORT_ENUM_H
+#endif // LANGUAGE_CLANG_IMPORT_ENUM_H

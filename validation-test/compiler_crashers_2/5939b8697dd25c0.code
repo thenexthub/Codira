@@ -1,0 +1,3 @@
+// {"signature":"diagSyntacticUseRestrictions(language::Expr const*, language::DeclContext const*, bool)::DiagnoseWalker::walkToExprPre(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{ @#b([a:

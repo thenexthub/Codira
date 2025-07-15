@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SILGenBuilder.h"
@@ -72,8 +73,8 @@ ManagedValue SILGenBuilder::createPartialApply(SILLocation loc, SILValue fn,
                                                ArrayRef<ManagedValue> args,
                                                ParameterConvention calleeConvention,
                                          SILFunctionTypeIsolation resultIsolation) {
-  llvm::SmallVector<SILValue, 8> values;
-  llvm::transform(args, std::back_inserter(values),
+  toolchain::SmallVector<SILValue, 8> values;
+  toolchain::transform(args, std::back_inserter(values),
                   [&](ManagedValue mv) -> SILValue {
     return mv.forward(getSILGenFunction());
   });
@@ -243,7 +244,7 @@ ManagedValue SILGenBuilder::createPhi(SILType type,
   SILPhiArgument *arg = getInsertionBB()->createPhiArgument(type, ownership);
   switch (ownership) {
   case OwnershipKind::Any:
-    llvm_unreachable("Invalid ownership for value");
+    toolchain_unreachable("Invalid ownership for value");
 
   case OwnershipKind::Owned:
     return SGF.emitManagedRValueWithCleanup(arg);
@@ -263,10 +264,10 @@ ManagedValue SILGenBuilder::createAllocRef(
     SILLocation loc, SILType refType, bool objc,
     ArrayRef<SILType> inputElementTypes,
     ArrayRef<ManagedValue> inputElementCountOperands) {
-  llvm::SmallVector<SILType, 8> elementTypes(inputElementTypes.begin(),
+  toolchain::SmallVector<SILType, 8> elementTypes(inputElementTypes.begin(),
                                              inputElementTypes.end());
-  llvm::SmallVector<SILValue, 8> elementCountOperands;
-  llvm::transform(inputElementCountOperands,
+  toolchain::SmallVector<SILValue, 8> elementCountOperands;
+  toolchain::transform(inputElementCountOperands,
                   std::back_inserter(elementCountOperands),
                   [](ManagedValue mv) -> SILValue { return mv.getValue(); });
 
@@ -279,10 +280,10 @@ ManagedValue SILGenBuilder::createAllocRefDynamic(
     SILLocation loc, ManagedValue operand, SILType refType, bool objc,
     ArrayRef<SILType> inputElementTypes,
     ArrayRef<ManagedValue> inputElementCountOperands) {
-  llvm::SmallVector<SILType, 8> elementTypes(inputElementTypes.begin(),
+  toolchain::SmallVector<SILType, 8> elementTypes(inputElementTypes.begin(),
                                              inputElementTypes.end());
-  llvm::SmallVector<SILValue, 8> elementCountOperands;
-  llvm::transform(inputElementCountOperands,
+  toolchain::SmallVector<SILValue, 8> elementCountOperands;
+  toolchain::transform(inputElementCountOperands,
                   std::back_inserter(elementCountOperands),
                   [](ManagedValue mv) -> SILValue { return mv.getValue(); });
 
@@ -387,7 +388,7 @@ ManagedValue SILGenBuilder::createFormalAccessCopyAddr(
 ManagedValue
 SILGenBuilder::bufferForExpr(SILLocation loc, SILType ty,
                              const TypeLowering &lowering, SGFContext context,
-                             llvm::function_ref<void(SILValue)> rvalueEmitter) {
+                             toolchain::function_ref<void(SILValue)> rvalueEmitter) {
   // If we have a single-buffer "emit into" initialization, use that for the
   // result.
   SILValue address = context.getAddressForInPlaceInitialization(SGF, loc);
@@ -415,7 +416,7 @@ SILGenBuilder::bufferForExpr(SILLocation loc, SILType ty,
 
 ManagedValue SILGenBuilder::formalAccessBufferForExpr(
     SILLocation loc, SILType ty, const TypeLowering &lowering,
-    SGFContext context, llvm::function_ref<void(SILValue)> rvalueEmitter) {
+    SGFContext context, toolchain::function_ref<void(SILValue)> rvalueEmitter) {
   // If we have a single-buffer "emit into" initialization, use that for the
   // result.
   SILValue address = context.getAddressForInPlaceInitialization(SGF, loc);
@@ -580,9 +581,9 @@ static ManagedValue createInputFunctionArgument(
     return ManagedValue::forLValue(arg);
   case SILArgumentConvention::Indirect_Out:
   case SILArgumentConvention::Pack_Out:
-    llvm_unreachable("unsupported convention for API");
+    toolchain_unreachable("unsupported convention for API");
   }
-  llvm_unreachable("bad parameter convention");
+  toolchain_unreachable("bad parameter convention");
 }
 
 ManagedValue SILGenBuilder::createInputFunctionArgument(
@@ -628,10 +629,10 @@ ManagedValue SILGenBuilder::createEnum(SILLocation loc, ManagedValue payload,
 }
 
 ManagedValue SILGenBuilder::createUnconditionalCheckedCast(
-    SILLocation loc, CastingIsolatedConformances isolatedConformances,
+    SILLocation loc, CheckedCastInstOptions options,
     ManagedValue op, SILType destLoweredTy, CanType destFormalTy) {
   SILValue result =
-      createUnconditionalCheckedCast(loc, isolatedConformances,
+      createUnconditionalCheckedCast(loc, options,
                                      op.forward(SGF),
                                      destLoweredTy, destFormalTy);
   return SGF.emitManagedRValueWithCleanup(result);
@@ -639,7 +640,7 @@ ManagedValue SILGenBuilder::createUnconditionalCheckedCast(
 
 void SILGenBuilder::createCheckedCastBranch(
     SILLocation loc, bool isExact,
-    CastingIsolatedConformances isolatedConformances,
+    CheckedCastInstOptions options,
     ManagedValue op,
     CanType sourceFormalTy,
     SILType destLoweredTy,
@@ -653,7 +654,7 @@ void SILGenBuilder::createCheckedCastBranch(
                                          destFormalTy)) {
     op = op.ensurePlusOne(SGF, loc);
   }
-  createCheckedCastBranch(loc, isExact, isolatedConformances,
+  createCheckedCastBranch(loc, isExact, options,
                           op.forward(SGF), sourceFormalTy,
                           destLoweredTy, destFormalTy, trueBlock, falseBlock,
                           Target1Count, Target2Count);
@@ -926,8 +927,8 @@ ManagedValue SILGenBuilder::createBlockToAnyObject(SILLocation loc,
 BranchInst *SILGenBuilder::createBranch(SILLocation loc,
                                         SILBasicBlock *targetBlock,
                                         ArrayRef<ManagedValue> args) {
-  llvm::SmallVector<SILValue, 8> newArgs;
-  llvm::transform(args, std::back_inserter(newArgs),
+  toolchain::SmallVector<SILValue, 8> newArgs;
+  toolchain::transform(args, std::back_inserter(newArgs),
                   [&](ManagedValue mv) -> SILValue { return mv.forward(SGF); });
   return createBranch(loc, targetBlock, newArgs);
 }
@@ -958,12 +959,12 @@ ManagedValue SILGenBuilder::createTuple(SILLocation loc, SILType type,
     return mv.getOwnershipKind() != OwnershipKind::None;
   });
 
-  llvm::SmallVector<SILValue, 8> forwardedValues;
+  toolchain::SmallVector<SILValue, 8> forwardedValues;
 
   // If we have all .none values, then just create the tuple and return. No
   // cleanups need to be cloned.
   if (iter == elements.end()) {
-    llvm::transform(elements, std::back_inserter(forwardedValues),
+    toolchain::transform(elements, std::back_inserter(forwardedValues),
                     [&](ManagedValue mv) -> SILValue {
                       return mv.forward(getSILGenFunction());
                     });
@@ -975,7 +976,7 @@ ManagedValue SILGenBuilder::createTuple(SILLocation loc, SILType type,
   // instructions that forward ownership requiring that all input values have
   // the same ownership if they are non-trivial.
   CleanupCloner cloner(*this, *iter);
-  llvm::transform(elements, std::back_inserter(forwardedValues),
+  toolchain::transform(elements, std::back_inserter(forwardedValues),
                   [&](ManagedValue mv) -> SILValue {
                     return mv.forward(getSILGenFunction());
                   });
@@ -999,12 +1000,12 @@ ManagedValue SILGenBuilder::createUncheckedTrivialBitCast(SILLocation loc,
 
 void SILGenBuilder::emitDestructureValueOperation(
     SILLocation loc, ManagedValue value,
-    llvm::function_ref<void(unsigned, ManagedValue)> func) {
+    toolchain::function_ref<void(unsigned, ManagedValue)> fn) {
   CleanupCloner cloner(*this, value);
 
   // NOTE: We can not directly use SILBuilder::emitDestructureValueOperation()
   // here since we need to create all of our cleanups before invoking \p
-  // func. This is necessary since our func may want to emit conditional code
+  // fn. This is necessary since our fn may want to emit conditional code
   // with an early exit, emitting unused cleanups from the current scope via the
   // function emitBranchAndCleanups(). If we have not yet created those
   // cleanups, we will introduce a leak along that path.
@@ -1013,8 +1014,8 @@ void SILGenBuilder::emitDestructureValueOperation(
       loc, value.forward(SGF), [&](unsigned index, SILValue subValue) {
         destructuredValues.push_back(cloner.clone(subValue));
       });
-  for (auto p : llvm::enumerate(destructuredValues)) {
-    func(p.index(), p.value());
+  for (auto p : toolchain::enumerate(destructuredValues)) {
+    fn(p.index(), p.value());
   }
 }
 
@@ -1030,11 +1031,11 @@ void SILGenBuilder::emitDestructureValueOperation(
 
 void SILGenBuilder::emitDestructureAddressOperation(
     SILLocation loc, ManagedValue value,
-    llvm::function_ref<void(unsigned, ManagedValue)> func) {
+    toolchain::function_ref<void(unsigned, ManagedValue)> fn) {
   CleanupCloner cloner(*this, value);
   // NOTE: We can not directly use SILBuilder::emitDestructureAddressOperation()
   // here since we need to create all of our cleanups before invoking \p
-  // func. This is necessary since our func may want to emit conditional code
+  // fn. This is necessary since our fn may want to emit conditional code
   // with an early exit, emitting unused cleanups from the current scope via the
   // function emitBranchAndCleanups(). If we have not yet created those
   // cleanups, we will introduce a leak along that path.
@@ -1043,8 +1044,8 @@ void SILGenBuilder::emitDestructureAddressOperation(
       loc, value.forward(SGF), [&](unsigned index, SILValue subValue) {
         destructuredAddresses.push_back(cloner.clone(subValue));
       });
-  for (auto p : llvm::enumerate(destructuredAddresses)) {
-    func(p.index(), p.value());
+  for (auto p : toolchain::enumerate(destructuredAddresses)) {
+    fn(p.index(), p.value());
   }
 }
 
@@ -1080,9 +1081,9 @@ public:
   }
   
   void dump(SILGenFunction &SGF) const override {
-    llvm::errs() << "EndAccessCleanup\n";
+    toolchain::errs() << "EndAccessCleanup\n";
     if (beginAccess) {
-      beginAccess->print(llvm::errs());
+      beginAccess->print(toolchain::errs());
     }
   }
 };

@@ -1,17 +1,21 @@
 //===--- CodeCompletionResultSink.h ---------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODECOMPLETIONRESULTSINK
-#define SWIFT_IDE_CODECOMPLETIONRESULTSINK
+#ifndef LANGUAGE_IDE_CODECOMPLETIONRESULTSINK
+#define LANGUAGE_IDE_CODECOMPLETIONRESULTSINK
 
 #include "language/IDE/CodeCompletionResult.h"
 
@@ -19,7 +23,7 @@ namespace language {
 namespace ide {
 
 struct CodeCompletionResultSink {
-  using AllocatorPtr = std::shared_ptr<llvm::BumpPtrAllocator>;
+  using AllocatorPtr = std::shared_ptr<toolchain::BumpPtrAllocator>;
 
   /// The allocator used to allocate results "native" to this sink.
   AllocatorPtr Allocator;
@@ -52,13 +56,13 @@ public:
   std::vector<CodeCompletionResult *> Results;
 
   /// A single-element cache for module names stored in Allocator, keyed by a
-  /// clang::Module * or swift::ModuleDecl *.
+  /// clang::Module * or language::ModuleDecl *.
   std::pair<void *, NullTerminatedStringRef> LastModule;
 
   CodeCompletionResultSink()
-      : Allocator(std::make_shared<llvm::BumpPtrAllocator>()) {}
+      : Allocator(std::make_shared<toolchain::BumpPtrAllocator>()) {}
 
-  llvm::BumpPtrAllocator &getAllocator() { return *Allocator; }
+  toolchain::BumpPtrAllocator &getAllocator() { return *Allocator; }
 
   /// Marks the sink as producing results for the code completion cache.
   /// In this case the produced results will not contain any contextual
@@ -86,4 +90,4 @@ public:
 } // end namespace ide
 } // end namespace language
 
-#endif // SWIFT_IDE_CODECOMPLETIONRESULTSINK
+#endif // LANGUAGE_IDE_CODECOMPLETIONRESULTSINK

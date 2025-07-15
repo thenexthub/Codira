@@ -1,0 +1,5 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name EWrapperNonExported
+import Codira
+import E
+public fn funcEWrapperNonExported() { }

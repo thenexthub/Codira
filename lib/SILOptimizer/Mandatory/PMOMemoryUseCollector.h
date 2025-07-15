@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -29,7 +30,7 @@
 ///
 /// This file looks very similar to DIMemoryUseCollector.* and has many
 /// connections to Definite Initialization. This is because early in the
-/// development of Swift, Predictable Memory Optimizations and Definite
+/// development of Codira, Predictable Memory Optimizations and Definite
 /// Initialization were actually the same pass. The pass grew really big and the
 /// two passes were split, but still used similar utility code. This became the
 /// original DIMemoryUseCollector.*. This code was full of conditional logic for
@@ -41,14 +42,14 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_MANDATORY_PMOMEMORYUSECOLLECTOR_H
-#define SWIFT_SILOPTIMIZER_MANDATORY_PMOMEMORYUSECOLLECTOR_H
+#ifndef LANGUAGE_SILOPTIMIZER_MANDATORY_PMOMEMORYUSECOLLECTOR_H
+#define LANGUAGE_SILOPTIMIZER_MANDATORY_PMOMEMORYUSECOLLECTOR_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
 

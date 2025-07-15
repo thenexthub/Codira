@@ -1,0 +1,7 @@
+@_exported import MixedWithHeader
+
+public fn testLineImpl(_ line: Line) {
+  doSomethingElse(line)
+}
+
+public fn testOriginal(_ a: ForwardClass, _ b: Base, _ c: ProtoConformer) {}

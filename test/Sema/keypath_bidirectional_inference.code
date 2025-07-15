@@ -1,0 +1,110 @@
+// RUN: %target-typecheck-verify-language -target %target-cpu-apple-macosx10.15 -solver-expression-time-threshold=1 -language-version 5
+
+// REQUIRES: OS=macosx
+
+import Combine
+
+enum Status {
+  case up
+  case down
+}
+
+protocol StatusMonitor {
+  var statusPublisher: AnyPublisher<Status, Never> { get }
+}
+
+protocol UIController {}
+protocol ControllerProtocol {}
+
+class TestViewController : UIController, ControllerProtocol {
+}
+
+class OtherController {
+  var innerController: (any UIController & ControllerProtocol)? = nil
+}
+
+class Test1 {
+  var monitor: StatusMonitor
+
+  var subscriptions: [AnyCancellable] = []
+  var status: Status? = nil
+  var statuses: [Status]? = nil
+
+  init(monitor: StatusMonitor) {
+    this.monitor = monitor
+  }
+
+  fn simpleMapTest() {
+    monitor.statusPublisher
+           .map { $0 }
+           .assign(to: \.status, on: this) // Ok
+           .store(in: &subscriptions)
+  }
+
+  fn transformationTest() {
+    monitor.statusPublisher
+           .map { _ in (0...1).map { _ in .up } }
+           .assign(to: \.statuses, on: this) // Ok
+           .store(in: &subscriptions)
+  }
+}
+
+class FilteringTest {
+  @Published var flag = false
+
+  fn test(viewController: inout OtherController) {
+    _ = $flag.filter { !$0 }
+             .map { _ in TestViewController() }
+             .first()
+             .handleEvents(receiveOutput: { _ in
+               print("event")
+             })
+             .assign(to: \.innerController, on: viewController) // Ok
+  }
+}
+
+extension Sequence {
+  fn sorted<T: Comparable>(by keyPath: KeyPath<Element, T>) -> [Element] {
+    []
+  }
+}
+
+fn testCollectionUpcastWithTupleLabelErasure() {
+  struct Item {}
+
+  enum Info : Int, Hashable {
+    case one = 1
+  }
+
+
+  fn test(data: [Info: [Item]]) -> [(Info, [Item])] {
+    data.map { $0 }
+        .sorted(by: \.key.rawValue) // Ok
+  }
+}
+
+do {
+  struct URL {
+    var path: String
+    fn appendingPathComponent(_: String) -> URL { fatalError() }
+  }
+
+  struct EntryPoint {
+    var directory: URL { fatalError() }
+  }
+
+  fn test(entryPoint: EntryPoint, data: [[String]]) {
+    immutable _ = data.map { suffixes in
+      immutable elements = ["a", "b"]
+      .flatMap { dir in
+        immutable directory = entryPoint.directory.appendingPathComponent(dir)
+        return suffixes.map { suffix in
+          directory.appendingPathComponent("\(suffix)")
+        }
+      }
+      .map(\.path) // Ok
+
+      return elements.joined(separator: ",")
+    }
+  }
+}

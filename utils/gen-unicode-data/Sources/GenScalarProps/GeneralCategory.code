@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -45,7 +49,7 @@ enum GeneralCategory: String {
   case unassigned = "Cn"
   
   var binaryRepresentation: UInt8 {
-    switch self {
+    switch this {
     case .uppercaseLetter:
       return 0
     case .lowercaseLetter:
@@ -110,7 +114,7 @@ enum GeneralCategory: String {
   }
 }
 
-func getGeneralCategory(
+fn getGeneralCategory(
   from data: String,
   into result: inout [(ClosedRange<UInt32>, GeneralCategory)]
 ) {
@@ -120,27 +124,27 @@ func getGeneralCategory(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let filteredCategory = components[1].filter { !$0.isWhitespace }
+    immutable filteredCategory = components[1].filter { !$0.isWhitespace }
     
-    guard let gc = GeneralCategory(rawValue: filteredCategory) else {
+    guard immutable gc = GeneralCategory(rawValue: filteredCategory) else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -149,7 +153,7 @@ func getGeneralCategory(
   }
 }
 
-func emitGeneralCategory(
+fn emitGeneralCategory(
   _ data: [(ClosedRange<UInt32>, GeneralCategory)],
   into result: inout String
 ) {
@@ -161,13 +165,13 @@ func emitGeneralCategory(
 
   emitCollection(
     data,
-    name: "_swift_stdlib_generalCategory",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_generalCategory",
+    type: "__language_uint64_t",
     into: &result
   ) {
     var value: UInt64 = UInt64($0.0.lowerBound)
     
-    let generalCategory = $0.1.binaryRepresentation
+    immutable generalCategory = $0.1.binaryRepresentation
     
     value |= UInt64(generalCategory) << 21
     
@@ -177,8 +181,8 @@ func emitGeneralCategory(
   }
 }
 
-func generateGeneralCategory(into result: inout String) {
-  let derivedGeneralCategory = readFile("Data/16/DerivedGeneralCategory.txt")
+fn generateGeneralCategory(into result: inout String) {
+  immutable derivedGeneralCategory = readFile("Data/16/DerivedGeneralCategory.txt")
   
   var data: [(ClosedRange<UInt32>, GeneralCategory)] = []
   

@@ -12,6 +12,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Specialize functions with existential parameters to generic ones.
@@ -27,15 +28,15 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/Existential.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 EnableExistentialSpecializer("enable-existential-specializer",
-                             llvm::cl::Hidden,
-                             llvm::cl::init(true));
+                             toolchain::cl::Hidden,
+                             toolchain::cl::init(true));
 
 STATISTIC(NumFunctionsWithExistentialArgsSpecialized,
           "Number of functions with existential args specialized");
@@ -49,7 +50,7 @@ class ExistentialSpecializer : public SILFunctionTransform {
   /// specialization of args.
   bool canSpecializeExistentialArgsInFunction(
       FullApplySite &Apply,
-      llvm::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
+      toolchain::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
           &ExistentialArgDescriptor);
 
   /// Can Callee be specialized?
@@ -97,9 +98,9 @@ public:
 bool ExistentialSpecializer::findConcreteTypeFromSoleConformingType(
     SILFunctionArgument *Arg, CanType &ConcreteType) {
   auto ArgType = Arg->getType();
-  auto SwiftArgType = ArgType.getASTType();
+  auto CodiraArgType = ArgType.getASTType();
 
-  CanType constraint = SwiftArgType;
+  CanType constraint = CodiraArgType;
   if (auto existential = constraint->getAs<ExistentialType>())
     constraint = existential->getConstraintType()->getCanonicalType();
 
@@ -131,7 +132,7 @@ static bool isNonInoutIndirectArgument(SILValue Arg,
 /// specialization.
 bool ExistentialSpecializer::canSpecializeExistentialArgsInFunction(
     FullApplySite &Apply,
-    llvm::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
+    toolchain::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
         &ExistentialArgDescriptor) {
   auto *F = Apply.getReferencedFunctionOrNull();
   auto CalleeArgs = F->begin()->getSILFunctionArguments();
@@ -145,14 +146,14 @@ bool ExistentialSpecializer::canSpecializeExistentialArgsInFunction(
   for (unsigned Idx = 0, Num = CalleeArgs.size(); Idx < Num; ++Idx) {
     auto CalleeArg = CalleeArgs[Idx];
     auto ArgType = CalleeArg->getType();
-    auto SwiftArgType = ArgType.getASTType();
+    auto CodiraArgType = ArgType.getASTType();
 
     /// Checking for AnyObject and Any is added to ensure that we do not blow up
     /// the code size by specializing to every type that conforms to Any or
     /// AnyObject. In future, we may want to lift these two restrictions in a
     /// controlled way.
     if (!ArgType.isExistentialType() || ArgType.isAnyObject() ||
-        SwiftArgType->isAny())
+        CodiraArgType->isAny())
       continue;
 
     auto ExistentialRepr =
@@ -173,8 +174,8 @@ bool ExistentialSpecializer::canSpecializeExistentialArgsInFunction(
            isNonInoutIndirectArgument(CalleeArg, ArgConvention) &&
            findConcreteTypeFromSoleConformingType(CalleeArg, SoleConcreteType)) ||
           ConcreteType)) {
-      LLVM_DEBUG(
-          llvm::dbgs()
+      TOOLCHAIN_DEBUG(
+          toolchain::dbgs()
               << "ExistentialSpecializer Pass: Bail! cannot find ConcreteType "
                  "for call argument to:"
               << F->getName() << " in caller:"
@@ -209,7 +210,7 @@ bool ExistentialSpecializer::canSpecializeExistentialArgsInFunction(
 
     /// Save the attributes
     ExistentialArgDescriptor[Idx] = ETAD;
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "ExistentialSpecializer Pass:Function: " << F->getName()
                << " Arg:" << Idx << " has a concrete type.\n");
     returnFlag |= true;
@@ -287,7 +288,7 @@ void ExistentialSpecializer::specializeExistentialArgsInAppliesWithinFunction(
 
       /// Can the callee be specialized?
       if (!canSpecializeCalleeFunction(Apply)) {
-        LLVM_DEBUG(llvm::dbgs() << "ExistentialSpecializer Pass: Bail! Due to "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "ExistentialSpecializer Pass: Bail! Due to "
                                    "canSpecializeCalleeFunction.\n";
                    I->dump(););
         continue;
@@ -297,25 +298,25 @@ void ExistentialSpecializer::specializeExistentialArgsInAppliesWithinFunction(
 
       /// Handle recursion! Do not modify F right now.
       if (Callee == &F) {
-        LLVM_DEBUG(llvm::dbgs() << "ExistentialSpecializer Pass: Bail! Due to "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "ExistentialSpecializer Pass: Bail! Due to "
                                    "recursion.\n";
                   I->dump(););
         continue;
       }
 
       /// Determine the arguments that can be specialized.
-      llvm::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
+      toolchain::SmallDenseMap<int, ExistentialTransformArgumentDescriptor>
           ExistentialArgDescriptor;
       if (!canSpecializeExistentialArgsInFunction(Apply,
                                                   ExistentialArgDescriptor)) {
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "ExistentialSpecializer Pass: Bail! Due to "
                       "canSpecializeExistentialArgsInFunction in function: "
                    << Callee->getName() << " -> abort\n");
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "ExistentialSpecializer Pass: Function::"
                  << Callee->getName()
                  << " has an existential argument and can be optimized "
@@ -327,15 +328,15 @@ void ExistentialSpecializer::specializeExistentialArgsInAppliesWithinFunction(
           P, Callee->getSerializedKind(), Callee);
 
       /// Save the arguments in a descriptor.
-      llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> Allocator;
-      llvm::SmallVector<ArgumentDescriptor, 4> ArgumentDescList;
+      toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> Allocator;
+      toolchain::SmallVector<ArgumentDescriptor, 4> ArgumentDescList;
       auto Args = Callee->begin()->getSILFunctionArguments();
       for (unsigned i : indices(Args)) {
         ArgumentDescList.emplace_back(Args[i], Allocator);
       }
 
       /// This is the function to optimize for existential specilizer.
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "*** Running ExistentialSpecializer Pass on function: "
                  << Callee->getName() << " ***\n");
 
@@ -364,6 +365,6 @@ void ExistentialSpecializer::specializeExistentialArgsInAppliesWithinFunction(
   return;
 }
 
-SILTransform *swift::createExistentialSpecializer() {
+SILTransform *language::createExistentialSpecializer() {
   return new ExistentialSpecializer();
 }

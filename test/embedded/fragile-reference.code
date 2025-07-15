@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -target armv7-apple-none-macho -module-name main -parse-as-library -emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+// RUN: %target-language-frontend -target arm64-apple-none-macho -module-name main -parse-as-library -emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// UNSUPPORTED: OS=wasi
+// REQUIRES: language_in_compiler
+// REQUIRES: CODEGENERATOR=ARM
+// REQUIRES: embedded_stdlib_cross_compiling
+// REQUIRES: language_feature_Embedded
+
+@main
+public struct Application {
+    public static fn main() {
+        var x: UInt64 = 0
+        x <<= 8
+    }
+}
+
+enum MyEnum: UInt8 {
+    case a = 0
+}
+
+// CHECK: define {{.*}}@{{_*}}main{{.*}}(
+

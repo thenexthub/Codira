@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Implements access notes, which allow certain modifiers or attributes to be
@@ -24,9 +25,9 @@
 #include "language/AST/Identifier.h"
 #include "language/AST/StorageImpl.h"
 #include "language/Basic/NullablePtr.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 #include <set>
 #include <string>
@@ -62,8 +63,8 @@ public:
   /// If true, the name is empty and invalid.
   bool empty() const;
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 /// An individual access note specifying modifications to a declaration.
@@ -84,8 +85,8 @@ public:
   /// If \c ObjC would otherwise be \c None, it will be set to \c true.
   std::optional<ObjCSelector> ObjCName;
 
-  void dump(llvm::raw_ostream &os, int indent = 0) const;
-  SWIFT_DEBUG_DUMP;
+  void dump(toolchain::raw_ostream &os, int indent = 0) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 /// A set of access notes with module-wide metadata about them.
@@ -101,13 +102,13 @@ public:
   /// Load the access notes from \p buffer, or \c None if they cannot be loaded.
   /// Diagnoses any parsing issues with the access notes file.
   static std::optional<AccessNotesFile> load(ASTContext &ctx,
-                                             const llvm::MemoryBuffer *buffer);
+                                             const toolchain::MemoryBuffer *buffer);
 
   /// Look up the access note in this file, if any, which applies to \p VD.
   NullablePtr<const AccessNote> lookup(ValueDecl *VD) const;
 
-  void dump(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  void dump(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 }

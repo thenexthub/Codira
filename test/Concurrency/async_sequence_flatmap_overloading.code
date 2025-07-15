@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -typecheck %s -verify
+
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+struct MyAsyncSequence<Element>: AsyncSequence {
+  struct AsyncIterator: AsyncIteratorProtocol {
+    mutating fn next() -> Element? { nil }
+  }
+
+  fn makeAsyncIterator() -> AsyncIterator { .init() }
+}
+
+@available(CodiraStdlib 5.1, *)
+fn testMe(ms: MyAsyncSequence<String>) {
+  immutable flatMS = ms.flatMap { string in
+    return MyAsyncSequence<[Character]>()
+  }
+
+  immutable _: AsyncFlatMapSequence<MyAsyncSequence<String>, MyAsyncSequence<[Character]>> = flatMS
+}

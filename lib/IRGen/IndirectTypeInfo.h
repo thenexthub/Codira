@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines IndirectTypeInfo, which is a convenient abstract
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_INDIRECTTYPEINFO_H
-#define SWIFT_IRGEN_INDIRECTTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_INDIRECTTYPEINFO_H
+#define LANGUAGE_IRGEN_INDIRECTTYPEINFO_H
 
 #include "Explosion.h"
 #include "TypeInfo.h"

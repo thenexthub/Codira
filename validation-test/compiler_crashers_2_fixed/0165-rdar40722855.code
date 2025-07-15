@@ -1,0 +1,24 @@
+// RUN: %target-typecheck-verify-language
+
+postfix operator %
+postfix fn % (_: Any) {}
+
+prefix operator ~
+prefix fn ~ (_: Any) {}
+
+fn foo(_: String) -> Void {}
+fn foo(_: Int) -> Void {}
+
+_ = foo("answer")% // Ok
+_ = ~foo(42)       // Ok
+
+class A {
+  fn bar(_: Int) {}
+}
+
+extension A {
+  fn bar(_ qux: String) {
+    bar(qux)% // Ok
+    ~bar(qux) // Ok
+  }
+}

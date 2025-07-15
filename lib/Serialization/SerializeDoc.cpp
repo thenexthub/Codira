@@ -1,4 +1,4 @@
-//===--- SerializeDoc.cpp - Read and write swiftdoc files -----------------===//
+//===--- SerializeDoc.cpp - Read and write languagedoc files -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "DocFormat.h"
@@ -28,22 +29,22 @@
 #include "language/Basic/Defer.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Serialization/Serialization.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/DJB.h"
-#include "llvm/Support/EndianStream.h"
-#include "llvm/Support/OnDiskHashTable.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/YAMLParser.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/DJB.h"
+#include "toolchain/Support/EndianStream.h"
+#include "toolchain/Support/OnDiskHashTable.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/YAMLParser.h"
 
 #include <vector>
 
 using namespace language;
 using namespace language::serialization;
-using namespace llvm::support;
-using swift::version::Version;
-using llvm::BCBlockRAII;
+using namespace toolchain::support;
+using language::version::Version;
+using toolchain::BCBlockRAII;
 
-using FileNameToGroupNameMap = llvm::StringMap<std::string>;
+using FileNameToGroupNameMap = toolchain::StringMap<std::string>;
 
 namespace {
 class YamlGroupInputParser {
@@ -51,38 +52,38 @@ class YamlGroupInputParser {
   StringRef RecordPath;
   static constexpr const char * const Separator = "/";
 
-  bool parseRoot(FileNameToGroupNameMap &Map, llvm::yaml::Node *Root,
+  bool parseRoot(FileNameToGroupNameMap &Map, toolchain::yaml::Node *Root,
                  StringRef ParentName) {
-    auto *MapNode = dyn_cast<llvm::yaml::MappingNode>(Root);
+    auto *MapNode = dyn_cast<toolchain::yaml::MappingNode>(Root);
     if (!MapNode) {
       return true;
     }
     for (auto &Pair : *MapNode) {
-      auto *Key = dyn_cast_or_null<llvm::yaml::ScalarNode>(Pair.getKey());
-      auto *Value = dyn_cast_or_null<llvm::yaml::SequenceNode>(Pair.getValue());
+      auto *Key = dyn_cast_or_null<toolchain::yaml::ScalarNode>(Pair.getKey());
+      auto *Value = dyn_cast_or_null<toolchain::yaml::SequenceNode>(Pair.getValue());
 
       if (!Key || !Value) {
         return true;
       }
-      llvm::SmallString<16> GroupNameStorage;
+      toolchain::SmallString<16> GroupNameStorage;
       StringRef GroupName = Key->getValue(GroupNameStorage);
       std::string CombinedName;
       if (!ParentName.empty()) {
-        CombinedName = (llvm::Twine(ParentName) + Separator + GroupName).str();
+        CombinedName = (toolchain::Twine(ParentName) + Separator + GroupName).str();
       } else {
         CombinedName = GroupName.str();
       }
 
-      for (llvm::yaml::Node &Entry : *Value) {
-        if (auto *FileEntry= dyn_cast<llvm::yaml::ScalarNode>(&Entry)) {
-          llvm::SmallString<16> FileNameStorage;
+      for (toolchain::yaml::Node &Entry : *Value) {
+        if (auto *FileEntry= dyn_cast<toolchain::yaml::ScalarNode>(&Entry)) {
+          toolchain::SmallString<16> FileNameStorage;
           StringRef FileName = FileEntry->getValue(FileNameStorage);
-          llvm::SmallString<32> GroupNameAndFileName;
+          toolchain::SmallString<32> GroupNameAndFileName;
           GroupNameAndFileName.append(CombinedName);
           GroupNameAndFileName.append(Separator);
-          GroupNameAndFileName.append(llvm::sys::path::stem(FileName));
+          GroupNameAndFileName.append(toolchain::sys::path::stem(FileName));
           Map[FileName] = std::string(GroupNameAndFileName.str());
-        } else if (Entry.getType() == llvm::yaml::Node::NodeKind::NK_Mapping) {
+        } else if (Entry.getType() == toolchain::yaml::Node::NodeKind::NK_Mapping) {
           if (parseRoot(Map, &Entry, CombinedName))
             return true;
         } else
@@ -110,18 +111,18 @@ public:
     if (RecordPath.empty())
       return {};
 
-    auto Buffer = llvm::MemoryBuffer::getFile(RecordPath);
+    auto Buffer = toolchain::MemoryBuffer::getFile(RecordPath);
     if (!Buffer) {
       return diagnoseGroupInfoFile(/*Missing File*/true);
     }
-    llvm::SourceMgr SM;
-    llvm::yaml::Stream YAMLStream(Buffer.get()->getMemBufferRef(), SM);
-    llvm::yaml::document_iterator I = YAMLStream.begin();
+    toolchain::SourceMgr SM;
+    toolchain::yaml::Stream YAMLStream(Buffer.get()->getMemBufferRef(), SM);
+    toolchain::yaml::document_iterator I = YAMLStream.begin();
     if (I == YAMLStream.end()) {
       // Cannot parse correctly.
       return diagnoseGroupInfoFile();
     }
-    llvm::yaml::Node *Root = I->getRoot();
+    toolchain::yaml::Node *Root = I->getRoot();
     if (!Root) {
       // Cannot parse correctly.
       return diagnoseGroupInfoFile();
@@ -129,7 +130,7 @@ public:
 
     // The format is a map of ("group0" : ["file1", "file2"]), meaning all
     // symbols from file1 and file2 belong to "group0".
-    auto *Map = dyn_cast<llvm::yaml::MappingNode>(Root);
+    auto *Map = dyn_cast<toolchain::yaml::MappingNode>(Root);
     if (!Map) {
       return diagnoseGroupInfoFile();
     }
@@ -145,7 +146,7 @@ public:
 class DeclGroupNameContext {
   ASTContext &Ctx;
   FileNameToGroupNameMap FileToGroupMap;
-  llvm::MapVector<StringRef, unsigned> Map;
+  toolchain::MapVector<StringRef, unsigned> Map;
   std::vector<StringRef> ViewBuffer;
 
 public:
@@ -171,7 +172,7 @@ public:
     StringRef FullPath = SF->getFilename();
     if (FullPath.empty())
       return 0;
-    StringRef FileName = llvm::sys::path::filename(FullPath);
+    StringRef FileName = toolchain::sys::path::filename(FullPath);
     auto Found = FileToGroupMap.find(FileName);
     if (Found == FileToGroupMap.end()) {
       Ctx.Diags.diagnose(SourceLoc(), diag::error_no_group_info, FileName);
@@ -188,7 +189,7 @@ public:
     for (auto It = Map.begin(); It != Map.end(); ++ It) {
       ViewBuffer.push_back(It->first);
     }
-    return llvm::ArrayRef(ViewBuffer);
+    return toolchain::ArrayRef(ViewBuffer);
   }
 
   bool isEnable() {
@@ -214,7 +215,7 @@ public:
 
   hash_value_type ComputeHash(key_type_ref key) {
     assert(!key.empty());
-    return llvm::djbHash(key, SWIFTDOC_HASH_SEED_5_1);
+    return toolchain::djbHash(key, LANGUAGEDOC_HASH_SEED_5_1);
   }
 
   std::pair<unsigned, unsigned>
@@ -236,7 +237,7 @@ public:
 
     // Source order.
     dataLength += numLen;
-    endian::Writer writer(out, llvm::endianness::little);
+    endian::Writer writer(out, toolchain::endianness::little);
     writer.write<uint32_t>(keyLength);
     writer.write<uint32_t>(dataLength);
     return { keyLength, dataLength };
@@ -248,7 +249,7 @@ public:
 
   void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                 unsigned len) {
-    endian::Writer writer(out, llvm::endianness::little);
+    endian::Writer writer(out, toolchain::endianness::little);
     writer.write<uint32_t>(data.Brief.size());
     out << data.Brief;
     writer.write<uint32_t>(data.Raw.Comments.size());
@@ -273,7 +274,7 @@ public:
 
   /// Writes the BLOCKINFO block for the module documentation file.
   void writeDocBlockInfoBlock() {
-    BCBlockRAII restoreBlock(Out, llvm::bitc::BLOCKINFO_BLOCK_ID, 2);
+    BCBlockRAII restoreBlock(Out, toolchain::bitc::BLOCKINFO_BLOCK_ID, 2);
 
     SmallVector<unsigned char, 64> nameBuffer;
 #define BLOCK(X) emitBlockID(X ## _ID, #X, nameBuffer)
@@ -294,7 +295,7 @@ public:
 #undef BLOCK_RECORD
   }
 
-  /// Writes the Swift doc module file header and name.
+  /// Writes the Codira doc module file header and name.
   void writeDocHeader();
 };
 
@@ -302,9 +303,9 @@ public:
 
 static void writeGroupNames(const comment_block::GroupNamesLayout &GroupNames,
                             ArrayRef<StringRef> Names) {
-  llvm::SmallString<32> Blob;
-  llvm::raw_svector_ostream BlobStream(Blob);
-  endian::Writer Writer(BlobStream, llvm::endianness::little);
+  toolchain::SmallString<32> Blob;
+  toolchain::raw_svector_ostream BlobStream(Blob);
+  endian::Writer Writer(BlobStream, toolchain::endianness::little);
   Writer.write<uint32_t>(Names.size());
   for (auto N : Names) {
     Writer.write<uint32_t>(N.size());
@@ -320,7 +321,7 @@ static bool shouldIncludeDecl(Decl *D, bool ForSourceInfo) {
     return false;
   case DocCommentSerializationTarget::SourceInfoOnly:
     return ForSourceInfo;
-  case DocCommentSerializationTarget::SwiftDocAndSourceInfo:
+  case DocCommentSerializationTarget::CodiraDocAndSourceInfo:
     return true;
   }
 }
@@ -331,9 +332,9 @@ static void writeDeclCommentTable(
     DeclGroupNameContext &GroupContext) {
 
   struct DeclCommentTableWriter : public ASTWalker {
-    llvm::BumpPtrAllocator Arena;
-    llvm::SmallString<512> USRBuffer;
-    llvm::OnDiskChainedHashTableGenerator<DeclCommentTableInfo> generator;
+    toolchain::BumpPtrAllocator Arena;
+    toolchain::SmallString<512> USRBuffer;
+    toolchain::OnDiskChainedHashTableGenerator<DeclCommentTableInfo> generator;
     DeclGroupNameContext &GroupContext;
     unsigned SourceOrder;
 
@@ -373,7 +374,7 @@ static void writeDeclCommentTable(
       // Compute USR.
       {
         USRBuffer.clear();
-        llvm::raw_svector_ostream OS(USRBuffer);
+        toolchain::raw_svector_ostream OS(USRBuffer);
         if (ide::printExtensionUSR(ED, OS))
           return;
       }
@@ -406,7 +407,7 @@ static void writeDeclCommentTable(
       // Compute USR.
       {
         USRBuffer.clear();
-        llvm::raw_svector_ostream OS(USRBuffer);
+        toolchain::raw_svector_ostream OS(USRBuffer);
         if (ide::printValueDeclUSR(VD, OS))
           return Action::Continue();
       }
@@ -437,7 +438,7 @@ static void writeDeclCommentTable(
   SmallVector<const FileUnit *, 1> Scratch;
   if (SF) {
     Scratch.push_back(SF);
-    files = llvm::ArrayRef(Scratch);
+    files = toolchain::ArrayRef(Scratch);
   } else {
     files = M->getFiles();
   }
@@ -446,12 +447,12 @@ static void writeDeclCommentTable(
     const_cast<FileUnit *>(nextFile)->walk(Writer);
   }
   SmallVector<uint64_t, 8> scratch;
-  llvm::SmallString<32> hashTableBlob;
+  toolchain::SmallString<32> hashTableBlob;
   uint32_t tableOffset;
   {
-    llvm::raw_svector_ostream blobStream(hashTableBlob);
+    toolchain::raw_svector_ostream blobStream(hashTableBlob);
     // Make sure that no bucket is at offset 0
-    endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+    endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
     tableOffset = Writer.generator.Emit(blobStream);
   }
 
@@ -466,8 +467,8 @@ void DocSerializer::writeDocHeader() {
     control_block::TargetLayout Target(Out);
 
     auto& LangOpts = M->getASTContext().LangOpts;
-    auto verText = version::getSwiftFullVersion(LangOpts.EffectiveLanguageVersion);
-    Metadata.emit(ScratchRecord, SWIFTDOC_VERSION_MAJOR, SWIFTDOC_VERSION_MINOR,
+    auto verText = version::getCodiraFullVersion(LangOpts.EffectiveLanguageVersion);
+    Metadata.emit(ScratchRecord, LANGUAGEDOC_VERSION_MAJOR, LANGUAGEDOC_VERSION_MINOR,
                   /*short version string length*/0, /*compatibility length*/0,
                   /*user module version major*/0,
                   /*user module version minor*/0,
@@ -482,7 +483,7 @@ void DocSerializer::writeDocHeader() {
 
 void serialization::writeDocToStream(raw_ostream &os, ModuleOrSourceFile DC,
                                      StringRef GroupInfoPath) {
-  DocSerializer S{SWIFTDOC_SIGNATURE, DC};
+  DocSerializer S{LANGUAGEDOC_SIGNATURE, DC};
   // FIXME: This is only really needed for debugging. We don't actually use it.
   S.writeDocBlockInfoBlock();
 
@@ -515,7 +516,7 @@ public:
 
   hash_value_type ComputeHash(key_type_ref key) {
     assert(!key.empty());
-    return llvm::djbHash(key, SWIFTSOURCEINFO_HASH_SEED);
+    return toolchain::djbHash(key, LANGUAGESOURCEINFO_HASH_SEED);
   }
 
   std::pair<unsigned, unsigned>
@@ -523,7 +524,7 @@ public:
     const unsigned numLen = 4;
     uint32_t keyLength = key.size();
     uint32_t dataLength = numLen;
-    endian::Writer writer(out, llvm::endianness::little);
+    endian::Writer writer(out, toolchain::endianness::little);
     writer.write<uint32_t>(keyLength);
     return { keyLength, dataLength };
   }
@@ -534,14 +535,14 @@ public:
 
   void EmitData(raw_ostream &out, key_type_ref key, data_type_ref data,
                 unsigned len) {
-    endian::Writer writer(out, llvm::endianness::little);
+    endian::Writer writer(out, toolchain::endianness::little);
     writer.write<uint32_t>(data);
   }
 };
 
 class DeclUSRsTableWriter {
-  llvm::StringSet<> USRs;
-  llvm::OnDiskChainedHashTableGenerator<USRTableInfo> generator;
+  toolchain::StringSet<> USRs;
+  toolchain::OnDiskChainedHashTableGenerator<USRTableInfo> generator;
 public:
   uint32_t peekNextId() const { return USRs.size(); }
   std::optional<uint32_t> getNewUSRId(StringRef USR) {
@@ -556,15 +557,15 @@ public:
     generator.insert(It.first->getKey(), Id);
     return Id;
   }
-  void emitUSRsRecord(llvm::BitstreamWriter &out) {
+  void emitUSRsRecord(toolchain::BitstreamWriter &out) {
     decl_locs_block::DeclUSRSLayout USRsList(out);
     SmallVector<uint64_t, 8> scratch;
-    llvm::SmallString<32> hashTableBlob;
+    toolchain::SmallString<32> hashTableBlob;
     uint32_t tableOffset;
     {
-      llvm::raw_svector_ostream blobStream(hashTableBlob);
+      toolchain::raw_svector_ostream blobStream(hashTableBlob);
       // Make sure that no bucket is at offset 0
-      endian::write<uint32_t>(blobStream, 0, llvm::endianness::little);
+      endian::write<uint32_t>(blobStream, 0, toolchain::endianness::little);
       tableOffset = generator.Emit(blobStream);
     }
     USRsList.emit(scratch, tableOffset, hashTableBlob);
@@ -572,8 +573,8 @@ public:
 };
 
 class StringWriter {
-  llvm::StringMap<uint32_t> IndexMap;
-  llvm::SmallString<1024> Buffer;
+  toolchain::StringMap<uint32_t> IndexMap;
+  toolchain::SmallString<1024> Buffer;
 public:
   uint32_t getTextOffset(StringRef Text) {
     auto IterAndIsNew = IndexMap.insert({Text, Buffer.size()});
@@ -584,7 +585,7 @@ public:
     return IterAndIsNew.first->getValue();
   }
 
-  void emitSourceFilesRecord(llvm::BitstreamWriter &Out) {
+  void emitSourceFilesRecord(toolchain::BitstreamWriter &Out) {
     decl_locs_block::TextDataLayout TextBlob(Out);
     SmallVector<uint64_t, 8> scratch;
     TextBlob.emit(scratch, Buffer);
@@ -611,8 +612,8 @@ static void writeRawLoc(const ExternalSourceLocs::RawLoc &Loc,
  */
 class DocRangeWriter {
   StringWriter &Strings;
-  llvm::DenseMap<const Decl *, uint32_t> DeclOffsetMap;
-  llvm::SmallString<1024> Buffer;
+  toolchain::DenseMap<const Decl *, uint32_t> DeclOffsetMap;
+  toolchain::SmallString<1024> Buffer;
 public:
   DocRangeWriter(StringWriter &Strings) : Strings(Strings) {
     /**
@@ -640,8 +641,8 @@ public:
       return StartOffset;
     }
 
-    llvm::raw_svector_ostream OS(Buffer);
-    endian::Writer Writer(OS, llvm::endianness::little);
+    toolchain::raw_svector_ostream OS(Buffer);
+    endian::Writer Writer(OS, toolchain::endianness::little);
     Writer.write<uint32_t>(DocRanges.size());
     for (const auto &DocRange : DocRanges) {
       writeRawLoc(DocRange.first, Writer, Strings);
@@ -651,7 +652,7 @@ public:
     return StartOffset;
   }
 
-  void emitDocRangesRecord(llvm::BitstreamWriter &Out) {
+  void emitDocRangesRecord(toolchain::BitstreamWriter &Out) {
     decl_locs_block::DocRangesLayout DocRangesBlob(Out);
     SmallVector<uint64_t, 8> Scratch;
     DocRangesBlob.emit(Scratch, Buffer);
@@ -659,7 +660,7 @@ public:
 };
 
 struct BasicDeclLocsTableWriter : public ASTWalker {
-  llvm::SmallString<1024> Buffer;
+  toolchain::SmallString<1024> Buffer;
   DeclUSRsTableWriter &USRWriter;
   StringWriter &FWriter;
   DocRangeWriter &DocWriter;
@@ -687,8 +688,8 @@ struct BasicDeclLocsTableWriter : public ASTWalker {
   }
 
   std::optional<uint32_t> calculateNewUSRId(Decl *D) {
-    llvm::SmallString<512> Buffer;
-    llvm::raw_svector_ostream OS(Buffer);
+    toolchain::SmallString<512> Buffer;
+    toolchain::raw_svector_ostream OS(Buffer);
     if (ide::printDeclUSR(D, OS))
       return std::nullopt;
     return USRWriter.getNewUSRId(OS.str());
@@ -719,14 +720,14 @@ struct BasicDeclLocsTableWriter : public ASTWalker {
     if (!USR.has_value())
       return Action::Continue();
 
-    llvm::SmallString<128> AbsolutePath = RawLocs->SourceFilePath;
-    llvm::sys::fs::make_absolute(AbsolutePath);
+    toolchain::SmallString<128> AbsolutePath = RawLocs->SourceFilePath;
+    toolchain::sys::fs::make_absolute(AbsolutePath);
 
-    llvm::raw_svector_ostream Out(Buffer);
-    endian::Writer Writer(Out, llvm::endianness::little);
+    toolchain::raw_svector_ostream Out(Buffer);
+    endian::Writer Writer(Out, toolchain::endianness::little);
     Writer.write<uint32_t>(FWriter.getTextOffset(AbsolutePath.str()));
     Writer.write<uint32_t>(
-        DocWriter.getDocRangesOffset(D, llvm::ArrayRef(RawLocs->DocRanges)));
+        DocWriter.getDocRangesOffset(D, toolchain::ArrayRef(RawLocs->DocRanges)));
     writeRawLoc(RawLocs->Loc, Writer, FWriter);
     writeRawLoc(RawLocs->StartLoc, Writer, FWriter);
     writeRawLoc(RawLocs->EndLoc, Writer, FWriter);
@@ -735,7 +736,7 @@ struct BasicDeclLocsTableWriter : public ASTWalker {
   }
 };
 
-static void emitBasicLocsRecord(llvm::BitstreamWriter &Out,
+static void emitBasicLocsRecord(toolchain::BitstreamWriter &Out,
                                 ModuleOrSourceFile MSF,
                                 DeclUSRsTableWriter &USRWriter,
                                 StringWriter &FWriter,
@@ -753,22 +754,22 @@ static void emitBasicLocsRecord(llvm::BitstreamWriter &Out,
   DeclLocsList.emit(scratch, Writer.Buffer);
 }
 
-static void emitFileListRecord(llvm::BitstreamWriter &Out,
+static void emitFileListRecord(toolchain::BitstreamWriter &Out,
                                ModuleOrSourceFile MSF, StringWriter &FWriter) {
   assert(MSF);
 
   struct SourceFileListWriter {
     StringWriter &FWriter;
 
-    llvm::SmallString<0> Buffer;
-    llvm::StringSet<> seenFilenames;
+    toolchain::SmallString<0> Buffer;
+    toolchain::StringSet<> seenFilenames;
 
     void emitSourceFileInfo(const BasicSourceFileInfo &info) {
       if (info.getFilePath().empty())
         return;
       // Make 'FilePath' absolute for serialization;
       SmallString<128> absolutePath = info.getFilePath();
-      llvm::sys::fs::make_absolute(absolutePath);
+      toolchain::sys::fs::make_absolute(absolutePath);
 
       // Don't emit duplicated files.
       if (!seenFilenames.insert(absolutePath).second)
@@ -785,8 +786,8 @@ static void emitFileListRecord(llvm::BitstreamWriter &Out,
                            info.getLastModified().time_since_epoch())
                            .count();
 
-      llvm::raw_svector_ostream out(Buffer);
-      endian::Writer writer(out, llvm::endianness::little);
+      toolchain::raw_svector_ostream out(Buffer);
+      endian::Writer writer(out, toolchain::endianness::little);
       // FilePath.
       writer.write<uint32_t>(fileID);
 
@@ -833,7 +834,7 @@ public:
   using SerializerBase::SF;
   /// Writes the BLOCKINFO block for the module sourceinfo file.
   void writeSourceInfoBlockInfoBlock() {
-    BCBlockRAII restoreBlock(Out, llvm::bitc::BLOCKINFO_BLOCK_ID, 2);
+    BCBlockRAII restoreBlock(Out, toolchain::bitc::BLOCKINFO_BLOCK_ID, 2);
 
     SmallVector<unsigned char, 64> nameBuffer;
 #define BLOCK(X) emitBlockID(X ## _ID, #X, nameBuffer)
@@ -856,7 +857,7 @@ public:
 #undef BLOCK
 #undef BLOCK_RECORD
   }
-  /// Writes the Swift sourceinfo file header and name.
+  /// Writes the Codira sourceinfo file header and name.
   void writeSourceInfoHeader() {
     {
       BCBlockRAII restoreBlock(Out, CONTROL_BLOCK_ID, 3);
@@ -865,9 +866,9 @@ public:
       control_block::TargetLayout Target(Out);
 
       auto& LangOpts = M->getASTContext().LangOpts;
-      auto verText = version::getSwiftFullVersion(LangOpts.EffectiveLanguageVersion);
-      Metadata.emit(ScratchRecord, SWIFTSOURCEINFO_VERSION_MAJOR,
-                    SWIFTSOURCEINFO_VERSION_MINOR,
+      auto verText = version::getCodiraFullVersion(LangOpts.EffectiveLanguageVersion);
+      Metadata.emit(ScratchRecord, LANGUAGESOURCEINFO_VERSION_MAJOR,
+                    LANGUAGESOURCEINFO_VERSION_MINOR,
                     /*short version string length*/0, /*compatibility length*/0,
                     /*user module version major*/0,
                     /*user module version minor*/0,
@@ -884,7 +885,7 @@ public:
 void serialization::writeSourceInfoToStream(raw_ostream &os,
                                             ModuleOrSourceFile DC) {
   assert(DC);
-  SourceInfoSerializer S{SWIFTSOURCEINFO_SIGNATURE, DC};
+  SourceInfoSerializer S{LANGUAGESOURCEINFO_SIGNATURE, DC};
   // FIXME: This is only really needed for debugging. We don't actually use it.
   S.writeSourceInfoBlockInfoBlock();
   {

@@ -1,0 +1,8 @@
+open class A {
+  public init() { }
+
+  @objc(a1) open fn f1() { }
+  @objc(initWithInt:) open fn f2(_ int: Int) { }
+  @objc(setFoo:) open fn f3(_ i: Int) { }
+  @objc(objectAtIndexedSubscript:) open fn f4(_ i: Int) { }
+}

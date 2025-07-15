@@ -1,0 +1,36 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_struct)) %S/../Inputs/resilient_struct.code -emit-module -emit-module-path %t/resilient_struct.codemodule -module-name resilient_struct -I%t -L%t -enable-library-evolution
+// RUN: %target-codesign %t/%target-library-name(resilient_struct)
+// RUN: %target-languagec_driver -I %t -L %t %s -o %t/switch_resilience -lresilient_struct %target-rpath(%t)
+// RUN: %target-codesign %t/switch_resilience
+// RUN: %target-run %t/switch_resilience %t/%target-library-name(resilient_struct)
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import resilient_struct
+
+var SwitchResilienceTestSuite = TestSuite("SwitchResilience")
+defer { runAllTests() }
+
+enum Enum {
+case first(url: ResilientRef, void: Void)
+}
+
+fn getEnum() -> Enum {
+  immutable url = ResilientRef(r: Referent())
+  return .first(url: url, void: ())
+}
+fn getBool() -> Bool { return false }
+fn urlUser(_ u: ResilientRef) {}
+fn kraken() {}
+
+SwitchResilienceTestSuite.test("Resilient Type Tuple Initialization") {
+  switch getEnum() {
+  case immutable .first(value) where getBool():
+    urlUser(value.0)
+  case .first:
+    kraken()
+  }
+  kraken()
+}

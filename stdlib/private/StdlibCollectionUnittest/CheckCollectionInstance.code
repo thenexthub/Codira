@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
@@ -46,7 +47,7 @@ public struct CollectionMisuseResiliencyChecks {
 ///
 /// - Precondition: `endIndex` is reachable from all
 ///   elements of `instances`.
-public func checkIncrementable<Instances, BaseCollection>(
+public fn checkIncrementable<Instances, BaseCollection>(
   _ instances: Instances,
   of baseCollection: BaseCollection,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
@@ -64,7 +65,7 @@ public func checkIncrementable<Instances, BaseCollection>(
   stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
   for i in instances {
     if i != endIndex {
-      let next = baseCollection.index(after: i)
+      immutable next = baseCollection.index(after: i)
       // index(after:) gets us a new index value
       expectNotEqual(i, next, message(),
         stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
@@ -86,7 +87,7 @@ public func checkIncrementable<Instances, BaseCollection>(
 ///
 /// - Precondition: all
 ///   elements of `instances` are reachable from `startIndex`.
-public func checkDecrementable<Instances, BaseCollection>(
+public fn checkDecrementable<Instances, BaseCollection>(
   _ instances: Instances,
   of baseCollection: BaseCollection,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
@@ -104,7 +105,7 @@ public func checkDecrementable<Instances, BaseCollection>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
   for i in instances {
     if i != startIndex {
-      let next = baseCollection.index(before: i)
+      immutable next = baseCollection.index(before: i)
       // index(before:) gets us a new index value
       expectNotEqual(i, next, message(),
         stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
@@ -118,7 +119,7 @@ public func checkDecrementable<Instances, BaseCollection>(
   }
 }
 
-internal func _checkIncrementalAdvance<Instances, BaseCollection>(
+internal fn _checkIncrementalAdvance<Instances, BaseCollection>(
   _ instances: Instances,
   of baseCollection : BaseCollection,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
@@ -135,15 +136,15 @@ internal func _checkIncrementalAdvance<Instances, BaseCollection>(
   BaseCollection : Collection,
   Instances.Element == BaseCollection.Index {
   for i in instances {
-    let d: Int = sign > 0 ?
+    immutable d: Int = sign > 0 ?
       baseCollection.distance(from: i, to: limit) :
       -baseCollection.distance(from: limit, to: i)
 
     var offset: Int = 0
     for _ in 0...Int64(d * sign) {
-      let j = baseCollection.index(i, offsetBy: offset)
-      let k = baseCollection.index(i, offsetBy: offset + sign, limitedBy: limit) ?? limit
-      let jAtLimit = offset == d
+      immutable j = baseCollection.index(i, offsetBy: offset)
+      immutable k = baseCollection.index(i, offsetBy: offset + sign, limitedBy: limit) ?? limit
+      immutable jAtLimit = offset == d
       if jAtLimit {
         expectEqual(limit, j, message(),
         stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
@@ -161,7 +162,7 @@ internal func _checkIncrementalAdvance<Instances, BaseCollection>(
 ///
 /// - Precondition: `endIndex` is reachable from all elements of
 ///   `instances`
-public func checkForwardIndex<Instances, BaseCollection>(
+public fn checkForwardIndex<Instances, BaseCollection>(
   _ instances: Instances,
   of baseCollection: BaseCollection,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
@@ -192,7 +193,7 @@ public func checkForwardIndex<Instances, BaseCollection>(
 /// - Precondition:
 ///   - all elements of `instances` are reachable from `startIndex`.
 ///   - `endIndex` is reachable from all elements of `instances`.
-public func checkBidirectionalIndex<Instances, BaseCollection>(
+public fn checkBidirectionalIndex<Instances, BaseCollection>(
   _ instances: Instances,
   of baseCollection: BaseCollection,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
@@ -230,7 +231,7 @@ public func checkBidirectionalIndex<Instances, BaseCollection>(
 /// - Precondition:
 ///   - all elements of `instances` are reachable from `startIndex`.
 ///   - `endIndex` is reachable from all elements of `instances`.
-public func checkRandomAccessIndex<Instances, Distances, BaseCollection>(
+public fn checkRandomAccessIndex<Instances, Distances, BaseCollection>(
   _ instances: Instances, distances: Distances,
   of baseCollection: BaseCollection,
   distanceOracle:
@@ -267,7 +268,7 @@ public func checkRandomAccessIndex<Instances, Distances, BaseCollection>(
 // Copies what checkStrideable is doing, but instead of calling
 // advanced(by:) and distance(to:) on an Strideable's,
 // calls corresponding methods on a base collection.
-public func checkAdvancesAndDistances<Instances, Distances, BaseCollection>(
+public fn checkAdvancesAndDistances<Instances, Distances, BaseCollection>(
   _ instances: Instances, distances: Distances,
   of baseCollection: BaseCollection,
   distanceOracle:
@@ -289,23 +290,23 @@ public func checkAdvancesAndDistances<Instances, Distances, BaseCollection>(
   checkComparable(
     instances,
     oracle: {
-      let d = distanceOracle($1, $0);
+      immutable d = distanceOracle($1, $0);
       return d < 0 ? .lt : d == 0 ? .eq : .gt
     },
     message(),
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
   for i in instances.indices {
-    let x = instances[i]
+    immutable x = instances[i]
     expectEqual(x, baseCollection.index(x, offsetBy: 0))
 
     for j in distances.indices {
-      let y = distances[j]
+      immutable y = distances[j]
       expectEqual(advanceOracle(i, j), baseCollection.index(x, offsetBy: y))
     }
 
     for j in instances.indices {
-      let y = instances[j]
+      immutable y = instances[j]
       expectEqual(distanceOracle(i, j), baseCollection.distance(from: x, to: y))
     }
   }
@@ -317,7 +318,7 @@ public func checkAdvancesAndDistances<Instances, Distances, BaseCollection>(
 
 // Top-level check for Collection instances. Alias for checkForwardCollection.
 // Checks all slices: O(n^2).
-public func checkCollection<Expected: Collection, C : Collection>(
+public fn checkCollection<Expected: Collection, C : Collection>(
   _ expected: Expected,
   _ collection: C,
 
@@ -337,7 +338,7 @@ public func checkCollection<Expected: Collection, C : Collection>(
 
 
 // Calls checkForwardCollection with default `sameValue`.
-public func checkForwardCollection<
+public fn checkForwardCollection<
   Expected: Collection, C : Collection
 >(
   _ expected: Expected, _ collection: C,
@@ -361,7 +362,7 @@ public func checkForwardCollection<
 // instance. This constrains SubSequence associated types in order to check
 // slice semantics.
 // Checks all slices: O(n^2).
-public func checkForwardCollection<
+public fn checkForwardCollection<
   Expected: Collection, C : Collection
 >(
   _ expected: Expected, _ collection: C,
@@ -396,7 +397,7 @@ public func checkForwardCollection<
 // associated type properties of SubSequence.
 //
 // Checks all slices: O(n^2).
-public func checkOneLevelOfForwardCollection<
+public fn checkOneLevelOfForwardCollection<
   Expected: Collection, C : Collection
 >(
   _ expected: Expected, _ collection: C,
@@ -421,28 +422,28 @@ public func checkOneLevelOfForwardCollection<
   // Check Index semantics
   //===------------------------------------------------------------------===//
 
-  let succ = { collection.index(after: $0) }
+  immutable succ = { collection.index(after: $0) }
   // Advances up to 1 positions without passing endIndex.  Don't use
   // advanced(by: n) to do this because it's under test here.
-  let next = { $0 == collection.endIndex ? $0 : succ($0) }
+  immutable next = { $0 == collection.endIndex ? $0 : succ($0) }
 
   // advances up to 5 positions without passing endIndex.  Picking a
   // small constant to avoid complexity explosion on large input
   // collections.
-  let next5 = { next(next(next(next(next($0))))) }
+  immutable next5 = { next(next(next(next(next($0))))) }
 
-  let partWay0 = next5(collection.startIndex)
-  let partWay1 = next5(partWay0)
+  immutable partWay0 = next5(collection.startIndex)
+  immutable partWay1 = next5(partWay0)
 
 
-  let instances = _allIndices(into: collection,
+  immutable instances = _allIndices(into: collection,
     in: collection.startIndex..<partWay0)
   checkForwardIndex(instances, of: collection,
     equalityOracle: { $0 == $1 }, endIndex: partWay1, message(),
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
   // Check `count`.
   expectEqual(Int64(expectedArray.count), Int64(collection.count), message(),
@@ -454,8 +455,8 @@ public func checkOneLevelOfForwardCollection<
 
   for _ in 0..<3 {
     do {
-      let startIndex = collection.startIndex
-      let endIndex = collection.endIndex
+      immutable startIndex = collection.startIndex
+      immutable endIndex = collection.endIndex
 
       for _ in collection.indices {
         expectEqual(
@@ -470,11 +471,11 @@ public func checkOneLevelOfForwardCollection<
       }
     }
 
-    let allIndices = Array(collection.indices)
+    immutable allIndices = Array(collection.indices)
 
     if expectedArray.count >= 2 {
       for i in 0..<allIndices.count-1 {
-        let successor1 = succ(allIndices[i])
+        immutable successor1 = succ(allIndices[i])
         var successor2 = allIndices[i]
         successor2 = succ(successor2)
         var successor3 = allIndices[i]
@@ -516,7 +517,7 @@ public func checkOneLevelOfForwardCollection<
 // Helper for checkForwardCollection to check Slices.
 //
 // Checks all slices: O(n^2).
-internal func _checkSliceableWithForwardIndex<
+internal fn _checkSliceableWithForwardIndex<
 Expected: Collection, S : Collection
 >(
   _ expected: Expected, _ sliceable: S,
@@ -529,16 +530,16 @@ Expected: Collection, S : Collection
 ) where
   S.Element == Expected.Element {
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
-  let succ = { sliceable.index(after: $0) }
+  immutable succ = { sliceable.index(after: $0) }
 
   var start = sliceable.startIndex
   for startNumericIndex in 0...expectedArray.count {
     var end = start
     for endNumericIndex in startNumericIndex...expectedArray.count {
-      let expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
-      let slice = sliceable[start..<end]
+      immutable expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
+      immutable slice = sliceable[start..<end]
       // For every possible slice, verify that the slice's bounds are identical
       // to the indices used to form the slice.
       expectEqual(start, slice.startIndex)
@@ -561,7 +562,7 @@ Expected: Collection, S : Collection
 
 
 // Calls checkBidirectionalCollection with default `sameValue`.
-public func checkBidirectionalCollection<
+public fn checkBidirectionalCollection<
   Expected: Collection, C : BidirectionalCollection
 >(
   _ expected: Expected, _ collection: C,
@@ -585,7 +586,7 @@ public func checkBidirectionalCollection<
 // instance. This constrains SubSequence associated types in order to check
 // slice semantics.
 // Checks all slices: O(n^2).
-public func checkBidirectionalCollection<
+public fn checkBidirectionalCollection<
   Expected: Collection, C : BidirectionalCollection
 >(
   _ expected: Expected, _ collection: C,
@@ -620,7 +621,7 @@ public func checkBidirectionalCollection<
 // associated type properties of SubSequence.
 //
 // Checks all slices: O(n^2).
-public func checkOneLevelOfBidirectionalCollection<
+public fn checkOneLevelOfBidirectionalCollection<
   Expected: Collection, C : BidirectionalCollection
 >(
   _ expected: Expected, _ collection: C,
@@ -645,22 +646,22 @@ public func checkOneLevelOfBidirectionalCollection<
   // Check Index semantics
   //===------------------------------------------------------------------===//
 
-  let succ = { collection.index(after: $0) }
-  let pred = { collection.index(before: $0) }
+  immutable succ = { collection.index(after: $0) }
+  immutable pred = { collection.index(before: $0) }
   // Advances up to 1 positions without passing endIndex.  Don't use
   // advanced(by: n) to do this because it's under test here.
-  let next = { $0 == collection.endIndex ? $0 : succ($0) }
+  immutable next = { $0 == collection.endIndex ? $0 : succ($0) }
 
   // advances up to 5 positions without passing endIndex.  Picking a
   // small constant to avoid complexity explosion on large input
   // collections.
-  let next5 = { next(next(next(next(next($0))))) }
+  immutable next5 = { next(next(next(next(next($0))))) }
 
-  let partWay0 = next5(collection.startIndex)
-  let partWay1 = next5(partWay0)
+  immutable partWay0 = next5(collection.startIndex)
+  immutable partWay1 = next5(partWay0)
 
 
-  let instances = _allIndices(into: collection, in: partWay0..<partWay1)
+  immutable instances = _allIndices(into: collection, in: partWay0..<partWay1)
   checkBidirectionalIndex(instances, of: collection,
     equalityOracle: { $0 == $1 },
     startIndex: collection.startIndex,
@@ -668,7 +669,7 @@ public func checkOneLevelOfBidirectionalCollection<
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
   // Check `count`.
   expectEqual(Int64(expectedArray.count), Int64(collection.count), message(),
@@ -680,8 +681,8 @@ public func checkOneLevelOfBidirectionalCollection<
 
   for _ in 0..<3 {
     do {
-      let startIndex = collection.startIndex
-      let endIndex = collection.endIndex
+      immutable startIndex = collection.startIndex
+      immutable endIndex = collection.endIndex
 
       for _ in collection.indices {
         expectEqual(
@@ -696,11 +697,11 @@ public func checkOneLevelOfBidirectionalCollection<
       }
     }
 
-    let allIndices = Array(collection.indices)
+    immutable allIndices = Array(collection.indices)
 
     if expectedArray.count >= 2 {
       for i in 0..<allIndices.count-1 {
-        let successor1 = succ(allIndices[i])
+        immutable successor1 = succ(allIndices[i])
         var successor2 = allIndices[i]
         successor2 = succ(successor2)
         var successor3 = allIndices[i]
@@ -716,7 +717,7 @@ public func checkOneLevelOfBidirectionalCollection<
 
 
       for i in 1..<allIndices.count {
-        let predecessor1 = pred(allIndices[i])
+        immutable predecessor1 = pred(allIndices[i])
         var predecessor2 = allIndices[i]
         predecessor2 = pred(predecessor2)
         var predecessor3 = allIndices[i]
@@ -730,7 +731,7 @@ public func checkOneLevelOfBidirectionalCollection<
         }
       }
       for i in 1..<allIndices.count {
-        let index = succ(pred(allIndices[i]))
+        immutable index = succ(pred(allIndices[i]))
         expectEqual(allIndices[i], index, message(),
           stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
         expectEqualTest(
@@ -766,7 +767,7 @@ public func checkOneLevelOfBidirectionalCollection<
 // Helper for checkBidirectionalCollection to check Slices.
 //
 // Checks all slices: O(n^2).
-internal func _checkSliceableWithBidirectionalIndex<
+internal fn _checkSliceableWithBidirectionalIndex<
 Expected: Collection, S : BidirectionalCollection
 >(
   _ expected: Expected, _ sliceable: S,
@@ -779,10 +780,10 @@ Expected: Collection, S : BidirectionalCollection
 ) where
   S.Element == Expected.Element {
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
-  let succ = { sliceable.index(after: $0) }
-  let pred = { sliceable.index(before: $0) }
+  immutable succ = { sliceable.index(after: $0) }
+  immutable pred = { sliceable.index(before: $0) }
 
   var start = sliceable.startIndex
   for startNumericIndex in 0...expectedArray.count {
@@ -800,8 +801,8 @@ Expected: Collection, S : BidirectionalCollection
         end = succ(end)
         end = pred(end)
       }
-      let expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
-      let slice = sliceable[start..<end]
+      immutable expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
+      immutable slice = sliceable[start..<end]
       // For every possible slice, verify that the slice's bounds are identical
       // to the indices used to form the slice.
       expectEqual(start, slice.startIndex)
@@ -824,7 +825,7 @@ Expected: Collection, S : BidirectionalCollection
 
 
 // Calls checkRandomAccessCollection with default `sameValue`.
-public func checkRandomAccessCollection<
+public fn checkRandomAccessCollection<
   Expected: Collection, C : RandomAccessCollection
 >(
   _ expected: Expected, _ collection: C,
@@ -848,7 +849,7 @@ public func checkRandomAccessCollection<
 // instance. This constrains SubSequence associated types in order to check
 // slice semantics.
 // Checks all slices: O(n^2).
-public func checkRandomAccessCollection<
+public fn checkRandomAccessCollection<
   Expected: Collection, C : RandomAccessCollection
 >(
   _ expected: Expected, _ collection: C,
@@ -883,7 +884,7 @@ public func checkRandomAccessCollection<
 // associated type properties of SubSequence.
 //
 // Checks all slices: O(n^2).
-public func checkOneLevelOfRandomAccessCollection<
+public fn checkOneLevelOfRandomAccessCollection<
   Expected: Collection, C : RandomAccessCollection
 >(
   _ expected: Expected, _ collection: C,
@@ -908,37 +909,37 @@ public func checkOneLevelOfRandomAccessCollection<
   // Check Index semantics
   //===------------------------------------------------------------------===//
 
-  let succ = { collection.index(after: $0) }
+  immutable succ = { collection.index(after: $0) }
   // Advances up to 1 positions without passing endIndex.  Don't use
   // advanced(by: n) to do this because it's under test here.
-  let next = { $0 == collection.endIndex ? $0 : succ($0) }
+  immutable next = { $0 == collection.endIndex ? $0 : succ($0) }
 
   // advances up to 5 positions without passing endIndex.  Picking a
   // small constant to avoid complexity explosion on large input
   // collections.
-  let next5 = { next(next(next(next(next($0))))) }
+  immutable next5 = { next(next(next(next(next($0))))) }
 
-  let partWay0 = next5(collection.startIndex)
-  let partWay1 = next5(partWay0)
+  immutable partWay0 = next5(collection.startIndex)
+  immutable partWay1 = next5(partWay0)
 
   typealias Distance = Int
 
-  let count: Distance  = collection.count
-  let offset0 = min(5, count)
-  let offset1 = min(10, count)
+  immutable count: Distance  = collection.count
+  immutable offset0 = min(5, count)
+  immutable offset1 = min(10, count)
 
-  let distanceCandidates: [Distance] = [
+  immutable distanceCandidates: [Distance] = [
     -11, -7, -5, -3, -2, -1, 0, 1, 2, 3, 5, 7, 11]
 
-  let distances = distanceCandidates.filter { (x: Distance) -> Bool in
+  immutable distances = distanceCandidates.filter { (x: Distance) -> Bool in
     x + offset0 >= 0 && x + offset1 <= count
   }
 
-  func nextN(_ n: Distance, _ i: C.Index) -> C.Index {
+  fn nextN(_ n: Distance, _ i: C.Index) -> C.Index {
     return collection.index(i, offsetBy: n)
   }
 
-  let instances = _allIndices(into: collection, in: partWay0..<partWay1)
+  immutable instances = _allIndices(into: collection, in: partWay0..<partWay1)
 
   checkRandomAccessIndex(
     instances,
@@ -951,7 +952,7 @@ public func checkOneLevelOfRandomAccessCollection<
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
   // Check `count`.
   expectEqual(Int64(expectedArray.count), Int64(collection.count), message(),
@@ -963,8 +964,8 @@ public func checkOneLevelOfRandomAccessCollection<
 
   for _ in 0..<3 {
     do {
-      let startIndex = collection.startIndex
-      let endIndex = collection.endIndex
+      immutable startIndex = collection.startIndex
+      immutable endIndex = collection.endIndex
 
       for _ in collection.indices {
         expectEqual(
@@ -979,11 +980,11 @@ public func checkOneLevelOfRandomAccessCollection<
       }
     }
 
-    let allIndices = Array(collection.indices)
+    immutable allIndices = Array(collection.indices)
 
     if expectedArray.count >= 2 {
       for i in 0..<allIndices.count-1 {
-        let successor1 = succ(allIndices[i])
+        immutable successor1 = succ(allIndices[i])
         var successor2 = allIndices[i]
         successor2 = succ(successor2)
         var successor3 = allIndices[i]
@@ -1025,7 +1026,7 @@ public func checkOneLevelOfRandomAccessCollection<
 // Helper for checkRandomAccessCollection to check Slices.
 //
 // Checks all slices: O(n^2).
-internal func _checkSliceableWithRandomAccessIndex<
+internal fn _checkSliceableWithRandomAccessIndex<
 Expected: Collection, S : RandomAccessCollection
 >(
   _ expected: Expected, _ sliceable: S,
@@ -1038,10 +1039,10 @@ Expected: Collection, S : RandomAccessCollection
 ) where
   S.Element == Expected.Element {
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
-  let succ = { sliceable.index(after: $0) }
-  let pred = { sliceable.index(before: $0) }
+  immutable succ = { sliceable.index(after: $0) }
+  immutable pred = { sliceable.index(before: $0) }
 
   var start = sliceable.startIndex
   for startNumericIndex in 0...expectedArray.count {
@@ -1059,8 +1060,8 @@ Expected: Collection, S : RandomAccessCollection
         end = succ(end)
         end = pred(end)
       }
-      let expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
-      let slice = sliceable[start..<end]
+      immutable expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
+      immutable slice = sliceable[start..<end]
       // For every possible slice, verify that the slice's bounds are identical
       // to the indices used to form the slice.
       expectEqual(start, slice.startIndex)
@@ -1085,7 +1086,7 @@ Expected: Collection, S : RandomAccessCollection
 
 // Top-level check for Collection instances. Alias for checkForwardCollection.
 // Checks all slices: O(n^2).
-public func checkCollection<Element, C : Collection>(
+public fn checkCollection<Element, C : Collection>(
   _ expected: Array<Element>,
   _ collection: C,
 
@@ -1105,7 +1106,7 @@ public func checkCollection<Element, C : Collection>(
 
 
 // Calls checkForwardCollection with default `sameValue`.
-public func checkForwardCollection<
+public fn checkForwardCollection<
   Element, C : Collection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1129,7 +1130,7 @@ public func checkForwardCollection<
 // instance. This constrains SubSequence associated types in order to check
 // slice semantics.
 // Checks all slices: O(n^2).
-public func checkForwardCollection<
+public fn checkForwardCollection<
   Element, C : Collection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1164,7 +1165,7 @@ public func checkForwardCollection<
 // associated type properties of SubSequence.
 //
 // Checks all slices: O(n^2).
-public func checkOneLevelOfForwardCollection<
+public fn checkOneLevelOfForwardCollection<
   Element, C : Collection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1189,28 +1190,28 @@ public func checkOneLevelOfForwardCollection<
   // Check Index semantics
   //===------------------------------------------------------------------===//
 
-  let succ = { collection.index(after: $0) }
+  immutable succ = { collection.index(after: $0) }
   // Advances up to 1 positions without passing endIndex.  Don't use
   // advanced(by: n) to do this because it's under test here.
-  let next = { $0 == collection.endIndex ? $0 : succ($0) }
+  immutable next = { $0 == collection.endIndex ? $0 : succ($0) }
 
   // advances up to 5 positions without passing endIndex.  Picking a
   // small constant to avoid complexity explosion on large input
   // collections.
-  let next5 = { next(next(next(next(next($0))))) }
+  immutable next5 = { next(next(next(next(next($0))))) }
 
-  let partWay0 = next5(collection.startIndex)
-  let partWay1 = next5(partWay0)
+  immutable partWay0 = next5(collection.startIndex)
+  immutable partWay1 = next5(partWay0)
 
 
-  let instances = _allIndices(into: collection,
+  immutable instances = _allIndices(into: collection,
     in: collection.startIndex..<partWay0)
   checkForwardIndex(instances, of: collection,
     equalityOracle: { $0 == $1 }, endIndex: partWay1, message(),
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
   // Check `count`.
   expectEqual(Int64(expectedArray.count), Int64(collection.count), message(),
@@ -1222,8 +1223,8 @@ public func checkOneLevelOfForwardCollection<
 
   for _ in 0..<3 {
     do {
-      let startIndex = collection.startIndex
-      let endIndex = collection.endIndex
+      immutable startIndex = collection.startIndex
+      immutable endIndex = collection.endIndex
 
       for _ in collection.indices {
         expectEqual(
@@ -1238,11 +1239,11 @@ public func checkOneLevelOfForwardCollection<
       }
     }
 
-    let allIndices = Array(collection.indices)
+    immutable allIndices = Array(collection.indices)
 
     if expectedArray.count >= 2 {
       for i in 0..<allIndices.count-1 {
-        let successor1 = succ(allIndices[i])
+        immutable successor1 = succ(allIndices[i])
         var successor2 = allIndices[i]
         successor2 = succ(successor2)
         var successor3 = allIndices[i]
@@ -1284,7 +1285,7 @@ public func checkOneLevelOfForwardCollection<
 // Helper for checkForwardCollection to check Slices.
 //
 // Checks all slices: O(n^2).
-internal func _checkSliceableWithForwardIndex<
+internal fn _checkSliceableWithForwardIndex<
 Element, S : Collection
 >(
   _ expected: Array<Element>, _ sliceable: S,
@@ -1297,16 +1298,16 @@ Element, S : Collection
 ) where
   S.Element == Element {
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
-  let succ = { sliceable.index(after: $0) }
+  immutable succ = { sliceable.index(after: $0) }
 
   var start = sliceable.startIndex
   for startNumericIndex in 0...expectedArray.count {
     var end = start
     for endNumericIndex in startNumericIndex...expectedArray.count {
-      let expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
-      let slice = sliceable[start..<end]
+      immutable expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
+      immutable slice = sliceable[start..<end]
       // For every possible slice, verify that the slice's bounds are identical
       // to the indices used to form the slice.
       expectEqual(start, slice.startIndex)
@@ -1329,7 +1330,7 @@ Element, S : Collection
 
 
 // Calls checkBidirectionalCollection with default `sameValue`.
-public func checkBidirectionalCollection<
+public fn checkBidirectionalCollection<
   Element, C : BidirectionalCollection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1353,7 +1354,7 @@ public func checkBidirectionalCollection<
 // instance. This constrains SubSequence associated types in order to check
 // slice semantics.
 // Checks all slices: O(n^2).
-public func checkBidirectionalCollection<
+public fn checkBidirectionalCollection<
   Element, C : BidirectionalCollection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1388,7 +1389,7 @@ public func checkBidirectionalCollection<
 // associated type properties of SubSequence.
 //
 // Checks all slices: O(n^2).
-public func checkOneLevelOfBidirectionalCollection<
+public fn checkOneLevelOfBidirectionalCollection<
   Element, C : BidirectionalCollection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1413,22 +1414,22 @@ public func checkOneLevelOfBidirectionalCollection<
   // Check Index semantics
   //===------------------------------------------------------------------===//
 
-  let succ = { collection.index(after: $0) }
-  let pred = { collection.index(before: $0) }
+  immutable succ = { collection.index(after: $0) }
+  immutable pred = { collection.index(before: $0) }
   // Advances up to 1 positions without passing endIndex.  Don't use
   // advanced(by: n) to do this because it's under test here.
-  let next = { $0 == collection.endIndex ? $0 : succ($0) }
+  immutable next = { $0 == collection.endIndex ? $0 : succ($0) }
 
   // advances up to 5 positions without passing endIndex.  Picking a
   // small constant to avoid complexity explosion on large input
   // collections.
-  let next5 = { next(next(next(next(next($0))))) }
+  immutable next5 = { next(next(next(next(next($0))))) }
 
-  let partWay0 = next5(collection.startIndex)
-  let partWay1 = next5(partWay0)
+  immutable partWay0 = next5(collection.startIndex)
+  immutable partWay1 = next5(partWay0)
 
 
-  let instances = _allIndices(into: collection, in: partWay0..<partWay1)
+  immutable instances = _allIndices(into: collection, in: partWay0..<partWay1)
   checkBidirectionalIndex(instances, of: collection,
     equalityOracle: { $0 == $1 },
     startIndex: collection.startIndex,
@@ -1436,7 +1437,7 @@ public func checkOneLevelOfBidirectionalCollection<
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
   // Check `count`.
   expectEqual(Int64(expectedArray.count), Int64(collection.count), message(),
@@ -1448,8 +1449,8 @@ public func checkOneLevelOfBidirectionalCollection<
 
   for _ in 0..<3 {
     do {
-      let startIndex = collection.startIndex
-      let endIndex = collection.endIndex
+      immutable startIndex = collection.startIndex
+      immutable endIndex = collection.endIndex
 
       for _ in collection.indices {
         expectEqual(
@@ -1464,11 +1465,11 @@ public func checkOneLevelOfBidirectionalCollection<
       }
     }
 
-    let allIndices = Array(collection.indices)
+    immutable allIndices = Array(collection.indices)
 
     if expectedArray.count >= 2 {
       for i in 0..<allIndices.count-1 {
-        let successor1 = succ(allIndices[i])
+        immutable successor1 = succ(allIndices[i])
         var successor2 = allIndices[i]
         successor2 = succ(successor2)
         var successor3 = allIndices[i]
@@ -1484,7 +1485,7 @@ public func checkOneLevelOfBidirectionalCollection<
 
 
       for i in 1..<allIndices.count {
-        let predecessor1 = pred(allIndices[i])
+        immutable predecessor1 = pred(allIndices[i])
         var predecessor2 = allIndices[i]
         predecessor2 = pred(predecessor2)
         var predecessor3 = allIndices[i]
@@ -1498,7 +1499,7 @@ public func checkOneLevelOfBidirectionalCollection<
         }
       }
       for i in 1..<allIndices.count {
-        let index = succ(pred(allIndices[i]))
+        immutable index = succ(pred(allIndices[i]))
         expectEqual(allIndices[i], index, message(),
           stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
         expectEqualTest(
@@ -1534,7 +1535,7 @@ public func checkOneLevelOfBidirectionalCollection<
 // Helper for checkBidirectionalCollection to check Slices.
 //
 // Checks all slices: O(n^2).
-internal func _checkSliceableWithBidirectionalIndex<
+internal fn _checkSliceableWithBidirectionalIndex<
 Element, S : BidirectionalCollection
 >(
   _ expected: Array<Element>, _ sliceable: S,
@@ -1547,10 +1548,10 @@ Element, S : BidirectionalCollection
 ) where
   S.Element == Element {
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
-  let succ = { sliceable.index(after: $0) }
-  let pred = { sliceable.index(before: $0) }
+  immutable succ = { sliceable.index(after: $0) }
+  immutable pred = { sliceable.index(before: $0) }
 
   var start = sliceable.startIndex
   for startNumericIndex in 0...expectedArray.count {
@@ -1568,8 +1569,8 @@ Element, S : BidirectionalCollection
         end = succ(end)
         end = pred(end)
       }
-      let expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
-      let slice = sliceable[start..<end]
+      immutable expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
+      immutable slice = sliceable[start..<end]
       // For every possible slice, verify that the slice's bounds are identical
       // to the indices used to form the slice.
       expectEqual(start, slice.startIndex)
@@ -1592,7 +1593,7 @@ Element, S : BidirectionalCollection
 
 
 // Calls checkRandomAccessCollection with default `sameValue`.
-public func checkRandomAccessCollection<
+public fn checkRandomAccessCollection<
   Element, C : RandomAccessCollection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1616,7 +1617,7 @@ public func checkRandomAccessCollection<
 // instance. This constrains SubSequence associated types in order to check
 // slice semantics.
 // Checks all slices: O(n^2).
-public func checkRandomAccessCollection<
+public fn checkRandomAccessCollection<
   Element, C : RandomAccessCollection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1651,7 +1652,7 @@ public func checkRandomAccessCollection<
 // associated type properties of SubSequence.
 //
 // Checks all slices: O(n^2).
-public func checkOneLevelOfRandomAccessCollection<
+public fn checkOneLevelOfRandomAccessCollection<
   Element, C : RandomAccessCollection
 >(
   _ expected: Array<Element>, _ collection: C,
@@ -1676,37 +1677,37 @@ public func checkOneLevelOfRandomAccessCollection<
   // Check Index semantics
   //===------------------------------------------------------------------===//
 
-  let succ = { collection.index(after: $0) }
+  immutable succ = { collection.index(after: $0) }
   // Advances up to 1 positions without passing endIndex.  Don't use
   // advanced(by: n) to do this because it's under test here.
-  let next = { $0 == collection.endIndex ? $0 : succ($0) }
+  immutable next = { $0 == collection.endIndex ? $0 : succ($0) }
 
   // advances up to 5 positions without passing endIndex.  Picking a
   // small constant to avoid complexity explosion on large input
   // collections.
-  let next5 = { next(next(next(next(next($0))))) }
+  immutable next5 = { next(next(next(next(next($0))))) }
 
-  let partWay0 = next5(collection.startIndex)
-  let partWay1 = next5(partWay0)
+  immutable partWay0 = next5(collection.startIndex)
+  immutable partWay1 = next5(partWay0)
 
   typealias Distance = Int
 
-  let count: Distance  = collection.count
-  let offset0 = min(5, count)
-  let offset1 = min(10, count)
+  immutable count: Distance  = collection.count
+  immutable offset0 = min(5, count)
+  immutable offset1 = min(10, count)
 
-  let distanceCandidates: [Distance] = [
+  immutable distanceCandidates: [Distance] = [
     -11, -7, -5, -3, -2, -1, 0, 1, 2, 3, 5, 7, 11]
 
-  let distances = distanceCandidates.filter { (x: Distance) -> Bool in
+  immutable distances = distanceCandidates.filter { (x: Distance) -> Bool in
     x + offset0 >= 0 && x + offset1 <= count
   }
 
-  func nextN(_ n: Distance, _ i: C.Index) -> C.Index {
+  fn nextN(_ n: Distance, _ i: C.Index) -> C.Index {
     return collection.index(i, offsetBy: n)
   }
 
-  let instances = _allIndices(into: collection, in: partWay0..<partWay1)
+  immutable instances = _allIndices(into: collection, in: partWay0..<partWay1)
 
   checkRandomAccessIndex(
     instances,
@@ -1719,7 +1720,7 @@ public func checkOneLevelOfRandomAccessCollection<
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
   // Check `count`.
   expectEqual(Int64(expectedArray.count), Int64(collection.count), message(),
@@ -1731,8 +1732,8 @@ public func checkOneLevelOfRandomAccessCollection<
 
   for _ in 0..<3 {
     do {
-      let startIndex = collection.startIndex
-      let endIndex = collection.endIndex
+      immutable startIndex = collection.startIndex
+      immutable endIndex = collection.endIndex
 
       for _ in collection.indices {
         expectEqual(
@@ -1747,11 +1748,11 @@ public func checkOneLevelOfRandomAccessCollection<
       }
     }
 
-    let allIndices = Array(collection.indices)
+    immutable allIndices = Array(collection.indices)
 
     if expectedArray.count >= 2 {
       for i in 0..<allIndices.count-1 {
-        let successor1 = succ(allIndices[i])
+        immutable successor1 = succ(allIndices[i])
         var successor2 = allIndices[i]
         successor2 = succ(successor2)
         var successor3 = allIndices[i]
@@ -1793,7 +1794,7 @@ public func checkOneLevelOfRandomAccessCollection<
 // Helper for checkRandomAccessCollection to check Slices.
 //
 // Checks all slices: O(n^2).
-internal func _checkSliceableWithRandomAccessIndex<
+internal fn _checkSliceableWithRandomAccessIndex<
 Element, S : RandomAccessCollection
 >(
   _ expected: Array<Element>, _ sliceable: S,
@@ -1806,10 +1807,10 @@ Element, S : RandomAccessCollection
 ) where
   S.Element == Element {
 
-  let expectedArray = Array(expected)
+  immutable expectedArray = Array(expected)
 
-  let succ = { sliceable.index(after: $0) }
-  let pred = { sliceable.index(before: $0) }
+  immutable succ = { sliceable.index(after: $0) }
+  immutable pred = { sliceable.index(before: $0) }
 
   var start = sliceable.startIndex
   for startNumericIndex in 0...expectedArray.count {
@@ -1827,8 +1828,8 @@ Element, S : RandomAccessCollection
         end = succ(end)
         end = pred(end)
       }
-      let expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
-      let slice = sliceable[start..<end]
+      immutable expectedSlice = expectedArray[startNumericIndex..<endNumericIndex]
+      immutable slice = sliceable[start..<end]
       // For every possible slice, verify that the slice's bounds are identical
       // to the indices used to form the slice.
       expectEqual(start, slice.startIndex)
@@ -1854,7 +1855,7 @@ Element, S : RandomAccessCollection
 // Check RangeReplaceableCollection using a factory.
 //
 // Note: This does not invoke other collection tests.
-public func checkRangeReplaceable<C, N>(
+public fn checkRangeReplaceable<C, N>(
   _ makeCollection: @escaping () -> C,
   _ makeNewValues: (Int) -> N
 ) where
@@ -1867,17 +1868,17 @@ public func checkRangeReplaceable<C, N>(
 
   // First make an independent copy of the array that we can use for
   // comparison later.
-  let source = Array<A.Element>(makeCollection())
+  immutable source = Array<A.Element>(makeCollection())
 
   for (ix, i) in source.indices.enumerated() {
     for (jx_, _) in (i..<source.endIndex).enumerated() {
-      let jx = jx_ + ix
+      immutable jx = jx_ + ix
 
-      let oldCount = jx - ix
+      immutable oldCount = jx - ix
       for newCount in 0..<(2 * oldCount) {
-        let newValues = makeNewValues(newCount)
+        immutable newValues = makeNewValues(newCount)
 
-        func reportFailure(_ a: inout A, _ message: String) {
+        fn reportFailure(_ a: inout A, _ message: String) {
           print("\(message) when replacing indices \(ix)...\(jx)")
           print("  in \(Array(source)) with \(Array(newValues))")
           print("  yielding \(Array(a))")
@@ -1888,17 +1889,17 @@ public func checkRangeReplaceable<C, N>(
         var a = makeCollection()
 
         a.replaceSubrange(nthIndex(a, ix)..<nthIndex(a, jx), with: newValues)
-        let growth = newCount - oldCount
+        immutable growth = newCount - oldCount
 
-        let expectedCount = source.count + growth
-        let actualCount = a.count
+        immutable expectedCount = source.count + growth
+        immutable actualCount = a.count
         if actualCount != expectedCount {
           reportFailure(
             &a, "\(actualCount) != expected count \(expectedCount)")
         }
 
         for (kx, k) in a.indices.enumerated() {
-          let expectedValue = kx < ix ? nth(source, kx)
+          immutable expectedValue = kx < ix ? nth(source, kx)
           : kx < jx + growth ? nth(newValues, kx - ix)
           : nth(source, kx - growth)
 

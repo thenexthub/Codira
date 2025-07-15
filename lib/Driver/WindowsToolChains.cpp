@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ToolChains.h"
 
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Platform.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/TaskQueue.h"
@@ -27,18 +28,18 @@
 #include "language/Option/Options.h"
 #include "clang/Basic/Version.h"
 #include "clang/Driver/Util.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Program.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Program.h"
 
 using namespace language;
 using namespace language::driver;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 std::string toolchains::Windows::sanitizerRuntimeLibName(StringRef Sanitizer,
                                                          bool shared) const {
@@ -63,7 +64,7 @@ toolchains::Windows::constructInvocation(const DynamicLinkJobAction &job,
 
   switch (job.getKind()) {
   case LinkKind::None:
-    llvm_unreachable("invalid link kind");
+    toolchain_unreachable("invalid link kind");
   case LinkKind::Executable:
     // Default case, nothing extra needed.
     break;
@@ -71,13 +72,13 @@ toolchains::Windows::constructInvocation(const DynamicLinkJobAction &job,
     Arguments.push_back("-shared");
     break;
   case LinkKind::StaticLibrary:
-    llvm_unreachable("invalid link kind");
+    toolchain_unreachable("invalid link kind");
   }
 
   // Check to see whether we need to use lld as the linker.
   auto requiresLLD = [&]{
     if (const Arg *A = context.Args.getLastArg(options::OPT_use_ld)) {
-      return llvm::StringSwitch<bool>(A->getValue())
+      return toolchain::StringSwitch<bool>(A->getValue())
         .Cases("lld", "lld.exe", "lld-link", "lld-link.exe", true)
         .Default(false);
     }
@@ -151,19 +152,19 @@ toolchains::Windows::constructInvocation(const DynamicLinkJobAction &job,
     SmallString<128> SharedResourceDirPath;
     getResourceDirPath(SharedResourceDirPath, context.Args, /*Shared=*/true);
 
-    SmallString<128> swiftrtPath = SharedResourceDirPath;
-    llvm::sys::path::append(swiftrtPath,
-                            swift::getMajorArchitectureName(getTriple()));
-    llvm::sys::path::append(swiftrtPath, "swiftrt.obj");
-    Arguments.push_back(context.Args.MakeArgString(swiftrtPath));
+    SmallString<128> languagertPath = SharedResourceDirPath;
+    toolchain::sys::path::append(languagertPath,
+                            language::getMajorArchitectureName(getTriple()));
+    toolchain::sys::path::append(languagertPath, "languagert.obj");
+    Arguments.push_back(context.Args.MakeArgString(languagertPath));
   }
 
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                          file_types::TY_Object);
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
-                         file_types::TY_LLVM_BC);
+                         file_types::TY_TOOLCHAIN_BC);
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
-  addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+  addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
 
   for (const Arg *arg :
        context.Args.filtered(options::OPT_F, options::OPT_Fsystem)) {
@@ -192,7 +193,7 @@ toolchains::Windows::constructInvocation(const DynamicLinkJobAction &job,
   if (context.Args.hasArg(options::OPT_profile_generate)) {
     Arguments.push_back(context.Args.MakeArgString("-Xlinker"));
     Arguments.push_back(context.Args.MakeArgString(
-        Twine({"-include:", llvm::getInstrProfRuntimeHookVarName()})));
+        Twine({"-include:", toolchain::getInstrProfRuntimeHookVarName()})));
     Arguments.push_back(context.Args.MakeArgString("-lclang_rt.profile"));
 
     // FIXME(rdar://131295678): Currently profiling requires the ability to

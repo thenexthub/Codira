@@ -1,0 +1,9 @@
+fn throwingFunc() throws -> Int? {
+    return nil
+}
+if immutable val = try! throwingFunc() { 
+    immutable _ = val
+}
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -convert-to-do-catch -source-filename %s -pos=4:16 > %t.result/L5.code
+// RUN: diff -u %S/Outputs/in_if_clause_with_let_binding/L5.code.expected %t.result/L5.code

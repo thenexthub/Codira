@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation for the initialization of
@@ -19,23 +20,23 @@
 //===----------------------------------------------------------------------===//
 
 #include "IRGenModule.h"
-#include "languageTargetInfo.h"
+#include "CodiraTargetInfo.h"
 
 #include "language/AST/IRGenOptions.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/ProfileData/Coverage/CoverageMappingWriter.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/FileSystem.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/IR/Type.h"
+#include "toolchain/ProfileData/Coverage/CoverageMappingWriter.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/FileSystem.h"
 
 using namespace language;
 using namespace irgen;
 
-using llvm::coverage::CounterMappingRegion;
-using llvm::coverage::CovMapVersion;
+using toolchain::coverage::CounterMappingRegion;
+using toolchain::coverage::CovMapVersion;
 
 // This affects the coverage mapping format defined when `InstrProfData.inc`
 // is textually included. Note that it means 'version >= 3', not 'version == 3'.
@@ -50,8 +51,8 @@ static_assert(CovMapVersion::CurrentVersion == CovMapVersion::Version7,
               "Coverage mapping emission needs updating");
 
 static std::string getInstrProfSection(IRGenModule &IGM,
-                                       llvm::InstrProfSectKind SK) {
-  return llvm::getInstrProfSectionName(SK, IGM.Triple.getObjectFormat());
+                                       toolchain::InstrProfSectKind SK) {
+  return toolchain::getInstrProfSectionName(SK, IGM.Triple.getObjectFormat());
 }
 
 void IRGenModule::emitCoverageMaps(ArrayRef<const SILCoverageMap *> Mappings) {
@@ -59,37 +60,37 @@ void IRGenModule::emitCoverageMaps(ArrayRef<const SILCoverageMap *> Mappings) {
   if (Mappings.empty())
     return;
 
-  SmallVector<llvm::Constant *, 4> UnusedFuncNames;
+  SmallVector<toolchain::Constant *, 4> UnusedFuncNames;
   for (const auto *Mapping : Mappings) {
     auto FuncName = Mapping->getPGOFuncName();
-    auto VarLinkage = llvm::GlobalValue::LinkOnceAnyLinkage;
-    auto FuncNameVarName = llvm::getPGOFuncNameVarName(FuncName, VarLinkage);
+    auto VarLinkage = toolchain::GlobalValue::LinkOnceAnyLinkage;
+    auto FuncNameVarName = toolchain::getPGOFuncNameVarName(FuncName, VarLinkage);
 
     // Check whether this coverage mapping can reference its name data within
     // the profile symbol table. If the name global isn't there, this function
     // has been optimized out. We need to tell LLVM about it by emitting the
     // name data separately.
     if (!Module.getNamedGlobal(FuncNameVarName)) {
-      auto *Var = llvm::createPGOFuncNameVar(Module, VarLinkage, FuncName);
-      UnusedFuncNames.push_back(llvm::ConstantExpr::getBitCast(Var, Int8PtrTy));
+      auto *Var = toolchain::createPGOFuncNameVar(Module, VarLinkage, FuncName);
+      UnusedFuncNames.push_back(toolchain::ConstantExpr::getBitCast(Var, Int8PtrTy));
     }
   }
 
   // Emit the name data for any unused functions.
   if (!UnusedFuncNames.empty()) {
-    auto NamePtrsTy = llvm::ArrayType::get(Int8PtrTy, UnusedFuncNames.size());
-    auto NamePtrs = llvm::ConstantArray::get(NamePtrsTy, UnusedFuncNames);
+    auto NamePtrsTy = toolchain::ArrayType::get(Int8PtrTy, UnusedFuncNames.size());
+    auto NamePtrs = toolchain::ConstantArray::get(NamePtrsTy, UnusedFuncNames);
 
     // Note we don't mark this variable as used, as it doesn't need to be
     // present in the object file, it gets picked up by the LLVM instrumentation
     // lowering pass.
-    new llvm::GlobalVariable(Module, NamePtrsTy, /*IsConstant*/ true,
-                             llvm::GlobalValue::InternalLinkage, NamePtrs,
-                             llvm::getCoverageUnusedNamesVarName());
+    new toolchain::GlobalVariable(Module, NamePtrsTy, /*IsConstant*/ true,
+                             toolchain::GlobalValue::InternalLinkage, NamePtrs,
+                             toolchain::getCoverageUnusedNamesVarName());
   }
 
-  llvm::DenseMap<StringRef, unsigned> RawFileIndices;
-  llvm::SmallVector<StringRef, 8> RawFiles;
+  toolchain::DenseMap<StringRef, unsigned> RawFileIndices;
+  toolchain::SmallVector<StringRef, 8> RawFiles;
   for (const auto &M : Mappings) {
     auto Filename = M->getFilename();
     auto Inserted = RawFileIndices.insert({Filename, RawFiles.size()}).second;
@@ -99,42 +100,42 @@ void IRGenModule::emitCoverageMaps(ArrayRef<const SILCoverageMap *> Mappings) {
   }
   const auto &Remapper = getOptions().CoveragePrefixMap;
 
-  llvm::SmallVector<std::string, 8> FilenameStrs;
+  toolchain::SmallVector<std::string, 8> FilenameStrs;
   FilenameStrs.reserve(RawFiles.size() + 1);
 
   // First element needs to be the current working directory. Note if this
   // scheme ever changes, the FileID computation below will need updating.
   SmallString<256> WorkingDirectory;
-  llvm::sys::fs::current_path(WorkingDirectory);
+  toolchain::sys::fs::current_path(WorkingDirectory);
   FilenameStrs.emplace_back(Remapper.remapPath(WorkingDirectory));
 
   // Following elements are the filenames present. We use their relative path,
-  // which llvm-cov will turn back into absolute paths using the working
+  // which toolchain-cov will turn back into absolute paths using the working
   // directory element.
   for (auto Name : RawFiles)
     FilenameStrs.emplace_back(Remapper.remapPath(Name));
 
   // Encode the filenames.
   std::string Filenames;
-  llvm::LLVMContext &Ctx = getLLVMContext();
+  toolchain::LLVMContext &Ctx = getLLVMContext();
   {
-    llvm::raw_string_ostream OS(Filenames);
-    llvm::coverage::CoverageFilenamesSectionWriter(FilenameStrs).write(OS);
+    toolchain::raw_string_ostream OS(Filenames);
+    toolchain::coverage::CoverageFilenamesSectionWriter(FilenameStrs).write(OS);
   }
   auto *FilenamesVal =
-      llvm::ConstantDataArray::getString(Ctx, Filenames, false);
-  const int64_t FilenamesRef = llvm::IndexedInstrProf::ComputeHash(Filenames);
+      toolchain::ConstantDataArray::getString(Ctx, Filenames, false);
+  const int64_t FilenamesRef = toolchain::IndexedInstrProf::ComputeHash(Filenames);
   const size_t FilenamesSize = Filenames.size();
 
   // Emit the function records.
-  auto *Int32Ty = llvm::Type::getInt32Ty(Ctx);
+  auto *Int32Ty = toolchain::Type::getInt32Ty(Ctx);
   for (const auto &M : Mappings) {
     StringRef NameValue = M->getPGOFuncName();
     assert(!NameValue.empty() && "Expected a named record");
     uint64_t FuncHash = M->getHash();
 
-    const uint64_t NameHash = llvm::IndexedInstrProf::ComputeHash(NameValue);
-    std::string FuncRecordName = "__covrec_" + llvm::utohexstr(NameHash);
+    const uint64_t NameHash = toolchain::IndexedInstrProf::ComputeHash(NameValue);
+    std::string FuncRecordName = "__covrec_" + toolchain::utohexstr(NameHash);
 
     // The file ID needs to be bumped by 1 to account for the working directory
     // as the first element.
@@ -153,38 +154,38 @@ void IRGenModule::emitCoverageMaps(ArrayRef<const SILCoverageMap *> Mappings) {
     }
     // Append each function's regions into the encoded buffer.
     ArrayRef<unsigned> VirtualFileMapping(FileID);
-    llvm::coverage::CoverageMappingWriter W(VirtualFileMapping,
+    toolchain::coverage::CoverageMappingWriter W(VirtualFileMapping,
                                             M->getExpressions(), Regions);
     std::string CoverageMapping;
     {
-      llvm::raw_string_ostream OS(CoverageMapping);
+      toolchain::raw_string_ostream OS(CoverageMapping);
       W.write(OS);
     }
 
 #define COVMAP_FUNC_RECORD(Type, LLVMType, Name, Init) LLVMType,
-    llvm::Type *FunctionRecordTypes[] = {
-#include "llvm/ProfileData/InstrProfData.inc"
+    toolchain::Type *FunctionRecordTypes[] = {
+#include "toolchain/ProfileData/InstrProfData.inc"
     };
     auto *FunctionRecordTy =
-        llvm::StructType::get(Ctx, llvm::ArrayRef(FunctionRecordTypes),
+        toolchain::StructType::get(Ctx, toolchain::ArrayRef(FunctionRecordTypes),
                               /*isPacked=*/true);
 
     // Create the function record constant.
 #define COVMAP_FUNC_RECORD(Type, LLVMType, Name, Init) Init,
-    llvm::Constant *FunctionRecordVals[] = {
-#include "llvm/ProfileData/InstrProfData.inc"
+    toolchain::Constant *FunctionRecordVals[] = {
+#include "toolchain/ProfileData/InstrProfData.inc"
     };
-    auto *FuncRecordConstant = llvm::ConstantStruct::get(
-        FunctionRecordTy, llvm::ArrayRef(FunctionRecordVals));
+    auto *FuncRecordConstant = toolchain::ConstantStruct::get(
+        FunctionRecordTy, toolchain::ArrayRef(FunctionRecordVals));
 
     // Create the function record global.
-    auto *FuncRecord = new llvm::GlobalVariable(
+    auto *FuncRecord = new toolchain::GlobalVariable(
         *getModule(), FunctionRecordTy, /*isConstant=*/true,
-        llvm::GlobalValue::LinkOnceODRLinkage, FuncRecordConstant,
+        toolchain::GlobalValue::LinkOnceODRLinkage, FuncRecordConstant,
         FuncRecordName);
-    FuncRecord->setVisibility(llvm::GlobalValue::HiddenVisibility);
-    FuncRecord->setSection(getInstrProfSection(*this, llvm::IPSK_covfun));
-    FuncRecord->setAlignment(llvm::Align(8));
+    FuncRecord->setVisibility(toolchain::GlobalValue::HiddenVisibility);
+    FuncRecord->setSection(getInstrProfSection(*this, toolchain::IPSK_covfun));
+    FuncRecord->setAlignment(toolchain::Align(8));
     if (Triple.supportsCOMDAT())
       FuncRecord->setComdat(getModule()->getOrInsertComdat(FuncRecordName));
 
@@ -195,31 +196,31 @@ void IRGenModule::emitCoverageMaps(ArrayRef<const SILCoverageMap *> Mappings) {
   // Create the coverage data header.
   const unsigned NRecords = 0;
   const unsigned CoverageMappingSize = 0;
-  llvm::Type *CovDataHeaderTypes[] = {
+  toolchain::Type *CovDataHeaderTypes[] = {
 #define COVMAP_HEADER(Type, LLVMType, Name, Init) LLVMType,
-#include "llvm/ProfileData/InstrProfData.inc"
+#include "toolchain/ProfileData/InstrProfData.inc"
   };
   auto CovDataHeaderTy =
-      llvm::StructType::get(Ctx, llvm::ArrayRef(CovDataHeaderTypes));
-  llvm::Constant *CovDataHeaderVals[] = {
+      toolchain::StructType::get(Ctx, toolchain::ArrayRef(CovDataHeaderTypes));
+  toolchain::Constant *CovDataHeaderVals[] = {
 #define COVMAP_HEADER(Type, LLVMType, Name, Init) Init,
-#include "llvm/ProfileData/InstrProfData.inc"
+#include "toolchain/ProfileData/InstrProfData.inc"
   };
-  auto CovDataHeaderVal = llvm::ConstantStruct::get(
-      CovDataHeaderTy, llvm::ArrayRef(CovDataHeaderVals));
+  auto CovDataHeaderVal = toolchain::ConstantStruct::get(
+      CovDataHeaderTy, toolchain::ArrayRef(CovDataHeaderVals));
 
   // Create the coverage data record
-  llvm::Type *CovDataTypes[] = {CovDataHeaderTy, FilenamesVal->getType()};
-  auto CovDataTy = llvm::StructType::get(Ctx, llvm::ArrayRef(CovDataTypes));
-  llvm::Constant *TUDataVals[] = {CovDataHeaderVal, FilenamesVal};
+  toolchain::Type *CovDataTypes[] = {CovDataHeaderTy, FilenamesVal->getType()};
+  auto CovDataTy = toolchain::StructType::get(Ctx, toolchain::ArrayRef(CovDataTypes));
+  toolchain::Constant *TUDataVals[] = {CovDataHeaderVal, FilenamesVal};
   auto CovDataVal =
-      llvm::ConstantStruct::get(CovDataTy, llvm::ArrayRef(TUDataVals));
-  auto CovData = new llvm::GlobalVariable(
-      *getModule(), CovDataTy, true, llvm::GlobalValue::PrivateLinkage,
-      CovDataVal, llvm::getCoverageMappingVarName());
+      toolchain::ConstantStruct::get(CovDataTy, toolchain::ArrayRef(TUDataVals));
+  auto CovData = new toolchain::GlobalVariable(
+      *getModule(), CovDataTy, true, toolchain::GlobalValue::PrivateLinkage,
+      CovDataVal, toolchain::getCoverageMappingVarName());
 
-  CovData->setSection(getInstrProfSection(*this, llvm::IPSK_covmap));
-  CovData->setAlignment(llvm::Align(8));
+  CovData->setSection(getInstrProfSection(*this, toolchain::IPSK_covmap));
+  CovData->setAlignment(toolchain::Align(8));
   addUsedGlobal(CovData);
 }
 
@@ -237,7 +238,7 @@ void IRGenerator::emitCoverageMapping() {
   // being profiled (unless it has been optimized out). Matching the coverage
   // map to its originating SourceFile also matches the behavior of a debug
   // build where the files are compiled separately.
-  llvm::DenseMap<IRGenModule *, std::vector<const SILCoverageMap *>> MapsToEmit;
+  toolchain::DenseMap<IRGenModule *, std::vector<const SILCoverageMap *>> MapsToEmit;
   for (const auto &M : SIL.getCoverageMaps()) {
     auto &Mapping = M.second;
     auto *SF = Mapping->getParentSourceFile();

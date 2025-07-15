@@ -1,0 +1,43 @@
+/// Check that we correctly refer to @_spiOnly imported modules in the private
+/// languageinterface and not to one of the redeclarations.
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Client.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -emit-module-interface-path %t/Client.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Client.private.codeinterface
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t
+
+/// We print a reference to A in the private languageinterface.
+// RUN: %FileCheck %s < %t/Client.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.private.codeinterface) -I %t \
+// RUN:   -module-name Client
+
+//--- module.modulemap
+module A {
+    header "A.h"
+}
+
+module B {
+    header "B.h"
+}
+
+//--- A.h
+@interface MovingType
+@end
+
+//--- B.h
+@class MovingType;
+
+//--- Client.code
+import B
+@_spiOnly import A
+
+@_spi(_)
+public fn foo(_ a: MovingType) {}
+// CHECK: A.MovingType

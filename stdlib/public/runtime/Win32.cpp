@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Utility functions that are specific to the Windows port.
@@ -25,7 +26,7 @@
 #include <windows.h>
 
 char *
-_swift_win32_copyUTF8FromWide(const wchar_t *str) {
+_language_win32_copyUTF8FromWide(const wchar_t *str) {
   char *result = nullptr;
   int len = ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
                                   str, -1,
@@ -51,7 +52,7 @@ _swift_win32_copyUTF8FromWide(const wchar_t *str) {
 }
 
 wchar_t *
-_swift_win32_copyWideFromUTF8(const char *str) {
+_language_win32_copyWideFromUTF8(const char *str) {
   wchar_t *result = nullptr;
   int len = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
                                   str, -1,

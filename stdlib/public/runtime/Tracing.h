@@ -11,33 +11,34 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Support code for tracing events in the Swift runtime
+// Support code for tracing events in the Codira runtime
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TRACING_H
-#define SWIFT_TRACING_H
+#ifndef LANGUAGE_TRACING_H
+#define LANGUAGE_TRACING_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include "language/ABI/Metadata.h"
 #include "language/Demangling/Demangler.h"
 #include "language/Runtime/TracingCommon.h"
 
-#if SWIFT_STDLIB_TRACING
+#if LANGUAGE_STDLIB_TRACING
 #include <os/signpost.h>
 
 #include "language/Runtime/HeapObject.h"
 
-#define SWIFT_LOG_SECTION_SCAN "section_scan"
+#define LANGUAGE_LOG_SECTION_SCAN "section_scan"
 
 namespace language {
 namespace runtime {
 namespace trace {
 
 extern os_log_t ScanLog;
-extern swift::once_t LogsToken;
+extern language::once_t LogsToken;
 extern bool TracingEnabled;
 
 void setupLogs(void *unused);
@@ -55,7 +56,7 @@ void setupLogs(void *unused);
   do {                                                                         \
     if (!tracingReady())                                                       \
       return {};                                                               \
-    swift::once(LogsToken, setupLogs, nullptr);                                \
+    language::once(LogsToken, setupLogs, nullptr);                                \
     if (!TracingEnabled)                                                       \
       return {};                                                               \
   } while (0)
@@ -72,7 +73,7 @@ struct ScanTraceState {
   template <typename T>
   T *end(T *result) {
     ended = true;
-    os_signpost_interval_end(ScanLog, signpostID, SWIFT_LOG_SECTION_SCAN,
+    os_signpost_interval_end(ScanLog, signpostID, LANGUAGE_LOG_SECTION_SCAN,
                              "result=%p", result);
     return result;
   }
@@ -84,11 +85,11 @@ struct ScanTraceState {
 };
 
 static inline ScanTraceState
-accessible_function_scan_begin(llvm::StringRef name) {
+accessible_function_scan_begin(toolchain::StringRef name) {
   ENSURE_LOG(ScanLog);
 
   auto id = os_signpost_id_generate(ScanLog);
-  os_signpost_interval_begin(ScanLog, id, SWIFT_LOG_SECTION_SCAN,
+  os_signpost_interval_begin(ScanLog, id, LANGUAGE_LOG_SECTION_SCAN,
                              "accessible function scan for '%.*s'",
                              (int)name.size(), name.data());
   return {id};
@@ -98,7 +99,7 @@ static inline ScanTraceState metadata_scan_begin(Demangle::NodePointer node) {
   ENSURE_LOG(ScanLog);
 
   auto id = os_signpost_id_generate(ScanLog);
-  os_signpost_interval_begin(ScanLog, id, SWIFT_LOG_SECTION_SCAN,
+  os_signpost_interval_begin(ScanLog, id, LANGUAGE_LOG_SECTION_SCAN,
                              "metadata scan for %s",
                              node ? nodeToString(node).c_str() : "<null>");
   return {id};
@@ -109,7 +110,7 @@ protocol_conformance_scan_begin(Demangle::NodePointer node) {
   ENSURE_LOG(ScanLog);
 
   auto id = os_signpost_id_generate(ScanLog);
-  os_signpost_interval_begin(ScanLog, id, SWIFT_LOG_SECTION_SCAN,
+  os_signpost_interval_begin(ScanLog, id, LANGUAGE_LOG_SECTION_SCAN,
                              "protocol conformance scan for %s",
                              node ? nodeToString(node).c_str() : "<null>");
   return {id};
@@ -123,11 +124,11 @@ protocol_conformance_scan_begin(const Metadata *type,
   auto id = os_signpost_id_generate(ScanLog);
 
   // Check for enablement separately to avoid the potentially expensive
-  // swift_getTypeName call when tracing is not enabled.
+  // language_getTypeName call when tracing is not enabled.
   if (os_signpost_enabled(ScanLog)) {
-    auto typeName = swift_getTypeName(type, /*qualified*/ true);
+    auto typeName = language_getTypeName(type, /*qualified*/ true);
     auto protoName = protocol ? protocol->Name.get() : "<null>";
-    os_signpost_interval_begin(ScanLog, id, SWIFT_LOG_SECTION_SCAN,
+    os_signpost_interval_begin(ScanLog, id, LANGUAGE_LOG_SECTION_SCAN,
                                "protocol conformance scan for %.*s(%p): %s(%p)",
                                (int)typeName.length, typeName.data, type,
                                protoName, protocol);
@@ -139,7 +140,7 @@ static inline ScanTraceState protocol_scan_begin(Demangle::NodePointer node) {
   ENSURE_LOG(ScanLog);
 
   auto id = os_signpost_id_generate(ScanLog);
-  os_signpost_interval_begin(ScanLog, id, SWIFT_LOG_SECTION_SCAN,
+  os_signpost_interval_begin(ScanLog, id, LANGUAGE_LOG_SECTION_SCAN,
                              "protocol scan for '%s'",
                              node ? nodeToString(node).c_str() : "<null>");
   return {id};
@@ -165,7 +166,7 @@ struct ScanTraceState {
 };
 
 static inline ScanTraceState
-accessible_function_scan_begin(llvm::StringRef name) {
+accessible_function_scan_begin(toolchain::StringRef name) {
   return {};
 }
 
@@ -194,4 +195,4 @@ static inline ScanTraceState protocol_scan_begin(Demangle::NodePointer node) {
 
 #endif
 
-#endif // SWIFT_TRACING_H
+#endif // LANGUAGE_TRACING_H

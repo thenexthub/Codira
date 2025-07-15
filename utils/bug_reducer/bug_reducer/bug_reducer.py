@@ -11,8 +11,8 @@ import random_bug_finder
 
 def add_subparser(subparsers, module, name):
     sparser = subparsers.add_parser(name)
-    sparser.add_argument('swift_build_dir',
-                         help='Path to the swift build directory '
+    sparser.add_argument('language_build_dir',
+                         help='Path to the language build directory '
                          'containing tools to use')
     module.add_parser_arguments(sparser)
 
@@ -24,10 +24,10 @@ A program for reducing sib/sil crashers""")
 
     add_subparser(subparsers, opt_bug_reducer, 'opt')
     add_subparser(subparsers, random_bug_finder, 'random-search')
-    add_subparser(subparsers, func_bug_reducer, 'func')
+    add_subparser(subparsers, func_bug_reducer, 'fn')
 
     args = parser.parse_args()
-    args.func(args)
+    args.fn(args)
 
 
 main()

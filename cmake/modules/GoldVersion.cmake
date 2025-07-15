@@ -1,6 +1,6 @@
 # Find the version of ld.gold, if installed.
 #
-# Versions prior to 2.36 break Swift programs because they won't coalesce
+# Versions prior to 2.36 break Codira programs because they won't coalesce
 # sections with different SHF_GNU_RETAIN flags.
 function(get_gold_version result_var_name)
   find_program(gold_executable "ld.gold")

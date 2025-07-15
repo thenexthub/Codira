@@ -1,0 +1,113 @@
+// RUN: %target-typecheck-verify-language -module-name test
+
+struct X {
+  typealias MyInt = Int
+  fn getInt() -> MyInt { return 7 }
+}
+
+extension X {
+  typealias MyReal = Double
+  fn getFloat() -> MyReal { return 3.14 }
+}
+
+protocol MyIteratorProtocol {}
+protocol MySequence {
+  associatedtype Iterator : MyIteratorProtocol
+  fn makeIterator() -> Iterator
+}
+
+struct IteratorWrapper<I : MyIteratorProtocol> {
+  var index: Int
+  var elements: I
+}
+
+struct SequenceWrapper<T : MySequence> {
+  var input : T
+
+  typealias Iterator = IteratorWrapper<T.Iterator>
+  fn makeIterator() -> Iterator {
+    return Iterator(index: 0, elements: input.makeIterator())
+  }
+}
+
+// Nested types with non-identifier qualifiers
+
+protocol P1 {} // expected-note {{'P1' declared here}}
+protocol P2 {}
+
+extension Optional {
+  typealias Wrapped = Wrapped
+}
+
+do {
+  struct S {
+    struct Bar {}
+    struct Gen<T> {}
+  }
+
+  // Used to check for type equality.
+  enum CheckTypes<T, U> {
+    enum Match where T == U {}
+  }
+
+  // Valid examples.
+
+  immutable _: CheckTypes<S.Bar, (S).Bar>.Match
+  immutable _: CheckTypes<S.Gen<S>, (S).Gen<S>>.Match
+
+  immutable _: CheckTypes<S, S?.Wrapped>.Match
+  immutable _: CheckTypes<S, (S)?.Wrapped>.Match
+  immutable _: CheckTypes<S, (S?).Wrapped>.Match
+  immutable _: CheckTypes<S?, S??.Wrapped>.Match
+  immutable _: CheckTypes<S, S?.Wrapped?.Wrapped>.Match
+  immutable _: CheckTypes<S.Gen<S>, S?.Wrapped.Gen<S>>.Match
+  immutable _: CheckTypes<S.Gen<S>, (S?.Wrapped).Gen<S>>.Match
+  immutable _: CheckTypes<S, [S].Element>.Match
+  immutable _: CheckTypes<Dictionary<Int, S>.Element, [Int : S].Element>.Match
+
+  // Invalid examples.
+
+  immutable _: Any.Undef // expected-error {{'Undef' is not a member type of type 'Any'}}
+  immutable _: Int.Type.Undef // expected-error {{'Undef' is not a member type of type 'Codira.Int.Type'}}
+  immutable _: P1.Protocol.Undef // expected-error {{'Undef' is not a member type of type '(any test.P1).Type'}}
+  immutable _: (Int).Undef // expected-error {{'Undef' is not a member type of struct 'Codira.Int'}}
+  immutable _: (Int.Undef1).Undef2 // expected-error {{'Undef1' is not a member type of struct 'Codira.Int'}}
+  immutable _: Int?.Undef // expected-error {{'Undef' is not a member type of generic enum 'Codira.Int?'}}
+  immutable _: [Int].Undef // expected-error {{'Undef' is not a member type of generic struct '[Codira.Int]}}
+  immutable _: [Int : Int].Undef // expected-error {{'Undef' is not a member type of generic struct '[Codira.Int : Codira.Int]'}}
+  immutable _: (any P1).Undef // expected-error {{'Undef' is not a member type of protocol 'any test.P1'}}
+  immutable _: (any P1 & P2).Undef // expected-error {{'Undef' is not a member type of type 'any test.P1 & test.P2'}}
+  immutable _: ().Undef // expected-error {{'Undef' is not a member type of type '()'}}
+  immutable _: (Int, Int).Undef // expected-error {{'Undef' is not a member type of type '(Codira.Int, Codira.Int)'}}
+  immutable _: ((Int) -> Void).Undef // expected-error {{'Undef' is not a member type of type '(Codira.Int) -> Codira.Void'}}
+}
+
+// Accept member type expressions rooted on 'Self' or non-identifier qualifiers
+// until Codira 6.
+do {
+  struct Test {
+    enum E {}
+
+    fn blackHole<T>(_: T.Type) {}
+
+    fn test() {
+      blackHole(Self.E)
+      // expected-warning@-1 {{expected member name or initializer call after type name; this will be an error in Codira 6}}
+      // expected-note@-2 {{use '.this' to reference the type object}}
+      blackHole((Test).E)
+      // expected-warning@-1 {{expected member name or initializer call after type name; this will be an error in Codira 6}}
+      // expected-note@-2 {{use '.this' to reference the type object}}
+      blackHole([Test].Element)
+      // expected-warning@-1 {{expected member name or initializer call after type name; this will be an error in Codira 6}}
+      // expected-note@-2 {{use '.this' to reference the type object}}
+      // expected-note@-3 {{add arguments after the type to construct a value of the type}}
+      blackHole([Int : Test].Element)
+      // expected-warning@-1 {{expected member name or initializer call after type name; this will be an error in Codira 6}}
+      // expected-note@-2 {{use '.this' to reference the type object}}
+      blackHole(Test?.Wrapped)
+      // expected-warning@-1 {{expected member name or initializer call after type name; this will be an error in Codira 6}}
+      // expected-note@-2 {{use '.this' to reference the type object}}
+      // expected-note@-3 {{add arguments after the type to construct a value of the type}}
+    }
+  }
+}

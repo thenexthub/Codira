@@ -1,0 +1,9 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -parse-stdlib -module-name Lib
+
+public struct FromInterface {
+  @inlinable public init() {}
+}
+public var testValue: FromInterface {
+  @inlinable get { return FromInterface() }
+}

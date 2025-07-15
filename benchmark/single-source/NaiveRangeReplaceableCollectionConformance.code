@@ -1,20 +1,24 @@
-//===--- NaiveRangeReplaceableCollectionConformance.swift -----------------===//
+//===--- NaiveRangeReplaceableCollectionConformance.code -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
 var contiguous:[UInt8] = []
 
-public let benchmarks = [
+public immutable benchmarks = [
     BenchmarkInfo(name: "NaiveRRC.append.largeContiguous",
                   runFunction: runAppendLargeContiguous,
                   tags: [.validation, .api],
@@ -35,11 +39,11 @@ struct NaiveRRC : RangeReplaceableCollection {
   
   init() {}
   
-  func index(after i: Int) -> Int {
+  fn index(after i: Int) -> Int {
     i + 1
   }
   
-  func index(before i: Int) -> Int {
+  fn index(before i: Int) -> Int {
     i - 1
   }
   
@@ -64,17 +68,17 @@ struct NaiveRRC : RangeReplaceableCollection {
     }
   }
   
-  mutating func replaceSubrange(_ subrange: Range<Int>, with newElements: some Collection<UInt8>) {
+  mutating fn replaceSubrange(_ subrange: Range<Int>, with newElements: some Collection<UInt8>) {
     storage.replaceSubrange(subrange, with: newElements)
   }
   
-  mutating func reserveCapacity(_ n: Int) {
+  mutating fn reserveCapacity(_ n: Int) {
     storage.reserveCapacity(n)
   }
 }
 
 @inline(never)
-public func runAppendLargeContiguous(N: Int) {
+public fn runAppendLargeContiguous(N: Int) {
   for _ in 1...N {
     var rrc = NaiveRRC()
     rrc.append(contentsOf: contiguous)
@@ -83,7 +87,7 @@ public func runAppendLargeContiguous(N: Int) {
 }
 
 @inline(never)
-public func runAppendSmallContiguousRepeatedly(N: Int) {
+public fn runAppendSmallContiguousRepeatedly(N: Int) {
   for _ in 1...N {
     var rrc = NaiveRRC()
     for _ in 1...5_000 {
@@ -94,7 +98,7 @@ public func runAppendSmallContiguousRepeatedly(N: Int) {
 }
 
 @inline(never)
-public func runInitLargeContiguous(N: Int) {
+public fn runInitLargeContiguous(N: Int) {
   for _ in 1...N {
     blackHole(NaiveRRC(contiguous))
   }

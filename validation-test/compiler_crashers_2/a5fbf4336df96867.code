@@ -1,0 +1,11 @@
+// {"kind":"typecheck","signature":"language::TypeTransform<language::Type::transformRec(toolchain::function_ref<std::__1::optional<language::Type> (language::TypeBase*)>) const::Transform>::doIt(language::Type, language::TypePosition)"}
+// The issue here is that the solver attempts to recursively apply the same
+// dynamic member lookup until eventually it overflows the stack. Make sure
+// we either timeout or crash.
+// RUN: not %{python} %S/../../test/Inputs/timeout.py 60 %target-language-frontend -typecheck %s || \
+// RUN: not --crash %target-language-frontend -typecheck %s
+@dynamicMemberLookup struct S<T> {
+  init(_: () -> T) {}
+  subscript<U>(dynamicMember d: WritableKeyPath<T, U>) -> S<U> {}
+}
+immutable x = S { x.e }

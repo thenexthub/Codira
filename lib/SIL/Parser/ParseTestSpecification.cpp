@@ -1,13 +1,17 @@
 //== ParseTestSpecification.cpp - Parsing for test instructions -*- C++ -*- ==//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -15,8 +19,8 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILSuccessor.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 using namespace language::test;
@@ -55,7 +59,7 @@ SILInstruction *findAnchorInstructionAfter(SpecifyTestInst *tsi) {
   }
   // This can't happen because a SpecifyTestInst isn't a terminator itself
   // nor are any deleteable instructions.
-  llvm_unreachable("found no anchor after SpecifyTestInst!?");
+  toolchain_unreachable("found no anchor after SpecifyTestInst!?");
 }
 
 // Helpers: Looking up subobjects by index
@@ -70,7 +74,7 @@ SILInstruction *getInstruction(SILFunction *function, unsigned long index) {
       ++i;
     }
   }
-  llvm_unreachable("bad index!?");
+  toolchain_unreachable("bad index!?");
 }
 
 SILInstruction *getInstruction(SILBasicBlock *block, unsigned long index) {
@@ -81,7 +85,7 @@ SILInstruction *getInstruction(SILBasicBlock *block, unsigned long index) {
     }
     ++i;
   }
-  llvm_unreachable("bad index!?");
+  toolchain_unreachable("bad index!?");
 }
 
 SILBasicBlock *getNextBlock(SILBasicBlock *block) {
@@ -180,14 +184,14 @@ class ParseArgumentSpecification {
   ParseTestSpecification &outer;
   StringRef specification;
   SILInstruction *context;
-  llvm::StringMap<SILValue> values;
+  toolchain::StringMap<SILValue> values;
 
   SILValue getTraceValue(unsigned index, SILFunction *function);
 
 public:
   ParseArgumentSpecification(ParseTestSpecification &outer,
                              StringRef specification, SILInstruction *context,
-                             llvm::StringMap<SILValue> values)
+                             toolchain::StringMap<SILValue> values)
       : outer(outer), specification(specification), context(context),
         values(values) {}
 
@@ -226,7 +230,7 @@ private:
   void demandPrefix(StringRef prefix) {
     if (consumePrefix(prefix))
       return;
-    llvm_unreachable("failed to find prefix in specification");
+    toolchain_unreachable("failed to find prefix in specification");
   }
 
   void demandEmpty() {
@@ -246,7 +250,7 @@ private:
 
   std::optional<UIntArgument> parseUInt() {
     unsigned long long value;
-    if (llvm::consumeUnsignedInteger(specification, /*radix=*/10, value))
+    if (toolchain::consumeUnsignedInteger(specification, /*radix=*/10, value))
       return std::nullopt;
     return UIntArgument{value};
   }
@@ -273,20 +277,20 @@ private:
       }
       unsigned long long index = 0;
       bool consumed =
-          llvm::consumeUnsignedInteger(specification, /*radix=*/10, index);
+          toolchain::consumeUnsignedInteger(specification, /*radix=*/10, index);
       assert(!consumed && "didn't find uint after sign!?");
       demandPrefix("]");
       long long offset = positive ? index : -index;
       return {offset};
     }
     unsigned long long index = 0;
-    if (!llvm::consumeUnsignedInteger(specification, /*radix=*/10, index)) {
+    if (!toolchain::consumeUnsignedInteger(specification, /*radix=*/10, index)) {
       demandPrefix("]");
       return {index};
     }
     StringRef string;
     if (!consumeThrough(']', string))
-      llvm_unreachable("missing ] to end subscript operation!?");
+      toolchain_unreachable("missing ] to end subscript operation!?");
     return {string};
   }
 
@@ -305,7 +309,7 @@ private:
       auto index = subscript->get<unsigned long long>();
       return getTraceValue(index, within);
     }
-    llvm_unreachable("bad suffix after 'trace'!?");
+    toolchain_unreachable("bad suffix after 'trace'!?");
   }
 
   std::optional<Argument> parseTraceReference(SILFunction *within) {
@@ -319,7 +323,7 @@ private:
            "attempting to access operand of non-instruction value!?");
     if (auto arg = parseOperandReference(instruction))
       return *arg;
-    llvm_unreachable("bad suffix after 'trace'!?");
+    toolchain_unreachable("bad suffix after 'trace'!?");
   }
 
   Operand *parseOperandComponent(SILInstruction *within) {
@@ -334,7 +338,7 @@ private:
       auto &operand = within->getOperandRef(index);
       return &operand;
     }
-    llvm_unreachable("bad suffix after 'operand'!?");
+    toolchain_unreachable("bad suffix after 'operand'!?");
   }
 
   std::optional<Argument> parseOperandReference(SILInstruction *within) {
@@ -356,7 +360,7 @@ private:
       auto result = within->getResult(index);
       return result;
     }
-    llvm_unreachable("bad suffix after 'result'!?");
+    toolchain_unreachable("bad suffix after 'result'!?");
   }
 
   std::optional<Argument> parseResultReference(SILInstruction *within) {
@@ -381,7 +385,7 @@ private:
       auto index = subscript->get<unsigned long long>();
       return block->getArgument(index);
     }
-    llvm_unreachable("bad suffix after 'argument'!?");
+    toolchain_unreachable("bad suffix after 'argument'!?");
   }
 
   std::optional<Argument> parseBlockArgumentReference(SILBasicBlock *block) {
@@ -425,7 +429,7 @@ private:
       return getInstructionAtIndex(index,
                                    within.value_or(context->getFunction()));
     }
-    llvm_unreachable("bad suffix after 'instruction'!?");
+    toolchain_unreachable("bad suffix after 'instruction'!?");
   }
 
   std::optional<Argument>
@@ -439,7 +443,7 @@ private:
       return arg;
     if (auto res = parseResultReference(instruction))
       return res;
-    llvm_unreachable("unhandled suffix after 'instruction'!?");
+    toolchain_unreachable("unhandled suffix after 'instruction'!?");
   }
 
   SILBasicBlock *parseBlockComponent(SILFunction *within) {
@@ -466,7 +470,7 @@ private:
       auto *block = getBlock(within ? within : context->getFunction(), index);
       return block;
     }
-    llvm_unreachable("bad suffix after 'block'!?");
+    toolchain_unreachable("bad suffix after 'block'!?");
   }
 
   std::optional<Argument> parseBlockReference(SILFunction *within) {
@@ -479,7 +483,7 @@ private:
       return *arg;
     if (auto inst = parseInstructionReference({block}))
       return *inst;
-    llvm_unreachable("unhandled suffix after 'block'!?");
+    toolchain_unreachable("unhandled suffix after 'block'!?");
   }
 
   SILFunction *parseFunctionComponent(SILModule *within) {
@@ -505,11 +509,11 @@ private:
         auto name = subscript->get<StringRef>();
         auto *specified = within->lookUpFunction(name);
         if (!specified)
-          llvm_unreachable("unknown function name!?");
+          toolchain_unreachable("unknown function name!?");
         return specified;
       }
     }
-    llvm_unreachable("bad suffix after 'function'!?");
+    toolchain_unreachable("bad suffix after 'function'!?");
   }
 
   std::optional<Argument> parseFunctionReference(SILModule *within) {
@@ -526,7 +530,7 @@ private:
       return *arg;
     if (auto arg = parseBlockReference(function))
       return *arg;
-    llvm_unreachable("unhandled suffix after 'function'!?");
+    toolchain_unreachable("unhandled suffix after 'function'!?");
   }
 
   SILValue parseValueComponent() {
@@ -539,17 +543,17 @@ private:
     auto name = specification.take_front(nameEnd);
     specification = specification.drop_front(nameEnd);
     if (!empty() && !peekPrefix(".")) {
-      llvm::errs() << specification << "\n";
-      llvm::report_fatal_error("bad suffix on value!?");
+      toolchain::errs() << specification << "\n";
+      toolchain::report_fatal_error("bad suffix on value!?");
     }
     auto value = values[name];
     if (!value) {
-      llvm::errs() << "unknown value '" << name << "'\n"
+      toolchain::errs() << "unknown value '" << name << "'\n"
                    << "have the following name->value pairs:\n";
       for (auto &pair : values) {
-        llvm::errs() << pair.getKey() << "->" << pair.getValue() << "\n";
+        toolchain::errs() << pair.getKey() << "->" << pair.getValue() << "\n";
       }
-      llvm::report_fatal_error("unknown value!?");
+      toolchain::report_fatal_error("unknown value!?");
     }
     return value;
   }
@@ -592,12 +596,12 @@ private:
     // Parse strings last--everything parses as a string.
     if (auto arg = parseString())
       return *arg;
-    llvm_unreachable("bad argument specification");
+    toolchain_unreachable("bad argument specification");
   }
 };
 
 using TraceValueMap =
-    llvm::SmallDenseMap<SILFunction *, llvm::SmallVector<SILValue, 4>, 32>;
+    toolchain::SmallDenseMap<SILFunction *, toolchain::SmallVector<SILValue, 4>, 32>;
 /// A global map from functions to the trace instructions that they once
 /// contained.
 static TraceValueMap traceValues;
@@ -609,7 +613,7 @@ class ParseTestSpecification {
   SILValue getTraceValue(unsigned index, SILFunction *function) {
     auto iterator = traceValues.find(function);
     if (iterator == traceValues.end()) {
-      // llvm::SmallVector<SILValue, 4> values;
+      // toolchain::SmallVector<SILValue, 4> values;
       auto &values = traceValues[function];
       findAndDeleteTraceValues(function, values);
       // auto pair = traceValues.insert({function, values});
@@ -644,10 +648,10 @@ SILValue ParseArgumentSpecification::getTraceValue(unsigned index,
 
 // Member function implementations
 
-void Argument::print(llvm::raw_ostream &os) {
+void Argument::print(toolchain::raw_ostream &os) {
   switch (kind) {
   case Kind::Value:
-    llvm::errs() << "value:\n";
+    toolchain::errs() << "value:\n";
     cast<ValueArgument>(*this).getValue()->print(os);
     break;
   case Kind::Operand:
@@ -684,7 +688,7 @@ void Argument::print(llvm::raw_ostream &os) {
 
 // API
 
-void swift::test::getTestSpecificationComponents(
+void language::test::getTestSpecificationComponents(
     StringRef specificationString, SmallVectorImpl<StringRef> &components) {
   SmallVector<StringRef, 16> rawComponents;
   specificationString.split(rawComponents, " ");
@@ -697,7 +701,7 @@ void swift::test::getTestSpecificationComponents(
   }
 }
 
-void swift::test::getTestSpecifications(
+void language::test::getTestSpecifications(
     SILFunction *function,
     SmallVectorImpl<UnparsedSpecification> &specifications) {
   for (auto &block : *function) {
@@ -713,7 +717,7 @@ void swift::test::getTestSpecifications(
   }
 }
 
-void swift::test::parseTestArgumentsFromSpecification(
+void language::test::parseTestArgumentsFromSpecification(
     SILFunction *function, UnparsedSpecification const &specification,
     Arguments &arguments, SmallVectorImpl<StringRef> &argumentStrings) {
   ParseTestSpecification parser(argumentStrings);

@@ -1,0 +1,44 @@
+@objcMembers class /*Outer:def*/Outer {
+  immutable /*outerProp:def*/outerProp = 10
+
+  @objcMembers class /*Inner:def*/Inner {
+    immutable /*prop:def*/prop = 20
+    immutable /*tuple:def*/tuple = (1, 4)
+    immutable /*namedTuple:def*/namedTuple = (x: 1, y: 3)
+    immutable /*array:def*/array = [1, 2, 3]
+    immutable /*dict:def*/dict = ["foo": Outer()]
+  }
+}
+
+// Valid
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*prop*/prop)
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*array*/array)
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*dict*/dict . someKey)
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*dict*/dict . someKey . /*outerProp*/outerProp)
+
+// Invalid but resolved
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*tuple*/tuple)
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*namedTuple*/namedTuple)
+_ = #keyPath(/*Outer*/Outer . /*Inner*/Inner . /*array*/array[0] . hashValue)
+
+// FIXME: Invalid and not resolved
+_ = #keyPath(/*Outer:unknown*/Outer . /*Inner:unknown*/Inner . /*dict:unknown*/dict . someKey . undefined)
+
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t)
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="Outer" -old-name "Outer" >> %t/outer.code
+// RUN: diff -u %S/Outputs/objc-keypath/outer.code.expected %t/outer.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="Inner" -old-name "Inner" >> %t/inner.code
+// RUN: diff -u %S/Outputs/objc-keypath/inner.code.expected %t/inner.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="outerProp" -old-name "outerProp" >> %t/outerprop.code
+// RUN: diff -u %S/Outputs/objc-keypath/outerprop.code.expected %t/outerprop.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="prop" -old-name "prop" >> %t/prop.code
+// RUN: diff -u %S/Outputs/objc-keypath/prop.code.expected %t/prop.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="tuple" -old-name "tuple" >> %t/tuple.code
+// RUN: diff -u %S/Outputs/objc-keypath/tuple.code.expected %t/tuple.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="namedTuple" -old-name "namedTuple" >> %t/namedtuple.code
+// RUN: diff -u %S/Outputs/objc-keypath/namedtuple.code.expected %t/namedtuple.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="array" -old-name "array" >> %t/array.code
+// RUN: diff -u %S/Outputs/objc-keypath/array.code.expected %t/array.code
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="dict" -old-name "dict" >> %t/dict.code
+// RUN: diff -u %S/Outputs/objc-keypath/dict.code.expected %t/dict.code

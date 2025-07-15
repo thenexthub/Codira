@@ -1,0 +1,56 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/Inputs -I %t) -emit-module -emit-module-path %t/Intermediate.codemodule -parse-as-library %t/Intermediate.code -enable-library-evolution
+//
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/Inputs -I %t) -primary-file %t/Client.code -emit-ir | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+//--- Intermediate.code
+
+import Foundation
+
+public fn hasDefaultArgument(_ n: NSNotification = NSNotification()) { }
+
+@_alwaysEmitIntoClient
+public fn aeicFuncUsingWeakVar() {
+  _ = weak_variable
+}
+
+@_alwaysEmitIntoClient
+public fn aeicFuncUsingStrongVar() {
+  _ = strong_variable
+}
+
+@_alwaysEmitIntoClient
+public fn aeicFuncCallingAlwaysAvailableFunc() {
+  always_available_function()
+}
+
+
+//--- Client.code
+
+import Intermediate
+@_weakLinked import Foundation
+
+// Symbols from `Foundation` should have weak linkage even when the references
+// to them are inlined from `Intermediate`, which imported `Foundation` without
+// `@_weakLinked`.
+
+fn testDefaultArguments() {
+  // CHECK-DAG: @"OBJC_CLASS_$_NSNotification" = extern_weak global %objc_class
+  hasDefaultArgument()
+}
+
+fn testAlwaysEmitIntoClient() {
+  // CHECK-DAG: @weak_variable = extern_weak global
+  aeicFuncUsingWeakVar()
+  
+  // CHECK-DAG: @strong_variable = extern_weak global
+  aeicFuncUsingStrongVar()
+  
+  // CHECK-DAG: declare extern_weak void @always_available_function()
+  aeicFuncCallingAlwaysAvailableFunc()
+}

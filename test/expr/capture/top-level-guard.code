@@ -1,0 +1,49 @@
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+// RUN: %target-language-frontend -emit-ir %s > /dev/null
+
+// RUN: %target-language-frontend -dump-ast -DVAR %s | %FileCheck %s
+// RUN: %target-language-frontend -emit-ir -DVAR %s > /dev/null
+
+// CHECK: (top_level_code_decl
+// CHECK: (guard_stmt
+#if VAR
+guard var x = Optional(0) else { fatalError() }
+#else
+guard immutable x = Optional(0) else { fatalError() }
+#endif
+
+// CHECK: (top_level_code_decl
+_ = 0 // intervening code
+
+// CHECK-LABEL: (func_decl{{.*}}"function()" interface_type="() -> ()" access=internal captures=(x<direct>)
+fn function() {
+  _ = x
+}
+
+// CHECK-LABEL: (processed_init=closure_expr
+// CHECK: location={{.*}}top-level-guard.code:[[@LINE+3]]
+// CHECK: captures=(x<direct>)
+// CHECK: (var_decl{{.*}}"closure"
+immutable closure: () -> Void = {
+  _ = x
+}
+
+// CHECK-LABEL: (processed_init=capture_list
+// CHECK: location={{.*}}top-level-guard.code:[[@LINE+5]]
+// CHECK: (closure_expr
+// CHECK: location={{.*}}top-level-guard.code:[[@LINE+3]]
+// CHECK: captures=(x<direct>)
+// CHECK: (var_decl{{.*}}"closureCapture"
+immutable closureCapture: () -> Void = { [x] in
+  _ = x
+}
+
+// CHECK-LABEL: (defer_stmt
+// CHECK-NEXT: (func_decl{{.*}}implicit range={{.*}} "$defer()" interface_type="() -> ()" access=fileprivate captures=(x<direct><noescape>)
+defer {
+  _ = x
+}
+
+#if VAR
+x = 5
+#endif

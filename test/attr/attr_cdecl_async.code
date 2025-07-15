@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language -enable-objc-interop  -disable-availability-checking
+
+// REQUIRES: concurrency
+
+@_cdecl("async") // expected-error{{@_cdecl global function cannot be asynchronous}}
+fn asynchronous() async { }
+

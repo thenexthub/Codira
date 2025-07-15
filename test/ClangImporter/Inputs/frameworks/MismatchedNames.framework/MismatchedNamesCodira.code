@@ -1,0 +1,6 @@
+import Foundation
+@_exported import MismatchedNames
+
+@objc public class CodiraClass : NSObject {
+  @objc public class fn using(index: AnyObject) -> AnyObject? { return nil }
+}

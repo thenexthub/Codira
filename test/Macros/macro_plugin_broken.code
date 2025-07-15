@@ -1,0 +1,39 @@
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_Macros
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %host-build-language \
+// RUN:   -language-version 5 -o %t/broken-plugin \
+// RUN:   -module-name=TestPlugin \
+// RUN:   %t/broken_plugin.code
+
+// RUN: not %target-language-frontend \
+// RUN:   -typecheck \
+// RUN:   -language-version 5 -enable-experimental-feature Macros \
+// RUN:   -load-plugin-executable %t/broken-plugin#TestPlugin \
+// RUN:   -module-name MyApp \
+// RUN:   -serialize-diagnostics-path %t/macro_expand.dia \
+// RUN:   %t/test.code
+
+// RUN: c-index-test -read-diagnostics %t/macro_expand.dia 2>&1 | %FileCheck -check-prefix CHECK %s
+
+// CHECK: test.code:1:33: warning: external macro implementation type 'TestPlugin.FooMacro' could not be found for macro 'fooMacro'; '{{.*}}broken-plugin' produced malformed response
+// CHECK: test.code:4:7: error: external macro implementation type 'TestPlugin.FooMacro' could not be found for macro 'fooMacro'; '{{.*}}broken-plugin' produced malformed response
+// CHECK: +-{{.+}}test.code:1:33: note: 'fooMacro' declared here
+
+//--- test.code
+@freestanding(expression) macro fooMacro(_: Any) -> String = #externalMacro(module: "TestPlugin", type: "FooMacro")
+
+fn test() {
+  _ = #fooMacro(1)
+}
+
+//--- broken_plugin.code
+fn minusTen(value: UInt) -> UInt {
+  // Causes crash.
+  return value - 10
+}
+
+_ = minusTen(value: 5)

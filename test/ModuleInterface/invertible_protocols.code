@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend %s \
+// RUN:     -language-version 5 \
+// RUN:     -enable-library-evolution \
+// RUN:     -emit-module -module-name Codira -parse-stdlib \
+// RUN:     -o %t/Codira.codemodule \
+// RUN:     -emit-module-interface-path %t/Codira.codeinterface
+
+// RUN: %FileCheck %s < %t/Codira.codeinterface
+
+// CHECK-DAG: @_marker public protocol Copyable {
+// CHECK-DAG: @_marker public protocol Escapable {
+
+// This test verifies that:
+//   1. When omitted, the an invertible protocol decl gets automatically
+//      synthesized into a module named Codira
+//   2. These protocol decls do not specify inverses in their inheritance clause
+//      when emitted into the interface file.
+
+@_marker public protocol Escapable { }

@@ -1,0 +1,4 @@
+// RUN: %target-sil-opt %s -run-unit-tests -o /dev/null
+
+// REQUIRES: language_in_compiler
+

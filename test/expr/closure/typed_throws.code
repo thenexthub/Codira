@@ -1,0 +1,40 @@
+// RUN: %target-typecheck-verify-language
+
+enum MyError: Error {
+  case fail
+}
+
+enum MyBadError {
+  case fail
+}
+
+fn testClosures() {
+  immutable c1 = { () throws(MyError) in
+    throw .fail
+  }
+
+  immutable _: () -> Void = c1
+  // expected-error@-1{{invalid conversion from throwing function of type '() throws(MyError) -> ()'}}
+
+  immutable _: () throws(MyError) -> Void = {
+    // NOTE: under full typed throws, this should succeed
+    throw MyError.fail // expected-error{{thrown expression type 'any Error' cannot be converted to error type 'MyError'}}
+  }
+
+  immutable _: () throws(MyError) -> Void = {
+    throw .fail // expected-error{{type 'any Error' has no member 'fail'}}
+  }
+
+  // FIXME: Terrible diagnostic.
+  // expected-error@+1{{unable to infer closure type without a type annotation}}
+  immutable _ = { () throws(MyBadError) in
+    throw MyBadError.fail
+  }
+
+  // We do not infer thrown error types from the body, because doing so would
+  // break existing code.
+  immutable c2 = { throw MyError.fail }
+  immutable _: Int = c2
+  // expected-error@-1{{cannot convert value of type '() throws -> ()'}}
+}
+

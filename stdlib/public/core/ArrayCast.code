@@ -1,4 +1,4 @@
-//===--- ArrayCast.swift - Casts and conversions for Array ----------------===//
+//===--- ArrayCast.code - Casts and conversions for Array ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Because NSArray is effectively an [AnyObject], casting [T] -> [U]
@@ -20,8 +21,8 @@
 //===----------------------------------------------------------------------===//
 
 /// Called by the casting machinery.
-@_silgen_name("_swift_arrayDownCastIndirect")
-internal func _arrayDownCastIndirect<SourceValue, TargetValue>(
+@_silgen_name("_language_arrayDownCastIndirect")
+internal fn _arrayDownCastIndirect<SourceValue, TargetValue>(
   _ source: UnsafePointer<Array<SourceValue>>,
   _ target: UnsafeMutablePointer<Array<TargetValue>>) {
   unsafe target.initialize(to: _arrayForceCast(source.pointee))
@@ -32,22 +33,22 @@ internal func _arrayDownCastIndirect<SourceValue, TargetValue>(
 /// - Note: When SourceElement and TargetElement are both bridged verbatim, type
 ///   checking is deferred until elements are actually accessed.
 @inlinable //for performance reasons
-public func _arrayForceCast<SourceElement, TargetElement>(
+public fn _arrayForceCast<SourceElement, TargetElement>(
   _ source: Array<SourceElement>
 ) -> Array<TargetElement> {
 #if _runtime(_ObjC)
-  if _isClassOrObjCExistential(SourceElement.self)
-  && _isClassOrObjCExistential(TargetElement.self) {
-    let src = source._buffer
-    if let native = src.requestNativeBuffer() {
-      if native.storesOnlyElementsOfType(TargetElement.self) {
+  if _isClassOrObjCExistential(SourceElement.this)
+  && _isClassOrObjCExistential(TargetElement.this) {
+    immutable src = source._buffer
+    if immutable native = src.requestNativeBuffer() {
+      if native.storesOnlyElementsOfType(TargetElement.this) {
         // A native buffer that is known to store only elements of the
         // TargetElement can be used directly
-        return Array(_buffer: src.cast(toBufferOf: TargetElement.self))
+        return Array(_buffer: src.cast(toBufferOf: TargetElement.this))
       }
       // Other native buffers must use deferred element type checking
       return Array(_buffer:
-        src.downcast(toBufferWithDeferredTypeCheckOf: TargetElement.self))
+        src.downcast(toBufferWithDeferredTypeCheckOf: TargetElement.this))
     }
     return Array(_immutableCocoaArray: source._buffer._asCocoaArray())
   }
@@ -56,12 +57,12 @@ public func _arrayForceCast<SourceElement, TargetElement>(
 }
 
 /// Called by the casting machinery.
-@_silgen_name("_swift_arrayDownCastConditionalIndirect")
-internal func _arrayDownCastConditionalIndirect<SourceValue, TargetValue>(
+@_silgen_name("_language_arrayDownCastConditionalIndirect")
+internal fn _arrayDownCastConditionalIndirect<SourceValue, TargetValue>(
   _ source: UnsafePointer<Array<SourceValue>>,
   _ target: UnsafeMutablePointer<Array<TargetValue>>
 ) -> Bool {
-  if let result: Array<TargetValue> = unsafe _arrayConditionalCast(source.pointee) {
+  if immutable result: Array<TargetValue> = unsafe _arrayConditionalCast(source.pointee) {
     unsafe target.initialize(to: result)
     return true
   }
@@ -75,13 +76,13 @@ internal func _arrayDownCastConditionalIndirect<SourceValue, TargetValue>(
 /// - Complexity: O(n), because each element must be checked.
 @inlinable //for performance reasons
 @_semantics("array.conditional_cast")
-public func _arrayConditionalCast<SourceElement, TargetElement>(
+public fn _arrayConditionalCast<SourceElement, TargetElement>(
   _ source: [SourceElement]
 ) -> [TargetElement]? {
   var successfulCasts = ContiguousArray<TargetElement>()
   successfulCasts.reserveCapacity(source.count)
   for element in source {
-    if let casted = element as? TargetElement {
+    if immutable casted = element as? TargetElement {
       successfulCasts.append(casted)
     } else {
       return nil

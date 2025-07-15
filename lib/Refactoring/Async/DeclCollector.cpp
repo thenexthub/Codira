@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "AsyncRefactoring.h"
@@ -17,7 +21,7 @@ using namespace language;
 using namespace language::refactoring::asyncrefactorings;
 
 void DeclCollector::collect(BraceStmt *Scope, SourceFile &SF,
-                            llvm::DenseSet<const Decl *> &Decls) {
+                            toolchain::DenseSet<const Decl *> &Decls) {
   DeclCollector Collector(Decls);
   if (Scope) {
     for (auto Node : Scope->getElements()) {

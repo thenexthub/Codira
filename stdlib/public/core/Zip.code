@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Creates a sequence of pairs built out of two underlying sequences.
@@ -20,8 +21,8 @@
 /// following example uses the `zip(_:_:)` function to iterate over an array
 /// of strings and a countable range at the same time:
 ///
-///     let words = ["one", "two", "three", "four"]
-///     let numbers = 1...4
+///     immutable words = ["one", "two", "three", "four"]
+///     immutable numbers = 1...4
 ///
 ///     for (word, number) in zip(words, numbers) {
 ///         print("\(word): \(number)")
@@ -35,8 +36,8 @@
 /// resulting sequence is the same length as the shorter sequence. In this
 /// example, the resulting array is the same length as `words`:
 ///
-///     let naturalNumbers = 1...Int.max
-///     let zipped = Array(zip(words, naturalNumbers))
+///     immutable naturalNumbers = 1...Int.max
+///     immutable zipped = Array(zip(words, naturalNumbers))
 ///     // zipped == [("one", 1), ("two", 2), ("three", 3), ("four", 4)]
 ///
 /// - Parameters:
@@ -45,7 +46,7 @@
 /// - Returns: A sequence of tuple pairs, where the elements of each pair are
 ///   corresponding elements of `sequence1` and `sequence2`.
 @inlinable // generic-performance
-public func zip<Sequence1, Sequence2>(
+public fn zip<Sequence1, Sequence2>(
   _ sequence1: Sequence1, _ sequence2: Sequence2
 ) -> Zip2Sequence<Sequence1, Sequence2> {
   return Zip2Sequence(sequence1, sequence2)
@@ -60,8 +61,8 @@ public func zip<Sequence1, Sequence2>(
 /// The following example uses the `zip(_:_:)` function to iterate over an
 /// array of strings and a countable range at the same time:
 ///
-///     let words = ["one", "two", "three", "four"]
-///     let numbers = 1...4
+///     immutable words = ["one", "two", "three", "four"]
+///     immutable numbers = 1...4
 ///
 ///     for (word, number) in zip(words, numbers) {
 ///         print("\(word): \(number)")
@@ -73,9 +74,9 @@ public func zip<Sequence1, Sequence2>(
 @frozen // generic-performance
 public struct Zip2Sequence<Sequence1: Sequence, Sequence2: Sequence> {
   @usableFromInline // generic-performance
-  internal let _sequence1: Sequence1
+  internal immutable _sequence1: Sequence1
   @usableFromInline // generic-performance
-  internal let _sequence2: Sequence2
+  internal immutable _sequence2: Sequence2
 
   /// Creates an instance that makes pairs of elements from `sequence1` and
   /// `sequence2`.
@@ -116,7 +117,7 @@ extension Zip2Sequence.Iterator: IteratorProtocol {
   ///
   /// Once `nil` has been returned, all subsequent calls return `nil`.
   @inlinable // generic-performance
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     // The next() function needs to track if it has reached the end.  If we
     // didn't, and the first sequence is longer than the second, then when we
     // have already exhausted the second sequence, on every subsequent call to
@@ -127,8 +128,8 @@ extension Zip2Sequence.Iterator: IteratorProtocol {
       return nil
     }
 
-    guard let element1 = _baseStream1.next(),
-          let element2 = _baseStream2.next() else {
+    guard immutable element1 = _baseStream1.next(),
+          immutable element2 = _baseStream2.next() else {
       _reachedEnd = true
       return nil
     }
@@ -142,7 +143,7 @@ extension Zip2Sequence: Sequence {
 
   /// Returns an iterator over the elements of this sequence.
   @inlinable // generic-performance
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     return Iterator(
       _sequence1.makeIterator(),
       _sequence2.makeIterator())
@@ -150,7 +151,7 @@ extension Zip2Sequence: Sequence {
 
   @inlinable // generic-performance
   public var underestimatedCount: Int {
-    return Swift.min(
+    return Codira.min(
       _sequence1.underestimatedCount,
       _sequence2.underestimatedCount
     )

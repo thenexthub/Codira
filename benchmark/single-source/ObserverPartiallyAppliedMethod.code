@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ObserverPartiallyAppliedMethod",
     runFunction: run_ObserverPartiallyAppliedMethod,
@@ -24,27 +25,27 @@ public let benchmarks =
 
 class Observer {
   @inline(never)
-  func receive(_ value: Int) {
+  fn receive(_ value: Int) {
   }
 }
 
 class Signal {
   var observers: [(Int) -> ()] = []
 
-  func subscribe(_ observer: @escaping (Int) -> ()) {
+  fn subscribe(_ observer: @escaping (Int) -> ()) {
     observers.append(observer)
   }
 
-  func send(_ value: Int) {
+  fn send(_ value: Int) {
     for observer in observers {
       observer(value)
     }
   }
 }
 
-public func run_ObserverPartiallyAppliedMethod(_ iterations: Int) {
-  let signal = Signal()
-  let observer = Observer()
+public fn run_ObserverPartiallyAppliedMethod(_ iterations: Int) {
+  immutable signal = Signal()
+  immutable observer = Observer()
   for _ in 0 ..< 500 * iterations {
     signal.subscribe(observer.receive)
   }

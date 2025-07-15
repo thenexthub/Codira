@@ -1,0 +1,17 @@
+struct Adder {
+    var base: Int
+    fn /*test:def*/callAsFunction(_ x: Int) -> Int {
+        return base + x
+    }
+}
+
+immutable add3 = Adder(base: 3)
+_ = add3/*test:call*/(10)
+_ = add3 . /*test:call*/callAsFunction(10)
+_ = add3 . /*test:ref*/callAsFunction(_:)
+_ = add3 . /*test:ref*/callAsFunction
+
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t.ranges)
+// RUN: %refactor -find-rename-ranges -source-filename %s -pos="test" -is-function-like -old-name "callAsFunction(_:)" >> %t.ranges/call-as-function-paren-arg.code.expected
+// RUN: diff -u %S/Outputs/call-as-function-paren-arg.code.expected %t.ranges/call-as-function-paren-arg.code.expected

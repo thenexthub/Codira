@@ -2,12 +2,12 @@
    "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-  <title>Swift Language Reference Manual</title>
+  <title>Codira Language Reference Manual</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="author" content="Chris Lattner">
   <meta name="description"
-      content="Swift Language Reference Manual.">
-  <link rel="stylesheet" href="_static/swift.css" type="text/css">
+      content="Codira Language Reference Manual.">
+  <link rel="stylesheet" href="_static/language.css" type="text/css">
 
   <script type="text/javascript" src="toc.js"></script>
 
@@ -15,7 +15,7 @@
 
 <body>
 
-<h1>Swift Language Reference</h1>
+<h1>Codira Language Reference</h1>
 
 <p>
 <!-- The Table of Contents is automatically inserted in this <div>.
@@ -32,7 +32,7 @@
     decl ::= <a href="#decl-constructor">decl-constructor</a>
     decl ::= <a href="#decl-deinit">decl-deinit</a>
     decl ::= <a href="#decl-extension">decl-extension</a>
-    decl ::= <a href="#decl-func">decl-func</a>
+    decl ::= <a href="#decl-fn">decl-fn</a>
     decl ::= <a href="#decl-import">decl-import</a>
     decl ::= <a href="#decl-enum">decl-enum</a>
     decl ::= <a href="#decl-enum-element">decl-enum-element</a>
@@ -53,8 +53,8 @@
     top-level ::= <a href="#brace-item-list">brace-item</a>*
   </pre>
 
-  <p>The top level of a swift source file is grammatically identical to the
-  contents of a func decl.  Some declarations, however, are restricted to
+  <p>The top level of a language source file is grammatically identical to the
+  contents of a fn decl.  Some declarations, however, are restricted to
   module scope.
   </p>
 
@@ -89,7 +89,7 @@
     import-kind ::= 'enum'
     import-kind ::= 'protocol'
     import-kind ::= 'var'
-    import-kind ::= 'func'
+    import-kind ::= 'fn'
 
     import-path ::= <a href="#any-identifier">any-identifier</a> ('.' <a href="#any-identifier">any-identifier</a>)*
   </pre>
@@ -101,7 +101,7 @@
   module scope.</p>
 
   <p>'import' directives only impact a single source file: imports in one
-  swift file do not affect name lookup in another file. import directives can
+  language file do not affect name lookup in another file. import directives can
   only occur at the top level of a file, not within a function or namespace.</p>
 
   <p>An import without an explicit import-kind names a module; all of the
@@ -133,18 +133,18 @@
 
     <li><code>var</code> is used to import a module-scoped variable</li>
 
-    <li><code>func</code> will import all overloads of a function</li>
+    <li><code>fn</code> will import all overloads of a function</li>
   </ul>
 
   <pre class="example">
     <i>// Import all of the top level symbols and types in a module.</i>
-    import Swift
+    import Codira
 
     <i>// Import a single type.</i>
-    import typealias Swift.BufferedStream
+    import typealias Codira.BufferedStream
 
     <i>// Import all addition overloads.</i>
-    import func Swift.+
+    import fn Codira.+
   </pre>
 
   <!-- ===================================================================== -->
@@ -196,7 +196,7 @@
 
   // Let bindings of classes make the binding immutable, not the object.
   class Rocket {
-    func blastOff() { ... }
+    fn blastOff() { ... }
   }
   let rocket = Rocket()
   rocket.blastOff()      // okay
@@ -206,20 +206,20 @@
   <!-- "var Declarations" was converted to ReST -->
 
   <!-- ===================================================================== -->
-  <h3 id="decl-func">func Declarations</h3>
+  <h3 id="decl-fn">fn Declarations</h3>
   <!-- ===================================================================== -->
 
-  <!-- "func Declarations" was converted to ReST -->
+  <!-- "fn Declarations" was converted to ReST -->
 
   <!-- _____________________________________________________________________ -->
-  <h4 id="func-signature">Function signatures</h4>
+  <h4 id="fn-signature">Function signatures</h4>
 
   <pre class="grammar">
-    func-signature ::= func-arguments func-signature-result?
-    func-arguments ::= <a href="#pattern-tuple">pattern-tuple</a>+
-    func-arguments ::= selector-tuple
+    fn-signature ::= fn-arguments fn-signature-result?
+    fn-arguments ::= <a href="#pattern-tuple">pattern-tuple</a>+
+    fn-arguments ::= selector-tuple
     <a id="selector-tuple">selector-tuple</a> ::= '(' <a href="#pattern-tuple">pattern-tuple-element</a> ')' (<a href="#identifier">identifier-or-any</a> '(' pattern-tuple-element ')')+
-    func-signature-result ::= '-&gt;' <a href="#type">type</a>
+    fn-signature-result ::= '-&gt;' <a href="#type">type</a>
   </pre>
 
   <p>A function signature specifies one or more sets of parameter
@@ -249,7 +249,7 @@
     function body is finally evaluated as normal.</p>
 
   <p>A function declared with a selector-style signature
-    <tt>func(a<sub>0</sub>:T<sub>0</sub>) name<sub>1</sub>(a<sub>1</sub>:T<sub>1</sub>) ... name<sub><i>n</i></sub>(a<sub><i>n</i></sub>:T<sub><i>n</i></sub>) -&gt; R</tt>
+    <tt>fn(a<sub>0</sub>:T<sub>0</sub>) name<sub>1</sub>(a<sub>1</sub>:T<sub>1</sub>) ... name<sub><i>n</i></sub>(a<sub><i>n</i></sub>:T<sub><i>n</i></sub>) -&gt; R</tt>
     has the type <tt>(_:T<sub>0</sub>, name<sub>1</sub>:T<sub>1</sub>, ... name<sub><i>n</i></sub>:T<sub><i>n</i></sub>) -&gt; R</tt>,
     that is, the names of the fields in the argument tuple are the
     <tt>name<sub><i>n</i></sub></tt> identifiers preceding each argument
@@ -262,29 +262,29 @@
     requiring that an awkward keyword name be the same as the
     variable name.
 
-  <p>Here are some examples of func definitions:</p>
+  <p>Here are some examples of fn definitions:</p>
 
   <pre class="example">
     <i>// Implicitly returns (), aka <a href="#stdlib-Void">Void</a></i>
-    func a() {}
+    fn a() {}
 
     <i>// Same as 'a'</i>
-    func a1() -&gt; Void {}
+    fn a1() -&gt; Void {}
 
     <i>// Function pointers to a function expression.</i>
-    var a2 = func ()-&gt;() {}
-    var a3 = func () {}
-    var a4 = func {}
+    var a2 = fn ()-&gt;() {}
+    var a3 = fn () {}
+    var a4 = fn {}
 
     <i>// Really simple function</i>
-    func c(_ arg : Int) -&gt; Int { return arg+4 }
+    fn c(_ arg : Int) -&gt; Int { return arg+4 }
 
     <i>// Simple operators.</i>
-    func [infix_left=190] +  (lhs : Int, rhs : Int) -&gt; Int
-    func [infix_left=160] == (lhs : Int, rhs : Int) -&gt; Bool
+    fn [infix_left=190] +  (lhs : Int, rhs : Int) -&gt; Int
+    fn [infix_left=160] == (lhs : Int, rhs : Int) -&gt; Bool
 
     <i>// Curried function with multiple return values:</i>
-    func d(_ a : Int) (b : Int) -&gt; (res1 : Int, res2 : Int) {
+    fn d(_ a : Int) (b : Int) -&gt; (res1 : Int, res2 : Int) {
       return (a,b)
     }
 
@@ -292,14 +292,14 @@
     struct bankaccount {
       amount : Int
 
-     static func bankaccount() -> bankaccount {
+     static fn bankaccount() -> bankaccount {
         // Custom 'constructor' logic goes here.
       }
-      func deposit(_ arg : Int) {
+      fn deposit(_ arg : Int) {
         amount = amount + arg
       }
 
-      static func someMetatypeMethod() {}
+      static fn someMetatypeMethod() {}
     }
 
     <i>// Dot syntax on metatype.</i>
@@ -320,7 +320,7 @@
       case LeadPipe
     }
 
-    func accuseSuspect(_ suspect:PersonOfInterest)
+    fn accuseSuspect(_ suspect:PersonOfInterest)
         inRoom(room:Room)
         withWeapon(weapon:Weapon) {
       print("It was \(suspect) in the \(room) with the \(weapon)")
@@ -393,8 +393,8 @@
       case Two(Int, Int)
     }
 
-    func f1(_ searchpolicy : DataSearchFlags)  <i>// DataSearchFlags is a valid type name</i>
-    func test1() {
+    fn f1(_ searchpolicy : DataSearchFlags)  <i>// DataSearchFlags is a valid type name</i>
+    fn test1() {
       f1(DataSearchFlags.None)  <i>// Use of constructor with qualified identifier</i>
       f1(.None)                 <i>// Use of constructor with context sensitive type inference</i>
 
@@ -408,9 +408,9 @@
       case Two(Int, Int)
     }
 
-    func f2(_ a : SomeMoreInts)
+    fn f2(_ a : SomeMoreInts)
 
-    func test2() {
+    fn test2() {
       <i>// Constructors for enum element can be used in the obvious way.</i>
       f2(.None)
       f2(.One(4))
@@ -453,7 +453,7 @@
 
     struct S2 {
       var a : Int
-      func f() -> Int { return b }
+      fn f() -> Int { return b }
       var b : Int
     }
   </pre>
@@ -470,10 +470,10 @@
 
       typealias CoordinateType = Int
 
-      func area() -> Int { return size.width*size.height }
+      fn area() -> Int { return size.width*size.height }
     }
 
-    func test4() {
+    fn test4() {
       var a : Point
       var b = Point.Point(1, 2)    // Silly but fine.
       var c = Point(y = 1, x = 2)  // Using metatype.
@@ -517,8 +517,8 @@
      inheritance list.</p>
 
   <p>The body of a 'class' is a list of decls. Stored (non-computed) 'var' decls
-     declare members with storage in the class. Non-type 'var' and 'func'
-     decls declare instance members;type 'var' and 'func' decls declare
+     declare members with storage in the class. Non-type 'var' and 'fn'
+     decls declare instance members;type 'var' and 'fn' decls declare
      members of the class itself.  Both class and instance members can
      be overridden by a subclass.</p>
   <p>Type declarations inside a class act essentially the same way as type
@@ -563,13 +563,13 @@
  </pre>
 
   <!-- _____________________________________________________________________ -->
-  <h4 id="protocol-member-func">'func' protocol elements</h4>
+  <h4 id="protocol-member-fn">'fn' protocol elements</h4>
 
   <pre class="grammar">
-    protocol-member ::= <a href="#decl-func">decl-func</a>
+    protocol-member ::= <a href="#decl-fn">decl-fn</a>
 </pre>
 
-  <p>'func' members of a protocol define a value of function type that may be
+  <p>'fn' members of a protocol define a value of function type that may be
   accessed with dot syntax on a value of the protocol's type.  The function
   gets an implicit "self" argument of the protocol type or (for a type
   function) of the metatype of the protocol.</p>
@@ -614,7 +614,7 @@
 
   <p>'typealias' members of a protocol define associated types, which
   are types used within the description of a protocol (typically in
-  the inputs and outputs of 'func' members) that vary from one
+  the inputs and outputs of 'fn' members) that vary from one
   conforming type to another. When an associated type has an <a
   href="#inheritance">inheritance</a> clause, any type meant to
   satisfy the associated type requirement must conform to each of the
@@ -626,7 +626,7 @@
   <pre class="example">
     protocol SequenceType {
       typename Iterator : IteratorProtocol
-      func makeIterator() -> Iterator
+      fn makeIterator() -> Iterator
     }
   </pre>
 
@@ -803,8 +803,8 @@
     For example, the following code:
 
   <pre class=example>
-    func foo(x: inout Int) -> () -> Int {
-      func bar() -> Int {
+    fn foo(x: inout Int) -> () -> Int {
+      fn bar() -> Int {
         x += 1
         return x
       }
@@ -872,11 +872,11 @@
 
   <i>// Definition of an 'assert' function.  Assertions and logging routines</i>
   <i>// often want to conditionally evaluate their argument.</i>
-  func assert(_ condition : @autoclosure () -> Bool)
+  fn assert(_ condition : @autoclosure () -> Bool)
 
   <i>// Definition of the || operator - it captures its right hand side as</i>
   <i>// an autoclosure so it can short-circuit evaluate it.</i>
-  func [infix_left=110] || (lhs: Bool, rhs: @autoclosure ()->Bool) -&gt; Bool
+  fn [infix_left=110] || (lhs: Bool, rhs: @autoclosure ()->Bool) -&gt; Bool
 
   <i>// Example uses of these functions:</i>
   assert(i &lt; j)
@@ -922,7 +922,7 @@
     type-simple ::= <a href="#type-optional">type-optional</a>
   </pre>
 
-  <p>Swift has a small collection of core datatypes that are built into the
+  <p>Codira has a small collection of core datatypes that are built into the
       compiler.  Most user-facing datatypes are defined by the
       <a href="#stdlib">standard library</a> or declared as a user defined
       types.</p>
@@ -933,12 +933,12 @@
   <p id="metatype">Each type has a corresponding <i>metatype</i>, with the same
     name as the type, that is injected into the standard name lookup scope when
     a type is <a href="#decl">declared</a>.  This allows access to '<a
-    href="#decl-func">static functions</a>' through dot syntax.  For example:</p>
+    href="#decl-fn">static functions</a>' through dot syntax.  For example:</p>
 
   <pre class="example">
     // Declares a type 'foo' as well as its metatype.
     struct foo {
-      static func bar() {}
+      static fn bar() {}
     }
 
     // Declares x to be of type foo.  A reference to a name in type context
@@ -1004,7 +1004,7 @@
 
   <pre class="example">
     <i>// Direct reference to a member of another module.</i>
-    var x : Swift.Int
+    var x : Codira.Int
   </pre>
 
   <p>Each component of a named type may be followed by a list of generic
@@ -1023,7 +1023,7 @@
   <!-- ===================================================================== -->
 
   <div class="commentary">
-    Tuples are everywhere in Swift: even the argument list of a function is a
+    Tuples are everywhere in Codira: even the argument list of a function is a
     tuple of those arguments.
   </div>
 
@@ -1039,7 +1039,7 @@
   element is exactly that type: the parentheses are treated as
   grouping parentheses.</p>
 
-  <p>Tuples are the low-level form of data aggregation in Swift, and are used as
+  <p>Tuples are the low-level form of data aggregation in Codira, and are used as
   the building block of <a href="#type-function">function</a> argument lists,
   multiple return values, <a href="#decl-enum">enum</a> bodies, etc. Because
   tuples are widely accessible and available everywhere in the language,
@@ -1063,7 +1063,7 @@
   var o = (1, 2, 3)              <i>// Type = (Int, Int, Int)</i>
 
   <i>// Function argument and result is a tuple type.</i>
-  func foo(_ x : Int, y : Int) -&gt; (val : Int, err : Int)
+  fn foo(_ x : Int, y : Int) -&gt; (val : Int, err : Int)
 
   <i>// enum and struct declarations with tuple values.</i>
   struct S {
@@ -1281,7 +1281,7 @@
     cases: None and Some, used to represent a value that may or may not be
     present.</p>
 
-    <p>Swift provides a number of special, builtin behaviors involving
+    <p>Codira provides a number of special, builtin behaviors involving
       this library type:
       <ul>
         <li>There is an implicit conversion from any type <code>T</code> to the
@@ -1297,9 +1297,9 @@
       To support these intrinsic use cases, the library is required to
       provide functions with these exact signatures:
       <ul>
-        <li><code>func _doesOptionalHaveValueAsBool<T>(v : T?) -> Bool</code></li>
-        <li><code>func _diagnoseUnexpectedNilOptional()</code></li>
-        <li><code>func _getOptionalValue<T>(v : T?) -> T</code></li>
+        <li><code>fn _doesOptionalHaveValueAsBool<T>(v : T?) -> Bool</code></li>
+        <li><code>fn _diagnoseUnexpectedNilOptional()</code></li>
+        <li><code>fn _getOptionalValue<T>(v : T?) -> T</code></li>
       </ul>
     </p>
 
@@ -1381,17 +1381,17 @@ ill-formed if the type does not conform to the protocol.</p>
 
   <pre class="example">
     protocol VersionedDocument : Document { <i>// every VersionedDocument is a Document</i>
-      func bumpVersion()
+      fn bumpVersion()
     }
 
-    func print(_ doc : Document) { <i>/* ... */</i> }
+    fn print(_ doc : Document) { <i>/* ... */</i> }
 
     var myDocument : VersionedDocument;
     print(myDocument) <i>// okay: a VersionedDocument is a Document</i>
 
     class StoredHTML : VersionedDocument { <i>// okay: StoredHTML conforms to VersionedDocument</i>
       var Title : String
-      func bumpVersion()
+      fn bumpVersion()
     }
   </pre>
 
@@ -1408,7 +1408,7 @@ ill-formed if the type does not conform to the protocol.</p>
     to decide all other aspects of parsing, such as where statements
     must be divided.<br><br>
 
-    Semicolons in C are generally just clutter.  Swift generally tries
+    Semicolons in C are generally just clutter.  Codira generally tries
     to define away the need for them.
   </div>
 
@@ -1466,7 +1466,7 @@ ill-formed if the type does not conform to the protocol.</p>
 
   <div class="commentary">
     Should this use the expr-identifier production to allow qualified
-    identifiers?  This would allow "foo Swift.+ bar".  Is ADL or something
+    identifiers?  This would allow "foo Codira.+ bar".  Is ADL or something
     like it enough?<br><br>
   </div>
 
@@ -1512,7 +1512,7 @@ ill-formed if the type does not conform to the protocol.</p>
   follows:</p>
 
   <pre class="example">
-    // Not valid Swift code
+    // Not valid Codira code
     infix operator = {
       precedence 90
       associativity right
@@ -1556,7 +1556,7 @@ ill-formed if the type does not conform to the protocol.</p>
   declared as follows:</p>
 
   <pre class="example">
-    // Not valid Swift code
+    // Not valid Codira code
     infix operator ?...: {
       precedence 100
       associativity right
@@ -1593,7 +1593,7 @@ ill-formed if the type does not conform to the protocol.</p>
   the cast operators were declared as follows:</p>
 
   <pre class="example">
-    // Not valid Swift code
+    // Not valid Codira code
     infix operator as {
       precedence 95
       associativity none
@@ -1712,9 +1712,9 @@ ill-formed if the type does not conform to the protocol.</p>
      literal.</p>
 
   <pre class="example">
-    <i>// File foo.swift</i>
+    <i>// File foo.code</i>
 
-    var file = __FILE__  <i>// file : String = "foo.swift"</i>
+    var file = __FILE__  <i>// file : String = "foo.code"</i>
     var line = __LINE__  <i>// line : Int = 4</i>
     var col = __COLUMN__ <i>// column : Int = 11</i>
   </pre>
@@ -1725,7 +1725,7 @@ ill-formed if the type does not conform to the protocol.</p>
     instantiates the default argument.</p>
 
   <pre class="example">
-    func log(_ message:String,
+    fn log(_ message:String,
              file:String = __FILE__,
              line:Int = __LINE__) {
       print("\(file):\(line): \(message)")
@@ -1749,7 +1749,7 @@ ill-formed if the type does not conform to the protocol.</p>
      the type of the declaration returned by name lookup and overload
      resolution.  Value declarations are installed with <a
      href="#decl-var">var</a> and the syntactic sugar forms like <a
-     href="decl-func">func</a> declarations.</p>
+     href="decl-fn">fn</a> declarations.</p>
 
   <p>If an identifier refers to a generic type, an instance of that generic may
     be referenced by following the identifier with a list of type parameters
@@ -1759,7 +1759,7 @@ ill-formed if the type does not conform to the protocol.</p>
     <i>// A generic struct.</i>
     struct Dict&lt;K,V&gt; {
       init() {}
-      static func fromKeysAndValues(_ keys:K[], values:T[]) -&gt; Dict&lt;K,V&gt; {}
+      static fn fromKeysAndValues(_ keys:K[], values:T[]) -&gt; Dict&lt;K,V&gt; {}
     }
 
     <i>// Construct an instance of the generic struct.</i>
@@ -1775,13 +1775,13 @@ ill-formed if the type does not conform to the protocol.</p>
   <p>Note that <tt>&lt;</tt> and <tt>&gt;</tt> are used as both angle brackets in
   <a href="#expr-identifier">generic identifiers</a> and as characters in
   <a href="#expr-binary">binary operator</a> names. Because of this, there are
-  potential parsing ambiguities. Swift uses a context-free heuristic to
+  potential parsing ambiguities. Codira uses a context-free heuristic to
   determine whether to parse an expression involving <tt>&lt;</tt> and <tt>&gt;</tt>
   as a generic parameter list or a binary operator:
 
   <ul>
   <li>When an <a href="#identifier">identifier</a> is followed by <tt>&lt;</tt>,
-  Swift attempts to parse starting from the <tt>&lt;</tt> as a
+  Codira attempts to parse starting from the <tt>&lt;</tt> as a
   <a href="#type-identifier">generic parameter list</a>.
   <li>If it succeeds in parsing a generic parameter list, it looks at the
   token after the closing <tt>&gt;</tt>. If it sees one of the following tokens:
@@ -1789,7 +1789,7 @@ ill-formed if the type does not conform to the protocol.</p>
     <tt>( [ { } ] ) . , ;</tt>
   </blockquote>
   then the expression is parsed as a generic parameter list.
-  <li>If Swift cannot parse a generic parameter list after the <tt>&lt;</tt>,
+  <li>If Codira cannot parse a generic parameter list after the <tt>&lt;</tt>,
   or the matching <tt>&gt;</tt> is not followed by one of the above tokens,
   the <tt>&lt;</tt> is parsed as an operator character.
   </ul>
@@ -1801,7 +1801,7 @@ ill-formed if the type does not conform to the protocol.</p>
 
   <pre class="example">
     <i>// An operator that operates on metatypes.</i>
-    infix func +-+ &lt;T, U&gt;(t:T.Type, u:U.Type) -&gt; Foo { }
+    infix fn +-+ &lt;T, U&gt;(t:T.Type, u:U.Type) -&gt; Foo { }
 
     var foo = (Dict&lt;String, Int&gt;) +-+ (Array&lt;UnicodeScalar&gt;)
     print(foo)
@@ -1812,7 +1812,7 @@ ill-formed if the type does not conform to the protocol.</p>
   can also be corrected by adding or removing parentheses.
 
   <pre class="example">
-    func foo(_ x:Bool, y:Bool)
+    fn foo(_ x:Bool, y:Bool)
     var a,b,c,d,e : Int
 
     foo(a &lt; b, c &gt; (d + e)) // ERROR: Misparses as (a&lt;b,c&gt;)(d + e)
@@ -1860,13 +1860,13 @@ ill-formed if the type does not conform to the protocol.</p>
   <pre class="grammar">
     expr-closure ::= '{' closure-signature? <a href="#brace-item-list">brace-item-list</a> '}'
 
-    closure-signature ::= <a href="#pattern-tuple">pattern-tuple</a> <a href="#func-signature">func-signature-result</a>? 'in'
-    closure-signature ::= <a href="#identifier">identifier</a> (',' <a href="#identifier">identifier</a>*) <a href="#func-signature">func-signature-result</a>? 'in'
+    closure-signature ::= <a href="#pattern-tuple">pattern-tuple</a> <a href="#fn-signature">fn-signature-result</a>? 'in'
+    closure-signature ::= <a href="#identifier">identifier</a> (',' <a href="#identifier">identifier</a>*) <a href="#fn-signature">fn-signature-result</a>? 'in'
 
   </pre>
 
   <p>A closure defines an anonymous function as an expression. Like a
-  <a href="#decl-func">func</a> declaration, a closure has parameters,
+  <a href="#decl-fn">fn</a> declaration, a closure has parameters,
   a return type, and some number of statements that are executed when
   the closure is called. Like local functions, closures can capture
   values from its enclosing function and closure scopes. Closures are
@@ -1876,7 +1876,7 @@ ill-formed if the type does not conform to the protocol.</p>
   value is used as the result of the closure. Thus, the closure <code>{
   5 }</code> is equivalent to <code>{ return 5 }</code>.</p>
 
-  <p>Unlike <a href="#decl-func">func</a>
+  <p>Unlike <a href="#decl-fn">fn</a>
   declarations, the return type, parameter types, and even the <a
    href="#expr-anon-closure-arg">names of parameters</a> can be
   omitted from the definition of the closure, making it a concise
@@ -1888,9 +1888,9 @@ ill-formed if the type does not conform to the protocol.</p>
 
   <pre class="example">
     <i>// Takes a closure that it calls to determine an ordering relation.</i>
-    func magic(_ val : Int, predicate : (a : Int, b : Int) -> Bool)
+    fn magic(_ val : Int, predicate : (a : Int, b : Int) -> Bool)
 
-    func f() {
+    fn f() {
       <i>// Compare one way.  Closure is inferred to return Bool and take two ints</i>
       <i>// from the argument context.  This same information infers that $0 and $1</i>
       <i>// both have type 'Int'.</i>
@@ -1957,9 +1957,9 @@ ill-formed if the type does not conform to the protocol.</p>
 
   <pre class="example">
     enum Direction { case Up, Down }
-    func search(_ val : Int, direction : Direction)
+    fn search(_ val : Int, direction : Direction)
 
-    func f() {
+    fn f() {
       search(42, .Up)
       search(17, .Down)
     }
@@ -2005,7 +2005,7 @@ ill-formed if the type does not conform to the protocol.</p>
     var g = (4, y : 5, 6)    <i>// Type = (Int, y : Int, Int)</i>
 
     <i>// Named arguments to functions.</i>
-    func foo(_ a : Int, b : Int)
+    fn foo(_ a : Int, b : Int)
     foo(b = 4, a = 1)
   </pre>
 
@@ -2154,13 +2154,13 @@ ill-formed if the type does not conform to the protocol.</p>
     <a href="#expr-call">expr-call</a>, if functions meant to be used
     with trailing closures are written as curried functions, e.g.,
     <pre>
-func map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
+fn map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
     </pre>
     There are two problems with this (admittedly simpler) design.
     First, functions imported from C, C++, and Objective-C won't ever
     be written in this curried syntax, so we would have to implement
     redundant entry points to enable this syntax. Second, this design
-    forces the idea of currying front and center for Swift programmers
+    forces the idea of currying front and center for Codira programmers
     who otherwise wouldn't care, for mostly theoretical reasons.
   </div>
 
@@ -2287,7 +2287,7 @@ func map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
 
   <pre class="example">
     <i>// A function with some statements.</i>
-    func fib(_ v : Int) -&gt; Int {
+    fn fib(_ v : Int) -&gt; Int {
       if v &lt; 2 {
         return v
       }
@@ -2303,7 +2303,7 @@ func map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
     Allowing semicolons as statements causes us to allow semicolons as statement
     separators as well.  This, in turn, means that we don't reject code that has
     semicolons after each statement, which will be common when people first
-    start getting used to Swift.
+    start getting used to Codira.
   </div>
 
   <pre class="grammar">
@@ -2322,10 +2322,10 @@ func map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
   </pre>
 
   <p>The return statement sets the return value of the current <a
-     href="#decl-func">func declaration</a> or <a href="#expr-closure">closure
+     href="#decl-fn">fn declaration</a> or <a href="#expr-closure">closure
      expression</a> and transfers control out of the function.  It sets the
      return value by converting the specified expression result (or '()' if
-     none is specified) to the return type of the 'func'.
+     none is specified) to the return type of the 'fn'.
   </p>
 
   <p>The stmt-return grammar is ambiguous: "{ return 4 }" could be parsed as
@@ -2584,11 +2584,11 @@ func map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
   <h2 id="namebind">Name Binding</h2>
   <!-- ********************************************************************* -->
 
-  <p>Name binding in swift is performed in different ways depending on what
+  <p>Name binding in language is performed in different ways depending on what
   language entity is being considered:</p>
 
   <p>Value names (for <a
-  href="#decl-var">var</a> and <a href="#decl-func">func</a> declarations) and
+  href="#decl-var">var</a> and <a href="#decl-fn">fn</a> declarations) and
   type names (for <a href="#decl-typealias">typealias</a>, <a
   href="#decl-enum">enum</a>, and <a href="#decl-struct">struct</a>
   declarations) follow the same <a href="#namebind_scope">scope</a> and
@@ -2620,7 +2620,7 @@ func map<T, U>(_ array : T[])(fn : (T) -> U) -> U[] { ... }
       imports if we wanted to.</li>
   <li>Bind to identifiers that are imported with an import directive.  Imports
       are searched in order of introduction (top-down).  The location of an
-      import directive in a file (e.g. between func decls) does not affect name
+      import directive in a file (e.g. between fn decls) does not affect name
       lookup, but the order of imports w.r.t. each other does.</li>
   </ul>
 

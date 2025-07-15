@@ -1,4 +1,4 @@
-//===--- Join.swift -------------------------------------------------------===//
+//===--- Join.code -------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test tests the performance of ASCII Character comparison.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Join",
     runFunction: run_Join,
     tags: [.validation, .api, .String, .Array])
 
 @inline(never)
-public func run_Join(_ n: Int) {
+public fn run_Join(_ n: Int) {
   var array: [String] = []
   for x in 0..<1000 * n {
     array.append(String(x))

@@ -1,0 +1,22 @@
+// Check that there are no extra newlines in the driver diagnostics output due to
+// double LF -> CR LF conversions on child processes output on Windows.
+//
+// Compile more than one source files to trigger the use of the driver
+// task queue and child processes.
+
+// RUN: %line-directive %s %S/Inputs/extra-newlines-2.code -- %languagec_driver -c -diagnostic-style=language -no-color-diagnostics %s %S/Inputs/extra-newlines-2.code -module-name Foo 2>&1 | %FileCheck %s
+
+// REQUIRES: language_language_parser
+
+// Check that there are no extra newlines between diagnostics lines
+
+// CHECK:      SOURCE_DIR{{[/\]+}}test{{[/\]+}}diagnostics{{[/\]+}}extra-newlines.code:[[#LINE:]]:5
+// CHECK-NEXT: [[#LINE-2]] |
+// CHECK-NEXT: [[#LINE-1]] | fn foo(a: Int, b: Int) {
+// CHECK-NEXT: [[#LINE]]   |   a + b
+// CHECK-NEXT:             |   `- warning: result of operator '+' is unused
+// CHECK-NEXT: [[#LINE+1]] | }
+
+fn foo(a: Int, b: Int) {
+  a + b
+}

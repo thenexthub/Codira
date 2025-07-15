@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' >%t/main.code
+// RUN: cd %t
+
+// RUN: %target-languagec_driver -emit-sib -emit-module-summary -emit-module-summary-path %t/main.codemodulesummary %t/main.code
+// RUN: test -f %t/main.codemodulesummary

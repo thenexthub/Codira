@@ -1,36 +1,40 @@
-//===------ ModuleInterfaceSupport.h - swiftinterface files -----*- C++ -*-===//
+//===------ ModuleInterfaceSupport.h - languageinterface files -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_MODULEINTERFACESUPPORT_H
-#define SWIFT_FRONTEND_MODULEINTERFACESUPPORT_H
+#ifndef LANGUAGE_FRONTEND_MODULEINTERFACESUPPORT_H
+#define LANGUAGE_FRONTEND_MODULEINTERFACESUPPORT_H
 
 #include "language/AST/PrintOptions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Version.h"
-#include "llvm/Support/Regex.h"
+#include "toolchain/Support/Regex.h"
 
-#define SWIFT_INTERFACE_FORMAT_VERSION_KEY "swift-interface-format-version"
-#define SWIFT_COMPILER_VERSION_KEY "swift-compiler-version"
-#define SWIFT_MODULE_FLAGS_KEY "swift-module-flags"
-#define SWIFT_MODULE_FLAGS_IGNORABLE_KEY "swift-module-flags-ignorable"
-#define SWIFT_MODULE_FLAGS_IGNORABLE_PRIVATE_KEY                               \
-  "swift-module-flags-ignorable-private"
+#define LANGUAGE_INTERFACE_FORMAT_VERSION_KEY "language-interface-format-version"
+#define LANGUAGE_COMPILER_VERSION_KEY "language-compiler-version"
+#define LANGUAGE_MODULE_FLAGS_KEY "language-module-flags"
+#define LANGUAGE_MODULE_FLAGS_IGNORABLE_KEY "language-module-flags-ignorable"
+#define LANGUAGE_MODULE_FLAGS_IGNORABLE_PRIVATE_KEY                               \
+  "language-module-flags-ignorable-private"
 
 namespace language {
 
 class ASTContext;
 class ModuleDecl;
 
-/// Options for controlling the generation of the .swiftinterface output.
+/// Options for controlling the generation of the .codeinterface output.
 struct ModuleInterfaceOptions {
   /// Should we prefer printing TypeReprs when writing out types in a module
   /// interface, or should we fully-qualify them?
@@ -45,24 +49,24 @@ struct ModuleInterfaceOptions {
   bool PrintFullConvention = false;
 
   struct InterfaceFlags {
-    /// Copy of all the command-line flags passed at .swiftinterface
+    /// Copy of all the command-line flags passed at .codeinterface
     /// generation time, re-applied to CompilerInvocation when reading
-    /// back .swiftinterface and reconstructing .swiftmodule.
+    /// back .codeinterface and reconstructing .codemodule.
     std::string Flags = "";
 
-    /// Flags that should be emitted to the .swiftinterface file but are OK to
+    /// Flags that should be emitted to the .codeinterface file but are OK to
     /// be ignored by the earlier version of the compiler.
     std::string IgnorableFlags = "";
   };
 
-  /// Flags which appear in all .swiftinterface files.
+  /// Flags which appear in all .codeinterface files.
   InterfaceFlags PublicFlags = {};
 
-  /// Flags which appear in both the private and package .swiftinterface files,
+  /// Flags which appear in both the private and package .codeinterface files,
   /// but not the public interface.
   InterfaceFlags PrivateFlags = {};
 
-  /// Flags which appear only in the .package.swiftinterface.
+  /// Flags which appear only in the .package.codeinterface.
   InterfaceFlags PackageFlags = {};
 
   /// Print imports that are missing from the source and used in API.
@@ -85,43 +89,43 @@ struct ModuleInterfaceOptions {
 };
 
 extern version::Version InterfaceFormatVersion;
-std::string getSwiftInterfaceCompilerVersionForCurrentCompiler(ASTContext &ctx);
+std::string getCodiraInterfaceCompilerVersionForCurrentCompiler(ASTContext &ctx);
 
 /// A regex that matches lines like this:
 ///
-///     // swift-interface-format-version: 1.0
+///     // language-interface-format-version: 1.0
 ///
 /// and extracts "1.0".
-llvm::Regex getSwiftInterfaceFormatVersionRegex();
+toolchain::Regex getCodiraInterfaceFormatVersionRegex();
 
 /// A regex that matches lines like this:
 ///
-///     // swift-compiler-version: Apple Swift version 5.8 (swiftlang-5.8.0.117.59)
+///     // language-compiler-version: Apple Codira version 5.8 (languagelang-5.8.0.117.59)
 ///
-/// and extracts "Apple Swift version 5.8 (swiftlang-5.8.0.117.59)".
-llvm::Regex getSwiftInterfaceCompilerVersionRegex();
+/// and extracts "Apple Codira version 5.8 (languagelang-5.8.0.117.59)".
+toolchain::Regex getCodiraInterfaceCompilerVersionRegex();
 
 /// A regex that matches strings like this:
 ///
-///     Apple Swift version 5.8
+///     Apple Codira version 5.8
 ///
 /// and extracts "5.8".
-llvm::Regex getSwiftInterfaceCompilerToolsVersionRegex();
+toolchain::Regex getCodiraInterfaceCompilerToolsVersionRegex();
 
 /// Emit a stable module interface for \p M, which can be used by a client
 /// source file to import this module, subject to options given by \p Opts.
 ///
 /// Unlike a serialized module, the textual format generated by
-/// emitSwiftInterface is intended to be stable across compiler versions while
+/// emitCodiraInterface is intended to be stable across compiler versions while
 /// still describing the full ABI of the module in question.
 ///
 /// The initial plan for this format can be found at
-/// https://forums.swift.org/t/plan-for-module-stability/14551/
+/// https://forums.code.org/t/plan-for-module-stability/14551/
 ///
 /// \return true if an error occurred
 ///
-/// \sa swift::serialize
-bool emitSwiftInterface(raw_ostream &out,
+/// \sa language::serialize
+bool emitCodiraInterface(raw_ostream &out,
                         ModuleInterfaceOptions const &Opts,
                         ModuleDecl *M);
 

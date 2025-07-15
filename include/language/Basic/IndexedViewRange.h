@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines IndexedViewRange, a template class which makes it
@@ -19,12 +20,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_INDEXEDVIEWRANGE_H
-#define SWIFT_BASIC_INDEXEDVIEWRANGE_H
+#ifndef LANGUAGE_BASIC_INDEXEDVIEWRANGE_H
+#define LANGUAGE_BASIC_INDEXEDVIEWRANGE_H
 
 #include <iterator>
 #include <memory>
-#include "llvm/ADT/iterator_range.h"
+#include "toolchain/ADT/iterator_range.h"
 
 namespace language {
 
@@ -96,8 +97,8 @@ public:
 template <class BaseType, class ProjectedType,
           ProjectedType (&Project)(BaseType, size_t)>
 using IndexedViewRange =
-  llvm::iterator_range<IndexedViewIterator<BaseType, ProjectedType, Project>>;
+  toolchain::iterator_range<IndexedViewIterator<BaseType, ProjectedType, Project>>;
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_INDEXEDVIEWRANGE_H
+#endif // LANGUAGE_BASIC_INDEXEDVIEWRANGE_H

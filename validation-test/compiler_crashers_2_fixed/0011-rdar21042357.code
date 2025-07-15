@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+protocol A {}
+extension A {
+  final fn f() {}
+protocol B {
+  fn f()
+}
+struct S : A, B {}

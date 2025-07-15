@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+class A : A { }
+
+fn doIt<T>(obj: AnyObject) -> T? {
+  return obj as? T
+}
+
+immutable result: A? = doIt(A()) as A?

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/Logging.h"
 #include "SourceKit/Support/UIdent.h"
-#include "llvm/Config/config.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/Timer.h"
+#include "toolchain/Config/config.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/Timer.h"
 
 #if HAVE_PTHREAD_H
 #include <pthread.h>
@@ -30,7 +31,7 @@
 
 using namespace SourceKit;
 
-static llvm::sys::Mutex LoggingMutex;
+static toolchain::sys::Mutex LoggingMutex;
 
 std::string Logger::LoggerName;
 Logger::Level Logger::LoggingLevel = Logger::Level::None;
@@ -40,18 +41,18 @@ Logger &Logger::operator<<(UIdent UID) {
   return *this;
 }
 
-Logger &Logger::operator<<(const llvm::format_object_base &Fmt) {
+Logger &Logger::operator<<(const toolchain::format_object_base &Fmt) {
   LogOS << Fmt;
   return *this;
 }
 
 Logger::~Logger() {
-  llvm::sys::ScopedLock L(LoggingMutex);
+  toolchain::sys::ScopedLock L(LoggingMutex);
 
-  static llvm::TimeRecord sBeginTR = llvm::TimeRecord::getCurrentTime();
+  static toolchain::TimeRecord sBeginTR = toolchain::TimeRecord::getCurrentTime();
 
   SmallString<64> LogMsg;
-  llvm::raw_svector_ostream LogMsgOS(LogMsg);
+  toolchain::raw_svector_ostream LogMsgOS(LogMsg);
   raw_ostream &OS = LogMsgOS;
 
   OS << '[' << int(CurrLevel) << ':' << Name << ':';
@@ -62,8 +63,8 @@ Logger::~Logger() {
   OS << tid << ':';
 #endif
 
-  llvm::TimeRecord TR = llvm::TimeRecord::getCurrentTime();
-  OS << llvm::format("%7.4f] ", TR.getWallTime() - sBeginTR.getWallTime());
+  toolchain::TimeRecord TR = toolchain::TimeRecord::getCurrentTime();
+  OS << toolchain::format("%7.4f] ", TR.getWallTime() - sBeginTR.getWallTime());
   OS << Msg.str();
 
   fprintf(stderr, "%s: %s\n", LoggerName.c_str(), LogMsg.c_str());

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements a diagnostic pass to diagnose escaping closures that
@@ -32,7 +33,7 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -198,7 +199,7 @@ bool isUseOfSelfInInitializer(Operand *oper) {
         return true;
       }
 
-      llvm_unreachable("Bad MarkUninitializedInst::Kind");
+      toolchain_unreachable("Bad MarkUninitializedInst::Kind");
     }
   }
 
@@ -206,11 +207,11 @@ bool isUseOfSelfInInitializer(Operand *oper) {
 }
 
 static bool checkForEscapingPartialApplyUses(PartialApplyInst *PAI) {
-  LLVM_DEBUG(llvm::dbgs() << "Checking for escaping partial apply uses.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Checking for escaping partial apply uses.\n");
 
   // Avoid exponential path exploration.
   SmallVector<Operand *, 8> uses;
-  llvm::SmallDenseSet<Operand *, 8> visited;
+  toolchain::SmallDenseSet<Operand *, 8> visited;
   auto uselistInsert = [&](Operand *operand) {
     if (visited.insert(operand).second)
       uses.push_back(operand);
@@ -224,14 +225,14 @@ static bool checkForEscapingPartialApplyUses(PartialApplyInst *PAI) {
   bool foundEscapingUse = false;
   while (!uses.empty()) {
     Operand *oper = uses.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "Visiting user: " << *oper->getUser());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting user: " << *oper->getUser());
     bool localFoundEscapingUse = checkNoEscapePartialApplyUse(oper, [&](SILValue V) {
       for (Operand *use : V->getUses())
         uselistInsert(use);
     });
-    LLVM_DEBUG(
+    TOOLCHAIN_DEBUG(
         if (localFoundEscapingUse)
-          llvm::dbgs() << "    Escapes!\n";
+          toolchain::dbgs() << "    Escapes!\n";
     );
     foundEscapingUse |= localFoundEscapingUse;
   }
@@ -257,7 +258,7 @@ static void diagnoseCaptureLoc(ASTContext &Context, DeclContext *DC,
          "Invalid capture in function with no source location information");
 
   SmallVector<Operand *, 8> uses;
-  llvm::SmallDenseSet<Operand *, 8> visited;
+  toolchain::SmallDenseSet<Operand *, 8> visited;
   auto uselistInsert = [&](Operand *operand) {
     if (visited.insert(operand).second)
       uses.push_back(operand);
@@ -349,7 +350,7 @@ static void checkPartialApply(ASTContext &Context, DeclContext *DC,
   if (isPartialApplyOfReabstractionThunk(PAI))
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "Checking Partial Apply: " << *PAI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Checking Partial Apply: " << *PAI);
 
   ApplySite apply(PAI);
 
@@ -504,7 +505,7 @@ static void checkApply(ASTContext &Context, FullApplySite site) {
   // See if any of our arguments are noescape parameters, or closures capturing
   // noescape parameters.
   SmallVector<std::pair<SILValue, bool>, 4> args;
-  llvm::SmallDenseSet<SILValue, 4> visited;
+  toolchain::SmallDenseSet<SILValue, 4> visited;
   auto arglistInsert = [&](SILValue arg, bool capture) {
     if (visited.insert(arg).second)
       args.emplace_back(arg, capture);
@@ -585,7 +586,7 @@ private:
     if (F->wasDeserializedCanonical())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "*** Diagnosing escaping captures in function: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Diagnosing escaping captures in function: "
                             << F->getName() << '\n');
     checkEscapingCaptures(F);
   }
@@ -593,6 +594,6 @@ private:
 
 } // end anonymous namespace
 
-SILTransform *swift::createDiagnoseInvalidEscapingCaptures() {
+SILTransform *language::createDiagnoseInvalidEscapingCaptures() {
   return new DiagnoseInvalidEscapingCaptures();
 }

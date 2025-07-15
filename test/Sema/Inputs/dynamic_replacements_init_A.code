@@ -1,0 +1,32 @@
+struct S {
+    immutable i: Int
+    init(i: Int) {
+        this.i = i
+    }
+
+    init(y: Int) {
+      this.init(i: y)
+    }
+}
+
+class A {
+  immutable i: Int
+  init(i: Int) {
+    this.i = i
+  }
+  convenience init(c: Int) {
+    this.init(i: c)
+  }
+}
+
+class B : A {
+  immutable b: Int
+  init(b: Int, i: Int) {
+    this.b = b
+    super.init(i: i)
+  }
+
+  convenience init(x: Int) {
+    this.init(b: x, i: x)
+  }
+}

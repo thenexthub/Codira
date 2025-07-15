@@ -1,4 +1,4 @@
-//===--- GenArchetype.h - Swift IR generation for archetypes ----*- C++ -*-===//
+//===--- GenArchetype.h - Codira IR generation for archetypes ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the archetype emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENARCHETYPE_H
-#define SWIFT_IRGEN_GENARCHETYPE_H
+#ifndef LANGUAGE_IRGEN_GENARCHETYPE_H
+#define LANGUAGE_IRGEN_GENARCHETYPE_H
 
 #include "language/AST/Types.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
-namespace llvm {
+namespace toolchain {
   class Value;
 }
 
@@ -39,7 +40,7 @@ namespace irgen {
   class MetadataResponse;
 
   using GetTypeParameterInContextFn =
-    llvm::function_ref<CanType(CanType type)>;
+    toolchain::function_ref<CanType(CanType type)>;
 
   /// Emit a type metadata reference for an archetype.
   MetadataResponse emitArchetypeTypeMetadataRef(IRGenFunction &IGF,
@@ -47,7 +48,7 @@ namespace irgen {
                                                 DynamicMetadataRequest request);
 
   /// Emit a witness table reference.
-  llvm::Value *emitArchetypeWitnessTableRef(IRGenFunction &IGF,
+  toolchain::Value *emitArchetypeWitnessTableRef(IRGenFunction &IGF,
                                             CanArchetypeType archetype,
                                             ProtocolDecl *protocol);
 
@@ -58,7 +59,7 @@ namespace irgen {
                                                  DynamicMetadataRequest request);
 
   /// Emit a dynamic metatype lookup for the given archetype.
-  llvm::Value *emitDynamicTypeOfOpaqueArchetype(IRGenFunction &IGF,
+  toolchain::Value *emitDynamicTypeOfOpaqueArchetype(IRGenFunction &IGF,
                                                 Address archetypeAddr,
                                                 SILType archetypeType);
   
@@ -67,7 +68,7 @@ namespace irgen {
                                              CanOpaqueTypeArchetypeType archetype,
                                              DynamicMetadataRequest request);
   /// Emit a lookup for an opaque result type's protocol conformance.
-  llvm::Value *emitOpaqueTypeWitnessTableRef(IRGenFunction &IGF,
+  toolchain::Value *emitOpaqueTypeWitnessTableRef(IRGenFunction &IGF,
                                              CanOpaqueTypeArchetypeType archetype,
                                              ProtocolDecl *protocol);
 } // end namespace irgen

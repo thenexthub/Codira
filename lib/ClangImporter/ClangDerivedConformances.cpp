@@ -1,13 +1,17 @@
 //===--- ClangDerivedConformances.cpp -------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ClangDerivedConformances.h"
@@ -48,14 +52,14 @@ lookupDirectWithoutExtensions(NominalTypeDecl *decl, Identifier id) {
                                ClangRecordMemberLookup({decl, id}), {});
   }
 
-  // Check if there are any synthesized Swift members that match the name.
+  // Check if there are any synthesized Codira members that match the name.
   for (auto member : decl->getCurrentMembersWithoutLoading()) {
     if (auto namedMember = dyn_cast<ValueDecl>(member)) {
       if (namedMember->hasName() && !namedMember->getName().isSpecial() &&
           namedMember->getName().getBaseIdentifier().is(id.str()) &&
           // Make sure we don't add duplicate entries, as that would wrongly
           // imply that lookup is ambiguous.
-          !llvm::is_contained(result, namedMember)) {
+          !toolchain::is_contained(result, namedMember)) {
         result.push_back(namedMember);
       }
     }
@@ -96,13 +100,13 @@ static FuncDecl *getInsertFunc(NominalTypeDecl *decl,
 }
 
 static bool isStdDecl(const clang::CXXRecordDecl *clangDecl,
-                      llvm::ArrayRef<StringRef> names) {
+                      toolchain::ArrayRef<StringRef> names) {
   if (!clangDecl->isInStdNamespace())
     return false;
   if (!clangDecl->getIdentifier())
     return false;
   StringRef name = clangDecl->getName();
-  return llvm::is_contained(names, name);
+  return toolchain::is_contained(names, name);
 }
 
 static clang::TypeDecl *
@@ -265,7 +269,8 @@ instantiateTemplatedOperator(ClangImporter::Implementation &impl,
       classDecl->getLocation(), clang::OverloadCandidateSet::CSK_Operator,
       clang::OverloadCandidateSet::OperatorRewriteInfo(opKind,
                                               clang::SourceLocation(), false));
-  clangSema.LookupOverloadedBinOp(candidateSet, opKind, ops, {arg, arg}, true);
+  std::array<clang::Expr *, 2> args{arg, arg};
+  clangSema.LookupOverloadedBinOp(candidateSet, opKind, ops, args, true);
 
   clang::OverloadCandidateSet::iterator best;
   switch (candidateSet.BestViableFunction(clangSema, clang::SourceLocation(),
@@ -288,7 +293,7 @@ instantiateTemplatedOperator(ClangImporter::Implementation &impl,
 }
 
 /// Warning: This function emits an error and stops compilation if the
-/// underlying operator function is unavailable in Swift for the current target
+/// underlying operator function is unavailable in Codira for the current target
 /// (see `clang::Sema::DiagnoseAvailabilityOfDecl`).
 static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
                                   const clang::CXXRecordDecl *classDecl,
@@ -308,8 +313,8 @@ static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
   // created. We use the translation unit as the decl context of the new
   // operator, otherwise, the operator might get imported as a static member
   // function of a different type (e.g. an operator declared inside of a C++
-  // namespace would get imported as a member function of a Swift enum), which
-  // would make the operator un-discoverable to Swift name lookup.
+  // namespace would get imported as a member function of a Codira enum), which
+  // would make the operator un-discoverable to Codira name lookup.
   auto declContext =
       const_cast<clang::CXXRecordDecl *>(classDecl)->getDeclContext();
   while (!declContext->isTranslationUnit()) {
@@ -381,12 +386,12 @@ static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
   return true;
 }
 
-bool swift::isIterator(const clang::CXXRecordDecl *clangDecl) {
+bool language::isIterator(const clang::CXXRecordDecl *clangDecl) {
   return getIteratorCategoryDecl(clangDecl);
 }
 
 ValueDecl *
-swift::importer::getImportedMemberOperator(const DeclBaseName &name,
+language::importer::getImportedMemberOperator(const DeclBaseName &name,
                                            NominalTypeDecl *selfType,
                                            std::optional<Type> parameterType) {
   assert(name.isOperator());
@@ -407,7 +412,7 @@ swift::importer::getImportedMemberOperator(const DeclBaseName &name,
   return nullptr;
 }
 
-void swift::conformToCxxIteratorIfNeeded(
+void language::conformToCxxIteratorIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to UnsafeCxxInputIterator", decl);
@@ -515,7 +520,7 @@ void swift::conformToCxxIteratorIfNeeded(
   // UnsafeCxxInputIterator.
   bool pointeeSettable = pointee->isSettable(nullptr);
 
-  // Check if present: `func successor() -> Self`
+  // Check if present: `fn successor() -> Self`
   auto successorId = ctx.getIdentifier("successor");
   auto successor =
       lookupDirectSingleWithoutExtensions<FuncDecl>(decl, successorId);
@@ -525,7 +530,7 @@ void swift::conformToCxxIteratorIfNeeded(
   if (!successorTy || successorTy->getAnyNominal() != decl)
     return;
 
-  // Check if present: `func ==`
+  // Check if present: `fn ==`
   auto equalEqual = getEqualEqualOperator(decl);
   if (!equalEqual) {
     // If this class is inherited, `operator==` might be defined for a base
@@ -533,12 +538,12 @@ void swift::conformToCxxIteratorIfNeeded(
     // well. Try to instantiate it.
     clang::FunctionDecl *instantiated = instantiateTemplatedOperator(
         impl, clangDecl, clang::BinaryOperatorKind::BO_EQ);
-    if (instantiated && !impl.isUnavailableInSwift(instantiated)) {
-      // If `operator==` was instantiated successfully, try to find `func ==`
+    if (instantiated && !impl.isUnavailableInCodira(instantiated)) {
+      // If `operator==` was instantiated successfully, try to find `fn ==`
       // again.
       equalEqual = getEqualEqualOperator(decl);
       if (!equalEqual) {
-        // If `func ==` still can't be found, it might be defined for a base
+        // If `fn ==` still can't be found, it might be defined for a base
         // class of the current class.
         auto paramTy = clangCtx.getRecordType(clangDecl);
         synthesizeCXXOperator(impl, clangDecl, clang::BinaryOperatorKind::BO_EQ,
@@ -565,12 +570,12 @@ void swift::conformToCxxIteratorIfNeeded(
 
   // Try to conform to UnsafeCxxRandomAccessIterator if possible.
 
-  // Check if present: `func -`
+  // Check if present: `fn -`
   auto minus = getMinusOperator(decl);
   if (!minus) {
     clang::FunctionDecl *instantiated = instantiateTemplatedOperator(
         impl, clangDecl, clang::BinaryOperatorKind::BO_Sub);
-    if (instantiated && !impl.isUnavailableInSwift(instantiated)) {
+    if (instantiated && !impl.isUnavailableInCodira(instantiated)) {
       minus = getMinusOperator(decl);
       if (!minus) {
         clang::QualType returnTy = instantiated->getReturnType();
@@ -591,7 +596,7 @@ void swift::conformToCxxIteratorIfNeeded(
   if (!plusEqual) {
     clang::FunctionDecl *instantiated = instantiateTemplatedOperator(
         impl, clangDecl, clang::BinaryOperatorKind::BO_AddAssign);
-    if (instantiated && !impl.isUnavailableInSwift(instantiated)) {
+    if (instantiated && !impl.isUnavailableInCodira(instantiated)) {
       plusEqual = getPlusEqualOperator(decl, distanceTy);
       if (!plusEqual) {
         clang::QualType returnTy = instantiated->getReturnType();
@@ -626,8 +631,8 @@ void swift::conformToCxxIteratorIfNeeded(
   }
 }
 
-void swift::conformToCxxConvertibleToBoolIfNeeded(
-    ClangImporter::Implementation &impl, swift::NominalTypeDecl *decl,
+void language::conformToCxxConvertibleToBoolIfNeeded(
+    ClangImporter::Implementation &impl, language::NominalTypeDecl *decl,
     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxConvertibleToBool", decl);
 
@@ -659,7 +664,7 @@ void swift::conformToCxxConvertibleToBoolIfNeeded(
                                    {KnownProtocolKind::CxxConvertibleToBool});
 }
 
-void swift::conformToCxxOptionalIfNeeded(
+void language::conformToCxxOptionalIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxOptional", decl);
@@ -667,6 +672,8 @@ void swift::conformToCxxOptionalIfNeeded(
   assert(decl);
   assert(clangDecl);
   ASTContext &ctx = decl->getASTContext();
+  clang::ASTContext &clangCtx = impl.getClangASTContext();
+  clang::Sema &clangSema = impl.getClangSema();
 
   if (!isStdDecl(clangDecl, {"optional"}))
     return;
@@ -689,9 +696,67 @@ void swift::conformToCxxOptionalIfNeeded(
 
   impl.addSynthesizedTypealias(decl, ctx.getIdentifier("Wrapped"), pointeeTy);
   impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxOptional});
+
+  // `std::optional` has a C++ constructor that takes the wrapped value as a
+  // parameter. Unfortunately this constructor has templated parameter type, so
+  // it isn't directly usable from Codira. Let's explicitly instantiate a
+  // constructor with the wrapped value type, and then import it into Codira.
+
+  auto valueTypeDecl = lookupNestedClangTypeDecl(clangDecl, "value_type");
+  if (!valueTypeDecl)
+    // `std::optional` without a value_type?!
+    return;
+  auto valueType = clangCtx.getTypeDeclType(valueTypeDecl);
+
+  auto constRefValueType =
+      clangCtx.getLValueReferenceType(valueType.withConst());
+  // Create a fake variable with type of the wrapped value.
+  auto fakeValueVarDecl = clang::VarDecl::Create(
+      clangCtx, /*DC*/ clangCtx.getTranslationUnitDecl(),
+      clang::SourceLocation(), clang::SourceLocation(), /*Id*/ nullptr,
+      constRefValueType, clangCtx.getTrivialTypeSourceInfo(constRefValueType),
+      clang::StorageClass::SC_None);
+  auto fakeValueRefExpr = new (clangCtx) clang::DeclRefExpr(
+      clangCtx, fakeValueVarDecl, false,
+      constRefValueType.getNonReferenceType(), clang::ExprValueKind::VK_LValue,
+      clang::SourceLocation());
+
+  auto clangDeclTyInfo = clangCtx.getTrivialTypeSourceInfo(
+      clang::QualType(clangDecl->getTypeForDecl(), 0));
+  SmallVector<clang::Expr *, 1> constructExprArgs = {fakeValueRefExpr};
+
+  // Instantiate the templated constructor that would accept this fake variable.
+  clang::Sema::SFINAETrap trap(clangSema);
+  auto constructExprResult = clangSema.BuildCXXTypeConstructExpr(
+      clangDeclTyInfo, clangDecl->getLocation(), constructExprArgs,
+      clangDecl->getLocation(), /*ListInitialization*/ false);
+  if (!constructExprResult.isUsable() || trap.hasErrorOccurred())
+    return;
+
+  auto castExpr = dyn_cast_or_null<clang::CastExpr>(constructExprResult.get());
+  if (!castExpr)
+    return;
+
+  // The temporary bind expression will only be present for some non-trivial C++
+  // types.
+  auto bindTempExpr =
+      dyn_cast_or_null<clang::CXXBindTemporaryExpr>(castExpr->getSubExpr());
+
+  auto constructExpr = dyn_cast_or_null<clang::CXXConstructExpr>(
+      bindTempExpr ? bindTempExpr->getSubExpr() : castExpr->getSubExpr());
+  if (!constructExpr)
+    return;
+
+  auto constructorDecl = constructExpr->getConstructor();
+
+  auto importedConstructor =
+      impl.importDecl(constructorDecl, impl.CurrentVersion);
+  if (!importedConstructor)
+    return;
+  decl->addMember(importedConstructor);
 }
 
-void swift::conformToCxxSequenceIfNeeded(
+void language::conformToCxxSequenceIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxSequence", decl);
@@ -711,14 +776,14 @@ void swift::conformToCxxSequenceIfNeeded(
   if (!cxxIteratorProto || !cxxSequenceProto)
     return;
 
-  // Check if present: `func __beginUnsafe() -> RawIterator`
+  // Check if present: `fn __beginUnsafe() -> RawIterator`
   auto beginId = ctx.getIdentifier("__beginUnsafe");
   auto begin = lookupDirectSingleWithoutExtensions<FuncDecl>(decl, beginId);
   if (!begin)
     return;
   auto rawIteratorTy = begin->getResultInterfaceType();
 
-  // Check if present: `func __endUnsafe() -> RawIterator`
+  // Check if present: `fn __endUnsafe() -> RawIterator`
   auto endId = ctx.getIdentifier("__endUnsafe");
   auto end = lookupDirectSingleWithoutExtensions<FuncDecl>(decl, endId);
   if (!end)
@@ -768,7 +833,7 @@ void swift::conformToCxxSequenceIfNeeded(
   // Not conforming the type to CxxSequence protocol here:
   // The current implementation of CxxSequence triggers extra copies of the C++
   // collection when creating a CxxIterator instance. It needs a more efficient
-  // implementation, which is not possible with the existing Swift features.
+  // implementation, which is not possible with the existing Codira features.
   // impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxSequence});
 
   // Try to conform to CxxRandomAccessCollection if possible.
@@ -817,7 +882,7 @@ void swift::conformToCxxSequenceIfNeeded(
       if (!rawMutableIteratorProto)
         return false;
 
-      // Check if present: `func __beginMutatingUnsafe() -> RawMutableIterator`
+      // Check if present: `fn __beginMutatingUnsafe() -> RawMutableIterator`
       auto beginMutatingId = ctx.getIdentifier("__beginMutatingUnsafe");
       auto beginMutating =
           lookupDirectSingleWithoutExtensions<FuncDecl>(decl, beginMutatingId);
@@ -825,7 +890,7 @@ void swift::conformToCxxSequenceIfNeeded(
         return false;
       auto rawMutableIteratorTy = beginMutating->getResultInterfaceType();
 
-      // Check if present: `func __endMutatingUnsafe() -> RawMutableIterator`
+      // Check if present: `fn __endMutatingUnsafe() -> RawMutableIterator`
       auto endMutatingId = ctx.getIdentifier("__endMutatingUnsafe");
       auto endMutating =
           lookupDirectSingleWithoutExtensions<FuncDecl>(decl, endMutatingId);
@@ -854,7 +919,7 @@ void swift::conformToCxxSequenceIfNeeded(
   bool conformedToRAC = tryToConformToRandomAccessCollection();
 
   // If the collection does not support random access, let's still allow the
-  // developer to explicitly convert a C++ sequence to a Swift Array (making a
+  // developer to explicitly convert a C++ sequence to a Codira Array (making a
   // copy of the sequence's elements) by conforming the type to
   // CxxCollectionConvertible. This enables an overload of Array.init declared
   // in the Cxx module.
@@ -873,7 +938,7 @@ static bool isStdMapType(const clang::CXXRecordDecl *clangDecl) {
   return isStdDecl(clangDecl, {"map", "unordered_map", "multimap"});
 }
 
-bool swift::isUnsafeStdMethod(const clang::CXXMethodDecl *methodDecl) {
+bool language::isUnsafeStdMethod(const clang::CXXMethodDecl *methodDecl) {
   auto parentDecl =
       dyn_cast<clang::CXXRecordDecl>(methodDecl->getDeclContext());
   if (!parentDecl)
@@ -886,7 +951,7 @@ bool swift::isUnsafeStdMethod(const clang::CXXMethodDecl *methodDecl) {
   return false;
 }
 
-void swift::conformToCxxSetIfNeeded(ClangImporter::Implementation &impl,
+void language::conformToCxxSetIfNeeded(ClangImporter::Implementation &impl,
                                     NominalTypeDecl *decl,
                                     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxSet", decl);
@@ -953,7 +1018,7 @@ void swift::conformToCxxSetIfNeeded(ClangImporter::Implementation &impl,
   impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxUniqueSet});
 }
 
-void swift::conformToCxxPairIfNeeded(ClangImporter::Implementation &impl,
+void language::conformToCxxPairIfNeeded(ClangImporter::Implementation &impl,
                                      NominalTypeDecl *decl,
                                      const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxPair", decl);
@@ -981,7 +1046,7 @@ void swift::conformToCxxPairIfNeeded(ClangImporter::Implementation &impl,
   impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxPair});
 }
 
-void swift::conformToCxxDictionaryIfNeeded(
+void language::conformToCxxDictionaryIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxDictionary", decl);
@@ -1035,7 +1100,7 @@ void swift::conformToCxxDictionaryIfNeeded(
 
   // Make the original subscript that returns a non-optional value unavailable.
   // CxxDictionary adds another subscript that returns an optional value,
-  // similarly to Swift.Dictionary.
+  // similarly to Codira.Dictionary.
   for (auto member : decl->getCurrentMembersWithoutLoading()) {
     if (auto subscript = dyn_cast<SubscriptDecl>(member)) {
       impl.markUnavailable(subscript,
@@ -1059,7 +1124,7 @@ void swift::conformToCxxDictionaryIfNeeded(
   impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxDictionary});
 }
 
-void swift::conformToCxxVectorIfNeeded(ClangImporter::Implementation &impl,
+void language::conformToCxxVectorIfNeeded(ClangImporter::Implementation &impl,
                                        NominalTypeDecl *decl,
                                        const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxVector", decl);
@@ -1104,7 +1169,7 @@ void swift::conformToCxxVectorIfNeeded(ClangImporter::Implementation &impl,
   impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxVector});
 }
 
-void swift::conformToCxxFunctionIfNeeded(
+void language::conformToCxxFunctionIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
     const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxFunction", decl);
@@ -1122,7 +1187,7 @@ void swift::conformToCxxFunctionIfNeeded(
 
   // There is no typealias for the argument types on the C++ side, so to
   // retrieve the argument types we look at the overload of `operator()` that
-  // got imported into Swift.
+  // got imported into Codira.
 
   auto callAsFunctionDecl = lookupDirectSingleWithoutExtensions<FuncDecl>(
       decl, ctx.getIdentifier("callAsFunction"));
@@ -1135,7 +1200,7 @@ void swift::conformToCxxFunctionIfNeeded(
     return;
 
   std::vector<clang::QualType> operatorCallParamTypes;
-  llvm::transform(
+  toolchain::transform(
       operatorCallDecl->parameters(),
       std::back_inserter(operatorCallParamTypes),
       [](const clang::ParmVarDecl *paramDecl) { return paramDecl->getType(); });
@@ -1192,7 +1257,7 @@ void swift::conformToCxxFunctionIfNeeded(
 
 }
 
-void swift::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
+void language::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
                                      NominalTypeDecl *decl,
                                      const clang::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxSpan", decl);

@@ -1,0 +1,34 @@
+// RUN: %target-language-frontend %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend %s -emit-sil -o /dev/null -verify -strict-concurrency=targeted
+// RUN: %target-language-frontend %s -emit-sil -o /dev/null -verify -strict-concurrency=complete
+// RUN: %target-language-frontend %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+public protocol P {
+  associatedtype T
+  @MainActor fn f(_: T)
+  @MainActor fn g(_: T)
+}
+public struct S : P {
+  public fn g(_: Int) {}
+  public fn f(_: T) {}
+}
+
+// https://github.com/apple/language/issues/61602
+@available(CodiraStdlib 5.1, *)
+@MainActor protocol ProtocolWithAssociatedTypes {
+    associatedtype ID: Hashable
+    associatedtype Value
+
+    subscript(_ id: ID) -> Value { get set }
+}
+
+@available(CodiraStdlib 5.1, *)
+final class ClassConforming<ID: Hashable,Value>: ProtocolWithAssociatedTypes {
+    subscript(id: ID) -> Value {
+        get { fatalError() }
+        set { fatalError() }
+    }
+}

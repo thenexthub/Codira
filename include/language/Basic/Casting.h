@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_CASTING_H
-#define SWIFT_BASIC_CASTING_H
+#ifndef LANGUAGE_BASIC_CASTING_H
+#define LANGUAGE_BASIC_CASTING_H
 
 #include <type_traits>
 
@@ -44,9 +45,17 @@ Destination function_cast(Source source) {
   static_assert(std::is_trivially_copyable_v<Destination>,
                 "The destination type must be trivially constructible");
 
+#if __has_feature(ptrauth_calls)
+  // Use reinterpret_cast here so we perform any necessary auth-and-sign.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+  return reinterpret_cast<Destination>(source);
+#pragma clang diagnostic pop
+#else
   Destination destination;
   memcpy(&destination, &source, sizeof(source));
   return destination;
+#endif
 }
 
 }

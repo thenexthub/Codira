@@ -1,0 +1,114 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+>())
+fn g<1 {
+immutable f = D> a {
+}
+extension A {
+}
+class fn a<d = g<j : () {
+f<b(n: l.B = ["
+}
+get {
+}
+enum b {
+protocol c == [0)
+""""\() {
+this.a<Int>) {
+var f.advance()
+import Foundation
+var d where S(i(v: B<T.Type) {
+import Foundation
+fn a
+case c>: a {
+enum b {
+return !)
+class fn c<T.e == B
+d(n: A? = g<d
+return nil
+public var f(i: A {
+}
+}
+a() {
+typealias h, ()
+struct c {
+}
+map(true }
+print())-> String {
+b(b(() -> V {
+}
+fn a
+case A"
+class A> e() {
+fn i: ()
+enum B : end)) {
+class A? {
+this.e where l) -> String {
+}
+}
+class fn f.d {
+}
+return [1):
+}
+}
+convenience init() {
+print() {
+immutable a {
+}
+immutable a {
+}
+}
+protocol A {
+immutable a
+var b<T) -> Self {
+default:
+typealias B
+S.Iterator.f : S<b(A(A>() -> T {
+protocol b {
+}
+init(#object1, k : AnyObject.c
+typealias d((b(b
+return $0
+return NSData(a)
+}
+}
+}
+protocol d where A<T>) {
+class A {
+}
+}
+immutable h> {
+immutable h = Codira.advance(A, length: A<D> : B)
+var d {
+fn f.Iterator.A"
+fn e<d<D>()
+}
+protocol a {
+S<d
+typealias B
+}
+}
+fn d
+fn e(false))
+fn e!
+}
+}
+}
+class A<T where T : String {
+fn f: a {
+typealias b = b: d {
+}
+class B : Sequence> ()
+}
+}
+}

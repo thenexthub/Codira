@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language \
+// RUN:   -enable-experimental-feature LifetimeDependence
+
+// REQUIRES: language_feature_LifetimeDependence
+
+struct S: ~Escapable {}
+
+fn hello(_ t: some Escapable, _ u: any Escapable) {}
+
+protocol Whatever: Escapable {}

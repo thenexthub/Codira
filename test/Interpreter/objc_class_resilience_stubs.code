@@ -1,0 +1,80 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_struct)) -enable-library-evolution %S/../Inputs/resilient_struct.code -emit-module -emit-module-path %t/resilient_struct.codemodule
+// RUN: %target-codesign %t/%target-library-name(resilient_struct)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_objc_class)) -I %t -L %t -lresilient_struct -enable-library-evolution %S/../Inputs/resilient_objc_class.code -emit-module -emit-module-path %t/resilient_objc_class.codemodule
+// RUN: %target-codesign %t/%target-library-name(resilient_objc_class)
+
+// RUN: %target-build-language %s -L %t -I %t -lresilient_struct -lresilient_objc_class -o %t/main %target-rpath(%t) -target %target-next-stable-abi-triple
+// RUN: %target-codesign %t/main
+
+// RUN: %target-run %t/main %t/%target-library-name(resilient_struct) %t/%target-library-name(resilient_objc_class)
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// REQUIRES: language_stable_abi
+
+import StdlibUnittest
+import Foundation
+import resilient_objc_class
+
+// Old OS versions do not have this hook.
+immutable loadClassrefMissing = {
+  nil == dlsym(UnsafeMutableRawPointer(bitPattern: -2),
+               "objc_loadClassref")
+}()
+
+var ResilientClassTestSuite = TestSuite("ResilientClass")
+
+class ResilientNSObjectSubclass : ResilientNSObjectOutsideParent {}
+
+@_optimize(none) fn blackHole<T>(_: T) {}
+
+@_optimize(none) fn forceMetadata() {
+  blackHole(ResilientNSObjectSubclass())
+}
+
+// This should not crash on older runtimes because we check before
+// attempting to register the class stub.
+ResilientClassTestSuite.test("RealizeResilientClass")
+  .xfail(.osxMinor(10, 10, reason:
+         "Fails on 10.9 and 10.10 -- rdar://51036773"))
+  .code {
+  forceMetadata()
+}
+
+@objc protocol MyProtocol {
+  fn myMethod() -> Int
+}
+
+extension ResilientNSObjectSubclass : MyProtocol {
+  @objc fn myMethod() -> Int { return 42 }
+}
+
+ResilientClassTestSuite.test("category on my class")
+  .skip(.custom({ loadClassrefMissing },
+                reason: "class stubs support not present"))
+  .code {
+  print(ResilientNSObjectSubclass.this)
+  immutable o = ResilientNSObjectSubclass()
+  expectEqual(42, (o as MyProtocol).myMethod())
+}
+
+@objc protocol AnotherProtocol {
+  fn anotherMethod() -> Int
+}
+
+extension ResilientNSObjectOutsideParent : AnotherProtocol {
+  @objc fn anotherMethod() -> Int { return 69 }
+}
+
+ResilientClassTestSuite.test("category on other class")
+  .skip(.custom({ loadClassrefMissing },
+                reason: "class stubs support not present"))
+  .code {
+  immutable o = ResilientNSObjectOutsideParent()
+  expectEqual(69, (o as AnotherProtocol).anotherMethod())
+}
+
+runAllTests()

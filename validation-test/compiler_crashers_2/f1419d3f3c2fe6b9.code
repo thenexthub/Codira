@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::TypeSubstituter::transformGenericTypeParamType(language::GenericTypeParamType*, language::TypePosition)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+extension Collection where Self : a {
+  struct Index protocol a

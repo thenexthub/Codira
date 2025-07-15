@@ -1,4 +1,4 @@
-//===--- Heap.h - Swift Language Heap ABI -----------------------*- C++ -*-===//
+//===--- Heap.h - Codira Language Heap ABI -----------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift Heap ABI
+// Codira Heap ABI
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_HEAP_H
-#define SWIFT_RUNTIME_HEAP_H
+#ifndef LANGUAGE_RUNTIME_HEAP_H
+#define LANGUAGE_RUNTIME_HEAP_H
 
 #include <cstddef>
 #include <limits>
@@ -33,26 +34,26 @@ namespace language {
 // Never returns nil. The returned memory is uninitialized. 
 //
 // An "alignment mask" is just the alignment (a power of 2) minus 1.
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD SWIFT_RUNTIME_EXPORT_ATTRIBUTE
-void *swift_slowAlloc(size_t bytes, size_t alignMask);
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE
+void *language_slowAlloc(size_t bytes, size_t alignMask);
 
 using MallocTypeId = unsigned long long;
 
-SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
-void *swift_slowAllocTyped(size_t bytes, size_t alignMask, MallocTypeId typeId);
+LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
+void *language_slowAllocTyped(size_t bytes, size_t alignMask, MallocTypeId typeId);
 
-// If SWIFT_STDLIB_HAS_MALLOC_TYPE is defined, allocate typed memory.
+// If LANGUAGE_STDLIB_HAS_MALLOC_TYPE is defined, allocate typed memory.
 // Otherwise, allocate plain memory.
-SWIFT_RUNTIME_EXPORT
-void *swift_coroFrameAlloc(size_t bytes, MallocTypeId typeId);
+LANGUAGE_RUNTIME_EXPORT
+void *language_coroFrameAlloc(size_t bytes, MallocTypeId typeId);
 
 // If the caller cannot promise to zero the object during destruction,
 // then call these corresponding APIs:
-SWIFT_RUNTIME_EXPORT
-void swift_slowDealloc(void *ptr, size_t bytes, size_t alignMask);
+LANGUAGE_RUNTIME_EXPORT
+void language_slowDealloc(void *ptr, size_t bytes, size_t alignMask);
 
-SWIFT_RUNTIME_EXPORT
-void swift_clearSensitive(void *ptr, size_t bytes);
+LANGUAGE_RUNTIME_EXPORT
+void language_clearSensitive(void *ptr, size_t bytes);
 
 /// Allocate and construct an instance of type \c T.
 ///
@@ -61,18 +62,18 @@ void swift_clearSensitive(void *ptr, size_t bytes);
 /// \returns A pointer to a new, fully constructed instance of \c T. This
 ///   function never returns \c nullptr. The caller is responsible for
 ///   eventually destroying the resulting object by passing it to
-///   \c swift_cxx_deleteObject().
+///   \c language_cxx_deleteObject().
 ///
 /// This function avoids the use of the global \c operator \c new (which may be
 /// overridden by other code in a process) in favor of calling
-/// \c swift_slowAlloc() and constructing the new object with placement new.
+/// \c language_slowAlloc() and constructing the new object with placement new.
 ///
 /// This function is capable of returning well-aligned memory even on platforms
 /// that do not implement the C++17 "over-aligned new" feature.
 template <typename T, typename... Args>
-SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
-static inline T *swift_cxx_newObject(Args &&... args) {
-  auto result = reinterpret_cast<T *>(swift_slowAlloc(sizeof(T),
+LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
+static inline T *language_cxx_newObject(Args &&... args) {
+  auto result = reinterpret_cast<T *>(language_slowAlloc(sizeof(T),
                                                       alignof(T) - 1));
   ::new (result) T(std::forward<Args>(args)...);
   return result;
@@ -81,20 +82,20 @@ static inline T *swift_cxx_newObject(Args &&... args) {
 /// Destruct and deallocate an instance of type \c T.
 ///
 /// \param ptr A pointer to an instance of type \c T previously created with a
-///   call to \c swift_cxx_newObject().
+///   call to \c language_cxx_newObject().
 ///
 /// This function avoids the use of the global \c operator \c delete (which may
 /// be overridden by other code in a process) in favor of directly calling the
 /// destructor for \a *ptr and then freeing its memory by calling
-/// \c swift_slowDealloc().
+/// \c language_slowDealloc().
 ///
 /// The effect of passing a pointer to this function that was \em not returned
-/// from \c swift_cxx_newObject() is undefined.
+/// from \c language_cxx_newObject() is undefined.
 template <typename T>
-static inline void swift_cxx_deleteObject(T *ptr) {
+static inline void language_cxx_deleteObject(T *ptr) {
   if (ptr) {
     ptr->~T();
-    swift_slowDealloc(ptr, sizeof(T), alignof(T) - 1);
+    language_slowDealloc(ptr, sizeof(T), alignof(T) - 1);
   }
 }
 
@@ -102,9 +103,9 @@ static inline void swift_cxx_deleteObject(T *ptr) {
 /// virtual destructor, as in that case the compiler will emit a deleting
 /// version of the destructor, which will call ::operator delete unless the
 /// class (or its superclasses) define one of their own.
-#define SWIFT_CXX_DELETE_OPERATOR(T)                    \
+#define LANGUAGE_CXX_DELETE_OPERATOR(T)                    \
   void operator delete(void *ptr) {                     \
-    swift_slowDealloc(ptr, sizeof(T), alignof(T) - 1);  \
+    language_slowDealloc(ptr, sizeof(T), alignof(T) - 1);  \
   }
 
 /// A C++ Allocator that uses the above functions instead of operator new
@@ -146,7 +147,7 @@ struct cxx_allocator {
   }
 
   T *allocate(std::size_t n) {
-    return reinterpret_cast<T *>(swift_slowAlloc(sizeof(T) * n,
+    return reinterpret_cast<T *>(language_slowAlloc(sizeof(T) * n,
                                                  alignof(T) - 1));
   }
   T *allocate(std::size_t n, const void *hint) {
@@ -155,7 +156,7 @@ struct cxx_allocator {
   }
 
   void deallocate(T *p, std::size_t n) {
-    swift_slowDealloc(p, sizeof(T) * n, alignof(T) - 1);
+    language_slowDealloc(p, sizeof(T) * n, alignof(T) - 1);
   }
 
   size_type max_size() const noexcept {
@@ -187,4 +188,4 @@ bool operator!=(const cxx_allocator<T> &lha,
 
 }
 
-#endif // SWIFT_RUNTIME_HEAP_H
+#endif // LANGUAGE_RUNTIME_HEAP_H

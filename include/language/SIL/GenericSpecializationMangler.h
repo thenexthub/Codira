@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_UTILS_GENERICSPECIALIZATIONMANGLER_H
-#define SWIFT_SIL_UTILS_GENERICSPECIALIZATIONMANGLER_H
+#ifndef LANGUAGE_SIL_UTILS_GENERICSPECIALIZATIONMANGLER_H
+#define LANGUAGE_SIL_UTILS_GENERICSPECIALIZATIONMANGLER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ASTMangler.h"
@@ -41,25 +42,25 @@ protected:
   /// The specialization pass.
   SpecializationPass Pass;
 
-  swift::SerializedKind_t Serialized;
+  language::SerializedKind_t Serialized;
 
   /// The original function which is specialized.
   SILFunction *Function;
   std::string FunctionName;
 
-  llvm::SmallVector<char, 32> ArgOpStorage;
-  llvm::raw_svector_ostream ArgOpBuffer;
+  toolchain::SmallVector<char, 32> ArgOpStorage;
+  toolchain::raw_svector_ostream ArgOpBuffer;
 
   // Effects that are removed from the original function in this specialization.
   PossibleEffects RemovedEffects;
 
 protected:
-  SpecializationMangler(ASTContext &Ctx, SpecializationPass P, swift::SerializedKind_t Serialized,
+  SpecializationMangler(ASTContext &Ctx, SpecializationPass P, language::SerializedKind_t Serialized,
                         SILFunction *F)
       : ASTMangler(Ctx), Pass(P), Serialized(Serialized), Function(F),
         ArgOpBuffer(ArgOpStorage) {}
 
-  SpecializationMangler(ASTContext &Ctx, SpecializationPass P, swift::SerializedKind_t Serialized,
+  SpecializationMangler(ASTContext &Ctx, SpecializationPass P, language::SerializedKind_t Serialized,
                         std::string functionName)
       : ASTMangler(Ctx), Pass(P), Serialized(Serialized), Function(nullptr),
         FunctionName(functionName), ArgOpBuffer(ArgOpStorage) {}
@@ -94,7 +95,7 @@ class GenericSpecializationMangler : public SpecializationMangler {
   void appendRemovedParams(const SmallBitVector &paramsRemoved);
 
 public:
-  GenericSpecializationMangler(ASTContext &Ctx, SILFunction *F, swift::SerializedKind_t Serialized)
+  GenericSpecializationMangler(ASTContext &Ctx, SILFunction *F, language::SerializedKind_t Serialized)
       : SpecializationMangler(Ctx, SpecializationPass::GenericSpecializer,
                               Serialized, F) {}
 

@@ -1,4 +1,4 @@
-//===--- Module.h - Swift Language Module ASTs ------------------*- C++ -*-===//
+//===--- Module.h - Codira Language Module ASTs ------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Module class and its subclasses.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MODULE_H
-#define SWIFT_MODULE_H
+#ifndef LANGUAGE_MODULE_H
+#define LANGUAGE_MODULE_H
 
 #include "language/AST/AccessNotes.h"
 #include "language/AST/AttrKind.h"
@@ -37,13 +38,13 @@
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/MD5.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/MD5.h"
 #include <optional>
 #include <set>
 #include <unordered_map>
@@ -82,11 +83,11 @@ namespace language {
 
 /// Discriminator for file-units.
 enum class FileUnitKind {
-  /// For a .swift source file.
+  /// For a .code source file.
   Source,
   /// For the compiler Builtin module.
   Builtin,
-  /// A serialized Swift AST.
+  /// A serialized Codira AST.
   SerializedAST,
   /// A synthesized file.
   Synthesized,
@@ -97,10 +98,10 @@ enum class FileUnitKind {
 };
 
 enum class SourceFileKind {
-  Library,  ///< A normal .swift file.
-  Main,     ///< A .swift file that can have top-level code.
+  Library,  ///< A normal .code file.
+  Main,     ///< A .code file that can have top-level code.
   SIL,      ///< Came from a .sil file.
-  Interface, ///< Came from a .swiftinterface file, representing another module.
+  Interface, ///< Came from a .codeinterface file, representing another module.
   MacroExpansion, ///< Came from a macro expansion.
   DefaultArgument, ///< Came from default argument at caller side
 };
@@ -247,18 +248,18 @@ class ModuleDecl
 
   mutable Identifier PublicModuleName;
 
-  /// Indicates a version of the Swift compiler used to generate 
-  /// .swiftinterface file that this module was produced from (if any).
+  /// Indicates a version of the Codira compiler used to generate 
+  /// .codeinterface file that this module was produced from (if any).
   mutable version::Version InterfaceCompilerVersion;
 
 public:
   /// Produces the components of a given module's full name in reverse order.
   ///
-  /// For a Swift module, this will only ever have one component, but an
+  /// For a Codira module, this will only ever have one component, but an
   /// imported Clang module might actually be a submodule.
   ///
   /// *Note: see `StringRef operator*()` for details on the returned name for printing
-  /// for a Swift module.
+  /// for a Codira module.
   class ReverseFullNameIterator {
   public:
     // Make this look like a valid STL iterator.
@@ -278,7 +279,7 @@ public:
     }
 
     /// Returns the name of the current module.
-    /// Note that for a Swift module, it returns the current module's real (binary) name,
+    /// Note that for a Codira module, it returns the current module's real (binary) name,
     /// which can be different from the name if module aliasing was used (see `-module-alias`).
     StringRef operator*() const;
     ReverseFullNameIterator &operator++();
@@ -296,7 +297,7 @@ public:
     /// order, to \p out.
     ///
     /// It calls `StringRef operator*()` under the hood (see for more detail on the
-    /// returned name for a Swift module).
+    /// returned name for a Codira module).
     void printForward(raw_ostream &out, StringRef delim = ".") const;
   };
 
@@ -310,10 +311,10 @@ private:
   /// construction has completed. It must not be mutated afterwards.
   std::optional<SmallVector<FileUnit *, 2>> Files;
 
-  llvm::SmallDenseMap<Identifier, SmallVector<OverlayFile *, 1>>
+  toolchain::SmallDenseMap<Identifier, SmallVector<OverlayFile *, 1>>
     declaredCrossImports;
 
-  llvm::DenseMap<Identifier, SmallVector<Decl *, 2>> ObjCNameLookupCache;
+  toolchain::DenseMap<Identifier, SmallVector<Decl *, 2>> ObjCNameLookupCache;
 
   /// A description of what should be implicitly imported by each file of this
   /// module.
@@ -330,7 +331,7 @@ private:
       DiagnosedMultipleMainClasses = 1 << 0,
       DiagnosedMainClassWithScript = 1 << 1
     };
-    llvm::PointerIntPair<FileUnit *, 2, OptionSet<Flags>> storage;
+    toolchain::PointerIntPair<FileUnit *, 2, OptionSet<Flags>> storage;
   public:
     EntryPointInfoTy() = default;
 
@@ -354,12 +355,12 @@ private:
   bool BypassResilience = false;
 
   using AvailabilityDomainMap =
-      llvm::SmallDenseMap<Identifier, const CustomAvailabilityDomain *>;
+      toolchain::SmallDenseMap<Identifier, const CustomAvailabilityDomain *>;
   AvailabilityDomainMap AvailabilityDomains;
 
 public:
-  using PopulateFilesFn = llvm::function_ref<void(
-      ModuleDecl *, llvm::function_ref<void(FileUnit *)>)>;
+  using PopulateFilesFn = toolchain::function_ref<void(
+      ModuleDecl *, toolchain::function_ref<void(FileUnit *)>)>;
 
 private:
   ModuleDecl(Identifier name, ASTContext &ctx, ImplicitImportInfo importInfo,
@@ -437,11 +438,6 @@ public:
   /// \c nullptr if the source location isn't in this module.
   SourceFile *getSourceFileContainingLocation(SourceLoc loc);
 
-  // Retrieve the buffer ID and source location of the outermost location that
-  // caused the generation of the buffer containing \p loc. \p loc and its
-  // buffer if it isn't in a generated buffer or has no original location.
-  std::pair<unsigned, SourceLoc> getOriginalLocation(SourceLoc loc) const;
-
   /// Creates a map from \c #filePath strings to corresponding \c #fileID
   /// strings, diagnosing any conflicts.
   ///
@@ -454,14 +450,14 @@ public:
   /// \c false for paths which lost a conflict. Thus, if you want to generate a
   /// reverse mapping, you should drop or special-case the \c #fileID strings
   /// that are paired with \c false.
-  llvm::StringMap<std::pair<std::string, /*isWinner=*/bool>>
+  toolchain::StringMap<std::pair<std::string, /*isWinner=*/bool>>
   computeFileIDMap(bool shouldDiagnose) const;
 
   /// Add a file declaring a cross-import overlay.
   void addCrossImportOverlayFile(StringRef file);
 
   /// Collect cross-import overlay names from a given YAML file path.
-  static llvm::SmallSetVector<Identifier, 4>
+  static toolchain::SmallSetVector<Identifier, 4>
   collectCrossImportOverlay(ASTContext &ctx, StringRef file,
                             StringRef moduleName, StringRef& bystandingModule);
 
@@ -473,7 +469,7 @@ public:
   /// cross-import overlays--it only means that it \em might declare some.
   ///
   /// (Specifically, this method checks if the module loader found any
-  /// swiftoverlay files, but does not load the files to see if they list any
+  /// languageoverlay files, but does not load the files to see if they list any
   /// overlay modules.)
   bool mightDeclareCrossImportOverlays() const;
 
@@ -540,11 +536,11 @@ public:
   }
 
   /// See \c InterfaceCompilerVersion
-  version::Version getSwiftInterfaceCompilerVersion() const {
+  version::Version getCodiraInterfaceCompilerVersion() const {
     return InterfaceCompilerVersion;
   }
 
-  void setSwiftInterfaceCompilerVersion(version::Version version) {
+  void setCodiraInterfaceCompilerVersion(version::Version version) {
     InterfaceCompilerVersion = version;
   }
 
@@ -558,11 +554,11 @@ public:
   Identifier getRealName() const;
 
   /// User-defined module version number.
-  llvm::VersionTuple UserModuleVersion;
-  void setUserModuleVersion(llvm::VersionTuple UserVer) {
+  toolchain::VersionTuple UserModuleVersion;
+  void setUserModuleVersion(toolchain::VersionTuple UserVer) {
     UserModuleVersion = UserVer;
   }
-  llvm::VersionTuple getUserModuleVersion() const {
+  toolchain::VersionTuple getUserModuleVersion() const {
     return UserModuleVersion;
   }
 
@@ -585,8 +581,8 @@ private:
       declaringModuleAndBystander;
 
   /// A cache of this module's visible Clang modules
-  /// parameterized by the Swift interface print mode.
-  using VisibleClangModuleSet = llvm::DenseMap<const clang::Module *, ModuleDecl *>;
+  /// parameterized by the Codira interface print mode.
+  using VisibleClangModuleSet = toolchain::DenseMap<const clang::Module *, ModuleDecl *>;
   std::unordered_map<PrintOptions::InterfaceMode, VisibleClangModuleSet> CachedVisibleClangModuleSet;
 
   /// If this module is an underscored cross import overlay, gets the underlying
@@ -632,7 +628,7 @@ public:
   /// (`@_exported`) imports.
   ///
   /// The computed map associates each visible Clang module with the
-  /// corresponding Swift module.
+  /// corresponding Codira module.
   const VisibleClangModuleSet &
   getVisibleClangModules(PrintOptions::InterfaceMode contentMode);
 
@@ -734,12 +730,12 @@ public:
     Bits.ModuleDecl.HasHermeticSealAtLink = enabled;
   }
 
-  /// Returns true if this module was built with embedded Swift
-  bool isEmbeddedSwiftModule() const {
-    return Bits.ModuleDecl.IsEmbeddedSwiftModule;
+  /// Returns true if this module was built with embedded Codira
+  bool isEmbeddedCodiraModule() const {
+    return Bits.ModuleDecl.IsEmbeddedCodiraModule;
   }
-  void setIsEmbeddedSwiftModule(bool enabled = true) {
-    Bits.ModuleDecl.IsEmbeddedSwiftModule = enabled;
+  void setIsEmbeddedCodiraModule(bool enabled = true) {
+    Bits.ModuleDecl.IsEmbeddedCodiraModule = enabled;
   }
 
   /// Returns true if this module was built with C++ interoperability enabled.
@@ -800,16 +796,16 @@ public:
     Bits.ModuleDecl.SerializePackageEnabled = flag;
   }
 
-  /// Returns true if this module is a non-Swift module that was imported into
-  /// Swift.
+  /// Returns true if this module is a non-Codira module that was imported into
+  /// Codira.
   ///
   /// Right now that's just Clang modules.
-  bool isNonSwiftModule() const {
-    return Bits.ModuleDecl.IsNonSwiftModule;
+  bool isNonCodiraModule() const {
+    return Bits.ModuleDecl.IsNonCodiraModule;
   }
-  /// \see #isNonSwiftModule
-  void setIsNonSwiftModule(bool flag = true) {
-    Bits.ModuleDecl.IsNonSwiftModule = flag;
+  /// \see #isNonCodiraModule
+  void setIsNonCodiraModule(bool flag = true) {
+    Bits.ModuleDecl.IsNonCodiraModule = flag;
   }
 
   bool isMainModule() const {
@@ -963,7 +959,7 @@ public:
   /// collecting the identifiers in \p spiGroups.
   void lookupImportedSPIGroups(
                          const ModuleDecl *importedModule,
-                         llvm::SmallSetVector<Identifier, 4> &spiGroups) const;
+                         toolchain::SmallSetVector<Identifier, 4> &spiGroups) const;
 
   /// Finds the custom availability domain defined by this module with the
   /// given identifier and if one exists adds it to results.
@@ -972,7 +968,7 @@ public:
                             SmallVectorImpl<AvailabilityDomain> &results) const;
 
   // Is \p attr accessible as an explicitly imported SPI from this module?
-  bool isImportedAsSPI(const SpecializeAttr *attr,
+  bool isImportedAsSPI(const AbstractSpecializeAttr *attr,
                        const ValueDecl *targetDecl) const;
 
   // Is \p spiGroup accessible as an explicitly imported SPI from this module?
@@ -1078,7 +1074,7 @@ public:
   /// attributes are deserialized and added to Results.
   void getTopLevelDeclsWhereAttributesMatch(
                SmallVectorImpl<Decl*> &Results,
-               llvm::function_ref<bool(DeclAttributes)> matchAttributes) const;
+               toolchain::function_ref<bool(DeclAttributes)> matchAttributes) const;
 
   /// Finds all local type decls of this module.
   ///
@@ -1107,16 +1103,16 @@ public:
   ///
   /// This can differ from \c getTopLevelDecls, e.g. it returns decls from a
   /// shadowed clang module. It does not force synthesized top-level decls that
-  /// should be printed to be added; use \c swift::getTopLevelDeclsForDisplay()
+  /// should be printed to be added; use \c language::getTopLevelDeclsForDisplay()
   /// for that.
   void getDisplayDecls(SmallVectorImpl<Decl*> &results, bool recursive = false) const;
 
   struct ImportCollector {
     SmallPtrSet<const ModuleDecl *, 4> imports;
-    llvm::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
+    toolchain::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
         qualifiedImports;
     AccessLevel minimumDocVisibility = AccessLevel::Private;
-    llvm::function_ref<bool(const ModuleDecl *)> importFilter = nullptr;
+    toolchain::function_ref<bool(const ModuleDecl *)> importFilter = nullptr;
 
     void collect(const ImportedModule &importedModule);
 
@@ -1129,7 +1125,7 @@ public:
   getDisplayDeclsRecursivelyAndImports(SmallVectorImpl<Decl *> &results,
                                        ImportCollector &importCollector) const;
 
-  using LinkLibraryCallback = llvm::function_ref<void(LinkLibrary)>;
+  using LinkLibraryCallback = toolchain::function_ref<void(LinkLibrary)>;
 
   /// Generate the list of libraries needed to link this module, based on its
   /// imports.
@@ -1140,18 +1136,21 @@ public:
   StringRef getModuleFilename() const;
 
   /// Get the path to the file defining this module, what we consider the
-  /// source of truth about the module. Usually a swiftinterface file for a
-  /// resilient module, a swiftmodule for a non-resilient module, or the
+  /// source of truth about the module. Usually a languageinterface file for a
+  /// resilient module, a languagemodule for a non-resilient module, or the
   /// modulemap for a clang module. Returns an empty string if not applicable.
   StringRef getModuleSourceFilename() const;
 
   /// Get the path to the file loaded by the compiler. Usually the binary
-  /// swiftmodule file or a pcm in the cache. Returns an empty string if not
+  /// languagemodule file or a pcm in the cache. Returns an empty string if not
   /// applicable.
   StringRef getModuleLoadedFilename() const;
 
-  /// \returns true if this module is the "swift" standard library module.
+  /// \returns true if this module is the "language" standard library module.
   bool isStdlibModule() const;
+
+  /// \returns true if this module is the "Cxx" module.
+  bool isCxxModule() const;
 
   /// \returns true if this module is the "_Concurrency" standard library module.
   bool isConcurrencyModule() const;
@@ -1159,13 +1158,13 @@ public:
   /// \returns true if this module has standard substitutions for mangling.
   bool hasStandardSubstitutions() const;
 
-  /// \returns true if this module is the "SwiftShims" module;
-  bool isSwiftShimsModule() const;
+  /// \returns true if this module is the "CodiraShims" module;
+  bool isCodiraShimsModule() const;
 
   /// \returns true if this module is the "builtin" module.
   bool isBuiltinModule() const;
 
-  /// \returns true if this module is the "SwiftOnoneSupport" module;
+  /// \returns true if this module is the "CodiraOnoneSupport" module;
   bool isOnoneSupportModule() const;
 
   /// \returns true if this module is the "Foundation" module;
@@ -1193,21 +1192,21 @@ public:
   /// Returns a generator with the components of this module's full,
   /// hierarchical name.
   ///
-  /// For a Swift module, this will only ever have one component, but an
+  /// For a Codira module, this will only ever have one component, but an
   /// imported Clang module might actually be a submodule.
   ///
   /// *Note: see `StringRef operator*()` for details on the returned name for printing
-  /// for a Swift module.
+  /// for a Codira module.
   ReverseFullNameIterator getReverseFullModuleName() const {
     return ReverseFullNameIterator(this);
   }
 
   /// Calls \p callback for each source file of the module.
   void collectBasicSourceFileInfo(
-      llvm::function_ref<void(const BasicSourceFileInfo &)> callback) const;
+      toolchain::function_ref<void(const BasicSourceFileInfo &)> callback) const;
 
   void collectSerializedSearchPath(
-      llvm::function_ref<void(StringRef)> callback) const;
+      toolchain::function_ref<void(StringRef)> callback) const;
   /// Retrieve a fingerprint value that summarizes the contents of this module.
   ///
   /// This interface hash a of a module is guaranteed to change if the interface
@@ -1229,8 +1228,8 @@ public:
   /// transferred from module files to the dSYMs, remove this.
   bool isExternallyConsumed() const;
 
-  SWIFT_DEBUG_DUMPER(dumpDisplayDecls());
-  SWIFT_DEBUG_DUMPER(dumpTopLevelDecls());
+  LANGUAGE_DEBUG_DUMPER(dumpDisplayDecls());
+  LANGUAGE_DEBUG_DUMPER(dumpTopLevelDecls());
 
   SourceRange getSourceRange() const { return SourceRange(); }
 
@@ -1256,10 +1255,10 @@ public:
   using ASTAllocated<ModuleDecl>::operator delete;
 };
 
-/// Wraps either a swift module or a clang one.
-/// FIXME: Should go away once swift modules can support submodules natively.
+/// Wraps either a language module or a clang one.
+/// FIXME: Should go away once language modules can support submodules natively.
 class ModuleEntity {
-  llvm::PointerUnion<const ModuleDecl *, const /* clang::Module */ void *> Mod;
+  toolchain::PointerUnion<const ModuleDecl *, const /* clang::Module */ void *> Mod;
 
 public:
   ModuleEntity() = default;
@@ -1271,19 +1270,19 @@ public:
   ///                             has `import Foo` and `-module-alias Foo=Bar` is
   ///                             passed, treat Foo as an alias and Bar as the real
   ///                             module name as its dependency. This only applies
-  ///                             to Swift modules.
-  /// @return The module name; for Swift modules, the real module name could be
+  ///                             to Codira modules.
+  /// @return The module name; for Codira modules, the real module name could be
   ///         different from the name if module aliasing is used.
   StringRef getName(bool useRealNameIfAliased = false) const;
 
-  /// For Swift modules, it returns the same result as \c ModuleEntity::getName(bool).
+  /// For Codira modules, it returns the same result as \c ModuleEntity::getName(bool).
   /// For Clang modules, it returns the result of \c clang::Module::getFullModuleName.
   std::string getFullName(bool useRealNameIfAliased = false) const;
 
   bool isSystemModule() const;
   bool isNonUserModule() const;
   bool isBuiltinModule() const;
-  const ModuleDecl *getAsSwiftModule() const;
+  const ModuleDecl *getAsCodiraModule() const;
   const clang::Module *getAsClangModule() const;
 
   void *getOpaqueValue() const {

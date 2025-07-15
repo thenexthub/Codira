@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Foo.codeinterface) %s
+// RUN: %target-language-typecheck-module-from-interface(%t/Foo.codeinterface)
+// RUN: %FileCheck %s < %t/Foo.codeinterface
+
+// CHECK: macCatalyst
+@available(macOS 12.0, iOS 15.0, macCatalyst 15.0, *)
+public struct Foo {}

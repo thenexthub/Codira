@@ -5,14 +5,14 @@ import sys
 
 import opt_bug_reducer
 
-import swift_tools
+import language_tools
 
 
 def random_bug_finder(args):
     """Given a path to a sib file with canonical sil, attempt to find a perturbed
 list of passes that the perf pipeline"""
-    tools = swift_tools.SwiftTools(args.swift_build_dir)
-    config = swift_tools.SILToolInvokerConfig(args)
+    tools = language_tools.CodiraTools(args.code_build_dir)
+    config = language_tools.SILToolInvokerConfig(args)
 
     json_data = json.loads(subprocess.check_output(
         [tools.sil_passpipeline_dumper, '-Performance']))
@@ -22,7 +22,7 @@ list of passes that the perf pipeline"""
     extra_args = []
     if args.extra_args is not None:
         extra_args.extend(args.extra_args)
-    sil_opt_invoker = swift_tools.SILOptInvoker(config, tools,
+    sil_opt_invoker = language_tools.SILOptInvoker(config, tools,
                                                 args.input_file,
                                                 extra_args)
 
@@ -50,7 +50,7 @@ list of passes that the perf pipeline"""
 
 def add_parser_arguments(parser):
     """Add parser arguments for random_bug_reducer"""
-    parser.set_defaults(func=random_bug_finder)
+    parser.set_defaults(fn=random_bug_finder)
     parser.add_argument('input_file', help='The input file to optimize')
     parser.add_argument('--module-cache', help='The module cache to use')
     parser.add_argument('--sdk', help='The sdk to pass to sil-opt')

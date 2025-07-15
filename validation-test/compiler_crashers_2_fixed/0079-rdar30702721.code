@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+extension Sequence {
+	typealias Element = Iterator.Element
+}
+
+fn f<C: Sequence>(c: C) where C.Iterator == C {
+  c.makeIterator()
+}

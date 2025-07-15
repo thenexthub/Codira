@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Mutex, ConditionVariable, Read/Write lock, and Scoped lock implementations
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_MUTEX_PHTREAD_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_MUTEX_PHTREAD_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_MUTEX_PHTREAD_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_MUTEX_PHTREAD_BACKDEPLOY56_H
 
 #include <pthread.h>
 
@@ -45,13 +46,13 @@ typedef pthread_mutex_t MutexHandle;
 // constexpr for static allocation versions. The way they define things
 // results in a reinterpret_cast which violates constexpr.
 // WASI currently doesn't support threading/locking at all.
-#define SWIFT_CONDITION_SUPPORTS_CONSTEXPR 0
-#define SWIFT_MUTEX_SUPPORTS_CONSTEXPR 0
-#define SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR 0
+#define LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR 0
+#define LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR 0
+#define LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR 0
 #else
-#define SWIFT_CONDITION_SUPPORTS_CONSTEXPR 1
-#define SWIFT_MUTEX_SUPPORTS_CONSTEXPR 1
-#define SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR 1
+#define LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR 1
 #endif
 
 /// PThread low-level implementation that supports ConditionVariable
@@ -60,7 +61,7 @@ typedef pthread_mutex_t MutexHandle;
 /// See ConditionVariable
 struct ConditionPlatformHelper {
   __attribute__((visibility("hidden")))
-#if SWIFT_CONDITION_SUPPORTS_CONSTEXPR
+#if LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR
   static constexpr
 #else
   static
@@ -87,7 +88,7 @@ struct ConditionPlatformHelper {
 /// See Mutex
 struct MutexPlatformHelper {
   __attribute__((visibility("hidden")))
-#if SWIFT_MUTEX_SUPPORTS_CONSTEXPR
+#if LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR
   static constexpr
 #else
   static
@@ -97,7 +98,7 @@ struct MutexPlatformHelper {
     return PTHREAD_MUTEX_INITIALIZER;
   };
   __attribute__((visibility("hidden")))
-#if SWIFT_MUTEX_SUPPORTS_CONSTEXPR
+#if LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR
   static constexpr
 #else
   static
@@ -162,7 +163,7 @@ struct MutexPlatformHelper {
 struct ReadWriteLockPlatformHelper {
 
   __attribute__((visibility("hidden")))
-#if SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR
+#if LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR
   static constexpr
 #else
   static
@@ -191,4 +192,4 @@ struct ReadWriteLockPlatformHelper {
 };
 }
 
-#endif // SWIFT_RUNTIME_MUTEX_PHTREAD_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_MUTEX_PHTREAD_BACKDEPLOY56_H

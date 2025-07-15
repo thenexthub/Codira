@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_OPTIMIZATIONREMARKEMITTER_H
-#define SWIFT_SIL_OPTIMIZATIONREMARKEMITTER_H
+#ifndef LANGUAGE_SIL_OPTIMIZATIONREMARKEMITTER_H
+#define LANGUAGE_SIL_OPTIMIZATIONREMARKEMITTER_H
 
 #include "language/AST/SemanticAttrs.h"
 #include "language/Basic/SourceLoc.h"
@@ -29,7 +30,7 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -77,7 +78,7 @@ struct ArgumentKeyKind {
       return true;
     }
 
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 };
 
@@ -123,10 +124,10 @@ struct Argument {
   Argument(ArgumentKey key, StringRef msg, const ValueDecl *decl)
       : key(key), val(msg), loc(decl->getLoc()) {}
 
-  Argument(StringRef key, llvm::Twine &&msg, SILLocation loc)
+  Argument(StringRef key, toolchain::Twine &&msg, SILLocation loc)
       : Argument(ArgumentKey(ArgumentKeyKind::Default, key), std::move(msg),
                  loc) {}
-  Argument(ArgumentKey key, llvm::Twine &&msg, SILLocation loc)
+  Argument(ArgumentKey key, toolchain::Twine &&msg, SILLocation loc)
       : key(key), val(msg.str()), loc(loc.getSourceLoc()) {}
 };
 
@@ -323,7 +324,7 @@ public:
     // Same for DEBUG.
     bool shouldEmitDebug = false;
 #ifndef NDEBUG
-    shouldEmitDebug |= llvm::DebugFlag && llvm::isCurrentDebugType(passName);
+    shouldEmitDebug |= toolchain::DebugFlag && toolchain::isCurrentDebugType(passName);
 #endif // NDEBUG
 
     if (emitRemark || shouldEmitDebug) {

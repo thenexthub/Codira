@@ -13,27 +13,27 @@ import traceback
 from shutil import copyfile
 
 BARE_INTERFACE_SEARCH_PATHS = [
-    "usr/lib/swift",
-    "System/iOSSupport/usr/lib/swift"
+    "usr/lib/language",
+    "System/iOSSupport/usr/lib/language"
 ]
 DEFAULT_FRAMEWORK_INTERFACE_SEARCH_PATHS = [
     "System/Library/Frameworks",
     "System/iOSSupport/System/Library/Frameworks"
 ]
-STDLIB_NAME = 'Swift'
+STDLIB_NAME = 'Codira'
 
 MONOTONIC_VERSION = 1
 
 
 def create_parser():
     parser = argparse.ArgumentParser(
-        description="Builds an SDK's swiftinterfaces into swiftmodules. "
-                    "Always searches usr/lib/swift in addition to whichever "
+        description="Builds an SDK's languageinterfaces into languagemodules. "
+                    "Always searches usr/lib/language in addition to whichever "
                     "framework directories are passed on the command line.",
         prog=os.path.basename(__file__),
         usage='%(prog)s -o output/ [INTERFACE_SEARCH_DIRS]',
-        epilog='Environment variables: SDKROOT, SWIFT_EXEC, '
-               'SWIFT_FORCE_MODULE_LOADING')
+        epilog='Environment variables: SDKROOT, LANGUAGE_EXEC, '
+               'LANGUAGE_FORCE_MODULE_LOADING')
     parser.add_argument('interface_framework_dirs', nargs='*',
                         metavar='INTERFACE_SEARCH_DIRS',
                         help='Relative paths to search for frameworks with '
@@ -133,18 +133,18 @@ class ModuleFile:
         self.is_expected_to_fail = is_expected_to_fail
 
 
-def collect_slices(xfails, swiftmodule_dir):
-    if not os.path.isdir(swiftmodule_dir):
+def collect_slices(xfails, languagemodule_dir):
+    if not os.path.isdir(languagemodule_dir):
         return
     module_name, extension = \
-        os.path.splitext(os.path.basename(swiftmodule_dir))
+        os.path.splitext(os.path.basename(languagemodule_dir))
     assert extension == ".codemodule"
 
     is_xfail = module_name in xfails
-    for entry in os.listdir(swiftmodule_dir):
+    for entry in os.listdir(languagemodule_dir):
         _, extension = os.path.splitext(entry)
         if extension == ".codeinterface":
-            yield ModuleFile(module_name, os.path.join(swiftmodule_dir, entry),
+            yield ModuleFile(module_name, os.path.join(languagemodule_dir, entry),
                              is_xfail)
 
 
@@ -158,10 +158,10 @@ def collect_framework_modules(sdk, xfails, sdk_relative_framework_dirs):
             if extension != ".framework":
                 continue
             module_name = os.path.basename(path_without_extension)
-            swiftmodule = os.path.join(framework_dir, entry, "Modules",
+            languagemodule = os.path.join(framework_dir, entry, "Modules",
                                        module_name + ".codemodule")
-            if os.access(swiftmodule, os.R_OK):
-                for x in collect_slices(xfails, swiftmodule):
+            if os.access(languagemodule, os.R_OK):
+                for x in collect_slices(xfails, languagemodule):
                     yield x
 
 
@@ -244,10 +244,10 @@ def process_module(module_file):
         interface_base, _ = \
             os.path.splitext(os.path.basename(module_file.path))
 
-        swiftc = os.getenv('SWIFT_EXEC',
-                           os.path.join(os.path.dirname(__file__), 'swiftc'))
+        languagec = os.getenv('LANGUAGE_EXEC',
+                           os.path.join(os.path.dirname(__file__), 'languagec'))
         command_args = [
-            swiftc, '-frontend',
+            languagec, '-frontend',
             '-build-module-from-parseable-interface',
             '-sdk', args.sdk,
             '-prebuilt-module-cache-path', args.output_dir,
@@ -273,7 +273,7 @@ def process_module(module_file):
 
         # FIXME: Some Python installations are unable to handle Unicode
         # properly. Narrow this once we figure out how to detect them.
-        command_args += ('-diagnostic-style', 'llvm')
+        command_args += ('-diagnostic-style', 'toolchain')
 
         if looks_like_iosmac(interface_base):
             for system_framework_path in args.iosmac_system_framework_dirs:
@@ -381,8 +381,8 @@ def main():
         print(MONOTONIC_VERSION)
         sys.exit(0)
 
-    if 'SWIFT_FORCE_MODULE_LOADING' not in os.environ:
-        os.environ['SWIFT_FORCE_MODULE_LOADING'] = 'prefer-serialized'
+    if 'LANGUAGE_FORCE_MODULE_LOADING' not in os.environ:
+        os.environ['LANGUAGE_FORCE_MODULE_LOADING'] = 'prefer-serialized'
 
     if not args.output_dir:
         fatal("argument -o is required")

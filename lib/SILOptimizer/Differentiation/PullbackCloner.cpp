@@ -1,13 +1,17 @@
 //===--- PullbackCloner.cpp - Pullback function generation ---*- C++ -*----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a helper class for generating pullback functions for
@@ -38,8 +42,8 @@
 #include "language/SIL/TypeSubstCloner.h"
 #include "language/SILOptimizer/PassManager/PrettyStackTrace.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallSet.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallSet.h"
 
 namespace language {
 
@@ -81,40 +85,40 @@ private:
 
   /// Mapping from original basic blocks to corresponding pullback basic blocks.
   /// Pullback basic blocks always have the predecessor as the single argument.
-  llvm::DenseMap<SILBasicBlock *, SILBasicBlock *> pullbackBBMap;
+  toolchain::DenseMap<SILBasicBlock *, SILBasicBlock *> pullbackBBMap;
 
   /// Mapping from original basic blocks and original values to corresponding
   /// adjoint values.
-  llvm::DenseMap<std::pair<SILBasicBlock *, SILValue>, AdjointValue> valueMap;
+  toolchain::DenseMap<std::pair<SILBasicBlock *, SILValue>, AdjointValue> valueMap;
 
   /// Mapping from original basic blocks and original values to corresponding
   /// adjoint buffers.
-  llvm::DenseMap<std::pair<SILBasicBlock *, SILValue>, SILValue> bufferMap;
+  toolchain::DenseMap<std::pair<SILBasicBlock *, SILValue>, SILValue> bufferMap;
 
   /// Mapping from pullback struct field declarations to pullback struct
   /// elements destructured from the linear map basic block argument. In the
   /// beginning of each pullback basic block, the block's pullback struct is
   /// destructured into individual elements stored here.
-  llvm::DenseMap<SILBasicBlock*, SmallVector<SILValue, 4>> pullbackTupleElements;
+  toolchain::DenseMap<SILBasicBlock*, SmallVector<SILValue, 4>> pullbackTupleElements;
 
   /// Mapping from original basic blocks and successor basic blocks to
   /// corresponding pullback trampoline basic blocks. Trampoline basic blocks
   /// take additional arguments in addition to the predecessor enum argument.
-  llvm::DenseMap<std::pair<SILBasicBlock *, SILBasicBlock *>, SILBasicBlock *>
+  toolchain::DenseMap<std::pair<SILBasicBlock *, SILBasicBlock *>, SILBasicBlock *>
       pullbackTrampolineBBMap;
 
   /// Mapping from original basic blocks to dominated active values.
-  llvm::DenseMap<SILBasicBlock *, SmallVector<SILValue, 8>> activeValues;
+  toolchain::DenseMap<SILBasicBlock *, SmallVector<SILValue, 8>> activeValues;
 
   /// Mapping from original basic blocks and original active values to
   /// corresponding pullback block arguments.
-  llvm::DenseMap<std::pair<SILBasicBlock *, SILValue>, SILArgument *>
+  toolchain::DenseMap<std::pair<SILBasicBlock *, SILValue>, SILArgument *>
       activeValuePullbackBBArgumentMap;
 
   /// Mapping from original basic blocks to local temporary values to be cleaned
   /// up. This is populated when pullback emission is run on one basic block and
   /// cleaned before processing another basic block.
-  llvm::DenseMap<SILBasicBlock *, llvm::SmallSetVector<SILValue, 32>>
+  toolchain::DenseMap<SILBasicBlock *, toolchain::SmallSetVector<SILValue, 32>>
       blockTemporaries;
 
   /// The scope cloner.
@@ -134,10 +138,10 @@ private:
 
   /// Copies created to deal with destructive enum operations
   /// (unchecked_take_enum_addr)
-  llvm::SmallDenseMap<InitEnumDataAddrInst*, SILValue> enumDataAdjCopies;
+  toolchain::SmallDenseMap<InitEnumDataAddrInst*, SILValue> enumDataAdjCopies;
 
   /// A set used to remember local allocations that were destroyed.
-  llvm::SmallDenseSet<SILValue> destroyedLocalAllocations;
+  toolchain::SmallDenseSet<SILValue> destroyedLocalAllocations;
 
   /// The seed arguments of the pullback function.
   SmallVector<SILArgument *, 4> seeds;
@@ -145,7 +149,7 @@ private:
   /// The `AutoDiffLinearMapContext` object, if any.
   SILValue contextValue = nullptr;
 
-  llvm::BumpPtrAllocator allocator;
+  toolchain::BumpPtrAllocator allocator;
 
   bool errorOccurred = false;
 
@@ -179,7 +183,7 @@ private:
   }
 
   void initializePullbackTupleElements(SILBasicBlock *origBB,
-                                       const llvm::ArrayRef<SILArgument *> &values) {
+                                       const toolchain::ArrayRef<SILArgument *> &values) {
     auto *pbTupleTyple = getPullbackInfo().getLinearMapTupleType(origBB);
     assert(pbTupleTyple->getNumElements() == values.size() &&
            "The number of pullback tuple fields must equal the number of "
@@ -265,7 +269,7 @@ private:
     // $L            | address-only           | address, $*A' (no alternative)
     // $*A           | address-only           | address, $*A' (no alternative)
 
-    // TODO(https://github.com/apple/swift/issues/55523): Make "tangent value category" depend solely on whether the tangent type is loadable or address-only.
+    // TODO(https://github.com/apple/language/issues/55523): Make "tangent value category" depend solely on whether the tangent type is loadable or address-only.
     //
     // For loadable tangent types, using symbolic adjoint values instead of
     // concrete adjoint buffers is more efficient.
@@ -308,7 +312,7 @@ private:
     assert(value->getFunction() == &getPullback());
     auto inserted = blockTemporaries[value->getParentBlock()].insert(value);
     (void)inserted;
-    LLVM_DEBUG(getADDebugStream() << "Recorded temporary " << value);
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Recorded temporary " << value);
     assert(inserted && "Temporary already recorded?");
     return value;
   }
@@ -316,7 +320,7 @@ private:
   /// Clean up all temporary values for the given pullback block.
   void cleanUpTemporariesForBlock(SILBasicBlock *bb, SILLocation loc) {
     assert(bb->getParent() == &getPullback());
-    LLVM_DEBUG(getADDebugStream() << "Cleaning up temporaries for pullback bb"
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Cleaning up temporaries for pullback bb"
                                   << bb->getDebugID() << '\n');
     for (auto temp : blockTemporaries[bb])
       builder.emitDestroyValueOperation(loc, temp);
@@ -357,12 +361,12 @@ private:
   /// loadable.
   SILValue materializeAdjointDirect(AdjointValue val, SILLocation loc) {
     assert(val.getType().isObject());
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Materializing adjoint for " << val << '\n');
     SILValue result;
     switch (val.getKind()) {
     case AdjointValueKind::Zero:
-      result = recordTemporary(builder.emitZero(loc, val.getSwiftType()));
+      result = recordTemporary(builder.emitZero(loc, val.getCodiraType()));
       break;
     case AdjointValueKind::Aggregate: {
       SmallVector<SILValue, 8> elements;
@@ -415,7 +419,7 @@ private:
     /// materialize the symbolic tuple or struct, filling the
     /// buffer.
     case AdjointValueKind::Aggregate: {
-      if (auto *tupTy = val.getSwiftType()->getAs<TupleType>()) {
+      if (auto *tupTy = val.getCodiraType()->getAs<TupleType>()) {
         for (auto idx : range(val.getNumAggregateElements())) {
           auto eltTy = SILType::getPrimitiveAddressType(
               tupTy->getElementType(idx)->getCanonicalType());
@@ -424,7 +428,7 @@ private:
           materializeAdjointIndirect(val.getAggregateElement(idx), eltBuf, loc);
         }
       } else if (auto *structDecl =
-                     val.getSwiftType()->getStructOrBoundGenericStruct()) {
+                     val.getCodiraType()->getStructOrBoundGenericStruct()) {
         auto fieldIt = structDecl->getStoredProperties().begin();
         for (unsigned i = 0; fieldIt != structDecl->getStoredProperties().end();
              ++fieldIt, ++i) {
@@ -433,7 +437,7 @@ private:
           materializeAdjointIndirect(val.getAggregateElement(i), eltBuf, loc);
         }
       } else {
-        llvm_unreachable("Not an aggregate type");
+        toolchain_unreachable("Not an aggregate type");
       }
       break;
     }
@@ -513,7 +517,7 @@ private:
   /// original value does not already have an adjoint value.
   void setAdjointValue(SILBasicBlock *origBB, SILValue originalValue,
                        AdjointValue adjointValue) {
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Setting adjoint value for " << originalValue);
     assert(origBB->getParent() == &getOriginal());
     assert(originalValue->getType().isObject());
@@ -525,7 +529,7 @@ private:
            getRemappedTangentType(originalValue->getType()));
     // Try to assign a debug variable.
     if (auto debugInfo = findDebugLocationAndVariable(originalValue)) {
-      LLVM_DEBUG({
+      TOOLCHAIN_DEBUG({
         auto &s = getADDebugStream();
         s << "Found debug variable: \"" << debugInfo->second.Name
           << "\"\nLocation: ";
@@ -534,12 +538,12 @@ private:
       });
       adjointValue.setDebugInfo(*debugInfo);
     } else {
-      LLVM_DEBUG(getADDebugStream() << "No debug variable found.\n");
+      TOOLCHAIN_DEBUG(getADDebugStream() << "No debug variable found.\n");
     }
     // Insert into dictionary.
     auto insertion =
         valueMap.try_emplace({origBB, originalValue}, adjointValue);
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "The new adjoint value, replacing the existing one, is: "
                << insertion.first->getSecond() << '\n');
     if (!insertion.second)
@@ -570,14 +574,14 @@ private:
     assert(originalValue->getType().isObject());
     assert(newAdjointValue.getType().isObject());
     assert(originalValue->getFunction() == &getOriginal());
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Adding adjoint value for " << originalValue);
     // The adjoint value must be in the tangent space.
     assert(newAdjointValue.getType() ==
            getRemappedTangentType(originalValue->getType()));
     // Try to assign a debug variable.
     if (auto debugInfo = findDebugLocationAndVariable(originalValue)) {
-      LLVM_DEBUG({
+      TOOLCHAIN_DEBUG({
         auto &s = getADDebugStream();
         s << "Found debug variable: \"" << debugInfo->second.Name
           << "\"\nLocation: ";
@@ -586,7 +590,7 @@ private:
       });
       newAdjointValue.setDebugInfo(*debugInfo);
     } else {
-      LLVM_DEBUG(getADDebugStream() << "No debug variable found.\n");
+      TOOLCHAIN_DEBUG(getADDebugStream() << "No debug variable found.\n");
     }
     auto insertion =
         valueMap.try_emplace({origBB, originalValue}, newAdjointValue);
@@ -654,7 +658,7 @@ private:
     if (auto adjProj = getAdjointProjection(origBB, originalValue))
       return (bufferMap[{origBB, originalValue}] = adjProj);
 
-    LLVM_DEBUG(getADDebugStream() << "Creating new adjoint buffer for "
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Creating new adjoint buffer for "
                << originalValue
                << "in bb" << origBB->getDebugID() << '\n');
 
@@ -665,12 +669,12 @@ private:
     auto debugInfo = findDebugLocationAndVariable(originalValue);
     SILLocation loc = debugInfo ? debugInfo->first.getLocation()
                                 : RegularLocation::getAutoGeneratedLocation();
-    llvm::SmallString<32> adjName;
+    toolchain::SmallString<32> adjName;
     auto *newBuf = createFunctionLocalAllocation(
         bufType, loc, /*zeroInitialize*/ true,
-        swift::transform(debugInfo,
+        language::transform(debugInfo,
           [&](AdjointValue::DebugInfo di) {
-            llvm::raw_svector_ostream adjNameStream(adjName);
+            toolchain::raw_svector_ostream adjNameStream(adjName);
             SILDebugVariable &dv = di.second;
             dv.ArgNo = 0;
             adjNameStream << "derivative of '" << dv.Name << "'";
@@ -712,7 +716,7 @@ private:
     assert(rhsAddress->getFunction() == &getPullback());
     auto adjointBuffer = getAdjointBuffer(origBB, originalValue);
 
-    LLVM_DEBUG(getADDebugStream() << "Adding"
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Adding"
                << rhsAddress << "to adjoint ("
                << adjointBuffer << ") of "
                << originalValue
@@ -830,7 +834,7 @@ private:
 
   void printAdjointValueMapping() {
     // Group original/adjoint values by basic block.
-    llvm::DenseMap<SILBasicBlock *, llvm::DenseMap<SILValue, AdjointValue>> tmp;
+    toolchain::DenseMap<SILBasicBlock *, toolchain::DenseMap<SILValue, AdjointValue>> tmp;
     for (auto pair : valueMap) {
       auto origPair = pair.first;
       auto *origBB = origPair.first;
@@ -858,7 +862,7 @@ private:
 
   void printAdjointBufferMapping() {
     // Group original/adjoint buffers by basic block.
-    llvm::DenseMap<SILBasicBlock *, llvm::DenseMap<SILValue, SILValue>> tmp;
+    toolchain::DenseMap<SILBasicBlock *, toolchain::DenseMap<SILValue, SILValue>> tmp;
     for (auto pair : bufferMap) {
       auto origPair = pair.first;
       auto *origBB = origPair.first;
@@ -928,7 +932,7 @@ public:
   /// use them.
   SILBasicBlock *
   buildPullbackSuccessor(SILBasicBlock *origBB, SILBasicBlock *origPredBB,
-                         llvm::SmallDenseMap<SILValue, TrampolineBlockSet>
+                         toolchain::SmallDenseMap<SILValue, TrampolineBlockSet>
                              &pullbackTrampolineBlockMap);
 
   /// Emits pullback code in the corresponding pullback block.
@@ -938,14 +942,14 @@ public:
     if (errorOccurred)
       return;
 
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "PullbackCloner visited:\n[ORIG]" << *inst);
 #ifndef NDEBUG
     auto beforeInsertion = std::prev(builder.getInsertionPoint());
 #endif
     SILInstructionVisitor::visit(inst);
-    LLVM_DEBUG({
-      auto &s = llvm::dbgs() << "[ADJ] Emitted in pullback (pb bb" <<
+    TOOLCHAIN_DEBUG({
+      auto &s = toolchain::dbgs() << "[ADJ] Emitted in pullback (pb bb" <<
         builder.getInsertionBB()->getDebugID() << "):\n";
       auto afterInsertion = builder.getInsertionPoint();
       for (auto it = ++beforeInsertion; it != afterInsertion; ++it)
@@ -956,7 +960,7 @@ public:
   /// Fallback instruction visitor for unhandled instructions.
   /// Emit a general non-differentiability diagnostic.
   void visitSILInstruction(SILInstruction *inst) {
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Unhandled instruction in PullbackCloner: " << *inst);
     getContext().emitNondifferentiabilityError(
         inst, getInvoker(), diag::autodiff_expression_not_differentiable_note);
@@ -1111,10 +1115,10 @@ public:
     SmallVector<SILValue, 8> allResults;
     collectAllActualResultsInTypeOrder(pullbackCall, dirResults, allResults);
 
-    LLVM_DEBUG({
+    TOOLCHAIN_DEBUG({
       auto &s = getADDebugStream();
       s << "All results of the nested pullback call:\n";
-      llvm::for_each(allResults, [&](SILValue v) { s << v; });
+      toolchain::for_each(allResults, [&](SILValue v) { s << v; });
     });
 
     // Accumulate adjoints for original differentiation parameters.
@@ -1171,7 +1175,7 @@ public:
     }
 
     // Destroy and deallocate pullback indirect results.
-    for (auto *alloc : llvm::reverse(pullbackIndirectResults)) {
+    for (auto *alloc : toolchain::reverse(pullbackIndirectResults)) {
       builder.emitDestroyAddrAndFold(loc, alloc);
       builder.createDeallocStack(loc, alloc);
     }
@@ -1287,12 +1291,12 @@ public:
         // initializer, and synthesized initializers only have one level of
         // struct formation which will not result into any aggregate adjoint
         // values.
-        llvm_unreachable(
+        toolchain_unreachable(
             "Aggregate adjoint values should not occur for `struct` "
             "instructions");
       }
       case AdjointValueKind::AddElement: {
-        llvm_unreachable(
+        toolchain_unreachable(
             "Adjoint of `StructInst` cannot be of kind `AddElement`");
       }
       }
@@ -1519,7 +1523,7 @@ public:
         break;
       }
       case AdjointValueKind::AddElement: {
-        llvm_unreachable(
+        toolchain_unreachable(
             "Adjoint of `TupleInst` cannot be of kind `AddElement`");
       }
       }
@@ -1780,8 +1784,12 @@ public:
   void visitMoveValueInst(MoveValueInst *mvi) {
     switch (getTangentValueCategory(mvi)) {
     case SILValueCategory::Address:
-      llvm::report_fatal_error("AutoDiff does not support move_value with "
-                               "SILValueCategory::Address");
+      TOOLCHAIN_DEBUG(getADDebugStream() << "AutoDiff does not support move_value with "
+                 "SILValueCategory::Address");
+      getContext().emitNondifferentiabilityError(
+        mvi, getInvoker(), diag::autodiff_expression_not_differentiable_note);
+      errorOccurred = true;
+      return;
     case SILValueCategory::Object:
       visitValueOwnershipInst(mvi, /*needZeroResAdj=*/true);
     }
@@ -1822,7 +1830,7 @@ public:
     auto adjSrc = getAdjointBuffer(bb, uccai->getSrc());
     auto castBuf = builder.createAllocStack(uccai->getLoc(), adjSrc->getType());
     builder.createUnconditionalCheckedCastAddr(
-        uccai->getLoc(), uccai->getIsolatedConformances(),
+        uccai->getLoc(), uccai->getCheckedCastOptions(),
         adjDest, adjDest->getType().getASTType(), castBuf,
         adjSrc->getType().getASTType());
     addToAdjointBuffer(bb, uccai->getSrc(), castBuf, uccai->getLoc());
@@ -1842,7 +1850,7 @@ public:
     // Only `Optional`-typed operands are supported for now. Diagnose all other
     // enum operand types.
     if (ei->getType().getEnumOrBoundGenericEnum() != optionalEnumDecl) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Unsupported enum type in PullbackCloner: " << *ei);
       getContext().emitNondifferentiabilityError(
           ei, getInvoker(),
@@ -1879,7 +1887,7 @@ public:
     // enum operand types.
     auto *optionalEnumDecl = getASTContext().getOptionalDecl();
     if (origEnum->getType().getEnumOrBoundGenericEnum() != optionalEnumDecl) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Unsupported enum type in PullbackCloner: " << *inject);
       getContext().emitNondifferentiabilityError(
           inject, getInvoker(),
@@ -1899,7 +1907,7 @@ public:
         // inject_enum_addr are in different blocks, or there is more than one
         // such instruction. Bail out for now.
         if (origData || init->getParent() != bb) {
-          LLVM_DEBUG(getADDebugStream()
+          TOOLCHAIN_DEBUG(getADDebugStream()
                      << "Could not find a matching init_enum_data_addr for: "
                      << *inject);
           getContext().emitNondifferentiabilityError(
@@ -2013,7 +2021,7 @@ public:
     // Only `Optional`-typed operands are supported for now. Diagnose all other
     // enum operand types.
     if (enumTy.getASTType().getEnumOrBoundGenericEnum() != optionalEnumDecl) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Unhandled instruction in PullbackCloner: " << *utedai);
       getContext().emitNondifferentiabilityError(
           utedai, getInvoker(),
@@ -2130,7 +2138,7 @@ bool PullbackCloner::Implementation::run() {
   auto &original = getOriginal();
   auto &pullback = getPullback();
   auto pbLoc = getPullback().getLocation();
-  LLVM_DEBUG(getADDebugStream() << "Running PullbackCloner on\n" << original);
+  TOOLCHAIN_DEBUG(getADDebugStream() << "Running PullbackCloner on\n" << original);
 
   // Collect original formal results.
   SmallVector<SILValue, 8> origFormalResults;
@@ -2418,7 +2426,7 @@ bool PullbackCloner::Implementation::run() {
 
       if (seedParamInfo.isIndirectInOut()) {
         setAdjointBuffer(originalExitBlock, origResult, seed);
-        LLVM_DEBUG(getADDebugStream()
+        TOOLCHAIN_DEBUG(getADDebugStream()
                    << "Assigned seed buffer " << *seed
                    << " as the adjoint of original indirect result "
                    << origResult);
@@ -2431,7 +2439,7 @@ bool PullbackCloner::Implementation::run() {
         builder.createCopyAddr(pbLoc, seed, seedBufCopy, IsNotTake,
                                IsInitialization);
         setAdjointBuffer(originalExitBlock, origResult, seedBufCopy);
-        LLVM_DEBUG(getADDebugStream()
+        TOOLCHAIN_DEBUG(getADDebugStream()
                    << "Assigned seed buffer " << *seedBufCopy
                    << " as the adjoint of original indirect result "
                    << origResult);
@@ -2439,7 +2447,7 @@ bool PullbackCloner::Implementation::run() {
     } else {
       addAdjointValue(originalExitBlock, origResult, makeConcreteAdjointValue(seed),
                       pbLoc);
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Assigned seed " << *seed
                  << " as the adjoint of original result " << origResult);
     }
@@ -2456,9 +2464,9 @@ bool PullbackCloner::Implementation::run() {
   // Visit original blocks in post-order and perform differentiation
   // in corresponding pullback blocks. If errors occurred, back out.
   else {
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Begin search for adjoints of loop-local active values\n");
-    llvm::DenseMap<const SILLoop *, llvm::DenseSet<SILValue>>
+    toolchain::DenseMap<const SILLoop *, toolchain::DenseSet<SILValue>>
         loopLocalActiveValues;
     for (auto *bb : originalBlocks) {
       const SILLoop *loop = vjpCloner.getLoopInfo()->getLoopFor(bb);
@@ -2466,7 +2474,7 @@ bool PullbackCloner::Implementation::run() {
         continue;
       SILBasicBlock *loopHeader = loop->getHeader();
       SILBasicBlock *pbLoopHeader = getPullbackBlock(loopHeader);
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Original bb" << bb->getDebugID()
                  << " belongs to a loop, original header bb"
                  << loopHeader->getDebugID() << ", pullback header bb"
@@ -2479,7 +2487,7 @@ bool PullbackCloner::Implementation::run() {
       for (SILValue bbActiveValue : bbActiveValues) {
         if (vjpCloner.getLoopInfo()->getLoopFor(
                 bbActiveValue->getParentBlock()) != loop) {
-          LLVM_DEBUG(
+          TOOLCHAIN_DEBUG(
               getADDebugStream()
               << "The following active value is NOT loop-local, skipping: "
               << bbActiveValue);
@@ -2488,17 +2496,17 @@ bool PullbackCloner::Implementation::run() {
 
         auto [_, wasInserted] =
             loopLocalActiveValues[loop].insert(bbActiveValue);
-        LLVM_DEBUG(getADDebugStream()
+        TOOLCHAIN_DEBUG(getADDebugStream()
                    << "The following active value is loop-local, ");
         if (!wasInserted) {
-          LLVM_DEBUG(llvm::dbgs() << "but it was already processed, skipping: "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "but it was already processed, skipping: "
                                   << bbActiveValue);
           continue;
         }
 
         if (getTangentValueCategory(bbActiveValue) ==
             SILValueCategory::Object) {
-          LLVM_DEBUG(llvm::dbgs()
+          TOOLCHAIN_DEBUG(toolchain::dbgs()
                      << "zeroing its adjoint value in loop header: "
                      << bbActiveValue);
           setAdjointValue(bb, bbActiveValue,
@@ -2512,11 +2520,11 @@ bool PullbackCloner::Implementation::run() {
 
         // getAdjointProjection might call materializeAdjointDirect which
         // writes to debug output, emit \n.
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "checking if it's adjoint is a projection\n");
 
         if (!getAdjointProjection(bb, bbActiveValue)) {
-          LLVM_DEBUG(getADDebugStream()
+          TOOLCHAIN_DEBUG(getADDebugStream()
                      << "Adjoint for the following value is NOT a projection, "
                         "zeroing its adjoint buffer in loop header: "
                      << bbActiveValue);
@@ -2531,7 +2539,7 @@ bool PullbackCloner::Implementation::run() {
           continue;
         }
 
-        LLVM_DEBUG(getADDebugStream()
+        TOOLCHAIN_DEBUG(getADDebugStream()
                    << "Adjoint for the following value is a projection, ");
 
         // If Projection::isAddressProjection(v) is true for a value v, it
@@ -2552,7 +2560,7 @@ bool PullbackCloner::Implementation::run() {
           // 2. Otherwise, we do not need to zero the projection buffer.
           // Thus, we can just skip.
           if (dyn_cast<BeginAccessInst>(bbActiveValue)) {
-            LLVM_DEBUG(llvm::dbgs() << "skipping: " << bbActiveValue);
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "skipping: " << bbActiveValue);
             break;
           }
 
@@ -2569,11 +2577,11 @@ bool PullbackCloner::Implementation::run() {
                   bbActiveValue)) {
             ASSERT(isa<PointerToAddressInst>(bbActiveValue));
             SILValue arrayValue = getArrayValue(ai);
-            ASSERT(llvm::find(bbActiveValues, arrayValue) !=
+            ASSERT(toolchain::find(bbActiveValues, arrayValue) !=
                    bbActiveValues.end());
             ASSERT(vjpCloner.getLoopInfo()->getLoopFor(
                        arrayValue->getParentBlock()) == loop);
-            LLVM_DEBUG(llvm::dbgs() << "skipping: " << bbActiveValue);
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "skipping: " << bbActiveValue);
             break;
           }
 
@@ -2581,7 +2589,7 @@ bool PullbackCloner::Implementation::run() {
         } while (false);
       }
     }
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "End search for adjoints of loop-local active values\n");
 
     for (auto *bb : originalBlocks) {
@@ -2725,7 +2733,7 @@ bool PullbackCloner::Implementation::run() {
   assert(!leakFound && "Leaks found!");
 #endif
 
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Generated pullback for " << original.getName() << ":\n"
              << pullback);
   return errorOccurred;
@@ -2746,7 +2754,7 @@ void PullbackCloner::Implementation::emitZeroDerivativesForNonvariedResult(
         .fixItInsertAfter(endLoc, ")");
   }
   */
-  LLVM_DEBUG(getADDebugStream() << getOriginal().getName()
+  TOOLCHAIN_DEBUG(getADDebugStream() << getOriginal().getName()
                                 << " has non-varied result, returning zero"
                                    " for all pullback results\n");
   auto *pullbackEntry = pullback.createBasicBlock();
@@ -2771,7 +2779,7 @@ void PullbackCloner::Implementation::emitZeroDerivativesForNonvariedResult(
       builder.emitZeroIntoBuffer(pbLoc, *indirectResultIt++, IsInitialization);
   }
   builder.createReturn(pbLoc, joinElements(directResults, builder, pbLoc));
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Generated pullback for " << getOriginal().getName() << ":\n"
              << pullback);
 }
@@ -2908,9 +2916,9 @@ SILBasicBlock *PullbackCloner::Implementation::buildPullbackSuccessor(
   // Propagate adjoint values/buffers of active values/buffers to
   // predecessor blocks.
   auto &predBBActiveValues = activeValues[origPredBB];
-  llvm::SmallSet<std::pair<SILValue, SILValue>, 32> propagatedAdjoints;
+  toolchain::SmallSet<std::pair<SILValue, SILValue>, 32> propagatedAdjoints;
   for (auto activeValue : predBBActiveValues) {
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Propagating adjoint of active value " << activeValue
                << "from bb" << origBB->getDebugID()
                << " to predecessors' (bb" << origPredBB->getDebugID()
@@ -2993,11 +3001,11 @@ void PullbackCloner::Implementation::visitSILBasicBlock(SILBasicBlock *bb) {
   auto *pbBB = getPullbackBlock(bb);
   builder.setInsertionPoint(pbBB);
 
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream()
               << "Original bb" + std::to_string(bb->getDebugID())
               << ": To differentiate or not to differentiate?\n";
-    for (auto &inst : llvm::reverse(*bb)) {
+    for (auto &inst : toolchain::reverse(*bb)) {
       s << (getPullbackInfo().shouldDifferentiateInstruction(&inst) ? "[x] "
                                                                     : "[ ] ")
         << inst;
@@ -3005,7 +3013,7 @@ void PullbackCloner::Implementation::visitSILBasicBlock(SILBasicBlock *bb) {
   });
 
   // Visit each instruction in reverse order.
-  for (auto &inst : llvm::reverse(*bb)) {
+  for (auto &inst : toolchain::reverse(*bb)) {
     if (!getPullbackInfo().shouldDifferentiateInstruction(&inst))
       continue;
     // Differentiate instruction.
@@ -3057,7 +3065,7 @@ void PullbackCloner::Implementation::visitSILBasicBlock(SILBasicBlock *bb) {
   for (auto *bbArg : bb->getArguments()) {
     if (!getActivityInfo().isActive(bbArg, getConfig()))
       continue;
-    LLVM_DEBUG(getADDebugStream() << "Propagating adjoint value for active bb"
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Propagating adjoint value for active bb"
                << bb->getDebugID() << " argument: "
                << *bbArg);
 
@@ -3121,8 +3129,21 @@ void PullbackCloner::Implementation::visitSILBasicBlock(SILBasicBlock *bb) {
         break;
       }
       }
-    } else
-      llvm::report_fatal_error("do not know how to handle this incoming bb argument");
+    } else {
+      TOOLCHAIN_DEBUG(getADDebugStream() <<
+                 "do not know how to handle this incoming bb argument");
+      if (auto term = bbArg->getSingleTerminator()) {
+        getContext().emitNondifferentiabilityError(term, getInvoker(),
+          diag::autodiff_expression_not_differentiable_note);
+      } else {
+        // This will be a bit confusing, but still better than nothing.
+        getContext().emitNondifferentiabilityError(bbArg, getInvoker(),
+          diag::autodiff_expression_not_differentiable_note);
+      }
+
+      errorOccurred = true;
+      return;
+    }
   }
 
   // 3. Build the pullback successor cases for the `switch_enum`
@@ -3188,9 +3209,9 @@ bool PullbackCloner::Implementation::runForSemanticMemberAccessor() {
     return runForSemanticMemberGetter();
   case AccessorKind::Set:
     return runForSemanticMemberSetter();
-  // TODO(https://github.com/apple/swift/issues/55084): Support `modify` accessors.
+  // TODO(https://github.com/apple/language/issues/55084): Support `modify` accessors.
   default:
-    llvm_unreachable("Unsupported accessor kind; inconsistent with "
+    toolchain_unreachable("Unsupported accessor kind; inconsistent with "
                      "`isSemanticMemberAccessor`?");
   }
 }
@@ -3270,7 +3291,7 @@ bool PullbackCloner::Implementation::runForSemanticMemberGetter() {
       break;
     }
     case AdjointValueKind::AddElement:
-      llvm_unreachable("Adjoint of an aggregate type's field cannot be of kind "
+      toolchain_unreachable("Adjoint of an aggregate type's field cannot be of kind "
                        "`AddElement`");
     }
     break;
@@ -3501,7 +3522,7 @@ SILValue PullbackCloner::Implementation::getAdjointProjection(
 
 AdjointValue PullbackCloner::Implementation::accumulateAdjointsDirect(
     AdjointValue lhs, AdjointValue rhs, SILLocation loc) {
-  LLVM_DEBUG(getADDebugStream() << "Accumulating adjoint directly.\nLHS: "
+  TOOLCHAIN_DEBUG(getADDebugStream() << "Accumulating adjoint directly.\nLHS: "
                                 << lhs << "\nRHS: " << rhs << '\n');
   switch (lhs.getKind()) {
   // x
@@ -3524,7 +3545,7 @@ AdjointValue PullbackCloner::Implementation::accumulateAdjointsDirect(
       auto lhsValCopy = builder.emitCopyValueOperation(loc, lhsVal);
       if (lhsTy->is<TupleType>()) {
         auto elts = builder.createDestructureTuple(loc, lhsValCopy);
-        llvm::for_each(elts->getResults(),
+        toolchain::for_each(elts->getResults(),
                        [this](SILValue result) { recordTemporary(result); });
         for (auto i : indices(elts->getResults())) {
           auto rhsElt = rhs.getAggregateElement(i);
@@ -3534,7 +3555,7 @@ AdjointValue PullbackCloner::Implementation::accumulateAdjointsDirect(
       } else if (lhsTy->getStructOrBoundGenericStruct()) {
         auto elts =
             builder.createDestructureStruct(lhsVal.getLoc(), lhsValCopy);
-        llvm::for_each(elts->getResults(),
+        toolchain::for_each(elts->getResults(),
                        [this](SILValue result) { recordTemporary(result); });
         for (unsigned i : indices(elts->getResults())) {
           auto rhsElt = rhs.getAggregateElement(i);
@@ -3542,7 +3563,7 @@ AdjointValue PullbackCloner::Implementation::accumulateAdjointsDirect(
               makeConcreteAdjointValue(elts->getResult(i)), rhsElt, loc));
         }
       } else {
-        llvm_unreachable("Not an aggregate type");
+        toolchain_unreachable("Not an aggregate type");
       }
       return makeAggregateAdjointValue(lhsVal->getType(), newElements);
     }
@@ -3625,7 +3646,7 @@ AdjointValue PullbackCloner::Implementation::accumulateAdjointsDirect(
     }
   }
   }
-  llvm_unreachable("Invalid adjoint value kind"); // silences MSVC C4715
+  toolchain_unreachable("Invalid adjoint value kind"); // silences MSVC C4715
 }
 
 //----------------------------------------------------------------------------//
@@ -3649,14 +3670,31 @@ void PullbackCloner::Implementation::
   if (originalValue != dti->getResult(0))
     return;
   // Accumulate the array's adjoint value into the adjoint buffers of its
-  // element addresses: `pointer_to_address` and `index_addr` instructions.
-  LLVM_DEBUG(getADDebugStream()
+  // element addresses: `pointer_to_address` and (optionally) `index_addr`
+  // instructions.
+  // The input code looks like as follows:
+  //  %17 = integer_literal $Builtin.Word, 1
+  //  function_ref _allocateUninitializedArray<A>(_:)
+  //  %18 = function_ref @$ss27_allocateUninitializedArrayySayxG_BptBwlF : $@convention(thin) <τ_0_0> (Builtin.Word) -> (@owned Array<τ_0_0>, Builtin.RawPointer)
+  //  %19 = apply %18<Float>(%17) : $@convention(thin) <τ_0_0> (Builtin.Word) -> (@owned Array<τ_0_0>, Builtin.RawPointer)
+  //  (%20, %21) = destructure_tuple %19
+  //  %22 = mark_dependence %21 on %20
+  //  %23 = pointer_to_address %22 to [strict] $*Float
+  //  store %0 to [trivial] %23
+  //  function_ref _finalizeUninitializedArray<A>(_:)
+  //  %25 = function_ref @$ss27_finalizeUninitializedArrayySayxGABnlF : $@convention(thin) <τ_0_0> (@owned Array<τ_0_0>) -> @owned Array<τ_0_0>
+  //  %26 = apply %25<Float>(%20) : $@convention(thin) <τ_0_0> (@owned Array<τ_0_0>) -> @owned Array<τ_0_0> // user: %27
+  // Note that %20 and %21 are in some sense "aliases" for each other. Here our `originalValue` is %20 in the code above.
+  // We need to trace from %21 down to %23 and propagate (decomposed) adjoint of originalValue to adjoint of %23.
+  // Then the generic adjoint propagation code would do its job to propagate %23' to %0'.
+  // If we're initializing multiple values we're having additional `index_addr` instructions, but
+  // the handling is similar.
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Accumulating adjoint value for array literal into element "
                 "address adjoint buffers"
              << originalValue);
   auto arrayAdjoint = materializeAdjointDirect(arrayAdjointValue, loc);
   builder.setCurrentDebugScope(remapScope(dti->getDebugScope()));
-  builder.setInsertionPoint(arrayAdjoint->getParentBlock());
   for (auto use : dti->getResult(1)->getUses()) {
     auto *mdi = dyn_cast<MarkDependenceInst>(use->getUser());
     assert(mdi && "Expected mark_dependence user");

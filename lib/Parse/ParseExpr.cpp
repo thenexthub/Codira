@@ -1,4 +1,4 @@
-//===--- ParseExpr.cpp - Swift Language Parser for Expressions ------------===//
+//===--- ParseExpr.cpp - Codira Language Parser for Expressions ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Expression Parsing and AST Building
@@ -28,15 +29,19 @@
 #include "language/Basic/StringExtras.h"
 #include "language/Parse/IDEInspectionCallbacks.h"
 #include "language/Parse/Parser.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <utility>
 
 using namespace language;
+
+bool Token::isEditorPlaceholder() const {
+  return is(tok::identifier) && Identifier::isEditorPlaceholder(getRawText());
+}
 
 /// parseExpr
 ///
@@ -339,7 +344,7 @@ parse_operator:
             peekToken().isAny(tok::arrow, tok::kw_throws)))
         goto done;
 
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     }
 
     case tok::arrow:
@@ -424,12 +429,14 @@ ParserResult<Expr> Parser::parseExprSequenceElement(Diag<> message,
 
   if (Tok.isContextualKeyword("unsafe") &&
       !(peekToken().isAtStartOfLine() ||
-        peekToken().isAny(tok::r_paren, tok::r_brace, tok::r_square,
-                          tok::equal, tok::colon, tok::comma, tok::eof) ||
+        peekToken().isAny(tok::r_paren, tok::r_brace, tok::r_square, tok::equal,
+                          tok::colon, tok::comma, tok::eof) ||
         (isExprBasic && peekToken().is(tok::l_brace)) ||
         peekToken().is(tok::period) ||
         (peekToken().isAny(tok::l_paren, tok::l_square) &&
-         peekToken().getRange().getStart() == Tok.getRange().getEnd()))) {
+         peekToken().getRange().getStart() == Tok.getRange().getEnd()) ||
+        peekToken().isBinaryOperatorLike() ||
+        peekToken().isPostfixOperatorLike())) {
     Tok.setKind(tok::contextual_keyword);
     SourceLoc unsafeLoc = consumeToken();
     ParserResult<Expr> sub =
@@ -504,6 +511,9 @@ ParserResult<Expr> Parser::parseExprSequenceElement(Diag<> message,
        peekToken().isContextualPunctuator("~")) &&
       !peekToken().isAtStartOfLine()) {
     ParserResult<TypeRepr> ty = parseType();
+    if (ty.isNull())
+      return nullptr;
+
     auto *typeExpr = new (Context) TypeExpr(ty.get());
     return makeParserResult(typeExpr);
   }
@@ -702,7 +712,7 @@ ParserResult<Expr> Parser::parseExprUnary(Diag<> Message, bool isExprBasic) {
   return makeParserResult(Status, opCall);
 }
 
-/// expr-keypath-swift:
+/// expr-keypath-language:
 ///   \ type? . initial-key-path-component key-path-components
 ///
 /// key-path-components:
@@ -723,7 +733,7 @@ ParserResult<Expr> Parser::parseExprUnary(Diag<> Message, bool isExprBasic) {
 ParserResult<Expr> Parser::parseExprKeyPath() {
   // Consume '\'.
   SourceLoc backslashLoc = consumeToken(tok::backslash);
-  llvm::SaveAndRestore<bool> S(InSwiftKeyPath, true);
+  toolchain::SaveAndRestore<bool> S(InCodiraKeyPath, true);
 
   // FIXME: diagnostics
   ParserResult<Expr> rootResult, pathResult;
@@ -967,7 +977,7 @@ static DeclRefKind getDeclRefKindForOperator(tok kind) {
   case tok::oper_binary_unspaced:  return DeclRefKind::BinaryOperator;
   case tok::oper_postfix: return DeclRefKind::PostfixOperator;
   case tok::oper_prefix:  return DeclRefKind::PrefixOperator;
-  default: llvm_unreachable("bad operator token kind");
+  default: toolchain_unreachable("bad operator token kind");
   }
 }
 
@@ -1082,7 +1092,7 @@ StringRef Parser::stripUnderscoresIfNeeded(StringRef text,
                                            SmallVectorImpl<char> &buffer) {
   if (text.contains('_')) {
     buffer.clear();
-    llvm::copy_if(text, std::back_inserter(buffer),
+    toolchain::copy_if(text, std::back_inserter(buffer),
                   [](char ch) { return ch != '_'; });
     return StringRef(buffer.data(), buffer.size());
   }
@@ -1216,7 +1226,7 @@ static MagicIdentifierLiteralExpr::Kind
 getMagicIdentifierLiteralKind(tok Kind, const LangOptions &Opts) {
   switch (Kind) {
   case tok::pound_file:
-    // TODO(https://github.com/apple/swift/issues/55639): Enable by default at the next source break.
+    // TODO(https://github.com/apple/language/issues/55639): Enable by default at the next source break.
     return Opts.hasFeature(Feature::ConciseMagicFile)
          ? MagicIdentifierLiteralExpr::FileIDSpelledAsFile
          : MagicIdentifierLiteralExpr::FilePathSpelledAsFile;
@@ -1225,7 +1235,7 @@ getMagicIdentifierLiteralKind(tok Kind, const LangOptions &Opts) {
     return MagicIdentifierLiteralExpr::Kind::NAME;
 #include "language/AST/MagicIdentifierKinds.def"
   default:
-    llvm_unreachable("not a magic literal");
+    toolchain_unreachable("not a magic literal");
   }
 }
 
@@ -1264,7 +1274,7 @@ Parser::parseExprPostfixSuffix(ParserResult<Expr> Result, bool isExprBasic,
         break;
       }
       // Completion for keyPath expression is handled in parseExprKeyPath.
-      if (InSwiftKeyPath && peekToken().is(tok::code_complete))
+      if (InCodiraKeyPath && peekToken().is(tok::code_complete))
         break;
 
       Tok.setKind(tok::period);
@@ -1301,7 +1311,7 @@ Parser::parseExprPostfixSuffix(ParserResult<Expr> Result, bool isExprBasic,
 
       // Handle "x.<tab>" for code completion.
       if (Tok.is(tok::code_complete)) {
-        assert(!InSwiftKeyPath);
+        assert(!InCodiraKeyPath);
         auto CCExpr = new (Context) CodeCompletionExpr(Result.get(),
                                                        Tok.getLoc());
         if (CodeCompletionCallbacks) {
@@ -1452,7 +1462,7 @@ Parser::parseExprPostfixSuffix(ParserResult<Expr> Result, bool isExprBasic,
       // it as a "postfix ifconfig expression".
       bool isPostfixIfConfigExpr = false;
       {
-        llvm::SaveAndRestore<std::optional<StableHasher>> H(CurrentTokenHash,
+        toolchain::SaveAndRestore<std::optional<StableHasher>> H(CurrentTokenHash,
                                                             std::nullopt);
         Parser::BacktrackingScope Backtrack(*this);
         // Skip to the first body. We may need to skip multiple '#if' directives
@@ -1475,7 +1485,7 @@ Parser::parseExprPostfixSuffix(ParserResult<Expr> Result, bool isExprBasic,
           .fixItInsert(getEndOfPreviousLoc(), "\n");
       }
 
-      llvm::TinyPtrVector<ASTNode> activeElements;
+      toolchain::TinyPtrVector<ASTNode> activeElements;
       auto ICD = parseIfConfig(
           IfConfigContext::PostfixExpr,
           [&](bool isActive) {
@@ -1514,7 +1524,7 @@ Parser::parseExprPostfixSuffix(ParserResult<Expr> Result, bool isExprBasic,
     }
 
     if (Tok.is(tok::code_complete)) {
-      if (InSwiftKeyPath)
+      if (InCodiraKeyPath)
         return Result;
 
       if (Tok.isAtStartOfLine()) {
@@ -1524,7 +1534,7 @@ Parser::parseExprPostfixSuffix(ParserResult<Expr> Result, bool isExprBasic,
       }
 
       // FIXME: We should be able to remove the InBindingPattern checks once
-      // apple/swift#64280 is merged.
+      // apple/language#64280 is merged.
       if (CodeCompletionCallbacks && Result.isNonNull() &&
           InBindingPattern != PatternBindingState::ImplicitlyImmutable &&
           InBindingPattern != PatternBindingState::InVar &&
@@ -1605,7 +1615,7 @@ ParserResult<Expr> Parser::parseExprPostfix(Diag<> ID, bool isExprBasic) {
     return Result;
 
   return parseExprPostfixSuffix(Result, isExprBasic,
-                                /*periodHasKeyPathBehavior=*/InSwiftKeyPath);
+                                /*periodHasKeyPathBehavior=*/InCodiraKeyPath);
 }
 
 /// parseExprPrimary
@@ -1665,7 +1675,7 @@ ParserResult<Expr> Parser::parseExprPrimary(Diag<> ID, bool isExprBasic) {
     diagnose(Tok.getLoc(), diag::string_literal_no_atsign)
       .fixItRemove(Tok.getLoc());
     consumeToken(tok::at_sign);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
       
   case tok::string_literal:  // "foo"
     return parseExprStringLiteral();
@@ -1735,7 +1745,7 @@ ParserResult<Expr> Parser::parseExprPrimary(Diag<> ID, bool isExprBasic) {
       return makeParserResult(new (Context) UnresolvedPatternExpr(pattern));
     }
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   case tok::kw_init:
   case tok::kw_Self:     // Self
@@ -1924,7 +1934,7 @@ createStringLiteralExprFromSegment(ASTContext &Ctx,
                                    SourceLoc TokenLoc) {
   assert(Segment.Kind == Lexer::StringSegment::Literal);
   // FIXME: Consider lazily encoding the string when needed.
-  llvm::SmallString<256> Buf;
+  toolchain::SmallString<256> Buf;
   StringRef EncodedStr = L->getEncodedStringSegment(Segment, Buf);
   if (!Buf.empty()) {
     assert(EncodedStr.begin() == Buf.begin() &&
@@ -2021,7 +2031,7 @@ parseStringSegments(SmallVectorImpl<Lexer::StringSegment> &Segments,
       Lexer LocalLex(*L, BeginState, EndState);
 
       // Temporarily swap out the parser's current lexer with our new one.
-      llvm::SaveAndRestore<Lexer *> T(L, &LocalLex);
+      toolchain::SaveAndRestore<Lexer *> T(L, &LocalLex);
 
       // Prime the new lexer with a '(' as the first token.
       // We might be at tok::eof now, so ensure that consumeToken() does not
@@ -2097,10 +2107,10 @@ ParserResult<Expr> Parser::parseExprStringLiteral() {
   consumeTokenWithoutFeedingReceiver();
   // We are going to mess with Tok to do reparsing for interpolated literals,
   // don't lose our 'next' token.
-  llvm::SaveAndRestore<Token> SavedTok(Tok);
+  toolchain::SaveAndRestore<Token> SavedTok(Tok);
   // For errors, we need the real PreviousLoc, i.e. the start of the
   // whole InterpolatedStringLiteral.
-  llvm::SaveAndRestore<SourceLoc> SavedPreviousLoc(PreviousLoc);
+  toolchain::SaveAndRestore<SourceLoc> SavedPreviousLoc(PreviousLoc);
 
   unsigned LiteralCapacity = 0;
   unsigned InterpolationCount = 0;
@@ -2204,7 +2214,7 @@ static bool tryParseArgLabelList(Parser &P, Parser::DeclNameOptions flags,
   // An argument label.
   bool nextIsArgLabel = next.canBeArgumentLabel() || next.is(tok::colon);
   // An editor placeholder.
-  bool nextIsPlaceholder = Identifier::isEditorPlaceholder(next.getText());
+  bool nextIsPlaceholder = next.isEditorPlaceholder();
 
   if (!(nextIsRParen || nextIsArgLabel || nextIsPlaceholder))
     return false;
@@ -2340,7 +2350,7 @@ ParserStatus Parser::parseFreestandingMacroExpansion(
       diagnose(leftAngleLoc, diag::while_parsing_as_left_angle_bracket);
   }
 
-  llvm::SaveAndRestore<bool> inMacroArgument(InFreestandingMacroArgument, true);
+  toolchain::SaveAndRestore<bool> inMacroArgument(InFreestandingMacroArgument, true);
 
   if (Tok.isFollowingLParen()) {
     auto result = parseArgumentList(tok::l_paren, tok::r_paren, isExprBasic,
@@ -2400,7 +2410,7 @@ ParserResult<Expr> Parser::parseExprIdentifier(bool allowKeyword) {
     hasGenericArgumentList = true;
   }
   
-  if (name.getBaseName().isEditorPlaceholder()) {
+  if (IdentTok.isEditorPlaceholder()) {
     return makeParserResult(
         status, parseExprEditorPlaceholder(IdentTok, name.getBaseIdentifier()));
   }
@@ -2422,7 +2432,7 @@ Expr *Parser::parseExprEditorPlaceholder(Token PlaceholderTok,
 
   auto parseTypeForPlaceholder = [&]() -> std::pair<TypeRepr *, TypeRepr *> {
     std::optional<EditorPlaceholderData> DataOpt =
-        swift::parseEditorPlaceholder(PlaceholderTok.getText());
+        language::parseEditorPlaceholder(PlaceholderTok.getText());
     if (!DataOpt)
       return {nullptr, nullptr};
     StringRef TypeStr = DataOpt->Type;
@@ -2444,11 +2454,11 @@ Expr *Parser::parseExprEditorPlaceholder(Token PlaceholderTok,
       Lexer LocalLex(*L, StartState, EndState);
 
       // Temporarily swap out the parser's current lexer with our new one.
-      llvm::SaveAndRestore<Lexer *> T(L, &LocalLex);
+      toolchain::SaveAndRestore<Lexer *> T(L, &LocalLex);
 
       // Don't feed to syntax token recorder.
       ConsumeTokenReceiver DisabledRec;
-      llvm::SaveAndRestore<ConsumeTokenReceiver *> R(TokReceiver, &DisabledRec);
+      toolchain::SaveAndRestore<ConsumeTokenReceiver *> R(TokReceiver, &DisabledRec);
 
       Tok.setKind(tok::unknown); // we might be at tok::eof now.
       consumeTokenWithoutFeedingReceiver();
@@ -2475,7 +2485,7 @@ Expr *Parser::parseExprEditorPlaceholder(Token PlaceholderTok,
 // Extract names of the tuple elements and preserve the structure
 // of the tuple (with any nested tuples inside) to be able to use
 // it in the fix-it without any type information provided by user.
-static void printTupleNames(const TypeRepr *typeRepr, llvm::raw_ostream &OS) {
+static void printTupleNames(const TypeRepr *typeRepr, toolchain::raw_ostream &OS) {
   if (!typeRepr)
     return;
   
@@ -2485,7 +2495,7 @@ static void printTupleNames(const TypeRepr *typeRepr, llvm::raw_ostream &OS) {
   
   OS << "(";
   unsigned elementIndex = 0;
-  llvm::SmallVector<TypeRepr *, 10> elementTypes;
+  toolchain::SmallVector<TypeRepr *, 10> elementTypes;
   tupleRepr->getElementTypes(elementTypes);
   interleave(elementTypes,
              [&](const TypeRepr *element) {
@@ -2569,7 +2579,7 @@ ParserStatus Parser::parseClosureSignatureIfPresent(
         return makeParserSuccess();
     }
 
-    // Parse pattern-tuple func-signature-result? 'in'.
+    // Parse pattern-tuple fn-signature-result? 'in'.
     if (consumeIf(tok::l_paren)) {      // Consume the ')'.
 
       // While we don't have '->' or ')', eat balanced tokens.
@@ -2580,7 +2590,7 @@ ParserStatus Parser::parseClosureSignatureIfPresent(
       if (consumeIf(tok::r_paren)) {
         consumeEffectsSpecifiers();
 
-        // Parse the func-signature-result, if present.
+        // Parse the fn-signature-result, if present.
         if (consumeIf(tok::arrow)) {
           if (!canParseType())
             return makeParserSuccess();
@@ -2604,7 +2614,7 @@ ParserStatus Parser::parseClosureSignatureIfPresent(
 
       consumeEffectsSpecifiers();
 
-      // Parse the func-signature-result, if present.
+      // Parse the fn-signature-result, if present.
       if (consumeIf(tok::arrow)) {
         if (!canParseType())
           return makeParserSuccess();
@@ -2640,7 +2650,7 @@ ParserStatus Parser::parseClosureSignatureIfPresent(
     // and parameters.
     bool HasNext;
     do {
-      SWIFT_DEFER { HasNext = consumeIf(tok::comma); };
+      LANGUAGE_DEFER { HasNext = consumeIf(tok::comma); };
       // Check for the strength specifier: "weak", "unowned", or
       // "unowned(safe/unsafe)".
       SourceLoc ownershipLocStart, ownershipLocEnd;
@@ -2911,7 +2921,7 @@ ParserStatus Parser::parseClosureSignatureIfPresent(
     auto argName = "arg" + std::to_string(i);
 
     SmallString<64> fixIt;
-    llvm::raw_svector_ostream OS(fixIt);
+    toolchain::raw_svector_ostream OS(fixIt);
     auto isMultiLine = Tok.isAtStartOfLine();
     StringRef indent = Lexer::getIndentationForLine(SourceMgr, Tok.getLoc());
     if (isMultiLine)
@@ -2936,11 +2946,11 @@ ParserResult<Expr> Parser::parseExprClosure() {
   ParserStatus Status;
   // We may be parsing this closure expr in a matching pattern context.  If so,
   // reset our state to not be in a pattern for any recursive pattern parses.
-  llvm::SaveAndRestore<decltype(InBindingPattern)> T(
+  toolchain::SaveAndRestore<decltype(InBindingPattern)> T(
       InBindingPattern, PatternBindingState::NotInBinding);
 
   // Reset async attribute in parser context.
-  llvm::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
+  toolchain::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
 
   // Parse the opening left brace.
   SourceLoc leftBrace = consumeToken();
@@ -3299,8 +3309,7 @@ static bool isStartOfLabelledTrailingClosure(Parser &P) {
     return true;
   // Parse editor placeholder as trailing closure so SourceKit can expand it to
   // closure literal.
-  if (P.peekToken().is(tok::identifier) &&
-      Identifier::isEditorPlaceholder(P.peekToken().getText()))
+  if (P.peekToken().isEditorPlaceholder())
     return true;
   // Consider `label: <complete>` that the user is trying to write a closure.
   if (P.peekToken().is(tok::code_complete) && !P.peekToken().isAtStartOfLine())
@@ -3358,8 +3367,8 @@ Parser::parseTrailingClosures(bool isExprBasic, SourceRange calleeRange,
       closure = parseExprClosure();
     } else if (Tok.is(tok::identifier)) {
       // Parse editor placeholder as a closure literal.
-      assert(Identifier::isEditorPlaceholder(Tok.getText()));
-      Identifier name = Context.getIdentifier(Tok.getText());
+      assert(Tok.isEditorPlaceholder());
+      Identifier name = Context.getIdentifier(Tok.getRawText());
       closure = makeParserResult(parseExprEditorPlaceholder(Tok, name));
       consumeToken(tok::identifier);
     } else if (Tok.is(tok::code_complete)) {
@@ -3459,8 +3468,8 @@ ParserResult<Expr> Parser::parseExprMacroExpansion(bool isExprBasic) {
   if (!macroNameRef)
     return status;
 
-#if !SWIFT_BUILD_SWIFT_SYNTAX
-  // If we don't have swift-syntax and therefore have no support for macros,
+#if !LANGUAGE_BUILD_LANGUAGE_SYNTAX
+  // If we don't have language-syntax and therefore have no support for macros,
   // recognize #isolation as special and route it through
   // CurrentContextIsolationExpr.
   if (macroNameRef.getBaseName().userFacingName() == "isolation" &&
@@ -3568,7 +3577,7 @@ ParserResult<Expr> Parser::parseExprCollection() {
       // If The next token is at the beginning of a new line and can never start
       // an element, break.
       if (Tok.isAtStartOfLine() &&
-          (Tok.isAny(tok::r_brace, tok::pound_endif) || isStartOfSwiftDecl() ||
+          (Tok.isAny(tok::r_brace, tok::pound_endif) || isStartOfCodiraDecl() ||
            isStartOfStmt(/*preferExpr*/ false))) {
         break;
       }
@@ -3640,7 +3649,7 @@ Parser::parseExprCollectionElement(std::optional<bool> &isDictionary) {
   } else {
     diagnose(Tok, diag::expected_colon_in_dictionary_literal);
     Value = makeParserResult(makeParserError(),
-                             new (Context) ErrorExpr(SourceRange()));
+                             new (Context) ErrorExpr(PreviousLoc));
   }
 
   // Make a tuple of Key Value pair.
@@ -3723,7 +3732,7 @@ ParserResult<AvailabilitySpec> Parser::parseAvailabilitySpec() {
     consumeToken();
   }
 
-  llvm::VersionTuple Version;
+  toolchain::VersionTuple Version;
   SourceRange VersionRange;
 
   if (Tok.isAny(tok::integer_literal, tok::floating_literal)) {

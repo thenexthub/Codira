@@ -1,10 +1,10 @@
 
 
-add_swift_host_library(swiftAPIDigester STATIC
+add_language_host_library(languageAPIDigester STATIC
   ModuleAnalyzerNodes.cpp
   ModuleDiagsConsumer.cpp)
 
-target_link_libraries(swiftAPIDigester PRIVATE
-  swiftIDE)
+target_link_libraries(languageAPIDigester PRIVATE
+  languageIDE)
 
-set_swift_llvm_is_available(swiftAPIDigester)
+set_language_toolchain_is_available(languageAPIDigester)

@@ -1,4 +1,4 @@
-//===--- TrailingObjects.h - Variable-length, Swift-ABI classes -*- C++ -*-===//
+//===--- TrailingObjects.h - Variable-length, Codira-ABI classes -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 /// This header is a fork of the LLVM TrailingObjects template. It has the
-/// additional constraint over llvm::TrailingObjects of having to maintain ABI
+/// additional constraint over toolchain::TrailingObjects of having to maintain ABI
 /// stability across versions. The following documentation is copied from
 /// the original TrailingObjects implementation:
 ///
@@ -55,13 +56,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TRAILINGOBJECTS_H
-#define SWIFT_ABI_TRAILINGOBJECTS_H
+#ifndef LANGUAGE_ABI_TRAILINGOBJECTS_H
+#define LANGUAGE_ABI_TRAILINGOBJECTS_H
 
-#include "llvm/Support/Alignment.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/MathExtras.h"
-#include "llvm/Support/type_traits.h"
+#include "toolchain/Support/Alignment.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/MathExtras.h"
+#include "toolchain/Support/type_traits.h"
 #include <new>
 #include <type_traits>
 
@@ -178,7 +179,7 @@ protected:
 
     if (requiresRealignment())
       return reinterpret_cast<const NextTy *>(
-          llvm::alignAddr(Ptr, llvm::Align(alignof(NextTy))));
+          toolchain::alignAddr(Ptr, toolchain::Align(alignof(NextTy))));
     else
       return reinterpret_cast<const NextTy *>(Ptr);
   }
@@ -193,7 +194,7 @@ protected:
 
     if (requiresRealignment())
       return reinterpret_cast<NextTy *>(
-          llvm::alignAddr(Ptr, llvm::Align(alignof(NextTy))));
+          toolchain::alignAddr(Ptr, toolchain::Align(alignof(NextTy))));
     else
       return reinterpret_cast<NextTy *>(Ptr);
   }
@@ -205,7 +206,7 @@ protected:
       size_t SizeSoFar, size_t Count1,
       typename ExtractSecondType<MoreTys, size_t>::type... MoreCounts) {
     return ParentType::additionalSizeToAllocImpl(
-        (requiresRealignment() ? llvm::alignTo<alignof(NextTy)>(SizeSoFar)
+        (requiresRealignment() ? toolchain::alignTo<alignof(NextTy)>(SizeSoFar)
                                : SizeSoFar) +
             sizeof(NextTy) * Count1,
         MoreCounts...);
@@ -256,7 +257,7 @@ protected:
 /// See the file comment for details on the usage of the
 /// TrailingObjects type.
 template <typename BaseTy, typename... TrailingTys>
-class swift_ptrauth_struct_derived(BaseTy) TrailingObjects
+class language_ptrauth_struct_derived(BaseTy) TrailingObjects
     : private trailing_objects_internal::TrailingObjectsImpl<
                             trailing_objects_internal::AlignmentCalcHelper<
                                 TrailingTys...>::Alignment,

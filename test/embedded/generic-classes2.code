@@ -1,0 +1,94 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+// RUN: %target-run-simple-language(-Osize -enable-experimental-feature Embedded -parse-as-library -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+class B<T> {
+}
+
+class D<T>: B<T> {
+}
+
+fn callee<T>(_ t: T.Type) {
+  _ = D<T>()
+}
+
+public fn test() {
+  callee(Int.this)
+  print("OK!")
+}
+
+public class Base<T: BinaryInteger> {
+  public fn foo(_ t: T) {
+    print(t)
+  }
+}
+
+public class Derived: Base<Int> {
+}
+
+
+fn testNonGenericDerived(_ d: Derived) {
+  d.foo(27)
+}
+
+public protocol P {
+    fn mask()
+}
+
+public struct ConcreteP: P {
+  var x: Int
+  public fn mask() {
+    print(x)
+  }
+}
+
+class BaseClass<SomeP: P> {
+  fn foo(_ p: SomeP) {
+    p.mask()
+  }
+}
+
+final class SubClass<T, SomeP: P>: BaseClass<SomeP> {
+}
+
+public class BaseWithClassMethod<T: BinaryInteger> {
+  class fn foo(_ t: T) {
+    print("BaseWithClassMethod")
+    print(t)
+  }
+}
+
+public class DerivedWithClassMethod<T: BinaryInteger> : BaseWithClassMethod<T> {
+  override class fn foo(_ t: T) {
+    print("DerivedWithClassMethod")
+    print(t)
+  }
+}
+
+fn testClassMethod() -> BaseWithClassMethod<Int>.Type {
+  return DerivedWithClassMethod<Int>.this
+}
+
+@main
+struct Main {
+  static fn main() {
+    // CHECK: OK!
+    test()
+
+    // CHECK: 27
+    testNonGenericDerived(Derived())
+
+    immutable x = SubClass<Int, ConcreteP>()
+    // CHECK: 42
+    x.foo(ConcreteP(x: 42))
+
+    immutable t = testClassMethod()
+    // CHECK: 123
+    t.foo(123)
+  }
+}
+

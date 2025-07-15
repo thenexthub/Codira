@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This defines an interface to represent SIL level structured constants in a
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_CONSTANTS_H
-#define SWIFT_SIL_CONSTANTS_H
+#ifndef LANGUAGE_SIL_CONSTANTS_H
+#define LANGUAGE_SIL_CONSTANTS_H
 
 #include "language/AST/SubstitutionMap.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 namespace language {
 class SingleValueInstruction;
@@ -40,7 +41,7 @@ struct SymbolicValueMemoryObject;
 struct UnknownSymbolicValue;
 struct SymbolicClosure;
 
-extern llvm::cl::opt<unsigned> ConstExprLimit;
+extern toolchain::cl::opt<unsigned> ConstExprLimit;
 
 /// An abstract class that exposes functions for allocating symbolic values.
 /// The implementors of this class have to determine where to allocate them and
@@ -70,7 +71,7 @@ public:
 /// lifetime of the bump allocator is same as the lifetime of \c this object.
 class SymbolicValueBumpAllocator : public SymbolicValueAllocator {
 private:
-  llvm::BumpPtrAllocator bumpAllocator;
+  toolchain::BumpPtrAllocator bumpAllocator;
 
 public:
   SymbolicValueBumpAllocator() {}
@@ -344,9 +345,9 @@ private:
 
     // The following two fields are for representing an Array.
     //
-    // In Swift, an array is a non-trivial struct that stores a reference to an
+    // In Codira, an array is a non-trivial struct that stores a reference to an
     // internal storage: _ContiguousArrayStorage. Though arrays have value
-    // semantics in Swift, it is not the case in SIL. In SIL, an array can be
+    // semantics in Codira, it is not the case in SIL. In SIL, an array can be
     // mutated by taking the address of the internal storage i.e., through a
     // shared, mutable pointer to the internal storage of the array. In fact,
     // this is how an array initialization is lowered in SIL. Therefore, the
@@ -356,7 +357,7 @@ private:
     // representation of the array enables obtaining the address of the internal
     // storage and modifying the array through that address. Array operations
     // such as `append` that mutate an array must clone the internal storage of
-    // the array, following the semantics of the Swift implementation of those
+    // the array, following the semantics of the Codira implementation of those
     // operations.
 
     /// Representation of array storage (RK_ArrayStorage). SymbolicArrayStorage
@@ -443,7 +444,7 @@ public:
   }
 
   static SymbolicValue getUnknown(SILNode *node, UnknownReason reason,
-                                  llvm::ArrayRef<SourceLoc> callStack,
+                                  toolchain::ArrayRef<SourceLoc> callStack,
                                   SymbolicValueAllocator &allocator);
 
   /// Return true if this represents an unknown result.
@@ -627,7 +628,7 @@ public:
   /// are skipped during evaluation.
   bool containsOnlyConstants() const;
 
-  void print(llvm::raw_ostream &os, unsigned indent = 0) const;
+  void print(toolchain::raw_ostream &os, unsigned indent = 0) const;
   void dump() const;
 };
 
@@ -636,7 +637,7 @@ static_assert(sizeof(SymbolicValue) == 2 * sizeof(uint64_t),
 static_assert(std::is_trivial<SymbolicValue>::value,
               "SymbolicValue should stay trivial");
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, SymbolicValue val) {
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, SymbolicValue val) {
   val.print(os);
   return os;
 }
@@ -699,9 +700,9 @@ using SymbolicClosureArgument =
 /// representing closures whose captured arguments are not compile-time
 /// constants.
 struct SymbolicClosure final
-  : private llvm::TrailingObjects<SymbolicClosure, SymbolicClosureArgument> {
+  : private toolchain::TrailingObjects<SymbolicClosure, SymbolicClosureArgument> {
 
-  friend class llvm::TrailingObjects<SymbolicClosure, SymbolicClosureArgument>;
+  friend class toolchain::TrailingObjects<SymbolicClosure, SymbolicClosureArgument>;
 
 private:
 
@@ -743,7 +744,7 @@ public:
     return {getTrailingObjects<SymbolicClosureArgument>(), numCaptures};
   }
 
-  // This is used by the llvm::TrailingObjects base class.
+  // This is used by the toolchain::TrailingObjects base class.
   size_t numTrailingObjects(OverloadToken<SymbolicClosureArgument>) const {
     return numCaptures;
   }

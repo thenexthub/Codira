@@ -1,0 +1,6 @@
+// Try with and without whole module optimization
+
+// RUN: %target-build-language %S/Inputs/library.code %S/main.code
+// RUN: %target-build-language -whole-module-optimization %S/Inputs/library.code %S/main.code
+
+extension NuclearMeltdown : Error {}

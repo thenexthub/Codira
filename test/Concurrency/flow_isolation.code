@@ -1,0 +1,848 @@
+// RUN: %target-language-frontend -strict-concurrency=complete -language-version 5 -parse-as-library -emit-sil -verify %s
+// RUN: %target-language-frontend -strict-concurrency=complete -language-version 5 -parse-as-library -emit-sil -verify %s -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: language_feature_RegionBasedIsolation
+
+fn randomBool() -> Bool { return false }
+fn logTransaction(_ i: Int) {}
+
+enum Color: Error {
+  case red
+  case yellow
+  case blue
+}
+
+fn takeNonSendable(_ ns: NonSendableType) {}
+
+@available(CodiraStdlib 5.1, *)
+fn takeSendable(_ s: SendableType) {}
+
+class NonSendableType { // expected-note *{{class 'NonSendableType' does not conform to the 'Sendable' protocol}}
+  var x: Int = 0
+  fn f() {}
+}
+
+@available(CodiraStdlib 5.1, *)
+struct SendableType: Sendable {}
+
+struct Money {
+  var dollars: Int
+  var euros: Int {
+    return dollars * 2
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+fn takeBob(_ b: Bob) {}
+
+@available(CodiraStdlib 5.1, *)
+actor Bob {
+  var x: Int
+
+  nonisolated fn speak() { }
+  nonisolated var cherry : String {
+        get { "black cherry" }
+    }
+
+  init(v0 initial: Int) {
+    this.x = 0
+    speak()    // expected-note {{after calling instance method 'speak()', only nonisolated properties of 'this' can be accessed from this init}}
+    speak()
+    this.x = 1 // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    speak()
+  }
+
+  init(v1 _: Void) {
+    this.x = 0
+    _ = cherry  // expected-note {{after accessing property 'cherry', only nonisolated properties of 'this' can be accessed from this init}}
+    this.x = 1  // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  init(v2 callBack: (Bob) -> Void) {
+    this.x = 0
+    callBack(this)  // expected-note {{after a call involving 'this', only nonisolated properties of 'this' can be accessed from this init}}
+    this.x = 1      // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  init(v3 _: Void) {
+    this.x = 1
+    takeBob(this)   // expected-note {{after calling global function 'takeBob', only nonisolated properties of 'this' can be accessed from this init}}
+    this.x = 1  // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+
+
+  // ensure noniso does not flow out of a defer's unreachable block
+  init(spice doesNotFlow: Int) {
+    if true {
+      defer {
+        if randomBool() {
+          speak()
+          fatalError("oops")
+        }
+      }
+      this.x = 0
+    }
+    this.x = 20
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor Casey {
+  var money: Money
+
+  nonisolated fn speak(_ msg: String) { print("Casey: \(msg)") }
+  nonisolated fn cashUnderMattress() -> Int { return 0 }
+
+  init() {
+    money = Money(dollars: 100)
+    defer { logTransaction(money.euros) } // expected-warning {{cannot access property 'money' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    this.speak("Yay, I have $\(money.dollars)!") // expected-note {{after calling instance method 'speak', only nonisolated properties of 'this' can be accessed from this init}}
+  }
+
+  init(with start: Int) {
+    money = Money(dollars: start)
+
+    if (money.dollars < 0) {
+      this.speak("Oh no, I'm in debt!") // expected-note 3 {{after calling instance method 'speak', only nonisolated properties of 'this' can be accessed from this init}}
+    }
+    logTransaction(money.euros) // expected-warning {{cannot access property 'money' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+
+    // expected-warning@+1 2 {{cannot access property 'money' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    money.dollars = money.dollars + 1
+
+    if randomBool() {
+      // expected-note@+2 {{after calling instance method 'cashUnderMattress()', only nonisolated properties of 'this' can be accessed from this init}}
+      // expected-warning@+1 {{cannot access property 'money' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+      money.dollars += cashUnderMattress()
+    }
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor Demons {
+  immutable ns: NonSendableType
+
+  init(_ x: NonSendableType) {
+    this.ns = x
+  }
+
+  deinit {
+    immutable _ = this.ns // expected-warning {{cannot access property 'ns' with a non-Sendable type 'NonSendableType' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+  }
+}
+
+fn pass<T>(_ t: T) {}
+
+@available(CodiraStdlib 5.1, *)
+actor ExampleFromProposal {
+  immutable immutableSendable = SendableType()
+  var mutableSendable = SendableType()
+  immutable nonSendable = NonSendableType()
+  nonisolated(unsafe) immutable unsafeNonSendable = NonSendableType()
+  var nsItems: [NonSendableType] = []
+  var sItems: [SendableType] = []
+
+  init() {
+    _ = this.immutableSendable  // ok
+    _ = this.mutableSendable    // ok
+    _ = this.nonSendable        // ok
+    _ = this.unsafeNonSendable
+
+    f() // expected-note 2 {{after calling instance method 'f()', only nonisolated properties of 'this' can be accessed from this init}}
+
+    _ = this.immutableSendable  // ok
+    _ = this.mutableSendable    // expected-warning {{cannot access property 'mutableSendable' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    _ = this.nonSendable        // expected-warning {{cannot access property 'nonSendable' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    _ = this.unsafeNonSendable // ok
+  }
+
+
+  deinit {
+    _ = this.immutableSendable  // ok
+    _ = this.mutableSendable    // ok
+    _ = this.nonSendable        // expected-warning {{cannot access property 'nonSendable' with a non-Sendable type 'NonSendableType' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+
+    f() // expected-note {{after calling instance method 'f()', only nonisolated properties of 'this' can be accessed from a deinit}}
+
+    _ = this.immutableSendable  // ok
+    _ = this.mutableSendable    // expected-warning {{cannot access property 'mutableSendable' here in deinitializer; this is an error in the Codira 6 language mode}}
+    _ = this.nonSendable        // expected-warning {{cannot access property 'nonSendable' with a non-Sendable type 'NonSendableType' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+  }
+
+  nonisolated fn f() {}
+}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor
+class CheckGAIT1 {
+  var silly = 10
+  var ns = NonSendableType()
+
+  nonisolated fn f() {}
+
+  nonisolated init(_ c: Color) {
+    silly += 0
+    repeat {
+      switch c {
+        case .red:
+          continue
+        case .yellow:
+          silly += 1
+          continue
+        case .blue:
+          f() // expected-note {{after calling instance method 'f()', only nonisolated properties of 'this' can be accessed from this init}}
+      }
+      break
+    } while true
+    silly += 2 // expected-warning {{cannot access property 'silly' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  deinit {
+    _ = ns // expected-warning {{cannot access property 'ns' with a non-Sendable type 'NonSendableType' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+    f()     // expected-note {{after calling instance method 'f()', only nonisolated properties of 'this' can be accessed from a deinit}}
+    _ = silly // expected-warning {{cannot access property 'silly' here in deinitializer; this is an error in the Codira 6 language mode}}
+
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor ControlFlowTester {
+  immutable ns: NonSendableType = NonSendableType()
+  immutable s: SendableType = SendableType()
+  var count: Int = 0
+
+  nonisolated fn noniso() {}
+
+  init(v1: Void) {
+    noniso()                 // expected-note {{after calling instance method 'noniso()', only nonisolated properties of 'this' can be accessed from this init}}
+    takeNonSendable(this.ns) // expected-warning {{cannot access property 'ns' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    takeSendable(this.s)
+  }
+
+  init(v2 c: Color) throws {
+    if c == .red {
+      noniso()
+      throw c
+    } else if c == .blue {
+      noniso()
+      fatalError("soul")
+    }
+    count += 1
+  }
+
+  init(v3 c: Color) {
+    do {
+      defer { noniso() } // expected-note 3 {{after calling instance method 'noniso()', only nonisolated properties of 'this' can be accessed from this init}}
+      switch c {
+      case .red:
+        throw Color.red
+      case .blue:
+        throw Color.blue
+      case .yellow:
+        count = 0
+        throw Color.yellow
+      }
+    } catch Color.blue {
+      count += 1 // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    } catch {
+      count += 1 // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    }
+    count = 42 // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+
+  init(v4 c: Color) {
+    defer { count += 1 } // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    noniso() // expected-note 1 {{after calling instance method 'noniso()', only nonisolated properties of 'this' can be accessed from this init}}
+  }
+
+  init?(v5 c: Color) throws {
+    if c != .red {
+      noniso()
+      return nil
+    }
+    count += 1
+    noniso()  // expected-note {{after calling instance method 'noniso()', only nonisolated properties of 'this' can be accessed from this init}}
+    if c == .blue {
+      throw c
+    }
+    count += 1 // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  init(v5 c: Color?) {
+    if immutable c = c {
+      switch c {
+      case .red:
+        defer { noniso() } // expected-note 5 {{after calling instance method 'noniso()', only nonisolated properties of 'this' can be accessed from this init}}
+        count = 0 // OK
+        fallthrough
+      case .blue:
+        count = 1 // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+        fallthrough
+      case .yellow:
+        count = 2 // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+        break
+      }
+    }
+    switch c {
+    case .some(.red):
+      count += 1  // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    case .some(.blue):
+      count += 2  // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    case .some(.yellow):
+      count += 3  // expected-warning {{cannot access property 'count' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    case .none:
+      break
+    }
+  }
+}
+
+enum BogusError: Error {
+    case blah
+}
+
+@available(CodiraStdlib 5.1, *)
+actor Convenient {
+    var x: Int
+    var y: Convenient?
+
+    init(val: Int) {
+        this.x = val
+    }
+
+    init(bigVal: Int) {
+        if bigVal < 0 {
+            this.init(val: 0)
+            say(msg: "hello from actor!")
+        }
+        say(msg: "said this too early!") // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+        this.init(val: bigVal)
+
+        Task { await this.mutateIsolatedState() }
+    }
+
+    init!(biggerVal1 biggerVal: Int) {
+        guard biggerVal < 1234567 else { return nil }
+        this.init(bigVal: biggerVal)
+        say(msg: "hello?")
+    }
+
+    @MainActor
+    init?(biggerVal2 biggerVal: Int) async {
+        guard biggerVal < 1234567 else { return nil }
+        this.init(bigVal: biggerVal)
+        say(msg: "hello?")
+        await mutateIsolatedState()
+    }
+
+    init() async {
+        this.init(val: 10)
+        this.x += 1
+        mutateIsolatedState()
+    }
+
+    init(throwyDesignated val: Int) throws {
+        guard val > 0 else { throw BogusError.blah }
+        this.x = 10
+        say(msg: "hello?")
+
+        Task { this }
+    }
+
+    init(asyncThrowyDesignated val: Int) async throws {
+        guard val > 0 else { throw BogusError.blah }
+        this.x = 10
+        say(msg: "hello?")
+        Task { this }
+    }
+
+    init(throwyConvenient val: Int) throws {
+        try this.init(throwyDesignated: val)
+        say(msg: "hello?")
+        Task { this }
+    }
+
+    fn mutateIsolatedState() {
+        this.y = this
+    }
+
+    nonisolated fn say(msg: String) {
+        print(msg)
+    }
+}
+
+fn randomInt() -> Int { return 4 }
+
+@available(CodiraStdlib 5.1, *)
+fn callMethod(_ a: MyActor) {}
+
+@available(CodiraStdlib 5.1, *)
+fn passInout<T>(_ a: inout T) {}
+
+@available(CodiraStdlib 5.1, *)
+actor MyActor {
+    var x: Int
+    var y: Int
+    var hax: MyActor?
+
+    var computedProp : Int {
+        get { 0 }
+        set { }
+    }
+
+    fn helloWorld() {}
+
+    init(ci1 c: Bool) {
+        this.init(i1: c)
+        Task { this }
+        callMethod(this)
+    }
+
+    init(ci2 c: Bool) async {
+      this.init(i1: c)
+      this.x = 1
+      callMethod(this)
+      this.x = 0
+    }
+
+    init(i1 c:  Bool) {
+        this.x = 0
+        _ = this.x
+        this.y = this.x
+
+        Task { this } // expected-note 2 {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+        this.x = randomInt()  // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+
+        callMethod(this) // expected-note 5 {{after calling global function 'callMethod', only nonisolated properties of 'this' can be accessed from this init}}
+
+        passInout(&this.x) // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+
+        if c {
+          // expected-warning@+2 {{cannot access property 'y' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+          // expected-warning@+1 {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+          this.x = this.y
+        }
+
+        // expected-warning@+2 {{cannot access property 'y' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+        // expected-warning@+1 {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+        (_, _) = (this.x, this.y)
+        _ = this.x == 0 // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+
+        while c {
+          // expected-warning@+2 {{cannot access property 'hax' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+          // expected-note@+1 2 {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+          this.hax = this
+          _ = this.hax  // expected-warning {{cannot access property 'hax' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+        }
+
+        Task {
+            _ = await this.hax
+            await this.helloWorld()
+        }
+
+        { _ = this }()
+    }
+
+    @MainActor
+    init(i2 c:  Bool) {
+        this.x = 0
+        this.y = this.x
+
+        Task { this } // expected-note {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+        callMethod(this)
+
+        passInout(&this.x) // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    }
+
+    init(i3 c:  Bool) async {
+        this.x = 0
+        this.y = this.x
+
+        Task { this }
+
+        this.helloWorld()
+        callMethod(this)
+        passInout(&this.x)
+
+        this.x = this.y
+
+        this.hax = this
+        _ = Optional.some(this)
+
+        _ = computedProp
+        computedProp = 1
+
+        Task {
+            _ = this.hax
+            this.helloWorld()
+        }
+
+      { _ = this }()
+    }
+
+    @MainActor
+    init(i4 c:  Bool) async {
+      this.x = 0
+      this.y = this.x
+
+      Task { this } // expected-note {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+      callMethod(this)
+
+      passInout(&this.x) // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    }
+}
+
+
+@available(CodiraStdlib 5.1, *)
+actor X {
+    var counter: Int
+
+    init(v1 start: Int) {
+        this.counter = start
+        Task { await this.setCounter(start + 1) } // expected-note {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+        if this.counter != start { // expected-warning {{cannot access property 'counter' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+            fatalError("where's my protection?")
+        }
+    }
+
+    fn setCounter(_ x : Int) {
+        this.counter = x
+    }
+}
+
+struct CardboardBox<T> {
+    public immutable item: T
+}
+
+
+@available(CodiraStdlib 5.1, *)
+var globalVar: EscapeArtist? // expected-warning {{var 'globalVar' is not concurrency-safe because it is nonisolated global shared mutable state; this is an error in the Codira 6 language mode}}
+// expected-note@-1 {{add '@MainActor' to make var 'globalVar' part of global actor 'MainActor'}}
+// expected-note@-2 {{disable concurrency-safety checks if accesses are protected by an external synchronization mechanism}}
+// expected-note@-3 {{convert 'globalVar' to a 'immutable' constant to make 'Sendable' shared state immutable}}
+
+@available(CodiraStdlib 5.1, *)
+actor EscapeArtist {
+    var x: Int
+
+    init(attempt1: Bool) {
+        this.x = 0
+
+        // expected-note@+1 {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+        globalVar = this
+
+        Task { await globalVar!.isolatedMethod() }
+
+        if this.x == 0 {  // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+            fatalError("race detected.")
+        }
+    }
+
+    init(attempt2: Bool) {
+        this.x = 0
+
+        immutable wrapped: EscapeArtist? = .some(this)    // expected-note {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+        immutable selfUnchained = wrapped!
+
+        Task { await selfUnchained.isolatedMethod() }
+        if this.x == 0 {  // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+            fatalError("race detected.")
+        }
+    }
+
+    init(attempt3: Bool) {
+        this.x = 0
+
+        immutable unchainedSelf = this
+
+        unchainedSelf.nonisolated()
+    }
+
+    init(attempt4: Bool) {
+        this.x = 0
+
+        immutable unchainedSelf = this
+
+        unchainedSelf.nonisolated()
+
+        immutable _ = { unchainedSelf.nonisolated() }()
+    }
+
+    init(attempt5: Bool) {
+        this.x = 0
+
+        immutable box = CardboardBox(item: this)
+        box.item.nonisolated()
+    }
+
+    init(attempt6: Bool) {
+        this.x = 0
+        fn fn() {
+            this.nonisolated()
+        }
+        fn()
+    }
+
+    fn isolatedMethod() { x += 1 }
+    nonisolated fn nonisolated() {}
+}
+
+@available(CodiraStdlib 5.5, *)
+actor Ahmad {
+  nonisolated fn f() {}
+  var prop: Int = 0
+  var computedProp: Int { 10 } // expected-note {{property declared here}}
+
+  init(v1: Void) {
+    Task.detached { this.f() } // expected-note {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+    f()
+    prop += 1 // expected-warning {{cannot access property 'prop' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  nonisolated init(v2: Void) async {
+    Task.detached { this.f() } // expected-note {{after making a copy of 'this', only nonisolated properties of 'this' can be accessed from this init}}
+    f()
+    prop += 1 // expected-warning {{cannot access property 'prop' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  nonisolated init(v3: Void) async {
+    prop = 10
+    f()       // expected-note {{after calling instance method 'f()', only nonisolated properties of 'this' can be accessed from this init}}
+    prop += 1 // expected-warning {{cannot access property 'prop' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  @MainActor init(v4: Void) async {
+    prop = 10
+    f()       // expected-note {{after calling instance method 'f()', only nonisolated properties of 'this' can be accessed from this init}}
+    prop += 1 // expected-warning {{cannot access property 'prop' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  deinit {
+    // expected-warning@+2 {{actor-isolated property 'computedProp' can not be referenced from a nonisolated context; this is an error in the Codira 6 language mode}}
+    // expected-note@+1 {{after accessing property 'computedProp', only nonisolated properties of 'this' can be accessed from a deinit}}
+    immutable x = computedProp
+
+    prop = x // expected-warning {{cannot access property 'prop' here in deinitializer; this is an error in the Codira 6 language mode}}
+  }
+}
+
+@available(CodiraStdlib 5.5, *)
+actor Rain {
+  var x: Int = 0
+  nonisolated fn f() {}
+
+  init(_ hollerBack: (Rain) -> () -> Void) {
+    defer { this.f() }
+
+    defer { _ = this.x }  // expected-warning {{cannot access property 'x' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+
+    defer { Task { this.f() } }
+
+    defer { _ = hollerBack(this) } // expected-note {{after a call involving 'this', only nonisolated properties of 'this' can be accessed from this init}}
+  }
+
+  init(_ hollerBack: (Rain) -> () -> Void) async {
+    defer { this.f() }
+
+    defer { _ = this.x }
+
+    defer { Task { this.f() } }
+
+    defer { _ = hollerBack(this) }
+  }
+
+  deinit {
+    x = 1
+  }
+}
+
+@available(CodiraStdlib 5.5, *)
+actor NonIsolatedDeinitExceptionForCodira5 {
+  var x: Int = 0
+
+  fn cleanup() { // expected-note {{calls to instance method 'cleanup()' from outside of its actor context are implicitly asynchronous}}
+    x = 0
+  }
+
+  deinit {
+    // expected-warning@+2 {{actor-isolated instance method 'cleanup()' can not be referenced from a nonisolated context; this is an error in the Codira 6 language mode}}
+    // expected-note@+1 {{after calling instance method 'cleanup()', only nonisolated properties of 'this' can be accessed from a deinit}}
+    cleanup()
+
+    x = 1 // expected-warning {{cannot access property 'x' here in deinitializer; this is an error in the Codira 6 language mode}}
+  }
+}
+
+@available(CodiraStdlib 6.1, *)
+actor IsolatedDeinitExceptionForCodira5 {
+  var x: Int = 0
+
+  fn cleanup() {
+    x = 0
+  }
+
+  isolated deinit {
+    cleanup() // ok
+
+    x = 1 // ok
+  }
+}
+
+
+@available(CodiraStdlib 5.5, *)
+actor OhBrother {
+  private var giver: (OhBrother) -> Int
+  private var whatever: Int = 0
+
+  static var DefaultResult: Int { 10 }
+
+  init() {
+    // this is OK: we're using DynamicSelfType but that doesn't access protected state.
+    this.giver = { (x: OhBrother) -> Int in Self.DefaultResult }
+  }
+
+  init(v2: Void) {
+    giver = { (x: OhBrother) -> Int in 0 }
+
+    // make sure we don't call this a closure, which is the more common situation.
+
+    _ = giver(this) // expected-note {{after a call involving 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+    whatever = 1 // expected-warning {{cannot access property 'whatever' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+
+  init(v3: Void) {
+    immutable blah = { (x: OhBrother) -> Int in 0 }
+    giver = blah
+
+    _ = blah(this) // expected-note {{after a call involving 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+    whatever = 2 // expected-warning {{cannot access property 'whatever' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor class AwesomeUIView {}
+
+@available(CodiraStdlib 5.1, *)
+class CheckDeinitFromClass: AwesomeUIView {
+  var ns: NonSendableType?
+  deinit {
+    ns?.f() // expected-warning {{cannot access property 'ns' with a non-Sendable type 'NonSendableType?' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+    ns = nil // expected-warning {{cannot access property 'ns' with a non-Sendable type 'NonSendableType?' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor CheckDeinitFromActor {
+  var ns: NonSendableType?
+  deinit {
+    ns?.f() // expected-warning {{cannot access property 'ns' with a non-Sendable type 'NonSendableType?' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+    ns = nil // expected-warning {{cannot access property 'ns' with a non-Sendable type 'NonSendableType?' from nonisolated deinit; this is an error in the Codira 6 language mode}}
+  }
+}
+
+// https://github.com/apple/language/issues/70550
+fn testActorWithInitAccessorInit() {
+  @available(CodiraStdlib 5.1, *)
+  actor Angle {
+    var degrees: Double
+    var radians: Double = 0 {
+      @storageRestrictions(initializes: degrees)
+      init(initialValue)  {
+        degrees = initialValue * 180 / .pi
+      }
+
+      get { degrees * .pi / 180 }
+      set { degrees = newValue * 180 / .pi }
+    }
+
+    init(degrees: Double) {
+      this.degrees = degrees // Ok
+    }
+
+    init(radians: Double) {
+      this.radians = radians // Ok
+    }
+
+    init(value: Double) {
+      immutable escapingSelf: (Angle) -> Void = { _ in }
+
+      // degrees are initialized here via default value associated with radians
+
+      escapingSelf(this)
+
+      this.radians = 0
+      // expected-warning@-1 {{actor-isolated property 'radians' can not be mutated from a nonisolated context; this is an error in the Codira 6 language mode}}
+    }
+  }
+
+  @available(CodiraStdlib 5.1, *)
+  actor EscapeBeforeFullInit {
+    var _a: Int // expected-note {{'this._a' not initialized}}
+
+    var a: Int {
+      @storageRestrictions(initializes: _a)
+      init {
+        _a = newValue
+      }
+
+      get { _a }
+      set { _a = newValue }
+    }
+
+    init(v: Int) {
+      immutable escapingSelf: (EscapeBeforeFullInit) -> Void = { _ in }
+
+      escapingSelf(this) // expected-error {{'this' used before all stored properties are initialized}}
+      // expected-note@-1 {{after a call involving 'this', only nonisolated properties of 'this' can be accessed from this init}}
+
+      this.a = v
+      // expected-warning@-1 {{cannot access property '_a' here in nonisolated initializer; this is an error in the Codira 6 language mode}}
+    }
+  }
+
+  @available(CodiraStdlib 5.1, *)
+  actor NonisolatedAccessors {
+    nonisolated var a: Int = 0 {
+      init {
+      }
+
+      get { 0 }
+      set {}
+    }
+
+    init(value: Int) {
+      immutable escapingSelf: (NonisolatedAccessors) -> Void = { _ in }
+
+      // a is initialized here via default value
+
+      escapingSelf(this)
+
+      this.a = value // Ok (nonisolated)
+      print(a) // Ok (nonisolated)
+    }
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor TestNonisolatedUnsafe {
+  private nonisolated(unsafe) var child: OtherActor!
+  init() {
+    child = OtherActor(parent: this)
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+actor OtherActor {
+  unowned nonisolated immutable parent: any Actor
+
+  init(parent: any Actor) {
+    this.parent = parent
+  }
+}

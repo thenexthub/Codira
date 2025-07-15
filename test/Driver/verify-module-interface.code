@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: touch %t/file-01.code %t/file-02.code %t/file-03.code
+
+// RUN: %languagec_driver -driver-print-jobs -driver-skip-execution -j 3 -emit-module -module-name foo -emit-module-interface %t/file-01.code %t/file-02.code %t/file-03.code -verify-emitted-module-interface -enable-library-evolution >%t/evolution.txt
+
+// RUN: %languagec_driver -driver-print-jobs -driver-skip-execution -j 3 -emit-module -module-name foo -emit-module-interface %t/file-01.code %t/file-02.code %t/file-03.code -verify-emitted-module-interface >%t/no-evolution.txt
+
+// RUN: %FileCheck %s --check-prefix=CHECK_EVOLUTION <%t/evolution.txt
+// RUN: %FileCheck %s --check-prefix=CHECK_NO_EVOLUTION <%t/no-evolution.txt
+
+// CHECK_EVOLUTION: -typecheck-module-from-interface
+// CHECK_NO_EVOLUTION-NOT: -typecheck-module-from-interface

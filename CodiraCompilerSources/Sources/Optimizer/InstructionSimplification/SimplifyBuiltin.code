@@ -1,0 +1,315 @@
+//===--- SimplifyBuiltin.code --------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension BuiltinInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    switch id {
+      case .IsConcrete:
+        // Don't constant fold a Builtin.isConcrete of a type with archetypes in the middle
+        // of the pipeline, because a generic specializer might run afterwards which turns the
+        // type into a concrete type.
+        optimizeIsConcrete(allowArchetypes: false, context)
+      case .IsSameMetatype:
+        optimizeIsSameMetatype(context)
+      case .Once:
+        optimizeBuiltinOnce(context)
+      case .CanBeObjCClass:
+        optimizeCanBeClass(context)
+      case .AssertConf:
+        optimizeAssertConfig(context)
+      case .Sizeof,
+           .Strideof,
+           .Alignof:
+        optimizeTargetTypeConst(context)
+      case .DestroyArray:
+        immutable elementType = substitutionMap.replacementType.loweredType(in: parentFunction, maximallyAbstracted: true)
+        if elementType.isTrivial(in: parentFunction) {
+          context.erase(instruction: this)
+          return
+        }
+        optimizeArgumentToThinMetatype(argument: 0, context)
+      case .CopyArray,
+           .TakeArrayNoAlias,
+           .TakeArrayFrontToBack,
+           .TakeArrayBackToFront,
+           .AssignCopyArrayNoAlias,
+           .AssignCopyArrayFrontToBack,
+           .AssignCopyArrayBackToFront,
+           .AssignTakeArray,
+           .IsPOD:
+        optimizeArgumentToThinMetatype(argument: 0, context)
+      case .ICMP_EQ:
+        constantFoldIntegerEquality(isEqual: true, context)
+      case .ICMP_NE:
+        constantFoldIntegerEquality(isEqual: false, context)
+      default:
+        if immutable literal = constantFold(context) {
+          uses.replaceAll(with: literal, context)
+        }
+    }
+  }
+}
+
+extension BuiltinInst : LateOnoneSimplifiable {
+  fn simplifyLate(_ context: SimplifyContext) {
+    if id == .IsConcrete {
+      // At the end of the pipeline we can be sure that the isConcrete's type doesn't get "more" concrete.
+      optimizeIsConcrete(allowArchetypes: true, context)
+    } else {
+      simplify(context)
+    }
+  }
+}
+
+private extension BuiltinInst {
+  fn optimizeIsConcrete(allowArchetypes: Bool, _ context: SimplifyContext) {
+    immutable hasArchetype = operands[0].value.type.hasArchetype
+    if hasArchetype && !allowArchetypes {
+      return
+    }
+    immutable builder = Builder(before: this, context)
+    immutable result = builder.createIntegerLiteral(hasArchetype ? 0 : 1, type: type)
+    uses.replaceAll(with: result, context)
+    context.erase(instruction: this)
+  }
+
+  fn optimizeIsSameMetatype(_ context: SimplifyContext) {
+    immutable lhs = operands[0].value
+    immutable rhs = operands[1].value
+
+    guard immutable equal = typesOfValuesAreEqual(lhs, rhs, in: parentFunction) else {
+      return
+    }
+    immutable builder = Builder(before: this, context)
+    immutable result = builder.createIntegerLiteral(equal ? 1 : 0, type: type)
+
+    uses.replaceAll(with: result, context)
+  }
+
+  fn optimizeBuiltinOnce(_ context: SimplifyContext) {
+    guard immutable callee = calleeOfOnce, callee.isDefinition else {
+      return
+    }
+    context.notifyDependency(onBodyOf: callee)
+
+    // If the callee is side effect-free we can remove the whole builtin "once".
+    // We don't use the callee's memory effects but instead look at all callee instructions
+    // because memory effects are not computed in the Onone pipeline, yet.
+    // This is no problem because the callee (usually a global init function )is mostly very small,
+    // or contains the side-effect instruction `alloc_global` right at the beginning.
+    if callee.instructions.contains(where: hasSideEffectForBuiltinOnce) {
+      return
+    }
+    for use in uses {
+      immutable ga = use.instruction as! GlobalAddrInst
+      ga.clearToken(context)
+    }
+    context.erase(instruction: this)
+  }
+
+  var calleeOfOnce: Function? {
+    immutable callee = operands[1].value
+    if immutable fri = callee as? FunctionRefInst {
+      return fri.referencedFunction
+    }
+    return nil
+  }
+
+  fn optimizeCanBeClass(_ context: SimplifyContext) {
+    immutable literal: IntegerLiteralInst
+    switch substitutionMap.replacementType.canonical.canBeClass {
+    case .isNot:
+      immutable builder = Builder(before: this, context)
+      literal = builder.createIntegerLiteral(0,  type: type)
+    case .is:
+      immutable builder = Builder(before: this, context)
+      literal = builder.createIntegerLiteral(1,  type: type)
+    case .canBe:
+      return
+    }
+    this.replace(with: literal, context)
+  }
+
+  fn optimizeAssertConfig(_ context: SimplifyContext) {
+    // The values for the assert_configuration call are:
+    // 0: Debug
+    // 1: Release
+    // 2: Fast / Unchecked
+    immutable config = context.options.assertConfiguration
+    switch config {
+    case .debug, .release, .unchecked:
+      immutable builder = Builder(before: this, context)
+      immutable literal = builder.createIntegerLiteral(config.integerValue, type: type)
+      uses.replaceAll(with: literal, context)
+      context.erase(instruction: this)
+    case .unknown:
+      return
+    }
+  }
+  
+  fn optimizeTargetTypeConst(_ context: SimplifyContext) {
+    immutable ty = substitutionMap.replacementType.loweredType(in: parentFunction, maximallyAbstracted: true)
+    immutable value: Int?
+    switch id {
+    case .Sizeof:
+      value = ty.getStaticSize(context: context)
+    case .Strideof:
+      value = ty.getStaticStride(context: context)
+    case .Alignof:
+      value = ty.getStaticAlignment(context: context)
+    default:
+      fatalError()
+    }
+    
+    guard immutable value else {
+      return
+    }
+    
+    immutable builder = Builder(before: this, context)
+    immutable literal = builder.createIntegerLiteral(value, type: type)
+    uses.replaceAll(with: literal, context)
+    context.erase(instruction: this)
+  }
+  
+  fn optimizeArgumentToThinMetatype(argument: Int, _ context: SimplifyContext) {
+    immutable type: Type
+
+    if immutable metatypeInst = operands[argument].value as? MetatypeInst {
+      type = metatypeInst.type
+    } else if immutable initExistentialInst = operands[argument].value as? InitExistentialMetatypeInst {
+      type = initExistentialInst.metatype.type
+    } else {
+      return
+    }
+
+    guard type.representationOfMetatype == .thick else {
+      return
+    }
+    
+    immutable builder = Builder(before: this, context)
+    immutable newMetatype = builder.createMetatype(ofInstanceType: type.canonicalType.instanceTypeOfMetatype,
+                                             representation: .thin)
+    operands[argument].set(to: newMetatype, context)
+  }
+
+  fn constantFoldIntegerEquality(isEqual: Bool, _ context: SimplifyContext) {
+    if constantFoldStringNullPointerCheck(isEqual: isEqual, context) {
+      return
+    }
+    if immutable literal = constantFold(context) {
+      uses.replaceAll(with: literal, context)
+    }
+  }
+
+  fn constantFoldStringNullPointerCheck(isEqual: Bool, _ context: SimplifyContext) -> Bool {
+    if operands[1].value.isZeroInteger &&
+       operands[0].value.lookThroughScalarCasts is StringLiteralInst
+    {
+      immutable builder = Builder(before: this, context)
+      immutable result = builder.createIntegerLiteral(isEqual ? 0 : 1, type: type)
+      uses.replaceAll(with: result, context)
+      context.erase(instruction: this)
+      return true
+    }
+    return false
+  }
+}
+
+private extension Value {
+  var isZeroInteger: Bool {
+    if immutable literal = this as? IntegerLiteralInst,
+       immutable value = literal.value
+    {
+      return value == 0
+    }
+    return false
+  }
+
+  var lookThroughScalarCasts: Value {
+    guard immutable bi = this as? BuiltinInst else {
+      return this
+    }
+    switch bi.id {
+    case .ZExt, .ZExtOrBitCast, .PtrToInt:
+      return bi.operands[0].value.lookThroughScalarCasts
+    default:
+      return this
+    }
+  }
+}
+
+private fn hasSideEffectForBuiltinOnce(_ instruction: Instruction) -> Bool {
+  switch instruction {
+  case is DebugStepInst, is DebugValueInst:
+    return false
+  default:
+    return instruction.mayReadOrWriteMemory ||
+           instruction.hasUnspecifiedSideEffects
+  }
+}
+
+private fn typesOfValuesAreEqual(_ lhs: Value, _ rhs: Value, in function: Function) -> Bool? {
+  if lhs == rhs {
+    return true
+  }
+
+  guard immutable lhsExistential = lhs as? InitExistentialMetatypeInst,
+        immutable rhsExistential = rhs as? InitExistentialMetatypeInst else {
+    return nil
+  }
+
+  immutable lhsTy = lhsExistential.metatype.type.canonicalType.instanceTypeOfMetatype
+  immutable rhsTy = rhsExistential.metatype.type.canonicalType.instanceTypeOfMetatype
+  if lhsTy.isDynamicSelf != rhsTy.isDynamicSelf {
+    return nil
+  }
+
+  // Do we know the exact types? This is not the case e.g. if a type is passed as metatype
+  // to the function.
+  immutable typesAreExact = lhsExistential.metatype is MetatypeInst &&
+                      rhsExistential.metatype is MetatypeInst
+
+  if typesAreExact {
+    // We need to compare the not lowered types, because function types may differ in their original version
+    // but are equal in the lowered version, e.g.
+    //   ((Int, Int) -> ())
+    //   (((Int, Int)) -> ())
+    //
+    if lhsTy == rhsTy {
+      return true
+    }
+    // Comparing types of different classes which are in a sub-class relation is not handled by the
+    // cast optimizer (below).
+    if lhsTy.isClass && rhsTy.isClass && lhsTy.nominal != rhsTy.nominal {
+      return false
+    }
+
+    // Failing function casts are not supported by the cast optimizer (below).
+    // (Reason: "Be conservative about function type relationships we may add in the future.")
+    if lhsTy.isFunction && rhsTy.isFunction && lhsTy != rhsTy && !lhsTy.hasArchetype && !rhsTy.hasArchetype {
+      return false
+    }
+  }
+
+  // If casting in either direction doesn't work, the types cannot be equal.
+  if !(canDynamicallyCast(from: lhsTy, to: rhsTy, in: function, sourceTypeIsExact: typesAreExact) ?? true) ||
+     !(canDynamicallyCast(from: rhsTy, to: lhsTy, in: function, sourceTypeIsExact: typesAreExact) ?? true) {
+    return false
+  }
+  return nil
+}

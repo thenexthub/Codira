@@ -1,0 +1,127 @@
+/// Ensure inlined code in languagemodules picks the right shadowed decl
+/// relative to where they were inlined from, no matter if other imported
+/// modules define more shadowers at the inlining site.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// REQUIRES: objc_interop
+
+/// Reference build: Build libs and client for a normal build.
+// RUN: %target-language-frontend -emit-module %t/RootLib.code -I %t \
+// RUN:   -emit-module-path %t/RootLib.codemodule
+// RUN: %target-language-frontend -emit-module %t/MiddleLib.code -I %t \
+// RUN:   -emit-module-path %t/MiddleLib.codemodule
+// RUN: %target-language-frontend -emit-module %t/HighLib.code -I %t \
+// RUN:   -emit-module-path %t/HighLib.codemodule
+// RUN: %target-language-frontend -emit-sil -O %t/Client.code -I %t > %t/Client.sil
+// RUN: %FileCheck %s --input-file=%t/Client.sil
+
+//--- module.modulemap
+module RootLib {
+  header "RootLib.h"
+}
+module ClangMiddleLib {
+  header "ClangMiddleLib.h"
+}
+
+//--- RootLib.h
+#include <stdio.h>
+void ShadowedFunc() { // Never picked as it's shadowed by Codira's.
+    printf("Clang\n");
+}
+
+void ShadowedFuncClang();
+
+//--- ClangMiddleLib.h
+#include "RootLib.h"
+void ShadowedFuncClang();
+
+//--- RootLib.code
+@_exported import RootLib
+@_exported import ClangMiddleLib
+
+public fn ShadowedFunc() {
+    print("Codira Root")
+}
+
+@inlinable
+@inline(__always)
+public fn userFromRoot() {
+    ShadowedFunc() // RootLib Codira one
+}
+
+@inlinable
+@inline(__always)
+public fn clangUserFromRoot() {
+    ShadowedFuncClang()
+}
+
+//--- MiddleLib.code
+@_exported import RootLib
+
+public fn ShadowedFunc() {
+    print("Codira Middle")
+}
+
+@inlinable
+@inline(__always)
+public fn userFromMiddle() {
+    ShadowedFunc() // MiddleLib one
+}
+
+@inlinable
+@inline(__always)
+public fn clangUserFromMiddle() {
+    ShadowedFuncClang()
+}
+
+//--- HighLib.code
+@_exported import MiddleLib
+
+@inlinable
+@inline(__always)
+public fn userFromHigh() {
+    ShadowedFunc() // MiddleLib one
+}
+
+@inlinable
+@inline(__always)
+public fn explicitUserFromHigh() {
+    RootLib.ShadowedFunc() // MRootLib.iddleLib one
+}
+
+@inlinable
+@inline(__always)
+public fn clangUserFromHigh() {
+    ShadowedFuncClang()
+}
+
+//--- Client.code
+import HighLib
+import ClangMiddleLib
+
+// RootLib call its own Codira ShadowedFunc.
+userFromRoot()
+// CHECK: [[ROOT_FUNC:%.*]] = function_ref @$s7RootLib12ShadowedFuncyyF : $@convention(thin) () -> ()
+// CHECK: apply [[ROOT_FUNC]]() : $@convention(thin) () -> ()
+explicitUserFromHigh()
+// CHECK: apply [[ROOT_FUNC]]() : $@convention(thin) () -> ()
+// CHECK-NOT: apply [[ROOT_FUNC]]() : $@convention(thin) () -> ()
+
+// MiddleLib and HighLib call the last ShadowedFunc from MiddleLib.
+userFromMiddle()
+// CHECK: [[MIDDLE_FUNC:%.*]] = function_ref @$s9MiddleLib12ShadowedFuncyyF : $@convention(thin) () -> ()
+// CHECK: apply [[MIDDLE_FUNC]]() : $@convention(thin) () -> ()
+userFromHigh()
+// CHECK: apply [[MIDDLE_FUNC]]() : $@convention(thin) () -> ()
+// CHECK-NOT: apply [[MIDDLE_FUNC]]() : $@convention(thin) () -> ()
+
+// All callers of the clang fn use the merged one anyway.
+clangUserFromRoot()
+clangUserFromMiddle()
+clangUserFromHigh()
+// CHECK: [[CLANG_FUNC:%.*]] = function_ref @ShadowedFuncClang : $@convention(c) () -> ()
+// CHECK: apply [[CLANG_FUNC]]() : $@convention(c) () -> ()
+// CHECK: apply [[CLANG_FUNC]]() : $@convention(c) () -> ()
+// CHECK: apply [[CLANG_FUNC]]() : $@convention(c) () -> ()
+// CHECK-NOT: apply [[CLANG_FUNC]]() : $@convention(c) () -> ()

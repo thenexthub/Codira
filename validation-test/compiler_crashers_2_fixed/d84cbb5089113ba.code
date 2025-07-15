@@ -1,0 +1,4 @@
+// {"kind":"typecheck","signature":"language::constraints::Solution::simplifyType(language::Type, bool) const"}
+// RUN: not %target-language-frontend -typecheck %s
+for (a(b, d)) in [(repeat .c)].enumerated(<#expression#>) {
+}

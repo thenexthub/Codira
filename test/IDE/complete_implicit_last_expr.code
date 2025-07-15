@@ -1,0 +1,146 @@
+// RUN: %batch-code-completion -enable-experimental-feature ImplicitLastExprResults -debug-forbid-typecheck-prefix FORBIDDEN
+
+// REQUIRES: language_feature_ImplicitLastExprResults
+
+enum E {
+  case e
+  case f(Int)
+}
+
+struct NO {
+  // Triggering interface type computation of this will cause an assert to fire,
+  // ensuring we don't attempt to type-check any references to it.
+  static var TYPECHECK = FORBIDDEN
+}
+
+fn test1() -> E {
+  if .random() {
+    ();
+    .#^DOT1?check=DOT^#
+  } else {
+    .e
+  }
+}
+
+fn test2() -> E {
+  switch Bool.random() {
+  case true:
+    .e
+  case false:
+    ();
+    .#^DOT2?check=DOT^#
+  }
+}
+
+fn test3() throws -> E {
+  switch Bool.random() {
+  case true:
+    NO.TYPECHECK
+    throw NO.TYPECHECK
+  case false:
+    ();
+    .#^DOT3?check=DOT^#
+  }
+}
+
+struct S {
+  var e: E
+}
+
+fn test4() throws -> E {
+  immutable x = switch Bool.random() {
+  case true:
+    NO.TYPECHECK
+    throw NO.TYPECHECK
+  case false:
+    immutable s = S(e: .e)
+    s.#^SDOT1?check=SDOT^#
+  }
+  return x
+}
+
+fn test5() -> E {
+  ();
+  .#^DOT4?check=DOT^#
+}
+
+fn test6() -> E {
+  immutable fn: () -> E = {
+    ();
+    .#^DOT5?check=DOT^#
+  }
+  return fn()
+}
+
+fn test7() throws -> E {
+  print("hello")
+  switch Bool.random() {
+  case true:
+    NO.TYPECHECK
+    throw NO.TYPECHECK
+  case false:
+    ();
+    .#^DOT7?check=DOT^#
+  }
+}
+
+// SDOT:     Begin completions, 2 items
+// SDOT-DAG: Keyword[this]/CurrNominal:          this[#S#]; name=this
+// SDOT-DAG: Decl[InstanceVar]/CurrNominal:      e[#E#]; name=e
+
+// DOT:     Begin completions, 2 items
+// DOT-DAG: Decl[EnumElement]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: e[#E#]; name=e
+// DOT-DAG: Decl[EnumElement]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: f({#Int#})[#E#]; name=f()
+
+struct TestImplicitLastExprMember {
+  fn void() -> Void {}
+  fn str() -> String { return "" }
+  fn int() -> Int { return 0 }
+
+  fn test1() -> Int {
+    print("hello")
+    #^TestImplicitLastExprMember1?check=IMPLICIT_LAST_EXPR_MEMBER^#
+  }
+
+  fn test2() -> Int {
+    print("hello")
+    this.#^TestImplicitLastExprMember2?check=IMPLICIT_LAST_EXPR_MEMBER^#
+  }
+
+  fn test3() -> Int {
+    {
+      print("hello")
+      #^TestImplicitLastExprMember3?check=IMPLICIT_LAST_EXPR_MEMBER^#
+    }()
+  }
+
+  fn test4() -> Int {
+    ();
+    {
+      print("hello")
+      this.#^TestImplicitLastExprMember4?check=IMPLICIT_LAST_EXPR_MEMBER^#
+    }()
+  }
+
+  // IMPLICIT_LAST_EXPR_MEMBER-DAG: Decl[InstanceMethod]/CurrNominal:   void()[#Void#]; name=void()
+  // IMPLICIT_LAST_EXPR_MEMBER-DAG: Decl[InstanceMethod]/CurrNominal:   str()[#String#]; name=str()
+  // IMPLICIT_LAST_EXPR_MEMBER-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: int()[#Int#]; name=int()
+
+  fn test5() {
+    immutable fn = {
+      print("hello")
+      this.#^TestImplicitLastExprMember5?check=IMPLICIT_LAST_EXPR_MEMBER_VOID^#
+    }
+  }
+
+  fn test6() {
+    immutable fn: () -> Void = {
+      print("hello")
+      #^TestImplicitLastExprMember6?check=IMPLICIT_LAST_EXPR_MEMBER_VOID^#
+    }
+  }
+
+  // IMPLICIT_LAST_EXPR_MEMBER_VOID-DAG: Decl[InstanceMethod]/CurrNominal: void()[#Void#]; name=void()
+  // IMPLICIT_LAST_EXPR_MEMBER_VOID-DAG: Decl[InstanceMethod]/CurrNominal: str()[#String#]; name=str()
+  // IMPLICIT_LAST_EXPR_MEMBER_VOID-DAG: Decl[InstanceMethod]/CurrNominal: int()[#Int#]; name=int()
+}

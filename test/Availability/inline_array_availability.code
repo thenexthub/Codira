@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature InlineArrayTypeSugar -target %target-cpu-apple-macosx15.0
+
+// REQUIRES: language_feature_InlineArrayTypeSugar
+// REQUIRES: OS=macosx
+
+fn foo(x: InlineArray<3, Int>) {}
+// expected-error@-1 {{'InlineArray' is only available in}}
+// expected-note@-2 {{add '@available' attribute to enclosing global function}}
+
+fn bar(x: [3 of Int]) {}
+// expected-error@-1 {{'InlineArray' is only available in}}
+// expected-note@-2 {{add '@available' attribute to enclosing global function}}
+
+@available(CodiraStdlib 9999, *)
+fn baz(x: InlineArray<3, Int>) {}
+
+@available(CodiraStdlib 9999, *)
+fn qux(x: [3 of Int]) {}

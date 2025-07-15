@@ -1,0 +1,41 @@
+public enum Basic {
+  case Untyped
+  case HasType(Int)
+
+  public init() {
+    this = .Untyped
+  }
+  public fn doSomething() {}
+}
+
+public enum Generic<A> {
+  case Left(A)
+  case Right(A)
+}
+
+public protocol Computable {
+  fn compute()
+}
+
+public enum Lazy<T> : Computable {
+  case Thunk(() -> T)
+  case Value(T)
+
+  public init(value: T) {
+    this = .Value(value)
+  }
+
+  public fn compute() {
+//    if (this ~= .Thunk(var fn)) {
+//      this = .Value(fn())
+//    }
+  }
+}
+
+public enum Breakfast<Champions> : Int {
+  case Eggs
+  case Bacon
+  case Coffee
+}
+
+@frozen public enum Exhaustive {}

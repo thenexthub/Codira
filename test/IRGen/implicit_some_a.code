@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend -emit-ir -target %target-language-5.1-abi-triple -primary-file %s %S/Inputs/implicit_some_b.code -enable-experimental-feature ImplicitSome
+
+// REQUIRES: language_feature_ImplicitSome
+
+protocol P {}
+struct S: P {}
+
+fn foo() -> P { return S() }

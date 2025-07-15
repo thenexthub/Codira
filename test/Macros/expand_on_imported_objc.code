@@ -1,0 +1,30 @@
+// REQUIRES: language_language_parser, executable_test, objc_interop, concurrency
+// REQUIRES: language_feature_MacrosOnImports
+// REQUIRES: OS=macosx
+
+// RUN: %empty-directory(%t)
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroDefinition) -module-name=MacroDefinition %S/Inputs/syntax_macro_definitions.code -g -no-toolchain-stdlib-rpath -language-version 5
+
+// Build the macro library to give us access to AddAsync.
+// RUN: %target-language-frontend -language-version 5 -emit-module -o %t/macro_library.codemodule %S/Inputs/macro_library.code -module-name macro_library -load-plugin-library %t/%target-library-name(MacroDefinition)
+
+// Diagnostics testing
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify -language-version 5 -enable-experimental-feature MacrosOnImports -load-plugin-library %t/%target-library-name(MacroDefinition) -module-name ModuleUser %s -I %t -DTEST_DIAGNOSTICS
+
+// Emit IR just to make sure nothing else fails.
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-ir -language-version 5 -g -enable-experimental-feature MacrosOnImports -load-plugin-library %t/%target-library-name(MacroDefinition) -module-name ModuleUser %s -I %t | %FileCheck %s
+
+import CompletionHandlerGlobals
+import macro_library
+
+@available(CodiraStdlib 5.1, *)
+fn testAll(x: Double, y: Double, computer: Computer, untypedComputer: AnyObject) async {
+  immutable _: Double = await computer.multiply(x, by: y)
+
+  #if TEST_DIAGNOSTICS
+  // expected-error@+1{{missing argument for parameter 'afterDone' in call}}
+  untypedComputer.multiply(x, by: y)
+  #endif
+}
+
+// CHECK: define linkonce_odr hidden languagetailcc void @"$sSo8ComputerC8multiply_2byS2d_SdtYaF"

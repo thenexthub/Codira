@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/HeapObject.h"
@@ -21,12 +22,12 @@
 
 using namespace language;
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-void swift_copyKeyPathTrivialIndices(const void *src, void *dest, size_t bytes) {
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+void language_copyKeyPathTrivialIndices(const void *src, void *dest, size_t bytes) {
   memcpy(dest, src, bytes);
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static bool equateGenericArguments(const void *a, const void *b, size_t bytes) {
   // Generic arguments can't affect equality, since an equivalent key path may
   // have been formed in a fully concrete context without capturing generic
@@ -34,7 +35,7 @@ static bool equateGenericArguments(const void *a, const void *b, size_t bytes) {
   return true;
 }
 
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 static intptr_t hashGenericArguments(const void *src, size_t bytes) {
   // Generic arguments can't affect equality, since an equivalent key path may
   // have been formed in a fully concrete context without capturing generic
@@ -45,17 +46,17 @@ static intptr_t hashGenericArguments(const void *src, size_t bytes) {
 
 struct KeyPathGenericWitnessTable {
   void *destroy;
-  SWIFT_CC(swift) void (* __ptrauth_swift_runtime_function_entry_with_key(swift::SpecialPointerAuthDiscriminators::KeyPathCopy) copy)(const void *src, void *dest, size_t bytes);
-  SWIFT_CC(swift) bool (* __ptrauth_swift_runtime_function_entry_with_key(swift::SpecialPointerAuthDiscriminators::KeyPathEquals) equals)(const void *, const void *, size_t);
-  SWIFT_CC(swift) intptr_t (* __ptrauth_swift_runtime_function_entry_with_key(swift::SpecialPointerAuthDiscriminators::KeyPathHash) hash)(const void *src, size_t bytes);
+  LANGUAGE_CC(language) void (* __ptrauth_language_runtime_function_entry_with_key(language::SpecialPointerAuthDiscriminators::KeyPathCopy) copy)(const void *src, void *dest, size_t bytes);
+  LANGUAGE_CC(language) bool (* __ptrauth_language_runtime_function_entry_with_key(language::SpecialPointerAuthDiscriminators::KeyPathEquals) equals)(const void *, const void *, size_t);
+  LANGUAGE_CC(language) intptr_t (* __ptrauth_language_runtime_function_entry_with_key(language::SpecialPointerAuthDiscriminators::KeyPathHash) hash)(const void *src, size_t bytes);
 };
 
 /// A prefab witness table for computed key path components that only include
 /// captured generic arguments.
-SWIFT_RUNTIME_EXPORT
-KeyPathGenericWitnessTable swift_keyPathGenericWitnessTable = {
+LANGUAGE_RUNTIME_EXPORT
+KeyPathGenericWitnessTable language_keyPathGenericWitnessTable = {
   nullptr,
-  swift_copyKeyPathTrivialIndices,
+  language_copyKeyPathTrivialIndices,
   equateGenericArguments,
   hashGenericArguments,
 };
@@ -75,17 +76,17 @@ namespace {
 // parameters are passed implicitly in the isa of the key path.
 
 extern "C"
-SWIFT_CC(swift) void
-swift_getAtKeyPath(SWIFT_INDIRECT_RESULT void *result,
+LANGUAGE_CC(language) void
+language_getAtKeyPath(LANGUAGE_INDIRECT_RESULT void *result,
                    const OpaqueValue *root, void *keyPath);
 
 extern "C"
-SWIFT_CC(swift) AddrAndOwner
-_swift_modifyAtWritableKeyPath_impl(OpaqueValue *root, void *keyPath);
+LANGUAGE_CC(language) AddrAndOwner
+_language_modifyAtWritableKeyPath_impl(OpaqueValue *root, void *keyPath);
 
 extern "C"
-SWIFT_CC(swift) AddrAndOwner
-_swift_modifyAtReferenceWritableKeyPath_impl(const OpaqueValue *root,
+LANGUAGE_CC(language) AddrAndOwner
+_language_modifyAtReferenceWritableKeyPath_impl(const OpaqueValue *root,
                                              void *keyPath);
 
 namespace {
@@ -118,13 +119,13 @@ namespace {
                 "temporary doesn't fit in a YieldOnceBuffer");
 }
 
-static SWIFT_CC(swift)
+static LANGUAGE_CC(language)
 void _destroy_temporary_continuation(YieldOnceBuffer *buffer, bool forUnwind) {
   YieldOnceTemporary::destroyAndDeallocateIn(buffer);
 }
 
 YieldOnceResult<const OpaqueValue*>
-swift::swift_readAtKeyPath(YieldOnceBuffer *buffer,
+language::language_readAtKeyPath(YieldOnceBuffer *buffer,
                            const OpaqueValue *root, void *keyPath) {
   // The Value type parameter is passed in the class of the key path object.
   // KeyPath is a native class, so we can just load its metadata directly
@@ -137,41 +138,41 @@ swift::swift_readAtKeyPath(YieldOnceBuffer *buffer,
   auto result = YieldOnceTemporary::allocateIn(valueTy, buffer);
 
   // Read into the buffer.
-  swift_getAtKeyPath(result, root, keyPath);
+  language_getAtKeyPath(result, root, keyPath);
 
   // Return a continuation that destroys the value in the buffer
   // and deallocates it.
-  return { swift_ptrauth_sign_opaque_read_resume_function(
+  return { language_ptrauth_sign_opaque_read_resume_function(
              &_destroy_temporary_continuation, buffer),
            result };
 }
 
-static SWIFT_CC(swift)
+static LANGUAGE_CC(language)
 void _release_owner_continuation(YieldOnceBuffer *buffer, bool forUnwind) {
-  swift_unknownObjectRelease(buffer->Data[0]);
+  language_unknownObjectRelease(buffer->Data[0]);
 }
 
 YieldOnceResult<OpaqueValue*>
-swift::swift_modifyAtWritableKeyPath(YieldOnceBuffer *buffer,
+language::language_modifyAtWritableKeyPath(YieldOnceBuffer *buffer,
                                      OpaqueValue *root, void *keyPath) {
   auto addrAndOwner =
-    _swift_modifyAtWritableKeyPath_impl(root, keyPath);
+    _language_modifyAtWritableKeyPath_impl(root, keyPath);
   buffer->Data[0] = addrAndOwner.Owner;
 
-  return { swift_ptrauth_sign_opaque_modify_resume_function(
+  return { language_ptrauth_sign_opaque_modify_resume_function(
              &_release_owner_continuation, buffer),
            addrAndOwner.Addr };
 }
 
 YieldOnceResult<OpaqueValue*>
-swift::swift_modifyAtReferenceWritableKeyPath(YieldOnceBuffer *buffer,
+language::language_modifyAtReferenceWritableKeyPath(YieldOnceBuffer *buffer,
                                               const OpaqueValue *root,
                                               void *keyPath) {
   auto addrAndOwner =
-    _swift_modifyAtReferenceWritableKeyPath_impl(root, keyPath);
+    _language_modifyAtReferenceWritableKeyPath_impl(root, keyPath);
   buffer->Data[0] = addrAndOwner.Owner;
 
-  return { swift_ptrauth_sign_opaque_modify_resume_function(
+  return { language_ptrauth_sign_opaque_modify_resume_function(
              &_release_owner_continuation, buffer),
            addrAndOwner.Addr };
 }
@@ -185,14 +186,14 @@ struct YieldOnceCoroutine;
 template <typename ResultType, typename... ArgumentTypes>
 struct YieldOnceCoroutine<ResultType(ArgumentTypes...)> {
   using type =
-      SWIFT_CC(swift) YieldOnceResult<ResultType>(YieldOnceBuffer *,
+      LANGUAGE_CC(language) YieldOnceResult<ResultType>(YieldOnceBuffer *,
                                                   ArgumentTypes...);
 };
 
-static_assert(std::is_same_v<decltype(swift_readAtKeyPath),
+static_assert(std::is_same_v<decltype(language_readAtKeyPath),
                              YieldOnceCoroutine<const OpaqueValue * (const OpaqueValue *, void *)>::type>);
-static_assert(std::is_same_v<decltype(swift_modifyAtWritableKeyPath),
+static_assert(std::is_same_v<decltype(language_modifyAtWritableKeyPath),
                              YieldOnceCoroutine<OpaqueValue * (OpaqueValue *, void *)>::type>);
-static_assert(std::is_same_v<decltype(swift_modifyAtReferenceWritableKeyPath),
+static_assert(std::is_same_v<decltype(language_modifyAtReferenceWritableKeyPath),
                              YieldOnceCoroutine<OpaqueValue * (const OpaqueValue *, void *)>::type>);
 }

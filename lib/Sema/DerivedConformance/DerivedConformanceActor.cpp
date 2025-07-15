@@ -1,20 +1,20 @@
 //===--- DerivedConformanceActor.cpp ----------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2018 - 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2018 - 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
 // This file implements explicit derivation of the Actor protocol
 // for actor types.
 //
-// Swift Evolution pitch thread:
-// https://forums.swift.org/t/support-custom-executors-in-swift-concurrency/44425
+// Codira Evolution pitch thread:
+// https://forums.code.org/t/support-custom-executors-in-language-concurrency/44425
 //
 //===----------------------------------------------------------------------===//
 

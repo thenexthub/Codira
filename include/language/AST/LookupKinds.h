@@ -1,4 +1,4 @@
-//===--- LookupKinds.h - Swift name-lookup enums ----------------*- C++ -*-===//
+//===--- LookupKinds.h - Codira name-lookup enums ----------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines enums relating to name lookup.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOOKUPKINDS_H
-#define SWIFT_LOOKUPKINDS_H
+#ifndef LANGUAGE_LOOKUPKINDS_H
+#define LANGUAGE_LOOKUPKINDS_H
 
 namespace language {
 
@@ -29,7 +30,7 @@ enum class NLKind {
   QualifiedLookup
 };
 
-void simple_display(llvm::raw_ostream &out, NLKind kind);
+void simple_display(toolchain::raw_ostream &out, NLKind kind);
 
 /// Constants used to customize name lookup.
 enum NLOptions : unsigned {
@@ -97,7 +98,7 @@ static inline NLOptions operator~(NLOptions value) {
   return NLOptions(~(unsigned)value);
 }
 
-void simple_display(llvm::raw_ostream &out, NLOptions options);
+void simple_display(toolchain::raw_ostream &out, NLOptions options);
 
 
 /// Flags affecting module-level lookup.

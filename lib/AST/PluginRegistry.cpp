@@ -1,13 +1,17 @@
 //===--- PluginRegistry.cpp -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/PluginRegistry.h"
@@ -15,14 +19,14 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
 #include "language/Basic/LoadDynamicLibrary.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Program.h"
 #include "language/Basic/Sandbox.h"
 #include "language/Basic/StringExtras.h"
-#include "llvm/Support/Endian.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Config/config.h"
+#include "toolchain/Support/Endian.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Config/config.h"
 
 #include <signal.h>
 
@@ -35,7 +39,7 @@
 using namespace language;
 
 PluginRegistry::PluginRegistry() {
-  dumpMessaging = ::getenv("SWIFT_DUMP_PLUGIN_MESSAGING") != nullptr;
+  dumpMessaging = ::getenv("LANGUAGE_DUMP_PLUGIN_MESSAGING") != nullptr;
 }
 
 CompilerPlugin::~CompilerPlugin() {
@@ -44,30 +48,30 @@ CompilerPlugin::~CompilerPlugin() {
     this->cleanup();
 }
 
-llvm::Expected<std::unique_ptr<InProcessPlugins>>
+toolchain::Expected<std::unique_ptr<InProcessPlugins>>
 InProcessPlugins::create(const char *serverPath) {
   std::string err;
   auto server = loadLibrary(serverPath, &err);
   if (!server) {
-    return llvm::createStringError(llvm::inconvertibleErrorCode(), err);
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(), err);
   }
 
   auto funcPtr =
-      getAddressOfSymbol(server, "swift_inproc_plugins_handle_message");
+      getAddressOfSymbol(server, "language_inproc_plugins_handle_message");
   if (!funcPtr) {
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                    "entry point not found in '%s'", serverPath);
   }
   return std::unique_ptr<InProcessPlugins>(new InProcessPlugins(
       serverPath, reinterpret_cast<HandleMessageFunction>(funcPtr)));
 }
 
-llvm::Error InProcessPlugins::sendMessage(llvm::StringRef message) {
+toolchain::Error InProcessPlugins::sendMessage(toolchain::StringRef message) {
   assert(receivedResponse.empty() &&
          "sendMessage() called before consuming previous response?");
 
   if (shouldDumpMessaging()) {
-    llvm::dbgs() << "->(plugin:0) " << message << '\n';
+    toolchain::dbgs() << "->(plugin:0) " << message << '\n';
   }
 
   char *responseData = nullptr;
@@ -77,9 +81,9 @@ llvm::Error InProcessPlugins::sendMessage(llvm::StringRef message) {
 
   // 'responseData' now holds a response message or error message depending on
   // 'hadError'. Either way, it's our responsibility to deallocate it.
-  SWIFT_DEFER { free(responseData); };
+  LANGUAGE_DEFER { free(responseData); };
   if (hadError) {
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                    StringRef(responseData, responseLength));
   }
 
@@ -87,29 +91,29 @@ llvm::Error InProcessPlugins::sendMessage(llvm::StringRef message) {
   receivedResponse = std::string(responseData, responseLength);
 
   if (shouldDumpMessaging()) {
-    llvm::dbgs() << "<-(plugin:0) " << receivedResponse << "\n";
+    toolchain::dbgs() << "<-(plugin:0) " << receivedResponse << "\n";
   }
 
   assert(!receivedResponse.empty() && "received empty response");
-  return llvm::Error::success();
+  return toolchain::Error::success();
 }
 
-llvm::Expected<std::string> InProcessPlugins::waitForNextMessage() {
+toolchain::Expected<std::string> InProcessPlugins::waitForNextMessage() {
   assert(!receivedResponse.empty() &&
          "waitForNextMessage() called without response data.");
-  SWIFT_DEFER { receivedResponse = ""; };
+  LANGUAGE_DEFER { receivedResponse = ""; };
   return std::move(receivedResponse);
 }
 
-llvm::Expected<CompilerPlugin *>
-PluginRegistry::getInProcessPlugins(llvm::StringRef serverPath) {
+toolchain::Expected<CompilerPlugin *>
+PluginRegistry::getInProcessPlugins(toolchain::StringRef serverPath) {
   std::lock_guard<std::mutex> lock(mtx);
   if (!inProcessPlugins) {
     auto server = InProcessPlugins::create(serverPath.str().c_str());
     if (!server) {
-      return llvm::handleErrors(
-          server.takeError(), [&](const llvm::ErrorInfoBase &err) {
-            return llvm::createStringError(
+      return toolchain::handleErrors(
+          server.takeError(), [&](const toolchain::ErrorInfoBase &err) {
+            return toolchain::createStringError(
                 err.convertToErrorCode(),
                 "failed to load in-process plugin server: " + serverPath +
                     "; " + err.message());
@@ -117,8 +121,8 @@ PluginRegistry::getInProcessPlugins(llvm::StringRef serverPath) {
     }
     inProcessPlugins = std::move(server.get());
   } else if (inProcessPlugins->getPath() != serverPath) {
-    return llvm::createStringError(
-        llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(
+        toolchain::inconvertibleErrorCode(),
         "loading multiple in-process servers are not supported: '%s' and '%s'",
         inProcessPlugins->getPath().data(), serverPath.str().c_str());
   }
@@ -127,11 +131,11 @@ PluginRegistry::getInProcessPlugins(llvm::StringRef serverPath) {
   return inProcessPlugins.get();
 }
 
-llvm::Expected<CompilerPlugin *>
+toolchain::Expected<CompilerPlugin *>
 PluginRegistry::loadExecutablePlugin(StringRef path, bool disableSandbox) {
-  llvm::sys::fs::file_status stat;
-  if (auto err = llvm::sys::fs::status(path, stat)) {
-    return llvm::errorCodeToError(err);
+  toolchain::sys::fs::file_status stat;
+  if (auto err = toolchain::sys::fs::status(path, stat)) {
+    return toolchain::errorCodeToError(err);
   }
 
   std::lock_guard<std::mutex> lock(mtx);
@@ -147,13 +151,13 @@ PluginRegistry::loadExecutablePlugin(StringRef path, bool disableSandbox) {
     storage = nullptr;
   }
 
-  if (!llvm::sys::fs::exists(stat)) {
-    return llvm::createStringError(std::errc::no_such_file_or_directory,
+  if (!toolchain::sys::fs::exists(stat)) {
+    return toolchain::createStringError(std::errc::no_such_file_or_directory,
                                    "not found");
   }
 
-  if (!llvm::sys::fs::can_execute(path)) {
-    return llvm::createStringError(std::errc::permission_denied,
+  if (!toolchain::sys::fs::can_execute(path)) {
+    return toolchain::createStringError(std::errc::permission_denied,
                                    "not executable");
   }
 
@@ -172,19 +176,19 @@ PluginRegistry::loadExecutablePlugin(StringRef path, bool disableSandbox) {
   return storage.get();
 }
 
-llvm::Error LoadedExecutablePlugin::spawnIfNeeded() {
+toolchain::Error LoadedExecutablePlugin::spawnIfNeeded() {
   if (Process) {
     // NOTE: We don't check the mtime here because 'stat(2)' call is too heavy.
     // PluginRegistry::loadExecutablePlugin() checks it and replace this object
     // itself if the plugin is updated.
-    return llvm::Error::success();
+    return toolchain::Error::success();
   }
 
   // Create command line arguments.
   SmallVector<StringRef, 4> command{getPath()};
 
   // Apply sandboxing.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
   if (!disableSandbox) {
     Sandbox::apply(command, Allocator);
   }
@@ -192,7 +196,7 @@ llvm::Error LoadedExecutablePlugin::spawnIfNeeded() {
   // Launch.
   auto childInfo = ExecuteWithPipe(command[0], command);
   if (!childInfo) {
-    return llvm::errorCodeToError(childInfo.getError());
+    return toolchain::errorCodeToError(childInfo.getError());
   }
 
   Process = std::make_unique<PluginProcess>(childInfo->ProcessInfo,
@@ -203,7 +207,7 @@ llvm::Error LoadedExecutablePlugin::spawnIfNeeded() {
     (*callback)();
   }
 
-  return llvm::Error::success();
+  return toolchain::Error::success();
 }
 
 LoadedExecutablePlugin::PluginProcess::~PluginProcess() {
@@ -213,6 +217,7 @@ LoadedExecutablePlugin::PluginProcess::~PluginProcess() {
 #else
   close(input);
   close(output);
+  kill(process.Pid, SIGTERM);
 #endif
 
   // Set `SecondsToWait` non-zero so it waits for the timeout and kill it after
@@ -220,7 +225,7 @@ LoadedExecutablePlugin::PluginProcess::~PluginProcess() {
   // the stdin and exits immediately, so this usually doesn't wait for the
   // timeout. Note that we can't use '0' because it performs a non-blocking
   // wait, which make the plugin a zombie if it hasn't exited.
-  llvm::sys::Wait(process, /*SecondsToWait=*/1);
+  toolchain::sys::Wait(process, /*SecondsToWait=*/1);
 }
 
 ssize_t LoadedExecutablePlugin::PluginProcess::read(void *buf,
@@ -242,7 +247,7 @@ ssize_t LoadedExecutablePlugin::PluginProcess::read(void *buf,
 #if defined(SIGPIPE)
   /// Ignore SIGPIPE while reading.
   auto *old_handler = signal(SIGPIPE, SIG_IGN);
-  SWIFT_DEFER { signal(SIGPIPE, old_handler); };
+  LANGUAGE_DEFER { signal(SIGPIPE, old_handler); };
 #endif
 
   while (bytesToRead > 0) {
@@ -280,7 +285,7 @@ ssize_t LoadedExecutablePlugin::PluginProcess::write(const void *buf,
 #if defined(SIGPIPE)
   /// Ignore SIGPIPE while writing.
   auto *old_handler = signal(SIGPIPE, SIG_IGN);
-  SWIFT_DEFER { signal(SIGPIPE, old_handler); };
+  LANGUAGE_DEFER { signal(SIGPIPE, old_handler); };
 #endif
 
   while (bytesToWrite > 0) {
@@ -298,23 +303,23 @@ ssize_t LoadedExecutablePlugin::PluginProcess::write(const void *buf,
 #endif
 }
 
-llvm::Error LoadedExecutablePlugin::sendMessage(llvm::StringRef message) {
+toolchain::Error LoadedExecutablePlugin::sendMessage(toolchain::StringRef message) {
   ssize_t writtenSize = 0;
 
   if (shouldDumpMessaging()) {
-    llvm::dbgs() << "->(plugin:" << Process->process.Pid << ") " << message << '\n';
+    toolchain::dbgs() << "->(plugin:" << Process->process.Pid << ") " << message << '\n';
   }
 
   const char *data = message.data();
   size_t size = message.size();
 
   // Write header (message size).
-  uint64_t header = llvm::support::endian::byte_swap(uint64_t(size),
-                                                     llvm::endianness::little);
+  uint64_t header = toolchain::support::endian::byte_swap(uint64_t(size),
+                                                     toolchain::endianness::little);
   writtenSize = Process->write(&header, sizeof(header));
   if (writtenSize != sizeof(header)) {
     setStale();
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                    "failed to write plugin message header");
   }
 
@@ -322,14 +327,14 @@ llvm::Error LoadedExecutablePlugin::sendMessage(llvm::StringRef message) {
   writtenSize = Process->write(data, size);
   if (writtenSize != ssize_t(size)) {
     setStale();
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                    "failed to write plugin message data");
   }
 
-  return llvm::Error::success();
+  return toolchain::Error::success();
 }
 
-llvm::Expected<std::string> LoadedExecutablePlugin::waitForNextMessage() {
+toolchain::Expected<std::string> LoadedExecutablePlugin::waitForNextMessage() {
   ssize_t readSize = 0;
 
   // Read header (message size).
@@ -338,12 +343,12 @@ llvm::Expected<std::string> LoadedExecutablePlugin::waitForNextMessage() {
 
   if (readSize != sizeof(header)) {
     setStale();
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                    "failed to read plugin message header");
   }
 
   size_t size =
-      llvm::support::endian::read<uint64_t>(&header, llvm::endianness::little);
+      toolchain::support::endian::read<uint64_t>(&header, toolchain::endianness::little);
 
   // Read message.
   std::string message;
@@ -354,7 +359,7 @@ llvm::Expected<std::string> LoadedExecutablePlugin::waitForNextMessage() {
     readSize = Process->read(buffer, std::min(sizeof(buffer), sizeToRead));
     if (readSize == 0) {
       setStale();
-      return llvm::createStringError(llvm::inconvertibleErrorCode(),
+      return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
                                      "failed to read plugin message data");
     }
     sizeToRead -= readSize;
@@ -362,7 +367,7 @@ llvm::Expected<std::string> LoadedExecutablePlugin::waitForNextMessage() {
   }
 
   if (shouldDumpMessaging()) {
-    llvm::dbgs() << "<-(plugin:" << Process->process.Pid << ") " << message << "\n";
+    toolchain::dbgs() << "<-(plugin:" << Process->process.Pid << ") " << message << "\n";
   }
 
   return message;

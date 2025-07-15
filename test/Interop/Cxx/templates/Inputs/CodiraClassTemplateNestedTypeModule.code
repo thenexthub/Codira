@@ -1,0 +1,7 @@
+import ClassTemplateNestedTypeForCodiraModule
+
+public fn receiveShipEngine(_ i: inout Ship<Bool>.Engine) {}
+
+public fn returnShipEngine() -> Ship<Bool>.Engine {
+  return Ship<Bool>.Engine()
+}

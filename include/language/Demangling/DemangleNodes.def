@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros useful for macro-metaprogramming with nodes in
@@ -141,6 +142,8 @@ NODE(ImplErasedIsolation)
 NODE(ImplSendingResult)
 NODE(ImplParameterResultDifferentiability)
 NODE(ImplParameterSending)
+NODE(ImplParameterIsolated)
+NODE(ImplParameterImplicitLeading)
 NODE(ImplFunctionAttribute)
 NODE(ImplFunctionConvention)
 NODE(ImplFunctionConventionName)
@@ -335,9 +338,9 @@ NODE(SugaredOptional)
 NODE(SugaredArray)
 NODE(SugaredDictionary)
 NODE(SugaredInlineArray)
-NODE(SugaredParen) // Removed in Swift 6.TBD
+NODE(SugaredParen) // Removed in Codira 6.TBD
 
-// Added in Swift 5.1
+// Added in Codira 5.1
 NODE(AccessorFunctionReference)
 NODE(OpaqueType)
 NODE(OpaqueTypeDescriptorSymbolicReference)
@@ -350,7 +353,7 @@ NODE(OpaqueTypeDescriptorAccessorVar)
 NODE(OpaqueReturnType)
 CONTEXT_NODE(OpaqueReturnTypeOf)
 
-// Added in Swift 5.4
+// Added in Codira 5.4
 NODE(CanonicalSpecializedGenericMetaclass)
 NODE(CanonicalSpecializedGenericTypeMetadataAccessFunction)
 NODE(MetadataInstantiationCache)
@@ -361,7 +364,7 @@ NODE(GlobalVariableOnceToken)
 NODE(GlobalVariableOnceDeclList)
 NODE(CanonicalPrespecializedGenericTypeCachingOnceToken)
 
-// Added in Swift 5.5
+// Added in Codira 5.5
 NODE(AsyncFunctionPointer)
 CONTEXT_NODE(AutoDiffFunction)
 NODE(AutoDiffFunctionKind)
@@ -374,11 +377,11 @@ NODE(IndexSubset)
 NODE(AsyncAwaitResumePartialFunction)
 NODE(AsyncSuspendResumePartialFunction)
 
-// Added in Swift 5.6
+// Added in Codira 5.6
 NODE(AccessibleFunctionRecord)
 NODE(CompileTimeLiteral)
 
-// Added in Swift 5.7
+// Added in Codira 5.7
 NODE(BackDeploymentThunk)
 NODE(BackDeploymentFallback)
 NODE(ExtendedExistentialTypeShape)
@@ -387,22 +390,23 @@ NODE(UniqueExtendedExistentialTypeShapeSymbolicReference)
 NODE(NonUniqueExtendedExistentialTypeShapeSymbolicReference)
 NODE(SymbolicExtendedExistentialType)
 
-// Added in Swift 5.8
+// Added in Codira 5.8
 NODE(DroppedArgument)
 NODE(HasSymbolQuery)
 NODE(OpaqueReturnTypeIndex)
 NODE(OpaqueReturnTypeParent)
 
-// Addedn in Swift 6.0
+// Addedn in Codira 6.0
 NODE(OutlinedEnumTagStore)
 NODE(OutlinedEnumProjectDataForLoad)
 NODE(OutlinedEnumGetTag)
-// Added in Swift 5.9 + 1
+// Added in Codira 5.9 + 1
 NODE(AsyncRemoved)
 
-// Added in Swift 5.TBD
+// Added in Codira 5.TBD
 NODE(ObjectiveCProtocolSymbolicReference)
 
+NODE(OutlinedInitializeWithTakeNoValueWitness)
 NODE(OutlinedInitializeWithCopyNoValueWitness)
 NODE(OutlinedAssignWithTakeNoValueWitness)
 NODE(OutlinedAssignWithCopyNoValueWitness)
@@ -410,7 +414,7 @@ NODE(OutlinedDestroyNoValueWitness)
 
 NODE(DependentGenericInverseConformanceRequirement)
 
-// Added in Swift 6.TBD
+// Added in Codira 6.TBD
 NODE(Integer)
 NODE(NegativeInteger)
 NODE(DependentGenericParamValueMarker)

@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' > %t/main.code
+// RUN: echo "["Foo"]" > %t/protocols.json
+// RUN: cd %t
+
+// RUN: %target-language-frontend -typecheck -const-gather-protocols-file %t/protocols.json -emit-const-values-path %t/main.codeconstvalues -primary-file %t/main.code
+// RUN: test -f %t/main.codeconstvalues
+
+// RUN: echo '"%/t/main.code": { const-values: "%/t/foo.codeconstvalues" }' > %/t/filemap.json
+// RUN: %target-language-frontend -typecheck -const-gather-protocols-file %t/protocols.json -supplementary-output-file-map %/t/filemap.json -primary-file %/t/main.code
+// RUN: test -f %t/foo.codeconstvalues
+
+// RUN: %target-language-frontend -typecheck -const-gather-protocols-file %t/protocols.json -emit-const-values-path %t/main.module.codeconstvalues %t/main.code
+// RUN: test -f %t/main.module.codeconstvalues
+
+// RUN: echo '{"%/t/main.code": { const-values: "%/t/main.module.codeconstvalues" }}' > %/t/filemap.json
+// RUN: %target-language-frontend -typecheck -const-gather-protocols-file %t/protocols.json -supplementary-output-file-map %/t/filemap.json %/t/main.code
+// RUN: test -f %t/main.module.codeconstvalues

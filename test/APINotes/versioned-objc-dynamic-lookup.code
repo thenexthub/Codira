@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+
+// RUN: not %target-language-frontend -typecheck -F %S/Inputs/custom-frameworks -language-version 5 %s 2>&1 | %FileCheck -check-prefix=CHECK-DIAGS -check-prefix=CHECK-DIAGS-5 %s
+// RUN: not %target-language-frontend -typecheck -F %S/Inputs/custom-frameworks -language-version 4 %s 2>&1 | %FileCheck -check-prefix=CHECK-DIAGS -check-prefix=CHECK-DIAGS-4 %s
+
+// REQUIRES: objc_interop
+
+import APINotesFrameworkTest
+
+fn testRenamedClassMembers(obj: AnyObject) {
+  // CHECK-DIAGS-4: language:[[@LINE+1]]:{{[0-9]+}}: error: 'doImportantThings()' has been renamed to 'language4DoImportantThings()'
+  obj.doImportantThings()
+  // CHECK-DIAGS-5: language:[[@LINE-1]]:{{[0-9]+}}: error: 'doImportantThings()' has been renamed to 'finalDoImportantThings()'
+
+  // CHECK-DIAGS-4-NOT: language:[[@LINE+1]]:{{[0-9]+}}:
+  obj.code4DoImportantThings()
+  // CHECK-DIAGS-5: language:[[@LINE-1]]:{{[0-9]+}}: error: 'language4DoImportantThings()' has been renamed to 'finalDoImportantThings()'
+
+  // CHECK-DIAGS-4: language:[[@LINE+1]]:{{[0-9]+}}: error: 'finalDoImportantThings()' has been renamed to 'language4DoImportantThings()'
+  obj.finalDoImportantThings()
+  // CHECK-DIAGS-5-NOT: language:[[@LINE-1]]:{{[0-9]+}}:
+
+
+  // CHECK-DIAGS-4: language:[[@LINE+1]]:{{[0-9]+}}: error: 'importantInstanceProperty' has been renamed to 'language4InstanceProperty'
+  _ = obj.importantInstanceProperty
+  // CHECK-DIAGS-5: language:[[@LINE-1]]:{{[0-9]+}}: error: 'importantInstanceProperty' has been renamed to 'finalInstanceProperty'
+
+  // CHECK-DIAGS-4-NOT: language:[[@LINE+1]]:{{[0-9]+}}:
+  _ = obj.code4InstanceProperty
+  // CHECK-DIAGS-5: language:[[@LINE-1]]:{{[0-9]+}}: error: 'language4InstanceProperty' has been renamed to 'finalInstanceProperty'
+
+  // CHECK-DIAGS-4: language:[[@LINE+1]]:{{[0-9]+}}: error: 'finalInstanceProperty' has been renamed to 'language4InstanceProperty'
+  _ = obj.finalInstanceProperty
+  // CHECK-DIAGS-5-NOT: language:[[@LINE-1]]:{{[0-9]+}}:
+}

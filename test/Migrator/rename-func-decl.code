@@ -1,0 +1,28 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t.mod)
+// RUN: %target-language-frontend -emit-module -o %t.mod/Cities.codemodule %S/Inputs/Cities.code -module-name Cities -parse-as-library
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -disable-migrator-fixits -primary-file %s  -I %t.mod -api-diff-data-file %S/Inputs/API.json -emit-migrated-file-path %t/rename-fn-decl.code.result -o %t/rename-fn-decl.code.remap
+// RUN: diff -u %S/rename-fn-decl.code.expected %t/rename-fn-decl.code.result
+
+import Cities
+
+class MyCities : MoreCities {
+  fn setZooLocation(x ix: Int, y iy: Int, z iz: Int) {}
+  fn addZooAt(_ x: Int, y: Int, z: Int) {}
+}
+
+class MySubTopLevelType: ToplevelType {
+  override fn member(_ x: @escaping ([Any]?) -> Void) {}
+}
+
+class MySubTopLevelType2: ToplevelType {
+  override fn member(_ x: @escaping (((([(Any)])?))) -> Void) {}
+}
+
+class SubCities: Cities {
+  override var yogurt: Int { return 2 }
+}
+
+fn boo(_ a: ToplevelType) {
+  a.trailing {  print($0!) }
+}

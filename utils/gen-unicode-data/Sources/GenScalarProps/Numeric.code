@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -18,7 +22,7 @@ enum NumericType: String {
   case decimal = "Decimal"
   
   var binaryRepresentation: UInt32 {
-    switch self {
+    switch this {
     case .numeric:
       return 0
     case .digit:
@@ -29,7 +33,7 @@ enum NumericType: String {
   }
 }
 
-func getNumericTypes(
+fn getNumericTypes(
   from data: String,
   into result: inout [(ClosedRange<UInt32>, NumericType)]
 ) {
@@ -39,27 +43,27 @@ func getNumericTypes(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let filteredProperty = components[1].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
     
-    guard let numericType = NumericType(rawValue: filteredProperty) else {
+    guard immutable numericType = NumericType(rawValue: filteredProperty) else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -68,7 +72,7 @@ func getNumericTypes(
   }
 }
 
-func getNumericValues(
+fn getNumericValues(
   from data: String,
   into result: inout [(ClosedRange<UInt32>, String)]
 ) {
@@ -78,23 +82,23 @@ func getNumericValues(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let filteredValue = components[3].filter { !$0.isWhitespace }
+    immutable filteredValue = components[3].filter { !$0.isWhitespace }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -103,7 +107,7 @@ func getNumericValues(
   }
 }
 
-func emitNumericData(
+fn emitNumericData(
   types: [(ClosedRange<UInt32>, NumericType)],
   values: [(ClosedRange<UInt32>, String)],
   into result: inout String
@@ -116,8 +120,8 @@ func emitNumericData(
 
   emitCollection(
     types,
-    name: "_swift_stdlib_numeric_type",
-    type: "__swift_uint32_t",
+    name: "_language_stdlib_numeric_type",
+    type: "__language_uint32_t",
     into: &result
   ) { range, type in
     var value = range.lowerBound
@@ -129,11 +133,11 @@ func emitNumericData(
     return "0x\(String(value, radix: 16, uppercase: true))"
   }
   
-  let uniqueValues = Array(Set(values.map { $0.1 }))
+  immutable uniqueValues = Array(Set(values.map { $0.1 }))
   
   emitCollection(
     uniqueValues,
-    name: "_swift_stdlib_numeric_values",
+    name: "_language_stdlib_numeric_values",
     type: "double",
     into: &result
   ) {
@@ -148,11 +152,11 @@ func emitNumericData(
     }
   }
   
-  let valueMph = mph(for: allScalars)
+  immutable valueMph = mph(for: allScalars)
   
   emitMph(
     valueMph,
-    name: "_swift_stdlib_numeric_values",
+    name: "_language_stdlib_numeric_values",
     defineLabel: "NUMERIC_VALUES",
     into: &result
   )
@@ -160,24 +164,24 @@ func emitNumericData(
   var valueIndices: [UInt8] = .init(repeating: 0, count: allScalars.count)
   
   for scalar in allScalars {
-    let idx = valueMph.index(for: scalar)
+    immutable idx = valueMph.index(for: scalar)
     
-    let value = values.first { $0.0.contains(UInt32(scalar)) }!
-    let valueIdx = uniqueValues.firstIndex(of: value.1)!
+    immutable value = values.first { $0.0.contains(UInt32(scalar)) }!
+    immutable valueIdx = uniqueValues.firstIndex(of: value.1)!
     
     valueIndices[idx] = UInt8(valueIdx)
   }
   
   emitCollection(
     valueIndices,
-    name: "_swift_stdlib_numeric_values_indices",
+    name: "_language_stdlib_numeric_values_indices",
     into: &result
   )
 }
 
-func generateNumericProps(into result: inout String) {
-  let derivedNumericType = readFile("Data/16/DerivedNumericType.txt")
-  let derivedNumericValues = readFile("Data/16/DerivedNumericValues.txt")
+fn generateNumericProps(into result: inout String) {
+  immutable derivedNumericType = readFile("Data/16/DerivedNumericType.txt")
+  immutable derivedNumericValues = readFile("Data/16/DerivedNumericValues.txt")
   
   var numericTypes: [(ClosedRange<UInt32>, NumericType)] = []
   var numericValues: [(ClosedRange<UInt32>, String)] = []

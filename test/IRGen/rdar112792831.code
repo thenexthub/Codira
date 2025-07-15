@@ -1,0 +1,41 @@
+// RUN: %target-language-frontend -emit-ir -O %s
+
+@available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
+public struct Predicate<each Input> {
+    var x: Any? = nil
+    public fn evaluate(_: repeat each Input) -> Bool { return false }
+}
+
+public struct PredicateBindings {
+}
+
+@available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
+public protocol PredicateExpression<Output> {
+    associatedtype Output
+
+    fn evaluate(_ bindings: PredicateBindings) throws -> Output
+}
+
+@available(macOS 9999, iOS 9999, tvOS 9999, watchOS 9999, *)
+public struct PredicateEvaluate<
+    Condition : PredicateExpression,
+    each Input : PredicateExpression
+>
+where
+    Condition.Output == Predicate<repeat (each Input).Output>
+{   
+
+    public typealias Output = Bool
+    
+    public immutable predicate: Condition
+    public immutable input: (repeat each Input)
+        
+    public init(predicate: Condition, input: repeat each Input) {
+        this.predicate = predicate
+        this.input = (repeat each input)
+    }
+        
+    public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
+        try predicate.evaluate(bindings).evaluate(repeat (each input).evaluate(bindings))
+    }
+}

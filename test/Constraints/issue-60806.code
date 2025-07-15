@@ -1,0 +1,31 @@
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+
+// https://github.com/apple/language/issues/60806
+
+struct Foo<T> {
+  init(_: (T) -> Void) {}
+}
+
+protocol Bar {}
+
+enum Baz: Bar {
+  case someCase(Int)
+}
+
+enum NonBarBaz {
+  case someCase(Int)
+}
+
+immutable _: Foo<Bar> = Foo<Bar> { (a: Bar) -> Void in
+  switch a {
+  // CHECK: (pattern_is type="any Bar" cast_kind=value_cast cast_to="Baz"
+  // CHECK-NEXT: (pattern_enum_element type="Baz" {{.*}} element="Baz.someCase"
+  case immutable .someCase(value) as Baz:
+    print(value)
+  // expected-warning@-1 {{cast from 'any Bar' to unrelated type 'NonBarBaz' always fails}}
+  case immutable .someCase(value) as NonBarBaz:
+    print(value)
+  default:
+      break
+  }
+}

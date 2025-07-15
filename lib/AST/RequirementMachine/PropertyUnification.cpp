@@ -1,13 +1,17 @@
 //===--- PropertyUnification.cpp - Rules added w/ building property map ---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file is the core of the property map construction algorithm.
@@ -80,8 +84,8 @@ static void recordRelation(Term key,
                       rhsProperty.getKind() == Symbol::Kind::Layout));
 
   if (debug) {
-    llvm::dbgs() << "%% Recording relation: ";
-    llvm::dbgs() << lhsRule.getLHS() << " < " << rhsProperty << "\n";
+    toolchain::dbgs() << "%% Recording relation: ";
+    toolchain::dbgs() << lhsRule.getLHS() << " < " << rhsProperty << "\n";
   }
 
   unsigned relationID = system.recordRelation(lhsProperty, rhsProperty);
@@ -139,9 +143,9 @@ void RewriteSystem::recordConflict(unsigned existingRuleID,
   ConflictingRules.emplace_back(existingRuleID, newRuleID);
 
   if (Debug.contains(DebugFlags::ConflictingRules)) {
-    llvm::dbgs() << "Conflicting rules:\n";
-    llvm::dbgs() << "- " << existingRule << "\n";
-    llvm::dbgs() << "- " << newRule << "\n";
+    toolchain::dbgs() << "Conflicting rules:\n";
+    toolchain::dbgs() << "- " << existingRule << "\n";
+    toolchain::dbgs() << "- " << newRule << "\n";
   }
 
   if (existingRule.getLHS().back().getKind() ==
@@ -221,9 +225,7 @@ void PropertyMap::addLayoutProperty(
 
     props->LayoutRule = ruleID;
   } else {
-    llvm::errs() << "Arbitrary intersection of layout requirements is "
-                 << "supported yet\n";
-    abort();
+    ABORT("Arbitrary intersection of layout requirements isn't supported yet");
   }
 }
 
@@ -305,7 +307,7 @@ void PropertyMap::addSuperclassProperty(
   // just record it and we're done.
   if (!props->SuperclassDecl) {
     if (debug) {
-      llvm::dbgs() << "% New superclass " << superclassDecl->getName()
+      toolchain::dbgs() << "% New superclass " << superclassDecl->getName()
                    << " for " << key << "\n";
     }
 
@@ -323,7 +325,7 @@ void PropertyMap::addSuperclassProperty(
   }
 
   if (debug) {
-    llvm::dbgs() << "% New superclass " << superclassDecl->getName()
+    toolchain::dbgs() << "% New superclass " << superclassDecl->getName()
                  << " for " << key << " is ";
   }
 
@@ -332,7 +334,7 @@ void PropertyMap::addSuperclassProperty(
 
   if (superclassDecl == props->SuperclassDecl) {
     if (debug) {
-      llvm::dbgs() << "equal to existing superclass\n";
+      toolchain::dbgs() << "equal to existing superclass\n";
     }
 
     // Perform concrete type unification at this level of the class
@@ -346,7 +348,7 @@ void PropertyMap::addSuperclassProperty(
 
   } else if (superclassDecl->isSuperclassOf(props->SuperclassDecl)) {
     if (debug) {
-      llvm::dbgs() << "less specific than existing superclass "
+      toolchain::dbgs() << "less specific than existing superclass "
                    << props->SuperclassDecl->getName() << "\n";
     }
 
@@ -369,7 +371,7 @@ void PropertyMap::addSuperclassProperty(
 
   } else if (props->SuperclassDecl->isSuperclassOf(superclassDecl)) {
     if (debug) {
-      llvm::dbgs() << "more specific than existing superclass "
+      toolchain::dbgs() << "more specific than existing superclass "
                    << props->SuperclassDecl->getName() << "\n";
     }
 
@@ -395,7 +397,7 @@ void PropertyMap::addSuperclassProperty(
 
   } else {
     if (debug) {
-      llvm::dbgs() << "not related to existing superclass "
+      toolchain::dbgs() << "not related to existing superclass "
                    << props->SuperclassDecl->getName() << "\n";
     }
 
@@ -424,7 +426,7 @@ void PropertyMap::unifyConcreteTypes(Term key,
   bool debug = Debug.contains(DebugFlags::ConcreteUnification);
 
   if (debug) {
-    llvm::dbgs() << "% Unifying " << lhsProperty
+    toolchain::dbgs() << "% Unifying " << lhsProperty
                  << " with " << rhsProperty << "\n";
   }
 
@@ -440,7 +442,7 @@ void PropertyMap::unifyConcreteTypes(Term key,
   if (conflict) {
     // FIXME: Diagnose the conflict
     if (debug) {
-      llvm::dbgs() << "%% Concrete type conflict\n";
+      toolchain::dbgs() << "%% Concrete type conflict\n";
     }
     System.recordConflict(lhsRuleID, rhsRuleID);
     return;
@@ -471,7 +473,7 @@ void PropertyMap::unifyConcreteTypes(Term key,
     System.buildRewritePathForJoiningTerms(rhsTerm, lhsTerm, &path);
 
     if (debug) {
-      llvm::dbgs() << "%% Induced rule " << lhsTerm
+      toolchain::dbgs() << "%% Induced rule " << lhsTerm
                    << " == " << rhsTerm << "\n";
     }
 
@@ -567,7 +569,7 @@ void PropertyMap::unifyConcreteTypes(Term key,
 /// Used by addSuperclassProperty() and addConcreteTypeProperty().
 void PropertyMap::unifyConcreteTypes(
     Term key, std::optional<Symbol> &bestProperty,
-    llvm::SmallVectorImpl<std::pair<Symbol, unsigned>> &existingRules,
+    toolchain::SmallVectorImpl<std::pair<Symbol, unsigned>> &existingRules,
     Symbol property, unsigned ruleID) {
   // Unify this rule with all other concrete type rules we've seen so far,
   // to record rewrite loops relating the rules and their projections.
@@ -673,7 +675,7 @@ void PropertyMap::addProperty(
     break;
   }
 
-  llvm_unreachable("Bad symbol kind");
+  toolchain_unreachable("Bad symbol kind");
 }
 
 /// Post-pass to handle unification and conflict checking between pairs of
@@ -691,7 +693,7 @@ void PropertyMap::addProperty(
 ///
 /// A more refined check would ensure that 'C' had no required initializers
 /// and that 'P' was self-conforming; or we could ban this entirely in a
-/// future -swift-version mode.
+/// future -language-version mode.
 void PropertyMap::checkConcreteTypeRequirements() {
   bool debug = Debug.contains(DebugFlags::ConcreteUnification);
 

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// TODO: Enable -canonical-ossa-rewrite-borrows by default (see
@@ -36,7 +37,7 @@
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 
 using namespace language;
 
@@ -64,7 +65,7 @@ static void deleteCopyAndMoveChain(SILValue v, InstructionDeleter &deleter) {
       break;
 
     v = inst->getOperand(CopyLikeInstruction::Src);
-    LLVM_DEBUG(llvm::dbgs() << "  Deleting " << *inst);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Deleting " << *inst);
     ++NumCopiesAndMovesEliminated;
     deleter.forceDelete(inst);
   }
@@ -137,7 +138,7 @@ SILValue CanonicalizeBorrowScope::getCanonicalBorrowedDef(SILValue def) {
       // computeBorrowLiveness.
       switch (borrowedVal.kind) {
       case BorrowedValueKind::Invalid:
-        llvm_unreachable("Using invalid case?!");
+        toolchain_unreachable("Using invalid case?!");
       case BorrowedValueKind::SILFunctionArgument:
       case BorrowedValueKind::BeginBorrow:
         return def;
@@ -165,7 +166,7 @@ SILValue CanonicalizeBorrowScope::getCanonicalBorrowedDef(SILValue def) {
 bool CanonicalizeBorrowScope::computeBorrowLiveness() {
   switch (borrowedValue.kind) {
   case BorrowedValueKind::Invalid:
-    llvm_unreachable("Used invalid");
+    toolchain_unreachable("Used invalid");
   case BorrowedValueKind::SILFunctionArgument:
     // For efficiency, function arguments skip liveness.
     return true;
@@ -264,7 +265,7 @@ bool CanonicalizeBorrowScope::visitBorrowScopeUses(SILValue innerValue,
       case OperandOwnership::NonUse:
         break;
       case OperandOwnership::TrivialUse:
-        llvm_unreachable("this operand cannot handle ownership");
+        toolchain_unreachable("this operand cannot handle ownership");
 
       case OperandOwnership::InteriorPointer:
       case OperandOwnership::AnyInteriorPointer:
@@ -297,7 +298,7 @@ bool CanonicalizeBorrowScope::visitBorrowScopeUses(SILValue innerValue,
           }
           break;
         }
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
 
       case OperandOwnership::Borrow:
       case OperandOwnership::InstantaneousUse:
@@ -515,7 +516,7 @@ class RewriteOuterBorrowUses {
 
   /// Map values inside the borrow scope to cloned-and-copied values outside the
   /// borrow scope.
-  using InnerToOuterMap = llvm::SmallDenseMap<SILValue, SILValue, 8>;
+  using InnerToOuterMap = toolchain::SmallDenseMap<SILValue, SILValue, 8>;
   InnerToOuterMap &innerToOuterMap;
 
   // Outer uses specific to the current incomingValue, including hoisted
@@ -539,7 +540,7 @@ public:
     auto *outerCopy =
         createOuterCopy(beginBorrow->getOperand(), builder, loc, scope);
 
-    llvm::SmallDenseMap<SILValue, SILValue, 8> innerToOuterMap;
+    toolchain::SmallDenseMap<SILValue, SILValue, 8> innerToOuterMap;
     innerToOuterMap[beginBorrow] = outerCopy;
 
     RewriteInnerBorrowUses innerRewriter(scope);
@@ -604,7 +605,7 @@ public:
     // If it's not already dead, update this operand bypassing any copies.
     SILValue innerValue = use->get();
     if (scope.getDeleter().deleteIfDead(user, /*fixLifetime=*/false)) {
-      LLVM_DEBUG(llvm::dbgs() << "  Deleted " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Deleted " << *user);
     } else {
       use->set(scope.findDefInBorrowScope(use->get()));
       ForwardingOperand(use).setForwardingOwnershipKind(
@@ -630,7 +631,7 @@ protected:
     scope.recordOuterCopy(copy);
 
     ++NumCopiesGenerated;
-    LLVM_DEBUG(llvm::dbgs() << "  Outer copy " << *copy);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Outer copy " << *copy);
 
     return copy;
   }
@@ -656,7 +657,7 @@ protected:
   };
 
   void rewriteOuterUse(Operand *use) {
-    LLVM_DEBUG(llvm::dbgs() << "  Use of outer copy " << *use->getUser());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Use of outer copy " << *use->getUser());
 
     SILValue innerValue = use->get();
     SILValue outerValue = createOuterValues(innerValue);
@@ -701,7 +702,7 @@ SILValue RewriteOuterBorrowUses::createOuterValues(SILValue innerValue) {
   use->set(incomingOuterVal);
   ForwardingOperand(use).setForwardingOwnershipKind(OwnershipKind::Owned);
 
-  LLVM_DEBUG(llvm::dbgs() << "  Hoisted forward " << *clone);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Hoisted forward " << *clone);
 
   for (unsigned idx = 0, endIdx = clone->getNumResults(); idx < endIdx; ++idx) {
     innerToOuterMap[innerInst->getResult(idx)] = clone->getResult(idx);
@@ -802,9 +803,9 @@ bool CanonicalizeBorrowScope::consolidateBorrowScope() {
     beginVisitBorrowScopeUses(); // reset the def/use worklist
     return visitBorrowScopeUses(borrowedValue.value, innerRewriter);
   }
-  LLVM_DEBUG(llvm::dbgs() << "  Outer uses:\n";
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Outer uses:\n";
              for (SILInstruction *inst
-                  : outerUseInsts) { llvm::dbgs() << "    " << *inst; });
+                  : outerUseInsts) { toolchain::dbgs() << "    " << *inst; });
 
   RewriteOuterBorrowUses::rewrite(cast<BeginBorrowInst>(borrowedValue.value),
                                   *this, outerUseInsts);
@@ -823,7 +824,7 @@ bool CanonicalizeBorrowScope::canonicalizeFunctionArgument(
 
   initBorrow(borrow);
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Canonicalize Borrow: " << borrowedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Canonicalize Borrow: " << borrowedValue);
 
   RewriteInnerBorrowUses innerRewriter(*this);
   beginVisitBorrowScopeUses(); // reset the def/use worklist
@@ -843,7 +844,7 @@ static FunctionTest CanonicalizeFunctionArgumentTest(
       InstructionDeleter deleter;
       CanonicalizeBorrowScope canonicalizer(&function, deleter);
       canonicalizer.canonicalizeFunctionArgument(argument);
-      function.print(llvm::outs());
+      function.print(toolchain::outs());
     });
 } // end namespace language::test
 
@@ -855,7 +856,7 @@ canonicalizeBorrowScope(BorrowedValue borrowedValue) {
   BitfieldRef<SSAPrunedLiveness>::StackState livenessBitfieldContainer(
       liveness, function);
 
-  LLVM_DEBUG(llvm::dbgs() << "*** Canonicalize Borrow: " << borrowedValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** Canonicalize Borrow: " << borrowedValue);
 
   initBorrow(borrowedValue);
 
@@ -884,6 +885,6 @@ static FunctionTest CanonicalizeBorrowScopeTest(
       InstructionDeleter deleter;
       CanonicalizeBorrowScope canonicalizer(value->getFunction(), deleter);
       canonicalizer.canonicalizeBorrowScope(borrowedValue);
-      function.print(llvm::outs());
+      function.print(toolchain::outs());
     });
 } // end namespace language::test

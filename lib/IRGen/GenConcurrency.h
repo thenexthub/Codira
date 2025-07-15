@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for emitting code for various concurrency
@@ -18,19 +19,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENCONCURRENCY_H
-#define SWIFT_IRGEN_GENCONCURRENCY_H
+#ifndef LANGUAGE_IRGEN_GENCONCURRENCY_H
+#define LANGUAGE_IRGEN_GENCONCURRENCY_H
 
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/ApplySite.h"
-#include "llvm/IR/CallingConv.h"
+#include "toolchain/IR/CallingConv.h"
 
 #include "Callee.h"
 #include "GenHeap.h"
 #include "IRGenModule.h"
 
-namespace llvm {
+namespace toolchain {
 class Value;
 }
 
@@ -48,24 +49,24 @@ class IRGenFunction;
 void emitBuildMainActorExecutorRef(IRGenFunction &IGF, Explosion &out);
 
 /// Emit the buildDefaultActorExecutorRef builtin.
-void emitBuildDefaultActorExecutorRef(IRGenFunction &IGF, llvm::Value *actor,
+void emitBuildDefaultActorExecutorRef(IRGenFunction &IGF, toolchain::Value *actor,
                                       Explosion &out);
 
 /// Emit the buildOrdinaryTaskExecutorRef builtin.
 void emitBuildOrdinaryTaskExecutorRef(
-    IRGenFunction &IGF, llvm::Value *executor, CanType executorType,
+    IRGenFunction &IGF, toolchain::Value *executor, CanType executorType,
     ProtocolConformanceRef executorConformance, Explosion &out);
 
 /// Emit the buildOrdinarySerialExecutorRef builtin.
 void emitBuildOrdinarySerialExecutorRef(IRGenFunction &IGF,
-                                        llvm::Value *executor,
+                                        toolchain::Value *executor,
                                         CanType executorType,
                                         ProtocolConformanceRef executorConformance,
                                         Explosion &out);
 
 /// Emit the buildComplexEqualitySerialExecutorRef builtin.
 void emitBuildComplexEqualitySerialExecutorRef(IRGenFunction &IGF,
-                                        llvm::Value *executor,
+                                        toolchain::Value *executor,
                                         CanType executorType,
                                         ProtocolConformanceRef executorConformance,
                                         Explosion &out);
@@ -74,37 +75,37 @@ void emitBuildComplexEqualitySerialExecutorRef(IRGenFunction &IGF,
 void emitGetCurrentExecutor(IRGenFunction &IGF, Explosion &out);
 
 /// Emit the createAsyncLet builtin.
-llvm::Value *emitBuiltinStartAsyncLet(IRGenFunction &IGF,
-                                      llvm::Value *taskOptions,
-                                      llvm::Value *taskFunction,
-                                      llvm::Value *localContextInfo,
-                                      llvm::Value *resultBuffer,
+toolchain::Value *emitBuiltinStartAsyncLet(IRGenFunction &IGF,
+                                      toolchain::Value *taskOptions,
+                                      toolchain::Value *taskFunction,
+                                      toolchain::Value *localContextInfo,
+                                      toolchain::Value *resultBuffer,
                                       SubstitutionMap subs);
 
 /// Emit the endAsyncLet builtin.
-void emitEndAsyncLet(IRGenFunction &IGF, llvm::Value *alet);
+void emitEndAsyncLet(IRGenFunction &IGF, toolchain::Value *alet);
 
 /// Emit the createTaskGroup builtin.
-llvm::Value *emitCreateTaskGroup(IRGenFunction &IGF, SubstitutionMap subs,
-                                 llvm::Value *groupFlags);
+toolchain::Value *emitCreateTaskGroup(IRGenFunction &IGF, SubstitutionMap subs,
+                                 toolchain::Value *groupFlags);
 
 /// Emit the destroyTaskGroup builtin.
-void emitDestroyTaskGroup(IRGenFunction &IGF, llvm::Value *group);
+void emitDestroyTaskGroup(IRGenFunction &IGF, toolchain::Value *group);
 
 void emitTaskRunInline(IRGenFunction &IGF, SubstitutionMap subs,
-                       llvm::Value *result, llvm::Value *closure,
-                       llvm::Value *closureContext);
+                       toolchain::Value *result, toolchain::Value *closure,
+                       toolchain::Value *closureContext);
 
-void emitTaskCancel(IRGenFunction &IGF, llvm::Value *task);
+void emitTaskCancel(IRGenFunction &IGF, toolchain::Value *task);
 
-llvm::Value *maybeAddEmbeddedSwiftResultTypeInfo(IRGenFunction &IGF,
-                                                 llvm::Value *taskOptions,
+toolchain::Value *maybeAddEmbeddedCodiraResultTypeInfo(IRGenFunction &IGF,
+                                                 toolchain::Value *taskOptions,
                                                  CanType formalResultType);
 
-/// Emit a call to swift_task_create[_f] with the given flags, options, and
+/// Emit a call to language_task_create[_f] with the given flags, options, and
 /// task function.
-std::pair<llvm::Value *, llvm::Value *>
-emitTaskCreate(IRGenFunction &IGF, llvm::Value *flags,
+std::pair<toolchain::Value *, toolchain::Value *>
+emitTaskCreate(IRGenFunction &IGF, toolchain::Value *flags,
                OptionalExplosion &initialExecutor,
                OptionalExplosion &taskGroup,
                OptionalExplosion &taskExecutorUnowned,

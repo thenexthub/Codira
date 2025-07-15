@@ -1,12 +1,12 @@
 # libFuzzer Integration
 
-Swift has built-in `libFuzzer` integration. In order to use it on a file
-`myfile.swift`, define an entry point fuzzing function with a
+Codira has built-in `libFuzzer` integration. In order to use it on a file
+`myfile.code`, define an entry point fuzzing function with a
 `@_cdecl("LLVMFuzzerTestOneInput")` annotation:
 
-```swift
+```language
 @_cdecl("LLVMFuzzerTestOneInput")
-public func test(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
+public fn test(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
   let bytes = UnsafeRawBufferPointer(start: start, count: count)
   // TODO: Test the code using the provided bytes.
   return 0
@@ -18,13 +18,13 @@ and enable code coverage information; and the `-parse-as-library` flag
 to omit the `main` symbol, so that the fuzzer entry point can be used:
 
 ```bash
-% swiftc -sanitize=fuzzer -parse-as-library myfile.swift
+% languagec -sanitize=fuzzer -parse-as-library myfile.code
 ```
 
 `libFuzzer` can be combined with other sanitizers:
 
 ```bash
-% swiftc -sanitize=fuzzer,address -parse-as-library myfile.swift
+% languagec -sanitize=fuzzer,address -parse-as-library myfile.code
 ```
 
 Finally, launch the fuzzing process:
@@ -34,5 +34,5 @@ Finally, launch the fuzzing process:
 ```
 
 Refer to the official `libFuzzer` documentation at
-<https://llvm.org/docs/LibFuzzer.html#options>
+<https://toolchain.org/docs/LibFuzzer.html#options>
 for a description of the fuzzer's command line options.

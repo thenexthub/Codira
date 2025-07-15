@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the abstract DebuggerClient class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEBUGGERCLIENT_H
-#define SWIFT_DEBUGGERCLIENT_H
+#ifndef LANGUAGE_DEBUGGERCLIENT_H
+#define LANGUAGE_DEBUGGERCLIENT_H
 
 #include "language/AST/NameLookup.h"
 

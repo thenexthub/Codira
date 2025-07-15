@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+// RUN: %target-language-frontend -typecheck -primary-file %t/main.code -emit-reference-dependencies-path - > %t.codedeps
+
+// https://github.com/apple/language/issues/43875
+// https://github.com/apple/language/issues/43878
+
+protocol Protocol {}
+class ConformingClass: Protocol {}
+class BaseClass<T: Protocol> {}
+class ConcreteClass<T: ConformingClass> : BaseClass<T> {}

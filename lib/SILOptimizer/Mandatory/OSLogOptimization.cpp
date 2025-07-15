@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This pass implements SIL-level optimizations and diagnostics for the
@@ -107,8 +108,8 @@
 #include "language/SILOptimizer/Utils/SILInliner.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/BreadthFirstIterator.h"
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/BreadthFirstIterator.h"
+#include "toolchain/ADT/MapVector.h"
 
 using namespace language;
 using namespace Lowering;
@@ -146,7 +147,7 @@ static SILFunction *getStringMakeUTF8Init(SILInstruction *inst) {
 // from existing instructions is more efficient.
 class StringSILInfo {
   /// SILFunction corresponding to an intrinsic string initializer that
-  /// constructs a Swift String from a string literal.
+  /// constructs a Codira String from a string literal.
   SILFunction *stringInitIntrinsic = nullptr;
 
   /// SIL metatype of String.
@@ -200,7 +201,7 @@ public:
   SILInstruction *beginInstruction;
 
   /// Instructions that mark the end points of constant evaluation.
-  llvm::SmallSetVector<SILInstruction *, 2> endInstructions;
+  toolchain::SmallSetVector<SILInstruction *, 2> endInstructions;
 
 private:
   /// SIL values that were found to be constants during
@@ -690,7 +691,7 @@ static SILValue emitCodeForSymbolicValue(SymbolicValue symVal,
     SILValue newPropertySIL = emitCodeForSymbolicValue(
         propertyVal, propertyType, builder, loc, stringInfo);
     // The lowered SIL type of an integer/bool type is just the primitive
-    // object type containing the Swift type.
+    // object type containing the Codira type.
     SILType aggregateType =
         SILType::getPrimitiveObjectType(expectedType->getCanonicalType());
     StructInst *newStructInst = builder.createStruct(
@@ -789,7 +790,7 @@ static SILValue emitCodeForSymbolicValue(SymbolicValue symVal,
     return resultVal;
   }
   default: {
-    llvm_unreachable("Symbolic value kind is not supported");
+    toolchain_unreachable("Symbolic value kind is not supported");
   }
   }
 }
@@ -1385,7 +1386,7 @@ static SILInstruction *beginOfInterpolation(ApplyInst *oslogInit) {
     firstBB = candidateBB;
   } else {
     SILBasicBlock *entryBB = oslogInit->getFunction()->getEntryBlock();
-    for (SILBasicBlock *bb : llvm::breadth_first<SILBasicBlock *>(entryBB)) {
+    for (SILBasicBlock *bb : toolchain::breadth_first<SILBasicBlock *>(entryBB)) {
       if (candidateBBs.contains(bb)) {
         firstBB = bb;
         break;
@@ -1559,6 +1560,6 @@ class OSLogOptimization : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createOSLogOptimization() {
+SILTransform *language::createOSLogOptimization() {
   return new OSLogOptimization();
 }

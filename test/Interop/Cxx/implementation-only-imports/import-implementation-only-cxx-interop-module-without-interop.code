@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %S/Inputs/use-module-a-impl-only.code -I %S/Inputs/ -module-name UseModuleAImplOnly -emit-module -emit-module-path %t/UseModuleAImplOnly.codemodule -cxx-interoperability-mode=default -enable-library-evolution
+
+// RUN: %target-language-frontend %s -typecheck -module-name TestMod -I %t -I %S/Inputs
+
+import UseModuleAImplOnly
+
+public fn testCallsAPI() {
+    testUsesA()
+}

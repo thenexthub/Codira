@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/secret)
+// RUN: %target-language-frontend -emit-module -o %t/secret %S/Inputs/struct_with_operators.code
+// RUN: %empty-directory(%t/Frameworks/has_alias.framework/Modules/has_alias.codemodule)
+// RUN: %target-language-frontend -emit-module -o %t/Frameworks/has_alias.framework/Modules/has_alias.codemodule/%target-languagemodule-name %S/Inputs/alias.code -module-name has_alias
+
+// Output paths differ in the new driver, so force LANGUAGE_USE_OLD_DRIVER for now.
+// RUN: cd %t/secret && env LANGUAGE_USE_OLD_DRIVER=1 %target-languagec_driver -emit-module -o %t/has_xref.codemodule -I . -F ../Frameworks -parse-as-library %S/Inputs/has_xref.code %S/../Inputs/empty.code -Xfrontend -serialize-debugging-options -Xcc -ivfsoverlay -Xcc %S/../Inputs/unextended-module-overlay.yaml -Xcc -DDUMMY
+// RUN: cd %t/secret && env LANGUAGE_USE_OLD_DRIVER=1 %target-languagec_driver -emit-module -o %t/explicit.codemodule -parse-stdlib -parse-as-library %S/../Inputs/empty.code -Xfrontend -disable-implicit-language-modules -Xfrontend -serialize-debugging-options -Xcc -ivfsoverlay -Xcc %S/../Inputs/unextended-module-overlay.yaml -Xcc -DDUMMY
+// RUN: %target-language-frontend %s -typecheck -I %t
+
+// Ensure that in Codira 6 mode we do not read out search paths, thus are no longer able to
+// locate transitive dependencies with them
+// RUN: not %target-language-frontend %s -typecheck -I %t -language-version 6 &> %t/language_6_output.txt
+// RUN: %FileCheck -check-prefix=LANGUAGE6 %s < %t/language_6_output.txt
+
+// Check the actual serialized search paths.
+// RUN: toolchain-bcanalyzer -dump %t/has_xref.codemodule > %t/has_xref.codemodule.txt
+// RUN: toolchain-bcanalyzer -dump %t/explicit.codemodule > %t/explicit.codemodule.txt
+// RUN: %FileCheck %s < %t/has_xref.codemodule.txt
+// RUN: %FileCheck -check-prefix=NEGATIVE %s < %t/has_xref.codemodule.txt
+// RUN: %FileCheck -check-prefix=EXPLICIT %s < %t/explicit.codemodule.txt
+
+import has_xref
+
+numeric(42)
+
+// CHECK-LABEL: <OPTIONS_BLOCK
+// CHECK: <XCC abbrevid={{[0-9]+}}/> blob data = '-working-directory'
+// CHECK: <XCC abbrevid={{[0-9]+}}/> blob data = '{{.+}}{{/|\\}}secret'
+// CHECK: <XCC abbrevid={{[0-9]+}}/> blob data = '-DDUMMY'
+// CHECK: </OPTIONS_BLOCK>
+
+// CHECK-LABEL: <INPUT_BLOCK
+// CHECK: <SEARCH_PATH abbrevid={{[0-9]+}} op0=1 op1=0/> blob data = '{{.+}}{{/|\\}}secret{{/|\\}}../Frameworks'
+// CHECK: <SEARCH_PATH abbrevid={{[0-9]+}} op0=0 op1=0/> blob data = '{{.+}}{{/|\\}}secret{{/|\\}}.'
+// CHECK: </INPUT_BLOCK>
+
+// NEGATIVE-NOT: '.'
+// NEGATIVE-NOT: '../Frameworks'
+// This should be filtered out.
+// NEGATIVE-NOT: -ivfsoverlay
+// NEGATIVE-NOT: unextended-module-overlay.yaml
+// EXPLICIT: -ivfsoverlay
+// EXPLICIT: unextended-module-overlay.yaml
+// EXPLICIT: -DDUMMY
+
+// LANGUAGE6: error: missing required modules: 'has_alias', 'struct_with_operators'

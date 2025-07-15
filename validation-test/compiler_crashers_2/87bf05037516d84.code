@@ -1,0 +1,14 @@
+// {"kind":"typecheck","signature":"language::rewriting::RewritePathEvaluator::applyRewriteRule(language::rewriting::RewriteStep const&, language::rewriting::RewriteSystem const&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  associatedtype b : a where b.b == c
+}
+protocol d {
+  associatedtype e : a
+  associatedtype c : d
+  struct f<e : a> : d {
+    typealias c = f<e.b>
+    protocol g : d where c == f<e> {
+    }
+  }
+}

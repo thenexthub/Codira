@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_FRONTENDINPUTS_H
-#define SWIFT_FRONTEND_FRONTENDINPUTS_H
+#ifndef LANGUAGE_FRONTEND_FRONTENDINPUTS_H
+#define LANGUAGE_FRONTEND_FRONTENDINPUTS_H
 
 #include "language/Basic/PrimarySpecificPaths.h"
 #include "language/Basic/SupplementaryOutputPaths.h"
 #include "language/Frontend/InputFile.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringMap.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringMap.h"
 
 #include <string>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 class MemoryBuffer;
 }
 
@@ -39,7 +40,7 @@ class FrontendInputsAndOutputs {
   friend class ArgsToFrontendInputsConverter;
 
   std::vector<InputFile> AllInputs;
-  llvm::StringMap<unsigned> PrimaryInputsByName;
+  toolchain::StringMap<unsigned> PrimaryInputsByName;
   std::vector<unsigned> PrimaryInputsInOrder;
 
   /// The file type for main output files. Assuming all inputs produce the
@@ -106,7 +107,7 @@ public:
   bool isReadingFromStdin() const;
 
   /// If \p fn returns true, exits early and returns true.
-  bool forEachInput(llvm::function_ref<bool(const InputFile &)> fn) const;
+  bool forEachInput(toolchain::function_ref<bool(const InputFile &)> fn) const;
 
   // Primaries:
 
@@ -115,16 +116,16 @@ public:
 
   /// If \p fn returns true, exit early and return true.
   bool
-  forEachPrimaryInput(llvm::function_ref<bool(const InputFile &)> fn) const;
+  forEachPrimaryInput(toolchain::function_ref<bool(const InputFile &)> fn) const;
 
   /// Iterates over primary inputs, exposing their unique ordered index
   /// If \p fn returns true, exit early and return true.
   bool forEachPrimaryInputWithIndex(
-      llvm::function_ref<bool(const InputFile &, unsigned index)> fn) const;
+      toolchain::function_ref<bool(const InputFile &, unsigned index)> fn) const;
 
   /// If \p fn returns true, exit early and return true.
   bool
-  forEachNonPrimaryInput(llvm::function_ref<bool(const InputFile &)> fn) const;
+  forEachNonPrimaryInput(toolchain::function_ref<bool(const InputFile &)> fn) const;
 
   unsigned primaryInputCount() const { return PrimaryInputsInOrder.size(); }
 
@@ -171,7 +172,7 @@ public:
   // Multi-facet readers
 
   // If we have exactly one input filename, and its extension is "bc" or "ll",
-  // treat the input as LLVM_IR.
+  // treat the input as TOOLCHAIN_IR.
   bool shouldTreatAsLLVM() const;
   bool shouldTreatAsSIL() const;
   bool shouldTreatAsModuleInterface() const;
@@ -189,9 +190,9 @@ public:
 public:
   void clearInputs();
   void addInput(const InputFile &input);
-  void addInputFile(StringRef file, llvm::MemoryBuffer *buffer = nullptr);
+  void addInputFile(StringRef file, toolchain::MemoryBuffer *buffer = nullptr);
   void addPrimaryInputFile(StringRef file,
-                           llvm::MemoryBuffer *buffer = nullptr);
+                           toolchain::MemoryBuffer *buffer = nullptr);
 
   // Outputs
 
@@ -223,12 +224,12 @@ public:
   ///
   /// If \p fn returns true, return early and return true.
   bool forEachInputProducingAMainOutputFile(
-      llvm::function_ref<bool(const InputFile &)> fn) const;
+      toolchain::function_ref<bool(const InputFile &)> fn) const;
 
   std::vector<std::string> copyOutputFilenames() const;
   std::vector<std::string> copyIndexUnitOutputFilenames() const;
 
-  void forEachOutputFilename(llvm::function_ref<void(StringRef)> fn) const;
+  void forEachOutputFilename(toolchain::function_ref<void(StringRef)> fn) const;
 
   /// Gets the name of the specified output filename.
   /// If multiple files are specified, the last one is returned.
@@ -248,7 +249,7 @@ public:
 
   /// If \p fn returns true, exit early and return true.
   bool forEachInputProducingSupplementaryOutput(
-      llvm::function_ref<bool(const InputFile &)> fn) const;
+      toolchain::function_ref<bool(const InputFile &)> fn) const;
 
   /// Assumes there is not more than one primary input file, if any.
   /// Otherwise, you would need to call getPrimarySpecificPathsForPrimary
@@ -257,10 +258,13 @@ public:
   getPrimarySpecificPathsForAtMostOnePrimary() const;
 
   const PrimarySpecificPaths &
+  getPrimarySpecificPathsForRemaining(unsigned i) const;
+
+  const PrimarySpecificPaths &
       getPrimarySpecificPathsForPrimary(StringRef) const;
 
   bool hasSupplementaryOutputPath(
-      llvm::function_ref<const std::string &(const SupplementaryOutputPaths &)>
+      toolchain::function_ref<const std::string &(const SupplementaryOutputPaths &)>
           extractorFn) const;
 
 #define OUTPUT(NAME, TYPE)                                                     \
@@ -278,4 +282,4 @@ public:
 
 } // namespace language
 
-#endif // SWIFT_FRONTEND_FRONTENDINPUTS_H
+#endif // LANGUAGE_FRONTEND_FRONTENDINPUTS_H

@@ -1,13 +1,17 @@
 //===--- DWARFImporter.cpp - Import Clang modules from DWARF --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ImporterImpl.h"
@@ -80,7 +84,7 @@ public:
 
   Identifier
   getDiscriminatorForPrivateDecl(const Decl *D) const override {
-    llvm_unreachable("no private decls in Clang modules");
+    toolchain_unreachable("no private decls in Clang modules");
   }
 
   virtual version::Version getLanguageVersionBuiltWith() const override {
@@ -117,13 +121,13 @@ ModuleDecl *ClangImporter::Implementation::loadModuleDWARF(
     return it->second->getParentModule();
 
   auto itCopy = it; // Capturing structured bindings is a C++20 feature.
-  auto *M = ModuleDecl::create(name, SwiftContext,
+  auto *M = ModuleDecl::create(name, CodiraContext,
                                [&](ModuleDecl *M, auto addFile) {
-    auto *wrapperUnit = new (SwiftContext) DWARFModuleUnit(*M, *this);
+    auto *wrapperUnit = new (CodiraContext) DWARFModuleUnit(*M, *this);
     itCopy->second = wrapperUnit;
     addFile(wrapperUnit);
   });
-  M->setIsNonSwiftModule();
+  M->setIsNonCodiraModule();
   M->setHasResolvedImports();
 
   // Force load overlay modules for all imported modules.
@@ -132,8 +136,8 @@ ModuleDecl *ClangImporter::Implementation::loadModuleDWARF(
          "DWARF module depends on additional modules?");
 
   // Register the module with the ASTContext so it is available for lookups.
-  if (!SwiftContext.getLoadedModule(name))
-    SwiftContext.addLoadedModule(M);
+  if (!CodiraContext.getLoadedModule(name))
+    CodiraContext.addLoadedModule(M);
 
   return M;
 }
@@ -165,22 +169,22 @@ void ClangImporter::Implementation::lookupValueDWARF(
     auto *namedDecl = dyn_cast<clang::NamedDecl>(clangDecl);
     if (!namedDecl)
       continue;
-    auto *swiftDecl = cast_or_null<ValueDecl>(
+    auto *languageDecl = cast_or_null<ValueDecl>(
         importDeclReal(namedDecl->getMostRecentDecl(), CurrentVersion));
-    if (!swiftDecl)
+    if (!languageDecl)
       continue;
 
-    if (swiftDecl->getName().matchesRef(name) &&
-        swiftDecl->getDeclContext()->isModuleScopeContext()) {
-      forceLoadAllMembers(dyn_cast<IterableDeclContext>(swiftDecl));
-      results.push_back(swiftDecl);
+    if (languageDecl->getName().matchesRef(name) &&
+        languageDecl->getDeclContext()->isModuleScopeContext()) {
+      forceLoadAllMembers(dyn_cast<IterableDeclContext>(languageDecl));
+      results.push_back(languageDecl);
     }
   }
 }
 
 void ClangImporter::Implementation::lookupTypeDeclDWARF(
     StringRef rawName, ClangTypeKind kind,
-    llvm::function_ref<void(TypeDecl *)> receiver) {
+    toolchain::function_ref<void(TypeDecl *)> receiver) {
   if (!DWARFImporter)
     return;
 

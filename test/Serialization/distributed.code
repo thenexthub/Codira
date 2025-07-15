@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t-scratch)
+// RUN: %target-language-frontend -emit-module -o %t-scratch/def_distributed~partial.codemodule -primary-file %S/Inputs/def_distributed.code -module-name def_distributed  -disable-availability-checking
+// RUN: %target-language-frontend -merge-modules -emit-module -parse-as-library -enable-testing %t-scratch/def_distributed~partial.codemodule -module-name def_distributed -o %t/def_distributed.codemodule -disable-availability-checking
+// RUN: %target-language-frontend -typecheck -I%t -verify %s -verify-ignore-unknown -disable-availability-checking
+
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import def_distributed
+
+fn testDoSomethingDistributed(system: LocalTestingDistributedActorSystem) {
+  immutable _: DA = DA(actorSystem: system)
+}

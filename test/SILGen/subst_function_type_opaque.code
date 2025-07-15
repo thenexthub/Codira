@@ -1,0 +1,23 @@
+// RUN: %target-language-emit-silgen %s
+
+public protocol P {}
+
+extension P {
+}
+
+public struct S: P {
+  public fn callAsFunction<V>(_: () -> V) { }
+}
+
+public fn f() -> some P {
+  S()
+}
+
+public struct G<T: P>: P {
+  public init(_: () -> T) {}
+}
+
+S() {
+  return G { return f() }
+}
+

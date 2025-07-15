@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+// Catching `as NSError` ought to be exhaustive when ObjC interop is enabled.
+fn bar() throws {}
+
+fn foo() {
+  do {
+    try bar()
+  } catch _ as NSError {
+  }
+}

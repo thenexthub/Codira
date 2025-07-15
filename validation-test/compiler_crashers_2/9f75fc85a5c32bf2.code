@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::ConstraintSystem::setTargetFor(language::constraints::SyntacticElementTargetKey, language::constraints::SyntacticElementTarget)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{$0=[{} }(
+[a:

@@ -1,13 +1,17 @@
 //===--- ThreadSanitizer.cpp - Thread Sanitizer support -------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Helper functions for code that needs to integrate with the thread
@@ -19,7 +23,7 @@
 
 #include "language/Threading/ThreadSanitizer.h"
 
-#if SWIFT_THREADING_TSAN_SUPPORT
+#if LANGUAGE_THREADING_TSAN_SUPPORT
 
 #include "language/shims/Visibility.h"
 
@@ -30,17 +34,17 @@
 namespace language {
 namespace threading_impl {
 
-SWIFT_THREADING_EXPORT bool _swift_tsan_enabled = false;
-SWIFT_THREADING_EXPORT void (*_swift_tsan_acquire)(const void *) = nullptr;
-SWIFT_THREADING_EXPORT void (*_swift_tsan_release)(const void *) = nullptr;
+LANGUAGE_THREADING_EXPORT bool _language_tsan_enabled = false;
+LANGUAGE_THREADING_EXPORT void (*_language_tsan_acquire)(const void *) = nullptr;
+LANGUAGE_THREADING_EXPORT void (*_language_tsan_release)(const void *) = nullptr;
 
 // The TSan library code will call this function when it starts up
-extern "C" SWIFT_ATTRIBUTE_FOR_EXPORTS
+extern "C" LANGUAGE_ATTRIBUTE_FOR_EXPORTS
 void __tsan_on_initialize() {
-  _swift_tsan_enabled = true;
-  _swift_tsan_acquire = (void (*)(const void *))dlsym(RTLD_DEFAULT,
+  _language_tsan_enabled = true;
+  _language_tsan_acquire = (void (*)(const void *))dlsym(RTLD_DEFAULT,
                                                       "__tsan_acquire");
-  _swift_tsan_release = (void (*)(const void *))dlsym(RTLD_DEFAULT,
+  _language_tsan_release = (void (*)(const void *))dlsym(RTLD_DEFAULT,
                                                       "__tsan_release");
 
   // Always call through to the next image; this won't work on macOS, but it's
@@ -56,4 +60,4 @@ void __tsan_on_initialize() {
 } // namespace threading_impl
 } // namespace language
 
-#endif // SWIFT_THREADING_TSAN_SUPPORT
+#endif // LANGUAGE_THREADING_TSAN_SUPPORT

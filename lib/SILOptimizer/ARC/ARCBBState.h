@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_ARCBBSTATE_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_ARCBBSTATE_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_ARCBBSTATE_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_ARCBBSTATE_H
 
 #include "GlobalARCSequenceDataflow.h"
 
@@ -150,13 +151,13 @@ class ARCSequenceDataflowEvaluator::ARCBBStateInfoHandle {
 
   SILBasicBlock *BB;
   ARCBBState &BBState;
-  NullablePtr<llvm::SmallPtrSet<SILBasicBlock *, 4>> BackedgeMap;
+  NullablePtr<toolchain::SmallPtrSet<SILBasicBlock *, 4>> BackedgeMap;
   unsigned ID;
 
   ARCBBStateInfoHandle(SILBasicBlock *BB, unsigned ID, ARCBBState &BBState)
       : BB(BB), BBState(BBState), BackedgeMap(), ID(ID) {}
   ARCBBStateInfoHandle(SILBasicBlock *BB, unsigned ID, ARCBBState &BBState,
-                       llvm::SmallPtrSet<SILBasicBlock *, 4> &BackedgeMap)
+                       toolchain::SmallPtrSet<SILBasicBlock *, 4> &BackedgeMap)
       : BB(BB), BBState(BBState), BackedgeMap(&BackedgeMap), ID(ID) {}
 
 public:
@@ -177,7 +178,7 @@ public:
 
 class ARCSequenceDataflowEvaluator::ARCBBStateInfo {
   /// A map from BB -> BBID. A BB's BBID is its RPOT number.
-  llvm::DenseMap<SILBasicBlock *, unsigned> BBToBBIDMap;
+  toolchain::DenseMap<SILBasicBlock *, unsigned> BBToBBIDMap;
 
   /// Map from a BBID to BB's bottom up dataflow state. Meant to be used in
   /// conjunction with BBToBBIDMap.
@@ -189,7 +190,7 @@ class ARCSequenceDataflowEvaluator::ARCBBStateInfo {
 
   /// A map mapping the head to a tail of a backedge. We only compute this once
   /// in the lifetime of this class.
-  llvm::DenseMap<SILBasicBlock *, llvm::SmallPtrSet<SILBasicBlock *, 4>>
+  toolchain::DenseMap<SILBasicBlock *, toolchain::SmallPtrSet<SILBasicBlock *, 4>>
       BackedgeMap;
 
 public:
@@ -205,6 +206,6 @@ private:
   std::optional<unsigned> getBBID(SILBasicBlock *BB) const;
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

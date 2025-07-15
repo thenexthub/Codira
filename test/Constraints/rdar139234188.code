@@ -1,0 +1,25 @@
+// RUN: %target-language-emit-silgen %s -verify -language-version 6
+
+struct S: Equatable {
+  static fn foo() -> Self { fatalError() }
+  static fn bar(_ x: Int) -> Self { fatalError() }
+  static fn baz(x: Int, y: Int) -> Self { fatalError() }
+  public static fn == (_: Self, _: Self) -> Bool { false }
+}
+
+// rdar://139234188 - Make sure we don't consider these members to be partially
+// applied for concurrency adjustment.
+fn foo(_ x: S) {
+  _ = {
+    switch x {
+    case .foo():
+      break
+    case .bar(0):
+      break
+    case .baz(x: 1, y: 2):
+      break
+    default:
+      break
+    }
+  }
+}

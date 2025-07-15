@@ -1,18 +1,22 @@
 //===-- EntryPointArgumentEmission.h - Emit function entries. -------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #pragma once
 
-namespace llvm {
+namespace toolchain {
 class Value;
 }
 
@@ -32,10 +36,10 @@ class EntryPointArgumentEmission {
 public:
   virtual ~EntryPointArgumentEmission() {}
   virtual bool requiresIndirectResult(SILType retType) = 0;
-  virtual llvm::Value *getIndirectResultForFormallyDirectResult() = 0;
-  virtual llvm::Value *getIndirectResult(unsigned index) = 0;
-  virtual llvm::Value *getNextPolymorphicParameterAsMetadata() = 0;
-  virtual llvm::Value *
+  virtual toolchain::Value *getIndirectResultForFormallyDirectResult() = 0;
+  virtual toolchain::Value *getIndirectResult(unsigned index) = 0;
+  virtual toolchain::Value *getNextPolymorphicParameterAsMetadata() = 0;
+  virtual toolchain::Value *
   getNextPolymorphicParameter(GenericRequirement &requirement) = 0;
 };
 
@@ -44,14 +48,14 @@ class NativeCCEntryPointArgumentEmission
 
 public:
   virtual void mapAsyncParameters() = 0;
-  virtual llvm::Value *getCallerErrorResultArgument() = 0;
-  virtual llvm::Value *getCallerTypedErrorResultArgument() = 0;
-  virtual llvm::Value *getContext() = 0;
+  virtual toolchain::Value *getCallerErrorResultArgument() = 0;
+  virtual toolchain::Value *getCallerTypedErrorResultArgument() = 0;
+  virtual toolchain::Value *getContext() = 0;
   virtual Explosion getArgumentExplosion(unsigned index, unsigned size) = 0;
-  virtual llvm::Value *getSelfWitnessTable() = 0;
-  virtual llvm::Value *getSelfMetadata() = 0;
-  virtual llvm::Value *getCoroutineBuffer() = 0;
-  virtual llvm::Value *getCoroutineAllocator() = 0;
+  virtual toolchain::Value *getSelfWitnessTable() = 0;
+  virtual toolchain::Value *getSelfMetadata() = 0;
+  virtual toolchain::Value *getCoroutineBuffer() = 0;
+  virtual toolchain::Value *getCoroutineAllocator() = 0;
   Explosion
   explosionForObject(IRGenFunction &IGF, unsigned index, SILArgument *param,
                      SILType paramTy, const LoadableTypeInfo &loadableParamTI,

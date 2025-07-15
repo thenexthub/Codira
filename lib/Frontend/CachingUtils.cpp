@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/CachingUtils.h"
@@ -20,7 +21,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Frontend/CASOutputBackends.h"
 #include "language/Frontend/CompileJobCacheKey.h"
 #include "language/Frontend/CompileJobCacheResult.h"
@@ -31,40 +32,40 @@
 #include "clang/CAS/CASOptions.h"
 #include "clang/CAS/IncludeTree.h"
 #include "clang/Frontend/CompileJobCacheResult.h"
-#include "llvm/CAS/BuiltinUnifiedCASDatabases.h"
-#include "llvm/CAS/CASFileSystem.h"
-#include "llvm/CAS/HierarchicalTreeBuilder.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/CAS/TreeEntry.h"
-#include "llvm/MCCAS/MCCASObjectV1.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/OptTable.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/VirtualFileSystem.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/VirtualOutputBackends.h"
+#include "toolchain/CAS/BuiltinUnifiedCASDatabases.h"
+#include "toolchain/CAS/CASFileSystem.h"
+#include "toolchain/CAS/HierarchicalTreeBuilder.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/CAS/TreeEntry.h"
+#include "toolchain/MCCAS/MCCASObjectV1.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/OptTable.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/VirtualFileSystem.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
 #include <memory>
 
 #define DEBUG_TYPE "cache-util"
 
 using namespace language;
 using namespace language::cas;
-using namespace llvm;
-using namespace llvm::cas;
-using namespace llvm::vfs;
+using namespace toolchain;
+using namespace toolchain::cas;
+using namespace toolchain::vfs;
 
 namespace language {
 
-llvm::IntrusiveRefCntPtr<SwiftCASOutputBackend> createSwiftCachingOutputBackend(
-    llvm::cas::ObjectStore &CAS, llvm::cas::ActionCache &Cache,
-    llvm::cas::ObjectRef BaseKey,
+toolchain::IntrusiveRefCntPtr<CodiraCASOutputBackend> createCodiraCachingOutputBackend(
+    toolchain::cas::ObjectStore &CAS, toolchain::cas::ActionCache &Cache,
+    toolchain::cas::ObjectRef BaseKey,
     const FrontendInputsAndOutputs &InputsAndOutputs,
     const FrontendOptions &Opts, FrontendOptions::ActionType Action) {
-  return makeIntrusiveRefCnt<SwiftCASOutputBackend>(
+  return makeIntrusiveRefCnt<CodiraCASOutputBackend>(
       CAS, Cache, BaseKey, InputsAndOutputs, Opts, Action);
 }
 
@@ -74,14 +75,14 @@ Error cas::CachedResultLoader::replay(CallbackTy Callback) {
     return ResultProxy.takeError();
 
   {
-    swift::cas::CompileJobResultSchema Schema(CAS);
+    language::cas::CompileJobResultSchema Schema(CAS);
     if (Schema.isRootNode(*ResultProxy)) {
       auto Result = Schema.load(OutputRef);
       if (!Result)
         return Result.takeError();
 
       if (auto Err = Result->forEachOutput(
-              [&](swift::cas::CompileJobCacheResult::Output Output) -> Error {
+              [&](language::cas::CompileJobCacheResult::Output Output) -> Error {
                 return Callback(Output.Kind, Output.Object);
               }))
         return Err;
@@ -170,7 +171,7 @@ static bool replayCachedCompilerOutputsImpl(
                                                       std::string> &Outputs) {
     CachedResultLoader Loader(CAS, OutputRef);
     auto OutID = CAS.getID(OutputRef);
-    LLVM_DEBUG(llvm::dbgs() << "DEBUG: lookup cache key \'" << OutID.toString()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "DEBUG: lookup cache key \'" << OutID.toString()
                             << "\' for input \'" << InputPath << "\n";);
     if (auto Err = Loader.replay([&](file_types::ID Kind,
                                      ObjectRef Ref) -> Error {
@@ -203,7 +204,7 @@ static bool replayCachedCompilerOutputsImpl(
                 return Content.takeError();
 
               SmallString<128> OutputPath(Opts.SymbolGraphOutputDir);
-              llvm::sys::path::append(OutputPath, Path->getData());
+              toolchain::sys::path::append(OutputPath, Path->getData());
 
               OutputProxies.emplace_back(OutputEntry{
                   std::string(OutputPath), OutID, Kind, Input, *Content});
@@ -300,7 +301,7 @@ static bool replayCachedCompilerOutputsImpl(
     }
 
     if (UseCASBackend && Output.Kind == file_types::ID::TY_Object) {
-      auto Schema = std::make_unique<llvm::mccasformats::v1::MCSchema>(CAS);
+      auto Schema = std::make_unique<toolchain::mccasformats::v1::MCSchema>(CAS);
       if (auto E = Schema->serializeObjectFile(Output.Proxy, *File)) {
         Diag.diagnose(SourceLoc(), diag::error_mccas, toString(std::move(E)));
         return failedReplay();
@@ -335,7 +336,7 @@ bool replayCachedCompilerOutputs(
     DiagnosticEngine &Diag, const FrontendOptions &Opts,
     CachingDiagnosticsProcessor &CDP, bool CacheRemarks, bool UseCASBackend) {
   // Compute all the inputs need replay.
-  llvm::SmallVector<CacheInputEntry> Inputs;
+  toolchain::SmallVector<CacheInputEntry> Inputs;
   auto AllInputs = Opts.InputsAndOutputs.getAllInputs();
   auto lookupEntry = [&](unsigned InputIndex,
                          StringRef InputPath) -> std::optional<ObjectRef> {
@@ -343,7 +344,7 @@ bool replayCachedCompilerOutputs(
         createCompileJobCacheKeyForOutput(CAS, BaseKey, InputIndex);
 
     if (!OutputKey) {
-      Diag.diagnose(SourceLoc(), diag::error_cas,
+      Diag.diagnose(SourceLoc(), diag::error_cas, "output cache key creation",
                     toString(OutputKey.takeError()));
       return std::nullopt;
     }
@@ -351,7 +352,7 @@ bool replayCachedCompilerOutputs(
     auto OutID = CAS.getID(*OutputKey);
     auto OutputRef = lookupCacheKey(CAS, Cache, *OutputKey);
     if (!OutputRef) {
-      Diag.diagnose(SourceLoc(), diag::error_cas,
+      Diag.diagnose(SourceLoc(), diag::error_cas, "cache key lookup",
                     toString(OutputRef.takeError()));
       return std::nullopt;
     }
@@ -385,7 +386,7 @@ bool replayCachedCompilerOutputs(
   }
 
   // Use on disk output backend directly here to write to disk.
-  llvm::vfs::OnDiskOutputBackend Backend;
+  toolchain::vfs::OnDiskOutputBackend Backend;
   return replayCachedCompilerOutputsImpl(Inputs, CAS, Diag, Opts, CDP,
                                          /*DiagHelper=*/nullptr, Backend,
                                          CacheRemarks, UseCASBackend);
@@ -396,36 +397,40 @@ bool replayCachedCompilerOutputsForInput(
     unsigned InputIndex, DiagnosticEngine &Diag, DiagnosticHelper &DiagHelper,
     OutputBackend &OutBackend, const FrontendOptions &Opts,
     CachingDiagnosticsProcessor &CDP, bool CacheRemarks, bool UseCASBackend) {
-  llvm::SmallVector<CacheInputEntry> Inputs = {{Input, InputIndex, OutputRef}};
+  toolchain::SmallVector<CacheInputEntry> Inputs = {{Input, InputIndex, OutputRef}};
   return replayCachedCompilerOutputsImpl(Inputs, CAS, Diag, Opts, CDP,
                                          &DiagHelper, OutBackend, CacheRemarks,
                                          UseCASBackend);
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 loadCachedCompileResultFromCacheKey(ObjectStore &CAS, ActionCache &Cache,
                                     DiagnosticEngine &Diag, StringRef CacheKey,
                                     file_types::ID Kind, StringRef Filename) {
-  auto failure = [&](Error Err) {
-    Diag.diagnose(SourceLoc(), diag::error_cas, toString(std::move(Err)));
+  auto failure = [&](StringRef Stage, Error Err) {
+    Diag.diagnose(SourceLoc(), diag::error_cas, Stage,
+                  toString(std::move(Err)));
     return nullptr;
   };
   auto ID = CAS.parseID(CacheKey);
-  if (!ID)
-    return failure(ID.takeError());
+  if (!ID) {
+    Diag.diagnose(SourceLoc(), diag::error_invalid_cas_id, CacheKey,
+                  toString(ID.takeError()));
+    return nullptr;
+  }
   auto Ref = CAS.getReference(*ID);
   if (!Ref)
     return nullptr;
 
   auto OutputRef = lookupCacheKey(CAS, Cache, *Ref);
   if (!OutputRef)
-    return failure(OutputRef.takeError());
+    return failure("lookup cache key", OutputRef.takeError());
 
   if (!*OutputRef)
     return nullptr;
 
   CachedResultLoader Loader(CAS, **OutputRef);
-  std::unique_ptr<llvm::MemoryBuffer> Buffer;
+  std::unique_ptr<toolchain::MemoryBuffer> Buffer;
   if (auto Err =
           Loader.replay([&](file_types::ID Type, ObjectRef Ref) -> Error {
             if (Kind != Type)
@@ -438,63 +443,24 @@ loadCachedCompileResultFromCacheKey(ObjectStore &CAS, ActionCache &Cache,
             Buffer = Proxy->getMemoryBuffer(Filename);
             return Error::success();
           }))
-    return failure(std::move(Err));
+    return failure("loading cached results", std::move(Err));
 
   return Buffer;
 }
 
-static llvm::Error createCASObjectNotFoundError(const llvm::cas::CASID &ID) {
-  return createStringError(llvm::inconvertibleErrorCode(),
+static toolchain::Error createCASObjectNotFoundError(const toolchain::cas::CASID &ID) {
+  return createStringError(toolchain::inconvertibleErrorCode(),
                            "CASID missing from Object Store " + ID.toString());
 }
 
-static Expected<ObjectRef> mergeCASFileSystem(ObjectStore &CAS,
-                                              ArrayRef<std::string> FSRoots) {
-  llvm::cas::HierarchicalTreeBuilder Builder;
-  for (auto &Root : FSRoots) {
-    auto ID = CAS.parseID(Root);
-    if (!ID)
-      return ID.takeError();
-
-    auto Ref = CAS.getReference(*ID);
-    if (!Ref)
-      return createCASObjectNotFoundError(*ID);
-    Builder.pushTreeContent(*Ref, "");
-  }
-
-  auto NewRoot = Builder.create(CAS);
-  if (!NewRoot)
-    return NewRoot.takeError();
-
-  return NewRoot->getRef();
-}
-
 Expected<IntrusiveRefCntPtr<vfs::FileSystem>>
-createCASFileSystem(ObjectStore &CAS, ArrayRef<std::string> FSRoots,
-                    ArrayRef<std::string> IncludeTrees,
-                    ArrayRef<std::string> IncludeTreeFileList) {
-  assert(!FSRoots.empty() || !IncludeTrees.empty() ||
+createCASFileSystem(ObjectStore &CAS, const std::string &IncludeTree,
+                    const std::string &IncludeTreeFileList) {
+  assert(!IncludeTree.empty() ||
          !IncludeTreeFileList.empty() && "no root ID provided");
-  if (FSRoots.size() == 1 && IncludeTrees.empty()) {
-    auto ID = CAS.parseID(FSRoots.front());
-    if (!ID)
-      return ID.takeError();
-    return createCASFileSystem(CAS, *ID);
-  }
 
-  auto NewRoot = mergeCASFileSystem(CAS, FSRoots);
-  if (!NewRoot)
-    return NewRoot.takeError();
-
-  auto FS = createCASFileSystem(CAS, CAS.getID(*NewRoot));
-  if (!FS)
-    return FS.takeError();
-
-  auto CASFS = makeIntrusiveRefCnt<vfs::OverlayFileSystem>(std::move(*FS));
-  std::vector<clang::cas::IncludeTree::FileList::FileEntry> Files;
-  // Push all Include File System onto overlay.
-  for (auto &Tree : IncludeTrees) {
-    auto ID = CAS.parseID(Tree);
+  if (!IncludeTree.empty()) {
+    auto ID = CAS.parseID(IncludeTree);
     if (!ID)
       return ID.takeError();
 
@@ -509,65 +475,51 @@ createCASFileSystem(ObjectStore &CAS, ArrayRef<std::string> FSRoots,
     if (!ITF)
       return ITF.takeError();
 
-    auto Err = ITF->forEachFile(
-        [&](clang::cas::IncludeTree::File File,
-            clang::cas::IncludeTree::FileList::FileSizeTy Size) -> llvm::Error {
-          Files.push_back({File.getRef(), Size});
-          return llvm::Error::success();
-        });
+    auto ITFS = clang::cas::createIncludeTreeFileSystem(*ITF);
+    if (!ITFS)
+      return ITFS.takeError();
 
-    if (Err)
-      return std::move(Err);
+    return *ITFS;
   }
 
-  for (auto &List: IncludeTreeFileList) {
-    auto ID = CAS.parseID(List);
+  if (!IncludeTreeFileList.empty()) {
+    auto ID = CAS.parseID(IncludeTreeFileList);
     if (!ID)
       return ID.takeError();
 
     auto Ref = CAS.getReference(*ID);
     if (!Ref)
       return createCASObjectNotFoundError(*ID);
-    auto IT = clang::cas::IncludeTree::FileList::get(CAS, *Ref);
-    if (!IT)
-      return IT.takeError();
+    auto ITF = clang::cas::IncludeTree::FileList::get(CAS, *Ref);
+    if (!ITF)
+      return ITF.takeError();
 
-    auto Err = IT->forEachFile(
-        [&](clang::cas::IncludeTree::File File,
-            clang::cas::IncludeTree::FileList::FileSizeTy Size) -> llvm::Error {
-          Files.push_back({File.getRef(), Size});
-          return llvm::Error::success();
-        });
+    auto ITFS = clang::cas::createIncludeTreeFileSystem(*ITF);
+    if (!ITFS)
+      return ITFS.takeError();
 
-    if (Err)
-      return std::move(Err);
+    return *ITFS;
   }
 
-  auto ITFS = clang::cas::createIncludeTreeFileSystem(CAS, Files);
-  if (!ITFS)
-    return ITFS.takeError();
-
-  CASFS->pushOverlay(std::move(*ITFS));
-
-  return CASFS;
+  return nullptr;
 }
 
 std::vector<std::string> remapPathsFromCommandLine(
     ArrayRef<std::string> commandLine,
-    llvm::function_ref<std::string(StringRef)> RemapCallback) {
+    toolchain::function_ref<std::string(StringRef)> RemapCallback) {
   // parse and remap options that is path and not cache invariant.
   unsigned MissingIndex;
   unsigned MissingCount;
   std::vector<const char *> Args;
   std::for_each(commandLine.begin(), commandLine.end(),
                 [&](const std::string &arg) { Args.push_back(arg.c_str()); });
-  std::unique_ptr<llvm::opt::OptTable> Table = createSwiftOptTable();
-  llvm::opt::InputArgList ParsedArgs = Table->ParseArgs(
+  std::unique_ptr<toolchain::opt::OptTable> Table = createCodiraOptTable();
+  toolchain::opt::InputArgList ParsedArgs = Table->ParseArgs(
       Args, MissingIndex, MissingCount, options::FrontendOption);
   SmallVector<const char *, 16> newArgs;
   std::vector<std::string> newCommandLine;
-  llvm::BumpPtrAllocator Alloc;
-  llvm::StringSaver Saver(Alloc);
+  toolchain::BumpPtrAllocator Alloc;
+  toolchain::StringSaver Saver(Alloc);
   for (auto *Arg : ParsedArgs) {
     Arg->render(ParsedArgs, newArgs);
     const auto &Opt = Arg->getOption();

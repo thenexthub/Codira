@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides convenient and canonical interfaces with Clang entities,
@@ -98,7 +99,7 @@ static bool isInLocalScope(const clang::Decl *D) {
 const clang::Decl *
 importer::getFirstNonLocalDecl(const clang::Decl *D) {
   D = D->getCanonicalDecl();
-  auto iter = llvm::find_if(D->redecls(), [](const clang::Decl *next) -> bool {
+  auto iter = toolchain::find_if(D->redecls(), [](const clang::Decl *next) -> bool {
     return !isInLocalScope(next);
   });
   if (iter == D->redecls_end())
@@ -292,7 +293,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
     return StringRef();
   }
 
-  // Handle builtin types by importing them and getting the Swift name.
+  // Handle builtin types by importing them and getting the Codira name.
   if (auto builtinTy = type->getAs<clang::BuiltinType>()) {
     // Names of integer types.
     static const char *intTypeNames[] = {"UInt8", "UInt16", "UInt32", "UInt64",
@@ -312,7 +313,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
       case 128:
         return StringRef(intTypeNames[4]).substr(isSigned ? 1 : 0);
       default:
-        llvm_unreachable("bad integer type size");
+        toolchain_unreachable("bad integer type size");
       }
     };
 
@@ -358,7 +359,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
     case clang::BuiltinType::WChar_S:
       return getIntTypeName(true);
 
-    // Types that cannot be mapped into Swift, and probably won't ever be.
+    // Types that cannot be mapped into Codira, and probably won't ever be.
     case clang::BuiltinType::Dependent:
     case clang::BuiltinType::ARCUnbridgedCast:
     case clang::BuiltinType::BoundMember:
@@ -411,13 +412,13 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
     case clang::BuiltinType::ObjCSel:
       return OmissionTypeName();
 
-    // OpenMP types that don't have Swift equivalents.
+    // OpenMP types that don't have Codira equivalents.
     case clang::BuiltinType::ArraySection:
     case clang::BuiltinType::OMPArrayShaping:
     case clang::BuiltinType::OMPIterator:
       return OmissionTypeName();
 
-    // OpenCL builtin types that don't have Swift equivalents.
+    // OpenCL builtin types that don't have Codira equivalents.
     case clang::BuiltinType::OCLClkEvent:
     case clang::BuiltinType::OCLEvent:
     case clang::BuiltinType::OCLSampler:
@@ -429,27 +430,27 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
 #include "clang/Basic/OpenCLExtensionTypes.def"
       return OmissionTypeName();
 
-    // ARM SVE builtin types that don't have Swift equivalents.
+    // ARM SVE builtin types that don't have Codira equivalents.
 #define SVE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
 #include "clang/Basic/AArch64SVEACLETypes.def"
       return OmissionTypeName();
 
-    // PPC MMA builtin types that don't have Swift equivalents.
+    // PPC MMA builtin types that don't have Codira equivalents.
 #define PPC_VECTOR_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
 #include "clang/Basic/PPCTypes.def"
       return OmissionTypeName();
 
-    // RISC-V V builtin types that don't have Swift equivalents.
+    // RISC-V V builtin types that don't have Codira equivalents.
 #define RVV_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
 #include "clang/Basic/RISCVVTypes.def"
       return OmissionTypeName();
 
-    // WASM builtin types that don't have Swift equivalents.
+    // WASM builtin types that don't have Codira equivalents.
 #define WASM_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
 #include "clang/Basic/WebAssemblyReferenceTypes.def"
       return OmissionTypeName();
 
-    // AMDGPU builtins that don't have Swift equivalents.
+    // AMDGPU builtins that don't have Codira equivalents.
 #define AMDGPU_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
 #include "clang/Basic/AMDGPUTypes.def"
       return OmissionTypeName();
@@ -475,10 +476,10 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
   return StringRef();
 }
 
-static clang::SwiftNewTypeAttr *
+static clang::CodiraNewTypeAttr *
 retrieveNewTypeAttr(const clang::TypedefNameDecl *decl) {
   // Retrieve the attribute.
-  auto attr = decl->getAttr<clang::SwiftNewTypeAttr>();
+  auto attr = decl->getAttr<clang::CodiraNewTypeAttr>();
   if (!attr)
     return nullptr;
 
@@ -491,22 +492,22 @@ retrieveNewTypeAttr(const clang::TypedefNameDecl *decl) {
   return attr;
 }
 
-clang::SwiftNewTypeAttr *
-importer::getSwiftNewtypeAttr(const clang::TypedefNameDecl *decl,
+clang::CodiraNewTypeAttr *
+importer::getCodiraNewtypeAttr(const clang::TypedefNameDecl *decl,
                               ImportNameVersion version) {
-  // Newtype was introduced in Swift 3
-  if (version <= ImportNameVersion::swift2())
+  // Newtype was introduced in Codira 3
+  if (version <= ImportNameVersion::language2())
     return nullptr;
   return retrieveNewTypeAttr(decl);
 }
 
-// If this decl is associated with a swift_newtype typedef, return it, otherwise
+// If this decl is associated with a language_newtype typedef, return it, otherwise
 // null
-clang::TypedefNameDecl *importer::findSwiftNewtype(const clang::NamedDecl *decl,
+clang::TypedefNameDecl *importer::findCodiraNewtype(const clang::NamedDecl *decl,
                                                    clang::Sema &clangSema,
                                                    ImportNameVersion version) {
-  // Newtype was introduced in Swift 3
-  if (version <= ImportNameVersion::swift2())
+  // Newtype was introduced in Codira 3
+  if (version <= ImportNameVersion::language2())
     return nullptr;
 
   auto varDecl = dyn_cast<clang::VarDecl>(decl);
@@ -570,8 +571,8 @@ bool importer::isNSNotificationGlobal(const clang::NamedDecl *decl) {
   if (!vDecl || !vDecl->hasExternalFormalLinkage())
     return false;
 
-  // No explicit swift_name
-  if (decl->getAttr<clang::SwiftNameAttr>())
+  // No explicit language_name
+  if (decl->getAttr<clang::CodiraNameAttr>())
     return false;
 
   // Must end in Notification
@@ -588,9 +589,9 @@ bool importer::isNSNotificationGlobal(const clang::NamedDecl *decl) {
   return true;
 }
 
-bool importer::hasNativeSwiftDecl(const clang::Decl *decl) {
+bool importer::hasNativeCodiraDecl(const clang::Decl *decl) {
   if (auto *attr = decl->getAttr<clang::ExternalSourceSymbolAttr>())
-    if (attr->getGeneratedDeclaration() && attr->getLanguage() == "Swift")
+    if (attr->getGeneratedDeclaration() && attr->getLanguage() == "Codira")
       return true;
   return false;
 }
@@ -615,7 +616,7 @@ OptionalTypeKind importer::translateNullability(
     return OptionalTypeKind::OTK_ImplicitlyUnwrappedOptional;
   }
 
-  llvm_unreachable("Invalid NullabilityKind.");
+  toolchain_unreachable("Invalid NullabilityKind.");
   return OptionalTypeKind::OTK_Optional;
 }
 
@@ -649,13 +650,13 @@ static bool isAccessibilityConformingContext(const clang::DeclContext *ctx) {
 
 bool
 importer::shouldImportPropertyAsAccessors(const clang::ObjCPropertyDecl *prop) {
-  if (prop->hasAttr<clang::SwiftImportPropertyAsAccessorsAttr>())
+  if (prop->hasAttr<clang::CodiraImportPropertyAsAccessorsAttr>())
     return true;
 
   // Check if the property is one of the specially handled accessibility APIs.
   //
   // These appear as both properties and methods in ObjC and should be
-  // imported as methods into Swift, as a sort of least-common-denominator
+  // imported as methods into Codira, as a sort of least-common-denominator
   // compromise.
   if (!prop->getName().starts_with("accessibility"))
     return false;
@@ -674,7 +675,7 @@ bool importer::isInitMethod(const clang::ObjCMethodDecl *method) {
   if (method->getMethodFamily() != clang::OMF_init)
     return false;
 
-  // Swift restriction: init methods must start with the word "init".
+  // Codira restriction: init methods must start with the word "init".
   auto selector = method->getSelector();
   return camel_case::getFirstWord(selector.getNameForSlot(0)) == "init";
 }
@@ -690,11 +691,11 @@ bool importer::isObjCId(const clang::Decl *decl) {
   return typedefDecl->getName() == "id";
 }
 
-bool importer::isUnavailableInSwift(
+bool importer::isUnavailableInCodira(
     const clang::Decl *decl,
     const PlatformAvailability *platformAvailability,
     bool enableObjCInterop) {
-  // 'id' is always unavailable in Swift.
+  // 'id' is always unavailable in Codira.
   if (enableObjCInterop && isObjCId(decl))
     return true;
 
@@ -702,7 +703,7 @@ bool importer::isUnavailableInSwift(
     return true;
 
   for (auto *attr : decl->specific_attrs<clang::AvailabilityAttr>()) {
-    if (attr->getPlatform()->getName() == "swift")
+    if (attr->getPlatform()->getName() == "language")
       return true;
 
     if (!platformAvailability)
@@ -714,7 +715,7 @@ bool importer::isUnavailableInSwift(
     }
 
 
-    llvm::VersionTuple version = attr->getDeprecated();
+    toolchain::VersionTuple version = attr->getDeprecated();
     if (version.empty())
       continue;
     if (platformAvailability->treatDeprecatedAsUnavailable(

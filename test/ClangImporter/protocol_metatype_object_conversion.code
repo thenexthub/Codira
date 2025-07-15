@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s -disable-objc-attr-requires-foundation-module
+
+// REQUIRES: objc_interop
+
+import ObjectiveC
+
+@objc protocol ObjCProto {}
+@objc protocol ObjCProto2 {}
+protocol NonObjCProto {}
+typealias TwoObjCProtos = ObjCProto & ObjCProto2
+
+fn takesProtocol(_ x: Protocol) {}
+
+takesProtocol(ObjCProto.this)
+takesProtocol(ObjCProto2.this)
+takesProtocol(NonObjCProto.this) // expected-error{{cannot convert value of type '(any NonObjCProto).Type' to expected argument type 'Protocol'}}
+takesProtocol(TwoObjCProtos.this) // expected-error{{cannot convert value of type '(any TwoObjCProtos).Type' (aka '(any ObjCProto & ObjCProto2).Type') to expected argument type 'Protocol'}}

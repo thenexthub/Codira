@@ -1,10 +1,10 @@
-srcroot = /Volumes/Data/swift
-objroot = /Volumes/Data/swift-DA
+srcroot = /Volumes/Data/language
+objroot = /Volumes/Data/language-DA
 
 CXXFLAGS = -std=c++11 \
 	   -stdlib=libc++ \
 	   -g \
-	   -I$(srcroot)/tools/swift/include \
+	   -I$(srcroot)/tools/language/include \
 	   -I$(srcroot)/tools/clang/include \
 	   -I$(srcroot)/include \
 	   -I$(objroot)/include \
@@ -13,7 +13,7 @@ CXXFLAGS = -std=c++11 \
 
 LDFLAGS = -L$(objroot)/Debug+Asserts/lib -lLLVMSupport -lcurses
 
-main: main.cpp $(srcroot)/tools/swift/include/swift/Basic/SuccessorMap.h
+main: main.cpp $(srcroot)/tools/language/include/language/Basic/SuccessorMap.h
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o main main.cpp
 
 clean:

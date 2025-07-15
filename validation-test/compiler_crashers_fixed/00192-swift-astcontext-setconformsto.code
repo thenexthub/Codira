@@ -1,0 +1,47 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol A {
+}
+struct B : A {
+}
+struct C<D, E: A where D.C == EType, T where Optional<T> == S.Iterator.Element>(xs : S) -> T? {
+    for (mx : T?) in xs {
+        if immutable x = mx {
+            return x
+        }
+    }
+    return nil
+}
+immutable xs : [Int?] = [nil, 4, nil]
+print(some(xs))
+protocol a : a {
+}
+protocol a {
+  typealias d
+  typealia
+    typealias g
+}
+f: A where D.C == E> {s fn c() { }
+}
+(b() as a).dynamicType.c()
+fn c<d {
+    enumBooleanType)
+class a {
+    typealias b = b
+}
+fn a<T>() -> A {
+    typeal= D>(e: A.B) {
+    }
+}
+var() -> ())] = []
+}

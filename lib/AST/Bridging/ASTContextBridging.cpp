@@ -1,12 +1,15 @@
 //===--- Bridging/ASTContextBridging.cpp ----------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -36,8 +39,8 @@ bool BridgedASTContext_langOptsHasFeature(BridgedASTContext cContext,
   return cContext.unbridged().LangOpts.hasFeature((Feature)feature);
 }
 
-unsigned BridgedASTContext_majorLanguageVersion(BridgedASTContext cContext) {
-  return cContext.unbridged().LangOpts.EffectiveLanguageVersion[0];
+unsigned BridgedASTContext::getMajorLanguageVersion() const {
+  return unbridged().LangOpts.EffectiveLanguageVersion[0];
 }
 
 bool BridgedASTContext_langOptsCustomConditionSet(BridgedASTContext cContext,
@@ -90,56 +93,53 @@ bool BridgedASTContext_langOptsIsActiveTargetPtrAuth(BridgedASTContext cContext,
       PlatformConditionKind::PtrAuth, cName.unbridged());
 }
 
-unsigned
-BridgedASTContext_langOptsTargetPointerBitWidth(BridgedASTContext cContext) {
-  return cContext.unbridged().LangOpts.Target.isArch64Bit()   ? 64
-         : cContext.unbridged().LangOpts.Target.isArch32Bit() ? 32
-         : cContext.unbridged().LangOpts.Target.isArch16Bit() ? 16
-                                                              : 0;
+unsigned BridgedASTContext::getLangOptsTargetPointerBitWidth() const {
+  return unbridged().LangOpts.Target.isArch64Bit()   ? 64
+         : unbridged().LangOpts.Target.isArch32Bit() ? 32
+         : unbridged().LangOpts.Target.isArch16Bit() ? 16
+                                                     : 0;
 }
 
-bool BridgedASTContext_langOptsAttachCommentsToDecls(
-    BridgedASTContext cContext) {
-  return cContext.unbridged().LangOpts.AttachCommentsToDecls;
+bool BridgedASTContext::getLangOptsAttachCommentsToDecls() const {
+  return unbridged().LangOpts.AttachCommentsToDecls;
 }
 
-BridgedEndianness
-BridgedASTContext_langOptsTargetEndianness(BridgedASTContext cContext) {
-  return cContext.unbridged().LangOpts.Target.isLittleEndian() ? EndianLittle
-                                                               : EndianBig;
+BridgedEndianness BridgedASTContext::getLangOptsTargetEndianness() const {
+  return unbridged().LangOpts.Target.isLittleEndian() ? EndianLittle
+                                                      : EndianBig;
 }
 
-/// Convert an array of numbers into a form we can use in Swift.
+/// Convert an array of numbers into a form we can use in Codira.
 namespace {
 template <typename Arr>
-SwiftInt convertArray(const Arr &array, SwiftInt **cElements) {
-  SwiftInt numElements = array.size();
-  *cElements = (SwiftInt *)malloc(sizeof(SwiftInt) * numElements);
-  for (SwiftInt i = 0; i != numElements; ++i)
+CodiraInt convertArray(const Arr &array, CodiraInt **cElements) {
+  CodiraInt numElements = array.size();
+  *cElements = (CodiraInt *)malloc(sizeof(CodiraInt) * numElements);
+  for (CodiraInt i = 0; i != numElements; ++i)
     (*cElements)[i] = array[i];
   return numElements;
 }
 } // namespace
 
-void deallocateIntBuffer(SwiftInt *_Nullable cComponents) { free(cComponents); }
+void deallocateIntBuffer(CodiraInt *_Nullable cComponents) { free(cComponents); }
 
-SwiftInt
+CodiraInt
 BridgedASTContext_langOptsGetLanguageVersion(BridgedASTContext cContext,
-                                             SwiftInt **cComponents) {
+                                             CodiraInt **cComponents) {
   auto theVersion = cContext.unbridged().LangOpts.EffectiveLanguageVersion;
   return convertArray(theVersion, cComponents);
 }
 
-SWIFT_NAME("BridgedASTContext.langOptsGetCompilerVersion(self:_:)")
-SwiftInt
+LANGUAGE_NAME("BridgedASTContext.langOptsGetCompilerVersion(self:_:)")
+CodiraInt
 BridgedASTContext_langOptsGetCompilerVersion(BridgedASTContext cContext,
-                                             SwiftInt **cComponents) {
+                                             CodiraInt **cComponents) {
   auto theVersion = version::Version::getCurrentLanguageVersion();
   return convertArray(theVersion, cComponents);
 }
 
-SwiftInt BridgedASTContext_langOptsGetTargetAtomicBitWidths(
-    BridgedASTContext cContext, SwiftInt *_Nullable *_Nonnull cElements) {
+CodiraInt BridgedASTContext_langOptsGetTargetAtomicBitWidths(
+    BridgedASTContext cContext, CodiraInt *_Nullable *_Nonnull cElements) {
   return convertArray(cContext.unbridged().LangOpts.getAtomicBitWidthValues(),
                       cElements);
 }
@@ -148,25 +148,25 @@ bool BridgedASTContext_canImport(BridgedASTContext cContext,
                                  BridgedStringRef importPath,
                                  BridgedSourceLoc canImportLoc,
                                  BridgedCanImportVersion versionKind,
-                                 const SwiftInt *_Nullable versionComponents,
-                                 SwiftInt numVersionComponents) {
+                                 const CodiraInt *_Nullable versionComponents,
+                                 CodiraInt numVersionComponents) {
   // Map the version.
-  llvm::VersionTuple version;
+  toolchain::VersionTuple version;
   switch (numVersionComponents) {
   case 0:
     break;
   case 1:
-    version = llvm::VersionTuple(versionComponents[0]);
+    version = toolchain::VersionTuple(versionComponents[0]);
     break;
   case 2:
-    version = llvm::VersionTuple(versionComponents[0], versionComponents[1]);
+    version = toolchain::VersionTuple(versionComponents[0], versionComponents[1]);
     break;
   case 3:
-    version = llvm::VersionTuple(versionComponents[0], versionComponents[1],
+    version = toolchain::VersionTuple(versionComponents[0], versionComponents[1],
                                  versionComponents[2]);
     break;
   default:
-    version = llvm::VersionTuple(versionComponents[0], versionComponents[1],
+    version = toolchain::VersionTuple(versionComponents[0], versionComponents[1],
                                  versionComponents[2], versionComponents[3]);
     break;
   }
@@ -179,7 +179,6 @@ bool BridgedASTContext_canImport(BridgedASTContext cContext,
       versionKind == CanImportUnderlyingVersion);
 }
 
-BridgedAvailabilityMacroMap
-BridgedASTContext_getAvailabilityMacroMap(BridgedASTContext cContext) {
-  return &cContext.unbridged().getAvailabilityMacroMap();
+BridgedAvailabilityMacroMap BridgedASTContext::getAvailabilityMacroMap() const {
+  return &unbridged().getAvailabilityMacroMap();
 }

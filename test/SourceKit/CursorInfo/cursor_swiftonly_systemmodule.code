@@ -1,0 +1,63 @@
+// Check whether we correctly specify `someFunc` as part of a system module.
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/EmptySDK)
+// RUN: split-file %s %t
+
+// RUN: mkdir -p %t/SDK/Frameworks/SomeModule.framework/Modules/SomeModule.codemodule
+// RUN: %target-language-frontend \
+// RUN:     -emit-module \
+// RUN:     -module-name SomeModule \
+// RUN:     -o %t/SDK/Frameworks/SomeModule.framework/Modules/SomeModule.codemodule/%module-target-triple.codemodule \
+// RUN:     -language-version 5 \
+// RUN:     %t/SomeModule.code
+
+// Doesn't matter whether the framework is system or not, SomeModule is part
+// of the mock SDK.
+// RUN: %sourcekitd-test -req=cursor -pos=4:3 %t/main.code -- \
+// RUN:     -sdk %t/SDK \
+// RUN:     -F %t/SDK/Frameworks \
+// RUN:     -target %target-triple \
+// RUN:     %t/main.code \
+// RUN: | %FileCheck %s
+
+// No SDK, fallback to checking whether the search path is system or not
+// RUN: %sourcekitd-test -req=cursor -pos=4:3 %t/main.code -- \
+// RUN:     -Fsystem %t/SDK/Frameworks \
+// RUN:     -target %target-triple \
+// RUN:     %t/main.code \
+// RUN: | %FileCheck %s
+
+// Empty SDK, so shouldn't be a system module any more.
+// RUN: %sourcekitd-test -req=cursor -pos=4:3 %t/main.code -- \
+// RUN:     -sdk %t/EmptySDK \
+// RUN:     -Fsystem %t/SDK/Frameworks \
+// RUN:     -target %target-triple \
+// RUN:     %t/main.code \
+// RUN: | %FileCheck %s --check-prefix=NOSYS
+
+// CHECK: source.lang.code.ref.function.free ()
+// CHECK-NEXT: someFunc()
+// CHECK-NEXT: s:10SomeModule8someFuncyyF
+// CHECK-NEXT: source.lang.code
+// CHECK-NEXT: () -> ()
+// CHECK-NEXT: $syycD
+// CHECK-NEXT: SomeModule
+// CHECK-NEXT: SYSTEM
+// CHECK-NEXT: <Declaration>fn someFunc()</Declaration>
+// CHECK-NEXT: <decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>someFunc</decl.name>()</decl.function.free>
+
+// NOSYS: someFunc()
+// NOSYS: SomeModule
+// NOSYS-NOT: SYSTEM
+
+//--- SomeModule.code
+/// Doc comment for 'someFunc()'
+public fn someFunc() {}
+
+//--- main.code
+import SomeModule
+
+fn test() {
+  someFunc()
+}

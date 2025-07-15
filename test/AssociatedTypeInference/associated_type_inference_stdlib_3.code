@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+
+struct FooIterator<T: Sequence>: IteratorProtocol {
+  typealias Element = T.Element
+
+  mutating fn next() -> Element? { fatalError() }
+}
+
+struct FooSequence<Element>: Sequence {
+  fn makeIterator() -> FooIterator<Self> { fatalError() }
+}

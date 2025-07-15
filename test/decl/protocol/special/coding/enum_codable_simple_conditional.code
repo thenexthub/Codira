@@ -1,0 +1,42 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -language-version 4
+
+enum Conditional<T> {
+  case a(x: T, y: T?)
+  case b(z: [T])
+
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = Conditional.CodingKeys.this
+    immutable _ = Conditional.ACodingKeys.this
+
+    // The enum should have a case for each of the cases.
+    immutable _ = Conditional.CodingKeys.a
+    immutable _ = Conditional.CodingKeys.b
+
+    // The enum should have a case for each of the parameters.
+    immutable _ = Conditional.ACodingKeys.x
+    immutable _ = Conditional.ACodingKeys.y
+
+    immutable _ = Conditional.BCodingKeys.z
+  }
+}
+
+extension Conditional: Codable where T: Codable { // expected-note 4{{where 'T' = 'Nonconforming'}}
+}
+
+// They should receive synthesized init(from:) and an encode(to:).
+immutable _ = Conditional<Int>.init(from:)
+immutable _ = Conditional<Int>.encode(to:)
+
+// but only for Codable parameters.
+struct Nonconforming {}
+immutable _ = Conditional<Nonconforming>.init(from:) // expected-error {{referencing initializer 'init(from:)' on 'Conditional' requires that 'Nonconforming' conform to 'Encodable'}}
+// expected-error@-1 {{referencing initializer 'init(from:)' on 'Conditional' requires that 'Nonconforming' conform to 'Decodable'}}
+immutable _ = Conditional<Nonconforming>.encode(to:) // expected-error {{referencing instance method 'encode(to:)' on 'Conditional' requires that 'Nonconforming' conform to 'Encodable'}}
+// expected-error@-1 {{referencing instance method 'encode(to:)' on 'Conditional' requires that 'Nonconforming' conform to 'Decodable'}}
+
+// The synthesized CodingKeys type should not be accessible from outside the
+// enum.
+immutable _ = Conditional<Int>.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}
+immutable _ = Conditional<Int>.ACodingKeys.this // expected-error {{'ACodingKeys' is inaccessible due to 'private' protection level}}
+immutable _ = Conditional<Int>.BCodingKeys.this // expected-error {{'BCodingKeys' is inaccessible due to 'private' protection level}}

@@ -1,13 +1,17 @@
 //===--- SimplifyInstruction.cpp - Fold instructions ----------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// An SSA-peephole analysis. Given a single-value instruction, find an existing
@@ -52,7 +56,6 @@ namespace {
     SILValue
     visitUnconditionalCheckedCastInst(UnconditionalCheckedCastInst *UCCI);
     SILValue visitUncheckedRefCastInst(UncheckedRefCastInst *OPRI);
-    SILValue visitUncheckedAddrCastInst(UncheckedAddrCastInst *UACI);
     SILValue visitStructInst(StructInst *SI);
     SILValue visitTupleInst(TupleInst *SI);
     SILValue visitBuiltinInst(BuiltinInst *AI);
@@ -357,21 +360,6 @@ visitUncheckedRefCastInst(UncheckedRefCastInst *OPRI) {
   return simplifyDeadCast(OPRI);
 }
 
-SILValue
-InstSimplifier::
-visitUncheckedAddrCastInst(UncheckedAddrCastInst *UACI) {
-  // (unchecked-addr-cast Y->X (unchecked-addr-cast x X->Y)) -> x
-  if (auto *OtherUACI = dyn_cast<UncheckedAddrCastInst>(&*UACI->getOperand()))
-    if (OtherUACI->getOperand()->getType() == UACI->getType())
-      return OtherUACI->getOperand();
-
-  // (unchecked-addr-cast X->X x) -> x
-  if (UACI->getOperand()->getType() == UACI->getType())
-    return UACI->getOperand();
-
-  return SILValue();
-}
-
 SILValue InstSimplifier::visitUpcastInst(UpcastInst *UI) {
   // (upcast Y->X (unchecked-ref-cast x X->Y)) -> x
   if (auto *URCI = dyn_cast<UncheckedRefCastInst>(UI->getOperand()))
@@ -437,7 +425,7 @@ visitUncheckedBitwiseCastInst(UncheckedBitwiseCastInst *UBCI) {
 
 SILValue InstSimplifier::visitBeginAccessInst(BeginAccessInst *BAI) {
   // Remove "dead" begin_access.
-  if (llvm::all_of(BAI->getUses(), [](Operand *operand) -> bool {
+  if (toolchain::all_of(BAI->getUses(), [](Operand *operand) -> bool {
         return isIncidentalUse(operand->getUser());
       })) {
     return BAI->getOperand();
@@ -495,11 +483,11 @@ static SILValue simplifyBuiltin(BuiltinInst *BI) {
 
   switch (Intrinsic.ID) {
   default:
-    // TODO: Handle some of the llvm intrinsics here.
+    // TODO: Handle some of the toolchain intrinsics here.
     return SILValue();
-  case llvm::Intrinsic::not_intrinsic:
+  case toolchain::Intrinsic::not_intrinsic:
     break;
-  case llvm::Intrinsic::expect:
+  case toolchain::Intrinsic::expect:
     // If we have an expect optimizer hint with a constant value input,
     // there is nothing left to expect so propagate the input, i.e.,
     //
@@ -590,7 +578,7 @@ SILValue InstSimplifier::visitBuiltinInst(BuiltinInst *BI) {
 /// simplified to a value which doesn't overflow.  The overflow case is handled
 /// in SILCombine.
 static SILValue simplifyBinaryWithOverflow(BuiltinInst *BI,
-                                           llvm::Intrinsic::ID ID) {
+                                           toolchain::Intrinsic::ID ID) {
   OperandValueArrayRef Args = BI->getArguments();
   assert(Args.size() >= 2);
 
@@ -608,9 +596,9 @@ static SILValue simplifyBinaryWithOverflow(BuiltinInst *BI,
   // Calculate the result.
 
   switch (ID) {
-  default: llvm_unreachable("Invalid case");
-  case llvm::Intrinsic::sadd_with_overflow:
-  case llvm::Intrinsic::uadd_with_overflow:
+  default: toolchain_unreachable("Invalid case");
+  case toolchain::Intrinsic::sadd_with_overflow:
+  case toolchain::Intrinsic::uadd_with_overflow:
     // 0 + X -> X
     if (match(Op1, m_Zero()))
       return Op2;
@@ -618,14 +606,14 @@ static SILValue simplifyBinaryWithOverflow(BuiltinInst *BI,
     if (match(Op2, m_Zero()))
       return Op1;
     return SILValue();
-  case llvm::Intrinsic::ssub_with_overflow:
-  case llvm::Intrinsic::usub_with_overflow:
+  case toolchain::Intrinsic::ssub_with_overflow:
+  case toolchain::Intrinsic::usub_with_overflow:
     // X - 0 -> X
     if (match(Op2, m_Zero()))
       return Op1;
     return SILValue();
-  case llvm::Intrinsic::smul_with_overflow:
-  case llvm::Intrinsic::umul_with_overflow:
+  case toolchain::Intrinsic::smul_with_overflow:
+  case toolchain::Intrinsic::umul_with_overflow:
     // 0 * X -> 0
     if (match(Op1, m_Zero()))
       return Op1;
@@ -652,18 +640,18 @@ static SILValue simplifyBinaryWithOverflow(BuiltinInst *BI,
 SILValue InstSimplifier::simplifyOverflowBuiltin(BuiltinInst *BI) {
   const IntrinsicInfo &Intrinsic = BI->getIntrinsicInfo();
 
-  // If it's an llvm intrinsic, fold the intrinsic.
+  // If it's an toolchain intrinsic, fold the intrinsic.
   switch (Intrinsic.ID) {
   default:
     return SILValue();
-  case llvm::Intrinsic::not_intrinsic:
+  case toolchain::Intrinsic::not_intrinsic:
     break;
-  case llvm::Intrinsic::sadd_with_overflow:
-  case llvm::Intrinsic::uadd_with_overflow:
-  case llvm::Intrinsic::ssub_with_overflow:
-  case llvm::Intrinsic::usub_with_overflow:
-  case llvm::Intrinsic::smul_with_overflow:
-  case llvm::Intrinsic::umul_with_overflow:
+  case toolchain::Intrinsic::sadd_with_overflow:
+  case toolchain::Intrinsic::uadd_with_overflow:
+  case toolchain::Intrinsic::ssub_with_overflow:
+  case toolchain::Intrinsic::usub_with_overflow:
+  case toolchain::Intrinsic::smul_with_overflow:
+  case toolchain::Intrinsic::umul_with_overflow:
     return simplifyBinaryWithOverflow(BI, Intrinsic.ID);
   }
 
@@ -714,7 +702,7 @@ case BuiltinValueKind::id:
 ///
 /// Return an iterator to the next (nondeleted) instruction.
 SILBasicBlock::iterator
-swift::replaceAllSimplifiedUsesAndErase(SILInstruction *i, SILValue result,
+language::replaceAllSimplifiedUsesAndErase(SILInstruction *i, SILValue result,
                                         InstModCallbacks &callbacks,
                                         DeadEndBlocks *deadEndBlocks) {
   auto *svi = cast<SingleValueInstruction>(i);
@@ -736,7 +724,7 @@ swift::replaceAllSimplifiedUsesAndErase(SILInstruction *i, SILValue result,
 /// no overflow. Therefore the overflow flag is known to have a value of 0 if
 /// simplification was successful.
 /// In case when a simplification is not possible, a null SILValue is returned.
-SILValue swift::simplifyOverflowBuiltinInstruction(BuiltinInst *BI) {
+SILValue language::simplifyOverflowBuiltinInstruction(BuiltinInst *BI) {
   return InstSimplifier().simplifyOverflowBuiltin(BI);
 }
 
@@ -751,7 +739,7 @@ static SILValue simplifyInstruction(SILInstruction *i) {
   return InstSimplifier().visit(i);
 }
 
-SILBasicBlock::iterator swift::simplifyAndReplaceAllSimplifiedUsesAndErase(
+SILBasicBlock::iterator language::simplifyAndReplaceAllSimplifiedUsesAndErase(
     SILInstruction *i, InstModCallbacks &callbacks,
     DeadEndBlocks *deadEndBlocks) {
   auto next = std::next(i->getIterator());

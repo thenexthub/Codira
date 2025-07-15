@@ -1,27 +1,27 @@
-# swift_build_support/products/swift_testing.py -----------------*- python -*-
+# language_build_support/products/language_testing.py -----------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import os
 
-from build_swift.build_swift.versions import Version
+from build_language.build_language.versions import Version
 
 from . import cmake_product
 from . import product
-from . import swift
-from . import swift_testing_macros
+from . import language
+from . import language_testing_macros
 from .. import shell
 
 
-class SwiftTesting(product.Product):
+class CodiraTesting(product.Product):
     @classmethod
     def is_build_script_impl_product(cls):
         return False
@@ -32,15 +32,15 @@ class SwiftTesting(product.Product):
 
     @classmethod
     def product_source_name(cls):
-        return "swift-testing"
+        return "language-testing"
 
     @classmethod
     def get_dependencies(cls):
-        return [swift.Swift,
-                swift_testing_macros.SwiftTestingMacros]
+        return [language.Codira,
+                language_testing_macros.CodiraTestingMacros]
 
     def should_clean(self, host_target):
-        # Workaround for 'swift-testing' not detecting compiler/stdlib changes.
+        # Workaround for 'language-testing' not detecting compiler/stdlib changes.
         return True
 
     def should_build(self, host_target):
@@ -51,14 +51,14 @@ class SwiftTesting(product.Product):
         return False
 
     def should_install(self, host_target):
-        return self.args.install_swift_testing
+        return self.args.install_language_testing
 
     def _cmake_product(self, host_target):
         build_root = os.path.dirname(self.build_dir)
         build_dir = os.path.join(
             build_root, '%s-%s' % (self.product_name(), host_target))
 
-        return SwiftTestingCMakeShim(
+        return CodiraTestingCMakeShim(
             args=self.args,
             toolchain=self.toolchain,
             source_dir=self.source_dir,
@@ -92,7 +92,7 @@ class SwiftTesting(product.Product):
         self._for_each_host_target(host_target, self._install_with_cmake)
 
 
-class SwiftTestingCMakeShim(cmake_product.CMakeProduct):
+class CodiraTestingCMakeShim(cmake_product.CMakeProduct):
     def clean(self, host_target):
         shell.rmtree(self.build_dir)
 
@@ -112,8 +112,10 @@ class SwiftTestingCMakeShim(cmake_product.CMakeProduct):
 
         self.cmake_options.define('CMAKE_BUILD_TYPE', self.args.build_variant)
 
+        self.cmake_options.define('CMAKE_Codira_COMPILATION_MODE', 'wholemodule')
+
         # FIXME: If we build macros for the builder, specify the path.
-        self.cmake_options.define('SwiftTesting_MACRO', 'NO')
+        self.cmake_options.define('CodiraTesting_MACRO', 'NO')
 
         self.generate_toolchain_file_for_darwin_or_linux(
             host_target, override_macos_deployment_version=override_deployment_version)

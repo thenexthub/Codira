@@ -1,0 +1,33 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/Source)
+// RUN: %empty-directory(%t/NoSourceInfo.framework/Modules/NoSourceInfo.codemodule)
+// RUN: %empty-directory(%t/NoSourceInfo.framework/Modules/NoSourceInfo.codemodule/Project)
+
+// RUN: cp %s %t/Source/Input.code
+
+// RUN: %target-language-frontend -module-name NoSourceInfo -emit-module -emit-module-path %t/NoSourceInfo.framework/Modules/NoSourceInfo.codemodule/%target-languagemodule-name -emit-module-doc-path %t/NoSourceInfo.framework/Modules/NoSourceInfo.codemodule/%target-languagedoc-name -emit-module-interface-path %t/NoSourceInfo.framework/Modules/NoSourceInfo.codemodule/%target-languageinterface-name -emit-module-source-info-path %t/NoSourceInfo.framework/Modules/NoSourceInfo.codemodule/Project/%target-languagesourceinfo-name %t/Source/Input.code
+
+// RUN: mv %t/Source %t/MovedSource
+
+// RUN: %target-language-symbolgraph-extract -module-name NoSourceInfo -F %t -pretty-print -output-dir %t
+// RUN: %FileCheck %s --input-file %t/NoSourceInfo.symbols.json
+
+// CHECK: s:12NoSourceInfo1SV
+// CHECK: docComment
+// CHECK: This is a test
+
+/// This is a test
+public struct S {
+    /// This is also a test
+    public var x: Int
+}
+
+/// writing some docs here
+open class C<Data> {
+    /// writing more docs over there
+    public init() {}
+}
+
+open class CO: C<String> {
+    override public init() { super.init() }
+}

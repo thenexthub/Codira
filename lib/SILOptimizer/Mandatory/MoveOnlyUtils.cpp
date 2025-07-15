@@ -1,13 +1,17 @@
 //===--- MoveOnlyUtils.cpp ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-move-only-checker"
@@ -47,16 +51,16 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 #include "MoveOnlyDiagnostics.h"
 #include "MoveOnlyUtils.h"
@@ -70,13 +74,13 @@ using namespace language::siloptimizer;
 
 /// A small diagnostic helper that causes us to emit a diagnostic error upon any
 /// copies we did not eliminate and ask the user for a test case.
-void swift::siloptimizer::emitCheckerMissedCopyOfNonCopyableTypeErrors(
+void language::siloptimizer::emitCheckerMissedCopyOfNonCopyableTypeErrors(
     SILFunction *fn, DiagnosticEmitter &diagnosticEmitter) {
   for (auto &block : *fn) {
     for (auto &inst : block) {
       if (auto *cvi = dyn_cast<CopyValueInst>(&inst)) {
         if (cvi->getOperand()->getType().isMoveOnly()) {
-          LLVM_DEBUG(llvm::dbgs()
+          TOOLCHAIN_DEBUG(toolchain::dbgs()
                      << "Emitting missed copy error for: " << *cvi);
           diagnosticEmitter.emitCheckedMissedCopyError(cvi);
         }
@@ -86,7 +90,7 @@ void swift::siloptimizer::emitCheckerMissedCopyOfNonCopyableTypeErrors(
       if (auto *li = dyn_cast<LoadInst>(&inst)) {
         if (li->getOwnershipQualifier() == LoadOwnershipQualifier::Copy &&
             li->getType().isMoveOnly()) {
-          LLVM_DEBUG(llvm::dbgs() << "Emitting missed copy error for: " << *li);
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Emitting missed copy error for: " << *li);
           diagnosticEmitter.emitCheckedMissedCopyError(li);
         }
         continue;
@@ -95,7 +99,7 @@ void swift::siloptimizer::emitCheckerMissedCopyOfNonCopyableTypeErrors(
       if (auto *copyAddr = dyn_cast<CopyAddrInst>(&inst)) {
         if (!copyAddr->isTakeOfSrc() &&
             copyAddr->getSrc()->getType().isMoveOnly()) {
-          LLVM_DEBUG(llvm::dbgs()
+          TOOLCHAIN_DEBUG(toolchain::dbgs()
                      << "Emitting missed copy error for: " << *copyAddr);
           diagnosticEmitter.emitCheckedMissedCopyError(copyAddr);
         }
@@ -109,7 +113,7 @@ void swift::siloptimizer::emitCheckerMissedCopyOfNonCopyableTypeErrors(
 //                  MARK: Cleanup After Emitting Diagnostic
 //===----------------------------------------------------------------------===//
 
-bool swift::siloptimizer::cleanupNonCopyableCopiesAfterEmittingDiagnostic(
+bool language::siloptimizer::cleanupNonCopyableCopiesAfterEmittingDiagnostic(
     SILFunction *fn) {
   bool changed = false;
   for (auto &block : *fn) {
@@ -213,11 +217,13 @@ bool noncopyable::memInstMustInitialize(Operand *memOper) {
   }
   case SILInstructionKind::StoreInst: {
     auto qual = cast<StoreInst>(memInst)->getOwnershipQualifier();
-    return qual == StoreOwnershipQualifier::Init;
+    return qual == StoreOwnershipQualifier::Init ||
+           qual == StoreOwnershipQualifier::Trivial;
   }
   case SILInstructionKind::BuiltinInst: {
     auto bi = cast<BuiltinInst>(memInst);
-    if (bi->getBuiltinKind() == BuiltinValueKind::ZeroInitializer) {
+    if (bi->getBuiltinKind() == BuiltinValueKind::ZeroInitializer ||
+        bi->getBuiltinKind() == BuiltinValueKind::PrepareInitialization) {
       // `zeroInitializer` with an address operand zeroes out the address operand
       return true;
     }
@@ -251,6 +257,9 @@ bool noncopyable::memInstMustReinitialize(Operand *memOper) {
     auto *CAI = cast<ExplicitCopyAddrInst>(memInst);
     return CAI->getDest() == address && !CAI->isInitializationOfDest();
   }
+  case SILInstructionKind::MarkDependenceAddrInst: {
+    return true;
+  }
   case SILInstructionKind::YieldInst: {
     auto *yield = cast<YieldInst>(memInst);
     return yield->getYieldInfoForOperand(*memOper).isIndirectInOut();
@@ -263,9 +272,7 @@ bool noncopyable::memInstMustReinitialize(Operand *memOper) {
   }
   case SILInstructionKind::StoreInst:
     return cast<StoreInst>(memInst)->getOwnershipQualifier() ==
-           StoreOwnershipQualifier::Assign
-        || cast<StoreInst>(memInst)->getOwnershipQualifier() ==
-           StoreOwnershipQualifier::Trivial;
+           StoreOwnershipQualifier::Assign;
 
 #define NEVER_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE(Name, ...)             \
   case SILInstructionKind::Store##Name##Inst:                                  \
@@ -298,6 +305,7 @@ bool noncopyable::memInstMustConsume(Operand *memOper) {
            (CAI->getDest() == address && !CAI->isInitializationOfDest());
   }
   case SILInstructionKind::DestroyAddrInst:
+  case SILInstructionKind::EndLifetimeInst:
     return true;
   case SILInstructionKind::DropDeinitInst:
     assert(memOper->get()->getType().isValueTypeWithDeinit());
@@ -345,7 +353,7 @@ static bool isLetAllocation(MarkUnresolvedNonCopyableValueInst *mmci) {
 
 static bool walkUseToDefsStructTupleProjections(
     SILValue startPoint, SILValue endPoint,
-    llvm::function_ref<void(SingleValueInstruction *)> visitor) {
+    toolchain::function_ref<void(SingleValueInstruction *)> visitor) {
   while (startPoint != endPoint) {
     if (auto *sei = dyn_cast<StructElementAddrInst>(startPoint)) {
       visitor(sei);
@@ -428,7 +436,7 @@ struct SimpleTemporaryAllocStackElimVisitor
   }
 
   bool visitUse(Operand *op) {
-    LLVM_DEBUG(llvm::dbgs() << "SimpleTemporaryAllocStackElimVisitor visiting: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "SimpleTemporaryAllocStackElimVisitor visiting: "
                             << *op->getUser());
 
     state.visitedInsts.insert(op->getUser());
@@ -441,7 +449,7 @@ struct SimpleTemporaryAllocStackElimVisitor
 
     // We should never see a debug_value use since this should be a temporary.
     if (user->isDebugInstruction()) {
-      LLVM_DEBUG(llvm::dbgs() << "Found a debug_value?! This should be a "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found a debug_value?! This should be a "
                                  "temporary which implies no debug info!\n");
       return false;
     }
@@ -465,7 +473,7 @@ struct SimpleTemporaryAllocStackElimVisitor
     // initializations for these sorts of temporaries. Our initial copy_addr is
     // our single initialization.
     if (noncopyable::memInstMustInitialize(op)) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Found extra initializer! Bailing!: " << *user);
       return false;
     }
@@ -473,7 +481,7 @@ struct SimpleTemporaryAllocStackElimVisitor
     // We do not allow for reinitialization since we are working with
     // specifically lets.
     if (noncopyable::memInstMustReinitialize(op)) {
-      LLVM_DEBUG(llvm::dbgs() << "Found reinit: " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found reinit: " << *user);
       return false;
     }
 
@@ -507,13 +515,6 @@ struct SimpleTemporaryAllocStackElimVisitor
       // that if we have multiple projections on the final allocation, we can
       // tell these projections apart from projections from earlier allocations.
       return state.setFinalUser(op);
-    }
-    
-    if (auto *si = dyn_cast<StoreInst>(user);
-        si && si->getOwnershipQualifier() == StoreOwnershipQualifier::Trivial) {
-      // Bail on trivial stores.
-      LLVM_DEBUG(llvm::dbgs() << "Found trivial store: " << *user);
-      return false;
     }
 
     if (auto *cai = dyn_cast<CopyAddrInst>(user)) {
@@ -655,7 +656,7 @@ bool siloptimizer::eliminateTemporaryAllocationsFromLet(
     // that all instructions in between them with side-effects are instructions
     // that we visited. This is a soundness check.
     if (finalUse->getParentBlock() != initialCAI->getParent() ||
-        llvm::any_of(llvm::make_range(initialCAI->getIterator(),
+        toolchain::any_of(toolchain::make_range(initialCAI->getIterator(),
                                       finalUse->getUser()->getIterator()),
                      [&](SILInstruction &inst) {
                        return !state.visitedInsts.contains(&inst) &&

@@ -1,0 +1,17 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+class B {     fn foo() { print("foo") } }
+class D : B {    fn bar() { print("bar") } }
+class G<T> : B {   fn bas() { print("bas") } }
+
+// CHECK: foo
+fn up(_ d: D) { d.foo() }
+// CHECK: bar
+fn down(_ b: B) { (b as! D).bar() }
+// CHECK: bas
+fn down_generic(_ b: B) { (b as! G<Int>).bas() }
+
+up(D())
+down(D())
+down_generic(G<Int>())

@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Adds Symbol Graph JSON serialization to other types.
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_JSON_H
-#define SWIFT_SYMBOLGRAPHGEN_JSON_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_JSON_H
+#define LANGUAGE_SYMBOLGRAPHGEN_JSON_H
 
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/VersionTuple.h"
 #include "language/AST/GenericSignature.h"
 #include "language/AST/SubstitutionMap.h"
 #include "language/AST/Type.h"
@@ -30,8 +31,8 @@ namespace symbolgraphgen {
 
 struct AttributeRAII {
   StringRef Key;
-  llvm::json::OStream &OS;
-  AttributeRAII(StringRef Key, llvm::json::OStream &OS)
+  toolchain::json::OStream &OS;
+  AttributeRAII(StringRef Key, toolchain::json::OStream &OS)
   : Key(Key), OS(OS) {
     OS.attributeBegin(Key);
   }
@@ -41,12 +42,12 @@ struct AttributeRAII {
   }
 };
 
-void serialize(const llvm::VersionTuple &VT, llvm::json::OStream &OS);
-void serialize(const llvm::Triple &T, llvm::json::OStream &OS);
-void serialize(const ExtensionDecl *Extension, llvm::json::OStream &OS);
-void serialize(const Requirement &Req, llvm::json::OStream &OS);
-void serialize(const swift::GenericTypeParamType *Param, llvm::json::OStream &OS);
-void serialize(const ModuleDecl &M, llvm::json::OStream &OS, llvm::Triple Target);
+void serialize(const toolchain::VersionTuple &VT, toolchain::json::OStream &OS);
+void serialize(const toolchain::Triple &T, toolchain::json::OStream &OS);
+void serialize(const ExtensionDecl *Extension, toolchain::json::OStream &OS);
+void serialize(const Requirement &Req, toolchain::json::OStream &OS);
+void serialize(const language::GenericTypeParamType *Param, toolchain::json::OStream &OS);
+void serialize(const ModuleDecl &M, toolchain::json::OStream &OS, toolchain::Triple Target);
 
 void filterGenericParams(
     ArrayRef<GenericTypeParamType *> GenericParams,
@@ -70,4 +71,4 @@ filterGenericRequirements(const ExtensionDecl *Extension,
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_JSON_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_JSON_H

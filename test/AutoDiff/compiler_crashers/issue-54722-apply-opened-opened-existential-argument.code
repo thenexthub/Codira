@@ -1,0 +1,60 @@
+// RUN: %target-language-frontend -disable-availability-checking -emit-sil -verify %s
+
+// https://github.com/apple/language/issues/54722
+// Differentiation transform crash for `apply` with opened existential arguments
+
+import _Differentiation
+
+public protocol TensorView {
+  associatedtype Element
+}
+public protocol DifferentiableTensorView: TensorView & Differentiable where Self == TangentVector {}
+// expected-warning@-1 {{protocol 'DifferentiableTensorView' should be declared to refine 'AdditiveArithmetic' due to a same-type constraint on 'Self'}}
+
+public protocol PlatformAPI {
+  fn abs<T>(_ x: T) -> T where T: DifferentiableTensorView, T.Element: Numeric
+}
+public class CpuService: PlatformAPI {
+  public fn abs<T>(_ x: T) -> T where T: DifferentiableTensorView, T.Element: Numeric { x }
+}
+
+public final class Platform {
+  public static var service: PlatformAPI = CpuService()
+}
+
+@differentiable(reverse where T: DifferentiableTensorView)
+public fn abs<T: DifferentiableTensorView>(_ x: T) -> T where T.Element: Numeric {
+  Platform.service.abs(x)
+  // expected-error@-1 {{expression is not differentiable}}
+  // expected-note@-2 {{member is not differentiable because the corresponding protocol requirement is not '@differentiable'}}
+}
+
+// language: language/lib/AST/ASTContext.cpp:3307: language::SILFunctionType::SILFunctionType(language::GenericSignature, language::SILFunctionType::ExtInfo, language::SILCoroutineKind, language::ParameterConvention, ArrayRef<language::SILParameterInfo>, ArrayRef<language::SIL
+// YieldInfo>, ArrayRef<language::SILResultInfo>, Optional<language::SILResultInfo>, language::SubstitutionMap, language::SubstitutionMap, const language::ASTContext &, language::RecursiveTypeProperties, language::ProtocolConformanceRef): Assertion `!WitnessMethodConformance.isInvalid() && "witness_method SIL function without a conformance"' failed.
+// Stack dump:
+// 0.      Program arguments: build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language -frontend -c -primary-file language/test/AutoDiff/compiler_crashers/tf1181-apply-opened-opened-existential-argument.code -target x86_64-unknown-linux-gnu -disable-objc-interop -color-diagnostics -module-name main -o /tmp/tf1181-apply-opened-opened-existential-argument-3a917d.o
+// 1.      Codira version 5.3-dev (LLVM f66b332548, Codira dee6c0b09f)
+// 2.      While evaluating request ExecuteSILPipelineRequest(Run pipelines { Guaranteed Passes } on SIL for main.main)
+// 3.      While running pass #105 SILModuleTransform "Differentiation".
+// 4.      While processing // differentiability witness for abs<A>(_:)
+// sil_differentiability_witness [serialized] [reverse] [parameters 0] [results 0] <T where T : DifferentiableTensorView, T.Element : Numeric> @$s4main3absyxxAA24DifferentiableTensorViewRzSj7ElementAA0dE0PRpzlF : $@convention(thin) <T where T : DifferentiableTensorView, T.Element : Numeric> (@in_guaranteed T) -> @out T {
+// }
+//  on SIL function "@$s4main3absyxxAA24DifferentiableTensorViewRzSj7ElementAA0dE0PRpzlF".
+//  for 'abs(_:)' (at language/test/AutoDiff/compiler_crashers/tf1181-apply-opened-opened-existential-argument.code:27:8)
+//  #0 0x00000000051bd514 PrintStackTraceSignalHandler(void*) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x51bd514)
+//  #1 0x00000000051bb10e toolchain::sys::RunSignalHandlers() (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x51bb10e)
+//  #2 0x00000000051bd7ec SignalHandler(int) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x51bd7ec)
+//  #3 0x00007f160b5e2890 __restore_rt (/lib/x86_64-linux-gnu/libpthread.so.0+0x12890)
+//  #4 0x00007f1609e84e97 raise (/lib/x86_64-linux-gnu/libc.so.6+0x3ee97)
+//  #5 0x00007f1609e86801 abort (/lib/x86_64-linux-gnu/libc.so.6+0x40801)
+//  #6 0x00007f1609e7639a (/lib/x86_64-linux-gnu/libc.so.6+0x3039a)
+//  #7 0x00007f1609e76412 (/lib/x86_64-linux-gnu/libc.so.6+0x30412)
+//  #8 0x00000000017998be language::SILFunctionType::SILFunctionType(language::GenericSignature, language::SILFunctionType::ExtInfo, language::SILCoroutineKind, language::ParameterConvention, toolchain::ArrayRef<language::SILParameterInfo>, toolchain::ArrayRef<language::SILYieldInfo>, toolchain::ArrayRef<language::SILResultInfo>, toolchain::Optional<language::SILResultInfo>, language::SubstitutionMap, language::SubstitutionMap, language::ASTContext const&, language::RecursiveTypeProperties, language::ProtocolConformanceRef) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x17998be)
+//  #9 0x000000000179a806 language::SILFunctionType::get(language::GenericSignature, language::SILFunctionType::ExtInfo, language::SILCoroutineKind, language::ParameterConvention, toolchain::ArrayRef<language::SILParameterInfo>, toolchain::ArrayRef<language::SILYieldInfo>, toolchain::ArrayRef<language::SILResultInfo>, toolchain::Optional<language::SILResultInfo>, language::SubstitutionMap, language::SubstitutionMap, language::ASTContext const&, language::ProtocolConformanceRef) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x179a806)
+// #10 0x00000000010bf7e8 (anonymous namespace)::SILTypeSubstituter::substSILFunctionType(language::CanTypeWrapper<language::SILFunctionType>, bool) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x10bf7e8)
+// #11 0x00000000010be86c language::SILType::subst(language::Lowering::TypeConverter&, toolchain::function_ref<language::Type (language::SubstitutableType*)>, toolchain::function_ref<language::ProtocolConformanceRef (language::CanType, language::Type, language::ProtocolDecl*)>, language::CanGenericSignature, bool) const (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x10be86c)
+// #12 0x00000000010ae3fe language::GenericEnvironment::mapTypeIntoContext(language::SILModule&, language::SILType) const (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0x10ae3fe)
+// #13 0x0000000000f1a1e1 language::autodiff::LinearMapInfo::addLinearMapToStruct(language::autodiff::ADContext&, language::ApplyInst*) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0xf1a1e1)
+// #14 0x0000000000f17925 language::autodiff::LinearMapInfo::generateDifferentiationDataStructures(language::autodiff::ADContext&, language::SILFunction*) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0xf17925)
+// #15 0x0000000000f2615f language::autodiff::VJPEmitter::VJPEmitter(language::autodiff::ADContext&, language::SILFunction*, language::SILDifferentiabilityWitness*, language::SILFunction*, language::autodiff::DifferentiationInvoker) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0xf2615f)
+// #16 0x0000000000e7efff (anonymous namespace)::DifferentiationTransformer::canonicalizeDifferentiabilityWitness(language::SILFunction*, language::SILDifferentiabilityWitness*, language::autodiff::DifferentiationInvoker, language::SerializedKind_t) (build/Ninja-ReleaseAssert/language-linux-x86_64/bin/language+0xe7efff)

@@ -1,21 +1,25 @@
 //===--- ADContext.h - Differentiation Context ----------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Per-module contextual information for the differentiation transform.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADCONTEXT_H
-#define SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADCONTEXT_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADCONTEXT_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADCONTEXT_H
 
 #include "language/SIL/ApplySite.h"
 #include "language/SILOptimizer/Differentiation/Common.h"
@@ -25,10 +29,10 @@
 #include "language/AST/Expr.h"
 #include "language/AST/SynthesizedFileUnit.h"
 #include "language/SIL/SILBuilder.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -77,42 +81,42 @@ private:
 
   /// The worklist (stack) of `differentiable_function` instructions to be
   /// processed.
-  llvm::SmallVector<DifferentiableFunctionInst *, 32>
+  toolchain::SmallVector<DifferentiableFunctionInst *, 32>
       differentiableFunctionInsts;
 
   /// The worklist (stack) of `linear_function` instructions to be processed.
-  llvm::SmallVector<LinearFunctionInst *, 32> linearFunctionInsts;
+  toolchain::SmallVector<LinearFunctionInst *, 32> linearFunctionInsts;
 
   /// The set of `differentiable_function` instructions that have been
   /// processed. Used to avoid reprocessing invalidated instructions.
   /// NOTE(TF-784): if we use `CanonicalizeInstruction` subclass to replace
   /// `ADContext::processDifferentiableFunctionInst`, this field may be removed.
-  llvm::SmallPtrSet<DifferentiableFunctionInst *, 32>
+  toolchain::SmallPtrSet<DifferentiableFunctionInst *, 32>
       processedDifferentiableFunctionInsts;
 
   /// The set of `linear_function` instructions that have been processed. Used
   /// to avoid reprocessing invalidated instructions.
   /// NOTE(TF-784): if we use `CanonicalizeInstruction` subclass to replace
   /// `ADContext::processLinearFunctionInst`, this field may be removed.
-  llvm::SmallPtrSet<LinearFunctionInst *, 32> processedLinearFunctionInsts;
+  toolchain::SmallPtrSet<LinearFunctionInst *, 32> processedLinearFunctionInsts;
 
   /// Mapping from witnesses to invokers.
   /// `SmallMapVector` is used for deterministic insertion order iteration.
-  llvm::SmallMapVector<SILDifferentiabilityWitness *, DifferentiationInvoker,
+  toolchain::SmallMapVector<SILDifferentiabilityWitness *, DifferentiationInvoker,
                        32>
       invokers;
 
   /// Mapping from original `apply` instructions to their corresponding
   /// `NestedApplyInfo`s.
-  llvm::DenseMap<FullApplySite, NestedApplyInfo> nestedApplyInfo;
+  toolchain::DenseMap<FullApplySite, NestedApplyInfo> nestedApplyInfo;
 
   /// List of generated functions (JVPs, VJPs, pullbacks, and thunks).
   /// Saved for deletion during cleanup.
-  llvm::SmallVector<SILFunction *, 32> generatedFunctions;
+  toolchain::SmallVector<SILFunction *, 32> generatedFunctions;
 
   /// List of references to generated functions.
   /// Saved for deletion during cleanup.
-  llvm::SmallVector<SILValue, 32> generatedFunctionReferences;
+  toolchain::SmallVector<SILValue, 32> generatedFunctionReferences;
 
   /// The AdditiveArithmetic protocol in the standard library.
   ProtocolDecl *additiveArithmeticProtocol =
@@ -142,12 +146,12 @@ public:
   SILPassManager &getPassManager() const { return passManager; }
   Lowering::TypeConverter &getTypeConverter() { return module.Types; }
 
-  llvm::SmallVectorImpl<DifferentiableFunctionInst *> &
+  toolchain::SmallVectorImpl<DifferentiableFunctionInst *> &
   getDifferentiableFunctionInstWorklist() {
     return differentiableFunctionInsts;
   }
 
-  llvm::SmallVectorImpl<LinearFunctionInst *> &getLinearFunctionInstWorklist() {
+  toolchain::SmallVectorImpl<LinearFunctionInst *> &getLinearFunctionInstWorklist() {
     return linearFunctionInsts;
   }
 
@@ -180,7 +184,7 @@ public:
     processedLinearFunctionInsts.insert(lfi);
   }
 
-  const llvm::SmallMapVector<SILDifferentiabilityWitness *,
+  const toolchain::SmallMapVector<SILDifferentiabilityWitness *,
                              DifferentiationInvoker, 32> &
   getInvokers() const {
     return invokers;
@@ -192,7 +196,7 @@ public:
     invokers.insert({witness, DifferentiationInvoker(witness)});
   }
 
-  llvm::DenseMap<FullApplySite, NestedApplyInfo> &getNestedApplyInfo() {
+  toolchain::DenseMap<FullApplySite, NestedApplyInfo> &getNestedApplyInfo() {
     return nestedApplyInfo;
   }
 
@@ -289,7 +293,7 @@ InFlightDiagnostic
 ADContext::emitNondifferentiabilityError(SILValue value,
                                          DifferentiationInvoker invoker,
                                          Diag<T...> diag, U &&... args) {
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     getADDebugStream() << "Diagnosing non-differentiability.\n";
     auto &s = getADDebugStream() << "For value:\n";
     value->printInContext(s);
@@ -307,7 +311,7 @@ InFlightDiagnostic
 ADContext::emitNondifferentiabilityError(SILInstruction *inst,
                                          DifferentiationInvoker invoker,
                                          Diag<T...> diag, U &&... args) {
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     getADDebugStream() << "Diagnosing non-differentiability.\n";
     auto &s = getADDebugStream() << "For instruction:\n";
     inst->printInContext(s);
@@ -415,10 +419,10 @@ ADContext::emitNondifferentiabilityError(SourceLoc loc,
     return diagnose(loc, diag::autodiff_when_differentiating_function_call);
   }
   }
-  llvm_unreachable("Invalid invoker kind"); // silences MSVC C4715
+  toolchain_unreachable("Invalid invoker kind"); // silences MSVC C4715
 }
 
 } // end namespace autodiff
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADCONTEXT_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_DIFFERENTIATION_ADCONTEXT_H

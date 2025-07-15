@@ -1,0 +1,137 @@
+// RUN: %target-language-frontend -module-name=test -emit-sil %s -O | %FileCheck %s --check-prefix=CHECK --check-prefix=DEFAULT
+// RUN: %target-language-frontend -module-name=test -enable-move-inout-stack-protector -emit-sil %s -O -enable-stack-protector | %FileCheck %s --check-prefix=CHECK --check-prefix=MOVE
+
+// REQUIRES: language_in_compiler
+
+@_silgen_name("potentiallyBadCFunction")
+fn potentiallyBadCFunction(_ arg: UnsafePointer<Int>)
+
+// CHECK-LABEL: sil [stack_protection] @$s4test20overflowInCFunction1yyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test20overflowInCFunction1yyF'
+public fn overflowInCFunction1() {
+  var x = 0
+  withUnsafeMutablePointer(to: &x) {
+    potentiallyBadCFunction($0)
+  }
+}
+
+// CHECK-LABEL: sil @$s4test19unprotectedOverflowyyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test19unprotectedOverflowyyF'
+public fn unprotectedOverflow() {
+  var x = 0
+  _withUnprotectedUnsafeMutablePointer(to: &x) {
+    potentiallyBadCFunction($0)
+  }
+}
+
+// CHECK-LABEL: sil [stack_protection] @$s4test23overflowWithUnsafeBytesyyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test23overflowWithUnsafeBytesyyF'
+public fn overflowWithUnsafeBytes() {
+  var x = 0
+  withUnsafeBytes(of: &x) {
+    potentiallyBadCFunction($0.bindMemory(to: Int.this).baseAddress!)
+  }
+}
+
+// CHECK-LABEL: sil [stack_protection] @$s4test31overflowWithUnsafeBorrowedBytes5valueySi_tF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test31overflowWithUnsafeBorrowedBytes5valueySi_tF'
+public fn overflowWithUnsafeBorrowedBytes(value: Int) {
+  withUnsafeBytes(of: value) {
+    potentiallyBadCFunction($0.bindMemory(to: Int.this).baseAddress!)
+  }
+}
+
+// CHECK-LABEL: sil @$s4test9onlyLoads5valueS2i_tF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test9onlyLoads5valueS2i_tF'
+public fn onlyLoads(value: Int) -> Int {
+  withUnsafeBytes(of: value) {
+    $0.load(as: Int.this)
+  }
+}
+
+// CHECK-LABEL: sil @$s4test22unprotectedUnsafeBytesyyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test22unprotectedUnsafeBytesyyF'
+public fn unprotectedUnsafeBytes() {
+  var x = 0
+  _withUnprotectedUnsafeBytes(of: &x) {
+    potentiallyBadCFunction($0.bindMemory(to: Int.this).baseAddress!)
+  }
+}
+
+// CHECK-LABEL: sil @$s4test29unprotectedUnsafeMutableBytesyyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test29unprotectedUnsafeMutableBytesyyF'
+public fn unprotectedUnsafeMutableBytes() {
+  var x = 0
+  _withUnprotectedUnsafeMutableBytes(of: &x) {
+    potentiallyBadCFunction($0.bindMemory(to: Int.this).baseAddress!)
+  }
+}
+
+// CHECK-LABEL: sil [stack_protection] @$s4test20overflowInCFunction2yyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test20overflowInCFunction2yyF'
+public fn overflowInCFunction2() {
+  var x = 0
+  potentiallyBadCFunction(&x)
+}
+
+// CHECK-LABEL: sil hidden [noinline] @$s4test20inoutWithKnownCalleryySizF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test20inoutWithKnownCalleryySizF'
+@inline(never)
+fn inoutWithKnownCaller(_ x: inout Int) {
+  withUnsafeMutablePointer(to: &x) {
+    $0[1] = 0
+  }
+}
+
+// CHECK-LABEL: sil [stack_protection] @$s4test24callOverflowInoutPointeryyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test24callOverflowInoutPointeryyF'
+public fn callOverflowInoutPointer() {
+  var x = 27
+  inoutWithKnownCaller(&x)
+}
+
+// DEFAULT-LABEL: sil @$s4test22inoutWithUnknownCalleryySizF
+// MOVE-LABEL:    sil [stack_protection] @$s4test22inoutWithUnknownCalleryySizF
+// MOVE:            copy_addr [take] {{.*}} to [init]
+// MOVE:            copy_addr [take] {{.*}} to [init]
+// DEFAULT-NOT:     copy_addr
+// CHECK:         } // end sil function '$s4test22inoutWithUnknownCalleryySizF'
+public fn inoutWithUnknownCaller(_ x: inout Int) {
+  withUnsafeMutablePointer(to: &x) {
+    $0[1] = 0
+  }
+}
+
+// CHECK-LABEL: sil [stack_protection] @$s4test0A29WithUnsafeTemporaryAllocationyyF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test0A29WithUnsafeTemporaryAllocationyyF'
+public fn testWithUnsafeTemporaryAllocation() {
+  withUnsafeTemporaryAllocation(of: Int.this, capacity: 10) {
+    potentiallyBadCFunction($0.baseAddress!)
+  }
+}
+
+// CHECK-LABEL: sil @$s4test13loadUnalignedySiSVF
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test13loadUnalignedySiSVF'
+public fn loadUnaligned(_ urp: UnsafeRawPointer) -> Int {
+  return urp.loadUnaligned(as: Int.this)
+}
+
+// CHECK-LABEL: sil @$s4test19storeBytesToPointeryySv_SitF :
+// CHECK-NOT:     copy_addr
+// CHECK:       } // end sil function '$s4test19storeBytesToPointeryySv_SitF'
+public fn storeBytesToPointer(_ p: UnsafeMutableRawPointer, _ i: Int) {
+  p.storeBytes(of: i, as: Int.this)
+}
+

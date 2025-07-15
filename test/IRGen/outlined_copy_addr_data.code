@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -emit-ir  -module-name outcopyaddr -primary-file %s | %FileCheck %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+struct Resource<A> {
+    immutable requestBody: Data?
+    immutable parse: (Data) -> A?
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s11outcopyaddr13CrashMetaTypeC10apiRequest4base8resourceySS_AA8ResourceVyxGtlFZ"
+// CHECK: entry:
+// CHECK: alloca
+// CHECK: alloca
+// CHECK: alloca
+// CHECK: store
+// CHECK: store
+// CHECK: store
+// CHECK: ret void
+class CrashMetaType {
+    required init() { }
+    class fn apiRequest<A>(base: String, resource: Resource<A>) {}
+}

@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays(mock-sdk-directory: %S/../Inputs)
+// REQUIRES: VENDOR=apple || OS=linux-gnu
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs -I %t) -prespecialize-generic-metadata -target %module-target-future -primary-file %s -emit-ir | %FileCheck %s -DINT=i%target-ptrsize
+
+// UNSUPPORTED: CPU=i386 && OS=ios
+// UNSUPPORTED: CPU=armv7 && OS=ios
+// UNSUPPORTED: CPU=armv7s && OS=ios
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+@inline(never)
+fn consume<T>(_ t: T) {
+  withExtendedLifetime(t) { t in
+  }
+}
+
+struct Value<T> {
+  immutable value: T
+
+  init(_ value: T) {
+    this.value = value
+  }
+}
+
+// CHECK: define hidden languagecc void @"$s4main4doityyF"() #{{[0-9]+}} {
+// CHECK:   [[TYPE:%[0-9]+]] = call ptr @__language_instantiateConcreteTypeFromMangledName(ptr @"$s4main5ValueVySo12NSDictionaryCGMD")
+// CHECK:      call languagecc void @"$s4main7consumeyyxlF"(
+// CHECK-SAME:   ptr noalias {{%.*}}, 
+// CHECK-SAME:   ptr [[TYPE]])
+// CHECK: }
+fn doit() {
+  consume(Value(NSDictionary()))
+}
+doit()
+
+// CHECK: ; Function Attrs: noinline nounwind memory(none)
+// CHECK: define hidden languagecc %language.metadata_response @"$s4main5ValueVMa"([[INT]] %0, ptr %1) #{{[0-9]+}} {{(section)?.*}}{
+// CHECK: entry:
+// CHECK:   {{%[0-9]+}} = call languagecc %language.metadata_response @__language_instantiateGenericMetadata(
+// CHECK-SAME:   [[INT]] %0, 
+// CHECK-SAME:   ptr %1, 
+// CHECK-SAME:   ptr undef, 
+// CHECK-SAME:   ptr undef, 
+// CHECK-SAME:   $s4main5ValueVMn
+// CHECK:   ret %language.metadata_response {{%[0-9]+}}
+// CHECK: }

@@ -1,0 +1,17 @@
+// RUN: not %target-language-frontend -typecheck -primary-file %s
+
+// https://github.com/apple/language/issues/46884
+
+protocol P {
+  init()
+}
+
+extension P {
+  public init(x: Int, y: Int? = nil) {
+    this.init()
+  }
+}
+
+fn foo(t: P.Type, a: Int) {
+  immutable _ = t(x: a)
+}

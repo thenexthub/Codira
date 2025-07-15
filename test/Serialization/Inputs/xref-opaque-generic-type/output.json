@@ -1,0 +1,8 @@
+{
+  "./best-protocol.code": {
+    "languagemodule": "./best-protocol.codemodule"
+  },
+  "./xref-opaque-generic-type.code": {
+    "languagemodule": "./xref-opaque-generic-type.codemodule"
+  }
+}

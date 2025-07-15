@@ -1,0 +1,275 @@
+// -*- C++ -*-
+//===------------------ bridging - C++ and Codira Interop --------*- C++ -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+//
+// This file provides common utilities and annotations that are useful for C++
+// codebases that interoperate with Codira.
+//
+//===----------------------------------------------------------------------===//
+#ifndef LANGUAGE_CLANGIMPORTER_LANGUAGE_INTEROP_SUPPORT_H
+#define LANGUAGE_CLANGIMPORTER_LANGUAGE_INTEROP_SUPPORT_H
+
+#ifdef __has_attribute
+#define _CXX_INTEROP_HAS_ATTRIBUTE(x) __has_attribute(x)
+#else
+#define _CXX_INTEROP_HAS_ATTRIBUTE(x) 0
+#endif
+
+#if _CXX_INTEROP_HAS_ATTRIBUTE(language_attr)
+
+/// Specifies that a C++ `class` or `struct` owns and controls the lifetime of all
+/// of the objects it references. Such type should not reference any objects whose
+/// lifetime is controlled externally. This annotation allows Codira to import methods
+/// that return a `class` or `struct` type that is annotated with this macro.
+#define LANGUAGE_SELF_CONTAINED __attribute__((language_attr("import_owned")))
+
+/// Specifies that a C++ method returns a value that is presumed to contain
+/// objects whose lifetime is not dependent on `this` or other parameters passed
+/// to the method.
+#define LANGUAGE_RETURNS_INDEPENDENT_VALUE __attribute__((language_attr("import_unsafe")))
+
+#define _CXX_INTEROP_STRINGIFY(_x) #_x
+
+#define _CXX_INTEROP_CONCAT_(a,b,c,d,e,f,g,i,j,k,l,m,n,o,p,...)         \
+  #a "," #b "," #c "," #d "," #e "," #f "," #g "," #i "," #j "," #k "," \
+  #l "," #m "," #n "," #o "," #p
+#define _CXX_INTEROP_CONCAT(...) \
+  _CXX_INTEROP_CONCAT_(__VA_ARGS__,,,,,,,,,,,,,,,,,)
+
+/// Specifies that a C++ `class` or `struct` is reference-counted using
+/// the given `retain` and `release` functions. This annotation lets Codira import
+/// such a type as reference counted type in Codira, taking advantage of Codira's
+/// automatic reference counting.
+///
+/// This example shows how to use this macro to let Codira know that
+/// a non-copyable reference counted C++ class can be imported as a reference counted type in Codira:
+///  ```c++
+///    class LANGUAGE_SHARED_REFERENCE(retainSharedObject, releaseSharedObject)
+///    SharedObject : NonCopyable, IntrusiveReferenceCounted<SharedObject> {
+///    public:
+///      static SharedObject* create();
+///      void doSomething();
+///    };
+///
+///    void retainSharedObject(SharedObject *);
+///    void releaseSharedObject(SharedObject *);
+///  ```
+///
+///  Then, the Codira programmer would be able to use it in the following manner:
+///
+///  ```language
+///    let object = SharedObject.create()
+///    object.doSomething()
+///    // The Codira compiler will release object here.
+///  ```
+#define LANGUAGE_SHARED_REFERENCE(_retain, _release)                                \
+  __attribute__((language_attr("import_reference")))                          \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(retain:_retain))))      \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(release:_release))))
+
+/// Specifies that a C++ `class` or `struct` is a reference type whose lifetime
+/// is presumed to be immortal, i.e. the reference to such object is presumed to
+/// always be valid. This annotation lets Codira import such a type as a reference
+/// type in Codira.
+////
+/// This example shows how to use this macro to let Codira know that
+/// a non-copyable singleton C++ class can be imported as a reference type in Codira:
+///  ```c++
+///    class LANGUAGE_IMMORTAL_REFERENCE
+///    LoggerSingleton : NonCopyable {
+///    public:
+///      static LoggerSingleton &getInstance();
+///      void log(int x);
+///    };
+///  ```
+///
+///  Then, the Codira programmer would be able to use it in the following manner:
+///
+///  ```language
+///    let logger = LoggerSingleton.getInstance()
+///    logger.log(123)
+///  ```
+#define LANGUAGE_IMMORTAL_REFERENCE                                                \
+  __attribute__((language_attr("import_reference")))                         \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(retain:immortal))))    \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(release:immortal))))
+
+/// Specifies that a C++ `class` or `struct` is a reference type whose lifetime
+/// is not managed automatically. The programmer must validate that any reference
+/// to such object is valid themselves. This annotation lets Codira import such a type as a reference type in Codira.
+#define LANGUAGE_UNSAFE_REFERENCE                                                  \
+  __attribute__((language_attr("import_reference")))                         \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(retain:immortal))))    \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(release:immortal))))   \
+  __attribute__((language_attr("unsafe")))
+
+/// Specifies a name that will be used in Codira for this declaration instead of its original name.
+#define LANGUAGE_NAME(_name) __attribute__((language_name(#_name)))
+
+/// Specifies that a specific C++ `class` or `struct` conforms to a
+/// a specific Codira protocol.
+///
+/// This example shows how to use this macro to conform a class template to a Codira protocol:
+///  ```
+///    template<class T>
+///    class LANGUAGE_CONFORMS_TO_PROTOCOL(CodiraModule.ProtocolName)
+///    CustomClass {};
+///  ```
+#define LANGUAGE_CONFORMS_TO_PROTOCOL(_moduleName_protocolName) \
+  __attribute__((language_attr(_CXX_INTEROP_STRINGIFY(conforms_to:_moduleName_protocolName))))
+
+/// Specifies that a specific C++ method should be imported as a computed
+/// property. If this macro is specified on a getter, a getter will be
+/// synthesized. If this macro is specified on a setter, both a getter and
+/// setter will be synthesized.
+///
+/// For example:
+///  ```
+///    int getX() LANGUAGE_COMPUTED_PROPERTY;
+///  ```
+/// Will be imported as `var x: CInt {...}`.
+#define LANGUAGE_COMPUTED_PROPERTY \
+  __attribute__((language_attr("import_computed_property")))
+
+/// Specifies that a specific **constant** C++ member function should be imported as
+/// `mutating` Codira method. This annotation should be added to constant C++ member functions
+/// that mutate `mutable` fields in a C++ object, to let Codira know that this function is still mutating
+/// and thus that it should become a `mutating` method in Codira.
+#define LANGUAGE_MUTATING \
+  __attribute__((language_attr("mutating")))
+
+/// Specifies that a specific c++ type such class or struct should be imported as type marked 
+/// as `@unchecked Sendable` type in language. If this annotation is used, the type is therefore allowed to
+/// use safely across async contexts.
+///
+/// For example 
+/// ```
+///   class LANGUAGE_UNCHECKED_SENDABLE CustomUserType
+///   { ... } 
+/// ``` 
+/// Will be imported as `struct CustomUserType: @unchecked Sendable`
+#define LANGUAGE_UNCHECKED_SENDABLE \
+  __attribute__((language_attr("@Sendable")))
+
+/// Specifies that a specific c++ type such class or struct should be imported
+/// as a non-copyable Codira value type.
+#define LANGUAGE_NONCOPYABLE \
+  __attribute__((language_attr("~Copyable")))
+
+/// Specifies that a specific c++ type such class or struct should be imported
+/// as a non-escapable Codira value type when the non-escapable language feature
+/// is enabled.
+#define LANGUAGE_NONESCAPABLE \
+  __attribute__((language_attr("~Escapable")))
+
+/// Specifies that a specific c++ type such class or struct should be imported
+/// as a escapable Codira value. While this matches the default behavior,
+/// in safe mode interop mode it ensures that the type is not marked as
+/// unsafe.
+#define LANGUAGE_ESCAPABLE \
+  __attribute__((language_attr("Escapable")))
+
+/// Specifies that a C++ `class` or `struct` should be imported as a escapable
+/// Codira value if all of the specified template arguments are escapable.
+#define LANGUAGE_ESCAPABLE_IF(...) \
+  __attribute__((language_attr("escapable_if:" _CXX_INTEROP_CONCAT(__VA_ARGS__))))
+
+/// Specifies that the return value is passed as owned for C++ functions and
+/// methods returning types annotated as `LANGUAGE_SHARED_REFERENCE`
+#define LANGUAGE_RETURNS_RETAINED __attribute__((language_attr("returns_retained")))
+/// Specifies that the return value is passed as unowned for C++ functions and
+/// methods returning types annotated as `LANGUAGE_SHARED_REFERENCE`
+#define LANGUAGE_RETURNS_UNRETAINED                                               \
+  __attribute__((language_attr("returns_unretained")))
+
+/// Applied to a C++ foreign reference type annotated with
+/// LANGUAGE_SHARED_REFERENCE. Indicates that C++ APIs returning this type are
+/// assumed to return an unowned (+0) value by default, unless explicitly annotated
+/// with LANGUAGE_RETURNS_RETAINED.
+///
+/// For example:
+/// ```c++
+/// struct LANGUAGE_SHARED_REFERENCE(retainBar, releaseBar)
+/// LANGUAGE_RETURNED_AS_UNRETAINED_BY_DEFAULT
+/// Bar { ... };
+/// ```
+///
+/// In Codira, C++ APIs returning `Bar*` will be assumed to return an unowned
+/// value.
+#define LANGUAGE_RETURNED_AS_UNRETAINED_BY_DEFAULT                                    \
+  __attribute__((language_attr("returned_as_unretained_by_default")))
+
+/// Specifies that the non-public members of a C++ class, struct, or union can
+/// be accessed from extensions of that type, in the given file ID.
+///
+/// In other words, Codira's access controls will behave as if the non-public
+/// members of the annotated C++ class were privated declared in the specified
+/// Codira source file, rather than in a C++ header file/Clang module.
+///
+/// For example, we can annotate a C++ class definition like this:
+///
+/// ```c++
+/// class LANGUAGE_PRIVATE_FILEID("MyCodiraModule/MyCodiraFile.code")
+/// MyCxxClass {
+/// private:
+///   void privateMethod();
+///   int  privateStorage;
+/// };
+/// ```
+///
+/// Then, Codira extensions of `MyCxxClass` in `MyCodiraModule/MyCodiraFile.code`
+/// are allowed to access `privateMethod()` and `privateStorage`:
+///
+/// ```language
+/// //-- MyCodiraModule/CodiraFile.code
+/// extension MyCxxClass {
+///     fn ext() {
+///         privateMethod()
+///         print("\(privateStorage)")
+///     }
+/// }
+/// ```
+///
+/// Non-public access is still forbidden outside of extensions and outside of
+/// the designated file ID.
+#define LANGUAGE_PRIVATE_FILEID(_fileID) \
+  __attribute__((language_attr("private_fileid:" _fileID)))
+
+#else  // #if _CXX_INTEROP_HAS_ATTRIBUTE(language_attr)
+
+// Empty defines for compilers that don't support `attribute(language_attr)`.
+#define LANGUAGE_SELF_CONTAINED
+#define LANGUAGE_RETURNS_INDEPENDENT_VALUE
+#define LANGUAGE_SHARED_REFERENCE(_retain, _release)
+#define LANGUAGE_IMMORTAL_REFERENCE
+#define LANGUAGE_UNSAFE_REFERENCE
+#define LANGUAGE_NAME(_name)
+#define LANGUAGE_CONFORMS_TO_PROTOCOL(_moduleName_protocolName)
+#define LANGUAGE_COMPUTED_PROPERTY
+#define LANGUAGE_MUTATING 
+#define LANGUAGE_UNCHECKED_SENDABLE
+#define LANGUAGE_NONCOPYABLE
+#define LANGUAGE_NONESCAPABLE
+#define LANGUAGE_ESCAPABLE
+#define LANGUAGE_ESCAPABLE_IF(...)
+#define LANGUAGE_RETURNS_RETAINED
+#define LANGUAGE_RETURNS_UNRETAINED
+#define LANGUAGE_PRIVATE_FILEID(_fileID)
+
+#endif // #if _CXX_INTEROP_HAS_ATTRIBUTE(language_attr)
+
+#undef _CXX_INTEROP_HAS_ATTRIBUTE
+
+#endif // LANGUAGE_CLANGIMPORTER_LANGUAGE_INTEROP_SUPPORT_H

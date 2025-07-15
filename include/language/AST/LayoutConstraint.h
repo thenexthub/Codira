@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types and APIs for layout constraints.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LAYOUT_CONSTRAINT_H
-#define SWIFT_LAYOUT_CONSTRAINT_H
+#ifndef LANGUAGE_LAYOUT_CONSTRAINT_H
+#define LANGUAGE_LAYOUT_CONSTRAINT_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/LayoutConstraintKind.h"
@@ -26,10 +27,10 @@
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -37,7 +38,7 @@ class ASTPrinter;
 
 /// This is a class representing the layout constraint.
 class LayoutConstraintInfo
-    : public llvm::FoldingSetNode,
+    : public toolchain::FoldingSetNode,
       public ASTAllocated<std::aligned_storage<8, 8>::type> {
   friend class LayoutConstraint;
   // Alignment of the layout in bytes.
@@ -153,7 +154,7 @@ class LayoutConstraintInfo
 
     // If the size is a power of 2, use it also for the default alignment.
     auto SizeInBytes = getTrivialSizeInBytes();
-    if (llvm::isPowerOf2_32(SizeInBytes))
+    if (toolchain::isPowerOf2_32(SizeInBytes))
       return SizeInBytes * 8;
 
     // Otherwise assume the alignment of 8 bytes.
@@ -222,11 +223,11 @@ class LayoutConstraintInfo
   static bool isTrivialStride(LayoutConstraintKind Kind);
 
   /// Uniquing for the LayoutConstraintInfo.
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, Kind, SizeInBits, Alignment);
   }
 
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       LayoutConstraintKind Kind,
                       unsigned SizeInBits,
                       unsigned Alignment);
@@ -275,7 +276,7 @@ class LayoutConstraint {
 
   explicit operator bool() const { return Ptr != 0; }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &os, unsigned indent = 0) const;
 
   void print(raw_ostream &OS, const PrintOptions &PO = PrintOptions()) const;
@@ -284,7 +285,7 @@ class LayoutConstraint {
   /// Return the layout constraint as a string, for use in diagnostics only.
   std::string getString(const PrintOptions &PO = PrintOptions()) const;
 
-  friend llvm::hash_code hash_value(const LayoutConstraint &layout) {
+  friend toolchain::hash_code hash_value(const LayoutConstraint &layout) {
     return hash_value(layout.getPointer());
   }
 
@@ -349,56 +350,56 @@ LayoutConstraint getLayoutConstraint(Identifier ID, ASTContext &Ctx);
 
 } // end namespace language
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::LayoutConstraintInfo, swift::TypeAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::LayoutConstraintInfo, language::TypeAlignInBits)
 
-namespace llvm {
+namespace toolchain {
 static inline raw_ostream &
-operator<<(raw_ostream &OS, swift::LayoutConstraint LC) {
+operator<<(raw_ostream &OS, language::LayoutConstraint LC) {
   LC->print(OS);
   return OS;
 }
 
 // A LayoutConstraint casts like a LayoutConstraintInfo*.
-template <> struct simplify_type<const ::swift::LayoutConstraint> {
-  typedef ::swift::LayoutConstraintInfo *SimpleType;
-  static SimpleType getSimplifiedValue(const ::swift::LayoutConstraint &Val) {
+template <> struct simplify_type<const ::language::LayoutConstraint> {
+  typedef ::language::LayoutConstraintInfo *SimpleType;
+  static SimpleType getSimplifiedValue(const ::language::LayoutConstraint &Val) {
     return Val.getPointer();
   }
 };
 
 template <>
-struct simplify_type<::swift::LayoutConstraint>
-    : public simplify_type<const ::swift::LayoutConstraint> {};
+struct simplify_type<::language::LayoutConstraint>
+    : public simplify_type<const ::language::LayoutConstraint> {};
 
 // LayoutConstraint hashes just like pointers.
-template <> struct DenseMapInfo<swift::LayoutConstraint> {
-  static swift::LayoutConstraint getEmptyKey() {
-    return llvm::DenseMapInfo<swift::LayoutConstraintInfo *>::getEmptyKey();
+template <> struct DenseMapInfo<language::LayoutConstraint> {
+  static language::LayoutConstraint getEmptyKey() {
+    return toolchain::DenseMapInfo<language::LayoutConstraintInfo *>::getEmptyKey();
   }
-  static swift::LayoutConstraint getTombstoneKey() {
-    return llvm::DenseMapInfo<swift::LayoutConstraintInfo *>::getTombstoneKey();
+  static language::LayoutConstraint getTombstoneKey() {
+    return toolchain::DenseMapInfo<language::LayoutConstraintInfo *>::getTombstoneKey();
   }
-  static unsigned getHashValue(swift::LayoutConstraint Val) {
-    return DenseMapInfo<swift::LayoutConstraintInfo *>::getHashValue(
+  static unsigned getHashValue(language::LayoutConstraint Val) {
+    return DenseMapInfo<language::LayoutConstraintInfo *>::getHashValue(
         Val.getPointer());
   }
-  static bool isEqual(swift::LayoutConstraint LHS,
-                      swift::LayoutConstraint RHS) {
+  static bool isEqual(language::LayoutConstraint LHS,
+                      language::LayoutConstraint RHS) {
     return LHS.getPointer() == RHS.getPointer();
   }
 };
 
 // A LayoutConstraint is "pointer like".
-template <> struct PointerLikeTypeTraits<swift::LayoutConstraint> {
+template <> struct PointerLikeTypeTraits<language::LayoutConstraint> {
 public:
-  static inline void *getAsVoidPointer(swift::LayoutConstraint I) {
+  static inline void *getAsVoidPointer(language::LayoutConstraint I) {
     return (void *)I.getPointer();
   }
-  static inline swift::LayoutConstraint getFromVoidPointer(void *P) {
-    return (swift::LayoutConstraintInfo *)P;
+  static inline language::LayoutConstraint getFromVoidPointer(void *P) {
+    return (language::LayoutConstraintInfo *)P;
   }
-  enum { NumLowBitsAvailable = swift::TypeAlignInBits };
+  enum { NumLowBitsAvailable = language::TypeAlignInBits };
 };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

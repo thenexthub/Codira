@@ -1,4 +1,4 @@
-//===--- ByteSwap.swift ---------------------------------------------------===//
+//===--- ByteSwap.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// This test checks performance of Swift byte swap.
+// This test checks performance of Codira byte swap.
 // rdar://problem/22151907
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ByteSwap",
     runFunction: run_ByteSwap,
@@ -26,7 +27,7 @@ public let benchmarks =
 
 // a naive O(n) implementation of byteswap.
 @inline(never)
-func byteswap_n(_ a: UInt64) -> UInt64 {
+fn byteswap_n(_ a: UInt64) -> UInt64 {
   return ((a & 0x00000000000000FF) &<< 56) |
          ((a & 0x000000000000FF00) &<< 40) |
          ((a & 0x0000000000FF0000) &<< 24) |
@@ -39,7 +40,7 @@ func byteswap_n(_ a: UInt64) -> UInt64 {
 
 // a O(logn) implementation of byteswap.
 @inline(never)
-func byteswap_logn(_ a: UInt64) -> UInt64 {
+fn byteswap_logn(_ a: UInt64) -> UInt64 {
   var a = a
   a = (a & 0x00000000FFFFFFFF) << 32 | (a & 0xFFFFFFFF00000000) >> 32
   a = (a & 0x0000FFFF0000FFFF) << 16 | (a & 0xFFFF0000FFFF0000) >> 16
@@ -48,11 +49,11 @@ func byteswap_logn(_ a: UInt64) -> UInt64 {
 }
 
 @inline(never)
-public func run_ByteSwap(_ n: Int) {
+public fn run_ByteSwap(_ n: Int) {
   var s: UInt64 = 0
   for _ in 1...10000*n {
     // Check some results.
-    let x : UInt64 = UInt64(getInt(0))
+    immutable x : UInt64 = UInt64(getInt(0))
     s = s &+ byteswap_logn(byteswap_n(x &+ 2457))
           &+ byteswap_logn(byteswap_n(x &+ 9129))
           &+ byteswap_logn(byteswap_n(x &+ 3333))

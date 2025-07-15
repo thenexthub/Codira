@@ -1,0 +1,14 @@
+Name: enums_using_attributes
+Tags:
+- Name: UnknownEnumThanksToAPINotes
+  EnumKind: none
+- Name: UnknownOptionsThanksToAPINotes
+  EnumKind: none
+- Name: SystemEvent
+  CodiraName: Event
+  EnumExtensibility: open
+Enumerators:
+- Name: kEventInit
+  CodiraName: init
+- Name: kEventReset
+  CodiraName: reset

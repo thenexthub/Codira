@@ -1,4 +1,4 @@
-//===--- MathStubs.cpp - Swift Language Runtime Stubs ---------------------===//
+//===--- MathStubs.cpp - Codira Language Runtime Stubs ---------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Math stubs for functions which should be defined in the core standard
-// library, but are difficult or impossible to write in Swift at the
+// library, but are difficult or impossible to write in Codira at the
 // moment.
 //
 //===----------------------------------------------------------------------===//
@@ -25,20 +26,20 @@
 #include <cstdlib>
 
 #if __has_attribute(__mode__)
-#define SWIFT_MODE_DI __attribute__((__mode__(DI)))
-#define SWIFT_MODE_TI __attribute__((__mode__(TI)))
+#define LANGUAGE_MODE_DI __attribute__((__mode__(DI)))
+#define LANGUAGE_MODE_TI __attribute__((__mode__(TI)))
 #else
-#define SWIFT_MODE_DI
-#define SWIFT_MODE_TI
+#define LANGUAGE_MODE_DI
+#define LANGUAGE_MODE_TI
 #endif
 
 typedef int si_int;
-typedef int di_int SWIFT_MODE_DI;
-typedef int ti_int SWIFT_MODE_TI;
+typedef int di_int LANGUAGE_MODE_DI;
+typedef int ti_int LANGUAGE_MODE_TI;
 
 typedef unsigned su_int;
-typedef unsigned du_int SWIFT_MODE_DI;
-typedef unsigned tu_int SWIFT_MODE_TI;
+typedef unsigned du_int LANGUAGE_MODE_DI;
+typedef unsigned tu_int LANGUAGE_MODE_TI;
 
 typedef union
 {
@@ -70,7 +71,7 @@ extern "C" {
     (defined(__linux__) && defined(__riscv) && __riscv_xlen == 64) || \
     (defined(__ANDROID__) && defined(__aarch64__))
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 ti_int
 __muloti4(ti_int a, ti_int b, int* overflow)
 {
@@ -122,9 +123,9 @@ __muloti4(ti_int a, ti_int b, int* overflow)
 // something that shouldn't be done, and is a bandaid over
 // some other lower-level architecture issue that I'm
 // missing.  Perhaps relevant bug report:
-// FIXME: https://llvm.org/bugs/show_bug.cgi?id=14469
+// FIXME: https://toolchain.org/bugs/show_bug.cgi?id=14469
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 di_int
 __mulodi4(di_int a, di_int b, int* overflow)
 {
@@ -381,14 +382,14 @@ __udivmodti4(tu_int a, tu_int b, tu_int* rem)
     return q.all;
 }
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 tu_int
 __udivti3(tu_int a, tu_int b)
 {
     return __udivmodti4(a, b, NULL);
 }
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 tu_int
 __umodti3(tu_int a, tu_int b)
 {
@@ -397,7 +398,7 @@ __umodti3(tu_int a, tu_int b)
     return r;
 }
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 ti_int
 __divti3(ti_int a, ti_int b)
 {
@@ -410,7 +411,7 @@ __divti3(ti_int a, ti_int b)
     return (__udivmodti4(a, b, (tu_int*)0) ^ s_a) - s_a;  /* negate if s_a == -1 */
 }
 
-SWIFT_RUNTIME_STDLIB_API
+LANGUAGE_RUNTIME_STDLIB_API
 ti_int
 __modti3(ti_int a, ti_int b)
 {

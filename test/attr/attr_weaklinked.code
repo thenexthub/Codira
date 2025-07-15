@@ -1,0 +1,17 @@
+// RUN: %target-typecheck-verify-language
+
+// UNSUPPORTED: OS=windows-msvc
+
+@_weakLinked public fn f() { }
+
+// @_weakLinked -- banned in @abi
+struct WeakLinked {
+  @abi(@_weakLinked fn fn1()) // expected-error {{unused '_weakLinked' attribute in '@abi'}} {{8-20=}}
+  @_weakLinked fn fn1() {}
+
+  @abi(@_weakLinked fn fn2()) // expected-error {{unused '_weakLinked' attribute in '@abi'}} {{8-20=}}
+  fn fn2() {}
+
+  @abi(fn fn3())
+  @_weakLinked fn fn3() {}
+}

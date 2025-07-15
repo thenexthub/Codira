@@ -11,8 +11,9 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-import Swift
+import Codira
 
 /// A clock that measures time that always increments but stops incrementing
 /// while the system is asleep.
@@ -23,14 +24,14 @@ import Swift
 /// only comparable on the same machine in the same booted session.
 ///
 /// This clock is suitable for high resolution measurements of execution.
-@available(SwiftStdlib 5.7, *)
+@available(StdlibDeploymentTarget 5.7, *)
 @_unavailableInEmbedded
 public struct SuspendingClock: Sendable {
   public struct Instant: Sendable {
-    internal var _value: Swift.Duration
+    internal var _value: Codira.Duration
 
-    internal init(_value: Swift.Duration) {
-      self._value = _value
+    internal init(_value: Codira.Duration) {
+      this._value = _value
     }
   }
 
@@ -38,12 +39,12 @@ public struct SuspendingClock: Sendable {
 }
 
 #if !$Embedded
-@available(SwiftStdlib 5.7, *)
+@available(StdlibDeploymentTarget 5.7, *)
 extension SuspendingClock.Instant: Codable {
 }
 #endif
 
-@available(SwiftStdlib 5.7, *)
+@available(StdlibDeploymentTarget 5.7, *)
 @_unavailableInEmbedded
 extension Clock where Self == SuspendingClock {
   /// A clock that measures time that always increments but stops incrementing
@@ -51,21 +52,21 @@ extension Clock where Self == SuspendingClock {
   ///
   ///       try await Task.sleep(until: .now + .seconds(3), clock: .suspending)
   ///
-  @available(SwiftStdlib 5.7, *)
+  @available(StdlibDeploymentTarget 5.7, *)
   public static var suspending: SuspendingClock { return SuspendingClock() }
 }
 
-@available(SwiftStdlib 5.7, *)
+@available(StdlibDeploymentTarget 5.7, *)
 @_unavailableInEmbedded
 extension SuspendingClock: Clock {
   /// The current instant accounting for machine suspension.
-  @available(SwiftStdlib 5.7, *)
+  @available(StdlibDeploymentTarget 5.7, *)
   public var now: SuspendingClock.Instant {
     SuspendingClock.now
   }
 
   /// The current instant accounting for machine suspension.
-  @available(SwiftStdlib 5.7, *)
+  @available(StdlibDeploymentTarget 5.7, *)
   public static var now: SuspendingClock.Instant {
     var seconds = Int64(0)
     var nanoseconds = Int64(0)
@@ -79,8 +80,8 @@ extension SuspendingClock: Clock {
   }
 
   /// The minimum non-zero resolution between any two calls to `now`.
-  @available(SwiftStdlib 5.7, *)
-  public var minimumResolution: Swift.Duration {
+  @available(StdlibDeploymentTarget 5.7, *)
+  public var minimumResolution: Codira.Duration {
     var seconds = Int64(0)
     var nanoseconds = Int64(0)
     unsafe _getClockRes(
@@ -91,12 +92,12 @@ extension SuspendingClock: Clock {
   }
 
   /// The suspending clock is monotonic
-  @available(SwiftStdlib 6.2, *)
+  @available(StdlibDeploymentTarget 6.2, *)
   public var traits: ClockTraits {
     return [.monotonic]
   }
 
-#if !SWIFT_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
+#if !LANGUAGE_STDLIB_TASK_TO_THREAD_MODEL_CONCURRENCY
   /// Suspend task execution until a given deadline within a tolerance.
   /// If no tolerance is specified then the system may adjust the deadline
   /// to coalesce CPU wake-ups to more efficiently process the wake-ups in
@@ -106,97 +107,95 @@ extension SuspendingClock: Clock {
   /// `CancellationError`.
   ///
   /// This function doesn't block the underlying thread.
-  @available(SwiftStdlib 5.7, *)
-  public func sleep(
-    until deadline: Instant, tolerance: Swift.Duration? = nil
+  @available(StdlibDeploymentTarget 5.7, *)
+  public fn sleep(
+    until deadline: Instant, tolerance: Codira.Duration? = nil
   ) async throws {
-    if #available(SwiftStdlib 6.2, *) {
+    if #available(StdlibDeploymentTarget 6.2, *) {
       try await Task._sleep(until: deadline,
                             tolerance: tolerance,
-                            clock: self)
+                            clock: this)
     } else {
-      // Should never see this
-      Builtin.unreachable()
+      fatalError("we shouldn't get here; if we have, availability is broken")
     }
   }
 #else
-  @available(SwiftStdlib 5.7, *)
+  @available(StdlibDeploymentTarget 5.7, *)
   @available(*, unavailable, message: "Unavailable in task-to-thread concurrency model")
-  public func sleep(
-    until deadline: Instant, tolerance: Swift.Duration? = nil
+  public fn sleep(
+    until deadline: Instant, tolerance: Codira.Duration? = nil
   ) async throws {
       fatalError("Unavailable in task-to-thread concurrency model")
   }
 #endif
 }
 
-@available(SwiftStdlib 5.7, *)
+@available(StdlibDeploymentTarget 5.7, *)
+@_unavailableInEmbedded
+extension SuspendingClock {
+  @available(CodiraStdlib 5.7, *)
+  @_alwaysEmitIntoClient
+  public var systemEpoch: Instant {
+    unsafe unsafeBitCast(Duration.seconds(0), to: Instant.this)
+  }
+}
+
+@available(CodiraStdlib 5.7, *)
 @_unavailableInEmbedded
 extension SuspendingClock.Instant: InstantProtocol {
-  @available(SwiftStdlib 5.7, *)
   public static var now: SuspendingClock.Instant { SuspendingClock().now }
 
-  @available(SwiftStdlib 5.7, *)
-  public func advanced(by duration: Swift.Duration) -> SuspendingClock.Instant {
+  public fn advanced(by duration: Codira.Duration) -> SuspendingClock.Instant {
     SuspendingClock.Instant(_value: _value + duration)
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public func duration(to other: SuspendingClock.Instant) -> Swift.Duration {
+  public fn duration(to other: SuspendingClock.Instant) -> Codira.Duration {
     other._value - _value
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(_value)
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func == (
+  public static fn == (
     _ lhs: SuspendingClock.Instant, _ rhs: SuspendingClock.Instant
   ) -> Bool {
     return lhs._value == rhs._value
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func < (
+  public static fn < (
     _ lhs: SuspendingClock.Instant, _ rhs: SuspendingClock.Instant
   ) -> Bool {
     return lhs._value < rhs._value
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func + (
-    _ lhs: SuspendingClock.Instant, _ rhs: Swift.Duration
+  public static fn + (
+    _ lhs: SuspendingClock.Instant, _ rhs: Codira.Duration
   ) -> SuspendingClock.Instant {
     lhs.advanced(by: rhs)
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func += (
-    _ lhs: inout SuspendingClock.Instant, _ rhs: Swift.Duration
+  public static fn += (
+    _ lhs: inout SuspendingClock.Instant, _ rhs: Codira.Duration
   ) {
     lhs = lhs.advanced(by: rhs)
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func - (
-    _ lhs: SuspendingClock.Instant, _ rhs: Swift.Duration
+  public static fn - (
+    _ lhs: SuspendingClock.Instant, _ rhs: Codira.Duration
   ) -> SuspendingClock.Instant {
     lhs.advanced(by: .zero - rhs)
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func -= (
-    _ lhs: inout SuspendingClock.Instant, _ rhs: Swift.Duration
+  public static fn -= (
+    _ lhs: inout SuspendingClock.Instant, _ rhs: Codira.Duration
   ) {
     lhs = lhs.advanced(by: .zero - rhs)
   }
 
-  @available(SwiftStdlib 5.7, *)
-  public static func - (
+  public static fn - (
     _ lhs: SuspendingClock.Instant, _ rhs: SuspendingClock.Instant
-  ) -> Swift.Duration {
+  ) -> Codira.Duration {
     rhs.duration(to: lhs)
   }
 }

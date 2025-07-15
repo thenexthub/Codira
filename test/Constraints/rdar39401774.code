@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+class A<T> {
+  var foo: Int? { return 42 }
+  fn baz() -> T { fatalError() }
+  fn fiz() -> Int { return 42 }
+}
+
+protocol P1 {
+  associatedtype T
+  var foo: Int? { get }
+  fn baz() -> T
+  fn fiz() -> Int
+}
+
+protocol P2 : P1 {
+  var bar: Int? { get }
+}
+
+extension P2 where Self: A<Int> {
+  var bar: Int? {
+    guard immutable foo = foo else { return 0 }
+    _ = foo
+    immutable _ = baz()
+    return fiz()  
+  }
+}

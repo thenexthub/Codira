@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "libsil"
@@ -37,7 +38,7 @@
 #include "language/AST/TypeDifferenceVisitor.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVMExtras.h"
+#include "language/Basic/ToolchainExtras.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/SIL/AbstractionPatternGenerators.h"
 #include "language/SIL/PrettyStackTrace.h"
@@ -48,8 +49,8 @@
 #include "language/SIL/Test.h"
 #include "clang/AST/Type.h"
 #include "clang/AST/Decl.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 using namespace Lowering;
@@ -58,14 +59,14 @@ using namespace Lowering;
 // OpaqueValueTypeLowering (and MoveOnlyOpaqueValueTypeLowering): the tests can
 // be written as though opaque values were enabled to begin but have since been
 // lowered out of.
-llvm::cl::opt<bool> TypeLoweringForceOpaqueValueLowering(
-    "type-lowering-force-opaque-value-lowering", llvm::cl::init(false),
-    llvm::cl::desc("Force TypeLowering to behave as if building with opaque "
+toolchain::cl::opt<bool> TypeLoweringForceOpaqueValueLowering(
+    "type-lowering-force-opaque-value-lowering", toolchain::cl::init(false),
+    toolchain::cl::desc("Force TypeLowering to behave as if building with opaque "
                    "values enabled"));
 
-llvm::cl::opt<bool> TypeLoweringDisableVerification(
-    "type-lowering-disable-verification", llvm::cl::init(false),
-    llvm::cl::desc("Disable the asserts-only verification of lowerings"));
+toolchain::cl::opt<bool> TypeLoweringDisableVerification(
+    "type-lowering-disable-verification", toolchain::cl::init(false),
+    toolchain::cl::desc("Disable the asserts-only verification of lowerings"));
 
 namespace {
   /// A CRTP type visitor for deciding whether the metatype for a type
@@ -150,7 +151,7 @@ CaptureKind TypeConverter::getDeclCaptureKind(CapturedValue capture,
 
   // If this is a noncopyable 'let' constant that is not a shared paramdecl or
   // used by a noescape capture, then we know it is boxed and want to pass it in
-  // its boxed form so we can obey Swift's capture reference semantics.
+  // its boxed form so we can obey Codira's capture reference semantics.
   if (!var->supportsMutation()
       && contextTy->isNoncopyable()
       && !capture.isNoEscape()) {
@@ -171,15 +172,6 @@ CaptureKind TypeConverter::getDeclCaptureKind(CapturedValue capture,
   if (auto *param = dyn_cast<ParamDecl>(var)) {
     if (param->isInOut())
       return CaptureKind::StorageAddress;
-  }
-
-  // Reference storage types can appear in a capture list, which means
-  // we might allocate boxes to store the captures. However, those boxes
-  // have the same lifetime as the closure itself, so we must capture
-  // the box itself and not the payload, even if the closure is noescape,
-  // otherwise they will be destroyed when the closure is formed.
-  if (var->getInterfaceType()->is<ReferenceStorageType>()) {
-    return CaptureKind::Box;
   }
 
   // For 'let' constants
@@ -370,7 +362,7 @@ namespace {
     RetTy visitBuiltinUnboundGenericType(CanBuiltinUnboundGenericType type,
                                          AbstractionPattern origType,
                                          IsTypeExpansionSensitive_t isSensitive){
-      llvm_unreachable("not a real type");
+      toolchain_unreachable("not a real type");
     }
     
     RecursiveProperties getBuiltinFixedArrayProperties(
@@ -497,7 +489,7 @@ namespace {
                                AbstractionPattern origType,
                                IsTypeExpansionSensitive_t isSensitive) {
       switch (type->getRepresentation()) {
-      case AnyFunctionType::Representation::Swift:
+      case AnyFunctionType::Representation::Codira:
       case AnyFunctionType::Representation::Block:
         return asImpl().handleReference(
             type, getReferenceRecursiveProperties(isSensitive));
@@ -506,7 +498,7 @@ namespace {
         return asImpl().handleTrivial(
             type, getTrivialRecursiveProperties(isSensitive));
       }
-      llvm_unreachable("bad function representation");
+      toolchain_unreachable("bad function representation");
     }
     
     RetTy visitSILFunctionType(CanSILFunctionType type,
@@ -603,12 +595,12 @@ namespace {
     RetTy visitLValueType(CanLValueType type,
                           AbstractionPattern origType,
                           IsTypeExpansionSensitive_t) {
-      llvm_unreachable("shouldn't get an l-value type here");
+      toolchain_unreachable("shouldn't get an l-value type here");
     }
     RetTy visitInOutType(CanInOutType type,
                          AbstractionPattern origType,
                          IsTypeExpansionSensitive_t) {
-      llvm_unreachable("shouldn't get an inout type here");
+      toolchain_unreachable("shouldn't get an inout type here");
     }
     RetTy visitErrorType(CanErrorType type,
                          AbstractionPattern origType,
@@ -786,7 +778,7 @@ namespace {
       switch (SILType::getPrimitiveObjectType(type)
                 .getPreferredExistentialRepresentation()) {
       case ExistentialRepresentation::None:
-        llvm_unreachable("not an existential type?!");
+        toolchain_unreachable("not an existential type?!");
       // Opaque existentials are address-only.
       case ExistentialRepresentation::Opaque:
         return asImpl().handleAddressOnly(type, {IsNotTrivial,
@@ -807,7 +799,7 @@ namespace {
             type, getTrivialRecursiveProperties(isSensitive));
       }
 
-      llvm_unreachable("Unhandled ExistentialRepresentation in switch.");
+      toolchain_unreachable("Unhandled ExistentialRepresentation in switch.");
     }
     RetTy visitProtocolType(CanProtocolType type, AbstractionPattern origType,
                             IsTypeExpansionSensitive_t isSensitive) {
@@ -866,7 +858,7 @@ namespace {
 
     RetTy visitBuiltinTupleType(CanBuiltinTupleType type, AbstractionPattern origType,
                                 IsTypeExpansionSensitive_t isSensitive) {
-      llvm_unreachable("BuiltinTupleType should not show up here");
+      toolchain_unreachable("BuiltinTupleType should not show up here");
     }
 
     // Tuples depend on their elements.
@@ -1309,7 +1301,7 @@ namespace {
         SILBuilder &B, SILLocation loc, SILValue aggValue, bool skipTrivial,
         function_ref<void(unsigned, SILValue, const TypeLowering &)> visitor)
         const {
-      for (auto pair : llvm::enumerate(getChildren(B.getModule().Types))) {
+      for (auto pair : toolchain::enumerate(getChildren(B.getModule().Types))) {
         auto &child = pair.value();
         auto &childLowering = child.getLowering();
         // Skip trivial children.
@@ -1460,7 +1452,7 @@ namespace {
 
       // Otherwise, emit a destructure tuple and do the loop.
       auto *dti = B.createDestructureTuple(loc, aggValue);
-      for (auto pair : llvm::enumerate(dti->getResults())) {
+      for (auto pair : toolchain::enumerate(dti->getResults())) {
         SILValue childValue = pair.value();
         auto &childLowering =
             B.getFunction().getTypeLowering(childValue->getType());
@@ -1520,7 +1512,7 @@ namespace {
                                            visitor);
 
       auto *dsi = B.createDestructureStruct(loc, aggValue);
-      for (auto pair : llvm::enumerate(dsi->getResults())) {
+      for (auto pair : toolchain::enumerate(dsi->getResults())) {
         SILValue childValue = pair.value();
         auto &childLowering =
             B.getFunction().getTypeLowering(childValue->getType());
@@ -1682,7 +1674,7 @@ namespace {
                                            visitor);
 
       auto *dsi = B.createDestructureStruct(loc, aggValue);
-      for (auto pair : llvm::enumerate(dsi->getResults())) {
+      for (auto pair : toolchain::enumerate(dsi->getResults())) {
         SILValue childValue = pair.value();
         auto &childLowering =
             B.getFunction().getTypeLowering(childValue->getType());
@@ -1980,37 +1972,37 @@ namespace {
 
     SILValue emitLoadOfCopy(SILBuilder &B, SILLocation loc,
                             SILValue addr, IsTake_t isTake) const override {
-      llvm_unreachable("calling emitLoadOfCopy on non-loadable type");
+      toolchain_unreachable("calling emitLoadOfCopy on non-loadable type");
     }
 
     void emitStoreOfCopy(SILBuilder &B, SILLocation loc,
                          SILValue newValue, SILValue addr,
                          IsInitialization_t isInit) const override {
-      llvm_unreachable("calling emitStoreOfCopy on non-loadable type");
+      toolchain_unreachable("calling emitStoreOfCopy on non-loadable type");
     }
 
     void emitStore(SILBuilder &B, SILLocation loc, SILValue value,
                    SILValue addr, StoreOwnershipQualifier qual) const override {
-      llvm_unreachable("calling emitStore on non-loadable type");
+      toolchain_unreachable("calling emitStore on non-loadable type");
     }
 
     SILValue emitLoad(SILBuilder &B, SILLocation loc, SILValue addr,
                       LoadOwnershipQualifier qual) const override {
-      llvm_unreachable("calling emitLoad on non-loadable type");
+      toolchain_unreachable("calling emitLoad on non-loadable type");
     }
 
     SILValue emitLoweredLoad(SILBuilder &B, SILLocation loc, SILValue addr,
                              LoadOwnershipQualifier qual,
                              Lowering::TypeLowering::TypeExpansionKind
                                  expansionKind) const override {
-      llvm_unreachable("calling emitLoweredLoad on non-loadable type?!");
+      toolchain_unreachable("calling emitLoweredLoad on non-loadable type?!");
     }
 
     void emitLoweredStore(SILBuilder &B, SILLocation loc, SILValue value,
                           SILValue addr, StoreOwnershipQualifier qual,
                           Lowering::TypeLowering::TypeExpansionKind
                               expansionKind) const override {
-      llvm_unreachable("calling emitLoweredStore on non-loadable type?!");
+      toolchain_unreachable("calling emitLoweredStore on non-loadable type?!");
     }
 
     void emitDestroyAddress(SILBuilder &B, SILLocation loc,
@@ -2027,23 +2019,23 @@ namespace {
 
     SILValue emitCopyValue(SILBuilder &B, SILLocation loc,
                            SILValue value) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
 
     SILValue emitLoweredCopyValue(SILBuilder &B, SILLocation loc,
                                   SILValue value,
                                   TypeExpansionKind style) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
 
     void emitDestroyValue(SILBuilder &B, SILLocation loc,
                           SILValue value) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
 
     void emitLoweredDestroyValue(SILBuilder &B, SILLocation loc, SILValue value,
                                  TypeExpansionKind style) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
   };
 
@@ -2067,37 +2059,37 @@ namespace {
 
     SILValue emitLoadOfCopy(SILBuilder &B, SILLocation loc, SILValue addr,
                             IsTake_t isTake) const override {
-      llvm_unreachable("calling emitLoadOfCopy on non-loadable type");
+      toolchain_unreachable("calling emitLoadOfCopy on non-loadable type");
     }
 
     void emitStoreOfCopy(SILBuilder &B, SILLocation loc, SILValue newValue,
                          SILValue addr,
                          IsInitialization_t isInit) const override {
-      llvm_unreachable("calling emitStoreOfCopy on non-loadable type");
+      toolchain_unreachable("calling emitStoreOfCopy on non-loadable type");
     }
 
     void emitStore(SILBuilder &B, SILLocation loc, SILValue value,
                    SILValue addr, StoreOwnershipQualifier qual) const override {
-      llvm_unreachable("calling emitStore on non-loadable type");
+      toolchain_unreachable("calling emitStore on non-loadable type");
     }
 
     SILValue emitLoad(SILBuilder &B, SILLocation loc, SILValue addr,
                       LoadOwnershipQualifier qual) const override {
-      llvm_unreachable("calling emitLoad on non-loadable type");
+      toolchain_unreachable("calling emitLoad on non-loadable type");
     }
 
     SILValue emitLoweredLoad(SILBuilder &B, SILLocation loc, SILValue addr,
                              LoadOwnershipQualifier qual,
                              Lowering::TypeLowering::TypeExpansionKind
                                  expansionKind) const override {
-      llvm_unreachable("calling emitLoweredLoad on non-loadable type?!");
+      toolchain_unreachable("calling emitLoweredLoad on non-loadable type?!");
     }
 
     void emitLoweredStore(SILBuilder &B, SILLocation loc, SILValue value,
                           SILValue addr, StoreOwnershipQualifier qual,
                           Lowering::TypeLowering::TypeExpansionKind
                               expansionKind) const override {
-      llvm_unreachable("calling emitLoweredStore on non-loadable type?!");
+      toolchain_unreachable("calling emitLoweredStore on non-loadable type?!");
     }
 
     void emitDestroyAddress(SILBuilder &B, SILLocation loc,
@@ -2114,23 +2106,23 @@ namespace {
 
     SILValue emitCopyValue(SILBuilder &B, SILLocation loc,
                            SILValue value) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
 
     SILValue emitLoweredCopyValue(SILBuilder &B, SILLocation loc,
                                   SILValue value,
                                   TypeExpansionKind style) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
 
     void emitDestroyValue(SILBuilder &B, SILLocation loc,
                           SILValue value) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
 
     void emitLoweredDestroyValue(SILBuilder &B, SILLocation loc, SILValue value,
                                  TypeExpansionKind style) const override {
-      llvm_unreachable("type is not loadable!");
+      toolchain_unreachable("type is not loadable!");
     }
   };
 
@@ -2150,17 +2142,17 @@ namespace {
     void emitCopyInto(SILBuilder &B, SILLocation loc,
                       SILValue src, SILValue dest, IsTake_t isTake,
                       IsInitialization_t isInit) const override {
-      llvm_unreachable("cannot copy an UnsafeValueBuffer!");
+      toolchain_unreachable("cannot copy an UnsafeValueBuffer!");
     }
 
     void emitDestroyAddress(SILBuilder &B, SILLocation loc,
                             SILValue addr) const override {
-      llvm_unreachable("cannot destroy an UnsafeValueBuffer!");
+      toolchain_unreachable("cannot destroy an UnsafeValueBuffer!");
     }
 
     void emitDestroyRValue(SILBuilder &B, SILLocation loc,
                            SILValue value) const override {
-      llvm_unreachable("cannot destroy an UnsafeValueBuffer!");
+      toolchain_unreachable("cannot destroy an UnsafeValueBuffer!");
     }
   };
 
@@ -2206,12 +2198,12 @@ namespace {
     SILValue emitLoweredCopyValue(SILBuilder &B, SILLocation loc,
                                   SILValue value,
                                   TypeExpansionKind style) const override {
-      llvm_unreachable("lowered copy");
+      toolchain_unreachable("lowered copy");
     }
 
     void emitLoweredDestroyValue(SILBuilder &B, SILLocation loc, SILValue value,
                                  TypeExpansionKind style) const override {
-      llvm_unreachable("destroy value");
+      toolchain_unreachable("destroy value");
     }
 
     SILValue emitCopyValue(SILBuilder &B, SILLocation loc,
@@ -2245,7 +2237,7 @@ namespace {
     void emitCopyInto(SILBuilder &B, SILLocation loc, SILValue src,
                       SILValue dest, IsTake_t isTake,
                       IsInitialization_t isInit) const override {
-      llvm_unreachable("copy into");
+      toolchain_unreachable("copy into");
     }
 
     // --- Same as LeafLoadableTypeLowering.
@@ -2253,12 +2245,12 @@ namespace {
     SILValue emitLoweredCopyValue(SILBuilder &B, SILLocation loc,
                                   SILValue value,
                                   TypeExpansionKind style) const override {
-      llvm_unreachable("lowered copy");
+      toolchain_unreachable("lowered copy");
     }
 
     void emitLoweredDestroyValue(SILBuilder &B, SILLocation loc, SILValue value,
                                  TypeExpansionKind style) const override {
-      llvm_unreachable("destroy value");
+      toolchain_unreachable("destroy value");
     }
 
     SILValue emitCopyValue(SILBuilder &B, SILLocation loc,
@@ -2293,12 +2285,14 @@ namespace {
 
     TypeLowering *handleTrivial(CanType type,
                                 RecursiveProperties properties) {
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       auto silType = SILType::getPrimitiveObjectType(type);
       return new (TC) TrivialTypeLowering(silType, properties, Expansion);
     }
 
     TypeLowering *handleReference(CanType type,
                                   RecursiveProperties properties) {
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       auto silType = SILType::getPrimitiveObjectType(type);
       if (type.isForeignReferenceType() &&
           type->getReferenceCounting() == ReferenceCounting::None)
@@ -2310,6 +2304,7 @@ namespace {
 
     TypeLowering *handleMoveOnlyReference(CanType type,
                                           RecursiveProperties properties) {
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       auto silType = SILType::getPrimitiveObjectType(type);
       return new (TC)
           MoveOnlyReferenceTypeLowering(silType, properties, Expansion);
@@ -2317,6 +2312,7 @@ namespace {
 
     TypeLowering *handleMoveOnlyAddressOnly(CanType type,
                                             RecursiveProperties properties) {
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       if (!TC.Context.SILOpts.EnableSILOpaqueValues &&
           !TypeLoweringForceOpaqueValueLowering) {
         auto silType = SILType::getPrimitiveAddressType(type);
@@ -2329,13 +2325,15 @@ namespace {
     }
 
     TypeLowering *handleReference(CanType type) {
+      auto properties = RecursiveProperties::forReference();
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       auto silType = SILType::getPrimitiveObjectType(type);
-      return new (TC) ReferenceTypeLowering(
-          silType, RecursiveProperties::forReference(), Expansion);
+      return new (TC) ReferenceTypeLowering(silType, properties, Expansion);
     }
 
     TypeLowering *handleAddressOnly(CanType type,
                                     RecursiveProperties properties) {
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       if (!TC.Context.SILOpts.EnableSILOpaqueValues &&
           !TypeLoweringForceOpaqueValueLowering) {
         auto silType = SILType::getPrimitiveAddressType(type);
@@ -2350,6 +2348,7 @@ namespace {
     
     TypeLowering *handleInfinite(CanType type,
                                  RecursiveProperties properties) {
+      properties = mergeHasPack(HasPack_t(type->hasAnyPack()), properties);
       // Infinite types cannot actually be instantiated, so treat them as
       // opaque for code generation purposes.
       properties.setAddressOnly();
@@ -2391,7 +2390,7 @@ namespace {
     TypeLowering *visitPackType(CanPackType packType,
                                 AbstractionPattern origType,
                                 IsTypeExpansionSensitive_t isSensitive) {
-      llvm_unreachable("shouldn't get here with an unlowered type");
+      toolchain_unreachable("shouldn't get here with an unlowered type");
     }
 
     TypeLowering *visitSILPackType(CanSILPackType packType,
@@ -2430,7 +2429,7 @@ namespace {
     TypeLowering *visitBuiltinTupleType(CanBuiltinTupleType type,
                                         AbstractionPattern origType,
                                         IsTypeExpansionSensitive_t isSensitive) {
-      llvm_unreachable("BuiltinTupleType should not show up here");
+      toolchain_unreachable("BuiltinTupleType should not show up here");
     }
 
     TypeLowering *visitTupleType(CanTupleType tupleType,
@@ -2533,6 +2532,11 @@ namespace {
           // that a union contains a pointer.
           if (recordDecl->isOrContainsUnion())
             properties.setIsOrContainsRawPointer();
+            
+          // Treat imported C structs and unions as addressable-for-dependencies
+          // so that Codira lifetime dependencies are more readily interoperable
+          // with pointers in C used for similar purposes.
+          properties.setAddressableForDependencies();
         }
       }
 
@@ -2738,6 +2742,7 @@ namespace {
     template <class LoadableLoweringClass>
     TypeLowering *handleAggregateByProperties(CanType type,
                                               RecursiveProperties props) {
+      props = mergeHasPack(HasPack_t(type->hasAnyPack()), props);
       if (props.isAddressOnly()) {
         return handleAddressOnly(type, props);
       }
@@ -2980,7 +2985,7 @@ static FunctionTest PrintASTTypeLowering(
       auto *ty = canTy.getPointer();
       function.getModule()
           .Types.getTypeLowering(AbstractionPattern(ty), ty, function)
-          .print(llvm::outs());
+          .print(toolchain::outs());
     });
 
 // Arguments:
@@ -2992,7 +2997,7 @@ static FunctionTest PrintTypeLowering("print-type-lowering", [](auto &function,
                                                                 auto &test) {
   auto value = arguments.takeValue();
   auto ty = value->getType();
-  function.getModule().Types.getTypeLowering(ty, function).print(llvm::outs());
+  function.getModule().Types.getTypeLowering(ty, function).print(toolchain::outs());
 });
 } // end namespace language::test
 
@@ -3006,8 +3011,8 @@ bool TypeConverter::visitAggregateLeaves(
     std::function<bool(CanType, Lowering::AbstractionPattern, ValueDecl *,
                        std::optional<unsigned>)>
         visit) {
-  llvm::SmallSet<std::tuple<CanType, ValueDecl *, unsigned>, 16> visited;
-  llvm::SmallVector<
+  toolchain::SmallSet<std::tuple<CanType, ValueDecl *, unsigned>, 16> visited;
+  toolchain::SmallVector<
       std::tuple<CanType, AbstractionPattern, ValueDecl *, unsigned>, 16>
       worklist;
   auto insertIntoWorklist =
@@ -3114,7 +3119,7 @@ bool TypeConverter::visitAggregateLeaves(
                              std::nullopt);
         }
       } else {
-        llvm_unreachable("unknown aggregate kind!");
+        toolchain_unreachable("unknown aggregate kind!");
       }
       continue;
     }
@@ -3369,7 +3374,7 @@ void TypeConverter::verifyTrivialLowering(const TypeLowering &lowering,
           // Non-nominal types (besides case (3) handled above) are trivial iff
           // conforming.
           if (!nominal) {
-            llvm::errs()
+            toolchain::errs()
                 << "Non-nominal type without conformance to BitwiseCopyable:\n"
                 << ty << "\n"
                 << "within " << substType << "\n"
@@ -3409,10 +3414,10 @@ void TypeConverter::verifyTrivialLowering(const TypeLowering &lowering,
           return module == &M;
         });
     if (hasNoNonconformingNode) {
-      llvm::errs() << "Trivial type without a BitwiseCopyable conformance!?:\n"
+      toolchain::errs() << "Trivial type without a BitwiseCopyable conformance!?:\n"
                    << substType << "\n"
                    << "of " << origType << "\n"
-                   << "Disable this validation with -Xllvm "
+                   << "Disable this validation with -Xtoolchain "
                       "-type-lowering-disable-verification.\n";
       assert(false);
     }
@@ -3481,11 +3486,11 @@ void TypeConverter::verifyTrivialLowering(const TypeLowering &lowering,
           return true;
         });
     if (hasNoConformingArchetypeNode) {
-      llvm::errs() << "Non-trivial type with BitwiseCopyable conformance!?:\n"
+      toolchain::errs() << "Non-trivial type with BitwiseCopyable conformance!?:\n"
                    << substType << "\n";
-      conformance.print(llvm::errs());
-      llvm::errs() << "\n"
-                   << "Disable this validation with -Xllvm "
+      conformance.print(toolchain::errs());
+      toolchain::errs() << "\n"
+                   << "Disable this validation with -Xtoolchain "
                       "-type-lowering-disable-verification.\n";
       assert(false);
     }
@@ -3658,7 +3663,7 @@ TypeConverter::computeLoweredRValueType(TypeExpansionContext forExpansion,
     }
 
     CanType visitBuiltinTupleType(CanBuiltinTupleType type) {
-      llvm_unreachable("BuiltinTupleType should not show up here");
+      toolchain_unreachable("BuiltinTupleType should not show up here");
     }
 
     // Lower tuple element types.
@@ -3687,7 +3692,7 @@ TypeConverter::computeLoweredRValueType(TypeExpansionContext forExpansion,
                                           substObjectType);
       }
 
-      // The Swift type directly corresponds to the lowered type.
+      // The Codira type directly corresponds to the lowered type.
       auto underlyingTy =
           substOpaqueTypesWithUnderlyingTypes(substType, forExpansion);
       if (underlyingTy != substType) {
@@ -3833,7 +3838,7 @@ getGenericSignatureWithCapturedEnvironments(DeclContext *dc,
   auto newSig = buildGenericSignatureWithCapturedEnvironments(
       dc->getASTContext(), genericSig, capturedEnvs);
 
-  LLVM_DEBUG(llvm::dbgs() << "-- effective generic signature: " << newSig << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- effective generic signature: " << newSig << "\n");
   return GenericSignatureWithCapturedEnvironments(genericSig, newSig, capturedEnvs);
 }
 
@@ -3994,7 +3999,7 @@ static CanAnyFunctionType getDestructorInterfaceType(DestructorDecl *dd,
   auto sig = dd->getGenericSignatureOfContext();
   FunctionType::Param args[] = {FunctionType::Param(classType)};
   return CanAnyFunctionType::get(getCanonicalSignatureOrNull(sig),
-                                 llvm::ArrayRef(args), methodTy, extInfo);
+                                 toolchain::ArrayRef(args), methodTy, extInfo);
 }
 
 /// Retrieve the type of the ivar initializer or destroyer method for
@@ -4021,7 +4026,7 @@ static CanAnyFunctionType getIVarInitDestroyerInterfaceType(ClassDecl *cd,
   auto sig = cd->getGenericSignature();
   FunctionType::Param args[] = {FunctionType::Param(classType)};
   return CanAnyFunctionType::get(getCanonicalSignatureOrNull(sig),
-                                 llvm::ArrayRef(args), resultType, extInfo);
+                                 toolchain::ArrayRef(args), resultType, extInfo);
 }
 
 static CanAnyFunctionType
@@ -4032,9 +4037,9 @@ getAnyFunctionRefInterfaceType(TypeConverter &TC,
   // captured functions.
   auto captureInfo = TC.getLoweredLocalCaptures(constant);
 
-  LLVM_DEBUG(llvm::dbgs() << "-- capture info: ";
-             captureInfo.print(llvm::dbgs());
-             llvm::dbgs() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- capture info: ";
+             captureInfo.print(toolchain::dbgs());
+             toolchain::dbgs() << "\n");
 
   // Capture generic parameters from the enclosing context if necessary.
   auto closure = *constant.getAnyFunctionRef();
@@ -4067,11 +4072,11 @@ getAnyFunctionRefInterfaceType(TypeConverter &TC,
 static CanAnyFunctionType getAsyncEntryPoint(ASTContext &C) {
 
   // @main struct Main {
-  //    static func main() async throws {}
-  //    static func $main() async throws { try await main() }
+  //    static fn main() async throws {}
+  //    static fn $main() async throws { try await main() }
   //  }
   //
-  // func @async_main() async -> Void {
+  // fn @async_main() async -> Void {
   //   do {
   //      try await Main.$main()
   //      exit(0)
@@ -4125,7 +4130,7 @@ static CanAnyFunctionType getEntryPointInterfaceType(ASTContext &C) {
                      .withClangFunctionType(clangTy)
                      .build();
 
-  return CanAnyFunctionType::get(/*genericSig*/ nullptr, llvm::ArrayRef(params),
+  return CanAnyFunctionType::get(/*genericSig*/ nullptr, toolchain::ArrayRef(params),
                                  Int32Ty, extInfo);
 }
 
@@ -4218,7 +4223,7 @@ CanAnyFunctionType TypeConverter::makeConstantInterfaceType(SILDeclRef c) {
     return getEntryPointInterfaceType(Context);
   }
 
-  llvm_unreachable("Unhandled SILDeclRefKind in switch.");
+  toolchain_unreachable("Unhandled SILDeclRefKind in switch.");
 }
 
 GenericSignatureWithCapturedEnvironments
@@ -4276,7 +4281,7 @@ TypeConverter::getGenericSignatureWithCapturedEnvironments(SILDeclRef c) {
     return GenericSignatureWithCapturedEnvironments();
   }
 
-  llvm_unreachable("Unhandled SILDeclRefKind in switch.");
+  toolchain_unreachable("Unhandled SILDeclRefKind in switch.");
 }
 
 SubstitutionMap
@@ -4359,12 +4364,12 @@ SILType TypeConverter::getSubstitutedStorageType(TypeExpansionContext context,
 
 ProtocolDispatchStrategy
 TypeConverter::getProtocolDispatchStrategy(ProtocolDecl *P) {
-  // ObjC protocols use ObjC method dispatch, and Swift protocols
+  // ObjC protocols use ObjC method dispatch, and Codira protocols
   // use witness tables.
   if (P->isObjC())
     return ProtocolDispatchStrategy::ObjC;
   
-  return ProtocolDispatchStrategy::Swift;
+  return ProtocolDispatchStrategy::Codira;
 }
 
 /// If a capture references a local function, return a reference to that
@@ -4409,22 +4414,22 @@ TypeConverter::getLoweredLocalCaptures(SILDeclRef fn) {
     return found->second;
   
   // Recursively collect transitive captures from captured local functions.
-  llvm::DenseSet<AnyFunctionRef> visitedFunctions;
+  toolchain::DenseSet<AnyFunctionRef> visitedFunctions;
 
   // FIXME: CapturedValue should just be a hash key
-  llvm::MapVector<VarDecl *, CapturedValue> varCaptures;
-  llvm::MapVector<PackElementExpr *, CapturedValue> packElementCaptures;
+  toolchain::MapVector<VarDecl *, CapturedValue> varCaptures;
+  toolchain::MapVector<PackElementExpr *, CapturedValue> packElementCaptures;
 
   // If there is a capture of 'self' with dynamic 'Self' type, it goes last so
   // that IRGen can pass dynamic 'Self' metadata.
   std::optional<CapturedValue> selfCapture;
 
   // Captured pack element environments.
-  llvm::SetVector<GenericEnvironment *> genericEnv;
+  toolchain::SetVector<GenericEnvironment *> genericEnv;
 
   // Captured types.
   SmallVector<CapturedType, 4> capturedTypes;
-  llvm::SmallDenseSet<CanType, 4> alreadyCapturedTypes;
+  toolchain::SmallDenseSet<CanType, 4> alreadyCapturedTypes;
 
   bool capturesGenericParams = false;
   DynamicSelfType *capturesDynamicSelf = nullptr;
@@ -4529,7 +4534,7 @@ TypeConverter::getLoweredLocalCaptures(SILDeclRef fn) {
             collectAccessorCaptures(AccessorKind::Read2);
             break;
           case ReadImplKind::Inherited:
-            llvm_unreachable("inherited local variable?");
+            toolchain_unreachable("inherited local variable?");
           }
 
           switch (impl.getWriteImpl()) {
@@ -4553,7 +4558,7 @@ TypeConverter::getLoweredLocalCaptures(SILDeclRef fn) {
             collectAccessorCaptures(AccessorKind::Modify2);
             break;
           case WriteImplKind::InheritedWithObservers:
-            llvm_unreachable("inherited local variable");
+            toolchain_unreachable("inherited local variable");
           }
 
           switch (impl.getReadWriteImpl()) {
@@ -4576,7 +4581,7 @@ TypeConverter::getLoweredLocalCaptures(SILDeclRef fn) {
             // We've already processed the didSet operation.
             break;
           case ReadWriteImplKind::InheritedWithDidSet:
-            llvm_unreachable("inherited local variable");
+            toolchain_unreachable("inherited local variable");
           }
         }
 
@@ -4678,6 +4683,24 @@ TypeConverter::getLoweredLocalCaptures(SILDeclRef fn) {
   };
 
   collectConstantCaptures(fn);
+
+  // @_inheritActorContext(always) attribute allows implicit
+  // capture of isolation parameter from the context. This
+  // cannot be done as part of computing captures because
+  // isolation is not available at that point because it in
+  // turn depends on captures sometimes.
+  if (auto *closure = fn.getClosureExpr()) {
+    if (closure->alwaysInheritsActorContext()) {
+      auto isolation = closure->getActorIsolation();
+      if (isolation.isActorInstanceIsolated()) {
+        if (auto *var = isolation.getActorInstance()) {
+          recordCapture(CapturedValue(var, /*flags=*/0, SourceLoc()));
+        } else if (auto *actorExpr = isolation.getActorInstanceExpr()) {
+          recordCapture(CapturedValue(actorExpr, /*flags=*/0));
+        }
+      }
+    }
+  }
 
   SmallVector<CapturedValue, 4> resultingCaptures;
   for (auto capturePair : varCaptures) {
@@ -4955,7 +4978,7 @@ TypeConverter::checkFunctionForABIDifferences(SILModule &M,
                                result2.getSILStorageType(
                                    M, fnTy2, TypeExpansionContext::minimal()),
                                /*thunk iuos*/ fnTy1->getLanguage() ==
-                                   SILFunctionLanguage::Swift) !=
+                                   SILFunctionLanguage::Codira) !=
         ABIDifference::CompatibleRepresentation)
       return ABIDifference::NeedsThunk;
   }
@@ -4986,7 +5009,7 @@ TypeConverter::checkFunctionForABIDifferences(SILModule &M,
             error1.getSILStorageType(M, fnTy1, TypeExpansionContext::minimal()),
             error2.getSILStorageType(M, fnTy2, TypeExpansionContext::minimal()),
             /*thunk iuos*/ fnTy1->getLanguage() ==
-                SILFunctionLanguage::Swift) !=
+                SILFunctionLanguage::Codira) !=
         ABIDifference::CompatibleRepresentation)
       return ABIDifference::NeedsThunk;
   }
@@ -5016,7 +5039,7 @@ TypeConverter::checkFunctionForABIDifferences(SILModule &M,
             param2.getSILStorageType(M, fnTy2, TypeExpansionContext::minimal()),
             param1.getSILStorageType(M, fnTy1, TypeExpansionContext::minimal()),
             /*thunk iuos*/ fnTy1->getLanguage() ==
-                SILFunctionLanguage::Swift) !=
+                SILFunctionLanguage::Codira) !=
         ABIDifference::CompatibleRepresentation)
       return ABIDifference::NeedsThunk;
   }
@@ -5063,9 +5086,9 @@ TypeConverter::getInterfaceBoxTypeForCapture(ValueDecl *captured,
                                                loweredContextType,
                                                isMutable);
 
-  LLVM_DEBUG(llvm::dbgs() << "Generic signature of closure: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Generic signature of closure: "
                           << genericSig << "\n";);
-  LLVM_DEBUG(llvm::dbgs() << "Box type: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Box type: "
                           << boxType << "\n";);
 
   auto &C = M.getASTContext();
@@ -5226,7 +5249,7 @@ TypeConverter::getClosureTypeInfo(AbstractClosureExpr *closure) {
 
 void TypeConverter::withClosureTypeInfo(AbstractClosureExpr *closure,
                                         const FunctionTypeInfo &info,
-                                        llvm::function_ref<void()> operation) {
+                                        toolchain::function_ref<void()> operation) {
   auto insertResult = ClosureInfos.insert({closure, info});
   (void) insertResult;
 #ifndef NDEBUG
@@ -5374,7 +5397,7 @@ unsigned TypeConverter::countNumberOfFields(SILType Ty,
   return std::max(fieldsCount, 1U);
 }
 
-void TypeLowering::print(llvm::raw_ostream &os) const {
+void TypeLowering::print(toolchain::raw_ostream &os) const {
   auto BOOL = [&](bool b) -> StringRef {
     if (b)
       return "true";
@@ -5397,5 +5420,5 @@ void TypeLowering::print(llvm::raw_ostream &os) const {
 }
 
 void TypeLowering::dump() const {
-  print(llvm::dbgs());
+  print(toolchain::dbgs());
 }

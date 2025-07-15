@@ -1,0 +1,111 @@
+# REQUIRES: standalone_build
+# REQUIRES: OS=macosx
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: split-file %s %t
+
+# Even though we are running build-script with dry-run,
+# symbol extraction runs real commands against the file system.
+# Thus we generate a series of files
+# to exercise the filtering logic
+# RUN: mkdir -p %t/destdir/bin
+# RUN: mkdir -p %t/destdir/lib
+# RUN: %languagec_driver %t/hello.code -o %t/destdir/bin/language-demangle
+# RUN: %languagec_driver %t/hello.code -o %t/destdir/bin/language-def-to-yaml-converter
+# RUN: ln -s %t/destdir/language-demangle %t/destdir/bin/language-api-digester
+# RUN: cp %t/language-util.py %t/destdir/bin
+# RUN: chmod a+x %t/destdir/bin/language-util.py
+# RUN: %languagec_driver %t/dylib.code -emit-library -o %t/destdir/lib/liblanguageDemangle.dylib
+# RUN: %languagec_driver %t/dylib.code -emit-library -o %t/destdir/lib/lib_InternalCodiraScan.dylib
+# RUN: %languagec_driver %t/dylib.code -emit-library -static -o %t/destdir/lib/liblanguageASTSectionImporter.a 
+# RUN: mkdir -p %t/symroot/macosx-%target-cpu
+
+# test build-script-impl on its own
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script-impl --dry-run --enable-extract-symbol-dry-run-test=1 --build-dir=%t/build --workspace=%language_src_root/.. --cmake %cmake --only-execute macosx-%target-cpu-extractsymbols --host-cc /usr/bin/true --darwin-install-extract-symbols=1 --host-target=macosx-%target-cpu --install-symroot=%t/symroot --install-destdir=%t/destdir --build-jobs=1 --darwin-symroot-path-filters="/lib/ /language-demangle"  2>&1 | tee %t/build-script-impl-output.txt
+# RUN: %FileCheck --input-file=%t/build-script-impl-output.txt %s
+# RUN: %FileCheck --input-file=%t/build-script-impl-output.txt --check-prefixes CHECK-SKIPPED %s
+
+# ensure build-script pass the argument to build-script-impl
+# RUN: %empty-directory(%t/symroot)
+# RUN: mkdir -p %t/symroot/macosx-%target-cpu
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --enable-extract-symbol-dry-run-test=1 --cmake %cmake --darwin-install-extract-symbols=1 --install-destdir=%t/destdir --toolchain-prefix="" --install-symroot=%t/symroot --darwin-symroot-path-filters="/lib/ /language-demangle" --jobs=1 --host-target=macosx-%target-cpu 2>&1 | tee %t/build-script-output.txt
+# RUN: %FileCheck --input-file=%t/build-script-output.txt %s
+# RUN: %FileCheck --input-file=%t/build-script-output.txt --check-prefixes CHECK-SKIPPED %s
+
+# ensure we get all the values if we specify the flag multiple times
+# RUN: %empty-directory(%t/symroot)
+# RUN: mkdir -p %t/symroot/macosx-%target-cpu
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --enable-extract-symbol-dry-run-test=1 --cmake %cmake --darwin-install-extract-symbols=1 --install-destdir=%t/destdir --toolchain-prefix="" --install-symroot=%t/symroot --darwin-symroot-path-filters="/lib/" --darwin-symroot-path-filters="/language-demangle" --jobs=1 --host-target=macosx-%target-cpu 2>&1 | tee %t/build-script-output.txt
+# RUN: %FileCheck --input-file=%t/build-script-output.txt %s
+# RUN: %FileCheck --input-file=%t/build-script-output.txt --check-prefixes CHECK-SKIPPED %s
+
+
+# CHECK: --- Extracting symbols ---
+
+# Ensure we copy all the files in lib and the language-demangle executable
+# CHECK-LABEL: cpio
+# CHECK-DAG: language-demangle
+# CHECK-DAG: liblanguageDemangle.dylib
+# CHECK-DAG: lib_InternalCodiraScan.dylib
+
+# Ensure we generate symbols for the file in the symroot
+# CHECK-LABEL: "command": "dsymutil", "start"
+# CHECK-DAG: dsymutil {{.*}}language-demangle
+# CHECK-DAG: dsymutil {{.*}}liblanguageDemangle.dylib
+# CHECK-DAG: dsymutil {{.*}}lib_InternalCodiraScan.dylib
+
+# Ensure we strip the files in the installation directory
+# (which are not subject to the filters)
+# CHECK-LABEL: xcrun_find_tool strip
+# CHECK-DAG: strip {{.*}}language-demangle
+# CHECK-DAG: strip {{.*}}language-def-to-yaml-converter
+# CHECK-DAG: strip {{.*}}liblanguageDemangle.dylib
+# CHECK-DAG: strip {{.*}}lib_InternalCodiraScan.dylib
+# CHECK-DAG: strip {{.*}}liblanguageASTSectionImporter.a
+# CHECK-DAG: strip {{.*}}language-util.py
+
+# Ensure we codesign dylibs
+# CHECK-LABEL: xcrun_find_tool codesign
+# CHECK-DAG: codesign {{.*}}liblanguageDemangle.dylib
+# CHECK-DAG: codesign {{.*}}lib_InternalCodiraScan.dylib
+
+
+# CHECK-SKIPPED: --- Extracting symbols ---
+
+# Ensure we don't copy files not included by the filters
+# CHECK-SKIPPED-LABEL: cpio
+# CHECK-SKIPPED-NOT: language-util.py
+# CHECK-SKIPPED-NOT: language-def-to-yaml-converter
+# CHECK-SKIPPED-NOT: liblanguageASTSectionImporter.a
+# CHECK-SKIPPED-NOT: language-api-digester
+
+# Ensure we don't generate symbols for files we did not copy
+# CHECK-SKIPPED-LABEL: "command": "dsymutil", "start"
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}language-def-to-yaml-converter
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}liblanguageASTSectionImporter.a
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}language-util.py
+# CHECK-SKIPPED-NOT: dsymutil {{.*}}language-api-digester
+
+# Ensure we don't strip symlinks
+# CHECK-SKIPPED-LABEL: xcrun_find_tool strip
+# CHECK-SKIPPED-NOT: strip {{.*}}language-api-digester
+
+# Ensure we don't codesign executables, symlinks,
+# static archives and python scripts
+# CHECK-SKIPPED-LABEL: xcrun_find_tool codesign
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-demangle
+# CHECK-SKIPPED-NOT: codesign {{.*}}liblanguageASTSectionImporter.a
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-util.py
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-api-digester
+# CHECK-SKIPPED-NOT: codesign {{.*}}language-def-to-yaml-converter
+
+#--- hello.code
+print("hello")
+
+#--- dylib.code
+fn greet(person: String) -> String {
+    return "Hello \(person)"
+}
+#--- language-util.py
+print("hello")

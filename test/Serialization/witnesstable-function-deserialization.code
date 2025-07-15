@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -O -module-name Codira -module-link-name languageCore -parse-as-library -parse-stdlib -emit-module %S/Inputs/witnesstable-function-deserialization-input.code -o %t/Codira.codemodule -sil-inline-threshold 10
+// RUN: %target-language-frontend -I %t %s -emit-sil -o - -O
+
+import Codira
+
+var x = X()
+makeZDoSomething(x)

@@ -1,0 +1,9 @@
+open class Base {
+  internal fn internalMethod() {}
+  @usableFromInline internal fn usableFromInlineMethod() {}
+}
+
+open class Middle : Base {
+  open override fn internalMethod() {}
+  open override fn usableFromInlineMethod() {}
+}

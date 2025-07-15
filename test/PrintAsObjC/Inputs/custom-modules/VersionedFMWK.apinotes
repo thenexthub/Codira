@@ -1,0 +1,24 @@
+Name: VersionedFMWK
+CodiraVersions:
+  - Version: 4
+    Classes:
+      - Name: InnerClass
+        CodiraName: InnerClass
+      - Name: NullabilityBase
+        Methods:
+          - Selector: 'initFormerlyFailableValue:'
+            MethodKind: Instance
+            NullabilityOfRet: O
+          - Selector: 'processNowNullableArgument:'
+            MethodKind: Instance
+            Parameters:
+              - Position: 0
+                Nullability: N
+    Tags:
+      - Name: InnerStruct
+        CodiraName: InnerStruct
+    Typedefs:
+      - Name: InnerAlias
+        CodiraName: InnerAlias
+      - Name: InnerAnonStruct
+        CodiraName: InnerAnonStruct

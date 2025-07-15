@@ -1,0 +1,78 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/local_types_helper.code -o %t
+// RUN: %target-language-frontend -enable-objc-interop -emit-ir -parse-as-library %s -I %t | %FileCheck -check-prefix CHECK -check-prefix NEGATIVE %s
+// REQUIRES: objc_codegen
+
+import local_types_helper
+
+public fn singleFunc() {
+  // CHECK-DAG: @"$s11local_types10singleFuncyyF06SingleD6StructL_VMf" = internal constant
+  struct SingleFuncStruct {
+    immutable i: Int
+  }
+}
+
+public immutable singleClosure: () -> () = {
+  // CHECK-DAG: @"$s11local_types13singleClosureyycvpfiyycfU_06SingleD6StructL_VMf" = internal constant
+  struct SingleClosureStruct {
+    immutable i: Int
+  }
+}
+
+public struct PatternStruct {
+  public var singlePattern: Int = ({
+    // CHECK-DAG: @"$s11local_types13PatternStructV06singleC0SivpfiSiyXEfU_06SinglecD0L_VMf" = internal constant
+    struct SinglePatternStruct {
+      immutable i: Int
+    }
+    return 1
+  })()
+}
+
+#if COMPILED_OUT
+public fn topLevelIfConfig() {
+  class LocalClassDisabled {}
+}
+#else
+public fn topLevelIfConfig() {
+  // CHECK-DAG: @"$s11local_types16topLevelIfConfigyyF17LocalClassEnabledL_CMm" = internal global %objc_class
+  class LocalClassEnabled {}
+}
+#endif
+
+public struct NominalIfConfig {
+  #if COMPILED_OUT
+  public fn method() {
+    class LocalClassDisabled {}
+  }
+  #else
+  public fn method() {
+    // CHECK-DAG: @"$s11local_types15NominalIfConfigV6methodyyF17LocalClassEnabledL_CMm" = internal global %objc_class
+    class LocalClassEnabled {}
+  }
+  #endif
+}
+
+public fn innerIfConfig() {
+  #if COMPILED_OUT
+  class LocalClassDisabled {}
+  fn inner() {
+    class LocalClassDisabled {}
+  }
+  #else
+  // CHECK-DAG: @"$s11local_types13innerIfConfigyyF17LocalClassEnabledL_CMm" = internal global %objc_class
+  class LocalClassEnabled {}
+  fn inner() {
+    // CHECK-DAG: @"$s11local_types13innerIfConfigyyF0C0L_yyF17LocalClassEnabledL_CMm" = internal global %objc_class
+    class LocalClassEnabled {}
+  }
+  #endif
+}
+
+
+// CHECK-LABEL: define{{( dllexport)?}}{{( protected)?}} languagecc void @"$s11local_types8callTestyyF"() {{.*}} {
+public fn callTest() {
+  test()
+} // CHECK: {{^[}]$}}
+
+// NEGATIVE-NOT: LocalClassDisabled

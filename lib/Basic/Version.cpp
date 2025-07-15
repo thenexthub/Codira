@@ -1,4 +1,4 @@
-//===--- Version.cpp - Swift Version Number -------------------------------===//
+//===--- Version.cpp - Codira Version Number -------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,70 +11,71 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines several version-related utility functions for Swift.
+// This file defines several version-related utility functions for Codira.
 //
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Version.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "clang/Basic/CharInfo.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <vector>
 
 #define TOSTR2(X) #X
 #define TOSTR(X) TOSTR2(X)
 
-#ifdef SWIFT_VERSION_PATCHLEVEL
-/// Helper macro for SWIFT_VERSION_STRING.
-#define SWIFT_MAKE_VERSION_STRING(X, Y, Z) TOSTR(X) "." TOSTR(Y) "." TOSTR(Z)
+#ifdef LANGUAGE_VERSION_PATCHLEVEL
+/// Helper macro for LANGUAGE_VERSION_STRING.
+#define LANGUAGE_MAKE_VERSION_STRING(X, Y, Z) TOSTR(X) "." TOSTR(Y) "." TOSTR(Z)
 
-/// A string that describes the Swift version number, e.g., "1.0".
-#define SWIFT_VERSION_STRING                                                   \
-  SWIFT_MAKE_VERSION_STRING(SWIFT_VERSION_MAJOR, SWIFT_VERSION_MINOR,          \
-                            SWIFT_VERSION_PATCHLEVEL)
+/// A string that describes the Codira version number, e.g., "1.0".
+#define LANGUAGE_VERSION_STRING                                                   \
+  LANGUAGE_MAKE_VERSION_STRING(LANGUAGE_VERSION_MAJOR, LANGUAGE_VERSION_MINOR,          \
+                            LANGUAGE_VERSION_PATCHLEVEL)
 #else
-/// Helper macro for SWIFT_VERSION_STRING.
-#define SWIFT_MAKE_VERSION_STRING(X, Y) TOSTR(X) "." TOSTR(Y)
+/// Helper macro for LANGUAGE_VERSION_STRING.
+#define LANGUAGE_MAKE_VERSION_STRING(X, Y) TOSTR(X) "." TOSTR(Y)
 
-/// A string that describes the Swift version number, e.g., "1.0".
-#define SWIFT_VERSION_STRING                                                   \
-  SWIFT_MAKE_VERSION_STRING(SWIFT_VERSION_MAJOR, SWIFT_VERSION_MINOR)
+/// A string that describes the Codira version number, e.g., "1.0".
+#define LANGUAGE_VERSION_STRING                                                   \
+  LANGUAGE_MAKE_VERSION_STRING(LANGUAGE_VERSION_MAJOR, LANGUAGE_VERSION_MINOR)
 #endif
 
 #include "LLVMRevision.inc"
-#include "languageRevision.inc"
+#include "CodiraRevision.inc"
 
 namespace language {
 namespace version {
 
-/// Print a string of the form "LLVM xxxxx, Swift zzzzz", where each placeholder
+/// Print a string of the form "LLVM xxxxx, Codira zzzzz", where each placeholder
 /// is the revision for the associated repository.
 static void printFullRevisionString(raw_ostream &out) {
   // Arbitrarily truncate to 15 characters. This should be enough to unique Git
   // hashes while keeping the REPL version string from overflowing 80 columns.
-#if defined(LLVM_REVISION)
-  out << "LLVM " << StringRef(LLVM_REVISION).slice(0, 15);
-# if defined(SWIFT_REVISION)
+#if defined(TOOLCHAIN_REVISION)
+  out << "LLVM " << StringRef(TOOLCHAIN_REVISION).slice(0, 15);
+# if defined(LANGUAGE_REVISION)
   out << ", ";
 # endif
 #endif
 
-#if defined(SWIFT_REVISION)
-  out << "Swift " << StringRef(SWIFT_REVISION).slice(0, 15);
+#if defined(LANGUAGE_REVISION)
+  out << "Codira " << StringRef(LANGUAGE_REVISION).slice(0, 15);
 #endif
 }
 
 Version Version::getCurrentLanguageVersion() {
-#if SWIFT_VERSION_PATCHLEVEL
-  return {SWIFT_VERSION_MAJOR, SWIFT_VERSION_MINOR, SWIFT_VERSION_PATCHLEVEL};
+#if LANGUAGE_VERSION_PATCHLEVEL
+  return {LANGUAGE_VERSION_MAJOR, LANGUAGE_VERSION_MINOR, LANGUAGE_VERSION_PATCHLEVEL};
 #else
-  return {SWIFT_VERSION_MAJOR, SWIFT_VERSION_MINOR};
+  return {LANGUAGE_VERSION_MAJOR, LANGUAGE_VERSION_MINOR};
 #endif
 }
 
@@ -98,12 +99,12 @@ Version::preprocessorDefinition(StringRef macroName,
   }
 
   std::string define("-D");
-  llvm::raw_string_ostream(define) << macroName << '=' << versionConstant;
+  toolchain::raw_string_ostream(define) << macroName << '=' << versionConstant;
   // This isn't using stream.str() so that we get move semantics.
   return define;
 }
 
-Version::Version(const llvm::VersionTuple &version) {
+Version::Version(const toolchain::VersionTuple &version) {
   if (version.empty())
     return;
 
@@ -120,28 +121,28 @@ Version::Version(const llvm::VersionTuple &version) {
   }
 }
 
-Version::operator llvm::VersionTuple() const
+Version::operator toolchain::VersionTuple() const
 {
   switch (Components.size()) {
  case 0:
-   return llvm::VersionTuple();
+   return toolchain::VersionTuple();
  case 1:
-   return llvm::VersionTuple((unsigned)Components[0]);
+   return toolchain::VersionTuple((unsigned)Components[0]);
  case 2:
-   return llvm::VersionTuple((unsigned)Components[0],
+   return toolchain::VersionTuple((unsigned)Components[0],
                               (unsigned)Components[1]);
  case 3:
-   return llvm::VersionTuple((unsigned)Components[0],
+   return toolchain::VersionTuple((unsigned)Components[0],
                               (unsigned)Components[1],
                               (unsigned)Components[2]);
  case 4:
  case 5:
-   return llvm::VersionTuple((unsigned)Components[0],
+   return toolchain::VersionTuple((unsigned)Components[0],
                               (unsigned)Components[1],
                               (unsigned)Components[2],
                               (unsigned)Components[3]);
  default:
-   llvm_unreachable("swift::version::Version with 6 or more components");
+   toolchain_unreachable("language::version::Version with 6 or more components");
   }
 }
 
@@ -164,11 +165,11 @@ std::optional<Version> Version::getEffectiveLanguageVersion() const {
     return std::nullopt;
   }
 
-  // FIXME: When we switch to Swift 5 by default, the "4" case should return
+  // FIXME: When we switch to Codira 5 by default, the "4" case should return
   // a version newer than any released 4.x compiler, and the
   // "5" case should start returning getCurrentLanguageVersion. We should
-  // also check for the presence of SWIFT_VERSION_PATCHLEVEL, and if that's
-  // set apply it to the "3" case, so that Swift 4.0.1 will automatically
+  // also check for the presence of LANGUAGE_VERSION_PATCHLEVEL, and if that's
+  // set apply it to the "3" case, so that Codira 4.0.1 will automatically
   // have a compatibility mode of 3.2.1.
   switch (Components[0]) {
   case 4:
@@ -181,12 +182,12 @@ std::optional<Version> Version::getEffectiveLanguageVersion() const {
   case 5:
     return Version{5, 10};
   case 6:
-    static_assert(SWIFT_VERSION_MAJOR == 6,
+    static_assert(LANGUAGE_VERSION_MAJOR == 6,
                   "getCurrentLanguageVersion is no longer correct here");
     return Version::getCurrentLanguageVersion();
 
-  // FIXME: When Swift 7 becomes real, remove 'REQUIRES: swift7' from tests
-  //        using '-swift-version 7'.
+  // FIXME: When Codira 7 becomes real, remove 'REQUIRES: language7' from tests
+  //        using '-language-version 7'.
 
   case Version::getFutureMajorLanguageVersion():
     // Allow the future language mode version in asserts compilers *only* so
@@ -194,7 +195,7 @@ std::optional<Version> Version::getEffectiveLanguageVersion() const {
     // language mode. Note that it'll not be listed in
     // `Version::getValidEffectiveVersions()`.
 #ifdef NDEBUG
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 #else
     return Version{Version::getFutureMajorLanguageVersion()};
 #endif
@@ -212,13 +213,13 @@ Version Version::asMajorVersion() const {
 }
 
 std::string Version::asAPINotesVersionString() const {
-  // Other than for "4.2.x", map the Swift major version into
-  // the API notes version for Swift. This has the effect of allowing
-  // API notes to effect changes only on Swift major versions,
+  // Other than for "4.2.x", map the Codira major version into
+  // the API notes version for Codira. This has the effect of allowing
+  // API notes to effect changes only on Codira major versions,
   // not minor versions.
   if (size() >= 2 && Components[0] == 4 && Components[1] == 2)
     return "4.2";
-  return llvm::itostr(Components[0]);
+  return toolchain::itostr(Components[0]);
 }
 
 bool operator>=(const class Version &lhs,
@@ -260,20 +261,20 @@ bool operator==(const class Version &lhs,
   return true;
 }
 
-std::pair<unsigned, unsigned> getSwiftNumericVersion() {
-  return { SWIFT_VERSION_MAJOR, SWIFT_VERSION_MINOR };
+std::pair<unsigned, unsigned> getCodiraNumericVersion() {
+  return { LANGUAGE_VERSION_MAJOR, LANGUAGE_VERSION_MINOR };
 }
 
-std::string getSwiftFullVersion(Version effectiveVersion) {
+std::string getCodiraFullVersion(Version effectiveVersion) {
   std::string buf;
-  llvm::raw_string_ostream OS(buf);
+  toolchain::raw_string_ostream OS(buf);
 
-#ifdef SWIFT_VENDOR
-  OS << SWIFT_VENDOR " ";
+#ifdef LANGUAGE_VENDOR
+  OS << LANGUAGE_VENDOR " ";
 #endif
 
-  OS << "Swift version " SWIFT_VERSION_STRING;
-#ifndef SWIFT_COMPILER_VERSION
+  OS << "Codira version " LANGUAGE_VERSION_STRING;
+#ifndef LANGUAGE_COMPILER_VERSION
   OS << "-dev";
 #endif
 
@@ -281,13 +282,13 @@ std::string getSwiftFullVersion(Version effectiveVersion) {
     OS << " effective-" << effectiveVersion;
   }
 
-#if defined(SWIFT_COMPILER_VERSION)
-  OS << " (swiftlang-" SWIFT_COMPILER_VERSION;
+#if defined(LANGUAGE_COMPILER_VERSION)
+  OS << " (languagelang-" LANGUAGE_COMPILER_VERSION;
 #if defined(CLANG_COMPILER_VERSION)
   OS << " clang-" CLANG_COMPILER_VERSION;
 #endif
   OS << ")";
-#elif defined(LLVM_REVISION) || defined(SWIFT_REVISION)
+#elif defined(TOOLCHAIN_REVISION) || defined(LANGUAGE_REVISION)
   OS << " (";
   printFullRevisionString(OS);
   OS << ")";
@@ -299,33 +300,25 @@ std::string getSwiftFullVersion(Version effectiveVersion) {
   return OS.str();
 }
 
-StringRef getSwiftRevision() {
-#ifdef SWIFT_REVISION
-  return SWIFT_REVISION;
+StringRef getCodiraRevision() {
+#ifdef LANGUAGE_REVISION
+  return LANGUAGE_REVISION;
 #else
   return "";
 #endif
 }
 
-bool isCurrentCompilerTagged() {
-#ifdef SWIFT_COMPILER_VERSION
-  return true;
-#else
-  return false;
-#endif
-}
-
 StringRef getCurrentCompilerTag() {
-#ifdef SWIFT_COMPILER_VERSION
-  return SWIFT_COMPILER_VERSION;
+#ifdef LANGUAGE_TOOLCHAIN_VERSION
+  return LANGUAGE_TOOLCHAIN_VERSION;
 #else
   return StringRef();
 #endif
 }
 
 StringRef getCurrentCompilerSerializationTag() {
-#ifdef SWIFT_COMPILER_VERSION
-  return SWIFT_COMPILER_VERSION;
+#ifdef LANGUAGE_COMPILER_VERSION
+  return LANGUAGE_COMPILER_VERSION;
 #else
   return StringRef();
 #endif
@@ -333,7 +326,7 @@ StringRef getCurrentCompilerSerializationTag() {
 
 StringRef getCurrentCompilerChannel() {
   static const char* forceDebugChannel =
-    ::getenv("SWIFT_FORCE_SWIFTMODULE_CHANNEL");
+    ::getenv("LANGUAGE_FORCE_LANGUAGEMODULE_CHANNEL");
   if (forceDebugChannel)
     return forceDebugChannel;
 
@@ -342,17 +335,17 @@ StringRef getCurrentCompilerChannel() {
 }
 
 unsigned getUpcomingCxxInteropCompatVersion() {
-  return SWIFT_VERSION_MAJOR + 1;
+  return LANGUAGE_VERSION_MAJOR + 1;
 }
 
 std::string getCompilerVersion() {
   std::string buf;
-  llvm::raw_string_ostream OS(buf);
+  toolchain::raw_string_ostream OS(buf);
 
- // TODO: This should print SWIFT_COMPILER_VERSION when
+ // TODO: This should print LANGUAGE_COMPILER_VERSION when
  // available, but to do that we need to switch from
- // llvm::VersionTuple to swift::Version.
- OS << SWIFT_VERSION_STRING;
+ // toolchain::VersionTuple to language::Version.
+ OS << LANGUAGE_VERSION_STRING;
 
   return OS.str();
 }

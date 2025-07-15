@@ -1,0 +1,27 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t.mod)
+// RUN: %target-language-frontend -emit-module -o %t.mod/Cities.codemodule %S/Inputs/Cities.code -module-name Cities -parse-as-library
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %s -F %S/mock-sdk -I %t.mod -api-diff-data-file %S/Inputs/qualified.json -emit-migrated-file-path %t/qualified-replacement.code.result -emit-remap-file-path %t/qualified-replacement.code.remap -o /dev/null
+// RUN: diff -u %S/qualified-replacement.code.expected %t/qualified-replacement.code.result
+
+import Cities
+import Bar
+fn foo() {
+  _ = PropertyUserInterface.fieldPlus
+  PropertyUserInterface.methodPlus(1)
+  _ = FooComparisonResult.orderedSame
+  immutable _ : FooComparisonResult = .orderedSame
+  _ = Cities.CityKind.Town
+  _ = Cities.CityKind.Village
+  _ = ToplevelType()
+  _ = ToplevelType(recordName: "")
+  bar(.orderedSame)
+  bar(.orderedMemberSame)
+  bar(FooComparisonResult.orderedSame)
+  bar(FooComparisonResult.orderedMemberSame)
+  bar(FooComparisonResult.orderedMovedToGlobal)
+  bar(.orderedMovedToGlobal)
+}
+
+fn foo(_: ToplevelType) {}
+fn bar(_ : FooComparisonResult) {}

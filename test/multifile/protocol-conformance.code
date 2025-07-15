@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -emit-ir -verify %s %S/Inputs/protocol-conformance/A.code
+
+// https://devforums.apple.com/thread/254807?tstart=0
+
+class Implementation: A {
+    var aValue: Int = 1
+}

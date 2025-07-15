@@ -1,0 +1,110 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -module-name Lib -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Lib.private.codeinterface
+
+// RUN: %target-language-frontend -typecheck -verify %t/ClientA.code -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/ClientB.code -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/ClientC.code -I %t
+
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck -verify %t/ClientA.code -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/ClientB.code -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/ClientC.code -I %t
+
+// RUN: %target-language-frontend -emit-module %t/ClientA.code \
+// RUN:   -module-name ClientA -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-interface-path %t/ClientA.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientA.private.codeinterface
+// RUN: %FileCheck %s --check-prefix CHECK-A < %t/ClientA.private.codeinterface
+// CHECK-A-NOT: @_spi(_) import Lib
+// CHECK-A: import Lib
+// CHECK-A: @_spi(_) public fn useImplicit() -> Lib._Klass
+
+// RUN: %target-language-frontend -emit-module %t/ClientB.code \
+// RUN:   -module-name ClientB -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-interface-path %t/ClientB.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientB.private.codeinterface
+// RUN: %FileCheck %s --check-prefix CHECK-B < %t/ClientB.private.codeinterface
+// CHECK-B-NOT: @_spi(_) @_spi(core) import Lib
+// CHECK-B-NOT: @_spi(core) @_spi(_) import Lib
+// CHECK-B: @_spi(core) import Lib
+// CHECK-B: @_spi(_) public fn useImplicit() -> Lib._Klass
+// CHECK-B: @_spi(core) public fn useSPICore() -> Lib.CoreStruct
+
+// RUN: %target-language-frontend -emit-module %t/ClientZ.code \
+// RUN:   -module-name ClientZ -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-interface-path %t/ClientZ.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientZ.private.codeinterface
+// RUN: %FileCheck %s --check-prefix CHECK-Z < %t/ClientZ.private.codeinterface
+// CHECK-Z: @_spi(_) import Lib
+// CHECK-Z: @_spi(_) public fn useImplicit() -> Lib._Klass
+
+
+//--- Lib.code
+
+@_spi(core)
+public struct CoreStruct {
+  public init() {}
+}
+
+@_spi(_)
+public class _Klass {
+  public init() {}
+}
+
+public protocol APIProtocol {
+}
+
+
+//--- ClientA.code
+
+import Lib
+
+@_spi(_)
+public fn useImplicit() -> _Klass { return _Klass() }
+
+public fn useMain() -> APIProtocol? { return nil }
+
+
+//--- ClientB.code
+
+@_spi(core) import Lib
+
+@_spi(_)
+public fn useImplicit() -> _Klass { return _Klass() }
+
+@_spi(core)
+public fn useSPICore() -> CoreStruct { return CoreStruct() }
+
+public fn useMain() -> APIProtocol? { return nil }
+
+
+//--- ClientC.code
+
+import Lib
+
+public fn useImplicit() -> _Klass { return _Klass() } // expected-error{{cannot use class '_Klass' here; it is an SPI imported from 'Lib'}}
+
+@_spi(core)
+public fn useSPICore() -> CoreStruct { return CoreStruct() } // expected-error{{cannot find type 'CoreStruct' in scope}}
+
+public fn useMain() -> APIProtocol? { return nil }
+
+
+//--- ClientZ.code
+
+@_spi(_) import Lib
+
+@_spi(_)
+public fn useImplicit() -> _Klass { return _Klass() }
+
+public fn useMain() -> APIProtocol? { return nil }

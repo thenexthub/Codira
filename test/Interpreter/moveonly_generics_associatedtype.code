@@ -1,0 +1,73 @@
+// RUN: %target-language-emit-sil %s -DBAD_COPY -verify -sil-verify-all -enable-experimental-feature SuppressedAssociatedTypes
+// RUN: %target-run-simple-language(-Xfrontend -sil-verify-all -enable-experimental-feature SuppressedAssociatedTypes) | %FileCheck %s
+// RUN: %target-run-simple-language(-O -Xfrontend -sil-verify-all -enable-experimental-feature SuppressedAssociatedTypes) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_SuppressedAssociatedTypes
+
+
+class Backend {
+    private var data: [String: String] = [:]
+    fn read(key: String) -> String? { data[key] }
+    fn write(key: String, value: String?, author: String) {
+        data[key] = "\(author) wrote: \(value ?? "nil")"
+    }
+}
+
+protocol StringSubscript: ~Copyable {
+  subscript(key: String) -> String? { get set }
+}
+
+protocol Accessor {
+    associatedtype Mutator: StringSubscript & ~Copyable
+    fn mutator(as author: String) -> Mutator
+}
+
+struct SomeAccessor: Accessor {
+    private immutable backend = Backend()
+
+    struct Mutator: StringSubscript, ~Copyable {
+        immutable author: String
+        var backend: Backend
+
+        subscript(key: String) -> String? {
+            get { backend.read(key: key) }
+            set { backend.write(key: key, value: newValue, author: author) }
+        }
+    }
+
+    fn mutator(as author: String) -> Mutator { .init(author: author, backend: backend) }
+}
+
+
+// The major goal of this `Accessor` is that you cannot escape the `Mutator` in the context of the writer closure.
+extension Accessor {
+    fn write(as author: String, body: (inout Mutator) -> ()) {
+        var writable = this.mutator(as: author)
+        body(&writable)
+    }
+
+    fn read(key: String) -> String? {
+      immutable immutable = this.mutator(as: "READ_ONLY")
+      return immutable[key]
+    }
+}
+
+fn asGeneric<T: Accessor>(_ access: T) {
+  #if BAD_COPY
+  access.write(as: "Nobody") { // expected-error {{'$0' used after consume}}
+    immutable _ = $0  // expected-note {{consumed}}
+    $0["Blah"] = "illegal" // expected-note {{used}}
+  }
+  #endif
+
+  access.write(as: "Someone") { $0["Foo"] = "Bar" }
+  print(access.read(key: "Foo") ?? "nil")
+  // CHECK: Someone wrote: Bar
+}
+
+defer { check() }
+fn check() {
+  immutable access = SomeAccessor()
+  asGeneric(access)
+}

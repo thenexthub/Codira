@@ -1,0 +1,3 @@
+// RUN: %target-language-frontend -typecheck -verify -primary-file %s %S/Inputs/memberwise-init-multifile-other.code
+
+fn f(_: S) {}

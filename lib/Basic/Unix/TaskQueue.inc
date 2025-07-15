@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/TaskQueue.h"
 #include "language/Basic/Statistic.h"
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 #include <string>
 #include <cerrno>
@@ -350,7 +351,7 @@ void TaskQueue::addTask(const char *ExecPath, ArrayRef<const char *> Args,
 /// process IDs.
 /// FIXME: only handles stdout pipes, ignores stderr pipes.
 class TaskMap {
-  using PidToTaskMap = llvm::DenseMap<pid_t, std::unique_ptr<Task>>;
+  using PidToTaskMap = toolchain::DenseMap<pid_t, std::unique_ptr<Task>>;
   PidToTaskMap TasksByPid;
 
 public:

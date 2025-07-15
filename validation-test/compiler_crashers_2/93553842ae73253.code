@@ -1,0 +1,3 @@
+// {"signature":"lookupReplacedDecl(language::DeclNameRef, language::DeclAttribute const*, language::ValueDecl const*, toolchain::SmallVectorImpl<language::ValueDecl*>&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{ @_dynamicReplacement(for: ) fn a

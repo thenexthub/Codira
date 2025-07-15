@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Private declarations of the Swift runtime's backtracing code.
+// Private declarations of the Codira runtime's backtracing code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_BACKTRACE_UTILS_H
-#define SWIFT_RUNTIME_BACKTRACE_UTILS_H
+#ifndef LANGUAGE_RUNTIME_BACKTRACE_UTILS_H
+#define LANGUAGE_RUNTIME_BACKTRACE_UTILS_H
 
 #include "language/Runtime/Config.h"
 #include "language/Runtime/Backtrace.h"
@@ -131,39 +132,39 @@ struct BacktraceSettings {
   Symbolication    symbolicate;
   bool             suppressWarnings;
   OutputFormat     format;
-  const char      *swiftBacktracePath;
+  const char      *languageBacktracePath;
   const char      *outputPath;
 };
 
-SWIFT_RUNTIME_STDLIB_INTERNAL BacktraceSettings _swift_backtraceSettings;
+LANGUAGE_RUNTIME_STDLIB_INTERNAL BacktraceSettings _language_backtraceSettings;
 
-inline bool _swift_backtrace_isEnabled() {
-  return _swift_backtraceSettings.enabled == OnOffTty::On;
+inline bool _language_backtrace_isEnabled() {
+  return _language_backtraceSettings.enabled == OnOffTty::On;
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL ErrorCode _swift_installCrashHandler();
+LANGUAGE_RUNTIME_STDLIB_INTERNAL ErrorCode _language_installCrashHandler();
 
 #ifdef __linux__
-SWIFT_RUNTIME_STDLIB_INTERNAL bool _swift_spawnBacktracer(CrashInfo *crashInfo,
+LANGUAGE_RUNTIME_STDLIB_INTERNAL bool _language_spawnBacktracer(CrashInfo *crashInfo,
                                                           int memserver_fd);
 #else
-SWIFT_RUNTIME_STDLIB_INTERNAL bool _swift_spawnBacktracer(CrashInfo *crashInfo);
+LANGUAGE_RUNTIME_STDLIB_INTERNAL bool _language_spawnBacktracer(CrashInfo *crashInfo);
 #endif
 
-SWIFT_RUNTIME_STDLIB_INTERNAL void _swift_displayCrashMessage(int signum, const void *pc);
+LANGUAGE_RUNTIME_STDLIB_INTERNAL void _language_displayCrashMessage(int signum, const void *pc);
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-void _swift_formatAddress(uintptr_t addr, char buffer[18]);
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+void _language_formatAddress(uintptr_t addr, char buffer[18]);
 
-inline void _swift_formatAddress(const void *ptr, char buffer[18]) {
-  _swift_formatAddress(reinterpret_cast<uintptr_t>(ptr), buffer);
+inline void _language_formatAddress(const void *ptr, char buffer[18]) {
+  _language_formatAddress(reinterpret_cast<uintptr_t>(ptr), buffer);
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-void _swift_formatUnsigned(unsigned u, char buffer[22]);
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+void _language_formatUnsigned(unsigned u, char buffer[22]);
 
 } // namespace backtrace
 } // namespace runtime
 } // namespace language
 
-#endif // SWIFT_RUNTIME_BACKTRACE_UTILS_H
+#endif // LANGUAGE_RUNTIME_BACKTRACE_UTILS_H

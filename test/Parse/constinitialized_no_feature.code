@@ -1,0 +1,2 @@
+// RUN: %target-typecheck-verify-language
+@constInitialized immutable x: Int = 42 // expected-error{{'constInitialized' attribute is only valid when experimental feature CompileTimeValues is enabled}}

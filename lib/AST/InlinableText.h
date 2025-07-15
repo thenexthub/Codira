@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_INLINABLETEXT_H
-#define SWIFT_AST_INLINABLETEXT_H
+#ifndef LANGUAGE_AST_INLINABLETEXT_H
+#define LANGUAGE_AST_INLINABLETEXT_H
 
 #include "language/AST/ASTNode.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 class ASTContext;
@@ -31,4 +32,4 @@ StringRef extractInlinableText(ASTContext &ctx, ASTNode node,
 
 } // end namespace language
 
-#endif // defined(SWIFT_AST_INLINABLETEXT_H)
+#endif // defined(LANGUAGE_AST_INLINABLETEXT_H)

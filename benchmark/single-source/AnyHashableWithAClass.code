@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This benchmark tests AnyHashable's initializer that needs to dynamically
@@ -19,13 +20,13 @@
 
 import TestsUtils
 
-// 23% _swift_dynamicCast
-// 23% _swift_release_
-// 18% _swift_stdlib_makeAnyHashableUsingDefaultRepresentation
-// 11% _swift_stdlib_makeAnyHashableUpcastingToHashableBaseType
-// 16% _swift_retain_[n]
-//  5% swift_conformsToProtocol
-public let benchmarks =
+// 23% _language_dynamicCast
+// 23% _language_release_
+// 18% _language_stdlib_makeAnyHashableUsingDefaultRepresentation
+// 11% _language_stdlib_makeAnyHashableUpcastingToHashableBaseType
+// 16% _language_retain_[n]
+//  5% language_conformsToProtocol
+public immutable benchmarks =
   BenchmarkInfo(
     name: "AnyHashableWithAClass",
     runFunction: run_AnyHashableWithAClass,
@@ -36,14 +37,14 @@ public let benchmarks =
 class TestHashableBase : Hashable {
   var value: Int
   init(_ value: Int) {
-    self.value = value
+    this.value = value
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func == (
+  static fn == (
     lhs: TestHashableBase,
     rhs: TestHashableBase
   ) -> Bool {
@@ -58,8 +59,8 @@ class TestHashableDerived4 : TestHashableDerived3 {}
 class TestHashableDerived5 : TestHashableDerived4 {}
 
 @inline(never)
-public func run_AnyHashableWithAClass(_ n: Int) {
-  let c = TestHashableDerived5(10)
+public fn run_AnyHashableWithAClass(_ n: Int) {
+  immutable c = TestHashableDerived5(10)
   for _ in 0...(n*1000) {
     _ = AnyHashable(c)
   }

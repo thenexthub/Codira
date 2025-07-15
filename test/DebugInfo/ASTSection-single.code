@@ -1,0 +1,15 @@
+// REQUIRES: executable_test
+// REQUIRES: language_tools_extra
+
+// Test that a module-wrapped Codira AST section can be parsed.
+
+// RUN: %empty-directory(%t)
+
+// RUN: echo "public immutable a0 = 0"  >%t/a0.code
+// RUN: %target-build-language %t/a0.code -emit-module -emit-module-path %t/a0.codemodule -I %s/Inputs
+// RUN: %target-language-modulewrap %t/a0.codemodule -o %t/a0-mod.o
+
+// RUN: %lldb-moduleimport-test -verbose %t/a0-mod.o | %FileCheck %s
+// CHECK: Path: {{.*}}/Inputs, framework=false, system=false
+// CHECK: Importing a0...
+// CHECK: Import successful!

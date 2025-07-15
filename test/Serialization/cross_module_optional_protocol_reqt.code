@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -module-name cross_module_optional_protocol_reqt -c -emit-module-path %t/cross_module_optional_protocol_reqt~partial.codemodule -primary-file %s %S/Inputs/cross_module_optional_protocol_reqt_2.code -import-objc-header %S/Inputs/cross_module_optional_protocol_reqt.h -o /dev/null
+// RUN: %target-language-frontend -module-name cross_module_optional_protocol_reqt -c -emit-module-path %t/cross_module_optional_protocol_reqt_2~partial.codemodule %s -primary-file %S/Inputs/cross_module_optional_protocol_reqt_2.code -import-objc-header %S/Inputs/cross_module_optional_protocol_reqt.h -o /dev/null
+// RUN: %target-language-frontend -module-name cross_module_optional_protocol_reqt -emit-module -emit-module-path %t/cross_module_optional_protocol_reqt.codemodule %t/cross_module_optional_protocol_reqt~partial.codemodule %t/cross_module_optional_protocol_reqt_2~partial.codemodule -import-objc-header %S/Inputs/cross_module_optional_protocol_reqt.h
+// RUN: %target-language-frontend -I %t -typecheck %s -DTEST -module-name main
+// REQUIRES: objc_interop
+
+#if TEST
+
+import cross_module_optional_protocol_reqt
+
+fn test(_ foo: Foo) {
+  // At one point this forced deserialization of the conformance to ObjCProto,
+  // which was corrupted by the presence of the optional requirement with no
+  // witness.
+  foo.nonoptionalMethod()
+  foo.nonoptionalMethod2()
+}
+
+#else // TEST
+
+public protocol CodiraProto: ObjCProto {}
+
+public class Foo: ObjCFoo, CodiraProto {
+  public fn nonoptionalMethod() {}
+  public fn nonoptionalMethod2() {}
+}
+
+#endif // TEST

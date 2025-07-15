@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// both modules are embedded - ok
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-stdlib -enable-experimental-feature Embedded -wmo
+// RUN: %target-language-frontend -emit-ir -I %t %t/Main.code -parse-stdlib -enable-experimental-feature Embedded -wmo
+
+// MyModule is not embedded - error
+// RUN: %target-language-frontend -emit-module -enable-ossa-modules -o %t/MyModule.codemodule %t/MyModule.code -parse-stdlib -wmo
+// RUN: not %target-language-frontend -emit-ir -I %t %t/Main.code -parse-stdlib -enable-experimental-feature Embedded -wmo 2>&1 | %FileCheck %s --check-prefix CHECK-A
+
+// main module is not embedded - error
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-stdlib -enable-experimental-feature Embedded -wmo
+// RUN: not %target-language-frontend -emit-ir -I %t %t/Main.code -parse-stdlib -wmo 2>&1 | %FileCheck %s --check-prefix CHECK-B
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+public fn foo() { }
+
+// BEGIN Main.code
+
+import MyModule
+
+public fn main() {
+  foo()
+}
+
+// CHECK-A: error: module 'MyModule' cannot be imported in embedded Codira mode
+// CHECK-B: error: module 'MyModule' cannot be imported because it was built with embedded Codira

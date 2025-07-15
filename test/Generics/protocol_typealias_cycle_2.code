@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype T where T == Self
+  static fn f() -> T
+}
+
+extension P {
+  typealias T = Self
+}

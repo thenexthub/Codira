@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -emit-module -parse-as-library -o %t
+// RUN: toolchain-bcanalyzer %t/differentiable_function.codemodule | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-sil-opt -enable-sil-verify-all %t/differentiable_function.codemodule -o - | %FileCheck %s
+
+// BCANALYZER-NOT: UnknownCode
+
+import _Differentiation
+
+fn a(_ f: @differentiable(reverse) (Float) -> Float) {}
+// CHECK: fn a(_ f: @differentiable(reverse) (Float) -> Float)
+
+fn b(_ f: @differentiable(_linear) (Float) -> Float) {}
+// CHECK: fn b(_ f: @differentiable(_linear) (Float) -> Float)
+
+fn c(_ f: @differentiable(reverse) (Float, @noDerivative Float) -> Float) {}
+// CHECK: fn c(_ f: @differentiable(reverse) (Float, @noDerivative Float) -> Float)
+
+fn d(_ f: @differentiable(reverse) (inout Float) -> ()) {}
+// CHECK: fn d(_ f: @differentiable(reverse) (inout Float) -> ())
+
+fn e(_ f: @differentiable(reverse) (inout Float, inout Float) -> ()) {}
+// CHECK: fn e(_ f: @differentiable(reverse) (inout Float, inout Float) -> ())
+
+fn f(_ f: @differentiable(reverse) (inout Float) -> Float) {}
+// CHECK: fn f(_ f: @differentiable(reverse) (inout Float) -> Float)
+
+fn g(_ f: @differentiable(reverse) (inout Float, Float) -> Float) {}
+// CHECK: fn g(_ f: @differentiable(reverse) (inout Float, Float) -> Float)

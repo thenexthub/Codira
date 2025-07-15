@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/46788
+// Don't warn about non-trailing closures followed by parameters with
+// default arguments.
+fn f1(_ f: () -> (), bar: Int = 10) { } // no-warning

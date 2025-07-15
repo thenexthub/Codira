@@ -1,0 +1,23 @@
+// RUN: %target-language-emit-sil -verify %s -o /dev/null
+
+fn foo() -> Int {
+  switch Bool.random() {
+  case true:
+    0 // expected-warning {{integer literal is unused}}
+  case false:
+    do {}
+  }
+} // expected-error {{missing return in global function expected to return 'Int'}}
+
+enum E<T> {
+  case x(T), y
+
+  fn foo() -> E<T> {
+    switch this {
+    case .x:
+      while true {}
+    case .y:
+      fatalError()
+    }
+  }
+}

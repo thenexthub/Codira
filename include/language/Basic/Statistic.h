@@ -1,4 +1,4 @@
-//===--- Statistic.h - Helpers for llvm::Statistic --------------*- C++ -*-===//
+//===--- Statistic.h - Helpers for toolchain::Statistic --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,46 +11,47 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_STATISTIC_H
-#define SWIFT_BASIC_STATISTIC_H
+#ifndef LANGUAGE_BASIC_STATISTIC_H
+#define LANGUAGE_BASIC_STATISTIC_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Timer.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Timer.h"
 #include <optional>
 
 #include <thread>
 #include <tuple>
 
-#define SWIFT_FUNC_STAT SWIFT_FUNC_STAT_NAMED(DEBUG_TYPE)
+#define LANGUAGE_FUNC_STAT LANGUAGE_FUNC_STAT_NAMED(DEBUG_TYPE)
 
-#define SWIFT_FUNC_STAT_NAMED(DEBUG_TYPE)                               \
+#define LANGUAGE_FUNC_STAT_NAMED(DEBUG_TYPE)                               \
   do {                                                                  \
-    static llvm::Statistic FStat = {DEBUG_TYPE, __func__, __func__};    \
+    static toolchain::Statistic FStat = {DEBUG_TYPE, __func__, __func__};    \
     ++FStat;                                                            \
   } while (0)
 
 // Helper class designed to consolidate reporting of LLVM statistics and timers
-// across swift compilations that typically invoke many drivers, each running
+// across language compilations that typically invoke many drivers, each running
 // many frontends. Additionally collects some cheap "always-on" statistics,
-// beyond those that are (compile-time) parameterized by -DLLVM_ENABLE_STATS
+// beyond those that are (compile-time) parameterized by -DTOOLCHAIN_ENABLE_STATS
 // (LLVM's stats are global and involve some amount of locking and mfences).
 //
 // Assumes it's given a process name and target name (the latter used as
 // decoration for its self-timer), and a directory to collect stats into, then:
 //
 //  - On construction:
-//    - Calls llvm::EnableStatistics(/*PrintOnExit=*/false)
-//    - Calls swift::enableCompilationTimers()
-//    - Starts an llvm::NamedRegionTimer for this process
+//    - Calls toolchain::EnableStatistics(/*PrintOnExit=*/false)
+//    - Calls language::enableCompilationTimers()
+//    - Starts an toolchain::NamedRegionTimer for this process
 //
 //  - On destruction:
 //    - Add any standard always-enabled stats about the process as a whole
 //    - Opens $dir/stats-$timestamp-$name-$random.json for writing
-//    - Calls llvm::PrintStatisticsJSON(ostream) and/or its own writer
+//    - Calls toolchain::PrintStatisticsJSON(ostream) and/or its own writer
 //
 // Generally we make one of these per-process: either early in the life of the
 // driver, or early in the life of the frontend.
@@ -78,7 +79,7 @@ struct FingerprintAndMembers;
 /// Returns 0 if the number of instructions executed could not be determined.
 uint64_t getInstructionsExecuted();
 
-// There are a handful of cases where the swift compiler can introduce
+// There are a handful of cases where the language compiler can introduce
 // counter-measurement noise via nondeterminism, especially via
 // parallelism; inhibiting all such cases reliably using existing avenues
 // is a bit tricky and depends both on delicate build-setting management
@@ -152,11 +153,11 @@ private:
   SmallString<128> StatsFilename;
   SmallString<128> TraceFilename;
   SmallString<128> ProfileDirname;
-  llvm::TimeRecord StartedTime;
+  toolchain::TimeRecord StartedTime;
   std::thread::id MainThreadID;
 
   // This is unique_ptr because NamedRegionTimer is non-copy-constructable.
-  std::unique_ptr<llvm::NamedRegionTimer> Timer;
+  std::unique_ptr<toolchain::NamedRegionTimer> Timer;
 
   SourceManager *SourceMgr;
   clang::SourceManager *ClangSourceMgr;
@@ -238,7 +239,7 @@ class FrontendStatsTracer
 
 public:
   UnifiedStatsReporter *Reporter;
-  llvm::TimeRecord SavedTime;
+  toolchain::TimeRecord SavedTime;
   StringRef EventName;
   const void *Entity;
   const UnifiedStatsReporter::TraceFormatter *Formatter;
@@ -278,7 +279,7 @@ public:
 // In particular cases, we do know how to format traced entities: we declare
 // explicit specializations of getTraceFormatter() here, matching the overloaded
 // constructors of FrontendStatsTracer above, where the _definitions_ live in
-// the upper-level files (in libswiftAST or libswiftSIL), and provide tracing
+// the upper-level files (in liblanguageAST or liblanguageSIL), and provide tracing
 // for those entity types. If you want to trace those types, it's assumed you're
 // linking with the object files that define the tracer.
 
@@ -408,12 +409,12 @@ make_tracer_direct(UnifiedStatsReporter *Reporter, StringRef Name, T Value) {
 
 template <typename T> struct is_pointerunion : std::false_type {};
 template <typename T, typename U>
-struct is_pointerunion<llvm::PointerUnion<T, U>> : std::true_type {};
+struct is_pointerunion<toolchain::PointerUnion<T, U>> : std::true_type {};
 
 template <typename T, typename U>
 FrontendStatsTracer make_tracer_pointerunion(UnifiedStatsReporter *Reporter,
                                              StringRef Name,
-                                             llvm::PointerUnion<T, U> Value) {
+                                             toolchain::PointerUnion<T, U> Value) {
   if (Value.template is<T>())
     return make_tracer_direct(Reporter, Name, Value.template get<T>());
   else
@@ -434,4 +435,4 @@ FrontendStatsTracer make_tracer(UnifiedStatsReporter *Reporter, StringRef Name,
 }
 
 } // namespace language
-#endif // SWIFT_BASIC_STATISTIC_H
+#endif // LANGUAGE_BASIC_STATISTIC_H

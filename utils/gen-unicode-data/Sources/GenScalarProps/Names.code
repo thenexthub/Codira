@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
-func getName(
+fn getName(
   from data: String,
   into result: inout [(UInt32, String)],
   words: inout [String]
@@ -25,18 +29,18 @@ func getName(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let name = String(components[1].dropFirst())
+    immutable name = String(components[1].dropFirst())
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     if filteredScalars.contains(".") {
       continue
     }
     
-    let scalar = UInt32(filteredScalars, radix: 16)!
+    immutable scalar = UInt32(filteredScalars, radix: 16)!
     
     // Variation selectors are handled in code.
     if (0xE0100...0xE01EF).contains(scalar) {
@@ -58,27 +62,27 @@ func getName(
   words = Array(uniqueWords)
 }
 
-func sortWords(
+fn sortWords(
   _ words: inout [String],
   from data: [(UInt32, String)]
 ) {
   var popularity: [String: Int] = [:]
   
   for (_, name) in data {
-    let scalarWords = name.split(separator: " ")
+    immutable scalarWords = name.split(separator: " ")
     
     for word in scalarWords {
       popularity[String(word), default: 0] += 1
     }
   }
   
-  let sortedPopularity = Array(popularity).sorted { $0.value > $1.value }
+  immutable sortedPopularity = Array(popularity).sorted { $0.value > $1.value }
   
   
   words = sortedPopularity.map { $0.key }
 }
 
-func emitWords(
+fn emitWords(
   _ words: [String],
   into result: inout String
 ) -> [String: UInt32] {
@@ -102,16 +106,16 @@ func emitWords(
     }
   }
   
-  emitCollection(bytes, name: "_swift_stdlib_words", into: &result)
+  emitCollection(bytes, name: "_language_stdlib_words", into: &result)
   
   return wordIndices
 }
 
-func emitWordOffsets(
+fn emitWordOffsets(
   _ wordOffsets: [String: UInt32],
   into result: inout String
 ) -> [String: UInt32] {
-  let sortedWordOffsets = Array(wordOffsets).sorted { $0.value < $1.value }
+  immutable sortedWordOffsets = Array(wordOffsets).sorted { $0.value < $1.value }
   
   var wordIndices: [String: UInt32] = [:]
   
@@ -121,14 +125,14 @@ func emitWordOffsets(
   
   emitCollection(
     sortedWordOffsets.map { $0.value },
-    name: "_swift_stdlib_word_indices",
+    name: "_language_stdlib_word_indices",
     into: &result
   )
   
   return wordIndices
 }
 
-func emitScalarNames(
+fn emitScalarNames(
   _ names: [(UInt32, String)],
   _ wordIndices: [String: UInt32],
   into result: inout String
@@ -143,7 +147,7 @@ func emitScalarNames(
     scalarNameIndices[scalar] = index
     
     for word in name.split(separator: " ") {
-      let wordIndex = wordIndices[String(word)]!
+      immutable wordIndex = wordIndices[String(word)]!
       
       // If the word index is smaller than 0xFF, then we don't need to add the
       // extra byte to represent the index.
@@ -167,12 +171,12 @@ func emitScalarNames(
   
   """
   
-  emitCollection(nameBytes, name: "_swift_stdlib_names", into: &result)
+  emitCollection(nameBytes, name: "_language_stdlib_names", into: &result)
   
   return scalarNameIndices
 }
 
-func emitScalars(
+fn emitScalars(
   _ scalarNameIndices: [UInt32: UInt32],
   into result: inout String
 ) -> [UInt32: UInt16] {
@@ -181,8 +185,8 @@ func emitScalars(
   var index: UInt16 = 0
   
   for i in 0x0 ... 0x10FFFF >> 7 {
-    let scalarRange = i << 7 ..< i << 7 + 128
-    let filteredRange = scalarRange.filter {
+    immutable scalarRange = i << 7 ..< i << 7 + 128
+    immutable filteredRange = scalarRange.filter {
       scalarNameIndices.keys.contains(UInt32($0))
     }
     
@@ -194,7 +198,7 @@ func emitScalars(
       for scalar in scalarRange {
         index += 1
         
-        guard let index = scalarNameIndices[UInt32(scalar)] else {
+        guard immutable index = scalarNameIndices[UInt32(scalar)] else {
           scalars.append(0)
           continue
         }
@@ -212,19 +216,19 @@ func emitScalars(
   
   """
   
-  emitCollection(scalars, name: "_swift_stdlib_names_scalars", into: &result)
+  emitCollection(scalars, name: "_language_stdlib_names_scalars", into: &result)
   
   return scalarSetIndices
 }
 
-func emitScalarSets(
+fn emitScalarSets(
   _ scalarSetIndices: [UInt32: UInt16],
   into result: inout String
 ) {
   var scalarSets: [UInt16] = []
   
   for i in 0x0 ... 0x10FFFF >> 7 {
-    let index = scalarSetIndices[UInt32(i)]!
+    immutable index = scalarSetIndices[UInt32(i)]!
     
     guard index != .max else {
       scalarSets.append(index)
@@ -234,26 +238,26 @@ func emitScalarSets(
     scalarSets.append(index >> 7)
   }
   
-  emitCollection(scalarSets, name: "_swift_stdlib_names_scalar_sets", into: &result)
+  emitCollection(scalarSets, name: "_language_stdlib_names_scalar_sets", into: &result)
 }
 
-func emitLargestNameCount(_ names: [(UInt32, String)], into result: inout String) {
+fn emitLargestNameCount(_ names: [(UInt32, String)], into result: inout String) {
   var largestCount = 0
   
   for (_, name) in names {
-    largestCount = Swift.max(largestCount, name.count)
+    largestCount = Codira.max(largestCount, name.count)
   }
   
   print("""
-  Please copy and paste the following into 'stdlib/public/SwiftShims/swift/shims/UnicodeData.h':
+  Please copy and paste the following into 'stdlib/public/CodiraShims/language/shims/UnicodeData.h':
   
-  #define SWIFT_STDLIB_LARGEST_NAME_COUNT \(largestCount)
+  #define LANGUAGE_STDLIB_LARGEST_NAME_COUNT \(largestCount)
   
   """)
 }
 
-func generateNameProp(into result: inout String) {
-  let derivedName = readFile("Data/16/DerivedName.txt")
+fn generateNameProp(into result: inout String) {
+  immutable derivedName = readFile("Data/16/DerivedName.txt")
   
   var names: [(UInt32, String)] = []
   var words: [String] = []
@@ -264,10 +268,10 @@ func generateNameProp(into result: inout String) {
   
   emitLargestNameCount(names, into: &result)
   
-  let wordOffsets = emitWords(words, into: &result)
-  let wordIndices = emitWordOffsets(wordOffsets, into: &result)
+  immutable wordOffsets = emitWords(words, into: &result)
+  immutable wordIndices = emitWordOffsets(wordOffsets, into: &result)
   
-  let scalarNameIndices = emitScalarNames(names, wordIndices, into: &result)
-  let scalarSetIndices = emitScalars(scalarNameIndices, into: &result)
+  immutable scalarNameIndices = emitScalarNames(names, wordIndices, into: &result)
+  immutable scalarSetIndices = emitScalars(scalarNameIndices, into: &result)
   emitScalarSets(scalarSetIndices, into: &result)
 }

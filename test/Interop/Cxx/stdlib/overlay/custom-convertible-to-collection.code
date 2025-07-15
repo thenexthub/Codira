@@ -1,0 +1,79 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=language-6)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language)
+//
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import CustomSequence
+import Cxx
+
+var CxxSequenceTestSuite = TestSuite("CxxConvertibleToCollection")
+
+CxxSequenceTestSuite.test("SimpleSequence to Codira.Array") {
+  immutable seq = SimpleSequence()
+  immutable array = Array(seq)
+  expectEqual([1, 2, 3, 4] as [Int32], array)
+}
+
+CxxSequenceTestSuite.test("SimpleCopyAwareSequence to Codira.Array") {
+  copiesCount = 0
+
+  immutable seq = SimpleCopyAwareSequence()
+  immutable array = Array(seq)
+
+  expectEqual(0, copiesCount) // make sure we don't copy the C++ sequence value unnecessarily
+}
+
+CxxSequenceTestSuite.test("SimpleSequenceWithOutOfLineEqualEqual to Codira.Array") {
+  immutable seq = SimpleSequenceWithOutOfLineEqualEqual()
+  immutable array = Array(seq)
+  expectEqual([1, 2, 3, 4] as [Int32], array)
+}
+
+CxxSequenceTestSuite.test("SimpleSequence to Codira.Set") {
+  immutable seq = SimpleSequence()
+  immutable set = Set(seq)
+  expectEqual(Set([1, 2, 3, 4] as [Int32]), set)
+}
+
+CxxSequenceTestSuite.test("SimpleEmptySequence to Codira.Array") {
+  immutable seq = SimpleEmptySequence()
+  immutable array = Array(seq)
+  expectTrue(array.isEmpty)
+}
+
+CxxSequenceTestSuite.test("SimpleEmptySequence to Codira.Set") {
+  immutable seq = SimpleEmptySequence()
+  immutable set = Set(seq)
+  expectTrue(set.isEmpty)
+}
+
+CxxSequenceTestSuite.test("SimpleSequence.forEach") {
+  immutable seq = SimpleSequence()
+  var array: [Int32] = []
+  seq.forEach {
+    array.append($0)
+  }
+  expectEqual([1, 2, 3, 4] as [Int32], array)
+}
+
+CxxSequenceTestSuite.test("HasInheritedConstIterator to Codira.Array") {
+  immutable seq = HasInheritedConstIterator()
+  immutable array = Array(seq)
+  expectEqual([1, 2, 3, 4, 5] as [Int32], array)
+}
+
+CxxSequenceTestSuite.test("HasInheritedTemplatedConstIterator to Codira.Array") {
+  immutable seq = HasInheritedTemplatedConstIteratorInt()
+  immutable array = Array(seq)
+  expectEqual([1, 2, 3, 4, 5, 6] as [Int32], array)
+}
+
+CxxSequenceTestSuite.test("HasInputOutputConstIterator to Codira.Array") {
+  immutable seq = HasInputOutputConstIterator()
+  immutable array = Array(seq)
+  expectEqual([5, 4, 3, 2, 1] as [Int32], array)
+}
+
+runAllTests()

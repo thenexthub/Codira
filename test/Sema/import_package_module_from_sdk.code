@@ -1,0 +1,43 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// --- Prepare SDK (.codemodule).
+// RUN: %empty-directory(%t/SDK)
+// RUN: mkdir -p %t/SDK/Frameworks/LibInSDK.framework/Modules/LibInSDK.codemodule
+// RUN: %target-language-frontend \
+// RUN:     -emit-module \
+// RUN:     -module-name LibInSDK \
+// RUN:     -package-name libPkg \
+// RUN:     -o %t/SDK/Frameworks/LibInSDK.framework/Modules/LibInSDK.codemodule/%module-target-triple.codemodule \
+// RUN:     -language-version 5 \
+// RUN:     %t/Lib.code
+
+// RUN: test -f %t/SDK/Frameworks/LibInSDK.framework/Modules/LibInSDK.codemodule/%module-target-triple.codemodule
+
+// RUN: %target-language-frontend -typecheck -verify -verify-ignore-unknown %t/Client1.code -package-name libPkg -sdk %t/SDK -I %t -I %t/SDK/Frameworks/LibInSDK.framework/Modules
+
+// RUN: %target-language-frontend -module-name LibLocal -emit-module -emit-module-path %t/LibLocal.codemodule -parse-as-library %t/Lib.code -package-name libPkg
+// RUN: test -f %t/LibLocal.codemodule
+
+// RUN: %target-language-frontend -typecheck -verify %t/Client2.code -package-name libPkg -I %t
+
+// RUN: rm %t/LibLocal.codemodule
+// RUN: not %target-language-frontend -typecheck %t/Client2.code -package-name libPkg -I %t  2>&1 | %FileCheck %s
+// CHECK: error: no such module 'LibLocal'
+
+//--- Lib.code
+package fn log(level: Int) {}
+
+//--- Client1.code
+import LibInSDK // expected-warning {{module 'LibInSDK' is in package 'libPkg' but was loaded from SDK; modules of the same package should be built locally from source only}}
+
+fn someFunc() {
+  log(level: 1)
+}
+
+//--- Client2.code
+import LibLocal
+
+fn someFunc() {
+  log(level: 1)
+}

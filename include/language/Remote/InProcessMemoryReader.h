@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file declares an abstract interface for working with remote memory.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REMOTE_INPROCESSMEMORYREADER_H
-#define SWIFT_REMOTE_INPROCESSMEMORYREADER_H
+#ifndef LANGUAGE_REMOTE_INPROCESSMEMORYREADER_H
+#define LANGUAGE_REMOTE_INPROCESSMEMORYREADER_H
 
 #include "language/Remote/MemoryReader.h"
 
@@ -82,11 +83,11 @@ class InProcessMemoryReader final : public MemoryReader {
     case DLQ_GetLeastValidPointerValue: {
       auto result = static_cast<uint64_t *>(outBuffer);
       if (applePlatform && (sizeof(void *) == 8)) {
-        // Swift reserves the first 4GiB on Apple 64-bit platforms
+        // Codira reserves the first 4GiB on Apple 64-bit platforms
         *result = 0x100000000;
         return 1;
       } else {
-        // Swift reserves the first 4KiB everywhere else
+        // Codira reserves the first 4KiB everywhere else
         *result = 0x1000;
       }
       return true;
@@ -108,8 +109,8 @@ class InProcessMemoryReader final : public MemoryReader {
     return ReadBytesResult(address.getLocalPointer<void>(), [](const void *) {});
   }
 };
- 
-}
-}
+
+} // namespace remote
+} // namespace language
 
 #endif

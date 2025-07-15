@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for patterns, analyzing a
@@ -30,7 +31,7 @@
 #include "language/AST/ParameterList.h"
 #include "language/AST/PropertyWrappers.h"
 #include "language/AST/TypeCheckRequests.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/Support/SaveAndRestore.h"
 #include <utility>
 using namespace language;
 
@@ -96,7 +97,7 @@ filterForEnumElement(DeclContext *DC, SourceLoc UseLoc,
     // We only care about enum members, and must either have an EnumElementDecl,
     // or a VarDecl which could be wrapping an underlying enum element.
     // FIXME: We check this up-front to avoid kicking InterfaceTypeRequest
-    // below to help workaround https://github.com/swiftlang/swift/issues/80657
+    // below to help workaround https://github.com/languagelang/language/issues/80657
     // for non-enum cases. The proper fix is to move this filtering logic
     // into the constraint system.
     if (!e->getDeclContext()->getSelfEnumDecl())
@@ -141,7 +142,7 @@ static EnumElementDecl *
 lookupUnqualifiedEnumMemberElement(DeclContext *DC, DeclNameRef name,
                                    SourceLoc UseLoc) {
   // FIXME: We should probably pay attention to argument labels someday.
-  name = name.withoutArgumentLabels();
+  name = name.withoutArgumentLabels(DC->getASTContext());
 
   auto lookup =
       TypeChecker::lookupUnqualified(DC, name, UseLoc,
@@ -156,7 +157,7 @@ static LookupResult lookupMembers(DeclContext *DC, Type ty, DeclNameRef name,
     return LookupResult();
 
   // FIXME: We should probably pay attention to argument labels someday.
-  name = name.withoutArgumentLabels();
+  name = name.withoutArgumentLabels(DC->getASTContext());
 
   // Look up the case inside the enum.
   // FIXME: We should be able to tell if this is a private lookup.
@@ -181,7 +182,7 @@ static bool hasEnumElementOrStaticVarMember(DeclContext *DC, Type ty,
                                             DeclNameRef name,
                                             SourceLoc UseLoc) {
   LookupResult foundElements = lookupMembers(DC, ty, name, UseLoc);
-  return llvm::any_of(foundElements, [](const LookupResultEntry &result) {
+  return toolchain::any_of(foundElements, [](const LookupResultEntry &result) {
     auto *VD = result.getValueDecl();
     if (isa<VarDecl>(VD) && VD->isStatic())
       return true;
@@ -224,6 +225,11 @@ static DeclRefTypeRepr *translateExprToDeclRefTypeRepr(Expr *E, ASTContext &C) {
     }
 
     DeclRefTypeRepr *visitUnresolvedDeclRefExpr(UnresolvedDeclRefExpr *udre) {
+      if (!udre->getName().isSimpleName() ||
+          udre->getName().isOperator() ||
+          udre->getName().isSpecial())
+        return nullptr;
+
       return UnqualifiedIdentTypeRepr::create(C, udre->getNameLoc(),
                                               udre->getName());
     }
@@ -771,13 +777,27 @@ ExprPatternMatchRequest::evaluate(Evaluator &evaluator,
       DeclNameLoc(EP->getLoc()));
   matchOp->setImplicit();
 
+  auto subExpr = EP->getSubExpr();
+
+  // Pull off the outer "unsafe" expression.
+  UnsafeExpr *unsafeExpr = dyn_cast<UnsafeExpr>(subExpr);
+  if (unsafeExpr) {
+    subExpr = unsafeExpr->getSubExpr();
+  }
+
   // Note we use getEndLoc here to have the BinaryExpr source range be the same
   // as the expr pattern source range.
   auto *matchVarRef =
       new (ctx) DeclRefExpr(matchVar, DeclNameLoc(EP->getEndLoc()),
                             /*Implicit=*/true);
-  auto *matchCall = BinaryExpr::create(ctx, EP->getSubExpr(), matchOp,
+  Expr *matchCall = BinaryExpr::create(ctx, subExpr, matchOp,
                                        matchVarRef, /*implicit*/ true);
+
+  // If there was an "unsafe", put it outside of the match call.
+  if (unsafeExpr) {
+    matchCall = new (ctx) UnsafeExpr(unsafeExpr->getLoc(), matchCall);
+  }
+
   return {matchVar, matchCall};
 }
 
@@ -916,7 +936,7 @@ Type PatternTypeRequest::evaluate(Evaluator &evaluator,
         return OptionalType::get(type);
       }
     }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
 
   case PatternKind::Is:
@@ -932,7 +952,7 @@ Type PatternTypeRequest::evaluate(Evaluator &evaluator,
 
     return Context.TheUnresolvedType;
   }
-  llvm_unreachable("bad pattern kind!");
+  toolchain_unreachable("bad pattern kind!");
 }
 
 /// Potentially tuple/untuple a pattern before passing it to the pattern engine.
@@ -945,8 +965,8 @@ Type PatternTypeRequest::evaluate(Evaluator &evaluator,
 ///
 /// We also emit diagnostics and potentially a fix-it to help the user.
 ///
-/// See https://github.com/apple/swift/issues/53557 and
-/// https://github.com/apple/swift/issues/53611 for more discussion.
+/// See https://github.com/apple/language/issues/53557 and
+/// https://github.com/apple/language/issues/53611 for more discussion.
 //
 // type ~ (T1, ..., Tn) (n >= 2)
 //   1a. pat ~ ((P1, ..., Pm)) (m >= 2) -> untuple the pattern
@@ -985,7 +1005,7 @@ void repairTupleOrAssociatedValuePatternIfApplicable(
       // We might also have code like
       //
       // enum Upair { case upair(Int, Int) }
-      // func f(u: Upair) { switch u { case .upair(let (x, y)): () } }
+      // fn f(u: Upair) { switch u { case .upair(let (x, y)): () } }
       //
       // This needs a more complex rearrangement to fix the code. So only
       // apply the fix-it if we have a tuple immediately inside.
@@ -1071,9 +1091,9 @@ NullablePtr<Pattern> TypeChecker::trySimplifyExprPattern(ExprPattern *EP,
       ctx.Diags
           .diagnose(NLE->getLoc(), diag::value_type_comparison_with_nil_illegal,
                     patternTy)
-          .warnUntilSwiftVersion(6);
+          .warnUntilCodiraVersion(6);
 
-      if (ctx.isSwiftVersionAtLeast(6))
+      if (ctx.isCodiraVersionAtLeast(6))
         return nullptr;
     }
   }
@@ -1089,7 +1109,7 @@ NullablePtr<Pattern> TypeChecker::trySimplifyExprPattern(ExprPattern *EP,
 /// Perform top-down type coercion on the given pattern.
 Pattern *TypeChecker::coercePatternToType(
     ContextualPattern pattern, Type type, TypeResolutionOptions options,
-    llvm::function_ref<std::optional<Pattern *>(Pattern *, Type)>
+    toolchain::function_ref<std::optional<Pattern *>(Pattern *, Type)>
         tryRewritePattern) {
   auto P = pattern.getPattern();
   auto dc = pattern.getDeclContext();
@@ -1393,8 +1413,8 @@ Pattern *TypeChecker::coercePatternToType(
     if (numExtraOptionals > 0) {
       Pattern *sub = IP;
       auto extraOpts =
-          llvm::drop_end(inputTypeOptionals, castTypeOptionals.size());
-      for (auto extraOptTy : llvm::reverse(extraOpts)) {
+          toolchain::drop_end(inputTypeOptionals, castTypeOptionals.size());
+      for (auto extraOptTy : toolchain::reverse(extraOpts)) {
         auto some = Context.getOptionalSomeDecl();
         sub = EnumElementPattern::createImplicit(extraOptTy, IP->getStartLoc(),
                                                  DeclNameLoc(IP->getEndLoc()),
@@ -1546,7 +1566,7 @@ Pattern *TypeChecker::coercePatternToType(
                 // 'none' case in T. Add as many '?' as needed to look though
                 // all the optionals.
                 std::string fixItString = "none";
-                llvm::for_each(allOptionals,
+                toolchain::for_each(allOptionals,
                                [&](const Type) { fixItString += "?"; });
                 diags.diagnose(
                         EEP->getLoc(),
@@ -1714,7 +1734,7 @@ Pattern *TypeChecker::coercePatternToType(
     P->setType(type);
     return P;
   }
-  llvm_unreachable("bad pattern kind!");
+  toolchain_unreachable("bad pattern kind!");
 }
 
 /// Coerce the specified parameter list of a ClosureExpr to the specified

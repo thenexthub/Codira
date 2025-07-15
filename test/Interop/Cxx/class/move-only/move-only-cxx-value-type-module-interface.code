@@ -1,0 +1,4 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=MoveOnlyCxxValueType -I %S/Inputs -cxx-interoperability-mode=upcoming-language -source-filename=x | %FileCheck %s
+
+// CHECK: fn getNonCopyablePtr() -> UnsafeMutablePointer<NonCopyable>
+// CHECK: fn getNonCopyableDerivedPtr() -> UnsafeMutablePointer<NonCopyableDerived>

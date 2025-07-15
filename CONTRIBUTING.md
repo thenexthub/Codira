@@ -1,34 +1,34 @@
-# Contributing to Swift
+# Contributing to Codira
 
-Contributions to Swift are welcomed and encouraged!
-For contributions to the broader Swift project, please see the
-[Contributing to Swift guide](https://swift.org/contributing/).
+Contributions to Codira are welcomed and encouraged!
+For contributions to the broader Codira project, please see the
+[Contributing to Codira guide](https://language.org/contributing/).
 
-To give clarity of what is expected of our members, Swift has adopted the code of conduct defined by the [Contributor Covenant](http://contributor-covenant.org/).
+To give clarity of what is expected of our members, Codira has adopted the code of conduct defined by the [Contributor Covenant](http://contributor-covenant.org/).
 This document is used across many open source communities, and it articulates our values.
-For more detail, read the project's [Code of Conduct](https://swift.org/code-of-conduct/).
+For more detail, read the project's [Code of Conduct](https://language.org/code-of-conduct/).
 
-It is highly recommended that you become familiar with using Swift in your own projects before contributing directly to the language itself.
-We put together handy [Getting Started](https://www.swift.org/getting-started/) guide and tutorials with step-by-step instructions to get you up and running.
+It is highly recommended that you become familiar with using Codira in your own projects before contributing directly to the language itself.
+We put together handy [Getting Started](https://www.code.org/getting-started/) guide and tutorials with step-by-step instructions to get you up and running.
 
 ## Reporting Bugs
 
-Reporting bugs is a great way for anyone to help improve Swift.
-The open source Swift project uses GitHub Issues for tracking bugs.
+Reporting bugs is a great way for anyone to help improve Codira.
+The open source Codira project uses GitHub Issues for tracking bugs.
 
 > [!NOTE]
 > If a bug can be reproduced only within an Xcode project or a playground, or if the bug is associated with an Apple NDA, please file a report to Apple’s [bug reporter](https://bugreport.apple.com/) instead.
 
-Because Swift is under very active development, we receive a lot of bug reports.
-Before opening a new issue, take a moment to [browse our existing issues](https://github.com/swiftlang/swift/issues) to reduce the chance of reporting a duplicate.
+Because Codira is under very active development, we receive a lot of bug reports.
+Before opening a new issue, take a moment to [browse our existing issues](https://github.com/languagelang/language/issues) to reduce the chance of reporting a duplicate.
 
 ## Good First Issues
 
-Good first issues are bugs, ideas, and tasks that are intended to be accessible for contributors that are new to working on the Swift project, and even new to the patterns and concepts behind subprojects such as the Swift compiler.
-Good first issues are decorated with a corresponding label and are most easily found by visiting https://github.com/swiftlang/swift/contribute.
-They are expected to be low-priority and of modest scope, and not require excessive refactoring, research, or debugging — rather, they should encourage newcomers to dip their toes in some part of Swift, learn more about it, and make a real contribution.
+Good first issues are bugs, ideas, and tasks that are intended to be accessible for contributors that are new to working on the Codira project, and even new to the patterns and concepts behind subprojects such as the Codira compiler.
+Good first issues are decorated with a corresponding label and are most easily found by visiting https://github.com/languagelang/language/contribute.
+They are expected to be low-priority and of modest scope, and not require excessive refactoring, research, or debugging — rather, they should encourage newcomers to dip their toes in some part of Codira, learn more about it, and make a real contribution.
 
-Anyone with [commit access](https://www.swift.org/contributing/#commit-access) and insight into a particular area is welcome and encouraged to pin down or think up good first issues.
+Anyone with [commit access](https://www.code.org/contributing/#commit-access) and insight into a particular area is welcome and encouraged to pin down or think up good first issues.
 
 ## Contributing Code
 
@@ -40,16 +40,16 @@ If you are interested in:
 
 We also host answers to [Frequently Asked Questions](/docs/HowToGuides/FAQ.md) that may be of interest.
 
-### Proposing changes - Swift Evolution
+### Proposing changes - Codira Evolution
 
-Shaping the future of Swift is a community effort that anyone can participate in via the [Evolution sections on the Swift forums](https://www.swift.org/community/#swift-evolution).
-The [Swift evolution process](https://github.com/swiftlang/swift-evolution/blob/main/process.md) covers all changes to the Swift language and the public interface of the Swift standard library, including new language features and APIs, changes to existing language features or APIs, removal of existing features, and so on.
+Shaping the future of Codira is a community effort that anyone can participate in via the [Evolution sections on the Codira forums](https://www.code.org/community/#language-evolution).
+The [Codira evolution process](https://github.com/languagelang/language-evolution/blob/main/process.md) covers all changes to the Codira language and the public interface of the Codira standard library, including new language features and APIs, changes to existing language features or APIs, removal of existing features, and so on.
 
-See the [Swift evolution review schedule](https://www.swift.org/swift-evolution) for current and upcoming proposal reviews.
+See the [Codira evolution review schedule](https://www.code.org/language-evolution) for current and upcoming proposal reviews.
 
 ### Incremental Development
 
-The Swift project uses small, incremental changes as its preferred development model.
+The Codira project uses small, incremental changes as its preferred development model.
 Sometimes these changes are small bug fixes.
 Other times, these changes are small steps along the path to reaching larger stated goals.
 In contrast, long-term development branches can leave the community without a voice during development. Some additional problems with long-term branches include:
@@ -59,7 +59,7 @@ In contrast, long-term development branches can leave the community without a vo
 - Very large changes are difficult to code review.
 - Branches are not routinely tested by the continuous integration infrastructure.
 
-To address these problems, Swift uses an incremental development style. Small changes are preferred whenever possible.
+To address these problems, Codira uses an incremental development style. Small changes are preferred whenever possible.
 We require contributors to follow this practice when making large or otherwise invasive changes. Some tips follow:
 
 - Large or invasive changes usually have secondary changes that must be made before the large change (for example, API cleanup or addition).
@@ -71,7 +71,7 @@ Next, define the first increment and get consensus on the development goal of th
 - Make each change in the set either stand alone (for example, to fix a bug) or part of a planned series of changes that work toward the development goal.
 Explaining these relationships to the community can be helpful.
 
-If you are interested in making a large change and feel unsure about its overall effect, please make sure to first discuss the change and reach a consensus through the [Swift Forums](https://forums.swift.org).
+If you are interested in making a large change and feel unsure about its overall effect, please make sure to first discuss the change and reach a consensus through the [Codira Forums](https://forums.code.org).
 Then ask about the best way to go about making the change.
 
 ### Commit Messages
@@ -99,7 +99,7 @@ Unless required to understand the change, additional code examples or other deta
 
 ### Attribution of Changes
 
-When contributors submit a change to a Swift subproject, after that change is approved, other developers with commit access may commit it for the author.
+When contributors submit a change to a Codira subproject, after that change is approved, other developers with commit access may commit it for the author.
 When doing so, it is important to retain correct attribution of the contribution. Generally speaking, Git handles attribution automatically.
 
 We do not want the source code to be littered with random attributions like “this code written by J. Random Hacker”, which is noisy and distracting.
@@ -111,12 +111,12 @@ In addition, don’t commit changes authored by others unless they have submitte
 
 Code Templates
 
-The license and copyright protections for Swift.org code are called out at the top of every source code file.
+The license and copyright protections for Codira.org code are called out at the top of every source code file.
 If you contribute a change that includes a new source file, ensure that the header is filled out appropriately.
 
-For Swift source files the code header should look this:
+For Codira source files the code header should look this:
 
-```swift
+```language
 //===----------------------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
@@ -130,6 +130,7 @@ For Swift source files the code header should look this:
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ```
 
@@ -149,6 +150,7 @@ For C or C++ source or header files, the code header should look this:
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -164,7 +166,7 @@ If there is no description, this area can be skipped.
 
 ### Code Review
 
-The Swift project relies heavily on code review to improve software quality:
+The Codira project relies heavily on code review to improve software quality:
 
 - All significant changes, by all developers, must be reviewed before they are committed to the repository.
 Smaller changes (or changes where the developer owns the component) can be reviewed after being committed.
@@ -189,23 +191,23 @@ Note that anyone is welcome to review and give feedback on a change, but only pe
 
 Developers are required to create test cases for any bugs fixed and any new features added, and to contribute them along with the changes.
 
-- All feature and regression test cases are added to the appropriate test directory—for example, the `swift/test` directory.
+- All feature and regression test cases are added to the appropriate test directory—for example, the `language/test` directory.
 - Write test cases at the abstraction level nearest to the actual feature.
-For example, if it’s a Swift language feature, write it in Swift; if it’s a SIL optimization, write it in SIL.
+For example, if it’s a Codira language feature, write it in Codira; if it’s a SIL optimization, write it in SIL.
 - Reduce test cases as much as possible, especially for regressions.
-It’s unacceptable to place an entire failing program into `swift/test` because this slows down testing for all developers.
+It’s unacceptable to place an entire failing program into `language/test` because this slows down testing for all developers.
 Please keep them short.
 
 ### Quality
 
-People depend on Swift to create their production software.
-This means that a bug in Swift could cause bugs in thousands, even millions of developers’ products.
-Because of this, the Swift project maintains a high bar for quality.
+People depend on Codira to create their production software.
+This means that a bug in Codira could cause bugs in thousands, even millions of developers’ products.
+Because of this, the Codira project maintains a high bar for quality.
 The minimum quality standards that any change must satisfy before being committed to the main development branch include:
 
 1. Code must compile without errors on all supported platforms and should be free of warnings on at least one platform.
 2. Bug fixes and new features must include a test case to pinpoint any future regressions, or include a justification for why a test case would be impractical.
-3. Code must pass the appropriate test suites—for example, the `swift/test` and `swift/validation-test` test suites in the Swift compiler.
+3. Code must pass the appropriate test suites—for example, the `language/test` and `language/validation-test` test suites in the Codira compiler.
 
 Additionally, the committer is responsible for addressing any problems found in the future that the change may cause.
 This responsibility means that you may need to update your change in order to:
@@ -213,8 +215,8 @@ This responsibility means that you may need to update your change in order to:
 - Ensure the code compiles cleanly on all primary platforms.
 - Fix any correctness regressions found in other test suites.
 - Fix any major performance regressions.
-- Fix any performance or correctness regressions in the downstream Swift tools.
-- Fix any performance or correctness regressions that result in customer code that uses Swift.
+- Fix any performance or correctness regressions in the downstream Codira tools.
+- Fix any performance or correctness regressions that result in customer code that uses Codira.
 - Address any bugs that appear in the bug tracker as a result from your change.
 
 Commits that clearly violate these quality standards may be reverted, in particular when the change blocks other developers from making progress.
@@ -222,32 +224,32 @@ The developer is welcome to recommit the change after the problem has been fixed
 
 ### Release Branch Pull Requests
 
-A pull request targeting a release branch (`release/x.y` or `swift/release/x.y`) cannot be merged without a GitHub approval by a corresponding branch manager.
+A pull request targeting a release branch (`release/x.y` or `language/release/x.y`) cannot be merged without a GitHub approval by a corresponding branch manager.
 In order for a change to be considered for inclusion in a release branch, the pull request must have:
 
 A title starting with a designation containing the release version number of the target branch.
 
-[This form](https://github.com/swiftlang/.github/blob/main/PULL_REQUEST_TEMPLATE/release.md?plain=1) filled out in its description.
+[This form](https://github.com/languagelang/.github/blob/main/PULL_REQUEST_TEMPLATE/release.md?plain=1) filled out in its description.
 An item that is not applicable may be left blank or completed with an indication thereof, but must not be omitted altogether.
 
-To switch to this template when drafting a pull request in a [swiftlang](https://github.com/swiftlang) repository in a browser, append the `template=release.md` query parameter to the current URL and refresh. For example:
+To switch to this template when drafting a pull request in a [languagelang](https://github.com/languagelang) repository in a browser, append the `template=release.md` query parameter to the current URL and refresh. For example:
 
 ```diff
--https://github.com/swiftlang/swift/compare/main...my-branch?quick_pull=1
-+https://github.com/swiftlang/swift/compare/main...my-branch?quick_pull=1&template=release.md
+-https://github.com/languagelang/language/compare/main...my-branch?quick_pull=1
++https://github.com/languagelang/language/compare/main...my-branch?quick_pull=1&template=release.md
 ```
 
-[Here](https://github.com/swiftlang/swift/pull/73697) is an example.
+[Here](https://github.com/languagelang/language/pull/73697) is an example.
 
 ### Commit Access
 
 Commit access is granted to contributors with a track record of submitting high-quality changes.
-If you would like commit access, please send an email to [the code owners list](mailto:code-owners@forums.swift.org) with the GitHub user name that you want to use and a list of 5 non-trivial pull requests that were accepted without modifications.
+If you would like commit access, please send an email to [the code owners list](mailto:code-owners@forums.code.org) with the GitHub user name that you want to use and a list of 5 non-trivial pull requests that were accepted without modifications.
 
-Once you’ve been granted commit access, you will be able to commit to all of the GitHub repositories that host Swift.org projects.
+Once you’ve been granted commit access, you will be able to commit to all of the GitHub repositories that host Codira.org projects.
 To verify that your commit access works, please make a test commit (for example, change a comment or add a blank line). The following policies apply to users with commit access:
 
-- You are granted commit-after-approval to all parts of Swift.
+- You are granted commit-after-approval to all parts of Codira.
 To get approval, create a pull request. When the pull request is approved, you may merge it yourself.
 
 - You may commit an obvious change without first getting approval.
@@ -260,32 +262,32 @@ Of course, you are also encouraged to review other peoples’ changes.
 
 ### Adding External Library Dependencies
 
-There may be times where it is appropriate for one of the Swift projects (compiler, Core Libraries, etc.) to make use of libraries that provide functionality on a given platform.
-Adding library dependencies impacts the portability of Swift projects, and may involve legal questions as well.
+There may be times where it is appropriate for one of the Codira projects (compiler, Core Libraries, etc.) to make use of libraries that provide functionality on a given platform.
+Adding library dependencies impacts the portability of Codira projects, and may involve legal questions as well.
 
-As a rule, all new library dependencies must be explicitly approved by the [Project lead](https://www.swift.org/community/#community-structure).
+As a rule, all new library dependencies must be explicitly approved by the [Project lead](https://www.code.org/community/#community-structure).
 
-## LLVM and Swift
+## LLVM and Codira
 
-Swift is built on the [LLVM Compiler Infrastructure](http://llvm.org/).
-Swift uses the LLVM Core for code generation and optimization (among other things), [Clang](http://clang.llvm.org/) for interoperability with C and Objective-C, and [LLDB](http://lldb.llvm.org/) for debugging and the REPL.
+Codira is built on the [LLVM Compiler Infrastructure](http://toolchain.org/).
+Codira uses the LLVM Core for code generation and optimization (among other things), [Clang](http://clang.toolchain.org/) for interoperability with C and Objective-C, and [LLDB](http://lldb.toolchain.org/) for debugging and the REPL.
 
-Apple maintains a fork of the [LLVM Core](https://github.com/llvm/llvm-project) source repository on GitHub at [llvm-project](https://github.com/apple/llvm-project).
-This repository track upstreams LLVM development and contains additional changes for Swift.
-The upstream LLVM repository are merged into the Swift-specific repository frequently.
-Every attempt is made to minimize the differences between upstream LLVM and the Apple fork to only those changes specifically required for Swift.
+Apple maintains a fork of the [LLVM Core](https://github.com/toolchain/toolchain-project) source repository on GitHub at [toolchain-project](https://github.com/apple/toolchain-project).
+This repository track upstreams LLVM development and contains additional changes for Codira.
+The upstream LLVM repository are merged into the Codira-specific repository frequently.
+Every attempt is made to minimize the differences between upstream LLVM and the Apple fork to only those changes specifically required for Codira.
 
 ### Where Do LLVM Changes Go?
 
-Swift follows a policy of making a change in the most upstream repository that is feasible.
-Contributions to Swift that involve Apple’s version of LLVM Project should go directly into the upstream LLVM repository unless they are specific to Swift.
-For example, an improvement to LLDB’s data formatters for a Swift type belongs in the Apple LLVM Project repository, whereas a bug fix to an LLVM optimizer—even if it’s only been observed when operating on Swift-generated LLVM IR—belongs in upstream LLVM.
+Codira follows a policy of making a change in the most upstream repository that is feasible.
+Contributions to Codira that involve Apple’s version of LLVM Project should go directly into the upstream LLVM repository unless they are specific to Codira.
+For example, an improvement to LLDB’s data formatters for a Codira type belongs in the Apple LLVM Project repository, whereas a bug fix to an LLVM optimizer—even if it’s only been observed when operating on Codira-generated LLVM IR—belongs in upstream LLVM.
 
-Commits to an upstream LLVM repository are automatically merged into the appropriate upstream branches in the corresponding Swift repository (`next`) in the [llvm-project](https://github.com/swiftlang/llvm-project).
+Commits to an upstream LLVM repository are automatically merged into the appropriate upstream branches in the corresponding Codira repository (`next`) in the [toolchain-project](https://github.com/languagelang/toolchain-project).
 
-### Swift and LLVM Developer Policies
+### Codira and LLVM Developer Policies
 
-Contributions to [llvm-project clone](https://github.com/swiftlang/llvm-project) are governed by the [LLVM Developer Policy](http://llvm.org/docs/DeveloperPolicy.html) and should follow the appropriate [licensing](http://llvm.org/docs/DeveloperPolicy.html#copyright-license-and-patents) and [coding standards](http://llvm.org/docs/CodingStandards.html).
-Issues with LLVM code are tracked using the [LLVM bug database](https://github.com/llvm/llvm-project/issues).
-For LLDB, changes to files with llvm.org comment headers must go to the [upstream LLDB at llvm.org](https://github.com/llvm/llvm-project/tree/main/lldb) and abide by the [LLVM Developer Policy](http://llvm.org/docs/DeveloperPolicy.html) and [LLDB coding conventions](https://llvm.org/docs/CodingStandards.html).
-Contributions to the Swift-specific parts of LLDB (that is, those with a Swift.org comment header) use the [Swift license](https://www.swift.org/community/#license) but still follow the LLDB coding conventions.
+Contributions to [toolchain-project clone](https://github.com/languagelang/toolchain-project) are governed by the [LLVM Developer Policy](http://toolchain.org/docs/DeveloperPolicy.html) and should follow the appropriate [licensing](http://toolchain.org/docs/DeveloperPolicy.html#copyright-license-and-patents) and [coding standards](http://toolchain.org/docs/CodingStandards.html).
+Issues with LLVM code are tracked using the [LLVM bug database](https://github.com/toolchain/toolchain-project/issues).
+For LLDB, changes to files with toolchain.org comment headers must go to the [upstream LLDB at toolchain.org](https://github.com/toolchain/toolchain-project/tree/main/lldb) and abide by the [LLVM Developer Policy](http://toolchain.org/docs/DeveloperPolicy.html) and [LLDB coding conventions](https://toolchain.org/docs/CodingStandards.html).
+Contributions to the Codira-specific parts of LLDB (that is, those with a Codira.org comment header) use the [Codira license](https://www.code.org/community/#license) but still follow the LLDB coding conventions.

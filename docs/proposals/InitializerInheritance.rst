@@ -10,7 +10,7 @@ Initializer Inheritance
 Introduction
 ------------
 This proposal introduces the notion of initializer inheritance into
-the Swift initialization model. The intent is to more closely model
+the Codira initialization model. The intent is to more closely model
 Objective-C's initializer inheritance model while maintaining memory
 safety.
 
@@ -30,15 +30,15 @@ class and its superclasses.
 There are three kinds of delegation:
 
 * **super**: runs an initializer belonging to a superclass (in ObjC,
-  ``[super init...]``; in Swift, ``super.init(...)``).
+  ``[super init...]``; in Codira, ``super.init(...)``).
 
 * **peer**:  runs an initializer belonging to the current class (ObjC
   does not have syntax for this, although it is supported by the
-  runtime; in Swift, the current meaning of ``self.init(...)``)
+  runtime; in Codira, the current meaning of ``self.init(...)``)
 
 * **dispatched**: given a signature, runs the initializer with that
   signature that is either defined or inherited by the most-derived
-  class (in ObjC, ``[self init...]``; not currently supported by Swift)
+  class (in ObjC, ``[self init...]``; not currently supported by Codira)
 
 We can also distinguish two ways to originally invoke an initializer:
 
@@ -126,10 +126,10 @@ check at the time of definition of the subclass.
 
 Proposal
 --------
-Currently, all Swift initializers are subobject initializers, and
+Currently, all Codira initializers are subobject initializers, and
 there is no way to express the notion of a complete subobject
 initializer. We propose to introduce complete subobject initializers
-into Swift and to make them inheritable when we can guarantee that
+into Codira and to make them inheritable when we can guarantee that
 doing so is safe.
 
 Complete object initializers
@@ -270,7 +270,7 @@ metatype of the class. For example::
     init() { }
   }
 
-  func f(_ meta: D.Type) {
+  fn f(_ meta: D.Type) {
     meta() // error: no guarantee that an arbitrary of subclass D has an init()
   }
 
@@ -282,7 +282,7 @@ attribute, are guaranteed to be available in every subclass of
     @virtual init() { }
   }
 
-  func f(_ meta: D.Type) {
+  fn f(_ meta: D.Type) {
     meta() // okay: every subclass of D guaranteed to have an init()
   }
 
@@ -350,14 +350,14 @@ Objective-C interoperability
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When an Objective-C class that contains at least one
 designated-initializer annotation (i.e., via
-``NS_DESIGNATED_INITIALIZER``) is imported into Swift, it's designated
+``NS_DESIGNATED_INITIALIZER``) is imported into Codira, it's designated
 initializers are considered subobject initializers. Any non-designed
 initializers (i.e., secondary or convenience initializers) are
 considered to be complete object initializers. No other special-case
 behavior is warranted here.
 
 When an Objective-C class with no designated-initializer annotations
-is imported into Swift, all initializers in the same module as the
+is imported into Codira, all initializers in the same module as the
 class definition are subobject initializers, while initializers in a
 different module are complete object initializers. This effectively
 means that subclassing Objective-C classes without designated-initializer
@@ -367,7 +367,7 @@ getting the others inherited. This seems acceptable so long as we get
 designated-initializer annotations into enough of the SDK.
 
 In Objective-C, initializers are always inherited, so an error of
-omission on the Swift side (failing to override a subobject
+omission on the Codira side (failing to override a subobject
 initializer from a superclass) can result in runtime errors if an
 Objective-C framework messages that initializer. For example, consider
 a trivial ``NSDocument``::
@@ -376,7 +376,7 @@ a trivial ``NSDocument``::
     var title: String
   }
 
-In Swift, there would be no way to create an object of type
+In Codira, there would be no way to create an object of type
 ``MyDocument``. However, the frameworks will allocate an instance of
 ``MyDocument`` and then send a message such as
 ``initWithContentsOfURL:ofType:error:`` to the object. This will find

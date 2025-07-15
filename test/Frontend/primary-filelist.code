@@ -1,0 +1,33 @@
+// RUN: not %target-language-frontend -primary-filelist 2>&1 | %FileCheck -check-prefix=CHECK-EXPECTEDARGUMENT %s
+// CHECK-EXPECTEDARGUMENT: error: missing argument value for '-primary-filelist', expected 1 argument(s)
+// RUN: not %target-language-frontend -primary-filelist nonexistent 2>&1 | %FileCheck -check-prefix=CHECK-BADFILE %s
+// CHECK-BADFILE: error: cannot open file
+
+// RUN: %empty-directory(%t)
+// RUN: echo '%S/Inputs/filelist-other.code' >> %t/input.txt
+// RUN: echo '%s' >> %t/input.txt
+// RUN: echo '%S/../Inputs/empty.code' >> %t/input.txt
+// RUN: echo '%s' >> %t/primary.txt
+// RUN: not %target-language-frontend -typecheck -filelist %t/input.txt -primary-filelist %t/primary.txt 2>&1 | %FileCheck %s
+// RUN: not %target-language-frontend -typecheck '%S/Inputs/filelist-other.code' '%s' -primary-filelist %t/primary.txt 2>&1 | %FileCheck %s
+
+// RUN: %empty-directory(%t)
+// RUN: echo '%S/Inputs/filelist-other.code' >> %t/input.txt
+// RUN: echo '%s' >> %t/input.txt
+// RUN: echo '%S/../Inputs/empty.code' >> %t/primary.txt
+// RUN: echo '%s' >> %t/primary.txt
+// RUN: not %target-language-frontend -typecheck -filelist %t/input.txt -primary-filelist %t/primary.txt 2>&1 | %FileCheck -check-prefix=CHECK-PRIMARYNOTFOUND %s
+// CHECK-PRIMARYNOTFOUND: error: primary file '{{.*}}/../Inputs/empty.code' was not found in file list '{{.*}}/input.txt'
+
+// RUN: not %target-language-frontend -primary-file %s -primary-filelist nonexistent 2>&1 | %FileCheck -check-prefix=CHECK-BADFILEANDFILELIST %s
+// CHECK-BADFILEANDFILELIST: error: cannot have primary input files with primary file list
+
+
+fn test() {
+  #if !WORKING
+    // Check with FileCheck because we want to see that this file is being
+    // compiled.
+    // CHECK: error: cannot convert value of type 'Bar' to specified type 'Foo'
+    immutable x: Foo = other()
+  #endif
+}

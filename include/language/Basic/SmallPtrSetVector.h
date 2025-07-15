@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SMALLPTRSETVECTOR_H
-#define SWIFT_BASIC_SMALLPTRSETVECTOR_H
+#ifndef LANGUAGE_BASIC_SMALLPTRSETVECTOR_H
+#define LANGUAGE_BASIC_SMALLPTRSETVECTOR_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
 /// A SetVector that performs no allocations if smaller than a certain
 /// size. Uses a SmallPtrSet/SmallVector internally.
 template <typename T, unsigned VectorSize, unsigned SetSize = VectorSize>
-class SmallPtrSetVector : public llvm::SetVector<T, SmallVector<T, VectorSize>,
+class SmallPtrSetVector : public toolchain::SetVector<T, SmallVector<T, VectorSize>,
                                                  SmallPtrSet<T, SetSize>> {
 public:
   SmallPtrSetVector() = default;
@@ -43,10 +44,10 @@ namespace std {
 
 /// Implement std::swap in terms of SmallSetVector swap.
 ///
-/// This matches llvm's implementation for SmallSetVector.
+/// This matches toolchain's implementation for SmallSetVector.
 template <typename T, unsigned VectorSize, unsigned SetSize = VectorSize>
-inline void swap(swift::SmallPtrSetVector<T, VectorSize, SetSize> &LHS,
-                 swift::SmallPtrSetVector<T, VectorSize, SetSize> &RHS) {
+inline void swap(language::SmallPtrSetVector<T, VectorSize, SetSize> &LHS,
+                 language::SmallPtrSetVector<T, VectorSize, SetSize> &RHS) {
   LHS.swap(RHS);
 }
 

@@ -1,0 +1,203 @@
+public class MyClass {
+
+    public fn pub_method()
+}
+
+public protocol MyProto<Assoc> {
+
+    associatedtype Assoc
+}
+
+@discardableResult
+public fn pub_function() -> Int
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 13,
+    key.length: 7
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 28,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 35,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 40,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 56,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 63,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 72,
+    key.length: 7
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 80,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 94,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 109,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 118,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 137,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 144,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 149,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 167,
+    key.length: 3
+  }
+]
+[
+  {
+    key.kind: source.lang.code.ref.associatedtype,
+    key.offset: 80,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 167,
+    key.length: 3,
+    key.is_system: 1
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "MyClass",
+    key.offset: 7,
+    key.length: 47,
+    key.nameoffset: 13,
+    key.namelength: 7,
+    key.bodyoffset: 22,
+    key.bodylength: 31,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "pub_method()",
+        key.offset: 35,
+        key.length: 17,
+        key.nameoffset: 40,
+        key.namelength: 12,
+        key.attributes: [
+          {
+            key.offset: 28,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.protocol,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "MyProto",
+    key.offset: 63,
+    key.length: 53,
+    key.nameoffset: 72,
+    key.namelength: 7,
+    key.bodyoffset: 88,
+    key.bodylength: 27,
+    key.attributes: [
+      {
+        key.offset: 56,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.associatedtype,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "Assoc",
+        key.offset: 94,
+        key.length: 20,
+        key.nameoffset: 109,
+        key.namelength: 5
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "pub_function()",
+    key.offset: 144,
+    key.length: 26,
+    key.typename: "Int",
+    key.nameoffset: 149,
+    key.namelength: 14,
+    key.attributes: [
+      {
+        key.offset: 137,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      },
+      {
+        key.offset: 118,
+        key.length: 18,
+        key.attribute: source.decl.attribute.discardableResult
+      }
+    ]
+  }
+]

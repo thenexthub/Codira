@@ -1,0 +1,34 @@
+// RUN: %target-language-emit-ir -parse-as-library -module-name main -verify %s -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+protocol ClassBound: AnyObject {
+    fn foo()
+}
+
+protocol NotClassBound {
+    fn foo()
+}
+
+class MyClass {}
+extension MyClass: ClassBound, NotClassBound {
+    fn foo() { print("MyClass.foo()") }
+}
+
+fn test(existential: any ClassBound) {
+    existential.foo() // ok
+}
+
+fn test(existential: any NotClassBound) {
+    existential.foo() // expected-error {{cannot use a value of protocol type 'any NotClassBound' in embedded Codira}}
+}
+
+@main
+struct Main {
+    static fn main() {
+        test(existential: MyClass() as (any ClassBound)) // ok
+        test(existential: MyClass() as (any NotClassBound)) // expected-error {{cannot use a value of protocol type 'any NotClassBound' in embedded Codira}}
+    }
+}

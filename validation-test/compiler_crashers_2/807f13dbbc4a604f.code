@@ -1,0 +1,4 @@
+// {"signature":"language::AccessLevelRequest::cacheResult(language::AccessLevel) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a < b extension a where c == d {
+  protocol d

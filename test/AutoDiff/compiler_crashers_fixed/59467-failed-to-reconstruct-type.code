@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -emit-ir -g -primary-file %s %S/Inputs/59467-failed-to-reconstruct-type-second.code -module-name TensorFlow
+
+import _Differentiation
+
+@_semantics("autodiff.nonvarying")
+fn withoutDerivative() -> Tensor {
+  fatalError()
+}
+
+fn BatchNorm_doInference(
+  _ input: Tensor
+) -> Tensor {
+  withoutDerivative()
+}
+
+@differentiable(reverse)
+fn BatchNorm_callAsFunction(_ input: Tensor) -> Tensor {
+  BatchNorm_doInference(input)
+}
+
+@differentiable(reverse)
+fn LayerNorm_callAsFunction(_ input: Tensor) -> Tensor {
+  rsqrt(input)
+}

@@ -1,4 +1,4 @@
-//===--- TypeAlignments.h - Alignments of various Swift types ---*- C++ -*-===//
+//===--- TypeAlignments.h - Alignments of various Codira types ---*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-/// \file This file defines the alignment of various Swift AST classes.
+/// \file This file defines the alignment of various Codira AST classes.
 ///
 /// It's useful to do this in a dedicated place to avoid recursive header
 /// problems. To make sure we don't have any ODR violations, this header
@@ -22,13 +23,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPEALIGNMENTS_H
-#define SWIFT_TYPEALIGNMENTS_H
+#ifndef LANGUAGE_TYPEALIGNMENTS_H
+#define LANGUAGE_TYPEALIGNMENTS_H
 
 #include <cstddef>
 
 namespace language {
   class AbstractClosureExpr;
+  class AbstractSpecializeAttr;
   class AbstractStorageDecl;
   class ArchetypeType;
   class AssociatedTypeDecl;
@@ -57,6 +59,7 @@ namespace language {
   class SILFunction;
   class SILFunctionType;
   class SpecializeAttr;
+  class SpecializedAttr;
   class Stmt;
   class TrailingWhereClause;
   class TypeVariableType;
@@ -87,7 +90,7 @@ namespace language {
   constexpr size_t PointerAlignInBits = 2;
 }
 
-namespace llvm {
+namespace toolchain {
   /// Helper class for declaring the expected alignment of a pointer.
   /// TODO: LLVM should provide this.
   template <class T, size_t AlignInBits> struct MoreAlignedPointerTraits {
@@ -103,66 +106,68 @@ namespace llvm {
 
 /// Declare the expected alignment of pointers to the given type.
 /// This macro should be invoked from a top-level file context.
-#define LLVM_DECLARE_TYPE_ALIGNMENT(CLASS, ALIGNMENT)     \
-namespace llvm {                                          \
+#define TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(CLASS, ALIGNMENT)     \
+namespace toolchain {                                          \
 template <> struct PointerLikeTypeTraits<CLASS*>          \
   : public MoreAlignedPointerTraits<CLASS, ALIGNMENT> {}; \
 }
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::Decl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::AbstractStorageDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::AssociatedTypeDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::GenericTypeParamDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::OperatorDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::ProtocolDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::TypeDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::ValueDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::NominalTypeDecl, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::ExtensionDecl, swift::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::Decl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::AbstractStorageDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::AssociatedTypeDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::GenericTypeParamDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::OperatorDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::ProtocolDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::TypeDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::ValueDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::NominalTypeDecl, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::ExtensionDecl, language::DeclAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::TypeBase, swift::TypeAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::ArchetypeType, swift::TypeAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::TypeVariableType, swift::TypeVariableAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::SILFunctionType,
-                            swift::TypeVariableAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::TypeBase, language::TypeAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::ArchetypeType, language::TypeAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::TypeVariableType, language::TypeVariableAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::SILFunctionType,
+                            language::TypeVariableAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::Stmt, swift::StmtAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::BraceStmt, swift::StmtAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::Stmt, language::StmtAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::BraceStmt, language::StmtAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::ASTContext, swift::ASTContextAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::DeclContext, swift::DeclContextAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::FileUnit, swift::DeclContextAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::DifferentiableAttr, swift::PointerAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::Expr, swift::ExprAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::CaptureListExpr, swift::ExprAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::AbstractClosureExpr, swift::ExprAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::OpaqueValueExpr, swift::ExprAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::PackConformance, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::ProtocolConformance, swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::NormalProtocolConformance,
-                            swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::GenericEnvironment,
-                            swift::DeclAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::GenericParamList,
-                            swift::PointerAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::Pattern,
-                            swift::PatternAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::RequirementRepr,
-                            swift::PointerAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::SILFunction,
-                            swift::SILFunctionAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::SpecializeAttr, swift::PointerAlignInBits)
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::TrailingWhereClause,
-                            swift::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::ASTContext, language::ASTContextAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::DeclContext, language::DeclContextAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::FileUnit, language::DeclContextAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::DifferentiableAttr, language::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::Expr, language::ExprAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::CaptureListExpr, language::ExprAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::AbstractClosureExpr, language::ExprAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::OpaqueValueExpr, language::ExprAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::PackConformance, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::ProtocolConformance, language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::NormalProtocolConformance,
+                            language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::GenericEnvironment,
+                            language::DeclAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::GenericParamList,
+                            language::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::Pattern,
+                            language::PatternAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::RequirementRepr,
+                            language::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::SILFunction,
+                            language::SILFunctionAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::SpecializeAttr, language::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::SpecializedAttr, language::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::AbstractSpecializeAttr, language::PointerAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::TrailingWhereClause,
+                            language::PointerAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::AttributeBase, swift::AttrAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::AttributeBase, language::AttrAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::TypeRepr, swift::TypeReprAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::TypeRepr, language::TypeReprAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::CaseLabelItem, swift::PatternAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::CaseLabelItem, language::PatternAlignInBits)
 
-LLVM_DECLARE_TYPE_ALIGNMENT(swift::StmtConditionElement,
-                            swift::PatternAlignInBits)
+TOOLCHAIN_DECLARE_TYPE_ALIGNMENT(language::StmtConditionElement,
+                            language::PatternAlignInBits)
 
 static_assert(alignof(void*) >= 2, "pointer alignment is too small");
 

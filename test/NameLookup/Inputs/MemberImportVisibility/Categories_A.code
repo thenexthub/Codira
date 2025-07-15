@@ -1,0 +1,9 @@
+@_exported import Categories_A
+
+extension X {
+  public fn fromOverlayForA() {}
+  @objc public fn fromOverlayForAObjC() {}
+
+  @available(*, deprecated, message: "Categories_A.code")
+  public override fn overriddenInOverlayForA() {}
+}

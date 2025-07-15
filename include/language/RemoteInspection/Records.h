@@ -1,4 +1,4 @@
-//===--- Records.h - Swift Type Reflection Records --------------*- C++ -*-===//
+//===--- Records.h - Codira Type Reflection Records --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements the structures of type reflection records.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_RECORDS_H
-#define SWIFT_REFLECTION_RECORDS_H
+#ifndef LANGUAGE_REFLECTION_RECORDS_H
+#define LANGUAGE_REFLECTION_RECORDS_H
 
 #include "language/ABI/TargetLayout.h"
 #include "language/Demangling/Demangle.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 namespace language {
 
-const uint16_t SWIFT_REFLECTION_METADATA_VERSION = 3; // superclass field
+const uint16_t LANGUAGE_REFLECTION_METADATA_VERSION = 3; // superclass field
 
 namespace reflection {
 
@@ -99,11 +100,11 @@ public:
     return MangledTypeName;
   }
 
-  llvm::StringRef getMangledTypeName() const {
+  toolchain::StringRef getMangledTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(MangledTypeName.get());
   }
 
-  llvm::StringRef getFieldName() const {
+  toolchain::StringRef getFieldName() const {
     return FieldName.get();
   }
 
@@ -147,7 +148,7 @@ struct TargetFieldRecordIterator {
 using FieldRecordIterator = TargetFieldRecordIterator<InProcess>;
 
 enum class FieldDescriptorKind : uint16_t {
-  // Swift nominal types.
+  // Codira nominal types.
   Struct,
   Class,
   Enum,
@@ -160,17 +161,17 @@ enum class FieldDescriptorKind : uint16_t {
   // size and alignment.
   MultiPayloadEnum,
 
-  // A Swift opaque protocol. There are no fields, just a record for the
+  // A Codira opaque protocol. There are no fields, just a record for the
   // type itself.
   Protocol,
 
-  // A Swift class-bound protocol.
+  // A Codira class-bound protocol.
   ClassProtocol,
 
-  // An Objective-C protocol, which may be imported or defined in Swift.
+  // An Objective-C protocol, which may be imported or defined in Codira.
   ObjCProtocol,
 
-  // An Objective-C class, which may be imported or defined in Swift.
+  // An Objective-C class, which may be imported or defined in Codira.
   // In the former case, field type metadata is not emitted, and
   // must be obtained from the Objective-C runtime.
   ObjCClass
@@ -228,7 +229,7 @@ public:
     return const_iterator { End, End };
   }
 
-  llvm::ArrayRef<TargetFieldRecord<Runtime>> getFields() const {
+  toolchain::ArrayRef<TargetFieldRecord<Runtime>> getFields() const {
     return {getFieldRecordBuffer(), NumFields};
   }
 
@@ -236,7 +237,7 @@ public:
     return MangledTypeName;
   }
 
-  llvm::StringRef getMangledTypeName() const {
+  toolchain::StringRef getMangledTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(MangledTypeName.get());
   }
 
@@ -244,7 +245,7 @@ public:
     return Superclass;
   }
 
-  llvm::StringRef getSuperclass() const {
+  toolchain::StringRef getSuperclass() const {
     return Demangle::makeSymbolicMangledNameStringRef(Superclass.get());
   }
 };
@@ -257,11 +258,11 @@ public:
   const RelativeDirectPointer<const char> Name;
   const RelativeDirectPointer<const char> SubstitutedTypeName;
 
-  llvm::StringRef getName() const {
+  toolchain::StringRef getName() const {
     return Name.get();
   }
 
-  llvm::StringRef getMangledSubstitutedTypeName() const {
+  toolchain::StringRef getMangledSubstitutedTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(
                                                     SubstitutedTypeName.get());
   }
@@ -339,11 +340,11 @@ public:
     return const_iterator { End, End };
   }
 
-  llvm::StringRef getMangledProtocolTypeName() const {
+  toolchain::StringRef getMangledProtocolTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(ProtocolTypeName.get());
   }
 
-  llvm::StringRef getMangledConformingTypeName() const {
+  toolchain::StringRef getMangledConformingTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(ConformingTypeName.get());
   }
 };
@@ -376,7 +377,7 @@ public:
     return TypeName;
   }
 
-  llvm::StringRef getMangledTypeName() const {
+  toolchain::StringRef getMangledTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(TypeName.get());
   }
 };
@@ -496,7 +497,7 @@ public:
     return MangledTypeName;
   }
 
-  llvm::StringRef getMangledTypeName() const {
+  toolchain::StringRef getMangledTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(MangledTypeName.get());
   }
 };
@@ -542,7 +543,7 @@ public:
     return MangledTypeName;
   }
 
-  llvm::StringRef getMangledTypeName() const {
+  toolchain::StringRef getMangledTypeName() const {
     return Demangle::makeSymbolicMangledNameStringRef(MangledTypeName.get());
   }
 
@@ -550,7 +551,7 @@ public:
     return MangledMetadataSource;
   }
 
-  llvm::StringRef getMangledMetadataSource() const {
+  toolchain::StringRef getMangledMetadataSource() const {
     return Demangle::makeSymbolicMangledNameStringRef(
                                                    MangledMetadataSource.get());
   }
@@ -641,4 +642,4 @@ public:
 } // end namespace reflection
 } // end namespace language
 
-#endif // SWIFT_REFLECTION_RECORDS_H
+#endif // LANGUAGE_REFLECTION_RECORDS_H

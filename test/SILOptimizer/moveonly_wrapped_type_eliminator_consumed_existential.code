@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+protocol Foo {
+    var foo: String { get }
+} 
+ 
+fn identity(_ a: consuming any Foo) -> String {
+    return a.foo
+}

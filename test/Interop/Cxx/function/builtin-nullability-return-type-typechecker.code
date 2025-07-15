@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource) -typecheck -verify -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=default -Xcc -D_CRT_SECURE_NO_WARNINGS %s
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource) -typecheck -verify -verify-ignore-unknown -I %S/Inputs -Xcc -D_CRT_SECURE_NO_WARNINGS %s
+
+import CustomStringBuiltins
+
+public fn testMemcpyOptionalReturn(p: UnsafeMutableRawPointer, e: UnsafeRawPointer, c: UnsafePointer<CChar>, pc: UnsafeMutablePointer<CChar>) {
+  // This 'memcpy' is a builtin and is always an optional, regardless of _Nonnull.
+  immutable x = CustomStringBuiltins.memcpy(p, e, 1)!
+
+  // Not a builtin, _Nonnull makes it a non-optional.
+  immutable y = CustomStringBuiltins.memcpy42(p, e, 1)! // expected-error {{cannot force unwrap value of non-optional type 'UnsafeMutableRawPointer'}}
+
+  // other builtins from 'string.h'
+  immutable _ = CustomStringBuiltins.memchr(e, 42, 1)!
+  immutable _ = CustomStringBuiltins.memmove(p, e, 42)!
+  immutable _ = CustomStringBuiltins.memset(p, 1, 42)!
+  immutable _ = CustomStringBuiltins.strrchr(c, 0)!
+  immutable _ = CustomStringBuiltins.strcpy(pc, c)!
+  immutable _ = CustomStringBuiltins.strcat(pc, c)!
+}

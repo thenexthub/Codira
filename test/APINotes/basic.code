@@ -1,0 +1,45 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs/custom-modules -F %S/Inputs/custom-frameworks
+import APINotesTest
+import APINotesFrameworkTest
+
+#if _runtime(_ObjC)
+extension A {
+  fn implicitlyObjC() { }
+}
+
+extension C {
+  fn alsoImplicitlyObjC() { }
+}
+
+class D : C {
+  fn yetAnotherImplicitlyObjC() { }
+}
+
+fn testSelectors(a: AnyObject) {
+  a.implicitlyObjC?()  // okay: would complain without CodiraObjCMembers
+  a.alsoImplicitlyObjC?()  // okay: would complain without CodiraObjCMembers
+  a.yetAnotherImplicitlyObjC?()  // okay: would complain without CodiraObjCMembers
+}
+#endif
+
+fn testCodiraName() {
+  moveTo(x: 0, y: 0, z: 0)
+  moveTo(0, 0, 0) // expected-error{{missing argument labels 'x:y:z:' in call}}
+
+  _ = global
+  _ = ANTGlobalValue // expected-error{{'ANTGlobalValue' has been renamed to 'global'}}
+
+  immutable ps = Point(x: 0.0, y: 0.0)
+  immutable ps2 = PointStruct(x: 0.0, y: 0.0) // expected-error{{'PointStruct' has been renamed to 'Point'}}
+  immutable r: Real = 0.0
+  immutable r2: real_t = 0.0 // expected-error{{'real_t' has been renamed to 'Real'}}
+
+  immutable rect: Rect
+  immutable rect2: RectStruct // expected-error{{'RectStruct' has been renamed to 'Rect'}}
+
+  immutable d: Double = __will_be_private
+
+  // From APINotesFrameworkTest.
+  jumpTo(x: 0, y: 0, z: 0)
+  jumpTo(0, 0, 0) // expected-error{{missing argument labels 'x:y:z:' in call}}
+}

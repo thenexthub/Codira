@@ -1,8 +1,8 @@
-add_swift_host_tool(swift-def-to-strings-converter
-  swift-def-to-strings-converter.cpp
-  SWIFT_COMPONENT tools
-  DOES_NOT_USE_SWIFT
+add_language_host_tool(language-def-to-strings-converter
+  language-def-to-strings-converter.cpp
+  LANGUAGE_COMPONENT tools
+  DOES_NOT_USE_LANGUAGE
 )
 
-target_link_libraries(swift-def-to-strings-converter PRIVATE
-  swiftLocalization)
+target_link_libraries(language-def-to-strings-converter PRIVATE
+  languageLocalization)

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/DeclContext.h"
@@ -36,10 +37,10 @@
 #include "language/Basic/Statistic.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "clang/AST/ASTContext.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 using namespace language;
 
 #define DEBUG_TYPE "Name lookup"
@@ -123,7 +124,7 @@ Type DeclContext::getDeclaredInterfaceType() const {
 }
 
 void DeclContext::forEachGenericContext(
-    llvm::function_ref<void (GenericParamList *)> fn) const {
+    toolchain::function_ref<void (GenericParamList *)> fn) const {
   auto dc = this;
   do {
     if (auto decl = dc->getAsDecl()) {
@@ -194,12 +195,12 @@ AbstractFunctionDecl *DeclContext::getInnermostMethodContext() {
   auto dc = this;
   do {
     if (auto decl = dc->getAsDecl()) {
-      auto func = dyn_cast<AbstractFunctionDecl>(decl);
-      // If we found a non-func decl, we're done.
-      if (func == nullptr)
+      auto fn = dyn_cast<AbstractFunctionDecl>(decl);
+      // If we found a non-fn decl, we're done.
+      if (fn == nullptr)
         return nullptr;
-      if (func->getDeclContext()->isTypeContext())
-        return func;
+      if (fn->getDeclContext()->isTypeContext())
+        return fn;
     }
   } while ((dc = dc->getParent()));
 
@@ -418,7 +419,7 @@ SourceFile *DeclContext::getOutermostParentSourceFile() const {
   return sf;
 }
 
-bool DeclContext::isInSwiftinterface() const {
+bool DeclContext::isInCodirainterface() const {
   auto sf = getParentSourceFile();
   return sf && sf->Kind == SourceFileKind::Interface;
 }
@@ -482,7 +483,7 @@ ResilienceExpansion DeclContext::getResilienceExpansion() const {
     return ResilienceExpansion::Maximal;
   }
 
-  llvm_unreachable("Bad fragile function kind");
+  toolchain_unreachable("Bad fragile function kind");
 }
 
 FragileFunctionKind DeclContext::getFragileFunctionKind() const {
@@ -494,7 +495,7 @@ FragileFunctionKind DeclContext::getFragileFunctionKind() const {
 }
 
 FragileFunctionKind
-swift::FragileFunctionKindRequest::evaluate(Evaluator &evaluator,
+language::FragileFunctionKindRequest::evaluate(Evaluator &evaluator,
                                             DeclContext *context) const {
   for (const auto *dc = context->getLocalContext(); dc && dc->isLocalContext();
        dc = dc->getParent()) {
@@ -664,57 +665,57 @@ bool DeclContext::walkContext(ASTWalker &Walker) {
     return cast<MacroDecl>(this)->walk(Walker);
   case DeclContextKind::SerializedAbstractClosure:
   case DeclContextKind::SerializedTopLevelCodeDecl:
-    llvm_unreachable("walk is unimplemented for deserialized contexts");
+    toolchain_unreachable("walk is unimplemented for deserialized contexts");
   case DeclContextKind::Initializer:
     // Is there any point in trying to walk the expression?
     return false;
   }
-  llvm_unreachable("bad DeclContextKind");
+  toolchain_unreachable("bad DeclContextKind");
 }
 
 void DeclContext::dumpContext() const {
-  printContext(llvm::errs());
+  printContext(toolchain::errs());
 }
 
 void AccessScope::dump() const {
-  llvm::errs() << getAccessLevelSpelling(accessLevelForDiagnostics()) << ": ";
+  toolchain::errs() << getAccessLevelSpelling(accessLevelForDiagnostics()) << ": ";
 
   if (isPublic() || isPackage()) {
-    llvm::errs() << "(null)\n";
+    toolchain::errs() << "(null)\n";
     return;
   }
 
   if (auto *file = dyn_cast<SourceFile>(getDeclContext())) {
-    llvm::errs() << "file '" << file->getFilename() << "'\n";
+    toolchain::errs() << "file '" << file->getFilename() << "'\n";
     return;
   }
 
   if (auto *decl = getDeclContext()->getAsDecl()) {
-    llvm::errs() << Decl::getKindName(decl->getKind()) << " ";
+    toolchain::errs() << Decl::getKindName(decl->getKind()) << " ";
     if (auto *ext = dyn_cast<ExtensionDecl>(decl)) {
       auto *extended = ext->getExtendedNominal();
       if (extended)
-        llvm::errs() << extended->getName();
+        toolchain::errs() << extended->getName();
       else
-        llvm::errs() << "(null)";
+        toolchain::errs() << "(null)";
     } else if (auto *named = dyn_cast<ValueDecl>(decl)) {
-      llvm::errs() << named->getName();
+      toolchain::errs() << named->getName();
     } else {
-      llvm::errs() << (const void *)decl;
+      toolchain::errs() << (const void *)decl;
     }
 
     SourceLoc loc = decl->getLoc();
     if (loc.isValid()) {
-      llvm::errs() << " at ";
-      loc.print(llvm::errs(), decl->getASTContext().SourceMgr);
+      toolchain::errs() << " at ";
+      loc.print(toolchain::errs(), decl->getASTContext().SourceMgr);
     }
-    llvm::errs() << "\n";
+    toolchain::errs() << "\n";
 
     return;
   }
 
   // If all else fails, dump the DeclContext tree.
-  getDeclContext()->printContext(llvm::errs());
+  getDeclContext()->printContext(toolchain::errs());
 }
 
 template <typename DCType>
@@ -925,7 +926,7 @@ IterableDeclContext::getDecl() const {
     return cast<ExtensionDecl>(this);
     break;
   }
-  llvm_unreachable("Unhandled IterableDeclContextKind in switch.");
+  toolchain_unreachable("Unhandled IterableDeclContextKind in switch.");
 }
 
 GenericContext *IterableDeclContext::getAsGenericContext() {
@@ -935,7 +936,7 @@ GenericContext *IterableDeclContext::getAsGenericContext() {
   case IterableDeclContextKind::ExtensionDecl:
     return cast<ExtensionDecl>(this);
   }
-  llvm_unreachable("Unhandled IterableDeclContextKind in switch.");
+  toolchain_unreachable("Unhandled IterableDeclContextKind in switch.");
 }
 
 ASTContext &IterableDeclContext::getASTContext() const {
@@ -1090,9 +1091,9 @@ void IterableDeclContext::addMemberSilently(Decl *member, Decl *hint,
     if (getASTContext().SourceMgr.isAtOrBefore(prevEnd, nextStart))
       return;
 
-    llvm::errs() << "Source ranges out of order in addMember():\n";
-    prev->dump(llvm::errs());
-    next->dump(llvm::errs());
+    toolchain::errs() << "Source ranges out of order in addMember():\n";
+    prev->dump(toolchain::errs());
+    next->dump(toolchain::errs());
     abort();
   };
 #endif
@@ -1377,7 +1378,7 @@ bool IterableDeclContext::classof(const Decl *D) {
 IterableDeclContext *
 IterableDeclContext::castDeclToIterableDeclContext(const Decl *D) {
   switch (D->getKind()) {
-  default: llvm_unreachable("Decl is not a IterableDeclContext.");
+  default: toolchain_unreachable("Decl is not a IterableDeclContext.");
 #define DECL(ID, PARENT) // See previous line
 #define ITERABLE_DECL(ID, PARENT) \
   case DeclKind::ID: \
@@ -1407,7 +1408,7 @@ std::optional<Fingerprint> IterableDeclContext::getBodyFingerprint() const {
 }
 
 /// Return the DeclContext to compare when checking private access in
-/// Swift 4 mode. The context returned is the type declaration if the context
+/// Codira 4 mode. The context returned is the type declaration if the context
 /// and the type declaration are in the same file, otherwise it is the types
 /// last extension in the source file. If the context does not refer to a
 /// declaration or extension, the supplied context is returned.
@@ -1493,7 +1494,7 @@ bool AccessScope::allowsPrivateAccess(const DeclContext *useDC, const DeclContex
   // Do not allow access if the sourceDC is in a different file
   auto *useSF = useDC->getOutermostParentSourceFile();
   if (useSF != sourceDC->getOutermostParentSourceFile()) {
-    // sourceDC might be a C++ record with a SWIFT_PRIVATE_FILEID attribute,
+    // sourceDC might be a C++ record with a LANGUAGE_PRIVATE_FILEID attribute,
     // which asks us to treat it as if it were defined in the file
     // with the specified FileID.
     auto clangDecl = sourceNTD->getDecl()->getClangDecl();
@@ -1502,7 +1503,7 @@ bool AccessScope::allowsPrivateAccess(const DeclContext *useDC, const DeclContex
       // Consider:  class C { private: enum class E { M }; };
       // If sourceDC is a C++ enum (e.g, E), then we are looking at one of its
       // members (e.g., E.M). If this is the case, then we should consider
-      // the SWIFT_PRIVATE_FILEID of its enclosing class decl (e.g., C), if any.
+      // the LANGUAGE_PRIVATE_FILEID of its enclosing class decl (e.g., C), if any.
       // Doing so allows the nested private enum's members to inherit the access
       // of the nested enum type itself.
       clangDecl = dyn_cast<clang::CXXRecordDecl>(clangDecl->getDeclContext());
@@ -1514,12 +1515,12 @@ bool AccessScope::allowsPrivateAccess(const DeclContext *useDC, const DeclContex
 
     auto recordDecl = cast<clang::CXXRecordDecl>(clangDecl);
 
-    // Diagnostics should enforce that there is at most SWIFT_PRIVATE_FILEID,
+    // Diagnostics should enforce that there is at most LANGUAGE_PRIVATE_FILEID,
     // but this handles the case where there is more than anyway (whether that
     // is a feature or a bug). Allow access check to proceed if useSF is blessed
-    // by any of the SWIFT_PRIVATE_FILEID annotations (i.e., disallow private
+    // by any of the LANGUAGE_PRIVATE_FILEID annotations (i.e., disallow private
     // access if none of them bless useSF).
-    if (!llvm::any_of(
+    if (!toolchain::any_of(
             importer::getPrivateFileIDAttrs(recordDecl), [&](auto &blessed) {
               auto blessedFileID = SourceFile::FileIDStr::parse(blessed.first);
               return blessedFileID && blessedFileID->matches(useSF);
@@ -1588,11 +1589,11 @@ DeclContextKind DeclContext::getContextKind() const {
     case DeclKind::Macro:
       return DeclContextKind::MacroDecl;
     default:
-      llvm_unreachable("Unhandled Decl kind");
+      toolchain_unreachable("Unhandled Decl kind");
     }
   }
   }
-  llvm_unreachable("Unhandled DeclContext ASTHierarchy");
+  toolchain_unreachable("Unhandled DeclContext ASTHierarchy");
 }
 
 bool DeclContext::hasValueSemantics() const {
@@ -1636,10 +1637,10 @@ bool DeclContext::isAsyncContext() const {
   case DeclContextKind::SubscriptDecl:
     return cast<SubscriptDecl>(this)->isAsync();
   }
-  llvm_unreachable("Unhandled DeclContextKind switch");
+  toolchain_unreachable("Unhandled DeclContextKind switch");
 }
 
-SourceLoc swift::extractNearestSourceLoc(const DeclContext *dc) {
+SourceLoc language::extractNearestSourceLoc(const DeclContext *dc) {
   assert(dc && "Expected non-null DeclContext!");
 
   switch (dc->getContextKind()) {
@@ -1670,7 +1671,7 @@ SourceLoc swift::extractNearestSourceLoc(const DeclContext *dc) {
   case DeclContextKind::SerializedTopLevelCodeDecl:
     return extractNearestSourceLoc(dc->getParent());
   }
-  llvm_unreachable("Unhandled DeclContextKindIn switch");
+  toolchain_unreachable("Unhandled DeclContextKindIn switch");
 }
 
 #define DECL(Id, Parent) \
@@ -1699,7 +1700,7 @@ SourceLoc swift::extractNearestSourceLoc(const DeclContext *dc) {
 // XXX -- static_cast is not static enough for use with static_assert().
 // DO verify this by temporarily breaking a Decl or Expr.
 // DO NOT assume that the compiler will emit this code blindly.
-SWIFT_CONSTRUCTOR
+LANGUAGE_CONSTRUCTOR
 static void verify_DeclContext_is_start_of_node() {
   auto decl = reinterpret_cast<Decl*>(0x1000 + sizeof(DeclContext));
 #define DECL(Id, Parent)
@@ -1720,12 +1721,12 @@ static void verify_DeclContext_is_start_of_node() {
 }
 #endif
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const IterableDeclContext *idc) {
   simple_display(out, idc->getDecl());
 }
 
-SourceLoc swift::extractNearestSourceLoc(const IterableDeclContext *idc) {
+SourceLoc language::extractNearestSourceLoc(const IterableDeclContext *idc) {
   return extractNearestSourceLoc(idc->getDecl());
 }
 

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_DESCRIPTOR_FINDER_H
-#define SWIFT_REFLECTION_DESCRIPTOR_FINDER_H
+#ifndef LANGUAGE_REFLECTION_DESCRIPTOR_FINDER_H
+#define LANGUAGE_REFLECTION_DESCRIPTOR_FINDER_H
 
 #include "language/Demangling/Demangle.h"
 #include "language/RemoteInspection/Records.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 namespace reflection {
@@ -41,7 +42,7 @@ struct BuiltinTypeDescriptorBase {
 
   virtual ~BuiltinTypeDescriptorBase(){};
 
-  virtual llvm::StringRef getMangledTypeName() = 0;
+  virtual toolchain::StringRef getMangledTypeName() = 0;
 };
 
 /// An abstract interface for a field record.
@@ -57,7 +58,7 @@ struct FieldRecordBase {
 
   virtual ~FieldRecordBase(){};
 
-  virtual llvm::StringRef getFieldName() = 0;
+  virtual toolchain::StringRef getFieldName() = 0;
   virtual Demangle::Node *getDemangledTypeName() = 0;
 };
 
@@ -99,7 +100,7 @@ struct FieldDescriptorBase {
 struct MultiPayloadEnumDescriptorBase {
   virtual ~MultiPayloadEnumDescriptorBase(){};
 
-  virtual llvm::StringRef getMangledTypeName() = 0;
+  virtual toolchain::StringRef getMangledTypeName() = 0;
 
   virtual uint32_t getContentsSizeInWords() const = 0;
 

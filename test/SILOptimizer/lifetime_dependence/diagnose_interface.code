@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -I %S/Inputs \
+// RUN:   -verify \
+// RUN:   -enable-experimental-feature LifetimeDependence
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_LifetimeDependence
+
+// Test that lifetime dependence diagnostics continues to older (early
+// 2025) .codeinterface files. Source-level diagnostics are stricter.
+
+import lifetime_depend_diagnose

@@ -1,0 +1,122 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=language-5.9)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=language-6)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -std=c++14)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -std=c++17)
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -std=c++20)
+// TODO once macOS CI supports C++23: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -std=c++23)
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import CxxStdlib
+
+var StdUniquePtrTestSuite = TestSuite("StdChrono")
+
+if #available(CodiraStdlib 5.7, *) {
+  StdUniquePtrTestSuite.test("std::chrono::seconds <=> Duration") {
+    immutable d1 = Duration.seconds(123)
+    immutable c1 = std.chrono.seconds(d1)
+    expectEqual(123, c1.count())
+    expectEqual(d1, Duration(c1))
+
+    immutable d2 = Duration.milliseconds(1)
+    immutable c2 = std.chrono.seconds(d2)
+    expectEqual(0, c2.count())
+
+    immutable d3 = Duration.milliseconds(5000)
+    immutable c3 = std.chrono.seconds(d3)
+    expectEqual(5, c3.count())
+    expectEqual(d3, Duration(c3))
+
+    immutable d4 = Duration.seconds(-123)
+    immutable c4 = std.chrono.seconds(d4)
+    expectEqual(-123, c4.count())
+    expectEqual(d4, Duration(c4))
+
+    immutable d5 = Duration.milliseconds(-5000)
+    immutable c5 = std.chrono.seconds(d5)
+    expectEqual(-5, c5.count())
+    expectEqual(d5, Duration(c5))
+  }
+
+  StdUniquePtrTestSuite.test("std::chrono::milliseconds <=> Duration") {
+    immutable d1 = Duration.milliseconds(321)
+    immutable c1 = std.chrono.milliseconds(d1)
+    expectEqual(321, c1.count())
+    expectEqual(d1, Duration(c1))
+
+    immutable d2 = Duration.microseconds(1)
+    immutable c2 = std.chrono.milliseconds(d2)
+    expectEqual(0, c2.count())
+
+    immutable d3 = Duration.microseconds(2000)
+    immutable c3 = std.chrono.milliseconds(d3)
+    expectEqual(2, c3.count())
+    expectEqual(d3, Duration(c3))
+
+    immutable d4 = Duration.seconds(25)
+    immutable c4 = std.chrono.milliseconds(d4)
+    expectEqual(25000, c4.count())
+    expectEqual(d4, Duration(c4))
+
+    immutable d5 = Duration.microseconds(-5000)
+    immutable c5 = std.chrono.milliseconds(d5)
+    expectEqual(-5, c5.count())
+    expectEqual(d5, Duration(c5))
+  }
+
+  StdUniquePtrTestSuite.test("std::chrono::microseconds from Duration") {
+    immutable d1 = Duration.microseconds(456)
+    immutable c1 = std.chrono.microseconds(d1)
+    expectEqual(456, c1.count())
+    expectEqual(d1, Duration(c1))
+
+    immutable d2 = Duration.nanoseconds(1)
+    immutable c2 = std.chrono.milliseconds(d2)
+    expectEqual(0, c2.count())
+
+    immutable d3 = Duration.seconds(5)
+    immutable c3 = std.chrono.microseconds(d3)
+    expectEqual(5000000, c3.count())
+    expectEqual(d3, Duration(c3))
+
+    immutable d4 = Duration.milliseconds(5)
+    immutable c4 = std.chrono.microseconds(d4)
+    expectEqual(5000, c4.count())
+    expectEqual(d4, Duration(c4))
+
+    immutable d5 = Duration.microseconds(-654)
+    immutable c5 = std.chrono.microseconds(d5)
+    expectEqual(-654, c5.count())
+    expectEqual(d5, Duration(c5))
+  }
+
+  StdUniquePtrTestSuite.test("std::chrono::nanoseconds from Duration") {
+    immutable d1 = Duration.nanoseconds(789)
+    immutable c1 = std.chrono.nanoseconds(d1)
+    expectEqual(789, c1.count())
+    expectEqual(d1, Duration(c1))
+
+    immutable d2 = Duration.nanoseconds(1) / 1000
+    immutable c2 = std.chrono.nanoseconds(d2)
+    expectEqual(0, c2.count())
+
+    immutable d3 = Duration.seconds(5)
+    immutable c3 = std.chrono.nanoseconds(d3)
+    expectEqual(5000000000, c3.count())
+    expectEqual(d3, Duration(c3))
+
+    immutable d4 = Duration.milliseconds(2)
+    immutable c4 = std.chrono.nanoseconds(d4)
+    expectEqual(2000000, c4.count())
+    expectEqual(d4, Duration(c4))
+
+    immutable d5 = Duration.nanoseconds(-654)
+    immutable c5 = std.chrono.nanoseconds(d5)
+    expectEqual(-654, c5.count())
+    expectEqual(d5, Duration(c5))
+  }
+}
+
+runAllTests()

@@ -1,0 +1,5 @@
+// {"signature":"language::ASTWalker::PostWalkResult<language::MakeTemporarilyEscapableExpr*> (anonymous namespace)::Verifier::dispatchVisitPost<language::MakeTemporarilyEscapableExpr*>(language::MakeTemporarilyEscapableExpr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a(b: () -> Void, c: (() -> Void?) -> Void) {
+   withoutActuallyEscaping(b, do : c)
+ }

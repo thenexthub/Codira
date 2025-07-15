@@ -1,4 +1,4 @@
-//===--- DropLast.swift ---------------------------------------*- swift -*-===//
+//===--- DropLast.code ---------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 ////////////////////////////////////////////////////////////////////////////////
 // WARNING: This file is manually generated from .gyb template and should not
-// be directly modified. Instead, make changes to DropLast.swift.gyb and run
+// be directly modified. Instead, make changes to DropLast.code.gyb and run
 // scripts/generate_harness/generate_harness.py to regenerate this file.
 ////////////////////////////////////////////////////////////////////////////////
 
 import TestsUtils
 
-let sequenceCount = 4096
-let prefixCount = 1024
-let dropCount = sequenceCount - prefixCount
-let sumCount = prefixCount * (prefixCount - 1) / 2
-let array: [Int] = Array(0..<sequenceCount)
+immutable sequenceCount = 4096
+immutable prefixCount = 1024
+immutable dropCount = sequenceCount - prefixCount
+immutable sumCount = prefixCount * (prefixCount - 1) / 2
+immutable array: [Int] = Array(0..<sequenceCount)
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DropLastCountableRange",
     runFunction: run_DropLastCountableRange,
@@ -89,8 +90,8 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_DropLastCountableRange(_ n: Int) {
-  let s = 0..<sequenceCount
+public fn run_DropLastCountableRange(_ n: Int) {
+  immutable s = 0..<sequenceCount
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -100,8 +101,8 @@ public func run_DropLastCountableRange(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastSequence(_ n: Int) {
-  let s = sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }
+public fn run_DropLastSequence(_ n: Int) {
+  immutable s = sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -111,8 +112,8 @@ public func run_DropLastSequence(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnySequence(_ n: Int) {
-  let s = AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })
+public fn run_DropLastAnySequence(_ n: Int) {
+  immutable s = AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -122,8 +123,8 @@ public func run_DropLastAnySequence(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnySeqCntRange(_ n: Int) {
-  let s = AnySequence(0..<sequenceCount)
+public fn run_DropLastAnySeqCntRange(_ n: Int) {
+  immutable s = AnySequence(0..<sequenceCount)
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -133,8 +134,8 @@ public func run_DropLastAnySeqCntRange(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnySeqCRangeIter(_ n: Int) {
-  let s = AnySequence((0..<sequenceCount).makeIterator())
+public fn run_DropLastAnySeqCRangeIter(_ n: Int) {
+  immutable s = AnySequence((0..<sequenceCount).makeIterator())
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -144,8 +145,8 @@ public func run_DropLastAnySeqCRangeIter(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnyCollection(_ n: Int) {
-  let s = AnyCollection(0..<sequenceCount)
+public fn run_DropLastAnyCollection(_ n: Int) {
+  immutable s = AnyCollection(0..<sequenceCount)
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -155,8 +156,8 @@ public func run_DropLastAnyCollection(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastArray(_ n: Int) {
-  let s = array
+public fn run_DropLastArray(_ n: Int) {
+  immutable s = array
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -166,8 +167,8 @@ public func run_DropLastArray(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastCountableRangeLazy(_ n: Int) {
-  let s = (0..<sequenceCount).lazy
+public fn run_DropLastCountableRangeLazy(_ n: Int) {
+  immutable s = (0..<sequenceCount).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -177,8 +178,8 @@ public func run_DropLastCountableRangeLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastSequenceLazy(_ n: Int) {
-  let s = (sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }).lazy
+public fn run_DropLastSequenceLazy(_ n: Int) {
+  immutable s = (sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -188,8 +189,8 @@ public func run_DropLastSequenceLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnySequenceLazy(_ n: Int) {
-  let s = (AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })).lazy
+public fn run_DropLastAnySequenceLazy(_ n: Int) {
+  immutable s = (AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -199,8 +200,8 @@ public func run_DropLastAnySequenceLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnySeqCntRangeLazy(_ n: Int) {
-  let s = (AnySequence(0..<sequenceCount)).lazy
+public fn run_DropLastAnySeqCntRangeLazy(_ n: Int) {
+  immutable s = (AnySequence(0..<sequenceCount)).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -210,8 +211,8 @@ public func run_DropLastAnySeqCntRangeLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnySeqCRangeIterLazy(_ n: Int) {
-  let s = (AnySequence((0..<sequenceCount).makeIterator())).lazy
+public fn run_DropLastAnySeqCRangeIterLazy(_ n: Int) {
+  immutable s = (AnySequence((0..<sequenceCount).makeIterator())).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -221,8 +222,8 @@ public func run_DropLastAnySeqCRangeIterLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastAnyCollectionLazy(_ n: Int) {
-  let s = (AnyCollection(0..<sequenceCount)).lazy
+public fn run_DropLastAnyCollectionLazy(_ n: Int) {
+  immutable s = (AnyCollection(0..<sequenceCount)).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {
@@ -232,8 +233,8 @@ public func run_DropLastAnyCollectionLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_DropLastArrayLazy(_ n: Int) {
-  let s = (array).lazy
+public fn run_DropLastArrayLazy(_ n: Int) {
+  immutable s = (array).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.dropLast(dropCount) {

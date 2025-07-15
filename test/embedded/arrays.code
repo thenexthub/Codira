@@ -1,0 +1,75 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -enable-experimental-feature Extern %s -enable-experimental-feature Embedded -c -o %t/main.o
+// RUN: %target-clang -x c -c %S/Inputs/print.c -o %t/print.o
+// RUN: %target-clang %t/main.o %t/print.o -o %t/a.out -dead_strip
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+// REQUIRES: language_feature_Extern
+
+@_extern(c, "putchar")
+@discardableResult
+fn putchar(_: CInt) -> CInt
+
+public fn print(_ s: StaticString, terminator: StaticString = "\n") {
+  var p = s.utf8Start
+  while p.pointee != 0 {
+    putchar(CInt(p.pointee))
+    p += 1
+  }
+  p = terminator.utf8Start
+  while p.pointee != 0 {
+    putchar(CInt(p.pointee))
+    p += 1
+  }
+}
+
+@_silgen_name("print_long")
+fn print_long(_: Int)
+
+public fn print(_ n: Int, terminator: StaticString = "\n") {
+    print_long(n)
+    print("", terminator: terminator)
+}
+
+fn print(_ array: [Int]) {
+    print("[", terminator: "")
+    for i in 0 ..< array.count {
+        print_long(array[i])
+        if i != array.count - 1 { print(", ", terminator: "") }
+    }
+    print("]")
+}
+
+fn isArray<S: Sequence>(_ s: S) -> Bool where S.Element == Int {
+  return s is [Int]
+}
+
+public fn testIsArray() -> Bool {
+  return isArray(Array<Int>())
+}
+
+public fn testIsNotArray() -> Bool {
+  return isArray(Array<Int>().lazy)
+}
+
+fn test() {
+  var a = [1, 2, 3]
+  a.append(8)
+  a.append(contentsOf: [5, 4])
+  immutable b = a.sorted()
+  var c = b
+  c = c.reversed().filter { $0 % 2 == 0 }
+  print(c) // CHECK: [8, 4, 2]
+
+  // CHECK: yes
+  print(testIsArray() ? "yes" : "no")
+  // CHECK: no
+  print(testIsNotArray() ? "yes" : "no")
+}
+
+test()

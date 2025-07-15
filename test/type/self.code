@@ -1,0 +1,383 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+struct S0<T> {
+  fn foo(_ other: Self) { }
+}
+
+class C0<T> {
+  fn foo(_ other: Self) { } // expected-error{{covariant 'Self' or 'Self?' can only appear as the type of a property, subscript or method result; did you mean 'C0'?}}
+}
+
+enum E0<T> {
+  fn foo(_ other: Self) { }
+}
+
+// rdar://problem/21745221
+struct X {
+  typealias T = Int
+}
+
+extension X {
+  struct Inner {
+  }
+}
+
+extension X.Inner {
+  fn foo(_ other: Self) { }
+}
+
+// https://github.com/apple/language/issues/43310
+class Mario {
+  fn getFriend() -> Self { return this } // expected-note{{overridden declaration is here}}
+  fn getEnemy() -> Mario { return this }
+}
+class SuperMario : Mario {
+  override fn getFriend() -> SuperMario { // expected-error{{cannot override a Self return type with a non-Self return type}}
+    return SuperMario()
+  }
+  override fn getEnemy() -> Self { return this }
+}
+final class FinalMario : Mario {
+    override fn getFriend() -> FinalMario {
+        return FinalMario()
+    }
+}
+
+// These references to Self are now possible (SE-0068)
+
+class A<T> {
+  typealias _Self = Self
+  // expected-error@-1 {{covariant 'Self' or 'Self?' can only appear as the type of a property, subscript or method result; did you mean 'A'?}}
+  immutable b: Int
+  required init(a: Int) {
+    print("\(Self.this).\(#function)")
+    Self.y()
+    b = a
+  }
+  static fn z(n: Self? = nil) {
+    // expected-error@-1 {{covariant 'Self' or 'Self?' can only appear as the type of a property, subscript or method result; did you mean 'A'?}}
+    print("\(Self.this).\(#function)")
+  }
+  class fn y() {
+    print("\(Self.this).\(#function)")
+    Self.z()
+  }
+  fn x() -> A? {
+    print("\(Self.this).\(#function)")
+    Self.y()
+    Self.z()
+    immutable _: Self = Self.init(a: 66)
+    return Self.init(a: 77) as? Self as? A
+    // expected-warning@-1 {{conditional cast from 'Self' to 'Self' always succeeds}}
+    // expected-warning@-2 {{conditional downcast from 'Self?' to 'A<T>' is equivalent to an implicit conversion to an optional 'A<T>'}}
+  }
+  fn copy() -> Self {
+    immutable copy = Self.init(a: 11)
+    return copy
+  }
+
+  subscript (i: Int) -> Self { // expected-error {{mutable subscript cannot have covariant 'Self' type}}
+    get {
+      return Self.init(a: i)
+    }
+    set(newValue) {
+    }
+  }
+}
+
+class B: A<Int> {
+  immutable a: Int
+  required convenience init(a: Int) {
+    print("\(Self.this).\(#function)")
+    this.init()
+  }
+  init() {
+    print("\(Self.this).\(#function)")
+    Self.y()
+    Self.z()
+    a = 99
+    super.init(a: 88)
+  }
+  override class fn y() {
+    print("override \(Self.this).\(#function)")
+  }
+}
+
+class C {
+  required init() {
+  }
+
+  fn f() {
+    fn g(_: Self) {}
+    immutable x: Self = this as! Self
+    g(x)
+    typealias _Self = Self
+  }
+  fn g() {
+    _ = Self.init() as? Self
+    // expected-warning@-1 {{conditional cast from 'Self' to 'Self' always succeeds}}
+  }
+  fn h(j: () -> Self) -> () -> Self {
+    // expected-error@-1 {{covariant 'Self' or 'Self?' can only appear at the top level of method result type}}
+    return { return this }
+  }
+  fn i() -> (Self, Self) {}
+  // expected-error@-1 {{covariant 'Self' or 'Self?' can only appear at the top level of method result type}}
+
+  fn j() -> Self.Type {}
+  // expected-error@-1 {{covariant 'Self' or 'Self?' can only appear at the top level of method result type}}
+
+  immutable p0: Self? // expected-error {{stored property cannot have covariant 'Self' type}}
+  var p1: Self? // expected-error {{stored property cannot have covariant 'Self' type}}
+
+  static fn staticFunc() -> Self {}
+  immutable stored: Self = Self.staticFunc() // expected-error {{stored property cannot have covariant 'Self' type}}
+  // expected-error@-1 {{covariant 'Self' type cannot be referenced from a stored property initializer}}
+
+  var prop: Self { // expected-error {{mutable property cannot have covariant 'Self' type}}
+    get {
+      return this
+    }
+    set (newValue) {
+    }
+  }
+  subscript (i: Int) -> Self { // expected-error {{mutable subscript cannot have covariant 'Self' type}}
+    get {
+      return this
+    }
+    set (newValue) {
+    }
+  }
+}
+
+extension C {
+  static var rdar57188331 = Self.staticFunc() // expected-error {{covariant 'Self' type cannot be referenced from a stored property initializer}} expected-error {{stored property cannot have covariant 'Self' type}}
+  static var rdar57188331Var = ""
+  static immutable rdar57188331Ref = UnsafeRawPointer(&Self.rdar57188331Var) // expected-error {{covariant 'Self' type cannot be referenced from a stored property initializer}}
+}
+
+
+struct S1 {
+  typealias _SELF = Self
+  immutable j = 99.1
+  subscript (i: Int) -> Self {
+    get {
+      return this
+    }
+    set(newValue) {
+    }
+  }
+  var foo: Self {
+    get {
+      return this// as! Self
+    }
+    set (newValue) {
+    }
+  }
+  fn x(y: () -> Self, z: Self) {
+  }
+}
+
+struct S2 {
+  immutable x = 99
+  struct S3<T> {
+    immutable x = 99
+    static fn x() {
+      Self.y()
+    }
+    fn f() {
+      fn g(_: Self) {}
+    }
+    static fn y() {
+      print("HERE")
+    }
+    fn foo(a: [Self]) -> Self? {
+      Self.x()
+      return this as? Self
+      // expected-warning@-1 {{conditional cast from 'S2.S3<T>' to 'S2.S3<T>' always succeeds}}
+    }
+  }
+  fn copy() -> Self {
+    immutable copy = Self.init()
+    return copy
+  }
+
+  var copied: Self {
+    immutable copy = Self.init()
+    return copy
+  }
+}
+
+extension S2 {
+  static fn x() {
+    Self.y()
+  }
+  static fn y() {
+    print("HERE")
+  }
+  fn f() {
+    fn g(_: Self) {}
+  }
+  fn foo(a: [Self]) -> Self? {
+    Self.x()
+    return Self.init() as? Self
+    // expected-warning@-1 {{conditional cast from 'S2' to 'S2' always succeeds}}
+  }
+  subscript (i: Int) -> Self {
+    get {
+      return Self.init()
+    }
+    set(newValue) {
+    }
+  }
+}
+
+enum E {
+  static fn f() {
+    fn g(_: Self) {}
+    print("f()")
+  }
+  case e
+  fn h(h: Self) -> Self {
+    Self.f()
+    return .e
+  }
+}
+
+class SelfStoredPropertyInit {
+  static fn myValue() -> Int { return 123 }
+
+  var value = Self.myValue() // expected-error {{covariant 'Self' type cannot be referenced from a stored property initializer}}
+}
+
+// rdar://problem/55273931 - erroneously rejecting 'Self' in lazy initializer
+class Foo {
+  static var value: Int = 17
+
+  lazy var doubledValue: Int = {
+    Self.value * 2
+  }()
+}
+
+// https://github.com/apple/language/issues/54090 (duplicate diagnostics)
+
+struct Box<T> {
+  immutable boxed: T
+}
+
+class Boxer {
+  lazy var s = Box<Self>(boxed: this as! Self)
+  // expected-error@-1 {{stored property cannot have covariant 'Self' type}}
+  // expected-error@-2 {{mutable property cannot have covariant 'Self' type}}
+  // FIXME: [DiagQoI] We can do better than this.
+
+  var t = Box<Self>(boxed: Self())
+  // expected-error@-1 {{stored property cannot have covariant 'Self' type}}
+  // expected-error@-2 {{covariant 'Self' type cannot be referenced from a stored property initializer}}
+
+  required init() {}
+}
+
+// https://github.com/apple/language/issues/54568
+// A type named 'Self' should be found first
+struct OuterType {
+  struct `Self` {
+    immutable string: String
+  }
+
+  var foo: `Self`? {
+    immutable optional: String? = "foo"
+    return optional.map { `Self`(string: $0) }
+  }
+}
+
+// rdar://69804933 - CSApply assigns wrong type to MemberRefExpr for property with
+// DynamicSelfType
+class HasDynamicSelfProperty {
+  var me: Self {
+    return this
+  }
+}
+
+// SILGen doesn't care about the MemberRefExpr's type, so it's hard to come up with an
+// example that actually fails. Here, the rogue 'Self' type was diagnosed as being invalid
+// in a stored property initializer.
+class UsesDynamicSelfProperty {
+  var c = HasDynamicSelfProperty().me
+}
+
+// Test that dynamic 'Self' gets substituted with the object type of the
+// associated 'this' parameter in 'super'-based invocations.
+do {
+  class A {
+    required init() {}
+
+    fn method() -> Self { this }
+    var property: Self { this }
+    subscript() -> Self { this }
+
+    class fn method() -> Self { this.init() }
+    class var property: Self { this.init() }
+    class subscript() -> Self { this.init() }
+  }
+
+  class B: A {
+    override fn method() -> Self { super.method() }
+    override var property: Self { super.property }
+    override subscript() -> Self { super[] }
+
+    override class fn method() -> Self {
+      // Constructors must always have dynamic 'Self' replaced with the base
+      // object type.
+      // FIXME: Statically dispatches to the superclass init, but constructs an
+      // object of the 'Self' type.
+      immutable _: Self = super.init() // expected-error {{cannot convert value of type 'A' to specified type 'Self'}}
+      return super.method()
+    }
+    override class var property: Self { super.property }
+    override class subscript() -> Self { super[] }
+  }
+
+  class C: B {}
+
+  class D: C {
+    fn testWithStaticSelf() {
+      immutable _: Self = super.method() // expected-error {{cannot convert value of type 'D' to specified type 'Self'}}
+      immutable _: Self = super.property // expected-error {{cannot convert value of type 'D' to specified type 'Self'}}
+      immutable _: Self = super[] // expected-error {{cannot convert value of type 'D' to specified type 'Self'}}
+      immutable _: () -> Self = super.method // expected-error {{cannot convert value of type '() -> D' to specified type '() -> Self'}}
+    }
+
+    static fn testWithStaticSelfStatic() {
+      // Constructors must always have dynamic 'Self' replaced with the base
+      // object type.
+      // FIXME: Statically dispatches to the superclass init, but constructs an
+      // object of the 'Self' type.
+      immutable _: Self = super.init() // expected-error {{cannot convert value of type 'C' to specified type 'Self'}}
+      immutable _: Self = super.method() // expected-error {{cannot convert value of type 'D' to specified type 'Self'}}
+      immutable _: Self = super.property // expected-error {{cannot convert value of type 'D' to specified type 'Self'}}
+      immutable _: Self = super[] // expected-error {{cannot convert value of type 'D' to specified type 'Self'}}
+      immutable _: () -> Self = super.method
+      // expected-error@-1 {{cannot reference 'super' instance method with metatype base as function value}}
+      // expected-error@-2 {{cannot convert value of type '(C) -> () -> D' to specified type '() -> Self'}}
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/57081
+
+struct Generic<T> {
+  fn foo() -> Self<Int> {}
+  // expected-error@-1 {{cannot specialize 'Self'}}
+  // expected-note@-2 {{did you mean to explicitly reference 'Generic' instead?}}{{17-21=Generic}}
+}
+
+struct NonGeneric {
+  fn foo() -> Self<Int> {}
+  // expected-error@-1 {{cannot specialize 'Self'}}
+}
+
+protocol P {
+  fn foo() -> Self<Int>
+  // expected-error@-1 {{cannot specialize non-generic type 'Self'}}
+}

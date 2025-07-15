@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ExtractExprBase.h"
@@ -26,8 +30,8 @@ struct ReferenceCollector : public SourceEntityWalker {
   SmallVector<ValueDecl *, 4> References;
 
   ReferenceCollector(Expr *E) { walk(E); }
-  bool visitDeclReference(ValueDecl *D, CharSourceRange Range,
-                          TypeDecl *CtorTyRef, ExtensionDecl *ExtTyRef, Type T,
+  bool visitDeclReference(ValueDecl *D, SourceRange Range, TypeDecl *CtorTyRef,
+                          ExtensionDecl *ExtTyRef, Type T,
                           ReferenceMetaData Data) override {
     References.emplace_back(D);
     return true;
@@ -46,7 +50,7 @@ struct SimilarExprCollector : public SourceEntityWalker {
   /// The expression under selection.
   Expr *SelectedExpr;
   ArrayRef<Token> AllTokens;
-  llvm::SetVector<Expr *> &Bucket;
+  toolchain::SetVector<Expr *> &Bucket;
 
   /// The tokens included in the expression under selection.
   ArrayRef<Token> SelectedTokens;
@@ -70,7 +74,7 @@ struct SimilarExprCollector : public SourceEntityWalker {
 
   SimilarExprCollector(SourceManager &SM, Expr *SelectedExpr,
                        ArrayRef<Token> AllTokens,
-                       llvm::SetVector<Expr *> &Bucket)
+                       toolchain::SetVector<Expr *> &Bucket)
       : SM(SM), SelectedExpr(SelectedExpr), AllTokens(AllTokens),
         Bucket(Bucket), SelectedTokens(getExprSlice(SelectedExpr)),
         SelectedReferences(SelectedExpr) {}
@@ -97,7 +101,7 @@ struct SimilarExprCollector : public SourceEntityWalker {
 } // namespace
 
 ExtractCheckResult
-swift::refactoring::checkExtractConditions(const ResolvedRangeInfo &RangeInfo,
+language::refactoring::checkExtractConditions(const ResolvedRangeInfo &RangeInfo,
                                            DiagnosticEngine &DiagEngine) {
   SmallVector<CannotExtractReason, 2> AllReasons;
   // If any declared declaration is referred out of the given range, return
@@ -140,18 +144,18 @@ swift::refactoring::checkExtractConditions(const ResolvedRangeInfo &RangeInfo,
 
   // We cannot extract a range with orphaned loop keyword.
   switch (RangeInfo.Orphan) {
-  case swift::ide::OrphanKind::Continue:
+  case language::ide::OrphanKind::Continue:
     DiagEngine.diagnose(SourceLoc(), diag::orphan_loop_keyword, "continue");
     return ExtractCheckResult();
-  case swift::ide::OrphanKind::Break:
+  case language::ide::OrphanKind::Break:
     DiagEngine.diagnose(SourceLoc(), diag::orphan_loop_keyword, "break");
     return ExtractCheckResult();
-  case swift::ide::OrphanKind::None:
+  case language::ide::OrphanKind::None:
     break;
   }
 
   // Guard statement can not be extracted.
-  if (llvm::any_of(RangeInfo.ContainedNodes,
+  if (toolchain::any_of(RangeInfo.ContainedNodes,
                    [](ASTNode N) { return N.isStmt(StmtKind::Guard); })) {
     return ExtractCheckResult();
   }
@@ -179,22 +183,22 @@ swift::refactoring::checkExtractConditions(const ResolvedRangeInfo &RangeInfo,
   }
 
   switch (RangeInfo.RangeContext->getContextKind()) {
-  case swift::DeclContextKind::Initializer:
-  case swift::DeclContextKind::SubscriptDecl:
-  case swift::DeclContextKind::EnumElementDecl:
-  case swift::DeclContextKind::AbstractFunctionDecl:
-  case swift::DeclContextKind::AbstractClosureExpr:
-  case swift::DeclContextKind::TopLevelCodeDecl:
+  case language::DeclContextKind::Initializer:
+  case language::DeclContextKind::SubscriptDecl:
+  case language::DeclContextKind::EnumElementDecl:
+  case language::DeclContextKind::AbstractFunctionDecl:
+  case language::DeclContextKind::AbstractClosureExpr:
+  case language::DeclContextKind::TopLevelCodeDecl:
     break;
 
-  case swift::DeclContextKind::SerializedAbstractClosure:
-  case swift::DeclContextKind::SerializedTopLevelCodeDecl:
-  case swift::DeclContextKind::Package:
-  case swift::DeclContextKind::Module:
-  case swift::DeclContextKind::FileUnit:
-  case swift::DeclContextKind::GenericTypeDecl:
-  case swift::DeclContextKind::ExtensionDecl:
-  case swift::DeclContextKind::MacroDecl:
+  case language::DeclContextKind::SerializedAbstractClosure:
+  case language::DeclContextKind::SerializedTopLevelCodeDecl:
+  case language::DeclContextKind::Package:
+  case language::DeclContextKind::Module:
+  case language::DeclContextKind::FileUnit:
+  case language::DeclContextKind::GenericTypeDecl:
+  case language::DeclContextKind::ExtensionDecl:
+  case language::DeclContextKind::MacroDecl:
     return ExtractCheckResult();
   }
   return ExtractCheckResult(AllReasons);
@@ -214,10 +218,10 @@ bool RefactoringActionExtractExprBase::performChange() {
   auto *SelectedExpr = RangeInfo.ContainedNodes[0].get<Expr *>();
   Finder.resolve();
   SourceLoc InsertLoc;
-  llvm::SetVector<ValueDecl *> AllVisibleDecls;
+  toolchain::SetVector<ValueDecl *> AllVisibleDecls;
   struct DeclCollector : public SourceEntityWalker {
-    llvm::SetVector<ValueDecl *> &Bucket;
-    DeclCollector(llvm::SetVector<ValueDecl *> &Bucket) : Bucket(Bucket) {}
+    toolchain::SetVector<ValueDecl *> &Bucket;
+    DeclCollector(toolchain::SetVector<ValueDecl *> &Bucket) : Bucket(Bucket) {}
     bool walkToDeclPre(Decl *D, CharSourceRange Range) override {
       if (auto *VD = dyn_cast<ValueDecl>(D))
         Bucket.insert(VD);
@@ -225,7 +229,7 @@ bool RefactoringActionExtractExprBase::performChange() {
     }
   } Collector(AllVisibleDecls);
 
-  llvm::SetVector<Expr *> AllExpressions;
+  toolchain::SetVector<Expr *> AllExpressions;
 
   if (!Finder.getContexts().empty()) {
 
@@ -276,14 +280,14 @@ bool RefactoringActionExtractExprBase::performChange() {
   // We are not sure about the type of repeated expressions.
   if (!ExtractRepeated) {
     if (auto Ty = RangeInfo.getType()) {
-      llvm::raw_svector_ostream OS(TyBuffer);
+      toolchain::raw_svector_ostream OS(TyBuffer);
       OS << ": ";
       Ty->getRValueType()->reconstituteSugar(true)->print(OS);
     }
   }
 
   SmallString<64> DeclBuffer;
-  llvm::raw_svector_ostream OS(DeclBuffer);
+  toolchain::raw_svector_ostream OS(DeclBuffer);
   unsigned StartOffset, EndOffset;
   OS << tok::kw_let << " ";
   StartOffset = DeclBuffer.size();

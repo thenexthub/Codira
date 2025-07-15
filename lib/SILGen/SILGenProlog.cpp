@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgumentSource.h"
@@ -183,9 +184,9 @@ struct WritebackReabstractedInoutCleanup final : Cleanup {
   }
   
   void dump(SILGenFunction&) const override {
-    llvm::errs() << "WritebackReabstractedInoutCleanup\n";
-    OrigAddress->print(llvm::errs());
-    SubstAddress->print(llvm::errs());
+    toolchain::errs() << "WritebackReabstractedInoutCleanup\n";
+    OrigAddress->print(toolchain::errs());
+    SubstAddress->print(toolchain::errs());
   }
 };
 
@@ -639,7 +640,7 @@ class ArgumentInitHelper {
 public:
   ArgumentInitHelper(SILGenFunction &SGF,
                      unsigned numIgnoredTrailingParameters,
-                     llvm::SmallPtrSet<ParamDecl*, 2> &&scopedDependencies)
+                     toolchain::SmallPtrSet<ParamDecl*, 2> &&scopedDependencies)
       : SGF(SGF), loweredParams(SGF, numIgnoredTrailingParameters),
         ScopedDependencies(std::move(scopedDependencies)) {}
 
@@ -672,7 +673,7 @@ public:
       // formal self parameter, but they do not pass an origFnType down,
       // so we can ignore that possibility.
       FormalParamTypes.emplace(SGF.getASTContext(), loweredParams, *origFnType,
-                               llvm::ArrayRef(substFormalParams),
+                               toolchain::ArrayRef(substFormalParams),
                                /*ignore final*/ false);
     }
 
@@ -763,7 +764,7 @@ private:
                                      ParamDecl *pd,
                                      const SILDebugVariable &varinfo) {
     bool calledCompletedUpdate = false;
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       assert(calledCompletedUpdate && "Forgot to call completed update along "
                                       "all paths or manually turn it off");
     };
@@ -944,18 +945,18 @@ private:
     if (auto *arg = dyn_cast<SILFunctionArgument>(argrv.getValue())) {
       if (arg->isNoImplicitCopy()) {
         switch (pd->getSpecifier()) {
-        case swift::ParamSpecifier::Borrowing:
+        case language::ParamSpecifier::Borrowing:
           // Shouldn't have any cleanups on this.
           assert(!argrv.hasCleanup());
           argrv = ManagedValue::forBorrowedAddressRValue(
               SGF.B.createCopyableToMoveOnlyWrapperAddr(pd, argrv.getValue()));
           break;
-        case swift::ParamSpecifier::ImplicitlyCopyableConsuming:
-        case swift::ParamSpecifier::Consuming:
-        case swift::ParamSpecifier::Default:
-        case swift::ParamSpecifier::InOut:
-        case swift::ParamSpecifier::LegacyOwned:
-        case swift::ParamSpecifier::LegacyShared:
+        case language::ParamSpecifier::ImplicitlyCopyableConsuming:
+        case language::ParamSpecifier::Consuming:
+        case language::ParamSpecifier::Default:
+        case language::ParamSpecifier::InOut:
+        case language::ParamSpecifier::LegacyOwned:
+        case language::ParamSpecifier::LegacyShared:
           break;
         }
       }
@@ -988,7 +989,7 @@ private:
             case SILArgumentConvention::Pack_Guaranteed:
             case SILArgumentConvention::Pack_Owned:
             case SILArgumentConvention::Pack_Out:
-              llvm_unreachable("Should have been handled elsewhere");
+              toolchain_unreachable("Should have been handled elsewhere");
             case SILArgumentConvention::Indirect_In:
               argrv = SGF.B.createMarkUnresolvedNonCopyableValueInst(
                   loc, argrv,
@@ -1181,7 +1182,7 @@ static void emitCaptureArguments(SILGenFunction &SGF,
 
     case CaptureKind::ImmutableBox:
     case CaptureKind::Box:
-      llvm_unreachable("should be impossible");
+      toolchain_unreachable("should be impossible");
     }
 
     ManagedValue mv = ManagedValue::forBorrowedRValue(arg);
@@ -1324,7 +1325,7 @@ static void emitCaptureArguments(SILGenFunction &SGF,
   case CaptureKind::StorageAddress:
     assert(!isPack);
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 
   case CaptureKind::Immutable: {
     auto argIndex = SGF.F.begin()->getNumArguments();
@@ -1364,7 +1365,7 @@ static void emitCaptureArguments(SILGenFunction &SGF,
       case SILArgumentConvention::Direct_Unowned:
       case SILArgumentConvention::Indirect_Out:
       case SILArgumentConvention::Pack_Out:
-        llvm_unreachable("should be impossible");
+        toolchain_unreachable("should be impossible");
       }
     }
 
@@ -1409,6 +1410,7 @@ static void emitCaptureArguments(SILGenFunction &SGF,
   }
 
   SGF.VarLocs[VD] = SILGenFunction::VarLoc(arg, enforcement, box);
+  SGF.enterLocalVariableAddressableBufferScope(VD);
   SILDebugVariable DbgVar(VD->isLet(), ArgNo);
   if (auto *AllocStack = dyn_cast<AllocStackInst>(arg)) {
     AllocStack->setArgNo(ArgNo);
@@ -1676,7 +1678,7 @@ uint16_t SILGenFunction::emitBasicProlog(
   // relative to the current SILGenFunction, not the passed in DeclContext. For
   // example, the an argument initializer's DeclContext is the enclosing
   // function definition rather that the initializer's generator function.
-  llvm::SmallPtrSet<ParamDecl *, 2> scopedDependencyParams;
+  toolchain::SmallPtrSet<ParamDecl *, 2> scopedDependencyParams;
   if (auto afd = dyn_cast<AbstractFunctionDecl>(FunctionDC)) {
     if (auto deps = afd->getLifetimeDependencies()) {
       for (auto &dep : *deps) {

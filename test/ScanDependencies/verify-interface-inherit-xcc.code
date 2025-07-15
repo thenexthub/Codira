@@ -1,0 +1,28 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/inputs)
+// RUN: %target-language-emit-pcm -module-name CodiraShims %language-lib-dir/language/shims/module.modulemap -o %t/inputs/CodiraShims.pcm -Xcc -fobjc-disable-direct-methods-for-testing
+// RUN: echo "[{" > %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/stdlib_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%/ononesupport_module\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraShims\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false," >> %/t/inputs/map.json
+// RUN: echo "\"clangModuleMapPath\": \"%language-lib-dir/language/shims/module.modulemap\"," >> %/t/inputs/map.json
+// RUN: echo "\"clangModulePath\": \"%t/inputs/CodiraShims.pcm\"" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+// RUN: split-file %s %t
+// RUN: %target-language-typecheck-module-from-interface(%t/inputs/Foo.codeinterface) -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -disable-implicit-language-modules -explicit-language-module-map-file %t/inputs/map.json -explicit-interface-module-build -Xcc -fobjc-disable-direct-methods-for-testing
+
+//--- inputs/Foo.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name Foo
+public fn foo() {}

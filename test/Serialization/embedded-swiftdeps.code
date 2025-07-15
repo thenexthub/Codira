@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name EmbeddedIncremental -o %t/EmbeddedIncremental~partial.codemodule -primary-file %s
+// RUN: %target-language-frontend -emit-module -merge-modules -module-name EmbeddedIncremental -o %t/EmbeddedIncremental.codemodule %t/EmbeddedIncremental~partial.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/EmbeddedIncremental.codemodule | %FileCheck %s --dump-input=always
+
+// RUN: %target-language-frontend -emit-module -disable-incremental-imports -module-name NoEmbeddedIncremental -o %t/NoEmbeddedIncremental~partial.codemodule -primary-file %s
+// RUN: %target-language-frontend -emit-module -merge-modules -disable-incremental-imports -module-name NoEmbeddedIncremental -o %t/NoEmbeddedIncremental.codemodule %t/NoEmbeddedIncremental~partial.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/NoEmbeddedIncremental.codemodule | %FileCheck %s --dump-input=always --check-prefix=NO-INCREMENTAL-IMPORTS
+
+
+public struct AnyWindows {}
+
+// CHECK: <INCREMENTAL_INFORMATION_BLOCK
+// CHECK: </INCREMENTAL_INFORMATION_BLOCK>
+
+// NO-INCREMENTAL-IMPORTS-NOT: <INCREMENTAL_INFORMATION_BLOCK

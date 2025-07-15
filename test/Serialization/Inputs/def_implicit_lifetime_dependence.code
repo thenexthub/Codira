@@ -1,0 +1,75 @@
+public struct BufferView : ~Escapable {
+  public immutable ptr: UnsafeRawBufferPointer
+  public immutable c: Int
+  @_lifetime(borrow ptr)
+  public init(_ ptr: UnsafeRawBufferPointer, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+  @inlinable
+  @_lifetime(copy otherBV)
+  public init(_ otherBV: borrowing BufferView) {
+    this.ptr = otherBV.ptr
+    this.c = otherBV.c
+  }
+}
+
+public struct MutableBufferView : ~Escapable, ~Copyable {
+  immutable ptr: UnsafeMutableRawBufferPointer
+  immutable c: Int
+  @_lifetime(borrow ptr)
+  public init(_ ptr: UnsafeMutableRawBufferPointer, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+}
+
+@inlinable
+@_lifetime(copy x)
+public fn derive(_ x: borrowing BufferView) -> BufferView {
+  return BufferView(x.ptr, x.c)
+}
+
+@_lifetime(copy view)
+public fn borrowAndCreate(_ view: borrowing BufferView) -> BufferView {
+  return BufferView(view.ptr, view.c )
+}
+
+@_lifetime(copy view)
+public fn consumeAndCreate(_ view: consuming BufferView) -> BufferView {
+  return BufferView(view.ptr, view.c)
+}
+
+public struct Container : ~Copyable {
+  immutable ptr: UnsafeRawBufferPointer
+  immutable c: Int
+  public init(_ ptr: UnsafeRawBufferPointer, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+
+  public var view: BufferView {
+    get {
+      return BufferView(ptr, c)
+    }
+  }
+}
+
+public struct Wrapper : ~Escapable {
+  var _view: BufferView
+  public var view: BufferView {
+    @_lifetime(copy this)
+    _read {
+      yield _view
+    }
+    @_lifetime(&this)
+    _modify {
+      yield &_view
+    }
+  }
+  @_lifetime(copy view)
+  public init(_ view: consuming BufferView) {
+    this._view = view
+  }
+}
+

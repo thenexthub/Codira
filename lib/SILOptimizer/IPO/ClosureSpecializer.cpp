@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -81,11 +82,11 @@
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -96,9 +97,9 @@ STATISTIC(NumPropagatedClosuresEliminated,
 STATISTIC(NumPropagatedClosuresNotEliminated,
           "Number of closures propagated but not eliminated");
 
-llvm::cl::opt<bool> EliminateDeadClosures(
-    "closure-specialize-eliminate-dead-closures", llvm::cl::init(true),
-    llvm::cl::desc("Do not eliminate dead closures after closure "
+toolchain::cl::opt<bool> EliminateDeadClosures(
+    "closure-specialize-eliminate-dead-closures", toolchain::cl::init(true),
+    toolchain::cl::desc("Do not eliminate dead closures after closure "
                    "specialization. This is meant to be used when testing."));
 
 //===----------------------------------------------------------------------===//
@@ -181,12 +182,12 @@ static int getSpecializationLevelRecursive(StringRef funcName,
 //                     Publicly visible for bridging
 //===----------------------------------------------------------------------===//
 
-int swift::getSpecializationLevel(SILFunction *f) {
+int language::getSpecializationLevel(SILFunction *f) {
   Demangle::StackAllocatedDemangler<1024> demangler;
   return getSpecializationLevelRecursive(f->getName(), demangler);
 }
 
-bool swift::isDifferentiableFuncComponent(
+bool language::isDifferentiableFuncComponent(
     SILFunction *f, AutoDiffFunctionComponent expectedComponent) {
   Demangle::Context Ctx;
   if (auto *root = Ctx.demangleSymbolAsNode(f->getName())) {
@@ -236,7 +237,7 @@ public:
   cloneCalleeConversion(SILValue calleeValue, SILValue NewClosure,
                         SILBuilder &Builder,
                         SmallVectorImpl<PartialApplyInst *> &NeedsRelease,
-                        llvm::DenseMap<SILValue, SILValue> &CapturedMap);
+                        toolchain::DenseMap<SILValue, SILValue> &CapturedMap);
 
   SILFunction *getCloned() { return &getBuilder().getFunction(); }
   static SILFunction *cloneFunction(SILOptFunctionBuilder &FunctionBuilder,
@@ -280,12 +281,12 @@ class CallSiteDescriptor {
 
   // This is only needed if we have guaranteed parameters. In most cases it will
   // have only one element, a return inst.
-  llvm::TinyPtrVector<SILBasicBlock *> NonFailureExitBBs;
+  toolchain::TinyPtrVector<SILBasicBlock *> NonFailureExitBBs;
 
 public:
   CallSiteDescriptor(ClosureInfo *CInfo, FullApplySite AI,
                      unsigned ClosureIndex, SILParameterInfo ClosureParamInfo,
-                     llvm::TinyPtrVector<SILBasicBlock *> &&NonFailureExitBBs)
+                     toolchain::TinyPtrVector<SILBasicBlock *> &&NonFailureExitBBs)
     : CInfo(CInfo), AI(AI), ClosureIndex(ClosureIndex),
       ClosureParamInfo(ClosureParamInfo),
       NonFailureExitBBs(NonFailureExitBBs) {}
@@ -339,7 +340,7 @@ public:
 
   SingleValueInstruction *
   createNewClosure(SILBuilder &B, SILValue V,
-                   llvm::SmallVectorImpl<SILValue> &Args) const {
+                   toolchain::SmallVectorImpl<SILValue> &Args) const {
     if (auto *PA = dyn_cast<PartialApplyInst>(getClosure()))
       return B.createPartialApply(getClosure()->getLoc(), V, {}, Args,
                                   PA->getCalleeConvention(),
@@ -420,7 +421,7 @@ namespace {
 struct ClosureInfo {
   SingleValueInstruction *Closure;
   ValueLifetimeAnalysis::Frontier LifetimeFrontier;
-  llvm::SmallVector<CallSiteDescriptor, 8> CallSites;
+  toolchain::SmallVector<CallSiteDescriptor, 8> CallSites;
 
   ClosureInfo(SingleValueInstruction *Closure) : Closure(Closure) {}
 
@@ -449,7 +450,7 @@ static void rewriteApplyInst(const CallSiteDescriptor &CSDesc,
   FunctionRefInst *FRI = Builder.createFunctionRef(AI.getLoc(), NewF);
 
   // Create the args for the new apply by removing the closure argument...
-  llvm::SmallVector<SILValue, 8> NewArgs;
+  toolchain::SmallVector<SILValue, 8> NewArgs;
   unsigned Index = 0;
   for (auto Arg : AI.getArguments()) {
     if (Index != CSDesc.getClosureIndex())
@@ -592,7 +593,7 @@ static void rewriteApplyInst(const CallSiteDescriptor &CSDesc,
     break;
   }
   case FullApplySiteKind::BeginApplyInst:
-    llvm_unreachable("Unhandled case");
+    toolchain_unreachable("Unhandled case");
   }
     
   // Erase the old apply.
@@ -684,7 +685,7 @@ static bool isSupportedClosure(const SILInstruction *Closure) {
     auto ClosureCalleeConv = ClosureCallee->getConventions();
     unsigned ClosureArgIdxBase =
         ClosureCalleeConv.getNumSILArguments() - PAI->getNumArguments();
-    for (auto pair : llvm::enumerate(PAI->getArguments())) {
+    for (auto pair : toolchain::enumerate(PAI->getArguments())) {
       auto Arg = pair.value();
       auto ClosureArgIdx = pair.index() + ClosureArgIdxBase;
       auto ArgConvention =
@@ -694,6 +695,19 @@ static bool isSupportedClosure(const SILInstruction *Closure) {
       // Specializing (currently) always produces a retain in the caller.
       // That's not allowed for values of move-only type.
       if (ArgTy.isMoveOnly()) {
+        return false;
+      }
+
+      // Bail if it's an ObjectiveC block which might _not_ be copied onto the heap, i.e
+      // optimized by SimplifyCopyBlock. We can't do this because the optimization inserts
+      // retains+releases for captured arguments. That's not possible for stack-allocated blocks.
+      // TODO: avoid inserting retains+releases at all for captures of `partial_apply [on_stack]`
+      if (ArgTy.is<SILFunctionType>() &&
+          ArgTy.getFunctionRepresentation() == SILFunctionTypeRepresentation::Block &&
+          // A `copy_block` ensures that the block is copied onto the heap.
+          !isa<CopyBlockInst>(Arg) &&
+          // SimplifyCopyBlock only works for `partial_apply [on_stack]`.
+          PAI->isOnStack()) {
         return false;
       }
 
@@ -734,7 +748,7 @@ ClosureSpecCloner::initCloned(SILOptFunctionBuilder &FunctionBuilder,
   SILFunction *ClosureUser = CallSiteDesc.getApplyCallee();
 
   // This is the list of new interface parameters of the cloned function.
-  llvm::SmallVector<SILParameterInfo, 4> NewParameterInfoList;
+  toolchain::SmallVector<SILParameterInfo, 4> NewParameterInfoList;
 
   // First add to NewParameterInfoList all of the SILParameterInfo in the
   // original function except for the closure.
@@ -833,7 +847,7 @@ ClosureSpecCloner::initCloned(SILOptFunctionBuilder &FunctionBuilder,
 SILValue ClosureSpecCloner::cloneCalleeConversion(
     SILValue calleeValue, SILValue NewClosure, SILBuilder &Builder,
     SmallVectorImpl<PartialApplyInst *> &NeedsRelease,
-    llvm::DenseMap<SILValue, SILValue> &CapturedMap) {
+    toolchain::DenseMap<SILValue, SILValue> &CapturedMap) {
 
   // There might be a mark dependence on a previous closure value. Therefore, we
   // add all closure values to the map.
@@ -949,8 +963,8 @@ void ClosureSpecCloner::populateCloned() {
   auto ClosedOverFunConv = ClosedOverFun->getConventions();
   unsigned NumTotalParams = ClosedOverFunConv.getNumParameters();
   unsigned NumNotCaptured = NumTotalParams - CallSiteDesc.getNumArguments();
-  llvm::SmallVector<SILValue, 4> NewPAIArgs;
-  llvm::DenseMap<SILValue, SILValue> CapturedMap;
+  toolchain::SmallVector<SILValue, 4> NewPAIArgs;
+  toolchain::DenseMap<SILValue, SILValue> CapturedMap;
   unsigned idx = 0;
   for (auto &PInfo : ClosedOverFunConv.getParameters().slice(NumNotCaptured)) {
     auto paramTy =
@@ -1067,8 +1081,8 @@ namespace {
 class SILClosureSpecializerTransform : public SILFunctionTransform {
   bool gatherCallSites(
       SILFunction *Caller,
-      llvm::SmallVectorImpl<std::unique_ptr<ClosureInfo>> &ClosureCandidates,
-      llvm::DenseSet<FullApplySite> &MultipleClosureAI);
+      toolchain::SmallVectorImpl<std::unique_ptr<ClosureInfo>> &ClosureCandidates,
+      toolchain::DenseSet<FullApplySite> &MultipleClosureAI);
   bool specialize(SILFunction *Caller,
                   std::vector<SingleValueInstruction *> &PropagatedClosures);
 
@@ -1101,19 +1115,19 @@ void SILClosureSpecializerTransform::run() {
   if (EliminateDeadClosures) {
     // Otherwise, remove any local dead closures that are now dead since we
     // specialized all of their uses.
-    LLVM_DEBUG(llvm::dbgs() << "Trying to remove dead closures!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Trying to remove dead closures!\n");
     sortUnique(PropagatedClosures);
     bool invalidatedStackNesting = false;
 
     for (auto *Closure : PropagatedClosures) {
-      LLVM_DEBUG(llvm::dbgs() << "    Visiting: " << *Closure);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Visiting: " << *Closure);
       if (!tryDeleteDeadClosure(Closure)) {
-        LLVM_DEBUG(llvm::dbgs() << "        Failed to delete closure!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed to delete closure!\n");
         ++NumPropagatedClosuresNotEliminated;
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "        Deleted closure!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Deleted closure!\n");
       ++NumPropagatedClosuresEliminated;
       invalidatedStackNesting = true;
     }
@@ -1130,7 +1144,7 @@ void SILClosureSpecializerTransform::run() {
 
 static void markReabstractionPartialApplyAsUsed(
     SILValue FirstClosure, SILValue Current,
-    llvm::DenseSet<SingleValueInstruction *> &UsedReabstractionClosure) {
+    toolchain::DenseSet<SingleValueInstruction *> &UsedReabstractionClosure) {
   if (Current == FirstClosure)
     return;
   if (auto PA = dyn_cast<PartialApplyInst>(Current)) {
@@ -1150,7 +1164,7 @@ static void markReabstractionPartialApplyAsUsed(
     return markReabstractionPartialApplyAsUsed(FirstClosure, MD->getValue(),
                                                UsedReabstractionClosure);
   }
-  llvm_unreachable("Unexpect instruction");
+  toolchain_unreachable("Unexpect instruction");
 }
 
 /// Returns true if the \p closureArgIdx argument of \p callee is called in
@@ -1192,21 +1206,21 @@ static bool canSpecializeFullApplySite(FullApplySiteKind kind) {
   case FullApplySiteKind::BeginApplyInst:
     return false;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 bool SILClosureSpecializerTransform::gatherCallSites(
     SILFunction *Caller,
-    llvm::SmallVectorImpl<std::unique_ptr<ClosureInfo>> &ClosureCandidates,
-    llvm::DenseSet<FullApplySite> &MultipleClosureAI) {
+    toolchain::SmallVectorImpl<std::unique_ptr<ClosureInfo>> &ClosureCandidates,
+    toolchain::DenseSet<FullApplySite> &MultipleClosureAI) {
 
   // A set of apply inst that we have associated with a closure. We use this to
   // make sure that we do not handle call sites with multiple closure arguments.
-  llvm::DenseSet<FullApplySite> VisitedAI;
+  toolchain::DenseSet<FullApplySite> VisitedAI;
 
   // We should not look at reabstraction closure twice who we ultimately ended
   // up using as an argument that we specialize on.
-  llvm::DenseSet<SingleValueInstruction *> UsedReabstractionClosure;
+  toolchain::DenseSet<SingleValueInstruction *> UsedReabstractionClosure;
 
   bool CFGChanged = false;
 
@@ -1234,7 +1248,7 @@ bool SILClosureSpecializerTransform::gatherCallSites(
 
       // Set of possible arguments for mark_dependence. The base of a
       // mark_dependence we copy must be available in the specialized function.
-      llvm::SmallSet<SILValue, 16> PossibleMarkDependenceBases;
+      toolchain::SmallSet<SILValue, 16> PossibleMarkDependenceBases;
       if (auto *PA = dyn_cast<PartialApplyInst>(ClosureInst)) {
         for (auto Opd : PA->getArguments())
           PossibleMarkDependenceBases.insert(Opd);
@@ -1374,7 +1388,7 @@ bool SILClosureSpecializerTransform::gatherCallSites(
         bool OnlyHaveThinToThickClosure =
             isa<ThinToThickFunctionInst>(ClosureInst) && !HaveUsedReabstraction;
 
-        llvm::TinyPtrVector<SILBasicBlock *> NonFailureExitBBs;
+        toolchain::TinyPtrVector<SILBasicBlock *> NonFailureExitBBs;
         if ((ClosureParamInfo.isGuaranteedInCaller() ||
              IsClosurePassedTrivially) &&
             !OnlyHaveThinToThickClosure &&
@@ -1402,7 +1416,7 @@ bool SILClosureSpecializerTransform::gatherCallSites(
         // This happens if a closure argument is called _and_ referenced in
         // another closure, which is passed to a recursive call. E.g.
         //
-        // func foo(_ c: @escaping () -> ()) {
+        // fn foo(_ c: @escaping () -> ()) {
         //   c()
         //   foo({ c() })
         // }
@@ -1443,14 +1457,14 @@ bool SILClosureSpecializerTransform::gatherCallSites(
 
 bool SILClosureSpecializerTransform::specialize(SILFunction *Caller,
                     std::vector<SingleValueInstruction *> &PropagatedClosures) {
-  LLVM_DEBUG(llvm::dbgs() << "Optimizing callsites that take closure "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Optimizing callsites that take closure "
                              "argument in "
                           << Caller->getName() << '\n');
 
   // Collect all of the PartialApplyInsts that are used as arguments to
   // ApplyInsts. Check the profitability of specializing the closure argument.
-  llvm::SmallVector<std::unique_ptr<ClosureInfo>, 8> ClosureCandidates;
-  llvm::DenseSet<FullApplySite> MultipleClosureAI;
+  toolchain::SmallVector<std::unique_ptr<ClosureInfo>, 8> ClosureCandidates;
+  toolchain::DenseSet<FullApplySite> MultipleClosureAI;
   if (gatherCallSites(Caller, ClosureCandidates, MultipleClosureAI)) {
     invalidateAnalysis(SILAnalysis::InvalidationKind::Branches);
   }
@@ -1465,7 +1479,7 @@ bool SILClosureSpecializerTransform::specialize(SILFunction *Caller,
         continue;
 
       auto NewFName = CSDesc.createName();
-      LLVM_DEBUG(llvm::dbgs() << "    Perform optimizations with new name "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Perform optimizations with new name "
                               << NewFName << '\n');
 
       // Then see if we already have a specialized version of this function in
@@ -1477,7 +1491,7 @@ bool SILClosureSpecializerTransform::specialize(SILFunction *Caller,
       if (!NewF) {
         NewF = ClosureSpecCloner::cloneFunction(FuncBuilder, CSDesc, NewFName);
         addFunctionToPassManagerWorklist(NewF, CSDesc.getApplyCallee());
-        LLVM_DEBUG(llvm::dbgs() << "\nThe rewritten callee is:\n";
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "\nThe rewritten callee is:\n";
                    NewF->dump());
       }
 
@@ -1488,8 +1502,8 @@ bool SILClosureSpecializerTransform::specialize(SILFunction *Caller,
       Changed = true;
     }
   }
-  LLVM_DEBUG(if (Changed) {
-      llvm::dbgs() << "\nThe rewritten caller is:\n";
+  TOOLCHAIN_DEBUG(if (Changed) {
+      toolchain::dbgs() << "\nThe rewritten caller is:\n";
       Caller->dump();
     });
   return Changed;
@@ -1497,6 +1511,6 @@ bool SILClosureSpecializerTransform::specialize(SILFunction *Caller,
 
 } // end anonymous namespace
 
-SILTransform *swift::createClosureSpecializer() {
+SILTransform *language::createClosureSpecializer() {
   return new SILClosureSpecializerTransform();
 }

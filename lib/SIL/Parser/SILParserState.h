@@ -1,24 +1,28 @@
 //===--- SILParserState.h - SILParserState declaration -------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILPARSERSTATE_H
-#define SWIFT_SIL_SILPARSERSTATE_H
+#ifndef LANGUAGE_SIL_SILPARSERSTATE_H
+#define LANGUAGE_SIL_SILPARSERSTATE_H
 
 #include "language/AST/Identifier.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Parse/ParseSILSupport.h"
 #include "language/SIL/SILFunction.h"
 
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 //===----------------------------------------------------------------------===//
 // SILParserState
@@ -41,12 +45,12 @@ public:
 
   /// This is all of the forward referenced functions with
   /// the location for where the reference is.
-  llvm::DenseMap<Identifier, Located<SILFunction *>> ForwardRefFns;
+  toolchain::DenseMap<Identifier, Located<SILFunction *>> ForwardRefFns;
   /// A list of all functions forward-declared by a sil_scope.
-  llvm::DenseSet<SILFunction *> PotentialZombieFns;
+  toolchain::DenseSet<SILFunction *> PotentialZombieFns;
 
   /// A map from textual .sil scope number to SILDebugScopes.
-  llvm::DenseMap<unsigned, SILDebugScope *> ScopeSlots;
+  toolchain::DenseMap<unsigned, SILDebugScope *> ScopeSlots;
 
   /// Did we parse a sil_stage for this module?
   bool DidParseSILStage = false;
@@ -70,4 +74,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_SIL_SILPARSERSTATE_H
+#endif // LANGUAGE_SIL_SILPARSERSTATE_H

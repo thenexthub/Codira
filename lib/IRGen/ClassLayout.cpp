@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements algorithms for laying out class instances.
@@ -29,7 +30,7 @@ using namespace irgen;
 
 ClassLayout::ClassLayout(const StructLayoutBuilder &builder,
                          ClassMetadataOptions options,
-                         llvm::Type *classTy,
+                         toolchain::Type *classTy,
                          ArrayRef<Field> allStoredProps,
                          ArrayRef<FieldAccess> allFieldAccesses,
                          ArrayRef<ElementLayout> allElements,

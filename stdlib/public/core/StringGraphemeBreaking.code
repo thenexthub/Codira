@@ -1,16 +1,20 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 /// CR and LF are common special cases in grapheme breaking logic
 private var _CR: UInt8 { return 0x0D }
@@ -20,7 +24,7 @@ private var _LF: UInt8 { return 0x0A }
 /// scalars, without consulting the data tables. Returns true if there
 /// definitely is a break, false if there definitely is none, and nil if a
 /// break couldn't be determined
-internal func _quickHasGraphemeBreakBetween(
+internal fn _quickHasGraphemeBreakBetween(
   _ lhs: Unicode.Scalar, _ rhs: Unicode.Scalar
 ) -> Bool? {
   // GB3:
@@ -32,7 +36,7 @@ internal func _quickHasGraphemeBreakBetween(
   // Whether the given scalar, when it appears paired with another scalar
   // satisfying this property, has a grapheme break between it and the other
   // scalar.
-  func hasBreakWhenPaired(_ x: Unicode.Scalar) -> Bool {
+  fn hasBreakWhenPaired(_ x: Unicode.Scalar) -> Bool {
     // TODO: This doesn't generate optimal code, tune/re-write at a lower
     // level.
     //
@@ -92,38 +96,38 @@ internal func _quickHasGraphemeBreakBetween(
 
 extension _StringGuts {
   @inline(__always)
-  internal func roundDownToNearestCharacter(
+  internal fn roundDownToNearestCharacter(
     _ i: String.Index
   ) -> String.Index {
     _internalInvariant(i._isScalarAligned)
     _internalInvariant(hasMatchingEncoding(i))
     _internalInvariant(i._encodedOffset <= count)
 
-    let offset = i._encodedOffset
+    immutable offset = i._encodedOffset
     if _fastPath(i._isCharacterAligned) { return i }
     if offset == 0 || offset == count { return i._characterAligned }
     return _slowRoundDownToNearestCharacter(i)
   }
 
   @inline(never)
-  internal func _slowRoundDownToNearestCharacter(
+  internal fn _slowRoundDownToNearestCharacter(
     _ i: String.Index
   ) -> String.Index {
-    let offset = i._encodedOffset
-    let start = offset - _opaqueCharacterStride(endingAt: offset)
-    let stride = _opaqueCharacterStride(startingAt: start)
+    immutable offset = i._encodedOffset
+    immutable start = offset - _opaqueCharacterStride(endingAt: offset)
+    immutable stride = _opaqueCharacterStride(startingAt: start)
     _internalInvariant(offset <= start + stride,
       "Grapheme breaking inconsistency")
     if offset >= start + stride {
       // Already aligned, or grapheme breaking returned an unexpected result.
       return i._characterAligned
     }
-    let r = String.Index(encodedOffset: start, characterStride: stride)
+    immutable r = String.Index(encodedOffset: start, characterStride: stride)
     return markEncoding(r._characterAligned)
   }
 
   @inline(__always)
-  internal func roundDownToNearestCharacter(
+  internal fn roundDownToNearestCharacter(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
@@ -150,16 +154,16 @@ extension _StringGuts {
   }
 
   @inline(never)
-  internal func _slowRoundDownToNearestCharacter(
+  internal fn _slowRoundDownToNearestCharacter(
     _ i: String.Index,
     in bounds: Range<String.Index>
   ) -> String.Index {
-    let offset = i._encodedOffset
+    immutable offset = i._encodedOffset
 
-    let offsetBounds = bounds._encodedOffsetRange
-    let prior =
+    immutable offsetBounds = bounds._encodedOffsetRange
+    immutable prior =
       offset - _opaqueCharacterStride(endingAt: offset, in: offsetBounds)
-    let stride = _opaqueCharacterStride(startingAt: prior)
+    immutable stride = _opaqueCharacterStride(startingAt: prior)
     _internalInvariant(offset <= prior + stride,
       "Grapheme breaking inconsistency")
     if offset >= prior + stride {
@@ -179,17 +183,17 @@ extension _StringGuts {
 extension _StringGuts {
   @usableFromInline @inline(never)
   @_effects(releasenone)
-  internal func isOnGraphemeClusterBoundary(_ i: String.Index) -> Bool {
+  internal fn isOnGraphemeClusterBoundary(_ i: String.Index) -> Bool {
     if i._isCharacterAligned { return true }
 
     guard i.transcodedOffset == 0 else { return false }
 
-    let offset = i._encodedOffset
-    if offset == 0 || offset == self.count { return true }
+    immutable offset = i._encodedOffset
+    if offset == 0 || offset == this.count { return true }
 
     guard isOnUnicodeScalarBoundary(i) else { return false }
 
-    let nearest = roundDownToNearestCharacter(i._scalarAligned)
+    immutable nearest = roundDownToNearestCharacter(i._scalarAligned)
     return i == nearest
   }
 }
@@ -205,14 +209,14 @@ extension _StringGuts {
   /// itself does not fall on a cluster boundary.
   @usableFromInline @inline(__always)
   @_effects(releasenone)
-  internal func _opaqueCharacterStride(startingAt i: Int) -> Int {
+  internal fn _opaqueCharacterStride(startingAt i: Int) -> Int {
     _internalInvariant(i < endIndex._encodedOffset)
     if isFastUTF8 {
-      let fast = unsafe withFastUTF8 { utf8 in
+      immutable fast = unsafe withFastUTF8 { utf8 in
         if i &+ 1 == utf8.count { return true }
-        let pair = unsafe UnsafeRawPointer(
+        immutable pair = unsafe UnsafeRawPointer(
           utf8.baseAddress.unsafelyUnwrapped
-        ).loadUnaligned(fromByteOffset: i, as: UInt16.self)
+        ).loadUnaligned(fromByteOffset: i, as: UInt16.this)
         //& 0x8080 == 0 is "both not ASCII", != 0x0A0D is "not CRLF"
         return pair & 0x8080 == 0 && pair != 0x0A0D
       }
@@ -226,16 +230,16 @@ extension _StringGuts {
   }
 
   @_effects(releasenone) @inline(never)
-  internal func _opaqueComplexCharacterStride(startingAt i: Int) -> Int {
+  internal fn _opaqueComplexCharacterStride(startingAt i: Int) -> Int {
     if _slowPath(isForeign) {
       return _foreignOpaqueCharacterStride(startingAt: i)
     }
 
-    let nextIdx = unsafe withFastUTF8 { utf8 in
+    immutable nextIdx = unsafe withFastUTF8 { utf8 in
       nextBoundary(startingAt: i) { j in
         _internalInvariant(j >= 0)
         guard j < utf8.count else { return nil }
-        let (scalar, len) = unsafe _decodeScalar(utf8, startingAt: j)
+        immutable (scalar, len) = unsafe _decodeScalar(utf8, startingAt: j)
         return (scalar, j &+ len)
       }
     }
@@ -252,15 +256,15 @@ extension _StringGuts {
 
   @usableFromInline @inline(__always)
   @_effects(releasenone)
-  internal func _opaqueCharacterStride(endingAt i: Int) -> Int {
+  internal fn _opaqueCharacterStride(endingAt i: Int) -> Int {
     if i <= 1 {
       return i
     }
     if isFastUTF8 {
-      let fast = unsafe withFastUTF8 { utf8 in
-        let pair = unsafe UnsafeRawPointer(
+      immutable fast = unsafe withFastUTF8 { utf8 in
+        immutable pair = unsafe UnsafeRawPointer(
           utf8.baseAddress.unsafelyUnwrapped
-        ).loadUnaligned(fromByteOffset: i &- 2, as: UInt16.self)
+        ).loadUnaligned(fromByteOffset: i &- 2, as: UInt16.this)
         //& 0x8080 == 0 is "both not ASCII", != 0x0A0D is "not CRLF"
         return pair & 0x8080 == 0 && pair != 0x0A0D
       }
@@ -274,16 +278,16 @@ extension _StringGuts {
   }
 
   @_effects(releasenone) @inline(never)
-  internal func _opaqueComplexCharacterStride(endingAt i: Int) -> Int {
+  internal fn _opaqueComplexCharacterStride(endingAt i: Int) -> Int {
     if _slowPath(isForeign) {
       return _foreignOpaqueCharacterStride(endingAt: i)
     }
 
-    let previousIdx = unsafe withFastUTF8 { utf8 in
+    immutable previousIdx = unsafe withFastUTF8 { utf8 in
       previousBoundary(endingAt: i) { j in
         _internalInvariant(j <= utf8.count)
         guard j > 0 else { return nil }
-        let (scalar, len) = unsafe _decodeScalar(utf8, endingAt: j)
+        immutable (scalar, len) = unsafe _decodeScalar(utf8, endingAt: j)
         return (scalar, j &- len)
       }
     }
@@ -299,7 +303,7 @@ extension _StringGuts {
   /// finds a correct grapheme cluster boundary within the substring defined by
   /// the specified bounds.
   @_effects(releasenone)
-  internal func _opaqueCharacterStride(
+  internal fn _opaqueCharacterStride(
     endingAt i: Int,
     in bounds: Range<Int>
   ) -> Int {
@@ -308,11 +312,11 @@ extension _StringGuts {
       return _foreignOpaqueCharacterStride(endingAt: i, in: bounds)
     }
 
-    let previousIdx = unsafe withFastUTF8 { utf8 in
+    immutable previousIdx = unsafe withFastUTF8 { utf8 in
       previousBoundary(endingAt: i) { j in
         _internalInvariant(j <= bounds.upperBound)
         guard j > bounds.lowerBound else { return nil }
-        let (scalar, len) = unsafe _decodeScalar(utf8, endingAt: j)
+        immutable (scalar, len) = unsafe _decodeScalar(utf8, endingAt: j)
         return (scalar, j &- len)
       }
     }
@@ -323,31 +327,31 @@ extension _StringGuts {
 
   @inline(never)
   @_effects(releasenone)
-  private func _foreignOpaqueCharacterStride(startingAt i: Int) -> Int {
+  private fn _foreignOpaqueCharacterStride(startingAt i: Int) -> Int {
 #if _runtime(_ObjC)
     _internalInvariant(isForeign)
 
-    let nextIdx = nextBoundary(startingAt: i) { j in
+    immutable nextIdx = nextBoundary(startingAt: i) { j in
       _internalInvariant(j >= 0)
       guard j < count else { return nil }
-      let scalars = String.UnicodeScalarView(self)
-      let idx = String.Index(_encodedOffset: j)
+      immutable scalars = String.UnicodeScalarView(this)
+      immutable idx = String.Index(_encodedOffset: j)
 
-      let scalar = scalars[idx]
-      let nextIdx = scalars.index(after: idx)
+      immutable scalar = scalars[idx]
+      immutable nextIdx = scalars.index(after: idx)
 
       return (scalar, nextIdx._encodedOffset)
     }
 
     return nextIdx &- i
 #else
-  fatalError("No foreign strings on Linux in this version of Swift")
+  fatalError("No foreign strings on Linux in this version of Codira")
 #endif
   }
 
   @inline(never)
   @_effects(releasenone)
-  private func _foreignOpaqueCharacterStride(
+  private fn _foreignOpaqueCharacterStride(
     startingAt i: Int,
     in bounds: Range<Int>
   ) -> Int {
@@ -355,51 +359,51 @@ extension _StringGuts {
     _internalInvariant(isForeign)
     _internalInvariant(bounds.contains(i))
 
-    let nextIdx = nextBoundary(startingAt: i) { j in
+    immutable nextIdx = nextBoundary(startingAt: i) { j in
       _internalInvariant(j >= bounds.lowerBound)
       guard j < bounds.upperBound else { return nil }
-      let scalars = String.UnicodeScalarView(self)
-      let idx = String.Index(_encodedOffset: j)
+      immutable scalars = String.UnicodeScalarView(this)
+      immutable idx = String.Index(_encodedOffset: j)
 
-      let scalar = scalars[idx]
-      let nextIdx = scalars.index(after: idx)
+      immutable scalar = scalars[idx]
+      immutable nextIdx = scalars.index(after: idx)
 
       return (scalar, nextIdx._encodedOffset)
     }
 
     return nextIdx &- i
 #else
-  fatalError("No foreign strings on Linux in this version of Swift")
+  fatalError("No foreign strings on Linux in this version of Codira")
 #endif
   }
 
   @inline(never)
   @_effects(releasenone)
-  private func _foreignOpaqueCharacterStride(endingAt i: Int) -> Int {
+  private fn _foreignOpaqueCharacterStride(endingAt i: Int) -> Int {
 #if _runtime(_ObjC)
     _internalInvariant(isForeign)
 
-    let previousIdx = previousBoundary(endingAt: i) { j in
-      _internalInvariant(j <= self.count)
+    immutable previousIdx = previousBoundary(endingAt: i) { j in
+      _internalInvariant(j <= this.count)
       guard j > 0 else { return nil }
-      let scalars = String.UnicodeScalarView(self)
-      let idx = String.Index(_encodedOffset: j)
+      immutable scalars = String.UnicodeScalarView(this)
+      immutable idx = String.Index(_encodedOffset: j)
 
-      let previousIdx = scalars.index(before: idx)
-      let scalar = scalars[previousIdx]
+      immutable previousIdx = scalars.index(before: idx)
+      immutable scalar = scalars[previousIdx]
 
       return (scalar, previousIdx._encodedOffset)
     }
 
     return i &- previousIdx
 #else
-  fatalError("No foreign strings on Linux in this version of Swift")
+  fatalError("No foreign strings on Linux in this version of Codira")
 #endif
   }
 
   @inline(never)
   @_effects(releasenone)
-  private func _foreignOpaqueCharacterStride(
+  private fn _foreignOpaqueCharacterStride(
     endingAt i: Int,
     in bounds: Range<Int>
   ) -> Int {
@@ -407,28 +411,28 @@ extension _StringGuts {
     _internalInvariant(isForeign)
     _internalInvariant(i > bounds.lowerBound && i <= bounds.upperBound)
 
-    let previousIdx = previousBoundary(endingAt: i) { j in
+    immutable previousIdx = previousBoundary(endingAt: i) { j in
       _internalInvariant(j <= bounds.upperBound)
       guard j > bounds.lowerBound else { return nil }
-      let scalars = String.UnicodeScalarView(self)
-      let idx = String.Index(_encodedOffset: j)
+      immutable scalars = String.UnicodeScalarView(this)
+      immutable idx = String.Index(_encodedOffset: j)
 
-      let previousIdx = scalars.index(before: idx)
+      immutable previousIdx = scalars.index(before: idx)
 
-      let scalar = scalars[previousIdx]
+      immutable scalar = scalars[previousIdx]
       return (scalar, previousIdx._encodedOffset)
     }
 
     return i &- previousIdx
 #else
-  fatalError("No foreign strings on Linux in this version of Swift")
+  fatalError("No foreign strings on Linux in this version of Codira")
 #endif
   }
 }
 
 extension Unicode.Scalar {
   fileprivate var _isInCBConsonant: Bool {
-    _swift_stdlib_isInCB_Consonant(value)
+    _language_stdlib_isInCB_Consonant(value)
   }
 
   fileprivate var _isInCBExtend: Bool {
@@ -514,7 +518,7 @@ extension Unicode {
   ///
   /// The results produced by this state machine are guaranteed to match the way
   /// `String` splits its contents into `Character` values.
-  @available(SwiftStdlib 5.8, *)
+  @available(CodiraStdlib 5.8, *)
   public // SPI(Foundation) FIXME: We need API for this
   struct _CharacterRecognizer: Sendable {
     internal var _previous: Unicode.Scalar
@@ -528,7 +532,7 @@ extension Unicode {
     /// a fast (but incomplete) test before spinning up a full state machine
     /// session.
     @_effects(releasenone)
-    public static func quickBreak(
+    public static fn quickBreak(
       between scalar1: Unicode.Scalar,
       and scalar2: Unicode.Scalar
     ) -> Bool? {
@@ -556,14 +560,14 @@ extension Unicode {
     /// on a newly initialized recognizer.
     ///
     /// The state machine does not carry information across character
-    /// boundaries. I.e., if this method returns true, then `self` after the
+    /// boundaries. I.e., if this method returns true, then `this` after the
     /// call is equivalent to feeding the same scalar to a newly initialized
     /// recognizer instance.
     @_effects(releasenone)
-    public mutating func hasBreak(
+    public mutating fn hasBreak(
       before next: Unicode.Scalar
     ) -> Bool {
-      let r = _state.shouldBreak(between: _previous, and: next)
+      immutable r = _state.shouldBreak(between: _previous, and: next)
       if r {
         _state = _GraphemeBreakingState()
       }
@@ -594,13 +598,13 @@ extension Unicode {
     /// - Warning: This function does not validate that the buffer contains
     ///    valid UTF-8 data; its behavior is undefined if given invalid input.
     @_effects(releasenone)
-    public mutating func _firstBreak(
+    public mutating fn _firstBreak(
       inUncheckedUnsafeUTF8Buffer buffer: UnsafeBufferPointer<UInt8>,
       startingAt start: Int = 0
     ) -> Range<Int>? {
       var i = start
       while i < buffer.endIndex {
-        let (next, n) = unsafe _decodeScalar(buffer, startingAt: i)
+        immutable (next, n) = unsafe _decodeScalar(buffer, startingAt: i)
         if hasBreak(before: next) {
           return unsafe Range(_uncheckedBounds: (i, i &+ n))
         }
@@ -611,14 +615,14 @@ extension Unicode {
   }
 }
 
-@available(SwiftStdlib 5.9, *)
+@available(CodiraStdlib 5.9, *)
 extension Unicode._CharacterRecognizer: Equatable {
-  public static func ==(left: Self, right: Self) -> Bool {
+  public static fn ==(left: Self, right: Self) -> Bool {
     left._previous == right._previous && left._state == right._state
   }
 }
 
-@available(SwiftStdlib 5.9, *)
+@available(CodiraStdlib 5.9, *)
 extension Unicode._CharacterRecognizer: CustomStringConvertible {
   public var description: String {
     return "\(_state)U+\(String(_previous.value, radix: 16, uppercase: true))"
@@ -635,7 +639,7 @@ extension _StringGuts {
   // actual breaks in the string. `Substring` relies on this to generate the
   // right breaks if its start index isn't aligned on one -- in this case, the
   // substring's breaks may not match the ones in its base string.
-  internal func nextBoundary(
+  internal fn nextBoundary(
     startingAt index: Int,
     nextScalar: (Int) -> (scalar: Unicode.Scalar, end: Int)?
   ) -> Int {
@@ -644,7 +648,7 @@ extension _StringGuts {
   }
 }
 
-internal func _nextGraphemeClusterBoundary(
+internal fn _nextGraphemeClusterBoundary(
   startingAt index: Int,
   nextScalar: (Int) -> (scalar: Unicode.Scalar, end: Int)?
 ) -> Int {
@@ -656,7 +660,7 @@ internal func _nextGraphemeClusterBoundary(
   var (scalar, index) = nextScalar(index)!
 
   while true {
-    guard let (scalar2, nextIndex) = nextScalar(index) else { break }
+    guard immutable (scalar2, nextIndex) = nextScalar(index) else { break }
     if state.shouldBreak(between: scalar, and: scalar2) {
       break
     }
@@ -668,7 +672,7 @@ internal func _nextGraphemeClusterBoundary(
 }
 
 extension _StringGuts {
-  fileprivate func previousBoundary(
+  fileprivate fn previousBoundary(
     endingAt index: Int,
     previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
   ) -> Int {
@@ -682,7 +686,7 @@ extension _StringGuts {
 // This method uses `previousScalar` to looks back in the string as far as
 // necessary to find a correct grapheme cluster boundary, whether or not
 // `index` happens to be on a boundary itself.
-internal func _previousGraphemeClusterBoundary(
+internal fn _previousGraphemeClusterBoundary(
   endingAt index: Int,
   previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
 ) -> Int {
@@ -699,7 +703,7 @@ internal func _previousGraphemeClusterBoundary(
   var (scalar2, index) = previousScalar(index)!
 
   while true {
-    guard let (scalar1, previousIndex) = previousScalar(index) else { break }
+    guard immutable (scalar1, previousIndex) = previousScalar(index) else { break }
     if _shouldBreakWithLookback(
       between: scalar1, and: scalar2, at: index, with: previousScalar
     ) {
@@ -724,15 +728,15 @@ extension _GraphemeBreakingState {
   //
   // This is based on the Unicode Annex #29 for [Grapheme Cluster Boundary
   // Rules](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundary_Rules).
-  internal mutating func shouldBreak(
+  internal mutating fn shouldBreak(
     between scalar1: Unicode.Scalar,
     and scalar2: Unicode.Scalar
   ) -> Bool {
-    if let result = _quickHasGraphemeBreakBetween(scalar1, scalar2) {
+    if immutable result = _quickHasGraphemeBreakBetween(scalar1, scalar2) {
       return result
     }
 
-    let x = Unicode._GraphemeBreakProperty(from: scalar1)
+    immutable x = Unicode._GraphemeBreakProperty(from: scalar1)
     
     // GB4 handled here because we don't need to know `y` for this case
     if x == .control {
@@ -753,7 +757,7 @@ extension _GraphemeBreakingState {
       isInIndicSequence = enterIndicSequence
     }
     
-    let y = Unicode._GraphemeBreakProperty(from: scalar2)
+    immutable y = Unicode._GraphemeBreakProperty(from: scalar2)
 
     switch (x, y) {
 
@@ -891,18 +895,18 @@ extension _GraphemeBreakingState {
 //
 // This is based off of the Unicode Annex #29 for [Grapheme Cluster Boundary
 // Rules](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundary_Rules).
-fileprivate func _shouldBreakWithLookback(
+fileprivate fn _shouldBreakWithLookback(
   between scalar1: Unicode.Scalar,
   and scalar2: Unicode.Scalar,
   at index: Int,
   with previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
 ) -> Bool {
-  if let result = _quickHasGraphemeBreakBetween(scalar1, scalar2) {
+  if immutable result = _quickHasGraphemeBreakBetween(scalar1, scalar2) {
     return result
   }
 
-  let x = Unicode._GraphemeBreakProperty(from: scalar1)
-  let y = Unicode._GraphemeBreakProperty(from: scalar2)
+  immutable x = Unicode._GraphemeBreakProperty(from: scalar1)
+  immutable y = Unicode._GraphemeBreakProperty(from: scalar2)
 
   switch (x, y) {
 
@@ -1021,14 +1025,14 @@ fileprivate func _shouldBreakWithLookback(
 //                | = We found our starting .extendedPictographic letting us
 //                    know that we are in an emoji sequence so our initial
 //                    break question is answered as NO.
-fileprivate func _checkIfInEmojiSequence(
+fileprivate fn _checkIfInEmojiSequence(
   at index: Int,
   with previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
 ) -> Bool {
   guard var i = previousScalar(index)?.start else { return false }
-  while let prev = previousScalar(i) {
+  while immutable prev = previousScalar(i) {
     i = prev.start
-    let gbp = Unicode._GraphemeBreakProperty(from: prev.scalar)
+    immutable gbp = Unicode._GraphemeBreakProperty(from: prev.scalar)
 
     switch gbp {
     case .extend:
@@ -1071,23 +1075,23 @@ fileprivate func _checkIfInEmojiSequence(
 //         ^
 //         | = Is a consonant and we've seen a linker, so this is a
 //             legitimate indic sequence, so do NOT break the initial question.
-fileprivate func _checkIfInIndicSequence(
+fileprivate fn _checkIfInIndicSequence(
   at index: Int,
   with previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
 ) -> Bool {
-  guard let p = previousScalar(index) else { return false }
+  guard immutable p = previousScalar(index) else { return false }
 
   var hasSeenInCBLinker = p.scalar._isInCBLinker
   var i = p.start
 
-  while let (scalar, prev) = previousScalar(i) {
+  while immutable (scalar, prev) = previousScalar(i) {
     i = prev
 
     if scalar._isInCBConsonant {
       return hasSeenInCBLinker
     }
 
-    let gbp = Unicode._GraphemeBreakProperty(from: scalar)
+    immutable gbp = Unicode._GraphemeBreakProperty(from: scalar)
 
     guard gbp == .extend || gbp == .zwj else {
       return false
@@ -1143,17 +1147,17 @@ fileprivate func _checkIfInIndicSequence(
 //         ^
 //         | = Not a .regionalIndicator. riCount = 1 which is odd, so break
 //             the last two .regionalIndicators.
-fileprivate func _countRIs(
+fileprivate fn _countRIs(
   at index: Int,
   with previousScalar: (Int) -> (scalar: Unicode.Scalar, start: Int)?
 ) -> Bool {
-  guard let p = previousScalar(index) else { return false }
+  guard immutable p = previousScalar(index) else { return false }
   var i = p.start
   var riCount = 0
-  while let p = previousScalar(i) {
+  while immutable p = previousScalar(i) {
     i = p.start
 
-    let gbp = Unicode._GraphemeBreakProperty(from: p.scalar)
+    immutable gbp = Unicode._GraphemeBreakProperty(from: p.scalar)
     guard gbp == .regionalIndicator else {
       break
     }

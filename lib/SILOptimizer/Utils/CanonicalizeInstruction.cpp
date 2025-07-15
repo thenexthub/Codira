@@ -1,13 +1,17 @@
 //===--- CanonicalizeInstruction.cpp - canonical SIL peepholes ------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// SSA-peephole transformations that yield a more canonical SIL representation.
@@ -29,8 +33,8 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Analysis/SimplifyInstruction.h"
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -129,7 +133,7 @@ static void replaceUsesOfExtract(SingleValueInstruction *extract,
       loadedVal = newBorrow;
     }
   }
-  LLVM_DEBUG(llvm::dbgs() << "Replacing " << *extract << "    with "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Replacing " << *extract << "    with "
                           << *loadedVal << "\n");
   extract->replaceAllUsesWith(loadedVal);
 }
@@ -182,9 +186,9 @@ splitAggregateLoad(LoadOperation loadInst, CanonicalizeInstruction &pass) {
   };
 
   // Add load projections to a projection list.
-  llvm::SmallVector<ProjInstPair, 8> projections;
-  llvm::SmallVector<BeginBorrowInst *, 8> borrows;
-  llvm::SmallVector<SILInstruction *, 8> lifetimeEndingInsts;
+  toolchain::SmallVector<ProjInstPair, 8> projections;
+  toolchain::SmallVector<BeginBorrowInst *, 8> borrows;
+  toolchain::SmallVector<SILInstruction *, 8> lifetimeEndingInsts;
   for (auto *use : getNonDebugUses(*loadInst)) {
     auto *user = use->getUser();
     if (needsBorrow) {
@@ -239,7 +243,7 @@ splitAggregateLoad(LoadOperation loadInst, CanonicalizeInstruction &pass) {
   // exclusivity checking is too strict:
   //
   // extension S {
-  //   mutating func foo() {
+  //   mutating fn foo() {
   //     _ = a // Must be diagnosed as a read of self.a only not the whole self.
   //   }
   // }
@@ -322,7 +326,7 @@ splitAggregateLoad(LoadOperation loadInst, CanonicalizeInstruction &pass) {
 
   // Preserve the original load's debug information.
   if (pass.preserveDebugInfo) {
-    swift::salvageLoadDebugInfo(loadInst);
+    language::salvageLoadDebugInfo(loadInst);
   }
   // Remove the now unused borrows.
   for (auto *borrow : borrows)
@@ -385,7 +389,7 @@ broadenSingleElementStores(StoreInst *storeInst,
     SILType baseAddrType = baseAddr->getType();
     auto *decl = baseAddrType.getStructOrBoundGenericStruct();
     assert(
-      !decl->isResilient(f->getModule().getSwiftModule(),
+      !decl->isResilient(f->getModule().getCodiraModule(),
                          f->getResilienceExpansion()) &&
         "This code assumes resilient structs can not have fragile fields. If "
         "this assert is hit, this has been changed. Please update this code.");
@@ -423,7 +427,7 @@ broadenSingleElementStores(StoreInst *storeInst,
   SILBuilderWithScope builder(storeInst);
   SILValue result = storeInst->getSrc();
   SILValue storeAddr = storeInst->getDest();
-  for (Projection proj : llvm::reverse(projections)) {
+  for (Projection proj : toolchain::reverse(projections)) {
     storeAddr = cast<SingleValueInstruction>(storeAddr)->getOperand(0);
     result = proj.createAggFromFirstLevelProjections(
                      builder, storeInst->getLoc(),

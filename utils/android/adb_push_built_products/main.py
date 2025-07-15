@@ -1,12 +1,12 @@
 # main.py - Push libraries to an Android device -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 #
@@ -25,7 +25,7 @@ import adb.commands
 def argument_parser():
     """Return an argument parser for this script."""
     parser = argparse.ArgumentParser(
-        description='Convenience script for pushing Swift build products to '
+        description='Convenience script for pushing Codira build products to '
                     'an Android device.')
     parser.add_argument(
         'paths',
@@ -79,7 +79,7 @@ def main():
         libcpp = os.path.join(args.ndk,
                               'sources',
                               'cxx-stl',
-                              'llvm-libc++',
+                              'toolchain-libc++',
                               'libs',
                               {
                                   'armv7': 'armeabi-v7a',

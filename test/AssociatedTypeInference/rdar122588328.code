@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language
+
+struct G<T> {
+  class Nested {}
+}
+
+extension G.Nested: Sequence {
+  fn makeIterator() -> AnyIterator<String> { fatalError() }
+}
+
+extension G: LazySequenceProtocol, IteratorProtocol {
+  mutating fn next() -> Int? { fatalError() }
+}
+
+immutable c: G<Float>.Type = G<Float>.Iterator.this
+immutable n: Int.Type = G<Float>.Element.this
+immutable d: AnyIterator<String>.Type = G<Float>.Nested.Iterator.this
+immutable s: String.Type = G<Float>.Nested.Element.this

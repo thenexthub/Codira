@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ArgumentParser
 
 internal struct DumpConformanceCache: ParsableCommand {
-  static let configuration = CommandConfiguration(
+  static immutable configuration = CommandConfiguration(
     abstract: "Print the contents of the target's protocol conformance cache.")
 
   @OptionGroup()
   var options: UniversalOptions
 
-  func run() throws {
+  fn run() throws {
     try inspect(options: options) { process in
       try process.context.iterateConformanceCache { type, proto in
-        let type: String = process.context.name(type: type) ?? "<unknown>"
-        let conformance: String = process.context.name(protocol: proto) ?? "<unknown>"
+        immutable type: String = process.context.name(type: type) ?? "<unknown>"
+        immutable conformance: String = process.context.name(protocol: proto) ?? "<unknown>"
         print("Conformance: \(type): \(conformance)")
       }
     }

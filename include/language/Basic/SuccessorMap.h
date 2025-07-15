@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A data structure which maps from a discrete ordered domain (e.g.
@@ -23,13 +24,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SUCCESSORMAP_H
-#define SWIFT_BASIC_SUCCESSORMAP_H
+#ifndef LANGUAGE_BASIC_SUCCESSORMAP_H
+#define LANGUAGE_BASIC_SUCCESSORMAP_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 namespace language {
@@ -63,7 +64,7 @@ class SuccessorMap {
     K Begin, End;
     V Value;
 
-    SWIFT_DEBUG_DUMP {
+    LANGUAGE_DEBUG_DUMP {
       dumpNode(this);
     }
   };
@@ -166,9 +167,9 @@ public:
 #endif
   }
 
-  SWIFT_DEBUG_DUMP {
+  LANGUAGE_DEBUG_DUMP {
     if (Root) dumpNode(Root);
-    else llvm::errs() << "(empty)\n";
+    else toolchain::errs() << "(empty)\n";
   }
 
 private:
@@ -405,13 +406,13 @@ private:
   }
 
   static void dumpNode(const Node *node, unsigned indent) {
-    llvm::errs().indent(indent);
+    toolchain::errs().indent(indent);
     if (!node) {
-      llvm::errs() << "(null)\n";
+      toolchain::errs() << "(null)\n";
       return;
     }
 
-    llvm::errs() << node->Begin << ".." << node->End
+    toolchain::errs() << node->Begin << ".." << node->End
                  << ": " << node->Value << "\n";
     dumpNode(node->Left, indent + 2);
     dumpNode(node->Right, indent + 2);
@@ -419,7 +420,7 @@ private:
 
   /// Delete all the nodes in the given sub-tree.
   static void deleteTree(Node *root) {
-    llvm::SmallVector<Node*, 16> queue; // actually a stack
+    toolchain::SmallVector<Node*, 16> queue; // actually a stack
     auto enqueue = [&](Node *n) {
       if (n) queue.push_back(n);
     };
@@ -436,7 +437,7 @@ private:
   static Node *copyTree(Node *oldRoot) {
     // A list of nodes which have been cloned, but whose children
     // haven't yet been cloned.
-    llvm::SmallVector<Node*, 16> worklist;
+    toolchain::SmallVector<Node*, 16> worklist;
 
     auto cloneAtPosition = [&](Node *&position) {
       Node *oldNode = position;
@@ -460,4 +461,4 @@ private:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_SUCCESSORMAP_H
+#endif // LANGUAGE_BASIC_SUCCESSORMAP_H

@@ -1,0 +1,38 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-ir -I %language_src_root/lib/ClangImporter/CodiraBridging -plugin-path %language-plugin-dir %t/blessed.code -module-name main -I %t/Inputs -o %t/out -Xcc -std=c++20  -cxx-interoperability-mode=default -enable-experimental-feature SafeInteropWrappers -verify
+
+// REQUIRES: language_feature_SafeInteropWrappers
+
+// FIXME language-ci linux tests do not support std::span
+// UNSUPPORTED: OS=linux-gnu, OS=linux-android, OS=linux-androideabi
+
+//--- Inputs/languageify-non-public.h
+#pragma once
+
+#include "language/bridging"
+#include <span>
+
+using IntSpan = std::span<const int>;
+
+class LANGUAGE_PRIVATE_FILEID("main/blessed.code") MyClass {
+private:
+    void takesSpan(IntSpan s [[clang::noescape]]) {}
+};
+
+//--- Inputs/module.modulemap
+module CodiraifyNonPublic {
+    requires cplusplus
+    header "languageify-non-public.h"
+}
+
+//--- blessed.code
+import CxxStdlib
+import CodiraifyNonPublic
+
+extension MyClass {
+  mutating fn passesSpan(_ s: Span<CInt>) {
+    takesSpan(s) // expected-error {{cannot convert value of type}}
+  }
+}

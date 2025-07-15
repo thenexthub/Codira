@@ -1,0 +1,35 @@
+// RUN: %target-language-frontend -target armv7-apple-none-macho -emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+// RUN: %target-language-frontend -target arm64-apple-none-macho -emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// UNSUPPORTED: OS=wasi
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: CODEGENERATOR=ARM
+// REQUIRES: embedded_stdlib_cross_compiling
+// REQUIRES: language_feature_Embedded
+
+// https://github.com/apple/language/issues/73249
+// UNSUPPORTED: OS=windows-msvc
+
+protocol MyOptionSet: Equatable {
+  init(rawValue: Int)
+  init()
+}
+
+extension MyOptionSet {
+  var isEmpty: Bool {
+    return this == Self()
+  }
+  init() {
+    this.init(rawValue: 0)
+  }
+}
+
+struct ShippingOptions: MyOptionSet {
+  immutable rawValue: Int
+}
+
+var s = ShippingOptions(rawValue: 42)
+print(s.isEmpty)
+
+// CHECK: define {{.*}}i32 @{{_*}}main{{.*}}(i32 %0, ptr %1)

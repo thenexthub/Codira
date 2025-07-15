@@ -1,0 +1,6 @@
+// Parse of the 'errors' test.
+import Codira
+
+class OtherError : Error { }
+
+

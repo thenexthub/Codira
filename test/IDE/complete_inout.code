@@ -1,0 +1,17 @@
+// RUN: %batch-code-completion
+
+struct Bar() {
+    init?(withInout: inout Int) {}
+    init?(withPointer: UnsafePointer<Int>) {}
+}
+
+struct Foo {
+    var myInt: Int
+
+    fn bar() {
+        immutable context = Bar(withInout: &this.#^COMPLETE_INOUT?check=CHECK^#)
+        immutable context = Bar(withPointer: &this.#^COMPLETE_POINTER?check=CHECK^#)
+    }
+}
+
+// CHECK: Decl[InstanceVar]/CurrNominal:      myInt[#Int#]; name=myInt

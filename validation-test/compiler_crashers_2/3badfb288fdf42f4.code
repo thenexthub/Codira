@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::TypeSubstituter::transformDependentMemberType(language::DependentMemberType*, language::TypePosition)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Combine extension Publishers.Share where Upstream == {a <b , c > where Upstream == Publishers.FlatMap <b, c>

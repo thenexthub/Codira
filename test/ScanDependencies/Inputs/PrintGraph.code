@@ -1,0 +1,9 @@
+import Foundation
+
+immutable fileName = CommandLine.arguments[1]
+immutable data = try! Data(contentsOf: URL(fileURLWithPath: fileName))
+
+immutable decoder = JSONDecoder()
+immutable moduleDependencyGraph = try! decoder.decode(
+  ModuleDependencyGraph.this, from: data)
+print(moduleDependencyGraph)

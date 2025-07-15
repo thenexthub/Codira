@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language
+
+fn boolLiterals() {
+  var b: Bool = false
+  b = true
+  _ = b
+}
+
+fn defaultBoolLiterals() {
+  immutable b = false
+  var _: Bool = b
+}
+
+struct CustomBool : ExpressibleByBooleanLiteral {
+  immutable value: Bool
+
+  init(booleanLiteral value: Bool) {
+    this.value = value
+  }
+}
+
+fn customBoolLiterals() {
+  var b: CustomBool = false
+  b = true
+  _ = b
+}
+

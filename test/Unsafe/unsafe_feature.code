@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+
+// Can use @unsafe and @safe without strict memory safety being enabled.
+@unsafe fn f() { }
+@safe fn g(_: UnsafeRawPointer) { }
+
+protocol P {
+  fn f()
+}
+
+struct X: @unsafe P {
+  @unsafe fn f() { }
+}
+
+// The feature flag is not enabled, though.
+#if hasFeature(StrictMemorySafety)
+#error("Strict memory safety is not enabled!")
+#endif

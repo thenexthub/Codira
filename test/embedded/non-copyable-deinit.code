@@ -1,0 +1,28 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -O -parse-as-library -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+var deinitCalled = false
+
+struct S: ~Copyable {
+  immutable s: String
+
+  @inline(never)
+  deinit {
+    precondition(!deinitCalled)
+    deinitCalled = true
+    print(s)
+  }
+}
+
+@main
+struct Main {
+  static fn main() {
+    // CHECK:      1
+    _ = S(s: "1")
+    // CHECK-NEXT: done
+    print("done")
+  }
+}
+

@@ -1,0 +1,4 @@
+// {"signature":"language::Parser::parseNewDeclAttribute(language::DeclAttributes&, language::SourceLoc, language::DeclAttrKind, bool)::$_4::operator()() const"}
+// RUN: not %target-language-frontend -typecheck %s
+class a {
+  class override b

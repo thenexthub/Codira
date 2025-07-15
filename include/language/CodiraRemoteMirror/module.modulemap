@@ -1,0 +1,4 @@
+module CodiraRemoteMirror {
+  header "CodiraRemoteMirror.h"
+  export *
+}

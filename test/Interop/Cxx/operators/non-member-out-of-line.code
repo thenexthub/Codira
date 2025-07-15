@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-clangxx -c %S/Inputs/non-member-out-of-line.cpp -I %S/Inputs -o %t/non-member-out-of-line.o
+// RUN: %target-build-language %s -I %S/Inputs -o %t/non-member-out-of-line %t/non-member-out-of-line.o -Xfrontend -enable-experimental-cxx-interop
+// RUN: %target-codesign %t/non-member-out-of-line
+// RUN: %target-run %t/non-member-out-of-line
+//
+// REQUIRES: executable_test
+
+import NonMemberOutOfLine
+import StdlibUnittest
+
+var OperatorsTestSuite = TestSuite("Operators")
+
+OperatorsTestSuite.test("plus") {
+  immutable lhs = LoadableIntWrapper(value: 42)
+  immutable rhs = LoadableIntWrapper(value: 23)
+
+  immutable result = lhs + rhs
+
+  expectEqual(65, result.value)
+}
+
+OperatorsTestSuite.test("UnnamedParameterInOperator.equal") {
+  immutable lhs = ClassWithOperatorEqualsParamUnnamed()
+  immutable rhs = ClassWithOperatorEqualsParamUnnamed()
+  expectFalse(lhs == rhs)
+  expectTrue(lhs != rhs)
+}
+
+runAllTests()

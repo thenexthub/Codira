@@ -1,0 +1,155 @@
+Name: Foundation
+Classes:
+- Name: NSArray
+  CodiraBridge: Codira.Array
+  CodiraImportAsNonGeneric: true
+- Name: NSMutableArray
+  CodiraImportAsNonGeneric: true
+- Name: NSByteCountFormatter
+  CodiraName: ByteCountFormatter
+- Name: NSDictionary
+  CodiraBridge: Codira.Dictionary
+  CodiraImportAsNonGeneric: true
+- Name: NSMutableDictionary
+  CodiraImportAsNonGeneric: true
+- Name: NSError
+  CodiraBridge: Codira.Error
+- Name: NSNotification
+  CodiraBridge: Notification
+- Name: NSNumber
+  Methods:
+  - Selector: 'initWithChar:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithUnsignedChar:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithShort:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithUnsignedShort:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithInt:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithUnsignedInt:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithLong:'
+    Availability: nonlanguage
+    MethodKind: Instance
+  - Selector: 'initWithUnsignedLong:'
+    Availability: nonlanguage
+    MethodKind: Instance
+  - Selector: 'initWithLongLong:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithUnsignedLongLong:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithFloat:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithDouble:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithBool:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithInteger:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'initWithUnsignedInteger:'
+    CodiraName: init(value:)
+    MethodKind: Instance
+  - Selector: 'numberWithChar:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithUnsignedChar:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithShort:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithUnsignedShort:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithInt:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithUnsignedInt:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithLong:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithUnsignedLong:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithLongLong:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithUnsignedLongLong:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithFloat:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithDouble:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithBool:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithInteger:'
+    Availability: nonlanguage
+    MethodKind: Class
+  - Selector: 'numberWithUnsignedInteger:'
+    Availability: nonlanguage
+    MethodKind: Class
+  Properties:
+  - Name: charValue
+    CodiraName: int8Value
+  - Name: unsignedCharValue
+    CodiraName: uint8Value
+  - Name: shortValue
+    CodiraName: int16Value
+  - Name: unsignedShortValue
+    CodiraName: uint16Value
+  - Name: intValue
+    CodiraName: int32Value
+  - Name: unsignedIntValue
+    CodiraName: uint32Value
+  - Name: longValue
+    Availability: nonlanguage
+  - Name: unsignedLongValue
+    Availability: nonlanguage
+    AvailabilityMsg: use 'uintValue'
+  - Name: longLongValue
+    CodiraName: int64Value
+  - Name: unsignedLongLongValue
+    CodiraName: uint64Value
+  - Name: integerValue
+    CodiraName: intValue
+  - Name: unsignedIntegerValue
+    CodiraName: uintValue
+- Name: NSSet
+  CodiraBridge: Codira.Set
+  CodiraImportAsNonGeneric: true
+  Methods:
+  - Selector: 'filteredSetUsingPredicate:'
+    CodiraName: filtered(using:)
+    MethodKind: Instance
+- Name: NSMutableSet
+  CodiraImportAsNonGeneric: true
+- Name: NSString
+  CodiraBridge: Codira.String
+- Name: NSURL
+  CodiraBridge: URL
+Tags:
+- Name: NSByteCountFormatterCountStyle
+  CodiraName: ByteCountFormatter.CountStyle
+Typedefs:
+- Name: NSNotificationName
+  CodiraName: NSNotification.Name

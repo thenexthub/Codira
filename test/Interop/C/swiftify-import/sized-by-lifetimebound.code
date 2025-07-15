@@ -1,0 +1,119 @@
+// REQUIRES: language_feature_SafeInteropWrappers
+// REQUIRES: language_feature_Lifetimes
+
+// RUN: %target-language-ide-test -print-module -module-to-print=SizedByLifetimeboundClang -plugin-path %language-plugin-dir -I %S/Inputs -source-filename=x -enable-experimental-feature SafeInteropWrappers -Xcc -Werror -Xcc -Wno-nullability-completeness | %FileCheck %s
+
+// language-ide-test doesn't currently typecheck the macro expansions, so run the compiler as well
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -plugin-path %language-plugin-dir -o %t/SizedByLifetimebound.codemodule -I %S/Inputs -enable-experimental-feature SafeInteropWrappers -enable-experimental-feature Lifetimes -strict-memory-safety -warnings-as-errors -Xcc -Werror -strict-memory-safety -warnings-as-errors -Xcc -Werror -Xcc -Wno-nullability-completeness %s
+
+// Check that ClangImporter correctly infers and expands @_CodiraifyImport macros for functions with __sized_by __lifetimebound parameters and return values.
+
+import SizedByLifetimeboundClang
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy _bytesized_param1)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn bytesized(_ _bytesized_param1: RawSpan) -> MutableRawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy _charsized_param0)
+// CHECK-NEXT: @_lifetime(_charsized_param0: copy _charsized_param0)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn charsized(_ _charsized_param0: inout MutableRawSpan) -> MutableRawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn complexExpr(_ len: Int32, _ offset: Int32, _ p: RawSpan) -> RawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nonnull(_ len: Int32, _ p: RawSpan) -> RawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(borrow p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nonsizedLifetime(_ len: Int32, _ p: UnsafeRawPointer!) -> RawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullUnspecified(_ len: Int32, _ p: RawSpan) -> RawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullable(_ len: Int32, _ p: RawSpan?) -> RawSpan?
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn opaque(_ len: Int32, _ p: RawSpan) -> RawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn shared(_ p: RawSpan) -> RawSpan
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+// CHECK-NEXT: @_lifetime(copy p)
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn simple(_ len: Int32, _ p: RawSpan) -> RawSpan
+
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callComplexExpr(_ p: RawSpan) {
+  immutable _: RawSpan = complexExpr(73, 37, p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNonnull(_ p: RawSpan) {
+  immutable _: RawSpan = nonnull(73, p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNullUnspecified(_ p: RawSpan) {
+  immutable _: RawSpan = nullUnspecified(73, p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNullable(_ p: RawSpan?) {
+  immutable _: RawSpan = nullable(73, p)!
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callShared(_ p: RawSpan) {
+  immutable _: RawSpan = shared(p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callSimple(_ p: RawSpan) {
+  immutable _: RawSpan = simple(73, p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callNonsizedLifetime(_ p: UnsafeRawPointer) {
+  immutable _: RawSpan = unsafe nonsizedLifetime(73, p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+public fn callBytesized(_ p: RawSpan) {
+  immutable _: MutableRawSpan = bytesized(p)
+}
+
+@available(visionOS 1.0, tvOS 12.2, watchOS 5.2, iOS 12.2, macOS 10.14.4, *)
+@inlinable
+@_lifetime(p: copy p)
+public fn callCharsized(_ p: inout MutableRawSpan) {
+  immutable _: MutableRawSpan = charsized(&p)
+}

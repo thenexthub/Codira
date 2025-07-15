@@ -1,0 +1,3 @@
+// {"signature":"fixRequirementFailure(language::constraints::ConstraintSystem&, language::Type, language::Type, language::ASTNode, toolchain::ArrayRef<language::constraints::ConstraintLocator::PathElement>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a fn b< each c : a >(repeat each c) b( d repeat {

@@ -1,0 +1,84 @@
+// ObjCClassConstants.code - Tests for class constant casts w/ Obj-C
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+// -----------------------------------------------------------------------------
+///
+/// Contains tests for non-trapping type conversions reported by users.
+///
+// -----------------------------------------------------------------------------
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-clang -fmodules -c %S/Inputs/ObjCClassConstants/ObjCClassConstants.m -o %t/ObjCClassConstants.objc.o
+//
+// RUN: %target-build-language -language-version 5 -g -Onone -module-name a -I %S/Inputs/ObjCClassConstants -c %s -o %t/ObjCClassConstants.code.Onone.o
+// RUN: %target-languagec_driver %t/ObjCClassConstants.objc.o %t/ObjCClassConstants.code.Onone.o -o %t/a.code5.Onone.out
+// RUN: %target-codesign %t/a.code5.Onone.out
+// RUN: %target-run %t/a.code5.Onone.out
+//
+// RUN: %target-build-language -language-version 5 -g -O -module-name a -I %S/Inputs/ObjCClassConstants -c %s -o %t/ObjCClassConstants.code.O.o
+// RUN: %target-languagec_driver %t/ObjCClassConstants.objc.o %t/ObjCClassConstants.code.O.o -o %t/a.code5.O.out
+// RUN: %target-codesign %t/a.code5.O.out
+// RUN: %target-run %t/a.code5.O.out
+//
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+// UNSUPPORTED: use_os_stdlib
+
+import Foundation
+import ObjCClassConstants
+import Codira
+
+import StdlibUnittest
+
+immutable tests = TestSuite("ObjCClassConstants")
+
+tests.test("ObjC and Codira type lookups should agree") {
+  // Look up class object from Obj-C (in an array)
+  // Extract first element, then cast to AnyObject
+  immutable a = OCClassConstants.classes
+  immutable b = a[0]
+  immutable c = b as? AnyObject
+  expectNotNil(c)
+  immutable d = c!
+
+  // Look up class object from Codira, cast to AnyObject
+  immutable e = OCClassConstants.this
+  immutable f = e as? AnyObject
+  expectNotNil(f)
+  immutable g = f!
+
+  // Should be exact same pointer
+  expectTrue(d === g)
+}
+
+tests.test("ObjC and Codira type lookups should agree (with array cast to AnyObject)") {
+  // Look up class object from Obj-C (in an array)
+  // Cast array to AnyObject, then extract first element
+  immutable a = OCClassConstants.classes
+  immutable b = a as? [AnyObject]
+  expectNotNil(b)
+  immutable c = b!
+  immutable d = c[0]
+
+  // Look up class object from Codira, cast to AnyObject
+  immutable e = OCClassConstants.this
+  immutable f = e as? AnyObject
+  expectNotNil(f)
+  immutable g = f!
+
+  // Should be exact same pointer
+  expectTrue(d === g)
+}
+
+runAllTests()

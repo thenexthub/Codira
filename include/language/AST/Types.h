@@ -1,4 +1,4 @@
-//===--- Types.h - Swift Language Type ASTs ---------------------*- C++ -*-===//
+//===--- Types.h - Codira Language Type ASTs ---------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines the TypeBase class and subclasses, which describe the Swift
+// This file defines the TypeBase class and subclasses, which describe the Codira
 // and SIL ASTs. See also: Type.h.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPES_H
-#define SWIFT_TYPES_H
+#ifndef LANGUAGE_TYPES_H
+#define LANGUAGE_TYPES_H
 
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/AutoDiff.h"
@@ -41,21 +42,21 @@
 #include "language/Basic/Debug.h"
 #include "language/Basic/InlineBitfield.h"
 #include "language/Basic/UUID.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/PointerEmbeddedInt.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <optional>
 
-namespace llvm {
+namespace toolchain {
 struct fltSemantics;
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -365,7 +366,7 @@ enum class TypeMatchFlags {
   /// Allow escaping function parameters to override optional non-escaping ones.
   ///
   /// This is necessary because Objective-C allows optional function parameters
-  /// to be non-escaping, but Swift currently does not.
+  /// to be non-escaping, but Codira currently does not.
   IgnoreNonEscapingForOptionalFunctionParam = 1 << 4,
   /// Allow compatible opaque archetypes.
   AllowCompatibleOpaqueTypeArchetypes = 1 << 5,
@@ -381,7 +382,7 @@ using TypeMatchOptions = OptionSet<TypeMatchFlags>;
 // Forward declare the ErrorType as otherwise we will match `lldb::ErrorType`.
 class ErrorType;
 
-/// Base class for all types which describe the Swift and SIL ASTs.
+/// Base class for all types which describe the Codira and SIL ASTs.
 ///
 /// See TypeNodes.def for a succinct description of the full class hierarchy.
 class alignas(1 << TypeAlignInBits) TypeBase
@@ -416,27 +417,31 @@ protected:
   // clang-format off
   union { uint64_t OpaqueBits;
 
-  SWIFT_INLINE_BITFIELD_BASE(TypeBase, bitmax(NumTypeKindBits,8) +
-                             RecursiveTypeProperties::BitWidth + 1,
+  LANGUAGE_INLINE_BITFIELD_BASE(TypeBase, NumTypeKindBits +
+                             RecursiveTypeProperties::BitWidth + 1 + 3,
     /// Kind - The discriminator that indicates what subclass of type this is.
-    Kind : bitmax(NumTypeKindBits,8),
+    Kind : NumTypeKindBits,
 
     Properties : RecursiveTypeProperties::BitWidth,
 
     /// Whether this type is canonical or not.
-    IsCanonical : 1
+    IsCanonical : 1,
+
+    ComputedInvertibleConformances : 1,
+    IsCopyable : 1,
+    IsEscapable : 1
   );
 
-  SWIFT_INLINE_BITFIELD(ErrorType, TypeBase, 1,
+  LANGUAGE_INLINE_BITFIELD(ErrorType, TypeBase, 1,
     /// Whether there is an original type.
     HasOriginalType : 1
   );
 
-  SWIFT_INLINE_BITFIELD(SugarType, TypeBase, 1,
+  LANGUAGE_INLINE_BITFIELD(SugarType, TypeBase, 1,
     HasCachedType : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(AnyFunctionType, TypeBase, NumAFTExtInfoBits+1+1+1+1+16,
+  LANGUAGE_INLINE_BITFIELD_FULL(AnyFunctionType, TypeBase, NumAFTExtInfoBits+1+1+1+1+16,
     /// Extra information which affects how the function is called, like
     /// regparm and the calling convention.
     ExtInfoBits : NumAFTExtInfoBits,
@@ -444,31 +449,29 @@ protected:
     HasClangTypeInfo : 1,
     HasThrownError : 1,
     HasLifetimeDependencies : 1,
-    : NumPadBits,
-    NumParams : 16
+    NumParams : 15
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(ArchetypeType, TypeBase, 1+1+16,
+  LANGUAGE_INLINE_BITFIELD_FULL(ArchetypeType, TypeBase, 1+1+16,
     HasSuperclass : 1,
     HasLayoutConstraint : 1,
     : NumPadBits,
     NumProtocols : 16
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TypeVariableType, TypeBase, 7+28,
+  LANGUAGE_INLINE_BITFIELD_FULL(TypeVariableType, TypeBase, 7+28,
     /// Type variable options.
     Options : 7,
-    : NumPadBits,
     /// The unique number assigned to this type variable.
-    ID : 28
+    ID : 27
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(ErrorUnionType, TypeBase, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(ErrorUnionType, TypeBase, 32,
     // Number of terms in the union.
     NumTerms : 32
   );
     
-  SWIFT_INLINE_BITFIELD(SILFunctionType, TypeBase, NumSILExtInfoBits+1+4+1+2+1+1+1,
+  LANGUAGE_INLINE_BITFIELD(SILFunctionType, TypeBase, NumSILExtInfoBits+1+4+1+2+1+1+1,
     ExtInfoBits : NumSILExtInfoBits,
     HasClangTypeInfo : 1,
     CalleeConvention : 4,
@@ -478,7 +481,7 @@ protected:
     HasPatternSubs : 1
   );
 
-  SWIFT_INLINE_BITFIELD(AnyMetatypeType, TypeBase, 2,
+  LANGUAGE_INLINE_BITFIELD(AnyMetatypeType, TypeBase, 2,
     /// The representation of the metatype.
     ///
     /// Zero indicates that no representation has been set; otherwise,
@@ -486,7 +489,7 @@ protected:
     Representation : 2
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(ProtocolCompositionType, TypeBase, 1+32,
+  LANGUAGE_INLINE_BITFIELD_FULL(ProtocolCompositionType, TypeBase, 1+32,
     /// Whether we have an explicitly-stated class constraint not
     /// implied by any of our members.
     HasExplicitAnyObject : 1,
@@ -497,26 +500,26 @@ protected:
     Count : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(ParameterizedProtocolType, TypeBase, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(ParameterizedProtocolType, TypeBase, 32,
     /// The number of type arguments.
     ArgCount : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TupleType, TypeBase, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(TupleType, TypeBase, 32,
     : NumPadBits,
 
     /// The number of elements of the tuple.
     Count : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(PackType, TypeBase, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(PackType, TypeBase, 32,
     : NumPadBits,
 
     /// The number of elements of the pack.
     Count : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(SILPackType, TypeBase, 1+32,
+  LANGUAGE_INLINE_BITFIELD_FULL(SILPackType, TypeBase, 1+32,
     /// Whether elements of the pack are addresses.
     ElementIsAddress : 1,
 
@@ -526,14 +529,14 @@ protected:
     Count : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(BoundGenericType, TypeBase, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(BoundGenericType, TypeBase, 32,
     : NumPadBits,
 
     /// The number of generic arguments.
     GenericArgCount : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TypeAliasType, SugarType, 1+1+30,
+  LANGUAGE_INLINE_BITFIELD_FULL(TypeAliasType, SugarType, 1+1+30,
     : NumPadBits,
 
     /// Whether we have a parent type.
@@ -543,7 +546,7 @@ protected:
     GenericArgCount : 31
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(IntegerType, TypeBase, 1,
+  LANGUAGE_INLINE_BITFIELD_FULL(IntegerType, TypeBase, 1,
     /// Whether there is a prefix '-' before this type.
     IsNegative : 1
   );
@@ -563,6 +566,11 @@ protected:
       Bits.TypeBase.IsCanonical = true;
       Context = CanTypeCtx;
     }
+
+    Bits.TypeBase.ComputedInvertibleConformances = false;
+    Bits.TypeBase.IsCopyable = false;
+    Bits.TypeBase.IsEscapable = false;
+
     setRecursiveProperties(properties);
   }
 
@@ -593,6 +601,8 @@ public:
 
 private:
   CanType computeCanonicalType();
+
+  void computeInvertibleConformances();
 
 public:
   /// getCanonicalType - Return the canonical version of this type, which has
@@ -641,7 +651,7 @@ public:
   T *getAs() {
     static_assert(!isSugaredType<T>(), "getAs desugars types");
     auto Ty = getDesugaredType();
-    SWIFT_ASSUME(Ty != nullptr);
+    LANGUAGE_ASSUME(Ty != nullptr);
     return dyn_cast<T>(Ty);
   }
 
@@ -703,6 +713,14 @@ public:
   /// Returns true if this contextual type is (Escapable && !isNoEscape).
   bool mayEscape() { return !isNoEscape() && isEscapable(); }
 
+  /// Returns true if this contextual type satisfies a conformance to
+  /// BitwiseCopyable.
+  bool isBitwiseCopyable();
+
+  /// Returns true if this type satisfies a conformance to BitwiseCopyable in
+  /// the given generic signature.
+  bool isBitwiseCopyable(GenericSignature sig);
+
   /// Are values of this type essentially just class references,
   /// possibly with some sort of additional information?
   ///
@@ -721,6 +739,12 @@ public:
   /// Determine whether this type involves a type variable.
   bool hasTypeVariable() const {
     return getRecursiveProperties().hasTypeVariable();
+  }
+
+  // Convenience for checking whether the given type either has a type
+  // variable or placeholder.
+  bool hasTypeVariableOrPlaceholder() const {
+    return hasTypeVariable() || hasPlaceholder();
   }
 
   /// Determine where this type is a type variable or a dependent
@@ -815,7 +839,7 @@ public:
   void getTypeParameterPacks(SmallVectorImpl<Type> &rootParameterPacks);
 
   /// Retrieve the set of type parameter packs that occur within this type.
-  void walkPackReferences(llvm::function_ref<bool (Type)> fn);
+  void walkPackReferences(toolchain::function_ref<bool (Type)> fn);
 
   /// Given a declaration context, returns a function type with the 'self'
   /// type curried as the input if the declaration context describes a type.
@@ -990,9 +1014,13 @@ public:
   /// type) from `DistributedActor`.
   bool isDistributedActor();
 
-  /// Determine if the type in question is an Array<T> and, if so, provide the
+  /// Determine if this type is an Array<T> and, if so, provide the element type
+  /// of the array.
+  Type getArrayElementType();
+
+  /// Determine if this type is an InlineArray<n, T> and, if so, provide the
   /// element type of the array.
-  Type isArrayType();
+  Type getInlineArrayElementType();
 
   /// Determines the element type of a known
   /// [Autoreleasing]Unsafe[Mutable][Raw]Pointer variant, or returns null if the
@@ -1046,21 +1074,24 @@ public:
   ///   - an optional whose object type is not a formal type, or
   ///   - a tuple type with an element that is not a formal type.
   ///
-  /// These are the types of the Swift type system.
+  /// These are the types of the Codira type system.
   bool isLegalFormalType();
 
   /// Check if this type is equal to the empty tuple type.
   bool isVoid();
 
   #define KNOWN_STDLIB_TYPE_DECL(NAME, DECL_CLASS, NUM_GENERIC_PARAMS) \
-  /** Check if this type is equal to Swift.NAME. */ \
+  /** Check if this type is equal to Codira.NAME. */ \
   bool is##NAME();
   #include "language/AST/KnownStdlibTypes.def"
+
+  /// Check if this type is from the Builtin module.
+  bool isBuiltinType();
 
   /// Check if this type is equal to Builtin.IntN.
   bool isBuiltinIntegerType(unsigned bitWidth);
   
-  /// Check if this is a nominal type defined at the top level of the Swift module
+  /// Check if this is a nominal type defined at the top level of the Codira module
   bool isStdlibType();
 
   /// Check if this is a CGFloat type from CoreGraphics framework
@@ -1068,7 +1099,7 @@ public:
   bool isCGFloat();
 
   /// Check if this is either an Array, Set or Dictionary collection type defined
-  /// at the top level of the Swift module
+  /// at the top level of the Codira module
   bool isKnownStdlibCollectionType();
 
   /// If this is a class type or a bound generic class type, returns the
@@ -1218,7 +1249,7 @@ public:
   /// is not bindable to the substituted type, or the callback returns
   /// CanType().
   CanType substituteBindingsTo(Type ty,
-         llvm::function_ref<CanType(ArchetypeType *orig, CanType subst)> substFn);
+         toolchain::function_ref<CanType(ArchetypeType *orig, CanType subst)> substFn);
 
   /// Determines whether this type is similar to \p other as defined by
   /// \p matchOptions.
@@ -1231,7 +1262,7 @@ public:
   /// paramsAndResultMatch which determines in a client-specific way
   /// whether the parameters and result of the types match.
   bool matchesFunctionType(Type other, TypeMatchOptions matchOptions,
-                           llvm::function_ref<bool()> paramsAndResultMatch);
+                           toolchain::function_ref<bool()> paramsAndResultMatch);
 
   /// Determines whether this type has a retainable pointer
   /// representation, i.e. whether it is representable as a single,
@@ -1275,11 +1306,11 @@ public:
   std::pair<ForeignRepresentableKind, ProtocolConformance *>
   getForeignRepresentableIn(ForeignLanguage language, const DeclContext *dc);
 
-  /// Determines whether the given Swift type is representable within
+  /// Determines whether the given Codira type is representable within
   /// the given foreign language.
   ///
-  /// A given Swift type is representable in the given foreign
-  /// language if the Swift type can be used from source code written
+  /// A given Codira type is representable in the given foreign
+  /// language if the Codira type can be used from source code written
   /// in that language.
   bool isRepresentableIn(ForeignLanguage language, const DeclContext *dc);
 
@@ -1398,7 +1429,7 @@ public:
   ///
   /// \code
   /// class Vector<T> {
-  ///   func add(value : T) { }
+  ///   fn add(value : T) { }
   /// }
   /// \endcode
   ///
@@ -1432,9 +1463,9 @@ public:
   /// Return T if this type is Optional<T>; otherwise, return the null type.
   Type getOptionalObjectType();
 
-  // Return type underlying type of a swift_newtype annotated imported struct;
+  // Return type underlying type of a language_newtype annotated imported struct;
   // otherwise, return the null type.
-  Type getSwiftNewtypeUnderlyingType();
+  Type getCodiraNewtypeUnderlyingType();
 
   /// Return the type T after looking through at most one optional type.
   Type lookThroughSingleOptionalType();
@@ -1482,13 +1513,15 @@ public:
   /// equal as canonical types.
   CanType getReducedShape();
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &os, unsigned indent = 0) const;
 
-  SWIFT_DEBUG_DUMPER(print());
+  LANGUAGE_DEBUG_DUMPER(print());
   void print(raw_ostream &OS,
-             const PrintOptions &PO = PrintOptions()) const;
-  void print(ASTPrinter &Printer, const PrintOptions &PO) const;
+             const PrintOptions &PO = PrintOptions(),
+             NonRecursivePrintOptions nrOptions = std::nullopt) const;
+  void print(ASTPrinter &Printer, const PrintOptions &PO,
+             NonRecursivePrintOptions nrOptions = std::nullopt) const;
 
   /// Can this type be written in source at all?
   ///
@@ -1501,7 +1534,8 @@ public:
   bool hasSimpleTypeRepr() const;
 
   /// Return the name of the type as a string, for use in diagnostics only.
-  std::string getString(const PrintOptions &PO = PrintOptions()) const;
+  std::string getString(const PrintOptions &PO = PrintOptions(),
+                        NonRecursivePrintOptions nrOptions = std::nullopt) const;
 
   /// Return the name of the type, adding parens in cases where
   /// appending or prepending text to the result would cause that text
@@ -1510,7 +1544,8 @@ public:
   /// the type would make it appear that it's appended to "Float" as
   /// opposed to the entire type.
   std::string
-  getStringAsComponent(const PrintOptions &PO = PrintOptions()) const;
+  getStringAsComponent(const PrintOptions &PO = PrintOptions(),
+                       NonRecursivePrintOptions nrOptions = std::nullopt) const;
 
   /// Return whether this type is or can be substituted for a bridgeable
   /// object type.
@@ -1736,24 +1771,16 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(BuiltinUnboundGenericType, BuiltinType)
 ///
 /// All elements of a value of this type must be fully initialized any time the
 /// value may be copied, moved, or destroyed.
-class BuiltinFixedArrayType : public BuiltinType, public llvm::FoldingSetNode {
+class BuiltinFixedArrayType : public BuiltinType, public toolchain::FoldingSetNode {
   friend class ASTContext;
   
   CanType Size;
   CanType ElementType;
   
-  static RecursiveTypeProperties
-  getRecursiveTypeProperties(CanType Size, CanType Element) {
-    RecursiveTypeProperties properties;
-    properties |= Size->getRecursiveProperties();
-    properties |= Element->getRecursiveProperties();
-    return properties;
-  }
-  
-  BuiltinFixedArrayType(CanType Size,
-                        CanType ElementType)
+  BuiltinFixedArrayType(CanType Size, CanType ElementType,
+                        RecursiveTypeProperties properties)
     : BuiltinType(TypeKind::BuiltinFixedArray, ElementType->getASTContext(),
-                  getRecursiveTypeProperties(Size, ElementType)),
+                  properties),
         Size(Size),
         ElementType(ElementType)
   {}
@@ -1764,7 +1791,7 @@ public:
   /// (4096 is the hardcoded limit above which we refuse to import C arrays
   /// as tuples. From first principles, a much lower threshold would probably
   /// make sense, but we don't want to break the type lowering of C types
-  /// as they appear in existing Swift code.)
+  /// as they appear in existing Codira code.)
   static constexpr const uint64_t MaximumLoadableSize = 4096;
 
   static bool classof(const TypeBase *T) {
@@ -1786,10 +1813,10 @@ public:
   /// Get the element type.
   CanType getElementType() const { return ElementType; }
   
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     Profile(ID, getSize(), getElementType());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       CanType Size, CanType ElementType) {
     ID.AddPointer(Size.getPointer());
     ID.AddPointer(ElementType.getPointer());
@@ -1914,7 +1941,7 @@ public:
 DEFINE_EMPTY_CAN_TYPE_WRAPPER(BuiltinNativeObjectType, BuiltinType)
 
 /// A type that contains an owning reference to a heap object packed with
-/// additional bits. The type uses a bit to discriminate native Swift objects
+/// additional bits. The type uses a bit to discriminate native Codira objects
 /// from Objective-C object pointers or tagged pointers.
 class BuiltinBridgeObjectType : public BuiltinType {
   friend class ASTContext;
@@ -1947,7 +1974,7 @@ public:
 DEFINE_EMPTY_CAN_TYPE_WRAPPER(BuiltinUnsafeValueBufferType, BuiltinType)
 
 /// A builtin vector type.
-class BuiltinVectorType : public BuiltinType, public llvm::FoldingSetNode {
+class BuiltinVectorType : public BuiltinType, public toolchain::FoldingSetNode {
   Type elementType;
   unsigned numElements;
 
@@ -1968,10 +1995,10 @@ public:
   /// Retrieve the number of elements in this vector.
   unsigned getNumElements() const { return numElements; }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getElementType(), getNumElements());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, Type elementType,
+  static void Profile(toolchain::FoldingSetNodeID &ID, Type elementType,
                       unsigned numElements) {
     ID.AddPointer(elementType.getPointer());
     ID.AddInteger(numElements);
@@ -2005,7 +2032,7 @@ class BuiltinIntegerWidth {
   
   unsigned RawValue;
   
-  friend struct llvm::DenseMapInfo<swift::BuiltinIntegerWidth>;
+  friend struct toolchain::DenseMapInfo<language::BuiltinIntegerWidth>;
   
   /// Private constructor from a raw symbolic value.
   explicit BuiltinIntegerWidth(unsigned RawValue) : RawValue(RawValue) {}
@@ -2050,7 +2077,7 @@ public:
       return 32;
     if (isArbitraryWidth())
       return 1;
-    llvm_unreachable("impossible width value");
+    toolchain_unreachable("impossible width value");
   }
   
   /// Get the greatest supported value for the width.
@@ -2063,7 +2090,7 @@ public:
       return 64;
     if (isArbitraryWidth())
       return ~0U;
-    llvm_unreachable("impossible width value");
+    toolchain_unreachable("impossible width value");
   }
 
   /// Parse a value of this bit-width.
@@ -2204,7 +2231,7 @@ public:
     return Kind;
   }
 
-  const llvm::fltSemantics &getAPFloatSemantics() const;
+  const toolchain::fltSemantics &getAPFloatSemantics() const;
 
   unsigned getBitWidth() const {
     switch (Kind) {
@@ -2215,7 +2242,7 @@ public:
     case IEEE128:
     case PPC128: return 128;
     }
-    llvm_unreachable("bad FPKind");
+    toolchain_unreachable("bad FPKind");
   }
 
   static bool classof(const TypeBase *T) {
@@ -2254,14 +2281,14 @@ public:
   /// Remove one level of top-level sugar from this type.
   Type getSinglyDesugaredTypeSlow();
   TypeBase *getSinglyDesugaredType() const {
-    if (LLVM_LIKELY(Bits.SugarType.HasCachedType))
+    if (TOOLCHAIN_LIKELY(Bits.SugarType.HasCachedType))
       return UnderlyingType;
     auto Ty = const_cast<SugarType*>(this);
     return Ty->getSinglyDesugaredTypeSlow().getPointer();
   }
 
   static bool classof(const TypeBase *T) {
-    // Workaround: http://llvm.org/PR35906
+    // Workaround: http://toolchain.org/PR35906
     if (TypeKind::Last_Type == TypeKind::Last_SugarType)
       return T->getKind() >= TypeKind::First_SugarType;
     return T->getKind() >= TypeKind::First_SugarType &&
@@ -2272,8 +2299,8 @@ public:
 /// A reference to a type alias that is somehow generic, along with the
 /// set of substitutions to apply to make the type concrete.
 class TypeAliasType final
-  : public SugarType, public llvm::FoldingSetNode,
-    llvm::TrailingObjects<TypeAliasType, Type>
+  : public SugarType, public toolchain::FoldingSetNode,
+    toolchain::TrailingObjects<TypeAliasType, Type>
 {
   TypeAliasDecl *typealias;
 
@@ -2327,9 +2354,9 @@ public:
   SmallVector<Type, 2> getExpandedGenericArgs();
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const;
+  void Profile(toolchain::FoldingSetNodeID &id) const;
 
-  static void Profile(llvm::FoldingSetNodeID &id, TypeAliasDecl *typealias,
+  static void Profile(toolchain::FoldingSetNodeID &id, TypeAliasDecl *typealias,
                       Type parent, ArrayRef<Type> genericArgs,
                       Type underlying);
 
@@ -2340,7 +2367,7 @@ public:
 };
 
 /// A type has been introduced at some fixed location in the AST.
-class LocatableType final : public SugarType, public llvm::FoldingSetNode {
+class LocatableType final : public SugarType, public toolchain::FoldingSetNode {
   SourceLoc Loc;
 
   LocatableType(SourceLoc loc, Type underlying,
@@ -2351,9 +2378,9 @@ public:
 
   static LocatableType *get(SourceLoc loc, Type underlying);
 
-  void Profile(llvm::FoldingSetNodeID &id) const;
+  void Profile(toolchain::FoldingSetNodeID &id) const;
 
-  static void Profile(llvm::FoldingSetNodeID &id, SourceLoc loc,
+  static void Profile(toolchain::FoldingSetNodeID &id, SourceLoc loc,
                       Type underlying);
 
   static bool classof(const TypeBase *T) {
@@ -2687,8 +2714,8 @@ typedef ArrayRefView<TupleTypeElt,CanType,getCanTupleEltType>
 /// TupleType - A tuple is a parenthesized list of types where each name has an
 /// optional name.
 ///
-class TupleType final : public TypeBase, public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<TupleType, TupleTypeElt> {
+class TupleType final : public TypeBase, public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<TupleType, TupleTypeElt> {
   friend TrailingObjects;
   
 public:
@@ -2737,10 +2764,10 @@ public:
     return T->getKind() == TypeKind::Tuple;
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getElements());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, 
+  static void Profile(toolchain::FoldingSetNodeID &ID, 
                       ArrayRef<TupleTypeElt> Elements);
   
   bool containsPackExpansionType() const;
@@ -2797,7 +2824,7 @@ END_CAN_TYPE_WRAPPER(TupleType, Type)
 ///
 /// This type is on its way out. Try to avoid introducing new usages.
 class UnboundGenericType : public AnyGenericType,
-    public llvm::FoldingSetNode {
+    public toolchain::FoldingSetNode {
 private:
   UnboundGenericType(GenericTypeDecl *TheDecl, Type Parent, const ASTContext &C,
                      RecursiveTypeProperties properties)
@@ -2809,10 +2836,10 @@ public:
   static UnboundGenericType* get(GenericTypeDecl *TheDecl, Type Parent,
                                  const ASTContext &C);
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getDecl(), getParent());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, GenericTypeDecl *D,
+  static void Profile(toolchain::FoldingSetNodeID &ID, GenericTypeDecl *D,
                       Type Parent);
 
   // Implement isa/cast/dyncast/etc.
@@ -2828,7 +2855,7 @@ typedef ArrayRefView<Type,CanType,getAsCanType> CanTypeArrayRef;
 /// BoundGenericType - An abstract class for applying a generic type to the
 /// given type arguments.
 class BoundGenericType : public NominalOrBoundGenericNominalType,
-    public llvm::FoldingSetNode {
+    public toolchain::FoldingSetNode {
   
   /// Retrieve the intrusive pointer storage from the subtype
   const Type *getTrailingObjectsPointer() const;
@@ -2853,10 +2880,10 @@ public:
 
   SmallVector<Type, 2> getExpandedGenericArgs();
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getDecl(), getParent(), getGenericArgs());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, NominalTypeDecl *TheDecl,
+  static void Profile(toolchain::FoldingSetNodeID &ID, NominalTypeDecl *TheDecl,
                       Type Parent, ArrayRef<Type> GenericArgs);
 
   // Implement isa/cast/dyncast/etc.
@@ -2875,7 +2902,7 @@ END_CAN_TYPE_WRAPPER(BoundGenericType, NominalOrBoundGenericNominalType)
 /// BoundGenericClassType - A subclass of BoundGenericType for the case
 /// when the nominal type is a generic class type.
 class BoundGenericClassType final : public BoundGenericType,
-    private llvm::TrailingObjects<BoundGenericClassType, Type> {
+    private toolchain::TrailingObjects<BoundGenericClassType, Type> {
   friend TrailingObjects;
 
 private:
@@ -2909,7 +2936,7 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(BoundGenericClassType, BoundGenericType)
 /// BoundGenericEnumType - A subclass of BoundGenericType for the case
 /// when the nominal type is a generic enum type.
 class BoundGenericEnumType final : public BoundGenericType,
-    private llvm::TrailingObjects<BoundGenericEnumType, Type> {
+    private toolchain::TrailingObjects<BoundGenericEnumType, Type> {
   friend TrailingObjects;
 
 private:
@@ -2943,7 +2970,7 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(BoundGenericEnumType, BoundGenericType)
 /// BoundGenericStructType - A subclass of BoundGenericType for the case
 /// when the nominal type is a generic struct type.
 class BoundGenericStructType final : public BoundGenericType,
-    private llvm::TrailingObjects<BoundGenericStructType, Type> {
+    private toolchain::TrailingObjects<BoundGenericStructType, Type> {
   friend TrailingObjects;
 
 private:
@@ -3266,7 +3293,7 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(ModuleType, Type)
 /// Example:
 /// \code
 /// class X {
-///   class func factory() -> Self { ... }
+///   class fn factory() -> Self { ... }
 /// };
 /// \endcode
 ///
@@ -3485,8 +3512,8 @@ public:
     }
   };
 
-  using ExtInfo = swift::ASTExtInfo;
-  using ExtInfoBuilder = swift::ASTExtInfoBuilder;
+  using ExtInfo = language::ASTExtInfo;
+  using ExtInfoBuilder = language::ASTExtInfoBuilder;
   using CanParamArrayRef =
     ArrayRefView<Param,CanParam,CanParam::getFromParam,/*AccessOriginal*/true>;
   
@@ -3579,13 +3606,13 @@ protected:
     Bits.AnyFunctionType.NumParams = NumParams;
     assert(Bits.AnyFunctionType.NumParams == NumParams && "Params dropped!");
     
-    if (Info) {
+    if (Info && CONDITIONAL_ASSERT_enabled()) {
       unsigned maxLifetimeTarget = NumParams + 1;
       if (auto outputFn = Output->getAs<AnyFunctionType>()) {
         maxLifetimeTarget += outputFn->getNumParams();
       }
       for (auto &dep : Info->getLifetimeDependencies()) {
-        assert(dep.getTargetIndex() < maxLifetimeTarget);
+        ASSERT(dep.getTargetIndex() < maxLifetimeTarget);
       }
     }
   }
@@ -3670,7 +3697,7 @@ public:
   Type getEffectiveThrownErrorTypeOrNever() const;
 
   /// Returns true if the function type stores a Clang type that cannot
-  /// be derived from its Swift type. Returns false otherwise, including if
+  /// be derived from its Codira type. Returns false otherwise, including if
   /// the function type is not @convention(c) or @convention(block).
   ///
   /// For example, if you have a function pointer from C getting imported with
@@ -3826,7 +3853,7 @@ public:
   /// first. `makeSelfParamFirst` should be true when working with user-facing
   /// derivative function types, e.g. when type-checking `@differentiable` and
   /// `@derivative` attributes.
-  llvm::Expected<AnyFunctionType *> getAutoDiffDerivativeFunctionLinearMapType(
+  toolchain::Expected<AnyFunctionType *> getAutoDiffDerivativeFunctionLinearMapType(
       IndexSubset *parameterIndices, AutoDiffLinearMapKind kind,
       LookupConformanceFn lookupConformance, bool makeSelfParamFirst = false);
 
@@ -3927,8 +3954,8 @@ bool hasIsolatedParameter(ArrayRef<AnyFunctionType::Param> params);
 ///   let x : (Float, Int) -> Int
 class FunctionType final
     : public AnyFunctionType,
-      public llvm::FoldingSetNode,
-      private llvm::TrailingObjects<
+      public toolchain::FoldingSetNode,
+      private toolchain::TrailingObjects<
           FunctionType, AnyFunctionType::Param, ClangTypeInfo, Type,
           size_t /*NumLifetimeDependencies*/, LifetimeDependenceInfo> {
   friend TrailingObjects;
@@ -3999,7 +4026,7 @@ public:
 
   std::optional<LifetimeDependenceInfo>
   getLifetimeDependenceFor(unsigned targetIndex) const {
-    return swift::getLifetimeDependenceFor(getLifetimeDependencies(),
+    return language::getLifetimeDependenceFor(getLifetimeDependencies(),
                                            targetIndex);
   }
 
@@ -4007,13 +4034,13 @@ public:
     return getLifetimeDependenceFor(getNumParams());
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     std::optional<ExtInfo> info = std::nullopt;
     if (hasExtInfo())
       info = getExtInfo();
     Profile(ID, getParams(), getResult(), info);
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, ArrayRef<Param> params,
+  static void Profile(toolchain::FoldingSetNodeID &ID, ArrayRef<Param> params,
                       Type result, std::optional<ExtInfo> info);
 
   // Implement isa/cast/dyncast/etc.
@@ -4045,6 +4072,7 @@ struct ParameterListInfo {
   SmallBitVector propertyWrappers;
   SmallBitVector implicitSelfCapture;
   SmallBitVector inheritActorContext;
+  SmallBitVector alwaysInheritActorContext;
   SmallBitVector variadicGenerics;
   SmallBitVector sendingParameters;
 
@@ -4071,7 +4099,8 @@ public:
 
   /// Whether the given parameter is a closure that should inherit the
   /// actor context from the context in which it was created.
-  bool inheritsActorContext(unsigned paramIdx) const;
+  std::pair<bool, InheritActorContextModifier>
+  inheritsActorContext(unsigned paramIdx) const;
 
   bool isVariadicGenericParameter(unsigned paramIdx) const;
 
@@ -4100,8 +4129,8 @@ std::string getParamListAsString(ArrayRef<AnyFunctionType::Param> parameters);
 /// generic parameters.
 class GenericFunctionType final
     : public AnyFunctionType,
-      public llvm::FoldingSetNode,
-      private llvm::TrailingObjects<GenericFunctionType, AnyFunctionType::Param,
+      public toolchain::FoldingSetNode,
+      private toolchain::TrailingObjects<GenericFunctionType, AnyFunctionType::Param,
                                     Type, size_t /*NumLifetimeDependencies*/,
                                     LifetimeDependenceInfo> {
   friend TrailingObjects;
@@ -4192,13 +4221,13 @@ public:
   FunctionType *substGenericArgs(SubstitutionMap subs,
                                  SubstOptions options = std::nullopt);
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     std::optional<ExtInfo> info = std::nullopt;
     if (hasExtInfo())
       info = getExtInfo();
     Profile(ID, getGenericSignature(), getParams(), getResult(), info);
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, GenericSignature sig,
+  static void Profile(toolchain::FoldingSetNodeID &ID, GenericSignature sig,
                       ArrayRef<Param> params, Type result,
                       std::optional<ExtInfo> info);
 
@@ -4347,7 +4376,7 @@ inline bool isIndirectFormalParameter(ParameterConvention conv) {
   case ParameterConvention::Pack_Guaranteed:
     return false;
   }
-  llvm_unreachable("covered switch isn't covered?!");
+  toolchain_unreachable("covered switch isn't covered?!");
 }
 
 template <bool InCallee>
@@ -4368,7 +4397,7 @@ bool isConsumedParameter(ParameterConvention conv) {
   case ParameterConvention::Pack_Guaranteed:
     return false;
   }
-  llvm_unreachable("bad convention kind");
+  toolchain_unreachable("bad convention kind");
 }
 
 inline bool isConsumedParameterInCallee(ParameterConvention conv) {
@@ -4398,7 +4427,7 @@ bool isGuaranteedParameter(ParameterConvention conv) {
   case ParameterConvention::Pack_Owned:
     return false;
   }
-  llvm_unreachable("bad convention kind");
+  toolchain_unreachable("bad convention kind");
 }
 
 inline bool isGuaranteedParameterInCallee(ParameterConvention conv) {
@@ -4426,7 +4455,7 @@ inline bool isMutatingParameter(ParameterConvention conv) {
   case ParameterConvention::Pack_Owned:
     return false;
   }
-  llvm_unreachable("bad convention kind");
+  toolchain_unreachable("bad convention kind");
 }
 
 /// Returns true if conv indicates a pack parameter.
@@ -4447,13 +4476,13 @@ inline bool isPackParameter(ParameterConvention conv) {
   case ParameterConvention::Direct_Owned:
     return false;
   }
-  llvm_unreachable("bad convention kind");
+  toolchain_unreachable("bad convention kind");
 }
 
 StringRef getStringForParameterConvention(ParameterConvention conv);
 
 /// A parameter type and the rules for passing it.
-/// Must be kept consistent with `ParameterInfo.Flag` in `FunctionConvention.swift`
+/// Must be kept consistent with `ParameterInfo.Flag` in `FunctionConvention.code`
 class SILParameterInfo {
 public:
   enum Flag : uint8_t {
@@ -4689,21 +4718,21 @@ public:
     return getWithInterfaceType(getArgumentType(M, fnType, context));
   }
 
-  void profile(llvm::FoldingSetNodeID &id) {
+  void profile(toolchain::FoldingSetNodeID &id) {
     id.AddPointer(getInterfaceType().getPointer());
     id.AddInteger((unsigned)getConvention());
     id.AddInteger((unsigned)getOptions().toRaw());
   }
 
-  SWIFT_DEBUG_DUMP;
-  void print(llvm::raw_ostream &out,
+  LANGUAGE_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &out,
              const PrintOptions &options = PrintOptions(),
              std::optional<LifetimeDependenceInfo> lifetimeDependence =
                  std::nullopt) const;
   void print(ASTPrinter &Printer, const PrintOptions &Options,
              std::optional<LifetimeDependenceInfo> lifetimeDependence =
                  std::nullopt) const;
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                        SILParameterInfo type) {
     type.print(out);
     return out;
@@ -4933,17 +4962,17 @@ public:
     return getWithInterfaceType(getReturnValueType(M, fnType, context));
   }
 
-  void profile(llvm::FoldingSetNodeID &id) {
+  void profile(toolchain::FoldingSetNodeID &id) {
     id.AddPointer(type.getPointer());
     id.AddInteger(unsigned(getConvention()));
     id.AddInteger(unsigned(getOptions().toRaw()));
   }
 
-  SWIFT_DEBUG_DUMP;
-  void print(llvm::raw_ostream &out,
+  LANGUAGE_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &out,
              const PrintOptions &options = PrintOptions()) const;
   void print(ASTPrinter &Printer, const PrintOptions &Options) const;
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                        SILResultInfo type) {
     type.print(out);
     return out;
@@ -5035,9 +5064,15 @@ Type substOpaqueTypesWithUnderlyingTypes(Type type,
 
 CanType substOpaqueTypesWithUnderlyingTypes(CanType type,
                                             TypeExpansionContext context);
+
 ProtocolConformanceRef
 substOpaqueTypesWithUnderlyingTypes(ProtocolConformanceRef ref,
                                     TypeExpansionContext context);
+
+SubstitutionMap
+substOpaqueTypesWithUnderlyingTypes(SubstitutionMap subs,
+                                    TypeExpansionContext context);
+
 namespace Lowering {
   class TypeConverter;
 }
@@ -5050,8 +5085,8 @@ namespace Lowering {
 /// function parameter and result types.
 class SILFunctionType final
     : public TypeBase,
-      public llvm::FoldingSetNode,
-      private llvm::TrailingObjects<
+      public toolchain::FoldingSetNode,
+      private toolchain::TrailingObjects<
           SILFunctionType, SILParameterInfo, SILResultInfo, SILYieldInfo,
           SubstitutionMap, CanType, ClangTypeInfo, LifetimeDependenceInfo> {
   friend TrailingObjects;
@@ -5198,12 +5233,12 @@ public:
   /// Given an existing ExtInfo, and a set of interface parameters and results
   /// destined for a new SILFunctionType, return a new ExtInfo with only the
   /// lifetime dependencies relevant after substitution.
-  static ExtInfo
-  getSubstLifetimeDependencies(GenericSignature genericSig,
-                               ExtInfo origExtInfo,
-                               ArrayRef<SILParameterInfo> params,
-                               ArrayRef<SILYieldInfo> yields,
-                               ArrayRef<SILResultInfo> results);
+  static ExtInfo getSubstLifetimeDependencies(GenericSignature genericSig,
+                                              ExtInfo origExtInfo,
+                                              ASTContext &context,
+                                              ArrayRef<SILParameterInfo> params,
+                                              ArrayRef<SILYieldInfo> yields,
+                                              ArrayRef<SILResultInfo> results);
 
   /// Return a structurally-identical function type with a slightly tweaked
   /// ExtInfo.
@@ -5317,7 +5352,7 @@ public:
       if (!result.isFormalIndirect())
         return result;
     }
-    llvm_unreachable("Missing indirect result");
+    toolchain_unreachable("Missing indirect result");
   }
 
   // Get the number of results that require a formal indirect calling
@@ -5349,12 +5384,12 @@ public:
     }
   };
   using IndirectFormalResultIter =
-      llvm::filter_iterator<const SILResultInfo *, IndirectFormalResultFilter>;
+      toolchain::filter_iterator<const SILResultInfo *, IndirectFormalResultFilter>;
   using IndirectFormalResultRange = iterator_range<IndirectFormalResultIter>;
 
   /// A range of SILResultInfo for all formally indirect results.
   IndirectFormalResultRange getIndirectFormalResults() const {
-    return llvm::make_filter_range(getResults(), IndirectFormalResultFilter());
+    return toolchain::make_filter_range(getResults(), IndirectFormalResultFilter());
   }
 
   struct DirectFormalResultFilter {
@@ -5363,12 +5398,12 @@ public:
     }
   };
   using DirectFormalResultIter =
-      llvm::filter_iterator<const SILResultInfo *, DirectFormalResultFilter>;
+      toolchain::filter_iterator<const SILResultInfo *, DirectFormalResultFilter>;
   using DirectFormalResultRange = iterator_range<DirectFormalResultIter>;
 
   /// A range of SILResultInfo for all formally direct results.
   DirectFormalResultRange getDirectFormalResults() const {
-    return llvm::make_filter_range(getResults(), DirectFormalResultFilter());
+    return toolchain::make_filter_range(getResults(), DirectFormalResultFilter());
   }
 
   struct PackResultFilter {
@@ -5377,13 +5412,13 @@ public:
     }
   };
   using PackResultIter =
-      llvm::filter_iterator<const SILResultInfo *, PackResultFilter>;
+      toolchain::filter_iterator<const SILResultInfo *, PackResultFilter>;
   using PackResultRange = iterator_range<PackResultIter>;
 
   /// A range of SILResultInfo for all pack results.  Pack results are also
   /// included in the set of indirect results.
   PackResultRange getPackResults() const {
-    return llvm::make_filter_range(getResults(), PackResultFilter());
+    return toolchain::make_filter_range(getResults(), PackResultFilter());
   }
 
   /// Get a single non-address SILType that represents all formal direct
@@ -5415,12 +5450,12 @@ public:
   };
 
   using IndirectFormalYieldIter =
-      llvm::filter_iterator<const SILYieldInfo *, IndirectFormalYieldFilter>;
+      toolchain::filter_iterator<const SILYieldInfo *, IndirectFormalYieldFilter>;
   using IndirectFormalYieldRange = iterator_range<IndirectFormalYieldIter>;
 
   /// A range of SILYieldInfo for all formally Indirect Yields.
   IndirectFormalYieldRange getIndirectFormalYields() const {
-    return llvm::make_filter_range(getYields(), IndirectFormalYieldFilter());
+    return toolchain::make_filter_range(getYields(), IndirectFormalYieldFilter());
   }
 
   /// Get a single non-address SILType for all SIL results regardless of whether
@@ -5431,7 +5466,7 @@ public:
   SILType getAllResultsSubstType(SILModule &M, TypeExpansionContext expansion);
   SILType getAllResultsInterfaceType();
 
-  /// Does this function have a blessed Swift-native error result?
+  /// Does this function have a blessed Codira-native error result?
   bool hasErrorResult() const {
     return Bits.SILFunctionType.HasErrorResult;
   }
@@ -5482,20 +5517,20 @@ public:
     }
   };
   using IndirectMutatingParameterIter =
-      llvm::filter_iterator<const SILParameterInfo *,
+      toolchain::filter_iterator<const SILParameterInfo *,
                             IndirectMutatingParameterFilter>;
   using IndirectMutatingParameterRange =
       iterator_range<IndirectMutatingParameterIter>;
 
   /// A range of SILParameterInfo for all indirect mutating parameters.
   IndirectMutatingParameterRange getIndirectMutatingParameters() const {
-    return llvm::make_filter_range(getParameters(),
+    return toolchain::make_filter_range(getParameters(),
                                    IndirectMutatingParameterFilter());
   }
 
   /// Returns the number of indirect mutating parameters.
   unsigned getNumIndirectMutatingParameters() const {
-    return llvm::count_if(getParameters(), IndirectMutatingParameterFilter());
+    return toolchain::count_if(getParameters(), IndirectMutatingParameterFilter());
   }
 
   struct AutoDiffSemanticResultsParameterFilter {
@@ -5505,7 +5540,7 @@ public:
   };
 
   using AutoDiffSemanticResultsParameterIter =
-    llvm::filter_iterator<const SILParameterInfo *,
+    toolchain::filter_iterator<const SILParameterInfo *,
                           AutoDiffSemanticResultsParameterFilter>;
   using AutoDiffSemanticResultsParameterRange =
       iterator_range<AutoDiffSemanticResultsParameterIter>;
@@ -5513,13 +5548,13 @@ public:
   /// A range of SILParameterInfo for all semantic results parameters.
   AutoDiffSemanticResultsParameterRange
   getAutoDiffSemanticResultsParameters() const {
-    return llvm::make_filter_range(getParameters(),
+    return toolchain::make_filter_range(getParameters(),
                                    AutoDiffSemanticResultsParameterFilter());
   }
 
   /// Returns the number of semantic results parameters.
   unsigned getNumAutoDiffSemanticResultsParameters() const {
-    return llvm::count_if(getParameters(), AutoDiffSemanticResultsParameterFilter());
+    return toolchain::count_if(getParameters(), AutoDiffSemanticResultsParameterFilter());
   }
 
   /// Returns the number of function potential semantic results:
@@ -5597,7 +5632,7 @@ public:
   /// For example, in the function:
   ///
   /// ```
-  ///   func consume<T>(producer: () -> T)
+  ///   fn consume<T>(producer: () -> T)
   /// ```
   ///
   /// the argument function `producer` is abstracted differently from
@@ -5653,7 +5688,7 @@ public:
 
   std::optional<LifetimeDependenceInfo>
   getLifetimeDependenceFor(unsigned targetIndex) const {
-    return swift::getLifetimeDependenceFor(getLifetimeDependencies(),
+    return language::getLifetimeDependenceFor(getLifetimeDependencies(),
                                            targetIndex);
   }
 
@@ -5680,7 +5715,7 @@ public:
                      TypeExpansionContext expansion);
 
   /// Returns true if the function type stores a Clang type that cannot
-  /// be derived from its Swift type. Returns false otherwise, including if
+  /// be derived from its Codira type. Returns false otherwise, including if
   /// the function type is not @convention(c) or @convention(block).
   bool hasNonDerivableClangType();
 
@@ -5872,7 +5907,7 @@ public:
     return getExtInfo().isNoEscape();
   }
 
-  /// Thick swift noescape function types are trivial.
+  /// Thick language noescape function types are trivial.
   bool isTrivialNoEscape() const {
     return isNoEscape() &&
            getRepresentation() == SILFunctionTypeRepresentation::Thick;
@@ -5981,7 +6016,7 @@ public:
   /// argument and result types as `this` type after substitutions, if any.
   CanSILFunctionType getUnsubstitutedType(SILModule &M) const;
                                     
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getInvocationGenericSignature(),
             getExtInfo(), getCoroutineKind(), getCalleeConvention(),
             getParameters(), getYields(), getResults(),
@@ -5989,7 +6024,7 @@ public:
             getPatternSubstitutions(), getInvocationSubstitutions());
   }
   static void
-  Profile(llvm::FoldingSetNodeID &ID, GenericSignature genericSig, ExtInfo info,
+  Profile(toolchain::FoldingSetNodeID &ID, GenericSignature genericSig, ExtInfo info,
           SILCoroutineKind coroutineKind, ParameterConvention calleeConvention,
           ArrayRef<SILParameterInfo> params, ArrayRef<SILYieldInfo> yields,
           ArrayRef<SILResultInfo> results,
@@ -6011,7 +6046,7 @@ typedef CanTypeWrapper<SILBoxType> CanSILBoxType;
 
 /// The SIL-only type for boxes, which represent a reference to a (non-class)
 /// refcounted value referencing an aggregate with a given lowered layout.
-class SILBoxType final : public TypeBase, public llvm::FoldingSetNode
+class SILBoxType final : public TypeBase, public toolchain::FoldingSetNode
 {
   SILLayout *Layout;
   SubstitutionMap Substitutions;
@@ -6038,12 +6073,12 @@ public:
   }
   
   /// Produce a profile of this box, for use in a folding set.
-  static void Profile(llvm::FoldingSetNodeID &id,
+  static void Profile(toolchain::FoldingSetNodeID &id,
                       SILLayout *Layout,
                       SubstitutionMap Args);
   
   /// Produce a profile of this box, for use in a folding set.
-  void Profile(llvm::FoldingSetNodeID &id) {
+  void Profile(toolchain::FoldingSetNodeID &id) {
     Profile(id, getLayout(), getSubstitutions());
   }
 };
@@ -6054,11 +6089,11 @@ class SILModule; // From SIL
 typedef CanTypeWrapper<SILMoveOnlyWrappedType> CanSILMoveOnlyWrappedType;
 
 /// A wrapper type that marks an inner type as being a move only value. Can not
-/// be written directly at the Swift level, instead it is triggered by adding
+/// be written directly at the Codira level, instead it is triggered by adding
 /// the type attribute @_moveOnly to a different type. We transform these in
 /// TypeLowering into a moveOnly SILType on the inner type.
 class SILMoveOnlyWrappedType final : public TypeBase,
-                                     public llvm::FoldingSetNode {
+                                     public toolchain::FoldingSetNode {
   CanType innerType;
 
   SILMoveOnlyWrappedType(CanType innerType)
@@ -6136,8 +6171,8 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(SILTokenType, Type)
 /// is communicated with normal borrows of the pack, and packs can only
 /// be created locally and forwarded as arguments rather than being moved
 /// in any more complex way.
-class SILPackType final : public TypeBase, public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<SILPackType, CanType> {
+class SILPackType final : public TypeBase, public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<SILPackType, CanType> {
 public:
   /// Type structure not reflected in the pack element type list.
   ///
@@ -6202,10 +6237,10 @@ public:
 
   bool containsPackExpansionType() const;
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     Profile(ID, getExtInfo(), getElementTypes());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       ExtInfo info,
                       ArrayRef<CanType> elements);
 
@@ -6287,7 +6322,7 @@ public:
   }
 };
 
-/// An InlineArray type e.g `[2 x Foo]`, sugar for `InlineArray<2, Foo>`.
+/// An InlineArray type e.g `[2 of Foo]`, sugar for `InlineArray<2, Foo>`.
 class InlineArrayType : public SyntaxSugarType {
   Type Count;
   Type Elt;
@@ -6422,8 +6457,8 @@ END_CAN_TYPE_WRAPPER(ProtocolType, NominalType)
 /// protocol, then the canonical type is that protocol type. Otherwise, it is
 /// a composition of the protocols in that list.
 class ProtocolCompositionType final : public TypeBase,
-    public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<ProtocolCompositionType, Type> {
+    public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<ProtocolCompositionType, Type> {
   friend TrailingObjects;
 
   // The inverse constraints `& ~IP` that are part of this composition.
@@ -6486,10 +6521,10 @@ public:
   InvertibleProtocolSet getInverses() const { return Inverses; }
   bool hasInverse() const { return !Inverses.empty(); }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getMembers(), getInverses(), hasExplicitAnyObject());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       ArrayRef<Type> Members,
                       InvertibleProtocolSet Inverses,
                       bool HasExplicitAnyObject);
@@ -6555,8 +6590,8 @@ END_CAN_TYPE_WRAPPER(ProtocolCompositionType, Type)
 /// T : Sequence where T.Element == Int.
 /// \endcode
 class ParameterizedProtocolType final : public TypeBase,
-    public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<ParameterizedProtocolType, Type> {
+    public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<ParameterizedProtocolType, Type> {
   friend struct ExistentialLayout;
   friend TrailingObjects;
 
@@ -6587,10 +6622,10 @@ public:
 
   void getRequirements(Type baseType, SmallVectorImpl<Requirement> &reqs) const;
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, Base, getArgs());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       ProtocolType *base,
                       ArrayRef<Type> args);
 
@@ -6645,7 +6680,7 @@ struct ExistentialTypeGeneralization {
 
 /// An existential type, spelled with \c any .
 ///
-/// In Swift 5 mode, a plain protocol name in type
+/// In Codira 5 mode, a plain protocol name in type
 /// context is an implicit existential type.
 class ExistentialType final : public TypeBase {
   Type ConstraintType;
@@ -6672,7 +6707,7 @@ public:
 
   bool shouldPrintWithAny() const { return PrintWithAny; }
 
-  void forcePrintWithAny(llvm::function_ref<void(Type)> print) {
+  void forcePrintWithAny(toolchain::function_ref<void(Type)> print) {
     bool oldValue = PrintWithAny;
     PrintWithAny = true;
     print(this);
@@ -6722,7 +6757,7 @@ END_CAN_TYPE_WRAPPER(BuiltinTupleType, NominalType)
 /// type of that object uniquely determines the type of an l-value
 /// for it.
 ///
-/// L-values are not fully first-class in Swift:
+/// L-values are not fully first-class in Codira:
 ///
 ///  A type is said to "carry" an l-value if
 ///   - it is an l-value type or
@@ -6814,7 +6849,7 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(SubstitutableType, Type)
 /// Common trailing objects for all ArchetypeType implementations, used to
 /// store the constraints on the archetype.
 template<typename Base, typename...AdditionalTrailingObjects>
-using ArchetypeTrailingObjects = llvm::TrailingObjects<Base,
+using ArchetypeTrailingObjects = toolchain::TrailingObjects<Base,
   ProtocolDecl *, Type, LayoutConstraint, AdditionalTrailingObjects...>;
 
 class PrimaryArchetypeType;
@@ -6827,7 +6862,7 @@ class OpaqueTypeArchetypeType;
 /// associated types, as well as the runtime type stored within an
 /// existential container.
 class ArchetypeType : public SubstitutableType,
-                private llvm::trailing_objects_internal::TrailingObjectsBase
+                private toolchain::trailing_objects_internal::TrailingObjectsBase
 {
 protected:
   // Each subclass has these same trailing objects and flags.
@@ -7047,8 +7082,8 @@ public:
   using SeenDecl = std::pair<OpaqueTypeDecl *, SubstitutionMap>;
 private:
   ResilienceExpansion contextExpansion;
-  llvm::PointerIntPair<const DeclContext *, 1, bool> inContextAndIsWholeModule;
-  llvm::DenseSet<SeenDecl> *seenDecls;
+  toolchain::PointerIntPair<const DeclContext *, 1, bool> inContextAndIsWholeModule;
+  toolchain::DenseSet<SeenDecl> *seenDecls;
 
 public:
   ReplaceOpaqueTypesWithUnderlyingTypes(const DeclContext *inContext,
@@ -7060,14 +7095,14 @@ public:
 
   ReplaceOpaqueTypesWithUnderlyingTypes(
       const DeclContext *inContext, ResilienceExpansion contextExpansion,
-      bool isWholeModuleContext, llvm::DenseSet<SeenDecl> &seen);
+      bool isWholeModuleContext, toolchain::DenseSet<SeenDecl> &seen);
 
   /// TypeSubstitutionFn
   Type operator()(SubstitutableType *maybeOpaqueType) const;
 
   /// LookupConformanceFn
-  ProtocolConformanceRef operator()(CanType maybeOpaqueType,
-                                    Type replacementType,
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type maybeOpaqueType,
                                     ProtocolDecl *protocol) const;
 
   OpaqueSubstitutionKind
@@ -7083,6 +7118,32 @@ private:
   }
 
   bool isWholeModule() const { return inContextAndIsWholeModule.getInt(); }
+};
+
+/// A function object that can be used as a \c TypeSubstitutionFn and
+/// \c LookupConformanceFn for \c Type::subst style APIs to map existential
+/// archetypes in the given generic environment to known concrete types from
+/// the given substitution map.
+class ReplaceExistentialArchetypesWithConcreteTypes {
+private:
+  GenericEnvironment *env;
+  SubstitutionMap subs;
+
+  Type getInterfaceType(ExistentialArchetypeType *type) const;
+
+public:
+  ReplaceExistentialArchetypesWithConcreteTypes(GenericEnvironment *env,
+                                                SubstitutionMap subs)
+      : env(env), subs(subs) {}
+
+  /// TypeSubstitutionFn
+  Type operator()(SubstitutableType *type) const;
+
+  /// LookupConformanceFn
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type origType,
+                                    ProtocolDecl *protocol) const;
+
 };
 
 /// An archetype that's only valid in a portion of a local context.
@@ -7241,14 +7302,14 @@ const Type *ArchetypeType::getSubclassTrailingObjects() const {
   if (auto childTy = dyn_cast<ElementArchetypeType>(this)) {
     return childTy->getTrailingObjects<Type>();
   }
-  llvm_unreachable("unhandled ArchetypeType subclass?");
+  toolchain_unreachable("unhandled ArchetypeType subclass?");
 }
 
 /// Describes the type of a generic parameter.
 ///
 /// \sa GenericTypeParamDecl
 class GenericTypeParamType : public SubstitutableType,
-                             public llvm::FoldingSetNode {
+                             public toolchain::FoldingSetNode {
   /// A canonical generic parameter type is given by a depth, index, parameter
   /// kind, and an optional value type. A sugared generic parameter type stores
   /// a declaration or an identifier.
@@ -7257,9 +7318,10 @@ class GenericTypeParamType : public SubstitutableType,
     Identifier Name;
   };
 
-  unsigned Depth : 15;
   unsigned IsDecl : 1;
-  unsigned Index : 16;
+  unsigned Depth : 15;
+  unsigned Weight : 1;
+  unsigned Index : 15;
 
   /// The kind of generic type parameter this is.
   GenericTypeParamKind ParamKind;
@@ -7284,14 +7346,20 @@ public:
                                    Type valueType, const ASTContext &ctx);
 
   /// Retrieve a canonical generic type parameter with the given kind, depth,
-  /// index, and optional value type.
+  /// index, weight, and optional value type.
   static GenericTypeParamType *get(GenericTypeParamKind paramKind,
-                                   unsigned depth, unsigned index,
+                                   unsigned depth, unsigned index, unsigned weight,
                                    Type valueType, const ASTContext &ctx);
 
-  /// Retrieve a canonical generic type parameter at the given depth and index.
+  /// Retrieve a canonical generic type parameter at the given depth and index,
+  /// with weight 0.
   static GenericTypeParamType *getType(unsigned depth, unsigned index,
                                        const ASTContext &ctx);
+
+  /// Retrieve a canonical generic type parameter at the given depth and index
+  /// for an opaque result type, so with weight 1.
+  static GenericTypeParamType *getOpaqueResultType(unsigned depth, unsigned index,
+                                                   const ASTContext &ctx);
 
   /// Retrieve a canonical generic parameter pack at the given depth and index.
   static GenericTypeParamType *getPack(unsigned depth, unsigned index,
@@ -7325,7 +7393,7 @@ public:
   ///
   /// \code
   /// struct X<T> {
-  ///   func f<U>() { }
+  ///   fn f<U>() { }
   /// }
   /// \endcode
   ///
@@ -7339,7 +7407,7 @@ public:
   ///
   /// \code
   /// struct X<T, U> {
-  ///   func f<V>() { }
+  ///   fn f<V>() { }
   /// }
   /// \endcode
   ///
@@ -7348,10 +7416,18 @@ public:
     return Index;
   }
 
+  /// The weight of this generic parameter in the type parameter order.
+  ///
+  /// Opaque result types have weight 1, while all other generic parameters
+  /// have weight 0.
+  unsigned getWeight() const {
+    return Weight;
+  }
+
   /// Returns \c true if this type parameter is declared as a pack.
   ///
   /// \code
-  /// func foo<T...>() { }
+  /// fn foo<T...>() { }
   /// struct Foo<T...> { }
   /// \endcode
   bool isParameterPack() const {
@@ -7369,20 +7445,24 @@ public:
 
   Type getValueType() const;
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  GenericTypeParamType *withDepth(unsigned depth) const;
+
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     // Note: We explicitly don't use 'getName()' because for canonical forms
     // which don't store an identifier we'll go create a tau based form. We
     // really want to just plumb down the null Identifier because that's what's
     // inside the cache.
-    Profile(ID, getParamKind(), getDepth(), getIndex(), getValueType(),
-            Name);
+    Profile(ID, getParamKind(), getDepth(), getIndex(), getWeight(),
+            getValueType(), Name);
   }
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       GenericTypeParamKind paramKind, unsigned depth,
-                      unsigned index, Type valueType, Identifier name) {
+                      unsigned index, unsigned weight, Type valueType,
+                      Identifier name) {
     ID.AddInteger((uint8_t)paramKind);
     ID.AddInteger(depth);
     ID.AddInteger(index);
+    ID.AddInteger(weight);
     ID.AddPointer(valueType.getPointer());
     ID.AddPointer(name.get());
   }
@@ -7405,7 +7485,7 @@ private:
                                 const ASTContext &ctx);
 
   explicit GenericTypeParamType(GenericTypeParamKind paramKind, unsigned depth,
-                                unsigned index, Type valueType,
+                                unsigned index, unsigned weight, Type valueType,
                                 RecursiveTypeProperties props,
                                 const ASTContext &ctx);
 };
@@ -7415,13 +7495,18 @@ static CanGenericTypeParamType getType(unsigned depth, unsigned index,
   return CanGenericTypeParamType(
       GenericTypeParamType::getType(depth, index, C));
 }
+static CanGenericTypeParamType getOpaqueResultType(unsigned depth, unsigned index,
+                                                   const ASTContext &C) {
+  return CanGenericTypeParamType(
+      GenericTypeParamType::getOpaqueResultType(depth, index, C));
+}
 END_CAN_TYPE_WRAPPER(GenericTypeParamType, SubstitutableType)
 
 /// A type that refers to a member type of some type that is dependent on a
 /// generic parameter.
 class DependentMemberType : public TypeBase {
   Type Base;
-  llvm::PointerUnion<Identifier, AssociatedTypeDecl *> NameOrAssocType;
+  toolchain::PointerUnion<Identifier, AssociatedTypeDecl *> NameOrAssocType;
 
   DependentMemberType(Type base, Identifier name, const ASTContext *ctx,
                       RecursiveTypeProperties properties)
@@ -7493,7 +7578,7 @@ public:
       return ReferenceOwnership::Name;
 #include "language/AST/ReferenceStorage.def"
     default:
-      llvm_unreachable("Unhandled reference storage type");
+      toolchain_unreachable("Unhandled reference storage type");
     }
   }
 
@@ -7548,7 +7633,7 @@ END_CAN_TYPE_WRAPPER(Name##StorageType, ReferenceStorageType)
 /// A type variable used during type checking.
 class alignas(1 << TypeVariableAlignInBits)
 TypeVariableType : public TypeBase {
-  // Note: We can't use llvm::TrailingObjects here because the trailing object
+  // Note: We can't use toolchain::TrailingObjects here because the trailing object
   // type is opaque.
 
   TypeVariableType(const ASTContext &C, unsigned ID)
@@ -7558,7 +7643,7 @@ TypeVariableType : public TypeBase {
     // Note: the ID may overflow (current limit is 2^20 - 1).
     Bits.TypeVariableType.ID = ID;
     if (Bits.TypeVariableType.ID != ID) {
-      llvm::report_fatal_error("Type variable id overflow");
+      toolchain::report_fatal_error("Type variable id overflow");
     }
   }
 
@@ -7611,8 +7696,8 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(TypeVariableType, Type)
 /// Represents the union of two or more
 class ErrorUnionType final
     : public TypeBase,
-      public llvm::FoldingSetNode,
-      private llvm::TrailingObjects<ErrorUnionType, Type> {
+      public toolchain::FoldingSetNode,
+      private toolchain::TrailingObjects<ErrorUnionType, Type> {
   friend TrailingObjects;
 
   ErrorUnionType(const ASTContext *ctx, ArrayRef<Type> terms,
@@ -7632,11 +7717,11 @@ public:
   };
 
   // Support for FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const {
+  void Profile(toolchain::FoldingSetNodeID &id) const {
     Profile(id, getTerms());
   }
 
-  static void Profile(llvm::FoldingSetNodeID &id, ArrayRef<Type> terms);
+  static void Profile(toolchain::FoldingSetNodeID &id, ArrayRef<Type> terms);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const TypeBase *T) {
@@ -7653,7 +7738,7 @@ class PlaceholderType : public TypeBase {
   // NOTE: If you add a new Type-based originator, you'll need to update the
   // recursive property logic in PlaceholderType::get.
   using Originator =
-      llvm::PointerUnion<TypeVariableType *, DependentMemberType *, VarDecl *,
+      toolchain::PointerUnion<TypeVariableType *, DependentMemberType *, VarDecl *,
                          ErrorExpr *, TypeRepr *>;
 
   Originator O;
@@ -7681,7 +7766,7 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(PlaceholderType, Type)
 /// when it encounters an apply of a variadic generic function, as in
 ///
 /// \code
-/// func print<T...>(_ xs: T...) {}
+/// fn print<T...>(_ xs: T...) {}
 /// // Creates a pack type <String, Int, String>
 /// print("Macs say Hello in", 42, " different languages")
 /// \endcode
@@ -7694,8 +7779,8 @@ DEFINE_EMPTY_CAN_TYPE_WRAPPER(PlaceholderType, Type)
 /// typealias Foo<T...> = (T?...)
 /// Foo<Int, String, Int> // Forces expansion to (Int?, String?, Int?)
 /// \endcode
-class PackType final : public TypeBase, public llvm::FoldingSetNode,
-    private llvm::TrailingObjects<PackType, Type> {
+class PackType final : public TypeBase, public toolchain::FoldingSetNode,
+    private toolchain::TrailingObjects<PackType, Type> {
   friend class ASTContext;
   friend TrailingObjects;
 
@@ -7735,10 +7820,10 @@ public:
   CanTypeWrapper<PackType> getReducedShape();
 
 public:
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     Profile(ID, getElementTypes());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, ArrayRef<Type> Elements);
+  static void Profile(toolchain::FoldingSetNodeID &ID, ArrayRef<Type> Elements);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const TypeBase *T) {
@@ -7796,7 +7881,7 @@ CanTupleType::getInducedApproximateFormalPackType() const {
 /// without parentheses to match normal variadic declaration syntax.
 ///
 /// \code
-/// func expand<T...>(_ xs: T...) -> (T...)
+/// fn expand<T...>(_ xs: T...) -> (T...)
 ///                         ~~~~     ~~~~~~
 /// \endcode
 ///
@@ -7804,7 +7889,7 @@ CanTupleType::getInducedApproximateFormalPackType() const {
 /// the ellipses - \c T in the examples above. This pattern type is the subject
 /// of the expansion of the pack that is tripped when its variadic generic
 /// parameter is substituted for a \c PackType.
-class PackExpansionType : public TypeBase, public llvm::FoldingSetNode {
+class PackExpansionType : public TypeBase, public toolchain::FoldingSetNode {
   friend class ASTContext;
 
   Type patternType;
@@ -7831,11 +7916,11 @@ public:
   CanType getReducedShape();
 
 public:
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getPatternType(), getCountType());
   }
 
-  static void Profile(llvm::FoldingSetNodeID &ID,
+  static void Profile(toolchain::FoldingSetNodeID &ID,
                       Type patternType, Type countType);
 
   // Implement isa/cast/dyncast/etc.
@@ -7889,7 +7974,7 @@ CanPackType::unwrapSingletonPackExpansion() const {
 /// We number PackExpansionTypes from the innermost one outwards, assigning
 /// a level of 0 to the innermost one. Then, a PackElementType represents a
 /// reference to a parameter pack from an expansion with level > 0.
-class PackElementType : public TypeBase, public llvm::FoldingSetNode {
+class PackElementType : public TypeBase, public toolchain::FoldingSetNode {
   friend class ASTContext;
 
   Type packType;
@@ -7906,11 +7991,11 @@ public:
 
   unsigned getLevel() const { return level; }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getPackType(), getLevel());
   }
 
-  static void Profile(llvm::FoldingSetNodeID &ID, Type packType, unsigned level);
+  static void Profile(toolchain::FoldingSetNodeID &ID, Type packType, unsigned level);
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const TypeBase *T) {
@@ -7936,7 +8021,7 @@ END_CAN_TYPE_WRAPPER(PackElementType, Type)
 ///
 /// 'T' is a BoundGenericStructType with an IntegerType generic argument with
 /// the value '123'.
-class IntegerType final : public TypeBase, public llvm::FoldingSetNode {
+class IntegerType final : public TypeBase, public toolchain::FoldingSetNode {
   friend class ASTContext;
 
   StringRef Value;
@@ -7978,10 +8063,10 @@ public:
     return Bits.IntegerType.IsNegative;
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     Profile(ID, getDigitsText(), isNegative());
   }
-  static void Profile(llvm::FoldingSetNodeID &ID, StringRef value,
+  static void Profile(toolchain::FoldingSetNodeID &ID, StringRef value,
                       bool isNegative) {
     ID.AddString(value);
     ID.AddInteger(isNegative);
@@ -8146,6 +8231,10 @@ inline GenericTypeDecl *TypeBase::getAnyGeneric() {
   return getCanonicalType().getAnyGeneric();
 }
 
+inline bool TypeBase::isBuiltinType() {
+  return isa<BuiltinType>(getCanonicalType());
+}
+
 inline bool TypeBase::isBuiltinIntegerType(unsigned n) {
   if (auto intTy = dyn_cast<BuiltinIntegerType>(getCanonicalType()))
     return intTy->getWidth().isFixedWidth()
@@ -8200,8 +8289,8 @@ inline CanType CanType::getNominalParent() const {
 
 inline bool CanType::isActuallyCanonicalOrNull() const {
   return getPointer() == nullptr ||
-         getPointer() == llvm::DenseMapInfo<TypeBase *>::getEmptyKey() ||
-         getPointer() == llvm::DenseMapInfo<TypeBase *>::getTombstoneKey() ||
+         getPointer() == toolchain::DenseMapInfo<TypeBase *>::getEmptyKey() ||
+         getPointer() == toolchain::DenseMapInfo<TypeBase *>::getTombstoneKey() ||
          getPointer()->isCanonical();
 }
 
@@ -8240,7 +8329,7 @@ inline const Type *BoundGenericType::getTrailingObjectsPointer() const {
     return ty->getTrailingObjects<Type>();
   if (auto ty = dyn_cast<BoundGenericClassType>(this))
     return ty->getTrailingObjects<Type>();
-  llvm_unreachable("Unhandled BoundGenericType!");
+  toolchain_unreachable("Unhandled BoundGenericType!");
 }
 
 inline ArrayRef<AnyFunctionType::Param> AnyFunctionType::getParams() const {
@@ -8250,7 +8339,7 @@ inline ArrayRef<AnyFunctionType::Param> AnyFunctionType::getParams() const {
   case TypeKind::GenericFunction:
     return cast<GenericFunctionType>(this)->getParams();
   default:
-    llvm_unreachable("Undefined function type");
+    toolchain_unreachable("Undefined function type");
   }
 }
 
@@ -8288,12 +8377,12 @@ inline TypeBase *TypeBase::getDesugaredType() {
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 // DenseMapInfo for BuiltinIntegerWidth.
 template<>
-struct DenseMapInfo<swift::BuiltinIntegerWidth> {
-  using BuiltinIntegerWidth = swift::BuiltinIntegerWidth;
+struct DenseMapInfo<language::BuiltinIntegerWidth> {
+  using BuiltinIntegerWidth = language::BuiltinIntegerWidth;
   
   static inline BuiltinIntegerWidth getEmptyKey() {
     return BuiltinIntegerWidth(BuiltinIntegerWidth::DenseMapEmpty);

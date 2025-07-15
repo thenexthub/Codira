@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the existential emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENEXISTENTIAL_H
-#define SWIFT_IRGEN_GENEXISTENTIAL_H
+#ifndef LANGUAGE_IRGEN_GENEXISTENTIAL_H
+#define LANGUAGE_IRGEN_GENEXISTENTIAL_H
 
 #include "Address.h"
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILInstruction.h"
 
-namespace llvm {
+namespace toolchain {
   class Value;
 }
 
@@ -52,7 +53,7 @@ namespace irgen {
   void emitExistentialMetatypeContainer(IRGenFunction &IGF,
                                         Explosion &out,
                                         SILType outType,
-                                        llvm::Value *metatype,
+                                        toolchain::Value *metatype,
                                         SILType metatypeType,
                                  ArrayRef<ProtocolConformanceRef> conformances);
   
@@ -62,7 +63,7 @@ namespace irgen {
   void emitClassExistentialContainer(IRGenFunction &IGF,
                                  Explosion &out,
                                  SILType outType,
-                                 llvm::Value *instance,
+                                 toolchain::Value *instance,
                                  CanType instanceFormalType,
                                  SILType instanceLoweredType,
                                  ArrayRef<ProtocolConformanceRef> conformances);
@@ -121,7 +122,7 @@ namespace irgen {
   ///
   /// \param openedArchetype If non-null, the archetype that will capture the
   /// metadata and witness tables produced by projecting the archetype.
-  llvm::Value *emitClassExistentialProjection(IRGenFunction &IGF,
+  toolchain::Value *emitClassExistentialProjection(IRGenFunction &IGF,
                                               Explosion &base,
                                               SILType baseTy,
                                               CanArchetypeType openedArchetype);
@@ -130,7 +131,7 @@ namespace irgen {
   ///
   /// \param openedTy If non-null, a metatype of the archetype that
   ///   will capture the metadata and witness tables
-  llvm::Value *emitExistentialMetatypeProjection(IRGenFunction &IGF,
+  toolchain::Value *emitExistentialMetatypeProjection(IRGenFunction &IGF,
                                                  Explosion &base,
                                                  SILType baseTy,
                                                  CanType openedTy);

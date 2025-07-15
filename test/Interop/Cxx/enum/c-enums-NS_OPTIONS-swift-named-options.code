@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-language-frontend %s -I %S/Inputs -typecheck -module-cache-path %t/cache -enable-experimental-cxx-interop 2>&1 | %FileCheck --allow-empty %s
+
+// REQUIRES: objc_interop
+
+import CenumsNSOptions
+
+// CHECK-NOT: warning: imported declaration 'NS_LANGUAGE_NAMED_OptionOne' could not be mapped to 'CodiraOptionOne'
+// CHECK-NOT: warning: imported declaration 'NS_LANGUAGE_NAMED_OptionTwo' could not be mapped to 'CodiraOptionTwo'
+// CHECK-NOT: warning: imported declaration 'NS_LANGUAGE_NAMED_OptionThree' could not be mapped to 'CodiraOptionThree'
+// CHECK-NOT: warning: imported declaration 'NS_LANGUAGE_NAMED_OptionFour' could not be mapped to 'CodiraOptionFour'

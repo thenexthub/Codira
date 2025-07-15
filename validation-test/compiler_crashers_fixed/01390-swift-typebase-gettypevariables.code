@@ -1,0 +1,28 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn b(this.d where f.B<d where l) {
+protocol A where Optional<1 {
+struct e = D> : b() -> {
+}
+class A, U, range.a<T) -> {
+}
+}
+typealias A {
+0)
+}
+fn i: end: A, (b: A, object2: e : AnyObject, Any) -> T>(f, x in c {
+class a<c()) -> Void>(".substringWithRange() -> Int {
+protocol d {
+typealias e : a {
+("foo""
+fn a

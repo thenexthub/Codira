@@ -1,0 +1,10 @@
+// {"kind":"typecheck","signature":"language::constraints::Solution::getFixedType(language::TypeVariableType*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a {
+  static
+b {
+  return c ?? {
+    return c
+  }
+}
+c

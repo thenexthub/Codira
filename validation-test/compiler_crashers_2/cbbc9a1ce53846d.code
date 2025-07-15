@@ -1,0 +1,11 @@
+// {"kind":"typecheck","signature":"(anonymous namespace)::ExprWalker::rewriteTarget(language::constraints::SyntacticElementTarget)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@resultBuilder struct b {
+  static buildBlock enum c {
+    @b fn d () {
+      switch c {
+      case a?:
+      }
+    }
+  }
+}

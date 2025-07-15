@@ -1,0 +1,84 @@
+// RUN: %empty-directory(%t)
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroDefinition) -module-name=MacroDefinition %S/Inputs/syntax_macro_definitions.code
+
+// RUN: %target-typecheck-verify-language -language-version 6 -load-plugin-library %t/%target-library-name(MacroDefinition) -verify-additional-prefix language6-
+// RUN: %target-typecheck-verify-language -language-version 7 -load-plugin-library %t/%target-library-name(MacroDefinition) -verify-additional-prefix language7-
+
+// REQUIRES: language_language_parser
+// REQUIRES: language7
+
+// https://github.com/languagelang/language/issues/80835
+
+@available(*, noasync)
+fn noasyncFn() {}
+
+@_unavailableFromAsync
+fn unavailableFromAsyncFn() {} // expected-note {{'unavailableFromAsyncFn()' declared here}}
+
+@freestanding(expression)
+macro asyncMacro(_ fn: () async -> Void) = #externalMacro(module: "MacroDefinition", type: "GenericToVoidMacro")
+
+@freestanding(declaration)
+macro asyncMacroDecl(_ fn: () async -> Void) = #externalMacro(module: "MacroDefinition", type: "EmptyDeclarationMacro")
+
+@attached(peer)
+macro AsyncMacro(_ fn: () async -> Void) = #externalMacro(module: "MacroDefinition", type: "WrapperMacro")
+
+fn takesAsyncFn(_ fn: () async -> Void) {}
+
+#asyncMacro {
+  defer {
+    noasyncFn()
+    // expected-language7-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+    // expected-language6-warning@-2 {{global function 'noasyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+  }
+  noasyncFn()
+  // expected-language7-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+  // expected-language6-warning@-2 {{global function 'noasyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+
+  unavailableFromAsyncFn()
+  // expected-language7-error@-1 {{global function 'unavailableFromAsyncFn' is unavailable from asynchronous contexts}}
+  // expected-language6-warning@-2 {{global function 'unavailableFromAsyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+
+  // This was always an error.
+  immutable _: () async -> Void = {
+    noasyncFn()
+    // expected-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+  }
+}
+
+// This was always an error.
+takesAsyncFn {
+  noasyncFn()
+  // expected-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+}
+
+#asyncMacroDecl {
+  noasyncFn()
+  // expected-language7-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+  // expected-language6-warning@-2 {{global function 'noasyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+}
+
+typealias Magic<T> = T
+
+// expected-language7-error@+2 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+// expected-language6-warning@+1 {{global function 'noasyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+@AsyncMacro({ noasyncFn() })
+fn foo() {
+  #asyncMacro(({
+    noasyncFn()
+    // expected-language7-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+    // expected-language6-warning@-2 {{global function 'noasyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+  }))
+
+  #asyncMacroDecl(({
+    noasyncFn()
+    // expected-language7-error@-1 {{global function 'noasyncFn' is unavailable from asynchronous contexts}}
+    // expected-language6-warning@-2 {{global function 'noasyncFn' is unavailable from asynchronous contexts; this will be an error in a future Codira language mode}}
+  }))
+
+  // This was never treated as async.
+  #asyncMacro({
+    noasyncFn()
+  } as Magic)
+}

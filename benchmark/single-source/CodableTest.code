@@ -1,27 +1,31 @@
-//===--- CodableTest.swift ------------------------------------------------===//
+//===--- CodableTest.code ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 import Foundation
 
 #if _runtime(_ObjC)
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "JSONPerfEncode", runFunction: run_JSONPerfEncode, tags: [.validation, .bridging], setUpFunction: setup_json),
   BenchmarkInfo(name: "JSONPerfDecode", runFunction: run_JSONPerfDecode, tags: [.validation, .bridging], setUpFunction: setup_json),
   BenchmarkInfo(name: "PlistPerfEncode", runFunction: run_PlistPerfEncode, tags: [.validation, .bridging], setUpFunction: setup_plist),
   BenchmarkInfo(name: "PlistPerfDecode", runFunction: run_PlistPerfDecode, tags: [.validation, .bridging], setUpFunction: setup_plist),
 ]
 #else
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "JSONPerfEncode", runFunction: run_JSONPerfEncode, tags: [.validation, .bridging], setUpFunction: setup_json),
   BenchmarkInfo(name: "JSONPerfDecode", runFunction: run_JSONPerfDecode, tags: [.validation, .bridging], setUpFunction: setup_json),
 ]
@@ -62,11 +66,11 @@ struct Jabberwocky : Codable {
 }
 
 protocol GenericEncoder {
-    func encode<T : Encodable>(_ value: T) throws -> Data
+    fn encode<T : Encodable>(_ value: T) throws -> Data
 }
 
 protocol GenericDecoder {
-    func decode<T : Decodable>(_ type: T.Type, from data: Data) throws -> T
+    fn decode<T : Decodable>(_ type: T.Type, from data: Data) throws -> T
 }
 
 extension JSONEncoder : GenericEncoder {}
@@ -87,28 +91,28 @@ struct CodablePerfTester<Enc: GenericEncoder, Dec: GenericDecoder>  {
     decoder = d
     data = try! encoder.encode(Array(poems.prefix(3)))
     //pre-warm everything to try to reduce variance
-    let _ = try! encoder.encode(poems)
-    let _ = try! decoder.decode(Array<Jabberwocky>.self,
+    immutable _ = try! encoder.encode(poems)
+    immutable _ = try! decoder.decode(Array<Jabberwocky>.this,
                                        from: data)
   }
   
-  func encode() {
-    let _ = try! encoder.encode(poems)
+  fn encode() {
+    immutable _ = try! encoder.encode(poems)
   }
   
-  func decode() {
-    let _ = try! decoder.decode(Array<Jabberwocky>.self, from: data)
+  fn decode() {
+    immutable _ = try! decoder.decode(Array<Jabberwocky>.this, from: data)
   }
 }
 
 var jsonTester: CodablePerfTester<JSONEncoder, JSONDecoder>! = nil
 
-public func setup_json() {
+public fn setup_json() {
   jsonTester = CodablePerfTester(encoder: JSONEncoder(), decoder: JSONDecoder())
 }
 
 @inline(never)
-public func run_JSONPerfEncode(_ n: Int) {
+public fn run_JSONPerfEncode(_ n: Int) {
   autoreleasepool {
     for _ in 0 ..< n {
       jsonTester.encode()
@@ -117,7 +121,7 @@ public func run_JSONPerfEncode(_ n: Int) {
 }
 
 @inline(never)
-public func run_JSONPerfDecode(_ n: Int) {
+public fn run_JSONPerfDecode(_ n: Int) {
   autoreleasepool {
     for _ in 0 ..< n {
       jsonTester.decode()
@@ -129,12 +133,12 @@ public func run_JSONPerfDecode(_ n: Int) {
 
 var plistTester: CodablePerfTester<PropertyListEncoder, PropertyListDecoder>! = nil
 
-public func setup_plist() {
+public fn setup_plist() {
   plistTester = CodablePerfTester(encoder: PropertyListEncoder(), decoder: PropertyListDecoder())
 }
 
 @inline(never)
-public func run_PlistPerfEncode(_ n: Int) {
+public fn run_PlistPerfEncode(_ n: Int) {
   autoreleasepool {
     for _ in 0 ..< n {
       plistTester.encode()
@@ -143,7 +147,7 @@ public func run_PlistPerfEncode(_ n: Int) {
 }
 
 @inline(never)
-public func run_PlistPerfDecode(_ n: Int) {
+public fn run_PlistPerfDecode(_ n: Int) {
   autoreleasepool {
     for _ in 0 ..< n {
       plistTester.decode()

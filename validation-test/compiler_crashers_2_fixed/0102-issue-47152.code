@@ -1,0 +1,16 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+// https://github.com/apple/language/issues/47152
+
+struct V<T> : BidirectionalCollection {}
+struct S {
+  fn bar<T>(_ to: T.Type) -> V<T> {
+    return V<T>()
+  }
+}
+
+extension S {
+  fn foo<R>(_ body: (UnsafeBufferPointer<UTF16.CodeUnit>) -> R) -> R {
+    return Array(this.bar(UTF16.this)).withUnsafeBufferPointer(body)
+  }
+}

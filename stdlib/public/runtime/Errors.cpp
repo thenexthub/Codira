@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Utilities for reporting errors to stderr, system console, and crash logs.
@@ -45,7 +46,7 @@
 #include "language/Runtime/Win32.h"
 #include "language/Threading/Errors.h"
 #include "language/Threading/Mutex.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 #if defined(_MSC_VER)
 #include <DbgHelp.h>
@@ -57,7 +58,7 @@
 #include <execinfo.h>
 #endif
 
-#if SWIFT_STDLIB_HAS_ASL
+#if LANGUAGE_STDLIB_HAS_ASL
 #include <asl.h>
 #elif defined(__ANDROID__)
 #include <android/log.h>
@@ -69,11 +70,11 @@
 
 #include <inttypes.h>
 
-#ifdef SWIFT_HAVE_CRASHREPORTERCLIENT
+#ifdef LANGUAGE_HAVE_CRASHREPORTERCLIENT
 #include <malloc/malloc.h>
 #else
 static std::atomic<const char *> kFatalErrorMessage;
-#endif // SWIFT_HAVE_CRASHREPORTERCLIENT
+#endif // LANGUAGE_HAVE_CRASHREPORTERCLIENT
 
 #include "BacktracePrivate.h"
 
@@ -87,8 +88,8 @@ enum: uint32_t {
 
 using namespace language;
 
-#if SWIFT_STDLIB_SUPPORTS_BACKTRACE_REPORTING && SWIFT_STDLIB_HAS_DLADDR
-static bool getSymbolNameAddr(llvm::StringRef libraryName,
+#if LANGUAGE_STDLIB_SUPPORTS_BACKTRACE_REPORTING && LANGUAGE_STDLIB_HAS_DLADDR
+static bool getSymbolNameAddr(toolchain::StringRef libraryName,
                               const SymbolInfo &syminfo,
                               std::string &symbolName, uintptr_t &addrOut) {
   // If we failed to find a symbol and thus dlinfo->dli_sname is nullptr, we
@@ -103,18 +104,18 @@ static bool getSymbolNameAddr(llvm::StringRef libraryName,
   addrOut = uintptr_t(syminfo.getSymbolAddress());
 
   // First lets try to demangle using cxxabi. If this fails, we will try to
-  // demangle with swift. We are taking advantage of __cxa_demangle actually
+  // demangle with language. We are taking advantage of __cxa_demangle actually
   // providing failure status instead of just returning the original string like
-  // swift demangle.
+  // language demangle.
 #if defined(_WIN32)
   const char *szSymbolName = syminfo.getSymbolName();
 
-  // UnDecorateSymbolName() will not fail for Swift symbols, so detect them
-  // up-front and let Swift handle them.
+  // UnDecorateSymbolName() will not fail for Codira symbols, so detect them
+  // up-front and let Codira handle them.
   if (!Demangle::isMangledName(szSymbolName)) {
     char szUndName[1024];
     DWORD dwResult;
-    dwResult = _swift_win32_withDbgHelpLibrary([&] (HANDLE hProcess) -> DWORD {
+    dwResult = _language_win32_withDbgHelpLibrary([&] (HANDLE hProcess) -> DWORD {
       if (!hProcess) {
         return 0;
       }
@@ -148,7 +149,7 @@ static bool getSymbolNameAddr(llvm::StringRef libraryName,
          "If __cxa_demangle fails, demangled should be a nullptr");
 #endif
 
-  // Otherwise, try to demangle with swift. If swift fails to demangle, it will
+  // Otherwise, try to demangle with language. If language fails to demangle, it will
   // just pass through the original output.
   symbolName = demangleSymbolAsString(
       syminfo.getSymbolName(), strlen(syminfo.getSymbolName()),
@@ -157,9 +158,9 @@ static bool getSymbolNameAddr(llvm::StringRef libraryName,
 }
 #endif
 
-void swift::dumpStackTraceEntry(unsigned index, void *framePC,
+void language::dumpStackTraceEntry(unsigned index, void *framePC,
                                 bool shortOutput) {
-#if SWIFT_STDLIB_SUPPORTS_BACKTRACE_REPORTING && SWIFT_STDLIB_HAS_DLADDR
+#if LANGUAGE_STDLIB_SUPPORTS_BACKTRACE_REPORTING && LANGUAGE_STDLIB_HAS_DLADDR
   auto syminfo = SymbolInfo::lookup(framePC);
   if (!syminfo.has_value()) {
     constexpr const char *format = "%-4u %-34s 0x%0.16tx\n";
@@ -172,7 +173,7 @@ void swift::dumpStackTraceEntry(unsigned index, void *framePC,
   // library name here. Avoid using StringRef::rsplit because its definition
   // is not provided in the header so that it requires linking with
   // libSupport.a.
-  llvm::StringRef libraryName{syminfo->getFilename()};
+  toolchain::StringRef libraryName{syminfo->getFilename()};
 
 #ifdef _WIN32
   libraryName = libraryName.substr(libraryName.rfind('\\')).substr(1);
@@ -234,7 +235,7 @@ struct UnwindState {
   void **end;
 };
 
-static _Unwind_Reason_Code SwiftUnwindFrame(struct _Unwind_Context *context, void *arg) {
+static _Unwind_Reason_Code CodiraUnwindFrame(struct _Unwind_Context *context, void *arg) {
   struct UnwindState *state = static_cast<struct UnwindState *>(arg);
   if (state->current == state->end) {
     return _URC_END_OF_STACK;
@@ -257,16 +258,16 @@ static _Unwind_Reason_Code SwiftUnwindFrame(struct _Unwind_Context *context, voi
 }
 #endif
 
-SWIFT_ALWAYS_INLINE
+LANGUAGE_ALWAYS_INLINE
 static bool withCurrentBacktraceImpl(std::function<void(void **, int)> call) {
-#if SWIFT_STDLIB_SUPPORTS_BACKTRACE_REPORTING
+#if LANGUAGE_STDLIB_SUPPORTS_BACKTRACE_REPORTING
   constexpr unsigned maxSupportedStackDepth = 128;
   void *addrs[maxSupportedStackDepth];
 #if defined(_WIN32)
   int symbolCount = CaptureStackBackTrace(0, maxSupportedStackDepth, addrs, NULL);
 #elif defined(__ELF__)
   struct UnwindState state = {&addrs[0], &addrs[maxSupportedStackDepth]};
-  _Unwind_Backtrace(SwiftUnwindFrame, &state);
+  _Unwind_Backtrace(CodiraUnwindFrame, &state);
   int symbolCount = state.current - addrs;
 #else
   int symbolCount = backtrace(addrs, maxSupportedStackDepth);
@@ -278,13 +279,13 @@ static bool withCurrentBacktraceImpl(std::function<void(void **, int)> call) {
 #endif
 }
 
-SWIFT_NOINLINE
-bool swift::withCurrentBacktrace(std::function<void(void **, int)> call) {
+LANGUAGE_NOINLINE
+bool language::withCurrentBacktrace(std::function<void(void **, int)> call) {
   return withCurrentBacktraceImpl(call);
 }
 
-SWIFT_NOINLINE
-void swift::printCurrentBacktrace(unsigned framesToSkip) {
+LANGUAGE_NOINLINE
+void language::printCurrentBacktrace(unsigned framesToSkip) {
   bool success = withCurrentBacktraceImpl([&](void **addrs, int symbolCount) {
     for (int i = framesToSkip; i < symbolCount; ++i) {
       dumpStackTraceEntry(i - framesToSkip, addrs[i]);
@@ -298,13 +299,13 @@ void swift::printCurrentBacktrace(unsigned framesToSkip) {
 static void
 reportOnCrash(uint32_t flags, const char *message)
 {
-#ifdef SWIFT_HAVE_CRASHREPORTERCLIENT
+#ifdef LANGUAGE_HAVE_CRASHREPORTERCLIENT
   char *oldMessage = nullptr;
   char *newMessage = nullptr;
 
   oldMessage = std::atomic_load_explicit(
     (volatile std::atomic<char *> *)&gCRAnnotations.message,
-    SWIFT_MEMORY_ORDER_CONSUME);
+    LANGUAGE_MEMORY_ORDER_CONSUME);
 
   do {
     if (newMessage) {
@@ -313,7 +314,7 @@ reportOnCrash(uint32_t flags, const char *message)
     }
 
     if (oldMessage) {
-      swift_asprintf(&newMessage, "%s%s", oldMessage, message);
+      language_asprintf(&newMessage, "%s%s", oldMessage, message);
     } else {
       newMessage = strdup(message);
     }
@@ -321,19 +322,19 @@ reportOnCrash(uint32_t flags, const char *message)
              (volatile std::atomic<char *> *)&gCRAnnotations.message,
              &oldMessage, newMessage,
              std::memory_order_release,
-             SWIFT_MEMORY_ORDER_CONSUME));
+             LANGUAGE_MEMORY_ORDER_CONSUME));
 #else
   const char *previous = nullptr;
   char *current = nullptr;
   previous =
-      std::atomic_load_explicit(&kFatalErrorMessage, SWIFT_MEMORY_ORDER_CONSUME);
+      std::atomic_load_explicit(&kFatalErrorMessage, LANGUAGE_MEMORY_ORDER_CONSUME);
 
   do {
     ::free(current);
     current = nullptr;
 
     if (previous)
-      swift_asprintf(&current, "%s%s", current, message);
+      language_asprintf(&current, "%s%s", current, message);
     else
 #if defined(_WIN32)
       current = ::_strdup(message);
@@ -344,8 +345,8 @@ reportOnCrash(uint32_t flags, const char *message)
                                                          &previous,
                                                          static_cast<const char *>(current),
                                                          std::memory_order_release,
-                                                         SWIFT_MEMORY_ORDER_CONSUME));
-#endif // SWIFT_HAVE_CRASHREPORTERCLIENT
+                                                         LANGUAGE_MEMORY_ORDER_CONSUME));
+#endif // LANGUAGE_HAVE_CRASHREPORTERCLIENT
 }
 
 // Report a message to system console and stderr.
@@ -359,15 +360,15 @@ reportNow(uint32_t flags, const char *message)
   fputs(message, stderr);
   fflush(stderr);
 #endif
-#if SWIFT_STDLIB_HAS_ASL
+#if LANGUAGE_STDLIB_HAS_ASL
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   asl_log(nullptr, nullptr, ASL_LEVEL_ERR, "%s", message);
 #pragma clang diagnostic pop
 #elif defined(__ANDROID__)
-  __android_log_print(ANDROID_LOG_FATAL, "SwiftRuntime", "%s", message);
+  __android_log_print(ANDROID_LOG_FATAL, "CodiraRuntime", "%s", message);
 #endif
-#if SWIFT_STDLIB_SUPPORTS_BACKTRACE_REPORTING
+#if LANGUAGE_STDLIB_SUPPORTS_BACKTRACE_REPORTING
   if (flags & FatalErrorFlags::ReportBacktrace) {
     fputs("Current stack trace:\n", stderr);
     printCurrentBacktrace();
@@ -375,8 +376,8 @@ reportNow(uint32_t flags, const char *message)
 #endif
 }
 
-SWIFT_NOINLINE SWIFT_RUNTIME_EXPORT void
-_swift_runtime_on_report(uintptr_t flags, const char *message,
+LANGUAGE_NOINLINE LANGUAGE_RUNTIME_EXPORT void
+_language_runtime_on_report(uintptr_t flags, const char *message,
                          RuntimeErrorDetails *details) {
   // Do nothing. This function is meant to be used by the debugger.
 
@@ -388,26 +389,26 @@ _swift_runtime_on_report(uintptr_t flags, const char *message,
                );
 }
 
-void swift::_swift_reportToDebugger(uintptr_t flags, const char *message,
+void language::_language_reportToDebugger(uintptr_t flags, const char *message,
                                     RuntimeErrorDetails *details) {
-  _swift_runtime_on_report(flags, message, details);
+  _language_runtime_on_report(flags, message, details);
 }
 
-bool swift::_swift_reportFatalErrorsToDebugger = true;
+bool language::_language_reportFatalErrorsToDebugger = true;
 
-bool swift::_swift_shouldReportFatalErrorsToDebugger() {
-  return _swift_reportFatalErrorsToDebugger;
+bool language::_language_shouldReportFatalErrorsToDebugger() {
+  return _language_reportFatalErrorsToDebugger;
 }
 
 /// Report a fatal error to system console, stderr, and crash logs.
 /// Does not crash by itself.
-void swift::swift_reportError(uint32_t flags,
+void language::language_reportError(uint32_t flags,
                               const char *message) {
 #if defined(__APPLE__) && NDEBUG
   flags &= ~FatalErrorFlags::ReportBacktrace;
-#elif SWIFT_ENABLE_BACKTRACING
+#elif LANGUAGE_ENABLE_BACKTRACING
   // Disable fatalError backtraces if the backtracer is enabled
-  if (runtime::backtrace::_swift_backtrace_isEnabled()) {
+  if (runtime::backtrace::_language_backtrace_isEnabled()) {
     flags &= ~FatalErrorFlags::ReportBacktrace;
   }
 #endif
@@ -417,20 +418,20 @@ void swift::swift_reportError(uint32_t flags,
 }
 
 // Report a fatal error to system console, stderr, and crash logs, then abort.
-SWIFT_NORETURN void swift::fatalErrorv(uint32_t flags, const char *format,
+LANGUAGE_NORETURN void language::fatalErrorv(uint32_t flags, const char *format,
                                        va_list args) {
   char *log;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
-  swift_vasprintf(&log, format, args);
+  language_vasprintf(&log, format, args);
 #pragma GCC diagnostic pop
 
-  swift_reportError(flags, log);
+  language_reportError(flags, log);
   abort();
 }
 
 // Report a fatal error to system console, stderr, and crash logs, then abort.
-SWIFT_NORETURN void swift::fatalError(uint32_t flags, const char *format, ...) {
+LANGUAGE_NORETURN void language::fatalError(uint32_t flags, const char *format, ...) {
   va_list args;
   va_start(args, format);
 
@@ -439,12 +440,12 @@ SWIFT_NORETURN void swift::fatalError(uint32_t flags, const char *format, ...) {
 
 // Report a warning to system console and stderr.
 void
-swift::warningv(uint32_t flags, const char *format, va_list args)
+language::warningv(uint32_t flags, const char *format, va_list args)
 {
   char *log;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
-  swift_vasprintf(&log, format, args);
+  language_vasprintf(&log, format, args);
 #pragma GCC diagnostic pop
 
   reportNow(flags, log);
@@ -454,7 +455,7 @@ swift::warningv(uint32_t flags, const char *format, va_list args)
 
 // Report a warning to system console and stderr.
 void
-swift::warning(uint32_t flags, const char *format, ...)
+language::warning(uint32_t flags, const char *format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -463,84 +464,84 @@ swift::warning(uint32_t flags, const char *format, ...)
 }
 
 /// Report a warning to the system console and stderr.  This is exported,
-/// unlike the swift::warning() function above.
-void swift::swift_reportWarning(uint32_t flags, const char *message) {
+/// unlike the language::warning() function above.
+void language::language_reportWarning(uint32_t flags, const char *message) {
   warning(flags, "%s", message);
 }
 
-#if !defined(SWIFT_HAVE_CRASHREPORTERCLIENT)
-std::atomic<const char *> *swift::swift_getFatalErrorMessageBuffer() {
+#if !defined(LANGUAGE_HAVE_CRASHREPORTERCLIENT)
+std::atomic<const char *> *language::language_getFatalErrorMessageBuffer() {
   return &kFatalErrorMessage;
 }
 #endif
 
 // Crash when a deleted method is called by accident.
-SWIFT_RUNTIME_EXPORT SWIFT_NORETURN void swift_deletedMethodError() {
-  swift::fatalError(/* flags = */ 0,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_NORETURN void language_deletedMethodError() {
+  language::fatalError(/* flags = */ 0,
                     "Fatal error: Call of deleted method\n");
 }
 
 // Crash due to a retain count overflow.
 // FIXME: can't pass the object's address from InlineRefCounts without hacks
-void swift::swift_abortRetainOverflow() {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortRetainOverflow() {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Fatal error: Object was retained too many times\n");
 }
 
 // Crash due to an unowned retain count overflow.
 // FIXME: can't pass the object's address from InlineRefCounts without hacks
-void swift::swift_abortUnownedRetainOverflow() {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortUnownedRetainOverflow() {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Fatal error: Object's unowned reference was retained too "
                     "many times\n");
 }
 
 // Crash due to a weak retain count overflow.
 // FIXME: can't pass the object's address from InlineRefCounts without hacks
-void swift::swift_abortWeakRetainOverflow() {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortWeakRetainOverflow() {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Fatal error: Object's weak reference was retained too "
                     "many times\n");
 }
 
 // Crash due to retain of a dead unowned reference.
 // FIXME: can't pass the object's address from InlineRefCounts without hacks
-void swift::swift_abortRetainUnowned(const void *object) {
+void language::language_abortRetainUnowned(const void *object) {
   if (object) {
-    swift::fatalError(FatalErrorFlags::ReportBacktrace,
+    language::fatalError(FatalErrorFlags::ReportBacktrace,
                       "Fatal error: Attempted to read an unowned reference but "
-                      "object %p was already deallocated\n", object);
+                      "object %p was already destroyed\n", object);
   } else {
-    swift::fatalError(FatalErrorFlags::ReportBacktrace,
+    language::fatalError(FatalErrorFlags::ReportBacktrace,
                       "Fatal error: Attempted to read an unowned reference but "
-                      "the object was already deallocated\n");
+                      "the object was already destroyed\n");
   }
 }
 
 /// Halt due to enabling an already enabled dynamic replacement().
-void swift::swift_abortDynamicReplacementEnabling() {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortDynamicReplacementEnabling() {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Fatal error: trying to enable a dynamic replacement "
                     "that is already enabled\n");
 }
 
 /// Halt due to disabling an already disabled dynamic replacement().
-void swift::swift_abortDynamicReplacementDisabling() {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortDynamicReplacementDisabling() {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Fatal error: trying to disable a dynamic replacement "
                     "that is already disabled\n");
 }
 
 /// Halt due to a failure to allocate memory.
-void swift::swift_abortAllocationFailure(size_t size, size_t alignMask) {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortAllocationFailure(size_t size, size_t alignMask) {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Fatal error: failed to allocate %zu bytes of memory with "
                     "alignment %zu\n", size, alignMask + 1);
 }
 
 /// Halt due to trying to use unicode data on platforms that don't have it.
-void swift::swift_abortDisabledUnicodeSupport() {
-  swift::fatalError(FatalErrorFlags::ReportBacktrace,
+void language::language_abortDisabledUnicodeSupport() {
+  language::fatalError(FatalErrorFlags::ReportBacktrace,
                     "Unicode normalization data is disabled on this "
                     "platform\n");
 
@@ -549,7 +550,7 @@ void swift::swift_abortDisabledUnicodeSupport() {
 #if defined(_WIN32)
 // On Windows, exceptions may be swallowed in some cases and the
 // process may not terminate as expected on crashes. For example,
-// illegal instructions used by llvm.trap. Disable the exception
+// illegal instructions used by toolchain.trap. Disable the exception
 // swallowing so that the error handling works as expected.
 __attribute__((__constructor__))
 static void ConfigureExceptionPolicy() {

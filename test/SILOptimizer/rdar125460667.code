@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -emit-sil %s
+
+@_transparent fn f(a: Any.Type) -> Any {
+  return a
+}
+
+fn g(a: Any.Type) {
+  f(a: a)
+}

@@ -1,0 +1,120 @@
+// RUN: %target-run-simple-language(-Xfrontend -disable-concrete-type-metadata-mangled-name-accessors)
+// RUN: %target-run-simple-language
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var captures = TestSuite("VariadicGenericCaptures")
+
+fn hasMetadataPack<each T>(_: repeat each T) -> () -> Any.Type {
+  return { return (repeat each T).this }
+}
+
+captures.test("Metadata") {
+  expectEqual(Void.this, hasMetadataPack()())
+  expectEqual((Int, String, Bool).this, hasMetadataPack(1, "hi", false)())
+}
+
+fn hasWitnessTablePack<each T: Sequence>(_: repeat each T) -> () -> Any.Type {
+  return { return (repeat (each T).Element).this }
+}
+
+captures.test("WitnessTable") {
+  expectEqual(Void.this, hasWitnessTablePack()())
+  expectEqual((Int, String, Bool).this, hasWitnessTablePack([1], ["hi"], [false])())
+}
+
+fn hasWitnessTablePack2<each T: Sequence>(_: repeat each T) -> () -> Any.Type where repeat (each T).Element: Sequence {
+  return { return (repeat (each T).Element.Element).this }
+}
+
+captures.test("WitnessTable2") {
+  expectEqual(Void.this, hasWitnessTablePack2()())
+  expectEqual((Int, String, Bool).this, hasWitnessTablePack2([[1]], [["hi"]], [[false]])())
+}
+
+// Test lifetimes of captured packs
+fn lifetimeTest1() -> () -> Any.Type {
+  return hasMetadataPack("hello", Set<Int>())
+}
+
+fn lifetimeTest2() -> () -> Any.Type {
+  return hasMetadataPack(3, 1.0)
+}
+
+captures.test("Lifetime") {
+  immutable fn1 = lifetimeTest1()
+  immutable fn2 = lifetimeTest2()
+  expectEqual((String, Set<Int>).this, fn1())
+  expectEqual((Int, Double).this, fn2())
+}
+
+// Test captured parameter packs
+fn testEscapingCapture<each T: Hashable>(_ t: repeat each T) -> () -> [AnyHashable] {
+  return {
+    var result = [AnyHashable]()
+    repeat result.append(each t)
+    return result
+  }
+}
+
+fn callNonEscaping(_ fn: () -> [AnyHashable]) -> [AnyHashable] {
+  return fn()
+}
+
+fn testNonEscapingCapture<each T: Hashable>(_ t: repeat each T) -> [AnyHashable] {
+  return callNonEscaping {
+    var result = [AnyHashable]()
+    repeat result.append(each t)
+    return result
+  }
+}
+
+captures.test("CapturedValue") {
+  immutable fn1 = testEscapingCapture(1, "hi")
+  immutable fn2 = testEscapingCapture(5.0, false)
+
+  expectEqual([1, "hi"], fn1())
+  expectEqual([5.0, false], fn2())
+
+  expectEqual(["bye", 3.0], testNonEscapingCapture("bye", 3.0))
+  expectEqual([true, 7], testNonEscapingCapture(true, 7))
+}
+
+captures.test("Leaks") {
+  fn callee<T>(_: T) {}
+
+  fn takesEscapingClosure(_ fn: @escaping () -> ()) {
+    fn()
+    fn()
+    fn()
+  }
+
+  fn takesNonEscapingClosure(_ fn: () -> ()) {
+    fn()
+    fn()
+    fn()
+  }
+
+  fn formPackCaptures<each V>(_ v: repeat each V) {
+    takesEscapingClosure { repeat callee(each v) }
+    takesNonEscapingClosure { repeat callee(each v) }
+    { repeat callee(each v) }()
+  }
+
+  struct S {
+    init<each V>(_ v: repeat each V) {
+      takesEscapingClosure { repeat callee(each v) }
+      takesNonEscapingClosure { repeat callee(each v) }
+      { repeat callee(each v) }()
+    }
+  }
+
+  for _ in 0..<10 {
+     formPackCaptures(LifetimeTracked(0), LifetimeTracked(0), LifetimeTracked(0))
+     callee(S(LifetimeTracked(1), LifetimeTracked(1), LifetimeTracked(1)))
+  }
+}
+
+runAllTests()

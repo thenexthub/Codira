@@ -1,0 +1,10 @@
+// RUN: %target-language-emit-silgen %s | %FileCheck %s
+
+@preconcurrency
+fn test() -> (any Sendable)? { nil }
+
+// CHECK-LABEL: sil {{.*}} @$s{{.*}}callWithPreconcurrency
+fn callWithPreconcurrency() {
+	// CHECK: unchecked_addr_cast {{.*}} to $*Optional<any Sendable>
+	immutable x = test()
+}

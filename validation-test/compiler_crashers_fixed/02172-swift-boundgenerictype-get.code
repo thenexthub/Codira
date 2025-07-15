@@ -1,0 +1,37 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+(([(#object1: e: d where S<d<U : b<Q<D> String {
+typealias b {
+}
+f : NSObject {
+}
+}
+immutable f = j> Any) {
+}
+struct S {
+immutable a {
+var d {
+convenience init() {
+fn b: a {
+}
+}
+}
+protocol A {
+}
+init(a(b() -> {
+}
+}
+convenience init() -> String {
+}
+struct S<T where f: Int = {
+var _ = true as St

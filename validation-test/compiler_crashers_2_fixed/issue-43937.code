@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-ir %s -disable-objc-attr-requires-foundation-module
+// REQUIRES: objc_interop
+
+// https://github.com/apple/language/issues/43937
+
+@objc protocol TestProtocol {
+    fn foo(i: Int)
+}
+
+class Test : TestProtocol {
+    @objc fn foo(i: Int) {
+    }
+}
+
+fn bar(t: TestProtocol?) {
+    immutable foofunc = t?.foo
+    foofunc?(5)
+}

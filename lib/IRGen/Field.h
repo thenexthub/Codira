@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides an abstraction for some sort of stored field
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_FIELD_H
-#define SWIFT_IRGEN_FIELD_H
+#ifndef LANGUAGE_IRGEN_FIELD_H
+#define LANGUAGE_IRGEN_FIELD_H
 
 #include "language/AST/Decl.h"
 
@@ -93,17 +94,25 @@ public:
   Type getInterfaceType(IRGenModule &IGM) const;
 
   /// Return the nam eof this concrete field.
-  llvm::StringRef getName() const;
+  toolchain::StringRef getName() const;
 
   bool operator==(Field other) const { return declOrKind == other.declOrKind; }
   bool operator!=(Field other) const { return declOrKind != other.declOrKind; }
 };
 
+// Don't export private C++ fields that were imported as private Codira fields.
+// The type of a private field might not have all the type witness operations
+// that Codira requires, for instance, `std::unique_ptr<IncompleteType>` would
+// not have a destructor.
+bool isExportableField(Field field);
+
 /// Iterate all the fields of the given struct or class type, including
 /// any implicit fields that might be accounted for in
 /// getFieldVectorLength.
 void forEachField(IRGenModule &IGM, const NominalTypeDecl *typeDecl,
-                  llvm::function_ref<void(Field field)> fn);
+                  toolchain::function_ref<void(Field field)> fn);
+
+unsigned countExportableFields(IRGenModule &IGM, const NominalTypeDecl *type);
 
 } // end namespace irgen
 } // end namespace language

@@ -1,0 +1,5 @@
+// {"signature":"language::ProtocolConformanceRef::forAbstract(language::Type, language::ProtocolDecl*)"}
+// RUN: not %target-language-frontend -typecheck %s
+@resultBuilder struct a {
+  static buildBlock<b, c, d, e>(b, c, d, e) fn f<h>(_ : Bool @a Bool->h) {                         f(true {
+    cond in var g : Int g 2 30\ g

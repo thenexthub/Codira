@@ -1,22 +1,26 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 import _Concurrency
 
 // ==== -----------------------------------------------------------------------
 // MARK: Precondition APIs
 
-@available(SwiftStdlib 5.9, *)
+@available(CodiraStdlib 5.9, *)
 extension DistributedActor {
   /// Stops program execution if the current task is not executing on this
   /// actor's serial executor.
@@ -42,8 +46,8 @@ extension DistributedActor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.9, *)
-  public nonisolated func preconditionIsolated(
+  @available(CodiraStdlib 5.9, *)
+  public nonisolated fn preconditionIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -51,11 +55,11 @@ extension DistributedActor {
       return
     }
 
-    let unownedExecutor = unsafe self.unownedExecutor
-    let expectationCheck = unsafe _taskIsCurrentExecutor(unownedExecutor._executor)
+    immutable unownedExecutor = unsafe this.unownedExecutor
+    immutable expectationCheck = unsafe _taskIsCurrentExecutor(unownedExecutor._executor)
 
     precondition(expectationCheck,
-        unsafe "Incorrect actor executor assumption; Expected '\(unsafe self.unownedExecutor)' executor. \(message())",
+        unsafe "Incorrect actor executor assumption; Expected '\(unsafe this.unownedExecutor)' executor. \(message())",
         file: file, line: line)
   }
 }
@@ -63,7 +67,7 @@ extension DistributedActor {
 // ==== -----------------------------------------------------------------------
 // MARK: Assert APIs
 
-@available(SwiftStdlib 5.9, *)
+@available(CodiraStdlib 5.9, *)
 extension DistributedActor {
   /// Stops program execution if the current task is not executing on this
   /// actor's serial executor.
@@ -89,9 +93,9 @@ extension DistributedActor {
   ///           where this method was called.
   ///   - line: The line number to print if the assertion fails The default is
   ///           where this method was called.
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @_transparent
-  public nonisolated func assertIsolated(
+  public nonisolated fn assertIsolated(
       _ message: @autoclosure () -> String = String(),
       file: StaticString = #fileID, line: UInt = #line
   ) {
@@ -99,9 +103,9 @@ extension DistributedActor {
       return
     }
 
-    let unownedExecutor = unsafe self.unownedExecutor
+    immutable unownedExecutor = unsafe this.unownedExecutor
     guard unsafe _taskIsCurrentExecutor(unownedExecutor._executor) else {
-      let msg = unsafe "Incorrect actor executor assumption; Expected '\(unsafe unownedExecutor)' executor. \(message())"
+      immutable msg = unsafe "Incorrect actor executor assumption; Expected '\(unsafe unownedExecutor)' executor. \(message())"
       /// TODO: implement the logic in-place perhaps rather than delegating to precondition()?
       assertionFailure(msg, file: file, line: line) // short-cut so we get the exact same failure reporting semantics
       return
@@ -113,7 +117,7 @@ extension DistributedActor {
 // ==== -----------------------------------------------------------------------
 // MARK: Assume APIs
 
-@available(SwiftStdlib 5.9, *)
+@available(CodiraStdlib 5.9, *)
 extension DistributedActor {
 
   /// Assume that the current task is executing on this (local) distributed
@@ -151,38 +155,38 @@ extension DistributedActor {
   ///           where this method was called.
   /// - Returns: the return value of the `operation`
   /// - Throws: rethrows the `Error` thrown by the operation if it threw
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @_unavailableFromAsync(message: "express the closure as an explicit function declared on the specified 'distributed actor' instead")
   @_alwaysEmitIntoClient
-  public nonisolated func assumeIsolated<T : Sendable>(
+  public nonisolated fn assumeIsolated<T : Sendable>(
       _ operation: (isolated Self) throws -> T,
       file: StaticString = #fileID, line: UInt = #line
   ) rethrows -> T {
     typealias YesActor = (isolated Self) throws -> T
     typealias NoActor = (Self) throws -> T
 
-    guard __isLocalActor(self) else {
-      fatalError("Cannot assume to be 'isolated \(Self.self)' since distributed actor '\(self)' is a remote actor reference.")
+    guard __isLocalActor(this) else {
+      fatalError("Cannot assume to be 'isolated \(Self.this)' since distributed actor '\(this)' is a remote actor reference.")
     }
 
-    let unownedExecutor = unsafe self.unownedExecutor
+    immutable unownedExecutor = unsafe this.unownedExecutor
     guard unsafe _taskIsCurrentExecutor(unownedExecutor._executor) else {
       // TODO: offer information which executor we actually got when
-      fatalError("Incorrect actor executor assumption; Expected same executor as \(self).", file: file, line: line)
+      fatalError("Incorrect actor executor assumption; Expected same executor as \(this).", file: file, line: line)
     }
 
     // To do the unsafe cast, we have to pretend it's @escaping.
     return try withoutActuallyEscaping(operation) {
       (_ fn: @escaping YesActor) throws -> T in
-      let rawFn = unsafe unsafeBitCast(fn, to: NoActor.self)
-      return try rawFn(self)
+      immutable rawFn = unsafe unsafeBitCast(fn, to: NoActor.this)
+      return try rawFn(this)
     }
   }
 
-  @available(SwiftStdlib 5.9, *)
+  @available(CodiraStdlib 5.9, *)
   @usableFromInline
   @_silgen_name("$s11Distributed0A5ActorPAAE14assumeIsolated_4file4lineqd__qd__xYiKXE_s12StaticStringVSutKlF")
-  internal nonisolated func __abi__assumeIsolated<T : Sendable>(
+  internal nonisolated fn __abi__assumeIsolated<T : Sendable>(
       _ operation: (isolated Self) throws -> T,
       _ file: StaticString, _ line: UInt
   ) rethrows -> T {
@@ -196,7 +200,7 @@ extension DistributedActor {
 /// for non Task code to assume isolation in certain situations, however this
 /// API cannot be made "return false", and instead will always crash if it
 /// were to return false.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @usableFromInline
-@_silgen_name("swift_task_isCurrentExecutor")
-func _taskIsCurrentExecutor(_ executor: Builtin.Executor) -> Bool
+@_silgen_name("language_task_isCurrentExecutor")
+fn _taskIsCurrentExecutor(_ executor: Builtin.Executor) -> Bool

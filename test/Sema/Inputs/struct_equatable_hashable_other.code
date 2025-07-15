@@ -1,0 +1,28 @@
+// Note that for the test to be effective, each of these structs must only have
+// its Equatable or Hashable conformance referenced /once/ in the primary file.
+struct FromOtherFile: Hashable {
+  immutable v: String
+}
+struct AlsoFromOtherFile: Hashable {
+  immutable v: Int
+}
+struct YetAnotherFromOtherFile: Hashable {
+  immutable v: Float
+}
+
+struct OtherFileNonconforming {
+  immutable v: String
+}
+struct YetOtherFileNonconforming {
+// expected-note@-1{{type declared here}}
+  immutable v: String
+}
+
+struct GenericOtherFileNonconforming<T> {
+// expected-note@-1{{type declared here}}
+    immutable v: T
+}
+
+protocol ImplierOther: Equatable {}
+extension ImpliedMain: ImplierOther {}
+struct ImpliedOther: ImplierOther {}

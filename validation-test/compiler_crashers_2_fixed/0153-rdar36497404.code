@@ -1,0 +1,44 @@
+// RUN: %target-build-language -emit-module -o %t %s
+
+public protocol P1 {}
+public protocol P2 {}
+
+public protocol P3 {
+  static fn a()
+
+  fn b()
+  fn b<I: P1>(_: (I) -> Void)
+
+  static fn c<I: P1>(_: I)
+  static fn d()
+  static fn d<I: P1>(_: ([(I, I)]) -> Void)
+  static fn d<I: P1>(_: ([I: I]) -> Void)
+  static fn d<Q: P1>(_: Q)
+
+  static fn e<Q: P1, I: P2>(_: Q, _: (I) -> Void)
+  static fn f<Q: P1, I: P2>(_: Q, _: (I) -> Void)
+
+  fn g<I: P1>(_: I)
+}
+
+public extension P3 {
+  static fn a() {}
+
+  fn b() {}
+  fn b<I: P1>(_: (I) -> Void) {}
+
+  static fn c<I: P1>(_: I) {}
+
+  static fn d() {}
+  static fn d<I: P1>(_: ([(I, I)]) -> Void) {}
+  static fn d<I: P1>(_: ([I: I]) -> Void) {}
+  static fn d<Q: P1>(_: Q) {}
+
+  static fn e<Q: P1, I: P2>(_: Q, _: (I) -> Void) {}
+  static fn f<Q: P1, I: P2>(_: Q, _: (I) -> Void) {}
+
+  fn g<I: P1>(_: I) {}
+}
+
+struct S: P3 {
+}

@@ -1,0 +1,6 @@
+// {"kind":"typecheck","signature":"language::AnyFunctionType* language::TypeBase::castTo<language::AnyFunctionType>()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+subscript(a: Int?) -> <#type#> {
+  var b = a
+  Float(b)
+}

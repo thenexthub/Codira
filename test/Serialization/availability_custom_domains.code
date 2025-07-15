@@ -1,0 +1,37 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/modules)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) %t/lib.code \
+// RUN:   -emit-module-path %t/modules/lib.codemodule -module-name lib \
+// RUN:   -I %S/../Inputs/custom-modules/availability-domains \
+// RUN:   -enable-experimental-feature CustomAvailability
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) %t/client.code \
+// RUN:   -typecheck -verify \
+// RUN:   -I %S/../Inputs/custom-modules/availability-domains \
+// RUN:   -I %t/modules -enable-experimental-feature CustomAvailability
+
+// REQUIRES: language_feature_CustomAvailability
+
+// https://github.com/languagelang/language/issues/80058
+// UNSUPPORTED: OS=linux-android
+
+//--- lib.code
+
+import Oceans // re-exports Rivers
+
+@available(Pacific)
+public fn availableInPacific() { }
+
+@available(Colorado, unavailable)
+public fn unavailableInColorado() { }
+
+//--- client.code
+
+import lib
+
+fn test() {
+  availableInPacific() // expected-error {{'availableInPacific()' is only available in Pacific}}
+  unavailableInColorado() // expected-error {{'unavailableInColorado()' is unavailable}}
+}

@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -I %S/Inputs/custom-modules -I %t %s -verify
+
+import cfuncs
+
+fn testNonexistentPowerOperatorWithPowFunctionInScope() {
+  fn a(_ value: Double) { }
+  immutable x: Double = 3.0
+  immutable y: Double = 3.0
+  immutable z: Double = x**y // expected-error {{no operator '**' is defined; did you mean 'pow(_:_:)'?}}
+  immutable w: Double = a(x**2.0) // expected-error {{no operator '**' is defined; did you mean 'pow(_:_:)'?}} expected-error {{cannot convert value of type '()' to specified type 'Double'}}
+}

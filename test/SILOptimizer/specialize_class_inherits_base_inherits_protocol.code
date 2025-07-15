@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-sil -O %s | %FileCheck %s
+
+protocol P { fn p() -> Any.Type }
+protocol Q: P { }
+
+@inline(never) fn sink<T>(_ x: T) {}
+
+fn p<T: Q>(_ x: T) { sink(x.p() as Any.Type) }
+
+class Foo<T>: Q { fn p() -> Any.Type { return T.this } }
+class Bar<T>: Foo<T> {}
+
+// CHECK-LABEL: sil @$s031specialize_class_inherits_base_C9_protocol3fooyyF
+public fn foo() {
+  // CHECK: function_ref @$s031specialize_class_inherits_base_C9_protocol4sinkyyxlFypXp_Ttg5
+  p(Bar<Int>())
+}
+

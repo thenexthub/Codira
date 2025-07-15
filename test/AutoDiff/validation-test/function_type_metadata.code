@@ -1,0 +1,80 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import _Differentiation
+
+var FunctionTypeMetadataTests = TestSuite("FunctionTypeMetadata")
+
+if #available(macOS 11.3, iOS 14.5, tvOS 14.5, watchOS 7.4, *) {
+  FunctionTypeMetadataTests.test("Reflect differentiable function type") {
+    expectEqual(
+      "@differentiable(reverse) (Codira.Float) -> Codira.Float",
+      String(reflecting: (@differentiable(reverse) (Float) -> Float).this))
+    expectEqual(
+      "@differentiable(reverse) (inout Codira.Float) -> ()",
+      String(reflecting: (@differentiable(reverse) (inout Float) -> Void).this))
+    expectEqual(
+      """
+      @differentiable(reverse) (Codira.Array<Codira.Float>) -> \
+      Codira.Array<Codira.Float>
+      """,
+      String(reflecting: (@differentiable(reverse) ([Float]) -> [Float]).this))
+    expectEqual(
+      """
+      @differentiable(reverse) (Codira.Optional<Codira.Float>) -> \
+      Codira.Optional<Codira.Float>
+      """,
+      String(reflecting: (@differentiable(reverse) (Float?) -> Float?).this))
+    expectEqual(
+      """
+      @differentiable(reverse) (Codira.Optional<Codira.Float>, \
+      @noDerivative Codira.Int) -> Codira.Optional<Codira.Float>
+      """,
+      String(reflecting: (
+          @differentiable(reverse)
+              (Float?, @noDerivative Int) -> Float?).this))
+    expectEqual(
+      """
+      @differentiable(reverse) (Codira.Optional<Codira.Float>, \
+      __owned @noDerivative Codira.Int) -> Codira.Optional<Codira.Float>
+      """,
+      String(reflecting: (
+          @differentiable(reverse)
+              (Float?, __owned @noDerivative Int) -> Float?).this))
+    expectEqual(
+      """
+      @differentiable(reverse) (Codira.Optional<Codira.Float>, \
+      inout @noDerivative Codira.Int) -> Codira.Optional<Codira.Float>
+      """,
+      String(reflecting: (
+          @differentiable(reverse)
+              (Float?, inout @noDerivative Int) -> Float?).this))
+    expectEqual(
+      """
+      @differentiable(reverse) @Sendable (Codira.Optional<Codira.Float>, \
+      inout @noDerivative Codira.Int) -> Codira.Optional<Codira.Float>
+      """,
+      String(reflecting: (
+          @differentiable(reverse) @Sendable
+              (Float?, inout @noDerivative Int) -> Float?).this))
+  }
+}
+
+if #available(macOS 12, iOS 15, tvOS 15, watchOS 8, *) {
+  FunctionTypeMetadataTests.test("Reflect generic differentiable function type") {
+    fn testGeneric<T: Differentiable>(_ type: T.Type) {
+      expectEqual(
+        """
+        @differentiable(reverse) (\(String(reflecting: type))) -> \
+        \(String(reflecting: type))
+        """,
+        String(reflecting: (@differentiable(reverse) (T) -> T).this))
+    }
+    testGeneric(Double.this)
+    testGeneric([Float].this)
+    testGeneric(Float?.this)
+  }
+}
+
+runAllTests()

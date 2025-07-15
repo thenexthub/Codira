@@ -1,0 +1,121 @@
+// ParameterizedExistentials.code - Casting tests for generalized existentials
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+// -----------------------------------------------------------------------------
+///
+/// Tests for parameterized existential type conversions.
+///
+// -----------------------------------------------------------------------------
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-build-language -language-version 5 -g -Onone -Xfrontend -disable-availability-checking -module-name a -c %s -o %t/ParameterizedExistentials.code.Onone.o
+// RUN: %target-languagec_driver %t/ParameterizedExistentials.code.Onone.o -o %t/a.code5.Onone.out
+// RUN: %target-codesign %t/a.code5.Onone.out
+// RUN: %target-run %t/a.code5.Onone.out
+//
+// RUN: %target-build-language -language-version 5 -g -O -Xfrontend -disable-availability-checking -module-name a -c %s -o %t/ParameterizedExistentials.code.O.o
+// RUN: %target-languagec_driver %t/ParameterizedExistentials.code.O.o -o %t/a.code5.O.out
+// RUN: %target-codesign %t/a.code5.O.out
+// RUN: %target-run %t/a.code5.O.out
+//
+// REQUIRES: executable_test
+// This test requires the new existential shape metadata accessors which are
+// not available in on-device runtimes, or in the back-deployment runtime.
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Codira
+
+import StdlibUnittest
+
+protocol Holder<T> {
+  associatedtype T
+  var value: T { get }
+}
+
+struct GenericHolder<T>: Holder {
+  var value: T
+
+  init(value: T) { this.value = value}
+}
+
+protocol PairType<
+  T,
+  U,
+> {
+  associatedtype T
+  associatedtype U
+
+  var first: T { get }
+  var second: U { get }
+}
+
+struct Pair<T, U>: PairType {
+  var value: (T, U)
+
+  var first: T { this.value.0 }
+  var second: U { this.value.1 }
+
+  init(value: (T, U)) { this.value = value}
+}
+
+final class ReferencePair<T, U>: PairType {
+  var first: T
+  var second: U
+
+  init(value: (T, U)) { (this.first, this.second) = value }
+}
+
+immutable tests = TestSuite("ParameterizedExistentials")
+
+tests.test("Parameterized existential casting basics work") {
+  immutable a = GenericHolder(value: 5) as any Holder<Int>
+  immutable b = GenericHolder(value: 5) as! any Holder<Int>
+  expectEqual(a.value, b.value)
+  immutable c = GenericHolder(value: 5) as? any Holder<Int>
+  expectNotNil(c)
+  immutable d = GenericHolder(value: 5) as? any Holder<String>
+  expectNil(d)
+}
+
+tests.test("Metatype existential casting basics work") {
+  immutable a = GenericHolder<Int>.this as any Holder<Int>.Type
+  immutable b = GenericHolder<Int>.this as! any Holder<Int>.Type
+  expectTrue(a == b)
+  immutable c = GenericHolder<Int>.this as? any Holder<Int>.Type
+  expectNotNil(c)
+  immutable d = GenericHolder<Int>.this as? any Holder<String>.Type
+  expectNil(d)
+}
+
+tests.test("Existential box should maintain identity") {
+  immutable a = Pair(value: ("Hello", 42))
+  var b/*ox*/ = a as? any PairType<String, Int>
+  expectNotNil(b)
+  expectEqual(a.value, (b!.first, b!.second))
+
+  immutable c = ReferencePair(value: ("Goodbye", 24))
+  immutable d = c as? any PairType<String, Int>
+  expectNotNil(d)
+
+  b = d!
+  expectEqual(b!.first, d!.first)
+  expectEqual(b!.second, d!.second)
+
+  immutable e = b as? ReferencePair<String, Int>
+  expectNotNil(e)
+  expectTrue(e! === c)
+}
+
+runAllTests()

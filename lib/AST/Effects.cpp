@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements some logic for rethrows and reasync checking.
@@ -25,8 +26,8 @@
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/AST/TypeCheckRequests.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -36,19 +37,19 @@ bool AnyFunctionType::hasEffect(EffectKind kind) const {
   case EffectKind::Async: return getExtInfo().isAsync();
   case EffectKind::Unsafe: return false;
   }
-  llvm_unreachable("Bad effect kind");
+  toolchain_unreachable("Bad effect kind");
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const EffectKind kind) {
+void language::simple_display(toolchain::raw_ostream &out, const EffectKind kind) {
   switch (kind) {
   case EffectKind::Throws: out << "throws"; return;
   case EffectKind::Async: out << "async"; return;
   case EffectKind::Unsafe: out << "@unsafe"; return;
   }
-  llvm_unreachable("Bad effect kind");
+  toolchain_unreachable("Bad effect kind");
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const PolymorphicEffectRequirementList list) {
   for (auto req : list.getRequirements()) {
     simple_display(out, req);
@@ -59,7 +60,7 @@ void swift::simple_display(llvm::raw_ostream &out,
     simple_display(out, conf.first);
     out << " : ";
     simple_display(out, conf.second);
-    llvm::errs() << "\n";
+    toolchain::errs() << "\n";
   }
 }
 
@@ -73,13 +74,13 @@ ProtocolDecl::getPolymorphicEffectRequirements(EffectKind kind) const {
 bool ProtocolDecl::hasPolymorphicEffect(EffectKind kind) const {
   switch (kind) {
   case EffectKind::Throws:
-    return getAttrs().hasAttribute<swift::AtRethrowsAttr>();
+    return getAttrs().hasAttribute<language::AtRethrowsAttr>();
   case EffectKind::Async:
-    return getAttrs().hasAttribute<swift::AtReasyncAttr>();
+    return getAttrs().hasAttribute<language::AtReasyncAttr>();
   case EffectKind::Unsafe:
     return false;
   }
-  llvm_unreachable("Bad effect kind");
+  toolchain_unreachable("Bad effect kind");
 }
 
 bool AbstractFunctionDecl::hasEffect(EffectKind kind) const {
@@ -91,19 +92,19 @@ bool AbstractFunctionDecl::hasEffect(EffectKind kind) const {
   case EffectKind::Unsafe:
     return getExplicitSafety() == ExplicitSafety::Unsafe;
   }
-  llvm_unreachable("Bad effect kind");
+  toolchain_unreachable("Bad effect kind");
 }
 
 bool AbstractFunctionDecl::hasPolymorphicEffect(EffectKind kind) const {
   switch (kind) {
   case EffectKind::Throws:
-    return getAttrs().hasAttribute<swift::RethrowsAttr>();
+    return getAttrs().hasAttribute<language::RethrowsAttr>();
   case EffectKind::Async:
-    return getAttrs().hasAttribute<swift::ReasyncAttr>();
+    return getAttrs().hasAttribute<language::ReasyncAttr>();
   case EffectKind::Unsafe:
     return false;
   }
-  llvm_unreachable("Bad effect kind");
+  toolchain_unreachable("Bad effect kind");
 }
 
 PolymorphicEffectKind
@@ -113,7 +114,7 @@ AbstractFunctionDecl::getPolymorphicEffectKind(EffectKind kind) const {
     PolymorphicEffectKind::Invalid);
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            PolymorphicEffectKind kind) {
   switch (kind) {
   case PolymorphicEffectKind::None:

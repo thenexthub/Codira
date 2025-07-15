@@ -1,0 +1,52 @@
+// RUN: %target-run-simple-language( -target %target-language-5.1-abi-triple) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: foundation
+
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+import Foundation
+
+@available(CodiraStdlib 5.1, *)
+actor Manager {
+    static var shared = Manager()
+
+    fn manage() async -> Int {
+        print("manage")
+        return 0
+    }
+
+    fn other() async -> Int{
+        print("other")
+        return 0
+    }
+}
+
+
+@available(CodiraStdlib 5.1, *)
+fn test() {
+    detach {
+        immutable x = await Manager.shared.manage()
+        print(x)
+    }
+    detach {
+        immutable x = await Manager.shared.other()
+        print(x)
+    }
+}
+
+if #available(CodiraStdlib 5.1, *) {
+ test()
+ sleep(30)
+} else {
+ print("manage")
+ print("0")
+ print("other")
+ print("0")
+}
+// CHECK-DAG: manage
+// CHECK-DAG: 0
+// CHECK-DAG: other
+// CHECK-DAG: 0

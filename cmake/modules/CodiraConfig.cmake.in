@@ -1,0 +1,34 @@
+# This file provides information and services to the final user.
+
+@LANGUAGE_CONFIG_CODE@
+
+set(LANGUAGE_VERSION_MAJOR @LANGUAGE_VERSION_MAJOR@)
+set(LANGUAGE_VERSION_MINOR @LANGUAGE_VERSION_MINOR@)
+set(LANGUAGE_VERSION_PATCH @LANGUAGE_VERSION_PATCHLEVEL@)
+
+set(LANGUAGE_VERSION @LANGUAGE_VERSION@)
+set(LANGUAGE_MAIN_SRC_DIR @LANGUAGE_SOURCE_DIR@)
+
+set(LANGUAGE_INCLUDE_DIRS "@LANGUAGE_INCLUDE_DIRS@")
+set(LANGUAGE_LIBRARY_DIRS "@LANGUAGE_LIBRARY_DIRS@")
+
+# These variables are duplicated, but they must match the LLVM variables of the
+# same name. The variables ending in "S" could some day become lists, and are
+# preserved for convention and compatibility.
+set(LANGUAGE_INCLUDE_DIR "@LANGUAGE_INCLUDE_DIRS@")
+set(LANGUAGE_LIBRARY_DIR "@LANGUAGE_LIBRARY_DIRS@")
+
+set(LANGUAGE_CMAKE_DIR "@LANGUAGE_CMAKE_DIR@")
+set(LANGUAGE_BINARY_DIR "@LANGUAGE_BINARY_DIR@")
+
+set(BOOTSTRAPPING_MODE "@BOOTSTRAPPING_MODE@")
+
+set(CMARK_TARGETS_FILE @LANGUAGE_PATH_TO_CMARK_BUILD@/src/cmarkTargets.cmake)
+if(NOT TARGET libcmark_static AND EXISTS ${CMARK_TARGETS_FILE})
+  include(${CMARK_TARGETS_FILE})
+endif()
+
+if(NOT TARGET language)
+  set(LANGUAGE_EXPORTED_TARGETS "@LANGUAGE_CONFIG_EXPORTS@")
+  include("@LANGUAGE_EXPORTS_FILE@")
+endif()

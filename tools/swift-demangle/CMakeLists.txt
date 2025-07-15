@@ -1,8 +1,8 @@
-add_swift_host_tool(swift-demangle
-  swift-demangle.cpp
-  LLVM_LINK_COMPONENTS support
-  SWIFT_COMPONENT compiler
+add_language_host_tool(language-demangle
+  language-demangle.cpp
+  TOOLCHAIN_LINK_COMPONENTS support
+  LANGUAGE_COMPONENT compiler
   )
-target_link_libraries(swift-demangle
+target_link_libraries(language-demangle
                       PRIVATE
-                        swiftDemangling)
+                        languageDemangling)

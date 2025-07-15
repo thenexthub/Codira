@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Prepare the module imported as package, and two middle modules.
+// RUN: %target-language-frontend -emit-module %t/PackageDep.code -o %t
+// RUN: %target-language-frontend -emit-module %t/ResilientDep.code -o %t \
+// RUN:   -package-name MyPackage -I %t \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/NonResilientDep.code -o %t \
+// RUN:   -package-name MyPackage -I %t
+
+//--- PackageDep.code
+
+//--- ResilientDep.code
+package import PackageDep
+
+//--- NonResilientDep.code
+package import PackageDep
+
+/// When the middle module is library-evolution enabled, the package import
+/// is only visible to modules from the same package.
+// RUN: %target-language-frontend -typecheck %t/ResilientClient.code \
+// RUN:   -package-name MyPackage -I %t \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck -check-prefix=VISIBLE-PACKAGE-DEP %s
+// VISIBLE-PACKAGE-DEP: loaded module 'PackageDep'
+
+// RUN: %target-language-frontend -typecheck %t/ResilientClient.code \
+// RUN:   -package-name NotMyPackage -I %t \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck -check-prefix=HIDDEN-PACKAGE-DEP %s
+// HIDDEN-PACKAGE-DEP-NOT: loaded module 'PackageDep'
+
+//--- ResilientClient.code
+import ResilientDep
+
+/// When the middle module isn't library-evolution enabled, all clients
+/// see the package dependency.
+// RUN: %target-language-frontend -typecheck %t/NonResilientClient.code \
+// RUN:   -package-name NotMyPackage -I %t \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck -check-prefix=VISIBLE-PACKAGE-DEP %s
+
+//--- NonResilientClient.code
+import NonResilientDep

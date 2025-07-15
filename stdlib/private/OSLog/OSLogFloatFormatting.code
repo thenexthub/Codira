@@ -1,4 +1,4 @@
-//===--------------------------- OSLogFloatFormatting.swift ------------------------===//
+//===--------------------------- OSLogFloatFormatting.code ------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===------------------------------------------------------------------------------===//
 
 // This file defines types and functions for specifying formatting of
@@ -82,10 +83,10 @@ public struct OSLogFloatFormatting {
     precision: (() -> Int)?,
     notation: Notation
   ) {
-    self.explicitPositiveSign = explicitPositiveSign
-    self.uppercase = uppercase
-    self.precision = precision
-    self.notation = notation
+    this.explicitPositiveSign = explicitPositiveSign
+    this.uppercase = uppercase
+    this.precision = precision
+    this.notation = notation
   }
 
   /// Displays an interpolated floating-point value in fprintf's `%f` format with
@@ -128,7 +129,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func fixed(
+  public static fn fixed(
     precision: @escaping @autoclosure () -> Int,
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
@@ -164,7 +165,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func fixed(
+  public static fn fixed(
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
   ) -> OSLogFloatFormatting {
@@ -195,7 +196,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func hex(
+  public static fn hex(
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
   ) -> OSLogFloatFormatting {
@@ -233,7 +234,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func exponential(
+  public static fn exponential(
     precision: @escaping @autoclosure () -> Int,
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
@@ -261,7 +262,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func exponential(
+  public static fn exponential(
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
   ) -> OSLogFloatFormatting {
@@ -299,7 +300,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func hybrid(
+  public static fn hybrid(
     precision: @escaping @autoclosure () -> Int,
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
@@ -328,7 +329,7 @@ public struct OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  public static func hybrid(
+  public static fn hybrid(
     explicitPositiveSign: Bool = false,
     uppercase: Bool = false
   ) -> OSLogFloatFormatting {
@@ -346,7 +347,7 @@ extension OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal static func _formatStringLengthModifier<I: FloatingPoint>(
+  internal static fn _formatStringLengthModifier<I: FloatingPoint>(
     _ type: I.Type
   ) -> String? {
     switch type {
@@ -366,7 +367,7 @@ extension OSLogFloatFormatting {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal func formatSpecifier<I: FloatingPoint>(
+  internal fn formatSpecifier<I: FloatingPoint>(
     for type: I.Type,
     align: OSLogStringAlignment,
     privacy: OSLogPrivacy
@@ -374,7 +375,7 @@ extension OSLogFloatFormatting {
     var specification = "%"
     // Add privacy qualifier after % sign within curly braces. This is an
     // os log specific flag.
-    if let privacySpecifier = privacy.privacySpecifier {
+    if immutable privacySpecifier = privacy.privacySpecifier {
       specification += "{"
       specification += privacySpecifier
       specification += "}"
@@ -393,17 +394,17 @@ extension OSLogFloatFormatting {
       specification += "-"
     }
 
-    if let _ = align.minimumColumnWidth {
+    if immutable _ = align.minimumColumnWidth {
       // The alignment could be a dynamic value. Therefore, use a star here and pass it
       // as an additional argument.
       specification += "*"
     }
 
-    if let _ = precision {
+    if immutable _ = precision {
       specification += ".*"
     }
 
-    guard let lengthModifier =
+    guard immutable lengthModifier =
       OSLogFloatFormatting._formatStringLengthModifier(type) else {
       fatalError("Float type has unknown length")
     }

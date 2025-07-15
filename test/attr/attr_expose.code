@@ -1,0 +1,63 @@
+// RUN: %target-typecheck-verify-language
+
+@_cdecl("cdecl_foo") fn foo(x: Int) -> Int { return x }
+
+@_expose(Cxx) fn test() {}
+@_expose(Cxx, "renamed") fn renamedFunc() {}
+@_expose(Cxx, "") fn emptyNameOk() {}
+
+@_expose // expected-error {{expected '(' in '_expose' attribute}}
+fn exposeWithoutArgs() {}
+
+@_expose(CplusPlus) // expected-error {{expected '_expose' option such as 'Cxx'}}
+fn incorrectLangSpecifier() {}
+
+@_expose(Cxx) @_cdecl("test") // expected-error {{'@_expose' cannot be applied to an '@_cdecl' declaration}}
+fn cdeclAndExpose() {}
+
+fn hasNested() {
+  @_expose(Cxx) // expected-error{{can only be used in a non-local scope}}
+  fn nested() { }
+}
+
+struct NotExposedStruct {
+    @_expose(Cxx) // expected-error {{'@_expose' cannot be applied inside of unexposed declaration 'NotExposedStruct'}}
+    fn errorOnInnerExpose() {}
+}
+
+@_expose(Cxx)
+struct ExposedStruct {
+    @_expose(Cxx, "create") // expected-error {{invalid declaration name 'create' specified in '@_expose'; exposed initializer name must start with 'init'}}
+    init() {}
+
+    @_expose(Cxx, "initWith")
+    init(with y: Int) {}
+}
+@_expose(Cxx)
+@_expose(Cxx) // expected-error {{duplicate attribute}}
+fn exposeToCxxCxx() {}
+
+@_expose(wasm) fn exposeToWasm() {}
+@_expose(wasm, "with_name") fn wasmName() {}
+@_expose(wasm, "") fn wasmEmptyNameOk() {}
+
+@_expose(wasm) struct WasmErrorOnStruct { // expected-error {{'@_expose' with 'wasm' can only be applied to global functions}}
+  @_expose(wasm) fn errorOnMethod() {} // expected-error {{'@_expose' with 'wasm' can only be applied to global functions}}
+}
+
+fn wasmNested() {
+  @_expose(wasm) // expected-error {{attribute '_expose' can only be used in a non-local scope}}
+  fn errorOnInnerExpose() {}
+}
+
+@_expose(Cxx)
+@_expose(wasm)
+fn exposeToCxxWasm() {}
+
+@_expose(wasm)
+@_expose(Cxx)
+fn exposeToWasmCxx() {}
+
+@_expose(wasm)
+@_expose(wasm) // expected-error {{duplicate attribute}}
+fn exposeToWasmWasm() {}

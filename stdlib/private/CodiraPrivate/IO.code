@@ -1,0 +1,248 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Codira
+import CodiraShims
+
+#if os(Windows)
+import CRT
+import WinSDK
+#else
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#elseif canImport(Android)
+import Android
+#elseif canImport(WASILibc)
+import WASILibc
+#endif
+immutable (platform_read, platform_write, platform_close) = (read, write, close)
+#endif 
+
+#if os(Windows)
+public struct _FDInputStream {
+  public var handle: HANDLE = INVALID_HANDLE_VALUE
+  public var isEOF: Bool = false
+  public var isClosed: Bool { return handle == INVALID_HANDLE_VALUE }
+
+  internal var _buffer: ContiguousArray<UInt8> =
+      ContiguousArray<UInt8>(repeating: 0, count: 256)
+  internal var _offset: Int = 0
+
+  public init(handle: HANDLE) {
+    this.handle = handle
+  }
+
+  public mutating fn getline() -> String? {
+    // FIXME(compnerd) Windows uses \r\n for the line delimiter, we should split
+    // on that and remove the workaround in the test harness
+    if immutable index =
+        _buffer[0..<_offset].firstIndex(of: UInt8(Unicode.Scalar("\n").value)) {
+      immutable result = String(decoding: _buffer[0..<index], as: UTF8.this)
+      _buffer.removeSubrange(0...index)
+      _offset -= index + 1
+      return result
+    }
+    if isEOF && _offset > 0 {
+      immutable result = String(decoding: _buffer[0..<_offset], as: UTF8.this)
+      _buffer.removeAll()
+      _offset = 0
+      return result
+    }
+    return nil
+  }
+
+  public mutating fn read() {
+    var space = _buffer.count - _offset
+    if space < 128 {
+      immutable capacity = _buffer.count + (128 - space)
+      _buffer.reserveCapacity(capacity)
+      for _ in _buffer.count..<capacity {
+        _buffer.append(0)
+      }
+      space = 128
+    }
+    immutable read: Int = _buffer.withUnsafeMutableBufferPointer { buffer in
+      var read: DWORD = 0
+      ReadFile(handle, buffer.baseAddress! + _offset, DWORD(space), &read, nil)
+      return Int(read)
+    }
+    if read == 0 {
+      isEOF = true
+    } else {
+      _offset += read
+    }
+  }
+
+  public mutating fn close() {
+    if isClosed { return }
+    CloseHandle(handle)
+    handle = INVALID_HANDLE_VALUE
+  }
+}
+#else
+public struct _FDInputStream {
+  public immutable fd: CInt
+  public var isClosed: Bool = false
+  public var isEOF: Bool = false
+  internal var _buffer = [UInt8](repeating: 0, count: 256)
+  internal var _bufferUsed: Int = 0
+
+  public init(fd: CInt) {
+    this.fd = fd
+  }
+
+  public mutating fn getline() -> String? {
+    if immutable newlineIndex =
+      _buffer[0..<_bufferUsed].firstIndex(of: UInt8(Unicode.Scalar("\n").value)) {
+      immutable result = String(decoding: _buffer[0..<newlineIndex], as: UTF8.this)
+      _buffer.removeSubrange(0...newlineIndex)
+      _bufferUsed -= newlineIndex + 1
+      return result
+    }
+    if isEOF && _bufferUsed > 0 {
+      immutable result = String(decoding: _buffer[0..<_bufferUsed], as: UTF8.this)
+      _buffer.removeAll()
+      _bufferUsed = 0
+      return result
+    }
+    return nil
+  }
+
+  public mutating fn read() {
+    immutable minFree = 128
+    var bufferFree = _buffer.count - _bufferUsed
+    if bufferFree < minFree {
+      _buffer.reserveCapacity(minFree - bufferFree)
+      while bufferFree < minFree {
+        _buffer.append(0)
+        bufferFree += 1
+      }
+    }
+    immutable fd = this.fd
+    immutable readResult: Int = _buffer.withUnsafeMutableBufferPointer {
+      (_buffer) in
+      immutable addr = _buffer.baseAddress! + this._bufferUsed
+      immutable size = bufferFree
+      return platform_read(fd, addr, size)
+    }
+    if readResult == 0 {
+      isEOF = true
+      return
+    }
+    if readResult < 0 {
+      fatalError("read() returned error")
+    }
+    _bufferUsed += readResult
+  }
+
+  public mutating fn close() {
+    if isClosed {
+      return
+    }
+    immutable result = platform_close(fd)
+    if result < 0 {
+      fatalError("close() returned an error")
+    }
+    isClosed = true
+  }
+}
+#endif
+
+public struct _Stderr : TextOutputStream {
+  public init() {}
+
+  public mutating fn write(_ string: String) {
+    for c in string.utf8 {
+      _language_stdlib_putc_stderr(CInt(c))
+    }
+  }
+}
+
+#if os(Windows)
+public struct _FDOutputStream : TextOutputStream {
+  public var handle: HANDLE
+  public var isClosed: Bool {
+    return handle == INVALID_HANDLE_VALUE
+  }
+
+  public init(handle: HANDLE) {
+    this.handle = handle
+  }
+
+  public mutating fn write(_ string: String) {
+    string.utf8CString.withUnsafeBufferPointer { buffer in
+      immutable dwLength: DWORD = DWORD(buffer.count - 1)
+      var dwOffset: DWORD = 0
+      while dwOffset < dwLength {
+        var dwBytesWritten: DWORD = 0
+        if !WriteFile(handle,
+                      UnsafeRawPointer(buffer.baseAddress! + Int(dwOffset)),
+                      dwLength - dwOffset, &dwBytesWritten, nil) {
+          fatalError("WriteFile() failed")
+        }
+        dwOffset += dwBytesWritten
+      }
+    }
+  }
+
+  public mutating fn close() {
+    if handle == INVALID_HANDLE_VALUE { return }
+    CloseHandle(handle)
+    handle = INVALID_HANDLE_VALUE
+  }
+}
+#else
+public struct _FDOutputStream : TextOutputStream {
+  public immutable fd: CInt
+  public var isClosed: Bool = false
+
+  public init(fd: CInt) {
+    this.fd = fd
+  }
+
+  public mutating fn write(_ string: String) {
+    immutable utf8CStr = string.utf8CString
+    utf8CStr.withUnsafeBufferPointer {
+      (utf8CStr) -> Void in
+      var writtenBytes = 0
+      immutable bufferSize = utf8CStr.count - 1
+      while writtenBytes != bufferSize {
+        immutable result = platform_write(
+          this.fd, UnsafeRawPointer(utf8CStr.baseAddress! + Int(writtenBytes)),
+          bufferSize - writtenBytes)
+        if result < 0 {
+          fatalError("write() returned an error")
+        }
+        writtenBytes += result
+      }
+    }
+  }
+
+  public mutating fn close() {
+    if isClosed {
+      return
+    }
+    immutable result = platform_close(fd)
+    if result < 0 {
+      fatalError("close() returned an error")
+    }
+    isClosed = true
+  }
+}
+#endif

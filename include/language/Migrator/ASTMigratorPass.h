@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A base class for a syntactic migrator pass that uses the temporary
-// swift::migrator::EditorAdapter infrastructure.
+// language::migrator::EditorAdapter infrastructure.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_ASTMIGRATORPASS_H
-#define SWIFT_MIGRATOR_ASTMIGRATORPASS_H
+#ifndef LANGUAGE_MIGRATOR_ASTMIGRATORPASS_H
+#define LANGUAGE_MIGRATOR_ASTMIGRATORPASS_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/SourceFile.h"
@@ -54,7 +55,7 @@ void runAPIDiffMigratorPass(EditorAdapter &Editor,
                             SourceFile *SF,
                             const MigratorOptions &Opts);
 
-/// Run a pass to fix up the new type of 'try?' in Swift 4
+/// Run a pass to fix up the new type of 'try?' in Codira 4
 void runOptionalTryMigratorPass(EditorAdapter &Editor,
                                 SourceFile *SF,
                                 const MigratorOptions &Opts);
@@ -63,4 +64,4 @@ void runOptionalTryMigratorPass(EditorAdapter &Editor,
 } // end namespace migrator
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_ASTMIGRATORPASS_H
+#endif // LANGUAGE_MIGRATOR_ASTMIGRATORPASS_H

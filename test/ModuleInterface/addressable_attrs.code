@@ -1,0 +1,13 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name attrs -enable-experimental-feature AddressableTypes
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name attrs
+// RUN: %FileCheck %s --input-file %t.codeinterface
+
+// REQUIRES: language_feature_AddressableTypes
+
+@_addressableForDependencies
+public struct Foo {}
+// CHECK: #if {{.*}} $AddressableTypes
+// CHECK: @_addressableForDependencies public struct Foo
+// CHECK: #else
+// CHECK: {{^}}public struct Foo {
+// CHECK: #endif

@@ -1,18 +1,18 @@
-# Swift Binary Serialization Format
+# Codira Binary Serialization Format
 
-The fundamental unit of distribution for Swift code is a *module.* A module
+The fundamental unit of distribution for Codira code is a *module.* A module
 contains declarations as an interface for clients to write code against. It may
 also contain implementation information for any of these declarations that can
 be used to optimize client code. Conceptually, the file containing the
 interface for a module serves much the same purpose as the collection of C
 header files for a particular library.
 
-Swift's binary serialization format is currently used for several purposes:
+Codira's binary serialization format is currently used for several purposes:
 
-- The public interface for a module ("swiftmodule files").
+- The public interface for a module ("languagemodule files").
 
 - A representation of captured compiler state after semantic analysis and SIL
-  generation, but before LLVM IR generation ("SIB", for "Swift Intermediate
+  generation, but before LLVM IR generation ("SIB", for "Codira Intermediate
   Binary").
 
 - Debug information about types, for proper high-level introspection without
@@ -23,7 +23,7 @@ Swift's binary serialization format is currently used for several purposes:
 The first two uses require a module to serve as a container of both AST nodes
 and SIL entities. As a unit of distribution, it should also be
 forward-compatible: module files installed on a developer's system in 201X
-should be usable without updates for years to come, even as the Swift compiler
+should be usable without updates for years to come, even as the Codira compiler
 continues to be improved and enhanced. However, they are currently too closely
 tied to the compiler internals to be useful for this purpose, and it is likely
 we'll invent a new format instead.
@@ -31,11 +31,11 @@ we'll invent a new format instead.
 
 ## Why LLVM bitcode?
 
-The [LLVM bitstream](http://llvm.org/docs/BitCodeFormat.html) format was
+The [LLVM bitstream](http://toolchain.org/docs/BitCodeFormat.html) format was
 invented as a container format for LLVM IR. It is a binary format supporting
 two basic structures: *blocks,* which define regions of the file, and
 *records,* which contain data fields that can be up to 64 bits. It has a few
-nice properties that make it a useful container format for Swift modules as
+nice properties that make it a useful container format for Codira modules as
 well:
 
 - It is easy to skip over an entire block, because the block's length is
@@ -63,11 +63,11 @@ LLVM...might as well use it!
   library's public interface. However, as mentioned above this may not be
   the current binary serialization format.
 
-  Today's Swift uses a "major" version number of 0 and an always-incrementing
+  Today's Codira uses a "major" version number of 0 and an always-incrementing
   "minor" version number. Every change is treated as compatibility-breaking;
   the minor version must match exactly for the compiler to load the module.
 
-Persistent serialized Swift files use the following versioning scheme:
+Persistent serialized Codira files use the following versioning scheme:
 
 - Serialized modules are given a major and minor version number.
 

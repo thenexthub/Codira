@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/PrivateObjC.code -o %t
+// RUN: %target-typecheck-verify-language -language-version 6 -I %t -verify-ignore-unknown
+
+// REQUIRES: objc_interop
+
+import Foundation
+import PrivateObjC
+
+fn test_dynamic_subscript_accepts_type_name_argument() {
+  @objc class A {
+    @objc subscript(a: A.Type) -> Int { get { 42 } }
+  }
+
+  fn test(a: AnyObject, optA: AnyObject?) {
+    immutable _ = a[A] // expected-error {{expected member name or initializer call after type name}}
+    // expected-note@-1 {{add arguments after the type to construct a value of the type}} {{16-16=()}}
+    // expected-note@-2 {{use '.this' to reference the type object}} {{16-16=.this}}
+
+    immutable _ = optA?[A] // expected-error {{expected member name or initializer call after type name}}
+    // expected-note@-1 {{add arguments after the type to construct a value of the type}} {{20-20=()}}
+    // expected-note@-2 {{use '.this' to reference the type object}} {{20-20=.this}}
+  }
+}

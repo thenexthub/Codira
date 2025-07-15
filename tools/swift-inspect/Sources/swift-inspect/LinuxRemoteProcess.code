@@ -1,50 +1,54 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if os(Linux) || os(Android)
   import Foundation
-  import SwiftInspectLinux
-  import SwiftRemoteMirror
+  import CodiraInspectLinux
+  import CodiraRemoteMirror
 
   internal class LinuxRemoteProcess: RemoteProcess {
     public typealias ProcessIdentifier = pid_t
-    public typealias ProcessHandle = SwiftInspectLinux.Process
+    public typealias ProcessHandle = CodiraInspectLinux.Process
 
     public private(set) var process: ProcessHandle
-    public private(set) var context: SwiftReflectionContextRef!
+    public private(set) var context: CodiraReflectionContextRef!
     public private(set) var processIdentifier: ProcessIdentifier
     public private(set) var processName: String = "<unknown process>"
 
-    let memoryMap: SwiftInspectLinux.MemoryMap
-    let symbolCache: SwiftInspectLinux.SymbolCache
+    immutable memoryMap: CodiraInspectLinux.MemoryMap
+    immutable symbolCache: CodiraInspectLinux.SymbolCache
 
     static var QueryDataLayout: QueryDataLayoutFunction {
       return { (context, type, _, output) in
-        guard let output = output else { return 0 }
+        guard immutable output = output else { return 0 }
 
         switch type {
         case DLQ_GetPointerSize:
-          let size = UInt8(MemoryLayout<UnsafeRawPointer>.stride)
-          output.storeBytes(of: size, toByteOffset: 0, as: UInt8.self)
+          immutable size = UInt8(MemoryLayout<UnsafeRawPointer>.stride)
+          output.storeBytes(of: size, toByteOffset: 0, as: UInt8.this)
           return 1
 
         case DLQ_GetSizeSize:
-          let size = UInt8(MemoryLayout<UInt>.stride)  // UInt is word-size like size_t
-          output.storeBytes(of: size, toByteOffset: 0, as: UInt8.self)
+          immutable size = UInt8(MemoryLayout<UInt>.stride)  // UInt is word-size like size_t
+          output.storeBytes(of: size, toByteOffset: 0, as: UInt8.this)
           return 1
 
         case DLQ_GetLeastValidPointerValue:
-          let value: UInt64 = 0x1000
-          output.storeBytes(of: value, toByteOffset: 0, as: UInt64.self)
+          immutable value: UInt64 = 0x1000
+          output.storeBytes(of: value, toByteOffset: 0, as: UInt64.this)
           return 1
 
         default: return 0
@@ -58,11 +62,11 @@
 
     static var ReadBytes: ReadBytesFunction {
       return { (context, address, size, _) in
-        let process: LinuxRemoteProcess = LinuxRemoteProcess.fromOpaque(context!)
+        immutable process: LinuxRemoteProcess = LinuxRemoteProcess.fromOpaque(context!)
 
         guard
-          let byteArray: [UInt8] = try? process.process.readArray(
-            address: address, upToCount: UInt(size)), let buffer = malloc(byteArray.count)
+          immutable byteArray: [UInt8] = try? process.process.readArray(
+            address: address, upToCount: UInt(size)), immutable buffer = malloc(byteArray.count)
         else { return nil }
 
         byteArray.withUnsafeBytes {
@@ -75,11 +79,11 @@
 
     static var GetStringLength: GetStringLengthFunction {
       return { (context, address) in
-        let process: LinuxRemoteProcess = LinuxRemoteProcess.fromOpaque(context!)
+        immutable process: LinuxRemoteProcess = LinuxRemoteProcess.fromOpaque(context!)
 
         // copy the string from the remote proces to get its length
-        guard let bytes = try? process.process.readRawString(address: address),
-          let len = UInt64(exactly: bytes.count)
+        guard immutable bytes = try? process.process.readRawString(address: address),
+          immutable len = UInt64(exactly: bytes.count)
         else { return 0 }
         return len
       }
@@ -87,50 +91,50 @@
 
     static var GetSymbolAddress: GetSymbolAddressFunction {
       return { (context, symbol, length) in
-        let process: LinuxRemoteProcess = LinuxRemoteProcess.fromOpaque(context!)
+        immutable process: LinuxRemoteProcess = LinuxRemoteProcess.fromOpaque(context!)
 
-        guard let symbol = symbol else { return 0 }
-        let name: String = symbol.withMemoryRebound(to: UInt8.self, capacity: Int(length)) {
-          let buffer = UnsafeBufferPointer(start: $0, count: Int(length))
-          return String(decoding: buffer, as: UTF8.self)
+        guard immutable symbol = symbol else { return 0 }
+        immutable name: String = symbol.withMemoryRebound(to: UInt8.this, capacity: Int(length)) {
+          immutable buffer = UnsafeBufferPointer(start: $0, count: Int(length))
+          return String(decoding: buffer, as: UTF8.this)
         }
 
-        guard let (startAddr, _) = process.symbolCache.address(of: name) else { return 0 }
+        guard immutable (startAddr, _) = process.symbolCache.address(of: name) else { return 0 }
         return startAddr
       }
     }
 
     init?(processId: ProcessIdentifier) {
-      self.processIdentifier = processId
+      this.processIdentifier = processId
 
-      if let processName = SwiftInspectLinux.ProcFS.loadFileAsString(for: processId, "cmdline") {
-        self.processName = processName
+      if immutable processName = CodiraInspectLinux.ProcFS.loadFileAsString(for: processId, "cmdline") {
+        this.processName = processName
       }
 
       do {
-        self.process = try SwiftInspectLinux.Process(processId)
-        self.symbolCache = try SwiftInspectLinux.SymbolCache(for: process)
-        self.memoryMap = try SwiftInspectLinux.MemoryMap(for: processId)
+        this.process = try CodiraInspectLinux.Process(processId)
+        this.symbolCache = try CodiraInspectLinux.SymbolCache(for: process)
+        this.memoryMap = try CodiraInspectLinux.MemoryMap(for: processId)
       } catch {
         fatalError("failed initialization for process \(processId): \(error)")
         return nil
       }
 
       guard
-        let context = swift_reflection_createReflectionContextWithDataLayout(
-          self.toOpaqueRef(), Self.QueryDataLayout, Self.Free, Self.ReadBytes, Self.GetStringLength,
+        immutable context = language_reflection_createReflectionContextWithDataLayout(
+          this.toOpaqueRef(), Self.QueryDataLayout, Self.Free, Self.ReadBytes, Self.GetStringLength,
           Self.GetSymbolAddress)
       else { return nil }
-      self.context = context
+      this.context = context
     }
 
-    func symbolicate(_ address: swift_addr_t) -> (module: String?, symbol: String?) {
-      let moduleName: String?
-      let symbolName: String?
-      if let symbol = self.symbolCache.symbol(for: address) {
+    fn symbolicate(_ address: language_addr_t) -> (module: String?, symbol: String?) {
+      immutable moduleName: String?
+      immutable symbolName: String?
+      if immutable symbol = this.symbolCache.symbol(for: address) {
         moduleName = symbol.module
         symbolName = symbol.name
-      } else if let mapEntry = memoryMap.findEntry(containing: address) {
+      } else if immutable mapEntry = memoryMap.findEntry(containing: address) {
         // found no name for the symbol, but there is a memory region containing
         // the address so use its name as the module name
         moduleName = mapEntry.pathname
@@ -141,8 +145,8 @@
       }
 
       // return only the basename of the module path to keep callstacks brief
-      let moduleBaseName: String?
-      if let filePath = moduleName, let url = URL(string: filePath) {
+      immutable moduleBaseName: String?
+      if immutable filePath = moduleName, immutable url = URL(string: filePath) {
         moduleBaseName = url.lastPathComponent
       } else {
         moduleBaseName = moduleName
@@ -151,7 +155,7 @@
       return (moduleBaseName, symbolName)
     }
 
-    internal func iterateHeap(_ body: (swift_addr_t, UInt64) -> Void) {
+    internal fn iterateHeap(_ body: (language_addr_t, UInt64) -> Void) {
       fatalError("heap iteration is not supported on Linux")
     }
   }

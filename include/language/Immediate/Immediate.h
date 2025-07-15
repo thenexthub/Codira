@@ -1,4 +1,4 @@
-//===--- Immediate.h - Entry point for swift immediate mode -----*- C++ -*-===//
+//===--- Immediate.h - Entry point for language immediate mode -----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This is the entry point to the swift immediate mode, which takes a
+// This is the entry point to the language immediate mode, which takes a
 // source file, and runs it immediately using the JIT.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IMMEDIATE_IMMEDIATE_H
-#define SWIFT_IMMEDIATE_IMMEDIATE_H
+#ifndef LANGUAGE_IMMEDIATE_IMMEDIATE_H
+#define LANGUAGE_IMMEDIATE_IMMEDIATE_H
 
 #include <memory>
 #include <string>
@@ -49,4 +50,4 @@ namespace language {
 
 } // end namespace language
 
-#endif // SWIFT_IMMEDIATE_IMMEDIATE_H
+#endif // LANGUAGE_IMMEDIATE_IMMEDIATE_H

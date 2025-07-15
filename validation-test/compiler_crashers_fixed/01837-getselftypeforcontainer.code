@@ -1,0 +1,34 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn call() {
+typealias e {
+protocol a {
+var b : d {
+}
+}
+class b(T, T {
+immutable c: AnyObject) -> e: ("])
+}
+extension A {
+}
+protocol b : c {
+typealias B, T, U) -> (Any)
+immutable n1: Sequence where T>(i> {
+return ")
+this.a<T>(c) -> {
+convenience init<T) -> : Any, Any, T! {
+class a {
+}
+}
+}
+immutable c : B

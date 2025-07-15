@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "clang/AST/DeclObjC.h"
 #include "clang/Basic/Module.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/StringSwitch.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
 #include "language/AST/Decl.h"
@@ -31,18 +32,33 @@ using namespace symbolgraphgen;
 
 namespace {
 
+/// Get the fully-qualified module name of the given `ModuleDecl` as a `std::string`.
+///
+/// For example, if `M` is a submodule of `ParentModule` named `SubModule`,
+/// this function would return `"ParentModule.SubModule"`.
+std::string getFullModuleName(const ModuleDecl *M) {
+  if (!M) return {};
+
+  std::string S;
+  toolchain::raw_string_ostream OS(S);
+
+  M->getReverseFullModuleName().printForward(OS);
+
+  return S;
+}
+
 /// Compare the two \c ModuleDecl instances to see whether they are the same.
 ///
 /// This does a by-name comparison to consider a module's underlying Clang module to be equivalent
 /// to the wrapping module of the same name.
 ///
 /// If the `isClangEqual` argument is set to `false`, the modules must also be from the same
-/// compiler, i.e. a Swift module and its underlying Clang module would be considered not equal.
+/// compiler, i.e. a Codira module and its underlying Clang module would be considered not equal.
 bool areModulesEqual(const ModuleDecl *lhs, const ModuleDecl *rhs, bool isClangEqual = true) {
-  if (lhs->getNameStr() != rhs->getNameStr())
+  if (getFullModuleName(lhs) != getFullModuleName(rhs))
     return false;
 
-  if (!isClangEqual && (lhs->isNonSwiftModule() != rhs->isNonSwiftModule()))
+  if (!isClangEqual && (lhs->isNonCodiraModule() != rhs->isNonCodiraModule()))
     return false;
 
   return true;
@@ -87,7 +103,7 @@ SymbolGraphASTWalker::SymbolGraphASTWalker(ModuleDecl &M,
 SymbolGraphASTWalker::SymbolGraphASTWalker(
     ModuleDecl &M,
     const SmallPtrSet<const ModuleDecl *, 4> ExportedImportedModules,
-    const llvm::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
+    const toolchain::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
         QualifiedExportedImports,
     const SymbolGraphOptions &Options)
     : Options(Options), M(M), ExportedImportedModules(ExportedImportedModules),
@@ -150,7 +166,7 @@ SymbolGraph *SymbolGraphASTWalker::getModuleSymbolGraph(const Decl *D) {
     return &MainGraph;
 
   // If this type is the child of a type which was re-exported in a qualified export, use the main graph.
-  if (llvm::any_of(ParentTypes, [&](const NominalTypeDecl *NTD){ return isQualifiedExportedImport(NTD); })) {
+  if (toolchain::any_of(ParentTypes, [&](const NominalTypeDecl *NTD){ return isQualifiedExportedImport(NTD); })) {
     return &MainGraph;
   }
 
@@ -193,19 +209,19 @@ bool SymbolGraphASTWalker::walkToDeclPre(Decl *D, CharSourceRange Range) {
 
   switch (D->getKind()) {
   // We'll record nodes for the following kinds of declarations.
-  case swift::DeclKind::Class:
-  case swift::DeclKind::Struct:
-  case swift::DeclKind::Enum:
-  case swift::DeclKind::EnumElement:
-  case swift::DeclKind::Protocol:
-  case swift::DeclKind::Constructor:
-  case swift::DeclKind::Func:
-  case swift::DeclKind::Var:
-  case swift::DeclKind::Subscript:
-  case swift::DeclKind::TypeAlias:
-  case swift::DeclKind::AssociatedType:
-  case swift::DeclKind::Extension:
-  case swift::DeclKind::Macro:
+  case language::DeclKind::Class:
+  case language::DeclKind::Struct:
+  case language::DeclKind::Enum:
+  case language::DeclKind::EnumElement:
+  case language::DeclKind::Protocol:
+  case language::DeclKind::Constructor:
+  case language::DeclKind::Func:
+  case language::DeclKind::Var:
+  case language::DeclKind::Subscript:
+  case language::DeclKind::TypeAlias:
+  case language::DeclKind::AssociatedType:
+  case language::DeclKind::Extension:
+  case language::DeclKind::Macro:
     break;
 
   // We'll descend into everything else.
@@ -411,13 +427,13 @@ bool SymbolGraphASTWalker::isFromExportedImportedModule(const Decl* D, bool coun
 }
 
 bool SymbolGraphASTWalker::isQualifiedExportedImport(const Decl *D) const {
-  return llvm::any_of(QualifiedExportedImports, [&D](const auto &QI) {
+  return toolchain::any_of(QualifiedExportedImports, [&D](const auto &QI) {
     return QI.getSecond().contains(D);
   });
 }
 
 bool SymbolGraphASTWalker::isExportedImportedModule(const ModuleDecl *M, bool countUnderlyingClangModule) const {
-  return llvm::any_of(ExportedImportedModules, [&M, countUnderlyingClangModule](const auto *MD) {
+  return toolchain::any_of(ExportedImportedModules, [&M, countUnderlyingClangModule](const auto *MD) {
     return areModulesEqual(M, MD->getModuleContext(), /*isClangEqual*/countUnderlyingClangModule);
   });
 }
@@ -439,7 +455,7 @@ bool SymbolGraphASTWalker::synthesizeChildSymbols(Decl *D,
                                                   const ValueDecl *BD) {
   BaseDecl = BD;
   SynthesizedChildrenBaseDecl = D;
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     BaseDecl = nullptr;
     SynthesizedChildrenBaseDecl = nullptr;
   };

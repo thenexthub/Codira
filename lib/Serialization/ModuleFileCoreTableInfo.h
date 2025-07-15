@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_MODULEFILECORETABLEINFO_H
-#define SWIFT_SERIALIZATION_MODULEFILECORETABLEINFO_H
+#ifndef LANGUAGE_SERIALIZATION_MODULEFILECORETABLEINFO_H
+#define LANGUAGE_SERIALIZATION_MODULEFILECORETABLEINFO_H
 
 #include "DocFormat.h"
 #include "ModuleFileSharedCore.h"
 #include "SerializationFormat.h"
 #include "SourceInfoFormat.h"
 #include "language/AST/RawComment.h"
-#include "llvm/Support/DJB.h"
+#include "toolchain/Support/DJB.h"
 
 namespace language {
 
@@ -44,7 +45,7 @@ public:
 
   hash_value_type ComputeHash(internal_key_type key) {
     if (key.first == DeclBaseName::Kind::Normal) {
-      return llvm::djbHash(key.second, serialization::SWIFTMODULE_HASH_SEED);
+      return toolchain::djbHash(key.second, serialization::LANGUAGEMODULE_HASH_SEED);
     } else {
       return (hash_value_type)key.first;
     }
@@ -74,7 +75,7 @@ public:
     case static_cast<uint8_t>(DeclNameKind::Destructor):
       return {DeclBaseName::Kind::Destructor, StringRef()};
     default:
-      llvm_unreachable("Unknown DeclNameKind");
+      toolchain_unreachable("Unknown DeclNameKind");
     }
   }
 
@@ -107,7 +108,7 @@ public:
   }
 
   hash_value_type ComputeHash(internal_key_type key) {
-    return llvm::djbHash(key, serialization::SWIFTMODULE_HASH_SEED);
+    return toolchain::djbHash(key, serialization::LANGUAGEMODULE_HASH_SEED);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -170,7 +171,7 @@ public:
   }
 
   hash_value_type ComputeHash(internal_key_type key) {
-    return llvm::djbHash(key, serialization::SWIFTMODULE_HASH_SEED);
+    return toolchain::djbHash(key, serialization::LANGUAGEMODULE_HASH_SEED);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -205,7 +206,7 @@ public:
   }
 
   hash_value_type ComputeHash(internal_key_type key) {
-    return llvm::djbHash(key, serialization::SWIFTMODULE_HASH_SEED);
+    return toolchain::djbHash(key, serialization::LANGUAGEMODULE_HASH_SEED);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -260,7 +261,7 @@ public:
 
   hash_value_type ComputeHash(internal_key_type key) {
     if (key.first == DeclBaseName::Kind::Normal) {
-      return llvm::djbHash(key.second, serialization::SWIFTMODULE_HASH_SEED);
+      return toolchain::djbHash(key.second, serialization::LANGUAGEMODULE_HASH_SEED);
     } else {
       return (hash_value_type)key.first;
     }
@@ -291,7 +292,7 @@ public:
     case static_cast<uint8_t>(DeclNameKind::Constructor):
       return {DeclBaseName::Kind::Constructor, StringRef()};
     default:
-      llvm_unreachable("Unknown DeclNameKind");
+      toolchain_unreachable("Unknown DeclNameKind");
     }
   }
 
@@ -359,12 +360,12 @@ public:
   using offset_type = unsigned;
 
   internal_key_type GetInternalKey(external_key_type ID) {
-    llvm::SmallString<32> scratch;
+    toolchain::SmallString<32> scratch;
     return ID.getString(scratch).str();
   }
 
   hash_value_type ComputeHash(internal_key_type key) {
-    return llvm::djbHash(key, serialization::SWIFTMODULE_HASH_SEED);
+    return toolchain::djbHash(key, serialization::LANGUAGEMODULE_HASH_SEED);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -416,7 +417,7 @@ public:
   internal_key_type GetInternalKey(external_key_type ID) { return ID; }
 
   hash_value_type ComputeHash(internal_key_type key) {
-    return llvm::djbHash(key, serialization::SWIFTMODULE_HASH_SEED);
+    return toolchain::djbHash(key, serialization::LANGUAGEMODULE_HASH_SEED);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -467,7 +468,7 @@ public:
 
   hash_value_type ComputeHash(internal_key_type key) {
     assert(!key.empty());
-    return llvm::djbHash(key, serialization::SWIFTDOC_HASH_SEED_5_1);
+    return toolchain::djbHash(key, serialization::LANGUAGEDOC_HASH_SEED_5_1);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -523,7 +524,7 @@ public:
 
   hash_value_type ComputeHash(internal_key_type key) {
     assert(!key.empty());
-    return llvm::djbHash(key, serialization::SWIFTSOURCEINFO_HASH_SEED);
+    return toolchain::djbHash(key, serialization::LANGUAGESOURCEINFO_HASH_SEED);
   }
 
   static bool EqualKey(internal_key_type lhs, internal_key_type rhs) {
@@ -553,7 +554,7 @@ class ModuleFileSharedCore::DeclFingerprintsTableInfo {
 public:
   using internal_key_type = uint32_t;
   using external_key_type = DeclID;
-  using data_type = swift::Fingerprint;
+  using data_type = language::Fingerprint;
   using hash_value_type = uint32_t;
   using offset_type = unsigned;
 
@@ -578,12 +579,14 @@ public:
 
   static data_type ReadData(internal_key_type key, const uint8_t *data,
                             unsigned length) {
-    auto str = llvm::StringRef{reinterpret_cast<const char *>(data),
+    auto str = toolchain::StringRef{reinterpret_cast<const char *>(data),
                                Fingerprint::DIGEST_LENGTH};
     if (auto fp = Fingerprint::fromString(str))
       return fp.value();
-    llvm::errs() << "Unconvertable fingerprint '" << str << "'\n";
-    abort();
+
+    ABORT([&](auto &out) {
+      out << "Unconvertable fingerprint '" << str << "'";
+    });
   }
 };
 

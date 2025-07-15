@@ -1,0 +1,7 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-typecheck-verify-language -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -verify
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"), .nonescaping(pointer: .param(1)))
+fn nullableSpan(_ ptr: UnsafePointer<CInt>?, _ len: CInt) {
+}

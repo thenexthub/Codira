@@ -1,0 +1,229 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+{
+immutable a {
+{
+{
+{{
+{{{
+typea
+{
+}typealias e:A<T:T {{{{
+typealias B }
+{struct A {()a{struct A
+{immutable t:d
+{
+enum A { typealias B }}
+class d
+{
+{-> : A{{{
+}}
+{
+case,
+{
+{{
+fn c{{struct B? = Int }
+var:a{
+class A
+class C<D: d
+case,
+{{
+{
+{{
+class d
+{
+fn c{{
+}
+{struct B? = nil
+{
+class d where h:e
+fn crash<T>:a{
+}}typealias e{
+{
+^
+immutable i}
+{
+{{
+{
+{
+}}}}}}}}}}}
+"
+struct A {{
+{e a{
+{
+{struct Q{
+{
+{{
+{{struct B<H , f=1
+class A<D: A
+{{{
+class A{{
+{
+}}typealias B }
+{
+}
+"
+{e a{fn e{
+{{
+{immutable g{{{
+^
+{
+for h:A
+class A {
+protocol d
+{{
+{
+{()a{{
+fn a{{
+class A {class a: D: C<H , f=1
+{
+{{
+{
+}protocol d
+{
+}}
+enum A {struct A {{
+fn crash<d {immutable t:T {T> : C{
+{
+{{{
+typea
+}
+var b{
+{{
+{{
+typea
+{{{{{
+fn c{
+var d{
+immutable a {ypealias F=i}
+{
+{{
+protocol A c{
+{
+enum S{
+immutable h:A<ere d
+class A<T> : A {{g=1
+fn c{fn a{A<T {
+immutable h:e{{
+case,
+{{
+{
+{immutable a{{
+{class a
+{{
+class a{ typealias e:a
+{
+{
+{
+fn crash<T {
+{
+{
+{{
+{ypealias F=0A.c
+{}}}}
+{{
+var b{{{
+fn c{
+{{{immutable g{
+{{
+var f
+typealias e
+}
+struct A
+enum A { :{struct c:{
+enum S<D.c{
+struct A
+protocol A { :a{
+{
+{fn e:a{
+{
+{{
+}
+{
+}
+var b{
+var b{struct B:A {{
+{
+{
+enum A {A
+}
+{{
+{
+{ypealias F=0A.c:a{->:{
+( "
+{
+{{
+}}}}
+{
+{() ->{
+class a {
+{
+{
+class A {
+{-> Bool {{
+fn crash<T {{{{{
+{d b{}}}}}b}}}}}}<T}}}class S<T{fn a<h{fn b<T where h.g=a
+{{g=i{}class C>{
+{
+{{struct A<T> Bool {
+protocol A { typealias e{{
+{
+class A
+class a {immutable h=i}}class a {immutable:a{
+struct A<D: D.B? = Int }}}
+{class A{
+var:d
+typea
+s :A {
+{
+typea
+class A{{
+{
+{
+{
+for}
+{{immutable a {
+class A{{
+{
+immutable<T al c:a{
+{immutable a {
+{
+{()a{{()a
+{{
+class A
+fn c
+{}
+{
+{
+struct B<T:A {
+{{
+{
+{{class a{T> Bool {ypealias F=c:d{{class A{class
+{
+immutable h:A{
+var b{{{
+fn a{immutable c{{
+{immutable<T
+{
+{{{immutable g=1
+{
+{
+{{
+fn b {
+protocol a{
+class C>() ->:a{
+class A{
+typealias B }}}class a {{immutable h:a{{{
+{
+typealias d
+{

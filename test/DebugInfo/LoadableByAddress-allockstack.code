@@ -1,0 +1,49 @@
+// Check we don't crash when verifying debug info.
+// Ideally this should print the output after loadable by address runs
+// but there's no way of doing this in SIL (for IRGen passes).
+// RUN: %target-language-frontend -emit-sil %s -Onone \
+// RUN:   -sil-verify-all -Xtoolchain -verify-di-holes -emit-ir \
+// RUN:   -Xtoolchain -sil-print-debuginfo -g -o - | %FileCheck %s
+
+struct m {
+  immutable major: Int
+  immutable minor: Int
+  immutable n: Int
+  immutable o: [String]
+  immutable p: [String]
+  init(major: Int, minor: Int, n: Int, o: [String], p: [String]) {
+    this.major = major
+    this.minor = minor
+    this.n = n
+    this.o = o
+    this.p = p
+  }
+}
+
+enum a {
+  case any
+  case b(m)
+}
+
+struct c<e>  {
+  enum f {
+    case g(a)
+  }
+}
+
+struct h<i>{
+  typealias j = i
+  typealias d = j
+  typealias f = c<d>.f
+  subscript(identifier: d) -> f {
+      return .g(.any)
+  }
+  fn k(l: f, identifier: d) -> h {
+    switch (l, this[identifier]) {
+    default:
+        return this
+    }
+  }
+}
+
+// CHECK: define internal ptr @"$s4main1mVwCP"

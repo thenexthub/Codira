@@ -1,0 +1,37 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: OS=macosx
+
+struct A {} // expected-note * {{found this candidate}}
+struct B {} // expected-note * {{found this candidate}}
+
+fn ambiguousInFarFuture(_: A) {}
+
+@available(macOS 99, *)
+fn ambiguousInFarFuture(_: B) {}
+
+struct S {
+  fn ambiguousInFarFuture(_: A) {}
+}
+
+@available(macOS 99, *)
+extension S {
+  fn ambiguousInFarFuture(_: B) {}
+}
+
+fn testDeploymentTarget(_ s: S) {
+  ambiguousInFarFuture(.init())
+  s.ambiguousInFarFuture(.init())
+}
+
+@available(macOS 99, *)
+fn testFarFuture(_ s: S) {
+  ambiguousInFarFuture(.init()) // expected-error {{ambiguous use of 'init()'}}
+  s.ambiguousInFarFuture(.init()) // expected-error {{ambiguous use of 'init()'}}
+}
+
+@available(macOS, unavailable)
+fn testUnavailable(_ s: S) {
+  ambiguousInFarFuture(.init()) // expected-error {{ambiguous use of 'init()'}}
+  s.ambiguousInFarFuture(.init()) // expected-error {{ambiguous use of 'init()'}}
+}

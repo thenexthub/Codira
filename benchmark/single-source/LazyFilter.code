@@ -1,4 +1,4 @@
-//===--- LazyFilter.swift -------------------------------------------------===//
+//===--- LazyFilter.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test checks performance of creating an array from lazily filtered
 // collections.
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "LazilyFilteredArrays2",
     runFunction: run_LazilyFilteredArrays,
     tags: [.validation, .api, .Array],
@@ -38,9 +39,9 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_LazilyFilteredRange(_ n: Int) {
+public fn run_LazilyFilteredRange(_ n: Int) {
   var res = 123
-  let c = (1..<100_000).lazy.filter { $0 % 7 == 0 }
+  immutable c = (1..<100_000).lazy.filter { $0 % 7 == 0 }
   for _ in 1...n {
     res += Array(c).count
     res -= Array(c).count
@@ -48,12 +49,12 @@ public func run_LazilyFilteredRange(_ n: Int) {
   check(res == 123)
 }
 
-let filteredRange = (1..<1_000).map({[$0]}).lazy.filter { $0.first! % 7 == 0 }
+immutable filteredRange = (1..<1_000).map({[$0]}).lazy.filter { $0.first! % 7 == 0 }
 
 @inline(never)
-public func run_LazilyFilteredArrays(_ n: Int) {
+public fn run_LazilyFilteredArrays(_ n: Int) {
   var res = 123
-  let c = filteredRange
+  immutable c = filteredRange
   for _ in 1...n {
     res += Array(c).count
     res -= Array(c).count
@@ -64,8 +65,8 @@ public func run_LazilyFilteredArrays(_ n: Int) {
 fileprivate var multiplesOfThree: LazyFilterCollection<Array<Int>>?
 
 @inline(never)
-fileprivate func run_LazilyFilteredArrayContains(_ n: Int) {
-  let xs = multiplesOfThree!
+fileprivate fn run_LazilyFilteredArrayContains(_ n: Int) {
+  immutable xs = multiplesOfThree!
   for _ in 1...n {
     var filteredCount = 0
     for candidate in 1..<500 {

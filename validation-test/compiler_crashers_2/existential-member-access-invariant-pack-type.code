@@ -1,0 +1,12 @@
+// RUN: not --crash %target-language-frontend -typecheck -target %target-language-5.9-abi-triple %s
+
+struct Variadic<each A> {}
+
+protocol VariadicResult {
+  associatedtype A
+  fn foo() -> Variadic<A>
+}
+
+fn variadicResult(a: any VariadicResult) {
+  a.foo()
+}

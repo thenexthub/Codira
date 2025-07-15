@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language
+
+struct Box<T> {}
+
+infix operator =*=
+protocol P1 {
+  associatedtype A
+  static fn =*= (x: Self, y: Box<A>)
+}
+class C1<A>: P1 {
+  static fn =*= (x: C1, y: Box<A>) {}
+}

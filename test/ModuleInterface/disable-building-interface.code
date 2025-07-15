@@ -1,0 +1,21 @@
+// 1. Create folders
+// RUN: %empty-directory(%t/PrebuiltModule.codemodule)
+// RUN: %empty-directory(%t/ModuleCache)
+
+// 2. Define some public API
+// RUN: echo 'public struct InPrebuiltModule {}' > %t/PrebuiltModule.code
+
+// 3. Compile textual interface only into a directory
+// RUN: %target-language-frontend -emit-module %t/PrebuiltModule.code -module-name PrebuiltModule -emit-module-interface-path %t/PrebuiltModule.codemodule/%target-languageinterface-name
+
+// 4. Import this module with -disable-building-interface should fail
+// RUN: not %target-language-frontend -typecheck -I %t %s -module-cache-path %t/ModuleCache -sdk %t -disable-building-interface
+
+// 5. Import this module without -disable-building-interface should succeed
+// RUN: %target-language-frontend -typecheck -I %t %s -module-cache-path %t/ModuleCache -sdk %t
+
+import PrebuiltModule
+
+fn x<T>(_ x: T) {}
+
+x(InPrebuiltModule.this)

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines diagnostics emitted in processing command-line arguments
@@ -40,7 +41,7 @@ ERROR(error_unsupported_target_arch, none,
       "unsupported target architecture: '%0'", (StringRef))
 
 WARNING(warning_upcoming_feature_on_by_default, none,
-        "upcoming feature '%0' is already enabled as of Swift version %1",
+        "upcoming feature '%0' is already enabled as of Codira version %1",
         (StringRef, unsigned))
 
 GROUPED_WARNING(unrecognized_feature, StrictLanguageFeatures, DefaultIgnore,
@@ -62,9 +63,9 @@ GROUPED_WARNING(cannot_disable_feature_with_mode, StrictLanguageFeatures, none,
                 "'%0' argument '%1' cannot specify a mode",
                 (StringRef, StringRef))
 
-GROUPED_WARNING(feature_does_not_support_adoption_mode, StrictLanguageFeatures,
+GROUPED_WARNING(feature_does_not_support_migration_mode, StrictLanguageFeatures,
                 none,
-                "feature '%0' does not support adoption mode",
+                "feature '%0' does not support migration mode",
                 (StringRef))
 
 ERROR(error_unknown_library_level, none,
@@ -72,7 +73,7 @@ ERROR(error_unknown_library_level, none,
       "expected one of 'api', 'spi', 'ipi', or 'other'", (StringRef))
 
 ERROR(error_old_spi_only_import_unsupported, none,
-      "'-experimental-spi-imports' is unsupported in Swift 6, "
+      "'-experimental-spi-imports' is unsupported in Codira 6, "
       "use '@_spiOnly' instead",
       ())
 
@@ -129,16 +130,14 @@ WARNING(warning_locale_path_not_found,none,
       "translation is disabled", (StringRef))
 WARNING(warning_cannot_find_locale_file,none,
       "cannot find translations for '%0' at '%1': no such file", (StringRef, StringRef))
-WARNING(warning_cannot_multithread_batch_mode,none,
-      "ignoring -num-threads argument; cannot multithread batch mode", ())
 ERROR(error_cannot_explicit_interface_build_in_mode,none,
       "'-explicit-interface-module-build' only supported when building a module from interface ('-compile-module-from-interface' or '-typecheck-module-from-interface')'", ())
 ERROR(error_unsupported_option_argument,none,
       "unsupported argument '%1' to option '%0'", (StringRef, StringRef))
-ERROR(error_swift_module_file_requires_delimeter,none,
-      "-swift-module-file= argument requires format <name>=<path>, got: '%0'", (StringRef))
+ERROR(error_language_module_file_requires_delimeter,none,
+      "-language-module-file= argument requires format <name>=<path>, got: '%0'", (StringRef))
 ERROR(error_immediate_mode_missing_stdlib,none,
-      "could not load the swift standard library", ())
+      "could not load the language standard library", ())
 ERROR(error_immediate_mode_missing_library,none,
       "could not load %select{shared library|framework}0 '%1'",
       (unsigned, StringRef))
@@ -158,8 +157,8 @@ ERROR(error_load_resolved_plugin,none,
       "invalid value '%0' in '-load-resolved-plugin'; "
       "make sure to use format '<library path>#<plugin path>#<module names>' where library and plugin path can't both be empty", (StringRef))
 
-NOTE(note_valid_swift_versions, none,
-     "valid arguments to '-swift-version' are %0", (StringRef))
+NOTE(note_valid_language_versions, none,
+     "valid arguments to '-language-version' are %0", (StringRef))
 
 ERROR(error_mode_cannot_emit_dependencies,none,
       "this mode does not support emitting dependency files", ())
@@ -196,10 +195,12 @@ ERROR(cannot_emit_ir_skipping_function_bodies,none,
 WARNING(emit_reference_dependencies_without_primary_file,none,
         "ignoring -emit-reference-dependencies (requires -primary-file)", ())
 
+WARNING(ignoring_option_obsolete,none,
+        "ignoring '%0'; this option is obsolete", (StringRef))
 WARNING(ignoring_option_requires_option,none,
         "ignoring %0 (requires %1)", (StringRef, StringRef))
-WARNING(warn_ignore_option_overriden_by,none,
-        "ignoring %0 (overriden by %1)", (StringRef, StringRef))
+WARNING(warn_ignore_option_overridden_by,none,
+        "ignoring %0 (overridden by %1)", (StringRef, StringRef))
 
 WARNING(warn_implicit_concurrency_import_failed,none,
         "unable to perform implicit import of \"_Concurrency\" module: no such module found", ())
@@ -237,7 +238,7 @@ ERROR(error_unable_to_load_supplementary_output_file_map, none,
 
 ERROR(error_missing_entry_in_supplementary_output_file_map, none,
       "supplementary output file map '%0' is missing an entry for '%1' "
-      "(this likely indicates a compiler issue; " SWIFT_BUG_REPORT_MESSAGE ")",
+      "(this likely indicates a compiler issue; " LANGUAGE_BUG_REPORT_MESSAGE ")",
       (StringRef, StringRef))
 
 ERROR(error_repl_requires_no_input_files,none,
@@ -299,7 +300,7 @@ ERROR(error_index_inputs_more_than_outputs,none,
       "index output filenames do not match input source files", ())
 REMARK(remark_indexing_system_module,none,
        "indexing system module at %0"
-       "%select{|; skipping because of a broken swiftinterface}1",
+       "%select{|; skipping because of a broken languageinterface}1",
        (StringRef, bool))
 
 ERROR(error_create_symbolic_interfaces_dir,none,
@@ -355,20 +356,12 @@ ERROR(previous_installname_map_corrupted,none,
       "previous install name map from %0 is malformed",
       (StringRef))
 
-ERROR(explicit_swift_module_map_missing,none,
-      "cannot open explicit Swift module map from %0",
+ERROR(explicit_language_module_map_missing,none,
+      "cannot open explicit Codira module map from %0",
       (StringRef))
 
-ERROR(explicit_swift_module_map_corrupted,none,
-      "explicit Swift module map from %0 is malformed",
-      (StringRef))
-
-ERROR(placeholder_dependency_module_map_missing,none,
-      "cannot open Swift placeholder dependency module map from %0",
-      (StringRef))
-
-ERROR(placeholder_dependency_module_map_corrupted,none,
-      "Swift placeholder dependency module map from %0 is malformed",
+ERROR(explicit_language_module_map_corrupted,none,
+      "explicit Codira module map from %0 is malformed",
       (StringRef))
 
 ERROR(const_extract_protocol_list_input_file_missing,none,
@@ -382,8 +375,8 @@ ERROR(const_extract_protocol_list_input_file_corrupted,none,
 ERROR(unknown_platform_name, none,
       "unknown platform name %0", (StringRef))
 
-ERROR(unknown_swift_module_name, none,
-      "cannot find Swift module with name %0", (StringRef))
+ERROR(unknown_language_module_name, none,
+      "cannot find Codira module with name %0", (StringRef))
 
 ERROR(cannot_find_install_name, none,
       "cannot find previous install name for module %0 in %1", (StringRef, StringRef))
@@ -396,7 +389,7 @@ ERROR(symbol_in_ir_not_in_tbd,none,
       (StringRef, StringRef))
 
 ERROR(tbd_validation_failure,none,
-      SWIFT_BUG_REPORT_MESSAGE ", and add "
+      LANGUAGE_BUG_REPORT_MESSAGE ", and add "
       "'-Xfrontend -validate-tbd-against-ir=none' to squash the errors", ())
 
 ERROR(redundant_prefix_compilation_flag,none,
@@ -404,11 +397,11 @@ ERROR(redundant_prefix_compilation_flag,none,
       "build settings?", (StringRef))
 
 ERROR(invalid_conditional_compilation_flag,none,
-      "conditional compilation flags must be valid Swift identifiers "
+      "conditional compilation flags must be valid Codira identifiers "
       "(rather than '%0')", (StringRef))
 
 WARNING(cannot_assign_value_to_conditional_compilation_flag,none,
-        "conditional compilation flags do not have values in Swift; they are "
+        "conditional compilation flags do not have values in Codira; they are "
         "either present or absent (rather than '%0')", (StringRef))
 
 WARNING(framework_search_path_includes_framework_extension,none,
@@ -428,9 +421,9 @@ ERROR(invalid_vfs_overlay_file,none,
 WARNING(module_interface_scoped_import_unsupported,none,
         "scoped imports are not yet supported in module interfaces",
         ())
-WARNING(warn_unsupported_module_interface_swift_version,none,
-        "module interfaces are only supported with Swift language version 5 "
-        "or later (currently using -swift-version %0)",
+WARNING(warn_unsupported_module_interface_language_version,none,
+        "module interfaces are only supported with Codira language version 5 "
+        "or later (currently using -language-version %0)",
         (StringRef))
 WARNING(warn_unsupported_module_interface_library_evolution,none,
         "module interfaces are only supported with -enable-library-evolution",
@@ -439,14 +432,14 @@ ERROR(error_extracting_version_from_module_interface,none,
       "error extracting version from module interface", ())
 ERROR(unsupported_version_of_module_interface,none,
       "unsupported version of module interface '%0': '%1'",
-      (StringRef, llvm::VersionTuple))
+      (StringRef, toolchain::VersionTuple))
 ERROR(error_opening_explicit_module_file,none,
-      "failed to open explicit Swift module: %0", (StringRef))
+      "failed to open explicit Codira module: %0", (StringRef))
 WARNING(warning_module_shadowing_may_break_module_interface,none,
         "public %0 %1 shadows module %2, which may cause failures when "
         "importing %3 or its clients in some configurations; please rename "
         "either the %0 %1 or the module %2, or see "
-        "https://github.com/apple/swift/issues/56573 for workarounds",
+        "https://github.com/apple/language/issues/56573 for workarounds",
         (DescriptiveDeclKind, FullyQualified<Type>,
         /*shadowedModule=*/ModuleDecl *, /*interfaceModule*/ModuleDecl *))
 REMARK(rebuilding_module_from_interface,none,
@@ -486,7 +479,7 @@ NOTE(compiled_module_invalid_reason,none,
      "unable to load compiled module '%0': %1",
      (StringRef, StringRef))
 ERROR(unknown_forced_module_loading_mode,none,
-      "unknown value for SWIFT_FORCE_MODULE_LOADING variable: '%0'",
+      "unknown value for LANGUAGE_FORCE_MODULE_LOADING variable: '%0'",
       (StringRef))
 ERROR(error_creating_remark_serializer,none,
       "error while creating remark serializer: '%0'", (StringRef))
@@ -520,23 +513,30 @@ REMARK(matching_output_produced,none,
       "produced matching output file '%0' for deterministic check: hash '%1'", (StringRef, StringRef))
 
 // Caching related diagnostics
-ERROR(error_caching_no_cas_fs, none,
-    "caching is enabled without -cas-fs option, input is not immutable", ())
+GROUPED_ERROR(error_caching_no_cas_fs, CompilationCaching, none,
+    "caching is enabled without CAS file-system options, input is not immutable", ())
 ERROR(error_prefix_mapping, none, "cannot create scanner prefix mapping: '%0'", (StringRef))
 
 REMARK(replay_output, none, "replay output file '%0': key '%1'", (StringRef, StringRef))
 REMARK(output_cache_miss, none, "cache miss for input file '%0': key '%1'", (StringRef, StringRef))
 
 // CAS related diagnostics
-ERROR(error_cas, none, "CAS error encountered: %0", (StringRef))
-WARNING(cache_replay_failed, none, "cache replay failed: %0", (StringRef))
+GROUPED_ERROR(error_invalid_cas_id, CompilationCaching, none, "CAS cannot parse id '%0': %1", (StringRef, StringRef))
+GROUPED_ERROR(error_cas, CompilationCaching, none, "CAS error encountered during %0: %1", (StringRef, StringRef))
+GROUPED_ERROR(error_cas_fs_creation, CompilationCaching, none, "cannot create CAS filesystem: %0", (StringRef))
+GROUPED_ERROR(error_cache_key_creation, CompilationCaching, none, "cannot create cache key for compilation %0: %1", (StringRef, StringRef))
+GROUPED_ERROR(error_cas_file_ref, CompilationCaching, none, "cannot load file %0 from CAS filesystem", (StringRef))
+GROUPED_ERROR(error_cas_conflict_options, CompilationCaching, none, "cannot setup CAS due to conflicting '-cas-*' options", ())
+GROUPED_ERROR(error_cas_initialization, CompilationCaching, none, "CAS cannot be initialized from the specified '-cas-*' options: %0", (StringRef))
+GROUPED_ERROR(error_cas_malformed_input, CompilationCaching, none, "CAS input '%0' is malformed: %1", (StringRef, StringRef))
+GROUPED_WARNING(cache_replay_failed, CompilationCaching, none, "cache replay failed: %0", (StringRef))
 
-ERROR(error_failed_cached_diag, none, "failed to serialize cached diagnostics: %0", (StringRef))
-ERROR(error_replay_cached_diag, none, "failed to replay cached diagnostics: %0", (StringRef))
+GROUPED_ERROR(error_failed_cached_diag, CompilationCaching, none, "failed to serialize cached diagnostics: %0", (StringRef))
+GROUPED_ERROR(error_replay_cached_diag, CompilationCaching, none, "failed to replay cached diagnostics: %0", (StringRef))
 
-ERROR(error_load_input_from_cas, none, "failed to load input '%0' from CAS", (StringRef))
+GROUPED_ERROR(error_load_input_from_cas, CompilationCaching, none, "failed to load input '%0' from CAS", (StringRef))
 
-ERROR(error_wrong_input_num_for_input_file_key, none, "-input-file-key only support one input file", ())
+GROUPED_ERROR(error_wrong_input_num_for_input_file_key, CompilationCaching, none, "-input-file-key only support one input file", ())
 
 // Dependency Verifier Diagnostics
 ERROR(missing_member_dependency,none,
@@ -577,9 +577,9 @@ ERROR(dont_enable_interop_and_compat,none,
 
 NOTE(valid_cxx_interop_modes,none,
       "valid arguments to '%0' are %1", (StringRef, StringRef))
-NOTE(swift_will_maintain_compat,none,
-     "Swift will maintain source compatibility for imported APIs based on the "
-     "selected compatibility mode, so updating the Swift compiler will not "
+NOTE(language_will_maintain_compat,none,
+     "Codira will maintain source compatibility for imported APIs based on the "
+     "selected compatibility mode, so updating the Codira compiler will not "
      "change how APIs are imported", ())
 WARNING(enable_interop_flag_deprecated,none,
         "the '-enable-experimental-cxx-interop' flag is deprecated; please pass "
@@ -590,15 +590,17 @@ ERROR(layout_string_instantiation_without_layout_strings,none,
       "without -enable-layout-string-value-witnesses.", ())
 
 ERROR(evolution_with_embedded,none,
-      "Library evolution cannot be enabled with embedded Swift.", ())
+      "Library evolution cannot be enabled with embedded Codira.", ())
 ERROR(wmo_with_embedded,none,
-      "Whole module optimization (wmo) must be enabled with embedded Swift.", ())
+      "Whole module optimization (wmo) must be enabled with embedded Codira.", ())
 ERROR(objc_with_embedded,none,
-      "Objective-C interoperability cannot be enabled with embedded Swift.", ())
+      "Objective-C interoperability cannot be enabled with embedded Codira.", ())
 ERROR(no_allocations_without_embedded,none,
-      "-no-allocations is only applicable with embedded Swift.", ())
-ERROR(no_swift_sources_with_embedded,none,
-      "embedded swift cannot be enabled in a compiler built without Swift sources", ())
+      "-no-allocations is only applicable with embedded Codira.", ())
+ERROR(min_ptr_value_without_embedded,none,
+      "-min-valid-pointer-value is only applicable with embedded Codira.", ())
+ERROR(no_language_sources_with_embedded,none,
+      "embedded language cannot be enabled in a compiler built without Codira sources", ())
 
 ERROR(package_cmo_requires_library_evolution, none,
         "Library evolution must be enabled for Package CMO", ())
@@ -620,6 +622,16 @@ ERROR(ast_format_requires_dump_ast,none,
 
 ERROR(unknown_dump_ast_format,none,
       "unknown format '%0' requested with '-dump-ast-format'", (StringRef))
+
+ERROR(dependency_scan_unexpected_variant, none,
+      "unexpected variant during dependency scanning on module '%0'", (StringRef))
+NOTE(dependency_scan_unexpected_variant_context_hash_note, none,
+     "first module context hash: '%0', second module context hash: '%1'", (StringRef, StringRef))
+NOTE(dependency_scan_unexpected_variant_module_map_note, none,
+     "first module module map: '%0', second module module map: '%1'", (StringRef, StringRef))
+NOTE(dependency_scan_unexpected_variant_extra_arg_note, none,
+     "%select{first|second}0 module command-line has extra argument: '%1'", (bool, StringRef))
+
 
 #define UNDEFINE_DIAGNOSTIC_MACROS
 #include "DefineDiagnosticMacros.h"

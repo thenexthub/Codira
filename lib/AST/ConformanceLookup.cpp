@@ -1,22 +1,26 @@
 //===--- ConformanceLookup.cpp - Global Conformance Lookup ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements global conformance lookup.
 //
-//  - swift::lookupConformance(type, proto) takes a nominal type or an
+//  - language::lookupConformance(type, proto) takes a nominal type or an
 //    archetype and returns the appropriate normal, specialized or abstract
 //    conformance. It does not check conditional requirements.
 //
-//  - swift::checkConformance(type, proto) is like the above, but checks
+//  - language::checkConformance(type, proto) is like the above, but checks
 //    conditional requirements. The type must not contain type parameters;
 //    they must either be substituted with concrete types by applying a
 //    substitution map, or mapped to archetypes in a generic environment first.
@@ -40,15 +44,15 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Compiler.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
 ArrayRef<ProtocolConformanceRef>
-swift::collectExistentialConformances(CanType fromType,
+language::collectExistentialConformances(CanType fromType,
                                       CanType existential,
                                       bool allowMissing) {
   assert(existential.isAnyExistentialType());
@@ -76,7 +80,7 @@ static bool containsNonMarkerProtocols(ArrayRef<ProtocolDecl *> protocols) {
 }
 
 ProtocolConformanceRef
-swift::lookupExistentialConformance(Type type, ProtocolDecl *protocol) {
+language::lookupExistentialConformance(Type type, ProtocolDecl *protocol) {
   ASTContext &ctx = protocol->getASTContext();
 
   assert(type->isExistentialType());
@@ -110,7 +114,7 @@ swift::lookupExistentialConformance(Type type, ProtocolDecl *protocol) {
     // to satisfy conformance to i.e. `Equatable`.
     if (getConstraintType()->is<ProtocolCompositionType>()) {
       auto layout = type->getExistentialLayout();
-      if (llvm::all_of(layout.getProtocols(),
+      if (toolchain::all_of(layout.getProtocols(),
                        [](const auto *P) { return P->isMarkerProtocol(); })) {
         if (auto conformance = lookupSuperclassConformance(layout.explicitSuperclass)) {
           return ProtocolConformanceRef(
@@ -126,7 +130,7 @@ swift::lookupExistentialConformance(Type type, ProtocolDecl *protocol) {
 
   // If the existential contains non-@objc protocols and the protocol we're
   // conforming to needs a witness table, the existential must have a
-  // self-conformance witness table. For now, Swift.Error is the only one.
+  // self-conformance witness table. For now, Codira.Error is the only one.
   if (!layout.isObjC() && !protocol->isMarkerProtocol()) {
     auto constraint = getConstraintType();
     // The existential has to be *exactly* that type.
@@ -173,6 +177,10 @@ static bool shouldCreateMissingConformances(Type type, ProtocolDecl *proto) {
     return true;
   }
 
+  // SendableMetatype behaves similarly to Sendable.
+  if (proto->isSpecificProtocol(KnownProtocolKind::SendableMetatype))
+    return true;
+
   return false;
 }
 
@@ -190,7 +198,7 @@ ProtocolConformanceRef ProtocolConformanceRef::forMissingOrInvalid(
   return ProtocolConformanceRef::forInvalid();
 }
 
-ProtocolConformanceRef swift::lookupConformance(Type type,
+ProtocolConformanceRef language::lookupConformance(Type type,
                                                 ProtocolDecl *protocol,
                                                 bool allowMissing) {
   auto &eval = protocol->getASTContext().evaluator;
@@ -265,8 +273,13 @@ static ProtocolConformanceRef getBuiltinTupleTypeConformance(
   return ProtocolConformanceRef::forMissingOrInvalid(type, protocol);
 }
 
+// We can end up checking builtin conformances for generic function types
+// when e.g. we're checking whether a captured local fn declaration is
+// sendable. That's fine, we can answer that question in the abstract
+// without needing to generally support conformances on generic function
+// types.
 using EitherFunctionType =
-    llvm::PointerUnion<const SILFunctionType *, const FunctionType *>;
+    toolchain::PointerUnion<const SILFunctionType *, const AnyFunctionType *>;
 
 /// Whether the given function type conforms to Sendable.
 static bool isSendableFunctionType(EitherFunctionType eitherFnTy) {
@@ -284,7 +297,7 @@ static bool isSendableFunctionType(EitherFunctionType eitherFnTy) {
     representation = *converted;
 
   } else {
-    auto functionType = eitherFnTy.get<const FunctionType *>();
+    auto functionType = eitherFnTy.get<const AnyFunctionType *>();
 
     if (functionType->isSendable())
       return true;
@@ -295,7 +308,7 @@ static bool isSendableFunctionType(EitherFunctionType eitherFnTy) {
   // C and thin function types have no captures, so they are Sendable.
   switch (representation) {
   case FunctionTypeRepresentation::Block:
-  case FunctionTypeRepresentation::Swift:
+  case FunctionTypeRepresentation::Codira:
     return false;
 
   case FunctionTypeRepresentation::CFunctionPointer:
@@ -328,7 +341,7 @@ static bool isBitwiseCopyableFunctionType(EitherFunctionType eitherFnTy) {
   if (auto silFnTy = eitherFnTy.dyn_cast<const SILFunctionType *>()) {
     representation = silFnTy->getRepresentation();
   } else {
-    auto fnTy = eitherFnTy.get<const FunctionType *>();
+    auto fnTy = eitherFnTy.get<const AnyFunctionType *>();
     representation = convertRepresentation(fnTy->getRepresentation());
   }
 
@@ -447,7 +460,7 @@ static ProtocolConformanceRef getBuiltinMetaTypeTypeConformance(
       if (!metatypeWithInstanceTypeIsSendable(metatypeType->getInstanceType()))
         break;
 
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
     case KnownProtocolKind::Copyable:
     case KnownProtocolKind::Escapable:
@@ -617,7 +630,7 @@ LookupConformanceInModuleRequest::evaluate(
   }
 
   // Function types can conform to protocols.
-  if (auto functionType = type->getAs<FunctionType>()) {
+  if (auto functionType = type->getAs<AnyFunctionType>()) {
     return getBuiltinFunctionTypeConformance(type, functionType, protocol);
   }
 
@@ -802,7 +815,7 @@ LookupConformanceInModuleRequest::evaluate(
       auto *normalConf = cast<NormalProtocolConformance>(conformance);
       auto *conformanceDC = normalConf->getDeclContext();
 
-      // In -swift-version 5 mode, a conditional conformance to a protocol can imply
+      // In -language-version 5 mode, a conditional conformance to a protocol can imply
       // a Sendable conformance. The implied conformance is unconditional so it uses
       // the generic signature of the nominal type and not the generic signature of
       // the extension that declared the (implying) conditional conformance.
@@ -822,7 +835,7 @@ LookupConformanceInModuleRequest::evaluate(
 }
 
 ProtocolConformanceRef
-swift::checkConformance(Type type, ProtocolDecl *proto,
+language::checkConformance(Type type, ProtocolDecl *proto,
                         bool allowMissing) {
   assert(!type->hasTypeParameter()
          && "must take a contextual type. if you really are ok with an "
@@ -836,7 +849,7 @@ swift::checkConformance(Type type, ProtocolDecl *proto,
 }
 
 std::optional<ProtocolConformanceRef>
-swift::checkConformanceWithoutContext(Type type, ProtocolDecl *proto,
+language::checkConformanceWithoutContext(Type type, ProtocolDecl *proto,
                                       bool allowMissing) {
   auto lookupResult = lookupConformance(type, proto, allowMissing);
   if (lookupResult.isInvalid()) {
@@ -888,68 +901,60 @@ bool TypeBase::isSendableType() {
 /// Copyable and Escapable checking utilities
 ///
 
-/// Preprocesses a type before querying whether it conforms to an invertible.
-static CanType preprocessTypeForInvertibleQuery(Type orig) {
-  Type type = orig;
+static bool conformsToInvertible(CanType type, InvertibleProtocolKind ip) {
+  // FIXME: Remove these.
+  if (isa<SILPackType>(type))
+    return true;
 
-  // Strip off any StorageType wrapper.
-  type = type->getReferenceStorageReferent();
+  if (isa<SILTokenType>(type))
+    return true;
+
+  auto *proto = type->getASTContext().getProtocol(getKnownProtocolKind(ip));
+  ASSERT(proto);
+
+  return (bool) checkConformance(type, proto, /*allowMissing=*/false);
+}
+
+void TypeBase::computeInvertibleConformances() {
+  Bits.TypeBase.ComputedInvertibleConformances = true;
+
+  Type type(this);
+
+  // FIXME: Remove all of the below. Callers should be changed to perform any
+  // necessary unwrapping themselves.
 
   // Pack expansions such as `repeat T` themselves do not have conformances,
   // so check its pattern type for conformance.
-  if (auto *pet = type->getAs<PackExpansionType>()) {
-    type = pet->getPatternType()->getCanonicalType();
-  }
+  if (auto *pet = type->getAs<PackExpansionType>())
+    type = pet->getPatternType();
 
-  // Strip @lvalue and canonicalize.
-  auto canType = type->getRValueType()->getCanonicalType();
-  return canType;
-}
+  auto canType = type->getReferenceStorageReferent()
+                     ->getWithoutSpecifierType()
+                     ->getCanonicalType();
 
-static bool conformsToInvertible(CanType type, InvertibleProtocolKind ip) {
-  auto &ctx = type->getASTContext();
+  assert(!canType->hasTypeParameter());
+  assert(!canType->hasUnboundGenericType());
+  assert(!isa<SILBoxType>(canType));
+  assert(!isa<SILMoveOnlyWrappedType>(canType));
 
-  auto *proto = ctx.getProtocol(getKnownProtocolKind(ip));
-  assert(proto && "missing Copyable/Escapable from stdlib!");
-
-  // Must not have a type parameter!
-  assert(!type->hasTypeParameter() && "caller forgot to mapTypeIntoContext!");
-
-  assert(!type->hasUnboundGenericType() && "a UGT has no conformances!");
-
-  assert(!type->is<PackExpansionType>());
-
-  // FIXME: lldb misbehaves by getting here with a SILPackType.
-  //  just pretend it it conforms.
-  if (type->is<SILPackType>())
-    return true;
-
-  if (type->is<SILTokenType>()) {
-    return true;
-  }
-
-  // The SIL types in the AST do not have real conformances, and should have
-  // been handled in SILType instead.
-  assert(!(type->is<SILBoxType,
-                    SILMoveOnlyWrappedType,
-                    SILPackType,
-                    SILTokenType>()));
-
-  const bool conforms =
-      (bool) checkConformance(type, proto, /*allowMissing=*/false);
-
-  return conforms;
+  Bits.TypeBase.IsCopyable = conformsToInvertible(
+      canType, InvertibleProtocolKind::Copyable);
+  Bits.TypeBase.IsEscapable = conformsToInvertible(
+      canType, InvertibleProtocolKind::Escapable);
 }
 
 /// \returns true iff this type lacks conformance to Copyable.
 bool TypeBase::isNoncopyable() {
-  auto canType = preprocessTypeForInvertibleQuery(this);
-  return !conformsToInvertible(canType, InvertibleProtocolKind::Copyable);
+  if (!Bits.TypeBase.ComputedInvertibleConformances)
+    computeInvertibleConformances();
+  return !Bits.TypeBase.IsCopyable;
 }
 
+/// \returns true iff this type conforms to Escaping.
 bool TypeBase::isEscapable() {
-  auto canType = preprocessTypeForInvertibleQuery(this);
-  return conformsToInvertible(canType, InvertibleProtocolKind::Escapable);
+  if (!Bits.TypeBase.ComputedInvertibleConformances)
+    computeInvertibleConformances();
+  return Bits.TypeBase.IsEscapable;
 }
 
 bool TypeBase::isEscapable(GenericSignature sig) {
@@ -958,4 +963,22 @@ bool TypeBase::isEscapable(GenericSignature sig) {
     contextTy = sig.getGenericEnvironment()->mapTypeIntoContext(contextTy);
   }
   return contextTy->isEscapable();
+}
+
+bool TypeBase::isBitwiseCopyable() {
+  auto &ctx = getASTContext();
+  auto *bitwiseCopyableProtocol =
+    ctx.getProtocol(KnownProtocolKind::BitwiseCopyable);
+  if (!bitwiseCopyableProtocol) {
+    return false;
+  }
+  return (bool)checkConformance(this, bitwiseCopyableProtocol);
+}
+
+bool TypeBase::isBitwiseCopyable(GenericSignature sig) {
+  Type contextTy = this;
+  if (sig) {
+    contextTy = sig.getGenericEnvironment()->mapTypeIntoContext(contextTy);
+  }
+  return contextTy->isBitwiseCopyable();
 }

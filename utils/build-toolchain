@@ -2,13 +2,13 @@
 #
 # utils/build-toolchain - documents process for building a toolchain
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 function usage() {
   echo "$0 <bundle_prefix> [OPTIONS]"
@@ -63,11 +63,11 @@ NO_ASSERTIONS=
 
 case $(uname -s) in
   Darwin)
-    SWIFT_PACKAGE=buildbot_osx_package
+    LANGUAGE_PACKAGE=buildbot_osx_package
     OS_SUFFIX=osx
   ;;
   Linux)
-    SWIFT_PACKAGE=buildbot_linux
+    LANGUAGE_PACKAGE=buildbot_linux
     OS_SUFFIX=linux
   ;;
   *)
@@ -138,19 +138,19 @@ YEAR=$(date +"%Y")
 MONTH=$(date +"%m")
 DAY=$(date +"%d")
 TOOLCHAIN_VERSION="5.8.${YEAR}${MONTH}${DAY}"
-TOOLCHAIN_NAME="swift-LOCAL-${YEAR}-${MONTH}-${DAY}-a"
+TOOLCHAIN_NAME="language-LOCAL-${YEAR}-${MONTH}-${DAY}-a"
 DARWIN_TOOLCHAIN_VERSION="0.0.${YEAR}${MONTH}${DAY}"
 ARCHIVE="${TOOLCHAIN_NAME}-${OS_SUFFIX}.tar.gz"
 SYM_ARCHIVE="${TOOLCHAIN_NAME}-${OS_SUFFIX}-symbols.tar.gz"
 BUNDLE_PREFIX=${BUNDLE_PREFIX:?Please specify a bundle prefix}
 BUNDLE_IDENTIFIER="${BUNDLE_PREFIX}.${YEAR}${MONTH}${DAY}"
-DISPLAY_NAME_SHORT="Local Swift Development Snapshot"
+DISPLAY_NAME_SHORT="Local Codira Development Snapshot"
 DISPLAY_NAME="${DISPLAY_NAME_SHORT} ${YEAR}-${MONTH}-${DAY}"
 
-SWIFT_INSTALLABLE_PACKAGE="${RESULT_DIR}/${ARCHIVE}"
-SWIFT_INSTALL_DIR="${RESULT_DIR}/swift-nightly-install"
-SWIFT_INSTALL_SYMROOT="${RESULT_DIR}/swift-nightly-symroot"
-SWIFT_TOOLCHAIN_DIR="/Library/Developer/Toolchains/${TOOLCHAIN_NAME}.xctoolchain"
+LANGUAGE_INSTALLABLE_PACKAGE="${RESULT_DIR}/${ARCHIVE}"
+LANGUAGE_INSTALL_DIR="${RESULT_DIR}/language-nightly-install"
+LANGUAGE_INSTALL_SYMROOT="${RESULT_DIR}/language-nightly-symroot"
+LANGUAGE_TOOLCHAIN_DIR="/Library/Developer/Toolchains/${TOOLCHAIN_NAME}.xctoolchain"
 SYMBOLS_PACKAGE="${RESULT_DIR}/${SYM_ARCHIVE}"
 DRY_RUN="${DRY_RUN}"
 DISTCC_FLAG="${DISTCC_FLAG}"
@@ -159,11 +159,11 @@ SCCACHE_FLAG="${SCCACHE_FLAG}"
 
 ./utils/build-script ${DRY_RUN} ${DISTCC_FLAG} ${PRESET_FILE_FLAGS} \
         ${SCCACHE_FLAG} \
-        --preset="${PRESET_PREFIX}${SWIFT_PACKAGE}${NO_ASSERTIONS}${NO_TEST}${USE_OS_RUNTIME}${MACOS_ONLY}" \
-        install_destdir="${SWIFT_INSTALL_DIR}" \
-        installable_package="${SWIFT_INSTALLABLE_PACKAGE}" \
-        install_toolchain_dir="${SWIFT_TOOLCHAIN_DIR}" \
-        install_symroot="${SWIFT_INSTALL_SYMROOT}" \
+        --preset="${PRESET_PREFIX}${LANGUAGE_PACKAGE}${NO_ASSERTIONS}${NO_TEST}${USE_OS_RUNTIME}${MACOS_ONLY}" \
+        install_destdir="${LANGUAGE_INSTALL_DIR}" \
+        installable_package="${LANGUAGE_INSTALLABLE_PACKAGE}" \
+        install_toolchain_dir="${LANGUAGE_TOOLCHAIN_DIR}" \
+        install_symroot="${LANGUAGE_INSTALL_SYMROOT}" \
         symbols_package="${SYMBOLS_PACKAGE}" \
         darwin_toolchain_bundle_identifier="${BUNDLE_IDENTIFIER}" \
         darwin_toolchain_display_name="${DISPLAY_NAME}" \

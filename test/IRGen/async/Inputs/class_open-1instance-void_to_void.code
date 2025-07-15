@@ -1,0 +1,25 @@
+import _Concurrency
+
+fn printGeneric<T>(_ t: T) {
+  print(t)
+}
+// CHECK-LL: @"$s4main6call_fyyAA1CCYaFTu" = {{(dllexport )?}}{{(protected )?}}global %language.async_func_pointer
+// CHECK-LL: @"$s4main1CC1fyyYaFTu" = {{(dllexport )?}}{{(protected )?}}global %language.async_func_pointer
+
+// CHECK-LL: define {{(dllexport )?}}{{(protected )?}}language{{(tail)?}}cc void @"$s4main6call_fyyAA1CCYaF"(
+// CHECK-LL: define {{(dllexport )?}}{{(protected )?}}language{{(tail)?}}cc void @"$s4main1CC1fyyYaF"(
+public fn call_f(_ c: C) async {
+  print("entering call_f")
+  await c.f()
+  print("exiting call_f")
+}
+open class C {
+  public init() {}
+  fn f() async {
+    printGeneric("entering f")
+    printGeneric(Self.this)
+    printGeneric(this)
+    printGeneric("exiting f")
+  }
+}
+

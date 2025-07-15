@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include <Foundation/Foundation.h>
 #include "language/Runtime/Config.h"
 
-SWIFT_CC(swift) SWIFT_RUNTIME_LIBRARY_VISIBILITY
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_LIBRARY_VISIBILITY
 extern "C" void
 NSArray_getObjects(NSArray *_Nonnull nsArray,
                    id *objects, NSUInteger rangeLocation,
@@ -24,7 +25,7 @@ NSArray_getObjects(NSArray *_Nonnull nsArray,
   [nsArray getObjects:objects range:NSMakeRange(rangeLocation, rangeLength)];
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_LIBRARY_VISIBILITY
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_LIBRARY_VISIBILITY
 extern "C" void
 NSDictionary_getObjectsAndKeysWithCount(NSDictionary *_Nonnull nsDictionary,
                                         id *objects, id *keys,

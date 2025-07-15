@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -disable-availability-checking -target arm64_32-apple-watchos7 %s -S | %FileCheck  -check-prefix=NEVER %s
+// RUN: %target-language-frontend -disable-availability-checking -target arm64_32-apple-watchos8 %s -S | %FileCheck  -check-prefix=ALWAYS %s
+// RUN: %target-language-frontend -disable-availability-checking -target arm64_32-apple-watchos7  -language-async-frame-pointer=always %s -S | %FileCheck  -check-prefix=ALWAYS %s
+// RUN: %target-language-frontend -disable-availability-checking -target arm64_32-apple-watchos7  -language-async-frame-pointer=never %s -S | %FileCheck  -check-prefix=NEVER %s
+// RUN: %target-language-frontend -disable-availability-checking -target arm64_32-apple-watchos7  -language-async-frame-pointer=auto %s -S | %FileCheck  -check-prefix=AUTO %s
+
+// REQUIRES: OS=watchos || OS=watchossimulator
+// REQUIRES: CODEGENERATOR=AArch64
+
+@_silgen_name("forward_function")
+fn forwardFunction()
+
+public fn someAsyncFunction() async { forwardFunction() }
+
+// AUTO: language_async_extendedFramePointerFlags
+
+// ALWAYS-NOT: language_async_extendedFramePointerFlags
+// ALWAYS: 0x1000000000000000
+// ALWAYS-NOT: language_async_extendedFramePointerFlags
+
+// NEVER-NOT: language_async_extendedFramePointerFlags
+// NEVER-NOT: 0x1000000000000000

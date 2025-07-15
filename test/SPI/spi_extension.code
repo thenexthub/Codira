@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -module-name Lib -I %t \
+// RUN:   -emit-module-path %t/Lib.codemodule
+
+// RUN: %target-language-frontend -typecheck -verify %t/Client.code -I %t
+
+
+//--- Lib.code
+@_spi(core)
+public protocol SPIProto {
+  fn foo()
+}
+
+@_spi(core)
+extension SPIProto {
+  public fn foo() {}
+}
+
+//--- Client.code
+
+@_spi(core) import Lib
+
+public class Klass {}
+
+@_spi(core)
+extension Klass: SPIProto {
+  fn bar() {}
+}

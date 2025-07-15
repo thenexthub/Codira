@@ -1,13 +1,17 @@
 //===--- TangentBuilder.cpp - Tangent SIL builder ------------*- C++ -*----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a helper class for emitting tangent code for automatic
@@ -167,7 +171,7 @@ void TangentBuilder::emitAddIntoBuffer(SILLocation loc,
 }
 
 SILValue TangentBuilder::emitAdd(SILLocation loc, SILValue lhs, SILValue rhs) {
-  LLVM_DEBUG(getADDebugStream() << "Emitting adjoint accumulation for lhs: "
+  TOOLCHAIN_DEBUG(getADDebugStream() << "Emitting adjoint accumulation for lhs: "
                                 << lhs << " and rhs: " << rhs);
   assert(lhs->getType() == rhs->getType() && "Adjoints must have equal types!");
   assert(lhs->getType().isObject() && rhs->getType().isObject() &&

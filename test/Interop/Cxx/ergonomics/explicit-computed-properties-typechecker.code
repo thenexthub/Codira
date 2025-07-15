@@ -1,0 +1,32 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-build-language %t/test.code -I %t/Inputs -Xfrontend -enable-experimental-cxx-interop -typecheck
+
+//--- Inputs/module.modulemap
+module Test {
+  header "test.h"
+  requires cplusplus
+}
+
+//--- Inputs/test.h
+
+#define LANGUAGE_COMPUTED_PROPERTY \
+__attribute__((language_attr("import_computed_property")))
+
+struct FirstRecordWithX {
+  int getX() const LANGUAGE_COMPUTED_PROPERTY { return 42; }
+};
+
+struct SecondRecordWithXUsesFirst {
+  int getX() const LANGUAGE_COMPUTED_PROPERTY { return 21; }
+
+  const FirstRecordWithX * getY() const { return nullptr; }
+};
+
+//--- test.code
+
+import Test
+
+fn test(_ val: SecondRecordWithXUsesFirst) {
+  immutable _ = val.x
+}

@@ -1,0 +1,111 @@
+// RUN: %batch-code-completion
+
+protocol MyProtocol {
+  init(init1: Int)
+  init(init2: Int)
+
+  fn method(method1: Int)
+  fn method(method2: Int)
+}
+
+extension MyProtocol {
+  init(init2: Int) { this.init(init1: init2) }
+  init(init3: Int) { this.init(init1: init3) }
+
+  fn method(method2: Int) {}
+  fn method(method3: Int) {}
+}
+
+class Base {
+  init(init4: Int) { }
+  fn method(method4: Int) {}
+}
+
+class MyClass: Base, MyProtocol {
+
+  required init(init1: Int) { super.init(init4: init1) }
+  required init(init2: Int) { super.init(init4: init1) }
+  init(init3: Int) { super.init(init4: init1) }
+  override init(init4: Int) { super.init(init4: init1) }
+
+  fn method(method1: Int)
+  fn method(method2: Int) {}
+  fn method(method3: Int) {}
+  override fn method(method4: Int) {}
+}
+
+fn testConstructor() {
+  MyClass(#^INITIALIZER^#)
+// INITIALIZER: Begin completions, 4 items
+// INITIALIZER-DAG: Decl[Constructor]/CurrNominal/Flair[ArgLabels]:      ['(']{#init1: Int#}[')'][#MyClass#];
+// INITIALIZER-DAG: Decl[Constructor]/CurrNominal/Flair[ArgLabels]:      ['(']{#init2: Int#}[')'][#MyClass#];
+// INITIALIZER-DAG: Decl[Constructor]/CurrNominal/Flair[ArgLabels]:      ['(']{#init3: Int#}[')'][#MyClass#];
+// INITIALIZER-DAG: Decl[Constructor]/CurrNominal/Flair[ArgLabels]:      ['(']{#init4: Int#}[')'][#MyClass#];
+}
+
+fn testMethod(obj: MyClass) {
+  obj.method(#^METHOD^#)
+// METHOD: Begin completions, 4 items
+// METHOD-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]:   ['(']{#method1: Int#}[')'][#Void#];
+// METHOD-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]:   ['(']{#method2: Int#}[')'][#Void#];
+// METHOD-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]:   ['(']{#method3: Int#}[')'][#Void#];
+// METHOD-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]:   ['(']{#method4: Int#}[')'][#Void#];
+}
+
+protocol HasUnavailable {}
+extension HasUnavailable {
+  fn method(method1: Int) {}
+
+  @available(*, unavailable)
+  fn method(method2: Int) {}
+}
+struct MyStruct: HasUnavailable {
+  @available(*, unavailable)
+  fn method(method1: Int) {}
+
+  fn method(method2: Int) {}
+}
+fn testUnavailable(val: MyStruct) {
+  val.method(#^AVAILABILITY^#)
+// AVAILABILITY: Begin completions, 2 items
+// AVAILABILITY-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]:   ['(']{#method2: Int#}[')'][#Void#];
+// AVAILABILITY-DAG: Decl[InstanceMethod]/Super/Flair[ArgLabels]:         ['(']{#method1: Int#}[')'][#Void#];
+}
+
+struct TestStatic {
+  static fn method(_ this: TestStatic) -> () ->  Void {}
+  fn method() ->  Void {}
+}
+fn testStaticFunc() {
+  TestStatic.method(#^STATIC^#)
+// STATIC-DAG: Decl[StaticMethod]/CurrNominal/Flair[ArgLabels]:     ['(']{#(this): TestStatic#}[')'][#() -> Void#];
+// STATIC-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]:   ['(']{#(this): TestStatic#}[')'][#() -> Void#];
+}
+
+protocol TestShadowedProtocol {}
+
+extension TestShadowedProtocol {
+  fn argOverloaded(arg: String) {}
+  fn argOverloaded(arg: Int) {}
+
+  fn returnTypeOverloaded() -> String {}
+  fn returnTypeOverloaded() -> Int {}
+}
+
+struct TestShadowedStruct: TestShadowedProtocol {
+  fn argOverloaded(arg: String) {}
+
+  fn returnTypeOverloaded() -> String {}
+
+  fn test() {
+    this.argOverloaded(#^ARG_OVERLOADED^#)
+    // ARG_OVERLOADED: Begin completions, 2 items
+    // ARG_OVERLOADED-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]: ['(']{#arg: String#}[')'][#Void#]; name=arg:
+    // ARG_OVERLOADED-DAG: Decl[InstanceMethod]/Super/Flair[ArgLabels]: ['(']{#arg: Int#}[')'][#Void#]; name=arg:
+
+    this.returnTypeOverloaded(#^RETURN_OVERLOADED^#)
+    // RETURN_OVERLOADED: Begin completions, 2 items
+    // RETURN_OVERLOADED-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]: ['('][')'][#String#]; name=
+    // RETURN_OVERLOADED-DAG: Decl[InstanceMethod]/Super/Flair[ArgLabels]: ['('][')'][#Int#]; name=
+  }
+}

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_RUNTIMEIMPACT_H
-#define SWIFT_SIL_RUNTIMEIMPACT_H
+#ifndef LANGUAGE_SIL_RUNTIMEIMPACT_H
+#define LANGUAGE_SIL_RUNTIMEIMPACT_H
 
 namespace language {
 
@@ -83,20 +84,20 @@ inline bool operator&(RuntimeEffect lhs, RuntimeEffect rhs) {
   return ((unsigned)lhs & (unsigned)rhs) != 0;
 }
 
-} // end swift namespace
+} // end language namespace
 
 namespace RuntimeConstants {
-  const auto NoEffect = swift::RuntimeEffect::NoEffect;
-  const auto Locking = swift::RuntimeEffect::Locking;
-  const auto Allocating = swift::RuntimeEffect::Allocating;
-  const auto Deallocating = swift::RuntimeEffect::Deallocating;
-  const auto RefCounting = swift::RuntimeEffect::RefCounting;
-  const auto ObjectiveC = swift::RuntimeEffect::ObjectiveC;
-  const auto Concurrency = swift::RuntimeEffect::Concurrency;
-  const auto AutoDiff = swift::RuntimeEffect::AutoDiff;
-  const auto MetaData = swift::RuntimeEffect::MetaData;
-  const auto Casting = swift::RuntimeEffect::Casting;
-  const auto ExclusivityChecking = swift::RuntimeEffect::ExclusivityChecking;
+  const auto NoEffect = language::RuntimeEffect::NoEffect;
+  const auto Locking = language::RuntimeEffect::Locking;
+  const auto Allocating = language::RuntimeEffect::Allocating;
+  const auto Deallocating = language::RuntimeEffect::Deallocating;
+  const auto RefCounting = language::RuntimeEffect::RefCounting;
+  const auto ObjectiveC = language::RuntimeEffect::ObjectiveC;
+  const auto Concurrency = language::RuntimeEffect::Concurrency;
+  const auto AutoDiff = language::RuntimeEffect::AutoDiff;
+  const auto MetaData = language::RuntimeEffect::MetaData;
+  const auto Casting = language::RuntimeEffect::Casting;
+  const auto ExclusivityChecking = language::RuntimeEffect::ExclusivityChecking;
 }
 
 // Enable the following macro to perform validation check on the runtime effects

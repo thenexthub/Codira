@@ -1,0 +1,7 @@
+// {"signature":"substPrefixType(language::Type, unsigned int, language::Type, language::GenericSignature)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  protocol a{associatedtype b} extension a {
+    extension a {
+      struct c {
+        d : b

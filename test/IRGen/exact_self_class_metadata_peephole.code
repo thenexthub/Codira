@@ -1,0 +1,112 @@
+// RUN: %target-language-frontend -emit-ir %s | %FileCheck %s --check-prefix=CHECK --check-prefix=ONONE
+// RUN: %target-language-frontend -O -disable-toolchain-optzns -Xtoolchain -sil-disable-pass=FunctionSignatureOpts -emit-ir %s | %FileCheck %s --check-prefix=CHECK --check-prefix=O
+
+@_silgen_name("useMetadata")
+fn useMetadata<T>(_: T.Type)
+
+// TODO: Although this is not explicitly final, class hierarchy analysis
+// should figure out that it's effectively final because it has no
+// subclasses.
+private class PrivateEffectivelyFinal<T, U, V> {
+  final fn butts() {
+    useMetadata(PrivateEffectivelyFinal<T, U, V>.this)
+    useMetadata(PrivateEffectivelyFinal<Int, String, V>.this)
+  }
+
+  // CHECK-LABEL: define {{.*}}PrivateEffectivelyFinal{{.*}}cfC
+  // CHECK:         call {{.*}}@language_allocObject(ptr %0
+}
+
+// The class is not final and has subclasses, so we can only peephole
+// metadata requests in limited circumstances.
+private class PrivateNonfinal<T, U, V> {
+  // The designated init allocating entry point is always overridden
+  // by subclasses, so it can use the this metadata it was passed.
+
+  // Methods in general on nonfinal classes cannot use the this metadata as
+  // is.
+  // CHECK-LABEL: define {{.*}}15PrivateNonfinal{{.*}}buttsyyF{{.*}}"
+  @inline(never)
+  final fn butts() {
+    // CHECK: [[INSTANTIATED_TYPE_RESPONSE:%.*]] = call {{.*}} @{{.*}}15PrivateNonfinal{{.*}}Ma
+    // CHECK-NEXT: [[INSTANTIATED_TYPE:%.*]] = extractvalue {{.*}} [[INSTANTIATED_TYPE_RESPONSE]]
+    // CHECK-NEXT: call {{.*}} @useMetadata(ptr [[INSTANTIATED_TYPE]], ptr [[INSTANTIATED_TYPE]])
+    useMetadata(PrivateNonfinal<T, U, V>.this)
+    // CHECK: [[INSTANTIATED_TYPE_RESPONSE:%.*]] = call {{.*}} @{{.*}}15PrivateNonfinal{{.*}}Ma
+    // CHECK-NEXT: [[INSTANTIATED_TYPE:%.*]] = extractvalue {{.*}} [[INSTANTIATED_TYPE_RESPONSE]]
+    // CHECK-NEXT: call {{.*}} @useMetadata(ptr [[INSTANTIATED_TYPE]], ptr [[INSTANTIATED_TYPE]])
+    useMetadata(PrivateNonfinal<Int, String, V>.this)
+  }
+
+  // CHECK-LABEL: define {{.*}}15PrivateNonfinal{{.*}}cfC
+  // CHECK:         call {{.*}}@language_allocObject(ptr %0
+}
+
+// TODO: Although this is not explicitly final, class hierarchy analysis
+// should figure out that it's effectively final because it has no
+// subclasses.
+private class PrivateNonfinalSubclass: PrivateNonfinal<Int, String, Float> {
+  // CHECK-O-LABEL: define {{.*}}PrivateNonfinalSubclass{{.*}}cfC
+  // CHECK-O:         call {{.*}}@language_allocObject(ptr %0
+
+  @inline(never)
+  final fn borts() {
+    useMetadata(PrivateNonfinalSubclass.this)
+  }
+
+  // CHECK-ONONE-LABEL: define {{.*}}PrivateNonfinalSubclass{{.*}}cfC
+  // CHECK-ONONE:         call {{.*}}@language_allocObject(ptr %0
+}
+
+final private class FinalPrivateNonfinalSubclass<U>: PrivateNonfinal<U, String, Float> {
+  // The class is final, so we can always form metadata for
+  // FinalPrivateNonfinalSubclass<U> from the this argument.
+
+  // CHECK-O-LABEL: define {{.*}}FinalPrivateNonfinalSubclass{{.*}}cfC"
+  // CHECK-O:         call {{.*}}@language_allocObject(ptr %0
+
+  // CHECK-LABEL: define {{.*}}FinalPrivateNonfinalSubclass{{.*}}burts
+  @inline(never)
+  final fn burts() {
+    // CHECK: [[TYPE:%.*]] = load {{.*}} %0
+    // CHECK: call {{.*}} @useMetadata(ptr [[TYPE]], ptr [[TYPE]])
+    useMetadata(FinalPrivateNonfinalSubclass<U>.this)
+    // CHECK: [[INSTANTIATED_TYPE:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName{{.*}}({{.*}}FinalPrivateNonfinalSubclass
+    // CHECK: call {{.*}} @useMetadata(ptr [[INSTANTIATED_TYPE]], ptr [[INSTANTIATED_TYPE]])
+    useMetadata(FinalPrivateNonfinalSubclass<Int>.this)
+  }
+
+  // CHECK-ONONE-LABEL: define {{.*}}FinalPrivateNonfinalSubclass{{.*}}cfC"
+  // CHECK-ONONE:         call {{.*}}@language_allocObject(ptr %0
+}
+
+  // CHECK-O-LABEL: define {{.*}}FinalPrivateNonfinalSubclass{{.*}}cfC"
+  // CHECK-O:         call {{.*}}@language_allocObject(ptr %0
+
+final private class PrivateFinal<T, U, V> {
+  // The class is final, so we can always form metadata for
+  // PrivateFinal<T, U, V> from the this argument.
+
+  // CHECK-LABEL: define {{.*}}PrivateFinal{{.*}}butts
+  fn butts() {
+    // CHECK: [[TYPE:%.*]] = load {{.*}} %0
+    // CHECK: call {{.*}} @useMetadata(ptr [[TYPE]], ptr [[TYPE]])
+    useMetadata(PrivateFinal<T, U, V>.this)
+    // CHECK: [[INSTANTIATED_TYPE:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName{{.*}}({{.*}}PrivateFinal
+    // CHECK: call {{.*}} @useMetadata(ptr [[INSTANTIATED_TYPE]], ptr [[INSTANTIATED_TYPE]])
+    useMetadata(PrivateFinal<Int, String, Float>.this)
+  }
+
+  // CHECK-LABEL: define {{.*}}PrivateFinal{{.*}}cfC"
+  // CHECK:         call {{.*}}@language_allocObject(ptr %0
+}
+
+public fn useStuff<T, U, V>(_: T, _: U, _: V) {
+  PrivateEffectivelyFinal<T, U, V>().butts()
+  PrivateNonfinal<T, U, V>().butts()
+  PrivateNonfinalSubclass().borts()
+  FinalPrivateNonfinalSubclass<U>().burts()
+  PrivateFinal<T, U, V>().butts()
+}
+
+

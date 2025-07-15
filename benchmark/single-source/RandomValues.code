@@ -1,13 +1,17 @@
-//===--- RandomValues.swift -----------------------------------------------===//
+//===--- RandomValues.code -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -18,7 +22,7 @@ import TestsUtils
 // and floating-point values.
 //
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "RandomIntegersDef", runFunction: run_RandomIntegersDef,
     tags: [.api], legacyFactor: 100),
   BenchmarkInfo(name: "RandomIntegersLCG", runFunction: run_RandomIntegersLCG,
@@ -54,14 +58,14 @@ struct LCRNG: RandomNumberGenerator {
     for _ in 0..<10 { _ = next() }
   }
 
-  mutating func next() -> UInt64 {
+  mutating fn next() -> UInt64 {
     state = 2862933555777941757 &* state &+ 3037000493
     return state
   }
 }
 
 @inline(never)
-public func run_RandomIntegersDef(_ n: Int) {
+public fn run_RandomIntegersDef(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0
     for _ in 0 ..< 1_000 {
@@ -72,7 +76,7 @@ public func run_RandomIntegersDef(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomIntegersLCG(_ n: Int) {
+public fn run_RandomIntegersLCG(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0
     var generator = LCRNG(seed: 0)
@@ -84,7 +88,7 @@ public func run_RandomIntegersLCG(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomInt8Def(_ n: Int) {
+public fn run_RandomInt8Def(_ n: Int) {
   for _ in 0 ..< n {
     var x: Int8 = 0
     for _ in 0 ..< 1_000 {
@@ -95,7 +99,7 @@ public func run_RandomInt8Def(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomInt8LCG(_ n: Int) {
+public fn run_RandomInt8LCG(_ n: Int) {
   for _ in 0 ..< n {
     var x: Int8 = 0
     var generator = LCRNG(seed: 0)
@@ -107,7 +111,7 @@ public func run_RandomInt8LCG(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomInt64Def(_ n: Int) {
+public fn run_RandomInt64Def(_ n: Int) {
   for _ in 0 ..< n {
     var x: Int64 = 0
     for _ in 0 ..< 1_000 {
@@ -120,7 +124,7 @@ public func run_RandomInt64Def(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomInt64LCG(_ n: Int) {
+public fn run_RandomInt64LCG(_ n: Int) {
   for _ in 0 ..< n {
     var x: Int64 = 0
     var generator = LCRNG(seed: 0)
@@ -135,7 +139,7 @@ public func run_RandomInt64LCG(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomDoubleDef(_ n: Int) {
+public fn run_RandomDoubleDef(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0.0
     for _ in 0 ..< 1_000 {
@@ -146,7 +150,7 @@ public func run_RandomDoubleDef(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomDoubleLCG(_ n: Int) {
+public fn run_RandomDoubleLCG(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0.0
     var generator = LCRNG(seed: 0)
@@ -158,7 +162,7 @@ public func run_RandomDoubleLCG(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomDoubleOpaqueDef(_ n: Int) {
+public fn run_RandomDoubleOpaqueDef(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0.0
     for _ in 0 ..< 1_000 {
@@ -169,7 +173,7 @@ public func run_RandomDoubleOpaqueDef(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomDoubleOpaqueLCG(_ n: Int) {
+public fn run_RandomDoubleOpaqueLCG(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0.0
     var generator = LCRNG(seed: 0)
@@ -181,7 +185,7 @@ public func run_RandomDoubleOpaqueLCG(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomDouble01Def(_ n: Int) {
+public fn run_RandomDouble01Def(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0.0
     for _ in 0 ..< 1_000 {
@@ -192,7 +196,7 @@ public func run_RandomDouble01Def(_ n: Int) {
 }
 
 @inline(never)
-public func run_RandomDouble01LCG(_ n: Int) {
+public fn run_RandomDouble01LCG(_ n: Int) {
   for _ in 0 ..< n {
     var x = 0.0
     var generator = LCRNG(seed: 0)

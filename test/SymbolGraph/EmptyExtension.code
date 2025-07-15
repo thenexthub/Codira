@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name EmptyExtension -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name EmptyExtension -I %t -pretty-print -output-dir %t
+// RUN: %{python} -c 'import os.path; import sys; sys.exit(1 if os.path.exists(sys.argv[1]) else 0)' %t/EmptyExtension@Codira.symbols.json
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name EmptyExtension -emit-module -emit-module-path %t/
+// RUN: %target-language-symbolgraph-extract -module-name EmptyExtension -I %t -pretty-print -output-dir %t -emit-extension-block-symbols
+// RUN: %{python} -c 'import os.path; import sys; sys.exit(1 if os.path.exists(sys.argv[1]) else 0)' %t/EmptyExtension@Codira.symbols.json
+
+
+extension Sequence {
+  fn foo() {}
+}

@@ -1,0 +1,6 @@
+// {"kind":"emit-silgen","original":"be1cdd08","signature":"language::SILModule::print(toolchain::raw_ostream&, language::ModuleDecl*, language::SILOptions const&, bool) const"}
+// RUN: not --crash %target-language-frontend -emit-silgen %s
+// REQUIRES: OS=macosx
+import Foundation
+var a = 1
+[a] as [NSNumber? ]

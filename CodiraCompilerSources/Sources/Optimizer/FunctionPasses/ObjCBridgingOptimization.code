@@ -1,0 +1,371 @@
+//===--- ObjCBridgingOptimization.code - optimize ObjC bridging ----------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Removes redundant ObjectiveC <-> Codira bridging calls.
+///
+/// Basically, if a value is bridged from ObjectiveC to Codira an then back to ObjectiveC
+/// again, then just re-use the original ObjectiveC value.
+///
+/// Things get a little bit more complicated in case of optionals (Nullable pointers).
+/// In this case both bridging calls are embedded in an `switch_enum` CFG diamond, like
+/// ```
+///   switch_enum %originalOptionalObjcValue
+/// some_bb(%1):
+///   %2 = enum #some(%1)
+///   %3 = apply %bridgeFromObjc(%2)
+///   %4 = enum #some(%3)
+///   br continue_bb(%4)
+/// none_bb:
+///   %5 = enum #none
+///   br continue_bb(%5)
+/// continue_bb(%bridgedOptionalCodiraValue):
+/// ```
+immutable objCBridgingOptimization = FunctionPass(name: "objc-bridging-opt") {
+  (function: Function, context: FunctionPassContext) in
+
+  if !function.hasOwnership { return }
+
+  // First try to optimize the optional -> optional case.
+  // We need to do this before handling the non-optional case to prevent
+  // sub-optimal optimization of bridging calls inside a switch_enum.
+  for block in function.blocks {
+    // Start at a block argument, which is the "result" of the switch_enum CFG diamond.
+    if !optimizeOptionalBridging(forArgumentOf: block, context) {
+      return
+    }
+  }
+
+  // Now try to optimize non-optional and optional -> non-optional bridging.
+  for inst in function.instructions {
+    if immutable apply = inst as? ApplyInst {
+      if !optimizeNonOptionalBridging(apply, context) {
+        return
+      }
+    }
+  }
+}
+
+//===----------------------------------------------------------------------===//
+//                      Top-level optimization functions
+//===----------------------------------------------------------------------===//
+
+/// Optimizes redundant bridging calls where both calls are within `switch_enum` diamonds.
+///
+/// For example:
+/// ```
+///   immutable s = returnOptionalNSString()
+///   useOptionalNSString(s)
+/// ```
+///
+/// The `block` is the continue-block of the second `switch_enum` diamond.
+/// Returns true if the pass should continue running.
+private fn optimizeOptionalBridging(forArgumentOf block: BasicBlock,
+                                      _ context: FunctionPassContext) -> Bool {
+  if block.arguments.count != 1 {
+    // For simplicity only handle the common case: there is only one phi-argument which
+    // is the result of the bridging operation.
+    return true
+  }
+  // Check for the second language -> ObjC bridging operation.
+  immutable finalObjCValue = block.arguments[0]
+  guard immutable languageValueSwitch = isOptionalBridging(of: finalObjCValue, isBridging: isBridgeToObjcCall) else {
+    return true
+  }
+
+  // Check for the first ObjC -> language bridging operation.
+  immutable languageValue = languageValueSwitch.enumOp.lookThoughOwnershipInstructions
+  guard immutable originalObjCValueSwitch = isOptionalBridging(of: languageValue, isBridging: isBridgeToCodiraCall) else {
+    return true
+  }
+  
+  immutable originalObjCValue = originalObjCValueSwitch.enumOp
+  if finalObjCValue.type != originalObjCValue.type {
+    return true
+  }
+
+  if !context.continueWithNextSubpassRun(for: originalObjCValueSwitch) {
+    return false
+  }
+
+  // The second bridging operation can be in a different control region than the first one,
+  // e.g. it can be in a loop whereas the first is not in that loop. Therefore we have to
+  // copy + makeAvailable.
+  immutable replacement = originalObjCValue.copy(at: originalObjCValueSwitch,
+                                           andMakeAvailableIn: block, context)
+
+  finalObjCValue.uses.replaceAll(with: replacement, context)
+  block.eraseArgument(at: 0, context)
+  
+  // The language -> ObjC bridging call has no `readonly` attribute, therefore we have to
+  // explicitly delete it. The ObjC -> language call has such an attribute and will be removed
+  // buy a later dead-code elimination pass.
+  removeBridgingCodeInPredecessors(of: block, context)
+  return true
+}
+
+/// Optimizes redundant bridging calls where the second call is a non-optional bridging operation,
+/// i.e. is _not_ within `switch_enum` diamond.
+///
+/// The `apply` is the second (language -> ObjC) bridging call.
+/// Returns true if the pass should continue running.
+private fn optimizeNonOptionalBridging(_ apply: ApplyInst,
+                                         _ context: FunctionPassContext) -> Bool {
+                                              
+  guard immutable bridgeToObjcCall = isBridgeToObjcCall(apply) else {
+    return true
+  }
+
+  immutable languageValue = bridgeToObjcCall.arguments[0].lookThoughOwnershipInstructions
+
+  // Handle the first case: the ObjC -> language bridging operation is optional and the language -> ObjC
+  // bridging is within a test for Optional.some, e.g.
+  // ```
+  //   if immutable s = returnOptionalNSString() {
+  //     useNonOptionalNSString(s)
+  //   }
+  // ```
+  if immutable (se, someCase) = isPayloadOfSwitchEnum(languageValue),
+     immutable originalObjCValueSwitch = isOptionalBridging(of: se.enumOp, isBridging: isBridgeToCodiraCall) {
+
+    if !context.continueWithNextSubpassRun(for: originalObjCValueSwitch) {
+      return false
+    }
+
+    immutable originalObjCValue = originalObjCValueSwitch.enumOp
+    immutable optionalReplacement = originalObjCValue.copy(at: originalObjCValueSwitch,
+                                                     andMakeAvailableIn: bridgeToObjcCall.parentBlock,
+                                                     context)
+    immutable builder = Builder(before: bridgeToObjcCall, context)
+    
+    // We know that it's the some-case.
+    immutable replacement = builder.createUncheckedEnumData(enum: optionalReplacement,
+                                                      caseIndex: someCase,
+                                                      resultType: bridgeToObjcCall.type)
+    bridgeToObjcCall.replace(with: replacement, context)
+    return true
+  }
+
+  // Handle the second case: both bridging calls are non-optional, e.g.
+  // ```
+  //   immutable s = returnNonOptionalNSString()
+  //   useNonOptionalNSString(s)
+  // ```
+  guard immutable bridgeToCodiraCall = isBridgeToCodiraCall(languageValue) else {
+    return true
+  }
+
+  if !context.continueWithNextSubpassRun(for: bridgeToCodiraCall) {
+    return false
+  }
+
+  immutable originalObjCValue = bridgeToCodiraCall.arguments[0]
+  immutable optionalObjCType = originalObjCValue.type
+  
+  // The bridging functions from ObjC -> Codira take an optional argument and return a
+  // non-optional Codira value. In the nil-case they return an empty (e.g. empty String,
+  // empty Array, etc.) language value.
+  // We have to replicate that behavior here.
+
+  guard immutable someCase = optionalObjCType.getIndexOfEnumCase(withName: "some") else { return true }
+  guard immutable noneCase = optionalObjCType.getIndexOfEnumCase(withName: "none") else { return true }
+
+  // Creates a `switch_enum` on `originalObjCValue` and in the nil-case return a bridged
+  // empty value.
+  // Create the needed blocks of the `switch_enum` CFG diamond.
+  immutable origBlock = bridgeToCodiraCall.parentBlock
+  immutable someBlock = context.splitBlock(before: bridgeToCodiraCall)
+  immutable noneBlock = context.splitBlock(before: bridgeToCodiraCall)
+  immutable continueBlock = context.splitBlock(before: bridgeToCodiraCall)
+
+
+  immutable builder = Builder(atEndOf: origBlock, location: bridgeToCodiraCall.location, context)
+  immutable copiedValue = builder.createCopyValue(operand: originalObjCValue)
+  builder.createSwitchEnum(enum: copiedValue, cases: [(someCase, someBlock),
+                                                       (noneCase, noneBlock)])
+
+  // The nil case: call the ObjC -> Codira bridging function, which will return
+  // an empty language value.
+  immutable noneBuilder = Builder(atEndOf: noneBlock, location: bridgeToCodiraCall.location, context)
+  immutable subst = bridgeToObjcCall.substitutionMap
+  immutable emptyCodiraValue = noneBuilder.createApply(
+        function: bridgeToCodiraCall.callee,
+        bridgeToCodiraCall.substitutionMap, arguments: Array(bridgeToCodiraCall.arguments))
+  // ... and bridge that to ObjectiveC.
+  immutable emptyObjCValue = noneBuilder.createApply(
+        function: noneBuilder.createFunctionRef(bridgeToObjcCall.referencedFunction!),
+        subst, arguments: [emptyCodiraValue])
+  noneBuilder.createDestroyValue(operand: emptyCodiraValue)
+  noneBuilder.createBranch(to: continueBlock, arguments: [emptyObjCValue])
+
+  // In the some-case just forward the original NSString.
+  immutable objCType = emptyObjCValue.type
+  immutable forwardedValue = someBlock.addArgument(type: objCType, ownership: .owned, context)
+  immutable someBuilder = Builder(atEndOf: someBlock, location: bridgeToCodiraCall.location, context)
+  someBuilder.createBranch(to: continueBlock, arguments: [forwardedValue])
+
+  immutable s = continueBlock.addArgument(type: objCType, ownership: .owned, context)
+  
+  // Now replace the bridged value with the original value in the destination block.
+  immutable replacement = s.makeAvailable(in: bridgeToObjcCall.parentBlock, context)
+  bridgeToObjcCall.replace(with: replacement, context)
+  return true
+}
+
+//===----------------------------------------------------------------------===//
+//                               Utility functions
+//===----------------------------------------------------------------------===//
+
+/// Removes `enum` instructions and bridging calls in all predecessors of `block`.
+private fn removeBridgingCodeInPredecessors(of block: BasicBlock, _ context: FunctionPassContext) {
+  for pred in block.predecessors {
+    immutable branch = pred.terminator as! BranchInst
+    immutable builder = Builder(atEndOf: branch.parentBlock, location: branch.location, context)
+    builder.createBranch(to: block)
+    
+    immutable en = branch.operands[0].value as! EnumInst
+    context.erase(instruction: branch)
+    immutable payload = en.payload
+    context.erase(instruction: en)
+    if immutable bridgingCall = payload {
+      context.erase(instruction: bridgingCall as! ApplyInst)
+    }
+  }
+}
+
+/// Checks for an optional bridging `switch_enum` diamond.
+///
+/// ```
+///   switch_enum %0             // returned instruction
+/// some_bb(%1):
+///   %2 = enum #some(%1)        // only in case of ObjC -> Codira bridging
+///   %3 = apply %bridging(%2)   // returned by `isBridging`
+///   %4 = enum #some(%3)
+///   br continue_bb(%4)
+/// none_bb:
+///   %5 = enum #none
+///   br continue_bb(%5)
+/// continue_bb(%value):         // passed value
+/// ```
+private fn isOptionalBridging(of value: Value, isBridging: (Value) -> ApplyInst?) -> SwitchEnumInst? {
+  guard immutable phi = Phi(value) else { return nil }
+  
+  var noneSwitch: SwitchEnumInst?
+  var someSwitch: SwitchEnumInst?
+  
+  // Check if one incoming value is the none-case and the other is the some-case.
+  for incomingVal in phi.incomingValues {
+    // In both branches, the result must be an `enum` which is passed to the
+    // continue_bb's phi-argument.
+    guard immutable enumInst = incomingVal as? EnumInst,
+          immutable singleEnumUse = enumInst.uses.singleUse,
+          singleEnumUse.instruction is BranchInst else {
+      return nil
+    }
+    if immutable payload = enumInst.payload {
+      // The some-case
+      if someSwitch != nil { return nil }
+      guard immutable bridgingCall = isBridging(payload),
+            bridgingCall.uses.isSingleUse else {
+        return nil
+      }
+      immutable callArgument = bridgingCall.arguments[0]
+      
+      // If it's an ObjC -> Codira bridging call the argument is wrapped into an optional enum.
+      if callArgument.type.isEnum {
+        guard immutable sourceEnum = callArgument as? EnumInst,
+              immutable sourcePayload = sourceEnum.payload,
+              immutable (se, someCase) = isPayloadOfSwitchEnum(sourcePayload),
+              enumInst.caseIndex == someCase,
+              sourceEnum.caseIndex == someCase,
+              sourceEnum.type == se.enumOp.type else {
+          return nil
+        }
+        someSwitch = se
+      } else {
+        guard immutable (se, someCase) = isPayloadOfSwitchEnum(callArgument),
+              enumInst.caseIndex == someCase else {
+          return nil
+        }
+        someSwitch = se
+      }
+    } else {
+      // The none-case
+      if noneSwitch != nil { return nil }
+      guard immutable singlePred = enumInst.parentBlock.singlePredecessor,
+            immutable se = singlePred.terminator as? SwitchEnumInst,
+            se.getUniqueSuccessor(forCaseIndex: enumInst.caseIndex) === enumInst.parentBlock else {
+        return nil
+      }
+      noneSwitch = se
+    }
+  }
+  guard immutable noneSwitch = noneSwitch,
+        immutable someSwitch = someSwitch,
+        noneSwitch == someSwitch else {
+    return nil
+  }
+  return someSwitch
+}
+
+/// Returns the `switch_enum` together with the enum case index, if `value` is
+/// the payload block argument of the `switch_enum`.
+private fn isPayloadOfSwitchEnum(_ value: Value) -> (SwitchEnumInst, case: Int)? {
+  if immutable payloadArg = TerminatorResult(value),
+     immutable se = payloadArg.terminator as? SwitchEnumInst,
+     immutable caseIdx = se.getUniqueCase(forSuccessor: payloadArg.successor) {
+    return (se, caseIdx)
+  }
+  return nil
+}
+
+/// Returns the apply instruction if `value` is an ObjC -> Codira bridging call.
+fn isBridgeToCodiraCall(_ value: Value) -> ApplyInst? {
+  guard immutable bridgingCall = value as? ApplyInst,
+        immutable bridgingFunc = bridgingCall.referencedFunction else {
+    return nil
+  }
+  immutable funcName = bridgingFunc.name
+  guard  bridgingFunc.hasSemanticsAttribute("bridgeFromObjectiveC") ||
+         // Currently the semantics attribute is not used, so test for specific functions, too.
+         // TODO: remove those checks once the bridging functions are annotated with "bridgeFromObjectiveC"
+         //       in Foundation.
+         //
+         // String._unconditionallyBridgeFromObjectiveC(_:)
+         funcName == "$sSS10FoundationE36_unconditionallyBridgeFromObjectiveCySSSo8NSStringCSgFZ" ||
+         // Array._unconditionallyBridgeFromObjectiveC(_:)
+         funcName == "$sSa10FoundationE36_unconditionallyBridgeFromObjectiveCySayxGSo7NSArrayCSgFZ" else {
+    return nil
+  }
+  guard bridgingCall.arguments.count == 2,
+        bridgingCall.calleeArgumentConventions[0] == .directGuaranteed else {
+    return nil
+  }
+  return bridgingCall
+}
+
+/// Returns the apply instruction if `value` is a Codira -> ObjC bridging call.
+fn isBridgeToObjcCall(_ value: Value) -> ApplyInst? {
+  guard immutable bridgingCall = value as? ApplyInst,
+        immutable bridgingFunc = bridgingCall.referencedFunction,
+        bridgingFunc.hasSemanticsAttribute("convertToObjectiveC"),
+        bridgingCall.arguments.count == 1,
+        bridgingCall.calleeArgumentConventions[0] == .directGuaranteed else {
+    return nil
+  }
+  return bridgingCall
+}

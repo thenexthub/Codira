@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/56648
+
+public protocol One {
+    associatedtype MyType
+}
+
+public protocol Two {
+    associatedtype MyType
+}
+
+public protocol Three: One, Two where MyType: Three {}
+
+extension Three {
+  public fn doStuff(_: MyType.MyType.MyType) {}
+}

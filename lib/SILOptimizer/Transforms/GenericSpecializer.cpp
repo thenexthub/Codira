@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Specialize calls to generic functions by substituting static type
@@ -34,7 +35,7 @@
 #include "language/SILOptimizer/Utils/SILInliner.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 
@@ -43,14 +44,14 @@ static void transferSpecializeAttributeTargets(SILModule &M,
                                                SILOptFunctionBuilder &builder,
                                                Decl *d) {
   auto *vd = cast<AbstractFunctionDecl>(d);
-  for (auto *A : vd->getAttrs().getAttributes<SpecializeAttr>()) {
-    auto *SA = cast<SpecializeAttr>(A);
+  for (auto *A : vd->getAttrs().getAttributes<AbstractSpecializeAttr>()) {
+    auto *SA = cast<AbstractSpecializeAttr>(A);
     // Filter _spi.
     auto spiGroups = SA->getSPIGroups();
     auto hasSPIGroup = !spiGroups.empty();
     if (hasSPIGroup) {
-      if (vd->getModuleContext() != M.getSwiftModule() &&
-          !M.getSwiftModule()->isImportedAsSPI(SA, vd)) {
+      if (vd->getModuleContext() != M.getCodiraModule() &&
+          !M.getCodiraModule()->isImportedAsSPI(SA, vd)) {
         continue;
       }
     }
@@ -64,7 +65,7 @@ static void transferSpecializeAttributeTargets(SILModule &M,
         spiGroupIdent = spiGroups[0];
       }
       auto availability = AvailabilityInference::annotatedAvailableRangeForAttr(
-          vd, SA, M.getSwiftModule()->getASTContext());
+          vd, SA, M.getCodiraModule()->getASTContext());
 
       auto *attr = SILSpecializeAttr::create(
           M, SA->getSpecializedSignature(vd), SA->getTypeErasedParams(),
@@ -83,12 +84,12 @@ static void transferSpecializeAttributeTargets(SILModule &M,
 }
 } // end anonymous namespace
 
-bool swift::specializeAppliesInFunction(SILFunction &F,
+bool language::specializeAppliesInFunction(SILFunction &F,
                                         SILTransform *transform,
                                         bool isMandatory) {
   SILOptFunctionBuilder FunctionBuilder(*transform);
   DeadInstructionSet DeadApplies;
-  llvm::SmallSetVector<SILInstruction *, 8> Applies;
+  toolchain::SmallSetVector<SILInstruction *, 8> Applies;
   OptRemark::Emitter ORE(DEBUG_TYPE, F);
 
   bool Changed = false;
@@ -96,7 +97,7 @@ bool swift::specializeAppliesInFunction(SILFunction &F,
     // Collect the applies for this block in reverse order so that we
     // can pop them off the end of our vector and process them in
     // forward order.
-    for (auto &I : llvm::reverse(BB)) {
+    for (auto &I : toolchain::reverse(BB)) {
 
       // Skip non-apply instructions, apply instructions with no
       // substitutions, apply instructions where we do not statically
@@ -148,7 +149,7 @@ bool swift::specializeAppliesInFunction(SILFunction &F,
 
       // We have a call that can potentially be specialized, so
       // attempt to do so.
-      llvm::SmallVector<SILFunction *, 2> NewFunctions;
+      toolchain::SmallVector<SILFunction *, 2> NewFunctions;
       trySpecializeApplyOfGeneric(FunctionBuilder, Apply, DeadApplies,
                                   NewFunctions, ORE, isMandatory);
 
@@ -189,7 +190,7 @@ class GenericSpecializer : public SILFunctionTransform {
   void run() override {
     SILFunction &F = *getFunction();
 
-    LLVM_DEBUG(llvm::dbgs() << "***** GenericSpecializer on function:"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** GenericSpecializer on function:"
                             << F.getName() << " *****\n");
 
     if (specializeAppliesInFunction(F, this, /*isMandatory*/ false)) {
@@ -200,6 +201,6 @@ class GenericSpecializer : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createGenericSpecializer() {
+SILTransform *language::createGenericSpecializer() {
   return new GenericSpecializer();
 }

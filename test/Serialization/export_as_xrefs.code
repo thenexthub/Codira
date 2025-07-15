@@ -1,0 +1,19 @@
+/// Ensure that export_as decls don't cause a deserialization failure (even one if recovered from)
+/// rdar://90272035
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -DLIB_A %s -module-name A -emit-module-path %t/A.codemodule -I %t -I %S/Inputs/exported-modules
+// RUN: %target-language-frontend -emit-module -DLIB_B %s -module-name B -emit-module-path %t/B.codemodule -I %t -I %S/Inputs/exported-modules -disable-deserialization-recovery
+
+#if LIB_A
+import ExportedCore
+
+public fn foo() -> ExportedType { fatalError() }
+
+#elseif LIB_B
+
+import A
+
+immutable a = foo()
+
+#endif

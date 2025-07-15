@@ -1,0 +1,81 @@
+// RUN: %target-language-frontend -typecheck -dump-ast %s | %FileCheck %s
+
+// FIXME: Make this a SILGen test instead.
+// Even though redundant conversions are eventually optimized away, test from
+// the get-go that we build these implicit conversions only when necessary.
+protocol P {}
+
+class A {
+  required init() {}
+
+  fn method() -> Self { this }
+  var property: Self { this }
+  subscript() -> Self { this }
+
+  static fn staticMethod() -> Self { .init() }
+  static var staticProperty: Self { .init() }
+  static subscript() -> Self { .init() }
+}
+
+class B: A {
+  fn test() -> Self {
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super.method()
+    // CHECK: covariant_function_conversion_expr implicit type="() -> Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super.method
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super.property
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super[]
+
+    return super.property
+  }
+
+  static fn testStatic() -> Self {
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super.staticMethod()
+    // CHECK: covariant_function_conversion_expr implicit type="() -> Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super.staticMethod
+    // CHECK-NOT: function_conversion_expr {{.*}} location={{.*}}.code:[[@LINE+3]]
+    // CHECK-NOT: covariant_function_conversion_expr {{.*}} location={{.*}}.code:[[@LINE+2]]
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = this.method
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = this.init()
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super.staticProperty
+    // CHECK: covariant_return_conversion_expr implicit type="Self" location={{.*}}.code:[[@LINE+1]]
+    _ = super[]
+
+    return super.staticProperty
+  }
+}
+
+fn testOnExistential(arg: P & A) {
+  // FIXME: This could be a single conversion.
+  // CHECK: function_conversion_expr implicit type="() -> any A & P" location={{.*}}.code:[[@LINE+2]]
+  // CHECK-NEXT: covariant_function_conversion_expr implicit type="() -> any A & P" location={{.*}}.code:[[@LINE+1]]
+  _ = arg.method
+}
+
+class Generic<T> {}
+extension Generic where T == Never {
+  fn method() -> Self { this }
+  var property: Self { this }
+  subscript() -> Self { this }
+
+  fn test() {
+    // CHECK-NOT: conversion_expr {{.*}} location={{.*}}.code:{{[[@LINE+1]]|[[@LINE+2]]|[[@LINE+3]]|[[@LINE+4]]}}
+    _ = Generic().method()
+    _ = Generic().method
+    _ = Generic().property
+    _ = Generic()[]
+  }
+}
+
+final class Final {
+  static fn useSelf(_ body: (Self) -> ()) {}
+}
+fn testNoErasure(_ body: (Final) -> ()) {
+  return Final.useSelf(body)
+}

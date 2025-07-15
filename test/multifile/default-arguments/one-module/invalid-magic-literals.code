@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -emit-sil -verify -module-name main -primary-file %s %S/Inputs/invalid-magic-literals-other.code
+
+fn bar() {
+  badMagicLiteral()
+  immutable _: Int = badGenericMagicLiteral()
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -22,11 +23,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "sil-func-extractor"
+#define DEBUG_TYPE "sil-fn-extractor"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Demangling/Demangle.h"
 #include "language/Demangling/ManglingMacros.h"
 #include "language/Frontend/DiagnosticVerifier.h"
@@ -42,95 +43,95 @@
 #include "language/Serialization/SerializedSILLoader.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
 #include "language/Subsystems.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Signals.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/ManagedStatic.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Signals.h"
 #include <cstdio>
 
 using namespace language;
 
 struct SILFuncExtractorOptions {
-  llvm::cl::opt<std::string>
-    InputFilename = llvm::cl::opt<std::string>(llvm::cl::desc("input file"),
-                                                llvm::cl::init("-"),
-                                                llvm::cl::Positional);
+  toolchain::cl::opt<std::string>
+    InputFilename = toolchain::cl::opt<std::string>(toolchain::cl::desc("input file"),
+                                                toolchain::cl::init("-"),
+                                                toolchain::cl::Positional);
 
-  llvm::cl::opt<std::string>
-    OutputFilename = llvm::cl::opt<std::string>("o", llvm::cl::desc("output filename"), llvm::cl::init("-"));
+  toolchain::cl::opt<std::string>
+    OutputFilename = toolchain::cl::opt<std::string>("o", toolchain::cl::desc("output filename"), toolchain::cl::init("-"));
 
-  llvm::cl::opt<bool>
-    EmitVerboseSIL = llvm::cl::opt<bool>("emit-verbose-sil",
-                   llvm::cl::desc("Emit locations during sil emission."));
+  toolchain::cl::opt<bool>
+    EmitVerboseSIL = toolchain::cl::opt<bool>("emit-verbose-sil",
+                   toolchain::cl::desc("Emit locations during sil emission."));
 
-  llvm::cl::list<std::string>
-    CommandLineFunctionNames = llvm::cl::list<std::string>("func",
-                             llvm::cl::desc("Function names to extract."));
-  llvm::cl::opt<std::string>
-    FunctionNameFile = llvm::cl::opt<std::string>(
-    "func-file", llvm::cl::desc("File to load additional function names from"));
+  toolchain::cl::list<std::string>
+    CommandLineFunctionNames = toolchain::cl::list<std::string>("fn",
+                             toolchain::cl::desc("Function names to extract."));
+  toolchain::cl::opt<std::string>
+    FunctionNameFile = toolchain::cl::opt<std::string>(
+    "fn-file", toolchain::cl::desc("File to load additional function names from"));
 
-  llvm::cl::opt<bool>
-    EmitSIB = llvm::cl::opt<bool>("emit-sib",
-        llvm::cl::desc("Emit a sib file as output instead of a sil file"));
+  toolchain::cl::opt<bool>
+    EmitSIB = toolchain::cl::opt<bool>("emit-sib",
+        toolchain::cl::desc("Emit a sib file as output instead of a sil file"));
 
-  llvm::cl::opt<bool>
-    InvertMatch = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool>
+    InvertMatch = toolchain::cl::opt<bool>(
                   "invert",
-                  llvm::cl::desc("Match functions whose name do not "
+                  toolchain::cl::desc("Match functions whose name do not "
                   "match the names of the functions to be extracted"));
 
-  llvm::cl::list<std::string>
-    ImportPaths = llvm::cl::list<std::string>("I",
-                llvm::cl::desc("add a directory to the import search path"));
+  toolchain::cl::list<std::string>
+    ImportPaths = toolchain::cl::list<std::string>("I",
+                toolchain::cl::desc("add a directory to the import search path"));
 
-  llvm::cl::opt<std::string>
-    ModuleName = llvm::cl::opt<std::string>("module-name",
-               llvm::cl::desc("The name of the module if processing"
+  toolchain::cl::opt<std::string>
+    ModuleName = toolchain::cl::opt<std::string>("module-name",
+               toolchain::cl::desc("The name of the module if processing"
                               " a module. Necessary for processing "
                               "stdin."));
 
-  llvm::cl::opt<std::string>
-    ModuleCachePath = llvm::cl::opt<std::string>("module-cache-path",
-                    llvm::cl::desc("Clang module cache path"));
+  toolchain::cl::opt<std::string>
+    ModuleCachePath = toolchain::cl::opt<std::string>("module-cache-path",
+                    toolchain::cl::desc("Clang module cache path"));
 
-  llvm::cl::opt<std::string>
-    ResourceDir = llvm::cl::opt<std::string>(
+  toolchain::cl::opt<std::string>
+    ResourceDir = toolchain::cl::opt<std::string>(
                 "resource-dir",
-                llvm::cl::desc("The directory that holds the compiler resource files"));
+                toolchain::cl::desc("The directory that holds the compiler resource files"));
 
-  llvm::cl::opt<std::string>
-    SDKPath = llvm::cl::opt<std::string>("sdk", llvm::cl::desc("The path to the SDK for use with the clang "
+  toolchain::cl::opt<std::string>
+    SDKPath = toolchain::cl::opt<std::string>("sdk", toolchain::cl::desc("The path to the SDK for use with the clang "
                                   "importer."),
-              llvm::cl::init(""));
+              toolchain::cl::init(""));
 
-  llvm::cl::opt<std::string>
-    Triple = llvm::cl::opt<std::string>("target",
-                                        llvm::cl::desc("target triple"));
+  toolchain::cl::opt<std::string>
+    Triple = toolchain::cl::opt<std::string>("target",
+                                        toolchain::cl::desc("target triple"));
 
-  llvm::cl::opt<bool>
-    EmitSortedSIL = llvm::cl::opt<bool>("emit-sorted-sil", llvm::cl::Hidden, llvm::cl::init(false),
-                  llvm::cl::desc("Sort Functions, VTables, Globals, "
+  toolchain::cl::opt<bool>
+    EmitSortedSIL = toolchain::cl::opt<bool>("emit-sorted-sil", toolchain::cl::Hidden, toolchain::cl::init(false),
+                  toolchain::cl::desc("Sort Functions, VTables, Globals, "
                                  "WitnessTables by name to ease diffing."));
 
-  llvm::cl::opt<bool>
-    DisableASTDump = llvm::cl::opt<bool>("sil-disable-ast-dump", llvm::cl::Hidden,
-                 llvm::cl::init(false),
-                 llvm::cl::desc("Do not dump AST."));
+  toolchain::cl::opt<bool>
+    DisableASTDump = toolchain::cl::opt<bool>("sil-disable-ast-dump", toolchain::cl::Hidden,
+                 toolchain::cl::init(false),
+                 toolchain::cl::desc("Do not dump AST."));
 
-  llvm::cl::opt<bool> EnableOSSAModules = llvm::cl::opt<bool>(
-      "enable-ossa-modules", llvm::cl::init(true),
-      llvm::cl::desc("Do we always serialize SIL in OSSA form? If "
+  toolchain::cl::opt<bool> EnableOSSAModules = toolchain::cl::opt<bool>(
+      "enable-ossa-modules", toolchain::cl::init(true),
+      toolchain::cl::desc("Do we always serialize SIL in OSSA form? If "
                      "this is disabled we do not serialize in OSSA "
                      "form when optimizing."));
 
-  llvm::cl::opt<llvm::cl::boolOrDefault>
-    EnableObjCInterop = llvm::cl::opt<llvm::cl::boolOrDefault>(
+  toolchain::cl::opt<toolchain::cl::boolOrDefault>
+    EnableObjCInterop = toolchain::cl::opt<toolchain::cl::boolOrDefault>(
       "enable-objc-interop",
-      llvm::cl::desc("Whether the Objective-C interop should be enabled. "
+      toolchain::cl::desc("Whether the Objective-C interop should be enabled. "
                      "The value is `true` by default on Darwin platforms."));
 };
 
@@ -140,8 +141,8 @@ static void getFunctionNames(std::vector<std::string> &Names,
             std::back_inserter(Names));
 
   if (!options.FunctionNameFile.empty()) {
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
-        llvm::MemoryBuffer::getFileOrSTDIN(options.FunctionNameFile);
+    toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
+        toolchain::MemoryBuffer::getFileOrSTDIN(options.FunctionNameFile);
     if (!FileBufOrErr) {
       fprintf(stderr, "Error! Failed to open file: %s\n",
               options.InputFilename.c_str());
@@ -150,7 +151,7 @@ static void getFunctionNames(std::vector<std::string> &Names,
     StringRef Buffer = FileBufOrErr.get()->getBuffer();
     while (!Buffer.empty()) {
       StringRef Token, NewBuffer;
-      std::tie(Token, NewBuffer) = llvm::getToken(Buffer, "\n");
+      std::tie(Token, NewBuffer) = toolchain::getToken(Buffer, "\n");
       if (Token.empty()) {
         break;
       }
@@ -162,7 +163,7 @@ static void getFunctionNames(std::vector<std::string> &Names,
 
 static bool stringInSortedArray(
     StringRef str, ArrayRef<std::string> list,
-    llvm::function_ref<bool(const std::string &, const std::string &)> &&cmp) {
+    toolchain::function_ref<bool(const std::string &, const std::string &)> &&cmp) {
   if (list.empty())
     return false;
   auto iter = std::lower_bound(list.begin(), list.end(), str.str(), cmp);
@@ -184,9 +185,9 @@ void removeUnwantedFunctions(SILModule *M, ArrayRef<std::string> MangledNames,
   for (auto &F : M->getFunctionList()) {
     StringRef MangledName = F.getName();
     std::string DemangledName =
-        swift::Demangle::demangleSymbolAsString(MangledName);
+        language::Demangle::demangleSymbolAsString(MangledName);
     DemangledName = DemangledName.substr(0, DemangledName.find_first_of(" <("));
-    LLVM_DEBUG(llvm::dbgs() << "Visiting New Func:\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting New Func:\n"
                             << "    Mangled: " << MangledName
                             << "\n    Demangled: " << DemangledName << "\n");
 
@@ -199,11 +200,11 @@ void removeUnwantedFunctions(SILModule *M, ArrayRef<std::string> MangledNames,
                  str2.substr(0, str2.find(' '));
         });
     if ((FoundMangledName || FoundDemangledName) ^ options.InvertMatch) {
-      LLVM_DEBUG(llvm::dbgs() << "    Not removing!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Not removing!\n");
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "    Removing!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Removing!\n");
 
     // If F has no body, there is nothing further to do.
     if (!F.size())
@@ -237,11 +238,11 @@ int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   SILFuncExtractorOptions options;
 
-  llvm::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Swift SIL Extractor\n");
+  toolchain::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Codira SIL Extractor\n");
 
   CompilerInvocation Invocation;
 
-  Invocation.setMainExecutablePath(llvm::sys::fs::getMainExecutable(argv[0], MainAddr));
+  Invocation.setMainExecutablePath(toolchain::sys::fs::getMainExecutable(argv[0], MainAddr));
 
   // Give the context the list of search paths to use for modules.
   std::vector<SearchPathOptions::SearchPath> ImportPaths;
@@ -267,12 +268,12 @@ int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr) {
   Invocation.getLangOptions().EnableAccessControl = false;
   Invocation.getLangOptions().EnableObjCAttrRequiresFoundation = false;
 
-  if (options.EnableObjCInterop == llvm::cl::BOU_UNSET) {
+  if (options.EnableObjCInterop == toolchain::cl::BOU_UNSET) {
     Invocation.getLangOptions().EnableObjCInterop =
         Invocation.getLangOptions().Target.isOSDarwin();
   } else {
     Invocation.getLangOptions().EnableObjCInterop =
-    options.EnableObjCInterop == llvm::cl::BOU_TRUE;
+    options.EnableObjCInterop == toolchain::cl::BOU_TRUE;
   }
 
   SILOptions &Opts = Invocation.getSILOptions();
@@ -282,7 +283,7 @@ int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr) {
   Opts.StopOptimizationAfterSerialization |= options.EmitSIB;
 
   serialization::ExtendedValidationInfo extendedInfo;
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
       Invocation.setUpInputForSILTool(options.InputFilename, options.ModuleName,
                                       /*alwaysSetModuleToMain*/ true,
                                       /*bePrimary*/ false, extendedInfo);
@@ -297,7 +298,7 @@ int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::errs() << InstanceSetupError << '\n';
+    toolchain::errs() << InstanceSetupError << '\n';
     return 1;
   }
   CI.performSema();
@@ -340,30 +341,30 @@ int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr) {
   ArrayRef<std::string> DemangledNames(&*std::next(Names.begin(), NumMangled),
                                        NumNames - NumMangled);
 
-  LLVM_DEBUG(llvm::errs() << "MangledNames to keep:\n";
+  TOOLCHAIN_DEBUG(toolchain::errs() << "MangledNames to keep:\n";
              std::for_each(MangledNames.begin(), MangledNames.end(),
                            [](const std::string &str) {
-                             llvm::errs() << "    " << str << '\n';
+                             toolchain::errs() << "    " << str << '\n';
                            }));
-  LLVM_DEBUG(llvm::errs() << "DemangledNames to keep:\n";
+  TOOLCHAIN_DEBUG(toolchain::errs() << "DemangledNames to keep:\n";
              std::for_each(DemangledNames.begin(), DemangledNames.end(),
                            [](const std::string &str) {
-                             llvm::errs() << "    " << str << '\n';
+                             toolchain::errs() << "    " << str << '\n';
                            }));
 
   removeUnwantedFunctions(SILMod.get(), MangledNames, DemangledNames, options);
 
   if (options.EmitSIB) {
-    llvm::SmallString<128> OutputFile;
+    toolchain::SmallString<128> OutputFile;
     if (options.OutputFilename.size()) {
       OutputFile = options.OutputFilename;
     } else if (options.ModuleName.size()) {
       OutputFile = options.ModuleName;
-      llvm::sys::path::replace_extension(
+      toolchain::sys::path::replace_extension(
           OutputFile, file_types::getExtension(file_types::TY_SIB));
     } else {
       OutputFile = CI.getMainModule()->getName().str();
-      llvm::sys::path::replace_extension(
+      toolchain::sys::path::replace_extension(
           OutputFile, file_types::getExtension(file_types::TY_SIB));
     }
 
@@ -385,12 +386,12 @@ int sil_func_extractor_main(ArrayRef<const char *> argv, void *MainAddr) {
     SILOpts.EmitSortedSIL = options.EmitSortedSIL;
 
     if (OutputFile == "-") {
-      SILMod->print(llvm::outs(), CI.getMainModule(), SILOpts, !options.DisableASTDump);
+      SILMod->print(toolchain::outs(), CI.getMainModule(), SILOpts, !options.DisableASTDump);
     } else {
       std::error_code EC;
-      llvm::raw_fd_ostream OS(OutputFile, EC, llvm::sys::fs::OF_None);
+      toolchain::raw_fd_ostream OS(OutputFile, EC, toolchain::sys::fs::OF_None);
       if (EC) {
-        llvm::errs() << "while opening '" << OutputFile << "': " << EC.message()
+        toolchain::errs() << "while opening '" << OutputFile << "': " << EC.message()
                      << '\n';
         return 1;
       }

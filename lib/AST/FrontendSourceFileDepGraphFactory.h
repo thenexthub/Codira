@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #ifndef FrontendSourceFileDepGraphFactory_h
 #define FrontendSourceFileDepGraphFactory_h
 
 #include "language/AST/AbstractSourceFileDepGraphFactory.h"
-#include "llvm/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
 namespace language {
 namespace fine_grained_dependencies {
 
@@ -32,7 +33,7 @@ class FrontendSourceFileDepGraphFactory
 
 public:
   FrontendSourceFileDepGraphFactory(const SourceFile *SF,
-                                    llvm::vfs::OutputBackend &backend,
+                                    toolchain::vfs::OutputBackend &backend,
                                     StringRef outputPath,
                                     const DependencyTracker &depTracker,
                                     bool alsoEmitDotFile);
@@ -48,7 +49,7 @@ class ModuleDepGraphFactory : public AbstractSourceFileDepGraphFactory {
   const ModuleDecl *Mod;
 
 public:
-  ModuleDepGraphFactory(llvm::vfs::OutputBackend &backend,
+  ModuleDepGraphFactory(toolchain::vfs::OutputBackend &backend,
                         const ModuleDecl *Mod, bool emitDot);
 
   ~ModuleDepGraphFactory() override = default;

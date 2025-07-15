@@ -1,4 +1,4 @@
-//===--- StringEdits.swift ------------------------------------------------===//
+//===--- StringEdits.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -24,7 +25,7 @@ import MSVCRT
 import Darwin
 #endif
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "StringEdits",
     runFunction: run_StringEdits,
@@ -32,16 +33,16 @@ public let benchmarks = [
     legacyFactor: 100),
 ]
 
-let editWords: [String] = [
+immutable editWords: [String] = [
   "woodshed",
   "lakism",
   "gastroperiodynia",
 ]
 
-let alphabet = "abcdefghijklmnopqrstuvwxyz"
+immutable alphabet = "abcdefghijklmnopqrstuvwxyz"
 /// All edits that are one edit away from `word`
-func edits(_ word: String) -> Set<String> {
-  let splits = word.indices.map {
+fn edits(_ word: String) -> Set<String> {
+  immutable splits = word.indices.map {
     (String(word[..<$0]), String(word[$0...]))
   }
 
@@ -52,9 +53,9 @@ func edits(_ word: String) -> Set<String> {
     result.append(left + right.dropFirst())
 
     // transpose two characters
-    if let fst = right.first {
-      let drop1 = right.dropFirst()
-      if let snd = drop1.first {
+    if immutable fst = right.first {
+      immutable drop1 = right.dropFirst()
+      if immutable snd = drop1.first {
         result.append(left + [snd,fst] + drop1.dropFirst())
       }
     }
@@ -75,7 +76,7 @@ func edits(_ word: String) -> Set<String> {
 }
 
 @inline(never)
-public func run_StringEdits(_ n: Int) {
+public fn run_StringEdits(_ n: Int) {
   for _ in 1...n {
     for word in editWords {
       _ = edits(word)

@@ -2,10 +2,10 @@
 
 
 A `module` is the primary unit of code
-sharing in Swift. This document describes the experience of using
-modules in Swift: what they are and what they provide for the user.
+sharing in Codira. This document describes the experience of using
+modules in Codira: what they are and what they provide for the user.
 
-> *Warning:* This document was used in planning Swift 1.0; it has not been kept up to
+> *Warning:* This document was used in planning Codira 1.0; it has not been kept up to
 date.
 
 ## High-Level Overview
@@ -17,15 +17,15 @@ functions, and global variables that are present in a library[^library].
 Importing[^import] the module gives
 access to these declarations and allows them to be used in your code.
 
-```swift
+```language
 import Chess
 import Foundation
 ```
 
 You can also selectively import certain declarations from a module:
 
-```swift
-import func Chess.createGreedyPlayer
+```language
+import fn Chess.createGreedyPlayer
 import class Foundation.NSRegularExpression
 ```
 
@@ -46,8 +46,8 @@ Once a module has been imported, its declarations are available for use
 within the current source file. These declarations can be referred to by
 name, or by qualifying[^qualified-name] them with the name of the module:
 
-```swift
-func playChess(_ blackPlayer : Chess.Player, whitePlayer : Chess.Player) {
+```language
+fn playChess(_ blackPlayer : Chess.Player, whitePlayer : Chess.Player) {
     var board = Board() // refers to Chess.Board
 }
 ```
@@ -96,7 +96,7 @@ re-export[^re-export] these modules, meaning that
 anyone who imports the first module will also have access to the
 declarations in the re-exported modules.
 
-```swift
+```language
 @exported import AmericanCheckers
 ```
 
@@ -106,7 +106,7 @@ to re-export three other frameworks: AppKit, Foundation, and CoreData.
 Just as certain declarations can be selectively imported from a module,
 so too can they be selectively re-exported, using the same syntax:
 
-```swift
+```language
 @exported import class AmericanCheckers.Board
 ```
 
@@ -125,7 +125,7 @@ for Objective-C classes.
 bad style to declare a type with the same name as a top-level module
 used in your program:
 
-```swift
+```language
 // Example 1:
 import Foundation
 import struct BuildingConstruction.Foundation
@@ -151,16 +151,16 @@ Example 2, and indeed Example 2 is probably doing the wrong thing.
 As shown above, a module is imported using the `import` keyword,
 followed by the name of the module:
 
-```swift
+```language
 import AppKit
 ```
 
 To import only a certain declaration from the module, you use the
 appropriate declaration keyword:
 
-```swift
+```language
 import class AppKit.NSWindow
-import func AppKit.NSApplicationMain
+import fn AppKit.NSApplicationMain
 import var AppKit.NSAppKitVersionNumber
 import typealias AppKit.NSApplicationPresentationOptions
 ```
@@ -170,7 +170,7 @@ import typealias AppKit.NSApplicationPresentationOptions
     in the imported module.
 -   `import class`, `struct`, and `enum` will succeed even if the name
     given is a typealias for a type of the appropriate kind.
--   `import func` will bring in all overloads of the named function.
+-   `import fn` will bring in all overloads of the named function.
 -   Using a keyword that doesn't match the named declaration is an
     error.
 
@@ -202,7 +202,7 @@ Because two different modules can declare the same name, it is sometimes
 necessary to use a qualified name[^qualified-name] to
 refer to a particular declaration:
 
-```swift
+```language
 import Chess
 import Xiangqi
 
@@ -235,7 +235,7 @@ These are the rules for resolving name lookup ambiguities:
 > *Warning:* This feature was never implemented, or even fully designed.
 
 For large projects, it is usually desirable to break a single
-application or framework into subsystems, which Swift calls
+application or framework into subsystems, which Codira calls
 "submodules". A submodule is a development-time construct used for
 grouping within a module. By default, declarations within a submodule
 are considered "submodule-private", which means they are only visible
@@ -253,8 +253,8 @@ declaration.
 
 > *TODO:* We need to decide once and for all whether implicit visibility applies
 across submodule boundaries, i.e. "can I access the public
-Swift.AST.Module from Swift.Sema without an import, or do I have to say
-`import Swift.AST`?"
+Codira.AST.Module from Codira.Sema without an import, or do I have to say
+`import Codira.AST`?"
 
 Advantages of module-wide implicit visibility:
 
@@ -269,7 +269,7 @@ Advantages of submodule-only implicit visibility:
 -   Code completion will include names of public things you don't care
     about.
 -   We haven't actually tested the build time performance of any large
-    Swift projects, so we don't know if we can actually handle targets
+    Codira projects, so we don't know if we can actually handle targets
     that contain hundreds of files.
 -   Could be considered desirable to force declaring your internal
     dependencies explicitly.
@@ -294,8 +294,8 @@ work?
 The compiler has the ability to interoperate with C and Objective-C by
 importing Clang modules[^clang-module]. This feature of the Clang compiler 
 was developed to provide a "semantic import" extension to the C family of
-languages. The Swift compiler uses this to expose declarations from C and
-Objective-C as if they used native Swift types.
+languages. The Codira compiler uses this to expose declarations from C and
+Objective-C as if they used native Codira types.
 
 In all the examples above, `import AppKit` has been using this
 mechanism: the module found with the name "AppKit" is generated from the
@@ -304,34 +304,34 @@ Objective-C AppKit framework.
 ### Clang Submodules
 
 Clang also has a concept of "submodules", which are essentially
-hierarchically-named modules. Unlike Swift's [submodules](#submodules),
+hierarchically-named modules. Unlike Codira's [submodules](#submodules),
 Clang submodules are visible from outside the module. It is conventional 
 for a top-level Clang module to re-export all of its submodules, but
 sometimes certain submodules are specified to require an explicit import:
 
-```swift
+```language
 import OpenGL.GL3
 ```
 
 ### Module Overlays
 
-> *Warning:* This feature has mostly been removed from Swift; it's only
-in use in the "overlay" libraries bundled with Swift itself.
+> *Warning:* This feature has mostly been removed from Codira; it's only
+in use in the "overlay" libraries bundled with Codira itself.
 
 If a source file in module A includes `import A`, this indicates that
 the source file is providing a replacement or overlay for an external
 module. In most cases, the source file will
 `re-export`{.interpreted-text role="term"} the underlying module, but
 add some convenience APIs to make the existing interface more
-Swift-friendly.
+Codira-friendly.
 
 This replacement syntax (using the current module name in an import)
-cannot be used to overlay a Swift module, because
+cannot be used to overlay a Codira module, because
 `module-naming`{.interpreted-text role="ref"}.
 
 ## Multiple source files, part 2
 
-In migrating from Objective-C to Swift, it is expected that a single
+In migrating from Objective-C to Codira, it is expected that a single
 program will contain a mix of sources. The compiler therefore allows
 importing a single Objective-C header, exposing its declarations to the
 main source file by constructing a sort of "ad hoc" module. These can
@@ -340,26 +340,26 @@ then be used like any other declarations imported from C or Objective-C.
 > *Note:* This is describing the feature that eventually became "bridging headers"
 for app targets.
 
-### Accessing Swift declarations from Objective-C
+### Accessing Codira declarations from Objective-C
 
 > *Warning: This never actually happened; instead, we went with "generated headers"
-output by the Swift compiler.
+output by the Codira compiler.
 
 Using the new `@import` syntax, Objective-C translation units can import
-Swift modules as well. Swift declarations will be mirrored into
+Codira modules as well. Codira declarations will be mirrored into
 Objective-C and can be called natively, just as Objective-C declarations
-are mirrored into Swift for Clang modules[^clang-module]. In this
+are mirrored into Codira for Clang modules[^clang-module]. In this
 case, only the declarations compatible with Objective-C will be visible.
 
 > TODO: We need to actually do this, but it requires working on a branch of
 Clang, so we're pushing it back in the schedule as far as possible. The
-workaround is to manually write header files for imported Swift classes.
+workaround is to manually write header files for imported Codira classes.
 
-> TODO: Importing Swift sources from within the same target is a goal, but there
+> TODO: Importing Codira sources from within the same target is a goal, but there
 are many difficulties. How do you name a file to be imported? What if
 the file itself depends on another Objective-C header? What if there's a
 mutual dependency across the language boundary? (That's a problem in
-both directions, since both Clang modules and Swift modules are only
+both directions, since both Clang modules and Codira modules are only
 supposed to be exposed once they've been type-checked.)
 
 [^1]: Specifically, code marked with the ``@_transparent`` attribute is
@@ -371,7 +371,7 @@ files, so that external dependencies can be recorded without having
 to explicitly specify them at link time.
 
 [^clang-module]: A module whose contents are generated from a C-family header or set
-of headers. See [Clang's Modules](http://clang.llvm.org/docs/Modules.html) documentation for more
+of headers. See [Clang's Modules](http://clang.toolchain.org/docs/Modules.html) documentation for more
 information.
 
 [^framework]: A mechanism for library distribution on OS X. Traditionally 
@@ -388,7 +388,7 @@ implementation of these APIs.
 
 [^mangled-name]: A unique, internal name for a type or value. The term is most
 commonly used in C++; [see Wikipedia](https://en.wikipedia.org/wiki/Name_mangling#C.2B.2B)
-for some examples. Swift's name mangling scheme is not the same as C++'s but serves a similar
+for some examples. Codira's name mangling scheme is not the same as C++'s but serves a similar
 purpose.
 
 [^qualified-name]: A multi-piece name like `Foundation.NSWindow`, which names an entity

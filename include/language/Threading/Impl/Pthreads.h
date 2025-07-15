@@ -1,21 +1,25 @@
 //==--- Pthreads.h - Threading abstraction implementation ------ -*-C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements threading support for plain pthreads
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_THREADING_IMPL_PTHREADS_H
-#define SWIFT_THREADING_IMPL_PTHREADS_H
+#ifndef LANGUAGE_THREADING_IMPL_PTHREADS_H
+#define LANGUAGE_THREADING_IMPL_PTHREADS_H
 
 #include <errno.h>
 #include <pthread.h>
@@ -32,14 +36,14 @@
 namespace language {
 namespace threading_impl {
 
-#define SWIFT_PTHREADS_CHECK(expr)                                             \
+#define LANGUAGE_PTHREADS_CHECK(expr)                                             \
   do {                                                                         \
     int res_ = (expr);                                                         \
     if (res_ != 0)                                                             \
-      swift::threading::fatal(#expr " failed with error %d\n", res_);          \
+      language::threading::fatal(#expr " failed with error %d\n", res_);          \
   } while (0)
 
-#define SWIFT_PTHREADS_RETURN_TRUE_OR_FALSE(falseerr, expr)                    \
+#define LANGUAGE_PTHREADS_RETURN_TRUE_OR_FALSE(falseerr, expr)                    \
   do {                                                                         \
     int res_ = (expr);                                                         \
     switch (res_) {                                                            \
@@ -48,7 +52,7 @@ namespace threading_impl {
     case falseerr:                                                             \
       return false;                                                            \
     default:                                                                   \
-      swift::threading::fatal(#expr " failed with error (%d)\n", res_);        \
+      language::threading::fatal(#expr " failed with error (%d)\n", res_);        \
     }                                                                          \
   } while (0)
 
@@ -75,25 +79,25 @@ inline void mutex_init(mutex_handle &handle, bool checked = false) {
     handle = PTHREAD_MUTEX_INITIALIZER;
   } else {
     ::pthread_mutexattr_t attr;
-    SWIFT_PTHREADS_CHECK(::pthread_mutexattr_init(&attr));
-    SWIFT_PTHREADS_CHECK(
+    LANGUAGE_PTHREADS_CHECK(::pthread_mutexattr_init(&attr));
+    LANGUAGE_PTHREADS_CHECK(
         ::pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK));
-    SWIFT_PTHREADS_CHECK(::pthread_mutex_init(&handle, &attr));
-    SWIFT_PTHREADS_CHECK(::pthread_mutexattr_destroy(&attr));
+    LANGUAGE_PTHREADS_CHECK(::pthread_mutex_init(&handle, &attr));
+    LANGUAGE_PTHREADS_CHECK(::pthread_mutexattr_destroy(&attr));
   }
 }
 inline void mutex_destroy(mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_destroy(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_destroy(&handle));
 }
 
 inline void mutex_lock(mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_lock(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_lock(&handle));
 }
 inline void mutex_unlock(mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_unlock(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_unlock(&handle));
 }
 inline bool mutex_try_lock(mutex_handle &handle) {
-  SWIFT_PTHREADS_RETURN_TRUE_OR_FALSE(EBUSY, ::pthread_mutex_trylock(&handle));
+  LANGUAGE_PTHREADS_RETURN_TRUE_OR_FALSE(EBUSY, ::pthread_mutex_trylock(&handle));
 }
 
 inline void mutex_unsafe_lock(mutex_handle &handle) {
@@ -107,20 +111,20 @@ using lazy_mutex_handle = ::pthread_mutex_t;
 
 // We don't actually need to be lazy here because pthreads has
 // PTHREAD_MUTEX_INITIALIZER.
-#define SWIFT_LAZY_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#define LANGUAGE_LAZY_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
 
 inline void lazy_mutex_destroy(lazy_mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_destroy(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_destroy(&handle));
 }
 
 inline void lazy_mutex_lock(lazy_mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_lock(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_lock(&handle));
 }
 inline void lazy_mutex_unlock(lazy_mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_unlock(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_unlock(&handle));
 }
 inline bool lazy_mutex_try_lock(lazy_mutex_handle &handle) {
-  SWIFT_PTHREADS_RETURN_TRUE_OR_FALSE(EBUSY, ::pthread_mutex_trylock(&handle));
+  LANGUAGE_PTHREADS_RETURN_TRUE_OR_FALSE(EBUSY, ::pthread_mutex_trylock(&handle));
 }
 
 inline void lazy_mutex_unsafe_lock(lazy_mutex_handle &handle) {
@@ -136,21 +140,21 @@ using recursive_mutex_handle = ::pthread_mutex_t;
 
 inline void recursive_mutex_init(recursive_mutex_handle &handle, bool checked = false) {
   ::pthread_mutexattr_t attr;
-  SWIFT_PTHREADS_CHECK(::pthread_mutexattr_init(&attr));
-  SWIFT_PTHREADS_CHECK(
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutexattr_init(&attr));
+  LANGUAGE_PTHREADS_CHECK(
       ::pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE));
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_init(&handle, &attr));
-  SWIFT_PTHREADS_CHECK(::pthread_mutexattr_destroy(&attr));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_init(&handle, &attr));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutexattr_destroy(&attr));
 }
 inline void recursive_mutex_destroy(recursive_mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_destroy(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_destroy(&handle));
 }
 
 inline void recursive_mutex_lock(recursive_mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_lock(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_lock(&handle));
 }
 inline void recursive_mutex_unlock(recursive_mutex_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_unlock(&handle));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_unlock(&handle));
 }
 
 // .. ConditionVariable support ..............................................
@@ -165,23 +169,23 @@ inline void cond_init(cond_handle &handle) {
   handle.mutex = PTHREAD_MUTEX_INITIALIZER;
 }
 inline void cond_destroy(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_destroy(&handle.condition));
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_destroy(&handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_destroy(&handle.condition));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_destroy(&handle.mutex));
 }
 inline void cond_lock(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_lock(&handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_lock(&handle.mutex));
 }
 inline void cond_unlock(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_mutex_unlock(&handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_mutex_unlock(&handle.mutex));
 }
 inline void cond_signal(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_signal(&handle.condition));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_signal(&handle.condition));
 }
 inline void cond_broadcast(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_broadcast(&handle.condition));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_broadcast(&handle.condition));
 }
 inline void cond_wait(cond_handle &handle) {
-  SWIFT_PTHREADS_CHECK(::pthread_cond_wait(&handle.condition, &handle.mutex));
+  LANGUAGE_PTHREADS_CHECK(::pthread_cond_wait(&handle.condition, &handle.mutex));
 }
 template <class Rep, class Period>
 inline bool cond_wait(cond_handle &handle,
@@ -196,7 +200,7 @@ inline bool cond_wait(cond_handle &handle,
   auto ns = chrono_utils::ceil<std::chrono::nanoseconds>(
     deadline.time_since_epoch()).count();
   struct ::timespec ts = { ::time_t(ns / 1000000000), long(ns % 1000000000) };
-  SWIFT_PTHREADS_RETURN_TRUE_OR_FALSE(
+  LANGUAGE_PTHREADS_RETURN_TRUE_OR_FALSE(
     ETIMEDOUT,
     ::pthread_cond_timedwait(&handle.condition, &handle.mutex, &ts)
   );
@@ -219,7 +223,7 @@ inline void once_impl(once_t &predicate, void (*fn)(void *), void *context) {
 // .. Thread local storage ...................................................
 
 #if __cplusplus >= 201103L || __has_feature(cxx_thread_local)
-#define SWIFT_THREAD_LOCAL thread_local
+#define LANGUAGE_THREAD_LOCAL thread_local
 #endif
 
 using tls_key_t = pthread_key_t;
@@ -239,4 +243,4 @@ inline void tls_set(tls_key_t key, void *value) {
 
 } // namespace language
 
-#endif // SWIFT_THREADING_IMPL_PTHREADS_H
+#endif // LANGUAGE_THREADING_IMPL_PTHREADS_H

@@ -1,0 +1,92 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %sourcekitd-test \
+// RUN:   -shell -- echo '## State 1' == \
+// RUN:   -req=cursor -pos=6:21 %t/file.code -- %t/file.code == \
+// RUN:   -shell -- echo '## State 2' == \
+// RUN:   -shell -- cp %t/State2.code %t/file.code == \
+// RUN:   -req=cursor -pos=7:21 %t/file.code -- %t/file.code == \
+// RUN:   -shell -- echo '## State 3' == \
+// RUN:   -shell -- cp %t/State3.code %t/file.code == \
+// RUN:   -req=cursor -pos=5:21 %t/file.code -- %t/file.code == \
+// RUN:   -shell -- echo '## State 4' == \
+// RUN:   -shell -- cp %t/State4.code %t/file.code == \
+// RUN:   -req=cursor -pos=5:19 %t/file.code -- %t/file.code == \
+// RUN:   -shell -- echo '## State 5' == \
+// RUN:   -shell -- cp %t/State5.code %t/file.code == \
+// RUN:   -req=cursor -pos=5:19 %t/file.code -- %t/file.code == \
+// RUN:   -shell -- echo '## State 6' == \
+// RUN:   -shell -- cp %t/State6.code %t/file.code == \
+// RUN:   -req=cursor -pos=5:19 %t/file.code -- %t/file.code > %t/response.txt
+// RUN: %FileCheck %s < %t/response.txt
+
+// CHECK-LABEL: ## State 1
+// CHECK: source.lang.code.ref.function.free
+// CHECK: DID REUSE AST CONTEXT: 0
+// CHECK-LABEL: ## State 2
+// CHECK: source.lang.code.ref.function.free
+// CHECK: DID REUSE AST CONTEXT: 1
+// CHECK-LABEL: ## State 3
+// CHECK: source.lang.code.ref.function.free
+// CHECK: DID REUSE AST CONTEXT: 1
+// CHECK-LABEL: ## State 4
+// CHECK: source.lang.code.ref.function.free
+// CHECK: DID REUSE AST CONTEXT: 1
+// CHECK-LABEL: ## State 5
+// CHECK: source.lang.code.ref.function.free
+// CHECK: DID REUSE AST CONTEXT: 0
+// CHECK-LABEL: ## State 6
+// CHECK: source.lang.code.ref.function.free
+// CHECK: DID REUSE AST CONTEXT: 1
+
+//--- file.code
+fn bar() -> Int { return 1 }
+fn bar() -> String { return "" }
+
+fn foo() {
+  immutable inFunctionA = bar()
+  immutable inFunctionB = bar()
+}
+
+//--- State2.code
+fn bar() -> Int { return 1 }
+fn bar() -> String { return "" }
+
+fn foo() {
+  immutable newlyAddedMember: Int = bar()
+  immutable inFunctionA = bar()
+  immutable inFunctionB = bar()
+}
+
+//--- State3.code
+fn bar() -> Int { return 1 }
+fn bar() -> String { return "" }
+
+fn foo() {
+  immutable inFunctionB = bar()
+}
+
+//--- State4.code
+fn bar() -> Int { return 1 }
+fn bar() -> String { return "" }
+
+fn foo() {
+  immutable myNewName = bar()
+}
+
+//--- State5.code
+fn bar() -> Int { return 1 }
+fn bar() -> String { return "" }
+
+fn foo(param: Int) {
+  immutable myNewName = bar()
+}
+
+//--- State6.code
+fn bar() -> Int { return 1 }
+fn bar() -> String { return "" }
+
+fn foo(param: Int) {
+  immutable myNewName = bar() + bar()
+}

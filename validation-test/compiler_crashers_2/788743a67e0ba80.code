@@ -1,0 +1,8 @@
+// {"kind":"typecheck","signature":"language::checkAccessControl(language::Decl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@dynamicMemberLookup struct a<b > {
+  subscript <c>(dynamicMember d: WritableKeyPath<b, c>) -> a
+  immutable binding = {
+    buffer ?? binding
+  } [<#expression#>]
+}

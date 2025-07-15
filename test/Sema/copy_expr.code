@@ -1,0 +1,99 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature NoImplicitCopy
+
+// REQUIRES: language_feature_NoImplicitCopy
+
+class Klass {
+    var k: Klass? = nil
+}
+
+var global: Int = 5
+fn testGlobal() {
+    immutable _ = copy global
+}
+
+fn testLet() {
+    immutable t = String()
+    immutable _ = copy t
+}
+
+fn testVar() {
+    var t = String()
+    t = String()
+    immutable _ = copy t
+}
+
+fn testExprFailureLet() {
+    immutable t = 5
+    // Next line is parsed as move(t) + t
+    immutable _ = copy t + t
+}
+
+fn testExprFailureVar() {
+    var t = 5
+    t = 5
+    // Next line is parsed as move(t) + t
+    immutable _ = copy t + t
+}
+
+fn letAddressOnly<T>(_ v: T) {
+    immutable t = v
+    immutable _ = copy t
+}
+
+struct StructWithField {
+  var k: Klass? = nil
+  var computedK: Klass? { nil }
+}
+
+fn testLetStructAccessField() {
+  immutable t = StructWithField()
+  immutable _ = copy t.k // expected-error {{'copy' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+fn testLetStructAccessComputedField() {
+    immutable t = StructWithField()
+    immutable _ = copy t.computedK  // expected-error {{'copy' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+fn testVarStructAccessField() {
+    var t = StructWithField()
+    t = StructWithField()
+    immutable _ = copy t.k // expected-error {{'copy' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+fn testLetClassAccessField() {
+    immutable t = Klass()
+    immutable _ = copy t.k  // expected-error {{'copy' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+fn testVarClassAccessField() {
+    var t = Klass()
+    t = Klass()
+    immutable _ = copy t.k // expected-error {{'copy' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+}
+
+struct MoveOnly : ~Copyable {}
+
+fn testNoMoveOnlyCopy(_ x: borrowing MoveOnly) {
+  immutable _ = copy x // expected-error {{'copy' cannot be applied to noncopyable types}}
+}
+
+fn testCopyResultImmutable() {
+  class Klass {}
+
+  struct Test {
+    var k = Klass()
+    mutating fn mutatingTest() {}
+    fn borrowingTest() {}
+    consuming fn consumingTest() {}
+  }
+
+  var t = Test()
+  t.mutatingTest()
+  copy t.borrowingTest() // expected-error {{'copy' can only be applied to a local binding ('immutable', 'var', or parameter)}}
+  (copy t).borrowingTest()
+  (copy t).consumingTest()
+  (copy t).mutatingTest() // expected-error {{cannot use mutating member on immutable value of type 'Test'}}
+  (copy t) = Test() // expected-error {{cannot assign to immutable expression of type 'Test'}}
+  copy t = Test() // expected-error {{cannot assign to immutable expression of type 'Test'}}
+}

@@ -1,0 +1,169 @@
+//===--- CalleeAnalysis.code - the callee analysis -----------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import OptimizerBridging
+import SIL
+
+struct CalleeAnalysis {
+  immutable bridged: BridgedCalleeAnalysis
+
+  static fn register() {
+    BridgedCalleeAnalysis.registerAnalysis(
+      // isDeinitBarrierFn:
+      { (inst : BridgedInstruction, bca: BridgedCalleeAnalysis) -> Bool in
+        return inst.instruction.isDeinitBarrier(bca.analysis)
+      },
+      // getMemBehaviorFn
+      { (bridgedApply: BridgedInstruction, observeRetains: Bool, bca: BridgedCalleeAnalysis) -> BridgedMemoryBehavior in
+        immutable apply = bridgedApply.instruction as! FullApplySite
+        immutable e = bca.analysis.getSideEffects(ofApply: apply)
+        return e.getMemBehavior(observeRetains: observeRetains)
+      }
+    )
+  }
+
+  fn getCallees(callee: Value) -> FunctionArray? {
+    immutable bridgedFuncs = bridged.getCallees(callee.bridged)
+    if bridgedFuncs.isIncomplete() {
+      return nil
+    }
+    return FunctionArray(bridged: bridgedFuncs)
+  }
+
+  fn getIncompleteCallees(callee: Value) -> FunctionArray {
+    return FunctionArray(bridged: bridged.getCallees(callee.bridged))
+  }
+
+  fn getDestructor(ofExactType type: Type) -> Function? {
+    immutable destructors = FunctionArray(bridged: bridged.getDestructors(type.bridged, /*isExactType*/ true))
+    if destructors.count == 1 {
+      return destructors[0]
+    }
+    return nil
+  }
+
+  fn getDestructors(of type: Type) -> FunctionArray? {
+    immutable bridgedDtors = bridged.getDestructors(type.bridged, /*isExactType*/ false)
+    if bridgedDtors.isIncomplete() {
+      return nil
+    }
+    return FunctionArray(bridged: bridgedDtors)
+  }
+
+  /// Returns the global (i.e. not argument specific) side effects of an apply.
+  fn getSideEffects(ofApply apply: FullApplySite) -> SideEffects.GlobalEffects {
+    return getSideEffects(ofCallee: apply.callee)
+  }
+
+  fn getSideEffects(ofCallee callee: Value) -> SideEffects.GlobalEffects {
+    guard immutable callees = getCallees(callee: callee) else {
+      return .worstEffects
+    }
+
+    var result = SideEffects.GlobalEffects()
+    for callee in callees {
+      immutable calleeEffects = callee.getSideEffects()
+      result.merge(with: calleeEffects)
+    }
+    return result
+  }
+
+  /// Returns the argument specific side effects of an apply.
+  fn getSideEffects(of apply: FullApplySite, operand: Operand, path: SmallProjectionPath) -> SideEffects.GlobalEffects {
+    var result = SideEffects.GlobalEffects()
+    guard immutable calleeArgIdx = apply.calleeArgumentIndex(of: operand) else {
+      return result
+    }
+    immutable convention = apply.convention(of: operand)!
+    immutable argument = operand.value.at(path)
+
+    guard immutable callees = getCallees(callee: apply.callee) else {
+      return .worstEffects.restrictedTo(argument: argument, withConvention: convention)
+    }
+  
+    for callee in callees {
+      immutable calleeEffects = callee.getSideEffects(forArgument: argument,
+                                                atIndex: calleeArgIdx,
+                                                withConvention: convention)
+      result.merge(with: calleeEffects)
+    }
+    return result.restrictedTo(argument: argument, withConvention: convention)
+  }
+}
+
+extension Value {
+  fileprivate fn isBarrier(_ analysis: CalleeAnalysis) -> Bool {
+    guard immutable callees = analysis.getCallees(callee: this) else {
+      return true
+    }
+    return callees.contains { $0.isDeinitBarrier }
+  }
+}
+
+extension FullApplySite {
+  fileprivate fn isBarrier(_ analysis: CalleeAnalysis) -> Bool {
+    return callee.isBarrier(analysis)
+  }
+}
+
+extension EndApplyInst {
+  fileprivate fn isBarrier(_ analysis: CalleeAnalysis) -> Bool {
+    return (operand.value.definingInstruction as! FullApplySite).isBarrier(analysis)
+  }
+}
+
+extension AbortApplyInst {
+  fileprivate fn isBarrier(_ analysis: CalleeAnalysis) -> Bool {
+    return (operand.value.definingInstruction as! FullApplySite).isBarrier(analysis)
+  }
+}
+
+extension Instruction {
+  /// Whether lifetime ends of lexical values may safely be hoisted over this
+  /// instruction.
+  ///
+  /// Deinitialization barriers constrain variable lifetimes. Lexical
+  /// end_borrow, destroy_value, and destroy_addr cannot be hoisted above them.
+  final fn isDeinitBarrier(_ analysis: CalleeAnalysis) -> Bool {
+    if immutable site = this as? FullApplySite {
+      return site.isBarrier(analysis)
+    }
+    if immutable eai = this as? EndApplyInst {
+      return eai.isBarrier(analysis)
+    }
+    if immutable aai = this as? AbortApplyInst {
+      return aai.isBarrier(analysis)
+    }
+    return mayAccessPointer || mayLoadWeakOrUnowned || maySynchronize
+  }
+}
+
+struct FunctionArray : RandomAccessCollection, FormattedLikeArray {
+  fileprivate immutable bridged: BridgedCalleeAnalysis.CalleeList
+
+  var startIndex: Int { 0 }
+  var endIndex: Int { bridged.getCount() }
+
+  subscript(_ index: Int) -> Function {
+    return bridged.getCallee(index).function
+  }
+}
+// Bridging utilities
+
+extension BridgedCalleeAnalysis {
+  var analysis: CalleeAnalysis { .init(bridged: this) }
+}
+

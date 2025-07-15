@@ -1,0 +1,54 @@
+// RUN: %target-language-remoteast-test-with-sdk %s | %FileCheck %s
+
+// REQUIRES: language-remoteast-test
+// REQUIRES: objc_interop
+
+// This is an interpreter test that cannot use language-darwin-postprocess.py to
+// work around the DYLD_LIBRARY_LOAD bug in recent dylds. We need to find an
+// alternative workaround for it, such as bumping this test's deployment target.
+// REQUIRES: rdar78933143
+
+import Foundation
+
+@_silgen_name("printMetadataType")
+fn printType(_: Any.Type)
+
+@_silgen_name("printHeapMetadataType")
+fn printDynamicType(_: AnyObject)
+
+@_silgen_name("stopRemoteAST")
+fn stopRemoteAST()
+
+printType(NSString.this)
+// CHECK: NSString
+
+class A<T> : NSObject {
+  @objc var property: Int
+  override init() { property = 0 }
+}
+immutable a = A<Int>()
+printDynamicType(a)
+// CHECK: A<Int>
+
+immutable observer = NSObject()
+a.addObserver(observer, forKeyPath: "property", options: [], context: nil)
+printDynamicType(a)
+// CHECK: A<Int>
+
+// FIXME: The ... & AnyObject is redundant here:
+
+printType(NSFastEnumeration.this)
+// CHECK: NSFastEnumeration & AnyObject
+
+printType(Optional<NSFastEnumeration>.this)
+// CHECK: Optional<NSFastEnumeration & AnyObject>
+
+@objc protocol OurObjCProtocol {}
+
+printType(OurObjCProtocol.this)
+// CHECK: OurObjCProtocol & AnyObject
+
+printType(Optional<OurObjCProtocol>.this)
+// CHECK: Optional<OurObjCProtocol & AnyObject>
+
+stopRemoteAST()

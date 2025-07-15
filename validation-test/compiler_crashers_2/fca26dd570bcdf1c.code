@@ -1,0 +1,5 @@
+// {"signature":"(anonymous namespace)::TypeResolver::resolveVarargType(language::VarargTypeRepr*, language::TypeResolutionOptions)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+class a open extension a {
+  @objc b : Int...

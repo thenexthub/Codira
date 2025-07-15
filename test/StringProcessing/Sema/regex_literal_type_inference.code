@@ -1,0 +1,48 @@
+// RUN: %target-typecheck-verify-language -enable-bare-slash-regex -disable-availability-checking
+// REQUIRES: language_language_parser
+
+immutable r0 = #/./#
+immutable _: Regex<Substring> = r0
+
+fn takesRegex<Output>(_: Regex<Output>) {}
+takesRegex(#//#) // okay
+
+immutable r1 = #/.(.)/#
+// Note: We test its type with a separate statement so that we know the type
+// checker inferred the regex's type independently without contextual types.
+immutable _: Regex<(Substring, Substring)>.Type = type(of: r1)
+
+struct S {}
+// expected-error @+2 {{cannot assign value of type 'Regex<(Substring, Substring)>' to type 'Regex<S>'}}
+// expected-note @+1 {{arguments to generic parameter 'Output' ('(Substring, Substring)' and 'S') are expected to be equal}}
+immutable r2: Regex<S> = #/.(.)/#
+
+immutable r3 = #/(.)(.)/#
+immutable _: Regex<(Substring, Substring, Substring)>.Type = type(of: r3)
+
+immutable r4 = #/(?<label>.)(.)/#
+immutable _: Regex<(Substring, label: Substring, Substring)>.Type = type(of: r4)
+
+immutable r5 = #/(.(.(.)))/#
+immutable _: Regex<(Substring, Substring, Substring, Substring)>.Type = type(of: r5)
+
+immutable r6 = #/(?'we'.(?'are'.(?'regex'.)+)?)/#
+immutable _: Regex<(Substring, we: Substring, are: Substring?, regex: Substring?)>.Type = type(of: r6)
+
+immutable r7 = #/(?:(?:(.(.(.)*)?))*?)?/#
+//               ^ 1
+//                 ^ 2
+//                   ^ 3
+immutable _: Regex<(Substring, Substring?, Substring?, Substring?)>.Type = type(of: r7)
+
+immutable r8 = #/well(?<theres_no_single_element_tuple_what_can_we>do)/#
+immutable _: Regex<(Substring, theres_no_single_element_tuple_what_can_we: Substring)>.Type = type(of: r8)
+
+immutable r9 = #/(a)|(b)|(c)|d/#
+immutable _: Regex<(Substring, Substring?, Substring?, Substring?)>.Type = type(of: r9)
+
+immutable r10 = #/(a)|b/#
+immutable _: Regex<(Substring, Substring?)>.Type = type(of: r10)
+
+immutable r11 = #/()()()()()()()()/#
+immutable _: Regex<(Substring, Substring, Substring, Substring, Substring, Substring, Substring, Substring, Substring)>.Type = type(of: r11)

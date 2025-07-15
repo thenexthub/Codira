@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,20 +20,20 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IMPORT_H
-#define SWIFT_IMPORT_H
+#ifndef LANGUAGE_IMPORT_H
+#define LANGUAGE_IMPORT_H
 
 #include "language/AST/AttrKind.h"
 #include "language/AST/Identifier.h"
 #include "language/Basic/Located.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <optional>
 
@@ -104,7 +105,7 @@ enum class ImportFlags {
 /// \see ImportFlags
 using ImportOptions = OptionSet<ImportFlags>;
 
-void simple_display(llvm::raw_ostream &out, ImportOptions options);
+void simple_display(toolchain::raw_ostream &out, ImportOptions options);
 
 ImportOptions getImportOptions(ImportDecl *ID);
 
@@ -112,7 +113,7 @@ ImportOptions getImportOptions(ImportDecl *ID);
 
 namespace detail {
   using ImportPathElement = Located<Identifier>;
-  using ImportPathRaw = llvm::ArrayRef<ImportPathElement>;
+  using ImportPathRaw = toolchain::ArrayRef<ImportPathElement>;
 
   template<typename Subclass>
   class ImportPathBase {
@@ -174,14 +175,14 @@ namespace detail {
       return SourceRange(raw.front().Loc, raw.back().Loc);
     }
 
-    void print(llvm::raw_ostream &os) const {
-      llvm::interleave(*this,
+    void print(toolchain::raw_ostream &os) const {
+      toolchain::interleave(*this,
                        [&](Element elem) { os << elem.Item.str(); },
                        [&]() { os << "."; });
     }
 
     void getString(SmallVectorImpl<char> &modulePathStr) const {
-      llvm::raw_svector_ostream os(modulePathStr);
+      toolchain::raw_svector_ostream os(modulePathStr);
       print(os);
     }
   };
@@ -194,7 +195,7 @@ namespace detail {
 
   template<typename Subclass>
   class ImportPathBuilder {
-    using Scratch = llvm::SmallVector<ImportPathElement, 4>;
+    using Scratch = toolchain::SmallVector<ImportPathElement, 4>;
     Scratch scratch;
 
   public:
@@ -268,10 +269,10 @@ namespace detail {
     bool empty() const { return scratch.empty(); }
     size_t size() const { return scratch.size(); }
 
-    llvm::SmallVector<ImportPathElement, 4>::iterator begin() {
+    toolchain::SmallVector<ImportPathElement, 4>::iterator begin() {
       return scratch.begin();
     }
-    llvm::SmallVector<ImportPathElement, 4>::iterator end() {
+    toolchain::SmallVector<ImportPathElement, 4>::iterator end() {
       return scratch.end();
     }
 
@@ -355,7 +356,7 @@ public:
   /// When \c ImportPath::Access is empty, this means the import covers all
   /// declarations in the module.
   ///
-  /// Although in theory Swift could support scoped imports of nested
+  /// Although in theory Codira could support scoped imports of nested
   /// declarations, in practice it currently only supports scoped imports of
   /// top-level declarations. Reflecting this, \c ImportPath::Access is backed
   /// by an \c ArrayRef, but it asserts that the access path has zero or one
@@ -391,7 +392,7 @@ public:
   /// \c ImportPath::Module contains one or more identifiers. The first
   /// identifier names a top-level module. The second and subsequent
   /// identifiers, if present, chain together to name a specific submodule to
-  /// import. (Although Swift modules cannot currently contain submodules, Swift
+  /// import. (Although Codira modules cannot currently contain submodules, Codira
   /// can import Clang submodules.)
   ///
   /// \c ImportPath::Module is essentially a wrapper around \c ArrayRef and
@@ -469,7 +470,7 @@ public:
 class UnloadedImportedModule {
   // This is basically an ArrayRef with a bit stolen from the pointer.
   // FIXME: Extract an ArrayRefIntPair type from this.
-  llvm::PointerIntPair<ImportPath::Raw::iterator, 1, bool> dataAndIsScoped;
+  toolchain::PointerIntPair<ImportPath::Raw::iterator, 1, bool> dataAndIsScoped;
   ImportPath::Raw::size_type length;
 
   ImportPath::Raw::iterator data() const {
@@ -644,18 +645,18 @@ struct AttributedImport {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const ImportedModule &import);
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const UnloadedImportedModule &import);
 
 // This is a quasi-implementation detail of the template version below.
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const AttributedImport<std::tuple<>> &import);
 
 template<typename ModuleInfo>
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const AttributedImport<ModuleInfo> &import) {
   // Print the module.
   simple_display(out, import.module);
@@ -676,7 +677,7 @@ enum class ImplicitStdlibKind {
   /// The Builtin module should be implicitly imported.
   Builtin,
 
-  /// The regular Swift standard library should be implicitly imported.
+  /// The regular Codira standard library should be implicitly imported.
   Stdlib
 };
 
@@ -719,18 +720,18 @@ struct ImplicitImportList {
 };
 
 /// A list of modules to implicitly import.
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const ImplicitImportList &importList);
 
 }
 
 // MARK: - DenseMapInfo
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct DenseMapInfo<swift::ImportOptions> {
-  using ImportOptions = swift::ImportOptions;
+struct DenseMapInfo<language::ImportOptions> {
+  using ImportOptions = language::ImportOptions;
 
   using UnsignedDMI = DenseMapInfo<uint8_t>;
 
@@ -749,20 +750,20 @@ struct DenseMapInfo<swift::ImportOptions> {
 };
 
 template <>
-class DenseMapInfo<swift::ImportedModule> {
-  using ImportedModule = swift::ImportedModule;
-  using ModuleDecl = swift::ModuleDecl;
+class DenseMapInfo<language::ImportedModule> {
+  using ImportedModule = language::ImportedModule;
+  using ModuleDecl = language::ModuleDecl;
 public:
   static ImportedModule getEmptyKey() {
-    return {{}, llvm::DenseMapInfo<ModuleDecl *>::getEmptyKey()};
+    return {{}, toolchain::DenseMapInfo<ModuleDecl *>::getEmptyKey()};
   }
   static ImportedModule getTombstoneKey() {
-    return {{}, llvm::DenseMapInfo<ModuleDecl *>::getTombstoneKey()};
+    return {{}, toolchain::DenseMapInfo<ModuleDecl *>::getTombstoneKey()};
   }
 
   static unsigned getHashValue(const ImportedModule &val) {
     auto pair = std::make_pair(val.accessPath.size(), val.importedModule);
-    return llvm::DenseMapInfo<decltype(pair)>::getHashValue(pair);
+    return toolchain::DenseMapInfo<decltype(pair)>::getHashValue(pair);
   }
 
   static bool isEqual(const ImportedModule &lhs,
@@ -773,13 +774,13 @@ public:
 };
 
 template<typename ModuleInfo>
-struct DenseMapInfo<swift::AttributedImport<ModuleInfo>> {
-  using AttributedImport = swift::AttributedImport<ModuleInfo>;
+struct DenseMapInfo<language::AttributedImport<ModuleInfo>> {
+  using AttributedImport = language::AttributedImport<ModuleInfo>;
 
   using ModuleInfoDMI = DenseMapInfo<ModuleInfo>;
-  using ImportOptionsDMI = DenseMapInfo<swift::ImportOptions>;
+  using ImportOptionsDMI = DenseMapInfo<language::ImportOptions>;
   using StringRefDMI = DenseMapInfo<StringRef>;
-  using SourceLocDMI = DenseMapInfo<swift::SourceLoc>;
+  using SourceLocDMI = DenseMapInfo<language::SourceLoc>;
   // We can't include spiGroups in the hash because ArrayRef<Identifier> is not
   // DenseMapInfo-able, but we do check that the spiGroups match in isEqual().
 
@@ -787,13 +788,13 @@ struct DenseMapInfo<swift::AttributedImport<ModuleInfo>> {
     return AttributedImport(
         ModuleInfoDMI::getEmptyKey(), SourceLocDMI::getEmptyKey(),
         ImportOptionsDMI::getEmptyKey(), StringRefDMI::getEmptyKey(), {}, {},
-        std::nullopt, swift::AccessLevel::Public, {});
+        std::nullopt, language::AccessLevel::Public, {});
   }
   static inline AttributedImport getTombstoneKey() {
     return AttributedImport(
         ModuleInfoDMI::getTombstoneKey(), SourceLocDMI::getEmptyKey(),
         ImportOptionsDMI::getTombstoneKey(), StringRefDMI::getTombstoneKey(),
-        {}, {}, std::nullopt, swift::AccessLevel::Public, {});
+        {}, {}, std::nullopt, language::AccessLevel::Public, {});
   }
   static inline unsigned getHashValue(const AttributedImport &import) {
     return detail::combineHashValue(

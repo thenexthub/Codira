@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_UNDEF_H
-#define SWIFT_SIL_UNDEF_H
+#ifndef LANGUAGE_SIL_UNDEF_H
+#define LANGUAGE_SIL_UNDEF_H
 
 #include "language/Basic/Compiler.h"
 #include "language/SIL/SILValue.h"
@@ -65,7 +66,7 @@ public:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif
 

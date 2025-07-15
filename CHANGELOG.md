@@ -3,26 +3,145 @@
 > [!NOTE]
 > This is in reverse chronological order, so newer entries are added to the top.
 
-## Swift 6.2
+## Codira 6.2
 
-* The Swift compiler no longer diagnoses references to declarations that are
+* [SE-0472][]:
+  Introduced new `Task.immediate` and `taskGroup.addImmediateTask` APIs, which allow a task to run "immediately" in the
+  calling context if its isolation is compatible with the enclosing one. This can be used to create tasks which execute 
+  without additional scheduling overhead, and allow for finer-grained control over where a task begins running.
+
+  The canonical example for using this new API is using an unstructured immediate task like this:
+  
+  ```language
+  fn synchronous() { // synchronous function
+  // executor / thread: "T1"
+  let task: Task<Void, Never> = Task.immediate {
+  // executor / thread: "T1"
+  guard keepRunning() else { return } // synchronous call (1)
+  
+      // executor / thread: "T1"
+      await noSuspension() // potential suspension point #1 // (2)
+      
+      // executor / thread: "T1"
+      await suspend() // potential suspension point #2 // (3), suspend, (5)
+      // executor / thread: "other"
+  }
+  
+  // (4) continue execution
+  // executor / thread: "T1"
+  }
+  ```
+
+* [SE-0471][]:
+  Actor and global actor annotated types may now declare a synchronous `isolated deinit`, which allows such deinitializer
+  to access actor isolated state while deinitializing the actor. This enables actor deinitializers to safely access
+  and shut down or close resources during an actors deinitialization, without explicitly resorting to unstructured 
+  concurrency tasks.
+
+  ```language
+  class NonSendableAhmed { 
+    var state: Int = 0
+  }
+
+  @MainActor
+  class Maria {
+    let friend: NonSendableAhmed
+
+    init() {
+      self.friend = NonSendableAhmed()
+    }
+
+    init(sharingFriendOf otherMaria: Maria) {
+      // While the friend is non-Sendable, this initializer and
+      // and the otherMaria are isolated to the MainActor. That is,
+      // they share the same executor. So, it's OK for the non-Sendable value
+      // to cross between otherMaria and self.
+      self.friend = otherMaria.friend
+    }
+    
+    isolated deinit {
+      // Used to be a potential data race. Now, deinit is also
+      // isolated on the MainActor, so this code is perfectly
+      // correct.
+      friend.state += 1
+    }
+  }
+    
+  fn example() async {
+    let m1 = await Maria()
+    let m2 = await Maria(sharingFriendOf: m1)
+    doSomething(m1, m2)
+  }
+  ```
+
+* [SE-0469][]:
+  Codira concurrency tasks (both unstructured and structured, via the TaskGroup `addTask` APIs) may now be given 
+  human-readable names, which can be used to support debugging and identifying tasks.
+
+  ```language
+  let getUsers = Task("Get Users for \(accountID)") {
+    await users.get(accountID)
+  }
+  ```
+
+* [SE-0462][]:
+  Task priority escalation may now be explicitly caused to a `Task`, as well as reacted to using the new task priority escalation handlers:      
+
+  ```language
+  // priority: low
+  // priority: high!
+  await withTaskPriorityEscalationHandler {
+  await work()
+  } onPriorityEscalated: { newPriority in // may not be triggered if ->high escalation happened before handler was installed
+  // do something
+  }
+  ```
+* [SE-0461][]:
+  Nonisolated asynchronous functions may now execute on the calling actor, when the upcoming feature `NonisolatedNonsendingByDefault`
+  is enabled, or when explicitly opted-into using the `nonisolated(nonsending)` keywords. This allows for fine grained control
+  over where nonisolated asynchronous functions execute, and allows for the default behavior of their execution to be changed
+  from always executing on the global concurrent pool, to the calling actor, which can yield noticeable performance improvements 
+  thanks to less executor hopping when nonisolated and isolated code is invoked in sequence. 
+  
+  This also allows for safely using asynchronous functions on non-sendable types from actors, like so:
+
+  ```language
+  class NotSendable {
+    fn performSync() { ... }
+
+    nonisolated(nonsending)
+    fn performAsync() async { ... }
+  }
+
+  actor MyActor {
+    let x: NotSendable
+
+    fn call() async {
+      x.performSync() // okay
+
+      await x.performAsync() // okay
+    }
+  }
+  ```
+
+* The Codira compiler no longer diagnoses references to declarations that are
   potentially unavailable because the platform version might not be new enough
   when those references occur inside of contexts that are also unavailable to
   that platform. This addresses a long-standing nuisance for multi-platform
   code. However, there is also a chance that existing source code may become
   ambiguous as a result:
 
-  ```swift
+  ```language
   struct A {}
   struct B {}
 
-  func potentiallyAmbiguous(_: A) {}
+  fn potentiallyAmbiguous(_: A) {}
 
   @available(macOS 99, *)
-  func potentiallyAmbiguous(_: B) {}
+  fn potentiallyAmbiguous(_: B) {}
 
   @available(macOS, unavailable)
-  func unavailableOnMacOS() {
+  fn unavailableOnMacOS() {
     potentiallyAmbiguous(.init()) // error: ambiguous use of 'init()'
   }
   ```
@@ -35,25 +154,25 @@
 * [SE-0470][]:
   A protocol conformance can be isolated to a specific global actor, meaning that the conformance can only be used by code running on that actor. Isolated conformances are expressed by specifying the global actor on the conformance itself:
 
-  ```swift
+  ```language
   protocol P {
-    func f()
+    fn f()
   }
 
   @MainActor
   class MyType: @MainActor P {
-    /*@MainActor*/ func f() {
+    /*@MainActor*/ fn f() {
       // must be called on the main actor
     }
   }
   ```
 
-  Swift will produce diagnostics if the conformance is directly accessed in code that isn't guaranteed to execute in the same global actor. For example:
+  Codira will produce diagnostics if the conformance is directly accessed in code that isn't guaranteed to execute in the same global actor. For example:
 
-  ```swift
-  func acceptP<T: P>(_ value: T) { }
+  ```language
+  fn acceptP<T: P>(_ value: T) { }
 
-  /*nonisolated*/ func useIsolatedConformance(myType: MyType) {
+  /*nonisolated*/ fn useIsolatedConformance(myType: MyType) {
     acceptP(myType) // error: main actor-isolated conformance of 'MyType' to 'P' cannot be used in nonisolated context
   }
   ```
@@ -65,10 +184,10 @@
   generate backtraces, presently supported on macOS and Linux.  Capturing a
   backtrace is as simple as
 
-  ```swift
+  ```language
   import Runtime
 
-  func foo() {
+  fn foo() {
     // Without symbols
     let backtrace = try! Backtrace.capture()
 
@@ -84,11 +203,11 @@
 * [SE-0458][]:
   Introduced an opt-in mode for strict checking of memory safety, which can be
   enabled with the compiler flag `-strict-memory-safety`. In this mode,
-  the Swift compiler will produce warnings for uses of memory-unsafe constructs
+  the Codira compiler will produce warnings for uses of memory-unsafe constructs
   and APIs. For example, 
 
-  ```swift
-  func evilMalloc(size: Int) -> Int {
+  ```language
+  fn evilMalloc(size: Int) -> Int {
     // use of global function 'malloc' involves unsafe type 'UnsafeMutableRawPointer'
     return Int(bitPattern: malloc(size))
   }
@@ -98,13 +217,13 @@
   be suppressed by ackwnowledging the memory-unsafe behavior, for
   example with an `unsafe` expression:
 
-  ```swift
-  func evilMalloc(size: Int) -> Int {
+  ```language
+  fn evilMalloc(size: Int) -> Int {
     return unsafe Int(bitPattern: malloc(size)) // no warning
   }
   ```
 
-## Swift 6.1
+## Codira 6.1
 
 * [#78389][]:
   Errors pertaining to the enforcement of [`any` syntax][SE-0335] on boxed
@@ -114,8 +233,8 @@
 
   These warnings can be escalated back to errors with `-Werror ExistentialAny`.
 
-* Previous versions of Swift would incorrectly allow Objective-C `-init...`
-  methods with custom Swift names to be imported as initializers, but with base 
+* Previous versions of Codira would incorrectly allow Objective-C `-init...`
+  methods with custom Codira names to be imported as initializers, but with base 
   names other than `init`. The compiler now diagnoses these attributes and
   infers a name for the initializer as though they are not present.
 
@@ -124,30 +243,30 @@
 
   For example:
 
-  ```swift
+  ```language
   struct Binding {
     ...
 	init(projectedValue: Self) { ... }
   }
 
-  func checkValue(@Binding value: Int) {}
+  fn checkValue(@Binding value: Int) {}
 
-  func use(v: Binding<Int>) {
+  fn use(v: Binding<Int>) {
     checkValue($value: v)
 	// Transformed into: `checkValue(value: Binding(projectedValue: v))`
   }
   ```
 
-  Previous versions of the Swift compiler incorrectly omitted projected value
+  Previous versions of the Codira compiler incorrectly omitted projected value
   initializer injection in the call to `checkValue` because the argument type
   matched the parameter type exactly.
 
 * [SE-0444][]:
-  When the upcoming feature `MemberImportVisibility` is enabled, Swift will
+  When the upcoming feature `MemberImportVisibility` is enabled, Codira will
   require that a module be directly imported in a source file when resolving
   member declarations from that module:
   
-  ```swift
+  ```language
   let recipe = "2 slices of bread, 1.5 tbs peanut butter".parse()
   // error: instance method 'parse()' is inaccessible due to missing import of
   //        defining module 'RecipeKit'
@@ -161,7 +280,7 @@
 * Syntactic SourceKit queries no longer attempt to provide information
   within the inactive `#if` regions. For example, given:
 
-  ```swift
+  ```language
   #if DEBUG
   extension MyType: CustomDebugStringConvertible {
     var debugDescription: String { ... }
@@ -171,7 +290,7 @@
 
   If `DEBUG` is not set, SourceKit results will not involve the
   inactive code. Clients should use either SourceKit-LSP or
-  swift-syntax for syntactic queries that are independent of the
+  language-syntax for syntactic queries that are independent of the
   specific build configuration.
 
 * [SE-0442][]:
@@ -179,7 +298,7 @@
 
   Previously the child task type would have to be specified explicitly when creating the task group:
 
-  ```swift
+  ```language
   await withTaskGroup(of: Int.self) { group in 
     group.addTask { 12 }
 
@@ -189,7 +308,7 @@
 
   Now the type is inferred based on the first use of the task group within the task group's body:
 
-  ```swift
+  ```language
   await withTaskGroup { group in 
     group.addTask { 12 }
 
@@ -198,24 +317,24 @@
   ```
 
 
-## Swift 6.0
+## Codira 6.0
 
 ### 2024-09-17 (Xcode 16.0)
 
-* Swift 6 comes with a new language mode that prevents the risk of data races
+* Codira 6 comes with a new language mode that prevents the risk of data races
   at compile time. This guarantee is accomplished through _data isolation_; the
   compiler will validate that data passed over a boundary between concurrently
   executing code is either safe to reference concurrently, or mutually
   exclusive access to the value is enforced.
 
-  The data-race safety checks were previously available in Swift 5.10 through
+  The data-race safety checks were previously available in Codira 5.10 through
   the `-strict-concurrency=complete` compiler flag. Complete concurrency
-  checking in Swift 5.10 was overly restrictive, and Swift 6 removes many
+  checking in Codira 5.10 was overly restrictive, and Codira 6 removes many
   false-positive data-race warnings through better `Sendable` inference,
   new analysis that proves mutually exclusive access when passing values with
   non-`Sendable` type over isolation boundaries, and more.
 
-  You can enable the Swift 6 language mode using the `-swift-version 6`
+  You can enable the Codira 6 language mode using the `-language-version 6`
   compiler flag.
 
 * [SE-0428][]:
@@ -229,12 +348,12 @@
 
   Declaring such protocol looks like this:
 
-```swift
+```language
 import Distributed 
 
 @Resolvable
 protocol Greeter where ActorSystem: DistributedActorSystem<any Codable> {
-  distributed func greet(name: String) -> String
+  distributed fn greet(name: String) -> String
 }
 ```
 
@@ -246,7 +365,7 @@ And the module structure to support such applications looks like this:
                          │========================================│
                          │ @Resolvable                            │
                          │ protocol Greeter: DistributedActor {   │
-                 ┌───────┤   distributed func greet(name: String) ├───────┐
+                 ┌───────┤   distributed fn greet(name: String) ├───────┐
                  │       │ }                                      │       │
                  │       └────────────────────────────────────────┘       │
                  │                                                        │
@@ -255,7 +374,7 @@ And the module structure to support such applications looks like this:
 │             Client Module                      │      │               Server Module                  │
 │================================================│      │==============================================│
 │ let g = try $Greeter.resolve(...) /*new*/      │      │ distributed actor EnglishGreeter: Greeter {  │
-│ try await greeter.hello(name: ...)             │      │   distributed func greet(name: String) {     │
+│ try await greeter.hello(name: ...)             │      │   distributed fn greet(name: String) {     │
 └────────────────────────────────────────────────┘      │     "Greeting in english, for \(name)!"      │
 /* Client cannot know about EnglishGreeter type */      │   }                                          │      
                                                         │ }                                            │
@@ -276,7 +395,7 @@ And the module structure to support such applications looks like this:
   construct a parameter pack of closures where each closure captures the
   corresponding element of some other parameter pack. For example:
 
-  ```swift
+  ```language
   struct Manager<each T> {
     let fn: (repeat () -> (each T))
 
@@ -290,8 +409,8 @@ And the module structure to support such applications looks like this:
   You can now require a function value to carry its actor isolation
   dynamically in a way that can be directly read by clients:
 
-  ```swift
-  func apply<R>(count: Int,
+  ```language
+  fn apply<R>(count: Int,
                 operation: @isolated(any) async () -> R) async -> [R]
       where R: Sendable {
     // implementation
@@ -301,7 +420,7 @@ And the module structure to support such applications looks like this:
   The isolation can read with the `.isolation` property, which has type
   `(any Actor)?`:
 
-  ```swift
+  ```language
   let iso = operation.isolation
   ```
 
@@ -310,30 +429,30 @@ And the module structure to support such applications looks like this:
   function will now synchronously enqueue the task on the actor, which
   can be used for transitive event-ordering guarantees if the actor
   guarantees that jobs will be run in the order they are enqueued, as
-  `@MainActor` does.  If the function is not explicitly isolated, Swift
+  `@MainActor` does.  If the function is not explicitly isolated, Codira
   still retains the right to optimize enqueues for functions that actually
   start by doing work with different isolation from their formal isolation.
 
 * [SE-0423][]:
   You can now use `@preconcurrency` attribute to replace static actor isolation
   checking with dynamic checks for witnesses of synchronous nonisolated protocol
-  requirements when the witness is isolated. This is common when Swift programs
+  requirements when the witness is isolated. This is common when Codira programs
   need to interoperate with frameworks written in C/C++/Objective-C whose
   implementations cannot participate in static data race safety.
 
-  ```swift
+  ```language
   public protocol ViewDelegateProtocol {
-    func respondToUIEvent()
+    fn respondToUIEvent()
   }
   ```
 
   It's now possible for a `@MainActor`-isolated type to conform to
   `ViewDelegateProtocol` by marking conformance declaration as `@preconcurrency`:
 
-  ```swift
+  ```language
   @MainActor
   class MyViewController: @preconcurrency ViewDelegateProtocol {
-    func respondToUIEvent() {
+    fn respondToUIEvent() {
       // implementation...
     }
   }
@@ -349,7 +468,7 @@ And the module structure to support such applications looks like this:
   - Synchronous actor-isolated function values passed to APIs that
     erase actor isolation and haven't yet adopted strict concurrency checking.
 
-  - Call-sites of synchronous actor-isolated functions imported from Swift 6 libraries.
+  - Call-sites of synchronous actor-isolated functions imported from Codira 6 libraries.
 
   The dynamic actor isolation checks can be disabled using the flag
   `-disable-dynamic-actor-isolation`.
@@ -358,8 +477,8 @@ And the module structure to support such applications looks like this:
   `async` functions can now explicitly inherit the isolation of their caller
   by declaring an `isolated` parameter with the default value of `#isolation`:
 
-  ```swift
-  func poll(isolation: isolated (any Actor)? = #isolation) async -> [Item] {
+  ```language
+  fn poll(isolation: isolated (any Actor)? = #isolation) async -> [Item] {
     // implementation
   }
   ```
@@ -380,11 +499,11 @@ And the module structure to support such applications looks like this:
 
   Let's use the following type to illustrate the new inference rules:
 
-  ```swift
+  ```language
   public struct User {
     var name: String
 
-    func getAge() -> Int { ... }
+    fn getAge() -> Int { ... }
   }
   ```
 
@@ -393,14 +512,14 @@ And the module structure to support such applications looks like this:
 
   The same applies to keypath-as-function conversions:
 
-  ```swift
+  ```language
   let _: @Sendable (User) -> String = \User.name // Ok
   ```
 
   A function value produced by an un-applied reference to `getAge`
   would be marked as `@Sendable` because `User` is a `Sendable` struct:
 
-  ```swift
+  ```language
   let _ = User.getAge // Inferred as `@Sendable (User) -> @Sendable () -> Int`
 
   let user = User(...)
@@ -411,14 +530,14 @@ And the module structure to support such applications looks like this:
   Noncopyable enums can be pattern-matched with switches without consuming the
   value you switch over:
 
-  ```swift
+  ```language
   enum Lunch: ~Copyable {
     case soup
     case salad
     case sandwich
   }
   
-  func isSoup(_ lunch: borrowing Lunch) -> Bool {
+  fn isSoup(_ lunch: borrowing Lunch) -> Bool {
     switch lunch {
       case .soup: true
       default: false
@@ -430,14 +549,14 @@ And the module structure to support such applications looks like this:
 * [SE-0429][]:
   The noncopyable fields of certain types can now be consumed individually:
 
-  ```swift
+  ```language
   struct Token: ~Copyable {}
 
   struct Authentication: ~Copyable {
     let id: Token
     let name: String
 
-    mutating func exchange(_ new: consuming Token) -> Token {
+    mutating fn exchange(_ new: consuming Token) -> Token {
       let old = self.id  // <- partial consumption of 'self'
       self = .init(id: new, name: self.name)
       return old
@@ -447,20 +566,20 @@ And the module structure to support such applications looks like this:
 
 * [SE-0430][]:
 
-  Region Based Isolation is now extended to enable the application of an
+  Region-Based Isolation is now extended to enable the application of an
   explicit `sending` annotation to function parameters and results. A function
   parameter or result that is annotated with `sending` is required to be
   disconnected at the function boundary and thus possesses the capability of
   being safely sent across an isolation domain or merged into an actor-isolated
   region in the function's body or the function's caller respectively. Example:
   
-  ```swift
-  func parameterWithoutSending(_ x: NonSendableType) async {
+  ```language
+  fn parameterWithoutSending(_ x: NonSendableType) async {
     // Error! Cannot send a task-isolated value to the main actor!
     await transferToMainActor(x)
   }
   
-  func parameterWithSending(_ x: sending NonSendableType) async {
+  fn parameterWithSending(_ x: sending NonSendableType) async {
     // Ok since `x` is `sending` and thus disconnected.
     await transferToMainActor(x)
   }
@@ -478,14 +597,14 @@ And the module structure to support such applications looks like this:
   value that might reference it) is not used in the caller after the point of
   sending allowing code like the following to compile:
   
-  ```swift
+  ```language
   actor MyActor {
       init(_ x: NonSendableType) { ... }
   }
   
-  func useValue() {
+  fn useValue() {
     let x = NonSendableType()
-    let a = await MyActor(x) // Error without Region Based Isolation!
+    let a = await MyActor(x) // Error without Region-Based Isolation!
   }
   ```
 
@@ -493,23 +612,23 @@ And the module structure to support such applications looks like this:
   You can now suppress `Copyable` on protocols, generic parameters, 
   and existentials:
 
-  ```swift
+  ```language
   // Protocol does not require conformers to be Copyable.
   protocol Flower: ~Copyable {
-    func bloom()
+    fn bloom()
   }
 
   // Noncopyable type
   struct Marigold: Flower, ~Copyable {
-    func bloom() { print("Marigold blooming!") }
+    fn bloom() { print("Marigold blooming!") }
   }
 
   // Copyable type
   struct Hibiscus: Flower {
-    func bloom() { print("Hibiscus blooming!") }
+    fn bloom() { print("Hibiscus blooming!") }
   }
 
-  func startSeason(_ flower: borrowing some Flower & ~Copyable) {
+  fn startSeason(_ flower: borrowing some Flower & ~Copyable) {
     flower.bloom()
   }
 
@@ -521,25 +640,25 @@ And the module structure to support such applications looks like this:
   `Copyable` constraint that would otherwise appear on that type. This permits
   noncopyable types, which have no `Copyable` conformance, to conform to such 
   protocols and be substituted for those generic types. Full functionality of this
-  feature requires the newer Swift 6 runtime.
+  feature requires the newer Codira 6 runtime.
 
-* Since its introduction in Swift 5.1 the @TaskLocal property wrapper was used to   
+* Since its introduction in Codira 5.1 the @TaskLocal property wrapper was used to   
   create and access task-local value bindings. Property wrappers introduce mutable storage,
   which was now properly flagged as potential source of concurrency unsafety.
  
-  In order for Swift 6 language mode to not flag task-locals as potentially thread-unsafe,
+  In order for Codira 6 language mode to not flag task-locals as potentially thread-unsafe,
   task locals are now implemented using a macro. The macro has the same general semantics 
-  and usage patterns, however there are two source-break situations which the Swift 6 
+  and usage patterns, however there are two source-break situations which the Codira 6 
   task locals cannot handle:
 
   Using an implicit default `nil` value for task local initialization, when combined with a type alias:
-  ```swift
-  // allowed in Swift 5.x, not allowed in Swift 6.x
+  ```language
+  // allowed in Codira 5.x, not allowed in Codira 6.x
   
   typealias MyValue = Optional<Int> 
   
   @TaskLocal
-  static var number: MyValue // Swift 6: error, please specify default value explicitly
+  static var number: MyValue // Codira 6: error, please specify default value explicitly
   
   // Solution 1: Specify the default value
   @TaskLocal
@@ -552,12 +671,12 @@ And the module structure to support such applications looks like this:
 
   At the same time, task locals can now be declared as global properties, which wasn't possible before.
 
-* Swift 5.10 missed a semantic check from [SE-0309][]. In type context, a reference to a
+* Codira 5.10 missed a semantic check from [SE-0309][]. In type context, a reference to a
   protocol `P` that has associated types or `Self` requirements should use
   the `any` keyword, but this was not enforced in nested generic argument positions.
   This is now an error as required by the proposal:
 
-  ```swift
+  ```language
   protocol P { associatedtype A }
   struct Outer<T> { struct Inner<U> { } }
   let x = Outer<P>.Inner<P>()  // error
@@ -565,17 +684,17 @@ And the module structure to support such applications looks like this:
   To correct the error, add `any` where appropriate, for example
   `Outer<any P>.Inner<any P>`.
 
-* Swift 5.10 accepted certain invalid opaque return types from [SE-0346][].
+* Codira 5.10 accepted certain invalid opaque return types from [SE-0346][].
   If a generic argument of a constrained opaque return type did not
   satisfy the requirements on the primary associated type, the generic
   argument was silently ignored and type checking would proceed as if it
   weren't stated. This now results in a diagnostic:
 
-  ```swift
+  ```language
   protocol P<A> { associatedtype A: Sequence }
   struct G<A: Sequence>: P {}
 
-  func f() -> some P<Int> { return G<Array<Int>>() }  // error
+  fn f() -> some P<Int> { return G<Array<Int>>() }  // error
   ```
 
   The return type above should be written as `some P<Array<Int>>` to match
@@ -591,8 +710,8 @@ And the module structure to support such applications looks like this:
   clause. Below is an example implementation of the equality operator for
   tuples of arbitrary length using pack iteration:
 
-  ```swift
-  func == <each Element: Equatable>(lhs: (repeat each Element),
+  ```language
+  fn == <each Element: Equatable>(lhs: (repeat each Element),
                                     rhs: (repeat each Element)) -> Bool {
 
     for (left, right) in repeat (each lhs, each rhs) {
@@ -606,10 +725,10 @@ And the module structure to support such applications looks like this:
   are evaluated on demand, meaning the i<sup>th</sup> element is evaluated on
   the i<sup>th</sup> iteration:
 
-  ```swift
-  func doSomething(_: some Any) {}
+  ```language
+  fn doSomething(_: some Any) {}
 
-  func evaluateFirst<each T>(_ t: repeat each T) {
+  fn evaluateFirst<each T>(_ t: repeat each T) {
     for _ in repeat doSomething(each t) {
       break
     }
@@ -620,43 +739,43 @@ And the module structure to support such applications looks like this:
   ```
 
 * [SE-0352][]:
-  The Swift 6 language mode will open existential values with
+  The Codira 6 language mode will open existential values with
   "self-conforming" types (such as `any Error` or `@objc` protocols)
   passed to generic functions. For example:
 
-  ```swift
-  func takeError<E: Error>(_ error: E) { }
+  ```language
+  fn takeError<E: Error>(_ error: E) { }
 
-  func passError(error: any Error) {
-    takeError(error)  // Swift 5 does not open `any Error`, Swift 6 does
+  fn passError(error: any Error) {
+    takeError(error)  // Codira 5 does not open `any Error`, Codira 6 does
   }
   ```
 
-  This behavior can be enabled prior to the Swift 6 language mode
+  This behavior can be enabled prior to the Codira 6 language mode
   using the upcoming language feature `ImplicitOpenExistentials`.
 
 * [SE-0422][]:
   Non-built-in expression macros can now be used as default arguments that
   expand at each call site. For example, a custom `#CurrentFile` macro used as
-  a default argument in 'Library.swift' won't be expanded to `"Library.swift"`:
+  a default argument in 'Library.code' won't be expanded to `"Library.code"`:
 
-  ```swift
+  ```language
   @freestanding(expression)
   public macro CurrentFile() -> String = ...
 
-  public func currentFile(name: String = #CurrentFile) { name }
+  public fn currentFile(name: String = #CurrentFile) { name }
   ```
 
   Instead, it will be expanded at where the function is called:
   
-  ```swift
+  ```language
   print(currentFile())
-  // Prints "main.swift"
+  // Prints "main.code"
   ```
 
   The expanded code can also use declarations from the caller side context:
 
-  ```swift
+  ```language
   var person = "client"
   greetPerson(/* greeting: #informalGreeting */)
   // Prints "Hi client" if macro expands to "Hi \(person)"
@@ -670,8 +789,8 @@ And the module structure to support such applications looks like this:
 
   The executor preference may be stated using the `withTaskExecutorPreference` function:
 
-  ```swift
-  nonisolated func doSomething() async { ... }
+  ```language
+  nonisolated fn doSomething() async { ... }
   
   await withTaskExecutorPreference(preferredExecutor) {
     doSomething()
@@ -679,7 +798,7 @@ And the module structure to support such applications looks like this:
 
   Or when creating new unstructured or child-tasks (e.g. in a task group):
 
-  ```swift
+  ```language
   Task(executorPreference: preferredExecutor) {
     // executes on 'preferredExecutor'
     await doSomething() // doSomething body would execute on 'preferredExecutor'
@@ -691,15 +810,15 @@ And the module structure to support such applications looks like this:
   Functions can now specify the type of error that they throw as part of the
   function signature. For example:
 
-  ```swift
-  func parseRecord(from string: String) throws(ParseError) -> Record { ... }
+  ```language
+  fn parseRecord(from string: String) throws(ParseError) -> Record { ... }
   ```
 
   A call to `parseRecord(from:)` will either return a `Record` instance or throw
   an error of type `ParseError`. For example, a `do..catch` block will infer
   the `error` variable as being of type `ParseError`:
 
-  ```swift
+  ```language
   do {
     let record = try parseRecord(from: myString)
   } catch {
@@ -719,9 +838,9 @@ And the module structure to support such applications looks like this:
   its closure parameter, indicating that it only throws errors of the same type
   as that closure does:
 
-  ```swift
+  ```language
   extension Sequence {
-    func map<T, E>(_ body: (Element) throws(E) -> T) throws(E) -> [T] { ... }
+    fn map<T, E>(_ body: (Element) throws(E) -> T) throws(E) -> [T] { ... }
   }
   ```
 
@@ -731,27 +850,27 @@ And the module structure to support such applications looks like this:
 
   With the implementation of [SE-0110][], a closure parameter syntax consisting
   of only a parameter type — and no parameter name — was accidentally made legal
-  for certain unambiguous type syntaxes in Swift 4. For example:
+  for certain unambiguous type syntaxes in Codira 4. For example:
 
-  ```swift
+  ```language
   let closure = { ([Int]) in }
   ```
 
-  Having been [gated](https://github.com/apple/swift/pull/28171) behind a
-  compiler warning since at least Swift 5.2, this syntax is now rejected.
+  Having been [gated](https://github.com/apple/language/pull/28171) behind a
+  compiler warning since at least Codira 5.2, this syntax is now rejected.
 
 * [#71075][]:
 
-  \_SwiftConcurrencyShims used to declare the `exit` function, even though it
+  \_CodiraConcurrencyShims used to declare the `exit` function, even though it
   might not be available. The declaration has been removed, and must be imported
-  from the appropriate C library module (e.g. Darwin or SwiftGlibc)
+  from the appropriate C library module (e.g. Darwin or CodiraGlibc)
   
 * [SE-0270][]:
 
   The Standard Library now provides APIs for performing collection operations
   over noncontiguous elements. For example:
   
-  ```swift
+  ```language
   var numbers = Array(1...15)
 
   // Find the indices of all the even numbers
@@ -775,23 +894,23 @@ And the module structure to support such applications looks like this:
   index and can be used to represent a selection of items in a list or a refinement
   of a filter or search result.
 
-## Swift 5.10
+## Codira 5.10
 
 ### 2024-03-05 (Xcode 15.3)
 
-* Swift 5.10 closes all known static data-race safety holes in complete strict
+* Codira 5.10 closes all known static data-race safety holes in complete strict
 concurrency checking.
 
-  When writing code against `-strict-concurrency=complete`, Swift 5.10 will
+  When writing code against `-strict-concurrency=complete`, Codira 5.10 will
   diagnose all potential for data races at compile time unless an explicit
   unsafe opt out, such as `nonisolated(unsafe)` or `@unchecked Sendable`, is
   used.
 
-  For example, in Swift 5.9, the following code crashes at runtime due to a
+  For example, in Codira 5.9, the following code crashes at runtime due to a
   `@MainActor`-isolated initializer being evaluated outside the actor, but it
   was not diagnosed under `-strict-concurrency=complete`:
 
-  ```swift
+  ```language
   @MainActor
   class MyModel {
     init() {
@@ -801,7 +920,7 @@ concurrency checking.
     static let shared = MyModel()
   }
 
-  func useShared() async {
+  fn useShared() async {
     let model = MyModel.shared
   }
 
@@ -810,7 +929,7 @@ concurrency checking.
 
   The above code admits data races because a `@MainActor`-isolated static
   variable, which evaluates a `@MainActor`-isolated initial value upon first
-  access, is accessed synchronously from a `nonisolated` context. In Swift
+  access, is accessed synchronously from a `nonisolated` context. In Codira
   5.10, compiling the code with `-strict-concurrency=complete` produces a
   warning that the access must be done asynchronously:
 
@@ -821,32 +940,32 @@ concurrency checking.
                 await
   ```
 
-  Swift 5.10 fixed numerous other bugs in `Sendable` and actor isolation
+  Codira 5.10 fixed numerous other bugs in `Sendable` and actor isolation
   checking to strengthen the guarantees of complete concurrency checking.
 
-  Note that the complete concurrency model in Swift 5.10 is conservative.
-  Several Swift Evolution proposals are in active development to improve the
-  usability of strict concurrency checking ahead of Swift 6.
+  Note that the complete concurrency model in Codira 5.10 is conservative.
+  Several Codira Evolution proposals are in active development to improve the
+  usability of strict concurrency checking ahead of Codira 6.
 
 * [SE-0412][]:
 
-  Global and static variables are prone to data races because they provide memory that can be accessed from any program context.  Strict concurrency checking in Swift 5.10 prevents data races on global and static variables by requiring them to be either:
+  Global and static variables are prone to data races because they provide memory that can be accessed from any program context.  Strict concurrency checking in Codira 5.10 prevents data races on global and static variables by requiring them to be either:
 
     1. isolated to a global actor, or
     2. immutable and of `Sendable` type.
 
   For example:
 
-  ```swift
+  ```language
   var mutableGlobal = 1
   // warning: var 'mutableGlobal' is not concurrency-safe because it is non-isolated global shared mutable state
   // (unless it is top-level code which implicitly isolates to @MainActor)
 
-  @MainActor func mutateGlobalFromMain() {
+  @MainActor fn mutateGlobalFromMain() {
     mutableGlobal += 1
   }
 
-  nonisolated func mutateGlobalFromNonisolated() async {
+  nonisolated fn mutateGlobalFromNonisolated() async {
     mutableGlobal += 10
   }
 
@@ -858,14 +977,14 @@ concurrency checking.
 
   A new `nonisolated(unsafe)` modifier can be used to annotate a global or static variable to suppress data isolation violations when manual synchronization is provided:
 
-  ```swift
+  ```language
   // This global is only set in one part of the program
   nonisolated(unsafe) var global: String!
   ```
 
   `nonisolated(unsafe)` can be used on any form of storage, including stored properties and local variables, as a more granular opt out for `Sendable` checking, eliminating the need for `@unchecked Sendable` wrapper types in many use cases:
 
-  ```swift
+  ```language
   import Dispatch
 
   // 'MutableData' is not 'Sendable'
@@ -882,14 +1001,14 @@ concurrency checking.
 
 * [SE-0411][]:
 
-  Swift 5.10 closes a data-race safety hole that previously permitted isolated
+  Codira 5.10 closes a data-race safety hole that previously permitted isolated
   default stored property values to be synchronously evaluated from outside the
   actor. For example, the following code compiles warning-free under
-  `-strict-concurrency=complete` in Swift 5.9, but it will crash at runtime at
+  `-strict-concurrency=complete` in Codira 5.9, but it will crash at runtime at
   the call to `MainActor.assertIsolated()`:
 
-  ```swift
-  @MainActor func requiresMainActor() -> Int {
+  ```language
+  @MainActor fn requiresMainActor() -> Int {
     MainActor.assertIsolated()
     return 0
   }
@@ -899,7 +1018,7 @@ concurrency checking.
     var y: Int
   }
 
-  nonisolated func call() async {
+  nonisolated fn call() async {
     let s = await S(y: 10)
   }
 
@@ -911,12 +1030,12 @@ concurrency checking.
   evaluated in the caller. In this case, the caller runs on the generic
   executor, so the default argument evaluation crashes.
 
-  Under `-strict-concurrency=complete` in Swift 5.10, default argument values
+  Under `-strict-concurrency=complete` in Codira 5.10, default argument values
   can safely share the same isolation as the enclosing function or stored
   property. The above code is still valid, but the isolated default argument is
   guaranteed to be evaluated in the callee's isolation domain.
 
-## Swift 5.9.2
+## Codira 5.9.2
 
 ### 2023-12-11 (Xcode 15.1)
 
@@ -924,34 +1043,34 @@ concurrency checking.
 
   Member macros can specify a list of protocols via the `conformances` argument to the macro role. The macro implementation will be provided with those protocols that are listed but have not already been implemented by the type to which the member macro is attached, in the same manner as extension macros.
 
-  ```swift
+  ```language
   @attached(member, conformances: Decodable, Encodable, names: named(init(from:), encode(to:)))
   @attached(extension, conformances: Decodable, Encodable, names: named(init(from:), encode(to:)))
   macro Codable() = #externalMacro(module: "MyMacros", type: "CodableMacro")
   ```
 
-## Swift 5.9
+## Codira 5.9
 
 ### 2023-09-18 (Xcode 15.0)
 
 * [SE-0382][], [SE-0389][], [SE-0394][], [SE-0397][]:
 
-  Swift 5.9 includes a new macro system that can be used to eliminate boilerplate and provide new forms of expressive APIs. Macros are declared with the new `macro` introducer:
+  Codira 5.9 includes a new macro system that can be used to eliminate boilerplate and provide new forms of expressive APIs. Macros are declared with the new `macro` introducer:
 
-  ```swift
+  ```language
   @freestanding(expression)
   macro assert(_ condition: Bool) = #externalMacro(module: "PowerAssertMacros", type: "AssertMacro")
   ```
 
-  Macros have parameter and result types, like functions, but are defined as separate programs that operate on syntax trees (using [swift-syntax][]) and produce new syntax trees that are incorporated into the program. Freestanding macros, indicated with the `@freestanding` attribute, are expanded in source code with a leading `#`:
+  Macros have parameter and result types, like functions, but are defined as separate programs that operate on syntax trees (using [language-syntax][]) and produce new syntax trees that are incorporated into the program. Freestanding macros, indicated with the `@freestanding` attribute, are expanded in source code with a leading `#`:
 
-  ```swift
+  ```language
   #assert(x + y == z) // expands to check the result of x + y == z and report failure if it's false
   ```
 
   Macros can also be marked as `@attached`, in which case they will be meaning that they will be expanded using custom attribute syntax. For example:
 
-  ```swift
+  ```language
   @attached(peer, names: overloaded)
   macro AddCompletionHandler() = #externalMacro(
     module: "ConcurrencyHelperMacros",
@@ -959,10 +1078,10 @@ concurrency checking.
   )
   
   @AddCompletionHandler
-  func fetchAvatar(from url: URL) throws -> Image { ... }
+  fn fetchAvatar(from url: URL) throws -> Image { ... }
   
   // expands to...
-  func fetchAvatar(from url: URL, completionHandler: @escaping (Result<Image, Error>) -> Void) {
+  fn fetchAvatar(from url: URL, completionHandler: @escaping (Result<Image, Error>) -> Void) {
     Task.detached {
       do {
         let result = try await fetchAvatar(from: url)
@@ -974,22 +1093,22 @@ concurrency checking.
   }
   ```
 
-  Macros are implemented in separate programs, which are executed by the Swift compiler. The Swift Package Manager's manifest provides a new `macro` target type to describe macros:
+  Macros are implemented in separate programs, which are executed by the Codira compiler. The Codira Package Manager's manifest provides a new `macro` target type to describe macros:
 
-  ```swift
+  ```language
   import PackageDescription
   import CompilerPluginSupport
   
   let package = Package(
       name: "ConcurrencyHelpers",
       dependencies: [
-          .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
+          .package(url: "https://github.com/apple/language-syntax", from: "509.0.0"),
       ],
       targets: [
           .macro(name: "ConcurrencyHelperMacros",
                  dependencies: [
-                     .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                     .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+                     .product(name: "CodiraSyntaxMacros", package: "language-syntax"),
+                     .product(name: "CodiraCompilerPlugin", package: "language-syntax")
                  ]),
           .target(name: "ConcurrencyHelpers", dependencies: ["ConcurrencyHelperMacros"]),
           .testTarget(name: "ConcurrencyHelperMacroTests", dependencies: ["ConcurrencyHelperMacros"]),
@@ -1011,7 +1130,7 @@ concurrency checking.
   of which becomes the value of the overall expression when that branch is
   chosen.
 
-  ```swift
+  ```language
   let bullet =
     if isRoot && (count == 0 || !willExpand) { "" }
     else if count == 0 { "- " }
@@ -1019,8 +1138,8 @@ concurrency checking.
     else { "▿ " }
   ```
 
-  ```swift
-  public static func width(_ x: Unicode.Scalar) -> Int {
+  ```language
+  public static fn width(_ x: Unicode.Scalar) -> Int {
     switch x.value {
       case 0..<0x80: 1
       case 0x80..<0x0800: 2
@@ -1032,20 +1151,20 @@ concurrency checking.
 
 * [#64927][]:
 
-  Swift 5.9 introduces warnings that catch conversions from an inout
+  Codira 5.9 introduces warnings that catch conversions from an inout
   argument in the caller to an `UnsafeRawPointer` in the callee
   whenever the original type contains an object reference.
 
-  ```swift
-  func inspectString(string: inout String) {
+  ```language
+  fn inspectString(string: inout String) {
     readBytes(&string)
     // warning: forming an 'UnsafeRawPointer' to an inout variable of type String
     // exposes the internal representation rather than the string contents.
   }
   ```
 
-  ```swift
-  func inspectData(data: inout Data) {
+  ```language
+  fn inspectData(data: inout Data) {
     readBytes(&data)
     // warning: forming an 'UnsafeRawPointer' to a variable of type 'T';
     // this is likely incorrect because 'T' may contain an object reference.
@@ -1059,7 +1178,7 @@ concurrency checking.
   closing an unintentional soundness hole that had allowed arbitrary
   unavailable code to run and unavailable type metadata to be used at runtime:
   
-  ```swift
+  ```language
   @available(*, unavailable)
   struct Unavailable {
     init() {
@@ -1083,7 +1202,7 @@ concurrency checking.
   `consume` operator, forwarding ownership to the surrounding call, assignment,
   or initialization without copying:
 
-  ```swift
+  ```language
   var x: [String] = []
   x.append("apples")
   x.append("bananas")
@@ -1104,19 +1223,19 @@ concurrency checking.
   access to a value provided by the caller, or by `consuming` a value that the
   callee is allowed to take ownership of:
 
-  ```swift
+  ```language
   struct HealthyFoods {
     var values: [String] = []
 
     // Ask to `consume` the parameter, since we want to use it
     // to incorporate into our own `values` array
-    mutating func add(_ value: consuming String) {
+    mutating fn add(_ value: consuming String) {
         values.append(value)
     }
   }
   ```
 
-## Swift 5.8
+## Codira 5.8
 
 ### 2023-03-30 (Xcode 14.3)
 
@@ -1126,7 +1245,7 @@ concurrency checking.
   
   For example, suppose that `struct Temperature` was introduced in a macOS SDK framework in macOS 12. Later in macOS 13 the framework authors decided to add a `degreesFahrenheit` property as a convenience:
   
-  ```swift
+  ```language
   @available(macOS 12, *)
   public struct Temperature {
     public var degreesCelsius: Double
@@ -1151,8 +1270,8 @@ concurrency checking.
 
   Сollection downcasts in cast patterns are now supported. For example:
 
-  ```swift
-  func collectionDowncast(_ arr: [Any]) {
+  ```language
+  fn collectionDowncast(_ arr: [Any]) {
     switch arr {
     case let ints as [Int]:
       // ...
@@ -1168,7 +1287,7 @@ concurrency checking.
   For `UnsafeMutablePointer<T>` and `UnsafeMutableBufferPointer<T>`, method names containing the word "assign" were renamed to use the word "update", and many more were added. Every multi-element initialization method of `UnsafeMutablePointer` and `UnsafeMutableBufferPointer` now has a corresponding "update" method.
 
   Slices of `UnsafeBufferPointer`, `UnsafeRawBufferPointer`, `UnsafeMutableBufferPointer` and `UnsafeMutableRawBufferPointer` now share the collection-like API of their base type. For example, given an initialized `b: UnsafeMutableBufferPointer<Int>`, the following lines are synonymous:
-  ```swift
+  ```language
   b.update(repeating: 0)
   b[b.startIndex..<b.endIndex].update(repeating: 0)
   ```
@@ -1179,39 +1298,39 @@ concurrency checking.
 
   For example, the usage of implicit `self` below is permitted:
 
-  ```swift
+  ```language
   class ViewController {
     let button: Button
 
-    func setup() {
+    fn setup() {
         button.tapHandler = { [weak self] in
             guard let self else { return }
             dismiss() // refers to `self.dismiss()`
         }
     }
 
-    func dismiss() { ... }
+    fn dismiss() { ... }
   }
   ```
 
-  In Swift 5 language modes, implicit `self` is permitted for `weak self` captures in _non-escaping_ closures even before `self` is unwrapped. For example, this code compiles successfully in Swift 5 language mode:
+  In Codira 5 language modes, implicit `self` is permitted for `weak self` captures in _non-escaping_ closures even before `self` is unwrapped. For example, this code compiles successfully in Codira 5 language mode:
 
-  ```swift
+  ```language
   class ExampleClass {
-    func makeArray() -> [String] {
+    fn makeArray() -> [String] {
       // `Array.map` takes a non-escaping closure:
       ["foo", "bar", "baaz"].map { [weak self] string in
         double(string) // implicitly refers to `self!.double(string)`
       }
     } 
 
-    func double(_ string: String) -> String {
+    fn double(_ string: String) -> String {
       string + string
     }
   }
   ```
 
-  In Swift 6, the above code will no longer compile. `weak self` captures in non-escaping closures now have the same behavior as captures in escaping closures (as described in [SE-0365][]). Code relying on the previous behavior will need to be updated to either unwrap `self` (e.g. by adding a `guard let self else return` statement), or to use a different capture method (e.g. using `[self]` or `[unowned self]` instead of `[weak self]`).
+  In Codira 6, the above code will no longer compile. `weak self` captures in non-escaping closures now have the same behavior as captures in escaping closures (as described in [SE-0365][]). Code relying on the previous behavior will need to be updated to either unwrap `self` (e.g. by adding a `guard let self else return` statement), or to use a different capture method (e.g. using `[self]` or `[unowned self]` instead of `[weak self]`).
 
 * [SE-0362][]:
 
@@ -1222,21 +1341,21 @@ concurrency checking.
 
   Features can be detected in source code with `#if hasFeature(X)`.
 
-## Swift 5.7
+## Codira 5.7
 
 ### 2022-09-12 (Xcode 14.0)
 
 * [SE-0327][]:
 
-  There are a few notable changes in Swift 5.7 with respect to SE-0327.
+  There are a few notable changes in Codira 5.7 with respect to SE-0327.
 
   First, the deinitializer and most kinds of initializers for `actor` types, and types constrained by a global actor like the `@MainActor`, have revised rules about what expressions are permitted in their body. The goal of these revisions has been to improve language expressivity and safety. In particular, many more programming patterns are now permitted in these initializers.
 
-  For example, a non-async initializer of an `actor` prior to Swift 5.7 would raise a diagnostic any time `self` escapes the initializer before returning. That diagnostic's purpose was to protect against a possible data race when accessing isolated stored proeprties. But, that diagnostic was emitted even if there was no dangerous racy access.
+  For example, a non-async initializer of an `actor` prior to Codira 5.7 would raise a diagnostic any time `self` escapes the initializer before returning. That diagnostic's purpose was to protect against a possible data race when accessing isolated stored proeprties. But, that diagnostic was emitted even if there was no dangerous racy access.
 
-  In Swift 5.7, the compiler now checks these initializers for dangerous accesses to isolated stored properties that occur after an escape of `self`:
+  In Codira 5.7, the compiler now checks these initializers for dangerous accesses to isolated stored properties that occur after an escape of `self`:
 
-  ```swift
+  ```language
   actor Database {
     // ... other properties ...
     var rows: Int = 0
@@ -1247,10 +1366,10 @@ concurrency checking.
       }
 
       print("before = \(self.rows)") // ✅ this access to 'rows' is OK
-      world.publishDatabase(self)    // ✅ passing 'self' is OK in Swift 5.7+
+      world.publishDatabase(self)    // ✅ passing 'self' is OK in Codira 5.7+
       print("after = \(self.rows)")  // ❌ this access to 'rows' is illegal. 
 
-      Task { [weak self] in          // ✅ capturing 'self' is OK in Swift 5.7+
+      Task { [weak self] in          // ✅ capturing 'self' is OK in Codira 5.7+
         while let db = self { await db.prune() }
       }
     }
@@ -1261,14 +1380,14 @@ concurrency checking.
 
   Next, delegating initializers of an actor are no longer always non-isolated. This means an `async` delegating initializer can do the same things as a non-delegating one.
 
-  Finally, the diagnostic about non-isolated default-value expressions introduced for Swift 5.6 in the Xcode 13.3 release has been removed. The proposed rule was not precise enough to avoid flagging an innocuous yet common pattern in SwiftUI code involving `@StateObject` properties and `@MainActor`.
+  Finally, the diagnostic about non-isolated default-value expressions introduced for Codira 5.6 in the Xcode 13.3 release has been removed. The proposed rule was not precise enough to avoid flagging an innocuous yet common pattern in CodiraUI code involving `@StateObject` properties and `@MainActor`.
 
-* The Swift compiler no longer warns about redundant requirements in generic declarations. For example,
-  the following code diagnosed a warning in Swift 5.6 about the `T.Iterator : IteratorProtocol`
+* The Codira compiler no longer warns about redundant requirements in generic declarations. For example,
+  the following code diagnosed a warning in Codira 5.6 about the `T.Iterator : IteratorProtocol`
   requirement being redundant, because it is implied by `T : Sequence`:
 
-  ```swift
-  func firstElement<T: Sequence>(_: T) -> T.Element where T.Iterator: IteratorProtocol {...}
+  ```language
+  fn firstElement<T: Sequence>(_: T) -> T.Element where T.Iterator: IteratorProtocol {...}
   ```
 
   A redundant requirement does not indicate a coding error, and sometimes it is desirable to spell them
@@ -1283,13 +1402,13 @@ concurrency checking.
   so calling a non-isolated async function from actor-isolated code will leave
   the actor. For example:
 
-  ```swift
+  ```language
   class C { }
 
-  func f(_: C) async { /* always executes on the global concurrent pool */ }
+  fn f(_: C) async { /* always executes on the global concurrent pool */ }
 
   actor A {
-    func g(c: C) async {
+    fn g(c: C) async {
       /* always executes on the actor */
       print("on the actor")
 
@@ -1318,7 +1437,7 @@ concurrency checking.
   string processing operations. A `Regex` may be created by
   [initialization from a string][SE-0355]:
 
-  ```swift
+  ```language
   let pattern = "a[bc]+" // matches "a" followed by one or more instances
                          // of either "b" or "c"
   let regex = try! Regex(pattern)
@@ -1326,12 +1445,12 @@ concurrency checking.
 
   Or via a [regex literal][SE-0354]:
 
-  ```swift
+  ```language
   let regex = #/a[bc]+/#
   ```
 
-  In Swift 6, `/` will also be supported as a delimiter for `Regex` literals.
-  You can enable this mode in Swift 5.7 with the `-enable-bare-slash-regex`
+  In Codira 6, `/` will also be supported as a delimiter for `Regex` literals.
+  You can enable this mode in Codira 5.7 with the `-enable-bare-slash-regex`
   flag. Doing so will cause some existing expressions that use `/` as an 
   operator to no longer compile; you can add parentheses or line breaks as a
   workaround.
@@ -1343,8 +1462,8 @@ concurrency checking.
 
   New types representing time and clocks were introduced. This includes a protocol `Clock` defining clocks which allow for defining a concept of now and a way to wake up after a given instant. Additionally a new protocol `InstantProtocol` for defining instants in time was added. Furthermore a new protocol `DurationProtocol` was added to define an elapsed duration between two given `InstantProtocol` types. Most commonly the `Clock` types for general use are the `SuspendingClock` and `ContinuousClock` which represent the most fundamental clocks for the system. The `SuspendingClock` type does not progress while the machine is suspended whereas the `ContinuousClock` progresses no matter the state of the machine. 
 
-  ```swift
-  func delayedHello() async throws {
+  ```language
+  fn delayedHello() async throws {
     try await Task.sleep(until: .now + .milliseconds(123), clock: .continuous)
     print("hello delayed world")
   }
@@ -1352,7 +1471,7 @@ concurrency checking.
 
   `Clock` also has methods to measure the elapsed duration of the execution of work. In the case of the `SuspendingClock` and `ContinuousClock` this measures with high resolution and is suitable for benchmarks.
 
-  ```swift
+  ```language
   let clock = ContinuousClock()
   let elapsed = clock.measure {
     someLongRunningWork()
@@ -1368,12 +1487,12 @@ concurrency checking.
   the result is type-erased to the associated type's upper bound, which is another
   `any` type having the same constraints as the associated type. For example:
 
-  ```swift
+  ```language
   protocol Surface {...}
   
   protocol Solid {
     associatedtype SurfaceType: Surface
-    func boundary() -> SurfaceType
+    fn boundary() -> SurfaceType
   }
   
   let solid: any Solid = ...
@@ -1391,7 +1510,7 @@ concurrency checking.
 
   Protocols can now declare a list of one or more _primary associated types_, which enable writing same-type requirements on those associated types using angle bracket syntax:
 
-  ```swift
+  ```language
   protocol Graph<Vertex, Edge> {
     associatedtype Vertex
     associatedtype Edge
@@ -1401,34 +1520,34 @@ concurrency checking.
   You can now write a protocol name followed by type arguments in angle brackets, like
   `Graph<Int, String>`, anywhere that a protocol conformance requirement may appear:
 
-  ```swift
-  func shortestPath<V, E>(_: some Graph<V, E>, from: V, to: V) -> [E]
+  ```language
+  fn shortestPath<V, E>(_: some Graph<V, E>, from: V, to: V) -> [E]
 
   extension Graph<Int, String> {...}
 
-  func build() -> some Graph<Int, String> {}
+  fn build() -> some Graph<Int, String> {}
   ```
 
   A protocol name followed by angle brackets is shorthand for a conformance requirement,
   together with a same-type requirement for the protocol's primary associated types.
   The first two examples above are equivalent to the following:
 
-  ```swift
-  func shortestPath<V, E, G>(_: G, from: V, to: V) -> [E]
+  ```language
+  fn shortestPath<V, E, G>(_: G, from: V, to: V) -> [E]
     where G: Graph, G.Vertex == V, G.Edge == E
 
   extension Graph where Vertex == Int, Edge == String {...}
   ```
 
   The `build()` function returning `some Graph<Int, String>` can't be written using a
-  `where` clause; this is an example of a constrained opaque result type, which is new expressivity in Swift 5.7.
+  `where` clause; this is an example of a constrained opaque result type, which is new expressivity in Codira 5.7.
 
 * [SE-0353][]:
 
   Protocols with primary associated types can now be used in existential types,
   enabling same-type constraints on those associated types.
 
-  ```swift
+  ```language
   let strings: any Collection<String> = [ "Hello" ]
   ```
 
@@ -1439,7 +1558,7 @@ concurrency checking.
   worked around with a generic type-erasing wrapper struct, which is now much
   simpler to implement:
 
-  ```swift
+  ```language
   struct AnyCollection<T> {
     var wrapped: any Collection<T>
   }
@@ -1456,25 +1575,25 @@ concurrency checking.
 
 * References to `optional` methods on a protocol metatype, as well as references to dynamically looked up methods on `AnyObject` are now supported on par with other function references. The type of such a reference (formerly an immediate optional by mistake) has been altered to that of a function that takes a single argument and returns an optional value of function type:
 
-  ```swift
+  ```language
   class Object {
-    @objc func getTag() -> Int { ... }
+    @objc fn getTag() -> Int { ... }
   }
 
   let getTag: (AnyObject) -> (() -> Int)? = AnyObject.getTag
 
   @objc protocol Delegate {
-    @objc optional func didUpdateObject(withTag tag: Int)
+    @objc optional fn didUpdateObject(withTag tag: Int)
   }
 
   let didUpdateObjectWithTag: (Delegate) -> ((Int) -> Void)? = Delegate.didUpdateObject
   ```
 
   > **Warning**  
-  > Due to the type change, selectors for aforementioned method references that require writing out their type explicitly for disambiguation will no longer compile. To fix this, simply adjust the written type, or resort to a `#if swift(<5.7)` directive when compatibility with older compiler versions is warranted. For example:
+  > Due to the type change, selectors for aforementioned method references that require writing out their type explicitly for disambiguation will no longer compile. To fix this, simply adjust the written type, or resort to a `#if language(<5.7)` directive when compatibility with older compiler versions is warranted. For example:
   >
-  > ```swift
-  > #if swift(<5.7)
+  > ```language
+  > #if language(<5.7)
   > let decidePolicyForNavigationAction = #selector(WKNavigationDelegate.webView(_:decidePolicyFor:decisionHandler:) as ((WKNavigationDelegate) -> (WKWebView, WKNavigationAction, @escaping (WKNavigationActionPolicy) -> Void) -> Void)?)
   > #else
   > let decidePolicyForNavigationAction = #selector(WKNavigationDelegate.webView(_:decidePolicyFor:decisionHandler:) as (WKNavigationDelegate) -> ((WKWebView, WKNavigationAction, @escaping (WKNavigationActionPolicy) -> Void) -> Void)?)
@@ -1488,7 +1607,7 @@ concurrency checking.
   accesses. This previously required a workaround involving an intermediate
   copy:
 
-  ```swift
+  ```language
   let result = unalignedData.withUnsafeBytes { buffer -> UInt32 in
     var storage = UInt32.zero
     withUnsafeMutableBytes(of: &storage) {
@@ -1498,7 +1617,7 @@ concurrency checking.
   }
   ```
   Now:
-  ```swift
+  ```language
   let result = unalignedData.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
   ```
   Additionally, the counterpart `storeBytes(of:toByteOffset:as:)` had its
@@ -1511,18 +1630,18 @@ concurrency checking.
   pointer arithmetic, adding functions to obtain a pointer advanced to the next
   or previous alignment boundary:
 
-    ```swift
+    ```language
     extension UnsafeRawPointer {
-      public func alignedUp<T>(for: T.type) -> UnsafeRawPointer
-      public func alignedDown<T>(for: T.type) -> UnsafeRawPointer
-      public func alignedUp(toMultipleOf alignment: Int) -> UnsafeRawPointer
-      public func alignedDown(toMultipleOf alignment: Int) -> UnsafeRawPointer
+      public fn alignedUp<T>(for: T.type) -> UnsafeRawPointer
+      public fn alignedDown<T>(for: T.type) -> UnsafeRawPointer
+      public fn alignedUp(toMultipleOf alignment: Int) -> UnsafeRawPointer
+      public fn alignedDown(toMultipleOf alignment: Int) -> UnsafeRawPointer
     }
     ```
   - It is now possible to use a pointer to `struct` to obtain a pointer to one
   of its stored properties:
 
-    ```swift
+    ```language
     withUnsafeMutablePointer(to: &myStruct) {
       let interiorPointer = $0.pointer(to: \.myProperty)!
       return myCFunction(interiorPointer)
@@ -1530,7 +1649,7 @@ concurrency checking.
     ```
   - Comparisons between pointers have been simplified by being more permissive.
   Since pointers are representations of memory locations within a single pool of
-  underlying memory, Swift now allows comparing pointers without requiring type
+  underlying memory, Codira now allows comparing pointers without requiring type
   conversions with the `==`, `!=`, `<`,`<=`,`>`, and `>=` operators. 
 
 * [SE-0333][]:
@@ -1553,15 +1672,15 @@ concurrency checking.
   in places that would previously fail because `any` types do not conform
   to their protocols. For example:
 
-  ```swift
+  ```language
   protocol P {
     associatedtype A
-    func getA() -> A
+    fn getA() -> A
   }
 
-  func takeP<T: P>(_ value: T) { }
+  fn takeP<T: P>(_ value: T) { }
 
-  func test(p: any P) {
+  fn test(p: any P) {
     takeP(p) // was an error "type 'any P' cannot conform to 'P'", now accepted
   }
   ```
@@ -1574,8 +1693,8 @@ concurrency checking.
   It's now possible to use a default value expression with a generic parameter type
   to default the argument and its type:
 
-  ```swift
-  func compute<C: Collection>(_ values: C = [0, 1, 2]) {
+  ```language
+  fn compute<C: Collection>(_ values: C = [0, 1, 2]) {
     ...
   }
   ```
@@ -1594,12 +1713,12 @@ concurrency checking.
 
   For example:
 
-  ```swift
-  func map<T>(fn: (Int) -> T) -> T {
+  ```language
+  fn map<T>(fn: (Int) -> T) -> T {
     return fn(42)
   }
 
-  func computeResult<U: BinaryInteger>(_: U) -> U { /* processing */ }
+  fn computeResult<U: BinaryInteger>(_: U) -> U { /* processing */ }
 
   let _ = map {
     if let $0 < 0 {
@@ -1618,7 +1737,7 @@ concurrency checking.
   It is now possible to unwrap optional variables with a shorthand syntax that
   shadows the existing declaration. For example, the following:
   
-  ```swift
+  ```language
   let foo: String? = "hello world"
   
   if let foo {
@@ -1628,7 +1747,7 @@ concurrency checking.
   
   is equivalent to:
   
-  ```swift
+  ```language
   let foo: String? = "hello world"
   
   if let foo = foo {
@@ -1666,23 +1785,23 @@ concurrency checking.
 
 * [SE-0336][]:
 
-  It is now possible to declare `distributed actor` and `distributed func`s inside of them.
+  It is now possible to declare `distributed actor` and `distributed fn`s inside of them.
 
   Distributed actors provide stronger isolation guarantees than "local" actors, and enable additional checks to be made on return types and parameters of distributed methods, e.g. checking if they conform to `Codable`. Distributed methods can be called on "remote" references of distributed actors, turning those invocations into remote procedure calls, by means of pluggable and user extensible distributed actor system implementations. 
   
-  Swift does not provide any specific distributed actor system by itself, however, packages in the ecosystem fulfill the role of providing those implementations.
+  Codira does not provide any specific distributed actor system by itself, however, packages in the ecosystem fulfill the role of providing those implementations.
   
-  ```swift
+  ```language
   distributed actor Greeter { 
     var greetingsSent = 0
     
-    distributed func greet(name: String) -> String {
+    distributed fn greet(name: String) -> String {
       greetingsSent += 1
       return "Hello, \(name)!"
     }
   }
   
-  func talkTo(greeter: Greeter) async throws {
+  fn talkTo(greeter: Greeter) async throws {
     // isolation of distributed actors is stronger, it is impossible to refer to
     // any stored properties of distributed actors from outside of them:
     greeter.greetingsSent // distributed actor-isolated property 'name' can not be accessed from a non-isolated context
@@ -1696,9 +1815,9 @@ concurrency checking.
 
 * The compiler now emits a warning when a non-final class conforms to a protocol that imposes a same-type requirement between `Self` and an associated type. This is because such a requirement makes the conformance unsound for subclasses.
 
-  For example, Swift 5.6 would allow the following code, which at runtime would construct an instance of `C` and not `SubC` as expected:
+  For example, Codira 5.6 would allow the following code, which at runtime would construct an instance of `C` and not `SubC` as expected:
 
-  ```swift
+  ```language
   protocol P {
     associatedtype A : Q where Self == Self.A.B
   }
@@ -1706,7 +1825,7 @@ concurrency checking.
   protocol Q {
     associatedtype B
   
-    static func getB() -> B
+    static fn getB() -> B
   }
   
   class C : P {
@@ -1716,11 +1835,11 @@ concurrency checking.
   class D : Q {
     typealias B = C
   
-    static func getB() -> C { return C() }
+    static fn getB() -> C { return C() }
   }
   
   extension P {
-    static func getAB() -> Self {
+    static fn getAB() -> Self {
       // This is well-typed, because `Self.A.getB()` returns
       // `Self.A.B`, which is equivalent to `Self`.
       return Self.A.getB()
@@ -1740,8 +1859,8 @@ concurrency checking.
 
   Opaque types can now be used in the parameters of functions and subscripts, when they provide a shorthand syntax for the introduction of a generic parameter. For example, the following:
 
-  ```swift
-  func horizontal(_ v1: some View, _ v2: some View) -> some View {
+  ```language
+  fn horizontal(_ v1: some View, _ v2: some View) -> some View {
     HStack {
       v1
       v2
@@ -1751,8 +1870,8 @@ concurrency checking.
 
   is equivalent to
 
-  ```swift
-  func horizontal<V1: View, V2: View>(_ v1: V1, _ v2: V2) -> some View {
+  ```language
+  fn horizontal<V1: View, V2: View>(_ v1: V1, _ v2: V2) -> some View {
     HStack {
       v1
       v2
@@ -1767,7 +1886,7 @@ concurrency checking.
 
 * The compiler now correctly emits errors for `@available` attributes on stored properties with the `lazy` modifier or with attached property wrappers. Previously, the attribute was accepted on this subset of stored properties but the resulting binary would crash at runtime when type metadata was unavailable.
 
-  ```swift
+  ```language
   struct S {
     @available(macOS 99, *) // error: stored properties cannot be marked potentially unavailable with '@available'
     lazy var a: Int = 42
@@ -1779,7 +1898,7 @@ concurrency checking.
 
 * The compiler now correctly emits warnings for more kinds of expressions where a protocol conformance is used and may be unavailable at runtime. Previously, member reference expressions and type erasing expressions that used potentially unavailable conformances were not diagnosed, leading to potential crashes at runtime.
 
-  ```swift
+  ```language
   struct Pancake {}
   protocol Food {}
 
@@ -1791,13 +1910,13 @@ concurrency checking.
   extension Pancake: Food {}
 
   @available(macOS 11.0, *)
-  func eatPancake(_ pancake: Pancake) {
+  fn eatPancake(_ pancake: Pancake) {
     if (pancake.isGlutenFree) { // warning: conformance of 'Pancake' to 'Food' is only available in macOS 12.0 or newer
       eatFood(pancake) // warning: conformance of 'Pancake' to 'Food' is only available in macOS 12.0 or newer
     }
   }
 
-  func eatFood(_ food: Food) {}
+  fn eatFood(_ food: Food) {}
   ```
 
 * [SE-0328][]:
@@ -1806,24 +1925,24 @@ concurrency checking.
   within a result type, including having multiple opaque types in the same
   result. For example:
 
-  ```swift
-  func getSomeDictionary() -> [some Hashable: some Codable] {
+  ```language
+  fn getSomeDictionary() -> [some Hashable: some Codable] {
     return [ 1: "One", 2: "Two" ]
   }
   ```
 
-## Swift 5.6
+## Codira 5.6
 
 ### 2022-03-14 (Xcode 13.3)
 
 * [SE-0327][]:
 
-  In Swift 5 mode, a warning is now emitted if the default-value expression of an
+  In Codira 5 mode, a warning is now emitted if the default-value expression of an
   instance-member property requires global-actor isolation. For example:
 
-  ```swift
+  ```language
   @MainActor
-  func partyGenerator() -> [PartyMember] { fatalError("todo") }
+  fn partyGenerator() -> [PartyMember] { fatalError("todo") }
   
   class Party {
     @MainActor var members: [PartyMember] = partyGenerator()
@@ -1834,15 +1953,15 @@ concurrency checking.
   ```
   
   Previously, the isolation granted by the type checker matched the isolation of
-  the property itself, but at runtime that is not guaranteed. In Swift 6, 
+  the property itself, but at runtime that is not guaranteed. In Codira 6, 
   such default-value expressions will become an error if they require isolation.
 
 * Actor isolation checking now understands that `defer` bodies share the isolation of their enclosing function.
 
-  ```swift
+  ```language
   // Works on global actors
   @MainActor
-  func runAnimation(controller: MyViewController) async {
+  fn runAnimation(controller: MyViewController) async {
     controller.hasActiveAnimation = true
     defer { controller.hasActiveAnimation = false }
 
@@ -1853,7 +1972,7 @@ concurrency checking.
   actor OperationCounter {
     var activeOperationCount = 0
 
-    func operate() async {
+    fn operate() async {
       activeOperationCount += 1
       defer { activeOperationCount -= 1 }
 
@@ -1864,34 +1983,34 @@ concurrency checking.
 
 * [SE-0335][]:
 
-  Swift now allows existential types to be explicitly written with the `any`
+  Codira now allows existential types to be explicitly written with the `any`
   keyword, creating a syntactic distinction between existential types and
   protocol conformance constraints. For example:
 
-  ```swift
+  ```language
   protocol P {}
 
-  func generic<T>(value: T) where T: P {
+  fn generic<T>(value: T) where T: P {
     ...
   }
 
-  func existential(value: any P) {
+  fn existential(value: any P) {
      ...
   }
   ```
 
 * [SE-0337][]:
 
-  Swift now provides an incremental migration path to data race safety, allowing
+  Codira now provides an incremental migration path to data race safety, allowing
   APIs to adopt concurrency without breaking their clients that themselves have
   not adopted concurrency. An existing declaration can introduce
   concurrency-related annotations (such as making its closure parameters
   `@Sendable`) and use the `@preconcurrency` attribute to maintain its behavior
   for clients who have not themselves adopted concurrency:
 
-  ```swift
+  ```language
   // module A
-  @preconcurrency func runOnSeparateTask(_ workItem: @Sendable () -> Void)
+  @preconcurrency fn runOnSeparateTask(_ workItem: @Sendable () -> Void)
 
   // module B
   import A
@@ -1900,13 +2019,13 @@ concurrency checking.
     var value = 0
   }
 
-  func doesNotUseConcurrency(counter: MyCounter) {
+  fn doesNotUseConcurrency(counter: MyCounter) {
     runOnSeparateTask {
       counter.value += 1 // no warning, because this code hasn't adopted concurrency
     }
   }
 
-  func usesConcurrency(counter: MyCounter) async {
+  fn usesConcurrency(counter: MyCounter) async {
     runOnSeparateTask {
       counter.value += 1 // warning: capture of non-Sendable type 'MyCounter'
     }
@@ -1918,7 +2037,7 @@ concurrency checking.
   provide `Sendable` annotations, one can suppress warnings for types from that
   module by marking the import with `@preconcurrency`:
 
-  ```swift
+  ```language
   /// module C
   public struct Point {
     public var x, y: Double
@@ -1927,7 +2046,7 @@ concurrency checking.
   // module D
   @preconcurrency import C
 
-  func centerView(at location: Point) {
+  fn centerView(at location: Point) {
     Task {
       await mainView.center(at: location) // no warning about non-Sendable 'Point' because the @preconcurrency import suppresses it
     }
@@ -1936,16 +2055,16 @@ concurrency checking.
 
 * [SE-0302][]:
 
-  Swift will now produce warnings to indicate potential data races when
+  Codira will now produce warnings to indicate potential data races when
   non-`Sendable` types are passed across actor or task boundaries. For
   example:
 
-  ```swift
+  ```language
   class MyCounter {
     var value = 0
   }
 
-  func f() -> MyCounter {
+  fn f() -> MyCounter {
     let counter = MyCounter()
     Task {
       counter.value += 1  // warning: capture of non-Sendable type 'MyCounter'
@@ -1965,17 +2084,17 @@ concurrency checking.
   As a result, protocol members that fall under this overlooked case are no longer
   available on values of protocol type:
 
-  ```swift
+  ```language
   struct Outer<T> {
     struct Inner {}
   }
 
   protocol P {}
   extension P {
-    func method(arg: Outer<Self>.Inner) {}
+    fn method(arg: Outer<Self>.Inner) {}
   }
 
-  func test(p: P) {
+  fn test(p: P) {
     // error: 'method' has a 'Self' requirement and cannot be used on a value of
     // protocol type (use a generic constraint instead).
     _ = p.method
@@ -1984,13 +2103,13 @@ concurrency checking.
 
 * [SE-0324][]:
 
-  Relax diagnostics for pointer arguments to C functions. The Swift
+  Relax diagnostics for pointer arguments to C functions. The Codira
   compiler now accepts limited pointer type mismatches when directly
   calling functions imported from C as long as the C language allows
-  those pointer types to alias. Consequently, any Swift
+  those pointer types to alias. Consequently, any Codira
   `Unsafe[Mutable]Pointer<T>` or `Unsafe[Mutable]RawPointer` may be
   passed to C function arguments declared as `[signed|unsigned] char
-  *`. Swift `Unsafe[Mutable]Pointer<T>` can also be passed to C
+  *`. Codira `Unsafe[Mutable]Pointer<T>` can also be passed to C
   function arguments with an integer type that differs from `T` only
   in its signedness.
 
@@ -1998,9 +2117,9 @@ concurrency checking.
   ```c
   long long decode_int64(const char *ptr_to_int64);
   ```
-  Swift can now directly pass a raw pointer as the function argument:
-  ```swift
-  func decodeAsInt64(data: Data) -> Int64 {
+  Codira can now directly pass a raw pointer as the function argument:
+  ```language
+  fn decodeAsInt64(data: Data) -> Int64 {
       data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
           decode_int64(bytes.baseAddress!)
       }
@@ -2027,7 +2146,7 @@ concurrency checking.
   type inference rules. Type placeholders are spelled as an underscore ("`_`") in
   a type name. For instance:
   
-  ```swift
+  ```language
   // This is OK--the compiler can infer the key type as `Int`.
   let dict: [_: String] = [0: "zero", 1: "one", 2: "two"]
   ```
@@ -2036,7 +2155,7 @@ concurrency checking.
 
   It is now possible to write inverted availability conditions by using the new `#unavailable` keyword:
 
-  ```swift
+  ```language
   if #unavailable(iOS 15.0) {
       // Old functionality
   } else {
@@ -2044,7 +2163,7 @@ concurrency checking.
   }
   ```
 
-## Swift 5.5
+## Codira 5.5
 
 ### 2021-09-20 (Xcode 13.0)
 
@@ -2060,7 +2179,7 @@ concurrency checking.
   The main function is executed synchronously up to the first suspension point.
   Any tasks enqueued by initializers in Objective-C or C++ will run after the
   main function runs to the first suspension point. At the suspension point, the
-  main function suspends and the tasks are executed according to the Swift
+  main function suspends and the tasks are executed according to the Codira
   concurrency mechanisms.
 
 * [SE-0313][]:
@@ -2070,16 +2189,16 @@ concurrency checking.
   extend the actor-isolated semantics of the `self` parameter of actor methods
   to arbitrary parameters. For example:
 
-  ```swift
+  ```language
   actor MyActor {
-    func f() { }
+    fn f() { }
   }
 
-  func g(actor: isolated MyActor) {
+  fn g(actor: isolated MyActor) {
     actor.f()   // okay, this code is always executing on "actor"
   }
 
-  func h(actor: MyActor) async {
+  fn h(actor: MyActor) async {
     g(actor: actor)        // error, call must be asynchronous
     await g(actor: actor)  // okay, hops to "actor" before calling g
   }
@@ -2093,11 +2212,11 @@ concurrency checking.
   The compiler now correctly rejects the application of generic arguments to the
   special `Self` type:
 
-  ```swift
+  ```language
   struct Box<T> {
     // previously interpreted as a return type of Box<T>, ignoring the <Int> part;
     // now we diagnose an error with a fix-it suggesting replacing `Self` with `Box`
-    static func makeBox() -> Self<Int> {...}
+    static fn makeBox() -> Self<Int> {...}
   }
   ```
 
@@ -2106,7 +2225,7 @@ concurrency checking.
   The compiler now correctly rejects `@available` annotations on enum cases with
   associated values with an OS version newer than the current deployment target:
 
-  ```swift
+  ```language
   @available(macOS 12, *)
   public struct Crayon {}
 
@@ -2118,7 +2237,7 @@ concurrency checking.
   }
   ```
 
-  While this worked with some examples, there is no way for the Swift runtime to
+  While this worked with some examples, there is no way for the Codira runtime to
   perform the requisite dynamic layout needed to support this in general, which
   could cause crashes at runtime.
 
@@ -2132,13 +2251,13 @@ concurrency checking.
   Such values are carried implicitly by the task in which the binding was made,
   as well as any child-tasks, and unstructured task created from the tasks context.
   
-  ```swift
+  ```language
   struct TraceID { 
     @TaskLocal
     static var current: TraceID? 
   }
   
-  func printTraceID() {
+  fn printTraceID() {
     if let traceID = TraceID.current {
       print("\(traceID)")
     } else {
@@ -2146,7 +2265,7 @@ concurrency checking.
     }
   }
   
-  func run() async { 
+  fn run() async { 
     printTraceID()    // prints: nil
     TraceID.$current.withValue("1234-5678") { 
       printTraceID()  // prints: 1234-5678
@@ -2155,7 +2274,7 @@ concurrency checking.
     printTraceID()    // prints: nil
   }
   
-  func inner() {
+  fn inner() {
     // if called from a context in which the task-local value
     // was bound, it will print it (or 'nil' otherwise)
     printTraceID()
@@ -2174,7 +2293,7 @@ concurrency checking.
   the "main thread" or "UI thread". A new global actor can be defined with
   the `globalActor` attribute:
 
-  ```swift
+  ```language
   @globalActor
   struct DatabaseActor {
     actor ActorType { }
@@ -2187,10 +2306,10 @@ concurrency checking.
   which ensures that those declarations are only accessed on the actor described
   by the global actor's `shared` instance. For example:
 
-  ```swift
-  @DatabaseActor func queryDB(query: Query) throws -> QueryResult
+  ```language
+  @DatabaseActor fn queryDB(query: Query) throws -> QueryResult
 
-  func runQuery(queryString: String) async throws -> QueryResult {
+  fn runQuery(queryString: String) async throws -> QueryResult {
     let query = try Query(parsing: queryString)
     return try await queryDB(query: query) // 'await' because this implicitly hops to DatabaseActor.shared
   }
@@ -2206,12 +2325,12 @@ concurrency checking.
   explicitly become non-isolated using the `nonisolated` keyword. Non-isolated
   declarations can be used to conform to synchronous protocol requirements:
 
-  ```swift
+  ```language
   actor Account: Hashable {
     let idNumber: Int
     var balance: Double
 
-    nonisolated func hash(into hasher: inout Hasher) { // okay, non-isolated satisfies synchronous requirement
+    nonisolated fn hash(into hasher: inout Hasher) { // okay, non-isolated satisfies synchronous requirement
       hasher.combine(idNumber) // okay, can reference idNumber from outside the let
       hasher.combine(balance) // error: cannot synchronously access actor-isolated property
     }
@@ -2230,7 +2349,7 @@ concurrency checking.
 
 * Type names are no longer allowed as an argument to a subscript parameter that expects a metatype type
 
-  ```swift
+  ```language
   struct MyValue {
   }
 
@@ -2238,7 +2357,7 @@ concurrency checking.
     subscript(a: MyValue.Type) -> Int { get { ... } }
   }
 
-  func test(obj: MyStruct) {
+  fn test(obj: MyStruct) {
     let _ = obj[MyValue]
   }
   ```
@@ -2249,7 +2368,7 @@ concurrency checking.
 * [SE-0310][]:
   
   Read-only computed properties and subscripts can now define their `get` accessor to be `async` and/or `throws`, by writing one or both of those keywords between the `get` and `{`.  Thus, these members can now make asynchronous calls or throw errors in the process of producing a value:
-  ```swift
+  ```language
   class BankAccount: FinancialAccount {
     var manager: AccountManager?
 
@@ -2274,16 +2393,16 @@ concurrency checking.
   }
   ```
   Accesses to such members, like `lastTransaction` above, will require appropriate marking with `await` and/or `try`:
-  ```swift
+  ```language
   extension BankAccount {
-    func meetsTransactionLimit(_ limit: Amount) async -> Bool {
+    fn meetsTransactionLimit(_ limit: Amount) async -> Bool {
       return try! await self.lastTransaction.amount < limit
       //                    ^~~~~~~~~~~~~~~~ this access is async & throws
     }                
   }
 
     
-  func hadWithdrawalOn(_ day: Date, from acct: BankAccount) async -> Bool {
+  fn hadWithdrawalOn(_ day: Date, from acct: BankAccount) async -> Bool {
     return await !acct[day].allSatisfy { $0.amount >= Amount.zero }
     //            ^~~~~~~~~ this access is async
   }
@@ -2291,18 +2410,18 @@ concurrency checking.
 
 * [SE-0306][]:
 
-  Swift 5.5 includes support for actors, a new kind of type that isolates its instance data to protect it from concurrent access. Accesses to an actor's instance declarations from outside the must be asynchronous:
+  Codira 5.5 includes support for actors, a new kind of type that isolates its instance data to protect it from concurrent access. Accesses to an actor's instance declarations from outside the must be asynchronous:
 
-  ```swift
+  ```language
   actor Counter {
     var value = 0
 
-    func increment() {
+    fn increment() {
       value = value + 1
     }
   }
 
-  func useCounter(counter: Counter) async {
+  fn useCounter(counter: Counter) async {
     print(await counter.value) // interaction must be async
     await counter.increment()  // interaction must be async
   }
@@ -2310,17 +2429,17 @@ concurrency checking.
 
 * The determination of whether a call to a `rethrows` function can throw now considers default arguments of `Optional` type.
 
-  In Swift 5.4, such default arguments were ignored entirely by `rethrows` checking. This meant that the following example was accepted:
+  In Codira 5.4, such default arguments were ignored entirely by `rethrows` checking. This meant that the following example was accepted:
 
-  ```swift
-  func foo(_: (() throws -> ())? = nil) rethrows {}
+  ```language
+  fn foo(_: (() throws -> ())? = nil) rethrows {}
   foo()  // no 'try' needed
   ```
 
   However, it also meant that the following was accepted, even though the call to `foo()` can throw and the call site is not marked with `try`:
 
-  ```swift
-  func foo(_: (() throws -> ())? = { throw myError }) rethrows {}
+  ```language
+  fn foo(_: (() throws -> ())? = { throw myError }) rethrows {}
   foo()  // 'try' *should* be required here
   ```
 
@@ -2330,7 +2449,7 @@ concurrency checking.
 
   Property wrappers can now be applied to function and closure parameters:
 
-  ```swift
+  ```language
   @propertyWrapper
   struct Wrapper<Value> {
     var wrappedValue: Value
@@ -2342,7 +2461,7 @@ concurrency checking.
     init(projectedValue: Self) { ... }
   }
 
-  func test(@Wrapper value: Int) {
+  fn test(@Wrapper value: Int) {
     print(value)
     print($value)
     print(_value)
@@ -2360,7 +2479,7 @@ concurrency checking.
 
   It is now possible to use leading-dot syntax in generic contexts to access static members of protocol extensions where `Self` is constrained to a fully concrete type:
 
-  ```swift
+  ```language
   public protocol ToggleStyle { ... }
 
   public struct DefaultToggleStyle: ToggleStyle { ... }
@@ -2370,7 +2489,7 @@ concurrency checking.
   }
 
   struct Toggle {
-    func applyToggle<T: ToggleStyle>(_ style: T) { ... }
+    fn applyToggle<T: ToggleStyle>(_ style: T) { ... }
   }
 
   Toggle(...).applyToggle(.default)
@@ -2378,13 +2497,13 @@ concurrency checking.
 
 * Whenever a reference to `Self` does not impede the usage of a protocol as a value type, or a protocol member on a value of protocol type, the same is now true for references to `[Self]` and `[Key : Self]`:
 
-  ```swift
+  ```language
   protocol Copyable {
-    func copy() -> Self
-    func copy(count: Int) -> [Self]
+    fn copy() -> Self
+    fn copy(count: Int) -> [Self]
   }
 
-  func test(c: Copyable) {
+  fn test(c: Copyable) {
     let copy: Copyable = c.copy() // OK
     let copies: [Copyable] = c.copy(count: 5) // also OK
   }
@@ -2394,16 +2513,16 @@ concurrency checking.
 
   Asynchronous programming is now natively supported using async/await. Asynchronous functions can be defined using `async`:
 
-  ```swift
-  func loadWebResource(_ path: String) async throws -> Resource { ... }
-  func decodeImage(_ r1: Resource, _ r2: Resource) async throws -> Image
-  func dewarpAndCleanupImage(_ i : Image) async -> Image
+  ```language
+  fn loadWebResource(_ path: String) async throws -> Resource { ... }
+  fn decodeImage(_ r1: Resource, _ r2: Resource) async throws -> Image
+  fn dewarpAndCleanupImage(_ i : Image) async -> Image
   ```
 
   Calls to `async` functions may suspend, meaning that they give up the thread on which they are executing and will be scheduled to run again later. The potential for suspension on asynchronous calls requires the `await` keyword, similarly to the way in which `try` acknowledges a call to a `throws` function:
 
-  ```swift
-  func processImageData() async throws -> Image {
+  ```language
+  fn processImageData() async throws -> Image {
     let dataResource  = try await loadWebResource("dataprofile.txt")
     let imageResource = try await loadWebResource("imagedata.dat")
     let imageTmp      = try await decodeImage(dataResource, imageResource)
@@ -2414,8 +2533,8 @@ concurrency checking.
 
 * The `lazy` keyword now works in local contexts, making the following valid:
 
-  ```swift
-  func test(useIt: Bool) {
+  ```language
+  fn test(useIt: Bool) {
     lazy var result = getPotentiallyExpensiveResult()
     if useIt {
       doIt(result)
@@ -2434,15 +2553,15 @@ concurrency checking.
 
   will be translated into an `async throws` method that returns the participant instance:
 
-  ```swift
-  func fetchShareParticipant(
+  ```language
+  fn fetchShareParticipant(
       withUserRecordID userRecordID: CKRecord.ID
   ) async throws -> CKShare.Participant
   ```
 
-  Swift callers can invoke this `async` method within an `await` expression:
+  Codira callers can invoke this `async` method within an `await` expression:
 
-  ```swift
+  ```language
   guard let participant = try? await container.fetchShareParticipant(withUserRecordID: user) else {
       return nil
   }
@@ -2452,7 +2571,7 @@ concurrency checking.
 
   The "for" loop can be used to traverse asynchronous sequences in asynchronous code:
 
-  ```swift
+  ```language
   for try await line in myFile.lines() {
     // Do something with each line
   }
@@ -2461,13 +2580,13 @@ concurrency checking.
   Asynchronous for loops use asynchronous sequences, defined by the protocol
   `AsyncSequence` and its corresponding `AsyncIterator`.
 
-## Swift 5.4
+## Codira 5.4
 
 ### 2021-04-26 (Xcode 12.5)
 
 * Protocol conformance checking now considers `where` clauses when evaluating if a `typealias` is a suitable witness for an associated type requirement. The following code is now rejected:
 
-  ```swift
+  ```language
   protocol Holder {
     associatedtype Contents
   }
@@ -2488,7 +2607,7 @@ concurrency checking.
 
 * Availability checking now rejects protocols that refine less available protocols. Previously, this was accepted by the compiler but could result in linker errors or runtime crashes:
 
-  ```swift
+  ```language
   @available(macOS 11, *)
   protocol Base {}
 
@@ -2501,7 +2620,7 @@ concurrency checking.
 
 * The `@available` attribute is no longer permitted on generic parameters, where it had no effect:
 
-  ```swift
+  ```language
   struct Bad<@available(macOS 11, *) T> {}
   // error: '@available' attribute cannot be applied to this declaration
 
@@ -2510,21 +2629,21 @@ concurrency checking.
 
 * If a type is made to conform to a protocol via an extension, the availability of the extension is now taken into account when forming generic types that use this protocol conformance. For example, consider a `Box` type whose conformance to `Hashable` uses features only available on macOS 11:
 
-  ```swift
+  ```language
   public struct Box {}
 
   @available(macOS 11, *)
   extension Box : Hashable {
-    func hash(into: inout Hasher) {
+    fn hash(into: inout Hasher) {
       // call some new API to hash the value...
     }
   }
 
-  public func findBad(_: Set<Box>) -> Box {}
+  public fn findBad(_: Set<Box>) -> Box {}
   // warning: conformance of 'Box' to 'Hashable' is only available in macOS 11 or newer
 
   @available(macOS 11, *)
-  public func findGood(_: Set<Box>) -> Box {} // OK
+  public fn findGood(_: Set<Box>) -> Box {} // OK
   ```
 
   In the above code, it is not valid for `findBad()` to take a `Set<Box>`, since `Set` requires that its element type conform to `Hashable`; however the conformance of `Box` to `Hashable` is not available prior to macOS 11.
@@ -2533,7 +2652,7 @@ concurrency checking.
 
   Protocol conformances can also be marked as completely unavailable or deprecated, by placing an appropriate `@available` attribute on the extension:
 
-  ```swift
+  ```language
   @available(*, unavailable, message: "Not supported anymore")
   extension Box : Hashable {}
 
@@ -2543,19 +2662,19 @@ concurrency checking.
 
   If a protocol conformance is defined on the type itself, it inherits availability from the type. You can move the protocol conformance to an extension if you need it to have narrower availability than the type.
 
-* When `swift` is run with no arguments, it starts a REPL (read eval print loop) that uses LLDB. The compiler also had a second REPL implementation, known as the "integrated REPL", formerly accessible by running `swift -frontend -repl`. The "integrated REPL" was only intended for use by compiler developers, and has now been removed.
+* When `language` is run with no arguments, it starts a REPL (read eval print loop) that uses LLDB. The compiler also had a second REPL implementation, known as the "integrated REPL", formerly accessible by running `language -frontend -repl`. The "integrated REPL" was only intended for use by compiler developers, and has now been removed.
 
-  Note that this does not take away the ability to put Swift code in a script and run it with `swift myScript.swift`. This so-called "script mode" is distinct from the integrated REPL, and continues to be supported.
+  Note that this does not take away the ability to put Codira code in a script and run it with `language myScript.code`. This so-called "script mode" is distinct from the integrated REPL, and continues to be supported.
 
 * Property wrappers now work in local contexts, making the following valid:
 
-  ```swift
+  ```language
   @propertyWrapper
   struct Wrapper<T> {
     var wrappedValue: T
   }
 
-  func test() {
+  fn test() {
     @Wrapper var value = 10
   }
   ```
@@ -2564,10 +2683,10 @@ concurrency checking.
 
   Function overloading now works in local contexts, making the following valid:
 
-  ```swift
-  func outer(x: Int, y: String) {
-    func doIt(_: Int) {}
-    func doIt(_: String) {}
+  ```language
+  fn outer(x: Int, y: String) {
+    fn doIt(_: Int) {}
+    fn doIt(_: String) {}
 
     doIt(x) // calls the first 'doIt(_:)' with an Int value
     doIt(y) // calls the second 'doIt(_:)' with a String value
@@ -2578,8 +2697,8 @@ concurrency checking.
 
   Functions, subscripts, and initializers may now have more than one variadic parameter, as long as all parameters which follow variadic parameters are labeled. This makes declarations like the following valid:
 
-  ```swift
-  func foo(_ a: Int..., b: Double...) { }
+  ```language
+  fn foo(_ a: Int..., b: Double...) { }
 
   struct Bar {
     subscript(a: Int..., b b: Int...) -> [Int] { a + b }
@@ -2592,7 +2711,7 @@ concurrency checking.
 
   Implicit member expressions now support chains of member accesses, making the following valid:
   
-  ```swift
+  ```language
   let milky: UIColor = .white.withAlphaComponent(0.5)
   let milky2: UIColor = .init(named: "white")!.withAlphaComponent(0.5)
   let milkyChance: UIColor? = .init(named: "white")?.withAlphaComponent(0.5)
@@ -2600,7 +2719,7 @@ concurrency checking.
   
   As is the case with the existing implicit member expression syntax, the resulting type of the chain must be the same as the (implicit) base, so it is not well-formed to write:
   
-  ```swift
+  ```language
   let cgMilky: CGColor = .white.withAlphaComponent(0.5).cgColor
   ```
   
@@ -2608,13 +2727,13 @@ concurrency checking.
   
   Members of a "chain" can be properties, method calls, subscript accesses, force unwraps, or optional chaining question marks. Furthermore, the type of each member along the chain is permitted to differ (again, as long as the base of the chain matches the resulting type) meaning the following successfully typechecks:
   
-  ```swift
+  ```language
   struct Foo {
     static var foo = Foo()
     static var bar = Bar()
     
     var anotherFoo: Foo { Foo() }
-    func getFoo() -> Foo { Foo() }
+    fn getFoo() -> Foo { Foo() }
     var optionalFoo: Foo? { Foo() }
     subscript() -> Foo { Foo() }
   }
@@ -2626,7 +2745,7 @@ concurrency checking.
   let _: Foo? = .bar.anotherFoo.getFoo().optionalFoo?.optionalFoo![]
   ```
 
-## Swift 5.3
+## Codira 5.3
 
 ### 2020-09-16 (Xcode 12.0)
 
@@ -2634,7 +2753,7 @@ concurrency checking.
 
   Trailing closure syntax has been extended to allow additional labeled closures to follow the initial unlabeled closure:
   
-  ```swift
+  ```language
   // Single trailing closure argument
   UIView.animate(withDuration: 0.3) {
     self.view.alpha = 0
@@ -2649,21 +2768,21 @@ concurrency checking.
   
   Additionally, trailing closure arguments now match the appropriate parameter according to a forward-scan rule (as opposed to the previous backward-scan rule):
   
-  ```swift
-  func takesClosures(first: () -> Void, second: (Int) -> Void = { _ in }) {}
+  ```language
+  fn takesClosures(first: () -> Void, second: (Int) -> Void = { _ in }) {}
   
   takesClosures {
     print("First")
   }
   ```
   
-  In the above example, the trailing closure argument matches parameter `first`, whereas pre-Swift-5.3 it would have matched `second`. In order to ease the transition to this new rule, cases in which the forward-scan and backward-scan match a single trailing closure to different parameters, the backward-scan result is preferred and a warning is emitted. This is expected to be upgraded to an error in the next major version of Swift.
+  In the above example, the trailing closure argument matches parameter `first`, whereas pre-Codira-5.3 it would have matched `second`. In order to ease the transition to this new rule, cases in which the forward-scan and backward-scan match a single trailing closure to different parameters, the backward-scan result is preferred and a warning is emitted. This is expected to be upgraded to an error in the next major version of Codira.
 
 * [#49631][]:
 
   Property observers such as `willSet` and `didSet` are now supported on `lazy` properties:
 
-  ```swift
+  ```language
   class C {
     lazy var property: Int = 0 {
       willSet { print("willSet called!") } // Okay
@@ -2674,7 +2793,7 @@ concurrency checking.
 
   Note that the initial value of the property will be forced and made available as the `oldValue` for the `didSet` observer, if the property hasn't been accessed yet.
   
-  ```swift
+  ```language
   class C {
     lazy var property: Int = 0 {
       didSet { print("Old value: ", oldValue) }
@@ -2692,13 +2811,13 @@ concurrency checking.
   Exclusivity violations within code that computes the `default`
   argument during Dictionary access are now diagnosed.
 
-  ```swift
+  ```language
   struct Container {
      static let defaultKey = 0
 
      var dictionary = [defaultKey:0]
 
-     mutating func incrementValue(at key: Int) {
+     mutating fn incrementValue(at key: Int) {
        dictionary[key, default: dictionary[Container.defaultKey]!] += 1
      }
   }
@@ -2713,13 +2832,13 @@ concurrency checking.
   The exclusivity violation can be avoided by precomputing the `default`
   argument using a local variable.
 
-  ```swift
+  ```language
   struct Container {
     static let defaultKey = 0
 
     var dictionary = [defaultKey:0]
 
-    mutating func incrementValue(at key: Int) {
+    mutating fn incrementValue(at key: Int) {
       let defaultValue = dictionary[Container.defaultKey]!
       dictionary[key, default: defaultValue] += 1
     }
@@ -2731,7 +2850,7 @@ concurrency checking.
   
   A `didSet` observer which does not refer to the `oldValue` in its body or does not explicitly request it by placing it in the parameter list (i.e. `didSet(oldValue)`) will no longer trigger a call to the property getter to fetch the `oldValue`.
   
-  ```swift
+  ```language
   class C {
     var value: Int = 0 {
       didSet { print("didSet called!") }
@@ -2750,7 +2869,7 @@ concurrency checking.
 
   Catch clauses in a `do`-`catch` statement can now include multiple patterns in a comma-separated list. The body of a `catch` clause will be executed if a thrown error matches any of its patterns.
 
-  ```swift
+  ```language
   do {
     try performTask()
   } catch TaskError.someFailure(let msg),
@@ -2763,15 +2882,15 @@ concurrency checking.
   
   Enum cases can now satisfy static protocol requirements. A static get-only property of type `Self` can be witnessed by an enum case with no associated values and a static function with arguments and returning `Self` can be witnessed by an enum case with associated values.
   
-  ```swift
+  ```language
   protocol P {
     static var foo: Self { get }
-    static func bar(value: Int) -> Self
+    static fn bar(value: Int) -> Self
   }
   
   enum E: P {
     case foo // matches 'static var foo'
-    case bar(value: Int) // matches 'static func bar(value:)'
+    case bar(value: Int) // matches 'static fn bar(value:)'
   }
   ```
 
@@ -2779,21 +2898,21 @@ concurrency checking.
   
   Non-generic members that support a generic parameter list, including nested type declarations, are now allowed to carry a contextual `where` clause against outer generic parameters. Previously, such declarations could only be expressed by placing the member inside a dedicated constrained extension.
 
-  ```swift
+  ```language
   struct Box<Wrapped> {
-    func boxes() -> [Box<Wrapped.Element>] where Wrapped: Sequence { ... }
+    fn boxes() -> [Box<Wrapped.Element>] where Wrapped: Sequence { ... }
   }
   ```
   Since contextual `where` clauses are effectively visibility constraints, overrides adopting this feature must be at least as visible as the overridden method. In practice, this implies any instance of `Derived` that can access `Base.foo` must also be able to access `Derived.foo`.
   
-  ```swift
+  ```language
   class Base<T> {
-    func foo() where T == Int { ... }
+    fn foo() where T == Int { ... }
   }
   
   class Derived<U>: Base<U> {
     // OK, <U where U: Equatable> has broader visibility than <T where T == Int>
-    override func foo() where U: Equatable { ... } 
+    override fn foo() where U: Equatable { ... } 
   }
 
 * [#42697][]:
@@ -2801,9 +2920,9 @@ concurrency checking.
   Unapplied references to protocol methods are now supported. Previously this
   only worked for methods defined in structs, enums and classes.
 
-  ```swift
+  ```language
   protocol Cat {
-    func play(catToy: Toy)
+    fn play(catToy: Toy)
   }
 
   let fn = Cat.play(catToy:)
@@ -2814,7 +2933,7 @@ concurrency checking.
   
   Enumerations with no associated values, or only `Comparable` associated values, can opt-in to synthesized `Comparable` conformance by declaring conformance to the `Comparable` protocol. The synthesized implementation orders the cases first by case-declaration order, and then by lexicographic order of the associated values (if any).
   
-  ```swift
+  ```language
   enum Foo: Comparable {
     case a(Int), b(Int), c
   }
@@ -2828,13 +2947,13 @@ concurrency checking.
   use of implicit `self` is enabled within that closure. This means that the
   following code is now valid:
   
-  ```swift
-  func doStuff(_ stuff: @escaping () -> Void) {}
+  ```language
+  fn doStuff(_ stuff: @escaping () -> Void) {}
   
   class C {
     var x = 0
 
-    func method() {
+    fn method() {
       doStuff { [self] in
         x += 1
       }
@@ -2846,7 +2965,7 @@ concurrency checking.
   closure's capture list in addition to the existing 'use `self.` explicitly'
   fix-it.
 
-## Swift 5.2
+## Codira 5.2
 
 ### 2020-03-24 (Xcode 11.4)
 
@@ -2855,7 +2974,7 @@ concurrency checking.
   When chaining calls to `filter(_:)` on a lazy sequence or collection, the
   filtering predicates will now be called in the same order as eager filters.
   
-  ```swift
+  ```language
   let evens = (1...10).lazy
       .filter { $0.isMultiple(of: 2) }
       .filter { print($0); return true }
@@ -2865,7 +2984,7 @@ concurrency checking.
   
   Previously, the predicates were called in reverse order.
   
-* [apple/swift-corelibs-foundation#4326][]:
+* [apple/language-corelibs-foundation#4326][]:
 
   The compiler will now emit a warning when attempting to pass a temporary
   pointer argument produced from an array, string, or inout argument to a
@@ -2873,12 +2992,12 @@ concurrency checking.
   for the `UnsafePointer`/`UnsafeBufferPointer` family of types, as well as
   memberwise initializers.
 
-  ```swift
+  ```language
   struct S {
     var ptr: UnsafePointer<Int8>
   }
 
-  func foo() {
+  fn foo() {
     var i: Int8 = 0
     let ptr = UnsafePointer(&i)
     // warning: initialization of 'UnsafePointer<Int8>' results in a 
@@ -2903,9 +3022,9 @@ concurrency checking.
   The compiler now supports local functions whose default arguments capture
   values from outer scopes.
 
-  ```swift
-  func outer(x: Int) -> (Int, Int) {
-    func inner(y: Int = x) -> Int {
+  ```language
+  fn outer(x: Int) -> (Int, Int) {
+    fn inner(y: Int = x) -> Int {
       return y
     }
 
@@ -2919,9 +3038,9 @@ concurrency checking.
   used with the `as` operator in a function call. As a result, the `as` operator
   can now be used to disambiguate a call to a function with argument labels. 
   
-  ```swift
-  func foo(x: Int) {}
-  func foo(x: UInt) {}
+  ```language
+  fn foo(x: Int) {}
+  fn foo(x: UInt) {}
   
   (foo as (Int) -> Void)(5)  // Calls foo(x: Int)
   (foo as (UInt) -> Void)(5) // Calls foo(x: UInt)
@@ -2933,15 +3052,15 @@ concurrency checking.
   preserve the argument labels of a function reference through the `as`
   operator. The following is now rejected:
   
-  ```swift
+  ```language
   typealias Magic<T> = T
-  func foo(x: Int) {}
+  fn foo(x: Int) {}
   (foo as Magic)(x: 5) // error: Extraneous argument label 'x:' in call
   ```
   
   The function value must instead be called without argument labels:
   
-  ```swift
+  ```language
   (foo as Magic)(5)
   ```
 
@@ -2950,7 +3069,7 @@ concurrency checking.
   A class-constrained protocol extension, where the extended protocol does
   not impose a class constraint, will now infer the constraint implicitly.
 
-  ```swift
+  ```language
   protocol Foo {}
   class Bar: Foo {
     var someProperty: Int = 0
@@ -2970,14 +3089,14 @@ concurrency checking.
 
 * [SE-0253][]:
 
-  Values of types that declare `func callAsFunction` methods can be called
+  Values of types that declare `fn callAsFunction` methods can be called
   like functions. The call syntax is shorthand for applying
-  `func callAsFunction` methods.
+  `fn callAsFunction` methods.
 
-  ```swift
+  ```language
   struct Adder {
     var base: Int
-    func callAsFunction(_ x: Int) -> Int {
+    fn callAsFunction(_ x: Int) -> Int {
       return x + base
     }
   }
@@ -2985,11 +3104,11 @@ concurrency checking.
   adder(10) // returns 13, same as `adder.callAsFunction(10)`
   ```
 
-  * `func callAsFunction` argument labels are required at call sites.
-  * Multiple `func callAsFunction` methods on a single type are supported.
-  * `mutating func callAsFunction` is supported.
-  * `func callAsFunction` works with `throws` and `rethrows`.
-  * `func callAsFunction` works with trailing closures.
+  * `fn callAsFunction` argument labels are required at call sites.
+  * Multiple `fn callAsFunction` methods on a single type are supported.
+  * `mutating fn callAsFunction` is supported.
+  * `fn callAsFunction` works with `throws` and `rethrows`.
+  * `fn callAsFunction` works with trailing closures.
   
 * [SE-0249][]:
 
@@ -2999,7 +3118,7 @@ concurrency checking.
   
   For example:
   
-  ```swift
+  ```language
   struct User {
     let email: String
     let isAdmin: Bool
@@ -3013,15 +3132,15 @@ concurrency checking.
   A method override is no longer allowed to have a generic signature with
   requirements not imposed by the base method. For example:
 
-  ```swift
+  ```language
   protocol P {}
   
   class Base {
-    func foo<T>(arg: T) {}
+    fn foo<T>(arg: T) {}
   }
   
   class Derived: Base {
-    override func foo<T: P>(arg: T) {}
+    override fn foo<T: P>(arg: T) {}
   }
   ```
 
@@ -3031,7 +3150,7 @@ concurrency checking.
 
   Subscripts can now declare default arguments:
 
-  ```swift
+  ```language
   struct Subscriptable {
     subscript(x: Int, y: Int = 0) {
       ...
@@ -3042,7 +3161,7 @@ concurrency checking.
   print(s[0])
   ```
 
-## Swift 5.1
+## Codira 5.1
 
 ### 2019-09-20 (Xcode 11.0)
 
@@ -3051,7 +3170,7 @@ concurrency checking.
   Duplicate tuple element labels are no longer allowed, because it leads
   to incorrect behavior. For example:
 
-  ```swift
+  ```language
   let dupLabels: (foo: Int, foo: Int) = (foo: 1, foo: 2)
 
   enum Foo { case bar(x: Int, x: Int) }
@@ -3063,8 +3182,8 @@ concurrency checking.
   Note: You can still use duplicate argument labels when declaring functions and
   subscripts, as long as the internal parameter names are different. For example:
 
-  ```swift
-  func foo(bar x: Int, bar y: Int) {}
+  ```language
+  fn foo(bar x: Int, bar y: Int) {}
   subscript(a x: Int, a y: Int) -> Int {}
   ```
 
@@ -3073,8 +3192,8 @@ concurrency checking.
   Functions can now hide their concrete return type by declaring what protocols
   it conforms to instead of specifying the exact return type:
 
-  ```swift
-  func makeMeACollection() -> some Collection {
+  ```language
+  fn makeMeACollection() -> some Collection {
     return [1, 2, 3]
   }
   ```
@@ -3091,7 +3210,7 @@ concurrency checking.
   The existing `@dynamicMemberLookup` attribute has been extended with a
   support for strongly-typed keypath implementations:
 
-  ```swift
+  ```language
   @dynamicMemberLookup
   struct Lens<T> {
     let getter: () -> T
@@ -3119,19 +3238,19 @@ concurrency checking.
   More thorough checking has been implemented for restrictions around
   escaping closures capturing `inout` parameters or values of noescape type.
   While most code should not be affected, there are edge cases where
-  the Swift 5.0 compiler would accept code violating these restrictions.
+  the Codira 5.0 compiler would accept code violating these restrictions.
   This could result in runtime crashes or silent data corruption.
   
-  An example of invalid code which was incorrectly accepted by the Swift 5.0
+  An example of invalid code which was incorrectly accepted by the Codira 5.0
   compiler is an `@escaping` closure calling a local function which
   references an `inout` parameter from an outer scope:
 
-  ```swift
+  ```language
   struct BadCaptureExample {
     var escapingClosure: () -> ()
 
-    mutating func takesInOut(_ x: inout Int) {
-      func localFunction() {
+    mutating fn takesInOut(_ x: inout Int) {
+      fn localFunction() {
         x += 1
       }
 
@@ -3148,9 +3267,9 @@ concurrency checking.
   certain code as invalid, when in fact no violation of restrictions had
   taken place. For example,
 
-  ```swift
-  func takesNoEscape(_ fn: () -> ()) {
-    func localFunction() {
+  ```language
+  fn takesNoEscape(_ fn: () -> ()) {
+    fn localFunction() {
       fn()
     }
 
@@ -3163,7 +3282,7 @@ concurrency checking.
   Conversions between tuple types are now fully implemented.
   Previously, the following would diagnose an error:
 
-  ```swift
+  ```language
   let values: (Int, Int) = (10, 15)
   let converted: (Int?, Any) = values
 
@@ -3171,7 +3290,7 @@ concurrency checking.
 
   The memberwise initializer for structures now provide default values for variables that hold default expressions.
 
-  ```swift
+  ```language
   struct Dog {
     var name = "Generic dog name"
     var age = 0
@@ -3189,10 +3308,10 @@ concurrency checking.
   type inside struct, enum and class declarations. For example, the
   two method declarations inside this struct are equivalent:
   
-  ```swift
+  ```language
   struct Box<Value> {
-    func transform1() -> Self { return self }
-    func transform2() -> Box<Value> { return self }
+    fn transform1() -> Self { return self }
+    fn transform2() -> Box<Value> { return self }
   }
   ```
 
@@ -3207,7 +3326,7 @@ concurrency checking.
   Enum cases can now be matched against an optional enum without
   requiring a '?' at the end of the pattern.
 
-  ```swift
+  ```language
   enum Foo { case zero, one }
 
   let foo: Foo? = .zero
@@ -3228,10 +3347,10 @@ concurrency checking.
 
   An `@autoclosure` parameter can now be declared with a typealias type.
 
-  ```swift
+  ```language
   class Foo {
     typealias FooClosure = () -> String
-    func fooFunction(closure: @autoclosure FooClosure) {}
+    fn fooFunction(closure: @autoclosure FooClosure) {}
   }
   ```
 
@@ -3239,9 +3358,9 @@ concurrency checking.
 
   Methods declared `@objc` inside a class can now return `Self`:
 
-  ```swift
+  ```language
   class MyClass : NSObject {
-    @objc func clone() -> Self { return self }
+    @objc fn clone() -> Self { return self }
   }
   ```
 
@@ -3252,7 +3371,7 @@ concurrency checking.
   create an ambiguity because the compiler chooses Optional.none
   over Foo.none.
 
-  ```swift
+  ```language
   enum Foo { case none }
 
   // Assigned Optional.none instead of Foo.none
@@ -3270,10 +3389,10 @@ concurrency checking.
 * Single-parameter functions accepting values of type `Any` are no
   longer preferred over other functions.
 
-  ```swift
-  func foo(_: Any) { print("Any") }
-  func foo<T>(_: T) { print("T") }
-  foo(0) // prints "Any" in Swift < 5.1, "T" in Swift 5.1
+  ```language
+  fn foo(_: Any) { print("Any") }
+  fn foo<T>(_: T) { print("T") }
+  foo(0) // prints "Any" in Codira < 5.1, "T" in Codira 5.1
   ```
 
 * [SE-0245][]:
@@ -3281,7 +3400,7 @@ concurrency checking.
   `Array` and `ContiguousArray` now have `init(unsafeUninitializedCapacity:initializingWith:)`,
   which provides access to the array's uninitialized storage.
 
-## Swift 5.0
+## Codira 5.0
 
 ### 2019-03-25 (Xcode 10.2)
 
@@ -3289,7 +3408,7 @@ concurrency checking.
 
   The standard library now contains a `Result` type for manually propagating errors.
   
-  ```swift
+  ```language
   enum Result<Success, Failure: Error> {
       case success(Success)
       case failure(Failure)
@@ -3304,7 +3423,7 @@ concurrency checking.
 * `Error` now conforms to itself. This allows for the use of `Error` itself as 
   the argument for a generic parameter constrained to `Error`.
 
-* Swift 3 mode has been removed. Supported values for the `-swift-version`
+* Codira 3 mode has been removed. Supported values for the `-language-version`
   flag are `4`, `4.2`, and `5`.
 
 * [SE-0228][]:
@@ -3317,7 +3436,7 @@ concurrency checking.
   for the new design. An `#if compiler` block can be used to conditionalize
   code between 4.2 and 5.0, for example:
   
-  ```swift
+  ```language
   #if compiler(<5.0)
   extension MyType : _ExpressibleByStringInterpolation { ... }
   #else
@@ -3337,21 +3456,21 @@ concurrency checking.
 
 * [SE-0230][]:
 
-  In Swift 5 mode, `try?` with an expression of Optional type will flatten the
+  In Codira 5 mode, `try?` with an expression of Optional type will flatten the
   resulting Optional, instead of returning an Optional of an Optional.
 
 * [#48289][]:
 
-  In Swift 5 mode, `@autoclosure` parameters can no longer be forwarded to
+  In Codira 5 mode, `@autoclosure` parameters can no longer be forwarded to
   `@autoclosure` arguments in another function call. Instead, you must explicitly
   call the function value with `()`; the call itself is wrapped inside an
-  implicit closure, guaranteeing the same behavior as in Swift 4 mode.
+  implicit closure, guaranteeing the same behavior as in Codira 4 mode.
 
   Example:
 
-  ```swift
-  func foo(_ fn: @autoclosure () -> Int) {}
-  func bar(_ fn: @autoclosure () -> Int) {
+  ```language
+  fn foo(_ fn: @autoclosure () -> Int) {}
+  fn bar(_ fn: @autoclosure () -> Int) {
     foo(fn)   // Incorrect, `fn` can't be forwarded and has to be called
     foo(fn()) // Ok
   }
@@ -3365,27 +3484,27 @@ concurrency checking.
   disallowed.
 
   Note that single-element labeled _types_, for example `var x: (label: Int)`,
-  have already been prohibited since Swift 3.
+  have already been prohibited since Codira 3.
 
 * [#43310][]:
 
-  In Swift 5 mode, a class method returning `Self` can no longer be overridden
+  In Codira 5 mode, a class method returning `Self` can no longer be overridden
   with a method returning a non-final concrete class type. Such code is not
   type safe and will need to be updated.
 
   For example,
 
-  ```swift
+  ```language
   class Base {
-    class func factory() -> Self { ... }
+    class fn factory() -> Self { ... }
   }
 
   class Derived : Base {
-    class override func factory() -> Derived { ... }
+    class override fn factory() -> Derived { ... }
   }
   ```
 
-* In Swift 5 mode, the type of `self` in a convenience initializer of a non-final
+* In Codira 5 mode, the type of `self` in a convenience initializer of a non-final
   class is now the dynamic `Self` type, and not the concrete class type.
 
 * [#48153][]:
@@ -3393,12 +3512,12 @@ concurrency checking.
   Protocols can now constrain their conforming types to those that subclasses a
   given class. Two equivalent forms are supported:
 
-  ```swift
+  ```language
   protocol MyView : UIView { ... }
   protocol MyView where Self : UIView { ... }
   ```
 
-  Note that Swift 4.2 accepted the second form, but it was not fully implemented
+  Note that Codira 4.2 accepted the second form, but it was not fully implemented
   and could sometimes crash at compile time or run time.
 
 * [#43248][]:
@@ -3429,11 +3548,11 @@ concurrency checking.
 
   Toy example:
 
-  ```swift
+  ```language
   @dynamicCallable
   struct ToyCallable {
-    func dynamicallyCall(withArguments: [Int]) {}
-    func dynamicallyCall(withKeywordArguments: KeyValuePairs<String, Int>) {}
+    fn dynamicallyCall(withArguments: [Int]) {}
+    fn dynamicallyCall(withKeywordArguments: KeyValuePairs<String, Int>) {}
   }
   let x = ToyCallable()
   x(1, 2, 3) // desugars to `x.dynamicallyCall(withArguments: [1, 2, 3])`
@@ -3442,39 +3561,39 @@ concurrency checking.
 
 * [#49799][]:
 
-  In Swift 5 mode, attempting to declare a static property with the same name as a
+  In Codira 5 mode, attempting to declare a static property with the same name as a
   nested type is now always correctly rejected. Previously, it was possible to
   perform such a redeclaration in an extension of a generic type.
   
   For example:
-  ```swift
+  ```language
   struct Foo<T> {}
   extension Foo {
     struct i {}
     
     // compiler error: Invalid redeclaration of 'i'
-    // (prior to Swift 5, this did not produce an error)
+    // (prior to Codira 5, this did not produce an error)
     static var i: Int { return 0 }
   }
   ```
 
 * [#46831][]:
 
-  In Swift 5 mode, when casting an optional value to a generic placeholder type,
+  In Codira 5 mode, when casting an optional value to a generic placeholder type,
   the compiler will be more conservative with the unwrapping of the value. The 
   result of such a cast now more closely matches the result you would get in a
   non-generic context.
   
   For example:
-  ```swift
-  func forceCast<U>(_ value: Any?, to type: U.Type) -> U {
+  ```language
+  fn forceCast<U>(_ value: Any?, to type: U.Type) -> U {
     return value as! U
   }
 
   let value: Any? = 42
   print(forceCast(value, to: Any.self)) 
   // prints: Optional(42)
-  // (prior to Swift 5, this would print: 42)
+  // (prior to Codira 5, this would print: 42)
   
   print(value as! Any)                  
   // prints: Optional(42)
@@ -3485,7 +3604,7 @@ concurrency checking.
   Key paths now support the `\.self` keypath, which is a `WritableKeyPath`
   that refers to its entire input value:
 
-    ```swift
+    ```language
     let id = \Int.self
 
     var x = 2
@@ -3501,7 +3620,7 @@ concurrency checking.
 
 * [#45213][]
 
-  Default arguments are now printed in SourceKit-generated interfaces for Swift
+  Default arguments are now printed in SourceKit-generated interfaces for Codira
   modules, instead of just using a placeholder `default`.
 
 * `unowned` and `unowned(unsafe)` variables now support Optional types.
@@ -3517,12 +3636,12 @@ concurrency checking.
 
 * [#43036][]
 
-  In Swift 5 mode, when setting a property from within its own `didSet` or
+  In Codira 5 mode, when setting a property from within its own `didSet` or
   `willSet` observer, the observer will now only avoid being recursively called
   if the property is set on `self` (either implicitly or explicitly).
 
   For example:
-  ```swift
+  ```language
   class Node {
     var children = [Node]()
 
@@ -3535,7 +3654,7 @@ concurrency checking.
         }
 
         // Will call didSet for each of the children, as we're not setting the
-        // property on self (prior to Swift 5, this did not trigger property
+        // property on self (prior to Codira 5, this did not trigger property
         // observers to be called again).
         for child in children {
           child.depth = depth + 1
@@ -3545,7 +3664,7 @@ concurrency checking.
   }
   ```
 
-## Swift 4.2
+## Codira 4.2
 
 ### 2018-09-17 (Xcode 10.0)
 
@@ -3555,7 +3674,7 @@ concurrency checking.
   Integer types, floating point types, and Bool all introduce a new static
   method that creates a random value.
   
-  ```swift
+  ```language
   let diceRoll = Int.random(in: 1 ... 6)
   let randomUnit = Double.random(in: 0 ..< 1)
   let randomBool = Bool.random()
@@ -3564,7 +3683,7 @@ concurrency checking.
   There are also additions to select a random element from a collection or
   shuffle its contents.
   
-  ```swift
+  ```language
   let greetings = ["hey", "hello", "hi", "hola"]
   let randomGreeting = greetings.randomElement()! // This returns an Optional
   let newGreetings = greetings.shuffled() // ["hola", "hi", "hey", "hello"]
@@ -3577,9 +3696,9 @@ concurrency checking.
   functions have a `using:` parameter that take a `RandomNumberGenerator` that
   users can pass in their own random number generator.
   
-  ```swift
+  ```language
   struct MersenneTwister: RandomNumberGenerator {
-    func next() -> UInt64 {
+    fn next() -> UInt64 {
       // implementation
     }
   }
@@ -3592,10 +3711,10 @@ concurrency checking.
 
   The new CaseIterable protocol describes types which have a static
   “allCases” property that is used to describe all of the cases of the
-  type. Swift will synthesize this “allCases” property for enums that
+  type. Codira will synthesize this “allCases” property for enums that
   have no associated values. For example:
 
-  ```swift
+  ```language
   enum Suit: CaseIterable {
     case heart
     case club
@@ -3615,14 +3734,14 @@ concurrency checking.
   be `Equatable` when its wrapped type is also `Equatable`, the `==` method can
   be automatically constructed by the compiler:
 
-  ```swift
+  ```language
   struct Generic<Param> {
     var property: Param
   }
 
   extension Generic: Equatable where Param: Equatable {}
   // Automatically synthesized inside the extension:
-  // static func ==(lhs: Generic, rhs: Generic) -> Bool {
+  // static fn ==(lhs: Generic, rhs: Generic) -> Bool {
   //   return lhs.property == rhs.property
   // }
   ```
@@ -3633,7 +3752,7 @@ concurrency checking.
   decode a `Generic<Param>` if `Param` is `Encodable` in addition to
   `Decodable`, even though `Encodable` is likely not required:
 
-  ```swift
+  ```language
   // Unnecessarily restrictive:
   extension Generic: Codable where Param: Codable {}
 
@@ -3656,7 +3775,7 @@ concurrency checking.
   type `Optional<T>`, it is implicitly unwrapped, producing a value of type `T`.
 
   In some cases this change will cause code that previously compiled to
-  need to be adjusted. Please see [this blog post](https://swift.org/blog/iuo/)
+  need to be adjusted. Please see [this blog post](https://language.org/blog/iuo/)
   for more information.
 
 * [SE-0206][]
@@ -3665,7 +3784,7 @@ concurrency checking.
     hash function, represented by the new public `Hasher` struct.
   
     “Random seeding” varies the result of `hashValue` on each execution of a
-    Swift program, improving the reliability of the standard library's hashed
+    Codira program, improving the reliability of the standard library's hashed
     collections such as `Set` and `Dictionary`. In particular, random seeding
     enables better protection against (accidental or deliberate) hash-flooding
     attacks.
@@ -3686,17 +3805,17 @@ concurrency checking.
     same components of your type that you compare in `Equatable`'s `==`
     implementation to the supplied `Hasher`:
     
-    ```swift
+    ```language
     struct Foo: Hashable {
       var a: String?
       var b: [Int]
       var c: [String: Int]
       
-      static func ==(lhs: Foo, rhs: Foo) -> Bool {
+      static fn ==(lhs: Foo, rhs: Foo) -> Bool {
         return lhs.a == rhs.a && lhs.b == rhs.b && lhs.c == rhs.c
       }
       
-      func hash(into hasher: inout Hasher) {
+      fn hash(into hasher: inout Hasher) {
         hasher.combine(a)
         hasher.combine(b)
         hasher.combine(c)
@@ -3711,7 +3830,7 @@ concurrency checking.
     
     Synthesis has also been extended to support deriving `hashValue` from
     `hash(into:)`, and vice versa. Therefore, code that only implements
-    `hashValue` continues to work in Swift 4.2. This new compiler functionality
+    `hashValue` continues to work in Codira 4.2. This new compiler functionality
     works for all types that can implement `Hashable`, including classes.
     
     Note that these changes don't affect Foundation's hashing interface. Classes
@@ -3721,8 +3840,8 @@ concurrency checking.
     it may be helpful to selectively disable hash seed randomization, so that
     hash values and the order of elements in `Set`/`Dictionary` values remain
     consistent across executions. You can disable hash seed randomization by
-    defining the environment variable `SWIFT_DETERMINISTIC_HASHING` with the
-    value of `1`. The Swift runtime looks at this variable during process
+    defining the environment variable `LANGUAGE_DETERMINISTIC_HASHING` with the
+    value of `1`. The Codira runtime looks at this variable during process
     startup and, if it is defined, replaces the random seed with a constant
     value.
   
@@ -3766,7 +3885,7 @@ concurrency checking.
   Custom compile-time warnings or error messages can be emitted using the
   `#warning(_:)` and `#error(_:)` directives.
 
-  ```swift
+  ```language
   #warning("this is incomplete")
 
   #if MY_BUILD_CONFIG && MY_OTHER_BUILD_CONFIG
@@ -3778,9 +3897,9 @@ concurrency checking.
   `required` initializers is that they must be available everywhere the class
   can be subclassed, but previously we said that `required` initializers on
   public classes needed to be public themselves. (This limitation is a holdover
-  from before the introduction of the open/public distinction in Swift 3.)
+  from before the introduction of the open/public distinction in Codira 3.)
 
-* C macros containing casts are no longer imported to Swift if the type in the
+* C macros containing casts are no longer imported to Codira if the type in the
   cast is unavailable or deprecated, or produces some other diagnostic when
   referenced. (These macros were already only imported under very limited
   circumstances with very simple values, so this is unlikely to affect
@@ -3793,7 +3912,7 @@ concurrency checking.
   conditionally conforms to `P`, will succeed when the conditional
   requirements are met.
 
-## Swift 4.1
+## Codira 4.1
 
 ### 2018-03-29 (Xcode 9.3)
 
@@ -3804,7 +3923,7 @@ concurrency checking.
   the development of features that require a possibly-failing import 
   declaration across multiple platforms.  
 
-  ```swift
+  ```language
   #if canImport(UIKit)
     import UIKit
     class MyView : UIView {}
@@ -3820,7 +3939,7 @@ concurrency checking.
 
   If an initializer is declared in a different module from a struct, it must
   use `self.init(…)` or `self = …` before returning or accessing `self`.
-  Failure to do so will produce a warning in Swift 4 and an error in Swift 5.
+  Failure to do so will produce a warning in Codira 4 and an error in Codira 5.
   This is to keep a client app from accidentally depending on a library's
   implementation details, and matches an existing restriction for classes,
   where cross-module initializers must be convenience initializers.
@@ -3829,7 +3948,7 @@ concurrency checking.
   However, most imported C structs are given a zeroing no-argument initializer,
   which can be called as `self.init()` before modifying specific properties.
 
-  Swift library authors who wish to continue allowing initialization on a
+  Codira library authors who wish to continue allowing initialization on a
   per-member basis should explicitly declare a public memberwise initializer
   for clients in other modules to use.
 
@@ -3845,7 +3964,7 @@ concurrency checking.
   Index types for most standard library collections now conform to `Hashable`. 
   These indices can now be used in key-path subscripts and hashed collections:
   
-  ```swift
+  ```language
   let s = "Hashable"
   let p = \String.[s.startIndex]
   s[keyPath: p] // "H"
@@ -3864,7 +3983,7 @@ concurrency checking.
   recursive constraints. For example, the `SubSequence` associated type of
   `Sequence` follows the enclosing protocol:
 
-  ```swift
+  ```language
   protocol Sequence {
     associatedtype Element
     associatedtype SubSequence: Sequence
@@ -3896,9 +4015,9 @@ concurrency checking.
 
   It is no longer valid to use the ownership keywords `weak` and `unowned` for property declarations in protocols. These keywords are meaningless and misleading when used in a protocol as they don't have any effect.
 
-  In Swift 3 and 4 mode the following example will produce a warning with a fix-it to remove the keyword. In Swift 5 mode and above an error will be produced.
+  In Codira 3 and 4 mode the following example will produce a warning with a fix-it to remove the keyword. In Codira 5 mode and above an error will be produced.
 
-  ```swift
+  ```language
   class A {}
 
   protocol P {
@@ -3911,7 +4030,7 @@ concurrency checking.
 
   Structs and enums that declare a conformance to `Equatable`/`Hashable` now get an automatically synthesized implementation of `==`/`hashValue`. For structs, all stored properties must be `Equatable`/`Hashable`. For enums, all enum cases with associated values must be `Equatable`/`Hashable`.
 
-  ```swift
+  ```language
   public struct Point: Hashable {
     public let x: Int
     public let y: Int
@@ -3939,7 +4058,7 @@ concurrency checking.
 
   If you wish to provide your own implementation of `==`/`hashValue`, you still can; a custom implementation will replace the one synthesized by the compiler.
 
-## Swift 4.0
+## Codira 4.0
 
 ### 2017-09-19 (Xcode 9.0)
 
@@ -3947,7 +4066,7 @@ concurrency checking.
 
   The standard library's `Dictionary` and `Set` types have some new features. You can now create a new dictionary from a sequence of keys and values, and merge keys and values into an existing dictionary.
 
-  ```swift
+  ```language
   let asciiTable = Dictionary(uniqueKeysWithValues: zip("abcdefghijklmnopqrstuvwxyz", 97...))
   // ["w": 119, "n": 110, "u": 117, "v": 118, "x": 120, "q": 113, ...]
 
@@ -3960,7 +4079,7 @@ concurrency checking.
 
   Filtering a set or a dictionary now results in the same type. You can also now transform just the values of a dictionary, keeping the same keys, using the `mapValues(_:)` method.
 
-  ```swift
+  ```language
   let vowels: Set<Character> = ["a", "e", "i", "o", "u"]
   let asciiVowels = asciiTable.filter({ vowels.contains($0.key) })
   asciiVowels["a"]  // 97
@@ -3972,7 +4091,7 @@ concurrency checking.
 
   When using a key as a dictionary subscript, you can now supply a default value to be returned if the key is not present in the dictionary.
 
-  ```swift
+  ```language
   for veg in ["tomato", "cauliflower"] {
       vegetableCounts[veg, default: 0] += 1
   }
@@ -3981,7 +4100,7 @@ concurrency checking.
 
   Use the new `init(grouping:by:)` initializer to convert an array or other sequence into a dictionary, grouped by a particular trait.
 
-  ```swift
+  ```language
   let buttons = // an array of button instances
   let buttonsByStatus = Dictionary(grouping: buttons, by: { $0.isEnabled })
   // How many enabled buttons?
@@ -3990,12 +4109,12 @@ concurrency checking.
 
   Additionally, dictionaries and sets now have a visible `capacity` property and a `reserveCapacity(_:)` method similar to arrays, and a dictionary's `keys` and `values` properties are represented by specialized collections.
 
-* [SE-0161][] is partially implemented. Swift now natively supports key path
+* [SE-0161][] is partially implemented. Codira now natively supports key path
   objects for properties. Similar to KVC key path strings in Cocoa, key path
   objects allow a property to be referenced independently of accessing it
   from a value:
 
-    ```swift
+    ```language
     struct Point {
       var x, y: Double
     }
@@ -4008,9 +4127,9 @@ concurrency checking.
     ```
 
 * Core Foundation types implicitly conform to Hashable (and Equatable), using
-  CFHash and CFEqual as the implementation. This change applies even to "Swift
+  CFHash and CFEqual as the implementation. This change applies even to "Codira
   3 mode", so if you were previously adding this conformance yourself, use
-  `#if swift(>=3.2)` to restrict the extension to Swift 3.1 and below.
+  `#if language(>=3.2)` to restrict the extension to Codira 3.1 and below.
   ([#44995][])
 
 * [SE-0156][]
@@ -4020,9 +4139,9 @@ concurrency checking.
 
   For example:
 
-  ```swift
+  ```language
   protocol Paintable {
-    func paint()
+    fn paint()
   }
 
   class Canvas {
@@ -4030,35 +4149,35 @@ concurrency checking.
   }
 
   class Wall : Canvas, Paintable {
-    func paint() { ... }
+    fn paint() { ... }
   }
 
-  func render(_: Canvas & Paintable) { ... }
+  fn render(_: Canvas & Paintable) { ... }
 
   render(Wall())
   ```
 
   Note that class-constrained protocol compositions can be written and
-  used in both Swift 3 and Swift 4 mode.
+  used in both Codira 3 and Codira 4 mode.
 
-  Generated headers for Swift APIs will map class-constrained protocol
+  Generated headers for Codira APIs will map class-constrained protocol
   compositions to Objective-C protocol-qualified class types in both
-  Swift 3 and Swift 4 mode (for instance, `NSSomeClass & SomeProto &
-  OtherProto` in Swift becomes `NSSomeClass <SomeProto, OtherProto>`
+  Codira 3 and Codira 4 mode (for instance, `NSSomeClass & SomeProto &
+  OtherProto` in Codira becomes `NSSomeClass <SomeProto, OtherProto>`
   in Objective-C).
 
   Objective-C APIs which use protocol-qualified class types differ in
-  behavior when imported by a module compiled in Swift 3 mode and
-  Swift 4 mode. In Swift 3 mode, these APIs will continue to import as
+  behavior when imported by a module compiled in Codira 3 mode and
+  Codira 4 mode. In Codira 3 mode, these APIs will continue to import as
   protocol compositions without a class constraint
   (eg, `SomeProto & OtherProto`).
 
-  In Swift 4 mode, protocol-qualified class types import as
+  In Codira 4 mode, protocol-qualified class types import as
   class-constrained protocol compositions, for a more faithful mapping
-  of APIs from Objective-C to Swift.
+  of APIs from Objective-C to Codira.
 
   Note that the current implementation of class-constrained protocol
-  compositions lacks three features outlined in the Swift evolution proposal:
+  compositions lacks three features outlined in the Codira evolution proposal:
 
   - In the evolution proposal, a class-constrained is permitted to contain
     two different classes as long as one is a superclass of the other.
@@ -4082,7 +4201,7 @@ concurrency checking.
   Protocols and associated types can now contain `where` clauses that
   provide additional restrictions on associated types. For example:
 
-    ```swift
+    ```language
     protocol StringRepresentable: RawRepresentable
     where RawValue == String { }
 
@@ -4094,17 +4213,17 @@ concurrency checking.
 
 * [SE-0160][]
 
-  In Swift 4 mode, a declaration is inferred to be `@objc` where it is required for semantic consistency of the programming model. Specifically, it is inferred when:
+  In Codira 4 mode, a declaration is inferred to be `@objc` where it is required for semantic consistency of the programming model. Specifically, it is inferred when:
 
     * The declaration is an override of an `@objc` declaration
     * The declaration satisfies a requirement in an `@objc` protocol
     * The declaration has one of the following attributes: `@IBAction`, `@IBOutlet`, `@IBInspectable`, `@GKInspectable`, or `@NSManaged`
 
-  Additionally, in Swift 4 mode, `dynamic` declarations that don't
+  Additionally, in Codira 4 mode, `dynamic` declarations that don't
   have `@objc` inferred based on the rules above will need to be
   explicitly marked `@objc`.
 
-  Swift 3 compatibility mode retains the more-permissive Swift 3
+  Codira 3 compatibility mode retains the more-permissive Codira 3
   rules for inference of `@objc` within subclasses of
   `NSObject`. However, the compiler will emit warnings about places
   where the Objective-C entry points for these inference cases are
@@ -4114,11 +4233,11 @@ concurrency checking.
   explicit `@objc`. Uses of these entrypoints that are not
   statically visible to the compiler can be diagnosed at runtime by
   setting the environment variable
-  `SWIFT_DEBUG_IMPLICIT_OBJC_ENTRYPOINT` to a value between 1 and 3
+  `LANGUAGE_DEBUG_IMPLICIT_OBJC_ENTRYPOINT` to a value between 1 and 3
   and testing the application. See the [migration discussion in
-  SE-0160](https://github.com/apple/swift-evolution/blob/main/proposals/0160-objc-inference.md#minimal-migration-workflow).
+  SE-0160](https://github.com/apple/language-evolution/blob/main/proposals/0160-objc-inference.md#minimal-migration-workflow).
 
-* [SE-0138](https://github.com/apple/swift-evolution/blob/main/proposals/0138-unsaferawbufferpointer.md#amendment-to-normalize-the-slice-type):
+* [SE-0138](https://github.com/apple/language-evolution/blob/main/proposals/0138-unsaferawbufferpointer.md#amendment-to-normalize-the-slice-type):
 
   Slicing a raw buffer no longer results in the same raw buffer
   type. Specifically, `Unsafe[Mutable]BufferPointer.SubSequence` now has type
@@ -4148,14 +4267,14 @@ concurrency checking.
   `UnsafeRawBufferPointer`'s slice type no longer has a nonmutating subscript
   setter. So assigning into a mutable `let` buffer no longer compiles:
 
-  ```swift
+  ```language
   let slice = buffer[n..<m]
   slice[i..<j] = buffer[k..<l]
   ```
 
   The assigned buffer slice now needs to be a `var`.
 
-  ```swift
+  ```language
   var slice = buffer[n..<m]
   slice[i..<j] = buffer[k..<l]
   ```
@@ -4166,25 +4285,25 @@ concurrency checking.
   and compile-time assertions when defining or calling such methods.
   Examples:
 
-  ```swift
+  ```language
   class Bed {}
   class Nook : Bed {}
 
   class Cat<T> {
-    func eat(snack: T) {}
-    func play(game: String) {}
-    func sleep(where: Nook) {}
+    fn eat(snack: T) {}
+    fn play(game: String) {}
+    fn sleep(where: Nook) {}
   }
 
   class Dog : Cat<(Int, Int)> {
     // 'T' becomes concrete
-    override func eat(snack: (Int, Int)) {}
+    override fn eat(snack: (Int, Int)) {}
 
     // 'game' becomes optional
-    override func play(game: String?) {}
+    override fn play(game: String?) {}
 
     // 'where' becomes a superclass
-    override func sleep(where: Bed) {}
+    override fn sleep(where: Bed) {}
   }
   ```
 
@@ -4193,7 +4312,7 @@ concurrency checking.
   Subscript declarations can now be defined to have generic parameter lists.
   Example:
 
-  ```swift
+  ```language
   extension JSON {
     subscript<T>(key: String) -> T?
         where T : JSONConvertible {
@@ -4204,7 +4323,7 @@ concurrency checking.
 
 * [SE-0110][]:
 
-  In Swift 4 mode, Swift's type system properly distinguishes between functions that
+  In Codira 4 mode, Codira's type system properly distinguishes between functions that
   take one tuple argument, and functions that take multiple arguments.
 
 * More types of C macros which define integer constants are supported by the
@@ -4227,7 +4346,7 @@ concurrency checking.
   #define LIMITED (SMALL || TINY)   // now imported as Bool.
   ```
 
-## Swift 3.1
+## Codira 3.1
 
 ### 2017-03-27 (Xcode 8.3)
 
@@ -4236,25 +4355,25 @@ concurrency checking.
   Adds a new family of conversion initializers to all numeric types that
   either complete successfully without loss of information or return nil.
 
-* Swift will now warn when an `NSObject` subclass attempts to override the
-  class `initialize` method. Swift doesn't guarantee that references to class
+* Codira will now warn when an `NSObject` subclass attempts to override the
+  class `initialize` method. Codira doesn't guarantee that references to class
   names trigger Objective-C class realization if they have no other
-  side effects, leading to bugs when Swift code attempted to override
+  side effects, leading to bugs when Codira code attempted to override
   `initialize`.
 
 * [#45001][]
 
-  C functions that "return twice" are no longer imported into Swift. Instead,
+  C functions that "return twice" are no longer imported into Codira. Instead,
   they are explicitly made unavailable, so attempting to reference them will
   result in a compilation error.
 
   Examples of functions that "return twice" include `vfork` and `setjmp`.
-  These functions change the control flow of a program in ways that Swift
+  These functions change the control flow of a program in ways that Codira
   has never supported. For example, definitive initialization of variables,
-  a core Swift language feature, could not be guaranteed when these functions
+  a core Codira language feature, could not be guaranteed when these functions
   were used.
 
-  Swift code that references these functions will no longer compile. Although
+  Codira code that references these functions will no longer compile. Although
   this could be considered a source-breaking change, it's important to note that
   any use of these functions would have most likely crashed at runtime. Now,
   the compiler will prevent them from being used in the first place.
@@ -4274,7 +4393,7 @@ concurrency checking.
 
   Get imported as:
 
-  ```swift
+  ```language
   struct foo_t {
     struct __Unnamed_union___Anonymous_field0 {
       var a : Int { get set }
@@ -4298,8 +4417,8 @@ concurrency checking.
   escape it in practice, use `withoutActuallyEscaping` to get an escapable
   copy of the closure and delimit its expected lifetime. For example:
 
-  ```swift
-  func doSimultaneously(_ f: () -> (), and g: () -> (), on q: DispatchQueue) {
+  ```language
+  fn doSimultaneously(_ f: () -> (), and g: () -> (), on q: DispatchQueue) {
     // DispatchQueue.async normally has to be able to escape its closure
     // since it may be called at any point after the operation is queued.
     // By using a barrier, we ensure it does not in practice escape.
@@ -4316,14 +4435,14 @@ concurrency checking.
   ```
 
   The old workaround of using `unsafeBitCast` to cast to an `@escaping` type
-  is not guaranteed to work in future versions of Swift, and will
+  is not guaranteed to work in future versions of Codira, and will
   now raise a warning.
 
 * [#44055][]
 
   Nested types may now appear inside generic types, and nested types may have their own generic parameters:
 
-  ```swift
+  ```language
   struct OuterNonGeneric {
       struct InnerGeneric<T> {}
   }
@@ -4343,7 +4462,7 @@ concurrency checking.
 
   Constrained extensions allow same-type constraints between generic parameters and concrete types. This enables you to create extensions, for example, on `Array` with `Int` elements:
 
-  ```swift
+  ```language
   extension Array where Element == Int { }
   ```
 
@@ -4355,7 +4474,7 @@ concurrency checking.
   subsequence after dropping the longest subsequence satisfying a
   predicate.
 
-## Swift 3.0
+## Codira 3.0
 
 ### 2016-09-13 (Xcode 8.0)
 
@@ -4381,10 +4500,10 @@ concurrency checking.
   The method `ManagedBufferPointer.holdsUniqueReference` has been renamed to
   `ManagedBufferPointer.isUniqueReference`.
 
-  ```swift
+  ```language
   // old
-  class SwiftKlazz : NonObjectiveCBase {}
-  expectTrue(isUniquelyReferenced(SwiftKlazz()))
+  class CodiraKlazz : NonObjectiveCBase {}
+  expectTrue(isUniquelyReferenced(CodiraKlazz()))
 
   var managedPtr : ManagedBufferPointer = ...
   if !managedPtr.holdsUniqueReference() {
@@ -4392,8 +4511,8 @@ concurrency checking.
   }
 
   // new
-  class SwiftKlazz {}
-  expectTrue(isKnownUniquelyReferenced(SwiftKlazz()))
+  class CodiraKlazz {}
+  expectTrue(isKnownUniquelyReferenced(CodiraKlazz()))
 
   var managedPtr : ManagedBufferPointer = ...
   if !managedPtr.isUniqueReference() {
@@ -4405,7 +4524,7 @@ concurrency checking.
 
   Initializers on `Int` and `UInt` that accept an `ObjectIdentifier` must now use an explicit `bitPattern` label.
 
-  ```swift
+  ```language
   let x: ObjectIdentifier = ...
 
   // old
@@ -4419,11 +4538,11 @@ concurrency checking.
 
 * [SE-0120][]:
 
-  The collection methods `partition()` and `partition(isOrderedBefore:)` have been removed from Swift. They are replaced by the method `partition(by:)` which takes a unary predicate.
+  The collection methods `partition()` and `partition(isOrderedBefore:)` have been removed from Codira. They are replaced by the method `partition(by:)` which takes a unary predicate.
 
   Calls to the `partition()` method can be replaced by the following code.
 
-  ```swift
+  ```language
   // old
   let p = c.partition()
 
@@ -4449,21 +4568,21 @@ concurrency checking.
   provides an API for untyped memory access, and an API for binding memory
   to a type. Binding memory allows for safe conversion between pointer types.
 
-  For detailed instructions on how to migrate your code to the new API refer to the [UnsafeRawPointer migration guide](https://swift.org/migration-guide/se-0107-migrate.html). See also: See `bindMemory(to:capacity:)`, `assumingMemoryBound(to:)`, and
+  For detailed instructions on how to migrate your code to the new API refer to the [UnsafeRawPointer migration guide](https://language.org/migration-guide/se-0107-migrate.html). See also: See `bindMemory(to:capacity:)`, `assumingMemoryBound(to:)`, and
   `withMemoryRebound(to:capacity:)`.
 
 * [SE-0096][]:
 
-  The `dynamicType` keyword has been removed from Swift.  It's replaced by a new primitive function `type(of:)`.  Existing code
+  The `dynamicType` keyword has been removed from Codira.  It's replaced by a new primitive function `type(of:)`.  Existing code
 using the `.dynamicType` member to retrieve the type of an expression should migrate to this new primitive.  Code using `.dynamicType` in conjunction with `sizeof` should migrate to the `MemoryLayout` structure introduced by [SE-0101][].
 
 * [SE-0113][]:
 
   The following two methods were added to `FloatingPoint`:
 
-  ```swift
-  func rounded(_ rule: FloatingPointRoundingRule) -> Self
-  mutating func round( _ rule: FloatingPointRoundingRule)
+  ```language
+  fn rounded(_ rule: FloatingPointRoundingRule) -> Self
+  mutating fn round( _ rule: FloatingPointRoundingRule)
   ```
 
   These methods bind the IEEE 754 roundToIntegral operations. They provide the functionality of the C / C++ `round()`, `ceil()`, `floor()`, and `trunc()` functions along with other rounding operations.
@@ -4499,23 +4618,23 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0111][]:
 
-  Argument labels have been removed from Swift function types. They are now
+  Argument labels have been removed from Codira function types. They are now
   part of the name of a function, subscript, or initializer. Calls to a function or initializer, and subscript uses, still require argument labels as they always have:
 
-  ```swift
-  func doSomething(x: Int, y: Int) { }
+  ```language
+  fn doSomething(x: Int, y: Int) { }
   doSomething(x: 0, y: 0)     // argument labels are required
   ```
 
   Unapplied references to functions or initializers no longer carry argument labels. For example:
 
-  ```swift
+  ```language
   let f = doSomething(x:y:)     // inferred type is now (Int, Int) -> Void
   ```
 
   Explicitly-written function types can no longer carry argument labels. You can still provide parameter names for documentation purposes using the '_' in the argument label position:
 
-  ```swift
+  ```language
   typealias CompletionHandler =
      (token: Token, error: Error?) -> Void   // error: function types cannot have argument labels
 
@@ -4525,7 +4644,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0025][]:
 
-  The access level formerly known as `private` is now called `fileprivate`. A Swift 3 declaration marked `private` can no longer be accessed outside its lexical scope (essentially its enclosing curly braces `{}`). A `private` declaration at the top level of a file can be accessed anywhere within the same file, as it could in Swift 2.
+  The access level formerly known as `private` is now called `fileprivate`. A Codira 3 declaration marked `private` can no longer be accessed outside its lexical scope (essentially its enclosing curly braces `{}`). A `private` declaration at the top level of a file can be accessed anywhere within the same file, as it could in Codira 2.
 
 * [SE-0131][]:
 
@@ -4533,27 +4652,27 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0102][]:
 
-  Swift removes the `@noreturn` attribute on function declarations and replaces the attribute with an empty `Never` type:
+  Codira removes the `@noreturn` attribute on function declarations and replaces the attribute with an empty `Never` type:
 
-  ```swift
-  @noreturn func fatalError(msg: String) { ... }  // old
-  func fatalError(msg: String) -> Never { ... }   // new
+  ```language
+  @noreturn fn fatalError(msg: String) { ... }  // old
+  fn fatalError(msg: String) -> Never { ... }   // new
 
-  func performOperation<T>(continuation: @noreturn T -> ()) { ... }  // old
-  func performOperation<T>(continuation: T -> Never) { ... }         // new
+  fn performOperation<T>(continuation: @noreturn T -> ()) { ... }  // old
+  fn performOperation<T>(continuation: T -> Never) { ... }         // new
   ```
 
 * [SE-0116][]:
 
-  Swift now imports Objective-C `id` APIs as `Any`. In Swift 2, `id` imported as `AnyObject`. Swift also imports untyped `NSArray` and `NSDictionary` as `[Any]` and `[AnyHashable: Any]`, respectively.
+  Codira now imports Objective-C `id` APIs as `Any`. In Codira 2, `id` imported as `AnyObject`. Codira also imports untyped `NSArray` and `NSDictionary` as `[Any]` and `[AnyHashable: Any]`, respectively.
 
 * [SE-0072][]:
 
-  Swift eliminates implicit bridging conversions. Use `as` to force the conversion from a Swift value type to its corresponding object. For example, use `string as NSString`. Use `as AnyObject` to convert a Swift value to its boxed `id` representation.
+  Codira eliminates implicit bridging conversions. Use `as` to force the conversion from a Codira value type to its corresponding object. For example, use `string as NSString`. Use `as AnyObject` to convert a Codira value to its boxed `id` representation.
 
 * Collection subtype conversions and dynamic casts now work with protocol types:
 
-    ```swift
+    ```language
     protocol P {}; extension Int: P {}
     var x: [Int] = [1, 2, 3]
     var p: [P] = x
@@ -4568,7 +4687,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Some non-failable UnicodeScalar initializers now return an Optional. When a UnicodeScalar cannot be constructed, these initializers return nil.
 
-  ```swift
+  ```language
   // Old
   var string = ""
   let codepoint: UInt32 = 55357 // Invalid
@@ -4578,7 +4697,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   The updated initializers allow users to write code that safely works around invalid codepoints, like this example:
 
-  ```swift
+  ```language
   // New
   var string = ""
   let codepoint: UInt32 = 55357 // Invalid
@@ -4591,27 +4710,27 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0095][]:
 
-  Swift removes the `protocol<...>` composition construct and introduces an infix type operator `&` in its place.
+  Codira removes the `protocol<...>` composition construct and introduces an infix type operator `&` in its place.
 
-  ```swift
+  ```language
   let a: Foo & Bar
   let b = value as? A & B & C
-  func foo<T : Foo & Bar>(x: T) { ... }
-  func bar(x: Foo & Bar) { ... }
+  fn foo<T : Foo & Bar>(x: T) { ... }
+  fn bar(x: Foo & Bar) { ... }
   typealias G = GenericStruct<Foo & Bar>
   ```
 
-  Swift previously defined the empty protocol composition (the `Any` type) as `protocol<>`. This definition has been removed from the standard library. The `Any` keyword behavior remains unchanged.
+  Codira previously defined the empty protocol composition (the `Any` type) as `protocol<>`. This definition has been removed from the standard library. The `Any` keyword behavior remains unchanged.
 
 * [SE-0091][]:
 
-  Swift permits you to define operators within types or their extensions. For example:
+  Codira permits you to define operators within types or their extensions. For example:
 
-  ```swift
+  ```language
   struct Foo: Equatable {
     let value: Int
 
-    static func ==(lhs: Foo, rhs: Foo) -> Bool {
+    static fn ==(lhs: Foo, rhs: Foo) -> Bool {
       return lhs.value == rhs.value
     }
   }
@@ -4620,9 +4739,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   You must declare these operators as `static` (or, within a class, `class
   final`) and they must use the same signature as their global counterparts. As part of this change, protocol-declared operator requirements must be declared `static` explicitly:
 
-  ```swift
+  ```language
   protocol Equatable {
-    static func ==(lhs: Self, rhs: Self) -> Bool
+    static fn ==(lhs: Self, rhs: Self) -> Bool
   }
   ```
 
@@ -4636,7 +4755,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   or `let` respectively, and all conditions are separated by `,` instead of
   `where`.
 
-  ```swift
+  ```language
   // before
   if let a = a, b = b where a == b { }
 
@@ -4646,7 +4765,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0112][]:
 
-  The `NSError` type now bridges to the Swift `Error` protocol type (formerly `ErrorProtocol` in Swift 3, `ErrorType` in Swift 2)
+  The `NSError` type now bridges to the Codira `Error` protocol type (formerly `ErrorProtocol` in Codira 3, `ErrorType` in Codira 2)
   in Objective-C APIs. `NSError` now bridges like other Objective-C types, e.g., `NSString` bridges to `String`.
 
   For
@@ -4654,15 +4773,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `applicate(_:didFailToRegisterForRemoteNotificationsWithError:)`
   previously accepted an `NSError` argument:
 
-  ```swift
-  optional func application(_ application: UIApplication,
+  ```language
+  optional fn application(_ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: NSError)
   ```
 
   Now it accepts an `Error` argument:
 
-  ```swift
-  optional func application(_ application: UIApplication,
+  ```language
+  optional fn application(_ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: Error)
   ```
 
@@ -4673,16 +4792,16 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Specific error types now contain typed accessors for
   their common user-info keys. For example:
 
-  ```swift
+  ```language
   catch let error as CocoaError where error.code == .fileReadNoSuchFileError {
     print("No such file: \(error.url)")
   }
   ```
 
-  Swift-defined error types can now provide localized error
+  Codira-defined error types can now provide localized error
   descriptions by adopting the new `LocalizedError` protocol, e.g.,
 
-  ```swift
+  ```language
   extension HomeworkError : LocalizedError {
     var errorDescription: String? {
       switch self {
@@ -4702,9 +4821,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Function parameters with defaulted arguments are specified in
   declaration order. Call sites must now supply those arguments using that order:
 
-    ```swift
-    func requiredArguments(a: Int, b: Int, c: Int) {}
-    func defaultArguments(a: Int = 0, b: Int = 0, c: Int = 0) {}
+    ```language
+    fn requiredArguments(a: Int, b: Int, c: Int) {}
+    fn defaultArguments(a: Int = 0, b: Int = 0, c: Int = 0) {}
 
     requiredArguments(a: 0, b: 1, c: 2)
     requiredArguments(b: 0, a: 1, c: 2) // error
@@ -4714,7 +4833,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
     Labeled parameters with default arguments may still be elided, so long as included arguments follow declaration order:
 
-    ```swift
+    ```language
     defaultArguments(a: 0) // ok
     defaultArguments(b: 1) // ok
     defaultArguments(c: 2) // ok
@@ -4731,9 +4850,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Nested generic functions may now capture bindings from the environment, for example:
 
-    ```swift
-    func outer<T>(t: T) -> T {
-      func inner<U>(u: U) -> (T, U) {
+    ```language
+    fn outer<T>(t: T) -> T {
+      fn inner<U>(u: U) -> (T, U) {
         return (t, u)
       }
       return inner(u: (t, t)).0
@@ -4742,7 +4861,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Initializers are now inherited even if the base class or derived class is generic:
 
-    ```swift
+    ```language
     class Base<T> {
       let t: T
 
@@ -4760,8 +4879,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   "Move `where` clause to end of declaration" is now implemented. This change allows you to write `where` clauses after a declaration signature and before its body.  For example, before this change was implemented, you'd write:
 
-    ```swift
-    func anyCommonElements<T : SequenceType, U : SequenceType
+    ```language
+    fn anyCommonElements<T : SequenceType, U : SequenceType
         where T.Generator.Element: Equatable, T.Generator.Element == U.Generator.Element>
         (lhs: T, _ rhs: U) -> Bool
     {
@@ -4771,8 +4890,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Now the `where` clause appears just before the body:
 
-    ```swift
-    func anyCommonElements<T : SequenceType, U : SequenceType>(lhs: T, _ rhs: U) -> Bool
+    ```language
+    fn anyCommonElements<T : SequenceType, U : SequenceType>(lhs: T, _ rhs: U) -> Bool
         where T.Generator.Element: Equatable, T.Generator.Element == U.Generator.Element
     {
         ...
@@ -4788,32 +4907,32 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * [SE-0057][]:
 
   Objective-C lightweight generic classes are now imported as generic types
-  in Swift. Some limitations apply because Objective-C generics are not represented at runtime:
+  in Codira. Some limitations apply because Objective-C generics are not represented at runtime:
 
   - When an ObjC generic class is used in a checked `as?`, `as!`, or `is` cast, the generic parameters are not checked at runtime. The cast succeeds if the operand is an instance of the ObjC class, regardless of parameters.
 
-    ```swift
+    ```language
     let x = NSFoo<NSNumber>(value: NSNumber(integer: 0))
     let y: AnyObject = x
     let z = y as! NSFoo<NSString> // Succeeds
     ```
 
-  - Swift subclasses can only inherit from an ObjC generic class when its generic parameters are fully specified.
+  - Codira subclasses can only inherit from an ObjC generic class when its generic parameters are fully specified.
 
-    ```swift
+    ```language
     // Error: Can't inherit ObjC generic class with unbound parameter T
-    class SwiftFoo1<T>: NSFoo<T> { }
+    class CodiraFoo1<T>: NSFoo<T> { }
 
     // OK: Can inherit ObjC generic class with specific parameters
-    class SwiftFoo2<T>: NSFoo<NSString> { }
+    class CodiraFoo2<T>: NSFoo<NSString> { }
     ```
 
-  - Swift can extend ObjC generic classes but the extensions cannot be constrained, and definitions inside the extension don't have access to the class's generic parameters.
+  - Codira can extend ObjC generic classes but the extensions cannot be constrained, and definitions inside the extension don't have access to the class's generic parameters.
 
-    ```swift
+    ```language
     extension NSFoo {
       // Error: Can't access generic param T
-      func foo() -> T {
+      fn foo() -> T {
         return T()
       }
     }
@@ -4837,9 +4956,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   The types `UnsafePointer`, `UnsafeMutablePointer`,
   `AutoreleasingUnsafeMutablePointer`, `OpaquePointer`, `Selector`, and `Zone` (formerly `NSZone`) now represent non-nullable pointers, i.e. pointers that are never `nil`. A nullable pointer is now represented using `Optional`, e.g. `UnsafePointer<Int>?` For types imported from C, non-object pointers (such as `int *`) now have their nullability taken into account.
 
-  One possible area of difficulty is passing a nullable pointer to a function that uses C variadics. Swift will not permit this directly. As a workaround, use the following idiom to pass a pointer-sized integer value instead:
+  One possible area of difficulty is passing a nullable pointer to a function that uses C variadics. Codira will not permit this directly. As a workaround, use the following idiom to pass a pointer-sized integer value instead:
 
-  ```swift
+  ```language
   unsafeBitCast(nullablePointer, to: Int.self)
   ```
 
@@ -4849,21 +4968,21 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Functions that were written and called as follows:
 
-  ```swift
-  func foo(x: Int, y: Int) {}
+  ```language
+  fn foo(x: Int, y: Int) {}
   foo(1, y: 2)
 
-  func bar(a a: Int, b: Int) {}
+  fn bar(a a: Int, b: Int) {}
   bar(a: 3, b: 4)
   ```
 
   Are now written as follows with the same behavior at call sites:
 
-  ```swift
-  func foo(_ x: Int, y: Int) {}
+  ```language
+  fn foo(_ x: Int, y: Int) {}
   foo(1, y: 2)
 
-  func bar(a: Int, b: Int) {}
+  fn bar(a: Int, b: Int) {}
   bar(a: 3, b: 4)
   ```
 
@@ -4871,14 +4990,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Comments are now treated as whitespace when determining whether an operator is prefix, postfix, or binary. For example, these now work:
 
-  ```swift
+  ```language
   if /*comment*/!foo { ... }
   1 +/*comment*/2
   ```
 
   Comments can no longer appear between a unary operator and its argument.
 
-  ```swift
+  ```language
   foo/* comment */! // no longer works
   ```
 
@@ -4888,15 +5007,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   The location of the inout attribute moves to after the colon (`:`) and before the parameter type.
 
-  ```swift
-  func foo(inout x: Int) {
+  ```language
+  fn foo(inout x: Int) {
   }
   ```
 
   will now be written as:
 
-  ```swift
-  func foo(x: inout Int) {
+  ```language
+  fn foo(x: inout Int) {
   }
   ```
 
@@ -4908,15 +5027,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   `var` is no longer accepted as a parameter attribute for functions. The compiler provides a fixit to create a shadow copy in the function body.
 
-  ```swift
-  func foo(var x: Int) {
+  ```language
+  fn foo(var x: Int) {
   }
   ```
 
   will now be written as:
 
-  ```swift
-  func foo(x: Int) {
+  ```language
+  fn foo(x: Int) {
     var x = x
   }
   ```
@@ -4929,10 +5048,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0005][]
 
-  Allows the Clang importer to import ObjC symbols using substantially different Swift-like naming paradigms:
+  Allows the Clang importer to import ObjC symbols using substantially different Codira-like naming paradigms:
 
-  * These updates generalize the use of `swift_name`, allowing arbitrary C and Objective-C entity import names. This adds fine-grained control over the import process.
-  * Redundant type names are pruned (`documentForURL(_: NSURL)` becomes `document(for: URL)`). Selectors are guaranteed to never be empty, to be transformed into Swift keywords, to be vacuously named (like `get`, `set`, `with`, `for`). Additional pruning rules preserve readability and sense.
+  * These updates generalize the use of `language_name`, allowing arbitrary C and Objective-C entity import names. This adds fine-grained control over the import process.
+  * Redundant type names are pruned (`documentForURL(_: NSURL)` becomes `document(for: URL)`). Selectors are guaranteed to never be empty, to be transformed into Codira keywords, to be vacuously named (like `get`, `set`, `with`, `for`). Additional pruning rules preserve readability and sense.
   * Common arguments are sensibly defaulted where the Objective-C API strongly hints at the need for a default argument. (For example,  nullable trailing closures default to `nil`, option sets to `[]`, and `NSDictionary` parameters to `[:]`.) First argument labels are added for defaulted arguments.
   * Boolean properties are prepended with `is`, and read as assertions on the receiver.
   * Non-type values, including enumerators, are lowercased.
@@ -4943,7 +5062,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Attributes change from using `=` in parameters lists
   to using `:`, aligning with function call syntax.
 
-  ```swift
+  ```language
   // before
   @available(*, unavailable, renamed="MyRenamedProtocol")
 
@@ -4955,7 +5074,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Generic typealiases are now supported. For example:
 
-  ```swift
+  ```language
   typealias StringDictionary<T> = Dictionary<String, T>
   typealias IntFunction<T> = (T) -> Int
   typealias MatchingTriple<T> = (T, T, T)
@@ -4968,8 +5087,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   The `@noescape` attribute is extended to be a more general type attribute. You can now declare values of `@noescape` function type, e.g. in manually curried function signatures.  You can now also declare local variables of `@noescape` type, and use `@noescape` in `typealiases`.  For example, this is now valid code:
 
-  ```swift
-  func apply<T, U>(@noescape f: T -> U,
+  ```language
+  fn apply<T, U>(@noescape f: T -> U,
                    @noescape g: (@noescape T -> U) -> U) -> U {
     return g(f)
   }
@@ -4984,26 +5103,26 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Curried function syntax (with successive parenthesized groups of arguments) is removed, and now produces a compile-time error. Use chained functional return types instead.
 
-  ```swift
+  ```language
   // Before
-  public func project(function f: FunctionType)(p0: CGPoint, p1: CGPoint)(x: CGFloat) -> CGPoint
+  public fn project(function f: FunctionType)(p0: CGPoint, p1: CGPoint)(x: CGFloat) -> CGPoint
 
   // After
-  public func project(function f: FunctionType) -> (p0: CGPoint, p1: CGPoint) -> (x: CGFloat) -> CGPoint
+  public fn project(function f: FunctionType) -> (p0: CGPoint, p1: CGPoint) -> (x: CGFloat) -> CGPoint
   ```
 
 * Generic signatures can now contain superclass requirements with generic parameter types, for example:
 
-  ```swift
-  func f<Food : Chunks<Meat>, Meat : Molerat>(f: Food, m: Meat) {}
+  ```language
+  fn f<Food : Chunks<Meat>, Meat : Molerat>(f: Food, m: Meat) {}
   ```
 
-* Section markers are created in ELF binaries through special objects during link time. These objects allow for the deletion of `swift.ld` and the use of non-BFD linkers. A new argument to swiftc is provided to select the linker used, and the gold linker is set as the default for arm-based platforms.
+* Section markers are created in ELF binaries through special objects during link time. These objects allow for the deletion of `language.ld` and the use of non-BFD linkers. A new argument to languagec is provided to select the linker used, and the gold linker is set as the default for arm-based platforms.
 
 * Catch blocks in `rethrows` functions may now `throw` errors. For example:
 
-    ```swift
-    func process(f: () throws -> Int) rethrows -> Int {
+    ```language
+    fn process(f: () throws -> Int) rethrows -> Int {
         do {
             return try f()
         } catch is SomeError {
@@ -5014,8 +5133,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Throwing closure arguments of a rethrowing function may now be optional. For example:
 
-    ```swift
-    func executeClosureIfNotNil(closure: (() throws -> Void)?) rethrows {
+    ```language
+    fn executeClosureIfNotNil(closure: (() throws -> Void)?) rethrows {
         try closure?()
     }
     ```
@@ -5024,7 +5143,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   The Objective-C selectors for the getter or setter of a property can now be referenced with `#selector`. For example:
 
-    ```swift
+    ```language
     let sel1 = #selector(getter: UIView.backgroundColor) // sel1 has type Selector
     let sel2 = #selector(setter: UIView.backgroundColor) // sel2 has type Selector
     ```
@@ -5033,11 +5152,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   A key-path can now be formed with `#keyPath`. For example:
 
-    ```swift
+    ```language
     person.valueForKeyPath(#keyPath(Person.bestFriend.lastName))
     ```
 
-## Swift 2.2
+## Codira 2.2
 
 ### 2016-03-21 (Xcode 7.3)
 
@@ -5046,40 +5165,40 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Associated types in protocols can now be specified with a new `associatedtype`
   declaration, to replace the use of `typealias`:
 
-    ```swift
+    ```language
     protocol P {
       associatedtype Ty
     }
     ```
 
   The `typealias` keyword is still allowed (but deprecated and produces a warning)
-  in Swift 2.2. This warning will become an error in Swift 3.0.
+  in Codira 2.2. This warning will become an error in Codira 3.0.
 
 * [SE-0002][]:
 
   Curried function syntax has been deprecated, and is slated to be removed in
-  Swift 3.0.
+  Codira 3.0.
 
 * [SE-0004][]:
 
   The `++` and `--` operators have been deprecated, and are slated to be removed in
-  Swift 3.0.  As a replacement, please use `x += 1` on integer or floating point
+  Codira 3.0.  As a replacement, please use `x += 1` on integer or floating point
   types, and `x = x.successor()` on Index types.
 
 * [SE-0029][]:
 
   The implicit tuple splat behavior in function application has been deprecated
-  and will be removed in Swift 3.0.  For example, this code:
+  and will be removed in Codira 3.0.  For example, this code:
 
-    ```swift
-    func foo(a : Int, b : Int) { ... }
+    ```language
+    fn foo(a : Int, b : Int) { ... }
     let x = (1, b: 2)
     foo(x)   // Warning, deprecated.
     ```
 
   should move to being written as:
 
-    ```swift
+    ```language
     foo(x.0, x.b)
     ```
 
@@ -5088,14 +5207,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   New `#file`, `#line`, `#column`, and `#function` expressions have been introduced to
   replace the existing `__FILE__`, `__LINE__`, `__COLUMN__`, and `__FUNCTION__` symbols.
   The `__FILE__`-style symbols have been deprecated, and will be removed in
-  Swift 3.0.
+  Codira 3.0.
 
 * The operator identifier lexer grammar has been revised to simplify the rules
   for operators that start with a dot (".").  The new rule is that an operator
   that starts with a dot may contain other dots in it, but operators that start
   with some other character may not contain dots.  For example:
 
-    ```swift
+    ```language
     x....foo   --> "x" "...." "foo"
     x&%^.foo   --> "x" "&%^"  ".foo"
     ```
@@ -5106,10 +5225,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * [SE-0007][]:
 
   The "C-style for loop", which is spelled `for init; comparison; increment {}`
-  has been deprecated and is slated for removal in Swift 3.0.
+  has been deprecated and is slated for removal in Codira 3.0.
 
 * Three new doc comment fields, namely `- keyword:`, `- recommended:`
-  and `- recommendedover:`, allow Swift users to cooperate with code
+  and `- recommendedover:`, allow Codira users to cooperate with code
   completion engine to deliver more effective code completion results.
   The `- keyword:` field specifies concepts that are not fully manifested in
   declaration names. `- recommended:` indicates other declarations are preferred
@@ -5121,7 +5240,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   return `nil` or throw an error, respectively, before the object has been
   fully initialized. For example:
 
-    ```swift
+    ```language
     class Widget : Gadget {
       let complexity: Int
 
@@ -5140,7 +5259,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Global `anyGenerator()` functions have been changed into initializers on
   `AnyGenerator`, making the API more intuitive and idiomatic.  They have been
-  deprecated in Swift 2.2, and will be removed in Swift 3.0.
+  deprecated in Codira 2.2, and will be removed in Codira 3.0.
 
 * Closures appearing inside generic types and generic methods can now be
   converted to C function pointers, as long as no generic type parameters
@@ -5151,17 +5270,17 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   **(rdar://problem/22204968)**
 
 * Anonymously-typed members of C structs and unions can now be accessed
-  from Swift. For example, given the following struct 'Pie', the 'crust'
+  from Codira. For example, given the following struct 'Pie', the 'crust'
   and 'filling' members are now imported:
 
-    ```swift
+    ```language
     struct Pie {
       struct { bool crispy; } crust;
       union { int fruit; } filling;
     }
     ```
 
-  Since Swift does not support anonymous structs, these fields are
+  Since Codira does not support anonymous structs, these fields are
   imported as properties named `crust` and `filling` having nested types
   named `Pie.__Unnamed_crust` and `Pie.__Unnamed_filling`.
 
@@ -5172,7 +5291,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Argument labels and parameter names can now be any keyword except
   `var`, `let`, or `inout`. For example:
 
-  ```swift
+  ```language
   NSURLProtectionSpace(host: "somedomain.com", port: 443, protocol: "https",
                        realm: "Some Domain", authenticationMethod: "Basic")
   ```
@@ -5197,7 +5316,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   When referencing a function or initializer, one can provide the
   complete name, including argument labels. For example:
 
-  ```swift
+  ```language
   let fn1 = someView.insertSubview(_:at:)
   let fn2 = someView.insertSubview(_:aboveSubview:)
 
@@ -5206,35 +5325,35 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * [SE-0020][]:
 
-  There is a new build configuration function, `#if swift(>=x.y)`, which
-  tests if the current Swift language version is at least `x.y`. This
+  There is a new build configuration function, `#if language(>=x.y)`, which
+  tests if the current Codira language version is at least `x.y`. This
   allows you to conditionally compile code for multiple language
   versions in the same file, even with different syntax, by deactivating
   parsing in inactive code blocks. For example:
 
-  ```swift
-  #if swift(>=2.2)
-    // Only this code will be parsed in Swift 3.0
-    func foo(x: Int) -> (y: Int) -> () {}
+  ```language
+  #if language(>=2.2)
+    // Only this code will be parsed in Codira 3.0
+    fn foo(x: Int) -> (y: Int) -> () {}
   #else
     // This code is ignored entirely.
-    func foo(x: Int)(y: Int) {}
+    fn foo(x: Int)(y: Int) {}
   #endif
   ```
 
 * [SE-0022][]:
 
-  The Objective-C selector of a Swift method can now be determined
+  The Objective-C selector of a Codira method can now be determined
   directly with the #selector expression, e.g.,:
 
-  ```swift
+  ```language
   let sel = #selector(insertSubview(_:aboveSubview:)) // sel has type Selector
   ```
 
   Along with this change, the use of string literals as selectors has
   been deprecated, e.g.,
 
-  ```swift
+  ```language
   let sel: Selector = "insertSubview:aboveSubview:"
   ```
 
@@ -5244,7 +5363,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   to the getter of a property), one can still directly construct
   selectors, e.g.:
 
-  ```swift
+  ```language
   let sel = Selector("propertyName")
   ```
 
@@ -5252,7 +5371,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   construct Selectors to ensure that they are well-formed Objective-C
   selectors and that there is an `@objc` method with that selector.
 
-## Swift 2.1
+## Codira 2.1
 
 ### 2015-10-21 (Xcode 7.1)
 
@@ -5278,9 +5397,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   } IntOrFloat;
   ```
 
-  Importing this `typedef` into Swift generates the following interface:
+  Importing this `typedef` into Codira generates the following interface:
 
-  ```swift
+  ```language
   struct IntOrFloat {
     var intField: Int { get set }
     init(intField: Int)
@@ -5292,14 +5411,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(19660119)**
 
-* Bitfield members of C structs are now imported into Swift. **(21702107)**
+* Bitfield members of C structs are now imported into Codira. **(21702107)**
 
 * The type `dispatch_block_t` now refers to the type
-  `@convention(block) () -> Void`, as it did in Swift 1.2.
+  `@convention(block) () -> Void`, as it did in Codira 1.2.
   This change allows programs using `dispatch_block_create` to work as expected,
-  solving an issue that surfaced in Xcode 7.0 with Swift 2.0.
+  solving an issue that surfaced in Xcode 7.0 with Codira 2.0.
 
-  **Note:** Converting to a Swift closure value and back is not guaranteed to
+  **Note:** Converting to a Codira closure value and back is not guaranteed to
   preserve the identity of a `dispatch_block_t`.
   **(22432170)**
 
@@ -5321,18 +5440,18 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   For example, it is legal to assign a function of type `Any -> Int` to a
   variable of type `String -> Any`. **(19517003)**
 
-## Swift 2.0
+## Codira 2.0
 
 ### 2015-09-17 (Xcode 7.0)
 
-#### Swift Language Features
+#### Codira Language Features
 
 * New `defer` statement. This statement runs cleanup code when the scope is
   exited, which is particularly useful in conjunction with the new error
   handling model. For example:
 
-  ```swift
-  func xyz() throws {
+  ```language
+  fn xyz() throws {
      let f = fopen("x.txt", "r")
      defer { fclose(f) }
      try foo(f)                    // f is closed if an error is propagated.
@@ -5353,9 +5472,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
+  ```language
   @available(iOS 8.0, OSX 10.10, *)
-  func startUserActivity() -> NSUserActivity {
+  fn startUserActivity() -> NSUserActivity {
     ...
   }
   ```
@@ -5371,7 +5490,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Public extensions of generic types are now permitted.
 
-  ```swift
+  ```language
   public extension Array { ... }
   ```
 
@@ -5379,7 +5498,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Enums now support multiple generic associated values, for example:
 
-  ```swift
+  ```language
   enum Either<T, U> {
      case Left(T), Right(U)
   }
@@ -5398,14 +5517,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   implementations for requirements specified in a protocol extension, allowing
   "mixin" or "trait" like patterns.
 
-* **Availability checking**. Swift reports an error at compile time if you call an
+* **Availability checking**. Codira reports an error at compile time if you call an
   API that was introduced in a version of the operating system newer than the
   currently selected deployment target.
 
   To check whether a potentially unavailable API is available at runtime, use
   the new `#available()` condition in an if or guard statement. For example:
 
-  ```swift
+  ```language
   if #available(iOS 8.0, OSX 10.10, *) {
     // Use Handoff APIs when available.
     let activity =
@@ -5423,7 +5542,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   restriction that the closure must not capture any of its local context.
   For example, the standard C qsort function can be invoked as follows:
 
-  ```swift
+  ```language
   var array = [3, 14, 15, 9, 2, 6, 5]
   qsort(&array, array.count, sizeofValue(array[0])) { a, b in
     return Int32(UnsafePointer<Int>(a).memory - UnsafePointer<Int>(b).memory)
@@ -5434,13 +5553,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   **(16339559)**
 
 * **Error handling**. You can create functions that `throw`, `catch`, and manage
-  errors in Swift.
+  errors in Codira.
 
   Using this capability, you can surface and deal with recoverable
-  errors, such as "file-not-found" or network timeouts. Swift's error handling
+  errors, such as "file-not-found" or network timeouts. Codira's error handling
   interoperates with `NSError`. **(17158652)**
 
-* **Testability**: Tests of Swift 2.0 frameworks and apps are written without
+* **Testability**: Tests of Codira 2.0 frameworks and apps are written without
   having to make internal routines public.
 
   Use `@testable import {ModuleName}` in your test source code to make all
@@ -5459,7 +5578,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * A new `x?` pattern can be used to pattern match against optionals as a
   synonym for `.Some(x)`. **(19382878)**
 
-* Concatenation of Swift string literals, including across multiple lines, is
+* Concatenation of Codira string literals, including across multiple lines, is
   now a guaranteed compile-time optimization, even at `-Onone`. **(19125926)**
 
 * Nested functions can now recursively reference themselves and other nested
@@ -5483,17 +5602,17 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * A new `readLine()` function has been added to the standard library.
   **(15911365)**
 
-* **SIMD Support**: Clang extended vectors are imported and usable in Swift.
+* **SIMD Support**: Clang extended vectors are imported and usable in Codira.
 
   This capability enables many graphics and other low-level numeric APIs
-  (for example, `simd.h`) to be usable in Swift.
+  (for example, `simd.h`) to be usable in Codira.
 
 * New `guard` statement: This statement allows you to model an early exit out
   of a scope.
 
   For example:
 
-  ```swift
+  ```language
   guard let z = bar() else { return }
   use(z)
   ```
@@ -5512,7 +5631,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
+  ```language
   do {
       //new scope
       do {
@@ -5521,9 +5640,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   }
   ```
 
-#### Swift Enhancements and Changes
+#### Codira Enhancements and Changes
 
-* A new keyword `try?` has been added to Swift.
+* A new keyword `try?` has been added to Codira.
 
   `try?` attempts to perform an operation that may throw. If the operation
   succeeds, the result is wrapped in an optional; if it fails (that is, if an
@@ -5531,9 +5650,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
-  func produceGizmoUsingTechnology() throws -> Gizmo { ... }
-  func produceGizmoUsingMagic() throws -> Gizmo { ... }
+  ```language
+  fn produceGizmoUsingTechnology() throws -> Gizmo { ... }
+  fn produceGizmoUsingMagic() throws -> Gizmo { ... }
 
   if let result = try? produceGizmoUsingTechnology() { return result }
   if let result = try? produceGizmoUsingMagic() { return result }
@@ -5550,7 +5669,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   qualification by default. `debugPrint` or `String(reflecting:)` can still be
   used to get fully qualified names. For example:
 
-  ```swift
+  ```language
   enum Fruit { case Apple, Banana, Strawberry }
   print(Fruit.Apple)      // "Apple"
   debugPrint(Fruit.Apple) // "MyApp.Fruit.Apple")
@@ -5558,7 +5677,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(21788604)**
 
-* C `typedef`s of block types are imported as `typealias`s for Swift closures.
+* C `typedef`s of block types are imported as `typealias`s for Codira closures.
 
   The primary result of this is that `typedef`s for blocks with a parameter of
   type `BOOL` are imported as closures with a parameter of type `Bool` (rather
@@ -5566,36 +5685,36 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   block parameters to imported Objective-C methods. **(22013912)**
 
 * The type `Boolean` in `MacTypes.h` is imported as `Bool` in contexts that allow
-  bridging between Swift and Objective-C types.
+  bridging between Codira and Objective-C types.
 
   In cases where the representation is significant, `Boolean` is imported as a
   distinct `DarwinBoolean` type, which is `BooleanLiteralConvertible` and can be
   used in conditions (much like the `ObjCBool` type). **(19013551)**
 
 * Fields of C structs that are marked `__unsafe_unretained` are presented in
-  Swift using `Unmanaged`.
+  Codira using `Unmanaged`.
 
-  It is not possible for the Swift compiler to know if these references are
+  It is not possible for the Codira compiler to know if these references are
   really intended to be strong (+1) or unretained (+0). **(19790608)**
 
-* The `NS_REFINED_FOR_SWIFT` macro can be used to move an Objective-C
-  declaration aside to provide a better version of the same API in Swift,
+* The `NS_REFINED_FOR_LANGUAGE` macro can be used to move an Objective-C
+  declaration aside to provide a better version of the same API in Codira,
   while still having the original implementation available. (For example, an
   Objective-C API that takes a `Class` could offer a more precise parameter
-  type in Swift.)
+  type in Codira.)
 
-  The `NS_REFINED_FOR_SWIFT` macro operates differently on different declarations:
+  The `NS_REFINED_FOR_LANGUAGE` macro operates differently on different declarations:
 
-  - `init` methods will be imported with the resulting Swift initializer having
+  - `init` methods will be imported with the resulting Codira initializer having
     `__` prepended to its first external parameter name.
 
     ```objc
     // Objective-C
-    - (instancetype)initWithClassName:(NSString *)name NS_REFINED_FOR_SWIFT;
+    - (instancetype)initWithClassName:(NSString *)name NS_REFINED_FOR_LANGUAGE;
     ```
 
-    ```swift
-    // Swift
+    ```language
+    // Codira
     init(__className: String)
     ```
 
@@ -5603,12 +5722,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
     ```objc
     // Objective-C
-    - (NSString *)displayNameForMode:(DisplayMode)mode NS_REFINED_FOR_SWIFT;
+    - (NSString *)displayNameForMode:(DisplayMode)mode NS_REFINED_FOR_LANGUAGE;
     ```
 
-    ```swift
-    // Swift
-    func __displayNameForMode(mode: DisplayMode) -> String
+    ```language
+    // Codira
+    fn __displayNameForMode(mode: DisplayMode) -> String
     ```
 
   - Subscript methods will be treated like any other methods and will not be
@@ -5618,11 +5737,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
     ```objc
     // Objective-C
-    @property DisplayMode mode NS_REFINED_FOR_SWIFT;
+    @property DisplayMode mode NS_REFINED_FOR_LANGUAGE;
     ```
 
-    ```swift
-    // Swift
+    ```language
+    // Codira
     var __mode: DisplayMode { get set }
     ```
 
@@ -5635,13 +5754,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   for access to Core Data's automatically generated Key-Value-Coding-compliant
   to-many accessors.
 
-  ```swift
+  ```language
   @NSManaged var employees: NSSet
 
-  @NSManaged func addEmployeesObject(employee: Employee)
-  @NSManaged func removeEmployeesObject(employee: Employee)
-  @NSManaged func addEmployees(employees: NSSet)
-  @NSManaged func removeEmployees(employees: NSSet)
+  @NSManaged fn addEmployeesObject(employee: Employee)
+  @NSManaged fn removeEmployeesObject(employee: Employee)
+  @NSManaged fn addEmployees(employees: NSSet)
+  @NSManaged fn removeEmployees(employees: NSSet)
   ```
 
   These can be declared in your `NSManagedObject` subclass. **(17583057)**
@@ -5650,7 +5769,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   parsed as method or property lookups following the previous line, allowing
   for code formatted like this to work:
 
-  ```swift
+  ```language
   foo
     .bar
     .bas = 68000
@@ -5665,7 +5784,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Nonmutating methods of structs, enums, and protocols may now be partially
   applied to their self parameter:
 
-  ```swift
+  ```language
   let a: Set<Int> = [1, 2, 3]
   let b: [Set<Int>] = [[1], [4]]
   b.map(a.union) // => [[1, 2, 3], [1, 2, 3, 4]]
@@ -5673,7 +5792,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(21091944)**
 
-* Swift documentation comments recognize a new top-level list
+* Codira documentation comments recognize a new top-level list
   item: `- Throws: ...`
 
   This item is used to document what errors can be thrown and why. The
@@ -5683,18 +5802,18 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Unnamed parameters now require an explicit `_:` to indicate that they are
   unnamed. For example, the following is now an error:
 
-  ```swift
-  func f(Int) { }
+  ```language
+  fn f(Int) { }
   ```
 
   and must be written as:
 
-  ```swift
-  func f(_: Int) { }
+  ```language
+  fn f(_: Int) { }
   ```
 
   This simplifies the argument label model and also clarifies why cases like
-  `func f((a: Int, b: Int))` do not have parameters named `a` and `b`.
+  `fn f((a: Int, b: Int))` do not have parameters named `a` and `b`.
   **(16737312)**
 
 * It is now possible to append a tuple to an array. **(17875634)**
@@ -5705,8 +5824,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Variadic parameters can now appear anywhere in the parameter list for a
   function or initializer. For example:
 
-  ```swift
-  func doSomethingToValues(values: Int... , options: MyOptions = [], fn: (Int) -&gt; Void) { ... }
+  ```language
+  fn doSomethingToValues(values: Int... , options: MyOptions = [], fn: (Int) -&gt; Void) { ... }
   ```
 
   **(20127197)**
@@ -5716,7 +5835,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * If an element of an enum with string raw type does not have an explicit raw
   value, it will default to the text of the enum's name. For example:
 
-  ```swift
+  ```language
   enum WorldLayer : String {
       case Ground, BelowCharacter, Character
   }
@@ -5724,7 +5843,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   is equivalent to:
 
-  ```swift
+  ```language
   enum WorldLayer : String {
       case Ground = "Ground"
       case BelowCharacter = "BelowCharacter"
@@ -5734,14 +5853,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(15819953)**
 
-* The `performSelector` family of APIs is now available for Swift code.
+* The `performSelector` family of APIs is now available for Codira code.
   **(17227475)**
 
 * When delegating or chaining to a failable initializer (for example, with
   `self.init(...)` or `super.init(...)`), one can now force-unwrap the result with
   `!`. For example:
 
-  ```swift
+  ```language
   extension UIImage {
     enum AssetIdentifier: String {
       case Isabella
@@ -5760,7 +5879,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Initializers can now be referenced like static methods by referring to
   `.init` on a static type reference or type object. For example:
 
-  ```swift
+  ```language
   let x = String.init(5)
   let stringType = String.self
   let y = stringType.init(5)
@@ -5776,7 +5895,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   value for the enum to be stored indirectly, allowing for recursive data
   structures to be defined. For example:
 
-  ```swift
+  ```language
     enum List<T> {
     case Nil
     indirect case Cons(head: T, tail: List<T>)
@@ -5790,7 +5909,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(21643855)**
 
-* Formatting for Swift expression results has changed significantly when
+* Formatting for Codira expression results has changed significantly when
   using `po` or `expr -O`. Customization that was introduced has been refined
   in the following ways:
 
@@ -5817,8 +5936,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   name in the target's generated Objective-C header as well as changing its
   runtime name. This applies to protocols as well. For example:
 
-  ```swift
-  // Swift
+  ```language
+  // Codira
   @objc(MyAppDelegate)
   class AppDelegate : NSObject, UIApplicationDelegate {
     // ...
@@ -5837,7 +5956,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Collections containing types that are not Objective-C compatible are no
   longer considered Objective-C compatible types themselves.
 
-  For example, previously `Array<SwiftClassType>` was permitted as the type
+  For example, previously `Array<CodiraClassType>` was permitted as the type
   of a property marked `@objc`; this is no longer the case. **(19787270)**
 
 * Generic subclasses of Objective-C classes, as well as nongeneric classes
@@ -5866,7 +5985,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `AnyObject` and `NSObject` variables that refer to class objects can be cast
   back to class object types. For example, this code succeeds:
 
-  ```swift
+  ```language
   let x: AnyObject = NSObject.self
   let y = x as! NSObject.Type
   ```
@@ -5874,7 +5993,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Arrays, dictionaries, and sets that contain class objects successfully
   bridge with `NSArray`, `NSDictionary`, and `NSSet` as well. Objective-C APIs
   that provide `NSArray<Class> *` objects, such as `-[NSURLSessionConfiguration
-  protocolClasses]`, now work correctly when used in Swift. **(16238475)**
+  protocolClasses]`, now work correctly when used in Codira. **(16238475)**
 
 * `print()` and reflection via Mirrors is able to report both the current
   case and payload for all enums with multiple payload types. The only
@@ -5883,7 +6002,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Enum cases with payloads can be used as functions. For example:
 
-  ```swift
+  ```language
   enum Either<T, U> { case Left(T), Right(U) }
   let lefts: [Either<Int, String>] = [1, 2, 3].map(Either.Left)
   let rights: [Either<Int, String>] = ["one", "two", "three"].map(Either.Right)
@@ -5893,10 +6012,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * `ExtensibleCollectionType` has been folded into
   `RangeReplaceableCollectionType`. In addition, default implementations have
-  been added as methods, which should be used instead of the free Swift
+  been added as methods, which should be used instead of the free Codira
   module functions related to these protocols. **(18220295)**
 
-#### Swift Standard Library
+#### Codira Standard Library
 
 * The standard library moved many generic global functions (such as `map`,
   `filter`, and `sort`) to be methods written with protocol extensions. This
@@ -5904,14 +6023,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   collection types and allowed the removal of the global functions.
 
 * Deprecated enum elements no longer affect the names of nondeprecated
-  elements when an Objective-C enum is imported into Swift. This may cause
-  the Swift names of some enum elements to change. **(17686122)**
+  elements when an Objective-C enum is imported into Codira. This may cause
+  the Codira names of some enum elements to change. **(17686122)**
 
 * All enums imported from C are `RawRepresentable`, including those not
   declared with `NS_ENUM` or `NS_OPTIONS`. As part of this change, the value
   property of such enums has been renamed `rawValue`. **(18702016)**
 
-* Swift documentation comments use a syntax based on the Markdown format,
+* Codira documentation comments use a syntax based on the Markdown format,
   aligning them with rich comments in playgrounds.
 
   - Outermost list items are interpreted as special fields and are highlighted
@@ -5924,7 +6043,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   - Parameter outline syntax:
 
-    ```swift
+    ```language
     - Parameters:
       - x: ...
       - y: ...
@@ -5932,14 +6051,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   - Separate parameter fields:
 
-    ```swift
+    ```language
     - parameter x: ...
     - parameter y: ...
     ```
 
   - Documenting return values:
 
-    ```swift
+    ```language
     - returns: ...
     ```
 
@@ -5957,11 +6076,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   the shorthand `#` for specifying a parameter name has been removed, as have
   the special rules for default arguments.
 
-  ```swift
+  ```language
   // Declaration
-    func printFunction(str: String, newline: Bool)
-    func printMethod(str: String, newline: Bool)
-    func printFunctionOmitParameterName(str: String, _  newline: Bool)
+    fn printFunction(str: String, newline: Bool)
+    fn printMethod(str: String, newline: Bool)
+    fn printFunctionOmitParameterName(str: String, _  newline: Bool)
 
   // Call
     printFunction("hello", newline: true)
@@ -5975,8 +6094,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   which presents a set-like interface for options. Instead of using bitwise
   operations such as:
 
-  ```swift
-  // Swift 1.2:
+  ```language
+  // Codira 1.2:
   object.invokeMethodWithOptions(.OptionA | .OptionB)
   object.invokeMethodWithOptions(nil)
 
@@ -5987,7 +6106,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Option sets support set literal syntax, and set-like methods such as contains:
 
-  ```swift
+  ```language
   object.invokeMethodWithOptions([.OptionA, .OptionB])
   object.invokeMethodWithOptions([])
 
@@ -5996,12 +6115,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   }
   ```
 
-  A new option set type can be written in Swift as a struct that conforms to
+  A new option set type can be written in Codira as a struct that conforms to
   the `OptionSetType` protocol. If the type specifies a `rawValue` property and
   option constants as `static let` constants, the standard library will provide
   default implementations of the rest of the option set API:
 
-  ```swift
+  ```language
   struct MyOptions: OptionSetType {
     let rawValue: Int
 
@@ -6018,13 +6137,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Type annotations are no longer allowed in patterns and are considered part
   of the outlying declaration. This means that code previously written as:
 
-  ```swift
+  ```language
   var (a : Int, b : Float) = foo()
   ```
 
   needs to be written as:
 
-  ```swift
+  ```language
   var (a, b) : (Int, Float) = foo()
   ```
 
@@ -6034,17 +6153,17 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The `do`/`while` loop is renamed to `repeat`/`while` to make it obvious
   whether a statement is a loop from its leading keyword.
 
-  In Swift 1.2:
+  In Codira 1.2:
 
-  ```swift
+  ```language
   do {
   ...
   } while <condition>
   ```
 
-  In Swift 2.0:
+  In Codira 2.0:
 
-  ```swift
+  ```language
   repeat {
   ...
   } while <condition>
@@ -6055,7 +6174,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `forEach` has been added to `SequenceType`. This lets you iterate over
   elements of a sequence, calling a body closure on each. For example:
 
-  ```swift
+  ```language
   (0..<10).forEach {
     print($0)
   }
@@ -6063,7 +6182,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   This is very similar to the following:
 
-  ```swift
+  ```language
   for x in 0..<10 {
     print(x)
   }
@@ -6105,13 +6224,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   which is an efficient view on the `Array` type's buffer that avoids copying as
   long as it uniquely references the `Array` from which it came.
 
-  The following free Swift functions for splitting/slicing sequences have been
+  The following free Codira functions for splitting/slicing sequences have been
   removed and replaced by method requirements on the `SequenceType` protocol
   with default implementations in protocol extensions. `CollectionType` has
   specialized implementations, where possible, to take advantage of efficient
   access of its elements.
 
-  ```swift
+  ```language
   /// Returns the first `maxLength` elements of `self`,
   /// or all the elements if `self` has fewer than `maxLength` elements.
   prefix(maxLength: Int) -> SubSequence
@@ -6133,14 +6252,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   The following convenience extension is provided for `split`:
 
-  ```swift
+  ```language
   split(separator: Generator.Element, maxSplit: Int, allowEmptySlices: Bool) -> [SubSequence]
   ```
 
   Also, new protocol requirements and default implementations on
   `CollectionType` are now available:
 
-  ```swift
+  ```language
   /// Returns `self[startIndex..<end]`
   prefixUpTo(end: Index) -> SubSequence
 
@@ -6165,7 +6284,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   - For the variants that take an output stream, the argument label `toStream`
     was added to the stream argument.
 
-  The `println` function from Swift 1.2 has been removed. **(21788540)**
+  The `println` function from Codira 1.2 has been removed. **(21788540)**
 
 * For consistency and better composition of generic code, `ArraySlice` indices
   are no longer always zero-based but map directly onto the indices of the
@@ -6173,7 +6292,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Before:
 
-  ```swift
+  ```language
   var a = Array(0..<10)
   var s = a[5..<10]
   s.indices        // 0..<5
@@ -6185,7 +6304,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   After:
 
-  ```swift
+  ```language
   var a = Array(0..<10)
   var s = a[5..<10]
   s.indices        // 5..<10
@@ -6196,16 +6315,16 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   ```
 
   Rather than define variants of collection algorithms that take explicit
-  subrange arguments, such as `a.sortSubrangeInPlace(3..<7)`, the Swift
+  subrange arguments, such as `a.sortSubrangeInPlace(3..<7)`, the Codira
   standard library provides "slicing," which composes well with algorithms.
   This enables you to write `a[3..<7].sortInPlace()`, for example. With most
   collections, these algorithms compose naturally.
 
   For example, before this change was incorporated:
 
-  ```swift
+  ```language
   extension MyIntCollection {
-    func prefixThroughFirstNegativeSubrange() -> SubSequence {
+    fn prefixThroughFirstNegativeSubrange() -> SubSequence {
       // Find the first negative element
       let firstNegative = self.indexOf { $0 < 0 } ?? endIndex
 
@@ -6223,7 +6342,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   is an `Array<Int>`. Unfortunately, when array slice indices are zero-based,
   the last two lines of the method need to change to:
 
-  ```swift
+  ```language
   let end = startsWithNegative.indexOf { $0 >= 0 }
     ?? startsWithNegative.endIndex
   return self[startIndex..<end + firstNegative]
@@ -6232,7 +6351,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   These differences made working with slices awkward, error-prone, and
   nongeneric.
 
-  After this change, Swift collections start to provide a guarantee that, at
+  After this change, Codira collections start to provide a guarantee that, at
   least until there is a mutation, slice indices are valid in the collection
   from which they were sliced, and refer to the same elements. **(21866825)**
 
@@ -6254,8 +6373,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Generic functions that declare type parameters not used within the generic
   function's type produce a compiler error. For example:
 
-  ```swift
-  func foo<T>() { } // error: generic parameter 'T' is not used in function signature
+  ```language
+  fn foo<T>() { } // error: generic parameter 'T' is not used in function signature
   ```
 
 * The `Dictionary.removeAtIndex(_:)` method now returns the key-value pair
@@ -6263,7 +6382,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Similarly, the `Set.removeAtIndex(_:)` method returns the element being
   removed. **(20299881)**
 
-* Generic parameters on types in the Swift standard library have been renamed
+* Generic parameters on types in the Codira standard library have been renamed
   to reflect the role of the types in the API. For example, `Array<T>` became
   `Array<Element>`, `UnsafePointer<T>` became `UnsafePointer<Memory>`, and so
   forth. **(21429126)**
@@ -6271,11 +6390,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The `SinkType` protocol and `SinkOf` struct have been removed from the standard
   library in favor of `(T) -> ()` closures. **(21663799)**
 
-## Swift 1.2
+## Codira 1.2
 
 ### 2015-04-08 (Xcode 6.3)
 
-#### Swift Language Changes
+#### Codira Language Changes
 
 * The notions of guaranteed conversion and "forced failable" conversion are now
   separated into two operators. Forced failable conversion now uses the `as!`
@@ -6293,15 +6412,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   **(19035287)**
 
 * The implicit conversions from bridged Objective-C classes
-  (`NSString`/`NSArray`/`NSDictionary`) to their corresponding Swift value types
-  (`String`/`Array`/`Dictionary`) have been removed, making the Swift type
+  (`NSString`/`NSArray`/`NSDictionary`) to their corresponding Codira value types
+  (`String`/`Array`/`Dictionary`) have been removed, making the Codira type
   system simpler and more predictable.
 
   This means that the following code will no longer work:
 
-  ```swift
+  ```language
   import Foundation
-  func log(s: String) { println(x) }
+  fn log(s: String) { println(x) }
   let ns: NSString = "some NSString" // okay: literals still work
   log(ns)     // fails with the error
               // "'NSString' is not convertible to 'String'"
@@ -6310,23 +6429,23 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   In order to perform such a bridging conversion, make the conversion explicit
   with the as keyword:
 
-  ```swift
+  ```language
   log(ns as String) // succeeds
   ```
 
-  Implicit conversions from Swift value types to their bridged Objective-C
+  Implicit conversions from Codira value types to their bridged Objective-C
   classes are still permitted. For example:
 
-  ```swift
-  func nsLog(ns: NSString) { println(ns) }
+  ```language
+  fn nsLog(ns: NSString) { println(ns) }
   let s: String = "some String"
   nsLog(s) // okay: implicit conversion from String to NSString is permitted
   ```
 
   Note that these Cocoa types in Objective-C headers are still automatically
-  bridged to their corresponding Swift type, which means that code is only
-  affected if it is explicitly referencing (for example) `NSString` in a Swift
-  source file. It is recommended you use the corresponding Swift types (for
+  bridged to their corresponding Codira type, which means that code is only
+  affected if it is explicitly referencing (for example) `NSString` in a Codira
+  source file. It is recommended you use the corresponding Codira types (for
   example, `String`) directly unless you are doing something advanced, like
   implementing a subclass in the class cluster. **(18311362)**
 
@@ -6335,14 +6454,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Where before you might have used
 
-  ```swift
-  func assert(predicate : @autoclosure () -> Bool) {...}
+  ```language
+  fn assert(predicate : @autoclosure () -> Bool) {...}
   ```
 
   you now write this as
 
-  ```swift
-  func assert(@autoclosure predicate : () -> Bool) {...}
+  ```language
+  fn assert(@autoclosure predicate : () -> Bool) {...}
   ```
 
   **(15217242)**
@@ -6354,24 +6473,24 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
-  func curryUnnamed(a: Int)(_ b: Int) { return a + b }
+  ```language
+  fn curryUnnamed(a: Int)(_ b: Int) { return a + b }
   curryUnnamed(1)(2)
 
-  func curryNamed(first a: Int)(second b: Int) -> Int { return a + b }
+  fn curryNamed(first a: Int)(second b: Int) -> Int { return a + b }
   curryNamed(first: 1)(second: 2)
   ```
 
   **(17237268)**
 
-* Swift now detects discrepancies between overloading and overriding in the
-  Swift type system and the effective behavior seen via the Objective-C runtime.
+* Codira now detects discrepancies between overloading and overriding in the
+  Codira type system and the effective behavior seen via the Objective-C runtime.
 
   For example, the following conflict between the Objective-C setter for
   `property` in a class and the method `setProperty` in its extension is now
   diagnosed:
 
-  ```swift
+  ```language
   class A : NSObject {
   var property: String = "Hello" // note: Objective-C method 'setProperty:'
       // previously declared by setter for
@@ -6379,7 +6498,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   }
 
   extension A {
-  func setProperty(str: String) { }     // error: method 'setProperty'
+  fn setProperty(str: String) { }     // error: method 'setProperty'
       // redeclares Objective-C method
       //'setProperty:'
   }
@@ -6387,14 +6506,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Similar checking applies to accidental overrides in the Objective-C runtime:
 
-  ```swift
+  ```language
   class B : NSObject {
-  func method(arg: String) { }     // note: overridden declaration
+  fn method(arg: String) { }     // note: overridden declaration
       // here has type '(String) -> ()'
   }
 
   class C : B {
-  func method(arg: [String]) { } // error: overriding method with
+  fn method(arg: [String]) { } // error: overriding method with
       // selector 'method:' has incompatible
       // type '([String]) -> ()'
   }
@@ -6402,9 +6521,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   as well as protocol conformances:
 
-  ```swift
+  ```language
   class MyDelegate : NSObject, NSURLSessionDelegate {
-  func URLSession(session: NSURLSession, didBecomeInvalidWithError:
+  fn URLSession(session: NSURLSession, didBecomeInvalidWithError:
       Bool){ } // error: Objective-C method 'URLSession:didBecomeInvalidWithError:'
       // provided by method 'URLSession(_:didBecomeInvalidWithError:)'
       // conflicts with optional requirement method
@@ -6420,7 +6539,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   than as conversions and range operators. This provides more useful behavior
   for expressions like:
 
-  ```swift
+  ```language
   if allowEmpty || items?.count ?? 0 > 0 {...}
   ```
 
@@ -6436,8 +6555,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   parameter. Using non-ASCII unicode scalars will cause this initializer to
   trap. **(18509195)**
 
-* The C `size_t` family of types are now imported into Swift as `Int`, since
-  Swift prefers sizes and counts to be represented as signed numbers, even if
+* The C `size_t` family of types are now imported into Codira as `Int`, since
+  Codira prefers sizes and counts to be represented as signed numbers, even if
   they are non-negative.
 
   This change decreases the amount of explicit type conversion between `Int`
@@ -6450,26 +6569,26 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
+  ```language
   @objc protocol SomethingDelegate {
-      func didSomething()
+      fn didSomething()
   }
 
   class MySomethingDelegate : SomethingDelegate {
-      @objc func didSomething() { ... }
+      @objc fn didSomething() { ... }
   }
   ```
 
-#### Swift Language Fixes
+#### Codira Language Fixes
 
-* Dynamic casts (`as!`, `as?` and `is`) now work with Swift protocol types, so
+* Dynamic casts (`as!`, `as?` and `is`) now work with Codira protocol types, so
   long as they have no associated types. **(18869156)**
 
 * Adding conformances within a Playground now works as expected.
 
   For example:
 
-  ```swift
+  ```language
   struct Point {
     var x, y: Double
   }
@@ -6492,7 +6611,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example,
 
-  ```swift
+  ```language
   let animationCurve =
     unsafeBitCast(userInfo[UIKeyboardAnimationCurveUserInfoKey].integerValue,
     UIViewAnimationCurve.self)
@@ -6500,7 +6619,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   can now be written instead as
 
-  ```swift
+  ```language
   let animationCurve = UIViewAnimationCurve(rawValue:
     userInfo[UIKeyboardAnimationCurveUserInfoKey].integerValue)!
   ```
@@ -6510,7 +6629,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Negative floating-point literals are now accepted as raw values in enums.
   **(16504472)**
 
-* Unowned references to Objective-C objects, or Swift objects inheriting from
+* Unowned references to Objective-C objects, or Codira objects inheriting from
   Objective-C objects, no longer cause a crash if the object holding the
   unowned reference is deallocated after the referenced object has been
   released. **(18091547)**
@@ -6530,21 +6649,21 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
+  ```language
   class Base {
-    func foo(x: String) -> String? { return x }
+    fn foo(x: String) -> String? { return x }
   }
   class Derived: Base {
-    override func foo(x: String?) -> String { return x! }
+    override fn foo(x: String?) -> String { return x! }
   }
   ```
 
   **(19321484)**
 
-#### Swift Language Enhancements
+#### Codira Language Enhancements
 
-* Swift now supports building targets incrementally, i.e. not rebuilding
-  every Swift source file in a target when a single file is changed.
+* Codira now supports building targets incrementally, i.e. not rebuilding
+  every Codira source file in a target when a single file is changed.
 
   The incremental build capability is based on a conservative dependency
   analysis, so you may still see more files rebuilding than absolutely
@@ -6560,7 +6679,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   and guarding conditions in a single `if` (or `while`) statement using syntax
   similar to generic constraints:
 
-  ```swift
+  ```language
   if let a = foo(), b = bar() where a < b,
      let c = baz() {
   }
@@ -6573,7 +6692,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Further, `if-let` now also supports a single leading boolean condition along
   with optional binding `let` clauses. For example:
 
-  ```swift
+  ```language
   if someValue > 42 && someOtherThing < 19, let a = getOptionalThing() where a > someValue {
   }
   ```
@@ -6585,7 +6704,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
+  ```language
   if someValue > 42 && someOtherThing < 19, let a = getOptionalThing() where a > someValue {
   }
   ```
@@ -6597,7 +6716,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   before use (like a `var`), and that it may only be initialized: not
   reassigned or mutated after initialization. This enables patterns such as:
 
-  ```swift
+  ```language
   let x: SomeThing
   if condition {
     x = foo()
@@ -6625,16 +6744,16 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   - Situations where a multi-statement closure's type could not be inferred
     because of a missing return-type annotation are now properly diagnosed.
 
-* Swift enums can now be exported to Objective-C using the `@objc` attribute.
+* Codira enums can now be exported to Objective-C using the `@objc` attribute.
   `@objc` enums must declare an integer raw type, and cannot be generic or use
   associated values. Because Objective-C enums are not namespaced, enum cases
   are imported into Objective-C as the concatenation of the enum name and
   case name.
 
-  For example, this Swift declaration:
+  For example, this Codira declaration:
 
-  ```swift
-  // Swift
+  ```language
+  // Codira
   @objc
   enum Bear: Int {
      case Black, Grizzly, Polar
@@ -6657,20 +6776,20 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   to be imported without `ImplicitlyUnwrappedOptional`. (See items below for
   more details.) **(18868820)**
 
-* Swift can now partially import C aggregates containing unions, bitfields,
+* Codira can now partially import C aggregates containing unions, bitfields,
   SIMD vector types, and other C language features that are not natively
-  supported in Swift. The unsupported fields will not be accessible from
-  Swift, but C and Objective-C APIs that have arguments and return values of
-  these types can be used in Swift. This includes the Foundation `NSDecimal`
+  supported in Codira. The unsupported fields will not be accessible from
+  Codira, but C and Objective-C APIs that have arguments and return values of
+  these types can be used in Codira. This includes the Foundation `NSDecimal`
   type and the `GLKit` `GLKVector` and `GLKMatrix` types, among others.
   **(15951448)**
 
-* Imported C structs now have a default initializer in Swift that initializes
+* Imported C structs now have a default initializer in Codira that initializes
   all of the struct's fields to zero.
 
   For example:
 
-  ```swift
+  ```language
   import Darwin
   var devNullStat = stat()
   stat("/dev/null", &devNullStat)
@@ -6688,10 +6807,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Type values now print as the full demangled type name when used with
   `println` or string interpolation.
 
-  ```swift
-  toString(Int.self)          // prints "Swift.Int"
-  println([Float].self)       // prints "Swift.Array&lt;Swift.Float&gt;"
-  println((Int, String).self) // prints "(Swift.Int, Swift.String)"
+  ```language
+  toString(Int.self)          // prints "Codira.Int"
+  println([Float].self)       // prints "Codira.Array&lt;Codira.Float&gt;"
+  println((Int, String).self) // prints "(Codira.Int, Codira.String)"
   ```
 
   **(18947381)**
@@ -6705,8 +6824,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   behavior. In a future beta, the standard library will adopt this attribute
   in functions like `autoreleasepool()`.
 
-  ```swift
-  func autoreleasepool(@noescape code: () -> ()) {
+  ```language
+  fn autoreleasepool(@noescape code: () -> ()) {
      pushAutoreleasePool()
      code()
      popAutoreleasePool()
@@ -6715,7 +6834,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(16323038)**
 
-* Performance is substantially improved over Swift 1.1 in many cases. For
+* Performance is substantially improved over Codira 1.1 in many cases. For
   example, multidimensional arrays are algorithmically faster in some cases,
   unoptimized code is much faster in many cases, and many other improvements
   have been made.
@@ -6733,8 +6852,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
-  func lazyAssertion(@autoclosure(escaping) condition: () -> Bool,
+  ```language
+  fn lazyAssertion(@autoclosure(escaping) condition: () -> Bool,
                      message: String = "") {
     lazyAssertions.append(condition) // escapes
     }
@@ -6743,28 +6862,28 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   **(19499207)**
 
-#### Swift Performance
+#### Codira Performance
 
-* A new compilation mode has been introduced for Swift called Whole Module
+* A new compilation mode has been introduced for Codira called Whole Module
   Optimization. This option optimizes all of the files in a target together
   and enables better performance (at the cost of increased compile time). The
   new flag can be enabled in Xcode using the `Whole Module Optimization` build
-  setting or by using the `swiftc` command line tool with the flag
+  setting or by using the `languagec` command line tool with the flag
   `-whole-module-optimization`. **(18603795)**
 
-#### Swift Standard Library Enhancements and Changes
+#### Codira Standard Library Enhancements and Changes
 
 * `flatMap` was added to the standard library. `flatMap` is the function that
   maps a function over something and returns the result flattened one level.
   `flatMap` has many uses, such as to flatten an array:
 
-  ```swift
+  ```language
   [[1,2],[3,4]].flatMap { $0 }
   ```
 
   or to chain optionals with functions:
 
-  ```swift
+  ```language
   [[1,2], [3,4]].first.flatMap { find($0, 1) }
   ```
 
@@ -6778,33 +6897,33 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-  ```swift
+  ```language
   count(string.utf16)
   ```
 
   **(17627758)**
 
-## Swift 1.1
+## Codira 1.1
 
 ### 2014-12-02 (Xcode 6.1.1)
 
 * Class methods and initializers that satisfy protocol requirements now properly
   invoke subclass overrides when called in generic contexts. For example:
 
-    ```swift
+    ```language
     protocol P {
-      class func foo()
+      class fn foo()
     }
 
     class C: P {
-      class func foo() { println("C!") }
+      class fn foo() { println("C!") }
     }
 
     class D: C {
-      override class func foo() { println("D!") }
+      override class fn foo() { println("D!") }
     }
 
-    func foo<T: P>(x: T) {
+    fn foo<T: P>(x: T) {
       x.dynamicType.foo()
     }
 
@@ -6819,7 +6938,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Values of type `Any` can now contain values of function type. **(16406907)**
 
 * Documentation for the standard library (displayed in quick help and in the
-  synthesized header for the Swift module) is improved. **(16462500)**
+  synthesized header for the Codira module) is improved. **(16462500)**
 
 * Class properties don't need to be marked final to avoid `O(n)` mutations on
   value semantic types. **(17416120)**
@@ -6828,7 +6947,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   and `SecIdentity`) and AnyObject. Such casts will always succeed at run-time.
   For example:
 
-  ```swift
+  ```language
   var cfStr: CFString = ...
   var obj: AnyObject = cfStr as AnyObject
   var cfStr = obj as CFString
@@ -6867,7 +6986,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   stringWithContentsOfFile:encoding:error:]`, will now be imported as
   (failable) initializers, e.g.,
 
-    ```swift
+    ```language
     init?(contentsOfFile path: String,
           encoding: NSStringEncoding,
           error: NSErrorPointer)
@@ -6885,14 +7004,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `convertFrom`. For example, `IntegerLiteralConvertible` now has the
   following initializer requirement:
 
-    ```swift
+    ```language
     init(integerLiteral value: IntegerLiteralType)
     ```
   Any type that previously conformed to one of these protocols will
   need to replace its `convertFromXXX` static methods with the
   corresponding initializer.
 
-## Swift 1.0
+## Codira 1.0
 
 ### 2014-09-15 (Xcode 6.0)
 
@@ -6901,7 +7020,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   an implicitly-unwrapped optional). For example, you could implement
   `String.toInt` as a failable initializer of `Int` like this:
 
-    ```swift
+    ```language
     extension Int {
       init?(fromString: String) {
         if let i = fromString.toInt() {
@@ -6918,7 +7037,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   The result of constructing a value using a failable initializer then becomes
   optional:
 
-    ```swift
+    ```language
     if let twentytwo = Int(fromString: "22") {
       println("the number is \(twentytwo)")
     } else {
@@ -6940,7 +7059,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `init?(rawValue: RawValue)`, and the `toRaw()` method has been replaced with
   a `rawValue` property. Enums with raw types can now be used like this:
 
-    ```swift
+    ```language
     enum Foo: Int { case A = 0, B = 1, C = 2 }
     let foo = Foo(rawValue: 2)! // formerly 'Foo.fromRaw(2)!'
     println(foo.rawValue) // formerly 'foo.toRaw()'
@@ -6975,7 +7094,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   value is returned as a non-optional; otherwise, the expression on the right
   is evaluated and returned:
 
-    ```swift
+    ```language
     var sequence: [Int] = []
     sequence.first ?? 0 // produces 0, because sequence.first is nil
     sequence.append(22)
@@ -6986,7 +7105,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   The assignment and the evaluation of the right-hand side of the operator
   are conditional on the presence of the optional value:
 
-    ```swift
+    ```language
     var sequences = ["fibonacci": [1, 1, 2, 3, 4], "perfect": [6, 28, 496]]
     sequences["fibonacci"]?[4]++ // Increments element 4 of key "fibonacci"
     sequences["perfect"]?.append(8128) // Appends to key "perfect"
@@ -6997,22 +7116,22 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Note that optional chaining still flows to the right, so prefix increment
   operators are *not* included in the chain, so this won't type-check:
 
-    ```swift
+    ```language
     ++sequences["fibonacci"]?[4] // Won't type check, can't '++' Int?
     ```
 
 ### 2014-07-28
 
-* The swift command line interface is now divided into an interactive driver
-  `swift`, and a batch compiler `swiftc`:
+* The language command line interface is now divided into an interactive driver
+  `language`, and a batch compiler `languagec`:
 
   ```
-  swift [options] input-file [program-arguments]
+  language [options] input-file [program-arguments]
     Runs the script 'input-file' immediately, passing any program-arguments
     to the script. Without any input files, invokes the repl.
 
-  swiftc [options] input-filenames
-    The familiar swift compiler interface: compiles the input-files according
+  languagec [options] input-filenames
+    The familiar language compiler interface: compiles the input-files according
     to the mode options like -emit-object, -emit-executable, etc.
   ```
 
@@ -7020,13 +7139,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `reinterpretCast` has been renamed `unsafeBitCast`, and it has acquired
   a (required) explicit type parameter.  So
 
-    ```swift
+    ```language
     let x: T = reinterpretCast(y)
     ```
 
   becomes
 
-    ```swift
+    ```language
     let x = unsafeBitCast(y, T.self)
     ```
 
@@ -7035,13 +7154,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   types) have been replaced.  The new idiom is explicit construction
   of the target type using the `bitPattern:` argument label.  So,
 
-    ```swift
+    ```language
     myInt.asUnsigned()
     ```
 
   has become
 
-    ```swift
+    ```language
     UInt(bitPattern: myInt)
     ```
 
@@ -7062,7 +7181,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The optional unwrapping operator `x!` can now be assigned through, and
   mutating methods and operators can be applied through it:
 
-    ```swift
+    ```language
     var x: Int! = 0
     x! = 2
     x!++
@@ -7084,13 +7203,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   only makes a declaration visible to Objective-C; the compiler may now use
   vtable lookup or direct access to access (non-dynamic) `@objc` declarations.
 
-    ```swift
+    ```language
     class Foo {
       // Always accessed by objc_msgSend
       dynamic var x: Int
 
       // Accessed by objc_msgSend from ObjC; may be accessed by vtable
-      // or by static reference in Swift
+      // or by static reference in Codira
       @objc var y: Int
 
       // Not exposed to ObjC (unless Foo inherits NSObject)
@@ -7099,11 +7218,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     ```
 
   `dynamic` enables KVO, proxying, and other advanced Cocoa features to work
-  reliably with Swift declarations.
+  reliably with Codira declarations.
 
 * Clang submodules can now be imported:
 
-    ```swift
+    ```language
     import UIKit.UIGestureRecognizerSubclass
     ```
 
@@ -7118,7 +7237,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   overrides in the language consistently require the use of
   `override`. For example:
 
-    ```swift
+    ```language
     class A {
       init() { }
     }
@@ -7135,28 +7254,28 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   conform to the protocol, and will be most visible with classes that
   conform to `NSCoding`:
 
-    ```swift
+    ```language
     class MyClass : NSObject, NSCoding {
       required init(coder aDecoder: NSCoder!) { /*... */ }
-      func encodeWithCoder(aCoder: NSCoder!) { /* ... */ }
+      fn encodeWithCoder(aCoder: NSCoder!) { /* ... */ }
     }
     ```
   Second, because `required` places a significant requirement on all
   subclasses, the `required` keyword must be placed on overrides of a
   required initializer:
 
-    ```swift
+    ```language
     class MySubClass : MyClass {
       var title: String = "Untitled"
 
       required init(coder aDecoder: NSCoder!) { /*... */ }
-      override func encodeWithCoder(aCoder: NSCoder!) { /* ... */ }
+      override fn encodeWithCoder(aCoder: NSCoder!) { /* ... */ }
     }
     ```
   Finally, required initializers can now be inherited like any other
   initializer:
 
-    ```swift
+    ```language
     class MySimpleSubClass : MyClass { } // inherits the required init(coder:).
     ```
 
@@ -7183,8 +7302,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   arithmetic operations of Float and Double, and can be created using
   numeric literals.
 
-* The immediate mode `swift -i` now works for writing `#!` scripts that take
-  command line arguments. The `-i` option to the swift driver must now come at
+* The immediate mode `language -i` now works for writing `#!` scripts that take
+  command line arguments. The `-i` option to the language driver must now come at
   the end of the compiler arguments, directly before the input filename. Any
   arguments that come after `-i` and the input filename are treated as arguments
   to the interpreted file and forwarded to `Process.arguments`.
@@ -7193,7 +7312,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   sequence along with the element pattern. For example, this accepts
   the following loops that were previously rejected:
 
-    ```swift
+    ```language
     for i: Int8 in 0..<10 { }
     for i: Float in 0.0...10.0 { }
     ```
@@ -7214,9 +7333,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 ### 2014-07-03
 
 * C function pointer types are now imported as `CFunctionPointer<T>`, where `T`
-  is a Swift function type. `CFunctionPointer` and `COpaquePointer` can be
+  is a Codira function type. `CFunctionPointer` and `COpaquePointer` can be
   explicitly constructed from one another, but they do not freely convert, nor
-  is `CFunctionPointer` compatible with Swift closures.
+  is `CFunctionPointer` compatible with Codira closures.
 
   Example: `int (*)(void)` becomes `CFunctionPointer<(Int) -> Void>`.
 
@@ -7232,14 +7351,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `Array` types are now spelled with the brackets surrounding the
   element type. For example, an array of `Int` is written as:
 
-    ```swift
+    ```language
     var array: [Int]
     ```
 
 * `Dictionary` types can now be spelled with the syntax `[K : V]`, where `K`
   is the key type and `V` is the value type. For example:
 
-    ```swift
+    ```language
     var dict: [String : Int] = ["Hello" : 1, "World" : 2]
     ```
 
@@ -7277,7 +7396,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `sort`, `map`, `filter`, and `reduce` methods on `Array`s accept trailing
   closures:
 
-    ```swift
+    ```language
     let a = [5, 6, 1, 3, 9]
     a.sort{ $0 > $1 }
     println(a)                                 // [9, 6, 5, 3, 1]
@@ -7289,7 +7408,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * A lazy `map()` function in the standard library works on any `Sequence`.
   Example:
 
-    ```swift
+    ```language
     class X {
       var value: Int
 
@@ -7312,7 +7431,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * There's a similar lazy `filter()` function:
 
-    ```swift
+    ```language
     // 0, 10, 20, 30, 40
     let tens = filter(0..50) { $0 % 10 == 0 }
     let tenX = map(tens){ X($0) }    // 5 lazy Xs
@@ -7334,7 +7453,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   is now imported as
 
-    ```swift
+    ```language
     var constraints: AnyObject[]!
     ```
 
@@ -7342,11 +7461,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `NSArray` (in both directions), so (for example) one can still
   explicitly use `NSArray` if desired:
 
-    ```swift
+    ```language
     var array: NSArray = view.constraints
     ```
 
-  Swift arrays bridge to `NSArray` similarly to the way Swift
+  Codira arrays bridge to `NSArray` similarly to the way Codira
   strings bridge to `NSString`.
 
 * `ObjCMutablePointer` has been renamed `AutoreleasingUnsafePointer`.
@@ -7356,14 +7475,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   - Previously you would write:
 
-    ```swift
+    ```language
     val = p.get()
     p.set(val)
     ```
 
   - Now you write:
 
-    ```swift
+    ```language
     val = p.memory
     p.memory = val
     ```
@@ -7380,21 +7499,21 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The pound sign (`#`) is now used instead of the back-tick (\`) to mark
   an argument name as a keyword argument, e.g.,
 
-    ```swift
-    func moveTo(#x: Int, #y: Int) { ... }
+    ```language
+    fn moveTo(#x: Int, #y: Int) { ... }
     moveTo(x: 5, y: 7)
     ```
 
 * Objective-C factory methods are now imported as initializers. For
   example, `NSColor`'s `+colorWithRed:green:blue:alpha` becomes
 
-    ```swift
+    ```language
     init(red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat)
     ```
 
   which allows an `NSColor` to be created as, e.g.,
 
-    ```swift
+    ```language
     NSColor(red: 0.5, green: 0.25, blue: 0.25, alpha: 0.5)
     ```
 
@@ -7412,18 +7531,18 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   If you do have a need for the previous REPL, pass `-integrated-repl`.
 
-* In a UIKit-based application, you can now eliminate your 'main.swift' file
+* In a UIKit-based application, you can now eliminate your 'main.code' file
   and instead apply the `@UIApplicationMain` attribute to your
   `UIApplicationDelegate` class. This will cause the `main` entry point to the
   application to be automatically generated as follows:
 
-    ```swift
+    ```language
     UIApplicationMain(argc, argv, nil,
                       NSStringFromClass(YourApplicationDelegate.self))
     ```
 
   If you need nontrivial logic in your application entry point, you can still
-  write out a `main.swift`. Note that `@UIApplicationMain` and `main.swift` are
+  write out a `main.code`. Note that `@UIApplicationMain` and `main.code` are
   mutually exclusive.
 
 ### 2014-05-13
@@ -7431,7 +7550,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * weak pointers now work with implicitly unchecked optionals, enabling usecases
   where you don't want to `!` every use of a weak pointer.  For example:
 
-     ```swift
+     ```language
      weak var myView : NSView!
      ```
 
@@ -7446,8 +7565,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   their initializer to be evaluated the first time the property is touched
   instead of when the enclosing type is initialized.  For example:
 
-    ```swift
-    func myInitializer() -> Int { println("hello\n"); return 42 }
+    ```language
+    fn myInitializer() -> Int { println("hello\n"); return 42 }
     class MyClass {
       @lazy var aProperty = myInitializer()
     }
@@ -7473,7 +7592,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   or `unowned` to capture the value with a weak or unowned pointer, and may
   contain an explicit expression if desired.  Some examples:
 
-    ```swift
+    ```language
     takeClosure { print(self.title) }                    // strong capture
     takeClosure { [weak self] in print(self!.title) }    // weak capture
     takeClosure { [unowned self] in print(self.title) }  // unowned capture
@@ -7483,7 +7602,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   The expression is evaluated when the closure is formed, and captured with the
   specified strength.  For example:
 
-    ```swift
+    ```language
     // weak capture of "self.parent"
     takeClosure { [weak tmp = self.parent] in print(tmp!.title) }
     ```
@@ -7493,7 +7612,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   signature, you must specify the context sensitive `in` keyword.  Here is a
   (weird because there is no need for `unowned`) example of a closure with both:
 
-    ```swift
+    ```language
     myNSSet.enumerateObjectsUsingBlock { [unowned self] (obj, stop) in
       self.considerWorkingWith(obj)
     }
@@ -7503,13 +7622,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   if an initialized imported from Objective-C. For example, instead of
   building `UIColor` as:
 
-    ```swift
+    ```language
     UIColor(withRed: r, green: g, blue: b, alpha: a)
     ```
 
   it will now be:
 
-    ```swift
+    ```language
     UIColor(red: r, green: g, blue: b, alpha: a)
     ```
 
@@ -7528,7 +7647,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Single-quoted literals are no longer recognized.  Use double-quoted literals
   and an explicit type annotation to define `Characters` and `UnicodeScalars`:
 
-    ```swift
+    ```language
     var ch: Character = "a"
     var us: UnicodeScalar = "a"
     ```
@@ -7538,12 +7657,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The use of keyword arguments is now strictly enforced at the call
   site. For example, consider this method along with a call to it:
 
-    ```swift
+    ```language
     class MyColor {
-      func mixColorWithRed(red: Float, green: Float, blue: Float) { /* ... */ }
+      fn mixColorWithRed(red: Float, green: Float, blue: Float) { /* ... */ }
     }
 
-    func mix(color: MyColor, r: Float, g: Float, b: Float) {
+    fn mix(color: MyColor, r: Float, g: Float, b: Float) {
       color.mixColorWithRed(r, g, b)
     }
     ```
@@ -7552,7 +7671,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `blue:` labels, with a Fix-It to correct the code:
 
     ```
-    color.swift:6:24: error: missing argument labels 'green:blue:' in call
+    color.code:6:24: error: missing argument labels 'green:blue:' in call
       color.mixColorWithRed(r, g, b)
                            ^
                                green:  blue:
@@ -7563,13 +7682,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   parameter a keyword argument with the back-tick or remove a keyword
   argument with the underscore.
 
-    ```swift
+    ```language
     class MyColor {
-      func mixColor(`red: Float, green: Float, blue: Float) { /* ... */ }
-      func mixColorGuess(red: Float, _ green: Float, _ blue: Float) { /* ... */ }
+      fn mixColor(`red: Float, green: Float, blue: Float) { /* ... */ }
+      fn mixColorGuess(red: Float, _ green: Float, _ blue: Float) { /* ... */ }
     }
 
-    func mix(color: MyColor, r: Float, g: Float, b: Float) {
+    fn mix(color: MyColor, r: Float, g: Float, b: Float) {
       color.mixColor(red: r, green: g, blue: b) // okay: all keyword arguments
       color.mixColorGuess(r, g, b) // okay: no keyword arguments
     }
@@ -7578,14 +7697,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Arguments cannot be re-ordered unless the corresponding parameters
   have default arguments. For example, given:
 
-    ```swift
-    func printNumber(`number: Int, radix: Int = 10, separator: String = ",") { }
+    ```language
+    fn printNumber(`number: Int, radix: Int = 10, separator: String = ",") { }
     ```
 
   The following three calls are acceptable because only the arguments for
   defaulted parameters are re-ordered relative to each other:
 
-    ```swift
+    ```language
     printNumber(number: 256, radix: 16, separator: "_")
     printNumber(number: 256, separator: "_")
     printNumber(number: 256, separator: ",", radix: 16)
@@ -7593,14 +7712,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   However, this call:
 
-    ```swift
+    ```language
     printNumber(separator: ",", radix: 16, number: 256)
     ```
 
   results in an error due to the re-ordering:
 
     ```
-    printnum.swift:7:40: error: argument 'number' must precede argument 'separator'
+    printnum.code:7:40: error: argument 'number' must precede argument 'separator'
     printNumber(separator: ",", radix: 16, number: 256)
                 ~~~~~~~~~~~~~~             ^       ~~~
     ```
@@ -7618,7 +7737,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Convenience initializers are now spelled as `convenience init` instead of with
   the `-> Self` syntax.  For example:
 
-    ```swift
+    ```language
     class Foo {
       init(x : Int) {}  // designated initializer
 
@@ -7630,24 +7749,24 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   convenience initializers are allowed.
 
 * Reference types using the CoreFoundation runtime are now imported as
-  class types.  This means that Swift will automatically manage the
+  class types.  This means that Codira will automatically manage the
   lifetime of a `CFStringRef` the same way that it manages the lifetime
   of an `NSString`.
 
   In many common cases, this will just work.  Unfortunately, values
   are returned from `CF`-style APIs in a wide variety of ways, and
   unlike Objective-C methods, there simply isn't enough consistency
-  for Swift to be able to safely apply the documented conventions
+  for Codira to be able to safely apply the documented conventions
   universally.  The framework teams have already audited many of the
   most important `CF`-style APIs, and those APIs should be imported
-  without a hitch into Swift.  For all the APIs which haven't yet
+  without a hitch into Codira.  For all the APIs which haven't yet
   been audited, we must import return types using the `Unmanaged` type.
   This type allows the programmer to control exactly how the object
   is passed.
 
   For example:
 
-    ```swift
+    ```language
     // CFBundleGetAllBundles() returns an Unmanaged<CFArrayRef>.
     // From the documentation, we know that it returns a +0 value.
     let bundles = CFBundleGetAllBundles().takeUnretainedValue()
@@ -7670,7 +7789,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `NSManagedObject` subclass to indicate that they should be handled by
   CoreData:
 
-    ```swift
+    ```language
     class Employee : NSManagedObject {
       @NSManaged var name: String
       @NSManaged var department: Department
@@ -7680,7 +7799,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The `@weak` and `@unowned` attributes have become context sensitive keywords
   instead of attributes.  To declare a `weak` or `unowned` pointer, use:
 
-    ```swift
+    ```language
     weak var someOtherWindow : NSWindow?
     unowned var someWindow : NSWindow
     ```
@@ -7688,9 +7807,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 ### 2014-04-30
 
-* Swift now supports a `#elseif` form for build configurations, e.g.:
+* Codira now supports a `#elseif` form for build configurations, e.g.:
 
-    ```swift
+    ```language
     #if os(OSX)
       typealias SKColor = NSColor
     #elseif os(iOS)
@@ -7708,17 +7827,17 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * It is no longer possible to specify `@mutating` as an attribute, you may only
   use it as a keyword, e.g.:
 
-    ```swift
+    ```language
     struct Pair {
       var x, y : Int
-      mutating func nuke() { x = 0; y = 0 }
+      mutating fn nuke() { x = 0; y = 0 }
     }
     ```
   The former `@!mutating` syntax used to mark setters as non-mutating is now
   spelled with the `nonmutating` keyword.  Both mutating and nonmutating are
   context sensitive keywords.
 
-* `NSLog` is now available from Swift code.
+* `NSLog` is now available from Codira code.
 
 * The parser now correctly handles expressions like `var x = Int[]()` to
   create an empty array of integers.  Previously you'd have to use syntax like
@@ -7727,13 +7846,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * `Character` is the new character literal type:
 
-    ```swift
+    ```language
     var x = 'a' // Infers 'Character' type
     ```
 
   You can force inference of `UnicodeScalar` like this:
 
-    ```swift
+    ```language
     var scalar: UnicodeScalar = 'a'
     ```
 
@@ -7748,8 +7867,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `break`/`continue` to those labels.  These use conventional C-style label
   syntax, and should be dedented relative to the code they are in.  An example:
 
-    ```swift
-    func breakContinue(x : Int) -> Int {
+    ```language
+    fn breakContinue(x : Int) -> Int {
     Outer:
       for a in 0..1000 {
 
@@ -7785,7 +7904,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Enabling/disabling of asserts
 
-    ```swift
+    ```language
     assert(condition, msg)
     ```
 
@@ -7809,7 +7928,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   will now be written as:
 
-    ```swift
+    ```language
     init(withRed red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat)
     ```
 
@@ -7823,13 +7942,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   following function/method:
 
     ```
-    func murderInRoom(room:String) withWeapon(weapon: String)
+    fn murderInRoom(room:String) withWeapon(weapon: String)
     ```
 
   is translated to:
 
-    ```swift
-    func murderInRoom(_ room: String, withWeapon weapon: String)
+    ```language
+    fn murderInRoom(_ room: String, withWeapon weapon: String)
     ```
 
   The compiler now complains when it sees the selector-style syntax
@@ -7844,7 +7963,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   only be used with types that conform to the `NSCopying` protocol, or option
   types thereof.  For example:
 
-    ```swift
+    ```language
     @NSCopying var myURL : NSURL
     ```
 
@@ -7854,7 +7973,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Optional variables and properties are now default-initialized to `nil`:
 
-    ```swift
+    ```language
     class MyClass {
       var cachedTitle: String?       // "= nil" is implied
     }
@@ -7866,7 +7985,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   - An `IBOutlet` declared as non-optional, i.e.,
 
-    ```swift
+    ```language
     @IBOutlet var button: NSButton
     ```
 
@@ -7878,13 +7997,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The precedence of `is` and `as` is now higher than comparisons, allowing the
   following sorts of things to be written without parens:
 
-    ```swift
+    ```language
     if x is NSButton && y is NSButtonCell { ... }
 
     if 3/4 as Float == 6/8 as Float { ... }
     ```
 
-* Objective-C blocks are now transparently bridged to Swift closures. You never
+* Objective-C blocks are now transparently bridged to Codira closures. You never
   have to write `@objc_block` when writing Objective-C-compatible methods anymore.
   Block parameters are now imported as unchecked optional closure types,
   allowing `nil` to be passed.
@@ -7895,7 +8014,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   - `Elements` are now tuples, so you can write
 
-    ```swift
+    ```language
     for (k, v) in d {
       // ...
     }
@@ -7905,7 +8024,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     the corresponding aspect of each element.  `Dictionary` indices are
     usable with their `keys` and `values` properties, so:
 
-    ```swift
+    ```language
     for i in indices(d) {
       let (k, v) = d[i]
       assert(k == d.keys[i])
@@ -7916,7 +8035,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Semicolon can be used as a single no-op statement in otherwise empty cases in
   `switch` statements:
 
-    ```swift
+    ```language
     switch x {
     case 1, 2, 3:
       print("x is 1, 2 or 3")
@@ -7927,16 +8046,16 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * `override` is now a context sensitive keyword, instead of an attribute:
 
-    ```swift
+    ```language
     class Base {
       var property: Int { return 0 }
-      func instanceFunc() {}
-      class func classFunc() {}
+      fn instanceFunc() {}
+      class fn classFunc() {}
     }
     class Derived : Base {
       override var property: Int { return 1 }
-      override func instanceFunc() {}
-      override class func classFunc() {}
+      override fn instanceFunc() {}
+      override class fn classFunc() {}
     }
     ```
 
@@ -7955,9 +8074,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Cocoa APIs that take pointers to plain C types as arguments now get imported
   as taking the new `CMutablePointer<T>` and `CConstPointer<T>` types instead
   of `UnsafePointer<T>`. These new types allow implicit conversions from
-  Swift `inout` parameters and from Swift arrays:
+  Codira `inout` parameters and from Codira arrays:
 
-    ```swift
+    ```language
     let rgb = CGColorSpaceCreateDeviceRGB()
     // CGColorRef CGColorCreate(CGColorSpaceRef, const CGFloat*);
     let white = CGColorCreate(rgb, [1.0, 1.0, 1.0])
@@ -7971,7 +8090,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `ObjCMutablePointer<NSError?>`. This type doesn't work with arrays, but
   accepts inouts or `nil`:
 
-    ```swift
+    ```language
     var error: NSError?
     let words = NSString.stringWithContentsOfFile("/usr/share/dict/words",
       encoding: .UTF8StringEncoding,
@@ -7980,7 +8099,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   `Void` pointer parameters can be passed an array or inout of any type:
 
-    ```swift
+    ```language
     // + (NSData*)dataWithBytes:(const void*)bytes length:(NSUInteger)length;
     let data = NSData.dataWithBytes([1.5, 2.25, 3.125],
                                     length: sizeof(Double.self) * 3)
@@ -7999,10 +8118,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   arguments still requires `UnsafePointer`.
 
 * Objective-C pointer types now get imported by default as the `@unchecked T?`
-  optional type.  Swift class types no longer implicitly include `nil`.
+  optional type.  Codira class types no longer implicitly include `nil`.
 
   A value of `@unchecked T?` can be implicitly used as a value of `T`.
-  Swift will implicitly cause a reliable failure if the value is `nil`,
+  Codira will implicitly cause a reliable failure if the value is `nil`,
   rather than introducing undefined behavior (as in Objective-C ivar
   accesses or everything in C/C++) or silently ignoring the operation
   (as in Objective-C message sends).
@@ -8012,11 +8131,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   if you would like to just silently ignore a message send a la Objective-C,
   you can use the postfix `?` operator like so:
 
-    ```swift
+    ```language
     fieldsForKeys[kHeroFieldKey]?.setEditable(true)
     ```
 
-  This design allows you to isolate and handle `nil` values in Swift code
+  This design allows you to isolate and handle `nil` values in Codira code
   without requiring excessive "bookkeeping" boilerplate to use values that
   you expect to be non-`nil`.
 
@@ -8037,7 +8156,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   is being removed. The compiler will now produce an error and provide
   Fix-Its to rewrite calls to the "keyword-argument" syntax:
 
-    ```swift
+    ```language
     NSColor.colorWithRed(r, green: g, blue: b, alpha: a)
     UIColor(withRed: r, green:g, blue:b, alpha: a)
     ```
@@ -8046,7 +8165,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   used to provide the name for an entity as seen in Objective-C. For
   example:
 
-    ```swift
+    ```language
     class MyType {
       var enabled: Bool {
         @objc(isEnabled) get {
@@ -8071,12 +8190,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Old syntax:
 
     ```
-    @_silgen_name("foo"), @objc func bar() {}
+    @_silgen_name("foo"), @objc fn bar() {}
     ```
 
   New syntax:
 
-    ```swift
+    ```language
     @_silgen_name("foo") @objc
     ```
 
@@ -8086,7 +8205,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Old syntax:
 
-    ```swift
+    ```language
     switch x {
     case .A:
     case .B(1):
@@ -8098,7 +8217,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   New syntax:
 
-    ```swift
+    ```language
     switch x {
     case .A, .B(1):
       println(".A or .B(1)")
@@ -8110,7 +8229,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   The following syntax can be used to introduce guard expressions for patterns
   inside the `case`:
 
-    ```swift
+    ```language
     switch x {
     case .A where isFoo(),
          .B(1) where isBar():
@@ -8121,7 +8240,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Observing properties can now `@override` properties in a base class, so you
   can observe changes that happen to them.
 
-     ```swift
+     ```language
      class MyAwesomeView : SomeBasicView {
       @override
       var enabled : Bool {
@@ -8139,7 +8258,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * An `as` cast can now be forced using the postfix `!` operator without using
   parens:
 
-    ```swift
+    ```language
     class B {}
     class D {}
 
@@ -8153,7 +8272,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Casts can also be chained without parens:
 
-    ```swift
+    ```language
     // Before
     let b2: B = (((D() as B) as D)!) as B
     // After
@@ -8162,8 +8281,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * `as` can now be used in `switch` cases to match the result of a checked cast:
 
-    ```swift
-    func printHand(hand: Any) {
+    ```language
+    fn printHand(hand: Any) {
       switch hand {
       case 1 as Int:
         print("ace")
@@ -8215,22 +8334,22 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     } NS_ENUM_AVAILABLE(10_6, 4_0);
     ```
 
-    ```swift
-    // Swift
+    ```language
+    // Codira
     let opts: NSDirectoryEnumerationOptions = .SkipsPackageDescendants
     ```
 
 * `init` methods in Objective-C protocols are now imported as
   initializers. To conform to `NSCoding`, you will now need to provide
 
-    ```swift
+    ```language
     init withCoder(aDecoder: NSCoder) { ... }
     ```
 
   rather than
 
-    ```swift
-    func initWithCoder(aDecoder: NSCoder) { ... }
+    ```language
+    fn initWithCoder(aDecoder: NSCoder) { ... }
     ```
 
 ### 2014-03-19
@@ -8239,7 +8358,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   values for all of its stored properties, it will automatically
   inherit all of the initializers of its superclass. For example:
 
-    ```swift
+    ```language
     class Document {
       var title: String
 
@@ -8262,7 +8381,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   When one does provide a designated initializer in a subclass, as in
   the following example:
 
-    ```swift
+    ```language
     class SecureDocument : Document {
       var key: CryptoKey
 
@@ -8302,7 +8421,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   so you can easily implement an action for when a property changes value.  For
   example:
 
-    ```swift
+    ```language
     class MyAwesomeView : UIView {
       var enabled : Bool = false {
       didSet(oldValue):
@@ -8317,7 +8436,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The implicit argument name for set and willSet property specifiers has been
   renamed from `(value)` to `(newValue)`.  For example:
 
-    ```swift
+    ```language
     var i : Int {
       get {
         return 42
@@ -8333,28 +8452,28 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `__FUNCTION__` is used as a default argument, the function name of the caller
   is passed as the argument.
 
-    ```swift
-    func malkovich() {
+    ```language
+    fn malkovich() {
       println(__FUNCTION__)
     }
     malkovich() // prints "malkovich"
 
-    func nameCaller(name: String = __FUNCTION__) -> String {
+    fn nameCaller(name: String = __FUNCTION__) -> String {
       return name
     }
 
-    func foo() {
+    fn foo() {
       println(nameCaller()) // prints "foo"
     }
 
-    func foo(x: Int) bar(y: Int) {
+    fn foo(x: Int) bar(y: Int) {
       println(nameCaller()) // prints "foo:bar:"
     }
     ```
 
   At top level, `__FUNCTION__` gives the module name:
 
-    ```swift
+    ```language
     println(nameCaller()) // prints your module name
     ```
 
@@ -8362,8 +8481,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   using member syntax `foo.bar:bas:`, for instance, to test for the availability
   of an optional protocol method:
 
-    ```swift
-    func getFrameOfObjectValueForColumn(ds: NSTableViewDataSource,
+    ```language
+    fn getFrameOfObjectValueForColumn(ds: NSTableViewDataSource,
                                         tableView: NSTableView,
                                         column: NSTableColumn,
                                         row: Int) -> AnyObject? {
@@ -8380,10 +8499,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   with ripple effects.  Here is a simple example:
 
     ```
-    t.swift:4:5: warning: variable 'fn' inferred to have type '()', which may be unexpected
+    t.code:4:5: warning: variable 'fn' inferred to have type '()', which may be unexpected
     var fn = abort()
         ^
-    t.swift:4:5: note: add an explicit type annotation to silence this warning
+    t.code:4:5: note: add an explicit type annotation to silence this warning
     var fn = abort()
         ^
           : ()
@@ -8405,7 +8524,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * All values now have a `self` property, exactly equivalent to the value
   itself:
 
-    ```swift
+    ```language
     let x = 0
     let x2 = x.self
     ```
@@ -8413,7 +8532,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Types also have a `self` property that is the type object for that
   type:
 
-    ```swift
+    ```language
     let theClass = NSObject.self
     let theObj = theClass()
     ```
@@ -8423,7 +8542,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   This prevents the mistake of intending to construct an instance of a
   class but forgetting the parens and ending up with the class object instead:
 
-    ```swift
+    ```language
     let x = MyObject // oops, I meant MyObject()...
     return x.description() // ...and I accidentally called +description
                            //    instead of -description
@@ -8434,7 +8553,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   chaining via `super.init`, and **convenience initializers**, which
   delegate to another initializer and can be inherited. For example:
 
-    ```swift
+    ```language
     class A {
       var str: String
 
@@ -8451,7 +8570,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   When a subclass overrides all of its superclass's designated
   initializers, the convenience initializers are inherited:
 
-    ```swift
+    ```language
     class B {
       init withString(str: String) { // designated initializer
         super.init(withString: str)
@@ -8473,12 +8592,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   meaning that every subclass is required to provide that initializer
   either directly or by inheriting it from a superclass. To construct
 
-    ```swift
+    ```language
     class View {
       @required init withFrame(frame: CGRect) { ... }
     }
 
-    func buildView(subclassObj: View.Type, frame: CGRect) -> View {
+    fn buildView(subclassObj: View.Type, frame: CGRect) -> View {
       return subclassObj(withFrame: frame)
     }
 
@@ -8501,7 +8620,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   This means they can be compared with the `==` and `!=` operators and can
   be used as `Dictionary` keys:
 
-    ```swift
+    ```language
     enum Flavor {
       case Lemon, Banana, Cherry
     }
@@ -8523,12 +8642,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * `val` has been removed.  Long live `let`!
 
-* Values whose names clash with Swift keywords, such as Cocoa methods or
+* Values whose names clash with Codira keywords, such as Cocoa methods or
   properties named `class`, `protocol`, `type`, etc., can now be defined and
   accessed by wrapping reserved keywords in backticks to suppress their builtin
   meaning:
 
-    ```swift
+    ```language
     let `class` = 0
     let `type` = 1
     let `protocol` = 2
@@ -8536,7 +8655,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     println(`type`)
     println(`protocol`)
 
-    func foo(Int) `class`(Int) {}
+    fn foo(Int) `class`(Int) {}
     foo(0, `class`: 1)
     ```
 
@@ -8545,13 +8664,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The `override` attribute is now required when overriding a method,
   property, or subscript from a superclass. For example:
 
-    ```swift
+    ```language
     class A {
-      func foo() { }
+      fn foo() { }
     }
 
     class B : A {
-      @override func foo() { } // 'override' is required here
+      @override fn foo() { } // 'override' is required here
     }
     ```
 
@@ -8559,7 +8678,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   next week it will just accept `let`.  Please migrate your code this week, sorry
   for the back and forth on this.
 
-* Swift now supports `#if`, `#else` and `#endif` blocks, along with target
+* Codira now supports `#if`, `#else` and `#endif` blocks, along with target
   configuration expressions, to allow for conditional compilation within
   declaration and statement contexts.
 
@@ -8581,7 +8700,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-    ```swift
+    ```language
     #if arch(x86_64)
       println("Building for x86_64")
     #else
@@ -8590,11 +8709,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
     class C {
     #if os(OSX)
-      func foo() {
+      fn foo() {
         // OSX stuff goes here
       }
     #else
-      func foo() {
+      fn foo() {
         // non-OSX stuff goes here
       }
     #endif
@@ -8610,7 +8729,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example:
 
-    ```swift
+    ```language
     #if os(iOS) && !arch(I386)
     ...
     #endif
@@ -8620,15 +8739,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   must form valid and complete expressions or statements. Hence, the following
   produces a parser error:
 
-    ```swift
+    ```language
     class C {
 
     #if os(iOS)
-      func foo() {}
+      fn foo() {}
     }
     #else
-      func bar() {}
-      func baz() {}
+      fn bar() {}
+      fn baz() {}
     }
     #endif
     ```
@@ -8641,20 +8760,20 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   This is the first step to getting functionality parity with the important
   subset of the C preprocessor.  Further refinements are planned for later.
 
-* Swift now has both fully-closed ranges, which include their endpoint, and
+* Codira now has both fully-closed ranges, which include their endpoint, and
   half-open ranges, which don't.
 
-    ```swift
-    (swift) for x in 0...5 { print(x) } ; print('\n') // half-open range
+    ```language
+    (language) for x in 0...5 { print(x) } ; print('\n') // half-open range
     01234
-    (swift) for x in 0..5 { print(x) } ; print('\n')  // fully-closed range
+    (language) for x in 0..5 { print(x) } ; print('\n')  // fully-closed range
     012345
     ```
 
 * Property accessors have a new brace-based syntax, instead of using the former
   "label like" syntax.  The new syntax is:
 
-  ```swift
+  ```language
   var computedProperty: Int {
     get {
       return _storage
@@ -8677,13 +8796,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Properties and subscripts now work in protocols, allowing you to do things
   like:
 
-    ```swift
+    ```language
     protocol Subscriptable {
       subscript(idx1: Int, idx2: Int) -> Int { get set }
       var prop: Int { get }
     }
 
-    func foo(s: Subscriptable) {
+    fn foo(s: Subscriptable) {
       return s.prop + s[42, 19]
     }
     ```
@@ -8700,7 +8819,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   is related to `init`. We will refer to these as
   `deinitializers`. We've also dropped the parentheses, i.e.:
 
-    ```swift
+    ```language
     class MyClass {
       deinit {
         // release any resources we might have acquired, etc.
@@ -8713,7 +8832,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   result, `NSMutableString`, `NSMutableArray`, and `NSMutableDictionary`
   objects can now be created with their respective literals, i.e.,
 
-    ```swift
+    ```language
     var dict: NSMutableDictionary = ["a" : 1, "b" : 2]
     ```
 
@@ -8726,26 +8845,26 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The `type` keyword was split into two: `static` and `class`.  One can define
   static functions and static properties in structs and enums like this:
 
-    ```swift
+    ```language
     struct S {
-      static func foo() {}
+      static fn foo() {}
       static var bar: Int = 0
     }
     enum E {
-      static func foo() {}
+      static fn foo() {}
     }
     ```
 
   `class` keyword allows one to define class properties and class methods in
   classes and protocols:
 
-    ```swift
+    ```language
     class C {
-      class func foo() {}
+      class fn foo() {}
       class var bar: Int = 0
     }
     protocol P {
-      class func foo() {}
+      class fn foo() {}
       class var bar: Int = 0
     }
     ```
@@ -8753,27 +8872,27 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   When using `class` and `static` in the extension, the choice of keyword
   depends on the type being extended:
 
-    ```swift
+    ```language
     extension S {
-      static func baz() {}
+      static fn baz() {}
     }
     extension C {
-      class func baz() {}
+      class fn baz() {}
     }
     ```
 
 * The `let` keyword is no longer recognized.  Please move to `val`.
 
-* The standard library has been renamed to `Swift` (instead of `swift`) to be
+* The standard library has been renamed to `Codira` (instead of `language`) to be
   more consistent with other modules on our platforms.
 
-* `NSInteger` and other types that are layout-compatible with Swift standard
+* `NSInteger` and other types that are layout-compatible with Codira standard
   library types are now imported directly as those standard library types.
 
 * Optional types now support a convenience method named "cache" to cache the
   result of a closure. For example:
 
-  ```swift
+  ```language
   class Foo {
     var _lazyProperty: Int?
     var property: Int {
@@ -8786,7 +8905,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * We are experimenting with a new message send syntax. For example:
 
-    ```swift
+    ```language
     SKAction.colorizeWithColor(SKColor.whiteColor()) colorBlendFactor(1.0) duration(0.0)
     ```
 
@@ -8794,7 +8913,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   must be indented from the start of the statement or declaration. For
   example, this is a single message send:
 
-    ```swift
+    ```language
     SKAction.colorizeWithColor(SKColor.whiteColor())
              colorBlendFactor(1.0)
              duration(0.0)
@@ -8803,7 +8922,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   while this is a message send to colorizeWithColor: followed by calls
   to `colorBlendFactor` and `duration` (on self or to a global function):
 
-    ```swift
+    ```language
     SKAction.colorizeWithColor(SKColor.whiteColor())
     colorBlendFactor(1.0) // call to 'colorBlendFactor'
     duration(0.0) // call to 'duration'
@@ -8822,16 +8941,16 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Selector arguments in function arguments with only a type are now implicitly
   named after the selector chunk that contains them.  For example, instead of:
 
-    ```swift
-    func addIntsWithFirst(first : Int) second(second : Int) -> Int {
+    ```language
+    fn addIntsWithFirst(first : Int) second(second : Int) -> Int {
       return first+second
     }
     ```
 
   you can now write:
 
-    ```swift
-    func addIntsWithFirst(first : Int) second(Int) -> Int {
+    ```language
+    fn addIntsWithFirst(first : Int) second(Int) -> Int {
       return first+second
     }
     ```
@@ -8839,23 +8958,23 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   if you want to explicitly want to ignore an argument, it is recommended that
   you continue to use the `_` to discard it, as in:
 
-    ```swift
-    func addIntsWithFirst(first : Int) second(_ : Int) -> Int {...}
+    ```language
+    fn addIntsWithFirst(first : Int) second(_ : Int) -> Int {...}
     ```
 
 * The `@inout` attribute in argument lists has been promoted to a
   context-sensitive keyword.  Where before you might have written:
 
-    ```swift
-    func swap<T>(a : @inout T, b : @inout T) {
+    ```language
+    fn swap<T>(a : @inout T, b : @inout T) {
       (a, b) = (b, a)
     }
     ```
 
   You are now required to write:
 
-    ```swift
-    func swap<T>(inout a : T, inout b : T) {
+    ```language
+    fn swap<T>(inout a : T, inout b : T) {
       (a, b) = (b, a)
     }
     ```
@@ -8869,25 +8988,25 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   enums, and protocols) has been promoted to a context-sensitive keyword.
   Mutating struct methods are now written as:
 
-    ```swift
+    ```language
     struct SomeStruct {
-      mutating func f() {}
+      mutating fn f() {}
     }
     ```
 
 * Half-open ranges (those that don't include their endpoint) are now
   spelled with three `.`s instead of two, for consistency with Ruby.
 
-    ```swift
-    (swift) for x in 0...5 { print(x) } ; print('\n') // new syntax
+    ```language
+    (language) for x in 0...5 { print(x) } ; print('\n') // new syntax
     01234
     ```
 
   Next week, we'll introduce a fully-closed range which does include
   its endpoint.  This will provide:
 
-    ```swift
-    (swift) for x in 0..5 { print(x) } ; print('\n')  // coming soon
+    ```language
+    (language) for x in 0..5 { print(x) } ; print('\n')  // coming soon
     012345
     ```
 
@@ -8895,9 +9014,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   chance to update their code before its semantics changes.
 
 * Objective-C properties with custom getters/setters are now imported
-  into Swift as properties. For example, the Objective-C property
+  into Codira as properties. For example, the Objective-C property
 
-    ```swift
+    ```language
     @property (getter=isEnabled) BOOL enabled;
     ```
 
@@ -8906,7 +9025,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * `didSet`/`willSet` properties may now have an initial value specified:
 
-    ```swift
+    ```language
     class MyAwesomeView : UIView {
       var enabled : Bool = false {       // Initial value.
       didSet: self.needsDisplay = true
@@ -8919,18 +9038,18 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   variable or a local variable in a function.
 
 * Objective-C instancetype methods are now imported as methods that
-  return Swift's `DynamicSelf` type. While `DynamicSelf` is not
-  generally useful for defining methods in Swift, importing to it
+  return Codira's `DynamicSelf` type. While `DynamicSelf` is not
+  generally useful for defining methods in Codira, importing to it
   eliminates the need for casting with the numerous `instancetype` APIs,
   e.g.,
 
-    ```swift
+    ```language
     let tileNode: SKSpriteNode = SKSpriteNode.spriteNodeWithTexture(tileAtlas.textureNamed("tile\(tileNumber).png"))!
     ```
 
   becomes
 
-    ```swift
+    ```language
     let tileNode = SKSpriteNode.spriteNodeWithTexture(tileAtlas.textureNamed("tile\(tileNumber).png"))
     ```
 
@@ -8946,10 +9065,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   branch. This allows for elegant testing of dynamic types, methods, nullable
   pointers, and other Optional things:
 
-    ```swift
+    ```language
     class B : NSObject {}
     class D : B {
-      func foo() { println("we have a D") }
+      fn foo() { println("we have a D") }
     }
     var b: B = D()
     if let d = b as D {
@@ -8966,8 +9085,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   accessing a property on it), one no longer has to write the `?` or
   `!`. The run-time check will be performed implicitly. For example:
 
-    ```swift
-    func doSomethingOnViews(views: NSArray) {
+    ```language
+    fn doSomethingOnViews(views: NSArray) {
       for view in views {
           view.updateLayer() // no '!' needed
       }
@@ -8978,15 +9097,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   runtime using `?`, testing the optional result, or conditionally
   binding a variable to the resulting member.
 
-* The `swift` command line tool can now create executables and libraries
-  directly, just like Clang. Use `swift main.swift` to create an executable and
-  `swift -emit-library -o foo.dylib foo.swift` to create a library.
+* The `language` command line tool can now create executables and libraries
+  directly, just like Clang. Use `language main.code` to create an executable and
+  `language -emit-library -o foo.dylib foo.code` to create a library.
 
-* Object files emitted by Swift are not debuggable on their own, even if you
+* Object files emitted by Codira are not debuggable on their own, even if you
   compiled them with the `-g` option. This was already true if you had multiple
-  files in your project. To produce a debuggable Swift binary from the command
-  line, you must compile and link in a single step with `swift`, or pass object
-  files AND swiftmodule files back into `swift` after compilation.
+  files in your project. To produce a debuggable Codira binary from the command
+  line, you must compile and link in a single step with `language`, or pass object
+  files AND languagemodule files back into `language` after compilation.
   (Or use Xcode.)
 
 * `import` will no longer import other source files, only built modules.
@@ -9001,7 +9120,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example, where before you may have written something like this in a class:
 
-    ```swift
+    ```language
     class MyAwesomeView : UIView {
       var _enabled : Bool  // storage
       var enabled : Bool { // computed property
@@ -9017,7 +9136,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   you can now simply write:
 
-    ```swift
+    ```language
     class MyAwesomeView : UIView {
       var enabled : Bool {  // Has storage & observing methods
       didSet: self.needDisplay = true
@@ -9029,7 +9148,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Similarly, if you want notification before the value is stored, you can use
   `willSet`, which gets the incoming value before it is stored:
 
-    ```swift
+    ```language
     var x : Int {
     willSet(value):  // value is the default and may be elided, as with set:
       println("changing from \(x) to \(value)")
@@ -9055,7 +9174,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   value to the property in your `init()` method.
 
 * Objective-C properties with custom getter or setter names are (temporarily)
-  not imported into Swift; the getter and setter will be imported individually
+  not imported into Codira; the getter and setter will be imported individually
   as methods instead. Previously, they would appear as properties within the
   Objective-C class, but attempting to use the accessor with the customized
   name would result in a crash.
@@ -9076,7 +9195,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   | Old Spelling             | New Spelling                  |
   |--------------------------|-------------------------------|
-  | `-emit-llvm`             | `-emit-ir`                    |
+  | `-emit-toolchain`             | `-emit-ir`                    |
   | `-triple`                | `-target`                     |
   | `-serialize-diagnostics` | `-serialize-diagnostics-path` |
 
@@ -9084,23 +9203,23 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   value with no options set. They can also be initialized to the empty set with
   `nil`. These are equivalent:
 
-    ```swift
+    ```language
     var x = NSMatchingOptions()
     var y: NSMatchingOptions = nil
     ```
 
 ### 2014-01-22
 
-* The swift binary no longer has an SDK set by default. Instead, you must do
+* The language binary no longer has an SDK set by default. Instead, you must do
   one of the following:
     - pass an explicit `-sdk /path/to/sdk`
     - set `SDKROOT` in your environment
-    - run `swift` through `xcrun`, which sets `SDKROOT` for you
+    - run `language` through `xcrun`, which sets `SDKROOT` for you
 
 * `let` declarations can now be used as struct/class properties.  A `let`
   property is mutable within `init()`, and immutable everywhere else.
 
-    ```swift
+    ```language
     class C {
       let x = 42
       let y : Int
@@ -9108,7 +9227,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
         self.y = y   // ok, self.y is mutable in init()
       }
 
-      func test() {
+      fn test() {
         y = 42       // error: 'y' isn't mutable
       }
     }
@@ -9118,8 +9237,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   immutable by default.  This allows the compiler to reject mutations of
   temporary objects, catching common bugs.  For example, this is rejected:
 
-    ```swift
-    func setTo4(a : Double[]) {
+    ```language
+    fn setTo4(a : Double[]) {
       a[10] = 4.0     // error: 'a' isn't mutable
     }
     ...
@@ -9130,8 +9249,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   proper fix in this case is to mark the argument is `@inout`, so the effect is
   visible in the caller:
 
-    ```swift
-    func setTo4(a : @inout Double[]) {
+    ```language
+    fn setTo4(a : @inout Double[]) {
       a[10] = 4.0     // ok: 'a' is a mutable reference
     }
     ...
@@ -9142,8 +9261,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   mark it `var`.  The effects aren't visible in the caller, but this can be
   convenient in some cases:
 
-    ```swift
-    func doStringStuff(var s : String) {
+    ```language
+    fn doStringStuff(var s : String) {
       s += "foo"
       print(s)
     }
@@ -9153,7 +9272,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Objective-C. Previously, they would appear as properties within the
   Objective-C class, but trying to access them would result in a crash.
   Additionally, their names can conflict with property names, which confuses
-  the Swift compiler, and there are no patterns in our frameworks that expect
+  the Codira compiler, and there are no patterns in our frameworks that expect
   you to access a parent or other class's instance variables directly. Use
   properties instead.
 
@@ -9162,8 +9281,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 ### 2014-01-15
 
-* Improved deallocation of Swift classes that inherit from Objective-C
-  classes: Swift destructors are implemented as `-dealloc` methods that
+* Improved deallocation of Codira classes that inherit from Objective-C
+  classes: Codira destructors are implemented as `-dealloc` methods that
   automatically call the superclass's `-dealloc`. Stored properties are
   released right before the object is deallocated (using the same
   mechanism as ARC), allowing properties to be safely used in
@@ -9184,9 +9303,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   functions" and "type variables" which are functions and variables
   defined on a type (rather than on an instance of the type), e.g.,
 
-    ```swift
+    ```language
     class X {
-      type func factory() -> X { ... }
+      type fn factory() -> X { ... }
 
       type var version: Int
     }
@@ -9202,12 +9321,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Strings have a new native UTF-16 representation that can be
   converted back and forth to `NSString` at minimal cost. String
   literals are emitted as UTF-16 for string types that support it
-  (including Swift's `String`).
+  (including Codira's `String`).
 
 * Initializers can now delegate to other initializers within the same
   class by calling `self.init`. For example:
 
-    ```swift
+    ```language
     class A { }
 
     class B : A {
@@ -9240,7 +9359,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   operators, one can use the "masking" alternatives to get non-trapping
   behavior. The behavior of the non-trapping masking operators is defined:
 
-    ```swift
+    ```language
     x &/ 0 == 0
     x &% 0 == 0
     SIGNED_MIN_FOR_TYPE &/ -1 == -1 // i.e. Int8: -0x80 / -1 == -0x80
@@ -9251,20 +9370,20 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `@mutating` struct method only fulfills a protocol requirement if the protocol
   method was itself marked `@mutating`:
 
-    ```swift
+    ```language
     protocol P {
-      func nonmutating()
+      fn nonmutating()
       @mutating
-      func mutating()
+      fn mutating()
     }
 
     struct S : P {
       // Error, @mutating method cannot implement non-@mutating requirement.
       @mutating
-      func nonmutating() {}
+      fn nonmutating() {}
 
       // Ok, mutating allowed, but not required.
-      func mutating() {}
+      fn mutating() {}
     }
     ```
 
@@ -9285,13 +9404,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `Array<T>`.  Map applies a function `f: T->U` to the values stored in
   the array and returns an `Array<U>`.  So,
 
-    ```swift
-    (swift) func names(x: Int[]) -> String[] {
+    ```language
+    (language) fn names(x: Int[]) -> String[] {
               return x.map { "<" + String($0) + ">" }
             }
-    (swift) names(Array<Int>())
+    (language) names(Array<Int>())
     // r0 : String[] = []
-    (swift) names([3, 5, 7, 9])
+    (language) names([3, 5, 7, 9])
     // r1 : String[] = ["<3>", "<5>", "<7>", "<9>"]
     ```
 
@@ -9300,20 +9419,20 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Global variables and static properties are now lazily initialized on first
   use. Where you would use `dispatch_once` to lazily initialize a singleton
   object in Objective-C, you can simply declare a global variable with an
-  initializer in Swift. Like `dispatch_once`, this lazy initialization is thread
+  initializer in Codira. Like `dispatch_once`, this lazy initialization is thread
   safe.
 
-  Unlike C++ global variable constructors, Swift global variables and
+  Unlike C++ global variable constructors, Codira global variables and
   static properties now never emit static constructors (and thereby don't
   raise build warnings). Also unlike C++, lazy initialization naturally follows
   dependency order, so global variable initializers that cross module
   boundaries don't have undefined behavior or fragile link order dependencies.
 
-* Swift has the start of an immutability model for value types. As part of this,
+* Codira has the start of an immutability model for value types. As part of this,
   you can now declare immutable value bindings with a new `let` declaration,
   which is semantically similar to defining a get-only property:
 
-    ```swift
+    ```language
     let x = foo()
     print(x)        // ok
     x = bar()       // error: cannot modify an immutable value
@@ -9325,7 +9444,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   In the case of bindings of class type, the bound object itself is still
   mutable, but you cannot change the binding.
 
-    ```swift
+    ```language
     let r = Rocket()
     r.blastOff()    // Ok, your rocket is mutable.
     r = Rocket()    // error: cannot modify an immutable binding.
@@ -9341,14 +9460,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   does not mutate `self`, though you can opt into mutating behavior with a new
   `@mutating` attribute:
 
-    ```swift
+    ```language
     struct MyWeirdCounter {
       var count : Int
 
-      func empty() -> Bool { return count == 0 }
+      fn empty() -> Bool { return count == 0 }
 
       @mutating
-      func reset() {
+      fn reset() {
         count = 0
       }
       ...
@@ -9364,7 +9483,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
    to methods are properties.  Getters and setters can be marked mutating as
    well:
 
-   ```swift
+   ```language
    extension MyWeirdCounter {
       var myproperty : Int {
       get:
@@ -9384,29 +9503,29 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `Optional<T>`.  Map applies a function `f: T->U` to any value stored in
   an `Optional<T>`, and returns an `Optional<U>`.  So,
 
-    ```swift
-   (swift) func nameOf(x: Int?) -> String? {
+    ```language
+   (language) fn nameOf(x: Int?) -> String? {
              return x.map { "<" + String($0) + ">" }
            }
-   (swift)
-   (swift) var no = nameOf(.None) // Empty optional in...
+   (language)
+   (language) var no = nameOf(.None) // Empty optional in...
    // no : String? = <unprintable value>
-   (swift) no ? "yes" : "no"      // ...empty optional out
+   (language) no ? "yes" : "no"      // ...empty optional out
    // r0 : String = "no"
-   (swift)
-   (swift) nameOf(.Some(42))      // Non-empty in
+   (language)
+   (language) nameOf(.Some(42))      // Non-empty in
    // r1 : String? = <unprintable value>
-   (swift) nameOf(.Some(42))!     // Non-empty out
+   (language) nameOf(.Some(42))!     // Non-empty out
    // r2 : String = "<42>"
    ```
 
-* Cocoa types declared with the `NS_OPTIONS` macro are now available in Swift.
+* Cocoa types declared with the `NS_OPTIONS` macro are now available in Codira.
   Like `NS_ENUM` types, their values are automatically shortened based
   on the common prefix of the value names in Objective-C, and the name can
   be elided when type context provides it. They can be used in `if` statements
   using the `&`, `|`, `^`, and `~` operators as in C:
 
-    ```swift
+    ```language
     var options: NSJSONWritingOptions = .PrettyPrinted
     if options & .PrettyPrinted {
       println("pretty-printing enabled")
@@ -9414,7 +9533,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     ```
 
   We haven't yet designed a convenient way to author `NS_OPTIONS`-like types
-  in Swift.
+  in Codira.
 
 ### 2013-12-11
 
@@ -9427,8 +9546,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   that will be `.Some(casted x)` on success and `.None` on failure). An
   example:
 
-    ```swift
-    func f(x: AnyObject, y: NSControl) {
+    ```language
+    fn f(x: AnyObject, y: NSControl) {
       var view = y as NSView                  // has type 'NSView'
       var maybeView = x as NSView             // has type NSView?
     }
@@ -9464,7 +9583,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example, this will yield an error:
 
-    ```swift
+    ```language
     class SomeClass : SomeBase {
       var x : Int
 
@@ -9496,7 +9615,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Unreachable code warning has been added:
 
-    ```swift
+    ```language
     var y: Int = 1
     if y == 1 { // note: condition always evaluates to true
       return y
@@ -9507,7 +9626,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Overflows on integer type conversions are now detected at runtime and, when
   dealing with constants, at compile time:
 
-    ```swift
+    ```language
     var i: Int = -129
     var i8 = Int8(i)
     // error: integer overflows when converted from 'Int' to 'Int8'
@@ -9517,14 +9636,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     // error: negative integer cannot be converted to unsigned type 'UInt8'
     ```
 
-* `def` keyword was changed back to `func`.
+* `def` keyword was changed back to `fn`.
 
 ### 2013-11-13
 
 * Objective-C-compatible protocols can now contain optional
   requirements, indicated by the `@optional` attribute:
 
-    ```swift
+    ```language
     @class_protocol @objc protocol NSWobbling {
       @optional def wobble()
     }
@@ -9539,7 +9658,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   use `!` to assume that the method is always there, `?` to chain the
   optional, or conditional branches to handle each case distinctly:
 
-    ```swift
+    ```language
     def tryToWobble(w : NSWobbling) {
       w.wobble()   // error: cannot call a value of optional type
       w.wobble!()  // okay: calls -wobble, but fails at runtime if not there
@@ -9553,9 +9672,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     ```
 
 * Enums from Cocoa that are declared with the `NS_ENUM` macro are now imported
-  into Swift as Swift enums. Like all Swift enums, the constants of the Cocoa
+  into Codira as Codira enums. Like all Codira enums, the constants of the Cocoa
   enum are scoped as members of the enum type, so the importer strips off the
-  common prefix of all of the constant names in the enum when forming the Swift
+  common prefix of all of the constant names in the enum when forming the Codira
   interface. For example, this Objective-C declaration:
 
     ```objc
@@ -9566,9 +9685,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     };
     ```
 
-  shows up in Swift as:
+  shows up in Codira as:
 
-    ```swift
+    ```language
     enum NSComparisonResult : Int {
       case Ascending, Same, Descending
     }
@@ -9594,9 +9713,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
     }
     ```
 
-  In Swift, this becomes:
+  In Codira, this becomes:
 
-    ```swift
+    ```language
     var foo: NSNumber = 1
     var bar: NSNumber = 2
 
@@ -9613,7 +9732,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Work has begun on implementing static properties. Currently they are supported
   for nongeneric structs and enums.
 
-    ```swift
+    ```language
     struct Foo {
       static var foo: Int = 2
     }
@@ -9626,13 +9745,13 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 ### 2013-11-06
 
-* `func` keyword was changed to `def`.
+* `fn` keyword was changed to `def`.
 
 * Implicit conversions are now allowed from an optional type `T?` to another
   optional type `U?` if `T` is implicitly convertible to `U`. For example,
   optional subclasses convert to their optional base classes:
 
-    ```swift
+    ```language
     class Base {}
     class Derived : Base {}
 
@@ -9646,18 +9765,18 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   variable to have its type inferred from its initializer, including
   global and instance variables:
 
-    ```swift
+    ```language
     class MyClass {
       var size = 0 // inferred to Int
     }
 
-    var name = "Swift"
+    var name = "Codira"
     ```
 
   Additionally, the arguments of a generic type can also be inferred
   from the initializer:
 
-    ```swift
+    ```language
     // infers Dictionary<String, Int>
     var dict: Dictionary = ["Hello": 1, "World": 2]
     ```
@@ -9675,7 +9794,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `switch` can now pattern-match into structs and classes, using the syntax
   `case Type(property1: pattern1, property2: pattern2, ...):`.
 
-    ```swift
+    ```language
     struct Point { var x, y: Double }
     struct Size { var w, h: Double }
     struct Rect { var origin: Point; var size: Size }
@@ -9697,19 +9816,19 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Array and dictionary literals allow an optional trailing comma:
 
-    ```swift
+    ```language
     var a = [1, 2,]
     var d = ["a": 1, "b": 2,]
     ```
 
 ### 2013-10-16
 
-* Unlike in Objective-C, objects of type `id` in Swift do not
+* Unlike in Objective-C, objects of type `id` in Codira do not
   implicitly convert to any class type. For example, the following
   code is ill-formed:
 
-    ```swift
-    func getContentViewBounds(window : NSWindow) -> NSRect {
+    ```language
+    fn getContentViewBounds(window : NSWindow) -> NSRect {
       var view : NSView = window.contentView() // error: 'id' doesn't implicitly convert to NSView
      return view.bounds()
     }
@@ -9719,8 +9838,8 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `!` operator to allow an object of type `id` to convert to any class
   type, e.g.,
 
-    ```swift
-    func getContentViewBounds(window : NSWindow) -> NSRect {
+    ```language
+    fn getContentViewBounds(window : NSWindow) -> NSRect {
       var view : NSView = window.contentView()! // ok: checked conversion to NSView
      return view.bounds()
     }
@@ -9729,7 +9848,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   The conversion is checked at run-time, and the program will fail if
   the object is not an NSView. This is shorthand for
 
-    ```swift
+    ```language
     var view : NSView = (window.contentView() as NSView)!
     ```
 
@@ -9749,7 +9868,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   literals that are too large to fit the type are now reported by the compiler.
   Here are some examples:
 
-    ```swift
+    ```language
     var x = Int8(-129)
     // error: integer literal overflows when stored into 'Int8'
 
@@ -9759,7 +9878,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Overflows in constant integer expressions are also reported by the compiler.
 
-    ```swift
+    ```language
     var x: Int8 = 125
     var y: Int8 = x + 125
     // error: arithmetic operation '125 + 125' (on type 'Int8') results in
@@ -9768,14 +9887,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Division by zero in constant expressions is now detected by the compiler:
 
-    ```swift
+    ```language
     var z: Int = 0
     var x = 5 / z  // error: division by zero
     ```
 
 * Generic structs with type parameters as field types are now fully supported.
 
-    ```swift
+    ```language
     struct Pair<T, U> {
       var first: T
       var second: U
@@ -9786,7 +9905,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Autorelease pools can now be created using the `autoreleasepool` function.
 
-    ```swift
+    ```language
     autoreleasepool {
       // code
     }
@@ -9799,7 +9918,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Enums can now declare a "raw type", and cases can declare "raw values",
   similar to the integer underlying type of C enums:
 
-    ```swift
+    ```language
     // Declare the underlying type as in Objective-C or C++11, with
     // ': Type'
     enum AreaCode : Int {
@@ -9817,15 +9936,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   This introduces `fromRaw` and `toRaw` methods on the enum to perform
   conversions from and to the raw type:
 
-    ```swift
+    ```language
     /* As if declared:
         extension AreaCode {
           // Take a raw value, and produce the corresponding enum value,
           // or None if there is no corresponding enum value
-          static func fromRaw(raw:Int) -> AreaCode?
+          static fn fromRaw(raw:Int) -> AreaCode?
 
           // Return the corresponding raw value for 'self'
-          func toRaw() -> Int
+          fn toRaw() -> Int
         }
      */
 
@@ -9837,7 +9956,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Raw types are not limited to integer types--they can additionally be
   character, floating-point, or string values:
 
-    ```swift
+    ```language
     enum State : String {
       case CA = "California"
       case OR = "Oregon"
@@ -9860,11 +9979,11 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Enums with raw types implicitly conform to the `RawRepresentable` protocol,
   which exposes the fromRaw and toRaw methods to generics:
 
-    ```swift
+    ```language
     protocol RawRepresentable {
       typealias RawType
-      static func fromRaw(raw: RawType) -> Self?
-      func toRaw() -> RawType
+      static fn fromRaw(raw: RawType) -> Self?
+      fn toRaw() -> RawType
     }
     ```
 
@@ -9872,15 +9991,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   **(rdar://14462729)**) so that attributes now precede the declaration and use
   the `@` character to signify them.  Where before you might have written:
 
-    ```swift
-    func [someattribute=42] foo(a : Int) {}
+    ```language
+    fn [someattribute=42] foo(a : Int) {}
     ```
 
   you now write:
 
-    ```swift
+    ```language
     @someattribute=42
-    func foo(a : Int) {}
+    fn foo(a : Int) {}
     ```
 
   This flows a lot better (attributes don't push the name for declarations away),
@@ -9890,10 +10009,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The `for` loop now uses the Generator protocol instead of the `Enumerator`
   protocol to iterate a sequence. This protocol looks like this:
 
-    ```swift
+    ```language
     protocol Generator {
       typealias Element
-      func next() -> Element?
+      fn next() -> Element?
     }
     ```
 
@@ -9922,9 +10041,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   captured variable outlives the function, you can observe this.  For example,
   this code:
 
-    ```swift
-    func foo(x : [inout] Int) -> () -> Int {
-      func bar() -> Int {
+    ```language
+    fn foo(x : [inout] Int) -> () -> Int {
+      fn bar() -> Int {
         x += 1
         return x
       }
@@ -9975,7 +10094,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   For example, this code
 
-    ```swift
+    ```language
     object?.parent.notifyChildEvent?(object!, .didExplode)
     ```
 
@@ -9986,7 +10105,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   This code:
 
-    ```swift
+    ```language
     var titleLength = object?.title.length
     ```
 
@@ -9999,7 +10118,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   result is of optional type. For example, for a variable `obj` of
   type `id`, the expression
 
-    ```swift
+    ```language
     obj[0]
     ```
 
@@ -10012,7 +10131,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `_` can now be used not only in `var` bindings, but in assignments as well,
   to ignore elements of a tuple assignment, or to explicitly ignore values.
 
-    ```swift
+    ```language
     var a = (1, 2.0, 3)
     var x = 0, y = 0
     _ = a           // explicitly load and discard 'a'
@@ -10022,14 +10141,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 ### 2013-09-24
 
 * The `union` keyword has been replaced with `enum`.  Unions and enums
-  are semantically identical in swift (the former just has data
+  are semantically identical in language (the former just has data
   associated with its discriminators) and `enum` is the vastly more
   common case.  For more rationale, please see
-  [docs/proposals/Enums.rst](https://github.com/apple/swift/blob/main/docs/proposals/Enums.rst)
+  [docs/proposals/Enums.rst](https://github.com/apple/language/blob/main/docs/proposals/Enums.rst)
 
 * The Optional type `T?` is now represented as an `enum`:
 
-    ```swift
+    ```language
     enum Optional<T> {
       case None
       case Some(T)
@@ -10039,7 +10158,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   This means that, in addition to the existing Optional APIs, it can be
   pattern-matched with switch:
 
-    ```swift
+    ```language
     var x : X?, y : Y?
     switch (x, y) {
     // Both are present
@@ -10060,7 +10179,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Enums now allow multiple cases to be declared in a comma-separated list
   in a single `case` declaration:
 
-    ```swift
+    ```language
     enum Color {
       case Red, Green, Blue
     }
@@ -10071,7 +10190,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   example, given a variable `sender` of type `id`, one can refer to
   `-isEqual: with:`
 
-    ```swift
+    ```language
     sender.isEqual
     ```
 
@@ -10082,7 +10201,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   To safely test the optional, one can use, e.g.,
 
-    ```swift
+    ```language
     var senderIsEqual = sender.isEqual
     if senderIsEqual {
       // this will never trigger an "unrecognized selector" failure
@@ -10095,7 +10214,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   When you *know* that the method is there, you can use postfix `!` to
   force unwrapping of the optional, e.g.,
 
-    ```swift
+    ```language
     sender.isEqual!(other)
     ```
 
@@ -10107,7 +10226,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Weak references now always have optional type.  If a weak variable
   has an explicit type, it must be an optional type:
 
-    ```swift
+    ```language
     var [weak] x : NSObject?
     ```
 
@@ -10121,9 +10240,9 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Constructor syntax has been improved to align better with
   Objective-C's `init` methods. The `constructor` keyword has been
   replaced with `init`, and the selector style of declaration used for
-  func declarations is now supported. For example:
+  fn declarations is now supported. For example:
 
-    ```swift
+    ```language
     class Y : NSObject {
       init withInt(i : Int) string(s : String) {
         super.init() // call superclass initializer
@@ -10133,7 +10252,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   One can use this constructor to create a `Y` object with, e.g.,
 
-    ```swift
+    ```language
     Y(withInt:17, string:"Hello")
     ```
 
@@ -10142,10 +10261,10 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   initializer is `initWithInt:string:`; the specific rules are
   described in the documentation.
 
-  Finally, Swift initializers now introduce Objective-C entry points,
+  Finally, Codira initializers now introduce Objective-C entry points,
   so a declaration such as:
 
-    ```swift
+    ```language
     class X : NSObject {
       init() {
         super.init()
@@ -10166,7 +10285,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * Generic unions with a single payload case and any number of empty cases
   are now implemented, for example:
 
-    ```swift
+    ```language
     union Maybe<T> {
       case Some(T)
       case None
@@ -10186,15 +10305,15 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * The implementation now supports partial application of class and struct
   methods:
 
-    ```swift
-    (swift) class B { func foo() { println("B") } }
-    (swift) class D : B { func foo() { println("D") } }
-    (swift) var foo = B().foo
+    ```language
+    (language) class B { fn foo() { println("B") } }
+    (language) class D : B { fn foo() { println("D") } }
+    (language) var foo = B().foo
     // foo : () -> () = <unprintable value>
-    (swift) foo()
+    (language) foo()
     B
-    (swift) foo = D().foo
-    (swift) foo()
+    (language) foo = D().foo
+    (language) foo()
     D
     ```
 
@@ -10208,7 +10327,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   paths leading to a use of the variable.  This means that constructs like this
   are now allowed:
 
-    ```swift
+    ```language
     var p : SomeProtocol
     if whatever {
       p = foo()
@@ -10223,7 +10342,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Since all local variables must be initialized before use, simple things like
   this are now rejected as well:
 
-    ```swift
+    ```language
     var x : Int
     print(x)
     ```
@@ -10243,12 +10362,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 * `this` has been renamed to `self`.  Similarly, `This` has been renamed to
   `Self`.
 
-* Swift now supports unions. Unlike C unions, Swift's `union` is type-safe
+* Codira now supports unions. Unlike C unions, Codira's `union` is type-safe
   and always knows what type it contains at runtime. Union members are labeled
   using `case` declarations; each case may have a different set of
   types or no type:
 
-    ```swift
+    ```language
     union MaybeInt {
       case Some(Int)
       case None
@@ -10264,7 +10383,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   Each `case` with a type defines a static constructor function for the union
   type. `case` declarations without types become static members:
 
-    ```swift
+    ```language
     var br = HTMLTag.BR
     var a = HTMLTag.A(href:"http://www.apple.com/")
     // 'HTMLTag' scope deduced for '.IMG' from context
@@ -10274,7 +10393,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Cases can be pattern-matched using `switch`:
 
-    ```swift
+    ```language
     switch tag {
     case .BR:
       println("<br>")
@@ -10287,38 +10406,38 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   Due to implementation limitations, recursive unions are not yet supported.
 
-* Swift now supports autolinking, so importing frameworks or Swift libraries
+* Codira now supports autolinking, so importing frameworks or Codira libraries
   should no longer require adding linker flags or modifying your project file.
 
 ### 2013-08-14
 
-* Swift now supports weak references by applying the `[weak]` attribute to a
+* Codira now supports weak references by applying the `[weak]` attribute to a
   variable declaration.
 
-    ```swift
-    (swift) var x = NSObject()
+    ```language
+    (language) var x = NSObject()
     // x : NSObject = <NSObject: 0x7f95d5804690>
-    (swift) var [weak] w = x
+    (language) var [weak] w = x
     // w : NSObject = <NSObject: 0x7f95d5804690>
-    (swift) w == nil
+    (language) w == nil
     // r2 : Bool = false
-    (swift) x = NSObject()
-    (swift) w == nil
+    (language) x = NSObject()
+    (language) w == nil
     // r3 : Bool = true
     ```
 
-  Swift also supports a special form of weak reference, called `[unowned]`, for
+  Codira also supports a special form of weak reference, called `[unowned]`, for
   references that should never be `nil` but are required to be weak to break
   cycles, such as parent or sibling references. Accessing an `[unowned]`
   reference asserts that the reference is still valid and implicitly promotes
   the loaded reference to a strong reference, so it does not need to be loaded
   and checked for nullness before use like a true `[weak]` reference.
 
-    ```swift
+    ```language
     class Parent {
       var children : Array<Child>
 
-      func addChild(c:Child) {
+      fn addChild(c:Child) {
         c.parent = this
         children.append(c)
       }
@@ -10333,7 +10452,7 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 * Numeric literals can now use underscores as separators. For example:
 
-    ```swift
+    ```language
     var billion = 1_000_000_000
     var crore = 1_00_00_000
     var MAXINT = 0x7FFF_FFFF_FFFF_FFFF
@@ -10353,25 +10472,25 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   `&+`, `&-`, `&*`, and `&/`, are defined to perform two's complement wrapping
   arithmetic for all signed and unsigned integer types.
 
-* Debugger support. Swift has a `-g` command line switch that turns on
+* Debugger support. Codira has a `-g` command line switch that turns on
   debug info for the compiled output. Using the standard lldb debugger
-  this will allow single-stepping through Swift programs, printing
+  this will allow single-stepping through Codira programs, printing
   backtraces, and navigating through stack frames; all in sync with
-  the corresponding Swift source code. An unmodified lldb cannot
+  the corresponding Codira source code. An unmodified lldb cannot
   inspect any variables.
 
   Example session:
 
     ```
-    $ echo 'println("Hello World")' >hello.swift
-    $ swift hello.swift -c -g -o hello.o
+    $ echo 'println("Hello World")' >hello.code
+    $ language hello.code -c -g -o hello.o
     $ ld hello.o "-dynamic" "-arch" "x86_64" "-macosx_version_min" "10.9.0" \
-         -framework Foundation lib/swift/libswift_stdlib_core.dylib \
-         lib/swift/libswift_stdlib_posix.dylib -lSystem -o hello
+         -framework Foundation lib/language/liblanguage_stdlib_core.dylib \
+         lib/language/liblanguage_stdlib_posix.dylib -lSystem -o hello
     $ lldb hello
     Current executable set to 'hello' (x86_64).
     (lldb) b top_level_code
-    Breakpoint 1: where = hello`top_level_code + 26 at hello.swift:1, addre...
+    Breakpoint 1: where = hello`top_level_code + 26 at hello.code:1, addre...
     (lldb) r
     Process 38592 launched: 'hello' (x86_64)
     Process 38592 stopped
@@ -10390,12 +10509,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 ### 2013-07-17
 
-* Swift now has a `switch` statement, supporting pattern matching of
+* Codira now has a `switch` statement, supporting pattern matching of
   multiple values with variable bindings, guard expressions, and range
   comparisons. For example:
 
-    ```swift
-    func classifyPoint(point:(Int, Int)) {
+    ```language
+    fn classifyPoint(point:(Int, Int)) {
       switch point {
       case (0, 0):
         println("origin")
@@ -10423,12 +10542,12 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
 ### 2013-07-10
 
-* Swift has a new closure syntax. The new syntax eliminates the use of
+* Codira has a new closure syntax. The new syntax eliminates the use of
   pipes. Instead, the closure signature is written the same way as a
   function type and is separated from the body by the `in`
   keyword. For example:
 
-    ```swift
+    ```language
     sort(fruits) { (lhs : String, rhs : String) -> Bool in
       return lhs > rhs
     }
@@ -10436,14 +10555,14 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
 
   When the types are omitted, one can also omit the parentheses, e.g.,
 
-    ```swift
+    ```language
     sort(fruits) { lhs, rhs in lhs > rhs }
     ```
 
   Closures with no parameters or that use the anonymous parameters
   (`$0`, `$1`, etc.) don't need the `in`, e.g.,
 
-    ```swift
+    ```language
     sort(fruits) { $0 > $1 }
     ```
 
@@ -10452,384 +10571,389 @@ using the `.dynamicType` member to retrieve the type of an expression should mig
   to create a `nil` `NSArray`. Now, `nil` picks up the type of its
   context.
 
-* `POSIX.EnvironmentVariables` and `swift.CommandLineArguments` global variables
-  were merged into a `swift.Process` variable.  Now you can access command line
+* `POSIX.EnvironmentVariables` and `language.CommandLineArguments` global variables
+  were merged into a `language.Process` variable.  Now you can access command line
   arguments with `Process.arguments`.  In order to access environment variables
   add `import POSIX` and use `Process.environmentVariables`.
 
 <!-- References -->
 
-[SE-0001]: <https://github.com/apple/swift-evolution/blob/main/proposals/0001-keywords-as-argument-labels.md>
-[SE-0002]: <https://github.com/apple/swift-evolution/blob/main/proposals/0002-remove-currying.md>
-[SE-0003]: <https://github.com/apple/swift-evolution/blob/main/proposals/0003-remove-var-parameters.md>
-[SE-0004]: <https://github.com/apple/swift-evolution/blob/main/proposals/0004-remove-pre-post-inc-decrement.md>
-[SE-0005]: <https://github.com/apple/swift-evolution/blob/main/proposals/0005-objective-c-name-translation.md>
-[SE-0006]: <https://github.com/apple/swift-evolution/blob/main/proposals/0006-apply-api-guidelines-to-the-standard-library.md>
-[SE-0007]: <https://github.com/apple/swift-evolution/blob/main/proposals/0007-remove-c-style-for-loops.md>
-[SE-0008]: <https://github.com/apple/swift-evolution/blob/main/proposals/0008-lazy-flatmap-for-optionals.md>
-[SE-0009]: <https://github.com/apple/swift-evolution/blob/main/proposals/0009-require-self-for-accessing-instance-members.md>
-[SE-0010]: <https://github.com/apple/swift-evolution/blob/main/proposals/0010-add-staticstring-unicodescalarview.md>
-[SE-0011]: <https://github.com/apple/swift-evolution/blob/main/proposals/0011-replace-typealias-associated.md>
-[SE-0012]: <https://github.com/apple/swift-evolution/blob/main/proposals/0012-add-noescape-to-public-library-api.md>
-[SE-0013]: <https://github.com/apple/swift-evolution/blob/main/proposals/0013-remove-partial-application-super.md>
-[SE-0014]: <https://github.com/apple/swift-evolution/blob/main/proposals/0014-constrained-AnySequence.md>
-[SE-0015]: <https://github.com/apple/swift-evolution/blob/main/proposals/0015-tuple-comparison-operators.md>
-[SE-0016]: <https://github.com/apple/swift-evolution/blob/main/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md>
-[SE-0017]: <https://github.com/apple/swift-evolution/blob/main/proposals/0017-convert-unmanaged-to-use-unsafepointer.md>
-[SE-0018]: <https://github.com/apple/swift-evolution/blob/main/proposals/0018-flexible-memberwise-initialization.md>
-[SE-0019]: <https://github.com/apple/swift-evolution/blob/main/proposals/0019-package-manager-testing.md>
-[SE-0020]: <https://github.com/apple/swift-evolution/blob/main/proposals/0020-if-swift-version.md>
-[SE-0021]: <https://github.com/apple/swift-evolution/blob/main/proposals/0021-generalized-naming.md>
-[SE-0022]: <https://github.com/apple/swift-evolution/blob/main/proposals/0022-objc-selectors.md>
-[SE-0023]: <https://github.com/apple/swift-evolution/blob/main/proposals/0023-api-guidelines.md>
-[SE-0024]: <https://github.com/apple/swift-evolution/blob/main/proposals/0024-optional-value-setter.md>
-[SE-0025]: <https://github.com/apple/swift-evolution/blob/main/proposals/0025-scoped-access-level.md>
-[SE-0026]: <https://github.com/apple/swift-evolution/blob/main/proposals/0026-abstract-classes-and-methods.md>
-[SE-0027]: <https://github.com/apple/swift-evolution/blob/main/proposals/0027-string-from-code-units.md>
-[SE-0028]: <https://github.com/apple/swift-evolution/blob/main/proposals/0028-modernizing-debug-identifiers.md>
-[SE-0029]: <https://github.com/apple/swift-evolution/blob/main/proposals/0029-remove-implicit-tuple-splat.md>
-[SE-0030]: <https://github.com/apple/swift-evolution/blob/main/proposals/0030-property-behavior-decls.md>
-[SE-0031]: <https://github.com/apple/swift-evolution/blob/main/proposals/0031-adjusting-inout-declarations.md>
-[SE-0032]: <https://github.com/apple/swift-evolution/blob/main/proposals/0032-sequencetype-find.md>
-[SE-0033]: <https://github.com/apple/swift-evolution/blob/main/proposals/0033-import-objc-constants.md>
-[SE-0034]: <https://github.com/apple/swift-evolution/blob/main/proposals/0034-disambiguating-line.md>
-[SE-0035]: <https://github.com/apple/swift-evolution/blob/main/proposals/0035-limit-inout-capture.md>
-[SE-0036]: <https://github.com/apple/swift-evolution/blob/main/proposals/0036-enum-dot.md>
-[SE-0037]: <https://github.com/apple/swift-evolution/blob/main/proposals/0037-clarify-comments-and-operators.md>
-[SE-0038]: <https://github.com/apple/swift-evolution/blob/main/proposals/0038-swiftpm-c-language-targets.md>
-[SE-0039]: <https://github.com/apple/swift-evolution/blob/main/proposals/0039-playgroundliterals.md>
-[SE-0040]: <https://github.com/apple/swift-evolution/blob/main/proposals/0040-attributecolons.md>
-[SE-0041]: <https://github.com/apple/swift-evolution/blob/main/proposals/0041-conversion-protocol-conventions.md>
-[SE-0042]: <https://github.com/apple/swift-evolution/blob/main/proposals/0042-flatten-method-types.md>
-[SE-0043]: <https://github.com/apple/swift-evolution/blob/main/proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md>
-[SE-0044]: <https://github.com/apple/swift-evolution/blob/main/proposals/0044-import-as-member.md>
-[SE-0045]: <https://github.com/apple/swift-evolution/blob/main/proposals/0045-scan-takewhile-dropwhile.md>
-[SE-0046]: <https://github.com/apple/swift-evolution/blob/main/proposals/0046-first-label.md>
-[SE-0047]: <https://github.com/apple/swift-evolution/blob/main/proposals/0047-nonvoid-warn.md>
-[SE-0048]: <https://github.com/apple/swift-evolution/blob/main/proposals/0048-generic-typealias.md>
-[SE-0049]: <https://github.com/apple/swift-evolution/blob/main/proposals/0049-noescape-autoclosure-type-attrs.md>
-[SE-0050]: <https://github.com/apple/swift-evolution/blob/main/proposals/0050-floating-point-stride.md>
-[SE-0051]: <https://github.com/apple/swift-evolution/blob/main/proposals/0051-stride-semantics.md>
-[SE-0052]: <https://github.com/apple/swift-evolution/blob/main/proposals/0052-iterator-post-nil-guarantee.md>
-[SE-0053]: <https://github.com/apple/swift-evolution/blob/main/proposals/0053-remove-let-from-function-parameters.md>
-[SE-0054]: <https://github.com/apple/swift-evolution/blob/main/proposals/0054-abolish-iuo.md>
-[SE-0055]: <https://github.com/apple/swift-evolution/blob/main/proposals/0055-optional-unsafe-pointers.md>
-[SE-0056]: <https://github.com/apple/swift-evolution/blob/main/proposals/0056-trailing-closures-in-guard.md>
-[SE-0057]: <https://github.com/apple/swift-evolution/blob/main/proposals/0057-importing-objc-generics.md>
-[SE-0058]: <https://github.com/apple/swift-evolution/blob/main/proposals/0058-objectivecbridgeable.md>
-[SE-0059]: <https://github.com/apple/swift-evolution/blob/main/proposals/0059-updated-set-apis.md>
-[SE-0060]: <https://github.com/apple/swift-evolution/blob/main/proposals/0060-defaulted-parameter-order.md>
-[SE-0061]: <https://github.com/apple/swift-evolution/blob/main/proposals/0061-autoreleasepool-signature.md>
-[SE-0062]: <https://github.com/apple/swift-evolution/blob/main/proposals/0062-objc-keypaths.md>
-[SE-0063]: <https://github.com/apple/swift-evolution/blob/main/proposals/0063-swiftpm-system-module-search-paths.md>
-[SE-0064]: <https://github.com/apple/swift-evolution/blob/main/proposals/0064-property-selectors.md>
-[SE-0065]: <https://github.com/apple/swift-evolution/blob/main/proposals/0065-collections-move-indices.md>
-[SE-0066]: <https://github.com/apple/swift-evolution/blob/main/proposals/0066-standardize-function-type-syntax.md>
-[SE-0067]: <https://github.com/apple/swift-evolution/blob/main/proposals/0067-floating-point-protocols.md>
-[SE-0068]: <https://github.com/apple/swift-evolution/blob/main/proposals/0068-universal-self.md>
-[SE-0069]: <https://github.com/apple/swift-evolution/blob/main/proposals/0069-swift-mutability-for-foundation.md>
-[SE-0070]: <https://github.com/apple/swift-evolution/blob/main/proposals/0070-optional-requirements.md>
-[SE-0071]: <https://github.com/apple/swift-evolution/blob/main/proposals/0071-member-keywords.md>
-[SE-0072]: <https://github.com/apple/swift-evolution/blob/main/proposals/0072-eliminate-implicit-bridging-conversions.md>
-[SE-0073]: <https://github.com/apple/swift-evolution/blob/main/proposals/0073-noescape-once.md>
-[SE-0074]: <https://github.com/apple/swift-evolution/blob/main/proposals/0074-binary-search.md>
-[SE-0075]: <https://github.com/apple/swift-evolution/blob/main/proposals/0075-import-test.md>
-[SE-0076]: <https://github.com/apple/swift-evolution/blob/main/proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md>
-[SE-0077]: <https://github.com/apple/swift-evolution/blob/main/proposals/0077-operator-precedence.md>
-[SE-0078]: <https://github.com/apple/swift-evolution/blob/main/proposals/0078-rotate-algorithm.md>
-[SE-0079]: <https://github.com/apple/swift-evolution/blob/main/proposals/0079-upgrade-self-from-weak-to-strong.md>
-[SE-0080]: <https://github.com/apple/swift-evolution/blob/main/proposals/0080-failable-numeric-initializers.md>
-[SE-0081]: <https://github.com/apple/swift-evolution/blob/main/proposals/0081-move-where-expression.md>
-[SE-0082]: <https://github.com/apple/swift-evolution/blob/main/proposals/0082-swiftpm-package-edit.md>
-[SE-0083]: <https://github.com/apple/swift-evolution/blob/main/proposals/0083-remove-bridging-from-dynamic-casts.md>
-[SE-0084]: <https://github.com/apple/swift-evolution/blob/main/proposals/0084-trailing-commas.md>
-[SE-0085]: <https://github.com/apple/swift-evolution/blob/main/proposals/0085-package-manager-command-name.md>
-[SE-0086]: <https://github.com/apple/swift-evolution/blob/main/proposals/0086-drop-foundation-ns.md>
-[SE-0087]: <https://github.com/apple/swift-evolution/blob/main/proposals/0087-lazy-attribute.md>
-[SE-0088]: <https://github.com/apple/swift-evolution/blob/main/proposals/0088-libdispatch-for-swift3.md>
-[SE-0089]: <https://github.com/apple/swift-evolution/blob/main/proposals/0089-rename-string-reflection-init.md>
-[SE-0090]: <https://github.com/apple/swift-evolution/blob/main/proposals/0090-remove-dot-self.md>
-[SE-0091]: <https://github.com/apple/swift-evolution/blob/main/proposals/0091-improving-operators-in-protocols.md>
-[SE-0092]: <https://github.com/apple/swift-evolution/blob/main/proposals/0092-typealiases-in-protocols.md>
-[SE-0093]: <https://github.com/apple/swift-evolution/blob/main/proposals/0093-slice-base.md>
-[SE-0094]: <https://github.com/apple/swift-evolution/blob/main/proposals/0094-sequence-function.md>
-[SE-0095]: <https://github.com/apple/swift-evolution/blob/main/proposals/0095-any-as-existential.md>
-[SE-0096]: <https://github.com/apple/swift-evolution/blob/main/proposals/0096-dynamictype.md>
-[SE-0097]: <https://github.com/apple/swift-evolution/blob/main/proposals/0097-negative-attributes.md>
-[SE-0098]: <https://github.com/apple/swift-evolution/blob/main/proposals/0098-didset-capitalization.md>
-[SE-0099]: <https://github.com/apple/swift-evolution/blob/main/proposals/0099-conditionclauses.md>
-[SE-0100]: <https://github.com/apple/swift-evolution/blob/main/proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md>
-[SE-0101]: <https://github.com/apple/swift-evolution/blob/main/proposals/0101-standardizing-sizeof-naming.md>
-[SE-0102]: <https://github.com/apple/swift-evolution/blob/main/proposals/0102-noreturn-bottom-type.md>
-[SE-0103]: <https://github.com/apple/swift-evolution/blob/main/proposals/0103-make-noescape-default.md>
-[SE-0104]: <https://github.com/apple/swift-evolution/blob/main/proposals/0104-improved-integers.md>
-[SE-0105]: <https://github.com/apple/swift-evolution/blob/main/proposals/0105-remove-where-from-forin-loops.md>
-[SE-0106]: <https://github.com/apple/swift-evolution/blob/main/proposals/0106-rename-osx-to-macos.md>
-[SE-0107]: <https://github.com/apple/swift-evolution/blob/main/proposals/0107-unsaferawpointer.md>
-[SE-0108]: <https://github.com/apple/swift-evolution/blob/main/proposals/0108-remove-assoctype-inference.md>
-[SE-0109]: <https://github.com/apple/swift-evolution/blob/main/proposals/0109-remove-boolean.md>
-[SE-0110]: <https://github.com/apple/swift-evolution/blob/main/proposals/0110-distinguish-single-tuple-arg.md>
-[SE-0111]: <https://github.com/apple/swift-evolution/blob/main/proposals/0111-remove-arg-label-type-significance.md>
-[SE-0112]: <https://github.com/apple/swift-evolution/blob/main/proposals/0112-nserror-bridging.md>
-[SE-0113]: <https://github.com/apple/swift-evolution/blob/main/proposals/0113-rounding-functions-on-floatingpoint.md>
-[SE-0114]: <https://github.com/apple/swift-evolution/blob/main/proposals/0114-buffer-naming.md>
-[SE-0115]: <https://github.com/apple/swift-evolution/blob/main/proposals/0115-literal-syntax-protocols.md>
-[SE-0116]: <https://github.com/apple/swift-evolution/blob/main/proposals/0116-id-as-any.md>
-[SE-0117]: <https://github.com/apple/swift-evolution/blob/main/proposals/0117-non-public-subclassable-by-default.md>
-[SE-0118]: <https://github.com/apple/swift-evolution/blob/main/proposals/0118-closure-parameter-names-and-labels.md>
-[SE-0119]: <https://github.com/apple/swift-evolution/blob/main/proposals/0119-extensions-access-modifiers.md>
-[SE-0120]: <https://github.com/apple/swift-evolution/blob/main/proposals/0120-revise-partition-method.md>
-[SE-0121]: <https://github.com/apple/swift-evolution/blob/main/proposals/0121-remove-optional-comparison-operators.md>
-[SE-0122]: <https://github.com/apple/swift-evolution/blob/main/proposals/0122-use-colons-for-subscript-type-declarations.md>
-[SE-0123]: <https://github.com/apple/swift-evolution/blob/main/proposals/0123-disallow-value-to-optional-coercion-in-operator-arguments.md>
-[SE-0124]: <https://github.com/apple/swift-evolution/blob/main/proposals/0124-bitpattern-label-for-int-initializer-objectidentfier.md>
-[SE-0125]: <https://github.com/apple/swift-evolution/blob/main/proposals/0125-remove-nonobjectivecbase.md>
-[SE-0126]: <https://github.com/apple/swift-evolution/blob/main/proposals/0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md>
-[SE-0127]: <https://github.com/apple/swift-evolution/blob/main/proposals/0127-cleaning-up-stdlib-ptr-buffer.md>
-[SE-0128]: <https://github.com/apple/swift-evolution/blob/main/proposals/0128-unicodescalar-failable-initializer.md>
-[SE-0129]: <https://github.com/apple/swift-evolution/blob/main/proposals/0129-package-manager-test-naming-conventions.md>
-[SE-0130]: <https://github.com/apple/swift-evolution/blob/main/proposals/0130-string-initializers-cleanup.md>
-[SE-0131]: <https://github.com/apple/swift-evolution/blob/main/proposals/0131-anyhashable.md>
-[SE-0132]: <https://github.com/apple/swift-evolution/blob/main/proposals/0132-sequence-end-ops.md>
-[SE-0133]: <https://github.com/apple/swift-evolution/blob/main/proposals/0133-rename-flatten-to-joined.md>
-[SE-0134]: <https://github.com/apple/swift-evolution/blob/main/proposals/0134-rename-string-properties.md>
-[SE-0135]: <https://github.com/apple/swift-evolution/blob/main/proposals/0135-package-manager-support-for-differentiating-packages-by-swift-version.md>
-[SE-0136]: <https://github.com/apple/swift-evolution/blob/main/proposals/0136-memory-layout-of-values.md>
-[SE-0137]: <https://github.com/apple/swift-evolution/blob/main/proposals/0137-avoiding-lock-in.md>
-[SE-0138]: <https://github.com/apple/swift-evolution/blob/main/proposals/0138-unsaferawbufferpointer.md>
-[SE-0139]: <https://github.com/apple/swift-evolution/blob/main/proposals/0139-bridge-nsnumber-and-nsvalue.md>
-[SE-0140]: <https://github.com/apple/swift-evolution/blob/main/proposals/0140-bridge-optional-to-nsnull.md>
-[SE-0141]: <https://github.com/apple/swift-evolution/blob/main/proposals/0141-available-by-swift-version.md>
-[SE-0142]: <https://github.com/apple/swift-evolution/blob/main/proposals/0142-associated-types-constraints.md>
-[SE-0143]: <https://github.com/apple/swift-evolution/blob/main/proposals/0143-conditional-conformances.md>
-[SE-0144]: <https://github.com/apple/swift-evolution/blob/main/proposals/0144-allow-single-dollar-sign-as-valid-identifier.md>
-[SE-0145]: <https://github.com/apple/swift-evolution/blob/main/proposals/0145-package-manager-version-pinning.md>
-[SE-0146]: <https://github.com/apple/swift-evolution/blob/main/proposals/0146-package-manager-product-definitions.md>
-[SE-0147]: <https://github.com/apple/swift-evolution/blob/main/proposals/0147-move-unsafe-initialize-from.md>
-[SE-0148]: <https://github.com/apple/swift-evolution/blob/main/proposals/0148-generic-subscripts.md>
-[SE-0149]: <https://github.com/apple/swift-evolution/blob/main/proposals/0149-package-manager-top-of-tree.md>
-[SE-0150]: <https://github.com/apple/swift-evolution/blob/main/proposals/0150-package-manager-branch-support.md>
-[SE-0151]: <https://github.com/apple/swift-evolution/blob/main/proposals/0151-package-manager-swift-language-compatibility-version.md>
-[SE-0152]: <https://github.com/apple/swift-evolution/blob/main/proposals/0152-package-manager-tools-version.md>
-[SE-0153]: <https://github.com/apple/swift-evolution/blob/main/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md>
-[SE-0154]: <https://github.com/apple/swift-evolution/blob/main/proposals/0154-dictionary-key-and-value-collections.md>
-[SE-0155]: <https://github.com/apple/swift-evolution/blob/main/proposals/0155-normalize-enum-case-representation.md>
-[SE-0156]: <https://github.com/apple/swift-evolution/blob/main/proposals/0156-subclass-existentials.md>
-[SE-0157]: <https://github.com/apple/swift-evolution/blob/main/proposals/0157-recursive-protocol-constraints.md>
-[SE-0158]: <https://github.com/apple/swift-evolution/blob/main/proposals/0158-package-manager-manifest-api-redesign.md>
-[SE-0159]: <https://github.com/apple/swift-evolution/blob/main/proposals/0159-fix-private-access-levels.md>
-[SE-0160]: <https://github.com/apple/swift-evolution/blob/main/proposals/0160-objc-inference.md>
-[SE-0161]: <https://github.com/apple/swift-evolution/blob/main/proposals/0161-key-paths.md>
-[SE-0162]: <https://github.com/apple/swift-evolution/blob/main/proposals/0162-package-manager-custom-target-layouts.md>
-[SE-0163]: <https://github.com/apple/swift-evolution/blob/main/proposals/0163-string-revision-1.md>
-[SE-0164]: <https://github.com/apple/swift-evolution/blob/main/proposals/0164-remove-final-support-in-protocol-extensions.md>
-[SE-0165]: <https://github.com/apple/swift-evolution/blob/main/proposals/0165-dict.md>
-[SE-0166]: <https://github.com/apple/swift-evolution/blob/main/proposals/0166-swift-archival-serialization.md>
-[SE-0167]: <https://github.com/apple/swift-evolution/blob/main/proposals/0167-swift-encoders.md>
-[SE-0168]: <https://github.com/apple/swift-evolution/blob/main/proposals/0168-multi-line-string-literals.md>
-[SE-0169]: <https://github.com/apple/swift-evolution/blob/main/proposals/0169-improve-interaction-between-private-declarations-and-extensions.md>
-[SE-0170]: <https://github.com/apple/swift-evolution/blob/main/proposals/0170-nsnumber_bridge.md>
-[SE-0171]: <https://github.com/apple/swift-evolution/blob/main/proposals/0171-reduce-with-inout.md>
-[SE-0172]: <https://github.com/apple/swift-evolution/blob/main/proposals/0172-one-sided-ranges.md>
-[SE-0173]: <https://github.com/apple/swift-evolution/blob/main/proposals/0173-swap-indices.md>
-[SE-0174]: <https://github.com/apple/swift-evolution/blob/main/proposals/0174-filter-range-replaceable.md>
-[SE-0175]: <https://github.com/apple/swift-evolution/blob/main/proposals/0175-package-manager-revised-dependency-resolution.md>
-[SE-0176]: <https://github.com/apple/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md>
-[SE-0177]: <https://github.com/apple/swift-evolution/blob/main/proposals/0177-add-clamped-to-method.md>
-[SE-0178]: <https://github.com/apple/swift-evolution/blob/main/proposals/0178-character-unicode-view.md>
-[SE-0179]: <https://github.com/apple/swift-evolution/blob/main/proposals/0179-swift-run-command.md>
-[SE-0180]: <https://github.com/apple/swift-evolution/blob/main/proposals/0180-string-index-overhaul.md>
-[SE-0181]: <https://github.com/apple/swift-evolution/blob/main/proposals/0181-package-manager-cpp-language-version.md>
-[SE-0182]: <https://github.com/apple/swift-evolution/blob/main/proposals/0182-newline-escape-in-strings.md>
-[SE-0183]: <https://github.com/apple/swift-evolution/blob/main/proposals/0183-substring-affordances.md>
-[SE-0184]: <https://github.com/apple/swift-evolution/blob/main/proposals/0184-unsafe-pointers-add-missing.md>
-[SE-0185]: <https://github.com/apple/swift-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md>
-[SE-0186]: <https://github.com/apple/swift-evolution/blob/main/proposals/0186-remove-ownership-keyword-support-in-protocols.md>
-[SE-0187]: <https://github.com/apple/swift-evolution/blob/main/proposals/0187-introduce-filtermap.md>
-[SE-0188]: <https://github.com/apple/swift-evolution/blob/main/proposals/0188-stdlib-index-types-hashable.md>
-[SE-0189]: <https://github.com/apple/swift-evolution/blob/main/proposals/0189-restrict-cross-module-struct-initializers.md>
-[SE-0190]: <https://github.com/apple/swift-evolution/blob/main/proposals/0190-target-environment-platform-condition.md>
-[SE-0191]: <https://github.com/apple/swift-evolution/blob/main/proposals/0191-eliminate-indexdistance.md>
-[SE-0192]: <https://github.com/apple/swift-evolution/blob/main/proposals/0192-non-exhaustive-enums.md>
-[SE-0193]: <https://github.com/apple/swift-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md>
-[SE-0194]: <https://github.com/apple/swift-evolution/blob/main/proposals/0194-derived-collection-of-enum-cases.md>
-[SE-0195]: <https://github.com/apple/swift-evolution/blob/main/proposals/0195-dynamic-member-lookup.md>
-[SE-0196]: <https://github.com/apple/swift-evolution/blob/main/proposals/0196-diagnostic-directives.md>
-[SE-0197]: <https://github.com/apple/swift-evolution/blob/main/proposals/0197-remove-where.md>
-[SE-0198]: <https://github.com/apple/swift-evolution/blob/main/proposals/0198-playground-quicklook-api-revamp.md>
-[SE-0199]: <https://github.com/apple/swift-evolution/blob/main/proposals/0199-bool-toggle.md>
-[SE-0200]: <https://github.com/apple/swift-evolution/blob/main/proposals/0200-raw-string-escaping.md>
-[SE-0201]: <https://github.com/apple/swift-evolution/blob/main/proposals/0201-package-manager-local-dependencies.md>
-[SE-0202]: <https://github.com/apple/swift-evolution/blob/main/proposals/0202-random-unification.md>
-[SE-0203]: <https://github.com/apple/swift-evolution/blob/main/proposals/0203-rename-sequence-elements-equal.md>
-[SE-0204]: <https://github.com/apple/swift-evolution/blob/main/proposals/0204-add-last-methods.md>
-[SE-0205]: <https://github.com/apple/swift-evolution/blob/main/proposals/0205-withUnsafePointer-for-lets.md>
-[SE-0206]: <https://github.com/apple/swift-evolution/blob/main/proposals/0206-hashable-enhancements.md>
-[SE-0207]: <https://github.com/apple/swift-evolution/blob/main/proposals/0207-containsOnly.md>
-[SE-0208]: <https://github.com/apple/swift-evolution/blob/main/proposals/0208-package-manager-system-library-targets.md>
-[SE-0209]: <https://github.com/apple/swift-evolution/blob/main/proposals/0209-package-manager-swift-lang-version-update.md>
-[SE-0210]: <https://github.com/apple/swift-evolution/blob/main/proposals/0210-key-path-offset.md>
-[SE-0211]: <https://github.com/apple/swift-evolution/blob/main/proposals/0211-unicode-scalar-properties.md>
-[SE-0212]: <https://github.com/apple/swift-evolution/blob/main/proposals/0212-compiler-version-directive.md>
-[SE-0213]: <https://github.com/apple/swift-evolution/blob/main/proposals/0213-literal-init-via-coercion.md>
-[SE-0214]: <https://github.com/apple/swift-evolution/blob/main/proposals/0214-DictionaryLiteral.md>
-[SE-0215]: <https://github.com/apple/swift-evolution/blob/main/proposals/0215-conform-never-to-hashable-and-equatable.md>
-[SE-0216]: <https://github.com/apple/swift-evolution/blob/main/proposals/0216-dynamic-callable.md>
-[SE-0217]: <https://github.com/apple/swift-evolution/blob/main/proposals/0217-bangbang.md>
-[SE-0218]: <https://github.com/apple/swift-evolution/blob/main/proposals/0218-introduce-compact-map-values.md>
-[SE-0219]: <https://github.com/apple/swift-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md>
-[SE-0220]: <https://github.com/apple/swift-evolution/blob/main/proposals/0220-count-where.md>
-[SE-0221]: <https://github.com/apple/swift-evolution/blob/main/proposals/0221-character-properties.md>
-[SE-0222]: <https://github.com/apple/swift-evolution/blob/main/proposals/0222-lazy-compactmap-sequence.md>
-[SE-0223]: <https://github.com/apple/swift-evolution/blob/main/proposals/0223-array-uninitialized-initializer.md>
-[SE-0224]: <https://github.com/apple/swift-evolution/blob/main/proposals/0224-ifswift-lessthan-operator.md>
-[SE-0225]: <https://github.com/apple/swift-evolution/blob/main/proposals/0225-binaryinteger-iseven-isodd-ismultiple.md>
-[SE-0226]: <https://github.com/apple/swift-evolution/blob/main/proposals/0226-package-manager-target-based-dep-resolution.md>
-[SE-0227]: <https://github.com/apple/swift-evolution/blob/main/proposals/0227-identity-keypath.md>
-[SE-0228]: <https://github.com/apple/swift-evolution/blob/main/proposals/0228-fix-expressiblebystringinterpolation.md>
-[SE-0230]: <https://github.com/apple/swift-evolution/blob/main/proposals/0230-flatten-optional-try.md>
-[SE-0235]: <https://github.com/apple/swift-evolution/blob/main/proposals/0235-add-result.md>
-[SE-0242]: <https://github.com/apple/swift-evolution/blob/main/proposals/0242-default-values-memberwise.md>
-[SE-0244]: <https://github.com/apple/swift-evolution/blob/main/proposals/0244-opaque-result-types.md>
-[SE-0245]: <https://github.com/apple/swift-evolution/blob/main/proposals/0245-array-uninitialized-initializer.md>
-[SE-0249]: <https://github.com/apple/swift-evolution/blob/main/proposals/0249-key-path-literal-function-expressions.md>
-[SE-0252]: <https://github.com/apple/swift-evolution/blob/main/proposals/0252-keypath-dynamic-member-lookup.md>
-[SE-0253]: <https://github.com/apple/swift-evolution/blob/main/proposals/0253-callable.md>
-[SE-0254]: <https://github.com/apple/swift-evolution/blob/main/proposals/0254-static-subscripts.md>
-[SE-0266]: <https://github.com/apple/swift-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md>
-[SE-0267]: <https://github.com/apple/swift-evolution/blob/main/proposals/0267-where-on-contextually-generic.md>
-[SE-0268]: <https://github.com/apple/swift-evolution/blob/main/proposals/0268-didset-semantics.md>
-[SE-0269]: <https://github.com/apple/swift-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md>
-[SE-0270]: <https://github.com/apple/swift-evolution/blob/main/proposals/0270-rangeset-and-collection-operations.md>
-[SE-0274]: <https://github.com/apple/swift-evolution/blob/main/proposals/0274-magic-file.md>
-[SE-0276]: <https://github.com/apple/swift-evolution/blob/main/proposals/0276-multi-pattern-catch-clauses.md>
-[SE-0279]: <https://github.com/apple/swift-evolution/blob/main/proposals/0279-multiple-trailing-closures.md>
-[SE-0280]: <https://github.com/apple/swift-evolution/blob/main/proposals/0280-enum-cases-as-protocol-witnesses.md>
-[SE-0284]: <https://github.com/apple/swift-evolution/blob/main/proposals/0284-multiple-variadic-parameters.md>
-[SE-0286]: <https://github.com/apple/swift-evolution/blob/main/proposals/0286-forward-scan-trailing-closures.md>
-[SE-0287]: <https://github.com/apple/swift-evolution/blob/main/proposals/0287-implicit-member-chains.md>
-[SE-0290]: <https://github.com/apple/swift-evolution/blob/main/proposals/0290-negative-availability.md>
-[SE-0293]: <https://github.com/apple/swift-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md>
-[SE-0296]: <https://github.com/apple/swift-evolution/blob/main/proposals/0296-async-await.md>
-[SE-0297]: <https://github.com/apple/swift-evolution/blob/main/proposals/0297-concurrency-objc.md>
-[SE-0298]: <https://github.com/apple/swift-evolution/blob/main/proposals/0298-asyncsequence.md>
-[SE-0299]: <https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md>
-[SE-0300]: <https://github.com/apple/swift-evolution/blob/main/proposals/0300-continuation.md>
-[SE-0302]: <https://github.com/apple/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md>
-[SE-0306]: <https://github.com/apple/swift-evolution/blob/main/proposals/0306-actors.md>
-[SE-0309]: <https://github.com/apple/swift-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md>
-[SE-0310]: <https://github.com/apple/swift-evolution/blob/main/proposals/0310-effectful-readonly-properties.md>
-[SE-0311]: <https://github.com/apple/swift-evolution/blob/main/proposals/0311-task-locals.md>
-[SE-0313]: <https://github.com/apple/swift-evolution/blob/main/proposals/0313-actor-isolation-control.md>
-[SE-0315]: <https://github.com/apple/swift-evolution/blob/main/proposals/0315-placeholder-types.md>
-[SE-0316]: <https://github.com/apple/swift-evolution/blob/main/proposals/0316-global-actors.md>
-[SE-0320]: <https://github.com/apple/swift-evolution/blob/main/proposals/0320-codingkeyrepresentable.md>
-[SE-0322]: <https://github.com/apple/swift-evolution/blob/main/proposals/0322-temporary-buffers.md>
-[SE-0323]: <https://github.com/apple/swift-evolution/blob/main/proposals/0323-async-main-semantics.md>
-[SE-0324]: <https://github.com/apple/swift-evolution/blob/main/proposals/0324-c-lang-pointer-arg-conversion.md>
-[SE-0326]: <https://github.com/apple/swift-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md>
-[SE-0327]: <https://github.com/apple/swift-evolution/blob/main/proposals/0327-actor-initializers.md>
-[SE-0328]: <https://github.com/apple/swift-evolution/blob/main/proposals/0328-structural-opaque-result-types.md>
-[SE-0329]: <https://github.com/apple/swift-evolution/blob/main/proposals/0329-clock-instant-duration.md>
-[SE-0331]: <https://github.com/apple/swift-evolution/blob/main/proposals/0331-remove-sendable-from-unsafepointer.md>
-[SE-0333]: <https://github.com/apple/swift-evolution/blob/main/proposals/0333-with-memory-rebound.md>
-[SE-0334]: <https://github.com/apple/swift-evolution/blob/main/proposals/0334-pointer-usability-improvements.md>
-[SE-0335]: <https://github.com/apple/swift-evolution/blob/main/proposals/0335-existential-any.md>
-[SE-0336]: <https://github.com/apple/swift-evolution/blob/main/proposals/0336-distributed-actor-isolation.md>
-[SE-0337]: <https://github.com/apple/swift-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md>
-[SE-0338]: <https://github.com/apple/swift-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md>
-[SE-0340]: <https://github.com/apple/swift-evolution/blob/main/proposals/0340-swift-noasync.md>
-[SE-0341]: <https://github.com/apple/swift-evolution/blob/main/proposals/0341-opaque-parameters.md>
-[SE-0343]: <https://github.com/apple/swift-evolution/blob/main/proposals/0343-top-level-concurrency.md>
-[SE-0345]: <https://github.com/apple/swift-evolution/blob/main/proposals/0345-if-let-shorthand.md>
-[SE-0346]: <https://github.com/apple/swift-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md>
-[SE-0347]: <https://github.com/apple/swift-evolution/blob/main/proposals/0347-type-inference-from-default-exprs.md>
-[SE-0349]: <https://github.com/apple/swift-evolution/blob/main/proposals/0349-unaligned-loads-and-stores.md>
-[SE-0350]: <https://github.com/apple/swift-evolution/blob/main/proposals/0350-regex-type-overview.md>
-[SE-0352]: <https://github.com/apple/swift-evolution/blob/main/proposals/0352-implicit-open-existentials.md>
-[SE-0353]: <https://github.com/apple/swift-evolution/blob/main/proposals/0353-constrained-existential-types.md>
-[SE-0354]: <https://github.com/apple/swift-evolution/blob/main/proposals/0354-regex-literals.md>
-[SE-0355]: <https://github.com/apple/swift-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md>
-[SE-0357]: <https://github.com/apple/swift-evolution/blob/main/proposals/0357-regex-string-processing-algorithms.md>
-[SE-0358]: <https://github.com/apple/swift-evolution/blob/main/proposals/0358-primary-associated-types-in-stdlib.md>
-[SE-0362]: <https://github.com/apple/swift-evolution/blob/main/proposals/0362-piecemeal-future-features.md>
-[SE-0365]: <https://github.com/apple/swift-evolution/blob/main/proposals/0365-implicit-self-weak-capture.md>
-[SE-0366]: <https://github.com/apple/swift-evolution/blob/main/proposals/0366-move-function.md>
-[SE-0370]: <https://github.com/apple/swift-evolution/blob/main/proposals/0370-pointer-family-initialization-improvements.md>
-[SE-0376]: <https://github.com/apple/swift-evolution/blob/main/proposals/0376-function-back-deployment.md>
-[SE-0377]: <https://github.com/apple/swift-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md>
-[SE-0380]: <https://github.com/apple/swift-evolution/blob/main/proposals/0380-if-switch-expressions.md>
-[SE-0382]: https://github.com/apple/swift-evolution/blob/main/proposals/0382-expression-macros.md
-[SE-0389]: https://github.com/apple/swift-evolution/blob/main/proposals/0389-attached-macros.md
-[SE-0394]: https://github.com/apple/swift-evolution/blob/main/proposals/0394-swiftpm-expression-macros.md
-[SE-0397]: https://github.com/apple/swift-evolution/blob/main/proposals/0397-freestanding-declaration-macros.md
-[SE-0407]: https://github.com/apple/swift-evolution/blob/main/proposals/0407-member-macro-conformances.md
-[SE-0408]: https://github.com/apple/swift-evolution/blob/main/proposals/0408-pack-iteration.md
-[SE-0411]: https://github.com/apple/swift-evolution/blob/main/proposals/0411-isolated-default-values.md
-[SE-0412]: https://github.com/apple/swift-evolution/blob/main/proposals/0412-strict-concurrency-for-global-variables.md
-[SE-0413]: https://github.com/apple/swift-evolution/blob/main/proposals/0413-typed-throws.md
-[SE-0414]: https://github.com/apple/swift-evolution/blob/main/proposals/0414-region-based-isolation.md
-[SE-0417]: https://github.com/apple/swift-evolution/blob/main/proposals/0417-task-executor-preference.md
-[SE-0418]: https://github.com/apple/swift-evolution/blob/main/proposals/0418-inferring-sendable-for-methods.md
-[SE-0420]: https://github.com/apple/swift-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md
-[SE-0422]: https://github.com/apple/swift-evolution/blob/main/proposals/0422-caller-side-default-argument-macro-expression.md
-[SE-0423]: https://github.com/apple/swift-evolution/blob/main/proposals/0423-dynamic-actor-isolation.md
-[SE-0427]: https://github.com/apple/swift-evolution/blob/main/proposals/0427-noncopyable-generics.md
-[SE-0429]: https://github.com/apple/swift-evolution/blob/main/proposals/0429-partial-consumption.md
-[SE-0432]: https://github.com/apple/swift-evolution/blob/main/proposals/0432-noncopyable-switch.md
-[SE-0430]: https://github.com/apple/swift-evolution/blob/main/proposals/0430-transferring-parameters-and-results.md
-[SE-0418]: https://github.com/apple/swift-evolution/blob/main/proposals/0418-inferring-sendable-for-methods.md
-[SE-0419]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0419-backtrace-api.md
-[SE-0423]: https://github.com/apple/swift-evolution/blob/main/proposals/0423-dynamic-actor-isolation.md
-[SE-0424]: https://github.com/apple/swift-evolution/blob/main/proposals/0424-custom-isolation-checking-for-serialexecutor.md
-[SE-0428]: https://github.com/apple/swift-evolution/blob/main/proposals/0428-resolve-distributed-actor-protocols.md
-[SE-0431]: https://github.com/apple/swift-evolution/blob/main/proposals/0431-isolated-any-functions.md
-[SE-0442]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0442-allow-taskgroup-childtaskresult-type-to-be-inferred.md
-[SE-0444]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
-[SE-0458]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0458-strict-memory-safety.md
-[SE-0470]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0470-isolated-conformances.md
-[#64927]: <https://github.com/apple/swift/issues/64927>
-[#42697]: <https://github.com/apple/swift/issues/42697>
-[#42728]: <https://github.com/apple/swift/issues/42728>
-[#43036]: <https://github.com/apple/swift/issues/43036>
-[#43248]: <https://github.com/apple/swift/issues/43248>
-[#43310]: <https://github.com/apple/swift/issues/43310>
-[#43621]: <https://github.com/apple/swift/issues/43621>
-[#44055]: <https://github.com/apple/swift/issues/44055>
-[#44138]: <https://github.com/apple/swift/issues/44138>
-[#44739]: <https://github.com/apple/swift/issues/44739>
-[#44784]: <https://github.com/apple/swift/issues/44784>
-[#44797]: <https://github.com/apple/swift/issues/44797>
-[#44995]: <https://github.com/apple/swift/issues/44995>
-[#45001]: <https://github.com/apple/swift/issues/45001>
-[#45213]: <https://github.com/apple/swift/issues/45213>
-[#45277]: <https://github.com/apple/swift/issues/45277>
-[#45293]: <https://github.com/apple/swift/issues/45293>
-[apple/swift-corelibs-foundation#4326]: <https://github.com/apple/swift-corelibs-foundation/issues/4326>
-[#46789]: <https://github.com/apple/swift/issues/46789>
-[#46831]: <https://github.com/apple/swift/issues/46831>
-[#48153]: <https://github.com/apple/swift/issues/48153>
-[#48289]: <https://github.com/apple/swift/issues/48289>
-[#48673]: <https://github.com/apple/swift/issues/48673>
-[#49631]: <https://github.com/apple/swift/issues/49631>
-[#49687]: <https://github.com/apple/swift/issues/49687>
-[#49799]: <https://github.com/apple/swift/issues/49799>
-[#50143]: <https://github.com/apple/swift/issues/50143>
-[#50338]: <https://github.com/apple/swift/issues/50338>
-[#50641]: <https://github.com/apple/swift/issues/50641>
-[#51064]: <https://github.com/apple/swift/issues/51064>
-[#51478]: <https://github.com/apple/swift/issues/51478>
-[#51546]: <https://github.com/apple/swift/issues/51546>
-[#52244]: <https://github.com/apple/swift/issues/52244>
-[#52471]: <https://github.com/apple/swift/issues/52471>
-[#53699]: <https://github.com/apple/swift/issues/53699>
-[#53830]: <https://github.com/apple/swift/issues/53830>
-[#54108]: <https://github.com/apple/swift/issues/54108>
-[#54246]: <https://github.com/apple/swift/issues/54246>
-[#57081]: <https://github.com/apple/swift/issues/57081>
-[#57225]: <https://github.com/apple/swift/issues/57225>
-[#56139]: <https://github.com/apple/swift/issues/56139>
-[#70065]: <https://github.com/apple/swift/pull/70065>
-[#71075]: <https://github.com/apple/swift/pull/71075>
-[#78389]: <https://github.com/swiftlang/swift/pull/78389>
-[swift-syntax]: https://github.com/apple/swift-syntax
+[SE-0001]: <https://github.com/apple/language-evolution/blob/main/proposals/0001-keywords-as-argument-labels.md>
+[SE-0002]: <https://github.com/apple/language-evolution/blob/main/proposals/0002-remove-currying.md>
+[SE-0003]: <https://github.com/apple/language-evolution/blob/main/proposals/0003-remove-var-parameters.md>
+[SE-0004]: <https://github.com/apple/language-evolution/blob/main/proposals/0004-remove-pre-post-inc-decrement.md>
+[SE-0005]: <https://github.com/apple/language-evolution/blob/main/proposals/0005-objective-c-name-translation.md>
+[SE-0006]: <https://github.com/apple/language-evolution/blob/main/proposals/0006-apply-api-guidelines-to-the-standard-library.md>
+[SE-0007]: <https://github.com/apple/language-evolution/blob/main/proposals/0007-remove-c-style-for-loops.md>
+[SE-0008]: <https://github.com/apple/language-evolution/blob/main/proposals/0008-lazy-flatmap-for-optionals.md>
+[SE-0009]: <https://github.com/apple/language-evolution/blob/main/proposals/0009-require-self-for-accessing-instance-members.md>
+[SE-0010]: <https://github.com/apple/language-evolution/blob/main/proposals/0010-add-staticstring-unicodescalarview.md>
+[SE-0011]: <https://github.com/apple/language-evolution/blob/main/proposals/0011-replace-typealias-associated.md>
+[SE-0012]: <https://github.com/apple/language-evolution/blob/main/proposals/0012-add-noescape-to-public-library-api.md>
+[SE-0013]: <https://github.com/apple/language-evolution/blob/main/proposals/0013-remove-partial-application-super.md>
+[SE-0014]: <https://github.com/apple/language-evolution/blob/main/proposals/0014-constrained-AnySequence.md>
+[SE-0015]: <https://github.com/apple/language-evolution/blob/main/proposals/0015-tuple-comparison-operators.md>
+[SE-0016]: <https://github.com/apple/language-evolution/blob/main/proposals/0016-initializers-for-converting-unsafe-pointers-to-ints.md>
+[SE-0017]: <https://github.com/apple/language-evolution/blob/main/proposals/0017-convert-unmanaged-to-use-unsafepointer.md>
+[SE-0018]: <https://github.com/apple/language-evolution/blob/main/proposals/0018-flexible-memberwise-initialization.md>
+[SE-0019]: <https://github.com/apple/language-evolution/blob/main/proposals/0019-package-manager-testing.md>
+[SE-0020]: <https://github.com/apple/language-evolution/blob/main/proposals/0020-if-language-version.md>
+[SE-0021]: <https://github.com/apple/language-evolution/blob/main/proposals/0021-generalized-naming.md>
+[SE-0022]: <https://github.com/apple/language-evolution/blob/main/proposals/0022-objc-selectors.md>
+[SE-0023]: <https://github.com/apple/language-evolution/blob/main/proposals/0023-api-guidelines.md>
+[SE-0024]: <https://github.com/apple/language-evolution/blob/main/proposals/0024-optional-value-setter.md>
+[SE-0025]: <https://github.com/apple/language-evolution/blob/main/proposals/0025-scoped-access-level.md>
+[SE-0026]: <https://github.com/apple/language-evolution/blob/main/proposals/0026-abstract-classes-and-methods.md>
+[SE-0027]: <https://github.com/apple/language-evolution/blob/main/proposals/0027-string-from-code-units.md>
+[SE-0028]: <https://github.com/apple/language-evolution/blob/main/proposals/0028-modernizing-debug-identifiers.md>
+[SE-0029]: <https://github.com/apple/language-evolution/blob/main/proposals/0029-remove-implicit-tuple-splat.md>
+[SE-0030]: <https://github.com/apple/language-evolution/blob/main/proposals/0030-property-behavior-decls.md>
+[SE-0031]: <https://github.com/apple/language-evolution/blob/main/proposals/0031-adjusting-inout-declarations.md>
+[SE-0032]: <https://github.com/apple/language-evolution/blob/main/proposals/0032-sequencetype-find.md>
+[SE-0033]: <https://github.com/apple/language-evolution/blob/main/proposals/0033-import-objc-constants.md>
+[SE-0034]: <https://github.com/apple/language-evolution/blob/main/proposals/0034-disambiguating-line.md>
+[SE-0035]: <https://github.com/apple/language-evolution/blob/main/proposals/0035-limit-inout-capture.md>
+[SE-0036]: <https://github.com/apple/language-evolution/blob/main/proposals/0036-enum-dot.md>
+[SE-0037]: <https://github.com/apple/language-evolution/blob/main/proposals/0037-clarify-comments-and-operators.md>
+[SE-0038]: <https://github.com/apple/language-evolution/blob/main/proposals/0038-languagepm-c-language-targets.md>
+[SE-0039]: <https://github.com/apple/language-evolution/blob/main/proposals/0039-playgroundliterals.md>
+[SE-0040]: <https://github.com/apple/language-evolution/blob/main/proposals/0040-attributecolons.md>
+[SE-0041]: <https://github.com/apple/language-evolution/blob/main/proposals/0041-conversion-protocol-conventions.md>
+[SE-0042]: <https://github.com/apple/language-evolution/blob/main/proposals/0042-flatten-method-types.md>
+[SE-0043]: <https://github.com/apple/language-evolution/blob/main/proposals/0043-declare-variables-in-case-labels-with-multiple-patterns.md>
+[SE-0044]: <https://github.com/apple/language-evolution/blob/main/proposals/0044-import-as-member.md>
+[SE-0045]: <https://github.com/apple/language-evolution/blob/main/proposals/0045-scan-takewhile-dropwhile.md>
+[SE-0046]: <https://github.com/apple/language-evolution/blob/main/proposals/0046-first-label.md>
+[SE-0047]: <https://github.com/apple/language-evolution/blob/main/proposals/0047-nonvoid-warn.md>
+[SE-0048]: <https://github.com/apple/language-evolution/blob/main/proposals/0048-generic-typealias.md>
+[SE-0049]: <https://github.com/apple/language-evolution/blob/main/proposals/0049-noescape-autoclosure-type-attrs.md>
+[SE-0050]: <https://github.com/apple/language-evolution/blob/main/proposals/0050-floating-point-stride.md>
+[SE-0051]: <https://github.com/apple/language-evolution/blob/main/proposals/0051-stride-semantics.md>
+[SE-0052]: <https://github.com/apple/language-evolution/blob/main/proposals/0052-iterator-post-nil-guarantee.md>
+[SE-0053]: <https://github.com/apple/language-evolution/blob/main/proposals/0053-remove-let-from-function-parameters.md>
+[SE-0054]: <https://github.com/apple/language-evolution/blob/main/proposals/0054-abolish-iuo.md>
+[SE-0055]: <https://github.com/apple/language-evolution/blob/main/proposals/0055-optional-unsafe-pointers.md>
+[SE-0056]: <https://github.com/apple/language-evolution/blob/main/proposals/0056-trailing-closures-in-guard.md>
+[SE-0057]: <https://github.com/apple/language-evolution/blob/main/proposals/0057-importing-objc-generics.md>
+[SE-0058]: <https://github.com/apple/language-evolution/blob/main/proposals/0058-objectivecbridgeable.md>
+[SE-0059]: <https://github.com/apple/language-evolution/blob/main/proposals/0059-updated-set-apis.md>
+[SE-0060]: <https://github.com/apple/language-evolution/blob/main/proposals/0060-defaulted-parameter-order.md>
+[SE-0061]: <https://github.com/apple/language-evolution/blob/main/proposals/0061-autoreleasepool-signature.md>
+[SE-0062]: <https://github.com/apple/language-evolution/blob/main/proposals/0062-objc-keypaths.md>
+[SE-0063]: <https://github.com/apple/language-evolution/blob/main/proposals/0063-languagepm-system-module-search-paths.md>
+[SE-0064]: <https://github.com/apple/language-evolution/blob/main/proposals/0064-property-selectors.md>
+[SE-0065]: <https://github.com/apple/language-evolution/blob/main/proposals/0065-collections-move-indices.md>
+[SE-0066]: <https://github.com/apple/language-evolution/blob/main/proposals/0066-standardize-function-type-syntax.md>
+[SE-0067]: <https://github.com/apple/language-evolution/blob/main/proposals/0067-floating-point-protocols.md>
+[SE-0068]: <https://github.com/apple/language-evolution/blob/main/proposals/0068-universal-self.md>
+[SE-0069]: <https://github.com/apple/language-evolution/blob/main/proposals/0069-language-mutability-for-foundation.md>
+[SE-0070]: <https://github.com/apple/language-evolution/blob/main/proposals/0070-optional-requirements.md>
+[SE-0071]: <https://github.com/apple/language-evolution/blob/main/proposals/0071-member-keywords.md>
+[SE-0072]: <https://github.com/apple/language-evolution/blob/main/proposals/0072-eliminate-implicit-bridging-conversions.md>
+[SE-0073]: <https://github.com/apple/language-evolution/blob/main/proposals/0073-noescape-once.md>
+[SE-0074]: <https://github.com/apple/language-evolution/blob/main/proposals/0074-binary-search.md>
+[SE-0075]: <https://github.com/apple/language-evolution/blob/main/proposals/0075-import-test.md>
+[SE-0076]: <https://github.com/apple/language-evolution/blob/main/proposals/0076-copying-to-unsafe-mutable-pointer-with-unsafe-pointer-source.md>
+[SE-0077]: <https://github.com/apple/language-evolution/blob/main/proposals/0077-operator-precedence.md>
+[SE-0078]: <https://github.com/apple/language-evolution/blob/main/proposals/0078-rotate-algorithm.md>
+[SE-0079]: <https://github.com/apple/language-evolution/blob/main/proposals/0079-upgrade-self-from-weak-to-strong.md>
+[SE-0080]: <https://github.com/apple/language-evolution/blob/main/proposals/0080-failable-numeric-initializers.md>
+[SE-0081]: <https://github.com/apple/language-evolution/blob/main/proposals/0081-move-where-expression.md>
+[SE-0082]: <https://github.com/apple/language-evolution/blob/main/proposals/0082-languagepm-package-edit.md>
+[SE-0083]: <https://github.com/apple/language-evolution/blob/main/proposals/0083-remove-bridging-from-dynamic-casts.md>
+[SE-0084]: <https://github.com/apple/language-evolution/blob/main/proposals/0084-trailing-commas.md>
+[SE-0085]: <https://github.com/apple/language-evolution/blob/main/proposals/0085-package-manager-command-name.md>
+[SE-0086]: <https://github.com/apple/language-evolution/blob/main/proposals/0086-drop-foundation-ns.md>
+[SE-0087]: <https://github.com/apple/language-evolution/blob/main/proposals/0087-lazy-attribute.md>
+[SE-0088]: <https://github.com/apple/language-evolution/blob/main/proposals/0088-libdispatch-for-language3.md>
+[SE-0089]: <https://github.com/apple/language-evolution/blob/main/proposals/0089-rename-string-reflection-init.md>
+[SE-0090]: <https://github.com/apple/language-evolution/blob/main/proposals/0090-remove-dot-self.md>
+[SE-0091]: <https://github.com/apple/language-evolution/blob/main/proposals/0091-improving-operators-in-protocols.md>
+[SE-0092]: <https://github.com/apple/language-evolution/blob/main/proposals/0092-typealiases-in-protocols.md>
+[SE-0093]: <https://github.com/apple/language-evolution/blob/main/proposals/0093-slice-base.md>
+[SE-0094]: <https://github.com/apple/language-evolution/blob/main/proposals/0094-sequence-function.md>
+[SE-0095]: <https://github.com/apple/language-evolution/blob/main/proposals/0095-any-as-existential.md>
+[SE-0096]: <https://github.com/apple/language-evolution/blob/main/proposals/0096-dynamictype.md>
+[SE-0097]: <https://github.com/apple/language-evolution/blob/main/proposals/0097-negative-attributes.md>
+[SE-0098]: <https://github.com/apple/language-evolution/blob/main/proposals/0098-didset-capitalization.md>
+[SE-0099]: <https://github.com/apple/language-evolution/blob/main/proposals/0099-conditionclauses.md>
+[SE-0100]: <https://github.com/apple/language-evolution/blob/main/proposals/0100-add-sequence-based-init-and-merge-to-dictionary.md>
+[SE-0101]: <https://github.com/apple/language-evolution/blob/main/proposals/0101-standardizing-sizeof-naming.md>
+[SE-0102]: <https://github.com/apple/language-evolution/blob/main/proposals/0102-noreturn-bottom-type.md>
+[SE-0103]: <https://github.com/apple/language-evolution/blob/main/proposals/0103-make-noescape-default.md>
+[SE-0104]: <https://github.com/apple/language-evolution/blob/main/proposals/0104-improved-integers.md>
+[SE-0105]: <https://github.com/apple/language-evolution/blob/main/proposals/0105-remove-where-from-forin-loops.md>
+[SE-0106]: <https://github.com/apple/language-evolution/blob/main/proposals/0106-rename-osx-to-macos.md>
+[SE-0107]: <https://github.com/apple/language-evolution/blob/main/proposals/0107-unsaferawpointer.md>
+[SE-0108]: <https://github.com/apple/language-evolution/blob/main/proposals/0108-remove-assoctype-inference.md>
+[SE-0109]: <https://github.com/apple/language-evolution/blob/main/proposals/0109-remove-boolean.md>
+[SE-0110]: <https://github.com/apple/language-evolution/blob/main/proposals/0110-distinguish-single-tuple-arg.md>
+[SE-0111]: <https://github.com/apple/language-evolution/blob/main/proposals/0111-remove-arg-label-type-significance.md>
+[SE-0112]: <https://github.com/apple/language-evolution/blob/main/proposals/0112-nserror-bridging.md>
+[SE-0113]: <https://github.com/apple/language-evolution/blob/main/proposals/0113-rounding-functions-on-floatingpoint.md>
+[SE-0114]: <https://github.com/apple/language-evolution/blob/main/proposals/0114-buffer-naming.md>
+[SE-0115]: <https://github.com/apple/language-evolution/blob/main/proposals/0115-literal-syntax-protocols.md>
+[SE-0116]: <https://github.com/apple/language-evolution/blob/main/proposals/0116-id-as-any.md>
+[SE-0117]: <https://github.com/apple/language-evolution/blob/main/proposals/0117-non-public-subclassable-by-default.md>
+[SE-0118]: <https://github.com/apple/language-evolution/blob/main/proposals/0118-closure-parameter-names-and-labels.md>
+[SE-0119]: <https://github.com/apple/language-evolution/blob/main/proposals/0119-extensions-access-modifiers.md>
+[SE-0120]: <https://github.com/apple/language-evolution/blob/main/proposals/0120-revise-partition-method.md>
+[SE-0121]: <https://github.com/apple/language-evolution/blob/main/proposals/0121-remove-optional-comparison-operators.md>
+[SE-0122]: <https://github.com/apple/language-evolution/blob/main/proposals/0122-use-colons-for-subscript-type-declarations.md>
+[SE-0123]: <https://github.com/apple/language-evolution/blob/main/proposals/0123-disallow-value-to-optional-coercion-in-operator-arguments.md>
+[SE-0124]: <https://github.com/apple/language-evolution/blob/main/proposals/0124-bitpattern-label-for-int-initializer-objectidentfier.md>
+[SE-0125]: <https://github.com/apple/language-evolution/blob/main/proposals/0125-remove-nonobjectivecbase.md>
+[SE-0126]: <https://github.com/apple/language-evolution/blob/main/proposals/0126-refactor-metatypes-repurpose-t-dot-self-and-mirror.md>
+[SE-0127]: <https://github.com/apple/language-evolution/blob/main/proposals/0127-cleaning-up-stdlib-ptr-buffer.md>
+[SE-0128]: <https://github.com/apple/language-evolution/blob/main/proposals/0128-unicodescalar-failable-initializer.md>
+[SE-0129]: <https://github.com/apple/language-evolution/blob/main/proposals/0129-package-manager-test-naming-conventions.md>
+[SE-0130]: <https://github.com/apple/language-evolution/blob/main/proposals/0130-string-initializers-cleanup.md>
+[SE-0131]: <https://github.com/apple/language-evolution/blob/main/proposals/0131-anyhashable.md>
+[SE-0132]: <https://github.com/apple/language-evolution/blob/main/proposals/0132-sequence-end-ops.md>
+[SE-0133]: <https://github.com/apple/language-evolution/blob/main/proposals/0133-rename-flatten-to-joined.md>
+[SE-0134]: <https://github.com/apple/language-evolution/blob/main/proposals/0134-rename-string-properties.md>
+[SE-0135]: <https://github.com/apple/language-evolution/blob/main/proposals/0135-package-manager-support-for-differentiating-packages-by-language-version.md>
+[SE-0136]: <https://github.com/apple/language-evolution/blob/main/proposals/0136-memory-layout-of-values.md>
+[SE-0137]: <https://github.com/apple/language-evolution/blob/main/proposals/0137-avoiding-lock-in.md>
+[SE-0138]: <https://github.com/apple/language-evolution/blob/main/proposals/0138-unsaferawbufferpointer.md>
+[SE-0139]: <https://github.com/apple/language-evolution/blob/main/proposals/0139-bridge-nsnumber-and-nsvalue.md>
+[SE-0140]: <https://github.com/apple/language-evolution/blob/main/proposals/0140-bridge-optional-to-nsnull.md>
+[SE-0141]: <https://github.com/apple/language-evolution/blob/main/proposals/0141-available-by-language-version.md>
+[SE-0142]: <https://github.com/apple/language-evolution/blob/main/proposals/0142-associated-types-constraints.md>
+[SE-0143]: <https://github.com/apple/language-evolution/blob/main/proposals/0143-conditional-conformances.md>
+[SE-0144]: <https://github.com/apple/language-evolution/blob/main/proposals/0144-allow-single-dollar-sign-as-valid-identifier.md>
+[SE-0145]: <https://github.com/apple/language-evolution/blob/main/proposals/0145-package-manager-version-pinning.md>
+[SE-0146]: <https://github.com/apple/language-evolution/blob/main/proposals/0146-package-manager-product-definitions.md>
+[SE-0147]: <https://github.com/apple/language-evolution/blob/main/proposals/0147-move-unsafe-initialize-from.md>
+[SE-0148]: <https://github.com/apple/language-evolution/blob/main/proposals/0148-generic-subscripts.md>
+[SE-0149]: <https://github.com/apple/language-evolution/blob/main/proposals/0149-package-manager-top-of-tree.md>
+[SE-0150]: <https://github.com/apple/language-evolution/blob/main/proposals/0150-package-manager-branch-support.md>
+[SE-0151]: <https://github.com/apple/language-evolution/blob/main/proposals/0151-package-manager-language-language-compatibility-version.md>
+[SE-0152]: <https://github.com/apple/language-evolution/blob/main/proposals/0152-package-manager-tools-version.md>
+[SE-0153]: <https://github.com/apple/language-evolution/blob/main/proposals/0153-compensate-for-the-inconsistency-of-nscopyings-behaviour.md>
+[SE-0154]: <https://github.com/apple/language-evolution/blob/main/proposals/0154-dictionary-key-and-value-collections.md>
+[SE-0155]: <https://github.com/apple/language-evolution/blob/main/proposals/0155-normalize-enum-case-representation.md>
+[SE-0156]: <https://github.com/apple/language-evolution/blob/main/proposals/0156-subclass-existentials.md>
+[SE-0157]: <https://github.com/apple/language-evolution/blob/main/proposals/0157-recursive-protocol-constraints.md>
+[SE-0158]: <https://github.com/apple/language-evolution/blob/main/proposals/0158-package-manager-manifest-api-redesign.md>
+[SE-0159]: <https://github.com/apple/language-evolution/blob/main/proposals/0159-fix-private-access-levels.md>
+[SE-0160]: <https://github.com/apple/language-evolution/blob/main/proposals/0160-objc-inference.md>
+[SE-0161]: <https://github.com/apple/language-evolution/blob/main/proposals/0161-key-paths.md>
+[SE-0162]: <https://github.com/apple/language-evolution/blob/main/proposals/0162-package-manager-custom-target-layouts.md>
+[SE-0163]: <https://github.com/apple/language-evolution/blob/main/proposals/0163-string-revision-1.md>
+[SE-0164]: <https://github.com/apple/language-evolution/blob/main/proposals/0164-remove-final-support-in-protocol-extensions.md>
+[SE-0165]: <https://github.com/apple/language-evolution/blob/main/proposals/0165-dict.md>
+[SE-0166]: <https://github.com/apple/language-evolution/blob/main/proposals/0166-language-archival-serialization.md>
+[SE-0167]: <https://github.com/apple/language-evolution/blob/main/proposals/0167-language-encoders.md>
+[SE-0168]: <https://github.com/apple/language-evolution/blob/main/proposals/0168-multi-line-string-literals.md>
+[SE-0169]: <https://github.com/apple/language-evolution/blob/main/proposals/0169-improve-interaction-between-private-declarations-and-extensions.md>
+[SE-0170]: <https://github.com/apple/language-evolution/blob/main/proposals/0170-nsnumber_bridge.md>
+[SE-0171]: <https://github.com/apple/language-evolution/blob/main/proposals/0171-reduce-with-inout.md>
+[SE-0172]: <https://github.com/apple/language-evolution/blob/main/proposals/0172-one-sided-ranges.md>
+[SE-0173]: <https://github.com/apple/language-evolution/blob/main/proposals/0173-swap-indices.md>
+[SE-0174]: <https://github.com/apple/language-evolution/blob/main/proposals/0174-filter-range-replaceable.md>
+[SE-0175]: <https://github.com/apple/language-evolution/blob/main/proposals/0175-package-manager-revised-dependency-resolution.md>
+[SE-0176]: <https://github.com/apple/language-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md>
+[SE-0177]: <https://github.com/apple/language-evolution/blob/main/proposals/0177-add-clamped-to-method.md>
+[SE-0178]: <https://github.com/apple/language-evolution/blob/main/proposals/0178-character-unicode-view.md>
+[SE-0179]: <https://github.com/apple/language-evolution/blob/main/proposals/0179-language-run-command.md>
+[SE-0180]: <https://github.com/apple/language-evolution/blob/main/proposals/0180-string-index-overhaul.md>
+[SE-0181]: <https://github.com/apple/language-evolution/blob/main/proposals/0181-package-manager-cpp-language-version.md>
+[SE-0182]: <https://github.com/apple/language-evolution/blob/main/proposals/0182-newline-escape-in-strings.md>
+[SE-0183]: <https://github.com/apple/language-evolution/blob/main/proposals/0183-substring-affordances.md>
+[SE-0184]: <https://github.com/apple/language-evolution/blob/main/proposals/0184-unsafe-pointers-add-missing.md>
+[SE-0185]: <https://github.com/apple/language-evolution/blob/main/proposals/0185-synthesize-equatable-hashable.md>
+[SE-0186]: <https://github.com/apple/language-evolution/blob/main/proposals/0186-remove-ownership-keyword-support-in-protocols.md>
+[SE-0187]: <https://github.com/apple/language-evolution/blob/main/proposals/0187-introduce-filtermap.md>
+[SE-0188]: <https://github.com/apple/language-evolution/blob/main/proposals/0188-stdlib-index-types-hashable.md>
+[SE-0189]: <https://github.com/apple/language-evolution/blob/main/proposals/0189-restrict-cross-module-struct-initializers.md>
+[SE-0190]: <https://github.com/apple/language-evolution/blob/main/proposals/0190-target-environment-platform-condition.md>
+[SE-0191]: <https://github.com/apple/language-evolution/blob/main/proposals/0191-eliminate-indexdistance.md>
+[SE-0192]: <https://github.com/apple/language-evolution/blob/main/proposals/0192-non-exhaustive-enums.md>
+[SE-0193]: <https://github.com/apple/language-evolution/blob/main/proposals/0193-cross-module-inlining-and-specialization.md>
+[SE-0194]: <https://github.com/apple/language-evolution/blob/main/proposals/0194-derived-collection-of-enum-cases.md>
+[SE-0195]: <https://github.com/apple/language-evolution/blob/main/proposals/0195-dynamic-member-lookup.md>
+[SE-0196]: <https://github.com/apple/language-evolution/blob/main/proposals/0196-diagnostic-directives.md>
+[SE-0197]: <https://github.com/apple/language-evolution/blob/main/proposals/0197-remove-where.md>
+[SE-0198]: <https://github.com/apple/language-evolution/blob/main/proposals/0198-playground-quicklook-api-revamp.md>
+[SE-0199]: <https://github.com/apple/language-evolution/blob/main/proposals/0199-bool-toggle.md>
+[SE-0200]: <https://github.com/apple/language-evolution/blob/main/proposals/0200-raw-string-escaping.md>
+[SE-0201]: <https://github.com/apple/language-evolution/blob/main/proposals/0201-package-manager-local-dependencies.md>
+[SE-0202]: <https://github.com/apple/language-evolution/blob/main/proposals/0202-random-unification.md>
+[SE-0203]: <https://github.com/apple/language-evolution/blob/main/proposals/0203-rename-sequence-elements-equal.md>
+[SE-0204]: <https://github.com/apple/language-evolution/blob/main/proposals/0204-add-last-methods.md>
+[SE-0205]: <https://github.com/apple/language-evolution/blob/main/proposals/0205-withUnsafePointer-for-lets.md>
+[SE-0206]: <https://github.com/apple/language-evolution/blob/main/proposals/0206-hashable-enhancements.md>
+[SE-0207]: <https://github.com/apple/language-evolution/blob/main/proposals/0207-containsOnly.md>
+[SE-0208]: <https://github.com/apple/language-evolution/blob/main/proposals/0208-package-manager-system-library-targets.md>
+[SE-0209]: <https://github.com/apple/language-evolution/blob/main/proposals/0209-package-manager-language-lang-version-update.md>
+[SE-0210]: <https://github.com/apple/language-evolution/blob/main/proposals/0210-key-path-offset.md>
+[SE-0211]: <https://github.com/apple/language-evolution/blob/main/proposals/0211-unicode-scalar-properties.md>
+[SE-0212]: <https://github.com/apple/language-evolution/blob/main/proposals/0212-compiler-version-directive.md>
+[SE-0213]: <https://github.com/apple/language-evolution/blob/main/proposals/0213-literal-init-via-coercion.md>
+[SE-0214]: <https://github.com/apple/language-evolution/blob/main/proposals/0214-DictionaryLiteral.md>
+[SE-0215]: <https://github.com/apple/language-evolution/blob/main/proposals/0215-conform-never-to-hashable-and-equatable.md>
+[SE-0216]: <https://github.com/apple/language-evolution/blob/main/proposals/0216-dynamic-callable.md>
+[SE-0217]: <https://github.com/apple/language-evolution/blob/main/proposals/0217-bangbang.md>
+[SE-0218]: <https://github.com/apple/language-evolution/blob/main/proposals/0218-introduce-compact-map-values.md>
+[SE-0219]: <https://github.com/apple/language-evolution/blob/main/proposals/0219-package-manager-dependency-mirroring.md>
+[SE-0220]: <https://github.com/apple/language-evolution/blob/main/proposals/0220-count-where.md>
+[SE-0221]: <https://github.com/apple/language-evolution/blob/main/proposals/0221-character-properties.md>
+[SE-0222]: <https://github.com/apple/language-evolution/blob/main/proposals/0222-lazy-compactmap-sequence.md>
+[SE-0223]: <https://github.com/apple/language-evolution/blob/main/proposals/0223-array-uninitialized-initializer.md>
+[SE-0224]: <https://github.com/apple/language-evolution/blob/main/proposals/0224-iflanguage-lessthan-operator.md>
+[SE-0225]: <https://github.com/apple/language-evolution/blob/main/proposals/0225-binaryinteger-iseven-isodd-ismultiple.md>
+[SE-0226]: <https://github.com/apple/language-evolution/blob/main/proposals/0226-package-manager-target-based-dep-resolution.md>
+[SE-0227]: <https://github.com/apple/language-evolution/blob/main/proposals/0227-identity-keypath.md>
+[SE-0228]: <https://github.com/apple/language-evolution/blob/main/proposals/0228-fix-expressiblebystringinterpolation.md>
+[SE-0230]: <https://github.com/apple/language-evolution/blob/main/proposals/0230-flatten-optional-try.md>
+[SE-0235]: <https://github.com/apple/language-evolution/blob/main/proposals/0235-add-result.md>
+[SE-0242]: <https://github.com/apple/language-evolution/blob/main/proposals/0242-default-values-memberwise.md>
+[SE-0244]: <https://github.com/apple/language-evolution/blob/main/proposals/0244-opaque-result-types.md>
+[SE-0245]: <https://github.com/apple/language-evolution/blob/main/proposals/0245-array-uninitialized-initializer.md>
+[SE-0249]: <https://github.com/apple/language-evolution/blob/main/proposals/0249-key-path-literal-function-expressions.md>
+[SE-0252]: <https://github.com/apple/language-evolution/blob/main/proposals/0252-keypath-dynamic-member-lookup.md>
+[SE-0253]: <https://github.com/apple/language-evolution/blob/main/proposals/0253-callable.md>
+[SE-0254]: <https://github.com/apple/language-evolution/blob/main/proposals/0254-static-subscripts.md>
+[SE-0266]: <https://github.com/apple/language-evolution/blob/main/proposals/0266-synthesized-comparable-for-enumerations.md>
+[SE-0267]: <https://github.com/apple/language-evolution/blob/main/proposals/0267-where-on-contextually-generic.md>
+[SE-0268]: <https://github.com/apple/language-evolution/blob/main/proposals/0268-didset-semantics.md>
+[SE-0269]: <https://github.com/apple/language-evolution/blob/main/proposals/0269-implicit-self-explicit-capture.md>
+[SE-0270]: <https://github.com/apple/language-evolution/blob/main/proposals/0270-rangeset-and-collection-operations.md>
+[SE-0274]: <https://github.com/apple/language-evolution/blob/main/proposals/0274-magic-file.md>
+[SE-0276]: <https://github.com/apple/language-evolution/blob/main/proposals/0276-multi-pattern-catch-clauses.md>
+[SE-0279]: <https://github.com/apple/language-evolution/blob/main/proposals/0279-multiple-trailing-closures.md>
+[SE-0280]: <https://github.com/apple/language-evolution/blob/main/proposals/0280-enum-cases-as-protocol-witnesses.md>
+[SE-0284]: <https://github.com/apple/language-evolution/blob/main/proposals/0284-multiple-variadic-parameters.md>
+[SE-0286]: <https://github.com/apple/language-evolution/blob/main/proposals/0286-forward-scan-trailing-closures.md>
+[SE-0287]: <https://github.com/apple/language-evolution/blob/main/proposals/0287-implicit-member-chains.md>
+[SE-0290]: <https://github.com/apple/language-evolution/blob/main/proposals/0290-negative-availability.md>
+[SE-0293]: <https://github.com/apple/language-evolution/blob/main/proposals/0293-extend-property-wrappers-to-function-and-closure-parameters.md>
+[SE-0296]: <https://github.com/apple/language-evolution/blob/main/proposals/0296-async-await.md>
+[SE-0297]: <https://github.com/apple/language-evolution/blob/main/proposals/0297-concurrency-objc.md>
+[SE-0298]: <https://github.com/apple/language-evolution/blob/main/proposals/0298-asyncsequence.md>
+[SE-0299]: <https://github.com/apple/language-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md>
+[SE-0300]: <https://github.com/apple/language-evolution/blob/main/proposals/0300-continuation.md>
+[SE-0302]: <https://github.com/apple/language-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md>
+[SE-0306]: <https://github.com/apple/language-evolution/blob/main/proposals/0306-actors.md>
+[SE-0309]: <https://github.com/apple/language-evolution/blob/main/proposals/0309-unlock-existential-types-for-all-protocols.md>
+[SE-0310]: <https://github.com/apple/language-evolution/blob/main/proposals/0310-effectful-readonly-properties.md>
+[SE-0311]: <https://github.com/apple/language-evolution/blob/main/proposals/0311-task-locals.md>
+[SE-0313]: <https://github.com/apple/language-evolution/blob/main/proposals/0313-actor-isolation-control.md>
+[SE-0315]: <https://github.com/apple/language-evolution/blob/main/proposals/0315-placeholder-types.md>
+[SE-0316]: <https://github.com/apple/language-evolution/blob/main/proposals/0316-global-actors.md>
+[SE-0320]: <https://github.com/apple/language-evolution/blob/main/proposals/0320-codingkeyrepresentable.md>
+[SE-0322]: <https://github.com/apple/language-evolution/blob/main/proposals/0322-temporary-buffers.md>
+[SE-0323]: <https://github.com/apple/language-evolution/blob/main/proposals/0323-async-main-semantics.md>
+[SE-0324]: <https://github.com/apple/language-evolution/blob/main/proposals/0324-c-lang-pointer-arg-conversion.md>
+[SE-0326]: <https://github.com/apple/language-evolution/blob/main/proposals/0326-extending-multi-statement-closure-inference.md>
+[SE-0327]: <https://github.com/apple/language-evolution/blob/main/proposals/0327-actor-initializers.md>
+[SE-0328]: <https://github.com/apple/language-evolution/blob/main/proposals/0328-structural-opaque-result-types.md>
+[SE-0329]: <https://github.com/apple/language-evolution/blob/main/proposals/0329-clock-instant-duration.md>
+[SE-0331]: <https://github.com/apple/language-evolution/blob/main/proposals/0331-remove-sendable-from-unsafepointer.md>
+[SE-0333]: <https://github.com/apple/language-evolution/blob/main/proposals/0333-with-memory-rebound.md>
+[SE-0334]: <https://github.com/apple/language-evolution/blob/main/proposals/0334-pointer-usability-improvements.md>
+[SE-0335]: <https://github.com/apple/language-evolution/blob/main/proposals/0335-existential-any.md>
+[SE-0336]: <https://github.com/apple/language-evolution/blob/main/proposals/0336-distributed-actor-isolation.md>
+[SE-0337]: <https://github.com/apple/language-evolution/blob/main/proposals/0337-support-incremental-migration-to-concurrency-checking.md>
+[SE-0338]: <https://github.com/apple/language-evolution/blob/main/proposals/0338-clarify-execution-non-actor-async.md>
+[SE-0340]: <https://github.com/apple/language-evolution/blob/main/proposals/0340-language-noasync.md>
+[SE-0341]: <https://github.com/apple/language-evolution/blob/main/proposals/0341-opaque-parameters.md>
+[SE-0343]: <https://github.com/apple/language-evolution/blob/main/proposals/0343-top-level-concurrency.md>
+[SE-0345]: <https://github.com/apple/language-evolution/blob/main/proposals/0345-if-let-shorthand.md>
+[SE-0346]: <https://github.com/apple/language-evolution/blob/main/proposals/0346-light-weight-same-type-syntax.md>
+[SE-0347]: <https://github.com/apple/language-evolution/blob/main/proposals/0347-type-inference-from-default-exprs.md>
+[SE-0349]: <https://github.com/apple/language-evolution/blob/main/proposals/0349-unaligned-loads-and-stores.md>
+[SE-0350]: <https://github.com/apple/language-evolution/blob/main/proposals/0350-regex-type-overview.md>
+[SE-0352]: <https://github.com/apple/language-evolution/blob/main/proposals/0352-implicit-open-existentials.md>
+[SE-0353]: <https://github.com/apple/language-evolution/blob/main/proposals/0353-constrained-existential-types.md>
+[SE-0354]: <https://github.com/apple/language-evolution/blob/main/proposals/0354-regex-literals.md>
+[SE-0355]: <https://github.com/apple/language-evolution/blob/main/proposals/0355-regex-syntax-run-time-construction.md>
+[SE-0357]: <https://github.com/apple/language-evolution/blob/main/proposals/0357-regex-string-processing-algorithms.md>
+[SE-0358]: <https://github.com/apple/language-evolution/blob/main/proposals/0358-primary-associated-types-in-stdlib.md>
+[SE-0362]: <https://github.com/apple/language-evolution/blob/main/proposals/0362-piecemeal-future-features.md>
+[SE-0365]: <https://github.com/apple/language-evolution/blob/main/proposals/0365-implicit-self-weak-capture.md>
+[SE-0366]: <https://github.com/apple/language-evolution/blob/main/proposals/0366-move-function.md>
+[SE-0370]: <https://github.com/apple/language-evolution/blob/main/proposals/0370-pointer-family-initialization-improvements.md>
+[SE-0376]: <https://github.com/apple/language-evolution/blob/main/proposals/0376-function-back-deployment.md>
+[SE-0377]: <https://github.com/apple/language-evolution/blob/main/proposals/0377-parameter-ownership-modifiers.md>
+[SE-0380]: <https://github.com/apple/language-evolution/blob/main/proposals/0380-if-switch-expressions.md>
+[SE-0382]: https://github.com/apple/language-evolution/blob/main/proposals/0382-expression-macros.md
+[SE-0389]: https://github.com/apple/language-evolution/blob/main/proposals/0389-attached-macros.md
+[SE-0394]: https://github.com/apple/language-evolution/blob/main/proposals/0394-languagepm-expression-macros.md
+[SE-0397]: https://github.com/apple/language-evolution/blob/main/proposals/0397-freestanding-declaration-macros.md
+[SE-0407]: https://github.com/apple/language-evolution/blob/main/proposals/0407-member-macro-conformances.md
+[SE-0408]: https://github.com/apple/language-evolution/blob/main/proposals/0408-pack-iteration.md
+[SE-0411]: https://github.com/apple/language-evolution/blob/main/proposals/0411-isolated-default-values.md
+[SE-0412]: https://github.com/apple/language-evolution/blob/main/proposals/0412-strict-concurrency-for-global-variables.md
+[SE-0413]: https://github.com/apple/language-evolution/blob/main/proposals/0413-typed-throws.md
+[SE-0414]: https://github.com/apple/language-evolution/blob/main/proposals/0414-region-based-isolation.md
+[SE-0417]: https://github.com/apple/language-evolution/blob/main/proposals/0417-task-executor-preference.md
+[SE-0418]: https://github.com/apple/language-evolution/blob/main/proposals/0418-inferring-sendable-for-methods.md
+[SE-0420]: https://github.com/apple/language-evolution/blob/main/proposals/0420-inheritance-of-actor-isolation.md
+[SE-0422]: https://github.com/apple/language-evolution/blob/main/proposals/0422-caller-side-default-argument-macro-expression.md
+[SE-0423]: https://github.com/apple/language-evolution/blob/main/proposals/0423-dynamic-actor-isolation.md
+[SE-0427]: https://github.com/apple/language-evolution/blob/main/proposals/0427-noncopyable-generics.md
+[SE-0429]: https://github.com/apple/language-evolution/blob/main/proposals/0429-partial-consumption.md
+[SE-0432]: https://github.com/apple/language-evolution/blob/main/proposals/0432-noncopyable-switch.md
+[SE-0430]: https://github.com/apple/language-evolution/blob/main/proposals/0430-transferring-parameters-and-results.md
+[SE-0418]: https://github.com/apple/language-evolution/blob/main/proposals/0418-inferring-sendable-for-methods.md
+[SE-0419]: https://github.com/languagelang/language-evolution/blob/main/proposals/0419-backtrace-api.md
+[SE-0423]: https://github.com/apple/language-evolution/blob/main/proposals/0423-dynamic-actor-isolation.md
+[SE-0424]: https://github.com/apple/language-evolution/blob/main/proposals/0424-custom-isolation-checking-for-serialexecutor.md
+[SE-0428]: https://github.com/apple/language-evolution/blob/main/proposals/0428-resolve-distributed-actor-protocols.md
+[SE-0431]: https://github.com/apple/language-evolution/blob/main/proposals/0431-isolated-any-functions.md
+[SE-0442]: https://github.com/languagelang/language-evolution/blob/main/proposals/0442-allow-taskgroup-childtaskresult-type-to-be-inferred.md
+[SE-0444]: https://github.com/languagelang/language-evolution/blob/main/proposals/0444-member-import-visibility.md
+[SE-0458]: https://github.com/languagelang/language-evolution/blob/main/proposals/0458-strict-memory-safety.md
+[SE-0461]: https://github.com/languagelang/language-evolution/blob/main/proposals/0461-async-function-isolation.md
+[SE-0462]: https://github.com/languagelang/language-evolution/blob/main/proposals/0462-task-priority-escalation-apis.md
+[SE-0469]: https://github.com/languagelang/language-evolution/blob/main/proposals/0469-task-names.md
+[SE-0470]: https://github.com/languagelang/language-evolution/blob/main/proposals/0470-isolated-conformances.md
+[SE-0471]: https://github.com/languagelang/language-evolution/blob/main/proposals/0371-isolated-synchronous-deinit.md
+[SE-0472]: https://github.com/languagelang/language-evolution/blob/main/proposals/0472-task-start-synchronously-on-caller-context.md
+[#64927]: <https://github.com/apple/language/issues/64927>
+[#42697]: <https://github.com/apple/language/issues/42697>
+[#42728]: <https://github.com/apple/language/issues/42728>
+[#43036]: <https://github.com/apple/language/issues/43036>
+[#43248]: <https://github.com/apple/language/issues/43248>
+[#43310]: <https://github.com/apple/language/issues/43310>
+[#43621]: <https://github.com/apple/language/issues/43621>
+[#44055]: <https://github.com/apple/language/issues/44055>
+[#44138]: <https://github.com/apple/language/issues/44138>
+[#44739]: <https://github.com/apple/language/issues/44739>
+[#44784]: <https://github.com/apple/language/issues/44784>
+[#44797]: <https://github.com/apple/language/issues/44797>
+[#44995]: <https://github.com/apple/language/issues/44995>
+[#45001]: <https://github.com/apple/language/issues/45001>
+[#45213]: <https://github.com/apple/language/issues/45213>
+[#45277]: <https://github.com/apple/language/issues/45277>
+[#45293]: <https://github.com/apple/language/issues/45293>
+[apple/language-corelibs-foundation#4326]: <https://github.com/apple/language-corelibs-foundation/issues/4326>
+[#46789]: <https://github.com/apple/language/issues/46789>
+[#46831]: <https://github.com/apple/language/issues/46831>
+[#48153]: <https://github.com/apple/language/issues/48153>
+[#48289]: <https://github.com/apple/language/issues/48289>
+[#48673]: <https://github.com/apple/language/issues/48673>
+[#49631]: <https://github.com/apple/language/issues/49631>
+[#49687]: <https://github.com/apple/language/issues/49687>
+[#49799]: <https://github.com/apple/language/issues/49799>
+[#50143]: <https://github.com/apple/language/issues/50143>
+[#50338]: <https://github.com/apple/language/issues/50338>
+[#50641]: <https://github.com/apple/language/issues/50641>
+[#51064]: <https://github.com/apple/language/issues/51064>
+[#51478]: <https://github.com/apple/language/issues/51478>
+[#51546]: <https://github.com/apple/language/issues/51546>
+[#52244]: <https://github.com/apple/language/issues/52244>
+[#52471]: <https://github.com/apple/language/issues/52471>
+[#53699]: <https://github.com/apple/language/issues/53699>
+[#53830]: <https://github.com/apple/language/issues/53830>
+[#54108]: <https://github.com/apple/language/issues/54108>
+[#54246]: <https://github.com/apple/language/issues/54246>
+[#57081]: <https://github.com/apple/language/issues/57081>
+[#57225]: <https://github.com/apple/language/issues/57225>
+[#56139]: <https://github.com/apple/language/issues/56139>
+[#70065]: <https://github.com/apple/language/pull/70065>
+[#71075]: <https://github.com/apple/language/pull/71075>
+[#78389]: <https://github.com/languagelang/language/pull/78389>
+[language-syntax]: https://github.com/apple/language-syntax

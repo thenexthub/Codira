@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+class Foo: NSObject {
+  @objc dynamic fn bridged(x: String = "foo") {}
+}
+
+fn invokeMethodsWithDefaultArgs(x: Foo) {
+  x.bridged()
+}

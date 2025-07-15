@@ -1,4 +1,4 @@
-//===--- LookupVisibleDecls - Swift Name Lookup Routines ------------------===//
+//===--- LookupVisibleDecls - Codira Name Lookup Routines ------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the lookupVisibleDecls interface for visiting named
@@ -41,7 +42,7 @@
 #include "language/Sema/IDETypeChecking.h"
 #include "clang/Basic/Module.h"
 #include "clang/Lex/Preprocessor.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 #include <set>
 
 using namespace language;
@@ -207,7 +208,7 @@ static bool isDeclVisibleInLookupMode(ValueDecl *Member, LookupState LS,
   if (auto CD = dyn_cast<ConstructorDecl>(Member)) {
     if (!LS.isQualified())
       return false;
-    // Constructors with stub implementations cannot be called in Swift.
+    // Constructors with stub implementations cannot be called in Codira.
     if (CD->hasStubImplementation())
       return false;
     if (LS.isOnSuperclass()) {
@@ -301,9 +302,9 @@ static void doDynamicLookup(VisibleDeclConsumer &Consumer,
     VisibleDeclConsumer &ChainedConsumer;
     LookupState LS;
     const DeclContext *CurrDC;
-    llvm::DenseSet<std::pair<DeclBaseName, CanType>> FunctionsReported;
-    llvm::DenseSet<CanType> SubscriptsReported;
-    llvm::DenseSet<std::pair<Identifier, CanType>> PropertiesReported;
+    toolchain::DenseSet<std::pair<DeclBaseName, CanType>> FunctionsReported;
+    toolchain::DenseSet<CanType> SubscriptsReported;
+    toolchain::DenseSet<std::pair<Identifier, CanType>> PropertiesReported;
 
   public:
     explicit DynamicLookupConsumer(VisibleDeclConsumer &ChainedConsumer,
@@ -341,7 +342,7 @@ static void doDynamicLookup(VisibleDeclConsumer &Consumer,
       case DeclKind::ID:
 #define VALUE_DECL(ID, SUPER)
 #include "language/AST/DeclNodes.def"
-        llvm_unreachable("not a ValueDecl!");
+        toolchain_unreachable("not a ValueDecl!");
 
       // Types cannot be found by dynamic lookup.
       case DeclKind::GenericTypeParam:
@@ -425,7 +426,7 @@ static void doDynamicLookup(VisibleDeclConsumer &Consumer,
 }
 
 namespace {
-  typedef llvm::SmallPtrSet<const TypeDecl *, 8> VisitedSet;
+  typedef toolchain::SmallPtrSet<const TypeDecl *, 8> VisitedSet;
 } // end anonymous namespace
 
 static DeclVisibilityKind getReasonForSuper(DeclVisibilityKind Reason) {
@@ -439,7 +440,7 @@ static DeclVisibilityKind getReasonForSuper(DeclVisibilityKind Reason) {
     return DeclVisibilityKind::MemberOfOutsideNominal;
 
   default:
-    llvm_unreachable("should not see this kind");
+    toolchain_unreachable("should not see this kind");
   }
 }
 
@@ -566,20 +567,20 @@ static void
 }
 
 static void lookupVisibleCxxNamespaceMemberDecls(
-    EnumDecl *swiftDecl, const clang::NamespaceDecl *clangNamespace,
+    EnumDecl *languageDecl, const clang::NamespaceDecl *clangNamespace,
     VisibleDeclConsumer &Consumer, VisitedSet &Visited) {
-  if (!Visited.insert(swiftDecl).second)
+  if (!Visited.insert(languageDecl).second)
     return;
-  auto &ctx = swiftDecl->getASTContext();
+  auto &ctx = languageDecl->getASTContext();
   auto namespaceDecl = clangNamespace;
 
   // This is only to keep track of the members we've already seen.
-  llvm::SmallPtrSet<Decl *, 16> addedMembers;
+  toolchain::SmallPtrSet<Decl *, 16> addedMembers;
   for (auto redecl : namespaceDecl->redecls()) {
     for (auto member : redecl->decls()) {
       auto lookupAndAddMembers = [&](DeclName name) {
         auto allResults = evaluateOrDefault(
-            ctx.evaluator, ClangDirectLookupRequest({swiftDecl, redecl, name}),
+            ctx.evaluator, ClangDirectLookupRequest({languageDecl, redecl, name}),
             {});
 
         for (auto found : allResults) {
@@ -588,7 +589,7 @@ static void lookupVisibleCxxNamespaceMemberDecls(
                   ctx.getClangModuleLoader()->importDeclDirectly(
                       cast<clang::NamedDecl>(clangMember))) {
             if (addedMembers.insert(importedDecl).second) {
-              if (importedDecl->getDeclContext()->getAsDecl() != swiftDecl) {
+              if (importedDecl->getDeclContext()->getAsDecl() != languageDecl) {
                 return;
               }
               Consumer.foundDecl(cast<ValueDecl>(importedDecl),
@@ -742,7 +743,7 @@ static void lookupVisibleMemberDeclsImpl(
     return;
 
   // We have a superclass; switch state and look into the inheritance chain.
-  llvm::SmallPtrSet<ClassDecl *, 8> Ancestors;
+  toolchain::SmallPtrSet<ClassDecl *, 8> Ancestors;
   Ancestors.insert(CD);
 
   Reason = getReasonForSuper(Reason);
@@ -768,7 +769,7 @@ static void lookupVisibleMemberDeclsImpl(
   } while ((CD = CD->getSuperclassDecl()));
 }
 
-swift::DynamicLookupInfo::DynamicLookupInfo(
+language::DynamicLookupInfo::DynamicLookupInfo(
     SubscriptDecl *subscript, Type baseType,
     DeclVisibilityKind originalVisibility)
     : kind(KeyPathDynamicMember) {
@@ -778,7 +779,7 @@ swift::DynamicLookupInfo::DynamicLookupInfo(
 }
 
 const DynamicLookupInfo::KeyPathDynamicMemberInfo &
-swift::DynamicLookupInfo::getKeyPathDynamicMember() const {
+language::DynamicLookupInfo::getKeyPathDynamicMember() const {
   assert(kind == KeyPathDynamicMember);
   return keypath;
 }
@@ -803,7 +804,7 @@ struct FoundDeclTy {
 
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 
 template <> struct DenseMapInfo<FoundDeclTy> {
   static inline FoundDeclTy getEmptyKey() {
@@ -818,7 +819,7 @@ template <> struct DenseMapInfo<FoundDeclTy> {
 
   static unsigned getHashValue(const FoundDeclTy &Val) {
     // Note: FoundDeclTy::operator== only considers D, so don't hash Reason here.
-    return llvm::hash_value(Val.D);
+    return toolchain::hash_value(Val.D);
   }
 
   static bool isEqual(const FoundDeclTy &LHS, const FoundDeclTy &RHS) {
@@ -826,7 +827,7 @@ template <> struct DenseMapInfo<FoundDeclTy> {
   }
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 // If a class 'Base' conforms to 'Proto', and my base type is a subclass
 // 'Derived' of 'Base', use 'Base' not 'Derived' as the 'Self' type in the
@@ -852,12 +853,12 @@ namespace {
 
 class OverrideFilteringConsumer : public VisibleDeclConsumer {
 public:
-  llvm::SmallVector<std::pair<NominalTypeDecl *, DeclVisibilityKind>, 2>
+  toolchain::SmallVector<std::pair<NominalTypeDecl *, DeclVisibilityKind>, 2>
       nominals;
-  llvm::SetVector<FoundDeclTy> Results;
-  llvm::SmallVector<ValueDecl *, 8> Decls;
-  llvm::SetVector<FoundDeclTy> FilteredResults;
-  llvm::DenseMap<DeclBaseName, llvm::SmallVector<ValueDecl *, 2>> DeclsByName;
+  toolchain::SetVector<FoundDeclTy> Results;
+  toolchain::SmallVector<ValueDecl *, 8> Decls;
+  toolchain::SetVector<FoundDeclTy> FilteredResults;
+  toolchain::DenseMap<DeclBaseName, toolchain::SmallVector<ValueDecl *, 2>> DeclsByName;
   Type BaseTy;
   const DeclContext *DC;
 
@@ -986,7 +987,7 @@ public:
 
         if (conflicting(M->getASTContext(), FoundSignature, FoundSignatureType,
                         OtherSignature, OtherSignatureType,
-                        /*wouldConflictInSwift5*/nullptr,
+                        /*wouldConflictInCodira5*/nullptr,
                         /*skipProtocolExtensionCheck*/true)) {
           FoundConflicting = true;
 
@@ -1027,7 +1028,7 @@ public:
 struct KeyPathDynamicMemberConsumer : public VisibleDeclConsumer {
   VisibleDeclConsumer &consumer;
   std::function<bool(DeclBaseName)> seenStaticBaseName;
-  llvm::DenseSet<DeclBaseName> seen;
+  toolchain::DenseSet<DeclBaseName> seen;
 
   SubscriptDecl *currentSubscript = nullptr;
   Type currentBaseType = Type();
@@ -1087,7 +1088,7 @@ struct KeyPathDynamicMemberConsumer : public VisibleDeclConsumer {
 static void lookupVisibleDynamicMemberLookupDecls(
     Type baseType, SourceLoc loc, KeyPathDynamicMemberConsumer &consumer,
     const DeclContext *dc, LookupState LS, DeclVisibilityKind reason,
-    VisitedSet &visited, llvm::DenseSet<TypeBase *> &seenDynamicLookup);
+    VisitedSet &visited, toolchain::DenseSet<TypeBase *> &seenDynamicLookup);
 
 /// Enumerates all members of \c baseType, including both directly visible and
 /// members visible by keypath dynamic member lookup.
@@ -1098,7 +1099,7 @@ static void lookupVisibleMemberAndDynamicMemberDecls(
     Type baseType, SourceLoc loc, VisibleDeclConsumer &consumer,
     KeyPathDynamicMemberConsumer &dynamicMemberConsumer, const DeclContext *DC,
     LookupState LS, DeclVisibilityKind reason,
-    VisitedSet &visited, llvm::DenseSet<TypeBase *> &seenDynamicLookup) {
+    VisitedSet &visited, toolchain::DenseSet<TypeBase *> &seenDynamicLookup) {
 
   lookupVisibleMemberDeclsImpl(baseType, consumer, DC, LS, reason, visited);
   lookupVisibleDynamicMemberLookupDecls(baseType, loc, dynamicMemberConsumer,
@@ -1115,7 +1116,7 @@ static void lookupVisibleMemberAndDynamicMemberDecls(
 static void lookupVisibleDynamicMemberLookupDecls(
     Type baseType, SourceLoc loc, KeyPathDynamicMemberConsumer &consumer,
     const DeclContext *dc, LookupState LS, DeclVisibilityKind reason,
-    VisitedSet &visited, llvm::DenseSet<TypeBase *> &seenDynamicLookup) {
+    VisitedSet &visited, toolchain::DenseSet<TypeBase *> &seenDynamicLookup) {
   if (!seenDynamicLookup.insert(baseType.getPointer()).second)
     return;
 
@@ -1175,7 +1176,7 @@ static void lookupVisibleMemberDecls(
       [&](DeclBaseName name) { return overrideConsumer.seenBaseName(name); });
 
   VisitedSet Visited;
-  llvm::DenseSet<TypeBase *> seenDynamicLookup;
+  toolchain::DenseSet<TypeBase *> seenDynamicLookup;
   lookupVisibleMemberAndDynamicMemberDecls(
       BaseTy, loc, overrideConsumer, dynamicConsumer, CurrDC, LS, Reason,
       Visited, seenDynamicLookup);
@@ -1186,7 +1187,7 @@ static void lookupVisibleMemberDecls(
 
 namespace {
 class ASTScopeVisibleDeclConsumer
-    : public swift::namelookup::AbstractASTScopeDeclConsumer {
+    : public language::namelookup::AbstractASTScopeDeclConsumer {
   SourceLoc LookupLoc;
   VisibleDeclConsumer &BaseConsumer;
 
@@ -1292,7 +1293,7 @@ static void lookupVisibleDeclsInModule(const SourceFile *SF,
   SF->cacheVisibleDecls(std::move(moduleResults));
 }
 
-void swift::lookupVisibleDecls(VisibleDeclConsumer &ParentConsumer,
+void language::lookupVisibleDecls(VisibleDeclConsumer &ParentConsumer,
                                SourceLoc Loc, const DeclContext *DC,
                                bool IncludeTopLevel) {
   auto *SF = DC->getParentSourceFile();
@@ -1309,7 +1310,7 @@ void swift::lookupVisibleDecls(VisibleDeclConsumer &ParentConsumer,
     ::lookupVisibleDeclsInModule(SF, Consumer);
 }
 
-void swift::lookupVisibleMemberDecls(VisibleDeclConsumer &Consumer, Type BaseTy,
+void language::lookupVisibleMemberDecls(VisibleDeclConsumer &Consumer, Type BaseTy,
                                      SourceLoc loc, const DeclContext *CurrDC,
                                      bool includeInstanceMembers,
                                      bool includeDerivedRequirements,

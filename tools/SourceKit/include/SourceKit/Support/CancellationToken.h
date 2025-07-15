@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_CANCELLATION_TOKEN_H
-#define LLVM_SOURCEKIT_SUPPORT_CANCELLATION_TOKEN_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_CANCELLATION_TOKEN_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_CANCELLATION_TOKEN_H
 
 namespace SourceKit {
 
 /// A token that uniquely identifies a SourceKit request that's served by a
-/// \c SwiftASTConsumer. Used to cancel the request.
+/// \c CodiraASTConsumer. Used to cancel the request.
 /// If the cancellation token is \c nullptr, it means that cancellation is not
 /// supported.
 typedef const void *SourceKitCancellationToken;

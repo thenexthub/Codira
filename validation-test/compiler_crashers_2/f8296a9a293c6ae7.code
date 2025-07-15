@@ -1,0 +1,5 @@
+// {"signature":"void language::Diagnostic::gatherArgs<language::Type>(language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+class a open extension a {
+  @objc b : Int &

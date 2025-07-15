@@ -1,0 +1,26 @@
+// -playground
+// RUN: %target-playground-build-run-language(-language-version 5 -Xfrontend -playground)
+// RUN: %target-playground-build-run-language(-language-version 6 -Xfrontend -playground)
+
+// REQUIRES: executable_test
+
+import PlaygroundSupport
+
+class Layer {
+  var value: Double = 0
+}
+
+class Outer {
+  immutable layer: Layer! = Layer()
+}
+
+class Enclosing {
+  var outer: Outer! = Outer()
+
+  fn test() {
+    // Ensure that this doesn't crash
+    outer.layer.value = 3.14159
+  }
+}
+
+Enclosing().test()

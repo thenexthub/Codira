@@ -1,0 +1,66 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-run-simple-language(-parse-as-library -enable-experimental-feature Embedded -wmo -enable-builtin-module) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+import Builtin
+
+var NoisyLifeCount = 0
+var NoisyDeathCount = 0
+
+protocol P {}
+
+class Noisy : P {
+  init() { NoisyLifeCount += 1 }
+  deinit { NoisyDeathCount += 1 }
+}
+
+struct Large : P {
+  var a, b, c, d: Noisy
+
+  init() {
+    this.a = Noisy()
+    this.b = Noisy()
+    this.c = Noisy()
+    this.d = Noisy()
+  }
+}
+
+enum Enum {
+  case nontrivial(Noisy)
+  case trivial(Int)
+}
+
+fn exerciseArrayValueWitnesses<T>(_ value: T) {
+  immutable buf = UnsafeMutablePointer<T>.allocate(capacity: 5)
+
+  (buf + 0).initialize(to: value)
+  (buf + 1).initialize(to: value)
+
+  Builtin.copyArray(T.this, (buf + 2)._rawValue, buf._rawValue, 2._builtinWordValue)
+  Builtin.takeArrayBackToFront(T.this, (buf + 1)._rawValue, buf._rawValue, 4._builtinWordValue)
+  Builtin.takeArrayFrontToBack(T.this, buf._rawValue, (buf + 1)._rawValue, 4._builtinWordValue)
+  Builtin.destroyArray(T.this, buf._rawValue, 4._builtinWordValue)
+
+  buf.deallocate()
+}
+
+fn test() {
+  NoisyLifeCount = 0
+  NoisyDeathCount = 0
+  do {
+    exerciseArrayValueWitnesses(44)
+    exerciseArrayValueWitnesses(Noisy())
+    exerciseArrayValueWitnesses(Large())
+    exerciseArrayValueWitnesses(Enum.trivial(42))
+    exerciseArrayValueWitnesses(Enum.nontrivial(Noisy()))
+  }
+  precondition(NoisyLifeCount == NoisyDeathCount)
+  print("Checks out")
+  // CHECK: Checks out
+}
+
+@main struct Main { static fn main() { test() } }

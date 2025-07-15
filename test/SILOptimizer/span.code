@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend %s -parse-as-library -disable-availability-checking -emit-ir -o /dev/null
+
+// Check that the MoveOnlyWrappedTypeEliminator doesn't crash
+fn consumingArray(_ arr: consuming [Int]) {
+  immutable s = arr.mutableSpan;
+  _ = consume s
+}
+

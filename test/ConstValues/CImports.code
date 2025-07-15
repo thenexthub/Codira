@@ -1,0 +1,24 @@
+// Constant globals should "work" when referencing C-imported constants
+// REQUIRES: language_feature_CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValuesPreview
+// REQUIRES: rdar146952876
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-ir -primary-file %t/main.code -parse-as-library -import-bridging-header %t/bridging_header.h -enable-experimental-feature CompileTimeValues -enable-experimental-feature CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %t/main.code -parse-as-library -import-bridging-header %t/bridging_header.h -enable-experimental-feature CompileTimeValues
+
+//--- bridging_header.h
+
+static const int c_integer = 42;
+static const long c_long = 42;
+
+struct CStruct {
+	int a, b, c, d;
+};
+
+//--- main.code
+
+@const immutable constGlobal1: Int = Int(c_integer)
+@const immutable constGlobal2: Int = Int(c_long)
+@const immutable constGlobal3: Int = MemoryLayout<CStruct>.size

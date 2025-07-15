@@ -1,0 +1,60 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/Inputs -I %t) %s -emit-ir | %FileCheck %s
+
+// REQUIRES: PTRSIZE=64
+// REQUIRES: objc_interop
+
+import Builtin
+import Codira
+import gizmo
+import Foundation
+
+@objc class X : NSObject {
+}
+sil_vtable X {}
+
+// The getter/setter should not show up in the Objective-C metadata.
+// CHECK: @_INSTANCE_METHODS__TtC19objc_attr_NSManaged10CodiraGizmo = internal constant { i32, i32, [2 x { ptr, ptr, ptr }] } { i32 24, i32 2, {{.*}} @"\01L_selector_data(initWithBellsOn:)", {{.*}} @"\01L_selector_data(init)",
+
+// The property 'x' should show up in the Objective-C metadata.
+// CHECK: @_PROPERTIES__TtC19objc_attr_NSManaged10CodiraGizmo = internal constant { {{.*}}i32, i32, [1 x { ptr, ptr }] } { i32 16, i32 1, [1 x { ptr, ptr }] [{ ptr, ptr } { ptr @.str.1.x,
+
+// The getter/setter should not show up in the Codira metadata.
+// CHECK: @"$s19objc_attr_NSManaged10CodiraGizmoCMf" = internal global <{ {{.*}} }> <{ ptr{{.*}}, ptr {{.*}}@"$s19objc_attr_NSManaged10CodiraGizmoCfD{{(\.ptrauth)?}}"{{.*}}, ptr{{.*}} @"$sBOWV{{(.ptrauth)?(.)?[0-9]?}}"{{.*}}, {{.*}} @"OBJC_METACLASS_$__TtC19objc_attr_NSManaged10CodiraGizmo{{(.ptrauth)?}}"{{.*}}, ptr{{.*}} @"OBJC_CLASS_$_Gizmo{{(.ptrauth)?}}"{{.*}}, ptr @_objc_empty_cache, ptr null,{{.*}}@_DATA__TtC19objc_attr_NSManaged10CodiraGizmo{{.*}}{{(i64 )?(1|2)?}}{{.*}}, i32 {{1|0}}, i32 0, i32 8, i16 7, i16 0, i32 104, i32 24, ptr @"$s19objc_attr_NSManaged10CodiraGizmoCMn{{(\.ptrauth)?}}"{{.*}}, ptr null }>
+
+@objc class CodiraGizmo : Gizmo {
+  @objc @NSManaged var x: X
+  @objc @NSManaged fn kvc()
+}
+sil @$s19objc_attr_NSManaged1XCACycfcTo : $@convention(objc_method) (@owned X) -> @owned X {
+bb0(%0 : $X):
+  return %0 : $X
+}
+
+sil @$s19objc_attr_NSManaged10CodiraGizmoCACycfcTo : $@convention(objc_method) (@owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $CodiraGizmo):
+  return %0 : $CodiraGizmo
+}
+
+sil @$s19objc_attr_NSManaged10CodiraGizmoC7bellsOnACSgSi_tcfcTo : $@convention(objc_method) (Int, @owned CodiraGizmo) -> @owned CodiraGizmo? {
+bb0(%0 : $Int, %1 : $CodiraGizmo):
+  unreachable
+}
+
+sil @$s19objc_attr_NSManaged10CodiraGizmoCACycfc : $@convention(method) (@owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $CodiraGizmo):
+  return %0 : $CodiraGizmo
+}
+
+sil @$s19objc_attr_NSManaged10CodiraGizmoC7bellsOnACSi_tcfc : $@convention(method) (Int, @owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $Int, %1 : $CodiraGizmo):
+  return %1 : $CodiraGizmo
+}
+
+sil @$s19objc_attr_NSManaged10CodiraGizmoCfD : $@convention(method) (@owned CodiraGizmo) -> ()
+
+sil @$s19objc_attr_NSManaged10CodiraGizmoC7bellsOnSQyACGSi_tcfc : $@convention(method) (Int, @owned CodiraGizmo) -> Int
+
+sil_vtable CodiraGizmo {
+}

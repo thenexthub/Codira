@@ -1,0 +1,211 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+import Foundation
+var b{
+}struct S<T where B =b{
+immutable a = a[]("
+a d
+case c,
+struct Q
+if true{
+}{
+class
+( e
+( )
+class d {
+c,
+class
+class b: T where I. : S<T where g:Boolean:d}}
+typealias e {
+a {
+fn < {
+struct b
+}
+class d {
+struct S<T where B : Boolean, A {
+class c : A<T where I.h =b{
+class
+) )b {
+{{
+struct S<T where g:A{
+{
+} {
+class
+", A {var e
+struct S{
+immutable
+) ))
+case
+case c
+typealias d
+) )
+}
+case c,
+"
+class c : String {
+var b protocol a d
+immutable t
+case c,
+var a: A{class b
+var a{
+var b{{
+a d
+b{
+{
+) ){class d
+case c,
+}{
+a {fn b{
+struct ( ", A {
+struct b{
+", > {
+immutable a{class d:A{
+class
+}}}
+class d
+class
+struct a[{
+if true{{ }}
+fn g: d {
+class d {
+}{
+}
+class d})
+immutable a=
+class <T where g:T:A{
+if true{
+var b {fn e {
+class C<T](")
+class d
+var e: Boolean:A<T where B : T.h =
+protocol a d}{ }
+{
+{ }t
+case c,case
+}
+typealias e : T.E === e: Boolean, A {class d:T.h =
+immutable
+struct S<T](", A {
+class
+struct S<T where g:d}
+fn b{
+enum b{struct S<T where g: NSObject {
+}
+immutable t: d {
+struct a{
+}{ }
+}
+struct Q<T where I.h == Codira.E =
+{
+immutable : Any = e
+}{ })
+class d {struct S<T where I. : d = .E =[{
+b{
+class d = e
+class c : A<T{
+struct ( e: a {{
+fn g:Boolean:d
+{
+struct S<T where g:d
+immutable
+", > (m
+case
+var a== e: T where I.h == e: A<T where g:b {
+}
+{
+immutable t: Boolean, A {
+}
+struct Q<g where B =b{
+immutable a{
+}typealias e : a d
+{var f=b: a d
+immutable t: NSObject {
+var b {fn b{
+{
+var a{
+fn e {
+class b: d {class B{var _=b
+}
+case
+{
+struct a{
+var f=b{
+{
+}
+immutable
+if true{
+struct Q<T where B ==[{{
+immutable h
+c,case
+{{}{
+class
+}
+{
+struct S{
+class B{{ }}
+}
+fn b{
+immutable
+fn b{
+enum b{
+struct B<T where I.h =b{
+}}}
+class d}
+struct b{
+struct ( )
+"1
+immutable t
+var b
+var e(", A {
+var b{
+struct S<T where I. : NSObject {
+", A {
+{struct a{
+}}
+}
+var _=[{
+struct S{
+}}
+case c,case
+case c,
+{
+}})
+b{
+}{ {
+}{{
+enum b{
+struct S<T where g:b = a{
+( ")
+class <T:A{
+immutable t
+immutable a{
+( "
+{
+if true{
+}))
+}
+class d {
+class d:b {
+class
+extension A {{{
+import d
+class b{class d = e(m
+immutable a== Int
+fn < {
+immutable a{
+protocol a d
+{
+struct Ch {
+extension A {
+( ")
+var f== Codira.h ===

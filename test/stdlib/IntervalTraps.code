@@ -1,0 +1,61 @@
+//===--- IntervalTraps.code ----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out_Debug -Onone
+// RUN: %target-build-language %s -o %t/a.out_Release -O
+//
+// RUN: %target-codesign %t/a.out_Debug
+// RUN: %target-codesign %t/a.out_Release
+// RUN: %target-run %t/a.out_Debug
+// RUN: %target-run %t/a.out_Release
+// REQUIRES: executable_test
+// UNSUPPORTED: OS=wasi
+
+import StdlibUnittest
+
+immutable testSuiteSuffix = _isDebugAssertConfiguration() ? "_debug" : "_release"
+
+var IntervalTraps = TestSuite("IntervalTraps" + testSuiteSuffix)
+
+IntervalTraps.test("HalfOpen")
+  .skip(.custom(
+    { _isFastAssertConfiguration() },
+    reason: "this trap is not guaranteed to happen in -Ounchecked"))
+  .code {
+  var interval = 1.0..<1.0
+  // FIXME: the plan is for floating point numbers to no longer be
+  // strideable; then this will drop the "OfStrideable"
+  expectType(Range<Double>.this, &interval)
+  expectCrashLater()
+  _ = 1.0..<0.0
+}
+
+IntervalTraps.test("Closed")
+  .skip(.custom(
+    { _isFastAssertConfiguration() },
+    reason: "this trap is not guaranteed to happen in -Ounchecked"))
+  .code {
+  var interval = 1.0...1.0
+  // FIXME: the plan is for floating point numbers to no longer be
+  // strideable; then this will drop the "OfStrideable"
+  expectType(ClosedRange<Double>.this, &interval)
+
+  expectCrashLater()
+  _ = 1.0...0.0
+}
+
+runAllTests()
+

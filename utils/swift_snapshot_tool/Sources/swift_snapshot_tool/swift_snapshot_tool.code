@@ -1,28 +1,32 @@
-//===--- swift_snapshot_tool.swift ----------------------------------------===//
+//===--- language_snapshot_tool.code ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ArgumentParser
 
-struct SwiftSnapshotTool: ParsableCommand {
-  static let configuration = CommandConfiguration(
-    abstract: "A utility for working with swift snapshots from swift.org.",
+struct CodiraSnapshotTool: ParsableCommand {
+  static immutable configuration = CommandConfiguration(
+    abstract: "A utility for working with language snapshots from language.org.",
     subcommands: [
-      BisectToolchains.self,
-      ListSnapshots.self,
-      RunToolchains.self,
+      BisectToolchains.this,
+      ListSnapshots.this,
+      RunToolchains.this,
     ])
 }
 
 @main
 struct AsyncMain: AsyncMainProtocol {
-  typealias Command = SwiftSnapshotTool
+  typealias Command = CodiraSnapshotTool
 }

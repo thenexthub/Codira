@@ -1,0 +1,22 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=Reference -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: fn getStaticInt() -> Int32
+// CHECK: fn getStaticIntRef() -> UnsafeMutablePointer<Int32>
+// CHECK: fn getStaticIntRvalueRef() -> UnsafeMutablePointer<Int32>
+// CHECK: fn getConstStaticIntRef() -> UnsafePointer<Int32>
+// CHECK: fn getConstStaticIntRvalueRef() -> UnsafePointer<Int32>
+// CHECK: fn setStaticInt(_: Int32)
+// CHECK: fn setStaticIntRef(_: inout Int32)
+// CHECK: fn setConstStaticIntRef(_: Int32)
+// CHECK: fn getFuncRef() -> @convention(c) () -> Int32
+// CHECK: fn getFuncRvalueRef() -> @convention(c) () -> Int32
+// CHECK: fn setConstStaticIntRefTypealias(_ ref: Int32)
+// CHECK: fn setStaticIntRefTypealias(_ ref: inout Int32)
+// CHECK: fn refToTemplate<T>(_ t: inout T) -> UnsafeMutablePointer<T>
+// CHECK: fn constRefToTemplate<T>(_ t: T) -> UnsafePointer<T>
+
+// CHECK-NOT: refToDependent
+// CHECK-NOT: refToDependentParam
+// CHECK-NOT: dontImportAtomicRef
+// CHECK-NOT: setStaticIntRvalueRef
+// CHECK-NOT: setConstStaticIntRvalueRef

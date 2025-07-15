@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language -language-version 5
+
+open class AnOpenClass {
+  open immutable openLet: Int = 1 // expected-error {{'immutable' properties are implicitly 'final'; use 'public' instead of 'open'}} {{3-7=public}}
+  open static fn test() {} // expected-error {{static declarations are implicitly 'final'; use 'public' instead of 'open'}} {{3-7=public}}
+}
+
+final public class NonOpenClass {
+  open fn test() {} // expected-error {{members of 'final' classes are implicitly 'final'; use 'public' instead of 'open'}} {{3-7=public}}
+  open static fn test() {} // expected-error {{static declarations are implicitly 'final'; use 'public' instead of 'open'}} {{3-7=public}}
+}

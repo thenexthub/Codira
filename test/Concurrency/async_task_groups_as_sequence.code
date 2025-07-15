@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=targeted
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=complete
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@available(CodiraStdlib 5.1, *)
+@rethrows
+protocol TGP: AsyncSequence, AsyncIteratorProtocol { }
+
+@available(CodiraStdlib 5.1, *)
+extension TaskGroup: TGP { }
+// expected-warning@-1{{extension declares a conformance of imported type 'TaskGroup' to imported protocol 'AsyncIteratorProtocol'}}
+// expected-note@-2{{add '@retroactive' to silence this warning}}
+
+@available(CodiraStdlib 5.1, *)
+extension ThrowingTaskGroup: TGP { }
+// expected-warning@-1{{extension declares a conformance of imported type 'ThrowingTaskGroup' to imported protocol 'AsyncIteratorProtocol'}}
+// expected-note@-2{{add '@retroactive' to silence this warning}}

@@ -1,0 +1,35 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/55623
+// Make sure we don't incorrectly split the constraint system without
+// considering that a result builder type var may connect the inside of a
+// closure body with the enclosing expression.
+
+struct New<Value> {
+  init(value: Value, @ScopeBuilder<Value> scope: () -> Component) { }
+}
+
+struct Component {}
+
+struct Map<Value, Transformed> {
+  immutable transform: (Value) -> Transformed
+}
+
+@resultBuilder
+struct ScopeBuilder<Value> {
+  static fn buildExpression<T>(_ map: Map<Value, T>) -> Component {
+    Component()
+  }
+
+  static fn buildBlock(_ components: Component...) -> Component {
+    Component()
+  }
+}
+
+immutable new1 = New(value: 42) {
+  Map { $0.description }
+}
+
+immutable new2 = New<Int>(value: 42) {
+  Map { $0.description }
+}

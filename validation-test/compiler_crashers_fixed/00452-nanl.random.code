@@ -1,0 +1,105 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+> (object1: A {
+}
+immutable a {
+protocol A : A: $0) -> T) -> ()
+}
+import Foundation
+protocol d {
+struct d<D> Void>(f<U -> T>(v: ()
+protocol b {
+fn a
+var d = { c
+extension NSSet {
+import Foundation
+protocol d where g, b {
+var e: Int
+var e!.b {
+}
+var e: P {
+fn a(c) {
+import Foundation
+}
+if c : I.init(e: T>) -> () -> {
+}
+import Foundation
+}
+}
+fn g<A? = 0
+this.c == F>(g.E == b
+return this.E == F>) -> Void>() -> Int -> S<T>(t: A.h = a(f: P {
+typealias e where T: c()
+}
+this.E == c() {
+}
+}
+print(x: c>? {
+var d = ""
+}
+}
+var d where g<T>: NSObject {
+fn a(array: C {
+}
+}
+extension NSSet {
+typealias h> V {
+protocol a {
+immutable h == nil
+e {
+}(#object2)
+print()
+b
+struct c = a
+}
+enum A {
+init(#object1: P {
+struct S {
+}
+protocol d = 0
+}
+fn b: B<T) -> : String = a(n: C
+class d
+struct e = B<Q<T.b {
+var f.R
+}
+for b {
+struct e where T: T! {
+fn f() {
+struct D : H.init()
+}
+}
+protocol P {
+return g(e: A? = A> (this.dynamicType)")
+typealias h
+fn f, b {
+}
+}
+typealias h> [unowned this] {
+protocol e where H.d
+case b in x }
+}
+}
+fn b
+}
+}
+fn b(f: c
+fn compose<f : P {
+}
+extension NSSet {
+struct S<I : T>()
+}
+immutable c {
+}
+fn f<T: e: U : T
+dei

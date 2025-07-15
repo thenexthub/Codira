@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Utilities for atomic operations, to use with std::atomic.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_ATOMIC_H
-#define SWIFT_RUNTIME_ATOMIC_H
+#ifndef LANGUAGE_RUNTIME_ATOMIC_H
+#define LANGUAGE_RUNTIME_ATOMIC_H
 
 #include "language/Runtime/Config.h"
 #include <assert.h>
@@ -35,21 +36,21 @@
 // the processor model nor the optimizer can realistically reorder our uses
 // of 'consume'.
 #if defined(__arm__) || defined(_M_ARM) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
-#  define SWIFT_MEMORY_ORDER_CONSUME (std::memory_order_relaxed)
+#  define LANGUAGE_MEMORY_ORDER_CONSUME (std::memory_order_relaxed)
 #else
-#  define SWIFT_MEMORY_ORDER_CONSUME (std::memory_order_consume)
+#  define LANGUAGE_MEMORY_ORDER_CONSUME (std::memory_order_consume)
 #endif
 
 
 #if defined(_M_ARM) || defined(_M_ARM64) || defined(__arm__) || defined(__aarch64__)
-#define SWIFT_HAS_MSVC_ARM_ATOMICS 1
+#define LANGUAGE_HAS_MSVC_ARM_ATOMICS 1
 #else
-#define SWIFT_HAS_MSVC_ARM_ATOMICS 0
+#define LANGUAGE_HAS_MSVC_ARM_ATOMICS 0
 #endif
 
 namespace language {
 namespace impl {
-/// The default implementation for swift::atomic<T>, which just wraps
+/// The default implementation for language::atomic<T>, which just wraps
 /// std::atomic with minor differences.
 ///
 /// TODO: should we make this use non-atomic operations when the runtime
@@ -110,7 +111,7 @@ public:
     // atomic is lock cmpxchg16b, so we do that with identical comparison
     // and new values purely for the side-effect of updating the old value.
     __int64 resultArray[2] = {};
-#if SWIFT_HAS_MSVC_ARM_ATOMICS
+#if LANGUAGE_HAS_MSVC_ARM_ATOMICS
     if (order != std::memory_order_acquire) {
       (void) _InterlockedCompareExchange128_nf(
                             reinterpret_cast<volatile __int64*>(&atomicValue),
@@ -120,7 +121,7 @@ public:
       (void) _InterlockedCompareExchange128(
                             reinterpret_cast<volatile __int64*>(&atomicValue),
                             0, 0, resultArray);
-#if SWIFT_HAS_MSVC_ARM_ATOMICS
+#if LANGUAGE_HAS_MSVC_ARM_ATOMICS
     }
 #endif
     return reinterpret_cast<Value &>(resultArray);
@@ -148,7 +149,7 @@ public:
   bool compare_exchange_strong(Value &oldValue, Value newValue,
                                std::memory_order successOrder,
                                std::memory_order failureOrder) {
-#if SWIFT_HAS_MSVC_ARM_ATOMICS
+#if LANGUAGE_HAS_MSVC_ARM_ATOMICS
     if (successOrder == std::memory_order_relaxed &&
         failureOrder != std::memory_order_acquire) {
       return _InterlockedCompareExchange128_nf(
@@ -175,7 +176,7 @@ public:
                             reinterpret_cast<const __int64*>(&newValue)[1],
                             reinterpret_cast<const __int64*>(&newValue)[0],
                             reinterpret_cast<__int64*>(&oldValue));
-#if SWIFT_HAS_MSVC_ARM_ATOMICS
+#if LANGUAGE_HAS_MSVC_ARM_ATOMICS
     }
 #endif
   }

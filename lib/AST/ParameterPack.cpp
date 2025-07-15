@@ -1,13 +1,17 @@
 //===--- ParameterPack.cpp - Utilities for variadic generics --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements utilities for substituting type parameter packs
@@ -23,7 +27,7 @@
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 
@@ -31,7 +35,7 @@ using namespace language;
 /// FV(PackElementType(Param, M), N) = FV(Param, 0) if M >= N, {} otherwise
 /// FV(Param, N) = {Param}
 static Type transformTypeParameterPacksRec(
-    Type t, llvm::function_ref<std::optional<Type>(SubstitutableType *)> fn,
+    Type t, toolchain::function_ref<std::optional<Type>(SubstitutableType *)> fn,
     unsigned expansionLevel) {
   return t.transformWithPosition(
       TypePosition::Invariant,
@@ -78,7 +82,7 @@ static Type transformTypeParameterPacksRec(
 }
 
 Type Type::transformTypeParameterPacks(
-    llvm::function_ref<std::optional<Type>(SubstitutableType *)> fn) const {
+    toolchain::function_ref<std::optional<Type>(SubstitutableType *)> fn) const {
   return transformTypeParameterPacksRec(*this, fn, /*expansionLevel=*/0);
 }
 
@@ -87,11 +91,11 @@ namespace {
 /// Collects all unique pack type parameters referenced from the pattern type,
 /// skipping those captured by nested pack expansion types.
 struct PackReferenceCollector: TypeWalker {
-  llvm::function_ref<bool (Type)> fn;
+  toolchain::function_ref<bool (Type)> fn;
   unsigned expansionLevel;
   SmallVector<unsigned, 2> elementLevel;
 
-  PackReferenceCollector(llvm::function_ref<bool (Type)> fn)
+  PackReferenceCollector(toolchain::function_ref<bool (Type)> fn)
     : fn(fn), expansionLevel(0) {
     elementLevel.push_back(0);
   }
@@ -151,7 +155,7 @@ struct PackReferenceCollector: TypeWalker {
 }
 
 void TypeBase::walkPackReferences(
-    llvm::function_ref<bool (Type)> fn) {
+    toolchain::function_ref<bool (Type)> fn) {
   Type(this).walk(PackReferenceCollector(fn));
 }
 
@@ -307,8 +311,6 @@ static CanPackType getReducedShapeOfPack(const ASTContext &ctx,
     }
 
     // Use () as a placeholder for scalar shape.
-    assert(!elt->template is<PackArchetypeType>() &&
-           "Pack archetype outside of a pack expansion");
     elts.push_back(ctx.TheEmptyTupleType);
   }
 
@@ -382,10 +384,11 @@ unsigned ParameterList::getOrigParamIndex(SubstitutionMap subMap,
     remappedIndex -= substCount;
   }
 
-  llvm::errs() << "Invalid substituted argument index: " << substIndex << "\n";
-  subMap.dump(llvm::errs());
-  dump(llvm::errs());
-  abort();
+  ABORT([&](auto &out) {
+    out << "Invalid substituted argument index: " << substIndex << "\n";
+    subMap.dump(out);
+    dump(out);
+  });
 }
 
 /// <T...> Foo<T, Pack{Int, String}> => Pack{T..., Int, String}

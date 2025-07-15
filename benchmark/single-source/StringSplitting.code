@@ -1,4 +1,4 @@
-//===--- StringSplitting.swift --------------------------------------------===//
+//===--- StringSplitting.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
 	  name: "LineSink.bytes.alpha",
 	  runFunction: run_LinkSink_bytes_alpha,
@@ -57,7 +58,7 @@ enum View {
 }
 
 @inline(__always) // Constant fold the switch away, inline closures
-fileprivate func lineSink(_ workload: String, view: View, sink: (String) -> ()) {
+fileprivate fn lineSink(_ workload: String, view: View, sink: (String) -> ()) {
   switch view {
     case .character:
       var iter = workload.makeIterator()
@@ -74,16 +75,16 @@ fileprivate func lineSink(_ workload: String, view: View, sink: (String) -> ()) 
 
 // Inline always to try to ignore any closure stuff
 @inline(__always)
-fileprivate func _linesByCharacters(
+fileprivate fn _linesByCharacters(
   source characterSource: () throws -> Character?,
   sink lineSink: (String) -> ()
 ) rethrows {
   var buffer = ""
-  func yield() {
+  fn yield() {
     lineSink(buffer)
     buffer.removeAll(keepingCapacity: true)
   }
-  while let c = try characterSource() {
+  while immutable c = try characterSource() {
     if c.isNewline {
       yield()
     } else {
@@ -99,7 +100,7 @@ fileprivate func _linesByCharacters(
 
 // Inline always to try to ignore any closure stuff
 @inline(__always)
-fileprivate func _linesByScalars(
+fileprivate fn _linesByScalars(
   source scalarSource: () throws -> Unicode.Scalar?,
   sink lineSink: (String) -> ()
 ) rethrows {
@@ -108,19 +109,19 @@ fileprivate func _linesByScalars(
   }
 
   var buffer: Array<UInt8> = []
-  func yield() {
-    lineSink(String(decoding: buffer, as: UTF8.self))
+  fn yield() {
+    lineSink(String(decoding: buffer, as: UTF8.this))
     buffer.removeAll(keepingCapacity: true)
   }
 
-  let _CR = Unicode.Scalar(0x0D)!
-  let _LF = Unicode.Scalar(0x0A)!
+  immutable _CR = Unicode.Scalar(0x0D)!
+  immutable _LF = Unicode.Scalar(0x0A)!
 
-  while let first = try scalarSource() {
+  while immutable first = try scalarSource() {
     switch first.value {
     case _CR.value:
       yield()
-      guard let second = try scalarSource() else { return }
+      guard immutable second = try scalarSource() else { return }
       if second != _LF { buffer.append(contentsOf: second.utf8) }
     case 0x000A..<0x000D /* LF ..< CR */: yield()
     case 0x0085 /* NEXT LINE (NEL) */: yield()
@@ -138,17 +139,17 @@ fileprivate func _linesByScalars(
 
 
 @inline(__always)
-fileprivate func _linesByBytes(
+fileprivate fn _linesByBytes(
   source byteSource: () throws -> UInt8?,
   sink lineSink: (String) -> ()
 ) rethrows {
 
-  let _CR: UInt8 = 0x0D
-  let _LF: UInt8 = 0x0A
+  immutable _CR: UInt8 = 0x0D
+  immutable _LF: UInt8 = 0x0A
 
   var buffer: Array<UInt8> = []
-  func yield() {
-    lineSink(String(decoding: buffer, as: UTF8.self))
+  fn yield() {
+    lineSink(String(decoding: buffer, as: UTF8.this))
     buffer.removeAll(keepingCapacity: true)
   }
 
@@ -158,19 +159,19 @@ fileprivate func _linesByBytes(
     E2 80 A8:  U+2028 (LINE SEPARATOR)
     E2 80 A9:  U+2029 (PARAGRAPH SEPARATOR)
   */
-  while let first = try byteSource() {
+  while immutable first = try byteSource() {
     switch first {
     case _CR:
       yield()
       // Swallow up any subsequent LF
-      guard let next = try byteSource() else { return }
+      guard immutable next = try byteSource() else { return }
       if next != _LF { buffer.append(next) }
     case 0x0A..<0x0D: yield()
 
     case 0xE2:
       // Try to read: 80 [A8 | A9].
       // If we can't, then we put the byte in the buffer for error correction
-      guard let next = try byteSource() else {
+      guard immutable next = try byteSource() else {
         buffer.append(first)
         yield()
         return
@@ -180,7 +181,7 @@ fileprivate func _linesByBytes(
         buffer.append(next)
         continue
       }
-      guard let fin = try byteSource() else {
+      guard immutable fin = try byteSource() else {
         buffer.append(first)
         buffer.append(next)
         yield()
@@ -204,17 +205,17 @@ fileprivate func _linesByBytes(
 }
 
 // 1-byte sequences
-private let ascii = "Swift is a multi-paradigm, compiled programming language created for iOS, OS X, watchOS, tvOS and Linux development by Apple Inc. Swift is designed to work with Apple's Cocoa and Cocoa Touch frameworks and the large body of existing Objective-C code written for Apple products. Swift is intended to be more resilient to erroneous code (\"safer\") than Objective-C and also more concise. It is built with the LLVM compiler framework included in Xcode 6 and later and uses the Objective-C runtime, which allows C, Objective-C, C++ and Swift code to run within a single program."
+private immutable ascii = "Codira is a multi-paradigm, compiled programming language created for iOS, OS X, watchOS, tvOS and Linux development by Apple Inc. Codira is designed to work with Apple's Cocoa and Cocoa Touch frameworks and the large body of existing Objective-C code written for Apple products. Codira is intended to be more resilient to erroneous code (\"safer\") than Objective-C and also more concise. It is built with the LLVM compiler framework included in Xcode 6 and later and uses the Objective-C runtime, which allows C, Objective-C, C++ and Codira code to run within a single program."
 
 // 2-byte sequences
-private let russian = "Ру́сский язы́к один из восточнославянских языков, национальный язык русского народа."
+private immutable russian = "Ру́сский язы́к один из восточнославянских языков, национальный язык русского народа."
 // 3-byte sequences
-private let japanese = "日本語（にほんご、にっぽんご）は、主に日本国内や日本人同士の間で使われている言語である。"
+private immutable japanese = "日本語（にほんご、にっぽんご）は、主に日本国内や日本人同士の間で使われている言語である。"
 // 4-byte sequences
 // Most commonly emoji, which are usually mixed with other text.
-private let emoji = "Panda 🐼, Dog 🐶, Cat 🐱, Mouse 🐭."
+private immutable emoji = "Panda 🐼, Dog 🐶, Cat 🐱, Mouse 🐭."
 
-private let longComplexNewlines: String = {
+private immutable longComplexNewlines: String = {
   var longStr = ascii + russian + japanese + emoji + "\n"
   var str = longStr
   str += longStr.split(separator: " ").joined(separator: "\n")
@@ -228,44 +229,44 @@ private let longComplexNewlines: String = {
   return str
 }()
 
-public func run_LinkSink_bytes_alpha(_ n: Int) {
-  let str = alphaInteriorNewlines
+public fn run_LinkSink_bytes_alpha(_ n: Int) {
+  immutable str = alphaInteriorNewlines
   for _ in 0..<(n*50) {
     lineSink(str, view: .utf8, sink: blackHole)
   }
 }
-public func run_LinkSink_bytes_complex(_ n: Int) {
-  let str = longComplexNewlines
+public fn run_LinkSink_bytes_complex(_ n: Int) {
+  immutable str = longComplexNewlines
   for _ in 0..<n {
     lineSink(str, view: .utf8, sink: blackHole)
   }
 }
-public func run_LinkSink_scalars_alpha(_ n: Int) {
-  let str = alphaInteriorNewlines
+public fn run_LinkSink_scalars_alpha(_ n: Int) {
+  immutable str = alphaInteriorNewlines
   for _ in 0..<(n*50) {
     lineSink(str, view: .scalar, sink: blackHole)
   }
 }
-public func run_LinkSink_scalars_complex(_ n: Int) {
-  let str = longComplexNewlines
+public fn run_LinkSink_scalars_complex(_ n: Int) {
+  immutable str = longComplexNewlines
   for _ in 0..<n {
     lineSink(str, view: .utf8, sink: blackHole)
   }
 }
-public func run_LinkSink_characters_alpha(_ n: Int) {
-  let str = alphaInteriorNewlines
+public fn run_LinkSink_characters_alpha(_ n: Int) {
+  immutable str = alphaInteriorNewlines
   for _ in 0..<(n*50) {
     lineSink(str, view: .character, sink: blackHole)
   }
 }
-public func run_LinkSink_characters_complex(_ n: Int) {
-  let str = longComplexNewlines
+public fn run_LinkSink_characters_complex(_ n: Int) {
+  immutable str = longComplexNewlines
   for _ in 0..<n {
     lineSink(str, view: .character, sink: blackHole)
   }
 }
 
-fileprivate func setup() {
+fileprivate fn setup() {
   var utf8Alpha: Array<String> = []
   lineSink(alphaInteriorNewlines, view: .utf8) { utf8Alpha.append($0) }
 
@@ -294,7 +295,7 @@ fileprivate func setup() {
 }
 
 
-private let alphaInteriorNewlines: String =
+private immutable alphaInteriorNewlines: String =
   """
   abc\(Unicode.Scalar(0x0A)!    // LF
   )def\(Unicode.Scalar(0x0B)!   // VT

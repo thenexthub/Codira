@@ -1,12 +1,12 @@
-# swift_build_support/workspace.py ------------------------------*- python -*-
+# language_build_support/workspace.py ------------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 """
@@ -29,13 +29,13 @@ class Workspace(object):
         return os.path.join(self.build_root,
                             '%s-%s' % (product, deployment_target))
 
-    def swiftpm_unified_build_dir(self, deployment_target):
-        """ swiftpm_unified_build_dir() -> str
+    def languagepm_unified_build_dir(self, deployment_target):
+        """ languagepm_unified_build_dir() -> str
 
-        Build directory that all SwiftPM unified build products share.
+        Build directory that all CodiraPM unified build products share.
         """
         return os.path.join(self.build_root,
-                            'unified-swiftpm-build-%s' %
+                            'unified-languagepm-build-%s' %
                             deployment_target)
 
 
@@ -47,52 +47,52 @@ def compute_build_subdir(args):
     if args.cmark_assertions:
         cmark_build_dir_label += "Assert"
 
-    llvm_build_dir_label = args.llvm_build_variant
-    if args.llvm_assertions:
-        llvm_build_dir_label += "Assert"
+    toolchain_build_dir_label = args.toolchain_build_variant
+    if args.toolchain_assertions:
+        toolchain_build_dir_label += "Assert"
 
-    swift_build_dir_label = args.swift_build_variant
-    if args.swift_assertions:
-        swift_build_dir_label += "Assert"
-    if args.swift_analyze_code_coverage != "false":
-        swift_build_dir_label += "Coverage"
+    language_build_dir_label = args.code_build_variant
+    if args.code_assertions:
+        language_build_dir_label += "Assert"
+    if args.code_analyze_code_coverage != "false":
+        language_build_dir_label += "Coverage"
 
-    swift_stdlib_build_dir_label = args.swift_stdlib_build_variant
-    if args.swift_stdlib_assertions:
-        swift_stdlib_build_dir_label += "Assert"
+    language_stdlib_build_dir_label = args.code_stdlib_build_variant
+    if args.code_stdlib_assertions:
+        language_stdlib_build_dir_label += "Assert"
 
     # FIXME: mangle LLDB build configuration into the directory name.
-    if (llvm_build_dir_label == swift_build_dir_label and
-            llvm_build_dir_label == swift_stdlib_build_dir_label and
-            swift_build_dir_label == cmark_build_dir_label):
+    if (toolchain_build_dir_label == language_build_dir_label and
+            toolchain_build_dir_label == language_stdlib_build_dir_label and
+            language_build_dir_label == cmark_build_dir_label):
         # Use a simple directory name if all projects use the same build
         # type.
-        build_subdir += "-" + llvm_build_dir_label
-    elif (llvm_build_dir_label != swift_build_dir_label and
-            llvm_build_dir_label == swift_stdlib_build_dir_label and
-            swift_build_dir_label == cmark_build_dir_label):
-        # Swift build type differs.
-        build_subdir += "-" + llvm_build_dir_label
-        build_subdir += "+swift-" + swift_build_dir_label
-    elif (llvm_build_dir_label == swift_build_dir_label and
-            llvm_build_dir_label != swift_stdlib_build_dir_label and
-            swift_build_dir_label == cmark_build_dir_label):
-        # Swift stdlib build type differs.
-        build_subdir += "-" + llvm_build_dir_label
-        build_subdir += "+stdlib-" + swift_stdlib_build_dir_label
-    elif (llvm_build_dir_label == swift_build_dir_label and
-            llvm_build_dir_label == swift_stdlib_build_dir_label and
-            swift_build_dir_label != cmark_build_dir_label):
+        build_subdir += "-" + toolchain_build_dir_label
+    elif (toolchain_build_dir_label != language_build_dir_label and
+            toolchain_build_dir_label == language_stdlib_build_dir_label and
+            language_build_dir_label == cmark_build_dir_label):
+        # Codira build type differs.
+        build_subdir += "-" + toolchain_build_dir_label
+        build_subdir += "+language-" + language_build_dir_label
+    elif (toolchain_build_dir_label == language_build_dir_label and
+            toolchain_build_dir_label != language_stdlib_build_dir_label and
+            language_build_dir_label == cmark_build_dir_label):
+        # Codira stdlib build type differs.
+        build_subdir += "-" + toolchain_build_dir_label
+        build_subdir += "+stdlib-" + language_stdlib_build_dir_label
+    elif (toolchain_build_dir_label == language_build_dir_label and
+            toolchain_build_dir_label == language_stdlib_build_dir_label and
+            language_build_dir_label != cmark_build_dir_label):
         # cmark build type differs.
-        build_subdir += "-" + llvm_build_dir_label
+        build_subdir += "-" + toolchain_build_dir_label
         build_subdir += "+cmark-" + cmark_build_dir_label
     else:
         # We don't know how to create a short name, so just mangle in all
         # the information.
         build_subdir += "+cmark-" + cmark_build_dir_label
-        build_subdir += "+llvm-" + llvm_build_dir_label
-        build_subdir += "+swift-" + swift_build_dir_label
-        build_subdir += "+stdlib-" + swift_stdlib_build_dir_label
+        build_subdir += "+toolchain-" + toolchain_build_dir_label
+        build_subdir += "+language-" + language_build_dir_label
+        build_subdir += "+stdlib-" + language_stdlib_build_dir_label
 
     # If we have a sanitizer enabled, mangle it into the subdir.
     if args.enable_asan:
@@ -109,7 +109,7 @@ def relocate_xdg_cache_home_under(new_cache_location):
     This allows under Linux to relocate the default location
     of the module cache -- this can be useful when there are
     are lot of invocations to touch or when some invocations
-    can't be easily configured (as is the case for Swift
+    can't be easily configured (as is the case for Codira
     compiler detection in CMake)
     """
     os.environ['XDG_CACHE_HOME'] = new_cache_location

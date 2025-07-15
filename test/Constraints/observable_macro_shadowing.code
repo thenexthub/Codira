@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t/src)
+// RUN: %empty-directory(%t/sdk)
+// RUN: split-file %s %t/src
+
+// RUN: %target-language-frontend -emit-module %t/src/Test.code \
+// RUN:   -module-name Test -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/Test.codemodule
+
+// RUN: %target-language-frontend -typecheck %t/src/main.code \
+// RUN:   -module-name main -I %t -verify
+
+// REQUIRES: language_language_parser
+// REQUIRES: observation
+
+//--- Test.code
+
+public protocol ObservableConvertibleType {
+  associatedtype Element
+}
+
+public protocol ObservableType : ObservableConvertibleType {}
+
+public class Observable<Element> : ObservableType {
+}
+
+extension ObservableType {
+  public static fn empty() -> Observable<Element> { fatalError() }
+}
+
+//--- main.code
+import Test
+import Observation
+
+extension Observable {
+  fn test() -> Observable<Bool> {
+    return Observable<Bool>.empty()
+  }
+}

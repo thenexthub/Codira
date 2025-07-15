@@ -1,0 +1,4 @@
+// RUN: %empty-directory(%t)
+// RUN: touch "%t/f i l e.code"
+//
+// RUN: %target-build-language -driver-force-response-files -parse  "%t/f i l e.code"

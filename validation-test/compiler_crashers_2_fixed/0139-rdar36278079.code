@@ -1,0 +1,19 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+struct S {
+  // presence of a static instance seems to be
+  // necessary to cause this problem
+  static immutable s = S()
+}
+
+protocol P {
+  associatedtype T
+  init(t: T)
+}
+
+extension S: P {
+// Uncomment to stop assertion:
+//  init(t: Int) {
+//    this = S()
+//  }
+}

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file implements validation for Swift types, emitting semantic errors as
-// appropriate and checking default initializer values.
+// This file implements type resolution, which converts syntactic type
+// representations into semantic types, emitting diagnostics as appropriate.
 //
 //===----------------------------------------------------------------------===//
 
@@ -62,11 +63,11 @@
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/DeclBase.h"
 #include "clang/AST/DeclTemplate.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/Twine.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/Twine.h"
 
 using namespace language;
 
@@ -185,7 +186,7 @@ static unsigned getGenericRequirementKind(TypeResolutionOptions options) {
     break;
   }
 
-  llvm_unreachable("Invalid type resolution context");
+  toolchain_unreachable("Invalid type resolution context");
 }
 
 Type TypeResolution::resolveDependentMemberType(
@@ -688,7 +689,7 @@ bool TypeChecker::checkContextualRequirements(GenericTypeDecl *decl,
   case CheckRequirementsResult::Success:
     return true;
   }
-  llvm_unreachable("invalid requirement check type");
+  toolchain_unreachable("invalid requirement check type");
 }
 
 CheckGenericArgumentsResult
@@ -699,7 +700,7 @@ TypeChecker::checkGenericArgumentsForDiagnostics(
       signature, signature.getRequirements(), substitutions);
 }
 
-void swift::diagnoseInvalidGenericArguments(SourceLoc loc,
+void language::diagnoseInvalidGenericArguments(SourceLoc loc,
                                             ValueDecl *decl,
                                             unsigned argCount,
                                             unsigned paramCount,
@@ -811,16 +812,15 @@ namespace {
       if (!paramType->isValue())
         return true;
 
-      // Both of these generic type parameters are values, but they may not have
-      // underlying value types associated with them. This can occur when a
-      // parameter doesn't declare a value type and we're going to diagnose it
-      // later.
-      if (!paramType->getValueType() || !secondType->getValueType())
+      // If either value type has an error, we've already diagnosed the issue.
+      auto paramValueTy = paramType->getValueType();
+      auto secondValueTy = secondType->getValueType();
+      if (paramValueTy->hasError() || secondValueTy->hasError())
         return true;
 
       // Otherwise, these are both value parameters and check that both their
       // value types are the same.
-      return paramType->getValueType()->isEqual(secondType->getValueType());
+      return paramValueTy->isEqual(secondValueTy);
     }
 
     bool alwaysMismatchTypeParameters() const { return true; }
@@ -970,16 +970,8 @@ static Type applyGenericArguments(Type type,
     }
     
     // Try to form a substitution map.
-    auto subs = SubstitutionMap::get(bug->getGenericSignature(),
-                                     args,
-                                     [&](CanType dependentType,
-                                         Type conformingReplacementType,
-                                         ProtocolDecl *conformedProtocol)
-                                     -> ProtocolConformanceRef {
-                                       // no generic builtins have conformance
-                                       // requirements yet.
-                                       llvm_unreachable("not implemented yet");
-                                     });
+    auto subs = SubstitutionMap::get(bug->getGenericSignature(), args,
+                                     LookUpConformanceInModule());
                                      
     auto bound = bug->getBound(subs);
     
@@ -1014,10 +1006,10 @@ static Type applyGenericArguments(Type type,
   auto *decl = unboundType->getDecl();
 
   auto genericParams = decl->getGenericParams();
-  auto hasParameterPack = llvm::any_of(*genericParams, [](auto *paramDecl) {
+  auto hasParameterPack = toolchain::any_of(*genericParams, [](auto *paramDecl) {
     return paramDecl->isParameterPack();
   });
-  auto hasValueParam = llvm::any_of(*genericParams, [](auto *paramDecl) {
+  auto hasValueParam = toolchain::any_of(*genericParams, [](auto *paramDecl) {
     return paramDecl->isValue();
   });
 
@@ -1151,12 +1143,12 @@ static Type applyGenericArguments(Type type,
 
       if (error) {
         std::string failedTypesStr;
-        llvm::raw_string_ostream failedTypesStrStream(failedTypesStr);
-        llvm::interleaveComma(error->failedTypes, failedTypesStrStream);
+        toolchain::raw_string_ostream failedTypesStrStream(failedTypesStr);
+        toolchain::interleaveComma(error->failedTypes, failedTypesStrStream);
         // TODO: This error message should not reference implementation details.
-        // See: https://github.com/apple/swift/pull/33053#discussion_r477003350
+        // See: https://github.com/apple/language/pull/33053#discussion_r477003350
         ctx.Diags.diagnose(
-            loc, diag::unable_to_convert_generic_swift_types.ID,
+            loc, diag::unable_to_convert_generic_language_types.ID,
             {classTemplateDecl->getName(), StringRef(failedTypesStr)});
         return ErrorType::get(ctx);
       }
@@ -1300,7 +1292,7 @@ Type TypeResolution::applyUnboundGenericArguments(
             genericSig.getGenericParams(), substitutions);
       }
 
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case CheckRequirementsResult::SubstitutionFailure:
       return ErrorType::get(ctx);
     case CheckRequirementsResult::Success:
@@ -1548,7 +1540,7 @@ static Type diagnoseUnknownType(const TypeResolution &resolution,
       repr->overwriteNameRef(DeclNameRef(ctx.getIdentifier(RemappedTy)));
 
       // HACK: 'NSUInteger' suggests both 'UInt' and 'Int'.
-      if (TypeName == swift::getSwiftName(KnownFoundationEntity::NSUInteger)) {
+      if (TypeName == language::getCodiraName(KnownFoundationEntity::NSUInteger)) {
         diags.diagnose(L, diag::note_remapped_type, "UInt")
           .fixItReplace(R, "UInt");
       }
@@ -1783,7 +1775,8 @@ resolveUnqualifiedIdentTypeRepr(const TypeResolution &resolution,
   // If the look up did not yield any results, try again but allow members from
   // modules that are not directly imported to be accessible.
   bool didIgnoreMissingImports = false;
-  if (!globals && ctx.LangOpts.hasFeature(Feature::MemberImportVisibility)) {
+  if (!globals && ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                                          /*allowMigration=*/true)) {
     lookupOptions |= NameLookupFlags::IgnoreMissingImports;
     globals = TypeChecker::lookupUnqualifiedType(DC, id, repr->getLoc(),
                                                  lookupOptions);
@@ -2046,8 +2039,8 @@ static Type resolveQualifiedIdentTypeRepr(const TypeResolution &resolution,
         DC, parentTy, repr->getNameRef(), repr->getLoc(), lookupOptions);
 
     // If no members were found, try ignoring missing imports.
-    if (!memberTypes &&
-        ctx.LangOpts.hasFeature(Feature::MemberImportVisibility)) {
+    if (!memberTypes && ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                                                /*allowMigration=*/true)) {
       lookupOptions |= NameLookupFlags::IgnoreMissingImports;
       memberTypes = TypeChecker::lookupMemberType(
           DC, parentTy, repr->getNameRef(), repr->getLoc(), lookupOptions);
@@ -2114,7 +2107,7 @@ static Type applyNonEscapingIfNecessary(Type ty,
 
     // We lost the sugar to flip the isNoEscape bit.
     //
-    // FIXME(https://github.com/apple/swift/issues/45125): It would be better
+    // FIXME(https://github.com/apple/language/issues/45125): It would be better
     // to add a new AttributedType sugared type, which would wrap the
     // TypeAliasType and apply the isNoEscape bit when de-sugaring.
     return FunctionType::get(funcTy->getParams(), funcTy->getResult(), extInfo);
@@ -2168,7 +2161,7 @@ static bool validateAutoClosureAttributeUse(DiagnosticEngine &Diags,
   bool isValid = true;
   type.visit([&](Type subType) {
     if (auto *fnType = subType->getAs<FunctionType>()) {
-      isValid &= llvm::none_of(
+      isValid &= toolchain::none_of(
           fnType->getParams(), [&](const FunctionType::Param &param) {
             return param.isAutoClosure() &&
                    validateAutoClosureAttr(Diags, TR->getLoc(),
@@ -2199,7 +2192,7 @@ namespace {
     /// Construct a never-null Type. If \p Ty is null, a fatal error is thrown.
     NeverNullType(Type Ty) : WrappedTy(Ty) {
       if (WrappedTy.isNull()) {
-        llvm::report_fatal_error("Resolved to null type!");
+        toolchain::report_fatal_error("Resolved to null type!");
       }
     }
 
@@ -2216,7 +2209,7 @@ namespace {
   };
 
   using ContextualTypeAttrResolver =
-    llvm::function_ref<bool(TypeAttribute *attr)>;
+    toolchain::function_ref<bool(TypeAttribute *attr)>;
 
   class TypeAttrSet;
 
@@ -2246,7 +2239,7 @@ namespace {
     }
 
     bool isInterfaceFile() const {
-      return getDeclContext()->isInSwiftinterface();
+      return getDeclContext()->isInCodirainterface();
     }
 
     /// Short-hand to query the current stage of type resolution.
@@ -2418,10 +2411,15 @@ namespace {
   class TypeAttrSet {
     const ASTContext &ctx;
 
-    llvm::TinyPtrVector<CustomAttr*> customAttrs;
+    /// FIXME:
+    ///  `nonisolated(nonsending)` is modeled as a separate `TypeRepr`, but
+    ///  needs to be considered together with subsequent attributes.
+    CallerIsolatedTypeRepr *nonisolatedNonsendingAttr;
+
+    toolchain::TinyPtrVector<CustomAttr*> customAttrs;
     EnumMap<TypeAttrKind, TypeAttribute *> typeAttrs;
 
-    llvm::SmallBitVector claimedCustomAttrs;
+    toolchain::SmallBitVector claimedCustomAttrs;
     FixedBitSet<NumTypeAttrKinds> claimedTypeAttrs;
 
 #ifndef NDEBUG
@@ -2429,7 +2427,9 @@ namespace {
 #endif
 
   public:
-    TypeAttrSet(const ASTContext &ctx) : ctx(ctx) {}
+    TypeAttrSet(const ASTContext &ctx,
+                CallerIsolatedTypeRepr *nonisolatedNonsendingAttr = nullptr)
+        : ctx(ctx), nonisolatedNonsendingAttr(nonisolatedNonsendingAttr) {}
 
     TypeAttrSet(const TypeAttrSet &) = delete;
     TypeAttrSet &operator=(const TypeAttrSet &) = delete;
@@ -2447,6 +2447,10 @@ namespace {
     /// Accumulate attributes from the given array.  Duplicate attributes
     /// will be diagnosed.
     void accumulate(ArrayRef<TypeOrCustomAttr> attrs);
+
+    CallerIsolatedTypeRepr *getNonisolatedNonsendingAttr() const {
+      return nonisolatedNonsendingAttr;
+    }
 
     /// Return all of the custom attributes.
     ArrayRef<CustomAttr*> getCustomAttrs() const {
@@ -2547,8 +2551,16 @@ namespace {
   }
 
   template <class AttrClass>
-  AttrClass *getWithoutClaiming(TypeAttrSet *attrs) {
+  std::enable_if_t<std::is_base_of_v<TypeAttribute, AttrClass>, AttrClass *>
+  getWithoutClaiming(TypeAttrSet *attrs) {
     return (attrs ? getWithoutClaiming<AttrClass>(*attrs) : nullptr);
+  }
+
+  template <class AttrClass>
+  std::enable_if_t<std::is_same_v<AttrClass, CallerIsolatedTypeRepr>,
+                   CallerIsolatedTypeRepr *>
+  getWithoutClaiming(TypeAttrSet *attrs) {
+    return attrs ? attrs->getNonisolatedNonsendingAttr() : nullptr;
   }
 } // end anonymous namespace
 
@@ -2669,7 +2681,7 @@ bool TypeResolver::diagnoseInvalidPlaceHolder(OpaqueReturnTypeRepr *repr) {
 }
 
 
-bool swift::diagnoseMissingOwnership(ParamSpecifier ownership,
+bool language::diagnoseMissingOwnership(ParamSpecifier ownership,
                                      TypeRepr *repr, Type ty,
                                      const TypeResolution &resolution) {
   auto options = resolution.getOptions();
@@ -2962,7 +2974,7 @@ NeverNullType TypeResolver::resolveType(TypeRepr *repr,
   case TypeReprKind::Integer:
     return resolveIntegerTypeRepr(cast<IntegerTypeRepr>(repr), options);
   }
-  llvm_unreachable("all cases should be handled");
+  toolchain_unreachable("all cases should be handled");
 }
 
 static Type rebuildWithDynamicSelf(ASTContext &Context, Type ty) {
@@ -3296,7 +3308,7 @@ void TypeAttrSet::diagnoseUnclaimed(CustomAttr *attr,
   // attributes.
   std::string typeName;
   if (auto typeRepr = attr->getTypeRepr()) {
-    llvm::raw_string_ostream out(typeName);
+    toolchain::raw_string_ostream out(typeName);
     typeRepr->print(out);
   } else {
     typeName = attr->getType().getString();
@@ -3322,7 +3334,7 @@ static bool isFunctionAttribute(TypeAttrKind attrKind) {
       TypeAttrKind::YieldMany,
       TypeAttrKind::Async,
   };
-  return llvm::any_of(FunctionAttrs, [attrKind](TypeAttrKind functionAttr) {
+  return toolchain::any_of(FunctionAttrs, [attrKind](TypeAttrKind functionAttr) {
                         return functionAttr == attrKind;
                       });
 }
@@ -3659,10 +3671,8 @@ TypeResolver::resolveAttributedType(TypeRepr *repr, TypeResolutionOptions option
     }
   }
 
-  if (getASTContext().LangOpts.hasFeature(Feature::LayoutPrespecialization)) {
-    (void) claim<NoMetadataTypeAttr>(attrs);
-    // TODO: add proper validation
-  }
+  (void)claim<NoMetadataTypeAttr>(attrs);
+  // TODO: add proper validation
 
   // There are a bunch of attributes in SIL that are essentially new
   // type constructors.  Some of these are allowed even in AST positions;
@@ -3718,7 +3728,7 @@ TypeResolver::resolveSILReferenceStorage(TypeAttribute *attr, NeverNullType ty) 
 #define REF_STORAGE(Name, name, ...) \
     if (isa<SIL##Name##TypeAttr>(attr)) return ReferenceOwnership::Name;
 #include "language/AST/ReferenceStorage.def"
-    llvm_unreachable("bad reference storage kind");
+    toolchain_unreachable("bad reference storage kind");
   }();
 
   bool isOptional = false;
@@ -4029,14 +4039,14 @@ NeverNullType TypeResolver::resolveASTFunctionType(
   auto isolatedAttr = claim<IsolatedTypeAttr>(attrs);
 
   AnyFunctionType::Representation representation =
-    FunctionType::Representation::Swift;
+    FunctionType::Representation::Codira;
   const clang::Type *parsedClangFunctionType = nullptr;
   auto conventionAttr = claim<ConventionTypeAttr>(attrs);
   if (conventionAttr) {
     auto parsedRep =
-        llvm::StringSwitch<std::optional<FunctionType::Representation>>(
+        toolchain::StringSwitch<std::optional<FunctionType::Representation>>(
             conventionAttr->getConventionName())
-            .Case("swift", FunctionType::Representation::Swift)
+            .Case("language", FunctionType::Representation::Codira)
             .Case("block", FunctionType::Representation::Block)
             .Case("thin", FunctionType::Representation::Thin)
             .Case("c", FunctionType::Representation::CFunctionPointer)
@@ -4045,7 +4055,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
       diagnoseInvalid(repr, conventionAttr->getAtLoc(),
                       diag::unsupported_convention,
                       conventionAttr->getConventionName());
-      representation = FunctionType::Representation::Swift;
+      representation = FunctionType::Representation::Codira;
     } else {
       representation = *parsedRep;
 
@@ -4059,7 +4069,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
           diagnoseInvalid(repr, conventionAttr->getAtLoc(),
                           diag::invalid_autoclosure_and_convention_attributes,
                           conventionAttr->getConventionName());
-          representation = FunctionType::Representation::Swift;
+          representation = FunctionType::Representation::Codira;
           parsedClangFunctionType = nullptr;
         }
       }
@@ -4067,11 +4077,11 @@ NeverNullType TypeResolver::resolveASTFunctionType(
       // Don't allow `@isolated` to be combined with non-default
       // conventions.
       if (isolatedAttr &&
-          representation != FunctionType::Representation::Swift) {
+          representation != FunctionType::Representation::Codira) {
         diagnoseInvalid(repr, conventionAttr->getAtLoc(),
                         diag::invalid_isolated_and_convention_attributes,
                         conventionAttr->getConventionName());
-        representation = FunctionType::Representation::Swift;
+        representation = FunctionType::Representation::Codira;
         parsedClangFunctionType = nullptr;
       }
     }
@@ -4098,9 +4108,9 @@ NeverNullType TypeResolver::resolveASTFunctionType(
   unsigned numIsolatedParams = countIsolatedParamsUpTo(repr, 2);
   if (!repr->isWarnedAbout() && numIsolatedParams > 1) {
     diagnose(repr->getLoc(), diag::isolated_parameter_duplicate_type)
-        .warnUntilSwiftVersion(6);
+        .warnUntilCodiraVersion(6);
 
-    if (ctx.LangOpts.isSwiftVersionAtLeast(6))
+    if (ctx.LangOpts.isCodiraVersionAtLeast(6))
       return ErrorType::get(ctx);
     else
       repr->setWarned();
@@ -4113,7 +4123,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
     if (globalActor && !globalActor->hasError() && !globalActorAttr->isInvalid()) {
       if (numIsolatedParams != 0) {
         diagnose(repr->getLoc(), diag::isolated_parameter_global_actor_type)
-            .warnUntilSwiftVersion(6);
+            .warnUntilCodiraVersion(6);
         globalActorAttr->setInvalid();
       } else if (isolatedAttr) {
         diagnose(repr->getLoc(), diag::isolated_attr_global_actor_type,
@@ -4131,7 +4141,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
     if (isolatedAttr && !isolatedAttr->isInvalid()) {
       switch (isolatedAttr->getIsolationKind()) {
       case IsolatedTypeAttr::IsolationKind::Dynamic:
-        if (representation != FunctionType::Representation::Swift) {
+        if (representation != FunctionType::Representation::Codira) {
           assert(conventionAttr);
           diagnoseInvalid(repr, isolatedAttr->getAtLoc(),
                           diag::isolated_attr_bad_convention,
@@ -4174,7 +4184,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
   // Ensure that parameter attributes are compatible with the convention
   // chosen.
   switch (representation) {
-  case FunctionTypeRepresentation::Swift:
+  case FunctionTypeRepresentation::Codira:
   case FunctionTypeRepresentation::Thin:
     // Native conventions.
     break;
@@ -4237,19 +4247,35 @@ NeverNullType TypeResolver::resolveASTFunctionType(
       break;
 
     case FunctionTypeIsolation::Kind::NonIsolatedCaller:
-      llvm_unreachable(
+      toolchain_unreachable(
           "cannot happen because multiple execution behavior attributes "
           "aren't allowed.");
     }
   };
 
   if (auto concurrentAttr = claim<ConcurrentTypeAttr>(attrs)) {
+    if (auto *nonisolatedNonsendingAttr =
+            getWithoutClaiming<CallerIsolatedTypeRepr>(attrs)) {
+      diagnoseInvalid(
+          nonisolatedNonsendingAttr, nonisolatedNonsendingAttr->getStartLoc(),
+          diag::cannot_use_nonisolated_nonsending_together_with_concurrent,
+          nonisolatedNonsendingAttr);
+    }
+
     checkExecutionBehaviorAttribute(concurrentAttr);
+
     if (!repr->isInvalid())
       isolation = FunctionTypeIsolation::forNonIsolated();
-  } else {
-    if (ctx.LangOpts.getFeatureState(Feature::NonisolatedNonsendingByDefault)
-            .isEnabledForAdoption()) {
+  } else if (!getWithoutClaiming<CallerIsolatedTypeRepr>(attrs)) {
+    // Infer async function type as `nonisolated(nonsending)` if there is
+    // no `@concurrent` or `nonisolated(nonsending)` attribute and isolation
+    // is nonisolated.
+    if (ctx.LangOpts.hasFeature(Feature::NonisolatedNonsendingByDefault) &&
+        repr->isAsync() && isolation.isNonIsolated()) {
+      isolation = FunctionTypeIsolation::forNonIsolatedCaller();
+    } else if (ctx.LangOpts
+                   .getFeatureState(Feature::NonisolatedNonsendingByDefault)
+                   .isEnabledForMigration()) {
       // Diagnose only in the interface stage, which is run once.
       if (inStage(TypeResolutionStage::Interface)) {
         warnAboutNewNonisolatedAsyncExecutionBehavior(ctx, repr, isolation);
@@ -4273,7 +4299,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
   // If this is a function type without parens around the parameter list,
   // diagnose this and produce a fixit to add them.
   if (!repr->isWarnedAbout()) {
-    // If someone wrote (Void) -> () in Swift 3, they probably meant
+    // If someone wrote (Void) -> () in Codira 3, they probably meant
     // () -> (), but (Void) -> () is (()) -> () so emit a warning
     // asking if they meant () -> ().
     auto args = repr->getArgsTypeRepr();
@@ -4312,7 +4338,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
   bool noescape = isDefaultNoEscapeContext(parentOptions);
 
   FunctionType::ExtInfoBuilder extInfoBuilder(
-      FunctionTypeRepresentation::Swift, noescape, repr->isThrowing(), thrownTy,
+      FunctionTypeRepresentation::Codira, noescape, repr->isThrowing(), thrownTy,
       diffKind, /*clangFunctionType*/ nullptr, isolation,
       /*LifetimeDependenceInfo*/ std::nullopt, hasSendingResult);
 
@@ -4434,7 +4460,7 @@ NeverNullType TypeResolver::resolveSILFunctionType(FunctionTypeRepr *repr,
       coroutineKind = SILCoroutineKind::YieldMany;
       break;
     default:
-      llvm_unreachable("bad TypeAttrKind for TAR_SILCoroutine");
+      toolchain_unreachable("bad TypeAttrKind for TAR_SILCoroutine");
     }
   }
 
@@ -4454,7 +4480,7 @@ NeverNullType TypeResolver::resolveSILFunctionType(FunctionTypeRepr *repr,
   auto conventionAttr = claim<ConventionTypeAttr>(attrs);
   if (conventionAttr) {
     auto parsedRep =
-      llvm::StringSwitch<std::optional<SILFunctionType::Representation>>(
+      toolchain::StringSwitch<std::optional<SILFunctionType::Representation>>(
             conventionAttr->getConventionName())
         .Case("thick", SILFunctionType::Representation::Thick)
         .Case("block", SILFunctionType::Representation::Block)
@@ -5278,7 +5304,20 @@ TypeResolver::resolveSendingTypeRepr(SendingTypeRepr *repr,
 NeverNullType
 TypeResolver::resolveCallerIsolatedTypeRepr(CallerIsolatedTypeRepr *repr,
                                             TypeResolutionOptions options) {
-  Type type = resolveType(repr->getBase(), options);
+  Type type;
+  {
+    TypeAttrSet attrs(getASTContext(), repr);
+
+    auto *baseRepr = repr->getBase();
+    if (auto *attrRepr = dyn_cast<AttributedTypeRepr>(baseRepr)) {
+      baseRepr = attrs.accumulate(attrRepr);
+    }
+
+    type = resolveAttributedType(baseRepr, options, attrs);
+
+    attrs.diagnoseUnclaimed(resolution, options, type);
+  }
+
   if (type->hasError())
     return ErrorType::get(getASTContext());
 
@@ -5292,15 +5331,6 @@ TypeResolver::resolveCallerIsolatedTypeRepr(CallerIsolatedTypeRepr *repr,
   if (!fnType->isAsync()) {
     diagnoseInvalid(repr, repr->getStartLoc(),
                     diag::nonisolated_nonsending_only_on_async, repr);
-  }
-
-  if (auto *ATR = dyn_cast<AttributedTypeRepr>(repr->getBase())) {
-    if (ATR->get(TypeAttrKind::Concurrent)) {
-      diagnoseInvalid(
-          repr, repr->getStartLoc(),
-          diag::cannot_use_nonisolated_nonsending_together_with_concurrent,
-          repr);
-    }
   }
 
   switch (fnType->getIsolation().getKind()) {
@@ -5327,7 +5357,7 @@ TypeResolver::resolveCallerIsolatedTypeRepr(CallerIsolatedTypeRepr *repr,
     break;
 
   case FunctionTypeIsolation::Kind::NonIsolatedCaller:
-    llvm_unreachable(
+    toolchain_unreachable(
         "cannot happen because multiple nonisolated(nonsending) attributes "
         "aren't allowed.");
   }
@@ -5358,7 +5388,7 @@ TypeResolver::resolveInlineArrayType(InlineArrayTypeRepr *repr,
   auto argOptions = options.withoutContext().withContext(
       TypeResolverContext::ValueGenericArgument);
 
-  // It's possible the user accidentally wrote '[Int x 4]', correct that here.
+  // It's possible the user accidentally wrote '[Int of 4]', correct that here.
   auto *countRepr = repr->getCount();
   auto *eltRepr = repr->getElement();
   if (!isa<IntegerTypeRepr>(countRepr) && isa<IntegerTypeRepr>(eltRepr)) {
@@ -5586,9 +5616,9 @@ NeverNullType TypeResolver::resolveImplicitlyUnwrappedOptionalType(
   }
 
   if (doDiag && !options.contains(TypeResolutionFlags::SilenceErrors)) {
-    // In language modes up to Swift 5, we allow `T!` in invalid position for
+    // In language modes up to Codira 5, we allow `T!` in invalid position for
     // compatibility and downgrade the error to a warning.
-    const unsigned swiftLangModeForError = 5;
+    const unsigned languageLangModeForError = 5;
 
     // If we are about to error, mark this node as invalid.
     // This is the only way to indicate that something went wrong without
@@ -5602,17 +5632,17 @@ NeverNullType TypeResolver::resolveImplicitlyUnwrappedOptionalType(
     // Compiler should diagnose both `Int!` and `String!` as invalid,
     // but returning `ErrorType` from here would stop type resolution
     // after `Int!`.
-    if (ctx.isSwiftVersionAtLeast(swiftLangModeForError)) {
+    if (ctx.isCodiraVersionAtLeast(languageLangModeForError)) {
       repr->setInvalid();
     }
 
     Diag<> diagID = diag::iuo_deprecated_here;
-    if (ctx.isSwiftVersionAtLeast(swiftLangModeForError)) {
+    if (ctx.isCodiraVersionAtLeast(languageLangModeForError)) {
       diagID = diag::iuo_invalid_here;
     }
 
     diagnose(repr->getExclamationLoc(), diagID)
-        .warnUntilSwiftVersion(swiftLangModeForError);
+        .warnUntilCodiraVersion(languageLangModeForError);
 
     // Suggest a regular optional, but not when `T!` is the right-hand side of
     // a cast expression.
@@ -5829,7 +5859,7 @@ NeverNullType TypeResolver::resolveTupleType(TupleTypeRepr *repr,
   SmallVector<TupleTypeElt, 8> elements;
   elements.reserve(repr->getNumElements());
 
-  llvm::SmallDenseSet<Identifier> seenEltNames;
+  toolchain::SmallDenseSet<Identifier> seenEltNames;
   seenEltNames.reserve(repr->getNumElements());
 
   auto elementOptions = options;
@@ -5981,11 +6011,7 @@ TypeResolver::resolveCompositionType(CompositionTypeRepr *repr,
       continue;
     }
 
-    // FIXME: Support compositions involving parameterized protocol types,
-    // like 'any Collection<String> & Sendable', etc.
-    if (ty->is<ParameterizedProtocolType>() &&
-        !options.isConstraintImplicitExistential() &&
-        options.getContext() != TypeResolverContext::ExistentialConstraint) {
+    if (ty->is<ParameterizedProtocolType>()) {
       checkMember(tyR->getStartLoc(), ty);
       Members.push_back(ty);
       continue;
@@ -6096,7 +6122,7 @@ TypeResolver::resolveExistentialType(ExistentialTypeRepr *repr,
   if (wrapped && (wrapped->is<ExistentialType>() ||
                   wrapped->is<ExistentialMetatypeType>())) {
     std::string fix;
-    llvm::raw_string_ostream OS(fix);
+    toolchain::raw_string_ostream OS(fix);
     constraintType->print(OS, PrintOptions::forDiagnosticArguments());
     diagnose(repr->getLoc(), diag::incorrect_optional_any, constraintType)
         .fixItReplace(repr->getSourceRange(), fix);
@@ -6312,14 +6338,23 @@ Type TypeChecker::substMemberTypeWithBase(TypeDecl *member,
                               : member->getDeclaredInterfaceType();
   SubstitutionMap subs;
   if (baseTy) {
-    // Cope with the presence of unbound generic types, which are ill-formed
-    // at this point but break the invariants of getContextSubstitutionMap().
+    // If the base type contains an unbound generic type, we cannot
+    // proceed to the getContextSubstitutionMap() call below.
+    //
+    // In general, this means the user program is ill-formed, but we
+    // do allow type aliases to be referenced with an unbound generic
+    // type as the base, if the underlying type of the type alias
+    // does not contain type parameters.
     if (baseTy->hasUnboundGenericType()) {
       memberType = memberType->getReducedType(aliasDecl->getGenericSignature());
 
+      // This is the error case. The diagnostic is emitted elsewhere,
+      // in TypeChecker::isUnsupportedMemberTypeAccess().
       if (memberType->hasTypeParameter())
         return ErrorType::get(memberType);
 
+      // Otherwise, there's no substitution to be performed, so we
+      // just drop the base type.
       return memberType;
     }
 
@@ -6366,7 +6401,7 @@ class ExistentialTypeSyntaxChecker : public ASTWalker {
   bool hitTopStmt;
 
   unsigned exprCount = 0;
-  llvm::SmallVector<TypeRepr *, 4> reprStack;
+  toolchain::SmallVector<TypeRepr *, 4> reprStack;
     
 public:
   ExistentialTypeSyntaxChecker(ASTContext &ctx, bool checkStatements)
@@ -6516,9 +6551,9 @@ private:
       replacementT = *replacementIt;
     }
 
-    llvm::SmallString<64> fix;
+    toolchain::SmallString<64> fix;
     {
-      llvm::raw_svector_ostream OS(fix);
+      toolchain::raw_svector_ostream OS(fix);
       if (needsParens)
         OS << "(";
       ExistentialTypeRepr existential(SourceLoc(), replacementT);
@@ -6575,7 +6610,7 @@ private:
     // A missing `any` or `some` is always diagnosed if this feature not
     // disabled.
     auto featureState = ctx.LangOpts.getFeatureState(Feature::ExistentialAny);
-    if (featureState.isEnabled() || featureState.isEnabledForAdoption()) {
+    if (featureState.isEnabled() || featureState.isEnabledForMigration()) {
       return true;
     }
 
@@ -6668,13 +6703,13 @@ private:
                                       /*isAlias=*/isa<TypeAliasDecl>(decl)));
     }
 
-    // If `ExistentialAny` is enabled in adoption mode, warn unconditionally.
+    // If `ExistentialAny` is enabled in migration mode, warn unconditionally.
     // Otherwise, warn until the feature's coming-of-age language mode.
     const auto feature = Feature::ExistentialAny;
-    if (Ctx.LangOpts.getFeatureState(feature).isEnabledForAdoption()) {
+    if (Ctx.LangOpts.getFeatureState(feature).isEnabledForMigration()) {
       diag->limitBehavior(DiagnosticBehavior::Warning);
     } else {
-      diag->warnUntilSwiftVersion(feature.getLanguageVersion().value());
+      diag->warnUntilCodiraVersion(feature.getLanguageVersion().value());
     }
 
     emitInsertAnyFixit(*diag, T);
@@ -6699,8 +6734,8 @@ void TypeChecker::checkExistentialTypes(Decl *decl) {
   if (!decl || decl->isInvalid())
     return;
 
-  // Skip diagnosing existential `any` requirements in swiftinterfaces.
-  if (decl->getDeclContext()->isInSwiftinterface())
+  // Skip diagnosing existential `any` requirements in languageinterfaces.
+  if (decl->getDeclContext()->isInCodirainterface())
     return;
 
   auto &ctx = decl->getASTContext();
@@ -6747,8 +6782,8 @@ void TypeChecker::checkExistentialTypes(ASTContext &ctx, Stmt *stmt,
   if (!stmt)
     return;
 
-  // Skip diagnosing existential `any` requirements in swiftinterfaces.
-  if (DC->isInSwiftinterface())
+  // Skip diagnosing existential `any` requirements in languageinterfaces.
+  if (DC->isInCodirainterface())
     return;
 
   ExistentialTypeSyntaxChecker checker(ctx, /*checkStatements=*/true);
@@ -6842,13 +6877,13 @@ Type ExplicitCaughtTypeRequest::evaluate(
   }
 
   // Functions
-  if (auto func = catchNode.dyn_cast<AbstractFunctionDecl *>()) {
-    TypeRepr *thrownTypeRepr = func->getThrownTypeRepr();
+  if (auto fn = catchNode.dyn_cast<AbstractFunctionDecl *>()) {
+    TypeRepr *thrownTypeRepr = fn->getThrownTypeRepr();
 
     // If there is no explicit thrown type, check whether it throws at all.
     if (!thrownTypeRepr) {
       // If it throws, it throws 'any Error'.
-      if (func->hasThrows())
+      if (fn->hasThrows())
         return ctx.getErrorExistentialType();
 
       // Otherwise, 'Never'.
@@ -6857,10 +6892,10 @@ Type ExplicitCaughtTypeRequest::evaluate(
 
     // We have an explicit thrown error type, so resolve it.
     auto options = TypeResolutionOptions(TypeResolverContext::None);
-    if (func->preconcurrency())
+    if (fn->preconcurrency())
       options |= TypeResolutionFlags::Preconcurrency;
 
-    return TypeResolution::forInterface(func, options,
+    return TypeResolution::forInterface(fn, options,
                                         /*unboundTyOpener*/ nullptr,
                                         PlaceholderType::get,
                                         /*packElementOpener*/ nullptr)
@@ -6909,5 +6944,5 @@ Type ExplicitCaughtTypeRequest::evaluate(
         /*packElementOpener*/ nullptr);
   }
 
-  llvm_unreachable("Unhandled catch node");
+  toolchain_unreachable("Unhandled catch node");
 }

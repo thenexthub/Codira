@@ -1,17 +1,21 @@
 //===--- DotExprCodeCompletion.h ------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_POSTFIXCOMPLETION_H
-#define SWIFT_IDE_POSTFIXCOMPLETION_H
+#ifndef LANGUAGE_IDE_POSTFIXCOMPLETION_H
+#define LANGUAGE_IDE_POSTFIXCOMPLETION_H
 
 #include "language/IDE/CodeCompletionConsumer.h"
 #include "language/IDE/CodeCompletionContext.h"
@@ -63,7 +67,7 @@ class PostfixCompletionCallback : public TypeCheckCompletionCallback {
 
     /// Actor isolations that were determined during constraint solving but that
     /// haven't been saved to the AST.
-    llvm::DenseMap<AbstractClosureExpr *, ActorIsolation>
+    toolchain::DenseMap<AbstractClosureExpr *, ActorIsolation>
         ClosureActorIsolations;
 
     /// Merge this result with \p Other, returning \c true if
@@ -107,4 +111,4 @@ public:
 } // end namespace ide
 } // end namespace language
 
-#endif // SWIFT_IDE_POSTFIXCOMPLETION_H
+#endif // LANGUAGE_IDE_POSTFIXCOMPLETION_H

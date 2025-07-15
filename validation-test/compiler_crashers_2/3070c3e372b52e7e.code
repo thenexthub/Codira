@@ -1,0 +1,6 @@
+// {"signature":"language::constraints::ConstraintSystem::resolveOverload(language::constraints::ConstraintLocator*, language::Type, language::constraints::OverloadChoice, language::DeclContext*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a fn b(c : a) {
+  {
+    switch
+      c { case .baz(c==

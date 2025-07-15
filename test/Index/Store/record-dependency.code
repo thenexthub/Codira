@@ -1,0 +1,20 @@
+// RUN: rm -rf %t
+// RUN: %target-language-frontend -index-store-path %t/idx -o %t/file.o -typecheck %s
+// RUN: c-index-test core -print-unit %t/idx | %FileCheck %s
+// CHECK: DEPEND START
+// CHECK: Record | user | {{.*}}record-dependency.code | record-dependency.code-
+// CHECK: DEPEND END
+
+// RUN: echo 'fn bar() {}' > %t/s2.code
+// RUN: %target-language-frontend -index-store-path %t/idx2 -emit-module -module-name main -emit-module-path %t/main.codemodule %s %t/s2.code -o %t/file.o -o %t/s2.o
+// RUN: c-index-test core -print-unit %t/idx2 | %FileCheck %s -check-prefix=TWO_RECORDS
+// TWO_RECORDS: file.o-
+// TWO_RECORDS: DEPEND START
+// TWO_RECORDS: Record | user | {{.*}}record-dependency.code | record-dependency.code-
+// TWO_RECORDS: DEPEND END
+// TWO_RECORDS: s2.o-
+// TWO_RECORDS: DEPEND START
+// TWO_RECORDS: Record | user | {{.*}}s2.code | s2.code-
+// TWO_RECORDS: DEPEND END
+
+fn foo() {}

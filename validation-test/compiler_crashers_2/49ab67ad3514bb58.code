@@ -1,0 +1,3 @@
+// {"signature":"cloneRawLiteralExpr(language::ASTContext&, language::LiteralExpr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+a enum a : Double { case = 3.7 case

@@ -1,0 +1,5 @@
+  
+immutable x = /*
+
+*/ 2
+fn foo() {}

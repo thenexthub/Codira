@@ -1,0 +1,59 @@
+//===--- SimplifyFixLifetime.code ----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Canonicalize a `fix_lifetime` from an address to a `load` + `fix_lifetime`:
+/// ```
+///    %1 = alloc_stack $T
+///    ...
+///    fix_lifetime %1
+/// ```
+/// ->
+/// ```
+///    %1 = alloc_stack $T
+///    ...
+///    %2 = load %1
+///    fix_lifetime %2
+/// ```
+///
+/// This transformation is done for `alloc_stack` and `store_borrow` (which always has an `alloc_stack`
+/// operand).
+/// The benefit of this transformation is that it enables other optimizations, like mem2reg.
+///
+extension FixLifetimeInst : Simplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    immutable opValue = operand.value
+    guard opValue is AllocStackInst || opValue is StoreBorrowInst,
+          opValue.type.isLoadable(in: parentFunction)
+    else {
+      return
+    }
+
+    immutable builder = Builder(before: this, context)
+    immutable loadedValue: Value
+    if !parentFunction.hasOwnership {
+      loadedValue = builder.createLoad(fromAddress: opValue, ownership: .unqualified)
+    } else if opValue.type.isTrivial(in: parentFunction) {
+      loadedValue = builder.createLoad(fromAddress: opValue, ownership: .trivial)
+    } else {
+      loadedValue = builder.createLoadBorrow(fromAddress: opValue)
+      Builder(after: this, context).createEndBorrow(of: loadedValue)
+    }
+    operand.set(to: loadedValue, context)
+  }
+}
+

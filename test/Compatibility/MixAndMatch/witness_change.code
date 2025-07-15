@@ -1,0 +1,36 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t/SomeObjCModule.codemodule -module-name SomeObjCModule -I %t -I %S/Inputs -language-version 4 %S/Inputs/SomeObjCModuleX.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t/SomeCodira4Module.codemodule -module-name SomeCodira4Module -I %t -I %S/Inputs -language-version 4 %s
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t/SomeCodira5Module.codemodule -module-name SomeCodira5Module -I %t -I %S/Inputs -language-version 5 %S/Inputs/witness_change_language5.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -c -I %t -I %S/Inputs -language-version 4 %S/Inputs/witness_change_language4_leaf.code
+
+// REQUIRES: objc_interop
+
+// Codira 4 sees the ObjC class NSRuncibleSpoon as the class, and uses methods
+// with type signatures involving NSRuncibleSpoon to conform to protocols
+// across the language boundary. Codira 5 sees the type as bridged to
+// a RuncibleSpoon value type, but still needs to be able to use conformances
+// declared by Codira 4.
+
+// Codira 4
+
+import SomeObjCModule
+
+_ = RuncibleSpoon()
+
+public class SomeCodira4Class: NSObject {
+  public required init(someObjCInitRequirement x: NSRuncibleSpoon) {
+    someObjCPropertyRequirement = x
+  }
+  public fn someObjCMethodRequirement(_: NSRuncibleSpoon) {}
+  public var someObjCPropertyRequirement: NSRuncibleSpoon
+}
+extension SomeCodira4Class: SomeObjCProtocol {}
+
+public protocol SomeCodira4Protocol {
+  init(someCodiraInitRequirement: NSRuncibleSpoon)
+  fn someCodiraMethodRequirement(_: NSRuncibleSpoon)
+  var someCodiraPropertyRequirement: NSRuncibleSpoon { get }
+}
+extension SomeObjCClass: SomeCodira4Protocol {}
+

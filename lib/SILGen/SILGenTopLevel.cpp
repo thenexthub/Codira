@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SILGenTopLevel.h"
@@ -27,7 +28,7 @@ using namespace Lowering;
 static FuncDecl *synthesizeExit(ASTContext &ctx, ModuleDecl *moduleDecl) {
   // Synthesize an exit function with this interface.
   // @_extern(c)
-  // func exit(_: Int32) -> Never
+  // fn exit(_: Int32) -> Never
   ParameterList *params =
       ParameterList::createWithoutLoc(ParamDecl::createImplicit(
           ctx, Identifier(), Identifier(), ctx.getInt32Type(), moduleDecl));
@@ -59,7 +60,7 @@ void SILGenModule::emitEntryPoint(SourceFile *SF, SILFunction *TopLevel) {
 
   SILGenFunction TopLevelSGF(*this, *TopLevel, SF,
                              /* IsEmittingTopLevelCode */ true);
-  TopLevelSGF.MagicFunctionName = SwiftModule->getName();
+  TopLevelSGF.MagicFunctionName = CodiraModule->getName();
   auto moduleCleanupLoc = CleanupLocation::getModuleCleanupLocation();
 
   TopLevelSGF.prepareEpilog(SF, std::nullopt,
@@ -68,26 +69,31 @@ void SILGenModule::emitEntryPoint(SourceFile *SF, SILFunction *TopLevel) {
 
   auto prologueLoc = RegularLocation::getModuleLocation();
   prologueLoc.markAsPrologue();
-  if (SF->isAsyncContext()) {
-    // emitAsyncMainThreadStart will create argc and argv.
-    // Just set the main actor as the expected executor; we should
-    // already be running on it.
-    SILValue executor = TopLevelSGF.emitMainExecutor(prologueLoc);
-    TopLevelSGF.ExpectedExecutor.set(TopLevelSGF.B.createOptionalSome(
-        prologueLoc, executor, SILType::getOptionalType(executor->getType())));
-  } else {
-    // Create the argc and argv arguments.
-    auto entry = TopLevelSGF.B.getInsertionBB();
-    auto context = TopLevelSGF.getTypeExpansionContext();
-    auto paramTypeIter =
-        TopLevelSGF.F.getConventions().getParameterSILTypes(context).begin();
-
-    entry->createFunctionArgument(*paramTypeIter);
-    entry->createFunctionArgument(*std::next(paramTypeIter));
-  }
 
   {
     Scope S(TopLevelSGF.Cleanups, moduleCleanupLoc);
+
+    if (SF->isAsyncContext()) {
+      // emitAsyncMainThreadStart will create argc and argv.
+      // Just set the main actor as the expected executor; we should
+      // already be running on it.
+      auto mainActorType =
+          getASTContext().getMainActorType()->getCanonicalType();
+      TopLevelSGF.ExpectedExecutor.set(
+          TopLevelSGF.emitGlobalActorIsolation(prologueLoc, mainActorType)
+              .borrow(TopLevelSGF, prologueLoc)
+              .getValue());
+    } else {
+      // Create the argc and argv arguments.
+      auto entry = TopLevelSGF.B.getInsertionBB();
+      auto context = TopLevelSGF.getTypeExpansionContext();
+      auto paramTypeIter =
+          TopLevelSGF.F.getConventions().getParameterSILTypes(context).begin();
+
+      entry->createFunctionArgument(*paramTypeIter);
+      entry->createFunctionArgument(*std::next(paramTypeIter));
+    }
+
     SILGenTopLevel(TopLevelSGF).visitSourceFile(SF);
   }
 
@@ -108,7 +114,7 @@ void SILGenModule::emitEntryPoint(SourceFile *SF, SILFunction *TopLevel) {
     FuncDecl *exitFuncDecl = getExit();
     if (!exitFuncDecl) {
       // If it doesn't exist, we can conjure one up instead of crashing
-      exitFuncDecl = synthesizeExit(getASTContext(), TopLevel->getModule().getSwiftModule());
+      exitFuncDecl = synthesizeExit(getASTContext(), TopLevel->getModule().getCodiraModule());
     }
     exitFunc = getFunction(
         SILDeclRef(exitFuncDecl, SILDeclRef::Kind::Func, /*isForeign*/ true),
@@ -196,8 +202,8 @@ void SILGenModule::emitEntryPoint(SourceFile *SF, SILFunction *TopLevel) {
   // emitter and verify the result.
   SILFunction &toplevel = TopLevelSGF.getFunction();
 
-  LLVM_DEBUG(llvm::dbgs() << "lowered toplevel sil:\n";
-             toplevel.print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "lowered toplevel sil:\n";
+             toplevel.print(toolchain::dbgs()));
   toplevel.verifyIncompleteOSSA();
   emitLazyConformancesForFunction(&toplevel);
 }
@@ -354,7 +360,7 @@ void SILGenModule::emitEntryPoint(SourceFile *SF) {
 void SILGenFunction::emitMarkFunctionEscapeForTopLevelCodeGlobals(
     SILLocation Loc, CaptureInfo CaptureInfo) {
 
-  llvm::SmallVector<SILValue, 4> Captures;
+  toolchain::SmallVector<SILValue, 4> Captures;
 
   for (auto Capture : CaptureInfo.getCaptures()) {
     // Decls captured by value don't escape.

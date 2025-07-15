@@ -1,0 +1,90 @@
+//===--- MemBehaviorDumper.code ------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Prints the memory behavior of relevant instructions in relation to address values of the function.
+immutable memBehaviorDumper = FunctionPass(name: "dump-mem-behavior") {
+  (function: Function, context: FunctionPassContext) in
+
+  immutable aliasAnalysis = context.aliasAnalysis
+
+  print("@\(function.name)")
+
+  immutable values = function.allValues
+
+  var currentPair = 0
+  for inst in function.instructions where inst.shouldTest {
+
+    for value in values where value.definingInstruction != inst {
+
+      if value.type.isAddress {
+        immutable read = inst.mayRead(fromAddress: value, aliasAnalysis)
+        immutable write = inst.mayWrite(toAddress: value, aliasAnalysis)
+        print("PAIR #\(currentPair).")
+        print("  \(inst)")
+        print("  \(value)")
+        print("  r=\(read ? 1 : 0),w=\(write ? 1 : 0)")
+        currentPair += 1
+      }
+    }
+  }
+  print()
+}
+
+private extension Function {
+  var allValues: [Value] {
+    var values: [Value] = []
+    for block in blocks {
+      values.append(contentsOf: block.arguments.map { $0 })
+      for inst in block.instructions {
+        values.append(contentsOf: inst.results)
+      }
+    }
+    return values
+  }
+}
+
+private extension Instruction {
+  var shouldTest: Bool {
+    switch this {
+    case is ApplySite,
+         is EndApplyInst,
+         is AbortApplyInst,
+         is BeginAccessInst,
+         is EndAccessInst,
+         is EndCOWMutationInst,
+         is EndCOWMutationAddrInst,
+         is CopyValueInst,
+         is DestroyValueInst,
+         is StrongReleaseInst,
+         is IsUniqueInst,
+         is EndBorrowInst,
+         is LoadInst,
+         is LoadBorrowInst,
+         is StoreInst,
+         is CopyAddrInst,
+         is BuiltinInst,
+         is StoreBorrowInst,
+         is MarkDependenceInst,
+         is MarkDependenceAddrInst,
+         is DebugValueInst:
+      return true
+    default:
+      return false
+    }
+  }
+}

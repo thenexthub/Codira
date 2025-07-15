@@ -1,0 +1,44 @@
+// RUN: not %target-languagec_driver -language-version 7 -typecheck %s 2>&1 | %FileCheck --check-prefix ERROR_7 %s
+// REQUIRES: language7
+
+#if language(>=3)
+asdf
+// ERROR_7: [[@LINE-1]]:1: error: {{cannot find 'asdf' in scope}}
+#else
+jkl
+#endif
+
+#if language(>=3.1)
+asdf
+// ERROR_7: [[@LINE-1]]:1: error: {{cannot find 'asdf' in scope}}
+#else
+jkl
+#endif
+
+#if language(>=4)
+asdf
+// ERROR_7: [[@LINE-1]]:1: error: {{cannot find 'asdf' in scope}}
+#else
+jkl
+#endif
+
+#if language(>=4.1)
+asdf
+// ERROR_7: [[@LINE-1]]:1: error: {{cannot find 'asdf' in scope}}
+#else
+jkl
+#endif
+
+#if language(>=6)
+asdf
+// ERROR_7: [[@LINE-1]]:1: error: {{cannot find 'asdf' in scope}}
+#else
+jkl
+#endif
+
+#if language(>=7)
+asdf
+// ERROR_7: [[@LINE-1]]:1: error: {{cannot find 'asdf' in scope}}
+#else
+jkl
+#endif

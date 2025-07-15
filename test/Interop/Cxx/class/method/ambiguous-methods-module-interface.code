@@ -1,0 +1,22 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=AmbiguousMethods -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: fn increment(_ a: Int32) -> Int32
+// CHECK: mutating fn incrementMutating(_ a: Int32) -> Int32
+
+// CHECK: mutating fn incrementMutating(_ a: Int32, _ b: Int32, _ c: inout Int32)
+// CHECK: fn increment(_ a: Int32, _ b: Int32, _ c: inout Int32)
+
+// CHECK: mutating fn incrementMutating(_ a: inout Int32, _ b: Int32)
+// CHECK: fn increment(_ a: inout Int32, _ b: Int32)
+
+// CHECK: fn numberOfMutableMethodsCalled() -> Int32
+// CHECK: mutating fn numberOfMutableMethodsCalledMutating() -> Int32
+
+// CHECK: struct HasAmbiguousMethods2
+// CHECK: fn increment(_ a: Int32) -> Int32
+// CHECK-NOT: mutating fn incrementMutating(_ a: Int32) -> Int32
+
+// CHECK: struct HasAmbiguousUnsafeMethods {
+// CHECK:   fn __getUnsafeUnsafe() -> Unsafe
+// CHECK:   mutating fn __getUnsafeMutatingUnsafe() -> Unsafe
+// CHECK: }

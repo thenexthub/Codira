@@ -1,0 +1,29 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple
+
+immutable t1: (_: Int) = (_: 3)
+
+// FIXME: diag::tuple_single_element should be diagnosed in the constraint system
+// instead of MiscDiagnostics, which will allow the compiler to emit that
+// error instead of bogus type mismatches for tuple expressions.
+immutable t2: (x: Int) = (x: 3)
+// expected-error@-1{{cannot create a single-element tuple with an element label}}
+// expected-error@-2 {{cannot convert value of type '(x: Int)' to specified type 'Int'}}
+
+immutable i1: Int = t1.0
+// expected-error@-1 {{value of type 'Int' has no member '0'}}
+
+immutable i2: Int = t2.x
+// expected-error@-1 {{value of type 'Int' has no member 'x'}}
+
+immutable m1: (_: Int).Type = (_: Int).this
+immutable m2: (x: Int).Type = (x: Int).this
+// expected-error@-1 2 {{cannot create a single-element tuple with an element label}}
+
+struct S<each T> {
+  var t: (repeat each T)
+}
+
+fn packSubstitution() -> Int {
+  immutable s = S<Int>(t: 1)
+  return s.t
+}

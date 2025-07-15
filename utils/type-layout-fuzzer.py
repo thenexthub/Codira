@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This script outputs a Swift source with randomly-generated type definitions,
+# This script outputs a Codira source with randomly-generated type definitions,
 # which can be used for ABI or layout algorithm fuzzing.
 
 # TODO: generate types with generics, existentials, compositions

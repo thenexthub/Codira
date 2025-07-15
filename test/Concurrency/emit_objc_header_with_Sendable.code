@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -parse-as-library -emit-objc-header-path %t/language.h
+// RUN: %FileCheck %s < %t/language.h
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objc public protocol P {}
+
+@objc public class Klass : NSObject {
+  // CHECK: - (void)test1:(NSDictionary<NSString *, id> * _Nonnull)_;
+  @objc public fn test1(_: [String: any Sendable]) {}
+  // CHECK: - (void)test2:(NSDictionary<NSString *, id <P>> * _Nonnull)_;
+  @objc public fn test2(_: [String: any P & Sendable]) {}
+}
+
+@objc public protocol Q {
+  // CHECK: - (NSArray<NSDictionary<NSString *, id> *> * _Nonnull)data1 LANGUAGE_WARN_UNUSED_RESULT;
+  fn data1() -> [[String: any Sendable]]
+  // CHECK: - (NSArray * _Nullable)data2 LANGUAGE_WARN_UNUSED_RESULT;
+  fn data2() -> [any Sendable]?
+  // CHECK: - (void)data3:(id _Nonnull)_;
+  fn data3(_: any Sendable)
+  // CHECK: - (void)data4:(id _Nullable)_;
+  fn data4(_: (any Sendable)?)
+}

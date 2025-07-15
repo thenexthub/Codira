@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "patternmatch-silgen"
@@ -27,7 +28,6 @@
 #include "language/AST/SILOptions.h"
 #include "language/AST/SubstitutionMap.h"
 #include "language/AST/Types.h"
-#include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
 #include "language/Basic/ProfileCounter.h"
 #include "language/Basic/STLExtras.h"
@@ -35,10 +35,10 @@
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILUndef.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/FormattedStream.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/FormattedStream.h"
 
 using namespace language;
 using namespace Lowering;
@@ -52,7 +52,7 @@ using namespace Lowering;
 // specifically.
 
 /// Shallow-dump a pattern node one level deep for debug purposes.
-static void dumpPattern(const Pattern *p, llvm::raw_ostream &os) {
+static void dumpPattern(const Pattern *p, toolchain::raw_ostream &os) {
   if (!p) {
     // We use null to represent a synthetic wildcard.
     os << '_';
@@ -104,7 +104,7 @@ static void dumpPattern(const Pattern *p, llvm::raw_ostream &os) {
   case PatternKind::Paren:
   case PatternKind::Typed:
   case PatternKind::Binding:
-    llvm_unreachable("not semantic");
+    toolchain_unreachable("not semantic");
   }
 }
 
@@ -117,7 +117,7 @@ static bool isDirectlyRefutablePattern(const Pattern *p) {
   case PatternKind::Any:
   case PatternKind::Named:
   case PatternKind::Expr:
-    llvm_unreachable("non-specializable patterns");
+    toolchain_unreachable("non-specializable patterns");
   
   // Tuple and nominal-type patterns are not themselves directly refutable.
   case PatternKind::Tuple:
@@ -136,7 +136,7 @@ static bool isDirectlyRefutablePattern(const Pattern *p) {
   case PatternKind::Binding:
     return isDirectlyRefutablePattern(p->getSemanticsProvidingPattern());
   }  
-  llvm_unreachable("bad pattern");
+  toolchain_unreachable("bad pattern");
 }
 
 const unsigned AlwaysRefutable = ~0U;
@@ -197,7 +197,7 @@ static unsigned getNumSpecializationsRecursive(const Pattern *p, unsigned n) {
   case PatternKind::Binding:
     return getNumSpecializationsRecursive(p->getSemanticsProvidingPattern(), n);
   }  
-  llvm_unreachable("bad pattern");
+  toolchain_unreachable("bad pattern");
 }
 
 /// Return the number of times a pattern must be specialized
@@ -239,12 +239,12 @@ static bool isWildcardPattern(const Pattern *p) {
     return isWildcardPattern(p->getSemanticsProvidingPattern());
   }
 
-  llvm_unreachable("Unhandled PatternKind in switch.");
+  toolchain_unreachable("Unhandled PatternKind in switch.");
 }
 
 /// Check to see if the given pattern is a specializing pattern,
 /// and return a semantic pattern for it.
-Pattern *getSpecializingPattern(Pattern *p) {
+static Pattern *getSpecializingPattern(Pattern *p) {
   // Empty entries are basically AnyPatterns.
   if (!p) return nullptr;
 
@@ -274,7 +274,7 @@ static Pattern *getSimilarSpecializingPattern(Pattern *p, Pattern *first) {
     if ((isa<OptionalSomePattern>(p) && isa<EnumElementPattern>(first)) ||
         (isa<OptionalSomePattern>(first) && isa<EnumElementPattern>(p)))
       return p;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   case PatternKind::Tuple:
   case PatternKind::Named:
@@ -299,10 +299,10 @@ static Pattern *getSimilarSpecializingPattern(Pattern *p, Pattern *first) {
   case PatternKind::Paren:
   case PatternKind::Binding:
   case PatternKind::Typed:
-    llvm_unreachable("not semantic");
+    toolchain_unreachable("not semantic");
   }
 
-  llvm_unreachable("Unhandled PatternKind in switch.");
+  toolchain_unreachable("Unhandled PatternKind in switch.");
 }
 
 //===----------------------------------------------------------------------===//
@@ -314,7 +314,7 @@ namespace {
 /// A row which we intend to specialize.
 struct RowToSpecialize {
   /// The pattern from this row which we are specializing upon.
-  swift::Pattern *Pattern;
+  language::Pattern *Pattern;
 
   /// The index of the target row.
   unsigned RowIndex;
@@ -412,18 +412,18 @@ class PatternMatchEmission {
   /// this pattern match for.
   Stmt *PatternMatchStmt;
   CleanupsDepth PatternMatchStmtDepth;
-  llvm::MapVector<CaseStmt*, std::pair<SILBasicBlock*, bool>> SharedCases;
-  llvm::SmallVector<std::tuple<CaseStmt*, Pattern*, SILBasicBlock*>, 4>
+  toolchain::MapVector<CaseStmt*, std::pair<SILBasicBlock*, bool>> SharedCases;
+  toolchain::SmallVector<std::tuple<CaseStmt*, Pattern*, SILBasicBlock*>, 4>
     DestructiveCases;
   CleanupsDepth EndNoncopyableBorrowDest = CleanupsDepth::invalid();
   ValueOwnership NoncopyableMatchOwnership = ValueOwnership::Default;
   ManagedValue NoncopyableConsumableValue;
 
-  llvm::DenseMap<VarDecl*, SILValue> Temporaries;
+  toolchain::DenseMap<VarDecl*, SILValue> Temporaries;
 
 public:
   using CompletionHandlerTy =
-    llvm::function_ref<void(PatternMatchEmission &, ArgArray, ClauseRow &)>;
+    toolchain::function_ref<void(PatternMatchEmission &, ArgArray, ClauseRow &)>;
     
 private:
   CompletionHandlerTy CompletionHandler;
@@ -462,7 +462,7 @@ public:
 
   JumpDest getSharedCaseBlockDest(CaseStmt *caseStmt);
   void emitSharedCaseBlocks(ValueOwnership ownership,
-                            llvm::function_ref<void(CaseStmt *)> bodyEmitter);
+                            toolchain::function_ref<void(CaseStmt *)> bodyEmitter);
 
   void emitCaseBody(CaseStmt *caseBlock);
 
@@ -698,8 +698,8 @@ public:
     return Columns.size();
   }
 
-  LLVM_ATTRIBUTE_USED void dump() const { return print(llvm::errs()); }
-  void print(llvm::raw_ostream &out) const;
+  TOOLCHAIN_ATTRIBUTE_USED void dump() const { return print(toolchain::errs()); }
+  void print(toolchain::raw_ostream &out) const;
 };
 
 /// A clause matrix. This matrix associates subpattern rows to their
@@ -752,13 +752,13 @@ public:
     return innerMatrix;
   }
 
-  LLVM_ATTRIBUTE_USED void dump() const { return print(llvm::errs()); }
-  void print(llvm::raw_ostream &out) const;
+  TOOLCHAIN_ATTRIBUTE_USED void dump() const { return print(toolchain::errs()); }
+  void print(toolchain::raw_ostream &out) const;
 };
 
 } // end anonymous namespace
 
-void ClauseRow::print(llvm::raw_ostream &out) const {
+void ClauseRow::print(toolchain::raw_ostream &out) const {
   out << "[ ";
   for (const Pattern *column : *this) {
     dumpPattern(column, out);
@@ -767,7 +767,7 @@ void ClauseRow::print(llvm::raw_ostream &out) const {
   out << "]\n";
 }
 
-void ClauseMatrix::print(llvm::raw_ostream &out) const {
+void ClauseMatrix::print(toolchain::raw_ostream &out) const {
   if (Rows.empty()) { return; }
 
   // Tabulate the strings for each column, row-major.
@@ -777,7 +777,7 @@ void ClauseMatrix::print(llvm::raw_ostream &out) const {
 
   patternStrings.resize(Rows.size());
     
-  llvm::formatted_raw_ostream fos(out);
+  toolchain::formatted_raw_ostream fos(out);
     
   for (unsigned r = 0, rend = rows(); r < rend; ++r) {
     const ClauseRow &row = (*this)[r];
@@ -792,7 +792,7 @@ void ClauseMatrix::print(llvm::raw_ostream &out) const {
       rowStrings.push_back("");
       std::string &str = rowStrings.back();
       {
-        llvm::raw_string_ostream ss(str);
+        toolchain::raw_string_ostream ss(str);
         dumpPattern(row[c], ss);
         ss.flush();
       }
@@ -978,9 +978,8 @@ private:
     if (IsFinalUse) {
       ArgForwarderBase::forwardIntoIrrefutable(value);
       return value;
-    } else {
-      return ArgForwarderBase::forward(value, loc);
     }
+    return ArgForwarderBase::forward(value, loc);
   }
 };
 
@@ -1136,7 +1135,7 @@ void PatternMatchEmission::emitDispatch(ClauseMatrix &clauses, ArgArray args,
         if (auto *S = clauses[firstRow].getClientData<Stmt>()) {
           Loc = S->getStartLoc();
           if (auto *CS = dyn_cast<CaseStmt>(S)) {
-            caseHasExprPattern = llvm::any_of(
+            caseHasExprPattern = toolchain::any_of(
                 CS->getCaseLabelItems(), [&](const CaseLabelItem item) {
                   return item.getPattern()->getKind() == PatternKind::Expr;
                 });
@@ -1253,7 +1252,7 @@ bindRefutablePatterns(const ClauseRow &row, ArgArray args,
       break;
     }
     default:
-      llvm_unreachable("bad pattern kind");
+      toolchain_unreachable("bad pattern kind");
     }
   }
 }
@@ -1286,7 +1285,7 @@ void PatternMatchEmission::bindIrrefutablePatterns(const ClauseRow &row,
       break;
     }
     default:
-      llvm_unreachable("bad pattern kind");
+      toolchain_unreachable("bad pattern kind");
     }
   }
 }
@@ -1322,7 +1321,7 @@ void PatternMatchEmission::bindIrrefutableBorrows(const ClauseRow &row,
       break;
     }
     default:
-      llvm_unreachable("bad pattern kind");
+      toolchain_unreachable("bad pattern kind");
     }
   }
 }
@@ -1350,7 +1349,7 @@ PatternMatchEmission::unbindAndEndBorrows(const ClauseRow &row,
       break;
     }
     default:
-      llvm_unreachable("bad pattern kind");
+      toolchain_unreachable("bad pattern kind");
     }
   }
   
@@ -1368,7 +1367,7 @@ static bool shouldTake(ConsumableManagedValue value, bool isIrrefutable) {
   case CastConsumptionKind::CopyOnSuccess: return false;
   case CastConsumptionKind::BorrowAlways: return false;
   }
-  llvm_unreachable("bad consumption kind");
+  toolchain_unreachable("bad consumption kind");
 }
 
 /// Bind a variable into the current scope.
@@ -1582,12 +1581,12 @@ void PatternMatchEmission::emitSpecializedDispatch(ClauseMatrix &clauses,
   case PatternKind::Any:
   case PatternKind::Expr:
   case PatternKind::Named:
-    llvm_unreachable("cannot specialize wildcard pattern");
+    toolchain_unreachable("cannot specialize wildcard pattern");
 
   case PatternKind::Paren:
   case PatternKind::Typed:
   case PatternKind::Binding:
-    llvm_unreachable("non-semantic pattern kind!");
+    toolchain_unreachable("non-semantic pattern kind!");
   
   case PatternKind::Tuple:
     return emitTupleDispatch(rowsToSpecialize, arg, handler, failure);
@@ -1600,7 +1599,7 @@ void PatternMatchEmission::emitSpecializedDispatch(ClauseMatrix &clauses,
   case PatternKind::Bool:
     return emitBoolDispatch(rowsToSpecialize, arg, handler, failure);
   }
-  llvm_unreachable("bad pattern kind");
+  toolchain_unreachable("bad pattern kind");
 }
 
 /// Given that we've broken down a source value into this subobject,
@@ -1618,7 +1617,7 @@ getManagedSubobject(SILGenFunction &SGF, SILValue value,
   case CastConsumptionKind::TakeOnSuccess:
     return {SGF.emitManagedRValueWithCleanup(value, valueTL), consumption};
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Given that we've broken down a source value into this subobject,
@@ -1637,7 +1636,7 @@ getManagedSubobject(SILGenFunction &SGF, ManagedValue value,
     return {value.ensurePlusOne(SGF, loc), consumption};
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 static ConsumableManagedValue
@@ -1804,7 +1803,7 @@ emitTupleDispatch(ArrayRef<RowToSpecialize> rows, ConsumableManagedValue src,
                 CastConsumptionKind::BorrowAlways};
       }
       }
-      llvm_unreachable("covered switch");
+      toolchain_unreachable("covered switch");
     }());
 
     // If we aren't loadable, add to the unforward array.
@@ -2007,7 +2006,7 @@ namespace {
 
     SILBasicBlock *getDefaultBlock() const { return DefaultBB; }
 
-    void forEachCase(llvm::function_ref<void(EnumElementDecl *,
+    void forEachCase(toolchain::function_ref<void(EnumElementDecl *,
                                              SILBasicBlock *,
                                              const CaseInfo &)> op) const {
       for_each(CaseBBs, CaseInfos,
@@ -2018,7 +2017,7 @@ namespace {
     }
 
     bool hasAnyRefutableCase() const {
-      return llvm::any_of(CaseInfos, [](const CaseInfo &info) {
+      return toolchain::any_of(CaseInfos, [](const CaseInfo &info) {
         return !info.Irrefutable;
       });
     }
@@ -2037,7 +2036,7 @@ CaseBlocks::CaseBlocks(
 
   auto enumDecl = sourceType.getEnumOrBoundGenericEnum();
 
-  llvm::SmallDenseMap<EnumElementDecl *, unsigned, 16> caseToIndex;
+  toolchain::SmallDenseMap<EnumElementDecl *, unsigned, 16> caseToIndex;
   for (auto &row : rows) {
     EnumElementDecl *formalElt;
     Pattern *subPattern = nullptr;
@@ -2088,11 +2087,11 @@ CaseBlocks::CaseBlocks(
   // at compile-time. This includes future cases (for resilient enums) and
   // random values crammed into C enums.
   bool canAssumeExhaustive =
-      enumDecl->isEffectivelyExhaustive(SGF.getModule().getSwiftModule(),
+      enumDecl->isEffectivelyExhaustive(SGF.getModule().getCodiraModule(),
                                         SGF.F.getResilienceExpansion());
   if (canAssumeExhaustive) {
     // Check that Sema didn't let any cases slip through.
-    canAssumeExhaustive = llvm::all_of(enumDecl->getAllElements(),
+    canAssumeExhaustive = toolchain::all_of(enumDecl->getAllElements(),
                                        [&](const EnumElementDecl *elt) {
       return caseToIndex.count(elt);
     });
@@ -2176,7 +2175,7 @@ void PatternMatchEmission::emitEnumElementObjectDispatch(
         // value in such cases, although we may touch the cleanup (enough to see
         // that it's not present).
         bool hasNonAny =
-            llvm::any_of(specializedRows, [&](const SpecializedRow &row) {
+            toolchain::any_of(specializedRows, [&](const SpecializedRow &row) {
               auto *p = row.Patterns[0];
               return p && !isa<AnyPattern>(p->getSemanticsProvidingPattern());
             });
@@ -2423,7 +2422,7 @@ void PatternMatchEmission::emitEnumElementDispatch(
       // We can't conditionally take, since UncheckedTakeEnumDataAddr
       // invalidates the enum.
       case CastConsumptionKind::TakeOnSuccess:
-        llvm_unreachable("not allowed");
+        toolchain_unreachable("not allowed");
       }
 
       // If we have a loadable payload despite the enum being address only, load
@@ -2447,7 +2446,7 @@ void PatternMatchEmission::emitEnumElementDispatch(
           break;
           
         case CastConsumptionKind::TakeOnSuccess:
-          llvm_unreachable("not possible");
+          toolchain_unreachable("not possible");
         }
         origCMV = {eltValue, eltConsumption};
       } else {
@@ -2684,7 +2683,7 @@ void PatternMatchEmission::emitDestructiveCaseBlocks() {
     
     void visitIsPattern(IsPattern *p, ManagedValue mv) {
       // TODO
-      llvm_unreachable("cast pattern in noncopyable pattern match not implemented");
+      toolchain_unreachable("cast pattern in noncopyable pattern match not implemented");
     }
     
     void visitEnumProjection(ManagedValue mv,
@@ -2910,7 +2909,7 @@ emitAddressOnlyInitialization(VarDecl *dest, SILValue value) {
 /// Emit all the shared case statements.
 void PatternMatchEmission::emitSharedCaseBlocks(
     ValueOwnership ownership,
-    llvm::function_ref<void(CaseStmt *)> bodyEmitter) {
+    toolchain::function_ref<void(CaseStmt *)> bodyEmitter) {
   if (ownership >= ValueOwnership::Shared
       && !SharedCases.empty()) {
     SGF.SGM.diagnose(SharedCases.front().first,
@@ -2960,7 +2959,7 @@ void PatternMatchEmission::emitSharedCaseBlocks(
     // Make sure that before/after we emit the case body we have emitted all
     // cleanups we created within.
     assert(SGF.getCleanupsDepth() == PatternMatchStmtDepth);
-    SWIFT_DEFER { assert(SGF.getCleanupsDepth() == PatternMatchStmtDepth); };
+    LANGUAGE_DEFER { assert(SGF.getCleanupsDepth() == PatternMatchStmtDepth); };
 
     if (!caseBlock->hasCaseBodyVariables()) {
       emitCaseBody(caseBlock);
@@ -3100,7 +3099,7 @@ static void emitDiagnoseOfUnexpectedEnumCaseValue(SILGenFunction &SGF,
           return ueci.singleObjCEnum.get()->getRawType();
 
         default:
-          llvm_unreachable("wrong generic signature for expected case value");
+          toolchain_unreachable("wrong generic signature for expected case value");
         }
       },
       LookUpConformanceInModule());
@@ -3178,6 +3177,9 @@ static void switchCaseStmtSuccessCallback(SILGenFunction &SGF,
           expectedLoc = SILGenFunction::VarLoc(vdLoc->second.value,
                                                vdLoc->second.access,
                                                vdLoc->second.box);
+          expectedLoc.addressableBuffer = vd;
+          // Alias the addressable buffer for the two variables.
+          SGF.AddressableBuffers[expected] = vd;
 
           // Emit a debug description for the variable, nested within a scope
           // for the pattern match.
@@ -3331,7 +3333,7 @@ static bool isBorrowableSubject(SILGenFunction &SGF,
 
   // Check the access strategy used to read the storage.
   auto strategy =
-      storage->getAccessStrategy(access, AccessKind::Read, SGF.SGM.SwiftModule,
+      storage->getAccessStrategy(access, AccessKind::Read, SGF.SGM.CodiraModule,
                                  SGF.F.getResilienceExpansion(), pair,
                                  /*useOldABI=*/false);
 
@@ -3360,21 +3362,21 @@ static bool isBorrowableSubject(SILGenFunction &SGF,
     case AccessorKind::Set:
     case AccessorKind::WillSet:
     case AccessorKind::DidSet:
-      llvm_unreachable("should not be involved in a read");
+      toolchain_unreachable("should not be involved in a read");
     }
-    llvm_unreachable("switch not covered?");
+    toolchain_unreachable("switch not covered?");
     
   case AccessStrategy::Kind::MaterializeToTemporary:
   case AccessStrategy::Kind::DispatchToDistributedThunk:
     return false;
   }
-  llvm_unreachable("switch not covered?");
+  toolchain_unreachable("switch not covered?");
 }
 
 void SILGenFunction::emitSwitchStmt(SwitchStmt *S) {
-  LLVM_DEBUG(llvm::dbgs() << "emitting switch stmt\n";
-             S->dump(llvm::dbgs());
-             llvm::dbgs() << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "emitting switch stmt\n";
+             S->dump(toolchain::dbgs());
+             toolchain::dbgs() << '\n');
 
   auto subjectExpr = S->getSubjectExpr();
   auto subjectTy = subjectExpr->getType();
@@ -3563,7 +3565,7 @@ void SILGenFunction::emitSwitchStmt(SwitchStmt *S) {
   }
   case ValueOwnership::InOut: {
     // A mutating pattern match. Emit the subject under a modify access.
-    llvm_unreachable("not yet implemented");
+    toolchain_unreachable("not yet implemented");
   }
   case ValueOwnership::Owned: {
     // A consuming pattern match. Emit as a +1 rvalue.
@@ -3586,7 +3588,7 @@ void SILGenFunction::emitSwitchStmt(SwitchStmt *S) {
       // borrow that for the pattern match.
       switch (ownership) {
       case ValueOwnership::Default:
-        llvm_unreachable("invalid");
+        toolchain_unreachable("invalid");
       
       case ValueOwnership::Shared:
         emission.setNoncopyableBorrowingOwnership();
@@ -3615,7 +3617,7 @@ void SILGenFunction::emitSwitchStmt(SwitchStmt *S) {
         
       case ValueOwnership::InOut:
         // TODO: mutating switches
-        llvm_unreachable("not implemented");
+        toolchain_unreachable("not implemented");
         
       case ValueOwnership::Owned:
         // Make sure we own the subject value.
@@ -3642,7 +3644,7 @@ void SILGenFunction::emitSwitchStmt(SwitchStmt *S) {
         }
         return {subjectMV, CastConsumptionKind::BorrowAlways};
       }
-      llvm_unreachable("unhandled value ownership");
+      toolchain_unreachable("unhandled value ownership");
     }
     
     // TODO: Move-only-wrapped subjects should also undergo a noncopying switch.
@@ -3749,9 +3751,9 @@ void SILGenFunction::emitSwitchStmt(SwitchStmt *S) {
   auto failure = [&](SILLocation location) {
     // If we fail to match anything, we trap. This can happen with a switch
     // over an @objc enum, which may contain any value of its underlying type,
-    // or a switch over a non-frozen Swift enum when the user hasn't written a
+    // or a switch over a non-frozen Codira enum when the user hasn't written a
     // catch-all case.
-    SWIFT_DEFER { B.createUnreachable(location); };
+    LANGUAGE_DEFER { B.createUnreachable(location); };
 
     // Special case: if it's a single @objc enum, we can print the raw value.
     if (unexpectedEnumCaseInfo.isSingleObjCEnum()) {
@@ -3993,8 +3995,8 @@ void SILGenFunction::emitCatchDispatch(DoCatchStmt *S, ManagedValue exn,
     Cleanups.emitBranchAndCleanups(sharedDest, clause, args);
   };
 
-  LLVM_DEBUG(llvm::dbgs() << "emitting catch dispatch\n"; S->dump(llvm::dbgs());
-             llvm::dbgs() << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "emitting catch dispatch\n"; S->dump(toolchain::dbgs());
+             toolchain::dbgs() << '\n');
 
   PatternMatchEmission emission(*this, S, completionHandler);
 

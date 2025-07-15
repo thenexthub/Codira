@@ -1,0 +1,4 @@
+// {"signature":"language::TypeResolution::applyUnboundGenericArguments(language::GenericTypeDecl*, language::Type, language::SourceLoc, toolchain::ArrayRef<language::Type>) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a < immutable b : a<Int>> {
+}

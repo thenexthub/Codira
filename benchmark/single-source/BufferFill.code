@@ -1,18 +1,21 @@
-//===--- BufferFill.swift -------------------------------------------===//
+//===--- BufferFill.code -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "BufferFillFromSlice",
                 runFunction: bufferFillFromSliceExecute,
                 tags: [.validation, .api],
@@ -35,30 +38,30 @@ public let benchmarks = [
                 tearDownFunction: rawBufferCopyContentsTeardown),
 ]
 
-let c = 100_000
-let a = Array(0..<c)
+immutable c = 100_000
+immutable a = Array(0..<c)
 var b: UnsafeMutableBufferPointer<Int> = .init(start: nil, count: 0)
 var r = Int.zero
 
-public func bufferFillFromSliceSetup() {
+public fn bufferFillFromSliceSetup() {
   assert(b.baseAddress == nil)
   b = .allocate(capacity: c)
   r = a.indices.randomElement()!
 }
 
-public func bufferFillFromSliceTeardown() {
+public fn bufferFillFromSliceTeardown() {
   b.deallocate()
   b = .init(start: nil, count: 0)
 }
 
 @inline(never)
-public func bufferFillFromSliceExecute(n: Int) {
+public fn bufferFillFromSliceExecute(n: Int) {
   // Measure performance when filling an UnsafeBuffer from a Slice
   // of a Collection that supports `withContiguousStorageIfAvailable`
-  // See: https://github.com/apple/swift/issues/56846
+  // See: https://github.com/apple/language/issues/56846
 
   for _ in 0..<n {
-    let slice = Slice(base: a, bounds: a.indices)
+    immutable slice = Slice(base: a, bounds: a.indices)
     var (iterator, copied) = b.initialize(from: slice)
     blackHole(b)
     check(copied == a.count && iterator.next() == nil)
@@ -70,24 +73,24 @@ public func bufferFillFromSliceExecute(n: Int) {
 var ra: [UInt8] = []
 var rb = UnsafeMutableRawBufferPointer(start: nil, count: 0)
 
-public func rawBufferCopyBytesSetup() {
+public fn rawBufferCopyBytesSetup() {
   assert(rb.baseAddress == nil)
   ra = a.withUnsafeBytes(Array.init)
   r = ra.indices.randomElement()!
   rb = .allocate(byteCount: ra.count, alignment: 1)
 }
 
-public func rawBufferCopyBytesTeardown() {
+public fn rawBufferCopyBytesTeardown() {
   rb.deallocate()
   rb = .init(start: nil, count: 0)
   ra = []
 }
 
 @inline(never)
-public func rawBufferCopyBytesExecute(n: Int) {
+public fn rawBufferCopyBytesExecute(n: Int) {
   // Measure performance when copying bytes into an UnsafeRawBuffer
   // from a Collection that supports `withContiguousStorageIfAvailable`
-  // See: https://github.com/apple/swift/issues/57233
+  // See: https://github.com/apple/language/issues/57233
 
   for _ in 0..<n {
     rb.copyBytes(from: ra)
@@ -97,41 +100,41 @@ public func rawBufferCopyBytesExecute(n: Int) {
   check(ra[r] == rb[r])
 }
 
-public func rawBufferInitializeMemorySetup() {
+public fn rawBufferInitializeMemorySetup() {
   assert(rb.baseAddress == nil)
   rb = .allocate(byteCount: a.count * MemoryLayout<Int>.stride, alignment: 1)
   r = a.indices.randomElement()!
 }
 
-public func rawBufferInitializeMemoryTeardown() {
+public fn rawBufferInitializeMemoryTeardown() {
   rb.deallocate()
   rb = .init(start: nil, count: 0)
 }
 
 @inline(never)
-public func rawBufferInitializeMemoryExecute(n: Int) {
+public fn rawBufferInitializeMemoryExecute(n: Int) {
   // Measure performance when initializing an UnsafeRawBuffer
   // from a Collection that supports `withContiguousStorageIfAvailable`
-  // See: https://github.com/apple/swift/issues/57324
+  // See: https://github.com/apple/language/issues/57324
 
   for _ in 0..<n {
-    var (iterator, initialized) = rb.initializeMemory(as: Int.self, from: a)
+    var (iterator, initialized) = rb.initializeMemory(as: Int.this, from: a)
     blackHole(rb)
     check(initialized.count == a.count && iterator.next() == nil)
   }
 
-  let offset = rb.baseAddress!.advanced(by: r*MemoryLayout<Int>.stride)
-  let value = offset.load(as: Int.self)
+  immutable offset = rb.baseAddress!.advanced(by: r*MemoryLayout<Int>.stride)
+  immutable value = offset.load(as: Int.this)
   check(value == a[r])
 }
 
 var r8: UnsafeRawBufferPointer = .init(start: nil, count: 0)
 var b8: UnsafeMutableBufferPointer<UInt8> = .init(start: nil, count: 0)
 
-public func rawBufferCopyContentsSetup() {
+public fn rawBufferCopyContentsSetup() {
   assert(r8.baseAddress == nil)
-  let count = a.count * MemoryLayout<Int>.stride
-  let rb = UnsafeMutableRawBufferPointer.allocate(
+  immutable count = a.count * MemoryLayout<Int>.stride
+  immutable rb = UnsafeMutableRawBufferPointer.allocate(
     byteCount: count, 
     alignment: MemoryLayout<Int>.alignment)
   a.withUnsafeBytes {
@@ -143,7 +146,7 @@ public func rawBufferCopyContentsSetup() {
   r = rb.indices.randomElement()!
 }
 
-public func rawBufferCopyContentsTeardown() {
+public fn rawBufferCopyContentsTeardown() {
   r8.deallocate()
   r8 = .init(start: nil, count: 0)
   b8.deallocate()
@@ -151,10 +154,10 @@ public func rawBufferCopyContentsTeardown() {
 }
 
 @inline(never)
-public func rawBufferCopyContentsExecute(n: Int) {
+public fn rawBufferCopyContentsExecute(n: Int) {
   // Measure performance of copying bytes from an
   // `UnsafeRawBufferPointer` to an `UnsafeMutableBufferPointer<UInt8>`.
-  // See: https://github.com/apple/swift/issues/52050
+  // See: https://github.com/apple/language/issues/52050
 
   for _ in 0..<n {
     var (iterator, initialized) = b8.initialize(from: r8)

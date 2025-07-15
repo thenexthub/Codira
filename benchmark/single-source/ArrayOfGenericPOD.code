@@ -1,4 +1,4 @@
-//===--- ArrayOfGenericPOD.swift ------------------------------------------===//
+//===--- ArrayOfGenericPOD.code ------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This benchmark tests creation and destruction of arrays of enum and
@@ -23,7 +24,7 @@
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     // Renamed benchmark to "2" when IUO test was removed, which
     // effectively changed what we're benchmarking here.
@@ -51,7 +52,7 @@ class RefArray<T> {
 // enum has a single payload of trivial type. Destroying the
 // elements should be a nop.
 @inline(never)
-func genEnumArray() {
+fn genEnumArray() {
   blackHole(RefArray<Int?>(3))
   // should be a nop
 }
@@ -64,13 +65,13 @@ struct S<T> {
   var y: T
 }
 @inline(never)
-func genStructArray() {
+fn genStructArray() {
   blackHole(RefArray<S<Int>>(S(x:3, y:4)))
   // should be a nop
 }
 
 @inline(never)
-public func run_ArrayOfGenericPOD(_ n: Int) {
+public fn run_ArrayOfGenericPOD(_ n: Int) {
   for _ in 0..<n {
     genEnumArray()
     genStructArray()
@@ -79,22 +80,22 @@ public func run_ArrayOfGenericPOD(_ n: Int) {
 
 // --- ArrayInitFromSlice
 
-let globalArray = Array<UInt8>(repeating: 0, count: 4096)
+immutable globalArray = Array<UInt8>(repeating: 0, count: 4096)
 
-func createArrayOfPOD() {
+fn createArrayOfPOD() {
   blackHole(globalArray)
 }
 
 @inline(never)
 @_optimize(none)
-func copyElements<S: Sequence>(_ contents: S) -> [UInt8]
+fn copyElements<S: Sequence>(_ contents: S) -> [UInt8]
   where S.Iterator.Element == UInt8
 {
   return [UInt8](contents)
 }
 
 @inline(never)
-public func run_initFromSlice(_ n: Int) {
+public fn run_initFromSlice(_ n: Int) {
   for _ in 0..<n {
     for _ in 0..<1000 {
       // Slice off at least one element so the array buffer can't be reused.

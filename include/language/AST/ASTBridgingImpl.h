@@ -1,17 +1,20 @@
-//===--- ASTBridgingImpl.h - header for the swift ASTBridging module ------===//
+//===--- ASTBridgingImpl.h - header for the language ASTBridging module ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTBRIDGINGIMPL_H
-#define SWIFT_AST_ASTBRIDGINGIMPL_H
+#ifndef LANGUAGE_AST_ASTBRIDGINGIMPL_H
+#define LANGUAGE_AST_ASTBRIDGINGIMPL_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ArgumentList.h"
@@ -30,32 +33,32 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Fingerprint.h"
 
-SWIFT_BEGIN_NULLABILITY_ANNOTATIONS
+LANGUAGE_BEGIN_NULLABILITY_ANNOTATIONS
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedIdentifier
 //===----------------------------------------------------------------------===//
 
-BridgedIdentifier::BridgedIdentifier(swift::Identifier ident)
+BridgedIdentifier::BridgedIdentifier(language::Identifier ident)
     : Raw(ident.getAsOpaquePointer()) {}
 
-swift::Identifier BridgedIdentifier::unbridged() const {
-  return swift::Identifier::getFromOpaquePointer(Raw);
+language::Identifier BridgedIdentifier::unbridged() const {
+  return language::Identifier::getFromOpaquePointer(Raw);
 }
 
-bool BridgedIdentifier_isOperator(const BridgedIdentifier ident) {
-  return ident.unbridged().isOperator();
+bool BridgedIdentifier::getIsOperator() const {
+  return unbridged().isOperator();
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedDeclBaseName
 //===----------------------------------------------------------------------===//
 
-BridgedDeclBaseName::BridgedDeclBaseName(swift::DeclBaseName baseName)
+BridgedDeclBaseName::BridgedDeclBaseName(language::DeclBaseName baseName)
   : Ident(baseName.Ident) {}
 
-swift::DeclBaseName BridgedDeclBaseName::unbridged() const {
-  return swift::DeclBaseName(Ident.unbridged());
+language::DeclBaseName BridgedDeclBaseName::unbridged() const {
+  return language::DeclBaseName(Ident.unbridged());
 }
 
 //===----------------------------------------------------------------------===//
@@ -63,7 +66,7 @@ swift::DeclBaseName BridgedDeclBaseName::unbridged() const {
 //===----------------------------------------------------------------------===//
 
 BridgedConsumedLookupResult::BridgedConsumedLookupResult(
-    swift::Identifier name, swift::SourceLoc sourceLoc, SwiftInt flag)
+    language::Identifier name, language::SourceLoc sourceLoc, CodiraInt flag)
     : Name(BridgedIdentifier(name)), NameLoc(BridgedSourceLoc(sourceLoc)),
       Flag(flag) {}
 
@@ -72,41 +75,37 @@ BridgedConsumedLookupResult::BridgedConsumedLookupResult(
 //===----------------------------------------------------------------------===//
 
 BridgedDeclNameRef::BridgedDeclNameRef()
-    : BridgedDeclNameRef(swift::DeclNameRef()) {}
+    : BridgedDeclNameRef(language::DeclNameRef()) {}
 
-BridgedDeclNameRef::BridgedDeclNameRef(swift::DeclNameRef name)
+BridgedDeclNameRef::BridgedDeclNameRef(language::DeclNameRef name)
   : opaque(name.getOpaqueValue()) {}
 
-swift::DeclNameRef BridgedDeclNameRef::unbridged() const {
-  return swift::DeclNameRef::getFromOpaqueValue(opaque);
+language::DeclNameRef BridgedDeclNameRef::unbridged() const {
+  return language::DeclNameRef::getFromOpaqueValue(opaque);
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedDeclNameLoc
 //===----------------------------------------------------------------------===//
 
-BridgedDeclNameLoc::BridgedDeclNameLoc(swift::DeclNameLoc loc)
+BridgedDeclNameLoc::BridgedDeclNameLoc(language::DeclNameLoc loc)
     : LocationInfo(loc.LocationInfo),
       NumArgumentLabels(loc.NumArgumentLabels) {}
 
-swift::DeclNameLoc BridgedDeclNameLoc::unbridged() const {
-  return swift::DeclNameLoc(LocationInfo, NumArgumentLabels);
+language::DeclNameLoc BridgedDeclNameLoc::unbridged() const {
+  return language::DeclNameLoc(LocationInfo, NumArgumentLabels);
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedASTContext
 //===----------------------------------------------------------------------===//
 
-BridgedASTContext::BridgedASTContext(swift::ASTContext &ctx) : Ctx(&ctx) {}
+BridgedASTContext::BridgedASTContext(language::ASTContext &ctx) : Ctx(&ctx) {}
 
-swift::ASTContext &BridgedASTContext::unbridged() const { return *Ctx; }
-
-void * _Nonnull BridgedASTContext_raw(BridgedASTContext bridged) {
-  return &bridged.unbridged();
-}
+language::ASTContext &BridgedASTContext::unbridged() const { return *Ctx; }
 
 BridgedASTContext BridgedASTContext_fromRaw(void * _Nonnull ptr) {
-  return *static_cast<swift::ASTContext *>(ptr);
+  return *static_cast<language::ASTContext *>(ptr);
 }
 
 void *_Nullable BridgedASTContext_allocate(BridgedASTContext bridged,
@@ -142,13 +141,13 @@ bool BridgedDeclContext_isModuleScopeContext(BridgedDeclContext dc) {
 }
 
 bool BridgedDeclContext_isClosureExpr(BridgedDeclContext dc) {
-  return llvm::isa_and_present<swift::ClosureExpr>(
-      llvm::dyn_cast<swift::AbstractClosureExpr>(dc.unbridged()));
+  return toolchain::isa_and_present<language::ClosureExpr>(
+      toolchain::dyn_cast<language::AbstractClosureExpr>(dc.unbridged()));
 }
 
 BridgedClosureExpr BridgedDeclContext_castToClosureExpr(BridgedDeclContext dc) {
-  return llvm::cast<swift::ClosureExpr>(
-      llvm::cast<swift::AbstractClosureExpr>(dc.unbridged()));
+  return toolchain::cast<language::ClosureExpr>(
+      toolchain::cast<language::AbstractClosureExpr>(dc.unbridged()));
 }
 
 BridgedASTContext BridgedDeclContext_getASTContext(BridgedDeclContext dc) {
@@ -173,7 +172,7 @@ bool BridgedSourceFile_isScriptMode(BridgedSourceFile sf) {
 //===----------------------------------------------------------------------===//
 
 BridgedSourceLoc BridgedDeclObj::getLoc() const {
-  swift::SourceLoc sourceLoc = unbridged()->getLoc();
+  language::SourceLoc sourceLoc = unbridged()->getLoc();
   return BridgedSourceLoc(sourceLoc.getOpaquePointerValue());
 }
 
@@ -186,15 +185,15 @@ OptionalBridgedDeclObj BridgedDeclObj::getParent() const {
 }
 
 BridgedStringRef BridgedDeclObj::Type_getName() const {
-  return getAs<swift::TypeDecl>()->getName().str();
+  return getAs<language::TypeDecl>()->getName().str();
 }
 
 BridgedStringRef BridgedDeclObj::Value_getUserFacingName() const {
-  return getAs<swift::ValueDecl>()->getBaseName().userFacingName();
+  return getAs<language::ValueDecl>()->getBaseName().userFacingName();
 }
 
 BridgedSourceLoc BridgedDeclObj::Value_getNameLoc() const {
-  return BridgedSourceLoc(getAs<swift::ValueDecl>()->getNameLoc().getOpaquePointerValue());
+  return BridgedSourceLoc(getAs<language::ValueDecl>()->getNameLoc().getOpaquePointerValue());
 }
 
 bool BridgedDeclObj::hasClangNode() const {
@@ -202,48 +201,52 @@ bool BridgedDeclObj::hasClangNode() const {
 }
 
 bool BridgedDeclObj::Value_isObjC() const {
-  return getAs<swift::ValueDecl>()->isObjC();
+  return getAs<language::ValueDecl>()->isObjC();
 }
 
 bool BridgedDeclObj::AbstractStorage_isConst() const {
-  return getAs<swift::AbstractStorageDecl>()->isConstValue();
+  return getAs<language::AbstractStorageDecl>()->isConstValue();
 }
 
 bool BridgedDeclObj::GenericType_isGenericAtAnyLevel() const {
-  return getAs<swift::GenericTypeDecl>()->isGenericContext();
+  return getAs<language::GenericTypeDecl>()->isGenericContext();
 }
 
 bool BridgedDeclObj::NominalType_isGlobalActor() const {
-  return getAs<swift::NominalTypeDecl>()->isGlobalActor();
+  return getAs<language::NominalTypeDecl>()->isGlobalActor();
 }
 
 OptionalBridgedDeclObj BridgedDeclObj::NominalType_getValueTypeDestructor() const {
-  return {getAs<swift::NominalTypeDecl>()->getValueTypeDestructor()};
+  return {getAs<language::NominalTypeDecl>()->getValueTypeDestructor()};
+}
+
+bool BridgedDeclObj::Enum_hasRawType() const {
+  return getAs<language::EnumDecl>()->hasRawType();
 }
 
 bool BridgedDeclObj::Struct_hasUnreferenceableStorage() const {
-  return getAs<swift::StructDecl>()->hasUnreferenceableStorage();
+  return getAs<language::StructDecl>()->hasUnreferenceableStorage();
 }
 
 BridgedASTType BridgedDeclObj::Class_getSuperclass() const {
-  return {getAs<swift::ClassDecl>()->getSuperclass().getPointer()};
+  return {getAs<language::ClassDecl>()->getSuperclass().getPointer()};
 }
 
 BridgedDeclObj BridgedDeclObj::Class_getDestructor() const {
-  return {getAs<swift::ClassDecl>()->getDestructor()};
+  return {getAs<language::ClassDecl>()->getDestructor()};
 }
 
 bool BridgedDeclObj::ProtocolDecl_requiresClass() const {
-  return getAs<swift::ProtocolDecl>()->requiresClass();
+  return getAs<language::ProtocolDecl>()->requiresClass();
 }
 
 bool BridgedDeclObj::AbstractFunction_isOverridden() const {
-  return getAs<swift::AbstractFunctionDecl>()->isOverridden();
+  return getAs<language::AbstractFunctionDecl>()->isOverridden();
 }
 
 bool BridgedDeclObj::Destructor_isIsolated() const {
-  auto dd = getAs<swift::DestructorDecl>();
-  auto ai = swift::getActorIsolation(dd);
+  auto dd = getAs<language::DestructorDecl>();
+  auto ai = language::getActorIsolation(dd);
   return ai.isActorIsolated();
 }
 
@@ -258,18 +261,18 @@ BridgedASTNode::BridgedASTNode(void *_Nonnull pointer, BridgedASTNodeKind kind)
 
 BridgedExpr BridgedASTNode::castToExpr() const {
   assert(getKind() == BridgedASTNodeKindExpr);
-  return static_cast<swift::Expr *>(getPointer());
+  return static_cast<language::Expr *>(getPointer());
 }
 BridgedStmt BridgedASTNode::castToStmt() const {
   assert(getKind() == BridgedASTNodeKindStmt);
-  return static_cast<swift::Stmt *>(getPointer());
+  return static_cast<language::Stmt *>(getPointer());
 }
 BridgedDecl BridgedASTNode::castToDecl() const {
   assert(getKind() == BridgedASTNodeKindDecl);
-  return static_cast<swift::Decl *>(getPointer());
+  return static_cast<language::Decl *>(getPointer());
 }
 
-swift::ASTNode BridgedASTNode::unbridged() const {
+language::ASTNode BridgedASTNode::unbridged() const {
   switch (getKind()) {
   case BridgedASTNodeKindExpr:
     return castToExpr().unbridged();
@@ -284,23 +287,23 @@ swift::ASTNode BridgedASTNode::unbridged() const {
 // MARK: Diagnostic Engine
 //===----------------------------------------------------------------------===//
 
-BridgedDiagnosticArgument::BridgedDiagnosticArgument(const swift::DiagnosticArgument &arg) {
-  *reinterpret_cast<swift::DiagnosticArgument *>(&storage) = arg;
+BridgedDiagnosticArgument::BridgedDiagnosticArgument(const language::DiagnosticArgument &arg) {
+  *reinterpret_cast<language::DiagnosticArgument *>(&storage) = arg;
 }
 
-const swift::DiagnosticArgument &BridgedDiagnosticArgument::unbridged() const {
-  return *reinterpret_cast<const swift::DiagnosticArgument *>(&storage);
+const language::DiagnosticArgument &BridgedDiagnosticArgument::unbridged() const {
+  return *reinterpret_cast<const language::DiagnosticArgument *>(&storage);
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedDeclAttributes
 //===----------------------------------------------------------------------===//
 
-BridgedDeclAttributes::BridgedDeclAttributes(swift::DeclAttributes attrs)
+BridgedDeclAttributes::BridgedDeclAttributes(language::DeclAttributes attrs)
     : chain(attrs.getRawAttributeChain()) {}
 
-swift::DeclAttributes BridgedDeclAttributes::unbridged() const {
-  swift::DeclAttributes attrs;
+language::DeclAttributes BridgedDeclAttributes::unbridged() const {
+  language::DeclAttributes attrs;
   attrs.setRawAttributeChain(chain.unbridged());
   return attrs;
 }
@@ -310,12 +313,12 @@ swift::DeclAttributes BridgedDeclAttributes::unbridged() const {
 //===----------------------------------------------------------------------===//
 
 BridgedAvailabilityDomainOrIdentifier::BridgedAvailabilityDomainOrIdentifier(
-    swift::AvailabilityDomainOrIdentifier domainOrIdentifier)
+    language::AvailabilityDomainOrIdentifier domainOrIdentifier)
     : opaque(domainOrIdentifier.getOpaqueValue()) {}
 
-swift::AvailabilityDomainOrIdentifier
+language::AvailabilityDomainOrIdentifier
 BridgedAvailabilityDomainOrIdentifier::unbridged() const {
-  return swift::AvailabilityDomainOrIdentifier::fromOpaque(opaque);
+  return language::AvailabilityDomainOrIdentifier::fromOpaque(opaque);
 }
 
 bool BridgedAvailabilityDomainOrIdentifier_isDomain(
@@ -327,18 +330,18 @@ BridgedIdentifier BridgedAvailabilityDomainOrIdentifier_getAsIdentifier(
     BridgedAvailabilityDomainOrIdentifier cVal) {
   if (auto ident = cVal.unbridged().getAsIdentifier())
     return *ident;
-  return swift::Identifier();
+  return language::Identifier();
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedParamDecl
 //===----------------------------------------------------------------------===//
 
-swift::ParamSpecifier unbridge(BridgedParamSpecifier specifier) {
+language::ParamSpecifier unbridge(BridgedParamSpecifier specifier) {
   switch (specifier) {
 #define CASE(ID)                                                               \
   case BridgedParamSpecifier##ID:                                              \
-    return swift::ParamSpecifier::ID;
+    return language::ParamSpecifier::ID;
     CASE(Default)
     CASE(InOut)
     CASE(Borrowing)
@@ -386,8 +389,8 @@ BridgedVarDecl_asAbstractStorageDecl(BridgedVarDecl decl) {
 // MARK: BridgedCallArgument
 //===----------------------------------------------------------------------===//
 
-swift::Argument BridgedCallArgument::unbridged() const {
-  return swift::Argument(labelLoc.unbridged(), label.unbridged(),
+language::Argument BridgedCallArgument::unbridged() const {
+  return language::Argument(labelLoc.unbridged(), label.unbridged(),
                          argExpr.unbridged());
 }
 
@@ -395,7 +398,7 @@ swift::Argument BridgedCallArgument::unbridged() const {
 // MARK: BridgedLabeledStmtInfo
 //===----------------------------------------------------------------------===//
 
-swift::LabeledStmtInfo BridgedLabeledStmtInfo::unbridged() const {
+language::LabeledStmtInfo BridgedLabeledStmtInfo::unbridged() const {
   return {Name.unbridged(), Loc.unbridged()};
 }
 
@@ -403,7 +406,7 @@ swift::LabeledStmtInfo BridgedLabeledStmtInfo::unbridged() const {
 // MARK: BridgedASTType
 //===----------------------------------------------------------------------===//
 
-swift::Type BridgedASTType::unbridged() const {
+language::Type BridgedASTType::unbridged() const {
   return type;
 }
 
@@ -412,7 +415,7 @@ BridgedCanType BridgedASTType::getCanonicalType() const {
 }
 
 BridgedDiagnosticArgument BridgedASTType::asDiagnosticArgument() const {
-  return swift::DiagnosticArgument(unbridged());
+  return language::DiagnosticArgument(unbridged());
 }
 
 bool BridgedASTType::hasArchetype() const {
@@ -436,16 +439,20 @@ bool BridgedASTType::hasLocalArchetype() const {
   return unbridged()->hasLocalArchetype();
 }
 
+bool BridgedASTType::hasDynamicSelf() const {
+  return unbridged()->hasDynamicSelfType();
+}
+
 bool BridgedASTType::isArchetype() const {
-  return unbridged()->is<swift::ArchetypeType>();
+  return unbridged()->is<language::ArchetypeType>();
 }
 
 bool BridgedASTType::archetypeRequiresClass() const {
-  return unbridged()->castTo<swift::ArchetypeType>()->requiresClass();
+  return unbridged()->castTo<language::ArchetypeType>()->requiresClass();
 }
 
 bool BridgedASTType::isExistentialArchetype() const {
-  return unbridged()->is<swift::ExistentialArchetypeType>();
+  return unbridged()->is<language::ExistentialArchetypeType>();
 }
 
 bool BridgedASTType::isExistentialArchetypeWithError() const {
@@ -453,11 +460,11 @@ bool BridgedASTType::isExistentialArchetypeWithError() const {
 }
 
 bool BridgedASTType::isExistential() const {
-  return unbridged()->is<swift::ExistentialType>();
+  return unbridged()->is<language::ExistentialType>();
 }
 
 bool BridgedASTType::isDynamicSelf() const {
-  return unbridged()->is<swift::DynamicSelfType>();
+  return unbridged()->is<language::DynamicSelfType>();
 }
 
 bool BridgedASTType::isClassExistential() const {
@@ -465,7 +472,7 @@ bool BridgedASTType::isClassExistential() const {
 }
 
 bool BridgedASTType::isGenericTypeParam() const {
-  return unbridged()->is<swift::GenericTypeParamType>();
+  return unbridged()->is<language::GenericTypeParamType>();
 }
 
 bool BridgedASTType::isEscapable() const {
@@ -477,73 +484,89 @@ bool BridgedASTType::isNoEscape() const {
 }
 
 bool BridgedASTType::isInteger() const {
-  return unbridged()->is<swift::IntegerType>();
+  return unbridged()->is<language::IntegerType>();
 }
 
 bool BridgedASTType::isMetatypeType() const {
-  return unbridged()->is<swift::MetatypeType>();
+  return unbridged()->is<language::MetatypeType>();
 }
 
 bool BridgedASTType::isExistentialMetatypeType() const {
-  return unbridged()->is<swift::ExistentialMetatypeType>();
+  return unbridged()->is<language::ExistentialMetatypeType>();
 }
 
 bool BridgedASTType::isTuple() const {
-  return unbridged()->is<swift::TupleType>();
+  return unbridged()->is<language::TupleType>();
 }
 
 bool BridgedASTType::isFunction() const {
-  return unbridged()->is<swift::FunctionType>();
+  return unbridged()->is<language::FunctionType>();
 }
 
 bool BridgedASTType::isLoweredFunction() const {
-  return unbridged()->is<swift::SILFunctionType>();
+  return unbridged()->is<language::SILFunctionType>();
 }
 
 bool BridgedASTType::isNoEscapeFunction() const {
-  if (auto *fTy = unbridged()->getAs<swift::SILFunctionType>()) {
+  if (auto *fTy = unbridged()->getAs<language::SILFunctionType>()) {
     return fTy->isNoEscape();
   }
   return false;
 }
 
 bool BridgedASTType::isThickFunction() const {
-  if (auto *fTy = unbridged()->getAs<swift::SILFunctionType>()) {
-    return fTy->getRepresentation() == swift::SILFunctionType::Representation::Thick;
+  if (auto *fTy = unbridged()->getAs<language::SILFunctionType>()) {
+    return fTy->getRepresentation() == language::SILFunctionType::Representation::Thick;
   }
   return false;
 }
 
 bool BridgedASTType::isAsyncFunction() const {
-  if (auto *fTy = unbridged()->getAs<swift::SILFunctionType>()) {
+  if (auto *fTy = unbridged()->getAs<language::SILFunctionType>()) {
     return fTy->isAsync();
   }
   return false;
 }
 
 bool BridgedASTType::isCalleeConsumedFunction() const {
-  auto *funcTy = unbridged()->castTo<swift::SILFunctionType>();
+  auto *funcTy = unbridged()->castTo<language::SILFunctionType>();
   return funcTy->isCalleeConsumed() && !funcTy->isNoEscape();
 }
 
 bool BridgedASTType::isBuiltinInteger() const {
-  return unbridged()->is<swift::BuiltinIntegerType>();
+  return unbridged()->is<language::BuiltinIntegerType>();
 }
 
 bool BridgedASTType::isBuiltinFloat() const {
-  return unbridged()->is<swift::BuiltinFloatType>();
+  return unbridged()->is<language::BuiltinFloatType>();
 }
 
 bool BridgedASTType::isBuiltinVector() const {
-  return unbridged()->is<swift::BuiltinVectorType>();
+  return unbridged()->is<language::BuiltinVectorType>();
+}
+
+bool BridgedASTType::isBuiltinFixedArray() const {
+  return unbridged()->is<language::BuiltinFixedArrayType>();
+}
+
+bool BridgedASTType::isBox() const {
+  return unbridged()->is<language::SILBoxType>();
 }
 
 BridgedASTType BridgedASTType::getBuiltinVectorElementType() const {
-  return {unbridged()->castTo<swift::BuiltinVectorType>()->getElementType().getPointer()};
+  return {unbridged()->castTo<language::BuiltinVectorType>()->getElementType().getPointer()};
 }
 
-bool BridgedASTType::isBuiltinFixedWidthInteger(SwiftInt width) const {
-  if (auto *intTy = unbridged()->getAs<swift::BuiltinIntegerType>())
+BridgedCanType BridgedASTType::getBuiltinFixedArrayElementType() const {
+  return unbridged()->castTo<language::BuiltinFixedArrayType>()->getElementType();
+}
+
+BridgedCanType BridgedASTType::getBuiltinFixedArraySizeType() const {
+  return unbridged()->castTo<language::BuiltinFixedArrayType>()->getSize();
+}
+
+bool BridgedASTType::isBuiltinFixedWidthInteger(CodiraInt width) const {
+  if (auto *intTy = unbridged()->getAs<language::BuiltinIntegerType>())
     return intTy->isFixedWidth((unsigned)width);
   return false;
 }
@@ -553,7 +576,11 @@ bool BridgedASTType::isOptional() const {
 }
 
 bool BridgedASTType::isUnownedStorageType() const {
-  return unbridged()->is<swift::UnownedStorageType>();
+  return unbridged()->is<language::UnownedStorageType>();
+}
+
+bool BridgedASTType::isBuiltinType() const {
+  return unbridged()->isBuiltinType();
 }
 
 OptionalBridgedDeclObj BridgedASTType::getNominalOrBoundGenericNominal() const {
@@ -569,11 +596,11 @@ OptionalBridgedDeclObj BridgedASTType::getAnyNominal() const {
 }
 
 BridgedASTType BridgedASTType::getInstanceTypeOfMetatype() const {
-  return {unbridged()->getAs<swift::AnyMetatypeType>()->getInstanceType().getPointer()};
+  return {unbridged()->getAs<language::AnyMetatypeType>()->getInstanceType().getPointer()};
 }
 
 BridgedASTType BridgedASTType::getStaticTypeOfDynamicSelf() const {
-  return {unbridged()->getAs<swift::DynamicSelfType>()->getSelfType().getPointer()};
+  return {unbridged()->getAs<language::DynamicSelfType>()->getSelfType().getPointer()};
 }
 
 BridgedASTType BridgedASTType::getSuperClassType() const {
@@ -581,7 +608,11 @@ BridgedASTType BridgedASTType::getSuperClassType() const {
 }
 
 BridgedASTType::MetatypeRepresentation BridgedASTType::getRepresentationOfMetatype() const {
-  return MetatypeRepresentation(unbridged()->getAs<swift::AnyMetatypeType>()->getRepresentation());
+  return MetatypeRepresentation(unbridged()->getAs<language::AnyMetatypeType>()->getRepresentation());
+}
+
+BridgedOptionalInt BridgedASTType::getValueOfIntegerType() const {
+  return getFromAPInt(unbridged()->getAs<language::IntegerType>()->getValue());
 }
 
 BridgedSubstitutionMap BridgedASTType::getContextSubstitutionMap() const {
@@ -589,35 +620,24 @@ BridgedSubstitutionMap BridgedASTType::getContextSubstitutionMap() const {
 }
 
 BridgedGenericSignature BridgedASTType::getInvocationGenericSignatureOfFunctionType() const {
-  return {unbridged()->castTo<swift::SILFunctionType>()->getInvocationGenericSignature().getPointer()};
+  return {unbridged()->castTo<language::SILFunctionType>()->getInvocationGenericSignature().getPointer()};
 }
 
 BridgedASTType BridgedASTType::subst(BridgedSubstitutionMap substMap) const {
   return {unbridged().subst(substMap.unbridged()).getPointer()};
 }
 
-
-BridgedASTType BridgedASTType::subst(BridgedASTType fromType, BridgedASTType toType) const {
-  auto *fromTy = fromType.unbridged()->castTo<swift::SubstitutableType>();
-  swift::Type toTy = toType.unbridged();
-  return {unbridged().subst([fromTy, toTy](swift::SubstitutableType *t) -> swift::Type {
-    if (t == fromTy)
-      return toTy;
-    return t;
-  }, swift::LookUpConformanceInModule(), swift::SubstFlags::SubstituteLocalArchetypes).getPointer()};
-}
-
 BridgedConformance BridgedASTType::checkConformance(BridgedDeclObj proto) const {
-  return swift::checkConformance(unbridged(), proto.getAs<swift::ProtocolDecl>(), /*allowMissing=*/ false);
+  return language::checkConformance(unbridged(), proto.getAs<language::ProtocolDecl>(), /*allowMissing=*/ false);
 }  
 
-static_assert((int)BridgedASTType::TraitResult::IsNot == (int)swift::TypeTraitResult::IsNot);
-static_assert((int)BridgedASTType::TraitResult::CanBe == (int)swift::TypeTraitResult::CanBe);
-static_assert((int)BridgedASTType::TraitResult::Is == (int)swift::TypeTraitResult::Is);
+static_assert((int)BridgedASTType::TraitResult::IsNot == (int)language::TypeTraitResult::IsNot);
+static_assert((int)BridgedASTType::TraitResult::CanBe == (int)language::TypeTraitResult::CanBe);
+static_assert((int)BridgedASTType::TraitResult::Is == (int)language::TypeTraitResult::Is);
 
-static_assert((int)BridgedASTType::MetatypeRepresentation::Thin == (int)swift::MetatypeRepresentation::Thin);
-static_assert((int)BridgedASTType::MetatypeRepresentation::Thick == (int)swift::MetatypeRepresentation::Thick);
-static_assert((int)BridgedASTType::MetatypeRepresentation::ObjC == (int)swift::MetatypeRepresentation::ObjC);
+static_assert((int)BridgedASTType::MetatypeRepresentation::Thin == (int)language::MetatypeRepresentation::Thin);
+static_assert((int)BridgedASTType::MetatypeRepresentation::Thick == (int)language::MetatypeRepresentation::Thick);
+static_assert((int)BridgedASTType::MetatypeRepresentation::ObjC == (int)language::MetatypeRepresentation::ObjC);
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedCanType
@@ -626,11 +646,11 @@ static_assert((int)BridgedASTType::MetatypeRepresentation::ObjC == (int)swift::M
 BridgedCanType::BridgedCanType() : type(nullptr) {
 }
 
-BridgedCanType::BridgedCanType(swift::CanType ty) : type(ty.getPointer()) {
+BridgedCanType::BridgedCanType(language::CanType ty) : type(ty.getPointer()) {
 }
 
-swift::CanType BridgedCanType::unbridged() const {
-  return swift::CanType(type);
+language::CanType BridgedCanType::unbridged() const {
+  return language::CanType(type);
 }
 
 BridgedASTType BridgedCanType::getRawType() const {
@@ -641,8 +661,8 @@ BridgedASTType BridgedCanType::getRawType() const {
 // MARK: BridgedASTTypeArray
 //===----------------------------------------------------------------------===//
 
-BridgedASTType BridgedASTTypeArray::getAt(SwiftInt index) const {
-  return {typeArray.unbridged<swift::Type>()[index].getPointer()};
+BridgedASTType BridgedASTTypeArray::getAt(CodiraInt index) const {
+  return {typeArray.unbridged<language::Type>()[index].getPointer()};
 }
 
 
@@ -650,13 +670,13 @@ BridgedASTType BridgedASTTypeArray::getAt(SwiftInt index) const {
 // MARK: BridgedConformance
 //===----------------------------------------------------------------------===//
 
-static_assert(sizeof(BridgedConformance) == sizeof(swift::ProtocolConformanceRef));
+static_assert(sizeof(BridgedConformance) == sizeof(language::ProtocolConformanceRef));
 
-BridgedConformance::BridgedConformance(swift::ProtocolConformanceRef conformance)
+BridgedConformance::BridgedConformance(language::ProtocolConformanceRef conformance)
     : opaqueValue(conformance.getOpaqueValue()) {}
 
-swift::ProtocolConformanceRef BridgedConformance::unbridged() const {
-  return swift::ProtocolConformanceRef::getFromOpaqueValue(opaqueValue);
+language::ProtocolConformanceRef BridgedConformance::unbridged() const {
+  return language::ProtocolConformanceRef::getFromOpaqueValue(opaqueValue);
 }
 
 bool BridgedConformance::isConcrete() const {
@@ -668,11 +688,11 @@ bool BridgedConformance::isValid() const {
 }
 
 bool BridgedConformance::isSpecializedConformance() const {
-  return swift::isa<swift::SpecializedProtocolConformance>(unbridged().getConcrete());
+  return language::isa<language::SpecializedProtocolConformance>(unbridged().getConcrete());
 }
 
 bool BridgedConformance::isInheritedConformance() const {
-  return swift::isa<swift::InheritedProtocolConformance>(unbridged().getConcrete());
+  return language::isa<language::InheritedProtocolConformance>(unbridged().getConcrete());
 }
 
 BridgedASTType BridgedConformance::getType() const {
@@ -684,27 +704,27 @@ BridgedDeclObj BridgedConformance::getRequirement() const {
 }
 
 BridgedConformance BridgedConformance::getGenericConformance() const {
-  auto *specPC = swift::cast<swift::SpecializedProtocolConformance>(unbridged().getConcrete());
-  return {swift::ProtocolConformanceRef(specPC->getGenericConformance())};
+  auto *specPC = language::cast<language::SpecializedProtocolConformance>(unbridged().getConcrete());
+  return {language::ProtocolConformanceRef(specPC->getGenericConformance())};
 }
 
 BridgedConformance BridgedConformance::getInheritedConformance() const {
-  auto *inheritedConf = swift::cast<swift::InheritedProtocolConformance>(unbridged().getConcrete());
-  return {swift::ProtocolConformanceRef(inheritedConf->getInheritedConformance())};
+  auto *inheritedConf = language::cast<language::InheritedProtocolConformance>(unbridged().getConcrete());
+  return {language::ProtocolConformanceRef(inheritedConf->getInheritedConformance())};
 }
 
 BridgedSubstitutionMap BridgedConformance::getSpecializedSubstitutions() const {
-  auto *specPC = swift::cast<swift::SpecializedProtocolConformance>(unbridged().getConcrete());
+  auto *specPC = language::cast<language::SpecializedProtocolConformance>(unbridged().getConcrete());
   return {specPC->getSubstitutionMap()};
 }
 
 BridgedConformance BridgedConformance::getAssociatedConformance(BridgedASTType assocType, BridgedDeclObj proto) const {
   return {unbridged().getConcrete()->getAssociatedConformance(assocType.unbridged(),
-                                                              proto.getAs<swift::ProtocolDecl>())};
+                                                              proto.getAs<language::ProtocolDecl>())};
 }
 
-BridgedConformance BridgedConformanceArray::getAt(SwiftInt index) const {
-  return pcArray.unbridged<swift::ProtocolConformanceRef>()[index];
+BridgedConformance BridgedConformanceArray::getAt(CodiraInt index) const {
+  return pcArray.unbridged<language::ProtocolConformanceRef>()[index];
 }
 
 //===----------------------------------------------------------------------===//
@@ -712,51 +732,48 @@ BridgedConformance BridgedConformanceArray::getAt(SwiftInt index) const {
 //===----------------------------------------------------------------------===//
 
 BridgedLayoutConstraint::BridgedLayoutConstraint()
-    : raw(swift::LayoutConstraint().getPointer()) {}
+    : raw(language::LayoutConstraint().getPointer()) {}
 
 BridgedLayoutConstraint::BridgedLayoutConstraint(
-    swift::LayoutConstraint constraint)
+    language::LayoutConstraint constraint)
     : raw(constraint.getPointer()) {}
 
-swift::LayoutConstraint BridgedLayoutConstraint::unbridged() const {
+language::LayoutConstraint BridgedLayoutConstraint::unbridged() const {
   return raw;
 }
 
-bool BridgedLayoutConstraint_isNull(BridgedLayoutConstraint cConstraint) {
-  return cConstraint.unbridged().isNull();
+bool BridgedLayoutConstraint::getIsNull() const { return unbridged().isNull(); }
+
+bool BridgedLayoutConstraint::getIsKnownLayout() const {
+  return unbridged()->isKnownLayout();
 }
 
-bool BridgedLayoutConstraint_isKnownLayout(
-    BridgedLayoutConstraint cConstraint) {
-  return cConstraint.unbridged()->isKnownLayout();
-}
-
-bool BridgedLayoutConstraint_isTrivial(BridgedLayoutConstraint cConstraint) {
-  return cConstraint.unbridged()->isTrivial();
+bool BridgedLayoutConstraint::getIsTrivial() const {
+  return unbridged()->isTrivial();
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: Macros
 //===----------------------------------------------------------------------===//
 
-swift::MacroRole unbridge(BridgedMacroRole cRole) {
+language::MacroRole unbridge(BridgedMacroRole cRole) {
   switch (cRole) {
 #define MACRO_ROLE(Name, Description)                                          \
   case BridgedMacroRole##Name:                                                 \
-    return swift::MacroRole::Name;
+    return language::MacroRole::Name;
 #include "language/Basic/MacroRoles.def"
   case BridgedMacroRoleNone:
     break;
   }
-  llvm_unreachable("invalid macro role");
+  toolchain_unreachable("invalid macro role");
 }
 
-swift::MacroIntroducedDeclNameKind
+language::MacroIntroducedDeclNameKind
 unbridge(BridgedMacroIntroducedDeclNameKind kind) {
   switch (kind) {
 #define CASE(ID)                                                               \
   case BridgedMacroIntroducedDeclNameKind##ID:                                 \
-    return swift::MacroIntroducedDeclNameKind::ID;
+    return language::MacroIntroducedDeclNameKind::ID;
     CASE(Named)
     CASE(Overloaded)
     CASE(Prefixed)
@@ -770,9 +787,9 @@ bool BridgedMacroRole_isAttached(BridgedMacroRole role) {
   return isAttachedMacro(unbridge(role));
 }
 
-swift::MacroIntroducedDeclName
+language::MacroIntroducedDeclName
 BridgedMacroIntroducedDeclName::unbridged() const {
-  return swift::MacroIntroducedDeclName(unbridge(kind),
+  return language::MacroIntroducedDeclName(unbridge(kind),
                                         name.unbridged().getFullName());
 }
 
@@ -780,16 +797,16 @@ BridgedMacroIntroducedDeclName::unbridged() const {
 // MARK: BridgedSubstitutionMap
 //===----------------------------------------------------------------------===//
 
-BridgedSubstitutionMap::BridgedSubstitutionMap(swift::SubstitutionMap map) {
-  *reinterpret_cast<swift::SubstitutionMap *>(&storage) = map;
+BridgedSubstitutionMap::BridgedSubstitutionMap(language::SubstitutionMap map) {
+  *reinterpret_cast<language::SubstitutionMap *>(&storage) = map;
 }
 
-swift::SubstitutionMap BridgedSubstitutionMap::unbridged() const {
-  return *reinterpret_cast<const swift::SubstitutionMap *>(&storage);
+language::SubstitutionMap BridgedSubstitutionMap::unbridged() const {
+  return *reinterpret_cast<const language::SubstitutionMap *>(&storage);
 }
 
 BridgedSubstitutionMap::BridgedSubstitutionMap()
-  : BridgedSubstitutionMap(swift::SubstitutionMap()) {}
+  : BridgedSubstitutionMap(language::SubstitutionMap()) {}
 
 bool BridgedSubstitutionMap::isEmpty() const {
   return unbridged().empty();
@@ -803,11 +820,11 @@ bool BridgedSubstitutionMap::hasAnySubstitutableParams() const {
   return unbridged().hasAnySubstitutableParams();
 }
 
-SwiftInt BridgedSubstitutionMap::getNumConformances() const {
-  return (SwiftInt)unbridged().getConformances().size();
+CodiraInt BridgedSubstitutionMap::getNumConformances() const {
+  return (CodiraInt)unbridged().getConformances().size();
 }
 
-BridgedConformance BridgedSubstitutionMap::getConformance(SwiftInt index) const {
+BridgedConformance BridgedSubstitutionMap::getConformance(CodiraInt index) const {
   return unbridged().getConformances()[index];
 }
 
@@ -819,8 +836,8 @@ BridgedASTTypeArray BridgedSubstitutionMap::getReplacementTypes() const {
 // MARK: BridgedGenericSignature
 //===----------------------------------------------------------------------===//
 
-swift::GenericSignature BridgedGenericSignature::unbridged() const {
-  return swift::GenericSignature(impl);
+language::GenericSignature BridgedGenericSignature::unbridged() const {
+  return language::GenericSignature(impl);
 }
 
 BridgedASTTypeArray BridgedGenericSignature::getGenericParams() const {
@@ -835,31 +852,31 @@ BridgedASTType BridgedGenericSignature::mapTypeIntoContext(BridgedASTType type) 
 // MARK: BridgedFingerprint
 //===----------------------------------------------------------------------===//
 
-swift::Fingerprint BridgedFingerprint::unbridged() const {
-  return swift::Fingerprint(swift::Fingerprint::Core{this->v1, this->v2});
+language::Fingerprint BridgedFingerprint::unbridged() const {
+  return language::Fingerprint(language::Fingerprint::Core{this->v1, this->v2});
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedIfConfigClauseRangeInfo
 //===----------------------------------------------------------------------===//
 
-swift::IfConfigClauseRangeInfo BridgedIfConfigClauseRangeInfo::unbridged() const {
-  swift::IfConfigClauseRangeInfo::ClauseKind clauseKind;
+language::IfConfigClauseRangeInfo BridgedIfConfigClauseRangeInfo::unbridged() const {
+  language::IfConfigClauseRangeInfo::ClauseKind clauseKind;
   switch (kind) {
   case IfConfigActive:
-    clauseKind = swift::IfConfigClauseRangeInfo::ActiveClause;
+    clauseKind = language::IfConfigClauseRangeInfo::ActiveClause;
     break;
 
   case IfConfigInactive:
-    clauseKind = swift::IfConfigClauseRangeInfo::InactiveClause;
+    clauseKind = language::IfConfigClauseRangeInfo::InactiveClause;
     break;
 
   case IfConfigEnd:
-    clauseKind = swift::IfConfigClauseRangeInfo::EndDirective;
+    clauseKind = language::IfConfigClauseRangeInfo::EndDirective;
     break;
   }
 
-  return swift::IfConfigClauseRangeInfo(directiveLoc.unbridged(),
+  return language::IfConfigClauseRangeInfo(directiveLoc.unbridged(),
                                         bodyLoc.unbridged(),
                                         endLoc.unbridged(),
                                         clauseKind);
@@ -870,7 +887,7 @@ swift::IfConfigClauseRangeInfo BridgedIfConfigClauseRangeInfo::unbridged() const
 //===----------------------------------------------------------------------===//
 
 BridgedRegexLiteralPatternFeatureKind::BridgedRegexLiteralPatternFeatureKind(
-    SwiftInt rawValue)
+    CodiraInt rawValue)
     : RawValue(rawValue) {
   ASSERT(rawValue >= 0);
   ASSERT(rawValue == RawValue);
@@ -903,26 +920,26 @@ BridgedRegexLiteralPatternFeatures::unbridged() const {
 // MARK: BridgedStmtConditionElement
 //===----------------------------------------------------------------------===//
 
-BridgedStmtConditionElement::BridgedStmtConditionElement(swift::StmtConditionElement elem)
+BridgedStmtConditionElement::BridgedStmtConditionElement(language::StmtConditionElement elem)
     : Raw(elem.getOpaqueValue()) {}
 
-swift::StmtConditionElement BridgedStmtConditionElement::unbridged() const {
-  return swift::StmtConditionElement::fromOpaqueValue(Raw);
+language::StmtConditionElement BridgedStmtConditionElement::unbridged() const {
+  return language::StmtConditionElement::fromOpaqueValue(Raw);
 }
 
 //===----------------------------------------------------------------------===//
 // MARK: BridgedCaptureListEntry
 //===----------------------------------------------------------------------===//
 
-BridgedCaptureListEntry::BridgedCaptureListEntry(swift::CaptureListEntry CLE)
+BridgedCaptureListEntry::BridgedCaptureListEntry(language::CaptureListEntry CLE)
     : PBD(CLE.PBD) {}
 
-swift::CaptureListEntry BridgedCaptureListEntry::unbridged() const {
-  return swift::CaptureListEntry(PBD);
+language::CaptureListEntry BridgedCaptureListEntry::unbridged() const {
+  return language::CaptureListEntry(PBD);
 }
 
-BridgedVarDecl BridegedCaptureListEntry_getVar(BridgedCaptureListEntry entry) {
-  return entry.unbridged().getVar();
+BridgedVarDecl BridgedCaptureListEntry::getVarDecl() const {
+  return unbridged().getVar();
 }
 
 //===----------------------------------------------------------------------===//
@@ -951,14 +968,14 @@ BridgedTypeOrCustomAttr::BridgedTypeOrCustomAttr(void *_Nonnull pointer,
 
 BridgedTypeAttribute BridgedTypeOrCustomAttr::castToTypeAttr() const {
   assert(getKind() == Kind::TypeAttr);
-  return static_cast<swift::TypeAttribute *>(getPointer());
+  return static_cast<language::TypeAttribute *>(getPointer());
 }
 
 BridgedCustomAttr BridgedTypeOrCustomAttr::castToCustomAttr() const {
   assert(getKind() == Kind::CustomAttr);
-  return static_cast<swift::CustomAttr *>(getPointer());
+  return static_cast<language::CustomAttr *>(getPointer());
 }
 
-SWIFT_END_NULLABILITY_ANNOTATIONS
+LANGUAGE_END_NULLABILITY_ANNOTATIONS
 
-#endif // SWIFT_AST_ASTBRIDGINGIMPL_H
+#endif // LANGUAGE_AST_ASTBRIDGINGIMPL_H

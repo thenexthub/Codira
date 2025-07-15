@@ -1,0 +1,5 @@
+// RUN: %toolchain-nm --defined-only -C %target-static-stdlib-path/liblanguageCore.a | %FileCheck --allow-empty %s
+// CHECK-NOT: [^:]toolchain::
+
+// REQUIRES: OS=linux-gnu
+// REQUIRES: static_stdlib

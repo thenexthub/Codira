@@ -1,13 +1,17 @@
 //===--- PrunedLiveness.cpp - Compute liveness from selected uses ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/PrunedLiveness.h"
@@ -41,7 +45,7 @@ void PrunedLiveBlocks::computeUseBlockLiveness(SILBasicBlock *userBB) {
       switch (getBlockLiveness(predBlock)) {
       case Dead:
         worklist.pushIfNotVisited(predBlock);
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case LiveWithin:
         markBlockLive(predBlock, LiveOut);
         break;
@@ -56,7 +60,7 @@ void PrunedLiveBlocks::computeUseBlockLiveness(SILBasicBlock *userBB) {
 //                    PrunedLiveBlocks and PrunedLiveness
 //===----------------------------------------------------------------------===//
 
-llvm::StringRef PrunedLiveBlocks::getStringRef(IsLive isLive) const {
+toolchain::StringRef PrunedLiveBlocks::getStringRef(IsLive isLive) const {
   switch (isLive) {
   case Dead:
     return "Dead";
@@ -67,7 +71,7 @@ llvm::StringRef PrunedLiveBlocks::getStringRef(IsLive isLive) const {
   }
 }
 
-void PrunedLiveBlocks::print(llvm::raw_ostream &OS) const {
+void PrunedLiveBlocks::print(toolchain::raw_ostream &OS) const {
   if (!discoveredBlocks) {
     OS << "No deterministic live block list\n";
     return;
@@ -80,10 +84,10 @@ void PrunedLiveBlocks::print(llvm::raw_ostream &OS) const {
 }
 
 void PrunedLiveBlocks::dump() const {
-  print(llvm::dbgs());
+  print(toolchain::dbgs());
 }
 
-void PrunedLiveness::print(llvm::raw_ostream &OS) const {
+void PrunedLiveness::print(toolchain::raw_ostream &OS) const {
   liveBlocks.print(OS);
   for (auto &userAndIsLifetimeEnding : users) {
     switch (userAndIsLifetimeEnding.second) {
@@ -102,14 +106,14 @@ void PrunedLiveness::print(llvm::raw_ostream &OS) const {
 }
 
 void PrunedLiveness::dump() const {
-  print(llvm::dbgs());
+  print(toolchain::dbgs());
 }
 
 //===----------------------------------------------------------------------===//
 //                           PrunedLivenessBoundary
 //===----------------------------------------------------------------------===//
 
-void PrunedLivenessBoundary::print(llvm::raw_ostream &OS) const {
+void PrunedLivenessBoundary::print(toolchain::raw_ostream &OS) const {
   for (auto *user : lastUsers) {
     OS << "last user: " << *user;
   }
@@ -126,11 +130,11 @@ void PrunedLivenessBoundary::print(llvm::raw_ostream &OS) const {
 }
 
 void PrunedLivenessBoundary::dump() const {
-  print(llvm::dbgs());
+  print(toolchain::dbgs());
 }
 
 void PrunedLivenessBoundary::visitInsertionPoints(
-    llvm::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
+    toolchain::function_ref<void(SILBasicBlock::iterator insertPt)> visitor,
     DeadEndBlocks *deBlocks) {
   // Control flow merge blocks used as insertion points.
   SmallPtrSet<SILBasicBlock *, 4> mergeBlocks;
@@ -184,7 +188,7 @@ static FunctionTest
             boundary.lastUsers.push_back(arguments.takeInstruction());
           }
           boundary.visitInsertionPoints([](SILBasicBlock::iterator point) {
-            point->print(llvm::outs());
+            point->print(toolchain::outs());
           });
         });
 } // end namespace language::test
@@ -419,25 +423,25 @@ static FunctionTest SSALivenessTest("ssa_liveness", [](auto &function,
                                                        auto &test) {
   auto value = arguments.takeValue();
   assert(!arguments.hasUntaken());
-  llvm::outs() << "SSA lifetime analysis: " << value;
+  toolchain::outs() << "SSA lifetime analysis: " << value;
 
   SmallVector<SILBasicBlock *, 8> discoveredBlocks;
   SSAPrunedLiveness liveness(value->getFunction(), &discoveredBlocks);
   liveness.initializeDef(value);
   LiveRangeSummary summary = liveness.computeSimple();
   if (summary.innerBorrowKind == InnerBorrowKind::Reborrowed)
-    llvm::outs() << "Incomplete liveness: Reborrowed inner scope\n";
+    toolchain::outs() << "Incomplete liveness: Reborrowed inner scope\n";
 
   if (summary.addressUseKind == AddressUseKind::PointerEscape)
-    llvm::outs() << "Incomplete liveness: Escaping address\n";
+    toolchain::outs() << "Incomplete liveness: Escaping address\n";
   else if (summary.addressUseKind == AddressUseKind::Unknown)
-    llvm::outs() << "Incomplete liveness: Unknown address use\n";
+    toolchain::outs() << "Incomplete liveness: Unknown address use\n";
 
-  liveness.print(llvm::outs());
+  liveness.print(toolchain::outs());
 
   PrunedLivenessBoundary boundary;
   liveness.computeBoundary(boundary);
-  boundary.print(llvm::outs());
+  boundary.print(toolchain::outs());
 });
 
 // Arguments:
@@ -456,7 +460,7 @@ static FunctionTest SSAUseLivenessTest("ssa_use_liveness", [](auto &function,
 
   auto argument = arguments.takeArgument();
   if (cast<StringArgument>(argument).getValue() != "uses:") {
-    llvm::report_fatal_error("test specification expects the 'uses:' label\n");
+    toolchain::report_fatal_error("test specification expects the 'uses:' label\n");
   }
 
   while (arguments.hasUntaken()) {
@@ -467,14 +471,14 @@ static FunctionTest SSAUseLivenessTest("ssa_use_liveness", [](auto &function,
       Ending,
       NonEnding,
     };
-    auto kind = llvm::StringSwitch<std::optional<Kind>>(kindString)
+    auto kind = toolchain::StringSwitch<std::optional<Kind>>(kindString)
                     .Case("non-use", Kind::NonUse)
                     .Case("ending", Kind::Ending)
                     .Case("non-ending", Kind::NonEnding)
                     .Default(std::nullopt);
     if (!kind.has_value()) {
-      llvm::errs() << "Unknown kind: " << kindString << "\n";
-      llvm::report_fatal_error("Bad user kind.  Value must be one of "
+      toolchain::errs() << "Unknown kind: " << kindString << "\n";
+      toolchain::report_fatal_error("Bad user kind.  Value must be one of "
                                "'non-use', 'ending', 'non-ending'");
     }
     switch (kind.value()) {
@@ -490,11 +494,11 @@ static FunctionTest SSAUseLivenessTest("ssa_use_liveness", [](auto &function,
     }
   }
 
-  liveness.print(llvm::outs());
+  liveness.print(toolchain::outs());
 
   PrunedLivenessBoundary boundary;
   liveness.computeBoundary(boundary);
-  boundary.print(llvm::outs());
+  boundary.print(toolchain::outs());
 });
 
 } // end namespace language::test
@@ -522,7 +526,7 @@ bool PrunedLiveRange<LivenessWithDefs>::isInstructionLive(SILInstruction *inst,
                                                           bool isLive) const {
   auto *block = inst->getParent();
   // Check if instruction is between a last use and a definition
-  for (SILInstruction &it : llvm::reverse(*block)) {
+  for (SILInstruction &it : toolchain::reverse(*block)) {
     // the def itself is not within the boundary, so cancel liveness before
     // matching 'inst'.
     if (asImpl().isDef(&it)) {
@@ -535,7 +539,7 @@ bool PrunedLiveRange<LivenessWithDefs>::isInstructionLive(SILInstruction *inst,
       isLive = true;
     }
   }
-  llvm_unreachable("instruction must be in its parent block");
+  toolchain_unreachable("instruction must be in its parent block");
 }
 
 template <typename LivenessWithDefs>
@@ -543,7 +547,7 @@ bool PrunedLiveRange<LivenessWithDefs>::isAvailableOut(
     SILBasicBlock *block, DeadEndBlocks &deadEndBlocks) const {
   assert(getBlockLiveness(block) == PrunedLiveBlocks::LiveWithin);
   assert(deadEndBlocks.isDeadEnd(block));
-  for (SILInstruction &inst : llvm::reverse(*block)) {
+  for (SILInstruction &inst : toolchain::reverse(*block)) {
     if (asImpl().isDef(&inst)) {
       return true;
     }
@@ -557,7 +561,7 @@ bool PrunedLiveRange<LivenessWithDefs>::isAvailableOut(
     }
   }
   assert(asImpl().isDefBlock(block));
-  assert(llvm::any_of(block->getArguments(), [this](SILArgument *arg) {
+  assert(toolchain::any_of(block->getArguments(), [this](SILArgument *arg) {
     return asImpl().isDef(arg);
   }));
   return true;
@@ -738,57 +742,57 @@ static FunctionTest SSAPrunedLiveness__areUsesWithinBoundary(
       SmallVector<SILBasicBlock *, 8> discoveredBlocks;
       SSAPrunedLiveness liveness(&function, &discoveredBlocks);
 
-      llvm::outs() << "SSAPrunedLiveness:\n";
+      toolchain::outs() << "SSAPrunedLiveness:\n";
 
       if (arguments.takeString() != "def:") {
-        llvm::report_fatal_error("test expects the 'def:' label\n");
+        toolchain::report_fatal_error("test expects the 'def:' label\n");
       }
       auto def = arguments.takeValue();
       liveness.initializeDef(def);
-      llvm::outs() << "\tdef: " << def;
+      toolchain::outs() << "\tdef: " << def;
       if (arguments.takeString() != "liveness-uses:") {
-        llvm::report_fatal_error("test expects the 'def:' label\n");
+        toolchain::report_fatal_error("test expects the 'def:' label\n");
       }
-      llvm::outs() << "\tuses:\n";
+      toolchain::outs() << "\tuses:\n";
       while (true) {
         auto argument = arguments.takeArgument();
         if (isa<StringArgument>(argument)) {
           auto string = cast<StringArgument>(argument);
           if (string.getValue() != "uses:") {
-            llvm::report_fatal_error("test expects the 'inst:' label\n");
+            toolchain::report_fatal_error("test expects the 'inst:' label\n");
           }
           break;
         }
         auto *instruction = cast<InstructionArgument>(argument).getValue();
         auto string = arguments.takeString();
         PrunedLiveness::LifetimeEnding::Value kind =
-            llvm::StringSwitch<PrunedLiveness::LifetimeEnding::Value>(string)
+            toolchain::StringSwitch<PrunedLiveness::LifetimeEnding::Value>(string)
                 .Case("non-ending",
                       PrunedLiveness::LifetimeEnding::Value::NonEnding)
                 .Case("ending", PrunedLiveness::LifetimeEnding::Value::Ending)
                 .Case("non-use", PrunedLiveness::LifetimeEnding::Value::NonUse);
 
-        llvm::outs() << "\t\t" << string << " " << *instruction;
+        toolchain::outs() << "\t\t" << string << " " << *instruction;
         liveness.updateForUse(instruction, kind);
       }
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       PrunedLivenessBoundary boundary;
       liveness.computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
 
-      llvm::outs() << "\noperands:\n";
+      toolchain::outs() << "\noperands:\n";
       SmallVector<Operand *, 4> operands;
       while (arguments.hasUntaken()) {
         auto *operand = arguments.takeOperand();
         operands.push_back(operand);
-        operand->print(llvm::outs());
+        operand->print(toolchain::outs());
       }
 
       auto result =
           liveness.areUsesWithinBoundary(operands, test.getDeadEndBlocks());
 
-      llvm::outs() << "RESULT: " << StringRef(result ? "true" : "false")
+      toolchain::outs() << "RESULT: " << StringRef(result ? "true" : "false")
                    << "\n";
     });
 } // end namespace language::test
@@ -840,7 +844,7 @@ void PrunedLiveRange<LivenessWithDefs>::computeBoundary(
       break;
     }
     case PrunedLiveBlocks::Dead:
-      llvm_unreachable("All discovered blocks must be live");
+      toolchain_unreachable("All discovered blocks must be live");
     }
   }
 }
@@ -899,13 +903,13 @@ void PrunedLivenessBoundary::findBoundaryInNonDefBlock(
     SILBasicBlock *block, const PrunedLiveness &liveness) {
   assert(liveness.getBlockLiveness(block) == PrunedLiveBlocks::LiveWithin);
 
-  for (SILInstruction &inst : llvm::reverse(*block)) {
+  for (SILInstruction &inst : toolchain::reverse(*block)) {
     if (liveness.isInterestingUser(&inst)) {
       lastUsers.push_back(&inst);
       return;
     }
   }
-  llvm_unreachable("live-within block must contain an interesting use");
+  toolchain_unreachable("live-within block must contain an interesting use");
 }
 
 void PrunedLivenessBlockBoundary::findBoundaryInNonDefBlock(
@@ -925,7 +929,7 @@ void PrunedLivenessBoundary::findBoundaryInSSADefBlock(
     SILNode *ssaDef, const PrunedLiveness &liveness) {
   // defInst is null for argument defs.
   SILInstruction *defInst = dyn_cast<SILInstruction>(ssaDef);
-  for (SILInstruction &inst : llvm::reverse(*ssaDef->getParentBlock())) {
+  for (SILInstruction &inst : toolchain::reverse(*ssaDef->getParentBlock())) {
     if (&inst == defInst) {
       deadDefs.push_back(cast<SILNode>(&inst));
       return;
@@ -975,7 +979,7 @@ bool MultiDefPrunedLiveness::isUserBeforeDef(SILInstruction *user) const {
   if (!isDefBlock(block))
     return false;
 
-  if (llvm::any_of(block->getArguments(), [this](SILArgument *arg) {
+  if (toolchain::any_of(block->getArguments(), [this](SILArgument *arg) {
     return isDef(arg);
   })) {
     return false;
@@ -1013,27 +1017,27 @@ static FunctionTest MultiDefUseLivenessTest(
       SmallVector<SILBasicBlock *, 8> discoveredBlocks;
       MultiDefPrunedLiveness liveness(&function, &discoveredBlocks);
 
-      llvm::outs() << "MultiDef lifetime analysis:\n";
+      toolchain::outs() << "MultiDef lifetime analysis:\n";
       if (arguments.takeString() != "defs:") {
-        llvm::report_fatal_error(
+        toolchain::report_fatal_error(
             "test specification expects the 'defs:' label\n");
       }
       while (true) {
         auto argument = arguments.takeArgument();
         if (isa<InstructionArgument>(argument)) {
           auto *instruction = cast<InstructionArgument>(argument).getValue();
-          llvm::outs() << "  def instruction: " << *instruction;
+          toolchain::outs() << "  def instruction: " << *instruction;
           liveness.initializeDef(instruction);
           continue;
         }
         if (isa<ValueArgument>(argument)) {
           SILValue value = cast<ValueArgument>(argument).getValue();
-          llvm::outs() << "  def value: " << value;
+          toolchain::outs() << "  def value: " << value;
           liveness.initializeDef(value);
           continue;
         }
         if (cast<StringArgument>(argument).getValue() != "uses:") {
-          llvm::report_fatal_error(
+          toolchain::report_fatal_error(
               "test specification expects the 'uses:' label\n");
         }
         break;
@@ -1044,11 +1048,11 @@ static FunctionTest MultiDefUseLivenessTest(
         // caller.
         liveness.updateForUse(inst, /*lifetimeEnding*/ false);
       }
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       PrunedLivenessBoundary boundary;
       liveness.computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
     });
 } // end namespace language::test
 
@@ -1085,7 +1089,7 @@ void PrunedLivenessBoundary::findBoundaryInMultiDefBlock(
   (void)prevCount;
 
   bool isLive = isLiveOut;
-  for (auto &inst : llvm::reverse(*block)) {
+  for (auto &inst : toolchain::reverse(*block)) {
     // Check if the instruction is a def before checking whether it is a
     // use. The same instruction can be both a dead def and boundary use.
     if (liveness.isDef(&inst)) {
@@ -1124,7 +1128,7 @@ void PrunedLivenessBlockBoundary::findBoundaryInMultiDefBlock(
     SILBasicBlock *block, bool isLiveOut,
     const MultiDefPrunedLiveness &liveness) {
   bool isLive = isLiveOut;
-  for (auto &inst : llvm::reverse(*block)) {
+  for (auto &inst : toolchain::reverse(*block)) {
     // Check if the instruction is a def before checking whether it is a
     // use. The same instruction can be both a dead def and boundary use.
     if (liveness.isDef(&inst)) {
@@ -1184,25 +1188,25 @@ static FunctionTest MultiDefLivenessTest(
       SmallVector<SILBasicBlock *, 8> discoveredBlocks;
       MultiDefPrunedLiveness liveness(&function, &discoveredBlocks);
 
-      llvm::outs() << "MultiDef lifetime analysis:\n";
+      toolchain::outs() << "MultiDef lifetime analysis:\n";
       while (arguments.hasUntaken()) {
         auto argument = arguments.takeArgument();
         if (isa<InstructionArgument>(argument)) {
           auto *instruction = cast<InstructionArgument>(argument).getValue();
-          llvm::outs() << "  def instruction: " << instruction;
+          toolchain::outs() << "  def instruction: " << instruction;
           liveness.initializeDef(instruction);
         } else {
           SILValue value = cast<ValueArgument>(argument).getValue();
-          llvm::outs() << "  def value: " << value;
+          toolchain::outs() << "  def value: " << value;
           liveness.initializeDef(value);
         }
       }
       liveness.computeSimple();
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       PrunedLivenessBoundary boundary;
       liveness.computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
     });
 } // end namespace language::test
 

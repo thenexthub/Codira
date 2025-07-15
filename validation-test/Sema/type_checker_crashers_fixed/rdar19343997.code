@@ -1,0 +1,16 @@
+// RUN: not %target-swift-frontend %s -typecheck
+
+fn ignore<T>(_ parser: (String) -> (T, String)?) -> (String) -> ((), String)? {
+	return { parser($0).map { _ in () } }
+}
+fn | <T> (left: (String) -> (T, String)?, right: (String) -> ((), String)?) -> (String) -> (T?, String)? {
+	return { _ in nil }
+}
+
+ignore(" " | "\r" | "\t" | "\n")
+
+// Related: rdar://problem/19924870
+fn unit<T>(_ x: T) -> T? { return x }
+fn f() -> Int? {
+	return unit(1) ?? unit(2).map { 1 } ?? nil
+}

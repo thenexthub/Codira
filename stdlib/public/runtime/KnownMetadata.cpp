@@ -1,4 +1,4 @@
-//===--- KnownMetadata.cpp - Swift Language ABI Known Metadata Objects ----===//
+//===--- KnownMetadata.cpp - Codira Language ABI Known Metadata Objects ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Definitions of some builtin metadata objects.
@@ -35,13 +36,13 @@ using namespace metadataimpl;
 
 /// Copy a value from one object to another based on the size in the
 /// given type metadata.
-OpaqueValue *swift::swift_copyPOD(OpaqueValue *dest, OpaqueValue *src,
+OpaqueValue *language::language_copyPOD(OpaqueValue *dest, OpaqueValue *src,
                                   const Metadata *type) {
   return (OpaqueValue*) memcpy(dest, src, type->getValueWitnesses()->size);
 }
 
 namespace {
-  // A type sized and aligned the way Swift wants Int128 (and Float80/Float128)
+  // A type sized and aligned the way Codira wants Int128 (and Float80/Float128)
   // to be sized and aligned.
   struct alignas(16) int128_like {
     char data[16];
@@ -62,7 +63,7 @@ namespace {
 
 namespace ctypes {
   namespace {
-    // Type definitions that map each names Swift builtin type to their
+    // Type definitions that map each names Codira builtin type to their
     // C counterparts.
     using Bi1_ = uint8_t;
     using Bi7_ = uint8_t;
@@ -113,8 +114,8 @@ namespace ctypes {
 
 namespace pointer_types {
   namespace {
-    /// The basic value-witness table for Swift object pointers.
-    using Bo = SwiftRetainableBox;
+    /// The basic value-witness table for Codira object pointers.
+    using Bo = CodiraRetainableBox;
 
     /// The value-witness table for raw pointers.
     using Bp = RawPointerBox;
@@ -128,7 +129,7 @@ namespace pointer_types {
     // Job type.
     using Bj = RawPointerBox;
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     /*** Objective-C pointers *************************************************/
 
     // This section can reasonably be suppressed in builds that don't
@@ -186,18 +187,18 @@ namespace {
 }
 
 #define BUILTIN_TYPE(Symbol, Name)                                             \
-const ValueWitnessTable swift::VALUE_WITNESS_SYM(Symbol) =                     \
+const ValueWitnessTable language::VALUE_WITNESS_SYM(Symbol) =                     \
   ValueWitnessTableForBox<NativeBox<ctypes::Symbol,                            \
                                     BuiltinType<ctypes::Symbol>::Alignment>>::table;
 
 #define BUILTIN_POINTER_TYPE(Symbol, Name)                 \
-const ValueWitnessTable swift::VALUE_WITNESS_SYM(Symbol) =     \
+const ValueWitnessTable language::VALUE_WITNESS_SYM(Symbol) =     \
   ValueWitnessTableForBox<pointer_types::Symbol>::table;
 
-#if SWIFT_STDLIB_ENABLE_VECTOR_TYPES
+#if LANGUAGE_STDLIB_ENABLE_VECTOR_TYPES
 #define BUILTIN_VECTOR_TYPE(ElementSymbol, _, Width)                           \
   const ValueWitnessTable                                                      \
-  swift::VALUE_WITNESS_SYM(VECTOR_BUILTIN_SYMBOL_NAME(ElementSymbol,Width)) =  \
+  language::VALUE_WITNESS_SYM(VECTOR_BUILTIN_SYMBOL_NAME(ElementSymbol,Width)) =  \
   ValueWitnessTableForBox<NativeBox<SIMDVectorType<ctypes::ElementSymbol,      \
                                                    Width>>>::table;
 #else
@@ -207,7 +208,7 @@ const ValueWitnessTable swift::VALUE_WITNESS_SYM(Symbol) =     \
 #include "language/Runtime/BuiltinTypes.def"
 
 /// The value-witness table for pointer-aligned unmanaged pointer types.
-const ValueWitnessTable swift::METATYPE_VALUE_WITNESS_SYM(Bo) =
+const ValueWitnessTable language::METATYPE_VALUE_WITNESS_SYM(Bo) =
   ValueWitnessTableForBox<PointerPointerBox>::table;
 
 /*** Functions ***************************************************************/
@@ -215,7 +216,7 @@ const ValueWitnessTable swift::METATYPE_VALUE_WITNESS_SYM(Bo) =
 namespace {
   // @escaping function types.
   struct ThickFunctionBox
-    : AggregateBox<FunctionPointerBox, SwiftRetainableBox> {
+    : AggregateBox<FunctionPointerBox, CodiraRetainableBox> {
 
     static constexpr unsigned numExtraInhabitants =
       FunctionPointerBox::numExtraInhabitants;
@@ -261,46 +262,46 @@ namespace {
 
 /// The basic value-witness table for escaping function types.
 const ValueWitnessTable
-  swift::VALUE_WITNESS_SYM(FUNCTION_MANGLING) =
+  language::VALUE_WITNESS_SYM(FUNCTION_MANGLING) =
     ValueWitnessTableForBox<ThickFunctionBox>::table;
 
 const ValueWitnessTable
-  swift::VALUE_WITNESS_SYM(DIFF_FUNCTION_MANGLING) =
+  language::VALUE_WITNESS_SYM(DIFF_FUNCTION_MANGLING) =
     ValueWitnessTableForBox<DiffFunctionBox>::table;
 
 /// The basic value-witness table for @noescape function types.
 const ValueWitnessTable
-  swift::VALUE_WITNESS_SYM(NOESCAPE_FUNCTION_MANGLING) =
+  language::VALUE_WITNESS_SYM(NOESCAPE_FUNCTION_MANGLING) =
     ValueWitnessTableForBox<TrivialThickFunctionBox>::table;
 
 /// The basic value-witness table for thin function types.
 const ValueWitnessTable
-  swift::VALUE_WITNESS_SYM(THIN_FUNCTION_MANGLING) =
+  language::VALUE_WITNESS_SYM(THIN_FUNCTION_MANGLING) =
     ValueWitnessTableForBox<FunctionPointerBox>::table;
 
 /*** Empty tuples ************************************************************/
 
 /// The basic value-witness table for empty types.
-const ValueWitnessTable swift::VALUE_WITNESS_SYM(EMPTY_TUPLE_MANGLING) =
+const ValueWitnessTable language::VALUE_WITNESS_SYM(EMPTY_TUPLE_MANGLING) =
   ValueWitnessTableForBox<AggregateBox<>>::table;
 
 /*** Known metadata **********************************************************/
 
 // Define some builtin opaque metadata.
 #define OPAQUE_METADATA(TYPE) \
-  const FullOpaqueMetadata swift::METADATA_SYM(TYPE) = { \
+  const FullOpaqueMetadata language::METADATA_SYM(TYPE) = { \
     { &VALUE_WITNESS_SYM(TYPE) },                             \
     { { MetadataKind::Opaque } }                 \
   };
 #define BUILTIN_TYPE(Symbol, Name) \
   OPAQUE_METADATA(Symbol)
-#if !SWIFT_STDLIB_ENABLE_VECTOR_TYPES
+#if !LANGUAGE_STDLIB_ENABLE_VECTOR_TYPES
 #define BUILTIN_VECTOR_TYPE(ElementSymbol, ElementName, Width)
 #endif
 #include "language/Runtime/BuiltinTypes.def"
 
 /// The standard metadata for the empty tuple.
-const FullMetadata<TupleTypeMetadata> swift::
+const FullMetadata<TupleTypeMetadata> language::
 METADATA_SYM(EMPTY_TUPLE_MANGLING) = {
   { &VALUE_WITNESS_SYM(EMPTY_TUPLE_MANGLING) },                 // ValueWitnesses
   {

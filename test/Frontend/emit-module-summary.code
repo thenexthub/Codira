@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' >%t/main.code
+// RUN: cd %t
+
+// RUN: %target-language-frontend -emit-sib -emit-module-summary-path %t/main.codemodulesummary %t/main.code
+// RUN: test -f %t/main.codemodulesummary
+
+// RUN: echo '"%/t/main.code": { languagemodulesummary: "%/t/foo.codemodulesummary" }' > %/t/filemap.yaml
+// RUN: %target-language-frontend -emit-sib -supplementary-output-file-map %/t/filemap.yaml %/t/main.code
+// RUN: test -f %t/foo.codemodulesummary

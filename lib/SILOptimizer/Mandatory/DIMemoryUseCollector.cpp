@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "definite-init"
@@ -24,9 +25,9 @@
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Utils/DistributedActor.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 using namespace ownership;
@@ -218,7 +219,7 @@ static SILType getElementTypeRec(TypeExpansionContext context,
     }
     // This can only happen if we look at a symbolic element number of an empty
     // tuple.
-    llvm::report_fatal_error("invalid element number");
+    toolchain::report_fatal_error("invalid element number");
   }
 
   // If this is the top level of a 'self' value, we flatten structs and classes.
@@ -242,7 +243,7 @@ static SILType getElementTypeRec(TypeExpansionContext context,
       if (!HasStoredProperties && EltNo == 0) {
         return T;
       }
-      llvm::report_fatal_error("invalid element number");
+      toolchain::report_fatal_error("invalid element number");
     }
   }
 
@@ -251,7 +252,7 @@ static SILType getElementTypeRec(TypeExpansionContext context,
   return T;
 }
 
-/// getElementTypeRec - Return the swift type of the specified element.
+/// getElementTypeRec - Return the language type of the specified element.
 SILType DIMemoryObjectInfo::getElementType(unsigned EltNo) const {
   auto &Module = MemoryInst->getModule();
   return getElementTypeRec(TypeExpansionContext(*MemoryInst->getFunction()),
@@ -409,7 +410,7 @@ static void getPathStringToElementRec(TypeExpansionContext context,
       if (Field.hasName())
         Result += Field.getName().str();
       else
-        Result += llvm::utostr(FieldNo);
+        Result += toolchain::utostr(FieldNo);
       return getPathStringToElementRec(context, Module, FieldTy, EltNo, Result);
     }
 
@@ -418,7 +419,7 @@ static void getPathStringToElementRec(TypeExpansionContext context,
     ++FieldNo;
   }
 
-  llvm_unreachable("Element number is out of range for this type!");
+  toolchain_unreachable("Element number is out of range for this type!");
 }
 
 ValueDecl *
@@ -686,7 +687,7 @@ private:
 
   void collectClassSelfUses(SILValue ClassPointer);
   void collectClassSelfUses(SILValue ClassPointer, SILType MemorySILType,
-                            llvm::SmallDenseMap<VarDecl *, unsigned> &EN);
+                            toolchain::SmallDenseMap<VarDecl *, unsigned> &EN);
 
   void addElementUses(unsigned BaseEltNo, SILType UseTy, SILInstruction *User,
                       DIUseKind Kind, NullablePtr<VarDecl> Field = 0);
@@ -750,14 +751,14 @@ void ElementUseCollector::collectStructElementUses(StructElementAddrInst *SEAI,
   // the uses so that we know that we're looking at something within the
   // current element.
   if (!IsSelfOfNonDelegatingInitializer) {
-    llvm::SaveAndRestore<bool> X(InStructSubElement, true);
+    toolchain::SaveAndRestore<bool> X(InStructSubElement, true);
     collectUses(SEAI, BaseEltNo);
     return;
   }
 
   // If this is the top level of 'self' in an init method, we treat each
   // element of the struct as an element to be analyzed independently.
-  llvm::SaveAndRestore<bool> X(IsSelfOfNonDelegatingInitializer, false);
+  toolchain::SaveAndRestore<bool> X(IsSelfOfNonDelegatingInitializer, false);
 
   for (auto *VD : SEAI->getStructDecl()->getStoredProperties()) {
     if (SEAI->getField() == VD)
@@ -871,7 +872,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
 
       // If it's a non-synthesized write to a @_compilerInitialized field,
       // indicate that in the Kind.
-      if (LLVM_UNLIKELY(InCompilerInitializedField))
+      if (TOOLCHAIN_UNLIKELY(InCompilerInitializedField))
         Kind = verifyCompilerInitialized(Pointer, User, Kind);
 
       addElementUses(BaseEltNo, PointeeType, User, Kind);
@@ -985,7 +986,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
       case ParameterConvention::Pack_Guaranteed:
       case ParameterConvention::Pack_Owned:
       case ParameterConvention::Pack_Inout:
-        llvm_unreachable("address value passed to indirect parameter");
+        toolchain_unreachable("address value passed to indirect parameter");
 
       // If this is an in-parameter, it is like a load.
       case ParameterConvention::Indirect_In_CXX:
@@ -1017,7 +1018,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
           continue;
         }
         
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       }
       case ParameterConvention::Indirect_Inout: {
         // If we're in the initializer for a struct, and this is a call to a
@@ -1039,7 +1040,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
         continue;
       }
       }
-      llvm_unreachable("bad parameter convention");
+      toolchain_unreachable("bad parameter convention");
     }
 
     if (isa<AddressToPointerInst>(User)) {
@@ -1060,7 +1061,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
       // Keep track of the fact that we're inside of an enum.  This informs our
       // recursion that tuple stores are not scalarized outside, and that stores
       // should not be treated as partial stores.
-      llvm::SaveAndRestore<bool> X(InEnumSubElement, true);
+      toolchain::SaveAndRestore<bool> X(InEnumSubElement, true);
       collectUses(init, BaseEltNo);
       continue;
     }
@@ -1097,7 +1098,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
         trackUse(DIMemoryUse(User, DIUseKind::InOutArgument, BaseEltNo, 1));
         continue;
       }
-      llvm_unreachable("bad access kind");
+      toolchain_unreachable("bad access kind");
     }
 
     // unchecked_take_enum_data_addr takes the address of the payload of an
@@ -1111,7 +1112,7 @@ void ElementUseCollector::collectUses(SILValue Pointer, unsigned BaseEltNo) {
       // store. This is needed because if the enum has data it would be accessed
       // through tuple_element_addr instruction. The entire enum is expected
       // to be initialized before any such access.
-      llvm::SaveAndRestore<bool> X(InEnumSubElement, true);
+      toolchain::SaveAndRestore<bool> X(InEnumSubElement, true);
       collectUses(enumDataAddr, BaseEltNo);
       continue;
     }
@@ -1245,7 +1246,7 @@ ElementUseCollector::collectAssignOrInitUses(AssignOrInitInst *Inst,
                                              unsigned BaseEltNo) {
   /// AssignOrInit doesn't operate on `self` so we need to make sure
   /// that the flag is dropped before calling \c addElementUses.
-  llvm::SaveAndRestore<bool> X(IsSelfOfNonDelegatingInitializer, false);
+  toolchain::SaveAndRestore<bool> X(IsSelfOfNonDelegatingInitializer, false);
 
   auto *typeDC = Inst->getReferencedInitAccessor()
                      ->getDeclContext()
@@ -1305,7 +1306,7 @@ void ElementUseCollector::collectClassSelfUses(SILValue ClassPointer) {
 
   // For efficiency of lookup below, compute a mapping of the local ivars in the
   // class to their element number.
-  llvm::SmallDenseMap<VarDecl *, unsigned> EltNumbering;
+  toolchain::SmallDenseMap<VarDecl *, unsigned> EltNumbering;
 
   {
     SILType T = TheMemory.getType();
@@ -1614,8 +1615,8 @@ static bool isFlowSensitiveSelfIsolation(BuiltinValueKind kind) {
 
 void ElementUseCollector::collectClassSelfUses(
     SILValue ClassPointer, SILType MemorySILType,
-    llvm::SmallDenseMap<VarDecl *, unsigned> &EltNumbering) {
-  llvm::SmallVector<Operand *, 16> Worklist(ClassPointer->use_begin(),
+    toolchain::SmallDenseMap<VarDecl *, unsigned> &EltNumbering) {
+  toolchain::SmallVector<Operand *, 16> Worklist(ClassPointer->use_begin(),
                                             ClassPointer->use_end());
   while (!Worklist.empty()) {
     auto *Op = Worklist.pop_back_val();
@@ -1644,11 +1645,11 @@ void ElementUseCollector::collectClassSelfUses(
         // Remember whether the field is marked '@_compilerInitialized'
         const bool hasCompInit =
           REAI->getField()->getAttrs().hasAttribute<CompilerInitializedAttr>();
-        llvm::SaveAndRestore<bool> X1(InCompilerInitializedField, hasCompInit);
+        toolchain::SaveAndRestore<bool> X1(InCompilerInitializedField, hasCompInit);
 
         // Recursively collect uses of the fields.  Note that fields of the class
         // could be tuples, so they may be tracked as independent elements.
-        llvm::SaveAndRestore<bool> X2(IsSelfOfNonDelegatingInitializer, false);
+        toolchain::SaveAndRestore<bool> X2(IsSelfOfNonDelegatingInitializer, false);
         collectUses(REAI, EltNumbering[REAI->getField()]);
         continue;
       }
@@ -2034,7 +2035,7 @@ void ClassInitElementUseCollector::collectClassInitSelfLoadUses(
 
   // If we have a load, then this is a use of the box.  Look at the uses of
   // the load to find out more information.
-  llvm::SmallVector<Operand *, 8> Worklist(LI->use_begin(), LI->use_end());
+  toolchain::SmallVector<Operand *, 8> Worklist(LI->use_begin(), LI->use_end());
   while (!Worklist.empty()) {
     auto *Op = Worklist.pop_back_val();
     auto *User = Op->getUser();
@@ -2068,7 +2069,7 @@ void ClassInitElementUseCollector::collectClassInitSelfLoadUses(
         isa<UpcastInst>(User) ||
         isa<UncheckedRefCastInst>(User)) {
       auto I = cast<SingleValueInstruction>(User);
-      llvm::copy(I->getUses(), std::back_inserter(Worklist));
+      toolchain::copy(I->getUses(), std::back_inserter(Worklist));
       continue;
     }
 
@@ -2138,7 +2139,7 @@ static bool shouldPerformClassInitSelf(const DIMemoryObjectInfo &MemoryInfo) {
 /// Analyze all uses of the specified allocation instruction (alloc_box,
 /// alloc_stack or mark_uninitialized), classifying them and storing the
 /// information found into the Uses and Releases lists.
-void swift::ownership::collectDIElementUsesFrom(
+void language::ownership::collectDIElementUsesFrom(
     const DIMemoryObjectInfo &MemoryInfo, DIElementUseInfo &UseInfo) {
 
   // Handle `self` in class initializers that receive it as an argument.

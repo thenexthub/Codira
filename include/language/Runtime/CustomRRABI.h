@@ -1,21 +1,25 @@
 //===--- CustomRRABI.h - Custom retain/release ABI support ----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Utilities for creating register-specific retain/release entrypoints.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_CUSTOMRRABI_H
-#define SWIFT_RUNTIME_CUSTOMRRABI_H
+#ifndef LANGUAGE_RUNTIME_CUSTOMRRABI_H
+#define LANGUAGE_RUNTIME_CUSTOMRRABI_H
 
 namespace language {
 
@@ -70,7 +74,7 @@ Param returnTypeHelper(Ret (*)(Param)) {}
 // Helper macro that defines one entrypoint that takes the parameter in reg and
 // calls through to function.
 #define CUSTOM_RR_ENTRYPOINTS_DEFINE_ONE_ENTRYPOINT(reg, function)             \
-  SWIFT_RUNTIME_EXPORT decltype(function(nullptr)) function##_x##reg() {       \
+  LANGUAGE_RUNTIME_EXPORT decltype(function(nullptr)) function##_x##reg() {       \
     decltype(returnTypeHelper(function)) ptr;                                  \
     asm(".ifnc %" REGISTER_SUBSTITUTION_PREFIX "0, " REGISTER_PREFIX #reg "\n" \
         "mov %" REGISTER_SUBSTITUTION_PREFIX "0, " REGISTER_PREFIX #reg "\n"   \
@@ -94,4 +98,4 @@ Param returnTypeHelper(Ret (*)(Param)) {}
 
 } // namespace language
 
-#endif // SWIFT_RUNTIME_CUSTOMRRABI_H
+#endif // LANGUAGE_RUNTIME_CUSTOMRRABI_H

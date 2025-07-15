@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend %s -typecheck -verify
+
+fn badIs<T>(_ value: Any, anInstanceOf type: T.Type) -> Bool { // expected-note {{'type' declared here}}
+    value is type // expected-error {{type-casting operator expects a type on its right-hand side (got: parameter 'type')}}
+}
+
+fn foo() -> Int {
+    return // expected-error {{non-void function should return a value}}
+}
+
+fn badIs_ifdecl<T>(_ value: Any, anInstanceOf type: T.Type) -> Bool { // expected-note {{'type' declared here}}
+    #if true
+    value is type // expected-error {{type-casting operator expects a type on its right-hand side (got: parameter 'type')}}
+    #endif
+}
+
+fn foo_ifdecl() -> Int {
+    #if true
+    return // expected-error {{non-void function should return a value}}
+    #endif
+}

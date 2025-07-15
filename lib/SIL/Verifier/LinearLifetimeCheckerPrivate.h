@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LINEARLIFETIMECHECKER_PRIVATE_H
-#define SWIFT_SIL_LINEARLIFETIMECHECKER_PRIVATE_H
+#ifndef LANGUAGE_SIL_LINEARLIFETIMECHECKER_PRIVATE_H
+#define LANGUAGE_SIL_LINEARLIFETIMECHECKER_PRIVATE_H
 
 #include "language/SIL/LinearLifetimeChecker.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 
-struct LLVM_LIBRARY_VISIBILITY LinearLifetimeChecker::ErrorBehaviorKind {
+struct TOOLCHAIN_LIBRARY_VISIBILITY LinearLifetimeChecker::ErrorBehaviorKind {
   enum inner_t {
     Invalid = 0,
     ReturnFalse = 1,
@@ -66,7 +67,7 @@ struct LLVM_LIBRARY_VISIBILITY LinearLifetimeChecker::ErrorBehaviorKind {
   }
 };
 
-class LLVM_LIBRARY_VISIBILITY LinearLifetimeChecker::Error {
+class TOOLCHAIN_LIBRARY_VISIBILITY LinearLifetimeChecker::Error {
   friend class ErrorBuilder;
 
   bool foundUseAfterFree = false;
@@ -93,7 +94,7 @@ public:
   }
 };
 
-class LLVM_LIBRARY_VISIBILITY LinearLifetimeChecker::ErrorBuilder {
+class TOOLCHAIN_LIBRARY_VISIBILITY LinearLifetimeChecker::ErrorBuilder {
   StringRef functionName;
   ErrorBehaviorKind behavior;
   std::optional<Error> error;
@@ -135,7 +136,7 @@ public:
     if (!errorMessageCounter) {
       return;
     }
-    llvm::errs() << "Error#: " << *errorMessageCounter << ". ";
+    toolchain::errs() << "Error#: " << *errorMessageCounter << ". ";
   }
 
   void tryIncrementErrorCounter() {
@@ -145,15 +146,15 @@ public:
     ++(*errorMessageCounter);
   }
 
-  bool handleLeak(llvm::function_ref<void()> &&messagePrinterFunc) {
+  bool handleLeak(toolchain::function_ref<void()> &&messagePrinterFunc) {
     error->foundLeak = true;
 
     if (behavior.shouldPrintMessage()) {
       tryDumpErrorCounter();
-      llvm::errs() << "Begin Error in Function: '" << functionName << "'\n";
+      toolchain::errs() << "Begin Error in Function: '" << functionName << "'\n";
       messagePrinterFunc();
       tryDumpErrorCounter();
-      llvm::errs() << "End Error in Function: '" << functionName << "'\n";
+      toolchain::errs() << "End Error in Function: '" << functionName << "'\n";
       tryIncrementErrorCounter();
     }
 
@@ -165,18 +166,18 @@ public:
     return handleError([]() {}, true);
   }
 
-  bool handleOverConsume(llvm::function_ref<void()> &&messagePrinterFunc) {
+  bool handleOverConsume(toolchain::function_ref<void()> &&messagePrinterFunc) {
     error->foundOverConsume = true;
     return handleError(std::move(messagePrinterFunc));
   }
 
-  bool handleUseAfterFree(llvm::function_ref<void()> &&messagePrinterFunc) {
+  bool handleUseAfterFree(toolchain::function_ref<void()> &&messagePrinterFunc) {
     error->foundUseAfterFree = true;
     return handleError(std::move(messagePrinterFunc));
   }
 
   bool
-  handleMalformedSIL(llvm::function_ref<void()> &&messagePrinterFunc) const {
+  handleMalformedSIL(toolchain::function_ref<void()> &&messagePrinterFunc) const {
     return handleError(std::move(messagePrinterFunc));
   }
 
@@ -184,23 +185,23 @@ public:
   /// non-consuming use after our lifetime has ended /or/ if we found a use
   /// before def of a non consuming value.
   void
-  handleUseOutsideOfLifetime(llvm::function_ref<void()> &&messagePrinterFunc) {
+  handleUseOutsideOfLifetime(toolchain::function_ref<void()> &&messagePrinterFunc) {
     error->foundUseOutsideOfLifetime = true;
     handleError(std::move(messagePrinterFunc));
   }
 
 private:
-  bool handleError(llvm::function_ref<void()> &&messagePrinterFunc,
+  bool handleError(toolchain::function_ref<void()> &&messagePrinterFunc,
                    bool quiet = false) const {
     if (behavior.shouldPrintMessage()) {
       if (!quiet) {
         tryDumpErrorCounter();
-        llvm::errs() << "Begin Error in Function: '" << functionName << "'\n";
+        toolchain::errs() << "Begin Error in Function: '" << functionName << "'\n";
       }
       messagePrinterFunc();
       if (!quiet) {
         tryDumpErrorCounter();
-        llvm::errs() << "End Error in Function: '" << functionName << "'\n";
+        toolchain::errs() << "End Error in Function: '" << functionName << "'\n";
         auto *self = const_cast<ErrorBuilder *>(this);
         self->tryIncrementErrorCounter();
       }
@@ -210,8 +211,8 @@ private:
       return false;
     }
 
-    llvm::errs() << "Found ownership error?!\n";
-    llvm::report_fatal_error("triggering standard assertion failure routine");
+    toolchain::errs() << "Found ownership error?!\n";
+    toolchain::report_fatal_error("triggering standard assertion failure routine");
   }
 };
 

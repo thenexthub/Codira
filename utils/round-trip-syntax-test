@@ -13,20 +13,20 @@ logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 
 class RoundTripTask(object):
-    def __init__(self, input_filename, action, swift_syntax_test,
+    def __init__(self, input_filename, action, language_syntax_test,
                  skip_bad_syntax):
         assert action == '-round-trip-parse' or action == '-round-trip-lex'
         if sys.version_info[0] < 3:
             assert isinstance(input_filename, str)
-        assert isinstance(swift_syntax_test, str)
+        assert isinstance(language_syntax_test, str)
 
         assert os.path.isfile(input_filename), \
             "Input file {} is not accessible!".format(input_filename)
-        assert os.path.isfile(swift_syntax_test), \
-            "{} tool is not accessible!".format(swift_syntax_test)
+        assert os.path.isfile(language_syntax_test), \
+            "{} tool is not accessible!".format(language_syntax_test)
         self.input_filename = input_filename
         self.action = action
-        self.swift_syntax_test = swift_syntax_test
+        self.code_syntax_test = language_syntax_test
         self.skip_bad_syntax = skip_bad_syntax
         self.returncode = None
         self.stdout = None
@@ -34,7 +34,7 @@ class RoundTripTask(object):
 
     @property
     def test_command(self):
-        return [self.swift_syntax_test, self.action,
+        return [self.code_syntax_test, self.action,
                 '-input-source-filename', self.input_filename]
 
     def run(self):
@@ -88,15 +88,15 @@ class RoundTripTask(object):
         return diff if diff else None
 
 
-def swift_files_in_dir(d):
-    swift_files = []
+def language_files_in_dir(d):
+    language_files = []
     for root, dirs, files in os.walk(d):
         for basename in files:
-            if not basename.endswith('.swift'):
+            if not basename.endswith('.code'):
                 continue
             abs_file = os.path.abspath(os.path.join(root, basename))
-            swift_files.append(abs_file)
-    return swift_files
+            language_files.append(abs_file)
+    return language_files
 
 
 def run_task(task):
@@ -118,25 +118,25 @@ def main():
     tool_description = '''
 Checks for round-trip lex/parse/print compatibility.
 
-Swift's syntax representation should be "full-fidelity", meaning that there is
+Codira's syntax representation should be "full-fidelity", meaning that there is
 a perfect representation of what is in the source. When printing a syntax tree
 to a file, that file should be identical to the file that was
 originally parsed.
 
-This driver invokes swift-syntax-test using -round-trip-lex and
--round-trip-parse on .swift files and .swift files in directories.
+This driver invokes language-syntax-test using -round-trip-lex and
+-round-trip-parse on .code files and .code files in directories.
 '''
     parser = argparse.ArgumentParser(description=tool_description)
     parser.add_argument('--directory', '-d', action='append',
                         dest='input_directories', default=[],
-                        help='Add a directory, searching for .swift files'
+                        help='Add a directory, searching for .code files'
                              ' within')
     parser.add_argument('--file', '-f', action='append',
                         dest='individual_input_files', default=[],
                         help='Add an individual file to test')
-    parser.add_argument('--swift-syntax-test', '-t', required=True,
+    parser.add_argument('--language-syntax-test', '-t', required=True,
                         dest='tool_path',
-                        help='Absolute path to the swift-syntax-test tool')
+                        help='Absolute path to the language-syntax-test tool')
     parser.add_argument('--skip-bad-syntax',
                         action='store_true',
                         default=False,
@@ -145,7 +145,7 @@ This driver invokes swift-syntax-test using -round-trip-lex and
 
     args = parser.parse_args()
 
-    dir_listings = [swift_files_in_dir(d) for d in args.input_directories]
+    dir_listings = [language_files_in_dir(d) for d in args.input_directories]
     all_input_files = [filename for dir_listing in dir_listings
                        for filename in dir_listing]
     all_input_files += args.individual_input_files
@@ -157,7 +157,7 @@ This driver invokes swift-syntax-test using -round-trip-lex and
         sys.exit(1)
 
     if not os.path.isfile(args.tool_path):
-        raise RuntimeError("Couldn't find swift-syntax-test at {}"
+        raise RuntimeError("Couldn't find language-syntax-test at {}"
                            .format(args.tool_path))
 
     lex_tasks = [RoundTripTask(filename, '-round-trip-lex', args.tool_path,

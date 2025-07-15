@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::ConstraintSystem::recordMatchCallArgumentResult(language::constraints::ConstraintLocator*, language::constraints::MatchCallArgumentResult)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+if
+case.a(a.b) = {

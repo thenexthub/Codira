@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSE_CODE_COMPLETION_CALLBACKS_H
-#define SWIFT_PARSE_CODE_COMPLETION_CALLBACKS_H
+#ifndef LANGUAGE_PARSE_CODE_COMPLETION_CALLBACKS_H
+#define LANGUAGE_PARSE_CODE_COMPLETION_CALLBACKS_H
 
 #include "language/AST/ASTContext.h"
 #include "language/Parse/Parser.h"
@@ -42,7 +43,9 @@ enum class ParameterizedDeclAttributeKind {
   Available,
   FreestandingMacro,
   AttachedMacro,
-  StorageRestrictions
+  StorageRestrictions,
+  InheritActorContext,
+  Nonexhaustive,
 };
 
 /// A bit of a hack. When completing inside the '@storageRestrictions'
@@ -185,12 +188,12 @@ public:
   virtual void completeExprKeyPath(KeyPathExpr *KPE, SourceLoc DotLoc) {};
 
   /// Complete the beginning of the type for a parameter of a
-  /// func/subscript/closure, or the type for a parameter in a function type.
+  /// fn/subscript/closure, or the type for a parameter in a function type.
   /// For the latter, we cannot know for sure whether the user is trying to
   /// write a function type, so will complete for e.g `let x: (#^COMPLETE^#`.
   virtual void completeTypePossibleFunctionParamBeginning() {}
 
-  /// Complete the beginning of the type of result of func/var/let/subscript.
+  /// Complete the beginning of the type of result of fn/var/let/subscript.
   virtual void completeTypeDeclResultBeginning() {};
 
   /// Same as `completeTypeSimpleOrComposition` but also allows `repeat`.
@@ -256,6 +259,10 @@ public:
   /// Complete the import decl with importable modules.
   virtual void
   completeImportDecl(ImportPath::Builder &Path) {};
+
+  /// Complete the 'using' decl with supported specifiers.
+  virtual void
+  completeUsingDecl() {};
 
   /// Complete unresolved members after dot.
   virtual void completeUnresolvedMember(CodeCompletionExpr *E,
@@ -330,4 +337,4 @@ public:
 
 } // namespace language
 
-#endif // LLVM_SWIFT_PARSE_CODE_COMPLETION_CALLBACKS_H
+#endif // TOOLCHAIN_LANGUAGE_PARSE_CODE_COMPLETION_CALLBACKS_H

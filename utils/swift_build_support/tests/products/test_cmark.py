@@ -1,12 +1,12 @@
 # tests/products/test_ninja.py ----------------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2021 Apple Inc. and the Swift project authors
+# Copyright (c) 2021 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 # ----------------------------------------------------------------------------
 
 import argparse
@@ -17,12 +17,12 @@ import tempfile
 import unittest
 from io import StringIO
 
-# from swift_build_support import cmake
-from swift_build_support import shell
-from swift_build_support.products import CMark
-from swift_build_support.targets import StdlibDeploymentTarget
-from swift_build_support.toolchain import host_toolchain
-from swift_build_support.workspace import Workspace
+# from language_build_support import cmake
+from language_build_support import shell
+from language_build_support.products import CMark
+from language_build_support.targets import StdlibDeploymentTarget
+from language_build_support.toolchain import host_toolchain
+from language_build_support.workspace import Workspace
 
 
 class CMarkTestCase(unittest.TestCase):

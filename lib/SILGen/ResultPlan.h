@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_RESULTPLAN_H
-#define SWIFT_SILGEN_RESULTPLAN_H
+#ifndef LANGUAGE_SILGEN_RESULTPLAN_H
+#define LANGUAGE_SILGEN_RESULTPLAN_H
 
 #include "Callee.h"
 #include "ExecutorBreadcrumb.h"
@@ -22,7 +23,7 @@
 #include "ManagedValue.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILLocation.h"
 #include <memory>
 
@@ -56,7 +57,7 @@ public:
 
   /// Defers the emission of the given breadcrumb until \p finish is invoked.
   virtual void deferExecutorBreadcrumb(ExecutorBreadcrumb &&breadcrumb) {
-    llvm_unreachable("this ResultPlan does not handle deferred breadcrumbs!");
+    toolchain_unreachable("this ResultPlan does not handle deferred breadcrumbs!");
   }
 
   virtual void
@@ -93,7 +94,7 @@ struct ResultPlanBuilder {
                     const CalleeTypeInfo &calleeTypeInfo)
       : SGF(SGF), loc(loc), calleeTypeInfo(calleeTypeInfo),
         // We reverse the order so we can pop values off the back.
-        allResults(llvm::reverse(calleeTypeInfo.substFnType->getResults())) {}
+        allResults(toolchain::reverse(calleeTypeInfo.substFnType->getResults())) {}
 
   ResultPlanPtr build(Initialization *emitInto, AbstractionPattern origType,
                       CanType substType);

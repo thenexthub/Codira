@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines IR codegen support for debug information.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_DEBUGINFO_H
-#define SWIFT_IRGEN_DEBUGINFO_H
+#ifndef LANGUAGE_IRGEN_DEBUGINFO_H
+#define LANGUAGE_IRGEN_DEBUGINFO_H
 
-#include <swift/SIL/SILInstruction.h>
+#include <language/SIL/SILInstruction.h>
 #include "DebugTypeInfo.h"
 #include "IRGenFunction.h"
 
-namespace llvm {
+namespace toolchain {
 class DIBuilder;
 }
 
@@ -52,7 +53,7 @@ enum ArtificialKind : bool { RealValue = false, ArtificialValue = true };
 /// Used to signal to emitDbgIntrinsic that we actually want to emit dbg.declare
 /// instead of dbg.value + op_deref. By default, we now emit dbg.value instead of
 /// dbg.declare for normal variables. This is not true for metadata which
-/// truly are function wide and should be llvm.dbg.declare.
+/// truly are function wide and should be toolchain.dbg.declare.
 enum class AddrDbgInstrKind : bool {
   DbgDeclare,
   DbgValueDeref,
@@ -60,17 +61,17 @@ enum class AddrDbgInstrKind : bool {
 
 /// Helper object that keeps track of the current CompileUnit, File,
 /// LexicalScope, and knows how to translate a \c SILLocation into an
-/// \c llvm::DebugLoc.
+/// \c toolchain::DebugLoc.
 class IRGenDebugInfo {
 public:
   static std::unique_ptr<IRGenDebugInfo>
   createIRGenDebugInfo(const IRGenOptions &Opts, ClangImporter &CI,
-                       IRGenModule &IGM, llvm::Module &M,
+                       IRGenModule &IGM, toolchain::Module &M,
                        StringRef MainOutputFilenameForDebugInfo,
                        StringRef PrivateDiscriminator);
   virtual ~IRGenDebugInfo();
 
-  /// Finalize the llvm::DIBuilder owned by this object.
+  /// Finalize the toolchain::DIBuilder owned by this object.
   void finalize();
 
   /// Update the IRBuilder's current debug location to the location
@@ -94,7 +95,7 @@ public:
   /// Restore the current debug location from the stack.
   void popLoc();
 
-  /// If we are not emitting CodeView, this does nothing since the ``llvm.trap``
+  /// If we are not emitting CodeView, this does nothing since the ``toolchain.trap``
   /// instructions should already have an artificial location of zero.
   /// In CodeView, since zero is not an artificial location, we emit the
   /// location of the unified trap block at the end of the function as an
@@ -105,10 +106,10 @@ public:
   void setEntryPointLoc(IRBuilder &Builder);
 
   /// Return the scope for the entry point function (main by default).
-  llvm::DIScope *getEntryPointFn();
+  toolchain::DIScope *getEntryPointFn();
 
-  /// Translate a SILDebugScope into an llvm::DIDescriptor.
-  llvm::DIScope *getOrCreateScope(const SILDebugScope *DS);
+  /// Translate a SILDebugScope into an toolchain::DIDescriptor.
+  toolchain::DIScope *getOrCreateScope(const SILDebugScope *DS);
 
   
   /// Emit debug info for an import declaration.
@@ -129,39 +130,39 @@ public:
   /// \param Fn The IR representation of the function.
   /// \param Rep The calling convention of the function.
   /// \param Ty The signature of the function.
-  llvm::DISubprogram *emitFunction(const SILDebugScope *DS, llvm::Function *Fn,
+  toolchain::DISubprogram *emitFunction(const SILDebugScope *DS, toolchain::Function *Fn,
                                    SILFunctionTypeRepresentation Rep,
                                    SILType Ty, DeclContext *DeclCtx = nullptr,
                                    GenericEnvironment *GE = nullptr);
 
   /// Emit debug info for a given SIL function.
-  llvm::DISubprogram *emitFunction(SILFunction &SILFn, llvm::Function *Fn);
+  toolchain::DISubprogram *emitFunction(SILFunction &SILFn, toolchain::Function *Fn);
 
   /// Convenience function useful for functions without any source
   /// location. Internally calls emitFunction, emits a debug
   /// scope, and finally sets it using setCurrentLoc.
-  inline void emitArtificialFunction(IRGenFunction &IGF, llvm::Function *Fn,
+  inline void emitArtificialFunction(IRGenFunction &IGF, toolchain::Function *Fn,
                                      SILType SILTy = SILType()) {
     emitArtificialFunction(IGF.Builder, Fn, SILTy);
   }
 
   void emitArtificialFunction(IRBuilder &Builder,
-                              llvm::Function *Fn, SILType SILTy = SILType());
+                              toolchain::Function *Fn, SILType SILTy = SILType());
 
   inline void emitOutlinedFunction(IRGenFunction &IGF,
-                                   llvm::Function *Fn,
+                                   toolchain::Function *Fn,
                                    StringRef outlinedFromName) {
     emitOutlinedFunction(IGF.Builder, Fn, outlinedFromName);
   }
 
   void emitOutlinedFunction(IRBuilder &Builder,
-                            llvm::Function *Fn,
+                            toolchain::Function *Fn,
                             StringRef outlinedFromName);
 
   /// Emit a dbg.declare intrinsic at the current insertion point and
   /// the Builder's current debug location.
   void emitVariableDeclaration(IRBuilder &Builder,
-                               ArrayRef<llvm::Value *> Storage,
+                               ArrayRef<toolchain::Value *> Storage,
                                DebugTypeInfo Ty, const SILDebugScope *DS,
                                std::optional<SILLocation> VarLoc,
                                SILDebugVariable VarInfo,
@@ -174,37 +175,37 @@ public:
   /// dbg.value, we will insert a dbg.declare. Please only use that if you know
   /// that the given value can never be moved and have its lifetime ended early
   /// (e.x.: type metadata).
-  void emitDbgIntrinsic(IRBuilder &Builder, llvm::Value *Storage,
-                        llvm::DILocalVariable *Var, llvm::DIExpression *Expr,
-                        unsigned Line, unsigned Col, llvm::DILocalScope *Scope,
+  void emitDbgIntrinsic(IRBuilder &Builder, toolchain::Value *Storage,
+                        toolchain::DILocalVariable *Var, toolchain::DIExpression *Expr,
+                        unsigned Line, unsigned Col, toolchain::DILocalScope *Scope,
                         const SILDebugScope *DS, bool InCoroContext = false,
                         AddrDbgInstrKind = AddrDbgInstrKind::DbgDeclare);
 
   /// Create debug metadata for a global variable.
-  void emitGlobalVariableDeclaration(llvm::GlobalVariable *Storage,
+  void emitGlobalVariableDeclaration(toolchain::GlobalVariable *Storage,
                                      StringRef Name, StringRef LinkageName,
                                      DebugTypeInfo DebugType,
                                      bool IsLocalToUnit,
                                      std::optional<SILLocation> Loc);
 
   /// Emit debug metadata for type metadata (for generic types). So meta.
-  void emitTypeMetadata(IRGenFunction &IGF, llvm::Value *Metadata,
+  void emitTypeMetadata(IRGenFunction &IGF, toolchain::Value *Metadata,
                         unsigned Depth, unsigned Index, StringRef Name);
 
   /// Emit debug info for the IR function parameter holding the size of one or
   /// more parameter / type packs.
-  void emitPackCountParameter(IRGenFunction &IGF, llvm::Value *Metadata,
+  void emitPackCountParameter(IRGenFunction &IGF, toolchain::Value *Metadata,
                               SILDebugVariable VarInfo);
 
   /// Return the DIBuilder.
-  llvm::DIBuilder &getBuilder();
+  toolchain::DIBuilder &getBuilder();
 };
 
 /// An RAII object that autorestores the debug location.
 class AutoRestoreLocation {
   IRGenDebugInfo *DI;
   IRBuilder &Builder;
-  llvm::DebugLoc SavedLocation;
+  toolchain::DebugLoc SavedLocation;
 
 public:
   AutoRestoreLocation(IRGenDebugInfo *DI, IRBuilder &Builder);
@@ -235,6 +236,6 @@ public:
 };
 
 } // irgen
-} // swift
+} // language
 
 #endif

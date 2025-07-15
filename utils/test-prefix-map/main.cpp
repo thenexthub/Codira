@@ -1,6 +1,6 @@
 #include "language/Basic/PrefixMap.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
 #include <map>
 #include <random>
 #include <string>
@@ -81,7 +81,7 @@ struct Tester {
 
       assert(si->second == (*pi).getValue());
 
-      llvm::SmallString<128> buffer;
+      toolchain::SmallString<128> buffer;
       assert(StringRef(si->first) == asString((*pi).getKey(buffer)));
 
       ++si;
@@ -90,15 +90,15 @@ struct Tester {
   }
 
   void dump() {
-    llvm::outs() << "StdMap:\n";
+    toolchain::outs() << "StdMap:\n";
     for (auto i = StdMap.begin(), e = StdMap.end(); i != e; ++i) {
-      llvm::outs() << "  \"" << i->first << "\": " << i->second << "\n";
+      toolchain::outs() << "  \"" << i->first << "\": " << i->second << "\n";
     }
-    llvm::outs() << "PreMap:\n";
+    toolchain::outs() << "PreMap:\n";
     for (auto i = PreMap.begin(), e = PreMap.end(); i != e; ++i) {
-      llvm::SmallVector<char, 128> buffer;
+      toolchain::SmallVector<char, 128> buffer;
       (*i).getKey(buffer);
-      llvm::outs() << "  \"" << buffer << "\": " << (*i).getValue() << "\n";
+      toolchain::outs() << "  \"" << buffer << "\": " << (*i).getValue() << "\n";
     }
     PreMap.dump();
   }
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
   auto next = [&] { return distribution(generator); };
 
-  llvm::SmallString<128> key;
+  toolchain::SmallString<128> key;
 
   while (true) {
     auto operation = next();
@@ -136,21 +136,21 @@ int main(int argc, char **argv) {
     // Insert.
     } else if (operation <= .7 * RandomSpread) {
       unsigned value = next();
-      llvm::outs() << "  tester.insert(\"" << key << "\", " << value << ");\n";
+      toolchain::outs() << "  tester.insert(\"" << key << "\", " << value << ");\n";
       tester.insert(key, value);
 
     // Find.
     } else if (operation <= .98 * RandomSpread) {
-      llvm::outs() << "  tester.find(\"" << key << "\");\n";
+      toolchain::outs() << "  tester.find(\"" << key << "\");\n";
       tester.find(key);
 
     // Clear.
     } else {
-      llvm::outs() << "  tester.clear();\n";
+      toolchain::outs() << "  tester.clear();\n";
       tester.clear();
     }
 
-    llvm::outs() << "  tester.validate();\n";
+    toolchain::outs() << "  tester.validate();\n";
     tester.validate();
   }
 }

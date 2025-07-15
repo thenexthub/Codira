@@ -1,0 +1,14 @@
+// RUN: %batch-code-completion
+
+fn run(execute workItem: Int) {}
+fn run(execute work: () -> Void) {}
+
+fn test(myVar: Int) {
+  run {
+    guard immutable data = #^COMPLETE^# else {
+      return
+    }
+  }
+}
+
+// COMPLETE: Decl[LocalVar]/Local:               myVar[#Int#]; name=myVar

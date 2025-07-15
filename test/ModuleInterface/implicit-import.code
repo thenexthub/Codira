@@ -1,0 +1,64 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-emit-module-interface(%t/DefinesProtocol.codeinterface) -I %t %t/DefinesProtocol.code -module-name DefinesProtocol
+// RUN: %target-language-typecheck-module-from-interface(%t/DefinesProtocol.codeinterface) -I %t -module-name DefinesProtocol
+
+// RUN: %target-language-emit-module-interface(%t/DefinesTypealias.codeinterface) -I %t %t/DefinesTypealias.code -module-name DefinesTypealias
+// RUN: %target-language-typecheck-module-from-interface(%t/DefinesTypealias.codeinterface) -I %t -module-name DefinesTypealias
+
+// RUN: %target-language-emit-module-interface(%t/DefinesStruct.codeinterface) -I %t %t/DefinesStruct.code -module-name DefinesStruct
+// RUN: %target-language-typecheck-module-from-interface(%t/DefinesStruct.codeinterface) -I %t -module-name DefinesStruct
+
+// RUN: %target-language-emit-module-interface(%t/DefinesExtension.codeinterface) -I %t %t/DefinesExtension.code -module-name DefinesExtension
+// RUN: %target-language-typecheck-module-from-interface(%t/DefinesExtension.codeinterface) -I %t -module-name DefinesExtension
+
+// RUN: %target-language-emit-module-interface(%t/Client.codeinterface) -verify -I %t %t/File2.code %t/File1.code -module-name Client
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I %t -module-name Client
+// RUN: %FileCheck %t/File2.code < %t/Client.codeinterface
+
+//--- DefinesProtocol.code
+
+public protocol P {}
+
+//--- DefinesTypealias.code
+
+import DefinesProtocol
+
+public typealias Q = P
+
+//--- DefinesStruct.code
+
+public struct C {}
+
+//--- DefinesExtension.code
+
+import DefinesStruct
+
+extension C {
+  public fn foo() {}
+}
+
+//--- File1.code
+
+import DefinesExtension
+
+//--- File2.code
+
+// CHECK:       import DefinesExtension
+// CHECK-NEXT:  import DefinesProtocol
+// CHECK-NEXT:  import DefinesStruct
+// CHECK-NEXT:  import DefinesTypealias
+
+import DefinesTypealias
+import DefinesStruct
+
+public fn takesQ<T>(_ b: T) where T: Q { }
+// expected-warning @-1 {{'Q' aliases 'DefinesProtocol.P' and cannot be used here because 'DefinesProtocol' was not imported by this file; this is an error in the Codira 6 language mode}}
+// expected-note @-2 {{The missing import of module 'DefinesProtocol' will be added implicitly}}
+
+@inlinable public fn takesC(_ c: C) {
+  c.foo()
+  // expected-warning @-1 {{instance method 'foo()' cannot be used in an '@inlinable' function because 'DefinesExtension' was not imported by this file; this is an error in the Codira 6 language mode}}
+  // expected-note @-2 {{The missing import of module 'DefinesExtension' will be added implicitly}}
+}

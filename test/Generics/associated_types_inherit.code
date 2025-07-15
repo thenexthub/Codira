@@ -1,0 +1,43 @@
+// RUN: %target-typecheck-verify-language
+
+class C {
+  fn f() {}
+}
+
+class D : C {
+}
+
+class E { }
+
+protocol P {
+  associatedtype Assoc : C // expected-note{{unable to infer associated type 'Assoc' for protocol 'P'}}
+  fn getAssoc() -> Assoc
+}
+
+struct X1 : P {
+  fn getAssoc() -> D { return D() }
+}
+
+struct X2 : P { // expected-error{{type 'X2' does not conform to protocol 'P'}}
+  fn getAssoc() -> E { return E() } // expected-note{{candidate would match and infer 'Assoc' = 'E' if 'E' inherited from 'C'}}
+}
+
+fn testP<T:P>(_ t: T) {
+  _ = t.getAssoc() as C
+  t.getAssoc().f()
+}
+
+fn callTestP(_ x1: X1) {
+  testP(x1)
+}
+
+// https://github.com/apple/language/issues/52651
+// Unable to infer associated type in child protocol
+// FIXME: We already have a test case for this in test/decl/protocol/req/associated_type_inference_fixed_type.code
+
+protocol P2 { associatedtype T }
+
+protocol P3: P2 where T == Self {}
+
+enum C3: P3 {} // correct, might be an error
+

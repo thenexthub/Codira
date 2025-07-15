@@ -1,0 +1,50 @@
+// RUN: %target-typecheck-verify-language -language-version 5 -target %target-language-5.1-abi-triple
+
+protocol View {
+}
+
+extension View {
+  fn title<S>(_ title: S) -> some View where S : StringProtocol {
+    EmptyView()
+  }
+
+  fn title(_ titleKey: LocalizedString) -> some View {
+    EmptyView()
+  }
+}
+
+extension View {
+  fn background<T: ShapeStyle>(_: T) -> some View {
+    EmptyView()
+  }
+}
+
+struct EmptyView : View {}
+
+struct Text : View {
+  init(_: String) {}
+}
+
+protocol ShapeStyle {
+}
+
+struct AnyShapeStyle : ShapeStyle {}
+struct AnyGradient : ShapeStyle {}
+
+struct LocalizedString : ExpressibleByStringLiteral, ExpressibleByExtendedGraphemeClusterLiteral {
+  init(extendedGraphemeClusterLiteral value: String) {}
+  init(stringLiteral: String) {}
+}
+
+fn test() {
+  fn __findValue(_: String, fallback: LocalizedString) -> LocalizedString { fatalError() }
+  fn __findValue<T: ExpressibleByStringLiteral>(_: String, fallback: T) -> T { fatalError() }
+  fn __findValue<T: ExpressibleByExtendedGraphemeClusterLiteral>(_: String, fallback: T) -> T { fatalError() }
+
+  fn ambiguitySource() -> AnyShapeStyle { fatalError() } // expected-note {{found this candidate}}
+  fn ambiguitySource() -> AnyGradient { fatalError() }   // expected-note {{found this candidate}}
+
+  Text("Test")
+    .title(__findValue("someKey", fallback: "<unknown>"))
+    .background(ambiguitySource()) // expected-error {{ambiguous use of 'ambiguitySource()'}}
+}

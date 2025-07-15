@@ -1,12 +1,12 @@
 ///===--- CooperativeGlobalExecutor.inc ---------------------*- C++ -*--===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===------------------------------------------------------------------===///
 ///
@@ -15,15 +15,15 @@
 /// This file is included into GlobalExecutor.cpp only when
 /// the cooperative global executor is enabled.  It is expected to
 /// declare the following functions:
-///   swift_task_asyncMainDrainQueueImpl
-///   swift_task_checkIsolatedImpl
-///   swift_task_donateThreadToGlobalExecutorUntilImpl
-///   swift_task_enqueueGlobalImpl
-///   swift_task_enqueueGlobalWithDeadlineImpl
-///   swift_task_enqueueGlobalWithDelayImpl
-///   swift_task_enqueueMainExecutorImpl
-///   swift_task_getMainExecutorImpl
-///   swift_task_isMainExecutorImpl
+///   language_task_asyncMainDrainQueueImpl
+///   language_task_checkIsolatedImpl
+///   language_task_donateThreadToGlobalExecutorUntilImpl
+///   language_task_enqueueGlobalImpl
+///   language_task_enqueueGlobalWithDeadlineImpl
+///   language_task_enqueueGlobalWithDelayImpl
+///   language_task_enqueueMainExecutorImpl
+///   language_task_getMainExecutorImpl
+///   language_task_isMainExecutorImpl
 /// as well as any cooperative-executor-specific functions in the runtime.
 ///
 ///===------------------------------------------------------------------===///
@@ -31,7 +31,7 @@
 #include "language/shims/Visibility.h"
 
 #include <chrono>
-#ifndef SWIFT_THREADING_NONE
+#ifndef LANGUAGE_THREADING_NONE
 # include <thread>
 #endif
 #include <new>
@@ -54,22 +54,22 @@ using namespace language;
 namespace {
 
 struct JobQueueTraits {
-  static SwiftJob *&storage(SwiftJob *cur) {
-    return reinterpret_cast<SwiftJob*&>(cur->schedulerPrivate[0]);
+  static CodiraJob *&storage(CodiraJob *cur) {
+    return reinterpret_cast<CodiraJob*&>(cur->schedulerPrivate[0]);
   }
 
-  static SwiftJob *getNext(SwiftJob *job) {
+  static CodiraJob *getNext(CodiraJob *job) {
     return storage(job);
   }
-  static void setNext(SwiftJob *job, SwiftJob *next) {
+  static void setNext(CodiraJob *job, CodiraJob *next) {
     storage(job) = next;
   }
-  enum { prioritiesCount = SwiftJobPriorityBucketCount };
-  static int getPriorityIndex(SwiftJob *job) {
-    return swift_priority_getBucketIndex(swift_job_getPriority(job));
+  enum { prioritiesCount = CodiraJobPriorityBucketCount };
+  static int getPriorityIndex(CodiraJob *job) {
+    return language_priority_getBucketIndex(language_job_getPriority(job));
   }
 };
-using JobPriorityQueue = PriorityQueue<SwiftJob*, JobQueueTraits>;
+using JobPriorityQueue = PriorityQueue<CodiraJob*, JobQueueTraits>;
 
 using JobDeadline = std::chrono::time_point<std::chrono::steady_clock>;
 
@@ -80,16 +80,16 @@ struct JobDeadlineStorage;
 /// Specialization for when JobDeadline fits in schedulerPrivate.
 template <>
 struct JobDeadlineStorage<true> {
-  static JobDeadline &storage(SwiftJob *job) {
+  static JobDeadline &storage(CodiraJob *job) {
     return reinterpret_cast<JobDeadline&>(job->schedulerPrivate[1]);
   }
-  static JobDeadline get(SwiftJob *job) {
+  static JobDeadline get(CodiraJob *job) {
     return storage(job);
   }
-  static void set(SwiftJob *job, JobDeadline deadline) {
+  static void set(CodiraJob *job, JobDeadline deadline) {
     new(static_cast<void*>(&storage(job))) JobDeadline(deadline);
   }
-  static void destroy(SwiftJob *job) {
+  static void destroy(CodiraJob *job) {
     storage(job).~JobDeadline();
   }
 };
@@ -97,42 +97,42 @@ struct JobDeadlineStorage<true> {
 /// Specialization for when JobDeadline doesn't fit in schedulerPrivate.
 template <>
 struct JobDeadlineStorage<false> {
-  static JobDeadline *&storage(SwiftJob *job) {
+  static JobDeadline *&storage(CodiraJob *job) {
     return reinterpret_cast<JobDeadline*&>(job->schedulerPrivate[1]);
   }
-  static JobDeadline get(SwiftJob *job) {
+  static JobDeadline get(CodiraJob *job) {
     return *storage(job);
   }
-  static void set(SwiftJob *job, JobDeadline deadline) {
-    storage(job) = swift_cxx_newObject<JobDeadline>(deadline);
+  static void set(CodiraJob *job, JobDeadline deadline) {
+    storage(job) = language_cxx_newObject<JobDeadline>(deadline);
   }
-  static void destroy(SwiftJob *job) {
-    swift_cxx_deleteObject(storage(job));
+  static void destroy(CodiraJob *job) {
+    language_cxx_deleteObject(storage(job));
   }
 };
 
 } // end anonymous namespace
 
 static JobPriorityQueue JobQueue;
-static SwiftJob *DelayedJobQueue = nullptr;
+static CodiraJob *DelayedJobQueue = nullptr;
 
 /// Insert a job into the cooperative global queue.
-SWIFT_CC(swift)
-void swift_task_enqueueGlobalImpl(SwiftJob *job) {
+LANGUAGE_CC(language)
+void language_task_enqueueGlobalImpl(CodiraJob *job) {
   assert(job && "no job provided");
   JobQueue.enqueue(job);
 }
 
 /// Enqueues a task on the main executor.
-SWIFT_CC(swift)
-void swift_task_enqueueMainExecutorImpl(SwiftJob *job) {
+LANGUAGE_CC(language)
+void language_task_enqueueMainExecutorImpl(CodiraJob *job) {
   // The cooperative executor does not distinguish between the main
   // queue and the global queue.
-  swift_task_enqueueGlobalImpl(job);
+  language_task_enqueueGlobalImpl(job);
 }
 
-static void insertDelayedJob(SwiftJob *newJob, JobDeadline deadline) {
-  SwiftJob **position = &DelayedJobQueue;
+static void insertDelayedJob(CodiraJob *newJob, JobDeadline deadline) {
+  CodiraJob **position = &DelayedJobQueue;
   while (auto cur = *position) {
     // If we find a job with a later deadline, insert here.
     // Note that we maintain FIFO order.
@@ -149,20 +149,20 @@ static void insertDelayedJob(SwiftJob *newJob, JobDeadline deadline) {
   *position = newJob;
 }
 
-SWIFT_CC(swift)
-void swift_task_checkIsolatedImpl(SwiftExecutorRef executor) {
-  swift_executor_invokeSwiftCheckIsolated(executor);
+LANGUAGE_CC(language)
+void language_task_checkIsolatedImpl(CodiraExecutorRef executor) {
+  language_executor_invokeCodiraCheckIsolated(executor);
 }
 
-SWIFT_CC(swift)
-bool swift_task_isIsolatingCurrentContextImpl(SwiftExecutorRef executor) {
-  return swift_executor_invokeSwiftIsIsolatingCurrentContext(executor);
+LANGUAGE_CC(language)
+int8_t language_task_isIsolatingCurrentContextImpl(CodiraExecutorRef executor) {
+  return language_executor_invokeCodiraIsIsolatingCurrentContext(executor);
 }
 
 /// Insert a job into the cooperative global queue with a delay.
-SWIFT_CC(swift)
-void swift_task_enqueueGlobalWithDelayImpl(SwiftJobDelay delay,
-                                           SwiftJob *newJob) {
+LANGUAGE_CC(language)
+void language_task_enqueueGlobalWithDelayImpl(CodiraJobDelay delay,
+                                           CodiraJob *newJob) {
   assert(newJob && "no job provided");
 
   auto deadline = std::chrono::steady_clock::now()
@@ -173,15 +173,15 @@ void swift_task_enqueueGlobalWithDelayImpl(SwiftJobDelay delay,
   insertDelayedJob(newJob, deadline);
 }
 
-SWIFT_CC(swift)
-void swift_task_enqueueGlobalWithDeadlineImpl(long long sec,
+LANGUAGE_CC(language)
+void language_task_enqueueGlobalWithDeadlineImpl(long long sec,
                                               long long nsec,
                                               long long tsec,
                                               long long tnsec,
-                                              int clock, SwiftJob *newJob) {
+                                              int clock, CodiraJob *newJob) {
   assert(newJob && "no job provided");
 
-  SwiftTime now = swift_time_now(clock);
+  CodiraTime now = language_time_now(clock);
 
   uint64_t delta = (sec - now.seconds) * NSEC_PER_SEC + nsec - now.nanoseconds;
 
@@ -217,7 +217,7 @@ static void recognizeReadyDelayedJobs() {
 }
 
 static void sleepThisThreadUntil(JobDeadline deadline) {
-#ifdef SWIFT_THREADING_NONE
+#ifdef LANGUAGE_THREADING_NONE
   auto duration = deadline - std::chrono::steady_clock::now();
   // If the deadline is in the past, don't sleep with invalid negative value
   if (duration <= std::chrono::nanoseconds::zero()) {
@@ -236,7 +236,7 @@ static void sleepThisThreadUntil(JobDeadline deadline) {
 }
 
 /// Claim the next job from the cooperative global queue.
-static SwiftJob *claimNextFromCooperativeGlobalQueue() {
+static CodiraJob *claimNextFromCooperativeGlobalQueue() {
   while (true) {
     // Move any delayed jobs that are now ready into the primary queue.
     recognizeReadyDelayedJobs();
@@ -258,31 +258,31 @@ static SwiftJob *claimNextFromCooperativeGlobalQueue() {
   }
 }
 
-SWIFT_CC(swift) void
-swift_task_donateThreadToGlobalExecutorUntilImpl(bool (*condition)(void *),
+LANGUAGE_CC(language) void
+language_task_donateThreadToGlobalExecutorUntilImpl(bool (*condition)(void *),
                                                  void *conditionContext) {
   while (!condition(conditionContext)) {
     auto job = claimNextFromCooperativeGlobalQueue();
     if (!job) return;
-    swift_job_run(job, swift_executor_generic());
+    language_job_run(job, language_executor_generic());
   }
 }
 
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_CC(swift)
-void swift_task_asyncMainDrainQueueImpl() {
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_CC(language)
+void language_task_asyncMainDrainQueueImpl() {
   while (true) {
     auto job = claimNextFromCooperativeGlobalQueue();
     assert(job && "We should never run out of jobs on the async main queue.");
-    swift_job_run(job, swift_executor_generic());
+    language_job_run(job, language_executor_generic());
   }
 }
 
-SWIFT_CC(swift)
-SwiftExecutorRef swift_task_getMainExecutorImpl() {
-  return swift_executor_generic();
+LANGUAGE_CC(language)
+CodiraExecutorRef language_task_getMainExecutorImpl() {
+  return language_executor_generic();
 }
 
-SWIFT_CC(swift)
-bool swift_task_isMainExecutorImpl(SwiftExecutorRef executor) {
-  return swift_executor_isGeneric(executor);
+LANGUAGE_CC(language)
+bool language_task_isMainExecutorImpl(CodiraExecutorRef executor) {
+  return language_executor_isGeneric(executor);
 }

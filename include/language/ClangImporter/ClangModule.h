@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file implements support for loading Clang modules into Swift.
+// This file implements support for loading Clang modules into Codira.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CLANGIMPORTER_CLANGMODULE_H
-#define SWIFT_CLANGIMPORTER_CLANGMODULE_H
+#ifndef LANGUAGE_CLANGIMPORTER_CLANGMODULE_H
+#define LANGUAGE_CLANGIMPORTER_CLANGMODULE_H
 
 #include "language/AST/FileUnit.h"
 #include "language/Basic/Version.h"
@@ -36,11 +37,11 @@ namespace language {
 class ASTContext;
 class ModuleLoader;
 
-/// Represents a Clang module that has been imported into Swift.
+/// Represents a Clang module that has been imported into Codira.
 class ClangModuleUnit final : public LoadedFile {
   ClangImporter::Implementation &owner;
   const clang::Module *clangModule;
-  llvm::PointerIntPair<ModuleDecl *, 1, bool> overlayModule;
+  toolchain::PointerIntPair<ModuleDecl *, 1, bool> overlayModule;
   mutable std::optional<ArrayRef<ImportedModule>> importedModulesForLookup;
   /// The metadata of the underlying Clang module.
   clang::ASTSourceDescriptor ASTSourceDescriptor;
@@ -60,7 +61,7 @@ public:
   /// Returns true if this is a top-level Clang module (not a submodule).
   bool isTopLevel() const;
 
-  /// Returns the Swift module that overlays this Clang module.
+  /// Returns the Codira module that overlays this Clang module.
   ModuleDecl *getOverlayModule() const override;
 
   /// Retrieve the "exported" name of the module, which is usually the module
@@ -113,7 +114,7 @@ public:
 
   Identifier
   getDiscriminatorForPrivateDecl(const Decl *D) const override {
-    llvm_unreachable("Clang modules do not need discriminators");
+    toolchain_unreachable("Clang modules do not need discriminators");
   }
 
   virtual version::Version getLanguageVersionBuiltWith() const override {

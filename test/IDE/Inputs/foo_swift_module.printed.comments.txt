@@ -1,0 +1,48 @@
+fn %%% (lhs: Int, rhs: Int) -> Int
+postfix fn =-> (lhs: Int) -> Int
+postfix fn => (lhs: Int) -> Int
+struct BarGenericCodiraStruct1<T> {
+  init(t: T)
+  fn bar1InstanceFunc()
+}
+struct BarGenericCodiraStruct2<T, U> where T : BarProtocol {
+  init(t: T, u: U)
+  fn bar2InstanceFunc()
+}
+protocol BarProtocol {
+  fn instanceFunc()
+}
+/// FooCodiraStruct Aaa.
+/**
+ * Bbb.
+ * Ccc.
+ */
+struct FooCodiraStruct {
+  /// fooInstanceFunc Aaa.
+  /**
+   * Bbb
+   */
+  /**
+   * Ccc.
+   */
+  fn fooInstanceFunc()
+  init()
+}
+/// rdar://18457785
+enum MyQuickLookObject {
+  /// A rectangle.
+  ///
+  /// Uses explicit coordinates to avoid coupling a particular Cocoa type.
+  case Rectangle(Float64, Float64, Float64, Float64)
+}
+var globalVar: Int
+fn hiddenImport()
+fn overlaidFoo()
+fn visibleImport()
+precedencegroup High {
+  associativity: left
+  higherThan: BitwiseShiftPrecedence
+}
+infix operator %%% : High
+postfix operator =>
+postfix operator =->

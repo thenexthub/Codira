@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP class useful for laying out tuple metadata.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_TUPLEMETADATALAYOUT_H
-#define SWIFT_IRGEN_TUPLEMETADATALAYOUT_H
+#ifndef LANGUAGE_IRGEN_TUPLEMETADATALAYOUT_H
+#define LANGUAGE_IRGEN_TUPLEMETADATALAYOUT_H
 
 //#include "NominalMetadataVisitor.h"
 

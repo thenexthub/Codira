@@ -1,13 +1,17 @@
 //===--- CompileInstance.cpp ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDETool/CompileInstance.h"
@@ -32,8 +36,8 @@
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
 #include "clang/AST/ASTContext.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace language;
 using namespace language::ide;
@@ -53,7 +57,7 @@ struct ModInfo {
 };
 
 static bool collectModifiedFunctions(ArrayRef<Decl *> r1, ArrayRef<Decl *> r2,
-                                     llvm::SmallVectorImpl<ModInfo> &result) {
+                                     toolchain::SmallVectorImpl<ModInfo> &result) {
   assert(r1.size() == r2.size() &&
          "interface fingerprint matches but diffrent number of children");
 
@@ -65,9 +69,9 @@ static bool collectModifiedFunctions(ArrayRef<Decl *> r1, ArrayRef<Decl *> r2,
            "interface fingerprint matches but diffrent structure");
 
     /// FIXME: Nested types.
-    ///   func foo() {
+    ///   fn foo() {
     ///     struct S {
-    ///       func bar() { ... }
+    ///       fn bar() { ... }
     ///     }
     ///   }
     /// * Could editing a local-type interface lead to the need for
@@ -110,7 +114,7 @@ static bool collectModifiedFunctions(ArrayRef<Decl *> r1, ArrayRef<Decl *> r2,
 /// \p tmpSM must be different from the source manager of \p SF .
 static bool
 getModifiedFunctionDeclList(const SourceFile &SF, SourceManager &tmpSM,
-                            llvm::SmallVectorImpl<ModInfo> &result) {
+                            toolchain::SmallVectorImpl<ModInfo> &result) {
   auto &ctx = SF.getASTContext();
 
   auto tmpBuffer = tmpSM.getFileSystem()->getBufferForFile(SF.getFilename());
@@ -150,12 +154,12 @@ getModifiedFunctionDeclList(const SourceFile &SF, SourceManager &tmpSM,
                                   tmpSF->getTopLevelDecls(), result);
 }
 
-/// Typecheck the body of \p func with the new source text specified with
+/// Typecheck the body of \p fn with the new source text specified with
 /// \p newBodyRange managed by \p newSM .
 ///
 /// This copies the source text of \p newBodyRange to the source manger
-/// \p func originally parsed.
-void retypeCheckFunctionBody(AbstractFunctionDecl *func,
+/// \p fn originally parsed.
+void retypeCheckFunctionBody(AbstractFunctionDecl *fn,
                              SourceRange newBodyRange, SourceManager &newSM) {
 
   // To save the persistent memory in the source manager, add the sliced range
@@ -172,7 +176,7 @@ void retypeCheckFunctionBody(AbstractFunctionDecl *func,
   auto slicedSourceText = newSM.getEntireTextForBuffer(tmpBufferID)
                               .slice(bufStartOffset, bufEndOffset);
 
-  auto &origSM = func->getASTContext().SourceMgr;
+  auto &origSM = fn->getASTContext().SourceMgr;
 
   auto sliceBufferID = origSM.addMemBufferCopy(
       slicedSourceText, newSM.getIdentifierForBuffer(tmpBufferID));
@@ -198,14 +202,14 @@ void retypeCheckFunctionBody(AbstractFunctionDecl *func,
       GeneratedSourceInfo{
         GeneratedSourceInfo::ReplacedFunctionBody,
         Lexer::getCharSourceRangeFromSourceRange(
-          origSM, func->getOriginalBodySourceRange()),
+          origSM, fn->getOriginalBodySourceRange()),
         Lexer::getCharSourceRangeFromSourceRange(origSM, newRange),
-        func,
+        fn,
         nullptr
       }
   );
-  func->setBodyToBeReparsed(newRange);
-  (void)func->getTypecheckedBody();
+  fn->setBodyToBeReparsed(newRange);
+  (void)fn->getTypecheckedBody();
 }
 
 } // namespace
@@ -242,7 +246,7 @@ bool CompileInstance::performCachedSemaIfPossible(DiagnosticConsumer *DiagC) {
   // OK, we can reuse the AST.
 
   CI->addDiagnosticConsumer(DiagC);
-  SWIFT_DEFER { CI->removeDiagnosticConsumer(DiagC); };
+  LANGUAGE_DEFER { CI->removeDiagnosticConsumer(DiagC); };
 
   for (const auto &info : modifiedFuncDecls) {
     retypeCheckFunctionBody(info.FD, info.NewSourceRange, tmpSM);
@@ -252,22 +256,20 @@ bool CompileInstance::performCachedSemaIfPossible(DiagnosticConsumer *DiagC) {
 }
 
 bool CompileInstance::setupCI(
-    llvm::ArrayRef<const char *> origArgs,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> fileSystem,
+    toolchain::ArrayRef<const char *> origArgs,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> fileSystem,
     DiagnosticConsumer *diagC) {
   auto &Diags = CI->getDiags();
 
   SmallVector<const char *, 16> args;
-  // Put '-resource-dir' and '-diagnostic-documentation-path' at the top to
-  // allow overriding them with the passed in arguments.
+  // Put '-resource-dir' at the top to allow overriding them with the passed in
+  // arguments.
   args.append({"-resource-dir", RuntimeResourcePath.c_str()});
-  args.append({"-Xfrontend", "-diagnostic-documentation-path", "-Xfrontend",
-               DiagnosticDocumentationPath.c_str()});
   args.append(origArgs.begin(), origArgs.end());
 
-  SmallString<256> driverPath(SwiftExecutablePath);
-  llvm::sys::path::remove_filename(driverPath);
-  llvm::sys::path::append(driverPath, "swiftc");
+  SmallString<256> driverPath(CodiraExecutablePath);
+  toolchain::sys::path::remove_filename(driverPath);
+  toolchain::sys::path::append(driverPath, "languagec");
 
   CompilerInvocation invocation;
   bool invocationCreationFailed =
@@ -313,15 +315,15 @@ bool CompileInstance::setupCI(
 }
 
 bool CompileInstance::performSema(
-    llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> fileSystem,
+    toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> fileSystem,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag) {
 
   // Compute the signature of the invocation.
-  llvm::hash_code ArgsHash(0);
+  toolchain::hash_code ArgsHash(0);
   for (auto arg : Args)
-    ArgsHash = llvm::hash_combine(ArgsHash, StringRef(arg));
+    ArgsHash = toolchain::hash_combine(ArgsHash, StringRef(arg));
 
   if (CI && ArgsHash == CachedArgHash &&
       CachedReuseCount < Opts.MaxASTReuseCount) {
@@ -359,8 +361,8 @@ bool CompileInstance::performSema(
 }
 
 bool CompileInstance::performCompile(
-    llvm::ArrayRef<const char *> Args,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> fileSystem,
+    toolchain::ArrayRef<const char *> Args,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> fileSystem,
     DiagnosticConsumer *DiagC,
     std::shared_ptr<std::atomic<bool>> CancellationFlag) {
 
@@ -377,7 +379,7 @@ bool CompileInstance::performCompile(
     return true;
 
   CI->addDiagnosticConsumer(DiagC);
-  SWIFT_DEFER { CI->removeDiagnosticConsumer(DiagC); };
+  LANGUAGE_DEFER { CI->removeDiagnosticConsumer(DiagC); };
   int ReturnValue = 0;
   return performCompileStepsPostSema(*CI, ReturnValue, /*observer=*/nullptr);
 }

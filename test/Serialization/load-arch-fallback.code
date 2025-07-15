@@ -1,0 +1,18 @@
+// Test the fallback for 32-bit ARM platforms.
+
+// RUN: %empty-directory(%t)
+// RUN: mkdir %t/empty.codemodule
+// RUN: %target-language-frontend -emit-module -o %t/empty.codemodule/arm.codemodule %S/../Inputs/empty.code -module-name empty
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+// RUN: mv %t/empty.codemodule/arm.codemodule %t/empty.codemodule/%target-languagemodule-name
+// RUN: touch %t/empty.codemodule/arm.codemodule
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+// RUN: rm %t/empty.codemodule/%target-languagemodule-name
+// RUN: not %target-language-frontend -typecheck %s -I %t 2>&1 | %FileCheck %s
+
+// REQUIRES: CPU=armv7 || CPU=armv7k || CPU=armv7s
+
+import empty
+// CHECK: :[[@LINE-1]]:8: error: malformed compiled module: {{.*}}arm.codemodule

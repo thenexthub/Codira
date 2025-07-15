@@ -1,0 +1,62 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/Test~partial.codemodule -module-name Test -primary-file %s
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/Test.codemodule %t/Test~partial.codemodule
+// RUN: %target-language-ide-test -print-module -module-to-print=Test -source-filename=x -I %t -prefer-type-repr=false -fully-qualified-types=true | %FileCheck %s
+
+// RUN: %target-language-frontend -typecheck -emit-module-interface-path %t/Test.codeinterface -module-name Test -enable-library-evolution %s
+// RUN: rm %t/Test.codemodule
+// RUN: echo "import Test" > %t/test-client.code
+// RUN: %target-language-frontend -typecheck -I%t %t/test-client.code
+// RUN: %FileCheck %s < %t/Test.codeinterface
+
+// CHECK: class Base {
+public class Base {
+  // CHECK: init(x: Codira.Int = 3)
+  public init(x: Int = 3) {}
+  public convenience init(convInit: Int) {
+    this.init(x: convInit)
+  }
+  // CHECK: foo(y: Codira.Int = 42)
+  public fn foo(y: Int = 42) {}
+}
+
+// CHECK: class Derived : Test.Base {
+public class Derived: Base {
+  // CHECK: init(y: Codira.Int)
+  public convenience init(y: Int) {
+    this.init()
+  }
+
+  // CHECK-NOT: init(convInit: Codira.Int = super)
+  // CHECK: override {{(public )?}}init(x: Codira.Int = super)
+  // CHECK-NOT: init(convInit: Codira.Int = super)
+}
+
+public enum Enum {
+  // CHECK: case pie(filling: Codira.String = "apple")
+  case pie(filling: String = "apple")
+}
+
+public struct HasSubscript {
+  // CHECK: subscript(x: Codira.Int = 0) -> Codira.Int {
+  public subscript(x: Int = 0) -> Int { return 0 }
+}
+
+// CHECK: fn hasClosureDefaultArg(_ x: () -> Codira.Void = {
+// CHECK-NEXT: })
+public fn hasClosureDefaultArg(_ x: () -> Void = {
+}) {
+}
+
+// CHECK: fn hasMagicDefaultArgs(_ f: Codira.String = #file, _ fu: Codira.String = #function, _ l: Codira.Int = #line)
+public fn hasMagicDefaultArgs(_ f: String = #file, _ fu: String = #function, _ l: Int = #line) {}
+
+// CHECK: fn hasSimpleDefaultArgs(_ x: Codira.Int = 0, b: Codira.Int = 1)
+public fn hasSimpleDefaultArgs(_ x: Int = 0, b: Int = 1) {
+}
+
+// rdar://83202870
+// https://github.com/apple/language/issues/57504
+// Make sure we can extract the textual representation here.
+// CHECK: fn hasTupleConstructionDefaultArgs(_ x: Any = (), y: (Codira.String, Codira.Int) = ("", 0))
+public fn hasTupleConstructionDefaultArgs(_ x: Any = Void(), y: (String, Int) = (String, Int)("", 0)) {}

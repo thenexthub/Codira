@@ -1,0 +1,15 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface)
+// RUN: %FileCheck %s < %t.codeinterface
+
+// RUN: %target-language-emit-module-interface(%t.multifile.codeinterface) %s %S/Inputs/other.code
+// RUN: %target-language-typecheck-module-from-interface(%t.multifile.codeinterface)
+// RUN: %FileCheck -check-prefix CHECK -check-prefix CHECK-MULTI-FILE %s < %t.multifile.codeinterface
+
+// CHECK: public fn verySimpleFunction(){{$}}
+public fn verySimpleFunction() {}
+
+// CHECK: public fn ownership(_ x: __shared Codira.AnyObject){{$}}
+public fn ownership(_ x: __shared AnyObject) {}
+
+// CHECK-MULTI-FILE: public fn otherFileFunction(){{$}}

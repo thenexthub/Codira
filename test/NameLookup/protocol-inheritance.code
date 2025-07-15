@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend -typecheck -primary-file %s %S/Inputs/protocol-inheritance.code
+
+fn kitty<Purrs>(cat: Meow<Purrs>) {
+  cat.pet()
+}

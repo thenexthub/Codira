@@ -10,25 +10,25 @@ set(EXPORTED_SYMBOL_FILE "${CMAKE_CURRENT_SOURCE_DIR}/sourcekitd.exports")
 add_sourcekit_framework(sourcekitd
   ${public_headers}
   sourcekitd.cpp
-  LLVM_LINK_COMPONENTS support
+  TOOLCHAIN_LINK_COMPONENTS support
   MODULEMAP module.modulemap
   INSTALL_IN_COMPONENT sourcekit-xpc-service
 )
 target_link_libraries(sourcekitd PRIVATE sourcekitdAPI)
 
 if (SOURCEKIT_BUILT_STANDALONE)
-  # Create the symlink necessary to find the swift stdlib.
-  swift_create_post_build_symlink(sourcekitd
+  # Create the symlink necessary to find the language stdlib.
+  language_create_post_build_symlink(sourcekitd
     IS_DIRECTORY
-    SOURCE "${SWIFTLIB_DIR}"
-    DESTINATION "${SOURCEKIT_LIBRARY_OUTPUT_INTDIR}/swift"
-    COMMENT "Creating symlink necessary to find the swift stdlib.")
+    SOURCE "${LANGUAGELIB_DIR}"
+    DESTINATION "${SOURCEKIT_LIBRARY_OUTPUT_INTDIR}/language"
+    COMMENT "Creating symlink necessary to find the language stdlib.")
 endif()
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-  if(SWIFT_COMPILER_VERSION)
+  if(LANGUAGE_COMPILER_VERSION)
     set_property(TARGET sourcekitd APPEND_STRING PROPERTY
-                 LINK_FLAGS " -Wl,-current_version -Wl,${SWIFT_COMPILER_VERSION}")
+                 LINK_FLAGS " -Wl,-current_version -Wl,${LANGUAGE_COMPILER_VERSION}")
   endif()
 endif()
 

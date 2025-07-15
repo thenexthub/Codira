@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Object management routines for asynchronous task objects.
@@ -31,7 +32,7 @@
 #include "language/Runtime/Heap.h"
 #include "language/Runtime/HeapObject.h"
 #include "language/Threading/Mutex.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 #if !defined(_WIN32) && !defined(__wasi__) && __has_include(<dlfcn.h>)
 #include <dlfcn.h>
@@ -55,14 +56,14 @@ private:
 
   /// The task that was kicked off to initialize this `async let`,
   /// and flags.
-  llvm::PointerIntPair<AsyncTask *, 2, unsigned> taskAndFlags;
+  toolchain::PointerIntPair<AsyncTask *, 2, unsigned> taskAndFlags;
 
   /// Reserved space for a future_wait context frame, used during suspensions
   /// on the child task future.
   std::aligned_storage<sizeof(TaskFutureWaitAsyncContext),
                        alignof(TaskFutureWaitAsyncContext)>::type futureWaitContextStorage;
 
-  friend class ::swift::AsyncTask;
+  friend class ::language::AsyncTask;
 
 public:
   explicit AsyncLetImpl(AsyncTask* task)
@@ -143,7 +144,7 @@ static AsyncLetImpl *asImpl(const AsyncLet *alet) {
       const_cast<AsyncLet*>(alet));
 }
 
-void swift::asyncLet_addImpl(AsyncTask *task, AsyncLet *asyncLet,
+void language::asyncLet_addImpl(AsyncTask *task, AsyncLet *asyncLet,
                              bool didAllocateInParentTask) {
   AsyncLetImpl *impl = ::new (asyncLet) AsyncLetImpl(task);
   impl->setDidAllocateFromParentTask(didAllocateInParentTask);
@@ -165,14 +166,14 @@ void swift::asyncLet_addImpl(AsyncTask *task, AsyncLet *asyncLet,
 // =============================================================================
 // ==== start ------------------------------------------------------------------
 
-SWIFT_CC(swift)
-void swift::swift_asyncLet_start(AsyncLet *alet,
+LANGUAGE_CC(language)
+void language::language_asyncLet_start(AsyncLet *alet,
                                  TaskOptionRecord *options,
                                  const Metadata *futureResultType,
                                  void *closureEntryPoint,
                                  HeapObject *closureContext) {
   auto flags = TaskCreateFlags();
-#if SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL
+#if LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL
   // In the task to thread model, we don't want tasks to start running on
   // separate threads - they will run in the context of the parent
   flags.setEnqueueJob(false);
@@ -183,26 +184,26 @@ void swift::swift_asyncLet_start(AsyncLet *alet,
   AsyncLetTaskOptionRecord asyncLetOptionRecord(alet);
   asyncLetOptionRecord.Parent = options;
 
-  swift_task_create(
+  language_task_create(
       flags.getOpaqueValue(),
       &asyncLetOptionRecord,
       futureResultType,
       closureEntryPoint, closureContext);
 }
 
-SWIFT_CC(swift)
-void swift::swift_asyncLet_begin(AsyncLet *alet,
+LANGUAGE_CC(language)
+void language::language_asyncLet_begin(AsyncLet *alet,
                                  TaskOptionRecord *options,
                                  const Metadata *futureResultType,
                                  void *closureEntryPoint,
                                  HeapObject *closureContext,
                                  void *resultBuffer) {
-  SWIFT_TASK_DEBUG_LOG("creating async let buffer of type %s at %p",
-                       swift_getTypeName(futureResultType, true).data,
+  LANGUAGE_TASK_DEBUG_LOG("creating async let buffer of type %s at %p",
+                       language_getTypeName(futureResultType, true).data,
                        resultBuffer);
 
   auto flags = TaskCreateFlags();
-#if SWIFT_CONCURRENCY_TASK_TO_THREAD_MODEL
+#if LANGUAGE_CONCURRENCY_TASK_TO_THREAD_MODEL
   // In the task to thread model, we don't want tasks to start running on
   // separate threads - they will run in the context of the parent
   flags.setEnqueueJob(false);
@@ -214,7 +215,7 @@ void swift::swift_asyncLet_begin(AsyncLet *alet,
   AsyncLetWithBufferTaskOptionRecord asyncLetOptionRecord(alet, resultBuffer);
   asyncLetOptionRecord.Parent = options;
 
-  swift_task_create(
+  language_task_create(
       flags.getOpaqueValue(),
       &asyncLetOptionRecord,
       futureResultType,
@@ -224,32 +225,32 @@ void swift::swift_asyncLet_begin(AsyncLet *alet,
 // =============================================================================
 // ==== wait -------------------------------------------------------------------
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_waitImpl(
-    OpaqueValue *result, SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_waitImpl(
+    OpaqueValue *result, LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
     AsyncLet *alet, TaskContinuationFunction *resumeFunction,
     AsyncContext *callContext) {
   auto task = alet->getTask();
-  swift_task_future_wait(result, callerContext, task, resumeFunction,
+  language_task_future_wait(result, callerContext, task, resumeFunction,
                          callContext);
 }
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_wait_throwingImpl(
-    OpaqueValue *result, SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_wait_throwingImpl(
+    OpaqueValue *result, LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
     AsyncLet *alet,
     ThrowingTaskFutureWaitContinuationFunction *resumeFunction,
     AsyncContext * callContext) {
   auto task = alet->getTask();
-  swift_task_future_wait_throwing(result, callerContext, task, resumeFunction,
+  language_task_future_wait_throwing(result, callerContext, task, resumeFunction,
                                   callerContext);
 }
 
 // =============================================================================
 // ==== get -------------------------------------------------------------------
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_getImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_getImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                                    AsyncLet *alet,
                                    void *resultBuffer,
                                    TaskContinuationFunction *resumeFunction,
@@ -264,7 +265,7 @@ static void swift_asyncLet_getImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerConte
   // that's currently executing, so we can set it now and tail-call future_wait,
   // since by the time we can call back it will be populated.
   asImpl(alet)->setHasResultInBuffer();
-  swift_task_future_wait(reinterpret_cast<OpaqueValue*>(resultBuffer),
+  language_task_future_wait(reinterpret_cast<OpaqueValue*>(resultBuffer),
                          callerContext, alet->getTask(),
                          resumeFunction, callContext);
 }
@@ -277,10 +278,10 @@ struct AsyncLetContinuationContext: AsyncContext {
 static_assert(sizeof(AsyncLetContinuationContext) <= sizeof(TaskFutureWaitAsyncContext),
               "compiler provides the same amount of context space to each");
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static void _asyncLet_get_throwing_continuation(
-        SWIFT_ASYNC_CONTEXT AsyncContext *callContext,
-        SWIFT_CONTEXT void *error) {
+        LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext,
+        LANGUAGE_CONTEXT void *error) {
   auto continuationContext = static_cast<AsyncLetContinuationContext*>(callContext);
   auto alet = continuationContext->alet;
 
@@ -296,9 +297,9 @@ static void _asyncLet_get_throwing_continuation(
   return throwingResume(callContext->Parent, error);
 }
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_get_throwingImpl(
-                    SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_get_throwingImpl(
+                    LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet,
                     void *resultBuffer,
                     ThrowingTaskFutureWaitContinuationFunction *resumeFunction,
@@ -319,7 +320,7 @@ static void swift_asyncLet_get_throwingImpl(
   // on the success of the task. If we raise an error, then the result buffer
   // will not be populated. Save the async let binding so we can fetch it
   // after completion.
-  return swift_task_future_wait_throwing(
+  return language_task_future_wait_throwing(
                          reinterpret_cast<OpaqueValue*>(resultBuffer),
                          aletContext, alet->getTask(),
                          _asyncLet_get_throwing_continuation,
@@ -329,12 +330,12 @@ static void swift_asyncLet_get_throwingImpl(
 // =============================================================================
 // ==== end --------------------------------------------------------------------
 
-SWIFT_CC(swift)
-static void swift_asyncLet_endImpl(AsyncLet *alet) {
+LANGUAGE_CC(language)
+static void language_asyncLet_endImpl(AsyncLet *alet) {
   auto task = alet->getTask();
 
   // Cancel the task as we exit the scope
-  swift_task_cancel(task);
+  language_task_cancel(task);
 
   // Remove the child record from the parent task
   auto record = asImpl(alet)->getTaskRecord();
@@ -343,25 +344,25 @@ static void swift_asyncLet_endImpl(AsyncLet *alet) {
   // TODO: we need to implicitly await either before the end or here somehow.
 
   // and finally, release the task and free the async-let
-  AsyncTask *parent = swift_task_getCurrent();
+  AsyncTask *parent = language_task_getCurrent();
   assert(parent && "async-let must have a parent task");
 
-  SWIFT_TASK_DEBUG_LOG("async let end of task %p, parent: %p", task, parent);
-  _swift_task_dealloc_specific(parent, task);
+  LANGUAGE_TASK_DEBUG_LOG("async let end of task %p, parent: %p", task, parent);
+  _language_task_dealloc_specific(parent, task);
 }
 
 // =============================================================================
 // ==== finish -----------------------------------------------------------------
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 // FIXME: noinline to work around an LLVM bug where the outliner breaks
 // musttail.
-SWIFT_NOINLINE
-static void asyncLet_finish_after_task_completion(SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_NOINLINE
+static void asyncLet_finish_after_task_completion(LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                                                   AsyncLet *alet,
                                                   TaskContinuationFunction *resumeFunction,
                                                   AsyncContext *callContext,
-                                                  SWIFT_CONTEXT void *error) {
+                                                  LANGUAGE_CONTEXT void *error) {
   auto task = alet->getTask();
 
   // Remove the child record from the parent task
@@ -369,15 +370,15 @@ static void asyncLet_finish_after_task_completion(SWIFT_ASYNC_CONTEXT AsyncConte
   removeStatusRecordFromSelf(record);
 
   // and finally, release the task and destroy the async-let
-  assert(swift_task_getCurrent() && "async-let must have a parent task");
+  assert(language_task_getCurrent() && "async-let must have a parent task");
 
-  SWIFT_TASK_DEBUG_LOG("async let end of task %p, parent: %p", task,
-                       swift_task_getCurrent());
+  LANGUAGE_TASK_DEBUG_LOG("async let end of task %p, parent: %p", task,
+                       language_task_getCurrent());
   // Destruct the task.
   task->~AsyncTask();
   // Deallocate it out of the parent, if it was allocated there.
   if (alet->didAllocateFromParentTask()) {
-    swift_task_dealloc(task);
+    language_task_dealloc(task);
   }
 
   return function_cast<ThrowingTaskFutureWaitContinuationFunction*>(resumeFunction)
@@ -385,10 +386,10 @@ static void asyncLet_finish_after_task_completion(SWIFT_ASYNC_CONTEXT AsyncConte
 }
 
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static void _asyncLet_finish_continuation(
-                    SWIFT_ASYNC_CONTEXT AsyncContext *callContext,
-                    SWIFT_CONTEXT void *error) {
+                    LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext,
+                    LANGUAGE_CONTEXT void *error) {
   // Retrieve the async let pointer from the context.
   auto continuationContext
     = reinterpret_cast<AsyncLetContinuationContext*>(callContext);
@@ -397,10 +398,10 @@ static void _asyncLet_finish_continuation(
 
   // Destroy the error, or the result that was stored to the buffer.
   if (error) {
-    #if SWIFT_CONCURRENCY_EMBEDDED
-    swift_unreachable("untyped error used in embedded Swift");
+    #if LANGUAGE_CONCURRENCY_EMBEDDED
+    language_unreachable("untyped error used in embedded Codira");
     #else
-    swift_errorRelease((SwiftError*)error);
+    language_errorRelease((CodiraError*)error);
     #endif
   } else {
     alet->getTask()->futureFragment()->getResultType().vw_destroy(resultBuffer);
@@ -414,8 +415,8 @@ static void _asyncLet_finish_continuation(
                                                nullptr);
 }
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_finishImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_finishImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                                    AsyncLet *alet,
                                    void *resultBuffer,
                                    TaskContinuationFunction *resumeFunction,
@@ -434,7 +435,7 @@ static void swift_asyncLet_finishImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerCo
                                                  nullptr);
   }
   // Otherwise, cancel the task and let it finish first.
-  swift_task_cancel(task);
+  language_task_cancel(task);
 
   // Save the async let pointer in the context so we can clean it up once the
   // future completes.
@@ -448,7 +449,7 @@ static void swift_asyncLet_finishImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerCo
   // TODO: It would be nice if we could await the future without having to
   // provide a buffer to store the value to, since we're going to dispose of
   // it anyway.
-  return swift_task_future_wait_throwing(
+  return language_task_future_wait_throwing(
                          reinterpret_cast<OpaqueValue*>(resultBuffer),
                          callContext, alet->getTask(),
                          _asyncLet_finish_continuation,
@@ -458,9 +459,9 @@ static void swift_asyncLet_finishImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerCo
 // =============================================================================
 // ==== consume ----------------------------------------------------------------
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static void _asyncLet_consume_continuation(
-                                SWIFT_ASYNC_CONTEXT AsyncContext *callContext) {
+                                LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext) {
   // Retrieve the async let pointer from the context.
   auto continuationContext
     = reinterpret_cast<AsyncLetContinuationContext*>(callContext);
@@ -473,8 +474,8 @@ static void _asyncLet_consume_continuation(
                                                nullptr);
 }
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_consumeImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_consumeImpl(LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                                    AsyncLet *alet,
                                    void *resultBuffer,
                                    TaskContinuationFunction *resumeFunction,
@@ -498,17 +499,17 @@ static void swift_asyncLet_consumeImpl(SWIFT_ASYNC_CONTEXT AsyncContext *callerC
   auto futureContext = asImpl(alet)->getFutureContext();
 
   // Await completion of the task. We'll destroy the task afterward.
-  return swift_task_future_wait(
+  return language_task_future_wait(
                          reinterpret_cast<OpaqueValue*>(resultBuffer),
                          callContext, alet->getTask(),
                          _asyncLet_consume_continuation,
                          futureContext);
 }
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static void _asyncLet_consume_throwing_continuation(
-        SWIFT_ASYNC_CONTEXT AsyncContext *callContext,
-        SWIFT_CONTEXT void *error) {
+        LANGUAGE_ASYNC_CONTEXT AsyncContext *callContext,
+        LANGUAGE_CONTEXT void *error) {
   // Get the async let pointer so we can destroy the task.
   auto continuationContext = static_cast<AsyncLetContinuationContext*>(callContext);
   auto alet = continuationContext->alet;
@@ -520,9 +521,9 @@ static void _asyncLet_consume_throwing_continuation(
                                                error);
 }
 
-SWIFT_CC(swiftasync)
-static void swift_asyncLet_consume_throwingImpl(
-                    SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync)
+static void language_asyncLet_consume_throwingImpl(
+                    LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet,
                     void *resultBuffer,
                     ThrowingTaskFutureWaitContinuationFunction *resumeFunction,
@@ -548,7 +549,7 @@ static void swift_asyncLet_consume_throwingImpl(
   // on the success of the task. If we raise an error, then the result buffer
   // will not be populated. Save the async let binding so we can fetch it
   // after completion.
-  return swift_task_future_wait_throwing(
+  return language_task_future_wait_throwing(
                          reinterpret_cast<OpaqueValue*>(resultBuffer),
                          aletContext, alet->getTask(),
                          _asyncLet_consume_throwing_continuation,

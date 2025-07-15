@@ -1,4 +1,4 @@
-//===--- GenPoly.h - Swift IR generation for polymorphism -------*- C++ -*-===//
+//===--- GenPoly.h - Codira IR generation for polymorphism -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the code for translating
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENPOLY_H
-#define SWIFT_IRGEN_GENPOLY_H
+#ifndef LANGUAGE_IRGEN_GENPOLY_H
+#define LANGUAGE_IRGEN_GENPOLY_H
 
-namespace llvm {
+namespace toolchain {
   class Type;
   template <class T> class ArrayRef;
 }

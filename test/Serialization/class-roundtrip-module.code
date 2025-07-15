@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name def_class -o %t/stage1.codemodule %S/Inputs/def_class.code -disable-objc-attr-requires-foundation-module -enable-objc-interop
+// RUN: %target-language-frontend -emit-module -parse-as-library -o %t/def_class.codemodule %t/stage1.codemodule
+// RUN: %target-language-frontend -emit-sil -sil-debug-serialization -I %t %S/class.code | %FileCheck %s -check-prefix=SIL
+
+// SIL-LABEL: sil public_external [transparent] [canonical] @$sSi1poiyS2i_SitFZ : $@convention(method) (Int, Int, @thin Int.Type) -> Int

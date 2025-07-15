@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -23,13 +24,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_RVALUE_H
-#define SWIFT_LOWERING_RVALUE_H
+#ifndef LANGUAGE_LOWERING_RVALUE_H
+#define LANGUAGE_LOWERING_RVALUE_H
 
 #include "ManagedValue.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/NullablePtr.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 namespace Lowering {
@@ -74,9 +75,9 @@ class CleanupCloner;
 /// *NOTE* In SILGen we don't try to explode structs, because doing so would
 /// require considering resilience, a job we want to delegate to IRGen.
 class RValue {
-  friend class swift::Lowering::Scope;
-  friend class swift::Lowering::ArgumentSource;
-  friend class swift::Lowering::CleanupCloner;
+  friend class language::Lowering::Scope;
+  friend class language::Lowering::ArgumentSource;
+  friend class language::Lowering::CleanupCloner;
 
   std::vector<ManagedValue> values;
   CanType type;

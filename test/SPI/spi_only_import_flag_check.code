@@ -1,0 +1,38 @@
+/// Test requiring the flag -experimental-spi-only-imports to use @_spiOnly.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build dummy dependency.
+// RUN: %target-language-frontend -emit-module %t/Empty.code \
+// RUN:   -module-name Empty -emit-module-path %t/Empty.codemodule
+
+/// Attribute is rejected without the flag.
+// RUN: %target-language-frontend -emit-module %t/Client.code -I %t \
+// RUN:   -module-name Client -emit-module-path %t/Client.codemodule -verify
+
+/// Attribute is accepted with the flag.
+// RUN: %target-language-frontend -emit-module %t/Client.code -I %t \
+// RUN:   -module-name Client -emit-module-path %t/Client.codemodule \
+// RUN:   -experimental-spi-only-imports
+
+/// Attribute is accepted without the flag in Codira 6.
+// RUN: %target-language-frontend -emit-module %t/Client.code -I %t \
+// RUN:   -module-name Client -emit-module-path %t/Client.codemodule \
+// RUN:   -language-version 6
+
+/// Attribute is accepted without the flag when in a languageinterface.
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.private.codeinterface) \
+// RUN:   -I %t -module-name Client
+
+//--- Empty.code
+//--- Client.code
+
+@_spiOnly import Empty // expected-error {{'@_spiOnly' requires setting the frontend flag '-experimental-spi-only-imports'}}
+
+//--- Client.private.codeinterface
+// language-interface-format-version: 1.0
+// language-compiler-version: Codira version 5.8-dev effective-4.1.50
+// language-module-flags: -language-version 4 -module-name Client
+import Codira
+@_spiOnly import Empty

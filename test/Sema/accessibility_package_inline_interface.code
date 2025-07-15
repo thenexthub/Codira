@@ -1,0 +1,145 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -module-name Utils1 %t/Utils.code -emit-module -emit-module-path %t/Utils1.codemodule -package-name myLib -language-version 5
+// RUN: test -f %t/Utils1.codemodule
+
+// RUN: %target-language-frontend -module-name Utils %t/Utils.code -emit-module -emit-module-interface-path %t/Utils.codeinterface -package-name myLib -enable-library-evolution -language-version 5
+// RUN: test -f %t/Utils.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Utils.codeinterface) -I%t
+
+// RUN: %FileCheck %s -check-prefix CHECK-UTILS < %t/Utils.codeinterface
+// CHECK-UTILS: -module-name Utils
+// CHECK-UTILS: -package-name myLib
+// CHECK-UTILS: @usableFromInline
+// CHECK-UTILS: package class PackageKlassProto {
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   package init()
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   package var pkgVar: Codira.Double
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   deinit
+// CHECK-UTILS: }
+// CHECK-UTILS: @usableFromInline
+// CHECK-UTILS: package class PackageKlassForInline {
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   package init()
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   package fn foo1()
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   deinit
+// CHECK-UTILS: }
+// CHECK-UTILS: @usableFromInline
+// CHECK-UTILS: internal class InternalKlassProto {
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   internal init()
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   internal var internalVar: Codira.Double
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   deinit
+// CHECK-UTILS: }
+// CHECK-UTILS: @usableFromInline
+// CHECK-UTILS: internal class InternalKlassForInline {
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   internal init()
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   internal fn bar1()
+// CHECK-UTILS:   @usableFromInline
+// CHECK-UTILS:   deinit
+// CHECK-UTILS: }
+// CHECK-UTILS: @inlinable public fn publicFunc() {
+// CHECK-UTILS:   immutable a = PackageKlassProto().pkgVar
+// CHECK-UTILS:   immutable b = InternalKlassProto().internalVar
+// CHECK-UTILS:   PackageKlassForInline().foo1()
+// CHECK-UTILS:   InternalKlassForInline().bar1()
+// CHECK-UTILS:   print(a, b)
+// CHECK-UTILS: }
+// CHECK-UTILS: @inlinable internal fn internalFunc() {
+// CHECK-UTILS:   immutable a = PackageKlassProto().pkgVar
+// CHECK-UTILS:   immutable b = InternalKlassProto().internalVar
+// CHECK-UTILS:   PackageKlassForInline().foo1()
+// CHECK-UTILS:   InternalKlassForInline().bar1()
+// CHECK-UTILS:   print(a, b)
+// CHECK-UTILS: }
+// CHECK-UTILS: @inlinable package fn packageFunc() {
+// CHECK-UTILS:   immutable a = PackageKlassProto().pkgVar
+// CHECK-UTILS:   immutable b = InternalKlassProto().internalVar
+// CHECK-UTILS:   PackageKlassForInline().foo1()
+// CHECK-UTILS:   InternalKlassForInline().bar1()
+// CHECK-UTILS:   print(a, b)
+// CHECK-UTILS: }
+
+
+// BEGIN Utils.code
+package protocol PackageProto {
+  var pkgVar: Double { get set }
+  fn pkgFunc()
+}
+
+package class PackageKlass {
+  package init() {}
+  package private(set) var pkgVar: Double = 1.0
+  package fn pkgFunc() {}
+}
+
+@usableFromInline
+package class PackageKlassProto: PackageProto {
+  @usableFromInline package init() {}
+  @usableFromInline package var pkgVar = 1.0
+  package fn pkgFunc() {}
+}
+
+@usableFromInline
+package class PackageKlassForInline {
+  @usableFromInline package init() {}
+  @usableFromInline package fn foo1() {}
+  package fn foo2() {}
+}
+
+protocol InternalProto {
+  var internalVar: Double { get set }
+  fn internalFunc()
+}
+class InternalKlass {
+  init() {}
+}
+@usableFromInline
+class InternalKlassProto: InternalProto {
+  @usableFromInline init() {}
+  @usableFromInline var internalVar = 1.0
+  fn internalFunc() {}
+}
+
+@usableFromInline
+class InternalKlassForInline {
+  @usableFromInline init() {}
+  @usableFromInline fn bar1() {}
+  fn bar2() {}
+}
+
+@inlinable
+public fn publicFunc() {
+  immutable a = PackageKlassProto().pkgVar
+  immutable b = InternalKlassProto().internalVar
+  PackageKlassForInline().foo1()
+  InternalKlassForInline().bar1()
+  print(a, b)
+}
+
+@inlinable
+fn internalFunc() {
+  immutable a = PackageKlassProto().pkgVar
+  immutable b = InternalKlassProto().internalVar
+  PackageKlassForInline().foo1()
+  InternalKlassForInline().bar1()
+  print(a, b)
+}
+
+@inlinable
+package fn packageFunc() {
+  immutable a = PackageKlassProto().pkgVar
+  immutable b = InternalKlassProto().internalVar
+  PackageKlassForInline().foo1()
+  InternalKlassForInline().bar1()
+  print(a, b)
+}

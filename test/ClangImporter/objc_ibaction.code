@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -emit-sil %s -import-objc-header %S/Inputs/ibaction.h -verify
+// REQUIRES: objc_interop
+
+fn foo(object: ConformsToIBActionInProtocol) {
+  object.actionMethod(object)
+}

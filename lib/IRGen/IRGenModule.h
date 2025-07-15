@@ -1,4 +1,4 @@
-//===--- IRGenModule.h - Swift Global IR Generation Module ------*- C++ -*-===//
+//===--- IRGenModule.h - Codira Global IR Generation Module ------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the interface used 
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRGENMODULE_H
-#define SWIFT_IRGEN_IRGENMODULE_H
+#ifndef LANGUAGE_IRGEN_IRGENMODULE_H
+#define LANGUAGE_IRGEN_IRGENMODULE_H
 
 #include "Callee.h"
 #include "IRGen.h"
-#include "languageTargetInfo.h"
+#include "CodiraTargetInfo.h"
 #include "TypeLayout.h"
 #include "language/AST/Decl.h"
 #include "language/AST/IRGenOptions.h"
@@ -33,31 +34,31 @@
 #include "language/AST/SourceFile.h"
 #include "language/AST/SynthesizedFileUnit.h"
 #include "language/Basic/ClusteredBitVector.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptimizationMode.h"
 #include "language/Basic/SuccessorMap.h"
 #include "language/IRGen/ValueWitness.h"
 #include "language/SIL/RuntimeEffect.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/IR/Attributes.h"
-#include "llvm/IR/CallingConv.h"
-#include "llvm/IR/Constant.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/ValueHandle.h"
-#include "llvm/Target/TargetMachine.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/IR/Attributes.h"
+#include "toolchain/IR/CallingConv.h"
+#include "toolchain/IR/Constant.h"
+#include "toolchain/IR/Instructions.h"
+#include "toolchain/IR/ValueHandle.h"
+#include "toolchain/Target/TargetMachine.h"
 
 #include <atomic>
 
-namespace llvm {
+namespace toolchain {
   class Constant;
   class ConstantInt;
   class DataLayout;
@@ -173,7 +174,7 @@ class IRGenModule;
 
 /// A type descriptor for a field type accessor.
 class FieldTypeInfo {
-  llvm::PointerIntPair<CanType, 2, unsigned> Info;
+  toolchain::PointerIntPair<CanType, 2, unsigned> Info;
   /// Bits in the "int" part of the Info pair.
   enum : unsigned {
     /// Flag indicates that the case is indirectly stored in a box.
@@ -213,7 +214,7 @@ enum class TypeMetadataCanonicality : bool {
 ///
 /// The IRGenerator delegates the emission of different top-level entities
 /// to different instances of IRGenModule, each of which creates a different
-/// llvm::Module.
+/// toolchain::Module.
 ///
 /// In single-threaded compilation, the IRGenerator creates only a single
 /// IRGenModule. In multi-threaded compilation, it contains multiple
@@ -225,17 +226,17 @@ public:
   SILModule &SIL;
 
 private:
-  llvm::DenseMap<SourceFile *, IRGenModule *> GenModules;
+  toolchain::DenseMap<SourceFile *, IRGenModule *> GenModules;
   
   // Stores the IGM from which a function is referenced the first time.
   // It is used if a function has no source-file association.
-  llvm::DenseMap<SILFunction *, IRGenModule *> DefaultIGMForFunction;
+  toolchain::DenseMap<SILFunction *, IRGenModule *> DefaultIGMForFunction;
 
   // The IGMs where specializations of functions are emitted. The key is the
   // non-specialized function.
   // Storing all specializations of a function in the same IGM increases the
   // chances of function merging.
-  llvm::DenseMap<const SILFunction *, IRGenModule *> IGMForSpecializations;
+  toolchain::DenseMap<const SILFunction *, IRGenModule *> IGMForSpecializations;
 
   // The IGM of the first source file.
   IRGenModule *PrimaryIGM = nullptr;
@@ -247,7 +248,7 @@ private:
   bool FinishedEmittingLazyDefinitions = false;
 
   /// A map recording if metadata can be emitted lazily for each nominal type.
-  llvm::DenseMap<TypeDecl *, bool> HasLazyMetadata;
+  toolchain::DenseMap<TypeDecl *, bool> HasLazyMetadata;
 
   struct LazyTypeGlobalsInfo {
     /// Is there a use of the type metadata?
@@ -264,93 +265,93 @@ private:
   };
 
   /// The set of type metadata that have been enqueued for lazy emission.
-  llvm::DenseMap<NominalTypeDecl *, LazyTypeGlobalsInfo> LazyTypeGlobals;
+  toolchain::DenseMap<NominalTypeDecl *, LazyTypeGlobalsInfo> LazyTypeGlobals;
 
   /// The queue of lazy type metadata to emit.
-  llvm::SmallVector<NominalTypeDecl *, 4> LazyTypeMetadata;
+  toolchain::SmallVector<NominalTypeDecl *, 4> LazyTypeMetadata;
 
   /// The queue of lazy type context descriptors to emit.
-  llvm::SmallVector<NominalTypeDecl *, 4> LazyTypeContextDescriptors;
+  toolchain::SmallVector<NominalTypeDecl *, 4> LazyTypeContextDescriptors;
 
   /// Field metadata records that have already been lazily emitted, or are
   /// queued up.
-  llvm::SmallPtrSet<NominalTypeDecl *, 4> LazilyEmittedFieldMetadata;
+  toolchain::SmallPtrSet<NominalTypeDecl *, 4> LazilyEmittedFieldMetadata;
 
   /// Maps every generic type whose metadata is specialized within the module
   /// to its specializations.
-  llvm::DenseMap<
+  toolchain::DenseMap<
       NominalTypeDecl *,
-      llvm::SmallVector<std::pair<CanType, TypeMetadataCanonicality>, 4>>
+      toolchain::SmallVector<std::pair<CanType, TypeMetadataCanonicality>, 4>>
       MetadataPrespecializationsForGenericTypes;
 
-  llvm::DenseMap<NominalTypeDecl *, llvm::SmallVector<CanType, 4>>
+  toolchain::DenseMap<NominalTypeDecl *, toolchain::SmallVector<CanType, 4>>
       CanonicalSpecializedAccessorsForGenericTypes;
 
   /// The queue of specialized generic types whose prespecialized metadata to
   /// emit.
-  llvm::SmallVector<std::pair<CanType, TypeMetadataCanonicality>, 4>
+  toolchain::SmallVector<std::pair<CanType, TypeMetadataCanonicality>, 4>
       LazySpecializedTypeMetadataRecords;
 
-  llvm::SmallPtrSet<NominalTypeDecl *, 4> LazilyReemittedTypeContextDescriptors;
+  toolchain::SmallPtrSet<NominalTypeDecl *, 4> LazilyReemittedTypeContextDescriptors;
 
   /// The queue of metadata accessors to emit.
   ///
   /// The accessors must be emitted after everything else which might result in
   /// a statically-known-canonical prespecialization.
-  llvm::SmallSetVector<NominalTypeDecl *, 4> LazyMetadataAccessors;
+  toolchain::SmallSetVector<NominalTypeDecl *, 4> LazyMetadataAccessors;
 
   /// The queue of prespecialized metadata accessors to emit.
-  llvm::SmallSetVector<CanType, 4> LazyCanonicalSpecializedMetadataAccessors;
+  toolchain::SmallSetVector<CanType, 4> LazyCanonicalSpecializedMetadataAccessors;
 
   struct LazyOpaqueInfo {
     bool IsDescriptorUsed = false;
     bool IsDescriptorEmitted = false;
   };
   /// The set of opaque types enqueued for lazy emission.
-  llvm::DenseMap<OpaqueTypeDecl*, LazyOpaqueInfo> LazyOpaqueTypes;
+  toolchain::DenseMap<OpaqueTypeDecl*, LazyOpaqueInfo> LazyOpaqueTypes;
   /// The queue of opaque type descriptors to emit.
-  llvm::SmallVector<OpaqueTypeDecl*, 4> LazyOpaqueTypeDescriptors;
+  toolchain::SmallVector<OpaqueTypeDecl*, 4> LazyOpaqueTypeDescriptors;
   /// The set of extension contenxts enqueued for lazy emission.
-  llvm::DenseMap<ExtensionDecl*, LazyOpaqueInfo> LazyExtensions;
+  toolchain::DenseMap<ExtensionDecl*, LazyOpaqueInfo> LazyExtensions;
   /// The queue of opaque type descriptors to emit.
-  llvm::TinyPtrVector<ExtensionDecl*> LazyExtensionDescriptors;
+  toolchain::TinyPtrVector<ExtensionDecl*> LazyExtensionDescriptors;
 public:
   /// The set of eagerly emitted opaque types.
-  llvm::SmallPtrSet<OpaqueTypeDecl *, 4> EmittedNonLazyOpaqueTypeDecls;
+  toolchain::SmallPtrSet<OpaqueTypeDecl *, 4> EmittedNonLazyOpaqueTypeDecls;
 private:
 
   /// The queue of lazy field metadata records to emit.
-  llvm::SmallVector<NominalTypeDecl *, 4> LazyFieldDescriptors;
+  toolchain::SmallVector<NominalTypeDecl *, 4> LazyFieldDescriptors;
 
-  llvm::SetVector<SILFunction *> DynamicReplacements;
+  toolchain::SetVector<SILFunction *> DynamicReplacements;
 
   /// SIL functions that have already been lazily emitted, or are queued up.
-  llvm::SmallPtrSet<SILFunction *, 4> LazilyEmittedFunctions;
+  toolchain::SmallPtrSet<SILFunction *, 4> LazilyEmittedFunctions;
 
   /// The queue of SIL functions to emit.
-  llvm::SmallVector<SILFunction *, 4> LazyFunctionDefinitions;
+  toolchain::SmallVector<SILFunction *, 4> LazyFunctionDefinitions;
 
   /// Witness tables that have already been lazily emitted, or are queued up.
-  llvm::SmallPtrSet<SILWitnessTable *, 4> LazilyEmittedWitnessTables;
+  toolchain::SmallPtrSet<SILWitnessTable *, 4> LazilyEmittedWitnessTables;
 
   /// The queue of lazy witness tables to emit.
-  llvm::SmallVector<SILWitnessTable *, 4> LazyWitnessTables;
+  toolchain::SmallVector<SILWitnessTable *, 4> LazyWitnessTables;
 
-  llvm::SmallVector<CanType, 4> LazyClassMetadata;
+  toolchain::SmallVector<CanType, 4> LazyClassMetadata;
 
-  llvm::SmallPtrSet<TypeBase *, 4> LazilyEmittedClassMetadata;
+  toolchain::SmallPtrSet<TypeBase *, 4> LazilyEmittedClassMetadata;
 
-  llvm::SmallVector<CanType, 4> LazySpecializedClassMetadata;
+  toolchain::SmallVector<CanType, 4> LazySpecializedClassMetadata;
 
-  llvm::SmallPtrSet<TypeBase *, 4> LazilyEmittedSpecializedClassMetadata;
+  toolchain::SmallPtrSet<TypeBase *, 4> LazilyEmittedSpecializedClassMetadata;
 
-  llvm::SmallVector<ClassDecl *, 4> ClassesForEagerInitialization;
+  toolchain::SmallVector<ClassDecl *, 4> ClassesForEagerInitialization;
 
-  llvm::SmallVector<ClassDecl *, 4> ObjCActorsNeedingSuperclassSwizzle;
+  toolchain::SmallVector<ClassDecl *, 4> ObjCActorsNeedingSuperclassSwizzle;
 
   /// The order in which all the SIL function definitions should
   /// appear in the translation unit.
-  llvm::DenseMap<SILFunction*, unsigned> FunctionOrder;
+  toolchain::DenseMap<SILFunction*, unsigned> FunctionOrder;
 
   /// The queue of IRGenModules for multi-threaded compilation.
   SmallVector<IRGenModule *, 8> Queue;
@@ -361,8 +362,8 @@ private:
 public:
   explicit IRGenerator(const IRGenOptions &opts, SILModule &module);
 
-  /// Attempt to create an llvm::TargetMachine for the current target.
-  std::unique_ptr<llvm::TargetMachine> createTargetMachine();
+  /// Attempt to create an toolchain::TargetMachine for the current target.
+  std::unique_ptr<toolchain::TargetMachine> createTargetMachine();
 
   /// Add an IRGenModule for a source file.
   /// Should only be called from IRGenModule's constructor.
@@ -402,11 +403,11 @@ public:
   
   bool hasMultipleIGMs() const { return GenModules.size() >= 2; }
   
-  llvm::DenseMap<SourceFile *, IRGenModule *>::iterator begin() {
+  toolchain::DenseMap<SourceFile *, IRGenModule *>::iterator begin() {
     return GenModules.begin();
   }
   
-  llvm::DenseMap<SourceFile *, IRGenModule *>::iterator end() {
+  toolchain::DenseMap<SourceFile *, IRGenModule *>::iterator end() {
     return GenModules.end();
   }
   
@@ -416,7 +417,7 @@ public:
 
   /// Emit references to each of the protocol descriptors defined in this
   /// IR module.
-  void emitSwiftProtocols();
+  void emitCodiraProtocols();
 
   /// Emit the protocol conformance records needed by each IR module.
   void emitProtocolConformances();
@@ -469,7 +470,7 @@ public:
 
   void ensureRelativeSymbolCollocation(SILDefaultOverrideTable &ot);
 
-  llvm::SmallVector<std::pair<CanType, TypeMetadataCanonicality>, 4>
+  toolchain::SmallVector<std::pair<CanType, TypeMetadataCanonicality>, 4>
   metadataPrespecializationsForType(NominalTypeDecl *type) {
     return MetadataPrespecializationsForGenericTypes.lookup(type);
   }
@@ -558,28 +559,28 @@ public:
   }
 
   /// Return the effective triple used by clang.
-  llvm::Triple getEffectiveClangTriple();
+  toolchain::Triple getEffectiveClangTriple();
 
   /// Return the effective variant triple used by clang.
-  llvm::Triple getEffectiveClangVariantTriple();
+  toolchain::Triple getEffectiveClangVariantTriple();
 
-  const llvm::StringRef getClangDataLayoutString();
+  const toolchain::StringRef getClangDataLayoutString();
 };
 
 class ConstantReference {
 public:
   enum Directness : bool { Direct, Indirect };
 private:
-  llvm::PointerIntPair<llvm::Constant *, 1, Directness> ValueAndIsIndirect;
+  toolchain::PointerIntPair<toolchain::Constant *, 1, Directness> ValueAndIsIndirect;
 public:
   ConstantReference() {}
-  ConstantReference(llvm::Constant *value, Directness isIndirect)
+  ConstantReference(toolchain::Constant *value, Directness isIndirect)
     : ValueAndIsIndirect(value, isIndirect) {}
 
   Directness isIndirect() const { return ValueAndIsIndirect.getInt(); }
-  llvm::Constant *getValue() const { return ValueAndIsIndirect.getPointer(); }
+  toolchain::Constant *getValue() const { return ValueAndIsIndirect.getPointer(); }
 
-  llvm::Constant *getDirectValue() const {
+  toolchain::Constant *getDirectValue() const {
     assert(!isIndirect());
     return getValue();
   }
@@ -592,13 +593,13 @@ public:
 /// A reference to a declared type entity.
 class TypeEntityReference {
   TypeReferenceKind Kind;
-  llvm::Constant *Value;
+  toolchain::Constant *Value;
 public:
-  TypeEntityReference(TypeReferenceKind kind, llvm::Constant *value)
+  TypeEntityReference(TypeReferenceKind kind, toolchain::Constant *value)
     : Kind(kind), Value(value) {}
 
   TypeReferenceKind getKind() const { return Kind; }
-  llvm::Constant *getValue() const { return Value; }
+  toolchain::Constant *getValue() const { return Value; }
 };
 
 /// Describes the role of a mangled type reference string.
@@ -628,11 +629,11 @@ private:
   bool IsDistributed: 1;
 
   CanSILFunctionType Type;
-  llvm::Constant *Address;
+  toolchain::Constant *Address;
 
   explicit AccessibleFunction(std::string recordName, std::string funcName,
                               bool isDistributed, CanSILFunctionType type,
-                              llvm::Constant *addr)
+                              toolchain::Constant *addr)
       : RecordName(recordName), FunctionName(funcName),
         IsDistributed(isDistributed), Type(type), Address(addr) {}
 
@@ -644,32 +645,32 @@ public:
 
   CanSILFunctionType getType() const { return Type; }
 
-  llvm::Constant *getAddress() const { return Address; }
+  toolchain::Constant *getAddress() const { return Address; }
 
-  static AccessibleFunction forSILFunction(IRGenModule &IGM, SILFunction *func);
+  static AccessibleFunction forSILFunction(IRGenModule &IGM, SILFunction *fn);
   static AccessibleFunction forDistributed(std::string recordName,
                                            std::string accessorName,
                                            CanSILFunctionType type,
-                                           llvm::Constant *address);
+                                           toolchain::Constant *address);
 };
 
 /// IRGenModule - Primary class for emitting IR for global declarations.
 /// 
 class IRGenModule {
 public:
-  // The ABI version of the Swift data generated by this file.
-  static const uint32_t swiftVersion = 7;
+  // The ABI version of the Codira data generated by this file.
+  static const uint32_t languageVersion = 7;
 
-  std::unique_ptr<llvm::LLVMContext> LLVMContext;
+  std::unique_ptr<toolchain::LLVMContext> LLVMContext;
   IRGenerator &IRGen;
   ASTContext &Context;
   std::unique_ptr<clang::CodeGenerator> ClangCodeGen;
-  llvm::Module &Module;
-  const llvm::DataLayout DataLayout;
-  const llvm::Triple Triple;
-  const llvm::Triple VariantTriple;
-  std::unique_ptr<llvm::TargetMachine> TargetMachine;
-  ModuleDecl *getSwiftModule() const;
+  toolchain::Module &Module;
+  const toolchain::DataLayout DataLayout;
+  const toolchain::Triple Triple;
+  const toolchain::Triple VariantTriple;
+  std::unique_ptr<toolchain::TargetMachine> TargetMachine;
+  ModuleDecl *getCodiraModule() const;
   AvailabilityRange getAvailabilityRange() const;
   Lowering::TypeConverter &getSILTypes() const;
   SILModule &getSILModule() const { return IRGen.SIL; }
@@ -677,19 +678,20 @@ public:
   SILModuleConventions silConv;
   ModuleDecl *ObjCModule = nullptr;
   ModuleDecl *ClangImporterModule = nullptr;
+  std::unique_ptr<toolchain::raw_fd_ostream> RemarkStream;
 
-  llvm::StringMap<ModuleDecl*> OriginalModules;
-  llvm::SmallString<128> OutputFilename;
-  llvm::SmallString<128> MainInputFilenameForDebugInfo;
+  toolchain::StringMap<ModuleDecl*> OriginalModules;
+  toolchain::SmallString<128> OutputFilename;
+  toolchain::SmallString<128> MainInputFilenameForDebugInfo;
 
   /// Order dependency -- TargetInfo must be initialized after Opts.
-  const SwiftTargetInfo TargetInfo;
+  const CodiraTargetInfo TargetInfo;
   /// Holds lexical scope info, etc. Is a nullptr if we compile without -g.
   std::unique_ptr<IRGenDebugInfo> DebugInfo;
 
   /// A global variable which stores the hash of the module. Used for
   /// incremental compilation.
-  llvm::GlobalVariable *ModuleHash;
+  toolchain::GlobalVariable *ModuleHash;
 
   TypeLayoutCache typeLayoutCache;
 
@@ -702,170 +704,170 @@ public:
   /// Should we add value names to local IR values?
   bool EnableValueNames = false;
 
-  // Should `swifterror` attribute be explicitly added for the target ABI.
-  bool ShouldUseSwiftError;
+  // Should `languageerror` attribute be explicitly added for the target ABI.
+  bool ShouldUseCodiraError;
 
-  llvm::Type *VoidTy;                  /// void (usually {})
-  llvm::PointerType *PtrTy;            /// ptr
-  llvm::IntegerType *Int1Ty;           /// i1
-  llvm::IntegerType *Int8Ty;           /// i8
-  llvm::IntegerType *Int16Ty;          /// i16
-  llvm::IntegerType *Int32Ty;          /// i32
-  llvm::PointerType *Int32PtrTy;       /// i32 *
-  llvm::IntegerType *RelativeAddressTy;
-  llvm::PointerType *RelativeAddressPtrTy;
-  llvm::IntegerType *Int64Ty;          /// i64
+  toolchain::Type *VoidTy;                  /// void (usually {})
+  toolchain::PointerType *PtrTy;            /// ptr
+  toolchain::IntegerType *Int1Ty;           /// i1
+  toolchain::IntegerType *Int8Ty;           /// i8
+  toolchain::IntegerType *Int16Ty;          /// i16
+  toolchain::IntegerType *Int32Ty;          /// i32
+  toolchain::PointerType *Int32PtrTy;       /// i32 *
+  toolchain::IntegerType *RelativeAddressTy;
+  toolchain::PointerType *RelativeAddressPtrTy;
+  toolchain::IntegerType *Int64Ty;          /// i64
   union {
-    llvm::IntegerType *SizeTy;         /// usually i32 or i64
-    llvm::IntegerType *IntPtrTy;
-    llvm::IntegerType *MetadataKindTy;
-    llvm::IntegerType *OnceTy;
-    llvm::IntegerType *FarRelativeAddressTy;
-    llvm::IntegerType *ProtocolDescriptorRefTy;
+    toolchain::IntegerType *SizeTy;         /// usually i32 or i64
+    toolchain::IntegerType *IntPtrTy;
+    toolchain::IntegerType *MetadataKindTy;
+    toolchain::IntegerType *OnceTy;
+    toolchain::IntegerType *FarRelativeAddressTy;
+    toolchain::IntegerType *ProtocolDescriptorRefTy;
   };
-  llvm::IntegerType *ObjCBoolTy;       /// i8 or i1
+  toolchain::IntegerType *ObjCBoolTy;       /// i8 or i1
   union {
-    llvm::PointerType *Int8PtrTy;      /// i8*
-    llvm::PointerType *WitnessTableTy;
-    llvm::PointerType *ObjCSELTy;
-    llvm::PointerType *FunctionPtrTy;
-    llvm::PointerType *CaptureDescriptorPtrTy;
+    toolchain::PointerType *Int8PtrTy;      /// i8*
+    toolchain::PointerType *WitnessTableTy;
+    toolchain::PointerType *ObjCSELTy;
+    toolchain::PointerType *FunctionPtrTy;
+    toolchain::PointerType *CaptureDescriptorPtrTy;
   };
   union {
-    llvm::PointerType *Int8PtrPtrTy;   /// i8**
-    llvm::PointerType *WitnessTablePtrTy;
+    toolchain::PointerType *Int8PtrPtrTy;   /// i8**
+    toolchain::PointerType *WitnessTablePtrTy;
   };
-  llvm::StructType *RefCountedStructTy;/// %swift.refcounted = type { ... }
-  Size RefCountedStructSize;           /// sizeof(%swift.refcounted)
-  llvm::PointerType *RefCountedPtrTy;  /// %swift.refcounted*
+  toolchain::StructType *RefCountedStructTy;/// %language.refcounted = type { ... }
+  Size RefCountedStructSize;           /// sizeof(%language.refcounted)
+  toolchain::PointerType *RefCountedPtrTy;  /// %language.refcounted*
 #define CHECKED_REF_STORAGE(Name, ...)                                         \
-  llvm::StructType *Name##ReferenceStructTy;                                   \
-  llvm::PointerType *Name##ReferencePtrTy; /// %swift. #name _reference*
+  toolchain::StructType *Name##ReferenceStructTy;                                   \
+  toolchain::PointerType *Name##ReferencePtrTy; /// %language. #name _reference*
 #include "language/AST/ReferenceStorage.def"
-  llvm::Constant *RefCountedNull;      /// %swift.refcounted* null
-  llvm::StructType *FunctionPairTy;    /// { i8*, %swift.refcounted* }
-  llvm::StructType *NoEscapeFunctionPairTy;    /// { i8*, %swift.opaque* }
-  llvm::FunctionType *DeallocatingDtorTy; /// void (%swift.refcounted*)
-  llvm::StructType *TypeMetadataStructTy; /// %swift.type = type { ... }
-  llvm::PointerType *TypeMetadataPtrTy;/// %swift.type*
-  llvm::PointerType *TypeMetadataPtrPtrTy; /// %swift.type**
+  toolchain::Constant *RefCountedNull;      /// %language.refcounted* null
+  toolchain::StructType *FunctionPairTy;    /// { i8*, %language.refcounted* }
+  toolchain::StructType *NoEscapeFunctionPairTy;    /// { i8*, %language.opaque* }
+  toolchain::FunctionType *DeallocatingDtorTy; /// void (%language.refcounted*)
+  toolchain::StructType *TypeMetadataStructTy; /// %language.type = type { ... }
+  toolchain::PointerType *TypeMetadataPtrTy;/// %language.type*
+  toolchain::PointerType *TypeMetadataPtrPtrTy; /// %language.type**
   union {
-    llvm::StructType *TypeMetadataResponseTy;   /// { %swift.type*, iSize }
-    llvm::StructType *TypeMetadataDependencyTy; /// { %swift.type*, iSize }
+    toolchain::StructType *TypeMetadataResponseTy;   /// { %language.type*, iSize }
+    toolchain::StructType *TypeMetadataDependencyTy; /// { %language.type*, iSize }
   };
-  llvm::StructType *OffsetPairTy;      /// { iSize, iSize }
-  llvm::StructType *FullTypeLayoutTy;  /// %swift.full_type_layout = { ... }
-  llvm::StructType *TypeLayoutTy;  /// %swift.type_layout = { ... }
-  llvm::StructType *TupleTypeMetadataTy;     /// %swift.tuple_type
-  llvm::PointerType *TupleTypeMetadataPtrTy; /// %swift.tuple_type*
-  llvm::StructType *FullHeapMetadataStructTy; /// %swift.full_heapmetadata = type { ... }
-  llvm::PointerType *FullHeapMetadataPtrTy;/// %swift.full_heapmetadata*
-  llvm::StructType *FullBoxMetadataStructTy; /// %swift.full_boxmetadata = type { ... }
-  llvm::PointerType *FullBoxMetadataPtrTy;/// %swift.full_boxmetadata*
-  llvm::StructType *FullTypeMetadataStructTy; /// %swift.full_type = type { ... }
-  llvm::StructType *FullExistentialTypeMetadataStructTy; /// %swift.full_existential_type = type { ... }
-  llvm::PointerType *FullTypeMetadataPtrTy;/// %swift.full_type*
-  llvm::StructType *FullForeignTypeMetadataStructTy; /// %swift.full_foreign_type = type { ... }
-  llvm::StructType *ProtocolDescriptorStructTy; /// %swift.protocol = type { ... }
-  llvm::PointerType *ProtocolDescriptorPtrTy; /// %swift.protocol*
-  llvm::StructType *ProtocolRequirementStructTy; /// %swift.protocol_requirement
+  toolchain::StructType *OffsetPairTy;      /// { iSize, iSize }
+  toolchain::StructType *FullTypeLayoutTy;  /// %language.full_type_layout = { ... }
+  toolchain::StructType *TypeLayoutTy;  /// %language.type_layout = { ... }
+  toolchain::StructType *TupleTypeMetadataTy;     /// %language.tuple_type
+  toolchain::PointerType *TupleTypeMetadataPtrTy; /// %language.tuple_type*
+  toolchain::StructType *FullHeapMetadataStructTy; /// %language.full_heapmetadata = type { ... }
+  toolchain::PointerType *FullHeapMetadataPtrTy;/// %language.full_heapmetadata*
+  toolchain::StructType *FullBoxMetadataStructTy; /// %language.full_boxmetadata = type { ... }
+  toolchain::PointerType *FullBoxMetadataPtrTy;/// %language.full_boxmetadata*
+  toolchain::StructType *FullTypeMetadataStructTy; /// %language.full_type = type { ... }
+  toolchain::StructType *FullExistentialTypeMetadataStructTy; /// %language.full_existential_type = type { ... }
+  toolchain::PointerType *FullTypeMetadataPtrTy;/// %language.full_type*
+  toolchain::StructType *FullForeignTypeMetadataStructTy; /// %language.full_foreign_type = type { ... }
+  toolchain::StructType *ProtocolDescriptorStructTy; /// %language.protocol = type { ... }
+  toolchain::PointerType *ProtocolDescriptorPtrTy; /// %language.protocol*
+  toolchain::StructType *ProtocolRequirementStructTy; /// %language.protocol_requirement
   union {
-    llvm::PointerType *ObjCPtrTy;      /// %objc_object*
-    llvm::PointerType *UnknownRefCountedPtrTy;
+    toolchain::PointerType *ObjCPtrTy;      /// %objc_object*
+    toolchain::PointerType *UnknownRefCountedPtrTy;
   };
-  llvm::PointerType *BridgeObjectPtrTy;/// %swift.bridge*
-  llvm::StructType *OpaqueTy;          /// %swift.opaque
-  llvm::PointerType *OpaquePtrTy;      /// %swift.opaque*
-  llvm::StructType *ObjCClassStructTy; /// %objc_class
-  llvm::PointerType *ObjCClassPtrTy;   /// %objc_class*
-  llvm::StructType *ObjCSuperStructTy; /// %objc_super
-  llvm::PointerType *ObjCSuperPtrTy;   /// %objc_super*
-  llvm::StructType *ObjCBlockStructTy; /// %objc_block
-  llvm::PointerType *ObjCBlockPtrTy;   /// %objc_block*
-  llvm::FunctionType *ObjCUpdateCallbackTy;
-  llvm::StructType *ObjCFullResilientClassStubTy;   /// %objc_full_class_stub
-  llvm::StructType *ObjCResilientClassStubTy;   /// %objc_class_stub
-  llvm::StructType *ProtocolRecordTy;
-  llvm::PointerType *ProtocolRecordPtrTy;
-  llvm::StructType *ProtocolConformanceDescriptorTy;
-  llvm::PointerType *ProtocolConformanceDescriptorPtrTy;
-  llvm::StructType *TypeContextDescriptorTy;
-  llvm::PointerType *TypeContextDescriptorPtrTy;
-  llvm::StructType *ClassContextDescriptorTy;
-  llvm::StructType *MethodDescriptorStructTy; /// %swift.method_descriptor
-  llvm::StructType *MethodOverrideDescriptorStructTy; /// %swift.method_override_descriptor
-  llvm::StructType *MethodDefaultOverrideDescriptorStructTy; /// %swift.method_default_override_descriptor
-  llvm::StructType *TypeMetadataRecordTy;
-  llvm::PointerType *TypeMetadataRecordPtrTy;
-  llvm::StructType *FieldDescriptorTy;
-  llvm::PointerType *FieldDescriptorPtrTy;
-  llvm::PointerType *FieldDescriptorPtrPtrTy;
-  llvm::PointerType *ErrorPtrTy;       /// %swift.error*
-  llvm::StructType *OpenedErrorTripleTy; /// { %swift.opaque*, %swift.type*, i8** }
-  llvm::PointerType *OpenedErrorTriplePtrTy; /// { %swift.opaque*, %swift.type*, i8** }*
-  llvm::PointerType *WitnessTablePtrPtrTy;   /// i8***
-  llvm::StructType *OpaqueTypeDescriptorTy;
-  llvm::PointerType *OpaqueTypeDescriptorPtrTy;
-  llvm::Type *FloatTy;
-  llvm::Type *DoubleTy;
-  llvm::StructType *DynamicReplacementsTy; // { i8**, i8* }
-  llvm::PointerType *DynamicReplacementsPtrTy;
+  toolchain::PointerType *BridgeObjectPtrTy;/// %language.bridge*
+  toolchain::StructType *OpaqueTy;          /// %language.opaque
+  toolchain::PointerType *OpaquePtrTy;      /// %language.opaque*
+  toolchain::StructType *ObjCClassStructTy; /// %objc_class
+  toolchain::PointerType *ObjCClassPtrTy;   /// %objc_class*
+  toolchain::StructType *ObjCSuperStructTy; /// %objc_super
+  toolchain::PointerType *ObjCSuperPtrTy;   /// %objc_super*
+  toolchain::StructType *ObjCBlockStructTy; /// %objc_block
+  toolchain::PointerType *ObjCBlockPtrTy;   /// %objc_block*
+  toolchain::FunctionType *ObjCUpdateCallbackTy;
+  toolchain::StructType *ObjCFullResilientClassStubTy;   /// %objc_full_class_stub
+  toolchain::StructType *ObjCResilientClassStubTy;   /// %objc_class_stub
+  toolchain::StructType *ProtocolRecordTy;
+  toolchain::PointerType *ProtocolRecordPtrTy;
+  toolchain::StructType *ProtocolConformanceDescriptorTy;
+  toolchain::PointerType *ProtocolConformanceDescriptorPtrTy;
+  toolchain::StructType *TypeContextDescriptorTy;
+  toolchain::PointerType *TypeContextDescriptorPtrTy;
+  toolchain::StructType *ClassContextDescriptorTy;
+  toolchain::StructType *MethodDescriptorStructTy; /// %language.method_descriptor
+  toolchain::StructType *MethodOverrideDescriptorStructTy; /// %language.method_override_descriptor
+  toolchain::StructType *MethodDefaultOverrideDescriptorStructTy; /// %language.method_default_override_descriptor
+  toolchain::StructType *TypeMetadataRecordTy;
+  toolchain::PointerType *TypeMetadataRecordPtrTy;
+  toolchain::StructType *FieldDescriptorTy;
+  toolchain::PointerType *FieldDescriptorPtrTy;
+  toolchain::PointerType *FieldDescriptorPtrPtrTy;
+  toolchain::PointerType *ErrorPtrTy;       /// %language.error*
+  toolchain::StructType *OpenedErrorTripleTy; /// { %language.opaque*, %language.type*, i8** }
+  toolchain::PointerType *OpenedErrorTriplePtrTy; /// { %language.opaque*, %language.type*, i8** }*
+  toolchain::PointerType *WitnessTablePtrPtrTy;   /// i8***
+  toolchain::StructType *OpaqueTypeDescriptorTy;
+  toolchain::PointerType *OpaqueTypeDescriptorPtrTy;
+  toolchain::Type *FloatTy;
+  toolchain::Type *DoubleTy;
+  toolchain::StructType *DynamicReplacementsTy; // { i8**, i8* }
+  toolchain::PointerType *DynamicReplacementsPtrTy;
 
-  llvm::StructType *DynamicReplacementLinkEntryTy; // %link_entry = { i8*, %link_entry*}
-  llvm::PointerType
+  toolchain::StructType *DynamicReplacementLinkEntryTy; // %link_entry = { i8*, %link_entry*}
+  toolchain::PointerType
       *DynamicReplacementLinkEntryPtrTy; // %link_entry*
-  llvm::StructType *DynamicReplacementKeyTy; // { i32, i32}
+  toolchain::StructType *DynamicReplacementKeyTy; // { i32, i32}
 
-  llvm::StructType *AccessibleFunctionRecordTy; // { i32*, i32*, i32*, i32}
+  toolchain::StructType *AccessibleFunctionRecordTy; // { i32*, i32*, i32*, i32}
 
   // clang-format off
-  llvm::StructType *AsyncFunctionPointerTy; // { i32, i32 }
-  llvm::StructType *SwiftContextTy;
-  llvm::StructType *SwiftTaskTy;
-  llvm::StructType *SwiftJobTy;
-  llvm::StructType *SwiftExecutorTy;
-  llvm::PointerType *AsyncFunctionPointerPtrTy;
-  llvm::PointerType *SwiftContextPtrTy;
-  llvm::PointerType *SwiftTaskPtrTy;
-  llvm::PointerType *SwiftAsyncLetPtrTy;
-  llvm::PointerType *SwiftTaskOptionRecordPtrTy;
-  llvm::PointerType *SwiftTaskGroupPtrTy;
-  llvm::StructType  *SwiftTaskOptionRecordTy;
-  llvm::StructType  *SwiftInitialSerialExecutorTaskOptionRecordTy;
-  llvm::StructType  *SwiftTaskGroupTaskOptionRecordTy;
-  llvm::StructType  *SwiftInitialTaskExecutorUnownedPreferenceTaskOptionRecordTy;
-  llvm::StructType  *SwiftInitialTaskExecutorOwnedPreferenceTaskOptionRecordTy;
-  llvm::StructType  *SwiftInitialTaskNameTaskOptionRecordTy;
-  llvm::StructType  *SwiftResultTypeInfoTaskOptionRecordTy;
-  llvm::PointerType *SwiftJobPtrTy;
-  llvm::IntegerType *ExecutorFirstTy;
-  llvm::IntegerType *ExecutorSecondTy;
-  llvm::FunctionType *TaskContinuationFunctionTy;
-  llvm::PointerType *TaskContinuationFunctionPtrTy;
-  llvm::StructType *AsyncTaskAndContextTy;
-  llvm::StructType *ContinuationAsyncContextTy;
-  llvm::PointerType *ContinuationAsyncContextPtrTy;
-  llvm::StructType *ClassMetadataBaseOffsetTy;
-  llvm::StructType *DifferentiabilityWitnessTy; // { i8*, i8* }
+  toolchain::StructType *AsyncFunctionPointerTy; // { i32, i32 }
+  toolchain::StructType *CodiraContextTy;
+  toolchain::StructType *CodiraTaskTy;
+  toolchain::StructType *CodiraJobTy;
+  toolchain::StructType *CodiraExecutorTy;
+  toolchain::PointerType *AsyncFunctionPointerPtrTy;
+  toolchain::PointerType *CodiraContextPtrTy;
+  toolchain::PointerType *CodiraTaskPtrTy;
+  toolchain::PointerType *CodiraAsyncLetPtrTy;
+  toolchain::PointerType *CodiraTaskOptionRecordPtrTy;
+  toolchain::PointerType *CodiraTaskGroupPtrTy;
+  toolchain::StructType  *CodiraTaskOptionRecordTy;
+  toolchain::StructType  *CodiraInitialSerialExecutorTaskOptionRecordTy;
+  toolchain::StructType  *CodiraTaskGroupTaskOptionRecordTy;
+  toolchain::StructType  *CodiraInitialTaskExecutorUnownedPreferenceTaskOptionRecordTy;
+  toolchain::StructType  *CodiraInitialTaskExecutorOwnedPreferenceTaskOptionRecordTy;
+  toolchain::StructType  *CodiraInitialTaskNameTaskOptionRecordTy;
+  toolchain::StructType  *CodiraResultTypeInfoTaskOptionRecordTy;
+  toolchain::PointerType *CodiraJobPtrTy;
+  toolchain::IntegerType *ExecutorFirstTy;
+  toolchain::IntegerType *ExecutorSecondTy;
+  toolchain::FunctionType *TaskContinuationFunctionTy;
+  toolchain::PointerType *TaskContinuationFunctionPtrTy;
+  toolchain::StructType *AsyncTaskAndContextTy;
+  toolchain::StructType *ContinuationAsyncContextTy;
+  toolchain::PointerType *ContinuationAsyncContextPtrTy;
+  toolchain::StructType *ClassMetadataBaseOffsetTy;
+  toolchain::StructType *DifferentiabilityWitnessTy; // { i8*, i8* }
   // clang-format on
 
-  llvm::StructType *CoroFunctionPointerTy; // { i32, i32 }
-  llvm::PointerType *CoroFunctionPointerPtrTy;
-  llvm::PointerType *CoroAllocationTy;
-  llvm::FunctionType *CoroAllocateFnTy;
-  llvm::FunctionType *CoroDeallocateFnTy;
-  llvm::IntegerType *CoroAllocatorFlagsTy;
-  llvm::StructType *CoroAllocatorTy;
-  llvm::PointerType *CoroAllocatorPtrTy;
+  toolchain::StructType *CoroFunctionPointerTy; // { i32, i32 }
+  toolchain::PointerType *CoroFunctionPointerPtrTy;
+  toolchain::PointerType *CoroAllocationTy;
+  toolchain::FunctionType *CoroAllocateFnTy;
+  toolchain::FunctionType *CoroDeallocateFnTy;
+  toolchain::IntegerType *CoroAllocatorFlagsTy;
+  toolchain::StructType *CoroAllocatorTy;
+  toolchain::PointerType *CoroAllocatorPtrTy;
 
-  llvm::GlobalVariable *TheTrivialPropertyDescriptor = nullptr;
+  toolchain::GlobalVariable *TheTrivialPropertyDescriptor = nullptr;
 
-  llvm::Constant *swiftImmortalRefCount = nullptr;
-  llvm::Constant *swiftStaticArrayMetadata = nullptr;
+  toolchain::Constant *languageImmortalRefCount = nullptr;
+  toolchain::Constant *languageStaticArrayMetadata = nullptr;
 
-  llvm::StructType *
+  toolchain::StructType *
   createTransientStructType(StringRef name,
-                            std::initializer_list<llvm::Type *> types,
+                            std::initializer_list<toolchain::Type *> types,
                             bool packed = false);
 
   /// Used to create unique names for class layout types with tail allocated
@@ -874,7 +876,7 @@ public:
 
   unsigned InvariantMetadataID; /// !invariant.load
   unsigned DereferenceableID;   /// !dereferenceable
-  llvm::MDNode *InvariantNode;
+  toolchain::MDNode *InvariantNode;
 
 #ifdef CHECK_RUNTIME_EFFECT_ANALYSIS
   RuntimeEffect effectOfRuntimeFuncs = RuntimeEffect::NoEffect;
@@ -884,14 +886,14 @@ public:
                              const char *funcName);
 #endif
 
-  llvm::CallingConv::ID C_CC;          /// standard C calling convention
-  llvm::CallingConv::ID DefaultCC;     /// default calling convention
-  llvm::CallingConv::ID SwiftCC;       /// swift calling convention
-  llvm::CallingConv::ID SwiftAsyncCC;  /// swift calling convention for async
-  llvm::CallingConv::ID SwiftCoroCC;   /// swift calling convention for callee-allocated coroutines
+  toolchain::CallingConv::ID C_CC;          /// standard C calling convention
+  toolchain::CallingConv::ID DefaultCC;     /// default calling convention
+  toolchain::CallingConv::ID CodiraCC;       /// language calling convention
+  toolchain::CallingConv::ID CodiraAsyncCC;  /// language calling convention for async
+  toolchain::CallingConv::ID CodiraCoroCC;   /// language calling convention for callee-allocated coroutines
 
   /// What kind of tail call should be used for async->async calls.
-  llvm::CallInst::TailCallKind AsyncTailCallKind;
+  toolchain::CallInst::TailCallKind AsyncTailCallKind;
 
   Signature getAssociatedTypeWitnessTableAccessFunctionSignature();
 
@@ -901,7 +903,7 @@ public:
 
   Size getPointerSize() const { return PtrSize; }
   Alignment getPointerAlignment() const {
-    // We always use the pointer's width as its swift ABI alignment.
+    // We always use the pointer's width as its language ABI alignment.
     return Alignment(PtrSize.getValue());
   }
   Alignment getWitnessTableAlignment() const {
@@ -930,7 +932,7 @@ public:
     return offset / getPointerSize();
   }
 
-  llvm::Type *getReferenceType(ReferenceCounting style);
+  toolchain::Type *getReferenceType(ReferenceCounting style);
 
   static bool isLoadableReferenceAddressOnly(ReferenceCounting style) {
     switch (style) {
@@ -946,10 +948,10 @@ public:
 
     case ReferenceCounting::Bridge:
     case ReferenceCounting::Error:
-      llvm_unreachable("loadable references to this type are not supported");
+      toolchain_unreachable("loadable references to this type are not supported");
     }
 
-    llvm_unreachable("Not a valid ReferenceCounting.");
+    toolchain_unreachable("Not a valid ReferenceCounting.");
   }
   
   /// Return the spare bit mask to use for types that comprise heap object
@@ -970,21 +972,21 @@ public:
   APInt getReferenceStorageExtraInhabitantMask(ReferenceOwnership ownership,
                                                ReferenceCounting style) const;
 
-  llvm::Type *getFixedBufferTy();
-  llvm::PointerType *getExistentialPtrTy(unsigned numTables);
-  llvm::Type *getExistentialType(unsigned numTables);
-  llvm::Type *getValueWitnessTy(ValueWitness index);
+  toolchain::Type *getFixedBufferTy();
+  toolchain::PointerType *getExistentialPtrTy(unsigned numTables);
+  toolchain::Type *getExistentialType(unsigned numTables);
+  toolchain::Type *getValueWitnessTy(ValueWitness index);
   Signature getValueWitnessSignature(ValueWitness index);
 
-  llvm::StructType *getIntegerLiteralTy();
+  toolchain::StructType *getIntegerLiteralTy();
 
-  llvm::StructType *getValueWitnessTableTy();
-  llvm::StructType *getEnumValueWitnessTableTy();
-  llvm::PointerType *getValueWitnessTablePtrTy();
-  llvm::PointerType *getEnumValueWitnessTablePtrTy();
+  toolchain::StructType *getValueWitnessTableTy();
+  toolchain::StructType *getEnumValueWitnessTableTy();
+  toolchain::PointerType *getValueWitnessTablePtrTy();
+  toolchain::PointerType *getEnumValueWitnessTablePtrTy();
 
-  llvm::IntegerType *getTypeMetadataRequestParamTy();
-  llvm::StructType *getTypeMetadataResponseTy();
+  toolchain::IntegerType *getTypeMetadataRequestParamTy();
+  toolchain::StructType *getTypeMetadataResponseTy();
 
   void unimplemented(SourceLoc, StringRef Message);
   [[noreturn]]
@@ -1017,53 +1019,53 @@ public:
   };
 
   std::string GetObjCSectionName(StringRef Section, StringRef MachOAttributes);
-  void SetCStringLiteralSection(llvm::GlobalVariable *GV, ObjCLabelType Type);
+  void SetCStringLiteralSection(toolchain::GlobalVariable *GV, ObjCLabelType Type);
 
-  void addAsyncCoroIDMapping(llvm::GlobalVariable *asyncFunctionPointer,
-                             llvm::CallInst *coro_id_builtin);
+  void addAsyncCoroIDMapping(toolchain::GlobalVariable *asyncFunctionPointer,
+                             toolchain::CallInst *coro_id_builtin);
   
-  llvm::CallInst *getAsyncCoroIDMapping(
-                                    llvm::GlobalVariable *asyncFunctionPointer);
+  toolchain::CallInst *getAsyncCoroIDMapping(
+                                    toolchain::GlobalVariable *asyncFunctionPointer);
   
   void markAsyncFunctionPointerForPadding(
-                                    llvm::GlobalVariable *asyncFunctionPointer);
+                                    toolchain::GlobalVariable *asyncFunctionPointer);
   
   bool isAsyncFunctionPointerMarkedForPadding(
-                                    llvm::GlobalVariable *asyncFunctionPointer);
+                                    toolchain::GlobalVariable *asyncFunctionPointer);
   
 private:
   Size PtrSize;
   Size AtomicBoolSize;
   Alignment AtomicBoolAlign;
-  llvm::Type *FixedBufferTy;          /// [N x i8], where N == 3 * sizeof(void*)
+  toolchain::Type *FixedBufferTy;          /// [N x i8], where N == 3 * sizeof(void*)
 
-  llvm::Type *ValueWitnessTys[MaxNumValueWitnesses];
-  llvm::FunctionType *AssociatedTypeWitnessTableAccessFunctionTy = nullptr;
-  llvm::StructType *GenericWitnessTableCacheTy = nullptr;
-  llvm::StructType *IntegerLiteralTy = nullptr;
-  llvm::StructType *ValueWitnessTableTy = nullptr;
-  llvm::StructType *EnumValueWitnessTableTy = nullptr;
+  toolchain::Type *ValueWitnessTys[MaxNumValueWitnesses];
+  toolchain::FunctionType *AssociatedTypeWitnessTableAccessFunctionTy = nullptr;
+  toolchain::StructType *GenericWitnessTableCacheTy = nullptr;
+  toolchain::StructType *IntegerLiteralTy = nullptr;
+  toolchain::StructType *ValueWitnessTableTy = nullptr;
+  toolchain::StructType *EnumValueWitnessTableTy = nullptr;
 
-  llvm::DenseMap<llvm::Type *, SpareBitVector> SpareBitsForTypes;
+  toolchain::DenseMap<toolchain::Type *, SpareBitVector> SpareBitsForTypes;
 
   // Mapping of AsyncFunctionPointer records to their corresponding
-  // `@llvm.coro.id.async` intrinsic tag in the function implementation.
+  // `@toolchain.coro.id.async` intrinsic tag in the function implementation.
   // This is used for a runtime bug workaround where we need to pad the initial
   // context size for tasks used as `async let` entry points.
   //
   // An entry in the map may have a null value, to indicate that a not-yet-
   // emitted async function pointer should get the padding applied when it is
   // emitted.
-  llvm::DenseMap<llvm::GlobalVariable*, llvm::CallInst*> AsyncCoroIDsForPadding;
+  toolchain::DenseMap<toolchain::GlobalVariable*, toolchain::CallInst*> AsyncCoroIDsForPadding;
 
   /// The personality function used for foreign exception handling in this
   /// module.
-  llvm::Function *foreignExceptionHandlingPersonalityFunc = nullptr;
+  toolchain::Function *foreignExceptionHandlingPersonalityFunc = nullptr;
 
 public:
   /// The set of emitted foreign function thunks that trap on exception in the
   /// underlying call that the thunk dispatches.
-  llvm::SmallPtrSet<llvm::Function *, 4>
+  toolchain::SmallPtrSet<toolchain::Function *, 4>
       emittedForeignFunctionThunksWithExceptionTraps;
 
 //--- Types -----------------------------------------------------------------
@@ -1088,7 +1090,7 @@ public:
   const TypeInfo &getTypeInfo(SILType T);
   const TypeInfo &getWitnessTablePtrTypeInfo();
   const TypeInfo &getTypeMetadataPtrTypeInfo();
-  const TypeInfo &getSwiftContextPtrTypeInfo();
+  const TypeInfo &getCodiraContextPtrTypeInfo();
   const TypeInfo &getTaskContinuationFunctionPtrTypeInfo();
   const LoadableTypeInfo &getExecutorTypeInfo();
   const TypeInfo &getObjCClassPtrTypeInfo();
@@ -1100,14 +1102,14 @@ public:
   const LoadableTypeInfo &getBridgeObjectTypeInfo();
   const LoadableTypeInfo &getRawPointerTypeInfo();
   const LoadableTypeInfo &getRawUnsafeContinuationTypeInfo();
-  llvm::Type *getStorageTypeForUnlowered(Type T);
-  llvm::Type *getStorageTypeForLowered(CanType T);
-  llvm::Type *getStorageType(SILType T);
-  llvm::PointerType *getStoragePointerTypeForUnlowered(Type T);
-  llvm::PointerType *getStoragePointerTypeForLowered(CanType T);
-  llvm::PointerType *getStoragePointerType(SILType T);
-  llvm::StructType *createNominalType(CanType type);
-  llvm::StructType *createNominalType(ProtocolCompositionType *T);
+  toolchain::Type *getStorageTypeForUnlowered(Type T);
+  toolchain::Type *getStorageTypeForLowered(CanType T);
+  toolchain::Type *getStorageType(SILType T);
+  toolchain::PointerType *getStoragePointerTypeForUnlowered(Type T);
+  toolchain::PointerType *getStoragePointerTypeForLowered(CanType T);
+  toolchain::PointerType *getStoragePointerType(SILType T);
+  toolchain::StructType *createNominalType(CanType type);
+  toolchain::StructType *createNominalType(ProtocolCompositionType *T);
   clang::CanQual<clang::Type> getClangType(CanType type);
   clang::CanQual<clang::Type> getClangType(SILType type);
   clang::CanQual<clang::Type> getClangType(SILParameterInfo param,
@@ -1150,7 +1152,7 @@ public:
 
   Alignment getCappedAlignment(Alignment alignment);
 
-  SpareBitVector getSpareBitsForType(llvm::Type *scalarTy, Size size);
+  SpareBitVector getSpareBitsForType(toolchain::Type *scalarTy, Size size);
 
   MetadataLayout &getMetadataLayout(NominalTypeDecl *decl);
   NominalMetadataLayout &getNominalMetadataLayout(NominalTypeDecl *decl);
@@ -1169,10 +1171,10 @@ private:
 
   const clang::ASTContext *ClangASTContext;
 
-  llvm::DenseMap<Decl*, MetadataLayout*> MetadataLayouts;
+  toolchain::DenseMap<Decl*, MetadataLayout*> MetadataLayouts;
   void destroyMetadataLayoutMap();
 
-  llvm::DenseMap<const ProtocolConformance *,
+  toolchain::DenseMap<const ProtocolConformance *,
                  std::unique_ptr<const ConformanceInfo>> Conformances;
 
   friend class GenericContextScope;
@@ -1180,151 +1182,151 @@ private:
   
 //--- Globals ---------------------------------------------------------------
 public:
-  std::pair<llvm::GlobalVariable *, llvm::Constant *> createStringConstant(
+  std::pair<toolchain::GlobalVariable *, toolchain::Constant *> createStringConstant(
       StringRef Str, bool willBeRelativelyAddressed = false,
       StringRef sectionName = "", StringRef name = "");
-  llvm::Constant *getAddrOfGlobalString(StringRef utf8,
+  toolchain::Constant *getAddrOfGlobalString(StringRef utf8,
                                         bool willBeRelativelyAddressed = false,
                                         bool useOSLogSection = false);
-  llvm::Constant *getAddrOfGlobalUTF16String(StringRef utf8);
-  llvm::Constant *
+  toolchain::Constant *getAddrOfGlobalUTF16String(StringRef utf8);
+  toolchain::Constant *
   getAddrOfGlobalIdentifierString(StringRef utf8,
                                   bool willBeRelativelyAddressed = false);
-  llvm::Constant *getAddrOfObjCSelectorRef(StringRef selector);
-  llvm::Constant *getAddrOfObjCSelectorRef(SILDeclRef method);
+  toolchain::Constant *getAddrOfObjCSelectorRef(StringRef selector);
+  toolchain::Constant *getAddrOfObjCSelectorRef(SILDeclRef method);
   std::string getObjCSelectorName(SILDeclRef method);
-  llvm::Constant *getAddrOfObjCMethodName(StringRef methodName);
-  llvm::Constant *getAddrOfObjCProtocolRecord(ProtocolDecl *proto,
+  toolchain::Constant *getAddrOfObjCMethodName(StringRef methodName);
+  toolchain::Constant *getAddrOfObjCProtocolRecord(ProtocolDecl *proto,
                                               ForDefinition_t forDefinition);
   Address getAddrOfObjCProtocolRef(ProtocolDecl *proto,
                                    ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfKeyPathPattern(KeyPathPattern *pattern,
+  toolchain::Constant *getAddrOfKeyPathPattern(KeyPathPattern *pattern,
                                           SILLocation diagLoc);
-  llvm::Constant *getAddrOfOpaqueTypeDescriptor(OpaqueTypeDecl *opaqueType,
+  toolchain::Constant *getAddrOfOpaqueTypeDescriptor(OpaqueTypeDecl *opaqueType,
                                                 ConstantInit forDefinition);
-  llvm::Constant *
+  toolchain::Constant *
   emitClangProtocolObject(const clang::ObjCProtocolDecl *objcProtocol);
 
   ConstantReference getConstantReferenceForProtocolDescriptor(ProtocolDecl *proto);
 
   ConstantIntegerLiteral getConstantIntegerLiteral(APInt value);
 
-  llvm::Constant *getOrCreateLazyGlobalVariable(LinkEntity entity,
-      llvm::function_ref<ConstantInitFuture(ConstantInitBuilder &)> build,
-      llvm::function_ref<void(llvm::GlobalVariable *)> finish);
+  toolchain::Constant *getOrCreateLazyGlobalVariable(LinkEntity entity,
+      toolchain::function_ref<ConstantInitFuture(ConstantInitBuilder &)> build,
+      toolchain::function_ref<void(toolchain::GlobalVariable *)> finish);
 
-  void addUsedGlobal(llvm::GlobalValue *global);
-  void addCompilerUsedGlobal(llvm::GlobalValue *global);
-  void addGenericROData(llvm::Constant *addr);
-  void addObjCClass(llvm::Constant *addr, bool nonlazy);
-  void addObjCClassStub(llvm::Constant *addr);
+  void addUsedGlobal(toolchain::GlobalValue *global);
+  void addCompilerUsedGlobal(toolchain::GlobalValue *global);
+  void addGenericROData(toolchain::Constant *addr);
+  void addObjCClass(toolchain::Constant *addr, bool nonlazy);
+  void addObjCClassStub(toolchain::Constant *addr);
   void addProtocolConformance(ConformanceDescription &&conformance);
-  void addAccessibleFunction(AccessibleFunction func);
+  void addAccessibleFunction(AccessibleFunction fn);
 
-  llvm::Constant *emitSwiftProtocols(bool asContiguousArray);
-  llvm::Constant *emitProtocolConformances(bool asContiguousArray);
-  llvm::Constant *emitTypeMetadataRecords(bool asContiguousArray);
+  toolchain::Constant *emitCodiraProtocols(bool asContiguousArray);
+  toolchain::Constant *emitProtocolConformances(bool asContiguousArray);
+  toolchain::Constant *emitTypeMetadataRecords(bool asContiguousArray);
 
   void emitAccessibleFunctions();
   void emitAccessibleFunction(StringRef sectionName,
-                              const AccessibleFunction &func);
+                              const AccessibleFunction &fn);
 
-  llvm::Constant *getConstantSignedFunctionPointer(llvm::Constant *fn,
+  toolchain::Constant *getConstantSignedFunctionPointer(toolchain::Constant *fn,
                                                    CanSILFunctionType fnType);
 
-  llvm::Constant *getConstantSignedCFunctionPointer(llvm::Constant *fn);
+  toolchain::Constant *getConstantSignedCFunctionPointer(toolchain::Constant *fn);
 
-  llvm::Constant *
-  getConstantSignedPointer(llvm::Constant *pointer, unsigned key,
-                           llvm::Constant *storageAddress,
-                           llvm::ConstantInt *otherDiscriminator);
-  llvm::Constant *getConstantSignedPointer(llvm::Constant *pointer,
+  toolchain::Constant *
+  getConstantSignedPointer(toolchain::Constant *pointer, unsigned key,
+                           toolchain::Constant *storageAddress,
+                           toolchain::ConstantInt *otherDiscriminator);
+  toolchain::Constant *getConstantSignedPointer(toolchain::Constant *pointer,
                                            const clang::PointerAuthSchema &schema,
                                            const PointerAuthEntity &entity,
-                                           llvm::Constant *storageAddress);
+                                           toolchain::Constant *storageAddress);
 
-  llvm::Constant *getOrCreateHelperFunction(
-      StringRef name, llvm::Type *resultType, ArrayRef<llvm::Type *> paramTypes,
-      llvm::function_ref<void(IRGenFunction &IGF)> generate,
+  toolchain::Constant *getOrCreateHelperFunction(
+      StringRef name, toolchain::Type *resultType, ArrayRef<toolchain::Type *> paramTypes,
+      toolchain::function_ref<void(IRGenFunction &IGF)> generate,
       bool setIsNoInline = false, bool forPrologue = false,
       bool isPerformanceConstraint = false,
       IRLinkage *optionalLinkage = nullptr,
-      std::optional<llvm::CallingConv::ID> specialCallingConv = std::nullopt,
-      std::optional<llvm::function_ref<void(llvm::AttributeList &)>>
+      std::optional<toolchain::CallingConv::ID> specialCallingConv = std::nullopt,
+      std::optional<toolchain::function_ref<void(toolchain::AttributeList &)>>
           transformAttrs = std::nullopt);
 
-  llvm::Constant *getOrCreateRetainFunction(const TypeInfo &objectTI, SILType t,
-                              llvm::Type *llvmType, Atomicity atomicity);
+  toolchain::Constant *getOrCreateRetainFunction(const TypeInfo &objectTI, SILType t,
+                              toolchain::Type *toolchainType, Atomicity atomicity);
 
-  llvm::Constant *
+  toolchain::Constant *
   getOrCreateReleaseFunction(const TypeInfo &objectTI, SILType t,
-                             llvm::Type *llvmType, Atomicity atomicity,
+                             toolchain::Type *toolchainType, Atomicity atomicity,
                              const OutliningMetadataCollector &collector);
 
-  llvm::Constant *getOrCreateOutlinedInitializeWithTakeFunction(
+  toolchain::Constant *getOrCreateOutlinedInitializeWithTakeFunction(
                               SILType objectType, const TypeInfo &objectTI,
                               const OutliningMetadataCollector &collector);
 
-  llvm::Constant *getOrCreateOutlinedInitializeWithCopyFunction(
+  toolchain::Constant *getOrCreateOutlinedInitializeWithCopyFunction(
                               SILType objectType, const TypeInfo &objectTI,
                               const OutliningMetadataCollector &collector);
 
-  llvm::Constant *getOrCreateOutlinedAssignWithTakeFunction(
+  toolchain::Constant *getOrCreateOutlinedAssignWithTakeFunction(
                               SILType objectType, const TypeInfo &objectTI,
                               const OutliningMetadataCollector &collector);
 
-  llvm::Constant *getOrCreateOutlinedAssignWithCopyFunction(
+  toolchain::Constant *getOrCreateOutlinedAssignWithCopyFunction(
                               SILType objectType, const TypeInfo &objectTI,
                               const OutliningMetadataCollector &collector);
 
-  llvm::Constant *getOrCreateOutlinedDestroyFunction(
+  toolchain::Constant *getOrCreateOutlinedDestroyFunction(
                               SILType objectType, const TypeInfo &objectTI,
                               const OutliningMetadataCollector &collector);
 
-  llvm::Constant *getOrCreateOutlinedEnumTagStoreFunction(
+  toolchain::Constant *getOrCreateOutlinedEnumTagStoreFunction(
     SILType T, const TypeInfo &ti, EnumElementDecl *theCase, unsigned caseIdx);
-  llvm::Constant *getOrCreateOutlinedDestructiveProjectDataForLoad(
+  toolchain::Constant *getOrCreateOutlinedDestructiveProjectDataForLoad(
     SILType T, const TypeInfo &ti, EnumElementDecl *theCase, unsigned caseIdx);
 
-  llvm::Constant *getAddrOfClangGlobalDecl(clang::GlobalDecl global,
+  toolchain::Constant *getAddrOfClangGlobalDecl(clang::GlobalDecl global,
                                            ForDefinition_t forDefinition);
 
 private:
   using CopyAddrHelperGenerator =
-    llvm::function_ref<void(IRGenFunction &IGF, Address dest, Address src,
+    toolchain::function_ref<void(IRGenFunction &IGF, Address dest, Address src,
                             SILType objectType, const TypeInfo &objectTI)>;
 
-  llvm::Constant *getOrCreateOutlinedCopyAddrHelperFunction(
+  toolchain::Constant *getOrCreateOutlinedCopyAddrHelperFunction(
                               SILType objectType, const TypeInfo &objectTI,
                               const OutliningMetadataCollector &collector,
                               StringRef funcName,
                               CopyAddrHelperGenerator generator);
 
-  llvm::Constant *getOrCreateGOTEquivalent(llvm::Constant *global,
+  toolchain::Constant *getOrCreateGOTEquivalent(toolchain::Constant *global,
                                            LinkEntity entity);
                                            
-  llvm::DenseMap<LinkEntity, llvm::Constant*> GlobalVars;
-  llvm::DenseMap<LinkEntity, llvm::Constant*> IndirectAsyncFunctionPointers;
-  llvm::DenseMap<LinkEntity, llvm::Constant *> IndirectCoroFunctionPointers;
-  llvm::DenseMap<LinkEntity, llvm::Constant*> GlobalGOTEquivalents;
-  llvm::DenseMap<LinkEntity, llvm::Function*> GlobalFuncs;
-  llvm::DenseSet<const clang::Decl *> GlobalClangDecls;
-  llvm::StringMap<std::pair<llvm::GlobalVariable*, llvm::Constant*>>
+  toolchain::DenseMap<LinkEntity, toolchain::Constant*> GlobalVars;
+  toolchain::DenseMap<LinkEntity, toolchain::Constant*> IndirectAsyncFunctionPointers;
+  toolchain::DenseMap<LinkEntity, toolchain::Constant *> IndirectCoroFunctionPointers;
+  toolchain::DenseMap<LinkEntity, toolchain::Constant*> GlobalGOTEquivalents;
+  toolchain::DenseMap<LinkEntity, toolchain::Function*> GlobalFuncs;
+  toolchain::DenseSet<const clang::Decl *> GlobalClangDecls;
+  toolchain::StringMap<std::pair<toolchain::GlobalVariable*, toolchain::Constant*>>
     GlobalStrings;
-  llvm::StringMap<std::pair<llvm::GlobalVariable*, llvm::Constant*>>
+  toolchain::StringMap<std::pair<toolchain::GlobalVariable*, toolchain::Constant*>>
     GlobalOSLogStrings;
-  llvm::StringMap<llvm::Constant*> GlobalUTF16Strings;
-  llvm::StringMap<std::pair<llvm::GlobalVariable*, llvm::Constant*>>
+  toolchain::StringMap<toolchain::Constant*> GlobalUTF16Strings;
+  toolchain::StringMap<std::pair<toolchain::GlobalVariable*, toolchain::Constant*>>
     StringsForTypeRef;
-  llvm::StringMap<std::pair<llvm::GlobalVariable*, llvm::Constant*>> FieldNames;
-  llvm::StringMap<llvm::Constant*> ObjCSelectorRefs;
-  llvm::StringMap<llvm::Constant*> ObjCMethodNames;
+  toolchain::StringMap<std::pair<toolchain::GlobalVariable*, toolchain::Constant*>> FieldNames;
+  toolchain::StringMap<toolchain::Constant*> ObjCSelectorRefs;
+  toolchain::StringMap<toolchain::Constant*> ObjCMethodNames;
 
   std::unique_ptr<ConstantIntegerLiteralMap> ConstantIntegerLiterals;
 
-  /// Maps to constant swift 'String's.
-  llvm::StringMap<llvm::Constant*> GlobalConstantStrings;
-  llvm::StringMap<llvm::Constant*> GlobalConstantUTF16Strings;
+  /// Maps to constant language 'String's.
+  toolchain::StringMap<toolchain::Constant*> GlobalConstantStrings;
+  toolchain::StringMap<toolchain::Constant*> GlobalConstantUTF16Strings;
 
   struct PointerAuthCachesType;
   PointerAuthCachesType *PointerAuthCaches = nullptr;
@@ -1336,41 +1338,41 @@ private:
   /// present in the object file; bitcast to i8*. This is used for
   /// forcing visibility of symbols which may otherwise be optimized
   /// out.
-  SmallVector<llvm::WeakTrackingVH, 4> LLVMUsed;
+  SmallVector<toolchain::WeakTrackingVH, 4> LLVMUsed;
 
   /// LLVMCompilerUsed - List of global values which are required to be
   /// present in the object file; bitcast to i8*. This is used for
   /// forcing visibility of symbols which may otherwise be optimized
   /// out.
   ///
-  /// Similar to LLVMUsed, but emitted as llvm.compiler.used.
-  SmallVector<llvm::WeakTrackingVH, 4> LLVMCompilerUsed;
+  /// Similar to LLVMUsed, but emitted as toolchain.compiler.used.
+  SmallVector<toolchain::WeakTrackingVH, 4> LLVMCompilerUsed;
 
   /// Metadata nodes for autolinking info.
   SmallVector<LinkLibrary, 32> AutolinkEntries;
 
   // List of ro_data_t referenced from generic class patterns.
-  SmallVector<llvm::WeakTrackingVH, 4> GenericRODatas;
+  SmallVector<toolchain::WeakTrackingVH, 4> GenericRODatas;
   /// List of Objective-C classes, bitcast to i8*.
-  SmallVector<llvm::WeakTrackingVH, 4> ObjCClasses;
+  SmallVector<toolchain::WeakTrackingVH, 4> ObjCClasses;
   /// List of Objective-C classes that require nonlazy realization, bitcast to
   /// i8*.
-  SmallVector<llvm::WeakTrackingVH, 4> ObjCNonLazyClasses;
+  SmallVector<toolchain::WeakTrackingVH, 4> ObjCNonLazyClasses;
   /// List of Objective-C resilient class stubs, bitcast to i8*.
-  SmallVector<llvm::WeakTrackingVH, 4> ObjCClassStubs;
+  SmallVector<toolchain::WeakTrackingVH, 4> ObjCClassStubs;
   /// List of Objective-C categories, bitcast to i8*.
-  SmallVector<llvm::WeakTrackingVH, 4> ObjCCategories;
+  SmallVector<toolchain::WeakTrackingVH, 4> ObjCCategories;
   /// List of Objective-C categories on class stubs, bitcast to i8*.
-  SmallVector<llvm::WeakTrackingVH, 4> ObjCCategoriesOnStubs;
+  SmallVector<toolchain::WeakTrackingVH, 4> ObjCCategoriesOnStubs;
   /// List of non-ObjC protocols described by this module.
-  SmallVector<ProtocolDecl *, 4> SwiftProtocols;
+  SmallVector<ProtocolDecl *, 4> CodiraProtocols;
   /// List of protocol conformances to generate descriptors for.
   std::vector<ConformanceDescription> ProtocolConformances;
   /// List of types to generate runtime-resolvable metadata records for that
-  /// are consumable for any Swift runtime.
+  /// are consumable for any Codira runtime.
   SmallVector<GenericTypeDecl *, 4> RuntimeResolvableTypes;
   /// List of types to generate runtime-resolvable metadata records for that
-  /// are consumable for any Swift runtime aware of noncopyable types.
+  /// are consumable for any Codira runtime aware of noncopyable types.
   SmallVector<GenericTypeDecl *, 4> RuntimeResolvableTypes2;
   /// List of ExtensionDecls corresponding to the generated
   /// categories.
@@ -1384,16 +1386,16 @@ private:
   /// The interesting global variables relating to an ObjC protocol.
   struct ObjCProtocolPair {
     /// The global variable that contains the protocol record.
-    llvm::WeakTrackingVH record;
+    toolchain::WeakTrackingVH record;
     /// The global variable that contains the indirect reference to the
     /// protocol record.
-    llvm::WeakTrackingVH ref;
+    toolchain::WeakTrackingVH ref;
   };
 
-  llvm::DenseMap<ProtocolDecl*, ObjCProtocolPair> ObjCProtocols;
-  llvm::DenseMap<ProtocolDecl *, llvm::Constant *> ObjCProtocolSymRefs;
-  llvm::SmallVector<ProtocolDecl*, 4> LazyObjCProtocolDefinitions;
-  llvm::DenseMap<KeyPathPattern*, llvm::GlobalVariable*> KeyPathPatterns;
+  toolchain::DenseMap<ProtocolDecl*, ObjCProtocolPair> ObjCProtocols;
+  toolchain::DenseMap<ProtocolDecl *, toolchain::Constant *> ObjCProtocolSymRefs;
+  toolchain::SmallVector<ProtocolDecl*, 4> LazyObjCProtocolDefinitions;
+  toolchain::DenseMap<KeyPathPattern*, toolchain::GlobalVariable*> KeyPathPatterns;
 
   /// Uniquing key for a fixed type layout record.
   struct FixedLayoutKey {
@@ -1403,23 +1405,23 @@ private:
     unsigned pod: 1;
     unsigned bitwiseTakable: 2;
   };
-  friend struct ::llvm::DenseMapInfo<swift::irgen::IRGenModule::FixedLayoutKey>;
-  llvm::DenseMap<FixedLayoutKey, llvm::Constant *> PrivateFixedLayouts;
+  friend struct ::toolchain::DenseMapInfo<language::irgen::IRGenModule::FixedLayoutKey>;
+  toolchain::DenseMap<FixedLayoutKey, toolchain::Constant *> PrivateFixedLayouts;
 
   /// A cache for layouts of statically initialized objects.
-  llvm::DenseMap<SILGlobalVariable *, std::unique_ptr<StructLayout>>
+  toolchain::DenseMap<SILGlobalVariable *, std::unique_ptr<StructLayout>>
     StaticObjectLayouts;
 
   /// A mapping from order numbers to the LLVM functions which we
   /// created for the SIL functions with those orders.
-  SuccessorMap<unsigned, llvm::Function*> EmittedFunctionsByOrder;
+  SuccessorMap<unsigned, toolchain::Function*> EmittedFunctionsByOrder;
 
   ObjCProtocolPair getObjCProtocolGlobalVars(ProtocolDecl *proto);
-  llvm::Constant *getObjCProtocolRefSymRefDescriptor(ProtocolDecl *protocol);
+  toolchain::Constant *getObjCProtocolRefSymRefDescriptor(ProtocolDecl *protocol);
   void emitLazyObjCProtocolDefinitions();
   void emitLazyObjCProtocolDefinition(ProtocolDecl *proto);
 
-  SmallVector<llvm::MDNode *> UsedConditionals;
+  SmallVector<toolchain::MDNode *> UsedConditionals;
   void emitUsedConditionals();
 
   void emitGlobalLists();
@@ -1439,28 +1441,28 @@ public:
 
   /// Builtin types referenced by types in this module when emitting
   /// reflection metadata.
-  llvm::SetVector<CanType> BuiltinTypes;
+  toolchain::SetVector<CanType> BuiltinTypes;
 
-  std::pair<llvm::Constant *, unsigned>
+  std::pair<toolchain::Constant *, unsigned>
   getTypeRef(Type type, GenericSignature genericSig, MangledTypeRefRole role);
   
-  std::pair<llvm::Constant *, unsigned>
+  std::pair<toolchain::Constant *, unsigned>
   getTypeRef(CanType type, CanGenericSignature sig, MangledTypeRefRole role);
 
-  std::pair<llvm::Constant *, unsigned>
+  std::pair<toolchain::Constant *, unsigned>
   getLoweredTypeRef(SILType loweredType, CanGenericSignature genericSig,
                     MangledTypeRefRole role);
 
-  llvm::Constant *emitWitnessTableRefString(CanType type,
+  toolchain::Constant *emitWitnessTableRefString(CanType type,
                                             ProtocolConformanceRef conformance,
                                             GenericSignature genericSig,
                                             bool shouldSetLowBit);
-  llvm::Constant *getMangledAssociatedConformance(
+  toolchain::Constant *getMangledAssociatedConformance(
                                   const NormalProtocolConformance *conformance,
                                   const AssociatedConformance &requirement);
-  llvm::Constant *getAddrOfStringForTypeRef(StringRef mangling,
+  toolchain::Constant *getAddrOfStringForTypeRef(StringRef mangling,
                                             MangledTypeRefRole role);
-  llvm::Constant *getAddrOfStringForTypeRef(const SymbolicMangling &mangling,
+  toolchain::Constant *getAddrOfStringForTypeRef(const SymbolicMangling &mangling,
                                             MangledTypeRefRole role);
 
   /// Retrieve the address of a mangled string used for some kind of metadata
@@ -1476,23 +1478,23 @@ public:
   /// itself, given a constant building and producing a future for the
   /// initializer.
   /// \returns the address of the global variable describing this metadata.
-  llvm::Constant *getAddrOfStringForMetadataRef(
+  toolchain::Constant *getAddrOfStringForMetadataRef(
       StringRef symbolName,
       unsigned alignment,
       bool shouldSetLowBit,
-      llvm::function_ref<ConstantInitFuture(ConstantInitBuilder &)> body);
+      toolchain::function_ref<ConstantInitFuture(ConstantInitBuilder &)> body);
 
-  llvm::Constant *getAddrOfFieldName(StringRef Name);
-  llvm::Constant *getAddrOfCaptureDescriptor(SILFunction &caller,
+  toolchain::Constant *getAddrOfFieldName(StringRef Name);
+  toolchain::Constant *getAddrOfCaptureDescriptor(SILFunction &caller,
                                              CanSILFunctionType origCalleeType,
                                              CanSILFunctionType substCalleeType,
                                              SubstitutionMap subs,
                                              const HeapLayout &layout);
-  llvm::Constant *getAddrOfBoxDescriptor(SILType boxedType,
+  toolchain::Constant *getAddrOfBoxDescriptor(SILType boxedType,
                                          CanGenericSignature genericSig);
 
   /// Produce an associated type witness that refers to the given type.
-  llvm::Constant *getAssociatedTypeWitness(Type type, GenericSignature sig,
+  toolchain::Constant *getAssociatedTypeWitness(Type type, GenericSignature sig,
                                            bool inProtocolContext);
 
   void emitAssociatedTypeMetadataRecord(const RootProtocolConformance *C);
@@ -1519,75 +1521,75 @@ public:
 
   /// Returns the special builtin types that should be emitted in the stdlib
   /// module.
-  llvm::ArrayRef<CanType> getOrCreateSpecialStlibBuiltinTypes();
+  toolchain::ArrayRef<CanType> getOrCreateSpecialStlibBuiltinTypes();
 
 private:
   /// The special builtin types that should be emitted in the stdlib module.
-  llvm::SmallVector<CanType, 7> SpecialStdlibBuiltinTypes;
+  toolchain::SmallVector<CanType, 7> SpecialStdlibBuiltinTypes;
 
 //--- Runtime ---------------------------------------------------------------
 public:
-  llvm::Constant *getEmptyTupleMetadata();
-  llvm::Constant *getAnyExistentialMetadata();
-  llvm::Constant *getAnyObjectExistentialMetadata();
-  llvm::Constant *getObjCEmptyCachePtr();
-  llvm::Constant *getObjCEmptyVTablePtr();
-  llvm::InlineAsm *getObjCRetainAutoreleasedReturnValueMarker();
-  ClassDecl *getObjCRuntimeBaseForSwiftRootClass(ClassDecl *theClass);
+  toolchain::Constant *getEmptyTupleMetadata();
+  toolchain::Constant *getAnyExistentialMetadata();
+  toolchain::Constant *getAnyObjectExistentialMetadata();
+  toolchain::Constant *getObjCEmptyCachePtr();
+  toolchain::Constant *getObjCEmptyVTablePtr();
+  toolchain::InlineAsm *getObjCRetainAutoreleasedReturnValueMarker();
+  ClassDecl *getObjCRuntimeBaseForCodiraRootClass(ClassDecl *theClass);
   ClassDecl *getObjCRuntimeBaseClass(Identifier name, Identifier objcName);
-  ClassDecl *getSwiftNativeNSObjectDecl();
-  llvm::Module *getModule() const;
-  llvm::AttributeList getAllocAttrs();
-  llvm::Constant *getDeletedAsyncMethodErrorAsyncFunctionPointer();
-  llvm::Constant *
+  ClassDecl *getCodiraNativeNSObjectDecl();
+  toolchain::Module *getModule() const;
+  toolchain::AttributeList getAllocAttrs();
+  toolchain::Constant *getDeletedAsyncMethodErrorAsyncFunctionPointer();
+  toolchain::Constant *
   getDeletedCalleeAllocatedCoroutineMethodErrorCoroFunctionPointer();
 
 private:
-  llvm::Constant *EmptyTupleMetadata = nullptr;
-  llvm::Constant *AnyExistentialMetadata = nullptr;
-  llvm::Constant *AnyObjectExistentialMetadata = nullptr;
-  llvm::Constant *ObjCEmptyCachePtr = nullptr;
-  llvm::Constant *ObjCEmptyVTablePtr = nullptr;
-  llvm::Constant *ObjCISAMaskPtr = nullptr;
-  std::optional<llvm::InlineAsm *> ObjCRetainAutoreleasedReturnValueMarker;
-  llvm::DenseMap<Identifier, ClassDecl*> SwiftRootClasses;
-  llvm::AttributeList AllocAttrs;
+  toolchain::Constant *EmptyTupleMetadata = nullptr;
+  toolchain::Constant *AnyExistentialMetadata = nullptr;
+  toolchain::Constant *AnyObjectExistentialMetadata = nullptr;
+  toolchain::Constant *ObjCEmptyCachePtr = nullptr;
+  toolchain::Constant *ObjCEmptyVTablePtr = nullptr;
+  toolchain::Constant *ObjCISAMaskPtr = nullptr;
+  std::optional<toolchain::InlineAsm *> ObjCRetainAutoreleasedReturnValueMarker;
+  toolchain::DenseMap<Identifier, ClassDecl*> CodiraRootClasses;
+  toolchain::AttributeList AllocAttrs;
 
 #define FUNCTION_ID(Id)                                                        \
 public:                                                                        \
-  llvm::Constant *get##Id##Fn();                                               \
+  toolchain::Constant *get##Id##Fn();                                               \
   FunctionPointer get##Id##FunctionPointer();                                  \
-  llvm::FunctionType *get##Id##FnType();                                       \
+  toolchain::FunctionType *get##Id##FnType();                                       \
                                                                                \
 private:                                                                       \
-  llvm::Constant *Id##Fn = nullptr;
+  toolchain::Constant *Id##Fn = nullptr;
 #include "language/Runtime/RuntimeFunctions.def"
 
   std::optional<FunctionPointer> FixedClassInitializationFn;
 
-  llvm::Constant *FixLifetimeFn = nullptr;
+  toolchain::Constant *FixLifetimeFn = nullptr;
 
   mutable std::optional<SpareBitVector> HeapPointerSpareBits;
 
   //--- Generic ---------------------------------------------------------------
 public:
-  llvm::Constant *getFixLifetimeFn();
+  toolchain::Constant *getFixLifetimeFn();
 
   FunctionPointer getFixedClassInitializationFn();
-  llvm::Function *getAwaitAsyncContinuationFn();
+  toolchain::Function *getAwaitAsyncContinuationFn();
 
   /// The constructor used when generating code.
   ///
-  /// The \p SF is the source file for which the llvm module is generated when
+  /// The \p SF is the source file for which the toolchain module is generated when
   /// doing multi-threaded whole-module compilation. Otherwise it is null.
-  IRGenModule(IRGenerator &irgen, std::unique_ptr<llvm::TargetMachine> &&target,
+  IRGenModule(IRGenerator &irgen, std::unique_ptr<toolchain::TargetMachine> &&target,
               SourceFile *SF,
               StringRef ModuleName, StringRef OutputFilename,
               StringRef MainInputFilenameForDebugInfo,
               StringRef PrivateDiscriminator);
 
   /// The constructor used when we just need an IRGenModule for type lowering.
-  IRGenModule(IRGenerator &irgen, std::unique_ptr<llvm::TargetMachine> &&target)
+  IRGenModule(IRGenerator &irgen, std::unique_ptr<toolchain::TargetMachine> &&target)
     : IRGenModule(irgen, std::move(target), /*SF=*/nullptr,
                   "<fake module name>", "<fake output filename>",
                   "<fake main input filename>", "") {}
@@ -1598,7 +1600,7 @@ public:
   GeneratedModule intoGeneratedModule() &&;
 
 public:
-  llvm::LLVMContext &getLLVMContext() const { return *LLVMContext; }
+  toolchain::LLVMContext &getLLVMContext() const { return *LLVMContext; }
 
   void emitSourceFile(SourceFile &SF);
   void emitSynthesizedFileUnit(SynthesizedFileUnit &SFU);
@@ -1613,13 +1615,13 @@ public:
   bool finalize();
 
   void constructInitialFnAttributes(
-      llvm::AttrBuilder &Attrs,
+      toolchain::AttrBuilder &Attrs,
       OptimizationMode FuncOptMode = OptimizationMode::NotSet,
       StackProtectorMode stackProtect = StackProtectorMode::NoStackProtector);
-  void setHasNoFramePointer(llvm::AttrBuilder &Attrs);
-  void setHasNoFramePointer(llvm::Function *F);
-  void setMustHaveFramePointer(llvm::Function *F);
-  llvm::AttributeList constructInitialAttributes();
+  void setHasNoFramePointer(toolchain::AttrBuilder &Attrs);
+  void setHasNoFramePointer(toolchain::Function *F);
+  void setMustHaveFramePointer(toolchain::Function *F);
+  toolchain::AttributeList constructInitialAttributes();
   StackProtectorMode shouldEmitStackProtector(SILFunction *f);
 
   void emitProtocolDecl(ProtocolDecl *D);
@@ -1638,7 +1640,7 @@ public:
   void emitSILWitnessTable(SILWitnessTable *wt);
   void emitSILProperty(SILProperty *prop);
   void emitSILDifferentiabilityWitness(SILDifferentiabilityWitness *dw);
-  llvm::Constant *emitFixedTypeLayout(CanType t, const FixedTypeInfo &ti);
+  toolchain::Constant *emitFixedTypeLayout(CanType t, const FixedTypeInfo &ti);
   void emitProtocolConformance(const ConformanceDescription &record);
   void emitNestedTypeDecls(DeclRange members);
   void emitClangDecl(const clang::Decl *decl);
@@ -1653,53 +1655,53 @@ public:
   getSignature(CanSILFunctionType fnType, FunctionPointerKind kind,
                bool forStaticCall = false,
                const clang::CXXConstructorDecl *cxxCtorDecl = nullptr);
-  llvm::FunctionType *getFunctionType(CanSILFunctionType type,
-                                      llvm::AttributeList &attrs,
+  toolchain::FunctionType *getFunctionType(CanSILFunctionType type,
+                                      toolchain::AttributeList &attrs,
                                       ForeignFunctionInfo *foreignInfo=nullptr);
   ForeignFunctionInfo getForeignFunctionInfo(CanSILFunctionType type);
 
   void
   ensureImplicitCXXDestructorBodyIsDefined(clang::CXXDestructorDecl *cxxDtor);
 
-  llvm::ConstantInt *getInt32(uint32_t value);
-  llvm::ConstantInt *getSize(Size size);
-  llvm::Constant *getAlignment(Alignment align);
-  llvm::Constant *getBool(bool condition);
+  toolchain::ConstantInt *getInt32(uint32_t value);
+  toolchain::ConstantInt *getSize(Size size);
+  toolchain::Constant *getAlignment(Alignment align);
+  toolchain::Constant *getBool(bool condition);
 
   /// Cast the given constant to i8*.
-  llvm::Constant *getOpaquePtr(llvm::Constant *pointer);
+  toolchain::Constant *getOpaquePtr(toolchain::Constant *pointer);
 
-  llvm::Constant *getAddrOfAsyncFunctionPointer(LinkEntity entity);
-  llvm::Constant *getAddrOfAsyncFunctionPointer(SILFunction *function);
-  llvm::Constant *defineAsyncFunctionPointer(LinkEntity entity,
+  toolchain::Constant *getAddrOfAsyncFunctionPointer(LinkEntity entity);
+  toolchain::Constant *getAddrOfAsyncFunctionPointer(SILFunction *function);
+  toolchain::Constant *defineAsyncFunctionPointer(LinkEntity entity,
                                              ConstantInit init);
-  SILFunction *getSILFunctionForAsyncFunctionPointer(llvm::Constant *afp);
+  SILFunction *getSILFunctionForAsyncFunctionPointer(toolchain::Constant *afp);
 
-  llvm::Constant *getAddrOfCoroFunctionPointer(LinkEntity entity);
-  llvm::Constant *getAddrOfCoroFunctionPointer(SILFunction *function);
-  llvm::Constant *defineCoroFunctionPointer(LinkEntity entity,
+  toolchain::Constant *getAddrOfCoroFunctionPointer(LinkEntity entity);
+  toolchain::Constant *getAddrOfCoroFunctionPointer(SILFunction *function);
+  toolchain::Constant *defineCoroFunctionPointer(LinkEntity entity,
                                             ConstantInit init);
-  SILFunction *getSILFunctionForCoroFunctionPointer(llvm::Constant *cfp);
+  SILFunction *getSILFunctionForCoroFunctionPointer(toolchain::Constant *cfp);
 
-  llvm::Constant *getAddrOfGlobalCoroMallocAllocator();
-  llvm::Constant *getAddrOfGlobalCoroAsyncTaskAllocator();
+  toolchain::Constant *getAddrOfGlobalCoroMallocAllocator();
+  toolchain::Constant *getAddrOfGlobalCoroAsyncTaskAllocator();
 
-  llvm::Function *getAddrOfDispatchThunk(SILDeclRef declRef,
+  toolchain::Function *getAddrOfDispatchThunk(SILDeclRef declRef,
                                          ForDefinition_t forDefinition);
   void emitDispatchThunk(SILDeclRef declRef);
 
-  llvm::Function *getAddrOfMethodLookupFunction(ClassDecl *classDecl,
+  toolchain::Function *getAddrOfMethodLookupFunction(ClassDecl *classDecl,
                                                 ForDefinition_t forDefinition);
   void emitMethodLookupFunction(ClassDecl *classDecl);
 
-  llvm::GlobalValue *defineAlias(LinkEntity entity, llvm::Constant *definition,
-                                 llvm::Type *typeOfDefinitionValue);
+  toolchain::GlobalValue *defineAlias(LinkEntity entity, toolchain::Constant *definition,
+                                 toolchain::Type *typeOfDefinitionValue);
 
-  llvm::GlobalValue *defineMethodDescriptor(SILDeclRef declRef,
+  toolchain::GlobalValue *defineMethodDescriptor(SILDeclRef declRef,
                                             NominalTypeDecl *nominalDecl,
-                                            llvm::Constant *definition,
-                                            llvm::Type *typeOfDefinitionValue);
-  llvm::Constant *getAddrOfMethodDescriptor(SILDeclRef declRef,
+                                            toolchain::Constant *definition,
+                                            toolchain::Type *typeOfDefinitionValue);
+  toolchain::Constant *getAddrOfMethodDescriptor(SILDeclRef declRef,
                                             ForDefinition_t forDefinition);
   void emitNonoverriddenMethodDescriptor(const SILVTable *VTable,
                                          SILDeclRef declRef,
@@ -1708,31 +1710,31 @@ public:
   Address getAddrOfEnumCase(EnumElementDecl *Case,
                             ForDefinition_t forDefinition);
   Address getAddrOfFieldOffset(VarDecl *D, ForDefinition_t forDefinition);
-  llvm::Function *getOrCreateValueWitnessFunction(ValueWitness index,
+  toolchain::Function *getOrCreateValueWitnessFunction(ValueWitness index,
                                                   FixedPacking packing,
                                                   CanType abstractType,
                                                   SILType concreteType,
                                                   const TypeInfo &type);
-  llvm::Function *getAddrOfValueWitness(CanType concreteType,
+  toolchain::Function *getAddrOfValueWitness(CanType concreteType,
                                         ValueWitness index,
                                         ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfValueWitnessTable(CanType concreteType,
+  toolchain::Constant *getAddrOfValueWitnessTable(CanType concreteType,
                                              ConstantInit init = ConstantInit());
-  std::optional<llvm::Function *>
+  std::optional<toolchain::Function *>
   getAddrOfIVarInitDestroy(ClassDecl *cd, bool isDestroyer, bool isForeign,
                            ForDefinition_t forDefinition);
 
-  void setVCallVisibility(llvm::GlobalVariable *var,
-                          llvm::GlobalObject::VCallVisibility visibility,
+  void setVCallVisibility(toolchain::GlobalVariable *var,
+                          toolchain::GlobalObject::VCallVisibility visibility,
                           std::pair<uint64_t, uint64_t> range);
 
   void addVTableTypeMetadata(
-      ClassDecl *decl, llvm::GlobalVariable *var,
+      ClassDecl *decl, toolchain::GlobalVariable *var,
       SmallVector<std::pair<Size, SILDeclRef>, 8> vtableEntries);
 
-  llvm::GlobalValue *defineTypeMetadata(
+  toolchain::GlobalValue *defineTypeMetadata(
       CanType concreteType, bool isPattern, bool isConstant,
-      ConstantInitFuture init, llvm::StringRef section = {},
+      ConstantInitFuture init, toolchain::StringRef section = {},
       SmallVector<std::pair<Size, SILDeclRef>, 8> vtableEntries = {});
 
   TypeEntityReference
@@ -1740,15 +1742,15 @@ public:
 
   TypeEntityReference getTypeEntityReference(GenericTypeDecl *D);
 
-  void appendLLVMUsedConditionalEntry(llvm::GlobalVariable *var,
-                                      llvm::Constant *dependsOn);
-  void appendLLVMUsedConditionalEntry(llvm::GlobalVariable *var,
+  void appendLLVMUsedConditionalEntry(toolchain::GlobalVariable *var,
+                                      toolchain::Constant *dependsOn);
+  void appendLLVMUsedConditionalEntry(toolchain::GlobalVariable *var,
                                       const ProtocolConformance *conformance);
 
-  void setColocateMetadataSection(llvm::Function *f);
-  void setColocateTypeDescriptorSection(llvm::GlobalVariable *v);
+  void setColocateMetadataSection(toolchain::Function *f);
+  void setColocateTypeDescriptorSection(toolchain::GlobalVariable *v);
 
-  llvm::Constant *
+  toolchain::Constant *
   getAddrOfTypeMetadata(CanType concreteType,
                         TypeMetadataCanonicality canonicality =
                             TypeMetadataCanonicality::Canonical);
@@ -1756,171 +1758,171 @@ public:
   getAddrOfTypeMetadata(CanType concreteType, SymbolReferenceKind kind,
                         TypeMetadataCanonicality canonicality =
                             TypeMetadataCanonicality::Canonical);
-  llvm::Constant *getAddrOfTypeMetadataPattern(NominalTypeDecl *D);
-  llvm::Constant *getAddrOfTypeMetadataPattern(NominalTypeDecl *D,
+  toolchain::Constant *getAddrOfTypeMetadataPattern(NominalTypeDecl *D);
+  toolchain::Constant *getAddrOfTypeMetadataPattern(NominalTypeDecl *D,
                                                ConstantInit init,
                                                StringRef section);
-  llvm::Function *getAddrOfTypeMetadataCompletionFunction(NominalTypeDecl *D,
+  toolchain::Function *getAddrOfTypeMetadataCompletionFunction(NominalTypeDecl *D,
                                              ForDefinition_t forDefinition);
-  llvm::Function *getAddrOfTypeMetadataInstantiationFunction(NominalTypeDecl *D,
+  toolchain::Function *getAddrOfTypeMetadataInstantiationFunction(NominalTypeDecl *D,
                                              ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfTypeMetadataInstantiationCache(NominalTypeDecl *D,
+  toolchain::Constant *getAddrOfTypeMetadataInstantiationCache(NominalTypeDecl *D,
                                              ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfTypeMetadataSingletonInitializationCache(
+  toolchain::Constant *getAddrOfTypeMetadataSingletonInitializationCache(
                                              NominalTypeDecl *D,
                                              ForDefinition_t forDefinition);
-  llvm::Function *getAddrOfTypeMetadataAccessFunction(CanType type,
+  toolchain::Function *getAddrOfTypeMetadataAccessFunction(CanType type,
                                                ForDefinition_t forDefinition);
-  llvm::Function *getAddrOfGenericTypeMetadataAccessFunction(
+  toolchain::Function *getAddrOfGenericTypeMetadataAccessFunction(
                                              NominalTypeDecl *nominal,
-                                             ArrayRef<llvm::Type *> genericArgs,
+                                             ArrayRef<toolchain::Type *> genericArgs,
                                              ForDefinition_t forDefinition);
-  llvm::Function *
+  toolchain::Function *
   getAddrOfCanonicalSpecializedGenericTypeMetadataAccessFunction(
       CanType theType, ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfTypeMetadataLazyCacheVariable(CanType type);
-  llvm::Constant *getAddrOfTypeMetadataDemanglingCacheVariable(CanType type,
+  toolchain::Constant *getAddrOfTypeMetadataLazyCacheVariable(CanType type);
+  toolchain::Constant *getAddrOfTypeMetadataDemanglingCacheVariable(CanType type,
                                                        ConstantInit definition);
-  llvm::Constant *getAddrOfCanonicalPrespecializedGenericTypeCachingOnceToken(
+  toolchain::Constant *getAddrOfCanonicalPrespecializedGenericTypeCachingOnceToken(
       NominalTypeDecl *decl);
-  llvm::Constant *getAddrOfNoncanonicalSpecializedGenericTypeMetadataCacheVariable(CanType type);
+  toolchain::Constant *getAddrOfNoncanonicalSpecializedGenericTypeMetadataCacheVariable(CanType type);
 
-  llvm::Constant *getAddrOfClassMetadataBounds(ClassDecl *D,
+  toolchain::Constant *getAddrOfClassMetadataBounds(ClassDecl *D,
                                                ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfTypeContextDescriptor(NominalTypeDecl *D,
+  toolchain::Constant *getAddrOfTypeContextDescriptor(NominalTypeDecl *D,
                                       RequireMetadata_t requireMetadata,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfAnonymousContextDescriptor(
+  toolchain::Constant *getAddrOfAnonymousContextDescriptor(
                           PointerUnion<DeclContext *, VarDecl *> Name,
                           ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfExtensionContextDescriptor(ExtensionDecl *ED,
+  toolchain::Constant *getAddrOfExtensionContextDescriptor(ExtensionDecl *ED,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfModuleContextDescriptor(ModuleDecl *D,
+  toolchain::Constant *getAddrOfModuleContextDescriptor(ModuleDecl *D,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfReflectionFieldDescriptor(CanType type,
+  toolchain::Constant *getAddrOfReflectionFieldDescriptor(CanType type,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfReflectionBuiltinDescriptor(CanType type,
+  toolchain::Constant *getAddrOfReflectionBuiltinDescriptor(CanType type,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfReflectionAssociatedTypeDescriptor(
+  toolchain::Constant *getAddrOfReflectionAssociatedTypeDescriptor(
                                       const ProtocolConformance *c,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfObjCModuleContextDescriptor();
-  llvm::Constant *getAddrOfClangImporterModuleContextDescriptor();
-  llvm::Constant *getAddrOfOriginalModuleContextDescriptor(StringRef Name);
+  toolchain::Constant *getAddrOfObjCModuleContextDescriptor();
+  toolchain::Constant *getAddrOfClangImporterModuleContextDescriptor();
+  toolchain::Constant *getAddrOfOriginalModuleContextDescriptor(StringRef Name);
   ConstantReference getAddrOfParentContextDescriptor(DeclContext *from,
                                                      bool fromAnonymousContext);
   ConstantReference getAddrOfContextDescriptorForParent(DeclContext *parent,
                                                     DeclContext *ofChild,
                                                     bool fromAnonymousContext);
-  llvm::Constant *getAddrOfGenericEnvironment(CanGenericSignature signature);
-  llvm::Constant *getAddrOfProtocolRequirementsBaseDescriptor(
+  toolchain::Constant *getAddrOfGenericEnvironment(CanGenericSignature signature);
+  toolchain::Constant *getAddrOfProtocolRequirementsBaseDescriptor(
                                                   ProtocolDecl *proto);
-  llvm::GlobalValue *defineProtocolRequirementsBaseDescriptor(
+  toolchain::GlobalValue *defineProtocolRequirementsBaseDescriptor(
                                                   ProtocolDecl *proto,
-                                                  llvm::Constant *definition);
-  llvm::Constant *getAddrOfAssociatedTypeDescriptor(
+                                                  toolchain::Constant *definition);
+  toolchain::Constant *getAddrOfAssociatedTypeDescriptor(
                                                 AssociatedTypeDecl *assocType);
-  llvm::GlobalValue *defineAssociatedTypeDescriptor(
+  toolchain::GlobalValue *defineAssociatedTypeDescriptor(
                                                   AssociatedTypeDecl *assocType,
-                                                  llvm::Constant *definition);
-  llvm::Constant *getAddrOfAssociatedConformanceDescriptor(
+                                                  toolchain::Constant *definition);
+  toolchain::Constant *getAddrOfAssociatedConformanceDescriptor(
                                             AssociatedConformance conformance);
-  llvm::GlobalValue *defineAssociatedConformanceDescriptor(
+  toolchain::GlobalValue *defineAssociatedConformanceDescriptor(
                                               AssociatedConformance conformance,
-                                              llvm::Constant *definition);
-  llvm::Constant *getAddrOfBaseConformanceDescriptor(
+                                              toolchain::Constant *definition);
+  toolchain::Constant *getAddrOfBaseConformanceDescriptor(
                                                  BaseConformance conformance);
-  llvm::GlobalValue *defineBaseConformanceDescriptor(
+  toolchain::GlobalValue *defineBaseConformanceDescriptor(
                                               BaseConformance conformance,
-                                              llvm::Constant *definition);
+                                              toolchain::Constant *definition);
 
-  llvm::Constant *getAddrOfProtocolDescriptor(ProtocolDecl *D,
+  toolchain::Constant *getAddrOfProtocolDescriptor(ProtocolDecl *D,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfProtocolConformanceDescriptor(
+  toolchain::Constant *getAddrOfProtocolConformanceDescriptor(
                                   const RootProtocolConformance *conformance,
                                   ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfPropertyDescriptor(AbstractStorageDecl *D,
+  toolchain::Constant *getAddrOfPropertyDescriptor(AbstractStorageDecl *D,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfObjCClass(ClassDecl *D,
+  toolchain::Constant *getAddrOfObjCClass(ClassDecl *D,
                                      ForDefinition_t forDefinition);
   Address getAddrOfObjCClassRef(ClassDecl *D);
-  llvm::Constant *getAddrOfMetaclassObject(ClassDecl *D,
+  toolchain::Constant *getAddrOfMetaclassObject(ClassDecl *D,
                                            ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfCanonicalSpecializedGenericMetaclassObject(
+  toolchain::Constant *getAddrOfCanonicalSpecializedGenericMetaclassObject(
       CanType concreteType, ForDefinition_t forDefinition);
 
-  llvm::Function *getAddrOfObjCMetadataUpdateFunction(ClassDecl *D,
+  toolchain::Function *getAddrOfObjCMetadataUpdateFunction(ClassDecl *D,
                                                       ForDefinition_t forDefinition);
 
-  llvm::Constant *getAddrOfObjCResilientClassStub(ClassDecl *D,
+  toolchain::Constant *getAddrOfObjCResilientClassStub(ClassDecl *D,
                                                   ForDefinition_t forDefinition,
                                                   TypeMetadataAddress addr);
 
-  llvm::Function *
+  toolchain::Function *
   getAddrOfSILFunction(SILFunction *f, ForDefinition_t forDefinition,
                        bool isDynamicallyReplaceableImplementation = false,
                        bool shouldCallPreviousImplementation = false);
 
-  llvm::Function *
-  getAddrOfWitnessTableProfilingThunk(llvm::Function *witness,
+  toolchain::Function *
+  getAddrOfWitnessTableProfilingThunk(toolchain::Function *witness,
                                       const NormalProtocolConformance &C);
 
-  llvm::Function *
-  getAddrOfVTableProfilingThunk(llvm::Function *f, ClassDecl *decl);
+  toolchain::Function *
+  getAddrOfVTableProfilingThunk(toolchain::Function *f, ClassDecl *decl);
 
-  llvm::Function *getOrCreateProfilingThunk(llvm::Function *f,
+  toolchain::Function *getOrCreateProfilingThunk(toolchain::Function *f,
                                             StringRef prefix);
 
   void emitDynamicReplacementOriginalFunctionThunk(SILFunction *f);
 
-  llvm::Function *getAddrOfContinuationPrototype(CanSILFunctionType fnType);
+  toolchain::Function *getAddrOfContinuationPrototype(CanSILFunctionType fnType);
   Address getAddrOfSILGlobalVariable(SILGlobalVariable *var,
                                      const TypeInfo &ti,
                                      ForDefinition_t forDefinition);
-  llvm::Constant *getGlobalInitValue(SILGlobalVariable *var,
-                                     llvm::Type *storageType,
+  toolchain::Constant *getGlobalInitValue(SILGlobalVariable *var,
+                                     toolchain::Type *storageType,
                                      Alignment alignment);
-  llvm::Constant *getConstantValue(Explosion &&initExp, Size::int_type paddingBytes);
-  llvm::Function *getAddrOfWitnessTableLazyAccessFunction(
+  toolchain::Constant *getConstantValue(Explosion &&initExp, Size::int_type paddingBytes);
+  toolchain::Function *getAddrOfWitnessTableLazyAccessFunction(
                                                const NormalProtocolConformance *C,
                                                CanType conformingType,
                                                ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfWitnessTableLazyCacheVariable(
+  toolchain::Constant *getAddrOfWitnessTableLazyCacheVariable(
                                                const NormalProtocolConformance *C,
                                                CanType conformingType,
                                                ForDefinition_t forDefinition);
-  llvm::Constant *getAddrOfWitnessTable(const ProtocolConformance *C,
+  toolchain::Constant *getAddrOfWitnessTable(const ProtocolConformance *C,
                                       ConstantInit definition = ConstantInit());
-  llvm::Constant *getAddrOfWitnessTablePattern(
+  toolchain::Constant *getAddrOfWitnessTablePattern(
                                       const NormalProtocolConformance *C,
                                       ConstantInit definition = ConstantInit());
 
-  llvm::Function *
+  toolchain::Function *
   getAddrOfGenericWitnessTableInstantiationFunction(
                                     const NormalProtocolConformance *C);
-  llvm::Function *getAddrOfAssociatedTypeWitnessTableAccessFunction(
+  toolchain::Function *getAddrOfAssociatedTypeWitnessTableAccessFunction(
                                      const NormalProtocolConformance *C,
                                      const AssociatedConformance &association);
-  llvm::Function *getAddrOfDefaultAssociatedConformanceAccessor(
+  toolchain::Function *getAddrOfDefaultAssociatedConformanceAccessor(
                                            AssociatedConformance requirement);
 
-  llvm::Constant *
+  toolchain::Constant *
   getAddrOfDifferentiabilityWitness(const SILDifferentiabilityWitness *witness,
                                     ConstantInit definition = ConstantInit());
 
   Address getAddrOfObjCISAMask();
 
-  llvm::Function *
+  toolchain::Function *
   getAddrOfDistributedTargetAccessor(LinkEntity accessor,
                                      ForDefinition_t forDefinition);
 
   /// Emit a distributed accessor function for the given distributed thunk or
   /// protocol requirement.
   void emitDistributedTargetAccessor(
-      llvm::PointerUnion<SILFunction *, AbstractFunctionDecl *>
+      toolchain::PointerUnion<SILFunction *, AbstractFunctionDecl *>
           thunkOrRequirement);
 
-  llvm::Constant *getAddrOfAccessibleFunctionRecord(SILFunction *accessibleFn);
+  toolchain::Constant *getAddrOfAccessibleFunctionRecord(SILFunction *accessibleFn);
 
   /// Retrieve the generic signature for the current generic context, or null if no
   /// generic environment is active.
@@ -1934,41 +1936,41 @@ public:
   ConstantReference
   getAddrOfLLVMVariableOrGOTEquivalent(LinkEntity entity);
 
-  llvm::Constant *getAddrOfLLVMVariable(LinkEntity entity,
+  toolchain::Constant *getAddrOfLLVMVariable(LinkEntity entity,
                                         ConstantInit definition,
                                         DebugTypeInfo debugType,
-                                        llvm::Type *overrideDeclType = nullptr);
-  llvm::Constant *getAddrOfLLVMVariable(LinkEntity entity,
+                                        toolchain::Type *overrideDeclType = nullptr);
+  toolchain::Constant *getAddrOfLLVMVariable(LinkEntity entity,
                                         ForDefinition_t forDefinition,
                                         DebugTypeInfo debugType);
 
-  llvm::Constant *emitRelativeReference(ConstantReference target,
-                                        llvm::GlobalValue *base,
+  toolchain::Constant *emitRelativeReference(ConstantReference target,
+                                        toolchain::GlobalValue *base,
                                         ArrayRef<unsigned> baseIndices);
 
-  llvm::Constant *emitDirectRelativeReference(llvm::Constant *target,
-                                              llvm::GlobalValue *base,
+  toolchain::Constant *emitDirectRelativeReference(toolchain::Constant *target,
+                                              toolchain::GlobalValue *base,
                                               ArrayRef<unsigned> baseIndices);
 
   /// Mark a global variable as true-const by putting it in the text section of
   /// the binary.
-  void setTrueConstGlobal(llvm::GlobalVariable *var);
+  void setTrueConstGlobal(toolchain::GlobalVariable *var);
 
-  /// Add the swiftself attribute.
-  void addSwiftSelfAttributes(llvm::AttributeList &attrs, unsigned argIndex);
+  /// Add the languageself attribute.
+  void addCodiraSelfAttributes(toolchain::AttributeList &attrs, unsigned argIndex);
 
-  void addSwiftCoroAttributes(llvm::AttributeList &attrs, unsigned argIndex);
+  void addCodiraCoroAttributes(toolchain::AttributeList &attrs, unsigned argIndex);
 
-  void addSwiftAsyncContextAttributes(llvm::AttributeList &attrs,
+  void addCodiraAsyncContextAttributes(toolchain::AttributeList &attrs,
                                       unsigned argIndex);
 
-  /// Add the swifterror attribute.
-  void addSwiftErrorAttributes(llvm::AttributeList &attrs, unsigned argIndex);
+  /// Add the languageerror attribute.
+  void addCodiraErrorAttributes(toolchain::AttributeList &attrs, unsigned argIndex);
 
   void emitSharedContextDescriptor(DeclContext *dc);
 
-  llvm::GlobalVariable *
-  getGlobalForDynamicallyReplaceableThunk(LinkEntity &entity, llvm::Type *type,
+  toolchain::GlobalVariable *
+  getGlobalForDynamicallyReplaceableThunk(LinkEntity &entity, toolchain::Type *type,
                                           ForDefinition_t forDefinition);
 
   FunctionPointer getAddrOfOpaqueTypeDescriptorAccessFunction(
@@ -1984,14 +1986,14 @@ public:
   bool hasObjCResilientClassStub(ClassDecl *D);
 
   /// Emit a resilient class stub.
-  llvm::Constant *emitObjCResilientClassStub(ClassDecl *D, bool isPublic);
+  toolchain::Constant *emitObjCResilientClassStub(ClassDecl *D, bool isPublic);
 
   /// Runs additional lowering logic on the given SIL function to ensure that
   /// the SIL function is correctly lowered even if the lowering passes do not
   /// run on the SIL module that owns this function.
   void lowerSILFunction(SILFunction *f);
 
-  llvm::Function *getForeignExceptionHandlingPersonalityFunc();
+  toolchain::Function *getForeignExceptionHandlingPersonalityFunc();
 
   bool isForeignExceptionHandlingEnabled() const;
 
@@ -1999,16 +2001,16 @@ public:
   bool isCxxNoThrow(clang::FunctionDecl *fd, bool defaultNoThrow = false);
 
 private:
-  llvm::Constant *
+  toolchain::Constant *
   getAddrOfSharedContextDescriptor(LinkEntity entity,
                                    ConstantInit definition,
-                                   llvm::function_ref<void()> emit);
+                                   toolchain::function_ref<void()> emit);
 
   ConstantReference getAddrOfLLVMVariable(LinkEntity entity,
                                         ConstantInit definition,
                                         DebugTypeInfo debugType,
                                         SymbolReferenceKind refKind,
-                                        llvm::Type *overrideDeclType = nullptr);
+                                        toolchain::Type *overrideDeclType = nullptr);
 
   void emitLazyPrivateDefinitions();
   void addRuntimeResolvableType(GenericTypeDecl *nominal);
@@ -2018,25 +2020,25 @@ private:
   void addLazyConformances(const IterableDeclContext *idc);
 
 //--- Global context emission --------------------------------------------------
-  bool hasSwiftAsyncFunctionDef = false;
-  llvm::Value *extendedFramePointerFlagsWeakRef = nullptr;
+  bool hasCodiraAsyncFunctionDef = false;
+  toolchain::Value *extendedFramePointerFlagsWeakRef = nullptr;
 
-  /// Emit a weak reference to the `swift_async_extendedFramePointerFlags`
-  /// symbol needed by Swift async functions.
-  void emitSwiftAsyncExtendedFrameInfoWeakRef();
+  /// Emit a weak reference to the `language_async_extendedFramePointerFlags`
+  /// symbol needed by Codira async functions.
+  void emitCodiraAsyncExtendedFrameInfoWeakRef();
 public:
   bool isConcurrencyAvailable();
-  void noteSwiftAsyncFunctionDef() {
-    hasSwiftAsyncFunctionDef = true;
+  void noteCodiraAsyncFunctionDef() {
+    hasCodiraAsyncFunctionDef = true;
   }
   void emitRuntimeRegistration();
   void emitVTableStubs();
   void emitTypeVerifier();
-  llvm::Function *emitHasSymbolFunction(ValueDecl *decl);
+  toolchain::Function *emitHasSymbolFunction(ValueDecl *decl);
 
-  /// Create llvm metadata which encodes the branch weights given by
+  /// Create toolchain metadata which encodes the branch weights given by
   /// \p TrueCount and \p FalseCount.
-  llvm::MDNode *createProfileWeights(uint64_t TrueCount,
+  toolchain::MDNode *createProfileWeights(uint64_t TrueCount,
                                      uint64_t FalseCount) const;
 
 private:
@@ -2081,11 +2083,11 @@ getBasesAndOffsets(const clang::CXXRecordDecl *decl);
 } // end namespace irgen
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct DenseMapInfo<swift::irgen::IRGenModule::FixedLayoutKey> {
-  using FixedLayoutKey = swift::irgen::IRGenModule::FixedLayoutKey;
+struct DenseMapInfo<language::irgen::IRGenModule::FixedLayoutKey> {
+  using FixedLayoutKey = language::irgen::IRGenModule::FixedLayoutKey;
 
   static inline FixedLayoutKey getEmptyKey() {
     return {0, 0xFFFFFFFFu, 0, 0, 0};

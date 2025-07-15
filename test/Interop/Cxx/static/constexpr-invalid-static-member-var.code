@@ -1,0 +1,7 @@
+// RUN: %target-language-emit-ir %s -I %S/Inputs -enable-experimental-cxx-interop | %FileCheck %s
+
+import InvalidStaticMemberVar
+
+fn test(i: X) { }
+
+// CHECK-NOT: error

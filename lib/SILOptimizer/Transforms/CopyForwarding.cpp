@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Eliminate local copies of either address-only or reference types.
@@ -75,10 +76,10 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/DebugOptUtils.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 STATISTIC(NumCopyForward, "Number of copies removed via forward propagation");
 STATISTIC(NumCopyBackward,
@@ -88,8 +89,8 @@ STATISTIC(NumDeadTemp, "Number of copies removed from unused temporaries");
 using namespace language;
 
 // Temporary debugging flag until this pass is better tested.
-static llvm::cl::opt<bool> EnableCopyForwarding("enable-copyforwarding",
-                                                llvm::cl::init(true));
+static toolchain::cl::opt<bool> EnableCopyForwarding("enable-copyforwarding",
+                                                toolchain::cl::init(true));
 
 /// \return true if the given copy source value can only be accessed via the
 /// given def (this def uniquely identifies the object).
@@ -108,7 +109,7 @@ static bool isIdentifiedSourceValue(SILValue Def) {
     case SILArgumentConvention::Indirect_In_Guaranteed:
       return true;
     default:
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping Def: Not an @in argument!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping Def: Not an @in argument!\n");
       return false;
     }
   }
@@ -135,7 +136,7 @@ static bool isIdentifiedDestValue(SILValue Def) {
     case SILArgumentConvention::Indirect_Out:
       return true;
     default:
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping Def: Not an @in argument!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping Def: Not an @in argument!\n");
       return false;
     }
   }
@@ -273,7 +274,7 @@ static bool visitAddressUsers(SILValue address, SILInstruction *ignoredUser,
         if (!visitor.visitDebugValue(DV))
           return false;
       } else {
-        LLVM_DEBUG(llvm::dbgs() << "  Skipping copy: use exposes def"
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping copy: use exposes def"
                                 << *UserInst);
         return false;
       }
@@ -295,7 +296,7 @@ static bool visitAddressUsers(SILValue address, SILInstruction *ignoredUser,
       //
       // TODO: assert that this list is consistent with
       // isTransitiveEscapeInst().
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping copy: use exposes def"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping copy: use exposes def"
                               << *UserInst);
       return false;
     }
@@ -349,7 +350,7 @@ public:
     case SILArgumentConvention::Indirect_InoutAliasable:
       return false;
     default:
-      llvm_unreachable("unexpected calling convention for copy_addr user");
+      toolchain_unreachable("unexpected calling convention for copy_addr user");
     }
   }
   bool visitCopyAddrInst(CopyAddrInst *CopyInst) {
@@ -400,10 +401,10 @@ public:
     return true;
   }
   bool visitInitEnumDataAddrInst(InitEnumDataAddrInst *UserInst) {
-    llvm_unreachable("illegal reinitialization");
+    toolchain_unreachable("illegal reinitialization");
   }
   bool visitInjectEnumAddrInst(InjectEnumAddrInst *UserInst) {
-    llvm_unreachable("illegal reinitialization");
+    toolchain_unreachable("illegal reinitialization");
   }
   bool visitSILInstruction(SILInstruction *UserInst) {
     return false;
@@ -451,9 +452,9 @@ public:
       return false;
     case SILArgumentConvention::Indirect_In_CXX:
     case SILArgumentConvention::Indirect_In:
-      llvm_unreachable("copy_addr src destroyed without reinitialization");
+      toolchain_unreachable("copy_addr src destroyed without reinitialization");
     default:
-      llvm_unreachable("unexpected calling convention for copy_addr user");
+      toolchain_unreachable("unexpected calling convention for copy_addr user");
     }
   }
   bool visitCopyAddrInst(CopyAddrInst *CopyInst) {
@@ -487,11 +488,11 @@ public:
     return false;
   }
   bool visitDestroyAddrInst(DestroyAddrInst *UserInst) {
-    llvm_unreachable("illegal deinitialization");
+    toolchain_unreachable("illegal deinitialization");
   }
   bool visitUncheckedTakeEnumDataAddrInst(
     UncheckedTakeEnumDataAddrInst *UserInst) {
-    llvm_unreachable("illegal deinitialization");
+    toolchain_unreachable("illegal deinitialization");
   }
   bool visitUncheckedRefCastAddrInst(
     UncheckedRefCastAddrInst *UserInst) {
@@ -631,7 +632,7 @@ protected:
 
   bool isSourceDeadAtCopy();
 
-  typedef llvm::SmallSetVector<SILInstruction *, 16> UserVector;
+  typedef toolchain::SmallSetVector<SILInstruction *, 16> UserVector;
   bool doesCopyDominateDestUsers(const UserVector &DirectDestUses);
 
   bool markStoredValueUsers(SILValue storedValue);
@@ -699,13 +700,13 @@ propagateCopy(CopyAddrInst *CopyInst) {
   }
 
   if (forwardPropagateCopy()) {
-    LLVM_DEBUG(llvm::dbgs() << "  Forwarding Copy:" << *CurrentCopy);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Forwarding Copy:" << *CurrentCopy);
     if (!CurrentCopy->isInitializationOfDest()) {
       // Replace the original copy with a destroy.
       SILBuilderWithScope(CurrentCopy)
           .createDestroyAddr(CurrentCopy->getLoc(), CurrentCopy->getDest());
     }
-    swift::salvageStoreDebugInfo(CurrentCopy, CurrentCopy->getSrc(),
+    language::salvageStoreDebugInfo(CurrentCopy, CurrentCopy->getSrc(),
                                  CurrentCopy->getDest());
     CurrentCopy->eraseFromParent();
     HasChanged = true;
@@ -714,8 +715,8 @@ propagateCopy(CopyAddrInst *CopyInst) {
   }
   // Forward propagation failed. Attempt to backward propagate.
   if (CurrentCopy->isInitializationOfDest() && backwardPropagateCopy()) {
-    LLVM_DEBUG(llvm::dbgs() << "  Reversing Copy:" << *CurrentCopy);
-    swift::salvageStoreDebugInfo(CurrentCopy, CurrentCopy->getDest(),
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Reversing Copy:" << *CurrentCopy);
+    language::salvageStoreDebugInfo(CurrentCopy, CurrentCopy->getDest(),
                                  CurrentCopy->getSrc());
     CurrentCopy->eraseFromParent();
     HasChanged = true;
@@ -812,7 +813,7 @@ forwardDeadTempCopy(CopyAddrInst *destCopy) {
   if (!srcCopy)
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "  Temp Copy:" << *srcCopy
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Temp Copy:" << *srcCopy
                           << "         to " << *destCopy);
 
   assert(srcCopy->getDest() == destCopy->getSrc());
@@ -829,7 +830,7 @@ forwardDeadTempCopy(CopyAddrInst *destCopy) {
   }
 
   // Salvage debug values before deleting them.
-  swift::salvageStoreDebugInfo(srcCopy, srcCopy->getSrc(), srcCopy->getDest());
+  language::salvageStoreDebugInfo(srcCopy, srcCopy->getSrc(), srcCopy->getDest());
 
   // Delete all dead debug_value instructions
   for (auto *deadDebugUser : debugInstsToDelete) {
@@ -909,7 +910,7 @@ bool CopyForwarding::markStoredValueUsers(SILValue storedValue) {
     }
     // Conservatively treat everything else as potentially transitively
     // retaining the stored value.
-    LLVM_DEBUG(llvm::dbgs() << "  Cannot reduce lifetime. May retain "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Cannot reduce lifetime. May retain "
                             << storedValue
                             << " at: " << *user << "\n");
     return false;
@@ -1012,7 +1013,7 @@ bool CopyForwarding::forwardPropagateCopy() {
   if (auto *ASI = dyn_cast<AllocStackInst>(CurrentDef)) {
     DefDealloc = getSingleDealloc(ASI);
     if (!DefDealloc) {
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping copy" << *CurrentCopy
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping copy" << *CurrentCopy
                               << "  stack address has multiple uses.\n");
       return false;
     }
@@ -1027,12 +1028,12 @@ bool CopyForwarding::forwardPropagateCopy() {
     // If we see another use of Src, then the source location is reinitialized
     // before the Dest location is deinitialized. So we really need the copy.
     if (SrcUserInsts.count(UserInst)) {
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping copy" << *CurrentCopy
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping copy" << *CurrentCopy
                               << "  source used by" << *UserInst);
       return false;
     }
     if (UserInst == DefDealloc) {
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping copy" << *CurrentCopy
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping copy" << *CurrentCopy
                               << "    dealloc_stack before dest use.\n");
       return false;
     }
@@ -1160,7 +1161,7 @@ bool CopyForwarding::backwardPropagateCopy() {
         DebugValueInstsToDelete.push_back(UserInst);
         continue;
       }
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping copy" << *CurrentCopy
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping copy" << *CurrentCopy
                               << "    dest used by " << *UserInst);
       return false;
     }
@@ -1208,7 +1209,7 @@ bool CopyForwarding::backwardPropagateCopy() {
       HasForwardedToCopy = true;
       // This instruction gets "replaced", so we need to salvage its previous
       // debug info.
-      swift::salvageStoreDebugInfo(SI, SI->getSrc(), SI->getDest());
+      language::salvageStoreDebugInfo(SI, SI->getSrc(), SI->getDest());
     }
     Oper->set(CurrentCopy->getDest());
   }
@@ -1219,7 +1220,7 @@ bool CopyForwarding::backwardPropagateCopy() {
 void CopyForwarding::forwardCopiesOf(SILValue Def, SILFunction *F) {
   reset(F);
   CurrentDef = Def;
-  LLVM_DEBUG(llvm::dbgs() << "Analyzing copies of Def: " << Def);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Analyzing copies of Def: " << Def);
   CopySrcUserVisitor visitor(*this);
   if (!visitAddressUsers(Def, nullptr, visitor))
     return;
@@ -1236,10 +1237,10 @@ void CopyForwarding::forwardCopiesOf(SILValue Def, SILFunction *F) {
 
 namespace {
 #ifndef NDEBUG
-static llvm::cl::opt<int> ForwardStart("copy-forward-start",
-                                       llvm::cl::init(0), llvm::cl::Hidden);
-static llvm::cl::opt<int> ForwardStop("copy-forward-stop",
-                                      llvm::cl::init(-1), llvm::cl::Hidden);
+static toolchain::cl::opt<int> ForwardStart("copy-forward-start",
+                                       toolchain::cl::init(0), toolchain::cl::Hidden);
+static toolchain::cl::opt<int> ForwardStop("copy-forward-stop",
+                                      toolchain::cl::init(-1), toolchain::cl::Hidden);
 #endif
 
 class CopyForwardingPass : public SILFunctionTransform
@@ -1265,12 +1266,12 @@ class CopyForwardingPass : public SILFunctionTransform
     if (!getFunction()->hasOwnership())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "Copy Forwarding in Func "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Copy Forwarding in Func "
                             << getFunction()->getName() << "\n");
 
     // Collect a set of identified objects (@in arg or alloc_stack) that are
     // copied in this function.
-    llvm::SmallSetVector<SILValue, 16> CopiedDefs;
+    toolchain::SmallSetVector<SILValue, 16> CopiedDefs;
     for (auto &BB : *getFunction())
       for (auto II = BB.begin(), IE = BB.end(); II != IE; ++II) {
         if (auto *CopyInst = dyn_cast<CopyAddrInst>(&*II)) {
@@ -1278,7 +1279,7 @@ class CopyForwardingPass : public SILFunctionTransform
           if (isIdentifiedSourceValue(Def))
             CopiedDefs.insert(Def);
           else {
-            LLVM_DEBUG(llvm::dbgs() << "  Skipping Def: " << Def
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping Def: " << Def
                                     << "    not an argument or local var!\n");
           }
         }
@@ -1316,6 +1317,6 @@ class CopyForwardingPass : public SILFunctionTransform
 
 } // end anonymous namespace
 
-SILTransform *swift::createCopyForwarding() {
+SILTransform *language::createCopyForwarding() {
   return new CopyForwardingPass();
 }

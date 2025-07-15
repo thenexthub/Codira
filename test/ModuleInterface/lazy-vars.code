@@ -1,0 +1,41 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -typecheck -module-name Test -emit-module-interface-path %t/Test.codeinterface %s
+// RUN: %FileCheck %s < %t/Test.codeinterface --check-prefix CHECK --check-prefix NONRESILIENT
+// RUN: %target-language-frontend -compile-module-from-interface %t/Test.codeinterface -o %t/Test.codemodule
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules -emit-module-interface-path - %t/Test.codemodule -module-name Test | %FileCheck %s --check-prefix CHECK --check-prefix NONRESILIENT
+
+// RUN: %target-language-frontend -typecheck -module-name TestResilient -emit-module-interface-path %t/TestResilient.codeinterface -enable-library-evolution %s
+// RUN: %FileCheck %s < %t/TestResilient.codeinterface
+
+// RUN: %target-language-frontend -compile-module-from-interface %t/TestResilient.codeinterface -o %t/TestResilient.codemodule
+// RUN: %target-language-frontend -emit-module -o /dev/null -merge-modules -emit-module-interface-path - %t/TestResilient.codemodule -module-name TestResilient | %FileCheck %s
+
+// CHECK: @frozen public struct HasLazyVarsFixedLayout {
+// CHECK-NEXT: public var foo: Codira.Int {
+// CHECK-NEXT:   mutating get
+// CHECK-NEXT:   set
+// CHECK-NEXT: }
+// CHECK: private var $__lazy_storage_$_foo: Codira.Int?
+// CHECK-NOT: private var bar
+// CHECK: private var $__lazy_storage_$_bar: Codira.Int?
+// CHECK-NEXT: }
+@frozen
+public struct HasLazyVarsFixedLayout {
+  public lazy var foo: Int = 0
+  private lazy var bar: Int = 0
+}
+
+// CHECK: public struct HasLazyVars {
+// CHECK-NEXT: public var foo: Codira.Int {
+// CHECK-NEXT:   mutating get
+// CHECK-NEXT:   set
+// CHECK-NEXT: }
+// NONRESILIENT: private var $__lazy_storage_$_foo: Codira.Int?
+// CHECK-NOT: private var bar
+// NONRESILIENT: private var $__lazy_storage_$_bar: Codira.Int?
+// CHECK-NEXT: }
+public struct HasLazyVars {
+  public lazy var foo: Int = 0
+  private lazy var bar: Int = 0
+}

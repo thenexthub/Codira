@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Utilities used by the ARCSequenceOpts for analyzing and transforming
@@ -18,8 +19,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ARC_ARCSEQUENCEOPTUTILS_H
-#define SWIFT_SILOPTIMIZER_ARC_ARCSEQUENCEOPTUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ARC_ARCSEQUENCEOPTUTILS_H
+#define LANGUAGE_SILOPTIMIZER_ARC_ARCSEQUENCEOPTUTILS_H
 
 #include "language/SIL/SILInstruction.h"
 

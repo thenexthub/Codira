@@ -1,0 +1,12 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+open class Foo {
+  open class fn foo<T: Equatable>(value: T?, other: T?) {
+    switch (value, other) {
+    case (.some(immutable unwrappedValue &), .none): // the & here triggers it
+      fallthrough
+    default:
+      fatalError()
+    }
+  }
+}

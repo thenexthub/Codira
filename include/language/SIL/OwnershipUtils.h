@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_OWNERSHIPUTILS_H
-#define SWIFT_SIL_OWNERSHIPUTILS_H
+#ifndef LANGUAGE_SIL_OWNERSHIPUTILS_H
+#define LANGUAGE_SIL_OWNERSHIPUTILS_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/NoDiscard.h"
 #include "language/SIL/AddressWalker.h"
 #include "language/SIL/MemAccessUtils.h"
@@ -26,8 +27,8 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
 #include "language/SIL/StackList.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -196,7 +197,7 @@ bool findUsesOfSimpleValue(SILValue value,
 /// Visit all GuaranteedForwardingPhis of \p value, not looking through
 /// reborrows.
 bool visitGuaranteedForwardingPhisForSSAValue(
-    SILValue value, function_ref<bool(Operand *)> func);
+    SILValue value, function_ref<bool(Operand *)> fn);
 
 //===----------------------------------------------------------------------===//
 //                                Abstractions
@@ -307,11 +308,11 @@ public:
     }
   }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, BorrowingOperandKind kind);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, BorrowingOperandKind kind);
 
 struct BorrowedValue;
 
@@ -394,9 +395,9 @@ struct BorrowingOperand {
   /// searching through reborrows. These uses might not be dominated by this
   /// BorrowingOperand.
   ///
-  /// Returns false and early exits if the visitor \p func returns false.
+  /// Returns false and early exits if the visitor \p fn returns false.
   bool visitExtendedScopeEndingUses(
-    function_ref<bool(Operand *)> func,
+    function_ref<bool(Operand *)> fn,
     function_ref<bool(Operand *)> visitUnknownUse
     = [](Operand *){ return false; }) const;
 
@@ -407,7 +408,7 @@ struct BorrowingOperand {
   bool isReborrow() const {
     switch (kind) {
     case BorrowingOperandKind::Invalid:
-      llvm_unreachable("Using invalid case?!");
+      toolchain_unreachable("Using invalid case?!");
     case BorrowingOperandKind::BeginBorrow:
     case BorrowingOperandKind::BorrowedFrom:
     case BorrowingOperandKind::StoreBorrow:
@@ -422,7 +423,7 @@ struct BorrowingOperand {
     case BorrowingOperandKind::Branch:
       return true;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   /// Return true if the user instruction defines a borrowed value that
@@ -450,7 +451,7 @@ struct BorrowingOperand {
   /// such as partial_apply, mark_dependence, store_borrow, begin_async_let.
   ///
   /// This is meant to be equivalent to BeginBorrowValue in
-  /// SwiftCompilerSources.
+  /// CodiraCompilerSources.
   SILValue getScopeIntroducingUserResult() const;
 
   // Return the dependent value of borrowed-from or mark_dependence.
@@ -462,8 +463,8 @@ struct BorrowingOperand {
   // This may be a guaranteed, trivial, or owned non-escapable value.
   SILValue getDependentUserResult() const;
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
 private:
   /// Internal constructor for failable static constructor. Please do not expand
@@ -472,7 +473,7 @@ private:
       : op(op), kind(kind) {}
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               const BorrowingOperand &operand);
 
 class BorrowedValueKind {
@@ -504,7 +505,7 @@ public:
     case ValueKind::SILFunctionArgument:
       return Kind::SILFunctionArgument;
     case ValueKind::SILPhiArgument: {
-      if (llvm::any_of(value->getParentBlock()->getPredecessorBlocks(),
+      if (toolchain::any_of(value->getParentBlock()->getPredecessorBlocks(),
                        [](SILBasicBlock *block) {
                          return !isa<BranchInst>(block->getTerminator());
                        })) {
@@ -538,7 +539,7 @@ public:
   bool isLocalScope() const {
     switch (value) {
     case BorrowedValueKind::Invalid:
-      llvm_unreachable("Using invalid case?!");
+      toolchain_unreachable("Using invalid case?!");
     case BorrowedValueKind::BeginBorrow:
     case BorrowedValueKind::LoadBorrow:
     case BorrowedValueKind::Phi:
@@ -547,14 +548,14 @@ public:
     case BorrowedValueKind::SILFunctionArgument:
       return false;
     }
-    llvm_unreachable("Covered switch isnt covered?!");
+    toolchain_unreachable("Covered switch isnt covered?!");
   }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, BorrowedValueKind kind);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, BorrowedValueKind kind);
 
 struct InteriorPointerOperand;
 
@@ -656,10 +657,10 @@ struct BorrowedValue {
   /// Visit all lifetime ending operands of the entire borrow scope including
   /// reborrows
   bool
-  visitTransitiveLifetimeEndingUses(function_ref<bool(Operand *)> func) const;
+  visitTransitiveLifetimeEndingUses(function_ref<bool(Operand *)> fn) const;
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
   /// Visit each of the interior pointer uses of this underlying borrow
   /// introduced value without looking through nested borrows or reborrows.
@@ -670,25 +671,25 @@ struct BorrowedValue {
   /// understand all uses and thus guarantee we found all interior pointer
   /// uses. Returns false otherwise.
   bool visitInteriorPointerOperands(
-      function_ref<void(InteriorPointerOperand)> func) const {
+      function_ref<void(InteriorPointerOperand)> fn) const {
     return visitInteriorPointerOperandHelper(
-        func, InteriorPointerOperandVisitorKind::NoNestedNoReborrows);
+        fn, InteriorPointerOperandVisitorKind::NoNestedNoReborrows);
   }
 
   /// Visit each of the interior pointer uses of this underlying borrow
   /// introduced value looking through nested borrow scopes but not reborrows.
   bool visitNestedInteriorPointerOperands(
-      function_ref<void(InteriorPointerOperand)> func) const {
+      function_ref<void(InteriorPointerOperand)> fn) const {
     return visitInteriorPointerOperandHelper(
-        func, InteriorPointerOperandVisitorKind::YesNestedNoReborrows);
+        fn, InteriorPointerOperandVisitorKind::YesNestedNoReborrows);
   }
 
   /// Visit each of the interior pointer uses of this underlying borrow
   /// introduced value looking through nested borrow scopes and reborrows.
   bool visitExtendedInteriorPointerOperands(
-      function_ref<void(InteriorPointerOperand)> func) const {
+      function_ref<void(InteriorPointerOperand)> fn) const {
     return visitInteriorPointerOperandHelper(
-        func, InteriorPointerOperandVisitorKind::YesNestedYesReborrows);
+        fn, InteriorPointerOperandVisitorKind::YesNestedYesReborrows);
   }
 
   bool hasReborrow() const {
@@ -730,11 +731,11 @@ private:
     YesNestedYesReborrows,
   };
   bool visitInteriorPointerOperandHelper(
-      function_ref<void(InteriorPointerOperand)> func,
+      function_ref<void(InteriorPointerOperand)> fn,
       InteriorPointerOperandVisitorKind kind) const;
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               const BorrowedValue &value);
 
 /// Look up the def-use graph starting at use \p inputOperand, recording any
@@ -887,8 +888,8 @@ public:
     }
   }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 /// A mixed object->address projection that projects a memory location out of an
@@ -951,20 +952,20 @@ struct InteriorPointerOperand {
           &mdi->getAllOperands()[MarkDependenceInst::Base], kind);
     }
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return the end scope of all borrow introducers of the parent value of this
   /// projection. Returns true if we were able to find all borrow introducing
   /// values.
-  bool visitBaseValueScopeEndingUses(function_ref<bool(Operand *)> func) const {
+  bool visitBaseValueScopeEndingUses(function_ref<bool(Operand *)> fn) const {
     SmallVector<BorrowedValue, 4> introducers;
     if (!getAllBorrowIntroducingValues(operand->get(), introducers))
       return false;
     for (const auto &introducer : introducers) {
       if (!introducer.isLocalScope())
         continue;
-      if (!introducer.visitLocalScopeEndingUses(func))
+      if (!introducer.visitLocalScopeEndingUses(fn))
         return false;
     }
     return true;
@@ -978,7 +979,7 @@ struct InteriorPointerOperand {
   SILValue getProjectedAddress() const {
     switch (kind) {
     case InteriorPointerOperandKind::Invalid:
-      llvm_unreachable("Calling method on invalid?!");
+      toolchain_unreachable("Calling method on invalid?!");
     case InteriorPointerOperandKind::RefElementAddr:
       return cast<RefElementAddrInst>(operand->getUser());
     case InteriorPointerOperandKind::RefTailAddr:
@@ -990,7 +991,7 @@ struct InteriorPointerOperand {
     case InteriorPointerOperandKind::MarkDependenceNonEscaping:
       return cast<MarkDependenceInst>(operand->getUser());
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   /// Transitively compute the list of leaf uses that this interior pointer
@@ -1176,7 +1177,7 @@ public:
       if (dyn_cast_or_null<TryApplyInst>(phiArg->getSingleTerminator())) {
         return Kind::TryApply;
       }
-      if (llvm::all_of(phiArg->getParent()->getPredecessorBlocks(),
+      if (toolchain::all_of(phiArg->getParent()->getPredecessorBlocks(),
                        [](SILBasicBlock *block) {
                          return isa<BranchInst>(block->getTerminator());
                        })) {
@@ -1205,18 +1206,18 @@ public:
     case ValueKind::AllocRefInst:
       return Kind::AllocRefInit;
     }
-    llvm_unreachable("Default should have caught this");
+    toolchain_unreachable("Default should have caught this");
   }
 
   OwnedValueIntroducerKind(Kind newValue) : value(newValue) {}
 
   operator Kind() const { return value; }
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               OwnedValueIntroducerKind kind);
 
 /// A higher level construct for working with values that introduce a new
@@ -1262,7 +1263,7 @@ struct OwnedValueIntroducer {
   bool isConvertableToGuaranteed() const {
     switch (kind) {
     case OwnedValueIntroducerKind::Invalid:
-      llvm_unreachable("Using invalid case?!");
+      toolchain_unreachable("Using invalid case?!");
     case OwnedValueIntroducerKind::Copy:
     case OwnedValueIntroducerKind::LoadCopy:
       return true;
@@ -1280,7 +1281,7 @@ struct OwnedValueIntroducer {
     case OwnedValueIntroducerKind::AllocRefInit:
       return false;
     }
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   /// Returns true if this introducer when converted to guaranteed is expected
@@ -1290,7 +1291,7 @@ struct OwnedValueIntroducer {
   bool hasConsumingGuaranteedOperands() const {
     switch (kind) {
     case OwnedValueIntroducerKind::Invalid:
-      llvm_unreachable("Using invalid case?!");
+      toolchain_unreachable("Using invalid case?!");
     case OwnedValueIntroducerKind::Phi:
       return true;
     case OwnedValueIntroducerKind::Struct:
@@ -1308,7 +1309,7 @@ struct OwnedValueIntroducer {
     case OwnedValueIntroducerKind::AllocRefInit:
       return false;
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   bool operator==(const OwnedValueIntroducer &other) const {

@@ -11,31 +11,32 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LLVMPASSES_PASSESFWD_H
-#define SWIFT_LLVMPASSES_PASSESFWD_H
+#ifndef LANGUAGE_LLVMPASSES_PASSESFWD_H
+#define LANGUAGE_LLVMPASSES_PASSESFWD_H
 
-namespace llvm {
+namespace toolchain {
   class ModulePass;
   class FunctionPass;
   class ImmutablePass;
   class PassRegistry;
 
-  void initializeSwiftAAWrapperPassPass(PassRegistry &);
-  void initializeSwiftARCOptPass(PassRegistry &);
-  void initializeSwiftARCContractPass(PassRegistry &);
+  void initializeCodiraAAWrapperPassPass(PassRegistry &);
+  void initializeCodiraARCOptPass(PassRegistry &);
+  void initializeCodiraARCContractPass(PassRegistry &);
   void initializeInlineTreePrinterPass(PassRegistry &);
-  void initializeLegacySwiftMergeFunctionsPass(PassRegistry &);
+  void initializeLegacyCodiraMergeFunctionsPass(PassRegistry &);
 }
 
 namespace language {
-  llvm::FunctionPass *createSwiftARCOptPass();
-  llvm::FunctionPass *createSwiftARCContractPass();
-  llvm::ModulePass *createInlineTreePrinterPass();
-  llvm::ModulePass *createLegacySwiftMergeFunctionsPass(bool ptrAuthEnabled,
+  toolchain::FunctionPass *createCodiraARCOptPass();
+  toolchain::FunctionPass *createCodiraARCContractPass();
+  toolchain::ModulePass *createInlineTreePrinterPass();
+  toolchain::ModulePass *createLegacyCodiraMergeFunctionsPass(bool ptrAuthEnabled,
                                                         unsigned ptrAuthKey);
-  llvm::ImmutablePass *createSwiftAAWrapperPass();
+  toolchain::ImmutablePass *createCodiraAAWrapperPass();
 } // end namespace language
 
 #endif

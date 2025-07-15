@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains code for emitting code associated with types:
@@ -79,7 +80,7 @@ SILGenModule::emitVTableMethod(ClassDecl *theClass, SILDeclRef derived,
 
     // If the override is defined in a class from a different resilience
     // domain, don't emit the vtable entry.
-    if (derivedClass->isResilient(M.getSwiftModule(),
+    if (derivedClass->isResilient(M.getCodiraModule(),
                                   ResilienceExpansion::Maximal)) {
       return std::nullopt;
     }
@@ -162,7 +163,7 @@ SILGenModule::emitVTableMethod(ClassDecl *theClass, SILDeclRef derived,
     break;
   case TypeConverter::ABIDifference::CompatibleCallingConvention_ThinToThick:
   case TypeConverter::ABIDifference::CompatibleRepresentation_ThinToThick:
-    llvm_unreachable("shouldn't be thick methods");
+    toolchain_unreachable("shouldn't be thick methods");
   }
   if (doesNotHaveGenericRequirementDifference
       && !baseLessVisibleThanDerived
@@ -266,7 +267,7 @@ public:
   bool isResilient;
 
   // Map a base SILDeclRef to the corresponding element in vtableMethods.
-  llvm::DenseMap<SILDeclRef, unsigned> baseToIndexMap;
+  toolchain::DenseMap<SILDeclRef, unsigned> baseToIndexMap;
 
   // A base method and a corresponding override.
   using VTableMethod = std::pair<SILDeclRef, SILDeclRef>;
@@ -315,7 +316,7 @@ public:
   void addPlaceholder(MissingMemberDecl *m) {
 #ifndef NDEBUG
     auto *classDecl = cast<ClassDecl>(m->getDeclContext());
-    bool isResilient = classDecl->isResilient(SGM.M.getSwiftModule(),
+    bool isResilient = classDecl->isResilient(SGM.M.getCodiraModule(),
                                               ResilienceExpansion::Maximal);
     assert(isResilient ||
            m->getNumberOfVTableEntries() == 0 &&
@@ -730,7 +731,7 @@ SILGenModule::getWitnessTable(NormalProtocolConformance *conformance) {
 }
 
 SILFunction *SILGenModule::emitProtocolWitness(
-    ProtocolConformanceRef conformance, SILLinkage linkage,
+    ProtocolConformanceRef origConformance, SILLinkage linkage,
     SerializedKind_t serializedKind, SILDeclRef requirement,
     SILDeclRef witnessRef, IsFreeFunctionWitness_t isFree, Witness witness) {
   auto requirementInfo =
@@ -770,7 +771,8 @@ SILFunction *SILGenModule::emitProtocolWitness(
   // The type of the witness thunk.
   auto reqtSubstTy = cast<AnyFunctionType>(
     reqtOrigTy->substGenericArgs(reqtSubMap)
-      ->getReducedType(genericSig));
+              ->mapTypeOutOfContext()
+              ->getCanonicalType());
 
   // Rewrite the conformance in terms of the requirement environment's Self
   // type, which might have a different generic signature than the type
@@ -780,14 +782,18 @@ SILFunction *SILGenModule::emitProtocolWitness(
   // in a protocol extension, the generic signature will have an additional
   // generic parameter representing Self, so the generic parameters of the
   // class will all be shifted down by one.
-  if (reqtSubMap) {
-    auto requirement = conformance.getProtocol();
-    auto self = requirement->getSelfInterfaceType()->getCanonicalType();
+  auto conformance = reqtSubMap.lookupConformance(M.getASTContext().TheSelfType,
+                                                  origConformance.getProtocol())
+      .mapConformanceOutOfContext();
+  ASSERT(conformance.isAbstract() == origConformance.isAbstract());
 
-    conformance = reqtSubMap.lookupConformance(self, requirement);
-
-    if (genericEnv)
-      reqtSubMap = reqtSubMap.subst(genericEnv->getForwardingSubstitutionMap());
+  ProtocolConformance *manglingConformance = nullptr;
+  if (conformance.isConcrete()) {
+    manglingConformance = conformance.getConcrete();
+    if (auto *inherited = dyn_cast<InheritedProtocolConformance>(manglingConformance)) {
+      manglingConformance = inherited->getInheritedConformance();
+      conformance = ProtocolConformanceRef(manglingConformance);
+    }
   }
 
   // Generic signatures where all parameters are concrete are lowered away
@@ -809,20 +815,14 @@ SILFunction *SILGenModule::emitProtocolWitness(
   // But this is expensive, so we only do it for coroutine lowering.
   // When they're part of the AST function type, we can remove this
   // parameter completely.
+  bool allowDuplicateThunk = false;
   std::optional<SubstitutionMap> witnessSubsForTypeLowering;
   if (auto accessor = dyn_cast<AccessorDecl>(requirement.getDecl())) {
     if (accessor->isCoroutine()) {
       witnessSubsForTypeLowering =
         witness.getSubstitutions().mapReplacementTypesOutOfContext();
-    }
-  }
-
-  ProtocolConformance *manglingConformance = nullptr;
-  if (conformance.isConcrete()) {
-    manglingConformance = conformance.getConcrete();
-    if (auto *inherited = dyn_cast<InheritedProtocolConformance>(manglingConformance)) {
-      manglingConformance = inherited->getInheritedConformance();
-      conformance = ProtocolConformanceRef(manglingConformance);
+      if (accessor->isRequirementWithSynthesizedDefaultImplementation())
+        allowDuplicateThunk = true;
     }
   }
 
@@ -866,8 +866,9 @@ SILFunction *SILGenModule::emitProtocolWitness(
     InlineStrategy = AlwaysInline;
 
   SILFunction *f = M.lookUpFunction(nameBuffer);
-  if (f)
+  if (allowDuplicateThunk && f)
     return f;
+  ASSERT(!f);
 
   SILGenFunctionBuilder builder(*this);
   f = builder.createFunction(
@@ -882,7 +883,7 @@ SILFunction *SILGenModule::emitProtocolWitness(
   PrettyStackTraceSILFunction trace("generating protocol witness thunk", f);
 
   // Create the witness.
-  SILGenFunction SGF(*this, *f, SwiftModule);
+  SILGenFunction SGF(*this, *f, CodiraModule);
 
   // Substitutions mapping the generic parameters of the witness to
   // archetypes of the witness thunk generic environment.
@@ -894,7 +895,8 @@ SILFunction *SILGenModule::emitProtocolWitness(
   bool isPreconcurrency = false;
   if (conformance.isConcrete()) {
     if (auto *C =
-            dyn_cast<NormalProtocolConformance>(conformance.getConcrete()))
+          dyn_cast<NormalProtocolConformance>(
+            conformance.getConcrete()->getRootConformance()))
       isPreconcurrency = C->isPreconcurrency();
   }
 
@@ -906,6 +908,12 @@ SILFunction *SILGenModule::emitProtocolWitness(
                           witness.getEnterIsolation());
 
   emitLazyConformancesForFunction(f);
+
+  if (auto isolation = getSILFunctionTypeActorIsolation(
+          reqtSubstTy, requirement, witnessRef)) {
+    f->setActorIsolation(*isolation);
+  }
+
   return f;
 }
 
@@ -968,7 +976,7 @@ static SILFunction *emitSelfConformanceWitness(SILGenModule &SGM,
   PrettyStackTraceSILFunction trace("generating protocol witness thunk", f);
 
   // Create the witness.
-  SILGenFunction SGF(SGM, *f, SGM.SwiftModule);
+  SILGenFunction SGF(SGM, *f, SGM.CodiraModule);
 
   auto isFree = isFreeFunctionWitness(requirement.getDecl(),
                                       requirement.getDecl());
@@ -1018,18 +1026,18 @@ public:
 
   void addOutOfLineBaseProtocol(ProtocolDecl *protocol) {
     // This is an unnecessary restriction that's just not necessary for Error.
-    llvm_unreachable("base protocols not supported in self-conformance");
+    toolchain_unreachable("base protocols not supported in self-conformance");
   }
 
   // These are real semantic restrictions.
   void addAssociatedConformance(AssociatedConformance conformance) {
-    llvm_unreachable("associated conformances not supported in self-conformance");
+    toolchain_unreachable("associated conformances not supported in self-conformance");
   }
   void addAssociatedType(AssociatedTypeDecl *assocType) {
-    llvm_unreachable("associated types not supported in self-conformance");
+    toolchain_unreachable("associated types not supported in self-conformance");
   }
   void addPlaceholder(MissingMemberDecl *placeholder) {
-    llvm_unreachable("placeholders not supported in self-conformance");
+    toolchain_unreachable("placeholders not supported in self-conformance");
   }
 
   void addMethod(SILDeclRef requirement) {
@@ -1078,7 +1086,7 @@ public:
   }
 
   void addPlaceholder(MissingMemberDecl *placeholder) {
-    llvm_unreachable("generating a witness table with placeholders in it");
+    toolchain_unreachable("generating a witness table with placeholders in it");
   }
 
   Witness getWitness(ValueDecl *decl) {
@@ -1291,12 +1299,13 @@ SILFunction *SILGenModule::emitDefaultOverride(SILDeclRef replacement,
   auto *env = sig.getGenericEnvironment();
   auto subs = env ? env->getForwardingSubstitutionMap() : SubstitutionMap();
   function->setGenericEnvironment(env);
-  SILGenFunction SGF(*this, *function, SwiftModule);
+  SILGenFunction SGF(*this, *function, CodiraModule);
   SmallVector<ManagedValue, 4> params;
   SmallVector<ManagedValue, 4> indirectResults;
   SmallVector<ManagedValue, 4> indirectErrors;
+  ManagedValue implicitIsolationParam;
   SGF.collectThunkParams(replacement.getDecl(), params, &indirectResults,
-                         &indirectErrors);
+                         &indirectErrors, &implicitIsolationParam);
 
   auto self = params.back();
 
@@ -1311,6 +1320,11 @@ SILFunction *SILGenModule::emitDefaultOverride(SILDeclRef replacement,
   SmallVector<SILValue> args;
   for (auto result : indirectResults) {
     args.push_back(result.forward(SGF));
+  }
+  // Indirect errors would go here, but we don't currently support
+  // throwing coroutines.
+  if (implicitIsolationParam.isValid()) {
+    args.push_back(implicitIsolationParam.forward(SGF));
   }
   for (auto param : params) {
     args.push_back(param.forward(SGF));
@@ -1327,7 +1341,7 @@ SILFunction *SILGenModule::emitDefaultOverride(SILDeclRef replacement,
   SGF.B.createYield(loc, yields, normalBlock, errorBlock);
 
   SGF.B.setInsertionPoint(normalBlock);
-  llvm::SmallVector<TupleTypeElt> directResultTypes;
+  toolchain::SmallVector<TupleTypeElt> directResultTypes;
 
   for (auto result : originalConvention.getDirectSILResults()) {
     auto ty = originalConvention.getSILType(
@@ -1548,11 +1562,11 @@ public:
   }
 
   void visitMissingDecl(MissingDecl *missing) {
-    llvm_unreachable("missing decl in SILGen");
+    toolchain_unreachable("missing decl in SILGen");
   }
 
   void visitMacroDecl(MacroDecl *md) {
-    llvm_unreachable("macros aren't allowed in types");
+    toolchain_unreachable("macros aren't allowed in types");
   }
 };
 
@@ -1660,7 +1674,7 @@ public:
       SGM.emitDestructor(cd, dd);
       return;
     }
-    llvm_unreachable("destructor in extension?!");
+    toolchain_unreachable("destructor in extension?!");
   }
 
   void visitPatternBindingDecl(PatternBindingDecl *pd) {
@@ -1711,7 +1725,7 @@ public:
 
   void visitEnumCaseDecl(EnumCaseDecl *ecd) {}
   void visitEnumElementDecl(EnumElementDecl *ed) {
-    llvm_unreachable("enum elements aren't allowed in extensions");
+    toolchain_unreachable("enum elements aren't allowed in extensions");
   }
 
   void visitAbstractStorageDecl(AbstractStorageDecl *asd) {
@@ -1729,11 +1743,11 @@ public:
   }
 
   void visitMissingDecl(MissingDecl *missing) {
-    llvm_unreachable("missing decl in SILGen");
+    toolchain_unreachable("missing decl in SILGen");
   }
 
   void visitMacroDecl(MacroDecl *md) {
-    llvm_unreachable("macros aren't allowed in extensions");
+    toolchain_unreachable("macros aren't allowed in extensions");
   }
 };
 

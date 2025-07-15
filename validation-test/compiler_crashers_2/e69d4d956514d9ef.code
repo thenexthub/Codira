@@ -1,0 +1,4 @@
+// {"signature":"language::ast_scope::NodeAdder::visitBraceStmt(language::BraceStmt*, language::ast_scope::ASTScopeImpl*, language::ast_scope::ScopeCreator&)::'lambda'(language::ValueDecl*)::operator()(language::ValueDecl*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  @abi(var a) subscript->

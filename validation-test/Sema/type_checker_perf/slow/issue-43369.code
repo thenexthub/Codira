@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=5
+// REQUIRES: tools-release,no_asan
+
+// Hits the default memory threshold
+// https://github.com/apple/swift/issues/43369
+
+struct A {}
+struct B {}
+
+fn - (lhs: A, rhs: A) -> B {}
+fn / (lhs: B, rhs: Double) -> B {}
+fn - (lhs: B, rhs: B) -> B {}
+
+do {
+  immutable a0 = A()
+  immutable a1 = A()
+
+  immutable t0 = 0
+  immutable t1 = 0
+
+  // expected-error@+1 {{the compiler is unable to type-check this expression in reasonable time}}
+  immutable _ = (a0 - a0) / (t0 - t0) - (a1 - a1) / (t1 - t1)
+}

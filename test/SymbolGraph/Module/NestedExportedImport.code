@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/module-generated)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend %t/A.code -module-name A -emit-module -emit-module-path %t/A.codemodule
+// RUN: %target-language-frontend %t/B.code -module-name B -emit-module -emit-module-path %t/B.codemodule -I %t
+// RUN: %target-language-frontend %t/C.code -module-name C -emit-module -emit-module-path %t/C.codemodule -I %t \
+// RUN:     -emit-symbol-graph -emit-symbol-graph-dir %t
+// RUN: %target-language-symbolgraph-extract -module-name C -I %t -output-dir \
+// RUN:     %t/module-generated/ -experimental-allowed-reexported-modules=A,B
+// RUN: %FileCheck %s --input-file %t/C.symbols.json
+// RUN: %FileCheck %s --input-file %t/module-generated/C.symbols.json
+
+//--- A.code
+public struct A {}
+public fn AFunc() -> Void {}
+
+//--- B.code
+@_exported import A
+public struct B {}
+public fn BFunc() -> Void {}
+
+//--- C.code
+@_exported import B
+public struct C {}
+public fn CFunc() -> Void {}
+
+// CHECK-DAG: "precise":"s:1CAAV"
+// CHECK-DAG: "precise":"s:1BAAV"
+// CHECK-DAG: "precise":"s:1AAAV"

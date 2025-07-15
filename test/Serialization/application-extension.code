@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name AppExtSafe -emit-module-path %t/AppExtSafe.codemodule -parse-as-library -serialize-debugging-options -application-extension %s
+
+// Check the serialized flags paths.
+// RUN: toolchain-bcanalyzer -dump %t/AppExtSafe.codemodule > %t/AppExtSafe.codemodule.txt
+// RUN: %FileCheck %s < %t/AppExtSafe.codemodule.txt
+
+// CHECK-LABEL: <OPTIONS_BLOCK
+// CHECK:      <XCC abbrevid={{[0-9]+}}/> blob data = '-fapplication-extension'
+// CHECK: </OPTIONS_BLOCK>

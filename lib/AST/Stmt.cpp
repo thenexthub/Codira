@@ -1,4 +1,4 @@
-//===--- Stmt.cpp - Swift Language Statement ASTs -------------------------===//
+//===--- Stmt.cpp - Codira Language Statement ASTs -------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the Stmt class and subclasses.
@@ -27,7 +28,7 @@
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 
 using namespace language;
 
@@ -45,7 +46,7 @@ StringRef Stmt::getKindName(StmtKind K) {
 #define STMT(Id, Parent) case StmtKind::Id: return #Id;
 #include "language/AST/StmtNodes.def"
   }
-  llvm_unreachable("bad StmtKind");
+  toolchain_unreachable("bad StmtKind");
 }
 
 StringRef Stmt::getDescriptiveKindName(StmtKind K) {
@@ -93,7 +94,7 @@ StringRef Stmt::getDescriptiveKindName(StmtKind K) {
   case StmtKind::PoundAssert:
     return "#assert";
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 // Helper functions to check statically whether a method has been
@@ -153,7 +154,7 @@ SourceRange Stmt::getSourceRange() const {
 #include "language/AST/StmtNodes.def"
   }
   
-  llvm_unreachable("statement type not handled!");
+  toolchain_unreachable("statement type not handled!");
 }
 
 template <class T> static SourceLoc getStartLocImpl(const T *S) {
@@ -166,7 +167,7 @@ SourceLoc Stmt::getStartLoc() const {
 #include "language/AST/StmtNodes.def"
   }
 
-  llvm_unreachable("statement type not handled!");
+  toolchain_unreachable("statement type not handled!");
 }
 
 template <class T> static SourceLoc getEndLocImpl(const T *S) {
@@ -179,7 +180,7 @@ SourceLoc Stmt::getEndLoc() const {
 #include "language/AST/StmtNodes.def"
   }
 
-  llvm_unreachable("statement type not handled!");
+  toolchain_unreachable("statement type not handled!");
 }
 
 BraceStmt::BraceStmt(SourceLoc lbloc, ArrayRef<ASTNode> elts, SourceLoc rbloc,
@@ -233,7 +234,7 @@ SourceLoc BraceStmt::getContentStartLoc() const {
 }
 
 SourceLoc BraceStmt::getContentEndLoc() const {
-  for (auto elt : llvm::reverse(getElements())) {
+  for (auto elt : toolchain::reverse(getElements())) {
     if (auto loc = elt.getEndLoc()) {
       return loc;
     }
@@ -402,7 +403,7 @@ bool LabeledStmt::isPossibleContinueTarget() const {
 #define LABELED_STMT(ID, PARENT)
 #define STMT(ID, PARENT) case StmtKind::ID:
 #include "language/AST/StmtNodes.def"
-    llvm_unreachable("not a labeled statement");
+    toolchain_unreachable("not a labeled statement");
 
   // Sema has diagnostics with hard-coded expectations about what
   // statements return false from this method.
@@ -418,7 +419,7 @@ bool LabeledStmt::isPossibleContinueTarget() const {
   case StmtKind::While:
     return true;
   }
-  llvm_unreachable("statement kind unhandled!");
+  toolchain_unreachable("statement kind unhandled!");
 }
 
 bool LabeledStmt::requiresLabelOnJump() const {
@@ -426,7 +427,7 @@ bool LabeledStmt::requiresLabelOnJump() const {
 #define LABELED_STMT(ID, PARENT)
 #define STMT(ID, PARENT) case StmtKind::ID:
 #include "language/AST/StmtNodes.def"
-    llvm_unreachable("not a labeled statement");
+    toolchain_unreachable("not a labeled statement");
 
   case StmtKind::If:
   case StmtKind::Do:
@@ -440,7 +441,7 @@ bool LabeledStmt::requiresLabelOnJump() const {
   case StmtKind::While:
     return false;
   }
-  llvm_unreachable("statement kind unhandled!");
+  toolchain_unreachable("statement kind unhandled!");
 }
 
 void ForEachStmt::setPattern(Pattern *p) {
@@ -517,14 +518,10 @@ void LabeledConditionalStmt::setCond(StmtCondition e) {
 /// or `let self = self` condition.
 ///  - If `requiresCaptureListRef` is `true`, additionally requires that the
 ///    RHS of the self condition references a var defined in a capture list.
-///  - If `requireLoadExpr` is `true`, additionally requires that the RHS of
-///    the self condition is a `LoadExpr`.
 bool LabeledConditionalStmt::rebindsSelf(ASTContext &Ctx,
-                                         bool requiresCaptureListRef,
-                                         bool requireLoadExpr) const {
-  return llvm::any_of(getCond(), [&Ctx, requiresCaptureListRef,
-                                  requireLoadExpr](const auto &cond) {
-    return cond.rebindsSelf(Ctx, requiresCaptureListRef, requireLoadExpr);
+                                         bool requiresCaptureListRef) const {
+  return toolchain::any_of(getCond(), [&Ctx, requiresCaptureListRef](const auto &cond) {
+    return cond.rebindsSelf(Ctx, requiresCaptureListRef);
   });
 }
 
@@ -532,11 +529,8 @@ bool LabeledConditionalStmt::rebindsSelf(ASTContext &Ctx,
 /// or `let self = self` condition.
 ///  - If `requiresCaptureListRef` is `true`, additionally requires that the
 ///    RHS of the self condition references a var defined in a capture list.
-///  - If `requireLoadExpr` is `true`, additionally requires that the RHS of
-///    the self condition is a `LoadExpr`.
 bool StmtConditionElement::rebindsSelf(ASTContext &Ctx,
-                                       bool requiresCaptureListRef,
-                                       bool requireLoadExpr) const {
+                                       bool requiresCaptureListRef) const {
   auto pattern = getPatternOrNull();
   if (!pattern) {
     return false;
@@ -561,10 +555,6 @@ bool StmtConditionElement::rebindsSelf(ASTContext &Ctx,
   // Check that the RHS expr is exactly `self` and not something else
   Expr *exprToCheckForDRE = getInitializerOrNull();
   if (!exprToCheckForDRE) {
-    return false;
-  }
-
-  if (requireLoadExpr && !isa<LoadExpr>(exprToCheckForDRE)) {
     return false;
   }
 
@@ -651,7 +641,7 @@ SourceRange StmtConditionElement::getSourceRange() const {
     return getPatternBinding()->getSourceRange();
   }
 
-  llvm_unreachable("Unhandled StmtConditionElement in switch.");
+  toolchain_unreachable("Unhandled StmtConditionElement in switch.");
 }
 
 PoundHasSymbolInfo *PoundHasSymbolInfo::create(ASTContext &Ctx,
@@ -675,7 +665,7 @@ SourceLoc StmtConditionElement::getStartLoc() const {
     return getHasSymbolInfo()->getStartLoc();
   }
 
-  llvm_unreachable("Unhandled StmtConditionElement in switch.");
+  toolchain_unreachable("Unhandled StmtConditionElement in switch.");
 }
 
 SourceLoc StmtConditionElement::getEndLoc() const {
@@ -690,7 +680,7 @@ SourceLoc StmtConditionElement::getEndLoc() const {
     return getHasSymbolInfo()->getEndLoc();
   }
 
-  llvm_unreachable("Unhandled StmtConditionElement in switch.");
+  toolchain_unreachable("Unhandled StmtConditionElement in switch.");
 }
 
 static StmtCondition exprToCond(Expr *C, ASTContext &Ctx) {
@@ -801,7 +791,7 @@ getCaseVarDecls(ASTContext &ctx, ArrayRef<CaseLabelItem> labelItems) {
   SmallVector<VarDecl *, 4> tmp;
   labelItems.front().getPattern()->collectVariables(tmp);
   return ctx.AllocateTransform<VarDecl *>(
-      llvm::ArrayRef(tmp), [&](VarDecl *vOld) -> VarDecl * {
+      toolchain::ArrayRef(tmp), [&](VarDecl *vOld) -> VarDecl * {
         auto *vNew = new (ctx) VarDecl(
             /*IsStatic*/ false, vOld->getIntroducer(), vOld->getNameLoc(),
             vOld->getName(), vOld->getDeclContext());
@@ -988,7 +978,7 @@ CaseStmt *FallthroughStmt::getFallthroughDest() const {
       .Dest;
 }
 
-SourceLoc swift::extractNearestSourceLoc(const Stmt *S) {
+SourceLoc language::extractNearestSourceLoc(const Stmt *S) {
   return S->getStartLoc();
 }
 
@@ -1009,7 +999,7 @@ DoCatchStmt::getBranches(SmallVectorImpl<Stmt *> &scratch) const {
   return scratch;
 }
 
-// See swift/Basic/Statistic.h for declaration: this enables tracing Stmts, is
+// See language/Basic/Statistic.h for declaration: this enables tracing Stmts, is
 // defined here to avoid too much layering violation / circular linkage
 // dependency.
 

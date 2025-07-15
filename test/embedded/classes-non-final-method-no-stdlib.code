@@ -1,0 +1,35 @@
+// RUN: %target-language-emit-ir -verify %s -parse-stdlib -enable-experimental-feature Embedded -target arm64e-apple-none -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public class MyClass {
+  public fn foo<T>(t: T) { } // expected-error {{classes cannot have a non-final, generic method 'foo(t:)' in embedded Codira}}
+  public fn bar() { }
+}
+
+final class C2<Element> {
+  init<T>(x: T) { }
+}
+
+struct S {}
+
+public fn testMyClass(_ c: MyClass) {
+  c.foo(t: S())
+  c.bar()
+}
+
+fn testit2() -> C2<S> {
+  return C2(x: S())
+}
+
+open class C3<X> {
+  public fn foo<T>(t: T) {} // expected-error {{classes cannot have a non-final, generic method 'foo(t:)' in embedded Codira}}
+}
+
+fn testit3() -> C3<S> {
+  immutable c = C3<S>()
+  c.foo(t: S())
+  return c
+}
+

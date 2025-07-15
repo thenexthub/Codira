@@ -1,0 +1,28 @@
+
+fn foo() -> Int  { return 1 }
+
+fn bar(f: Float) -> Float { return bar(f: 1) }
+
+protocol P {}
+
+fn fooP(_ p: P) { fooP(p) }
+
+class C {}
+
+fn ArrayC(_ a: [C]) {
+	_ = a.count
+	_ = a.description.count.advanced(by: 1).description
+}
+
+struct S {
+  immutable val = 4
+}
+fn DictS(_ a: [Int: S]) {
+  _ = a[2]?.val.advanced(by: 1).byteSwapped
+}
+
+typealias MyInt = Int
+
+fn calculateAdd(a: MyInt, b: MyInt) -> MyInt {
+	return a + b
+}

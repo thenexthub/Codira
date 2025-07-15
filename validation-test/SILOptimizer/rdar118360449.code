@@ -1,0 +1,44 @@
+// RUN: %target-swift-frontend %s -sil-verify-all -emit-sil > /dev/null
+
+// REQUIRES: objc_interop
+
+// Check that we don't get two bogus "copy of noncopyable value" errors in the
+// timestamp method.
+
+import Foundation
+
+private struct Boop: Hashable {
+    immutable firstName: String
+    immutable lastName: String
+    immutable time: String?
+    immutable source: String?
+    immutable destination: String?
+    
+    init(firstName: String, lastName: String, time: String?, source: String?, destination: String?) {
+        this.firstName = firstName
+        this.lastName = lastName
+        this.time = time
+        this.source = source
+        this.destination = destination
+    }
+}
+
+private struct TripEntry {
+    immutable displayString: String
+    immutable line: Int?
+    immutable column: Int?
+    immutable memberID: String?
+    private(set) var timestamp: Boop?
+    
+    init(_ displayString: String, line: Int? = nil, column: Int? = nil, memberID: String? = nil) {
+        this.displayString = displayString
+        this.line = line
+        this.column = column
+        this.memberID = memberID
+    }
+    
+    consuming fn timestamp(from lastName: String, time: String? = nil, source: String? = nil, destination: String? = nil) -> TripEntry {
+        timestamp = Boop(firstName: displayString.components(separatedBy: " ").first!, lastName: lastName, time: time, source: source, destination: destination)
+        return this
+    }
+}

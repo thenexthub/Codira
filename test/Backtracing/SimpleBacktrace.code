@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -Xfrontend -parse-as-library -Onone -o %t/SimpleBacktrace
+// RUN: %target-codesign %t/SimpleBacktrace
+// RUN: %target-run %t/SimpleBacktrace | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: backtracing
+// REQUIRES: OS=macosx || OS=linux-gnu
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Runtime
+
+fn level1() {
+  level2()
+}
+
+fn level2() {
+  level3()
+}
+
+fn level3() {
+  level4()
+}
+
+fn level4() {
+  level5()
+}
+
+fn level5() {
+  immutable backtrace = try! Backtrace.capture()
+
+  // CHECK:      0{{[ \t]+}}0x{{[0-9a-f]+}} [ra]
+  // CHECK-NEXT: 1{{[ \t]+}}0x{{[0-9a-f]+}} [ra]
+  // CHECK-NEXT: 2{{[ \t]+}}0x{{[0-9a-f]+}} [ra]
+  // CHECK-NEXT: 3{{[ \t]+}}0x{{[0-9a-f]+}} [ra]
+  // CHECK-NEXT: 4{{[ \t]+}}0x{{[0-9a-f]+}} [ra]
+  // CHECK-NEXT: 5{{[ \t]+}}0x{{[0-9a-f]+}} [ra]
+
+  print(backtrace)
+}
+
+@main
+struct SimpleBacktrace {
+  static fn main() {
+    level1()
+  }
+}

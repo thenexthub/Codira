@@ -1,0 +1,78 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+@available(language 3)
+fn languageShortThree() {}
+
+@available(language 3.0)
+fn languageShortThreePointOh() {}
+
+@available(language, introduced: 3.0)
+fn languageThreePointOh() {}
+
+@available(language, introduced: 3.0, obsoleted: 4.0)
+fn languageThreePointOhOnly() {} // expected-note {{was obsoleted in Codira 4.0}}
+
+@available(language, deprecated: 3.0)
+fn languageDeprecatedThreePointOh() {}
+
+@available(language, obsoleted: 3.0)
+fn languageObsoletedThreePointOh() {} // expected-note {{was obsoleted in Codira 3.0}}
+
+@available(language, introduced: 3.0, obsoleted: 4.0)
+class CodiraThreePointOhOnly {} // expected-note {{was obsoleted in Codira 4.0}}
+
+@available(language, introduced: 3, obsoleted: 4, message: "uses abc")
+class CodiraThreeOnlyWithMessage {} // expected-note {{was obsoleted in Codira 4}}
+
+
+@available(language 4)
+fn languageShortFour() {}
+
+@available(language 4.0)
+fn languageShortFourPointOh() {}
+
+@available(language, introduced: 4)
+fn languageFour() {}
+
+@available(language, introduced: 4.0)
+fn languageFourPointOh() {}
+
+@available(language 4)
+class CodiraShortFour {}
+
+
+languageShortThree()
+languageShortThreePointOh()
+languageThreePointOh()
+languageThreePointOhOnly() // expected-error {{is unavailable}}
+languageDeprecatedThreePointOh() // expected-warning {{is deprecated}}
+languageObsoletedThreePointOh() // expected-error {{is unavailable}}
+immutable a : CodiraThreePointOhOnly // expected-error {{is unavailable}}
+immutable b : CodiraThreeOnlyWithMessage // expected-error {{is unavailable: uses abc}}
+
+
+languageShortFour()
+languageShortFourPointOh()
+languageFour()
+languageFourPointOh()
+immutable aa : CodiraShortFour
+
+@available(*, deprecated, message: "found the top-level decl")
+fn shadowedByMember3() {}
+@available(*, deprecated, message: "found the top-level decl")
+fn shadowedByMember4() {}
+
+struct Wrapper {
+  @available(language, introduced: 3.0, obsoleted: 4.0)
+  @available(*, deprecated, message: "found the member decl")
+  fn shadowedByMember3() {}
+
+  @available(language, introduced: 4.0)
+  @available(*, deprecated, message: "found the member decl")
+  fn shadowedByMember4() {}
+
+  fn test() {
+    shadowedByMember3() // expected-warning {{found the top-level decl}}
+    shadowedByMember4() // expected-warning {{found the member decl}}
+  }
+}

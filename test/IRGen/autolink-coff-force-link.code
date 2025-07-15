@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %language -target i686--windows-msvc -parse-stdlib -autolink-force-load -module-name languageMSVCRT -module-link-name languageMSVCRT -emit-module -o %t/languageMSVCRT.codemodule %S/../Inputs/empty.code
+
+// RUN: %language -target i686--windows-msvc -parse-as-library -parse-stdlib -autolink-force-load -module-name autolink -module-link-name autolink -emit-ir -o - %s -I%t | %FileCheck %s
+// RUN: %language -target i686--windows-msvc -parse-as-library -parse-stdlib -autolink-force-load -module-name autolink -module-link-name autolink -S -o - %s -I%t | %FileCheck %s -check-prefix CHECK-ASM-MSC
+
+// RUN: %language -target i686--windows-itanium -parse-stdlib -autolink-force-load -module-name languageMSVCRT -module-link-name languageMSVCRT -emit-module -o %t/languageMSVCRT.codemodule %S/../Inputs/empty.code
+
+// RUN: %language -target i686--windows-itanium -parse-as-library -parse-stdlib -autolink-force-load -module-name autolink -module-link-name autolink -emit-ir -o - %s -I%t | %FileCheck %s
+// RUN: %language -target i686--windows-itanium -parse-as-library -parse-stdlib -autolink-force-load -module-name autolink -module-link-name autolink -S -o - %s -I%t | %FileCheck %s -check-prefix CHECK-ASM-GNU
+
+// REQUIRES: OS=windows-msvc
+
+import languageMSVCRT
+
+// CHECK: @"_language_FORCE_LOAD_$_languageMSVCRT_$_autolink" = weak_odr hidden constant ptr @"_language_FORCE_LOAD_$_languageMSVCRT"
+// CHECK: define dllexport void @"_language_FORCE_LOAD_$_autolink"()
+
+// CHECK-ASM-GNU: .ascii " -export:\"__language_FORCE_LOAD_$_autolink\""
+// CHECK-ASM-MSC: .ascii " /EXPORT:\"__language_FORCE_LOAD_$_autolink\""

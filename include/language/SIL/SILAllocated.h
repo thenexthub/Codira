@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILALLOCATED_H
-#define SWIFT_SIL_SILALLOCATED_H
+#ifndef LANGUAGE_SIL_SILALLOCATED_H
+#define LANGUAGE_SIL_SILALLOCATED_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Compiler.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <stddef.h>
 
 namespace language {
@@ -47,6 +48,6 @@ public:
   }
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

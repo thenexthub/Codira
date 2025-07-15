@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/ImplementationOnlyDefs.codemodule -module-name ImplementationOnlyDefs %S/Inputs/ImplementationOnlyDefs.code \
+// RUN:   -enable-library-evolution -language-version 5
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -enable-library-evolution -language-version 5 -emit-sil -o /dev/null -verify %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -enable-library-evolution -language-version 5 -emit-sil -o /dev/null -verify -strict-concurrency=targeted %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -enable-library-evolution -language-version 5 -emit-sil -o /dev/null -verify -strict-concurrency=complete %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -enable-library-evolution -language-version 5 -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation %s
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@_implementationOnly import ImplementationOnlyDefs
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+
+class D: C {
+  @_implementationOnly
+  override fn f(_: @escaping () -> Void) { }
+
+  @_implementationOnly
+  override fn g(_: @escaping () -> Void) -> BSub { BSub() }
+  // expected-error@-1{{'@_implementationOnly' override must have the same type as the declaration it overrides ('(@escaping () -> Void) -> BSuper')}}
+}

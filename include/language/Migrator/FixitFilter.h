@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This class filters fix-its that are interesting to the Migrator.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_FIXITFILTER_H
-#define SWIFT_MIGRATOR_FIXITFILTER_H
+#ifndef LANGUAGE_MIGRATOR_FIXITFILTER_H
+#define LANGUAGE_MIGRATOR_FIXITFILTER_H
 
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticsParse.h"
@@ -35,25 +36,25 @@ struct FixitFilter {
         Info.ID == diag::declaration_same_line_without_semi.ID ||
         Info.ID == diag::expected_separator.ID)
       return false;
-    // The following interact badly with the swift migrator, they are undoing
+    // The following interact badly with the language migrator, they are undoing
     // migration of arguments to preserve the no-label for first argument.
     if (Info.ID == diag::witness_argument_name_mismatch.ID ||
         Info.ID == diag::missing_argument_labels.ID ||
         Info.ID == diag::override_argument_name_mismatch.ID)
       return false;
-    // This also interacts badly with the swift migrator, it unnecessary adds
+    // This also interacts badly with the language migrator, it unnecessary adds
     // @objc(selector) attributes triggered by the mismatched label changes.
     if (Info.ID == diag::objc_witness_selector_mismatch.ID ||
         Info.ID == diag::witness_non_objc.ID)
       return false;
     // This interacts badly with the migrator. For such code:
-    //   func test(p: Int, _: String) {}
+    //   fn test(p: Int, _: String) {}
     //   test(0, "")
     // the compiler bizarrely suggests to change order of arguments in the call
     // site.
     if (Info.ID == diag::argument_out_of_order_unnamed_unnamed.ID)
       return false;
-    // The following interact badly with the swift migrator by removing @IB*
+    // The following interact badly with the language migrator by removing @IB*
     // attributes when there is some unrelated type issue.
     if (Info.ID == diag::iboutlet_nonobjc_class.ID ||
         Info.ID == diag::iboutlet_nonobjc_protocol.ID ||
@@ -75,21 +76,21 @@ struct FixitFilter {
     if (Info.ID == diag::wrong_argument_labels.ID)
       return false;
 
-    // Adding type(of:) interacts poorly with the swift migrator by
+    // Adding type(of:) interacts poorly with the language migrator by
     // invalidating some inits with type errors.
     if (Info.ID == diag::init_not_instance_member.ID)
       return false;
-    // Renaming enum cases interacts poorly with the swift migrator by
+    // Renaming enum cases interacts poorly with the language migrator by
     // reverting changes made by the migrator.
     if (Info.ID == diag::could_not_find_enum_case.ID)
       return false;
 
     // With SE-110, the migrator may get a recommendation to add a Void
     // placeholder in the call to f in:
-    // func foo(f: (Void) -> ()) {
+    // fn foo(f: (Void) -> ()) {
     //   f()
     // }
-    // Here, f was () -> () in Swift 3 but now (()) -> () in Swift 4. Adding a
+    // Here, f was () -> () in Codira 3 but now (()) -> () in Codira 4. Adding a
     // type placeholder in the f() call isn't helpful for migration, although
     // this particular fix-it should be to fix the f parameter's type.
     if (Info.ID == diag::missing_argument_named.ID ||
@@ -143,4 +144,4 @@ struct FixitFilter {
 } // end namespace migrator
 } // end namespace language
 
-#endif // SWIFT_MIGRATOR_FIXITFILTER_H
+#endif // LANGUAGE_MIGRATOR_FIXITFILTER_H

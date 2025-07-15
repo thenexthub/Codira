@@ -1,4 +1,4 @@
-//===--- AccessorKinds.def - Swift accessor metaprogramming -----*- C++ -*-===//
+//===--- AccessorKinds.def - Codira accessor metaprogramming -----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with accessor kinds.
@@ -23,22 +24,22 @@
 #error must define either ACCESSOR or ACCESSOR_KEYWORD
 #endif
 
-/// ACCESSOR(ID)
+/// ACCESSOR(ID, KEYWORD)
 ///   There is an accessor with the enumerator value AccessorKind::ID.
 #if !defined(ACCESSOR) && defined(ACCESSOR_KEYWORD)
-#define ACCESSOR(ID)
+#define ACCESSOR(ID, KEYWORD)
 #endif
 
 /// SINGLETON_ACCESSOR(ID, KEYWORD)
 ///   The given accessor has only one matching accessor keyword.
 ///
-/// Defaults to ACCESSOR(ID) or ACCESSOR_KEYWORD(KEYWORD), depending on which
-/// is defined.
+/// Defaults to ACCESSOR(ID, KEYWORD) or ACCESSOR_KEYWORD(KEYWORD), depending
+/// on which is defined.
 #ifndef SINGLETON_ACCESSOR
 #if defined(ACCESSOR_KEYWORD)
 #define SINGLETON_ACCESSOR(ID, KEYWORD) ACCESSOR_KEYWORD(KEYWORD)
 #else
-#define SINGLETON_ACCESSOR(ID, KEYWORD) ACCESSOR(ID)
+#define SINGLETON_ACCESSOR(ID, KEYWORD) ACCESSOR(ID, KEYWORD)
 #endif
 #endif
 
@@ -134,7 +135,7 @@ OBJC_ACCESSOR(Get, get)
 /// This is never invoked directly by user code, but whenever making calls on
 /// a distributed actor and the target is not known to be local, we invoke the
 /// thunk. This is equivalent to a `distributed_thunk' FuncDecl of a
-/// 'distributed func'.
+/// 'distributed fn'.
 ///
 /// For the most part, its behavior is exactly the same as a normal getter.
 OBJC_ACCESSOR(DistributedGet, _distributed_get)

@@ -1,4 +1,4 @@
-//===--- ASTDemangler.h - Swift AST symbol demangling -----------*- C++ -*-===//
+//===--- ASTDemangler.h - Codira AST symbol demangling -----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines a builder concept for the TypeDecoder and MetadataReader which builds
@@ -22,16 +23,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTDEMANGLER_H
-#define SWIFT_AST_ASTDEMANGLER_H
+#ifndef LANGUAGE_AST_ASTDEMANGLER_H
+#define LANGUAGE_AST_ASTDEMANGLER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Types.h"
 #include "language/Demangling/Demangler.h"
 #include "language/Demangling/NamespaceMacros.h"
 #include "language/Demangling/TypeDecoder.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
 namespace language {
@@ -39,18 +40,18 @@ namespace language {
 class TypeDecl;
 
 namespace Demangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 Type getTypeForMangling(ASTContext &ctx,
-                        llvm::StringRef mangling,
+                        toolchain::StringRef mangling,
                         GenericSignature genericSig=GenericSignature());
 
 TypeDecl *getTypeDeclForMangling(ASTContext &ctx,
-                                 llvm::StringRef mangling,
+                                 toolchain::StringRef mangling,
                                  GenericSignature genericSig=GenericSignature());
 
 TypeDecl *getTypeDeclForUSR(ASTContext &ctx,
-                            llvm::StringRef usr,
+                            toolchain::StringRef usr,
                             GenericSignature genericSig=GenericSignature());
 
 /// An implementation of MetadataReader's BuilderType concept that
@@ -68,19 +69,19 @@ class ASTBuilder {
   /// signature. We need this because the mangling for a type parameter
   /// doesn't record whether it is a pack or not; we find the correct
   /// depth and index in this array, and use its pack-ness.
-  llvm::SmallVector<std::pair<unsigned, unsigned>, 2> ParameterPacks;
+  toolchain::SmallVector<std::pair<unsigned, unsigned>, 2> ParameterPacks;
 
   /// For saving and restoring generic parameters.
-  llvm::SmallVector<decltype(ParameterPacks), 2> ParameterPackStack;
+  toolchain::SmallVector<decltype(ParameterPacks), 2> ParameterPackStack;
 
   /// The depth and index of each value parameter in the current generic
   /// signature. We need this becasue the mangling for a type parameter
   /// doesn't record whether it is a value or not; we find the correct
   /// depth and index in this array, and use its value-ness.
-  llvm::SmallVector<std::tuple<std::pair<unsigned, unsigned>, Type>, 1> ValueParameters;
+  toolchain::SmallVector<std::tuple<std::pair<unsigned, unsigned>, Type>, 1> ValueParameters;
 
   /// For saving and restoring generic parameters.
-  llvm::SmallVector<decltype(ValueParameters), 1> ValueParametersStack;
+  toolchain::SmallVector<decltype(ValueParameters), 1> ValueParametersStack;
 
   /// This builder doesn't perform "on the fly" substitutions, so we preserve
   /// all pack expansions. We still need an active expansion stack though,
@@ -89,16 +90,16 @@ class ASTBuilder {
   /// - advancePackExpansion()
   /// - createExpandedPackElement()
   /// - endPackExpansion()
-  llvm::SmallVector<Type, 2> ActivePackExpansions;
+  toolchain::SmallVector<Type, 2> ActivePackExpansions;
 
 public:
-  using BuiltType = swift::Type;
-  using BuiltTypeDecl = swift::GenericTypeDecl *; // nominal or type alias
-  using BuiltProtocolDecl = swift::ProtocolDecl *;
-  using BuiltGenericSignature = swift::GenericSignature;
-  using BuiltRequirement = swift::Requirement;
-  using BuiltInverseRequirement = swift::InverseRequirement;
-  using BuiltSubstitutionMap = swift::SubstitutionMap;
+  using BuiltType = language::Type;
+  using BuiltTypeDecl = language::GenericTypeDecl *; // nominal or type alias
+  using BuiltProtocolDecl = language::ProtocolDecl *;
+  using BuiltGenericSignature = language::GenericSignature;
+  using BuiltRequirement = language::Requirement;
+  using BuiltInverseRequirement = language::InverseRequirement;
+  using BuiltSubstitutionMap = language::SubstitutionMap;
 
   static constexpr bool needsToPrecomputeParentGenericContextShapes = false;
 
@@ -219,9 +220,9 @@ public:
 #include "language/AST/ReferenceStorage.def"
 
   Type createSILBoxType(Type base);
-  using BuiltSILBoxField = llvm::PointerIntPair<Type, 1>;
+  using BuiltSILBoxField = toolchain::PointerIntPair<Type, 1>;
   using BuiltSubstitution = std::pair<Type, Type>;
-  using BuiltLayoutConstraint = swift::LayoutConstraint;
+  using BuiltLayoutConstraint = language::LayoutConstraint;
   Type createSILBoxTypeWithLayout(
       ArrayRef<BuiltSILBoxField> Fields,
       ArrayRef<BuiltSubstitution> Substitutions,
@@ -289,7 +290,7 @@ private:
   /// The module name encoded in the node is either the module's real or ABI
   /// name. Multiple modules can share the same name. This function returns
   /// all modules that contain that name.
-  llvm::ArrayRef<ModuleDecl *> findPotentialModules(NodePointer node);
+  toolchain::ArrayRef<ModuleDecl *> findPotentialModules(NodePointer node);
 
   Demangle::NodePointer findModuleNode(NodePointer node);
 
@@ -317,9 +318,9 @@ private:
   Identifier getIdentifier(StringRef name);
 };
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 }  // namespace Demangle
 
 }  // namespace language
 
-#endif  // SWIFT_AST_ASTDEMANGLER_H
+#endif  // LANGUAGE_AST_ASTDEMANGLER_H

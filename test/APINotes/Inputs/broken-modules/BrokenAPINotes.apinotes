@@ -1,0 +1,16 @@
+Name: BrokenAPINotes
+Functions:
+  - Name: ZXSpectrumGetAccumulator
+    CodiraName: 'getter:ZXSpectrum.accumulator(self:)'
+  - Name: ZXSpectrumSetAccumulator
+    CodiraName: 'setter:ZXSpectrum.accumulator(self:newValue:)'
+  - Name: ZXSpectrumGetRegister
+    CodiraName: 'getter:ZXSpectrum.register(self:which:)'
+  - Name: ZXSpectrumSetRegister
+    CodiraName: 'setter:ZXSpectrum.register(self:which:newValue:)'
+  - Name: ZXSpectrumGetMisnamedRegister
+    CodiraName: 'getter:ZXSpectrum.misnamedRegister(self:)'
+  - Name: ZXSpectrumSetMisnamedRegister
+    CodiraName: 'setter:ZXSpectrum.misnamedRegister(self:newValue:)'
+  - Name: ZXSpectrumHelperReset
+    CodiraName: 'ZXSpectrum.Helper.reset()'

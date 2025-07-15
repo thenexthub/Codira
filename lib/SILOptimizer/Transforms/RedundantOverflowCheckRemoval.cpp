@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Remove overflow checks that are guarded by control flow or other
 // overflow checks.
@@ -27,8 +28,8 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -62,7 +63,7 @@ public:
   struct Constraint {
     Constraint(SILBasicBlock *BB, SILValue L, SILValue R, ValueRelation Rel) :
       DominatingBlock(BB), Left(L), Right(R), Relationship(Rel) {
-      LLVM_DEBUG(dump());
+      TOOLCHAIN_DEBUG(dump());
     }
 
     /// The constraint is valid in blocks dominated by this block.
@@ -76,23 +77,23 @@ public:
 
     /// Print the content of the constraint.
     void dump() {
-      llvm::dbgs()<<"Constraint [" << DominatingBlock <<"]\n";
-      llvm::dbgs()<<"  Relationship:";
+      toolchain::dbgs()<<"Constraint [" << DominatingBlock <<"]\n";
+      toolchain::dbgs()<<"  Relationship:";
       switch (Relationship) {
-        case ValueRelation::EQ:   llvm::dbgs()<<"Equal\n"; break;
-        case ValueRelation::SLT:  llvm::dbgs()<<"SLT\n"; break;
-        case ValueRelation::ULT:  llvm::dbgs()<<"ULT\n"; break;
-        case ValueRelation::SLE:  llvm::dbgs()<<"SLE\n"; break;
-        case ValueRelation::ULE:  llvm::dbgs()<<"ULE\n"; break;
-        case ValueRelation::SMul: llvm::dbgs()<<"SMul\n"; break;
-        case ValueRelation::SSub: llvm::dbgs()<<"SSub\n"; break;
-        case ValueRelation::SAdd: llvm::dbgs()<<"SAdd\n"; break;
-        case ValueRelation::UMul: llvm::dbgs()<<"UMul\n"; break;
-        case ValueRelation::USub: llvm::dbgs()<<"USub\n"; break;
-        case ValueRelation::UAdd: llvm::dbgs()<<"UAdd\n"; break;
+        case ValueRelation::EQ:   toolchain::dbgs()<<"Equal\n"; break;
+        case ValueRelation::SLT:  toolchain::dbgs()<<"SLT\n"; break;
+        case ValueRelation::ULT:  toolchain::dbgs()<<"ULT\n"; break;
+        case ValueRelation::SLE:  toolchain::dbgs()<<"SLE\n"; break;
+        case ValueRelation::ULE:  toolchain::dbgs()<<"ULE\n"; break;
+        case ValueRelation::SMul: toolchain::dbgs()<<"SMul\n"; break;
+        case ValueRelation::SSub: toolchain::dbgs()<<"SSub\n"; break;
+        case ValueRelation::SAdd: toolchain::dbgs()<<"SAdd\n"; break;
+        case ValueRelation::UMul: toolchain::dbgs()<<"UMul\n"; break;
+        case ValueRelation::USub: toolchain::dbgs()<<"USub\n"; break;
+        case ValueRelation::UAdd: toolchain::dbgs()<<"UAdd\n"; break;
       }
-      llvm::dbgs()<<"  Left:"; Left->dump();
-      llvm::dbgs()<<"  Right:"; Right->dump();
+      toolchain::dbgs()<<"  Left:"; Left->dump();
+      toolchain::dbgs()<<"  Right:"; Right->dump();
     }
   };
 
@@ -112,7 +113,7 @@ public:
   /// and return True if and instructions were removed.
   bool removeCollectedRedundantInstructions() {
     if (ToRemove.size()) {
-      LLVM_DEBUG(llvm::dbgs() << "Removing " << ToRemove.size()
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Removing " << ToRemove.size()
                               << " condfails in "
                               << getFunction()->getName() << "\n");
 
@@ -229,7 +230,7 @@ public:
         case ValueRelation::ULE: return Ap.ule(Bp);
         case ValueRelation::SLT: return Ap.slt(Bp);
         case ValueRelation::ULT: return Ap.ult(Bp);
-        default: llvm_unreachable("Invalid value relation");
+        default: toolchain_unreachable("Invalid value relation");
       }
     }
     return false;
@@ -702,6 +703,6 @@ public:
 };
 } // end anonymous namespace
 
-SILTransform *swift::createRedundantOverflowCheckRemoval() {
+SILTransform *language::createRedundantOverflowCheckRemoval() {
   return new RedundantOverflowCheckRemovalPass();
 }

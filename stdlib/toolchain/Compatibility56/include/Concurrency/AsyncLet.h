@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing task groups.
+// Codira ABI describing task groups.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASK_ASYNC_LET_BACKDEPLOY56_H
-#define SWIFT_ABI_TASK_ASYNC_LET_BACKDEPLOY56_H
+#ifndef LANGUAGE_ABI_TASK_ASYNC_LET_BACKDEPLOY56_H
+#define LANGUAGE_ABI_TASK_ASYNC_LET_BACKDEPLOY56_H
 
 #include "Task.h"
 #include "language/ABI/HeapObject.h"
@@ -34,7 +35,7 @@ class alignas(Alignment_AsyncLet) AsyncLet {
 public:
   // These constructors do not initialize the AsyncLet instance, and the
   // destructor does not destroy the AsyncLet instance; you must call
-  // swift_asyncLet_{start,end} yourself.
+  // language_asyncLet_{start,end} yourself.
   constexpr AsyncLet()
     : PrivateData{} {}
 
@@ -65,4 +66,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_ABI_TASK_ASYNC_LET_BACKDEPLOY56_H
+#endif // LANGUAGE_ABI_TASK_ASYNC_LET_BACKDEPLOY56_H

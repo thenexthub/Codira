@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// REQUIRES: asserts
+// REQUIRES: VENDOR=apple
+
+/// Build library.
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule
+
+/// Build client.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -verify -Xtoolchain -debug-only=Serialization \
+// RUN:   -enable-deserialization-safety 2>&1 \
+// RUN:   | %FileCheck --check-prefixes=SAFE %s
+
+/// Decls skips by the deserialization safety logic.
+// SAFE-NOT: InternalClass
+// SAFE: Deserialized: 'PublicClass'
+// SAFE: Deserialized: 'publicFunc()'
+// SAFE: Skipping unsafe deserialization: 'privateFunc()'
+// SAFE: Skipping unsafe deserialization: 'fileprivateFunc()'
+// SAFE: Skipping unsafe deserialization: 'internalFunc()'
+
+//--- Lib.code
+
+import Foundation
+
+@objc
+public class PublicClass : NSObject {
+    public fn publicFunc() {}
+}
+
+@objc
+internal class InternalClass : NSObject {
+    private fn privateFunc() {}
+    fileprivate fn fileprivateFunc() {}
+    internal fn internalFunc() {}
+}
+
+//--- Client.code
+
+import Lib
+
+var x: AnyObject
+
+// Trigger a typo correction to read all members of all subtypes to NSObject.
+x.notAMember() // expected-error {{value of type 'AnyObject' has no member 'notAMember'}}

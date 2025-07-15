@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements routines associated with the result-builder
@@ -32,8 +33,8 @@
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/IDETypeChecking.h"
 #include "language/Sema/SolutionResult.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <iterator>
 #include <map>
 #include <memory>
@@ -187,7 +188,7 @@ protected:
       default:
         return UnsupportedElt(decl);
       }
-      llvm_unreachable("Unhandled case in switch!");
+      toolchain_unreachable("Unhandled case in switch!");
     }
 
     if (auto *stmt = element.dyn_cast<Stmt *>()) {
@@ -298,7 +299,7 @@ protected:
 
         auto *buildBlockVar = captureExpr(buildPartialFirst, newBody);
 
-        for (auto *argExpr : llvm::drop_begin(buildBlockArguments)) {
+        for (auto *argExpr : toolchain::drop_begin(buildBlockArguments)) {
           auto *accumPartialBlock = builder.buildCall(
               braceStmt->getStartLoc(), ctx.Id_buildPartialBlock,
               {builder.buildVarRef(buildBlockVar, argExpr->getStartLoc()),
@@ -869,7 +870,7 @@ private:
       // This isn't just an optimization: adding spurious Eithers could
       // leave us with unresolvable type variables if `buildEither` has
       // a signature like:
-      //    static func buildEither<T,U>(first value: T) -> Either<T,U>
+      //    static fn buildEither<T,U>(first value: T) -> Either<T,U>
       // which relies on unification to work.
       if (path == maxPath && !(maxPath & 1))
         continue;
@@ -918,12 +919,12 @@ private:
 } // end anonymous namespace
 
 std::optional<BraceStmt *>
-TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
+TypeChecker::applyResultBuilderBodyTransform(FuncDecl *fn, Type builderType) {
   // First look for any return statements, and bail if we have any.
-  auto &ctx = func->getASTContext();
+  auto &ctx = fn->getASTContext();
 
   SmallVector<ReturnStmt *> returnStmts;
-  func->getExplicitReturnStmts(returnStmts);
+  fn->getExplicitReturnStmts(returnStmts);
 
   if (!returnStmts.empty()) {
     // One or more explicit 'return' statements were encountered, which
@@ -933,15 +934,15 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
         diag::result_builder_disabled_by_return_warn, builderType);
 
     // Note that one can remove the result builder attribute.
-    auto attr = func->getAttachedResultBuilder();
+    auto attr = fn->getAttachedResultBuilder();
     if (!attr) {
-      if (auto accessor = dyn_cast<AccessorDecl>(func)) {
+      if (auto accessor = dyn_cast<AccessorDecl>(fn)) {
         attr = accessor->getStorage()->getAttachedResultBuilder();
       }
     }
 
     if (attr) {
-      diagnoseAndRemoveAttr(func, attr, diag::result_builder_remove_attr);
+      diagnoseAndRemoveAttr(fn, attr, diag::result_builder_remove_attr);
     }
 
     // Note that one can remove all of the return statements.
@@ -957,7 +958,7 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
     return std::nullopt;
   }
 
-  auto target = SyntacticElementTarget(func);
+  auto target = SyntacticElementTarget(fn);
   if (ConstraintSystem::preCheckTarget(target))
     return nullptr;
 
@@ -965,26 +966,26 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
   if (debugConstraintSolverForTarget(ctx, target))
     options |= ConstraintSystemFlags::DebugConstraints;
 
-  auto resultInterfaceTy = func->getResultInterfaceType();
-  auto resultContextType = func->mapTypeIntoContext(resultInterfaceTy);
+  auto resultInterfaceTy = fn->getResultInterfaceType();
+  auto resultContextType = fn->mapTypeIntoContext(resultInterfaceTy);
 
   // Determine whether we're inferring the underlying type for the opaque
   // result type of this function.
   ConstraintKind resultConstraintKind = ConstraintKind::Conversion;
   if (auto opaque = resultContextType->getAs<OpaqueTypeArchetypeType>()) {
-    if (opaque->getDecl()->isOpaqueReturnTypeOf(func)) {
+    if (opaque->getDecl()->isOpaqueReturnTypeOf(fn)) {
       resultConstraintKind = ConstraintKind::Equal;
     }
   }
 
   // Build a constraint system in which we can check the body of the function.
-  ConstraintSystem cs(func, options);
+  ConstraintSystem cs(fn, options);
 
   if (cs.isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
 
     log << "--- Applying result builder to function ---\n";
-    func->dump(log);
+    fn->dump(log);
     log << '\n';
   }
 
@@ -992,12 +993,12 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
   // parameters to appear in the result builder type, because
   // the result builder type will only be used inside the body
   // of this decl; it's not part of the interface type.
-  builderType = func->mapTypeIntoContext(builderType);
+  builderType = fn->mapTypeIntoContext(builderType);
 
   if (auto result = cs.matchResultBuilder(
-          func, builderType, resultContextType, resultConstraintKind,
+          fn, builderType, resultContextType, resultConstraintKind,
           /*contextualType=*/Type(),
-          cs.getConstraintLocator(func->getBody()))) {
+          cs.getConstraintLocator(fn->getBody()))) {
     if (result->isFailure())
       return nullptr;
   }
@@ -1010,7 +1011,7 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
     cs.Options |= ConstraintSystemFlags::ForCodeCompletion;
     cs.solveForCodeCompletion(solutions);
 
-    CompletionContextFinder analyzer(target, func->getDeclContext());
+    CompletionContextFinder analyzer(target, fn->getDeclContext());
     if (analyzer.hasCompletion()) {
       filterSolutionsForCodeCompletion(solutions, analyzer);
       for (const auto &solution : solutions) {
@@ -1063,8 +1064,8 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
 
     case SolutionResult::Kind::TooComplex:
       reportSolutionsToSolutionCallback(salvagedResult);
-      func->diagnose(diag::expression_too_complex)
-        .highlight(func->getBodySourceRange());
+      fn->diagnose(diag::expression_too_complex)
+        .highlight(fn->getBodySourceRange());
       salvagedResult.markAsDiagnosed();
       return nullptr;
     }
@@ -1074,7 +1075,7 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
 
   if (cs.isDebugMode()) {
     auto indent = cs.solverState ? cs.solverState->getCurrentIndent() : 0;
-    auto &log = llvm::errs().indent(indent);
+    auto &log = toolchain::errs().indent(indent);
     log << "--- Applying Solution ---\n";
     solutions.front().dump(log, indent);
     log << '\n';
@@ -1097,7 +1098,7 @@ TypeChecker::applyResultBuilderBodyTransform(FuncDecl *func, Type builderType) {
 
     if (cs.isDebugMode()) {
       auto indent = cs.solverState ? cs.solverState->getCurrentIndent() : 0;
-      auto &log = llvm::errs().indent(indent);
+      auto &log = toolchain::errs().indent(indent);
       log << "--- Type-checked function body ---\n";
       body->dump(log);
       log << '\n';
@@ -1131,7 +1132,7 @@ ConstraintSystem::matchResultBuilder(AnyFunctionRef fn, Type builderType,
   // shouldn't need to do anything here, but there was a bug here that we did
   // not apply the result builder transform if it contained an explicit return.
   // To maintain source compatibility, we still need to check for HasReturnStmt.
-  // https://github.com/apple/swift/issues/64332.
+  // https://github.com/apple/language/issues/64332.
   if (fn.bodyHasExplicitReturnStmt()) {
     // Diagnostic mode means that solver couldn't reach any viable
     // solution, so let's diagnose presence of a `return` statement
@@ -1201,7 +1202,7 @@ ConstraintSystem::matchResultBuilder(AnyFunctionRef fn, Type builderType,
   setType(transformedBody->first, MetatypeType::get(builderType));
 
   if (isDebugMode()) {
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
     auto indent = solverState ? solverState->getCurrentIndent() : 0;
     log.indent(indent) << "------- Transformed Body -------\n";
     transformedBody->second->dump(log, &getASTContext(), indent);
@@ -1335,14 +1336,14 @@ ResultBuilderOpSupport TypeChecker::checkBuilderOpSupport(
       NL_QualifiedDefault | NL_ProtocolMembers | NL_IgnoreMissingImports,
       foundDecls);
   for (auto decl : foundDecls) {
-    if (auto func = dyn_cast<FuncDecl>(decl)) {
+    if (auto fn = dyn_cast<FuncDecl>(decl)) {
       // Function must be static.
-      if (!func->isStatic())
+      if (!fn->isStatic())
         continue;
 
       // Function must have the right argument labels, if provided.
       if (!argLabels.empty()) {
-        auto funcLabels = func->getName().getArgumentNames();
+        auto funcLabels = fn->getName().getArgumentNames();
         if (argLabels.size() > funcLabels.size() ||
             funcLabels.slice(0, argLabels.size()) != argLabels)
           continue;
@@ -1350,7 +1351,7 @@ ResultBuilderOpSupport TypeChecker::checkBuilderOpSupport(
 
       // Check if the candidate has a suitable availability for the
       // calling context.
-      if (isUnavailable(func)) {
+      if (isUnavailable(fn)) {
         foundUnavailable = true;
         continue;
       }
@@ -1382,7 +1383,7 @@ bool TypeChecker::typeSupportsBuilderOp(
       .isSupported(/*requireAvailable*/ false);
 }
 
-Type swift::inferResultBuilderComponentType(NominalTypeDecl *builder) {
+Type language::inferResultBuilderComponentType(NominalTypeDecl *builder) {
   Type componentType;
 
   SmallVector<ValueDecl *, 4> potentialMatches;
@@ -1392,18 +1393,18 @@ Type swift::inferResultBuilderComponentType(NominalTypeDecl *builder) {
       /*argLabels=*/{}, &potentialMatches);
   if (supportsBuildBlock) {
     for (auto decl : potentialMatches) {
-      auto func = dyn_cast<FuncDecl>(decl);
-      if (!func || !func->isStatic())
+      auto fn = dyn_cast<FuncDecl>(decl);
+      if (!fn || !fn->isStatic())
         continue;
 
       // If we haven't seen a component type before, gather it.
       if (!componentType) {
-        componentType = func->getResultInterfaceType();
+        componentType = fn->getResultInterfaceType();
         continue;
       }
 
       // If there are inconsistent component types, bail out.
-      if (!componentType->isEqual(func->getResultInterfaceType())) {
+      if (!componentType->isEqual(fn->getResultInterfaceType())) {
         componentType = Type();
         break;
       }
@@ -1414,7 +1415,7 @@ Type swift::inferResultBuilderComponentType(NominalTypeDecl *builder) {
 }
 
 std::tuple<SourceLoc, std::string, Type>
-swift::determineResultBuilderBuildFixItInfo(NominalTypeDecl *builder) {
+language::determineResultBuilderBuildFixItInfo(NominalTypeDecl *builder) {
   SourceLoc buildInsertionLoc = builder->getBraces().Start;
   std::string stubIndent;
   Type componentType;
@@ -1435,10 +1436,10 @@ swift::determineResultBuilderBuildFixItInfo(NominalTypeDecl *builder) {
   return std::make_tuple(buildInsertionLoc, stubIndent, componentType);
 }
 
-void swift::printResultBuilderBuildFunction(
+void language::printResultBuilderBuildFunction(
     NominalTypeDecl *builder, Type componentType,
     ResultBuilderBuildFunction function, std::optional<std::string> stubIndent,
-    llvm::raw_ostream &out) {
+    toolchain::raw_ostream &out) {
   // Render the component type into a string.
   std::string componentTypeString;
   if (componentType)
@@ -1458,7 +1459,7 @@ void swift::printResultBuilderBuildFunction(
     if (builder->getFormalAccess() >= AccessLevel::Public)
       printer << "public ";
 
-    printer << "static func ";
+    printer << "static fn ";
   }
 
   bool printedResult = false;

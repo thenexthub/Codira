@@ -1,0 +1,127 @@
+fn fromOther()
+
+
+// MARK: - C Additions
+
+import B
+import C
+
+// Available when C is imported with Other
+fn filtered()
+
+// Available when C is imported with Other
+fn from_OtherCAdditions()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 0,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 19,
+    key.length: 23
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 22,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 43,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 50,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 52,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 59,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 62,
+    key.length: 43
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 105,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 110,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 122,
+    key.length: 43
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 165,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 170,
+    key.length: 20
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "fromOther()",
+    key.usr: "s:5Other04fromA0yyF",
+    key.offset: 0,
+    key.length: 16,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>fromOther</decl.name>()</decl.function.free>"
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "filtered()",
+    key.usr: "s:16_OtherCAdditions8filteredyyF",
+    key.offset: 105,
+    key.length: 15,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>filtered</decl.name>()</decl.function.free>",
+    key.attributes: [
+      {
+        key.kind: source.lang.code.attribute.availability,
+        key.is_unavailable: 1
+      }
+    ],
+    key.is_unavailable: 1,
+    key.required_bystanders: [
+      "C"
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.name: "from_OtherCAdditions()",
+    key.usr: "s:16_OtherCAdditions05from_aB0yyF",
+    key.doc.full_as_xml: "<Function><Name>from_OtherCAdditions()</Name><USR>s:16_OtherCAdditions05from_aB0yyF</USR><Declaration>fn from_OtherCAdditions()</Declaration><CommentParts><Abstract><Para>This has some interesting documentation that shouldn’t be separated from the decl when we print the comment detailing its required bystanders in the generated interface of ‘Other’.</Para></Abstract></CommentParts></Function>",
+    key.offset: 165,
+    key.length: 27,
+    key.fully_annotated_decl: "<decl.function.free><syntaxtype.keyword>fn</syntaxtype.keyword> <decl.name>from_OtherCAdditions</decl.name>()</decl.function.free>",
+    key.required_bystanders: [
+      "C"
+    ]
+  }
+]

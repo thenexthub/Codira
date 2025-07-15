@@ -1,12 +1,12 @@
 //===--- Differentiation.cpp - SIL Automatic Differentiation --*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2018 - 2020 Apple Inc. and the Swift project authors
+// Copyright (c) 2018 - 2020 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -45,33 +45,33 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/DifferentiationMangler.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/BreadthFirstIterator.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/ADT/APSInt.h"
+#include "toolchain/ADT/BreadthFirstIterator.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 using namespace language::autodiff;
-using llvm::DenseMap;
-using llvm::SmallDenseMap;
-using llvm::SmallDenseSet;
-using llvm::SmallMapVector;
-using llvm::SmallSet;
+using toolchain::DenseMap;
+using toolchain::SmallDenseMap;
+using toolchain::SmallDenseSet;
+using toolchain::SmallMapVector;
+using toolchain::SmallSet;
 
 /// This flag enables experimental `@differentiable(_linear)` function
 /// transposition.
-static llvm::cl::opt<bool> EnableExperimentalLinearMapTransposition(
-    "enable-experimental-linear-map-transposition", llvm::cl::init(false));
+static toolchain::cl::opt<bool> EnableExperimentalLinearMapTransposition(
+    "enable-experimental-linear-map-transposition", toolchain::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 // Helpers
 //===----------------------------------------------------------------------===//
 
-/// Given a dumpable value, dumps it to `llvm::dbgs()`.
+/// Given a dumpable value, dumps it to `toolchain::dbgs()`.
 template <typename T> static inline void debugDump(T &v) {
-  LLVM_DEBUG(llvm::dbgs() << "\n==== BEGIN DEBUG DUMP ====\n"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n==== BEGIN DEBUG DUMP ====\n"
                           << v << "\n==== END DEBUG DUMP ====\n");
 }
 
@@ -86,7 +86,7 @@ private:
   ADContext context;
 
   /// Cache used in getUnwrappedCurryThunkFunction.
-  llvm::DenseMap<AbstractFunctionDecl *, SILFunction *> afdToSILFn;
+  toolchain::DenseMap<AbstractFunctionDecl *, SILFunction *> afdToSILFn;
 
   /// Promotes the given `differentiable_function` instruction to a valid
   /// `@differentiable` function-typed value.
@@ -249,7 +249,7 @@ static bool diagnoseUnsatisfiedRequirements(ADContext &context,
     }
     switch (req.getKind()) {
     case RequirementKind::SameShape:
-      llvm_unreachable("Same-shape requirement not supported here");
+      toolchain_unreachable("Same-shape requirement not supported here");
 
     // Check layout requirements.
     case RequirementKind::Layout: {
@@ -300,7 +300,7 @@ static bool diagnoseUnsatisfiedRequirements(ADContext &context,
     return false;
   // Diagnose unsatisfied requirements.
   std::string reqText;
-  llvm::raw_string_ostream stream(reqText);
+  toolchain::raw_string_ostream stream(reqText);
   interleave(
       unsatisfiedRequirements,
       [&](Requirement req) { req.print(stream, PrintOptions()); },
@@ -324,7 +324,7 @@ static void copyParameterArgumentsForApply(
     ApplySite applySite, SmallVectorImpl<SILValue> &copiedArgs,
     SmallVectorImpl<SILValue> &newArgsToDestroy,
     SmallVectorImpl<AllocStackInst *> &newBuffersToDealloc) {
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream() << "Copying arguments from apply site: ";
     applySite.getInstruction()->print(s);
   });
@@ -379,7 +379,7 @@ static SILValue reapplyFunctionConversion(
     SmallVectorImpl<AllocStackInst *> &newBuffersToDealloc,
     IndexSubset *parameterIndices, IndexSubset *resultIndices,
     GenericSignature newFuncGenSig = GenericSignature()) {
-  // If the old func is the new func, then there's no conversion.
+  // If the old fn is the new fn, then there's no conversion.
   if (oldFunc == oldConvertedFunc)
     return newFunc;
   // Handle a few instruction cases.
@@ -473,7 +473,7 @@ static SILValue reapplyFunctionConversion(
     return builder.createPartialApply(loc, innerNewFunc, substMap, newArgs,
                                       ParameterConvention::Direct_Guaranteed);
   }
-  llvm_unreachable("Unhandled function conversion instruction");
+  toolchain_unreachable("Unhandled function conversion instruction");
 }
 
 SILFunction *DifferentiationTransformer::getUnwrappedCurryThunkFunction(
@@ -508,7 +508,7 @@ SILFunction *DifferentiationTransformer::getUnwrappedCurryThunkFunction(
         // FIXME: References to functions having external property wrapper
         // parameters are not handled since we can't now construct a test case
         // for that due to the crash
-        // https://github.com/swiftlang/swift/issues/77613
+        // https://github.com/languagelang/language/issues/77613
         if (currentAFD->hasCurriedSelf()) {
           auto [_, wasEmplace] =
               afdToSILFn.try_emplace(currentAFD, &currentFunc);
@@ -865,7 +865,7 @@ static SILFunction *createEmptyVJP(ADContext &context,
                                    SerializedKind_t isSerialized) {
   auto original = witness->getOriginalFunction();
   auto config = witness->getConfig();
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream();
     s << "Creating VJP for " << original->getName() << ":\n\t";
     s << "Original type: " << original->getLoweredFunctionType() << "\n\t";
@@ -900,7 +900,7 @@ static SILFunction *createEmptyVJP(ADContext &context,
       original->isRuntimeAccessible());
   vjp->setDebugScope(new (module) SILDebugScope(original->getLocation(), vjp));
 
-  LLVM_DEBUG(llvm::dbgs() << "VJP type: " << vjp->getLoweredFunctionType()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "VJP type: " << vjp->getLoweredFunctionType()
                           << "\n");
   return vjp;
 }
@@ -910,7 +910,7 @@ static SILFunction *createEmptyJVP(ADContext &context,
                                    SerializedKind_t isSerialized) {
   auto original = witness->getOriginalFunction();
   auto config = witness->getConfig();
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream();
     s << "Creating JVP for " << original->getName() << ":\n\t";
     s << "Original type: " << original->getLoweredFunctionType() << "\n\t";
@@ -944,7 +944,7 @@ static SILFunction *createEmptyJVP(ADContext &context,
       original->isRuntimeAccessible());
   jvp->setDebugScope(new (module) SILDebugScope(original->getLocation(), jvp));
 
-  LLVM_DEBUG(llvm::dbgs() << "JVP type: " << jvp->getLoweredFunctionType()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "JVP type: " << jvp->getLoweredFunctionType()
                           << "\n");
   return jvp;
 }
@@ -986,7 +986,7 @@ bool DifferentiationTransformer::canonicalizeDifferentiabilityWitness(
     SILDifferentiabilityWitness *witness, DifferentiationInvoker invoker,
     SerializedKind_t serializeFunctions) {
   std::string traceMessage;
-  llvm::raw_string_ostream OS(traceMessage);
+  toolchain::raw_string_ostream OS(traceMessage);
   OS << "processing ";
   witness->print(OS);
   OS << " on";
@@ -999,10 +999,14 @@ bool DifferentiationTransformer::canonicalizeDifferentiabilityWitness(
 
   // We can generate empty JVP / VJP for functions available externally. These
   // functions have the same linkage as the original ones sans `external`
-  // flag. Important exception here hidden_external functions as they are
-  // serializable but corresponding hidden ones would be not and the SIL
-  // verifier will fail. Patch `serializeFunctions` for this case.
-  if (orig->getLinkage() == SILLinkage::HiddenExternal)
+  // flag. Important exception here hidden_external non-@_alwaysEmitIntoClient
+  // functions as they are serializable but corresponding hidden ones would be
+  // not and the SIL verifier will fail. Patch `serializeFunctions` for this
+  // case. For @_alwaysEmitIntoClient original functions (which might be
+  // HiddenExternal if we only have declaration without definition), we want
+  // derivatives to be serialized and do not patch `serializeFunctions`.
+  if (orig->getLinkage() == SILLinkage::HiddenExternal &&
+      !orig->markedAsAlwaysEmitIntoClient())
     serializeFunctions = IsNotSerialized;
 
   // If the JVP doesn't exist, need to synthesize it.
@@ -1045,7 +1049,7 @@ bool DifferentiationTransformer::canonicalizeDifferentiabilityWitness(
       // exists, fatal error with a nice message.
       emitFatalError(context, jvp,
                      "_fatalErrorForwardModeDifferentiationDisabled");
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Generated empty JVP for "
                  << orig->getName() << ":\n"
                  << *jvp);
@@ -1313,7 +1317,7 @@ SILValue DifferentiationTransformer::promoteToDifferentiableFunction(
     derivativeFns.push_back(derivativeFn);
   }
   // Deallocate temporary buffers used for creating derivative functions.
-  for (auto *buf : llvm::reverse(newBuffersToDealloc))
+  for (auto *buf : toolchain::reverse(newBuffersToDealloc))
     builder.createDeallocStack(loc, buf);
 
   // If our original copy does not have none ownership, copy it.
@@ -1353,7 +1357,7 @@ bool DifferentiationTransformer::processDifferentiableFunctionInst(
   PrettyStackTraceSILNode dfiTrace("canonicalizing `differentiable_function`",
                                    dfi);
   PrettyStackTraceSILFunction fnTrace("...in", dfi->getFunction());
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream() << "Processing DifferentiableFunctionInst:\n";
     dfi->printInContext(s);
   });
@@ -1385,7 +1389,7 @@ bool DifferentiationTransformer::processLinearFunctionInst(
     LinearFunctionInst *lfi) {
   PrettyStackTraceSILNode dfiTrace("canonicalizing `linear_function`", lfi);
   PrettyStackTraceSILFunction fnTrace("...in", lfi->getFunction());
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream() << "Processing LinearFunctionInst:\n";
     lfi->printInContext(s);
   });
@@ -1443,7 +1447,7 @@ void Differentiation::run() {
         } else if (auto *lfi = dyn_cast<LinearFunctionInst>(&i)) {
           // If linear map transposition is not enabled and an uncanonical
           // `linear_function` instruction is encountered, emit a diagnostic.
-          // FIXME(https://github.com/apple/swift/issues/54256): Finish support for linear map transposition.
+          // FIXME(https://github.com/apple/language/issues/54256): Finish support for linear map transposition.
           if (!EnableExperimentalLinearMapTransposition) {
             if (!lfi->hasTransposeFunction()) {
               astCtx.Diags.diagnose(
@@ -1464,11 +1468,11 @@ void Differentiation::run() {
       context.getLinearFunctionInstWorklist().empty())
     return;
 
-  // Differentiation relies on the stdlib (the Swift module).
+  // Differentiation relies on the stdlib (the Codira module).
   // If it's not imported, it's an internal error.
   if (!astCtx.getStdlibModule()) {
     astCtx.Diags.diagnose(SourceLoc(),
-                          diag::autodiff_internal_swift_not_imported);
+                          diag::autodiff_internal_language_not_imported);
     return;
   }
   if (!astCtx.getLoadedModule(astCtx.Id_Differentiation)) {
@@ -1522,11 +1526,11 @@ void Differentiation::run() {
     return;
   }
 
-  LLVM_DEBUG(getADDebugStream() << "All differentiation finished\n");
+  TOOLCHAIN_DEBUG(getADDebugStream() << "All differentiation finished\n");
 }
 
 //===----------------------------------------------------------------------===//
 // Pass creation
 //===----------------------------------------------------------------------===//
 
-SILTransform *swift::createDifferentiation() { return new Differentiation; }
+SILTransform *language::createDifferentiation() { return new Differentiation; }

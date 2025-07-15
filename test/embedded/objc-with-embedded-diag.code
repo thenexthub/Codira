@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -parse-stdlib -target arm64-apple-macos11 -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -parse-stdlib -target arm64-apple-none -emit-ir %s -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -parse-stdlib -target arm64-apple-none-macho -emit-ir %s -enable-experimental-feature Embedded
+// RUN: not %target-language-frontend -parse-stdlib -target arm64-apple-macos11 -emit-ir %s -enable-objc-interop -enable-experimental-feature Embedded 2>&1 | %FileCheck %s
+// RUN: %target-language-frontend -parse-stdlib -target arm64-apple-macos11 -emit-ir %s -disable-objc-interop -enable-experimental-feature Embedded
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// CHECK: error: Objective-C interoperability cannot be enabled with embedded Codira.

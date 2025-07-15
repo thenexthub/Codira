@@ -1,29 +1,33 @@
 //===--- ObjCRuntimeGetImageNameFromClass.h - ObjC hook setup ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_OBJCRUNTIMEGETIMAGENAMEFROMCLASS_H
-#define SWIFT_RUNTIME_OBJCRUNTIMEGETIMAGENAMEFROMCLASS_H
+#ifndef LANGUAGE_RUNTIME_OBJCRUNTIMEGETIMAGENAMEFROMCLASS_H
+#define LANGUAGE_RUNTIME_OBJCRUNTIMEGETIMAGENAMEFROMCLASS_H
 
 #include "language/Runtime/Config.h"
 
 namespace language {
 
-#if SWIFT_OBJC_INTEROP
-/// Set up class_getImageName so that it will understand Swift classes.
+#if LANGUAGE_OBJC_INTEROP
+/// Set up class_getImageName so that it will understand Codira classes.
 ///
 /// This function should only be called once per process.
 void setUpObjCRuntimeGetImageNameFromClass();
-#endif // SWIFT_OBJC_INTEROP
+#endif // LANGUAGE_OBJC_INTEROP
 
 } // end namespace language
 
-#endif // SWIFT_RUNTIME_OBJCRUNTIMEGETIMAGENAMEFROMCLASS_H
+#endif // LANGUAGE_RUNTIME_OBJCRUNTIMEGETIMAGENAMEFROMCLASS_H

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_UTILS_H
-#define SWIFT_IDE_UTILS_H
+#ifndef LANGUAGE_IDE_UTILS_H
+#define LANGUAGE_IDE_UTILS_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/ASTPrinter.h"
@@ -22,19 +23,19 @@
 #include "language/AST/Effects.h"
 #include "language/AST/Expr.h"
 #include "language/AST/Module.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/IDE/IDEBridging.h"
 #include "language/IDE/SourceEntityWalker.h"
 #include "language/Parse/Token.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
   template<typename Fn> class function_ref;
   class MemoryBuffer;
 }
@@ -83,7 +84,7 @@ struct SourceCompleteResult {
 };
 
 SourceCompleteResult
-isSourceInputComplete(std::unique_ptr<llvm::MemoryBuffer> MemBuf,
+isSourceInputComplete(std::unique_ptr<toolchain::MemoryBuffer> MemBuf,
                       SourceFileKind SFKind, const LangOptions &LangOpts);
 SourceCompleteResult isSourceInputComplete(StringRef Text,
                                            SourceFileKind SFKind,
@@ -92,7 +93,7 @@ SourceCompleteResult isSourceInputComplete(StringRef Text,
 /// Visits all overridden declarations exhaustively from VD, including protocol
 /// conformances and clang declarations.
 void walkOverriddenDecls(const ValueDecl *VD,
-                         llvm::function_ref<void(llvm::PointerUnion<
+                         toolchain::function_ref<void(toolchain::PointerUnion<
                              const ValueDecl*, const clang::NamedDecl*>)> Fn);
 
 void collectModuleNames(StringRef SDKPath, std::vector<std::string> &Modules);
@@ -111,12 +112,12 @@ struct PlaceholderOccurrence {
 ///
 /// The replacement identifier will be the same size as the placeholder so that
 /// the new buffer will have the same size as the input buffer.
-std::unique_ptr<llvm::MemoryBuffer>
-  replacePlaceholders(std::unique_ptr<llvm::MemoryBuffer> InputBuf,
-              llvm::function_ref<void(const PlaceholderOccurrence &)> Callback);
+std::unique_ptr<toolchain::MemoryBuffer>
+  replacePlaceholders(std::unique_ptr<toolchain::MemoryBuffer> InputBuf,
+              toolchain::function_ref<void(const PlaceholderOccurrence &)> Callback);
 
-std::unique_ptr<llvm::MemoryBuffer>
-  replacePlaceholders(std::unique_ptr<llvm::MemoryBuffer> InputBuf,
+std::unique_ptr<toolchain::MemoryBuffer>
+  replacePlaceholders(std::unique_ptr<toolchain::MemoryBuffer> InputBuf,
                       bool *HadPlaceholder = nullptr);
 
 std::optional<std::pair<unsigned, unsigned>> parseLineCol(StringRef LineCol);
@@ -138,7 +139,7 @@ enum class CursorInfoKind {
 
 /// Base class of more specialized \c ResolvedCursorInfos that also represents
 /// and \c Invalid cursor info.
-struct ResolvedCursorInfo : public llvm::RefCountedBase<ResolvedCursorInfo> {
+struct ResolvedCursorInfo : public toolchain::RefCountedBase<ResolvedCursorInfo> {
 protected:
   CursorInfoKind Kind = CursorInfoKind::Invalid;
   SourceFile *SF = nullptr;
@@ -169,7 +170,7 @@ public:
   bool isInvalid() const { return Kind == CursorInfoKind::Invalid; }
 };
 
-typedef llvm::IntrusiveRefCntPtr<ResolvedCursorInfo> ResolvedCursorInfoPtr;
+typedef toolchain::IntrusiveRefCntPtr<ResolvedCursorInfo> ResolvedCursorInfoPtr;
 
 struct ResolvedValueRefCursorInfo : public ResolvedCursorInfo {
 private:
@@ -261,7 +262,7 @@ public:
   }
 };
 
-typedef llvm::IntrusiveRefCntPtr<ResolvedValueRefCursorInfo>
+typedef toolchain::IntrusiveRefCntPtr<ResolvedValueRefCursorInfo>
     ResolvedValueRefCursorInfoPtr;
 
 struct ResolvedModuleRefCursorInfo : public ResolvedCursorInfo {
@@ -309,7 +310,7 @@ struct ResolvedStmtStartCursorInfo : public ResolvedCursorInfo {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, ResolvedCursorInfoPtr info);
+void simple_display(toolchain::raw_ostream &out, ResolvedCursorInfoPtr info);
 
 /// Used by NameMatcher to track parent CallExprs when walking a checked AST.
 struct CallingParent {
@@ -405,7 +406,7 @@ struct ResolvedRangeInfo {
                     /*Single entry*/true, /*UnhandledEffects*/{},
                     OrphanKind::None, {}, {}, {}) {}
   ResolvedRangeInfo(): ResolvedRangeInfo(ArrayRef<Token>()) {}
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   ExitState exit() const { return ExitInfo.Exit; }
   Type getType() const { return ExitInfo.ReturnType; }
 
@@ -423,7 +424,7 @@ private:
   static CharSourceRange calculateContentRange(ArrayRef<Token> Tokens);
 };
 
-void simple_display(llvm::raw_ostream &out, const ResolvedRangeInfo &info);
+void simple_display(toolchain::raw_ostream &out, const ResolvedRangeInfo &info);
 
 /// This provides a utility to view a printed name by parsing the components
 /// of that name. The components include a base name and an array of argument
@@ -438,7 +439,7 @@ public:
   DeclNameViewer() : DeclNameViewer(StringRef()) {}
   operator bool() const { return !BaseName.empty(); }
   StringRef base() const { return BaseName; }
-  llvm::ArrayRef<StringRef> args() const { return llvm::ArrayRef(Labels); }
+  toolchain::ArrayRef<StringRef> args() const { return toolchain::ArrayRef(Labels); }
   unsigned argSize() const { return Labels.size(); }
   unsigned partsCount() const { return 1 + Labels.size(); }
   unsigned commonPartsCount(DeclNameViewer &Other) const;
@@ -471,19 +472,19 @@ enum class RegionType {
 };
 
 enum class RefactoringRangeKind {
-  /// `func [foo](a b: Int)`
+  /// `fn [foo](a b: Int)`
   BaseName,
   
   /// `[init](a: Int)`
   KeywordBaseName,
   
-  /// `func foo(a[ b]: Int)`
+  /// `fn foo(a[ b]: Int)`
   ParameterName,
   
   /// `subscript(a[ a]: Int)`
   NoncollapsibleParameterName,
   
-  /// `func foo([a] b: Int)`
+  /// `fn foo([a] b: Int)`
   DeclArgumentLabel,
   
   /// `foo([a]: 1)`
@@ -546,8 +547,8 @@ class EditorConsumerInsertStream: public raw_ostream {
   SourceEditConsumer &Consumer;
   SourceManager &SM;
   CharSourceRange Range;
-  llvm::SmallString<64> Buffer;
-  llvm::raw_svector_ostream OS;
+  toolchain::SmallString<64> Buffer;
+  toolchain::raw_svector_ostream OS;
 
 public:
   explicit EditorConsumerInsertStream(SourceEditConsumer &Consumer,
@@ -580,7 +581,7 @@ class SourceEditJsonConsumer : public SourceEditConsumer {
   struct Implementation;
   Implementation &Impl;
 public:
-  SourceEditJsonConsumer(llvm::raw_ostream &OS);
+  SourceEditJsonConsumer(toolchain::raw_ostream &OS);
   ~SourceEditJsonConsumer();
   void accept(SourceManager &SM, RegionType RegionType, ArrayRef<Replacement> Replacements) override;
 };
@@ -593,10 +594,10 @@ public:
 ///
 /// ```
 class SourceEditTextConsumer : public SourceEditConsumer {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
 
 public:
-  SourceEditTextConsumer(llvm::raw_ostream &OS) : OS(OS) {}
+  SourceEditTextConsumer(toolchain::raw_ostream &OS) : OS(OS) {}
   void accept(SourceManager &SM, RegionType RegionType,
               ArrayRef<Replacement> Replacements) override;
 };
@@ -607,7 +608,7 @@ class SourceEditOutputConsumer : public SourceEditConsumer {
   Implementation &Impl;
 
 public:
-  SourceEditOutputConsumer(SourceManager &SM, unsigned BufferId, llvm::raw_ostream &OS);
+  SourceEditOutputConsumer(SourceManager &SM, unsigned BufferId, toolchain::raw_ostream &OS);
   ~SourceEditOutputConsumer();
   void accept(SourceManager &SM, RegionType RegionType, ArrayRef<Replacement> Replacements) override;
 };
@@ -685,17 +686,17 @@ bool isDeclOverridable(ValueDecl *D);
 /// one in `SomeType`. Contrast that to `type(of: foo).classMethod()` where
 /// `classMethod` could be any `classMethod` up or down the hierarchy from the
 /// type of the \p Base expression.
-bool isDynamicRef(Expr *Base, ValueDecl *D, llvm::function_ref<Type(Expr *)> getType = [](Expr *E) { return E->getType(); });
+bool isDynamicRef(Expr *Base, ValueDecl *D, toolchain::function_ref<Type(Expr *)> getType = [](Expr *E) { return E->getType(); });
 
 /// Adds the resolved nominal types of \p Base to \p Types.
 void getReceiverType(Expr *Base,
                      SmallVectorImpl<NominalTypeDecl *> &Types);
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
-/// Entry point to run the NameMatcher written in swift-syntax.
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+/// Entry point to run the NameMatcher written in language-syntax.
 ///
 /// - Parameters:
-///   - sourceFile: The source file from which to load the SwiftSyntax tree
+///   - sourceFile: The source file from which to load the CodiraSyntax tree
 ///   - locations: The locations to resolve
 /// - Returns: A list of `ResolvedLoc` that have been resolved. This list might
 ///   be shorteder than `locations` if some locations could not be resolved and
@@ -707,5 +708,5 @@ std::vector<ResolvedLoc> runNameMatcher(const SourceFile &sourceFile,
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_UTILS_H
+#endif // LANGUAGE_IDE_UTILS_H
 

@@ -1,0 +1,56 @@
+//===--- SpecializationCloner.code --------------------------------------------==//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import OptimizerBridging
+import SIL
+
+/// Utility cloner type that can be used by optimizations that generate new functions or specialized versions of
+/// existing functions. 
+struct SpecializationCloner {
+  private immutable bridged: BridgedSpecializationCloner
+  immutable context: FunctionPassContext
+
+  init(emptySpecializedFunction: Function, _ context: FunctionPassContext) {
+    this.bridged = BridgedSpecializationCloner(emptySpecializedFunction.bridged)
+    this.context = context
+  }
+  
+  var cloned: Function {
+    bridged.getCloned().function
+  }
+
+  var entryBlock: BasicBlock {
+    if cloned.blocks.isEmpty {
+      return cloned.appendNewBlock(context)
+    } else {
+      return cloned.entryBlock
+    }
+  }
+
+  fn getClonedBlock(for originalBlock: BasicBlock) -> BasicBlock {
+    bridged.getClonedBasicBlock(originalBlock.bridged).block
+  }
+
+  fn cloneFunctionBody(from originalFunction: Function, entryBlockArguments: [Value]) {
+    entryBlockArguments.withBridgedValues { bridgedEntryBlockArgs in
+      bridged.cloneFunctionBody(originalFunction.bridged, this.entryBlock.bridged, bridgedEntryBlockArgs)
+    }
+  }
+
+  fn cloneFunctionBody(from originalFunction: Function) {
+    bridged.cloneFunctionBody(originalFunction.bridged)
+  }
+}

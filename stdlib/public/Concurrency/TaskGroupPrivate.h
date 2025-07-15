@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Internal functions for the concurrency library.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_TASKGROUPPRIVATE_H
-#define SWIFT_CONCURRENCY_TASKGROUPPRIVATE_H
+#ifndef LANGUAGE_CONCURRENCY_TASKGROUPPRIVATE_H
+#define LANGUAGE_CONCURRENCY_TASKGROUPPRIVATE_H
 
 #include "language/ABI/Task.h"
 #include "language/ABI/TaskGroup.h"

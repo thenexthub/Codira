@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -20,8 +21,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICSDRIVER_H
-#define SWIFT_DIAGNOSTICSDRIVER_H
+#ifndef LANGUAGE_DIAGNOSTICSDRIVER_H
+#define LANGUAGE_DIAGNOSTICSDRIVER_H
 
 #include "language/AST/DiagnosticsCommon.h"
 

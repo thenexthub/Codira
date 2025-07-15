@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/PassManager/Passes.h"
@@ -21,11 +22,11 @@
 
 using namespace language;
 
-static llvm::cl::opt<bool> LinkEmbeddedRuntime("link-embedded-runtime",
-                                               llvm::cl::init(true));
+static toolchain::cl::opt<bool> LinkEmbeddedRuntime("link-embedded-runtime",
+                                               toolchain::cl::init(true));
 
-static llvm::cl::opt<bool> LinkUsedFunctions("link-used-functions",
-                                               llvm::cl::init(true));
+static toolchain::cl::opt<bool> LinkUsedFunctions("link-used-functions",
+                                               toolchain::cl::init(true));
 
 //===----------------------------------------------------------------------===//
 //                          Top Level Driver
@@ -47,15 +48,15 @@ public:
       if (M.linkFunction(&Fn, LinkMode))
         invalidateAnalysis(&Fn, SILAnalysis::InvalidationKind::Everything);
 
-    // In embedded Swift, the stdlib contains all the runtime functions needed
-    // (swift_retain, etc.). Link them in so they can be referenced in IRGen.
-    if (M.getOptions().EmbeddedSwift && LinkEmbeddedRuntime) {
+    // In embedded Codira, the stdlib contains all the runtime functions needed
+    // (language_retain, etc.). Link them in so they can be referenced in IRGen.
+    if (M.getOptions().EmbeddedCodira && LinkEmbeddedRuntime) {
       linkEmbeddedRuntimeFromStdlib();
     }
 
-    // In embedded Swift, we need to explicitly link any @_used globals and
+    // In embedded Codira, we need to explicitly link any @_used globals and
     // functions from imported modules.
-    if (M.getOptions().EmbeddedSwift && LinkUsedFunctions) {
+    if (M.getOptions().EmbeddedCodira && LinkUsedFunctions) {
       linkUsedGlobalsAndFunctions();
     }
   }
@@ -79,8 +80,8 @@ public:
 
 #include "language/Runtime/RuntimeFunctions.def"
 
-      // swift_retainCount is not part of private contract between the compiler and runtime, but we still need to link it
-      linkEmbeddedRuntimeFunctionByName("swift_retainCount", { RefCounting });
+      // language_retainCount is not part of private contract between the compiler and runtime, but we still need to link it
+      linkEmbeddedRuntimeFunctionByName("language_retainCount", { RefCounting });
   }
 
   void linkEmbeddedRuntimeFunctionByName(StringRef name,
@@ -95,7 +96,7 @@ public:
     // Don't link allocating runtime functions in -no-allocations mode.
     if (M.getOptions().NoAllocations && allocating) return;
 
-    // Swift Runtime functions are all expected to be SILLinkage::PublicExternal
+    // Codira Runtime functions are all expected to be SILLinkage::PublicExternal
     linkUsedFunctionByName(name, SILLinkage::PublicExternal);
   }
 
@@ -196,10 +197,10 @@ public:
 } // end anonymous namespace
 
 
-SILTransform *swift::createMandatorySILLinker() {
+SILTransform *language::createMandatorySILLinker() {
   return new SILLinker(SILModule::LinkingMode::LinkNormal);
 }
 
-SILTransform *swift::createPerformanceSILLinker() {
+SILTransform *language::createPerformanceSILLinker() {
   return new SILLinker(SILModule::LinkingMode::LinkAll);
 }

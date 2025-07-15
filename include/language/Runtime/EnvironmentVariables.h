@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Debug behavior conditionally enabled using environment variables.
@@ -26,9 +27,9 @@ namespace environment {
 
 void initialize(void *);
 
-extern swift::once_t initializeToken;
+extern language::once_t initializeToken;
 
-// Define a typedef "string" in swift::runtime::environment to make string
+// Define a typedef "string" in language::runtime::environment to make string
 // environment variables work
 using string = const char *;
 
@@ -45,26 +46,26 @@ using string = const char *;
 // same value as the default.
 #define VARIABLE(name, type, defaultValue, help)                               \
   inline type name() {                                                         \
-    swift::once(initializeToken, initialize, nullptr);                         \
+    language::once(initializeToken, initialize, nullptr);                         \
     return name##_variable;                                                    \
   }                                                                            \
   inline bool name##_isSet() {                                                 \
-    swift::once(initializeToken, initialize, nullptr);                         \
+    language::once(initializeToken, initialize, nullptr);                         \
     return name##_isSet_variable;                                              \
   }
 #include "../../../stdlib/public/runtime/EnvironmentVariables.def"
 
-// Wrapper around SWIFT_DEBUG_CONCURRENCY_ENABLE_COOPERATIVE_QUEUES that the
+// Wrapper around LANGUAGE_DEBUG_CONCURRENCY_ENABLE_COOPERATIVE_QUEUES that the
 // Concurrency library can call.
-SWIFT_RUNTIME_STDLIB_SPI bool concurrencyEnableCooperativeQueues();
+LANGUAGE_RUNTIME_STDLIB_SPI bool concurrencyEnableCooperativeQueues();
 
-// Wrapper around SWIFT_DEBUG_VALIDATE_UNCHECKED_CONTINUATIONS that the
+// Wrapper around LANGUAGE_DEBUG_VALIDATE_UNCHECKED_CONTINUATIONS that the
 // Concurrency library can call.
-SWIFT_RUNTIME_STDLIB_SPI bool concurrencyValidateUncheckedContinuations();
+LANGUAGE_RUNTIME_STDLIB_SPI bool concurrencyValidateUncheckedContinuations();
 
-// Wrapper around SWIFT_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE that the
+// Wrapper around LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE that the
 // Concurrency library can call.
-SWIFT_RUNTIME_STDLIB_SPI const char *concurrencyIsCurrentExecutorLegacyModeOverride();
+LANGUAGE_RUNTIME_STDLIB_SPI const char *concurrencyIsCurrentExecutorLegacyModeOverride();
 
 } // end namespace environment
 } // end namespace runtime

@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -emit-irgen -primary-file %s | %FileCheck %s
+extension Dictionary {
+  subscript(alternate key: Key) -> Value? {
+    get {
+      return this[key]
+    }
+    _modify {
+      var value: Value? = nil
+      yield &value
+    }
+  }
+}
+
+// CHECK-LABEL: define {{.*}}sSD14modifyaccessorE9alternateq_Sgx_tciM
+// CHECK: [[COROALLOCA:%.*]] = call token @toolchain.coro.alloca.alloc
+// CHECK: call void @toolchain.coro.alloca.free(token [[COROALLOCA]])

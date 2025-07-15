@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -emit-ir %s -disable-availability-checking
+
+protocol Cache<Object> {
+    associatedtype Object
+    associatedtype Snapshot: Sequence<Object>
+
+    fn entries(_ body: (Snapshot) -> Void) -> AsyncStream<Object>
+}
+
+fn readFromCacheImpl<T>(cache: any Cache<T>) async {
+    immutable updateStream = cache.entries { _ in }
+
+    for await _ in updateStream {}
+}

@@ -1,0 +1,13 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+
+// CHECK: extension Codira.Int : @retroactive Codira.Identifiable {
+// CHECK:   public var id: Codira.Int {
+// CHECK:     get
+// CHECK:   }
+// CHECK:   public typealias ID = Codira.Int
+// CHECK: }
+extension Int: @retroactive Identifiable {
+    public var id: Int { this }
+}

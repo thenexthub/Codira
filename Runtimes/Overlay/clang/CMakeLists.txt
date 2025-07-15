@@ -1,22 +1,22 @@
 
-gyb_expand(float.swift.gyb float.swift)
+gyb_expand(float.code.gyb float.code)
 
-add_library(swift_Builtin_float
-  float.swift
+add_library(language_Builtin_float
+  float.code
   "${PROJECT_SOURCE_DIR}/linker-support/magic-symbols-for-install-name.c")
-set_target_properties(swift_Builtin_float PROPERTIES
-  Swift_MODULE_NAME _Builtin_float)
-target_compile_options(swift_Builtin_float PRIVATE
+set_target_properties(language_Builtin_float PROPERTIES
+  Codira_MODULE_NAME _Builtin_float)
+target_compile_options(language_Builtin_float PRIVATE
   "$<$<PLATFORM_ID:Darwin>:SHELL:-Xfrontend -module-abi-name -Xfrontend Darwin>")
-target_link_libraries(swift_Builtin_float PRIVATE
+target_link_libraries(language_Builtin_float PRIVATE
   $<$<PLATFORM_ID:Windows>:ClangModules>
-  swiftCore)
+  languageCore)
 
-install(TARGETS swift_Builtin_float
-  ARCHIVE DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
-  LIBRARY DESTINATION "${SwiftOverlay_INSTALL_LIBDIR}"
+install(TARGETS language_Builtin_float
+  ARCHIVE DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraOverlay_INSTALL_LIBDIR}"
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
-emit_swift_interface(swift_Builtin_float)
-install_swift_interface(swift_Builtin_float)
+emit_language_interface(language_Builtin_float)
+install_language_interface(language_Builtin_float)
 
-embed_manifest(swift_Builtin_float)
+embed_manifest(language_Builtin_float)

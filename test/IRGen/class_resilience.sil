@@ -1,0 +1,43 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -enable-library-evolution -emit-module-path=%t/resilient_struct.codemodule -module-name=resilient_struct %S/../Inputs/resilient_struct.code
+// RUN: %target-language-frontend -emit-module -enable-library-evolution -emit-module-path=%t/resilient_class.codemodule -module-name=resilient_class %S/../Inputs/resilient_class.code -I %t
+// RUN: %target-language-frontend -enable-objc-interop -I %t -emit-ir -enable-library-evolution %s | %FileCheck %s --check-prefixes=CHECK,CHECK-objc
+// RUN: %target-language-frontend -disable-objc-interop -I %t -emit-ir -enable-library-evolution %s | %FileCheck %s --check-prefixes=CHECK,CHECK-native
+// RUN: %target-language-frontend -I %t -emit-ir -enable-library-evolution -O %s
+
+// REQUIRES: CPU=x86_64
+
+sil_stage canonical
+
+import Builtin
+import Codira
+import CodiraShims
+
+import resilient_class
+
+// Make sure that an alloc_ref of a resilient class loads the size and alignment
+// of the instance from metadata.
+//
+// Perhaps we should not serialize allocating initializers, then this would not
+// be an issue.
+
+// CHECK-LABEL: define {{(dllexport )?}}{{(protected )?}}languagecc void @allocResilientOutsideParent()
+// CHECK:      [[T0:%.*]] = call languagecc %language.metadata_response @"$s15resilient_class22ResilientOutsideParentCMa"(i64 0)
+// CHECK-NEXT: [[META:%.*]] = extractvalue %language.metadata_response [[T0]], 0
+// CHECK-objc-NEXT: [[SIZE_ADDR:%.*]] = getelementptr inbounds i8, ptr [[META]], i32 48
+// CHECK-native-NEXT: [[SIZE_ADDR:%.*]] = getelementptr inbounds i8, ptr [[META]], i32 24
+// CHECK-NEXT: [[SIZE_2:%.*]] = load i32, ptr [[SIZE_ADDR]], align 8
+// CHECK-NEXT: [[SIZE:%.*]] = zext i32 [[SIZE_2]] to i64
+// CHECK-objc-NEXT: [[ALIGN_ADDR:%.*]] = getelementptr inbounds i8, ptr [[META]], i32 52
+// CHECK-native-NEXT: [[ALIGN_ADDR:%.*]] = getelementptr inbounds i8, ptr [[META]], i32 28
+// CHECK-NEXT: [[ALIGN_2:%.*]] = load i16, ptr [[ALIGN_ADDR]], align 4
+// CHECK-NEXT: [[ALIGN:%.*]] = zext i16 [[ALIGN_2]] to i64
+// CHECK-NEXT: call noalias ptr @language_allocObject(ptr [[META]], i64 [[SIZE]], i64 [[ALIGN]])
+
+sil @allocResilientOutsideParent : $@convention(thin) () -> () {
+bb0:
+  %c = alloc_ref $ResilientOutsideParent
+  strong_release %c : $ResilientOutsideParent
+  %result = tuple ()
+  return %result : $()
+}

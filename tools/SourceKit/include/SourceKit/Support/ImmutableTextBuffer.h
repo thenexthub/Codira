@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_IMMUTABLETEXTBUFFER_H
-#define LLVM_SOURCEKIT_SUPPORT_IMMUTABLETEXTBUFFER_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_IMMUTABLETEXTBUFFER_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_IMMUTABLETEXTBUFFER_H
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/ThreadSafeRefCntPtr.h"
 #include "language/Basic/ThreadSafeRefCounted.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/Support/Mutex.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/Support/Mutex.h"
 #include <functional>
 #include <memory>
 
-namespace llvm {
+namespace toolchain {
   class MemoryBuffer;
   class SourceMgr;
 }
@@ -73,11 +74,11 @@ private:
 };
 
 class ImmutableTextBuffer : public ImmutableTextUpdate {
-  std::unique_ptr<llvm::SourceMgr> SrcMgr;
+  std::unique_ptr<toolchain::SourceMgr> SrcMgr;
   unsigned BufId;
 
 public:
-  explicit ImmutableTextBuffer(std::unique_ptr<llvm::MemoryBuffer> MemBuf,
+  explicit ImmutableTextBuffer(std::unique_ptr<toolchain::MemoryBuffer> MemBuf,
                                uint64_t Stamp);
   ImmutableTextBuffer(StringRef Filename, StringRef Text, uint64_t Stamp);
 
@@ -87,7 +88,7 @@ public:
   /// Returns the internal memory buffer.
   /// The caller must make sure that the pointer does not outlive the
   /// ImmutableTextBuffer object that it came from.
-  const llvm::MemoryBuffer *getInternalBuffer() const;
+  const toolchain::MemoryBuffer *getInternalBuffer() const;
 
   std::pair<unsigned, unsigned> getLineAndColumn(unsigned ByteOffset) const;
 
@@ -97,7 +98,7 @@ public:
 };
 
 class ReplaceImmutableTextUpdate : public ImmutableTextUpdate {
-  std::unique_ptr<llvm::MemoryBuffer> Buf;
+  std::unique_ptr<toolchain::MemoryBuffer> Buf;
   unsigned ByteOffset;
   unsigned Length;
 
@@ -158,7 +159,7 @@ public:
 };
 
 class EditableTextBuffer : public ThreadSafeRefCountedBase<EditableTextBuffer> {
-  mutable llvm::sys::Mutex EditMtx;
+  mutable toolchain::sys::Mutex EditMtx;
   ImmutableTextBufferRef Root;
   ImmutableTextUpdateRef CurrUpd;
   std::string Filename;
@@ -193,8 +194,8 @@ private:
 };
 
 class EditableTextBufferManager {
-  llvm::sys::Mutex Mtx;
-  llvm::StringMap<EditableTextBufferRef> FileBufferMap;
+  toolchain::sys::Mutex Mtx;
+  toolchain::StringMap<EditableTextBufferRef> FileBufferMap;
 
 public:
   EditableTextBufferRef getOrCreateBuffer(StringRef Filename,

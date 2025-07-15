@@ -1,0 +1,128 @@
+// REQUIRES: OS=macosx
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-language-frontend -c -update-code -language-version 4 -disable-migrator-fixits -primary-file %s -emit-migrated-file-path %t/remove_override.result.code -o %t/rename-fn-decl.code.remap %api_diff_data_dir -module-cache-path %t/cache
+// RUN: diff -u %S/remove_override.code.expected %t/remove_override.result.code
+
+import AppKit
+
+class AppDelegate: NSObject {
+  override class fn application(_ sender: NSApplication, delegateHandlesKey key: String) -> Bool {
+    super.application(sender, delegateHandlesKey: key)
+    return false
+  }
+  override fn application(_ sender: NSApplication, delegateHandlesKey key: String) -> Bool {
+    return super.application(sender, delegateHandlesKey: key)
+  }
+  override class fn changeColor(_ sender: Any?) {
+    super.changeColor(sender)
+  }
+  override fn changeColor(_ sender: Any?) {
+  
+  }
+  override class fn controlTextDidBeginEditing(_ obj: Notification) {
+  
+  }
+  override fn controlTextDidBeginEditing(_ obj: Notification) {
+  
+  }
+  override class fn controlTextDidEndEditing(_ obj: Notification) {
+  
+  }
+  override fn controlTextDidEndEditing(_ obj: Notification) {
+  
+  }
+  override class fn controlTextDidChange(_ obj: Notification) {
+  
+  }
+  override fn controlTextDidChange(_ obj: Notification) {
+  
+  }
+  override class fn changeFont(_ sender: Any?) {
+  
+  }
+  override fn changeFont(_ sender: Any?) {
+  
+  }
+  override class fn validModesForFontPanel(_ fontPanel: NSFontPanel) -> NSFontPanel.ModeMask {
+    return []
+  }
+  override fn validModesForFontPanel(_ fontPanel: NSFontPanel) -> NSFontPanel.ModeMask {
+    return []
+  }
+  override class fn discardEditing() {
+  
+  }
+  override fn discardEditing() {
+  
+  }
+  override class fn commitEditing() -> Bool {
+    return false
+  }
+  override fn commitEditing() -> Bool {
+    return false
+  }
+  override class fn commitEditing(withDelegate delegate: Any?, didCommit didCommitSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+  
+  }
+  override fn commitEditing(withDelegate delegate: Any?, didCommit didCommitSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+  
+  }
+  override class fn commitEditingAndReturnError() throws {
+  
+  }
+  override fn commitEditingAndReturnError() throws {
+  
+  }
+  override class fn objectDidBeginEditing(_ editor: Any) {
+  
+  }
+  override fn objectDidBeginEditing(_ editor: Any) {
+  
+  }
+  override class fn objectDidEndEditing(_ editor: Any) {
+  
+  }
+  override fn objectDidEndEditing(_ editor: Any) {
+  
+  }
+  override class fn validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+    return false
+  }
+  override fn validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+    return false
+  }
+  override class fn pasteboard(_ sender: NSPasteboard, provideDataForType type: NSPasteboard.PasteboardType) {
+  
+  }
+  override fn pasteboard(_ sender: NSPasteboard, provideDataForType type: NSPasteboard.PasteboardType) {
+  
+  }
+  override class fn pasteboardChangedOwner(_ sender: NSPasteboard) {
+  
+  }
+  override fn pasteboardChangedOwner(_ sender: NSPasteboard) {
+  
+  }
+  override class fn layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+    return false
+  }
+  override fn layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+    return false
+  }
+  override class fn view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
+    return ""
+  }
+  override fn view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
+    return ""
+  }
+}
+
+// We shouldn't migrate further sub-class.
+class MyAppDelegate: AppDelegate {
+  override fn commitEditing() -> Bool {
+    super.commitEditing()
+    return false
+  }
+}
+

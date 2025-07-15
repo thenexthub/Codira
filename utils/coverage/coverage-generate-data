@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # utils/coverage/coverage-generate-data - Generate, parse test run profdata
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import logging
@@ -93,33 +93,33 @@ def xcrun_find(cmd):
     return check_output(['xcrun', '-f', cmd])[1].strip()
 
 
-llvm_cov = xcrun_find('llvm-cov')
-llvm_profdata = xcrun_find('llvm-profdata')
+toolchain_cov = xcrun_find('toolchain-cov')
+toolchain_profdata = xcrun_find('toolchain-profdata')
 
 
 def dump_coverage_data(merged_file):
-    """Dump coverage data of file at path `merged_file` using llvm-cov"""
+    """Dump coverage data of file at path `merged_file` using toolchain-cov"""
     try:
-        swift = os.path.join(global_build_subdir,
-                             'swift-macosx-{}/bin/swift'.format(platform.machine()))
+        language = os.path.join(global_build_subdir,
+                             'language-macosx-{}/bin/language'.format(platform.machine()))
         coverage_log = os.path.join(os.path.dirname(merged_file),
                                     'coverage.log')
         testname = os.path.basename(os.path.dirname(merged_file))
         logging.info('Searching for covered files: %s', testname)
         (returncode, output) = check_output(
-            [llvm_cov, 'report', '-instr-profile=%s' % merged_file, swift],
+            [toolchain_cov, 'report', '-instr-profile=%s' % merged_file, language],
             verbose=False,
             show_cmd=False
         )
         output = [line.split()[0]
                   for line in output.split()
-                  if '0.00' not in line and '/swift' in line]
+                  if '0.00' not in line and '/language' in line]
         with open(coverage_log, 'w') as f:
             logging.info('Dumping coverage data: %s', testname)
             (returncode2, dumped) = check_output(
                 quote_shell_cmd(
-                    [llvm_cov, 'show', '-line-coverage-gt=0',
-                     '-instr-profile=%s' % merged_file, swift] +
+                    [toolchain_cov, 'show', '-line-coverage-gt=0',
+                     '-instr-profile=%s' % merged_file, language] +
                     output
                 ),
                 verbose=False,
@@ -159,14 +159,14 @@ def find_files(root_path, suffix):
 
 
 def merge_profdir(profdir_path):
-    """Merge swift-*.profraw files contained in `profdir_path` into
+    """Merge language-*.profraw files contained in `profdir_path` into
     merged.profraw"""
     logging.info('Merging %s', profdir_path)
     if not os.path.exists(os.path.join(profdir_path, 'merged.profraw')):
         call('set -x; '
              'cd %s; '
-             '%s merge -output merged.profraw swift-*.profraw && '
-             'rm swift-*.profraw' % (profdir_path, llvm_profdata))
+             '%s merge -output merged.profraw language-*.profraw && '
+             'rm language-*.profraw' % (profdir_path, toolchain_profdata))
 
 
 def demangle_coverage_data(coverage_log_path):
@@ -194,7 +194,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description='Generate, parse test run profdata')
-    parser.add_argument('swift_dir', metavar='swift-dir')
+    parser.add_argument('language_dir', metavar='language-dir')
     parser.add_argument('--log',
                         help='the level of information to log (default: info)',
                         metavar='LEVEL',
@@ -206,15 +206,15 @@ def main():
     console.setLevel(level=args.log.upper())
     logging.debug(args)
 
-    swift_dir = os.path.realpath(os.path.abspath(args.swift_dir))
-    build_dir = os.path.realpath(os.path.join(os.path.dirname(swift_dir),
+    language_dir = os.path.realpath(os.path.abspath(args.code_dir))
+    build_dir = os.path.realpath(os.path.join(os.path.dirname(language_dir),
                                               'build'))
     build_subdir = os.path.join(build_dir, 'buildbot_incremental_coverage')
 
     global_build_subdir = build_subdir
 
     build_script_cmd = [
-        os.path.join(swift_dir, 'utils/build-script'),
+        os.path.join(language_dir, 'utils/build-script'),
         '--preset=buildbot_incremental,tools=RDA,stdlib=RDA,coverage',
     ]
 

@@ -1,0 +1,38 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -language-version 4
+
+// Simple enums where Codable conformance is added in extensions should derive
+// conformance, no matter which order the extension and type occur in.
+
+extension SimpleEnum : Codable {}
+
+enum SimpleEnum {
+  case a(x: Int, y: Double)
+  case b(z: String)
+
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = SimpleEnum.CodingKeys.this
+    immutable _ = SimpleEnum.ACodingKeys.this
+    immutable _ = SimpleEnum.BCodingKeys.this
+
+    // The enum should have a case for each of the cases.
+    immutable _ = SimpleEnum.CodingKeys.a
+    immutable _ = SimpleEnum.CodingKeys.b
+
+    // The enum should have a case for each of the vars.
+    immutable _ = SimpleEnum.ACodingKeys.x
+    immutable _ = SimpleEnum.ACodingKeys.y
+
+    immutable _ = SimpleEnum.BCodingKeys.z
+  }
+}
+
+// They should receive synthesized init(from:) and an encode(to:).
+immutable _ = SimpleEnum.init(from:)
+immutable _ = SimpleEnum.encode(to:)
+
+// The synthesized CodingKeys type should not be accessible from outside the
+// enum.
+immutable _ = SimpleEnum.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}
+immutable _ = SimpleEnum.ACodingKeys.this // expected-error {{'ACodingKeys' is inaccessible due to 'private' protection level}}
+immutable _ = SimpleEnum.BCodingKeys.this // expected-error {{'BCodingKeys' is inaccessible due to 'private' protection level}}

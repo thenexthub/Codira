@@ -1,16 +1,16 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import unittest
 
-from build_swift import defaults
-from build_swift import shell
+from build_language import defaults
+from build_language import shell
 
 from .. import utils
 
@@ -27,7 +27,7 @@ except ImportError:
             pass
 
     def patch(*args, **kwargs):
-        return lambda func: func
+        return lambda fn: fn
 
 
 # ----------------------------------------------------------------------------
@@ -43,7 +43,7 @@ _LTO_LINK_JOBS_UPPER_BOUND = 100
 # ----------------------------------------------------------------------------
 
 class TestDefaults(unittest.TestCase):
-    """Unit tests for the defaults module in build_swift.
+    """Unit tests for the defaults module in build_language.
     """
 
     # ------------------------------------------------------------------------
@@ -79,41 +79,41 @@ class TestDefaults(unittest.TestCase):
         self.assertIsNone(defaults._system_memory())
 
     # ------------------------------------------------------------------------
-    # _default_llvm_lto_link_jobs
+    # _default_toolchain_lto_link_jobs
 
     @utils.requires_module('unittest.mock')
-    def test_default_llvm_lto_link_jobs(self):
+    def test_default_toolchain_lto_link_jobs(self):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = _SYSCTL_HW_MEMSIZE
 
-            lto_link_jobs = defaults._default_llvm_lto_link_jobs()
+            lto_link_jobs = defaults._default_toolchain_lto_link_jobs()
 
             self.assertIsNotNone(lto_link_jobs)
             self.assertLess(lto_link_jobs, _LTO_LINK_JOBS_UPPER_BOUND)
 
     @utils.requires_module('unittest.mock')
-    def test_default_llvm_lto_link_jobs_with_unknown_system_memory(self):
+    def test_default_toolchain_lto_link_jobs_with_unknown_system_memory(self):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = None
 
-            self.assertIsNone(defaults._default_llvm_lto_link_jobs())
+            self.assertIsNone(defaults._default_toolchain_lto_link_jobs())
 
     # ------------------------------------------------------------------------
-    # _default_swift_lto_link_jobs
+    # _default_language_lto_link_jobs
 
     @utils.requires_module('unittest.mock')
-    def test_default_swift_lto_link_jobs(self):
+    def test_default_language_lto_link_jobs(self):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = _SYSCTL_HW_MEMSIZE
 
-            lto_link_jobs = defaults._default_swift_lto_link_jobs()
+            lto_link_jobs = defaults._default_language_lto_link_jobs()
 
             self.assertIsNotNone(lto_link_jobs)
             self.assertLess(lto_link_jobs, _LTO_LINK_JOBS_UPPER_BOUND)
 
     @utils.requires_module('unittest.mock')
-    def test_default_swift_lto_link_jobs_with_unknown_system_memory(self):
+    def test_default_language_lto_link_jobs_with_unknown_system_memory(self):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = None
 
-            self.assertIsNone(defaults._default_llvm_lto_link_jobs())
+            self.assertIsNone(defaults._default_toolchain_lto_link_jobs())

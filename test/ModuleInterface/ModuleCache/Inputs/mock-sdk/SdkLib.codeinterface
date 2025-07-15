@@ -1,0 +1,8 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name SdkLib
+
+@_exported import ExportedLib
+
+public var testValue2: ExportedInterface {
+  @inlinable get { return ExportedInterface() }
+}

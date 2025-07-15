@@ -1,0 +1,26 @@
+// RUN: not %target-language-frontend -emit-ir %s
+
+public protocol Ungulate {
+  fn eat()
+}
+
+public class Horse<T> : Ungulate {
+  public var saddle: AnyObject? = nil
+
+  public fn eat() {}
+}
+
+public struct Hay {}
+
+// Here, ClassDecl::getSuperclassDecl() will find the 'Horse' class, but
+// ClassDecl::getSuperclass() will return ErrorType because the generic
+// argument 'DoesNotExist' cannot be resolved.
+public class Pony : Horse<DoesNotExist> {
+  public override var saddle: AnyObject? {
+    didSet {}
+  }
+
+  public fn eat(_: Hay) {
+    eat()
+  }
+}

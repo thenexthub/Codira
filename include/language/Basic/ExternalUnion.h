@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ExternalUnion class, which allows clients to
@@ -22,10 +23,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_EXTERNALUNION_H
-#define SWIFT_BASIC_EXTERNALUNION_H
+#ifndef LANGUAGE_BASIC_EXTERNALUNION_H
+#define LANGUAGE_BASIC_EXTERNALUNION_H
 
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include "language/Basic/type_traits.h"
 #include <cassert>
 #include <cstdint>
@@ -298,7 +299,7 @@ public:
 ///     case Kind::Funny: return Members::indexOf<std::string>();
 ///     case Kind::Angry: return Members::indexOf<std::string>();
 ///     }
-///     llvm_unreachable("bad kind");
+///     toolchain_unreachable("bad kind");
 ///   }
 ///   ExternalUnion<Kind, Members, getIndexForKind> Storage;
 ///
@@ -459,27 +460,27 @@ struct MembersHelper<> {
     alignment = 1
   };
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyConstruct(void *self, int index, const void *other) {
     assert(false && "bad index");
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveConstruct(void *self, int index, void *other) {
     assert(false && "bad index");
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyAssignSame(int index, void *self, const void *other) {
     assert(false && "bad index");
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveAssignSame(int index, void *self, void *other) {
     assert(false && "bad index");
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void destruct(int index, void *self) {
     assert(false && "bad index");
   }
@@ -533,7 +534,7 @@ public:
               ? Member::alignment : Others::alignment
   };
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyConstruct(void *self, unsigned index, const void *other) {
     if (index == 0) {
       Member::copyConstruct(self, other);
@@ -542,7 +543,7 @@ public:
     }
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveConstruct(void *self, unsigned index, void *other) {
     if (index == 0) {
       Member::moveConstruct(self, other);
@@ -551,7 +552,7 @@ public:
     }
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyAssignSame(unsigned index, void *self, const void *other) {
     if (index == 0) {
       Member::copyAssignSame(self, other);
@@ -560,7 +561,7 @@ public:
     }
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveAssignSame(unsigned index, void *self, void *other) {
     if (index == 0) {
       Member::moveAssignSame(self, other);
@@ -569,7 +570,7 @@ public:
     }
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void destruct(int index, void *self) {
     if (index == 0) {
       Member::destruct(self);
@@ -603,27 +604,27 @@ struct UnionMemberInfo {
     alignment = alignof(T)
   };
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyConstruct(void *self, const void *other) {
     ::new (self) T(*static_cast<const T *>(other));
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveConstruct(void *self, void *other) {
     ::new (self) T(std::move(*static_cast<T *>(other)));
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyAssignSame(void *self, const void *other) {
     *static_cast<T*>(self) = *static_cast<const T *>(other);
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveAssignSame(void *self, void *other) {
     *static_cast<T*>(self) = std::move(*static_cast<T *>(other));
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void destruct(void *self) {
     static_cast<T*>(self)->T::~T();
   }
@@ -650,19 +651,19 @@ struct UnionMemberInfo<void> {
     alignment = 1
   };
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyConstruct(void *self, const void *other) {}
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveConstruct(void *self, void *other) {}
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void copyAssignSame(void *self, const void *other) {}
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void moveAssignSame(void *self, void *other) {}
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   static void destruct(void *self) {}
 };
 
@@ -707,4 +708,4 @@ public:
 } // end namespace ExternalUnionImpl
 } // end namespace language
 
-#endif // SWIFT_BASIC_CLUSTEREDBITVECTOR_H
+#endif // LANGUAGE_BASIC_CLUSTEREDBITVECTOR_H

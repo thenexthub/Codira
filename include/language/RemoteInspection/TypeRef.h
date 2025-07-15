@@ -1,4 +1,4 @@
-//===--- TypeRef.h - Swift Type References for Reflection -------*- C++ -*-===//
+//===--- TypeRef.h - Codira Type References for Reflection -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements the structures of type references for property and enum
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_TYPEREF_H
-#define SWIFT_REFLECTION_TYPEREF_H
+#ifndef LANGUAGE_REFLECTION_TYPEREF_H
+#define LANGUAGE_REFLECTION_TYPEREF_H
 
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/Casting.h"
+#include "toolchain/Support/Compiler.h"
 #include "language/ABI/MetadataValues.h"
 #include "language/Remote/MetadataReader.h"
 #include "language/Basic/Unreachable.h"
@@ -32,8 +33,8 @@
 namespace language {
 namespace reflection {
 
-using llvm::cast;
-using llvm::dyn_cast;
+using toolchain::cast;
+using toolchain::dyn_cast;
 
 enum class TypeRefKind {
 #define TYPEREF(Id, Parent) Id,
@@ -86,7 +87,7 @@ public:
     Bits.push_back(Integer >> 32);
   }
 
-  void addString(llvm::StringRef String) {
+  void addString(toolchain::StringRef String) {
     if (String.empty()) {
       Bits.push_back(0);
     } else {
@@ -131,12 +132,12 @@ public:
 class TypeRef;
 class TypeRefBuilder;
 using DepthAndIndex = std::pair<unsigned, unsigned>;
-using GenericArgumentMap = llvm::DenseMap<DepthAndIndex, const TypeRef *>;
+using GenericArgumentMap = toolchain::DenseMap<DepthAndIndex, const TypeRef *>;
 
 /// FIXME: Implement me!
 struct TypeRefLayoutConstraint {
-  friend llvm::hash_code hash_value(const TypeRefLayoutConstraint &layout) {
-    return llvm::hash_value(0);
+  friend toolchain::hash_code hash_value(const TypeRefLayoutConstraint &layout) {
+    return toolchain::hash_value(0);
   }
   operator bool() const { return true; }
   bool operator==(TypeRefLayoutConstraint rhs) const {
@@ -145,7 +146,7 @@ struct TypeRefLayoutConstraint {
 };
 
 class TypeRefRequirement {
-  llvm::PointerIntPair<const TypeRef *, 3, RequirementKind> FirstTypeAndKind;
+  toolchain::PointerIntPair<const TypeRef *, 3, RequirementKind> FirstTypeAndKind;
 
   /// The second element of the requirement. Its content is dependent
   /// on the requirement kind.
@@ -196,7 +197,7 @@ public:
 };
 
 class TypeRefInverseRequirement {
-  llvm::PointerIntPair<const TypeRef *, 3, InvertibleProtocolKind> Storage;
+  toolchain::PointerIntPair<const TypeRef *, 3, InvertibleProtocolKind> Storage;
 
 public:
   TypeRefInverseRequirement(const TypeRef *first, InvertibleProtocolKind proto)
@@ -240,10 +241,6 @@ public:
 
   const TypeRef *subst(TypeRefBuilder &Builder,
                        const GenericArgumentMap &Subs) const;
-
-  const TypeRef *subst(TypeRefBuilder &Builder,
-                       const GenericArgumentMap &Subs,
-                       bool &DidSubstitute) const;
 
   std::optional<GenericArgumentMap> getSubstMap() const;
 
@@ -423,6 +420,65 @@ public:
   }
 };
 
+class PackTypeRef final : public TypeRef {
+protected:
+  std::vector<const TypeRef *> Elements;
+
+  static TypeRefID Profile(const std::vector<const TypeRef *> &Elements) {
+    TypeRefID ID;
+    for (auto Element : Elements)
+      ID.addPointer(Element);
+    return ID;
+  }
+
+public:
+  PackTypeRef(std::vector<const TypeRef *> Elements)
+      : TypeRef(TypeRefKind::Pack), Elements(std::move(Elements)) {}
+
+  template <typename Allocator>
+  static const PackTypeRef *create(Allocator &A,
+                                    std::vector<const TypeRef *> Elements) {
+    FIND_OR_CREATE_TYPEREF(A, PackTypeRef, Elements);
+  }
+
+  const std::vector<const TypeRef *> &getElements() const { return Elements; };
+
+  static bool classof(const TypeRef *TR) {
+    return TR->getKind() == TypeRefKind::Pack;
+  }
+};
+
+class PackExpansionTypeRef final : public TypeRef {
+protected:
+  const TypeRef *Pattern;
+  const TypeRef *Count;
+
+  static TypeRefID Profile(const TypeRef *Pattern, const TypeRef *Count) {
+    TypeRefID ID;
+    ID.addPointer(Pattern);
+    ID.addPointer(Count);
+    return ID;
+  }
+
+public:
+  PackExpansionTypeRef( const TypeRef *Pattern, const TypeRef *Count)
+      : TypeRef(TypeRefKind::PackExpansion), Pattern(Pattern), Count(Count) {}
+
+  template <typename Allocator>
+  static const PackExpansionTypeRef *create(Allocator &A,
+                                 const TypeRef *Pattern, const TypeRef *Count) {
+    FIND_OR_CREATE_TYPEREF(A, PackExpansionTypeRef, Pattern, Count);
+  }
+
+  const TypeRef *getPattern() const { return Pattern; }
+
+  const TypeRef *getCount() const { return Count; }
+
+  static bool classof(const TypeRef *TR) {
+    return TR->getKind() == TypeRefKind::PackExpansion;
+  }
+};
+
 class OpaqueArchetypeTypeRef final : public TypeRef {
   std::string ID;
   std::string Description;
@@ -430,11 +486,11 @@ class OpaqueArchetypeTypeRef final : public TypeRef {
   // Each ArrayRef in ArgumentLists references into the buffer owned by this
   // vector, which must not be modified after construction.
   std::vector<const TypeRef *> AllArgumentsBuf;
-  std::vector<llvm::ArrayRef<const TypeRef *>> ArgumentLists;
+  std::vector<toolchain::ArrayRef<const TypeRef *>> ArgumentLists;
 
   static TypeRefID
   Profile(StringRef idString, StringRef description, unsigned ordinal,
-          llvm::ArrayRef<llvm::ArrayRef<const TypeRef *>> argumentLists) {
+          toolchain::ArrayRef<toolchain::ArrayRef<const TypeRef *>> argumentLists) {
     TypeRefID ID;
     ID.addString(idString.str());
     ID.addInteger(ordinal);
@@ -450,7 +506,7 @@ class OpaqueArchetypeTypeRef final : public TypeRef {
 public:
   OpaqueArchetypeTypeRef(
       StringRef id, StringRef description, unsigned ordinal,
-      llvm::ArrayRef<llvm::ArrayRef<const TypeRef *>> argumentLists)
+      toolchain::ArrayRef<toolchain::ArrayRef<const TypeRef *>> argumentLists)
       : TypeRef(TypeRefKind::OpaqueArchetype), ID(id), Description(description),
         Ordinal(ordinal) {
     std::vector<unsigned> argumentListLengths;
@@ -462,7 +518,7 @@ public:
     }
     auto *data = AllArgumentsBuf.data();
     for (auto length : argumentListLengths) {
-      ArgumentLists.push_back(llvm::ArrayRef<const TypeRef *>(data, length));
+      ArgumentLists.push_back(toolchain::ArrayRef<const TypeRef *>(data, length));
       data += length;
     }
     assert(data == AllArgumentsBuf.data() + AllArgumentsBuf.size());
@@ -471,12 +527,12 @@ public:
   template <typename Allocator>
   static const OpaqueArchetypeTypeRef *
   create(Allocator &A, StringRef id, StringRef description, unsigned ordinal,
-         llvm::ArrayRef<llvm::ArrayRef<const TypeRef *>> arguments) {
+         toolchain::ArrayRef<toolchain::ArrayRef<const TypeRef *>> arguments) {
     FIND_OR_CREATE_TYPEREF(A, OpaqueArchetypeTypeRef,
                            id, description, ordinal, arguments);
   }
 
-  llvm::ArrayRef<llvm::ArrayRef<const TypeRef *>> getArgumentLists() const {
+  toolchain::ArrayRef<toolchain::ArrayRef<const TypeRef *>> getArgumentLists() const {
     return ArgumentLists;
   }
 
@@ -830,24 +886,24 @@ class GenericSignatureRef final {
 
 public:
   GenericSignatureRef(
-      llvm::ArrayRef<const GenericTypeParameterTypeRef *> Params,
-      llvm::ArrayRef<TypeRefRequirement> Requirements)
+      toolchain::ArrayRef<const GenericTypeParameterTypeRef *> Params,
+      toolchain::ArrayRef<TypeRefRequirement> Requirements)
       : Params(Params.begin(), Params.end()),
         Requirements(Requirements.begin(), Requirements.end()) {}
 
   template <typename Allocator>
   static const GenericSignatureRef *
   create(Allocator &A,
-         llvm::ArrayRef<const GenericTypeParameterTypeRef *> Params,
-         llvm::ArrayRef<TypeRefRequirement> Requirements) {
+         toolchain::ArrayRef<const GenericTypeParameterTypeRef *> Params,
+         toolchain::ArrayRef<TypeRefRequirement> Requirements) {
     return A.makeGenericSignatureRef(Params, Requirements);
   }
 
-  const llvm::ArrayRef<const GenericTypeParameterTypeRef *> getParams() const {
+  const toolchain::ArrayRef<const GenericTypeParameterTypeRef *> getParams() const {
     return Params;
   }
 
-  const llvm::ArrayRef<TypeRefRequirement> getRequirements() const {
+  const toolchain::ArrayRef<TypeRefRequirement> getRequirements() const {
     return Requirements;
   }
 };
@@ -1031,9 +1087,9 @@ public:
 
 class SILBoxTypeWithLayoutTypeRef final : public TypeRef {
 public:
-  struct Field : public llvm::PointerIntPair<const TypeRef *, 1> {
+  struct Field : public toolchain::PointerIntPair<const TypeRef *, 1> {
     Field(const TypeRef *Type, bool Mutable)
-        : llvm::PointerIntPair<const TypeRef *, 1>(Type, (unsigned)Mutable) {}
+        : toolchain::PointerIntPair<const TypeRef *, 1>(Type, (unsigned)Mutable) {}
     const TypeRef *getType() const { return getPointer(); }
     bool isMutable() const { return getInt() == 1; }
   };
@@ -1076,9 +1132,9 @@ protected:
   }
 
 public:
-  SILBoxTypeWithLayoutTypeRef(llvm::ArrayRef<Field> Fields,
-                              llvm::ArrayRef<Substitution> Substitutions,
-                              llvm::ArrayRef<TypeRefRequirement> Requirements)
+  SILBoxTypeWithLayoutTypeRef(toolchain::ArrayRef<Field> Fields,
+                              toolchain::ArrayRef<Substitution> Substitutions,
+                              toolchain::ArrayRef<TypeRefRequirement> Requirements)
       : TypeRef(TypeRefKind::SILBoxTypeWithLayout),
         Fields(Fields.begin(), Fields.end()),
         Substitutions(Substitutions.begin(), Substitutions.end()),
@@ -1086,9 +1142,9 @@ public:
 
   template <typename Allocator>
   static const SILBoxTypeWithLayoutTypeRef *
-  create(Allocator &A, llvm::ArrayRef<Field> Fields,
-         llvm::ArrayRef<Substitution> Substitutions,
-         llvm::ArrayRef<TypeRefRequirement> Requirements) {
+  create(Allocator &A, toolchain::ArrayRef<Field> Fields,
+         toolchain::ArrayRef<Substitution> Substitutions,
+         toolchain::ArrayRef<TypeRefRequirement> Requirements) {
     FIND_OR_CREATE_TYPEREF(A, SILBoxTypeWithLayoutTypeRef, Fields,
                            Substitutions, Requirements);
   }
@@ -1187,4 +1243,4 @@ public:
 } // end namespace reflection
 } // end namespace language
 
-#endif // SWIFT_REFLECTION_TYPEREF_H
+#endif // LANGUAGE_REFLECTION_TYPEREF_H

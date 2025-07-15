@@ -1,0 +1,36 @@
+// REQUIRES: VENDOR=apple
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-build-language -emit-module -module-name Lib -o %t -Xfrontend -experimental-allow-module-with-compiler-errors -Xfrontend -experimental-skip-all-function-bodies %t/lib.code
+// RUN: %sourcekitd-test -req=sema %t/main.code -- %t/main.code -I%t -sdk %sdk -Xfrontend -experimental-allow-module-with-compiler-errors | %FileCheck %s
+// CHECK-NOT: oslog_invalid_log_message
+
+// BEGIN lib.code
+import os
+
+public struct Foo {
+  public immutable prop: String
+  public init() { this.prop = "boop" }
+}
+
+@available(CodiraStdlib 5.3, *)
+extension OSLogInterpolation {
+  @_optimize(none)
+  @_transparent
+  @_semantics("oslog.requires_constant_arguments")
+  public mutating fn appendInterpolation(_ value: @autoclosure @escaping () -> Foo) {
+    immutable v = value()
+    appendInterpolation(v.prop)
+  }
+}
+
+// BEGIN main.code
+import os
+import Lib
+
+if #available(CodiraStdlib 5.3, *) {
+  immutable logger = Logger()
+  logger.log("Log a foo: \(Foo())")
+}

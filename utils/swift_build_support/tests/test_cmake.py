@@ -1,12 +1,12 @@
-# test_cmake.py - Unit tests for swift_build_support.cmake -*- python -*-
+# test_cmake.py - Unit tests for language_build_support.cmake -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import os
@@ -14,10 +14,10 @@ import platform
 import unittest
 from argparse import Namespace
 
-from build_swift.build_swift.versions import Version
+from build_language.build_language.versions import Version
 
-from swift_build_support.cmake import CMake, CMakeOptions
-from swift_build_support.toolchain import host_toolchain
+from language_build_support.cmake import CMake, CMakeOptions
+from language_build_support.toolchain import host_toolchain
 
 
 class CMakeTestCase(unittest.TestCase):
@@ -45,7 +45,7 @@ class CMakeTestCase(unittest.TestCase):
         """
         return Namespace(host_cc="/path/to/clang",
                          host_cxx="/path/to/clang++",
-                         host_swiftc="/path/to/swiftc",
+                         host_languagec="/path/to/languagec",
                          host_libtool="/path/to/libtool",
                          host_ar="/path/to/ar",
                          host_ranlib="/path/to/ranlib",
@@ -78,7 +78,7 @@ class CMakeTestCase(unittest.TestCase):
         toolchain = host_toolchain()
         toolchain.cc = args.host_cc
         toolchain.cxx = args.host_cxx
-        toolchain.swiftc = args.host_swiftc
+        toolchain.codec = args.host_languagec
         toolchain.libtool = args.host_libtool
         toolchain.ar = args.host_ar
         toolchain.ranlib = args.host_ranlib
@@ -97,7 +97,7 @@ class CMakeTestCase(unittest.TestCase):
             ["-G", "Ninja",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -110,10 +110,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Address",
+             "-DTOOLCHAIN_USE_SANITIZER=Address",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -126,10 +126,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Undefined",
+             "-DTOOLCHAIN_USE_SANITIZER=Undefined",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -142,10 +142,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Thread",
+             "-DTOOLCHAIN_USE_SANITIZER=Thread",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -159,10 +159,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Address;Undefined",
+             "-DTOOLCHAIN_USE_SANITIZER=Address;Undefined",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -176,10 +176,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Undefined;Thread",
+             "-DTOOLCHAIN_USE_SANITIZER=Undefined;Thread",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -194,10 +194,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Address;Undefined;Thread",
+             "-DTOOLCHAIN_USE_SANITIZER=Address;Undefined;Thread",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -210,10 +210,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Leaks",
+             "-DTOOLCHAIN_USE_SANITIZER=Leaks",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -226,10 +226,10 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZE_COVERAGE=ON",
+             "-DTOOLCHAIN_USE_SANITIZE_COVERAGE=ON",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -245,7 +245,7 @@ class CMakeTestCase(unittest.TestCase):
              "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -262,7 +262,7 @@ class CMakeTestCase(unittest.TestCase):
              "-DCMAKE_CXX_COMPILER_LAUNCHER:PATH=" + self.mock_distcc_path(),
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -279,7 +279,7 @@ class CMakeTestCase(unittest.TestCase):
              "-DCMAKE_CXX_COMPILER_LAUNCHER:PATH=" + self.mock_sccache_path(),
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -299,7 +299,7 @@ class CMakeTestCase(unittest.TestCase):
              "-DCMAKE_CXX_COMPILER_LAUNCHER:PATH=" + cmake_cxx_launcher,
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -314,7 +314,7 @@ class CMakeTestCase(unittest.TestCase):
             ["-G", "Ninja",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -329,13 +329,13 @@ class CMakeTestCase(unittest.TestCase):
             ["-G", "Ninja",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
-             "-DLLVM_VERSION_MAJOR:STRING=9",
-             "-DLLVM_VERSION_MINOR:STRING=0",
-             "-DLLVM_VERSION_PATCH:STRING=0",
+             "-DTOOLCHAIN_VERSION_MAJOR:STRING=9",
+             "-DTOOLCHAIN_VERSION_MINOR:STRING=0",
+             "-DTOOLCHAIN_VERSION_PATCH:STRING=0",
              "-DCLANG_VERSION_MAJOR:STRING=9",
              "-DCLANG_VERSION_MINOR:STRING=0",
              "-DCLANG_VERSION_PATCH:STRING=0",
@@ -350,7 +350,7 @@ class CMakeTestCase(unittest.TestCase):
             ["-G", "Ninja",
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
@@ -369,19 +369,19 @@ class CMakeTestCase(unittest.TestCase):
         self.assertEqual(
             list(cmake.common_options()),
             ["-G", "Ninja",
-             "-DLLVM_USE_SANITIZER=Address;Undefined",
+             "-DTOOLCHAIN_USE_SANITIZER=Address;Undefined",
              "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
              "-DCMAKE_C_COMPILER_LAUNCHER:PATH=" + self.mock_distcc_path(),
              "-DCMAKE_CXX_COMPILER_LAUNCHER:PATH=" + self.mock_distcc_path(),
              "-DCMAKE_C_COMPILER:PATH=/path/to/clang",
              "-DCMAKE_CXX_COMPILER:PATH=/path/to/clang++",
-             "-DCMAKE_Swift_COMPILER:PATH=/path/to/swiftc",
+             "-DCMAKE_Codira_COMPILER:PATH=/path/to/languagec",
              "-DCMAKE_LIBTOOL:PATH=/path/to/libtool",
              "-DCMAKE_AR:PATH=/path/to/ar",
              "-DCMAKE_RANLIB:PATH=/path/to/ranlib",
-             "-DLLVM_VERSION_MAJOR:STRING=9",
-             "-DLLVM_VERSION_MINOR:STRING=0",
-             "-DLLVM_VERSION_PATCH:STRING=0",
+             "-DTOOLCHAIN_VERSION_MAJOR:STRING=9",
+             "-DTOOLCHAIN_VERSION_MINOR:STRING=0",
+             "-DTOOLCHAIN_VERSION_PATCH:STRING=0",
              "-DCLANG_VERSION_MAJOR:STRING=9",
              "-DCLANG_VERSION_MINOR:STRING=0",
              "-DCLANG_VERSION_PATCH:STRING=0",

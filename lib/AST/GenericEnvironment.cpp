@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the GenericEnvironment class.
@@ -154,7 +155,7 @@ UUID GenericEnvironment::getOpenedElementUUID() const {
 }
 
 void GenericEnvironment::forEachPackElementArchetype(
-          llvm::function_ref<void(ElementArchetypeType *)> function) const {
+          toolchain::function_ref<void(ElementArchetypeType *)> function) const {
   auto packElements = getGenericSignature().getInnermostGenericParams();
   for (auto eltInterfaceType: packElements) {
     auto *elementArchetype =
@@ -164,7 +165,7 @@ void GenericEnvironment::forEachPackElementArchetype(
 }
 
 void GenericEnvironment::forEachPackElementGenericTypeParam(
-    llvm::function_ref<void(GenericTypeParamType *)> function) const {
+    toolchain::function_ref<void(GenericTypeParamType *)> function) const {
   auto sig = getGenericSignature();
   auto shapeClass = getOpenedElementShapeClass();
   auto packElements = sig.getInnermostGenericParams();
@@ -267,7 +268,7 @@ GenericEnvironment::GenericEnvironment(GenericSignature signature,
 }
 
 class GenericEnvironment::NestedTypeStorage
-    : public llvm::DenseMap<CanType, Type> { };
+    : public toolchain::DenseMap<CanType, Type> { };
 
 void GenericEnvironment::addMapping(CanType depType, Type contextType) {
   if (auto genericParam = dyn_cast<GenericTypeParamType>(depType)) {
@@ -320,9 +321,13 @@ GenericEnvironment::maybeApplyOuterContextSubstitutions(Type type) const {
   case Kind::OpenedExistential:
   case Kind::OpenedElement:
   case Kind::Opaque: {
-    OuterSubstitutions replacer{
-        getOuterSubstitutions(), getGenericSignature()->getMaxDepth()};
-    return type.subst(replacer, replacer);
+    if (auto subs = getOuterSubstitutions()) {
+      OuterSubstitutions replacer{subs,
+                                  getGenericSignature()->getMaxDepth()};
+      return type.subst(replacer, replacer);
+    }
+
+    return type;
   }
   }
 }
@@ -593,7 +598,7 @@ struct FindElementArchetypeForOpenedPackParam {
         return packElementParams[i];
     }
 
-    llvm_unreachable("parameter was not an opened pack parameter");
+    toolchain_unreachable("parameter was not an opened pack parameter");
   }
 
   Type operator()(Type interfaceType) const {
@@ -690,7 +695,7 @@ GenericEnvironment::mapElementTypeIntoPackContext(Type type) const {
 
   auto shapeClass = elementEnv->getOpenedElementShapeClass();
 
-  llvm::SmallVector<GenericTypeParamType *, 2> members;
+  toolchain::SmallVector<GenericTypeParamType *, 2> members;
   auto elementDepth = elementEnv->getGenericSignature()->getMaxDepth();
 
   auto sig = getGenericSignature();
@@ -748,7 +753,8 @@ Type BuildForwardingSubstitutions::operator()(SubstitutableType *type) const {
   return Type();
 }
 
-SubstitutionMap GenericEnvironment::getForwardingSubstitutionMap() const {
+SubstitutionMap
+GenericEnvironment::getForwardingSubstitutionMap() const {
   auto genericSig = getGenericSignature();
   return SubstitutionMap::get(genericSig,
                               BuildForwardingSubstitutions(this),

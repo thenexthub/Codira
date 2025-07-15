@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-# This tool dumps imported Swift APIs to help validate changes in the
-# projection of (Objective-)C APIs into Swift, which is a function of the
+# This tool dumps imported Codira APIs to help validate changes in the
+# projection of (Objective-)C APIs into Codira, which is a function of the
 # (Objective-)C APIs, any API notes added on top of those APIs, and the
 # Clang importer itself. One can execute it to dump the API of a given
 # module within a particular SDK, e.g., UIKit from the iOS SDK as seen in
-# Swift 4 compatibility mode:
+# Codira 4 compatibility mode:
 #
-#   /path/to/bin/dir/swift-api-dump.py -swift-version 4 -o output-dir \
+#   /path/to/bin/dir/language-api-dump.py -language-version 4 -o output-dir \
 #       -m UIKit -s iphoneos
 #
 # The "-m" argument can be omitted, in which case the script will collect
@@ -15,9 +15,9 @@
 #
 # One can supply multiple SDKs, written as a list. For example, to
 # dump the API for all frameworks across macOS, iOS, watchOS, and tvOS,
-# in Swift 4.2, use:
+# in Codira 4.2, use:
 #
-#  /path/to/bin/dir/swift-api-dump.py -swift-version 4.2 -o output-dir \
+#  /path/to/bin/dir/language-api-dump.py -language-version 4.2 -o output-dir \
 #      -s macosx iphoneos watchos appletvos
 #
 
@@ -69,11 +69,11 @@ SKIPPED_FRAMEWORKS = {
 def create_parser():
     script_path = os.path.dirname(sys.argv[0])
     script_path = os.path.abspath(script_path)
-    default_swift_ide_test = '%s/swift-ide-test' % (script_path)
+    default_language_ide_test = '%s/language-ide-test' % (script_path)
 
     parser = argparse.ArgumentParser(
-        description="Dumps imported Swift APIs for a module or SDK",
-        prog='swift-api-dump.py',
+        description="Dumps imported Codira APIs for a module or SDK",
+        prog='language-api-dump.py',
         usage='%(prog)s -s iphoneos')
     parser.add_argument('-m', '--module', help='The module name.')
     parser.add_argument('-j', '--jobs', type=int,
@@ -81,9 +81,9 @@ def create_parser():
     parser.add_argument('-s', '--sdk', nargs='+',
                         required=True, help="The SDKs to use.")
     parser.add_argument('-t', '--target', help="The target triple to use.")
-    parser.add_argument('-i', '--swift-ide-test',
-                        default=default_swift_ide_test,
-                        help="The swift-ide-test executable.")
+    parser.add_argument('-i', '--language-ide-test',
+                        default=default_language_ide_test,
+                        help="The language-ide-test executable.")
     parser.add_argument('-o', '--output-dir', default=os.getcwd(),
                         help='Directory to which the output will be emitted.')
     parser.add_argument('-q', '--quiet', action='store_true',
@@ -110,15 +110,15 @@ def create_parser():
                         help='Enable Synchronization.')
     parser.add_argument('--enable-volatile', action='store_true',
                         help='Enable Volatile.')
-    parser.add_argument('-swift-version', metavar='N',
-                        help='the Swift version to use')
+    parser.add_argument('-language-version', metavar='N',
+                        help='the Codira version to use')
     parser.add_argument('-show-overlay', action='store_true',
                         help='Show overlay API in addition to Objective-C ' +
                         'module API')
     parser.add_argument('-show-doc-comments', action='store_true',
                         help='Show documentation comments')
     parser.add_argument('-show-unavailable', action='store_true',
-                        help='Show declarations that are unavailable in Swift')
+                        help='Show declarations that are unavailable in Codira')
     return parser
 
 
@@ -139,7 +139,7 @@ def run_command(args):
 
 
 def collect_submodules(common_args, module):
-    # Execute swift-ide-test to print the interface.
+    # Execute language-ide-test to print the interface.
     my_args = ['-module-print-submodules', '-module-to-print=%s' % (module)]
     (exitcode, out, _) = run_command(common_args + my_args)
     if exitcode != 0:
@@ -182,7 +182,7 @@ def dump_module_api(cmd, extra_dump_args, output_dir, module, quiet, verbose):
     if verbose:
         print("mkdir -p %s/%s" % (output_dir, module))
     subprocess.call(['mkdir', '-p', ('%s/%s' % (output_dir, module))])
-    output_file = '%s/%s/%s.swift' % (output_dir, module, module)
+    output_file = '%s/%s/%s.code' % (output_dir, module, module)
     if not quiet:
         print('Writing %s...' % output_file)
 
@@ -194,7 +194,7 @@ def dump_module_api(cmd, extra_dump_args, output_dir, module, quiet, verbose):
 
     # Dump each submodule.
     for submodule in submodules:
-        output_file = '%s/%s/%s.swift' % (output_dir, module, submodule)
+        output_file = '%s/%s/%s.code' % (output_dir, module, submodule)
         if not quiet:
             print('Writing %s...' % output_file)
 
@@ -298,12 +298,12 @@ def create_dump_module_api_args(cmd_common, cmd_extra_args, sdk, module,
 
 
 def main():
-    source_filename = 'swift-api-dump.swift'
+    source_filename = 'language-api-dump.code'
     parser = create_parser()
     args = parser.parse_args()
 
     cmd_common = [
-        args.swift_ide_test,
+        args.code_ide_test,
         '-print-module',
         '-source-filename',
         source_filename,
@@ -337,10 +337,10 @@ def main():
     extra_args = ['-skip-imports']
     if args.enable_experimental_concurrency:
         extra_args = extra_args + ['-enable-experimental-concurrency']
-    if args.swift_version:
-        extra_args = extra_args + ['-swift-version', '%s' % args.swift_version]
+    if args.code_version:
+        extra_args = extra_args + ['-language-version', '%s' % args.code_version]
 
-    # Create a .swift file we can feed into swift-ide-test
+    # Create a .code file we can feed into language-ide-test
     subprocess.call(['touch', source_filename])
 
     # Construct the set of API dumps we should perform.
@@ -355,7 +355,7 @@ def main():
     pool = multiprocessing.Pool(processes=args.jobs)
     pool.map(dump_module_api_star, jobs)
 
-    # Remove the .swift file we fed into swift-ide-test
+    # Remove the .code file we fed into language-ide-test
     subprocess.call(['rm', '-f', source_filename])
 
 

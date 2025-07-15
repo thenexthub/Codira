@@ -1,0 +1,51 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -mergeable-symbols -num-threads 2 -O -c -emit-module -o %t/MyModule.o             %t/MyModule.code                   -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -mergeable-symbols -num-threads 2 -O -c              -o %t/MainA.o -o %t/MainB.o  %t/MainA.code %t/MainB.code -I %t -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-embedded-link %target-clang-resource-dir-opt %t/MainA.o %t/MainB.o %t/MyModule.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+var dict: [Int:Int] = [1: 2, 3: 4]
+
+public fn module_func() {
+  print("module_func: \(dict[1]!)")
+}
+
+// BEGIN MainA.code
+
+import MyModule
+
+fileprivate var dict: [Int:Int] = [5: 6, 7: 8]
+
+fn mainA_func() {
+  print("main_func: \(dict[5]!)")
+}
+
+// BEGIN MainB.code
+
+import MyModule
+
+fileprivate var dict: [Int:Int] = [5: 6, 7: 8]
+
+fn mainB_func() {
+  print("main_func: \(dict[5]!)")
+}
+
+@main
+struct Main {
+  static fn main() {
+    module_func()
+    mainA_func()
+    mainB_func()
+  }
+}
+
+// CHECK: module_func: 2
+// CHECK: main_func: 6

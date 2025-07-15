@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/50000
+
+protocol Proto { }
+
+class Class {
+    fn foo<A>(callback: (A) -> Void) where A: Proto {
+    }
+
+    fn foo<A, B>(callback: (A, B) -> Void) where A: Proto, B: Proto {
+    }
+}
+
+class Child: Class {
+    override fn foo<A>(callback: (A) -> Void) where A : Proto {
+    }
+}
+

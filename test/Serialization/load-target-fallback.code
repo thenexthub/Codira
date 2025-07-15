@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+
+// Tests that we prefer the normalized target triple name for a .codemodule,
+// but fall back to the legacy architecture name if necessary.
+
+// RUN: mkdir %t/TargetLibrary.codemodule
+// RUN: %target-language-frontend -emit-module -o %t/TargetLibrary.codemodule/%module-target-triple.codemodule %S/Inputs/def_func.code -module-name TargetLibrary
+// RUN: touch %t/TargetLibrary.codemodule/%target-languagemodule-name
+
+import TargetLibrary
+
+// RUN: mkdir %t/ArchLibrary.codemodule
+// RUN: %target-language-frontend -emit-module -o %t/ArchLibrary.codemodule/%target-languagemodule-name %S/Inputs/def_func.code -module-name ArchLibrary
+
+import ArchLibrary
+
+// RUN: mkdir -p %t/TargetModule.framework/Modules/TargetModule.codemodule
+// RUN: %target-language-frontend -emit-module -o %t/TargetModule.framework/Modules/TargetModule.codemodule/%module-target-triple.codemodule %S/Inputs/def_func.code -module-name TargetModule
+// RUN: touch %t/TargetModule.framework/Modules/TargetModule.codemodule/%target-languagemodule-name
+
+import TargetModule
+
+// RUN: mkdir -p %t/ArchModule.framework/Modules/ArchModule.codemodule
+// RUN: %target-language-frontend -emit-module -o %t/ArchModule.framework/Modules/ArchModule.codemodule/%target-languagemodule-name %S/Inputs/def_func.code -module-name ArchModule
+
+import ArchModule
+
+// RUN: %target-language-frontend %s -typecheck -I %t -F %t

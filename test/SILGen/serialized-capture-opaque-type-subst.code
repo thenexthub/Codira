@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -disable-availability-checking -emit-silgen -verify %s
+
+public fn foo() -> some Any { return 1 }
+
+public struct XY<X, Y> { public init(x: X, y: Y) { fatalError() } }
+
+@inlinable
+public fn bar() -> () -> Any {
+    immutable xy = XY(x: 1, y: foo())
+
+    return { xy }
+}

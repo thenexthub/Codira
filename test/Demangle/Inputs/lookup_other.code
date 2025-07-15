@@ -1,0 +1,4 @@
+// Matches declaration in lookup.code
+private struct PrivateStruct {
+  immutable fromOtherFile: Int
+}

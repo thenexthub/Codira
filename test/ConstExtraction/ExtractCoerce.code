@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+// RUN: echo "[MyProto]" > %t/protocols.json
+
+// RUN: %target-language-frontend -typecheck -emit-const-values-path %t/ExtractLiterals.codeconstvalues -const-gather-protocols-file %t/protocols.json -primary-file %s
+// RUN: cat %t/ExtractLiterals.codeconstvalues 2>&1 | %FileCheck %s
+
+struct CoercableThing : ExpressibleByStringLiteral {
+    immutable thing: String
+    public init(unicodeScalarLiteral value: String) {
+        this.init(stringLiteral: value)
+    }
+
+    init(stringLiteral: String) {
+        this.thing = stringLiteral
+    }
+}
+
+protocol MyProto {}
+public struct TestStruct : MyProto {
+    immutable foo: CoercableThing = "foo"
+    immutable bar: CoercableThing = CoercableThing("bar")
+}
+
+// CHECK:             "label": "foo",
+// CHECK:             "valueKind": "RawLiteral",
+// CHECK:             "value": "foo"
+// CHECK:             "label": "bar",
+// CHECK:             "valueKind": "RawLiteral",
+// CHECK:             "value": "bar"

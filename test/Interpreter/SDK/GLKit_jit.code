@@ -1,0 +1,6 @@
+// Test GLKit.code in JIT mode.
+// -module-name is necessary because of rdar://problem/14483032
+// RUN: %target-jit-run -module-name=main %S/GLKit.code | %FileCheck %S/GLKit.code
+
+// REQUIRES: objc_interop
+// REQUIRES: language_interpreter

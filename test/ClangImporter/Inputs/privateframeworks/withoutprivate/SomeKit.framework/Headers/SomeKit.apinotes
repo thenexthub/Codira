@@ -1,0 +1,10 @@
+---
+Name: SomeKit
+Functions:
+- Name: someKitOtherGlobalFunc
+  CodiraPrivate: true
+CodiraVersions:
+- Version: 4
+  Functions:
+  - Name: someKitOtherGlobalFunc
+    CodiraPrivate: false

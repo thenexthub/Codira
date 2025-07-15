@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) \
+// RUN:     %s \
+// RUN:     -enable-experimental-feature CoroutineAccessors \
+// RUN:     -module-name Rock
+// RUN: %FileCheck %s < %t.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Rock
+
+// REQUIRES: language_feature_CoroutineAccessors
+
+var _i: Int = 0
+
+// CHECK:      #if compiler(>=5.3) && $CoroutineAccessors
+// CHECK-NEXT: public var i: Codira.Int {
+// CHECK-NEXT:   read
+// CHECK-NEXT:   modify
+// CHECK-NEXT: }
+// CHECK-NEXT: #else
+// CHECK-NEXT: public var i: Codira.Int {
+// CHECK-NEXT:   _read
+// CHECK-NEXT:   _modify
+// CHECK-NEXT: }
+// CHECK-NEXT: #endif
+public var i: Int {
+  read {
+    yield _i
+  }
+  modify {
+    yield &_i
+  }
+}

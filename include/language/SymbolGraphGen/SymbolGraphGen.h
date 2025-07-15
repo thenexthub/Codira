@@ -1,4 +1,4 @@
-//===--- SymbolGraphGen.h - Swift SymbolGraph Generator -------------------===//
+//===--- SymbolGraphGen.h - Codira SymbolGraph Generator -------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHGEN_H
-#define SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHGEN_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHGEN_H
+#define LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHGEN_H
 
 #include "language/AST/Module.h"
 #include "language/AST/Type.h"
@@ -39,11 +40,11 @@ int emitSymbolGraphForModule(ModuleDecl *M, const SymbolGraphOptions &Options);
 int printSymbolGraphForDecl(const ValueDecl *D, Type BaseTy,
                             bool InSynthesizedExtension,
                             const SymbolGraphOptions &Options,
-                            llvm::raw_ostream &OS,
+                            toolchain::raw_ostream &OS,
                             SmallVectorImpl<PathComponent> &ParentContexts,
                             SmallVectorImpl<FragmentInfo> &FragmentInfo);
 
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHGEN_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHGEN_H

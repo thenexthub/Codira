@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides support for reasoning about CF types
@@ -38,7 +39,7 @@ namespace {
 /// The list of known CF types.  We use 'constexpr' to verify that this is
 /// emitted as a constant.  Note that this is expected to be sorted in
 /// quasi-lexicographic order.
-static constexpr const llvm::StringLiteral KnownCFTypes[] = {
+static constexpr const toolchain::StringLiteral KnownCFTypes[] = {
 #define CF_TYPE(NAME) #NAME,
 #define NON_CF_TYPE(NAME)
 #include "SortedCFDatabase.def"
@@ -105,8 +106,8 @@ StringRef importer::getCFTypeName(
   if (auto pointee = CFPointeeInfo::classifyTypedef(decl)) {
     auto name = decl->getName();
     if (pointee.isRecord() || pointee.isTypedef())
-      if (name.ends_with(SWIFT_CFTYPE_SUFFIX))
-        return name.drop_back(strlen(SWIFT_CFTYPE_SUFFIX));
+      if (name.ends_with(LANGUAGE_CFTYPE_SUFFIX))
+        return name.drop_back(strlen(LANGUAGE_CFTYPE_SUFFIX));
 
     return name;
   }

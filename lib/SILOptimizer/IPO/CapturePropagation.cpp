@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "capture-prop"
@@ -28,9 +29,9 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -218,7 +219,7 @@ void CapturePropagationCloner::cloneClosure(
   // Replace the rest of the old arguments with constants.
   getBuilder().setInsertionPoint(ClonedEntryBB);
   IsCloningConstant = true;
-  llvm::SmallVector<KeyPathInst *, 8> toDestroy;
+  toolchain::SmallVector<KeyPathInst *, 8> toDestroy;
   for (SILValue PartialApplyArg : PartialApplyArgs) {
     assert(getConstant(PartialApplyArg) &&
            "expected a constant arg to partial apply");
@@ -284,9 +285,9 @@ SILFunction *CapturePropagation::specializeConstClosure(PartialApplyInst *PAI,
   // just return it.
   if (auto *NewF = OrigF->getModule().lookUpFunction(Name)) {
     assert(NewF->getSerializedKind() == serializedKind);
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "  Found an already specialized version of the callee: ";
-               NewF->printName(llvm::dbgs()); llvm::dbgs() << "\n");
+               NewF->printName(toolchain::dbgs()); toolchain::dbgs() << "\n");
     return NewF;
   }
 
@@ -310,12 +311,12 @@ SILFunction *CapturePropagation::specializeConstClosure(PartialApplyInst *PAI,
   if (!OrigF->hasOwnership()) {
     NewF->setOwnershipEliminated();
   }
-  LLVM_DEBUG(llvm::dbgs() << "  Specialize callee as ";
-             NewF->printName(llvm::dbgs());
-             llvm::dbgs() << " " << NewFTy << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Specialize callee as ";
+             NewF->printName(toolchain::dbgs());
+             toolchain::dbgs() << " " << NewFTy << "\n");
 
-  LLVM_DEBUG(if (PAI->hasSubstitutions()) {
-    llvm::dbgs() << "CapturePropagation of generic partial_apply:\n";
+  TOOLCHAIN_DEBUG(if (PAI->hasSubstitutions()) {
+    toolchain::dbgs() << "CapturePropagation of generic partial_apply:\n";
     PAI->dumpInContext();
   });
   CapturePropagationCloner cloner(OrigF, NewF, PAI->getSubstitutionMap());
@@ -326,11 +327,11 @@ SILFunction *CapturePropagation::specializeConstClosure(PartialApplyInst *PAI,
 
 void CapturePropagation::rewritePartialApply(PartialApplyInst *OrigPAI,
                                              SILFunction *SpecialF) {
-  LLVM_DEBUG(llvm::dbgs() << "\n  Rewriting a partial apply:\n";
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n  Rewriting a partial apply:\n";
              OrigPAI->dumpInContext();
-             llvm::dbgs() << "   with special function: "
+             toolchain::dbgs() << "   with special function: "
                           << SpecialF->getName() << "\n";
-             llvm::dbgs() << "\nThe function being rewritten is:\n";
+             toolchain::dbgs() << "\nThe function being rewritten is:\n";
              OrigPAI->getFunction()->dump());
 
   SILBuilderWithScope Builder(OrigPAI);
@@ -360,18 +361,18 @@ void CapturePropagation::rewritePartialApply(PartialApplyInst *OrigPAI,
     if (auto *DS = dyn_cast<DeallocStackInst>(Use->getUser()))
       DS->eraseFromParent();
   recursivelyDeleteTriviallyDeadInstructions(OrigPAI, true);
-  LLVM_DEBUG(llvm::dbgs() << "  Rewrote caller:\n" << *T2TF);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Rewrote caller:\n" << *T2TF);
 }
 
 static bool isKeyPathFunction(FullApplySite FAS, SILValue keyPath) {
   SILFunction *callee = FAS.getReferencedFunctionOrNull();
   if (!callee)
     return false;
-  if (callee->getName() == "swift_setAtWritableKeyPath" ||
-      callee->getName() == "swift_setAtReferenceWritableKeyPath") {
+  if (callee->getName() == "language_setAtWritableKeyPath" ||
+      callee->getName() == "language_setAtReferenceWritableKeyPath") {
     return FAS.getArgument(1) == keyPath;
   }
-  if (callee->getName() == "swift_getAtKeyPath") {
+  if (callee->getName() == "language_getAtKeyPath") {
     return FAS.getArgument(2) == keyPath;
   }
   return false;
@@ -407,7 +408,7 @@ static bool onlyContainsReturnOrThrowOfArg(SILBasicBlock *BB) {
     if (I.mayHaveSideEffects() || isa<TermInst>(&I))
       return false;
   }
-  llvm_unreachable("should have seen a terminator instruction");
+  toolchain_unreachable("should have seen a terminator instruction");
 }
 
 /// Checks if \p Orig is a thunk which calls another function but without
@@ -483,7 +484,7 @@ static SILFunction *getSpecializedWithDeadParams(
   }
 
   auto Rep = Specialized->getLoweredFunctionType()->getRepresentation();
-  if (getSILFunctionLanguage(Rep) != SILFunctionLanguage::Swift)
+  if (getSILFunctionLanguage(Rep) != SILFunctionLanguage::Codira)
     return nullptr;
 
   GenericSpecialized = std::make_pair(nullptr, nullptr);
@@ -496,7 +497,7 @@ static SILFunction *getSpecializedWithDeadParams(
 
     // Perform a generic specialization of the Specialized function.
     ReabstractionInfo ReInfo(
-        FuncBuilder.getModule().getSwiftModule(),
+        FuncBuilder.getModule().getCodiraModule(),
         FuncBuilder.getModule().isWholeModule(), ApplySite(), Specialized,
         PAI->getSubstitutionMap(), Specialized->getSerializedKind(),
         /* ConvertIndirectToDirect */ false, /*dropUnusedArguments=*/false);
@@ -523,7 +524,7 @@ bool CapturePropagation::optimizePartialApply(PartialApplyInst *PAI) {
 
   if (PAI->hasSubstitutions() &&
       PAI->getSubstitutionMap().getRecursiveProperties().hasArchetype()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "CapturePropagation: cannot handle partial specialization "
                     "of partial_apply:\n";
                PAI->dumpInContext());
@@ -552,7 +553,7 @@ bool CapturePropagation::optimizePartialApply(PartialApplyInst *PAI) {
   }
 
   // Second possibility: Are all partially applied arguments constant?
-  llvm::SmallVector<SILInstruction *, 8> toDelete;
+  toolchain::SmallVector<SILInstruction *, 8> toDelete;
   for (const Operand &argOp : PAI->getArgumentOperands()) {
     SILInstruction *constInst = getConstant(argOp.get());
     if (!constInst)
@@ -591,7 +592,7 @@ bool CapturePropagation::optimizePartialApply(PartialApplyInst *PAI) {
   if (!isProfitable(SubstF))
     return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "Specializing closure for constant arguments:\n"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Specializing closure for constant arguments:\n"
                           << "  " << SubstF->getName() << "\n"
                           << *PAI);
   ++NumCapturesPropagated;
@@ -634,6 +635,6 @@ void CapturePropagation::run() {
   }
 }
 
-SILTransform *swift::createCapturePropagation() {
+SILTransform *language::createCapturePropagation() {
   return new CapturePropagation();
 }

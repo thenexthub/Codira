@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a data structure that stores a string-to-string
@@ -24,13 +25,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PATHREMAPPER_H
-#define SWIFT_BASIC_PATHREMAPPER_H
+#ifndef LANGUAGE_BASIC_PATHREMAPPER_H
+#define LANGUAGE_BASIC_PATHREMAPPER_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "clang/Basic/PathRemapper.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Twine.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Twine.h"
 
 #include <string>
 #include <utility>
@@ -85,7 +86,7 @@ public:
   std::string recover(StringRef Path) const {
     return recoverer.remapPath(Path);
   }
-  void forEachPair(llvm::function_ref<void(StringRef, StringRef)> op) const {
+  void forEachPair(toolchain::function_ref<void(StringRef, StringRef)> op) const {
     for (auto pair: obfuscator.PathMappings) {
       op(pair.first, pair.second);
     }
@@ -94,4 +95,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_PATHREMAPPER_H
+#endif // LANGUAGE_BASIC_PATHREMAPPER_H

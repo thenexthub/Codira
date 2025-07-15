@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -emit-silgen %s -module-name test -language-version 6 -target %target-language-5.1-abi-triple -verify
+// REQUIRES: concurrency
+
+fn takeSyncIsolatedAny(fn: @escaping @isolated(any) () -> ()) {}
+fn takeAsyncIsolatedAny(fn: @escaping @isolated(any) () async -> ()) {}
+
+actor MyActor {
+  fn syncAction() {}
+  fn asyncAction() async {}
+}
+
+// If these are ever accepted, move them to isolated_any.code and test
+// that we generate the right pattern!
+
+fn testEraseSyncActorIsolatedPartialApplication(a: MyActor) {
+  takeSyncIsolatedAny(fn: a.syncAction) // expected-error {{actor-isolated instance method 'syncAction()' can not be partially applied}}
+}
+
+fn testEraseSyncAsAsyncActorIsolatedPartialApplication(a: MyActor) {
+  takeAsyncIsolatedAny(fn: a.syncAction)  // expected-error {{actor-isolated instance method 'syncAction()' can not be partially applied}}
+}

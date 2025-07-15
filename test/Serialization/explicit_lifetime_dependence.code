@@ -1,0 +1,58 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t  %S/Inputs/def_explicit_lifetime_dependence.code \
+// RUN: -enable-experimental-feature Lifetimes \
+// RUN: -disable-lifetime-dependence-diagnostics
+
+// RUN: toolchain-bcanalyzer %t/def_explicit_lifetime_dependence.codemodule 
+
+// RUN: %target-language-frontend -module-name lifetime-dependence -emit-sil -I %t %s \
+// RUN: -enable-experimental-feature Lifetimes \
+// RUN: | %FileCheck %s
+
+// REQUIRES: language_feature_Lifetimes
+
+import def_explicit_lifetime_dependence
+fn testBasic() {
+  immutable capacity = 4
+  immutable a = Array(0..<capacity)
+  a.withUnsafeBytes {
+    immutable view = BufferView($0)
+    immutable derivedView = derive(view)
+    immutable consumedView = consumeAndCreate(derivedView)
+    immutable borrowedView = borrowAndCreate(consumedView) 
+    immutable mysteryView = deriveThisOrThat(borrowedView, consumedView)
+    use(mysteryView)
+  }
+}
+
+fn testInitializers() {
+  immutable capacity = 4
+  immutable a = Array(0..<capacity)
+  immutable b = Array(0..<capacity)
+  a.withUnsafeBytes {
+    immutable view1 = BufferView($0, a)
+    immutable view2 = BufferView($0, b)
+    immutable mysteryView = deriveThisOrThat(view1, view2)
+    use(mysteryView)
+  }
+}
+
+fn testReadAccessor() {
+  immutable capacity = 4
+  immutable a = Array(0..<capacity)
+  a.withUnsafeBytes {
+    immutable view = BufferView($0, a)
+    immutable w = Wrapper(view)
+    use(w.view)
+  }
+}
+
+fn testFakeOptional() {
+  _ = FakeOptional<Int>(())
+}
+
+// CHECK: sil @$s32def_explicit_lifetime_dependence6deriveyAA10BufferViewVADF : $@convention(thin) (@guaranteed BufferView) -> @lifetime(borrow 0) @owned BufferView
+// CHECK: sil @$s32def_explicit_lifetime_dependence16consumeAndCreateyAA10BufferViewVADnF : $@convention(thin) (@owned BufferView) -> @lifetime(copy 0) @owned BufferView
+// CHECK: sil @$s32def_explicit_lifetime_dependence15borrowAndCreateyAA10BufferViewVADF : $@convention(thin) (@guaranteed BufferView) -> @lifetime(borrow 0) @owned BufferView
+// CHECK: sil @$s32def_explicit_lifetime_dependence16deriveThisOrThatyAA10BufferViewVAD_ADtF : $@convention(thin) (@guaranteed BufferView, @guaranteed BufferView) -> @lifetime(copy 1, borrow 0) @owned BufferView
+// CHECK: sil @$s32def_explicit_lifetime_dependence10BufferViewVyACSW_SaySiGhtcfC : $@convention(method) (UnsafeRawBufferPointer, @guaranteed Array<Int>, @thin BufferView.Type) -> @lifetime(borrow 1) @owned BufferView

@@ -1,0 +1,5 @@
+// {"signature":"language::Type toolchain::function_ref<language::Type (language::SubstitutableType*)>::callback_fn<language::TypeResolution::applyUnboundGenericArguments(language::GenericTypeDecl*, language::Type, language::SourceLoc, toolchain::ArrayRef<language::Type>) const::$_0 const>(long, language::SubstitutableType*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a extension a {
+  class b {
+    struct c < f struct d fn e->c<d>

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Mark sil_vtable entries as [nonoverridden] when possible, so that we know
@@ -32,12 +33,12 @@ using namespace language;
 namespace {
 class PruneVTables : public SILModuleTransform {
   void runOnVTable(SILModule *M, SILVTable *vtable) {
-    LLVM_DEBUG(llvm::dbgs() << "PruneVTables inspecting table:\n";
-               vtable->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "PruneVTables inspecting table:\n";
+               vtable->print(toolchain::dbgs()));
     if (!M->isWholeModule() &&
         vtable->getClass()->getEffectiveAccess() >= AccessLevel::FilePrivate) {
-      LLVM_DEBUG(llvm::dbgs() << "Ignoring visible table: ";
-                 vtable->print(llvm::dbgs()));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Ignoring visible table: ";
+                 vtable->print(toolchain::dbgs()));
       return;
     }
 
@@ -46,9 +47,9 @@ class PruneVTables : public SILModuleTransform {
       // We don't need to worry about entries that are overridden,
       // or have already been found to have no overrides.
       if (entry.isNonOverridden()) {
-        LLVM_DEBUG(llvm::dbgs() << "-- entry for ";
-                   entry.getMethod().print(llvm::dbgs());
-                   llvm::dbgs() << " is already nonoverridden\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- entry for ";
+                   entry.getMethod().print(toolchain::dbgs());
+                   toolchain::dbgs() << " is already nonoverridden\n");
         continue;
       }
       
@@ -58,25 +59,25 @@ class PruneVTables : public SILModuleTransform {
         break;
           
       case SILVTable::Entry::Override:
-        LLVM_DEBUG(llvm::dbgs() << "-- entry for ";
-                   entry.getMethod().print(llvm::dbgs());
-                   llvm::dbgs() << " is an override\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- entry for ";
+                   entry.getMethod().print(toolchain::dbgs());
+                   toolchain::dbgs() << " is an override\n");
         continue;
       }
 
       // The destructor entry must remain.
       if (entry.getMethod().kind == SILDeclRef::Kind::Deallocator) {
-        LLVM_DEBUG(llvm::dbgs() << "-- entry for ";
-                   entry.getMethod().print(llvm::dbgs());
-                   llvm::dbgs() << " is a destructor\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- entry for ";
+                   entry.getMethod().print(toolchain::dbgs());
+                   toolchain::dbgs() << " is a destructor\n");
         continue;
       }
 
       auto methodDecl = entry.getMethod().getAbstractFunctionDecl();
       if (!methodDecl) {
-        LLVM_DEBUG(llvm::dbgs() << "-- entry for ";
-                   entry.getMethod().print(llvm::dbgs());
-                   llvm::dbgs() << " is not a function decl\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- entry for ";
+                   entry.getMethod().print(toolchain::dbgs());
+                   toolchain::dbgs() << " is not a function decl\n");
         continue;
       }
 
@@ -84,23 +85,23 @@ class PruneVTables : public SILModuleTransform {
       if (!methodDecl->isFinal()) {
         // Are callees of this entry statically knowable?
         if (!calleesAreStaticallyKnowable(*M, entry.getMethod())) {
-          LLVM_DEBUG(llvm::dbgs() << "-- entry for ";
-                     entry.getMethod().print(llvm::dbgs());
-                     llvm::dbgs() << " does not have statically-knowable callees\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- entry for ";
+                     entry.getMethod().print(toolchain::dbgs());
+                     toolchain::dbgs() << " does not have statically-knowable callees\n");
           continue;
         }
         
         // Does the method have any overrides in this module?
         if (methodDecl->isOverridden()) {
-          LLVM_DEBUG(llvm::dbgs() << "-- entry for ";
-                     entry.getMethod().print(llvm::dbgs());
-                     llvm::dbgs() << " has overrides\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "-- entry for ";
+                     entry.getMethod().print(toolchain::dbgs());
+                     toolchain::dbgs() << " has overrides\n");
           continue;
         }
       }
-      LLVM_DEBUG(llvm::dbgs() << "++ entry for ";
-                 entry.getMethod().print(llvm::dbgs());
-                 llvm::dbgs() << " can be marked non-overridden!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "++ entry for ";
+                 entry.getMethod().print(toolchain::dbgs());
+                 toolchain::dbgs() << " can be marked non-overridden!\n");
       ++NumNonoverriddenVTableEntries;
       entry.setNonOverridden(true);
       vtable->updateVTableCache(entry);
@@ -117,6 +118,6 @@ class PruneVTables : public SILModuleTransform {
 };
 }
 
-SILTransform *swift::createPruneVTables() {
+SILTransform *language::createPruneVTables() {
   return new PruneVTables();
 }

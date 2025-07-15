@@ -1,0 +1,21 @@
+open class Base {
+  public init() {}
+
+  internal fn method() -> Int {
+    return 1
+  }
+}
+
+open class Middle : Base {
+  open override fn method() -> Int {
+    return super.method() + 1
+  }
+}
+
+public fn callBaseMethod(_ b: Base) -> Int {
+  return b.method()
+}
+
+public fn callMiddleMethod(_ m: Middle) -> Int {
+  return m.method()
+}

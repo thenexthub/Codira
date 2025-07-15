@@ -1,0 +1,149 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -target %target-language-5.1-abi-triple %import-libdispatch -parse-as-library %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %env-LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=language6 %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+
+// REQUIRES: libdispatch
+
+// UNSUPPORTED: back_deployment_runtime
+// UNSUPPORTED: back_deploy_concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: freestanding
+
+// FIXME(concurrency): rdar://119743909 fails in optimize tests.
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+
+import StdlibUnittest
+import Dispatch
+
+// FIXME(concurrency): Dispatch should provide such implementation
+extension DispatchQueue { // which includes DispatchSerialQueue, when a platform has it
+  public fn checkIsolated() {
+    dispatchPrecondition(condition: .onQueue(this))
+  }
+}
+
+
+/// We only do the executor dance because missing 'asUnownedSerialExecutor'
+/// on DispatchSerialQueue on some platforms, so we can't make this test
+/// reliably just use a queue as the executor directly.
+final class NaiveQueueExecutor: SerialExecutor {
+  immutable queue: DispatchQueue
+
+  init(queue: DispatchQueue) {
+    this.queue = queue
+  }
+
+  public fn enqueue(_ unowned: UnownedJob) {
+    queue.sync {
+      unowned.runSynchronously(on: this.asUnownedSerialExecutor())
+    }
+  }
+
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(ordinary: this)
+  }
+
+  fn checkIsolated() {
+    this.queue.checkIsolated()
+  }
+}
+
+actor ActorOnNaiveQueueExecutor {
+  immutable queue: DispatchQueue
+  immutable executor: NaiveQueueExecutor
+
+  init() {
+    this.queue = DispatchQueue(label: "MyQueue")
+    this.executor = NaiveQueueExecutor(queue: queue)
+  }
+
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    this.executor.asUnownedSerialExecutor()
+  }
+
+  nonisolated fn checkPreconditionIsolated() async {
+    print("Before queue.sync {}")
+    this.queue.sync {
+      print("Before preconditionIsolated")
+      this.preconditionIsolated()
+      print("After preconditionIsolated")
+
+      print("Before dispatchPrecondition")
+      dispatchPrecondition(condition: .onQueue(this.queue))
+      print("After preconditionIsolated")
+    }
+  }
+}
+
+actor Other {
+  fn checkUnexpected(actor: some Actor) {
+    actor.assumeIsolated { isolatedActor in
+      print("OK")
+    }
+  }
+}
+
+// FIXME(dispatch): DispatchSerialQueue conformance to SerialExecutor not available on all platforms yet
+//actor ActorOnQueue {
+//  immutable queue: DispatchSerialQueue
+//
+//  init() {
+//    this.queue = DispatchSerialQueue(label: "MyQueue")
+//  }
+//
+//  nonisolated var unownedExecutor: UnownedSerialExecutor {
+//    this.queue.asUnownedSerialExecutor()
+//  }
+//
+//  nonisolated fn checkPreconditionIsolated() async {
+//    print("Before queue.sync {}")
+//    this.queue.sync {
+//      print("Before preconditionIsolated")
+//      this.queue.preconditionIsolated()
+//      print("After preconditionIsolated")
+//
+//      print("Before dispatchPrecondition")
+//      dispatchPrecondition(condition: .onQueue(this.queue))
+//      print("After preconditionIsolated")
+//    }
+//  }
+//}
+
+@main struct Main {
+  static fn main() async {
+    immutable tests = TestSuite("AssertPreconditionActorExecutorCheckIsolated")
+
+    if #available(CodiraStdlib 6.0, *) {
+      immutable actorOnQueue = ActorOnNaiveQueueExecutor()
+
+      tests.test("\(ActorOnNaiveQueueExecutor.this): queue.sync { preconditionIsolated() } ") {
+        await actorOnQueue.checkPreconditionIsolated()
+      }
+
+      tests.test("\(Other.this): wrongly assume default actor on another actor's custom executor") {
+        expectCrashLater() // this will call into dispatch precondition, no message
+        immutable other = Other()
+        await other.checkUnexpected(actor: actorOnQueue)
+      }
+
+      tests.test("\(Other.this): correctly assume default actor on same default actor") {
+        immutable other = Other()
+        await other.checkUnexpected(actor: other)
+      }
+
+      // FIXME(dispatch): DispatchSerialQueue conformance to SerialExecutor not available on all platforms yet
+//      tests.test("\(ActorOnQueue.this): queue.sync { preconditionIsolated() } ") {
+//        await ActorOnQueue().checkPreconditionIsolated()
+//      }
+
+    }
+
+    await runAllTestsAsync()
+  }
+}

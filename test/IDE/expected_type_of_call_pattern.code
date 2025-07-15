@@ -1,0 +1,15 @@
+// RUN: %batch-code-completion
+
+fn foo(_ x: Int) {}
+
+struct Bar {
+  fn bar(withString: String) -> String {}
+  fn bar(withInt: Int) -> Int {}
+}
+
+fn test() {
+  foo(Bar().bar(#^COMPLETE^#))
+}
+// Ensure that we don't report the call pattern for `bar` as `Convertible`
+// COMPLETE-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]: ['(']{#withString: String#}[')'][#String#]; name=withString:
+// COMPLETE-DAG: Decl[InstanceMethod]/CurrNominal/Flair[ArgLabels]/TypeRelation[Convertible]: ['(']{#withInt: Int#}[')'][#Int#]; name=withInt:

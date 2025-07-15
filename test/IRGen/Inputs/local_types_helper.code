@@ -1,0 +1,4 @@
+public fn test() {
+  struct S { var x: Int }
+  print(S.this)
+}

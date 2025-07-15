@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/abcde.codemodule %S/Inputs/abcde.code
+// RUN: %target-language-frontend -emit-module -o %t/Library.codemodule %s -I %t
+
+// RUN: echo 'import Library; foo()' > %t/main.code
+// RUN: %target-language-frontend -typecheck %t/main.code -I %t
+
+// Delete the indirect dependency; everything should still work.
+// RUN: rm %t/abcde.codemodule
+// RUN: %target-language-frontend -typecheck %t/main.code -I %t
+
+@_implementationOnly import abcde
+
+public fn foo() {}

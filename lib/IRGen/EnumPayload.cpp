@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "BitPatternReader.h"
@@ -28,27 +29,27 @@ using namespace irgen;
 
 // FIXME: Everything here brazenly assumes little-endian-ness.
 
-static llvm::Value *forcePayloadValue(EnumPayload::LazyValue &value) {
-  if (auto v = value.dyn_cast<llvm::Value *>())
+static toolchain::Value *forcePayloadValue(EnumPayload::LazyValue &value) {
+  if (auto v = value.dyn_cast<toolchain::Value *>())
     return v;
   
-  auto null = llvm::Constant::getNullValue(value.dyn_cast<llvm::Type*>());
+  auto null = toolchain::Constant::getNullValue(value.dyn_cast<toolchain::Type*>());
   value = null;
   return null;
 }
 
-static llvm::Type *getPayloadType(EnumPayload::LazyValue value) {
-  if (auto t = value.dyn_cast<llvm::Type *>())
+static toolchain::Type *getPayloadType(EnumPayload::LazyValue value) {
+  if (auto t = value.dyn_cast<toolchain::Type *>())
     return t;
   
-  return value.dyn_cast<llvm::Value *>()->getType();
+  return value.dyn_cast<toolchain::Value *>()->getType();
 }
 
 // Clear bits starting from the most significant until the number
 // of set bits in the value is less than or equal to numSetBits.
 //
 // For example: getLowestNSetBits(0x11111100, 2) = 0x00001100
-static llvm::APInt getLowestNSetBits(llvm::APInt value,
+static toolchain::APInt getLowestNSetBits(toolchain::APInt value,
                                      unsigned numSetBits) {
   // TODO: optimize
   for (unsigned i = 0; i < value.getBitWidth(); ++i) {
@@ -65,7 +66,7 @@ EnumPayload EnumPayload::zero(IRGenModule &IGM, EnumPayloadSchema schema) {
   // We don't need to create any values yet; they can be filled in when
   // real values are inserted.
   EnumPayload result;
-  schema.forEachType(IGM, [&](llvm::Type *type) {
+  schema.forEachType(IGM, [&](toolchain::Type *type) {
     result.PayloadValues.push_back(type);
   });
   return result;
@@ -77,20 +78,20 @@ EnumPayload EnumPayload::fromBitPattern(IRGenModule &IGM,
   auto maskReader = BitPatternReader(bitPattern, IGM.Triple.isLittleEndian());
 
   EnumPayload result;
-  schema.forEachType(IGM, [&](llvm::Type *type) {
+  schema.forEachType(IGM, [&](toolchain::Type *type) {
     unsigned bitSize = IGM.DataLayout.getTypeSizeInBits(type);
 
-    llvm::IntegerType *intTy
-      = llvm::IntegerType::get(IGM.getLLVMContext(), bitSize);
+    toolchain::IntegerType *intTy
+      = toolchain::IntegerType::get(IGM.getLLVMContext(), bitSize);
 
     // Take some bits off of the bottom of the pattern.
     auto bits = maskReader.read(bitSize);
-    auto val = llvm::ConstantInt::get(intTy, bits);
+    auto val = toolchain::ConstantInt::get(intTy, bits);
     if (val->getType() != type) {
       if (type->isPointerTy())
-        val = llvm::ConstantExpr::getIntToPtr(val, type);
+        val = toolchain::ConstantExpr::getIntToPtr(val, type);
       else
-        val = llvm::ConstantExpr::getBitCast(val, type);
+        val = toolchain::ConstantExpr::getBitCast(val, type);
     }
 
     result.PayloadValues.push_back(val);
@@ -102,8 +103,8 @@ EnumPayload EnumPayload::fromBitPattern(IRGenModule &IGM,
 /// Create a mask for an element with the given type at the provided
 /// offset into the payload. The offset and size are in bits but
 /// must be a multiple of 8 (i.e. byte aligned).
-static APInt createElementMask(const llvm::DataLayout &DL,
-                               llvm::Type *type,
+static APInt createElementMask(const toolchain::DataLayout &DL,
+                               toolchain::Type *type,
                                unsigned payloadOffset,
                                unsigned payloadSizeInBits) {
   // Create a mask for the bytes that make up the stored element
@@ -125,7 +126,7 @@ static APInt createElementMask(const llvm::DataLayout &DL,
 }
 
 void EnumPayload::insertValue(IRGenModule &IGM,
-                              IRBuilder &builder, llvm::Value *value,
+                              IRBuilder &builder, toolchain::Value *value,
                               unsigned payloadOffset) {
   auto &DL = IGM.DataLayout;
 
@@ -138,7 +139,7 @@ void EnumPayload::insertValue(IRGenModule &IGM,
   emitScatterBits(IGM, builder, mask, value);
 }
 
-llvm::Value *EnumPayload::extractValue(IRGenFunction &IGF, llvm::Type *type,
+toolchain::Value *EnumPayload::extractValue(IRGenFunction &IGF, toolchain::Type *type,
                                        unsigned payloadOffset) const {
   auto &DL = IGF.IGM.DataLayout;
 
@@ -165,7 +166,7 @@ EnumPayload EnumPayload::fromExplosion(IRGenModule &IGM,
                                        Explosion &in, EnumPayloadSchema schema){
   EnumPayload result;
   
-  schema.forEachType(IGM, [&](llvm::Type *type) {
+  schema.forEachType(IGM, [&](toolchain::Type *type) {
     auto next = in.claimNext();
     if (next->getType() == type) {
       result.PayloadValues.push_back(next);
@@ -173,13 +174,13 @@ EnumPayload EnumPayload::fromExplosion(IRGenModule &IGM,
       // The original value had an unaligned integer size and was replaced by
       // byte values in `replaceUnalignedIntegerValues`.
       // This is done for enums in statically initialized global variables.
-      unsigned bitSize = cast<llvm::IntegerType>(type)->getBitWidth();
+      unsigned bitSize = cast<toolchain::IntegerType>(type)->getBitWidth();
       assert(bitSize % 8 == 0);
-      assert(cast<llvm::ConstantInt>(next)->getBitWidth() == 8);
+      assert(cast<toolchain::ConstantInt>(next)->getBitWidth() == 8);
       result.PayloadValues.push_back(next);
       for (unsigned byte = 1; byte < bitSize / 8; ++byte) {
         auto nextByte = in.claimNext();
-        assert(cast<llvm::ConstantInt>(nextByte)->getBitWidth() == 8);
+        assert(cast<toolchain::ConstantInt>(nextByte)->getBitWidth() == 8);
         result.PayloadValues.push_back(nextByte);
       }
     }
@@ -212,7 +213,7 @@ EnumPayload EnumPayload::unpackFromEnumPayload(IRGenFunction &IGF,
                                         EnumPayloadSchema schema) {
   EnumPayload result;
   auto &DL = IGF.IGM.DataLayout;
-  schema.forEachType(IGF.IGM, [&](llvm::Type *type) {
+  schema.forEachType(IGF.IGM, [&](toolchain::Type *type) {
     auto v = outerPayload.extractValue(IGF, type, bitOffset);
     result.PayloadValues.push_back(v);
     bitOffset += DL.getTypeSizeInBits(type);
@@ -220,7 +221,7 @@ EnumPayload EnumPayload::unpackFromEnumPayload(IRGenFunction &IGF,
   return result;
 }
 
-static llvm::Type *getPayloadStorageType(IRGenModule &IGM,
+static toolchain::Type *getPayloadStorageType(IRGenModule &IGM,
                                          const EnumPayload &payload) {
   if (payload.StorageType)
     return payload.StorageType;
@@ -230,12 +231,12 @@ static llvm::Type *getPayloadStorageType(IRGenModule &IGM,
     return payload.StorageType;
   }
   
-  SmallVector<llvm::Type *, 2> elementTypes;
+  SmallVector<toolchain::Type *, 2> elementTypes;
   for (auto value : payload.PayloadValues) {
     elementTypes.push_back(getPayloadType(value));
   }
   
-  payload.StorageType = llvm::StructType::get(IGM.getLLVMContext(),
+  payload.StorageType = toolchain::StructType::get(IGM.getLLVMContext(),
                                               elementTypes);
   return payload.StorageType;
 }
@@ -290,7 +291,7 @@ void EnumPayload::store(IRGenFunction &IGF, Address address) const {
 
 void EnumPayload::emitSwitch(IRGenFunction &IGF,
                              const APInt &mask,
-                             ArrayRef<std::pair<APInt, llvm::BasicBlock *>> cases,
+                             ArrayRef<std::pair<APInt, toolchain::BasicBlock *>> cases,
                              SwitchDefaultDest dflt) const {
   // If there's only one case to test, do a simple compare and branch.
   if (cases.size() == 1) {
@@ -309,7 +310,7 @@ void EnumPayload::emitSwitch(IRGenFunction &IGF,
     for (int index = 0, size = cases.size(); index < size; ++index) {
       auto &c = cases[index];
       auto *cmp = emitCompare(IGF, mask, c.first);
-      llvm::BasicBlock *elseBlock;
+      toolchain::BasicBlock *elseBlock;
       if (index < size - 1) {
         elseBlock = IGF.createBasicBlock("");
       } else {
@@ -330,20 +331,20 @@ void EnumPayload::emitSwitch(IRGenFunction &IGF,
                                     0, numBits);
   auto swi = IGF.Builder.CreateSwitch(target, dflt.getPointer(), cases.size());
   for (auto &c : cases) {
-    auto value = llvm::ConstantInt::get(C, gatherBits(mask, c.first));
+    auto value = toolchain::ConstantInt::get(C, gatherBits(mask, c.first));
     swi->addCase(value, c.second);
   }
   assert(IGF.Builder.hasPostTerminatorIP());
 }
 
-llvm::Value *
+toolchain::Value *
 EnumPayload::emitCompare(IRGenFunction &IGF,
                          const APInt &mask,
                          const APInt &value) const {
   // Succeed trivially for an empty payload, or if the payload is masked
   // out completely.
   if (PayloadValues.empty() || mask == 0)
-    return llvm::ConstantInt::get(IGF.IGM.Int1Ty, 1U);
+    return toolchain::ConstantInt::get(IGF.IGM.Int1Ty, 1U);
 
   assert((~mask & value) == 0
          && "value has masked out bits set?!");
@@ -352,7 +353,7 @@ EnumPayload::emitCompare(IRGenFunction &IGF,
   auto valueReader = BitPatternReader(value, DL.isLittleEndian());
   auto maskReader = BitPatternReader(mask, DL.isLittleEndian());
 
-  llvm::Value *condition = nullptr;
+  toolchain::Value *condition = nullptr;
   for (auto &pv : PayloadValues) {
     auto v = forcePayloadValue(pv);
     unsigned size = DL.getTypeSizeInBits(v->getType());
@@ -367,20 +368,20 @@ EnumPayload::emitCompare(IRGenFunction &IGF,
     
     // Apply the mask and test.
     bool isMasked = !maskPiece.isAllOnes();
-    auto intTy = llvm::IntegerType::get(IGF.IGM.getLLVMContext(), size);
+    auto intTy = toolchain::IntegerType::get(IGF.IGM.getLLVMContext(), size);
     // Need to bitcast to an integer in order to use 'icmp eq' if the piece
     // isn't already an int or pointer, or in order to apply a mask.
     if (isMasked
-        || (!isa<llvm::IntegerType>(v->getType())
-            && !isa<llvm::PointerType>(v->getType())))
+        || (!isa<toolchain::IntegerType>(v->getType())
+            && !isa<toolchain::PointerType>(v->getType())))
       v = IGF.Builder.CreateBitOrPointerCast(v, intTy);
     
     if (isMasked) {
-      auto maskConstant = llvm::ConstantInt::get(intTy, maskPiece);
+      auto maskConstant = toolchain::ConstantInt::get(intTy, maskPiece);
       v = IGF.Builder.CreateAnd(v, maskConstant);
     }
     
-    llvm::Value *valueConstant = llvm::ConstantInt::get(intTy, valuePiece);
+    toolchain::Value *valueConstant = toolchain::ConstantInt::get(intTy, valuePiece);
     valueConstant = IGF.Builder.CreateBitOrPointerCast(valueConstant,
                                                        v->getType());
     auto cmp = IGF.Builder.CreateICmpEQ(v, valueConstant);
@@ -417,7 +418,7 @@ EnumPayload::emitApplyAndMask(IRGenFunction &IGF, const APInt &mask) {
       continue;
 
     // If the payload value is vacant, the mask can't change it.
-    if (pv.is<llvm::Type *>())
+    if (pv.is<toolchain::Type *>())
       continue;
 
     // If this piece is zero, it wipes out the chunk entirely, and we can
@@ -428,9 +429,9 @@ EnumPayload::emitApplyAndMask(IRGenFunction &IGF, const APInt &mask) {
     }
     
     // Otherwise, apply the mask to the existing value.
-    auto v = pv.get<llvm::Value*>();
-    auto payloadIntTy = llvm::IntegerType::get(IGF.IGM.getLLVMContext(), size);
-    auto maskConstant = llvm::ConstantInt::get(payloadIntTy, maskPiece);
+    auto v = pv.get<toolchain::Value*>();
+    auto payloadIntTy = toolchain::IntegerType::get(IGF.IGM.getLLVMContext(), size);
+    auto maskConstant = toolchain::ConstantInt::get(payloadIntTy, maskPiece);
     v = IGF.Builder.CreateBitOrPointerCast(v, payloadIntTy);
     v = IGF.Builder.CreateAnd(v, maskConstant);
     v = IGF.Builder.CreateBitOrPointerCast(v, payloadTy);
@@ -459,18 +460,18 @@ EnumPayload::emitApplyOrMask(IRGenModule &IGM,
     if (maskPiece == 0)
       continue;
     
-    auto payloadIntTy = llvm::IntegerType::get(IGM.getLLVMContext(), size);
-    auto maskConstant = llvm::ConstantInt::get(payloadIntTy, maskPiece);
+    auto payloadIntTy = toolchain::IntegerType::get(IGM.getLLVMContext(), size);
+    auto maskConstant = toolchain::ConstantInt::get(payloadIntTy, maskPiece);
     
     // If the payload value is vacant, or the mask is all ones,
     // we can adopt the mask value directly.
-    if (pv.is<llvm::Type *>() || maskPiece.isAllOnes()) {
+    if (pv.is<toolchain::Type *>() || maskPiece.isAllOnes()) {
       pv = builder.CreateBitOrPointerCast(maskConstant, payloadTy);
       continue;
     }
     
     // Otherwise, apply the mask to the existing value.
-    auto v = pv.get<llvm::Value*>();
+    auto v = pv.get<toolchain::Value*>();
     v = builder.CreateBitOrPointerCast(v, payloadIntTy);
     v = builder.CreateOr(v, maskConstant);
     v = builder.CreateBitOrPointerCast(v, payloadTy);
@@ -489,19 +490,19 @@ EnumPayload::emitApplyOrMask(IRGenFunction &IGF,
     auto payloadTy = getPayloadType(PayloadValues[i]);
     unsigned size = DL.getTypeSizeInBits(payloadTy);
 
-    auto payloadIntTy = llvm::IntegerType::get(IGF.IGM.getLLVMContext(), size);
+    auto payloadIntTy = toolchain::IntegerType::get(IGF.IGM.getLLVMContext(), size);
 
-    if (mask.PayloadValues[i].is<llvm::Type *>()) {
+    if (mask.PayloadValues[i].is<toolchain::Type *>()) {
       // We're ORing with zero, do nothing
-    } else if (PayloadValues[i].is<llvm::Type *>()) {
+    } else if (PayloadValues[i].is<toolchain::Type *>()) {
       PayloadValues[i] = mask.PayloadValues[i];
     } else {
       auto v1 = IGF.Builder.CreateBitOrPointerCast(
-          PayloadValues[i].get<llvm::Value *>(),
+          PayloadValues[i].get<toolchain::Value *>(),
           payloadIntTy);
 
       auto v2 = IGF.Builder.CreateBitOrPointerCast(
-          mask.PayloadValues[i].get<llvm::Value *>(),
+          mask.PayloadValues[i].get<toolchain::Value *>(),
           payloadIntTy);
 
       PayloadValues[i] = IGF.Builder.CreateBitOrPointerCast(
@@ -514,7 +515,7 @@ EnumPayload::emitApplyOrMask(IRGenFunction &IGF,
 void EnumPayload::emitScatterBits(IRGenModule &IGM,
                                   IRBuilder &builder,
                                   const APInt &mask,
-                                  llvm::Value *value) {
+                                  toolchain::Value *value) {
   auto &DL = IGM.DataLayout;
 
   unsigned valueBits = DL.getTypeSizeInBits(value->getType());
@@ -543,7 +544,7 @@ void EnumPayload::emitScatterBits(IRGenModule &IGM,
     auto partValue = irgen::emitScatterBits(IGM, builder, partMask, value, offset);
 
     // If necessary OR with the existing value.
-    if (auto existingValue = pv.dyn_cast<llvm::Value*>()) {
+    if (auto existingValue = pv.dyn_cast<toolchain::Value*>()) {
       if (partType != partValue->getType()) {
         existingValue = builder.CreateBitOrPointerCast(existingValue,
                                                  partValue->getType());
@@ -567,7 +568,7 @@ void EnumPayload::emitScatterBits(IRGenModule &IGM,
   }
 }
 
-llvm::Value *
+toolchain::Value *
 EnumPayload::emitGatherSpareBits(IRGenFunction &IGF,
                                  const SpareBitVector &spareBits,
                                  unsigned firstBitOffset,
@@ -582,12 +583,12 @@ EnumPayload::emitGatherSpareBits(IRGenFunction &IGF,
                                          DL.isLittleEndian());
   auto usedBits = firstBitOffset;
 
-  llvm::Value *spareBitValue = nullptr;
+  toolchain::Value *spareBitValue = nullptr;
   for (auto &pv : PayloadValues) {
     // If this value is zero, it has nothing to add to the spare bits.
-    auto v = pv.dyn_cast<llvm::Value*>();
+    auto v = pv.dyn_cast<toolchain::Value*>();
     if (!v) {
-      spareBitReader.skip(DL.getTypeSizeInBits(pv.get<llvm::Type*>()));
+      spareBitReader.skip(DL.getTypeSizeInBits(pv.get<toolchain::Type*>()));
       continue;
     }
 
@@ -618,15 +619,15 @@ EnumPayload::emitGatherSpareBits(IRGenFunction &IGF,
     }
     spareBitValue = bits;
   }
-  auto destTy = llvm::IntegerType::get(C, resultBitWidth);
+  auto destTy = toolchain::IntegerType::get(C, resultBitWidth);
   if (spareBitValue) {
     assert(spareBitValue->getType() == destTy);
     return spareBitValue;
   }
-  return llvm::ConstantInt::get(destTy, 0);
+  return toolchain::ConstantInt::get(destTy, 0);
 }
 
-unsigned EnumPayload::getAllocSizeInBits(const llvm::DataLayout &DL) const {
+unsigned EnumPayload::getAllocSizeInBits(const toolchain::DataLayout &DL) const {
   unsigned size = 0u;
   for (const auto &pv : PayloadValues) {
     size += DL.getTypeAllocSizeInBits(getPayloadType(pv));
@@ -635,19 +636,19 @@ unsigned EnumPayload::getAllocSizeInBits(const llvm::DataLayout &DL) const {
   return size;
 }
 
-void EnumPayload::print(llvm::raw_ostream &OS) {
+void EnumPayload::print(toolchain::raw_ostream &OS) {
   if (StorageType) {
     OS << "storage-type: ";
     StorageType->print(OS);
     OS << '\n';
   }
   for (LazyValue pv : PayloadValues) {
-    if (auto *v = pv.dyn_cast<llvm::Value*>()) {
+    if (auto *v = pv.dyn_cast<toolchain::Value*>()) {
       OS << "value: ";
       v->print(OS);
       OS << '\n';
     } else {
-      auto *t = pv.get<llvm::Type*>();
+      auto *t = pv.get<toolchain::Type*>();
       OS << "type: ";
       t->print(OS);
       OS << '\n';
@@ -656,6 +657,6 @@ void EnumPayload::print(llvm::raw_ostream &OS) {
 }
 
 void EnumPayload::dump() {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 

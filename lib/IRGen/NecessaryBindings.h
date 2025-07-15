@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a utility class for saving and restoring the
@@ -21,11 +22,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_NECESSARYBINDINGS_H
-#define SWIFT_IRGEN_NECESSARYBINDINGS_H
+#ifndef LANGUAGE_IRGEN_NECESSARYBINDINGS_H
+#define LANGUAGE_IRGEN_NECESSARYBINDINGS_H
 
 #include "GenericRequirement.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 #include "language/AST/Types.h"
 
 namespace language {
@@ -45,7 +46,7 @@ namespace language {
 /// NecessaryBindings - The set of metadata that must be saved in
 /// order to perform some set of operations on a type.
 class NecessaryBindings {
-  llvm::SetVector<GenericRequirement> RequirementsSet;
+  toolchain::SetVector<GenericRequirement> RequirementsSet;
   SubstitutionMap SubMap;
   bool NoEscape;
 
@@ -104,7 +105,7 @@ public:
   /// Restore the necessary bindings from the given buffer.
   void restore(IRGenFunction &IGF, Address buffer, MetadataState state) const;
 
-  const llvm::ArrayRef<GenericRequirement> getRequirements() const {
+  const toolchain::ArrayRef<GenericRequirement> getRequirements() const {
     return RequirementsSet.getArrayRef();
   }
 

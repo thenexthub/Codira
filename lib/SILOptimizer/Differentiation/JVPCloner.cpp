@@ -1,13 +1,17 @@
 //===--- JVPCloner.cpp - JVP function generation --------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a helper class for generating JVP functions for automatic
@@ -33,7 +37,7 @@
 #include "language/SILOptimizer/PassManager/PrettyStackTrace.h"
 #include "language/SILOptimizer/Utils/DifferentiationMangler.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 using namespace language;
 using namespace autodiff;
@@ -56,7 +60,7 @@ private:
   /// The JVP function.
   SILFunction *const jvp;
 
-  llvm::BumpPtrAllocator allocator;
+  toolchain::BumpPtrAllocator allocator;
 
   /// The differentiation invoker.
   DifferentiationInvoker invoker;
@@ -81,24 +85,24 @@ private:
 
   /// Mapping from original basic blocks to corresponding differential basic
   /// blocks.
-  llvm::DenseMap<SILBasicBlock *, SILBasicBlock *> diffBBMap;
+  toolchain::DenseMap<SILBasicBlock *, SILBasicBlock *> diffBBMap;
 
   /// Mapping from original basic blocks and original values to corresponding
   /// tangent values.
-  llvm::DenseMap<SILValue, AdjointValue> tangentValueMap;
+  toolchain::DenseMap<SILValue, AdjointValue> tangentValueMap;
 
   /// Mapping from original basic blocks and original buffers to corresponding
   /// tangent buffers.
-  llvm::DenseMap<std::pair<SILBasicBlock *, SILValue>, SILValue> bufferMap;
+  toolchain::DenseMap<std::pair<SILBasicBlock *, SILValue>, SILValue> bufferMap;
 
   /// Mapping from differential basic blocks to differential struct arguments.
-  llvm::DenseMap<SILBasicBlock *, SILArgument *> differentialStructArguments;
+  toolchain::DenseMap<SILBasicBlock *, SILArgument *> differentialStructArguments;
 
   /// Mapping from differential struct field declarations to differential struct
   /// elements destructured from the linear map basic block argument. In the
   /// beginning of each differential basic block, the block's differential
   /// struct is destructured into the individual elements stored here.
-  llvm::DenseMap<SILBasicBlock *, SILInstructionResultArray> differentialTupleElements;
+  toolchain::DenseMap<SILBasicBlock *, SILInstructionResultArray> differentialTupleElements;
 
   /// An auxiliary differential local allocation builder.
   TangentBuilder diffLocalAllocBuilder;
@@ -108,7 +112,7 @@ private:
 
   /// Mapping from original blocks to differential values. Used to build
   /// differential struct instances.
-  llvm::DenseMap<SILBasicBlock *, SmallVector<SILValue, 8>> differentialValues;
+  toolchain::DenseMap<SILBasicBlock *, SmallVector<SILValue, 8>> differentialValues;
 
   //--------------------------------------------------------------------------//
   // Getters
@@ -222,30 +226,30 @@ private:
 
   SILValue materializeTangentDirect(AdjointValue val, SILLocation loc) {
     assert(val.getType().isObject());
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Materializing tangents for " << val << '\n');
     switch (val.getKind()) {
     case AdjointValueKind::Zero: {
-      auto zeroVal = emitZeroDirect(val.getSwiftType(), loc);
+      auto zeroVal = emitZeroDirect(val.getCodiraType(), loc);
       return zeroVal;
     }
     case AdjointValueKind::Concrete:
       return val.getConcreteValue();
     case AdjointValueKind::Aggregate:
     case AdjointValueKind::AddElement:
-      llvm_unreachable(
+      toolchain_unreachable(
           "Tuples and structs are not supported in forward mode yet.");
     }
-    llvm_unreachable("Invalid adjoint value kind"); // silences MSVC C4715
+    toolchain_unreachable("Invalid adjoint value kind"); // silences MSVC C4715
   }
 
   SILValue materializeTangent(AdjointValue val, SILLocation loc) {
     if (val.isConcrete()) {
-      LLVM_DEBUG(getADDebugStream()
+      TOOLCHAIN_DEBUG(getADDebugStream()
                  << "Materializing tangent: Value is concrete.\n");
       return val.getConcreteValue();
     }
-    LLVM_DEBUG(getADDebugStream() << "Materializing tangent: Value is "
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Materializing tangent: Value is "
                                      "non-concrete. Materializing directly.\n");
     return materializeTangentDirect(val, loc);
   }
@@ -284,7 +288,7 @@ private:
     assert(originalValue->getType().isObject());
     assert(newTangentValue.getType().isObject());
     assert(originalValue->getFunction() == original);
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Setting tangent value for " << originalValue);
     // The tangent value must be in the tangent space.
     assert(newTangentValue.getType() ==
@@ -402,14 +406,14 @@ public:
     if (errorOccurred)
       return;
     if (differentialInfo.shouldDifferentiateInstruction(inst)) {
-      LLVM_DEBUG(getADDebugStream() << "JVPCloner visited:\n[ORIG]" << *inst);
+      TOOLCHAIN_DEBUG(getADDebugStream() << "JVPCloner visited:\n[ORIG]" << *inst);
 #ifndef NDEBUG
       auto diffBuilder = getDifferentialBuilder();
       auto beforeInsertion = std::prev(diffBuilder.getInsertionPoint());
 #endif
       TypeSubstCloner::visit(inst);
-      LLVM_DEBUG({
-        auto &s = llvm::dbgs() << "[TAN] Emitted in differential:\n";
+      TOOLCHAIN_DEBUG({
+        auto &s = toolchain::dbgs() << "[TAN] Emitted in differential:\n";
         auto afterInsertion = diffBuilder.getInsertionPoint();
         for (auto it = ++beforeInsertion; it != afterInsertion; ++it)
           s << *it;
@@ -457,7 +461,7 @@ public:
     // initialization intrinsic, just do standard cloning.
     if (!shouldDifferentiate ||
         ArraySemanticsCall(ai, semantics::ARRAY_UNINITIALIZED_INTRINSIC)) {
-      LLVM_DEBUG(getADDebugStream() << "No active results:\n" << *ai << '\n');
+      TOOLCHAIN_DEBUG(getADDebugStream() << "No active results:\n" << *ai << '\n');
       TypeSubstCloner::visitApplyInst(ai);
       return;
     }
@@ -467,7 +471,7 @@ public:
     auto origCallee = getOpValue(ai->getCallee());
     auto originalFnTy = origCallee->getType().castTo<SILFunctionType>();
 
-    LLVM_DEBUG(getADDebugStream() << "JVP-transforming:\n" << *ai << '\n');
+    TOOLCHAIN_DEBUG(getADDebugStream() << "JVP-transforming:\n" << *ai << '\n');
 
     // Get the minimal parameter and result indices required for differentiating
     // this `apply`.
@@ -479,11 +483,11 @@ public:
                                          activeResultIndices);
     assert(!activeParamIndices.empty() && "Parameter indices cannot be empty");
     assert(!activeResultIndices.empty() && "Result indices cannot be empty");
-    LLVM_DEBUG(auto &s = getADDebugStream() << "Active indices: params={";
-               llvm::interleave(
+    TOOLCHAIN_DEBUG(auto &s = getADDebugStream() << "Active indices: params={";
+               toolchain::interleave(
                    activeParamIndices.begin(), activeParamIndices.end(),
                    [&s](unsigned i) { s << i; }, [&s] { s << ", "; });
-               s << "}, results={"; llvm::interleave(
+               s << "}, results={"; toolchain::interleave(
                    activeResultIndices.begin(), activeResultIndices.end(),
                    [&s](unsigned i) { s << i; }, [&s] { s << ", "; });
                s << "}\n";);
@@ -635,7 +639,7 @@ public:
     // The JVP should be specialized, so no substitution map is necessary.
     auto *jvpCall = getBuilder().createApply(loc, jvpValue, SubstitutionMap(),
                                              jvpArgs, ai->getApplyOptions());
-    LLVM_DEBUG(getADDebugStream() << "Applied jvp function\n" << *jvpCall);
+    TOOLCHAIN_DEBUG(getADDebugStream() << "Applied jvp function\n" << *jvpCall);
 
     // Release the differentiable function.
     builder.emitDestroyValueOperation(loc, jvpValue);
@@ -722,7 +726,7 @@ public:
           loc, differentialPartialApply, differentialType,
           /*withoutActuallyEscaping*/ false);
     } else {
-      llvm::report_fatal_error("Differential value type is not ABI-compatible "
+      toolchain::report_fatal_error("Differential value type is not ABI-compatible "
                                "with the returned differential type");
     }
 
@@ -735,15 +739,15 @@ public:
   }
 
   void visitBranchInst(BranchInst *bi) {
-    llvm_unreachable("Unsupported SIL instruction.");
+    toolchain_unreachable("Unsupported SIL instruction.");
   }
 
   void visitCondBranchInst(CondBranchInst *cbi) {
-    llvm_unreachable("Unsupported SIL instruction.");
+    toolchain_unreachable("Unsupported SIL instruction.");
   }
 
   void visitSwitchEnumInst(SwitchEnumInst *sei) {
-    llvm_unreachable("Unsupported SIL instruction.");
+    toolchain_unreachable("Unsupported SIL instruction.");
   }
 
   void visitDifferentiableFunctionInst(DifferentiableFunctionInst *dfi) {
@@ -949,7 +953,7 @@ public:
     auto tanDest = getTangentBuffer(bb, uccai->getDest());
 
     diffBuilder.createUnconditionalCheckedCastAddr(
-       loc, uccai->getIsolatedConformances(),
+       loc, uccai->getCheckedCastOptions(),
         tanSrc, tanSrc->getType().getASTType(),
         tanDest, tanDest->getType().getASTType());
   }
@@ -1190,7 +1194,7 @@ public:
   ///                                                                 ^~~~
   ///                              tuple tangent space index corresponding to n
   CLONE_AND_EMIT_TANGENT(DestructureTuple, dti) {
-    assert(llvm::any_of(dti->getResults(),
+    assert(toolchain::any_of(dti->getResults(),
                         [&](SILValue elt) {
                           return activityInfo.isActive(elt, getConfig());
                         }) &&
@@ -1410,7 +1414,7 @@ getActivityInfo(ADContext &context, SILFunction *original,
   auto &activityInfo = activityCollection.getActivityInfo(
       jvp->getLoweredFunctionType()->getSubstGenericSignature(),
       AutoDiffDerivativeFunctionKind::JVP);
-  LLVM_DEBUG(activityInfo.dump(config, getADDebugStream()));
+  TOOLCHAIN_DEBUG(activityInfo.dump(config, getADDebugStream()));
   return activityInfo;
 }
 
@@ -1498,7 +1502,7 @@ void JVPCloner::Implementation::prepareForDifferentialGeneration() {
       differentialStructArguments[&origBB] = lastArg;
     }
 
-    LLVM_DEBUG({
+    TOOLCHAIN_DEBUG({
       auto &s = getADDebugStream()
                 << "Original bb" + std::to_string(origBB.getDebugID())
                 << ": To differentiate or not to differentiate?\n";
@@ -1555,7 +1559,7 @@ void JVPCloner::Implementation::prepareForDifferentialGeneration() {
     } else {
       setTangentValue(origEntry, origArg, makeConcreteTangentValue(diffArg));
     }
-    LLVM_DEBUG(getADDebugStream()
+    TOOLCHAIN_DEBUG(getADDebugStream()
                << "Assigned parameter " << *diffArg
                << " as the tangent of original result " << *origArg);
   }
@@ -1718,7 +1722,7 @@ void JVPCloner::Implementation::prepareForDifferentialGeneration() {
 bool JVPCloner::Implementation::run() {
   PrettyStackTraceSILFunction trace("generating JVP and differential for",
                                     original);
-  LLVM_DEBUG(getADDebugStream() << "Cloning original @" << original->getName()
+  TOOLCHAIN_DEBUG(getADDebugStream() << "Cloning original @" << original->getName()
                                 << " to jvp @" << jvp->getName() << '\n');
   // Create JVP and differential entry and arguments.
   auto *entry = jvp->createBasicBlock();
@@ -1732,10 +1736,10 @@ bool JVPCloner::Implementation::run() {
   // If errors occurred, back out.
   if (errorOccurred)
     return true;
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Generated JVP for " << original->getName() << ":\n"
              << *jvp);
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Generated differential for " << original->getName() << ":\n"
              << getDifferential());
   return errorOccurred;

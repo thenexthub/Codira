@@ -1,0 +1,13 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+
+struct Horse {
+    init(saddle: @escaping (_ height: Float) -> Float) {}
+}
+
+fn myHorse() -> Horse {
+    return Horse(
+        saddle: { (height) -> Float in
+            immutable stirrups: #^A^#Float = 30
+            return height - stirrups
+    })
+}

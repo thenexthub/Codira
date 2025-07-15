@@ -1,4 +1,4 @@
-add_library(swiftStdlibStubs OBJECT
+add_library(languageStdlibStubs OBJECT
   Assert.cpp
   GlobalObjects.cpp
   LibcShims.cpp
@@ -12,55 +12,55 @@ add_library(swiftStdlibStubs OBJECT
   Unicode/UnicodeScalarProps.cpp
   Unicode/UnicodeWord.cpp)
 
-if(SwiftCore_ENABLE_OBJC_INTEROP)
-  gyb_expand(SwiftNativeNSXXXBase.mm.gyb "SwiftNativeNSXXXBase.mm")
-  target_sources(swiftStdlibStubs PRIVATE
+if(CodiraCore_ENABLE_OBJC_INTEROP)
+  gyb_expand(CodiraNativeNSXXXBase.mm.gyb "CodiraNativeNSXXXBase.mm")
+  target_sources(languageStdlibStubs PRIVATE
     # ObjC files
     Availability.mm
     FoundationHelpers.mm
     OptionalBridgingHelper.mm
     Reflection.mm
-    SwiftNativeNSObject.mm
-    SwiftNativeNSXXXBaseARC.m
-    "${CMAKE_CURRENT_BINARY_DIR}/SwiftNativeNSXXXBase.mm")
+    CodiraNativeNSObject.mm
+    CodiraNativeNSXXXBaseARC.m
+    "${CMAKE_CURRENT_BINARY_DIR}/CodiraNativeNSXXXBase.mm")
 endif()
 
 
-target_compile_definitions(swiftStdlibStubs PRIVATE
-  $<$<BOOL:${BUILD_SHARED_LIBS}>:-DswiftCore_EXPORTS>
-  $<$<BOOL:${SwiftCore_ENABLE_UNICODE_DATA}>:-DSWIFT_STDLIB_ENABLE_UNICODE_DATA>
-  $<$<BOOL:${SwiftCore_HAS_LOCALE}>:-DSWIFT_STDLIB_HAS_LOCALE>)
+target_compile_definitions(languageStdlibStubs PRIVATE
+  $<$<BOOL:${BUILD_SHARED_LIBS}>:-DlanguageCore_EXPORTS>
+  $<$<BOOL:${CodiraCore_ENABLE_UNICODE_DATA}>:-DLANGUAGE_STDLIB_ENABLE_UNICODE_DATA>
+  $<$<BOOL:${CodiraCore_HAS_LOCALE}>:-DLANGUAGE_STDLIB_HAS_LOCALE>)
 
-target_link_libraries(swiftStdlibStubs PRIVATE
-  swiftShims)
+target_link_libraries(languageStdlibStubs PRIVATE
+  languageShims)
 
-target_include_directories(swiftStdlibStubs PRIVATE
+target_include_directories(languageStdlibStubs PRIVATE
   "${PROJECT_BINARY_DIR}/include"
   # FIXME: pulls in headers from the main compiler build
   # Assert.cpp:
-  #   swift/Runtime/Config.h
-  #   swift/Runtime/Debug.h
-  #   swift/Runtime/Portability.h
+  #   language/Runtime/Config.h
+  #   language/Runtime/Debug.h
+  #   language/Runtime/Portability.h
   # Stubs.cpp:
-  #   swift/Runtime/Debug.h
+  #   language/Runtime/Debug.h
   # GlobalObjects.cpp:
-  #   swift/Basic/type_traits.h
+  #   language/Basic/type_traits.h
   # Random.cpp:
-  #   swift/Runtime/Config.h
+  #   language/Runtime/Config.h
   # UnicodeScalarProps.cpp:
-  #   swift/Runtime/Debug.h
+  #   language/Runtime/Debug.h
   # ...
   #
-  "${SwiftCore_SWIFTC_SOURCE_DIR}/include")
+  "${CodiraCore_LANGUAGEC_SOURCE_DIR}/include")
 
 if(APPLE)
-  set_property(SOURCE SwiftNativeNSXXXBaseARC.m
+  set_property(SOURCE CodiraNativeNSXXXBaseARC.m
                APPEND_STRING
                PROPERTY COMPILE_FLAGS "-fobjc-arc")
 endif()
 
 if(NOT BUILD_SHARED_LIBS)
-  install(TARGETS swiftStdlibStubs
-    EXPORT SwiftCoreTargets
-    COMPONENT SwiftCore_runtime)
+  install(TARGETS languageStdlibStubs
+    EXPORT CodiraCoreTargets
+    COMPONENT CodiraCore_runtime)
 endif()

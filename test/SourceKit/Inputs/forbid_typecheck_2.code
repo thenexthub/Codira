@@ -1,0 +1,11 @@
+immutable globalSec : Int = NOTYPECHECK_initglobal
+
+fn secFn() {
+  NOTYPECHECK_secFn
+}
+
+class NOTYPECHECK_cls {}
+
+class ClsSec {
+  immutable member : Int = NOTYPECHECK_member
+}

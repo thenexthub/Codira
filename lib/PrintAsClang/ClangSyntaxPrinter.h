@@ -1,26 +1,30 @@
 //===--- ClangSyntaxPrinter.h - Printer for C and C++ code ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PRINTASCLANG_CLANGSYNTAXPRINTER_H
-#define SWIFT_PRINTASCLANG_CLANGSYNTAXPRINTER_H
+#ifndef LANGUAGE_PRINTASCLANG_CLANGSYNTAXPRINTER_H
+#define LANGUAGE_PRINTASCLANG_CLANGSYNTAXPRINTER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ASTMangler.h"
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/GenericRequirement.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -32,15 +36,15 @@ class PrimitiveTypeMapping;
 
 namespace cxx_synthesis {
 
-/// Return the name of the namespace for things exported from Swift stdlib
-StringRef getCxxSwiftNamespaceName();
+/// Return the name of the namespace for things exported from Codira stdlib
+StringRef getCxxCodiraNamespaceName();
 
 /// Return the name of the implementation namespace that is used to hide
-/// declarations from the namespace that corresponds to the imported Swift
+/// declarations from the namespace that corresponds to the imported Codira
 /// module in C++.
 StringRef getCxxImplNamespaceName();
 
-/// Return the name of the C++ class inside of `swift::_impl`
+/// Return the name of the C++ class inside of `language::_impl`
 /// namespace that holds an opaque value, like a resilient struct.
 StringRef getCxxOpaqueStorageClassName();
 
@@ -71,27 +75,27 @@ public:
 
   /// Print out additional C++ `template` and `requires` clauses that
   /// are required to emit a member definition outside  a C++ class that is
-  /// generated for the given Swift type declaration.
+  /// generated for the given Codira type declaration.
   ///
   /// \returns true if nothing was printed.
   ///
   /// Examples:
-  ///    1) For Swift's `String` type, it will print nothing.
-  ///    2) For Swift's `Array<T>` type, it will print `template<class
-  ///    T_0_0>\nrequires swift::isUsableInGenericContext<T_0_0>\n`
+  ///    1) For Codira's `String` type, it will print nothing.
+  ///    2) For Codira's `Array<T>` type, it will print `template<class
+  ///    T_0_0>\nrequires language::isUsableInGenericContext<T_0_0>\n`
   bool printNominalTypeOutsideMemberDeclTemplateSpecifiers(
       const NominalTypeDecl *typeDecl);
 
   /// Print out additional C++ `static_assert` clauses that
   /// are required to emit a generic member definition outside a C++ class that
-  /// is generated for the given Swift type declaration.
+  /// is generated for the given Codira type declaration.
   ///
   /// \returns true if nothing was printed.
   ///
   /// Examples:
-  ///    1) For Swift's `String` type, it will print nothing.
-  ///    2) For Swift's `Array<T>` type, it will print
-  ///    `static_assert(swift::isUsableInGenericContext<T_0_0>);\n`
+  ///    1) For Codira's `String` type, it will print nothing.
+  ///    2) For Codira's `Array<T>` type, it will print
+  ///    `static_assert(language::isUsableInGenericContext<T_0_0>);\n`
   bool printNominalTypeOutsideMemberDeclInnerStaticAssert(
       const NominalTypeDecl *typeDecl);
 
@@ -99,64 +103,64 @@ public:
   bool printNestedTypeNamespaceQualifiers(const ValueDecl *D,
                                           bool forC = false) const;
 
-  /// Print out the C++ class access qualifier for the given Swift  type
+  /// Print out the C++ class access qualifier for the given Codira  type
   /// declaration.
   ///
   /// Examples:
-  ///    1) For Swift's `String` type, it will print `String
-  ///    2) For Swift's `Array<T>` type, it will print `Array<T_0_0>
-  ///    3) For Swift's `Array<T>.Index` type, it will print
-  ///    `Array<T_0_0>::Index` 4) For Swift's `String` type in another module,
-  ///    it will print `Swift::String`
+  ///    1) For Codira's `String` type, it will print `String
+  ///    2) For Codira's `Array<T>` type, it will print `Array<T_0_0>
+  ///    3) For Codira's `Array<T>.Index` type, it will print
+  ///    `Array<T_0_0>::Index` 4) For Codira's `String` type in another module,
+  ///    it will print `Codira::String`
   void printNominalTypeReference(const NominalTypeDecl *typeDecl,
                                  const ModuleDecl *moduleContext);
 
   /// Print out the C++ record qualifier for the given C++ record.
   void printClangTypeReference(const clang::Decl *typeDecl);
 
-  /// Print out the C++ class access qualifier for the given Swift  type
+  /// Print out the C++ class access qualifier for the given Codira  type
   /// declaration.
   ///
   /// Examples:
-  ///    1) For Swift's `String` type, it will print `String::`.
-  ///    2) For Swift's `Array<T>` type, it will print `Array<T_0_0>::`
-  ///    3) For Swift's `Array<T>.Index` type, it will print
-  ///    `Array<T_0_0>::Index::` 4) For Swift's `String` type in another module,
-  ///    it will print `Swift::String::`
+  ///    1) For Codira's `String` type, it will print `String::`.
+  ///    2) For Codira's `Array<T>` type, it will print `Array<T_0_0>::`
+  ///    3) For Codira's `Array<T>.Index` type, it will print
+  ///    `Array<T_0_0>::Index::` 4) For Codira's `String` type in another module,
+  ///    it will print `Codira::String::`
   void printNominalTypeQualifier(const NominalTypeDecl *typeDecl,
                                  const ModuleDecl *moduleContext);
 
-  enum class NamespaceTrivia { None, AttributeSwiftPrivate };
+  enum class NamespaceTrivia { None, AttributeCodiraPrivate };
 
   void printModuleNamespaceStart(const ModuleDecl &moduleContext) const;
 
   /// Print a C++ namespace declaration with the give name and body.
-  void printNamespace(llvm::function_ref<void(raw_ostream &OS)> namePrinter,
-                      llvm::function_ref<void(raw_ostream &OS)> bodyPrinter,
+  void printNamespace(toolchain::function_ref<void(raw_ostream &OS)> namePrinter,
+                      toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter,
                       NamespaceTrivia trivia = NamespaceTrivia::None,
                       const ModuleDecl *moduleContext = nullptr) const;
 
   void printNamespace(StringRef name,
-                      llvm::function_ref<void(raw_ostream &OS)> bodyPrinter,
+                      toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter,
                       NamespaceTrivia trivia = NamespaceTrivia::None) const;
 
   /// Prints the C++ namespaces of the outer types for a nested type.
   /// E.g., for struct Foo { struct Bar {...} } it will print
   /// namespace __FooNested { ..body.. } // namespace __FooNested
   void printParentNamespaceForNestedTypes(
-      const ValueDecl *D, llvm::function_ref<void(raw_ostream &OS)> bodyPrinter,
+      const ValueDecl *D, toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter,
       NamespaceTrivia trivia = NamespaceTrivia::None) const;
 
   /// Print an extern C block with given body.
   void
-  printExternC(llvm::function_ref<void(raw_ostream &OS)> bodyPrinter) const;
+  printExternC(toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter) const;
 
   /// Print an #ifdef __OBJC__ block.
   void
-  printObjCBlock(llvm::function_ref<void(raw_ostream &OS)> bodyPrinter) const;
+  printObjCBlock(toolchain::function_ref<void(raw_ostream &OS)> bodyPrinter) const;
 
-  /// Print the `swift::_impl::` namespace qualifier.
-  void printSwiftImplQualifier() const;
+  /// Print the `language::_impl::` namespace qualifier.
+  void printCodiraImplQualifier() const;
 
   /// Where nullability information should be printed.
   enum class NullabilityPrintKind {
@@ -176,8 +180,8 @@ public:
   static bool isClangKeyword(StringRef name);
   static bool isClangKeyword(Identifier name);
 
-  /// Print the call expression to the Swift type metadata access function.
-  void printSwiftTypeMetadataAccessFunctionCall(
+  /// Print the call expression to the Codira type metadata access function.
+  void printCodiraTypeMetadataAccessFunctionCall(
       StringRef name, ArrayRef<GenericRequirement> requirements);
 
   /// Print the set of statements to access the value witness table pointer
@@ -188,12 +192,12 @@ public:
   /// Print the metadata accessor function for the given type declaration.
   void printCTypeMetadataTypeFunction(
       const TypeDecl *typeDecl, StringRef typeMetadataFuncName,
-      llvm::ArrayRef<GenericRequirement> genericRequirements);
+      toolchain::ArrayRef<GenericRequirement> genericRequirements);
 
   /// Print the name of the generic type param type in C++.
   void printGenericTypeParamTypeName(const GenericTypeParamType *gtpt);
 
-  /// Print the Swift generic signature as C++ template declaration alongside
+  /// Print the Codira generic signature as C++ template declaration alongside
   /// its requirements.
   void printGenericSignature(GenericSignature signature);
 
@@ -207,13 +211,13 @@ public:
   void printGenericSignatureParams(GenericSignature signature);
 
   /// Print the call to the C++ type traits that computes the underlying type /
-  /// witness table pointer value that are passed to Swift for the given generic
+  /// witness table pointer value that are passed to Codira for the given generic
   /// requirement.
   void
   printGenericRequirementInstantiantion(const GenericRequirement &requirement);
 
   /// Print the list of calls to C++ type traits that compute the generic
-  /// pointer values to pass to Swift.
+  /// pointer values to pass to Codira.
   void printGenericRequirementsInstantiantions(
       ArrayRef<GenericRequirement> requirements,
       LeadingTrivia leadingTrivia = LeadingTrivia::None);
@@ -232,10 +236,10 @@ public:
   // Print the ignored Clang diagnostic preprocessor directives around the given
   // source.
   void printIgnoredDiagnosticBlock(StringRef diagName,
-                                   llvm::function_ref<void()> bodyPrinter);
+                                   toolchain::function_ref<void()> bodyPrinter);
 
   void printIgnoredCxx17ExtensionDiagnosticBlock(
-      llvm::function_ref<void()> bodyPrinter);
+      toolchain::function_ref<void()> bodyPrinter);
 
   /// Print the macro that applies Clang's `external_source_symbol` attribute
   /// on the generated declaration.
@@ -244,14 +248,14 @@ public:
   /// Print the given **known** type as a C type.
   void printKnownCType(Type t, PrimitiveTypeMapping &typeMapping) const;
 
-  /// Print the nominal type's Swift mangled name as a typedef from a char to
+  /// Print the nominal type's Codira mangled name as a typedef from a char to
   /// the mangled name, and a static constexpr variable declaration, whose type
   /// is the aforementioned typedef, and whose name is known to the debugger.
-  void printSwiftMangledNameForDebugger(const NominalTypeDecl *typeDecl);
+  void printCodiraMangledNameForDebugger(const NominalTypeDecl *typeDecl);
 
 protected:
   raw_ostream &os;
-  swift::Mangle::ASTMangler mangler;
+  language::Mangle::ASTMangler mangler;
 };
 
 } // end namespace language

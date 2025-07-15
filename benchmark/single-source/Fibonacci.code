@@ -1,4 +1,4 @@
-//===--- Fibonacci.swift --------------------------------------------------===//
+//===--- Fibonacci.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Fibonacci2",
     runFunction: run_Fibonacci,
     tags: [.algorithm])
 
-func _fibonacci(_ n: Int) -> Int {
+fn _fibonacci(_ n: Int) -> Int {
   if (n <= 2) { return 1 }
   return _fibonacci(n - 2) + _fibonacci(n - 1)
 }
 
 @inline(never)
-func fibonacci(_ n: Int) -> Int {
+fn fibonacci(_ n: Int) -> Int {
   // This if prevents optimizer from computing return value of fibonacci(32)
   // at compile time.
   if getFalse() { return 0 }
@@ -37,9 +38,9 @@ func fibonacci(_ n: Int) -> Int {
 }
 
 @inline(never)
-public func run_Fibonacci(_ N: Int) {
-  let n = 24
-  let ref_result = 46368
+public fn run_Fibonacci(_ N: Int) {
+  immutable n = 24
+  immutable ref_result = 46368
   var result = 0
   for _ in 1...N {
     result = fibonacci(n)

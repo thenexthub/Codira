@@ -1,4 +1,4 @@
-//===--- DocFormat.h - The internals of swiftdoc files ----------*- C++ -*-===//
+//===--- DocFormat.h - The internals of languagedoc files ----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,42 +11,43 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file Contains various constants and helper types to deal with serialized
-/// documentation info (swiftdoc files).
+/// documentation info (languagedoc files).
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_DOCFORMAT_H
-#define SWIFT_SERIALIZATION_DOCFORMAT_H
+#ifndef LANGUAGE_SERIALIZATION_DOCFORMAT_H
+#define LANGUAGE_SERIALIZATION_DOCFORMAT_H
 
-#include "llvm/Bitcode/BitcodeConvenience.h"
+#include "toolchain/Bitcode/BitcodeConvenience.h"
 
 namespace language {
 namespace serialization {
 
-using llvm::BCArray;
-using llvm::BCBlob;
-using llvm::BCFixed;
-using llvm::BCGenericRecordLayout;
-using llvm::BCRecordLayout;
-using llvm::BCVBR;
+using toolchain::BCArray;
+using toolchain::BCBlob;
+using toolchain::BCFixed;
+using toolchain::BCGenericRecordLayout;
+using toolchain::BCRecordLayout;
+using toolchain::BCVBR;
 
 /// Magic number for serialized documentation files.
-const unsigned char SWIFTDOC_SIGNATURE[] = { 0xE2, 0x9C, 0xA8, 0x07 };
+const unsigned char LANGUAGEDOC_SIGNATURE[] = { 0xE2, 0x9C, 0xA8, 0x07 };
 
-/// Serialized swiftdoc format major version number.
+/// Serialized languagedoc format major version number.
 ///
 /// Increment this value when making a backwards-incompatible change, i.e. where
 /// an \e old compiler will \e not be able to read the new format. This should
-/// be rare. When incrementing this value, reset SWIFTDOC_VERSION_MINOR to 0.
+/// be rare. When incrementing this value, reset LANGUAGEDOC_VERSION_MINOR to 0.
 ///
 /// See docs/StableBitcode.md for information on how to make
 /// backwards-compatible changes using the LLVM bitcode format.
-const uint16_t SWIFTDOC_VERSION_MAJOR = 1;
+const uint16_t LANGUAGEDOC_VERSION_MAJOR = 1;
 
-/// Serialized swiftdoc format minor version number.
+/// Serialized languagedoc format minor version number.
 ///
 /// Increment this value when making a backwards-compatible change that might be
 /// interesting to test for. A backwards-compatible change is one where an \e
@@ -55,31 +56,31 @@ const uint16_t SWIFTDOC_VERSION_MAJOR = 1;
 ///
 /// If the \e new compiler can treat the new and old format identically, or if
 /// the presence of a new record, block, or field is sufficient to indicate that
-/// the swiftdoc file is using a new format, it is okay not to increment this
+/// the languagedoc file is using a new format, it is okay not to increment this
 /// value. However, it may be interesting for a new compiler to treat the \e
 /// absence of information differently for the old and new formats; in this
 /// case, the difference in minor version number can distinguish the two.
 ///
 /// The minor version number does not need to be changed simply to track which
-/// compiler generated a swiftdoc file; the full compiler version is already
+/// compiler generated a languagedoc file; the full compiler version is already
 /// stored as text and can be checked by running the \c strings command-line
-/// tool on a swiftdoc file.
+/// tool on a languagedoc file.
 ///
 /// To ensure that two separate changes don't silently get merged into one in
 /// source control, you should also update the comment to briefly describe what
 /// change you made. The content of this comment isn't important; it just
 /// ensures a conflict if two people change the module format. Don't worry about
 /// adhering to the 80-column limit for this line.
-const uint16_t SWIFTDOC_VERSION_MINOR = 1; // Last change: skipping 0 for testing purposes
+const uint16_t LANGUAGEDOC_VERSION_MINOR = 1; // Last change: skipping 0 for testing purposes
 
-/// The hash seed used for the string hashes in a Swift 5.1 swiftdoc file.
+/// The hash seed used for the string hashes in a Codira 5.1 languagedoc file.
 ///
-/// 0 is not a good seed for llvm::djbHash, but swiftdoc files use a stable
+/// 0 is not a good seed for toolchain::djbHash, but languagedoc files use a stable
 /// format, so we can't change the hash seed without a version bump. Any new
 /// hashed strings should use a new stable hash seed constant. (No such constant
 /// has been defined at the time this doc comment was last updated because there
 /// are no other strings to hash.)
-const uint32_t SWIFTDOC_HASH_SEED_5_1 = 0;
+const uint32_t LANGUAGEDOC_HASH_SEED_5_1 = 0;
 
 /// The record types within the comment block.
 ///
@@ -98,7 +99,7 @@ namespace comment_block {
 
   using DeclCommentListLayout = BCRecordLayout<
     DECL_COMMENTS, // record ID
-    BCVBR<16>,     // table offset within the blob (an llvm::OnDiskHashTable)
+    BCVBR<16>,     // table offset within the blob (an toolchain::OnDiskHashTable)
     BCBlob         // map from Decl USRs to comments
   >;
 

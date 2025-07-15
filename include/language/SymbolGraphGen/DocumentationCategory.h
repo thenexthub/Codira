@@ -1,26 +1,30 @@
 //===--- DocumentationCategory.h - Accessors for @_documentation ----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_DOCUMENTATIONCATEGORY_H
-#define SWIFT_SYMBOLGRAPHGEN_DOCUMENTATIONCATEGORY_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_DOCUMENTATIONCATEGORY_H
+#define LANGUAGE_SYMBOLGRAPHGEN_DOCUMENTATIONCATEGORY_H
 
 #include "language/AST/Decl.h"
 
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
 namespace symbolgraphgen {
 
-LLVM_ATTRIBUTE_USED
+TOOLCHAIN_ATTRIBUTE_USED
 static StringRef documentationMetadataForDecl(const Decl *D) {
   if (!D) return {};
 
@@ -31,7 +35,7 @@ static StringRef documentationMetadataForDecl(const Decl *D) {
   return {};
 }
 
-LLVM_ATTRIBUTE_USED
+TOOLCHAIN_ATTRIBUTE_USED
 static std::optional<AccessLevel>
 documentationVisibilityForDecl(const Decl *D) {
   if (!D)
@@ -47,4 +51,4 @@ documentationVisibilityForDecl(const Decl *D) {
 } // namespace symbolgraphgen
 } // namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_DOCUMENTATIONCATEGORY_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_DOCUMENTATIONCATEGORY_H

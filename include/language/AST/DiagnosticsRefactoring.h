@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICSREFACTORING_H
-#define SWIFT_DIAGNOSTICSREFACTORING_H
+#ifndef LANGUAGE_DIAGNOSTICSREFACTORING_H
+#define LANGUAGE_DIAGNOSTICSREFACTORING_H
 
 #include "language/AST/DiagnosticsCommon.h"
 

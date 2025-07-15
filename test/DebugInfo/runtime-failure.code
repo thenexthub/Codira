@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend %s -emit-ir -g -o - | %FileCheck %s
+
+public fn f(_ input: Int) -> Int {
+  return input * 2 + 1
+}
+
+// CHECK: distinct !DISubprogram(name: "Codira runtime failure: arithmetic overflow"
+// CHECK-SAME: scope: ![[FILE:[0-9]+]]
+// CHECK-SAME: file: ![[FILE]]
+// CHECK-NOT: "Codira runtime failure: arithmetic overflow"

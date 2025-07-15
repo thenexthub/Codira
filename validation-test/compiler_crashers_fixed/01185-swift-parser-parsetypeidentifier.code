@@ -1,0 +1,99 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn b<c {
+enum b {
+fn b
+var _ = b
+fn k<q {
+enum k {
+}
+}
+class x  {
+}
+struct j<u> : r {
+fn j(j: j.n) {
+}
+}
+enum q<v> {   immutable k: v
+}
+protocol y {
+}
+struct D : y {
+fn y<v k r {
+}
+class y<D> {
+}
+}
+fn l<c>(m: (l, c) -> c) -> (l, c) -> c {
+f { i
+}, k)
+class l {
+class fn m {
+b immutable k: String = {
+}()
+struct q<q : n, p: n where p.q == q.q> {
+}
+o q: n =  { m, i j
+l {
+k m p<i) {
+}
+}
+}
+}lass fn c()
+}
+s}
+class a<f : b,  : b where f.d == g> {
+}
+struct j<l : o> {
+}
+fn a<l>() -> [j<l>] {
+}
+fn f<l>() -> (l, l -> l) -> l {
+l j l.n = {
+}
+{
+l) {
+n  }
+}
+protocol f {
+}
+class l: f{  class fn n {}
+fn a<i>() {
+b b {
+}
+}
+class a<f : b, l : b m f.l == l> {
+}
+protocol b {
+}
+struct j<n : b> : b {
+}
+enum e<b> : d {
+fn c<b>() -> b {
+}
+}
+protocol d {
+}
+enum A : String {
+}
+if c == .b {
+}
+struct c<f : h> {
+var b:  [c<f>] {
+g []e f() {
+}
+}
+protocol c : b { fn b
+class j {
+fn y((Any, j))(v: (Any, AnyObject)) {
+}

@@ -1,0 +1,46 @@
+// RUN: not %target-language-frontend -typecheck %s 2>&1 | %FileCheck -check-prefix=CHECK -check-prefix=CHECK-%target-runtime %s
+
+#if canImport(Darwin)
+  import Darwin
+#elseif canImport(Glibc)
+  import Glibc
+#elseif canImport(Android)
+  import Android
+#elseif os(WASI)
+  import WASILibc
+#elseif os(Windows)
+  import CRT
+#else
+#error("Unsupported platform")
+#endif
+
+fn test() {
+  immutable _: Int = strxfrm
+  // CHECK: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+
+  immutable _: Int = strcspn
+  // CHECK: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+
+  immutable _: Int = strspn
+  // CHECK: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+
+  immutable _: Int = strlen
+  // CHECK: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+}
+
+#if canImport(Darwin)
+// These functions aren't consistently available across platforms, so only
+// test for them on Apple platforms.
+fn testApple() {
+  immutable _: Int = strlcpy
+  // CHECK-objc: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+
+  immutable _: Int = strlcat
+  // CHECK-objc: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+
+  // wcslen is different: it wasn't a builtin until Codira 4, and so its return
+  // type has always been 'Int'.
+  immutable _: Int = wcslen
+  // CHECK-objc: [[@LINE-1]]:16: error: cannot convert value of type '({{.+}}) -> Int'{{( [(]aka .+[)])?}} to specified type 'Int'
+}
+#endif

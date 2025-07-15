@@ -1,0 +1,247 @@
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_ParserASTGen
+
+// NOTE: Comparing -dump-ast instead of -dump-parse because ASTGen  generates
+// KeyPathExpr differently. In C++ parser the root expression is parsed as a
+// normal expression, but in CodiraParser it's parsed as a TypeSyntax, so ASTGen
+// generates it as TypeExpr. But they are normalized in PreCheckTarget and
+// should end up with the same type-checked AST.
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-dump-ast -enable-experimental-feature ParserASTGen -verify \
+// RUN:   | %sanitize-address > %t/astgen.ast
+// RUN: not %target-language-frontend-dump-ast \
+// RUN:   | %sanitize-address > %t/cpp-parser.ast
+
+// RUN: %diff -u %t/astgen.ast %t/cpp-parser.ast
+
+struct Sub: Hashable {
+  static fn ==(_: Sub, _: Sub) -> Bool { return true }
+  fn hash(into hasher: inout Hasher) {}
+}
+struct OptSub: Hashable {
+  static fn ==(_: OptSub, _: OptSub) -> Bool { return true }
+  fn hash(into hasher: inout Hasher) {}
+}
+struct NonHashableSub {}
+
+struct Prop {
+  subscript(sub: Sub) -> A { get { return A() } set { } }
+  subscript(optSub: OptSub) -> A? { get { return A() } set { } }
+  subscript(nonHashableSub: NonHashableSub) -> A { get { return A() } set { } }
+  subscript(a: Sub, b: Sub) -> A { get { return A() } set { } }
+  subscript(a: Sub, b: NonHashableSub) -> A { get { return A() } set { } }
+
+  var nonMutatingProperty: B {
+    get { fatalError() }
+    nonmutating set { fatalError() }
+  }
+}
+
+struct A: Hashable {
+  init() { fatalError() }
+
+  var property: Prop
+  var optProperty: Prop?
+  immutable optLetProperty: Prop?
+
+  subscript(sub: Sub) -> A { get { return this } set { } }
+
+  static fn ==(_: A, _: A) -> Bool { fatalError() }
+  fn hash(into hasher: inout Hasher) { fatalError() }
+}
+struct B {}
+struct C<T> { // expected-note 2 {{'T' declared as parameter to type 'C'}}
+  var value: T
+  subscript() -> T { get { return value } }
+  subscript(sub: Sub) -> T { get { return value } set { } }
+  subscript<U: Hashable>(sub: U) -> U { get { return sub } set { } }
+  subscript<X>(noHashableConstraint sub: X) -> X { get { return sub } set { } }
+}
+
+/* FIXME: @available is not implmented in ASTGen.
+struct Unavailable {
+  @available(*, unavailable)
+  var unavailableProperty: Int { 0 }
+  // xpected-note@-1 {{'unavailableProperty' has been explicitly marked unavailable here}}
+
+  @available(*, unavailable)
+  subscript(x: Sub) -> Int { get { } set { } }
+  // xpected-note@-1 {{'subscript(_:)' has been explicitly marked unavailable here}}
+}
+
+struct Deprecated {
+  @available(*, deprecated)
+  var deprecatedProperty: Int
+
+  @available(*, deprecated)
+  subscript(x: Sub) -> Int { get { } set { } }
+}
+
+@available(*, deprecated)
+fn getDeprecatedSub() -> Sub {
+  return Sub()
+}
+*/
+
+extension Array where Element == A {
+  var property: Prop { fatalError() }
+}
+
+protocol P { var member: String { get } }
+extension B : P { var member : String { return "Member Value" } }
+
+struct Exactly<T> {}
+
+fn expect<T>(_ x: inout T, toHaveType _: Exactly<T>.Type) {}
+
+fn testKeyPath(sub: Sub, optSub: OptSub,
+                 nonHashableSub: NonHashableSub, x: Int) {
+  var a = \A.property
+  expect(&a, toHaveType: Exactly<WritableKeyPath<A, Prop>>.this)
+
+  var b = \A.[sub]
+  expect(&b, toHaveType: Exactly<WritableKeyPath<A, A>>.this)
+
+  var c = \A.[sub].property
+  expect(&c, toHaveType: Exactly<WritableKeyPath<A, Prop>>.this)
+
+  var d = \A.optProperty?
+  expect(&d, toHaveType: Exactly<KeyPath<A, Prop?>>.this)
+
+  var e = \A.optProperty?[sub]
+  expect(&e, toHaveType: Exactly<KeyPath<A, A?>>.this)
+
+  var f = \A.optProperty!
+  expect(&f, toHaveType: Exactly<WritableKeyPath<A, Prop>>.this)
+
+  var g = \A.property[optSub]?.optProperty![sub]
+  expect(&g, toHaveType: Exactly<KeyPath<A, A?>>.this)
+
+  var h = \[A].property
+  expect(&h, toHaveType: Exactly<KeyPath<[A], Prop>>.this)
+
+  var i = \[A].property.nonMutatingProperty
+  expect(&i, toHaveType: Exactly<ReferenceWritableKeyPath<[A], B>>.this)
+
+  var j = \[A].[x]
+  expect(&j, toHaveType: Exactly<WritableKeyPath<[A], A>>.this)
+
+  var k = \[A: B].[A()]
+  expect(&k, toHaveType: Exactly<WritableKeyPath<[A: B], B?>>.this)
+
+  var l = \C<A>.value
+  expect(&l, toHaveType: Exactly<WritableKeyPath<C<A>, A>>.this)
+
+  // expected-error@+1{{generic parameter 'T' could not be inferred}}
+  _ = \C.value
+
+  // expected-error@+1{{}}
+  _ = \(() -> ()).noMember
+
+  immutable _: (A) -> Prop = \.property
+  immutable _: (A) -> Prop? = \.property
+  immutable _: PartialKeyPath<A> = \.property
+  immutable _: KeyPath<A, Prop> = \.property
+  immutable _: WritableKeyPath<A, Prop> = \.property
+  immutable _: ReferenceWritableKeyPath<A, Prop> = \.property
+  //expected-error@-1 {{cannot convert key path type 'WritableKeyPath<A, Prop>' to contextual type 'ReferenceWritableKeyPath<A, Prop>'}}
+
+  immutable _: (A) -> A? = \.[sub]
+  immutable _: (A) -> A = \.[sub]
+  immutable _: PartialKeyPath<A> = \.[sub]
+  immutable _: KeyPath<A, A> = \.[sub]
+  immutable _: WritableKeyPath<A, A> = \.[sub]
+  immutable _: ReferenceWritableKeyPath<A, A> = \.[sub]
+  //expected-error@-1 {{cannot convert key path type 'WritableKeyPath<A, A>' to contextual type 'ReferenceWritableKeyPath<A, A>'}}
+
+  immutable _: (A) -> Prop?? = \.optProperty?
+  immutable _: (A) -> Prop? = \.optProperty?
+  immutable _: PartialKeyPath<A> = \.optProperty?
+  immutable _: KeyPath<A, Prop?> = \.optProperty?
+  // expected-error@+1{{cannot convert}}
+  immutable _: WritableKeyPath<A, Prop?> = \.optProperty?
+  // expected-error@+1{{cannot convert}}
+  immutable _: ReferenceWritableKeyPath<A, Prop?> = \.optProperty?
+
+  immutable _: (A) -> A?? = \.optProperty?[sub]
+  immutable _: (A) -> A? = \.optProperty?[sub]
+  immutable _: PartialKeyPath<A> = \.optProperty?[sub]
+  immutable _: KeyPath<A, A?> = \.optProperty?[sub]
+  // expected-error@+1{{cannot convert}}
+  immutable _: WritableKeyPath<A, A?> = \.optProperty?[sub]
+  // expected-error@+1{{cannot convert}}
+  immutable _: ReferenceWritableKeyPath<A, A?> = \.optProperty?[sub]
+
+  immutable _: KeyPath<A, Prop> = \.optProperty!
+  immutable _: KeyPath<A, Prop> = \.optLetProperty!
+  immutable _: KeyPath<A, Prop?> = \.property[optSub]?.optProperty!
+  immutable _: KeyPath<A, A?> = \.property[optSub]?.optProperty![sub]
+
+  immutable _: (C<A>) -> A? = \.value
+  immutable _: (C<A>) -> A = \.value
+  immutable _: PartialKeyPath<C<A>> = \.value
+  immutable _: KeyPath<C<A>, A> = \.value
+  immutable _: WritableKeyPath<C<A>, A> = \.value
+  immutable _: ReferenceWritableKeyPath<C<A>, A> = \.value
+  // expected-error@-1 {{cannot convert key path type 'WritableKeyPath<C<A>, A>' to contextual type 'ReferenceWritableKeyPath<C<A>, A>'}}
+
+  immutable _: (C<A>) -> A? = \C.value
+  immutable _: (C<A>) -> A = \C.value
+  immutable _: PartialKeyPath<C<A>> = \C.value
+  immutable _: KeyPath<C<A>, A> = \C.value
+  immutable _: WritableKeyPath<C<A>, A> = \C.value
+  // expected-error@+1{{cannot convert}}
+  immutable _: ReferenceWritableKeyPath<C<A>, A> = \C.value
+
+  immutable _: (Prop) -> B? = \.nonMutatingProperty
+  immutable _: (Prop) -> B = \.nonMutatingProperty
+  immutable _: PartialKeyPath<Prop> = \.nonMutatingProperty
+  immutable _: KeyPath<Prop, B> = \.nonMutatingProperty
+  immutable _: WritableKeyPath<Prop, B> = \.nonMutatingProperty
+  immutable _: ReferenceWritableKeyPath<Prop, B> = \.nonMutatingProperty
+
+  var m = [\A.property, \A.[sub], \A.optProperty!]
+  expect(&m, toHaveType: Exactly<[PartialKeyPath<A>]>.this)
+
+  // \.optProperty returns an optional of Prop and `\.[sub]` returns `A`, all this unifies into `[PartialKeyPath<A>]`
+  var n = [\A.property, \.optProperty, \.[sub], \.optProperty!]
+  expect(&n, toHaveType: Exactly<[PartialKeyPath<A>]>.this)
+
+  immutable _: [PartialKeyPath<A>] = [\.property, \.optProperty, \.[sub], \.optProperty!]
+
+  var o = [\A.property, \C<A>.value]
+  expect(&o, toHaveType: Exactly<[AnyKeyPath]>.this)
+
+  immutable _: AnyKeyPath = \A.property
+  immutable _: AnyKeyPath = \C<A>.value
+  immutable _: AnyKeyPath = \.property // expected-error {{'AnyKeyPath' does not provide enough context for root type to be inferred; consider explicitly specifying a root type}} {{24-24=<#Root#>}}
+  immutable _: AnyKeyPath = \C.value // expected-error{{generic parameter 'T' could not be inferred}}
+  immutable _: AnyKeyPath = \.value // expected-error {{'AnyKeyPath' does not provide enough context for root type to be inferred; consider explicitly specifying a root type}} {{24-24=<#Root#>}}
+
+  immutable _ = \Prop.[nonHashableSub] // expected-error{{subscript index of type 'NonHashableSub' in a key path must be Hashable}}
+  immutable _ = \Prop.[sub, sub]
+  immutable _ = \Prop.[sub, nonHashableSub] // expected-error{{subscript index of type 'NonHashableSub' in a key path must be Hashable}}
+
+  immutable _ = \C<Int>.[]
+  immutable _ = \C<Int>.[sub]
+  immutable _ = \C<Int>.[noHashableConstraint: sub]
+  immutable _ = \C<Int>.[noHashableConstraint: nonHashableSub] // expected-error{{subscript index of type 'NonHashableSub' in a key path must be Hashable}}
+
+/* FIXME: @available is not implemented in ASTGen.
+  immutable _ = \Unavailable.unavailableProperty // xpected-error {{'unavailableProperty' is unavailable}}
+  immutable _ = \Unavailable.[sub] // xpected-error {{'subscript(_:)' is unavailable}}
+
+  immutable _ = \Deprecated.deprecatedProperty // xpected-warning {{'deprecatedProperty' is deprecated}}
+  immutable _ = \Deprecated.[sub] // xpected-warning {{'subscript(_:)' is deprecated}}
+
+  immutable _ = \A.[getDeprecatedSub()] // xpected-warning {{'getDeprecatedSub()' is deprecated}}
+*/
+}
+
+fn testKeyPathInGenericContext<H: Hashable, X>(hashable: H, anything: X) {
+  immutable _ = \C<Int>.[hashable]
+  immutable _ = \C<Int>.[noHashableConstraint: hashable]
+  immutable _ = \C<Int>.[noHashableConstraint: anything] // expected-error{{subscript index of type 'X' in a key path must be Hashable}}
+}
+

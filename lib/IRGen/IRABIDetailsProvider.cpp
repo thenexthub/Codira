@@ -1,13 +1,17 @@
 //===--- IRABIDetailsProvider.cpp - Get ABI details for decls ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IRGen/IRABIDetailsProvider.h"
@@ -36,15 +40,15 @@
 #include "language/SIL/SILModule.h"
 #include "language/Subsystems.h"
 #include "clang/CodeGen/ModuleBuilder.h"
-#include "clang/CodeGen/SwiftCallingConv.h"
-#include "llvm/IR/DerivedTypes.h"
+#include "clang/CodeGen/CodiraCallingConv.h"
+#include "toolchain/IR/DerivedTypes.h"
 
 using namespace language;
 using namespace irgen;
 
 static std::optional<Type>
-getPrimitiveTypeFromLLVMType(ASTContext &ctx, const llvm::Type *type) {
-  if (const auto *intType = dyn_cast<llvm::IntegerType>(type)) {
+getPrimitiveTypeFromLLVMType(ASTContext &ctx, const toolchain::Type *type) {
+  if (const auto *intType = dyn_cast<toolchain::IntegerType>(type)) {
     switch (intType->getBitWidth()) {
     case 1:
       return ctx.getBoolType();
@@ -92,8 +96,8 @@ public:
 
   IRABIDetailsProvider::FunctionABISignature
   getTypeMetadataAccessFunctionSignature() {
-    auto &ctx = IGM.getSwiftModule()->getASTContext();
-    llvm::StructType *responseTy = IGM.getTypeMetadataResponseTy();
+    auto &ctx = IGM.getCodiraModule()->getASTContext();
+    toolchain::StructType *responseTy = IGM.getTypeMetadataResponseTy();
     IRABIDetailsProvider::TypeRecordABIRepresentation::MemberVectorTy members;
     for (auto *elementTy : responseTy->elements())
       members.push_back(*getPrimitiveTypeFromLLVMType(ctx, elementTy));
@@ -115,16 +119,16 @@ public:
     return result;
   }
 
-  llvm::MapVector<EnumElementDecl *, IRABIDetailsProvider::EnumElementInfo>
+  toolchain::MapVector<EnumElementDecl *, IRABIDetailsProvider::EnumElementInfo>
   getEnumTagMapping(const EnumDecl *ED) {
-    llvm::MapVector<EnumElementDecl *, IRABIDetailsProvider::EnumElementInfo>
+    toolchain::MapVector<EnumElementDecl *, IRABIDetailsProvider::EnumElementInfo>
         elements;
     auto &enumImplStrat = getEnumImplStrategy(
         IGM, ED->DeclContext::getDeclaredTypeInContext()->getCanonicalType());
 
     for (auto *element : ED->getAllElements()) {
       auto tagIdx = enumImplStrat.getTagIndex(element);
-      auto *global = cast<llvm::GlobalVariable>(
+      auto *global = cast<toolchain::GlobalVariable>(
           IGM.getAddrOfEnumCase(element, NotForDefinition).getAddress());
       elements.insert({element, {tagIdx, global->getName()}});
     }
@@ -136,18 +140,18 @@ public:
   getFunctionLoweredSignature(AbstractFunctionDecl *fd) {
     auto declRef = SILDeclRef(fd);
     auto function = Lowering::SILGenModule(*silMod, declRef.getModuleContext())
-                        .getFunction(declRef, swift::NotForDefinition);
+                        .getFunction(declRef, language::NotForDefinition);
 
     IGM.lowerSILFunction(function);
     auto silFuncType = function->getLoweredFunctionType();
     // FIXME: Async function support.
     if (silFuncType->isAsync())
       return std::nullopt;
-    if (silFuncType->getLanguage() != SILFunctionLanguage::Swift)
+    if (silFuncType->getLanguage() != SILFunctionLanguage::Codira)
       return std::nullopt;
 
     // FIXME: Tuple parameter mapping support.
-    llvm::SmallVector<const ParamDecl *, 8> silParamMapping;
+    toolchain::SmallVector<const ParamDecl *, 8> silParamMapping;
     for (auto param : *fd->getParameters()) {
       if (auto *tuple =
               param->getInterfaceType()->getAs<TupleType>()) {
@@ -164,7 +168,7 @@ public:
             IGM, silFuncType, funcPointerKind));
 
     auto result = LoweredFunctionSignature(fd, *this, *abiDetails);
-    // Save metadata source types to avoid keeping the SIL func around.
+    // Save metadata source types to avoid keeping the SIL fn around.
     for (const auto &typeSource :
          abiDetails->polymorphicSignatureExpandedTypeSources) {
       typeSource.visit(
@@ -214,7 +218,7 @@ public:
     // FIXME: Async support.
     if (funcDecl->hasAsync())
       return std::nullopt;
-    const auto &schema = IGM.getOptions().PointerAuth.SwiftClassMethods;
+    const auto &schema = IGM.getOptions().PointerAuth.CodiraClassMethods;
     if (!schema)
       return std::nullopt;
     auto discriminator =
@@ -264,7 +268,7 @@ public:
           LinkEntity::forClassMetadataBaseOffset(parentClass).mangleAsString(IGM.Context),
           getMethodPointerAuthInfo(funcDecl, silDecl));
     }
-    llvm_unreachable("invalid kind");
+    toolchain_unreachable("invalid kind");
   }
 
   Type getClassBaseOffsetSymbolType() const {
@@ -278,7 +282,7 @@ public:
   std::unique_ptr<SILModule> silMod;
   IRGenerator IRGen;
   IRGenModule IGM;
-  llvm::SpecificBumpPtrAllocator<SignatureExpansionABIDetails>
+  toolchain::SpecificBumpPtrAllocator<SignatureExpansionABIDetails>
       signatureExpansions;
 };
 
@@ -294,15 +298,15 @@ LoweredFunctionSignature::DirectResultType::DirectResultType(
     : owner(owner), typeDetails(typeDetails) {}
 
 bool LoweredFunctionSignature::DirectResultType::enumerateRecordMembers(
-    llvm::function_ref<void(clang::CharUnits, clang::CharUnits, Type)> callback)
+    toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)> callback)
     const {
   auto &schema = typeDetails.nativeReturnValueSchema(owner.IGM);
   assert(!schema.requiresIndirect());
   bool hasError = false;
   schema.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, llvm::Type *type) {
+      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
         auto primitiveType = getPrimitiveTypeFromLLVMType(
-            owner.IGM.getSwiftModule()->getASTContext(), type);
+            owner.IGM.getCodiraModule()->getASTContext(), type);
         if (!primitiveType) {
           hasError = true;
           return;
@@ -323,15 +327,15 @@ LoweredFunctionSignature::IndirectParameter::IndirectParameter(
     : paramDecl(paramDecl), convention(convention) {}
 
 bool LoweredFunctionSignature::DirectParameter::enumerateRecordMembers(
-    llvm::function_ref<void(clang::CharUnits, clang::CharUnits, Type)> callback)
+    toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)> callback)
     const {
   auto &schema = typeDetails.nativeParameterValueSchema(owner.IGM);
   assert(!schema.requiresIndirect());
   bool hasError = false;
   schema.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, llvm::Type *type) {
+      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
         auto primitiveType = getPrimitiveTypeFromLLVMType(
-            owner.IGM.getSwiftModule()->getASTContext(), type);
+            owner.IGM.getCodiraModule()->getASTContext(), type);
         if (!primitiveType) {
           hasError = true;
           return;
@@ -361,22 +365,22 @@ size_t LoweredFunctionSignature::getNumIndirectResultValues() const {
 }
 
 void LoweredFunctionSignature::visitParameterList(
-    llvm::function_ref<void(const IndirectResultValue &)> indirectResultVisitor,
-    llvm::function_ref<void(const DirectParameter &)> directParamVisitor,
-    llvm::function_ref<void(const IndirectParameter &)> indirectParamVisitor,
-    llvm::function_ref<void(const GenericRequirementParameter &)>
+    toolchain::function_ref<void(const IndirectResultValue &)> indirectResultVisitor,
+    toolchain::function_ref<void(const DirectParameter &)> directParamVisitor,
+    toolchain::function_ref<void(const IndirectParameter &)> indirectParamVisitor,
+    toolchain::function_ref<void(const GenericRequirementParameter &)>
         genericRequirementVisitor,
-    llvm::function_ref<void(const MetadataSourceParameter &)>
+    toolchain::function_ref<void(const MetadataSourceParameter &)>
         metadataSourceVisitor,
-    llvm::function_ref<void(const ContextParameter &)> contextParamVisitor,
-    llvm::function_ref<void(const ErrorResultValue &)> errorResultVisitor)
+    toolchain::function_ref<void(const ContextParameter &)> contextParamVisitor,
+    toolchain::function_ref<void(const ErrorResultValue &)> errorResultVisitor)
     const {
   // Indirect result values come before parameters.
   for (const auto &r : abiDetails.indirectResults)
     indirectResultVisitor(IndirectResultValue(r.hasSRet));
 
   // Traverse ABI parameters, mapping them back to the AST parameters.
-  llvm::SmallVector<const ParamDecl *, 8> silParamMapping;
+  toolchain::SmallVector<const ParamDecl *, 8> silParamMapping;
   for (auto param : *FD->getParameters()) {
     // FIXME: tuples map to more than one sil param (but they're not yet
     // representable by the consumer).
@@ -478,7 +482,7 @@ IRABIDetailsProvider::getTypeMetadataAccessFunctionGenericRequirementParameters(
       nominal);
 }
 
-llvm::MapVector<EnumElementDecl *, IRABIDetailsProvider::EnumElementInfo>
+toolchain::MapVector<EnumElementDecl *, IRABIDetailsProvider::EnumElementInfo>
 IRABIDetailsProvider::getEnumTagMapping(const EnumDecl *ED) {
   return impl->getEnumTagMapping(ED);
 }

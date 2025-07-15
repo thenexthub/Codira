@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Performs a traditional C-style assert with an optional message.
@@ -44,7 +45,7 @@
 #if $Embedded
 @_disfavoredOverload
 #endif
-public func assert(
+public fn assert(
   _ condition: @autoclosure () -> Bool,
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
@@ -60,7 +61,7 @@ public func assert(
 
 #if $Embedded
 @_transparent
-public func assert(
+public fn assert(
   _ condition: @autoclosure () -> Bool,
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
@@ -106,7 +107,7 @@ public func assert(
 #if $Embedded
 @_disfavoredOverload
 #endif
-public func precondition(
+public fn precondition(
   _ condition: @autoclosure () -> Bool,
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
@@ -118,7 +119,7 @@ public func precondition(
         flags: _fatalErrorFlags())
     }
   } else if _isReleaseAssertConfiguration() {
-    let error = !condition()
+    immutable error = !condition()
     Builtin.condfail_message(error._value,
       StaticString("precondition failure").unsafeRawPointer)
   }
@@ -126,7 +127,7 @@ public func precondition(
 
 #if $Embedded
 @_transparent
-public func precondition(
+public fn precondition(
   _ condition: @autoclosure () -> Bool,
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
@@ -138,7 +139,7 @@ public func precondition(
         flags: _fatalErrorFlags())
     }
   } else if _isReleaseAssertConfiguration() {
-    let error = !condition()
+    immutable error = !condition()
     Builtin.condfail_message(error._value,
       StaticString("precondition failure").unsafeRawPointer)
   }
@@ -171,7 +172,7 @@ public func precondition(
 #if $Embedded
 @_disfavoredOverload
 #endif
-public func assertionFailure(
+public fn assertionFailure(
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -187,7 +188,7 @@ public func assertionFailure(
 #if $Embedded
 @inlinable
 @inline(__always)
-public func assertionFailure(
+public fn assertionFailure(
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -232,7 +233,7 @@ public func assertionFailure(
 #if $Embedded
 @_disfavoredOverload
 #endif
-public func preconditionFailure(
+public fn preconditionFailure(
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
@@ -249,7 +250,7 @@ public func preconditionFailure(
 
 #if $Embedded
 @_transparent
-public func preconditionFailure(
+public fn preconditionFailure(
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
@@ -277,7 +278,7 @@ public func preconditionFailure(
 #if $Embedded
 @_disfavoredOverload
 #endif
-public func fatalError(
+public fn fatalError(
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
@@ -298,7 +299,7 @@ public func fatalError(
 
 #if $Embedded
 @_transparent
-public func fatalError(
+public fn fatalError(
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
@@ -320,7 +321,7 @@ public func fatalError(
 /// an error message but just trap. In debug mode they print an error message
 /// and abort.
 @usableFromInline @_transparent
-internal func _precondition(
+internal fn _precondition(
   _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -331,13 +332,13 @@ internal func _precondition(
         flags: _fatalErrorFlags())
     }
   } else if _isReleaseAssertConfiguration() {
-    let error = !condition()
+    immutable error = !condition()
     Builtin.condfail_message(error._value, message.unsafeRawPointer)
   }
 }
 
 @usableFromInline @_transparent
-internal func _preconditionFailure(
+internal fn _preconditionFailure(
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
@@ -349,11 +350,11 @@ internal func _preconditionFailure(
 /// mode, and returns an undefined error otherwise.
 /// Otherwise returns `result`.
 @_transparent
-public func _overflowChecked<T>(
+public fn _overflowChecked<T>(
   _ args: (T, Bool),
   file: StaticString = #file, line: UInt = #line
 ) -> T {
-  let (result, error) = args
+  immutable (result, error) = args
   if _isDebugAssertConfiguration() {
     if _slowPath(error) {
       _fatalErrorMessage("Fatal error", "Overflow/underflow",
@@ -375,11 +376,11 @@ public func _overflowChecked<T>(
 /// They are meant to be used when the check is not comprehensively checking for
 /// all possible errors.
 @usableFromInline @_transparent
-internal func _debugPrecondition(
+internal fn _debugPrecondition(
   _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
-#if SWIFT_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
+#if LANGUAGE_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
   _precondition(condition(), message, file: file, line: line)
 #else
   // Only check in debug mode.
@@ -393,11 +394,11 @@ internal func _debugPrecondition(
 }
 
 @usableFromInline @_transparent
-internal func _debugPreconditionFailure(
+internal fn _debugPreconditionFailure(
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {
-#if SWIFT_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
+#if LANGUAGE_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
   _preconditionFailure(message, file: file, line: line)
 #else
   if _slowPath(_isDebugAssertConfiguration()) {
@@ -414,7 +415,7 @@ internal func _debugPreconditionFailure(
 /// with the build configuration INTERNAL_CHECKS_ENABLED enabled. Otherwise, the
 /// call to this function is a noop.
 @usableFromInline @_transparent
-internal func _internalInvariant(
+internal fn _internalInvariant(
   _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -426,10 +427,10 @@ internal func _internalInvariant(
 #endif
 }
 
-// Only perform the invariant check on Swift 5.1 and later
-@_alwaysEmitIntoClient // Swift 5.1
+// Only perform the invariant check on Codira 5.1 and later
+@_alwaysEmitIntoClient // Codira 5.1
 @_transparent
-internal func _internalInvariant_5_1(
+internal fn _internalInvariant_5_1(
   _ condition: @autoclosure () -> Bool, _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) {
@@ -438,7 +439,7 @@ internal func _internalInvariant_5_1(
   // OSes, which means that testing may not test the assertion. We need a real
   // solution to this.
 #if !$Embedded
-  guard #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) //SwiftStdlib 5.1
+  guard #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) //CodiraStdlib 5.1
   else { return }
 #endif
   _internalInvariant(condition(), message, file: file, line: line)
@@ -450,11 +451,11 @@ internal func _internalInvariant_5_1(
 /// binaries.
 ///
 /// This version of `_precondition` only traps if the condition returns false
-/// **and** the current executable was built with a Swift Standard Library
+/// **and** the current executable was built with a Codira Standard Library
 /// version equal to or greater than the supplied version.
 @_transparent
-internal func _precondition(
-  ifLinkedOnOrAfter version: _SwiftStdlibVersion,
+internal fn _precondition(
+  ifLinkedOnOrAfter version: _CodiraStdlibVersion,
   _ condition: @autoclosure () -> Bool,
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
@@ -476,16 +477,16 @@ internal func _precondition(
     }
   } else if _isReleaseAssertConfiguration() {
     #if !$Embedded
-    let error = (!condition() && _isExecutableLinkedOnOrAfter(version))
+    immutable error = (!condition() && _isExecutableLinkedOnOrAfter(version))
     #else
-    let error = !condition()
+    immutable error = !condition()
     #endif
     Builtin.condfail_message(error._value, message.unsafeRawPointer)
   }
 }
 
 @usableFromInline @_transparent
-internal func _internalInvariantFailure(
+internal fn _internalInvariantFailure(
   _ message: StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> Never {

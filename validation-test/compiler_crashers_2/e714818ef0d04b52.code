@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::AssociatedTypeInference::findSolutionsRec(toolchain::ArrayRef<language::AssociatedTypeDecl*>, toolchain::SmallVectorImpl<(anonymous namespace)::InferredTypeWitnessesSolution>&, toolchain::SmallVectorImpl<(anonymous namespace)::InferredTypeWitnessesSolution>&, toolchain::SmallVector<std::__1::pair<language::ValueDecl*, language::ValueDecl*>, 4u>&, unsigned int, unsigned int, unsigned int)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a : b protocol b {
+  typealias c typealias c : = c

@@ -1,0 +1,24 @@
+
+// RUN: %target-language-emit-silgen -module-name noescape_reabstraction %s | %FileCheck %s
+
+struct S {}
+
+fn noescape_concrete(_ x: (S) -> S) {
+  noescape_generic(x)
+}
+
+fn noescape_generic<T>(_ x: (T) -> T) {
+}
+
+// CHECK-LABEL: sil hidden [ossa] @$s22noescape_reabstraction0A9_concreteyyAA1SVADXEF
+// CHECK:         function_ref [[REABSTRACTION_THUNK:@\$s22noescape_reabstraction1SVACIgyd_A2CIegnr_TR]]
+
+fn concrete(_ x: (S) -> S) {
+  noescape_generic(x)
+}
+
+fn generic<T>(_ x: (T) -> T) {
+}
+
+// CHECK-LABEL: sil hidden [ossa] @$s22noescape_reabstraction8concreteyyAA1SVADXEF
+// CHECK:         function_ref [[REABSTRACTION_THUNK]]

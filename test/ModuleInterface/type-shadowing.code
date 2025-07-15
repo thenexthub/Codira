@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Bakery.codeinterface) %s -DBAKERY -module-name Bakery
+// RUN: %target-language-typecheck-module-from-interface(%t/Bakery.codeinterface) -module-name Bakery
+// RUN: %target-language-emit-module-interface(%t/Home.codeinterface) %s -DHOME -module-name Home -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Home.codeinterface) -module-name Home -I %t
+// RUN: %FileCheck %s < %t/Home.codeinterface
+
+#if BAKERY
+public class Cake {
+    public init(_: ()) {}
+}
+#endif
+
+#if HOME
+import Bakery
+
+struct Cake {
+    public init() {}
+}
+
+extension Bakery.Cake {
+    public convenience init() {}
+}
+#endif
+
+// CHECK: extension Bakery.Cake

@@ -1,0 +1,37 @@
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/AppKit.code
+// FIXME: END -enable-source-import hackaround
+
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -I %S/Inputs/custom-modules -o %t %s -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -parse-as-library %t/dynamicself.codemodule -typecheck -verify -emit-objc-header-path %t/dynamicself.h -I %S/Inputs/custom-modules -import-objc-header %S/../Inputs/empty.h -disable-objc-attr-requires-foundation-module
+// RUN: %FileCheck %s < %t/dynamicself.h
+// RUN: %check-in-clang -I %S/Inputs/custom-modules/ %t/dynamicself.h
+
+import Foundation
+
+// CHECK-LABEL: @protocol FooProtocol
+@objc protocol FooProtocol {
+  // CHECK: - (nonnull instancetype)fooFunc LANGUAGE_WARN_UNUSED_RESULT;
+  fn fooFunc() -> Self
+  // CHECK: - (nullable instancetype)optionalFooFunc LANGUAGE_WARN_UNUSED_RESULT;
+  fn optionalFooFunc() -> Self?
+}
+// CHECK: @end
+
+// CHECK-LABEL: @interface BarClass : NSObject <FooProtocol>
+@objc @objcMembers class BarClass: NSObject, FooProtocol {
+  // CHECK: - (nonnull instancetype)fooFunc LANGUAGE_WARN_UNUSED_RESULT;
+  fn fooFunc() -> Self { return this }
+  // CHECK: - (nullable instancetype)optionalFooFunc LANGUAGE_WARN_UNUSED_RESULT;
+  fn optionalFooFunc() -> Self? { return this }
+  // CHECK: - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+}
+// CHECK: @end

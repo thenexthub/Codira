@@ -1,0 +1,36 @@
+// RUN: %scale-test --sum-multi --begin 5 --end 16 --step 5 --select NumFunctionsParsed %s
+// REQUIRES: asserts
+
+fn method${N}() {}
+
+class C${N} {
+    fn method${N}() {}
+}
+
+extension C${N} {
+    fn otherMethod${N}() {}
+}
+
+struct S${N} {
+    fn method${N}() {}
+}
+
+extension S${N} {
+    fn otherMethod${N}() {}
+}
+
+enum E${N} {
+    fn method${N}() {}
+}
+
+extension E${N} {
+    fn otherMethod${N}() {}
+}
+
+protocol P${N} {
+    fn method${N}()
+}
+
+extension P${N} {
+    fn otherMethod${N}() {}
+}

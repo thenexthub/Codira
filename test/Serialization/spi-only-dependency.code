@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+//--- SPIDependency.code
+
+// RUN: %target-language-frontend -emit-module %t/SPIDependency.code -o %t \
+// RUN:   -enable-library-evolution -language-version 5
+
+//--- Lib.code
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code -o %t -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Lib.private.codeinterface \
+// RUN:   -experimental-spi-only-imports
+
+@_spiOnly import SPIDependency
+
+//--- Client.code
+
+/// SPIDependency is visible when using the languagemodule or private interface.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck -check-prefix=VISIBLE-DEP %s
+// VISIBLE-DEP: loaded module 'SPIDependency'
+
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck -check-prefix=VISIBLE-DEP %s
+
+/// SPIDependency is not visible when using the public languageinterface.
+// RUN: rm %t/Lib.private.codeinterface
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -Rmodule-loading 2>&1 | %FileCheck -check-prefix=VISIBLE-DEP-NOT %s
+
+import Lib
+
+// Note: extra newlines below ensure that context printing doesn't show the
+// lines that we shouldn't see.
+
+
+
+
+// VISIBLE-DEP-NOT-NOT: loaded module 'SPIDependency'

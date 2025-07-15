@@ -1,12 +1,12 @@
 //===--- IndexRecord.cpp --------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2016 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See http://swift.org/LICENSE.txt for license information
-// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See http://language.org/LICENSE.txt for license information
+// See http://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -35,10 +35,10 @@
 #include "clang/Index/IndexingAction.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Serialization/ASTReader.h"
-#include "llvm/Support/BLAKE3.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/HashBuilder.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/Support/BLAKE3.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/HashBuilder.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
 using namespace language::index;
@@ -54,7 +54,7 @@ using clang::index::SymbolRoleSet;
 namespace {
 
 using HashBuilderTy =
-    llvm::HashBuilder<llvm::TruncatedBLAKE3<8>, llvm::endianness::little>;
+    toolchain::HashBuilder<toolchain::TruncatedBLAKE3<8>, toolchain::endianness::little>;
 
 class SymbolTracker {
 public:
@@ -172,7 +172,7 @@ public:
   }
 
 private:
-  llvm::DenseMap<const char *, size_t> USRToSymbol;
+  toolchain::DenseMap<const char *, size_t> USRToSymbol;
   std::vector<Symbol> symbols;
   std::vector<SymbolOccurrence> occurrences;
   bool sorted = false;
@@ -222,7 +222,7 @@ public:
 };
 
 class StdlibGroupsIndexRecordingConsumer : public IndexDataConsumer {
-  llvm::StringMap<std::unique_ptr<SymbolTracker>> TrackerByGroup;
+  toolchain::StringMap<std::unique_ptr<SymbolTracker>> TrackerByGroup;
   // Keep a USR map to uniquely identify Decls.
   // FIXME: if we just passed the original Decl * through we could use that,
   // which would also let us avoid producing the USR/Name/etc. for decls unless
@@ -265,7 +265,7 @@ public:
     for (auto &entry : TrackerByGroup) {
       SortedGroups.emplace_back(entry.first(), entry.second.get());
     }
-    llvm::sort(SortedGroups, llvm::less_first());
+    toolchain::sort(SortedGroups, toolchain::less_first());
 
     for (auto &pair : SortedGroups) {
       StringRef groupName = pair.first;
@@ -307,7 +307,7 @@ StringRef StdlibGroupsIndexRecordingConsumer::findGroupForSymbol(const IndexSymb
     if (rel.decl)
       return findGroupNameForDecl(rel.decl);
   }
-  llvm_unreachable("did not find group name for reference");
+  toolchain_unreachable("did not find group name for reference");
 }
 
 static bool writeRecord(SymbolTracker &record, std::string Filename,
@@ -373,7 +373,7 @@ makeRecordingConsumer(std::string Filename, std::string indexStorePath,
 static bool
 recordSourceFile(SourceFile *SF, StringRef indexStorePath,
                  bool includeLocals, DiagnosticEngine &diags,
-                 llvm::function_ref<void(StringRef, StringRef)> callback) {
+                 toolchain::function_ref<void(StringRef, StringRef)> callback) {
   std::string recordFile;
   bool failed = false;
   auto consumer =
@@ -412,7 +412,7 @@ getModuleInfoFromOpaqueModule(clang::index::writer::OpaqueModule mod,
 }
 
 static bool
-emitDataForSwiftSerializedModule(ModuleDecl *module,
+emitDataForCodiraSerializedModule(ModuleDecl *module,
                                  StringRef indexStorePath,
                                  bool indexClangModules,
                                  bool indexSystemModules,
@@ -425,199 +425,6 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
                                  IndexUnitWriter &parentUnitWriter,
                                  const PathRemapper &pathRemapper,
                                  SourceFile *initialFile);
-
-static void
-appendSymbolicInterfaceToIndexStorePath(SmallVectorImpl<char> &resultingPath) {
-  llvm::sys::path::append(resultingPath, "interfaces");
-}
-
-static llvm::Error initSymbolicInterfaceStorePath(StringRef storePath) {
-  SmallString<128> subPath = storePath;
-  appendSymbolicInterfaceToIndexStorePath(subPath);
-  std::error_code ec = llvm::sys::fs::create_directories(subPath);
-  if (ec)
-    return llvm::errorCodeToError(ec);
-  return llvm::Error::success();
-}
-
-static void appendSymbolicInterfaceClangModuleFilename(
-    StringRef filePath, SmallVectorImpl<char> &resultingPath) {
-  llvm::sys::path::append(resultingPath, llvm::sys::path::filename(filePath));
-  StringRef extension = ".symbolicswiftinterface";
-  resultingPath.append(extension.begin(), extension.end());
-}
-
-// FIXME (Alex): Share code with IndexUnitWriter in LLVM after refactoring it.
-static llvm::Expected<bool>
-isFileUpToDateForOutputFile(StringRef filePath, StringRef timeCompareFilePath) {
-  auto makeError = [](StringRef path, std::error_code ec) -> llvm::Error {
-    std::string error;
-    llvm::raw_string_ostream(error)
-        << "could not access path '" << path << "': " << ec.message();
-    return llvm::createStringError(ec, error.c_str());
-  };
-  llvm::sys::fs::file_status unitStat;
-  if (std::error_code ec = llvm::sys::fs::status(filePath, unitStat)) {
-    if (ec != std::errc::no_such_file_or_directory && ec != llvm::errc::delete_pending)
-      return makeError(filePath, ec);
-    return false;
-  }
-
-  if (timeCompareFilePath.empty())
-    return true;
-
-  llvm::sys::fs::file_status compareStat;
-  if (std::error_code ec =
-          llvm::sys::fs::status(timeCompareFilePath, compareStat)) {
-    if (ec != std::errc::no_such_file_or_directory && ec != llvm::errc::delete_pending)
-      return makeError(timeCompareFilePath, ec);
-    return true;
-  }
-
-  // Return true (unit is up-to-date) if the file to compare is older than the
-  // unit file.
-  return compareStat.getLastModificationTime() <=
-         unitStat.getLastModificationTime();
-}
-
-/// Emit the symbolic swift interface file for an imported Clang module into the
-/// index store directory.
-///
-/// The swift interface file is emitted only when it doesn't exist yet, or when
-/// the PCM for the Clang module has been updated.
-///
-/// System modules without the 'cplusplus' requirement are not emitted.
-static void emitSymbolicInterfaceForClangModule(
-    ClangModuleUnit *clangModUnit, ModuleDecl *M,
-    const clang::Module *clangModule, StringRef indexStorePath,
-    const clang::CompilerInstance &clangCI, DiagnosticEngine &diags) {
-  if (!M->getASTContext().LangOpts.EnableCXXInterop)
-    return;
-  // Skip system modules without an explicit 'cplusplus' requirement.
-  bool isSystem = clangModUnit->isSystemModule();
-  if (isSystem && !importer::requiresCPlusPlus(clangModule))
-    return;
-
-  // Make sure the `interfaces` directory is created.
-  if (auto err = initSymbolicInterfaceStorePath(indexStorePath)) {
-    llvm::handleAllErrors(std::move(err), [&](const llvm::ECError &ec) {
-      diags.diagnose(SourceLoc(), diag::error_create_symbolic_interfaces_dir,
-                     ec.convertToErrorCode().message());
-    });
-    return;
-  }
-
-  auto moduleRef = clangModule->getASTFile();
-  if (!moduleRef)
-    return;
-
-  // Determine the output name for the symbolic interface file.
-  clang::serialization::ModuleFile *ModFile =
-      clangCI.getASTReader()->getModuleManager().lookup(*moduleRef);
-  assert(ModFile && "no module file loaded for module ?");
-  SmallString<128> interfaceOutputPath = indexStorePath;
-  appendSymbolicInterfaceToIndexStorePath(interfaceOutputPath);
-  appendSymbolicInterfaceClangModuleFilename(ModFile->FileName,
-                                             interfaceOutputPath);
-
-  // Check if the symbolic interface file is already up to date.
-  std::string error;
-  auto upToDate =
-      isFileUpToDateForOutputFile(interfaceOutputPath, ModFile->FileName);
-  if (!upToDate) {
-    llvm::handleAllErrors(
-        upToDate.takeError(), [&](const llvm::StringError &ec) {
-          diags.diagnose(SourceLoc(),
-                         diag::error_symbolic_interfaces_failed_status_check,
-                         ec.getMessage());
-        });
-    return;
-  }
-  if (M->getASTContext().LangOpts.EnableIndexingSystemModuleRemarks) {
-    diags.diagnose(SourceLoc(), diag::remark_emitting_symbolic_interface_module,
-                   interfaceOutputPath, *upToDate);
-  }
-  if (*upToDate)
-    return;
-
-  // Output the interface to a temporary file first.
-  SmallString<128> tempOutputPath = interfaceOutputPath;
-  tempOutputPath += "-%%%%%%%%";
-  int tempFD;
-  if (llvm::sys::fs::createUniqueFile(tempOutputPath.str(), tempFD,
-                                      tempOutputPath)) {
-    llvm::raw_string_ostream errOS(error);
-    errOS << "failed to create temporary file: " << tempOutputPath;
-    diags.diagnose(SourceLoc(), diag::error_write_symbolic_interface,
-                   errOS.str());
-    return;
-  }
-
-  llvm::raw_fd_ostream os(tempFD, /*shouldClose=*/true);
-  StreamPrinter printer(os);
-  ide::printSymbolicSwiftClangModuleInterface(M, printer, clangModule);
-  os.close();
-
-  if (os.has_error()) {
-    llvm::raw_string_ostream errOS(error);
-    errOS << "failed to write '" << tempOutputPath
-          << "': " << os.error().message();
-    diags.diagnose(SourceLoc(), diag::error_write_symbolic_interface,
-                   errOS.str());
-    os.clear_error();
-    llvm::sys::fs::remove(tempOutputPath);
-    return;
-  }
-
-  // Move the resulting output to the destination symbolic interface file.
-  std::error_code ec = llvm::sys::fs::rename(
-      /*from=*/tempOutputPath, /*to=*/interfaceOutputPath);
-  if (ec) {
-    llvm::raw_string_ostream errOS(error);
-    errOS << "failed to rename '" << tempOutputPath << "' to '"
-          << interfaceOutputPath << "': " << ec.message();
-    diags.diagnose(SourceLoc(), diag::error_write_symbolic_interface,
-                   errOS.str());
-    llvm::sys::fs::remove(tempOutputPath);
-    return;
-  }
-}
-
-static void emitTransitiveClangSymbolicInterfacesForSwiftModuleImports(
-    ArrayRef<ImportedModule> imports, StringRef indexStorePath,
-    const clang::CompilerInstance &clangCI, DiagnosticEngine &diags) {
-  auto &fileMgr = clangCI.getFileManager();
-  for (auto &import : imports) {
-    ModuleDecl *mod = import.importedModule;
-    if (mod->isOnoneSupportModule())
-      continue; // ignore the Onone support library.
-    if (mod->isSwiftShimsModule())
-      continue;
-
-    for (auto *FU : mod->getFiles()) {
-      switch (FU->getKind()) {
-      default:
-        break;
-      case FileUnitKind::SerializedAST:
-      case FileUnitKind::DWARFModule:
-      case FileUnitKind::ClangModule: {
-        auto *LFU = cast<LoadedFile>(FU);
-        if (auto F = fileMgr.getFile(LFU->getFilename())) {
-          if (FU->getKind() == FileUnitKind::ClangModule) {
-            auto clangModUnit = cast<ClangModuleUnit>(LFU);
-            if (auto clangMod = clangModUnit->getUnderlyingClangModule()) {
-              // Emit the symbolic interface file in addition to index data.
-              emitSymbolicInterfaceForClangModule(
-                  clangModUnit, mod, clangMod, indexStorePath, clangCI, diags);
-            }
-          }
-          // FIXME: We should keep recursing here into other Swift modules.
-        }
-      }
-      }
-    }
-  }
-}
 
 static void addModuleDependencies(ArrayRef<ImportedModule> imports,
                                   StringRef indexStorePath,
@@ -639,7 +446,7 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
     ModuleDecl *mod = import.importedModule;
     if (mod->isOnoneSupportModule())
       continue; // ignore the Onone support library.
-    if (mod->isSwiftShimsModule())
+    if (mod->isCodiraShimsModule())
       continue;
 
     for (auto *FU : mod->getFiles()) {
@@ -665,7 +472,7 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
         auto F = fileMgr.getFileRef(modulePath);
         if (!F) {
           // Ignore error and continue.
-          llvm::consumeError(F.takeError());
+          toolchain::consumeError(F.takeError());
           break;
         }
 
@@ -683,26 +490,21 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
           withoutUnitName = !shouldIndexModule;
           if (auto clangMod = clangModUnit->getUnderlyingClangModule()) {
             moduleName = clangMod->getTopLevelModuleName();
-            // FIXME: clang's -Rremarks do not seem to go through Swift's
+            // FIXME: clang's -Rremarks do not seem to go through Codira's
             // diagnostic emitter.
             if (shouldIndexModule)
               clang::index::emitIndexDataForModuleFile(clangMod,
                                                        clangCI, unitWriter);
-            // Emit the symbolic interface file in addition to index data.
-            if (indexClangModules)
-              emitSymbolicInterfaceForClangModule(clangModUnit, mod, clangMod,
-                                                  indexStorePath, clangCI,
-                                                  diags);
           }
         } else {
           // Serialized AST file.
           // Only index distributed system modules, and the stdlib.
-          // We don't officially support binary swift modules, so normally
+          // We don't officially support binary language modules, so normally
           // the index data for user modules would get generated while
           // building them.
           if (mod->isNonUserModule() && indexSystemModules &&
               (!skipStdlib || !mod->isStdlibModule())) {
-            emitDataForSwiftSerializedModule(mod, indexStorePath,
+            emitDataForCodiraSerializedModule(mod, indexStorePath,
                                              indexClangModules,
                                              indexSystemModules, skipStdlib,
                                              includeLocals,
@@ -722,14 +524,11 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
 
 
           // Emit symbolic interface files for any re-exported Clang modules
-          // from this Swift module.
+          // from this Codira module.
           if (mod->getASTContext().LangOpts.EnableCXXInterop) {
             SmallVector<ImportedModule, 4> imports;
             mod->getImportedModules(imports,
                                     ModuleDecl::ImportFilterKind::Exported);
-            if (indexClangModules)
-              emitTransitiveClangSymbolicInterfacesForSwiftModuleImports(
-                  imports, indexStorePath, clangCI, diags);
           }
         }
         clang::index::writer::OpaqueModule opaqMod =
@@ -746,7 +545,7 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
 
 /// \returns true if an error occurred.
 static bool
-emitDataForSwiftSerializedModule(ModuleDecl *module,
+emitDataForCodiraSerializedModule(ModuleDecl *module,
                                  StringRef indexStorePath,
                                  bool indexClangModules,
                                  bool indexSystemModules,
@@ -779,7 +578,7 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
   if (*isUptodateOpt)
     return false;
 
-  // Reload resilient modules from swiftinterface to avoid indexing
+  // Reload resilient modules from languageinterface to avoid indexing
   // internal details.
   bool skipIndexingModule = false;
   // Note, we are unable to reload from interface on an explicit module build
@@ -787,7 +586,7 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
       module->getResilienceStrategy() == ResilienceStrategy::Resilient &&
       !module->isBuiltFromInterface() &&
       !module->isStdlibModule()) {
-    llvm::SaveAndRestore<bool> S(ctx.IgnoreAdjacentModules, true);
+    toolchain::SaveAndRestore<bool> S(ctx.IgnoreAdjacentModules, true);
 
     ImportPath::Module::Builder builder(module->getName());
     auto reloadedModule = ctx.getModule(builder.get(),
@@ -796,14 +595,14 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
     if (reloadedModule) {
       module = reloadedModule;
     } else {
-      // If we can't rebuild from the swiftinterface, don't index this module.
+      // If we can't rebuild from the languageinterface, don't index this module.
       skipIndexingModule = true;
     }
   }
 
   // If this module is blocklisted from us using its textual interface,
   // then under Implicitly-Built modules it will not get indexed, since
-  // indexing will not be able to spawn swiftinterface compilation.
+  // indexing will not be able to spawn languageinterface compilation.
   // With explicitly-built modules, none of the dependency modules get built
   // from interface during indexing, which means we directly index input
   // binary modules.
@@ -828,7 +627,7 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
 
   if (skipIndexingModule) {
     // Don't add anything to records but keep going so we still mark the module
-    // as indexed to avoid rebuilds of broken swiftinterfaces.
+    // as indexed to avoid rebuilds of broken languageinterfaces.
   } else if (!module->isStdlibModule()) {
     std::string recordFile;
     bool failed = false;
@@ -844,7 +643,7 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
     // Record stdlib groups as if they were submodules.
 
     auto makeSubmoduleNameFromGroupName = [](StringRef groupName, SmallString<128> &buf) {
-      buf += "Swift";
+      buf += "Codira";
       if (groupName.empty())
         return;
       buf += '.';
@@ -891,7 +690,7 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
   auto &fileMgr = clangCI.getFileManager();
   bool isSystem = module->isNonUserModule();
   // FIXME: Get real values for the following.
-  StringRef swiftVersion;
+  StringRef languageVersion;
   StringRef sysrootPath = clangCI.getHeaderSearchOpts().Sysroot;
   // For indexing serialized modules 'debug compilation' is irrelevant, so
   // set it to true by default.
@@ -899,7 +698,7 @@ emitDataForSwiftSerializedModule(ModuleDecl *module,
   auto clangRemapper = pathRemapper.asClangPathRemapper();
 
   IndexUnitWriter unitWriter(
-      fileMgr, indexStorePath, "swift", swiftVersion, filename, moduleName,
+      fileMgr, indexStorePath, "language", languageVersion, filename, moduleName,
       /*MainFile=*/{}, isSystem, /*IsModuleUnit=*/true, isDebugCompilation,
       targetTriple, sysrootPath, clangRemapper, getModuleInfoFromOpaqueModule);
 
@@ -952,10 +751,10 @@ recordSourceFileUnit(SourceFile *primarySourceFile, StringRef indexUnitToken,
     return false;
 
   // FIXME: Get real values for the following.
-  StringRef swiftVersion;
+  StringRef languageVersion;
   StringRef sysrootPath = clangCI.getHeaderSearchOpts().Sysroot;
   IndexUnitWriter unitWriter(
-      fileMgr, indexStorePath, "swift", swiftVersion, indexUnitToken,
+      fileMgr, indexStorePath, "language", languageVersion, indexUnitToken,
       module->getNameStr(), *mainFile, isSystem,
       /*isModuleUnit=*/false, isDebugCompilation, targetTriple, sysrootPath,
       clangRemapper, getModuleInfoFromOpaqueModule);
@@ -996,7 +795,7 @@ recordSourceFileUnit(SourceFile *primarySourceFile, StringRef indexUnitToken,
 // Not currently used, see related comments in the call sites.
 #if 0
 static void
-collectFileDependencies(llvm::SetVector<const clang::FileEntry *> &result,
+collectFileDependencies(toolchain::SetVector<const clang::FileEntry *> &result,
                         const DependencyTracker &dependencyTracker,
                         ModuleDecl *module, clang::FileManager &fileMgr) {
   for (auto *F : module->getFiles()) {
@@ -1089,9 +888,9 @@ bool index::indexAndRecord(ModuleDecl *module,
     }
   }
 
-  // In the case where inputs are swift modules, like in the merge-module step,
+  // In the case where inputs are language modules, like in the merge-module step,
   // ignore the inputs; associated unit files for the modules' source inputs
-  // should have been generated at swift module creation time.
+  // should have been generated at language module creation time.
 
   return false;
 }

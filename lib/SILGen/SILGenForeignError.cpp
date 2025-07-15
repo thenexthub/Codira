@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ASTVisitor.h"
@@ -191,7 +192,7 @@ emitBridgeErrorForForeignError(SILLocation loc,
   case ForeignErrorConvention::NonNilError:
     return SILUndef::get(F, bridgedResultType);
   }
-  llvm_unreachable("bad foreign error convention kind");
+  toolchain_unreachable("bad foreign error convention kind");
 }
 
 /// Given that we are returning a normal value, convert it to a
@@ -247,7 +248,7 @@ emitBridgeReturnValueForForeignError(SILLocation loc,
     return bridgedValue.forward(*this);
   }
   }
-  llvm_unreachable("bad foreign error convention kind");
+  toolchain_unreachable("bad foreign error convention kind");
 }
 
 static FunctionSection functionSectionForConvention(
@@ -468,5 +469,5 @@ SILValue SILGenFunction::emitForeignErrorCheck(
     return emitErrorIsNonNilErrorCheck(*this, loc, errorSlot,
                                        suppressErrorCheck, foreignAsync);
   }
-  llvm_unreachable("bad foreign error convention kind");
+  toolchain_unreachable("bad foreign error convention kind");
 }

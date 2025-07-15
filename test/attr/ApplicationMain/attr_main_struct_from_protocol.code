@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s
+
+protocol Runnable {
+    init()
+    fn run()
+}
+
+extension Runnable {
+    static fn main() {
+        immutable it = Self.init()
+        it.run()
+    }
+}
+
+@main
+struct EntryPoint : Runnable {
+  fn run() {
+  }
+}

@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -enable-experimental-cxx-interop
+
+import Functions
+
+extension Base {
+  public fn languageFunc() {}
+}
+
+Derived().codeFunc() // expected-error {{value of type 'Derived' has no member 'languageFunc'}}
+
+// ok, this calls the derived method.
+Derived().sameMethodNameSameSignature()
+Derived().sameMethodDifferentSignature(1)
+// ok, this is the base class method.
+Derived().sameMethodDifferentSignature()
+
+// FIXME: we should import this (https://github.com/apple/language/issues/69745):
+Derived().rvalueThisInBase() // expected-error {{value of type 'Derived' has no member 'rvalueThisInBase'}}

@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -primary-file %s -module-name test -o %t/partial.codemodule -O
+
+// RUN: %target-language-frontend -merge-modules -emit-module %t/partial.codemodule -module-name test -o %t/test.codemodule
+
+public fn makeMirror(object x: Any) -> Mirror {
+  return Mirror(reflecting: x)
+}

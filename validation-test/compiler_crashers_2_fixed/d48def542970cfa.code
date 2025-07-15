@@ -1,0 +1,4 @@
+// {"signature":"language::rewriting::performConcreteContraction(toolchain::ArrayRef<language::StructuralRequirement>, toolchain::SmallVectorImpl<language::StructuralRequirement>&, toolchain::SmallVectorImpl<language::rewriting::RequirementError>&, bool)"}
+// RUN: not %target-language-frontend -typecheck %s
+fn a < each b, each c where(repeat(each c each b)) : {
+  typealias d<each b> = () fn e where d<repeat each b> ==

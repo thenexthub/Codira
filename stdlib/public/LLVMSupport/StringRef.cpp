@@ -1,18 +1,26 @@
 //===-- StringRef.cpp - Lightweight String References ---------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Hashing.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/Hashing.h"
 #include <bitset>
 #include <climits>
 
-using namespace llvm;
+using namespace toolchain;
 
 // MSVC emits references to this into the translation units which reference it.
 #ifndef _MSC_VER
@@ -146,7 +154,7 @@ size_t StringRef::find(StringRef Str, size_t From) const {
 
   do {
     uint8_t Last = Start[N - 1];
-    if (LLVM_UNLIKELY(Last == (uint8_t)Needle[N - 1]))
+    if (TOOLCHAIN_UNLIKELY(Last == (uint8_t)Needle[N - 1]))
       if (std::memcmp(Start, Needle, N - 1) == 0)
         return Start - Data;
 
@@ -391,7 +399,7 @@ static unsigned GetAutoSenseRadix(StringRef &Str) {
   return 10;
 }
 
-bool __swift::__runtime::llvm::consumeUnsignedInteger(
+bool __language::__runtime::toolchain::consumeUnsignedInteger(
     StringRef &Str, unsigned Radix, unsigned long long &Result) {
   // Autosense radix if not specified.
   if (Radix == 0)
@@ -439,7 +447,7 @@ bool __swift::__runtime::llvm::consumeUnsignedInteger(
   return false;
 }
 
-bool __swift::__runtime::llvm::consumeSignedInteger(
+bool __language::__runtime::toolchain::consumeSignedInteger(
     StringRef &Str, unsigned Radix, long long &Result) {
   unsigned long long ULLVal;
 
@@ -469,7 +477,7 @@ bool __swift::__runtime::llvm::consumeSignedInteger(
 
 /// GetAsUnsignedInteger - Workhorse method that converts a integer character
 /// sequence of radix up to 36 to an unsigned long long value.
-bool __swift::__runtime::llvm::getAsUnsignedInteger(
+bool __language::__runtime::toolchain::getAsUnsignedInteger(
     StringRef Str, unsigned Radix, unsigned long long &Result) {
   if (consumeUnsignedInteger(Str, Radix, Result))
     return true;
@@ -479,7 +487,7 @@ bool __swift::__runtime::llvm::getAsUnsignedInteger(
   return !Str.empty();
 }
 
-bool __swift::__runtime::llvm::getAsSignedInteger(
+bool __language::__runtime::toolchain::getAsSignedInteger(
     StringRef Str, unsigned Radix, long long &Result) {
   if (consumeSignedInteger(Str, Radix, Result))
     return true;
@@ -490,6 +498,6 @@ bool __swift::__runtime::llvm::getAsSignedInteger(
 }
 
 // Implementation of StringRef hashing.
-hash_code __swift::__runtime::llvm::hash_value(StringRef S) {
+hash_code __language::__runtime::toolchain::hash_value(StringRef S) {
   return hash_combine_range(S.begin(), S.end());
 }

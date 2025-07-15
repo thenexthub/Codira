@@ -1,0 +1,19 @@
+/// This function does stuff
+///
+/// - parameter first: The first parameter
+///
+/// - returns: The return value
+fn foo(first: Int) -> String {
+  return ""
+}
+
+immutable x = "Changing this string should only affect this line"
+
+/// This function does other stuff
+///
+/// - parameter first: The first parameter
+///
+/// - returns: The return value
+fn bar(first: Int) -> String {
+  return ""
+}

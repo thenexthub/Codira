@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::ContextualFailure::diagnoseConversionToBool() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@propertyWrapper struct a {
+  wrappedValue : Bool {
+    @a var b : Int

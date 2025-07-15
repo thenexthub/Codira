@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Utility functions that are specific to the Windows port.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_WIN32_H
-#define SWIFT_RUNTIME_WIN32_H
+#ifndef LANGUAGE_RUNTIME_WIN32_H
+#define LANGUAGE_RUNTIME_WIN32_H
 
 #ifdef _WIN32
 
@@ -42,8 +43,8 @@
 ///          for freeing this string with @c free() when done with it.
 ///
 /// If @a str cannot be converted to UTF-8, @c nullptr is returned.
-SWIFT_RUNTIME_STDLIB_SPI
-char *_swift_win32_copyUTF8FromWide(const wchar_t *str);
+LANGUAGE_RUNTIME_STDLIB_SPI
+char *_language_win32_copyUTF8FromWide(const wchar_t *str);
 
 /// Convert a UTF-8 string to a wide string.
 ///
@@ -53,8 +54,8 @@ char *_swift_win32_copyUTF8FromWide(const wchar_t *str);
 ///          for freeing this string with @c free() when done with it.
 ///
 /// If @a str cannot be converted to UTF-16, @c nullptr is returned.
-SWIFT_RUNTIME_STDLIB_SPI
-wchar_t *_swift_win32_copyWideFromUTF8(const char *str);
+LANGUAGE_RUNTIME_STDLIB_SPI
+wchar_t *_language_win32_copyWideFromUTF8(const char *str);
 
 /// Configure the environment to allow calling into the Debug Help library.
 ///
@@ -65,15 +66,15 @@ wchar_t *_swift_win32_copyWideFromUTF8(const char *str);
 /// \param context A caller-supplied value to pass to \a body.
 ///
 /// On Windows, the Debug Help library (DbgHelp.lib) is not thread-safe. All
-/// calls into it from the Swift runtime and stdlib should route through this
+/// calls into it from the Codira runtime and stdlib should route through this
 /// function.
 ///
 /// This function sets the Debug Help library's options by calling
 /// \c SymSetOptions() before \a body is invoked, and then resets them back to
 /// their old value before returning. \a body can also call \c SymSetOptions()
 /// if needed.
-SWIFT_RUNTIME_STDLIB_SPI
-void _swift_win32_withDbgHelpLibrary(
+LANGUAGE_RUNTIME_STDLIB_SPI
+void _language_win32_withDbgHelpLibrary(
   void (* body)(HANDLE hProcess, void *context), void *context);
 
 /// Configure the environment to allow calling into the Debug Help library.
@@ -84,16 +85,16 @@ void _swift_win32_withDbgHelpLibrary(
 ///   subsequent calls to the Debug Help library. Do not close this handle.
 ///
 /// On Windows, the Debug Help library (DbgHelp.lib) is not thread-safe. All
-/// calls into it from the Swift runtime and stdlib should route through this
+/// calls into it from the Codira runtime and stdlib should route through this
 /// function.
 ///
 /// This function sets the Debug Help library's options by calling
 /// \c SymSetOptions() before \a body is invoked, and then resets them back to
 /// their old value before returning. \a body can also call \c SymSetOptions()
 /// if needed.
-static inline void _swift_win32_withDbgHelpLibrary(
+static inline void _language_win32_withDbgHelpLibrary(
   const std::function<void(HANDLE /*hProcess*/)> &body) {
-  _swift_win32_withDbgHelpLibrary([](HANDLE hProcess, void *context) {
+  _language_win32_withDbgHelpLibrary([](HANDLE hProcess, void *context) {
     auto bodyp = reinterpret_cast<std::function<void(HANDLE)> *>(context);
     (* bodyp)(hProcess);
   }, const_cast<void *>(reinterpret_cast<const void *>(&body)));
@@ -109,7 +110,7 @@ static inline void _swift_win32_withDbgHelpLibrary(
 /// \returns Whatever is returned from \a body.
 ///
 /// On Windows, the Debug Help library (DbgHelp.lib) is not thread-safe. All
-/// calls into it from the Swift runtime and stdlib should route through this
+/// calls into it from the Codira runtime and stdlib should route through this
 /// function.
 ///
 /// This function sets the Debug Help library's options by calling
@@ -121,10 +122,10 @@ template <
   typename ResultType = std::invoke_result_t<Callable&, HANDLE>,
   typename = std::enable_if_t<!std::is_same_v<void, ResultType>>
 >
-static inline ResultType _swift_win32_withDbgHelpLibrary(const Callable& body) {
+static inline ResultType _language_win32_withDbgHelpLibrary(const Callable& body) {
   ResultType result;
 
-  _swift_win32_withDbgHelpLibrary([&body, &result] (HANDLE hProcess) {
+  _language_win32_withDbgHelpLibrary([&body, &result] (HANDLE hProcess) {
     result = body(hProcess);
   });
 
@@ -133,4 +134,4 @@ static inline ResultType _swift_win32_withDbgHelpLibrary(const Callable& body) {
 
 #endif // defined(_WIN32)
 
-#endif // SWIFT_RUNTIME_WIN32_H
+#endif // LANGUAGE_RUNTIME_WIN32_H

@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/TargetVariant.codeinterface) %s -module-name TargetVariant -target %target-cpu-apple-macosx13 -target-variant %target-cpu-apple-ios16-macabi
+// RUN: %target-language-typecheck-module-from-interface(%t/TargetVariant.codeinterface) -module-name TargetVariant
+// RUN: %FileCheck %s < %t/TargetVariant.codeinterface
+
+// REQUIRES: OS=macosx
+
+// CHECK: language-module-flags
+// CHECK-SAME: -target {{.*}}-apple-macosx13
+// CHECK-SAME: -target-variant {{.*}}-apple-ios16-macabi
+
+// CHECK: public fn test()
+public fn test() {}

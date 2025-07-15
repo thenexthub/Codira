@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines x-macros used for metaprogramming with the set of
@@ -52,89 +53,89 @@
   FUNCTION_ID(Id)
 #endif
 
-FUNCTION(AllocBox, Swift, swift_allocBox, SwiftCC, AlwaysAvailable,
+FUNCTION(AllocBox, Codira, language_allocBox, CodiraCC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy, OpaquePtrTy),
          ARGS(TypeMetadataPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
 
-//  BoxPair swift_makeBoxUnique(OpaqueValue *buffer, Metadata *type, size_t alignMask);
+//  BoxPair language_makeBoxUnique(OpaqueValue *buffer, Metadata *type, size_t alignMask);
 FUNCTION(MakeBoxUnique,
-         Swift, swift_makeBoxUnique,
-         SwiftCC, AlwaysAvailable,
+         Codira, language_makeBoxUnique,
+         CodiraCC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy, OpaquePtrTy),
          ARGS(OpaquePtrTy, TypeMetadataPtrTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(DeallocBox, Swift, swift_deallocBox, C_CC, AlwaysAvailable,
+FUNCTION(DeallocBox, Codira, language_deallocBox, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// swift_projectBox reads object metadata so cannot be marked ReadNone.
-FUNCTION(ProjectBox, Swift, swift_projectBox, C_CC, AlwaysAvailable,
+// language_projectBox reads object metadata so cannot be marked ReadNone.
+FUNCTION(ProjectBox, Codira, language_projectBox, C_CC, AlwaysAvailable,
          RETURNS(OpaquePtrTy),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::NoEffect),
          MEMEFFECTS(ArgMemReadOnly))
 
-FUNCTION(AllocEmptyBox, Swift, swift_allocEmptyBox, C_CC, AlwaysAvailable,
+FUNCTION(AllocEmptyBox, Codira, language_allocEmptyBox, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// RefCounted *swift_allocObject(Metadata *type, size_t size, size_t alignMask);
-FUNCTION(AllocObject, Swift, swift_allocObject, C_CC, AlwaysAvailable,
+// RefCounted *language_allocObject(Metadata *type, size_t size, size_t alignMask);
+FUNCTION(AllocObject, Codira, language_allocObject, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
 
-// HeapObject *swift_initStackObject(HeapMetadata const *metadata,
+// HeapObject *language_initStackObject(HeapMetadata const *metadata,
 //                                   HeapObject *object);
-FUNCTION(InitStackObject, Swift, swift_initStackObject, C_CC, AlwaysAvailable,
+FUNCTION(InitStackObject, Codira, language_initStackObject, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(TypeMetadataPtrTy, RefCountedPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// HeapObject *swift_initStaticObject(HeapMetadata const *metadata,
+// HeapObject *language_initStaticObject(HeapMetadata const *metadata,
 //                                    HeapObject *object);
-FUNCTION(InitStaticObject, Swift, swift_initStaticObject, C_CC, AlwaysAvailable,
+FUNCTION(InitStaticObject, Codira, language_initStaticObject, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(TypeMetadataPtrTy, RefCountedPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Locking),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_verifyEndOfLifetime(HeapObject *object);
-FUNCTION(VerifyEndOfLifetime, Swift, swift_verifyEndOfLifetime, C_CC, AlwaysAvailable,
+// void language_verifyEndOfLifetime(HeapObject *object);
+FUNCTION(VerifyEndOfLifetime, Codira, language_verifyEndOfLifetime, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_deallocObject(HeapObject *obj, size_t size, size_t alignMask);
-FUNCTION(DeallocObject, Swift, swift_deallocObject, C_CC, AlwaysAvailable,
+// void language_deallocObject(HeapObject *obj, size_t size, size_t alignMask);
+FUNCTION(DeallocObject, Codira, language_deallocObject, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, SizeTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_deallocUninitializedObject(HeapObject *obj, size_t size, size_t alignMask);
-FUNCTION(DeallocUninitializedObject, Swift, swift_deallocUninitializedObject,
+// void language_deallocUninitializedObject(HeapObject *obj, size_t size, size_t alignMask);
+FUNCTION(DeallocUninitializedObject, Codira, language_deallocUninitializedObject,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, SizeTy, SizeTy),
@@ -142,16 +143,16 @@ FUNCTION(DeallocUninitializedObject, Swift, swift_deallocUninitializedObject,
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_deallocClassInstance(HeapObject *obj, size_t size, size_t alignMask);
-FUNCTION(DeallocClassInstance, Swift, swift_deallocClassInstance, C_CC, AlwaysAvailable,
+// void language_deallocClassInstance(HeapObject *obj, size_t size, size_t alignMask);
+FUNCTION(DeallocClassInstance, Codira, language_deallocClassInstance, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, SizeTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_deallocPartialClassInstance(HeapObject *obj, HeapMetadata *type, size_t size, size_t alignMask);
-FUNCTION(DeallocPartialClassInstance, Swift, swift_deallocPartialClassInstance,
+// void language_deallocPartialClassInstance(HeapObject *obj, HeapMetadata *type, size_t size, size_t alignMask);
+FUNCTION(DeallocPartialClassInstance, Codira, language_deallocPartialClassInstance,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, TypeMetadataPtrTy, SizeTy, SizeTy),
@@ -159,88 +160,88 @@ FUNCTION(DeallocPartialClassInstance, Swift, swift_deallocPartialClassInstance,
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_slowAlloc(size_t size, size_t alignMask);
-FUNCTION(SlowAlloc, Swift, swift_slowAlloc, C_CC, AlwaysAvailable,
+// void *language_slowAlloc(size_t size, size_t alignMask);
+FUNCTION(SlowAlloc, Codira, language_slowAlloc, C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(SizeTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_slowDealloc(void *ptr, size_t size, size_t alignMask);
-FUNCTION(SlowDealloc, Swift, swift_slowDealloc, C_CC, AlwaysAvailable,
+// void language_slowDealloc(void *ptr, size_t size, size_t alignMask);
+FUNCTION(SlowDealloc, Codira, language_slowDealloc, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, SizeTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_willThrow(error *ptr);
-FUNCTION(WillThrow, Swift, swift_willThrow, SwiftCC, AlwaysAvailable,
+// void language_willThrow(error *ptr);
+FUNCTION(WillThrow, Codira, language_willThrow, CodiraCC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, ErrorPtrTy->getPointerTo()),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_errorInMain(error *ptr);
-FUNCTION(ErrorInMain, Swift, swift_errorInMain, SwiftCC, AlwaysAvailable,
+// void language_errorInMain(error *ptr);
+FUNCTION(ErrorInMain, Codira, language_errorInMain, CodiraCC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ErrorPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_unexpectedError(error *ptr);
-FUNCTION(UnexpectedError, Swift, swift_unexpectedError, SwiftCC, AlwaysAvailable,
+// void language_unexpectedError(error *ptr);
+FUNCTION(UnexpectedError, Codira, language_unexpectedError, CodiraCC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ErrorPtrTy),
          ATTRS(NoUnwind, NoReturn),
          EFFECT(RuntimeEffect::NoEffect, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_copyPOD(void *dest, void *src, Metadata *self);
-FUNCTION(CopyPOD, Swift, swift_copyPOD, C_CC, AlwaysAvailable,
+// void *language_copyPOD(void *dest, void *src, Metadata *self);
+FUNCTION(CopyPOD, Codira, language_copyPOD, C_CC, AlwaysAvailable,
          RETURNS(OpaquePtrTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, TypeMetadataPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_retain(void *ptr);
-FUNCTION(NativeStrongRetain, Swift, swift_retain, C_CC, AlwaysAvailable,
+// void *language_retain(void *ptr);
+FUNCTION(NativeStrongRetain, Codira, language_retain, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind, FirstParamReturned, WillReturn),
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_release(void *ptr);
-FUNCTION(NativeStrongRelease, Swift, swift_release, C_CC, AlwaysAvailable,
+// void language_release(void *ptr);
+FUNCTION(NativeStrongRelease, Codira, language_release, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_retain_n(void *ptr, int32_t n);
-FUNCTION(NativeStrongRetainN, Swift, swift_retain_n, C_CC, AlwaysAvailable,
+// void *language_retain_n(void *ptr, int32_t n);
+FUNCTION(NativeStrongRetainN, Codira, language_retain_n, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy, Int32Ty),
          ATTRS(NoUnwind, FirstParamReturned, WillReturn),
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_release_n(void *ptr, int32_t n);
-FUNCTION(NativeStrongReleaseN, Swift, swift_release_n, C_CC, AlwaysAvailable,
+// void *language_release_n(void *ptr, int32_t n);
+FUNCTION(NativeStrongReleaseN, Codira, language_release_n, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy, Int32Ty),
          ATTRS(NoUnwind, FirstParamReturned),
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_setDeallocating(void *ptr);
-FUNCTION(NativeSetDeallocating, Swift, swift_setDeallocating,
+// void language_setDeallocating(void *ptr);
+FUNCTION(NativeSetDeallocating, Codira, language_setDeallocating,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -248,24 +249,24 @@ FUNCTION(NativeSetDeallocating, Swift, swift_setDeallocating,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_nonatomic_retain_n(void *ptr, int32_t n);
-FUNCTION(NativeNonAtomicStrongRetainN, Swift, swift_nonatomic_retain_n, C_CC, AlwaysAvailable,
+// void *language_nonatomic_retain_n(void *ptr, int32_t n);
+FUNCTION(NativeNonAtomicStrongRetainN, Codira, language_nonatomic_retain_n, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy, Int32Ty),
          ATTRS(NoUnwind, FirstParamReturned, WillReturn),
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_release_n(void *ptr, int32_t n);
-FUNCTION(NativeNonAtomicStrongReleaseN, Swift, swift_nonatomic_release_n, C_CC, AlwaysAvailable,
+// void language_nonatomic_release_n(void *ptr, int32_t n);
+FUNCTION(NativeNonAtomicStrongReleaseN, Codira, language_nonatomic_release_n, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, Int32Ty),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_unknownObjectRetain_n(void *ptr, int32_t n);
-FUNCTION(UnknownObjectRetainN, Swift, swift_unknownObjectRetain_n,
+// void *language_unknownObjectRetain_n(void *ptr, int32_t n);
+FUNCTION(UnknownObjectRetainN, Codira, language_unknownObjectRetain_n,
          C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy, Int32Ty),
@@ -273,8 +274,8 @@ FUNCTION(UnknownObjectRetainN, Swift, swift_unknownObjectRetain_n,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_unknownObjectRelease_n(void *ptr, int32_t n);
-FUNCTION(UnknownObjectReleaseN, Swift, swift_unknownObjectRelease_n,
+// void language_unknownObjectRelease_n(void *ptr, int32_t n);
+FUNCTION(UnknownObjectReleaseN, Codira, language_unknownObjectRelease_n,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, Int32Ty),
@@ -282,8 +283,8 @@ FUNCTION(UnknownObjectReleaseN, Swift, swift_unknownObjectRelease_n,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_nonatomic_unknownObjectRetain_n(void *ptr, int32_t n);
-FUNCTION(NonAtomicUnknownObjectRetainN, Swift, swift_nonatomic_unknownObjectRetain_n,
+// void *language_nonatomic_unknownObjectRetain_n(void *ptr, int32_t n);
+FUNCTION(NonAtomicUnknownObjectRetainN, Codira, language_nonatomic_unknownObjectRetain_n,
          C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy, Int32Ty),
@@ -291,8 +292,8 @@ FUNCTION(NonAtomicUnknownObjectRetainN, Swift, swift_nonatomic_unknownObjectReta
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_unknownObjectRelease_n(void *ptr, int32_t n);
-FUNCTION(NonAtomicUnknownObjectReleaseN, Swift, swift_nonatomic_unknownObjectRelease_n,
+// void language_nonatomic_unknownObjectRelease_n(void *ptr, int32_t n);
+FUNCTION(NonAtomicUnknownObjectReleaseN, Codira, language_nonatomic_unknownObjectRelease_n,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy, Int32Ty),
@@ -300,8 +301,8 @@ FUNCTION(NonAtomicUnknownObjectReleaseN, Swift, swift_nonatomic_unknownObjectRel
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_bridgeObjectRetain_n(void *ptr, int32_t n);
-FUNCTION(BridgeObjectRetainN, Swift, swift_bridgeObjectRetain_n,
+// void language_bridgeObjectRetain_n(void *ptr, int32_t n);
+FUNCTION(BridgeObjectRetainN, Codira, language_bridgeObjectRetain_n,
          C_CC, AlwaysAvailable,
          RETURNS(BridgeObjectPtrTy),
          ARGS(BridgeObjectPtrTy, Int32Ty),
@@ -309,8 +310,8 @@ FUNCTION(BridgeObjectRetainN, Swift, swift_bridgeObjectRetain_n,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_bridgeObjectRelease_n(void *ptr, int32_t n);
-FUNCTION(BridgeObjectReleaseN, Swift, swift_bridgeObjectRelease_n,
+// void language_bridgeObjectRelease_n(void *ptr, int32_t n);
+FUNCTION(BridgeObjectReleaseN, Codira, language_bridgeObjectRelease_n,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(BridgeObjectPtrTy, Int32Ty),
@@ -318,8 +319,8 @@ FUNCTION(BridgeObjectReleaseN, Swift, swift_bridgeObjectRelease_n,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_bridgeObjectRetain_n(void *ptr, int32_t n);
-FUNCTION(NonAtomicBridgeObjectRetainN, Swift, swift_nonatomic_bridgeObjectRetain_n,
+// void language_nonatomic_bridgeObjectRetain_n(void *ptr, int32_t n);
+FUNCTION(NonAtomicBridgeObjectRetainN, Codira, language_nonatomic_bridgeObjectRetain_n,
          C_CC, AlwaysAvailable,
          RETURNS(BridgeObjectPtrTy),
          ARGS(BridgeObjectPtrTy, Int32Ty),
@@ -327,8 +328,8 @@ FUNCTION(NonAtomicBridgeObjectRetainN, Swift, swift_nonatomic_bridgeObjectRetain
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_bridgeObjectRelease_n(void *ptr, int32_t n);
-FUNCTION(NonAtomicBridgeObjectReleaseN, Swift, swift_nonatomic_bridgeObjectRelease_n,
+// void language_nonatomic_bridgeObjectRelease_n(void *ptr, int32_t n);
+FUNCTION(NonAtomicBridgeObjectReleaseN, Codira, language_nonatomic_bridgeObjectRelease_n,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(BridgeObjectPtrTy, Int32Ty),
@@ -336,8 +337,8 @@ FUNCTION(NonAtomicBridgeObjectReleaseN, Swift, swift_nonatomic_bridgeObjectRelea
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_nonatomic_retain(void *ptr);
-FUNCTION(NativeNonAtomicStrongRetain, Swift, swift_nonatomic_retain,
+// void *language_nonatomic_retain(void *ptr);
+FUNCTION(NativeNonAtomicStrongRetain, Codira, language_nonatomic_retain,
          C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy),
@@ -345,8 +346,8 @@ FUNCTION(NativeNonAtomicStrongRetain, Swift, swift_nonatomic_retain,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_release(void *ptr);
-FUNCTION(NativeNonAtomicStrongRelease, Swift, swift_nonatomic_release,
+// void language_nonatomic_release(void *ptr);
+FUNCTION(NativeNonAtomicStrongRelease, Codira, language_nonatomic_release,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -354,32 +355,32 @@ FUNCTION(NativeNonAtomicStrongRelease, Swift, swift_nonatomic_release,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_tryRetain(void *ptr);
-FUNCTION(NativeTryRetain, Swift, swift_tryRetain, C_CC, AlwaysAvailable,
+// void *language_tryRetain(void *ptr);
+FUNCTION(NativeTryRetain, Codira, language_tryRetain, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Locking),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isDeallocating(void *ptr);
-FUNCTION(IsDeallocating, Swift, swift_isDeallocating, C_CC, AlwaysAvailable,
+// bool language_isDeallocating(void *ptr);
+FUNCTION(IsDeallocating, Codira, language_isDeallocating, C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(RefCountedPtrTy),
          ATTRS(NoUnwind, ZExt, WillReturn),
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_unknownObjectRetain(void *ptr);
-FUNCTION(UnknownObjectRetain, Swift, swift_unknownObjectRetain, C_CC, AlwaysAvailable,
+// void *language_unknownObjectRetain(void *ptr);
+FUNCTION(UnknownObjectRetain, Codira, language_unknownObjectRetain, C_CC, AlwaysAvailable,
          RETURNS(UnknownRefCountedPtrTy),
          ARGS(UnknownRefCountedPtrTy),
          ATTRS(NoUnwind, FirstParamReturned),
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_unknownObjectRelease(void *ptr);
-FUNCTION(UnknownObjectRelease, Swift, swift_unknownObjectRelease,
+// void language_unknownObjectRelease(void *ptr);
+FUNCTION(UnknownObjectRelease, Codira, language_unknownObjectRelease,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(UnknownRefCountedPtrTy),
@@ -387,8 +388,8 @@ FUNCTION(UnknownObjectRelease, Swift, swift_unknownObjectRelease,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_nonatomic_unknownObjectRetain(void *ptr);
-FUNCTION(NonAtomicUnknownObjectRetain, Swift, swift_nonatomic_unknownObjectRetain,
+// void *language_nonatomic_unknownObjectRetain(void *ptr);
+FUNCTION(NonAtomicUnknownObjectRetain, Codira, language_nonatomic_unknownObjectRetain,
          C_CC, AlwaysAvailable,
          RETURNS(UnknownRefCountedPtrTy),
          ARGS(UnknownRefCountedPtrTy),
@@ -396,8 +397,8 @@ FUNCTION(NonAtomicUnknownObjectRetain, Swift, swift_nonatomic_unknownObjectRetai
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_unknownObjectRelease(void *ptr);
-FUNCTION(NonAtomicUnknownObjectRelease, Swift, swift_nonatomic_unknownObjectRelease,
+// void language_nonatomic_unknownObjectRelease(void *ptr);
+FUNCTION(NonAtomicUnknownObjectRelease, Codira, language_nonatomic_unknownObjectRelease,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(UnknownRefCountedPtrTy),
@@ -405,8 +406,8 @@ FUNCTION(NonAtomicUnknownObjectRelease, Swift, swift_nonatomic_unknownObjectRele
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_bridgeObjectRetain(void *ptr);
-FUNCTION(BridgeObjectStrongRetain, Swift, swift_bridgeObjectRetain,
+// void *language_bridgeObjectRetain(void *ptr);
+FUNCTION(BridgeObjectStrongRetain, Codira, language_bridgeObjectRetain,
          C_CC, AlwaysAvailable,
          RETURNS(BridgeObjectPtrTy),
          ARGS(BridgeObjectPtrTy),
@@ -414,8 +415,8 @@ FUNCTION(BridgeObjectStrongRetain, Swift, swift_bridgeObjectRetain,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_bridgeRelease(void *ptr);
-FUNCTION(BridgeObjectStrongRelease, Swift, swift_bridgeObjectRelease,
+// void language_bridgeRelease(void *ptr);
+FUNCTION(BridgeObjectStrongRelease, Codira, language_bridgeObjectRelease,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(BridgeObjectPtrTy),
@@ -423,8 +424,8 @@ FUNCTION(BridgeObjectStrongRelease, Swift, swift_bridgeObjectRelease,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_nonatomic_bridgeObjectRetain(void *ptr);
-FUNCTION(NonAtomicBridgeObjectStrongRetain, Swift, swift_nonatomic_bridgeObjectRetain,
+// void *language_nonatomic_bridgeObjectRetain(void *ptr);
+FUNCTION(NonAtomicBridgeObjectStrongRetain, Codira, language_nonatomic_bridgeObjectRetain,
          C_CC, AlwaysAvailable,
          RETURNS(BridgeObjectPtrTy),
          ARGS(BridgeObjectPtrTy),
@@ -432,9 +433,9 @@ FUNCTION(NonAtomicBridgeObjectStrongRetain, Swift, swift_nonatomic_bridgeObjectR
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonatomic_bridgeRelease(void *ptr);
+// void language_nonatomic_bridgeRelease(void *ptr);
 FUNCTION(NonAtomicBridgeObjectStrongRelease,
-         Swift, swift_nonatomic_bridgeObjectRelease,
+         Codira, language_nonatomic_bridgeObjectRelease,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(BridgeObjectPtrTy),
@@ -443,8 +444,8 @@ FUNCTION(NonAtomicBridgeObjectStrongRelease,
          UNKNOWN_MEMEFFECTS)
 
 
-// error *swift_errorRetain(error *ptr);
-FUNCTION(ErrorStrongRetain, Swift, swift_errorRetain,
+// error *language_errorRetain(error *ptr);
+FUNCTION(ErrorStrongRetain, Codira, language_errorRetain,
          C_CC, AlwaysAvailable,
          RETURNS(ErrorPtrTy),
          ARGS(ErrorPtrTy),
@@ -452,8 +453,8 @@ FUNCTION(ErrorStrongRetain, Swift, swift_errorRetain,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_errorRelease(void *ptr);
-FUNCTION(ErrorStrongRelease, Swift, swift_errorRelease,
+// void language_errorRelease(void *ptr);
+FUNCTION(ErrorStrongRelease, Codira, language_errorRelease,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ErrorPtrTy),
@@ -462,72 +463,72 @@ FUNCTION(ErrorStrongRelease, Swift, swift_errorRelease,
          UNKNOWN_MEMEFFECTS)
 
 #define NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Nativeness, SymName, UnknownPrefix) \
-  /* void swift_##SymName##Destroy(Name##Reference *object); */ \
-  FUNCTION(Nativeness##Name##Destroy, Swift, swift_##SymName##Destroy, \
+  /* void language_##SymName##Destroy(Name##Reference *object); */ \
+  FUNCTION(Nativeness##Name##Destroy, Codira, language_##SymName##Destroy, \
            C_CC, AlwaysAvailable, \
            RETURNS(VoidTy), \
            ARGS(Name##ReferencePtrTy), \
            ATTRS(NoUnwind), \
            EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating), \
            UNKNOWN_MEMEFFECTS) \
-  /* void swift_##SymName##Init(Name##Reference *object, void *value); */ \
-  FUNCTION(Nativeness##Name##Init, Swift, swift_##SymName##Init, \
+  /* void language_##SymName##Init(Name##Reference *object, void *value); */ \
+  FUNCTION(Nativeness##Name##Init, Codira, language_##SymName##Init, \
            C_CC, AlwaysAvailable, \
            RETURNS(Name##ReferencePtrTy), \
            ARGS(Name##ReferencePtrTy, UnknownPrefix##RefCountedPtrTy), \
            ATTRS(NoUnwind, FirstParamReturned, WillReturn), \
            EFFECT(RuntimeEffect::NoEffect), \
            UNKNOWN_MEMEFFECTS) \
-  /* Name##Reference *swift_##SymName##Assign(Name##Reference *object, void *value); */ \
-  FUNCTION(Nativeness##Name##Assign, Swift, swift_##SymName##Assign, \
+  /* Name##Reference *language_##SymName##Assign(Name##Reference *object, void *value); */ \
+  FUNCTION(Nativeness##Name##Assign, Codira, language_##SymName##Assign, \
            C_CC, AlwaysAvailable, \
            RETURNS(Name##ReferencePtrTy), \
            ARGS(Name##ReferencePtrTy, UnknownPrefix##RefCountedPtrTy), \
            ATTRS(NoUnwind, FirstParamReturned), \
            EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating), \
            UNKNOWN_MEMEFFECTS) \
-  /* void *swift_##SymName##Load(Name##Reference *object); */ \
-  FUNCTION(Nativeness##Name##LoadStrong, Swift, swift_##SymName##LoadStrong, \
+  /* void *language_##SymName##Load(Name##Reference *object); */ \
+  FUNCTION(Nativeness##Name##LoadStrong, Codira, language_##SymName##LoadStrong, \
            C_CC, AlwaysAvailable, \
            RETURNS(UnknownPrefix##RefCountedPtrTy), \
            ARGS(Name##ReferencePtrTy), \
            ATTRS(NoUnwind, WillReturn), \
            EFFECT(RuntimeEffect::NoEffect), \
            UNKNOWN_MEMEFFECTS) \
-  /* void *swift_##SymName##Take(Name##Reference *object); */ \
-  FUNCTION(Nativeness##Name##TakeStrong, Swift, swift_##SymName##TakeStrong, \
+  /* void *language_##SymName##Take(Name##Reference *object); */ \
+  FUNCTION(Nativeness##Name##TakeStrong, Codira, language_##SymName##TakeStrong, \
            C_CC, AlwaysAvailable, \
            RETURNS(UnknownPrefix##RefCountedPtrTy), \
            ARGS(Name##ReferencePtrTy), \
            ATTRS(NoUnwind, WillReturn), \
            EFFECT(RuntimeEffect::NoEffect), \
            UNKNOWN_MEMEFFECTS) \
-  /* Name##Reference *swift_##SymName##CopyInit(Name##Reference *dest, Name##Reference *src); */ \
-  FUNCTION(Nativeness##Name##CopyInit, Swift, swift_##SymName##CopyInit, \
+  /* Name##Reference *language_##SymName##CopyInit(Name##Reference *dest, Name##Reference *src); */ \
+  FUNCTION(Nativeness##Name##CopyInit, Codira, language_##SymName##CopyInit, \
            C_CC, AlwaysAvailable, \
            RETURNS(Name##ReferencePtrTy), \
            ARGS(Name##ReferencePtrTy, Name##ReferencePtrTy), \
            ATTRS(NoUnwind, FirstParamReturned, WillReturn), \
            EFFECT(RuntimeEffect::RefCounting), \
            UNKNOWN_MEMEFFECTS) \
-  /* void *swift_##SymName##TakeInit(Name##Reference *dest, Name##Reference *src); */ \
-  FUNCTION(Nativeness##Name##TakeInit, Swift, swift_##SymName##TakeInit, \
+  /* void *language_##SymName##TakeInit(Name##Reference *dest, Name##Reference *src); */ \
+  FUNCTION(Nativeness##Name##TakeInit, Codira, language_##SymName##TakeInit, \
            C_CC, AlwaysAvailable, \
            RETURNS(Name##ReferencePtrTy), \
            ARGS(Name##ReferencePtrTy, Name##ReferencePtrTy), \
            ATTRS(NoUnwind, FirstParamReturned, WillReturn), \
            EFFECT(RuntimeEffect::NoEffect), \
            UNKNOWN_MEMEFFECTS) \
-  /* Name##Reference *swift_##SymName##CopyAssign(Name##Reference *dest, Name##Reference *src); */ \
-  FUNCTION(Nativeness##Name##CopyAssign, Swift, swift_##SymName##CopyAssign, \
+  /* Name##Reference *language_##SymName##CopyAssign(Name##Reference *dest, Name##Reference *src); */ \
+  FUNCTION(Nativeness##Name##CopyAssign, Codira, language_##SymName##CopyAssign, \
            C_CC, AlwaysAvailable, \
            RETURNS(Name##ReferencePtrTy), \
            ARGS(Name##ReferencePtrTy, Name##ReferencePtrTy), \
            ATTRS(NoUnwind, FirstParamReturned), \
            EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating), \
            UNKNOWN_MEMEFFECTS) \
-  /* Name##Reference *swift_##SymName##TakeAssign(Name##Reference *dest, Name##Reference *src); */ \
-  FUNCTION(Nativeness##Name##TakeAssign, Swift, swift_##SymName##TakeAssign, \
+  /* Name##Reference *language_##SymName##TakeAssign(Name##Reference *dest, Name##Reference *src); */ \
+  FUNCTION(Nativeness##Name##TakeAssign, Codira, language_##SymName##TakeAssign, \
            C_CC, AlwaysAvailable, \
            RETURNS(Name##ReferencePtrTy), \
            ARGS(Name##ReferencePtrTy, Name##ReferencePtrTy), \
@@ -539,33 +540,33 @@ FUNCTION(ErrorStrongRelease, Swift, swift_errorRelease,
   NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Native, name, ) \
   NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, Unknown, unknownObject##Name, Unknown)
 #define LOADABLE_CHECKED_REF_STORAGE_HELPER(Name, name, Prefix, prefix) \
-  /* void *swift_##prefix##name##Retain(void *ptr); */ \
-  FUNCTION(Prefix##Name##Retain, Swift, swift_##prefix##name##Retain, \
+  /* void *language_##prefix##name##Retain(void *ptr); */ \
+  FUNCTION(Prefix##Name##Retain, Codira, language_##prefix##name##Retain, \
            C_CC, AlwaysAvailable, \
            RETURNS(RefCountedPtrTy), \
            ARGS(RefCountedPtrTy), \
            ATTRS(NoUnwind, FirstParamReturned, WillReturn), \
            EFFECT(RuntimeEffect::RefCounting), \
            UNKNOWN_MEMEFFECTS) \
-  /* void swift_##prefix##name##Release(void *ptr); */ \
-  FUNCTION(Prefix##Name##Release, Swift, swift_##prefix##name##Release, \
+  /* void language_##prefix##name##Release(void *ptr); */ \
+  FUNCTION(Prefix##Name##Release, Codira, language_##prefix##name##Release, \
            C_CC, AlwaysAvailable, \
            RETURNS(VoidTy), \
            ARGS(RefCountedPtrTy), \
            ATTRS(NoUnwind), \
            EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating), \
            UNKNOWN_MEMEFFECTS) \
-  /* void *swift_##prefix##name##RetainStrong(void *ptr); */ \
-  FUNCTION(Prefix##StrongRetain##Name, Swift, swift_##prefix##name##RetainStrong, \
+  /* void *language_##prefix##name##RetainStrong(void *ptr); */ \
+  FUNCTION(Prefix##StrongRetain##Name, Codira, language_##prefix##name##RetainStrong, \
            C_CC, AlwaysAvailable, \
            RETURNS(RefCountedPtrTy), \
            ARGS(RefCountedPtrTy), \
            ATTRS(NoUnwind, FirstParamReturned, WillReturn), \
            EFFECT(RuntimeEffect::RefCounting), \
            UNKNOWN_MEMEFFECTS) \
-  /* void swift_##prefix##name##RetainStrongAndRelease(void *ptr); */ \
+  /* void language_##prefix##name##RetainStrongAndRelease(void *ptr); */ \
   FUNCTION(Prefix##StrongRetainAnd##Name##Release, \
-           Swift, swift_##prefix##name##RetainStrongAndRelease, \
+           Codira, language_##prefix##name##RetainStrongAndRelease, \
            C_CC, AlwaysAvailable, \
            RETURNS(VoidTy), \
            ARGS(RefCountedPtrTy), \
@@ -583,8 +584,8 @@ FUNCTION(ErrorStrongRelease, Swift, swift_errorRelease,
 #undef NEVER_LOADABLE_CHECKED_REF_STORAGE_HELPER
 #undef LOADABLE_CHECKED_REF_STORAGE_HELPER
 
-// bool swift_isUniquelyReferencedNonObjC(const void *);
-FUNCTION(IsUniquelyReferencedNonObjC, Swift, swift_isUniquelyReferencedNonObjC,
+// bool language_isUniquelyReferencedNonObjC(const void *);
+FUNCTION(IsUniquelyReferencedNonObjC, Codira, language_isUniquelyReferencedNonObjC,
          C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(UnknownRefCountedPtrTy),
@@ -592,9 +593,9 @@ FUNCTION(IsUniquelyReferencedNonObjC, Swift, swift_isUniquelyReferencedNonObjC,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferencedNonObjC_nonNull(const void *);
+// bool language_isUniquelyReferencedNonObjC_nonNull(const void *);
 FUNCTION(IsUniquelyReferencedNonObjC_nonNull,
-         Swift, swift_isUniquelyReferencedNonObjC_nonNull,
+         Codira, language_isUniquelyReferencedNonObjC_nonNull,
          C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(UnknownRefCountedPtrTy),
@@ -602,10 +603,10 @@ FUNCTION(IsUniquelyReferencedNonObjC_nonNull,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferencedNonObjC_nonNull_bridgeObject(
+// bool language_isUniquelyReferencedNonObjC_nonNull_bridgeObject(
 //   uintptr_t bits);
 FUNCTION(IsUniquelyReferencedNonObjC_nonNull_bridgeObject,
-         Swift, swift_isUniquelyReferencedNonObjC_nonNull_bridgeObject,
+         Codira, language_isUniquelyReferencedNonObjC_nonNull_bridgeObject,
          C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(BridgeObjectPtrTy),
@@ -613,8 +614,8 @@ FUNCTION(IsUniquelyReferencedNonObjC_nonNull_bridgeObject,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferenced(const void *);
-FUNCTION(IsUniquelyReferenced, Swift, swift_isUniquelyReferenced,
+// bool language_isUniquelyReferenced(const void *);
+FUNCTION(IsUniquelyReferenced, Codira, language_isUniquelyReferenced,
          C_CC, ObjCIsUniquelyReferencedAvailability,
          RETURNS(Int1Ty),
          ARGS(UnknownRefCountedPtrTy),
@@ -622,9 +623,9 @@ FUNCTION(IsUniquelyReferenced, Swift, swift_isUniquelyReferenced,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferenced_nonNull(const void *);
+// bool language_isUniquelyReferenced_nonNull(const void *);
 FUNCTION(IsUniquelyReferenced_nonNull,
-         Swift, swift_isUniquelyReferenced_nonNull,
+         Codira, language_isUniquelyReferenced_nonNull,
          C_CC, ObjCIsUniquelyReferencedAvailability,
          RETURNS(Int1Ty),
          ARGS(UnknownRefCountedPtrTy),
@@ -632,10 +633,10 @@ FUNCTION(IsUniquelyReferenced_nonNull,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferenced_nonNull_bridgeObject(
+// bool language_isUniquelyReferenced_nonNull_bridgeObject(
 //   uintptr_t bits);
 FUNCTION(IsUniquelyReferenced_nonNull_bridgeObject,
-         Swift, swift_isUniquelyReferenced_nonNull_bridgeObject,
+         Codira, language_isUniquelyReferenced_nonNull_bridgeObject,
          C_CC, ObjCIsUniquelyReferencedAvailability,
          RETURNS(Int1Ty),
          ARGS(BridgeObjectPtrTy),
@@ -643,8 +644,8 @@ FUNCTION(IsUniquelyReferenced_nonNull_bridgeObject,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferenced_native(const struct HeapObject *);
-FUNCTION(IsUniquelyReferenced_native, Swift, swift_isUniquelyReferenced_native,
+// bool language_isUniquelyReferenced_native(const struct HeapObject *);
+FUNCTION(IsUniquelyReferenced_native, Codira, language_isUniquelyReferenced_native,
          C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(RefCountedPtrTy),
@@ -652,9 +653,9 @@ FUNCTION(IsUniquelyReferenced_native, Swift, swift_isUniquelyReferenced_native,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isUniquelyReferenced_nonNull_native(const struct HeapObject *);
+// bool language_isUniquelyReferenced_nonNull_native(const struct HeapObject *);
 FUNCTION(IsUniquelyReferenced_nonNull_native,
-         Swift, swift_isUniquelyReferenced_nonNull_native,
+         Codira, language_isUniquelyReferenced_nonNull_native,
          C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(RefCountedPtrTy),
@@ -662,13 +663,13 @@ FUNCTION(IsUniquelyReferenced_nonNull_native,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// bool swift_isEscapingClosureAtFileLocation(const struct HeapObject *object,
+// bool language_isEscapingClosureAtFileLocation(const struct HeapObject *object,
 //                                            const unsigned char *filename,
 //                                            int32_t filenameLength,
 //                                            int32_t line,
 //                                            int32_t col,
 //                                            unsigned type);
-FUNCTION(IsEscapingClosureAtFileLocation, Swift, swift_isEscapingClosureAtFileLocation,
+FUNCTION(IsEscapingClosureAtFileLocation, Codira, language_isEscapingClosureAtFileLocation,
          C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(RefCountedPtrTy, Int8PtrTy, Int32Ty, Int32Ty, Int32Ty, Int32Ty),
@@ -676,8 +677,8 @@ FUNCTION(IsEscapingClosureAtFileLocation, Swift, swift_isEscapingClosureAtFileLo
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayInitWithCopy(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayInitWithCopy, Swift, swift_arrayInitWithCopy,
+// void language_arrayInitWithCopy(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayInitWithCopy, Codira, language_arrayInitWithCopy,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -685,8 +686,8 @@ FUNCTION(ArrayInitWithCopy, Swift, swift_arrayInitWithCopy,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayInitWithTakeNoAlias(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayInitWithTakeNoAlias, Swift, swift_arrayInitWithTakeNoAlias,
+// void language_arrayInitWithTakeNoAlias(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayInitWithTakeNoAlias, Codira, language_arrayInitWithTakeNoAlias,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -694,8 +695,8 @@ FUNCTION(ArrayInitWithTakeNoAlias, Swift, swift_arrayInitWithTakeNoAlias,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayInitWithTakeFrontToBack(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayInitWithTakeFrontToBack, Swift, swift_arrayInitWithTakeFrontToBack,
+// void language_arrayInitWithTakeFrontToBack(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayInitWithTakeFrontToBack, Codira, language_arrayInitWithTakeFrontToBack,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -703,8 +704,8 @@ FUNCTION(ArrayInitWithTakeFrontToBack, Swift, swift_arrayInitWithTakeFrontToBack
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayInitWithTakeBackToFront(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayInitWithTakeBackToFront, Swift, swift_arrayInitWithTakeBackToFront,
+// void language_arrayInitWithTakeBackToFront(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayInitWithTakeBackToFront, Codira, language_arrayInitWithTakeBackToFront,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -712,8 +713,8 @@ FUNCTION(ArrayInitWithTakeBackToFront, Swift, swift_arrayInitWithTakeBackToFront
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayAssignWithCopyNoAlias(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayAssignWithCopyNoAlias, Swift, swift_arrayAssignWithCopyNoAlias,
+// void language_arrayAssignWithCopyNoAlias(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayAssignWithCopyNoAlias, Codira, language_arrayAssignWithCopyNoAlias,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -721,8 +722,8 @@ FUNCTION(ArrayAssignWithCopyNoAlias, Swift, swift_arrayAssignWithCopyNoAlias,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayAssignWithCopyFrontToBack(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayAssignWithCopyFrontToBack, Swift, swift_arrayAssignWithCopyFrontToBack,
+// void language_arrayAssignWithCopyFrontToBack(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayAssignWithCopyFrontToBack, Codira, language_arrayAssignWithCopyFrontToBack,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -730,8 +731,8 @@ FUNCTION(ArrayAssignWithCopyFrontToBack, Swift, swift_arrayAssignWithCopyFrontTo
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayAssignWithCopyBackToFront(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayAssignWithCopyBackToFront, Swift, swift_arrayAssignWithCopyBackToFront,
+// void language_arrayAssignWithCopyBackToFront(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayAssignWithCopyBackToFront, Codira, language_arrayAssignWithCopyBackToFront,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
@@ -739,27 +740,27 @@ FUNCTION(ArrayAssignWithCopyBackToFront, Swift, swift_arrayAssignWithCopyBackToF
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayAssignWithTake(opaque*, opaque*, size_t, type*);
-FUNCTION(ArrayAssignWithTake, Swift, swift_arrayAssignWithTake, C_CC, AlwaysAvailable,
+// void language_arrayAssignWithTake(opaque*, opaque*, size_t, type*);
+FUNCTION(ArrayAssignWithTake, Codira, language_arrayAssignWithTake, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_arrayDestroy(opaque*, size_t, type*);
-FUNCTION(ArrayDestroy, Swift, swift_arrayDestroy, C_CC, AlwaysAvailable,
+// void language_arrayDestroy(opaque*, size_t, type*);
+FUNCTION(ArrayDestroy, Codira, language_arrayDestroy, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, SizeTy, TypeMetadataPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// Metadata *swift_getFunctionTypeMetadata(unsigned long flags,
+// Metadata *language_getFunctionTypeMetadata(unsigned long flags,
 //                                         const Metadata **parameters,
 //                                         const uint32_t *parameterFlags,
 //                                         const Metadata *result);
-FUNCTION(GetFunctionMetadata, Swift, swift_getFunctionTypeMetadata,
+FUNCTION(GetFunctionMetadata, Codira, language_getFunctionTypeMetadata,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy,
@@ -771,13 +772,13 @@ FUNCTION(GetFunctionMetadata, Swift, swift_getFunctionTypeMetadata,
          MEMEFFECTS(ReadOnly))
 
 // Metadata *
-// swift_getFunctionTypeMetadataDifferentiable(unsigned long flags,
+// language_getFunctionTypeMetadataDifferentiable(unsigned long flags,
 //                                             unsigned long diffKind,
 //                                             const Metadata **parameters,
 //                                             const uint32_t *parameterFlags,
 //                                             const Metadata *result);
 FUNCTION(GetFunctionMetadataDifferentiable,
-         Swift, swift_getFunctionTypeMetadataDifferentiable,
+         Codira, language_getFunctionTypeMetadataDifferentiable,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy,
@@ -790,7 +791,7 @@ FUNCTION(GetFunctionMetadataDifferentiable,
          MEMEFFECTS(ReadOnly))
 
 // Metadata *
-// swift_getExtendedFunctionTypeMetadata(unsigned long flags,
+// language_getExtendedFunctionTypeMetadata(unsigned long flags,
 //                                       unsigned long diffKind,
 //                                       const Metadata **parameters,
 //                                       const uint32_t *parameterFlags,
@@ -799,7 +800,7 @@ FUNCTION(GetFunctionMetadataDifferentiable,
 //                                       uint32_t extendedflags,
 //                                       const Metadata *thrownError);
 FUNCTION(GetFunctionMetadataExtended,
-         Swift, swift_getExtendedFunctionTypeMetadata,
+         Codira, language_getExtendedFunctionTypeMetadata,
          C_CC, TypedThrowsAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy,
@@ -815,14 +816,14 @@ FUNCTION(GetFunctionMetadataExtended,
          MEMEFFECTS(ReadOnly))
 
 // Metadata *
-// swift_getFunctionTypeMetadataGlobalActor(unsigned long flags,
+// language_getFunctionTypeMetadataGlobalActor(unsigned long flags,
 //                                          unsigned long diffKind,
 //                                          const Metadata **parameters,
 //                                          const uint32_t *parameterFlags,
 //                                          const Metadata *result,
 //                                          const Metadata *globalActor);
 FUNCTION(GetFunctionMetadataGlobalActor,
-         Swift, swift_getFunctionTypeMetadataGlobalActor,
+         Codira, language_getFunctionTypeMetadataGlobalActor,
          C_CC, ConcurrencyAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy,
@@ -836,14 +837,14 @@ FUNCTION(GetFunctionMetadataGlobalActor,
          MEMEFFECTS(ReadOnly))
 
 // Metadata *
-// swift_getFunctionTypeMetadataGlobalActorBackDeploy(unsigned long flags,
+// language_getFunctionTypeMetadataGlobalActorBackDeploy(unsigned long flags,
 //                                                    unsigned long diffKind,
 //                                               const Metadata **parameters,
 //                                               const uint32_t *parameterFlags,
 //                                               const Metadata *result,
 //                                               const Metadata *globalActor);
 FUNCTION(GetFunctionMetadataGlobalActorBackDeploy,
-         Swift, swift_getFunctionTypeMetadataGlobalActorBackDeploy,
+         Codira, language_getFunctionTypeMetadataGlobalActorBackDeploy,
          C_CC, OpaqueTypeAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy,
@@ -856,9 +857,9 @@ FUNCTION(GetFunctionMetadataGlobalActorBackDeploy,
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// Metadata *swift_getFunctionTypeMetadata0(unsigned long flags,
+// Metadata *language_getFunctionTypeMetadata0(unsigned long flags,
 //                                          const Metadata *resultMetadata);
-FUNCTION(GetFunctionMetadata0, Swift, swift_getFunctionTypeMetadata0,
+FUNCTION(GetFunctionMetadata0, Codira, language_getFunctionTypeMetadata0,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy, TypeMetadataPtrTy),
@@ -866,10 +867,10 @@ FUNCTION(GetFunctionMetadata0, Swift, swift_getFunctionTypeMetadata0,
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getFunctionTypeMetadata1(unsigned long flags,
+// Metadata *language_getFunctionTypeMetadata1(unsigned long flags,
 //                                          const Metadata *arg0,
 //                                          const Metadata *resultMetadata);
-FUNCTION(GetFunctionMetadata1, Swift, swift_getFunctionTypeMetadata1,
+FUNCTION(GetFunctionMetadata1, Codira, language_getFunctionTypeMetadata1,
         C_CC, AlwaysAvailable,
         RETURNS(TypeMetadataPtrTy),
         ARGS(SizeTy, TypeMetadataPtrTy, TypeMetadataPtrTy),
@@ -877,11 +878,11 @@ FUNCTION(GetFunctionMetadata1, Swift, swift_getFunctionTypeMetadata1,
         EFFECT(RuntimeEffect::MetaData),
         MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getFunctionTypeMetadata2(unsigned long flags,
+// Metadata *language_getFunctionTypeMetadata2(unsigned long flags,
 //                                          const Metadata *arg0,
 //                                          const Metadata *arg1,
 //                                          const Metadata *resultMetadata);
-FUNCTION(GetFunctionMetadata2, Swift, swift_getFunctionTypeMetadata2,
+FUNCTION(GetFunctionMetadata2, Codira, language_getFunctionTypeMetadata2,
         C_CC, AlwaysAvailable,
         RETURNS(TypeMetadataPtrTy),
         ARGS(SizeTy, TypeMetadataPtrTy, TypeMetadataPtrTy, TypeMetadataPtrTy),
@@ -889,12 +890,12 @@ FUNCTION(GetFunctionMetadata2, Swift, swift_getFunctionTypeMetadata2,
         EFFECT(RuntimeEffect::MetaData),
         MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getFunctionTypeMetadata3(unsigned long flags,
+// Metadata *language_getFunctionTypeMetadata3(unsigned long flags,
 //                                          const Metadata *arg0,
 //                                          const Metadata *arg1,
 //                                          const Metadata *arg2,
 //                                          const Metadata *resultMetadata);
-FUNCTION(GetFunctionMetadata3, Swift, swift_getFunctionTypeMetadata3,
+FUNCTION(GetFunctionMetadata3, Codira, language_getFunctionTypeMetadata3,
         C_CC, AlwaysAvailable,
         RETURNS(TypeMetadataPtrTy),
         ARGS(SizeTy, TypeMetadataPtrTy, TypeMetadataPtrTy, TypeMetadataPtrTy,
@@ -903,21 +904,21 @@ FUNCTION(GetFunctionMetadata3, Swift, swift_getFunctionTypeMetadata3,
         EFFECT(RuntimeEffect::MetaData),
         MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getForeignTypeMetadata(Metadata *nonUnique);
-FUNCTION(GetForeignTypeMetadata, Swift, swift_getForeignTypeMetadata,
-         SwiftCC, AlwaysAvailable,
+// Metadata *language_getForeignTypeMetadata(Metadata *nonUnique);
+FUNCTION(GetForeignTypeMetadata, Codira, language_getForeignTypeMetadata,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, TypeMetadataPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadNone)) // only writes to runtime-private fields
 
-// SWIFT_RUNTIME_EXPORT
-// SWIFT_CC(swift)
-// bool swift_compareTypeContextDescriptors(const TypeContextDescriptor *lhs,
+// LANGUAGE_RUNTIME_EXPORT
+// LANGUAGE_CC(language)
+// bool language_compareTypeContextDescriptors(const TypeContextDescriptor *lhs,
 //                                          const TypeContextDescriptor *rhs);
 FUNCTION(CompareTypeContextDescriptors, 
-         Swift, swift_compareTypeContextDescriptors, SwiftCC,
+         Codira, language_compareTypeContextDescriptors, CodiraCC,
          CompareTypeContextDescriptorsAvailability,
          RETURNS(Int1Ty),
          ARGS(TypeContextDescriptorPtrTy, 
@@ -926,31 +927,31 @@ FUNCTION(CompareTypeContextDescriptors,
          EFFECT(RuntimeEffect::NoEffect), // ?
          MEMEFFECTS(ReadNone))
 
-// MetadataResponse swift_getSingletonMetadata(MetadataRequest request,
+// MetadataResponse language_getSingletonMetadata(MetadataRequest request,
 //                                             TypeContextDescriptor *type);
-FUNCTION(GetSingletonMetadata, Swift, swift_getSingletonMetadata,
-         SwiftCC, AlwaysAvailable,
+FUNCTION(GetSingletonMetadata, Codira, language_getSingletonMetadata,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, TypeContextDescriptorPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 
-// MetadataResponse swift_getGenericMetadata(MetadataRequest request,
+// MetadataResponse language_getGenericMetadata(MetadataRequest request,
 //                                           const void * const *arguments,
 //                                           TypeContextDescriptor *type);
-FUNCTION(GetGenericMetadata, Swift, swift_getGenericMetadata,
-         SwiftCC, AlwaysAvailable,
+FUNCTION(GetGenericMetadata, Codira, language_getGenericMetadata,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, Int8PtrTy, TypeContextDescriptorPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// MetadataResponse swift_getCanonicalSpecializedMetadata(MetadataRequest request,
+// MetadataResponse language_getCanonicalSpecializedMetadata(MetadataRequest request,
 //                                                        Metadata *candidate);
-FUNCTION(GetCanonicalSpecializedMetadata, Swift, swift_getCanonicalSpecializedMetadata,
-         SwiftCC, GetCanonicalSpecializedMetadataAvailability,
+FUNCTION(GetCanonicalSpecializedMetadata, Codira, language_getCanonicalSpecializedMetadata,
+         CodiraCC, GetCanonicalSpecializedMetadataAvailability,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, TypeMetadataPtrTy, TypeMetadataPtrPtrTy),
          ATTRS(NoUnwind),
@@ -958,25 +959,25 @@ FUNCTION(GetCanonicalSpecializedMetadata, Swift, swift_getCanonicalSpecializedMe
          MEMEFFECTS(ReadOnly))
 
 // MetadataResponse
-// swift_getCanonicalPrespecializedGenericMetadata(MetadataRequest request,
+// language_getCanonicalPrespecializedGenericMetadata(MetadataRequest request,
 //                          const void * const *arguments,
 //                          const TypeContextDescriptor *description,
-//                          swift_once_t *cachedFlag)
+//                          language_once_t *cachedFlag)
 FUNCTION(GetCanonicalPrespecializedGenericMetadata, 
-         Swift, swift_getCanonicalPrespecializedGenericMetadata,
-         SwiftCC, GetCanonicalPrespecializedGenericMetadataAvailability,
+         Codira, language_getCanonicalPrespecializedGenericMetadata,
+         CodiraCC, GetCanonicalPrespecializedGenericMetadataAvailability,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, Int8PtrTy, TypeContextDescriptorPtrTy, OnceTy->getPointerTo()),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// MetadataResponse swift_getOpaqueTypeMetadata(MetadataRequest request,
+// MetadataResponse language_getOpaqueTypeMetadata(MetadataRequest request,
 //                                     const void * const *arguments,
 //                                     const void *descriptor,
 //                                     uintptr_t index);
-FUNCTION(GetOpaqueTypeMetadata, Swift, swift_getOpaqueTypeMetadata,
-         SwiftCC, OpaqueTypeAvailability,
+FUNCTION(GetOpaqueTypeMetadata, Codira, language_getOpaqueTypeMetadata,
+         CodiraCC, OpaqueTypeAvailability,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, Int8PtrTy, OpaqueTypeDescriptorPtrTy, SizeTy),
          ATTRS(NoUnwind),
@@ -984,12 +985,12 @@ FUNCTION(GetOpaqueTypeMetadata, Swift, swift_getOpaqueTypeMetadata,
          MEMEFFECTS(ReadOnly))
 
 
-// MetadataResponse swift_getOpaqueTypeMetadata2(MetadataRequest request,
+// MetadataResponse language_getOpaqueTypeMetadata2(MetadataRequest request,
 //                                     const void * const *arguments,
 //                                     const OpaqueTypeDescriptor *descriptor,
 //                                     uintptr_t index);
-FUNCTION(GetOpaqueTypeMetadata2, Swift, swift_getOpaqueTypeMetadata2,
-         SwiftCC, SignedDescriptorAvailability,
+FUNCTION(GetOpaqueTypeMetadata2, Codira, language_getOpaqueTypeMetadata2,
+         CodiraCC, SignedDescriptorAvailability,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, Int8PtrTy, OpaqueTypeDescriptorPtrTy, SizeTy),
          ATTRS(NoUnwind),
@@ -997,32 +998,32 @@ FUNCTION(GetOpaqueTypeMetadata2, Swift, swift_getOpaqueTypeMetadata2,
          MEMEFFECTS(ReadOnly))
 
 
-// const WitnessTable *swift_getOpaqueTypeConformance(const void * const *arguments,
+// const WitnessTable *language_getOpaqueTypeConformance(const void * const *arguments,
 //                                     const OpaqueTypeDescriptor *descriptor,
 //                                     uintptr_t index);
-FUNCTION(GetOpaqueTypeConformance, Swift, swift_getOpaqueTypeConformance,
-         SwiftCC, OpaqueTypeAvailability,
+FUNCTION(GetOpaqueTypeConformance, Codira, language_getOpaqueTypeConformance,
+         CodiraCC, OpaqueTypeAvailability,
          RETURNS(WitnessTablePtrTy),
          ARGS(Int8PtrTy, OpaqueTypeDescriptorPtrTy, SizeTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// const WitnessTable *swift_getOpaqueTypeConformance2(const void * const *arguments,
+// const WitnessTable *language_getOpaqueTypeConformance2(const void * const *arguments,
 //                                     const OpaqueTypeDescriptor *descriptor,
 //                                     uintptr_t index);
-FUNCTION(GetOpaqueTypeConformance2, Swift, swift_getOpaqueTypeConformance2,
-         SwiftCC, SignedDescriptorAvailability,
+FUNCTION(GetOpaqueTypeConformance2, Codira, language_getOpaqueTypeConformance2,
+         CodiraCC, SignedDescriptorAvailability,
          RETURNS(WitnessTablePtrTy),
          ARGS(Int8PtrTy, OpaqueTypeDescriptorPtrTy, SizeTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// Metadata *swift_allocateGenericClassMetadata(ClassDescriptor *type,
+// Metadata *language_allocateGenericClassMetadata(ClassDescriptor *type,
 //                                              const void * const *arguments,
 //                                              const void *template);
-FUNCTION(AllocateGenericClassMetadata, Swift, swift_allocateGenericClassMetadata,
+FUNCTION(AllocateGenericClassMetadata, Codira, language_allocateGenericClassMetadata,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeContextDescriptorPtrTy, Int8PtrPtrTy, Int8PtrTy),
@@ -1030,12 +1031,12 @@ FUNCTION(AllocateGenericClassMetadata, Swift, swift_allocateGenericClassMetadata
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// Metadata *swift_cvw_allocateGenericClassMetadataWithLayoutString(
+// Metadata *language_cvw_allocateGenericClassMetadataWithLayoutString(
 //     ClassDescriptor *type,
 //     const void * const *arguments,
 //     const void *template);
 FUNCTION(AllocateGenericClassMetadataWithLayoutString,
-         Swift, swift_cvw_allocateGenericClassMetadataWithLayoutString,
+         Codira, language_cvw_allocateGenericClassMetadataWithLayoutString,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeContextDescriptorPtrTy, Int8PtrPtrTy, Int8PtrTy),
@@ -1043,11 +1044,11 @@ FUNCTION(AllocateGenericClassMetadataWithLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// Metadata *swift_allocateGenericValueMetadata(ValueTypeDescriptor *type,
+// Metadata *language_allocateGenericValueMetadata(ValueTypeDescriptor *type,
 //                                              const void * const *arguments,
 //                                              const void *template,
 //                                              size_t extraSize);
-FUNCTION(AllocateGenericValueMetadata, Swift, swift_allocateGenericValueMetadata,
+FUNCTION(AllocateGenericValueMetadata, Codira, language_allocateGenericValueMetadata,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeContextDescriptorPtrTy, Int8PtrPtrTy, Int8PtrTy, SizeTy),
@@ -1055,13 +1056,13 @@ FUNCTION(AllocateGenericValueMetadata, Swift, swift_allocateGenericValueMetadata
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// Metadata *swift_cvw_allocateGenericValueMetadataWithLayoutString(
+// Metadata *language_cvw_allocateGenericValueMetadataWithLayoutString(
 //     ValueTypeDescriptor *type,
 //     const void * const *arguments,
 //     const void *template,
 //     size_t extraSize);
 FUNCTION(AllocateGenericValueMetadataWithLayoutString,
-         Swift, swift_cvw_allocateGenericValueMetadataWithLayoutString,
+         Codira, language_cvw_allocateGenericValueMetadataWithLayoutString,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeContextDescriptorPtrTy, Int8PtrPtrTy, Int8PtrTy, SizeTy),
@@ -1069,10 +1070,10 @@ FUNCTION(AllocateGenericValueMetadataWithLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// MetadataResponse swift_checkMetadataState(MetadataRequest request,
+// MetadataResponse language_checkMetadataState(MetadataRequest request,
 //                                           const Metadata *type);
-FUNCTION(CheckMetadataState, Swift, swift_checkMetadataState,
-         SwiftCC, AlwaysAvailable,
+FUNCTION(CheckMetadataState, Codira, language_checkMetadataState,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, TypeMetadataPtrTy),
          ATTRS(NoUnwind, WillReturn),
@@ -1081,10 +1082,10 @@ FUNCTION(CheckMetadataState, Swift, swift_checkMetadataState,
 
 
 // const ProtocolWitnessTable *
-// swift_getWitnessTable(const ProtocolConformanceDescriptor *conf,
+// language_getWitnessTable(const ProtocolConformanceDescriptor *conf,
 //                       const Metadata *type,
 //                       const void * const *instantiationArgs);
-FUNCTION(GetWitnessTable, Swift, swift_getWitnessTable, C_CC, AlwaysAvailable,
+FUNCTION(GetWitnessTable, Codira, language_getWitnessTable, C_CC, AlwaysAvailable,
          RETURNS(WitnessTablePtrTy),
          ARGS(ProtocolConformanceDescriptorPtrTy,
               TypeMetadataPtrTy,
@@ -1093,7 +1094,7 @@ FUNCTION(GetWitnessTable, Swift, swift_getWitnessTable, C_CC, AlwaysAvailable,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadOnly))
 
-FUNCTION(GetWitnessTableRelative, Swift, swift_getWitnessTableRelative, C_CC, AlwaysAvailable,
+FUNCTION(GetWitnessTableRelative, Codira, language_getWitnessTableRelative, C_CC, AlwaysAvailable,
          RETURNS(WitnessTablePtrTy),
          ARGS(ProtocolConformanceDescriptorPtrTy,
               TypeMetadataPtrTy,
@@ -1102,14 +1103,14 @@ FUNCTION(GetWitnessTableRelative, Swift, swift_getWitnessTableRelative, C_CC, Al
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadOnly))
 
-// MetadataResponse swift_getAssociatedTypeWitness(
+// MetadataResponse language_getAssociatedTypeWitness(
 //                                            MetadataRequest request,
 //                                            WitnessTable *wtable,
 //                                            const Metadata *conformingType,
 //                                            ProtocolRequirement *reqBase,
 //                                            ProtocolRequirement *assocType);
-FUNCTION(GetAssociatedTypeWitness, Swift, swift_getAssociatedTypeWitness,
-         SwiftCC, AlwaysAvailable,
+FUNCTION(GetAssociatedTypeWitness, Codira, language_getAssociatedTypeWitness,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy,
               WitnessTablePtrTy,
@@ -1119,8 +1120,8 @@ FUNCTION(GetAssociatedTypeWitness, Swift, swift_getAssociatedTypeWitness,
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
-FUNCTION(GetAssociatedTypeWitnessRelative, Swift, swift_getAssociatedTypeWitnessRelative,
-         SwiftCC, AlwaysAvailable,
+FUNCTION(GetAssociatedTypeWitnessRelative, Codira, language_getAssociatedTypeWitnessRelative,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy,
               WitnessTablePtrTy,
@@ -1131,15 +1132,15 @@ FUNCTION(GetAssociatedTypeWitnessRelative, Swift, swift_getAssociatedTypeWitness
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 
-// SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-// const WitnessTable *swift_getAssociatedConformanceWitness(
+// LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+// const WitnessTable *language_getAssociatedConformanceWitness(
 //                                 WitnessTable *wtable,
 //                                 const Metadata *conformingType,
 //                                 const Metadata *assocType,
 //                                 const ProtocolRequirement *reqBase,
 //                                 const ProtocolRequirement *assocConformance);
 FUNCTION(GetAssociatedConformanceWitness,
-         Swift, swift_getAssociatedConformanceWitness, SwiftCC, AlwaysAvailable,
+         Codira, language_getAssociatedConformanceWitness, CodiraCC, AlwaysAvailable,
          RETURNS(WitnessTablePtrTy),
          ARGS(WitnessTablePtrTy,
               TypeMetadataPtrTy,
@@ -1150,7 +1151,7 @@ FUNCTION(GetAssociatedConformanceWitness,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 FUNCTION(GetAssociatedConformanceWitnessRelative,
-         Swift, swift_getAssociatedConformanceWitnessRelative, SwiftCC, AlwaysAvailable,
+         Codira, language_getAssociatedConformanceWitnessRelative, CodiraCC, AlwaysAvailable,
          RETURNS(WitnessTablePtrTy),
          ARGS(WitnessTablePtrTy,
               TypeMetadataPtrTy,
@@ -1161,12 +1162,12 @@ FUNCTION(GetAssociatedConformanceWitnessRelative,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 
-// SWIFT_RUNTIME_EXPORT
-//     SWIFT_CC(swift) bool swift_compareProtocolConformanceDescriptors(
+// LANGUAGE_RUNTIME_EXPORT
+//     LANGUAGE_CC(language) bool language_compareProtocolConformanceDescriptors(
 //         const ProtocolConformanceDescriptor *lhs,
 //         const ProtocolConformanceDescriptor *rhs);
 FUNCTION(CompareProtocolConformanceDescriptors,
-         Swift, swift_compareProtocolConformanceDescriptors, SwiftCC,
+         Codira, language_compareProtocolConformanceDescriptors, CodiraCC,
          CompareProtocolConformanceDescriptorsAvailability,
          RETURNS(Int1Ty),
          ARGS(ProtocolConformanceDescriptorPtrTy, 
@@ -1175,11 +1176,11 @@ FUNCTION(CompareProtocolConformanceDescriptors,
          EFFECT(RuntimeEffect::NoEffect), // ?
          MEMEFFECTS(ReadNone))
 
-// SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+// LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 // const Metadata * const *
-// swift_allocateMetadataPack(const Metadata * const *ptr, size_t count);
+// language_allocateMetadataPack(const Metadata * const *ptr, size_t count);
 FUNCTION(AllocateMetadataPack,
-         Swift, swift_allocateMetadataPack, SwiftCC,
+         Codira, language_allocateMetadataPack, CodiraCC,
          AlwaysAvailable,  // FIXME
          RETURNS(TypeMetadataPtrPtrTy),
          ARGS(TypeMetadataPtrPtrTy, SizeTy),
@@ -1187,11 +1188,11 @@ FUNCTION(AllocateMetadataPack,
          EFFECT(RuntimeEffect::MetaData), // ?
          UNKNOWN_MEMEFFECTS)
 
-// SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+// LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 // const WitnessTable * const *
-// swift_allocateWitnessTablePack(const WitnessTable * const *ptr, size_t count);
+// language_allocateWitnessTablePack(const WitnessTable * const *ptr, size_t count);
 FUNCTION(AllocateWitnessTablePack,
-         Swift, swift_allocateWitnessTablePack, SwiftCC,
+         Codira, language_allocateWitnessTablePack, CodiraCC,
          AlwaysAvailable,  // FIXME
          RETURNS(WitnessTablePtrPtrTy),
          ARGS(WitnessTablePtrPtrTy, SizeTy),
@@ -1199,25 +1200,25 @@ FUNCTION(AllocateWitnessTablePack,
          EFFECT(RuntimeEffect::MetaData), // ?
          UNKNOWN_MEMEFFECTS)
 
-// Metadata *swift_getMetatypeMetadata(Metadata *instanceTy);
-FUNCTION(GetMetatypeMetadata, Swift, swift_getMetatypeMetadata, C_CC, AlwaysAvailable,
+// Metadata *language_getMetatypeMetadata(Metadata *instanceTy);
+FUNCTION(GetMetatypeMetadata, Codira, language_getMetatypeMetadata, C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeMetadataPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getExistentialMetatypeMetadata(Metadata *instanceTy);
+// Metadata *language_getExistentialMetatypeMetadata(Metadata *instanceTy);
 FUNCTION(GetExistentialMetatypeMetadata,
-         Swift, swift_getExistentialMetatypeMetadata, C_CC, AlwaysAvailable,
+         Codira, language_getExistentialMetatypeMetadata, C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeMetadataPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getObjCClassMetadata(objc_class *theClass);
-FUNCTION(GetObjCClassMetadata, Swift, swift_getObjCClassMetadata,
+// Metadata *language_getObjCClassMetadata(objc_class *theClass);
+FUNCTION(GetObjCClassMetadata, Codira, language_getObjCClassMetadata,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(ObjCClassPtrTy),
@@ -1225,8 +1226,8 @@ FUNCTION(GetObjCClassMetadata, Swift, swift_getObjCClassMetadata,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getObjCClassFromMetadata(objc_class *theClass);
-FUNCTION(GetObjCClassFromMetadata, Swift, swift_getObjCClassFromMetadata,
+// Metadata *language_getObjCClassFromMetadata(objc_class *theClass);
+FUNCTION(GetObjCClassFromMetadata, Codira, language_getObjCClassFromMetadata,
          C_CC, AlwaysAvailable,
          RETURNS(ObjCClassPtrTy),
          ARGS(TypeMetadataPtrTy),
@@ -1234,9 +1235,9 @@ FUNCTION(GetObjCClassFromMetadata, Swift, swift_getObjCClassFromMetadata,
          EFFECT(RuntimeEffect::NoEffect), // ?
          MEMEFFECTS(ReadNone))
 
-// Metadata *swift_getObjCClassFromObject(id object);
+// Metadata *language_getObjCClassFromObject(id object);
 // This reads object metadata so cannot be marked ReadNone.
-FUNCTION(GetObjCClassFromObject, Swift, swift_getObjCClassFromObject,
+FUNCTION(GetObjCClassFromObject, Codira, language_getObjCClassFromObject,
          C_CC, AlwaysAvailable,
          RETURNS(ObjCClassPtrTy),
          ARGS(ObjCPtrTy),
@@ -1244,12 +1245,12 @@ FUNCTION(GetObjCClassFromObject, Swift, swift_getObjCClassFromObject,
          EFFECT(RuntimeEffect::NoEffect), // ?
          MEMEFFECTS(ArgMemReadOnly))
 
-// MetadataResponse swift_getTupleTypeMetadata(MetadataRequest request,
+// MetadataResponse language_getTupleTypeMetadata(MetadataRequest request,
 //                                             TupleTypeFlags flags,
 //                                             Metadata * const *elts,
 //                                             const char *labels,
 //                                             value_witness_table_t *proposed);
-FUNCTION(GetTupleMetadata, Swift, swift_getTupleTypeMetadata, SwiftCC, AlwaysAvailable,
+FUNCTION(GetTupleMetadata, Codira, language_getTupleTypeMetadata, CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, SizeTy, TypeMetadataPtrTy->getPointerTo(0),
               Int8PtrTy, WitnessTablePtrTy),
@@ -1257,11 +1258,11 @@ FUNCTION(GetTupleMetadata, Swift, swift_getTupleTypeMetadata, SwiftCC, AlwaysAva
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// MetadataResponse swift_getTupleTypeMetadata2(MetadataRequest request,
+// MetadataResponse language_getTupleTypeMetadata2(MetadataRequest request,
 //                                              Metadata *elt0, Metadata *elt1,
 //                                              const char *labels,
 //                                              value_witness_table_t *proposed);
-FUNCTION(GetTupleMetadata2, Swift, swift_getTupleTypeMetadata2, SwiftCC, AlwaysAvailable,
+FUNCTION(GetTupleMetadata2, Codira, language_getTupleTypeMetadata2, CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, TypeMetadataPtrTy, TypeMetadataPtrTy,
               Int8PtrTy, WitnessTablePtrTy),
@@ -1269,12 +1270,12 @@ FUNCTION(GetTupleMetadata2, Swift, swift_getTupleTypeMetadata2, SwiftCC, AlwaysA
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// MetadataResponse swift_getTupleTypeMetadata3(MetadataRequest request,
+// MetadataResponse language_getTupleTypeMetadata3(MetadataRequest request,
 //                                              Metadata *elt0, Metadata *elt1,
 //                                              Metadata *elt2,
 //                                              const char *labels,
 //                                              value_witness_table_t *proposed);
-FUNCTION(GetTupleMetadata3, Swift, swift_getTupleTypeMetadata3, SwiftCC, AlwaysAvailable,
+FUNCTION(GetTupleMetadata3, Codira, language_getTupleTypeMetadata3, CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, TypeMetadataPtrTy, TypeMetadataPtrTy, TypeMetadataPtrTy,
               Int8PtrTy, WitnessTablePtrTy),
@@ -1282,11 +1283,11 @@ FUNCTION(GetTupleMetadata3, Swift, swift_getTupleTypeMetadata3, SwiftCC, AlwaysA
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// void swift_getTupleTypeLayout(TypeLayout *result,
+// void language_getTupleTypeLayout(TypeLayout *result,
 //                               uint32_t offsets,
 //                               TupleTypeFlags flags,
 //                               const TypeLayout * const *elts);
-FUNCTION(GetTupleLayout, Swift, swift_getTupleTypeLayout, SwiftCC, AlwaysAvailable,
+FUNCTION(GetTupleLayout, Codira, language_getTupleTypeLayout, CodiraCC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(FullTypeLayoutTy->getPointerTo(0), Int32Ty->getPointerTo(0),
               SizeTy, Int8PtrPtrTy->getPointerTo(0)),
@@ -1294,21 +1295,21 @@ FUNCTION(GetTupleLayout, Swift, swift_getTupleTypeLayout, SwiftCC, AlwaysAvailab
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// size_t swift_getTupleTypeLayout2(TypeLayout *layout,
+// size_t language_getTupleTypeLayout2(TypeLayout *layout,
 //                                  const TypeLayout *elt0,
 //                                  const TypeLayout *elt1);
-FUNCTION(GetTupleLayout2, Swift, swift_getTupleTypeLayout2, SwiftCC, AlwaysAvailable,
+FUNCTION(GetTupleLayout2, Codira, language_getTupleTypeLayout2, CodiraCC, AlwaysAvailable,
          RETURNS(SizeTy),
          ARGS(FullTypeLayoutTy->getPointerTo(0), Int8PtrPtrTy, Int8PtrPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// OffsetPair swift_getTupleTypeLayout3(TypeLayout *layout,
+// OffsetPair language_getTupleTypeLayout3(TypeLayout *layout,
 //                                      const TypeLayout *elt0,
 //                                      const TypeLayout *elt1,
 //                                      const TypeLayout *elt2);
-FUNCTION(GetTupleLayout3, Swift, swift_getTupleTypeLayout3, SwiftCC, AlwaysAvailable,
+FUNCTION(GetTupleLayout3, Codira, language_getTupleTypeLayout3, CodiraCC, AlwaysAvailable,
          RETURNS(OffsetPairTy),
          ARGS(FullTypeLayoutTy->getPointerTo(0),
               Int8PtrPtrTy, Int8PtrPtrTy, Int8PtrPtrTy),
@@ -1316,10 +1317,10 @@ FUNCTION(GetTupleLayout3, Swift, swift_getTupleTypeLayout3, SwiftCC, AlwaysAvail
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// MetadataResponse swift_getFixedArrayTypeMetadata(MetadataRequest request,
+// MetadataResponse language_getFixedArrayTypeMetadata(MetadataRequest request,
 //                                                  intptr_t size,
 //                                                  Metadata *elt);
-FUNCTION(GetFixedArrayTypeMetadata, Swift, swift_getFixedArrayTypeMetadata, SwiftCC,
+FUNCTION(GetFixedArrayTypeMetadata, Codira, language_getFixedArrayTypeMetadata, CodiraCC,
          ValueGenericTypeAvailability,
          RETURNS(TypeMetadataResponseTy),
          ARGS(SizeTy, SizeTy, TypeMetadataPtrTy),
@@ -1327,7 +1328,7 @@ FUNCTION(GetFixedArrayTypeMetadata, Swift, swift_getFixedArrayTypeMetadata, Swif
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// Metadata *swift_getExistentialTypeMetadata(
+// Metadata *language_getExistentialTypeMetadata(
 //                              ProtocolClassConstraint classConstraint,
 //                              const Metadata *superclassConstraint,
 //                              size_t numProtocols,
@@ -1335,7 +1336,7 @@ FUNCTION(GetFixedArrayTypeMetadata, Swift, swift_getFixedArrayTypeMetadata, Swif
 //
 // Note: ProtocolClassConstraint::Class is 0, ::Any is 1.
 FUNCTION(GetExistentialMetadata,
-         Swift, swift_getExistentialTypeMetadata,
+         Codira, language_getExistentialTypeMetadata,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(Int1Ty, TypeMetadataPtrTy, SizeTy,
@@ -1346,10 +1347,10 @@ FUNCTION(GetExistentialMetadata,
 
 
 // const ExtendedExistentialTypeShape *
-// swift_getExtendedExistentialTypeShape(
+// language_getExtendedExistentialTypeShape(
 //             const NonUniqueExtendedExistentialTypeShape *nonUnique);
 FUNCTION(GetExtendedExistentialTypeShape,
-         Swift, swift_getExtendedExistentialTypeShape, C_CC,
+         Codira, language_getExtendedExistentialTypeShape, C_CC,
          ParameterizedExistentialAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(Int8PtrTy, Int8PtrPtrTy),
@@ -1357,11 +1358,11 @@ FUNCTION(GetExtendedExistentialTypeShape,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ArgMemOnly))
 
-// Metadata *swift_getExtendedExistentialTypeMetadata(
+// Metadata *language_getExtendedExistentialTypeMetadata(
 //             const NonUniqueExtendedExistentialTypeShape *shape,
 //             const void * const *generalizationArgs);
 FUNCTION(GetExtendedExistentialTypeMetadata,
-         Swift, swift_getExtendedExistentialTypeMetadata, C_CC,
+         Codira, language_getExtendedExistentialTypeMetadata, C_CC,
          ParameterizedExistentialAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(Int8PtrTy, Int8PtrPtrTy),
@@ -1369,11 +1370,11 @@ FUNCTION(GetExtendedExistentialTypeMetadata,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ArgMemOnly))
 
-// Metadata *swift_getExtendedExistentialTypeMetadata_unique(
+// Metadata *language_getExtendedExistentialTypeMetadata_unique(
 //             const ExtendedExistentialTypeShape *shape,
 //             const void * const *generalizationArgs);
 FUNCTION(GetExtendedExistentialTypeMetadataUnique,
-         Swift, swift_getExtendedExistentialTypeMetadata_unique, C_CC,
+         Codira, language_getExtendedExistentialTypeMetadata_unique, C_CC,
          ParameterizedExistentialAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(Int8PtrTy, Int8PtrPtrTy),
@@ -1381,23 +1382,23 @@ FUNCTION(GetExtendedExistentialTypeMetadataUnique,
          EFFECT(RuntimeEffect::MetaData), // ?
          MEMEFFECTS(ArgMemOnly))
 
-// Metadata *swift_relocateClassMetadata(TypeContextDescriptor *descriptor,
+// Metadata *language_relocateClassMetadata(TypeContextDescriptor *descriptor,
 //                                       const void *pattern);
 FUNCTION(RelocateClassMetadata,
-         Swift, swift_relocateClassMetadata, C_CC, AlwaysAvailable,
+         Codira, language_relocateClassMetadata, C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeContextDescriptorPtrTy, Int8PtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initClassMetadata(Metadata *self,
+// void language_initClassMetadata(Metadata *self,
 //                              ClassLayoutFlags flags,
 //                              size_t numFields,
 //                              TypeLayout * const *fieldTypes,
 //                              size_t *fieldOffsets);
 FUNCTION(InitClassMetadata,
-         Swift, swift_initClassMetadata, C_CC, AlwaysAvailable,
+         Codira, language_initClassMetadata, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy,
               Int8PtrPtrTy->getPointerTo(),
@@ -1406,13 +1407,13 @@ FUNCTION(InitClassMetadata,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_updateClassMetadata(Metadata *self,
+// void language_updateClassMetadata(Metadata *self,
 //                                ClassLayoutFlags flags,
 //                                size_t numFields,
 //                                TypeLayout * const *fieldTypes,
 //                                size_t *fieldOffsets);
 FUNCTION(UpdateClassMetadata,
-         Swift, swift_updateClassMetadata, C_CC, AlwaysAvailable,
+         Codira, language_updateClassMetadata, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy,
               Int8PtrPtrTy->getPointerTo(),
@@ -1421,13 +1422,13 @@ FUNCTION(UpdateClassMetadata,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// MetadataDependency swift_initClassMetadata2(Metadata *self,
+// MetadataDependency language_initClassMetadata2(Metadata *self,
 //                                             ClassLayoutFlags flags,
 //                                             size_t numFields,
 //                                             TypeLayout * const *fieldTypes,
 //                                             size_t *fieldOffsets);
 FUNCTION(InitClassMetadata2,
-         Swift, swift_initClassMetadata2, SwiftCC, AlwaysAvailable,
+         Codira, language_initClassMetadata2, CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataDependencyTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy,
               Int8PtrPtrTy->getPointerTo(),
@@ -1436,13 +1437,13 @@ FUNCTION(InitClassMetadata2,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// MetadataDependency swift_updateClassMetadata2(Metadata *self,
+// MetadataDependency language_updateClassMetadata2(Metadata *self,
 //                                               ClassLayoutFlags flags,
 //                                               size_t numFields,
 //                                               TypeLayout * const *fieldTypes,
 //                                               size_t *fieldOffsets);
 FUNCTION(UpdateClassMetadata2,
-         Swift, swift_updateClassMetadata2, SwiftCC, AlwaysAvailable,
+         Codira, language_updateClassMetadata2, CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataDependencyTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy,
               Int8PtrPtrTy->getPointerTo(),
@@ -1451,24 +1452,24 @@ FUNCTION(UpdateClassMetadata2,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// objc_class *swift_updatePureObjCClassMetadata(
+// objc_class *language_updatePureObjCClassMetadata(
 //             objc_class *self,
 //             ClassLayoutFlags flags,
 //             size_t numFields,
 //             TypeLayout * const *fieldTypes);
 FUNCTION(UpdatePureObjCClassMetadata,
-         Swift, swift_updatePureObjCClassMetadata, SwiftCC, AlwaysAvailable,
+         Codira, language_updatePureObjCClassMetadata, CodiraCC, AlwaysAvailable,
          RETURNS(ObjCClassPtrTy),
          ARGS(ObjCClassPtrTy, SizeTy, SizeTy, Int8PtrPtrTy->getPointerTo()),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_lookUpClassMethod(Metadata *metadata,
+// void *language_lookUpClassMethod(Metadata *metadata,
 //                               ClassDescriptor *description,
 //                               MethodDescriptor *method);
 FUNCTION(LookUpClassMethod,
-         Swift, swift_lookUpClassMethod, C_CC, AlwaysAvailable,
+         Codira, language_lookUpClassMethod, C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(TypeMetadataPtrTy,
               MethodDescriptorStructTy->getPointerTo(),
@@ -1477,13 +1478,13 @@ FUNCTION(LookUpClassMethod,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initStructMetadata(Metadata *structType,
+// void language_initStructMetadata(Metadata *structType,
 //                               StructLayoutFlags flags,
 //                               size_t numFields,
 //                               TypeLayout * const *fieldTypes,
 //                               uint32_t *fieldOffsets);
 FUNCTION(InitStructMetadata,
-         Swift, swift_initStructMetadata, C_CC, AlwaysAvailable,
+         Codira, language_initStructMetadata, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy,
               Int8PtrPtrTy->getPointerTo(0),
@@ -1492,14 +1493,14 @@ FUNCTION(InitStructMetadata,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_initStructMetadataWithLayoutString(Metadata *structType,
+// void language_cvw_initStructMetadataWithLayoutString(Metadata *structType,
 //                                               StructLayoutFlags flags,
 //                                               size_t numFields,
 //                                               uint8_t * const *fieldTypes,
 //                                               const uint8_t *fieldTags
 //                                               uint32_t *fieldOffsets);
 FUNCTION(InitStructMetadataWithLayoutString,
-         Swift, swift_cvw_initStructMetadataWithLayoutString, C_CC, AlwaysAvailable,
+         Codira, language_cvw_initStructMetadataWithLayoutString, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy,
               Int8PtrPtrTy->getPointerTo(0),
@@ -1509,11 +1510,11 @@ FUNCTION(InitStructMetadataWithLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initEnumMetadataSingleCase(Metadata *enumType,
+// void language_initEnumMetadataSingleCase(Metadata *enumType,
 //                                       EnumLayoutFlags flags,
 //                                       TypeLayout *payload);
 FUNCTION(InitEnumMetadataSingleCase,
-         Swift, swift_initEnumMetadataSingleCase,
+         Codira, language_initEnumMetadataSingleCase,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, Int8PtrPtrTy),
@@ -1521,11 +1522,11 @@ FUNCTION(InitEnumMetadataSingleCase,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_initEnumMetadataSingleCaseWithLayoutString(Metadata *enumType,
+// void language_cvw_initEnumMetadataSingleCaseWithLayoutString(Metadata *enumType,
 //                                                       EnumLayoutFlags flags,
 //                                                       Metadata *payload);
 FUNCTION(InitEnumMetadataSingleCaseWithLayoutString,
-         Swift, swift_cvw_initEnumMetadataSingleCaseWithLayoutString,
+         Codira, language_cvw_initEnumMetadataSingleCaseWithLayoutString,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, TypeMetadataPtrTy),
@@ -1533,12 +1534,12 @@ FUNCTION(InitEnumMetadataSingleCaseWithLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initEnumMetadataSinglePayload(Metadata *enumType,
+// void language_initEnumMetadataSinglePayload(Metadata *enumType,
 //                                          EnumLayoutFlags flags,
 //                                          TypeLayout *payload,
 //                                          unsigned num_empty_cases);
 FUNCTION(InitEnumMetadataSinglePayload,
-         Swift, swift_initEnumMetadataSinglePayload,
+         Codira, language_initEnumMetadataSinglePayload,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, Int8PtrPtrTy, Int32Ty),
@@ -1546,12 +1547,12 @@ FUNCTION(InitEnumMetadataSinglePayload,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_initEnumMetadataSinglePayloadWithLayoutString(Metadata *enumType,
+// void language_cvw_initEnumMetadataSinglePayloadWithLayoutString(Metadata *enumType,
 //                                                        EnumLayoutFlags flags,
 //                                                        Metadata *payload,
 //                                                    unsigned num_empty_cases);
 FUNCTION(InitEnumMetadataSinglePayloadWithLayoutString,
-         Swift, swift_cvw_initEnumMetadataSinglePayloadWithLayoutString,
+         Codira, language_cvw_initEnumMetadataSinglePayloadWithLayoutString,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, TypeMetadataPtrTy, Int32Ty),
@@ -1559,12 +1560,12 @@ FUNCTION(InitEnumMetadataSinglePayloadWithLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initEnumMetadataMultiPayload(Metadata *enumType,
+// void language_initEnumMetadataMultiPayload(Metadata *enumType,
 //                                         EnumLayoutFlags layoutFlags,
 //                                         size_t numPayloads,
 //                                         TypeLayout * const *payloadTypes);
 FUNCTION(InitEnumMetadataMultiPayload,
-         Swift, swift_initEnumMetadataMultiPayload,
+         Codira, language_initEnumMetadataMultiPayload,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy, Int8PtrPtrTy->getPointerTo(0)),
@@ -1573,12 +1574,12 @@ FUNCTION(InitEnumMetadataMultiPayload,
          UNKNOWN_MEMEFFECTS)
 
 // void
-// swift_cvw_initEnumMetadataMultiPayloadWithLayoutString(Metadata *enumType,
+// language_cvw_initEnumMetadataMultiPayloadWithLayoutString(Metadata *enumType,
 //                                                  EnumLayoutFlags layoutFlags,
 //                                                    size_t numPayloads,
 //                                              Metadata * const *payloadTypes);
 FUNCTION(InitEnumMetadataMultiPayloadWithLayoutString,
-         Swift, swift_cvw_initEnumMetadataMultiPayloadWithLayoutString,
+         Codira, language_cvw_initEnumMetadataMultiPayloadWithLayoutString,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, SizeTy, TypeMetadataPtrPtrTy),
@@ -1586,9 +1587,9 @@ FUNCTION(InitEnumMetadataMultiPayloadWithLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// int swift_getEnumCaseMultiPayload(opaque_t *obj, Metadata *enumTy);
+// int language_getEnumCaseMultiPayload(opaque_t *obj, Metadata *enumTy);
 FUNCTION(GetEnumCaseMultiPayload,
-         Swift, swift_getEnumCaseMultiPayload,
+         Codira, language_getEnumCaseMultiPayload,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(OpaquePtrTy, TypeMetadataPtrTy),
@@ -1596,18 +1597,18 @@ FUNCTION(GetEnumCaseMultiPayload,
          EFFECT(RuntimeEffect::NoEffect),
          MEMEFFECTS(ReadOnly))
 
-// int swift_getEnumTagSinglePayloadGeneric(opaque_t *obj,
+// int language_getEnumTagSinglePayloadGeneric(opaque_t *obj,
 //                                          unsigned num_empty_cases,
 //                                          Metadata *payloadType,
 //                         int (*getExtraInhabitantIndex)(opaque_t *obj,
 //                                                        unsigned numPayloadXI,
 //                                                        Metadata *payload));
 FUNCTION(GetEnumTagSinglePayloadGeneric,
-         Swift, swift_getEnumTagSinglePayloadGeneric,
-         SwiftCC, AlwaysAvailable,
+         Codira, language_getEnumTagSinglePayloadGeneric,
+         CodiraCC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(OpaquePtrTy, Int32Ty, TypeMetadataPtrTy,
-              llvm::FunctionType::get(Int32Ty, {OpaquePtrTy, Int32Ty,
+              toolchain::FunctionType::get(Int32Ty, {OpaquePtrTy, Int32Ty,
                                                 TypeMetadataPtrTy},
                                       false)->getPointerTo()),
          ATTRS(NoUnwind, WillReturn),
@@ -1615,7 +1616,7 @@ FUNCTION(GetEnumTagSinglePayloadGeneric,
          MEMEFFECTS(ReadOnly))
 
 
-// void swift_storeEnumTagSinglePayloadGeneric(opaque_t *obj,
+// void language_storeEnumTagSinglePayloadGeneric(opaque_t *obj,
 //                                             unsigned case_index,
 //                                             unsigned num_empty_cases,
 //                                             Metadata *payloadType,
@@ -1624,21 +1625,21 @@ FUNCTION(GetEnumTagSinglePayloadGeneric,
 //                                                        unsigned numPayloadXI,
 //                                                        Metadata *payload));
 FUNCTION(StoreEnumTagSinglePayloadGeneric,
-         Swift, swift_storeEnumTagSinglePayloadGeneric,
-         SwiftCC, AlwaysAvailable,
+         Codira, language_storeEnumTagSinglePayloadGeneric,
+         CodiraCC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, Int32Ty, Int32Ty, TypeMetadataPtrTy,
-              llvm::FunctionType::get(VoidTy, {OpaquePtrTy, Int32Ty, Int32Ty,
+              toolchain::FunctionType::get(VoidTy, {OpaquePtrTy, Int32Ty, Int32Ty,
                                                TypeMetadataPtrTy},
                                       false)->getPointerTo()),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_storeEnumTagMultiPayload(opaque_t *obj, Metadata *enumTy,
+// void language_storeEnumTagMultiPayload(opaque_t *obj, Metadata *enumTy,
 //                                     int case_index);
 FUNCTION(StoreEnumTagMultiPayload,
-         Swift, swift_storeEnumTagMultiPayload,
+         Codira, language_storeEnumTagMultiPayload,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, TypeMetadataPtrTy, Int32Ty),
@@ -1682,32 +1683,32 @@ FUNCTION(SetSuperclass, objc2, class_setSuperclass, C_CC, AlwaysAvailable,
          EFFECT(RuntimeEffect::ObjectiveC),
          UNKNOWN_MEMEFFECTS)
 
-// Metadata *swift_getObjectType(id object);
-FUNCTION(GetObjectType, Swift, swift_getObjectType, C_CC, AlwaysAvailable,
+// Metadata *language_getObjectType(id object);
+FUNCTION(GetObjectType, Codira, language_getObjectType, C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(ObjCPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// Metadata *swift_getDynamicType(opaque_t *obj, Metadata *self);
-FUNCTION(GetDynamicType, Swift, swift_getDynamicType, C_CC, AlwaysAvailable,
+// Metadata *language_getDynamicType(opaque_t *obj, Metadata *self);
+FUNCTION(GetDynamicType, Codira, language_getDynamicType, C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(OpaquePtrTy, TypeMetadataPtrTy, Int1Ty),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ReadOnly))
 
-// void *swift_dynamicCastClass(void*, void*);
-FUNCTION(DynamicCastClass, Swift, swift_dynamicCastClass, C_CC, AlwaysAvailable,
+// void *language_dynamicCastClass(void*, void*);
+FUNCTION(DynamicCastClass, Codira, language_dynamicCastClass, C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// void *swift_dynamicCastClassUnconditional(void*, void*);
-FUNCTION(DynamicCastClassUnconditional, Swift, swift_dynamicCastClassUnconditional,
+// void *language_dynamicCastClassUnconditional(void*, void*);
+FUNCTION(DynamicCastClassUnconditional, Codira, language_dynamicCastClassUnconditional,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, Int8PtrTy, Int32Ty, Int32Ty),
@@ -1715,8 +1716,8 @@ FUNCTION(DynamicCastClassUnconditional, Swift, swift_dynamicCastClassUncondition
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// void *swift_dynamicCastObjCClass(void*, void*);
-FUNCTION(DynamicCastObjCClass, Swift, swift_dynamicCastObjCClass,
+// void *language_dynamicCastObjCClass(void*, void*);
+FUNCTION(DynamicCastObjCClass, Codira, language_dynamicCastObjCClass,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy),
@@ -1724,17 +1725,17 @@ FUNCTION(DynamicCastObjCClass, Swift, swift_dynamicCastObjCClass,
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// void *swift_dynamicCastObjCClassUnconditional(void*, void*);
+// void *language_dynamicCastObjCClassUnconditional(void*, void*);
 FUNCTION(DynamicCastObjCClassUnconditional,
-         Swift, swift_dynamicCastObjCClassUnconditional, C_CC, AlwaysAvailable,
+         Codira, language_dynamicCastObjCClassUnconditional, C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, Int8PtrTy, Int32Ty, Int32Ty),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// void *swift_dynamicCastUnknownClass(void*, void*);
-FUNCTION(DynamicCastUnknownClass, Swift, swift_dynamicCastUnknownClass,
+// void *language_dynamicCastUnknownClass(void*, void*);
+FUNCTION(DynamicCastUnknownClass, Codira, language_dynamicCastUnknownClass,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy),
@@ -1742,9 +1743,9 @@ FUNCTION(DynamicCastUnknownClass, Swift, swift_dynamicCastUnknownClass,
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// void *swift_dynamicCastUnknownClassUnconditional(void*, void*);
+// void *language_dynamicCastUnknownClassUnconditional(void*, void*);
 FUNCTION(DynamicCastUnknownClassUnconditional,
-         Swift, swift_dynamicCastUnknownClassUnconditional,
+         Codira, language_dynamicCastUnknownClassUnconditional,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, Int8PtrTy, Int32Ty, Int32Ty),
@@ -1752,8 +1753,8 @@ FUNCTION(DynamicCastUnknownClassUnconditional,
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// type *swift_dynamicCastMetatype(type*, type*);
-FUNCTION(DynamicCastMetatype, Swift, swift_dynamicCastMetatype,
+// type *language_dynamicCastMetatype(type*, type*);
+FUNCTION(DynamicCastMetatype, Codira, language_dynamicCastMetatype,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeMetadataPtrTy, TypeMetadataPtrTy),
@@ -1761,9 +1762,9 @@ FUNCTION(DynamicCastMetatype, Swift, swift_dynamicCastMetatype,
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// type *swift_dynamicCastMetatypeUnconditional(type*, type*);
+// type *language_dynamicCastMetatypeUnconditional(type*, type*);
 FUNCTION(DynamicCastMetatypeUnconditional,
-         Swift, swift_dynamicCastMetatypeUnconditional,
+         Codira, language_dynamicCastMetatypeUnconditional,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeMetadataPtrTy, TypeMetadataPtrTy, Int8PtrTy, Int32Ty, Int32Ty),
@@ -1771,8 +1772,8 @@ FUNCTION(DynamicCastMetatypeUnconditional,
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// objc_class *swift_dynamicCastObjCClassMetatype(objc_class*, objc_class*);
-FUNCTION(DynamicCastObjCClassMetatype, Swift, swift_dynamicCastObjCClassMetatype,
+// objc_class *language_dynamicCastObjCClassMetatype(objc_class*, objc_class*);
+FUNCTION(DynamicCastObjCClassMetatype, Codira, language_dynamicCastObjCClassMetatype,
          C_CC, AlwaysAvailable,
          RETURNS(ObjCClassPtrTy),
          ARGS(ObjCClassPtrTy, ObjCClassPtrTy),
@@ -1780,9 +1781,9 @@ FUNCTION(DynamicCastObjCClassMetatype, Swift, swift_dynamicCastObjCClassMetatype
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// objc_class *swift_dynamicCastObjCClassMetatypeUnconditional(objc_class*, objc_class*);
+// objc_class *language_dynamicCastObjCClassMetatypeUnconditional(objc_class*, objc_class*);
 FUNCTION(DynamicCastObjCClassMetatypeUnconditional,
-         Swift, swift_dynamicCastObjCClassMetatypeUnconditional,
+         Codira, language_dynamicCastObjCClassMetatypeUnconditional,
          C_CC, AlwaysAvailable,
          RETURNS(ObjCClassPtrTy),
          ARGS(ObjCClassPtrTy, ObjCClassPtrTy, Int8PtrTy, Int32Ty, Int32Ty),
@@ -1790,8 +1791,8 @@ FUNCTION(DynamicCastObjCClassMetatypeUnconditional,
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadOnly))
 
-// bool swift_dynamicCast(opaque*, opaque*, type*, type*, size_t);
-FUNCTION(DynamicCast, Swift, swift_dynamicCast, C_CC, AlwaysAvailable,
+// bool language_dynamicCast(opaque*, opaque*, type*, type*, size_t);
+FUNCTION(DynamicCast, Codira, language_dynamicCast, C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(OpaquePtrTy, OpaquePtrTy, TypeMetadataPtrTy, TypeMetadataPtrTy,
               SizeTy),
@@ -1799,11 +1800,11 @@ FUNCTION(DynamicCast, Swift, swift_dynamicCast, C_CC, AlwaysAvailable,
          EFFECT(RuntimeEffect::Casting),
          UNKNOWN_MEMEFFECTS)
 
-// type* swift_dynamicCastTypeToObjCProtocolUnconditional(type* object,
+// type* language_dynamicCastTypeToObjCProtocolUnconditional(type* object,
 //                                               size_t numProtocols,
 //                                               Protocol * const *protocols);
 FUNCTION(DynamicCastTypeToObjCProtocolUnconditional,
-         Swift, swift_dynamicCastTypeToObjCProtocolUnconditional,
+         Codira, language_dynamicCastTypeToObjCProtocolUnconditional,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeMetadataPtrTy, SizeTy, Int8PtrPtrTy, Int8PtrTy, Int32Ty, Int32Ty),
@@ -1811,11 +1812,11 @@ FUNCTION(DynamicCastTypeToObjCProtocolUnconditional,
          EFFECT(RuntimeEffect::Casting),
          UNKNOWN_MEMEFFECTS)
 
-// type* swift_dynamicCastTypeToObjCProtocolConditional(type* object,
+// type* language_dynamicCastTypeToObjCProtocolConditional(type* object,
 //                                             size_t numProtocols,
 //                                             Protocol * const *protocols);
 FUNCTION(DynamicCastTypeToObjCProtocolConditional,
-         Swift, swift_dynamicCastTypeToObjCProtocolConditional,
+         Codira, language_dynamicCastTypeToObjCProtocolConditional,
          C_CC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(TypeMetadataPtrTy, SizeTy, Int8PtrPtrTy),
@@ -1823,136 +1824,136 @@ FUNCTION(DynamicCastTypeToObjCProtocolConditional,
          EFFECT(RuntimeEffect::Casting),
          UNKNOWN_MEMEFFECTS)
 
-// id swift_dynamicCastObjCProtocolUnconditional(id object,
+// id language_dynamicCastObjCProtocolUnconditional(id object,
 //                                               size_t numProtocols,
 //                                               Protocol * const *protocols);
 FUNCTION(DynamicCastObjCProtocolUnconditional,
-         Swift, swift_dynamicCastObjCProtocolUnconditional, C_CC, AlwaysAvailable,
+         Codira, language_dynamicCastObjCProtocolUnconditional, C_CC, AlwaysAvailable,
          RETURNS(ObjCPtrTy),
          ARGS(ObjCPtrTy, SizeTy, Int8PtrPtrTy, Int8PtrTy, Int32Ty, Int32Ty),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          UNKNOWN_MEMEFFECTS)
 
-// id swift_dynamicCastObjCProtocolConditional(id object,
+// id language_dynamicCastObjCProtocolConditional(id object,
 //                                             size_t numProtocols,
 //                                             Protocol * const *protocols);
 FUNCTION(DynamicCastObjCProtocolConditional,
-         Swift, swift_dynamicCastObjCProtocolConditional, C_CC, AlwaysAvailable,
+         Codira, language_dynamicCastObjCProtocolConditional, C_CC, AlwaysAvailable,
          RETURNS(ObjCPtrTy),
          ARGS(ObjCPtrTy, SizeTy, Int8PtrPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          UNKNOWN_MEMEFFECTS)
 
-// id swift_dynamicCastMetatypeToObjectUnconditional(type *type);
+// id language_dynamicCastMetatypeToObjectUnconditional(type *type);
 FUNCTION(DynamicCastMetatypeToObjectUnconditional,
-         Swift, swift_dynamicCastMetatypeToObjectUnconditional, C_CC, AlwaysAvailable,
+         Codira, language_dynamicCastMetatypeToObjectUnconditional, C_CC, AlwaysAvailable,
          RETURNS(ObjCPtrTy),
          ARGS(TypeMetadataPtrTy, Int8PtrTy, Int32Ty, Int32Ty),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadNone))
 
-// id swift_dynamicCastMetatypeToObjectConditional(type *type);
+// id language_dynamicCastMetatypeToObjectConditional(type *type);
 FUNCTION(DynamicCastMetatypeToObjectConditional,
-         Swift, swift_dynamicCastMetatypeToObjectConditional, C_CC, AlwaysAvailable,
+         Codira, language_dynamicCastMetatypeToObjectConditional, C_CC, AlwaysAvailable,
          RETURNS(ObjCPtrTy),
          ARGS(TypeMetadataPtrTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadNone))
 
-// witness_table* swift_conformsToProtocol(type*, protocol*);
+// witness_table* language_conformsToProtocol(type*, protocol*);
 FUNCTION(ConformsToProtocol,
-         Swift, swift_conformsToProtocol, C_CC, AlwaysAvailable,
+         Codira, language_conformsToProtocol, C_CC, AlwaysAvailable,
          RETURNS(WitnessTablePtrTy),
          ARGS(TypeMetadataPtrTy, ProtocolDescriptorPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadNone))
 
-// witness_table* swift_conformsToProtocol2(type*, protocol*);
+// witness_table* language_conformsToProtocol2(type*, protocol*);
 FUNCTION(ConformsToProtocol2,
-         Swift, swift_conformsToProtocol2, C_CC, SignedConformsToProtocolAvailability,
+         Codira, language_conformsToProtocol2, C_CC, SignedConformsToProtocolAvailability,
          RETURNS(WitnessTablePtrTy),
          ARGS(TypeMetadataPtrTy, ProtocolDescriptorPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadNone))
 
-// bool swift_isClassType(type*);
+// bool language_isClassType(type*);
 FUNCTION(IsClassType,
-         Swift, swift_isClassType, C_CC, AlwaysAvailable,
+         Codira, language_isClassType, C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(TypeMetadataPtrTy),
          ATTRS(ZExt, NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadNone))
 
-// bool swift_isOptionalType(type*);
+// bool language_isOptionalType(type*);
 FUNCTION(IsOptionalType,
-         Swift, swift_isOptionalType, C_CC, AlwaysAvailable,
+         Codira, language_isOptionalType, C_CC, AlwaysAvailable,
          RETURNS(Int1Ty),
          ARGS(TypeMetadataPtrTy),
          ATTRS(ZExt, NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Casting),
          MEMEFFECTS(ReadNone))
 
-// void swift_once(swift_once_t *predicate,
+// void language_once(language_once_t *predicate,
 //                 void (*function_code)(RefCounted*),
 //                 void *context);
-FUNCTION(Once, Swift, swift_once, C_CC, AlwaysAvailable,
+FUNCTION(Once, Codira, language_once, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(OnceTy->getPointerTo(), Int8PtrTy, Int8PtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Locking),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_registerProtocols(const ProtocolRecord *begin,
+// void language_registerProtocols(const ProtocolRecord *begin,
 //                              const ProtocolRecord *end)
 FUNCTION(RegisterProtocols,
-         Swift, swift_registerProtocols, C_CC, AlwaysAvailable,
+         Codira, language_registerProtocols, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ProtocolRecordPtrTy, ProtocolRecordPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Locking),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_registerProtocolConformances(const ProtocolConformanceRecord *begin,
+// void language_registerProtocolConformances(const ProtocolConformanceRecord *begin,
 //                                         const ProtocolConformanceRecord *end)
 FUNCTION(RegisterProtocolConformances,
-         Swift, swift_registerProtocolConformances, C_CC, AlwaysAvailable,
+         Codira, language_registerProtocolConformances, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(RelativeAddressPtrTy, RelativeAddressPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Locking),
          UNKNOWN_MEMEFFECTS)
 FUNCTION(RegisterTypeMetadataRecords,
-         Swift, swift_registerTypeMetadataRecords, C_CC, AlwaysAvailable,
+         Codira, language_registerTypeMetadataRecords, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataRecordPtrTy, TypeMetadataRecordPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Locking),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_beginAccess(void *pointer, ValueBuffer *scratch, size_t flags);
-FUNCTION(BeginAccess, Swift, swift_beginAccess, C_CC, AlwaysAvailable,
+// void language_beginAccess(void *pointer, ValueBuffer *scratch, size_t flags);
+FUNCTION(BeginAccess, Codira, language_beginAccess, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, getFixedBufferTy()->getPointerTo(), SizeTy, Int8PtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::ExclusivityChecking),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_endAccess(ValueBuffer *scratch);
-FUNCTION(EndAccess, Swift, swift_endAccess, C_CC, AlwaysAvailable,
+// void language_endAccess(ValueBuffer *scratch);
+FUNCTION(EndAccess, Codira, language_endAccess, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(getFixedBufferTy()->getPointerTo()),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::ExclusivityChecking),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(GetOrigOfReplaceable, Swift, swift_getOrigOfReplaceable, C_CC,
+FUNCTION(GetOrigOfReplaceable, Codira, language_getOrigOfReplaceable, C_CC,
          DynamicReplacementAvailability,
          RETURNS(FunctionPtrTy),
          ARGS(FunctionPtrTy->getPointerTo()),
@@ -1960,7 +1961,7 @@ FUNCTION(GetOrigOfReplaceable, Swift, swift_getOrigOfReplaceable, C_CC,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(GetReplacement, Swift, swift_getFunctionReplacement, C_CC,
+FUNCTION(GetReplacement, Codira, language_getFunctionReplacement, C_CC,
          DynamicReplacementAvailability,
          RETURNS(FunctionPtrTy),
          ARGS(FunctionPtrTy->getPointerTo(), FunctionPtrTy),
@@ -1968,7 +1969,7 @@ FUNCTION(GetReplacement, Swift, swift_getFunctionReplacement, C_CC,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(InstantiateObjCClass, Swift, swift_instantiateObjCClass,
+FUNCTION(InstantiateObjCClass, Codira, language_instantiateObjCClass,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy),
@@ -2102,13 +2103,13 @@ FUNCTION(Free, c, free, C_CC, AlwaysAvailable,
          NO_ATTRS,
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
-FUNCTION(CoroFrameAlloc, Swift, swift_coroFrameAlloc, C_CC, AlwaysAvailable,
+FUNCTION(CoroFrameAlloc, Codira, language_coroFrameAlloc, C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(SizeTy, Int64Ty),
          NO_ATTRS,
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
-FUNCTION(coroFrameAllocStub, Swift, swift_coroFrameAllocStub, C_CC,
+FUNCTION(coroFrameAllocStub, Codira, language_coroFrameAllocStub, C_CC,
          AlwaysAvailable, RETURNS(Int8PtrTy),
          ARGS(SizeTy, Int64Ty),
          ATTRS(NoUnwind),
@@ -2130,16 +2131,16 @@ FUNCTION(BlockRelease, BlocksRuntime, _Block_release, C_CC, AlwaysAvailable,
          EFFECT(RuntimeEffect::Deallocating, RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_deletedMethodError();
-FUNCTION(DeletedMethodError, Swift, swift_deletedMethodError, C_CC, AlwaysAvailable,
+// void language_deletedMethodError();
+FUNCTION(DeletedMethodError, Codira, language_deletedMethodError, C_CC, AlwaysAvailable,
         RETURNS(VoidTy),
         ARGS(),
         ATTRS(NoUnwind),
         EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_deletedAsyncMethodError();
-FUNCTION(DeletedAsyncMethodError, _Concurrency, swift_deletedAsyncMethodError, SwiftAsyncCC,
+// void language_deletedAsyncMethodError();
+FUNCTION(DeletedAsyncMethodError, _Concurrency, language_deletedAsyncMethodError, CodiraAsyncCC,
         ConcurrencyAvailability,
         RETURNS(VoidTy),
         ARGS(),
@@ -2147,19 +2148,19 @@ FUNCTION(DeletedAsyncMethodError, _Concurrency, swift_deletedAsyncMethodError, S
         EFFECT(RuntimeEffect::Concurrency),
         UNKNOWN_MEMEFFECTS)
 
-FUNCTION(AllocError, Swift, swift_allocError, SwiftCC, AlwaysAvailable,
+FUNCTION(AllocError, Codira, language_allocError, CodiraCC, AlwaysAvailable,
          RETURNS(ErrorPtrTy, OpaquePtrTy),
          ARGS(TypeMetadataPtrTy, WitnessTablePtrTy, OpaquePtrTy, Int1Ty),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
-FUNCTION(DeallocError, Swift, swift_deallocError, C_CC, AlwaysAvailable,
+FUNCTION(DeallocError, Codira, language_deallocError, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ErrorPtrTy, TypeMetadataPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
-FUNCTION(GetErrorValue, Swift, swift_getErrorValue, C_CC, AlwaysAvailable,
+FUNCTION(GetErrorValue, Codira, language_getErrorValue, C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ErrorPtrTy, Int8PtrPtrTy, OpenedErrorTriplePtrTy),
          ATTRS(NoUnwind),
@@ -2201,13 +2202,13 @@ FUNCTION(TargetOSVersionOrVariantOSVersionAtLeast,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(GetKeyPath, Swift, swift_getKeyPath, C_CC, AlwaysAvailable,
+FUNCTION(GetKeyPath, Codira, language_getKeyPath, C_CC, AlwaysAvailable,
          RETURNS(RefCountedPtrTy),
          ARGS(Int8PtrTy, Int8PtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
-FUNCTION(CopyKeyPathTrivialIndices, Swift, swift_copyKeyPathTrivialIndices,
+FUNCTION(CopyKeyPathTrivialIndices, Codira, language_copyKeyPathTrivialIndices,
          C_CC,  AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, Int8PtrTy, SizeTy),
@@ -2215,7 +2216,7 @@ FUNCTION(CopyKeyPathTrivialIndices, Swift, swift_copyKeyPathTrivialIndices,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(GetInitializedObjCClass, Swift, swift_getInitializedObjCClass,
+FUNCTION(GetInitializedObjCClass, Codira, language_getInitializedObjCClass,
          C_CC, AlwaysAvailable,
          RETURNS(ObjCClassPtrTy),
          ARGS(ObjCClassPtrTy),
@@ -2223,8 +2224,8 @@ FUNCTION(GetInitializedObjCClass, Swift, swift_getInitializedObjCClass,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_objc_swift3ImplicitObjCEntrypoint(id self, SEL selector)
-FUNCTION(Swift3ImplicitObjCEntrypoint, Swift, swift_objc_swift3ImplicitObjCEntrypoint,
+// void language_objc_language3ImplicitObjCEntrypoint(id self, SEL selector)
+FUNCTION(Codira3ImplicitObjCEntrypoint, Codira, language_objc_language3ImplicitObjCEntrypoint,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(ObjCPtrTy, ObjCSELTy, Int8PtrTy, SizeTy, SizeTy, SizeTy, Int8PtrTy),
@@ -2232,7 +2233,7 @@ FUNCTION(Swift3ImplicitObjCEntrypoint, Swift, swift_objc_swift3ImplicitObjCEntry
          EFFECT(RuntimeEffect::ObjectiveC, RuntimeEffect::Allocating),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(VerifyTypeLayoutAttribute, Swift, _swift_debug_verifyTypeLayoutAttribute,
+FUNCTION(VerifyTypeLayoutAttribute, Codira, _language_debug_verifyTypeLayoutAttribute,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, Int8PtrTy, Int8PtrTy, SizeTy, Int8PtrTy),
@@ -2240,55 +2241,55 @@ FUNCTION(VerifyTypeLayoutAttribute, Swift, _swift_debug_verifyTypeLayoutAttribut
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// float swift_intToFloat32(const size_t *data, IntegerLiteralFlags flags);
-FUNCTION(IntToFloat32, Swift, swift_intToFloat32, SwiftCC, AlwaysAvailable,
+// float language_intToFloat32(const size_t *data, IntegerLiteralFlags flags);
+FUNCTION(IntToFloat32, Codira, language_intToFloat32, CodiraCC, AlwaysAvailable,
          RETURNS(FloatTy),
          ARGS(SizeTy->getPointerTo(), SizeTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::NoEffect),
          MEMEFFECTS(ReadOnly))
 
-FUNCTION(IntToFloat64, Swift, swift_intToFloat64, SwiftCC, AlwaysAvailable,
+FUNCTION(IntToFloat64, Codira, language_intToFloat64, CodiraCC, AlwaysAvailable,
          RETURNS(DoubleTy),
          ARGS(SizeTy->getPointerTo(), SizeTy),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::NoEffect),
          MEMEFFECTS(ReadOnly))
 
-// const Metadata *swift_getTypeByMangledNameInContext(
+// const Metadata *language_getTypeByMangledNameInContext(
 //                        const char *typeNameStart,
 //                        size_t typeNameLength,
 //                        const void *context,
 //                        const void * const *genericArgs)
-FUNCTION(GetTypeByMangledNameInContext, Swift, swift_getTypeByMangledNameInContext,
-         SwiftCC, AlwaysAvailable,
+FUNCTION(GetTypeByMangledNameInContext, Codira, language_getTypeByMangledNameInContext,
+         CodiraCC, AlwaysAvailable,
          RETURNS(TypeMetadataPtrTy),
          ARGS(Int8PtrTy, SizeTy, TypeContextDescriptorPtrTy, Int8PtrPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ArgMemOnly))
 
-// const Metadata *swift_getTypeByMangledNameInContext2(
+// const Metadata *language_getTypeByMangledNameInContext2(
 //                        const char *typeNameStart,
 //                        size_t typeNameLength,
 //                        const TargetContextDescriptor<InProcess> *context,
 //                        const void * const *genericArgs)
-FUNCTION(GetTypeByMangledNameInContext2, Swift, swift_getTypeByMangledNameInContext2,
-         SwiftCC, SignedDescriptorAvailability,
+FUNCTION(GetTypeByMangledNameInContext2, Codira, language_getTypeByMangledNameInContext2,
+         CodiraCC, SignedDescriptorAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(Int8PtrTy, SizeTy, TypeContextDescriptorPtrTy, Int8PtrPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ArgMemOnly))
 
-// const Metadata *swift_getTypeByMangledNameInContextInMetadataState(
+// const Metadata *language_getTypeByMangledNameInContextInMetadataState(
 //                        size_t metadataState,
 //                        const char *typeNameStart,
 //                        size_t typeNameLength,
 //                        const void *context,
 //                        const void * const *genericArgs)
 FUNCTION(GetTypeByMangledNameInContextInMetadataState,
-         Swift, swift_getTypeByMangledNameInContextInMetadataState, SwiftCC,
+         Codira, language_getTypeByMangledNameInContextInMetadataState, CodiraCC,
          GetTypesInAbstractMetadataStateAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy, Int8PtrTy, SizeTy, TypeContextDescriptorPtrTy,
@@ -2297,14 +2298,14 @@ FUNCTION(GetTypeByMangledNameInContextInMetadataState,
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ArgMemOnly))
 
-// const Metadata *swift_getTypeByMangledNameInContextInMetadataState2(
+// const Metadata *language_getTypeByMangledNameInContextInMetadataState2(
 //                        size_t metadataState,
 //                        const char *typeNameStart,
 //                        size_t typeNameLength,
 //                        const TargetContextDescriptor<InProcess> *context,
 //                        const void * const *genericArgs)
 FUNCTION(GetTypeByMangledNameInContextInMetadataState2,
-         Swift, swift_getTypeByMangledNameInContextInMetadataState2, SwiftCC,
+         Codira, language_getTypeByMangledNameInContextInMetadataState2, CodiraCC,
          SignedDescriptorAvailability,
          RETURNS(TypeMetadataPtrTy),
          ARGS(SizeTy, Int8PtrTy, SizeTy, TypeContextDescriptorPtrTy,
@@ -2313,19 +2314,19 @@ FUNCTION(GetTypeByMangledNameInContextInMetadataState2,
          EFFECT(RuntimeEffect::MetaData),
          MEMEFFECTS(ArgMemOnly))
 
-// AsyncTask *swift_task_getCurrent();
+// AsyncTask *language_task_getCurrent();
 FUNCTION(GetCurrentTask,
-         _Concurrency, swift_task_getCurrent, SwiftCC,
+         _Concurrency, language_task_getCurrent, CodiraCC,
          ConcurrencyAvailability,
-         RETURNS(SwiftTaskPtrTy),
+         RETURNS(CodiraTaskPtrTy),
          ARGS(),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ReadNone))
 
-// void *swift_task_alloc(size_t size);
+// void *language_task_alloc(size_t size);
 FUNCTION(TaskAlloc,
-         _Concurrency, swift_task_alloc, SwiftCC,
+         _Concurrency, language_task_alloc, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(Int8PtrTy),
          ARGS(SizeTy),
@@ -2333,9 +2334,9 @@ FUNCTION(TaskAlloc,
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// void swift_task_dealloc(void *ptr);
+// void language_task_dealloc(void *ptr);
 FUNCTION(TaskDealloc,
-         _Concurrency, swift_task_dealloc, SwiftCC,
+         _Concurrency, language_task_dealloc, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy),
@@ -2343,9 +2344,9 @@ FUNCTION(TaskDealloc,
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// void swift_task_dealloc_through(void *ptr);
+// void language_task_dealloc_through(void *ptr);
 FUNCTION(TaskDeallocThrough,
-         _Concurrency, swift_task_dealloc_through, SwiftCC,
+         _Concurrency, language_task_dealloc_through, CodiraCC,
          CoroutineAccessorsAvailability,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy),
@@ -2353,52 +2354,65 @@ FUNCTION(TaskDeallocThrough,
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// void swift_task_cancel(AsyncTask *task);
+// void language_task_cancel(AsyncTask *task);
 FUNCTION(TaskCancel,
-         _Concurrency, swift_task_cancel, SwiftCC,
+         _Concurrency, language_task_cancel, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftTaskPtrTy),
+         ARGS(CodiraTaskPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// AsyncTaskAndContext swift_task_create(
+// AsyncTaskAndContext language_task_create(
 //     size_t taskCreateFlags,
 //     TaskOptionRecord *options,
 //     const Metadata *futureResultType,
 //     void *closureEntry, HeapObject *closureContext);
 FUNCTION(TaskCreate,
-         _Concurrency, swift_task_create, SwiftCC,
+         _Concurrency, language_task_create, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(AsyncTaskAndContextTy),
          ARGS(SizeTy,
-              SwiftTaskOptionRecordPtrTy,
+              CodiraTaskOptionRecordPtrTy,
               TypeMetadataPtrTy,
               Int8PtrTy,
               RefCountedPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
-         MEMEFFECTS(ArgMemOnly))
+         MEMEFFECTS(ReadOnly))
 
-// void swift_task_switch(AsyncContext *resumeContext,
+// void language_task_switch(AsyncContext *resumeContext,
 //                        TaskContinuationFunction *resumeFunction,
 //                        SerialExecutorRef newExecutor);
 FUNCTION(TaskSwitchFunc,
-         _Concurrency, swift_task_switch, SwiftAsyncCC,
+         _Concurrency, language_task_switch, CodiraAsyncCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftContextPtrTy, Int8PtrTy, ExecutorFirstTy, ExecutorSecondTy),
+         ARGS(CodiraContextPtrTy, Int8PtrTy, ExecutorFirstTy, ExecutorSecondTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
          
-// void swift_task_deinitOnExecutor(void *object,
+// void language_task_deinitOnExecutor(void *object,
 //                                  DeinitWorkFunction *work,
 //                                  SerialExecutorRef newExecutor,
 //                                  size_t flags);
 FUNCTION(DeinitOnExecutorFunc,
-         _Concurrency, swift_task_deinitOnExecutor, SwiftCC,
+         _Concurrency, language_task_deinitOnExecutor, CodiraCC,
+         IsolatedDeinitAvailability,
+         RETURNS(VoidTy),
+         ARGS(Int8PtrTy, Int8PtrTy, ExecutorFirstTy, ExecutorSecondTy, SizeTy),
+         ATTRS(NoUnwind),
+         EFFECT(RuntimeEffect::Concurrency),
+         UNKNOWN_MEMEFFECTS)
+
+// void language_task_deinitOnExecutorMainActorBackDeploy(void *object,
+//                                  DeinitWorkFunction *work,
+//                                  SerialExecutorRef newExecutor,
+//                                  size_t flags);
+FUNCTION(DeinitOnExecutorMainActorBackDeployFunc,
+         _Concurrency, deinitOnExecutorMainActorBackDeploy, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, Int8PtrTy, ExecutorFirstTy, ExecutorSecondTy, SizeTy),
@@ -2406,21 +2420,20 @@ FUNCTION(DeinitOnExecutorFunc,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-
-// AsyncTask *swift_continuation_init(AsyncContext *continuationContext,
+// AsyncTask *language_continuation_init(AsyncContext *continuationContext,
 //                                    AsyncContinuationFlags);
 FUNCTION(ContinuationInit,
-         _Concurrency, swift_continuation_init, SwiftCC,
+         _Concurrency, language_continuation_init, CodiraCC,
          ConcurrencyAvailability,
-         RETURNS(SwiftTaskPtrTy),
+         RETURNS(CodiraTaskPtrTy),
          ARGS(ContinuationAsyncContextPtrTy, SizeTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_continuation_await(AsyncContext *continuationContext);
+// void language_continuation_await(AsyncContext *continuationContext);
 FUNCTION(ContinuationAwait,
-         _Concurrency, swift_continuation_await, SwiftAsyncCC,
+         _Concurrency, language_continuation_await, CodiraAsyncCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(ContinuationAsyncContextPtrTy),
@@ -2428,60 +2441,60 @@ FUNCTION(ContinuationAwait,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_continuation_resume(AsyncTask *continuation);
+// void language_continuation_resume(AsyncTask *continuation);
 FUNCTION(ContinuationResume,
-         _Concurrency, swift_continuation_resume, SwiftCC,
+         _Concurrency, language_continuation_resume, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftTaskPtrTy),
+         ARGS(CodiraTaskPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_continuation_throwingResume(AsyncTask *continuation);
+// void language_continuation_throwingResume(AsyncTask *continuation);
 FUNCTION(ContinuationThrowingResume,
-         _Concurrency, swift_continuation_throwingResume, SwiftCC,
+         _Concurrency, language_continuation_throwingResume, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftTaskPtrTy),
+         ARGS(CodiraTaskPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_continuation_throwingResumeWithError(AsyncTask *continuation,
-//                                                 SwiftError *error);
+// void language_continuation_throwingResumeWithError(AsyncTask *continuation,
+//                                                 CodiraError *error);
 FUNCTION(ContinuationThrowingResumeWithError,
-         _Concurrency, swift_continuation_throwingResumeWithError, SwiftCC,
+         _Concurrency, language_continuation_throwingResumeWithError, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftTaskPtrTy, ErrorPtrTy),
+         ARGS(CodiraTaskPtrTy, ErrorPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// SerialExecutorRef swift_task_getCurrentExecutor();
+// SerialExecutorRef language_task_getCurrentExecutor();
 FUNCTION(TaskGetCurrentExecutor,
-         _Concurrency, swift_task_getCurrentExecutor, SwiftCC,
+         _Concurrency, language_task_getCurrentExecutor, CodiraCC,
          ConcurrencyAvailability,
-         RETURNS(SwiftExecutorTy),
+         RETURNS(CodiraExecutorTy),
          ARGS(),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// SerialExecutorRef swift_task_getMainExecutor();
+// SerialExecutorRef language_task_getMainExecutor();
 FUNCTION(TaskGetMainExecutor,
-         _Concurrency, swift_task_getMainExecutor, SwiftCC,
+         _Concurrency, language_task_getMainExecutor, CodiraCC,
          ConcurrencyAvailability,
-         RETURNS(SwiftExecutorTy),
+         RETURNS(CodiraExecutorTy),
          ARGS(),
          ATTRS(NoUnwind, WillReturn),
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// void swift_defaultActor_initialize(DefaultActor *actor);
+// void language_defaultActor_initialize(DefaultActor *actor);
 FUNCTION(DefaultActorInitialize,
-         _Concurrency, swift_defaultActor_initialize, SwiftCC,
+         _Concurrency, language_defaultActor_initialize, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -2489,9 +2502,9 @@ FUNCTION(DefaultActorInitialize,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_defaultActor_destroy(DefaultActor *actor);
+// void language_defaultActor_destroy(DefaultActor *actor);
 FUNCTION(DefaultActorDestroy,
-         _Concurrency, swift_defaultActor_destroy, SwiftCC,
+         _Concurrency, language_defaultActor_destroy, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -2499,9 +2512,9 @@ FUNCTION(DefaultActorDestroy,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_defaultActor_deallocate(DefaultActor *actor);
+// void language_defaultActor_deallocate(DefaultActor *actor);
 FUNCTION(DefaultActorDeallocate,
-         _Concurrency, swift_defaultActor_deallocate, SwiftCC,
+         _Concurrency, language_defaultActor_deallocate, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -2509,9 +2522,9 @@ FUNCTION(DefaultActorDeallocate,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_defaultActor_deallocateResilient(HeapObject *actor);
+// void language_defaultActor_deallocateResilient(HeapObject *actor);
 FUNCTION(DefaultActorDeallocateResilient,
-         _Concurrency, swift_defaultActor_deallocateResilient, SwiftCC,
+         _Concurrency, language_defaultActor_deallocateResilient, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -2519,9 +2532,9 @@ FUNCTION(DefaultActorDeallocateResilient,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_nonDefaultDistributedActor_initialize(NonDefaultDistributedActor *actor);
+// void language_nonDefaultDistributedActor_initialize(NonDefaultDistributedActor *actor);
 FUNCTION(NonDefaultDistributedActorInitialize,
-         _Concurrency, swift_nonDefaultDistributedActor_initialize, SwiftCC,
+         _Concurrency, language_nonDefaultDistributedActor_initialize, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(RefCountedPtrTy),
@@ -2529,11 +2542,11 @@ FUNCTION(NonDefaultDistributedActorInitialize,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// OpaqueValue* swift_distributedActor_remote_initialize(
+// OpaqueValue* language_distributedActor_remote_initialize(
 //    const Metadata *actorType
 // );
 FUNCTION(DistributedActorInitializeRemote,
-         _Concurrency, swift_distributedActor_remote_initialize, SwiftCC,
+         _Concurrency, language_distributedActor_remote_initialize, CodiraCC,
          ConcurrencyAvailability, // TODO(distributed): Introduce DistributedAvailability once shipping somewhere
          RETURNS(OpaquePtrTy),
          ARGS(TypeMetadataPtrTy),
@@ -2541,7 +2554,7 @@ FUNCTION(DistributedActorInitializeRemote,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-/// void swift_asyncLet_start(
+/// void language_asyncLet_start(
 ///     AsyncLet *alet,
 ///     TaskOptionRecord *options,
 ///     const Metadata *futureResultType,
@@ -2549,11 +2562,11 @@ FUNCTION(DistributedActorInitializeRemote,
 ///     HeapObject *closureContext
 /// );
 FUNCTION(AsyncLetStart,
-         _Concurrency, swift_asyncLet_start, SwiftCC,
+         _Concurrency, language_asyncLet_start, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftAsyncLetPtrTy,         // AsyncLet*
-              SwiftTaskOptionRecordPtrTy, // options
+         ARGS(CodiraAsyncLetPtrTy,         // AsyncLet*
+              CodiraTaskOptionRecordPtrTy, // options
               TypeMetadataPtrTy,          // futureResultType
               Int8PtrTy,                  // closureEntry
               OpaquePtrTy                 // closureContext
@@ -2562,7 +2575,7 @@ FUNCTION(AsyncLetStart,
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-/// void swift_asyncLet_begin(
+/// void language_asyncLet_begin(
 ///     AsyncLet *alet,
 ///     TaskOptionRecord *options,
 ///     const Metadata *futureResultType,
@@ -2571,11 +2584,11 @@ FUNCTION(AsyncLetStart,
 ///     void *resultBuffer
 /// );
 FUNCTION(AsyncLetBegin,
-         _Concurrency, swift_asyncLet_begin, SwiftCC,
+         _Concurrency, language_asyncLet_begin, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftAsyncLetPtrTy,         // AsyncLet*
-              SwiftTaskOptionRecordPtrTy, // options
+         ARGS(CodiraAsyncLetPtrTy,         // AsyncLet*
+              CodiraTaskOptionRecordPtrTy, // options
               TypeMetadataPtrTy,          // futureResultType
               Int8PtrTy,                  // closureEntry
               OpaquePtrTy,                // closureContext
@@ -2585,24 +2598,24 @@ FUNCTION(AsyncLetBegin,
          EFFECT(RuntimeEffect::Concurrency),
          MEMEFFECTS(ArgMemOnly))
 
-// void swift_asyncLet_end(AsyncLet *alet);
+// void language_asyncLet_end(AsyncLet *alet);
 FUNCTION(EndAsyncLet,
-         _Concurrency, swift_asyncLet_end, SwiftCC,
+         _Concurrency, language_asyncLet_end, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
-         ARGS(SwiftAsyncLetPtrTy),
+         ARGS(CodiraAsyncLetPtrTy),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-/// void swift_task_run_inline(
+/// void language_task_run_inline(
 ///     OpaqueValue *result,
 ///     void *closureAFP,
 ///     OpaqueValue *closureContext,
 ///     const Metadata *futureResultType
 /// )
 FUNCTION(TaskRunInline,
-         _Concurrency, swift_task_run_inline, SwiftCC,
+         _Concurrency, language_task_run_inline, CodiraCC,
          TaskRunInlineAvailability,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy,       // OpaqueValue *result
@@ -2614,9 +2627,9 @@ FUNCTION(TaskRunInline,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_taskGroup_initialize(TaskGroup *group, const Metadata *T);
+// void language_taskGroup_initialize(TaskGroup *group, const Metadata *T);
 FUNCTION(TaskGroupInitialize,
-         _Concurrency, swift_taskGroup_initialize, SwiftCC,
+         _Concurrency, language_taskGroup_initialize, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2624,9 +2637,9 @@ FUNCTION(TaskGroupInitialize,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_taskGroup_initializeWithFlags(size_t flags, TaskGroup *group, const Metadata *T);
+// void language_taskGroup_initializeWithFlags(size_t flags, TaskGroup *group, const Metadata *T);
 FUNCTION(TaskGroupInitializeWithFlags,
-         _Concurrency, swift_taskGroup_initializeWithFlags, SwiftCC,
+         _Concurrency, language_taskGroup_initializeWithFlags, CodiraCC,
          ConcurrencyDiscardingTaskGroupAvailability,
          RETURNS(VoidTy),
          ARGS(SizeTy,           // flags
@@ -2637,23 +2650,23 @@ FUNCTION(TaskGroupInitializeWithFlags,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_taskGroup_initializeWithTaskOptions(size_t flags, TaskGroup *group, const Metadata *T, TaskOptionRecord *options);
+// void language_taskGroup_initializeWithTaskOptions(size_t flags, TaskGroup *group, const Metadata *T, TaskOptionRecord *options);
 FUNCTION(TaskGroupInitializeWithOptions,
-         _Concurrency, swift_taskGroup_initializeWithOptions, SwiftCC,
+         _Concurrency, language_taskGroup_initializeWithOptions, CodiraCC,
          ConcurrencyDiscardingTaskGroupAvailability,
          RETURNS(VoidTy),
          ARGS(SizeTy,                     // flags
               Int8PtrTy,                  // group
               TypeMetadataPtrTy,          // T.Type
-              SwiftTaskOptionRecordPtrTy  // options
+              CodiraTaskOptionRecordPtrTy  // options
          ),
          ATTRS(NoUnwind),
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_taskGroup_destroy(TaskGroup *group);
+// void language_taskGroup_destroy(TaskGroup *group);
 FUNCTION(TaskGroupDestroy,
-         _Concurrency, swift_taskGroup_destroy, SwiftCC,
+         _Concurrency, language_taskGroup_destroy, CodiraCC,
          ConcurrencyAvailability,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy),
@@ -2661,9 +2674,9 @@ FUNCTION(TaskGroupDestroy,
          EFFECT(RuntimeEffect::Concurrency),
          UNKNOWN_MEMEFFECTS)
 
-// AutoDiffLinearMapContext *swift_autoDiffCreateLinearMapContextWithType(const Metadata *);
+// AutoDiffLinearMapContext *language_autoDiffCreateLinearMapContextWithType(const Metadata *);
 FUNCTION(AutoDiffCreateLinearMapContextWithType,
-         Swift, swift_autoDiffCreateLinearMapContextWithType, SwiftCC,
+         Codira, language_autoDiffCreateLinearMapContextWithType, CodiraCC,
          DifferentiationAvailability,
          RETURNS(RefCountedPtrTy),
          ARGS(TypeMetadataPtrTy),
@@ -2671,9 +2684,9 @@ FUNCTION(AutoDiffCreateLinearMapContextWithType,
          EFFECT(RuntimeEffect::AutoDiff),
          MEMEFFECTS(ArgMemOnly))
 
-// void *swift_autoDiffProjectTopLevelSubcontext(AutoDiffLinearMapContext *);
+// void *language_autoDiffProjectTopLevelSubcontext(AutoDiffLinearMapContext *);
 FUNCTION(AutoDiffProjectTopLevelSubcontext,
-         Swift, swift_autoDiffProjectTopLevelSubcontext, SwiftCC,
+         Codira, language_autoDiffProjectTopLevelSubcontext, CodiraCC,
          DifferentiationAvailability,
          RETURNS(Int8PtrTy),
          ARGS(RefCountedPtrTy),
@@ -2681,9 +2694,9 @@ FUNCTION(AutoDiffProjectTopLevelSubcontext,
          EFFECT(RuntimeEffect::AutoDiff),
          MEMEFFECTS(ArgMemOnly))
 
-// void *swift_autoDiffAllocateSubcontextWithType(AutoDiffLinearMapContext *, const Metadata *);
+// void *language_autoDiffAllocateSubcontextWithType(AutoDiffLinearMapContext *, const Metadata *);
 FUNCTION(AutoDiffAllocateSubcontextWithType,
-         Swift, swift_autoDiffAllocateSubcontextWithType, SwiftCC,
+         Codira, language_autoDiffAllocateSubcontextWithType, CodiraCC,
          DifferentiationAvailability,
          RETURNS(Int8PtrTy),
          ARGS(RefCountedPtrTy, TypeMetadataPtrTy),
@@ -2691,12 +2704,12 @@ FUNCTION(AutoDiffAllocateSubcontextWithType,
          EFFECT(RuntimeEffect::AutoDiff),
          MEMEFFECTS(ArgMemOnly))
 
-// SWIFT_RUNTIME_EXPORT
-// unsigned swift_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
+// LANGUAGE_RUNTIME_EXPORT
+// unsigned language_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
 //                                                    uint32_t numExtraCases,
 //                                                    const Metadata *enumType)
 FUNCTION(GetMultiPayloadEnumTagSinglePayload,
-         Swift, swift_getMultiPayloadEnumTagSinglePayload, C_CC,
+         Codira, language_getMultiPayloadEnumTagSinglePayload, C_CC,
          MultiPayloadEnumTagSinglePayloadAvailability,
          RETURNS(Int32Ty),
          ARGS(OpaquePtrTy, Int32Ty, TypeMetadataPtrTy),
@@ -2704,13 +2717,13 @@ FUNCTION(GetMultiPayloadEnumTagSinglePayload,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// SWIFT_RUNTIME_EXPORT 
-// void swift_storeMultiPayloadEnumTagSinglePayload(OpaqueValue *value,
+// LANGUAGE_RUNTIME_EXPORT 
+// void language_storeMultiPayloadEnumTagSinglePayload(OpaqueValue *value,
 //                                                   uint32_t index,
 //                                                   uint32_t numExtraCases,
 //                                                   const Metadata *enumType);
 FUNCTION(StoreMultiPayloadEnumTagSinglePayload,
-         Swift, swift_storeMultiPayloadEnumTagSinglePayload, C_CC,
+         Codira, language_storeMultiPayloadEnumTagSinglePayload, C_CC,
          MultiPayloadEnumTagSinglePayloadAvailability,
          RETURNS(VoidTy),
          ARGS(OpaquePtrTy, Int32Ty, Int32Ty, TypeMetadataPtrTy),
@@ -2718,9 +2731,9 @@ FUNCTION(StoreMultiPayloadEnumTagSinglePayload,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_destroy(opaque*, const Metadata* type);
+// void language_cvw_destroy(opaque*, const Metadata* type);
 FUNCTION(GenericDestroy,
-         Swift, swift_cvw_destroy,
+         Codira, language_cvw_destroy,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2729,9 +2742,9 @@ FUNCTION(GenericDestroy,
          UNKNOWN_MEMEFFECTS)
 
 
-// void *swift_cvw_assignWithCopy(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_assignWithCopy(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericAssignWithCopy,
-         Swift, swift_cvw_assignWithCopy,
+         Codira, language_cvw_assignWithCopy,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2739,9 +2752,9 @@ FUNCTION(GenericAssignWithCopy,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_assignWithTake(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_assignWithTake(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericAssignWithTake,
-         Swift, swift_cvw_assignWithTake,
+         Codira, language_cvw_assignWithTake,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2749,9 +2762,9 @@ FUNCTION(GenericAssignWithTake,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_initWithCopy(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_initWithCopy(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericInitWithCopy,
-         Swift, swift_cvw_initWithCopy,
+         Codira, language_cvw_initWithCopy,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2759,9 +2772,9 @@ FUNCTION(GenericInitWithCopy,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_initWithTake(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_initWithTake(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericInitWithTake,
-         Swift, swift_cvw_initWithTake,
+         Codira, language_cvw_initWithTake,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2769,9 +2782,9 @@ FUNCTION(GenericInitWithTake,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_initializeBufferWithCopyOfBuffer(ValueBuffer* dest, ValueBuffer* src, const Metadata* type);
+// void *language_cvw_initializeBufferWithCopyOfBuffer(ValueBuffer* dest, ValueBuffer* src, const Metadata* type);
 FUNCTION(GenericInitializeBufferWithCopyOfBuffer,
-         Swift, swift_cvw_initializeBufferWithCopyOfBuffer,
+         Codira, language_cvw_initializeBufferWithCopyOfBuffer,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(getFixedBufferTy()->getPointerTo(),
@@ -2781,9 +2794,9 @@ FUNCTION(GenericInitializeBufferWithCopyOfBuffer,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_destroyMultiPayloadEnumFN(opaque*, const Metadata* type);
+// void language_cvw_destroyMultiPayloadEnumFN(opaque*, const Metadata* type);
 FUNCTION(GenericDestroyMultiPayloadEnumFN,
-         Swift, swift_cvw_destroyMultiPayloadEnumFN,
+         Codira, language_cvw_destroyMultiPayloadEnumFN,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2791,9 +2804,9 @@ FUNCTION(GenericDestroyMultiPayloadEnumFN,
          EFFECT(RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_assignWithCopyMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_assignWithCopyMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericAssignWithCopyMultiPayloadEnumFN,
-         Swift, swift_cvw_assignWithCopyMultiPayloadEnumFN,
+         Codira, language_cvw_assignWithCopyMultiPayloadEnumFN,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2801,9 +2814,9 @@ FUNCTION(GenericAssignWithCopyMultiPayloadEnumFN,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_assignWithTakeMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_assignWithTakeMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericAssignWithTakeMultiPayloadEnumFN,
-         Swift, swift_cvw_assignWithTakeMultiPayloadEnumFN,
+         Codira, language_cvw_assignWithTakeMultiPayloadEnumFN,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2811,9 +2824,9 @@ FUNCTION(GenericAssignWithTakeMultiPayloadEnumFN,
          EFFECT(RuntimeEffect::RefCounting, RuntimeEffect::Deallocating),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_initWithCopyMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_initWithCopyMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericInitWithCopyMultiPayloadEnumFN,
-         Swift, swift_cvw_initWithCopyMultiPayloadEnumFN,
+         Codira, language_cvw_initWithCopyMultiPayloadEnumFN,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2821,9 +2834,9 @@ FUNCTION(GenericInitWithCopyMultiPayloadEnumFN,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_initWithTakeMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
+// void *language_cvw_initWithTakeMultiPayloadEnumFN(opaque* dest, opaque* src, const Metadata* type);
 FUNCTION(GenericInitWithTakeMultiPayloadEnumFN,
-         Swift, swift_cvw_initWithTakeMultiPayloadEnumFN,
+         Codira, language_cvw_initWithTakeMultiPayloadEnumFN,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(Int8PtrTy, Int8PtrTy, TypeMetadataPtrTy),
@@ -2831,9 +2844,9 @@ FUNCTION(GenericInitWithTakeMultiPayloadEnumFN,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// void *swift_cvw_initializeBufferWithCopyOfBufferMultiPayloadEnumFN(ValueBuffer* dest, ValueBuffer* src, const Metadata* type);
+// void *language_cvw_initializeBufferWithCopyOfBufferMultiPayloadEnumFN(ValueBuffer* dest, ValueBuffer* src, const Metadata* type);
 FUNCTION(GenericInitializeBufferWithCopyOfBufferMultiPayloadEnumFN,
-         Swift, swift_cvw_initializeBufferWithCopyOfBufferMultiPayloadEnumFN,
+         Codira, language_cvw_initializeBufferWithCopyOfBufferMultiPayloadEnumFN,
          C_CC, AlwaysAvailable,
          RETURNS(Int8PtrTy),
          ARGS(getFixedBufferTy()->getPointerTo(),
@@ -2843,10 +2856,10 @@ FUNCTION(GenericInitializeBufferWithCopyOfBufferMultiPayloadEnumFN,
          EFFECT(RuntimeEffect::RefCounting),
          UNKNOWN_MEMEFFECTS)
 
-// unsigned swift_cvw_singletonEnum_getEnumTag(swift::OpaqueValue *address,
+// unsigned language_cvw_singletonEnum_getEnumTag(language::OpaqueValue *address,
 //                                         const Metadata *metadata);
 FUNCTION(SingletonEnumGetEnumTag,
-         Swift, swift_cvw_singletonEnum_getEnumTag,
+         Codira, language_cvw_singletonEnum_getEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2854,11 +2867,11 @@ FUNCTION(SingletonEnumGetEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_singletonEnum_destructiveInjectEnumTag(swift::OpaqueValue *address,
+// void language_cvw_singletonEnum_destructiveInjectEnumTag(language::OpaqueValue *address,
 //                                                   unsigned tag,
 //                                                   const Metadata *metadata)
 FUNCTION(SingletonEnumDestructiveInjectEnumTag,
-         Swift, swift_cvw_singletonEnum_destructiveInjectEnumTag,
+         Codira, language_cvw_singletonEnum_destructiveInjectEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, Int32Ty, TypeMetadataPtrTy),
@@ -2866,10 +2879,10 @@ FUNCTION(SingletonEnumDestructiveInjectEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// unsigned swift_cvw_enumSimple_getEnumTag(swift::OpaqueValue *address,
+// unsigned language_cvw_enumSimple_getEnumTag(language::OpaqueValue *address,
 //                                      const Metadata *metadata);
 FUNCTION(EnumSimpleGetEnumTag,
-         Swift, swift_cvw_enumSimple_getEnumTag,
+         Codira, language_cvw_enumSimple_getEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2877,11 +2890,11 @@ FUNCTION(EnumSimpleGetEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// unsigned swift_cvw_enumSimple_destructiveInjectEnumTag(swift::OpaqueValue *address,
+// unsigned language_cvw_enumSimple_destructiveInjectEnumTag(language::OpaqueValue *address,
 //                                                    unsigned tag,
 //                                                    const Metadata *metadata)
 FUNCTION(EnumSimpleDestructiveInjectEnumTag,
-         Swift, swift_cvw_enumSimple_destructiveInjectEnumTag,
+         Codira, language_cvw_enumSimple_destructiveInjectEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, Int32Ty, TypeMetadataPtrTy),
@@ -2889,10 +2902,10 @@ FUNCTION(EnumSimpleDestructiveInjectEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// unsigned swift_cvw_enumFn_getEnumTag(swift::OpaqueValue *address,
+// unsigned language_cvw_enumFn_getEnumTag(language::OpaqueValue *address,
 //                                  const Metadata *metadata);
 FUNCTION(EnumFnGetEnumTag,
-         Swift, swift_cvw_enumFn_getEnumTag,
+         Codira, language_cvw_enumFn_getEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2900,10 +2913,10 @@ FUNCTION(EnumFnGetEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// unsigned swift_cvw_multiPayloadEnumGeneric_getEnumTag(opaque* address,
+// unsigned language_cvw_multiPayloadEnumGeneric_getEnumTag(opaque* address,
 //                                                   const Metadata *type);
 FUNCTION(MultiPayloadEnumGenericGetEnumTag,
-         Swift, swift_cvw_multiPayloadEnumGeneric_getEnumTag,
+         Codira, language_cvw_multiPayloadEnumGeneric_getEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2911,11 +2924,11 @@ FUNCTION(MultiPayloadEnumGenericGetEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_multiPayloadEnumGeneric_destructiveInjectEnumTag(swift::OpaqueValue *address,
+// void language_cvw_multiPayloadEnumGeneric_destructiveInjectEnumTag(language::OpaqueValue *address,
 //                                                             unsigned tag,
 //                                                             const Metadata *metadata)
 FUNCTION(MultiPayloadEnumGenericDestructiveInjectEnumTag,
-         Swift, swift_cvw_multiPayloadEnumGeneric_destructiveInjectEnumTag,
+         Codira, language_cvw_multiPayloadEnumGeneric_destructiveInjectEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, Int32Ty, TypeMetadataPtrTy),
@@ -2923,10 +2936,10 @@ FUNCTION(MultiPayloadEnumGenericDestructiveInjectEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// unsigned swift_cvw_singlePayloadEnumGeneric_getEnumTag(swift::OpaqueValue *address,
+// unsigned language_cvw_singlePayloadEnumGeneric_getEnumTag(language::OpaqueValue *address,
 //                                                    const Metadata *metadata);
 FUNCTION(SinglePayloadEnumGenericGetEnumTag,
-         Swift, swift_cvw_singlePayloadEnumGeneric_getEnumTag,
+         Codira, language_cvw_singlePayloadEnumGeneric_getEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2934,11 +2947,11 @@ FUNCTION(SinglePayloadEnumGenericGetEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_singlePayloadEnumGeneric_destructiveInjectEnumTag(swift::OpaqueValue *address,
+// void language_cvw_singlePayloadEnumGeneric_destructiveInjectEnumTag(language::OpaqueValue *address,
 //                                                              unsigned tag,
 //                                                              const Metadata *metadata)
 FUNCTION(SinglePayloadEnumGenericDestructiveInjectEnumTag,
-         Swift, swift_cvw_singlePayloadEnumGeneric_destructiveInjectEnumTag,
+         Codira, language_cvw_singlePayloadEnumGeneric_destructiveInjectEnumTag,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, Int32Ty, TypeMetadataPtrTy),
@@ -2946,10 +2959,10 @@ FUNCTION(SinglePayloadEnumGenericDestructiveInjectEnumTag,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_cvw_instantiateLayoutString(const uint8_t* layoutStr,
+// void language_cvw_instantiateLayoutString(const uint8_t* layoutStr,
 //                                            Metadata* type);
 FUNCTION(GenericInstantiateLayoutString,
-         Swift, swift_cvw_instantiateLayoutString,
+         Codira, language_cvw_instantiateLayoutString,
          C_CC, AlwaysAvailable,
          RETURNS(VoidTy),
          ARGS(Int8PtrTy, TypeMetadataPtrTy),
@@ -2957,12 +2970,12 @@ FUNCTION(GenericInstantiateLayoutString,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initRawStructMetadata(Metadata *structType,
+// void language_initRawStructMetadata(Metadata *structType,
 //                                  StructLayoutFlags flags,
 //                                  const TypeLayout *likeType,
 //                                  int32_t count);
 FUNCTION(InitRawStructMetadata,
-         Swift, swift_initRawStructMetadata,
+         Codira, language_initRawStructMetadata,
          C_CC, InitRawStructMetadataAvailability,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, Int8PtrPtrTy->getPointerTo(0), Int32Ty),
@@ -2970,13 +2983,13 @@ FUNCTION(InitRawStructMetadata,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// void swift_initRawStructMetadata2(Metadata *structType,
+// void language_initRawStructMetadata2(Metadata *structType,
 //                                   StructLayoutFlags structLayoutFlags,
 //                                   const TypeLayout *likeType,
 //                                   intptr_t count,
 //                                   RawLayoutFlags rawLayoutFlags);
 FUNCTION(InitRawStructMetadata2,
-         Swift, swift_initRawStructMetadata2,
+         Codira, language_initRawStructMetadata2,
          C_CC, InitRawStructMetadata2Availability,
          RETURNS(VoidTy),
          ARGS(TypeMetadataPtrTy, SizeTy, Int8PtrPtrTy->getPointerTo(0), SizeTy,
@@ -2985,13 +2998,13 @@ FUNCTION(InitRawStructMetadata2,
          EFFECT(RuntimeEffect::MetaData),
          UNKNOWN_MEMEFFECTS)
 
-// _Unwind_Reason_Code _swift_exceptionPersonality(int version,
+// _Unwind_Reason_Code _language_exceptionPersonality(int version,
 //                                                 _Unwind_Action actions,
 //                                                 uint64 exceptionClass,
 //                                                 struct _Unwind_Exception *exceptionObject,
 //                                                 struct _Unwind_Context *context);
 FUNCTION(ExceptionPersonality,
-         Swift, _swift_exceptionPersonality,
+         Codira, _language_exceptionPersonality,
          C_CC, AlwaysAvailable,
          RETURNS(Int32Ty),
          ARGS(Int32Ty,
@@ -3003,7 +3016,7 @@ FUNCTION(ExceptionPersonality,
          EFFECT(RuntimeEffect::NoEffect),
          UNKNOWN_MEMEFFECTS)
 
-FUNCTION(ClearSensitive, Swift, swift_clearSensitive, C_CC, ClearSensitiveAvailability,
+FUNCTION(ClearSensitive, Codira, language_clearSensitive, C_CC, ClearSensitiveAvailability,
          RETURNS(VoidTy),
          ARGS(PtrTy, SizeTy),
          ATTRS(NoUnwind),

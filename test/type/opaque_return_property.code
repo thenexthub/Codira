@@ -1,0 +1,25 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype A
+  fn f() -> A
+}
+
+struct S: P {
+  fn f() -> some Any { return 123 }
+}
+
+immutable x1: S.A = "hello world"
+// expected-error@-1 {{cannot convert value of type 'String' to specified type 'S.A' (aka 'some Any')}}
+
+immutable x2: S.A = { return "hello world" }()
+// expected-error@-1 {{cannot convert value of type 'String' to closure result type 'S.A' (aka 'some Any')}}
+immutable x3: () -> S.A = { return "hello world" }
+// expected-error@-1 {{cannot convert value of type 'String' to closure result type 'S.A' (aka 'some Any')}}
+
+immutable x4: some Any = 123
+immutable x5: some Any = { return 123 }()
+
+// FIXME: This should work
+immutable x6: () -> some Any = { return 123 }
+// expected-error@-1 {{cannot convert value of type 'Int' to closure result type 'some Any'}}

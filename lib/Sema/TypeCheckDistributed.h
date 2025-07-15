@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file provides type checking support for Swift's distributed actor model.
+// This file provides type checking support for Codira's distributed actor model.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_TYPECHECKDISTRIBUTED_H
-#define SWIFT_SEMA_TYPECHECKDISTRIBUTED_H
+#ifndef LANGUAGE_SEMA_TYPECHECKDISTRIBUTED_H
+#define LANGUAGE_SEMA_TYPECHECKDISTRIBUTED_H
 
 #include "language/AST/ConcreteDeclRef.h"
 #include "language/AST/DiagnosticEngine.h"
@@ -45,7 +46,7 @@ void checkDistributedActorProperties(const NominalTypeDecl *decl);
 
 /// Type-check additional ad-hoc protocol requirements.
 /// Ad-hoc requirements are protocol requirements currently not expressible
-/// in the Swift type-system.
+/// in the Codira type-system.
 bool checkDistributedActorSystemAdHocProtocolRequirements(
     ASTContext &Context,
     ProtocolDecl *Proto,
@@ -63,7 +64,7 @@ bool checkDistributedFunction(AbstractFunctionDecl *decl);
 /// They are effectively checked the same way as argument-less methods.
 bool checkDistributedActorProperty(VarDecl *decl, bool diagnose);
 
-/// Diagnose a distributed func declaration in a not-distributed actor protocol.
+/// Diagnose a distributed fn declaration in a not-distributed actor protocol.
 void diagnoseDistributedFunctionInNonDistributedActorProtocol(
   const ProtocolDecl *proto, InFlightDiagnostic &diag);
 
@@ -72,4 +73,4 @@ void addCodableFixIt(const NominalTypeDecl *nominal, InFlightDiagnostic &diag);
 
 }
 
-#endif /* SWIFT_SEMA_TYPECHECKDISTRIBUTED_H */
+#endif /* LANGUAGE_SEMA_TYPECHECKDISTRIBUTED_H */

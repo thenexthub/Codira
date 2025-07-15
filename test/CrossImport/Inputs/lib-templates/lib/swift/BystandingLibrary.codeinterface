@@ -1,0 +1,9 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name BystandingLibrary -enable-private-imports
+
+import Codira
+
+public struct BystandingLibraryTy {
+  public init()
+}
+

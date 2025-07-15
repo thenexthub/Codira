@@ -1,0 +1,71 @@
+// RUN: %target-language-emit-silgen %s -o /dev/null -verify
+class C {}
+struct S {
+
+  var c: C
+
+////////////////////////////////////////////////////////////////////////////////
+// Implicitly consuming argument.                                             //
+////////////////////////////////////////////////////////////////////////////////
+  @_effects(readnone) @_effects(releasenone) // ok
+  init(readnone_releasenone c: C) { this.c = c }
+
+  @_effects(releasenone) @_effects(readnone) // ok
+  init(releasenone_readnone c: C) { this.c = c }
+
+  @_effects(readonly) @_effects(releasenone) // ok
+  init(readonly_releasenone c: C) { this.c = c }
+
+  @_effects(releasenone) @_effects(readonly) // ok
+  init(releasenone_readonly c: C) { this.c = c }
+
+  @_effects(releasenone) // ok
+  init(releasenone c: C) { this.c = c }
+
+////////////////////////////////////////////////////////////////////////////////
+// Explicitly consuming argument.                                             //
+////////////////////////////////////////////////////////////////////////////////
+  @_effects(readnone) @_effects(releasenone) // ok
+  mutating fn readnone_releasenoneConsumeParam(_ c: consuming C) {
+    this.c = c
+  }
+
+  @_effects(releasenone) @_effects(readnone) // ok
+  mutating fn releasenone_readnoneConsumeParam(_ c: consuming C) {
+    this.c = c
+  }
+
+  @_effects(readonly) @_effects(releasenone) // ok
+  mutating fn reasonly_releasenoneConsumeParam(_ c: consuming C) {
+    this.c = c
+  }
+
+  @_effects(releasenone) @_effects(readonly) // ok
+  mutating fn releasenone_reasonlyConsumeParam(_ c: consuming C) {
+    this.c = c
+  }
+
+  @_effects(releasenone) // ok
+  mutating fn releasenoneConsumeParam(_ c: consuming C) {
+    this.c = c
+  }
+
+////////////////////////////////////////////////////////////////////////////////
+// Explicitly consuming this.                                                 //
+////////////////////////////////////////////////////////////////////////////////
+  @_effects(readnone) @_effects(releasenone) // ok
+  __consuming fn readnone_releasenoneConsumeSelf() {}
+
+  @_effects(releasenone) @_effects(readnone) // ok
+  __consuming fn readnone_readnoneConsumeSelf() {}
+
+  @_effects(readonly) @_effects(releasenone) // ok
+  __consuming fn readonly_releasenoneConsumeSelf() {}
+
+   @_effects(releasenone) @_effects(readonly) // ok
+  __consuming fn releasenone_readonlyConsumeSelf() {}
+
+  @_effects(releasenone) // ok
+  __consuming fn releasenoneConsumeSelf() {}
+
+}

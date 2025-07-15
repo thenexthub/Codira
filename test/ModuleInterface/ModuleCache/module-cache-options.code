@@ -1,0 +1,39 @@
+// UNSUPPORTED: OS=windows-msvc
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -I %t -emit-module-interface-path %t/LeafModule.codeinterface -module-name LeafModule %t/leaf.code -emit-module -o /dev/null
+// RUN: %target-language-frontend -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -I %t -module-cache-path %t/languagecache -emit-module-interface-path %t/OtherModule.codeinterface -module-name OtherModule %t/other.code -emit-module -o /dev/null
+// RUN: %target-language-frontend -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -I %t -module-cache-path %t/languagecache -Xcc -fmodules-cache-path=%t/clangcache -emit-module -o %t/TestModule.codemodule -module-name TestModule %t/main.code
+
+// RUN: NUM_LANGUAGE_MODULES=$(find %t/languagecache -type f -name '*.codemodule' | wc -l)
+// RUN: NUM_CLANG_MODULES=$(find %t/clangcache -type f -name '*.pcm' | wc -l)
+/// Two language modules, Leaf and Other
+// RUN: if [ ! $NUM_LANGUAGE_MODULES -eq 2 ]; then echo "Should only be 2 Codira Modules, found $NUM_LANGUAGE_MODULES"; exit 1; fi
+/// Two clang modules, shim and A
+// RUN: if [ ! $NUM_CLANG_MODULES -eq 2 ]; then echo "Should only be 2 Clang Modules, found $NUM_CLANG_MODULES"; exit 1; fi
+
+//--- leaf.code
+public fn LeafFunc() {}
+
+//--- other.code
+import LeafModule
+public fn OtherFunc() {}
+
+//--- module.modulemap
+module A {
+  header "A.h"
+  export *
+}
+
+//--- A.h
+void a(void);
+
+//--- main.code
+import OtherModule
+import A
+
+public fn TestFunc() {
+    OtherFunc()
+    a()
+}

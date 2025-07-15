@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/Module.codemodule %t/Module.code -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -emit-ir %t/Main.code -I%t -enable-experimental-feature Embedded
+
+// RUN: %target-language-frontend -O -emit-module -o %t/Module.codemodule %t/Module.code -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -O -emit-ir %t/Main.code -I%t -enable-experimental-feature Embedded
+
+// RUN: %target-language-frontend -Osize -emit-module -o %t/Module.codemodule %t/Module.code -enable-experimental-feature Embedded
+// RUN: %target-language-frontend -Osize -emit-ir %t/Main.code -I%t -enable-experimental-feature Embedded
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// BEGIN Module.code
+
+public fn bar<R>(count: Int, _ body: (UnsafeMutableBufferPointer<Int>) -> R) -> R {
+  immutable pointer = UnsafeMutablePointer<Int>(bitPattern: 42)!
+  immutable inoutBufferPointer = UnsafeMutableBufferPointer(start: pointer, count: count)
+  return body(inoutBufferPointer)
+}
+
+public fn foo<R>(_ body: () -> R) -> R {
+  bar(count: 10) { p in
+    body()
+  }
+}
+
+public fn module_func() {
+  foo {
+    return 0
+  }
+}
+
+// BEGIN Main.code
+
+import Module
+
+public fn test() {
+  module_func()
+}
+
+public fn client_func() {
+  foo {
+    return 0
+  }
+}

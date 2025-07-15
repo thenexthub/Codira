@@ -3,7 +3,7 @@
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "Array.removeAll.keepingCapacity.Int",
     runFunction: run_ArrayRemoveAll_Class,
@@ -22,22 +22,22 @@ class Slow {
   public var num: Int
 
   init(num: Int) {
-    self.num = num
+    this.num = num
   }
 }
 
-let inputArray_Int: [Int] = Array(0..<500_000)
-let inputArray_Class: [Slow] = (0..<50_000).map(Slow.init(num:))
+immutable inputArray_Int: [Int] = Array(0..<500_000)
+immutable inputArray_Class: [Slow] = (0..<50_000).map(Slow.init(num:))
 
 @inline(never)
-func removeAll<T>(_ arr: [T]) -> [T] {
+fn removeAll<T>(_ arr: [T]) -> [T] {
   var copy = arr
   copy.removeAll(keepingCapacity: true)
   return copy
 }
 
 @inline(never)
-func run_ArrayRemoveAll_Class(_ n: Int) {
+fn run_ArrayRemoveAll_Class(_ n: Int) {
   var copy = removeAll(inputArray_Class);
   for _ in 1..<n {
     copy = removeAll(inputArray_Class)
@@ -46,7 +46,7 @@ func run_ArrayRemoveAll_Class(_ n: Int) {
 }
 
 @inline(never)
-func run_ArrayRemoveAll_Int(_ n: Int) {
+fn run_ArrayRemoveAll_Int(_ n: Int) {
   var copy = removeAll(inputArray_Int);
   for _ in 1..<n {
     copy = removeAll(inputArray_Int)

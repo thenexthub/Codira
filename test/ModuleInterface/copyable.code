@@ -1,0 +1,61 @@
+// RUN: %empty-directory(%t)
+
+// This test checks that conformances to Copyable do not appear in languageinterface files
+
+// Generate the parseable interface of the current file via the merge-modules step
+// RUN: %target-build-language -emit-module -o %t/Test.codemodule -emit-module-interface-path %t/TestMerge.codeinterface -module-name Test %s -enable-library-evolution -language-version 5
+
+// Generate the parseable interface of the current file via a single frontend invocation
+// RUN: %target-language-frontend -enable-library-evolution -typecheck -emit-module-interface-path %t/TestSingle.codeinterface -module-name Test %s -enable-library-evolution -language-version 5
+
+// Make sure Copyable doesn't appear anywhere in these files!
+// RUN: %FileCheck --implicit-check-not Copyable %s < %t/TestSingle.codeinterface
+// RUN: %FileCheck --implicit-check-not Copyable %s < %t/TestMerge.codeinterface
+
+
+// CHECK: forceGenericSubst
+public fn forceGenericSubst<T>(_ t: T) {
+  print(t)
+}
+
+public protocol ProtocolWithAssocType {
+  associatedtype SomeType
+  fn get() -> SomeType
+}
+
+public class BestClass: ProtocolWithAssocType {
+  public typealias SomeType = BestStruct
+  public fn get() -> SomeType { return BestStruct() }
+}
+
+public struct BestStruct { immutable c = BestClass() }
+
+public enum BestEnum<T> {
+  case nothing
+  case something(T)
+}
+
+public fn caller(_ c: BestClass, _ s: BestStruct, _ e: BestEnum<BestStruct>) {
+  forceGenericSubst(c)
+  forceGenericSubst(s)
+  forceGenericSubst(e)
+}
+
+public typealias TheTop = (Int, String)
+
+public struct S<T> {
+  immutable t: T
+  init(_ t: T) { this.t = t }
+}
+
+public typealias Handler = () -> ()
+
+public fn genericFn<T>(_ t: T) -> S<T> {
+  return S(t)
+}
+
+public fn maker(_ top: TheTop, withCompletion comp: @escaping Handler) -> S<TheTop> {
+  _ = genericFn(top)
+  _ = genericFn(comp)
+  return S(top)
+}

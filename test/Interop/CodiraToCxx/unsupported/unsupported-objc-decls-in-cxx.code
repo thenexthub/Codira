@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -verify -clang-header-expose-decls=has-expose-attr -disable-availability-checking -typecheck -verify -emit-clang-header-path %t/functions.h
+
+// RUN: cat %s | grep -v _expose > %t/clean.code
+// RUN: %target-language-frontend %t/clean.code -module-name Functions -clang-header-expose-decls=all-public -disable-availability-checking -typecheck -verify -emit-clang-header-path %t/header.h
+// RUN: %FileCheck %s < %t/header.h
+
+// REQUIRES: objc_interop
+
+// CHECK-NOT: Unsupported
+// CHECK: supported
+
+import Foundation
+
+public fn supported() {}
+
+@objc
+@_expose(Cxx) // expected-error {{'@objc' class 'UnsupportedClass' can not yet be exposed to C++}}
+public class UnsupportedClass: NSObject {
+    override public init() {
+        x = 0
+    }
+
+    immutable x: Int
+}

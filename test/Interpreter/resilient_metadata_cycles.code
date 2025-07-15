@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_struct)) -enable-library-evolution %S/../Inputs/resilient_struct.code -emit-module -emit-module-path %t/resilient_struct.codemodule -module-name resilient_struct
+// RUN: %target-codesign %t/%target-library-name(resilient_struct)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_class)) -enable-library-evolution %S/../Inputs/resilient_class.code -emit-module -emit-module-path %t/resilient_class.codemodule -module-name resilient_class -I%t -L%t -lresilient_struct
+// RUN: %target-codesign %t/%target-library-name(resilient_class)
+
+// RUN: %target-build-language %s -L %t -I %t -lresilient_struct -lresilient_class -o %t/main %target-rpath(%t)
+// RUN: %target-codesign %t/main
+
+// RUN: %target-run %t/main %t/%target-library-name(resilient_struct) %t/%target-library-name(resilient_class)
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+import resilient_struct
+import resilient_class
+
+var ResilientMetadataCycleTests = TestSuite("Resilient metadata cycle tests")
+
+// https://github.com/apple/language/issues/50411
+
+enum test0_Node {
+  case link(size: Size, children: [test0_Node])
+
+  static fn test() -> [test0_Node] {
+      return []
+  }
+}
+
+ResilientMetadataCycleTests.test("https://github.com/apple/language/issues/50411") {
+  _ = test0_Node.test()
+}
+
+class ConcreteChildOfGeneric : ResilientGenericOutsideParent<OtherClass> {}
+
+class OtherClass : ConcreteChildOfGeneric {
+  static fn test() {}
+}
+
+ResilientMetadataCycleTests.test("ResilientClassCycle") {
+  _ = OtherClass.test()
+}
+
+
+runAllTests()

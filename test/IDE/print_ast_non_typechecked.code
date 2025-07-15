@@ -1,0 +1,16 @@
+class C {
+  fn foo(s: Int, w
+}
+
+// RUN: %target-language-ide-test -print-ast-not-typechecked -source-filename %s | %FileCheck %s -check-prefix=CHECK1
+// CHECK1: fn foo(s: Int)
+
+#if BAR
+fn bar() {}
+#elseif BAZ
+fn baz() {}
+#else
+fn qux() {}
+#endif
+
+// CHECK1-NOT: #if

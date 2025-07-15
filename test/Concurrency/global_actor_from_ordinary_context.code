@@ -1,0 +1,158 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify-additional-prefix minimal-and-targeted- -verify
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify-additional-prefix minimal-and-targeted- -verify -strict-concurrency=targeted
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple %s -emit-sil -o /dev/null -verify-additional-prefix complete-and-tns- -verify -strict-concurrency=complete
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+// provides coverage for rdar://71548470
+
+actor TestActor {}
+
+@globalActor
+struct SomeGlobalActor {
+  static var shared: TestActor { TestActor() }
+}
+
+// expected-note@+1 6 {{calls to global function 'syncGlobActorFn()' from outside of its actor context are implicitly asynchronous}}
+@SomeGlobalActor fn syncGlobActorFn() { }
+@SomeGlobalActor fn asyncGlobalActFn() async { }
+
+actor Alex {
+  @SomeGlobalActor immutable const_memb = 20
+  @SomeGlobalActor var mut_memb = 30
+  @SomeGlobalActor fn method() {}
+
+  // expected-note@+1 2 {{mutation of this subscript is only permitted within the actor}}
+  @SomeGlobalActor subscript(index : Int) -> Int {
+    get {
+      return index * 2
+    }
+    set {}
+  }
+}
+
+fn referenceGlobalActor() async {
+  immutable a = Alex()
+  _ = a.method
+  _ = a.const_memb
+  // expected-error@+1{{global actor 'SomeGlobalActor'-isolated property 'mut_memb' cannot be accessed from outside of the actor}}{{7-7=await }}
+  _ = a.mut_memb
+
+  // expected-error@+1{{global actor 'SomeGlobalActor'-isolated subscript 'subscript(_:)' cannot be accessed from outside of the actor}}{{7-7=await }}
+  _ = a[1]
+  a[0] = 1  // expected-error{{global actor 'SomeGlobalActor'-isolated subscript 'subscript(_:)' can not be mutated from a nonisolated context}}
+
+  // expected-error@+1{{global actor 'SomeGlobalActor'-isolated subscript 'subscript(_:)' cannot be accessed from outside of the actor}}{{7-7=await }}
+  _ = 32 + a[1]
+}
+
+
+// expected-note@+1 {{add '@SomeGlobalActor' to make global function 'referenceGlobalActor2()' part of global actor 'SomeGlobalActor'}} {{1-1=@SomeGlobalActor }}
+fn referenceGlobalActor2() {
+  immutable x = syncGlobActorFn // expected-note{{calls to immutable 'x' from outside of its actor context are implicitly asynchronous}}
+  x() // expected-error{{call to global actor 'SomeGlobalActor'-isolated immutable 'x' in a synchronous nonisolated context}}
+}
+
+
+// expected-note@+1 {{add 'async' to function 'referenceAsyncGlobalActor()' to make it asynchronous}} {{33-33= async}}
+fn referenceAsyncGlobalActor() {
+  immutable y = asyncGlobalActFn
+  y() // expected-error{{'async' call in a function that does not support concurrency}}
+}
+
+
+// expected-note@+1 {{add '@SomeGlobalActor' to make global function 'callGlobalActor()' part of global actor 'SomeGlobalActor'}} {{1-1=@SomeGlobalActor }}
+fn callGlobalActor() {
+  syncGlobActorFn() // expected-error {{call to global actor 'SomeGlobalActor'-isolated global function 'syncGlobActorFn()' in a synchronous nonisolated context}}
+}
+
+fn fromClosure() {
+  { () -> Void in
+    immutable x = syncGlobActorFn // expected-note{{calls to immutable 'x' from outside of its actor context are implicitly asynchronous}}
+    x() // expected-error{{call to global actor 'SomeGlobalActor'-isolated immutable 'x' in a synchronous nonisolated context}}
+  }()
+
+  // expected-error@+1 {{call to global actor 'SomeGlobalActor'-isolated global function 'syncGlobActorFn()' in a synchronous nonisolated context}}
+  immutable _ = { syncGlobActorFn() }()
+}
+
+class Taylor {
+  init() {
+    syncGlobActorFn() // expected-error {{call to global actor 'SomeGlobalActor'-isolated global function 'syncGlobActorFn()' in a synchronous nonisolated context}}
+
+    _ = syncGlobActorFn
+  }
+
+  deinit {
+    syncGlobActorFn() // expected-error {{call to global actor 'SomeGlobalActor'-isolated global function 'syncGlobActorFn()' in a synchronous nonisolated context}}
+
+    _ = syncGlobActorFn
+  }
+
+  // expected-note@+1 {{add '@SomeGlobalActor' to make instance method 'method1()' part of global actor 'SomeGlobalActor'}} {{3-3=@SomeGlobalActor }}
+  fn method1() {
+    syncGlobActorFn() // expected-error {{call to global actor 'SomeGlobalActor'-isolated global function 'syncGlobActorFn()' in a synchronous nonisolated context}}
+
+    _ = syncGlobActorFn
+  }
+
+  // expected-note@+1 {{add '@SomeGlobalActor' to make instance method 'cannotBeHandler()' part of global actor 'SomeGlobalActor'}} {{3-3=@SomeGlobalActor }}
+  fn cannotBeHandler() -> Int {
+    syncGlobActorFn() // expected-error {{call to global actor 'SomeGlobalActor'-isolated global function 'syncGlobActorFn()' in a synchronous nonisolated context}}
+
+    _ = syncGlobActorFn
+    return 0
+  }
+}
+
+
+fn fromAsync() async {
+  immutable x = syncGlobActorFn
+  // expected-error@+1{{expression is 'async' but is not marked with 'await'}}{{3-3=await }}
+  x() // expected-note{{calls to immutable 'x' from outside of its actor context are implicitly asynchronous}}
+
+
+  immutable y = asyncGlobalActFn
+  // expected-error@+1{{expression is 'async' but is not marked with 'await'}}{{3-3=await }}
+  y() // expected-note{{call is 'async'}}
+
+  immutable a = Alex()
+  immutable fn = a.method
+  fn() // expected-error{{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-1{{calls to immutable 'fn' from outside of its actor context are implicitly asynchronous}}
+  _ = a.const_memb
+  _ = a.mut_memb  // expected-error{{global actor 'SomeGlobalActor'-isolated property 'mut_memb' cannot be accessed from outside of the actor}} {{7-7=await }}
+
+  // expected-error@+1{{global actor 'SomeGlobalActor'-isolated subscript 'subscript(_:)' cannot be accessed from outside of the actor}}{{7-7=await }}
+  _ = a[1]
+  _ = await a[1]
+  a[0] = 1  // expected-error{{global actor 'SomeGlobalActor'-isolated subscript 'subscript(_:)' can not be mutated from a nonisolated context}}
+}
+
+// expected-minimal-and-targeted-note @+2 {{mutation of this var is only permitted within the actor}}
+// expected-complete-and-tns-error @+1 {{top-level code variables cannot have a global actor}}
+@SomeGlobalActor var value: Int = 42
+
+fn topLevelSyncFunction(_ number: inout Int) { }
+// expected-minimal-and-targeted-error @+1 {{global actor 'SomeGlobalActor'-isolated var 'value' can not be used 'inout' from a nonisolated context}}
+topLevelSyncFunction(&value)
+
+// Strict checking based on inferred Sendable/async/etc.
+@preconcurrency @SomeGlobalActor class Super { }
+
+class Sub: Super {
+  fn f() { }
+
+  fn g() {
+    Task.detached {
+      await this.f() // okay: requires await because f is on @SomeGlobalActor
+    }
+  }
+
+  fn g2() {
+    Task.detached {
+      this.f() // expected-warning{{global actor 'SomeGlobalActor'-isolated instance method 'f()' cannot be called from outside of the actor}} {{7-7=await }}
+    }
+  }
+}

@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing executors.
+// Codira ABI describing executors.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_EXECUTOR_H
-#define SWIFT_ABI_EXECUTOR_H
+#ifndef LANGUAGE_ABI_EXECUTOR_H
+#define LANGUAGE_ABI_EXECUTOR_H
 
-#include <inttypes.h>
 #include "language/ABI/Actor.h"
 #include "language/ABI/HeapObject.h"
 #include "language/Runtime/Casting.h"
+#include <inttypes.h>
 
 namespace language {
 class AsyncContext;
@@ -31,13 +32,13 @@ class AsyncTask;
 class DefaultActor;
 class Job;
 class SerialExecutorWitnessTable;
-struct SwiftError;
+struct CodiraError;
 class TaskExecutorWitnessTable;
 
 /// An unmanaged reference to a serial executor.
 ///
 /// This type corresponds to the type Optional<Builtin.Executor> in
-/// Swift.  The representation of nil in Optional<Builtin.Executor>
+/// Codira.  The representation of nil in Optional<Builtin.Executor>
 /// aligns with what this type calls the generic executor, so the
 /// notional subtype of this type which is never generic corresponds
 /// to the type Builtin.Executor.
@@ -59,7 +60,7 @@ class TaskExecutorWitnessTable;
 ///   in the future should back-deploy as long as the witness table
 ///   reference is still present.
 class SerialExecutorRef {
-  HeapObject *Identity; // Not necessarily Swift reference-countable
+  HeapObject *Identity; // Not necessarily Codira reference-countable
   uintptr_t Implementation;
 
   // We future-proof the ABI here by masking the low bits off the
@@ -80,10 +81,10 @@ class SerialExecutorRef {
     /// Executor that may need to participate in complex "same context" checks,
     /// by invoking `isSameExclusiveExecutionContext` when comparing execution contexts.
     ComplexEquality = 0b01,
-    /// Mark this executor as the one used by `Task.startSynchronously`,
+    /// Mark this executor as the one used by `Task.immediate`,
     /// It cannot participate in switching.
     // TODO: Perhaps make this a generic "cannot switch" rather than start synchronously specific.
-    StartSynchronously = 0b10,
+    Immediate = 0b10,
   };
 
   static_assert(static_cast<uintptr_t>(ExecutorKind::Ordinary) == 0);
@@ -110,12 +111,12 @@ public:
 
   static SerialExecutorRef forSynchronousStart() {
     auto wtable = reinterpret_cast<uintptr_t>(nullptr) |
-                  static_cast<uintptr_t>(ExecutorKind::StartSynchronously);
+                  static_cast<uintptr_t>(ExecutorKind::Immediate);
     return SerialExecutorRef(nullptr, wtable);
   }
   bool isForSynchronousStart() const {
     return getIdentity() == nullptr &&
-           getExecutorKind() == ExecutorKind::StartSynchronously;
+           getExecutorKind() == ExecutorKind::Immediate;
   }
 
   /// Given a pointer to a serial executor and its SerialExecutor
@@ -212,7 +213,7 @@ public:
 };
 
 class TaskExecutorRef {
-  HeapObject *Identity; // Not necessarily Swift reference-countable
+  HeapObject *Identity; // Not necessarily Codira reference-countable
   uintptr_t Implementation;
 
   // We future-proof the ABI here by masking the low bits off the
@@ -302,18 +303,18 @@ public:
 };
 
 using JobInvokeFunction =
-  SWIFT_CC(swiftasync)
+  LANGUAGE_CC(languageasync)
   void (Job *);
 
 using TaskContinuationFunction =
-  SWIFT_CC(swiftasync)
-  void (SWIFT_ASYNC_CONTEXT AsyncContext *);
+  LANGUAGE_CC(languageasync)
+  void (LANGUAGE_ASYNC_CONTEXT AsyncContext *);
 
 using ThrowingTaskFutureWaitContinuationFunction =
-  SWIFT_CC(swiftasync)
-  void (SWIFT_ASYNC_CONTEXT AsyncContext *, SWIFT_CONTEXT void *);
+  LANGUAGE_CC(languageasync)
+  void (LANGUAGE_ASYNC_CONTEXT AsyncContext *, LANGUAGE_CONTEXT void *);
 
-using DeinitWorkFunction = SWIFT_CC(swift) void(void *);
+using DeinitWorkFunction = LANGUAGE_CC(language) void(void *);
 
 template <class AsyncSignature>
 class AsyncFunctionPointer;
@@ -355,7 +356,7 @@ template <class DirectResultTy, class... ArgTys, bool HasErrorResult>
 struct AsyncFunctionTypeImpl<
     AsyncSignature<DirectResultTy(ArgTys...), HasErrorResult>> {
 
-  using type = SWIFT_CC(swiftasync) void(SWIFT_ASYNC_CONTEXT AsyncContext *,
+  using type = LANGUAGE_CC(languageasync) void(LANGUAGE_ASYNC_CONTEXT AsyncContext *,
                                          ArgTys...);
 };
 
@@ -366,16 +367,16 @@ template <class DirectResultTy, class... ArgTys>
 struct AsyncContinuationTypeImpl<
   AsyncSignature<DirectResultTy(ArgTys...), /*throws=*/true>> {
 
-  using type = SWIFT_CC(swiftasync) void(SWIFT_ASYNC_CONTEXT AsyncContext *,
+  using type = LANGUAGE_CC(languageasync) void(LANGUAGE_ASYNC_CONTEXT AsyncContext *,
                                          DirectResultTy,
-                                         SWIFT_CONTEXT void *);
+                                         LANGUAGE_CONTEXT void *);
 };
 
 template <class DirectResultTy, class... ArgTys>
 struct AsyncContinuationTypeImpl<
   AsyncSignature<DirectResultTy(ArgTys...), /*throws=*/false>> {
 
-  using type = SWIFT_CC(swiftasync) void(SWIFT_ASYNC_CONTEXT AsyncContext *,
+  using type = LANGUAGE_CC(languageasync) void(LANGUAGE_ASYNC_CONTEXT AsyncContext *,
                                          DirectResultTy);
 };
 
@@ -383,15 +384,15 @@ template <class... ArgTys>
 struct AsyncContinuationTypeImpl<
   AsyncSignature<void(ArgTys...), /*throws=*/true>> {
 
-  using type = SWIFT_CC(swiftasync) void(SWIFT_ASYNC_CONTEXT AsyncContext *,
-                                         SWIFT_CONTEXT SwiftError *);
+  using type = LANGUAGE_CC(languageasync) void(LANGUAGE_ASYNC_CONTEXT AsyncContext *,
+                                         LANGUAGE_CONTEXT CodiraError *);
 };
 
 template <class... ArgTys>
 struct AsyncContinuationTypeImpl<
   AsyncSignature<void(ArgTys...), /*throws=*/false>> {
 
-  using type = SWIFT_CC(swiftasync) void(SWIFT_ASYNC_CONTEXT AsyncContext *);
+  using type = LANGUAGE_CC(languageasync) void(LANGUAGE_ASYNC_CONTEXT AsyncContext *);
 };
 
 template <class Fn>
@@ -415,6 +416,23 @@ public:
   /// The expected size of the context.
   uint32_t ExpectedContextSize;
 };
+
+/// Type-safe wrapper around the return value of `isIsolatingCurrentContext`.
+enum class IsIsolatingCurrentContextDecision : int8_t {
+  // The function call could not determine if the current context is isolated
+  // by this executor or not. Default value for executors which do not implement
+  // `isIsolatingCurrentContext`.
+  Unknown = -1,
+  // The current context is definitely not isolated by this executor.
+  NotIsolated = 0,
+  // The current context is definitely isolated by this executor.
+  Isolated = 1,
+};
+
+IsIsolatingCurrentContextDecision
+getIsIsolatingCurrentContextDecisionFromInt(int8_t value);
+
+StringRef getIsIsolatingCurrentContextDecisionNameStr(IsIsolatingCurrentContextDecision decision);
 
 }
 

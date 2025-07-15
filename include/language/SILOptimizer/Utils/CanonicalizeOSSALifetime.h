@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Canonicalize the copies and destroys of a single owned OSSA value.
@@ -96,8 +97,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_CANONICALOSSALIFETIME_H
-#define SWIFT_SILOPTIMIZER_UTILS_CANONICALOSSALIFETIME_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_CANONICALOSSALIFETIME_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_CANONICALOSSALIFETIME_H
 
 #include "language/Basic/SmallPtrSetVector.h"
 #include "language/SIL/PrunedLiveness.h"
@@ -106,16 +107,16 @@
 #include "language/SILOptimizer/Analysis/DominanceAnalysis.h"
 #include "language/SILOptimizer/Analysis/NonLocalAccessBlockAnalysis.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/Statistic.h"
 
 namespace language {
 
 class BasicCalleeAnalysis;
 
-extern llvm::Statistic NumCopiesAndMovesEliminated;
-extern llvm::Statistic NumCopiesGenerated;
+extern toolchain::Statistic NumCopiesAndMovesEliminated;
+extern toolchain::Statistic NumCopiesGenerated;
 
 /// Insert a copy on this operand. Trace and update stats.
 void copyLiveUse(Operand *use, InstModCallbacks &instModCallbacks);
@@ -137,7 +138,7 @@ void diagnoseRequiredCopyOfMoveOnly(Operand *use,
 /// referenced it contains are consumes that cannot be deleted.
 class CanonicalOSSAConsumeInfo final {
   /// Map blocks on the lifetime boundary to the last consuming instruction.
-  llvm::SmallDenseMap<SILBasicBlock *, SILInstruction *, 4> finalBlockConsumes;
+  toolchain::SmallDenseMap<SILBasicBlock *, SILInstruction *, 4> finalBlockConsumes;
 
   /// The instructions on the availability boundary of the dead-end region where
   /// this value is not consumed.
@@ -180,7 +181,7 @@ public:
   CanonicalOSSAConsumeInfo(CanonicalOSSAConsumeInfo const &) = delete;
   CanonicalOSSAConsumeInfo &
   operator=(CanonicalOSSAConsumeInfo const &) = delete;
-  SWIFT_ASSERT_ONLY_DECL(void dump() const LLVM_ATTRIBUTE_USED);
+  LANGUAGE_ASSERT_ONLY_DECL(void dump() const TOOLCHAIN_ATTRIBUTE_USED);
 };
 
 enum PruneDebugInsts_t : bool {
@@ -276,12 +277,12 @@ private:
   ///
   /// These blocks are not necessarily in the pruned live blocks since
   /// pruned liveness does not consider destroy_values.
-  llvm::SmallSetVector<SILBasicBlock *, 8> consumingBlocks;
+  toolchain::SmallSetVector<SILBasicBlock *, 8> consumingBlocks;
 
   /// Record all interesting debug_value instructions here rather then treating
   /// them like a normal use. An interesting debug_value is one that may lie
   /// outside the pruned liveness at the time it is discovered.
-  llvm::SmallPtrSet<DebugValueInst *, 8> debugValues;
+  toolchain::SmallPtrSet<DebugValueInst *, 8> debugValues;
 
   struct Def {
     enum Kind {
@@ -478,6 +479,10 @@ private:
     return !endingLifetimeAtExplicitEnds();
   }
 
+  bool hasAnyDeadEnds() const {
+    return !deadEndBlocksAnalysis->get(function)->isEmpty();
+  }
+
   bool respectsDeinitBarriers() const {
     if (!currentDef->isLexical())
       return false;
@@ -518,7 +523,7 @@ private:
   void extendUnconsumedLiveness(PrunedLivenessBoundary const &boundary);
   void visitExtendedUnconsumedBoundary(
       ArrayRef<SILInstruction *> ends,
-      llvm::function_ref<void(SILInstruction *, PrunedLiveness::LifetimeEnding)>
+      toolchain::function_ref<void(SILInstruction *, PrunedLiveness::LifetimeEnding)>
           visitor);
 
   void insertDestroysOnBoundary(PrunedLivenessBoundary const &boundary,

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime functions in support of enums.
+// Codira runtime functions in support of enums.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_ENUM_H
-#define SWIFT_RUNTIME_ENUM_H
+#ifndef LANGUAGE_RUNTIME_ENUM_H
+#define LANGUAGE_RUNTIME_ENUM_H
 
 #include "language/Runtime/Config.h"
 
@@ -45,18 +46,18 @@ using TypeLayout = TargetTypeLayout<InProcess>;
 ///                   for the enum.
 /// \param flags - flags controlling the layout
 /// \param payload - type metadata for the payload of the enum.
-SWIFT_RUNTIME_EXPORT
-void swift_initEnumMetadataSingleCase(EnumMetadata *enumType,
+LANGUAGE_RUNTIME_EXPORT
+void language_initEnumMetadataSingleCase(EnumMetadata *enumType,
                                       EnumLayoutFlags flags,
                                       const TypeLayout *payload);
 
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_initEnumMetadataSingleCaseWithLayoutString(
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_initEnumMetadataSingleCaseWithLayoutString(
     EnumMetadata *self, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType);
 
-SWIFT_RUNTIME_EXPORT
-void swift_initEnumMetadataSingleCaseWithLayoutString(
+LANGUAGE_RUNTIME_EXPORT
+void language_initEnumMetadataSingleCaseWithLayoutString(
     EnumMetadata *self, EnumLayoutFlags layoutFlags,
     const Metadata *payloadType);
 
@@ -67,24 +68,24 @@ void swift_initEnumMetadataSingleCaseWithLayoutString(
 /// \param flags - flags controlling the layout
 /// \param payload - type metadata for the payload case of the enum.
 /// \param emptyCases - the number of empty cases in the enum.
-SWIFT_RUNTIME_EXPORT
-void swift_initEnumMetadataSinglePayload(EnumMetadata *enumType,
+LANGUAGE_RUNTIME_EXPORT
+void language_initEnumMetadataSinglePayload(EnumMetadata *enumType,
                                          EnumLayoutFlags flags,
                                          const TypeLayout *payload,
                                          unsigned emptyCases);
 
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_initEnumMetadataSinglePayloadWithLayoutString(
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_initEnumMetadataSinglePayloadWithLayoutString(
     EnumMetadata *enumType, EnumLayoutFlags flags, const Metadata *payload,
     unsigned emptyCases);
 
-SWIFT_RUNTIME_EXPORT
-void swift_initEnumMetadataSinglePayloadWithLayoutString(
+LANGUAGE_RUNTIME_EXPORT
+void language_initEnumMetadataSinglePayloadWithLayoutString(
     EnumMetadata *enumType, EnumLayoutFlags flags, const Metadata *payload,
     unsigned emptyCases);
 
 using getExtraInhabitantTag_t =
-  SWIFT_CC(swift) unsigned (const OpaqueValue *value,
+  LANGUAGE_CC(language) unsigned (const OpaqueValue *value,
                             unsigned numExtraInhabitants,
                             const Metadata *payloadType);
 
@@ -98,14 +99,14 @@ using getExtraInhabitantTag_t =
 /// \returns 0 if the payload case is inhabited. If an empty case is inhabited,
 ///          returns a value greater than or equal to one and less than or equal
 ///          emptyCases.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-unsigned swift_getEnumTagSinglePayloadGeneric(const OpaqueValue *value,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+unsigned language_getEnumTagSinglePayloadGeneric(const OpaqueValue *value,
                                               unsigned emptyCases,
                                               const Metadata *payloadType,
                                               getExtraInhabitantTag_t *getTag);
 
 using storeExtraInhabitantTag_t =
-  SWIFT_CC(swift) void (OpaqueValue *value,
+  LANGUAGE_CC(language) void (OpaqueValue *value,
                         unsigned whichCase,
                         unsigned numExtraInhabitants,
                         const Metadata *payloadType);
@@ -121,8 +122,8 @@ using storeExtraInhabitantTag_t =
 ///                    case, or a value greater than or equal to one and less
 ///                    than or equal emptyCases for an empty case.
 /// \param emptyCases - the number of empty cases in the enum.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-void swift_storeEnumTagSinglePayloadGeneric(OpaqueValue *value,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+void language_storeEnumTagSinglePayloadGeneric(OpaqueValue *value,
                                             unsigned whichCase,
                                             unsigned emptyCases,
                                             const Metadata *payloadType,
@@ -130,19 +131,19 @@ void swift_storeEnumTagSinglePayloadGeneric(OpaqueValue *value,
 
 /// Initialize the type metadata for a generic, multi-payload
 ///        enum instance.
-SWIFT_RUNTIME_EXPORT
-void swift_initEnumMetadataMultiPayload(EnumMetadata *enumType,
+LANGUAGE_RUNTIME_EXPORT
+void language_initEnumMetadataMultiPayload(EnumMetadata *enumType,
                                         EnumLayoutFlags flags,
                                         unsigned numPayloads,
                                         const TypeLayout * const *payloadTypes);
 
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_initEnumMetadataMultiPayloadWithLayoutString(
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_initEnumMetadataMultiPayloadWithLayoutString(
     EnumMetadata *enumType, EnumLayoutFlags flags, unsigned numPayloads,
     const Metadata *const *payloadTypes);
 
-SWIFT_RUNTIME_EXPORT
-void swift_initEnumMetadataMultiPayloadWithLayoutString(EnumMetadata *enumType,
+LANGUAGE_RUNTIME_EXPORT
+void language_initEnumMetadataMultiPayloadWithLayoutString(EnumMetadata *enumType,
                                                         EnumLayoutFlags flags,
                                                         unsigned numPayloads,
                                           const Metadata * const *payloadTypes);
@@ -154,32 +155,32 @@ void swift_initEnumMetadataMultiPayloadWithLayoutString(EnumMetadata *enumType,
 /// \param enumType - type metadata for the enum.
 ///
 /// \returns The index of the enum case.
-SWIFT_RUNTIME_EXPORT
-unsigned swift_getEnumCaseMultiPayload(const OpaqueValue *value,
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_getEnumCaseMultiPayload(const OpaqueValue *value,
                                        const EnumMetadata *enumType);
 
 /// Store the tag value for the given case into a multi-payload enum,
 ///        whose associated payload (if any) has already been initialized.
-SWIFT_RUNTIME_EXPORT
-void swift_storeEnumTagMultiPayload(OpaqueValue *value,
+LANGUAGE_RUNTIME_EXPORT
+void language_storeEnumTagMultiPayload(OpaqueValue *value,
                                     const EnumMetadata *enumType,
                                     unsigned whichCase);
 
 /// The unspecialized getEnumTagSinglePayload value witness to be used by the
 /// VWTs for specialized generic enums that are multi-payload.
 ///
-/// Runtime availability: Swift 5.6
-SWIFT_RUNTIME_EXPORT
-unsigned swift_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
+/// Runtime availability: Codira 5.6
+LANGUAGE_RUNTIME_EXPORT
+unsigned language_getMultiPayloadEnumTagSinglePayload(const OpaqueValue *value,
                                                    uint32_t numExtraCases,
                                                    const Metadata *enumType);
 
 /// The unspecialized storeEnumTagSinglePayload value witness to be used by the
 /// VWTs for specialized generic enums that are multi-payload.
 ///
-/// Runtime availability: Swift 5.6
-SWIFT_RUNTIME_EXPORT
-void swift_storeMultiPayloadEnumTagSinglePayload(OpaqueValue *value,
+/// Runtime availability: Codira 5.6
+LANGUAGE_RUNTIME_EXPORT
+void language_storeMultiPayloadEnumTagSinglePayload(OpaqueValue *value,
                                                  uint32_t index,
                                                  uint32_t numExtraCases,
                                                  const Metadata *enumType);

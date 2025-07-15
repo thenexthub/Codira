@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_OPTION_OPTIONS_H
-#define SWIFT_OPTION_OPTIONS_H
+#ifndef LANGUAGE_OPTION_OPTIONS_H
+#define LANGUAGE_OPTION_OPTIONS_H
 
-#include "llvm/Option/OptTable.h"
+#include "toolchain/Option/OptTable.h"
 
 #include <memory>
 
 namespace language {
 namespace options {
-  /// Flags specifically for Swift driver options.  Must not overlap with
-  /// llvm::opt::DriverFlag.
-  enum SwiftFlags {
+  /// Flags specifically for Codira driver options.  Must not overlap with
+  /// toolchain::opt::DriverFlag.
+  enum CodiraFlags {
     FrontendOption = (1 << 4),
     NoDriverOption = (1 << 5),
     NoInteractiveOption = (1 << 6),
@@ -32,12 +33,12 @@ namespace options {
     DoesNotAffectIncrementalBuild = (1 << 8),
     AutolinkExtractOption = (1 << 9),
     ModuleWrapOption = (1 << 10),
-    SwiftSynthesizeInterfaceOption = (1 << 11),
+    CodiraSynthesizeInterfaceOption = (1 << 11),
     ArgumentIsPath = (1 << 12),
     ModuleInterfaceOption = (1 << 13),
     SupplementaryOutput = (1 << 14),
-    SwiftSymbolGraphExtractOption = (1 << 15),
-    SwiftAPIDigesterOption = (1 << 16),
+    CodiraSymbolGraphExtractOption = (1 << 15),
+    CodiraAPIDigesterOption = (1 << 16),
     NewDriverOnlyOption = (1 << 17),
     ModuleInterfaceOptionIgnorable = (1 << 18),
     ArgumentIsFileList = (1 << 19),
@@ -46,14 +47,14 @@ namespace options {
 
   enum ID {
     OPT_INVALID = 0, // This is not an option ID.
-#define OPTION(...) LLVM_MAKE_OPT_ID(__VA_ARGS__),
+#define OPTION(...) TOOLCHAIN_MAKE_OPT_ID(__VA_ARGS__),
 #include "language/Option/Options.inc"
     LastOption
 #undef OPTION
   };
 } //end namespace options
 
-  std::unique_ptr<llvm::opt::OptTable> createSwiftOptTable();
+  std::unique_ptr<toolchain::opt::OptTable> createCodiraOptTable();
 
 } // end namespace language
 

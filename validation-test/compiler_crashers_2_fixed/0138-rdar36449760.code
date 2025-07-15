@@ -1,0 +1,41 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+protocol A {
+  var question: String { get }
+
+  struct B {
+    var answer: Int = 42
+
+    fn foo(a: A) {
+      _ = a.question
+    }
+  }
+}
+
+class C : A {
+  var question: String = "ultimate question"
+
+  fn foo() -> B {}
+  fn bar() -> A.B {}
+  fn baz(b: B) {
+    _ = b.answer
+  }
+}
+
+class D : A {
+  var question: String = ""
+
+  struct E {
+    fn baz(b: B) {
+      _ = b.answer
+    }
+  }
+}
+
+class F<T> : A {
+  var question: String = ""
+
+  fn foo(b: B) {
+    _ = b.answer
+  }
+}

@@ -1,0 +1,11 @@
+protocol P {
+  fn foo()
+}
+
+class C1 : P {}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %sourcekitd-test -req=refactoring.fillstub -pos=5:8 %s -- %s > %t.result/fill-stub.code.expected
+// RUN: %diff -u %S/fill-stub.code.expected %t.result/fill-stub.code.expected
+
+// REQUIRES: OS=macosx || OS=linux-gnu

@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend  -primary-file %s -O -emit-sil | %FileCheck %s
+
+// Check that no Array code is de-serialized due to specialization attributes
+
+// CHECK-NOT: Array
+
+@inline(never)
+fn foo<T>(_ x: T) {
+}
+
+public fn test() {
+  foo(27)
+}

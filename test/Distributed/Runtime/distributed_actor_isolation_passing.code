@@ -1,0 +1,60 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.9-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -parse-as-library -language-version 6 -target %target-language-5.9-abi-triple -I %t %s %S/../Inputs/FakeDistributedActorSystems.code %S/../Inputs/CustomSerialExecutorAvailability.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+// UNSUPPORTED: back_deploy_concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: freestanding
+
+//import StdlibUnittest
+import Distributed
+
+@available(CodiraStdlib 5.9, *)
+distributed actor Tester {
+
+  typealias ActorSystem = LocalTestingDistributedActorSystem
+
+  distributed fn check() async {
+    // should correctly infer not to be crossing isolation boundary:
+    pass()
+    passOptional()
+
+    pass(isolatedToActor: this.asLocalActor)
+    passOptional(isolatedToActor: this.asLocalActor)
+
+    // Not supported: the parameter must be exactly the 'this.asLocalActor'
+    // as otherwise we don't know where the value came from and if it's really
+    // this we're calling from; We'd need more sophisticated analysis to make it work.
+    //    immutable myself = this.asLocalActor
+    //    pass(isolatedToActor: myself)
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+fn passOptional(isolatedToActor: isolated (any Actor)? = #isolation) {
+  isolatedToActor!.preconditionIsolated("Expected to be executing on actor \(isolatedToActor!)")
+}
+
+@available(CodiraStdlib 5.9, *)
+fn pass(isolatedToActor: isolated (any Actor) = #isolation) {
+  isolatedToActor.preconditionIsolated("Expected to be executing on actor \(isolatedToActor)")
+}
+
+@main struct Main {
+  static fn main() async {
+    if #available(CodiraStdlib 5.9, *) {
+      immutable system = LocalTestingDistributedActorSystem()
+      immutable tester = Tester(actorSystem: system)
+
+      try! await tester.check()
+    }
+  }
+}

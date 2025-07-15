@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/build/Project
+// RUN: %languagec_driver -driver-print-jobs -emit-module %s -emit-module-path %t/build/sourceinfo_file.codemodule -module-name sourceinfo_file | %FileCheck %s -check-prefix CHECK-PROJECT
+
+// CHECK-PROJECT: build{{/|\\\\}}Project{{/|\\\\}}sourceinfo_file.codesourceinfo
+
+// RUN: %empty-directory(%t/build)
+// RUN: %languagec_driver -driver-print-jobs -emit-module %s -emit-module-path %t/build/sourceinfo_file.codemodule -module-name sourceinfo_file | %FileCheck %s -check-prefix CHECK-NOPROJECT
+
+// CHECK-NOPROJECT-NOT: Project/sourceinfo_file.codesourceinfo
+// CHECK-NOPROJECT: build{{/|\\\\}}sourceinfo_file.codesourceinfo
+
+// RUN: %empty-directory(%t/build)
+// RUN: %languagec_driver -driver-print-jobs -emit-module %s -emit-module-path %t/build/sourceinfo_file.codemodule -module-name sourceinfo_file -emit-module-source-info-path %t/build/DriverPath.codesourceinfo | %FileCheck %s -check-prefix CHECK-DRIVER-OPT
+
+// CHECK-DRIVER-OPT: build{{[/\\]}}DriverPath.codesourceinfo
+
+// RUN: %empty-directory(%t/build)
+// RUN: %languagec_driver -driver-print-jobs -emit-module %s -emit-module-path %t/build/sourceinfo_file.codemodule -module-name sourceinfo_file -avoid-emit-module-source-info | %FileCheck %s -check-prefix CHECK-DRIVER-AVOID
+
+// CHECK-DRIVER-AVOID-NOT: languagesourceinfo

@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library -verify %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -parse-as-library -verify %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module
+
+// REQUIRES: objc_interop
+

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_LAZY_H
-#define SWIFT_BASIC_LAZY_H
+#ifndef LANGUAGE_BASIC_LAZY_H
+#define LANGUAGE_BASIC_LAZY_H
 
 #include <functional>
 #include <memory>
@@ -58,7 +59,7 @@ public:
 template <class T> class Lazy {
   alignas(T) char Value[sizeof(T)] = { 0 };
 
-  swift::once_t OnceToken = {};
+  language::once_t OnceToken = {};
 
   static void defaultInitCallback(void *ValueAddr) {
     ::new (ValueAddr) T();
@@ -87,7 +88,7 @@ private:
 };
 
 template <typename T> inline T &Lazy<T>::get(void (*initCallback)(void*)) {
-  swift::once(OnceToken, initCallback, &Value);
+  language::once(OnceToken, initCallback, &Value);
   return unsafeGetAlreadyInitialized();
 }
 
@@ -103,17 +104,17 @@ template <typename Arg1> inline T &Lazy<T>::getWithInit(Arg1 &&arg1) {
     }
   } data{&Value, static_cast<Arg1&&>(arg1)};
 
-  swift::once(OnceToken, &Data::init, &data);
+  language::once(OnceToken, &Data::init, &data);
   return unsafeGetAlreadyInitialized();
 }
 
 } // end namespace language
 
-#define SWIFT_LAZY_CONSTANT(INITIAL_VALUE) \
+#define LANGUAGE_LAZY_CONSTANT(INITIAL_VALUE) \
   ([]{ \
     using T = ::std::remove_reference<decltype(INITIAL_VALUE)>::type; \
-    static ::swift::Lazy<T> TheLazy; \
+    static ::language::Lazy<T> TheLazy; \
     return TheLazy.get([](void *ValueAddr){ ::new(ValueAddr) T{INITIAL_VALUE}; });\
   }())
 
-#endif // SWIFT_BASIC_LAZY_H
+#endif // LANGUAGE_BASIC_LAZY_H

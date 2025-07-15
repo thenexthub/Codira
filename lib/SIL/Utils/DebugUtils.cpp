@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/DebugUtils.h"
@@ -18,15 +19,15 @@
 #include "language/Basic/STLExtras.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 using namespace language;
 
-bool swift::hasNonTrivialNonDebugTransitiveUsers(
+bool language::hasNonTrivialNonDebugTransitiveUsers(
     PointerUnion<SILInstruction *, SILArgument *> V) {
-  llvm::SmallVector<SILInstruction *, 8> Worklist;
-  llvm::SmallPtrSet<SILInstruction *, 8> SeenInsts;
+  toolchain::SmallVector<SILInstruction *, 8> Worklist;
+  toolchain::SmallPtrSet<SILInstruction *, 8> SeenInsts;
 
   // Initialize our worklist.
   if (auto *A = V.dyn_cast<SILArgument *>()) {
@@ -74,7 +75,7 @@ DebugVarCarryingInst DebugVarCarryingInst::getFromValue(SILValue value) {
     if (auto result = VarDeclCarryingInst(svi)) {
       switch (result.getKind()) {
       case VarDeclCarryingInst::Kind::Invalid:
-        llvm_unreachable("ShouldKind have never seen this");
+        toolchain_unreachable("ShouldKind have never seen this");
       case VarDeclCarryingInst::Kind::DebugValue:
       case VarDeclCarryingInst::Kind::AllocStack:
       case VarDeclCarryingInst::Kind::AllocBox:

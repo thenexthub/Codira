@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-loop-region-analysis"
 #include "language/SILOptimizer/Analysis/LoopRegionAnalysis.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
-#include "llvm/Support/DOTGraphTraits.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/GraphWriter.h"
+#include "toolchain/Support/DOTGraphTraits.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/GraphWriter.h"
 
 using namespace language;
 
@@ -50,16 +51,16 @@ LoopRegion::FunctionTy *LoopRegion::getFunction() const {
 }
 
 void LoopRegion::dump(bool isVerbose) const {
-  print(llvm::outs(), false, isVerbose);
-  llvm::outs() << "\n";
+  print(toolchain::outs(), false, isVerbose);
+  toolchain::outs() << "\n";
 }
 
 void LoopRegion::dumpName() const {
-  printName(llvm::outs());
-  llvm::outs() << "\n";
+  printName(toolchain::outs());
+  toolchain::outs() << "\n";
 }
 
-void LoopRegion::printName(llvm::raw_ostream &os) const {
+void LoopRegion::printName(toolchain::raw_ostream &os) const {
   if (isBlock()) {
     os << "BB" << getID();
     return;
@@ -73,7 +74,7 @@ void LoopRegion::printName(llvm::raw_ostream &os) const {
   return;
 }
 
-void LoopRegion::print(llvm::raw_ostream &os, bool isShort,
+void LoopRegion::print(toolchain::raw_ostream &os, bool isShort,
                        bool isVerbose) const {
   os << "(region id:" << ID;
   if (isShort) {
@@ -86,9 +87,9 @@ void LoopRegion::print(llvm::raw_ostream &os, bool isShort,
   } else if (isLoop()) {
     os << "loop";
   } else if (isFunction()) {
-    os << "func";
+    os << "fn";
   } else {
-    llvm_unreachable("Unknown region type");
+    toolchain_unreachable("Unknown region type");
   }
 
   os << " ucfh:" << (IsUnknownControlFlowEdgeHead? "true " : "false")
@@ -105,11 +106,11 @@ void LoopRegion::print(llvm::raw_ostream &os, bool isShort,
   } else if (isFunction()) {
     getFunction()->dump();
   } else {
-    llvm_unreachable("Unknown region type");
+    toolchain_unreachable("Unknown region type");
   }
 }
 
-llvm::raw_ostream &llvm::operator<<(llvm::raw_ostream &os, LoopRegion &LR) {
+toolchain::raw_ostream &toolchain::operator<<(toolchain::raw_ostream &os, LoopRegion &LR) {
   LR.print(os);
   return os;
 }
@@ -132,12 +133,12 @@ LoopRegion::NonLocalSuccRange LoopRegion::getNonLocalSuccs() const {
 /// Replace OldSuccID by NewSuccID, just deleting OldSuccID if what NewSuccID
 /// is already in the list.
 void LoopRegion::replaceSucc(SuccessorID OldSucc, SuccessorID NewSucc) {
-  LLVM_DEBUG(llvm::dbgs() << "                Replacing " << OldSucc << " with "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "                Replacing " << OldSucc << " with "
                           << NewSucc << "\n");
   Succs.replace(OldSucc, NewSucc);
 }
 
-llvm::raw_ostream &llvm::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &toolchain::operator<<(toolchain::raw_ostream &os,
                                     LoopRegion::SuccessorID &S) {
   return os << "(succ id:" << S.ID
             << " nonlocal:" << (S.IsNonLocal ? "true" : "false") << ")";
@@ -158,8 +159,8 @@ LoopRegionFunctionInfo::LoopRegionFunctionInfo(FunctionTy *F,
 #endif
   if (F->isExternalDeclaration())
     return;
-  LLVM_DEBUG(llvm::dbgs() << "**** LOOP REGION FUNCTION INFO ****\n");
-  LLVM_DEBUG(llvm::dbgs() << "Analyzing function: " << F->getName() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "**** LOOP REGION FUNCTION INFO ****\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Analyzing function: " << F->getName() << "\n");
   initializeBlockRegions(PI, LI);
   initializeLoopRegions(LI);
   initializeFunctionRegion(LI->getTopLevelLoops());
@@ -177,7 +178,7 @@ LoopRegionFunctionInfo::~LoopRegionFunctionInfo() {
 
 void LoopRegionFunctionInfo::verify() {
 #ifndef NDEBUG
-  llvm::SmallVector<unsigned, 8> UniquePredList;
+  toolchain::SmallVector<unsigned, 8> UniquePredList;
   for (auto *R : IDToRegionMap) {
     // Make sure that our region has a pred list without duplicates. We do not
     // care if the predecessor list is sorted, just that it is unique.
@@ -245,7 +246,7 @@ LoopRegionFunctionInfo::getRegion(BlockTy *BB) const {
   if (Iter != BBToIDMap.end()) {
     return IDToRegionMap[Iter->second];
   }
-  llvm_unreachable("Unknown BB?!");
+  toolchain_unreachable("Unknown BB?!");
 }
 
 LoopRegionFunctionInfo::RegionTy *
@@ -310,9 +311,9 @@ void LoopRegionFunctionInfo::initializeBlockRegionSuccessors(
     auto *SuccRegion = createRegion(SuccBB, SuccRPOIndex);
     BBRegion->addSucc(SuccRegion);
     SuccRegion->addPred(BBRegion);
-    LLVM_DEBUG(llvm::dbgs() << "    Succ: ";
-               SuccBB->printAsOperand(llvm::dbgs());
-               llvm::dbgs() << " RPONum: " << SuccRPOIndex << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Succ: ";
+               SuccBB->printAsOperand(toolchain::dbgs());
+               toolchain::dbgs() << " RPONum: " << SuccRPOIndex << "\n");
   }
 }
 
@@ -328,9 +329,9 @@ void LoopRegionFunctionInfo::markIrreducibleLoopPredecessorsOfNonLoopHeader(
       continue;
 
     auto *PredRegion = createRegion(Pred, *PredRPONumber);
-    LLVM_DEBUG(llvm::dbgs() << "    Backedge: ";
-               Pred->printAsOperand(llvm::dbgs());
-               llvm::dbgs() << " " << PredRegion->getID() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Backedge: ";
+               Pred->printAsOperand(toolchain::dbgs());
+               toolchain::dbgs() << " " << PredRegion->getID() << "\n");
 
     // We mark the head/tail as unknown control flow regions since in CFGs like
     // the following:
@@ -350,14 +351,14 @@ void LoopRegionFunctionInfo::markIrreducibleLoopPredecessorsOfNonLoopHeader(
     PredRegion->IsUnknownControlFlowEdgeHead = true;
     PredRegion->IsUnknownControlFlowEdgeTail = true;
   }
-  LLVM_DEBUG(llvm::dbgs() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n");
 }
 
 void
 LoopRegionFunctionInfo::
 markMultipleLoopLatchLoopBackEdges(RegionTy *LoopHeaderRegion, LoopTy *Loop,
                                    PostOrderFunctionInfo *PI) {
-  llvm::SmallVector<BlockTy *, 4> Latches;
+  toolchain::SmallVector<BlockTy *, 4> Latches;
   Loop->getLoopLatches(Latches);
   assert(Latches.size() > 1 &&
          "Assumed that this loop had multiple loop latches");
@@ -371,12 +372,12 @@ markMultipleLoopLatchLoopBackEdges(RegionTy *LoopHeaderRegion, LoopTy *Loop,
 
 void LoopRegionFunctionInfo::initializeBlockRegions(PostOrderFunctionInfo *PI,
                                                     LoopInfoTy *LI) {
-  LLVM_DEBUG(llvm::dbgs() << "Visiting BB Regions:\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting BB Regions:\n");
 
   // Initialize regions for each BB and associate RPO numbers with each BB.
   //
   // We use the RPO number of a BB as its Index in our data structures.
-  for (auto P : llvm::enumerate(PI->getReversePostOrder())) {
+  for (auto P : toolchain::enumerate(PI->getReversePostOrder())) {
     BlockTy *BB = P.value();
     unsigned RPOIndex = P.index();
     auto *BBRegion = createRegion(BB, RPOIndex);
@@ -384,9 +385,9 @@ void LoopRegionFunctionInfo::initializeBlockRegions(PostOrderFunctionInfo *PI,
     assert(*PI->getRPONumber(BB) == RPOIndex &&
            "Enumerated Reverse Post Order out of sync with RPO number");
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting BB: ";
-               BB->printAsOperand(llvm::dbgs());
-               llvm::dbgs() << " RPO: " << RPOIndex << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting BB: ";
+               BB->printAsOperand(toolchain::dbgs());
+               toolchain::dbgs() << " RPO: " << RPOIndex << "\n");
 
     // Wire up this BB as an "initial predecessor" of all of its successors
     // and make each of its successors a successor for the region.
@@ -411,7 +412,7 @@ void LoopRegionFunctionInfo::initializeBlockRegions(PostOrderFunctionInfo *PI,
     // then we know that both this BB and the predecessor are boundaries of a
     // loop that is not understood by SILLoopInfo. Mark them as unknown control
     // flow boundaries. Then add the BB as a subregion to its parent region.
-    LLVM_DEBUG(llvm::dbgs() << "Checking Preds for Back Edges\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Checking Preds for Back Edges\n");
     if (!Loop || !LI->isLoopHeader(BB)) {
       markIrreducibleLoopPredecessorsOfNonLoopHeader(BB, BBRegion, PI);
       continue;
@@ -429,14 +430,14 @@ void LoopRegionFunctionInfo::initializeBlockRegions(PostOrderFunctionInfo *PI,
 
     // If we have one loop latch, continue.
     if (Loop->getLoopLatch()) {
-      LLVM_DEBUG(llvm::dbgs() << "\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n");
       continue;
     }
 
     // Otherwise, mark each of the loop latches as irreducible control flow edge
     // tails so we are conservative around them.
     markMultipleLoopLatchLoopBackEdges(BBRegion, Loop, PI);
-    LLVM_DEBUG(llvm::dbgs() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "\n");
   }
 
 #ifndef NDEBUG
@@ -450,8 +451,8 @@ void LoopRegionFunctionInfo::initializeBlockRegions(PostOrderFunctionInfo *PI,
 
 void LoopRegionFunctionInfo::initializeLoopRegions(LoopInfoTy *LI) {
   // Now visit the loop nest in a DFS.
-  llvm::SmallVector<LoopTy *, 16> LoopWorklist(LI->begin(), LI->end());
-  llvm::SmallPtrSet<LoopTy *, 16> VisitedLoops;
+  toolchain::SmallVector<LoopTy *, 16> LoopWorklist(LI->begin(), LI->end());
+  toolchain::SmallPtrSet<LoopTy *, 16> VisitedLoops;
 
   while (LoopWorklist.size()) {
     LoopTy *L = LoopWorklist.back();
@@ -489,7 +490,7 @@ rewriteLoopHeaderPredecessors(LoopTy *SubLoop, RegionTy *SubLoopRegion) {
   auto *SubLoopHeaderRegion = getRegion(SubLoop->getHeader());
   assert(SubLoopHeaderRegion->isBlock() && "A header must always be a block");
 
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
              << "        Header: " << SubLoopHeaderRegion->getID() << "\n"
              << "        Rewiring Header Predecessors to be Loop Preds.\n");
 
@@ -499,9 +500,9 @@ rewriteLoopHeaderPredecessors(LoopTy *SubLoop, RegionTy *SubLoopRegion) {
   for (unsigned PredID : SubLoopHeaderRegion->Preds) {
     auto *PredRegion = getRegion(PredID);
 
-    LLVM_DEBUG(llvm::dbgs() << "            " << PredRegion->getID() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            " << PredRegion->getID() << "\n");
     if (!SubLoopRegion->containsSubregion(PredRegion)) {
-      LLVM_DEBUG(llvm::dbgs() << "            Not in loop... Replacing...\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Not in loop... Replacing...\n");
       // This is always a local edge since non-local edges can only have loops
       // as heads. Since the head of our edge is SubLoopHeaderRegion, this must
       // be local.
@@ -514,7 +515,7 @@ rewriteLoopHeaderPredecessors(LoopTy *SubLoop, RegionTy *SubLoopRegion) {
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "            Is in loop... Erasing...\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Is in loop... Erasing...\n");
     // Ok, we have a predecessor inside the loop. This must be a backedge.
     //
     // We are abusing the fact that a block can only be a local successor.
@@ -529,8 +530,8 @@ rewriteLoopHeaderPredecessors(LoopTy *SubLoop, RegionTy *SubLoopRegion) {
 
 static void getExitingRegions(LoopRegionFunctionInfo *LRFI, SILLoop *Loop,
                               LoopRegion *LRegion,
-                              llvm::SmallVectorImpl<unsigned> &ExitingRegions) {
-  llvm::SmallVector<SILBasicBlock *, 8> ExitingBlocks;
+                              toolchain::SmallVectorImpl<unsigned> &ExitingRegions) {
+  toolchain::SmallVector<SILBasicBlock *, 8> ExitingBlocks;
   Loop->getExitingBlocks(ExitingBlocks);
 
   // Determine the outer most region that contains the exiting block that is not
@@ -585,16 +586,16 @@ rewriteLoopExitingBlockSuccessors(LoopTy *Loop, RegionTy *LRegion) {
   getExitingRegions(this, Loop, LRegion, ExitingSubregions);
 
   // Then for each exiting region ER of the Loop L...
-  LLVM_DEBUG(llvm::dbgs() << "    Visiting Exit Blocks...\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Visiting Exit Blocks...\n");
   for (unsigned ExitingSubregionID : ExitingSubregions) {
     auto *ExitingSubregion = getRegion(ExitingSubregionID);
-    LLVM_DEBUG(llvm::dbgs() << "        Exiting Region: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Exiting Region: "
                             << ExitingSubregion->getID() << "\n");
     bool HasBackedge = false;
 
     // For each successor region S of ER...
     for (auto SuccID : ExitingSubregion->getSuccs()) {
-      LLVM_DEBUG(llvm::dbgs() << "            Succ: " << SuccID.ID
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Succ: " << SuccID.ID
                               << ". IsNonLocal: "
                               << (SuccID.IsNonLocal ? "true" : "false") <<"\n");
 
@@ -609,7 +610,7 @@ rewriteLoopExitingBlockSuccessors(LoopTy *Loop, RegionTy *LRegion) {
       // Then we continue.
       auto *SuccRegion = getRegion(SuccID.ID);
       if (!LRegion->containsSubregion(SuccRegion)) {
-        LLVM_DEBUG(llvm::dbgs() << "            Is not a subregion, "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Is not a subregion, "
                    "replacing.\n");
         SuccRegion->replacePred(ExitingSubregion->ID, LRegion->ID);
         if (ExitingSubregion->IsUnknownControlFlowEdgeTail)
@@ -627,14 +628,14 @@ rewriteLoopExitingBlockSuccessors(LoopTy *Loop, RegionTy *LRegion) {
       // RPO number of ER, then we know that the edge in between them is not a
       // backedge and thus we do not want to clip the edge.
       if (SuccRegion->getRPONumber() > ExitingSubregion->getRPONumber()) {
-        LLVM_DEBUG(llvm::dbgs() << "            Is a subregion, but not a "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Is a subregion, but not a "
                    "backedge, not removing.\n");
         continue;
       }
 
       // If the edge from ER to S is a back edge, we want to clip it and add
       // exiting subregion to
-      LLVM_DEBUG(llvm::dbgs() << "            Is a subregion and a backedge, "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Is a subregion and a backedge, "
                  "removing.\n");
       HasBackedge = true;
       auto Iter =
@@ -670,14 +671,14 @@ LoopRegionFunctionInfo::
 initializeLoopFunctionRegion(RegionTy *ParentRegion,
                              iterator_range<LoopInfoTy::iterator> SubLoops) {
 
-  LLVM_DEBUG(llvm::dbgs() << "Initializing Loop Region "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Initializing Loop Region "
                           << ParentRegion->getID() << "\n");
   // For each subloop...
   for (auto *SubLoop : SubLoops) {
     // Grab the region associated with the subloop...
     auto *SubLoopRegion = getRegion(SubLoop);
 
-    LLVM_DEBUG(llvm::dbgs() << "    Visiting Subloop: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Visiting Subloop: "
                             << SubLoopRegion->getID() << "\n");
 
     // First rewrite predecessors of the loop header to point at the loop.
@@ -715,7 +716,7 @@ initializeFunctionRegion(iterator_range<LoopInfoTy::iterator> SubLoops) {
 /// descendant non-local successor edge as dead.
 void LoopRegionFunctionInfo::
 propagateLivenessDownNonLocalSuccessorEdges(LoopRegion *Parent) {
-  llvm::SmallVector<LoopRegion *, 4> Worklist;
+  toolchain::SmallVector<LoopRegion *, 4> Worklist;
   Worklist.push_back(Parent);
 
   while (Worklist.size()) {
@@ -790,8 +791,8 @@ getRegionForNonLocalSuccessor(const LoopRegion *Child, unsigned SuccID) const {
 }
 
 void LoopRegionFunctionInfo::dump() const {
-  print(llvm::outs());
-  llvm::outs() << "\n";
+  print(toolchain::outs());
+  toolchain::outs() << "\n";
 }
 
 void LoopRegionFunctionInfo::print(raw_ostream &os) const {
@@ -803,8 +804,8 @@ void LoopRegionFunctionInfo::print(raw_ostream &os) const {
 
   // Vectors that we use to sort our local successor/predecessor indices to make
   // our output deterministic.
-  llvm::SmallVector<unsigned, 4> SortedPreds;
-  llvm::SmallVector<unsigned, 4> SortedSuccs;
+  toolchain::SmallVector<unsigned, 4> SortedPreds;
+  toolchain::SmallVector<unsigned, 4> SortedSuccs;
 
   // Then go to town...
   while (RegionWorklist.size()) {
@@ -873,7 +874,7 @@ void LoopRegionFunctionInfo::print(raw_ostream &os) const {
 
     os << "    (exiting-subregs";
     if (!R->isBlock()) {
-      llvm::SmallVector<unsigned, 4> ExitingSubregions;
+      toolchain::SmallVector<unsigned, 4> ExitingSubregions;
       auto ExitingSubRegs = R->getExitingSubregions();
       std::copy(ExitingSubRegs.begin(), ExitingSubRegs.end(),
                 std::back_inserter(ExitingSubregions));
@@ -952,7 +953,7 @@ struct alledge_iterator {
   SuccIterTy SuccIter;
 
   alledge_iterator(LoopRegionWrapper *w,
-                   swift::LoopRegion::subregion_iterator subregioniter,
+                   language::LoopRegion::subregion_iterator subregioniter,
                    LoopRegion::const_succ_iterator succiter,
                    LoopRegion::backedge_iterator backedgeiter)
       : Wrapper(w), SubregionIter(subregioniter),
@@ -1060,7 +1061,7 @@ alledge_iterator LoopRegionWrapper::end() {
                           Region->backedge_end());
 }
 
-namespace llvm {
+namespace toolchain {
 template <> struct GraphTraits<LoopRegionWrapper> {
   using ChildIteratorType = alledge_iterator;
   typedef LoopRegionWrapper *NodeRef;
@@ -1091,32 +1092,32 @@ struct GraphTraits<LoopRegionFunctionInfoGrapherWrapper *>
   static unsigned size(GraphType *F) { return F->Data.size(); }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
-static llvm::cl::opt<unsigned>
-    MaxColumns("view-loop-regions-max-columns", llvm::cl::init(80),
-               llvm::cl::desc("Maximum width of a printed node"));
+static toolchain::cl::opt<unsigned>
+    MaxColumns("view-loop-regions-max-columns", toolchain::cl::init(80),
+               toolchain::cl::desc("Maximum width of a printed node"));
 
 namespace {
 enum class LongLineBehavior { None, Truncate, Wrap };
 } // end anonymous namespace
-static llvm::cl::opt<LongLineBehavior> LLBehavior(
+static toolchain::cl::opt<LongLineBehavior> LLBehavior(
     "view-loop-regions-long-line-behavior",
-    llvm::cl::init(LongLineBehavior::Truncate),
-    llvm::cl::desc("Behavior when line width is greater than the "
+    toolchain::cl::init(LongLineBehavior::Truncate),
+    toolchain::cl::desc("Behavior when line width is greater than the "
                    "value provided my -view-loop-regions-max-columns "
                    "option"),
-    llvm::cl::values(
+    toolchain::cl::values(
         clEnumValN(LongLineBehavior::None, "none", "Print everything"),
         clEnumValN(LongLineBehavior::Truncate, "truncate",
                    "Truncate long lines"),
         clEnumValN(LongLineBehavior::Wrap, "wrap", "Wrap long lines")));
 
-static llvm::cl::opt<bool> RemoveUseListComments(
-    "view-loop-regions-remove-use-list-comments", llvm::cl::init(false),
-    llvm::cl::desc("Should use list comments be removed"));
+static toolchain::cl::opt<bool> RemoveUseListComments(
+    "view-loop-regions-remove-use-list-comments", toolchain::cl::init(false),
+    toolchain::cl::desc("Should use list comments be removed"));
 
-namespace llvm {
+namespace toolchain {
 template <>
 struct DOTGraphTraits<LoopRegionFunctionInfoGrapherWrapper *>
     : public DefaultDOTGraphTraits {
@@ -1264,11 +1265,11 @@ struct DOTGraphTraits<LoopRegionFunctionInfoGrapherWrapper *>
                             SuccIter, ParentRegion->Region->backedge_begin());
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
-static llvm::cl::opt<std::string> TargetFunction(
-    "view-loop-regions-only-for-function", llvm::cl::init(""),
-    llvm::cl::desc("Only print out the loop regions for this function"));
+static toolchain::cl::opt<std::string> TargetFunction(
+    "view-loop-regions-only-for-function", toolchain::cl::init(""),
+    toolchain::cl::desc("Only print out the loop regions for this function"));
 #endif
 
 void LoopRegionFunctionInfo::viewLoopRegions() const {
@@ -1282,7 +1283,7 @@ void LoopRegionFunctionInfo::viewLoopRegions() const {
   for (auto *R : IDToRegionMap) {
     Wrapper.Data.push_back({Wrapper, R});
   }
-  llvm::ViewGraph(&Wrapper, "loop region function info" + F->getName().str());
+  toolchain::ViewGraph(&Wrapper, "loop region function info" + F->getName().str());
 #endif
 }
 
@@ -1299,6 +1300,6 @@ void LoopRegionAnalysis::initialize(SILPassManager *PM) {
 //                              Main Entry Point
 //===----------------------------------------------------------------------===//
 
-SILAnalysis *swift::createLoopRegionAnalysis(SILModule *M) {
+SILAnalysis *language::createLoopRegionAnalysis(SILModule *M) {
   return new LoopRegionAnalysis(M);
 }

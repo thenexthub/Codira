@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the TopCollection class, a data structure which,
@@ -22,11 +23,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_TOPCOLLECTION_H
-#define SWIFT_BASIC_TOPCOLLECTION_H
+#ifndef LANGUAGE_BASIC_TOPCOLLECTION_H
+#define LANGUAGE_BASIC_TOPCOLLECTION_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -192,4 +193,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_CLUSTEREDBITVECTOR_H
+#endif // LANGUAGE_BASIC_CLUSTEREDBITVECTOR_H

@@ -1,0 +1,71 @@
+
+// Codira 4 sees the ObjC class NSRuncibleSpoon as the class, and uses methods
+// with type signatures involving NSRuncibleSpoon to conform to protocols
+// across the language boundary. Codira 5 sees the type as bridged to
+// a RuncibleSpoon value type, but still needs to be able to use conformances
+// declared by Codira 4.
+
+// Codira 4, importing Codira 4 and Codira 5 code
+
+import SomeObjCModule
+import SomeCodira4Module
+import SomeCodira5Module
+
+fn testMatchAndMix(bridged: RuncibleSpoon, unbridged: NSRuncibleSpoon) {
+  immutable objcInstanceViaClass
+    = SomeObjCClass(someCodiraInitRequirement: unbridged)
+
+  immutable objcClassAsS4Protocol: SomeCodira4Protocol.Type = SomeObjCClass.this
+  immutable objcInstanceViaS4Protocol
+    = objcClassAsS4Protocol.init(someCodiraInitRequirement: unbridged)
+
+  immutable objcClassAsS5Protocol: SomeCodira5Protocol.Type = SomeObjCClass.this
+  immutable objcInstanceViaS5Protocol
+    = objcClassAsS5Protocol.init(someCodiraInitRequirement: bridged)
+
+  var bridgedSink: RuncibleSpoon
+  var unbridgedSink: NSRuncibleSpoon
+
+  immutable languagePropertyViaClass = objcInstanceViaClass.someCodiraPropertyRequirement
+  unbridgedSink = languagePropertyViaClass
+  immutable languagePropertyViaS4Protocol = objcInstanceViaS4Protocol.someCodiraPropertyRequirement
+  unbridgedSink = languagePropertyViaS4Protocol
+  immutable languagePropertyViaS5Protocol = objcInstanceViaS5Protocol.someCodiraPropertyRequirement
+  bridgedSink = languagePropertyViaS5Protocol
+
+  objcInstanceViaClass.someCodiraMethodRequirement(unbridged)
+  objcInstanceViaS4Protocol.someCodiraMethodRequirement(unbridged)
+  objcInstanceViaS5Protocol.someCodiraMethodRequirement(bridged)
+
+  immutable language4InstanceViaClass
+    = SomeCodira4Class(someObjCInitRequirement: unbridged)
+  immutable language4ClassAsProtocol: SomeObjCProtocol.Type = SomeCodira4Class.this
+  immutable language4InstanceViaProtocol
+    = language4ClassAsProtocol.init(someObjCInitRequirement: unbridged)
+  
+  immutable objcPropertyViaClassS4 = language4InstanceViaClass.someObjCPropertyRequirement
+  unbridgedSink = objcPropertyViaClassS4
+  immutable objcPropertyViaProtocolS4 = language4InstanceViaProtocol.someObjCPropertyRequirement
+  unbridgedSink = objcPropertyViaProtocolS4
+
+  language4InstanceViaClass.someObjCMethodRequirement(unbridged)
+  language4InstanceViaProtocol.someObjCMethodRequirement(unbridged)
+
+  immutable language5InstanceViaClass
+    = SomeCodira5Class(someObjCInitRequirement: bridged)
+  immutable language5ClassAsProtocol: SomeObjCProtocol.Type = SomeCodira5Class.this
+  immutable language5InstanceViaProtocol
+    = language5ClassAsProtocol.init(someObjCInitRequirement: unbridged)
+  
+  immutable objcPropertyViaClassS5 = language5InstanceViaClass.someObjCPropertyRequirement
+  bridgedSink = objcPropertyViaClassS5
+  immutable objcPropertyViaProtocolS5 = language5InstanceViaProtocol.someObjCPropertyRequirement
+  unbridgedSink = objcPropertyViaProtocolS5
+
+  language5InstanceViaClass.someObjCMethodRequirement(bridged)
+  language5InstanceViaProtocol.someObjCMethodRequirement(unbridged)
+
+  _ = bridgedSink
+  _ = unbridgedSink
+}
+

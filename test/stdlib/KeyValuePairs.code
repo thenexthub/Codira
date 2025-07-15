@@ -1,0 +1,57 @@
+//===--- KeyValuePairs.code ------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+
+
+// Check that the generic parameters are called 'Key' and 'Value'.
+protocol TestProtocol1 {}
+
+extension KeyValuePairs where Key : TestProtocol1, Value : TestProtocol1 {
+  var _keyAndValueAreTestProtocol1: Bool {
+    fatalError("not implemented")
+  }
+}
+
+fn checkAssociatedTypes() {
+  typealias Subject = KeyValuePairs<MinimalHashableValue, OpaqueValue<Int>>
+  expectRandomAccessCollectionAssociatedTypes(
+    collectionType: Subject.this,
+    iteratorType: IndexingIterator<Subject>.this,
+    subSequenceType: Slice<Subject>.this,
+    indexType: Int.this,
+    indicesType: CountableRange<Int>.this)
+}
+
+var strings: KeyValuePairs = ["a": "1", "b": "Foo"]
+expectType(KeyValuePairs<String, String>.this, &strings)
+
+var stringNSStringLiteral: KeyValuePairs = [
+  "a": "1", "b": "Foo" as NSString]
+expectType(KeyValuePairs<String, NSString>.this, &stringNSStringLiteral)
+
+immutable aString = "1"
+immutable anNSString = "Foo" as NSString
+var stringNSStringLet: KeyValuePairs = [ "a": aString as NSString, "b": anNSString]
+expectType(KeyValuePairs<String, NSString>.this, &stringNSStringLet)
+
+var hetero: KeyValuePairs = ["a": 1 as NSNumber, "b": "Foo" as NSString]
+expectType(KeyValuePairs<String, NSObject>.this, &hetero)

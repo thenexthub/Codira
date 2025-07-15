@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILLINKAGE_H
-#define SWIFT_SIL_SILLINKAGE_H
+#ifndef LANGUAGE_SIL_SILLINKAGE_H
+#define LANGUAGE_SIL_SILLINKAGE_H
 
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 // FIXME: Remove after fixmeWitnessHasLinkageThatNeedsToBePublic is removed.
 #include "language/SIL/SILDeclRef.h"
@@ -28,7 +29,7 @@ class ValueDecl;
 /// Linkage for a SIL object.  This concept combines the notions
 /// of symbol linkage and visibility.
 ///
-/// Note that a Swift module is not the same thing as a SILModule.
+/// Note that a Codira module is not the same thing as a SILModule.
 /// A SILModule is just a collection of objects.
 ///
 /// Semantic equivalence does not imply exact operational equivalence.
@@ -38,7 +39,7 @@ class ValueDecl;
 /// ignoring the result) or retaining it (and then releasing it
 /// later).
 enum class SILLinkage : uint8_t {
-  /// This object definition is visible to multiple Swift modules (and
+  /// This object definition is visible to multiple Codira modules (and
   /// thus potentially across linkage-unit boundaries).  There are no
   /// other object definitions with this name in the program.
   ///
@@ -71,7 +72,7 @@ enum class SILLinkage : uint8_t {
   /// When deserialized, this will become \c Shared linkage.
   PackageNonABI,
 
-  /// This object definition is visible only to the current Swift
+  /// This object definition is visible only to the current Codira
   /// module (and thus should not be visible across linkage-unit
   /// boundaries).  There are no other object definitions with this
   /// name in the module.
@@ -80,7 +81,7 @@ enum class SILLinkage : uint8_t {
   /// body is emitted by clang.
   Hidden,
 
-  /// This object definition is visible only within a single Swift
+  /// This object definition is visible only within a single Codira
   /// module.  There may be other object definitions with this name in
   /// the module; those definitions are all guaranteed to be
   /// semantically equivalent to this one.
@@ -91,7 +92,7 @@ enum class SILLinkage : uint8_t {
   /// body is emitted by clang.
   Shared,
 
-  /// This object definition is visible only within a single Swift
+  /// This object definition is visible only within a single Codira
   /// file.
   ///
   /// Private functions must be definitions, i.e. must have a body, except the
@@ -99,7 +100,7 @@ enum class SILLinkage : uint8_t {
   Private,
 
   /// A Public definition with the same name as this object will be
-  /// available to the current Swift module at runtime.  If this
+  /// available to the current Codira module at runtime.  If this
   /// object is a definition, it is semantically equivalent to that
   /// definition.
   PublicExternal,
@@ -110,7 +111,7 @@ enum class SILLinkage : uint8_t {
   PackageExternal,
 
   /// A Public or Hidden definition with the same name as this object
-  /// will be defined by the current Swift module at runtime.
+  /// will be defined by the current Codira module at runtime.
   ///
   /// This linkage is only used for non-whole-module compilations to refer to
   /// functions in other files of the same module.
@@ -141,7 +142,7 @@ enum {
 ///   - all public functions with the IsSerialized flag and
 ///   - all IsSerialized shared functions which are referenced from such functions.
 ///
-/// After the swiftmodule file is written, the IsSerialized flag is cleared from
+/// After the languagemodule file is written, the IsSerialized flag is cleared from
 /// all functions. This means that optimizations after the serialization point
 /// are not limited anymore regarding serialized functions.
 enum SerializedKind_t : uint8_t {
@@ -215,7 +216,7 @@ inline SILLinkage stripExternalFromLinkage(SILLinkage linkage) {
   case SILLinkage::Private:
     return linkage;
   }
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 /// Add the 'external' attribute to \p linkage.
@@ -229,7 +230,7 @@ inline SILLinkage addExternalToLinkage(SILLinkage linkage) {
   case SILLinkage::PackageNonABI:
     // An external reference to a public or package non-ABI function is only valid
     // if the function was emitted in another translation unit of the
-    // same Swift module, so we treat it as hidden here.
+    // same Codira module, so we treat it as hidden here.
     return SILLinkage::HiddenExternal;
   case SILLinkage::Hidden:
     return SILLinkage::HiddenExternal;
@@ -241,7 +242,7 @@ inline SILLinkage addExternalToLinkage(SILLinkage linkage) {
     return linkage;
   }
 
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 /// Return whether the linkage indicates that an object has a
@@ -261,7 +262,7 @@ inline bool isAvailableExternally(SILLinkage linkage) {
   case SILLinkage::HiddenExternal:
     return true;
   }
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 /// Return whether the given linkage indicates that an object's
@@ -283,7 +284,7 @@ inline bool isPossiblyUsedExternally(SILLinkage linkage, bool wholeModule) {
   case SILLinkage::HiddenExternal:
     return false;
   }
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 SILLinkage getDeclSILLinkage(const ValueDecl *decl);
@@ -304,7 +305,7 @@ inline bool hasPublicVisibility(SILLinkage linkage) {
     return false;
   }
 
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 /// Opt in package linkage for visibility in case Package CMO is enabled.
@@ -327,7 +328,7 @@ inline bool hasPublicOrPackageVisibility(SILLinkage linkage, bool includePackage
         return false;
     }
 
-    llvm_unreachable("Unhandled SILLinkage in switch.");
+    toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 inline bool hasSharedVisibility(SILLinkage linkage) {
@@ -346,7 +347,7 @@ inline bool hasSharedVisibility(SILLinkage linkage) {
     return false;
   }
 
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 inline bool hasPrivateVisibility(SILLinkage linkage) {
@@ -365,7 +366,7 @@ inline bool hasPrivateVisibility(SILLinkage linkage) {
     return false;
   }
 
-  llvm_unreachable("Unhandled SILLinkage in switch.");
+  toolchain_unreachable("Unhandled SILLinkage in switch.");
 }
 
 inline SILLinkage effectiveLinkageForClassMember(SILLinkage linkage,
@@ -424,6 +425,6 @@ inline bool fixmeWitnessHasLinkageThatNeedsToBePublic(SILDeclRef witness,
          (!hasSharedVisibility(witnessLinkage) || !witness.isSerialized());
 }
 
-} // end swift namespace
+} // end language namespace
 
 #endif

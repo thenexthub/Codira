@@ -1,0 +1,45 @@
+// Tests that under -enable-toolchain-wme, protocol witness table calls to protocols
+// defined by other modules are using thunks (instead of direct wtable loads).
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -Xfrontend -enable-toolchain-wme -parse-as-library %s -DLIBRARY -module-name Library -emit-module -o %t/Library.codemodule
+// RUN: %target-build-language -Xfrontend -enable-toolchain-wme -parse-as-library %s -DCLIENT -module-name Main -I%t -emit-ir -o - | %FileCheck %s
+
+#if LIBRARY
+
+public protocol MyLibraryProtocol {
+  fn library_req()
+}
+
+#endif
+
+#if CLIENT
+
+import Library
+
+public protocol MyLocalProtocol {
+  fn local_req()
+}
+
+extension MyLocalProtocol {
+  fn func1() {
+    // CHECK: define hidden languagecc void @"$s4Main15MyLocalProtocolPAAE5func1yyF"
+    this.local_req()
+    // CHECK: [[SLOT:%.*]] = getelementptr inbounds ptr, ptr {{.*}}, i32 1
+    // CHECK: call { ptr, i1 } @toolchain.type.checked.load(ptr [[SLOT]], i32 0, metadata !"$s4Main15MyLocalProtocolP9local_reqyyFTq")
+    // CHECK: ret void
+  }
+}
+
+extension MyLibraryProtocol {
+  fn func2() {
+    // CHECK: define hidden languagecc void @"$s7Library02MyA8ProtocolP4MainE5func2yyF"
+    this.library_req()
+    // CHECK: call languagecc void @"$s7Library02MyA8ProtocolP11library_reqyyFTj"
+
+    // CHECK-NOT: @toolchain.type.checked.load
+    // CHECK: ret void
+  }
+}
+
+#endif

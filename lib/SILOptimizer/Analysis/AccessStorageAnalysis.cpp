@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-sea"
@@ -252,9 +253,9 @@ transformCalleeStorage(const StorageAccessInfo &storage,
   case AccessStorage::Class:
   case AccessStorage::Tail:
   case AccessStorage::Stack:
-    llvm_unreachable("Handled immediately above");
+    toolchain_unreachable("Handled immediately above");
   case AccessStorage::Nested:
-    llvm_unreachable("Nested storage should not be used here");
+    toolchain_unreachable("Nested storage should not be used here");
   case AccessStorage::Global:
     // Global accesses is universal.
     return storage;
@@ -288,7 +289,7 @@ transformCalleeStorage(const StorageAccessInfo &storage,
       storage);
   }
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 bool AccessStorageResult::mergeFromApply(
@@ -337,7 +338,7 @@ void StorageAccessInfo::print(raw_ostream &os) const {
   AccessStorage::print(os);
 }
 
-void StorageAccessInfo::dump() const { print(llvm::dbgs()); }
+void StorageAccessInfo::dump() const { print(toolchain::dbgs()); }
 
 void AccessStorageResult::print(raw_ostream &os) const {
   for (auto &storageAccess : storageAccessSet)
@@ -349,7 +350,7 @@ void AccessStorageResult::print(raw_ostream &os) const {
   }
 }
 
-void AccessStorageResult::dump() const { print(llvm::dbgs()); }
+void AccessStorageResult::dump() const { print(toolchain::dbgs()); }
 
 // -----------------------------------------------------------------------------
 // MARK: FunctionAccessStorage, implementation of
@@ -389,8 +390,8 @@ bool FunctionAccessStorage::summarizeCall(FullApplySite fullApply) {
   assert(accessResult.isEmpty() && "expected uninitialized results.");
   
   if (SILFunction *callee = fullApply.getReferencedFunctionOrNull()) {
-    if (callee->getName() == "_swift_stdlib_malloc_size" ||
-        callee->getName() == "_swift_stdlib_has_malloc_size") {
+    if (callee->getName() == "_language_stdlib_malloc_size" ||
+        callee->getName() == "_language_stdlib_has_malloc_size") {
       return true;
     }
   }
@@ -407,13 +408,13 @@ void AccessStorageAnalysis::initialize(
 void AccessStorageAnalysis::invalidate() {
   functionInfoMap.clear();
   allocator.DestroyAll();
-  LLVM_DEBUG(llvm::dbgs() << "invalidate all\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "invalidate all\n");
 }
 
 void AccessStorageAnalysis::invalidate(
     SILFunction *F, InvalidationKind K) {
   if (FunctionInfo *FInfo = functionInfoMap.lookup(F)) {
-    LLVM_DEBUG(llvm::dbgs() << "  invalidate " << FInfo->F->getName() << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  invalidate " << FInfo->F->getName() << '\n');
     invalidateIncludingAllCallers(FInfo);
   }
 }
@@ -450,7 +451,7 @@ void AccessStorageAnalysis::analyzeFunction(
   if (functionInfo->functionEffects.summarizeFunction(F))
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "  >> analyze " << F->getName() << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  >> analyze " << F->getName() << '\n');
 
   // Check all instructions of the function
   for (auto &BB : *F) {
@@ -461,7 +462,7 @@ void AccessStorageAnalysis::analyzeFunction(
         functionInfo->functionEffects.analyzeInstruction(&I, DA);
     }
   }
-  LLVM_DEBUG(llvm::dbgs() << "  << finished " << F->getName() << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  << finished " << F->getName() << '\n');
 }
 
 void AccessStorageAnalysis::analyzeCall(
@@ -504,7 +505,7 @@ void AccessStorageAnalysis::recompute(
     FunctionInfo *initialInfo) {
   allocNewUpdateID();
 
-  LLVM_DEBUG(llvm::dbgs() << "recompute function-effect analysis with UpdateID "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "recompute function-effect analysis with UpdateID "
                           << getCurrentUpdateID() << '\n');
 
   // Collect and analyze all functions to recompute, starting at initialInfo.
@@ -519,14 +520,14 @@ void AccessStorageAnalysis::recompute(
   // it stabilizes.
   bool needAnotherIteration;
   do {
-    LLVM_DEBUG(llvm::dbgs() << "new iteration\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "new iteration\n");
     needAnotherIteration = false;
 
     for (FunctionInfo *functionInfo : bottomUpOrder) {
       if (!functionInfo->needUpdateCallers)
         continue;
 
-      LLVM_DEBUG(llvm::dbgs() << "  update callers of "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  update callers of "
                               << functionInfo->F->getName() << '\n');
       functionInfo->needUpdateCallers = false;
 
@@ -538,7 +539,7 @@ void AccessStorageAnalysis::recompute(
         if (!bottomUpOrder.wasRecomputedWithCurrentUpdateID(E.Caller))
           continue;
 
-        LLVM_DEBUG(llvm::dbgs() << "    merge into caller "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    merge into caller "
                                 << E.Caller->F->getName() << '\n');
 
         if (E.Caller->functionEffects.mergeFromApply(
@@ -554,6 +555,6 @@ void AccessStorageAnalysis::recompute(
   } while (needAnotherIteration);
 }
 
-SILAnalysis *swift::createAccessStorageAnalysis(SILModule *) {
+SILAnalysis *language::createAccessStorageAnalysis(SILModule *) {
   return new AccessStorageAnalysis();
 }

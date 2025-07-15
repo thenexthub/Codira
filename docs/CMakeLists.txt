@@ -6,11 +6,11 @@ find_program(SPHINX_EXECUTABLE
   PATH_SUFFIXES bin
   DOC "Sphinx documentation generator")
 
-SET(SWIFT_SPHINX_PAPER_SIZE "letter"
+SET(LANGUAGE_SPHINX_PAPER_SIZE "letter"
   CACHE STRING "Paper size for generated documentation")
 
 SET(SPHINX_ARGS
-  -D latex_elements.papersize=${SWIFT_SPHINX_PAPER_SIZE}
+  -D latex_elements.papersize=${LANGUAGE_SPHINX_PAPER_SIZE}
   -d ${CMAKE_BINARY_DIR}/doctrees)
 
 if(SPHINX_EXECUTABLE)
@@ -23,21 +23,21 @@ else()
   message(WARNING "Unable to find sphinx-build program. Not building docs")
 endif()
 
-if (LLVM_ENABLE_DOXYGEN)
+if (TOOLCHAIN_ENABLE_DOXYGEN)
 if (DOXYGEN_FOUND)
   set(abs_srcdir ${CMAKE_CURRENT_SOURCE_DIR})
   set(abs_builddir ${CMAKE_CURRENT_BINARY_DIR})
 
   if (HAVE_DOT)
-    set(DOT ${LLVM_PATH_DOT})
+    set(DOT ${TOOLCHAIN_PATH_DOT})
   endif()
 
-  if (LLVM_DOXYGEN_EXTERNAL_SEARCH)
+  if (TOOLCHAIN_DOXYGEN_EXTERNAL_SEARCH)
     set(enable_searchengine "YES")
-    set(searchengine_url "${LLVM_DOXYGEN_SEARCHENGINE_URL}")
+    set(searchengine_url "${TOOLCHAIN_DOXYGEN_SEARCHENGINE_URL}")
     set(enable_server_based_search "YES")
     set(enable_external_search "YES")
-    set(extra_search_mappings "${LLVM_DOXYGEN_SEARCH_MAPPINGS}")
+    set(extra_search_mappings "${TOOLCHAIN_DOXYGEN_SEARCH_MAPPINGS}")
   else()
     set(enable_searchengine "NO")
     set(searchengine_url "")
@@ -58,17 +58,17 @@ if (DOXYGEN_FOUND)
   set(enable_external_search)
   set(extra_search_mappings)
 
-  add_custom_target(doxygen-swift
+  add_custom_target(doxygen-language
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doxygen.cfg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating swift doxygen documentation." VERBATIM)
+    COMMENT "Generating language doxygen documentation." VERBATIM)
 
-  if(LLVM_BUILD_DOCS)
-    add_dependencies(doxygen doxygen-swift)
+  if(TOOLCHAIN_BUILD_DOCS)
+    add_dependencies(doxygen doxygen-language)
   endif()
 
-  add_dependencies(dev doxygen-swift)
-  swift_install_in_component(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doxygen/html"
+  add_dependencies(dev doxygen-language)
+  language_install_in_component(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doxygen/html"
                              DESTINATION "docs/html"
                              COMPONENT dev)
 endif()

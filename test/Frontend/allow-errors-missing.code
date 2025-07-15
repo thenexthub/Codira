@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -o %t/singlemissing.codemodule -experimental-allow-module-with-compiler-errors missing.code 2>&1 | %FileCheck -check-prefix=CHECK-SINGLEMISSING %s
+// CHECK-SINGLEMISSING: error opening input file 'missing.code'
+// RUN: toolchain-bcanalyzer %t/singlemissing.codemodule | %FileCheck -check-prefix=CHECK-BC %s
+
+// RUN: %target-language-frontend -emit-module -o %t/multimissingwmo.codemodule -experimental-allow-module-with-compiler-errors -whole-module-optimization missing.code missing2.code 2>&1 | %FileCheck -check-prefix=CHECK-MULTIMISSINGWMO %s
+// CHECK-MULTIMISSINGWMO-DAG: error opening input file 'missing.code'
+// CHECK-MULTIMISSINGWMO-DAG: error opening input file 'missing2.code'
+// RUN: toolchain-bcanalyzer %t/multimissingwmo.codemodule | %FileCheck -check-prefix=CHECK-BC %s
+
+// RUN: %target-language-frontend -emit-module -o %t/singlemissingwmo.codemodule -experimental-allow-module-with-compiler-errors -whole-module-optimization %s missing.code  2>&1 | %FileCheck -check-prefix=CHECK-SINGLEMISSINGWMO %s
+// CHECK-SINGLEMISSINGWMO: error opening input file 'missing.code'
+// RUN: toolchain-bcanalyzer %t/singlemissingwmo.codemodule | %FileCheck -check-prefix=CHECK-BC %s
+
+// RUN: %target-language-frontend -emit-module -o %t/nonprimarymissing.codemodule -experimental-allow-module-with-compiler-errors -primary-file %s missing.code 2>&1 | %FileCheck -check-prefix=CHECK-NONPRIMARYMISSING %s
+// CHECK-NONPRIMARYMISSING: error opening input file 'missing.code'
+// RUN: toolchain-bcanalyzer %t/nonprimarymissing.codemodule | %FileCheck -check-prefix=CHECK-BC %s
+
+// RUN: %target-language-frontend -emit-module -o %t/primarymissing.codemodule -experimental-allow-module-with-compiler-errors -primary-file missing.code %s 2>&1 | %FileCheck -check-prefix=CHECK-PRIMARYMISSING %s
+// CHECK-PRIMARYMISSING: error opening input file 'missing.code'
+// RUN: toolchain-bcanalyzer %t/primarymissing.codemodule | %FileCheck -check-prefix=CHECK-BC %s
+
+fn foo() -> Int { return 0 }
+
+// CHECK-BC-NOT: UnknownCode

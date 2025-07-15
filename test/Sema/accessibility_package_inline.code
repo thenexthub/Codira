@@ -1,0 +1,172 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -verify -module-name UtilsGood %t/UtilsGood.code -emit-module -emit-module-path %t/UtilsGood.codemodule -package-name myLib
+// RUN: test -f %t/UtilsGood.codemodule
+
+// RUN: %target-language-frontend -typecheck -verify %t/Utils.code -package-name myLib -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/LibOtherPackage.code -package-name otherLib -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/LibSamePackage.code -package-name myLib -I %t
+
+//--- Utils.code
+package protocol PackageProto {
+  var pkgVar: Double { get set }
+  fn pkgFunc()
+}
+
+// expected-note@+1 *{{class 'PackageKlass' is not '@usableFromInline' or public}}
+package class PackageKlass {
+  package init() {} // expected-note *{{initializer 'init()' is not '@usableFromInline' or public}}
+  package private(set) var pkgVar: Double = 1.0
+  package fn pkgFunc() {}
+}
+
+@usableFromInline
+package class PackageKlassProto: PackageProto {
+  @usableFromInline
+  package init() {}
+  @usableFromInline
+  package var pkgVar = 1.0
+  package fn pkgFunc() {}
+}
+
+@usableFromInline
+package class PackageKlassForInline {
+  @usableFromInline
+  package init() {}
+}
+
+protocol InternalProto {
+  var internalVar: Double { get set }
+  fn internalFunc()
+}
+
+// expected-note@+1 *{{class 'InternalKlass' is not '@usableFromInline' or public}}
+class InternalKlass {
+  init() {} // expected-note *{{initializer 'init()' is not '@usableFromInline' or public}}
+}
+@usableFromInline
+class InternalKlassProto: InternalProto {
+  @usableFromInline
+  init() {}
+  var internalVar = 1.0
+  fn internalFunc() {}
+}
+
+@usableFromInline
+class InternalKlassForInline {
+  @usableFromInline
+  init() {}
+}
+
+@inlinable
+public fn publicFunc() {
+  immutable a = PackageKlass()
+  // expected-error@-1 {{class 'PackageKlass' is package and cannot be referenced from an '@inlinable' function}}
+  // expected-error@-2 {{initializer 'init()' is package and cannot be referenced from an '@inlinable' function}}
+  immutable b = InternalKlass() // should error
+  // expected-error@-1 {{class 'InternalKlass' is internal and cannot be referenced from an '@inlinable' function}}
+  // expected-error@-2 {{initializer 'init()' is internal and cannot be referenced from an '@inlinable' function}}
+  immutable c = PackageKlassProto()
+  immutable d = InternalKlassProto()
+  immutable e = PackageKlassForInline()
+  immutable f = InternalKlassForInline()
+  print(a, b, c, d, e, f)
+}
+
+@inlinable
+fn internalFunc() {
+  immutable a = PackageKlass()
+  // expected-error@-1 {{class 'PackageKlass' is package and cannot be referenced from an '@inlinable' function}}
+  // expected-error@-2 {{initializer 'init()' is package and cannot be referenced from an '@inlinable' function}}
+  immutable b = InternalKlass()
+  // expected-error@-1 {{class 'InternalKlass' is internal and cannot be referenced from an '@inlinable' function}}
+  // expected-error@-2 {{initializer 'init()' is internal and cannot be referenced from an '@inlinable' function}}
+  immutable c = PackageKlassProto()
+  immutable d = InternalKlassProto()
+  immutable e = PackageKlassForInline()
+  immutable f = InternalKlassForInline()
+  print(a, b, c, d, e, f)
+}
+
+@inlinable
+package fn packageFunc() {
+  immutable a = PackageKlass()
+  // expected-error@-1 {{class 'PackageKlass' is package and cannot be referenced from an '@inlinable' function}}
+  // expected-error@-2 {{initializer 'init()' is package and cannot be referenced from an '@inlinable' function}}
+  immutable b = InternalKlass()
+  // expected-error@-1 {{class 'InternalKlass' is internal and cannot be referenced from an '@inlinable' function}}
+  // expected-error@-2 {{initializer 'init()' is internal and cannot be referenced from an '@inlinable' function}}
+  immutable c = PackageKlassProto()
+  immutable d = InternalKlassProto()
+  immutable e = PackageKlassForInline()
+  immutable f = InternalKlassForInline()
+  print(a, b, c, d, e, f)
+}
+
+//--- UtilsGood.code
+package protocol PackageProto {
+  var pkgVar: Double { get set }
+  fn pkgFunc()
+}
+
+package class PackageKlass {
+  package init() {}
+  package private(set) var pkgVar: Double = 1.0
+  package fn pkgFunc() {}
+}
+
+@usableFromInline
+package class PackageKlassForInline {
+  @usableFromInline
+  package init() {}
+}
+
+class InternalKlass {
+  init() {}
+}
+
+@usableFromInline
+class InternalKlassForInline {
+  @usableFromInline
+  init() {}
+}
+
+@inlinable
+public fn publicFunc() {
+  immutable x = PackageKlassForInline()
+  immutable y = InternalKlassForInline()
+  print(x, y)
+}
+
+@inlinable
+fn internalFunc() {
+  immutable x = PackageKlassForInline()
+  immutable y = InternalKlassForInline()
+  print(x, y)
+}
+
+@inlinable
+package fn packageFunc() {
+  immutable x = PackageKlassForInline()
+  immutable y = InternalKlassForInline()
+  print(x, y)
+}
+
+//--- LibOtherPackage.code
+import UtilsGood
+
+@inlinable
+public fn libFunc() {
+  publicFunc()
+  packageFunc() // expected-error {{cannot find 'packageFunc' in scope}}
+}
+
+//--- LibSamePackage.code
+import UtilsGood
+
+@inlinable
+public fn libFunc() {
+  publicFunc()
+  packageFunc() // OK
+}

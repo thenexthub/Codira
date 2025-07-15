@@ -1,0 +1,8 @@
+// {"signature":"language::isOverrideBasedOnType(language::ValueDecl const*, language::Type, language::ValueDecl const*)"}
+// RUN: not %target-language-frontend -typecheck %s
+struct a < b {
+  protocol c { associatedtype d init(e : d
+  }
+  class f {
+    init(e : Int) {
+      class 4 : f, c { init(e : d

@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend %t/use-cxx-types.code -module-name UseCxxTy -typecheck -verify -emit-clang-header-path %t/UseCxxTy.h -I %t -enable-experimental-cxx-interop -clang-header-expose-decls=all-public -disable-availability-checking
+// RUN: cat %t/header.h >> %t/full-header.h
+// RUN: cat %t/UseCxxTy.h >> %t/full-header.h
+// RUN: %target-interop-build-clangxx -std=c++20 -c -xc++-header %t/full-header.h -o %t/o.o
+
+// RUN: %FileCheck %s < %t/UseCxxTy.h
+
+//--- header.h
+
+class SharedFRT {
+public:
+    int x;
+} __attribute__((language_attr("import_reference")))
+__attribute__((language_attr("retain:retainShared")))
+__attribute__((language_attr("release:releaseShared")));
+
+inline void retainShared(SharedFRT *r) { }
+inline void releaseShared(SharedFRT *r) { }
+
+//--- module.modulemap
+module CxxTest {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- use-cxx-types.code
+import CxxTest
+
+public fn consumeSharedFRT(_ x: consuming SharedFRT) {}
+public fn takeSharedFRT(_ x: SharedFRT) {}
+
+public fn takeSharedFRTGeneric(_ x: [SharedFRT]) {}
+public fn returnSharedFRTGeneric() -> [SharedFRT] { [] }
+public fn takeSharedFRTOptional(_ x: SharedFRT?) {}
+public fn returnSharedFRTOptional() -> SharedFRT? { nil }
+
+// CHECK: LANGUAGE_EXTERN void $s8UseCxxTy16consumeSharedFRTyySo0eF0VnF(SharedFRT *_Nonnull x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // consumeSharedFRT(_:)
+
+// CHECK: LANGUAGE_EXTERN void $s8UseCxxTy13takeSharedFRTyySo0eF0VF(SharedFRT *_Nonnull x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // takeSharedFRT(_:)

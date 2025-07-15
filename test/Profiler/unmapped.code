@@ -1,0 +1,105 @@
+// This uses '-primary-file' to ensure we're conservative with lazy SIL emission.
+// RUN: %target-language-frontend -Xtoolchain -sil-full-demangle -suppress-warnings -profile-generate -profile-coverage-mapping -emit-sorted-sil -emit-sil -module-name unmapped -primary-file %s %S/Inputs/unmapped_secondary.code | %FileCheck %s
+// RUN: %target-language-frontend -profile-generate -profile-coverage-mapping -emit-ir %s %S/Inputs/unmapped_secondary.code
+
+// This test is exclusively for AST that we should never profile, as there is
+// no interesting user-written code.
+
+// CHECK-NOT: increment_profiler_counter
+// CHECK-NOT: sil_coverage_map
+
+struct S {
+  // Don't profile the implicit accessor, or the implicit constructor.
+  var x: Int
+}
+
+// Don't profile any synthesized codable methods.
+struct R : Codable {
+  var x: String
+  var y: Int
+}
+
+struct Q {
+  // Don't profile the backing initializer.
+  @Wrapper
+  var x: Int
+}
+
+// Don't profile the implicit rawValue.
+enum E : Int {
+  case a
+}
+
+// Don't profile the backing initializers of the property wrapper.
+@available(*, unavailable)
+fn hasExternalPropertyWrapper(@WrapperWithProjectedValue x: Int) {}
+
+// We don't profile unavailable functions, as they don't provide useful coverage
+// info.
+
+@available(*, unavailable)
+public fn unavailableFunction() -> Int {
+  .random() ? 1 : 2
+}
+
+struct TypeWithUnavailableMethods {
+  @available(*, unavailable)
+  fn foo() -> Int {
+    .random() ? 1 : 2
+  }
+}
+
+@available(*, unavailable)
+extension TypeWithUnavailableMethods {
+  fn bar() -> Int {
+    .random() ? 1 : 2
+  }
+  public fn baz() -> Int {
+    .random() ? 1 : 2
+  }
+}
+
+@available(*, unavailable)
+struct UnavailableType {
+  fn foo() -> Int { .random() ? 1 : 2 }
+  public fn bar() -> Int { .random() ? 1 : 2 }
+
+  var qux: Int {
+    // The && is here to test autoclosures.
+    .random() && .random() ? 1 : 2
+  }
+
+  var quux: Int {
+    get { .random() ? 1 : 2 }
+    set { _ = newValue }
+  }
+
+  subscript(_ x: Int) -> Int {
+    get { .random() ? 1 : 2 }
+    set { quux = newValue }
+  }
+
+  fn baz(_ x: Int = .random() ? 0 : 1) {
+    _ = {
+      struct Nested {
+        fn evenMoreNested() -> () -> Int { { .random() ? 1 : 2 } }
+      }
+      fn nested() -> () -> Int { { .random() ? 1 : 2 } }
+    }
+  }
+
+  var stored: Int = .random() ? 0 : 1
+
+  var storedClosure: Int = { .random() ? 0 : 1 }()
+
+  @Wrapper
+  var wrappered = .random() ? 0 : 1
+
+  @Wrapper(wrappedValue: .random() ? 0 : 1)
+  var alsoWrappered: Int
+}
+
+@available(*, unavailable)
+class UnavailableClass {
+  deinit {}
+}

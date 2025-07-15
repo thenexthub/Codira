@@ -1,0 +1,67 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+
+// RUN: %target-build-language %t/struct.code -emit-module -emit-library -static -module-name OpaqueStruct -emit-module-path %t/Inputs/OpaqueStruct.codemodule -enable-library-evolution
+
+// RUN: %target-language-emit-irgen %t/test.code -I %t/Inputs -enable-experimental-cxx-interop -disable-availability-checking | %FileCheck %s
+ 
+//--- Inputs/module.modulemap
+module CxxModule {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- Inputs/header.h
+
+class
+__attribute__((language_attr("import_reference")))
+__attribute__((language_attr("retain:immortal")))
+__attribute__((language_attr("release:immortal")))
+SingletonReference {
+public:
+    SingletonReference(const SingletonReference &) = delete;
+
+    void method();
+};
+
+class
+__attribute__((language_attr("import_reference")))
+__attribute__((language_attr("retain:retainS")))
+__attribute__((language_attr("release:releaseS")))
+SingletonReferenceRef {
+public:
+    SingletonReferenceRef(const SingletonReferenceRef &) = delete;
+
+    void method();
+};
+
+void retainS(SingletonReferenceRef *);
+void releaseS(SingletonReferenceRef *);
+
+//--- struct.code
+
+public struct ResilientStruct {
+    immutable x: Int
+}
+
+//--- test.code
+
+import OpaqueStruct
+import CxxModule
+
+public struct ImmortalFRT_OpaqueLayout {
+    public immutable y: SingletonReference
+    public immutable x: ResilientStruct
+}
+
+public struct SharedFRT_OpaqueLayout {
+    public immutable x: ResilientStruct
+    public immutable y: SingletonReferenceRef
+}
+
+// CHECK: define{{.*}} @"$s4test24ImmortalFRT_OpaqueLayoutVMr"
+// CHECK: store ptr getelementptr inbounds (ptr, ptr @"$sBpWV", i32
+
+// CHECK: define{{.*}} @"$s4test22SharedFRT_OpaqueLayoutVMr"
+// CHECK: store ptr getelementptr inbounds (ptr, ptr @"$sBpWV", i32

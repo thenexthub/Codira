@@ -1,4 +1,4 @@
-//===--- IRGen.cpp - Swift LLVM IR Generation -----------------------------===//
+//===--- IRGen.cpp - Codira LLVM IR Generation -----------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the entrypoints into IR generation.
@@ -23,6 +24,7 @@
 #include "language/ABI/MetadataValues.h"
 #include "language/ABI/ObjectFile.h"
 #include "language/AST/DiagnosticsIRGen.h"
+#include "language/AST/DiagnosticsFrontend.h"
 #include "language/AST/IRGenOptions.h"
 #include "language/AST/IRGenRequests.h"
 #include "language/AST/LinkLibrary.h"
@@ -52,55 +54,57 @@
 #include "language/Subsystems.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/CompilerInstance.h"
-#include "llvm/ADT/ScopeExit.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Bitcode/BitcodeWriter.h"
-#include "llvm/Bitcode/BitcodeWriterPass.h"
-#include "llvm/CodeGen/BasicTTIImpl.h"
-#include "llvm/CodeGen/TargetSubtargetInfo.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/PassManager.h"
-#include "llvm/IR/ValueSymbolTable.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/IRPrinter/IRPrintingPasses.h"
-#include "llvm/Linker/Linker.h"
-#include "llvm/MC/TargetRegistry.h"
-#include "llvm/Object/ObjectFile.h"
-#include "llvm/Passes/PassBuilder.h"
-#include "llvm/Passes/PassPlugin.h"
-#include "llvm/Passes/StandardInstrumentations.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/FormattedStream.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/VirtualOutputConfig.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/TargetParser/SubtargetFeature.h"
-#include "llvm/Transforms/IPO.h"
-#include "llvm/Transforms/IPO/AlwaysInliner.h"
-#include "llvm/Transforms/IPO/ThinLTOBitcodeWriter.h"
-#include "llvm/Transforms/Instrumentation.h"
-#include "llvm/Transforms/Instrumentation/AddressSanitizer.h"
-#include "llvm/Transforms/Instrumentation/InstrProfiling.h"
-#include "llvm/Transforms/Instrumentation/SanitizerCoverage.h"
-#include "llvm/Transforms/Instrumentation/ThreadSanitizer.h"
-#include "llvm/Transforms/ObjCARC.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Scalar/DCE.h"
+#include "toolchain/ADT/ScopeExit.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Analysis/AliasAnalysis.h"
+#include "toolchain/Bitcode/BitcodeWriter.h"
+#include "toolchain/Bitcode/BitcodeWriterPass.h"
+#include "toolchain/CodeGen/BasicTTIImpl.h"
+#include "toolchain/CodeGen/TargetSubtargetInfo.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/DataLayout.h"
+#include "toolchain/IR/LLVMContext.h"
+#include "toolchain/IR/LegacyPassManager.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/IR/PassManager.h"
+#include "toolchain/IR/ValueSymbolTable.h"
+#include "toolchain/IR/Verifier.h"
+#include "toolchain/IRPrinter/IRPrintingPasses.h"
+#include "toolchain/Linker/Linker.h"
+#include "toolchain/MC/TargetRegistry.h"
+#include "toolchain/Object/ObjectFile.h"
+#include "toolchain/Passes/PassBuilder.h"
+#include "toolchain/Passes/PassPlugin.h"
+#include "toolchain/Passes/StandardInstrumentations.h"
+#include "toolchain/Remarks/Remark.h"
+#include "toolchain/Remarks/RemarkStreamer.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/FormattedStream.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/VirtualOutputConfig.h"
+#include "toolchain/Target/TargetMachine.h"
+#include "toolchain/TargetParser/SubtargetFeature.h"
+#include "toolchain/Transforms/IPO.h"
+#include "toolchain/Transforms/IPO/AlwaysInliner.h"
+#include "toolchain/Transforms/IPO/ThinLTOBitcodeWriter.h"
+#include "toolchain/Transforms/Instrumentation.h"
+#include "toolchain/Transforms/Instrumentation/AddressSanitizer.h"
+#include "toolchain/Transforms/Instrumentation/InstrProfiling.h"
+#include "toolchain/Transforms/Instrumentation/SanitizerCoverage.h"
+#include "toolchain/Transforms/Instrumentation/ThreadSanitizer.h"
+#include "toolchain/Transforms/ObjCARC.h"
+#include "toolchain/Transforms/Scalar.h"
+#include "toolchain/Transforms/Scalar/DCE.h"
 
-#include "llvm/CodeGen/MachineOptimizationRemarkEmitter.h"
-#include "llvm/IR/DiagnosticInfo.h"
-#include "llvm/IR/LLVMRemarkStreamer.h"
-#include "llvm/Support/ToolOutputFile.h"
+#include "toolchain/CodeGen/MachineOptimizationRemarkEmitter.h"
+#include "toolchain/IR/DiagnosticInfo.h"
+#include "toolchain/IR/LLVMRemarkStreamer.h"
+#include "toolchain/Support/ToolOutputFile.h"
 
 #include <thread>
 
@@ -110,7 +114,7 @@
 
 using namespace language;
 using namespace irgen;
-using namespace llvm;
+using namespace toolchain;
 
 #define DEBUG_TYPE "irgen"
 
@@ -126,9 +130,9 @@ static cl::opt<bool> AlignModuleToPageSize(
     "align-module-to-page-size", cl::Hidden,
     cl::desc("Align the text section of all LLVM modules to the page size"));
 
-std::tuple<llvm::TargetOptions, std::string, std::vector<std::string>,
+std::tuple<toolchain::TargetOptions, std::string, std::vector<std::string>,
            std::string>
-swift::getIRTargetOptions(const IRGenOptions &Opts, ASTContext &Ctx) {
+language::getIRTargetOptions(const IRGenOptions &Opts, ASTContext &Ctx) {
   // Things that maybe we should collect from the command line:
   //   - relocation model
   //   - code model
@@ -137,7 +141,7 @@ swift::getIRTargetOptions(const IRGenOptions &Opts, ASTContext &Ctx) {
 
   // Explicitly request debugger tuning for LLDB which is the default
   // on Darwin platforms but not on others.
-  TargetOpts.DebuggerTuning = llvm::DebuggerKind::LLDB;
+  TargetOpts.DebuggerTuning = toolchain::DebuggerKind::LLDB;
   TargetOpts.FunctionSections = Opts.FunctionSections;
 
   // Set option to UseCASBackend if CAS was enabled on the command line.
@@ -157,24 +161,24 @@ swift::getIRTargetOptions(const IRGenOptions &Opts, ASTContext &Ctx) {
   TargetOpts.EmulatedTLS = Clang->getCodeGenOpts().EmulatedTLS;
 
   // WebAssembly doesn't support atomics yet, see
-  // https://github.com/apple/swift/issues/54533 for more details.
+  // https://github.com/apple/language/issues/54533 for more details.
   if (Clang->getTargetInfo().getTriple().isOSBinFormatWasm())
-    TargetOpts.ThreadModel = llvm::ThreadModel::Single;
+    TargetOpts.ThreadModel = toolchain::ThreadModel::Single;
 
   if (Opts.EnableGlobalISel) {
     TargetOpts.EnableGlobalISel = true;
     TargetOpts.GlobalISelAbort = GlobalISelAbortMode::DisableWithDiag;
   }
 
-  switch (Opts.SwiftAsyncFramePointer) {
-  case SwiftAsyncFramePointerKind::Never:
-    TargetOpts.SwiftAsyncFramePointer = SwiftAsyncFramePointerMode::Never;
+  switch (Opts.CodiraAsyncFramePointer) {
+  case CodiraAsyncFramePointerKind::Never:
+    TargetOpts.CodiraAsyncFramePointer = CodiraAsyncFramePointerMode::Never;
     break;
-  case SwiftAsyncFramePointerKind::Auto:
-    TargetOpts.SwiftAsyncFramePointer = SwiftAsyncFramePointerMode::DeploymentBased;
+  case CodiraAsyncFramePointerKind::Auto:
+    TargetOpts.CodiraAsyncFramePointer = CodiraAsyncFramePointerMode::DeploymentBased;
     break;
-  case SwiftAsyncFramePointerKind::Always:
-    TargetOpts.SwiftAsyncFramePointer = SwiftAsyncFramePointerMode::Always;
+  case CodiraAsyncFramePointerKind::Always:
+    TargetOpts.CodiraAsyncFramePointer = CodiraAsyncFramePointerMode::Always;
     break;
   }
 
@@ -188,16 +192,16 @@ void setModuleFlags(IRGenModule &IGM) {
 
   // These module flags don't affect code generation; they just let us
   // error during LTO if the user tries to combine files across ABIs.
-  Module->addModuleFlag(llvm::Module::Error, "Swift Version",
-                        IRGenModule::swiftVersion);
+  Module->addModuleFlag(toolchain::Module::Error, "Codira Version",
+                        IRGenModule::languageVersion);
 
   if (IGM.getOptions().VirtualFunctionElimination ||
       IGM.getOptions().WitnessMethodElimination) {
-    Module->addModuleFlag(llvm::Module::Error, "Virtual Function Elim", 1);
+    Module->addModuleFlag(toolchain::Module::Error, "Virtual Function Elim", 1);
   }
 }
 
-static void align(llvm::Module *Module) {
+static void align(toolchain::Module *Module) {
   // For performance benchmarking: Align the module to the page size by
   // aligning the first function of the module.
     unsigned pageSize =
@@ -208,7 +212,7 @@ static void align(llvm::Module *Module) {
 #endif
     for (auto I = Module->begin(), E = Module->end(); I != E; ++I) {
       if (!I->isDeclaration()) {
-        I->setAlignment(llvm::MaybeAlign(pageSize));
+        I->setAlignment(toolchain::MaybeAlign(pageSize));
         break;
       }
     }
@@ -222,7 +226,7 @@ static void populatePGOOptions(std::optional<PGOOptions> &Out,
       /*CSProfileGenFile=*/ "",
       /*ProfileRemappingFile=*/ "",
       /*MemoryProfile=*/ "",
-      /*FS=*/ llvm::vfs::getRealFileSystem(), // TODO: is this fine?
+      /*FS=*/ toolchain::vfs::getRealFileSystem(), // TODO: is this fine?
       /*Action=*/ PGOOptions::SampleUse,
       /*CSPGOAction=*/ PGOOptions::NoCSAction,
       /*ColdType=*/ PGOOptions::ColdFuncOpt::Default,
@@ -249,34 +253,34 @@ static void populatePGOOptions(std::optional<PGOOptions> &Out,
 
 template <typename... ArgTypes>
 void diagnoseSync(
-    DiagnosticEngine &Diags, llvm::sys::Mutex *DiagMutex, SourceLoc Loc,
+    DiagnosticEngine &Diags, toolchain::sys::Mutex *DiagMutex, SourceLoc Loc,
     Diag<ArgTypes...> ID,
-    typename swift::detail::PassArgument<ArgTypes>::type... Args) {
-  std::optional<llvm::sys::ScopedLock> Lock;
+    typename language::detail::PassArgument<ArgTypes>::type... Args) {
+  std::optional<toolchain::sys::ScopedLock> Lock;
   if (DiagMutex)
     Lock.emplace(*DiagMutex);
 
   Diags.diagnose(Loc, ID, std::move(Args)...);
 }
 
-void swift::performLLVMOptimizations(const IRGenOptions &Opts,
+void language::performLLVMOptimizations(const IRGenOptions &Opts,
                                      DiagnosticEngine &Diags,
-                                     llvm::sys::Mutex *DiagMutex,
-                                     llvm::Module *Module,
-                                     llvm::TargetMachine *TargetMachine,
-                                     llvm::raw_pwrite_stream *out) {
+                                     toolchain::sys::Mutex *DiagMutex,
+                                     toolchain::Module *Module,
+                                     toolchain::TargetMachine *TargetMachine,
+                                     toolchain::raw_pwrite_stream *out) {
   std::optional<PGOOptions> PGOOpt;
   populatePGOOptions(PGOOpt, Opts);
 
   PipelineTuningOptions PTO;
 
-  bool RunSwiftSpecificLLVMOptzns =
-      !Opts.DisableSwiftSpecificLLVMOptzns && !Opts.DisableLLVMOptzns;
+  bool RunCodiraSpecificLLVMOptzns =
+      !Opts.DisableCodiraSpecificLLVMOptzns && !Opts.DisableLLVMOptzns;
 
   bool DoHotColdSplit = false;
   PTO.CallGraphProfile = false;
 
-  llvm::OptimizationLevel level = llvm::OptimizationLevel::O0;
+  toolchain::OptimizationLevel level = toolchain::OptimizationLevel::O0;
   if (Opts.shouldOptimize() && !Opts.DisableLLVMOptzns) {
     // For historical reasons, loop interleaving is set to mirror setting for
     // loop unrolling.
@@ -286,9 +290,9 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
     PTO.MergeFunctions = !Opts.DisableLLVMMergeFunctions;
     // Splitting trades code size to enhance memory locality, avoid in -Osize.
     DoHotColdSplit = Opts.EnableHotColdSplit && !Opts.optimizeForSize();
-    level = llvm::OptimizationLevel::Os;
+    level = toolchain::OptimizationLevel::Os;
   } else {
-    level = llvm::OptimizationLevel::O0;
+    level = toolchain::OptimizationLevel::O0;
   }
 
   LoopAnalysisManager LAM;
@@ -322,11 +326,11 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
   // Register the AA manager first so that our version is the one used.
   FAM.registerPass([&] {
     auto AA = PB.buildDefaultAAPipeline();
-    if (RunSwiftSpecificLLVMOptzns)
-      AA.registerFunctionAnalysis<SwiftAA>();
+    if (RunCodiraSpecificLLVMOptzns)
+      AA.registerFunctionAnalysis<CodiraAA>();
     return AA;
   });
-  FAM.registerPass([&] { return SwiftAA(); });
+  FAM.registerPass([&] { return CodiraAA(); });
 
   // Register all the basic analyses with the managers.
   PB.registerModuleAnalyses(MAM);
@@ -338,16 +342,16 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
 
   PB.setEnableHotColdSplitting(DoHotColdSplit);
 
-  if (RunSwiftSpecificLLVMOptzns) {
+  if (RunCodiraSpecificLLVMOptzns) {
     PB.registerScalarOptimizerLateEPCallback(
         [](FunctionPassManager &FPM, OptimizationLevel Level) {
           if (Level != OptimizationLevel::O0)
-            FPM.addPass(SwiftARCOptPass());
+            FPM.addPass(CodiraARCOptPass());
         });
     PB.registerOptimizerLastEPCallback([&](ModulePassManager &MPM,
                                           OptimizationLevel Level) {
       if (Level != OptimizationLevel::O0)
-        MPM.addPass(createModuleToFunctionPassAdaptor(SwiftARCContractPass()));
+        MPM.addPass(createModuleToFunctionPassAdaptor(CodiraARCContractPass()));
       if (Level == OptimizationLevel::O0)
         MPM.addPass(AlwaysInlinerPass());
       if (Opts.EmitAsyncFramePushPopMetadata)
@@ -366,7 +370,7 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
       ASOpts.Recover = bool(Opts.SanitizersWithRecoveryInstrumentation &
                             SanitizerKind::Address);
       ASOpts.UseAfterScope = false;
-      ASOpts.UseAfterReturn = llvm::AsanDetectStackUseAfterReturnMode::Runtime;
+      ASOpts.UseAfterReturn = toolchain::AsanDetectStackUseAfterReturnMode::Runtime;
       if (Opts.SanitizerUseStableABI) {
         ASOpts.MaxInlinePoisoningSize = 0;
         ASOpts.InstrumentationWithCallsThreshold = 0;
@@ -374,7 +378,7 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
       }
       MPM.addPass(AddressSanitizerPass(
           ASOpts, /*UseGlobalGC=*/true, Opts.SanitizeAddressUseODRIndicator,
-          /*DestructorKind=*/llvm::AsanDtorKind::Global));
+          /*DestructorKind=*/toolchain::AsanDtorKind::Global));
     });
   }
 
@@ -387,7 +391,7 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
   }
 
   if (Opts.SanitizeCoverage.CoverageType !=
-      llvm::SanitizerCoverageOptions::SCK_None) {
+      toolchain::SanitizerCoverageOptions::SCK_None) {
     PB.registerOptimizerLastEPCallback([&](ModulePassManager &MPM,
                                            OptimizationLevel Level) {
       std::vector<std::string> allowlistFiles;
@@ -397,13 +401,13 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
     });
   }
 
-  if (RunSwiftSpecificLLVMOptzns && !Opts.DisableLLVMMergeFunctions) {
+  if (RunCodiraSpecificLLVMOptzns && !Opts.DisableLLVMMergeFunctions) {
     PB.registerOptimizerLastEPCallback(
         [&](ModulePassManager &MPM, OptimizationLevel Level) {
           if (Level != OptimizationLevel::O0) {
             const PointerAuthSchema &schema = Opts.PointerAuth.FunctionPointers;
             unsigned key = (schema.isEnabled() ? schema.getKey() : 0);
-            MPM.addPass(SwiftMergeFunctionsPass(schema.isEnabled(), key));
+            MPM.addPass(CodiraMergeFunctionsPass(schema.isEnabled(), key));
           }
         });
   }
@@ -465,7 +469,7 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
 
   switch (Opts.OutputKind) {
   case IRGenOutputKind::LLVMAssemblyBeforeOptimization:
-    llvm_unreachable("Should be handled earlier.");
+    toolchain_unreachable("Should be handled earlier.");
   case IRGenOutputKind::NativeAssembly:
   case IRGenOutputKind::ObjectFile:
   case IRGenOutputKind::Module:
@@ -478,17 +482,17 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
     // Emit a module summary by default for Regular LTO except ld64-based ones
     // (which use the legacy LTO API).
     bool EmitRegularLTOSummary =
-        TargetMachine->getTargetTriple().getVendor() != llvm::Triple::Apple;
+        TargetMachine->getTargetTriple().getVendor() != toolchain::Triple::Apple;
 
     if (Opts.LLVMLTOKind == IRGenLLVMLTOKind::Thin) {
       MPM.addPass(ThinLTOBitcodeWriterPass(*out, nullptr));
     } else {
       if (EmitRegularLTOSummary) {
-        Module->addModuleFlag(llvm::Module::Error, "ThinLTO", uint32_t(0));
+        Module->addModuleFlag(toolchain::Module::Error, "ThinLTO", uint32_t(0));
         // Assume other sources are compiled with -fsplit-lto-unit (it's enabled
         // by default when -flto is specified on platforms that support regular
         // lto summary.)
-        Module->addModuleFlag(llvm::Module::Error, "EnableSplitLTOUnit",
+        Module->addModuleFlag(toolchain::Module::Error, "EnableSplitLTOUnit",
                               uint32_t(1));
       }
       MPM.addPass(BitcodeWriterPass(
@@ -505,20 +509,20 @@ void swift::performLLVMOptimizations(const IRGenOptions &Opts,
   }
 }
 
-/// Computes the MD5 hash of the llvm \p Module including the compiler version
+/// Computes the MD5 hash of the toolchain \p Module including the compiler version
 /// and options which influence the compilation.
 static MD5::MD5Result getHashOfModule(const IRGenOptions &Opts,
-                                      const llvm::Module *Module) {
-  // Calculate the hash of the whole llvm module.
+                                      const toolchain::Module *Module) {
+  // Calculate the hash of the whole toolchain module.
   MD5Stream HashStream;
-  llvm::WriteBitcodeToFile(*Module, HashStream);
+  toolchain::WriteBitcodeToFile(*Module, HashStream);
 
   // Update the hash with the compiler version. We want to recompile if the
-  // llvm pipeline of the compiler changed.
-  HashStream << version::getSwiftFullVersion();
+  // toolchain pipeline of the compiler changed.
+  HashStream << version::getCodiraFullVersion();
 
-  // Add all options which influence the llvm compilation but are not yet
-  // reflected in the llvm module itself.
+  // Add all options which influence the toolchain compilation but are not yet
+  // reflected in the toolchain module itself.
   Opts.writeLLVMCodeGenOptionsTo(HashStream);
 
   MD5::MD5Result result;
@@ -529,8 +533,8 @@ static MD5::MD5Result getHashOfModule(const IRGenOptions &Opts,
 /// Returns false if the hash of the current module \p HashData matches the
 /// hash which is stored in an existing output object file.
 static bool needsRecompile(StringRef OutputFilename, ArrayRef<uint8_t> HashData,
-                           llvm::GlobalVariable *HashGlobal,
-                           llvm::sys::Mutex *DiagMutex) {
+                           toolchain::GlobalVariable *HashGlobal,
+                           toolchain::sys::Mutex *DiagMutex) {
   if (OutputFilename.empty())
     return true;
 
@@ -552,29 +556,29 @@ static bool needsRecompile(StringRef OutputFilename, ArrayRef<uint8_t> HashData,
 
   // Search for the section which holds the hash.
   for (auto &Section : ObjectFile->sections()) {
-    llvm::Expected<StringRef> SectionNameOrErr = Section.getName();
+    toolchain::Expected<StringRef> SectionNameOrErr = Section.getName();
     if (!SectionNameOrErr) {
-      llvm::consumeError(SectionNameOrErr.takeError());
+      toolchain::consumeError(SectionNameOrErr.takeError());
       continue;
     }
 
     StringRef SectionName = *SectionNameOrErr;
     if (SectionName == HashSectionName) {
-      llvm::Expected<llvm::StringRef> SectionData = Section.getContents();
+      toolchain::Expected<toolchain::StringRef> SectionData = Section.getContents();
       if (!SectionData) {
         return true;
       }
       ArrayRef<uint8_t> PrevHashData(
           reinterpret_cast<const uint8_t *>(SectionData->data()),
           SectionData->size());
-      LLVM_DEBUG(if (PrevHashData.size() == sizeof(MD5::MD5Result)) {
+      TOOLCHAIN_DEBUG(if (PrevHashData.size() == sizeof(MD5::MD5Result)) {
         if (DiagMutex) DiagMutex->lock();
         SmallString<32> HashStr;
         MD5::stringifyResult(
             *reinterpret_cast<MD5::MD5Result *>(
                 const_cast<unsigned char *>(PrevHashData.data())),
             HashStr);
-        llvm::dbgs() << OutputFilename << ": prev MD5=" << HashStr <<
+        toolchain::dbgs() << OutputFilename << ": prev MD5=" << HashStr <<
           (HashData == PrevHashData ? " skipping\n" : " recompiling\n");
         if (DiagMutex) DiagMutex->unlock();
       });
@@ -588,7 +592,7 @@ static bool needsRecompile(StringRef OutputFilename, ArrayRef<uint8_t> HashData,
 }
 
 static void countStatsPostIRGen(UnifiedStatsReporter &Stats,
-                                const llvm::Module& Module) {
+                                const toolchain::Module& Module) {
   auto &C = Stats.getFrontendCounters();
   // FIXME: calculate these in constant time if possible.
   C.NumIRGlobals += Module.global_size();
@@ -607,12 +611,12 @@ static void countStatsPostIRGen(UnifiedStatsReporter &Stats,
 }
 
 namespace {
-  class SwiftDiagnosticHandler final : public llvm::DiagnosticHandler {
+  class CodiraDiagnosticHandler final : public toolchain::DiagnosticHandler {
 
   public:
-    SwiftDiagnosticHandler(const IRGenOptions &Opts) : IRGenOpts(Opts) {}
+    CodiraDiagnosticHandler(const IRGenOptions &Opts) : IRGenOpts(Opts) {}
 
-    bool handleDiagnostics(const llvm::DiagnosticInfo &DI) override {
+    bool handleDiagnostics(const toolchain::DiagnosticInfo &DI) override {
       return true;
     }
 
@@ -640,26 +644,26 @@ namespace {
 
 /// Run the LLVM passes. In multi-threaded compilation this will be done for
 /// multiple LLVM modules in parallel.
-bool swift::performLLVM(const IRGenOptions &Opts,
+bool language::performLLVM(const IRGenOptions &Opts,
                         DiagnosticEngine &Diags,
-                        llvm::sys::Mutex *DiagMutex,
-                        llvm::GlobalVariable *HashGlobal,
-                        llvm::Module *Module,
-                        llvm::TargetMachine *TargetMachine,
+                        toolchain::sys::Mutex *DiagMutex,
+                        toolchain::GlobalVariable *HashGlobal,
+                        toolchain::Module *Module,
+                        toolchain::TargetMachine *TargetMachine,
                         StringRef OutputFilename,
-                        llvm::vfs::OutputBackend &Backend,
+                        toolchain::vfs::OutputBackend &Backend,
                         UnifiedStatsReporter *Stats) {
 
   if (Opts.UseIncrementalLLVMCodeGen && HashGlobal) {
-    // Check if we can skip the llvm part of the compilation if we have an
-    // existing object file which was generated from the same llvm IR.
+    // Check if we can skip the toolchain part of the compilation if we have an
+    // existing object file which was generated from the same toolchain IR.
     auto hash = getHashOfModule(Opts, Module);
 
-    LLVM_DEBUG(
+    TOOLCHAIN_DEBUG(
       if (DiagMutex) DiagMutex->lock();
       SmallString<32> ResultStr;
       MD5::stringifyResult(hash, ResultStr);
-      llvm::dbgs() << OutputFilename << ": MD5=" << ResultStr << '\n';
+      toolchain::dbgs() << OutputFilename << ": MD5=" << ResultStr << '\n';
       if (DiagMutex) DiagMutex->unlock();
     );
 
@@ -668,7 +672,7 @@ bool swift::performLLVM(const IRGenOptions &Opts,
     if (Opts.OutputKind == IRGenOutputKind::ObjectFile &&
         !Opts.PrintInlineTree && !Opts.AlwaysCompile &&
         !needsRecompile(OutputFilename, HashData, HashGlobal, DiagMutex)) {
-      // The llvm IR did not change. We don't need to re-create the object file.
+      // The toolchain IR did not change. We don't need to re-create the object file.
       return false;
     }
 
@@ -678,8 +682,8 @@ bool swift::performLLVM(const IRGenOptions &Opts,
     HashGlobal->setInitializer(HashConstant);
   }
 
-  std::optional<llvm::vfs::OutputFile> OutputFile;
-  SWIFT_DEFER {
+  std::optional<toolchain::vfs::OutputFile> OutputFile;
+  LANGUAGE_DEFER {
     if (!OutputFile)
       return;
     if (auto E = OutputFile->keep()) {
@@ -690,7 +694,7 @@ bool swift::performLLVM(const IRGenOptions &Opts,
   if (!OutputFilename.empty()) {
     // Try to open the output file.  Clobbering an existing file is fine.
     // Open in binary mode if we're doing binary output.
-    llvm::vfs::OutputConfig Config;
+    toolchain::vfs::OutputConfig Config;
     if (auto E =
             Backend.createFile(OutputFilename, Config).moveInto(OutputFile)) {
       diagnoseSync(Diags, DiagMutex, SourceLoc(), diag::error_opening_output,
@@ -706,31 +710,10 @@ bool swift::performLLVM(const IRGenOptions &Opts,
     assert(Opts.OutputKind == IRGenOutputKind::Module && "no output specified");
   }
 
-  std::string OptRemarksRecordFile;
-  if (Opts.AnnotateCondFailMessage && !OutputFilename.empty()) {
-    OptRemarksRecordFile = std::string(OutputFilename);
-    OptRemarksRecordFile.append(".opt.yaml");
-  }
-
   auto &Ctxt = Module->getContext();
-  std::unique_ptr<llvm::DiagnosticHandler> OldDiagnosticHandler =
+  std::unique_ptr<toolchain::DiagnosticHandler> OldDiagnosticHandler =
           Ctxt.getDiagnosticHandler();
-  Ctxt.setDiagnosticHandler(std::make_unique<SwiftDiagnosticHandler>(Opts));
-
-  llvm::Expected<std::unique_ptr<llvm::ToolOutputFile>> OptRecordFileOrErr =
-    setupLLVMOptimizationRemarks(Ctxt, OptRemarksRecordFile.c_str(), "annotation-remarks", "yaml",
-                                 false/*RemarksWithHotness*/,
-                                 0/*RemarksHotnessThreshold*/);
-
-  if (Error E = OptRecordFileOrErr.takeError()) {
-    diagnoseSync(Diags, DiagMutex, SourceLoc(), diag::error_opening_output,
-                 StringRef(OptRemarksRecordFile.c_str()),
-                 toString(std::move(E)));
-    return true;
-  }
-
-  std::unique_ptr<llvm::ToolOutputFile> OptRecordFile =
-    std::move(*OptRecordFileOrErr);
+  Ctxt.setDiagnosticHandler(std::make_unique<CodiraDiagnosticHandler>(Opts));
 
   performLLVMOptimizations(Opts, Diags, DiagMutex, Module, TargetMachine,
                            OutputFile ? &OutputFile->getOS() : nullptr);
@@ -748,7 +731,7 @@ bool swift::performLLVM(const IRGenOptions &Opts,
 
   std::unique_ptr<raw_fd_ostream> CASIDFile;
   if (Opts.UseCASBackend && Opts.EmitCASIDFile &&
-      Opts.CASObjMode != llvm::CASBackendMode::CASID &&
+      Opts.CASObjMode != toolchain::CASBackendMode::CASID &&
       Opts.OutputKind == IRGenOutputKind::ObjectFile && OutputFilename != "-") {
     std::string OutputFilenameCASID = std::string(OutputFilename);
     OutputFilenameCASID.append(".casid");
@@ -762,27 +745,25 @@ bool swift::performLLVM(const IRGenOptions &Opts,
   }
 
   auto res = compileAndWriteLLVM(Module, TargetMachine, Opts, Stats, Diags,
-                             *OutputFile, DiagMutex,
-                             CASIDFile ? CASIDFile.get() : nullptr);
-  if (OptRecordFile)
-    OptRecordFile->keep();
+                                 *OutputFile, DiagMutex,
+                                 CASIDFile ? CASIDFile.get() : nullptr);
 
   Ctxt.setDiagnosticHandler(std::move(OldDiagnosticHandler));
 
   return res;
 }
 
-bool swift::compileAndWriteLLVM(
-    llvm::Module *module, llvm::TargetMachine *targetMachine,
+bool language::compileAndWriteLLVM(
+    toolchain::Module *module, toolchain::TargetMachine *targetMachine,
     const IRGenOptions &opts, UnifiedStatsReporter *stats,
-    DiagnosticEngine &diags, llvm::raw_pwrite_stream &out,
-    llvm::sys::Mutex *diagMutex, llvm::raw_pwrite_stream *casid) {
+    DiagnosticEngine &diags, toolchain::raw_pwrite_stream &out,
+    toolchain::sys::Mutex *diagMutex, toolchain::raw_pwrite_stream *casid) {
 
   // Set up the final code emission pass. Bitcode/LLVM IR is emitted as part of
   // the optimization pass pipeline.
   switch (opts.OutputKind) {
   case IRGenOutputKind::LLVMAssemblyBeforeOptimization:
-    llvm_unreachable("Should be handled earlier.");
+    toolchain_unreachable("Should be handled earlier.");
   case IRGenOutputKind::Module:
     break;
   case IRGenOutputKind::LLVMAssemblyAfterOptimization:
@@ -854,7 +835,7 @@ static void setPointerAuthOptions(PointerAuthOptions &opts,
   auto nonABIDataKey = PointerAuthSchema::ARM8_3Key::ASDB;
 
   // If you change anything here, be sure to update <ptrauth.h>.
-  opts.SwiftFunctionPointers =
+  opts.CodiraFunctionPointers =
     PointerAuthSchema(codeKey, /*address*/ false, Discrimination::Type);
   opts.KeyPaths =
     PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Decl);
@@ -869,9 +850,9 @@ static void setPointerAuthOptions(PointerAuthOptions &opts,
     PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Decl);
   opts.ProtocolAssociatedTypeWitnessTableAccessFunctions =
     PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Decl);
-  opts.SwiftClassMethods =
+  opts.CodiraClassMethods =
     PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Decl);
-  opts.SwiftClassMethodPointers =
+  opts.CodiraClassMethodPointers =
     PointerAuthSchema(codeKey, /*address*/ false, Discrimination::Decl);
   opts.HeapDestructors =
     PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Decl);
@@ -888,9 +869,9 @@ static void setPointerAuthOptions(PointerAuthOptions &opts,
   opts.TypeLayoutString =
     PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
-  opts.SwiftDynamicReplacements =
+  opts.CodiraDynamicReplacements =
     PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Decl);
-  opts.SwiftDynamicReplacementKeys =
+  opts.CodiraDynamicReplacementKeys =
     PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
   opts.ProtocolConformanceDescriptors =
@@ -929,19 +910,19 @@ static void setPointerAuthOptions(PointerAuthOptions &opts,
       PointerAuthSchema(codeKey, /*address*/ true, Discrimination::Constant,
       SpecialPointerAuthDiscriminators::ResilientClassStubInitCallback);
 
-  opts.AsyncSwiftFunctionPointers =
+  opts.AsyncCodiraFunctionPointers =
       PointerAuthSchema(dataKey, /*address*/ false, Discrimination::Type);
 
-  opts.AsyncSwiftClassMethods =
+  opts.AsyncCodiraClassMethods =
       PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
   opts.AsyncProtocolWitnesses =
       PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
-  opts.AsyncSwiftClassMethodPointers =
+  opts.AsyncCodiraClassMethodPointers =
       PointerAuthSchema(dataKey, /*address*/ false, Discrimination::Decl);
 
-  opts.AsyncSwiftDynamicReplacements =
+  opts.AsyncCodiraDynamicReplacements =
       PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
   opts.AsyncPartialApplyCapture =
@@ -965,7 +946,7 @@ static void setPointerAuthOptions(PointerAuthOptions &opts,
 
   opts.AsyncContextExtendedFrameEntry = PointerAuthSchema(
       dataKey, /*address*/ true, Discrimination::Constant,
-      SpecialPointerAuthDiscriminators::SwiftAsyncContextExtendedFrameEntry);
+      SpecialPointerAuthDiscriminators::CodiraAsyncContextExtendedFrameEntry);
 
   opts.ExtendedExistentialTypeShape =
       PointerAuthSchema(dataKey, /*address*/ false,
@@ -996,27 +977,27 @@ static void setPointerAuthOptions(PointerAuthOptions &opts,
         dataKey, /*address*/ false, Discrimination::Constant,
         SpecialPointerAuthDiscriminators::RelativeProtocolWitnessTable);
 
-  opts.CoroSwiftFunctionPointers =
+  opts.CoroCodiraFunctionPointers =
       PointerAuthSchema(dataKey, /*address*/ false, Discrimination::Type);
 
-  opts.CoroSwiftClassMethods =
+  opts.CoroCodiraClassMethods =
       PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
   opts.CoroProtocolWitnesses =
       PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
-  opts.CoroSwiftClassMethodPointers =
+  opts.CoroCodiraClassMethodPointers =
       PointerAuthSchema(dataKey, /*address*/ false, Discrimination::Decl);
 
-  opts.CoroSwiftDynamicReplacements =
+  opts.CoroCodiraDynamicReplacements =
       PointerAuthSchema(dataKey, /*address*/ true, Discrimination::Decl);
 
   opts.CoroPartialApplyCapture =
       PointerAuthSchema(nonABIDataKey, /*address*/ true, Discrimination::Decl);
 }
 
-std::unique_ptr<llvm::TargetMachine>
-swift::createTargetMachine(const IRGenOptions &Opts, ASTContext &Ctx) {
+std::unique_ptr<toolchain::TargetMachine>
+language::createTargetMachine(const IRGenOptions &Opts, ASTContext &Ctx) {
   CodeGenOptLevel OptLevel = Opts.shouldOptimize()
                                    ? CodeGenOptLevel::Default // -Os
                                    : CodeGenOptLevel::None;
@@ -1028,10 +1009,10 @@ swift::createTargetMachine(const IRGenOptions &Opts, ASTContext &Ctx) {
   std::vector<std::string> targetFeaturesArray;
   std::tie(TargetOpts, CPU, targetFeaturesArray, EffectiveClangTriple)
     = getIRTargetOptions(Opts, Ctx);
-  const llvm::Triple &EffectiveTriple = llvm::Triple(EffectiveClangTriple);
+  const toolchain::Triple &EffectiveTriple = toolchain::Triple(EffectiveClangTriple);
   std::string targetFeatures;
   if (!targetFeaturesArray.empty()) {
-    llvm::SubtargetFeatures features;
+    toolchain::SubtargetFeatures features;
     for (const std::string &feature : targetFeaturesArray)
       if (!shouldRemoveTargetFeature(feature)) {
         features.AddFeature(feature);
@@ -1055,7 +1036,7 @@ swift::createTargetMachine(const IRGenOptions &Opts, ASTContext &Ctx) {
   const Target *Target =
       TargetRegistry::lookupTarget(EffectiveTriple.str(), Error);
   if (!Target) {
-    Ctx.Diags.diagnose(SourceLoc(), diag::no_llvm_target, EffectiveTriple.str(),
+    Ctx.Diags.diagnose(SourceLoc(), diag::no_toolchain_target, EffectiveTriple.str(),
                        Error);
     return nullptr;
   }
@@ -1069,109 +1050,109 @@ swift::createTargetMachine(const IRGenOptions &Opts, ASTContext &Ctx) {
     cmodel = CodeModel::Large;
 
   // Create a target machine.
-  llvm::TargetMachine *TargetMachine = Target->createTargetMachine(
+  toolchain::TargetMachine *TargetMachine = Target->createTargetMachine(
       EffectiveTriple.str(), CPU, targetFeatures, TargetOpts, Reloc::PIC_,
       cmodel, OptLevel);
   if (!TargetMachine) {
-    Ctx.Diags.diagnose(SourceLoc(), diag::no_llvm_target,
+    Ctx.Diags.diagnose(SourceLoc(), diag::no_toolchain_target,
                        EffectiveTriple.str(), "no LLVM target machine");
     return nullptr;
   }
-  return std::unique_ptr<llvm::TargetMachine>(TargetMachine);
+  return std::unique_ptr<toolchain::TargetMachine>(TargetMachine);
 }
 
 IRGenerator::IRGenerator(const IRGenOptions &options, SILModule &module)
   : Opts(options), SIL(module), QueueIndex(0) {
 }
 
-std::unique_ptr<llvm::TargetMachine> IRGenerator::createTargetMachine() {
+std::unique_ptr<toolchain::TargetMachine> IRGenerator::createTargetMachine() {
   return ::createTargetMachine(Opts, SIL.getASTContext());
 }
 
-// With -embed-bitcode, save a copy of the llvm IR as data in the
+// With -embed-bitcode, save a copy of the toolchain IR as data in the
 // __LLVM,__bitcode section and save the command-line options in the
-// __LLVM,__swift_cmdline section.
-static void embedBitcode(llvm::Module *M, const IRGenOptions &Opts)
+// __LLVM,__language_cmdline section.
+static void embedBitcode(toolchain::Module *M, const IRGenOptions &Opts)
 {
   if (Opts.EmbedMode == IRGenEmbedMode::None)
     return;
 
-  // Save llvm.compiler.used and remove it.
-  SmallVector<llvm::Constant*, 2> UsedArray;
-  SmallVector<llvm::GlobalValue*, 4> UsedGlobals;
+  // Save toolchain.compiler.used and remove it.
+  SmallVector<toolchain::Constant*, 2> UsedArray;
+  SmallVector<toolchain::GlobalValue*, 4> UsedGlobals;
   auto *UsedElementType =
-    llvm::Type::getInt8Ty(M->getContext())->getPointerTo(0);
-  llvm::GlobalVariable *Used =
+    toolchain::Type::getInt8Ty(M->getContext())->getPointerTo(0);
+  toolchain::GlobalVariable *Used =
     collectUsedGlobalVariables(*M, UsedGlobals, true);
   for (auto *GV : UsedGlobals) {
-    if (GV->getName() != "llvm.embedded.module" &&
-        GV->getName() != "llvm.cmdline")
+    if (GV->getName() != "toolchain.embedded.module" &&
+        GV->getName() != "toolchain.cmdline")
       UsedArray.push_back(
           ConstantExpr::getPointerBitCastOrAddrSpaceCast(GV, UsedElementType));
   }
   if (Used)
     Used->eraseFromParent();
 
-  // Embed the bitcode for the llvm module.
+  // Embed the bitcode for the toolchain module.
   std::string Data;
-  llvm::raw_string_ostream OS(Data);
+  toolchain::raw_string_ostream OS(Data);
   if (Opts.EmbedMode == IRGenEmbedMode::EmbedBitcode)
-    llvm::WriteBitcodeToFile(*M, OS);
+    toolchain::WriteBitcodeToFile(*M, OS);
 
   ArrayRef<uint8_t> ModuleData(
       reinterpret_cast<const uint8_t *>(OS.str().data()), OS.str().size());
-  llvm::Constant *ModuleConstant =
-    llvm::ConstantDataArray::get(M->getContext(), ModuleData);
-  llvm::GlobalVariable *GV = new llvm::GlobalVariable(*M,
+  toolchain::Constant *ModuleConstant =
+    toolchain::ConstantDataArray::get(M->getContext(), ModuleData);
+  toolchain::GlobalVariable *GV = new toolchain::GlobalVariable(*M,
                                        ModuleConstant->getType(), true,
-                                       llvm::GlobalValue::PrivateLinkage,
+                                       toolchain::GlobalValue::PrivateLinkage,
                                        ModuleConstant);
   UsedArray.push_back(
-    llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(GV, UsedElementType));
+    toolchain::ConstantExpr::getPointerBitCastOrAddrSpaceCast(GV, UsedElementType));
   GV->setSection("__LLVM,__bitcode");
-  if (llvm::GlobalVariable *Old =
-      M->getGlobalVariable("llvm.embedded.module", true)) {
+  if (toolchain::GlobalVariable *Old =
+      M->getGlobalVariable("toolchain.embedded.module", true)) {
     GV->takeName(Old);
     Old->replaceAllUsesWith(GV);
     delete Old;
   } else {
-    GV->setName("llvm.embedded.module");
+    GV->setName("toolchain.embedded.module");
   }
 
   // Embed command-line options.
   ArrayRef<uint8_t>
       CmdData(reinterpret_cast<const uint8_t *>(Opts.CmdArgs.data()),
               Opts.CmdArgs.size());
-  llvm::Constant *CmdConstant =
-    llvm::ConstantDataArray::get(M->getContext(), CmdData);
-  GV = new llvm::GlobalVariable(*M, CmdConstant->getType(), true,
-                                llvm::GlobalValue::PrivateLinkage,
+  toolchain::Constant *CmdConstant =
+    toolchain::ConstantDataArray::get(M->getContext(), CmdData);
+  GV = new toolchain::GlobalVariable(*M, CmdConstant->getType(), true,
+                                toolchain::GlobalValue::PrivateLinkage,
                                 CmdConstant);
-  GV->setSection("__LLVM,__swift_cmdline");
+  GV->setSection("__LLVM,__language_cmdline");
   UsedArray.push_back(
-    llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(GV, UsedElementType));
-  if (llvm::GlobalVariable *Old = M->getGlobalVariable("llvm.cmdline", true)) {
+    toolchain::ConstantExpr::getPointerBitCastOrAddrSpaceCast(GV, UsedElementType));
+  if (toolchain::GlobalVariable *Old = M->getGlobalVariable("toolchain.cmdline", true)) {
     GV->takeName(Old);
     Old->replaceAllUsesWith(GV);
     delete Old;
   } else {
-    GV->setName("llvm.cmdline");
+    GV->setName("toolchain.cmdline");
   }
 
   if (UsedArray.empty())
     return;
 
-  // Recreate llvm.compiler.used.
-  auto *ATy = llvm::ArrayType::get(UsedElementType, UsedArray.size());
+  // Recreate toolchain.compiler.used.
+  auto *ATy = toolchain::ArrayType::get(UsedElementType, UsedArray.size());
   auto *NewUsed = new GlobalVariable(
-           *M, ATy, false, llvm::GlobalValue::AppendingLinkage,
-           llvm::ConstantArray::get(ATy, UsedArray), "llvm.compiler.used");
-  NewUsed->setSection("llvm.metadata");
+           *M, ATy, false, toolchain::GlobalValue::AppendingLinkage,
+           toolchain::ConstantArray::get(ATy, UsedArray), "toolchain.compiler.used");
+  NewUsed->setSection("toolchain.metadata");
 }
 
-static void initLLVMModule(const IRGenModule &IGM, SILModule &SIL) {
+static void initLLVMModule(IRGenModule &IGM, SILModule &SIL, std::optional<unsigned> idx = {}) {
   auto *Module = IGM.getModule();
-  assert(Module && "Expected llvm:Module for IR generation!");
+  assert(Module && "Expected toolchain:Module for IR generation!");
   
   Module->setTargetTriple(IGM.Triple.str());
 
@@ -1201,23 +1182,84 @@ static void initLLVMModule(const IRGenModule &IGM, SILModule &SIL) {
   // Set the module's string representation.
   Module->setDataLayout(IGM.DataLayout.getStringRepresentation());
 
-  auto *MDNode = IGM.getModule()->getOrInsertNamedMetadata("swift.module.flags");
+  auto *MDNode = IGM.getModule()->getOrInsertNamedMetadata("language.module.flags");
   auto &Context = IGM.getModule()->getContext();
-  auto *Value = SIL.getSwiftModule()->isStdlibModule()
-              ? llvm::ConstantInt::getTrue(Context)
-              : llvm::ConstantInt::getFalse(Context);
-  MDNode->addOperand(llvm::MDTuple::get(Context,
-                                        {llvm::MDString::get(Context,
+  auto *Value = SIL.getCodiraModule()->isStdlibModule()
+              ? toolchain::ConstantInt::getTrue(Context)
+              : toolchain::ConstantInt::getFalse(Context);
+  MDNode->addOperand(toolchain::MDTuple::get(Context,
+                                        {toolchain::MDString::get(Context,
                                                              "standard-library"),
-                                         llvm::ConstantAsMetadata::get(Value)}));
+                                         toolchain::ConstantAsMetadata::get(Value)}));
 
-  if (auto *streamer = SIL.getSILRemarkStreamer()) {
-    streamer->intoLLVMContext(Module->getContext());
+  if (auto *SILstreamer = SIL.getSILRemarkStreamer()) {
+    auto remarkStream = SILstreamer->releaseStream();
+    if (remarkStream) {
+      // Install RemarkStreamer into LLVM and keep the remarks file alive. This is
+      // required even if no LLVM remarks are enabled, because the AsmPrinter
+      // serializes meta information about the remarks into the object file.
+      IGM.RemarkStream = std::move(remarkStream);
+      SILstreamer->intoLLVMContext(Context);
+      auto &RS = *IGM.getLLVMContext().getMainRemarkStreamer();
+      if (IGM.getOptions().AnnotateCondFailMessage) {
+        Context.setLLVMRemarkStreamer(
+           std::make_unique<toolchain::LLVMRemarkStreamer>(RS));
+      } else {
+        // Don't filter for now.
+        Context.setLLVMRemarkStreamer(
+            std::make_unique<toolchain::LLVMRemarkStreamer>(RS));
+      }
+    } else {
+      assert(idx && "Not generating multiple output files?");
+
+      // Construct toolchainremarkstreamer objects for LLVM remarks originating in
+      // the LLVM backend and install it in the remaining LLVMModule(s).
+      auto &SILOpts = SIL.getOptions();
+      assert(SILOpts.AuxOptRecordFiles.size() > (*idx - 1));
+
+      const auto &filename = SILOpts.AuxOptRecordFiles[*idx - 1];
+      auto &diagEngine = SIL.getASTContext().Diags;
+      std::error_code errorCode;
+      auto file = std::make_unique<toolchain::raw_fd_ostream>(filename, errorCode,
+                                                         toolchain::sys::fs::OF_None);
+      if (errorCode) {
+        diagEngine.diagnose(SourceLoc(), diag::cannot_open_file, filename,
+                            errorCode.message());
+        return;
+      }
+
+      const auto format = SILOpts.OptRecordFormat;
+      toolchain::Expected<std::unique_ptr<toolchain::remarks::RemarkSerializer>>
+        remarkSerializerOrErr = toolchain::remarks::createRemarkSerializer(
+          format, toolchain::remarks::SerializerMode::Separate, *file);
+      if (toolchain::Error err = remarkSerializerOrErr.takeError()) {
+        diagEngine.diagnose(SourceLoc(), diag::error_creating_remark_serializer,
+                            toString(std::move(err)));
+        return;
+      }
+
+      auto auxRS = std::make_unique<toolchain::remarks::RemarkStreamer>(
+        std::move(*remarkSerializerOrErr), filename);
+      const auto passes = SILOpts.OptRecordPasses;
+      if (!passes.empty()) {
+        if (toolchain::Error err = auxRS->setFilter(passes)) {
+          diagEngine.diagnose(SourceLoc(), diag::error_creating_remark_serializer,
+                          toString(std::move(err)));
+          return ;
+        }
+      }
+
+      Context.setMainRemarkStreamer(std::move(auxRS));
+      Context.setLLVMRemarkStreamer(
+        std::make_unique<toolchain::LLVMRemarkStreamer>(
+          *Context.getMainRemarkStreamer()));
+      IGM.RemarkStream = std::move(file);
+    }
   }
 }
 
 std::pair<IRGenerator *, IRGenModule *>
-swift::irgen::createIRGenModule(SILModule *SILMod, StringRef OutputFilename,
+language::irgen::createIRGenModule(SILModule *SILMod, StringRef OutputFilename,
                                 StringRef MainInputFilenameForDebugInfo,
                                 StringRef PrivateDiscriminator,
                                 IRGenOptions &Opts) {
@@ -1237,7 +1279,7 @@ swift::irgen::createIRGenModule(SILModule *SILMod, StringRef OutputFilename,
   return std::pair<IRGenerator *, IRGenModule *>(irgen, IGM);
 }
 
-void swift::irgen::deleteIRGenModule(
+void language::irgen::deleteIRGenModule(
     std::pair<IRGenerator *, IRGenModule *> &IRGenPair) {
   delete IRGenPair.second;
   delete IRGenPair.first;
@@ -1293,7 +1335,7 @@ getSymbolSourcesToEmit(const IRGenDescriptor &desc) {
     case SymbolSource::Kind::LinkerDirective:
     case SymbolSource::Kind::Unknown:
     case SymbolSource::Kind::Global:
-      llvm_unreachable("Not supported");
+      toolchain_unreachable("Not supported");
     }
   }
   return SymbolSourcesToEmit{silRefsToEmit, irEntitiesToEmit};
@@ -1375,7 +1417,7 @@ GeneratedModule IRGenRequest::evaluate(Evaluator &evaluator,
     } else {
       // Emit protocol conformances into a section we can recognize at runtime.
       // In JIT mode these are manually registered above.
-      IGM.emitSwiftProtocols(/*asContiguousArray*/ false);
+      IGM.emitCodiraProtocols(/*asContiguousArray*/ false);
       IGM.emitProtocolConformances(/*asContiguousArray*/ false);
       IGM.emitTypeMetadataRecords(/*asContiguousArray*/ false);
       IGM.emitAccessibleFunctions();
@@ -1419,7 +1461,7 @@ GeneratedModule IRGenRequest::evaluate(Evaluator &evaluator,
   };
   auto Thread = std::thread(SILModuleRelease);
   // Wait for the thread to terminate.
-  SWIFT_DEFER { Thread.join(); };
+  LANGUAGE_DEFER { Thread.join(); };
 
   embedBitcode(IGM.getModule(), Opts);
 
@@ -1446,11 +1488,11 @@ struct LLVMCodeGenThreads {
         : parent(parent), threadIndex(threadIndex)
     {}
 
-    /// Run llvm codegen.
+    /// Run toolchain codegen.
     void run() {
       auto *diagMutex = parent.diagMutex;
       while (IRGenModule *IGM = parent.irgen->fetchFromQueue()) {
-        LLVM_DEBUG(diagMutex->lock();
+        TOOLCHAIN_DEBUG(diagMutex->lock();
                    dbgs() << "thread " << threadIndex << ": fetched "
                           << IGM->OutputFilename << "\n";
                    diagMutex->unlock(););
@@ -1462,7 +1504,7 @@ struct LLVMCodeGenThreads {
         if (IGM->Context.Diags.hadAnyError())
           return;
       }
-      LLVM_DEBUG(diagMutex->lock();
+      TOOLCHAIN_DEBUG(diagMutex->lock();
                  dbgs() << "thread " << threadIndex << ": done\n";
                  diagMutex->unlock(););
       return;
@@ -1470,10 +1512,10 @@ struct LLVMCodeGenThreads {
   };
 
   IRGenerator *irgen;
-  llvm::sys::Mutex *diagMutex;
+  toolchain::sys::Mutex *diagMutex;
   std::vector<Thread> threads;
 
-  LLVMCodeGenThreads(IRGenerator *irgen, llvm::sys::Mutex *diagMutex,
+  LLVMCodeGenThreads(IRGenerator *irgen, toolchain::sys::Mutex *diagMutex,
                      unsigned numThreads)
       : irgen(irgen), diagMutex(diagMutex) {
     threads.reserve(numThreads);
@@ -1560,6 +1602,7 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
   auto &Ctx = M->getASTContext();
   // Create an IRGenModule for each source file.
   bool DidRunSILCodeGenPreparePasses = false;
+  unsigned idx = 0;
   for (auto *File : M->getFiles()) {
     auto nextSF = dyn_cast<SourceFile>(File);
     if (!nextSF)
@@ -1576,11 +1619,12 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
     if (!targetMachine) continue;
 
     // Create the IR emitter.
+    auto outputName = *OutputIter++;
     IRGenModule *IGM = new IRGenModule(
-        irgen, std::move(targetMachine), nextSF, desc.ModuleName, *OutputIter++,
+        irgen, std::move(targetMachine), nextSF, desc.ModuleName, outputName,
         nextSF->getFilename(), nextSF->getPrivateDiscriminator().str());
 
-    initLLVMModule(*IGM, *SILMod);
+    initLLVMModule(*IGM, *SILMod, idx++);
     if (!DidRunSILCodeGenPreparePasses) {
       // Run SIL level IRGen preparation passes on the module the first time
       // around.
@@ -1625,7 +1669,7 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
     // Okay, emit any definitions that we suddenly need.
     irgen.emitLazyDefinitions();
 
-    irgen.emitSwiftProtocols();
+    irgen.emitCodiraProtocols();
 
     irgen.emitDynamicReplacements();
 
@@ -1662,12 +1706,12 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
                     PrimaryGM->addLinkLibrary(linkLib);
                   });
 
-    llvm::DenseSet<StringRef> referencedGlobals;
+    toolchain::DenseSet<StringRef> referencedGlobals;
 
     for (auto it = irgen.begin(); it != irgen.end(); ++it) {
       IRGenModule *IGM = it->second;
-      llvm::Module *M = IGM->getModule();
-      auto collectReference = [&](llvm::GlobalValue &G) {
+      toolchain::Module *M = IGM->getModule();
+      auto collectReference = [&](toolchain::GlobalValue &G) {
         if (G.isDeclaration()
             && (G.getLinkage() == GlobalValue::WeakODRLinkage ||
                 G.getLinkage() == GlobalValue::LinkOnceODRLinkage ||
@@ -1676,26 +1720,26 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
           G.setLinkage(GlobalValue::ExternalLinkage);
         }
       };
-      for (llvm::GlobalVariable &G : M->globals()) {
+      for (toolchain::GlobalVariable &G : M->globals()) {
         collectReference(G);
       }
-      for (llvm::Function &F : M->getFunctionList()) {
+      for (toolchain::Function &F : M->getFunctionList()) {
         collectReference(F);
       }
-      for (llvm::GlobalAlias &A : M->aliases()) {
+      for (toolchain::GlobalAlias &A : M->aliases()) {
         collectReference(A);
       }
     }
 
     for (auto it = irgen.begin(); it != irgen.end(); ++it) {
       IRGenModule *IGM = it->second;
-      llvm::Module *M = IGM->getModule();
+      toolchain::Module *M = IGM->getModule();
 
       // Update the linkage of shared functions/globals.
       // If a shared function/global is referenced from another file it must have
       // weak instead of linkonce linkage. Otherwise LLVM would remove the
       // definition (if it's not referenced in the same file).
-      auto updateLinkage = [&](llvm::GlobalValue &G) {
+      auto updateLinkage = [&](toolchain::GlobalValue &G) {
         if (!G.isDeclaration()
             && (G.getLinkage() == GlobalValue::WeakODRLinkage ||
                 G.getLinkage() == GlobalValue::LinkOnceODRLinkage)
@@ -1703,13 +1747,13 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
           G.setLinkage(GlobalValue::WeakODRLinkage);
         }
       };
-      for (llvm::GlobalVariable &G : M->globals()) {
+      for (toolchain::GlobalVariable &G : M->globals()) {
         updateLinkage(G);
       }
-      for (llvm::Function &F : M->getFunctionList()) {
+      for (toolchain::Function &F : M->getFunctionList()) {
         updateLinkage(F);
       }
-      for (llvm::GlobalAlias &A : M->aliases()) {
+      for (toolchain::GlobalAlias &A : M->aliases()) {
         updateLinkage(A);
       }
 
@@ -1725,7 +1769,7 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
 
   FrontendStatsTracer tracer(Ctx.Stats, "LLVM pipeline");
 
-  llvm::sys::Mutex DiagMutex;
+  toolchain::sys::Mutex DiagMutex;
 
   // Start all the threads and do the LLVM compilation.
 
@@ -1746,12 +1790,12 @@ static void performParallelIRGeneration(IRGenDescriptor desc) {
   codeGenThreads.join();
 }
 
-GeneratedModule swift::performIRGeneration(
-    swift::ModuleDecl *M, const IRGenOptions &Opts,
+GeneratedModule language::performIRGeneration(
+    language::ModuleDecl *M, const IRGenOptions &Opts,
     const TBDGenOptions &TBDOpts, std::unique_ptr<SILModule> SILMod,
     StringRef ModuleName, const PrimarySpecificPaths &PSPs,
     ArrayRef<std::string> parallelOutputFilenames,
-    llvm::GlobalVariable **outModuleHash) {
+    toolchain::GlobalVariable **outModuleHash) {
   // Get a pointer to the SILModule to avoid a potential use-after-move.
   const auto *SILModPtr = SILMod.get();
   const auto &SILOpts = SILModPtr->getOptions();
@@ -1771,13 +1815,13 @@ GeneratedModule swift::performIRGeneration(
   return evaluateOrFatal(M->getASTContext().evaluator, IRGenRequest{desc});
 }
 
-GeneratedModule swift::
+GeneratedModule language::
 performIRGeneration(FileUnit *file, const IRGenOptions &Opts,
                     const TBDGenOptions &TBDOpts,
                     std::unique_ptr<SILModule> SILMod,
                     StringRef ModuleName, const PrimarySpecificPaths &PSPs,
                     StringRef PrivateDiscriminator,
-                    llvm::GlobalVariable **outModuleHash) {
+                    toolchain::GlobalVariable **outModuleHash) {
   // Get a pointer to the SILModule to avoid a potential use-after-move.
   const auto *SILModPtr = SILMod.get();
   const auto &SILOpts = SILModPtr->getOptions();
@@ -1788,7 +1832,7 @@ performIRGeneration(FileUnit *file, const IRGenOptions &Opts,
   return evaluateOrFatal(file->getASTContext().evaluator, IRGenRequest{desc});
 }
 
-void swift::createSwiftModuleObjectFile(SILModule &SILMod, StringRef Buffer,
+void language::createCodiraModuleObjectFile(SILModule &SILMod, StringRef Buffer,
                                         StringRef OutputPath) {
   auto &Ctx = SILMod.getASTContext();
   assert(!Ctx.hadError());
@@ -1807,52 +1851,52 @@ void swift::createSwiftModuleObjectFile(SILModule &SILMod, StringRef Buffer,
   IRGenModule IGM(irgen, std::move(targetMachine), nullptr,
                   OutputPath, OutputPath, "", "");
   initLLVMModule(IGM, SILMod);
-  auto *Ty = llvm::ArrayType::get(IGM.Int8Ty, Buffer.size());
+  auto *Ty = toolchain::ArrayType::get(IGM.Int8Ty, Buffer.size());
   auto *Data =
-      llvm::ConstantDataArray::getString(IGM.getLLVMContext(),
+      toolchain::ConstantDataArray::getString(IGM.getLLVMContext(),
                                          Buffer, /*AddNull=*/false);
   auto &M = *IGM.getModule();
-  auto *ASTSym = new llvm::GlobalVariable(M, Ty, /*constant*/ true,
-                                          llvm::GlobalVariable::InternalLinkage,
-                                          Data, "__Swift_AST");
+  auto *ASTSym = new toolchain::GlobalVariable(M, Ty, /*constant*/ true,
+                                          toolchain::GlobalVariable::InternalLinkage,
+                                          Data, "__Codira_AST");
 
   std::string Section;
   switch (IGM.TargetInfo.OutputObjectFormat) {
-  case llvm::Triple::DXContainer:
-  case llvm::Triple::GOFF:
-  case llvm::Triple::SPIRV:
-  case llvm::Triple::UnknownObjectFormat:
-    llvm_unreachable("unknown object format");
-  case llvm::Triple::XCOFF:
-  case llvm::Triple::COFF: {
-    SwiftObjectFileFormatCOFF COFF;
-    Section = COFF.getSectionName(ReflectionSectionKind::swiftast);
+  case toolchain::Triple::DXContainer:
+  case toolchain::Triple::GOFF:
+  case toolchain::Triple::SPIRV:
+  case toolchain::Triple::UnknownObjectFormat:
+    toolchain_unreachable("unknown object format");
+  case toolchain::Triple::XCOFF:
+  case toolchain::Triple::COFF: {
+    CodiraObjectFileFormatCOFF COFF;
+    Section = COFF.getSectionName(ReflectionSectionKind::languageast);
     break;
   }
-  case llvm::Triple::ELF:
-  case llvm::Triple::Wasm: {
-    SwiftObjectFileFormatELF ELF;
-    Section = ELF.getSectionName(ReflectionSectionKind::swiftast);
+  case toolchain::Triple::ELF:
+  case toolchain::Triple::Wasm: {
+    CodiraObjectFileFormatELF ELF;
+    Section = ELF.getSectionName(ReflectionSectionKind::languageast);
     break;
   }
-  case llvm::Triple::MachO: {
-    SwiftObjectFileFormatMachO MachO;
+  case toolchain::Triple::MachO: {
+    CodiraObjectFileFormatMachO MachO;
     Section = std::string(*MachO.getSegmentName()) + "," +
-              MachO.getSectionName(ReflectionSectionKind::swiftast).str();
+              MachO.getSectionName(ReflectionSectionKind::languageast).str();
     break;
   }
   }
   IGM.addUsedGlobal(ASTSym);
   ASTSym->setSection(Section);
-  ASTSym->setAlignment(llvm::MaybeAlign(serialization::SWIFTMODULE_ALIGNMENT));
+  ASTSym->setAlignment(toolchain::MaybeAlign(serialization::LANGUAGEMODULE_ALIGNMENT));
   IGM.finalize();
   ::performLLVM(Opts, Ctx.Diags, nullptr, nullptr, IGM.getModule(),
                 IGM.TargetMachine.get(),
                 OutputPath, Ctx.getOutputBackend(), Ctx.Stats);
 }
 
-bool swift::performLLVM(const IRGenOptions &Opts, ASTContext &Ctx,
-                        llvm::Module *Module, StringRef OutputFilename) {
+bool language::performLLVM(const IRGenOptions &Opts, ASTContext &Ctx,
+                        toolchain::Module *Module, StringRef OutputFilename) {
   // Build TargetMachine.
   auto TargetMachine = createTargetMachine(Opts, Ctx);
   if (!TargetMachine)

@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -parse-as-library %S/Inputs/custom-modules/IncompleteTypes/complete-language-types.code -emit-module -emit-module-path %t/CompleteCodiraTypes.codemodule -emit-objc-header -emit-objc-header-path %t/CompleteCodiraTypes-Codira.h -emit-library -o %t/libCompleteCodiraTypes.dylib
+// RUN: %target-clang -framework Foundation -dynamiclib %S/Inputs/custom-modules/IncompleteTypes/objc-library-forward-declaring-complete-language-types.m -I %t -L %t -lCompleteCodiraTypes -o %t/libObjCLibraryForwardDeclaringCompleteCodiraTypes.dylib
+// RUN: %target-build-language -Xfrontend -enable-upcoming-feature -Xfrontend ImportObjcForwardDeclarations -Xfrontend -enable-objc-interop %s -I %S/Inputs/custom-modules/IncompleteTypes -I %t -L %t -lCompleteCodiraTypes -lObjCLibraryForwardDeclaringCompleteCodiraTypes -o %t/a.out
+// RUN: %target-run %t/a.out
+
+// REQUIRES: objc_interop
+// REQUIRES: executable_test
+// REQUIRES: language_feature_ImportObjcForwardDeclarations
+
+import CompleteCodiraTypes
+import ObjCLibraryForwardDeclaringCompleteCodiraTypes
+
+immutable placeholderInstanceForNativeObjCInterfaceShadowedProtocol = returnANativeObjCClassShadowedProtocol()

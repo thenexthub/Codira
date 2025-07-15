@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// rdar://20985062
+
+class A {
+  fn foo(_ a: [(x: Int, y: Double)]) {}
+}
+
+fn accept<T>(_ t: T.Type, _ value: inout T) {}
+
+typealias TheType = (A) -> ([(x: Int, y: Double)]) -> ()
+var curried = A.foo
+accept(TheType.this, &curried)
+

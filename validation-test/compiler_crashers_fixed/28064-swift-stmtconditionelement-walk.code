@@ -1,0 +1,13 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class d{enum B{enum A{class b<f:f.a{class A{fn b{d{enum e{var e{{{}}enum B{{}class n{immutable:{{{}}class a{init(){{{}class A{class d{struct d{enum b{struct D{class d{{}enum b{class A{fn a{class B{immutable a{{if{

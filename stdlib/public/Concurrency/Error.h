@@ -1,4 +1,4 @@
-//===--- Error.h - Swift Concurrency error helpers --------------*- C++ -*-===//
+//===--- Error.h - Codira Concurrency error helpers --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Error handling support.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_ERRORS_H
-#define SWIFT_CONCURRENCY_ERRORS_H
+#ifndef LANGUAGE_CONCURRENCY_ERRORS_H
+#define LANGUAGE_CONCURRENCY_ERRORS_H
 
 #include "language/Basic/Compiler.h"
 
@@ -29,9 +30,9 @@
 
 namespace language {
 
-SWIFT_NORETURN SWIFT_FORMAT(2, 3) void swift_Concurrency_fatalError(
+LANGUAGE_NORETURN LANGUAGE_FORMAT(2, 3) void language_Concurrency_fatalError(
     uint32_t flags, const char *format, ...);
-SWIFT_NORETURN SWIFT_VFORMAT(2) void swift_Concurrency_fatalErrorv(
+LANGUAGE_NORETURN LANGUAGE_VFORMAT(2) void language_Concurrency_fatalErrorv(
     uint32_t flags, const char *format, va_list val);
 
 } // namespace language

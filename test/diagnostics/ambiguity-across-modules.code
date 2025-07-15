@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Compile the exact same source file into 2 different modules.
+// RUN: %target-language-frontend -emit-module -o %t/A.codemodule %t/Lib.code \
+// RUN:    -emit-module-source-info -module-name A -package-name pkg \
+// RUN:    -enable-testing
+// RUN: %target-language-frontend -emit-module -o %t/B.codemodule %t/Lib.code \
+// RUN:    -emit-module-source-info -module-name B -package-name pkg \
+// RUN:    -enable-testing
+
+// Build a client importing both modules and hitting the ambiguities.
+// RUN: not %target-language-frontend -typecheck -I %t %t/Client.code -package-name pkg 2> %t/out
+// RUN: cat %t/out | %FileCheck %s
+
+//--- Lib.code
+public fn publicAmbiguity() {}
+package fn packageAmbiguity() {}
+internal fn internalAmbiguity() {}
+
+//--- Client.code
+@testable import A
+@testable import B
+
+fn foo() {
+  publicAmbiguity()
+// CHECK: error: ambiguous use of 'publicAmbiguity()'
+// CHECK:  publicAmbiguity()
+// CHECK: note: found this candidate in module 'A'
+// CHECK: public fn publicAmbiguity() {}
+// CHECK: note: found this candidate in module 'B'
+// CHECK: public fn publicAmbiguity() {}
+
+  packageAmbiguity()
+// CHECK: error: ambiguous use of 'packageAmbiguity()'
+// CHECK-NEXT:  packageAmbiguity()
+// CHECK: note: found this candidate in module 'A'
+// CHECK: package fn packageAmbiguity() {}
+// CHECK: note: found this candidate in module 'B'
+// CHECK: package fn packageAmbiguity() {}
+
+  internalAmbiguity()
+// CHECK: error: ambiguous use of 'internalAmbiguity()'
+// CHECK-NEXT:  internalAmbiguity()
+// CHECK: note: found this candidate in module 'A'
+// CHECK: internal fn internalAmbiguity() {}
+// CHECK: note: found this candidate in module 'B'
+}

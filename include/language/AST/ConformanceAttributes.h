@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CONFORMANCEATTRIBUTES_H
-#define SWIFT_AST_CONFORMANCEATTRIBUTES_H
+#ifndef LANGUAGE_AST_CONFORMANCEATTRIBUTES_H
+#define LANGUAGE_AST_CONFORMANCEATTRIBUTES_H
 
 #include "language/Basic/SourceLoc.h"
 

@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t/BuildDir)
+// RUN: %empty-directory(%t/SecondBuildDir/Lib.codemodule)
+// RUN: %empty-directory(%t/ModuleCache)
+
+// RUN: echo 'public fn showsUpInBothPlaces() {}' > %t/Lib.code
+
+// 1. Create a .codeinterface file containing just one API, and put it inside a second build dir (without a .codemodule)
+// RUN: %target-language-frontend -typecheck %t/Lib.code -emit-module-interface-path %t/SecondBuildDir/Lib.codemodule/%target-cpu.codeinterface -module-name Lib
+
+// 2. Add a new API to the module, and compile just the serialized version in the build dir.
+// RUN: echo 'public fn onlyInTheCompiledModule() {}' >> %t/Lib.code
+// RUN: %target-language-frontend -emit-module %t/Lib.code -o %t/BuildDir/Lib.codemodule -emit-module-interface-path %t/BuildDir/Lib.codeinterface
+
+// 3. Make sure when we compile this test file, we can access both APIs since we'll
+//    load the compiled .codemodule instead of the .codeinterface in the SDK.
+// RUN: %target-language-frontend -typecheck %s -I %t/BuildDir -I %t/SecondBuildDir -module-cache-path %t/ModuleCache
+
+// 4. Make sure we didn't compile any .codeinterfaces into the module cache.
+// RUN: ls %t/ModuleCache | not grep 'languagemodule'
+
+// 5. This should also work if the languageinterface isn't present in the first build dir.
+// RUN: rm %t/BuildDir/Lib.codeinterface
+// RUN: %target-language-frontend -typecheck %s -I %t/BuildDir -I %t/SecondBuildDir -module-cache-path %t/ModuleCache
+
+// 6. Make sure we /still/ didn't compile any .codeinterfaces into the module cache.
+// RUN: ls %t/ModuleCache | not grep 'languagemodule'
+
+import Lib
+
+showsUpInBothPlaces()
+onlyInTheCompiledModule()

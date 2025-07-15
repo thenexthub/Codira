@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the TypeID template, which provides a numeric
@@ -19,13 +20,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_TYPEID_H
-#define SWIFT_BASIC_TYPEID_H
+#ifndef LANGUAGE_BASIC_TYPEID_H
+#define LANGUAGE_BASIC_TYPEID_H
 
 // NOTE: Most of these includes are for CTypeIDZone.def and DefineTypeIDZone.h.
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -35,9 +36,9 @@
 namespace language {
 
 enum class Zone : uint8_t {
-#define SWIFT_TYPEID_ZONE(Name, Id) Name = Id,
+#define LANGUAGE_TYPEID_ZONE(Name, Id) Name = Id,
 #include "language/Basic/TypeIDZones.def"
-#undef SWIFT_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_ZONE
 };
 
 static_assert(std::is_same<std::underlying_type<Zone>::type, uint8_t>::value,
@@ -84,10 +85,10 @@ using SideEffect = std::tuple<>;
 }
 
 // Define the C type zone (zone 0).
-#define SWIFT_TYPEID_ZONE C
-#define SWIFT_TYPEID_HEADER "swift/Basic/CTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE C
+#define LANGUAGE_TYPEID_HEADER "language/Basic/CTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_TYPEID_H
+#endif // LANGUAGE_BASIC_TYPEID_H

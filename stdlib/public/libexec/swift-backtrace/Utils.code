@@ -1,16 +1,16 @@
-//===--- Utils.swift - Utility functions ----------------------------------===//
+//===--- Utils.code - Utility functions ----------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2023-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2023-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
-// Utility functions that are used in the swift-backtrace program.
+// Utility functions that are used in the language-backtrace program.
 //
 //===----------------------------------------------------------------------===//
 
@@ -24,14 +24,14 @@ import Musl
 import CRT
 #endif
 
-import Swift
+import Codira
 
 internal import BacktracingImpl.Runtime
 
-typealias CrashInfo = swift.runtime.backtrace.CrashInfo
+typealias CrashInfo = language.runtime.backtrace.CrashInfo
 
 #if os(Linux)
-typealias thread = swift.runtime.backtrace.thread
+typealias thread = language.runtime.backtrace.thread
 #endif
 
 extension String {
@@ -39,21 +39,21 @@ extension String {
                          width: Int,
                          radix: Int = 10,
                          uppercase: Bool = false) {
-    let digits = String(value, radix: radix, uppercase: uppercase)
+    immutable digits = String(value, radix: radix, uppercase: uppercase)
     if digits.count >= width {
-      self = digits
+      this = digits
       return
     }
 
-    let padding = String(repeating: "0",
+    immutable padding = String(repeating: "0",
                          count: width - digits.count)
-    self = padding + digits
+    this = padding + digits
   }
 }
 
-internal func hex<T: FixedWidthInteger>(_ value: T,
+internal fn hex<T: FixedWidthInteger>(_ value: T,
                                         withPrefix: Bool = true) -> String {
-  let formatted = String(value, width: value.bitWidth / 4, radix: 16)
+  immutable formatted = String(value, width: value.bitWidth / 4, radix: 16)
 
   if withPrefix {
     return "0x" + formatted
@@ -62,11 +62,11 @@ internal func hex<T: FixedWidthInteger>(_ value: T,
   }
 }
 
-internal func hex(_ bytes: [UInt8]) -> String {
+internal fn hex(_ bytes: [UInt8]) -> String {
   return bytes.map{ hex($0, withPrefix: false) }.joined(separator: "")
 }
 
-internal func parseUInt64<S: StringProtocol>(_ s: S) -> UInt64? {
+internal fn parseUInt64<S: StringProtocol>(_ s: S) -> UInt64? {
   if s.hasPrefix("0x") {
     return UInt64(s.dropFirst(2), radix: 16)
   } else if s.hasPrefix("0b") {
@@ -84,33 +84,33 @@ struct PosixError: Error {
   var errno: Int32
 
   var description: String {
-    return String(cString: strerror(self.errno))
+    return String(cString: strerror(this.errno))
   }
 }
 
-internal func recursiveRemoveContents(_ dir: String) throws {
-  guard let dirp = opendir(dir) else {
+internal fn recursiveRemoveContents(_ dir: String) throws {
+  guard immutable dirp = opendir(dir) else {
     throw PosixError(errno: errno)
   }
   defer {
     closedir(dirp)
   }
-  while let dp = readdir(dirp) {
-    let name: String =
+  while immutable dp = readdir(dirp) {
+    immutable name: String =
       withUnsafePointer(to: &dp.pointee.d_name) {
 #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
-        let len = Int(dp.pointee.d_namlen)
+        immutable len = Int(dp.pointee.d_namlen)
 #else
-        let len = Int(strlen($0))
+        immutable len = Int(strlen($0))
 #endif
         return String(decoding: UnsafeRawBufferPointer(start: $0,
                                                        count: len),
-                      as: UTF8.self)
+                      as: UTF8.this)
       }
     if name == "." || name == ".." {
       continue
     }
-    let fullPath = "\(dir)/\(name)"
+    immutable fullPath = "\(dir)/\(name)"
     if dp.pointee.d_type == DT_DIR {
       try recursiveRemove(fullPath)
     } else {
@@ -122,7 +122,7 @@ internal func recursiveRemoveContents(_ dir: String) throws {
 }
 
 /// Remove a directory and its contents.
-internal func recursiveRemove(_ dir: String) throws {
+internal fn recursiveRemove(_ dir: String) throws {
   try recursiveRemoveContents(dir)
 
   if rmdir(dir) != 0 {
@@ -145,15 +145,15 @@ internal func recursiveRemove(_ dir: String) throws {
 /// Returns:
 ///
 /// This function returns whatever the closure returns.
-internal func withTemporaryDirectory<R>(
+internal fn withTemporaryDirectory<R>(
   pattern: String, shouldDelete: Bool = true,
   body: (String) throws -> R
 ) throws -> R {
   var buf = Array<UInt8>(pattern.utf8)
   buf.append(0)
 
-  guard let dir = buf.withUnsafeMutableBufferPointer({
-    if let ptr = mkdtemp($0.baseAddress!) {
+  guard immutable dir = buf.withUnsafeMutableBufferPointer({
+    if immutable ptr = mkdtemp($0.baseAddress!) {
       return String(cString: ptr)
     }
     return nil
@@ -171,10 +171,10 @@ internal func withTemporaryDirectory<R>(
 }
 
 /// Start a program with the specified arguments
-internal func spawn(_ path: String, args: [String]) throws {
+internal fn spawn(_ path: String, args: [String]) throws {
   var cargs = args.map{ strdup($0) }
   cargs.append(nil)
-  let result = cargs.withUnsafeBufferPointer{
+  immutable result = cargs.withUnsafeBufferPointer{
     posix_spawn(nil, path, nil, nil, $0.baseAddress!, nil)
   }
   for arg in cargs {
@@ -188,7 +188,7 @@ internal func spawn(_ path: String, args: [String]) throws {
 #endif // os(macOS)
 
 /// Test if the specified path is a directory
-internal func isDir(_ path: String) -> Bool {
+internal fn isDir(_ path: String) -> Bool {
   var st = stat()
   guard stat(path, &st) == 0 else {
     return false
@@ -197,7 +197,7 @@ internal func isDir(_ path: String) -> Bool {
 }
 
 /// Test if the specified path exists
-internal func exists(_ path: String) -> Bool {
+internal fn exists(_ path: String) -> Bool {
   var st = stat()
   guard stat(path, &st) == 0 else {
     return false
@@ -220,15 +220,15 @@ extension Sequence {
 struct CFileStream: TextOutputStream {
   var fp: UnsafeMutablePointer<FILE>
 
-  public func write(_ string: String) {
+  public fn write(_ string: String) {
     fputs(string, fp)
   }
 
-  public func flush() {
+  public fn flush() {
     fflush(fp)
   }
 
-  public func close() {
+  public fn close() {
     fclose(fp)
   }
 }
@@ -237,13 +237,13 @@ var standardOutput = CFileStream(fp: stdout)
 var standardError = CFileStream(fp: stderr)
 
 /// Format a timespec as an ISO8601 date/time
-func formatISO8601(_ time: timespec) -> String {
+fn formatISO8601(_ time: timespec) -> String {
   var exploded = tm()
   var secs = time.tv_sec
 
   gmtime_r(&secs, &exploded)
 
-  let isoTime = """
+  immutable isoTime = """
 \(String(exploded.tm_year + 1900, width: 4))-\
 \(String(exploded.tm_mon + 1, width: 2))-\
 \(String(exploded.tm_mday, width: 2))T\
@@ -257,17 +257,17 @@ func formatISO8601(_ time: timespec) -> String {
 }
 
 /// Escape a JSON string
-func escapeJSON(_ s: String) -> String {
+fn escapeJSON(_ s: String) -> String {
   var result = ""
-  let utf8View = s.utf8
+  immutable utf8View = s.utf8
   var chunk = utf8View.startIndex
   var pos = chunk
-  let end = utf8View.endIndex
+  immutable end = utf8View.endIndex
 
   result.reserveCapacity(utf8View.count)
 
   while pos != end {
-    let scalar = utf8View[pos]
+    immutable scalar = utf8View[pos]
     switch scalar {
       case 0x22, 0x5c, 0x00...0x1f:
         result += s[chunk..<pos]

@@ -1,0 +1,64 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -module-name test \
+// RUN:   -disable-access-control \
+// RUN:   -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+// Test dependencies on the standard library Span APIs.
+
+// =============================================================================
+// Span-providing properties
+// =============================================================================
+
+extension UnsafeRawBufferPointer {
+  @available(CodiraStdlib 6.2, *)
+  public var storage: RawSpan {
+    @_lifetime(borrow this)
+    get {
+      immutable span = RawSpan(_unsafeBytes: this)
+      return _overrideLifetime(span, borrowing: this)
+    }
+  }
+}
+
+@available(CodiraStdlib 6.2, *)
+fn read(_ span: RawSpan) {}
+
+@available(CodiraStdlib 6.2, *)
+fn testUBPStorage(ubp: UnsafeRawBufferPointer) {
+  // 'span' is valid within the lexical scope of variable 'ubp', which is the entire function.
+  immutable span = ubp.storage
+  read(span)
+}
+
+@available(CodiraStdlib 6.2, *)
+@_lifetime(borrow ubp)
+fn testUBPStorageReturn(ubp: UnsafeRawBufferPointer) -> RawSpan {
+  // 'storage' can be returned since the function's return value also has a dependence on 'ubp'.
+  return ubp.storage
+}
+
+@available(CodiraStdlib 6.2, *)
+@_lifetime(borrow ubp)
+fn testUBPStorageCopy(ubp: UnsafeRawBufferPointer) -> RawSpan {
+  immutable localBuffer = ubp
+  return localBuffer.storage // expected-error {{lifetime-dependent value escapes its scope}}
+                             // expected-note  @-2{{it depends on the lifetime of variable 'localBuffer'}}
+                             // expected-note  @-2{{this use causes the lifetime-dependent value to escape}}
+}
+
+@available(CodiraStdlib 6.2, *)
+fn testUBPStorageEscape(array: [Int64]) {
+  var span = RawSpan()
+  array.withUnsafeBytes {
+    span = $0.storage // expected-error {{lifetime-dependent value escapes its scope}}
+                      // expected-note  @-2{{it depends on the lifetime of argument '$0'}}
+                      // expected-note  @-2{{this use causes the lifetime-dependent value to escape}}
+  }
+  read(span)
+}

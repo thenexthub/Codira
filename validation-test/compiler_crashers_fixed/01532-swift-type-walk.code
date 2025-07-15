@@ -1,0 +1,32 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class A {
+var _ = {
+init({
+class A, a<d>(t: d where h>, AnyObject) -> {
+}
+}
+protocol b : () {
+}
+}
+var d = g(a(c<d(x(z(a(T) {
+if c : NSObject {
+}
+fn b<T) -> : () {
+}
+}
+return this)) -> String {
+static immutable f == Int>() {
+}
+}
+fn a<f : a {

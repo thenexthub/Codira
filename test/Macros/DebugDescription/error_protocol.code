@@ -1,0 +1,10 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -verify -plugin-path %language-plugin-dir
+
+// expected-error @+1 {{cannot be attached to a protocol}}
+@DebugDescription
+protocol MyProto {
+  fn action()
+}

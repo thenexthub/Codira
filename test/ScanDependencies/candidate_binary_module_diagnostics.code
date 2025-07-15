@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/module-cache)
+// RUN: %empty-directory(%t/moduleInputs)
+// RUN: %empty-directory(%t/moduleInputs2)
+// RUN: split-file %s %t
+
+// RUN: echo "Not Really a module" >> %t/moduleInputs/FooBar.codemodule
+// RUN: %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %t/main.code -o %t/deps.json -I %t/moduleInputs -diagnostic-style toolchain -scanner-module-validation 2>&1 | %FileCheck %s -check-prefix=ERROR
+
+// ERROR: error: unable to resolve Codira module dependency to a compatible module: 'FooBar'
+// ERROR: note: found incompatible module '{{.*}}{{/|\\}}moduleInputs{{/|\\}}FooBar.codemodule': malformed
+
+// RUN: %target-language-frontend -emit-module %t/FooBar.code -emit-module-path %t/moduleInputs2/FooBar.codemodule -module-name FooBar
+// RUN: %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %t/main.code -o %t/deps.json -I %t/moduleInputs -I %t/moduleInputs2 -diagnostic-style toolchain -scanner-module-validation 2>&1 | %FileCheck %s -check-prefix=WARNING
+
+// WARNING: warning: module file '{{.*}}{{/|\\}}moduleInputs{{/|\\}}FooBar.codemodule' is incompatible with this Codira compiler: malformed
+
+//--- main.code
+import FooBar
+
+//--- FooBar.code
+public fn fooBar() {}

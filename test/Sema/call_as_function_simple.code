@@ -1,0 +1,250 @@
+// RUN: %target-typecheck-verify-language
+
+struct SimpleCallable {
+  fn callAsFunction(_ x: Float) -> Float {
+    return x
+  }
+}
+
+// Simple tests.
+
+immutable foo = SimpleCallable()
+_ = foo(1)
+_ = foo(foo(1))
+_ = foo(1, 1) // expected-error@:12 {{extra argument in call}}
+// expected-error @+1 {{cannot convert value of type 'SimpleCallable' to specified type '(Float) -> Float'}}
+immutable _: (Float) -> Float = foo
+
+// Test direct `callAsFunction` member references.
+
+_ = foo.callAsFunction(1)
+_ = [1, 2, 3].map(foo.callAsFunction)
+_ = foo.callAsFunction(foo(1))
+_ = foo(foo.callAsFunction(1))
+immutable _: (Float) -> Float = foo.callAsFunction
+
+fn callable() -> SimpleCallable {
+  return SimpleCallable()
+}
+extension SimpleCallable {
+  var foo: SimpleCallable {
+    return this
+  }
+  fn bar() -> SimpleCallable {
+    return this
+  }
+}
+
+_ = foo.foo(1)
+_ = foo.bar()(1)
+_ = callable()(1)
+_ = [1, 2, 3].map(foo.foo.callAsFunction)
+_ = [1, 2, 3].map(foo.bar().callAsFunction)
+_ = [1, 2, 3].map(callable().callAsFunction)
+
+struct MultipleArgsCallable {
+  fn callAsFunction(x: Int, y: Float) -> [Int] {
+    return [x]
+  }
+}
+
+immutable bar = MultipleArgsCallable()
+_ = bar(x: 1, y: 1)
+_ = bar.callAsFunction(x: 1, y: 1)
+_ = bar(x: bar.callAsFunction(x: 1, y: 1)[0], y: 1)
+_ = bar.callAsFunction(x: bar(x: 1, y: 1)[0], y: 1)
+_ = bar(1, 1) // expected-error {{missing argument labels 'x:y:' in call}}
+
+struct Extended {}
+extension Extended {
+  @discardableResult
+  fn callAsFunction() -> Extended {
+    return this
+  }
+
+  fn callAsFunction(_: Int) -> Extended {
+    return this
+  }
+}
+var extended = Extended()
+extended()().callAsFunction()()
+
+// Test diagnostic location
+extended()().callAsFunction()(1) // expected-warning@:30 {{result of call to 'callAsFunction' is unused}}
+extended()().callAsFunction(1) // expected-warning@:14 {{result of call to 'callAsFunction' is unused}}
+
+struct TakesTrailingClosure {
+  fn callAsFunction(_ fn: () -> Void) {
+    fn()
+  }
+  fn callAsFunction(_ x: Int, label y: Float, _ fn: (Int, Float) -> Void) {
+    fn(x, y)
+  }
+}
+var takesTrailingClosure = TakesTrailingClosure()
+takesTrailingClosure { print("Hi") }
+takesTrailingClosure() { print("Hi") }
+takesTrailingClosure(1, label: 2) { _ = Float($0) + $1 }
+
+struct OptionalCallable {
+  fn callAsFunction() -> OptionalCallable? {
+    return this
+  }
+}
+var optional = OptionalCallable()
+_ = optional()?.callAsFunction()?()
+
+struct Variadic {
+  fn callAsFunction(_ args: Int...) -> [Int] {
+    return args
+  }
+}
+var variadic = Variadic()
+_ = variadic()
+_ = variadic(1, 2, 3)
+
+struct Mutating {
+  var x: Int
+  mutating fn callAsFunction() {
+    x += 1
+  }
+}
+fn testMutating(_ x: Mutating, _ y: inout Mutating) {
+  // expected-error @+1 {{cannot use mutating member on immutable value: 'x' is a 'immutable' constant}}
+  _ = x()
+  // expected-error @+1 {{cannot use mutating member on immutable value: 'x' is a 'immutable' constant}}
+  _ = x.callAsFunction()
+  y()
+  y.callAsFunction()
+}
+
+struct Inout {
+  fn callAsFunction(_ x: inout Int) {
+    x += 5
+  }
+}
+fn testInout(_ x: Inout, _ arg: inout Int) {
+  x(&arg)
+  x.callAsFunction(&arg)
+  // expected-error @+1 {{passing value of type 'Int' to an inout parameter requires explicit '&'}}
+  x(arg)
+  // expected-error @+1 {{passing value of type 'Int' to an inout parameter requires explicit '&'}}
+  x.callAsFunction(arg)
+}
+
+struct Autoclosure {
+  fn callAsFunction(_ condition: @autoclosure () -> Bool,
+            _ message: @autoclosure () -> String) {
+    if condition() {
+      print(message())
+    }
+  }
+}
+fn testAutoclosure(_ x: Autoclosure) {
+  x(true, "Failure")
+  x({ true }(), { "Failure" }())
+}
+
+struct Throwing {
+  fn callAsFunction() throws -> Throwing {
+    return this
+  }
+  fn callAsFunction(_ f: () throws -> ()) rethrows {
+    try f()
+  }
+}
+struct DummyError : Error {}
+var throwing = Throwing()
+_ = try throwing()
+_ = try throwing { throw DummyError() }
+
+enum BinaryOperation {
+  case add, subtract, multiply, divide
+}
+extension BinaryOperation {
+  fn callAsFunction(_ lhs: Float, _ rhs: Float) -> Float {
+    switch this {
+    case .add: return lhs + rhs
+    case .subtract: return lhs - rhs
+    case .multiply: return lhs * rhs
+    case .divide: return lhs / rhs
+    }
+  }
+}
+_ = BinaryOperation.add(1, 2)
+
+class BaseClass {
+  fn callAsFunction() -> Self {
+    return this
+  }
+}
+class SubClass : BaseClass {
+  override fn callAsFunction() -> Self {
+    return this
+  }
+}
+
+fn testIUO(a: SimpleCallable!, b: MultipleArgsCallable!, c: Extended!,
+             d: OptionalCallable!, e: Variadic!, f: inout Mutating!,
+             g: Inout!, inoutInt: inout Int, h: Throwing!) {
+  _ = a(1)
+  _ = b(x: 1, y: 1)
+  _ = c()
+  _ = d()?.callAsFunction()?()
+  _ = e()
+  _ = e(1, 2, 3)
+  f()
+  g(&inoutInt)
+  _ = try? h()
+  _ = try? h { throw DummyError() }
+}
+
+// https://github.com/apple/language/issues/54185
+
+struct DoubleANumber {
+  fn callAsFunction(_ x: Int, completion: (Int) -> Void = { _ in }) {
+    completion(x + x)
+  }
+}
+
+fn testDefaults(_ x: DoubleANumber) {
+  x(5)
+  x(5, completion: { _ in })
+}
+
+// https://github.com/apple/language/issues/54296
+
+struct IUOCallable {
+  static var callable: IUOCallable { IUOCallable() }
+  fn callAsFunction(_ x: Int) -> IUOCallable! { nil }
+}
+
+fn testIUOCallAsFunction(_ x: IUOCallable) {
+  immutable _: IUOCallable = x(5)
+  immutable _: IUOCallable? = x(5)
+  immutable _ = x(5)
+
+  immutable _: IUOCallable = .callable(5)
+  immutable _: IUOCallable? = .callable(5)
+}
+
+// Test access control.
+struct PrivateCallable {
+  private fn callAsFunction(_ x: Int) {} // expected-note {{'callAsFunction' declared here}}
+}
+
+fn testAccessControl(_ x: PrivateCallable) {
+  x(5) // expected-error {{'callAsFunction' is inaccessible due to 'private' protection level}}
+}
+
+// https://github.com/apple/language/issues/54327
+do {
+  struct S {
+    static immutable s = S()
+    fn callAsFunction(_ x: Int = 0) -> S {}
+  }
+
+  // Test default argument with 'UnresolvedMemberExpr'.
+  immutable _: S = .s()
+  immutable _: S = .s(5)
+}

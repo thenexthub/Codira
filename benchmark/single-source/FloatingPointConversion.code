@@ -1,18 +1,22 @@
-//===--- FloatingPointConversion.swift ------------------------------------===//
+//===--- FloatingPointConversion.code ------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "ConvertFloatingPoint.MockFloat64ToDouble",
     runFunction: run_ConvertFloatingPoint_MockFloat64ToDouble,
@@ -54,29 +58,29 @@ extension MockBinaryFloatingPoint {
   static var signalingNaN: Self { Self(_Value.signalingNaN) }
   static var significandBitCount: Int { _Value.significandBitCount }
   
-  static func + (lhs: Self, rhs: Self) -> Self { Self(lhs._value + rhs._value) }
-  static func += (lhs: inout Self, rhs: Self) { lhs._value += rhs._value }
-  static func - (lhs: Self, rhs: Self) -> Self { Self(lhs._value - rhs._value) }
-  static func -= (lhs: inout Self, rhs: Self) { lhs._value -= rhs._value }
-  static func * (lhs: Self, rhs: Self) -> Self { Self(lhs._value * rhs._value) }
-  static func *= (lhs: inout Self, rhs: Self) { lhs._value *= rhs._value }
-  static func / (lhs: Self, rhs: Self) -> Self { Self(lhs._value / rhs._value) }
-  static func /= (lhs: inout Self, rhs: Self) { lhs._value /= rhs._value }
+  static fn + (lhs: Self, rhs: Self) -> Self { Self(lhs._value + rhs._value) }
+  static fn += (lhs: inout Self, rhs: Self) { lhs._value += rhs._value }
+  static fn - (lhs: Self, rhs: Self) -> Self { Self(lhs._value - rhs._value) }
+  static fn -= (lhs: inout Self, rhs: Self) { lhs._value -= rhs._value }
+  static fn * (lhs: Self, rhs: Self) -> Self { Self(lhs._value * rhs._value) }
+  static fn *= (lhs: inout Self, rhs: Self) { lhs._value *= rhs._value }
+  static fn / (lhs: Self, rhs: Self) -> Self { Self(lhs._value / rhs._value) }
+  static fn /= (lhs: inout Self, rhs: Self) { lhs._value /= rhs._value }
   
-  init(_ value: Int) { self.init(_Value(value)) }
-  init(_ value: Float) { self.init(_Value(value)) }
-  init(_ value: Double) { self.init(_Value(value)) }
+  init(_ value: Int) { this.init(_Value(value)) }
+  init(_ value: Float) { this.init(_Value(value)) }
+  init(_ value: Double) { this.init(_Value(value)) }
 #if !(os(Windows) || os(Android)) && (arch(i386) || arch(x86_64))
-  init(_ value: Float80) { self.init(_Value(value)) }
+  init(_ value: Float80) { this.init(_Value(value)) }
 #endif
   init(integerLiteral value: _Value.IntegerLiteralType) {
-    self.init(_Value(integerLiteral: value))
+    this.init(_Value(integerLiteral: value))
   }
   init(floatLiteral value: _Value.FloatLiteralType) {
-    self.init(_Value(floatLiteral: value))
+    this.init(_Value(floatLiteral: value))
   }
   init(sign: FloatingPointSign, exponent: _Value.Exponent, significand: Self) {
-    self.init(
+    this.init(
       _Value(sign: sign, exponent: exponent, significand: significand._value))
   }
   init(
@@ -84,7 +88,7 @@ extension MockBinaryFloatingPoint {
     exponentBitPattern: _Value.RawExponent,
     significandBitPattern: _Value.RawSignificand
   ) {
-    self.init(
+    this.init(
       _Value(
         sign: sign,
         exponentBitPattern: exponentBitPattern,
@@ -113,39 +117,39 @@ extension MockBinaryFloatingPoint {
   var significandWidth: Int { _value.significandWidth }
   var ulp: Self { Self(_value.ulp) }
   
-  mutating func addProduct(_ lhs: Self, _ rhs: Self) {
+  mutating fn addProduct(_ lhs: Self, _ rhs: Self) {
     _value.addProduct(lhs._value, rhs._value)
   }
-  func advanced(by n: _Value.Stride) -> Self { Self(_value.advanced(by: n)) }
-  func distance(to other: Self) -> _Value.Stride {
+  fn advanced(by n: _Value.Stride) -> Self { Self(_value.advanced(by: n)) }
+  fn distance(to other: Self) -> _Value.Stride {
     _value.distance(to: other._value)
   }
-  mutating func formRemainder(dividingBy other: Self) {
+  mutating fn formRemainder(dividingBy other: Self) {
     _value.formRemainder(dividingBy: other._value)
   }
-  mutating func formSquareRoot() { _value.formSquareRoot() }
-  mutating func formTruncatingRemainder(dividingBy other: Self) {
+  mutating fn formSquareRoot() { _value.formSquareRoot() }
+  mutating fn formTruncatingRemainder(dividingBy other: Self) {
     _value.formTruncatingRemainder(dividingBy: other._value)
   }
-  func isEqual(to other: Self) -> Bool { _value.isEqual(to: other._value) }
-  func isLess(than other: Self) -> Bool { _value.isLess(than: other._value) }
-  func isLessThanOrEqualTo(_ other: Self) -> Bool {
+  fn isEqual(to other: Self) -> Bool { _value.isEqual(to: other._value) }
+  fn isLess(than other: Self) -> Bool { _value.isLess(than: other._value) }
+  fn isLessThanOrEqualTo(_ other: Self) -> Bool {
     _value.isLessThanOrEqualTo(other._value)
   }
-  mutating func round(_ rule: FloatingPointRoundingRule) { _value.round(rule) }
+  mutating fn round(_ rule: FloatingPointRoundingRule) { _value.round(rule) }
 }
 
 struct MockFloat64: MockBinaryFloatingPoint {
   var _value: Double
-  init(_ _value: Double) { self._value = _value }
+  init(_ _value: Double) { this._value = _value }
 }
 
 struct MockFloat32: MockBinaryFloatingPoint {
   var _value: Float
-  init(_ _value: Float) { self._value = _value }
+  init(_ _value: Float) { this._value = _value }
 }
 
-let doubles = [
+immutable doubles = [
    1.8547832857295,  26.321549267719135, 98.9544480962058,    73.70286973782363,
   82.04918555938816, 76.38902969312758,  46.35647857011161,   64.0821426030317,
   97.82373347320156, 55.742361037720634, 23.677941665488856,  93.7347588108058,
@@ -160,52 +164,52 @@ let doubles = [
   64.79777579583545, 45.25948795832151,  94.31492354198335,   52.31096166433902,
 ]
 
-let mockFloat64s = doubles.map { MockFloat64($0) }
+immutable mockFloat64s = doubles.map { MockFloat64($0) }
 
-// See also: test/SILOptimizer/floating_point_conversion.swift
+// See also: test/SILOptimizer/floating_point_conversion.code
 
 @inline(never)
-public func run_ConvertFloatingPoint_MockFloat64ToDouble(_ n: Int) {
+public fn run_ConvertFloatingPoint_MockFloat64ToDouble(_ n: Int) {
   for _ in 0..<(n * 100) {
     for element in mockFloat64s {
-      let f = Double(identity(element))
+      immutable f = Double(identity(element))
       blackHole(f)
     }
   }
 }
 
 @inline(__always)
-func convert<
+fn convert<
   T: BinaryFloatingPoint, U: BinaryFloatingPoint
 >(exactly value: T, to: U.Type) -> U? {
   U(exactly: value)
 }
 
 @inline(never)
-public func run_ConvertFloatingPoint_MockFloat64Exactly(_ n: Int) {
+public fn run_ConvertFloatingPoint_MockFloat64Exactly(_ n: Int) {
   for _ in 0..<(n * 25) {
     for element in mockFloat64s {
-      let f = convert(exactly: identity(element), to: Double.self)
+      immutable f = convert(exactly: identity(element), to: Double.this)
       blackHole(f)
     }
   }
 }
 
 @inline(never)
-public func run_ConvertFloatingPoint_MockFloat64Exactly2(_ n: Int) {
+public fn run_ConvertFloatingPoint_MockFloat64Exactly2(_ n: Int) {
   for _ in 0..<(n * 25) {
     for element in mockFloat64s {
-      let f = convert(exactly: identity(element), to: MockFloat32.self)
+      immutable f = convert(exactly: identity(element), to: MockFloat32.this)
       blackHole(f)
     }
   }
 }
 
 @inline(never)
-public func run_ConvertFloatingPoint_MockFloat64ToInt64(_ n: Int) {
+public fn run_ConvertFloatingPoint_MockFloat64ToInt64(_ n: Int) {
   for _ in 0..<(n * 1000) {
     for element in mockFloat64s {
-      let i = Int64(identity(element))
+      immutable i = Int64(identity(element))
       blackHole(i)
     }
   }

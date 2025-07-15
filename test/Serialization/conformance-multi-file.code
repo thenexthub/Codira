@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/multi-file-1.codemodule -primary-file %s %S/Inputs/conformance-multi-file-other.code
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/multi-file-2.codemodule %s -primary-file %S/Inputs/conformance-multi-file-other.code
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/Multi.codemodule %t/multi-file-*.codemodule
+// RUN: echo "import Multi; (Sub() as BaseProto).method()" | %target-language-frontend -I %t -typecheck -verify -
+
+
+public class Sub : Base {}
+  

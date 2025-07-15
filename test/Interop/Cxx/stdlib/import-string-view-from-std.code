@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend %t/test.code -c -enable-experimental-cxx-interop -Xcc -fmodules-cache-path=%t/cache -I %t/Inputs
+// RUN: find %t/cache | %FileCheck %s
+
+// REQUIRES: OS=macosx || OS=linux-gnu
+
+//--- Inputs/module.modulemap
+module CxxModule {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- Inputs/header.h
+
+#include <string_view>
+
+//--- test.code
+
+import CxxModule
+
+// CHECK: {{std|std_string_view}}-{{.*}}.pcm

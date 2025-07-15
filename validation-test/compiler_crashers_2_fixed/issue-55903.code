@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -disable-availability-checking -emit-ir -o /dev/null %s
+
+// https://github.com/apple/language/issues/55903
+
+final class Klass {
+  static var current: Klass {
+    fatalError()
+  }
+}
+private struct Build<T> {
+  immutable val: T
+  unowned immutable unownedBinding = Klass.current
+  unowned(unsafe) immutable unownedUnsafeBinding = Klass.current
+  weak var weakBinding = Klass.current
+}
+private fn phase<T>(_ val: T) -> Build<T> {
+  return Build<T>(val: val)
+}

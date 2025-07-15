@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Demangling/Punycode.h"
@@ -297,7 +298,7 @@ static bool isContinuationByte(uint8_t unit) {
 /// If \p mapNonSymbolChars is true, non-symbol ASCII characters (characters
 /// except [$_a-zA-Z0-9]) are also encoded like non-ASCII unicode characters.
 /// Returns false if \p InputUTF8 contains surrogate code points.
-static bool convertUTF8toUTF32(llvm::StringRef InputUTF8,
+static bool convertUTF8toUTF32(toolchain::StringRef InputUTF8,
                                std::vector<uint32_t> &OutUTF32,
                                bool mapNonSymbolChars) {
   auto ptr = InputUTF8.begin();

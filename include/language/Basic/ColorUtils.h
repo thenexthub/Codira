@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines several utilities for helping print colorful outputs
@@ -18,20 +19,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_COLORUTILS_H
-#define SWIFT_BASIC_COLORUTILS_H
+#ifndef LANGUAGE_BASIC_COLORUTILS_H
+#define LANGUAGE_BASIC_COLORUTILS_H
 
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
 /// RAII class for setting a color for a raw_ostream and resetting when it goes
 /// out-of-scope.
 class OSColor {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
   bool HasColors;
 public:
-  OSColor(llvm::raw_ostream &OS, llvm::raw_ostream::Colors Color) : OS(OS) {
+  OSColor(toolchain::raw_ostream &OS, toolchain::raw_ostream::Colors Color) : OS(OS) {
     HasColors = OS.has_colors();
     if (HasColors)
       OS.changeColor(Color);
@@ -42,7 +43,7 @@ public:
   }
 
   OSColor &operator<<(char C) { OS << C; return *this; }
-  OSColor &operator<<(llvm::StringRef Str) { OS << Str; return *this; }
+  OSColor &operator<<(toolchain::StringRef Str) { OS << Str; return *this; }
 };
 
 /// A stream which forces color output.
@@ -100,4 +101,4 @@ public:
 
 } // namespace language
 
-#endif // SWIFT_BASIC_COLORUTILS_H
+#endif // LANGUAGE_BASIC_COLORUTILS_H

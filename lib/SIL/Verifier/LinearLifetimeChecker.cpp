@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -34,10 +35,10 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILUndef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -118,7 +119,7 @@ struct State {
 
   /// A list of successor blocks that we must visit by the time the algorithm
   /// terminates.
-  llvm::SmallSetVector<SILBasicBlock *, 8> successorBlocksThatMustBeVisited;
+  toolchain::SmallSetVector<SILBasicBlock *, 8> successorBlocksThatMustBeVisited;
 
   State(SILValue value, LinearLifetimeChecker::ErrorBuilder &errorBuilder,
         std::optional<function_ref<void(SILBasicBlock *)>> leakingBlockCallback,
@@ -193,19 +194,19 @@ struct State {
   void checkDataflowEndState(DeadEndBlocks *deBlocks);
 
   void dumpConsumingUsers() const {
-    llvm::errs() << "Consuming Users:\n";
+    toolchain::errs() << "Consuming Users:\n";
     for (auto *use : consumingUses) {
-      llvm::errs() << *use->getUser();
+      toolchain::errs() << *use->getUser();
     }
-    llvm::errs() << "\n";
+    toolchain::errs() << "\n";
   }
 
   void dumpNonConsumingUsers() const {
-    llvm::errs() << "Non Consuming Users:\n";
+    toolchain::errs() << "Non Consuming Users:\n";
     for (auto *use : nonConsumingUses) {
-      llvm::errs() << *use->getUser();
+      toolchain::errs() << *use->getUser();
     }
-    llvm::errs() << "\n";
+    toolchain::errs() << "\n";
   }
 };
 
@@ -217,7 +218,7 @@ struct State {
 
 void State::initializeAllNonConsumingUses(
     ArrayRef<Operand *> nonConsumingUsers) {
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     // Once we have finished initializing blocksWithNonConsumingUses, we need to
     // freeze it. By using a defer here, we can make sure we don't forget to do
     // this below.
@@ -246,14 +247,14 @@ void State::initializeAllNonConsumingUses(
     // Otherwise, we emit an error since we found a use before our def. We do
     // not bail early here since we want to gather up /all/ that we find.
     errorBuilder.handleUseOutsideOfLifetime([&] {
-      llvm::errs() << "Found use outside of lifetime?!\n"
+      toolchain::errs() << "Found use outside of lifetime?!\n"
                    << "Value: ";
       if (auto v = value) {
-        llvm::errs() << *v;
+        toolchain::errs() << *v;
       } else {
-        llvm::errs() << "N/A. \n";
+        toolchain::errs() << "N/A. \n";
       }
-      llvm::errs() << "User: " << use->getUser();
+      toolchain::errs() << "User: " << use->getUser();
     });
   }
 }
@@ -349,13 +350,13 @@ void State::initializeConsumingUse(Operand *consumingUse,
     return;
 
   errorBuilder.handleOverConsume([&] {
-    llvm::errs() << "Found over consume?!\n";
+    toolchain::errs() << "Found over consume?!\n";
     if (auto v = value) {
-      llvm::errs() << "Value: " << *v;
+      toolchain::errs() << "Value: " << *v;
     } else {
-      llvm::errs() << "Value: N/A\n";
+      toolchain::errs() << "Value: N/A\n";
     }
-    llvm::errs() << "User: " << *consumingUse->getUser() << "Block: bb"
+    toolchain::errs() << "User: " << *consumingUse->getUser() << "Block: bb"
                  << userBlock->getDebugID() << "\n";
     dumpConsumingUsers();
   });
@@ -397,14 +398,14 @@ void State::checkForSameBlockUseAfterFree(Operand *consumingUse,
     // NOTE: We do not exit here since we want to catch /all/ errors that we can
     // find.
     errorBuilder.handleUseOutsideOfLifetime([&] {
-      llvm::errs() << "Found outside of lifetime use?!\n"
+      toolchain::errs() << "Found outside of lifetime use?!\n"
                    << "Value: ";
       if (auto v = value) {
-        llvm::errs() << *v;
+        toolchain::errs() << *v;
       } else {
-        llvm::errs() << "N/A. \n";
+        toolchain::errs() << "N/A. \n";
       }
-      llvm::errs() << "Consuming User: " << *consumingUse->getUser()
+      toolchain::errs() << "Consuming User: " << *consumingUse->getUser()
                    << "Non Consuming User: " << *nonConsumingUse->getUser()
                    << "Block: bb" << userBlock->getDebugID() << "\n\n";
     });
@@ -432,15 +433,15 @@ void State::checkPredsForDoubleConsume(Operand *consumingUse,
   }
 
   errorBuilder.handleOverConsume([&] {
-    llvm::errs() << "Found over consume?!\n"
+    toolchain::errs() << "Found over consume?!\n"
                  << "Value: ";
     if (auto v = value) {
-      llvm::errs() << *v;
+      toolchain::errs() << *v;
     } else {
-      llvm::errs() << "N/A. \n";
+      toolchain::errs() << "N/A. \n";
     }
 
-    llvm::errs() << "User: " << *consumingUse->getUser() << "Block: bb"
+    toolchain::errs() << "User: " << *consumingUse->getUser() << "Block: bb"
                  << userBlock->getDebugID() << "\n";
     dumpConsumingUsers();
   });
@@ -462,15 +463,15 @@ void State::checkPredsForDoubleConsume(SILBasicBlock *userBlock) {
   }
 
   errorBuilder.handleOverConsume([&] {
-    llvm::errs() << "Found over consume?!\n"
+    toolchain::errs() << "Found over consume?!\n"
                  << "Value: ";
     if (auto v = value) {
-      llvm::errs() << *v;
+      toolchain::errs() << *v;
     } else {
-      llvm::errs() << "N/A. \n";
+      toolchain::errs() << "N/A. \n";
     }
 
-    llvm::errs() << "Block: bb" << userBlock->getDebugID() << "\n";
+    toolchain::errs() << "Block: bb" << userBlock->getDebugID() << "\n";
     dumpConsumingUsers();
   });
 }
@@ -480,12 +481,12 @@ void State::checkPredsForDoubleConsume(SILBasicBlock *userBlock) {
 //===----------------------------------------------------------------------===//
 
 void State::performDataflow(DeadEndBlocks *deBlocks) {
-  LLVM_DEBUG(llvm::dbgs() << "    Beginning to check dataflow constraints\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Beginning to check dataflow constraints\n");
   // Until the worklist is empty...
   while (!worklist.empty()) {
     // Grab the next block to visit.
     SILBasicBlock *block = worklist.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "    Visiting Block: bb" << block->getDebugID()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Visiting Block: bb" << block->getDebugID()
                             << '\n');
 
     // Since the block is on our worklist, we know already that it is not a
@@ -564,18 +565,18 @@ void State::checkDataflowEndState(DeadEndBlocks *deBlocks) {
 
     // If we are supposed to error on leaks, do so now.
     errorBuilder.handleLeak([&] {
-      llvm::errs() << "Error! Found a leak due to a consuming post-dominance "
+      toolchain::errs() << "Error! Found a leak due to a consuming post-dominance "
                       "failure!\n";
       if (auto v = value) {
-        llvm::errs() << "Value: " << *value;
+        toolchain::errs() << "Value: " << *value;
       } else {
-        llvm::errs() << "Value: N/A\n";
+        toolchain::errs() << "Value: N/A\n";
       }
-      llvm::errs() << "Post Dominating Failure Blocks:\n";
+      toolchain::errs() << "Post Dominating Failure Blocks:\n";
       for (auto *succBlock : successorBlocksThatMustBeVisited) {
-        llvm::errs() << " bb" << succBlock->getDebugID();
+        toolchain::errs() << " bb" << succBlock->getDebugID();
       }
-      llvm::errs() << '\n';
+      toolchain::errs() << '\n';
     });
 
     // Otherwise... see if we have any other failures. This signals the user
@@ -598,15 +599,15 @@ void State::checkDataflowEndState(DeadEndBlocks *deBlocks) {
       }
 
       errorBuilder.handleUseOutsideOfLifetime([&] {
-        llvm::errs() << "Found outside of lifetime use!\n"
+        toolchain::errs() << "Found outside of lifetime use!\n"
                      << "Value: ";
         if (auto v = value) {
-          llvm::errs() << *v;
+          toolchain::errs() << *v;
         } else {
-          llvm::errs() << "N/A. \n";
+          toolchain::errs() << "N/A. \n";
         }
 
-        llvm::errs() << "User:" << *use->getUser() << "Block: bb"
+        toolchain::errs() << "User:" << *use->getUser() << "Block: bb"
                      << block->getDebugID() << "\n";
       });
     }
@@ -692,7 +693,7 @@ LinearLifetimeChecker::Error LinearLifetimeChecker::checkValueImpl(
       }
 
       state.errorBuilder.handleUseOutsideOfLifetime([&] {
-        llvm::errs() << "Function: '" << value->getFunction()->getName()
+        toolchain::errs() << "Function: '" << value->getFunction()->getName()
                      << "'\n"
                      << "Found non consuming use outside of the lifetime being "
                         "verified.\n"

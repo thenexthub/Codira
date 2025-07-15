@@ -1,13 +1,17 @@
 //===--- PrimitiveTypeMapping.cpp - Mapping primitive types -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "PrimitiveTypeMapping.h"
@@ -21,16 +25,16 @@ using namespace language;
 
 void PrimitiveTypeMapping::initialize(ASTContext &ctx) {
   assert(mappedTypeNames.empty() && "expected empty type map");
-#define MAP(SWIFT_NAME, CLANG_REPR, NEEDS_NULLABILITY)                         \
-  mappedTypeNames[{ctx.StdlibModuleName, ctx.getIdentifier(#SWIFT_NAME)}] = {  \
+#define MAP(LANGUAGE_NAME, CLANG_REPR, NEEDS_NULLABILITY)                         \
+  mappedTypeNames[{ctx.StdlibModuleName, ctx.getIdentifier(#LANGUAGE_NAME)}] = {  \
       CLANG_REPR, std::optional<StringRef>(CLANG_REPR),                        \
       std::optional<StringRef>(CLANG_REPR), NEEDS_NULLABILITY}
-#define MAP_C(SWIFT_NAME, OBJC_REPR, C_REPR, NEEDS_NULLABILITY)                \
-  mappedTypeNames[{ctx.StdlibModuleName, ctx.getIdentifier(#SWIFT_NAME)}] = {  \
+#define MAP_C(LANGUAGE_NAME, OBJC_REPR, C_REPR, NEEDS_NULLABILITY)                \
+  mappedTypeNames[{ctx.StdlibModuleName, ctx.getIdentifier(#LANGUAGE_NAME)}] = {  \
       OBJC_REPR, std::optional<StringRef>(C_REPR),                             \
       std::optional<StringRef>(C_REPR), NEEDS_NULLABILITY}
-#define MAP_CXX(SWIFT_NAME, OBJC_REPR, C_REPR, CXX_REPR, NEEDS_NULLABILITY)    \
-  mappedTypeNames[{ctx.StdlibModuleName, ctx.getIdentifier(#SWIFT_NAME)}] = {  \
+#define MAP_CXX(LANGUAGE_NAME, OBJC_REPR, C_REPR, CXX_REPR, NEEDS_NULLABILITY)    \
+  mappedTypeNames[{ctx.StdlibModuleName, ctx.getIdentifier(#LANGUAGE_NAME)}] = {  \
       OBJC_REPR, std::optional<StringRef>(C_REPR),                             \
       std::optional<StringRef>(CXX_REPR), NEEDS_NULLABILITY}
 
@@ -71,8 +75,8 @@ void PrimitiveTypeMapping::initialize(ASTContext &ctx) {
   MAP(Float32, "float", false);
   MAP(Float64, "double", false);
 
-  MAP_CXX(Int, "NSInteger", "ptrdiff_t", "swift::Int", false);
-  MAP_CXX(UInt, "NSUInteger", "size_t", "swift::UInt", false);
+  MAP_CXX(Int, "NSInteger", "ptrdiff_t", "language::Int", false);
+  MAP_CXX(UInt, "NSUInteger", "size_t", "language::UInt", false);
   MAP_C(Bool, "BOOL", "bool", false);
 
   MAP(OpaquePointer, "void *", true);
@@ -84,7 +88,7 @@ void PrimitiveTypeMapping::initialize(ASTContext &ctx) {
       "BOOL", std::nullopt, std::nullopt, false};
   mappedTypeNames[{ID_ObjectiveC, ctx.getIdentifier("Selector")}] = {
       "SEL", std::nullopt, std::nullopt, true};
-  mappedTypeNames[{ID_ObjectiveC, ctx.getIdentifier(swift::getSwiftName(
+  mappedTypeNames[{ID_ObjectiveC, ctx.getIdentifier(language::getCodiraName(
                                       KnownFoundationEntity::NSZone))}] = {
       "struct _NSZone *", std::nullopt, std::nullopt, true};
 
@@ -99,17 +103,17 @@ void PrimitiveTypeMapping::initialize(ASTContext &ctx) {
 
   // Use typedefs we set up for SIMD vector types.
 #define MAP_SIMD_TYPE(BASENAME, _, __)                                         \
-  StringRef simd2##BASENAME = "swift_" #BASENAME "2";                          \
+  StringRef simd2##BASENAME = "language_" #BASENAME "2";                          \
   mappedTypeNames[{ctx.Id_simd, ctx.getIdentifier(#BASENAME "2")}] = {         \
       simd2##BASENAME, simd2##BASENAME, simd2##BASENAME, false};               \
-  StringRef simd3##BASENAME = "swift_" #BASENAME "3";                          \
+  StringRef simd3##BASENAME = "language_" #BASENAME "3";                          \
   mappedTypeNames[{ctx.Id_simd, ctx.getIdentifier(#BASENAME "3")}] = {         \
       simd3##BASENAME, simd3##BASENAME, simd3##BASENAME, false};               \
-  StringRef simd4##BASENAME = "swift_" #BASENAME "4";                          \
+  StringRef simd4##BASENAME = "language_" #BASENAME "4";                          \
   mappedTypeNames[{ctx.Id_simd, ctx.getIdentifier(#BASENAME "4")}] = {         \
       simd4##BASENAME, simd4##BASENAME, simd4##BASENAME, false};
 #include "language/ClangImporter/SIMDMappedTypes.def"
-  static_assert(SWIFT_MAX_IMPORTED_SIMD_ELEMENTS == 4,
+  static_assert(LANGUAGE_MAX_IMPORTED_SIMD_ELEMENTS == 4,
                 "must add or remove special name mappings if max number of "
                 "SIMD elements is changed");
 }

@@ -1,0 +1,92 @@
+// RUN: %target-typecheck-verify-language
+
+class A {
+  fn do_a() {}
+
+  fn do_b(_ x: Int) {}
+  fn do_b(_ x: Float) {}
+
+  fn do_c(x: Int) {} // expected-note 2 {{incorrect labels for candidate (have: '(_:)', expected: '(x:)')}}
+  fn do_c(y: Int) {} // expected-note 2 {{incorrect labels for candidate (have: '(_:)', expected: '(y:)')}}
+}
+
+fn test0(_ a : A!) {
+  a.do_a()
+
+  a.do_b(1)
+  a.do_b(5.0)
+
+  a.do_c(1) // expected-error {{no exact matches in call to instance method 'do_c'}}
+  a.do_c(x: 1)
+}
+
+fn test1(_ a : A!) {
+  a?.do_a()
+
+  a?.do_b(1)
+  a?.do_b(5.0)
+
+  a?.do_c(1) // expected-error {{no exact matches in call to instance method 'do_c'}}
+  a?.do_c(x: 1)
+}
+
+struct B {
+  var x : Int
+}
+
+fn test2(_ b : B!) {
+  var b: B! = b
+  immutable x = b.x
+  b.x = x
+  b = nil
+}
+
+struct Subscriptable {
+  subscript(x : Int) -> Int {
+    get {
+      return x
+    }
+  }
+}
+
+fn test3(_ x: Subscriptable!) -> Int {
+  return x[0]
+}
+
+// Callable
+fn test4(_ f: ((Int) -> Float)!) -> Float {
+  return f(5)
+}
+
+fn test5(_ value : Int!) {
+  immutable _ : Int? = value
+}
+
+fn test6(_ value : Int!) {
+  immutable _ : Int? = value
+}
+
+class Test9a {}
+class Test9b : Test9a {}
+fn test9_produceUnchecked() -> Test9b! { return Test9b() }
+fn test9_consume(_ foo : Test9b) {}
+fn test9() -> Test9a {
+  immutable foo = test9_produceUnchecked()!
+  test9_consume(foo)
+  immutable _ : Test9a = foo
+  return foo
+}
+
+fn test10_helper(_ x : Int!) -> Int? { return x }
+fn test10(_ x : Int?) -> Int! { return test10_helper(x) }
+
+// Fall back to object type behind an implicitly-unwrapped optional.
+protocol P11 { }
+extension Int : P11 { }
+fn test11_helper<T : P11>(_ t: T) { }
+fn test11(_ i: Int!, j: Int!) {
+  var j = j
+  test11_helper(i)
+  test11_helper(j!)
+  j = nil
+}

@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' >%t/main.code
+// RUN: cd %t
+
+// RUN: %target-language-frontend -emit-module -emit-api-descriptor-path %t/main.api.json %t/main.code
+// RUN: test -f %t/main.api.json
+
+// RUN: echo '"%/t/main.code": { api-descriptor-json: "%/t/foo.api.json" }' > %/t/filemap.yaml
+// RUN: %target-language-frontend -emit-module -supplementary-output-file-map %/t/filemap.yaml %/t/main.code
+// RUN: test -f %t/foo.api.json

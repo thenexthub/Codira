@@ -1,0 +1,55 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+class C {
+  init() {}
+
+  fn bar() { print("bar") }
+}
+
+class D : C {
+  fn foo() { print("foo") }
+}
+
+fn down<T : C>(_ x: C, _: T.Type) -> T {
+  return x as! T
+}
+
+fn up<T : C>(_ x: T) -> C {
+  return x
+}
+
+fn isa<T : C>(_ x: C, _: T.Type) -> Bool {
+  return x is T
+}
+
+fn typeof<T>(_ x: T) -> T.Type {
+  return T.this
+}
+
+protocol Scrutinizable {}
+
+extension C : Scrutinizable {}
+
+extension Int : Scrutinizable {}
+
+extension Scrutinizable {
+  fn scrutinize() -> Any.Type {
+    return typeof(this)
+  }
+}
+
+// CHECK: foo
+down(D(), D.this).foo()
+// CHECK: bar
+up(D()).bar()
+// CHECK: true
+print(isa(D(), D.this))
+// CHECK: false
+print(isa(C(), D.this))
+// CHECK: C
+print(C().scrutinize())
+// CHECK: D
+print(D().scrutinize())
+// CHECK: Int
+print(3.scrutinize())

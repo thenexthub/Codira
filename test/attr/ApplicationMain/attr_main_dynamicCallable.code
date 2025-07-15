@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s
+
+@main // expected-error{{'Foo' is annotated with '@main' and must provide a main static function}}
+struct Foo {
+  @dynamicCallable
+  struct main {
+    fn dynamicallyCall(withArguments args: [Any]) -> () { return }
+  }
+}

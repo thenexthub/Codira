@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for declarations.
@@ -42,13 +43,13 @@
 #include "language/Basic/Defer.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
 using namespace language;
 
 const bool IsImplicit = true;
 
-Expr *swift::buildSelfReference(VarDecl *selfDecl,
+Expr *language::buildSelfReference(VarDecl *selfDecl,
                                 SelfAccessorKind selfAccessorKind,
                                 bool isLValue, Type convertTy) {
   auto &ctx = selfDecl->getASTContext();
@@ -100,10 +101,10 @@ Expr *swift::buildSelfReference(VarDecl *selfDecl,
     }
   }
   }
-  llvm_unreachable("bad self access kind");
+  toolchain_unreachable("bad self access kind");
 }
 
-Argument swift::buildSelfArgument(VarDecl *selfDecl,
+Argument language::buildSelfArgument(VarDecl *selfDecl,
                                   SelfAccessorKind selfAccessorKind,
                                   bool isMutable) {
   auto &ctx = selfDecl->getASTContext();
@@ -114,7 +115,7 @@ Argument swift::buildSelfArgument(VarDecl *selfDecl,
 
 /// Build an argument list that forwards references to the specified parameter
 /// list.
-ArgumentList *swift::buildForwardingArgumentList(ArrayRef<ParamDecl *> params,
+ArgumentList *language::buildForwardingArgumentList(ArrayRef<ParamDecl *> params,
                                                  ASTContext &ctx) {
   SmallVector<Argument, 4> args;
   for (auto *param : params) {
@@ -233,10 +234,12 @@ static ParamDecl *createMemberwiseInitParameter(DeclContext *DC,
     // memberwise initializer will be in terms of the backing storage
     // type.
     if (var->isPropertyMemberwiseInitializedWithWrappedType()) {
-      varInterfaceType = var->getPropertyWrapperInitValueInterfaceType();
+      if (auto initTy = var->getPropertyWrapperInitValueInterfaceType()) {
+        varInterfaceType = initTy;
 
-      auto initInfo = var->getPropertyWrapperInitializerInfo();
-      isAutoClosure = initInfo.getWrappedValuePlaceholder()->isAutoClosure();
+        auto initInfo = var->getPropertyWrapperInitializerInfo();
+        isAutoClosure = initInfo.getWrappedValuePlaceholder()->isAutoClosure();
+      }
     } else {
       varInterfaceType = backingPropertyType;
     }
@@ -310,7 +313,7 @@ static ConstructorDecl *createImplicitConstructor(NominalTypeDecl *decl,
            "Only 'distributed actor' type can gain implicit distributed actor init");
 
     /// Add 'system' parameter to default init of distributed actors.
-    if (swift::ensureDistributedModuleLoaded(decl)) {
+    if (language::ensureDistributedModuleLoaded(decl)) {
       // copy access level of distributed actor init from the nominal decl
       accessLevel = decl->getEffectiveAccess();
       auto systemTy = getDistributedActorSystemType(classDecl);
@@ -404,7 +407,7 @@ static ConstructorDecl *createImplicitConstructor(NominalTypeDecl *decl,
                   diag::conflicting_stored_property_isolation,
                   ICK == ImplicitConstructorKind::Memberwise,
                   decl->getDeclaredType(), existingIsolation, isolation)
-                .warnUntilSwiftVersion(6);
+                .warnUntilCodiraVersion(6);
               if (previousVar) {
                 previousVar->diagnose(diag::property_requires_actor,
                                       previousVar, existingIsolation);
@@ -471,7 +474,7 @@ synthesizeStubBody(AbstractFunctionDecl *fn, void *) {
   auto uintType = uintDecl->getDeclaredInterfaceType();
   auto uintInit = ctx.getIntBuiltinInitDecl(uintDecl);
 
-  // Create a call to Swift._unimplementedInitializer
+  // Create a call to Codira._unimplementedInitializer
   auto loc = classDecl->getLoc();
   Expr *ref = new (ctx) DeclRefExpr(unimplementedInitDecl,
                                    DeclNameLoc(loc),
@@ -479,7 +482,7 @@ synthesizeStubBody(AbstractFunctionDecl *fn, void *) {
   ref->setType(unimplementedInitDecl->getInterfaceType()
                                     ->removeArgumentLabels(1));
 
-  llvm::SmallString<64> buffer;
+  toolchain::SmallString<64> buffer;
   StringRef fullClassName = ctx.AllocateCopy(
                               (classDecl->getModuleContext()->getName().str() +
                                "." +
@@ -912,7 +915,7 @@ static void diagnoseMissingRequiredInitializer(
     options.PrintImplicitAttrs = false;
 
     // Render the text.
-    llvm::raw_string_ostream out(initializerText);
+    toolchain::raw_string_ostream out(initializerText);
     {
       ExtraIndentStreamPrinter printer(out, indentation);
       printer.printNewline();
@@ -941,7 +944,7 @@ static void diagnoseMissingRequiredInitializer(
   ctx.Diags.diagnose(insertionLoc, diag::required_initializer_missing,
                      superInitializer->getName(),
                      superInitializer->getDeclContext()->getDeclaredInterfaceType())
-    .warnUntilSwiftVersionIf(downgradeToWarning, 6)
+    .warnUntilCodiraVersionIf(downgradeToWarning, 6)
     .fixItInsert(insertionLoc, initializerText);
 
   ctx.Diags.diagnose(findNonImplicitRequiredInit(superInitializer),
@@ -965,7 +968,7 @@ static void diagnoseMissingRequiredInitializer(
 /// \returns true which indicates "failure" if callback returns `false`
 /// at least once.
 static bool enumerateCurrentPropertiesAndAuxiliaryVars(
-    NominalTypeDecl *typeDecl, llvm::function_ref<bool(VarDecl *)> callback) {
+    NominalTypeDecl *typeDecl, toolchain::function_ref<bool(VarDecl *)> callback) {
   for (auto *member :
        typeDecl->getImplementationContext()->getCurrentMembers()) {
     if (auto *var = dyn_cast<VarDecl>(member)) {
@@ -995,7 +998,7 @@ bool AreAllStoredPropertiesDefaultInitableRequest::evaluate(
   decl->collectPropertiesInitializableByInitAccessors(
       initializedViaInitAccessor);
 
-  llvm::SmallPtrSet<PatternBindingDecl *, 4> checked;
+  toolchain::SmallPtrSet<PatternBindingDecl *, 4> checked;
   return !enumerateCurrentPropertiesAndAuxiliaryVars(
       decl, [&](VarDecl *property) {
         auto *pbd = property->getParentPatternBinding();
@@ -1025,8 +1028,8 @@ bool AreAllStoredPropertiesDefaultInitableRequest::evaluate(
             // If this property is covered by one or more init accessor(s)
             // check whether at least one of them is initializable.
             auto initAccessorProperties =
-                llvm::make_range(initializedViaInitAccessor.equal_range(VD));
-            if (llvm::any_of(initAccessorProperties, [&](const auto &entry) {
+                toolchain::make_range(initializedViaInitAccessor.equal_range(VD));
+            if (toolchain::any_of(initAccessorProperties, [&](const auto &entry) {
                   auto *property = entry.second->getParentPatternBinding();
                   return property->isInitialized(0) ||
                          property->isDefaultInitializable();
@@ -1135,7 +1138,7 @@ static void collectNonOveriddenSuperclassInits(
   // Record all of the initializers the subclass has overridden, excluding stub
   // overrides, which we don't want to consider as viable delegates for
   // convenience inits.
-  llvm::SmallPtrSet<ConstructorDecl *, 4> overriddenInits;
+  toolchain::SmallPtrSet<ConstructorDecl *, 4> overriddenInits;
 
   auto ctors = subclass->lookupDirect(DeclBaseName::createConstructor());
   for (auto *member : ctors) {
@@ -1163,7 +1166,7 @@ static void collectNonOveriddenSuperclassInits(
     // HACK: If an @objcImplementation extension declares an initializer, its
     // interface usually also has a declaration. We need the interface decl for
     // access control computations, but the name lookup returns the
-    // implementation decl because it's in the Swift module. Go find the
+    // implementation decl because it's in the Codira module. Go find the
     // matching interface decl.
     // (Note that this is necessary for both newly-declared inits and overrides,
     // even implicit ones.)
@@ -1211,7 +1214,7 @@ static void addImplicitInheritedConstructorsToClass(ClassDecl *decl) {
 
   // In cases where we can't define any overrides, we used to suppress
   // diagnostics about missing required initializers. Now we emit diagnostics,
-  // but downgrade them to warnings prior to Swift 6.
+  // but downgrade them to warnings prior to Codira 6.
   bool downgradeRequiredInitsToWarning =
       !defaultInitable && !foundDesignatedInit;
 
@@ -1269,7 +1272,7 @@ static void addImplicitInheritedConstructorsToClass(ClassDecl *decl) {
       if (ctor->isInvalid())
         continue;
 
-      auto type = swift::getMemberTypeForComparison(ctor, nullptr);
+      auto type = language::getMemberTypeForComparison(ctor, nullptr);
       if (isOverrideBasedOnType(ctor, type, superclassCtor)) {
         alreadyDeclared = true;
         break;
@@ -1321,7 +1324,7 @@ InheritsSuperclassInitializersRequest::evaluate(Evaluator &eval,
   collectNonOveriddenSuperclassInits(decl, nonOverriddenSuperclassCtors);
 
   auto allDesignatedInitsOverridden =
-      llvm::none_of(nonOverriddenSuperclassCtors, [](ConstructorDecl *ctor) {
+      toolchain::none_of(nonOverriddenSuperclassCtors, [](ConstructorDecl *ctor) {
         return ctor->isDesignatedInit();
       });
   return allDesignatedInitsOverridden;
@@ -1333,7 +1336,7 @@ static bool shouldAttemptInitializerSynthesis(const NominalTypeDecl *decl) {
     return false;
 
   // Don't add implicit constructors in module interfaces.
-  if (decl->getDeclContext()->isInSwiftinterface())
+  if (decl->getDeclContext()->isInCodirainterface())
     return false;
 
   // Don't attempt if we know the decl is invalid.
@@ -1367,6 +1370,8 @@ evaluator::SideEffect
 ResolveImplicitMemberRequest::evaluate(Evaluator &evaluator,
                                        NominalTypeDecl *target,
                                        ImplicitMemberAction action) const {
+  ASSERT(!isa<ProtocolDecl>(target));
+
   // FIXME: This entire request is a layering violation made of smaller,
   // finickier layering violations. See rdar://56844567
 
@@ -1475,8 +1480,8 @@ HasMemberwiseInitRequest::evaluate(Evaluator &evaluator,
   std::multimap<VarDecl *, VarDecl *> initializedViaAccessor;
   decl->collectPropertiesInitializableByInitAccessors(initializedViaAccessor);
 
-  llvm::SmallPtrSet<VarDecl *, 4> initializedProperties;
-  llvm::SmallVector<std::pair<VarDecl *, Identifier>> invalidOrderings;
+  toolchain::SmallPtrSet<VarDecl *, 4> initializedProperties;
+  toolchain::SmallVector<std::pair<VarDecl *, Identifier>> invalidOrderings;
 
   if (enumerateCurrentPropertiesAndAuxiliaryVars(decl, [&](VarDecl *var) {
         if (var->isStatic())
@@ -1605,8 +1610,8 @@ ResolveEffectiveMemberwiseInitRequest::evaluate(Evaluator &evaluator,
       return false;
     // Return true if all stored property types/names match initializer
     // parameter types/labels.
-    return llvm::all_of(
-        llvm::zip(storedProperties, initDeclType->getParams()),
+    return toolchain::all_of(
+        toolchain::zip(storedProperties, initDeclType->getParams()),
         [&](std::tuple<VarDecl *, AnyFunctionType::Param> pair) {
           auto *storedProp = std::get<0>(pair);
           auto param = std::get<1>(pair);
@@ -1707,12 +1712,12 @@ SynthesizeDefaultInitRequest::evaluate(Evaluator &evaluator,
   return nullptr;
 }
 
-ValueDecl *swift::getProtocolRequirement(ProtocolDecl *protocol,
+ValueDecl *language::getProtocolRequirement(ProtocolDecl *protocol,
                                          Identifier name) {
   auto lookup = protocol->lookupDirect(name);
   // Erase declarations that are not protocol requirements.
   // This is important for removing default implementations of the same name.
-  llvm::erase_if(lookup, [](ValueDecl *v) {
+  toolchain::erase_if(lookup, [](ValueDecl *v) {
     return !isa<ProtocolDecl>(v->getDeclContext()) ||
            !v->isProtocolRequirement();
   });
@@ -1720,22 +1725,63 @@ ValueDecl *swift::getProtocolRequirement(ProtocolDecl *protocol,
   return lookup.front();
 }
 
-bool swift::hasLetStoredPropertyWithInitialValue(NominalTypeDecl *nominal) {
-  return llvm::any_of(nominal->getStoredProperties(), [&](VarDecl *v) {
+bool language::hasLetStoredPropertyWithInitialValue(NominalTypeDecl *nominal) {
+  return toolchain::any_of(nominal->getStoredProperties(), [&](VarDecl *v) {
     return v->isLet() && v->hasInitialValue();
   });
 }
 
-bool swift::addNonIsolatedToSynthesized(DerivedConformance &derived,
+/// Determine whether a synthesized requirement for the given conformance
+/// should be explicitly marked as 'nonisolated'.
+static bool synthesizedRequirementIsNonIsolated(
+    const NormalProtocolConformance *conformance) {
+  // @preconcurrency suppresses this.
+  if (conformance->isPreconcurrency())
+    return false;
+
+  // Explicit global actor isolation suppresses this.
+  if (conformance->hasExplicitGlobalActorIsolation())
+    return false;
+
+  // Explicit nonisolated forces this.
+  if (conformance->getOptions()
+          .contains(ProtocolConformanceFlags::Nonisolated))
+    return true;
+
+  // When we are inferring conformance isolation, only add nonisolated if
+  // either
+  //   (1) the protocol inherits from SendableMetatype, or
+  //   (2) the conforming type is nonisolated.
+  ASTContext &ctx = conformance->getDeclContext()->getASTContext();
+  if (!ctx.LangOpts.hasFeature(Feature::InferIsolatedConformances))
+    return true;
+
+  // Check inheritance from SendableMetatype, which implies that the conformance
+  // will be nonisolated.
+  auto sendableMetatypeProto =
+      ctx.getProtocol(KnownProtocolKind::SendableMetatype);
+  if (sendableMetatypeProto &&
+      conformance->getProtocol()->inheritsFrom(sendableMetatypeProto))
+    return true;
+
+  auto nominalType = conformance->getType()->getAnyNominal();
+  if (!nominalType)
+    return true;
+
+  return !getActorIsolation(nominalType).isMainActor();
+}
+
+bool language::addNonIsolatedToSynthesized(DerivedConformance &derived,
                                         ValueDecl *value) {
   if (auto *conformance = derived.Conformance) {
-    if (conformance && conformance->isPreconcurrency())
+    if (!synthesizedRequirementIsNonIsolated(conformance))
       return false;
   }
+
   return addNonIsolatedToSynthesized(derived.Nominal, value);
 }
 
-bool swift::addNonIsolatedToSynthesized(NominalTypeDecl *nominal,
+bool language::addNonIsolatedToSynthesized(NominalTypeDecl *nominal,
                                         ValueDecl *value) {
   if (!getActorIsolation(nominal).isActorIsolated())
     return false;
@@ -1745,7 +1791,7 @@ bool swift::addNonIsolatedToSynthesized(NominalTypeDecl *nominal,
   return true;
 }
 
-void swift::applyInferredSPIAccessControlAttr(Decl *decl,
+void language::applyInferredSPIAccessControlAttr(Decl *decl,
                                               const Decl *inferredFromDecl,
                                               ASTContext &ctx) {
   auto spiGroups = inferredFromDecl->getSPIGroups();

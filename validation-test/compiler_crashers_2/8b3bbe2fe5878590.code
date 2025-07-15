@@ -1,0 +1,10 @@
+// {"signature":"language::TypeBase::getContextSubstitutions(language::DeclContext const*, language::GenericEnvironment*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a< b {
+  @propertyWrapper struct c {
+    var wrappedValue
+        projectedValue : a
+                                        init(projectedValue
+                                             a) {
+      fn d(@c b) d($e
+                                                            : f

@@ -1,0 +1,48 @@
+public fn getVersion() -> Int {
+#if BEFORE
+  return 0
+#else
+  return 1
+#endif
+}
+
+#if BEFORE
+@_fixed_layout
+open class Base {
+  public init() {}
+  open fn firstMethod() -> Int {
+    return 1
+  }
+  open fn secondMethod() -> Int {
+    return 2
+  }
+  open fn callOverriddenMethods() -> Int {
+    return firstMethod() * 10 + secondMethod()
+  }
+}
+#else
+@_fixed_layout
+open class Base {
+  public init() {}
+  open fn secondMethod() -> Int {
+    return 2
+  }
+  open fn firstMethod() -> Int {
+    return 1
+  }
+  open fn callOverriddenMethods() -> Int {
+    return firstMethod() * 10 + secondMethod()
+  }
+}
+#endif
+
+@_fixed_layout
+public class Derived : Base {
+  public override fn firstMethod() -> Int {
+    return 10
+  }
+
+  public override fn secondMethod() -> Int {
+    return 20
+  }
+}

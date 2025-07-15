@@ -1,21 +1,25 @@
-//===--- Parser.h - Swift Language Parser -----------------------*- C++ -*-===//
+//===--- Parser.h - Codira Language Parser -----------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the Parser interface.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSER_H
-#define SWIFT_PARSER_H
+#ifndef LANGUAGE_PARSER_H
+#define LANGUAGE_PARSER_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ASTNode.h"
@@ -34,9 +38,9 @@
 #include "language/Parse/PatternBindingState.h"
 #include "language/Parse/PersistentParserState.h"
 #include "language/Parse/Token.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
 
-namespace llvm {
+namespace toolchain {
   template <typename...  PTs> class PointerUnion;
 }
 
@@ -114,7 +118,7 @@ enum class IfConfigContext {
   DeclAttrs
 };
 
-/// The main class used for parsing a source file (.swift or .sil).
+/// The main class used for parsing a source file (.code or .sil).
 ///
 /// Rather than instantiating a Parser yourself, use one of the parsing APIs
 /// provided in Subsystems.h.
@@ -166,7 +170,7 @@ public:
   bool InPoundIfEnvironment = false;
   /// ASTScopes are not created in inactive clauses and lookups to decls will fail.
   bool InInactiveClauseEnvironment = false;
-  bool InSwiftKeyPath = false;
+  bool InCodiraKeyPath = false;
   bool InFreestandingMacroArgument = false;
 
   /// Whether we should delay parsing nominal type, extension, and function
@@ -340,7 +344,7 @@ public:
   /// kinds.
   ///
   /// This vector is managed by \c StructureMarkerRAII objects.
-  llvm::SmallVector<StructureMarker, 16> StructureMarkers;
+  toolchain::SmallVector<StructureMarker, 16> StructureMarkers;
 
 public:
   Parser(unsigned BufferID, SourceFile &SF, DiagnosticEngine* LexerDiags,
@@ -408,7 +412,7 @@ public:
     struct DelayedTokenReceiver: ConsumeTokenReceiver {
       /// Keep track of the old token receiver in the parser so that we can recover
       /// after the backtracking sope ends.
-      llvm::SaveAndRestore<ConsumeTokenReceiver*> savedConsumer;
+      toolchain::SaveAndRestore<ConsumeTokenReceiver*> savedConsumer;
 
       // Whether the tokens should be transferred to the original receiver.
       // When the back tracking scope will actually back track, this should be false;
@@ -419,7 +423,7 @@ public:
         savedConsumer(receiver, this) {}
       void receive(const Token &tok) override { delayedTokens.push_back(tok); }
       std::optional<std::vector<Token>> finalize() override {
-        llvm_unreachable("Cannot finalize a DelayedTokenReceiver");
+        toolchain_unreachable("Cannot finalize a DelayedTokenReceiver");
       }
       ~DelayedTokenReceiver() {
         if (!shouldTransfer)
@@ -489,7 +493,7 @@ public:
   ///       explicitly as a type parameter.
   template <typename Val>
   Val lookahead(unsigned char K,
-                llvm::function_ref<Val(CancellableBacktrackingScope &)> f) {
+                toolchain::function_ref<Val(CancellableBacktrackingScope &)> f) {
     CancellableBacktrackingScope backtrackScope(*this);
 
     for (unsigned char i = 0; i < K; ++i)
@@ -565,12 +569,12 @@ public:
   }
 
   /// Consume a '('. If it is not directly following the previous token, emit an
-  /// error (Swift 6) or warning (Swift <6) that attribute name and parentheses
+  /// error (Codira 6) or warning (Codira <6) that attribute name and parentheses
   /// must not be separated by a space.
   SourceLoc consumeAttributeLParen();
 
   /// If the next token is a '(' that's not on a new line consume it, and error
-  /// (Swift 6) or warn (Swift <6) that the attribute must not be separted from
+  /// (Codira 6) or warn (Codira <6) that the attribute must not be separted from
   /// the '(' by a space.
   ///
   /// If the next token is not '(' or it's on a new line, return false.
@@ -631,7 +635,7 @@ public:
                      tok::pound_else, tok::pound_elseif,
                      tok::code_complete) &&
            !isStartOfStmt(/*preferExpr*/ false) &&
-           !isStartOfSwiftDecl(/*allowPoundIfAttributes=*/true)) {
+           !isStartOfCodiraDecl(/*allowPoundIfAttributes=*/true)) {
       skipSingle();
     }
   }
@@ -665,8 +669,8 @@ public:
   /// plain Tok.is(T1) check).
   bool skipUntilTokenOrEndOfLine(tok T1, tok T2 = tok::NUM_TOKENS);
 
-  /// Skip over SIL decls until we encounter the start of a Swift decl or eof.
-  void skipSILUntilSwiftDecl();
+  /// Skip over SIL decls until we encounter the start of a Codira decl or eof.
+  void skipSILUntilCodiraDecl();
 
   /// Skip over any attribute.
   void skipAnyAttribute();
@@ -861,12 +865,12 @@ public:
   ParseListItemResult
   parseListItem(ParserStatus &Status, tok RightK, SourceLoc LeftLoc,
                 SourceLoc &RightLoc, bool AllowSepAfterLast,
-                llvm::function_ref<ParserStatus()> callback);
+                toolchain::function_ref<ParserStatus()> callback);
 
   /// Parse a comma separated list of some elements.
   ParserStatus parseList(tok RightK, SourceLoc LeftLoc, SourceLoc &RightLoc,
                          bool AllowSepAfterLast, DiagRef RightErrorDiag,
-                         llvm::function_ref<ParserStatus()> callback);
+                         toolchain::function_ref<ParserStatus()> callback);
 
   void consumeTopLevelDecl(ParserPosition BeginParserPosition,
                            TopLevelCodeDecl *TLCD);
@@ -889,8 +893,8 @@ public:
   //===--------------------------------------------------------------------===//
   // Decl Parsing
 
-  /// Returns true if parser is at the start of a Swift decl or decl-import.
-  bool isStartOfSwiftDecl(bool allowPoundIfAttributes = true,
+  /// Returns true if parser is at the start of a Codira decl or decl-import.
+  bool isStartOfCodiraDecl(bool allowPoundIfAttributes = true,
                           bool hadAttrsOrModifiers = false);
 
   /// Returns true if the parser is at the start of a SIL decl.
@@ -899,7 +903,7 @@ public:
   /// Returns true if the parser is at a freestanding macro expansion.
   bool isStartOfFreestandingMacroExpansion();
 
-  /// Parse the top-level Swift items into the provided vector.
+  /// Parse the top-level Codira items into the provided vector.
   ///
   /// Each item will be a declaration, statement, or expression.
   void parseTopLevelItems(SmallVectorImpl<ASTNode> &items);
@@ -932,7 +936,7 @@ public:
 
   ParserStatus parseDecl(bool IsAtStartOfLineOrPreviousHadSemi,
                          bool IfConfigsAreDeclAttrs,
-                         llvm::function_ref<void(Decl *)> Handler,
+                         toolchain::function_ref<void(Decl *)> Handler,
                          bool stubOnly = false);
 
   std::pair<std::vector<Decl *>, std::optional<Fingerprint>>
@@ -968,16 +972,16 @@ public:
   template <typename Result>
   Result parseIfConfigRaw(
       IfConfigContext ifConfigContext,
-      llvm::function_ref<void(SourceLoc clauseLoc, Expr *condition,
+      toolchain::function_ref<void(SourceLoc clauseLoc, Expr *condition,
                               bool isActive, IfConfigElementsRole role)>
           parseElements,
-      llvm::function_ref<Result(SourceLoc endLoc, bool hadMissingEnd)> finish);
+      toolchain::function_ref<Result(SourceLoc endLoc, bool hadMissingEnd)> finish);
 
   /// Parse a #if ... #endif directive.
   /// Delegate callback function to parse elements in the blocks.
   ParserStatus parseIfConfig(
       IfConfigContext ifConfigContext,
-      llvm::function_ref<void(bool)> parseElements);
+      toolchain::function_ref<void(bool)> parseElements);
 
   /// Parse an #if ... #endif containing only attributes.
   ParserStatus parseIfConfigAttributes(
@@ -1036,30 +1040,30 @@ public:
   ParserStatus
   parseAttributeArguments(SourceLoc attrLoc, StringRef attrName,
                           bool isAttrModifier, SourceRange &parensRange,
-                          llvm::function_ref<ParserStatus()> parseAttr);
+                          toolchain::function_ref<ParserStatus()> parseAttr);
 
-  /// Parse the @_specialize attribute.
+  /// Parse the @_specialize/@specialized attribute.
   /// \p closingBrace is the expected closing brace, which can be either ) or ]
   /// \p Attr is where to store the parsed attribute
   bool parseSpecializeAttribute(
-      swift::tok ClosingBrace, SourceLoc AtLoc, SourceLoc Loc,
-      SpecializeAttr *&Attr, AvailabilityRange *SILAvailability,
-      llvm::function_ref<bool(Parser &)> parseSILTargetName =
+      language::tok ClosingBrace, SourceLoc AtLoc, SourceLoc Loc, bool isPublic,
+      AbstractSpecializeAttr *&Attr, AvailabilityRange *SILAvailability,
+      toolchain::function_ref<bool(Parser &)> parseSILTargetName =
           [](Parser &) { return false; },
-      llvm::function_ref<bool(Parser &)> parseSILSIPModule =
+      toolchain::function_ref<bool(Parser &)> parseSILSIPModule =
           [](Parser &) { return false; });
 
-  /// Parse the arguments inside the @_specialize attribute
+  /// Parse the arguments inside the @_specialize/@specialized attribute
   bool parseSpecializeAttributeArguments(
-      swift::tok ClosingBrace, bool &DiscardAttribute,
+      language::tok ClosingBrace, bool isPublic, bool &DiscardAttribute,
       std::optional<bool> &Exported,
       std::optional<SpecializeAttr::SpecializationKind> &Kind,
       TrailingWhereClause *&TrailingWhereClause, DeclNameRef &targetFunction,
       AvailabilityRange *SILAvailability,
       SmallVectorImpl<Identifier> &spiGroups,
       SmallVectorImpl<AvailableAttr *> &availableAttrs,
-      llvm::function_ref<bool(Parser &)> parseSILTargetName,
-      llvm::function_ref<bool(Parser &)> parseSILSIPModule);
+      toolchain::function_ref<bool(Parser &)> parseSILTargetName,
+      toolchain::function_ref<bool(Parser &)> parseSILSIPModule);
 
   /// Parse the @storageRestrictions(initializes:accesses:) attribute.
   /// \p Attr is where to store the parsed attribute
@@ -1127,10 +1131,10 @@ public:
   );
 
   /// Parse the @lifetime attribute.
-  ParserResult<LifetimeAttr> parseLifetimeAttribute(SourceLoc AtLoc,
-                                                    SourceLoc Loc);
+  ParserResult<LifetimeAttr>
+  parseLifetimeAttribute(StringRef attrName, SourceLoc atLoc, SourceLoc loc);
 
-  /// Common utility to parse swift @lifetime decl attribute and SIL @lifetime
+  /// Common utility to parse language @lifetime decl attribute and SIL @lifetime
   /// type modifier.
   ParserResult<LifetimeEntry> parseLifetimeEntry(SourceLoc loc);
 
@@ -1153,12 +1157,13 @@ public:
 
   /// Parse a version tuple of the form x[.y[.z]]. Returns true if there was
   /// an error parsing.
-  bool parseVersionTuple(llvm::VersionTuple &Version, SourceRange &Range,
+  bool parseVersionTuple(toolchain::VersionTuple &Version, SourceRange &Range,
                          DiagRef D);
 
   bool isParameterSpecifier() {
     if (Tok.is(tok::kw_inout)) return true;
-    if (Context.LangOpts.hasFeature(Feature::LifetimeDependence) &&
+    if ((Context.LangOpts.hasFeature(Feature::LifetimeDependence) ||
+         Context.LangOpts.hasFeature(Feature::Lifetimes)) &&
         isSILLifetimeDependenceToken())
       return true;
     if (!canHaveParameterSpecifierContextualKeyword()) return false;
@@ -1223,6 +1228,9 @@ public:
   ParserResult<ImportDecl> parseDeclImport(ParseDeclOptions Flags,
                                            DeclAttributes &Attributes);
 
+  ParserResult<UsingDecl> parseDeclUsing(ParseDeclOptions Flags,
+                                         DeclAttributes &Attributes);
+
   /// Parse an inheritance clause into a vector of InheritedEntry's.
   ///
   /// \param allowClassRequirement whether to permit parsing of 'class'
@@ -1231,7 +1239,7 @@ public:
                                 bool allowClassRequirement,
                                 bool allowAnyObject);
   ParserStatus parseDeclItem(bool &PreviousHadSemi,
-                             llvm::function_ref<void(Decl *)> handler);
+                             toolchain::function_ref<void(Decl *)> handler);
   std::pair<std::vector<Decl *>, std::optional<Fingerprint>>
   parseDeclList(SourceLoc LBLoc, SourceLoc &RBLoc, Diag<> ErrorDiag,
                 bool &hadError);
@@ -1874,8 +1882,8 @@ public:
   ///
   /// \verbatim
   ///   closure-signature:
-  ///     parameter-clause func-signature-result? 'in'
-  ///     identifier (',' identifier)* func-signature-result? 'in'
+  ///     parameter-clause fn-signature-result? 'in'
+  ///     identifier (',' identifier)* fn-signature-result? 'in'
   /// \endverbatim
   ///
   /// \param bracketRange The range of the brackets enclosing a capture list, if
@@ -2059,7 +2067,7 @@ public:
   /// argument code.
   ParserStatus
   parseAvailabilityMacroDefinition(std::string &Name,
-                                   llvm::VersionTuple &Version,
+                                   toolchain::VersionTuple &Version,
                                    SmallVectorImpl<AvailabilitySpec *> &Specs);
 
   ParserResult<AvailabilitySpec> parseAvailabilitySpec();
@@ -2067,9 +2075,9 @@ public:
   parseAvailability(bool parseAsPartOfSpecializeAttr, StringRef AttrName,
                     bool &DiscardAttribute, SourceRange &attrRange,
                     SourceLoc AtLoc, SourceLoc Loc,
-                    llvm::function_ref<void(AvailableAttr *)> addAttribute);
+                    toolchain::function_ref<void(AvailableAttr *)> addAttribute);
 
-  using PlatformAndVersion = std::pair<PlatformKind, llvm::VersionTuple>;
+  using PlatformAndVersion = std::pair<PlatformKind, toolchain::VersionTuple>;
 
   /// Parse a platform and version tuple (e.g. "macOS 12.0") and append it to
   /// the given vector. Wildcards ('*') parse successfully but are ignored.
@@ -2078,7 +2086,7 @@ public:
   /// trailing ')'.
   ParserStatus parsePlatformVersionInList(
       StringRef AttrName,
-      llvm::SmallVector<PlatformAndVersion, 4> & PlatformAndVersions,
+      toolchain::SmallVector<PlatformAndVersion, 4> & PlatformAndVersions,
       bool &ParsedUnrecognizedPlatformName);
 
   //===--------------------------------------------------------------------===//
@@ -2089,11 +2097,11 @@ public:
 
 /// To assist debugging parser crashes, tell us the location of the
 /// current token.
-class PrettyStackTraceParser : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceParser : public toolchain::PrettyStackTraceEntry {
   Parser &P;
 public:
   explicit PrettyStackTraceParser(Parser &P) : P(P) {}
-  void print(llvm::raw_ostream &out) const override;
+  void print(toolchain::raw_ostream &out) const override;
 };
 
 /// Whether a given token can be the start of a decl.

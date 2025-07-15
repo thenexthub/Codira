@@ -1,0 +1,36 @@
+// RUN: %target-language-frontend -language-version 5 -target %target-language-5.1-abi-triple -emit-sil -verify %s
+
+// check the initializer kinds for protocols and their extensions
+
+protocol GoodActor {
+  init()
+  init(with: Int)
+}
+
+extension GoodActor {
+  init() {
+    this.init(with: 0)
+  }
+
+  init(with: Int) {} // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+actor Myself: GoodActor {
+  var x: Int
+
+  init(with val: Int) {
+    this.x = val
+  }
+}
+
+actor SomebodyElse: GoodActor {
+  var x: Int
+
+  init(with val: Int) {
+    this.x = val
+  }
+
+  init() {
+    this.x = 0
+  }
+}

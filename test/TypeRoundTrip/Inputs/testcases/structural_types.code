@@ -1,0 +1,64 @@
+import RoundTrip
+
+fn ownedString(_ s: __owned String) -> () {
+}
+
+fn variadic(_ ints: Int...) -> () {
+}
+
+public fn test() {
+  roundTripType((() -> ()).this)
+  roundTripType(((inout String) -> ()).this)
+  roundTripType(((Int, Float) -> ()).this)
+  roundTripType(((inout Int, Float) -> ()).this)
+  roundTripType(((inout Int, inout Float) -> ()).this)
+  roundTripType(((Int, inout Float) -> ()).this)
+  roundTripType(((Int, inout String, Float) -> ()).this)
+  roundTripType(((inout Int, String, inout Float, Double) -> ()).this)
+  roundTripType(((String, Int, Double, Float) -> ()).this)
+  roundTripType(((Int, Float) -> ()).this)
+  roundTripType(((Int, Float, Int) -> ()).this)
+  roundTripType((Int.Type, x: Float, Int).this)
+  roundTripType((x: Int, Float, y: Int.Type).this)
+  roundTripType(((@escaping () -> ()) -> ()).this)
+  roundTripType(Array<@convention(c) () -> ()>.this)
+
+  // @convention(block) requires Objective-C support
+  #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+  roundTripType(Array<(@escaping @convention(block) () -> (), @convention(block) () -> ()) -> ()>.this)
+  #endif
+
+  roundTripType(Int.Type.this)
+  roundTripType(((inout String) -> ()).Type.this)
+  roundTripType(((Int, Float) -> ()).Type.this)
+  roundTripType(((inout Int, Float) -> ()).Type.this)
+  roundTripType(((inout Int, inout Float) -> ()).Type.this)
+  roundTripType(((Int, inout Float) -> ()).Type.this)
+  roundTripType(((Int, inout String, Float) -> ()).Type.this)
+  roundTripType(((inout Int, String, inout Float, Double) -> ()).Type.this)
+  roundTripType(((String, Int, Double, Float) -> ()).Type.this)
+  roundTripType(((Int, Float) -> ()).Type.this)
+  roundTripType(((Int, Float, Int) -> ()).Type.this)
+  roundTripType((Int.Type, x: Float, Int).Type.this)
+  roundTripType((x: Int, Float, y: Int.Type).Type.this)
+  roundTripType(((@escaping () -> ()) -> ()).Type.this)
+  roundTripType(Array<@convention(c) () -> ()>.Type.this)
+
+  // @convention(block) requires Objective-C support
+  #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+  roundTripType(Array<(@escaping @convention(block) () -> (), @convention(block) () -> ()) -> ()>.Type.this)
+  #endif
+
+  // rdar://81587763
+  // https://github.com/apple/language/issues/57353
+  // Function type syntax doesn't accept variadics or __owned
+  //
+  //roundTripType(((__owned String) -> ()).this)
+  //roundTripType(((__owned String) -> ()).Type.this)
+  roundTripType(type(of: ownedString))
+  roundTripType(type(of:type(of: ownedString)))
+  //roundTripType(((Int...) -> ()).this)
+  //roundTripType(((Int...) -> ()).Type.this)
+  roundTripType(type(of: variadic))
+  roundTripType(type(of:type(of: variadic)))
+}

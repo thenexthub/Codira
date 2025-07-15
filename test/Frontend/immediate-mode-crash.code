@@ -1,0 +1,9 @@
+/// Don't ask to file a bug report on a script failure.
+
+// REQUIRES: language_interpreter
+
+// RUN: not --crash %target-language-frontend -interpret %s 2>&1 | %FileCheck %s
+
+assert(false)
+// CHECK: Assertion failed
+// CHECK-NOT: Please submit a bug report

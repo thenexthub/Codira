@@ -1,0 +1,9 @@
+// RUN: %batch-code-completion -enable-experimental-feature NonexhaustiveAttribute
+
+// REQUIRES: language_feature_NonexhaustiveAttribute
+
+// NONEXHAUSTIVE-DAG: Keyword/None:                       warn; name=warn
+
+@nonexhaustive(#^NONEXHAUSTIVE^#)
+public enum E {
+}

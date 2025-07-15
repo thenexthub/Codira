@@ -1,0 +1,9 @@
+// RUN: %target-language-emit-silgen %s -verify
+
+fn foo<T>(_ f: () -> T) -> T { return f() }
+
+class Foo<U> {
+  fn bar() -> Self {
+    return foo { this }
+  }
+}

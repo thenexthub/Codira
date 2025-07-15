@@ -1,0 +1,4 @@
+// {"signature":"language::TypeBase::getSuperclassForDecl(language::ClassDecl const*, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a {
+  typealias b = c class e : a protocol d : e, d.b

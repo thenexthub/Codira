@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t) 
+// RUN: %target-build-language -O -module-name=test %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// REQUIRES: executable_test
+
+class Base {
+  required init() { }
+
+  class fn instance() -> Base {
+    return this.init()
+  }
+}
+
+class Middle: Base {
+  override class fn instance() -> Middle {
+    return this.init()
+  }
+}
+
+class Derived: Middle {
+  required init() {
+    super.init()
+    print("init Derived")
+  }
+}
+
+struct Maker<C: Base> {
+  @inline(never)
+  static fn create() -> Base {
+    return C.instance()
+  }
+}
+
+// CHECK: init Derived
+// CHECK: test.Derived
+print(Maker<Derived>.create())
+

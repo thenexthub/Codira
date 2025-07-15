@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Scope and FullExpr RAII objects.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SCOPE_H
-#define SWIFT_SILGEN_SCOPE_H
+#ifndef LANGUAGE_SILGEN_SCOPE_H
+#define LANGUAGE_SILGEN_SCOPE_H
 
 #include "SILGenFunction.h"
 #include "language/Basic/Assertions.h"
@@ -30,7 +31,7 @@ namespace Lowering {
 
 /// A Scope is a RAII object recording that a scope (e.g. a brace
 /// statement) has been entered.
-class LLVM_LIBRARY_VISIBILITY Scope {
+class TOOLCHAIN_LIBRARY_VISIBILITY Scope {
   CleanupManager &cleanups;
   CleanupsDepth depth;
   Scope *savedInnermostScope;
@@ -104,7 +105,7 @@ private:
 
 /// A scope that must be manually popped by the using code. If not
 /// popped, the destructor asserts.
-class LLVM_LIBRARY_VISIBILITY AssertingManualScope {
+class TOOLCHAIN_LIBRARY_VISIBILITY AssertingManualScope {
   Scope scope;
 
 public:
@@ -131,7 +132,7 @@ public:
 /// for the temporaries in an expression, with the added complexity
 /// that (eventually, very likely) we have to deal with expressions
 /// that are only conditionally evaluated.
-class LLVM_LIBRARY_VISIBILITY FullExpr : private Scope {
+class TOOLCHAIN_LIBRARY_VISIBILITY FullExpr : private Scope {
 public:
   explicit FullExpr(CleanupManager &cleanups, CleanupLocation loc)
       : Scope(cleanups, loc) {}
@@ -139,7 +140,7 @@ public:
 };
 
 /// A LexicalScope is a Scope that is also exposed to the debug info.
-class LLVM_LIBRARY_VISIBILITY LexicalScope : private Scope {
+class TOOLCHAIN_LIBRARY_VISIBILITY LexicalScope : private Scope {
   SILGenFunction& SGF;
 public:
   explicit LexicalScope(SILGenFunction &SGF, CleanupLocation loc)
@@ -154,7 +155,7 @@ public:
 };
 
 /// A scope that only exists in the debug info.
-class LLVM_LIBRARY_VISIBILITY DebugScope {
+class TOOLCHAIN_LIBRARY_VISIBILITY DebugScope {
   SILGenFunction &SGF;
 
 public:

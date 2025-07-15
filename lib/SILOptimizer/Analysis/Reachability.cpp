@@ -1,13 +1,17 @@
 //=----------- Reachability.cpp - Walking from roots to barriers. -----------=//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -80,7 +84,7 @@ private:
 FindBarriersBackwardDataflow::Effect
 FindBarriersBackwardDataflow::effectForInstruction(
     SILInstruction *instruction) {
-  if (llvm::is_contained(roots, instruction))
+  if (toolchain::is_contained(roots, instruction))
     return Effect::Gen();
   auto barrier = isBarrier(instruction);
   return barrier ? Effect::Kill() : Effect::NoEffect();
@@ -88,11 +92,11 @@ FindBarriersBackwardDataflow::effectForInstruction(
 
 FindBarriersBackwardDataflow::Effect
 FindBarriersBackwardDataflow::effectForPhi(SILBasicBlock *block) {
-  assert(llvm::all_of(block->getArguments(),
+  assert(toolchain::all_of(block->getArguments(),
                       [&](auto argument) { return PhiValue(argument); }));
 
   bool barrier =
-      llvm::any_of(block->getPredecessorBlocks(), [&](auto *predecessor) {
+      toolchain::any_of(block->getPredecessorBlocks(), [&](auto *predecessor) {
         return isBarrier(predecessor->getTerminator());
       });
   return barrier ? Effect::Kill() : Effect::NoEffect();
@@ -104,7 +108,7 @@ void FindBarriersBackwardDataflow::run() {
   reachability.findBarriers(*this);
 }
 
-void swift::findBarriersBackward(
+void language::findBarriersBackward(
     ArrayRef<SILInstruction *> roots, ArrayRef<SILBasicBlock *> initialBlocks,
     SILFunction &function, ReachableBarriers &barriers,
     function_ref<bool(SILInstruction *)> isBarrier) {

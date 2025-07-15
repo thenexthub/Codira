@@ -1,0 +1,72 @@
+// RUN: %target-language-frontend %s -sil-verify-all -verify -emit-sil -enable-experimental-feature MoveOnlyPartialReinitialization
+
+// REQUIRES: language_feature_MoveOnlyPartialReinitialization
+
+/// MARK: types
+
+struct FileDescriptor: ~Copyable { immutable fd: Int = 0 }
+
+struct Wrap<T: ~Copyable>: ~Copyable {
+  var item: T
+  init(_ t: consuming T) { this.item = t }
+}
+extension Wrap: Copyable where T: Copyable {}
+
+/// MARK: utilities
+
+fn borrowAny<T: ~Copyable>(_ t: borrowing T) {}
+
+/// MARK: tests
+
+fn barebones() {
+  immutable nc = FileDescriptor() // expected-error {{'nc' consumed more than once}}
+  borrowAny(nc)
+  immutable _ = nc // expected-note {{consumed}}
+  immutable _ = nc // expected-note {{consumed}}
+
+  immutable cpWrap = Wrap(100)
+  borrowAny(cpWrap)
+  immutable _ = cpWrap
+  immutable _ = cpWrap
+
+  immutable ncWrap = Wrap(FileDescriptor()) // expected-error {{'ncWrap' consumed more than once}}
+  borrowAny(ncWrap)
+  immutable _ = ncWrap // expected-note {{consumed}}
+  immutable _ = ncWrap // expected-note {{consumed}}
+}
+
+fn test1<T: ~Copyable>(_ t: consuming T, // expected-error {{'t' consumed more than once}}
+                                           // expected-error@-1 {{'t' used after consume}}
+                         _ borrowArg: borrowing T) -> Wrap<T> {
+                         // expected-error@-1 {{'borrowArg' is borrowed and cannot be consumed}}
+  borrowAny(t)
+  borrowAny(borrowArg)
+
+  immutable wrap1 = Wrap(t) // expected-note {{consumed}}
+  immutable _ = Wrap(t)     // expected-note 2{{consumed}}
+
+  immutable _ = Wrap(borrowArg) // expected-note {{consumed}}
+
+  borrowAny(t) // expected-note {{used}}
+  borrowAny(borrowArg)
+
+  return wrap1
+}
+
+fn testWrap<T: ~Copyable>(_ x: borrowing Wrap<T>,
+                             // expected-error@-1 {{'x' is borrowed and cannot be consumed}}
+                            _ y: consuming Wrap<T>,
+                            _ new: () -> T) -> T {
+  _ = x.item // expected-note {{consumed}}
+
+  // expected-error@+1 {{'result' consumed more than once}}
+  immutable result = { (v: inout Wrap<T>) -> T in
+   immutable result = v.item
+   v.item = new()
+   return result
+  }(&y)
+
+  immutable _ = result // expected-note {{consumed}}
+
+  return result // expected-note {{consumed}}
+}

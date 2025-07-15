@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the interface for doing typo correction.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_TYPOCORRECTION_H
-#define SWIFT_SEMA_TYPOCORRECTION_H
+#ifndef LANGUAGE_SEMA_TYPOCORRECTION_H
+#define LANGUAGE_SEMA_TYPOCORRECTION_H
 
 #include "language/AST/DeclNameLoc.h"
 #include "language/AST/Identifier.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <optional>
 
 namespace language {

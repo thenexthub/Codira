@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/../Inputs/empty.code
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// RUN: cp %S/Inputs/languagedoc-versions/empty-1.0.codedoc %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// RUN: cp %S/Inputs/languagedoc-versions/empty-1.1.codedoc %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// RUN: cp %S/Inputs/languagedoc-versions/empty-1.257.codedoc %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+// RUN: cp %S/Inputs/languagedoc-versions/empty-257.1.codedoc %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+// RUN: cp %S/Inputs/languagedoc-versions/empty-0.7.codedoc %t/empty.codedoc
+// RUN: %target-language-frontend -typecheck -I %t %s -verify -show-diagnostics-after-fatal
+
+import empty // expected-error{{malformed compiled module}}

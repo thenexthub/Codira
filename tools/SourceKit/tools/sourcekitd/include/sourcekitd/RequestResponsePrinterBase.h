@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_REQUESTRESPONSEPRINTERBASE_H
-#define LLVM_SOURCEKITD_REQUESTRESPONSEPRINTERBASE_H
+#ifndef TOOLCHAIN_SOURCEKITD_REQUESTRESPONSEPRINTERBASE_H
+#define TOOLCHAIN_SOURCEKITD_REQUESTRESPONSEPRINTERBASE_H
 
 #include "sourcekitd/sourcekitd.h"
 #include "sourcekitd/Logging.h"
 #include "language/Basic/StringExtras.h"
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
   class StringRef;
   template <typename T> class ArrayRef;
   class raw_ostream;
@@ -34,13 +35,13 @@ namespace sourcekitd {
 
 template <typename VisitorImplClass, typename VisitedType>
 class RequestResponsePrinterBase {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
   unsigned Indent;
   bool PrintAsJSON;
 public:
   typedef std::vector<std::pair<SourceKit::UIdent, VisitedType>> DictMap;
 
-  RequestResponsePrinterBase(llvm::raw_ostream &OS, unsigned Indent = 0, 
+  RequestResponsePrinterBase(toolchain::raw_ostream &OS, unsigned Indent = 0, 
                              bool PrintAsJSON = false)
     : OS(OS), Indent(Indent), PrintAsJSON(PrintAsJSON) { }
 
@@ -69,7 +70,7 @@ public:
     OS.indent(Indent) << '}';
   }
 
-  void visitArray(llvm::ArrayRef<VisitedType> Arr) {
+  void visitArray(toolchain::ArrayRef<VisitedType> Arr) {
     OS << "[\n";
     Indent += 2;
     for (unsigned i = 0, e = Arr.size(); i != e; ++i) {
@@ -94,15 +95,15 @@ public:
 
   void visitDouble(double Val) { OS << Val; }
 
-  void visitString(llvm::StringRef Str) {
+  void visitString(toolchain::StringRef Str) {
     OS << '\"';
     // Avoid raw_ostream's write_escaped, we don't want to escape unicode
     // characters because it will be invalid JSON.
-    swift::writeEscaped(Str, OS);
+    language::writeEscaped(Str, OS);
     OS << '\"';
   }
 
-  void visitUID(llvm::StringRef UID) {
+  void visitUID(toolchain::StringRef UID) {
     if (PrintAsJSON) {
       visitString(UID);
     } else {

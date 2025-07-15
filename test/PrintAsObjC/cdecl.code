@@ -1,0 +1,60 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -enable-source-import -emit-module -emit-module-doc -o %t %s -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -parse-as-library %t/cdecl.codemodule -typecheck -verify -emit-objc-header-path %t/cdecl.h -import-objc-header %S/../Inputs/empty.h -disable-objc-attr-requires-foundation-module
+// RUN: %FileCheck %s < %t/cdecl.h
+// RUN: %check-in-clang %t/cdecl.h
+// RUN: %check-in-clang -fno-modules -Qunused-arguments %t/cdecl.h -include ctypes.h -include CoreFoundation.h
+// RUN: %check-in-clang-c -fno-modules -Qunused-arguments %t/cdecl.h -include ctypes.h -include CoreFoundation.h
+// RUN: %check-in-clang-cxx -fno-modules -Qunused-arguments %t/cdecl.h -include ctypes.h -include CoreFoundation.h
+
+// REQUIRES: objc_interop
+
+// CHECK: /// What a nightmare!
+// CHECK-LABEL: LANGUAGE_EXTERN double (^ _Nonnull block_nightmare(LANGUAGE_NOESCAPE float (^ _Nonnull x)(NSInteger)))(char) LANGUAGE_NOEXCEPT LANGUAGE_WARN_UNUSED_RESULT;
+
+/// What a nightmare!
+@_cdecl("block_nightmare")
+public fn block_nightmare(x: @convention(block) (Int) -> Float)
+  -> @convention(block) (CChar) -> Double { return { _ in 0 } }
+
+// CHECK-LABEL: LANGUAGE_EXTERN double (^ _Nonnull block_recurring_nightmare(float (^ _Nonnull x)(LANGUAGE_NOESCAPE NSInteger (^ _Nonnull)(double))))(LANGUAGE_NOESCAPE char (^ _Nonnull)(unsigned char)) LANGUAGE_NOEXCEPT LANGUAGE_WARN_UNUSED_RESULT;
+@_cdecl("block_recurring_nightmare")
+public fn block_recurring_nightmare(x: @escaping @convention(block) (@convention(block) (Double) -> Int) -> Float)
+  -> @convention(block) (_ asdfasdf: @convention(block) (CUnsignedChar) -> CChar) -> Double {
+  fatalError()
+}
+
+// CHECK-LABEL: LANGUAGE_EXTERN void foo_bar(NSInteger x, NSInteger y) LANGUAGE_NOEXCEPT;
+@_cdecl("foo_bar")
+fn foo(x: Int, bar y: Int) {}
+
+// CHECK-LABEL: LANGUAGE_EXTERN double (* _Nonnull function_pointer_nightmare(float (* _Nonnull x)(NSInteger)))(char) LANGUAGE_NOEXCEPT LANGUAGE_WARN_UNUSED_RESULT;
+@_cdecl("function_pointer_nightmare")
+fn function_pointer_nightmare(x: @convention(c) (Int) -> Float)
+  -> @convention(c) (CChar) -> Double { return { _ in 0 } }
+
+// CHECK-LABEL: LANGUAGE_EXTERN double (* _Nonnull function_pointer_recurring_nightmare(float (* _Nonnull x)(NSInteger (* _Nonnull)(double))))(char (* _Nonnull)(unsigned char)) LANGUAGE_NOEXCEPT LANGUAGE_WARN_UNUSED_RESULT;
+@_cdecl("function_pointer_recurring_nightmare")
+public fn function_pointer_recurring_nightmare(x: @escaping @convention(c) (@convention(c) (Double) -> Int) -> Float)
+  -> @convention(c) (@convention(c) (CUnsignedChar) -> CChar) -> Double {
+  fatalError()
+}
+  
+// CHECK-LABEL: LANGUAGE_EXTERN void has_keyword_arg_names(NSInteger auto_, NSInteger union_) LANGUAGE_NOEXCEPT;
+@_cdecl("has_keyword_arg_names")
+fn keywordArgNames(auto: Int, union: Int) {}
+
+@objc
+class C {}
+
+// CHECK-LABEL: LANGUAGE_EXTERN C * _Null_unspecified return_iuo(void) LANGUAGE_NOEXCEPT LANGUAGE_WARN_UNUSED_RESULT;
+@_cdecl("return_iuo")
+fn returnIUO() -> C! { return C() }
+
+// CHECK-LABEL: LANGUAGE_EXTERN void return_never(void) LANGUAGE_NOEXCEPT LANGUAGE_NORETURN;
+@_cdecl("return_never")
+fn returnNever() -> Never { fatalError() }
+
+// CHECK-LABEL: LANGUAGE_EXTERN void takes_iuo(C * _Null_unspecified c) LANGUAGE_NOEXCEPT;
+@_cdecl("takes_iuo")
+fn takesIUO(c: C!) {}

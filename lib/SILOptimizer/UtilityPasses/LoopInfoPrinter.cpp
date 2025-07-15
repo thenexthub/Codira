@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -19,7 +20,7 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILVisitor.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 
 using namespace language;
 
@@ -39,11 +40,11 @@ class LoopInfoPrinter : public SILModuleTransform {
 
 
       if (LI->empty()) {
-        llvm::errs() << "No loops in " << Fn.getName() << "\n";
+        toolchain::errs() << "No loops in " << Fn.getName() << "\n";
         return;
       }
 
-      llvm::errs() << "Loops in " << Fn.getName() << "\n";
+      toolchain::errs() << "Loops in " << Fn.getName() << "\n";
       for (auto *LoopIt : *LI) {
         LoopIt->dump();
       }
@@ -54,7 +55,7 @@ class LoopInfoPrinter : public SILModuleTransform {
 } // end anonymous namespace
 
 
-SILTransform *swift::createLoopInfoPrinter() {
+SILTransform *language::createLoopInfoPrinter() {
   return new LoopInfoPrinter();
 }
 

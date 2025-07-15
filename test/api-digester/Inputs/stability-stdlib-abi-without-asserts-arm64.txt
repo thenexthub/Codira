@@ -1,0 +1,92 @@
+// ABI additions for arm64 only.
+
+Accessor __VaListBuilder.storage.Get() has mangled name changing from 'Codira.__VaListBuilder.storage.getter : Codira.ContiguousArray<Codira.Int>' to 'Codira.__VaListBuilder.storage.getter : Codira.Optional<Codira.UnsafeMutablePointer<Codira.Int>>'
+Accessor __VaListBuilder.storage.Get() has return type change from Codira.ContiguousArray<Codira.Int> to Codira.UnsafeMutablePointer<Codira.Int>?
+Accessor __VaListBuilder.storage.Modify() has mangled name changing from 'Codira.__VaListBuilder.storage.modify : Codira.ContiguousArray<Codira.Int>' to 'Codira.__VaListBuilder.storage.modify : Codira.Optional<Codira.UnsafeMutablePointer<Codira.Int>>'
+Accessor __VaListBuilder.storage.Set() has mangled name changing from 'Codira.__VaListBuilder.storage.setter : Codira.ContiguousArray<Codira.Int>' to 'Codira.__VaListBuilder.storage.setter : Codira.Optional<Codira.UnsafeMutablePointer<Codira.Int>>'
+Accessor __VaListBuilder.storage.Set() has parameter 0 type change from Codira.ContiguousArray<Codira.Int> to Codira.UnsafeMutablePointer<Codira.Int>?
+Constructor BinaryFloatingPoint.init(_:) has been removed
+Constructor Double.init(_:) has mangled name changing from 'Codira.Double.init(Codira.Float80) -> Codira.Double' to 'Codira.Double.init(Codira.Float16) -> Codira.Double'
+Constructor Double.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Double.init(_builtinFloatLiteral:) has mangled name changing from 'Codira.Double.init(_builtinFloatLiteral: Builtin.FPIEEE80) -> Codira.Double' to 'Codira.Double.init(_builtinFloatLiteral: Builtin.FPIEEE64) -> Codira.Double'
+Constructor Double.init(_builtinFloatLiteral:) has parameter 0 type change from Builtin.FPIEEE80 to Builtin.FPIEEE64
+Constructor Double.init(exactly:) has mangled name changing from 'Codira.Double.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Double>' to 'Codira.Double.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Double>'
+Constructor Double.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Float.init(_:) has mangled name changing from 'Codira.Float.init(Codira.Float80) -> Codira.Float' to 'Codira.Float.init(Codira.Float16) -> Codira.Float'
+Constructor Float.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Float.init(_builtinFloatLiteral:) has mangled name changing from 'Codira.Float.init(_builtinFloatLiteral: Builtin.FPIEEE80) -> Codira.Float' to 'Codira.Float.init(_builtinFloatLiteral: Builtin.FPIEEE64) -> Codira.Float'
+Constructor Float.init(_builtinFloatLiteral:) has parameter 0 type change from Builtin.FPIEEE80 to Builtin.FPIEEE64
+Constructor Float.init(exactly:) has mangled name changing from 'Codira.Float.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Float>' to 'Codira.Float.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Float>'
+Constructor Float.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int.init(_:) has mangled name changing from 'Codira.Int.init(Codira.Float80) -> Codira.Int' to 'Codira.Int.init(Codira.Float16) -> Codira.Int'
+Constructor Int.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int.init(exactly:) has mangled name changing from 'Codira.Int.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Int>' to 'Codira.Int.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Int>'
+Constructor Int.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int16.init(_:) has mangled name changing from 'Codira.Int16.init(Codira.Float80) -> Codira.Int16' to 'Codira.Int16.init(Codira.Float16) -> Codira.Int16'
+Constructor Int16.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int16.init(exactly:) has mangled name changing from 'Codira.Int16.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Int16>' to 'Codira.Int16.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Int16>'
+Constructor Int16.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int32.init(_:) has mangled name changing from 'Codira.Int32.init(Codira.Float80) -> Codira.Int32' to 'Codira.Int32.init(Codira.Float16) -> Codira.Int32'
+Constructor Int32.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int32.init(exactly:) has mangled name changing from 'Codira.Int32.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Int32>' to 'Codira.Int32.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Int32>'
+Constructor Int32.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int64.init(_:) has mangled name changing from 'Codira.Int64.init(Codira.Float80) -> Codira.Int64' to 'Codira.Int64.init(Codira.Float16) -> Codira.Int64'
+Constructor Int64.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int64.init(exactly:) has mangled name changing from 'Codira.Int64.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Int64>' to 'Codira.Int64.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Int64>'
+Constructor Int64.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int8.init(_:) has mangled name changing from 'Codira.Int8.init(Codira.Float80) -> Codira.Int8' to 'Codira.Int8.init(Codira.Float16) -> Codira.Int8'
+Constructor Int8.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor Int8.init(exactly:) has mangled name changing from 'Codira.Int8.init(exactly: Codira.Float80) -> Codira.Optional<Codira.Int8>' to 'Codira.Int8.init(exactly: Codira.Float16) -> Codira.Optional<Codira.Int8>'
+Constructor Int8.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt.init(_:) has mangled name changing from 'Codira.UInt.init(Codira.Float80) -> Codira.UInt' to 'Codira.UInt.init(Codira.Float16) -> Codira.UInt'
+Constructor UInt.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt.init(exactly:) has mangled name changing from 'Codira.UInt.init(exactly: Codira.Float80) -> Codira.Optional<Codira.UInt>' to 'Codira.UInt.init(exactly: Codira.Float16) -> Codira.Optional<Codira.UInt>'
+Constructor UInt.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt16.init(_:) has mangled name changing from 'Codira.UInt16.init(Codira.Float80) -> Codira.UInt16' to 'Codira.UInt16.init(Codira.Float16) -> Codira.UInt16'
+Constructor UInt16.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt16.init(exactly:) has mangled name changing from 'Codira.UInt16.init(exactly: Codira.Float80) -> Codira.Optional<Codira.UInt16>' to 'Codira.UInt16.init(exactly: Codira.Float16) -> Codira.Optional<Codira.UInt16>'
+Constructor UInt16.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt32.init(_:) has mangled name changing from 'Codira.UInt32.init(Codira.Float80) -> Codira.UInt32' to 'Codira.UInt32.init(Codira.Float16) -> Codira.UInt32'
+Constructor UInt32.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt32.init(exactly:) has mangled name changing from 'Codira.UInt32.init(exactly: Codira.Float80) -> Codira.Optional<Codira.UInt32>' to 'Codira.UInt32.init(exactly: Codira.Float16) -> Codira.Optional<Codira.UInt32>'
+Constructor UInt32.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt64.init(_:) has mangled name changing from 'Codira.UInt64.init(Codira.Float80) -> Codira.UInt64' to 'Codira.UInt64.init(Codira.Float16) -> Codira.UInt64'
+Constructor UInt64.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt64.init(exactly:) has mangled name changing from 'Codira.UInt64.init(exactly: Codira.Float80) -> Codira.Optional<Codira.UInt64>' to 'Codira.UInt64.init(exactly: Codira.Float16) -> Codira.Optional<Codira.UInt64>'
+Constructor UInt64.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt8.init(_:) has mangled name changing from 'Codira.UInt8.init(Codira.Float80) -> Codira.UInt8' to 'Codira.UInt8.init(Codira.Float16) -> Codira.UInt8'
+Constructor UInt8.init(_:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor UInt8.init(exactly:) has mangled name changing from 'Codira.UInt8.init(exactly: Codira.Float80) -> Codira.Optional<Codira.UInt8>' to 'Codira.UInt8.init(exactly: Codira.Float16) -> Codira.Optional<Codira.UInt8>'
+Constructor UInt8.init(exactly:) has parameter 0 type change from Codira.Float80 to Codira.Float16
+Constructor _ExpressibleByBuiltinFloatLiteral.init(_builtinFloatLiteral:) has mangled name changing from 'Codira._ExpressibleByBuiltinFloatLiteral.init(_builtinFloatLiteral: Builtin.FPIEEE80) -> A' to 'Codira._ExpressibleByBuiltinFloatLiteral.init(_builtinFloatLiteral: Builtin.FPIEEE64) -> A'
+Constructor _ExpressibleByBuiltinFloatLiteral.init(_builtinFloatLiteral:) has parameter 0 type change from Builtin.FPIEEE80 to Builtin.FPIEEE64
+Func __VaListBuilder.allocStorage(wordCount:) is a new API without '@available'
+Func __VaListBuilder.appendWords(_:) is a new API without '@available'
+Func __VaListBuilder.deallocStorage(wordCount:storage:) is a new API without '@available'
+Func __VaListBuilder.rawSizeAndAlignment(_:) is a new API without '@available'
+Func _cos(_:) has been removed
+Func _exp(_:) has been removed
+Func _exp2(_:) has been removed
+Func _log(_:) has been removed
+Func _log10(_:) has been removed
+Func _log2(_:) has been removed
+Func _nearbyint(_:) has been removed
+Func _rint(_:) has been removed
+Func _sin(_:) has been removed
+Struct Float80 has been removed
+Struct __VaListBuilder.Header has been removed
+Var __VaListBuilder.allocated is a new API without '@available'
+Var __VaListBuilder.allocated is added to a non-resilient type
+Var __VaListBuilder.count is a new API without '@available'
+Var __VaListBuilder.count is added to a non-resilient type
+Var __VaListBuilder.fpRegistersUsed has been removed
+Var __VaListBuilder.gpRegistersUsed has been removed
+Var __VaListBuilder.header has been removed
+Var __VaListBuilder.requiredAlignmentInBytes is a new API without '@available'
+Var __VaListBuilder.requiredAlignmentInBytes is added to a non-resilient type
+Var __VaListBuilder.storage has declared type change from Codira.ContiguousArray<Codira.Int> to Codira.UnsafeMutablePointer<Codira.Int>?
+Var __VaListBuilder.storage has mangled name changing from 'Codira.__VaListBuilder.storage : Codira.ContiguousArray<Codira.Int>' to 'Codira.__VaListBuilder.storage : Codira.Optional<Codira.UnsafeMutablePointer<Codira.Int>>'
+Var _countFPRegisters has been removed
+Var _countGPRegisters has been removed
+Var _fpRegisterWords has been removed
+Var _registerSaveWords has been removed

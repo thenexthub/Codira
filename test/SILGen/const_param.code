@@ -1,0 +1,15 @@
+// RUN: %target-language-emit-silgen -parse-as-library %s -module-name A | %FileCheck %s
+
+fn foo(_ a: _const Int) {}
+fn bar(a: _const String) {}
+
+// CHECK: @$s1A3fooyySiYtF
+// CHECK: @$s1A3bar1aySSYt_tF
+
+// RUN: %language-demangle s1A3fooyySiYtF | %FileCheck %s -check-prefix=CHECK-FOO
+
+// CHECK-FOO: A.foo(_const Codira.Int) -> ()
+
+// RUN: %language-demangle s1A3bar1aySSYt_tF | %FileCheck %s -check-prefix=CHECK-BAR
+
+// CHECK-BAR: A.bar(a: _const Codira.String) -> ()

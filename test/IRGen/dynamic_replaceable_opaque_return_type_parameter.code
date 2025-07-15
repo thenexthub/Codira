@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -enable-implicit-dynamic -enable-private-imports %S/Inputs/opaque_return_type_parameter.code -module-name Repo -emit-module -emit-module-path %t/Repo.codemodule
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -module-name A -language-version 5 -primary-file %s -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -I %t -module-name A -language-version 5 -primary-file %s -c -o %t/tmp.o
+@_private(sourceFile: "opaque_return_type_parameter.code") import Repo
+
+// Make sure we are not emitting a replacement for the opaque result type used as parameter (Assoc).
+
+// CHECK-NOT: @"\01l_unnamed_dynamic_replacements"{{.*}}(%language.type_descriptor* ()*
+
+extension Container {
+  @_dynamicReplacement(for: update(arg:)) private fn __update(arg: Assoc) {}
+}

@@ -1,0 +1,289 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name lifetime_depend_infer -enable-experimental-feature Lifetimes -language-version 5 -enable-library-evolution
+import Codira
+import _Concurrency
+import _StringProcessing
+import _CodiraConcurrencyShims
+
+@_hasMissingDesignatedInitializers public class C {}
+
+#if $LifetimeDependence
+public struct NE : ~Codira.Escapable {
+}
+public struct NEImmortal : ~Codira.Escapable {
+  @_lifetime(immortal)
+  public init()
+
+}
+
+public struct NonEscapableSelf : ~Codira.Escapable {
+  public fn methodNoParam() -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(this)
+  public fn methodNoParamLifetime() -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(copy this)
+  public fn methodNoParamCopy() -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(borrow this)
+  public fn methodNoParamBorrow() -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(this)
+  public mutating fn mutatingMethodNoParamLifetime() -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(copy this)
+  public mutating fn mutatingMethodNoParamCopy() -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodNoParamBorrow() -> lifetime_depend_infer.NonEscapableSelf
+  
+  public fn methodOneParam(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(this)
+  public fn methodOneParamLifetime(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(copy this)
+  public fn methodOneParamCopy(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(borrow this)
+  public fn methodOneParamBorrow(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(this)
+  public mutating fn mutatingMethodOneParamLifetime(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(copy this)
+  public mutating fn mutatingMethodOneParamCopy(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodOneParamBorrow(_: Codira.Int) -> lifetime_depend_infer.NonEscapableSelf 
+}
+
+public struct NoncopyableInoutMethods : ~Codira.Copyable & ~Codira.Escapable {
+  public mutating fn mutatingMethodOneParamFunctionType<E, Result>(_ body: (Codira.Int) throws(E) -> Result) throws(E) -> Result where E : Codira.Error, Result : ~Codira.Copyable
+
+  public subscript(position: Codira.Int) -> Codira.Int {
+    unsafeAddress
+    unsafeMutableAddress
+  }
+}
+
+public struct EscapableTrivialSelf {
+  @_lifetime(this)
+  public fn methodNoParamLifetime() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(borrow this)
+  public fn methodNoParamBorrow() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public mutating fn mutatingMethodNoParamLifetime() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodNoParamBorrow() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public fn methodOneParamLifetime(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(borrow this)
+  public fn methodOneParamBorrow(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public mutating fn mutatingMethodOneParamLifetime(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodOneParamBorrow(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+}
+public struct EscapableNonTrivialSelf {
+  public init(c: lifetime_depend_infer.C)
+  public fn methodNoParam() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public fn methodNoParamLifetime() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(borrow this)
+  public fn methodNoParamBorrow() -> lifetime_depend_infer.NEImmortal
+  
+  public fn mutatingMethodNoParam() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public mutating fn mutatingMethodNoParamLifetime() -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodNoParamBorrow() -> lifetime_depend_infer.NEImmortal
+  
+  public fn methodOneParam(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public fn methodOneParamLifetime(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(borrow this)
+  public fn methodOneParamBorrow(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  public mutating fn mutatingMethodOneParam(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(this)
+  public mutating fn mutatingMethodOneParamLifetime(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodOneParamBorrow(_: Codira.Int) -> lifetime_depend_infer.NEImmortal
+  
+}
+public struct NonescapableInitializers : ~Codira.Escapable {
+  public var c: lifetime_depend_infer.C
+  public init(ne: lifetime_depend_infer.NE)
+  
+}
+public struct NonescapableConsumingInitializers : ~Codira.Escapable {
+  public var c: lifetime_depend_infer.C
+  public init(ne: consuming lifetime_depend_infer.NE)
+  
+}
+public struct NonescapableBorrowingInitializers : ~Codira.Escapable {
+  public var c: lifetime_depend_infer.C
+  public init(c: borrowing lifetime_depend_infer.C)
+  
+  public init(c: borrowing lifetime_depend_infer.C, _: Codira.Int)
+  
+  public init(ne: borrowing lifetime_depend_infer.NE)
+  
+}
+public struct NonescapableInoutInitializers : ~Codira.Escapable {
+  public var c: lifetime_depend_infer.C
+  public init(c: inout lifetime_depend_infer.C)
+  
+}
+@_lifetime(immortal)
+public fn noParamImmortal() -> lifetime_depend_infer.NEImmortal
+
+@_lifetime(c)
+public fn oneParamLifetime(c: lifetime_depend_infer.C) -> lifetime_depend_infer.NEImmortal
+
+public fn oneParamBorrow(c: borrowing lifetime_depend_infer.C) -> lifetime_depend_infer.NEImmortal
+
+@_lifetime(c)
+public fn oneParamBorrowLifetime(c: borrowing lifetime_depend_infer.C) -> lifetime_depend_infer.NEImmortal
+
+public fn oneParamInout(c: inout lifetime_depend_infer.C) -> lifetime_depend_infer.NEImmortal
+
+@_lifetime(c)
+public fn oneParamInoutLifetime(c: inout lifetime_depend_infer.C) -> lifetime_depend_infer.NEImmortal
+
+@_lifetime(c)
+public fn twoParamsLifetime(c: lifetime_depend_infer.C, _: Codira.Int) -> lifetime_depend_infer.NEImmortal
+
+public fn twoParamsBorrow(c: borrowing lifetime_depend_infer.C, _: Codira.Int) -> lifetime_depend_infer.NEImmortal
+
+public fn neParam(ne: lifetime_depend_infer.NE) -> lifetime_depend_infer.NE
+
+@_lifetime(ne)
+public fn neParamLifetime(ne: lifetime_depend_infer.NE) -> lifetime_depend_infer.NE
+
+public fn neParamBorrow(ne: borrowing lifetime_depend_infer.NE) -> lifetime_depend_infer.NE
+
+@_lifetime(ne)
+public fn neParamBorrowLifetime(ne: borrowing lifetime_depend_infer.NE) -> lifetime_depend_infer.NE
+
+public fn neParamConsume(ne: consuming lifetime_depend_infer.NE) -> lifetime_depend_infer.NE
+
+@_lifetime(ne)
+public fn neParamConsumeLifetime(ne: consuming lifetime_depend_infer.NE) -> lifetime_depend_infer.NE
+
+public fn neTwoParam(ne: lifetime_depend_infer.NE, _: Codira.Int) -> lifetime_depend_infer.NE
+
+public struct Accessors {
+  public var neYielded: lifetime_depend_infer.NEImmortal {
+    _read
+    _modify
+  }
+  
+}
+public struct NonescapableSelfAccessors : ~Codira.Escapable {
+  public var ne: lifetime_depend_infer.NE
+  public init(ne: lifetime_depend_infer.NE)
+  
+  public var neComputed: lifetime_depend_infer.NE {
+    get
+  }
+  
+  public var neYielded: lifetime_depend_infer.NE {
+    _read
+    @_lifetime(&this)
+    _modify
+  }
+  
+}
+public struct NoncopyableSelfAccessors : ~Copyable & ~Escapable {
+  public var ne: lifetime_depend_infer.NE
+  public var neComputed: lifetime_depend_infer.NE {
+    get
+    set
+  }
+  
+  public var neYielded: lifetime_depend_infer.NE {
+    _read
+    @_lifetime(&this)
+    _modify
+  }
+  
+  public var neComputedLifetime: lifetime_depend_infer.NE {
+    @_lifetime(this)
+    get
+    @_lifetime(this)
+    set
+  }
+  
+  public var neYieldedLifetime: lifetime_depend_infer.NE {
+    @_lifetime(this)
+    _read
+    @_lifetime(this)
+    _modify
+  }
+  
+  public var neComputedCopy: lifetime_depend_infer.NE {
+    @_lifetime(copy this)
+    get
+    @_lifetime(copy this)
+    set
+  }
+  
+  public var neYieldedCopy: lifetime_depend_infer.NE {
+    @_lifetime(copy this)
+    _read
+    @_lifetime(copy this)
+    _modify
+  }
+  
+  public var neComputedBorrow: lifetime_depend_infer.NE {
+    @_lifetime(borrow this)
+    get
+    @_lifetime(&this)
+    set
+  }
+  
+  public var neYieldedBorrow: lifetime_depend_infer.NE {
+    @_lifetime(borrow this)
+    _read
+    @_lifetime(&this)
+    _modify
+  }
+}
+
+public struct NonEscapableMutableSelf : ~Codira.Escapable {
+  public mutating fn mutatingMethodNoParam()
+  
+  @_lifetime(this: this)
+  public mutating fn mutatingMethodNoParamLifetime()
+  
+  @_lifetime(this: copy this)
+  public mutating fn mutatingMethodNoParamCopy()
+  
+  @_lifetime(this: this)
+  public mutating fn mutatingMethodOneParamLifetime(_: lifetime_depend_infer.NE)
+  
+  @_lifetime(copy this)
+  public mutating fn mutatingMethodOneParamCopy(_: lifetime_depend_infer.NE)
+  
+  @_lifetime(&this)
+  public mutating fn mutatingMethodOneParamBorrow(_: lifetime_depend_infer.NE)
+}
+#endif

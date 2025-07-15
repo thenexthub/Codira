@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_CLASSHIERARCHY_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_CLASSHIERARCHY_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_CLASSHIERARCHY_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_CLASSHIERARCHY_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -30,7 +31,7 @@ class ClassDecl;
 class ClassHierarchyAnalysis : public SILAnalysis {
 public:
   typedef SmallVector<ClassDecl *, 8> ClassList;
-  typedef llvm::DenseMap<ClassDecl *, ClassList> ClassListMap;
+  typedef toolchain::DenseMap<ClassDecl *, ClassList> ClassListMap;
 
   ClassHierarchyAnalysis(SILModule *Mod)
       : SILAnalysis(SILAnalysisKind::ClassHierarchy), M(Mod) {}

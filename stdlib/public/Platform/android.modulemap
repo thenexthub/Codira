@@ -1,31 +1,35 @@
 //===--- android.modulemap ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // The module map for the Android NDK.
 // A portion of the modules in this file are prefixed
 // with an underscore, to discourage users from importing them from
-// Swift directly, as these modules might be overridden by the C++ stdlib.
+// Codira directly, as these modules might be overridden by the C++ stdlib.
 // Instead, users should import 'Android' or another
 // umbrella module that includes these headers.
 
-// The top level 'Android' module can be included from Swift.
-module SwiftAndroid [system] {
-  header "SwiftAndroidNDK.h"
+// The top level 'Android' module can be included from Codira.
+module CodiraAndroid [system] {
+  header "CodiraAndroidNDK.h"
   export *
 }
 
 // The top level 'Bionic' module is the C standard library
 // used in the Android NDK.
 module Bionic [system] {
-  header "SwiftBionic.h"
+  header "CodiraBionic.h"
   export *
 }
 

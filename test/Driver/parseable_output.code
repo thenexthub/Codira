@@ -1,0 +1,155 @@
+// RUN: %languagec_driver_plain -emit-executable %s -o %t.out -emit-module -emit-module-path %t.codemodule -emit-objc-header-path %t.h -serialize-diagnostics -emit-dependencies -parseable-output -driver-skip-execution 2>&1 | %FileCheck %s
+
+// XFAIL: OS=freebsd, OS=openbsd, OS=linux-gnu, OS=linux-android, OS=linux-androideabi
+
+// CHECK: {{[1-9][0-9]*}}
+// CHECK-NEXT: {
+// CHECK-NEXT:   "kind": "began",
+// CHECK-NEXT:   "name": "compile",
+// CHECK-NEXT:   "command": "{{.*[\\/]}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?(\\")?}} -frontend -c -primary-file {{.*[\\/]}}parseable_output.code{{(\\")?}} {{.*}} -o {{.*[\\/]}}parseable_output-[[OUTPUT:.*]].o{{(\\")?}}",
+// CHECK-NEXT:   "command_executable": "{{.*[\\/]}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}",
+// CHECK-NEXT:   "command_arguments": [
+// CHECK-NEXT:     "-frontend",
+// CHECK-NEXT:     "-c",
+// CHECK-NEXT:     "-primary-file",
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output.code",
+// CHECK:          "-o",
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output-[[OUTPUT:.*]].o"
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "inputs": [
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output.code"
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "outputs": [
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "object",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output-[[OUTPUT]].o"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "dependencies",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output-[[OUTPUT]].d"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "languagemodule",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output-[[OUTPUT]].codemodule"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "languagedoc",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output-[[OUTPUT]].codedoc"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "languagesourceinfo",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output-[[OUTPUT]].codesourceinfo"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "diagnostics",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output-[[OUTPUT]].dia"
+// CHECK-NEXT:     }
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "pid": 1
+// CHECK-NEXT:   "process": {
+// CHECK-NEXT:   	"real_pid": 1
+// CHECK-NEXT:   }
+// CHECK-NEXT: }
+
+// CHECK-NEXT: {{[1-9][0-9]*}}
+// CHECK-NEXT: {
+// CHECK-NEXT:   "kind": "finished",
+// CHECK-NEXT:   "name": "compile",
+// CHECK-NEXT:   "pid": 1,
+// CHECK-NEXT:   "output": "Output placeholder\n",
+// CHECK-NEXT:   "process": {
+// CHECK-NEXT:   	"real_pid": 1
+// CHECK-NEXT:   },
+// CHECK-NEXT:   "exit-status": 0
+// CHECK-NEXT: }
+
+// CHECK-NEXT: {{[1-9][0-9]*}}
+// CHECK-NEXT: {
+// CHECK-NEXT:   "kind": "began",
+// CHECK-NEXT:   "name": "merge-module",
+// CHECK-NEXT:   "command": "{{.*[\\/]}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?(\\")?}} -frontend -merge-modules -emit-module {{.*[\\/]}}parseable_output-[[OUTPUT]].codemodule{{(\\")?}} {{.*}} -o {{.*[\\/]}}parseable_output.code.tmp.codemodule{{(\\")?}}",
+// CHECK-NEXT:   "command_executable": "{{.*[\\/]}}language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}",
+// CHECK-NEXT:   "command_arguments": [
+// CHECK-NEXT:     "-frontend",
+// CHECK-NEXT:     "-merge-modules",
+// CHECK-NEXT:     "-emit-module",
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output-[[OUTPUT]].codemodule",
+// CHECK:          "-o",
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output.code.tmp.codemodule"
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "inputs": [
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output-[[OUTPUT]].o"
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "outputs": [
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "languagemodule",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output.code.tmp.codemodule"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "languagedoc",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output.code.tmp.codedoc"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "languagesourceinfo",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output.code.tmp.codesourceinfo"
+// CHECK-NEXT:     },
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "clang-header",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output.code.tmp.h"
+// CHECK-NEXT:     }
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "pid": 2,
+// CHECK-NEXT:   "process": {
+// CHECK-NEXT:   	"real_pid": 2
+// CHECK-NEXT:   }
+// CHECK-NEXT: }
+
+// CHECK-NEXT: {{[1-9][0-9]*}}
+// CHECK-NEXT: {
+// CHECK-NEXT:   "kind": "finished",
+// CHECK-NEXT:   "name": "merge-module",
+// CHECK-NEXT:   "pid": 2,
+// CHECK-NEXT:   "output": "Output placeholder\n",
+// CHECK-NEXT:   "process": {
+// CHECK-NEXT:   	"real_pid": 2
+// CHECK-NEXT:   },
+// CHECK-NEXT:   "exit-status": 0
+// CHECK-NEXT: }
+
+// CHECK-NEXT: {{[1-9][0-9]*}}
+// CHECK-NEXT: {
+// CHECK-NEXT:   "kind": "began",
+// CHECK-NEXT:   "name": "link",
+// CHECK-NEXT:   "command": "{{.*[\\/](ld|clang)(\.exe)?(\\")?.*}}parseable_output-[[OUTPUT]].o{{(\\")?}} {{.*}}-o {{.*[\\/]}}parseable_output.code.tmp.out{{(\\")?}}",
+// CHECK-NEXT:   "command_executable": "{{.*[\\/](ld|clang)(\.exe)?}}",
+// CHECK-NEXT:   "command_arguments": [
+// CHECK:          "{{.*[\\/]}}parseable_output-[[OUTPUT]].o",
+// CHECK:          "-o",
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output.code.tmp.out"
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "inputs": [
+// CHECK-NEXT:     "{{.*[\\/]}}parseable_output-[[OUTPUT]].o"
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "outputs": [
+// CHECK-NEXT:     {
+// CHECK-NEXT:       "type": "image",
+// CHECK-NEXT:       "path": "{{.*[\\/]}}parseable_output.code.tmp.out"
+// CHECK-NEXT:     }
+// CHECK-NEXT:   ],
+// CHECK-NEXT:   "pid": 3,
+// CHECK-NEXT:   "process": {
+// CHECK-NEXT:   	"real_pid": 3
+// CHECK-NEXT:   }
+// CHECK-NEXT: }
+
+// CHECK-NEXT: {{[1-9][0-9]*}}
+// CHECK-NEXT: {
+// CHECK-NEXT:   "kind": "finished",
+// CHECK-NEXT:   "name": "link",
+// CHECK-NEXT:   "pid": 3,
+// CHECK-NEXT:   "output": "Output placeholder\n",
+// CHECK-NEXT:   "process": {
+// CHECK-NEXT:   	"real_pid": 3
+// CHECK-NEXT:   },
+// CHECK-NEXT:   "exit-status": 0
+// CHECK-NEXT: }

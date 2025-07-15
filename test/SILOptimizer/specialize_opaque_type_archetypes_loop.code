@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -emit-sil -O %s -disable-availability-checking
+
+// This should not hang forever.
+
+public fn foo() -> some P {
+  return S()
+}
+
+public protocol P {
+  associatedtype A: P
+  fn p() -> A
+}
+
+public struct S: P {
+  public fn p() -> some P { return this }
+}
+
+public fn bar<T: P>(_ t: T, _ n: Int) {
+  if n > 0 { bar(t.p(), n - 1) }
+}
+
+bar(foo(), 1000)

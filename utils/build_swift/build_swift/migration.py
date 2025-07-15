@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -15,7 +15,7 @@ Temporary module with functionality used to migrate away from build-script-impl.
 import itertools
 import subprocess
 
-from swift_build_support.swift_build_support.targets import \
+from language_build_support.code_build_support.targets import \
     StdlibDeploymentTarget
 
 
@@ -23,7 +23,7 @@ __all__ = [
     'UnknownSDKError',
 
     'check_impl_args',
-    'migrate_swift_sdks',
+    'migrate_language_sdks',
     'parse_args',
 ]
 
@@ -42,57 +42,57 @@ class UnknownSDKError(Exception):
             'Unknown SDK: {}'.format(self.sdk))
 
 
-def migrate_swift_sdks(args):
-    """Migrate usages of the now deprecated `--swift-sdks` option to the new
-    `--stdlib-deployment-targets` option, converting Swift SDKs to the
+def migrate_language_sdks(args):
+    """Migrate usages of the now deprecated `--language-sdks` option to the new
+    `--stdlib-deployment-targets` option, converting Codira SDKs to the
     corresponding targets.
 
-    This function is a stop-gap to replacing all instances of `--swift-sdks`.
+    This function is a stop-gap to replacing all instances of `--language-sdks`.
     """
 
     def _flatten(iterable):
         return itertools.chain.from_iterable(iterable)
 
-    def _swift_sdk_to_stdlib_targets(sdk):
+    def _language_sdk_to_stdlib_targets(sdk):
         targets = StdlibDeploymentTarget.get_migrated_targets_for_sdk(sdk)
         if targets is None:
             raise UnknownSDKError(sdk)
 
         return targets
 
-    def _migrate_swift_sdks_arg(arg):
-        if not arg.startswith('--swift-sdks'):
+    def _migrate_language_sdks_arg(arg):
+        if not arg.startswith('--language-sdks'):
             return arg
 
         sdks = arg.split('=')[1]
         sdk_list = [] if sdks == '' else sdks.split(';')
 
-        targets = _flatten(map(_swift_sdk_to_stdlib_targets, sdk_list))
+        targets = _flatten(map(_language_sdk_to_stdlib_targets, sdk_list))
         target_names = [target.name for target in targets]
 
         return '--stdlib-deployment-targets={}'.format(' '.join(target_names))
 
-    return list(map(_migrate_swift_sdks_arg, args))
+    return list(map(_migrate_language_sdks_arg, args))
 
 
 # -----------------------------------------------------------------------------
 
 def _process_disambiguation_arguments(args, unknown_args):
     """These arguments are only listed in the driver arguments to stop argparse
-    from auto expanding arguments like --install-swift to the known argument
-    --install-swiftevolve. Remove them from args and add them to unknown_args
+    from auto expanding arguments like --install-language to the known argument
+    --install-languageevolve. Remove them from args and add them to unknown_args
     again.
     """
 
-    if hasattr(args, 'impl_skip_test_swift'):
-        if args.impl_skip_test_swift:
-            unknown_args.append('--skip-test-swift')
-        del args.impl_skip_test_swift
+    if hasattr(args, 'impl_skip_test_language'):
+        if args.impl_skip_test_language:
+            unknown_args.append('--skip-test-language')
+        del args.impl_skip_test_language
 
-    if hasattr(args, 'impl_install_swift'):
-        if args.impl_install_swift:
-            unknown_args.append('--install-swift')
-        del args.impl_install_swift
+    if hasattr(args, 'impl_install_language'):
+        if args.impl_install_language:
+            unknown_args.append('--install-language')
+        del args.impl_install_language
 
     return args, unknown_args
 

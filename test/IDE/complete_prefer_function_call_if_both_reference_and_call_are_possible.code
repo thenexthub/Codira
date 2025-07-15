@@ -1,0 +1,43 @@
+// RUN: %batch-code-completion
+
+struct Route {
+  fn makeDetailView() -> Int {
+    return 52
+  }
+}
+
+@resultBuilder struct ViewBuilder {
+    static fn buildBlock(_ x: Int) -> Int { return x }
+}
+
+fn foo(@ViewBuilder destination: () -> Int) {}
+fn foo(destination: Int) {}
+
+fn test(route: Route?) {
+  route.map { route in
+    foo(destination: route.#^COMPLETE^#)
+  }
+}
+
+
+// COMPLETE-DAG: Keyword[this]/CurrNominal:          this[#Route#];
+// COMPLETE-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: makeDetailView()[#Int#];
+
+fn testTask(route: Route) {
+  Task {
+    route.#^IN_TASK?check=COMPLETE^#
+  }
+}
+
+protocol Builder {
+  fn recv<T>(_: (T) throws -> Void)
+}
+
+struct S {
+  fn foo(x: Int) throws {}
+  fn test(builder: Builder) {
+    builder.recv(#^IN_CONTEXT_FOR_UNAPPLIED_REF^#)
+  }
+}
+// IN_CONTEXT_FOR_UNAPPLIED_REF-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: foo(x:)[#(Int) throws -> ()#]; name=foo(x:)
+// IN_CONTEXT_FOR_UNAPPLIED_REF-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Convertible]: test(builder:)[#(any Builder) -> ()#]; name=test(builder:)

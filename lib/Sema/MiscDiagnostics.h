@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_MISC_DIAGNOSTICS_H
-#define SWIFT_SEMA_MISC_DIAGNOSTICS_H
+#ifndef LANGUAGE_SEMA_MISC_DIAGNOSTICS_H
+#define LANGUAGE_SEMA_MISC_DIAGNOSTICS_H
 
 #include "language/AST/ASTWalker.h"
 #include "language/AST/AttrKind.h"
 #include "language/AST/Expr.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Pattern.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/STLFunctionalExtras.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/STLFunctionalExtras.h"
 #include <optional>
 
 namespace language {
@@ -44,7 +45,7 @@ namespace language {
 
   /// Emit diagnostics for syntactic restrictions on a given expression.
   void performSyntacticExprDiagnostics(const Expr *E, const DeclContext *DC,
-                                       bool isExprStmt);
+                                       bool isExprStmt, bool isConstInitExpr);
 
   /// Emit diagnostics for a given statement.
   void performStmtDiagnostics(const Stmt *S, DeclContext *DC);
@@ -104,6 +105,13 @@ namespace language {
   void diagnoseConstantArgumentRequirement(const Expr *expr,
                                            const DeclContext *declContext);
 
+  /// If \p expr is a `@const` expression which contains values and
+  /// operations that are not legal in a `@const` expression,
+  /// emit an error diagnostic.
+  void diagnoseInvalidConstExpressions(const Expr *expr,
+                                       const DeclContext *declContext,
+                                       bool isConstInitExpr);
+
   /// Attempt to fix the type of \p decl so that it's a valid override for
   /// \p base...but only if we're highly confident that we know what the user
   /// should have written.
@@ -116,7 +124,7 @@ namespace language {
   /// \returns true iff any fix-its were attached to \p diag.
   bool computeFixitsForOverriddenDeclaration(
       ValueDecl *decl, const ValueDecl *base,
-      llvm::function_ref<std::optional<InFlightDiagnostic>(bool)> diag);
+      toolchain::function_ref<std::optional<InFlightDiagnostic>(bool)> diag);
 
   /// Emit fix-its to enclose trailing closure in argument parens.
   void fixItEncloseTrailingClosure(ASTContext &ctx, InFlightDiagnostic &diag,
@@ -181,10 +189,10 @@ namespace language {
                      ModuleDecl *module,
                      SourceLoc loc,
                      Expr *subExpr,
-                     llvm::function_ref<Type(Expr *)> getType = [](Expr *E) {
+                     toolchain::function_ref<Type(Expr *)> getType = [](Expr *E) {
                        return E->getType();
                      });
 } // namespace language
 
-#endif // SWIFT_SEMA_MISC_DIAGNOSTICS_H
+#endif // LANGUAGE_SEMA_MISC_DIAGNOSTICS_H
 

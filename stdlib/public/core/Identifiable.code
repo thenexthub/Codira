@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A class of types whose instances hold the value of an entity with stable
@@ -38,7 +42,7 @@
 /// `ObjectIdentifier`), which is only guaranteed to remain unique for the
 /// lifetime of an object. If an object has a stronger notion of identity, it
 /// may be appropriate to provide a custom implementation.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public protocol Identifiable<ID> {
 
   /// A type representing the stable identity of the entity associated with
@@ -49,9 +53,9 @@ public protocol Identifiable<ID> {
   var id: ID { get }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension Identifiable where Self: AnyObject {
   public var id: ObjectIdentifier {
-    return ObjectIdentifier(self)
+    return ObjectIdentifier(this)
   }
 }

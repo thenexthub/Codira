@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t)
+//
+// Test will build a module TestModule that depends on OtherModule and LeafModule (built from other.code and leaf.code).
+//
+// RUN: echo 'public fn LeafFunc() -> Int { return 10; }' >%t/leaf.code
+//
+// RUN: echo 'import LeafModule' >%t/other.code
+// RUN: echo 'public fn OtherFunc() -> Int { return LeafFunc(); }' >>%t/other.code
+//
+// Phase 1: build LeafModule into a .codeinterface file with -language-version 4:
+//
+// RUN: %target-language-frontend -language-version 4 -I %t -module-cache-path %t/modulecache -emit-module-interface-path %t/LeafModule.codeinterface -module-name LeafModule %t/leaf.code -typecheck
+//
+// Phase 2: build OtherModule into a .codeinterface file with -language-version 4.2:
+//
+// RUN: %target-language-frontend -language-version 4.2 -I %t -module-cache-path %t/modulecache -emit-module-interface-path %t/OtherModule.codeinterface -module-name OtherModule %t/other.code -typecheck
+//
+// Phase 3: build TestModule in -language-version 5 and import both of these:
+//
+// RUN: %target-language-frontend -language-version 5 -I %t -module-cache-path %t/modulecache -module-name TestModule %s -typecheck
+//
+// Phase 4: make sure we only compiled LeafModule and OtherModule one time:
+//
+// RUN: ls %t/modulecache | grep -c 'LeafModule-.*.codemodule' | %FileCheck %s
+// RUN: ls %t/modulecache | grep -c 'OtherModule-.*.codemodule' | %FileCheck %s
+// CHECK: 1
+
+import LeafModule
+import OtherModule

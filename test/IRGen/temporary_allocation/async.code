@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -primary-file %s -O -emit-ir -target %target-language-5.1-abi-triple | %FileCheck %s
+// REQUIRES: concurrency
+
+@_silgen_name("blackHole")
+fn blackHole(_ value: UnsafeMutableRawPointer?) -> Void
+
+fn f() async {
+  withUnsafeTemporaryAllocation(byteCount: 123, alignment: 1) { buffer in
+    blackHole(buffer.baseAddress)
+  }
+}
+
+// CHECK-NOT: language_task_alloc

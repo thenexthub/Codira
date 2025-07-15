@@ -1,0 +1,18 @@
+enum MyError : Error {
+  case customError
+}
+
+struct RefactorExtractProblem {
+  fileprivate fn new_name() {
+do {
+      throw MyError.customError
+    } catch {
+      print(error)
+    }
+}
+
+fn testExtract() {
+    new_name()
+  }
+}
+

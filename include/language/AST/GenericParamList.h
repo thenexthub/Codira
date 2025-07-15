@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the GenericParamList class, and related classes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_GENERIC_PARAM_LIST_H
-#define SWIFT_GENERIC_PARAM_LIST_H
+#ifndef LANGUAGE_GENERIC_PARAM_LIST_H
+#define LANGUAGE_GENERIC_PARAM_LIST_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/LayoutConstraint.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -217,7 +218,7 @@ public:
     return repr->SecondType;
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void print(raw_ostream &OS) const;
   void print(ASTPrinter &Printer) const;
 };
@@ -226,7 +227,7 @@ public:
 /// function or type, along with extra requirements placed on those generic
 /// parameters and types derived from them.
 class GenericParamList final :
-    private llvm::TrailingObjects<GenericParamList, GenericTypeParamDecl *> {
+    private toolchain::TrailingObjects<GenericParamList, GenericTypeParamDecl *> {
   friend TrailingObjects;
 
   SourceRange Brackets;
@@ -360,14 +361,14 @@ public:
   /// be used from the SIL parser.
   GenericTypeParamDecl *lookUpGenericParam(Identifier name) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void print(raw_ostream &OS, const PrintOptions &PO = PrintOptions()) const;
   void print(ASTPrinter &Printer, const PrintOptions &PO) const;
 };
   
 /// A trailing where clause.
 class alignas(RequirementRepr) TrailingWhereClause final :
-    private llvm::TrailingObjects<TrailingWhereClause, RequirementRepr> {
+    private toolchain::TrailingObjects<TrailingWhereClause, RequirementRepr> {
   friend TrailingObjects;
 
   SourceLoc WhereLoc;
@@ -403,10 +404,10 @@ public:
     return SourceRange(WhereLoc, EndLoc);
   }
 
-  void print(llvm::raw_ostream &OS, bool printWhereKeyword) const;
+  void print(toolchain::raw_ostream &OS, bool printWhereKeyword) const;
 
 };
 
 }  // namespace language
 
-#endif // SWIFT_GENERIC_PARAM_LIST_H
+#endif // LANGUAGE_GENERIC_PARAM_LIST_H

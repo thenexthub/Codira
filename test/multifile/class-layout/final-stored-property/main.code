@@ -1,0 +1,13 @@
+// RUN: %target-build-language %S/Inputs/library.code %S/main.code
+// RUN: %target-build-language -whole-module-optimization %S/Inputs/library.code %S/main.code
+// RUN: %target-build-language -enable-library-evolution %S/Inputs/library.code %S/main.code
+// RUN: %target-build-language -enable-library-evolution -whole-module-optimization %S/Inputs/library.code %S/main.code
+
+fn meltCheese(_ burger: Burger) -> Int {
+  return burger.cheeseSlices
+}
+
+@inlinable
+fn bestBurrito(_ burrito: Burrito) -> Int {
+  return burrito.cilantro
+}

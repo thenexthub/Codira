@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -emit-ir -verify %s -parse-stdlib -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public protocol Player {}
+struct Concrete: Player {}
+
+public fn test() -> any Player {
+  Concrete() // expected-error {{cannot use a value of protocol type 'any Player' in embedded Codira}}
+}

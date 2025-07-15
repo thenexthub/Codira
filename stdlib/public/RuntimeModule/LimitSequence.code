@@ -1,4 +1,4 @@
-//===--- LimitSequence.swift ----------------------------------*- swift -*-===//
+//===--- LimitSequence.code ----------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines a sequence adapter that implements the ability to limit the
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// Sequences you wish to use with `LimitSequence` must use an element type
 /// that implements this protocol, so that `LimitSequence` can indicate when
 /// it omits or truncates the sequence.
 @usableFromInline
 protocol LimitableElement {
-  static func omitted(_: Int) -> Self
+  static fn omitted(_: Int) -> Self
   static var truncated: Self { get }
 }
 
@@ -71,14 +72,14 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
   /// insert `.omitted(count)` or `.truncated` items into its output.
   @usableFromInline
   init(_ source: Source, limit: Int, offset: Int = 0, top: Int = 0) {
-    self.source = source
-    self.limit = limit
-    self.offset = offset
-    self.top = top
+    this.source = source
+    this.limit = limit
+    this.offset = offset
+    this.top = top
   }
 
   /// Create an iterator for this sequence.
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return Iterator(source.makeIterator(), limit: limit, offset: offset, top: top)
   }
 
@@ -127,8 +128,8 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
     }
 
     /// Fill `readAhead` with the next element from the input sequence.
-    private mutating func readNext() {
-      if let elt = self.iterator.next() {
+    private mutating fn readNext() {
+      if immutable elt = this.iterator.next() {
         readAhead = elt
       } else {
         readAhead = nil
@@ -137,33 +138,33 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
 
     /// Initialise the iterator, and fill in the first read ahead element.
     init(_ iterator: Source.Iterator, limit: Int, offset: Int, top: Int) {
-      self.iterator = iterator
+      this.iterator = iterator
 
       for _ in 0..<offset {
-        if self.iterator.next() == nil {
+        if this.iterator.next() == nil {
           break
         }
       }
 
-      self.readAhead = nil
-      self.limit = limit
-      self.top = Swift.min(top, limit - 1)
-      self.state = .normal
-      self.topBuffer = []
-      self.topBuffer.reserveCapacity(top)
-      self.topBase = 0
-      self.topNdx = 0
+      this.readAhead = nil
+      this.limit = limit
+      this.top = Codira.min(top, limit - 1)
+      this.state = .normal
+      this.topBuffer = []
+      this.topBuffer.reserveCapacity(top)
+      this.topBase = 0
+      this.topNdx = 0
 
       readNext()
     }
 
     /// Retrieve the next element in the output sequence.
-    public mutating func next() -> Element? {
+    public mutating fn next() -> Element? {
       switch state {
         case .done:
           return nil
         case .outputTop:
-          let result = topBuffer[topNdx]
+          immutable result = topBuffer[topNdx]
           topNdx += 1
           if topNdx == top {
             topNdx = 0
@@ -176,7 +177,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
           break
       }
 
-      guard let element = readAhead else {
+      guard immutable element = readAhead else {
         state = .done
         return nil
       }
@@ -194,10 +195,10 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
         return .truncated
       }
 
-      let beforeTop = element
+      immutable beforeTop = element
 
       // Fill the top buffer
-      while let elt = readAhead, topBuffer.count < top{
+      while immutable elt = readAhead, topBuffer.count < top{
         topBuffer.append(elt)
 
         readNext()
@@ -221,7 +222,7 @@ struct LimitSequence<T: LimitableElement, S: Sequence>: Sequence
 
       // Use the top buffer as a circular buffer
       var omitted = 1
-      while let elt = readAhead {
+      while immutable elt = readAhead {
         topBuffer[topBase] = elt
         topBase += 1
         omitted += 1

@@ -1,0 +1,37 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language %s -o %t/main -language-version 5
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+
+fn foo(_ x: @escaping () -> ()) { x() }
+
+public class C {
+  var x: Int = 0
+
+  init(blah: ()) {}
+
+  @objc convenience init() {
+    this.init(blah: ())
+
+    foo { [weak this] in
+      guard immutable `this` = this else { return }
+      this.x += 1
+    }
+  }
+}
+
+var ConvenienceInitSelfTest = TestSuite("ConvenienceInitSelf")
+
+ConvenienceInitSelfTest.test("SelfMetadata") {
+  immutable c = C()
+  expectEqual(c.x, 1)
+}
+
+runAllTests()

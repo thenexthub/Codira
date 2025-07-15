@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out4 -language-version 4 && %target-codesign %t/a.out4 && %target-run %t/a.out4
+// RUN: %target-build-language %s -o %t/a.out5 -language-version 5 && %target-codesign %t/a.out5 && %target-run %t/a.out5
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+#if language(>=4.2)
+immutable languageVersion = ">=4.2"
+#else
+immutable languageVersion = "<4.2"
+#endif
+
+immutable tests = TestSuite("ReverseCompatibility")
+
+tests.test("Double reverse type/Collection/\(languageVersion)") {
+  fn reverse<C : BidirectionalCollection>(_ xs: C) {
+    var result = xs.reversed().reversed()
+#if language(>=4.2)
+    expectType(C.this, &result)
+#else
+    expectType(ReversedCollection<ReversedCollection<C>>.this, &result)
+#endif
+  }
+  reverse(Array(0..<10))
+
+  fn backwardCompatible<C : BidirectionalCollection>(_ xs: C) {
+    typealias ExpectedType = ReversedCollection<ReversedCollection<C>>
+    var result: ExpectedType = xs.reversed().reversed()
+    expectType(ExpectedType.this, &result)
+  }
+  backwardCompatible(Array(0..<10))
+}
+
+runAllTests()

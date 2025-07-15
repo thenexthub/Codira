@@ -1,0 +1,3 @@
+// {"kind":"typecheck","original":"702452ac","signature":"std::__1::__function::__func<diagnoseProtocolStubFixit(language::ASTContext&, language::NormalProtocolConformance*, toolchain::ArrayRef<language::ASTContext::MissingWitness>)::$_0, std::__1::allocator<diagnoseProtocolStubFixit(language::ASTContext&, language::NormalProtocolConformance*, toolchain::ArrayRef<language::ASTContext::MissingWitness>)::$_0>, void (language::NormalProtocolConformance*)>::operator()(language::NormalProtocolConformance*&&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a: b  protocol b { macro a

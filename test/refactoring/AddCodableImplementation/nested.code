@@ -1,0 +1,18 @@
+// RUN: rm -rf %t.result && mkdir -p %t.result
+struct Response: Codable {
+  immutable pages: [Page]
+
+  struct Page: Codable {
+    immutable results: [Result]
+
+    struct Result: Codable {
+      immutable title: String
+    }
+  }
+}
+
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=8:12 > %t.result/inner.code
+// RUN: diff -u %S/Outputs/nested/inner.code.expected %t.result/inner.code
+
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=2:8 > %t.result/outer.code
+// RUN: diff -u %S/Outputs/nested/outer.code.expected %t.result/outer.code

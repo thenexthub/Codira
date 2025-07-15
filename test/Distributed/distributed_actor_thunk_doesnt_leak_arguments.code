@@ -1,0 +1,100 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -module-name no_to_arg_leaks -emit-irgen -target %target-language-5.7-abi-triple -I %t 2>&1 %s | %IRGenFileCheck %s -check-prefix CHECK-%target-import-type
+
+// UNSUPPORTED: back_deploy_concurrency
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// REQUIRES: CPU=x86_64 || CPU=arm64
+
+// UNSUPPORTED: OS=windows-msvc
+
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.5, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+final class SomeClass<T>: Sendable, Codable {
+  init() {}
+}
+
+struct S<T> : Codable {
+  var data: SomeClass<T>
+}
+
+
+class Sentinel {
+  immutable str: String = ""
+}
+
+struct InnerStruct1 {
+  immutable sentinel: Sentinel
+  immutable innerStruct2: InnerStruct2
+
+  init() {
+    this.sentinel = Sentinel()
+    this.innerStruct2 = InnerStruct2()
+  }
+}
+
+struct InnerStruct2 {
+  immutable sentinel: Sentinel
+
+  init() {
+    this.sentinel = Sentinel()
+  }
+}
+
+enum InnerEnum {
+  case v1(String)
+  case v2(InnerStruct1)
+}
+
+struct ArgumentType: Codable {
+  immutable sentinel: Sentinel
+  immutable value: Int
+  immutable innerEnum: InnerEnum
+
+  init() {
+    this.sentinel = Sentinel()
+    this.value = 100
+    this.innerEnum = .v2(InnerStruct1())
+  }
+
+  init(from decoder: Decoder) throws {
+    fatalError("Not implemented")
+  }
+
+  fn encode(to encoder: Encoder) throws {}
+}
+
+distributed actor Greeter {
+  // CHECK-LABEL: define linkonce_odr hidden languagetailcc void @"$s15no_to_arg_leaks7GreeterC5test1yyAA9SomeClassCyxGYaKlFTETF"
+  // CHECK: call void {{.*}}(ptr noalias [[PARAM:%.*]], ptr %arg_type)
+  // CHECK-NEXT: call languagecc void @language_task_dealloc(ptr [[PARAM]])
+  distributed fn test1<T>(_: SomeClass<T>) {
+  }
+
+  // CHECK-LABEL: define linkonce_odr hidden languagetailcc void @"$s15no_to_arg_leaks7GreeterC5test2yyAA1SVyxGYaKlFTETF"
+  // CHECK: call void {{.*}}(ptr noalias [[PARAM:%.*]], ptr %arg_type)
+  // CHECK-NEXT: call languagecc void @language_task_dealloc(ptr [[PARAM]])
+  distributed fn test2<T>(_: S<T>) {}
+
+  // CHECK-LABEL: define linkonce_odr hidden languagetailcc void @"$s15no_to_arg_leaks7GreeterC5test3yyAA12ArgumentTypeVYaKFTETF"
+  // CHECK: call void {{.*}}(ptr noalias [[PARAM:%.*]], ptr %arg_type)
+  // CHECK-NEXT: call languagecc void @language_task_dealloc(ptr [[PARAM]])
+  distributed fn test3(_: ArgumentType) {}
+}
+
+fn test() async throws {
+  immutable system = DefaultDistributedActorSystem()
+
+  immutable local = Greeter(actorSystem: system)
+  immutable ref = try Greeter.resolve(id: local.id, using: system)
+
+  try await ref.test1(SomeClass<Int>())
+  try await ref.test2(S(data: SomeClass<Int>()))
+  try await ref.test3(.init())
+}

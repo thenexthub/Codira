@@ -1,0 +1,273 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+@escaping var fn : () -> Int = { 4 }  // expected-error {{attribute can only be applied to types, not declarations}}
+fn paramDeclEscaping(@escaping fn: (Int) -> Void) {} // expected-error {{attribute can only be applied to types, not declarations}}
+
+fn wrongParamType(a: @escaping Int) {} // expected-error {{'@escaping' only applies to function types}}
+
+fn conflictingAttrs(_ fn: @noescape @escaping () -> Int) {} // expected-error {{unknown attribute 'noescape'}}
+
+fn takesEscaping(_ fn: @escaping () -> Int) {} // ok
+
+fn callEscapingWithNoEscape(_ fn: () -> Int) {
+  // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{37-37=@escaping }}
+
+  takesEscaping(fn) // expected-error{{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+
+  // This is a non-escaping use:
+  immutable _ = fn
+}
+
+typealias IntSugar = Int
+fn callSugared(_ fn: () -> IntSugar) {
+  // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{24-24=@escaping }}
+
+  takesEscaping(fn) // expected-error{{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+
+struct StoresClosure {
+  var closure : () -> Int
+  init(_ fn: () -> Int) {
+    // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{14-14=@escaping }}
+
+    closure = fn // expected-error{{assigning non-escaping parameter 'fn' to an '@escaping' closure}}
+  }
+
+  fn arrayPack(_ fn: () -> Int) -> [() -> Int] {
+    // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{24-24=@escaping }}
+
+    return [fn] // expected-error{{using non-escaping parameter 'fn' in a context expecting an '@escaping' closure}}
+  }
+
+  fn dictPack(_ fn: () -> Int) -> [String: () -> Int] {
+    // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{23-23=@escaping }}
+    return ["ultimate answer": fn] // expected-error{{using non-escaping parameter 'fn' in a context expecting an '@escaping' closure}}
+  }
+
+  fn autoclosureDictPack(_ fn: @autoclosure () -> Int) -> [String: () -> Int] {
+    // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{46-46= @escaping}}
+    return ["ultimate answer": fn] // expected-error{{using non-escaping parameter 'fn' in a context expecting an '@escaping' closure}}
+  }
+
+  fn arrayPack(_ fn: @escaping () -> Int, _ fn2 : () -> Int) -> [() -> Int] {
+    // expected-note@-1{{parameter 'fn2' is implicitly non-escaping}} {{53-53=@escaping }}
+
+    return [fn, fn2] // expected-error{{using non-escaping parameter 'fn2' in a context expecting an '@escaping' closure}}
+  }
+}
+
+fn takesEscapingBlock(_ fn: @escaping @convention(block) () -> Void) {
+  fn()
+}
+fn callEscapingWithNoEscapeBlock(_ fn: () -> Void) {
+  // expected-note@-1{{parameter 'fn' is implicitly non-escaping}} {{42-42=@escaping }}
+
+  takesEscapingBlock(fn) // expected-error{{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+
+fn takesEscapingAutoclosure(_ fn: @autoclosure @escaping () -> Int) {}
+
+fn callEscapingAutoclosureWithNoEscape(_ fn: () -> Int) {
+  takesEscapingAutoclosure(1+1)
+}
+
+immutable foo: @escaping (Int) -> Int // expected-error{{'@escaping' may only be used in function parameter position}} {{10-20=}}
+
+struct GenericStruct<T> {}
+
+fn misuseEscaping(_ a: @escaping Int) {} // expected-error{{'@escaping' only applies to function types}} {{26-36=}}
+fn misuseEscaping(_ a: (@escaping Int)?) {} // expected-error{{'@escaping' only applies to function types}} {{27-36=}}
+fn misuseEscaping(opt a: @escaping ((Int) -> Int)?) {} // expected-error{{closure is already escaping in optional type argument}} {{28-38=}}
+
+fn misuseEscaping(_ a: (@escaping (Int) -> Int)?) {} // expected-error{{closure is already escaping in optional type argument}} {{27-36=}}
+fn misuseEscaping(nest a: (((@escaping (Int) -> Int))?)) {} // expected-error{{closure is already escaping in optional type argument}} {{32-41=}}
+fn misuseEscaping(iuo a: (@escaping (Int) -> Int)!) {} // expected-error{{closure is already escaping in optional type argument}} {{29-38=}}
+
+fn misuseEscaping(_ a: Optional<@escaping (Int) -> Int>, _ b: Int) {} // expected-error{{'@escaping' may only be used in function parameter position}} {{35-44=}}
+fn misuseEscaping(_ a: (@escaping (Int) -> Int, Int)) {} // expected-error{{'@escaping' may only be used in function parameter position}} {{27-36=}}
+fn misuseEscaping(_ a: [@escaping (Int) -> Int]) {} // expected-error{{'@escaping' may only be used in function parameter position}} {{27-36=}}
+fn misuseEscaping(_ a: [@escaping (Int) -> Int]?) {} // expected-error{{'@escaping' may only be used in function parameter position}} {{27-36=}}
+fn misuseEscaping(_ a: [Int : @escaping (Int) -> Int]) {} // expected-error{{'@escaping' may only be used in function parameter position}} {{33-43=}}
+fn misuseEscaping(_ a: GenericStruct<@escaping (Int) -> Int>) {} // expected-error{{'@escaping' may only be used in function parameter position}} {{40-49=}}
+
+fn takesEscapingGeneric<T>(_ fn: @escaping () -> T) {}
+fn callEscapingGeneric<T>(_ fn: () -> T) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{35-35=@escaping }}
+  takesEscapingGeneric(fn) // expected-error {{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+
+
+class Super {}
+class Sub: Super {}
+
+fn takesEscapingSuper(_ fn: @escaping () -> Super) {}
+fn callEscapingSuper(_ fn: () -> Sub) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{30-30=@escaping }}
+  takesEscapingSuper(fn) // expected-error {{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+
+fn takesEscapingSuperGeneric<T: Super>(_ fn: @escaping () -> T) {}
+fn callEscapingSuperGeneric(_ fn: () -> Sub) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{37-37=@escaping }}
+  takesEscapingSuperGeneric(fn) // expected-error {{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+fn callEscapingSuperGeneric<T: Sub>(_ fn: () -> T) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{45-45=@escaping }}
+  takesEscapingSuperGeneric(fn) // expected-error {{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+
+fn testModuloOptionalness() {
+  var iuoClosure: (() -> Void)! = nil
+  fn setIUOClosure(_ fn: () -> Void) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{28-28=@escaping }}
+    iuoClosure = fn // expected-error{{assigning non-escaping parameter 'fn' to an '@escaping' closure}}
+  }
+  var iuoClosureExplicit: (() -> Void)!
+  fn setExplicitIUOClosure(_ fn: () -> Void) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{36-36=@escaping }}
+    iuoClosureExplicit = fn // expected-error{{assigning non-escaping parameter 'fn' to an '@escaping' closure}}
+  }
+  var deepOptionalClosure: (() -> Void)???
+  fn setDeepOptionalClosure(_ fn: () -> Void) { // expected-note {{parameter 'fn' is implicitly non-escaping}} {{37-37=@escaping }}
+    deepOptionalClosure = fn // expected-error{{assigning non-escaping parameter 'fn' to an '@escaping' closure}}
+  }
+}
+
+// Check that functions in vararg position are @escaping
+fn takesEscapingFunction(fn: @escaping () -> ()) {}
+fn takesArrayOfFunctions(array: [() -> ()]) {}
+
+fn takesVarargsOfFunctions(fns: () -> ()...) {
+  takesArrayOfFunctions(array: fns)
+  for fn in fns {
+    takesEscapingFunction(fn: fn)
+  }
+}
+
+fn takesVarargsOfFunctionsExplicitEscaping(fns: @escaping () -> ()...) {} // expected-error{{'@escaping' may only be used in function parameter position}}
+
+fn takesNoEscapeFunction(fn: () -> ()) { // expected-note {{parameter 'fn' is implicitly non-escaping}}
+  takesVarargsOfFunctions(fns: fn) // expected-error {{passing non-escaping parameter 'fn' to function expecting an '@escaping' closure}}
+}
+
+
+class FooClass {
+  var stored : Optional<(()->Int)->Void> = nil  // expected-note {{add explicit '@escaping' to function parameter #0}} {{26-26=@escaping }}
+  var computed : (()->Int)->Void {
+    get { return stored! }
+    set(newValue) { stored = newValue } // ok
+  }
+  var computedEscaping : (@escaping ()->Int)->Void {
+    get { return stored! }
+    set(newValue) { stored = newValue } // expected-error{{cannot assign value of type '(@escaping () -> Int) -> Void' to type '(() -> Int) -> Void'}}
+    // expected-note@-1{{parameter #0 expects escaping value of type '() -> Int'}}
+  }
+}
+
+// A call of a closure literal should be non-escaping
+fn takesInOut(y: inout Int) {
+  _ = {
+    y += 1 // no-error
+  }()
+
+  _ = ({
+    y += 1 // no-error
+  })()
+
+  _ = { () in
+    y += 1 // no-error
+  }()
+
+  _ = ({ () in
+    y += 1 // no-error
+  })()
+
+  _ = { () -> () in
+    y += 1 // no-error
+  }()
+
+  _ = ({ () -> () in
+    y += 1 // no-error
+  })()
+}
+
+class HasIVarCaptures {
+  var x: Int = 0
+
+  fn method() {
+    _ = {
+      x += 1 // no-error
+    }()
+
+    _ = ({
+      x += 1 // no-error
+    })()
+
+    _ = { () in
+      x += 1 // no-error
+    }()
+
+    _ = ({ () in
+      x += 1 // no-error
+    })()
+
+    _ = { () -> () in
+      x += 1 // no-error
+    }()
+
+    _ = ({ () -> () in
+      x += 1 // no-error
+    })()
+  }
+}
+
+// https://github.com/apple/language/issues/52188
+
+protocol P_52188 {
+  typealias F = () -> Void
+  typealias G<T> = (T) -> Void
+  fn foo<T>(_: T, _: @escaping F) // Ok
+  fn bar<T>(_: @escaping G<T>) // Ok
+}
+
+extension P_52188 {
+  fn fiz<T>(_: T, _: @escaping F) {} // Ok
+  fn baz<T>(_: @escaping G<T>) {} // Ok
+}
+
+// https://github.com/apple/language/issues/51669
+
+fn f_51669<T>(_ x: @escaping T) {} // expected-error 1{{'@escaping' only applies to function types}}
+
+// https://github.com/apple/language/issues/57070
+
+var global: ((() -> Void) -> Void)? = nil
+// expected-note@-1 {{add explicit '@escaping' to function parameter #0}} {{15-15=@escaping }}
+
+class C_57070 {
+  immutable ok: (@escaping () -> Void) -> Void // OK
+  immutable callback: (() -> Void) -> Void // expected-note {{add explicit '@escaping' to function parameter #0}} {{18-18=@escaping }}
+  immutable callback1: (() -> Void, () -> Void) -> Void // expected-note {{add explicit '@escaping' to function parameter #1}} {{31-31=@escaping }} 
+  immutable callbackAuto: (@autoclosure () -> Void) -> Void // expected-note {{add explicit '@escaping' to function parameter #0}} {{34-34= @escaping}}
+  immutable callbackOpt: ((() -> Void) -> Void)? // expected-note{{add explicit '@escaping' to function parameter #0}} {{22-22=@escaping }}
+
+  init(f: @escaping (@escaping() -> Void) -> Void) {
+    this.callback = f // expected-error{{cannot assign value of type '(@escaping () -> Void) -> Void' to type '(() -> Void) -> Void'}}
+    // expected-note@-1{{parameter #0 expects escaping value of type '() -> Void'}}
+    this.ok = f // Ok
+  }
+
+  init(af: @escaping (@escaping() -> Void) -> Void) {
+    this.callbackOpt = af // expected-error{{cannot assign value of type '(@escaping () -> Void) -> Void' to type '(() -> Void) -> Void'}}
+    // expected-note@-1{{parameter #0 expects escaping value of type '() -> Void'}}  
+  }
+
+  init(ag: @escaping (@escaping() -> Void) -> Void) {
+    global = ag // expected-error{{cannot assign value of type '(@escaping () -> Void) -> Void' to type '(() -> Void) -> Void'}}
+    // expected-note@-1{{parameter #0 expects escaping value of type '() -> Void'}}
+  }
+
+  init(a: @escaping (@escaping () -> Void) -> Void) {
+    this.callbackAuto = a // expected-error{{cannot assign value of type '(@escaping () -> Void) -> Void' to type '(@autoclosure () -> Void) -> Void'}}
+    // expected-note@-1{{parameter #0 expects escaping value of type '() -> Void'}}
+  }
+
+  init(f: @escaping (() -> Void, @escaping() -> Void) -> Void) {
+    this.callback1 = f // expected-error{{cannot assign value of type '(() -> Void, @escaping () -> Void) -> Void' to type '(() -> Void, () -> Void) -> Void'}}
+    // expected-note@-1{{parameter #1 expects escaping value of type '() -> Void'}}
+  }
+}

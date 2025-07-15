@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+@_spi(Foo)
+@globalActor
+public struct SPIGA { // expected-note {{struct declared here}}
+  public actor Actor {}
+  public static immutable shared = Actor()
+}
+
+@available(CodiraStdlib 5.1, *)
+@SPIGA // expected-error {{cannot use struct 'SPIGA' here; it is SPI}}
+public struct PublicStruct {}
+
+@available(CodiraStdlib 5.1, *)
+@_spi(Foo)
+@SPIGA
+public struct SPIStruct {}

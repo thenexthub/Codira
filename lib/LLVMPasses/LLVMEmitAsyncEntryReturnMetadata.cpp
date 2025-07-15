@@ -2,22 +2,22 @@
 //
 
 #include "language/LLVMPasses/Passes.h"
-#include "llvm/Pass.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Transforms/Utils/ModuleUtils.h"
+#include "toolchain/Pass.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/Transforms/Utils/ModuleUtils.h"
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
 
-#define DEBUG_TYPE "swift-async-return"
+#define DEBUG_TYPE "language-async-return"
 
 PreservedAnalyses AsyncEntryReturnMetadataPass::run(Module &M,
                                                     ModuleAnalysisManager &AM) {
   bool changed = false;
 
-  SmallVector<llvm::Function *, 16> asyncEntries;
-  SmallVector<llvm::Function *, 16> asyncReturns;
+  SmallVector<toolchain::Function *, 16> asyncEntries;
+  SmallVector<toolchain::Function *, 16> asyncReturns;
   for (auto &F : M) {
     if (F.isDeclaration())
       continue;
@@ -29,47 +29,47 @@ PreservedAnalyses AsyncEntryReturnMetadataPass::run(Module &M,
   }
 
   auto &ctxt = M.getContext();
-  auto int32Ty = llvm::Type::getInt32Ty(ctxt);
+  auto int32Ty = toolchain::Type::getInt32Ty(ctxt);
   auto sizeTy = M.getDataLayout().getIntPtrType(ctxt, /*addrspace*/ 0);
 
   auto addSection = [&] (const char * sectionName, const char *globalName,
-                         SmallVectorImpl<llvm::Function *> & entries) {
+                         SmallVectorImpl<toolchain::Function *> & entries) {
     if (entries.empty())
       return;
 
-    auto intArrayTy = llvm::ArrayType::get(int32Ty, entries.size());
+    auto intArrayTy = toolchain::ArrayType::get(int32Ty, entries.size());
     auto global =
-      new llvm::GlobalVariable(M, intArrayTy, true,
-                               llvm::GlobalValue::InternalLinkage,
+      new toolchain::GlobalVariable(M, intArrayTy, true,
+                               toolchain::GlobalValue::InternalLinkage,
                                nullptr, /*init*/ globalName,
                                nullptr, /*insertBefore*/
-                               llvm::GlobalValue::NotThreadLocal,
+                               toolchain::GlobalValue::NotThreadLocal,
                                0/*address space*/);
     global->setAlignment(Align(4));
     global->setSection(sectionName);
     size_t index = 0;
-    SmallVector<llvm::Constant*, 16> offsets;
+    SmallVector<toolchain::Constant*, 16> offsets;
     for (auto *fn : entries) {
-      llvm::Constant *indices[] = { llvm::ConstantInt::get(int32Ty, 0),
-        llvm::ConstantInt::get(int32Ty, index)};
+      toolchain::Constant *indices[] = { toolchain::ConstantInt::get(int32Ty, 0),
+        toolchain::ConstantInt::get(int32Ty, index)};
       ++index;
 
-      llvm::Constant *base = llvm::ConstantExpr::getInBoundsGetElementPtr(
+      toolchain::Constant *base = toolchain::ConstantExpr::getInBoundsGetElementPtr(
        intArrayTy, global, indices);
-      base = llvm::ConstantExpr::getPtrToInt(base, sizeTy);
-      auto *target = llvm::ConstantExpr::getPtrToInt(fn, sizeTy);
-      llvm::Constant *offset = llvm::ConstantExpr::getSub(target, base);
+      base = toolchain::ConstantExpr::getPtrToInt(base, sizeTy);
+      auto *target = toolchain::ConstantExpr::getPtrToInt(fn, sizeTy);
+      toolchain::Constant *offset = toolchain::ConstantExpr::getSub(target, base);
 
       if (sizeTy != int32Ty) {
-        offset = llvm::ConstantExpr::getTrunc(offset, int32Ty);
+        offset = toolchain::ConstantExpr::getTrunc(offset, int32Ty);
       }
       offsets.push_back(offset);
     }
-    auto constant = llvm::ConstantArray::get(intArrayTy, offsets);
+    auto constant = toolchain::ConstantArray::get(intArrayTy, offsets);
     global->setInitializer(constant);
     appendToUsed(M, global);
 
-    llvm::GlobalVariable::SanitizerMetadata Meta;
+    toolchain::GlobalVariable::SanitizerMetadata Meta;
     Meta.IsDynInit = false;
     Meta.NoAddress = true;
     global->setSanitizerMetadata(Meta);
@@ -77,11 +77,11 @@ PreservedAnalyses AsyncEntryReturnMetadataPass::run(Module &M,
     changed = true;
   };
 
-  addSection("__TEXT,__swift_as_entry, coalesced, no_dead_strip",
-             "__swift_async_entry_functlets",
+  addSection("__TEXT,__language_as_entry, coalesced, no_dead_strip",
+             "__language_async_entry_functlets",
              asyncEntries);
-  addSection("__TEXT,__swift_as_ret, coalesced, no_dead_strip",
-             "__swift_async_ret_functlets",
+  addSection("__TEXT,__language_as_ret, coalesced, no_dead_strip",
+             "__language_async_ret_functlets",
              asyncReturns);
 
   if (!changed)

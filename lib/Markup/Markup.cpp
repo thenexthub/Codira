@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Markup/Markup.h"
@@ -18,8 +19,8 @@
 #include "language/AST/Comment.h"
 #include "language/Basic/Assertions.h"
 #include "language/Markup/LineList.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <optional>
 
 using namespace language;
@@ -110,7 +111,7 @@ ParseResult<CodeBlock> parseCodeBlock(MarkupContext &MC, ParseState State) {
   assert(cmark_node_get_type(State.Node) == CMARK_NODE_CODE_BLOCK
       && State.Event == CMARK_EVENT_ENTER);
 
-  StringRef Language("swift");
+  StringRef Language("language");
 
   if (auto FenceInfo = cmark_node_get_fence_info(State.Node)) {
     StringRef FenceInfoStr(FenceInfo);
@@ -258,11 +259,11 @@ ParseResult<MarkupASTNode> parseElement(MarkupContext &MC, ParseState State) {
   auto NodeType = cmark_node_get_type(State.Node);
   switch (NodeType) {
   case CMARK_NODE_DOCUMENT: {
-    llvm_unreachable("Markup documents cannot be nested");
+    toolchain_unreachable("Markup documents cannot be nested");
   }
   case CMARK_NODE_FOOTNOTE_REFERENCE:
   case CMARK_NODE_FOOTNOTE_DEFINITION: {
-    llvm_unreachable("Footnotes are not currently parsed by swiftMarkup");
+    toolchain_unreachable("Footnotes are not currently parsed by languageMarkup");
   }
   case CMARK_NODE_ATTRIBUTE: {
     return parseAttribute(MC, State);
@@ -319,7 +320,7 @@ ParseResult<MarkupASTNode> parseElement(MarkupContext &MC, ParseState State) {
     return parseHRule(MC, State);
   }
   default: {
-    llvm_unreachable("Can't parse a Markup node of type 'None'");
+    toolchain_unreachable("Can't parse a Markup node of type 'None'");
   }
   }
 }
@@ -347,10 +348,10 @@ static Document *parseDocumentImpl(MarkupContext &MC, StringRef String) {
   return Document::create(MC, Children);
 }
 
-Document *swift::markup::parseDocument(MarkupContext &MC, LineList &LL) {
+Document *language::markup::parseDocument(MarkupContext &MC, LineList &LL) {
   return parseDocumentImpl(MC, LL.str());
 }
 
-Document *swift::markup::parseDocument(MarkupContext &MC, StringRef String) {
+Document *language::markup::parseDocument(MarkupContext &MC, StringRef String) {
   return parseDocumentImpl(MC, MC.allocateCopy(String));
 }

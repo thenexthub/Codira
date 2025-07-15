@@ -16,11 +16,11 @@ TODO:
 
 An opaque return type hides a fixed concrete type behind a generic interface. Opaque return types are declared by defining a function, property or subscript return type with the \texttt{some} keyword:
 \begin{Verbatim}
-func foo() -> some P {...}
+fn foo() -> some P {...}
 var bar: some P {...}
 subscript() -> some P {...}
 \end{Verbatim}
-Opaque return types were first introduced in \IndexSwift{5.1}Swift 5.1 \cite{se0244}. The feature was generalized to allow occurrences of \texttt{some} structurally nested in other types, as well as multiple occurrences of \texttt{some}, in \IndexSwift{5.7}Swift 5.7 \cite{se0328}.
+Opaque return types were first introduced in \IndexCodira{5.1}Codira 5.1 \cite{se0244}. The feature was generalized to allow occurrences of \texttt{some} structurally nested in other types, as well as multiple occurrences of \texttt{some}, in \IndexCodira{5.7}Codira 5.7 \cite{se0328}.
 
 The type that follows \texttt{some} is a constraint type, as defined in \SecRef{requirements}. The underlying type is inferred from \texttt{return} statements in the function body. There must be at least one return statement; if there is more than one, all must return the same concrete type.
 
@@ -34,7 +34,7 @@ The opaque interface generic signature is built from the generic signature of th
  
 The opaque generic environment describes the type of an opaque return type. When computing the interface type of the owner declaration, type resolution replaces each occurrence of the \texttt{some} keyword in the return type with the corresponding opaque archetype.
 
-The underlying substitution map is computed by analyzing the concrete types returned by one or more \texttt{return} statements appearing in the owner declaration's body. The underlying type substitution map is only needed when emitting the owner declaration, not when referencing the owner declaration. It is not computed if the body of the declaration appears in a secondary source file in batch mode (because the body is not parsed or type checked), or if the declaration was parsed from a \texttt{swiftinterface} file (because declaration bodies are not printed in module interfaces).
+The underlying substitution map is computed by analyzing the concrete types returned by one or more \texttt{return} statements appearing in the owner declaration's body. The underlying type substitution map is only needed when emitting the owner declaration, not when referencing the owner declaration. It is not computed if the body of the declaration appears in a secondary source file in batch mode (because the body is not parsed or type checked), or if the declaration was parsed from a \texttt{languageinterface} file (because declaration bodies are not printed in module interfaces).
 
 \begin{example}
 Consider the following declaration:
@@ -68,7 +68,7 @@ The opaque generic environment has a single opaque archetype $\archetype{\ttgp{0
 \begin{example}
 Consider the following declaration:
 \begin{Verbatim}
-func makePair<T: Equatable>(first: T, second: T) -> (some Collection<T>, some Collection<T>) {
+fn makePair<T: Equatable>(first: T, second: T) -> (some Collection<T>, some Collection<T>) {
   return ([first], [second])
 }
 \end{Verbatim}
@@ -141,7 +141,7 @@ TODO: figure with one generic signature, two generic environments, two archetype
 
 \begin{example} Consider this definition:
 \begin{Verbatim}
-func underlyingType<T: Equatable>(_ t: T) -> some Equatable { return 3 }
+fn underlyingType<T: Equatable>(_ t: T) -> some Equatable { return 3 }
 \end{Verbatim}
 The original declaration's generic signature has a single generic parameter, and the return type has a single occurrence of \texttt{some}, so the opaque interface generic signature has two generic parameters, both constrained to \texttt{Equatable}:
 \begin{quote}
@@ -193,7 +193,7 @@ The expression \texttt{x == y} type checks successfully, because \texttt{x} and 
 \begin{example}
 The above behavior might seem silly, since the underlying type of \texttt{underlyingType()}'s opaque return type is always \texttt{Int}, irrespective of the generic parameter \texttt{T} supplied by the caller. However, since opaque return types introduce an abstraction boundary, it is in fact a source-compatible and binary-compatible change to redefine \texttt{underlyingType()} as follows:
 \begin{Verbatim}
-func underlyingType<T: Equatable>(_ t: T) -> some Equatable { return t }
+fn underlyingType<T: Equatable>(_ t: T) -> some Equatable { return t }
 \end{Verbatim}
 Now, the underlying type is \texttt{T}; it would certainly not be valid to mix up the result of calling \texttt{underlyingType()} with an \texttt{Int} and \texttt{String}.
 \end{example}
@@ -203,7 +203,7 @@ The \texttt{GenericEnvironment::forOpaqueType()} method creates an opaque generi
 \begin{example}
 In this example, the specialization of the original declaration is ``exposed'' via a same-type requirement on the opaque return type.
 \begin{Verbatim}
-func sequenceOfOne<Element>(_ elt: Element) -> some Sequence<Element> {
+fn sequenceOfOne<Element>(_ elt: Element) -> some Sequence<Element> {
   return [elt]
 }
 
@@ -253,13 +253,13 @@ public protocol P {
   associatedtype X: Q
   associatedtype Y: Q
   
-  func f() -> (X, Y)
+  fn f() -> (X, Y)
 }
 
 public protocol Q {}
 
 public struct ConcreteP: P {
-  public func f() -> (some Q, some Q) {
+  public fn f() -> (some Q, some Q) {
     return (FirstQ(), SecondQ())
   }
 }
@@ -269,7 +269,7 @@ public struct SecondQ: Q {}
 
 public let mince: (ConcreteP.X, ConcreteP.Y) = ConcreteP().f()
 
-public func pie<S: Sequence>(_: S) where S.Element == ConcreteP.X {}
+public fn pie<S: Sequence>(_: S) where S.Element == ConcreteP.X {}
 \end{Verbatim}
 \end{listing}
 \end{example}
@@ -283,7 +283,7 @@ A direct reference to an opaque return type is expressed in the grammar as a typ
 \begin{quote}
 \texttt{@\_opaqueReturnTypeOf("\underline{mangled name}", \underline{index}) \underline{identifier}}
 \end{quote}
-The mangled name unambiguously identifies the owner declaration. The index identifies a specific opaque archetype among several when the owner declaration's return type contains multiple occurrences of \texttt{some}. The identifier is ignored; in the Swift language grammar, a type attribute must apply to some underlying type representation, so by convention module interface printing outputs ``\texttt{\_\_}'' as the underlying type representation.
+The mangled name unambiguously identifies the owner declaration. The index identifies a specific opaque archetype among several when the owner declaration's return type contains multiple occurrences of \texttt{some}. The identifier is ignored; in the Codira language grammar, a type attribute must apply to some underlying type representation, so by convention module interface printing outputs ``\texttt{\_\_}'' as the underlying type representation.
 
 \begin{example}
 \ListingRef{reference opaque return type from interface} shows the generated module interface for \ListingRef{reference opaque return type}, with some line breaks inserted for readability.
@@ -292,12 +292,12 @@ The mangled name unambiguously identifies the owner declaration. The index ident
 public protocol P {
   associatedtype X : mince.Q
   associatedtype Y : mince.Q
-  func f() -> (Self.X, Self.Y)
+  fn f() -> (Self.X, Self.Y)
 }
 public protocol Q {
 }
 public struct ConcreteP : mince.P {
-  public func f() -> (some mince.Q, some mince.Q)
+  public fn f() -> (some mince.Q, some mince.Q)
   
   public typealias X = @_opaqueReturnTypeOf("$s5mince9ConcretePV1fQr_QR_tyF", 0) __
   public typealias Y = @_opaqueReturnTypeOf("$s5mince9ConcretePV1fQr_QR_tyF", 1) __
@@ -309,8 +309,8 @@ public struct SecondQ : mince.Q {
 
 public let mince: (@_opaqueReturnTypeOf("$s5mince9ConcretePV1fQr_QR_tyF", 0) __,
                    @_opaqueReturnTypeOf("$s5mince9ConcretePV1fQr_QR_tyF", 1) __)
-public func pie<S>(_: S)
-  where S : Swift.Sequence,
+public fn pie<S>(_: S)
+  where S : Codira.Sequence,
         S.Element == @_opaqueReturnTypeOf("$s5mince9ConcretePV1fQr_QR_tyF", 0) __
 \end{Verbatim}
 \end{listing}
@@ -333,7 +333,7 @@ In the module interface file, this prints as the generic argument list \texttt{<
 public protocol P {
   associatedtype X: Q
 
-  func f() -> X
+  fn f() -> X
 }
 
 public protocol Q {}
@@ -342,7 +342,7 @@ public struct ConcreteQ: Q {}
 
 public class Outer<T> {
   public class Inner<U> {
-    public func f() -> some Q {
+    public fn f() -> some Q {
       return ConcreteQ()
     }
   }
@@ -355,7 +355,7 @@ public class Derived: Outer<Int>.Inner<String>, P {}
 \begin{Verbatim}
 public protocol P {
   associatedtype X : mince.Q
-  func f() -> Self.X
+  fn f() -> Self.X
 }
 public protocol Q {
 }
@@ -363,12 +363,12 @@ public struct ConcreteQ : mince.Q {
 }
 public class Outer<T> {
   public class Inner<U> {
-    public func f() -> some mince.Q
+    public fn f() -> some mince.Q
   }
 }
-public class Derived : mince.Outer<Swift.Int>.Inner<Swift.String>, mince.P {
+public class Derived : mince.Outer<Codira.Int>.Inner<Codira.String>, mince.P {
   public typealias X = @_opaqueReturnTypeOf("$s5mince5OuterC5InnerC1fQryF", 0)
-    __<Swift.Int, Swift.String>
+    __<Codira.Int, Codira.String>
 }
 \end{Verbatim}
 \end{listing}
@@ -390,7 +390,7 @@ TODO: figure
 \begin{example}
 The following generic function declares an opaque return type:
 \begin{Verbatim}
-func uniqueElements<E: Hashable>(_ elts: [E]) -> some Sequence<E> {...}
+fn uniqueElements<E: Hashable>(_ elts: [E]) -> some Sequence<E> {...}
 \end{Verbatim}
 The calling convention for \texttt{uniqueElements()} receives the type metadata for \texttt{E} together with a witness table for \texttt{E:\ Hashable} as lowered arguments. The return value is an instance of an opaque archetype, and is returned indirectly.
 
@@ -408,7 +408,7 @@ Finally, the witness table for the conformance of the underlying type to \texttt
 TODO:
 
 \begin{description}
-\item[\texttt{TypeBase}] The base class of the Swift type hierarchy.
+\item[\texttt{TypeBase}] The base class of the Codira type hierarchy.
 \begin{itemize}
 \item \texttt{hasOpaqueArchetype()} Returns true if the type contains an opaque archetype.
 \end{itemize}

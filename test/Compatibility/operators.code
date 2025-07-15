@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// expect-no-diagnostics
+
+struct X { }
+
+postfix fn ++(x: X) -> X { return x }
+prefix fn ++(x: X) -> X { return x }
+postfix fn --(x: X) -> X { return x }
+prefix fn --(x: X) -> X { return x }

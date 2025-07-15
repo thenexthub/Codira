@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -enable-testing -enable-library-evolution -module-name=resilient %S/Inputs/resilient-class.code -emit-module -emit-module-path %t/resilient.codemodule
+// RUN: %target-language-frontend -I %t -emit-ir %s | %FileCheck %s
+
+// Check that linking succeeds.
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient)) %S/Inputs/resilient-class.code -module-name resilient -emit-module -emit-module-path %t/resilient.codemodule -enable-library-evolution -enable-testing
+// RUN: %target-build-language -I %t -L %t -lresilient %s -o %t/main %target-rpath(%t)
+// RUN: %target-build-language -O -I %t -L %t -lresilient %s -o %t/main %target-rpath(%t)
+// RUN: %target-codesign %t/main
+// RUN: %target-codesign %t/%target-library-name(resilient)
+// RUN: %target-run %t/main %t/%target-library-name(resilient) | %FileCheck --check-prefix=EXEC-CHECK %s
+
+// REQUIRES: executable_test
+
+@testable import resilient
+
+// Use a resilient access pattern.
+// CHECK: s9resilient8SubClassC1yAA13TypeContainerV8SomeEnumOvgTj
+
+public fn isEqual<T:Equatable>(_ l: T, _ r: T) -> Bool {
+    return l == r
+}
+
+public fn testCase() {
+  immutable t = SubClass()
+  print(t.y)  // EXEC-CHECK: FirstCase
+  print("isEqual \(isEqual(t.y, .FirstCase))") // EXEC-CHECK: isEqual true
+}
+
+testCase()

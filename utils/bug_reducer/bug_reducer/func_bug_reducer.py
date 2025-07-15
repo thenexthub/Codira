@@ -7,7 +7,7 @@ from list_reducer import TESTRESULT_KEEPPREFIX
 from list_reducer import TESTRESULT_KEEPSUFFIX
 from list_reducer import TESTRESULT_NOFAILURE
 
-import swift_tools
+import language_tools
 
 
 class ReduceMiscompilingFunctions(list_reducer.ListReducer):
@@ -37,7 +37,7 @@ class ReduceMiscompilingFunctions(list_reducer.ListReducer):
             for f in funcs:
                 funclist_file.write(f + '\n')
 
-        print("Checking to see if the program is misoptimized with func "
+        print("Checking to see if the program is misoptimized with fn "
               "list: %s" % funclist_path)
 
         # Split the module into the two halves of the program.
@@ -118,13 +118,13 @@ def invoke_function_bug_reducer(args):
     """Given a path to a sib file with canonical sil, attempt to find a perturbed
 list of function given a specific pass that causes the perf pipeline to crash
     """
-    tools = swift_tools.SwiftTools(args.swift_build_dir)
-    config = swift_tools.SILToolInvokerConfig(args)
-    nm = swift_tools.SILNMInvoker(config, tools)
+    tools = language_tools.CodiraTools(args.code_build_dir)
+    config = language_tools.SILToolInvokerConfig(args)
+    nm = language_tools.SILNMInvoker(config, tools)
 
     input_file = args.input_file
     extra_args = args.extra_args
-    sil_opt_invoker = swift_tools.SILOptInvoker(config, tools,
+    sil_opt_invoker = language_tools.SILOptInvoker(config, tools,
                                                 input_file,
                                                 extra_args)
 
@@ -136,7 +136,7 @@ list of function given a specific pass that causes the perf pipeline to crash
         print("Success with PassList: %s" % (' '.join(args.pass_list)))
         return
 
-    sil_extract_invoker = swift_tools.SILFuncExtractorInvoker(config,
+    sil_extract_invoker = language_tools.SILFuncExtractorInvoker(config,
                                                               tools,
                                                               input_file)
 
@@ -146,14 +146,14 @@ list of function given a specific pass that causes the perf pipeline to crash
 
 def add_parser_arguments(parser):
     """Add parser arguments for func_bug_reducer"""
-    parser.set_defaults(func=invoke_function_bug_reducer)
+    parser.set_defaults(fn=invoke_function_bug_reducer)
     parser.add_argument('input_file', help='The input file to optimize')
     parser.add_argument('--module-cache', help='The module cache to use')
-    parser.add_argument('--sdk', help='The sdk to pass to sil-func-extractor')
+    parser.add_argument('--sdk', help='The sdk to pass to sil-fn-extractor')
     parser.add_argument('--target', help='The target to pass to '
-                        'sil-func-extractor')
+                        'sil-fn-extractor')
     parser.add_argument('--resource-dir',
-                        help='The resource-dir to pass to sil-func-extractor')
+                        help='The resource-dir to pass to sil-fn-extractor')
     parser.add_argument('--work-dir',
                         help='Working directory to use for temp files',
                         default='bug_reducer')

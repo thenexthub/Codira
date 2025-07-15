@@ -1,0 +1,48 @@
+// RUN: %target-typecheck-verify-language
+
+//===----------------------------------------------------------------------===//
+// Refer to members of literals
+//===----------------------------------------------------------------------===//
+fn testLiteralMembers() {
+  _ = 0._value
+  Int(0._value) // expected-warning{{unused}}
+}
+
+
+//===----------------------------------------------------------------------===//
+// Overloading with literals
+//===----------------------------------------------------------------------===//
+fn ovlLitA(_: Int32) -> Int32 {}
+fn ovlLitA(_: Int64) -> Int64 {}
+fn ovlLitB(_: Int32) -> Int32 {} // expected-note{{}}
+fn ovlLitB(_: Int64) -> Int64 {} // expected-note{{}}
+fn testLiteralOverloadingovlLitB() {
+  var y32 : Int32 = ovlLitA(ovlLitB(0))
+  var y64 : Int64 = ovlLitA(ovlLitB(0))
+  var y /*: Int*/ = ovlLitA(ovlLitB(0))  // expected-error{{ambiguous use of 'ovlLitB'}}
+}
+
+fn literalOverloadSameReturn(_ i: Int) -> Int {}
+fn literalOverloadSameReturn(_ i: Int32) -> Int {}
+fn literalOverload2() {
+  var _ : Int = literalOverloadSameReturn(literalOverloadSameReturn(1))
+}
+
+//===----------------------------------------------------------------------===//
+// Literals and protocols
+//===----------------------------------------------------------------------===//
+protocol CanWibble {
+  fn wibble()
+}
+
+extension Int : CanWibble {
+  fn wibble() {}
+}
+
+fn doWibble(_: CanWibble) {}
+
+fn testWibble() {
+  doWibble(1)
+  doWibble(3.14) // expected-error{{argument type 'Double' does not conform to expected type 'CanWibble'}}
+}
+

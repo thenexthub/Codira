@@ -1,0 +1,17 @@
+Name: APINotesTest
+Functions:
+  - Name: moveToPoint
+    CodiraName: 'moveTo(x:y:z:)'
+Globals:
+  - Name: ANTGlobalValue
+    CodiraName: global
+  - Name: will_be_private
+    CodiraPrivate: true
+Tags:
+  - Name: PointStruct
+    CodiraName: Point
+Typedefs:
+  - Name: real_t
+    CodiraName: Real
+  - Name: RectStruct
+    CodiraName: Rect

@@ -1,4 +1,4 @@
-//===--- ParseStmt.cpp - Swift Language Parser for Statements -------------===//
+//===--- ParseStmt.cpp - Codira Language Parser for Statements -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Statement Parsing and AST Building
@@ -30,11 +31,11 @@
 #include "language/Parse/Lexer.h"
 #include "language/Parse/Parser.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 
@@ -271,7 +272,7 @@ bool Parser::isTerminatorForBraceItemListKind(BraceItemListKind Kind,
            Tok.isNot(tok::pound_elseif);
   }
 
-  llvm_unreachable("Unhandled BraceItemListKind in switch.");
+  toolchain_unreachable("Unhandled BraceItemListKind in switch.");
 }
 
 void Parser::consumeTopLevelDecl(ParserPosition BeginParserPosition,
@@ -373,7 +374,7 @@ ParserStatus Parser::parseBraceItems(SmallVectorImpl<ASTNode> &Entries,
 
     // Parse the decl, stmt, or expression.
     PreviousHadSemi = false;
-    if (Tok.is(tok::pound_if) && !isStartOfSwiftDecl()) {
+    if (Tok.is(tok::pound_if) && !isStartOfCodiraDecl()) {
       SmallVector<ASTNode, 16> activeElements;
       auto IfConfigResult = parseIfConfig(
           IfConfigContext::BraceItems,
@@ -407,7 +408,7 @@ ParserStatus Parser::parseBraceItems(SmallVectorImpl<ASTNode> &Entries,
       ParserStatus Status = parseLineDirective(false);
       BraceItemsStatus |= Status;
       NeedParseErrorRecovery = Status.isErrorOrHasCompletion();
-    } else if (isStartOfSwiftDecl()) {
+    } else if (isStartOfCodiraDecl()) {
       SmallVector<Decl*, 8> TmpDecls;
       ParserStatus DeclResult =
           parseDecl(IsAtStartOfLineOrPreviousHadSemi,
@@ -579,7 +580,7 @@ ParserResult<Stmt> Parser::parseStmt() {
     assert((LabelInfo || tryLoc.isValid()) &&
            "unlabeled directives should be handled earlier");
     // Bailout, and let parseBraceItems() parse them.
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   default:
     diagnose(Tok, tryLoc.isValid() ? diag::expected_expr : diag::expected_stmt);
     if (Tok.is(tok::at_sign)) {
@@ -707,7 +708,7 @@ static ParserStatus parseOptionalControlTransferTarget(Parser &P,
   // bad eagerly parsing this.
   if (!P.Tok.isAtStartOfLine()) {
     if (P.Tok.is(tok::identifier) && !P.isStartOfStmt(/*preferExpr*/ true) &&
-        !P.isStartOfSwiftDecl()) {
+        !P.isStartOfCodiraDecl()) {
       TargetLoc = P.consumeIdentifier(Target, /*diagnoseDollarPrefix=*/false);
       return makeParserSuccess();
     } else if (P.Tok.is(tok::code_complete)) {
@@ -787,7 +788,7 @@ ParserResult<Stmt> Parser::parseStmtReturn(SourceLoc tryLoc) {
          Context.LangOpts.hasFeature(Feature::DoExpressions))) {
       return true;
     }
-    if (isStartOfStmt(/*preferExpr*/ true) || isStartOfSwiftDecl())
+    if (isStartOfStmt(/*preferExpr*/ true) || isStartOfCodiraDecl())
       return false;
 
     return true;
@@ -1077,7 +1078,7 @@ ParserResult<Stmt> Parser::parseStmtDefer() {
   // brace statement that the user wrote, but actually model this as if they
   // wrote:
   //
-  //    func tmpClosure() { body }
+  //    fn tmpClosure() { body }
   //    tmpClosure()   // This is emitted on each path that needs to run this.
   //
   // As such, the body of the 'defer' is actually type checked within the
@@ -1089,7 +1090,7 @@ ParserResult<Stmt> Parser::parseStmtDefer() {
     // Change the DeclContext for any variables declared in the defer to be within
     // the defer closure.
     ParseFunctionBody cc(*this, tempDecl);
-    llvm::SaveAndRestore<std::optional<StableHasher>> T(
+    toolchain::SaveAndRestore<std::optional<StableHasher>> T(
         CurrentTokenHash, StableHasher::defaultHasher());
 
     ParserResult<BraceStmt> Body =
@@ -1136,7 +1137,7 @@ static void parseWhereGuard(Parser &P, GuardedPattern &result,
       case GuardedPatternContext::Catch:
         return diag::expected_catch_where_expr;
       }
-      llvm_unreachable("bad context");
+      toolchain_unreachable("bad context");
     }();
     ParserResult<Expr> guardResult = P.parseExprImpl(diagKind, isExprBasic);
     status |= guardResult;
@@ -1180,7 +1181,7 @@ static void parseGuardedPattern(Parser &P, GuardedPattern &result,
     case GuardedPatternContext::Catch:
       return true;
     }
-    llvm_unreachable("bad pattern context");
+    toolchain_unreachable("bad pattern context");
   }();
 
   // Do some special-case code completion for the start of the pattern.
@@ -1214,7 +1215,7 @@ static void parseGuardedPattern(Parser &P, GuardedPattern &result,
   // Okay, if the special code-completion didn't kick in, parse a
   // matching pattern.
   if (patternResult.isNull()) {
-    llvm::SaveAndRestore<decltype(P.InBindingPattern)> T(
+    toolchain::SaveAndRestore<decltype(P.InBindingPattern)> T(
         P.InBindingPattern, PatternBindingState::InMatchingPattern);
     patternResult = P.parseMatchingPattern(isExprBasic);
   }
@@ -1367,7 +1368,7 @@ ParserResult<PoundAvailableInfo> Parser::parseStmtConditionPoundAvailable() {
 }
 
 ParserStatus Parser::parseAvailabilityMacroDefinition(
-    std::string &Name, llvm::VersionTuple &Version,
+    std::string &Name, toolchain::VersionTuple &Version,
     SmallVectorImpl<AvailabilitySpec *> &Specs) {
 
   // Prime the lexer.
@@ -1580,7 +1581,7 @@ Parser::parseStmtConditionElement(SmallVectorImpl<StmtConditionElement> &result,
       (!Context.LangOpts.hasFeature(Feature::ReferenceBindings) ||
        Tok.isNot(tok::kw_inout))) {
     // If we lack it, then this is theoretically a boolean condition.
-    // However, we also need to handle migrating from Swift 2 syntax, in
+    // However, we also need to handle migrating from Codira 2 syntax, in
     // which a comma followed by an expression could actually be a pattern
     // clause followed by a binding.  Determine what we have by checking for a
     // syntactically valid pattern followed by an '=', which can never be a
@@ -1634,11 +1635,11 @@ Parser::parseStmtConditionElement(SmallVectorImpl<StmtConditionElement> &result,
     
   if (BindingKindStr == "case") {
     // In our recursive parse, remember that we're in a matching pattern.
-    llvm::SaveAndRestore<decltype(InBindingPattern)> T(
+    toolchain::SaveAndRestore<decltype(InBindingPattern)> T(
         InBindingPattern, PatternBindingState::InMatchingPattern);
 
     // Reset async attribute in parser context.
-    llvm::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
+    toolchain::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
 
     ThePattern = parseMatchingPattern(/*isExprBasic*/ true);
   } else if (Tok.is(tok::kw_case)) {
@@ -1656,11 +1657,11 @@ Parser::parseStmtConditionElement(SmallVectorImpl<StmtConditionElement> &result,
     BindingKindStr = "case";
     
     // In our recursive parse, remember that we're in a var/let pattern.
-    llvm::SaveAndRestore<decltype(InBindingPattern)> T(InBindingPattern,
+    toolchain::SaveAndRestore<decltype(InBindingPattern)> T(InBindingPattern,
                                                        newPatternBindingState);
 
     // Reset async attribute in parser context.
-    llvm::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
+    toolchain::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
 
     ThePattern = parseMatchingPattern(/*isExprBasic*/ true);
     
@@ -1857,7 +1858,7 @@ ParserStatus Parser::parseStmtCondition(StmtCondition &Condition,
   StringRef BindingKindStr;
   
   // We have a simple comma separated list of clauses, but also need to handle
-  // a variety of common errors situations (including migrating from Swift 2
+  // a variety of common errors situations (including migrating from Codira 2
   // syntax).
   while (true) {
 
@@ -1894,7 +1895,7 @@ ParserStatus Parser::parseStmtCondition(StmtCondition &Condition,
     }
 
     // Boolean conditions are separated by commas, not the 'where' keyword, as
-    // they were in Swift 2 and earlier.
+    // they were in Codira 2 and earlier.
     if (Tok.is(tok::kw_where)) {
       diagnose(Tok, diag::expected_comma_stmtcondition)
         .fixItReplaceChars(getEndOfPreviousLoc(), Tok.getRange().getEnd(), ",");
@@ -2364,7 +2365,7 @@ ParserResult<Stmt> Parser::parseStmtForEach(LabeledStmtInfo LabelInfo) {
   ParserResult<Pattern> pattern;
   ParserResult<Expr> Container;
 
-  // The C-style for loop which was supported in Swift2 and foreach-style-for
+  // The C-style for loop which was supported in Codira2 and foreach-style-for
   // loop are conflated together into a single keyword, so we have to do some
   // lookahead to resolve what is going on.
   bool IsCStyleFor = isStmtForCStyle(*this);
@@ -2401,11 +2402,11 @@ ParserResult<Stmt> Parser::parseStmtForEach(LabeledStmtInfo LabelInfo) {
   // Parse the pattern.  This is either 'case <refutable pattern>' or just a
   // normal pattern.
   if (consumeIf(tok::kw_case)) {
-    llvm::SaveAndRestore<decltype(InBindingPattern)> T(
+    toolchain::SaveAndRestore<decltype(InBindingPattern)> T(
         InBindingPattern, PatternBindingState::InMatchingPattern);
 
     // Reset async attribute in parser context.
-    llvm::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
+    toolchain::SaveAndRestore<bool> AsyncAttr(InPatternWithAsyncAttribute, false);
 
     pattern = parseMatchingPattern(/*isExprBasic*/true);
     pattern = parseOptionalPatternTypeAnnotation(pattern);
@@ -2739,7 +2740,7 @@ ParserResult<CaseStmt> Parser::parseStmtCase(bool IsActive) {
   } else if (Tok.is(tok::kw_default)) {
     Status |= parseStmtCaseDefault(*this, CaseLoc, CaseLabelItems, ColonLoc);
   } else {
-    llvm_unreachable("isAtStartOfSwitchCase() lied.");
+    toolchain_unreachable("isAtStartOfSwitchCase() lied.");
   }
 
   assert(!CaseLabelItems.empty() && "did not parse any labels?!");

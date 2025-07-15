@@ -17,8 +17,8 @@ set(CMAKE_CXX_ARCHIVE_FINISH "")
 # "host" libLTO.dylib is loaded, which might be too old and not understand our
 # just-built bitcode format. So let's instead ask ar/ranlib/libtool to use the
 # just-built libLTO.dylib from the toolchain that we're using to build.
-if(APPLE AND SWIFT_NATIVE_CLANG_TOOLS_PATH)
-  set(liblto_path "${SWIFT_NATIVE_CLANG_TOOLS_PATH}/../lib/libLTO.dylib")
+if(APPLE AND LANGUAGE_NATIVE_CLANG_TOOLS_PATH)
+  set(liblto_path "${LANGUAGE_NATIVE_CLANG_TOOLS_PATH}/../lib/libLTO.dylib")
 
   set(CMAKE_C_ARCHIVE_CREATE "${CMAKE_COMMAND} -E env LIBLTO_PATH=${liblto_path} <CMAKE_AR> crs <TARGET> <LINK_FLAGS> <OBJECTS>")
   set(CMAKE_C_ARCHIVE_APPEND "${CMAKE_COMMAND} -E env LIBLTO_PATH=${liblto_path} <CMAKE_AR> qs <TARGET> <LINK_FLAGS> <OBJECTS>")

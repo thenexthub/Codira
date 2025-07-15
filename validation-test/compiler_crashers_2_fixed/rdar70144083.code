@@ -1,0 +1,42 @@
+// RUN: %target-language-frontend -emit-ir %s -enable-experimental-concurrency
+
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 5.1, *)
+public protocol AsyncIteratorProtocol {
+    associatedtype Element
+    associatedtype Failure: Error
+
+    mutating fn nextResult() async -> Result<Element, Failure>?
+    mutating fn cancel()
+}
+
+@available(CodiraStdlib 5.1, *)
+public protocol AsyncSequence {
+    associatedtype Element
+    associatedtype Failure: Error
+    associatedtype AsyncIterator: AsyncIteratorProtocol where AsyncIterator.Element == Element, AsyncIterator.Failure == Failure
+    
+    fn makeAsyncIterator() -> AsyncIterator
+}
+
+@available(CodiraStdlib 5.1, *)
+struct Just<Element>: AsyncSequence {
+    typealias Failure = Never
+
+    struct AsyncIterator: AsyncIteratorProtocol {
+        var value: Element?
+        mutating fn nextResult() async -> Result<Element, Never>? {
+            defer { value = nil }
+            return value.map { .success($0) }
+        }
+
+        mutating fn cancel() {
+            value = nil
+        }
+    }
+    var value: Element
+    fn makeAsyncIterator() -> AsyncIterator {
+        return AsyncIterator(value: value)
+    }
+}

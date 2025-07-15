@@ -21,13 +21,13 @@ from pygments.token import (
     Whitespace,
 )
 
-__all__ = ['SwiftLexer', 'SILLexer', 'SwiftConsoleLexer']
+__all__ = ['CodiraLexer', 'SILLexer', 'CodiraConsoleLexer']
 
 
-class SwiftLexer(RegexLexer):
-    name = 'Swift'
-    aliases = ['swift']
-    filenames = ['*.swift']
+class CodiraLexer(RegexLexer):
+    name = 'Codira'
+    aliases = ['language']
+    filenames = ['*.code']
 
     flags = re.MULTILINE | re.DOTALL
 
@@ -45,16 +45,16 @@ class SwiftLexer(RegexLexer):
 
         'root2': [
             (r'\n', Text, '#pop'),
-            include('func-class-list'),
+            include('fn-class-list'),
             (r'\bimport\s+', Keyword.Namespace, 'import'),
             (r'\b(class|struct|protocol|extension)\s',
              Keyword.Declaration, 'class-decl'),
             include('body'),
         ],
 
-        'func-class-list': [
-            (r'\b(func|init|deinit|class func|public func)\s',
-             Keyword.Declaration, 'func-decl'),
+        'fn-class-list': [
+            (r'\b(fn|init|deinit|class fn|public fn)\s',
+             Keyword.Declaration, 'fn-decl'),
         ],
 
         'comment': [
@@ -163,7 +163,7 @@ class SwiftLexer(RegexLexer):
 
         'import': [
             (_name, Name.Namespace),
-            (r'(func|var|class)\s+', Keyword.Declaration),
+            (r'(fn|var|class)\s+', Keyword.Declaration),
             (r'\.', Punctuation),
             (r',\s*', Punctuation),
             (r'\(', Punctuation, 'import'),
@@ -223,7 +223,7 @@ class SwiftLexer(RegexLexer):
             include('root2'),
         ],
 
-        'func-decl': [
+        'fn-decl': [
             (r'(\[)([\w\s,]*)(\])(\s+)', bygroups(
                 Punctuation,
                 Name.Attribute,
@@ -321,12 +321,12 @@ class SILLexer(RegexLexer):
 
     flags = re.MULTILINE | re.DOTALL
 
-    _isa = SwiftLexer._isa
-    _isa_comma = SwiftLexer._isa_comma
+    _isa = CodiraLexer._isa
+    _isa_comma = CodiraLexer._isa_comma
 
-    _name = SwiftLexer._name
+    _name = CodiraLexer._name
 
-    tokens = SwiftLexer.tokens.copy()
+    tokens = CodiraLexer.tokens.copy()
     tokens['token-list'] = [
         (r'[%]([a-zA-Z0-9]+)', Name.Variable),   # Tokens
         (r'\$[*]?([a-zA-Z0-9]+)', Name.Variable),   # Tokens
@@ -334,23 +334,23 @@ class SILLexer(RegexLexer):
     ]
 
 
-class SwiftConsoleLexer(RegexLexer):
-    name = 'SwiftConsole'
-    aliases = ['swift-console']
-    filenames = ['*.swiftc']
+class CodiraConsoleLexer(RegexLexer):
+    name = 'CodiraConsole'
+    aliases = ['language-console']
+    filenames = ['*.codec']
 
     flags = re.MULTILINE | re.DOTALL
 
-    _isa = SwiftLexer._isa
-    _isa_comma = SwiftLexer._isa_comma
+    _isa = CodiraLexer._isa
+    _isa_comma = CodiraLexer._isa_comma
 
-    _name = SwiftLexer._name
+    _name = CodiraLexer._name
 
-    tokens = SwiftLexer.tokens.copy()
+    tokens = CodiraLexer.tokens.copy()
     tokens['root'] = [
-        (r'Welcome to swift.  Type \':help\' for assistance.', Generic.Prompt),
-        (r'(\(swift\) |        )', Generic.Prompt, 'root2'),
-        (r'\(swift\)', Generic.Prompt),
+        (r'Welcome to language.  Type \':help\' for assistance.', Generic.Prompt),
+        (r'(\(language\) |        )', Generic.Prompt, 'root2'),
+        (r'\(language\)', Generic.Prompt),
         (r'       ', Generic.Prompt),
         (r'//.*?\n', Generic.Output),
         (r'<REPL Buffer>:[0-9]*:[0-9]*:.*?\n', Generic.Heading),

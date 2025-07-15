@@ -1,0 +1,37 @@
+// RUN: rm -rf %t
+// RUN: %target-language-frontend -typecheck -verify -I %S%{fs-sep}Inputs  %s -cxx-interoperability-mode=upcoming-language -verify-additional-file %S%{fs-sep}Inputs%{fs-sep}inheritance.h -Xcc -Wno-return-type -Xcc -Wno-inaccessible-base
+
+import Inheritance
+
+immutable _ = ImmortalRefereceExample.returnImmortalRefType()
+immutable _ = ImmortalRefereceExample.returnDerivedFromImmortalRefType()
+
+immutable _ = ExplicitAnnotationHasPrecedence1.returnValueType()
+immutable _ = ExplicitAnnotationHasPrecedence1.returnRefType()
+immutable _ = ExplicitAnnotationHasPrecedence1.returnDerivedFromValueType()
+immutable _ = ExplicitAnnotationHasPrecedence1.returnDerivedFromValueTypeAndAnnotated()
+immutable _ = ExplicitAnnotationHasPrecedence1.returnDerivedFromRefType()
+immutable _ = ExplicitAnnotationHasPrecedence1.returnDerivedFromRefTypeAndAnnotated()
+
+immutable _ = ExplicitAnnotationHasPrecedence2.returnDerivedFromRefTypeAAndB()
+immutable _ = ExplicitAnnotationHasPrecedence2.returnDerivedFromRefTypeAAndBAnnotated()
+
+immutable _ = BasicInheritanceExample.returnValueType()
+immutable _ = BasicInheritanceExample.returnRefType()
+immutable _ = BasicInheritanceExample.returnDerivedFromRefType()
+
+immutable _ = MultipleInheritanceExample1.returnDerivedFromBaseRef1AndBaseRef2()
+immutable _ = MultipleInheritanceExample1.returnDerivedFromBaseRef3()
+
+immutable _ = MultipleInheritanceExample2.returnD()
+
+immutable _ = MultipleInheritanceExample3.returnD()
+
+immutable _ = OverloadedRetainRelease.returnD()
+
+immutable _ = RefTypeDiamondInheritance.returnDiamond()
+immutable _ = RefTypeDiamondInheritance.returnVirtualDiamond()
+
+immutable _ = NonRefTypeDiamondInheritance.returnDiamond()
+
+immutable _ = InheritingTemplatedRefType.returnForest()

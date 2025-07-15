@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 ///
-/// Some data structures emitted by the Swift compiler use relative indirect
+/// Some data structures emitted by the Codira compiler use relative indirect
 /// addresses in order to minimize startup cost for a process. By referring to
 /// the offset of the global offset table entry for a symbol, instead of
 /// directly referring to the symbol, compiler-emitted data structures avoid
@@ -74,7 +75,7 @@
 /// within a certain distance of the reference, even if dynamically
 /// initialized.
 ///
-/// In Swift, we always prefer to use a near direct relative reference
+/// In Codira, we always prefer to use a near direct relative reference
 /// when it is possible to do so: that is, when the relationship is always
 /// between two global objects emitted in the same linkage unit, and there
 /// is no compatibility constraint requiring the use of an absolute reference.
@@ -112,7 +113,7 @@
 ///      load-time work.  Severe runtime penalty on access if object is
 ///      outside of linkage unit.  Requires custom logic to statically optimize.
 ///
-/// In general, it's our preference in Swift to use option #4 when there
+/// In general, it's our preference in Codira to use option #4 when there
 /// is no possibility of initializing the reference dynamically and option #5
 /// when there is.  This is because it is infeasible to actually share the
 /// memory for the intermediate absolute reference when it must be allocated
@@ -132,10 +133,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_RELATIVEPOINTER_H
-#define SWIFT_BASIC_RELATIVEPOINTER_H
+#ifndef LANGUAGE_BASIC_RELATIVEPOINTER_H
+#define LANGUAGE_BASIC_RELATIVEPOINTER_H
 
+#include <cassert>
 #include <cstdint>
+#include <type_traits>
+#include <utility>
 
 namespace language {
 
@@ -392,7 +396,7 @@ public:
 /// position-independent constant data.
 template<typename T, bool Nullable, typename Offset>
 class RelativeDirectPointerImpl {
-#if SWIFT_COMPACT_ABSOLUTE_FUNCTION_POINTER
+#if LANGUAGE_COMPACT_ABSOLUTE_FUNCTION_POINTER
   static_assert(!std::is_function<T>::value,
                 "relative direct function pointer should not be used under absolute function pointer mode");
 #endif
@@ -539,7 +543,7 @@ public:
 
   typename super::PointerTy get() const & {
     void *ptr = this->super::getWithoutCast();
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     if (Nullable && !ptr)
       return nullptr;
     return reinterpret_cast<T *>(
@@ -555,7 +559,7 @@ public:
 
   template <typename... ArgTy>
   typename std::invoke_result<T*, ArgTy...>::type operator()(ArgTy... arg) const {
-#if SWIFT_PTRAUTH
+#if LANGUAGE_PTRAUTH
     void *ptr = this->super::getWithoutCast();
     return reinterpret_cast<T *>(ptrauth_sign_unauthenticated(
         ptr, ptrauth_key_function_pointer, 0))(std::forward<ArgTy>(arg)...);
@@ -650,4 +654,4 @@ using FarRelativeDirectPointer = RelativeDirectPointer<T, Nullable, intptr_t>;
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_RELATIVEPOINTER_H
+#endif // LANGUAGE_BASIC_RELATIVEPOINTER_H

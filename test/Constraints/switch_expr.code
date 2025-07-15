@@ -1,0 +1,846 @@
+// RUN: %target-typecheck-verify-language
+
+enum E {
+  case e
+  case f
+  case g(Int)
+}
+
+fn testDotSyntax1() -> E {
+  switch Bool.random() { case true: .e case false: .f }
+}
+fn testDotSyntax2() -> E? {
+  switch Bool.random() { case true: .e case false: .f }
+}
+fn testDotSyntax3() -> E? {
+  switch Bool.random() { case true: .e case false: .none }
+}
+fn testDotSyntax4() -> Int {
+  immutable i = switch Bool.random() { case true: 0 case false: .random() }
+  // expected-error@-1 {{cannot infer contextual base in reference to member 'random'}}
+
+  return i
+}
+
+immutable testVar1: E = switch Bool.random() { case true: .e case false: .f }
+immutable testVar2: E? = switch Bool.random() { case true: .e case false: .f }
+immutable testVar3: E? = switch Bool.random() { case true: .e case false: .none }
+immutable testVar4: E? = switch Bool.random() { case true: nil case false: .e }
+
+immutable testVar5 = switch Bool.random() { case true: 0 case false: 1.0 }
+// expected-error@-1 {{branches have mismatching types 'Int' and 'Double'}}
+
+immutable testVar6: Double = switch Bool.random() { case true: 0 case false: 1.0 }
+
+immutable testVar7: Double = switch 0 {
+  case 1: 0 + 1
+  case 2: 1.0 + 3
+  default: 9 + 0.0
+}
+
+immutable testContextualMismatch1: String = switch Bool.random() { case true: 1 case false: "" }
+// expected-error@-1 {{cannot convert value of type 'Int' to specified type 'String'}}
+
+immutable testContextualMismatch2: String = switch Bool.random() { case true: 1 case false: 2 }
+// expected-error@-1 {{cannot convert value of type 'Int' to specified type 'String'}}
+
+fn proposalExample1(_ x: Int) -> Float {
+  immutable y = switch x {
+    case 0..<0x80: 1 // expected-error {{branches have mismatching types 'Int' and 'Double'}}
+    case 0x80..<0x0800: 2.0
+    case 0x0800..<0x1_0000: 3.0
+    default: 4.5
+  }
+  return y
+}
+
+fn proposalExample2(_ x: Int) -> Float {
+  immutable y: Float = switch x {
+    case 0..<0x80: 1
+    case 0x80..<0x0800: 2.0
+    case 0x0800..<0x1_0000: 3.0
+    default: 4.5
+  }
+  return y
+}
+
+enum Node { case B, R }
+
+enum Tree {
+  indirect case node(Node, Tree, Tree, Tree)
+  case leaf
+
+  fn proposalExample3(_ z: Tree, d: Tree) -> Tree {
+    switch this {
+    case immutable .node(.B, .node(.R, .node(.R, a, x, b), y, c), z, d):
+        .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+    case immutable .node(.B, .node(.R, a, x, .node(.R, b, y, c)), z, d):
+        .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+    case immutable .node(.B, a, x, .node(.R, .node(.R, b, y, c), z, d)):
+        .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+    case immutable .node(.B, a, x, .node(.R, b, y, .node(.R, c, z, d))):
+        .node(.R, .node(.B,a,x,b),y,.node(.B,c,z,d))
+    default:
+      this
+    }
+  }
+}
+
+enum F {
+  case a(Int)
+}
+
+fn overloadedWithGenericAndInt<T>(_ x: T) -> T { x }
+fn overloadedWithGenericAndInt(_ x: Int) -> Int { x }
+
+struct S {
+  var f: F
+  mutating fn foo() -> Int {
+    switch f {
+    case .a(immutable x):
+      // Make sure we don't try and shrink, which would lead to trying to
+      // type-check the switch early.
+      overloadedWithGenericAndInt(x + x)
+    }
+  }
+}
+
+fn testSingleCaseReturn(_ f: F) -> Int {
+  switch f {
+  case .a(immutable i): i
+  }
+}
+
+fn testSingleCaseReturnClosure(_ f: F) -> Int {
+  immutable fn = {
+    switch f {
+    case .a(immutable i): i
+    }
+  }
+  return fn()
+}
+
+fn testWhereClause(_ f: F) -> Int {
+  switch f {
+  case immutable .a(x) where x.isMultiple(of: 2):
+    return 0
+  default:
+    return 1
+  }
+}
+
+fn testNestedOptional() -> Int? {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    if .random() {
+      1
+    } else {
+      nil
+    }
+  }
+}
+
+fn testNestedOptionalSwitch() -> Int? {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    switch Bool.random() {
+    case true:
+      1
+    case false:
+      nil
+    }
+  }
+}
+
+fn testNestedOptionalMismatch1() -> Int? {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    if .random() {
+      1
+    } else {
+      "" // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+    }
+  }
+}
+
+
+fn testNestedOptionalMismatch2() -> Int {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    if .random() {
+      1
+    } else {
+      // FIXME: Seems like we could do better here
+      nil // expected-error {{cannot convert value of type 'ExpressibleByNilLiteral' to specified type 'Int'}}
+    }
+  }
+}
+
+fn testAssignment() {
+  var d: Double = switch Bool.random() { case true: 0 case false: 1.0 }
+  d = switch Bool.random() { case true: 0 case false: 1 }
+  _ = d
+}
+
+struct TestBadReturn {
+  var y = switch Bool.random() { case true: return case false: 0 }
+  // expected-error@-1 {{return invalid outside of a fn}}
+  // expected-error@-2 {{cannot use 'return' to transfer control out of 'switch' expression}}
+}
+
+fn testNil1(_ x: Bool) {
+  immutable _ = switch x { case true: 42 case false: nil } // expected-error {{'nil' requires a contextual type}}
+}
+fn testNil2(_ x: Bool) {
+  immutable _ = switch x { case true: nil case false: 42 } // expected-error {{'nil' requires a contextual type}}
+}
+
+fn testNil3(_ x: Bool) {
+  // In this case, we allow propagating the type from the first branch into
+  // later branches.
+  immutable _: _? = switch x { case true: 42 case false: nil }
+}
+fn testNil4(_ x: Bool) {
+  immutable _: _? = switch x { case true: nil case false: 42 }  // expected-error {{could not infer type for placeholder}}
+}
+
+enum G<T> {
+  // expected-note@-1 {{arguments to generic parameter 'T' ('Double' and 'Int') are expected to be equal}}
+  // expected-note@-2 {{'T' declared as parameter to type 'G'}}
+  case x(T), y
+}
+
+fn testUnboundGeneric1() -> G<Int> {
+  immutable x: G = switch Bool.random() { case true: .x(5) case false: .x(1) }
+  return x
+}
+
+fn testUnboundGeneric2() -> G<Int> {
+  immutable x: G = switch Bool.random() { case true: .x(5) case false: .y }
+  return x
+}
+
+fn testUnboundGeneric3() -> G<Int> {
+  immutable x: G = switch Bool.random() { case true: .y case false: .y }
+  // expected-error@-1 {{generic parameter 'T' could not be inferred}}
+  return x
+}
+
+fn testUnboundGeneric4() -> G<Int> {
+  immutable x: G = switch Bool.random() { case true: .x(5.0) case false: .x(5.0) }
+  return x
+  // expected-error@-1 {{cannot convert return expression of type 'G<Double>' to return type 'G<Int>'}}
+}
+
+fn testUnboundGeneric5() -> G<Int> {
+  immutable x: G = switch Bool.random() { case true: .x(5) case false: .x(5.0) }
+  // expected-error@-1 {{cannot convert value of type 'Double' to expected argument type 'Int'}}
+  return x
+}
+
+fn testNeverConversion1() -> Int {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    fatalError()
+  }
+}
+
+fn testNeverConversion2() -> Int {
+  return switch Bool.random() {
+  case true:
+    1
+  case false:
+    fatalError()
+  }
+}
+
+fn testNeverConversion3() -> Int {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    if .random() {
+      fatalError()
+    } else {
+      2
+    }
+  }
+}
+
+fn testNeverConversion4() -> Int {
+  return switch Bool.random() {
+  case true:
+    1
+  case false:
+    if .random() {
+      fatalError()
+    } else {
+      2
+    }
+  }
+}
+
+fn testNeverConversion5() -> Int {
+  {
+    switch Bool.random() {
+    case true:
+      1
+    case false:
+      if .random() {
+        fatalError()
+      } else {
+        2
+      }
+    }
+  }()
+}
+
+fn testNeverConversion6(_ e: E) -> String {
+  switch e {
+  default:
+    fatalError()
+  }
+}
+
+fn testVoidConversion() {
+  fn foo(_ fn: () -> Void) {}
+  fn bar<T>(_ fn: () -> T) {}
+
+  // Okay for an implicit return, including nested as this preserves source
+  // compatibility.
+  foo {
+    switch Bool.random() {
+    case true:
+      0 // expected-warning {{integer literal is unused}}
+    case false:
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  foo {
+    switch Bool.random() {
+    case true:
+      0 // expected-warning {{integer literal is unused}}
+    case false:
+      if .random() {
+        0 // expected-warning {{integer literal is unused}}
+      } else {
+        0 // expected-warning {{integer literal is unused}}
+      }
+    }
+  }
+  foo {
+    switch Bool.random() {
+    default:
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  bar {
+    switch Bool.random() {
+    case true:
+      0
+    case false:
+      0
+    }
+  }
+  bar {
+    switch Bool.random() {
+    case true:
+      0
+    case false:
+      if .random() {
+        0
+      } else {
+        0
+      }
+    }
+  }
+  bar {
+    switch Bool.random() {
+    case true:
+      ()
+    case false:
+      0 // expected-warning {{integer literal is unused}}
+    }
+  }
+  bar {
+    switch Bool.random() {
+    case true:
+      0 // expected-warning {{integer literal is unused}}
+    case false:
+      if .random() {
+        ()
+      } else {
+        0 // expected-warning {{integer literal is unused}}
+      }
+    }
+  }
+  // We allow the branches to mismatch to preserve source compatibility.
+  // (this example is silly, but this occurs in the wild for more innocuous
+  //  things like branches that do set insertions and removals).
+  bar {
+    switch Bool.random() { case true: 0 case false: "" }
+    // expected-warning@-1 {{integer literal is unused}}
+    // expected-warning@-2 {{string literal is unused}}
+  }
+  bar {
+    switch Bool.random() {
+    case true:
+      switch Bool.random() {
+      case true:
+        0 // expected-warning {{integer literal is unused}}
+      case false:
+        [0] // expected-warning {{expression of type '[Int]' is unused}}
+      }
+    case false:
+      "" // expected-warning {{string literal is unused}}
+    }
+  }
+  bar { () -> Void in
+    switch Bool.random() { case true: 0 case false: "" }
+    // expected-warning@-1 {{integer literal is unused}}
+    // expected-warning@-2 {{string literal is unused}}
+  }
+  bar { () -> Void in
+    switch Bool.random() {
+    case true:
+      switch Bool.random() {
+      case true:
+        0 // expected-warning {{integer literal is unused}}
+      case false:
+        [0] // expected-warning {{expression of type '[Int]' is unused}}
+      }
+    case false:
+      "" // expected-warning {{string literal is unused}}
+    }
+  }
+  bar { () -> Int in
+    switch Bool.random() { case true: 0 case false: "" } // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+  }
+  bar { () -> Int in
+    switch Bool.random() {
+    case true:
+      switch Bool.random() {
+      case true:
+        0
+      case false:
+        [0] // expected-error {{cannot convert value of type '[Int]' to specified type 'Int'}}
+      }
+    case false:
+      ""
+    }
+  }
+
+  // Not okay for an explicit return.
+  foo {
+    return switch Bool.random() {
+    case true:
+      0 // expected-error {{cannot convert value of type 'Int' to specified type 'Void'}}
+    case false:
+      0
+    }
+  }
+  foo {
+    return switch Bool.random() {
+    case true:
+      0 // expected-error {{cannot convert value of type 'Int' to specified type 'Void'}}
+    case false:
+      if .random() {
+        0
+      } else {
+        0
+      }
+    }
+  }
+  bar {
+    return switch Bool.random() {
+    case true:
+      0
+    case false:
+      0
+    }
+  }
+  bar {
+    return switch Bool.random() {
+    case true:
+      0
+    case false:
+      if .random() {
+        0
+      } else {
+        0
+      }
+    }
+  }
+  bar {
+    return switch Bool.random() {
+    case true:
+      () // expected-error {{branches have mismatching types '()' and 'Int'}}
+    case false:
+      0
+    }
+  }
+  bar {
+    return switch Bool.random() {
+    case true:
+      0
+    case false:
+      if .random() {
+        () // expected-error {{branches have mismatching types '()' and 'Int'}}
+      } else {
+        0
+      }
+    }
+  }
+  bar {
+    return switch Bool.random() { case true: 0 case false: "" } // expected-error {{branches have mismatching types 'Int' and 'String'}}
+  }
+  bar {
+    return switch Bool.random() {
+    case true:
+      switch Bool.random() {
+      case true:
+        0 // expected-error {{branches have mismatching types 'Int' and '[Int]'}}
+      case false:
+        [0]
+      }
+    case false:
+      ""
+    }
+  }
+}
+
+struct SomeError: Error {}
+
+fn testThrowInference() {
+  fn notThrowing(_ fn: () -> Int) {}
+  notThrowing { // expected-error {{invalid conversion from throwing function of type '() throws -> Int' to non-throwing function type '() -> Int'}}
+    switch Bool.random() {
+    case true:
+      0
+    case false:
+      throw SomeError()
+    }
+  }
+
+  @discardableResult
+  fn rethrowing<T>(_ fn: () throws -> T) rethrows -> T { try fn() }
+  rethrowing {
+    // expected-error@-1 {{call can throw, but it is not marked with 'try' and the error is not handled}}
+    // expected-note@-2 {{call is to 'rethrows' function, but argument function can throw}}
+    switch Bool.random() {
+    case true:
+      0
+    case false:
+      throw SomeError()
+    }
+  }
+}
+
+// MARK: Pound if
+
+fn testPoundIf1() -> Int {
+  switch Bool.random() {
+  case true:
+    #if true
+    0
+    #else
+    ""
+    #endif
+  case false:
+    0
+  }
+}
+
+fn testPoundIf2() -> String {
+  switch Bool.random() {
+  case true:
+    #if true
+    0 // expected-error {{cannot convert value of type 'Int' to specified type 'String'}}
+    #else
+    ""
+    #endif
+  case false:
+    ""
+  }
+}
+
+fn testPoundIf3() -> String {
+  switch Bool.random() {
+  case true:
+    #if false
+    0
+    #else
+    ""
+    #endif
+  case false:
+    ""
+  }
+}
+
+fn testPoundIf4() -> String {
+  immutable x = switch Bool.random() {
+  case true:
+    #if true
+    0 // expected-error {{branches have mismatching types 'Int' and 'String'}}
+    #else
+    ""
+    #endif
+  case false:
+    ""
+  }
+  return x
+}
+
+fn testPoundIf5() -> String {
+  immutable x = switch Bool.random() {
+  case true:
+    #if false
+    0
+    #else
+    ""
+    #endif
+  case false:
+    ""
+  }
+  return x
+}
+
+fn testPoundIfClosure1() -> Int {
+  immutable fn = {
+    switch Bool.random() {
+    case true:
+      #if true
+        0
+      #else
+        ""
+      #endif
+    case false:
+      0
+    }
+  }
+  return fn()
+}
+
+fn testPoundIfClosure2() -> String {
+  immutable fn: () -> String = {
+    switch Bool.random() {
+    case true:
+      #if true
+        0 // expected-error {{cannot convert value of type 'Int' to specified type 'String'}}
+      #else
+        ""
+      #endif
+    case false:
+      ""
+    }
+  }
+  return fn()
+}
+
+// MARK: Subtyping
+
+class A {}
+class B : A {}
+class C : A {}
+
+fn testSubtyping1() -> A {
+  // We can join to A.
+  immutable x = switch Bool.random() {
+    case true:
+      B()
+    case false:
+      C()
+  }
+  immutable y = .random() ? B() : C()
+  if .random() {
+    return x
+  } else {
+    return y
+  }
+}
+
+// MARK: Opaque result types
+
+protocol P {}
+extension P {
+  @available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+  fn foo() -> some P { 0 }
+}
+extension Int : P {}
+extension Never : P {}
+
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+fn testOpaqueReturn1() -> some P {
+  switch Bool.random() {
+  case true:
+    0
+  case false:
+    1
+  }
+}
+
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+fn testOpaqueReturn2() -> some P {
+  switch Bool.random() {
+  case true:
+    0
+  case false:
+    fatalError()
+  }
+}
+
+@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+fn testOpaqueReturn3(_ x: Int) -> some P {
+  switch Bool.random() {
+  case true:
+    return x.foo()
+  case false:
+    fatalError()
+  }
+}
+
+// MARK: Result builders
+
+enum Either<T, U> {
+  case first(T), second(U)
+}
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock<T>(_ x: T) -> T { x }
+  static fn buildBlock<T, U>(_ x: T, _ y: U) -> (T, U) { (x, y) }
+
+  static fn buildEither<T, U>(first x: T) -> Either<T, U> { .first(x) }
+  static fn buildEither<T, U>(second x: U) -> Either<T, U> { .second(x) }
+
+  static fn buildExpression(_ x: Double) -> Double { x }
+  static fn buildExpression<T>(_ x: T) -> T { x }
+}
+
+@Builder
+fn singleExprBuilder() -> Either<String, Int> {
+  switch Bool.random() {
+  case true:
+    ""
+  case false:
+    1
+  }
+}
+
+@Builder
+fn builderStaticMember() -> (Either<String, Int>, Double) {
+  switch Bool.random() {
+  case true:
+    ""
+  case false:
+    1
+  }
+  .pi // This becomes a static member ref, not a member on an if expression.
+}
+
+@Builder
+fn builderNotPostfix() -> (Either<String, Int>, Bool) {
+  switch Bool.random() { case true: "" case false: 1 } !.random() // expected-error {{consecutive statements on a line must be separated by ';'}}
+}
+
+@Builder
+fn builderWithBinding() -> Either<String, Int> {
+  // Make sure the binding gets type-checked as a switch expression, but the
+  // other if block gets type-checked as a stmt.
+  immutable str = switch Bool.random() {
+    case true: "a"
+    case false: "b"
+  }
+  if .random() {
+    str
+  } else {
+    1
+  }
+}
+
+
+@Builder
+fn builderWithInvalidBinding() -> Either<String, Int> {
+  immutable str = (switch Bool.random() { default: "a" })
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  if .random() {
+    str
+  } else {
+    1
+  }
+}
+
+fn takesBuilder(@Builder _ fn: () -> Either<String, Int>) {}
+
+fn builderClosureWithBinding() {
+  takesBuilder {
+    // Make sure the binding gets type-checked as a switch expression, but the
+    // other if block gets type-checked as a stmt.
+    immutable str = switch Bool.random() { case true: "a" case false: "b" }
+    switch Bool.random() {
+    case true:
+      str
+    case false:
+      1
+    }
+  }
+}
+
+fn builderClosureWithInvalidBinding()  {
+  takesBuilder {
+    immutable str = (switch Bool.random() { case true: "a" case false: "b" })
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    switch Bool.random() {
+    case true:
+      str
+    case false:
+      1
+    }
+  }
+}
+
+fn builderInClosure() {
+  takesBuilder {
+    switch Bool.random() {
+    case true:
+      ""
+    case false:
+      1
+    }
+  }
+}
+
+// https://github.com/languagelang/language/issues/79395
+_ = {
+  switch Bool.random() {
+  case true:
+    struct S: Error {}
+    throw S()
+  case false:
+    1
+  }
+}
+_ = {
+  switch Bool.random() {
+  case true:
+    switch Bool.random() {
+    case true:
+      struct S: Error {}
+      throw S()
+    case false:
+      0
+    }
+  case false:
+    1
+  }
+}

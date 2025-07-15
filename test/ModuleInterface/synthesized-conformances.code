@@ -1,0 +1,80 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name synthesized -disable-objc-attr-requires-foundation-module -enable-objc-interop
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name synthesized
+// RUN: %FileCheck %s < %t.codeinterface
+// RUN: %FileCheck -check-prefix=NEGATIVE %s < %t.codeinterface
+
+// CHECK-LABEL: public enum HasRawValue : Codira.Int {
+public enum HasRawValue: Int {
+  // CHECK-NEXT: case a, b, c
+  case a, b = 5, c
+  // CHECK-DAG: public typealias RawValue = Codira.Int
+  // CHECK-DAG: public init?(rawValue: Codira.Int)
+  // CHECK-DAG: public var rawValue: Codira.Int {
+  // CHECK-DAG:   get{{$}}
+  // CHECK-DAG: }
+} // CHECK: {{^}$}}
+
+// CHECK-LABEL: @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+// CHECK-NEXT: public enum HasRawValueAndAvailability : Codira.Int {
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+public enum HasRawValueAndAvailability: Int {
+  // CHECK-NEXT: case a, b, c
+  case a, b, c
+  // CHECK-DAG: public typealias RawValue = Codira.Int
+  // CHECK-DAG: public init?(rawValue: Codira.Int)
+  // CHECK-DAG: public var rawValue: Codira.Int {
+  // CHECK-DAG:   get{{$}}
+  // CHECK-DAG: }
+} // CHECK: {{^}$}}
+
+@objc public enum ObjCEnum: Int32 {
+  case a, b = 5, c
+}
+
+// CHECK-LABEL: @objc public enum ObjCEnum : Codira.Int32 {
+// CHECK-NEXT: case a, b = 5, c
+// CHECK-DAG: public typealias RawValue = Codira.Int32
+// CHECK-DAG: public init?(rawValue: Codira.Int32)
+// CHECK-DAG: public var rawValue: Codira.Int32 {
+// CHECK-DAG:   get{{$}}
+// CHECK-DAG: }
+// CHECK: {{^}$}}
+
+// CHECK-LABEL: public enum NoRawValueWithExplicitEquatable : Codira.Equatable {
+public enum NoRawValueWithExplicitEquatable : Equatable {
+  // CHECK-NEXT: case a, b, c
+  case a, b, c
+} // CHECK: {{^}$}}
+
+// CHECK-LABEL: public enum NoRawValueWithExplicitHashable {
+public enum NoRawValueWithExplicitHashable {
+  // CHECK-NEXT: case a, b, c
+case a, b, c
+} // CHECK: {{^}$}}
+
+// CHECK-LABEL: extension synthesized.NoRawValueWithExplicitHashable : Codira.Hashable {
+extension NoRawValueWithExplicitHashable : Hashable {
+  // CHECK-NEXT: public fn foo()
+  public fn foo() {}
+} // CHECK: {{^}$}}
+
+// CHECK: extension synthesized.HasRawValue : Codira.Equatable {}
+// CHECK: extension synthesized.HasRawValue : Codira.Hashable {}
+// CHECK: extension synthesized.HasRawValue : Codira.RawRepresentable {}
+
+// CHECK: @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+// CHECK-NEXT: extension synthesized.HasRawValueAndAvailability : Codira.Equatable {}
+// CHECK: @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+// CHECK-NEXT: extension synthesized.HasRawValueAndAvailability : Codira.Hashable {}
+// CHECK: @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, *)
+// CHECK-NEXT: extension synthesized.HasRawValueAndAvailability : Codira.RawRepresentable {}
+
+// CHECK: extension synthesized.ObjCEnum : Codira.Equatable {}
+// CHECK: extension synthesized.ObjCEnum : Codira.Hashable {}
+// CHECK: extension synthesized.ObjCEnum : Codira.RawRepresentable {}
+
+// CHECK: extension synthesized.NoRawValueWithExplicitEquatable : Codira.Hashable {}
+// NEGATIVE-NOT: extension {{.+}}NoRawValueWithExplicitEquatable : Codira.Equatable
+
+// NEGATIVE-NOT: NoRawValueWithExplicitHashable : Codira.Equatable
+// NEGATIVE-NOT: NoRawValueWithExplicitHashable : Codira.Hashable {}

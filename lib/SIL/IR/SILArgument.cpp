@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/SILArgument.h"
@@ -21,7 +22,7 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/OwnershipUtils.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
 
@@ -40,6 +41,7 @@ SILArgument::SILArgument(ValueKind subClassKind,
   sharedUInt8().SILArgument.reborrow = reborrow;
   sharedUInt8().SILArgument.pointerEscape = pointerEscape;
   inputParentBlock->insertArgument(inputParentBlock->args_end(), this);
+  ASSERT(!type.hasTypeParameter());
 }
 
 SILFunction *SILArgument::getFunction() {
@@ -55,12 +57,12 @@ SILModule &SILArgument::getModule() const {
 }
 
 unsigned SILArgument::getIndex() const {
-  for (auto p : llvm::enumerate(getParent()->getArguments())) {
+  for (auto p : toolchain::enumerate(getParent()->getArguments())) {
     if (p.value() == this) {
       return p.index();
     }
   }
-  llvm_unreachable("SILArgument not argument of its parent BB");
+  toolchain_unreachable("SILArgument not argument of its parent BB");
 }
 
 bool SILFunctionArgument::isIndirectResult() const {
@@ -320,7 +322,7 @@ getSingleTerminatorOperandForPred(const SILBasicBlock *parentBlock,
   case TermKind::ThrowInst:
   case TermKind::ThrowAddrInst:
   case TermKind::UnwindInst:
-    llvm_unreachable("Have terminator that implies no successors?!");
+    toolchain_unreachable("Have terminator that implies no successors?!");
   case TermKind::TryApplyInst:
   case TermKind::SwitchValueInst:
   case TermKind::SwitchEnumAddrInst:
@@ -339,7 +341,7 @@ getSingleTerminatorOperandForPred(const SILBasicBlock *parentBlock,
   case TermKind::SwitchEnumInst:
     return cast<const SwitchEnumInst>(predTermInst)->getOperand();
   }
-  llvm_unreachable("Unhandled TermKind?!");
+  toolchain_unreachable("Unhandled TermKind?!");
 }
 
 bool SILPhiArgument::getSingleTerminatorOperands(
@@ -391,8 +393,8 @@ TermInst *SILPhiArgument::getSingleTerminator() const {
 
 TermInst *SILPhiArgument::getTerminatorForResult() const {
   if (auto *termInst = getSingleTerminator()) {
-    if (!swift::isa<BranchInst>(termInst)
-        && !swift::isa<CondBranchInst>(termInst)) {
+    if (!language::isa<BranchInst>(termInst)
+        && !language::isa<CondBranchInst>(termInst)) {
       return termInst;
     }
   }

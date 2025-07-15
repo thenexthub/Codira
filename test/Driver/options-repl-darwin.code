@@ -1,0 +1,39 @@
+// REQUIRES: OS=macosx
+
+// Test LLDB detection, first in a clean environment, then in one that looks
+// like the Xcode installation environment. We use hard links to make sure
+// the Codira driver really thinks it's been moved.
+
+// RUN: %empty-directory(%t/usr/bin/)
+// RUN: %empty-directory(%t/usr/lib/)
+// RUN: %hardlink-or-copy(from: %language_driver_plain-legacy-driver, to: %t/usr/bin/language)
+
+// RUN: %host-library-env %t/usr/bin/language -repl -### | %FileCheck -check-prefix=INTEGRATED %s
+// RUN: %host-library-env %t/usr/bin/language -### | %FileCheck -check-prefix=INTEGRATED %s
+
+// RUN: touch %t/usr/bin/lldb
+// RUN: chmod +x %t/usr/bin/lldb
+// RUN: %host-library-env %t/usr/bin/language -repl -### | %FileCheck -check-prefix=LLDB %s
+// RUN: %host-library-env %t/usr/bin/language -### | %FileCheck -check-prefix=LLDB %s
+
+// RUN: %empty-directory(%t/Toolchains/Test.xctoolchain/usr/bin)
+// RUN: %empty-directory(%t/Toolchains/Test.xctoolchain/usr/lib)
+// RUN: mv %t/usr/bin/language %t/Toolchains/Test.xctoolchain/usr/bin/language
+// RUN: %host-library-env %t/Toolchains/Test.xctoolchain/usr/bin/language -repl -### | %FileCheck -check-prefix=LLDB %s
+
+// Clean up the test executable because hard links are expensive.
+// RUN: rm -rf %t/Toolchains/Test.xctoolchain/usr/bin/language
+
+// language-frontend cannot be copied to another location with bootstrapping because
+// it will not find the liblanguageCore library with its relative RPATH.
+// UNSUPPORTED: language_in_compiler
+
+// CHECK-LANGUAGE-INVOKES-INTERPRETER: {{.*}}/language-frontend -frontend -interpret
+
+// INTEGRATED: language -frontend -repl
+// INTEGRATED: -module-name REPL
+
+// LLDB: lldb{{"?}} "--repl=
+// LLDB-NOT: -module-name
+// LLDB-NOT: -target{{ }}
+// LLDB: "

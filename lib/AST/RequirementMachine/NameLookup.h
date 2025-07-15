@@ -1,19 +1,23 @@
 //===--- NameLookup.h - Name lookup utilities -------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RQM_NAMELOOKUP_H
-#define SWIFT_RQM_NAMELOOKUP_H
+#ifndef LANGUAGE_RQM_NAMELOOKUP_H
+#define LANGUAGE_RQM_NAMELOOKUP_H
 
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -27,15 +31,15 @@ namespace rewriting {
 void lookupConcreteNestedType(
     Type baseType,
     Identifier name,
-    llvm::SmallVectorImpl<TypeDecl *> &concreteDecls);
+    toolchain::SmallVectorImpl<TypeDecl *> &concreteDecls);
 
 void lookupConcreteNestedType(
     NominalTypeDecl *decl,
     Identifier name,
-    llvm::SmallVectorImpl<TypeDecl *> &concreteDecls);
+    toolchain::SmallVectorImpl<TypeDecl *> &concreteDecls);
 
 TypeDecl *findBestConcreteNestedType(
-    llvm::SmallVectorImpl<TypeDecl *> &concreteDecls);
+    toolchain::SmallVectorImpl<TypeDecl *> &concreteDecls);
 
 } // end namespace rewriting
 

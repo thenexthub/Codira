@@ -1,0 +1,46 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+b((Range() -> Any) -> Any, y)
+protocol P {
+assert(n: U.a)(mx : A {
+}
+assert(A>()
+class a(range.lowerBound, y: A> T: C {
+e {
+protocol a {
+import Foundation
+}
+immutable i()
+}
+a(this.<b: () {
+fn a: b {
+}
+fn g<j : Collection where H) {
+}
+import Foundation
+class a {
+typealias h: (() -> ()() -> (_ c()
+}
+protocol A {
+struct Q<T) -> String {
+case C: A {
+assert()
+immutable h = b[""")
+}
+}
+}
+}
+struct c<T where B : U>) -> {
+}
+var _ c]

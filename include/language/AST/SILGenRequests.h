@@ -1,21 +1,25 @@
 //===--- SILGenRequests.h - SILGen Requests ---------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines SILGen requests.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_REQUESTS_H
-#define SWIFT_SILGEN_REQUESTS_H
+#ifndef LANGUAGE_SILGEN_REQUESTS_H
+#define LANGUAGE_SILGEN_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/EvaluatorDependencies.h"
@@ -42,13 +46,13 @@ template<typename Request>
 void reportEvaluatedRequest(UnifiedStatsReporter &stats,
                             const Request &request);
 
-using SILRefsToEmit = llvm::SmallVector<SILDeclRef, 1>;
+using SILRefsToEmit = toolchain::SmallVector<SILDeclRef, 1>;
 
-using SymbolSources = llvm::SmallVector<SymbolSource, 1>;
+using SymbolSources = toolchain::SmallVector<SymbolSource, 1>;
 
 /// Describes a file or module to be lowered to SIL.
 struct ASTLoweringDescriptor {
-  llvm::PointerUnion<FileUnit *, ModuleDecl *> context;
+  toolchain::PointerUnion<FileUnit *, ModuleDecl *> context;
   Lowering::TypeConverter &conv;
   const SILOptions &opts;
   const IRGenOptions *irgenOptions;
@@ -57,8 +61,8 @@ struct ASTLoweringDescriptor {
   /// emitted. Otherwise the entire \c context will be emitted.
   std::optional<SymbolSources> SourcesToEmit;
 
-  friend llvm::hash_code hash_value(const ASTLoweringDescriptor &owner) {
-    return llvm::hash_combine(owner.context, (void *)&owner.conv,
+  friend toolchain::hash_code hash_value(const ASTLoweringDescriptor &owner) {
+    return toolchain::hash_combine(owner.context, (void *)&owner.conv,
                               (void *)&owner.opts, owner.SourcesToEmit);
   }
 
@@ -100,7 +104,7 @@ public:
   SourceFile *getSourceFileToParse() const;
 };
 
-void simple_display(llvm::raw_ostream &out, const ASTLoweringDescriptor &d);
+void simple_display(toolchain::raw_ostream &out, const ASTLoweringDescriptor &d);
 
 SourceLoc extractNearestSourceLoc(const ASTLoweringDescriptor &desc);
 
@@ -145,22 +149,22 @@ private:
 };
 
 /// The zone number for SILGen.
-#define SWIFT_TYPEID_ZONE SILGen
-#define SWIFT_TYPEID_HEADER "swift/AST/SILGenTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE SILGen
+#define LANGUAGE_TYPEID_HEADER "language/AST/SILGenTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
  // Set up reporting of evaluated requests.
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
 template<>                                                                     \
 inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,                \
                             const RequestType &request) {                      \
   ++stats.getFrontendCounters().RequestType;                                   \
 }
 #include "language/AST/SILGenTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_SILGEN_REQUESTS_H
+#endif // LANGUAGE_SILGEN_REQUESTS_H

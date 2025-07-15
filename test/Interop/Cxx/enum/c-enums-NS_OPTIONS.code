@@ -1,0 +1,39 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=CenumsNSOptions -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+// REQUIRES: objc_interop
+
+import CenumsNSOptions
+
+// CHECK-NOT: typealias NSBinarySearchingOptions = UInt
+
+// CHECK: struct NSBinarySearchingOptions : OptionSet, @unchecked Sendable {
+// CHECK-NEXT:   init(rawValue: UInt)
+// CHECK-NEXT:   immutable rawValue: UInt
+// CHECK-NEXT:   typealias RawValue = UInt
+// CHECK-NEXT:   typealias Element = NSBinarySearchingOptions
+// CHECK-NEXT:   typealias ArrayLiteralElement = NSBinarySearchingOptions
+// CHECK-NEXT:   static var firstEqual: NSBinarySearchingOptions { get }
+// CHECK-NEXT:   @available(language, obsoleted: 3, renamed: "firstEqual")
+// CHECK-NEXT:   static var FirstEqual: NSBinarySearchingOptions { get }
+// CHECK-NEXT:   static var lastEqual: NSBinarySearchingOptions { get }
+// CHECK-NEXT:   @available(language, obsoleted: 3, renamed: "lastEqual")
+// CHECK-NEXT:   static var LastEqual: NSBinarySearchingOptions { get }
+// CHECK-NEXT:   static var insertionIndex: NSBinarySearchingOptions { get }
+// CHECK-NEXT:   @available(language, obsoleted: 3, renamed: "insertionIndex")
+// CHECK-NEXT:   static var InsertionIndex: NSBinarySearchingOptions { get }
+// CHECK-NEXT: }
+
+// CHECK: struct Bar : OptionSet, @unchecked Sendable
+// CHECK: struct HasNSOptionField {
+// CHECK:   var bar: Bar
+// CHECK: }
+
+// CHECK: class HasNSOptionFieldObjC {
+// CHECK-NEXT:   var bar: Bar
+// CHECK-NEXT:   class fn bar() -> Bar
+// CHECK-NEXT:   class fn setBar(_ bar: Bar)
+// CHECK-NEXT: }
+
+// CHECK: class HasNSOptionFieldObjC2 {
+// CHECK-NEXT:   class fn setBar(_ bar: Bar)
+// CHECK-NEXT:   fn setBar(_ bar: Bar)
+// CHECK-NEXT: }

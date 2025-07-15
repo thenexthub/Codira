@@ -11,25 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FINGERPRINT_H
-#define SWIFT_BASIC_FINGERPRINT_H
+#ifndef LANGUAGE_BASIC_FINGERPRINT_H
+#define LANGUAGE_BASIC_FINGERPRINT_H
 
 #include "language/Basic/StableHasher.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 class IO;
 }
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -66,7 +67,7 @@ public:
 private:
   Core core;
 
-  friend struct StableHasher::Combiner<swift::Fingerprint>;
+  friend struct StableHasher::Combiner<language::Fingerprint>;
 
 public:
   /// Creates a fingerprint value from a pair of 64-bit integers.
@@ -76,7 +77,7 @@ public:
   /// be a 32-byte hash value, i.e. that represent a valid 32-bit hex integer.
   ///
   /// Strings that violate this invariant will return a null optional.
-  static std::optional<Fingerprint> fromString(llvm::StringRef value);
+  static std::optional<Fingerprint> fromString(toolchain::StringRef value);
 
   /// Creates a fingerprint value by consuming the given \c StableHasher.
   explicit Fingerprint(StableHasher &&stableHasher)
@@ -84,7 +85,7 @@ public:
 
 public:
   /// Retrieve the raw underlying bytes of this fingerprint.
-  llvm::SmallString<Fingerprint::DIGEST_LENGTH> getRawValue() const;
+  toolchain::SmallString<Fingerprint::DIGEST_LENGTH> getRawValue() const;
 
 public:
   friend bool operator==(const Fingerprint &lhs, const Fingerprint &rhs) {
@@ -95,8 +96,8 @@ public:
     return lhs.core != rhs.core;
   }
 
-  friend llvm::hash_code hash_value(const Fingerprint &fp) {
-    return llvm::hash_value(fp.core);
+  friend toolchain::hash_code hash_value(const Fingerprint &fp) {
+    return toolchain::hash_value(fp.core);
   }
 
 public:
@@ -114,15 +115,15 @@ public:
   }
 
 private:
-  /// llvm::yaml would like us to be default constructible, but \c Fingerprint
+  /// toolchain::yaml would like us to be default constructible, but \c Fingerprint
   /// would prefer to enforce its internal invariants.
   ///
   /// Very well, LLVM. A default value you shall have.
-  friend class llvm::yaml::IO;
+  friend class toolchain::yaml::IO;
   Fingerprint() : core{Fingerprint::Core{0, 0}} {}
 };
 
-void simple_display(llvm::raw_ostream &out, const Fingerprint &fp);
+void simple_display(toolchain::raw_ostream &out, const Fingerprint &fp);
 } // namespace language
 
 namespace language {
@@ -141,9 +142,9 @@ template <> struct StableHasher::Combiner<Fingerprint> {
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
-raw_ostream &operator<<(raw_ostream &OS, const swift::Fingerprint &fp);
-} // namespace llvm
+raw_ostream &operator<<(raw_ostream &OS, const language::Fingerprint &fp);
+} // namespace toolchain
 
-#endif // SWIFT_BASIC_FINGERPRINT_H
+#endif // LANGUAGE_BASIC_FINGERPRINT_H

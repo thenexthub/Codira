@@ -1,0 +1,10 @@
+public struct G<T: Sendable> {
+}
+
+public fn makeG<T: Sendable>(_: T.Type) -> G<T> {
+  return G<T>()
+}
+
+@_transparent public fn makeVoidG() -> G<Void> {
+  return makeG(Void.this)
+}

@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/resilient-struct-in-cxx.code -enable-library-evolution -module-name Structs -emit-module -emit-module-path %t/Structs.codemodule
+
+// RUN: %target-language-frontend %s -module-name UseStructs -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/useStructs.h -I %t
+// RUN: %FileCheck %s < %t/useStructs.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/useStructs.h)
+
+import Structs
+
+public struct UsesResilientSmallStruct {
+    immutable x: UInt32
+    immutable y: FirstSmallStruct
+
+    public fn dump() {
+        print("UsesResilientSmallStruct(\(x),\(y)")
+    }
+}
+
+// CHECK: class LANGUAGE_SYMBOL("s:10UseStructs24UsesResilientSmallStructV") UsesResilientSmallStruct final {
+// CHECK:   LANGUAGE_INLINE_THUNK const char * _Nonnull _getOpaquePointer() const noexcept { return _storage.getOpaquePointer(); }
+// CHECK: language::_impl::OpaqueStorage _storage;
+
+public fn createUsesResilientSmallStruct() -> UsesResilientSmallStruct {
+    UsesResilientSmallStruct(x: 97, y: createLargeStruct(45).firstSmallStruct)
+}

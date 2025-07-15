@@ -1,11 +1,11 @@
 # Naming Convention
 
-Historically, benchmark names in the Swift Benchmark Suite were derived from the
+Historically, benchmark names in the Codira Benchmark Suite were derived from the
 name of the `runFunction`, which by convention started with prefix `run_`,
 followed by the benchmark name. Therefore most of the legacy benchmark names
 conform to the [`UpperCamelCase`](http://bit.ly/UpperCamelCase) convention.
 After introduction of
-[`BenchmarkInfo`](https://github.com/apple/swift/pull/12048)
+[`BenchmarkInfo`](https://github.com/apple/language/pull/12048)
 to describe the benchmark metadata, names can be any string. To create more
 cohesive and well structured system, names of newly added benchmarks should meet
 the following set of requirements:

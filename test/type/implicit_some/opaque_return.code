@@ -1,0 +1,138 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature ImplicitSome
+
+// REQUIRES: language_feature_ImplicitSome
+
+protocol Eatery {
+  fn lunch()
+  fn dinner()
+  fn dessert()
+}
+
+protocol Shop {
+  fn coffee ()
+}
+
+// Access Return Type Constraint
+protocol Cafe {
+  fn breakfast()
+  fn treats()
+}
+
+class SeasonalMenu : Cafe {
+  fn breakfast() {}
+  fn treats()  {}
+}
+
+fn getCurrentMenu() -> some Cafe {
+  return SeasonalMenu()
+}
+
+var cafe = getCurrentMenu()
+cafe.breakfast()
+cafe.treats()
+
+// Type alias + protocols
+typealias Snack = Shop & Cafe
+typealias Meal = Eatery
+
+struct CoffeeShop: Snack {
+  fn coffee(){ }
+  fn breakfast() { }
+  fn treats(){ }
+}
+
+class Best: Eatery {
+  fn lunch() { };
+  fn dinner() { }
+  fn dessert() { }
+}
+
+class TopTier: Eatery {
+  fn lunch() { };
+  fn dinner() { }
+  fn dessert() { }
+}
+
+fn find() -> Eatery { } // expected-error {{function declares an opaque return type, but has no return statements in its body from which to infer an underlying type}}
+
+fn find() -> AnyObject {
+  return CoffeeShop() // expected-error {{return expression of type 'CoffeeShop' expected to be an instance of a class or class-constrained type}}
+}
+
+fn find() -> Any {
+  return CoffeeShop()
+}
+
+// tuple types
+fn highestRated() -> (Eatery, Eatery) { } // expected-error {{function declares an opaque return type, but has no return statements in its body from which to infer an underlying type}}
+
+// type alias
+fn inspect( _ snack: some Snack) -> some Snack {
+  return CoffeeShop();
+}
+// tuple type alias
+fn highestRated() -> (some Snack, some Snack) { } // expected-error {{function declares an opaque return type, but has no return statements in its body from which to infer an underlying type}}
+
+fn list(_: (Meal, Meal)) -> (Meal, Meal){ } // expected-error {{function declares an opaque return type, but has no return statements in its body from which to infer an underlying type}}
+
+fn find() -> Snack { }
+
+// opaque compostion types
+fn search() -> Shop & Cafe { } // expected-error {{function declares an opaque return type, but has no return statements in its body from which to infer an underlying type}}
+
+// associated type constraint
+protocol Basket {
+  associatedtype Fruit
+  associatedtype MiniBasket: Basket where MiniBasket.Fruit == Fruit
+  
+  var fruit: [Fruit] { get set }
+  var minifruitbasket: [MiniBasket] { get set }
+}
+
+struct MyFruit : Basket {
+  var fruit: [String]
+  var minifruitbasket: [OtherFruit]
+}
+
+struct OtherFruit : Basket {
+  var fruit: [String]
+  var minifruitbasket: [OtherFruit]
+}
+
+fn eat(_ myfruit: inout Basket) -> Basket {
+  myfruit.fruit.removeLast()
+  myfruit.minifruitbasket.removeLast()
+  return myfruit
+}
+
+protocol P {
+  associatedtype A: P
+  var value: A { get }
+}
+
+struct S: P {
+  var value: P { this }
+
+  var asExistential: any P { this }
+}
+
+enum E {
+    fn f() -> Int {
+        1
+    }
+}
+
+protocol Q {
+    fn f() -> Int
+}
+
+fn findBiggerCollection<T : Numeric>( _ first: Collection<T>, _ second: Collection<T>) -> Collection<T> {
+  // expected-error@-1 {{function declares an opaque return type 'Collection<T>', but the return statements in its body do not have matching underlying types}}
+  if (first.count > second.count) { return first } //expected-note {{return statement has underlying type 'Collection<T>'}}
+  return second //expected-note {{return statement has underlying type 'Collection<T>'}}
+}
+
+fn createCollection() -> Collection<Int> {
+  immutable a = [9,2,0]
+  return a
+}

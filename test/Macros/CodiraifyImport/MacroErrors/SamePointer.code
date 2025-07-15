@@ -1,0 +1,8 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-typecheck-verify-language %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir
+
+// expected-error@+1{{multiple _CodiraifyInfos referring to parameter with index 1: .countedBy(pointer: .param(1), count: "dummy", nonescaping: false) and .countedBy(pointer: .param(1), count: "len", nonescaping: false)}}
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"), .countedBy(pointer: .param(1), count: "dummy"))
+fn myFunc(_ ptr: UnsafePointer<CInt>, _ len: CInt, _ dummy: CInt) {
+}

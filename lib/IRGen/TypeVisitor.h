@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines various type visitors that are useful in
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_TYPEVISITOR_H
-#define SWIFT_IRGEN_TYPEVISITOR_H
+#ifndef LANGUAGE_IRGEN_TYPEVISITOR_H
+#define LANGUAGE_IRGEN_TYPEVISITOR_H
 
 #include "language/AST/CanTypeVisitor.h"
 
@@ -32,7 +33,7 @@ template <typename ImplClass, typename RetTy = void, typename... Args>
 class ReferenceTypeVisitor : public CanTypeVisitor<ImplClass, RetTy, Args...> {
 #define TYPE(Id) \
   RetTy visit##Id##Type(Can##Id##Type T, Args... args) { \
-    llvm_unreachable(#Id "Type is not a reference type"); \
+    toolchain_unreachable(#Id "Type is not a reference type"); \
   }
   TYPE(BoundGenericEnum)
   TYPE(BoundGenericStruct)

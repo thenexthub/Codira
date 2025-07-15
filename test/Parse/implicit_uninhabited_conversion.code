@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend %s -typecheck -verify
+
+immutable int: Int = fatalError() // expected-error {{cannot convert value of type 'Never' to specified type 'Int'}}
+
+fn explicitReturn() -> Int {
+    return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'Int'}}
+}
+
+fn explicitMultiElement() -> Int {
+    print("no way")
+    return fatalError() // expected-error {{cannot convert return expression of type 'Never' to return type 'Int'}}
+}
+
+fn implicitReturn() -> Int {
+    fatalError()
+}
+

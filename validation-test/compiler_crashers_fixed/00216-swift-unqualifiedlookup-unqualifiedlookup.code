@@ -1,0 +1,80 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+({})
+var f = 1
+var e: Int -> Int = {
+    return $0
+}
+immutable d: Int =  { c, b in
+}(f, e)
+class k {
+    fn l((Any, k))(m }
+}
+fn j<f: l: e -> e = {
+   
+ {
+   l) {
+      m  }
+}
+protocol k {
+   class fn j()
+}
+class e: k{     }
+}
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (m: (Any, Any) -> Any) -> Any in
+        return m(x, y)
+    }
+}
+ 
+fn b(z: (((Any, Any) - = b
+=b as c=b
+fn q(v: h) -> <r>(() -> r) -> h {
+  n { u o "\(v): \(u())" }
+}
+struct e<r> {
+    j p: , () -> ())] = []
+}
+protocol p {
+}
+protocol m : p {
+}
+protocol v : p {
+}
+protocol m {
+ v = m
+}
+fn s<s : m, v : m u v.v == s> (m: v) {
+}
+fn s<v : m u v.v == v> (m: v) {
+}
+s( {
+    ({})
+}
+t 
+fn c<g>() -> (g, g -> g) -> g {
+   d b d.f = {
+}
+ {
+   g) {
+        i  }
+}
+i c {
+   class fn f()
+}
+class d: c{  class fn f {}
+struct d<c : f,f where g.i == c.i>
+fu ^(a: Bo
+    }
+}

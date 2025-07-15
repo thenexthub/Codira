@@ -1,0 +1,113 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-source-import
+
+import diag_values_of_module_type_foo
+
+//===--- Allowed uses of module names.
+
+var zero: Int8 = 0
+var goodGlobal1: Codira.Int
+var goodGlobal2 = Codira.Int(zero)
+var goodGlobal3 = diag_values_of_module_type_foo.SomeStruct(a: 0)
+
+class GoodClass1 : diag_values_of_module_type_foo.SomeClass {}
+
+struct GoodStruct1 : diag_values_of_module_type_foo.SomeProtocol {
+  typealias Foo = Codira.Int
+}
+
+struct GoodStruct2 {
+  var instanceVar1: Codira.Int
+  var instanceVar2 = Codira.Int(zero)
+  var instanceVar3 = diag_values_of_module_type_foo.SomeStruct(a: 0)
+
+  static var staticVar1: Codira.Int = 42
+  static var staticVar2 = Codira.Int(zero)
+  static var staticVar3 = diag_values_of_module_type_foo.SomeStruct(a: 0)
+}
+
+enum GoodEnum {
+  case Foo1(Codira.Int)
+}
+
+protocol GoodProtocol1 : diag_values_of_module_type_foo.SomeProtocol {
+  associatedtype GoodTypealias1 : diag_values_of_module_type_foo.SomeProtocol
+}
+
+typealias GoodTypealias1 = Codira.Int
+
+fn goodTest1() {
+  _ = Codira.Int(zero)
+
+  var _ : diag_values_of_module_type_foo.SomeClass
+  var _ : diag_values_of_module_type_foo.SomeClass.NestedClass
+  var _ : diag_values_of_module_type_foo.SomeStruct
+  var _ : diag_values_of_module_type_foo.SomeEnum
+  var _ : diag_values_of_module_type_foo.SomeExistential
+  var _ : diag_values_of_module_type_foo.SomeTypealias
+
+  _ = diag_values_of_module_type_foo.SomeClass()
+  _ = diag_values_of_module_type_foo.SomeClass.NestedClass()
+  _ = diag_values_of_module_type_foo.SomeClass.staticFunc1
+  _ = diag_values_of_module_type_foo.SomeClass.staticFunc1()
+  _ = diag_values_of_module_type_foo.SomeClass.staticVar1
+  _ = diag_values_of_module_type_foo.SomeStruct()
+  _ = diag_values_of_module_type_foo.SomeEnum.Foo
+  // Cannot default-construct a protocol.
+  // _ = diag_values_of_module_type_foo.SomeExistential()
+  _ = diag_values_of_module_type_foo.SomeTypealias()
+
+  _ = diag_values_of_module_type_foo.someGlobal
+  diag_values_of_module_type_foo.someGlobal = 42
+
+  _ = diag_values_of_module_type_foo.someFunc
+  diag_values_of_module_type_foo.someFunc()
+}
+
+fn goodTest2a(a: Codira.Int) {}
+fn goodTest2b(a: Codira.Int, withInt b: Codira.Int) {}
+
+fn goodTest3() -> Codira.Int {}
+
+fn goodTest4<T : diag_values_of_module_type_foo.SomeProtocol>(_: T) {}
+
+fn goodTest5<T : diag_values_of_module_type_foo.SomeProtocol>(_: T)
+  where T.Foo == Codira.Int {}
+
+//===--- Disallowed uses of module names.
+
+var badGlobal1 = Codira // expected-error {{expected module member name after module name}}
+
+class BadClass1 {
+  var instanceVar1 = Codira // expected-error {{expected module member name after module name}}
+  fn instanceFunc1() {
+    instanceVar1 = Codira // expected-error {{expected module member name after module name}}
+  }
+}
+
+fn badTest1() {
+  var x = Codira // expected-error {{expected module member name after module name}}
+  x = Codira // expected-error {{expected module member name after module name}}
+  _ = x
+}
+fn badTest2() {
+  var x = 0
+  x = Codira //  expected-error {{cannot assign value of type 'module<Codira>' to type 'Int'}}
+  _ = x
+}
+fn badTest3() {
+  var _ = Codira. // expected-error {{expected member name following '.'}}
+}
+fn badTest4() {
+  _ = Codira // expected-error {{expected module member name after module name}}
+}
+fn badTest5() {
+  _ = Codira. // expected-error {{expected member name following '.'}}
+}
+fn badTest6() {
+  _ = { () -> Int in
+            _ = Codira // expected-error {{expected module member name after module name}}
+            return 42 }()
+  _ = { Codira }() // expected-error {{expected module member name after module name}}
+  _ = { { Codira }() }() // expected-error {{expected module member name after module name}}
+}
+

@@ -1,0 +1,72 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=DefaultArguments -I %S/Inputs -source-filename=x -cxx-interoperability-mode=language-5.9 | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -module-to-print=DefaultArguments -I %S/Inputs -source-filename=x -cxx-interoperability-mode=language-6 | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -module-to-print=DefaultArguments -I %S/Inputs -source-filename=x -cxx-interoperability-mode=upcoming-language | %FileCheck %s
+
+// CHECK: fn isZero(_ value: Int32 = cxxDefaultArg) -> Bool
+// CHECK: fn isNil(_ ptr: UnsafeMutablePointer<Int32>! = cxxDefaultArg) -> Bool
+// CHECK: fn isGlobalNonNil(_ ptr: UnsafeMutablePointer<Int32>! = cxxDefaultArg) -> Bool
+// CHECK: fn sum(_ a: Int32, _ b: Int32 = cxxDefaultArg) -> Int32
+// CHECK: fn subtract(_ a: Int32 = cxxDefaultArg, _ b: Int32 = cxxDefaultArg) -> Int32
+// CHECK: fn isArgZero(_ a: ArgTy = cxxDefaultArg) -> Bool
+// CHECK: fn isArgZeroOutOfLine(_ a: ArgTy = cxxDefaultArg) -> Bool
+
+// CHECK: fn isArgZeroConstRef(_ a: ArgTy) -> Bool
+// CHECK: fn isArgNonZeroConstRef(_ a: ArgTy) -> Bool
+// CHECK: fn isArgNonPODNonZeroConstRef(_ a: ArgTyNonPOD) -> Bool
+
+// CHECK: fn isArgViewNull(_ a: ArgTyView) -> Bool
+// CHECK: fn isArgViewNullAnd(_ a: ArgTyView, _ second: Bool = cxxDefaultArg) -> Bool
+// CHECK: fn isArgViewNullAndReversed(_ second: Bool = cxxDefaultArg, _ a: ArgTyView) -> Bool
+// CHECK: fn isArgViewNullUnsafeParam(_ a: ArgTyView = cxxDefaultArg) -> Bool
+// CHECK: fn isArgViewNullUnsafeFunc(_ a: ArgTyView) -> Bool
+// CHECK: fn isArgOwnedPtrNull(_ a: ArgTyOwnedPtr = cxxDefaultArg) -> Bool
+// CHECK: fn isArgFRTNull(_ a: ArgFRT! = cxxDefaultArg) -> Bool
+// CHECK: fn getArgFRTValue(_ a: ArgFRT! = cxxDefaultArg) -> Int32
+// CHECK: fn getArgRefCountedValue(_ a: ArgRefCounted! = cxxDefaultArg) -> Int32
+
+// CHECK: struct HasMethodWithDefaultArg {
+// CHECK:   fn isZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK:   fn isNonZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK:   fn isNilPtr(_ v: UnsafeMutablePointer<Int32>! = cxxDefaultArg) -> Bool
+// CHECK:   fn isNilConstPtr(_ v: UnsafePointer<Int32>! = cxxDefaultArg) -> Bool
+// CHECK:   fn isZeroConstRef(_ v: Int32) -> Bool
+// CHECK: }
+
+// CHECK: struct DerivedFromHasMethodWithDefaultArg {
+// CHECK:   fn isZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK: }
+
+// CHECK: struct DerivedFromDerivedFromHasMethodWithDefaultArg {
+// CHECK:   fn isZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK: }
+
+// CHECK: struct HasStaticMethodWithDefaultArg {
+// CHECK:   static fn isNonZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK:   static fn isNonZeroCounter(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK:   static fn isNonZeroPrivateCounter(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK:   static fn isArgZeroRef(_ a: inout ArgTy) -> Bool
+// CHECK: }
+
+// CHECK: struct HasCtorWithDefaultArg {
+// TODO: support default arguments of constructors (https://github.com/apple/language/issues/70124)
+// TODO:   init(_ a: Int32, _ b: Int32 = cxxDefaultArg, _ c: Int32 = cxxDefaultArg)
+// CHECK: }
+
+// CHECK: struct TemplatedHasMethodWithDefaultArg<CFloat> {
+// CHECK:   fn isZero(_ v: Float = cxxDefaultArg) -> Bool
+// CHECK:   fn isNonZero(_ v: Float = cxxDefaultArg) -> Bool
+// CHECK: }
+// CHECK: struct TemplatedHasMethodWithDefaultArg<CInt> {
+// CHECK:   fn isZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK:   fn isNonZero(_ v: Int32 = cxxDefaultArg) -> Bool
+// CHECK: }
+
+// CHECK: fn ambiguous(_ a: Int32, _ b: Int32 = cxxDefaultArg) -> Int32
+// CHECK: fn ambiguous(_ a: Int32) -> Int32
+
+// CHECK: fn nonTrailing(_ a: Int32 = cxxDefaultArg, _ b: Int32 = cxxDefaultArg) -> Int32
+
+// CHECK: struct InvalidStruct<NoDefinition> {
+// CHECK:   fn invalidDefaultExprMethod(_ x: Base<NoDefinition>)
+// CHECK: }
+// CHECK: typealias InvalidStructNoDef = InvalidStruct<NoDefinition>

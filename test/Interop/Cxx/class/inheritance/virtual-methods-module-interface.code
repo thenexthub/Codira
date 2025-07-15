@@ -1,0 +1,28 @@
+// RUN: %target-language-ide-test -print-module -cxx-interoperability-mode=language-5.9 -print-implicit-attrs -module-to-print=VirtualMethods -I %S/Inputs -source-filename=x | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -cxx-interoperability-mode=language-6 -print-implicit-attrs -module-to-print=VirtualMethods -I %S/Inputs -source-filename=x | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -cxx-interoperability-mode=upcoming-language -print-implicit-attrs -module-to-print=VirtualMethods -I %S/Inputs -source-filename=x | %FileCheck %s
+
+// CHECK: struct Base {
+// CHECK-NEXT:   @available(*, unavailable, message: "constructors of abstract C++ classes are unavailable in Codira")
+// CHECK-NEXT:   init()
+// CHECK-NEXT:   @available(*, unavailable, message: "virtual function is not available in Codira because it is pure")
+// CHECK-NEXT:   mutating fn foo()
+// CHECK-NEXT:   fn languageVirtualRename()
+// CHECK: }
+
+// CHECK: struct Base3 {
+// CHECK-NEXT:   init()
+// CHECK: }
+
+// CHECK: struct Derived2 {
+// CHECK-NEXT:   init()
+// CHECK: }
+
+// CHECK: struct Derived<CInt> {
+// CHECK-NEXT:  init()
+// CHECK-NEXT:  mutating fn foo()
+// CHECK: }
+
+// CHECK: struct VirtualNonAbstractBase {
+// CHECK-NEXT:  init()
+// CHECK-NEXT:  fn nonAbstractMethod()

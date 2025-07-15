@@ -1,0 +1,7089 @@
+import Foo.FooSub
+import FooHelper
+
+/// Aaa.  FooEnum1.  Bbb.
+public struct FooEnum1 : Hashable, Equatable, RawRepresentable {
+
+    public init(_ rawValue: UInt32)
+
+    public init(rawValue: UInt32)
+
+    public var rawValue: UInt32
+}
+
+/// Aaa.  FooEnum1X.  Bbb.
+public var FooEnum1X: FooEnum1 { get }
+
+public struct FooEnum2 : Hashable, Equatable, RawRepresentable {
+
+    public init(_ rawValue: UInt32)
+
+    public init(rawValue: UInt32)
+
+    public var rawValue: UInt32
+}
+
+public var FooEnum2X: FooEnum2 { get }
+
+public var FooEnum2Y: FooEnum2 { get }
+
+public struct FooEnum3 : Hashable, Equatable, RawRepresentable {
+
+    public init(_ rawValue: UInt32)
+
+    public init(rawValue: UInt32)
+
+    public var rawValue: UInt32
+}
+
+public var FooEnum3X: FooEnum3 { get }
+
+public var FooEnum3Y: FooEnum3 { get }
+
+/// Aaa.  FooComparisonResult.  Bbb.
+public enum FooComparisonResult : Int {
+
+    case orderedAscending = -1
+
+    case orderedSame = 0
+
+    case orderedDescending = 1
+}
+
+/// Aaa.  FooRuncingOptions.  Bbb.
+public struct FooRuncingOptions : OptionSet {
+
+    public init(rawValue: Int)
+
+    public static var enableMince: FooRuncingOptions { get }
+
+    public static var enableQuince: FooRuncingOptions { get }
+}
+
+public struct FooStruct1 {
+
+    public init()
+
+    public init(x: Int32, y: Double)
+
+    public var x: Int32
+
+    public var y: Double
+}
+
+public typealias FooStruct1Pointer = UnsafeMutablePointer<FooStruct1>
+
+public struct FooStruct2 {
+
+    public init()
+
+    public init(x: Int32, y: Double)
+
+    public var x: Int32
+
+    public var y: Double
+}
+
+public typealias FooStructTypedef1 = FooStruct2
+
+public struct FooStructTypedef2 {
+
+    public init()
+
+    public init(x: Int32, y: Double)
+
+    public var x: Int32
+
+    public var y: Double
+}
+
+/// Aaa.  FooTypedef1.  Bbb.
+public typealias FooTypedef1 = Int32
+
+/// Aaa.  fooIntVar.  Bbb.
+public var fooIntVar: Int32
+
+/// Aaa.  fooFunc1.  Bbb.
+public fn fooFunc1(_ a: Int32) -> Int32
+
+public fn fooFunc1AnonymousParam(_: Int32) -> Int32
+
+public fn fooFunc3(_ a: Int32, _ b: Float, _ c: Double, _ d: UnsafeMutablePointer<Int32>!) -> Int32
+
+public fn fooFuncWithBlock(_ blk: ((Float) -> Int32)!)
+
+public fn fooFuncWithFunctionPointer(_ fptr: (@convention(c) (Float) -> Int32)!)
+
+public fn fooFuncNoreturn1() -> Never
+
+public fn fooFuncNoreturn2() -> Never
+
+/**
+ * Aaa.  fooFuncWithComment1.  Bbb.
+ * Ccc.
+ *
+ * Ddd.
+ */
+public fn fooFuncWithComment1()
+
+/**
+  Aaa.  fooFuncWithComment2.  Bbb.
+ */
+public fn fooFuncWithComment2()
+
+/**
+ * Aaa.  fooFuncWithComment3.  Bbb.
+ */
+/**
+ * Ccc.
+ */
+public fn fooFuncWithComment3()
+
+/**
+ * Aaa.  fooFuncWithComment4.  Bbb.
+ */
+/// Ddd.
+public fn fooFuncWithComment4()
+
+/// Aaa.  fooFuncWithComment5.  Bbb.
+/// Ccc.
+///
+/// Ddd.
+public fn fooFuncWithComment5()
+
+/// Aaa.  redeclaredInMultipleModulesFunc1.  Bbb.
+public fn redeclaredInMultipleModulesFunc1(_ a: Int32) -> Int32
+
+/// Aaa.  FooProtocolBase.  Bbb.
+public protocol FooProtocolBase {
+
+    /// Aaa.  fooProtoFunc.  Bbb.
+    /// Ccc.
+    fn fooProtoFunc()
+
+    /// Aaa.  fooProtoFuncWithExtraIndentation1.  Bbb.
+    /// Ccc.
+    fn fooProtoFuncWithExtraIndentation1()
+
+    /**
+     * Aaa.  fooProtoFuncWithExtraIndentation2.  Bbb.
+     * Ccc.
+     */
+    fn fooProtoFuncWithExtraIndentation2()
+
+    static fn fooProtoClassFunc()
+
+    var fooProperty1: Int32 { get set }
+
+    var fooProperty2: Int32 { get set }
+
+    var fooProperty3: Int32 { get }
+}
+
+public protocol FooProtocolDerived : FooProtocolBase {
+}
+
+open class FooClassBase {
+
+    open fn fooBaseInstanceFunc0()
+
+    open fn fooBaseInstanceFunc1(_ anObject: Any!) -> FooClassBase!
+
+    public init!()
+
+    public convenience init!(float f: Float)
+
+    open fn fooBaseInstanceFuncOverridden()
+
+    open class fn fooBaseClassFunc0()
+}
+
+/// Aaa.  FooClassDerived.  Bbb.
+open class FooClassDerived : FooClassBase, FooProtocolDerived {
+
+    open var fooProperty1: Int32
+
+    open var fooProperty2: Int32
+
+    open var fooProperty3: Int32 { get }
+
+    open fn fooInstanceFunc0()
+
+    open fn fooInstanceFunc1(_ a: Int32)
+
+    open fn fooInstanceFunc2(_ a: Int32, withB b: Int32)
+
+    open fn fooBaseInstanceFuncOverridden()
+
+    open class fn fooClassFunc0()
+}
+
+public typealias typedef_int_t = Int32
+
+public var FOO_MACRO_1: Int32 { get }
+
+public var FOO_MACRO_2: Int32 { get }
+
+public var FOO_MACRO_3: Int32 { get }
+
+public var FOO_MACRO_4: UInt32 { get }
+
+public var FOO_MACRO_5: UInt64 { get }
+
+public var FOO_MACRO_6: typedef_int_t { get }
+
+public var FOO_MACRO_7: typedef_int_t { get }
+
+public var FOO_MACRO_8: CChar { get }
+
+public var FOO_MACRO_9: Int32 { get }
+
+public var FOO_MACRO_10: Int16 { get }
+
+public var FOO_MACRO_11: Int { get }
+
+public var FOO_MACRO_OR: Int32 { get }
+
+public var FOO_MACRO_AND: Int32 { get }
+
+public var FOO_MACRO_BITWIDTH: UInt64 { get }
+
+public var FOO_MACRO_SIGNED: UInt32 { get }
+
+public var FOO_MACRO_REDEF_1: Int32 { get }
+
+public var FOO_MACRO_REDEF_2: Int32 { get }
+
+public fn theLastDeclInFoo()
+
+public fn _internalTopLevelFunc()
+
+public struct _InternalStruct {
+
+    public init()
+
+    public init(x: Int32)
+
+    public var x: Int32
+}
+
+extension FooClassBase {
+
+    open fn _internalMeth1() -> Any!
+}
+
+extension FooClassBase {
+
+    open fn _internalMeth2() -> Any!
+
+    open fn nonInternalMeth() -> Any!
+}
+
+extension FooClassBase {
+
+    open fn _internalMeth3() -> Any!
+}
+
+public protocol _InternalProt {
+}
+
+open class ClassWithInternalProt : _InternalProt {
+}
+
+open class FooClassPropertyOwnership : FooClassBase {
+
+    unowned(unsafe) open var assignable: AnyObject!
+
+    unowned(unsafe) open var unsafeAssignable: AnyObject!
+
+    open var retainable: Any!
+
+    open var strongRef: Any!
+
+    open var copyable: Any!
+
+    weak open var weakRef: AnyObject!
+
+    open var scalar: Int32
+}
+
+open class FooUnavailableMembers : FooClassBase {
+
+    public convenience init!(int i: Int32)
+
+    @available(*, deprecated, message: "x")
+    open fn deprecated()
+
+    @available(macOS 10.1, *)
+    open fn availabilityIntroduced()
+
+    @available(macOS, introduced: 10.1, message: "x")
+    open fn availabilityIntroducedMsg()
+}
+
+public class FooCFType {
+}
+
+@available(*, deprecated, message: "use CNAuthorizationStatus")
+public enum ABAuthorizationStatus : Int {
+
+    case notDetermined = 0
+
+    case restricted = 1
+}
+
+public class FooOverlayClassBase {
+
+    public fn f()
+}
+
+public class FooOverlayClassDerived : Foo.FooOverlayClassBase {
+
+    override public fn f()
+}
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 7,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 11,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 18,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 25,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 36,
+    key.length: 26
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 62,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 69,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 76,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 87,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 97,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 108,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 132,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 139,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 144,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 146,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 156,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 169,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 176,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 181,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 191,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 204,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 211,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 215,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 225,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 235,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 262,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 269,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 273,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 284,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 295,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 302,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 309,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 316,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 327,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 337,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 348,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 372,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 379,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 384,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 386,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 396,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 409,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 416,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 421,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 431,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 444,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 451,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 455,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 465,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 475,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 482,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 486,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 497,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 508,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 515,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 522,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 526,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 537,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 548,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 555,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 562,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 569,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 580,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 590,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 601,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 625,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 632,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 637,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 639,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 649,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 662,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 669,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 674,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 684,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 697,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 704,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 708,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 718,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 728,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 735,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 739,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 750,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 761,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 768,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 775,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 779,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 790,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 801,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 808,
+    key.length: 37
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 845,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 852,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 857,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 879,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 890,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 895,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 914,
+    key.length: 2
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 922,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 927,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 941,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 948,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 953,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 973,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 978,
+    key.length: 35
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1013,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1020,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1027,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1047,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1064,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1071,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1076,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1086,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1096,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1103,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1110,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1114,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1127,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1147,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1158,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1165,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1172,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1176,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1190,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1210,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1219,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1226,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1233,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1251,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1258,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1270,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1277,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1282,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1285,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1292,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1295,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1308,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1315,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1319,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1322,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1333,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1340,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1344,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1347,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1357,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1364,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1374,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1394,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1415,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1428,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1435,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1442,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1460,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1467,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1479,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1486,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1491,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1494,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1501,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1504,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1517,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1524,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1528,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1531,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1542,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1549,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1553,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1556,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1566,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1573,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1583,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1603,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1615,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1622,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1629,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1654,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1661,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1673,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1680,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1685,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1688,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1695,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1698,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1711,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1718,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1722,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1725,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1736,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1743,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1747,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1750,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 1760,
+    key.length: 29
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1789,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1796,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1806,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1820,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 1827,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1854,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1861,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1865,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1876,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 1883,
+    key.length: 26
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1909,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1916,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1921,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1930,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1932,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1935,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1945,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 1952,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1959,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 1964,
+    key.length: 22
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 1987,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 1990,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2000,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2007,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2014,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2019,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2028,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2030,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2033,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2040,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2042,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2045,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2052,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2054,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2057,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2065,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2067,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2070,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2091,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2103,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2110,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2117,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2122,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2139,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2141,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2148,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2158,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2168,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2175,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2180,
+    key.length: 26
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2207,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2209,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2216,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2228,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2232,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2242,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2252,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2259,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2264,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2286,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2293,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2300,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2305,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2327,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2334,
+    key.length: 62
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2397,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2404,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2409,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2432,
+    key.length: 42
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2475,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2482,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2487,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2510,
+    key.length: 43
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2554,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2570,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2577,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2582,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2605,
+    key.length: 43
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2649,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2658,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2665,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2670,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2693,
+    key.length: 37
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2730,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2739,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2743,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2752,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2759,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2764,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2787,
+    key.length: 50
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2837,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2844,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2849,
+    key.length: 32
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2882,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2884,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2887,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 2897,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2904,
+    key.length: 33
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 2937,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 2944,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 2953,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 2976,
+    key.length: 30
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 3010,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3023,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3028,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 3048,
+    key.length: 51
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 3103,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3116,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3121,
+    key.length: 33
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 3162,
+    key.length: 77
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3244,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3249,
+    key.length: 33
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3290,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3297,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3302,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3327,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3331,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3345,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3353,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3357,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3368,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3372,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3386,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3394,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3398,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3409,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3413,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3427,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3435,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3444,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3451,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3460,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3481,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3502,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3507,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3513,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3533,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3538,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3543,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3571,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3576,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3581,
+    key.length: 20
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3602,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3604,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3614,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3623,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3642,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3649,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3662,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3669,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3681,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3687,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3693,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3696,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3708,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3713,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3718,
+    key.length: 29
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3755,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3760,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3766,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3771,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.doccomment,
+    key.offset: 3794,
+    key.length: 33
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3827,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3832,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3838,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3856,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3870,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3896,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3901,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3905,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3919,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3930,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3935,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3939,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3953,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 3964,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3969,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 3973,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 3987,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 3995,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4006,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4011,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4016,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4040,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4045,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4050,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4067,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4069,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4072,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4084,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4089,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4094,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4111,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4113,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4116,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4123,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4129,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4132,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4144,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4149,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4154,
+    key.length: 29
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4191,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4196,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4202,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4207,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4226,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4233,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4243,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4259,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4266,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4273,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4277,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4290,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4298,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4305,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4312,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4316,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4329,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4337,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4344,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4351,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4355,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4368,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4376,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4383,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4390,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4394,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4407,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4416,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4423,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4430,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4434,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4447,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4456,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4463,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4470,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4474,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4487,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4503,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4510,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4517,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4521,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4534,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4550,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4557,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4564,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4568,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4581,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4589,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4596,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4603,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4607,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4620,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4628,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4635,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4642,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4646,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4660,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4668,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4675,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4682,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4686,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4700,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4706,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4713,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4720,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4724,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4738,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4746,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4753,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4760,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4764,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4779,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4787,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4794,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4801,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4805,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4825,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4834,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4841,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4848,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4852,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4870,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4879,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4886,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4893,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4897,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4916,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4924,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4931,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4938,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4942,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 4961,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4969,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 4976,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 4983,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 4988,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5008,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5015,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5020,
+    key.length: 21
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5045,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5052,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5059,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5082,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5089,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5101,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5108,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5113,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5116,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5128,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5135,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5139,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5142,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5151,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5161,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5181,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5186,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5191,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5211,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5219,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5229,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5249,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5254,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5259,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5279,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5289,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5294,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5299,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5320,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5328,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5338,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5358,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5363,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5368,
+    key.length: 14
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5388,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5396,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5403,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5412,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5431,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5436,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5442,
+    key.length: 21
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5466,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5485,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5490,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5496,
+    key.length: 25
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5524,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5544,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5560,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5565,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5569,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5581,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5597,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5613,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5618,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5622,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5640,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5656,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5661,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5665,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5677,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5687,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5692,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5696,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5707,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5717,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5722,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5726,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5736,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5746,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5751,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5756,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5760,
+    key.length: 7
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5769,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5785,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5790,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5794,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5802,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5811,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5816,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5822,
+    key.length: 21
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5846,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5866,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5873,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5885,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5891,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5895,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 5898,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5910,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.operator,
+    key.offset: 5921,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5924,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5936,
+    key.length: 7
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.string,
+    key.offset: 5945,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5954,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 5959,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5964,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 5982,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 5993,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 5999,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.operator,
+    key.offset: 6005,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6012,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6017,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6022,
+    key.length: 22
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6052,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6063,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6070,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 6082,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6088,
+    key.length: 7
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.string,
+    key.offset: 6097,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6106,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6111,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6116,
+    key.length: 25
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6147,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6154,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6160,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6175,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.operator,
+    key.offset: 6186,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6189,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6201,
+    key.length: 7
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.string,
+    key.offset: 6210,
+    key.length: 27
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6239,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6246,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6251,
+    key.length: 21
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 6275,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6286,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6291,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 6307,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6314,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6319,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.number,
+    key.offset: 6332,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6337,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6344,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6350,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6377,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6384,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6389,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6396,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6403,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6409,
+    key.length: 22
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 6434,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 6438,
+    key.length: 19
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6465,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 6474,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 6481,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 6486,
+    key.length: 1
+  }
+]
+[
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 7,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 11,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 25,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 87,
+    key.length: 8,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 97,
+    key.length: 9,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 108,
+    key.length: 16,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 156,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 191,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 225,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 284,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 327,
+    key.length: 8,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 337,
+    key.length: 9,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 348,
+    key.length: 16,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 396,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 431,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 465,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 497,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 537,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 580,
+    key.length: 8,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 590,
+    key.length: 9,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 601,
+    key.length: 16,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 649,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 684,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 718,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 750,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 790,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 879,
+    key.length: 3,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 1047,
+    key.length: 9,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1086,
+    key.length: 3,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1127,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1190,
+    key.length: 17
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1285,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1295,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1322,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1347,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1394,
+    key.length: 20,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1415,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1494,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1504,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1531,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1556,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1603,
+    key.length: 10
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1688,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1698,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1725,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1750,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1820,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1876,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1935,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1945,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 1990,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2000,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2033,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2045,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2057,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2070,
+    key.length: 20,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2091,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2103,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2148,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2158,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2232,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2242,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.enum,
+    key.offset: 2286,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.enum,
+    key.offset: 2327,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2887,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 2897,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3345,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3386,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3427,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 3481,
+    key.length: 15
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 3623,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3696,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 3856,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 3870,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3919,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3953,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 3987,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4072,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4116,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4132,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4259,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4290,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4329,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4368,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4407,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4447,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.typealias,
+    key.offset: 4487,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.ref.typealias,
+    key.offset: 4534,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.ref.typealias,
+    key.offset: 4581,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4620,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4660,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4700,
+    key.length: 3,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4738,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4779,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4825,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4870,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4916,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 4961,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 5116,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 5142,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 5161,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 5229,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 5338,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 5466,
+    key.length: 13
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 5524,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 5802,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 5846,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 5898,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 6275,
+    key.length: 3,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.module,
+    key.offset: 6434,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.ref.class,
+    key.offset: 6438,
+    key.length: 19
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum1",
+    key.offset: 69,
+    key.length: 164,
+    key.nameoffset: 76,
+    key.namelength: 8,
+    key.bodyoffset: 126,
+    key.bodylength: 106,
+    key.docoffset: 36,
+    key.doclength: 26,
+    key.inheritedtypes: [
+      {
+        key.name: "Hashable"
+      },
+      {
+        key.name: "Equatable"
+      },
+      {
+        key.name: "RawRepresentable"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 62,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 87,
+        key.length: 8
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 97,
+        key.length: 9
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 108,
+        key.length: 16
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(_:)",
+        key.offset: 139,
+        key.length: 24,
+        key.nameoffset: 139,
+        key.namelength: 24,
+        key.attributes: [
+          {
+            key.offset: 132,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 144,
+            key.length: 18,
+            key.typename: "UInt32"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(rawValue:)",
+        key.offset: 176,
+        key.length: 22,
+        key.nameoffset: 176,
+        key.namelength: 22,
+        key.attributes: [
+          {
+            key.offset: 169,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 181,
+            key.length: 16,
+            key.typename: "UInt32",
+            key.nameoffset: 181,
+            key.namelength: 8
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "rawValue",
+        key.offset: 211,
+        key.length: 20,
+        key.typename: "UInt32",
+        key.nameoffset: 215,
+        key.namelength: 8,
+        key.attributes: [
+          {
+            key.offset: 204,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum1X",
+    key.offset: 269,
+    key.length: 31,
+    key.typename: "FooEnum1",
+    key.nameoffset: 273,
+    key.namelength: 9,
+    key.bodyoffset: 294,
+    key.bodylength: 5,
+    key.docoffset: 235,
+    key.doclength: 27,
+    key.attributes: [
+      {
+        key.offset: 262,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum2",
+    key.offset: 309,
+    key.length: 164,
+    key.nameoffset: 316,
+    key.namelength: 8,
+    key.bodyoffset: 366,
+    key.bodylength: 106,
+    key.inheritedtypes: [
+      {
+        key.name: "Hashable"
+      },
+      {
+        key.name: "Equatable"
+      },
+      {
+        key.name: "RawRepresentable"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 302,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 327,
+        key.length: 8
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 337,
+        key.length: 9
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 348,
+        key.length: 16
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(_:)",
+        key.offset: 379,
+        key.length: 24,
+        key.nameoffset: 379,
+        key.namelength: 24,
+        key.attributes: [
+          {
+            key.offset: 372,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 384,
+            key.length: 18,
+            key.typename: "UInt32"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(rawValue:)",
+        key.offset: 416,
+        key.length: 22,
+        key.nameoffset: 416,
+        key.namelength: 22,
+        key.attributes: [
+          {
+            key.offset: 409,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 421,
+            key.length: 16,
+            key.typename: "UInt32",
+            key.nameoffset: 421,
+            key.namelength: 8
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "rawValue",
+        key.offset: 451,
+        key.length: 20,
+        key.typename: "UInt32",
+        key.nameoffset: 455,
+        key.namelength: 8,
+        key.attributes: [
+          {
+            key.offset: 444,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum2X",
+    key.offset: 482,
+    key.length: 31,
+    key.typename: "FooEnum2",
+    key.nameoffset: 486,
+    key.namelength: 9,
+    key.bodyoffset: 507,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 475,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum2Y",
+    key.offset: 522,
+    key.length: 31,
+    key.typename: "FooEnum2",
+    key.nameoffset: 526,
+    key.namelength: 9,
+    key.bodyoffset: 547,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 515,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum3",
+    key.offset: 562,
+    key.length: 164,
+    key.nameoffset: 569,
+    key.namelength: 8,
+    key.bodyoffset: 619,
+    key.bodylength: 106,
+    key.inheritedtypes: [
+      {
+        key.name: "Hashable"
+      },
+      {
+        key.name: "Equatable"
+      },
+      {
+        key.name: "RawRepresentable"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 555,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 580,
+        key.length: 8
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 590,
+        key.length: 9
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 601,
+        key.length: 16
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(_:)",
+        key.offset: 632,
+        key.length: 24,
+        key.nameoffset: 632,
+        key.namelength: 24,
+        key.attributes: [
+          {
+            key.offset: 625,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 637,
+            key.length: 18,
+            key.typename: "UInt32"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(rawValue:)",
+        key.offset: 669,
+        key.length: 22,
+        key.nameoffset: 669,
+        key.namelength: 22,
+        key.attributes: [
+          {
+            key.offset: 662,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 674,
+            key.length: 16,
+            key.typename: "UInt32",
+            key.nameoffset: 674,
+            key.namelength: 8
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "rawValue",
+        key.offset: 704,
+        key.length: 20,
+        key.typename: "UInt32",
+        key.nameoffset: 708,
+        key.namelength: 8,
+        key.attributes: [
+          {
+            key.offset: 697,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum3X",
+    key.offset: 735,
+    key.length: 31,
+    key.typename: "FooEnum3",
+    key.nameoffset: 739,
+    key.namelength: 9,
+    key.bodyoffset: 760,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 728,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooEnum3Y",
+    key.offset: 775,
+    key.length: 31,
+    key.typename: "FooEnum3",
+    key.nameoffset: 779,
+    key.namelength: 9,
+    key.bodyoffset: 800,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 768,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.enum,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooComparisonResult",
+    key.offset: 852,
+    key.length: 124,
+    key.nameoffset: 857,
+    key.namelength: 19,
+    key.bodyoffset: 884,
+    key.bodylength: 91,
+    key.docoffset: 808,
+    key.doclength: 37,
+    key.inheritedtypes: [
+      {
+        key.name: "Int"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 845,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 879,
+        key.length: 3
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.enumcase,
+        key.offset: 890,
+        key.length: 26,
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.enumelement,
+            key.accessibility: source.lang.code.accessibility.public,
+            key.name: "orderedAscending",
+            key.offset: 895,
+            key.length: 21,
+            key.nameoffset: 895,
+            key.namelength: 16,
+            key.elements: [
+              {
+                key.kind: source.lang.code.structure.elem.init_expr,
+                key.offset: 914,
+                key.length: 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.enumcase,
+        key.offset: 922,
+        key.length: 20,
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.enumelement,
+            key.accessibility: source.lang.code.accessibility.public,
+            key.name: "orderedSame",
+            key.offset: 927,
+            key.length: 15,
+            key.nameoffset: 927,
+            key.namelength: 11,
+            key.elements: [
+              {
+                key.kind: source.lang.code.structure.elem.init_expr,
+                key.offset: 941,
+                key.length: 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.enumcase,
+        key.offset: 948,
+        key.length: 26,
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.enumelement,
+            key.accessibility: source.lang.code.accessibility.public,
+            key.name: "orderedDescending",
+            key.offset: 953,
+            key.length: 21,
+            key.nameoffset: 953,
+            key.namelength: 17,
+            key.elements: [
+              {
+                key.kind: source.lang.code.structure.elem.init_expr,
+                key.offset: 973,
+                key.length: 1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooRuncingOptions",
+    key.offset: 1020,
+    key.length: 197,
+    key.nameoffset: 1027,
+    key.namelength: 17,
+    key.bodyoffset: 1058,
+    key.bodylength: 158,
+    key.docoffset: 978,
+    key.doclength: 35,
+    key.inheritedtypes: [
+      {
+        key.name: "OptionSet"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 1013,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 1047,
+        key.length: 9
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(rawValue:)",
+        key.offset: 1071,
+        key.length: 19,
+        key.nameoffset: 1071,
+        key.namelength: 19,
+        key.attributes: [
+          {
+            key.offset: 1064,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 1076,
+            key.length: 13,
+            key.typename: "Int",
+            key.nameoffset: 1076,
+            key.namelength: 8
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.static,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "enableMince",
+        key.offset: 1103,
+        key.length: 49,
+        key.typename: "FooRuncingOptions",
+        key.nameoffset: 1114,
+        key.namelength: 11,
+        key.bodyoffset: 1146,
+        key.bodylength: 5,
+        key.attributes: [
+          {
+            key.offset: 1096,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.static,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "enableQuince",
+        key.offset: 1165,
+        key.length: 50,
+        key.typename: "FooRuncingOptions",
+        key.nameoffset: 1176,
+        key.namelength: 12,
+        key.bodyoffset: 1209,
+        key.bodylength: 5,
+        key.attributes: [
+          {
+            key.offset: 1158,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooStruct1",
+    key.offset: 1226,
+    key.length: 129,
+    key.nameoffset: 1233,
+    key.namelength: 10,
+    key.bodyoffset: 1245,
+    key.bodylength: 109,
+    key.attributes: [
+      {
+        key.offset: 1219,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init()",
+        key.offset: 1258,
+        key.length: 6,
+        key.nameoffset: 1258,
+        key.namelength: 6,
+        key.attributes: [
+          {
+            key.offset: 1251,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(x:y:)",
+        key.offset: 1277,
+        key.length: 25,
+        key.nameoffset: 1277,
+        key.namelength: 25,
+        key.attributes: [
+          {
+            key.offset: 1270,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "x",
+            key.offset: 1282,
+            key.length: 8,
+            key.typename: "Int32",
+            key.nameoffset: 1282,
+            key.namelength: 1
+          },
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "y",
+            key.offset: 1292,
+            key.length: 9,
+            key.typename: "Double",
+            key.nameoffset: 1292,
+            key.namelength: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "x",
+        key.offset: 1315,
+        key.length: 12,
+        key.typename: "Int32",
+        key.nameoffset: 1319,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 1308,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "y",
+        key.offset: 1340,
+        key.length: 13,
+        key.typename: "Double",
+        key.nameoffset: 1344,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 1333,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.typealias,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooStruct1Pointer",
+    key.offset: 1364,
+    key.length: 62,
+    key.nameoffset: 1374,
+    key.namelength: 17,
+    key.attributes: [
+      {
+        key.offset: 1357,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooStruct2",
+    key.offset: 1435,
+    key.length: 129,
+    key.nameoffset: 1442,
+    key.namelength: 10,
+    key.bodyoffset: 1454,
+    key.bodylength: 109,
+    key.attributes: [
+      {
+        key.offset: 1428,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init()",
+        key.offset: 1467,
+        key.length: 6,
+        key.nameoffset: 1467,
+        key.namelength: 6,
+        key.attributes: [
+          {
+            key.offset: 1460,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(x:y:)",
+        key.offset: 1486,
+        key.length: 25,
+        key.nameoffset: 1486,
+        key.namelength: 25,
+        key.attributes: [
+          {
+            key.offset: 1479,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "x",
+            key.offset: 1491,
+            key.length: 8,
+            key.typename: "Int32",
+            key.nameoffset: 1491,
+            key.namelength: 1
+          },
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "y",
+            key.offset: 1501,
+            key.length: 9,
+            key.typename: "Double",
+            key.nameoffset: 1501,
+            key.namelength: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "x",
+        key.offset: 1524,
+        key.length: 12,
+        key.typename: "Int32",
+        key.nameoffset: 1528,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 1517,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "y",
+        key.offset: 1549,
+        key.length: 13,
+        key.typename: "Double",
+        key.nameoffset: 1553,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 1542,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.typealias,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooStructTypedef1",
+    key.offset: 1573,
+    key.length: 40,
+    key.nameoffset: 1583,
+    key.namelength: 17,
+    key.attributes: [
+      {
+        key.offset: 1566,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooStructTypedef2",
+    key.offset: 1622,
+    key.length: 136,
+    key.nameoffset: 1629,
+    key.namelength: 17,
+    key.bodyoffset: 1648,
+    key.bodylength: 109,
+    key.attributes: [
+      {
+        key.offset: 1615,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init()",
+        key.offset: 1661,
+        key.length: 6,
+        key.nameoffset: 1661,
+        key.namelength: 6,
+        key.attributes: [
+          {
+            key.offset: 1654,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(x:y:)",
+        key.offset: 1680,
+        key.length: 25,
+        key.nameoffset: 1680,
+        key.namelength: 25,
+        key.attributes: [
+          {
+            key.offset: 1673,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "x",
+            key.offset: 1685,
+            key.length: 8,
+            key.typename: "Int32",
+            key.nameoffset: 1685,
+            key.namelength: 1
+          },
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "y",
+            key.offset: 1695,
+            key.length: 9,
+            key.typename: "Double",
+            key.nameoffset: 1695,
+            key.namelength: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "x",
+        key.offset: 1718,
+        key.length: 12,
+        key.typename: "Int32",
+        key.nameoffset: 1722,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 1711,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "y",
+        key.offset: 1743,
+        key.length: 13,
+        key.typename: "Double",
+        key.nameoffset: 1747,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 1736,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.typealias,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooTypedef1",
+    key.offset: 1796,
+    key.length: 29,
+    key.nameoffset: 1806,
+    key.namelength: 11,
+    key.docoffset: 1760,
+    key.doclength: 29,
+    key.attributes: [
+      {
+        key.offset: 1789,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.setter_accessibility: source.lang.code.accessibility.public,
+    key.name: "fooIntVar",
+    key.offset: 1861,
+    key.length: 20,
+    key.typename: "Int32",
+    key.nameoffset: 1865,
+    key.namelength: 9,
+    key.docoffset: 1827,
+    key.doclength: 27,
+    key.attributes: [
+      {
+        key.offset: 1854,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFunc1(_:)",
+    key.offset: 1916,
+    key.length: 34,
+    key.typename: "Int32",
+    key.nameoffset: 1921,
+    key.namelength: 20,
+    key.docoffset: 1883,
+    key.doclength: 26,
+    key.attributes: [
+      {
+        key.offset: 1909,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "a",
+        key.offset: 1930,
+        key.length: 10,
+        key.typename: "Int32"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFunc1AnonymousParam(_:)",
+    key.offset: 1959,
+    key.length: 46,
+    key.typename: "Int32",
+    key.nameoffset: 1964,
+    key.namelength: 32,
+    key.attributes: [
+      {
+        key.offset: 1952,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.offset: 1987,
+        key.length: 8,
+        key.typename: "Int32"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFunc3(_:_:_:_:)",
+    key.offset: 2014,
+    key.length: 94,
+    key.typename: "Int32",
+    key.nameoffset: 2019,
+    key.namelength: 80,
+    key.attributes: [
+      {
+        key.offset: 2007,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "a",
+        key.offset: 2028,
+        key.length: 10,
+        key.typename: "Int32"
+      },
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "b",
+        key.offset: 2040,
+        key.length: 10,
+        key.typename: "Float"
+      },
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "c",
+        key.offset: 2052,
+        key.length: 11,
+        key.typename: "Double"
+      },
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "d",
+        key.offset: 2065,
+        key.length: 33,
+        key.typename: "UnsafeMutablePointer<Int32>!"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithBlock(_:)",
+    key.offset: 2117,
+    key.length: 49,
+    key.nameoffset: 2122,
+    key.namelength: 44,
+    key.attributes: [
+      {
+        key.offset: 2110,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "blk",
+        key.offset: 2139,
+        key.length: 26,
+        key.typename: "((Float) -> Int32)!"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithFunctionPointer(_:)",
+    key.offset: 2175,
+    key.length: 75,
+    key.nameoffset: 2180,
+    key.namelength: 70,
+    key.attributes: [
+      {
+        key.offset: 2168,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "fptr",
+        key.offset: 2207,
+        key.length: 42,
+        key.typename: "(@convention(c) (Float) -> Int32)!"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncNoreturn1()",
+    key.offset: 2259,
+    key.length: 32,
+    key.typename: "Never",
+    key.nameoffset: 2264,
+    key.namelength: 18,
+    key.attributes: [
+      {
+        key.offset: 2252,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncNoreturn2()",
+    key.offset: 2300,
+    key.length: 32,
+    key.typename: "Never",
+    key.nameoffset: 2305,
+    key.namelength: 18,
+    key.attributes: [
+      {
+        key.offset: 2293,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithComment1()",
+    key.offset: 2404,
+    key.length: 26,
+    key.nameoffset: 2409,
+    key.namelength: 21,
+    key.docoffset: 2334,
+    key.doclength: 62,
+    key.attributes: [
+      {
+        key.offset: 2397,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithComment2()",
+    key.offset: 2482,
+    key.length: 26,
+    key.nameoffset: 2487,
+    key.namelength: 21,
+    key.docoffset: 2432,
+    key.doclength: 42,
+    key.attributes: [
+      {
+        key.offset: 2475,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithComment3()",
+    key.offset: 2577,
+    key.length: 26,
+    key.nameoffset: 2582,
+    key.namelength: 21,
+    key.docoffset: 2510,
+    key.doclength: 59,
+    key.attributes: [
+      {
+        key.offset: 2570,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithComment4()",
+    key.offset: 2665,
+    key.length: 26,
+    key.nameoffset: 2670,
+    key.namelength: 21,
+    key.docoffset: 2605,
+    key.doclength: 53,
+    key.attributes: [
+      {
+        key.offset: 2658,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooFuncWithComment5()",
+    key.offset: 2759,
+    key.length: 26,
+    key.nameoffset: 2764,
+    key.namelength: 21,
+    key.docoffset: 2693,
+    key.doclength: 59,
+    key.attributes: [
+      {
+        key.offset: 2752,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "redeclaredInMultipleModulesFunc1(_:)",
+    key.offset: 2844,
+    key.length: 58,
+    key.typename: "Int32",
+    key.nameoffset: 2849,
+    key.namelength: 44,
+    key.docoffset: 2787,
+    key.doclength: 50,
+    key.attributes: [
+      {
+        key.offset: 2837,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "a",
+        key.offset: 2882,
+        key.length: 10,
+        key.typename: "Int32"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.protocol,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooProtocolBase",
+    key.offset: 2944,
+    key.length: 498,
+    key.nameoffset: 2953,
+    key.namelength: 15,
+    key.bodyoffset: 2970,
+    key.bodylength: 471,
+    key.docoffset: 2904,
+    key.doclength: 33,
+    key.attributes: [
+      {
+        key.offset: 2937,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProtoFunc()",
+        key.offset: 3023,
+        key.length: 19,
+        key.nameoffset: 3028,
+        key.namelength: 14,
+        key.docoffset: 2976,
+        key.doclength: 43
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProtoFuncWithExtraIndentation1()",
+        key.offset: 3116,
+        key.length: 40,
+        key.nameoffset: 3121,
+        key.namelength: 35,
+        key.docoffset: 3048,
+        key.doclength: 64
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProtoFuncWithExtraIndentation2()",
+        key.offset: 3244,
+        key.length: 40,
+        key.nameoffset: 3249,
+        key.namelength: 35,
+        key.docoffset: 3162,
+        key.doclength: 77
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.static,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProtoClassFunc()",
+        key.offset: 3290,
+        key.length: 31,
+        key.nameoffset: 3302,
+        key.namelength: 19
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProperty1",
+        key.offset: 3327,
+        key.length: 35,
+        key.typename: "Int32",
+        key.nameoffset: 3331,
+        key.namelength: 12,
+        key.bodyoffset: 3352,
+        key.bodylength: 9
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProperty2",
+        key.offset: 3368,
+        key.length: 35,
+        key.typename: "Int32",
+        key.nameoffset: 3372,
+        key.namelength: 12,
+        key.bodyoffset: 3393,
+        key.bodylength: 9
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "fooProperty3",
+        key.offset: 3409,
+        key.length: 31,
+        key.typename: "Int32",
+        key.nameoffset: 3413,
+        key.namelength: 12,
+        key.bodyoffset: 3434,
+        key.bodylength: 5
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.protocol,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooProtocolDerived",
+    key.offset: 3451,
+    key.length: 49,
+    key.nameoffset: 3460,
+    key.namelength: 18,
+    key.bodyoffset: 3498,
+    key.bodylength: 1,
+    key.inheritedtypes: [
+      {
+        key.name: "FooProtocolBase"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 3444,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 3481,
+        key.length: 15
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.open,
+    key.name: "FooClassBase",
+    key.offset: 3507,
+    key.length: 285,
+    key.nameoffset: 3513,
+    key.namelength: 12,
+    key.bodyoffset: 3527,
+    key.bodylength: 264,
+    key.attributes: [
+      {
+        key.offset: 3502,
+        key.length: 4,
+        key.attribute: source.decl.attribute.open
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooBaseInstanceFunc0()",
+        key.offset: 3538,
+        key.length: 27,
+        key.nameoffset: 3543,
+        key.namelength: 22,
+        key.attributes: [
+          {
+            key.offset: 3533,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooBaseInstanceFunc1(_:)",
+        key.offset: 3576,
+        key.length: 60,
+        key.typename: "FooClassBase!",
+        key.nameoffset: 3581,
+        key.namelength: 38,
+        key.attributes: [
+          {
+            key.offset: 3571,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "anObject",
+            key.offset: 3602,
+            key.length: 16,
+            key.typename: "Any!"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init()",
+        key.offset: 3649,
+        key.length: 7,
+        key.nameoffset: 3649,
+        key.namelength: 7,
+        key.attributes: [
+          {
+            key.offset: 3642,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(float:)",
+        key.offset: 3681,
+        key.length: 21,
+        key.nameoffset: 3681,
+        key.namelength: 21,
+        key.attributes: [
+          {
+            key.offset: 3669,
+            key.length: 11,
+            key.attribute: source.decl.attribute.convenience
+          },
+          {
+            key.offset: 3662,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "f",
+            key.offset: 3687,
+            key.length: 14,
+            key.typename: "Float",
+            key.nameoffset: 3687,
+            key.namelength: 5
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooBaseInstanceFuncOverridden()",
+        key.offset: 3713,
+        key.length: 36,
+        key.nameoffset: 3718,
+        key.namelength: 31,
+        key.attributes: [
+          {
+            key.offset: 3708,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.class,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooBaseClassFunc0()",
+        key.offset: 3760,
+        key.length: 30,
+        key.nameoffset: 3771,
+        key.namelength: 19,
+        key.attributes: [
+          {
+            key.offset: 3755,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.open,
+    key.name: "FooClassDerived",
+    key.offset: 3832,
+    key.length: 392,
+    key.nameoffset: 3838,
+    key.namelength: 15,
+    key.bodyoffset: 3890,
+    key.bodylength: 333,
+    key.docoffset: 3794,
+    key.doclength: 33,
+    key.inheritedtypes: [
+      {
+        key.name: "FooClassBase"
+      },
+      {
+        key.name: "FooProtocolDerived"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 3827,
+        key.length: 4,
+        key.attribute: source.decl.attribute.open
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 3856,
+        key.length: 12
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 3870,
+        key.length: 18
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "fooProperty1",
+        key.offset: 3901,
+        key.length: 23,
+        key.typename: "Int32",
+        key.nameoffset: 3905,
+        key.namelength: 12,
+        key.attributes: [
+          {
+            key.offset: 3896,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "fooProperty2",
+        key.offset: 3935,
+        key.length: 23,
+        key.typename: "Int32",
+        key.nameoffset: 3939,
+        key.namelength: 12,
+        key.attributes: [
+          {
+            key.offset: 3930,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooProperty3",
+        key.offset: 3969,
+        key.length: 31,
+        key.typename: "Int32",
+        key.nameoffset: 3973,
+        key.namelength: 12,
+        key.bodyoffset: 3994,
+        key.bodylength: 5,
+        key.attributes: [
+          {
+            key.offset: 3964,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooInstanceFunc0()",
+        key.offset: 4011,
+        key.length: 23,
+        key.nameoffset: 4016,
+        key.namelength: 18,
+        key.attributes: [
+          {
+            key.offset: 4006,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooInstanceFunc1(_:)",
+        key.offset: 4045,
+        key.length: 33,
+        key.nameoffset: 4050,
+        key.namelength: 28,
+        key.attributes: [
+          {
+            key.offset: 4040,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "a",
+            key.offset: 4067,
+            key.length: 10,
+            key.typename: "Int32"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooInstanceFunc2(_:withB:)",
+        key.offset: 4089,
+        key.length: 49,
+        key.nameoffset: 4094,
+        key.namelength: 44,
+        key.attributes: [
+          {
+            key.offset: 4084,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "a",
+            key.offset: 4111,
+            key.length: 10,
+            key.typename: "Int32"
+          },
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "b",
+            key.offset: 4123,
+            key.length: 14,
+            key.typename: "Int32",
+            key.nameoffset: 4123,
+            key.namelength: 5
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooBaseInstanceFuncOverridden()",
+        key.offset: 4149,
+        key.length: 36,
+        key.nameoffset: 4154,
+        key.namelength: 31,
+        key.attributes: [
+          {
+            key.offset: 4144,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.class,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "fooClassFunc0()",
+        key.offset: 4196,
+        key.length: 26,
+        key.nameoffset: 4207,
+        key.namelength: 15,
+        key.attributes: [
+          {
+            key.offset: 4191,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.typealias,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "typedef_int_t",
+    key.offset: 4233,
+    key.length: 31,
+    key.nameoffset: 4243,
+    key.namelength: 13,
+    key.attributes: [
+      {
+        key.offset: 4226,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_1",
+    key.offset: 4273,
+    key.length: 30,
+    key.typename: "Int32",
+    key.nameoffset: 4277,
+    key.namelength: 11,
+    key.bodyoffset: 4297,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4266,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_2",
+    key.offset: 4312,
+    key.length: 30,
+    key.typename: "Int32",
+    key.nameoffset: 4316,
+    key.namelength: 11,
+    key.bodyoffset: 4336,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4305,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_3",
+    key.offset: 4351,
+    key.length: 30,
+    key.typename: "Int32",
+    key.nameoffset: 4355,
+    key.namelength: 11,
+    key.bodyoffset: 4375,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4344,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_4",
+    key.offset: 4390,
+    key.length: 31,
+    key.typename: "UInt32",
+    key.nameoffset: 4394,
+    key.namelength: 11,
+    key.bodyoffset: 4415,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4383,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_5",
+    key.offset: 4430,
+    key.length: 31,
+    key.typename: "UInt64",
+    key.nameoffset: 4434,
+    key.namelength: 11,
+    key.bodyoffset: 4455,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4423,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_6",
+    key.offset: 4470,
+    key.length: 38,
+    key.typename: "typedef_int_t",
+    key.nameoffset: 4474,
+    key.namelength: 11,
+    key.bodyoffset: 4502,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4463,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_7",
+    key.offset: 4517,
+    key.length: 38,
+    key.typename: "typedef_int_t",
+    key.nameoffset: 4521,
+    key.namelength: 11,
+    key.bodyoffset: 4549,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4510,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_8",
+    key.offset: 4564,
+    key.length: 30,
+    key.typename: "CChar",
+    key.nameoffset: 4568,
+    key.namelength: 11,
+    key.bodyoffset: 4588,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4557,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_9",
+    key.offset: 4603,
+    key.length: 30,
+    key.typename: "Int32",
+    key.nameoffset: 4607,
+    key.namelength: 11,
+    key.bodyoffset: 4627,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4596,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_10",
+    key.offset: 4642,
+    key.length: 31,
+    key.typename: "Int16",
+    key.nameoffset: 4646,
+    key.namelength: 12,
+    key.bodyoffset: 4667,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4635,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_11",
+    key.offset: 4682,
+    key.length: 29,
+    key.typename: "Int",
+    key.nameoffset: 4686,
+    key.namelength: 12,
+    key.bodyoffset: 4705,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4675,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_OR",
+    key.offset: 4720,
+    key.length: 31,
+    key.typename: "Int32",
+    key.nameoffset: 4724,
+    key.namelength: 12,
+    key.bodyoffset: 4745,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4713,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_AND",
+    key.offset: 4760,
+    key.length: 32,
+    key.typename: "Int32",
+    key.nameoffset: 4764,
+    key.namelength: 13,
+    key.bodyoffset: 4786,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4753,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_BITWIDTH",
+    key.offset: 4801,
+    key.length: 38,
+    key.typename: "UInt64",
+    key.nameoffset: 4805,
+    key.namelength: 18,
+    key.bodyoffset: 4833,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4794,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_SIGNED",
+    key.offset: 4848,
+    key.length: 36,
+    key.typename: "UInt32",
+    key.nameoffset: 4852,
+    key.namelength: 16,
+    key.bodyoffset: 4878,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4841,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_REDEF_1",
+    key.offset: 4893,
+    key.length: 36,
+    key.typename: "Int32",
+    key.nameoffset: 4897,
+    key.namelength: 17,
+    key.bodyoffset: 4923,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4886,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FOO_MACRO_REDEF_2",
+    key.offset: 4938,
+    key.length: 36,
+    key.typename: "Int32",
+    key.nameoffset: 4942,
+    key.namelength: 17,
+    key.bodyoffset: 4968,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 4931,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "theLastDeclInFoo()",
+    key.offset: 4983,
+    key.length: 23,
+    key.nameoffset: 4988,
+    key.namelength: 18,
+    key.attributes: [
+      {
+        key.offset: 4976,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "_internalTopLevelFunc()",
+    key.offset: 5015,
+    key.length: 28,
+    key.nameoffset: 5020,
+    key.namelength: 23,
+    key.attributes: [
+      {
+        key.offset: 5008,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "_InternalStruct",
+    key.offset: 5052,
+    key.length: 97,
+    key.nameoffset: 5059,
+    key.namelength: 15,
+    key.bodyoffset: 5076,
+    key.bodylength: 72,
+    key.attributes: [
+      {
+        key.offset: 5045,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init()",
+        key.offset: 5089,
+        key.length: 6,
+        key.nameoffset: 5089,
+        key.namelength: 6,
+        key.attributes: [
+          {
+            key.offset: 5082,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(x:)",
+        key.offset: 5108,
+        key.length: 14,
+        key.nameoffset: 5108,
+        key.namelength: 14,
+        key.attributes: [
+          {
+            key.offset: 5101,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "x",
+            key.offset: 5113,
+            key.length: 8,
+            key.typename: "Int32",
+            key.nameoffset: 5113,
+            key.namelength: 1
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "x",
+        key.offset: 5135,
+        key.length: 12,
+        key.typename: "Int32",
+        key.nameoffset: 5139,
+        key.namelength: 1,
+        key.attributes: [
+          {
+            key.offset: 5128,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension,
+    key.name: "FooClassBase",
+    key.offset: 5151,
+    key.length: 66,
+    key.nameoffset: 5161,
+    key.namelength: 12,
+    key.bodyoffset: 5175,
+    key.bodylength: 41,
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "_internalMeth1()",
+        key.offset: 5186,
+        key.length: 29,
+        key.typename: "Any!",
+        key.nameoffset: 5191,
+        key.namelength: 16,
+        key.attributes: [
+          {
+            key.offset: 5181,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension,
+    key.name: "FooClassBase",
+    key.offset: 5219,
+    key.length: 107,
+    key.nameoffset: 5229,
+    key.namelength: 12,
+    key.bodyoffset: 5243,
+    key.bodylength: 82,
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "_internalMeth2()",
+        key.offset: 5254,
+        key.length: 29,
+        key.typename: "Any!",
+        key.nameoffset: 5259,
+        key.namelength: 16,
+        key.attributes: [
+          {
+            key.offset: 5249,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "nonInternalMeth()",
+        key.offset: 5294,
+        key.length: 30,
+        key.typename: "Any!",
+        key.nameoffset: 5299,
+        key.namelength: 17,
+        key.attributes: [
+          {
+            key.offset: 5289,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.extension,
+    key.name: "FooClassBase",
+    key.offset: 5328,
+    key.length: 66,
+    key.nameoffset: 5338,
+    key.namelength: 12,
+    key.bodyoffset: 5352,
+    key.bodylength: 41,
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "_internalMeth3()",
+        key.offset: 5363,
+        key.length: 29,
+        key.typename: "Any!",
+        key.nameoffset: 5368,
+        key.namelength: 16,
+        key.attributes: [
+          {
+            key.offset: 5358,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.protocol,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "_InternalProt",
+    key.offset: 5403,
+    key.length: 26,
+    key.nameoffset: 5412,
+    key.namelength: 13,
+    key.bodyoffset: 5427,
+    key.bodylength: 1,
+    key.attributes: [
+      {
+        key.offset: 5396,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.open,
+    key.name: "ClassWithInternalProt",
+    key.offset: 5436,
+    key.length: 47,
+    key.nameoffset: 5442,
+    key.namelength: 21,
+    key.bodyoffset: 5481,
+    key.bodylength: 1,
+    key.inheritedtypes: [
+      {
+        key.name: "_InternalProt"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 5431,
+        key.length: 4,
+        key.attribute: source.decl.attribute.open
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 5466,
+        key.length: 13
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.open,
+    key.name: "FooClassPropertyOwnership",
+    key.offset: 5490,
+    key.length: 319,
+    key.nameoffset: 5496,
+    key.namelength: 25,
+    key.bodyoffset: 5538,
+    key.bodylength: 270,
+    key.inheritedtypes: [
+      {
+        key.name: "FooClassBase"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 5485,
+        key.length: 4,
+        key.attribute: source.decl.attribute.open
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 5524,
+        key.length: 12
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "assignable",
+        key.offset: 5565,
+        key.length: 26,
+        key.typename: "AnyObject!",
+        key.nameoffset: 5569,
+        key.namelength: 10,
+        key.attributes: [
+          {
+            key.offset: 5560,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          },
+          {
+            key.offset: 5544,
+            key.length: 15,
+            key.attribute: source.decl.attribute.weak
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "unsafeAssignable",
+        key.offset: 5618,
+        key.length: 32,
+        key.typename: "AnyObject!",
+        key.nameoffset: 5622,
+        key.namelength: 16,
+        key.attributes: [
+          {
+            key.offset: 5613,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          },
+          {
+            key.offset: 5597,
+            key.length: 15,
+            key.attribute: source.decl.attribute.weak
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "retainable",
+        key.offset: 5661,
+        key.length: 20,
+        key.typename: "Any!",
+        key.nameoffset: 5665,
+        key.namelength: 10,
+        key.attributes: [
+          {
+            key.offset: 5656,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "strongRef",
+        key.offset: 5692,
+        key.length: 19,
+        key.typename: "Any!",
+        key.nameoffset: 5696,
+        key.namelength: 9,
+        key.attributes: [
+          {
+            key.offset: 5687,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "copyable",
+        key.offset: 5722,
+        key.length: 18,
+        key.typename: "Any!",
+        key.nameoffset: 5726,
+        key.namelength: 8,
+        key.attributes: [
+          {
+            key.offset: 5717,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "weakRef",
+        key.offset: 5756,
+        key.length: 23,
+        key.typename: "AnyObject!",
+        key.nameoffset: 5760,
+        key.namelength: 7,
+        key.attributes: [
+          {
+            key.offset: 5751,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          },
+          {
+            key.offset: 5746,
+            key.length: 4,
+            key.attribute: source.decl.attribute.weak
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.setter_accessibility: source.lang.code.accessibility.open,
+        key.name: "scalar",
+        key.offset: 5790,
+        key.length: 17,
+        key.typename: "Int32",
+        key.nameoffset: 5794,
+        key.namelength: 6,
+        key.attributes: [
+          {
+            key.offset: 5785,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.open,
+    key.name: "FooUnavailableMembers",
+    key.offset: 5816,
+    key.length: 329,
+    key.nameoffset: 5822,
+    key.namelength: 21,
+    key.bodyoffset: 5860,
+    key.bodylength: 284,
+    key.inheritedtypes: [
+      {
+        key.name: "FooClassBase"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 5811,
+        key.length: 4,
+        key.attribute: source.decl.attribute.open
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 5846,
+        key.length: 12
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(int:)",
+        key.offset: 5885,
+        key.length: 19,
+        key.nameoffset: 5885,
+        key.namelength: 19,
+        key.attributes: [
+          {
+            key.offset: 5873,
+            key.length: 11,
+            key.attribute: source.decl.attribute.convenience
+          },
+          {
+            key.offset: 5866,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "i",
+            key.offset: 5891,
+            key.length: 12,
+            key.typename: "Int32",
+            key.nameoffset: 5891,
+            key.namelength: 3
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "deprecated()",
+        key.offset: 5959,
+        key.length: 17,
+        key.nameoffset: 5964,
+        key.namelength: 12,
+        key.attributes: [
+          {
+            key.offset: 5954,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          },
+          {
+            key.offset: 5910,
+            key.length: 39,
+            key.attribute: source.decl.attribute.available
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "availabilityIntroduced()",
+        key.offset: 6017,
+        key.length: 29,
+        key.nameoffset: 6022,
+        key.namelength: 24,
+        key.attributes: [
+          {
+            key.offset: 6012,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          },
+          {
+            key.offset: 5982,
+            key.length: 25,
+            key.attribute: source.decl.attribute.available
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.open,
+        key.name: "availabilityIntroducedMsg()",
+        key.offset: 6111,
+        key.length: 32,
+        key.nameoffset: 6116,
+        key.namelength: 27,
+        key.attributes: [
+          {
+            key.offset: 6106,
+            key.length: 4,
+            key.attribute: source.decl.attribute.open
+          },
+          {
+            key.offset: 6052,
+            key.length: 49,
+            key.attribute: source.decl.attribute.available
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooCFType",
+    key.offset: 6154,
+    key.length: 19,
+    key.nameoffset: 6160,
+    key.namelength: 9,
+    key.bodyoffset: 6171,
+    key.bodylength: 1,
+    key.attributes: [
+      {
+        key.offset: 6147,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.enum,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "ABAuthorizationStatus",
+    key.offset: 6246,
+    key.length: 89,
+    key.nameoffset: 6251,
+    key.namelength: 21,
+    key.bodyoffset: 6280,
+    key.bodylength: 54,
+    key.inheritedtypes: [
+      {
+        key.name: "Int"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 6239,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      },
+      {
+        key.offset: 6175,
+        key.length: 63,
+        key.attribute: source.decl.attribute.available
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 6275,
+        key.length: 3
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.enumcase,
+        key.offset: 6286,
+        key.length: 22,
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.enumelement,
+            key.accessibility: source.lang.code.accessibility.public,
+            key.name: "notDetermined",
+            key.offset: 6291,
+            key.length: 17,
+            key.nameoffset: 6291,
+            key.namelength: 13,
+            key.elements: [
+              {
+                key.kind: source.lang.code.structure.elem.init_expr,
+                key.offset: 6307,
+                key.length: 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.enumcase,
+        key.offset: 6314,
+        key.length: 19,
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.enumelement,
+            key.accessibility: source.lang.code.accessibility.public,
+            key.name: "restricted",
+            key.offset: 6319,
+            key.length: 14,
+            key.nameoffset: 6319,
+            key.namelength: 10,
+            key.elements: [
+              {
+                key.kind: source.lang.code.structure.elem.init_expr,
+                key.offset: 6332,
+                key.length: 1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooOverlayClassBase",
+    key.offset: 6344,
+    key.length: 50,
+    key.nameoffset: 6350,
+    key.namelength: 19,
+    key.bodyoffset: 6371,
+    key.bodylength: 22,
+    key.attributes: [
+      {
+        key.offset: 6337,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "f()",
+        key.offset: 6384,
+        key.length: 8,
+        key.nameoffset: 6389,
+        key.namelength: 3,
+        key.attributes: [
+          {
+            key.offset: 6377,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooOverlayClassDerived",
+    key.offset: 6403,
+    key.length: 88,
+    key.nameoffset: 6409,
+    key.namelength: 22,
+    key.bodyoffset: 6459,
+    key.bodylength: 31,
+    key.inheritedtypes: [
+      {
+        key.name: "Foo.FooOverlayClassBase"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 6396,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 6434,
+        key.length: 23
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "f()",
+        key.offset: 6481,
+        key.length: 8,
+        key.nameoffset: 6486,
+        key.namelength: 3,
+        key.attributes: [
+          {
+            key.offset: 6474,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          },
+          {
+            key.offset: 6465,
+            key.length: 8,
+            key.attribute: source.decl.attribute.override
+          }
+        ]
+      }
+    ]
+  }
+]

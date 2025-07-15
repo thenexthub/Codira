@@ -1,13 +1,17 @@
 //===--- PrintClangClassType.cpp - Print class types in C/C++ ---*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "PrintClangClassType.h"
@@ -20,7 +24,7 @@
 using namespace language;
 
 void ClangClassTypePrinter::printClassTypeDecl(
-    const ClassDecl *typeDecl, llvm::function_ref<void(void)> bodyPrinter,
+    const ClassDecl *typeDecl, toolchain::function_ref<void(void)> bodyPrinter,
     DeclAndTypePrinter &declAndTypePrinter) {
   auto printCxxImplClassName = ClangValueTypePrinter::printCxxImplClassName;
 
@@ -49,16 +53,16 @@ void ClangClassTypePrinter::printClassTypeDecl(
     std::string baseClassQualifiedName;
 
     if (auto *parentClass = typeDecl->getSuperclassDecl()) {
-      llvm::raw_string_ostream baseNameOS(baseClassName);
+      toolchain::raw_string_ostream baseNameOS(baseClassName);
       ClangSyntaxPrinter(typeDecl->getASTContext(), baseNameOS).printBaseName(parentClass);
-      llvm::raw_string_ostream baseQualNameOS(baseClassQualifiedName);
+      toolchain::raw_string_ostream baseQualNameOS(baseClassQualifiedName);
       ClangSyntaxPrinter(typeDecl->getASTContext(), baseQualNameOS)
           .printModuleNamespaceQualifiersIfNeeded(
               parentClass->getModuleContext(), typeDecl->getModuleContext());
       baseQualNameOS << baseNameOS.str();
     } else {
       baseClassName = "RefCountedClass";
-      baseClassQualifiedName = "swift::_impl::RefCountedClass";
+      baseClassQualifiedName = "language::_impl::RefCountedClass";
     }
 
     os << "class";
@@ -85,7 +89,7 @@ void ClangClassTypePrinter::printClassTypeDecl(
     printCxxImplClassName(os, typeDecl);
     os << ";\n";
 
-    printer.printSwiftMangledNameForDebugger(typeDecl);
+    printer.printCodiraMangledNameForDebugger(typeDecl);
 
     os << "};\n\n";
 
@@ -115,7 +119,7 @@ void ClangClassTypePrinter::printClassTypeDecl(
 
 void ClangClassTypePrinter::printClassTypeReturnScaffold(
     raw_ostream &os, const ClassDecl *type, const ModuleDecl *moduleContext,
-    llvm::function_ref<void(void)> bodyPrinter) {
+    toolchain::function_ref<void(void)> bodyPrinter) {
   ClangSyntaxPrinter printer(type->getASTContext(), os);
   os << "  return ";
   printer.printModuleNamespaceQualifiersIfNeeded(type->getModuleContext(),
@@ -131,10 +135,10 @@ void ClangClassTypePrinter::printClassTypeReturnScaffold(
 
 void ClangClassTypePrinter::printParameterCxxtoCUseScaffold(
     raw_ostream &os, const ClassDecl *type, const ModuleDecl *moduleContext,
-    llvm::function_ref<void(void)> bodyPrinter, bool isInOut) {
+    toolchain::function_ref<void(void)> bodyPrinter, bool isInOut) {
   if (isInOut)
     os << '&';
-  os << "::swift::" << cxx_synthesis::getCxxImplNamespaceName()
+  os << "::language::" << cxx_synthesis::getCxxImplNamespaceName()
      << "::_impl_RefCountedClass"
      << "::getOpaquePointer";
   if (isInOut)

@@ -1,0 +1,21 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+protocol AP {
+  associatedtype B: BP
+  var b: B { get }
+}
+protocol BP {}
+
+fn foo<A: AP>(x: A) -> A {
+  fn bar<B: BP>(x: B) {
+  }
+  fn bas<B: BP>(x: B) {
+    bar(x: x)
+  }
+
+  fn bang() -> A { return x }
+  fn bong(_: A) {}
+
+  immutable x = bang()
+  bong(x)
+}

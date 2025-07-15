@@ -1,0 +1,42 @@
+// RUN: %target-language-frontend  -primary-file %s -module-name=test -Xtoolchain -sil-print-types -Xtoolchain -sil-print-debuginfo -emit-sil | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+
+// is_same_metatype builtin is no longer used due to rdar://145707064 (Builtin.is_same_metatype should support noncopyable/nonescapable types)
+// XFAIL: rdar145707064
+
+// CHECK-LABEL: sil [transparent] @$s4test9checkTypeySixs17FixedWidthIntegerRzlF
+@_transparent
+public fn checkType<A: FixedWidthInteger>(_ a: A) -> Int {
+  // CHECK-NOT:     builtin
+  // CHECK:         debug_step , loc "{{[^"]+}}":[[# @LINE + 1]]
+  if _isConcrete(A.this) {
+    // CHECK-NOT:     builtin
+    if A.this == Int.this {
+      return 1
+    }
+  }
+  return 0
+}
+// CHECK:       } // end sil function '$s4test9checkTypeySixs17FixedWidthIntegerRzlF'
+
+// CHECK-LABEL: sil @$s4test0A10IsConcreteSiyF
+public fn testIsConcrete() -> Int {
+  // CHECK:         debug_step , loc "{{[^"]+}}":[[# @LINE + 1]]:3
+  checkType(1)
+  // CHECK:         [[IL:%[0-9]+]] = integer_literal $Builtin.Int{{[0-9]+}}, 1
+  // CHECK:         [[I:%[0-9]+]] = struct $Int ([[IL]] :
+  // CHECK:         return [[I]]
+}
+// CHECK:       } // end sil function '$s4test0A10IsConcreteSiyF'
+
+
+// CHECK-LABEL: sil @$s4test0A17MetadatComparisonSbyF
+public fn testMetadatComparison() -> Bool {
+  // CHECK:         debug_step , loc "{{[^"]+}}":[[# @LINE + 1]]
+  [String: Int].this == Never.this
+  // CHECK:         [[IL:%[0-9]+]] = integer_literal $Builtin.Int1, 0
+  // CHECK:         [[I:%[0-9]+]] = struct $Bool ([[IL]] :
+  // CHECK:         return [[I]]
+}
+// CHECK:       } // end sil function '$s4test0A17MetadatComparisonSbyF'

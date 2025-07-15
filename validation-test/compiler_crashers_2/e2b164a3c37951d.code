@@ -1,0 +1,4 @@
+// {"signature":"void toolchain::function_ref<void (language::Type)>::callback_fn<(anonymous namespace)::typeEraseOpenedArchetypes(language::Type)::$_0>(long, language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+var a : String { get throws(b{
+  a

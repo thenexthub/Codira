@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ASTVisitor class, and the DeclVisitor, ExprVisitor, and
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTVISITOR_H
-#define SWIFT_AST_ASTVISITOR_H
+#ifndef LANGUAGE_AST_ASTVISITOR_H
+#define LANGUAGE_AST_ASTVISITOR_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Expr.h"
@@ -27,12 +28,12 @@
 #include "language/AST/Pattern.h"
 #include "language/AST/Stmt.h"
 #include "language/AST/TypeRepr.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
   class ParameterList;
   
-/// ASTVisitor - This is a simple visitor class for Swift expressions.
+/// ASTVisitor - This is a simple visitor class for Codira expressions.
 template<typename ImplClass,
          typename ExprRetTy = void,
          typename StmtRetTy = void,
@@ -54,7 +55,7 @@ public:
                              ::std::forward<Args>(AA)...);
 #include "language/AST/DeclNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
   ExprRetTy visit(Expr *E, Args... AA) {
@@ -68,7 +69,7 @@ public:
 #include "language/AST/ExprNodes.def"
 
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
   
   // Provide default implementations of abstract "visit" implementations that
@@ -95,7 +96,7 @@ public:
 #include "language/AST/StmtNodes.def"
 
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
 #define DECL(CLASS, PARENT) \
@@ -115,7 +116,7 @@ public:
                                 ::std::forward<Args>(AA)...);
 #include "language/AST/PatternNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
   TypeReprRetTy visit(TypeRepr *T, Args... AA) {
@@ -127,7 +128,7 @@ public:
                                  ::std::forward<Args>(AA)...);
 #include "language/AST/TypeReprNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
 #define TYPEREPR(CLASS, PARENT) \

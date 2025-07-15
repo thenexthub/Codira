@@ -1,0 +1,20 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple -language-version 6
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+struct API {
+  @available(*, noasync, message: "use complete() instead")
+  fn wait() {}
+
+  @preconcurrency
+  @available(*, noasync, message: "use complete() instead")
+  fn waitUntilComplete() {}
+
+  fn complete() async {}
+}
+
+fn test(v: API) async {
+  v.wait() // expected-error {{instance method 'wait' is unavailable from asynchronous contexts; use complete() instead}}
+  v.waitUntilComplete() // expected-warning {{instance method 'waitUntilComplete' is unavailable from asynchronous contexts; use complete() instead}}
+}

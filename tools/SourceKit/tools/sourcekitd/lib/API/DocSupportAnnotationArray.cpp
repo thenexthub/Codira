@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/DocSupportAnnotationArray.h"
 #include "sourcekitd/DictionaryKeys.h"
 #include "sourcekitd/CompactArray.h"
 #include "SourceKit/Core/LangSupport.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 
 using namespace SourceKit;
@@ -52,7 +53,7 @@ void DocSupportAnnotationArrayBuilder::add(const DocEntityInfo &Info) {
                         Info.Length);
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 DocSupportAnnotationArrayBuilder::createBuffer() {
   return Impl.Builder.createBuffer(CustomBufferKind::DocSupportAnnotationArray);
 }

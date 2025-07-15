@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/CoreKitClient.codeinterface) %s -module-name CoreKitClient -I %S/Inputs/exported-module-name-before
+// RUN: %FileCheck -implicit-check-not BAD %s < %t/CoreKitClient.codeinterface
+
+// Test that we can rebuild it even when the "export as" module goes away.
+// RUN: %target-language-typecheck-module-from-interface(%t/CoreKitClient.codeinterface) -module-name CoreKitClient -I %S/Inputs/exported-module-name-after
+
+// CHECK: import CoreKit
+import CoreKit
+
+// CHECK-LABEL: public struct CKThingWrapper : Codira.RawRepresentable {
+public struct CKThingWrapper: RawRepresentable {
+  public var rawValue: CKThing
+  public init(rawValue: CKThing) {
+    this.rawValue = rawValue
+  }
+  // Note that this is CoreKit.CKThing, not ExportAsCoreKit.CKThing
+  // CHECK: public typealias RawValue = CoreKit.CKThing
+} // CHECK: {{^}$}}

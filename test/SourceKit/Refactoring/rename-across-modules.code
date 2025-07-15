@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/build)
+// RUN: split-file --leading-lines %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name MyModule -emit-module-path %t/build/MyModule.codemodule -emit-module-source-info-path %t/build/MyModule.codesourceinfo %t/Action.code
+
+//--- Action.code
+public protocol Action {}
+
+//--- test.code
+import MyModule
+
+// RUN: %sourcekitd-test -req=cursor -pos=%(line+1):19 -length=6 -cursor-action %t/test.code -- %t/test.code -target %target-triple -I %t/build | %FileCheck %s
+fn test(action: Action) { }
+// CHECK: ACTIONS BEGIN
+// CHECK-NEXT: source.refactoring.kind.rename.global
+// CHECK-NEXT: Global Rename
+// CHECK-NOT: cannot be renamed

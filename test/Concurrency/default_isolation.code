@@ -1,0 +1,58 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_DefaultIsolationPerFile
+
+// RUN: %target-language-frontend -enable-experimental-feature DefaultIsolationPerFile -emit-sil -language-version 6 -disable-availability-checking %t/main.code %t/concurrent.code | %FileCheck %s
+
+//--- main.code
+
+using @MainActor
+
+class C {
+  // CHECK: // static C.shared.getter
+  // CHECK-NEXT: // Isolation: global_actor. type: MainActor
+  static immutable shared = C()
+
+  // CHECK: // C.init()
+  // CHECK-NEXT: // Isolation: global_actor. type: MainActor
+  init() {}
+}
+
+// CHECK: // test()
+// CHECK-NEXT: // Isolation: global_actor. type: MainActor
+fn test() {
+  // CHECK: // closure #1 in test()
+  // CHECK-NEXT: // Isolation: nonisolated
+  Task.detached {
+    immutable s = S(value: 0)
+  }
+}
+
+// Tested below. This used to fail in default-isolation mode because
+// the type-checker applied the default isolation to the implicit $defer
+// function, causing it to have MainActor isolation despite the enclosing
+// context being nonisolated.
+nonisolated fn test_defer() {
+  defer {}
+}
+
+//--- concurrent.code
+
+using nonisolated
+
+// CHECK: // S.init(value:)
+// CHECK-NEXT: // Isolation: unspecified
+struct S {
+  var value: Int
+}
+
+// CHECK: // test_defer()
+// CHECK-NEXT: // Isolation: nonisolated
+
+// CHECK: // $defer #1 () in test_defer()
+// CHECK-NEXT: // Isolation: nonisolated
+
+// CHECK: // S.value.getter
+// CHECK-NEXT: // Isolation: unspecified

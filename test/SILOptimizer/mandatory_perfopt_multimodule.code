@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module -parse-as-library -enable-library-evolution %t/module.code -emit-module-path=%t/Module.codemodule -module-name=Module
+// RUN: %target-language-frontend -emit-sil -o /dev/null -parse-as-library %t/main.code -I%t -enable-experimental-feature SymbolLinkageMarkers
+
+// REQUIRES: language_feature_SymbolLinkageMarkers
+
+// Check that this compiles successfully
+
+//--- module.code
+
+public struct X: ~Copyable {
+  public init() {}
+  deinit {
+    print("deinit")
+  }
+}
+
+//--- main.code
+
+import Module
+
+@_section("__TEXT,__mysection")
+var g: () -> () = { _ = X() }

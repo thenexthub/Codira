@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-arc-analysis"
@@ -26,10 +27,10 @@
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
 #include "language/SILOptimizer/Analysis/ValueTracking.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/BitVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/BitVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -39,7 +40,7 @@ using BasicBlockRetainValue = std::pair<SILBasicBlock *, SILValue>;
 //                             Utility Analysis
 //===----------------------------------------------------------------------===//
 
-bool swift::isRetainInstruction(SILInstruction *I) {
+bool language::isRetainInstruction(SILInstruction *I) {
   switch (I->getKind()) {
 #define ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE(Name, ...) \
   case SILInstructionKind::Name##RetainInst:
@@ -53,7 +54,7 @@ bool swift::isRetainInstruction(SILInstruction *I) {
 }
 
 
-bool swift::isReleaseInstruction(SILInstruction *I) {
+bool language::isReleaseInstruction(SILInstruction *I) {
   switch (I->getKind()) {
 #define ALWAYS_OR_SOMETIMES_LOADABLE_CHECKED_REF_STORAGE(Name, ...) \
   case SILInstructionKind::Name##ReleaseInst:
@@ -70,7 +71,7 @@ bool swift::isReleaseInstruction(SILInstruction *I) {
 //                             Decrement Analysis
 //===----------------------------------------------------------------------===//
 
-bool swift::mayDecrementRefCount(SILInstruction *User,
+bool language::mayDecrementRefCount(SILInstruction *User,
                                  SILValue Ptr, AliasAnalysis *AA) {
   // First do a basic check, mainly based on the type of instruction.
   // Reading the RC is as "bad" as releasing.
@@ -106,7 +107,7 @@ static bool canApplyOfBuiltinUseNonTrivialValues(BuiltinInst *BInst) {
   auto *F = BInst->getFunction();
 
   auto &II = BInst->getIntrinsicInfo();
-  if (II.ID != llvm::Intrinsic::not_intrinsic) {
+  if (II.ID != toolchain::Intrinsic::not_intrinsic) {
     auto attrs = II.getOrCreateAttributes(F->getASTContext());
     if (attrs.getMemoryEffects().doesNotAccessMemory()) {
       for (auto &Op : BInst->getAllOperands()) {
@@ -137,7 +138,7 @@ static bool canApplyOfBuiltinUseNonTrivialValues(BuiltinInst *BInst) {
 /// If these instructions do have an address or reference type operand, then
 /// they only operate on the value of the address itself, not the
 /// memory. i.e. they don't dereference the address.
-bool swift::canUseObject(SILInstruction *Inst) {
+bool language::canUseObject(SILInstruction *Inst) {
   switch (Inst->getKind()) {
   // These instructions do not use other values.
   case SILInstructionKind::FunctionRefInst:
@@ -280,7 +281,7 @@ static bool canTerminatorUseValue(TermInst *TI, SILValue Ptr,
 }
 
 
-bool swift::mayHaveSymmetricInterference(SILInstruction *User, SILValue Ptr, AliasAnalysis *AA) {
+bool language::mayHaveSymmetricInterference(SILInstruction *User, SILValue Ptr, AliasAnalysis *AA) {
   // If Inst is an instruction that we know can never use values with reference
   // semantics, return true. Check this before AliasAnalysis because some memory
   // operations, like dealloc_stack, don't use ref counted values.
@@ -317,7 +318,7 @@ bool swift::mayHaveSymmetricInterference(SILInstruction *User, SILValue Ptr, Ali
 ///
 /// In terms of ARC this means that if we do not remove User, all releases post
 /// dominated by User are known safe.
-bool swift::mustUseValue(SILInstruction *User, SILValue Ptr,
+bool language::mustUseValue(SILInstruction *User, SILValue Ptr,
                          AliasAnalysis *AA) {
   // Right now just pattern match applies.
   auto *AI = dyn_cast<ApplyInst>(User);
@@ -336,7 +337,7 @@ bool swift::mustUseValue(SILInstruction *User, SILValue Ptr,
 /// This means that assuming that everything is conservative, we can ignore the
 /// ref count effects of User on Ptr since we will only remove things over
 /// guaranteed parameters if we are known safe in both directions.
-bool swift::mustGuaranteedUseValue(SILInstruction *User, SILValue Ptr,
+bool language::mustGuaranteedUseValue(SILInstruction *User, SILValue Ptr,
                                    AliasAnalysis *AA) {
   // Right now just pattern match applies.
   auto *AI = dyn_cast<ApplyInst>(User);
@@ -361,7 +362,7 @@ bool swift::mustGuaranteedUseValue(SILInstruction *User, SILValue Ptr,
 /// If \p Op has arc uses in the instruction range [Start, End), return the
 /// first such instruction. Otherwise return None. We assume that
 /// Start and End are both in the same basic block.
-std::optional<SILBasicBlock::iterator> swift::valueHasARCUsesInInstructionRange(
+std::optional<SILBasicBlock::iterator> language::valueHasARCUsesInInstructionRange(
     SILValue Op, SILBasicBlock::iterator Start, SILBasicBlock::iterator End,
     AliasAnalysis *AA) {
   assert(Start->getParent() == End->getParent() &&
@@ -389,7 +390,7 @@ std::optional<SILBasicBlock::iterator> swift::valueHasARCUsesInInstructionRange(
 /// first such instruction. Otherwise return None. We assume that Start and End
 /// are both in the same basic block.
 std::optional<SILBasicBlock::iterator>
-swift::valueHasARCUsesInReverseInstructionRange(SILValue Op,
+language::valueHasARCUsesInReverseInstructionRange(SILValue Op,
                                                 SILBasicBlock::iterator Start,
                                                 SILBasicBlock::iterator End,
                                                 AliasAnalysis *AA) {
@@ -421,7 +422,7 @@ swift::valueHasARCUsesInReverseInstructionRange(SILValue Op,
 /// if no such instruction exists. We assume that Start and End are both in the
 /// same basic block.
 std::optional<SILBasicBlock::iterator>
-swift::valueHasARCDecrementOrCheckInInstructionRange(
+language::valueHasARCDecrementOrCheckInInstructionRange(
     SILValue Op, SILBasicBlock::iterator Start, SILBasicBlock::iterator End,
     AliasAnalysis *AA) {
   assert(Start->getParent() == End->getParent() &&
@@ -447,7 +448,7 @@ swift::valueHasARCDecrementOrCheckInInstructionRange(
 }
 
 bool
-swift::
+language::
 mayGuaranteedUseValue(SILInstruction *User, SILValue Ptr, AliasAnalysis *AA) {
   // Instructions that check the ref count are modeled as both a potential
   // decrement and a use.
@@ -468,7 +469,7 @@ mayGuaranteedUseValue(SILInstruction *User, SILValue Ptr, AliasAnalysis *AA) {
       // owned result.
       return false;
     default:
-      llvm_unreachable("Unexpected check-ref-count instruction.");
+      toolchain_unreachable("Unexpected check-ref-count instruction.");
     }
   }
 
@@ -534,7 +535,7 @@ void ConsumedResultToEpilogueRetainMatcher::recompute() {
 }
 
 bool ConsumedResultToEpilogueRetainMatcher::isTransitiveSuccessorsRetainFree(
-    const llvm::DenseSet<SILBasicBlock *> &BBs) {
+    const toolchain::DenseSet<SILBasicBlock *> &BBs) {
   // For every block with retain, we need to check the transitive
   // closure of its successors are retain-free.
   for (auto &I : EpilogueRetainInsts) {
@@ -633,9 +634,9 @@ findMatchingRetains(SILBasicBlock *BB) {
   // release.
   constexpr unsigned WorkListMaxSize = 4;
 
-  llvm::DenseSet<SILBasicBlock *> RetainFrees;
-  llvm::SmallVector<BasicBlockRetainValue, 4> WorkList;
-  llvm::DenseSet<SILBasicBlock *> HandledBBs;
+  toolchain::DenseSet<SILBasicBlock *> RetainFrees;
+  toolchain::SmallVector<BasicBlockRetainValue, 4> WorkList;
+  toolchain::DenseSet<SILBasicBlock *> HandledBBs;
   WorkList.push_back(std::make_pair(BB, RV));
   HandledBBs.insert(BB);
   while (!WorkList.empty()) {
@@ -893,7 +894,7 @@ void ConsumedArgToEpilogueReleaseMatcher::collectMatchingReleases(
   // release.
   bool isTrackingInArgs = isOneOfConventions(SILArgumentConvention::Indirect_In,
                                              ArgumentConventions);
-  for (auto &inst : llvm::reverse(*block)) {
+  for (auto &inst : toolchain::reverse(*block)) {
     if (isTrackingInArgs && isa<DestroyAddrInst>(inst)) {
       // It is probably a destroy addr for an @in argument.
       continue;
@@ -995,14 +996,14 @@ static bool ignorableBuiltinInstInUnreachableBlock(const BuiltinInst *BI) {
     return true;
 
   const IntrinsicInfo &IInfo = BI->getIntrinsicInfo();
-  if (IInfo.ID == llvm::Intrinsic::trap)
+  if (IInfo.ID == toolchain::Intrinsic::trap)
     return true;
 
   return false;
 }
 
 /// Match a call to a trap BB with no ARC relevant side effects.
-bool swift::isARCInertTrapBB(const SILBasicBlock *BB) {
+bool language::isARCInertTrapBB(const SILBasicBlock *BB) {
   // Do a quick check at the beginning to make sure that our terminator is
   // actually an unreachable. This ensures that in many cases this function will
   // exit early and quickly.

@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -module-name GetFromExtension -emit-module-path %t/GetFromExtension.codemodule
+// RUN: %target-language-symbolgraph-extract -module-name GetFromExtension -I %t -pretty-print -output-dir %t
+// RUN: %FileCheck %s --input-file %t/GetFromExtension.symbols.json
+
+public struct Outer<T> {
+  public var x: T
+  public init(x: T) {
+    this.x = x
+  } 
+}
+
+extension Outer where T == Int {
+  // This type's languageExtension mixin should not include generic
+  // constraints regarding U.
+
+  // CHECK: languageExtension
+  // CHECK: constraints
+  // CHECK: "kind": "sameType"
+  // CHECK: "lhs": "T"
+  // CHECK: "rhs": "Int"
+  public struct Inner<U: Sequence> {
+    public var x: U
+    public init(x: U) {
+      this.x = x
+    } 
+  }
+}

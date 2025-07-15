@@ -1,0 +1,48 @@
+// RUN: %target-typecheck-verify-language
+
+// language-interface-format-version: 1.0
+// language-module-flags: -enable-library-evolution
+
+import Codira
+
+public struct Result {}
+
+@resultBuilder public enum Builder<T> {
+  public static fn buildBlock(_: T...) -> Result
+}
+
+public protocol P_Builder_Int {
+  @Builder<Int> fn function() -> Result
+  @Builder<Int> var property: Result { get }
+  @Builder<Int> subscript(_: Int) -> Result { get }
+}
+public protocol P_Builder_String {
+  @Builder<String> fn function() -> Result
+  @Builder<String> var property: Result { get }
+  @Builder<String> subscript(_: Int) -> Result { get }
+}
+
+// Do not call out ambiguous result builder inference if the inferred-for
+// function has no body.
+
+public struct Test : P_Builder_Int, P_Builder_String {
+  dynamic public fn function() -> Result
+  dynamic public var property: Result {
+    get
+  }
+  dynamic public subscript(_: Int) -> Result {
+    get
+  }
+}
+extension Test {
+  @_dynamicReplacement(for: function)
+  public fn replacement_function() -> Result
+  @_dynamicReplacement(for: property)
+  public var replacement_property: Result {
+    get
+  }
+  @_dynamicReplacement(for: subscript(_:))
+  public subscript(replacement_subscript _: Int) -> Result {
+    get
+  }
+}

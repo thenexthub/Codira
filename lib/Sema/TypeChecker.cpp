@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file implements the swift::performTypeChecking entry point for
+// This file implements the language::performTypeChecking entry point for
 // semantic analysis.
 //
 //===----------------------------------------------------------------------===//
@@ -51,13 +52,13 @@
 #include "language/Sema/SILTypeResolutionContext.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/ADT/Twine.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Twine.h"
 #include <algorithm>
 
 using namespace language;
@@ -182,7 +183,7 @@ DeclName TypeChecker::getObjectLiteralConstructorName(ASTContext &Context,
             { Context.getIdentifier("fileReferenceLiteralResourceName") });
   }
   }
-  llvm_unreachable("unknown literal constructor");
+  toolchain_unreachable("unknown literal constructor");
 }
 
 ModuleDecl *TypeChecker::getStdlibModule(const DeclContext *dc) {
@@ -193,13 +194,15 @@ ModuleDecl *TypeChecker::getStdlibModule(const DeclContext *dc) {
   return dc->getParentModule();
 }
 
-void swift::bindExtensions(ModuleDecl &mod) {
+void language::bindExtensions(ModuleDecl &mod) {
+  bool excludeMacroExpansions = true;
+
   // Utility function to try and resolve the extended type without diagnosing.
   // If we succeed, we go ahead and bind the extension. Otherwise, return false.
   auto tryBindExtension = [&](ExtensionDecl *ext) -> bool {
     assert(!ext->canNeverBeBound() &&
            "Only extensions that can ever be bound get here.");
-    if (auto nominal = ext->computeExtendedNominal()) {
+    if (auto nominal = ext->computeExtendedNominal(excludeMacroExpansions)) {
       nominal->addExtension(ext);
       return true;
     }
@@ -231,25 +234,33 @@ void swift::bindExtensions(ModuleDecl &mod) {
       visitTopLevelDecl(D);
   }
 
-  // Phase 2 - repeatedly go through the worklist and attempt to bind each
-  // extension there, removing it from the worklist if we succeed.
-  bool changed;
-  do {
-    changed = false;
+  auto tryBindExtensions = [&]() {
+    // Phase 2 - repeatedly go through the worklist and attempt to bind each
+    // extension there, removing it from the worklist if we succeed.
+    bool changed;
+    do {
+      changed = false;
 
-    auto last = std::remove_if(worklist.begin(), worklist.end(),
-                               tryBindExtension);
-    if (last != worklist.end()) {
-      worklist.erase(last, worklist.end());
-      changed = true;
-    }
-  } while(changed);
+      auto last = std::remove_if(worklist.begin(), worklist.end(),
+                                 tryBindExtension);
+      if (last != worklist.end()) {
+        worklist.erase(last, worklist.end());
+        changed = true;
+      }
+    } while(changed);
+  };
 
+  tryBindExtensions();
+
+  // If that fails, try again, but this time expand macros.
+  excludeMacroExpansions = false;
+  tryBindExtensions();
+  
   // Any remaining extensions are invalid. They will be diagnosed later by
   // typeCheckDecl().
 }
 
-void swift::performTypeChecking(SourceFile &SF) {
+void language::performTypeChecking(SourceFile &SF) {
   if (SF.getASTContext().TypeCheckerOpts.EnableLazyTypecheck) {
     // Skip eager type checking. Instead, let later stages of compilation drive
     // type checking as needed through request evaluation.
@@ -286,10 +297,6 @@ TypeCheckPrimaryFileRequest::evaluate(Evaluator &eval, SourceFile *SF) const {
     // checking.
     (void)AvailabilityScope::getOrBuildForSourceFile(*SF);
 
-    // Before we type check any of the top level code decls, generate the per
-    // file language options.
-    (void)SF->getLanguageOptions();
-
     // Type check the top-level elements of the source file.
     for (auto D : SF->getTopLevelDecls()) {
       if (auto *TLCD = dyn_cast<TopLevelCodeDecl>(D)) {
@@ -325,7 +332,7 @@ TypeCheckPrimaryFileRequest::evaluate(Evaluator &eval, SourceFile *SF) const {
     SF->typeCheckDelayedFunctions();
   }
 
-  // If region based isolation is enabled, we diagnose unnecessary
+  // If region-based isolation is enabled, we diagnose unnecessary
   // preconcurrency imports in the SIL pipeline in the
   // DiagnoseUnnecessaryPreconcurrencyImports pass.
   if (!Ctx.LangOpts.hasFeature(Feature::RegionBasedIsolation))
@@ -381,7 +388,7 @@ TypeCheckPrimaryFileRequest::evaluate(Evaluator &eval, SourceFile *SF) const {
   return std::make_tuple<>();
 }
 
-void swift::performWholeModuleTypeChecking(SourceFile &SF) {
+void language::performWholeModuleTypeChecking(SourceFile &SF) {
   auto &Ctx = SF.getASTContext();
   FrontendStatsTracer tracer(Ctx.Stats,
                              "perform-whole-module-type-checking");
@@ -398,13 +405,13 @@ void swift::performWholeModuleTypeChecking(SourceFile &SF) {
     return;
   case SourceFileKind::SIL:
   case SourceFileKind::Interface:
-    // SIL modules and .swiftinterface files don't benefit from whole-module
+    // SIL modules and .codeinterface files don't benefit from whole-module
     // ObjC checking - skip it.
     return;
   }
 }
 
-void swift::loadDerivativeConfigurations(SourceFile &SF) {
+void language::loadDerivativeConfigurations(SourceFile &SF) {
   if (!isDifferentiableProgrammingEnabled(SF))
     return;
 
@@ -427,7 +434,7 @@ void swift::loadDerivativeConfigurations(SourceFile &SF) {
   }
 }
 
-bool swift::isAdditiveArithmeticConformanceDerivationEnabled(SourceFile &SF) {
+bool language::isAdditiveArithmeticConformanceDerivationEnabled(SourceFile &SF) {
   auto &ctx = SF.getASTContext();
   // Return true if `AdditiveArithmetic` derived conformances are explicitly
   // enabled.
@@ -439,7 +446,7 @@ bool swift::isAdditiveArithmeticConformanceDerivationEnabled(SourceFile &SF) {
   return isDifferentiableProgrammingEnabled(SF);
 }
 
-Type swift::performTypeResolution(TypeRepr *TyR, ASTContext &Ctx,
+Type language::performTypeResolution(TypeRepr *TyR, ASTContext &Ctx,
                                   GenericSignature GenericSig,
                                   SILTypeResolutionContext *SILContext,
                                   DeclContext *DC, bool ProduceDiagnostics) {
@@ -499,7 +506,7 @@ namespace {
 
 /// Expose TypeChecker's handling of GenericParamList to SIL parsing.
 GenericSignature
-swift::handleSILGenericParams(GenericParamList *genericParams,
+language::handleSILGenericParams(GenericParamList *genericParams,
                               DeclContext *DC, bool allowInverses) {
   if (genericParams == nullptr)
     return nullptr;
@@ -532,7 +539,7 @@ swift::handleSILGenericParams(GenericParamList *genericParams,
                            GenericSignatureWithError()).getPointer();
 }
 
-void swift::typeCheckPatternBinding(PatternBindingDecl *PBD,
+void language::typeCheckPatternBinding(PatternBindingDecl *PBD,
                                     unsigned bindingIndex) {
   assert(!PBD->isInitializerChecked(bindingIndex) &&
          PBD->getInit(bindingIndex));
@@ -544,7 +551,7 @@ void swift::typeCheckPatternBinding(PatternBindingDecl *PBD,
                                        /*patternType=*/Type());
 }
 
-bool swift::typeCheckASTNodeAtLoc(TypeCheckASTNodeAtLocContext TypeCheckCtx,
+bool language::typeCheckASTNodeAtLoc(TypeCheckASTNodeAtLocContext TypeCheckCtx,
                                   SourceLoc TargetLoc) {
   auto &Ctx = TypeCheckCtx.getDeclContext()->getASTContext();
   DiagnosticSuppression suppression(Ctx.Diags);
@@ -553,14 +560,14 @@ bool swift::typeCheckASTNodeAtLoc(TypeCheckASTNodeAtLocContext TypeCheckCtx,
       true);
 }
 
-bool swift::typeCheckForCodeCompletion(
+bool language::typeCheckForCodeCompletion(
     constraints::SyntacticElementTarget &target, bool needsPrecheck,
-    llvm::function_ref<void(const constraints::Solution &)> callback) {
+    toolchain::function_ref<void(const constraints::Solution &)> callback) {
   return TypeChecker::typeCheckForCodeCompletion(target, needsPrecheck,
                                                  callback);
 }
 
-Expr *swift::resolveDeclRefExpr(UnresolvedDeclRefExpr *UDRE,
+Expr *language::resolveDeclRefExpr(UnresolvedDeclRefExpr *UDRE,
                                 DeclContext *Context) {
   return TypeChecker::resolveDeclRefExpr(UDRE, Context);
 }
@@ -576,7 +583,7 @@ void TypeChecker::checkForForbiddenPrefix(ASTContext &C, DeclBaseName Name) {
   StringRef Str = Name.getIdentifier().str();
   for (auto forbiddenPrefix : C.TypeCheckerOpts.DebugForbidTypecheckPrefixes) {
     if (Str.starts_with(forbiddenPrefix)) {
-      llvm::report_fatal_error(Twine("forbidden typecheck occurred: ") + Str);
+      toolchain::report_fatal_error(Twine("forbidden typecheck occurred: ") + Str);
     }
   }
 }
@@ -643,7 +650,7 @@ bool TypeChecker::diagnoseInvalidFunctionType(
         ? "block"
         : "c";
       auto extInfo2 =
-        extInfo.withRepresentation(AnyFunctionType::Representation::Swift);
+        extInfo.withRepresentation(AnyFunctionType::Representation::Codira);
       auto simpleFnTy = FunctionType::get(fnTy->getParams(), fnTy->getResult(),
                                           extInfo2);
       ctx.Diags.diagnose(loc, diag::objc_convention_invalid,
@@ -653,7 +660,7 @@ bool TypeChecker::diagnoseInvalidFunctionType(
     break;
 
   case AnyFunctionType::Representation::Thin:
-  case AnyFunctionType::Representation::Swift:
+  case AnyFunctionType::Representation::Codira:
     break;
   }
 
@@ -671,7 +678,7 @@ bool TypeChecker::diagnoseInvalidFunctionType(
     // differentiability parameter. Otherwise, adding `@noDerivative` produces
     // an ill-formed function type.
     auto hasValidDifferentiabilityParam =
-    llvm::find_if(params, [&](AnyFunctionType::Param param) {
+    toolchain::find_if(params, [&](AnyFunctionType::Param param) {
       if (param.isNoDerivative())
         return false;
       return TypeChecker::isDifferentiable(param.getPlainType(),
@@ -731,7 +738,7 @@ bool TypeChecker::diagnoseInvalidFunctionType(
     // If the result type is void, we need to have at least one differentiable
     // inout argument
     if (result->isVoid() &&
-        llvm::find_if(params,
+        toolchain::find_if(params,
                       [&](AnyFunctionType::Param param) {
                         if (param.isNoDerivative())
                           return false;
@@ -754,7 +761,7 @@ bool TypeChecker::diagnoseInvalidFunctionType(
   return hadAnyError;
 }
 
-extern "C" intptr_t swift_ASTGen_evaluatePoundIfCondition(
+extern "C" intptr_t language_ASTGen_evaluatePoundIfCondition(
                         BridgedASTContext astContext,
                         void *_Nonnull diagEngine,
                         BridgedStringRef sourceFileBuffer,
@@ -765,8 +772,8 @@ std::pair<bool, bool> EvaluateIfConditionRequest::evaluate(
     Evaluator &evaluator, SourceFile *sourceFile, SourceRange conditionRange,
     bool shouldEvaluate
 ) const {
-#if SWIFT_BUILD_SWIFT_SYNTAX
-  // FIXME: When we migrate to SwiftParser, use the parsed syntax tree.
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+  // FIXME: When we migrate to CodiraParser, use the parsed syntax tree.
   ASTContext &ctx = sourceFile->getASTContext();
   auto &sourceMgr = ctx.SourceMgr;
 
@@ -779,7 +786,7 @@ std::pair<bool, bool> EvaluateIfConditionRequest::evaluate(
   StringRef conditionText = sourceMgr.extractText(conditionCharRange, bufferID);
 
   // Evaluate the condition.
-  intptr_t evalResult = swift_ASTGen_evaluatePoundIfCondition(
+  intptr_t evalResult = language_ASTGen_evaluatePoundIfCondition(
       ctx, &ctx.Diags, sourceFileText, conditionText, shouldEvaluate
   );
 
@@ -787,6 +794,6 @@ std::pair<bool, bool> EvaluateIfConditionRequest::evaluate(
   bool allowSyntaxErrors = (evalResult & 0x02) != 0;
   return std::pair(isActive, allowSyntaxErrors);
 #else
-  llvm_unreachable("Must not be used in C++-only build");
+  toolchain_unreachable("Must not be used in C++-only build");
 #endif
 }

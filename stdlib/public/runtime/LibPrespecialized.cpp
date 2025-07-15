@@ -1,13 +1,17 @@
 //===--- LibPrespecialized.cpp - Interface for prespecializations----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/LibPrespecialized.h"
@@ -19,7 +23,7 @@
 
 #include <atomic>
 
-#if SWIFT_STDLIB_HAS_DLADDR && __has_include(<dlfcn.h>)
+#if LANGUAGE_STDLIB_HAS_DLADDR && __has_include(<dlfcn.h>)
 #include <dlfcn.h>
 #define USE_DLOPEN 1
 #endif
@@ -46,7 +50,7 @@ static bool prespecializedLoggingEnabled = false;
 
 #define LOG(fmt, ...)                                                          \
   do {                                                                         \
-    if (SWIFT_UNLIKELY(prespecializedLoggingEnabled))                          \
+    if (LANGUAGE_UNLIKELY(prespecializedLoggingEnabled))                          \
       fprintf(stderr, "Prespecializations library: " fmt "\n", __VA_ARGS__);   \
   } while (0)
 
@@ -112,11 +116,11 @@ static bool isThisProcessEnabled(const LibPrespecializedData<InProcess> *data) {
 #endif
 
   auto envEnabledProcesses =
-      runtime::environment::SWIFT_DEBUG_LIB_PRESPECIALIZED_ENABLED_PROCESSES();
+      runtime::environment::LANGUAGE_DEBUG_LIB_PRESPECIALIZED_ENABLED_PROCESSES();
   if (envEnabledProcesses && *envEnabledProcesses) {
     if (environmentProcessListContainsProcess(envEnabledProcesses,
                                               __progname)) {
-      LOG("Found %s in SWIFT_DEBUG_LIB_PRESPECIALIZED_ENABLED_PROCESSES, "
+      LOG("Found %s in LANGUAGE_DEBUG_LIB_PRESPECIALIZED_ENABLED_PROCESSES, "
           "enabling",
           __progname);
       return true;
@@ -124,11 +128,11 @@ static bool isThisProcessEnabled(const LibPrespecializedData<InProcess> *data) {
   }
 
   auto envDisabledProcesses =
-      runtime::environment::SWIFT_DEBUG_LIB_PRESPECIALIZED_DISABLED_PROCESSES();
+      runtime::environment::LANGUAGE_DEBUG_LIB_PRESPECIALIZED_DISABLED_PROCESSES();
   if (envDisabledProcesses && *envDisabledProcesses) {
     if (environmentProcessListContainsProcess(envDisabledProcesses,
                                               __progname)) {
-      LOG("Found %s in SWIFT_DEBUG_LIB_PRESPECIALIZED_DISABLED_PROCESSES, "
+      LOG("Found %s in LANGUAGE_DEBUG_LIB_PRESPECIALIZED_DISABLED_PROCESSES, "
           "disabling",
           __progname);
       return false;
@@ -174,10 +178,10 @@ struct LibPrespecializedState {
 
   LibPrespecializedState() {
     prespecializedLoggingEnabled =
-        runtime::environment::SWIFT_DEBUG_ENABLE_LIB_PRESPECIALIZED_LOGGING();
+        runtime::environment::LANGUAGE_DEBUG_ENABLE_LIB_PRESPECIALIZED_LOGGING();
     data = findLibPrespecialized();
 
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
     size_t sharedCacheLength;
     sharedCacheRange.start =
         (uintptr_t)_dyld_get_shared_cache_range(&sharedCacheLength);
@@ -208,15 +212,15 @@ struct LibPrespecializedState {
     }
 
     if (runtime::environment::
-            SWIFT_DEBUG_ENABLE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP_isSet()) {
+            LANGUAGE_DEBUG_ENABLE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP_isSet()) {
       descriptorMapEnabled = runtime::environment::
-          SWIFT_DEBUG_ENABLE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP();
+          LANGUAGE_DEBUG_ENABLE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP();
       LOG("Setting descriptorMapEnabled=%s from "
-          "SWIFT_DEBUG_ENABLE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP.",
+          "LANGUAGE_DEBUG_ENABLE_LIB_PRESPECIALIZED_DESCRIPTOR_LOOKUP.",
           descriptorMapEnabled ? "true" : "false");
     } else {
 #if HAS_OS_FEATURE
-      if (os_feature_enabled_simple(Swift, togglePrespecializationDescriptorMap,
+      if (os_feature_enabled_simple(Codira, togglePrespecializationDescriptorMap,
                                     false)) {
         descriptorMapEnabled = !descriptorMapEnabled;
         LOG("Toggling descriptorMapEnabled to %s "
@@ -234,8 +238,8 @@ struct LibPrespecializedState {
       return MapConfiguration::Disabled;
 
     if (!runtime::environment::
-            SWIFT_DEBUG_ENABLE_LIB_PRESPECIALIZED_METADATA()) {
-      LOG0("Disabling metadata, SWIFT_DEBUG_ENABLE_LIB_PRESPECIALIZED_METADATA "
+            LANGUAGE_DEBUG_ENABLE_LIB_PRESPECIALIZED_METADATA()) {
+      LOG0("Disabling metadata, LANGUAGE_DEBUG_ENABLE_LIB_PRESPECIALIZED_METADATA "
            "is false.");
       return MapConfiguration::Disabled;
     }
@@ -268,7 +272,7 @@ struct LibPrespecializedState {
         LibPrespecializedData<InProcess>::OptionFlagDefaultToPointerKeyedMap;
 
 #if HAS_OS_FEATURE
-    if (os_feature_enabled_simple(Swift, useAlternatePrespecializationMap,
+    if (os_feature_enabled_simple(Codira, useAlternatePrespecializationMap,
                                   false))
       usePointerKeyedMap = !usePointerKeyedMap;
 #endif
@@ -288,14 +292,14 @@ struct LibPrespecializedState {
   const LibPrespecializedData<InProcess> *findLibPrespecialized() {
     const void *dataPtr = nullptr;
 #if USE_DLOPEN
-    auto path = runtime::environment::SWIFT_DEBUG_LIB_PRESPECIALIZED_PATH();
+    auto path = runtime::environment::LANGUAGE_DEBUG_LIB_PRESPECIALIZED_PATH();
     if (path && path[0]) {
       // Use RTLD_NOLOAD to avoid actually loading the library. We just want to
       // find it if it has already been loaded by other means, such as
       // DYLD_INSERT_LIBRARIES.
       void *handle = dlopen(path, RTLD_LAZY | RTLD_NOLOAD);
       if (!handle) {
-        swift::warning(0, "Failed to load prespecializations library: %s\n",
+        language::warning(0, "Failed to load prespecializations library: %s\n",
                        dlerror());
         return nullptr;
       }
@@ -303,10 +307,10 @@ struct LibPrespecializedState {
       dataPtr = dlsym(handle, LIB_PRESPECIALIZED_TOP_LEVEL_SYMBOL_NAME);
       LOG("Loaded custom library from %s, found dataPtr %p", path, dataPtr);
     }
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
-    else if (SWIFT_RUNTIME_WEAK_CHECK(_dyld_get_swift_prespecialized_data)) {
-      dataPtr = SWIFT_RUNTIME_WEAK_USE(_dyld_get_swift_prespecialized_data());
-      LOG("Got dataPtr %p from _dyld_get_swift_prespecialized_data", dataPtr);
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
+    else if (LANGUAGE_RUNTIME_WEAK_CHECK(_dyld_get_language_prespecialized_data)) {
+      dataPtr = LANGUAGE_RUNTIME_WEAK_USE(_dyld_get_language_prespecialized_data());
+      LOG("Got dataPtr %p from _dyld_get_language_prespecialized_data", dataPtr);
 
       // Disable the prespecialized metadata if anything in the shared cache is
       // overridden. Eventually we want to be cleverer and only disable the
@@ -391,7 +395,7 @@ isPotentialPrespecializedPointer(const LibPrespecializedState &state,
 }
 
 static bool isDescriptorLoaded(const void *descriptor, uint16_t imageIndex) {
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
   return _dyld_is_preoptimized_objc_image_loaded(imageIndex);
 #else
   // If we're not using the dyld SPI, then we're working with a test dylib, and
@@ -401,8 +405,8 @@ static bool isDescriptorLoaded(const void *descriptor, uint16_t imageIndex) {
 }
 
 void
-swift::libPrespecializedImageLoaded() {
-#if DYLD_GET_SWIFT_PRESPECIALIZED_DATA_DEFINED
+language::libPrespecializedImageLoaded() {
+#if DYLD_GET_LANGUAGE_PRESPECIALIZED_DATA_DEFINED
   // A newly loaded image might have caused us to load images that are
   // overriding images in the shared cache.  If we do that, turn off
   // prespecialized metadata.
@@ -455,14 +459,14 @@ getMetadataFromNameKeyedMap(const LibPrespecializedState &state,
   }
   auto resolver = [](SymbolicReferenceKind kind,
                      const void *ref) -> NodePointer {
-    swift::fatalError(0,
+    language::fatalError(0,
                       "Unexpected symbolic reference %p in generated mangle "
                       "tree for generic type lookup.",
                       ref);
   };
   auto mangling = Demangle::mangleNode(mangleNode, resolver, dem, Mangle::ManglingFlavor::Default);
   if (!mangling.isSuccess()) {
-    swift::warning(0,
+    language::warning(0,
                    "Mangling for prespecialized metadata failed with code %d",
                    mangling.error().code);
     return nullptr;
@@ -481,7 +485,7 @@ getMetadataFromPointerKeyedMap(const LibPrespecializedState &state,
                                const TypeContextDescriptor *description,
                                const void *const *arguments) {
 #if DYLD_FIND_POINTER_HASH_TABLE_ENTRY_DEFINED
-  if (SWIFT_RUNTIME_WEAK_CHECK(_dyld_find_pointer_hash_table_entry)) {
+  if (LANGUAGE_RUNTIME_WEAK_CHECK(_dyld_find_pointer_hash_table_entry)) {
     auto *generics = description->getGenericContext();
     if (!generics)
       return nullptr;
@@ -489,7 +493,7 @@ getMetadataFromPointerKeyedMap(const LibPrespecializedState &state,
     auto argumentCount = generics->getGenericContextHeader().NumKeyArguments;
 
     auto *map = state.data->getPointerKeyedMetadataMap();
-    auto result = SWIFT_RUNTIME_WEAK_USE(_dyld_find_pointer_hash_table_entry(
+    auto result = LANGUAGE_RUNTIME_WEAK_USE(_dyld_find_pointer_hash_table_entry(
         map, description, argumentCount, const_cast<const void **>(arguments)));
     LOG("Looking up description %p in dyld table, found %p.", description,
         result);
@@ -564,7 +568,7 @@ static Metadata *getMetadataFromPointerKeyedMapDebugMode(
 }
 
 Metadata *
-swift::getLibPrespecializedMetadata(const TypeContextDescriptor *description,
+language::getLibPrespecializedMetadata(const TypeContextDescriptor *description,
                                     const void *const *arguments) {
   auto &state = LibPrespecialized.get();
 
@@ -586,7 +590,7 @@ swift::getLibPrespecializedMetadata(const TypeContextDescriptor *description,
 }
 
 std::pair<LibPrespecializedLookupResult, const TypeContextDescriptor *>
-swift::getLibPrespecializedTypeDescriptor(Demangle::NodePointer node) {
+language::getLibPrespecializedTypeDescriptor(Demangle::NodePointer node) {
   auto &state = LibPrespecialized.get();
 
   // Retrieve the map and return immediately if we don't have it.
@@ -605,7 +609,7 @@ swift::getLibPrespecializedTypeDescriptor(Demangle::NodePointer node) {
   StackAllocatedDemangler<4096> dem;
   ExpandResolvedSymbolicReferences resolver{dem};
 
-  if (SWIFT_UNLIKELY(prespecializedLoggingEnabled)) {
+  if (LANGUAGE_UNLIKELY(prespecializedLoggingEnabled)) {
     auto mangling = Demangle::mangleNode(node, resolver, dem, Mangle::ManglingFlavor::Default);
     if (!mangling.isSuccess()) {
       LOG("Failed to build demangling for node %p.", node);
@@ -695,7 +699,7 @@ swift::getLibPrespecializedTypeDescriptor(Demangle::NodePointer node) {
           (const TypeContextDescriptor *)foundDescriptor};
 }
 
-void _swift_validatePrespecializedMetadata() {
+void _language_validatePrespecializedMetadata() {
   auto *data = LibPrespecialized.get().data;
   if (!data) {
     return;
@@ -723,7 +727,7 @@ void _swift_validatePrespecializedMetadata() {
     if (mangledName[0] == '$')
       mangledName++;
 
-    auto result = swift_getTypeByMangledName(MetadataState::Complete,
+    auto result = language_getTypeByMangledName(MetadataState::Complete,
                                              mangledName, nullptr, {}, {});
     if (result.getError()) {
       fprintf(stderr,

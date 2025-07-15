@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,10 +20,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_SEMANTICARCOPT_TRANSFORMS_H
-#define SWIFT_SILOPTIMIZER_SEMANTICARCOPT_TRANSFORMS_H
+#ifndef LANGUAGE_SILOPTIMIZER_SEMANTICARCOPT_TRANSFORMS_H
+#define LANGUAGE_SILOPTIMIZER_SEMANTICARCOPT_TRANSFORMS_H
 
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
 namespace semanticarc {
@@ -36,7 +37,7 @@ struct Context;
 ///
 /// \returns true if we converted atleast one phi from owned -> guaranteed and
 /// eliminated ARC traffic as a result.
-LLVM_LIBRARY_VISIBILITY bool tryConvertOwnedPhisToGuaranteedPhis(Context &ctx);
+TOOLCHAIN_LIBRARY_VISIBILITY bool tryConvertOwnedPhisToGuaranteedPhis(Context &ctx);
 
 } // namespace semanticarc
 } // namespace language

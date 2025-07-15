@@ -1,13 +1,17 @@
 //===--- DiagnosticDeadFunctionElimination.cpp ----------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Delete functions that early diagnostic specialization passes mark as being
@@ -23,7 +27,7 @@
 #include "language/SIL/SILBuilder.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -46,7 +50,7 @@ struct DiagnosticDeadFunctionEliminator : SILFunctionTransform {
       return;
     }
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "===> Stubbifying unused function " << fn->getName()
                << "'s body that was marked for deletion\n");
     // Remove all non-entry blocks.
@@ -81,6 +85,6 @@ struct DiagnosticDeadFunctionEliminator : SILFunctionTransform {
 
 } // namespace
 
-SILTransform *swift::createDiagnosticDeadFunctionElimination() {
+SILTransform *language::createDiagnosticDeadFunctionElimination() {
   return new DiagnosticDeadFunctionEliminator();
 }

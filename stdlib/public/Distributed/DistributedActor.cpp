@@ -1,16 +1,16 @@
 ///===--- DistributedActor.cpp - Distributed actor implementation ----------===///
 ///
-/// This source file is part of the Swift.org open source project
+/// This source file is part of the Codira.org open source project
 ///
-/// Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+/// Copyright (c) 2014 - 2021 Apple Inc. and the Codira project authors
 /// Licensed under Apache License v2.0 with Runtime Library Exception
 ///
-/// See https:///swift.org/LICENSE.txt for license information
-/// See https:///swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+/// See https:///language.org/LICENSE.txt for license information
+/// See https:///language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ///
 ///===----------------------------------------------------------------------===///
 ///
-/// The implementation of Swift distributed actors.
+/// The implementation of Codira distributed actors.
 ///
 ///===----------------------------------------------------------------------===///
 
@@ -25,24 +25,24 @@ using namespace language;
 
 static const AccessibleFunctionRecord *
 findDistributedAccessor(const char *targetNameStart, size_t targetNameLength) {
-  if (auto *func = runtime::swift_findAccessibleFunction(targetNameStart,
+  if (auto *fn = runtime::language_findAccessibleFunction(targetNameStart,
                                                          targetNameLength)) {
-    assert(func->Flags.isDistributed());
-    return func;
+    assert(fn->Flags.isDistributed());
+    return fn;
   }
   return nullptr;
 }
 
 
-SWIFT_CC(swift)
-SWIFT_EXPORT_FROM(swiftDistributed)
-void *swift_distributed_getGenericEnvironment(const char *targetNameStart,
+LANGUAGE_CC(language)
+LANGUAGE_EXPORT_FROM(languageDistributed)
+void *language_distributed_getGenericEnvironment(const char *targetNameStart,
                                               size_t targetNameLength) {
   auto *accessor = findDistributedAccessor(targetNameStart, targetNameLength);
   return accessor ? accessor->GenericEnvironment.get() : nullptr;
 }
 
-/// func _executeDistributedTarget<D: DistributedTargetInvocationDecoder>(
+/// fn _executeDistributedTarget<D: DistributedTargetInvocationDecoder>(
 ///    on: AnyObject,
 ///    _ targetName: UnsafePointer<UInt8>,
 ///    _ targetNameLength: UInt,
@@ -66,9 +66,9 @@ using TargetExecutorSignature =
                         /*decoderWitnessTable=*/void **),
                    /*throws=*/true>;
 
-SWIFT_CC(swiftasync)
-SWIFT_EXPORT_FROM(swiftDistributed)
-TargetExecutorSignature::FunctionType swift_distributed_execute_target;
+LANGUAGE_CC(languageasync)
+LANGUAGE_EXPORT_FROM(languageDistributed)
+TargetExecutorSignature::FunctionType language_distributed_execute_target;
 
 /// Accessor takes:
 ///   - an async context
@@ -93,30 +93,30 @@ using DistributedAccessorSignature =
                         /*decoderWitnessTable=*/void **),
                    /*throws=*/true>;
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static DistributedAccessorSignature::ContinuationType
-    swift_distributed_execute_target_resume;
+    language_distributed_execute_target_resume;
 
-SWIFT_CC(swiftasync)
-static void swift_distributed_execute_target_resume(
-    SWIFT_ASYNC_CONTEXT AsyncContext *context,
-    SWIFT_CONTEXT SwiftError *error) {
+LANGUAGE_CC(languageasync)
+static void language_distributed_execute_target_resume(
+    LANGUAGE_ASYNC_CONTEXT AsyncContext *context,
+    LANGUAGE_CONTEXT CodiraError *error) {
   auto parentCtx = context->Parent;
   auto resumeInParent =
       function_cast<TargetExecutorSignature::ContinuationType *>(
           parentCtx->ResumeParent);
-  swift_task_dealloc(context);
-  // See `swift_distributed_execute_target` - `parentCtx` in this case
+  language_task_dealloc(context);
+  // See `language_distributed_execute_target` - `parentCtx` in this case
   // is `callContext` which should be completely transparent on resume.
   return resumeInParent(parentCtx, error);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
-SwiftError* swift_distributed_makeDistributedTargetAccessorNotFoundError();
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
+CodiraError* language_distributed_makeDistributedTargetAccessorNotFoundError();
 
-SWIFT_CC(swiftasync)
-void swift_distributed_execute_target(
-    SWIFT_ASYNC_CONTEXT AsyncContext *callerContext, DefaultActor *actor,
+LANGUAGE_CC(languageasync)
+void language_distributed_execute_target(
+    LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext, DefaultActor *actor,
     const char *targetNameStart, size_t targetNameLength,
     HeapObject *argumentDecoder,
     const Metadata *const *argumentTypes,
@@ -129,8 +129,8 @@ void swift_distributed_execute_target(
     ) {
   auto *accessor = findDistributedAccessor(targetNameStart, targetNameLength);
   if (!accessor) {
-    SwiftError *error =
-        swift_distributed_makeDistributedTargetAccessorNotFoundError();
+    CodiraError *error =
+        language_distributed_makeDistributedTargetAccessorNotFoundError();
     auto resumeInParent =
         function_cast<TargetExecutorSignature::ContinuationType *>(
             callerContext->ResumeParent);
@@ -147,11 +147,11 @@ void swift_distributed_execute_target(
       asyncFnPtr->Function.get();
 
   AsyncContext *calleeContext = reinterpret_cast<AsyncContext *>(
-      swift_task_alloc(asyncFnPtr->ExpectedContextSize));
+      language_task_alloc(asyncFnPtr->ExpectedContextSize));
 
   calleeContext->Parent = callerContext;
   calleeContext->ResumeParent = function_cast<TaskContinuationFunction *>(
-      &swift_distributed_execute_target_resume);
+      &language_distributed_execute_target_resume);
 
   accessorEntry(calleeContext, argumentDecoder, argumentTypes, resultBuffer,
                 substitutions, witnessTables, numWitnessTables, actor,

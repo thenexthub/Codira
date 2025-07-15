@@ -1,0 +1,20 @@
+// REQUIRES: objc_interop
+// RUN: %target-language-frontend -Xtoolchain -sil-print-types -emit-sil -Xtoolchain -sil-print-debuginfo %s \
+// RUN:  -parse-as-library | %FileCheck %s
+import Foundation
+
+open class Cache<T> {
+  immutable _negativeCache: NSMutableDictionary = NSMutableDictionary()
+  fn cachedValue(creationBlock: () throws -> T) throws -> T {
+    do {
+      immutable value = try creationBlock()
+      return value
+    } catch {
+      // CHECK:   debug_value {{.*}} : $any Error, immutable, name "error", loc "{{.*}}":[[@LINE-1]]:13, scope [[SCOPE:[0-9]+]]
+      // CHECK: alloc_stack $@opened({{.*}}, any Error) Self, loc{{.*}}, scope [[SCOPE]]
+
+      _negativeCache.setObject(error, forKey: NSNumber(1))
+      throw error
+    }
+  }
+}

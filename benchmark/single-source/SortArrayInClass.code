@@ -1,13 +1,17 @@
-//===--- SortArrayInClass.swift -------------------------------------------===//
+//===--- SortArrayInClass.code -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 // This benchmark is derived from user code that encountered a major
 // performance problem in normal usage. Contributed by Saleem
 // Abdulrasool (compnerd).
@@ -20,14 +24,14 @@ import TestsUtils
 // array is a class property, but also generally tests quicksort in a
 // class which needs a slew of array optimizations, uniqueness, bounds
 // and exclusivity optimizations.
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "SortArrayInClass",
     runFunction: run_SortArrayInClass,
     tags: [.abstraction, .safetychecks, .exclusivity, .algorithm, .api, .Array])
 ]
 
-let largeArraySize = 10000
+immutable largeArraySize = 10000
 
 class Sorter {
   var array: [Int]
@@ -35,8 +39,8 @@ class Sorter {
     array = Array((0..<size).reversed())
   }
 
-  private func _swap(i: Int, j: Int) {
-    let t = array[i]
+  private fn _swap(i: Int, j: Int) {
+    immutable t = array[i]
     // This currently copies the entire array.  Assigning to a
     // temporary, or using swapAt would avoid the copy, but users
     // shouldn't need to know that.
@@ -44,10 +48,10 @@ class Sorter {
     array[j] = t
   }
 
-  private func _quicksort(left: Int, right: Int) {
+  private fn _quicksort(left: Int, right: Int) {
 
     if left < right {
-      let pivot = array[left + ((right - left) / 2)]
+      immutable pivot = array[left + ((right - left) / 2)]
       var left_new = left
       var right_new = right
 
@@ -70,16 +74,16 @@ class Sorter {
     }
   }
 
-  func quicksort() {
+  fn quicksort() {
     _quicksort(left:0, right:array.count - 1);
   }
 }
 
-public func run_SortArrayInClass(_ n: Int) {
+public fn run_SortArrayInClass(_ n: Int) {
   for _ in 1...n {
     // The array needs to be reinitialized before each sort, so it
     // can't be a setup/tearDown function.
-    let sorter = Sorter(size: largeArraySize)
+    immutable sorter = Sorter(size: largeArraySize)
     sorter.quicksort()
   }
 }

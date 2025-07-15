@@ -1,0 +1,222 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct X<T:T.a
+fn b:d
+}
+extension String{}
+class A
+class b<T where h:S{
+( "
+}
+fn b
+}typealias e = object {
+{class A
+class var f = compose()init(n: At c {struct S<T B {{{class A{
+extension NSFileManager {
+var e = Dictionary<f:a
+var b<f
+class A {
+}
+struct B<{{fn b{}}
+}
+var d {
+class P{class D {
+}}print{var "
+in
+typealias d
+class var a{
+fn < {
+fn a {
+conary<T where T. : a {{
+protocol A {
+class A : a{
+class A{
+import Foundation
+class A{
+class u{var e = object {
+{fn b:T:A
+}
+in
+}
+( "
+struct E{
+}}
+struct B<T == object {
+fn<T where T{
+[ {
+{
+protocol A : Any, A : a {fn b:{
+class A : a {
+class A
+}
+fn a {
+import Foundation
+typealias e = Dictionary<T where T: a {
+}typealias e {
+protocol a
+protocol A : a{
+struct B{class A{
+}
+class d
+}
+immutable h:d:A
+"
+}
+"
+class A : a {{
+protocol a{
+}
+enum S<{
+}print{
+fn < {
+col A {
+}
+protocol A : e
+}}
+protocol A {{
+}
+}
+class A : A{class a{
+{}
+class A {fn a {
+}}
+class P{
+extension NSFileMa}
+}
+class A : Any, A : T:T:A{
+class A {
+"
+var "
+struct c {
+struct S<I
+( "
+protocol C{
+col A : a {
+class P{
+protocol A : a {a
+struct B {
+class A {{
+( "
+class a<T where f{class A {
+protocol C{
+protocol c {
+protocol C{
+}}
+struct B{a
+immutable:a
+{
+fn b:A{
+}struct E {enum C {
+class c{enum S<I
+class a {class u{
+( "
+class a{
+struct c {
+var b
+class var "
+class T{enum C {
+struct B
+}
+typealias f
+}print{
+typealias f:
+typealias etatic var f
+typealias etatic var f:T{
+( "
+class A {
+immutable h:S<T == B
+var f{
+struct B {
+typealias e = a{}}struct B<{
+}typealias d:{
+class A {
+class D {a{var d {class A{
+struct B {
+}enum b
+}}
+struct B{
+}
+"
+}
+init()
+immutable:S{
+var d {
+protocol a {
+}
+struct B {}
+if true{
+}
+extension NSFileMa}
+fn<T where T. : A {
+}
+fn a {
+class A {fn b
+class A {}protocol a<{{
+struct S<T where T{
+enum a{class A
+struct B : a {var f:{
+typealias f = compose()
+typealias f = object {
+var f
+import Foundation
+typealias e = object {
+typealias e {}
+}
+protocol A {
+class A : A{
+protocol a
+class A : A : e = object {
+immutable h: a {a
+class D {
+class A {
+protocol a {
+}
+immutable:d
+class A
+class var f:{
+var d {{}
+fn a {
+protocol a {
+struct B
+}
+var a
+struct S<T where T{
+struct S{}}
+extension String{
+protocol A {
+}
+struct X<T:T.a
+protocol a{
+struct S{
+fn f:a
+}
+typealias f
+struct S<T B {
+}
+var b}
+protocol a : a
+typealias etatic var a
+}print{
+class var a{
+S<I
+fn b{}
+struct S{
+class A : A {struct X<T:T.a
+}}
+fn<T where T{
+typealias e = B
+var d {
+}
+immutable:A{
+extension NSFileMa}
+extension NSFileMa

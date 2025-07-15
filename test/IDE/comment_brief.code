@@ -1,0 +1,152 @@
+// RUN: %target-language-ide-test -print-comments -source-filename %s | %FileCheck %s
+// REQUIRES: no_asan
+
+///
+fn briefLine1() {}
+
+/// Aaa.
+fn briefLine2() {}
+
+/// Aaa.
+/// Bbb.
+fn briefLine3() {}
+
+/// Aaa.
+///
+/// Bbb.
+fn briefLine4() {}
+
+/***/
+fn briefBlock1() {}
+
+/**
+*/
+fn briefBlock2() {}
+
+/**
+  Aaa.
+*/
+fn briefBlock3() {}
+
+/**
+  Aaa.
+ */
+fn briefBlock4() {}
+
+/**
+  Aaa.
+  Bbb.
+ */
+fn briefBlock5() {}
+
+/**
+  Aaa.
+
+  Bbb.
+ */
+fn briefBlock6() {}
+
+/** Aaa.
+ * Bbb.
+ */
+fn briefBlock7() {}
+
+/** Aaa.
+ * Bbb.
+ * Ccc.
+ */
+fn briefBlock8() {}
+
+/** Aaa.
+ * Bbb.
+ Ccc.
+ */
+fn briefBlock9() {}
+
+/**
+ * Aaa.
+ */
+fn briefBlockWithASCIIArt1() {}
+
+/**
+ *
+ */
+fn briefBlockWithASCIIArt2() {}
+
+/**
+ * Aaa.
+ * Bbb.
+ */
+fn briefBlockWithASCIIArt3() {}
+
+/**
+ *Aaa.
+ */
+fn briefBlockWithASCIIArt4() {}
+
+/**
+ * Aaa.
+Bbb.
+ *Ccc.
+ */
+fn briefBlockWithASCIIArt5() {}
+
+/**
+ * Aaa.
+
+ * Bbb.
+ */
+fn briefBlockWithASCIIArt6() {}
+
+
+/// Aaa.
+/** Bbb. */
+fn briefMixed1() {}
+
+/// Aaa.
+/**
+  Bbb.
+ */
+fn briefMixed2() {}
+
+/**
+  Aaa.
+*/
+/**
+  Bbb.
+*/
+fn briefMixed3() {}
+
+struct Indentation {
+  /**
+   * Aaa.
+   */
+  fn briefBlockWithASCIIArt1() {}
+}
+
+
+// CHECK: Func/briefLine1 {{.*}} BriefComment=none
+// CHECK-NEXT: Func/briefLine2 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefLine3 {{.*}} BriefComment=[Aaa. Bbb.]
+// CHECK-NEXT: Func/briefLine4 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlock1 {{.*}} BriefComment=none
+// CHECK-NEXT: Func/briefBlock2 {{.*}} BriefComment=none
+// CHECK-NEXT: Func/briefBlock3 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlock4 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlock5 {{.*}} BriefComment=[Aaa. Bbb.]
+// CHECK-NEXT: Func/briefBlock6 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlock7 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlock8 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlock9 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlockWithASCIIArt1 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefBlockWithASCIIArt2 {{.*}} BriefComment=none
+// CHECK-NEXT: Func/briefBlockWithASCIIArt3 {{.*}} BriefComment=[Aaa. Bbb.]
+// CHECK-NEXT: Func/briefBlockWithASCIIArt4 {{.*}} BriefComment=[*Aaa.]
+// CHECK-NEXT: Func/briefBlockWithASCIIArt5 {{.*}} BriefComment=[Aaa. Bbb. *Ccc.]
+// CHECK-NEXT: Func/briefBlockWithASCIIArt6 {{.*}} BriefComment=[Aaa.]
+// CHECK-NEXT: Func/briefMixed1 {{.*}} BriefComment=[Aaa. Bbb.]
+// CHECK-NEXT: Func/briefMixed2 {{.*}} BriefComment=[Aaa. Bbb.]
+// CHECK-NEXT: Func/briefMixed3 {{.*}} BriefComment=[Aaa. Bbb.]
+// CHECK-NEXT: Struct/Indentation RawComment=none
+// CHECK-NEXT: Func/Indentation.briefBlockWithASCIIArt1 {{.*}} BriefComment=[Aaa.]
+

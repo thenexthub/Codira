@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-looprotate"
@@ -33,8 +34,8 @@
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
 #include "language/SILOptimizer/Utils/SILInliner.h"
 
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
@@ -42,14 +43,14 @@ using namespace language;
 ///
 /// Larger blocks will not be duplicated to avoid too much code size increase.
 /// It's very seldom that the default value of 20 is exceeded (< 0.3% of all
-/// loops in the swift benchmarks).
-static llvm::cl::opt<int> LoopRotateSizeLimit("looprotate-size-limit",
-                                              llvm::cl::init(20));
-static llvm::cl::opt<bool> RotateSingleBlockLoop("looprotate-single-block-loop",
-                                                 llvm::cl::init(false));
-static llvm::cl::opt<bool>
+/// loops in the language benchmarks).
+static toolchain::cl::opt<int> LoopRotateSizeLimit("looprotate-size-limit",
+                                              toolchain::cl::init(20));
+static toolchain::cl::opt<bool> RotateSingleBlockLoop("looprotate-single-block-loop",
+                                                 toolchain::cl::init(false));
+static toolchain::cl::opt<bool>
     LoopRotateInfiniteBudget("looprotate-infinite-budget",
-                             llvm::cl::init(false));
+                             toolchain::cl::init(false));
 
 static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
                        SILLoopInfo *loopInfo, bool rotateSingleBlockLoops,
@@ -58,10 +59,10 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
 /// Check whether all operands are loop invariant.
 static bool
 hasLoopInvariantOperands(SILInstruction *inst, SILLoop *loop,
-                         llvm::DenseSet<SILInstruction *> &invariant) {
+                         toolchain::DenseSet<SILInstruction *> &invariant) {
   auto operands = inst->getAllOperands();
 
-  return llvm::all_of(operands, [=](Operand &operand) {
+  return toolchain::all_of(operands, [=](Operand &operand) {
     ValueBase *def = operand.get();
     // Operand is outside the loop or marked invariant.
     if (auto *inst = def->getDefiningInstruction())
@@ -80,7 +81,7 @@ canDuplicateOrMoveToPreheader(SILLoop *loop, SILBasicBlock *preheader,
                               SILBasicBlock *bb,
                               SmallVectorImpl<SILInstruction *> &moves,
                               SinkAddressProjections &sinkProj) {
-  llvm::DenseSet<SILInstruction *> invariants;
+  toolchain::DenseSet<SILInstruction *> invariants;
   int cost = 0;
   for (auto &instRef : *bb) {
     auto *inst = &instRef;
@@ -141,7 +142,7 @@ canDuplicateOrMoveToPreheader(SILLoop *loop, SILBasicBlock *preheader,
 }
 
 static void mapOperands(SILInstruction *inst,
-                        const llvm::DenseMap<ValueBase *, SILValue> &valueMap) {
+                        const toolchain::DenseMap<ValueBase *, SILValue> &valueMap) {
   for (auto &operand : inst->getAllOperands()) {
     SILValue origVal = operand.get();
     ValueBase *origDef = origVal;
@@ -155,7 +156,7 @@ static void mapOperands(SILInstruction *inst,
 
 static void updateSSAForUseOfValue(
     SILSSAUpdater &updater, SmallVectorImpl<SILPhiArgument *> &insertedPhis,
-    const llvm::DenseMap<ValueBase *, SILValue> &valueMap,
+    const toolchain::DenseMap<ValueBase *, SILValue> &valueMap,
     SILBasicBlock *Header, SILBasicBlock *EntryCheckBlock, SILValue Res,
     SILPassManager *pm) {
   // Find the mapped instruction.
@@ -199,7 +200,7 @@ static void updateSSAForUseOfValue(
 static void
 updateSSAForUseOfInst(SILSSAUpdater &updater,
                       SmallVectorImpl<SILPhiArgument *> &insertedPhis,
-                      const llvm::DenseMap<ValueBase *, SILValue> &valueMap,
+                      const toolchain::DenseMap<ValueBase *, SILValue> &valueMap,
                       SILBasicBlock *header, SILBasicBlock *entryCheckBlock,
                       SILInstruction *inst, SILPassManager *pm) {
   for (auto result : inst->getResults())
@@ -210,7 +211,7 @@ updateSSAForUseOfInst(SILSSAUpdater &updater,
 /// Rewrite the code we just created in the preheader and update SSA form.
 static void rewriteNewLoopEntryCheckBlock(
     SILBasicBlock *header, SILBasicBlock *entryCheckBlock,
-    const llvm::DenseMap<ValueBase *, SILValue> &valueMap,
+    const toolchain::DenseMap<ValueBase *, SILValue> &valueMap,
     SILPassManager *pm) {
   SmallVector<SILPhiArgument *, 8> insertedPhis;
   SILSSAUpdater updater(&insertedPhis);
@@ -254,7 +255,7 @@ static bool rotateLoopAtMostUpToLatch(SILLoop *loop, DominanceInfo *domInfo,
                                       SILLoopInfo *loopInfo, SILPassManager *pm) {
   auto *latch = loop->getLoopLatch();
   if (!latch) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << *loop << " does not have a single latch block\n");
     return false;
   }
@@ -326,8 +327,8 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
   // passes.
   auto *preheader = loop->getLoopPreheader();
   if (!preheader) {
-    LLVM_DEBUG(llvm::dbgs() << *loop << " no preheader\n");
-    LLVM_DEBUG(loop->getHeader()->getParent()->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << *loop << " no preheader\n");
+    TOOLCHAIN_DEBUG(loop->getHeader()->getParent()->dump());
     return false;
   }
 
@@ -343,8 +344,8 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
 
   // The header needs to exit the loop.
   if (!loop->isLoopExiting(header)) {
-    LLVM_DEBUG(llvm::dbgs() << *loop << " not an exiting header\n");
-    LLVM_DEBUG(loop->getHeader()->getParent()->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << *loop << " not an exiting header\n");
+    TOOLCHAIN_DEBUG(loop->getHeader()->getParent()->dump());
     return false;
   }
 
@@ -352,7 +353,7 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
   // also the header.
   auto *latch = loop->getLoopLatch();
   if (!latch) {
-    LLVM_DEBUG(llvm::dbgs() << *loop << " no single latch\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << *loop << " no single latch\n");
     return false;
   }
 
@@ -361,7 +362,7 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
   SinkAddressProjections sinkProj;
   if (!canDuplicateOrMoveToPreheader(loop, preheader, header, moveToPreheader,
                                      sinkProj)) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << *loop << " instructions in header preventing rotating\n");
     return false;
   }
@@ -399,11 +400,11 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
   for (auto *inst : moveToPreheader)
     inst->moveBefore(preheader->getTerminator());
 
-  LLVM_DEBUG(llvm::dbgs() << " Rotating " << *loop);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << " Rotating " << *loop);
 
   // Map the values for the duplicated header block. We are duplicating the
   // header instructions into the end of the preheader.
-  llvm::DenseMap<ValueBase *, SILValue> valueMap;
+  toolchain::DenseMap<ValueBase *, SILValue> valueMap;
 
   // The original 'phi' argument values are just the values coming from the
   // preheader edge.
@@ -431,7 +432,11 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
 
   for (auto &inst : *header) {
     if (auto *bfi = dyn_cast<BorrowedFromInst>(&inst)) {
-      valueMap[bfi] = valueMap[bfi->getBorrowedValue()];
+      // Don't do valueMap[bfi] = valueMap[bfi->getBorrowedValue()]
+      // The subscript operator returns a reference into the map. Due to the
+      // assignment the map might get "reallocated" from under us.
+      auto mappedValue = valueMap[bfi->getBorrowedValue()];
+      valueMap[bfi] = mappedValue;
     } else if (SILInstruction *cloned = inst.clone(preheaderBranch)) {
       mapOperands(cloned, valueMap);
 
@@ -478,8 +483,8 @@ static bool rotateLoop(SILLoop *loop, DominanceInfo *domInfo,
   splitCriticalEdgesFrom(preheader, domInfo, loopInfo);
   splitCriticalEdgesFrom(newHeader, domInfo, loopInfo);
 
-  LLVM_DEBUG(llvm::dbgs() << "  to " << *loop);
-  LLVM_DEBUG(loop->getHeader()->getParent()->dump());
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  to " << *loop);
+  TOOLCHAIN_DEBUG(loop->getHeader()->getParent()->dump());
   return true;
 }
 
@@ -488,12 +493,12 @@ namespace {
 class LoopRotation : public SILFunctionTransform {
 
   void run() override {
-#ifndef SWIFT_ENABLE_SWIFT_IN_SWIFT
-    // This pass results in verification failures when Swift sources are not
+#ifndef LANGUAGE_ENABLE_LANGUAGE_IN_LANGUAGE
+    // This pass results in verification failures when Codira sources are not
     // enabled.
-    LLVM_DEBUG(llvm::dbgs() << "Loop Rotate disabled in C++-only Swift compiler\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Loop Rotate disabled in C++-only Codira compiler\n");
     return;
-#endif // !SWIFT_ENABLE_SWIFT_IN_SWIFT
+#endif // !LANGUAGE_ENABLE_LANGUAGE_IN_LANGUAGE
     SILFunction *f = getFunction();
     SILLoopAnalysis *loopAnalysis = PM->getAnalysis<SILLoopAnalysis>();
     DominanceAnalysis *domAnalysis = PM->getAnalysis<DominanceAnalysis>();
@@ -501,10 +506,10 @@ class LoopRotation : public SILFunctionTransform {
     DominanceInfo *domInfo = domAnalysis->get(f);
 
     if (loopInfo->empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "No loops in " << f->getName() << "\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "No loops in " << f->getName() << "\n");
       return;
     }
-    LLVM_DEBUG(llvm::dbgs() << "Rotating loops in " << f->getName() << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Rotating loops in " << f->getName() << "\n");
 
     bool changed = false;
     for (auto *LoopIt : *loopInfo) {
@@ -539,6 +544,6 @@ class LoopRotation : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createLoopRotate() {
+SILTransform *language::createLoopRotate() {
   return new LoopRotation();
 }

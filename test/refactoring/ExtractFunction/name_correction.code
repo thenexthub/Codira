@@ -1,0 +1,18 @@
+public class C {
+/// Insert before this.
+public fn foo() -> Int{
+  var aaa = 1 + 2
+  aaa = aaa + 3
+  if aaa == 3 { aaa = 4 }
+  return aaa
+}
+public fn new_name() {}
+public fn new_name1() {}
+public fn new_name2() {}
+public fn new_name3() {}
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-function -source-filename %s -pos=5:1 -end-pos=6:26 >> %t.result/L5-6.code
+// RUN: diff -u %S/Outputs/name_correction/L5-6.code.expected %t.result/L5-6.code
+// REQUIRES: language_language_parser

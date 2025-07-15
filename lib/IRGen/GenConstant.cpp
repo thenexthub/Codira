@@ -1,4 +1,4 @@
-//===--- GenConstant.cpp - Swift IR Generation For Constants --------------===//
+//===--- GenConstant.cpp - Codira IR Generation For Constants --------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation for constant values.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/IR/Constants.h"
+#include "toolchain/IR/Constants.h"
 
 #include "BitPatternReader.h"
 #include "Explosion.h"
@@ -35,13 +36,13 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/Analysis/ConstantFolding.h"
-#include "llvm/Support/BLAKE3.h"
+#include "toolchain/Analysis/ConstantFolding.h"
+#include "toolchain/Support/BLAKE3.h"
 
 using namespace language;
 using namespace irgen;
 
-llvm::Constant *irgen::emitConstantInt(IRGenModule &IGM,
+toolchain::Constant *irgen::emitConstantInt(IRGenModule &IGM,
                                        IntegerLiteralInst *ILI) {
   BuiltinIntegerWidth width
     = ILI->getType().castTo<AnyBuiltinIntegerType>()->getWidth();
@@ -50,7 +51,7 @@ llvm::Constant *irgen::emitConstantInt(IRGenModule &IGM,
   if (width.isArbitraryWidth()) {
     auto pair = emitConstantIntegerLiteral(IGM, ILI);
     auto type = IGM.getIntegerLiteralTy();
-    return llvm::ConstantStruct::get(type, { pair.Data, pair.Flags });
+    return toolchain::ConstantStruct::get(type, { pair.Data, pair.Flags });
   }
 
   APInt value = ILI->getValue();
@@ -66,21 +67,21 @@ llvm::Constant *irgen::emitConstantInt(IRGenModule &IGM,
     assert(width.isFixedWidth() && "impossible width value");
   }
 
-  return llvm::ConstantInt::get(IGM.getLLVMContext(), value);
+  return toolchain::ConstantInt::get(IGM.getLLVMContext(), value);
 }
 
-llvm::Constant *irgen::emitConstantZero(IRGenModule &IGM, BuiltinInst *BI) {
+toolchain::Constant *irgen::emitConstantZero(IRGenModule &IGM, BuiltinInst *BI) {
   assert(IGM.getSILModule().getBuiltinInfo(BI->getName()).ID ==
          BuiltinValueKind::ZeroInitializer);
 
-  auto helper = [&](CanType astType) -> llvm::Constant * {
+  auto helper = [&](CanType astType) -> toolchain::Constant * {
     if (auto type = astType->getAs<BuiltinIntegerType>()) {
       APInt zero(type->getWidth().getLeastWidth(), 0);
-      return llvm::ConstantInt::get(IGM.getLLVMContext(), zero);
+      return toolchain::ConstantInt::get(IGM.getLLVMContext(), zero);
     }
 
     if (auto type = astType->getAs<BuiltinFloatType>()) {
-      const llvm::fltSemantics *sema = nullptr;
+      const toolchain::fltSemantics *sema = nullptr;
       switch (type->getFPKind()) {
       case BuiltinFloatType::IEEE16: sema = &APFloat::IEEEhalf(); break;
       case BuiltinFloatType::IEEE32: sema = &APFloat::IEEEsingle(); break;
@@ -90,26 +91,26 @@ llvm::Constant *irgen::emitConstantZero(IRGenModule &IGM, BuiltinInst *BI) {
       case BuiltinFloatType::PPC128: sema = &APFloat::PPCDoubleDouble(); break;
       }
       auto zero = APFloat::getZero(*sema);
-      return llvm::ConstantFP::get(IGM.getLLVMContext(), zero);
+      return toolchain::ConstantFP::get(IGM.getLLVMContext(), zero);
     }
 
-    llvm_unreachable("SIL allowed an unknown type?");
+    toolchain_unreachable("SIL allowed an unknown type?");
   };
 
   if (auto vector = BI->getType().getAs<BuiltinVectorType>()) {
     auto zero = helper(vector.getElementType());
-    auto count = llvm::ElementCount::getFixed(vector->getNumElements());
-    return llvm::ConstantVector::getSplat(count, zero);
+    auto count = toolchain::ElementCount::getFixed(vector->getNumElements());
+    return toolchain::ConstantVector::getSplat(count, zero);
   }
 
   return helper(BI->getType().getASTType());
 }
 
-llvm::Constant *irgen::emitConstantFP(IRGenModule &IGM, FloatLiteralInst *FLI) {
-  return llvm::ConstantFP::get(IGM.getLLVMContext(), FLI->getValue());
+toolchain::Constant *irgen::emitConstantFP(IRGenModule &IGM, FloatLiteralInst *FLI) {
+  return toolchain::ConstantFP::get(IGM.getLLVMContext(), FLI->getValue());
 }
 
-llvm::Constant *irgen::emitAddrOfConstantString(IRGenModule &IGM,
+toolchain::Constant *irgen::emitAddrOfConstantString(IRGenModule &IGM,
                                                 StringLiteralInst *SLI) {
   auto encoding = SLI->getEncoding();
   bool useOSLogEncoding = encoding == StringLiteralInst::Encoding::UTF8_OSLOG;
@@ -121,24 +122,24 @@ llvm::Constant *irgen::emitAddrOfConstantString(IRGenModule &IGM,
     return IGM.getAddrOfGlobalString(SLI->getValue(), false, useOSLogEncoding);
 
   case StringLiteralInst::Encoding::ObjCSelector:
-    llvm_unreachable("cannot get the address of an Objective-C selector");
+    toolchain_unreachable("cannot get the address of an Objective-C selector");
   }
-  llvm_unreachable("bad string encoding");
+  toolchain_unreachable("bad string encoding");
 }
 
 namespace {
 
 /// Fill in the missing values for padding.
 void insertPadding(SmallVectorImpl<Explosion> &elements,
-                   llvm::StructType *sTy) {
-  // fill in any gaps, which are the explicit padding that swiftc inserts.
+                   toolchain::StructType *sTy) {
+  // fill in any gaps, which are the explicit padding that languagec inserts.
   for (unsigned i = 0, e = elements.size(); i != e; ++i) {
     if (elements[i].empty()) {
       auto *eltTy = sTy->getElementType(i);
       assert(eltTy->isArrayTy() &&
              eltTy->getArrayElementType()->isIntegerTy(8) &&
              "Unexpected non-byte-array type for constant struct padding");
-      elements[i].add(llvm::UndefValue::get(eltTy));
+      elements[i].add(toolchain::UndefValue::get(eltTy));
     }
   }
 }
@@ -148,26 +149,26 @@ void insertPadding(SmallVectorImpl<Explosion> &elements,
 /// If all explosions have a single element and those elements match the
 /// elements of `structTy`, it uses this type as result type.
 /// Otherwise, it creates an anonymous struct. This can be the case for enums.
-llvm::Constant *createStructFromExplosion(SmallVectorImpl<Explosion> &explosions,
-                                          llvm::StructType *structTy) {
+toolchain::Constant *createStructFromExplosion(SmallVectorImpl<Explosion> &explosions,
+                                          toolchain::StructType *structTy) {
   assert(explosions.size() == structTy->getNumElements());
   bool canUseStructType = true;
-  llvm::SmallVector<llvm::Constant *, 32> values;
+  toolchain::SmallVector<toolchain::Constant *, 32> values;
   unsigned idx = 0;
   for (auto &elmt : explosions) {
     if (elmt.size() != 1)
       canUseStructType = false;
-    for (llvm::Value *v : elmt.claimAll()) {
+    for (toolchain::Value *v : elmt.claimAll()) {
       if (v->getType() != structTy->getElementType(idx))
         canUseStructType = false;
-      values.push_back(cast<llvm::Constant>(v));
+      values.push_back(cast<toolchain::Constant>(v));
     }
     idx++;
   }
   if (canUseStructType) {
-    return llvm::ConstantStruct::get(structTy, values);
+    return toolchain::ConstantStruct::get(structTy, values);
   } else {
-    return llvm::ConstantStruct::getAnon(values, /*Packed=*/ true);
+    return toolchain::ConstantStruct::getAnon(values, /*Packed=*/ true);
   }
 }
 
@@ -182,7 +183,7 @@ template <typename InstTy, typename NextIndexFunc>
 Explosion emitConstantStructOrTuple(IRGenModule &IGM, InstTy inst,
                                     NextIndexFunc nextIndex, bool flatten) {
   auto type = inst->getType();
-  auto *sTy = cast<llvm::StructType>(IGM.getTypeInfo(type).getStorageType());
+  auto *sTy = cast<toolchain::StructType>(IGM.getTypeInfo(type).getStorageType());
 
   SmallVector<Explosion, 32> elements;
   initWithEmptyExplosions(elements, sTy->getNumElements());
@@ -244,15 +245,15 @@ static bool isPowerOfTwo(unsigned x) {
 static Explosion replaceUnalignedIntegerValues(IRGenModule &IGM, Explosion e) {
   Explosion out;
   while (!e.empty()) {
-    llvm::Value *v = e.claimNext();
+    toolchain::Value *v = e.claimNext();
 
-    if (auto *constInt = dyn_cast<llvm::ConstantInt>(v)) {
+    if (auto *constInt = dyn_cast<toolchain::ConstantInt>(v)) {
       unsigned size = constInt->getBitWidth();
       if (size % 8 == 0 && !isPowerOfTwo(size)) {
         BitPatternReader reader(constInt->getValue(), IGM.Triple.isLittleEndian());
         while (size > 0) {
           APInt byte = reader.read(8);
-          out.add(llvm::ConstantInt::get(IGM.getLLVMContext(), byte));
+          out.add(toolchain::ConstantInt::get(IGM.getLLVMContext(), byte));
           size -= 8;
         }
         continue;
@@ -318,11 +319,11 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
         return emitConstantZero(IGM, BI);
       case BuiltinValueKind::PtrToInt: {
         auto *ptr = emitConstantValue(IGM, args[0]).claimNextConstant();
-        return llvm::ConstantExpr::getPtrToInt(ptr, IGM.IntPtrTy);
+        return toolchain::ConstantExpr::getPtrToInt(ptr, IGM.IntPtrTy);
       }
       case BuiltinValueKind::IntToPtr: {
         auto *num = emitConstantValue(IGM, args[0]).claimNextConstant();
-        return llvm::ConstantExpr::getIntToPtr(num, IGM.Int8PtrTy);
+        return toolchain::ConstantExpr::getIntToPtr(num, IGM.Int8PtrTy);
       }
       case BuiltinValueKind::ZExtOrBitCast: {
         auto *val = emitConstantValue(IGM, args[0]).claimNextConstant();
@@ -331,8 +332,8 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
         if (val->getType() == storageTy)
           return val;
 
-        auto *result = llvm::ConstantFoldCastOperand(
-            llvm::Instruction::ZExt, val, storageTy, IGM.DataLayout);
+        auto *result = toolchain::ConstantFoldCastOperand(
+            toolchain::Instruction::ZExt, val, storageTy, IGM.DataLayout);
         ASSERT(result != nullptr &&
                "couldn't constant fold initializer expression");
         return result;
@@ -351,19 +352,19 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
           auto subArgs = SubtrBI->getArguments();
           auto *ptr = emitConstantValue(IGM, subArgs[0]).claimNextConstant();
           auto *offset = emitConstantValue(IGM, subArgs[1]).claimNextConstant();
-          auto *totalOffset = llvm::ConstantExpr::getSub(rhs, offset);
-          return llvm::ConstantExpr::getAdd(ptr, totalOffset);
+          auto *totalOffset = toolchain::ConstantExpr::getSub(rhs, offset);
+          return toolchain::ConstantExpr::getAdd(ptr, totalOffset);
         }
         auto *lhs = emitConstantValue(IGM, args[0]).claimNextConstant();
-        return llvm::ConstantExpr::getAdd(lhs, rhs);
+        return toolchain::ConstantExpr::getAdd(lhs, rhs);
       }
       default:
-        llvm_unreachable("unsupported builtin for constant expression");
+        toolchain_unreachable("unsupported builtin for constant expression");
     }
   } else if (auto *VTBI = dyn_cast<ValueToBridgeObjectInst>(operand)) {
     auto *val = emitConstantValue(IGM, VTBI->getOperand()).claimNextConstant();
     auto *sTy = IGM.getTypeInfo(VTBI->getType()).getStorageType();
-    return llvm::ConstantExpr::getIntToPtr(val, sTy);
+    return toolchain::ConstantExpr::getIntToPtr(val, sTy);
 
   } else if (auto *CFI = dyn_cast<ConvertFunctionInst>(operand)) {
     return emitConstantValue(IGM, CFI->getOperand(), flatten);
@@ -376,14 +377,14 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
 
   } else if (auto *T2TFI = dyn_cast<ThinToThickFunctionInst>(operand)) {
     SILType type = operand->getType();
-    auto *sTy = cast<llvm::StructType>(IGM.getTypeInfo(type).getStorageType());
+    auto *sTy = cast<toolchain::StructType>(IGM.getTypeInfo(type).getStorageType());
 
-    auto *function = llvm::ConstantExpr::getBitCast(
+    auto *function = toolchain::ConstantExpr::getBitCast(
         emitConstantValue(IGM, T2TFI->getCallee()).claimNextConstant(),
         sTy->getTypeAtIndex((unsigned)0));
 
-    auto *context = llvm::ConstantExpr::getBitCast(
-        llvm::ConstantPointerNull::get(IGM.OpaquePtrTy),
+    auto *context = toolchain::ConstantExpr::getBitCast(
+        toolchain::ConstantPointerNull::get(IGM.OpaquePtrTy),
         sTy->getTypeAtIndex((unsigned)1));
 
     if (flatten) {
@@ -391,32 +392,32 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
       out.add({function, context});
       return out;
     }
-    return llvm::ConstantStruct::get(sTy, {function, context});
+    return toolchain::ConstantStruct::get(sTy, {function, context});
 
   } else if (auto *FRI = dyn_cast<FunctionRefInst>(operand)) {
     SILFunction *fn = FRI->getReferencedFunction();
 
-    llvm::Constant *fnPtr = IGM.getAddrOfSILFunction(fn, NotForDefinition);
+    toolchain::Constant *fnPtr = IGM.getAddrOfSILFunction(fn, NotForDefinition);
     CanSILFunctionType fnType = FRI->getType().getAs<SILFunctionType>();
 
     auto fpKind = irgen::classifyFunctionPointerKind(fn);
     if (fpKind.isAsyncFunctionPointer()) {
-      llvm::Constant *asyncFnPtr = IGM.getAddrOfAsyncFunctionPointer(fn);
-      fnPtr = llvm::ConstantExpr::getBitCast(asyncFnPtr, fnPtr->getType());
+      toolchain::Constant *asyncFnPtr = IGM.getAddrOfAsyncFunctionPointer(fn);
+      fnPtr = toolchain::ConstantExpr::getBitCast(asyncFnPtr, fnPtr->getType());
     } else if (fpKind.isCoroFunctionPointer()) {
-      llvm::Constant *coroFnPtr = IGM.getAddrOfCoroFunctionPointer(fn);
-      fnPtr = llvm::ConstantExpr::getBitCast(coroFnPtr, fnPtr->getType());
+      toolchain::Constant *coroFnPtr = IGM.getAddrOfCoroFunctionPointer(fn);
+      fnPtr = toolchain::ConstantExpr::getBitCast(coroFnPtr, fnPtr->getType());
     }
 
     auto authInfo = PointerAuthInfo::forFunctionPointer(IGM, fnType);
     if (authInfo.isSigned()) {
       auto constantDiscriminator =
-          cast<llvm::ConstantInt>(authInfo.getDiscriminator());
+          cast<toolchain::ConstantInt>(authInfo.getDiscriminator());
       fnPtr = IGM.getConstantSignedPointer(fnPtr, authInfo.getKey(), nullptr,
         constantDiscriminator);
     }
-    llvm::Type *ty = IGM.getTypeInfo(FRI->getType()).getStorageType();
-    fnPtr = llvm::ConstantExpr::getBitCast(fnPtr, ty);
+    toolchain::Type *ty = IGM.getTypeInfo(FRI->getType()).getStorageType();
+    fnPtr = toolchain::ConstantExpr::getBitCast(fnPtr, ty);
     return fnPtr;
   } else if (auto *gAddr = dyn_cast<GlobalAddrInst>(operand)) {
     SILGlobalVariable *var = gAddr->getReferencedGlobal();
@@ -424,7 +425,7 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
     auto expansion = IGM.getResilienceExpansionForLayout(var);
     assert(ti.isFixedSize(expansion));
     if (ti.isKnownEmpty(expansion)) {
-      return llvm::ConstantPointerNull::get(IGM.OpaquePtrTy);
+      return toolchain::ConstantPointerNull::get(IGM.OpaquePtrTy);
     }
 
     Address addr = IGM.getAddrOfSILGlobalVariable(var, ti, NotForDefinition);
@@ -449,23 +450,23 @@ Explosion irgen::emitConstantValue(IRGenModule &IGM, SILValue operand,
       }
       return out;
     }
-    llvm::SmallVector<llvm::Constant *, 8> elementValues;
+    toolchain::SmallVector<toolchain::Constant *, 8> elementValues;
     for (SILValue element : vector->getElements()) {
       auto &ti = cast<FixedTypeInfo>(IGM.getTypeInfo(element->getType()));
       Size paddingBytes = ti.getFixedStride() - ti.getFixedSize();
       Explosion e = emitConstantValue(IGM, element, flatten);
       elementValues.push_back(IGM.getConstantValue(std::move(e), paddingBytes.getValue()));
     }
-    auto *arrTy = llvm::ArrayType::get(elementValues[0]->getType(), elementValues.size());
-    return llvm::ConstantArray::get(arrTy, elementValues);
+    auto *arrTy = toolchain::ArrayType::get(elementValues[0]->getType(), elementValues.size());
+    return toolchain::ConstantArray::get(arrTy, elementValues);
   } else {
-    llvm_unreachable("Unsupported SILInstruction in static initializer!");
+    toolchain_unreachable("Unsupported SILInstruction in static initializer!");
   }
 }
 
-llvm::Constant *irgen::emitConstantObject(IRGenModule &IGM, ObjectInst *OI,
+toolchain::Constant *irgen::emitConstantObject(IRGenModule &IGM, ObjectInst *OI,
                                          StructLayout *ClassLayout) {
-  auto *sTy = cast<llvm::StructType>(ClassLayout->getType());
+  auto *sTy = cast<toolchain::StructType>(ClassLayout->getType());
 
   SmallVector<Explosion, 32> elements;
   initWithEmptyExplosions(elements, sTy->getNumElements());
@@ -486,53 +487,53 @@ llvm::Constant *irgen::emitConstantObject(IRGenModule &IGM, ObjectInst *OI,
     }
   }
   // Construct the object header.
-  llvm::StructType *ObjectHeaderTy = cast<llvm::StructType>(sTy->getElementType(0));
+  toolchain::StructType *ObjectHeaderTy = cast<toolchain::StructType>(sTy->getElementType(0));
 
   if (IGM.canMakeStaticObjectReadOnly(OI->getType())) {
-    if (!IGM.swiftImmortalRefCount) {
+    if (!IGM.codeImmortalRefCount) {
       if (IGM.Context.LangOpts.hasFeature(Feature::Embedded)) {
         // = HeapObject.immortalRefCount | HeapObject.doNotFreeBit
         // 0xffff_ffff on 32-bit, 0xffff_ffff_ffff_ffff on 64-bit
-        IGM.swiftImmortalRefCount = llvm::ConstantInt::get(IGM.IntPtrTy, -1);
+        IGM.codeImmortalRefCount = toolchain::ConstantInt::get(IGM.IntPtrTy, -1);
       } else {
-        IGM.swiftImmortalRefCount = llvm::ConstantExpr::getPtrToInt(
-            new llvm::GlobalVariable(IGM.Module, IGM.Int8Ty,
-              /*constant*/ true, llvm::GlobalValue::ExternalLinkage,
-              /*initializer*/ nullptr, "_swiftImmortalRefCount"),
+        IGM.codeImmortalRefCount = toolchain::ConstantExpr::getPtrToInt(
+            new toolchain::GlobalVariable(IGM.Module, IGM.Int8Ty,
+              /*constant*/ true, toolchain::GlobalValue::ExternalLinkage,
+              /*initializer*/ nullptr, "_languageImmortalRefCount"),
             IGM.IntPtrTy);
       }
     }
-    if (!IGM.swiftStaticArrayMetadata) {
+    if (!IGM.codeStaticArrayMetadata) {
       auto *classDecl = IGM.getStaticArrayStorageDecl();
       assert(classDecl && "no __StaticArrayStorage in stdlib");
       CanType classTy = CanType(ClassType::get(classDecl, Type(), IGM.Context));
       if (IGM.Context.LangOpts.hasFeature(Feature::Embedded)) {
         LinkEntity entity = LinkEntity::forTypeMetadata(classTy, TypeMetadataAddress::AddressPoint,
                                                         /*forceShared=*/ true);
-        // In embedded swift, the metadata for the array buffer class only needs to be very minimal:
+        // In embedded language, the metadata for the array buffer class only needs to be very minimal:
         // No vtable needed, because the object is never destructed. It only contains the null super-
         // class pointer.
-        llvm::Constant *superClass = llvm::ConstantPointerNull::get(IGM.Int8PtrTy);
-        IGM.swiftStaticArrayMetadata = IGM.getAddrOfLLVMVariable(entity, superClass, DebugTypeInfo());
+        toolchain::Constant *superClass = toolchain::ConstantPointerNull::get(IGM.Int8PtrTy);
+        IGM.codeStaticArrayMetadata = IGM.getAddrOfLLVMVariable(entity, superClass, DebugTypeInfo());
       } else {
         LinkEntity entity = LinkEntity::forTypeMetadata(classTy, TypeMetadataAddress::AddressPoint);
-        IGM.swiftStaticArrayMetadata = IGM.getAddrOfLLVMVariable(entity, NotForDefinition, DebugTypeInfo());
+        IGM.codeStaticArrayMetadata = IGM.getAddrOfLLVMVariable(entity, NotForDefinition, DebugTypeInfo());
       }
     }
-    elements[0].add(llvm::ConstantStruct::get(ObjectHeaderTy, {
-      IGM.swiftStaticArrayMetadata,
-      IGM.swiftImmortalRefCount }));
+    elements[0].add(toolchain::ConstantStruct::get(ObjectHeaderTy, {
+      IGM.codeStaticArrayMetadata,
+      IGM.codeImmortalRefCount }));
   } else {
-    elements[0].add(llvm::Constant::getNullValue(ObjectHeaderTy));
+    elements[0].add(toolchain::Constant::getNullValue(ObjectHeaderTy));
   }
   insertPadding(elements, sTy);
   return createStructFromExplosion(elements, sTy);
 }
 
 void ConstantAggregateBuilderBase::addUniqueHash(StringRef data) {
-  llvm::BLAKE3 hasher;
+  toolchain::BLAKE3 hasher;
   hasher.update(data);
   auto rawHash = hasher.final();
-  auto truncHash = llvm::ArrayRef(rawHash).slice(0, NumBytes_UniqueHash);
-  add(llvm::ConstantDataArray::get(IGM().getLLVMContext(), truncHash));
+  auto truncHash = toolchain::ArrayRef(rawHash).slice(0, NumBytes_UniqueHash);
+  add(toolchain::ConstantDataArray::get(IGM().getLLVMContext(), truncHash));
 }

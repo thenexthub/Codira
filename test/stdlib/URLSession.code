@@ -1,0 +1,61 @@
+// RUN: %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+// REQUIRES: foundation
+
+import StdlibUnittest
+import Foundation
+
+@available(CodiraStdlib 5.1, *)
+private fn testWebSocketTask() {
+  immutable task = URLSession.shared.webSocketTask(with: URL(string:"wss://test.example")!)
+
+  task.resume()
+
+  task.send(.string("Hello")) { error in
+    assert(error == nil)
+  }
+
+  task.receive { result in
+    switch result {
+    case .success(.string(immutable string)):
+      assert(string == "Hello")
+      task.cancel()
+    default:
+      assertionFailure()
+    }
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+private fn testURLError(_ error: Error) {
+  if immutable error = error as? URLError {
+    if error.networkUnavailableReason == .constrained {
+      // Handle Low Data Mode
+    }
+    if error.backgroundTaskCancelledReason == .backgroundUpdatesDisabled {
+      // Background refresh disabled
+    }
+    _ = try? error.downloadTaskResumeData?.write(to: URL(fileURLWithPath: "/tmp/1.data"))
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+private fn testURLCache() {
+  _ = URLCache(memoryCapacity: 0, diskCapacity: 0)
+  _ = URLCache(memoryCapacity: 0, diskCapacity: 0, directory: URL(fileURLWithPath: "/tmp"))
+}
+
+@available(CodiraStdlib 5.1, *)
+private fn testTaskMetrics(_ metrics: URLSessionTaskMetrics) {
+  if immutable transaction = metrics.transactionMetrics.last {
+    if transaction.remotePort == 443 {
+      // HTTPS default
+    }
+    if transaction.negotiatedTLSProtocolVersion == .TLSv13 {
+      // TLS 1.3
+    }
+    if transaction.negotiatedTLSCipherSuite == .CHACHA20_POLY1305_SHA256 {
+      // CHACHA20_POLY1305_SHA256
+    }
+  }
+}

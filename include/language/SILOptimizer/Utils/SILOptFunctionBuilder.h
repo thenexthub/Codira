@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_SILOPTFUNCTIONBUILDER_H
-#define SWIFT_SILOPTIMIZER_UTILS_SILOPTFUNCTIONBUILDER_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_SILOPTFUNCTIONBUILDER_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_SILOPTFUNCTIONBUILDER_H
 
 #include "language/SIL/SILFunctionBuilder.h"
 #include "language/SILOptimizer/PassManager/PassManager.h"

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Adds Symbol Graph JSON serialization to other types.
 //===----------------------------------------------------------------------===//
@@ -27,8 +28,8 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Serialization/SerializedModuleLoader.h"
 
-void swift::symbolgraphgen::serialize(const llvm::VersionTuple &VT,
-                                      llvm::json::OStream &OS) {
+void language::symbolgraphgen::serialize(const toolchain::VersionTuple &VT,
+                                      toolchain::json::OStream &OS) {
   OS.object([&](){
     OS.attribute("major", VT.getMajor());
     if (VT.getMinor()) {
@@ -45,8 +46,8 @@ void swift::symbolgraphgen::serialize(const llvm::VersionTuple &VT,
   });
 }
 
-void swift::symbolgraphgen::serialize(const llvm::Triple &T,
-                                      llvm::json::OStream &OS) {
+void language::symbolgraphgen::serialize(const toolchain::Triple &T,
+                                      toolchain::json::OStream &OS) {
   OS.object([&](){
     OS.attribute("architecture", T.getArchName());
     if (!T.getEnvironmentName().empty()) {
@@ -56,7 +57,7 @@ void swift::symbolgraphgen::serialize(const llvm::Triple &T,
     OS.attributeObject("operatingSystem", [&](){
       OS.attribute("name", T.getOSTypeName(T.getOS()));
 
-      llvm::VersionTuple OSVersion = T.getOSVersion();
+      toolchain::VersionTuple OSVersion = T.getOSVersion();
       if (!OSVersion.empty()) {
         OS.attributeBegin("minimumVersion");
         serialize(OSVersion, OS);
@@ -66,9 +67,9 @@ void swift::symbolgraphgen::serialize(const llvm::Triple &T,
   });
 }
 
-void swift::symbolgraphgen::serialize(const ExtensionDecl *Extension,
-                                      llvm::json::OStream &OS) {
-  OS.attributeObject("swiftExtension", [&](){
+void language::symbolgraphgen::serialize(const ExtensionDecl *Extension,
+                                      toolchain::json::OStream &OS) {
+  OS.attributeObject("languageExtension", [&](){
     if (const auto *ExtendedNominal = Extension->getExtendedNominal()) {
       if (const auto *ExtendedModule = ExtendedNominal->getModuleContext()) {
         OS.attribute("extendedModule", ExtendedModule->getNameStr());
@@ -89,11 +90,11 @@ void swift::symbolgraphgen::serialize(const ExtensionDecl *Extension,
         }
       }); // end constraints:
     }
-  }); // end swiftExtension:
+  }); // end languageExtension:
 }
 
-void swift::symbolgraphgen::serialize(const Requirement &Req,
-                                      llvm::json::OStream &OS) {
+void language::symbolgraphgen::serialize(const Requirement &Req,
+                                      toolchain::json::OStream &OS) {
   StringRef Kind;
   switch (Req.getKind()) {
     case RequirementKind::SameShape:
@@ -121,7 +122,7 @@ void swift::symbolgraphgen::serialize(const Requirement &Req,
     if (auto *TyDecl = Req.getSecondType()->getAnyNominal()) {
       SmallString<256> USR;
       {
-        llvm::raw_svector_ostream SOS(USR);
+        toolchain::raw_svector_ostream SOS(USR);
         ide::printDeclUSR(TyDecl, SOS);
       }
       OS.attribute("rhsPrecise", USR.str());
@@ -129,8 +130,8 @@ void swift::symbolgraphgen::serialize(const Requirement &Req,
   });
 }
 
-void swift::symbolgraphgen::serialize(const swift::GenericTypeParamType *Param,
-                                      llvm::json::OStream &OS) {
+void language::symbolgraphgen::serialize(const language::GenericTypeParamType *Param,
+                                      toolchain::json::OStream &OS) {
   OS.object([&](){
     OS.attribute("name", Param->getName().str());
     OS.attribute("index", Param->getIndex());
@@ -138,24 +139,24 @@ void swift::symbolgraphgen::serialize(const swift::GenericTypeParamType *Param,
   });
 }
 
-void swift::symbolgraphgen::serialize(const ModuleDecl &Module,
-                                      llvm::json::OStream &OS,
-                                      llvm::Triple Target) {
+void language::symbolgraphgen::serialize(const ModuleDecl &Module,
+                                      toolchain::json::OStream &OS,
+                                      toolchain::Triple Target) {
   auto *MainFile = Module.getFiles().front();
   switch (MainFile->getKind()) {
   case FileUnitKind::Builtin:
-    llvm_unreachable("Unexpected module kind: Builtin");
+    toolchain_unreachable("Unexpected module kind: Builtin");
   case FileUnitKind::DWARFModule:
-    llvm_unreachable("Unexpected module kind: DWARFModule");
+    toolchain_unreachable("Unexpected module kind: DWARFModule");
   case FileUnitKind::Synthesized:
-    llvm_unreachable("Unexpected module kind: Synthesized");
+    toolchain_unreachable("Unexpected module kind: Synthesized");
     break;
   case FileUnitKind::Source:
     serialize(Module.getASTContext().LangOpts.Target, OS);
     break;
   case FileUnitKind::SerializedAST: {
     auto SerializedAST = cast<SerializedASTFile>(MainFile);
-    auto Target = llvm::Triple(SerializedAST->getTargetTriple());
+    auto Target = toolchain::Triple(SerializedAST->getTargetTriple());
     serialize(Target, OS);
     break;
   }
@@ -172,7 +173,7 @@ void swift::symbolgraphgen::serialize(const ModuleDecl &Module,
 }
 
 void
-swift::symbolgraphgen::filterGenericParams(
+language::symbolgraphgen::filterGenericParams(
     ArrayRef<GenericTypeParamType *> GenericParams,
     SmallVectorImpl<const GenericTypeParamType*> &FilteredParams,
     SubstitutionMap SubMap) {
@@ -194,7 +195,7 @@ swift::symbolgraphgen::filterGenericParams(
               return NominalGPD->isImplicit() &&
                   GPD->getName() == NominalGPD->getName();
             };
-            if (llvm::any_of(GPL->getParams(), ImplicitAndSameName))
+            if (toolchain::any_of(GPL->getParams(), ImplicitAndSameName))
               continue;
           }
         }
@@ -222,21 +223,21 @@ swift::symbolgraphgen::filterGenericParams(
 // FIXME: This is wrong. We should instead compute the new requirements of a
 // member declaration by comparing against the generic signature of its
 // parent, with getRequirementsNotSatisfiedBy().
-static bool containsParams(swift::Type Ty, llvm::ArrayRef<const swift::GenericTypeParamType*> Others) {
-  return Ty.findIf([&](swift::Type T) -> bool {
-    if (auto AT = T->getAs<swift::ArchetypeType>()) {
+static bool containsParams(language::Type Ty, toolchain::ArrayRef<const language::GenericTypeParamType*> Others) {
+  return Ty.findIf([&](language::Type T) -> bool {
+    if (auto AT = T->getAs<language::ArchetypeType>()) {
       T = AT->getInterfaceType();
     }
 
     for (auto *Param: Others) {
-      if (T->isEqual(const_cast<swift::GenericTypeParamType*>(Param)))
+      if (T->isEqual(const_cast<language::GenericTypeParamType*>(Param)))
         return true;
     }
     return false;
   });
 }
 
-void swift::symbolgraphgen::filterGenericRequirements(
+void language::symbolgraphgen::filterGenericRequirements(
     ArrayRef<Requirement> Requirements,
     const ProtocolDecl *Self,
     SmallVectorImpl<Requirement> &FilteredRequirements,
@@ -249,7 +250,7 @@ void swift::symbolgraphgen::filterGenericRequirements(
       continue;
     }
     // extension /* protocol */ Q {
-    // func foo() {}
+    // fn foo() {}
     // }
     // ignore Self : Q, obvious
     if (Self &&
@@ -281,7 +282,7 @@ void swift::symbolgraphgen::filterGenericRequirements(
   }
 }
 void
-swift::symbolgraphgen::filterGenericRequirements(const ExtensionDecl *Extension,
+language::symbolgraphgen::filterGenericRequirements(const ExtensionDecl *Extension,
     SmallVectorImpl<Requirement> &FilteredRequirements) {
   auto Sig = Extension->getGenericSignature();
   if (!Sig)

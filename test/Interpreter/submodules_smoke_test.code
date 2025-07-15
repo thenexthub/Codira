@@ -1,0 +1,10 @@
+// RUN: %target-build-language -typecheck %s -F %S/Inputs -Xfrontend -verify
+// RUN: %target-build-language -emit-ir -g %s -F %S/Inputs -DNO_ERROR > /dev/null
+// REQUIRES: executable_test
+
+import ExplicitSubmodulesOnly.B
+_ = constantB
+
+#if !NO_ERROR
+_ = constantA // expected-error{{cannot find 'constantA' in scope}}
+#endif

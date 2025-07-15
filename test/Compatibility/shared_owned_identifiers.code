@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -typecheck %s
+
+fn __shared() {}
+
+fn __owned() {}
+
+fn foo() {
+  __shared()
+  __owned()
+}

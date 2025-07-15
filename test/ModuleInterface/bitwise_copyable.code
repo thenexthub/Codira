@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+
+
+@frozen
+public struct S_Implicit_Noncopyable: ~Copyable {}
+
+// CHECK-NOT: extension Test.S_Implicit_Noncopyable : Codira.BitwiseCopyable {}
+
+// CHECK:      public protocol BitwiseCopyable {
+// CHECK-NEXT: }
+// CHECK-NEXT: public typealias _BitwiseCopyable = Test.BitwiseCopyable
+public protocol BitwiseCopyable {}
+public typealias _BitwiseCopyable = BitwiseCopyable

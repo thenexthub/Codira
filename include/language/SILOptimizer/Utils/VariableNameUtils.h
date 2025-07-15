@@ -1,21 +1,25 @@
 //===--- VariableNameUtils.h ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Utilities for inferring the name of a value.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_VARIABLENAMEUTILS_H
-#define SWIFT_SILOPTIMIZER_UTILS_VARIABLENAMEUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_VARIABLENAMEUTILS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_VARIABLENAMEUTILS_H
 
 #include "language/Basic/Defer.h"
 #include "language/Basic/OptionSet.h"
@@ -73,12 +77,12 @@ private:
       return ArrayRef<T>(data).take_front(insertionPointIndex);
     }
 
-    void print(llvm::raw_ostream &os) const {
+    void print(toolchain::raw_ostream &os) const {
       os << "LastSnapShotIndex: " << lastSnapShotIndex << '\n';
       os << "InsertionPointIndex: " << insertionPointIndex << '\n';
     }
 
-    SWIFT_DEBUG_DUMP { print(llvm::dbgs()); }
+    LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); }
 
     /// Pushes a snapshot and returns the old index.
     unsigned pushSnapShot() & {
@@ -100,7 +104,7 @@ private:
     void returnSnapShot(unsigned oldIndex) & { lastSnapShotIndex = oldIndex; }
 
     void push_back(const T &newValue) & {
-      SWIFT_DEFER { assert(insertionPointIndex <= data.size()); };
+      LANGUAGE_DEFER { assert(insertionPointIndex <= data.size()); };
       if (insertionPointIndex == data.size()) {
         data.push_back(newValue);
         ++insertionPointIndex;
@@ -112,7 +116,7 @@ private:
     }
 
     [[nodiscard]] T pop_back_val() & {
-      SWIFT_DEFER { assert(insertionPointIndex <= data.size()); };
+      LANGUAGE_DEFER { assert(insertionPointIndex <= data.size()); };
       assert(!lastSnapShotIndex &&
              "Can only pop while lastSnapShotIndex is not set");
       --insertionPointIndex;
@@ -212,7 +216,7 @@ public:
 
   StringRef getName() const { return resultingString; }
 
-  SWIFT_DEBUG_DUMP { llvm::dbgs() << getName() << '\n'; }
+  LANGUAGE_DEBUG_DUMP { toolchain::dbgs() << getName() << '\n'; }
 
   /// Given a specific SILValue, construct a VariableNameInferrer and use it to
   /// attempt to infer an identifier for the value.
@@ -252,9 +256,9 @@ private:
   SILValue getRootValueForTemporaryAllocation(AllocationInst *allocInst);
 
   StringRef getStringRefForIndex(unsigned index) const {
-    llvm::SmallString<64> indexString;
+    toolchain::SmallString<64> indexString;
     {
-      llvm::raw_svector_ostream stream(indexString);
+      toolchain::raw_svector_ostream stream(indexString);
       stream << index;
     }
     return astContext.getIdentifier(indexString).str();

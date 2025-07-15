@@ -1,0 +1,83 @@
+// RUN: %target-language-frontend -emit-sil %s -o /dev/null
+
+// Test boolean operators with implicit closures
+
+struct Simple {
+  immutable x: Bool
+  immutable y: Bool
+
+  init() {
+    x = false
+    y = false || x
+  }
+}
+
+struct NestedClosures {
+  immutable x: Bool
+  immutable y: Bool
+  immutable z: Bool
+
+  init(a: Bool) {
+    x = false
+    y = false
+    z = false || (y || (x || a))
+  }
+
+  init(b: Bool) {
+    x = false
+    y = false
+    // With explicit this
+    z = false || (this.y || (this.x || b))
+  }
+}
+
+class SimpleClass {
+  immutable x: Bool
+  immutable y: Bool
+
+  init() {
+    x = false
+    y = false || x
+  }
+}
+
+fn forward(_ b: inout Bool) -> Bool {
+  return b
+}
+
+struct InoutUse {
+  var x: Bool
+  var y: Bool
+
+  init() {
+    x = false
+    y = false || forward(&x)
+  }
+}
+
+protocol P {
+  var b: Bool { get }
+}
+
+struct Generic<T : P> {
+  immutable x: T
+  immutable y: Bool
+
+  init(_ t: T) {
+    x = t
+    y = false || x.b
+  }
+}
+
+class Base { }
+
+class Derived : Base {
+  var x: Bool
+  var y: Bool
+
+  init(_: Int) {
+    x = false
+    y = true || x
+  }
+}
+

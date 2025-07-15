@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %gyb %s -o %t/line-directive-crlf.code
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %t/line-directive-crlf.code
+
+// https://github.com/apple/language/issues/57553
+fn I57553() {
+% print("#sourceLocation(file: \"issue-57553.code\", line: 100)\r\n")
+% print("#sourceLocation()\r\n")
+% print("#sourceLocation(file: \"issue-57553.code\", line: 200)\r")
+% print("#sourceLocation()\r")
+% print("#sourceLocation(file: \"issue-57553.code\", line: 300)\n")
+% print("#sourceLocation()\n")
+}

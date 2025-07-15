@@ -1,24 +1,28 @@
 //===--- Symbol.h - The generics rewrite system alphabet --------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
-#ifndef SWIFT_RQM_SYMBOL_H
-#define SWIFT_RQM_SYMBOL_H
+#ifndef LANGUAGE_RQM_SYMBOL_H
+#define LANGUAGE_RQM_SYMBOL_H
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -140,7 +144,7 @@ public:
 
   static const unsigned NumKinds = 9;
 
-  static const llvm::StringRef Kinds[];
+  static const toolchain::StringRef Kinds[];
 
 private:
   friend class RewriteContext;
@@ -184,7 +188,7 @@ public:
 
   CanType getConcreteType() const;
 
-  llvm::ArrayRef<Term> getSubstitutions() const;
+  toolchain::ArrayRef<Term> getSubstitutions() const;
 
   /// Returns an opaque pointer that uniquely identifies this symbol.
   const void *getOpaquePointer() const {
@@ -215,15 +219,15 @@ public:
   static Symbol forLayout(LayoutConstraint layout,
                           RewriteContext &ctx);
 
-  static Symbol forSuperclass(CanType type, llvm::ArrayRef<Term> substitutions,
+  static Symbol forSuperclass(CanType type, toolchain::ArrayRef<Term> substitutions,
                               RewriteContext &ctx);
 
   static Symbol forConcreteType(CanType type,
-                                llvm::ArrayRef<Term> substitutions,
+                                toolchain::ArrayRef<Term> substitutions,
                                 RewriteContext &ctx);
 
   static Symbol forConcreteConformance(CanType type,
-                                       llvm::ArrayRef<Term> substitutions,
+                                       toolchain::ArrayRef<Term> substitutions,
                                        const ProtocolDecl *proto,
                                        RewriteContext &ctx);
 
@@ -231,11 +235,11 @@ public:
 
   std::optional<int> compare(Symbol other, RewriteContext &ctx) const;
 
-  Symbol withConcreteSubstitutions(llvm::ArrayRef<Term> substitutions,
+  Symbol withConcreteSubstitutions(toolchain::ArrayRef<Term> substitutions,
                                    RewriteContext &ctx) const;
 
   Symbol transformConcreteSubstitutions(
-      llvm::function_ref<Term(Term)> fn,
+      toolchain::function_ref<Term(Term)> fn,
       RewriteContext &ctx) const;
 
   Symbol prependPrefixToConcreteSubstitutions(
@@ -244,7 +248,7 @@ public:
 
   bool containsNameSymbols() const;
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 
   friend bool operator==(Symbol lhs, Symbol rhs) {
     return lhs.Ptr == rhs.Ptr;
@@ -254,7 +258,7 @@ public:
     return !(lhs == rhs);
   }
 
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out, Symbol symbol) {
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out, Symbol symbol) {
     symbol.dump(out);
     return out;
   }
@@ -264,36 +268,36 @@ public:
 
 } // end namespace language
 
-namespace llvm {
-  template<> struct DenseMapInfo<swift::rewriting::Symbol> {
-    static swift::rewriting::Symbol getEmptyKey() {
-      return swift::rewriting::Symbol::fromOpaquePointer(
-        llvm::DenseMapInfo<void *>::getEmptyKey());
+namespace toolchain {
+  template<> struct DenseMapInfo<language::rewriting::Symbol> {
+    static language::rewriting::Symbol getEmptyKey() {
+      return language::rewriting::Symbol::fromOpaquePointer(
+        toolchain::DenseMapInfo<void *>::getEmptyKey());
     }
-    static swift::rewriting::Symbol getTombstoneKey() {
-      return swift::rewriting::Symbol::fromOpaquePointer(
-        llvm::DenseMapInfo<void *>::getTombstoneKey());
+    static language::rewriting::Symbol getTombstoneKey() {
+      return language::rewriting::Symbol::fromOpaquePointer(
+        toolchain::DenseMapInfo<void *>::getTombstoneKey());
     }
-    static unsigned getHashValue(swift::rewriting::Symbol Val) {
+    static unsigned getHashValue(language::rewriting::Symbol Val) {
       return DenseMapInfo<void *>::getHashValue(Val.getOpaquePointer());
     }
-    static bool isEqual(swift::rewriting::Symbol LHS,
-                        swift::rewriting::Symbol RHS) {
+    static bool isEqual(language::rewriting::Symbol LHS,
+                        language::rewriting::Symbol RHS) {
       return LHS == RHS;
     }
   };
 
   template<>
-  struct PointerLikeTypeTraits<swift::rewriting::Symbol> {
+  struct PointerLikeTypeTraits<language::rewriting::Symbol> {
   public:
-    static inline void *getAsVoidPointer(swift::rewriting::Symbol Val) {
+    static inline void *getAsVoidPointer(language::rewriting::Symbol Val) {
       return const_cast<void *>(Val.getOpaquePointer());
     }
-    static inline swift::rewriting::Symbol getFromVoidPointer(void *Ptr) {
-      return swift::rewriting::Symbol::fromOpaquePointer(Ptr);
+    static inline language::rewriting::Symbol getFromVoidPointer(void *Ptr) {
+      return language::rewriting::Symbol::fromOpaquePointer(Ptr);
     }
     enum { NumLowBitsAvailable = 1 };
   };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

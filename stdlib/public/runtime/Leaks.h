@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This is a very simple leak detector implementation that detects objects that
@@ -19,10 +20,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_STDLIB_RUNTIME_LEAKS_H
-#define SWIFT_STDLIB_RUNTIME_LEAKS_H
+#ifndef LANGUAGE_STDLIB_RUNTIME_LEAKS_H
+#define LANGUAGE_STDLIB_RUNTIME_LEAKS_H
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
 
 #include "language/shims/Visibility.h"
 
@@ -32,31 +33,31 @@ namespace language {
 struct HeapObject;
 }
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_EXPORT SWIFT_NOINLINE SWIFT_USED void
-_swift_leaks_startTrackingObjects(const char *);
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_NOINLINE LANGUAGE_USED void
+_language_leaks_startTrackingObjects(const char *);
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_EXPORT SWIFT_NOINLINE SWIFT_USED int
-_swift_leaks_stopTrackingObjects(const char *);
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_NOINLINE LANGUAGE_USED int
+_language_leaks_stopTrackingObjects(const char *);
 
-SWIFT_RUNTIME_EXPORT SWIFT_NOINLINE SWIFT_USED void
-_swift_leaks_startTrackingObject(swift::HeapObject *);
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_NOINLINE LANGUAGE_USED void
+_language_leaks_startTrackingObject(language::HeapObject *);
 
-SWIFT_RUNTIME_EXPORT SWIFT_NOINLINE SWIFT_USED void
-_swift_leaks_stopTrackingObject(swift::HeapObject *);
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_NOINLINE LANGUAGE_USED void
+_language_leaks_stopTrackingObject(language::HeapObject *);
 
-#define SWIFT_LEAKS_START_TRACKING_OBJECT(obj)                                 \
-  _swift_leaks_startTrackingObject(obj)
-#define SWIFT_LEAKS_STOP_TRACKING_OBJECT(obj)                                  \
-  _swift_leaks_stopTrackingObject(obj)
+#define LANGUAGE_LEAKS_START_TRACKING_OBJECT(obj)                                 \
+  _language_leaks_startTrackingObject(obj)
+#define LANGUAGE_LEAKS_STOP_TRACKING_OBJECT(obj)                                  \
+  _language_leaks_stopTrackingObject(obj)
 
-// SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+// LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
 #else
-// not SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+// not LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
 
-#define SWIFT_LEAKS_START_TRACKING_OBJECT(obj)
-#define SWIFT_LEAKS_STOP_TRACKING_OBJECT(obj)
+#define LANGUAGE_LEAKS_START_TRACKING_OBJECT(obj)
+#define LANGUAGE_LEAKS_STOP_TRACKING_OBJECT(obj)
 
 #endif
 

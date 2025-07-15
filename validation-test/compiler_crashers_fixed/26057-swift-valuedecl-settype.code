@@ -1,0 +1,143 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class b: A<T where f: a = d}} }
+fn f, AnyObject
+struct Q<T where k.E =c
+class a{
+println(object1: e
+class fn i(object1: A<T where f{
+class A<T where g: e?
+class A {
+class fn f: {
+class A? {
+struct S<T where I.C(object1: e == d> : P {(object1: Any).h : T) {
+immutable t: Array<T{
+typealias e where k.g == [Void{immutable a = {
+enum S:c,
+class
+var d : {
+{
+println([Void{
+if true{class B<T.h : e
+class B<T where g: {
+protocol P {
+var d : B<T>
+protocol P {
+immutable start = Int
+"
+class A<T where f
+case
+struct
+var f: Array<T where j:a{
+immutable t: A<T where g: A, AnyObject.g == e
+enum S<T) {var d : Array<f
+protocol P
+case c,
+class A<T
+case,
+typealias e where g:a
+class B<T where g: P{
+println(object1: e
+{
+class B<T where h.g == []
+{
+var d = "
+struct B<T where I.h : e == Int
+struct B<T where h.h : e
+immutable a = "
+deinit{
+immutable t: Any).E == {
+immutable start = d: A? {
+class fn f, d : T) {class A<f
+immutable a = d== Int
+case c
+"\("
+{class b<T where k.g == {
+class B<I : P
+}
+class a== "
+class b: e where g: Array<T where I.h : Any).E == d}var d : A{var f, d : e
+class fn f: a = "
+fn f
+class fn f== Int
+deinit{var d = e?
+fn c,
+class B<T where f
+class B T where I.g =c{
+case c,
+immutable
+struct
+deinit{
+if true{{
+struct Q{{
+{
+class
+immutable start = Int
+{}} }
+class
+immutable c,
+class b<T where h.E =[Void{
+immutable t: Array<T.g == [Void{var d = []
+case c,
+struct A<T where h.h : T{class b<T where I.g == e
+typealias e where I.E ={
+class B<T>
+class
+class b<T where g: A<T where f: A<T where f
+}var d = [Void{}struct A{
+var f: T>
+typealias e : a {
+struct A<T where g:AnyObject
+enum S<T where k.E == d> : Array<T where h.h : a = {
+case
+class A {
+struct Q<T where I.g == d
+extension String{
+protocol P {{
+immutable t: a = e
+immutable start = [1}
+class A<T where g: Any).g where g: P {
+{
+immutable a{
+typealias e where g: P {
+immutable t: B<I : P {{
+println() {
+println(== []
+class A? {
+var f: P {immutable t: e : P {
+immutable
+class C(== "\(=
+class A? {
+struct S<I : Array<T where h.g == [[[Void{
+typealias e where g:A, d = [Void{
+class B<T where h.E == e?
+class b<T>
+class B
+class fn f== [[Void{
+var _== {}
+class B<T where g: a = [Void{immutable t: Any).C([1}: e == "
+immutable a{
+deinit{
+"
+println(object1: a {
+immutable a {
+println("
+case c
+}: e
+class A {
+immutable a{
+{
+class b<T where h.E ={
+class b<T) {
+class b<T) {
+(

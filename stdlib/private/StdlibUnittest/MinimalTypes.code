@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that does not conform to any protocols.
@@ -22,13 +23,13 @@ public struct OpaqueValue<Underlying> {
   public var identity: Int
 
   public init(_ value: Underlying) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Underlying, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 }
 
@@ -46,16 +47,16 @@ public struct MinimalEquatableValue : Equatable {
   public var identity: Int
 
   public init(_ value: Int) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Int, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
-  public static func == (
+  public static fn == (
     lhs: MinimalEquatableValue,
     rhs: MinimalEquatableValue
   ) -> Bool {
@@ -81,16 +82,16 @@ public struct MinimalComparableValue : Equatable, Comparable {
   public var identity: Int
 
   public init(_ value: Int) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Int, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
-  public static func == (
+  public static fn == (
     lhs: MinimalComparableValue,
     rhs: MinimalComparableValue
   ) -> Bool {
@@ -98,7 +99,7 @@ public struct MinimalComparableValue : Equatable, Comparable {
     return MinimalComparableValue.equalImpl.value(lhs.value, rhs.value)
   }
 
-  public static func < (
+  public static fn < (
     lhs: MinimalComparableValue,
     rhs: MinimalComparableValue
   ) -> Bool {
@@ -125,16 +126,16 @@ public struct MinimalHashableValue : Equatable, Hashable {
   public var identity: Int
 
   public init(_ value: Int) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Int, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
-  public static func ==(
+  public static fn ==(
     lhs: MinimalHashableValue,
     rhs: MinimalHashableValue
   ) -> Bool {
@@ -144,11 +145,11 @@ public struct MinimalHashableValue : Equatable, Hashable {
 
   public var hashValue: Int {
     var hasher = Hasher()
-    hasher.combine(self)
+    hasher.combine(this)
     return hasher.finalize()
   }
 
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     MinimalHashableValue.timesHashIntoWasCalled += 1
     MinimalHashableValue.hashIntoImpl.value(value, &hasher)
   }
@@ -178,16 +179,16 @@ public class MinimalHashableClass : Equatable, Hashable {
   public var identity: Int
 
   public init(_ value: Int) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Int, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
-  public static func == (
+  public static fn == (
     lhs: MinimalHashableClass,
     rhs: MinimalHashableClass
   ) -> Bool {
@@ -197,11 +198,11 @@ public class MinimalHashableClass : Equatable, Hashable {
 
   public var hashValue: Int {
     var hasher = Hasher()
-    hasher.combine(self)
+    hasher.combine(this)
     return hasher.finalize()
   }
 
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     MinimalHashableClass.timesHashIntoWasCalled += 1
     MinimalHashableClass.hashIntoImpl.value(value, &hasher)
   }
@@ -236,16 +237,16 @@ public struct GenericMinimalHashableValue<Wrapped> : Equatable, Hashable {
   public var identity: Int
 
   public init(_ value: Wrapped) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Wrapped, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
-  public static func ==(
+  public static fn ==(
     lhs: GenericMinimalHashableValue<Wrapped>,
     rhs: GenericMinimalHashableValue<Wrapped>
   ) -> Bool {
@@ -255,11 +256,11 @@ public struct GenericMinimalHashableValue<Wrapped> : Equatable, Hashable {
 
   public var hashValue: Int {
     var hasher = Hasher()
-    hasher.combine(self)
+    hasher.combine(this)
     return hasher.finalize()
   }
 
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     GenericMinimalHashableValue_timesHashIntoWasCalled += 1
     GenericMinimalHashableValue_hashIntoImpl.value(value, &hasher)
   }
@@ -292,16 +293,16 @@ public class GenericMinimalHashableClass<Wrapped> : Equatable, Hashable {
   public var identity: Int
 
   public init(_ value: Wrapped) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Wrapped, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
-  public static func ==(
+  public static fn ==(
     lhs: GenericMinimalHashableClass<Wrapped>,
     rhs: GenericMinimalHashableClass<Wrapped>
   ) -> Bool {
@@ -311,11 +312,11 @@ public class GenericMinimalHashableClass<Wrapped> : Equatable, Hashable {
 
   public var hashValue: Int {
     var hasher = Hasher()
-    hasher.combine(self)
+    hasher.combine(this)
     return hasher.finalize()
   }
 
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     GenericMinimalHashableClass_timesHashIntoWasCalled += 1
     GenericMinimalHashableClass_hashIntoImpl.value(value, &hasher)
   }
@@ -347,18 +348,18 @@ public struct MinimalStrideableValue : Equatable, Comparable, Strideable {
   public var identity: Int
 
   public init(_ value: Int) {
-    self.value = value
-    self.identity = 0
+    this.value = value
+    this.identity = 0
   }
 
   public init(_ value: Int, identity: Int) {
-    self.value = value
-    self.identity = identity
+    this.value = value
+    this.identity = identity
   }
 
   public typealias Stride = Int
 
-  public static func == (
+  public static fn == (
     lhs: MinimalStrideableValue,
     rhs: MinimalStrideableValue
   ) -> Bool {
@@ -366,7 +367,7 @@ public struct MinimalStrideableValue : Equatable, Comparable, Strideable {
     return MinimalStrideableValue.equalImpl.value(lhs.value, rhs.value)
   }
 
-  public static func < (
+  public static fn < (
     lhs: MinimalStrideableValue,
     rhs: MinimalStrideableValue
   ) -> Bool {
@@ -374,13 +375,13 @@ public struct MinimalStrideableValue : Equatable, Comparable, Strideable {
     return MinimalStrideableValue.lessImpl.value(lhs.value, rhs.value)
   }
 
-  public func distance(to other: MinimalStrideableValue) -> Stride {
+  public fn distance(to other: MinimalStrideableValue) -> Stride {
     MinimalStrideableValue.timesDistanceWasCalled.value += 1
-    return other.value - self.value
+    return other.value - this.value
   }
 
-  public func advanced(by n: Stride) -> MinimalStrideableValue {
+  public fn advanced(by n: Stride) -> MinimalStrideableValue {
     MinimalStrideableValue.timesAdvancedWasCalled.value += 1
-    return MinimalStrideableValue(self.value + n, identity: self.identity)
+    return MinimalStrideableValue(this.value + n, identity: this.identity)
   }
 }

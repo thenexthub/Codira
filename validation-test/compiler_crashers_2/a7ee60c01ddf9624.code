@@ -1,0 +1,6 @@
+// {"signature":"(anonymous namespace)::LookupResultBuilder::add(language::ValueDecl*, language::DeclContext*, language::ValueDecl*, language::Type, bool)::'lambda'(language::ValueDecl*)::operator()(language::ValueDecl*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a{b} protocol c : a protocol d : c extension d {
+  struct e : d {
+    f {
+      b

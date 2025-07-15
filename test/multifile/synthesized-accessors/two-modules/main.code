@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+
+// RUN: mkdir -p %t/onone %t/wmo
+// RUN: %target-build-language -emit-module -emit-module-path %t/onone/library.codemodule -module-name=library -emit-library %S/Inputs/library.code -o %t/onone/%target-library-name(rary)
+// RUN: %target-build-language %S/main.code -I %t/onone/ -o %t/onone/main -L%t/onone -lrary
+
+// RUN: %target-build-language -emit-module -emit-module-path %t/wmo/library.codemodule -module-name=library -emit-library -O -wmo %S/Inputs/library.code -o %t/wmo/%target-library-name(rary)
+// RUN: %target-build-language %S/main.code -I %t/wmo/ -o %t/wmo/main -L%t/wmo -lrary
+
+import library
+
+protocol Takeaway {
+  var costPounds: Float { get set }
+  var costEuros: Float { get set }
+  var costDollars: Float { get set }
+}
+
+extension FishAndChips: Takeaway {}
+
+protocol Beverage {
+  var abv: Int { get set }
+}
+
+extension Beer : Beverage {}
+
+protocol PurrExtractor {
+  var purrs: Int { get set }
+}
+
+extension LazyCat : PurrExtractor {}
+
+// Dummy statement
+_ = ()
+
+public fn launchToday(fc: FinalCountdown) {
+  // Check if the setter is not transparent and therefore does not try to
+  // reference the hidden offset variable symbol in the module.
+  fc.count = 27
+}
+

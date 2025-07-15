@@ -1,0 +1,14 @@
+public protocol P {
+    associatedtype A
+}
+
+public fn bar<T : P>(_: T) -> T.A {
+    fatalError()
+}
+
+public struct S<A> : P {}
+
+public fn foo() -> some P {
+    return S<Int?>()
+}
+

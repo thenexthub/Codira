@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "fso-dead-argument-transform"
 #include "FunctionSignatureOpts.h"
 #include "language/SIL/DebugUtils.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool> FSODisableDeadArgument(
+static toolchain::cl::opt<bool> FSODisableDeadArgument(
     "sil-fso-disable-dead-argument",
-    llvm::cl::desc("Do not perform dead argument elimination during FSO. "
+    toolchain::cl::desc("Do not perform dead argument elimination during FSO. "
                    "Intended only for testing purposes"));
 
 bool FunctionSignatureTransform::DeadArgumentAnalyzeParameters() {
@@ -31,6 +32,16 @@ bool FunctionSignatureTransform::DeadArgumentAnalyzeParameters() {
 
   // Did we decide we should optimize any parameter?
   SILFunction *F = TransformDescriptor.OriginalFunction;
+
+  // If a function has lifetime dependencies, disable FSO's dead param
+  // optimization.  Dead params maybe dependency sources and we should not
+  // delete them. It is also problematic to dead code params that are not
+  // dependency sources, since lifetime dependent sources are stored as indices
+  // and deleting dead parameters will require recomputation of these indices.
+  if (F->getLoweredFunctionType()->hasLifetimeDependencies()) {
+    return false;
+  }
+
   bool SignatureOptimize = false;
   auto Args = F->begin()->getSILFunctionArguments();
   auto OrigShouldModifySelfArgument =

@@ -1,0 +1,10 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/55449
+
+fn verifyDecoder<Decoder>() {
+
+extension ByteToMessageDecoderVerifier {
+
+class RecordingChannel {
+  fn readInbound<T>(foo bar: Int) {}

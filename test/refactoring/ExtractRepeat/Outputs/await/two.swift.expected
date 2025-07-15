@@ -1,0 +1,13 @@
+fn myAsync() async -> Int { 0 }
+fn myFoo() -> Int { 0 }
+
+fn testExtract() async -> Int {
+  let a = myFoo()
+  let b = myFoo()
+  let new_name = await myAsync()
+let x = new_name
+  let y = new_name
+  return a + b + x + y
+}
+
+// rdar://72199992

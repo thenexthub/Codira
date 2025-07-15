@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftRemoteMirror
+import CodiraRemoteMirror
 import Foundation
 
 extension DefaultStringInterpolation {
-  mutating func appendInterpolation<T>(hex: T) where T: BinaryInteger {
+  mutating fn appendInterpolation<T>(hex: T) where T: BinaryInteger {
     appendInterpolation("0x")
     appendInterpolation(String(hex, radix: 16))
   }
@@ -34,7 +35,7 @@ enum Std {
 
     var underlying: File
 
-    mutating func write(_ string: String) {
+    mutating fn write(_ string: String) {
       fputs(string, underlying)
     }
   }
@@ -42,6 +43,6 @@ enum Std {
   static var err = File(underlying: stderr)
 }
 
-internal func disableStdErrBuffer() {
+internal fn disableStdErrBuffer() {
   setvbuf(stderr, nil, Int32(_IONBF), 0)
 }

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-combine"
@@ -38,10 +39,10 @@
 #include "language/SILOptimizer/Utils/KeyPathProjector.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
 #include <utility>
 
 using namespace language;
@@ -175,8 +176,8 @@ SILCombiner::optimizeApplyOfConvertFunctionInst(FullApplySite AI,
   auto oldOpParamTypes = substConventions.getParameterSILTypes(context);
   auto newOpParamTypes = convertConventions.getParameterSILTypes(context);
 
-  llvm::SmallVector<SILValue, 8> Args;
-  llvm::SmallVector<BeginBorrowInst *, 8> Borrows;
+  toolchain::SmallVector<SILValue, 8> Args;
+  toolchain::SmallVector<BeginBorrowInst *, 8> Borrows;
   auto convertOp = [&](SILValue Op, SILType OldOpType, SILType NewOpType,
                        OperandOwnership ownership) {
     // Convert function takes refs to refs, address to addresses, and leaves
@@ -317,20 +318,20 @@ SILCombiner::optimizeApplyOfConvertFunctionInst(FullApplySite AI,
 ///   %addr = struct_element_addr/ref_element_addr %root_object
 ///   ...
 ///   load/store %addr
-bool swift::tryOptimizeKeypathApplication(ApplyInst *AI,
+bool language::tryOptimizeKeypathApplication(ApplyInst *AI,
                                           SILFunction *callee, SILBuilder Builder) {
   if (AI->getNumArguments() != 3)
     return false;
 
   SILValue keyPath, rootAddr, valueAddr;
   bool isSet = false;
-  if (callee->getName() == "swift_setAtWritableKeyPath" ||
-      callee->getName() == "swift_setAtReferenceWritableKeyPath") {
+  if (callee->getName() == "language_setAtWritableKeyPath" ||
+      callee->getName() == "language_setAtReferenceWritableKeyPath") {
     keyPath = AI->getArgument(1);
     rootAddr = AI->getArgument(0);
     valueAddr = AI->getArgument(2);
     isSet = true;
-  } else if (callee->getName() == "swift_getAtKeyPath") {
+  } else if (callee->getName() == "language_getAtKeyPath") {
     keyPath = AI->getArgument(2);
     rootAddr = AI->getArgument(1);
     valueAddr = AI->getArgument(0);
@@ -382,7 +383,7 @@ bool swift::tryOptimizeKeypathApplication(ApplyInst *AI,
 ///   %offset_builtin_int = unchecked_trivial_bit_cast %offset_ptr
 ///   %offset_int = struct $Int (%offset_builtin_int)
 ///   %offset = enum $Optional<Int>, #Optional.some!enumelt, %offset_int
-bool swift::tryOptimizeKeypathOffsetOf(ApplyInst *AI,
+bool language::tryOptimizeKeypathOffsetOf(ApplyInst *AI,
                                              FuncDecl *calleeFn,
                                              KeyPathInst *kp, SILBuilder Builder) {
   auto *accessor = dyn_cast<AccessorDecl>(calleeFn);
@@ -497,7 +498,7 @@ bool swift::tryOptimizeKeypathOffsetOf(ApplyInst *AI,
 ///   %string = apply %keypath_kvcString_method(%kp)
 /// With:
 ///   %string = string_literal "blah"
-bool swift::tryOptimizeKeypathKVCString(ApplyInst *AI,
+bool language::tryOptimizeKeypathKVCString(ApplyInst *AI,
                                               FuncDecl *calleeFn,
                                               KeyPathInst *kp, SILBuilder Builder) {
   if (!calleeFn->getAttrs()
@@ -556,7 +557,7 @@ bool swift::tryOptimizeKeypathKVCString(ApplyInst *AI,
   return true;
 }
 
-bool swift::tryOptimizeKeypath(ApplyInst *AI, SILBuilder Builder) {
+bool language::tryOptimizeKeypath(ApplyInst *AI, SILBuilder Builder) {
   if (SILFunction *callee = AI->getReferencedFunctionOrNull()) {
     return tryOptimizeKeypathApplication(AI, callee, Builder);
   }
@@ -616,10 +617,10 @@ bool SILCombiner::tryOptimizeInoutKeypath(BeginApplyInst *AI) {
   SILValue keyPath = AI->getArgument(1);
   SILValue rootAddr = AI->getArgument(0);
   bool isModify = false;
-  if (callee->getName() == "swift_modifyAtWritableKeyPath" ||
-      callee->getName() == "swift_modifyAtReferenceWritableKeyPath") {
+  if (callee->getName() == "language_modifyAtWritableKeyPath" ||
+      callee->getName() == "language_modifyAtReferenceWritableKeyPath") {
     isModify = true;
-  } else if (callee->getName() != "swift_readAtKeyPath") {
+  } else if (callee->getName() != "language_readAtKeyPath") {
     return false;
   }
 
@@ -809,18 +810,18 @@ SILCombiner::buildConcreteOpenedExistentialInfoFromSoleConformingType(
     PD = WMI->getLookupProtocol();
   } else {
     auto ArgType = ArgOperand.get()->getType();
-    auto SwiftArgType = ArgType.getASTType();
+    auto CodiraArgType = ArgType.getASTType();
     /// If the argtype is an opened existential conforming to a protocol type
     /// and that the protocol type has a sole conformance, then we can propagate
     /// concrete type for it as well.
     ArchetypeType *archetypeTy;
-    if (isa<ExistentialArchetypeType>(SwiftArgType) &&
-        (archetypeTy = dyn_cast<ArchetypeType>(SwiftArgType)) &&
+    if (isa<ExistentialArchetypeType>(CodiraArgType) &&
+        (archetypeTy = dyn_cast<ArchetypeType>(CodiraArgType)) &&
         (archetypeTy->getConformsTo().size() == 1)) {
       PD = archetypeTy->getConformsTo()[0];
     } else if (ArgType.isExistentialType() && !ArgType.isAnyObject() &&
-               !SwiftArgType->isAny()) {
-      PD = dyn_cast_or_null<ProtocolDecl>(SwiftArgType->getAnyNominal());
+               !CodiraArgType->isAny()) {
+      PD = dyn_cast_or_null<ProtocolDecl>(CodiraArgType->getAnyNominal());
     }
   }
 
@@ -921,7 +922,7 @@ SILCombiner::buildConcreteOpenedExistentialInfo(Operand &ArgOperand) {
 // instruction including Self.
 void SILCombiner::buildConcreteOpenedExistentialInfos(
     FullApplySite Apply,
-    llvm::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COEIs,
+    toolchain::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COEIs,
     SILBuilderContext &BuilderCtx) {
   for (unsigned ArgIdx = 0, e = Apply.getNumArguments(); ArgIdx < e;
        ++ArgIdx) {
@@ -1190,7 +1191,7 @@ SILValue SILCombiner::canCastArg(FullApplySite Apply,
 /// SSA uses in those cases. Currently we bail out on methods that return Self.
 SILInstruction *SILCombiner::createApplyWithConcreteType(
     FullApplySite Apply,
-    const llvm::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COAIs,
+    const toolchain::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> &COAIs,
     SILBuilderContext &BuilderCtx) {
 
   // Create the new set of arguments to apply including their substitutions.
@@ -1205,7 +1206,7 @@ SILInstruction *SILCombiner::createApplyWithConcreteType(
 
   // Transform the parameter arguments.
   SmallVector<ConcreteArgumentCopy, 4> concreteArgCopies;
-  llvm::SmallMapVector<SILValue, SILValue, 4> valuesToReplace;
+  toolchain::SmallMapVector<SILValue, SILValue, 4> valuesToReplace;
   for (unsigned EndIdx = Apply.getNumArguments(); ArgIdx < EndIdx; ++ArgIdx) {
     auto ArgIt = COAIs.find(ArgIdx);
     if (ArgIt == COAIs.end()) {
@@ -1225,23 +1226,11 @@ SILInstruction *SILCombiner::createApplyWithConcreteType(
         NewArgs.push_back(cast);
         // Form a new set of substitutions where the argument is
         // replaced with a concrete type.
-        NewCallSubs = NewCallSubs.subst(
-            [&](SubstitutableType *type) -> Type {
-              if (type == OAI.OpenedArchetype)
-                return CEI.ConcreteType;
-              return type;
-            },
-            [&](CanType origTy, Type substTy,
-                ProtocolDecl *proto) -> ProtocolConformanceRef {
-              if (origTy->isEqual(OAI.OpenedArchetype)) {
-                assert(substTy->isEqual(CEI.ConcreteType));
-                // Do a conformance lookup on this witness requirement using the
-                // existential's conformances. The witness requirement may be a
-                // base type of the existential's requirements.
-                return CEI.lookupExistentialConformance(proto);
-              }
-              return ProtocolConformanceRef::forAbstract(substTy, proto);
-            }, SubstFlags::SubstituteLocalArchetypes);
+        ReplaceExistentialArchetypesWithConcreteTypes replacer(
+            OAI.OpenedArchetype->getGenericEnvironment(),
+            CEI.ExistentialSubs);
+        NewCallSubs = NewCallSubs.subst(replacer, replacer,
+                                        SubstFlags::SubstituteLocalArchetypes);
         continue;
       }
       // Otherwise, use the original argument.
@@ -1266,23 +1255,11 @@ SILInstruction *SILCombiner::createApplyWithConcreteType(
 
     // Form a new set of substitutions where the argument is
     // replaced with a concrete type.
-    NewCallSubs = NewCallSubs.subst(
-        [&](SubstitutableType *type) -> Type {
-          if (type == OAI.OpenedArchetype)
-            return CEI.ConcreteType;
-          return type;
-        },
-        [&](CanType origTy, Type substTy,
-            ProtocolDecl *proto) -> ProtocolConformanceRef {
-          if (origTy->isEqual(OAI.OpenedArchetype)) {
-            assert(substTy->isEqual(CEI.ConcreteType));
-            // Do a conformance lookup on this witness requirement using the
-            // existential's conformances. The witness requirement may be a
-            // base type of the existential's requirements.
-            return CEI.lookupExistentialConformance(proto);
-          }
-          return ProtocolConformanceRef::forAbstract(substTy, proto);
-        }, SubstFlags::SubstituteLocalArchetypes);
+    ReplaceExistentialArchetypesWithConcreteTypes replacer(
+        OAI.OpenedArchetype->getGenericEnvironment(),
+        CEI.ExistentialSubs);
+    NewCallSubs = NewCallSubs.subst(replacer, replacer,
+                                    SubstFlags::SubstituteLocalArchetypes);
   }
 
   // We need to make sure that we can a) update Apply to use the new args and b)
@@ -1360,7 +1337,7 @@ SILInstruction *SILCombiner::createApplyWithConcreteType(
     // deallocate the temporary copy.
     SILBuilder cleanupBuilder(cleanupPos, BuilderCtx, NewApply.getDebugScope());
     auto cleanupLoc = RegularLocation::getAutoGeneratedLocation();
-    for (ConcreteArgumentCopy &argCopy : llvm::reverse(concreteArgCopies)) {
+    for (ConcreteArgumentCopy &argCopy : toolchain::reverse(concreteArgCopies)) {
       cleanupBuilder.createDestroyAddr(cleanupLoc, argCopy.origArg);
       cleanupBuilder.createDeallocStack(cleanupLoc, argCopy.tempArg);
     }
@@ -1413,7 +1390,7 @@ SILCombiner::propagateConcreteTypeOfInitExistential(FullApplySite Apply,
   // insert an unchecked cast to the concrete type, and it tracks the definition
   // of any opened archetype needed to use the concrete type.
   SILBuilderContext BuilderCtx(Builder.getModule(), Builder.getTrackingList());
-  llvm::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> COEIs;
+  toolchain::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> COEIs;
   buildConcreteOpenedExistentialInfos(Apply, COEIs, BuilderCtx);
 
   // Bail, if no argument has a concrete existential to propagate.
@@ -1481,7 +1458,7 @@ SILCombiner::propagateConcreteTypeOfInitExistential(FullApplySite Apply) {
   // Try to derive the concrete type and the related conformance of self and
   // other existential arguments by searching either for a preceding
   // init_existential or looking up sole conforming type.
-  llvm::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> COEIs;
+  toolchain::SmallDenseMap<unsigned, ConcreteOpenedExistentialInfo> COEIs;
   SILBuilderContext BuilderCtx(Builder.getModule(), Builder.getTrackingList());
   buildConcreteOpenedExistentialInfos(Apply, COEIs, BuilderCtx);
 
@@ -1547,8 +1524,14 @@ SILInstruction *SILCombiner::legacyVisitApplyInst(ApplyInst *AI) {
     return nullptr;
 
   SILValue callee = AI->getCallee();
-  if (auto *cee = dyn_cast<ConvertEscapeToNoEscapeInst>(callee)) {
-    callee = cee->getOperand();
+  for (;;) {
+    if (auto *cee = dyn_cast<ConvertEscapeToNoEscapeInst>(callee)) {
+      callee = cee->getOperand();
+    } else if (auto *mdi = dyn_cast<MarkDependenceInst>(callee)) {
+      callee = mdi->getValue();
+    } else {
+      break;
+    }
   }
   if (auto *CFI = dyn_cast<ConvertFunctionInst>(callee))
     return optimizeApplyOfConvertFunctionInst(AI, CFI);

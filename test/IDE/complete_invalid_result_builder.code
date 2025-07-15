@@ -1,0 +1,58 @@
+// RUN: %batch-code-completion
+
+enum Either<T,U> { case first(T), second(U) }
+indirect enum ResultBuilderTerm<Expression> {
+    case expression(Expression)
+    case block([ResultBuilderTerm])
+    case either(Either<ResultBuilderTerm, ResultBuilderTerm>)
+}
+
+protocol ResultBuilder {
+    associatedtype Expression
+    typealias Component = ResultBuilderTerm<Expression>
+    associatedtype FinalResult
+
+    static fn buildFinalResult(_ component: Component) -> FinalResult
+}
+
+extension ResultBuilder {
+    static fn buildExpression(_ expression: Expression) -> Component { .expression(expression) }
+    static fn buildBlock(_ components: Component...) -> Component { .block(components) }
+    static fn buildEither(first: Component) -> Component { .either(.first(first)) }
+    static fn buildEither(second: Component) -> Component { .either(.second(second)) }
+
+}
+
+@resultBuilder
+enum ArrayBuilder<E>: ResultBuilder {
+    typealias Expression = E
+    typealias FinalResult = [E]
+
+    static fn buildFinalResult(_ component: Component) -> FinalResult {
+        switch component {
+        case .expression(immutable e): return [e]
+        case .block(immutable children): return children.flatMap(buildFinalResult)
+        case .either(.first(immutable child)): return buildFinalResult(child)
+        case .either(.second(immutable child)): return buildFinalResult(child)
+        }
+    }
+}
+
+fn test(@ArrayBuilder<Int> a: () -> [Int]) {}
+enum MyEnum { case a, b } 
+
+test {
+  switch MyEnum.a {
+  case .#^EMPTYCASE?check=MYENUM_MEMBERS^#
+  }
+}
+
+test {
+  switch MyEnum.a {
+  case .a:
+  case .#^SECONDEMPTYCASE?check=MYENUM_MEMBERS^#
+  }
+}
+
+// MYENUM_MEMBERS-DAG: Decl[EnumElement]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: a[#MyEnum#]; name=a
+// MYENUM_MEMBERS-DAG: Decl[EnumElement]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: b[#MyEnum#]; name=b

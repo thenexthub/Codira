@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// These utilities model the storage locations of memory access. See
@@ -137,8 +138,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_MEMACCESSUTILS_H
-#define SWIFT_SIL_MEMACCESSUTILS_H
+#ifndef LANGUAGE_SIL_MEMACCESSUTILS_H
+#define LANGUAGE_SIL_MEMACCESSUTILS_H
 
 #include "language/Basic/IndexTrie.h"
 #include "language/SIL/ApplySite.h"
@@ -148,7 +149,7 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILGlobalVariable.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 //===----------------------------------------------------------------------===//
 //                            MARK: Standalone API
@@ -370,14 +371,14 @@ protected:
     // elementIndex can overflow while gracefully degrading analysis. For now,
     // reserve an absurd number of bits at a nice alignment boundary, but this
     // can be reduced.
-    SWIFT_INLINE_BITFIELD_BASE(AccessRepresentation, 32,
+    LANGUAGE_INLINE_BITFIELD_BASE(AccessRepresentation, 32,
                                kind : ReservedKindBits,
                                isLet : 1,
                                elementIndex : 32 - (ReservedKindBits + 1));
 
     // Define bits for use in AccessStorageAnalysis. Each identified storage
     // object is mapped to one instance of this subclass.
-    SWIFT_INLINE_BITFIELD_FULL(StorageAccessInfo, AccessRepresentation,
+    LANGUAGE_INLINE_BITFIELD_FULL(StorageAccessInfo, AccessRepresentation,
                                64 - NumAccessRepresentationBits,
                                accessKind : NumSILAccessKindBits,
                                noNestedConflict : 1,
@@ -393,7 +394,7 @@ protected:
     //
     // `AccessRepresentation` refers to the AccessRepresentationBitfield defined
     // above, setting aside enough bits for common data.
-    SWIFT_INLINE_BITFIELD_FULL(AccessEnforcementOptsInfo,
+    LANGUAGE_INLINE_BITFIELD_FULL(AccessEnforcementOptsInfo,
                                AccessRepresentation,
                                64 - NumAccessRepresentationBits,
                                seenNestedConflict : 1,
@@ -403,7 +404,7 @@ protected:
 
     // Define data flow bits for use in the AccessEnforcementDom pass. Each
     // begin_access in the function is mapped to one instance of this subclass.
-    SWIFT_INLINE_BITFIELD(DomAccessStorage, AccessRepresentation, 1 + 1,
+    LANGUAGE_INLINE_BITFIELD(DomAccessStorage, AccessRepresentation, 1 + 1,
                           isInner : 1, containsRead : 1);
   } Bits;
 
@@ -514,7 +515,7 @@ public:
       return value == other.value
              && getElementIndex() == other.getElementIndex();
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
   /// Return true if the storage is guaranteed local.
   bool isLocal() const {
@@ -532,7 +533,7 @@ public:
     case Unidentified:
       return false;
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
   /// If this is a uniquely identified formal access, then it cannot
@@ -554,7 +555,7 @@ public:
     case Unidentified:
       return false;
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
   /// Return true if this storage is guaranteed not to overlap with \p other's
@@ -784,7 +785,7 @@ public:
     case AccessStorage::Tail:
       return getObject();
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Visit all access roots. If any roots are visited then the original memory
@@ -798,7 +799,7 @@ public:
   /// occur in a static initializer).
   void
   visitRoots(SILFunction *function,
-             llvm::function_ref<bool(SILValue)> visitor) const;
+             toolchain::function_ref<bool(SILValue)> visitor) const;
 
   /// Return true if the given storage objects have identical storage locations.
   ///
@@ -834,7 +835,7 @@ public:
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 /// Enable using AccessStorage as a key in DenseMap.
 /// Do *not* include any extra pass data in key equality.
@@ -848,49 +849,49 @@ namespace llvm {
 /// `!DenseMapInfo::isEqual()` does not guarantee that two identified
 /// AccessStorage values are distinct. Inequality does, however, guarantee that
 /// two *uniquely* identified AccessStorage values are distinct.
-template <> struct DenseMapInfo<swift::AccessStorage> {
-  static swift::AccessStorage getEmptyKey() {
-    return swift::AccessStorage(swift::SILValue::getFromOpaqueValue(
-                               llvm::DenseMapInfo<void *>::getEmptyKey()),
-                           swift::AccessStorage::Unidentified);
+template <> struct DenseMapInfo<language::AccessStorage> {
+  static language::AccessStorage getEmptyKey() {
+    return language::AccessStorage(language::SILValue::getFromOpaqueValue(
+                               toolchain::DenseMapInfo<void *>::getEmptyKey()),
+                           language::AccessStorage::Unidentified);
   }
 
-  static swift::AccessStorage getTombstoneKey() {
-    return swift::AccessStorage(swift::SILValue::getFromOpaqueValue(
-                               llvm::DenseMapInfo<void *>::getTombstoneKey()),
-                           swift::AccessStorage::Unidentified);
+  static language::AccessStorage getTombstoneKey() {
+    return language::AccessStorage(language::SILValue::getFromOpaqueValue(
+                               toolchain::DenseMapInfo<void *>::getTombstoneKey()),
+                           language::AccessStorage::Unidentified);
   }
 
-  static unsigned getHashValue(swift::AccessStorage storage) {
+  static unsigned getHashValue(language::AccessStorage storage) {
     switch (storage.getKind()) {
-    case swift::AccessStorage::Unidentified:
+    case language::AccessStorage::Unidentified:
       if (!storage)
-        return DenseMapInfo<swift::SILValue>::getHashValue(swift::SILValue());
-      LLVM_FALLTHROUGH;
-    case swift::AccessStorage::Box:
-    case swift::AccessStorage::Stack:
-    case swift::AccessStorage::Nested:
-    case swift::AccessStorage::Yield:
-      return DenseMapInfo<swift::SILValue>::getHashValue(storage.getValue());
-    case swift::AccessStorage::Argument:
+        return DenseMapInfo<language::SILValue>::getHashValue(language::SILValue());
+      TOOLCHAIN_FALLTHROUGH;
+    case language::AccessStorage::Box:
+    case language::AccessStorage::Stack:
+    case language::AccessStorage::Nested:
+    case language::AccessStorage::Yield:
+      return DenseMapInfo<language::SILValue>::getHashValue(storage.getValue());
+    case language::AccessStorage::Argument:
       return storage.getParamIndex();
-    case swift::AccessStorage::Global:
+    case language::AccessStorage::Global:
       return DenseMapInfo<void *>::getHashValue(storage.getGlobal());
-    case swift::AccessStorage::Class:
-      return llvm::hash_combine(storage.getObject(),
+    case language::AccessStorage::Class:
+      return toolchain::hash_combine(storage.getObject(),
                                 storage.getPropertyIndex());
-    case swift::AccessStorage::Tail:
-      return DenseMapInfo<swift::SILValue>::getHashValue(storage.getObject());
+    case language::AccessStorage::Tail:
+      return DenseMapInfo<language::SILValue>::getHashValue(storage.getObject());
     }
-    llvm_unreachable("Unhandled AccessStorageKind");
+    toolchain_unreachable("Unhandled AccessStorageKind");
   }
 
-  static bool isEqual(swift::AccessStorage LHS, swift::AccessStorage RHS) {
+  static bool isEqual(language::AccessStorage LHS, language::AccessStorage RHS) {
     return LHS.hasIdenticalStorage(RHS);
   }
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -1284,7 +1285,7 @@ struct AccessPathWithBase {
 //
 // Returns false if the access path couldn't be computed.
 bool visitProductLeafAccessPathNodes(
-    SILValue address, TypeExpansionContext tec, SILModule &module,
+    SILValue address, TypeExpansionContext tec, SILFunction &function,
     std::function<void(AccessPath::PathNode, SILType)> visitor);
 
 inline AccessPath AccessPath::compute(SILValue address) {
@@ -1297,67 +1298,67 @@ inline AccessPath AccessPath::computeInScope(SILValue address) {
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 /// Allow AccessPath to be used in DenseMap.
-template <> struct DenseMapInfo<swift::AccessPath> {
-  static inline swift::AccessPath getEmptyKey() {
-    return swift::AccessPath(
-        DenseMapInfo<swift::AccessStorage>::getEmptyKey(),
-        swift::AccessPath::PathNode(
-          DenseMapInfo<swift::IndexTrieNode *>::getEmptyKey()), 0);
+template <> struct DenseMapInfo<language::AccessPath> {
+  static inline language::AccessPath getEmptyKey() {
+    return language::AccessPath(
+        DenseMapInfo<language::AccessStorage>::getEmptyKey(),
+        language::AccessPath::PathNode(
+          DenseMapInfo<language::IndexTrieNode *>::getEmptyKey()), 0);
   }
-  static inline swift::AccessPath getTombstoneKey() {
-    return swift::AccessPath(
-        DenseMapInfo<swift::AccessStorage>::getTombstoneKey(),
-        swift::AccessPath::PathNode(
-          DenseMapInfo<swift::IndexTrieNode *>::getTombstoneKey()), 0);
+  static inline language::AccessPath getTombstoneKey() {
+    return language::AccessPath(
+        DenseMapInfo<language::AccessStorage>::getTombstoneKey(),
+        language::AccessPath::PathNode(
+          DenseMapInfo<language::IndexTrieNode *>::getTombstoneKey()), 0);
   }
-  static inline unsigned getHashValue(const swift::AccessPath &val) {
-    return llvm::hash_combine(
-        DenseMapInfo<swift::AccessStorage>::getHashValue(val.getStorage()),
+  static inline unsigned getHashValue(const language::AccessPath &val) {
+    return toolchain::hash_combine(
+        DenseMapInfo<language::AccessStorage>::getHashValue(val.getStorage()),
         val.getPathNode().node);
   }
-  static bool isEqual(const swift::AccessPath &lhs,
-                      const swift::AccessPath &rhs) {
+  static bool isEqual(const language::AccessPath &lhs,
+                      const language::AccessPath &rhs) {
     return lhs == rhs;
   }
 };
-template <> struct DenseMapInfo<swift::AccessPathWithBase> {
-  static inline swift::AccessPathWithBase getEmptyKey() {
-    return swift::AccessPathWithBase(
-        DenseMapInfo<swift::AccessPath>::getEmptyKey(),
-        DenseMapInfo<swift::SILValue>::getEmptyKey());
+template <> struct DenseMapInfo<language::AccessPathWithBase> {
+  static inline language::AccessPathWithBase getEmptyKey() {
+    return language::AccessPathWithBase(
+        DenseMapInfo<language::AccessPath>::getEmptyKey(),
+        DenseMapInfo<language::SILValue>::getEmptyKey());
   }
-  static inline swift::AccessPathWithBase getTombstoneKey() {
-    return swift::AccessPathWithBase(
-        DenseMapInfo<swift::AccessPath>::getTombstoneKey(),
-        DenseMapInfo<swift::SILValue>::getTombstoneKey());
+  static inline language::AccessPathWithBase getTombstoneKey() {
+    return language::AccessPathWithBase(
+        DenseMapInfo<language::AccessPath>::getTombstoneKey(),
+        DenseMapInfo<language::SILValue>::getTombstoneKey());
   }
-  static inline unsigned getHashValue(const swift::AccessPathWithBase &val) {
-    return llvm::hash_combine(
-        DenseMapInfo<swift::AccessPath>::getHashValue(val.accessPath),
-        DenseMapInfo<swift::SILValue>::getHashValue(val.base));
+  static inline unsigned getHashValue(const language::AccessPathWithBase &val) {
+    return toolchain::hash_combine(
+        DenseMapInfo<language::AccessPath>::getHashValue(val.accessPath),
+        DenseMapInfo<language::SILValue>::getHashValue(val.base));
   }
-  static bool isEqual(const swift::AccessPathWithBase &lhs,
-                      const swift::AccessPathWithBase &rhs) {
+  static bool isEqual(const language::AccessPathWithBase &lhs,
+                      const language::AccessPathWithBase &rhs) {
     return lhs == rhs;
   }
 };
 
 // Allow AccessPath::PathNode to be used as a pointer-like template argument.
 template<>
-struct PointerLikeTypeTraits<swift::AccessPath::PathNode> {
-  static inline void *getAsVoidPointer(swift::AccessPath::PathNode node) {
+struct PointerLikeTypeTraits<language::AccessPath::PathNode> {
+  static inline void *getAsVoidPointer(language::AccessPath::PathNode node) {
     return (void *)node.node;
   }
-  static inline swift::AccessPath::PathNode getFromVoidPointer(void *pointer) {
-    return swift::AccessPath::PathNode((swift::IndexTrieNode *)pointer);
+  static inline language::AccessPath::PathNode getFromVoidPointer(void *pointer) {
+    return language::AccessPath::PathNode((language::IndexTrieNode *)pointer);
   }
   enum { NumLowBitsAvailable =
-         PointerLikeTypeTraits<swift::IndexTrieNode *>::NumLowBitsAvailable };
+         PointerLikeTypeTraits<language::IndexTrieNode *>::NumLowBitsAvailable };
 };
-} // end namespace llvm
+} // end namespace toolchain
 
 //===----------------------------------------------------------------------===//
 //                        MARK: Use visitors
@@ -1609,6 +1610,7 @@ inline bool isAccessStorageTypeCast(SingleValueInstruction *svi) {
   // Simply pass-thru the incoming address.  But change its type!
   case SILInstructionKind::MoveOnlyWrapperToCopyableAddrInst:
   case SILInstructionKind::CopyableToMoveOnlyWrapperAddrInst:
+  case SILInstructionKind::MoveOnlyWrapperToCopyableBoxInst:
   // Simply pass-thru the incoming address.  But change its type!
   case SILInstructionKind::UncheckedAddrCastInst:
   // Casting to RawPointer does not affect the AccessPath. When converting
@@ -1655,7 +1657,6 @@ inline bool isAccessStorageIdentityCast(SingleValueInstruction *svi) {
   case SILInstructionKind::MarkDependenceInst:
   case SILInstructionKind::CopyValueInst:
   case SILInstructionKind::BeginBorrowInst:
-  case SILInstructionKind::MoveOnlyWrapperToCopyableBoxInst:
     return true;
   }
 }
@@ -1689,6 +1690,22 @@ inline SILValue stripAccessAndIdentityCasts(SILValue v) {
 /// which we can't do if those operations are behind access projections.
 inline bool isAccessStorageCast(SingleValueInstruction *svi) {
   return isAccessStorageTypeCast(svi) || isAccessStorageIdentityCast(svi);
+}
+
+// Strip access markers and casts that preserve the access storage.
+//
+// Compare to stripAccessAndIdentityCasts.  This function strips cast that
+// change the type.
+inline SILValue stripAccessAndAccessStorageCasts(SILValue v) {
+  if (auto *bai = dyn_cast<BeginAccessInst>(v)) {
+    return stripAccessAndAccessStorageCasts(bai->getOperand());
+  }
+  if (auto *svi = dyn_cast<SingleValueInstruction>(v)) {
+    if (isAccessStorageCast(svi)) {
+      return stripAccessAndAccessStorageCasts(svi->getAllOperands()[0].get());
+    }
+  }
+  return v;
 }
 
 /// Abstract CRTP class for a visiting instructions that are part of the use-def
@@ -2000,7 +2017,7 @@ namespace language {
 /// This only visits instructions that modify memory in some user-visible way,
 /// which could be considered part of a formal access.
 void visitAccessedAddress(SILInstruction *I,
-                          llvm::function_ref<void(Operand *)> visitor);
+                          toolchain::function_ref<void(Operand *)> visitor);
 
 } // end namespace language
 

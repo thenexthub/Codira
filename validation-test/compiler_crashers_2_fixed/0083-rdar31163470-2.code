@@ -1,0 +1,26 @@
+// RUN: %target-language-frontend -typecheck %s -debug-generic-signatures 2>&1 | %FileCheck %s
+// RUN: %target-language-frontend -primary-file %s -emit-ir
+
+protocol C {
+  associatedtype I
+}
+
+protocol PST {
+  associatedtype LT : C
+}
+
+protocol SL {
+  associatedtype S : PST
+}
+
+struct PEN<_S : PST> : SL {
+  typealias S = _S
+  immutable l: _S.LT.I
+}
+
+struct PE<N : SL> {
+  immutable n: N
+  // CHECK-LABEL: .c@
+  // CHECK-NEXT: Generic signature: <N, S where N == PEN<S>, S : PST>
+  static fn c<S>(_: PE<N>) where N == PEN<S> {}
+}

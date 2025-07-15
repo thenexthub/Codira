@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the \c ConstraintFix class and its related types,
@@ -35,8 +36,8 @@
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/CSFix.h"
 #include "language/Sema/OverloadChoice.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <string>
 
 using namespace language;
@@ -62,7 +63,7 @@ std::optional<ScoreKind> ConstraintFix::impact() const {
 
 ASTNode ConstraintFix::getAnchor() const { return getLocator()->getAnchor(); }
 
-void ConstraintFix::print(llvm::raw_ostream &Out) const {
+void ConstraintFix::print(toolchain::raw_ostream &Out) const {
   Out << "[fix: ";
   Out << getName();
   Out << ']';
@@ -70,10 +71,10 @@ void ConstraintFix::print(llvm::raw_ostream &Out) const {
   getLocator()->dump(&CS.getASTContext().SourceMgr, Out);
 }
 
-void ConstraintFix::dump() const {print(llvm::errs()); }
+void ConstraintFix::dump() const {print(toolchain::errs()); }
 
 std::string ForceDowncast::getName() const {
-  llvm::SmallString<16> name;
+  toolchain::SmallString<16> name;
   name += "force downcast (";
   name += getFromType()->getString();
   name += " as! ";
@@ -155,7 +156,7 @@ unsigned TreatRValueAsLValue::assessImpact(ConstraintSystem &cs,
     if (auto overload = cs.findSelectedOverloadFor(calleeLoc)) {
       if (auto *var = dyn_cast_or_null<AbstractStorageDecl>(
               overload->choice.getDeclOrNull())) {
-        impact += !var->isSettableInSwift(cs.DC) ? 1 : 0;
+        impact += !var->isSettableInCodira(cs.DC) ? 1 : 0;
       } else {
         impact += 1;
       }
@@ -188,9 +189,12 @@ CoerceToCheckedCast *CoerceToCheckedCast::attempt(ConstraintSystem &cs,
                                                   Type fromType, Type toType,
                                                   bool useConditionalCast,
                                                   ConstraintLocator *locator) {
-  // If any of the types has a type variable, don't add the fix.
-  if (fromType->hasTypeVariable() || toType->hasTypeVariable())
+  // If any of the types have type variables or placeholders, don't add the fix.
+  // `typeCheckCheckedCast` doesn't support checking such types.
+  if (fromType->hasTypeVariableOrPlaceholder() ||
+      toType->hasTypeVariableOrPlaceholder()) {
     return nullptr;
+  }
 
   auto anchor = locator->getAnchor();
   if (auto *assignExpr = getAsExpr<AssignExpr>(anchor))
@@ -222,7 +226,7 @@ TreatArrayLiteralAsDictionary *
 TreatArrayLiteralAsDictionary::attempt(ConstraintSystem &cs, Type dictionaryTy,
                                        Type arrayTy,
                                        ConstraintLocator *locator) {
-  if (!arrayTy->isArrayType())
+  if (!arrayTy->isArray())
     return nullptr;
 
   // Determine the ArrayExpr from the locator.
@@ -285,9 +289,29 @@ getConcurrencyFixBehavior(ConstraintSystem &cs, ConstraintKind constraintKind,
   // We can only handle the downgrade for conversions.
   switch (constraintKind) {
   case ConstraintKind::Conversion:
-  case ConstraintKind::ArgumentConversion:
   case ConstraintKind::Subtype:
     break;
+
+  case ConstraintKind::ArgumentConversion: {
+    if (!forSendable)
+      break;
+
+    // Passing a static member reference as an argument needs to be downgraded
+    // to a warning until future major mode to maintain source compatibility for
+    // code with non-Sendable metatypes.
+    if (!cs.getASTContext().LangOpts.isCodiraVersionAtLeast(7)) {
+      auto *argLoc = cs.getConstraintLocator(locator);
+      if (auto *argument = getAsExpr(simplifyLocatorToAnchor(argLoc))) {
+        if (auto overload = cs.findSelectedOverloadFor(
+                argument->getSemanticsProvidingExpr())) {
+          auto *decl = overload->choice.getDeclOrNull();
+          if (decl && decl->isStatic())
+            return FixBehavior::DowngradeToWarning;
+        }
+      }
+    }
+    break;
+  }
 
   default:
     if (!cs.shouldAttemptFixes())
@@ -300,7 +324,7 @@ getConcurrencyFixBehavior(ConstraintSystem &cs, ConstraintKind constraintKind,
   // context, ignore.
   if (cs.hasPreconcurrencyCallee(locator)) {
     // Preconcurrency failures are always downgraded to warnings, even in
-    // Swift 6 mode.
+    // Codira 6 mode.
     if (contextRequiresStrictConcurrencyChecking(
             cs.DC, GetClosureType{cs}, ClosureIsolatedByPreconcurrency{cs})) {
       return FixBehavior::DowngradeToWarning;
@@ -309,8 +333,8 @@ getConcurrencyFixBehavior(ConstraintSystem &cs, ConstraintKind constraintKind,
     return FixBehavior::Suppress;
   }
 
-  // Otherwise, warn until Swift 6.
-  if (!cs.getASTContext().LangOpts.isSwiftVersionAtLeast(6))
+  // Otherwise, warn until Codira 6.
+  if (!cs.getASTContext().LangOpts.isCodiraVersionAtLeast(6))
     return FixBehavior::DowngradeToWarning;
 
   return FixBehavior::Error;
@@ -421,7 +445,7 @@ bool RelabelArguments::diagnoseForAmbiguity(
 
 RelabelArguments *
 RelabelArguments::create(ConstraintSystem &cs,
-                         llvm::ArrayRef<Identifier> correctLabels,
+                         toolchain::ArrayRef<Identifier> correctLabels,
                          ConstraintLocator *locator) {
   unsigned size = totalSizeToAlloc<Identifier>(correctLabels.size());
   void *mem = cs.getAllocator().Allocate(size, alignof(RelabelArguments));
@@ -450,7 +474,7 @@ bool RequirementFix::diagnoseForAmbiguity(
   auto *primaryFix = commonFixes.front().second;
   assert(primaryFix);
 
-  if (llvm::all_of(
+  if (toolchain::all_of(
           commonFixes,
           [&primaryFix](
               const std::pair<const Solution *, const ConstraintFix *> &entry) {
@@ -550,7 +574,7 @@ bool ContextualMismatch::diagnoseForAmbiguity(
   };
 
   auto etalonTypes = getTypes(commonFixes.front());
-  if (llvm::all_of(
+  if (toolchain::all_of(
           commonFixes,
           [&](const std::pair<const Solution *, const ConstraintFix *> &entry) {
             auto types = getTypes(entry);
@@ -637,7 +661,7 @@ getStructuralTypeContext(const Solution &solution, ConstraintLocator *locator) {
 bool AllowTupleTypeMismatch::coalesceAndDiagnose(
     const Solution &solution, ArrayRef<ConstraintFix *> fixes,
     bool asNote) const {
-  llvm::SmallVector<unsigned, 4> indices;
+  toolchain::SmallVector<unsigned, 4> indices;
   if (isElementMismatch())
     indices.push_back(*Index);
 
@@ -685,7 +709,7 @@ AllowTupleTypeMismatch::create(ConstraintSystem &cs, Type lhs, Type rhs,
 bool AllowFunctionTypeMismatch::coalesceAndDiagnose(
     const Solution &solution, ArrayRef<ConstraintFix *> fixes,
     bool asNote) const {
-  llvm::SmallVector<unsigned, 4> indices{ParamIndex};
+  toolchain::SmallVector<unsigned, 4> indices{ParamIndex};
 
   for (auto fix : fixes) {
     if (auto *fnFix = fix->getAs<AllowFunctionTypeMismatch>())
@@ -800,7 +824,7 @@ bool GenericArgumentsMismatch::diagnose(const Solution &solution,
 
 GenericArgumentsMismatch *GenericArgumentsMismatch::create(
     ConstraintSystem &cs, Type actual, Type required,
-    llvm::ArrayRef<unsigned> mismatches, ConstraintLocator *locator) {
+    toolchain::ArrayRef<unsigned> mismatches, ConstraintLocator *locator) {
   unsigned size = totalSizeToAlloc<unsigned>(mismatches.size());
   void *mem =
       cs.getAllocator().Allocate(size, alignof(GenericArgumentsMismatch));
@@ -1038,7 +1062,7 @@ bool AllowInvalidInitRef::diagnose(const Solution &solution,
     return failure.diagnose(asNote);
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 AllowInvalidInitRef *AllowInvalidInitRef::dynamicOnMetatype(
@@ -1132,7 +1156,7 @@ bool RemoveExtraneousArguments::isMinMaxNameShadowing(
 
 RemoveExtraneousArguments *RemoveExtraneousArguments::create(
     ConstraintSystem &cs, FunctionType *contextualType,
-    llvm::ArrayRef<IndexedParam> extraArgs, ConstraintLocator *locator) {
+    toolchain::ArrayRef<IndexedParam> extraArgs, ConstraintLocator *locator) {
   unsigned size = totalSizeToAlloc<IndexedParam>(extraArgs.size());
   void *mem = cs.getAllocator().Allocate(size, alignof(RemoveExtraneousArguments));
   return new (mem)
@@ -1152,7 +1176,7 @@ bool MoveOutOfOrderArgument::diagnoseForAmbiguity(
       commonFixes.front().second->getAs<MoveOutOfOrderArgument>();
   assert(primaryFix);
 
-  if (llvm::all_of(
+  if (toolchain::all_of(
           commonFixes,
           [&primaryFix](
               const std::pair<const Solution *, const ConstraintFix *> &entry) {
@@ -1269,7 +1293,7 @@ bool AllowInvalidRefInKeyPath::diagnose(const Solution &solution,
     return failure.diagnose(asNote);
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 bool AllowInvalidRefInKeyPath::diagnoseForAmbiguity(
@@ -1278,7 +1302,7 @@ bool AllowInvalidRefInKeyPath::diagnoseForAmbiguity(
       commonFixes.front().second->getAs<AllowInvalidRefInKeyPath>();
   assert(primaryFix);
 
-  if (llvm::all_of(
+  if (toolchain::all_of(
           commonFixes,
           [&primaryFix](
               const std::pair<const Solution *, const ConstraintFix *> &entry) {
@@ -1305,7 +1329,7 @@ AllowInvalidRefInKeyPath::forRef(ConstraintSystem &cs, Type baseType,
     // compilers don't have required symbols.
     if (auto *module = member->getDeclContext()->getParentModule()) {
       if (module->isBuiltFromInterface()) {
-        auto compilerVersion = module->getSwiftInterfaceCompilerVersion();
+        auto compilerVersion = module->getCodiraInterfaceCompilerVersion();
         if (!compilerVersion.isVersionAtLeast(6, 1))
           return AllowInvalidRefInKeyPath::create(
               cs, baseType, RefKind::UnsupportedStaticMember, member, locator);
@@ -1533,7 +1557,7 @@ CollectionElementContextualMismatch::create(ConstraintSystem &cs, Type srcType,
 bool DefaultGenericArgument::coalesceAndDiagnose(
     const Solution &solution, ArrayRef<ConstraintFix *> fixes,
     bool asNote) const {
-  llvm::SmallVector<GenericTypeParamType *, 4> missingParams{Param};
+  toolchain::SmallVector<GenericTypeParamType *, 4> missingParams{Param};
 
   for (auto *otherFix : fixes) {
     if (auto *fix = otherFix->getAs<DefaultGenericArgument>())
@@ -1623,7 +1647,7 @@ bool AllowTupleSplatForSingleParameter::attempt(
     // In situations where there is a single labeled parameter
     // we need to form a tuple which omits the label e.g.
     //
-    // func foo<T>(x: (T, T)) {}
+    // fn foo<T>(x: (T, T)) {}
     // foo(x: 0, 1)
     //
     // We'd want to suggest argument list to be `x: (0, 1)` instead
@@ -1730,7 +1754,7 @@ bool IgnoreAssignmentDestinationType::diagnose(const Solution &solution,
   // `let _ = { $0 = $0 = 42 }`. Assignment chaining results in
   // type mismatch between result of the previous assignment and the next.
   {
-    llvm::SaveAndRestore<AssignExpr *> anchor(AE);
+    toolchain::SaveAndRestore<AssignExpr *> anchor(AE);
 
     do {
       if (TypeChecker::diagnoseSelfAssignment(AE))
@@ -1817,7 +1841,7 @@ ExpandArrayIntoVarargs::attempt(ConstraintSystem &cs, Type argType,
   if (!(argLoc && argLoc->getParameterFlags().isVariadic()))
     return nullptr;
 
-  auto elementType = argType->isArrayType();
+  auto elementType = argType->getArrayElementType();
   if (!elementType)
     return nullptr;
 
@@ -1935,7 +1959,7 @@ bool AllowSendingMismatch::diagnose(const Solution &solution,
 AllowSendingMismatch *AllowSendingMismatch::create(ConstraintSystem &cs,
                                                    Type srcType, Type dstType,
                                                    ConstraintLocator *locator) {
-  auto fixBehavior = cs.getASTContext().LangOpts.isSwiftVersionAtLeast(6)
+  auto fixBehavior = cs.getASTContext().LangOpts.isCodiraVersionAtLeast(6)
                          ? FixBehavior::Error
                          : FixBehavior::DowngradeToWarning;
   return new (cs.getAllocator())
@@ -1957,7 +1981,7 @@ SpecifyBaseTypeForContextualMember *SpecifyBaseTypeForContextualMember::create(
 
 std::string SpecifyClosureParameterType::getName() const {
   std::string name;
-  llvm::raw_string_ostream OS(name);
+  toolchain::raw_string_ostream OS(name);
 
   auto *closure = castToExpr<ClosureExpr>(getAnchor());
   auto paramLoc =
@@ -2560,16 +2584,16 @@ bool AllowAssociatedValueMismatch::diagnose(const Solution &solution,
   return failure.diagnose(asNote);
 }
 
-bool AllowSwiftToCPointerConversion::diagnose(const Solution &solution,
+bool AllowCodiraToCPointerConversion::diagnose(const Solution &solution,
                                               bool asNote) const {
-  SwiftToCPointerConversionInInvalidContext failure(solution, getLocator());
+  CodiraToCPointerConversionInInvalidContext failure(solution, getLocator());
   return failure.diagnose(asNote);
 }
 
-AllowSwiftToCPointerConversion *
-AllowSwiftToCPointerConversion::create(ConstraintSystem &cs,
+AllowCodiraToCPointerConversion *
+AllowCodiraToCPointerConversion::create(ConstraintSystem &cs,
                                        ConstraintLocator *locator) {
-  return new (cs.getAllocator()) AllowSwiftToCPointerConversion(cs, locator);
+  return new (cs.getAllocator()) AllowCodiraToCPointerConversion(cs, locator);
 }
 
 bool IgnoreDefaultExprTypeMismatch::diagnose(const Solution &solution,
@@ -2711,7 +2735,7 @@ bool AllowFunctionSpecialization::diagnose(const Solution &solution,
 AllowFunctionSpecialization *
 AllowFunctionSpecialization::create(ConstraintSystem &cs, ValueDecl *decl,
                                     ConstraintLocator *locator) {
-  auto fixBehavior = cs.getASTContext().isSwiftVersionAtLeast(6)
+  auto fixBehavior = cs.getASTContext().isCodiraVersionAtLeast(6)
                          ? FixBehavior::Error
                          : FixBehavior::DowngradeToWarning;
   return new (cs.getAllocator())

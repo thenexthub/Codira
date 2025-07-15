@@ -1,4 +1,4 @@
-//===--- OldRemangler.cpp - Old Swift Re-mangler --------------------------===//
+//===--- OldRemangler.cpp - Old Codira Re-mangler --------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the remangler, which turns a demangling parse
@@ -256,11 +257,11 @@ bool Remangler::trySubstitution(Node *node, SubstitutionEntry &entry) {
   return true;
 }
 
-static bool isInSwiftModule(Node *node) {
+static bool isInCodiraModule(Node *node) {
   Node *context = node->getFirstChild();
   return (context->getKind() == Node::Kind::Module &&
           context->getText() == STDLIB_NAME &&
-          // Check for private declarations in Swift
+          // Check for private declarations in Codira
           node->getChild(1)->getKind() == Node::Kind::Identifier);
 }
 
@@ -285,7 +286,7 @@ bool Remangler::mangleStandardSubstitution(Node *node) {
       SUCCESS_IF_TEXT_IS(MANGLING_MODULE_CLANG_IMPORTER, "SC");
       break;
     case Node::Kind::Structure:
-      if (isInSwiftModule(node)) {
+      if (isInCodiraModule(node)) {
         SUCCESS_IF_DECLNAME_IS("Array", "Sa");
         SUCCESS_IF_DECLNAME_IS("Bool", "Sb");
         SUCCESS_IF_DECLNAME_IS("UnicodeScalar", "Sc");
@@ -303,7 +304,7 @@ bool Remangler::mangleStandardSubstitution(Node *node) {
       }
       break;
     case Node::Kind::Enum:
-      if (isInSwiftModule(node)) {
+      if (isInCodiraModule(node)) {
         SUCCESS_IF_DECLNAME_IS("Optional", "Sq");
         SUCCESS_IF_DECLNAME_IS("ImplicitlyUnwrappedOptional", "SQ");
       }
@@ -1395,7 +1396,7 @@ Remangler::mangleNamedEntity(Node *node, char basicKind, StringRef entityKind,
   
   auto privateDiscriminator = ctx.takeAnonymousContextDiscriminator();
   if (!privateDiscriminator.empty() &&
-      swift::Mangle::isDigit(privateDiscriminator[0]))
+      language::Mangle::isDigit(privateDiscriminator[0]))
     privateDiscriminator = "_" + privateDiscriminator;
   if (!artificialPrivateDiscriminator.empty())
     privateDiscriminator.append(artificialPrivateDiscriminator.data(),
@@ -1871,7 +1872,17 @@ ManglingError Remangler::mangleImplParameterSending(Node *node,
     Buffer << 'T';
     return ManglingError::Success;
   }
-  return MANGLING_ERROR(ManglingError::InvalidImplParameterSending, node);
+  return MANGLING_ERROR(ManglingError::InvalidImplParameterAttr, node);
+}
+
+ManglingError Remangler::mangleImplParameterIsolated(Node *node,
+                                                    unsigned depth) {
+  return ManglingError::Success;
+}
+
+ManglingError Remangler::mangleImplParameterImplicitLeading(Node *node,
+                                                            unsigned depth) {
+  return ManglingError::Success;
 }
 
 ManglingError Remangler::mangleDynamicSelf(Node *node, unsigned depth) {
@@ -2664,6 +2675,13 @@ ManglingError Remangler::mangleOutlinedDestroy(Node *node, unsigned depth) {
   Buffer << "Wh";
   return mangleSingleChildNode(node, depth + 1);
 }
+
+ManglingError
+Remangler::mangleOutlinedInitializeWithTakeNoValueWitness(Node *node,
+                                                          unsigned depth) {
+  return MANGLING_ERROR(ManglingError::UnsupportedNodeKind, node);
+}
+
 ManglingError Remangler::mangleOutlinedInitializeWithCopyNoValueWitness(Node *node,
                                                                         unsigned depth) {
   return MANGLING_ERROR(ManglingError::UnsupportedNodeKind, node);
@@ -2763,7 +2781,7 @@ ManglingError Remangler::mangleProtocolListWithClass(Node *node,
 ManglingError Remangler::mangleProtocolListWithAnyObject(Node *node,
                                                          unsigned depth) {
   Node *P = Factory.createNode(Node::Kind::Protocol);
-  P->addChild(Factory.createNode(Node::Kind::Module, "Swift"), Factory);
+  P->addChild(Factory.createNode(Node::Kind::Module, "Codira"), Factory);
   P->addChild(Factory.createNode(Node::Kind::Identifier, "AnyObject"), Factory);
   Buffer << "P";
   return mangleProtocolListWithoutPrefix(node->getChild(0), depth + 1,
@@ -3069,9 +3087,9 @@ Demangle::mangleNodeOld(NodePointer node) {
   return remangler.str();
 }
 
-ManglingErrorOr<llvm::StringRef>
+ManglingErrorOr<toolchain::StringRef>
 Demangle::mangleNodeOld(NodePointer node, NodeFactory &Factory) {
-  if (!node) return llvm::StringRef();
+  if (!node) return toolchain::StringRef();
 
   Remangler remangler(Factory);
   ManglingError err = remangler.mangle(node, 0);

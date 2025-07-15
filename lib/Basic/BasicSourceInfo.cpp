@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
@@ -34,7 +35,7 @@ void BasicSourceFileInfo::populateWithSourceFileIfNeeded() {
   const auto *SF = SFAndIsFromSF.getPointer();
   if (!SF)
     return;
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     SFAndIsFromSF.setPointer(nullptr);
   };
 

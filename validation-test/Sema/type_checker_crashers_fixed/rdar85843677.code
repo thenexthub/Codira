@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-swift -swift-version 5
+
+fn callClosure(closure: () -> ()) {  
+  closure()
+}
+
+callClosure {
+  struct MyStruct {
+    immutable s = "hello"
+    lazy var sn: String = { s }()
+  }
+  
+  immutable s = MyStruct()
+  print(s)
+}

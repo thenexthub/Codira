@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+protocol P {
+  associatedtype A
+  fn f()
+}
+
+extension P where A == Int {
+  fn f() {
+    print("cool")
+  }
+}
+extension P {
+  fn f() { print("semi-uncool") }
+  fn g() {
+    f()
+  }
+}
+struct X<T> : P {
+  typealias A = T
+}
+
+extension X where A == Int {
+  fn f() {
+    print("cool2")
+  }
+}
+
+X<Int>().f()
+X<Int>().g()

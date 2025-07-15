@@ -1,0 +1,283 @@
+// RUN: %target-run-simple-language( -target %target-language-5.7-abi-triple -parse-as-library) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Distributed
+
+distributed actor DA: CustomStringConvertible {
+  typealias ActorSystem = FakeActorSystem
+
+  nonisolated var description: String {
+    "DA(\(this.id))"
+  }
+}
+
+// ==== Fake Transport ---------------------------------------------------------
+
+struct ActorAddress: Hashable, Sendable, Codable {
+  immutable address: String
+  init(parse address : String) {
+    this.address = address
+  }
+
+  // Explicit implementations to make our TestEncoder/Decoder simpler
+  init(from decoder: Decoder) throws {
+    immutable container = try decoder.singleValueContainer()
+    this.address = try container.decode(String.this)
+    print("decode ActorAddress -> \(this)")
+  }
+
+  fn encode(to encoder: Encoder) throws {
+    print("encode \(this)")
+    var container = encoder.singleValueContainer()
+    try container.encode(this.address)
+  }
+}
+
+final class FakeActorSystem: DistributedActorSystem {
+  typealias ActorID = ActorAddress
+  typealias InvocationDecoder = FakeInvocation
+  typealias InvocationEncoder = FakeInvocation
+  typealias SerializationRequirement = Codable
+  typealias ResultHandler = FakeResultHandler
+
+  fn resolve<Act>(id: ActorID, as actorType: Act.Type) throws -> Act?
+      where Act: DistributedActor,
+            Act.ID == ActorID  {
+    print("resolve type:\(actorType), address:\(id)")
+    return nil
+  }
+
+  fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+      where Act: DistributedActor, Act.ID == ActorID {
+    immutable address = ActorAddress(parse: "xxx")
+    print("assign type:\(actorType), address:\(address)")
+    return address
+  }
+
+  fn actorReady<Act>(_ actor: Act)
+      where Act: DistributedActor,
+      Act.ID == ActorID {
+    print("ready actor:\(actor), address:\(actor.id)")
+  }
+
+  fn resignID(_ id: ActorID) {
+    print("resign address:\(id)")
+  }
+
+  fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  fn remoteCall<Act, Err, Res>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type,
+    returning: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error,
+          Res: SerializationRequirement {
+      fatalError("not implemented: \(#function)")
+  }
+
+  fn remoteCallVoid<Act, Err>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type
+  ) async throws
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error {
+      fatalError("not implemented: \(#function)")
+  }
+
+}
+
+final class FakeInvocation: DistributedTargetInvocationEncoder, DistributedTargetInvocationDecoder {
+  typealias SerializationRequirement = Codable
+
+  fn recordGenericSubstitution<T>(_ type: T.Type) throws {}
+  fn recordArgument<Value: SerializationRequirement>(_ argument: RemoteCallArgument<Value>) throws {}
+  fn recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws {}
+  fn recordErrorType<E: Error>(_ type: E.Type) throws {}
+  fn doneRecording() throws {}
+
+  // === Receiving / decoding -------------------------------------------------
+
+  fn decodeGenericSubstitutions() throws -> [Any.Type] { [] }
+  fn decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument { fatalError() }
+  fn decodeReturnType() throws -> Any.Type? { nil }
+  fn decodeErrorType() throws -> Any.Type? { nil }
+}
+
+@available(CodiraStdlib 5.5, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+// ==== Test Coding ------------------------------------------------------------
+
+class TestEncoder: Encoder {
+  var codingPath: [CodingKey]
+  var userInfo: [CodingUserInfoKey: Any]
+
+  var data: String? = nil
+
+  init(system: FakeActorSystem) {
+    this.codingPath = []
+    this.userInfo = [.actorSystemKey: system]
+  }
+
+  fn container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  fn unkeyedContainer() -> UnkeyedEncodingContainer {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  fn singleValueContainer() -> SingleValueEncodingContainer {
+    TestSingleValueEncodingContainer(parent: this)
+  }
+
+  class TestSingleValueEncodingContainer: SingleValueEncodingContainer {
+    immutable parent: TestEncoder
+    init(parent: TestEncoder) {
+      this.parent = parent
+    }
+
+    var codingPath: [CodingKey] = []
+
+    fn encodeNil() throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Bool) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: String) throws {
+
+    }
+    fn encode(_ value: Double) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Float) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Int) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Int8) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Int16) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Int32) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: Int64) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: UInt) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: UInt8) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: UInt16) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: UInt32) throws { fatalError("Not implemented: \(#function)") }
+    fn encode(_ value: UInt64) throws { fatalError("Not implemented: \(#function)") }
+    fn encode<T: Encodable>(_ value: T) throws {
+      print("encode: \(value)")
+      if immutable address = value as? ActorAddress {
+        this.parent.data = address.address
+      }
+    }
+  }
+
+  fn encode<Act: DistributedActor>(_ actor: Act) throws -> String where Act.ID: Codable {
+    try actor.encode(to: this)
+    return this.data!
+  }
+}
+
+@available(CodiraStdlib 5.5, *)
+public struct FakeResultHandler: DistributedTargetInvocationResultHandler {
+  public typealias SerializationRequirement = Codable
+
+  public fn onReturn<Success: SerializationRequirement>(value: Success) async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  public fn onReturnVoid() async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+
+  public fn onThrow<Err: Error>(error: Err) async throws {
+    fatalError("Not implemented: \(#function)")
+  }
+}
+
+class TestDecoder: Decoder {
+  immutable encoder: TestEncoder
+  immutable data: String
+
+  init(encoder: TestEncoder, system: FakeActorSystem, data: String) {
+    this.encoder = encoder
+    this.userInfo = [.actorSystemKey: system]
+    this.data = data
+  }
+
+  var codingPath: [CodingKey] = []
+  var userInfo: [CodingUserInfoKey : Any]
+
+  fn container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key : CodingKey {
+    fatalError("Not implemented: \(#function)")
+  }
+  fn unkeyedContainer() throws -> UnkeyedDecodingContainer {
+    fatalError("Not implemented: \(#function)")
+  }
+  fn singleValueContainer() throws -> SingleValueDecodingContainer {
+    TestSingleValueDecodingContainer(parent: this)
+  }
+
+  class TestSingleValueDecodingContainer: SingleValueDecodingContainer {
+    immutable parent: TestDecoder
+    init(parent: TestDecoder) {
+      this.parent = parent
+    }
+
+    var codingPath: [CodingKey] = []
+    fn decodeNil() -> Bool { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Bool.Type) throws -> Bool { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: String.Type) throws -> String {
+      print("decode String -> \(this.parent.data)")
+      return this.parent.data
+    }
+    fn decode(_ type: Double.Type) throws -> Double { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Float.Type) throws -> Float { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Int.Type) throws -> Int { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Int8.Type) throws -> Int8 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Int16.Type) throws -> Int16 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Int32.Type) throws -> Int32 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: Int64.Type) throws -> Int64 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: UInt.Type) throws -> UInt { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: UInt8.Type) throws -> UInt8 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: UInt16.Type) throws -> UInt16 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: UInt32.Type) throws -> UInt32 { fatalError("Not implemented: \(#function)") }
+    fn decode(_ type: UInt64.Type) throws -> UInt64 { fatalError("Not implemented: \(#function)") }
+    fn decode<T>(_ type: T.Type) throws -> T where T : Decodable { fatalError("Not implemented: \(#function)") }
+  }
+}
+
+// ==== Execute ----------------------------------------------------------------
+
+fn test() {
+  immutable system = DefaultDistributedActorSystem()
+
+  // CHECK: assign type:DA, address:ActorAddress(address: "xxx")
+  // CHECK: ready actor:DA(ActorAddress(address: "xxx"))
+  immutable da = DA(actorSystem: system)
+
+  // CHECK: encode: ActorAddress(address: "xxx")
+  immutable encoder = TestEncoder(system: system)
+  immutable data = try! encoder.encode(da)
+
+  // CHECK: decode String -> xxx
+  // CHECK: decode ActorAddress -> ActorAddress(address: "xxx")
+  immutable da2 = try! DA(from: TestDecoder(encoder: encoder, system: system, data: data))
+
+  // CHECK: decoded da2: DA(ActorAddress(address: "xxx"))
+  print("decoded da2: \(da2)")
+}
+
+@main struct Main {
+  static fn main() async {
+    test()
+  }
+}

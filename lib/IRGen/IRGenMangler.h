@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRGENMANGLER_H
-#define SWIFT_IRGEN_IRGENMANGLER_H
+#ifndef LANGUAGE_IRGEN_IRGENMANGLER_H
+#define LANGUAGE_IRGEN_IRGENMANGLER_H
 
 #include "IRGenModule.h"
 #include "language/AST/ASTContext.h"
@@ -22,7 +23,7 @@
 #include "language/AST/AutoDiff.h"
 #include "language/AST/ProtocolAssociations.h"
 #include "language/IRGen/ValueWitness.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 namespace language {
 
@@ -49,22 +50,24 @@ class IRGenMangler : public Mangle::ASTMangler {
 public:
   IRGenMangler(ASTContext &Ctx) : ASTMangler(Ctx) { }
 
-  std::string mangleDispatchThunk(const FuncDecl *func) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(func));
+  std::string mangleDispatchThunk(const FuncDecl *fn) {
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(fn));
     beginMangling();
-    appendEntity(func);
+    appendEntity(fn);
     appendOperator("Tj");
+    if (fn->isDistributedThunk())
+      appendSymbolKind(SymbolKind::DistributedThunk);
     return finalize();
   }
 
   std::string mangleDerivativeDispatchThunk(
-      const AbstractFunctionDecl *func,
+      const AbstractFunctionDecl *fn,
       AutoDiffDerivativeFunctionIdentifier *derivativeId) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(func));
-    beginManglingWithAutoDiffOriginalFunction(func);
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(fn));
+    beginManglingWithAutoDiffOriginalFunction(fn);
     auto kind = Demangle::getAutoDiffFunctionKind(derivativeId->getKind());
     auto *resultIndices =
-      autodiff::getFunctionSemanticResultIndices(func,
+      autodiff::getFunctionSemanticResultIndices(fn,
                                                  derivativeId->getParameterIndices());
     AutoDiffConfig config(
         derivativeId->getParameterIndices(),
@@ -77,29 +80,31 @@ public:
 
   std::string mangleConstructorDispatchThunk(const ConstructorDecl *ctor,
                                              bool isAllocating) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(ctor));
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(ctor));
     beginMangling();
     appendConstructorEntity(ctor, isAllocating);
     appendOperator("Tj");
     return finalize();
   }
 
-  std::string mangleMethodDescriptor(const FuncDecl *func) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(func));
+  std::string mangleMethodDescriptor(const FuncDecl *fn) {
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(fn));
     beginMangling();
-    appendEntity(func);
+    appendEntity(fn);
     appendOperator("Tq");
+    if (fn->isDistributedThunk())
+      appendSymbolKind(SymbolKind::DistributedThunk);
     return finalize();
   }
 
   std::string mangleDerivativeMethodDescriptor(
-      const AbstractFunctionDecl *func,
+      const AbstractFunctionDecl *fn,
       AutoDiffDerivativeFunctionIdentifier *derivativeId) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(func));
-    beginManglingWithAutoDiffOriginalFunction(func);
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(fn));
+    beginManglingWithAutoDiffOriginalFunction(fn);
     auto kind = Demangle::getAutoDiffFunctionKind(derivativeId->getKind());
     auto *resultIndices =
-      autodiff::getFunctionSemanticResultIndices(func,
+      autodiff::getFunctionSemanticResultIndices(fn,
                                                  derivativeId->getParameterIndices());
     AutoDiffConfig config(
         derivativeId->getParameterIndices(),
@@ -112,7 +117,7 @@ public:
 
   std::string mangleConstructorMethodDescriptor(const ConstructorDecl *ctor,
                                                 bool isAllocating) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(ctor));
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(ctor));
     beginMangling();
     appendConstructorEntity(ctor, isAllocating);
     appendOperator("Tq");
@@ -285,7 +290,7 @@ public:
     if (auto VD = Name.dyn_cast<VarDecl *>()) {
       return appendEntity(VD);
     }
-    llvm_unreachable("unknown kind");
+    toolchain_unreachable("unknown kind");
   }
   
   std::string mangleAnonymousDescriptorName(
@@ -335,7 +340,7 @@ public:
                                          const AssociatedTypeDecl *assocType) {
     // Don't optimize away the protocol name, because we need it to distinguish
     // among the type descriptors of different protocols.
-    llvm::SaveAndRestore<bool> optimizeProtocolNames(OptimizeProtocolNames,
+    toolchain::SaveAndRestore<bool> optimizeProtocolNames(OptimizeProtocolNames,
                                                      false);
 
     beginMangling();
@@ -396,7 +401,7 @@ public:
                                     const RootProtocolConformance *conformance);
 
   std::string manglePropertyDescriptor(const AbstractStorageDecl *storage) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(storage));
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(storage));
     beginMangling();
     appendEntity(storage);
     appendOperator("MV");
@@ -404,7 +409,7 @@ public:
   }
 
   std::string mangleFieldOffset(const ValueDecl *Decl) {
-    llvm::SaveAndRestore X(AllowInverses, inversesAllowed(Decl));
+    toolchain::SaveAndRestore X(AllowInverses, inversesAllowed(Decl));
     beginMangling();
     appendEntity(Decl);
     appendOperator("Wvd");
@@ -707,7 +712,7 @@ public:
 protected:
   SymbolicMangling
   withSymbolicReferences(IRGenModule &IGM,
-                         llvm::function_ref<void ()> body);
+                         toolchain::function_ref<void ()> body);
 
   std::string mangleTypeSymbol(Type type, const char *Op) {
     beginMangling();

@@ -1,0 +1,4 @@
+// RUN: not %target-typecheck-verify-language
+
+#error("""
+

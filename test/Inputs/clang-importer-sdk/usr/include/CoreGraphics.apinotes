@@ -1,0 +1,4 @@
+Name: CoreGraphics
+Functions:
+- Name: CGColorCreateGenericGray
+  CodiraName: CGColor.init(gray:alpha:)

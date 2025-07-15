@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t.relative_interface_path)
+// RUN: cp -R %S/Inputs/relative_path %t.relative_interface_path/
+// RUN: cd %t.relative_interface_path
+// RUN: mkdir out
+
+// RUN: %target-language-frontend -target arm64-apple-macosx15.0 -compile-module-from-interface \
+// RUN:   relative_path/B.codemodule/arm64-apple-macos.codeinterface -o out/B.codemodule
+// RUN: %target-language-frontend -target arm64-apple-macosx15.0 -compile-module-from-interface \
+// RUN:   relative_path/A.codemodule/arm64-apple-macos.codeinterface -o out/A.codemodule -I out
+
+// REQUIRES: OS=macosx

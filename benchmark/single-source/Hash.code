@@ -1,4 +1,4 @@
-//===--- Hash.swift -------------------------------------------------------===//
+//===--- Hash.code -------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Derived from the C samples in:
@@ -18,7 +19,7 @@
 //         http://en.wikipedia.org/wiki/SHA-1
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "HashTest",
     runFunction: run_HashTest,
@@ -36,7 +37,7 @@ class Hash {
   }
 
   /// Add the bytes in \p Msg to the hash.
-  func update(_ Msg: String) {
+  fn update(_ Msg: String) {
     for c in Msg.unicodeScalars {
       data[dataLength] = UInt8(ascii: c)
       dataLength += 1
@@ -46,7 +47,7 @@ class Hash {
   }
 
   /// Add the bytes in \p Msg to the hash.
-  func update(_ Msg: [UInt8]) {
+  fn update(_ Msg: [UInt8]) {
     for c in Msg {
       data[dataLength] = c
       dataLength += 1
@@ -56,10 +57,10 @@ class Hash {
   }
 
   /// \returns the hash of the data that was updated.
-  func digest() -> String {
+  fn digest() -> String {
     fillBlock()
     hash()
-    let x  = hashState()
+    immutable x  = hashState()
     return x
   }
 
@@ -72,20 +73,20 @@ class Hash {
   final var blocksize: Int
 
   /// Hash the internal data.
-  func hash() {
+  fn hash() {
     fatalError("Pure virtual")
   }
 
   /// \returns a string representation of the state.
-  func hashState() -> String {
+  fn hashState() -> String {
     fatalError("Pure virtual")
   }
-  func hashStateFast(_ res: inout [UInt8]) {
+  fn hashStateFast(_ res: inout [UInt8]) {
     fatalError("Pure virtual")
   }
 
   /// Blow the data to fill the block.
-  func fillBlock() {
+  fn fillBlock() {
     fatalError("Pure virtual")
   }
 
@@ -95,7 +96,7 @@ class Hash {
 
   /// Convert a 4-byte integer to a hex string.
   final
-  func toHex(_ input: UInt32) -> String {
+  fn toHex(_ input: UInt32) -> String {
     var input = input
     var res = ""
     for _ in 0..<8 {
@@ -106,7 +107,7 @@ class Hash {
   }
 
   final
-  func toHexFast(_ input: UInt32, _ res: inout Array<UInt8>, _ index : Int) {
+  fn toHexFast(_ input: UInt32, _ res: inout Array<UInt8>, _ index : Int) {
     var input = input
     for i in 0..<4 {
       // Convert one byte each iteration.
@@ -118,13 +119,13 @@ class Hash {
 
   /// Left-rotate \p x by \p c.
   final
-  func rol(_ x: UInt32, _ c: UInt32) -> UInt32 {
+  fn rol(_ x: UInt32, _ c: UInt32) -> UInt32 {
     return x &<< c | x &>> (32 &- c)
   }
 
   /// Right-rotate \p x by \p c.
   final
-  func ror(_ x: UInt32, _ c: UInt32) -> UInt32 {
+  fn ror(_ x: UInt32, _ c: UInt32) -> UInt32 {
     return x &>> c | x &<< (32 &- c)
   }
 }
@@ -132,7 +133,7 @@ class Hash {
 final
 class MD5 : Hash {
   // Integer part of the sines of integers (in radians) * 2^32.
-  let k : [UInt32] = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee ,
+  immutable k : [UInt32] = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee ,
                       0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501 ,
                       0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be ,
                       0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821 ,
@@ -150,7 +151,7 @@ class MD5 : Hash {
                       0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391 ]
 
   // Per-round shift amounts
-  let r : [UInt32] = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+  immutable r : [UInt32] = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
                       5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
                       4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
                       6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21]
@@ -166,7 +167,7 @@ class MD5 : Hash {
     reset()
   }
 
-  func reset() {
+  fn reset() {
     // Set the initial values.
     h0 = 0x67452301
     h1 = 0xefcdab89
@@ -176,7 +177,7 @@ class MD5 : Hash {
     dataLength = 0
   }
 
-  func appendBytes(_ val: Int, _ message: inout Array<UInt8>, _ offset : Int) {
+  fn appendBytes(_ val: Int, _ message: inout Array<UInt8>, _ offset : Int) {
     message[offset] = UInt8(truncatingIfNeeded: val)
     message[offset + 1] = UInt8(truncatingIfNeeded: val >> 8)
     message[offset + 2] = UInt8(truncatingIfNeeded: val >> 16)
@@ -184,7 +185,7 @@ class MD5 : Hash {
   }
 
   override
-  func fillBlock() {
+  fn fillBlock() {
     // Pre-processing:
     // Append "1" bit to message
     // Append "0" bits until message length in bits -> 448 (mod 512)
@@ -213,17 +214,17 @@ class MD5 : Hash {
     dataLength += 8
   }
 
-  func toUInt32(_ message: Array<UInt8>, _ offset: Int) -> UInt32 {
-    let first = UInt32(message[offset + 0])
-    let second = UInt32(message[offset + 1]) << 8
-    let third = UInt32(message[offset + 2]) << 16
-    let fourth = UInt32(message[offset + 3]) << 24
+  fn toUInt32(_ message: Array<UInt8>, _ offset: Int) -> UInt32 {
+    immutable first = UInt32(message[offset + 0])
+    immutable second = UInt32(message[offset + 1]) << 8
+    immutable third = UInt32(message[offset + 2]) << 16
+    immutable fourth = UInt32(message[offset + 3]) << 24
     return first | second | third | fourth
   }
 
   var w = [UInt32](repeating: 0, count: 16)
   override
-  func hash() {
+  fn hash() {
     assert(dataLength == blocksize, "Invalid block size")
 
     // Break chunk into sixteen 32-bit words w[j], 0 ≤ j ≤ 15
@@ -256,7 +257,7 @@ class MD5 : Hash {
         g = UInt32(7*i) % 16
       }
 
-      let temp = d
+      immutable temp = d
       d = c
       c = b
       b = b &+ rol(a &+ f &+ k[i] &+ w[Int(g)], r[i])
@@ -270,16 +271,16 @@ class MD5 : Hash {
     h3 = d &+ h3
   }
 
-  func reverseBytes(_ input: UInt32) -> UInt32 {
-    let b0 = (input >> 0 ) & 0xFF
-    let b1 = (input >> 8 ) & 0xFF
-    let b2 = (input >> 16) & 0xFF
-    let b3 = (input >> 24) & 0xFF
+  fn reverseBytes(_ input: UInt32) -> UInt32 {
+    immutable b0 = (input >> 0 ) & 0xFF
+    immutable b1 = (input >> 8 ) & 0xFF
+    immutable b2 = (input >> 16) & 0xFF
+    immutable b3 = (input >> 24) & 0xFF
     return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
   }
 
   override
-  func hashState() -> String {
+  fn hashState() -> String {
     var s = ""
     for h in [h0, h1, h2, h3] {
       s += toHex(reverseBytes(h))
@@ -288,7 +289,7 @@ class MD5 : Hash {
   }
 
   override
-  func hashStateFast(_ res: inout [UInt8]) {
+  fn hashStateFast(_ res: inout [UInt8]) {
 #if !NO_RANGE
     var idx: Int = 0
     for h in [h0, h1, h2, h3] {
@@ -318,7 +319,7 @@ class SHA1 : Hash {
     reset()
   }
 
-  func reset() {
+  fn reset() {
     // Set the initial values.
     h0  = 0x67452301
     h1  = 0xEFCDAB89
@@ -330,7 +331,7 @@ class SHA1 : Hash {
   }
 
   override
-  func fillBlock() {
+  fn fillBlock() {
     // Append a 1 to the message.
     data[dataLength] = UInt8(0x80)
     dataLength += 1
@@ -347,16 +348,16 @@ class SHA1 : Hash {
     }
 
     // Append the original message length as 64bit big endian:
-    let len_in_bits = Int64(messageLength)*8
+    immutable len_in_bits = Int64(messageLength)*8
     for i in 0..<(8 as Int64) {
-      let val = (len_in_bits >> ((7-i)*8)) & 0xFF
+      immutable val = (len_in_bits >> ((7-i)*8)) & 0xFF
       data[dataLength] = UInt8(val)
       dataLength += 1
     }
   }
 
   override
-  func hash() {
+  fn hash() {
     assert(dataLength == blocksize, "Invalid block size")
 
     // Init the "W" buffer.
@@ -373,8 +374,8 @@ class SHA1 : Hash {
     // Init the rest of the "W" buffer.
     for t in 16..<80 {
       // splitting into 2 subexpressions to help typechecker
-      let lhs = w[t-3] ^ w[t-8]
-      let rhs = w[t-14] ^ w[t-16]
+      immutable lhs = w[t-3] ^ w[t-8]
+      immutable rhs = w[t-14] ^ w[t-16]
       w[t] = rol(lhs ^ rhs, 1)
     }
 
@@ -401,7 +402,7 @@ class SHA1 : Hash {
         k = 0xca62c1d6
         f = b ^ c ^ d
       }
-      let temp: UInt32 = rol(a,5) &+ f &+ e &+ w[t] &+ k
+      immutable temp: UInt32 = rol(a,5) &+ f &+ e &+ w[t] &+ k
 
       e = d
       d = c
@@ -418,7 +419,7 @@ class SHA1 : Hash {
   }
 
   override
-  func hashState() -> String {
+  fn hashState() -> String {
     var res: String = ""
     for state in [h0, h1, h2, h3, h4] {
       res += toHex(state)
@@ -438,7 +439,7 @@ class SHA256 :  Hash {
   var h6: UInt32 = 0
   var h7: UInt32 = 0
 
-  let k : [UInt32] = [
+  immutable k : [UInt32] = [
    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -453,7 +454,7 @@ class SHA256 :  Hash {
     reset()
   }
 
-  func reset() {
+  fn reset() {
     // Set the initial values.
     h0 =  0x6a09e667
     h1 =  0xbb67ae85
@@ -468,7 +469,7 @@ class SHA256 :  Hash {
   }
 
   override
-  func fillBlock() {
+  fn fillBlock() {
     // Append a 1 to the message.
     data[dataLength] = UInt8(0x80)
     dataLength += 1
@@ -485,16 +486,16 @@ class SHA256 :  Hash {
     }
 
     // Append the original message length as 64bit big endian:
-    let len_in_bits = Int64(messageLength)*8
+    immutable len_in_bits = Int64(messageLength)*8
     for i in 0..<(8 as Int64) {
-      let val = (len_in_bits >> ((7-i)*8)) & 0xFF
+      immutable val = (len_in_bits >> ((7-i)*8)) & 0xFF
       data[dataLength] = UInt8(val)
       dataLength += 1
     }
   }
 
   override
-  func hash() {
+  fn hash() {
     assert(dataLength == blocksize, "Invalid block size")
 
     // Init the "W" buffer.
@@ -510,8 +511,8 @@ class SHA256 :  Hash {
 
     // Init the rest of the "W" buffer.
     for i in 16..<64 {
-      let s0 = ror(w[i-15], 7) ^ ror(w[i-15], 18) ^ (w[i-15] >> 3)
-      let s1 = ror(w[i-2], 17) ^ ror(w[i-2], 19) ^ (w[i-2] >> 10)
+      immutable s0 = ror(w[i-15], 7) ^ ror(w[i-15], 18) ^ (w[i-15] >> 3)
+      immutable s1 = ror(w[i-2], 17) ^ ror(w[i-2], 19) ^ (w[i-2] >> 10)
       w[i] = w[i-16] &+ s0 &+ w[i-7] &+ s1
     }
 
@@ -527,12 +528,12 @@ class SHA256 :  Hash {
     var h = h7
 
     for i in 0..<64 {
-      let s1 = ror(e, 6) ^ ror(e, 11) ^ ror(e, 25)
-      let ch = (e & f) ^ ((~e) & g)
-      let temp1 = h &+ s1 &+ ch &+ k[i] &+ w[i]
-      let s0 = ror(a, 2) ^ ror(a, 13) ^ ror(a, 22)
-      let maj = (a & b) ^ (a & c) ^ (b & c)
-      let temp2 = s0 &+ maj
+      immutable s1 = ror(e, 6) ^ ror(e, 11) ^ ror(e, 25)
+      immutable ch = (e & f) ^ ((~e) & g)
+      immutable temp1 = h &+ s1 &+ ch &+ k[i] &+ w[i]
+      immutable s0 = ror(a, 2) ^ ror(a, 13) ^ ror(a, 22)
+      immutable maj = (a & b) ^ (a & c) ^ (b & c)
+      immutable temp2 = s0 &+ maj
 
       h = g
       g = f
@@ -555,7 +556,7 @@ class SHA256 :  Hash {
   }
 
   override
-  func hashState() -> String {
+  fn hashState() -> String {
     var res: String = ""
     for state in [h0, h1, h2, h3, h4, h5, h6, h7] {
       res += toHex(state)
@@ -564,7 +565,7 @@ class SHA256 :  Hash {
   }
 }
 
-func == (lhs: [UInt8], rhs: [UInt8]) -> Bool {
+fn == (lhs: [UInt8], rhs: [UInt8]) -> Bool {
   if lhs.count != rhs.count { return false }
   for idx in 0..<lhs.count {
     if lhs[idx] != rhs[idx] { return false }
@@ -573,23 +574,23 @@ func == (lhs: [UInt8], rhs: [UInt8]) -> Bool {
 }
 
 @inline(never)
-public func run_HashTest(_ n: Int) {
-  let testMD5 = [""                                : "d41d8cd98f00b204e9800998ecf8427e",
+public fn run_HashTest(_ n: Int) {
+  immutable testMD5 = [""                                : "d41d8cd98f00b204e9800998ecf8427e",
     "The quick brown fox jumps over the lazy dog." : "e4d909c290d0fb1ca068ffaddf22cbd0",
     "The quick brown fox jumps over the lazy cog." : "68aa5deab43e4df2b5e1f80190477fb0"]
 
-  let testSHA1 = [""                              : "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+  immutable testSHA1 = [""                              : "da39a3ee5e6b4b0d3255bfef95601890afd80709",
     "The quick brown fox jumps over the lazy dog" : "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12",
     "The quick brown fox jumps over the lazy cog" : "de9f2c7fd25e1b3afad3e85a0bd17d9b100db4b3"]
 
-  let testSHA256 = [""                             : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  immutable testSHA256 = [""                             : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "The quick brown fox jumps over the lazy dog"  : "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592",
     "The quick brown fox jumps over the lazy dog." : "ef537f25c895bfa782526529a9b63d97aa631564d5d789c2b765448c8635fb6c"]
-  let size = 50
+  immutable size = 50
 
   for _ in 1...n {
     // Check for precomputed values.
-    let md = MD5()
+    immutable md = MD5()
     for (k, v) in testMD5 {
       md.update(k)
       check(md.digest() == v)
@@ -611,37 +612,37 @@ public func run_HashTest(_ n: Int) {
       l += "a"
       md.update("a")
     }
-    let md2 = MD5()
+    immutable md2 = MD5()
     md2.update(l)
     check(md.digest() == md2.digest())
 
     // Test the famous md5 collision from 2009: http://www.mscs.dal.ca/~selinger/md5collision/
-    let src1 : [UInt8] =
+    immutable src1 : [UInt8] =
     [0xd1, 0x31, 0xdd, 0x02, 0xc5, 0xe6, 0xee, 0xc4, 0x69, 0x3d, 0x9a, 0x06, 0x98, 0xaf, 0xf9, 0x5c, 0x2f, 0xca, 0xb5, 0x87, 0x12, 0x46, 0x7e, 0xab, 0x40, 0x04, 0x58, 0x3e, 0xb8, 0xfb, 0x7f, 0x89,
      0x55, 0xad, 0x34, 0x06, 0x09, 0xf4, 0xb3, 0x02, 0x83, 0xe4, 0x88, 0x83, 0x25, 0x71, 0x41, 0x5a, 0x08, 0x51, 0x25, 0xe8, 0xf7, 0xcd, 0xc9, 0x9f, 0xd9, 0x1d, 0xbd, 0xf2, 0x80, 0x37, 0x3c, 0x5b,
      0xd8, 0x82, 0x3e, 0x31, 0x56, 0x34, 0x8f, 0x5b, 0xae, 0x6d, 0xac, 0xd4, 0x36, 0xc9, 0x19, 0xc6, 0xdd, 0x53, 0xe2, 0xb4, 0x87, 0xda, 0x03, 0xfd, 0x02, 0x39, 0x63, 0x06, 0xd2, 0x48, 0xcd, 0xa0,
      0xe9, 0x9f, 0x33, 0x42, 0x0f, 0x57, 0x7e, 0xe8, 0xce, 0x54, 0xb6, 0x70, 0x80, 0xa8, 0x0d, 0x1e, 0xc6, 0x98, 0x21, 0xbc, 0xb6, 0xa8, 0x83, 0x93, 0x96, 0xf9, 0x65, 0x2b, 0x6f, 0xf7, 0x2a, 0x70]
 
-    let src2 : [UInt8] =
+    immutable src2 : [UInt8] =
     [0xd1, 0x31, 0xdd, 0x02, 0xc5, 0xe6, 0xee, 0xc4, 0x69, 0x3d, 0x9a, 0x06, 0x98, 0xaf, 0xf9, 0x5c, 0x2f, 0xca, 0xb5, 0x07, 0x12, 0x46, 0x7e, 0xab, 0x40, 0x04, 0x58, 0x3e, 0xb8, 0xfb, 0x7f, 0x89,
      0x55, 0xad, 0x34, 0x06, 0x09, 0xf4, 0xb3, 0x02, 0x83, 0xe4, 0x88, 0x83, 0x25, 0xf1, 0x41, 0x5a, 0x08, 0x51, 0x25, 0xe8, 0xf7, 0xcd, 0xc9, 0x9f, 0xd9, 0x1d, 0xbd, 0x72, 0x80, 0x37, 0x3c, 0x5b,
      0xd8, 0x82, 0x3e, 0x31, 0x56, 0x34, 0x8f, 0x5b, 0xae, 0x6d, 0xac, 0xd4, 0x36, 0xc9, 0x19, 0xc6, 0xdd, 0x53, 0xe2, 0x34, 0x87, 0xda, 0x03, 0xfd, 0x02, 0x39, 0x63, 0x06, 0xd2, 0x48, 0xcd, 0xa0,
      0xe9, 0x9f, 0x33, 0x42, 0x0f, 0x57, 0x7e, 0xe8, 0xce, 0x54, 0xb6, 0x70, 0x80, 0x28, 0x0d, 0x1e, 0xc6, 0x98, 0x21, 0xbc, 0xb6, 0xa8, 0x83, 0x93, 0x96, 0xf9, 0x65, 0xab, 0x6f, 0xf7, 0x2a, 0x70]
 
-    let h1 = MD5()
-    let h2 = MD5()
+    immutable h1 = MD5()
+    immutable h2 = MD5()
 
     h1.update(src1)
     h2.update(src2)
-    let a1 = h1.digest()
-    let a2 = h2.digest()
+    immutable a1 = h1.digest()
+    immutable a2 = h2.digest()
     check(a1 == a2)
     check(a1 == "79054025255fb1a26e4bc422aef54eb4")
     h1.reset()
     h2.reset()
 
-    let sh = SHA1()
-    let sh256 = SHA256()
+    immutable sh = SHA1()
+    immutable sh256 = SHA256()
     for (k, v) in testSHA1 {
       sh.update(k)
       check(sh.digest() == v)
@@ -669,7 +670,7 @@ public func run_HashTest(_ n: Int) {
       l += "a"
       sh.update("a")
     }
-    let sh2 = SHA1()
+    immutable sh2 = SHA1()
     sh2.update(l)
     check(sh.digest() == sh2.digest())
   }

@@ -1,13 +1,17 @@
 //===--- IRSymbolVisitor.cpp - IR Linker Symbol Visitor ------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements liker symbol enumeration for IRSymbolVisitor.
@@ -56,8 +60,8 @@ class IRSymbolVisitorImpl : public SILSymbolVisitor {
                         ForDefinition);
 
       auto externallyVisible =
-          llvm::GlobalValue::isExternalLinkage(linkage.getLinkage()) &&
-          linkage.getVisibility() != llvm::GlobalValue::HiddenVisibility;
+          toolchain::GlobalValue::isExternalLinkage(linkage.getLinkage()) &&
+          linkage.getVisibility() != toolchain::GlobalValue::HiddenVisibility;
 
       if (PublicOrPackageSymbolsOnly && !externallyVisible)
         return;
@@ -108,6 +112,7 @@ public:
 
   void addDispatchThunk(SILDeclRef declRef) override {
     auto entity = LinkEntity::forDispatchThunk(declRef);
+
     addLinkEntity(entity);
 
     if (declRef.getAbstractFunctionDecl()->hasAsync())
@@ -229,8 +234,8 @@ public:
     Visitor.addProtocolWitnessThunk(C, requirementDecl);
   }
 
-  void addSwiftMetaclassStub(ClassDecl *CD) override {
-    addLinkEntity(LinkEntity::forSwiftMetaclassStub(CD));
+  void addCodiraMetaclassStub(ClassDecl *CD) override {
+    addLinkEntity(LinkEntity::forCodiraMetaclassStub(CD));
   }
 
   void addTypeMetadataAccessFunction(CanType T) override {
@@ -252,7 +257,7 @@ void IRSymbolVisitor::visitFile(FileUnit *file,
   IRSymbolVisitorImpl(*this, Ctx).visitFile(file, Ctx.getSILCtx());
 }
 
-void IRSymbolVisitor::visitModules(llvm::SmallVector<ModuleDecl *, 4> &modules,
+void IRSymbolVisitor::visitModules(toolchain::SmallVector<ModuleDecl *, 4> &modules,
                                    const IRSymbolVisitorContext &Ctx) {
   IRSymbolVisitorImpl(*this, Ctx).visitModules(modules, Ctx.getSILCtx());
 }

@@ -1,4 +1,4 @@
-//===--- Transforms.h - Swift Transformations  ------------------*- C++ -*-===//
+//===--- Transforms.h - Codira Transformations  ------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_TRANSFORMS_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_TRANSFORMS_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_TRANSFORMS_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_TRANSFORMS_H
 
 #include "language/SIL/Notifications.h"
 #include "language/SILOptimizer/PassManager/PassManager.h"
@@ -79,10 +80,10 @@ namespace language {
     }
 
     /// Get the transform's (command-line) tag.
-    llvm::StringRef getTag() { return PassKindTag(getPassKind()); }
+    toolchain::StringRef getTag() { return PassKindTag(getPassKind()); }
 
     /// Get the transform's name as a C++ identifier.
-    llvm::StringRef getID() { return PassKindID(getPassKind()); }
+    toolchain::StringRef getID() { return PassKindID(getPassKind()); }
 
     /// Searches for an analysis of type T in the list of registered
     /// analysis. If the analysis is not found, the program terminates.

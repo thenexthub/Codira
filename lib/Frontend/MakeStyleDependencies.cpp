@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/MakeStyleDependencies.h"
@@ -23,17 +24,17 @@
 #include "language/Frontend/InputFile.h"
 #include "language/FrontendTool/FrontendTool.h"
 
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/PrefixMapper.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/PrefixMapper.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
 StringRef
-swift::frontend::utils::escapeForMake(StringRef raw,
-                                      llvm::SmallVectorImpl<char> &buffer) {
+language::frontend::utils::escapeForMake(StringRef raw,
+                                      toolchain::SmallVectorImpl<char> &buffer) {
   buffer.clear();
 
   // The escaping rules for GNU make are complicated due to the various
@@ -99,22 +100,22 @@ static void emitMakeDependenciesFile(std::vector<std::string> &dependencies,
                                      const FrontendOptions &opts,
                                      const InputFile &input,
                                      const std::vector<std::string> &prefixMap,
-                                     llvm::raw_ostream &os) {
+                                     toolchain::raw_ostream &os) {
   // Prefix map all the path if needed.
   if (!prefixMap.empty()) {
-    SmallVector<llvm::MappedPrefix, 4> prefixes;
-    llvm::MappedPrefix::transformJoinedIfValid(prefixMap, prefixes);
-    llvm::PrefixMapper mapper;
+    SmallVector<toolchain::MappedPrefix, 4> prefixes;
+    toolchain::MappedPrefix::transformJoinedIfValid(prefixMap, prefixes);
+    toolchain::PrefixMapper mapper;
     mapper.addRange(prefixes);
     mapper.sort();
-    llvm::for_each(dependencies, [&mapper](std::string &dep) {
+    toolchain::for_each(dependencies, [&mapper](std::string &dep) {
       dep = mapper.mapToString(dep);
     });
   }
 
   // Escape all the dependencies.
-  llvm::SmallString<256> buffer;
-  llvm::for_each(dependencies, [&buffer](std::string &dep) {
+  toolchain::SmallString<256> buffer;
+  toolchain::for_each(dependencies, [&buffer](std::string &dep) {
     dep = frontend::utils::escapeForMake(dep, buffer).str();
   });
 
@@ -128,10 +129,10 @@ static void emitMakeDependenciesFile(std::vector<std::string> &dependencies,
   });
 }
 
-static llvm::SmallString<256>
+static toolchain::SmallString<256>
 serializeDependencies(const std::vector<std::string> &deps) {
   // Encode the dependencies as null terminated strings.
-  llvm::SmallString<256> buffer;
+  toolchain::SmallString<256> buffer;
   for (auto &dep : deps) {
     buffer.append(dep);
     buffer.push_back('\0');
@@ -151,8 +152,8 @@ static std::vector<std::string> deserializeDependencies(StringRef buffer) {
   return deps;
 }
 
-bool swift::emitMakeDependenciesFromSerializedBuffer(
-    llvm::StringRef buffer, llvm::raw_ostream &os, const FrontendOptions &opts,
+bool language::emitMakeDependenciesFromSerializedBuffer(
+    toolchain::StringRef buffer, toolchain::raw_ostream &os, const FrontendOptions &opts,
     const InputFile &input, DiagnosticEngine &diags) {
   auto dependencies = deserializeDependencies(buffer);
 
@@ -162,7 +163,7 @@ bool swift::emitMakeDependenciesFromSerializedBuffer(
 }
 
 /// Emits a Make-style dependencies file.
-bool swift::emitMakeDependenciesIfNeeded(CompilerInstance &instance,
+bool language::emitMakeDependenciesIfNeeded(CompilerInstance &instance,
                                          const InputFile &input) {
   auto &opts = instance.getInvocation().getFrontendOptions();
   auto *depTracker = instance.getDependencyTracker();
@@ -224,6 +225,7 @@ bool swift::emitMakeDependenciesIfNeeded(CompilerInstance &instance,
     if (auto err = CASBackend.storeMakeDependenciesFile(dependenciesFilePath,
                                                         buffer)) {
       instance.getDiags().diagnose(SourceLoc(), diag::error_cas,
+                                   "storing make-style dependency file",
                                    toString(std::move(err)));
       return true;
     }

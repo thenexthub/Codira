@@ -1,4 +1,4 @@
-//===--- UTFEncoding.swift - Common guts of the big 3 UnicodeEncodings ----===//
+//===--- UTFEncoding.code - Common guts of the big 3 UnicodeEncodings ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  These components would be internal if it were possible to use internal
@@ -22,8 +23,8 @@
 public protocol _UTFParser {
   associatedtype Encoding: _UnicodeEncoding
 
-  func _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8)
-  func _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar
+  fn _parseMultipleCodeUnits() -> (isValid: Bool, bitCount: UInt8)
+  fn _bufferedScalar(bitCount: UInt8) -> Encoding.EncodedScalar
   
   var _buffer: _UIntBuffer<Encoding.CodeUnit> { get set }
 }
@@ -33,14 +34,14 @@ where Encoding.EncodedScalar: RangeReplaceableCollection {
 
   @inlinable
   @inline(__always)
-  public mutating func parseScalar<I: IteratorProtocol>(
+  public mutating fn parseScalar<I: IteratorProtocol>(
     from input: inout I
   ) -> Unicode.ParseResult<Encoding.EncodedScalar>
     where I.Element == Encoding.CodeUnit {
 
     // Bufferless single-scalar fastpath.
     if _fastPath(_buffer.isEmpty) {
-      guard let codeUnit = input.next() else { return .emptyInput }
+      guard immutable codeUnit = input.next() else { return .emptyInput }
       // ASCII, return immediately.
       if Encoding._isScalar(codeUnit) {
         return .valid(Encoding.EncodedScalar(CollectionOfOne(codeUnit)))
@@ -52,14 +53,14 @@ where Encoding.EncodedScalar: RangeReplaceableCollection {
     ) {
       // ASCII in _buffer.  We don't refill the buffer so we can return
       // to bufferless mode once we've exhausted it.
-      let codeUnit = Encoding.CodeUnit(truncatingIfNeeded: _buffer._storage)
+      immutable codeUnit = Encoding.CodeUnit(truncatingIfNeeded: _buffer._storage)
       _buffer.remove(at: _buffer.startIndex)
       return .valid(Encoding.EncodedScalar(CollectionOfOne(codeUnit)))
     }
     // Buffering mode.
     // Fill buffer back to 4 bytes (or as many as are left in the iterator).
     repeat {
-      if let codeUnit = input.next() {
+      if immutable codeUnit = input.next() {
         _buffer.append(codeUnit)
       } else {
         if _buffer.isEmpty { return .emptyInput }
@@ -68,13 +69,13 @@ where Encoding.EncodedScalar: RangeReplaceableCollection {
     } while _buffer.count < _buffer.capacity
 
     // Find one unicode scalar.
-    let (isValid, scalarBitCount) = _parseMultipleCodeUnits()
+    immutable (isValid, scalarBitCount) = _parseMultipleCodeUnits()
     _internalInvariant(scalarBitCount % numericCast(Encoding.CodeUnit.bitWidth) == 0)
     _internalInvariant(1...4 ~= scalarBitCount / 8)
     _internalInvariant(scalarBitCount <= _buffer._bitCount)
     
     // Consume the decoded bytes (or maximal subpart of ill-formed sequence).
-    let encodedScalar = _bufferedScalar(bitCount: scalarBitCount)
+    immutable encodedScalar = _bufferedScalar(bitCount: scalarBitCount)
     
     _buffer._storage = UInt32(
       // widen to 64 bits so that we can empty the buffer in the 4-byte case

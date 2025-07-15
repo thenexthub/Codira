@@ -1,0 +1,117 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+( ")enum S<a
+struct B
+Void{
+var a: A : A
+protocol c : A
+}
+class var e : a {
+protocol a : a {
+struct B<String
+in
+}struct B<T where k : A
+fn a
+fn a=e
+protocol P {
+fn f<h = object {
+protocol c B
+a Foundation
+}
+protocol a {
+class A? = compose("
+}
+{
+class A : a
+class d
+class B<String, C>("
+class d>()
+typealias e : a: a :d
+protocol P {
+struct A
+class A {
+struct B
+fn a {
+class A<T.e
+fn a {
+}
+struct b<d
+}
+}
+class B
+protocol a {
+var "
+case c,
+immutable end = compose("
+}
+in
+}
+case c
+typealias e : A
+extension g:Boolean{
+class A {}
+extension NSFileManager {
+return E.c{ enum b {
+}
+typealias e = compose()enum C {
+{struct A
+var d {
+{
+fn a :Boolean{
+immutable b{struct B<T:C>()
+immutable h : A {
+case c
+}
+protocol P {
+}
+struct c {
+}
+{
+protocol A {
+}
+}
+return E.e
+fn a {
+}
+atic var d {
+class B<T where T? {{
+protocol a {
+class B< {
+}
+class A {
+enum S<b{
+class A {
+}
+}}
+}
+Void{{
+if
+struct c,
+fn c{ enum S<h : a
+typealias e : A {
+class d}
+struct b: a {enum b = F>() {
+}
+}
+( "
+fn a {
+class A : A
+fn a:Boolean{
+var f = compose(n: Dictionary<String, C>())
+struct b: A
+protocol A {
+class A {
+static immutable f = e
+}
+immutable end = [

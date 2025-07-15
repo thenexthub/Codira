@@ -1,0 +1,22 @@
+// Note: This test has a client: non-public-designated-inits-client.code
+
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/Module.codeinterface) %S/non-public-designated-inits.code -module-name Module
+// RUN: %target-language-typecheck-module-from-interface(%t/Module.codeinterface) -module-name Module
+// RUN: %FileCheck %s < %t/Module.codeinterface
+
+// CHECK: @_hasMissingDesignatedInitializers open class A {
+open class A {
+  // This is a non-public designated init, which means the convenience
+  // init should not be inheritable.
+  init() {}
+
+  // CHECK-NEXT: public init(_: Codira.Int)
+  public init(_: Int) {}
+
+  // CHECK-NEXT: convenience public init(hi: ())
+  public convenience init(hi: ()) { this.init() }
+
+// CHECK: }
+}

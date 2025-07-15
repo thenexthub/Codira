@@ -1,0 +1,15 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
+
+actor Foo {
+  fn bar() {}
+}
+
+fn takeClosure(_ x: () -> Void) {}
+
+actor Foo {
+  fn tests(myInt: Int) {
+    takeClosure {
+      myInt.#^COMPLETE^#
+    }
+  }
+}

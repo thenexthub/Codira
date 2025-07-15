@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the \c PotentialBindings class and its auxiliary types
@@ -18,26 +19,26 @@
 // a particular type variable could be bound to.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_CSBINDINGS_H
-#define SWIFT_SEMA_CSBINDINGS_H
+#ifndef LANGUAGE_SEMA_CSBINDINGS_H
+#define LANGUAGE_SEMA_CSBINDINGS_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMExtras.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainExtras.h"
 #include "language/Sema/Constraint.h"
 #include "language/Sema/ConstraintLocator.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <tuple>
 
 namespace language {
@@ -218,13 +219,13 @@ private:
 
 struct PotentialBindings {
   /// The set of all constraints that have been added via infer().
-  llvm::SmallSetVector<Constraint *, 2> Constraints;
+  toolchain::SmallSetVector<Constraint *, 2> Constraints;
 
   /// The set of potential bindings.
-  llvm::SmallVector<PotentialBinding, 4> Bindings;
+  toolchain::SmallVector<PotentialBinding, 4> Bindings;
 
   /// The set of constraints which delay attempting this type variable.
-  llvm::TinyPtrVector<Constraint *> DelayedBy;
+  toolchain::TinyPtrVector<Constraint *> DelayedBy;
 
   /// The set of type variables adjacent to the current one.
   ///
@@ -232,15 +233,15 @@ struct PotentialBindings {
   /// bindings (contained in the binding type e.g. `Foo<$T0>`), or
   /// reachable through subtype/conversion  relationship e.g.
   /// `$T0 subtype of $T1` or `$T0 arg conversion $T1`.
-  llvm::SmallVector<std::pair<TypeVariableType *, Constraint *>, 2> AdjacentVars;
+  toolchain::SmallVector<std::pair<TypeVariableType *, Constraint *>, 2> AdjacentVars;
 
   /// A set of all not-yet-resolved type variables this type variable
   /// is a subtype of, supertype of or is equivalent to. This is used
   /// to determine ordering inside of a chain of subtypes to help infer
   /// transitive bindings  and protocol requirements.
-  llvm::SmallVector<std::pair<TypeVariableType *, Constraint *>, 4> SubtypeOf;
-  llvm::SmallVector<std::pair<TypeVariableType *, Constraint *>, 4> SupertypeOf;
-  llvm::SmallVector<std::pair<TypeVariableType *, Constraint *>, 4> EquivalentTo;
+  toolchain::SmallVector<std::pair<TypeVariableType *, Constraint *>, 4> SubtypeOf;
+  toolchain::SmallVector<std::pair<TypeVariableType *, Constraint *>, 4> SupertypeOf;
+  toolchain::SmallVector<std::pair<TypeVariableType *, Constraint *>, 4> EquivalentTo;
 
   ASTNode AssociatedCodeCompletionToken = ASTNode();
 
@@ -249,7 +250,7 @@ struct PotentialBindings {
   void addPotentialBinding(TypeVariableType *typeVar, PotentialBinding binding);
 
   bool isSubtypeOf(TypeVariableType *typeVar) const {
-    return llvm::any_of(
+    return toolchain::any_of(
         SubtypeOf,
         [&typeVar](const std::pair<TypeVariableType *, Constraint *> &subtype) {
           return subtype.first == typeVar &&
@@ -284,7 +285,7 @@ public:
 
   void dump(ConstraintSystem &CS,
             TypeVariableType *TypeVar,
-            llvm::raw_ostream &out,
+            toolchain::raw_ostream &out,
             unsigned indent) const;
 };
 
@@ -295,23 +296,23 @@ public:
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct DenseMapInfo<swift::constraints::inference::PotentialBinding> {
-  using Binding = swift::constraints::inference::PotentialBinding;
+struct DenseMapInfo<language::constraints::inference::PotentialBinding> {
+  using Binding = language::constraints::inference::PotentialBinding;
 
   static Binding getEmptyKey() {
-    return placeholderKey(llvm::DenseMapInfo<swift::TypeBase *>::getEmptyKey());
+    return placeholderKey(toolchain::DenseMapInfo<language::TypeBase *>::getEmptyKey());
   }
 
   static Binding getTombstoneKey() {
     return placeholderKey(
-        llvm::DenseMapInfo<swift::TypeBase *>::getTombstoneKey());
+        toolchain::DenseMapInfo<language::TypeBase *>::getTombstoneKey());
   }
 
   static unsigned getHashValue(const Binding &Val) {
-    return DenseMapInfo<swift::Type>::getHashValue(
+    return DenseMapInfo<language::Type>::getHashValue(
         Val.BindingType->getCanonicalType());
   }
 
@@ -320,14 +321,14 @@ struct DenseMapInfo<swift::constraints::inference::PotentialBinding> {
     auto rhsTy = RHS.BindingType.getPointer();
 
     // Fast path: pointer equality.
-    if (DenseMapInfo<swift::TypeBase *>::isEqual(lhsTy, rhsTy))
+    if (DenseMapInfo<language::TypeBase *>::isEqual(lhsTy, rhsTy))
       return true;
 
     // If either side is empty or tombstone, let's use pointer equality.
     {
-      auto emptyTy = llvm::DenseMapInfo<swift::TypeBase *>::getEmptyKey();
+      auto emptyTy = toolchain::DenseMapInfo<language::TypeBase *>::getEmptyKey();
       auto tombstoneTy =
-          llvm::DenseMapInfo<swift::TypeBase *>::getTombstoneKey();
+          toolchain::DenseMapInfo<language::TypeBase *>::getTombstoneKey();
 
       if (lhsTy == emptyTy || lhsTy == tombstoneTy)
         return lhsTy == rhsTy;
@@ -341,12 +342,12 @@ struct DenseMapInfo<swift::constraints::inference::PotentialBinding> {
   }
 
 private:
-  static Binding placeholderKey(swift::Type type) {
+  static Binding placeholderKey(language::Type type) {
     return Binding::forPlaceholder(type);
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace language {
 namespace constraints {
@@ -361,13 +362,13 @@ class BindingSet {
 
   const PotentialBindings &Info;
 
-  llvm::SmallPtrSet<TypeVariableType *, 4> AdjacentVars;
+  toolchain::SmallPtrSet<TypeVariableType *, 4> AdjacentVars;
 
 public:
-  swift::SmallSetVector<PotentialBinding, 4> Bindings;
+  language::SmallSetVector<PotentialBinding, 4> Bindings;
 
   /// The set of protocol conformance requirements placed on this type variable.
-  llvm::SmallVector<Constraint *, 4> Protocols;
+  toolchain::SmallVector<Constraint *, 4> Protocols;
 
   /// The set of unique literal protocol requirements placed on this
   /// type variable or inferred transitively through subtype chains.
@@ -375,13 +376,13 @@ public:
   /// Note that ordering is important when it comes to bindings, we'd
   /// like to add any "direct" default types first to attempt them
   /// before transitive ones.
-  llvm::SmallMapVector<ProtocolDecl *, LiteralRequirement, 2> Literals;
+  toolchain::SmallMapVector<ProtocolDecl *, LiteralRequirement, 2> Literals;
 
-  llvm::SmallDenseMap<CanType, Constraint *, 2> Defaults;
+  toolchain::SmallDenseMap<CanType, Constraint *, 2> Defaults;
 
   /// The set of transitive protocol requirements inferred through
   /// subtype/conversion/equivalence relations with other type variables.
-  std::optional<llvm::SmallPtrSet<Constraint *, 4>> TransitiveProtocols;
+  std::optional<toolchain::SmallPtrSet<Constraint *, 4>> TransitiveProtocols;
 
   BindingSet(ConstraintSystem &CS, TypeVariableType *TypeVar,
              const PotentialBindings &info);
@@ -453,12 +454,12 @@ public:
 
     // Literal requirements always result in a subtype/supertype
     // relationship to a concrete type.
-    if (llvm::any_of(Literals, [](const auto &literal) {
+    if (toolchain::any_of(Literals, [](const auto &literal) {
           return literal.second.viableAsBinding();
         }))
       return false;
 
-    return llvm::all_of(Bindings, [](const PotentialBinding &binding) {
+    return toolchain::all_of(Bindings, [](const PotentialBinding &binding) {
       return binding.BindingType->isExistentialType() &&
              binding.Kind == AllowedBindingKind::Subtypes;
     });
@@ -499,7 +500,7 @@ public:
     if (isDirectHole())
       return 1;
 
-    auto numDefaultable = llvm::count_if(
+    auto numDefaultable = toolchain::count_if(
         Defaults, [](const std::pair<CanType, Constraint *> &entry) {
           return entry.second->getKind() == ConstraintKind::Defaultable;
         });
@@ -511,7 +512,7 @@ public:
     // Defaultable constraint is unviable if its type is covered by
     // an existing direct or transitive binding.
     auto unviable =
-        llvm::count_if(Bindings, [&](const PotentialBinding &binding) {
+        toolchain::count_if(Bindings, [&](const PotentialBinding &binding) {
           auto type = binding.BindingType->getCanonicalType();
           auto def = Defaults.find(type);
           return def != Defaults.end()
@@ -528,7 +529,13 @@ public:
   }
 
   void forEachLiteralRequirement(
-      llvm::function_ref<void(KnownProtocolKind)> callback) const;
+      toolchain::function_ref<void(KnownProtocolKind)> callback) const;
+
+  void forEachAdjacentVariable(
+      toolchain::function_ref<void(TypeVariableType *)> callback) const {
+    for (auto *typeVar : AdjacentVars)
+      callback(typeVar);
+  }
 
   /// Return a literal requirement that has the most impact on the binding
   /// score.
@@ -572,7 +579,7 @@ public:
   /// \c this is a better set of bindings that \c other.
   bool operator<(const BindingSet &other);
 
-  void dump(llvm::raw_ostream &out, unsigned indent) const;
+  void dump(toolchain::raw_ostream &out, unsigned indent) const;
 
 private:
   /// Add a new binding to the set.
@@ -608,4 +615,4 @@ private:
 } // namespace constraints
 } // namespace language
 
-#endif // SWIFT_SEMA_CSBINDINGS_H
+#endif // LANGUAGE_SEMA_CSBINDINGS_H

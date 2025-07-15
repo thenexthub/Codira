@@ -1,0 +1,71 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple
+
+/// Used to verify the type of an expression. Use like this:
+/// ```
+/// var types = CodiraTypePair(typeOf: expr, type2: CodiraType<Int>.this)
+/// types.assertTypesAreEqual()
+/// ```
+struct CodiraType<T> {}
+struct CodiraTypePair<T1, T2> {
+  init(typeOf: T1, type2: CodiraType<T2>.Type) {}
+
+  mutating fn assertTypesAreEqual() where T1 == T2 {}
+}
+
+protocol MiscTestsProto {
+  associatedtype R : IteratorProtocol, Sequence
+  fn getR() -> R
+
+  associatedtype Assoc
+  subscript() -> Assoc { get }
+  var getAssoc: Assoc? { get }
+}
+do {
+  fn miscTests(_ arg: any MiscTestsProto) {
+    var r = arg.getR()
+    do {
+      var types = CodiraTypePair(typeOf: r, type2: CodiraType<any Sequence & IteratorProtocol>.this)
+      types.assertTypesAreEqual()
+    }
+
+    r.makeIterator() // expected-warning {{result of call to 'makeIterator()' is unused}}
+    r.next() // expected-warning {{result of call to 'next()' is unused}}
+    r.nonexistent() // expected-error {{value of type 'any IteratorProtocol & Sequence' has no member 'nonexistent'}}
+
+    arg[] // expected-warning {{expression of type 'Any' is unused}}
+    arg.getAssoc // expected-warning {{expression of type 'Any?' is unused}}
+  }
+}
+
+///
+/// Interactions between opening and parameter packs
+///
+
+// Same-shape requirements
+protocol HasSameShape {
+  fn foo<each T, each U>(t: repeat each T, u: repeat each U) -> (repeat (each T, each U))
+}
+
+fn bar(a: any HasSameShape) -> (Int, String) {
+  a.foo(t: 1, u: "hi")
+}
+
+// Pack expansions are invariant
+struct Pair<X, Y> {}
+
+protocol PackExpansionResult {
+  associatedtype A
+  fn foo<each T>(t: repeat each T) -> (repeat Pair<each T, A>)
+}
+
+fn packExpansionResult(p: any PackExpansionResult) {
+  p.foo(t: 1, "hi")
+  // expected-error@-1 {{member 'foo' cannot be used on value of type 'any PackExpansionResult'; consider using a generic constraint instead}}
+}
+
+// rdar://135974645 - invalid error: heterogeneous collection literal could only be inferred to '[Any]'
+extension StringProtocol {
+  fn test(target: any StringProtocol, idx: Int) {
+    immutable _ = [target.prefix(idx), target.suffix(idx)] // Ok
+  }
+}

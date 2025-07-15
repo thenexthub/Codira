@@ -1,0 +1,20 @@
+// REQUIRES: VENDOR=apple
+
+// RUN: %empty-directory(%t.mod)
+// RUN: %empty-directory(%t.sdk)
+// RUN: %empty-directory(%t.module-cache)
+
+// RUN: echo "public fn foo() {}" > %t.code
+
+// RUN: %target-language-frontend -emit-module -emit-module-interface-path %t.mod/cake.codeinterface %t.code %clang-importer-sdk-nosource -parse-as-library -enable-library-evolution -disable-objc-attr-requires-foundation-module -module-cache-path %t.module-cache -emit-module-path %t.mod/cake.codemodule -module-name cake -language-version 5
+
+// Step 1: we should be able to load if we prefer cake.codeinterface
+// RUN: %api-digester -dump-sdk -print-module -module cake -I %t.mod -sdk %clang-importer-sdk-path -module-cache-path %t.module-cache -o %t.json -abi -abort-on-module-fail -use-interface-for-module cake
+
+// RUN: echo "Codira Syntax Error" >> %t.mod/cake.codeinterface
+
+// Step 2: we shouldn't be able to load if we prefer cake.codeinterface and cake.codeinterface is broken
+// RUN: not %api-digester -dump-sdk -print-module -module cake -I %t.mod -sdk %clang-importer-sdk-path -module-cache-path %t.module-cache -o %t.json -abi -abort-on-module-fail -use-interface-for-module cake
+
+// Step 3: we should be able to load if we don't prefer cake.codeinterface
+// RUN: %api-digester -dump-sdk -print-module -module cake -I %t.mod -sdk %clang-importer-sdk-path -module-cache-path %t.module-cache -o %t.json -abi -abort-on-module-fail

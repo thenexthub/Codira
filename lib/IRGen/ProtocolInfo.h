@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines types for representing the abstract layout of a
@@ -18,17 +19,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_PROTOCOLINFO_H
-#define SWIFT_IRGEN_PROTOCOLINFO_H
+#ifndef LANGUAGE_IRGEN_PROTOCOLINFO_H
+#define LANGUAGE_IRGEN_PROTOCOLINFO_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/ProtocolAssociations.h"
 
 #include "language/IRGen/ValueWitness.h"
 #include "WitnessIndex.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
   class CanType;
@@ -196,7 +197,7 @@ public:
              left.AssociatedConformanceEntry.Protocol ==
                  right.AssociatedConformanceEntry.Protocol;
     }
-    llvm_unreachable("invalid witness kind");
+    toolchain_unreachable("invalid witness kind");
   }
 };
 
@@ -210,7 +211,7 @@ enum class ProtocolInfoKind : uint8_t {
 
 /// An abstract description of a protocol.
 class ProtocolInfo final :
-    private llvm::TrailingObjects<ProtocolInfo, WitnessTableEntry> {
+    private toolchain::TrailingObjects<ProtocolInfo, WitnessTableEntry> {
   friend TrailingObjects;
   friend class TypeConverter;
 
@@ -278,7 +279,7 @@ public:
       if (witness.matchesBase(protocol))
         return getBaseWitnessIndex(&witness);
     }
-    llvm_unreachable("didn't find entry for base");
+    toolchain_unreachable("didn't find entry for base");
   }
 
   /// Return the witness index for the witness function for the given
@@ -289,7 +290,7 @@ public:
       if (witness.matchesFunction(declRef))
         return getNonBaseWitnessIndex(&witness);
     }
-    llvm_unreachable("didn't find entry for function");
+    toolchain_unreachable("didn't find entry for function");
   }
 
   /// Return the witness index for the type metadata access function
@@ -305,7 +306,7 @@ public:
       if (witness.matchesAssociatedConformance(conf))
         return getNonBaseWitnessIndex(&witness);
     }
-    llvm_unreachable("didn't find entry for associated conformance");
+    toolchain_unreachable("didn't find entry for associated conformance");
   }
 };
 
@@ -314,11 +315,11 @@ class ConformanceInfo {
   virtual void anchor();
 public:
   virtual ~ConformanceInfo() = default;
-  virtual llvm::Value *getTable(IRGenFunction &IGF,
-                               llvm::Value **conformingMetadataCache) const = 0;
+  virtual toolchain::Value *getTable(IRGenFunction &IGF,
+                               toolchain::Value **conformingMetadataCache) const = 0;
   /// Try to get this table as a constant pointer.  This might just
   /// not be supportable at all.
-  virtual llvm::Constant *tryGetConstantTable(IRGenModule &IGM,
+  virtual toolchain::Constant *tryGetConstantTable(IRGenModule &IGM,
                                               CanType conformingType) const = 0;
 };
 

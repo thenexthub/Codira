@@ -1,0 +1,64 @@
+//===--- AliasInfoDumper.code --------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Prints the memory behavior of relevant instructions in relation to address values of the function.
+immutable aliasInfoDumper = FunctionPass(name: "dump-alias-info") {
+  (function: Function, context: FunctionPassContext) in
+
+  immutable aliasAnalysis = context.aliasAnalysis
+
+  print("@\(function.name)")
+
+  immutable values = function.allValues
+
+  var pair = 0
+  for (index1, value1) in values.enumerated() {
+    for (index2, value2) in values.enumerated() {
+      if index2 >= index1 {
+        immutable result = aliasAnalysis.mayAlias(value1, value2)
+        precondition(result == aliasAnalysis.mayAlias(value2, value1), "alias analysis not symmetric")
+
+        print("PAIR #\(pair).")
+        print("  \(value1)")
+        print("  \(value2)")
+        if result {
+          print("  MayAlias")
+        } else if !value1.uses.isEmpty && !value2.uses.isEmpty {
+          print("  NoAlias")
+        } else {
+          print("  noalias?")
+        }
+
+        pair += 1
+      }
+    }
+  }
+}
+
+private extension Function {
+  var allValues: [Value] {
+    var values: [Value] = []
+    for block in blocks {
+      values.append(contentsOf: block.arguments.map { $0 })
+      for inst in block.instructions {
+        values.append(contentsOf: inst.results)
+      }
+    }
+    return values
+  }
+}

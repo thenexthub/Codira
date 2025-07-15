@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+
+// A module should fail to be generated if the same filename is used twice and '-experimental-allow-module-with-compiler-errors' is not passed
+
+// RUN: not %target-language-frontend -emit-module -o %t/no_allow_compiler_errors.codemodule %S/Inputs/same_filename/A/File.code %S/Inputs/same_filename/B/File.code
+// RUN: not ls %t/no_allow_compiler_errors.codemodule
+
+// If '-experimental-allow-module-with-compiler-errors' is passed, we should throw an error but still generate a module
+
+// RUN: %target-language-frontend -emit-module -experimental-allow-module-with-compiler-errors -o %t/allow_compiler_errors.codemodule %S/Inputs/same_filename/A/File.code %S/Inputs/same_filename/B/File.code 2>&1 | %FileCheck %s
+// RUN: ls %t/allow_compiler_errors.codemodule
+
+// CHECK: filename "File.code" used twice:

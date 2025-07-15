@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -49,26 +50,26 @@ class SILEpilogueARCMatcherDumper : public SILModuleTransform {
       // Find the epilogue releases of each owned argument. 
       for (auto Arg : F.getArguments()) {
         auto *EA = PM->getAnalysis<EpilogueARCAnalysis>()->get(&F);
-        llvm::outs() <<"START: " <<  F.getName() << "\n";
-        llvm::outs() << *Arg;
+        toolchain::outs() <<"START: " <<  F.getName() << "\n";
+        toolchain::outs() << *Arg;
 
         // Find the retain instructions for the argument.
-        llvm::SmallSetVector<SILInstruction *, 1> RelInsts = 
+        toolchain::SmallSetVector<SILInstruction *, 1> RelInsts = 
           EA->computeEpilogueARCInstructions(EpilogueARCContext::EpilogueARCKind::Release,
                                              Arg);
         for (auto I : RelInsts) {
-          llvm::outs() << *I << "\n";
+          toolchain::outs() << *I << "\n";
         }
 
         // Find the release instructions for the argument.
-        llvm::SmallSetVector<SILInstruction *, 1> RetInsts = 
+        toolchain::SmallSetVector<SILInstruction *, 1> RetInsts = 
           EA->computeEpilogueARCInstructions(EpilogueARCContext::EpilogueARCKind::Retain,
                                              Arg);
         for (auto I : RetInsts) {
-          llvm::outs() << *I << "\n";
+          toolchain::outs() << *I << "\n";
         }
 
-        llvm::outs() <<"FINISH: " <<  F.getName() << "\n";
+        toolchain::outs() <<"FINISH: " <<  F.getName() << "\n";
       }
     }
   }
@@ -77,6 +78,6 @@ class SILEpilogueARCMatcherDumper : public SILModuleTransform {
         
 } // end anonymous namespace
 
-SILTransform *swift::createEpilogueARCMatcherDumper() {
+SILTransform *language::createEpilogueARCMatcherDumper() {
   return new SILEpilogueARCMatcherDumper();
 }

@@ -1,12 +1,12 @@
-# swift_build_support/toolchain.py ------------------------------*- python -*-
+# language_build_support/toolchain.py ------------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 """
@@ -17,9 +17,9 @@ Represent toolchain - the versioned executables.
 import os
 import platform
 
-from build_swift.build_swift import cache_utils
-from build_swift.build_swift.shell import which
-from build_swift.build_swift.wrappers import xcrun
+from build_language.build_language import cache_utils
+from build_language.build_language.shell import which
+from build_language.build_language.wrappers import xcrun
 
 from . import shell
 
@@ -57,19 +57,23 @@ _register("ninja", "ninja", "ninja-build")
 _register("cmake", "cmake")
 _register("distcc", "distcc")
 _register("distcc_pump", "distcc-pump", "pump")
-_register("llvm_profdata", "llvm-profdata")
-_register("llvm_cov", "llvm-cov")
+_register("toolchain_profdata", "toolchain-profdata")
+_register("toolchain_cov", "toolchain-cov")
 _register("lipo", "lipo")
 _register("libtool", "libtool")
 _register("ld", "ld")
 if 'ANDROID_DATA' in os.environ:
-    _register("ranlib", "llvm-ranlib")
-    _register("ar", "llvm-ar")
+    _register("ranlib", "toolchain-ranlib")
+    _register("ar", "toolchain-ar")
 else:
     _register("ranlib", "ranlib")
     _register("ar", "ar")
+_register("toolchain_ar", "toolchain-ar")
+_register("toolchain_nm", "toolchain-nm")
+_register("toolchain_ranlib", "toolchain-ranlib")
 _register("sccache", "sccache")
-_register("swiftc", "swiftc")
+_register("languagec", "languagec")
+_register("language_build", "language-build")
 
 
 class Darwin(Toolchain):
@@ -96,26 +100,26 @@ class GenericUnix(Toolchain):
         super(GenericUnix, self).__init__()
 
         # On these platforms, search 'clang', 'clang++' unconditionally.
-        # To determine the llvm_suffix.
+        # To determine the toolchain_suffix.
         ret = self.find_clang(['clang', 'clang++'], suffixes)
         if ret is None:
             self.cc = None
             self.cxx = None
-            # We don't have clang, then we don't have any llvm tools.
-            self.llvm_suffixes = []
+            # We don't have clang, then we don't have any toolchain tools.
+            self.toolchain_suffixes = []
         else:
             found, suffix = ret
             self.cc, self.cxx = found
 
             if suffix == '':
-                # Some platform may have `clang`, `clang++`, `llvm-cov-3.6`
-                # but not `llvm-cov`. In that case, we assume `clang` is
-                # corresponding to the best version of llvm tools found.
-                self.llvm_suffixes = suffixes
+                # Some platform may have `clang`, `clang++`, `toolchain-cov-3.6`
+                # but not `toolchain-cov`. In that case, we assume `clang` is
+                # corresponding to the best version of toolchain tools found.
+                self.toolchain_suffixes = suffixes
             else:
-                # Otherwise, we must have llvm tools with the same suffix as
+                # Otherwise, we must have toolchain tools with the same suffix as
                 # `clang` or `clang++`
-                self.llvm_suffixes = [suffix]
+                self.toolchain_suffixes = [suffix]
 
     def find_clang(self, tools, suffixes):
         for suffix in suffixes:
@@ -124,19 +128,19 @@ class GenericUnix(Toolchain):
                 return (ret, suffix)
         return None
 
-    def find_llvm_tool(self, tool):
-        for suffix in self.llvm_suffixes:
+    def find_toolchain_tool(self, tool):
+        for suffix in self.toolchain_suffixes:
             found = which(tool + suffix)
             if found is not None:
                 # If we found the tool with the suffix, lock suffixes to it.
-                self.llvm_suffix = [suffix]
+                self.toolchain_suffix = [suffix]
                 return found
         return None
 
     def find_tool(self, *names):
         for name in names:
-            if name.startswith('llvm-'):
-                found = self.find_llvm_tool(name)
+            if name.startswith('toolchain-'):
+                found = self.find_toolchain_tool(name)
             else:
                 found = which(name)
             if found is not None:
@@ -160,8 +164,8 @@ class FreeBSD(GenericUnix):
         sys = platform.system()
         if sys != 'FreeBSD':
             suffixes = ['']
-        # See: https://github.com/apple/swift/pull/169
-        # Building Swift from source requires a recent version of the Clang
+        # See: https://github.com/apple/language/pull/169
+        # Building Codira from source requires a recent version of the Clang
         # compiler with C++14 support.
         elif self._release_date and self._release_date >= 1100000:
             suffixes = ['']

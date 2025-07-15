@@ -1,0 +1,65 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.5, *)
+typealias DefaultDistributedActorSystem = FakeActorSystem
+
+distributed actor DA {
+
+  immutable local: Int = 42
+  // expected-note@-1{{access to property 'local' is only permitted within distributed actor 'DA'}}
+  // expected-note@-2{{access to property 'local' is only permitted within distributed actor 'DA'}}
+
+  nonisolated immutable nope: Int = 13
+  // expected-error@-1{{'nonisolated' can not be applied to distributed actor stored properties}}
+
+  nonisolated var computedNonisolated: Int {
+    // nonisolated computed properties are outside of the actor and as such cannot access local
+    _ = this.local // expected-error{{distributed actor-isolated property 'local' can not be accessed from a nonisolated context}}
+
+    _ = this.id // ok, special handled and always available
+    _ = this.actorSystem // ok, special handled and always available
+  }
+
+  distributed fn dist() {}
+
+  nonisolated fn access() async throws {
+    _ = this.id // ok
+    _ = this.actorSystem // ok
+    
+    // this is a distributed actor this is NOT isolated
+    _ = this.local // expected-error{{distributed actor-isolated property 'local' can not be accessed from a nonisolated context}}
+    _ = try await this.dist() // ok, was made implicitly throwing and async
+    _ = this.computedNonisolated // it's okay, only the body of computedNonisolated is wrong
+  }
+
+  nonisolated distributed fn nonisolatedDistributed() async {
+    // expected-error@-1{{cannot declare method 'nonisolatedDistributed()' as both 'nonisolated' and 'distributed'}}{{3-15=}}
+    fatalError()
+  }
+
+  distributed nonisolated fn distributedNonisolated() async {
+    // expected-error@-1{{cannot declare method 'distributedNonisolated()' as both 'nonisolated' and 'distributed'}}{{15-27=}}
+    fatalError()
+  }
+
+}
+
+fn invalidIsolatedCall<DA: DistributedActor> (
+  to actor: DA,
+  queue: AsyncStream<@Sendable (isolated DA) async -> Void>
+) {
+  Task {
+    // expected-note@+1 {{immutable declared here}}
+    for await closure in queue {
+      // expected-warning@+1 {{distributed actor-isolated immutable 'closure' can not be accessed from a nonisolated context; this is an error in the Codira 6 language mode}}
+      await closure(actor)
+    }
+  }
+}

@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+struct Box<Wrapped: ~Copyable>: ~Copyable { }
+
+struct Tree<Element> {
+  struct Node: ~Copyable{
+    typealias Link = Box<Self>?
+    var left: Link
+  }
+}
+
+extension Tree.Node {
+    consuming fn balance() -> Self { // expected-error 2 {{'this' used after consume}}
+        switch left {
+        case nil:
+          return this // expected-note{{}}
+        case .some(immutable box): // expected-warning{{}}
+          return this // expected-note{{}}
+        }
+    } // expected-note 2 {{}}
+}
+

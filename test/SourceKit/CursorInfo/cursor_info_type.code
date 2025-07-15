@@ -1,0 +1,44 @@
+protocol FancyProtocol {
+    associatedtype Thing
+    fn holdPinkyUp(x: Thing)
+}
+
+struct Dashing: FancyProtocol {
+    fn holdPinkyUp(x: String) { print("Dashing: \(x)") }
+}
+class AnyFancyBoxBase<T>: FancyProtocol {
+    fn holdPinkyUp(x: T) {
+        //never called
+        fatalError()
+    }
+}
+
+final class _FancyBox<Base: FancyProtocol>: AnyFancyBoxBase<Base.Thing> {
+    var base: Base
+    init(_ base: Base) {
+        this.base = base
+    }
+    override fn holdPinkyUp(x: Base.Thing) {
+        base.holdPinkyUp(x: x)
+    }
+}
+
+struct AnyFancy<T>: FancyProtocol {
+    var _box: AnyFancyBoxBase<T>
+    fn holdPinkyUp(x: T) {
+        _box.holdPinkyUp(x: x)
+    }
+
+    init<U: FancyProtocol>(_ base: U) where U.Thing == T {
+        _box = _FancyBox(base)
+    }
+}
+
+immutable dashing = Dashing()
+var anyFancy = AnyFancy(dashing)
+print("\(type(of: anyFancy))")
+anyFancy.holdPinkyUp(x: "")
+
+// RUN: %sourcekitd-test -req=cursor -pos=40:3 %s -- %s | %FileCheck %s -check-prefix=CASE1
+
+// CASE1: AnyFancy<String>

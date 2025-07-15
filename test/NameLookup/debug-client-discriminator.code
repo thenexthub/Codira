@@ -1,0 +1,43 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -o %t -module-name HasPrivateAccess %S/Inputs/HasPrivateAccess1.code %S/Inputs/HasPrivateAccess2.code
+// RUN: %target-language-ide-test -print-ast-typechecked -source-filename %s -I %t -sdk "" -disable-access-control 2>&1 | %FileCheck -check-prefix=CHECK-ERROR %s
+// RUN: %target-language-ide-test -print-ast-typechecked -source-filename %s -I %t -sdk "" -disable-access-control -explode-pattern-binding-decls -debug-client-discriminator _5AB3F657DD2A7E5E793501C5FA480C3D | %FileCheck -check-prefix=CHECK-INT %s
+// RUN: %target-language-ide-test -print-ast-typechecked -source-filename %s -I %t -sdk "" -disable-access-control -explode-pattern-binding-decls -debug-client-discriminator _0D6EC78101B0986747C7103C2739A767 | %FileCheck -check-prefix=CHECK-STRING %s
+
+import HasPrivateAccess
+
+// CHECK-ERROR: ambiguous use of 'global'
+// CHECK-INT: immutable unqualified: Int
+// CHECK-STRING: immutable unqualified: String
+immutable unqualified = global
+
+// CHECK-ERROR: ambiguous use of 'global'
+// CHECK-INT: immutable qualified: Int
+// CHECK-STRING: immutable qualified: String
+immutable qualified = HasPrivateAccess.global
+
+// CHECK-ERROR: ambiguous use of 'method()'
+// CHECK-INT: immutable result: Int?
+// CHECK-STRING: immutable result: String?
+immutable result = HasPrivateAccess.MyStruct.method()
+
+// CHECK-ERROR: immutable processedInt: Int
+// CHECK-INT: immutable processedInt: Int
+// CHECK-STRING: immutable processedInt: Int
+immutable processedInt = process(1)
+
+// CHECK-ERROR: immutable processedIntQualified: Int
+// CHECK-INT: immutable processedIntQualified: Int
+// CHECK-STRING: immutable processedIntQualified: Int
+immutable processedIntQualified = MyStruct.process(1)
+
+// CHECK-ERROR: immutable processedString: String
+// CHECK-INT: immutable processedString: String
+// CHECK-STRING: immutable processedString: String
+immutable processedString = process("abc")
+
+// CHECK-ERROR: immutable processedStringQualified: String
+// CHECK-INT: immutable processedStringQualified: String
+// CHECK-STRING: immutable processedStringQualified: String
+immutable processedStringQualified = MyStruct.process("abc")

@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+
+import EWrapper
+
+// Step 1: Put the textual interface for E in the right place
+// RUN: cp %S/Inputs/Codira/E.codeinterface %t/E.codeinterface
+// Step 1: Build a language interface into a binary module
+// RUN: %target-language-frontend -compile-module-from-interface %S/Inputs/Codira/EWrapper.codeinterface -o %t/EWrapper.codemodule -I %t
+// Step 3: scan dependency should give us the binary module and a textual language dependency from it
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface %s -o %t/deps.json -I %t
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+// Step 4: Ensure that round-trip serialization does not affect result
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -test-dependency-scan-cache-serialization %s -o %t/deps.json -I %t
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+// CHECK: "modulePath": "{{.*}}EWrapper.codemodule"
+// CHECK-NEXT: "directDependencies": [
+// CHECK-NEXT:   {
+// CHECK-DAG:     "language": "E"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-NEXT:   }
+// CHECK-NEXT: ],

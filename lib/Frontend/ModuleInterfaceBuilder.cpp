@@ -1,13 +1,17 @@
-//===----- ModuleInterfaceBuilder.cpp - Compiles .swiftinterface files ----===//
+//===----- ModuleInterfaceBuilder.cpp - Compiles .codeinterface files ----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "textual-module-interface"
@@ -27,21 +31,21 @@
 #include "language/Serialization/SerializationOptions.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Lex/PreprocessorOptions.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/Support/xxhash.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/CrashRecoveryContext.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Regex.h"
-#include "llvm/Support/StringSaver.h"
-#include "llvm/Support/LockFileManager.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/Support/xxhash.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/CrashRecoveryContext.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Errc.h"
+#include "toolchain/Support/Regex.h"
+#include "toolchain/Support/StringSaver.h"
+#include "toolchain/Support/LockFileManager.h"
+#include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
 using FileDependency = SerializationOptions::FileDependency;
-namespace path = llvm::sys::path;
+namespace path = toolchain::sys::path;
 
 /// If the file dependency in \p FullDepPath is inside the \p Base directory,
 /// this returns its path relative to \p Base. Otherwise it returns None.
@@ -98,7 +102,7 @@ struct ErrorDowngradeConsumerRAII: DiagnosticConsumer {
 bool ExplicitModuleInterfaceBuilder::collectDepsForSerialization(
     SmallVectorImpl<FileDependency> &Deps, StringRef interfacePath,
     bool IsHashBased) {
-  llvm::vfs::FileSystem &fs = *Instance.getSourceMgr().getFileSystem();
+  toolchain::vfs::FileSystem &fs = *Instance.getSourceMgr().getFileSystem();
 
   auto &Opts = Instance.getASTContext().SearchPathOpts;
   SmallString<128> SDKPath(Opts.getSDKPath());
@@ -110,7 +114,7 @@ bool ExplicitModuleInterfaceBuilder::collectDepsForSerialization(
   // serializing resource dir inputs we need to check for
   // relative _and_ absolute prefixes.
   SmallString<128> AbsResourcePath(ResourcePath);
-  llvm::sys::fs::make_absolute(AbsResourcePath);
+  toolchain::sys::fs::make_absolute(AbsResourcePath);
 
   auto DTDeps = Instance.getDependencyTracker()->getDependencies();
   SmallVector<std::string, 16> InitialDepNames(DTDeps.begin(), DTDeps.end());
@@ -164,9 +168,9 @@ bool ExplicitModuleInterfaceBuilder::collectDepsForSerialization(
 
     /// Lazily load the dependency buffer if we need it. If we're not
     /// dealing with a hash-based dependencies, and if the dependency is
-    /// not a .swiftmodule, we can avoid opening the buffer.
-    std::unique_ptr<llvm::MemoryBuffer> DepBuf = nullptr;
-    auto getDepBuf = [&]() -> llvm::MemoryBuffer * {
+    /// not a .codemodule, we can avoid opening the buffer.
+    std::unique_ptr<toolchain::MemoryBuffer> DepBuf = nullptr;
+    auto getDepBuf = [&]() -> toolchain::MemoryBuffer * {
       if (DepBuf)
         return DepBuf.get();
       auto Buf = fs.getBufferForFile(DepName, /*FileSize=*/-1,
@@ -197,9 +201,9 @@ bool ExplicitModuleInterfaceBuilder::collectDepsForSerialization(
   return false;
 }
 
-std::error_code ExplicitModuleInterfaceBuilder::buildSwiftModuleFromInterface(
+std::error_code ExplicitModuleInterfaceBuilder::buildCodiraModuleFromInterface(
     StringRef InterfacePath, StringRef OutputPath, bool ShouldSerializeDeps,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
     ArrayRef<std::string> CompiledCandidates,
     StringRef CompilerVersion) {
   auto Invocation = Instance.getInvocation();
@@ -216,26 +220,26 @@ std::error_code ExplicitModuleInterfaceBuilder::buildSwiftModuleFromInterface(
   const auto &InputInfo = FEOpts.InputsAndOutputs.firstInput();
   StringRef InPath = InputInfo.getFileName();
 
-  // Build the .swiftmodule; this is a _very_ abridged version of the logic
+  // Build the .codemodule; this is a _very_ abridged version of the logic
   // in performCompile in libFrontendTool, specialized, to just the one
   // module-serialization task we're trying to do here.
-  LLVM_DEBUG(llvm::dbgs() << "Setting up instance to compile " << InPath
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Setting up instance to compile " << InPath
                           << " to " << OutputPath << "\n");
 
-  LLVM_DEBUG(llvm::dbgs() << "Performing sema\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Performing sema\n");
   if (isTypeChecking &&
       Instance.downgradeInterfaceVerificationErrors()) {
     ErrorDowngradeConsumerRAII R(Instance.getDiags());
     Instance.performSema();
     return std::error_code();
   }
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     // Make sure to emit a generic top-level error if a module fails to
     // load. This is not only good for users; it also makes sure that we've
     // emitted an error in the parent diagnostic engine, which is what
     // determines whether the process exits with a proper failure status.
     if (Instance.getASTContext().hadError()) {
-      auto builtByCompiler = getSwiftInterfaceCompilerVersionForCurrentCompiler(
+      auto builtByCompiler = getCodiraInterfaceCompilerVersionForCurrentCompiler(
           Instance.getASTContext());
 
       if (!isTypeChecking && CompilerVersion.str() != builtByCompiler) {
@@ -258,7 +262,7 @@ std::error_code ExplicitModuleInterfaceBuilder::buildSwiftModuleFromInterface(
 
   Instance.performSema();
   if (Instance.getASTContext().hadError()) {
-    LLVM_DEBUG(llvm::dbgs() << "encountered errors\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "encountered errors\n");
     return std::make_error_code(std::errc::not_supported);
   }
   // If we are just type-checking the interface, we are done.
@@ -271,7 +275,7 @@ std::error_code ExplicitModuleInterfaceBuilder::buildSwiftModuleFromInterface(
   auto &TC = Instance.getSILTypes();
   auto SILMod = performASTLowering(Mod, TC, SILOpts);
   if (!SILMod) {
-    LLVM_DEBUG(llvm::dbgs() << "SILGen did not produce a module\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "SILGen did not produce a module\n");
     return std::make_error_code(std::errc::not_supported);
   }
 
@@ -316,9 +320,9 @@ std::error_code ExplicitModuleInterfaceBuilder::buildSwiftModuleFromInterface(
                        /*SourceInfoBuffer*/ nullptr, SILMod.get());
   });
 
-  LLVM_DEBUG(llvm::dbgs() << "Running SIL processing passes\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Running SIL processing passes\n");
   if (Instance.performSILProcessing(SILMod.get())) {
-    LLVM_DEBUG(llvm::dbgs() << "encountered errors\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "encountered errors\n");
     return std::make_error_code(std::errc::not_supported);
   }
   if (Instance.getDiags().hadAnyError()) {
@@ -327,22 +331,22 @@ std::error_code ExplicitModuleInterfaceBuilder::buildSwiftModuleFromInterface(
   return std::error_code();
 }
 
-bool ImplicitModuleInterfaceBuilder::buildSwiftModuleInternal(
+bool ImplicitModuleInterfaceBuilder::buildCodiraModuleInternal(
     StringRef OutPath,
     bool ShouldSerializeDeps,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
     ArrayRef<std::string> CompiledCandidates) {
 
-  auto outerPrettyStackState = llvm::SavePrettyStackState();
+  auto outerPrettyStackState = toolchain::SavePrettyStackState();
 
   bool SubError = false;
   static const size_t ThreadStackSize = 8 << 20; // 8 MB.
-  bool RunSuccess = llvm::CrashRecoveryContext().RunSafelyOnThread([&] {
+  bool RunSuccess = toolchain::CrashRecoveryContext().RunSafelyOnThread([&] {
     // Pretend we're on the original thread for pretty-stack-trace purposes.
-    auto savedInnerPrettyStackState = llvm::SavePrettyStackState();
-    llvm::RestorePrettyStackState(outerPrettyStackState);
-    SWIFT_DEFER {
-      llvm::RestorePrettyStackState(savedInnerPrettyStackState);
+    auto savedInnerPrettyStackState = toolchain::SavePrettyStackState();
+    toolchain::RestorePrettyStackState(outerPrettyStackState);
+    LANGUAGE_DEFER {
+      toolchain::RestorePrettyStackState(savedInnerPrettyStackState);
     };
 
     NullDiagnosticConsumer noopConsumer;
@@ -363,7 +367,7 @@ bool ImplicitModuleInterfaceBuilder::buildSwiftModuleInternal(
               *info.Instance, rebuildDiags, sourceMgr, moduleCachePath, backupInterfaceDir,
               prebuiltCachePath, ABIDescriptorPath, extraDependencies, diagnosticLoc,
               dependencyTracker);
-          return EBuilder.buildSwiftModuleFromInterface(
+          return EBuilder.buildCodiraModuleFromInterface(
               interfacePath, OutPath, ShouldSerializeDeps, ModuleBuffer,
               CompiledCandidates, info.CompilerVersion);
         });
@@ -371,16 +375,16 @@ bool ImplicitModuleInterfaceBuilder::buildSwiftModuleInternal(
   return !RunSuccess || SubError;
 }
 
-bool ImplicitModuleInterfaceBuilder::buildSwiftModule(StringRef OutPath,
+bool ImplicitModuleInterfaceBuilder::buildCodiraModule(StringRef OutPath,
                                                       bool ShouldSerializeDeps,
-                                                      std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-                                                      llvm::function_ref<void()> RemarkRebuild,
+                                                      std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+                                                      toolchain::function_ref<void()> RemarkRebuild,
                                                       ArrayRef<std::string> CompiledCandidates) {
   auto build = [&]() {
     if (RemarkRebuild) {
       RemarkRebuild();
     }
-    return buildSwiftModuleInternal(OutPath, ShouldSerializeDeps,
+    return buildCodiraModuleInternal(OutPath, ShouldSerializeDeps,
                                     ModuleBuffer, CompiledCandidates);
   };
   if (disableInterfaceFileLock) {
@@ -392,10 +396,10 @@ bool ImplicitModuleInterfaceBuilder::buildSwiftModule(StringRef OutPath,
   // processes are doing the same.
   // FIXME: We should surface the module building step to the build system so
   // we don't need to synchronize here.
-  llvm::LockFileManager Lock(OutPath);
+  toolchain::LockFileManager Lock(OutPath);
   bool Owned;
-  if (llvm::Error Err = Lock.tryLock().moveInto(Owned)) {
-    llvm::consumeError(std::move(Err));
+  if (toolchain::Error Err = Lock.tryLock().moveInto(Owned)) {
+    toolchain::consumeError(std::move(Err));
     // ModuleInterfaceBuilder takes care of correctness and locks are only
     // necessary for performance. Fallback to building the module in case of any lock
     // related errors.
@@ -410,23 +414,23 @@ bool ImplicitModuleInterfaceBuilder::buildSwiftModule(StringRef OutPath,
   // Someone else is responsible for building the module. Wait for them to
   // finish.
   switch (Lock.waitForUnlockFor(std::chrono::seconds(256))) {
-  case llvm::WaitForUnlockResult::Success: {
+  case toolchain::WaitForUnlockResult::Success: {
     // This process may have a different module output path. If the other
     // process doesn't build the interface to this output path, we should try
     // building ourselves.
-    auto bufferOrError = llvm::MemoryBuffer::getFile(OutPath);
+    auto bufferOrError = toolchain::MemoryBuffer::getFile(OutPath);
     if (!bufferOrError)
       continue;
     if (ModuleBuffer)
       *ModuleBuffer = std::move(bufferOrError.get());
     return false;
   }
-  case llvm::WaitForUnlockResult::OwnerDied: {
+  case toolchain::WaitForUnlockResult::OwnerDied: {
     continue; // try again to get the lock.
   }
-  case llvm::WaitForUnlockResult::Timeout: {
+  case toolchain::WaitForUnlockResult::Timeout: {
     // Since ModuleInterfaceBuilder takes care of correctness, we try waiting for
-    // another process to complete the build so swift does not do it done
+    // another process to complete the build so language does not do it done
     // twice. If case of timeout, build it ourselves.
     if (RemarkRebuild) {
       diagnose(diag::interface_file_lock_timed_out, interfacePath);

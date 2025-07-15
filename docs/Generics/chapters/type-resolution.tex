@@ -9,7 +9,7 @@
 Type resolution builds the \index{resolved type!z@\igobble|see{type resolution}}\emph{resolved type} by consulting the type representation itself, as well as contextual information describing where the type representation appears:
 \begin{enumerate}
 \item Identifier type representations are resolved by unqualified lookup of their identifier; this depends on the type representation's source location. For example, a type representation might name a generic parameter declared in the current scope.
-\item Certain type representations are also resolved based on their semantic position. For example, a function type representation appearing in parameter position resolves to a \index{non-escaping function type}non-escaping function type unless annotated with the \texttt{@escaping} attribute; in any other position, a function type representation resolves to an \index{escaping function type}escaping function type. This behavior was introduced in \IndexSwift{3.0}Swift~3~\cite{se0103}.
+\item Certain type representations are also resolved based on their semantic position. For example, a function type representation appearing in parameter position resolves to a \index{non-escaping function type}non-escaping function type unless annotated with the \texttt{@escaping} attribute; in any other position, a function type representation resolves to an \index{escaping function type}escaping function type. This behavior was introduced in \IndexCodira{3.0}Codira~3~\cite{se0103}.
 \end{enumerate}
 We encode contextual information in the \IndexDefinition{type resolution context}\emph{type resolution context}, consisting of the below:
 \begin{enumerate}
@@ -66,7 +66,7 @@ struct Outer<T> {
 
   struct GenericInner<U> {
     // Return type of `f' is `Outer<T>.GenericInner<U>'
-    func f() -> GenericInner {}
+    fn f() -> GenericInner {}
   }
 }
 \end{Verbatim}
@@ -96,7 +96,7 @@ protocol Proto: Derived {}
 
 extension Proto {
   // Return type of `f' is `Base<Int>.Inner'
-  func f() -> Inner {}
+  fn f() -> Inner {}
 }
 \end{Verbatim}
 
@@ -104,7 +104,7 @@ extension Proto {
 Unqualified lookup will find \index{generic parameter declaration}generic parameter declarations if any of the outer declaration contexts have \index{generic parameter list}generic parameter lists.
 \begin{Verbatim}
 struct G<T> {
-  func f<U>(...) {
+  fn f<U>(...) {
     var x: T = ...    // Canonical type of `x' is τ_0_0
     var y: U = ...    // Canonical type of `y' is τ_1_0
   }
@@ -117,7 +117,7 @@ Speaking of \tSelf, inside a protocol or protocol extension this refers to the \
 \begin{Verbatim}
 protocol Proto {
   // Return type of `f' is the `Self' generic parameter of `Proto'
-  func f() -> Self
+  fn f() -> Self
 }
 \end{Verbatim}
 
@@ -125,7 +125,7 @@ Inside the source range of a \index{struct type}struct or \index{enum type}enum 
 \begin{Verbatim}
 struct Outer<T> {
   // Return type of `f' is `Outer<T>'
-  func f() -> Self {}
+  fn f() -> Self {}
 }
 \end{Verbatim}
 
@@ -135,19 +135,19 @@ extension Outer {
   class InnerClass {
     // Return type of `f' is the dynamic Self type of
     // `Outer<T>.InnerClass'
-    func f() -> Self {}
+    fn f() -> Self {}
   }
 }
 \end{Verbatim}
 
-We previously described the dynamic \tSelf\ type in \SecRef{misc types}. Historically, Swift only had \tSelf\ in protocols and dynamic \tSelf\ in classes, and the latter could only appear in the return type of a method. \IndexSwift{5.1}Swift~5.1 introduced the ability to state dynamic \tSelf\ in more positions, and also refer to ``static'' \tSelf\ inside struct and enum declarations~\cite{se0068}.
+We previously described the dynamic \tSelf\ type in \SecRef{misc types}. Historically, Codira only had \tSelf\ in protocols and dynamic \tSelf\ in classes, and the latter could only appear in the return type of a method. \IndexCodira{5.1}Codira~5.1 introduced the ability to state dynamic \tSelf\ in more positions, and also refer to ``static'' \tSelf\ inside struct and enum declarations~\cite{se0068}.
 
 \paragraph{Type aliases.}
 Identifier type representations can also refer to type alias declarations, generalizing the behavior described for nominal type declarations above. Once again, we take the declared interface type of the type alias declaration, and possibly apply a substitution map. While the declared interface type of a nominal type declaration is a nominal type, the \index{declared interface type!type alias declaration}declared interface type of a \index{type alias declaration}type alias declaration is a \index{type alias type}type alias type. This is a sugared type, \index{canonical type}canonically equal to the \index{underlying type}underlying type of the type alias declaration.
 
 If the named type alias declaration is in a local context, the resolved type is the declared interface type, with no substitution map applied:
 \begin{Verbatim}
-func f<T>() {
+fn f<T>() {
   typealias A = (Int, T)
 
   // Interface type of `a' is canonically equal to `(Int, T)'
@@ -163,7 +163,7 @@ class Base<T> {
 
 class Derived: Base<Int> {
   // Return type of `f' is canonically equal to `Optional<Int>'
-  func f() -> InnerAlias {}
+  fn f() -> InnerAlias {}
 }
 \end{Verbatim}
 
@@ -197,8 +197,8 @@ struct S: Pair {
   var b: String  // `B == String' is inferred from `b'
 
   // Return type of `f' and `g' is canonically equal to `String'
-  func f() -> B {}
-  func g() -> B {}
+  fn f() -> B {}
+  fn g() -> B {}
 }
 \end{Verbatim}
 
@@ -211,7 +211,7 @@ Resolving the return type of \texttt{g()}, we now find the type alias \texttt{S.
 \paragraph{Modules.}
 A \index{module declaration!type resolution}module declaration is a special kind of type declaration that can only be used as the base of a member type representation. Otherwise a bare module is an error:
 \begin{Verbatim}
-_ = Swift.self  // error: expected module member name after module name
+_ = Codira.self  // error: expected module member name after module name
 \end{Verbatim}
 Of course \index{import declaration}\texttt{import} declarations are usually followed by a bare module name, but they are resolved by different means than type resolution.
 
@@ -250,7 +250,7 @@ The resolved types obtained this way include nominal types, dependent member typ
 \paragraph{Module base.}
 When the base is an identifier naming a module, the member type representation refers to a top-level type declaration within this module:
 \begin{Verbatim}
-var x: Swift.Int = ...
+var x: Codira.Int = ...
 \end{Verbatim}
 The type declarations referenced this way are those that can appear at the top level of a module, namely nominal types and type aliases. The resolved type is the declared interface type of the declaration.
 
@@ -294,7 +294,7 @@ protocol Subscriber {
   typealias Content = Self.Parent.Entity  // or just Parent.Entity
 }
 
-func process<T: Sequence>(_: T) where T.Element: Subscriber {
+fn process<T: Sequence>(_: T) where T.Element: Subscriber {
   // Interface type of `x' is canonically equal to
   // `T.Element.Parent.Entity'
   let x: T.Element.Content = ...
@@ -313,7 +313,7 @@ References to associated type declarations and protocol type aliases are resolve
 
 \emph{Structural resolution stage.} Before we talk about type parameter bases subject to superclass or concrete type requirements, let's take a moment to describe the \index{structural resolution stage}structural resolution stage. In the \index{structural resolution stage}structural resolution stage, we don't have a generic signature, so we cannot perform generic signature queries or qualified lookup. Instead, a member type representation with a type parameter base always resolves to an \index{unbound dependent member type!type resolution}unbound dependent member type formed from the base type and identifier. First, we need an example where structural resolution actually takes place. We can take the \texttt{Provider} protocol declared prior, and write a function with a trailing \Index{where clause@\texttt{where} clause!type resolution}\texttt{where} clause:
 \begin{Verbatim}
-func f<T: Provider>(_: T) where T.Entity: Equatable {...}
+fn f<T: Provider>(_: T) where T.Entity: Equatable {...}
 \end{Verbatim}
 The \Request{generic signature request} resolves the type representation \texttt{T.Entity} in the structural resolution stage, to obtain the unbound dependent member type \texttt{T.Entity}. We have two user-written requirements, from which we build our generic signature:
 \[\{\ConfReq{T}{Provider},\,\ConfReq{T.Entity}{Equatable}\}\]
@@ -329,7 +329,7 @@ We discussed bound and unbound dependent member types in \SecRef{bound type para
 
 Suppose now we change \texttt{f()}, to add the invalid requirement $\ConfReq{T.Foo}{Equatable}$:
 \begin{Verbatim}
-func f<T: Provider>(_: T)
+fn f<T: Provider>(_: T)
     where T.Entity: Equatable, T.Foo: Equatable {...}
 \end{Verbatim}
 The invalid requirement will be dropped by requirement minimization, and the \Request{generic signature request} does not emit any diagnostics. Instead, the invalid member type representation \texttt{T.Foo} will be diagnosed by \Request{type-check source file request}, because qualified lookup would fail to find a member type named \texttt{Foo} in \texttt{Provider} when we revisit the \texttt{where} clause in interface resolution stage.  We will resume the discussion of how invalid requirements are diagnosed in \SecRef{generic signature validity}.
@@ -338,7 +338,7 @@ The invalid requirement will be dropped by requirement minimization, and the \Re
 
 Next, we look at this function \texttt{g()}, which references our previously-seen protocol type alias \texttt{Content} from its trailing \texttt{where} clause.
 \begin{Verbatim}
-func g<T: Sequence>(_: T)
+fn g<T: Sequence>(_: T)
     where T.Element: Subscriber, T.Element.Content: Equatable {...}
 \end{Verbatim}
 Here, we form the requirement $\ConfReq{T.Element.Content}{Equatable}$ whose subject type is the unbound dependent member type \texttt{T.Element.Content}. Indeed, this is not a type alias type at all. As we will learn in \SecRef{protocol type aliases}, protocol type aliases introduce rewrite rules, and the computation of reduced types replaces the unbound dependent member type with the underlying type of the \index{protocol type alias}protocol type alias. In this case, we get a generic signature with a requirement having quite the long subject type,
@@ -423,11 +423,11 @@ struct Pasta<Flavor> {}
 protocol Plant {
   associatedtype Sauce
   typealias Food = Pasta<Sauce>
-  consuming func process() -> Sauce
+  consuming fn process() -> Sauce
 }
 
 struct Tomato: Plant {
-  consuming func process() -> Ketchup {...}
+  consuming fn process() -> Ketchup {...}
 }
 
 // Interface type of `x' is canonically equal to `Ketchup'
@@ -465,7 +465,7 @@ protocol Pet {
 }
 
 // `Pet.Age' is just another spelling for `Int'
-func celebratePetBirthday(_ age: Pet.Age) {}
+fn celebratePetBirthday(_ age: Pet.Age) {}
 \end{Verbatim}
 
 Due to peculiarities of type substitution, \index{generic type alias}protocol type aliases that are also \index{generic type alias}generic are always considered to depend on \tSelf, even if their underlying type does not reference \tSelf, so they \index{limitation!generic type alias with protocol base}cannot be referenced with a protocol base. (In structural resolution stage, a generic type alias cannot be referenced with a \index{limitation!generic type alias with type parameter base}type parameter base, either. Perhaps it is best not to stick generic type aliases inside protocols, at all.)
@@ -489,7 +489,7 @@ This is called a \IndexDefinition{context substitution map!for a declaration con
 
 The context substitution map of a type for a declaration context also arises when type checking \index{member reference expression}member reference \index{expression}expressions, like ``\texttt{foo.bar}'', that appear in a function body. In this case, qualified lookup will find any member named \texttt{bar}, not just a type declaration, and the type of the expression is computed by applying the corresponding context substitution map to the \index{interface type!type resolution}interface type of \texttt{bar}.
 
-\paragraph{History.} In pre-evolution Swift, associated type declarations in protocols were declared with the \texttt{typealias} keyword, and \index{protocol type alias}protocol type aliases did not exist. \IndexSwift{2.2}Swift 2.2 added the distinct \texttt{associatedtype} keyword for declaring associated types, to make space for protocol type aliases in the language~\cite{se0011}. Protocol type aliases were then introduced as part of \IndexSwift{3.0}Swift 3 \cite{se0092}.
+\paragraph{History.} In pre-evolution Codira, associated type declarations in protocols were declared with the \texttt{typealias} keyword, and \index{protocol type alias}protocol type aliases did not exist. \IndexCodira{2.2}Codira 2.2 added the distinct \texttt{associatedtype} keyword for declaring associated types, to make space for protocol type aliases in the language~\cite{se0011}. Protocol type aliases were then introduced as part of \IndexCodira{3.0}Codira 3 \cite{se0092}.
 
 \paragraph{Caching the type declaration.} Having computed the resolved type of an identifier or member type representation, we stash the resolved type declaration within our type representation, as a sort of cache. If the type representation is resolved again (perhaps once in the \index{type resolution stage}structural stage, and then again in the interface stage), we skip name lookup and proceed directly to computing the resolved type from the stored type declaration. The optimization was more profitable in the past, when type resolution actually had \emph{three} stages. The third stage would resolve interface types to archetypes, but it has since been subsumed by the \index{map type into environment}\textbf{map type into environment} operation on \index{generic environment}generic environments. We also pre-populate this cache when parsing textual \index{SIL}SIL, by assigning a type declaration to certain type representations. Name lookup would otherwise not find these declarations, because of SIL syntax oddities that we're not going to discuss here.
 
@@ -833,7 +833,7 @@ _ = GenericAlias<Int>.Nested(value: 123)  // OK
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/TypeResolutionStage.h}
+\item \SourceFile{include/language/AST/TypeResolutionStage.h}
 \item \SourceFile{lib/Sema/TypeCheckType.h}
 \item \SourceFile{lib/Sema/TypeCheckType.cpp}
 \end{itemize}
@@ -943,7 +943,7 @@ A recursive visitor, internal to the implementation of type resolution. The meth
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/TypeRepr.h}
+\item \SourceFile{include/language/AST/TypeRepr.h}
 \item \SourceFile{lib/Sema/TypeCheckType.cpp}
 \end{itemize}
 
@@ -1040,7 +1040,7 @@ Determines if a member type access is invalid. This includes such oddities as ac
 \subsection*{Applying Generic Arguments}
 
 \begin{itemize}
-\item \SourceFile{include/swift/AST/Requirement.h}
+\item \SourceFile{include/language/AST/Requirement.h}
 \item \SourceFile{lib/AST/Requirement.cpp}
 \item \SourceFile{lib/Sema/TypeCheckGeneric.cpp}
 \end{itemize}

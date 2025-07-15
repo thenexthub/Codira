@@ -1,6 +1,6 @@
-# Swift Runtime Libraries
+# Codira Runtime Libraries
 
-This directory contains the pieces of the Swift runtime libraries.
+This directory contains the pieces of the Codira runtime libraries.
 
 ## Development
 
@@ -13,7 +13,7 @@ $ cmake -P Resync.cmake
 ```
 
 > [!IMPORTANT]
-> Re-run this script after updating your Swift checkout to ensure that you are
+> Re-run this script after updating your Codira checkout to ensure that you are
 > building the latest standard library sources.
 
 Once the migration is completed, we will be deleting this script. It
@@ -53,23 +53,23 @@ The _Core_ project contains the basic datatypes and underpinnings used by the
 rest of the libraries that make up the standard library. The _Core_ libraries
 must be built first.
 The _Core_ project provides the following libraries:
- - `swiftCore`
- - `swift_Concurrency`
- - `SwiftOnoneSupport`
+ - `languageCore`
+ - `language_Concurrency`
+ - `CodiraOnoneSupport`
  - `CommandLine`
  - `Demangling`
  - `Runtime`
  - `LLVMSupport`
  - `StdlibStubs`
  - `Threading`
- - `SwiftShim`
+ - `CodiraShim`
 
-These libraries must work across the platforms that Swift supports.
+These libraries must work across the platforms that Codira supports.
 
 ### Overlay
 
 The Overlay project contains a few default platform overlay libraries. A
-platform overlay is responsible for exposing the system libraries into Swift in
+platform overlay is responsible for exposing the system libraries into Codira in
 an ergonomic fashion. On most systems, this exposes the C standard library and a
 few other libraries that are normally available on that system. The overlay
 libraries are allowed to depend on any of the runtime libraries provided by the
@@ -81,7 +81,7 @@ used across platforms.
 ### Supplemental
 
 The supplemental libraries provide the remainder of the standard distribution of
-libraries provided by Swift.
+libraries provided by Codira.
 
 The Supplemental libraries include:
  - `RegexParser`

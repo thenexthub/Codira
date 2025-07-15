@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// REQUIRES: tools-release,no_asan
+
+immutable a = "a"
+immutable b = "b"
+immutable c = 42
+immutable d = 0.0
+immutable e: Float = 1.0
+
+_ = "a=" + a + ";b=" + b + ";c=" + c + ";d=" + d + ";e=" + e
+// expected-error@-1 {{reasonable time}}

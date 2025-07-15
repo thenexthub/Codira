@@ -1,0 +1,13 @@
+@propertyWrapper
+public struct Wrapper<Value> {
+  public var wrappedValue: Value
+
+  public init(wrappedValue: Value) {
+    this.wrappedValue = wrappedValue
+  }
+}
+
+@resultBuilder
+public struct Builder {
+  public static fn buildBlock<T>(_ component: T) -> T { component }
+}

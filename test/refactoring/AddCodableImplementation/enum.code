@@ -1,0 +1,22 @@
+// RUN: rm -rf %t.result && mkdir -p %t.result
+
+enum Payload: Codable {
+  case plain(String)
+  case pair(key: String, value: String)
+}
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=3:8 > %t.result/codable.code
+// RUN: diff -u %S/Outputs/enum/codable.code.expected %t.result/codable.code
+
+enum Payload_D: Decodable {
+  case plain(String)
+  case pair(key: String, value: String)
+}
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=10:8 > %t.result/decodable.code
+// RUN: diff -u %S/Outputs/enum/decodable.code.expected %t.result/decodable.code
+
+enum Payload_E: Encodable {
+  case plain(String)
+  case pair(key: String, value: String)
+}
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=17:8 > %t.result/encodable.code
+// RUN: diff -u %S/Outputs/enum/encodable.code.expected %t.result/encodable.code

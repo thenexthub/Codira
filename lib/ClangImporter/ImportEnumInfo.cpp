@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides EnumInfo, which describes a Clang enum ready to be
@@ -29,7 +30,7 @@
 #include "clang/Lex/MacroInfo.h"
 #include "clang/Lex/Preprocessor.h"
 
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 #define DEBUG_TYPE "Enum Info"
 STATISTIC(EnumInfoNumCacheHits, "# of times the enum info cache was hit");
 STATISTIC(EnumInfoNumCacheMisses, "# of times the enum info cache was missed");
@@ -71,14 +72,14 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
 
   // Anonymous enumerations simply get mapped to constants of the
   // underlying type of the enum, because there is no way to conjure up a
-  // name for the Swift type.
+  // name for the Codira type.
   if (!decl->hasNameForLinkage()) {
     // If this enum comes from a typedef, we can find a name.
     const clang::Type *underlyingType = getUnderlyingType(decl);
     if (!isa<clang::TypedefType>(underlyingType) ||
-        // If the typedef is available in Swift, the user will get ambiguity.
+        // If the typedef is available in Codira, the user will get ambiguity.
         // It also means they may not have intended this API to be imported like this.
-        !importer::isUnavailableInSwift(
+        !importer::isUnavailableInCodira(
             cast<clang::TypedefType>(underlyingType)->getDecl(),
             nullptr, true)) {
       kind = EnumKind::Constants;
@@ -112,7 +113,7 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
 
   // If API notes have /removed/ a FlagEnum or EnumExtensibility attribute,
   // then we don't need to check the macros.
-  for (auto *attr : decl->specific_attrs<clang::SwiftVersionedAdditionAttr>()) {
+  for (auto *attr : decl->specific_attrs<clang::CodiraVersionedAdditionAttr>()) {
     if (!attr->getIsReplacedByActive())
       continue;
     if (isa<clang::FlagEnumAttr>(attr->getAdditionalAttr()) ||
@@ -124,19 +125,19 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
 
   // Was the enum declared using *_ENUM or *_OPTIONS?
   // FIXME: Stop using these once flag_enum and enum_extensibility
-  // have been adopted everywhere, or at least relegate them to Swift 4 mode
+  // have been adopted everywhere, or at least relegate them to Codira 4 mode
   // only.
   auto loc = decl->getBeginLoc();
   if (loc.isMacroID()) {
     StringRef MacroName = pp.getImmediateMacroName(loc);
     if (MacroName == "CF_ENUM" || MacroName == "__CF_NAMED_ENUM" ||
-        MacroName == "OBJC_ENUM" || MacroName == "SWIFT_ENUM" ||
-        MacroName == "SWIFT_ENUM_NAMED") {
+        MacroName == "OBJC_ENUM" || MacroName == "LANGUAGE_ENUM" ||
+        MacroName == "LANGUAGE_ENUM_NAMED") {
       kind = EnumKind::NonFrozenEnum;
       return;
     }
     if (MacroName == "CF_OPTIONS" || MacroName == "OBJC_OPTIONS" ||
-        MacroName == "SWIFT_OPTIONS") {
+        MacroName == "LANGUAGE_OPTIONS") {
       kind = EnumKind::Options;
       return;
     }
@@ -164,7 +165,7 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
 /// changed from its initial value.
 ///
 /// This is used to derive the common prefix of enum constants so we can elide
-/// it from the Swift interface.
+/// it from the Codira interface.
 StringRef importer::getCommonWordPrefix(StringRef a, StringRef b,
                                         bool &followedByNonIdentifier) {
   auto aWords = camel_case::getWords(a), bWords = camel_case::getWords(b);
@@ -247,10 +248,44 @@ StringRef importer::getCommonPluralPrefix(StringRef singular,
 }
 
 const clang::Type *importer::getUnderlyingType(const clang::EnumDecl *decl) {
-  const clang::Type *underlyingType = decl->getIntegerType().getTypePtr();
-  if (auto elaborated = dyn_cast<clang::ElaboratedType>(underlyingType))
-    underlyingType = elaborated->desugar().getTypePtr();
-  return underlyingType;
+  return importer::desugarIfElaborated(decl->getIntegerType().getTypePtr());
+}
+
+ImportedType importer::findOptionSetEnum(clang::QualType type,
+                                         ClangImporter::Implementation &Impl) {
+  auto typedefType = dyn_cast<clang::TypedefType>(type);
+  if (!typedefType || !Impl.isUnavailableInCodira(typedefType->getDecl()))
+    // If this isn't a typedef, or it is a typedef that is available in Codira,
+    // then this definitely isn't used for {CF,NS}_OPTIONS.
+    return ImportedType();
+
+  if (Impl.CodiraContext.LangOpts.EnableCXXInterop &&
+      !isCFOptionsMacro(typedefType->getDecl(), Impl.getClangPreprocessor())) {
+    return ImportedType();
+  }
+
+  auto clangEnum = findAnonymousEnumForTypedef(Impl.CodiraContext, typedefType);
+  if (!clangEnum)
+    return ImportedType();
+
+  // Assert that the typedef has the same underlying integer representation as
+  // the enum we think it assigns a type name to.
+  //
+  // If these fails, it means that we need a stronger predicate for
+  // determining the relationship between an enum and typedef.
+  if (auto *tdEnum =
+          dyn_cast<clang::EnumType>(typedefType->getCanonicalTypeInternal())) {
+    ASSERT(clangEnum.value()->getIntegerType()->getCanonicalTypeInternal() ==
+           tdEnum->getDecl()->getIntegerType()->getCanonicalTypeInternal());
+  } else {
+    ASSERT(clangEnum.value()->getIntegerType()->getCanonicalTypeInternal() ==
+           typedefType->getCanonicalTypeInternal());
+  }
+
+  if (auto *languageEnum = Impl.importDecl(*clangEnum, Impl.CurrentVersion))
+    return {cast<TypeDecl>(languageEnum)->getDeclaredInterfaceType(), false};
+
+  return ImportedType();
 }
 
 /// Determine the prefix to be stripped from the names of the enum constants
@@ -260,7 +295,7 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
   case EnumKind::NonFrozenEnum:
   case EnumKind::FrozenEnum:
   case EnumKind::Options:
-    // Enums are mapped to Swift enums, Options to Swift option sets, both
+    // Enums are mapped to Codira enums, Options to Codira option sets, both
     // of which attempt prefix-stripping.
     break;
 
@@ -279,20 +314,20 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
   // specifically-provided name.
   auto isNonDeprecatedWithoutCustomName = [](
       const clang::EnumConstantDecl *elem) -> bool {
-    if (elem->hasAttr<clang::SwiftNameAttr>())
+    if (elem->hasAttr<clang::CodiraNameAttr>())
       return false;
 
-    llvm::VersionTuple maxVersion{~0U, ~0U, ~0U};
+    toolchain::VersionTuple maxVersion{~0U, ~0U, ~0U};
     switch (elem->getAvailability(nullptr, maxVersion)) {
     case clang::AR_Available:
     case clang::AR_NotYetIntroduced:
       for (auto attr : elem->attrs()) {
         if (auto annotate = dyn_cast<clang::AnnotateAttr>(attr)) {
-          if (annotate->getAnnotation() == "swift1_unavailable")
+          if (annotate->getAnnotation() == "language1_unavailable")
             return false;
         }
         if (auto avail = dyn_cast<clang::AvailabilityAttr>(attr)) {
-          if (avail->getPlatform()->getName() == "swift")
+          if (avail->getPlatform()->getName() == "language")
             return false;
         }
       }
@@ -303,10 +338,10 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
       return false;
     }
 
-    llvm_unreachable("Invalid AvailabilityAttr.");
+    toolchain_unreachable("Invalid AvailabilityAttr.");
   };
 
-  // Move to the first non-deprecated enumerator, or non-swift_name'd
+  // Move to the first non-deprecated enumerator, or non-language_name'd
   // enumerator, if present.
   auto firstNonDeprecated =
       std::find_if(ec, ecEnd, isNonDeprecatedWithoutCustomName);
@@ -315,7 +350,7 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
     ec = firstNonDeprecated;
   } else {
     // Advance to the first case without a custom name, deprecated or not.
-    while (ec != ecEnd && (*ec)->hasAttr<clang::SwiftNameAttr>())
+    while (ec != ecEnd && (*ec)->hasAttr<clang::CodiraNameAttr>())
       ++ec;
     if (ec == ecEnd) {
       return;
@@ -326,13 +361,13 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
   StringRef commonPrefix = (*ec)->getName();
   bool followedByNonIdentifier = false;
   for (++ec; ec != ecEnd; ++ec) {
-    // Skip deprecated or swift_name'd enumerators.
+    // Skip deprecated or language_name'd enumerators.
     const clang::EnumConstantDecl *elem = *ec;
     if (hasNonDeprecated) {
       if (!isNonDeprecatedWithoutCustomName(elem))
         continue;
     } else {
-      if (elem->hasAttr<clang::SwiftNameAttr>())
+      if (elem->hasAttr<clang::CodiraNameAttr>())
         continue;
     }
 
@@ -357,8 +392,8 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
         checkPrefix = checkPrefix.drop_front();
     }
 
-    // Don't use importFullName() here, we want to ignore the swift_name
-    // and swift_private attributes.
+    // Don't use importFullName() here, we want to ignore the language_name
+    // and language_private attributes.
     StringRef enumNameStr;
     // If there's no name, this must be typedef. So use the typedef's name.
     if (!decl->hasNameForLinkage()) {

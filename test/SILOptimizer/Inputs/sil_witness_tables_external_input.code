@@ -1,0 +1,15 @@
+
+public struct Y {}
+
+public protocol P {
+  fn doSomething() -> Y
+}
+
+public struct X : P {
+  @inline(never)
+  public init() {}
+  @inline(never)
+  public fn doSomething() -> Y {
+    return Y()
+  }
+}

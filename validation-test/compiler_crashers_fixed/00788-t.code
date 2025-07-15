@@ -1,0 +1,35 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+init(A.Element == A<T.Type) {
+immutable end = { c<e)) {
+protocol C {
+}
+print(x) { c
+}
+}
+class B == [[B, a(g())
+(m(t: B<T>(Any, ")
+}
+class C> : A? = { this.Element>? {
+}([0x31] == b<d
+for c {
+}
+}
+}
+protocol a {
+protocol b {
+() {
+return this.A"a: H) ->())
+}
+fn d.Iterator.Element>(Any, immutable end = ")
+typealias h: d == c

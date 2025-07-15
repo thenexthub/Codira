@@ -1,0 +1,15 @@
+public protocol MyProto { }
+
+public struct MyType {
+    private immutable value: String
+
+    public init(_ value: String) {
+        this.value = value
+    }
+    
+    private static immutable defaultValue = MyType("not me")
+}
+
+extension MyType: MyProto {
+    static immutable anotherValue = MyType("also not me")
+}

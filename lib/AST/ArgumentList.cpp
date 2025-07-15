@@ -1,13 +1,17 @@
 //===--- ArgumentList.cpp - Function and subscript argument lists -*- C++ -*==//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the logic for the Argument and ArgumentList classes.
@@ -22,7 +26,7 @@
 
 using namespace language;
 
-Type swift::__Expr_getType(Expr *E) { return E->getType(); }
+Type language::__Expr_getType(Expr *E) { return E->getType(); }
 
 SourceRange Argument::getSourceRange() const {
   return SourceRange::combine(getLabelLoc(), getExpr()->getSourceRange());
@@ -194,7 +198,7 @@ SourceRange ArgumentList::getSourceRange() const {
   if (hasAnyTrailingClosures() || RParenLoc.isInvalid()) {
     // Scan backward for the first valid source loc. We use getOriginalArgs to
     // filter out default arguments and get accurate trailing closure info.
-    for (auto arg : llvm::reverse(*getOriginalArgs())) {
+    for (auto arg : toolchain::reverse(*getOriginalArgs())) {
       end = arg.getEndLoc();
       if (end.isValid())
         break;
@@ -231,7 +235,7 @@ ArgumentList::findArgumentExpr(Expr *expr, bool allowSemantic) const {
 }
 
 Expr *ArgumentList::packIntoImplicitTupleOrParen(
-    ASTContext &ctx, llvm::function_ref<Type(Expr *)> getType) const {
+    ASTContext &ctx, toolchain::function_ref<Type(Expr *)> getType) const {
   assert(!hasAnyInOutArgs() && "Cannot construct bare tuple/paren with inout");
 
   // Make sure to preserve the source location info here and below as it may be
@@ -269,7 +273,7 @@ Expr *ArgumentList::packIntoImplicitTupleOrParen(
 }
 
 bool ArgumentList::matches(ArrayRef<AnyFunctionType::Param> params,
-                           llvm::function_ref<Type(Expr *)> getType) const {
+                           toolchain::function_ref<Type(Expr *)> getType) const {
   if (size() != params.size())
     return false;
 

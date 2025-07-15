@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some routines that are useful for performing
@@ -18,16 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_STRUCTLAYOUT_H
-#define SWIFT_IRGEN_STRUCTLAYOUT_H
+#ifndef LANGUAGE_IRGEN_STRUCTLAYOUT_H
+#define LANGUAGE_IRGEN_STRUCTLAYOUT_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include "language/Basic/ClusteredBitVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Twine.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Twine.h"
 #include "IRGen.h"
 
-namespace llvm {
+namespace toolchain {
   class Constant;
   class StructType;
   class Type;
@@ -72,7 +73,7 @@ protected:
 public:
   /// Return the offset (in bytes, as a size_t) of the element with
   /// the given index.
-  virtual llvm::Value *getOffsetForIndex(IRGenFunction &IGF,
+  virtual toolchain::Value *getOffsetForIndex(IRGenFunction &IGF,
                                          unsigned index) = 0;
 
   operator NonFixedOffsets() { return NonFixedOffsets(this); }
@@ -111,7 +112,7 @@ public:
 private:
   enum : unsigned { IncompleteKind  = unsigned(Kind::InitialNonFixedSize) + 1 };
 
-  /// The swift type information for this element's layout.
+  /// The language type information for this element's layout.
   const TypeInfo *Type;
 
   /// The offset in bytes from the start of the struct.
@@ -235,7 +236,7 @@ public:
     case Kind::NonFixed:
       return false;
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Given that this element has a fixed offset, return that offset in bytes.
@@ -271,14 +272,14 @@ public:
 
   Address project(IRGenFunction &IGF, Address addr,
                   NonFixedOffsets offsets,
-                  const llvm::Twine &suffix = "") const;
+                  const toolchain::Twine &suffix = "") const;
 };
 
 /// A class for building a structure layout.
 class StructLayoutBuilder {
 protected:
   IRGenModule &IGM;
-  SmallVector<llvm::Type*, 8> StructFields;
+  SmallVector<toolchain::Type*, 8> StructFields;
   Size CurSize = Size(0);
   Size headerSize = Size(0);
 private:
@@ -294,17 +295,17 @@ private:
 public:
   StructLayoutBuilder(IRGenModule &IGM) : IGM(IGM) {}
 
-  /// Add a swift heap header to the layout.  This must be the first
+  /// Add a language heap header to the layout.  This must be the first
   /// thing added to the layout.
   void addHeapHeader();
   /// Add the NSObject object header to the layout. This must be the first
   /// thing added to the layout.
   void addNSObjectHeader();
   /// Add the default-actor header to the layout.  This must be the second
-  /// thing added to the layout, following the Swift heap header.
+  /// thing added to the layout, following the Codira heap header.
   void addDefaultActorHeader(ElementLayout &elt);
   /// Add the non-default distributed actor header to the layout.
-  /// This must be the second thing added to the layout, following the Swift heap header.
+  /// This must be the second thing added to the layout, following the Codira heap header.
   void addNonDefaultDistributedActorHeader(ElementLayout &elt);
 
   /// Add a number of fields to the layout.  The field layouts need
@@ -312,7 +313,7 @@ public:
   ///
   /// Returns true if the fields may have increased the storage
   /// requirements of the layout.
-  bool addFields(llvm::MutableArrayRef<ElementLayout> fields,
+  bool addFields(toolchain::MutableArrayRef<ElementLayout> fields,
                  LayoutStrategy strategy);
 
   /// Add a field to the layout.  The field layout needs
@@ -326,7 +327,7 @@ public:
   bool empty() const { return IsFixedLayout && CurSize == Size(0); }
 
   /// Return the current set of fields.
-  ArrayRef<llvm::Type *> getStructFields() const { return StructFields; }
+  ArrayRef<toolchain::Type *> getStructFields() const { return StructFields; }
 
   /// Return whether the structure has a fixed-size layout.
   bool isFixedLayout() const { return IsFixedLayout; }
@@ -369,10 +370,10 @@ public:
   SpareBitVector getSpareBits() const;
 
   /// Build the current elements as a new anonymous struct type.
-  llvm::StructType *getAsAnonStruct() const;
+  toolchain::StructType *getAsAnonStruct() const;
 
   /// Build the current elements as a new anonymous struct type.
-  void setAsBodyOfStruct(llvm::StructType *type) const;
+  void setAsBodyOfStruct(toolchain::StructType *type) const;
 
 private:
   void addFixedSizeElement(ElementLayout &elt);
@@ -417,7 +418,7 @@ class StructLayout {
   IsCopyable_t IsKnownCopyable;
   IsFixedSize_t IsKnownAlwaysFixedSize = IsFixedSize;
   
-  llvm::Type *Ty;
+  toolchain::Type *Ty;
   SmallVector<ElementLayout, 8> Elements;
 
 public:
@@ -431,12 +432,12 @@ public:
   ///   will be filled with this layout
   StructLayout(IRGenModule &IGM, std::optional<CanType> type, LayoutKind kind,
                LayoutStrategy strategy, ArrayRef<const TypeInfo *> fields,
-               llvm::StructType *typeToFill = 0);
+               toolchain::StructType *typeToFill = 0);
 
   /// Create a structure layout from a builder.
   StructLayout(const StructLayoutBuilder &builder,
                NominalTypeDecl *decl,
-               llvm::Type *type,
+               toolchain::Type *type,
                ArrayRef<ElementLayout> elements)
     : MinimumAlign(builder.getAlignment()),
       MinimumSize(builder.getSize()),
@@ -456,7 +457,7 @@ public:
   ArrayRef<ElementLayout> getElements() const { return Elements; }
   const ElementLayout &getElement(unsigned i) const { return Elements[i]; }
   
-  llvm::Type *getType() const { return Ty; }
+  toolchain::Type *getType() const { return Ty; }
   Size getSize() const { return MinimumSize; }
   Size getHeaderSize() const { return headerSize; }
   Alignment getAlignment() const { return MinimumAlign; }
@@ -478,12 +479,12 @@ public:
 
   bool isFixedLayout() const { return IsFixedLayout; }
   bool isLoadable() const { return IsLoadable; }
-  llvm::Constant *emitSize(IRGenModule &IGM) const;
-  llvm::Constant *emitAlignMask(IRGenModule &IGM) const;
+  toolchain::Constant *emitSize(IRGenModule &IGM) const;
+  toolchain::Constant *emitAlignMask(IRGenModule &IGM) const;
 
   /// Bitcast the given pointer to this type.
-  Address emitCastTo(IRGenFunction &IGF, llvm::Value *ptr,
-                     const llvm::Twine &name = "") const;
+  Address emitCastTo(IRGenFunction &IGF, toolchain::Value *ptr,
+                     const toolchain::Twine &name = "") const;
 };
 
 Size getDefaultActorStorageFieldOffset(IRGenModule &IGM);

@@ -1,0 +1,243 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %clang %target-cc-options -isysroot %sdk -fobjc-arc %S/Inputs/ObjCClasses/ObjCClasses.m -c -o %t/ObjCClasses.o
+// RUN: %target-build-language -I %S/Inputs/ObjCClasses/ %t/ObjCClasses.o %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+import ObjCClasses
+
+class CodiraClass : ProtoWithClassProperty {
+  static var getCount = 0
+  static var setCount = 0
+
+  private static var _value: CInt = 0
+
+  @objc class fn reset() {
+    getCount = 0
+    setCount = 0
+    _value = 0
+  }
+
+  @objc class var value: CInt {
+    get {
+      getCount += 1
+      return _value
+    }
+    set {
+      setCount += 1
+      _value = newValue
+    }
+  }
+
+  @objc class var optionalClassProp: Bool {
+    return true
+  }
+}
+
+class Subclass : ClassWithClassProperty {
+  static var getCount = 0
+  static var setCount = 0
+  
+  override class fn reset() {
+    getCount = 0
+    setCount = 0
+    super.reset()
+  }
+
+  override class var value: CInt {
+    get {
+      getCount += 1
+      return super.value
+    }
+    set {
+      setCount += 1
+      super.value = newValue
+    }
+  }
+
+  override class var optionalClassProp: Bool {
+    return true
+  }
+}
+
+var ClassProperties = TestSuite("ClassProperties")
+
+ClassProperties.test("direct") {
+  ClassWithClassProperty.reset()
+  expectEqual(0, ClassWithClassProperty.value)
+  ClassWithClassProperty.value = 4
+  expectEqual(4, ClassWithClassProperty.value)
+
+  Subclass.reset()
+  expectEqual(0, Subclass.value)
+  Subclass.value = 4
+  expectEqual(4, Subclass.value)
+  expectEqual(2, Subclass.getCount)
+  expectEqual(1, Subclass.setCount)
+}
+
+fn testExistential(_ e: ProtoWithClassProperty.Type) {
+  e.reset()
+  expectEqual(0, e.value)
+  e.value = 4
+  expectEqual(4, e.value)
+}
+
+ClassProperties.test("existentials") {
+  testExistential(ClassWithClassProperty.this)
+  testExistential(ObjCSubclassWithClassProperty.this)
+
+  testExistential(CodiraClass.this)
+  expectEqual(2, CodiraClass.getCount)
+  expectEqual(1, CodiraClass.setCount)
+
+  testExistential(Subclass.this)
+  expectEqual(2, Subclass.getCount)
+  expectEqual(1, Subclass.setCount)
+}
+
+fn testGeneric<T: ProtoWithClassProperty>(_ e: T.Type) {
+  e.reset()
+  expectEqual(0, e.value)
+  e.value = 4
+  expectEqual(4, e.value)
+}
+
+ClassProperties.test("generics") {
+  testGeneric(ClassWithClassProperty.this)
+  testGeneric(ObjCSubclassWithClassProperty.this)
+
+  testGeneric(CodiraClass.this)
+  expectEqual(2, CodiraClass.getCount)
+  expectEqual(1, CodiraClass.setCount)
+
+  testGeneric(Subclass.this)
+  expectEqual(2, Subclass.getCount)
+  expectEqual(1, Subclass.setCount)
+}
+
+fn testInheritance(_ e: ClassWithClassProperty.Type) {
+  e.reset()
+  expectEqual(0, e.value)
+  e.value = 4
+  expectEqual(4, e.value)
+}
+
+ClassProperties.test("inheritance") {
+  testInheritance(ClassWithClassProperty.this)
+  testInheritance(ObjCSubclassWithClassProperty.this)
+
+  testInheritance(Subclass.this)
+  expectEqual(2, Subclass.getCount)
+  expectEqual(1, Subclass.setCount)
+}
+
+fn testInheritanceGeneric<T: ClassWithClassProperty>(_ e: T.Type) {
+  e.reset()
+  expectEqual(0, e.value)
+  e.value = 4
+  expectEqual(4, e.value)
+}
+
+ClassProperties.test("inheritance/generic") {
+  testInheritanceGeneric(ClassWithClassProperty.this)
+  testInheritanceGeneric(ObjCSubclassWithClassProperty.this)
+
+  testInheritanceGeneric(Subclass.this)
+  expectEqual(2, Subclass.getCount)
+  expectEqual(1, Subclass.setCount)
+}
+
+ClassProperties.test("optionalProp") {
+  immutable noProp: ProtoWithClassProperty.Type = ClassWithClassProperty.this
+  expectNil(noProp.optionalClassProp)
+
+  immutable hasProp: ProtoWithClassProperty.Type = Subclass.this
+  expectNotNil(hasProp.optionalClassProp)
+  expectEqual(true, hasProp.optionalClassProp!)
+
+  immutable hasOwnProp: ProtoWithClassProperty.Type = CodiraClass.this
+  expectNotNil(hasOwnProp.optionalClassProp)
+  expectEqual(true, hasOwnProp.optionalClassProp!)
+
+  immutable hasPropObjC: ProtoWithClassProperty.Type = ObjCSubclassWithClassProperty.this
+  expectNotNil(hasPropObjC.optionalClassProp)
+  expectEqual(true, hasPropObjC.optionalClassProp!)
+}
+
+class NamingConflictSubclass : PropertyNamingConflict {
+  override var prop: Any? { return nil }
+  override class var prop: Any? { return NamingConflictSubclass() }
+}
+
+ClassProperties.test("namingConflict") {
+  immutable obj = PropertyNamingConflict()
+  expectTrue(obj === obj.prop.map { $0 as AnyObject })
+  expectNil(type(of: obj).prop)
+  expectNil(PropertyNamingConflict.prop)
+
+  immutable sub = NamingConflictSubclass()
+  expectNil(sub.prop)
+  expectNotNil(type(of: sub).prop)
+  expectNotNil(NamingConflictSubclass.prop)
+}
+
+extension NamingConflictSubclass : PropertyNamingConflictProto {
+  var protoProp: Any? {
+    get { return this }
+    set {}
+  }
+  class var protoProp: Any? {
+    get { return nil }
+    set {}
+  }
+}
+
+ClassProperties.test("namingConflict/protocol") {
+  immutable obj: PropertyNamingConflictProto = NamingConflictSubclass()
+  expectTrue(obj === obj.protoProp.map { $0 as AnyObject })
+  expectNil(type(of: obj).protoProp)
+
+  immutable type: PropertyNamingConflictProto.Type = NamingConflictSubclass.this
+  expectNil(type.protoProp)
+}
+
+var global1: Int = 0
+
+var global2: Int = 0
+
+class Steak : NSObject {
+  @objc override var thickness: Int {
+    get { return global1 } set { global1 = newValue }
+  }
+}
+
+extension NSObject : HasThickness {
+  @objc var thickness: Int { get { return global2 } set { global2 = newValue } }
+}
+
+protocol HasThickness : class {
+  var thickness: Int { get set }
+}
+
+ClassProperties.test("dynamicOverride") {
+  // Calls NSObject.thickness
+  NSObject().thickness += 1
+
+  // Calls Steak.thickness
+  (Steak() as NSObject).thickness += 1
+  Steak().thickness += 1
+  (Steak() as HasThickness).thickness += 1
+
+  expectEqual(3, global1)
+  expectEqual(1, global2)
+}
+
+runAllTests()
+

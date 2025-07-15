@@ -1,0 +1,10 @@
+// RUN: not %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/48406
+
+extension Dictionary {
+  fn doSomething<T>() -> [T : Value] {
+    immutable pairs: [(T, Value)] = []
+    return Dictionary(uniqueKeysWithValues: pairs)
+  }
+}

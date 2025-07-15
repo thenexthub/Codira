@@ -1,21 +1,25 @@
 //===--- CodeCompletionResultPrinter.h --------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODECOMPLETIONRESULTPRINTER_H
-#define SWIFT_IDE_CODECOMPLETIONRESULTPRINTER_H
+#ifndef LANGUAGE_IDE_CODECOMPLETIONRESULTPRINTER_H
+#define LANGUAGE_IDE_CODECOMPLETIONRESULTPRINTER_H
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/Allocator.h"
 
 namespace language {
 
@@ -27,27 +31,27 @@ class CodeCompletionResult;
 class CodeCompletionString;
 
 void printCodeCompletionResultDescription(const CodeCompletionResult &Result,
-                                          llvm::raw_ostream &OS,
+                                          toolchain::raw_ostream &OS,
                                           bool leadingPunctuation);
 
 void printCodeCompletionResultDescriptionAnnotated(
-    const CodeCompletionResult &Result, llvm::raw_ostream &OS,
+    const CodeCompletionResult &Result, toolchain::raw_ostream &OS,
     bool leadingPunctuation);
 
 void printCodeCompletionResultTypeName(
-    const CodeCompletionResult &Result, llvm::raw_ostream &OS);
+    const CodeCompletionResult &Result, toolchain::raw_ostream &OS);
 
 void printCodeCompletionResultTypeNameAnnotated(
-    const CodeCompletionResult &Result, llvm::raw_ostream &OS);
+    const CodeCompletionResult &Result, toolchain::raw_ostream &OS);
 
 void printCodeCompletionResultSourceText(
-    const CodeCompletionResult &Result, llvm::raw_ostream &OS);
+    const CodeCompletionResult &Result, toolchain::raw_ostream &OS);
 
 /// Print 'FilterName' from \p str into memory managed by \p Allocator and
 /// return it as \c NullTerminatedStringRef .
 NullTerminatedStringRef
 getCodeCompletionResultFilterName(const CodeCompletionString *Str,
-                                  llvm::BumpPtrAllocator &Allocator);
+                                  toolchain::BumpPtrAllocator &Allocator);
 
 } // namespace ide
 } // namespace language

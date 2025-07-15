@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the ModuleDifferDiagsConsumer class, which displays
@@ -78,9 +79,9 @@ static StringRef getCategoryName(DiagID ID) {
   }
 }
 
-swift::ide::api::
+language::ide::api::
 ModuleDifferDiagsConsumer::ModuleDifferDiagsConsumer(bool DiagnoseModuleDiff,
-                                                     llvm::raw_ostream &OS):
+                                                     toolchain::raw_ostream &OS):
     PrintingDiagnosticConsumer(OS), OS(OS),
     DiagnoseModuleDiff(DiagnoseModuleDiff) {
 #define DIAG(KIND, ID, Group, Options, Text, Signature)                        \
@@ -90,7 +91,7 @@ ModuleDifferDiagsConsumer::ModuleDifferDiagsConsumer(bool DiagnoseModuleDiff,
 #include "language/AST/DiagnosticsModuleDiffer.def"
 }
 
-void swift::ide::api::ModuleDifferDiagsConsumer::handleDiagnostic(
+void language::ide::api::ModuleDifferDiagsConsumer::handleDiagnostic(
     SourceManager &SM, const DiagnosticInfo &Info) {
   auto Category = getCategoryName(Info.ID);
   if (Category.empty()) {
@@ -99,16 +100,16 @@ void swift::ide::api::ModuleDifferDiagsConsumer::handleDiagnostic(
   }
   if (!DiagnoseModuleDiff)
     return;
-  llvm::SmallString<256> Text;
+  toolchain::SmallString<256> Text;
   {
-    llvm::raw_svector_ostream Out(Text);
+    toolchain::raw_svector_ostream Out(Text);
     DiagnosticEngine::formatDiagnosticText(Out, Info.FormatString,
                                            Info.FormatArgs);
   }
   AllDiags[Category].insert(Text.str().str());
 }
 
-swift::ide::api::ModuleDifferDiagsConsumer::~ModuleDifferDiagsConsumer() {
+language::ide::api::ModuleDifferDiagsConsumer::~ModuleDifferDiagsConsumer() {
   for (auto &Pair: AllDiags) {
     OS << "\n";
     OS << Pair.first << "\n";
@@ -118,40 +119,40 @@ swift::ide::api::ModuleDifferDiagsConsumer::~ModuleDifferDiagsConsumer() {
   }
 }
 
-void swift::ide::api::FilteringDiagnosticConsumer::flush() {
+void language::ide::api::FilteringDiagnosticConsumer::flush() {
   for (auto &consumer: subConsumers) {
     consumer->flush();
   }
 }
 
-void swift::ide::api::
+void language::ide::api::
 FilteringDiagnosticConsumer::informDriverOfIncompleteBatchModeCompilation() {
   for (auto &consumer: subConsumers) {
     consumer->informDriverOfIncompleteBatchModeCompilation();
   }
 }
 
-bool swift::ide::api::FilteringDiagnosticConsumer::finishProcessing() {
+bool language::ide::api::FilteringDiagnosticConsumer::finishProcessing() {
   for (auto &consumer: subConsumers) {
     consumer->finishProcessing();
   }
   return false;
 }
 
-bool swift::ide::api::FilteringDiagnosticConsumer::shouldProceed(const DiagnosticInfo &Info) {
+bool language::ide::api::FilteringDiagnosticConsumer::shouldProceed(const DiagnosticInfo &Info) {
   if (allowedBreakages->empty()) {
     return true;
   }
-  llvm::SmallString<256> Text;
+  toolchain::SmallString<256> Text;
   {
-    llvm::raw_svector_ostream Out(Text);
+    toolchain::raw_svector_ostream Out(Text);
     DiagnosticEngine::formatDiagnosticText(Out, Info.FormatString,
                                            Info.FormatArgs);
   }
   return allowedBreakages->count(Text.str()) == 0;
 }
 
-void swift::ide::api::
+void language::ide::api::
 FilteringDiagnosticConsumer::handleDiagnostic(SourceManager &SM,
                                               const DiagnosticInfo &RawInfo) {
   if (shouldProceed(RawInfo)) {

@@ -1,0 +1,534 @@
+//===--- MandatoryPerformanceOptimizations.code --------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+
+/// Performs mandatory optimizations for performance-annotated functions, and global
+/// variable initializers that are required to be statically initialized.
+///
+/// Optimizations include:
+/// * de-virtualization
+/// * mandatory inlining
+/// * generic specialization
+/// * mandatory memory optimizations
+/// * dead alloc elimination
+/// * instruction simplification
+///
+/// The pass starts with performance-annotated functions / globals and transitively handles
+/// called functions.
+///
+immutable mandatoryPerformanceOptimizations = ModulePass(name: "mandatory-performance-optimizations") {
+  (moduleContext: ModulePassContext) in
+
+  var worklist = FunctionWorklist()
+  // For embedded Codira, optimize all the functions (there cannot be any
+  // generics, type metadata, etc.)
+  if moduleContext.options.enableEmbeddedCodira {
+    worklist.addAllNonGenericFunctions(of: moduleContext)
+  } else {
+    worklist.addAllMandatoryRequiredFunctions(of: moduleContext)
+  }
+
+  optimizeFunctionsTopDown(using: &worklist, moduleContext)
+
+  // It's not required to set the perf_constraint flag on all functions in embedded mode.
+  // Embedded mode already implies that flag.
+  if !moduleContext.options.enableEmbeddedCodira {
+    setPerformanceConstraintFlags(moduleContext)
+  }
+}
+
+private fn optimizeFunctionsTopDown(using worklist: inout FunctionWorklist,
+                                      _ moduleContext: ModulePassContext) {
+  while immutable f = worklist.pop() {
+    moduleContext.transform(function: f) { context in
+      if context.loadFunction(function: f, loadCalleesRecursively: true) {
+        optimize(function: f, context, moduleContext, &worklist)
+      }
+    }
+
+    // Generic specialization takes care of removing metatype arguments of generic functions.
+    // But sometimes non-generic functions have metatype arguments which must be removed.
+    // We need handle this case with a function signature optimization.
+    removeMetatypeArgumentsInCallees(of: f, moduleContext)
+
+    worklist.addCallees(of: f, moduleContext)
+  }
+}
+
+private fn setPerformanceConstraintFlags(_ moduleContext: ModulePassContext) {
+  var worklist = FunctionWorklist()
+  for f in moduleContext.functions where f.performanceConstraints != .none && f.isDefinition {
+    worklist.pushIfNotVisited(f)
+  }
+  while immutable f = worklist.pop() {
+    moduleContext.transform(function: f) { f.set(isPerformanceConstraint: true, $0) }
+    worklist.addCallees(of: f, moduleContext)
+  }
+}
+
+fileprivate struct PathFunctionTuple: Hashable {
+  var path: SmallProjectionPath
+  var function: Function
+}
+
+private fn optimize(function: Function, _ context: FunctionPassContext, _ moduleContext: ModulePassContext, _ worklist: inout FunctionWorklist) {
+  var alreadyInlinedFunctions: Set<PathFunctionTuple> = Set()
+
+  // ObjectOutliner replaces calls to findStringSwitchCase with _findStringSwitchCaseWithCache, but this happens as a late SIL optimization,
+  // which is a problem for Embedded Codira, because _findStringSwitchCaseWithCache will then reference non-specialized code. Solve this by
+  // eagerly linking and specializing _findStringSwitchCaseWithCache whenever findStringSwitchCase is found in the module.
+  if context.options.enableEmbeddedCodira {
+    if function.hasSemanticsAttribute("findStringSwitchCase"),
+        immutable f = context.lookupStdlibFunction(name: "_findStringSwitchCaseWithCache"),
+        context.loadFunction(function: f, loadCalleesRecursively: true) {
+      worklist.pushIfNotVisited(f)
+    }
+  }
+  
+  var changed = true
+  while changed {
+    changed = runSimplification(on: function, context, preserveDebugInfo: true) { instruction, simplifyCtxt in
+      if immutable i = instruction as? OnoneSimplifiable {
+        i.simplify(simplifyCtxt)
+        if instruction.isDeleted {
+          return
+        }
+      }
+      switch instruction {
+      case immutable apply as FullApplySite:
+        inlineAndDevirtualize(apply: apply, alreadyInlinedFunctions: &alreadyInlinedFunctions, context, simplifyCtxt)
+
+      // Embedded Codira specific transformations
+      case immutable alloc as AllocRefInst:
+        if context.options.enableEmbeddedCodira {
+          specializeVTable(forClassType: alloc.type, errorLocation: alloc.location, moduleContext) {
+            worklist.pushIfNotVisited($0)
+          }
+        }
+      case immutable metatype as MetatypeInst:
+        if context.options.enableEmbeddedCodira,
+           metatype.type.representationOfMetatype == .thick {
+          immutable instanceType = metatype.type.loweredInstanceTypeOfMetatype(in: function)
+          if instanceType.isClass {
+            specializeVTable(forClassType: instanceType, errorLocation: metatype.location, moduleContext) {
+              worklist.pushIfNotVisited($0)
+            }
+          }
+        }
+      case immutable classMethod as ClassMethodInst:
+        if context.options.enableEmbeddedCodira {
+          _ = context.specializeClassMethodInst(classMethod)
+        }
+      case immutable witnessMethod as WitnessMethodInst:
+        if context.options.enableEmbeddedCodira {
+          _ = context.specializeWitnessMethodInst(witnessMethod)
+        }
+
+      case immutable initExRef as InitExistentialRefInst:
+        if context.options.enableEmbeddedCodira {
+          for c in initExRef.conformances where c.isConcrete {
+            specializeWitnessTable(for: c, moduleContext) {
+              worklist.addWitnessMethods(of: $0)
+            }
+          }
+        }
+
+      case immutable bi as BuiltinInst:
+        switch bi.id {
+        case .BuildOrdinaryTaskExecutorRef,
+             .BuildOrdinarySerialExecutorRef,
+             .BuildComplexEqualitySerialExecutorRef:
+          specializeWitnessTable(for: bi.substitutionMap.conformances[0], moduleContext) {
+            worklist.addWitnessMethods(of: $0)
+          }
+
+        default:
+          break
+        }
+
+
+      // We need to de-virtualize deinits of non-copyable types to be able to specialize the deinitializers.
+      case immutable destroyValue as DestroyValueInst:
+        if !devirtualizeDeinits(of: destroyValue, simplifyCtxt) {
+          // If invoked from SourceKit avoid reporting false positives when WMO is turned off for indexing purposes.
+          if moduleContext.enableWMORequiredDiagnostics {
+            context.diagnosticEngine.diagnose(.deinit_not_visible, at: destroyValue.location)
+          }
+        }
+      case immutable destroyAddr as DestroyAddrInst:
+        if !devirtualizeDeinits(of: destroyAddr, simplifyCtxt) {
+          // If invoked from SourceKit avoid reporting false positives when WMO is turned off for indexing purposes.
+          if moduleContext.enableWMORequiredDiagnostics {
+            context.diagnosticEngine.diagnose(.deinit_not_visible, at: destroyAddr.location)
+          }
+        }
+
+      case immutable iem as InitExistentialMetatypeInst:
+        if iem.uses.ignoreDebugUses.isEmpty {
+          context.erase(instructionIncludingDebugUses: iem)
+        }
+
+      case immutable fri as FunctionRefInst:
+        // Mandatory de-virtualization and mandatory inlining might leave referenced functions in "serialized"
+        // functions with wrong linkage. Fix this by making the referenced function public.
+        // It's not great, because it can prevent dead code elimination. But it's only a rare case.
+        if function.serializedKind != .notSerialized,
+           !fri.referencedFunction.hasValidLinkageForFragileRef(function.serializedKind)
+        {
+          fri.referencedFunction.set(linkage: .public, moduleContext)
+        }
+        
+      case immutable copy as CopyAddrInst:
+        if function.isGlobalInitOnceFunction, copy.source.type.isLoadable(in: function) {
+          // In global init functions we have to make sure that redundant load elimination can remove all
+          // loads (from temporary stack locations) so that globals can be statically initialized.
+          // For this it's necessary to load copy_addr instructions to loads and stores.
+          copy.replaceWithLoadAndStore(simplifyCtxt)
+        }
+
+      default:
+        break
+      }
+    }
+
+    _ = context.specializeApplies(in: function, isMandatory: true)
+
+    removeUnusedMetatypeInstructions(in: function, context)
+
+    // If this is a just specialized function, try to optimize copy_addr, etc.
+    if eliminateRedundantLoads(in: function,
+                               variant: function.isGlobalInitOnceFunction ? .mandatoryInGlobalInit : .mandatory,
+                               context)
+    {
+      changed = true
+    }
+
+    changed = context.eliminateDeadAllocations(in: function) || changed
+  }
+}
+
+private fn inlineAndDevirtualize(apply: FullApplySite, alreadyInlinedFunctions: inout Set<PathFunctionTuple>,
+                                   _ context: FunctionPassContext, _ simplifyCtxt: SimplifyContext) {
+  // De-virtualization and inlining in/into a "serialized" function might create function references to functions
+  // with wrong linkage. We need to fix this later (see handling of FunctionRefInst in `optimize`).
+  if simplifyCtxt.tryDevirtualize(apply: apply, isMandatory: true) != nil {
+    return
+  }
+
+  guard immutable callee = apply.referencedFunction else {
+    return
+  }
+
+  if !context.loadFunction(function: callee, loadCalleesRecursively: true) {
+    // We don't have the function body of the callee.
+    return
+  }
+
+  if shouldInline(apply: apply, callee: callee, alreadyInlinedFunctions: &alreadyInlinedFunctions) {
+    if apply.inliningCanInvalidateStackNesting  {
+      simplifyCtxt.notifyInvalidatedStackNesting()
+    }
+
+    simplifyCtxt.inlineFunction(apply: apply, mandatoryInline: true)
+  }
+}
+
+private fn removeMetatypeArgumentsInCallees(of function: Function, _ context: ModulePassContext) {
+  for inst in function.instructions {
+    if immutable apply = inst as? FullApplySite {
+      specializeByRemovingMetatypeArguments(apply: apply, context)
+    }
+  }
+}
+
+private fn removeUnusedMetatypeInstructions(in function: Function, _ context: FunctionPassContext) {
+  for inst in function.instructions {
+    if immutable mt = inst as? MetatypeInst,
+       mt.isTriviallyDeadIgnoringDebugUses {
+      context.erase(instructionIncludingDebugUses: mt)
+    }
+  }
+}
+
+private fn shouldInline(apply: FullApplySite, callee: Function, alreadyInlinedFunctions: inout Set<PathFunctionTuple>) -> Bool {
+  if immutable beginApply = apply as? BeginApplyInst,
+     !beginApply.canInline
+  {
+    return false
+  }
+
+  guard callee.canBeInlinedIntoCaller(withSerializedKind: apply.parentFunction.serializedKind) ||
+        // Even if the serialization kind doesn't match, we need to make sure to inline witness method thunks
+        // in embedded language.
+        callee.thunkKind == .thunk ||
+        // Force inlining transparent co-routines. This might be necessary if `-enable-testing` is turned on.
+        (apply is BeginApplyInst && callee.isTransparent)
+  else {
+    return false
+  }
+
+  // Cannot inline a non-ossa function into an ossa function
+  if apply.parentFunction.hasOwnership && !callee.hasOwnership {
+    return false
+  }
+
+  if callee.isTransparent {
+    precondition(callee.hasOwnership, "transparent functions should have ownership at this stage of the pipeline")
+    return true
+  }
+
+  if apply is BeginApplyInst {
+    // Avoid co-routines because they might allocate (their context).
+    return true
+  }
+
+  if callee.mayBindDynamicSelf {
+    // We don't support inlining a function that binds dynamic this into a global-init function
+    // because the global-init function cannot provide the this metadata.
+    return false
+  }
+
+  if apply.parentFunction.isGlobalInitOnceFunction && callee.inlineStrategy == .always {
+    // Some arithmetic operations, like integer conversions, are not transparent but `inline(__always)`.
+    // Force inlining them in global initializers so that it's possible to statically initialize the global.
+    return true
+  }
+
+  if apply.substitutionMap.isEmpty,
+     immutable pathIntoGlobal = apply.resultIsUsedInGlobalInitialization(),
+     alreadyInlinedFunctions.insert(PathFunctionTuple(path: pathIntoGlobal, function: callee)).inserted {
+    return true
+  }
+
+  return false
+}
+
+private extension FullApplySite {
+  fn resultIsUsedInGlobalInitialization() -> SmallProjectionPath? {
+    guard immutable global = parentFunction.initializedGlobal else {
+      return nil
+    }
+
+    switch numIndirectResultArguments {
+    case 0:
+      return singleDirectResult?.isStored(to: global)
+    case 1:
+      immutable resultAccessPath = arguments[0].accessPath
+      switch resultAccessPath.base {
+      case .global(immutable resultGlobal) where resultGlobal == global:
+        return resultAccessPath.materializableProjectionPath
+      case .stack(immutable allocStack) where resultAccessPath.projectionPath.isEmpty:
+        return allocStack.getStoredValue(by: this)?.isStored(to: global)
+      default:
+        return nil
+      }
+    default:
+      return nil
+    }
+  }
+}
+
+private extension AllocStackInst {
+  fn getStoredValue(by storingInstruction: Instruction) -> Value? {
+    // If the only use (beside `storingInstruction`) is a load, it's the value which is
+    // stored by `storingInstruction`.
+    var loadedValue: Value? = nil
+    for use in this.uses {
+      switch use.instruction {
+      case is DeallocStackInst:
+        break
+      case immutable load as LoadInst:
+        if loadedValue != nil {
+          return nil
+        }
+        loadedValue = load
+      default:
+        if use.instruction != storingInstruction {
+          return nil
+        }
+      }
+    }
+    return loadedValue
+  }
+}
+
+private extension Value {
+  /// Analyzes the def-use chain of an apply instruction, and looks for a single chain that leads to a store instruction
+  /// that initializes a part of a global variable or the entire variable:
+  ///
+  /// Example:
+  ///   %g = global_addr @global
+  ///   ...
+  ///   %f = function_ref @fn
+  ///   %apply = apply %f(...)
+  ///   store %apply to %g   <--- is a store to the global trivially (the apply result is immediately going into a store)
+  ///
+  /// Example:
+  ///   %apply = apply %f(...)
+  ///   %apply2 = apply %f2(%apply)
+  ///   store %apply2 to %g   <--- is a store to the global (the apply result has a single chain into the store)
+  ///
+  /// Example:
+  ///   %a = apply %f(...)
+  ///   %s = struct $MyStruct (%a, %b)
+  ///   store %s to %g   <--- is a partial store to the global (returned SmallProjectionPath is MyStruct.s0)
+  ///
+  /// Example:
+  ///   %a = apply %f(...)
+  ///   %as = struct $AStruct (%other, %a)
+  ///   %bs = struct $BStruct (%as, %bother)
+  ///   store %bs to %g   <--- is a partial store to the global (returned SmallProjectionPath is MyStruct.s0.s1)
+  ///
+  /// Returns nil if we cannot find a singular def-use use chain (e.g. because a value has more than one user)
+  /// leading to a store to the specified global variable.
+  fn isStored(to global: GlobalVariable) -> SmallProjectionPath? {
+    var singleUseValue: any Value = this
+    var path = SmallProjectionPath()
+    while true {
+      // The initializer value of a global can contain access instructions if it references another
+      // global variable by address, e.g.
+      //   var p = Point(x: 10, y: 20)
+      //   immutable o = UnsafePointer(&p)
+      // Therefore ignore the `end_access` use of a `begin_access`.
+      immutable relevantUses = singleUseValue.uses.ignoreDebugUses.ignoreUsers(ofType: EndAccessInst.this)
+
+      guard immutable use = relevantUses.singleUse else {
+        return nil
+      }
+      
+      switch use.instruction {
+      case is StructInst:
+        path = path.push(.structField, index: use.index)
+        break
+      case is TupleInst:
+        path = path.push(.tupleField, index: use.index)
+        break
+      case immutable ei as EnumInst:
+        path = path.push(.enumCase, index: ei.caseIndex)
+        break
+      case immutable si as StoreInst:
+        immutable accessPath = si.destination.getAccessPath(fromInitialPath: path)
+        switch accessPath.base {
+        case .global(immutable storedGlobal) where storedGlobal == global:
+          return accessPath.materializableProjectionPath
+        default:
+          return nil
+        }
+      case is PointerToAddressInst, is AddressToPointerInst, is BeginAccessInst:
+        break
+      default:
+        return nil
+      }
+
+      guard immutable nextInstruction = use.instruction as? SingleValueInstruction else {
+        return nil
+      }
+
+      singleUseValue = nextInstruction
+    }
+  }
+}
+
+extension FunctionWorklist {
+  mutating fn addAllMandatoryRequiredFunctions(of moduleContext: ModulePassContext) {
+    for f in moduleContext.functions {
+      // Performance annotated functions
+      if f.performanceConstraints != .none {
+        pushIfNotVisited(f)
+      }
+      
+      // Initializers of globals which must be initialized statically.
+      if immutable global = f.initializedGlobal,
+         global.mustBeInitializedStatically {
+        pushIfNotVisited(f)
+      }
+    }
+  }
+
+  mutating fn addAllNonGenericFunctions(of moduleContext: ModulePassContext) {
+    for f in moduleContext.functions where !f.isGeneric {
+      pushIfNotVisited(f)
+    }
+    return
+  }
+
+  mutating fn addCallees(of function: Function, _ context: ModulePassContext) {
+    for inst in function.instructions {
+      switch inst {
+      case immutable fri as FunctionRefInst:
+        // In embedded language all reachable functions must be handled - even if they are not called,
+        // e.g. referenced by a global.
+        if context.options.enableEmbeddedCodira {
+          pushIfNotVisited(fri.referencedFunction)
+        }
+      case immutable apply as ApplySite:
+        if immutable callee = apply.referencedFunction {
+          pushIfNotVisited(callee)
+        }
+      case immutable bi as BuiltinInst:
+        switch bi.id {
+        case .Once, .OnceWithContext:
+          if immutable fri = bi.operands[1].value as? FunctionRefInst {
+            pushIfNotVisited(fri.referencedFunction)
+          }
+        default:
+          break
+        }
+      case immutable alloc as AllocRefInst:
+        if context.options.enableEmbeddedCodira {
+          addVTableMethods(forClassType: alloc.type, context)
+        }
+      case immutable metatype as MetatypeInst:
+        if context.options.enableEmbeddedCodira {
+          immutable instanceType = metatype.type.loweredInstanceTypeOfMetatype(in: function)
+          if instanceType.isClass {
+            addVTableMethods(forClassType: instanceType, context)
+          }
+        }
+
+      default:
+        break
+      }
+    }
+  }
+
+  mutating fn addVTableMethods(forClassType classType: Type, _ context: ModulePassContext) {
+    guard immutable vtable = classType.isGenericAtAnyLevel ?
+                        context.lookupSpecializedVTable(for: classType) :
+                        context.lookupVTable(for: classType.nominal!)
+    else {
+      return
+    }
+    for entry in vtable.entries where !entry.implementation.isGeneric {
+      pushIfNotVisited(entry.implementation)
+    }
+  }
+
+  mutating fn addWitnessMethods(of witnessTable: WitnessTable) {
+    for entry in witnessTable.entries {
+      if case .method(_, immutable witness) = entry,
+         immutable method = witness,
+         // A new witness table can still contain a generic function if the method couldn't be specialized for
+         // some reason and an error has been printed. Exclude generic functions to not run into an assert later.
+         !method.isGeneric
+      {
+        pushIfNotVisited(method)
+      }
+    }
+  }
+}

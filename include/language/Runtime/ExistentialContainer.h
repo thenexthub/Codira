@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_EXISTENTIALCONTAINER_H
-#define SWIFT_RUNTIME_EXISTENTIALCONTAINER_H
+#ifndef LANGUAGE_RUNTIME_EXISTENTIALCONTAINER_H
+#define LANGUAGE_RUNTIME_EXISTENTIALCONTAINER_H
 
 #include "language/Runtime/Metadata.h"
 
@@ -35,7 +36,7 @@ struct TargetOpaqueExistentialContainer {
                                                                         1);
   }
 
-  void copyTypeInto(swift::TargetOpaqueExistentialContainer<Runtime> *dest,
+  void copyTypeInto(language::TargetOpaqueExistentialContainer<Runtime> *dest,
                     unsigned numTables) const {
     dest->Type = Type;
     for (unsigned i = 0; i != numTables; ++i)
@@ -100,6 +101,6 @@ using WeakClassExistentialContainer =
 using UnownedClassExistentialContainer =
     ClassExistentialContainerImpl<UnownedReference>;
 
-} // end swift namespace
+} // end language namespace
 
 #endif

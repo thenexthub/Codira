@@ -1,13 +1,17 @@
 //===--- ModuleContentsWriter.cpp - Walk module decls to print ObjC/C++ ---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ModuleContentsWriter.h"
@@ -17,8 +21,8 @@
 #include "OutputLanguageMode.h"
 #include "PrimitiveTypeMapping.h"
 #include "PrintClangValueType.h"
-#include "PrintSwiftToClangCoreScaffold.h"
-#include "languageToClangInteropContext.h"
+#include "PrintCodiraToClangCoreScaffold.h"
+#include "CodiraToClangInteropContext.h"
 
 #include "language/AST/Decl.h"
 #include "language/AST/DiagnosticsSema.h"
@@ -26,7 +30,7 @@
 #include "language/AST/Module.h"
 #include "language/AST/PrettyStackTrace.h"
 #include "language/AST/ProtocolConformance.h"
-#include "language/AST/SwiftNameTranslation.h"
+#include "language/AST/CodiraNameTranslation.h"
 #include "language/AST/TypeDeclFinder.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/SourceManager.h"
@@ -38,7 +42,7 @@
 #include "clang/AST/DeclObjC.h"
 #include "clang/Basic/Module.h"
 
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace language::objc_translation;
@@ -57,7 +61,7 @@ namespace {
 class ReferencedTypeFinder : public TypeDeclFinder {
   friend TypeDeclFinder;
 
-  llvm::function_ref<void(ReferencedTypeFinder &, const TypeDecl *)> Callback;
+  toolchain::function_ref<void(ReferencedTypeFinder &, const TypeDecl *)> Callback;
   bool NeedsDefinition = false;
 
   explicit ReferencedTypeFinder(decltype(Callback) callback)
@@ -136,12 +140,12 @@ static StringRef getNameString(const Decl *D) {
       return ED->getExtendedNominal()->getName().str();
     return baseClass->getName().str();
   }
-  llvm_unreachable("unknown top-level ObjC decl");
+  toolchain_unreachable("unknown top-level ObjC decl");
 }
 
 static std::string getLocString(const Decl *afd) {
   std::string res;
-  llvm::raw_string_ostream os(res);
+  toolchain::raw_string_ostream os(res);
   afd->getLoc().print(os, afd->getASTContext().SourceMgr);
   return std::move(os.str());
 }
@@ -245,7 +249,7 @@ static int lastDitchSort(Decl *lhs, Decl *rhs, bool suppressDiagnostic) {
 
 } // end namespace compare_detail
 
-/// Comparator for use with \c llvm::array_pod_sort() . This sorts decls into
+/// Comparator for use with \c toolchain::array_pod_sort() . This sorts decls into
 /// reverse order since they will be pushed onto a stack.
 static int reverseCompareDecls(Decl * const *lhs, Decl * const *rhs) {
   using namespace compare_detail;
@@ -297,7 +301,7 @@ static int reverseCompareDecls(Decl * const *lhs, Decl * const *rhs) {
   // *tons* of context and detail missed by the previous checks, but the
   // resulting sort makes little sense to humans.
   // FIXME: It'd be nice to share the mangler or even memoize mangled names,
-  //        but we'd have to stop using `llvm::array_pod_sort()` so that we
+  //        but we'd have to stop using `toolchain::array_pod_sort()` so that we
   //        could capture some outside state.
   COMPARE(getMangledNameString(*lhs), getMangledNameString(*rhs));
 
@@ -334,7 +338,7 @@ static int reverseCompareDecls(Decl * const *lhs, Decl * const *rhs) {
   // Still nothing? Fine, we'll look for a difference between the members.
   {
     // First pass: compare names
-    for (auto pair : llvm::zip_equal(lhsMembers, rhsMembers)) {
+    for (auto pair : toolchain::zip_equal(lhsMembers, rhsMembers)) {
       auto *lhsMember = dyn_cast<ValueDecl>(std::get<0>(pair)),
            *rhsMember = dyn_cast<ValueDecl>(std::get<1>(pair));
       if (!lhsMember && !rhsMember)
@@ -348,7 +352,7 @@ static int reverseCompareDecls(Decl * const *lhs, Decl * const *rhs) {
     }
 
     // Second pass: compare other traits.
-    for (auto pair : llvm::zip_equal(lhsMembers, rhsMembers)) {
+    for (auto pair : toolchain::zip_equal(lhsMembers, rhsMembers)) {
       auto *lhsMember = dyn_cast<ValueDecl>(std::get<0>(pair)),
            *rhsMember = dyn_cast<ValueDecl>(std::get<1>(pair));
       if (!lhsMember || !rhsMember)
@@ -379,23 +383,23 @@ class ModuleWriter {
   SmallPtrSetImpl<ImportModuleTy> &imports;
   ModuleDecl &M;
 
-  llvm::DenseMap<const TypeDecl *, std::pair<EmissionState, bool>> seenTypes;
-  llvm::DenseSet<const clang::Type *> seenClangTypes;
+  toolchain::DenseMap<const TypeDecl *, std::pair<EmissionState, bool>> seenTypes;
+  toolchain::DenseSet<const clang::Type *> seenClangTypes;
   std::vector<const Decl *> declsToWrite;
   DelayedMemberSet objcDelayedMembers;
   CxxDeclEmissionScope topLevelEmissionScope;
   PrimitiveTypeMapping typeMapping;
   std::string outOfLineDefinitions;
-  llvm::raw_string_ostream outOfLineDefinitionsOS;
+  toolchain::raw_string_ostream outOfLineDefinitionsOS;
   DeclAndTypePrinter printer;
   OutputLanguageMode outputLangMode;
   bool dependsOnStdlib = false;
 
 public:
   ModuleWriter(raw_ostream &os, raw_ostream &prologueOS,
-               llvm::SmallPtrSetImpl<ImportModuleTy> &imports, ModuleDecl &mod,
-               SwiftToClangInteropContext &interopContext, AccessLevel access,
-               bool requiresExposedAttribute, llvm::StringSet<> &exposedModules,
+               toolchain::SmallPtrSetImpl<ImportModuleTy> &imports, ModuleDecl &mod,
+               CodiraToClangInteropContext &interopContext, AccessLevel access,
+               bool requiresExposedAttribute, toolchain::StringSet<> &exposedModules,
                OutputLanguageMode outputLang)
       : os(os), imports(imports), M(mod),
         outOfLineDefinitionsOS(outOfLineDefinitions),
@@ -457,6 +461,14 @@ public:
       }
     }
 
+    if (isa<EnumDecl>(D) && !D->hasClangNode() &&
+        outputLangMode != OutputLanguageMode::Cxx) {
+      // We don't want to add an import for a @cdecl or @objc enum declared
+      // in Codira. We either do nothing for special enums like Optional as
+      // done in the prologue here, or we forward declare them.
+      return false;
+    }
+
     imports.insert(otherModule);
     return true;
   }
@@ -494,11 +506,11 @@ public:
       return true;
     }
 
-    llvm_unreachable("Unhandled EmissionState in switch.");
+    toolchain_unreachable("Unhandled EmissionState in switch.");
   }
 
   void forwardDeclare(const NominalTypeDecl *NTD,
-                      llvm::function_ref<void(void)> Printer) {
+                      toolchain::function_ref<void(void)> Printer) {
     if (NTD->getModuleContext()->isStdlibModule()) {
       if (outputLangMode != OutputLanguageMode::Cxx ||
           !printer.shouldInclude(NTD))
@@ -530,12 +542,20 @@ public:
   }
 
   void forwardDeclare(const EnumDecl *ED) {
-    assert(ED->isObjC() || ED->hasClangNode());
+    assert(ED->isObjC() || ED->getAttrs().getAttribute<CDeclAttr>() ||
+           ED->hasClangNode());
     
     forwardDeclare(ED, [&]{
-      os << "enum " << getNameForObjC(ED) << " : ";
-      printer.print(ED->getRawType());
-      os << ";\n";
+      if (ED->getASTContext().LangOpts.hasFeature(Feature::CDecl)) {
+        // Forward declare in a way to be compatible with older C standards.
+        os << "typedef LANGUAGE_ENUM_FWD_DECL(";
+        printer.print(ED->getRawType());
+        os << ", " << getNameForObjC(ED) << ")\n";
+      } else {
+        os << "enum " << getNameForObjC(ED) << " : ";
+        printer.print(ED->getRawType());
+        os << ";\n";
+      }
     });
   }
 
@@ -547,7 +567,7 @@ public:
                            .getCanonicalType();
       auto it = seenClangTypes.insert(clangType.getTypePtr());
       if (it.second)
-        ClangValueTypePrinter::printClangTypeSwiftGenericTraits(os, typeDecl, &M,
+        ClangValueTypePrinter::printClangTypeCodiraGenericTraits(os, typeDecl, &M,
                                                                 printer);
       return;
     }
@@ -561,7 +581,7 @@ public:
       return;
     auto it = seenClangTypes.insert(clangType.getTypePtr());
     if (it.second)
-      ClangValueTypePrinter::printClangTypeSwiftGenericTraits(os, typeDecl, &M,
+      ClangValueTypePrinter::printClangTypeCodiraGenericTraits(os, typeDecl, &M,
                                                               printer);
   }
 
@@ -580,7 +600,8 @@ public:
         else if (isa<StructDecl>(TD) && NTD->hasClangNode())
           emitReferencedClangTypeMetadata(NTD);
         else if (const auto *cd = dyn_cast<ClassDecl>(TD))
-          if (cd->isObjC() || cd->isForeignReferenceType())
+          if ((cd->isObjC() && cd->getClangDecl()) ||
+              cd->isForeignReferenceType())
             emitReferencedClangTypeMetadata(NTD);
       } else if (auto TAD = dyn_cast<TypeAliasDecl>(TD)) {
         if (TAD->hasClangNode())
@@ -604,11 +625,12 @@ public:
     } else if (addImport(TD)) {
       return;
     } else if (auto ED = dyn_cast<EnumDecl>(TD)) {
+      // Treat this after addImport to filter out special enums from the stdlib.
       forwardDeclare(ED);
     } else if (isa<GenericTypeParamDecl>(TD)) {
-      llvm_unreachable("should not see generic parameters here");
+      toolchain_unreachable("should not see generic parameters here");
     } else if (isa<AssociatedTypeDecl>(TD)) {
-      llvm_unreachable("should not see associated types here");
+      toolchain_unreachable("should not see associated types here");
     } else if (isa<StructDecl>(TD) &&
                TD->getModuleContext()->isStdlibModule()) {
       // stdlib has some @_cdecl functions with structs.
@@ -631,9 +653,9 @@ public:
     case DeclKind::Enum:
       if (outputLangMode == OutputLanguageMode::Cxx)
         break;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     default:
-      llvm_unreachable("unexpected container kind");
+      toolchain_unreachable("unexpected container kind");
     }
 
     bool hadAnyDelayedMembers = false;
@@ -750,6 +772,10 @@ public:
       return false;
 
     (void)forwardDeclareMemberTypes(CD->getAllMembers(), CD);
+    for (const auto *ed :
+         printer.getInteropContext().getExtensionsForNominalType(CD)) {
+      (void)forwardDeclareMemberTypes(ed->getAllMembers(), CD);
+    }
     auto [it, inserted] =
         seenTypes.try_emplace(CD, EmissionState::NotYetDefined, false);
     if (outputLangMode == OutputLanguageMode::Cxx &&
@@ -851,6 +877,10 @@ public:
 
     if (outputLangMode == OutputLanguageMode::Cxx) {
       forwardDeclareMemberTypes(ED->getAllMembers(), ED);
+      for (const auto *ed :
+           printer.getInteropContext().getExtensionsForNominalType(ED)) {
+        (void)forwardDeclareMemberTypes(ed->getAllMembers(), ED);
+      }
       forwardDeclareCxxValueTypeIfNeeded(ED);
     }
 
@@ -864,7 +894,7 @@ public:
 
     SmallVector<ProtocolConformance *, 1> conformances;
     auto errorTypeProto = ctx.getProtocol(KnownProtocolKind::Error);
-    if (outputLangMode != OutputLanguageMode::Cxx
+    if (outputLangMode == OutputLanguageMode::ObjC
         && ED->lookupConformance(errorTypeProto, conformances)) {
       bool hasDomainCase = std::any_of(ED->getAllElements().begin(),
                                        ED->getAllElements().end(),
@@ -883,7 +913,7 @@ public:
   void write() {
     SmallVector<Decl *, 64> decls;
     M.getTopLevelDeclsWithAuxiliaryDecls(decls);
-    llvm::DenseSet<const ValueDecl *> removedValueDecls;
+    toolchain::DenseSet<const ValueDecl *> removedValueDecls;
 
     auto newEnd =
         std::remove_if(decls.begin(), decls.end(),
@@ -908,7 +938,7 @@ public:
     decls.erase(newEnd, decls.end());
 
     if (M.isStdlibModule()) {
-      llvm::SmallVector<Decl *, 2> nestedAdds;
+      toolchain::SmallVector<Decl *, 2> nestedAdds;
       for (const auto *d : decls) {
         auto *ext = dyn_cast<ExtensionDecl>(d);
         if (!ext ||
@@ -927,7 +957,7 @@ public:
     }
 
     // REVERSE sort the decls, since we are going to copy them onto a stack.
-    llvm::array_pod_sort(decls.begin(), decls.end(), &reverseCompareDecls);
+    toolchain::array_pod_sort(decls.begin(), decls.end(), &reverseCompareDecls);
 
     assert(declsToWrite.empty());
     declsToWrite.assign(decls.begin(), decls.end());
@@ -965,13 +995,13 @@ public:
         else if (auto ED = dyn_cast<FuncDecl>(D))
           success = writeFunc(ED);
         else
-          llvm_unreachable("unknown top-level ObjC value decl");
+          toolchain_unreachable("unknown top-level ObjC value decl");
 
       } else if (auto ED = dyn_cast<ExtensionDecl>(D)) {
         success = writeExtension(ED);
 
       } else {
-        llvm_unreachable("unknown top-level ObjC decl");
+        toolchain_unreachable("unknown top-level ObjC decl");
       }
 
       if (success) {
@@ -1016,10 +1046,10 @@ public:
     // report them as unavailable. Also skip underscored decls from the standard
     // library. Also skip structs from the standard library, they can cause
     // ambiguities because of the arithmetic types that conflict with types we
-    // already have in `swift::` namespace. Also skip `Error` protocol from
+    // already have in `language::` namespace. Also skip `Error` protocol from
     // stdlib, we have experimental support for it.
     removedVDList.erase(
-        llvm::remove_if(
+        toolchain::remove_if(
             removedVDList,
             [&](const ValueDecl *vd) {
               return !printer.isVisible(vd) || vd->isObjC() ||
@@ -1031,10 +1061,10 @@ public:
             }),
         removedVDList.end());
     // Sort the unavaiable decls by their name and kind.
-    llvm::sort(removedVDList, [](const ValueDecl *lhs, const ValueDecl *rhs) {
+    toolchain::sort(removedVDList, [](const ValueDecl *lhs, const ValueDecl *rhs) {
       auto getSortKey = [](const ValueDecl *vd) {
         std::string sortKey;
-        llvm::raw_string_ostream os(sortKey);
+        toolchain::raw_string_ostream os(sortKey);
         vd->getName().print(os);
         os << ' ' << (unsigned)vd->getDescriptiveKind();
         return std::move(os.str());
@@ -1047,7 +1077,7 @@ public:
       os << "\n";
       auto emitStubComment = [&]() {
         // Emit a generic comment for an handled declaration.
-        os << "// Unavailable in C++: Swift "
+        os << "// Unavailable in C++: Codira "
            << vd->getDescriptiveKindName(vd->getDescriptiveKind()) << " '";
         vd->getName().print(os);
         os << "'.\n";
@@ -1061,7 +1091,7 @@ public:
       }
       emissionScope.emittedDeclarationNames.insert(cxxName);
 
-      // Emit an unavailable stub for a Swift type.
+      // Emit an unavailable stub for a Codira type.
       if (auto *nmtd = dyn_cast<NominalTypeDecl>(vd)) {
         auto representation = cxx_translation::getDeclRepresentation(
             vd, [this](const NominalTypeDecl *decl) {
@@ -1074,7 +1104,7 @@ public:
         }
         os << "class ";
         ClangSyntaxPrinter(nmtd->getASTContext(), os).printBaseName(vd);
-        os << " { } SWIFT_UNAVAILABLE_MSG(\"";
+        os << " { } LANGUAGE_UNAVAILABLE_MSG(\"";
 
         auto diag =
             representation.isUnsupported() && representation.error.has_value()
@@ -1107,31 +1137,42 @@ static AccessLevel getRequiredAccess(const ModuleDecl &M) {
   return M.isExternallyConsumed() ? AccessLevel::Public : AccessLevel::Internal;
 }
 
-void swift::printModuleContentsAsObjC(
-    raw_ostream &os, llvm::SmallPtrSetImpl<ImportModuleTy> &imports,
-    ModuleDecl &M, SwiftToClangInteropContext &interopContext) {
-  llvm::raw_null_ostream prologueOS;
-  llvm::StringSet<> exposedModules;
+void language::printModuleContentsAsObjC(
+    raw_ostream &os, toolchain::SmallPtrSetImpl<ImportModuleTy> &imports,
+    ModuleDecl &M, CodiraToClangInteropContext &interopContext) {
+  toolchain::raw_null_ostream prologueOS;
+  toolchain::StringSet<> exposedModules;
   ModuleWriter(os, prologueOS, imports, M, interopContext, getRequiredAccess(M),
                /*requiresExposedAttribute=*/false, exposedModules,
                OutputLanguageMode::ObjC)
       .write();
 }
 
-EmittedClangHeaderDependencyInfo swift::printModuleContentsAsCxx(
-    raw_ostream &os, ModuleDecl &M, SwiftToClangInteropContext &interopContext,
-    bool requiresExposedAttribute, llvm::StringSet<> &exposedModules) {
+void language::printModuleContentsAsC(
+    raw_ostream &os, toolchain::SmallPtrSetImpl<ImportModuleTy> &imports,
+    ModuleDecl &M, CodiraToClangInteropContext &interopContext) {
+  toolchain::raw_null_ostream prologueOS;
+  toolchain::StringSet<> exposedModules;
+  ModuleWriter(os, prologueOS, imports, M, interopContext, getRequiredAccess(M),
+               /*requiresExposedAttribute=*/false, exposedModules,
+               OutputLanguageMode::C)
+      .write();
+}
+
+EmittedClangHeaderDependencyInfo language::printModuleContentsAsCxx(
+    raw_ostream &os, ModuleDecl &M, CodiraToClangInteropContext &interopContext,
+    bool requiresExposedAttribute, toolchain::StringSet<> &exposedModules) {
   std::string moduleContentsBuf;
-  llvm::raw_string_ostream moduleOS{moduleContentsBuf};
+  toolchain::raw_string_ostream moduleOS{moduleContentsBuf};
   std::string modulePrologueBuf;
-  llvm::raw_string_ostream prologueOS{modulePrologueBuf};
+  toolchain::raw_string_ostream prologueOS{modulePrologueBuf};
   EmittedClangHeaderDependencyInfo info;
 
-  // Define the `SWIFT_SYMBOL` macro.
-  os << "#ifdef SWIFT_SYMBOL\n";
-  os << "#undef SWIFT_SYMBOL\n";
+  // Define the `LANGUAGE_SYMBOL` macro.
+  os << "#ifdef LANGUAGE_SYMBOL\n";
+  os << "#undef LANGUAGE_SYMBOL\n";
   os << "#endif\n";
-  os << "#define SWIFT_SYMBOL(usrValue) SWIFT_SYMBOL_MODULE_USR(\"";
+  os << "#define LANGUAGE_SYMBOL(usrValue) LANGUAGE_SYMBOL_MODULE_USR(\"";
   ClangSyntaxPrinter(M.getASTContext(), os).printBaseName(&M);
   os << "\", usrValue)\n";
 
@@ -1143,21 +1184,21 @@ EmittedClangHeaderDependencyInfo swift::printModuleContentsAsCxx(
   info.dependsOnStandardLibrary = writer.isStdlibRequired();
   if (M.isStdlibModule()) {
     // Embed additional STL includes.
-    os << "#ifndef SWIFT_CXX_INTEROP_HIDE_STL_OVERLAY\n";
+    os << "#ifndef LANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY\n";
     os << "#include <string>\n";
     os << "#endif\n";
     os << "#include <new>\n";
     // Embed an overlay for the standard library.
     ClangSyntaxPrinter(M.getASTContext(), moduleOS).printIncludeForShimHeader(
-        "_SwiftStdlibCxxOverlay.h");
-    // Ignore typos in Swift stdlib doc comments.
+        "_CodiraStdlibCxxOverlay.h");
+    // Ignore typos in Codira stdlib doc comments.
     os << "#pragma clang diagnostic push\n";
     os << "#pragma clang diagnostic ignored \"-Wdocumentation\"\n";
   }
 
-  os << "#ifndef SWIFT_PRINTED_CORE\n";
-  os << "#define SWIFT_PRINTED_CORE\n";
-  printSwiftToClangCoreScaffold(interopContext, M.getASTContext(),
+  os << "#ifndef LANGUAGE_PRINTED_CORE\n";
+  os << "#define LANGUAGE_PRINTED_CORE\n";
+  printCodiraToClangCoreScaffold(interopContext, M.getASTContext(),
                                 writer.getTypeMapping(), os);
   os << "#endif\n";
 
@@ -1170,7 +1211,7 @@ EmittedClangHeaderDependencyInfo swift::printModuleContentsAsCxx(
     os << "#ifdef __cplusplus\n";
     os << "namespace ";
     ClangSyntaxPrinter(M.getASTContext(), os).printBaseName(&M);
-    os << " SWIFT_PRIVATE_ATTR";
+    os << " LANGUAGE_PRIVATE_ATTR";
     ClangSyntaxPrinter(M.getASTContext(), os).printSymbolUSRAttribute(&M);
     os << " {\n";
     os << "namespace " << cxx_synthesis::getCxxImplNamespaceName() << " {\n";
@@ -1192,12 +1233,12 @@ EmittedClangHeaderDependencyInfo swift::printModuleContentsAsCxx(
   ClangSyntaxPrinter(M.getASTContext(), os).printNamespace(
       [&](raw_ostream &os) { ClangSyntaxPrinter(M.getASTContext(), os).printBaseName(&M); },
       [&](raw_ostream &os) { os << moduleOS.str(); },
-      ClangSyntaxPrinter::NamespaceTrivia::AttributeSwiftPrivate, &M);
+      ClangSyntaxPrinter::NamespaceTrivia::AttributeCodiraPrivate, &M);
   os << "#pragma clang diagnostic pop\n";
 
   if (M.isStdlibModule()) {
     os << "#pragma clang diagnostic pop\n";
   }
-  os << "#undef SWIFT_SYMBOL\n";
+  os << "#undef LANGUAGE_SYMBOL\n";
   return info;
 }

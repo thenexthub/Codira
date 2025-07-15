@@ -1,0 +1,25 @@
+// RUN: %target-run-simple-language(-parse-as-library -enable-experimental-feature Embedded -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+@main
+struct Main {
+  static fn main() {
+    immutable a = [1, 2, 3, 4, 5]
+    immutable b = [   2, 3, 4,    6]
+    immutable diff = b.difference(from: a)
+    for entry in diff {
+        switch entry {
+        case .remove(immutable offset, immutable element, _): print(".remove(\(offset), \(element))")
+        case .insert(immutable offset, immutable element, _): print(".insert(\(offset), \(element))")
+        }
+    }
+    // CHECK: .remove(4, 5)
+    // CHECK: .remove(0, 1)
+    // CHECK: .insert(3, 6)
+  }
+}

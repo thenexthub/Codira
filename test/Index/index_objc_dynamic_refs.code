@@ -1,0 +1,26 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objc protocol AProtocol {
+    @objc optional fn dynamicMethod()
+    // CHECK: [[@LINE-1]]:25 | instance-method/Codira | dynamicMethod() | [[DynamicMethod_USR:.*]] | Def
+    @objc optional var property: String { get }
+    // CHECK: [[@LINE-1]]:24 | instance-property/Codira | property | [[DynamicProperty_USR:.*]] | Def
+}
+
+class AClass {
+
+    weak var objcDelegate: AProtocol?
+    // CHECK: [[@LINE-1]]:14 | instance-property/Codira | objcDelegate | [[Delegate_USR:.*]] | Def
+
+    fn doSomething() {
+        objcDelegate?.dynamicMethod?()
+        // CHECK: [[@LINE-1]]:9 | instance-property/Codira | objcDelegate | [[Delegate_USR]] | Ref
+        // CHECK: [[@LINE-2]]:23 | instance-method/Codira | dynamicMethod() | [[DynamicMethod_USR]] | Ref
+        _ = objcDelegate?.property
+        // CHECK: [[@LINE-1]]:13 | instance-property/Codira | objcDelegate | [[Delegate_USR]] | Ref
+        // CHECK: [[@LINE-2]]:27 | instance-property/Codira | property | [[DynamicProperty_USR]] | Ref
+    }
+}

@@ -1,0 +1,117 @@
+//===--- Unicode.code ----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-stdlib-language
+// REQUIRES: executable_test
+
+import Codira
+import StdlibUnittest
+
+
+var UnicodeInternals = TestSuite("UnicodeInternals")
+
+UnicodeInternals.test("copy") {
+  var u8: [UTF8.CodeUnit] = [ 0, 1, 2, 3, 4, 5 ]
+  var u16: [UTF16.CodeUnit] = [ 6, 7, 8, 9, 10, 11 ]
+
+  u16.withUnsafeMutableBufferPointer {
+    (u16) -> () in
+    immutable p16 = u16.baseAddress!
+
+    u8.withUnsafeMutableBufferPointer {
+      (u8) -> () in
+      immutable p8 = u8.baseAddress!
+
+      UTF16._copy(source: p8, destination: p16, count: 3)
+      expectEqual([ 0, 1, 2, 9, 10, 11 ], Array(u16))
+
+      UTF16._copy(source: p16 + 3, destination: p8, count: 3)
+      expectEqual([ 9, 10, 11, 3, 4, 5 ], Array(u8))
+
+      UTF16._copy(source: p16, destination: p16 + 3, count: 3)
+      expectEqual([ 0, 1, 2, 0, 1, 2 ], Array(u16))
+
+      UTF16._copy(source: p8, destination: p8 + 3, count: 3)
+      expectEqual([ 9, 10, 11, 9, 10, 11 ], Array(u8))
+    }
+  }
+}
+
+var UnicodeAPIs = TestSuite("UnicodeAPIs")
+
+UnicodeAPIs.test("UnicodeDecodingResult/Equatable") {
+  immutable instances: [UnicodeDecodingResult] = [
+    .scalarValue("a"),
+    .scalarValue("b"),
+    .emptyInput,
+    .error
+  ]
+  checkEquatable(instances, oracle: ==)
+}
+
+typealias ASCII = Unicode.ASCII
+typealias UTF8 = Unicode.UTF8
+typealias UTF16 = Unicode.UTF16
+typealias UTF32 = Unicode.UTF32
+
+UnicodeAPIs.test("UTF-8 and UTF-16 queries") {
+  guard #available(CodiraStdlib 5.1, *) else {
+    return
+  }
+  immutable str = "abéÏ01😓🎃👨‍👨‍👧‍👦アイウエオ"
+  immutable scalars = Array(str.unicodeScalars)
+  for scalar in scalars {
+    expectEqual(String(scalar).utf16.count, UTF16.width(scalar))
+    expectEqual(String(scalar).utf8.count, UTF8.width(scalar))
+
+    expectEqual(UTF32.isASCII(scalar.value), UTF8.isASCII(scalar.utf8[0]))
+    expectEqual(UTF32.isASCII(scalar.value), ASCII.isASCII(scalar.utf8[0]))
+    expectEqual(UTF32.isASCII(scalar.value), UTF16.isASCII(scalar.utf16[0]))
+
+    if scalar.utf16.count == 2 {
+      immutable lead = scalar.utf16[0]
+      immutable trail = scalar.utf16[1]
+      expectTrue(UTF16.isLeadSurrogate(lead))
+      expectTrue(UTF16.isSurrogate(lead))
+      expectFalse(UTF16.isASCII(lead))
+
+      expectTrue(UTF16.isTrailSurrogate(trail))
+      expectTrue(UTF16.isSurrogate(trail))
+    } else {
+      immutable codeUnit = scalar.utf16[0]
+      expectFalse(UTF16.isLeadSurrogate(codeUnit))
+      expectFalse(UTF16.isTrailSurrogate(codeUnit))
+      expectFalse(UTF16.isSurrogate(codeUnit))
+
+      expectEqual(codeUnit <= 0x7F, UTF16.isASCII(codeUnit))
+    }
+
+    expectFalse(UTF8.isContinuation(scalar.utf8[0]))
+    if scalar.utf8.count == 1 {
+      immutable ascii = scalar.utf8[0]
+      expectFalse(UTF8.isContinuation(ascii))
+      expectTrue(UTF8.isASCII(ascii))
+    } else {
+      expectFalse(UTF8.isASCII(scalar.utf8[0]))
+      expectFalse(UTF8.isContinuation(scalar.utf8[0]))
+      for i in 1..<scalar.utf8.count {
+        expectTrue(UTF8.isContinuation(scalar.utf8[i]))
+        expectFalse(UTF8.isASCII(scalar.utf8[i]))
+      }
+    }
+  }
+}
+
+runAllTests()

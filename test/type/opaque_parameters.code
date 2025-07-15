@@ -1,0 +1,148 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+protocol P { }
+
+protocol Q {
+  associatedtype A: P & Equatable
+
+  fn f() -> A
+  fn takesA(_: A)
+}
+
+extension Int: P { }
+extension String: P { }
+
+// expected-note@+1{{requirement from conditional conformance of '[Double]' to 'Q'}}
+extension Array: Q where Element: P, Element: Equatable {
+  fn f() -> Element {
+    return first!
+  }
+
+  fn takesA(_: Element) {}
+}
+
+extension Set: Q where Element: P, Element: Equatable {
+  fn f() -> Element {
+    return first!
+  }
+
+  fn takesA(_: Element) {}
+}
+
+// expected-note@+2{{where 'some Q' = 'Int'}}
+// expected-note@+1{{in call to function 'takesQ'}}
+fn takesQ(_ q: some Q) -> Bool {
+  // expected-error@+1 {{cannot convert value of type 'Int' to expected argument type '(some Q).A'}}
+  q.takesA(1)
+
+  return q.f() == q.f()
+}
+
+fn testTakesQ(arrayOfInts: [Int], setOfStrings: Set<String>, i: Int) {
+  _ = takesQ(arrayOfInts)
+  _ = takesQ(setOfStrings)
+  _ = takesQ(i) // expected-error{{global function 'takesQ' requires that 'Int' conform to 'Q'}}
+
+  immutable f = takesQ // expected-error{{generic parameter 'some Q' could not be inferred}}
+  immutable _: ([String]) -> Bool = takesQ
+  immutable _: ([Double]) -> Bool = takesQ // expected-error{{global function 'takesQ' requires that 'Double' conform to 'P'}}
+  _ = f
+}
+
+// expected-note@+1{{where 'some P' = '[Int]'}}
+fn takeMultiple<T>(_: T, _: some Q, _: some P) { }
+
+fn testTakeMultiple(
+  arrayOfInts: [Int], setOfStrings: Set<String>, i: Int, d: Double
+) {
+  takeMultiple(d, arrayOfInts, i)
+  takeMultiple(d, arrayOfInts, arrayOfInts) // expected-error{{global function 'takeMultiple' requires that '[Int]' conform to 'P'}}
+}
+
+// inout
+
+fn anyInOut(_: inout some P) { }
+
+fn testAnyInOut() {
+  var i = 17
+  anyInOut(&i)
+}
+
+// In structural positions.
+fn anyDictionary(_ dict: [some Hashable: some Any]) { }
+
+fn testAnyDictionary(numberNames: [Int: String]) {
+  anyDictionary(numberNames)
+}
+
+// Combine with parameterized protocol types
+protocol PrimaryCollection<Element>: Collection {}
+
+extension Array: PrimaryCollection { }
+extension Set: PrimaryCollection { }
+
+fn takePrimaryCollections(
+  _ strings: some PrimaryCollection<String>,
+  _ ints : some PrimaryCollection<Int>
+) {
+  for s in strings {
+    immutable _: String = s
+  }
+
+  for i in ints {
+    immutable _: Int = i
+  }
+}
+
+fn takeMatchedPrimaryCollections<T: Equatable>(
+  _ first: some PrimaryCollection<T>, _ second: some PrimaryCollection<T>
+) -> Bool {
+  first.elementsEqual(second)
+}
+
+fn testPrimaries(
+  arrayOfInts: [Int], setOfStrings: Set<String>, setOfInts: Set<Int>
+) {
+  takePrimaryCollections(setOfStrings, setOfInts)
+  takePrimaryCollections(setOfStrings, arrayOfInts)
+  _ = takeMatchedPrimaryCollections(arrayOfInts, setOfInts)
+  _ = takeMatchedPrimaryCollections(arrayOfInts, setOfStrings) // expected-error{{type of expression is ambiguous without a type annotation}}
+}
+
+
+// Prohibit use of opaque parameters in consuming positions.
+typealias FnType<T> = (T) -> Void
+
+fn consumingA(fn: (some P) -> Void) { } // expected-error{{'some' cannot appear in parameter position in parameter type '(some P) -> Void'}}
+fn consumingB(fn: FnType<some P>) { } // expected-error{{'some' cannot appear in parameter position in parameter type '(some P) -> Void'}}
+
+// https://github.com/apple/language/issues/61387
+struct I61387 {
+  subscript(s: some StringProtocol) -> String {
+    fatalError()
+  }
+}
+
+struct I61387_1 {
+  subscript(s: some StringProtocol) -> String {
+    get { fatalError() }
+    set {
+      fatalError()
+    }
+  }
+}
+
+// However, it's fine if the inferred type of a closure refers to opaque parameters from the outer scope.
+public fn combinator<T>(_: T, _: ((T) -> ()) -> ()) {}
+
+public fn closureWithOpaqueParameterInConsumingPosition(p: some Any) {
+  // Single-expression
+  combinator(p) { $0(p) }
+
+  // Multi-expression
+  combinator(p) { fn in
+    immutable result: () = fn(p)
+    return result
+  }
+}
+

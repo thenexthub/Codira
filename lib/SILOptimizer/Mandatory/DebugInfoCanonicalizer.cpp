@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file contains transformations that propagate debug info at the SIL
 /// level to make IRGen's job easier. The specific transformations that we
 /// perform is that we clone dominating debug_value for a specific
-/// SILDebugVariable after all coroutine-func-let boundary instructions. This in
+/// SILDebugVariable after all coroutine-fn-let boundary instructions. This in
 /// practice this as an algorithm works as follows:
 ///
 /// 1. We walk the CFG along successors. By doing this we guarantee that we
@@ -62,9 +63,9 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallSet.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallSet.h"
 
 using namespace language;
 
@@ -97,14 +98,14 @@ static SILInstruction *cloneDebugValue(DebugVarCarryingInst original,
 namespace {
 
 struct BlockState {
-  llvm::SmallMapVector<SILDebugVariable, DebugVarCarryingInst, 4> debugValues;
+  toolchain::SmallMapVector<SILDebugVariable, DebugVarCarryingInst, 4> debugValues;
 };
 
 struct DebugInfoCanonicalizer {
   SILFunction *fn;
   DominanceAnalysis *da;
   DominanceInfo *dt;
-  llvm::MapVector<SILBasicBlock *, BlockState> blockToBlockState;
+  toolchain::MapVector<SILBasicBlock *, BlockState> blockToBlockState;
 
   DebugInfoCanonicalizer(SILFunction *fn, DominanceAnalysis *da)
       : fn(fn), da(da), dt(nullptr) {}
@@ -126,21 +127,21 @@ struct DebugInfoCanonicalizer {
   bool propagateDebugValuesFromDominators(
       PointerUnion<SILInstruction *, SILBasicBlock *> insertPt,
       SILBasicBlock *startBlock,
-      llvm::SmallDenseSet<SILDebugVariable, 8> &seenDebugVars) {
-    LLVM_DEBUG(llvm::dbgs() << "==> PROPAGATING VALUE\n");
+      toolchain::SmallDenseSet<SILDebugVariable, 8> &seenDebugVars) {
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "==> PROPAGATING VALUE\n");
     if (insertPt.is<SILInstruction *>()) {
-      LLVM_DEBUG(llvm::dbgs() << "Inst: " << *insertPt.get<SILInstruction *>());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Inst: " << *insertPt.get<SILInstruction *>());
     }
 
     auto *dt = getDominance();
     auto *domTreeNode = dt->getNode(startBlock);
     auto *rootNode = dt->getRootNode();
     if (domTreeNode == rootNode) {
-      LLVM_DEBUG(llvm::dbgs() << "Root node! Nothing to propagate!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Root node! Nothing to propagate!\n");
       return false;
     }
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Root Node: " << rootNode->getBlock()->getDebugID() << '\n');
 
     // We already emitted in our caller all debug_value needed from the block we
@@ -149,7 +150,7 @@ struct DebugInfoCanonicalizer {
     bool madeChange = false;
     do {
       domTreeNode = domTreeNode->getIDom();
-      LLVM_DEBUG(llvm::dbgs() << "Visiting idom: "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting idom: "
                               << domTreeNode->getBlock()->getDebugID() << '\n');
       auto &domBlockState = blockToBlockState[domTreeNode->getBlock()];
       for (auto &pred : domBlockState.debugValues) {
@@ -161,17 +162,17 @@ struct DebugInfoCanonicalizer {
           continue;
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "Has DebugValue: " << *pred.second);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Has DebugValue: " << *pred.second);
 
         // If we have already inserted something for this debug_value,
         // continue.
         if (!seenDebugVars.insert(pred.first).second) {
-          LLVM_DEBUG(llvm::dbgs() << "Already seen this one... skipping!\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Already seen this one... skipping!\n");
           continue;
         }
 
         // Otherwise do the clone.
-        LLVM_DEBUG(llvm::dbgs() << "Haven't seen this one... cloning!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Haven't seen this one... cloning!\n");
         if (auto *inst = insertPt.dyn_cast<SILInstruction *>()) {
           cloneDebugValue(pred.second, inst);
         } else {
@@ -196,16 +197,16 @@ bool DebugInfoCanonicalizer::process() {
   // any path to the block along successors by definition of dominators we must
   // go through all such dominators.
   BasicBlockWorklist worklist(&*fn->begin());
-  llvm::SmallDenseSet<SILDebugVariable, 8> seenDebugVars;
+  toolchain::SmallDenseSet<SILDebugVariable, 8> seenDebugVars;
 
   while (auto *block = worklist.pop()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "BB: Visiting. bb" << block->getDebugID() << '\n');
     auto &state = blockToBlockState[block];
 
     // Then for each inst in the block...
     for (auto &inst : *block) {
-      LLVM_DEBUG(llvm::dbgs() << "    Inst: " << inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Inst: " << inst);
 
       // Skip any alloc box inst we see, we do not support them yet.
       if (isa<AllocBoxInst>(&inst))
@@ -218,10 +219,10 @@ bool DebugInfoCanonicalizer::process() {
         if (!dvi.getWasMoved())
           continue;
 
-        LLVM_DEBUG(llvm::dbgs() << "        Found DebugValueInst!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found DebugValueInst!\n");
         auto debugInfo = dvi.getVarInfo();
         if (!debugInfo) {
-          LLVM_DEBUG(llvm::dbgs() << "        Has no var info?! Skipping!\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Has no var info?! Skipping!\n");
           continue;
         }
         // Strip things we don't need in the map.
@@ -237,7 +238,7 @@ bool DebugInfoCanonicalizer::process() {
         if (!iter.second) {
           iter.first->second = dvi;
         }
-        LLVM_DEBUG(llvm::dbgs() << "        ==> Updated Map.\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        ==> Updated Map.\n");
         continue;
       }
 
@@ -257,10 +258,10 @@ bool DebugInfoCanonicalizer::process() {
         return false;
       };
       if (shouldHandleNonTermInst(&inst)) {
-        LLVM_DEBUG(llvm::dbgs() << "        Found apply edge!.\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found apply edge!.\n");
         // Clone all of the debug_values that we are currently tracking both
         // after the begin_apply,
-        SWIFT_DEFER { seenDebugVars.clear(); };
+        LANGUAGE_DEFER { seenDebugVars.clear(); };
 
         for (auto &pred : state.debugValues) {
           // If we found a SILUndef, mark this debug var as seen but do not
@@ -287,19 +288,19 @@ bool DebugInfoCanonicalizer::process() {
       // Otherwise, we have a yield. We handle this separately since we need to
       // insert the debug_value into its successor blocks.
       if (auto *yi = dyn_cast<YieldInst>(&inst)) {
-        LLVM_DEBUG(llvm::dbgs() << "    Found Yield: " << *yi);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found Yield: " << *yi);
 
-        SWIFT_DEFER { seenDebugVars.clear(); };
+        LANGUAGE_DEFER { seenDebugVars.clear(); };
 
         // Duplicate all of our tracked debug values into our successor
         // blocks.
         for (auto *succBlock : yi->getSuccessorBlocks()) {
-          LLVM_DEBUG(llvm::dbgs() << "        Visiting Succ: bb"
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Visiting Succ: bb"
                                   << succBlock->getDebugID() << '\n');
           for (auto &pred : state.debugValues) {
             if (!pred.second)
               continue;
-            LLVM_DEBUG(llvm::dbgs() << "            Cloning: " << *pred.second);
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Cloning: " << *pred.second);
             cloneDebugValue(pred.second, succBlock);
             madeChange = true;
           }
@@ -342,6 +343,6 @@ class DebugInfoCanonicalizerTransform : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createDebugInfoCanonicalizer() {
+SILTransform *language::createDebugInfoCanonicalizer() {
   return new DebugInfoCanonicalizerTransform();
 }

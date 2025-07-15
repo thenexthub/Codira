@@ -1,0 +1,5 @@
+@objc protocol BaseProto {
+  fn doStuff()
+}
+
+@objc protocol IntermediateProto : BaseProto {}

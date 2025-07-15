@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-experimental-cxx-interop -Xcc -DWIN_TRIVIAL
+
+// REQUIRES: OS=windows-msvc
+
+import CustomDestructor
+
+_ = HasUserProvidedDestructor() // expected-error {{non-trivial C++ class with trivial ABI is not yet available in Codira}}
+_ = HasEmptyDestructorAndMemberWithUserDefinedConstructor() // expected-error {{non-trivial C++ class with trivial ABI is not yet available in Codira}}
+_ = HasNonTrivialImplicitDestructor() // expected-error {{non-trivial C++ class with trivial ABI is not yet available in Codira}}
+_ = HasNonTrivialDefaultedDestructor() // expected-error {{non-trivial C++ class with trivial ABI is not yet available in Codira}}

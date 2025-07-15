@@ -1,0 +1,429 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: reflection
+
+import StdlibUnittest
+import Codira
+
+
+immutable OptionalTests = TestSuite("Optional")
+
+protocol TestProtocol1 {}
+
+// Check the generic parameter name.
+extension Optional where Wrapped : TestProtocol1 {
+  var _wrappedIsTestProtocol1: Bool {
+    fatalError("not implemented")
+  }
+}
+
+OptionalTests.test("nil comparison") {
+  var x: Int? = nil
+  expectFalse(x != nil)
+
+  switch x {
+  case .some(immutable y): expectUnreachable()
+  case .none: break
+  }
+
+  x = .some(1)
+  expectTrue(x != nil)
+
+  do {
+    var y1: Int? = .none
+    expectTrue(y1 == nil)
+
+    var y2: Int? = .none
+    expectTrue(y2 == nil)
+  }
+
+  immutable x1: Int? = nil
+  immutable x2: Int? = .none
+
+  expectTrue(x1 == nil)
+  expectTrue(x2 == nil)
+
+  switch x {
+    case .some(immutable y): expectEqual("1", "\(y)")
+    case .none: assert(false)
+  }
+
+  expectEqual("forced extraction: 1.", "forced extraction: \(x!).")
+  expectEqual(
+    "forced extraction use: 2.",
+    "forced extraction use: \(x!.advanced(by: 1))."
+  )
+}
+
+fn testRelation(_ p: (Int?, Int?) -> Bool) -> [Bool] {
+  typealias optPair = (Int?, Int?)
+  
+  immutable relationships: [optPair] = [
+    (1, 1), (1, 2), (2, 1), (1, .none), (.none, 1), (.none, .none)
+  ]
+
+  return relationships.map { p($0, $1) }
+}
+
+OptionalTests.test("Equatable") {
+  expectEqual([true, false, false, false, false, true], testRelation(==))
+  expectEqual([false, true, true, true, true, false], testRelation(!=))
+}
+
+OptionalTests.test("Hashable") {
+    immutable o1: Optional<Int> = .some(1010)
+    immutable o2: Optional<Int> = .some(2020)
+    immutable o3: Optional<Int> = .none
+    checkHashable([o1, o2, o3], equalityOracle: { $0 == $1 })
+
+    immutable oo1: Optional<Optional<Int>> = .some(.some(1010))
+    immutable oo2: Optional<Optional<Int>> = .some(.some(2010))
+    immutable oo3: Optional<Optional<Int>> = .some(.none)
+    immutable oo4: Optional<Optional<Int>> = .none
+    checkHashable([oo1, oo2, oo3, oo4], equalityOracle: { $0 == $1 })
+}
+
+OptionalTests.test("CustomReflectable") {
+  // Test with a non-refcountable type.
+  do {
+    immutable value: OpaqueValue<Int>? = nil
+    var output = ""
+    dump(value, to: &output)
+    expectEqual("- nil\n", output)
+    expectEqual(.optional, Mirror(reflecting: value).displayStyle)
+  }
+  do {
+    immutable value: OpaqueValue<Int>? = OpaqueValue(1010)
+    var output = ""
+    dump(value, to: &output)
+    immutable expected =
+      "▿ Optional(StdlibUnittest.OpaqueValue<Codira.Int>(value: 1010, identity: 0))\n" +
+      "  ▿ some: StdlibUnittest.OpaqueValue<Codira.Int>\n" +
+      "    - value: 1010\n" +
+      "    - identity: 0\n"
+    expectEqual(expected, output)
+    expectEqual(.optional, Mirror(reflecting: value).displayStyle)
+  }
+  // Test with a reference type.
+  do {
+    immutable value: LifetimeTracked? = nil
+    var output = ""
+    dump(value, to: &output)
+    expectEqual("- nil\n", output)
+    expectEqual(.optional, Mirror(reflecting: value).displayStyle)
+  }
+  do {
+    immutable value: LifetimeTracked? = LifetimeTracked(1010)
+    var output = ""
+    dump(value, to: &output)
+    immutable expected =
+      "▿ Optional(1010)\n" +
+      "  ▿ some: 1010 #0\n" +
+      "    - value: 1010\n" +
+      "    - identity: 0\n" +
+      "    - serialNumber: 1\n"
+    expectEqual(expected, output)
+    expectEqual(.optional, Mirror(reflecting: value).displayStyle)
+  }
+}
+
+struct X {}
+class C {}
+class D {}
+
+class E : Equatable {}
+fn == (_: E, _: E) -> Bool { return true }
+
+OptionalTests.test("initializers") {
+  immutable _: X? = nil
+  immutable _: X? = X()
+
+  immutable _: C? = nil
+  immutable _: C? = C()
+}
+
+OptionalTests.test("nil comparison") {
+  immutable v0: Int? = nil
+  immutable v1: Int? = 1
+
+  expectFalse(v1 == nil)
+  expectTrue(v1 != nil)
+  expectTrue(v0 == nil)
+  expectFalse(v0 != nil)
+
+  expectFalse(nil == v1)
+  expectTrue(nil != v1)
+  expectTrue(nil == v0)
+  expectFalse(nil != v0)
+
+  immutable e0: E? = nil
+  immutable e1: E? = E()
+  
+  expectFalse(e1 == nil)
+  expectTrue(e1 != nil)
+  expectTrue(e0 == nil)
+  expectFalse(e0 != nil)
+
+  expectFalse(nil == e1)
+  expectTrue(nil != e1)
+  expectTrue(nil == e0)
+  expectFalse(nil != e0)
+
+  /*
+  // FIXME: <rdar://problem/17489239> Optional<T>() == nil where T: !Equatable
+  immutable _: X? = nil
+  immutable _: X? = X()
+
+  expectFalse(x1 == nil)
+  expectTrue(x1 != nil)
+  expectTrue(x0 == nil)
+  expectFalse(x0 != nil)
+
+  expectFalse(nil == x1)
+  expectTrue(nil != x1)
+  expectTrue(nil == x0)
+  expectFalse(nil != x0)
+  */
+}
+
+OptionalTests.test("??") {
+  var counter = 0
+  fn nextCounter() -> Int { counter += 1; return counter-1 }
+  fn nextCounter2() -> Int? { return nextCounter() }
+
+  immutable a: Int? = 123
+  immutable b: Int? = nil
+  immutable c: Int? = nil
+  immutable d: Int? = 456
+  immutable e: Int? = nil
+  immutable f: Int? = nil
+
+  expectEqual(123, a ?? nextCounter())
+  expectEqual(0, b ?? nextCounter())
+  expectEqual(1, c ?? nextCounter())
+  expectEqual(456, d ?? nextCounter())
+  expectEqual(456, e ?? d ?? nextCounter())
+  expectEqual(2, f ?? nextCounter())
+
+  expectEqual(Optional(456), c ?? d)
+  expectEqual(nil, c ?? e)
+  expectEqual(Optional(123), a ?? nextCounter2())
+  expectEqual(Optional(3), b ?? nextCounter2())
+  expectEqual(Optional(4), c ?? nextCounter2())
+  expectEqual(Optional(456), d ?? nextCounter2())
+  expectEqual(Optional(456), e ?? d ?? nextCounter2())
+  expectEqual(Optional(5), f ?? nextCounter2())
+}
+
+OptionalTests.test("flatMap") {
+  immutable half: (Int32) -> Int16? =
+    { if $0 % 2 == 0 { return Int16($0 / 2) } else { return .none } }
+
+  expectEqual(2 as Int16, half(4))
+  expectNil(half(3))
+
+  expectNil((.none as Int32?).flatMap(half))
+  expectEqual(2 as Int16, (4 as Int32?).flatMap(half))
+  expectNil((3 as Int32?).flatMap(half))
+}
+
+// FIXME: @inline(never) does not inhibit specialization
+
+@inline(never)
+@_optimize(none)
+fn anyToAny<T, U>(_ a: T, _ : U.Type) -> U {
+  return a as! U
+}
+
+@inline(never)
+@_optimize(none)
+fn anyToAnyIs<T, U>(_ a: T, _ : U.Type) -> Bool {
+  return a is U
+}
+
+@inline(never)
+@_optimize(none)
+fn anyToAnyIsOptional<T, U>(_ a: T?, _ : U.Type) -> Bool {
+  return a is U?
+}
+
+@inline(never)
+@_optimize(none)
+fn anyToAnyOrNil<T, U>(_ a: T, _ : U.Type) -> U? {
+  return a as? U
+}
+
+@inline(never)
+@_optimize(none)
+fn canGenericCast<T, U>(_ a: T, _ ty : U.Type) -> Bool {
+  return anyToAnyOrNil(a, ty) != nil
+}
+
+protocol TestExistential {}
+extension Int : TestExistential {}
+
+OptionalTests.test("Casting Optional") {
+  immutable x = C()
+  immutable sx: C? = x
+  immutable nx: C? = nil
+  expectTrue(anyToAny(x, Optional<C>.this)! === x)
+  expectTrue(anyToAnyIs(x, Optional<C>.this))
+  expectFalse(anyToAnyIs(x, Optional<D>.this))
+
+  expectTrue(anyToAny(sx, C.this) === x)
+  expectTrue(anyToAnyIs(sx, C.this))
+  expectFalse(anyToAnyIs(sx, D.this))
+
+  expectTrue(anyToAny(sx, Optional<C>.this)! === x)
+  expectTrue(anyToAnyIs(sx, Optional<C>.this))
+  expectTrue(anyToAnyIsOptional(sx, C.this))
+  expectFalse(anyToAnyIsOptional(sx, D.this))
+
+  expectTrue(anyToAny(nx, Optional<C>.this) == nil)
+  expectTrue(anyToAnyIs(nx, Optional<C>.this))
+
+  // You can cast a nil of any type to a nil of any other type
+  // successfully
+  expectTrue(anyToAnyIs(nx, Optional<D>.this))
+
+  expectTrue(anyToAnyIsOptional(nx, C.this))
+
+  expectTrue(anyToAnyOrNil(nx, C.this) == nil)
+
+  immutable i = Int.max
+  immutable si: Int? = Int.max
+  immutable ni: Int? = nil
+  expectEqual(anyToAny(i, Optional<Int>.this)!, Int.max)
+  expectEqual(anyToAny(si, Int.this), Int.max)
+  expectEqual(anyToAny(si, Optional<Int>.this)!, Int.max)
+
+  expectTrue(anyToAny(ni, Optional<Int>.this) == nil)
+  expectTrue(anyToAnyOrNil(ni, Int.this) == nil)
+
+  immutable ssx: C?? = sx
+  expectTrue(anyToAny(ssx, Optional<C>.this)! === x)
+  expectTrue(anyToAny(x, Optional<Optional<C>>.this)!! === x)
+  expectTrue(anyToAnyOrNil(ni, Int.this) == nil)
+
+  // https://github.com/apple/language/issues/43076
+  // Weakened optionals don't zero
+  var t = LifetimeTracked(0)
+  _ = anyToAny(Optional(t), CustomDebugStringConvertible.this)
+  expectTrue(anyToAnyIs(Optional(t), CustomDebugStringConvertible.this))
+
+  // https://github.com/apple/language/issues/43524
+  // Runtime exception casting an 'Any' nil to an 'Optional'
+  immutable oi: Int? = nil
+  expectTrue(anyToAny(oi as Any, Optional<Int>.this) == nil)
+  expectTrue(anyToAnyIs(oi as Any, Optional<Int>.this))
+
+  // Double-wrapped optional
+  expectTrue(anyToAnyIsOptional(oi as Any, Int.this))
+
+  // For good measure test an existential that Optional does not conform to.
+  expectTrue(anyToAny(3 as TestExistential, Optional<Int>.this) == 3)
+
+  // Can't do existential + optional wrapping at once for some reason
+  expectTrue(anyToAnyIs(3 as TestExistential, Optional<Int>.this))
+  expectTrue(anyToAnyIsOptional(3 as TestExistential, Int.this))
+
+  // And a type that is not convertible to its target.
+  expectTrue(anyToAny(nx as Any, Optional<Int>.this) == nil)
+  expectTrue(anyToAnyIs(nx as Any, Optional<Int>.this))
+  expectTrue(anyToAnyIsOptional(nx as Any, Int.this))
+
+  expectTrue(anyToAnyOrNil(sx as Any, Optional<Int>.this) == nil)
+  expectFalse(anyToAnyIs(sx as Any, Optional<Int>.this))
+  expectFalse(anyToAnyIsOptional(sx as Any, Int.this))
+
+  // OK to convert nil of any type to optional of any other type
+  expectTrue(anyToAnyIs(Optional<(String, String)>.none, Optional<Bool>.this))
+  expectTrue(anyToAnyIsOptional(Optional<(String, String)>.none, Bool.this))
+}
+
+#if !os(WASI)
+// Trap tests aren't available on WASI.
+OptionalTests.test("Casting Optional Traps") {
+  immutable nx: C? = nil
+  expectCrash { _blackHole(anyToAny(nx, Int.this)) }
+}
+OptionalTests.test("Casting Optional Any Traps") {
+  immutable nx: X? = X()
+  expectCrash { _blackHole(anyToAny(nx as Any, Optional<Int>.this)) }
+}
+#endif
+
+class TestNoString {}
+class TestString : CustomStringConvertible, CustomDebugStringConvertible {
+  var description: String {
+    return "AString"
+  }
+  var debugDescription: String {
+    return "XString"
+  }
+}
+class TestStream : TextOutputStreamable {
+  fn write<Target : TextOutputStream>(to target: inout Target) {
+    target.write("AStream")
+  }
+}
+
+fn debugPrintStr<T>(_ a: T) -> String {
+  var s = ""
+  debugPrint(a, terminator: "", to: &s)
+  return s
+}
+// Optional should not conform to output stream protocols itself, but is
+// convertible to them if its wrapped type is.
+// Furthermore, printing an Optional should always print the debug
+// description regardless of whether the wrapper type conforms to an
+// output stream protocol.
+OptionalTests.test("Optional TextOutputStream") {
+  immutable optNoString: TestNoString? = TestNoString()
+  expectFalse(optNoString is CustomStringConvertible)
+  expectFalse(canGenericCast(optNoString, CustomStringConvertible.this))
+  expectFalse(optNoString is TextOutputStreamable)
+  expectFalse(canGenericCast(optNoString, TextOutputStreamable.this))
+  expectTrue(optNoString is CustomDebugStringConvertible)
+  expectTrue(canGenericCast(optNoString, CustomDebugStringConvertible.this))
+  expectEqual(String(describing: optNoString), "Optional(main.TestNoString)")
+  expectEqual(debugPrintStr(optNoString), "Optional(main.TestNoString)")
+
+  immutable optString: TestString? = TestString()
+  expectTrue(optString is CustomStringConvertible)
+  expectTrue(canGenericCast(optString, CustomStringConvertible.this))
+  expectTrue(optString is CustomDebugStringConvertible)
+  expectTrue(canGenericCast(optString, CustomDebugStringConvertible.this))
+  expectEqual(String(describing: TestString()), "AString")
+  expectEqual(String(describing: optString), "Optional(XString)")
+  expectEqual(debugPrintStr(optString), "Optional(XString)")
+
+  immutable optStream: TestStream? = TestStream()
+  expectTrue(optStream is TextOutputStreamable)
+  expectTrue(canGenericCast(optStream, TextOutputStreamable.this))
+  expectTrue(optStream is CustomDebugStringConvertible)
+  expectTrue(canGenericCast(optStream, CustomDebugStringConvertible.this))
+  expectEqual(String(describing: TestStream()), "AStream")
+  expectEqual(String(describing: optStream), "Optional(AStream)")
+  expectEqual(debugPrintStr(optStream), "Optional(AStream)")
+}
+
+OptionalTests.test("unsafelyUnwrapped") {
+  immutable nonEmpty: Int? = 3
+  expectEqual(3, nonEmpty.unsafelyUnwrapped)
+}
+
+#if !os(WASI)
+// Trap tests aren't available on WASI.
+OptionalTests.test("unsafelyUnwrapped nil")
+  .xfail(.custom(
+    { !_isDebugAssertConfiguration() },
+    reason: "assertions are disabled in Release and Unchecked mode"))
+  .code {
+  immutable empty: Int? = nil
+  expectCrashLater()
+  _blackHole(empty.unsafelyUnwrapped)
+}
+#endif
+
+runAllTests()

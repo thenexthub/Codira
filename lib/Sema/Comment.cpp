@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/Comment.h"
@@ -88,7 +89,7 @@ private:
         continue;
       }
       if (!isa<TypeDecl>(member)) {
-        if (!swift::TypeChecker::witnessStructureMatches(member, VD)) {
+        if (!language::TypeChecker::witnessStructureMatches(member, VD)) {
           continue;
         }
         Type memberComparisonTy = member->getInterfaceType();
@@ -181,13 +182,13 @@ static std::optional<StringRef> getDirectBriefComment(const Decl *D) {
   auto *ModuleDC = D->getDeclContext()->getModuleScopeContext();
   auto &Ctx = ModuleDC->getASTContext();
 
-  // If we expect the comment to be in the swiftdoc, check for it if we loaded a
-  // swiftdoc. If missing from the swiftdoc, we know it will not be in the
-  // swiftsourceinfo either, so we can bail early.
+  // If we expect the comment to be in the languagedoc, check for it if we loaded a
+  // languagedoc. If missing from the languagedoc, we know it will not be in the
+  // languagesourceinfo either, so we can bail early.
   if (auto *Unit = dyn_cast<FileUnit>(ModuleDC)) {
-    if (Unit->hasLoadedSwiftDoc()) {
+    if (Unit->hasLoadedCodiraDoc()) {
       auto target = getDocCommentSerializationTargetFor(D);
-      if (target == DocCommentSerializationTarget::SwiftDocAndSourceInfo) {
+      if (target == DocCommentSerializationTarget::CodiraDocAndSourceInfo) {
         auto C = Unit->getCommentForDecl(D);
         if (!C)
           return std::nullopt;
@@ -198,13 +199,13 @@ static std::optional<StringRef> getDirectBriefComment(const Decl *D) {
   }
 
   // Otherwise, parse the brief from the raw comment itself. This will look into
-  // the swiftsourceinfo if needed.
+  // the languagesourceinfo if needed.
   auto RC = D->getRawComment();
   if (RC.isEmpty())
     return std::nullopt;
 
   SmallString<256> BriefStr;
-  llvm::raw_svector_ostream OS(BriefStr);
+  toolchain::raw_svector_ostream OS(BriefStr);
   printBriefComment(RC, OS);
   return Ctx.AllocateCopy(BriefStr.str());
 }

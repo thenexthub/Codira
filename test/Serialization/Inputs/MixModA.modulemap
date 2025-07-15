@@ -1,0 +1,8 @@
+framework module MixModA {
+  export *
+  module * { export * }
+}
+
+module MixModA.Codira {
+    header "MixModA-Codira.h"
+}

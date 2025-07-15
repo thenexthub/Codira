@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -20,16 +21,16 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_JSONSERIALIZATION_H
-#define SWIFT_BASIC_JSONSERIALIZATION_H
+#ifndef LANGUAGE_BASIC_JSONSERIALIZATION_H
+#define LANGUAGE_BASIC_JSONSERIALIZATION_H
 
-/* #include "language/Basic/LLVM.h" */
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/Regex.h"
-#include "llvm/Support/raw_ostream.h"
+/* #include "language/Basic/Toolchain.h" */
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/Regex.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 #include <map>
@@ -98,9 +99,9 @@ struct ScalarBitSetTraits {
 ///
 ///    template<>
 ///    struct ScalarTraits<MyType> {
-///      static void output(const MyType &val, llvm::raw_ostream &out) {
+///      static void output(const MyType &val, toolchain::raw_ostream &out) {
 ///        // stream out custom formatting
-///        out << llvm::format("%x", val);
+///        out << toolchain::format("%x", val);
 ///      }
 ///      static bool mustQuote(StringRef) { return true; }
 ///    };
@@ -109,7 +110,7 @@ struct ScalarTraits {
   // Must provide:
   //
   // Function to write the value as a string:
-  //static void output(const T &value, void *ctxt, llvm::raw_ostream &out);
+  //static void output(const T &value, void *ctxt, toolchain::raw_ostream &out);
   //
   // Function to determine if the value should be quoted.
   //static bool mustQuote(StringRef);
@@ -229,8 +230,8 @@ public:
 template <class T>
 struct has_ScalarTraits
 {
-  using Signature_output = void (*)(const T &, llvm::raw_ostream &);
-  using Signature_mustQuote = bool (*)(llvm::StringRef);
+  using Signature_output = void (*)(const T &, toolchain::raw_ostream &);
+  using Signature_mustQuote = bool (*)(toolchain::StringRef);
 
   template <typename U>
   static char test(SameType<Signature_output, &U::output> *,
@@ -248,8 +249,8 @@ public:
 template <class T>
 struct has_ScalarReferenceTraits
 {
-  using Signature_stringRef = llvm::StringRef (*)(const T &);
-  using Signature_mustQuote = bool (*)(llvm::StringRef);
+  using Signature_stringRef = toolchain::StringRef (*)(const T &);
+  using Signature_mustQuote = bool (*)(toolchain::StringRef);
 
   template <typename U>
   static char test(SameType<Signature_stringRef, &U::stringRef> *,
@@ -283,7 +284,7 @@ public:
 template <class T>
 struct has_ObjectValidateTraits
 {
-  using Signature_validate = llvm::StringRef (*)(class Output &, T &);
+  using Signature_validate = toolchain::StringRef (*)(class Output &, T &);
 
   template <typename U>
   static char test(SameType<Signature_validate, &U::validate>*);
@@ -335,12 +336,12 @@ public:
   (sizeof(test<NullableTraits<T>>(nullptr)) == 1);
 };
 
-inline bool isNumber(llvm::StringRef S) {
+inline bool isNumber(toolchain::StringRef S) {
   static const char DecChars[] = "0123456789";
-  if (S.find_first_not_of(DecChars) == llvm::StringRef::npos)
+  if (S.find_first_not_of(DecChars) == toolchain::StringRef::npos)
     return true;
 
-  llvm::Regex FloatMatcher(
+  toolchain::Regex FloatMatcher(
       "^(\\.[0-9]+|[0-9]+(\\.[0-9]*)?)([eE][-+]?[0-9]+)?$");
   if (FloatMatcher.match(S))
     return true;
@@ -348,7 +349,7 @@ inline bool isNumber(llvm::StringRef S) {
   return false;
 }
 
-inline bool isNumeric(llvm::StringRef S) {
+inline bool isNumeric(toolchain::StringRef S) {
   if ((S.front() == '-' || S.front() == '+') && isNumber(S.drop_front()))
     return true;
 
@@ -358,9 +359,9 @@ inline bool isNumeric(llvm::StringRef S) {
   return false;
 }
 
-inline bool isNull(llvm::StringRef S) { return S == "null"; }
+inline bool isNull(toolchain::StringRef S) { return S == "null"; }
 
-inline bool isBool(llvm::StringRef S) {
+inline bool isBool(toolchain::StringRef S) {
   return S == "true" || S == "false";
 }
 
@@ -396,15 +397,15 @@ private:
     ObjectOtherKey
   };
 
-  llvm::raw_ostream &Stream;
-  llvm::SmallVector<State, 8> StateStack;
+  toolchain::raw_ostream &Stream;
+  toolchain::SmallVector<State, 8> StateStack;
   bool PrettyPrint;
   bool NeedBitValueComma;
   bool EnumerationMatchFound;
   UserInfoMap UserInfo;
 
 public:
-  Output(llvm::raw_ostream &os, UserInfoMap UserInfo = {},
+  Output(toolchain::raw_ostream &os, UserInfoMap UserInfo = {},
          bool PrettyPrint = true)
       : Stream(os), PrettyPrint(PrettyPrint), NeedBitValueComma(false),
         EnumerationMatchFound(false), UserInfo(UserInfo) {}
@@ -422,7 +423,7 @@ public:
 
   void beginObject();
   void endObject();
-  bool preflightKey(llvm::StringRef, bool, bool, bool &, void *&);
+  bool preflightKey(toolchain::StringRef, bool, bool, bool &, void *&);
   void postflightKey(void*);
 
   void beginEnumScalar();
@@ -433,7 +434,7 @@ public:
   bool bitSetMatch(const char*, bool);
   void endBitSetScalar();
 
-  void scalarString(llvm::StringRef &, bool);
+  void scalarString(toolchain::StringRef &, bool);
   void null();
 
   template <typename T>
@@ -464,13 +465,13 @@ public:
   }
 
   template <typename T>
-  void mapRequired(llvm::StringRef Key, T &Val) {
+  void mapRequired(toolchain::StringRef Key, T &Val) {
     this->processKey(Key, Val, true);
   }
 
   template <typename T>
   typename std::enable_if<has_ArrayTraits<T>::value, void>::type
-  mapOptional(llvm::StringRef Key, T &Val) {
+  mapOptional(toolchain::StringRef Key, T &Val) {
     // omit key/value instead of outputting empty array
     if (this->canElideEmptyArray() && !(Val.begin() != Val.end()))
       return;
@@ -478,24 +479,24 @@ public:
   }
 
   template <typename T>
-  void mapOptional(llvm::StringRef Key, std::optional<T> &Val) {
+  void mapOptional(toolchain::StringRef Key, std::optional<T> &Val) {
     processKeyWithDefault(Key, Val, std::optional<T>(), /*Required=*/false);
   }
 
   template <typename T>
   typename std::enable_if<!has_ArrayTraits<T>::value, void>::type
-  mapOptional(llvm::StringRef Key, T &Val) {
+  mapOptional(toolchain::StringRef Key, T &Val) {
     this->processKey(Key, Val, false);
   }
 
   template <typename T>
-  void mapOptional(llvm::StringRef Key, T &Val, const T &Default) {
+  void mapOptional(toolchain::StringRef Key, T &Val, const T &Default) {
     this->processKeyWithDefault(Key, Val, Default, false);
   }
 
 private:
   template <typename T>
-  void processKeyWithDefault(llvm::StringRef Key, std::optional<T> &Val,
+  void processKeyWithDefault(toolchain::StringRef Key, std::optional<T> &Val,
                              const std::optional<T> &DefaultValue,
                              bool Required) {
     assert(!DefaultValue.has_value() &&
@@ -516,7 +517,7 @@ private:
   }
 
   template <typename T>
-  void processKeyWithDefault(llvm::StringRef Key, T &Val, const T &DefaultValue,
+  void processKeyWithDefault(toolchain::StringRef Key, T &Val, const T &DefaultValue,
                              bool Required) {
     void *SaveInfo;
     bool UseDefault;
@@ -532,7 +533,7 @@ private:
   }
 
   template <typename T>
-  void processKey(llvm::StringRef Key, T &Val, bool Required) {
+  void processKey(toolchain::StringRef Key, T &Val, bool Required) {
     void *SaveInfo;
     bool UseDefault;
     if (this->preflightKey(Key, Required, false, UseDefault, SaveInfo)) {
@@ -557,90 +558,90 @@ template <typename T> struct ArrayTraits<std::vector<T>> {
 
 template<>
 struct ScalarReferenceTraits<bool> {
-  static llvm::StringRef stringRef(const bool &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static toolchain::StringRef stringRef(const bool &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template <>
-struct ScalarReferenceTraits<llvm::StringRef> {
-  static llvm::StringRef stringRef(const llvm::StringRef &);
-  static bool mustQuote(llvm::StringRef S) { return true; }
+struct ScalarReferenceTraits<toolchain::StringRef> {
+  static toolchain::StringRef stringRef(const toolchain::StringRef &);
+  static bool mustQuote(toolchain::StringRef S) { return true; }
 };
 
 template<>
 struct ScalarReferenceTraits<std::string> {
-  static llvm::StringRef stringRef(const std::string &);
-  static bool mustQuote(llvm::StringRef S) { return true; }
+  static toolchain::StringRef stringRef(const std::string &);
+  static bool mustQuote(toolchain::StringRef S) { return true; }
 };
 
 template<>
 struct ScalarTraits<uint8_t> {
-  static void output(const uint8_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const uint8_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<uint16_t> {
-  static void output(const uint16_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const uint16_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<uint32_t> {
-  static void output(const uint32_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const uint32_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 #if defined(_MSC_VER)
 // In MSVC, 'unsigned long' is 32bit size and different from uint32_t,
-// and it is used to define swift::sys::ProcessId.
+// and it is used to define language::sys::ProcessId.
 template<>
 struct ScalarTraits<unsigned long> {
-  static void output(const unsigned long &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const unsigned long &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 #endif
 
 template<>
 struct ScalarTraits<uint64_t> {
-  static void output(const uint64_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const uint64_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<int8_t> {
-  static void output(const int8_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const int8_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<int16_t> {
-  static void output(const int16_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const int16_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<int32_t> {
-  static void output(const int32_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const int32_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<int64_t> {
-  static void output(const int64_t &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const int64_t &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<float> {
-  static void output(const float &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const float &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<>
 struct ScalarTraits<double> {
-  static void output(const double &, llvm::raw_ostream &);
-  static bool mustQuote(llvm::StringRef) { return false; }
+  static void output(const double &, toolchain::raw_ostream &);
+  static bool mustQuote(toolchain::StringRef) { return false; }
 };
 
 template<typename T>
@@ -668,11 +669,11 @@ template<typename T>
 typename std::enable_if<has_ScalarTraits<T>::value,void>::type
 jsonize(Output &out, T &Val, bool) {
   {
-    llvm::SmallString<64> Storage;
-    llvm::raw_svector_ostream Buffer(Storage);
+    toolchain::SmallString<64> Storage;
+    toolchain::raw_svector_ostream Buffer(Storage);
     Buffer.SetUnbuffered();
     ScalarTraits<T>::output(Val, Buffer);
-    llvm::StringRef Str = Buffer.str();
+    toolchain::StringRef Str = Buffer.str();
     out.scalarString(Str, ScalarTraits<T>::mustQuote(Str));
   }
 }
@@ -680,7 +681,7 @@ jsonize(Output &out, T &Val, bool) {
 template <typename T>
 typename std::enable_if<has_ScalarReferenceTraits<T>::value, void>::type
 jsonize(Output &out, T &Val, bool) {
-  llvm::StringRef Str = ScalarReferenceTraits<T>::stringRef(Val);
+  toolchain::StringRef Str = ScalarReferenceTraits<T>::stringRef(Val);
   out.scalarString(Str, ScalarReferenceTraits<T>::mustQuote(Str));
 }
 
@@ -699,9 +700,9 @@ typename std::enable_if<validatedObjectTraits<T>::value, void>::type
 jsonize(Output &out, T &Val, bool) {
   out.beginObject();
   {
-    llvm::StringRef Err = ObjectTraits<T>::validate(out, Val);
+    toolchain::StringRef Err = ObjectTraits<T>::validate(out, Val);
     if (!Err.empty()) {
-      llvm::errs() << Err << "\n";
+      toolchain::errs() << Err << "\n";
       assert(Err.empty() && "invalid struct trying to be written as json");
     }
   }
@@ -744,7 +745,7 @@ jsonize(Output &out, T &Seq, bool) {
 template <typename T>
 inline
 typename
-std::enable_if<swift::json::has_ObjectTraits<T>::value, Output &>::type
+std::enable_if<language::json::has_ObjectTraits<T>::value, Output &>::type
 operator<<(Output &yout, T &map) {
   jsonize(yout, map, true);
   return yout;
@@ -754,7 +755,7 @@ operator<<(Output &yout, T &map) {
 template <typename T>
 inline
 typename
-std::enable_if<swift::json::has_ArrayTraits<T>::value, Output &>::type
+std::enable_if<language::json::has_ArrayTraits<T>::value, Output &>::type
 operator<<(Output &yout, T &seq) {
   jsonize(yout, seq, true);
   return yout;
@@ -763,4 +764,4 @@ operator<<(Output &yout, T &seq) {
 } // end namespace json
 } // end namespace language
 
-#endif // SWIFT_BASIC_JSONSERIALIZATION_H
+#endif // LANGUAGE_BASIC_JSONSERIALIZATION_H

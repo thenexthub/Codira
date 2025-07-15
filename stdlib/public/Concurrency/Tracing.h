@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Support code for tracing events in the concurrency runtime
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_TRACING_H
-#define SWIFT_CONCURRENCY_TRACING_H
+#ifndef LANGUAGE_CONCURRENCY_TRACING_H
+#define LANGUAGE_CONCURRENCY_TRACING_H
 
 #include <stdint.h>
 
@@ -114,7 +115,7 @@ void job_run_end(job_run_info info);
 } // namespace concurrency
 } // namespace language
 
-#if SWIFT_STDLIB_CONCURRENCY_TRACING
+#if LANGUAGE_STDLIB_CONCURRENCY_TRACING
 #include "TracingSignpost.h"
 #else
 #include "TracingStubs.h"

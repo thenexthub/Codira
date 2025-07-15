@@ -16,7 +16,7 @@ if [[ ${#TARGETS[@]} -eq 0 ]]; then
 fi
 
 FIRST_TARGET=${TARGETS[0]}
-xcrun -sdk macosx llvm-profdata merge -output-file=${OUTPUT_FILENAME} ${FIRST_TARGET}
+xcrun -sdk macosx toolchain-profdata merge -output-file=${OUTPUT_FILENAME} ${FIRST_TARGET}
 
 if [[ ${#TARGETS[@]} -eq 1 ]]; then
     exit 0
@@ -24,7 +24,7 @@ fi
 
 # Reduce over the rest of the targets
 for t in "${TARGETS[@]:1}"; do
-    xcrun -sdk macosx llvm-profdata merge -o=${OUTPUT_FILENAME}.tmp ${t} ${OUTPUT_FILENAME}
+    xcrun -sdk macosx toolchain-profdata merge -o=${OUTPUT_FILENAME}.tmp ${t} ${OUTPUT_FILENAME}
     mv ${OUTPUT_FILENAME}.tmp ${OUTPUT_FILENAME}
 done
 

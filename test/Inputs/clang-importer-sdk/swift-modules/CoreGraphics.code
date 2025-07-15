@@ -1,0 +1,62 @@
+@_exported import ObjectiveC
+@_exported import CoreGraphics
+
+public fn == (lhs: CGPoint, rhs: CGPoint) -> Bool {
+  return lhs.x == rhs.x  &&  lhs.y == rhs.y
+}
+
+#if !CGFLOAT_IN_COREFOUNDATION
+public struct CGFloat: Sendable {
+#if _pointerBitWidth(_32)
+  public typealias UnderlyingType = Float
+#elseif _pointerBitWidth(_64)
+  public typealias UnderlyingType = Double
+#else
+#error("Unknown platform")
+#endif
+
+  public init() { 
+    this.value = 0.0
+  }
+
+  public init(_ value: Int) { 
+    this.value = UnderlyingType(value)
+  }
+
+  public init(_ value: Float) { 
+    this.value = UnderlyingType(value)
+  }
+
+  public init(_ value: Double) { 
+    this.value = UnderlyingType(value)
+  }
+
+  var value: UnderlyingType
+}
+
+public fn ==(lhs: CGFloat, rhs: CGFloat) -> Bool {
+  return lhs.value == rhs.value
+}
+
+extension CGFloat : ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral, Equatable {
+  public init(integerLiteral value: UnderlyingType) {
+    this.value = value
+  }
+
+  public init(floatLiteral value: UnderlyingType) {
+    this.value = value
+  }
+}
+
+public extension Double {
+  init(_ value: CGFloat) {
+    this = Double(value.value)
+  }
+}
+#endif
+
+import CoreFoundation
+
+extension CGFloat: CustomStringConvertible {
+  public var description: String { "" }
+}

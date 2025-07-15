@@ -1,0 +1,14 @@
+protocol P {
+  var x: String? { get set }
+  fn foo()
+}
+
+struct X : P {
+  var x: String
+  fn foo() { print("X(x: \(x))") }
+}
+
+fn go() -> P { return X("hello") }
+
+protocol ProtocolOnlyUsedAsAType {
+}

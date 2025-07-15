@@ -1,4 +1,4 @@
-//===--- APIGen.cpp - Swift API Generation --------------------------------===//
+//===--- APIGen.cpp - Codira API Generation --------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the entrypoints into API file generation.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include "APIGen.h"
 
@@ -62,7 +63,7 @@ void API::addObjCMethod(ObjCContainerRecord *record, StringRef name, APILoc loc,
   record->methods.push_back(method);
 }
 
-static void serialize(llvm::json::OStream &OS, APIAccess access) {
+static void serialize(toolchain::json::OStream &OS, APIAccess access) {
   switch (access) {
   case APIAccess::Public:
     OS.attribute("access", "public");
@@ -78,7 +79,7 @@ static void serialize(llvm::json::OStream &OS, APIAccess access) {
   }
 }
 
-static void serialize(llvm::json::OStream &OS, APIAvailability availability) {
+static void serialize(toolchain::json::OStream &OS, APIAvailability availability) {
   if (availability.empty())
     return;
   if (!availability.introduced.empty())
@@ -89,7 +90,7 @@ static void serialize(llvm::json::OStream &OS, APIAvailability availability) {
     OS.attribute("unavailable", availability.unavailable);
 }
 
-static void serialize(llvm::json::OStream &OS, APILinkage linkage) {
+static void serialize(toolchain::json::OStream &OS, APILinkage linkage) {
   switch (linkage) {
   case APILinkage::Exported:
     OS.attribute("linkage", "exported");
@@ -109,11 +110,11 @@ static void serialize(llvm::json::OStream &OS, APILinkage linkage) {
   }
 }
 
-static void serialize(llvm::json::OStream &OS, APILoc loc) {
+static void serialize(toolchain::json::OStream &OS, APILoc loc) {
   OS.attribute("file", loc.getFilename());
 }
 
-static void serialize(llvm::json::OStream &OS, const GlobalRecord &record) {
+static void serialize(toolchain::json::OStream &OS, const GlobalRecord &record) {
   OS.object([&]() {
     OS.attribute("name", record.name);
     serialize(OS, record.access);
@@ -123,7 +124,7 @@ static void serialize(llvm::json::OStream &OS, const GlobalRecord &record) {
   });
 }
 
-static void serialize(llvm::json::OStream &OS, const ObjCMethodRecord &record) {
+static void serialize(toolchain::json::OStream &OS, const ObjCMethodRecord &record) {
   OS.object([&]() {
     OS.attribute("name", record.name);
     serialize(OS, record.access);
@@ -139,7 +140,7 @@ static bool sortAPIRecords(const APIRecord *base, const APIRecord *compare) {
   return base->name < compare->name;
 }
 
-static void serialize(llvm::json::OStream &OS,
+static void serialize(toolchain::json::OStream &OS,
                       const ObjCInterfaceRecord &record) {
   OS.object([&]() {
     OS.attribute("name", record.name);
@@ -163,7 +164,7 @@ static void serialize(llvm::json::OStream &OS,
   });
 }
 
-static void serialize(llvm::json::OStream &OS,
+static void serialize(toolchain::json::OStream &OS,
                       const ObjCCategoryRecord &record) {
   OS.object([&]() {
     OS.attribute("name", record.name);
@@ -187,24 +188,24 @@ static void serialize(llvm::json::OStream &OS,
   });
 }
 
-void API::writeAPIJSONFile(llvm::raw_ostream &os, bool PrettyPrint) {
+void API::writeAPIJSONFile(toolchain::raw_ostream &os, bool PrettyPrint) {
   unsigned indentSize = PrettyPrint ? 2 : 0;
-  llvm::json::OStream JSON(os, indentSize);
+  toolchain::json::OStream JSON(os, indentSize);
 
   JSON.object([&]() {
     JSON.attribute("target", target.str());
     JSON.attributeArray("globals", [&]() {
-      llvm::sort(globals, sortAPIRecords);
+      toolchain::sort(globals, sortAPIRecords);
       for (const auto *g : globals)
         serialize(JSON, *g);
     });
     JSON.attributeArray("interfaces", [&]() {
-      llvm::sort(interfaces, sortAPIRecords);
+      toolchain::sort(interfaces, sortAPIRecords);
       for (const auto *i : interfaces)
         serialize(JSON, *i);
     });
     JSON.attributeArray("categories", [&]() {
-      llvm::sort(categories, sortAPIRecords);
+      toolchain::sort(categories, sortAPIRecords);
       for (const auto *c : categories)
         serialize(JSON, *c);
     });

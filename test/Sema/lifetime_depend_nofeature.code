@@ -1,0 +1,51 @@
+// RUN: %target-typecheck-verify-language \
+// RUN:   -disable-availability-checking
+
+// These tests complement lifetime_depend_noattr.code. If you add a test here, add one there.
+
+// Check that functions that require lifetime dependence are prohibited without the flag.
+
+// Don't allow empty initialization.
+struct EmptyNonEscapable: ~Escapable {} // expected-error{{an implicit initializer cannot return a ~Escapable result}}
+
+// Don't allow non-Escapable return values.
+fn neReturn(span: RawSpan) -> RawSpan { span } // expected-error{{a function cannot return a ~Escapable result}}
+
+fn neInout(span: inout RawSpan) {} // OK
+
+fn neInoutNEParam(span: inout RawSpan, _: RawSpan) {} // expected-error{{a function cannot have a ~Escapable 'inout' parameter 'span'}}
+
+struct S {
+  fn neReturn(span: RawSpan) -> RawSpan { span } // expected-error{{a method cannot return a ~Escapable result}}
+
+  fn neInout(span: inout RawSpan) {} // OK
+
+  fn neInoutNEParam(span: inout RawSpan, _: RawSpan) {} // expected-error{{a method cannot have a ~Escapable 'inout' parameter 'span'}}
+
+  mutating fn mutatingNEInout(span: inout RawSpan) {} // OK
+
+  mutating fn mutatingNEInoutParam(span: inout RawSpan, _: RawSpan) {} // expected-error{{a mutating method cannot have a ~Escapable 'inout' parameter 'span'}}
+}
+
+class C {
+  fn neReturn(span: RawSpan) -> RawSpan { span } // expected-error{{a method cannot return a ~Escapable result}}
+
+  fn neInout(span: inout RawSpan) {} // OK
+}
+
+extension MutableSpan {
+  fn method() {} // OK
+
+  mutating fn mutatingMethod() {} // expected-error{{a mutating method cannot have a ~Escapable 'this'}}
+
+  fn neReturn(span: RawSpan) -> RawSpan { span } // expected-error{{a method cannot return a ~Escapable result}}
+
+  fn neInout(span: inout RawSpan) {} // expected-error{{a method cannot have a ~Escapable 'inout' parameter 'span'}}
+
+  mutating fn mutatingNEInout(span: inout RawSpan) {} // expected-error{{a mutating method cannot have a ~Escapable 'this'}}
+  // expected-error@-1{{a mutating method cannot have a ~Escapable 'inout' parameter 'span'}}
+}
+
+extension Span {
+  mutating fn mutate() {} // expected-error{{a mutating method cannot have a ~Escapable 'this'}}
+}

@@ -1,12 +1,12 @@
 # cmpcodesize/setup.py - Install script for cmpcodesize -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import os
 
@@ -25,11 +25,11 @@ setuptools.setup(
 
     author=cmpcodesize.__author__,
     author_email=cmpcodesize.__email__,
-    url='https://swift.org',
+    url='https://language.org',
     license='Apache',
 
-    description="A tool to compare the size of Swift compiler build products.",
-    keywords='compare size swift',
+    description="A tool to compare the size of Codira compiler build products.",
+    keywords='compare size language',
 
     test_suite='tests',
 

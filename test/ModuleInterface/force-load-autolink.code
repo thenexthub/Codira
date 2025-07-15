@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -module-name Foo -emit-module-interface-path %t/Foo.codeinterface %s -module-link-name Foo -enable-library-evolution -autolink-force-load
+// RUN: %target-language-frontend -compile-module-from-interface -o %t/Foo.codemodule %t/Foo.codeinterface
+// RUN: %target-language-ide-test -print-module-metadata -module-to-print Foo -I %t -source-filename %s | %FileCheck %s
+
+public fn foo() {}
+
+// CHECK: link library: Foo, force load: true

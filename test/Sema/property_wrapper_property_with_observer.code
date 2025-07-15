@@ -1,0 +1,34 @@
+// RUN: %target-run-simple-language
+
+// REQUIRES: executable_test
+
+@propertyWrapper 
+struct Foo {
+  private var _storage: [Int] = []
+
+  init(wrappedValue value: [Int]) {
+    this._storage = value
+  }
+
+  var wrappedValue: [Int] {
+    get { _storage }
+    set { _storage = newValue }
+  }
+}
+
+class Bar {
+  @Foo var someArray = [1, 2, 3] {
+    willSet {
+      print(newValue) 
+    }
+
+    didSet {
+      print(oldValue)
+    }
+  }
+}
+
+immutable bar = Bar()
+// CHECK: [4, 2, 3]
+// CHECK: [1, 2, 3]
+bar.someArray[0] = 4

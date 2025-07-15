@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -enable-objc-interop -import-objc-header %S/Inputs/attr-objc_subclassing_restricted.h %s -language-version 5 -verify
+
+// No errors in Codira 3 and 4 modes.
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -enable-objc-interop -import-objc-header %S/Inputs/attr-objc_subclassing_restricted.h %s -language-version 4
+
+class Sub: Restricted { // expected-error {{cannot inherit from non-open class 'Restricted' outside of its defining module}}
+}

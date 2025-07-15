@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Private.h"
-#include "languageHashableSupport.h"
-#include "languageValue.h"
+#include "CodiraHashableSupport.h"
+#include "CodiraValue.h"
 #include "language/Basic/Lazy.h"
 #include "language/Runtime/Casting.h"
 #include "language/Runtime/Concurrent.h"
@@ -35,8 +36,8 @@ struct HashableConformanceKey {
   /// from a type that conforms to `Hashable`.
   const Metadata *derivedType;
 
-  friend llvm::hash_code hash_value(const HashableConformanceKey &key) {
-    return llvm::hash_value(key.derivedType);
+  friend toolchain::hash_code hash_value(const HashableConformanceKey &key) {
+    return toolchain::hash_value(key.derivedType);
   }
 };
 
@@ -61,7 +62,7 @@ struct HashableConformanceEntry {
     return derivedType == key.derivedType;
   }
 
-  friend llvm::hash_code hash_value(const HashableConformanceEntry &value) {
+  friend toolchain::hash_code hash_value(const HashableConformanceEntry &value) {
     return hash_value(HashableConformanceKey{value.derivedType});
   }
 
@@ -82,7 +83,7 @@ struct HashableConformanceEntry {
 static ConcurrentReadableHashMap<HashableConformanceEntry> HashableConformances;
 
 template <bool KnownToConformToHashable>
-SWIFT_ALWAYS_INLINE static const Metadata *
+LANGUAGE_ALWAYS_INLINE static const Metadata *
 findHashableBaseTypeImpl(const Metadata *type) {
   // Check the cache first.
   {
@@ -94,14 +95,14 @@ findHashableBaseTypeImpl(const Metadata *type) {
   }
 
   auto witnessTable =
-    swift_conformsToProtocolCommon(type, &HashableProtocolDescriptor);
+    language_conformsToProtocolCommon(type, &HashableProtocolDescriptor);
   if (!KnownToConformToHashable && !witnessTable) {
     // Don't cache the negative response because we don't invalidate
     // this cache when a new conformance is loaded dynamically.
     return nullptr;
   }
   // By this point, `type` is known to conform to `Hashable`.
-#if SWIFT_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
+#if LANGUAGE_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES
   const auto *conformance = lookThroughOptionalConditionalWitnessTable(
     reinterpret_cast<const RelativeWitnessTable*>(witnessTable))
     ->getDescription();
@@ -125,7 +126,7 @@ findHashableBaseTypeImpl(const Metadata *type) {
 /// function always returns non-null.
 ///
 /// - Precondition: `type` conforms to `Hashable` (not checked).
-const Metadata *swift::hashable_support::findHashableBaseTypeOfHashableType(
+const Metadata *language::hashable_support::findHashableBaseTypeOfHashableType(
     const Metadata *type) {
   auto result =
     findHashableBaseTypeImpl</*KnownToConformToHashable=*/ true>(type);
@@ -135,27 +136,27 @@ const Metadata *swift::hashable_support::findHashableBaseTypeOfHashableType(
 
 /// Find the base type that introduces the `Hashable` conformance.
 /// If `type` does not conform to `Hashable`, `nullptr` is returned.
-const Metadata *swift::hashable_support::findHashableBaseType(
+const Metadata *language::hashable_support::findHashableBaseType(
     const Metadata *type) {
   return findHashableBaseTypeImpl</*KnownToConformToHashable=*/ false>(type);
 }
 
-// internal func _makeAnyHashableUsingDefaultRepresentation<H : Hashable>(
+// internal fn _makeAnyHashableUsingDefaultRepresentation<H : Hashable>(
 //   of value: H,
 //   storingResultInto result: UnsafeMutablePointer<AnyHashable>)
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_INTERNAL
-void _swift_makeAnyHashableUsingDefaultRepresentation(
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_INTERNAL
+void _language_makeAnyHashableUsingDefaultRepresentation(
   const OpaqueValue *value,
   const void *anyHashableResultPointer,
   const Metadata *T,
   const WitnessTable *hashableWT
 );
 
-// public func _makeAnyHashableUpcastingToHashableBaseType<H : Hashable>(
+// public fn _makeAnyHashableUpcastingToHashableBaseType<H : Hashable>(
 //   _ value: H,
 //   storingResultInto result: UnsafeMutablePointer<AnyHashable>)
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_SPI
-void _swift_makeAnyHashableUpcastingToHashableBaseType(
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_SPI
+void _language_makeAnyHashableUpcastingToHashableBaseType(
   OpaqueValue *value,
   const void *anyHashableResultPointer,
   const Metadata *type,
@@ -166,20 +167,20 @@ void _swift_makeAnyHashableUpcastingToHashableBaseType(
   case MetadataKind::ObjCClassWrapper:
   case MetadataKind::ForeignClass:
   case MetadataKind::ForeignReferenceType: {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     id srcObject;
     memcpy(&srcObject, value, sizeof(id));
-    // Do we have a __SwiftValue?
-    if (__SwiftValue *srcSwiftValue = getAsSwiftValue(srcObject)) {
+    // Do we have a __CodiraValue?
+    if (__CodiraValue *srcCodiraValue = getAsCodiraValue(srcObject)) {
       // If so, extract the boxed value and try to cast it.
       const Metadata *unboxedType;
       const OpaqueValue *unboxedValue;
       std::tie(unboxedType, unboxedValue) =
-          getValueFromSwiftValue(srcSwiftValue);
+          getValueFromCodiraValue(srcCodiraValue);
 
       if (auto unboxedHashableWT =
-              swift_conformsToProtocolCommon(unboxedType, &HashableProtocolDescriptor)) {
-        _swift_makeAnyHashableUpcastingToHashableBaseType(
+              language_conformsToProtocolCommon(unboxedType, &HashableProtocolDescriptor)) {
+        _language_makeAnyHashableUpcastingToHashableBaseType(
             const_cast<OpaqueValue *>(unboxedValue), anyHashableResultPointer,
             unboxedType, unboxedHashableWT);
         return;
@@ -187,7 +188,7 @@ void _swift_makeAnyHashableUpcastingToHashableBaseType(
     }
 #endif
 
-    _swift_makeAnyHashableUsingDefaultRepresentation(
+    _language_makeAnyHashableUsingDefaultRepresentation(
         value, anyHashableResultPointer,
         findHashableBaseTypeOfHashableType(type),
         hashableWT);
@@ -195,7 +196,7 @@ void _swift_makeAnyHashableUpcastingToHashableBaseType(
   }
 
   default:
-    _swift_makeAnyHashableUsingDefaultRepresentation(
+    _language_makeAnyHashableUsingDefaultRepresentation(
         value, anyHashableResultPointer, type, hashableWT);
     return;
   }

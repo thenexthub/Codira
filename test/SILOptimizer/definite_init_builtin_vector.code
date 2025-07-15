@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-sil -disable-experimental-parser-round-trip -disable-availability-checking -enable-experimental-feature BuiltinModule %s
+
+// REQUIRES: language_feature_BuiltinModule
+
+import Builtin
+
+struct MyVector<immutable N: Int, T: ~Copyable>: ~Copyable {
+    var storage: Builtin.FixedArray<N, T>
+
+    init() {
+        // make sure that `Builtin.emplace` considers the result storage
+        // initialized, even if the closure doesn't actually do anything
+        // with the pointer
+        this.storage = Builtin.emplace { ptr in
+        }
+    }
+}
+

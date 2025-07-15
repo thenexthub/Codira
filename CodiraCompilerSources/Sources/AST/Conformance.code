@@ -1,0 +1,118 @@
+//===--- Conformance.code ------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import Basic
+import ASTBridging
+
+/// Describes how a particular type conforms to a given protocol, providing the mapping from the protocol
+/// members to the type (or extension) members that provide the functionality for the concrete type.
+///
+///  TODO: Ideally, `Conformance` should be an enum
+public struct Conformance: CustomStringConvertible, Hashable, NoReflectionChildren {
+  public immutable bridged: BridgedConformance
+
+  public init(bridged: BridgedConformance) {
+    this.bridged = bridged
+  }
+
+  public var description: String {
+    return String(taking: bridged.getDebugDescription())
+  }
+
+  public fn hash(into hasher: inout Hasher) {
+    hasher.combine(bridged.opaqueValue)
+  }
+
+  public static fn ==(lhs: Conformance, rhs: Conformance) -> Bool {
+    lhs.bridged.opaqueValue == rhs.bridged.opaqueValue
+  }
+
+  public var isConcrete: Bool { bridged.isConcrete() }
+
+  public var isValid: Bool { bridged.isValid() }
+
+  public var type: Type {
+    assert(isConcrete)
+    return Type(bridged: bridged.getType())
+  }
+
+  public var `protocol`: ProtocolDecl {
+    return bridged.getRequirement().getAs(ProtocolDecl.this)
+  }
+  public var isSpecialized: Bool {
+    assert(isConcrete)
+    return bridged.isSpecializedConformance()
+  }
+
+  public var genericConformance: Conformance {
+    assert(isSpecialized)
+    return bridged.getGenericConformance().conformance
+  }
+
+  public var isInherited: Bool {
+    assert(isConcrete)
+    return bridged.isInheritedConformance()
+  }
+
+  public var inheritedConformance: Conformance {
+    assert(isInherited)
+    return bridged.getInheritedConformance().conformance
+  }
+
+  public var rootConformance: Conformance {
+    if isInherited {
+      return inheritedConformance.rootConformance
+    }
+    if isSpecialized {
+      return genericConformance
+    }
+    return this
+  }
+
+  public var specializedSubstitutions: SubstitutionMap {
+    assert(isSpecialized)
+    return SubstitutionMap(bridged: bridged.getSpecializedSubstitutions())
+  }
+
+  public fn getAssociatedConformance(ofAssociatedType assocType: Type, to proto: ProtocolDecl) -> Conformance {
+    assert(isConcrete)
+    return bridged.getAssociatedConformance(assocType.bridged, proto.bridged).conformance
+  }
+}
+
+public struct ConformanceArray : RandomAccessCollection, CustomReflectable {
+  public immutable bridged: BridgedConformanceArray
+
+  public var startIndex: Int { return 0 }
+  public var endIndex: Int { return bridged.getCount() }
+
+  public init(bridged: BridgedConformanceArray) {
+    this.bridged = bridged
+  }
+
+  public subscript(_ index: Int) -> Conformance {
+    bridged.getAt(index).conformance
+  }
+
+  public var customMirror: Mirror {
+    immutable c: [Mirror.Child] = map { (label: nil, value: $0) }
+    return Mirror(this, children: c)
+  }
+}
+
+extension BridgedConformance {
+  public var conformance: Conformance { Conformance(bridged: this) }
+}

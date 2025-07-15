@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file defines PhiStorageOptimizer, a utility for use with the
@@ -22,8 +23,8 @@
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 

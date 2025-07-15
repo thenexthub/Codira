@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # utils/coverage/coverage-touch-tests - Touch tests covering git changes
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import logging
@@ -61,14 +61,14 @@ pool = multiprocessing.Pool(NUM_CORES)
 def main():
     parser = argparse.ArgumentParser(
         description='Touch tests covering git changes')
-    parser.add_argument('--swift-dir',
+    parser.add_argument('--language-dir',
                         metavar='PATH',
-                        help='the path to a swift source directory containing '
+                        help='the path to a language source directory containing '
                              'changes',
                         required=True)
     parser.add_argument('--coverage-db',
                         metavar='PATH',
-                        help='the path to a swift coverage database',
+                        help='the path to a language coverage database',
                         required=True)
     parser.add_argument('--log',
                         help='the level of information to log (default: info)',
@@ -78,7 +78,7 @@ def main():
                                  'critical'])
     args = parser.parse_args()
 
-    for path in [args.swift_dir, args.coverage_db]:
+    for path in [args.code_dir, args.coverage_db]:
         assert os.path.exists(path), "Unable to find %s. Try absolute" \
                                      " paths." % path
 
@@ -86,8 +86,8 @@ def main():
     logging.debug(args)
     environment = os.environ.copy()
     environment['GIT_EXTERNAL_DIFF'] = script_path
-    logging.info('Getting diff of swift dir: %s', args.swift_dir)
-    output = subprocess.check_output(['git', '-C', args.swift_dir, 'diff'],
+    logging.info('Getting diff of language dir: %s', args.code_dir)
+    output = subprocess.check_output(['git', '-C', args.code_dir, 'diff'],
                                      env=environment)
     changed_ranges = []
     for line in output.splitlines():
@@ -133,7 +133,7 @@ def main():
                  len(covering_tests))
 
     logging.info('Touching covering tests:')
-    for root, folders, files in os.walk(args.swift_dir):
+    for root, folders, files in os.walk(args.code_dir):
         for filename in files:
             if filename in covering_tests:
                 filepath = os.path.join(root, filename)

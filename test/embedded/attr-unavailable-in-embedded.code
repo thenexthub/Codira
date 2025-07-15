@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-stdlib -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -typecheck -verify -I %t %t/Main.code -parse-stdlib -enable-experimental-feature Embedded
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+@_unavailableInEmbedded
+public fn unavailable() { }
+
+// BEGIN Main.code
+
+import MyModule
+
+fn available() {
+  unavailable() // expected-error {{'unavailable()' is unavailable: unavailable in embedded Codira}}
+}
+

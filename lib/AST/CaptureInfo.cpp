@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/CaptureInfo.h"
@@ -19,7 +20,7 @@
 #include "language/AST/Expr.h"
 #include "language/AST/GenericEnvironment.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -49,17 +50,17 @@ Type CapturedValue::getPackElementType() const {
 
 ArrayRef<CapturedValue>
 CaptureInfo::CaptureInfoStorage::getCaptures() const {
-  return llvm::ArrayRef(this->getTrailingObjects<CapturedValue>(), NumCapturedValues);
+  return toolchain::ArrayRef(this->getTrailingObjects<CapturedValue>(), NumCapturedValues);
 }
 
 ArrayRef<GenericEnvironment *>
 CaptureInfo::CaptureInfoStorage::getGenericEnvironments() const {
-  return llvm::ArrayRef(this->getTrailingObjects<GenericEnvironment *>(), NumGenericEnvironments);
+  return toolchain::ArrayRef(this->getTrailingObjects<GenericEnvironment *>(), NumGenericEnvironments);
 }
 
 ArrayRef<CapturedType>
 CaptureInfo::CaptureInfoStorage::getCapturedTypes() const {
-  return llvm::ArrayRef(this->getTrailingObjects<CapturedType>(), NumCapturedTypes);
+  return toolchain::ArrayRef(this->getTrailingObjects<CapturedType>(), NumCapturedTypes);
 }
 
 //===----------------------------------------------------------------------===//
@@ -156,9 +157,9 @@ VarDecl *CaptureInfo::getIsolatedParamCapture() const {
   return nullptr;
 }
 
-LLVM_ATTRIBUTE_USED void CaptureInfo::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+TOOLCHAIN_ATTRIBUTE_USED void CaptureInfo::dump() const {
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 void CaptureInfo::print(raw_ostream &OS) const {

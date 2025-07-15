@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -c -whole-module-optimization -parse-as-library -emit-module -emit-module-path %t/A.codemodule -o %t/A.o -module-name A %S/Inputs/RuntimeRetroactiveConformance/A.code 
+// RUN: %target-build-language -c -whole-module-optimization -parse-as-library -emit-module -emit-module-path %t/B.codemodule -o %t/B.o -module-name B %S/Inputs/RuntimeRetroactiveConformance/B.code 
+// RUN: %target-build-language %s %t/A.o %t/B.o -I %t -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: reflection
+
+import A
+import B
+
+extension AType: BProto {}
+
+struct Foo<T: BProto> {}
+
+struct Bar {
+  var foo: Foo<AType> = Foo()
+}
+
+immutable mirror = Mirror(reflecting: Bar())
+
+_ = mirror.children.first!
+
+print("I survived") // CHECK: I survived

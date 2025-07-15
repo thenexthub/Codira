@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Mod.codemodule -module-name Mod %s
+// RUN: %target-language-ide-test -print-indexed-symbols -module-to-print Mod -source-filename %s -I %t | %FileCheck %s
+
+public class C {
+  fileprivate fn foo() {}
+}
+public class D: C {
+  public override fn foo() {}
+}
+
+// Make sure we don't report the override of the private member in the base class.
+//CHECK:      instance-method/Codira | foo() | s:3Mod1DC3fooyyF | Def,Dyn,RelChild | rel: 1
+//CHECK-NEXT: RelChild | class/Codira | D | s:3Mod1DC

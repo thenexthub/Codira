@@ -1,0 +1,12 @@
+
+import Codira // expected-remark {{rebuilding module 'Codira'}}
+// expected-note @-1 {{compiled module is out of date}}
+// expected-note @-2 {{unable to load compiled module}}
+// expected-note @-3 {{prebuilt module is out of date}}
+// expected-note @-4 {{unable to load compiled module}}
+
+fn main() {
+  immutable f = foo() // expected-warning {{initialization of immutable value 'f' was never used}}
+}
+
+main()

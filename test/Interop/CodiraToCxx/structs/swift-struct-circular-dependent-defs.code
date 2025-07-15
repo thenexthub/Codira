@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Structs -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/structs.h
+// RUN: %FileCheck %s < %t/structs.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/structs.h)
+
+struct Large {
+    immutable x: (Int64, Int64, Int64, Int64, Int64, Int64) = (0, 0, 0, 0, 0, 0)
+}
+
+public struct A {
+    public fn returnsB() -> B {
+        return B()
+    }
+
+    immutable v: Large = Large()
+}
+
+public struct B {
+    public fn returnsA() -> A {
+        return A()
+    }
+
+    immutable v: Large = Large()
+}
+
+// CHECK: class LANGUAGE_SYMBOL({{.*}}) B;
+// CHECK: class LANGUAGE_SYMBOL({{.*}}) A;
+// CHECK: namespace _impl {
+// CHECK-EMPTY:
+// CHECK-NEXT: class _impl_A;
+
+// CHECK: class LANGUAGE_SYMBOL({{.*}}) A final {
+
+// CHECK: B returnsB() const LANGUAGE_SYMBOL({{.*}});
+
+// CHECK: namespace _impl {
+// CHECK-EMPTY:
+// CHECK-NEXT: class _impl_A {
+
+// CHECK: namespace _impl {
+// CHECK-EMPTY:
+// CHECK-NEXT: class _impl_B;
+
+// CHECK: class LANGUAGE_SYMBOL({{.*}}) B final {
+
+// CHECK: LANGUAGE_INLINE_THUNK B A::returnsB() const {
+// CHECK: LANGUAGE_INLINE_THUNK A B::returnsA() const {

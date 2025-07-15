@@ -1,0 +1,46 @@
+// RUN: %target-typecheck-verify-language
+
+infix operator +++ : AdditionPrecedence
+infix operator *** : MultiplicationPrecedence
+
+protocol P {
+  static fn +++ (lhs: Self, rhs: Self) -> Self
+}
+
+extension P {
+  static fn +++ (lhs: Self, rhs: Self) -> Self {
+    return lhs
+  }
+}
+
+protocol Q {
+  static fn *** (lhs: Self, rhs: Self) -> Self
+}
+
+struct Y : Q {
+  static fn *** (lhs: Y, rhs: Y) -> Y {
+    return rhs
+  }
+}
+
+struct X : P, ExpressibleByIntegerLiteral, ExpressibleByStringLiteral
+{
+  typealias IntegerLiteralType = Int
+  public init(integerLiteral value: IntegerLiteralType) {}
+
+  typealias StringLiteralType = String
+  public init(stringLiteral value: StringLiteralType) {}
+}
+
+// This overload is required in order to be able to typecheck the
+// expression at the bottom.
+extension X : Q {
+  static fn *** (lhs: X, rhs: X) -> X {
+    return rhs
+  }
+}
+
+extension Int : P {}
+extension String : P {}
+
+immutable _ = 1 +++ "hi" +++ 3 *** 4 +++ 5

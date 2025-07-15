@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This header declares the ProtocolDispatchStrategy enum and some
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_PROTOCOLDISPATCHSTRATEGY_H
-#define SWIFT_ABI_PROTOCOLDISPATCHSTRATEGY_H
+#ifndef LANGUAGE_ABI_PROTOCOLDISPATCHSTRATEGY_H
+#define LANGUAGE_ABI_PROTOCOLDISPATCHSTRATEGY_H
 
 #include "language/Basic/Unreachable.h"
 #include <cstdint>
@@ -34,11 +35,11 @@ enum class ProtocolDispatchStrategy: uint8_t {
   /// This must be 0 for ABI compatibility with Objective-C protocol_t records.
   ObjC = 0,
   
-  /// Uses Swift protocol witness table dispatch.
+  /// Uses Codira protocol witness table dispatch.
   ///
   /// To invoke methods of this protocol, a pointer to a protocol witness table
   /// corresponding to the protocol conformance must be available.
-  Swift = 1,
+  Codira = 1,
 };
 
 /// Does a protocol using the given strategy require a witness table?
@@ -46,11 +47,11 @@ inline bool protocolRequiresWitnessTable(ProtocolDispatchStrategy strategy) {
   switch (strategy) {
   case ProtocolDispatchStrategy::ObjC:
     return false;
-  case ProtocolDispatchStrategy::Swift:
+  case ProtocolDispatchStrategy::Codira:
     return true;
   }
 
-  swift_unreachable("Unhandled ProtocolDispatchStrategy in switch.");
+  language_unreachable("Unhandled ProtocolDispatchStrategy in switch.");
 }
 
 }

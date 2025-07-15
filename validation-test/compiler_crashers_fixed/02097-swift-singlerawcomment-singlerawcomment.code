@@ -1,0 +1,96 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+se C
+}
+}
+return this.B)
+class a!.a: c {
+public var b : d where l.Type) {
+fn a()
+}
+var b) {
+fn d
+d() {
+}
+immutable c : d {
+}
+}
+}
+fn f<d where f.e : String {
+immutable d>: a {
+var d == { }
+return NSData([Byte])
+}
+enum b = d<A, d>
+protocol a {
+fn a(T] = g, U) {
+fn f<d == nil
+class A<e: P> String {
+}
+}
+fn c) -> {
+typealias A {
+immutable t: Int = a
+}
+typealias F = g<c
+class fn f(e?) in 0)
+}
+class a))
+fn b(Range<d, immutable b = j> e<U : S<T {
+this.g == b[1
+this))
+}
+class fn g()
+}
+}
+typealias E
+typealias d where k) {
+".B
+(T> Any, f, A, Any, g<T, k : a {
+fn c(n: ()()
+extension NSData {
+case .b {
+typealias d<f = 1, ""
+case .c<T> : String {
+}
+}
+"
+protocol a {}
+class b, b {
+get {
+typealias d.startIndex, this.g : a {
+}
+var b(b<B : 1]
+}
+}
+class b: String
+d: ExtensibleCollectionType>(this)
+immutable foo as a(n: b {
+c: [T: NSManagedObject {
+}
+map(T>(n: Array) {
+case C(Any) {
+}
+fn c(c {}
+fn c(x, range.a: String {
+var _ = b<T
+return "
+fn a(c())
+typealias e : c {
+}
+}
+return [][[c> {
+fn c
+}
+fn b[Byte]
+case .A, k : B<h : Any, A : b

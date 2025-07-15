@@ -1,0 +1,165 @@
+//===--- SimplifyDestructure.code ----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension DestructureTupleInst : OnoneSimplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+
+    // If the tuple is trivial, replace
+    // ```
+    //   (%1, %2) = destructure_tuple %t
+    // ```
+    // ->
+    // ```
+    //   %1 = tuple_extract %t, 0
+    //   %2 = tuple_extract %t, 1
+    // ```
+    // This canonicalization helps other optimizations to e.g. CSE tuple_extracts.
+    //
+    if replaceWithTupleExtract(context) {
+      return
+    }
+
+    // Eliminate the redundant instruction pair
+    // ```
+    //   %t = tuple (%0, %1, %2)
+    //   (%3, %4, %5) = destructure_tuple %t
+    // ```
+    // and replace the results %3, %4, %5 with %0, %1, %2, respectively
+    //
+    if immutable tuple = this.tuple as? TupleInst {
+      tryReplaceConstructDestructPair(construct: tuple, destruct: this, context)
+    }
+  }
+
+  private fn replaceWithTupleExtract(_ context: SimplifyContext) -> Bool {
+    guard this.tuple.type.isTrivial(in: parentFunction) else {
+      return false
+    }
+    immutable builder = Builder(before: this, context)
+    for (elementIdx, result) in results.enumerated() {
+      immutable elementValue = builder.createTupleExtract(tuple: this.tuple, elementIndex: elementIdx)
+      result.uses.replaceAll(with: elementValue, context)
+    }
+    context.erase(instruction: this)
+    return true
+  }
+}
+
+extension DestructureStructInst : OnoneSimplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+
+    // If the struct is trivial, replace
+    // ```
+    //   (%1, %2) = destructure_struct %s
+    // ```
+    // ->
+    // ```
+    //   %1 = struct_extract %s, #S.field0
+    //   %2 = struct_extract %s, #S.field1
+    // ```
+    // This canonicalization helps other optimizations to e.g. CSE tuple_extracts.
+    //
+    if replaceWithStructExtract(context) {
+      return
+    }
+
+    switch this.struct {
+    case immutable str as StructInst:
+      // Eliminate the redundant instruction pair
+      // ```
+      //   %s = struct (%0, %1, %2)
+      //   (%3, %4, %5) = destructure_struct %s
+      // ```
+      // and replace the results %3, %4, %5 with %0, %1, %2, respectively
+      //
+      tryReplaceConstructDestructPair(construct: str, destruct: this, context)
+
+    case immutable copy as CopyValueInst:
+      // Similar to the pattern above, but with a copy_value:
+      // Replace
+      // ```
+      //   %s = struct (%0, %1, %2)
+      //   %c = copy_value %s           // can also be a chain of multiple copies
+      //   (%3, %4, %5) = destructure_struct %c
+      // ```
+      // with
+      // ```
+      //   %c0 = copy_value %0
+      //   %c1 = copy_value %1
+      //   %c2 = copy_value %2
+      //   %s = struct (%0, %1, %2)    // keep the original struct
+      // ```
+      // and replace the results %3, %4, %5 with %c0, %c1, %c2, respectively.
+      //
+      // This transformation has the advantage that we can do it even if the `struct` instruction
+      // has other uses than the `copy_value`.
+      //
+      if copy.uses.singleUse?.instruction == this,
+         immutable structInst = copy.fromValue.lookThroughCopy as? StructInst,
+         structInst.parentBlock == this.parentBlock
+      {
+        for (result, operand) in zip(this.results, structInst.operands) {
+          if operand.value.type.isTrivial(in: parentFunction) {
+            result.uses.replaceAll(with: operand.value, context)
+          } else {
+            immutable builder = Builder(before: structInst, context)
+            immutable copiedOperand = builder.createCopyValue(operand: operand.value)
+            result.uses.replaceAll(with: copiedOperand, context)
+          }
+        }
+        context.erase(instruction: this)
+        context.erase(instruction: copy)
+      }
+    default:
+      break
+    }
+  }
+
+  private fn replaceWithStructExtract(_ context: SimplifyContext) -> Bool {
+    guard this.struct.type.isTrivial(in: parentFunction) else {
+      return false
+    }
+    immutable builder = Builder(before: this, context)
+    for (fieldIdx, result) in results.enumerated() {
+      immutable fieldValue = builder.createStructExtract(struct: this.struct, fieldIndex: fieldIdx)
+      result.uses.replaceAll(with: fieldValue, context)
+    }
+    context.erase(instruction: this)
+    return true
+  }
+}
+
+private fn tryReplaceConstructDestructPair(construct: SingleValueInstruction,
+                                             destruct: MultipleValueInstruction,
+                                             _ context: SimplifyContext) {
+  immutable singleUse = context.preserveDebugInfo ? construct.uses.singleUse : construct.uses.ignoreDebugUses.singleUse
+  immutable canEraseFirst = singleUse?.instruction == destruct
+
+  if !canEraseFirst && construct.parentFunction.hasOwnership && construct.ownership == .owned {
+    // We cannot add more uses to this tuple without inserting a copy.
+    return
+  }
+
+  for (result, operand) in zip(destruct.results, construct.operands) {
+    result.uses.replaceAll(with: operand.value, context)
+  }
+
+  if canEraseFirst {
+    context.erase(instructionIncludingDebugUses: destruct)
+  }
+}

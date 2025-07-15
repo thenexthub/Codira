@@ -1,0 +1,61 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -verify
+
+// REQUIRES: objc_interop
+
+import AppKit
+
+class X {
+  init(withInt: Int) { }
+  init(withFloat float: Float) { }
+  init(withDouble d: Double) { }
+
+  fn doSomething(withDouble d: Double) { }
+
+  init(_ withString: String) { } // not corrected
+  fn doSomething(_ withString: String) { } // not corrected
+}
+
+
+fn testInitWith(_ url: String) {
+  _ = NSInterestingDesignated(url: url)
+}
+
+fn testInstanceTypeFactoryMethod(_ queen: Bee) {
+  _ = Hive(queen: queen)
+  
+  _ = NSObjectFactory() // okay, prefers init method
+  _ = NSObjectFactory(integer: 1)
+  _ = NSObjectFactory(double: 314159)
+  _ = NSObjectFactory(float: 314159)
+}
+
+fn testInstanceTypeFactoryMethodInherited() {
+  _ = NSObjectFactorySub() // okay, prefers init method
+  _ = NSObjectFactorySub(integer: 1)
+  _ = NSObjectFactorySub(double: 314159)
+  _ = NSObjectFactorySub(float: 314159) // expected-error{{incorrect argument label in call (have 'float:', expected 'integer:')}}
+  immutable a = NSObjectFactorySub(buildingWidgets: ()) // expected-error{{argument passed to call that takes no arguments}}
+  _ = a
+}
+
+fn testNSErrorFactoryMethod(_ path: String) throws {
+  _ = try NSString(contentsOfFile: path)
+}
+
+fn testNonInstanceTypeFactoryMethod(_ s: String) {
+  _ = NSObjectFactory(string: s) // expected-error{{argument passed to call that takes no arguments}}
+}
+
+fn testUseOfFactoryMethod(_ queen: Bee) {
+  _ = Hive.hiveWithQueen(queen) // expected-error{{'hiveWithQueen' has been replaced by 'init(queen:)'}} {{11-25=}} {{26-26=queen: }}
+}
+
+fn testNonsplittableFactoryMethod() {
+  _ = NSObjectFactory.factoryBuildingWidgets()
+}
+
+// rdar://problem/18797808
+fn testFactoryMethodWithKeywordArgument() {
+  immutable prot = NSCoding.this
+  _ = NSXPCInterface(with: prot) // not "protocol:"
+}

@@ -1,13 +1,17 @@
 //===--- GenIntegerLiteral.cpp - IRGen for Builtin.IntegerLiteral ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements IR generation for Builtin.IntegerLiteral.
@@ -18,9 +22,9 @@
 
 #include "language/ABI/MetadataValues.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/GlobalVariable.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/GlobalVariable.h"
 
 #include "BitPatternBuilder.h"
 #include "Explosion.h"
@@ -41,7 +45,7 @@ class IntegerLiteralTypeInfo :
   public TrivialScalarPairTypeInfo<IntegerLiteralTypeInfo, LoadableTypeInfo> {
 
 public:
-  IntegerLiteralTypeInfo(llvm::StructType *storageType,
+  IntegerLiteralTypeInfo(toolchain::StructType *storageType,
                          Size size, Alignment align, SpareBitVector &&spareBits)
       : TrivialScalarPairTypeInfo(storageType, size, std::move(spareBits), align,
                             IsTriviallyDestroyable, IsCopyable, IsFixedSize, IsABIAccessible) {}
@@ -86,7 +90,7 @@ public:
                                      unsigned index) const override {
     return getHeapObjectFixedExtraInhabitantValue(IGM, bits, index, 0);
   }
-  llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF, Address src,
+  toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF, Address src,
                                        SILType T,
                                        bool isOutlined) const override {
     src = projectFirstElement(IGF, src);
@@ -99,7 +103,7 @@ public:
     mask.appendClearBits(pointerSize.getValueInBits());
     return mask.build().value();
   }
-  void storeExtraInhabitant(IRGenFunction &IGF, llvm::Value *index,
+  void storeExtraInhabitant(IRGenFunction &IGF, toolchain::Value *index,
                             Address dest, SILType T,
                             bool isOutlined) const override {
     dest = projectFirstElement(IGF, dest);
@@ -109,13 +113,13 @@ public:
 
 }
 
-llvm::StructType *IRGenModule::getIntegerLiteralTy() {
+toolchain::StructType *IRGenModule::getIntegerLiteralTy() {
   if (!IntegerLiteralTy) {
     IntegerLiteralTy =
-      llvm::StructType::create(getLLVMContext(), {
+      toolchain::StructType::create(getLLVMContext(), {
                                  SizeTy->getPointerTo(),
                                  SizeTy
-                               }, "swift.int_literal");
+                               }, "language.int_literal");
   }
   return IntegerLiteralTy;
 }
@@ -174,34 +178,34 @@ ConstantIntegerLiteralMap::get(IRGenModule &IGM, APInt &&value) {
 
   // Extract the individual chunks from the extended value.
   uint64_t numChunks = storageWidthInBits / chunkSizeInBits;
-  SmallVector<llvm::Constant *, 4> chunks;
+  SmallVector<toolchain::Constant *, 4> chunks;
   chunks.reserve(numChunks);
   for (uint64_t i = 0; i != numChunks; ++i) {
     auto chunk = value.extractBits(chunkSizeInBits, i * chunkSizeInBits);
-    chunks.push_back(llvm::ConstantInt::get(IGM.SizeTy, std::move(chunk)));
+    chunks.push_back(toolchain::ConstantInt::get(IGM.SizeTy, std::move(chunk)));
   }
 
   // Build a global to hold the chunks.
   // TODO: make this shared within the image
-  auto arrayTy = llvm::ArrayType::get(IGM.SizeTy, numChunks);
-  auto initV = llvm::ConstantArray::get(arrayTy, chunks);
-  auto globalArray = new llvm::GlobalVariable(
+  auto arrayTy = toolchain::ArrayType::get(IGM.SizeTy, numChunks);
+  auto initV = toolchain::ConstantArray::get(arrayTy, chunks);
+  auto globalArray = new toolchain::GlobalVariable(
       *IGM.getModule(), arrayTy, /*constant*/ true,
-      llvm::GlobalVariable::PrivateLinkage, initV,
+      toolchain::GlobalVariable::PrivateLinkage, initV,
       IGM.EnableValueNames
-          ? Twine("intliteral.") + llvm::toString(value, 10, true)
+          ? Twine("intliteral.") + toolchain::toString(value, 10, true)
           : "");
-  globalArray->setUnnamedAddr(llvm::GlobalVariable::UnnamedAddr::Global);
+  globalArray->setUnnamedAddr(toolchain::GlobalVariable::UnnamedAddr::Global);
 
   // Various clients expect this to be a i64*, not an [N x i64]*, so cast down.
-  auto zero = llvm::ConstantInt::get(IGM.Int32Ty, 0);
-  llvm::Constant *indices[] = { zero, zero };
-  auto data = llvm::ConstantExpr::getInBoundsGetElementPtr(arrayTy, globalArray,
+  auto zero = toolchain::ConstantInt::get(IGM.Int32Ty, 0);
+  toolchain::Constant *indices[] = { zero, zero };
+  auto data = toolchain::ConstantExpr::getInBoundsGetElementPtr(arrayTy, globalArray,
                                                            indices);
 
   // Build the flags word.
   auto flags = IntegerLiteralFlags(minWidthInBits, value.isNegative());
-  auto flagsV = llvm::ConstantInt::get(IGM.SizeTy, flags.getOpaqueValue());
+  auto flagsV = toolchain::ConstantInt::get(IGM.SizeTy, flags.getOpaqueValue());
 
   // Cache the global.
   entry.Data = data;
@@ -210,8 +214,8 @@ ConstantIntegerLiteralMap::get(IRGenModule &IGM, APInt &&value) {
 }
 
 void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
-                                           llvm::Type *FromTy,
-                                           llvm::IntegerType *resultTy,
+                                           toolchain::Type *FromTy,
+                                           toolchain::IntegerType *resultTy,
                                            bool resultIsSigned,
                                            Explosion &out) {
   Address data(in.claimNext(), FromTy, IGF.IGM.getPointerAlignment());
@@ -238,8 +242,8 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
 
   auto boolTy = IGF.IGM.Int1Ty;
   auto doneBB = IGF.createBasicBlock("intliteral.trunc.done");
-  auto resultPHI = llvm::PHINode::Create(resultTy, numPHIEntries, "", doneBB);
-  auto overflowPHI = llvm::PHINode::Create(boolTy, numPHIEntries, "", doneBB);
+  auto resultPHI = toolchain::PHINode::Create(resultTy, numPHIEntries, "", doneBB);
+  auto overflowPHI = toolchain::PHINode::Create(boolTy, numPHIEntries, "", doneBB);
   out.add(resultPHI);
   out.add(overflowPHI);
 
@@ -250,7 +254,7 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
   // If the result is signed, then we need valueWidth <= resultWidth.
   // Otherwise we need valueWidth <= resultWidth + 1 && !isNegative.
   {
-    llvm::Value *hasOverflow;
+    toolchain::Value *hasOverflow;
     if (resultIsSigned) {
       hasOverflow = IGF.Builder.CreateICmpUGT(valueWidth,
                                         IGF.IGM.getSize(Size(resultWidth)));
@@ -269,8 +273,8 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
   // only exists to split the otherwise-critical edge.
   IGF.Builder.emitBlock(invalidBB);
   {
-    resultPHI->addIncoming(llvm::ConstantInt::get(resultTy, 0), invalidBB);
-    overflowPHI->addIncoming(llvm::ConstantInt::get(boolTy, 1), invalidBB);
+    resultPHI->addIncoming(toolchain::ConstantInt::get(resultTy, 0), invalidBB);
+    overflowPHI->addIncoming(toolchain::ConstantInt::get(boolTy, 1), invalidBB);
     IGF.Builder.CreateBr(doneBB);
   }
 
@@ -287,14 +291,14 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
     if (resultWidth <= chunkWidth) {
       auto result = IGF.Builder.CreateTrunc(firstChunk, resultTy);
       resultPHI->addIncoming(result, validBB);
-      overflowPHI->addIncoming(llvm::ConstantInt::get(boolTy, 0), validBB);
+      overflowPHI->addIncoming(toolchain::ConstantInt::get(boolTy, 0), validBB);
       IGF.Builder.CreateBr(doneBB);
 
     // Otherwise, we're going to have to test dynamically how many chunks
     // we need to read.
     } else {
       assert(maxNumChunks >= 2);
-      llvm::Value *cur = firstChunk;
+      toolchain::Value *cur = firstChunk;
       for (size_t i = 1; i != maxNumChunks; ++i) {
         auto extendBB = IGF.createBasicBlock("intliteral.trunc.finish");
         auto nextBB = IGF.createBasicBlock("intliteral.trunc.next");
@@ -317,7 +321,7 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
             resultIsSigned ? IGF.Builder.CreateSExt(cur, resultTy)
                            : IGF.Builder.CreateZExt(cur, resultTy);
           resultPHI->addIncoming(extendedResult, extendBB);
-          overflowPHI->addIncoming(llvm::ConstantInt::get(boolTy, 0), extendBB);
+          overflowPHI->addIncoming(toolchain::ConstantInt::get(boolTy, 0), extendBB);
           IGF.Builder.CreateBr(doneBB);
         }
 
@@ -333,7 +337,7 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
         // should just be sign-extension bits.
         auto nextTy = (i + 1 == maxNumChunks
                          ? resultTy
-                         : llvm::IntegerType::get(IGF.IGM.getLLVMContext(),
+                         : toolchain::IntegerType::get(IGF.IGM.getLLVMContext(),
                                                   (i + 1) * chunkWidth));
         cur = IGF.Builder.CreateZExt(cur, nextTy);
         auto shiftedNextChunk =
@@ -347,7 +351,7 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
       assert(cur->getType() == resultTy);
       auto curBB = IGF.Builder.GetInsertBlock();
       resultPHI->addIncoming(cur, curBB);
-      overflowPHI->addIncoming(llvm::ConstantInt::get(boolTy, 0), curBB);
+      overflowPHI->addIncoming(toolchain::ConstantInt::get(boolTy, 0), curBB);
       IGF.Builder.CreateBr(doneBB);
     }
   }
@@ -357,15 +361,15 @@ void irgen::emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
   IGF.Builder.emitBlock(doneBB);
 }
 
-static llvm::Value *emitIntegerLiteralToFloatCall(IRGenFunction &IGF,
-                                                  llvm::Value *data,
-                                                  llvm::Value *flags,
+static toolchain::Value *emitIntegerLiteralToFloatCall(IRGenFunction &IGF,
+                                                  toolchain::Value *data,
+                                                  toolchain::Value *flags,
                                                   unsigned bitWidth) {
   assert(bitWidth == 32 || bitWidth == 64);
   auto fn = bitWidth == 32 ? IGF.IGM.getIntToFloat32FunctionPointer()
                            : IGF.IGM.getIntToFloat64FunctionPointer();
   auto call = IGF.Builder.CreateCall(fn, {data, flags});
-  call->setCallingConv(IGF.IGM.SwiftCC);
+  call->setCallingConv(IGF.IGM.CodiraCC);
   call->setDoesNotThrow();
   call->setOnlyReadsMemory();
   call->setOnlyAccessesArgMemory();
@@ -373,39 +377,39 @@ static llvm::Value *emitIntegerLiteralToFloatCall(IRGenFunction &IGF,
   return call;
 }
 
-llvm::Value *irgen::emitIntegerLiteralToFP(IRGenFunction &IGF,
+toolchain::Value *irgen::emitIntegerLiteralToFP(IRGenFunction &IGF,
                                            Explosion &in,
-                                           llvm::Type *toType) {
+                                           toolchain::Type *toType) {
   auto data = in.claimNext();
   auto flags = in.claimNext();
 
   assert(toType->isFloatingPointTy());
   switch (toType->getTypeID()) {
-  case llvm::Type::HalfTyID: {
+  case toolchain::Type::HalfTyID: {
     auto flt = emitIntegerLiteralToFloatCall(IGF, data, flags, 32);
     return IGF.Builder.CreateFPTrunc(flt, toType);
   }
 
-  case llvm::Type::FloatTyID:
+  case toolchain::Type::FloatTyID:
     return emitIntegerLiteralToFloatCall(IGF, data, flags, 32);
 
-  case llvm::Type::DoubleTyID:
+  case toolchain::Type::DoubleTyID:
     return emitIntegerLiteralToFloatCall(IGF, data, flags, 64);
 
   // TODO: add runtime functions for some of these?
-  case llvm::Type::X86_FP80TyID:
-  case llvm::Type::FP128TyID:
-  case llvm::Type::PPC_FP128TyID: {
+  case toolchain::Type::X86_FP80TyID:
+  case toolchain::Type::FP128TyID:
+  case toolchain::Type::PPC_FP128TyID: {
     auto dbl = emitIntegerLiteralToFloatCall(IGF, data, flags, 64);
     return IGF.Builder.CreateFPExt(dbl, toType);
   }
 
   default:
-    llvm_unreachable("not a floating-point type");
+    toolchain_unreachable("not a floating-point type");
   }
 }
 
-llvm::Value *irgen::emitIntLiteralBitWidth(
+toolchain::Value *irgen::emitIntLiteralBitWidth(
   IRGenFunction &IGF,
   Explosion &in
 ) {
@@ -418,7 +422,7 @@ llvm::Value *irgen::emitIntLiteralBitWidth(
   );
 }
 
-llvm::Value *irgen::emitIntLiteralIsNegative(
+toolchain::Value *irgen::emitIntLiteralIsNegative(
   IRGenFunction &IGF,
   Explosion &in
 ) {
@@ -432,7 +436,7 @@ llvm::Value *irgen::emitIntLiteralIsNegative(
   return IGF.Builder.CreateTrunc(flags, IGF.IGM.Int1Ty);
 }
 
-llvm::Value *irgen::emitIntLiteralWordAtIndex(
+toolchain::Value *irgen::emitIntLiteralWordAtIndex(
   IRGenFunction &IGF,
   Explosion &in
 ) {

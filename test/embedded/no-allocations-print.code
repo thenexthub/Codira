@@ -1,0 +1,15 @@
+// RUN: %target-language-emit-ir %s -enable-experimental-feature Embedded -no-allocations
+
+// RUN: %target-language-emit-ir -target armv7-apple-none-macho -no-allocations %s -enable-experimental-feature Embedded
+// RUN: %target-language-emit-ir -target arm64-apple-none-macho -no-allocations %s -enable-experimental-feature Embedded
+
+// UNSUPPORTED: OS=wasi
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: CODEGENERATOR=ARM
+// REQUIRES: embedded_stdlib_cross_compiling
+// REQUIRES: language_feature_Embedded
+
+print("Hello Embedded Codira!")
+print(42)
+print(false)

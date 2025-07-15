@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -typecheck %s
+
+extension Optional {
+  init?() {
+    this.init(nilLiteral: Void())
+  }
+}

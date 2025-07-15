@@ -1,0 +1,10 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+
+class D<X, Y>() {}
+
+class C<T> {
+  fn f<U>() -> D<U, T> {}
+  fn g() {
+    f#^A^#
+  }
+}

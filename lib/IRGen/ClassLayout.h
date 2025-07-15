@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some routines that are useful for calculating class
@@ -18,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_CLASSLAYOUT_H
-#define SWIFT_IRGEN_CLASSLAYOUT_H
+#ifndef LANGUAGE_IRGEN_CLASSLAYOUT_H
+#define LANGUAGE_IRGEN_CLASSLAYOUT_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include "Field.h"
 #include "IRGen.h"
 #include "StructLayout.h"
@@ -50,7 +51,7 @@ enum class FieldAccess : uint8_t {
 /// and initialize class metadata.
 enum class ClassMetadataFlags {
   /// Does the class or any of its superclasses have stored properties that
-  /// where dropped due to the Swift language version availability of
+  /// where dropped due to the Codira language version availability of
   /// their types?
   ClassHasMissingMembers = (1 << 0),
 
@@ -69,7 +70,7 @@ enum class ClassMetadataFlags {
   /// Is this class or any of its superclasses generic?
   ClassHasGenericAncestry = (1 << 2),
 
-  /// Is this class itself generic via the Swift generic system, ie. not a
+  /// Is this class itself generic via the Codira generic system, ie. not a
   /// lightweight Objective-C generic class?
   ClassIsGeneric = (1 << 3),
 
@@ -120,7 +121,7 @@ class ClassLayout {
   ClassMetadataOptions Options;
 
   /// The LLVM type for instances of this class.
-  llvm::Type *Ty;
+  toolchain::Type *Ty;
 
   /// The header size of this class.
   Size HeaderSize;
@@ -139,7 +140,7 @@ class ClassLayout {
 public:
   ClassLayout(const StructLayoutBuilder &builder,
               ClassMetadataOptions options,
-              llvm::Type *classTy,
+              toolchain::Type *classTy,
               ArrayRef<Field> allStoredProps,
               ArrayRef<FieldAccess> allFieldAccesses,
               ArrayRef<ElementLayout> allElements,
@@ -147,7 +148,7 @@ public:
 
   Size getInstanceStart() const;
 
-  llvm::Type *getType() const { return Ty; }
+  toolchain::Type *getType() const { return Ty; }
   Size getSize() const { return MinimumSize; }
   Alignment getAlignment() const { return MinimumAlign; }
   Size getAlignMask() const { return getAlignment().asSize() - Size(1); }
@@ -220,7 +221,7 @@ public:
   }
 
   /// Returns true if the class is implemented by an \c @_objcImplementation
-  /// extension, and therefore should not have any Swift-specific metadata.
+  /// extension, and therefore should not have any Codira-specific metadata.
   bool hasObjCImplementation() const {
     return Options.contains(ClassMetadataFlags::ClassHasObjCImplementation);
   }

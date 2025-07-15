@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PRINTCONTEXT_H
-#define SWIFT_SIL_PRINTCONTEXT_H
+#ifndef LANGUAGE_SIL_PRINTCONTEXT_H
+#define LANGUAGE_SIL_PRINTCONTEXT_H
 
 #include "language/AST/SILOptions.h"
 #include "language/SIL/SILDebugScope.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -53,12 +54,12 @@ protected:
   // general for identifying entities, not just emitting textual SIL.
   //
   const void *ContextFunctionOrBlock = nullptr;
-  llvm::DenseMap<const SILBasicBlock *, unsigned> BlocksToIDMap;
-  llvm::DenseMap<const SILNode *, unsigned> ValueToIDMap;
+  toolchain::DenseMap<const SILBasicBlock *, unsigned> BlocksToIDMap;
+  toolchain::DenseMap<const SILNode *, unsigned> ValueToIDMap;
 
-  llvm::raw_ostream &OutStream;
+  toolchain::raw_ostream &OutStream;
 
-  llvm::DenseMap<const SILDebugScope *, unsigned> ScopeToIDMap;
+  toolchain::DenseMap<const SILDebugScope *, unsigned> ScopeToIDMap;
 
   /// Dump more information in the SIL output.
   bool Verbose;
@@ -76,16 +77,16 @@ public:
   /// Constructor with default values for options.
   ///
   /// DebugInfo will be set according to the -sil-print-debuginfo option.
-  SILPrintContext(llvm::raw_ostream &OS, bool Verbose = false,
+  SILPrintContext(toolchain::raw_ostream &OS, bool Verbose = false,
                   bool SortedSIL = false, bool PrintFullConvention = false);
 
   /// Constructor based on SILOptions.
   ///
   /// DebugInfo will be set according to SILOptions::PrintDebugInfo or
   /// the -sil-print-debuginfo option.
-  SILPrintContext(llvm::raw_ostream &OS, const SILOptions &Opts);
+  SILPrintContext(toolchain::raw_ostream &OS, const SILOptions &Opts);
 
-  SILPrintContext(llvm::raw_ostream &OS, bool Verbose, bool SortedSIL,
+  SILPrintContext(toolchain::raw_ostream &OS, bool Verbose, bool SortedSIL,
                   bool DebugInfo, bool PrintFullConvention);
 
   virtual ~SILPrintContext();
@@ -96,7 +97,7 @@ public:
   void initBlockIDs(ArrayRef<const SILBasicBlock *> Blocks);
 
   /// Returns the output stream for printing.
-  llvm::raw_ostream &OS() const { return OutStream; }
+  toolchain::raw_ostream &OS() const { return OutStream; }
 
   /// Returns true if the SIL output should be sorted.
   bool sortSIL() const { return SortedSIL; }
@@ -141,4 +142,4 @@ raw_ostream &operator<<(raw_ostream &OS, SILPrintContext::ID i);
 
 } // end namespace language
 
-#endif // SWIFT_SIL_PRINTCONTEXT_H
+#endif // LANGUAGE_SIL_PRINTCONTEXT_H

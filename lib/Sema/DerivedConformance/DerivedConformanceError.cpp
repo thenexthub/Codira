@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements implicit derivation of the Error
@@ -25,7 +26,7 @@
 #include "language/AST/Expr.h"
 #include "language/AST/Module.h"
 #include "language/AST/Stmt.h"
-#include "language/AST/SwiftNameTranslation.h"
+#include "language/AST/CodiraNameTranslation.h"
 #include "language/AST/Types.h"
 
 using namespace language;

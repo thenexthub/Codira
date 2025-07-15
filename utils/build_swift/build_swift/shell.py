@@ -1,10 +1,10 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 """
@@ -77,12 +77,12 @@ except AttributeError:
 # -----------------------------------------------------------------------------
 # Helpers
 
-def _flatmap(func, *iterables):
-    """Helper function that maps the given func over the iterables and then
+def _flatmap(fn, *iterables):
+    """Helper function that maps the given fn over the iterables and then
     creates a single flat iterable from the results.
     """
 
-    return itertools.chain.from_iterable(map(func, *iterables))
+    return itertools.chain.from_iterable(map(fn, *iterables))
 
 
 def _convert_pathlib_path(path):
@@ -156,34 +156,34 @@ def _normalize_args(args):
 # -----------------------------------------------------------------------------
 # Decorators
 
-def _normalize_command(func):
+def _normalize_command(fn):
     """Decorator used to uniformly normalize the input command of the
     subprocess wrappers.
     """
 
-    @functools.wraps(func)
+    @functools.wraps(fn)
     def wrapper(command, **kwargs):
         if not isinstance(command, (str,)):
             command = _normalize_args(command)
 
-        return func(command, **kwargs)
+        return fn(command, **kwargs)
 
     return wrapper
 
 
-def _add_echo_kwarg(func):
+def _add_echo_kwarg(fn):
     """Decorator used to add the 'echo' keyword-only argument that echos the
     input command to whatever stdout the user passes (or sys.stdout if not
     supplied).
     """
 
-    @functools.wraps(func)
+    @functools.wraps(fn)
     def wrapper(command, **kwargs):
         if kwargs.pop('echo', False):
             stdout = kwargs.get('stdout', sys.stdout)
             _echo_command(command, stdout)
 
-        return func(command, **kwargs)
+        return fn(command, **kwargs)
 
     return wrapper
 

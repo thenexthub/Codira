@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The compatibility override system supports the back-deployment of
-// bug fixes and ABI additions to existing Swift systems.  This is
+// bug fixes and ABI additions to existing Codira systems.  This is
 // primarily of interest on Apple platforms, since other platforms don't
-// ship with a stable Swift runtime that cannot simply be replaced.
+// ship with a stable Codira runtime that cannot simply be replaced.
 //
 // The compatibility override system works as follows:
 //
 // 1. Certain runtime functions are "hooked" so that they can be replaced
 //    by the program at launch time.  The function at the public symbol
-//    (we will use `swift_task_cancel` as a consistent example) is a
+//    (we will use `language_task_cancel` as a consistent example) is a
 //    thunk that either calls the standard implementation or its dynamic
 //    replacement.  If a dynamic replacement is called, it is passed
 //    the standard implementation as an extra argument.
@@ -34,13 +35,13 @@
 //    CompatibilityOverride*.def file for the current runtime component
 //    (i.e. either the main runtime or the concurrency runtime).
 //    The standard implementation must be defined in that file as a
-//    function with the suffix `Impl`, e.g. `swift_task_cancelImpl`.
+//    function with the suffix `Impl`, e.g. `language_task_cancelImpl`.
 //    Usually the standard implementation should be static, and
 //    everywhere else in the runtime should call the public symbol.
 //
 // 3. The public thunks determine their replacement by calling an
 //    override accessor for the symbol the first time they are called.
-//    These accessors are named e.g. `swift::getOverride_swift_task_cancel`
+//    These accessors are named e.g. `language::getOverride_language_task_cancel`
 //    and are defined by CompatibilityOverride.cpp, which is built
 //    separately for each runtime component using different build
 //    settings.
@@ -55,7 +56,7 @@
 //    changed if useful.
 //
 // 5. The name of the Mach-O section is specific to both the current
-//    runtime component and the current version of the Swift runtime.
+//    runtime component and the current version of the Codira runtime.
 //    Therefore, a compatibility override library always targets a
 //    specific runtime version and implicitly does nothing on other
 //    versions.
@@ -70,7 +71,7 @@
 //    that the other versions can use (assuming that any internal runtime
 //    structures are roughly compatible).
 //
-// 7. Compatibility override libraries are rebuilt with every Swift
+// 7. Compatibility override libraries are rebuilt with every Codira
 //    release in case that release requires new patches to the target
 //    runtime.  They are therefore live code, unlike e.g. the
 //    back-deployment concurrency runtime.
@@ -126,52 +127,52 @@ namespace language {
 // Include path computation. Code that includes this file can write `#include
 // "..CompatibilityOverride/CompatibilityOverrideIncludePath.h"` to include the
 // appropriate .def file for the current library.
-#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_swiftRuntimeCore                   \
+#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_languageRuntimeCore                   \
   "../CompatibilityOverride/CompatibilityOverrideRuntime.def"
-#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_swift_Concurrency                  \
+#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_language_Concurrency                  \
   "../CompatibilityOverride/CompatibilityOverrideConcurrency.def"
 
 #define COMPATIBILITY_OVERRIDE_INCLUDE_PATH                                    \
   COMPATIBILITY_CONCAT(COMPATIBILITY_OVERRIDE_INCLUDE_PATH_,                   \
-                       SWIFT_TARGET_LIBRARY_NAME)
+                       LANGUAGE_TARGET_LIBRARY_NAME)
 
 // Compatibility overrides are only supported on Darwin.
-#ifdef SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#ifdef LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 #if !(defined(__APPLE__) && defined(__MACH__))
-#undef SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#undef LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 #endif
 #endif
 
-#ifndef SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#ifndef LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 
 // Call directly through to the original implementation when we don't support
 // overrides.
 #define COMPATIBILITY_OVERRIDE(name, ret, attrs, ccAttrs, namespace,           \
                                typedArgs, namedArgs)                           \
   attrs ccAttrs ret namespace language_##name COMPATIBILITY_PAREN(typedArgs) {    \
-    return swift_##name##Impl COMPATIBILITY_PAREN(namedArgs);                  \
+    return language_##name##Impl COMPATIBILITY_PAREN(namedArgs);                  \
   }
 
-#else // #ifndef SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#else // #ifndef LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 
 // Override section name computation. `COMPATIBILITY_OVERRIDE_SECTION_NAME` will
 // resolve to string literal containing the appropriate section name for the
 // current library.
-// Turns into '__swift<major><minor>_hooks'
-#define COMPATIBILITY_OVERRIDE_SECTION_NAME_swiftRuntimeCore "__swift" \
-  SWIFT_VERSION_MAJOR \
-  SWIFT_VERSION_MINOR \
+// Turns into '__language<major><minor>_hooks'
+#define COMPATIBILITY_OVERRIDE_SECTION_NAME_languageRuntimeCore "__language" \
+  LANGUAGE_VERSION_MAJOR \
+  LANGUAGE_VERSION_MINOR \
   "_hooks"
 
 // Turns into '__s<major><minor>async_hook'
-#define COMPATIBILITY_OVERRIDE_SECTION_NAME_swift_Concurrency "__s" \
-  SWIFT_VERSION_MAJOR \
-  SWIFT_VERSION_MINOR \
+#define COMPATIBILITY_OVERRIDE_SECTION_NAME_language_Concurrency "__s" \
+  LANGUAGE_VERSION_MAJOR \
+  LANGUAGE_VERSION_MINOR \
   "async_hook"
 
 #define COMPATIBILITY_OVERRIDE_SECTION_NAME                                    \
   COMPATIBILITY_CONCAT(COMPATIBILITY_OVERRIDE_SECTION_NAME_,                   \
-                       SWIFT_TARGET_LIBRARY_NAME)
+                       LANGUAGE_TARGET_LIBRARY_NAME)
 
 // Create typedefs for function pointers to call the original implementation.
 #define OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs)   \
@@ -192,18 +193,18 @@ namespace language {
 /// Used to define an override point. The override point #defines the appropriate
 /// OVERRIDE macro from CompatibilityOverride.def to this macro, then includes
 /// the file to generate the override points. The original implementation of the
-/// functionality must be available as swift_funcNameHereImpl.
+/// functionality must be available as language_funcNameHereImpl.
 #define COMPATIBILITY_OVERRIDE(name, ret, attrs, ccAttrs, namespace,           \
                                typedArgs, namedArgs)                           \
   /* We are creating this separate function for the override case, */          \
   /* to prevent a stack frame from being created for the default case. */      \
-  SWIFT_NOINLINE                                                               \
-  ccAttrs static ret swift_##name##Slow(                                       \
+  LANGUAGE_NOINLINE                                                               \
+  ccAttrs static ret language_##name##Slow(                                       \
       COMPATIBILITY_UNPAREN_WITH_COMMA(typedArgs)                              \
           std::atomic<uintptr_t> &Override,                                    \
       uintptr_t fn, Original_##name defaultImpl) {                             \
     constexpr uintptr_t DEFAULT_IMPL_SENTINEL = 0x1;                           \
-    if (SWIFT_UNLIKELY(fn == 0x0)) {                                           \
+    if (LANGUAGE_UNLIKELY(fn == 0x0)) {                                           \
       fn = (uintptr_t)getOverride_##name();                                    \
       if (fn == 0x0) {                                                         \
         Override.store(DEFAULT_IMPL_SENTINEL,                                  \
@@ -219,18 +220,18 @@ namespace language {
     constexpr uintptr_t DEFAULT_IMPL_SENTINEL = 0x1;                           \
     static std::atomic<uintptr_t> Override;                                    \
     uintptr_t fn = Override.load(std::memory_order::memory_order_relaxed);     \
-    if (SWIFT_LIKELY(fn == DEFAULT_IMPL_SENTINEL)) {                           \
-      return swift_##name##Impl COMPATIBILITY_PAREN(namedArgs);                \
-    } else if (SWIFT_UNLIKELY(fn == 0x0)) {                                    \
-      return swift_##name##Slow(COMPATIBILITY_UNPAREN_WITH_COMMA(namedArgs)    \
+    if (LANGUAGE_LIKELY(fn == DEFAULT_IMPL_SENTINEL)) {                           \
+      return language_##name##Impl COMPATIBILITY_PAREN(namedArgs);                \
+    } else if (LANGUAGE_UNLIKELY(fn == 0x0)) {                                    \
+      return language_##name##Slow(COMPATIBILITY_UNPAREN_WITH_COMMA(namedArgs)    \
                                     Override,                                  \
-                                fn, &swift_##name##Impl);                      \
+                                fn, &language_##name##Impl);                      \
     }                                                                          \
     return ((Override_##name)fn)(COMPATIBILITY_UNPAREN_WITH_COMMA(namedArgs) & \
-                                 swift_##name##Impl);                          \
+                                 language_##name##Impl);                          \
   }
 
-#endif // #else SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#endif // #else LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 
 } /* end namespace language */
 

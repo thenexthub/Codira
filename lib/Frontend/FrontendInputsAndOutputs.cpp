@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/FrontendInputsAndOutputs.h"
@@ -24,16 +25,16 @@
 #include "language/Option/Options.h"
 #include "language/Parse/Lexer.h"
 #include "language/Strings.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/LineIterator.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/LineIterator.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 // Constructors
 
@@ -80,7 +81,7 @@ const std::string &FrontendInputsAndOutputs::getFilenameOfFirstInput() const {
 }
 
 bool FrontendInputsAndOutputs::forEachInput(
-    llvm::function_ref<bool(const InputFile &)> fn) const {
+    toolchain::function_ref<bool(const InputFile &)> fn) const {
   for (const InputFile &input : AllInputs)
     if (fn(input))
       return true;
@@ -100,7 +101,7 @@ const InputFile &FrontendInputsAndOutputs::lastPrimaryInput() const {
 }
 
 bool FrontendInputsAndOutputs::forEachPrimaryInput(
-    llvm::function_ref<bool(const InputFile &)> fn) const {
+    toolchain::function_ref<bool(const InputFile &)> fn) const {
   for (unsigned i : PrimaryInputsInOrder)
     if (fn(AllInputs[i]))
       return true;
@@ -108,7 +109,7 @@ bool FrontendInputsAndOutputs::forEachPrimaryInput(
 }
 
 bool FrontendInputsAndOutputs::forEachPrimaryInputWithIndex(
-    llvm::function_ref<bool(const InputFile &, unsigned index)> fn) const {
+    toolchain::function_ref<bool(const InputFile &, unsigned index)> fn) const {
   for (unsigned i : PrimaryInputsInOrder)
     if (fn(AllInputs[i], i))
       return true;
@@ -116,7 +117,7 @@ bool FrontendInputsAndOutputs::forEachPrimaryInputWithIndex(
 }
 
 bool FrontendInputsAndOutputs::forEachNonPrimaryInput(
-    llvm::function_ref<bool(const InputFile &)> fn) const {
+    toolchain::function_ref<bool(const InputFile &)> fn) const {
   return forEachInput([&](const InputFile &f) -> bool {
     return f.isPrimary() ? false : fn(f);
   });
@@ -145,7 +146,7 @@ const InputFile &
 FrontendInputsAndOutputs::getRequiredUniquePrimaryInput() const {
   if (const auto *input = getUniquePrimaryInput())
     return *input;
-  llvm_unreachable("No primary when one is required");
+  toolchain_unreachable("No primary when one is required");
 }
 
 std::string FrontendInputsAndOutputs::getStatsFileMangledInputName() const {
@@ -175,7 +176,7 @@ unsigned FrontendInputsAndOutputs::numberOfPrimaryInputsEndingWith(
     StringRef extension) const {
   unsigned n = 0;
   (void)forEachPrimaryInput([&](const InputFile &input) -> bool {
-    if (llvm::sys::path::extension(input.getFileName()).ends_with(extension))
+    if (toolchain::sys::path::extension(input.getFileName()).ends_with(extension))
       ++n;
     return false;
   });
@@ -186,10 +187,10 @@ unsigned FrontendInputsAndOutputs::numberOfPrimaryInputsEndingWith(
 
 bool FrontendInputsAndOutputs::shouldTreatAsLLVM() const {
   if (hasSingleInput()) {
-    StringRef InputExt = llvm::sys::path::extension(getFilenameOfFirstInput());
+    StringRef InputExt = toolchain::sys::path::extension(getFilenameOfFirstInput());
     switch (file_types::lookupTypeForExtension(InputExt)) {
-    case file_types::TY_LLVM_BC:
-    case file_types::TY_LLVM_IR:
+    case file_types::TY_TOOLCHAIN_BC:
+    case file_types::TY_TOOLCHAIN_IR:
       return true;
     default:
       return false;
@@ -202,9 +203,9 @@ bool FrontendInputsAndOutputs::shouldTreatAsModuleInterface() const {
   if (!hasSingleInput())
     return false;
 
-  StringRef InputExt = llvm::sys::path::extension(getFilenameOfFirstInput());
+  StringRef InputExt = toolchain::sys::path::extension(getFilenameOfFirstInput());
   file_types::ID InputType = file_types::lookupTypeForExtension(InputExt);
-  return InputType == file_types::TY_SwiftModuleInterfaceFile;
+  return InputType == file_types::TY_CodiraModuleInterfaceFile;
 }
 
 bool FrontendInputsAndOutputs::shouldTreatAsNonPackageModuleInterface() const {
@@ -213,15 +214,15 @@ bool FrontendInputsAndOutputs::shouldTreatAsNonPackageModuleInterface() const {
 
   file_types::ID InputType =
       file_types::lookupTypeFromFilename(getFilenameOfFirstInput());
-  return InputType == file_types::TY_SwiftModuleInterfaceFile ||
-         InputType == file_types::TY_PrivateSwiftModuleInterfaceFile;
+  return InputType == file_types::TY_CodiraModuleInterfaceFile ||
+         InputType == file_types::TY_PrivateCodiraModuleInterfaceFile;
 }
 
 bool FrontendInputsAndOutputs::shouldTreatAsSIL() const {
   if (hasSingleInput()) {
     // If we have exactly one input filename, and its extension is "sil",
     // treat the input as SIL.
-    StringRef extension = llvm::sys::path::extension(getFilenameOfFirstInput());
+    StringRef extension = toolchain::sys::path::extension(getFilenameOfFirstInput());
     return file_types::lookupTypeForExtension(extension) == file_types::TY_SIL;
   }
   // If we have one primary input and it's a filename with extension "sil",
@@ -235,12 +236,12 @@ bool FrontendInputsAndOutputs::shouldTreatAsSIL() const {
     assertMustNotBeMoreThanOnePrimaryInput();
     return true;
   }
-  llvm_unreachable("Either all primaries or none must end with .sil");
+  toolchain_unreachable("Either all primaries or none must end with .sil");
 }
 
 bool FrontendInputsAndOutputs::shouldTreatAsObjCHeader() const {
   if (hasSingleInput()) {
-    StringRef InputExt = llvm::sys::path::extension(getFilenameOfFirstInput());
+    StringRef InputExt = toolchain::sys::path::extension(getFilenameOfFirstInput());
     switch (file_types::lookupTypeForExtension(InputExt)) {
     case file_types::TY_ClangHeader:
       return true;
@@ -255,7 +256,7 @@ bool FrontendInputsAndOutputs::areAllNonPrimariesSIB() const {
   for (const InputFile &input : AllInputs) {
     if (input.isPrimary())
       continue;
-    StringRef extension = llvm::sys::path::extension(input.getFileName());
+    StringRef extension = toolchain::sys::path::extension(input.getFileName());
     if (file_types::lookupTypeForExtension(extension) != file_types::TY_SIB) {
       return false;
     }
@@ -313,12 +314,12 @@ void FrontendInputsAndOutputs::addInput(const InputFile &input) {
 }
 
 void FrontendInputsAndOutputs::addInputFile(StringRef file,
-                                            llvm::MemoryBuffer *buffer) {
+                                            toolchain::MemoryBuffer *buffer) {
   addInput(InputFile(file, false, buffer));
 }
 
 void FrontendInputsAndOutputs::addPrimaryInputFile(StringRef file,
-                                                   llvm::MemoryBuffer *buffer) {
+                                                   toolchain::MemoryBuffer *buffer) {
   addInput(InputFile(file, true, buffer));
 }
 
@@ -343,7 +344,7 @@ const InputFile &FrontendInputsAndOutputs::lastInputProducingOutput() const {
 }
 
 bool FrontendInputsAndOutputs::forEachInputProducingAMainOutputFile(
-    llvm::function_ref<bool(const InputFile &)> fn) const {
+    toolchain::function_ref<bool(const InputFile &)> fn) const {
   return isSingleThreadedWMO()
              ? fn(firstInput())
              : hasPrimaryInputs() ? forEachPrimaryInput(fn) : forEachInput(fn);
@@ -383,13 +384,23 @@ void FrontendInputsAndOutputs::setMainAndSupplementaryOutputs(
     }
     return;
   }
-  assert(supplementaryOutputs.size() == 1 &&
-         "WMO only ever produces one set of supplementary outputs");
+
+  assert(supplementaryOutputs.size() == 1 ||
+         supplementaryOutputs.size() == AllInputs.size() &&
+             "WMO produces wrong number of sets of supplementary outputs");
   if (outputFiles.size() == 1) {
-    AllInputs.front().setPrimarySpecificPaths(PrimarySpecificPaths(
-        outputFiles.front(), outputFilesForIndexUnits.front(),
-        firstInputProducingOutput().getFileName(),
-        supplementaryOutputs.front()));
+    for (auto i : indices(AllInputs)) {
+      if (i == 0)
+        AllInputs[i].setPrimarySpecificPaths(PrimarySpecificPaths(
+            outputFiles.front(), outputFilesForIndexUnits.front(),
+            firstInputProducingOutput().getFileName(),
+            supplementaryOutputs.front()));
+      else
+        AllInputs[i].setPrimarySpecificPaths(PrimarySpecificPaths(
+            "", "", "",
+            supplementaryOutputs.size() == 1 ? SupplementaryOutputPaths()
+                                             : supplementaryOutputs[i]));
+    }
     return;
   }
   assert(outputFiles.size() == AllInputs.size() &&
@@ -397,7 +408,8 @@ void FrontendInputsAndOutputs::setMainAndSupplementaryOutputs(
   for (auto i : indices(AllInputs))
     AllInputs[i].setPrimarySpecificPaths(PrimarySpecificPaths(
         outputFiles[i], outputFilesForIndexUnits[i], outputFiles[i],
-        i == 0 ? supplementaryOutputs.front() : SupplementaryOutputPaths()));
+        supplementaryOutputs.size() == 1 && i != 0 ? SupplementaryOutputPaths()
+                                                   : supplementaryOutputs[i]));
 }
 
 std::vector<std::string> FrontendInputsAndOutputs::copyOutputFilenames() const {
@@ -422,7 +434,7 @@ FrontendInputsAndOutputs::copyIndexUnitOutputFilenames() const {
 }
 
 void FrontendInputsAndOutputs::forEachOutputFilename(
-    llvm::function_ref<void(StringRef)> fn) const {
+    toolchain::function_ref<void(StringRef)> fn) const {
   (void)forEachInputProducingAMainOutputFile(
       [&](const InputFile &input) -> bool {
         fn(input.outputFilename());
@@ -448,7 +460,7 @@ bool FrontendInputsAndOutputs::isOutputFilenameStdout() const {
 
 bool FrontendInputsAndOutputs::isOutputFileDirectory() const {
   return hasNamedOutputFile() &&
-         llvm::sys::fs::is_directory(getSingleOutputFilename());
+         toolchain::sys::fs::is_directory(getSingleOutputFilename());
 }
 
 bool FrontendInputsAndOutputs::hasNamedOutputFile() const {
@@ -463,13 +475,13 @@ FrontendInputsAndOutputs::countOfFilesProducingSupplementaryOutput() const {
 }
 
 bool FrontendInputsAndOutputs::forEachInputProducingSupplementaryOutput(
-    llvm::function_ref<bool(const InputFile &)> fn) const {
+    toolchain::function_ref<bool(const InputFile &)> fn) const {
   return hasPrimaryInputs() ? forEachPrimaryInput(fn)
                             : hasInputs() ? fn(firstInput()) : false;
 }
 
 bool FrontendInputsAndOutputs::hasSupplementaryOutputPath(
-    llvm::function_ref<const std::string &(const SupplementaryOutputPaths &)>
+    toolchain::function_ref<const std::string &(const SupplementaryOutputPaths &)>
         extractorFn) const {
   return forEachInputProducingSupplementaryOutput([&](const InputFile &input)
                                                       -> bool {
@@ -492,6 +504,14 @@ FrontendInputsAndOutputs::getPrimarySpecificPathsForAtMostOnePrimary() const {
 }
 
 const PrimarySpecificPaths &
+FrontendInputsAndOutputs::getPrimarySpecificPathsForRemaining(unsigned i) const {
+  static auto emptyPaths = PrimarySpecificPaths();
+  unsigned firstProducingIdx = getIndexOfFirstOutputProducingInput();
+  return (hasInputs()  && i > 0) ?
+    AllInputs[firstProducingIdx+i].getPrimarySpecificPaths() : emptyPaths;
+}
+
+const PrimarySpecificPaths &
 FrontendInputsAndOutputs::getPrimarySpecificPathsForPrimary(
     StringRef filename) const {
   const InputFile *f = primaryInputNamed(filename);
@@ -502,7 +522,7 @@ const InputFile *
 FrontendInputsAndOutputs::primaryInputNamed(StringRef name) const {
   assert(!name.empty() && "input files have names");
   StringRef correctedFile =
-      InputFile::convertBufferNameFromLLVM_getFileOrSTDIN_toSwiftConventions(
+      InputFile::convertBufferNameFromTOOLCHAIN_getFileOrSTDIN_toCodiraConventions(
           name);
   auto iterator = PrimaryInputsByName.find(correctedFile);
   if (iterator == PrimaryInputsByName.end())

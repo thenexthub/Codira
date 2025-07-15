@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/ModuleCache)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/a.code -module-cache-path %t/ModuleCache 2> %t/a.hash
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/b.code -module-cache-path %t/ModuleCache 2> %t/b.hash
+// RUN: cmp %t/a.hash %t/b.hash
+
+// BEGIN a.code
+fn f() -> Int {
+    return 0
+}
+
+// BEGIN b.code
+fn f() -> Int {
+    return 1
+}

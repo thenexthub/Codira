@@ -1,0 +1,320 @@
+// This test checks that the private_fileid attribute (LANGUAGE_PRIVATE_FILEID)
+// works as intended, for all supported non-public C++ class members, and only
+// in the contexts where they should be accessible (i.e., the files blessed by
+// the LANGUAGE_PRIVATE_FILEID annotation).
+//
+// The private_fileid mechanism relies on fileIDs, so we need some control over
+// file names:
+//
+// RUN: split-file %s %t
+//
+// The imported C++ struct is annotated with "main/blessed.code", so we need to
+// use "blessed.code" as the file name and "main" as the module name.
+//
+// To minimize some boilerplate, we reuse the same header file but tweak whether
+// we are importing a class (default) or a struct, and whether its non-public
+// members are private (default) or protected. The result should be the same
+// no matter the configuration.
+//
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/blessed.code
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/blessed.code -Xcc -DTEST_CLASS=struct
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/blessed.code -Xcc -DTEST_PRIVATE=protected
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/blessed.code -Xcc -DTEST_CLASS=struct -Xcc -DTEST_PRIVATE=protected
+//
+// This test also includes a "cursed.code", which expects to not have access to
+// non-public members:
+//
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/cursed.code
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/cursed.code -Xcc -DTEST_CLASS=struct
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/cursed.code -Xcc -DTEST_PRIVATE=protected
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/cursed.code -Xcc -DTEST_CLASS=struct -Xcc -DTEST_PRIVATE=protected
+//
+// To check that fileID is agnostic about directory structure within a module,
+// we move blessed.code into a subdirectory (but keep its filename).
+//
+// RUN: mkdir -p %t/subdir/subsubdir
+// RUN: mv %t/blessed.code %t/subdir/subsubdir/blessed.code
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/subdir/subsubdir/blessed.code
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/subdir/subsubdir/blessed.code -Xcc -DTEST_CLASS=struct
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/subdir/subsubdir/blessed.code -Xcc -DTEST_PRIVATE=protected
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/subdir/subsubdir/blessed.code -Xcc -DTEST_CLASS=struct -Xcc -DTEST_PRIVATE=protected
+//
+// To check that fileID is sensitive to module names, rename cursed.code to
+// "blessed.code", but typecheck in a module not called "main".
+//
+// RUN: mv %t/cursed.code %t/blessed.code
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name brain %t/blessed.code
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name brain %t/blessed.code -Xcc -DTEST_CLASS=struct
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name brain %t/blessed.code -Xcc -DTEST_PRIVATE=protected
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name brain %t/blessed.code -Xcc -DTEST_CLASS=struct -Xcc -DTEST_PRIVATE=protected
+
+//--- blessed.code
+
+import NonPublic
+
+// These extension methods are just here to make it clear what we are doing to
+// each Int32-typed member.
+extension Int32 {
+    fn read() { }
+    mutating fn write() { }
+}
+
+extension MyClass {
+    mutating fn ext() {
+        publMethod()
+        privMethod()
+
+        publMutatingMethod()
+        privMutatingMethod()
+
+        publVar.read()
+        privVar.read()
+
+        publVar.write()
+        privVar.write()
+
+        MyClass.publStaticFunc()
+        MyClass.privStaticFunc()
+
+        MyClass.publStaticVar.read()
+        MyClass.privStaticVar.read()
+
+        MyClass.publStaticVar.write()
+        MyClass.privStaticVar.write()
+
+        immutable _: publTypedef
+        immutable _: privTypedef
+
+        immutable _: publStruct
+        immutable _: privStruct
+
+        immutable _: publEnum
+        immutable _: privEnum
+
+        immutable _: publEnumClass
+        immutable _: privEnumClass
+
+        immutable _: publEnumClosed
+        immutable _: privEnumClosed
+
+        immutable _: publEnumOpen
+        immutable _: privEnumOpen
+
+        immutable _: publEnumFlag
+        immutable _: privEnumFlag
+
+        // TODO: Enum variants are not being correctly imported. Test the following when that is fixed:
+        // immutable _ = variantPublEnum
+        // immutable _ = variantPrivEnum
+        //
+        // immutable _ = publEnumAnonVariant
+        // immutable _ = privEnumAnonVariant
+
+        immutable _ = publEnumClass.variantPublEnumClass
+        immutable _ = privEnumClass.variantPrivEnumClass
+
+        immutable _ = publEnumClosed.variantPublEnumClosed
+        immutable _ = privEnumClosed.variantPrivEnumClosed
+
+        immutable _ = publEnumOpen.variantPublEnumOpen
+        immutable _ = privEnumOpen.variantPrivEnumOpen
+    }
+
+    // Make sure these types are usable in type signatures too
+    fn publTypedefFunc(_ _: publTypedef) { }
+    private fn privTypedefFunc(_ _: privTypedef) { }
+
+    fn publStructFunc(_ _: publStruct) { }
+    private fn privStructFunc(_ _: privStruct) { }
+
+    fn publEnumFunc(_ _: publEnum) { }
+    private fn privEnumFunc(_ _: privEnum) { }
+
+    fn publEnumClassFunc(_ _: publEnumClass) { }
+    private fn privEnumClassFunc(_ _: privEnumClass) { }
+
+    fn publEnumClosedFunc(_ _: publEnumClosed) { }
+    private fn privEnumClosedFunc(_ _: privEnumClosed) { }
+
+    fn publEnumOpenFunc(_ _: publEnumOpen) { }
+    private fn privEnumOpenFunc(_ _: privEnumOpen) { }
+
+    fn publEnumFlagFunc(_ _: publEnumFlag) { }
+    private fn privEnumFlagFunc(_ _: privEnumFlag) { }
+}
+
+fn notExt(_ c: inout MyClass) {
+    c.publMethod()
+    c.privMethod() // expected-error {{'privMethod' is inaccessible due to 'private' protection level}}
+
+    c.publMutatingMethod()
+    c.privMutatingMethod() // expected-error {{'privMutatingMethod' is inaccessible due to 'private' protection level}}
+
+    c.publVar.read()
+    c.privVar.read() // expected-error {{'privVar' is inaccessible due to 'private' protection level}}
+
+    MyClass.publStaticFunc()
+    MyClass.privStaticFunc() // expected-error {{'privStaticFunc' is inaccessible due to 'private' protection level}}
+
+    MyClass.publStaticVar.read()
+    MyClass.privStaticVar.read() // expected-error {{'privStaticVar' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publTypedef
+    immutable _: MyClass.privTypedef // expected-error {{'privTypedef' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publStruct
+    immutable _: MyClass.privStruct // expected-error {{'privStruct' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnum
+    immutable _: MyClass.privEnum // expected-error {{'privEnum' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumClass
+    immutable _: MyClass.privEnumClass // expected-error {{'privEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumClosed
+    immutable _: MyClass.privEnumClosed // expected-error {{'privEnumClosed' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumOpen
+    immutable _: MyClass.privEnumOpen // expected-error {{'privEnumOpen' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumFlag
+    immutable _: MyClass.privEnumFlag // expected-error {{'privEnumFlag' is inaccessible due to 'private' protection level}}
+
+    // TODO: Enum variants are not being correctly imported. Test the following when that is fixed:
+    //
+    // immutable _ = MyClass.variantPublEnum
+    // immutable _ = MyClass.variantPrivEnum // TODO-error {{'variantPrivEnum' is inaccessible due to 'private' protection level}}
+    //
+    // immutable _ = MyClass.publEnumAnonVariant
+    // immutable _ = MyClass.privEnumAnonVariant // TODO-error {{'privEnumAnonVariant' is inaccessible due to 'private' protection level}}
+
+    immutable _ = MyClass.publEnumClass.variantPublEnumClass
+    immutable _ = MyClass.privEnumClass.variantPrivEnumClass // expected-error {{'privEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _ = MyClass.publEnumClosed.variantPublEnumClosed
+    immutable _ = MyClass.privEnumClosed.variantPrivEnumClosed // expected-error {{'privEnumClosed' is inaccessible due to 'private' protection level}}
+
+    immutable _ = MyClass.publEnumOpen.variantPublEnumOpen
+    immutable _ = MyClass.privEnumOpen.variantPrivEnumOpen // expected-error {{'privEnumOpen' is inaccessible due to 'private' protection level}}
+}
+
+//--- cursed.code
+
+import NonPublic
+
+// These extension methods are just here to make it clear what we are doing to
+// each Int32-typed member.
+extension Int32 {
+    fn read() { }
+    mutating fn write() { }
+}
+
+extension MyClass {
+    mutating fn ext() {
+        publMethod()
+        privMethod() // expected-error {{'privMethod' is inaccessible due to 'private' protection level}}
+
+        publMutatingMethod()
+        privMutatingMethod() // expected-error {{'privMutatingMethod' is inaccessible due to 'private' protection level}}
+
+        publVar.read()
+        privVar.read() // expected-error {{'privVar' is inaccessible due to 'private' protection level}}
+
+        MyClass.publStaticFunc()
+        MyClass.privStaticFunc() // expected-error {{'privStaticFunc' is inaccessible due to 'private' protection level}}
+
+        MyClass.publStaticVar.read()
+        MyClass.privStaticVar.read() // expected-error {{'privStaticVar' is inaccessible due to 'private' protection level}}
+
+        immutable _: publTypedef
+        immutable _: privTypedef // expected-error {{'privTypedef' is inaccessible due to 'private' protection level}}
+
+        immutable _: publStruct
+        immutable _: privStruct // expected-error {{'privStruct' is inaccessible due to 'private' protection level}}
+
+        immutable _: publEnum
+        immutable _: privEnum // expected-error {{'privEnum' is inaccessible due to 'private' protection level}}
+
+        immutable _: publEnumClass
+        immutable _: privEnumClass // expected-error {{'privEnumClass' is inaccessible due to 'private' protection level}}
+
+        immutable _: publEnumClosed
+        immutable _: privEnumClosed // expected-error {{'privEnumClosed' is inaccessible due to 'private' protection level}}
+
+        immutable _: publEnumOpen
+        immutable _: privEnumOpen // expected-error {{'privEnumOpen' is inaccessible due to 'private' protection level}}
+
+        immutable _: publEnumFlag
+        immutable _: privEnumFlag // expected-error {{'privEnumFlag' is inaccessible due to 'private' protection level}}
+
+        // TODO: Enum variants are not being correctly imported. Test the following when that is fixed:
+        // immutable _ = variantPublEnum
+        // immutable _ = variantPrivEnum // TODO-error {{'variantPrivEnum' is inaccessible due to 'private' protection level}}
+        //
+        // immutable _ = publEnumAnonVariant
+        // immutable _ = privEnumAnonVariant // TODO-error {{'privEnumAnonVariant' is inaccessible due to 'private' protection level}}
+
+        immutable _ = publEnumClass.variantPublEnumClass
+        immutable _ = privEnumClass.variantPrivEnumClass// expected-error {{'privEnumClass' is inaccessible due to 'private' protection level}}
+
+        immutable _ = publEnumClosed.variantPublEnumClosed
+        immutable _ = privEnumClosed.variantPrivEnumClosed // expected-error {{'privEnumClosed' is inaccessible due to 'private' protection level}}
+
+        immutable _ = publEnumOpen.variantPublEnumOpen
+        immutable _ = privEnumOpen.variantPrivEnumOpen // expected-error {{'privEnumOpen' is inaccessible due to 'private' protection level}}
+    }
+}
+
+fn notExt(_ c: inout MyClass) {
+    c.publMethod()
+    c.privMethod() // expected-error {{'privMethod' is inaccessible due to 'private' protection level}}
+
+    c.publMutatingMethod()
+    c.privMutatingMethod() // expected-error {{'privMutatingMethod' is inaccessible due to 'private' protection level}}
+
+    c.publVar.read()
+    c.privVar.read() // expected-error {{'privVar' is inaccessible due to 'private' protection level}}
+
+    MyClass.publStaticFunc()
+    MyClass.privStaticFunc() // expected-error {{'privStaticFunc' is inaccessible due to 'private' protection level}}
+
+    MyClass.publStaticVar.read()
+    MyClass.privStaticVar.read() // expected-error {{'privStaticVar' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publTypedef
+    immutable _: MyClass.privTypedef // expected-error {{'privTypedef' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publStruct
+    immutable _: MyClass.privStruct // expected-error {{'privStruct' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnum
+    immutable _: MyClass.privEnum // expected-error {{'privEnum' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumClass
+    immutable _: MyClass.privEnumClass // expected-error {{'privEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumClosed
+    immutable _: MyClass.privEnumClosed // expected-error {{'privEnumClosed' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumOpen
+    immutable _: MyClass.privEnumOpen // expected-error {{'privEnumOpen' is inaccessible due to 'private' protection level}}
+
+    immutable _: MyClass.publEnumFlag
+    immutable _: MyClass.privEnumFlag // expected-error {{'privEnumFlag' is inaccessible due to 'private' protection level}}
+
+    // TODO: Enum variants are not being correctly imported. Test the following when that is fixed:
+    // immutable _ = MyClass.variantPublEnum
+    // immutable _ = MyClass.variantPrivEnum // TODO-error {{'variantPrivEnum' is inaccessible due to 'private' protection level}}
+    //
+    // immutable _ = MyClass.publEnumAnonVariant
+    // immutable _ = MyClass.privEnumAnonVariant // TODO-error {{'privEnumAnonVariant' is inaccessible due to 'private' protection level}}
+
+    immutable _ = MyClass.publEnumClass.variantPublEnumClass
+    immutable _ = MyClass.privEnumClass.variantPrivEnumClass// expected-error {{'privEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _ = MyClass.publEnumClosed.variantPublEnumClosed
+    immutable _ = MyClass.privEnumClosed.variantPrivEnumClosed // expected-error {{'privEnumClosed' is inaccessible due to 'private' protection level}}
+
+    immutable _ = MyClass.publEnumOpen.variantPublEnumOpen
+    immutable _ = MyClass.privEnumOpen.variantPrivEnumOpen // expected-error {{'privEnumOpen' is inaccessible due to 'private' protection level}}
+}

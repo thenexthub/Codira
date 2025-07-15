@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend -typecheck %s
+class A { }
+class B: A {
+  fn foo(_: () -> ()) {
+
+  override var prop: Any? {
+      didSet { }
+  }
+}

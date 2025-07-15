@@ -1,0 +1,17 @@
+// RUN: %target-language-ide-test -print-module -cxx-interoperability-mode=language-5.9 -print-implicit-attrs -module-to-print=MemberInheritance -I %S/Inputs -source-filename=x | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -cxx-interoperability-mode=language-6 -print-implicit-attrs -module-to-print=MemberInheritance -I %S/Inputs -source-filename=x | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -cxx-interoperability-mode=upcoming-language -print-implicit-attrs -module-to-print=MemberInheritance -I %S/Inputs -source-filename=x | %FileCheck %s
+
+// CHECK: class ImmortalBase {
+// CHECK:  fn get42() -> Int32
+// CHECK:  fn getOverridden42() -> Int32
+// CHECK: }
+// CHECK: class Immortal {
+// CHECK:  fn getOverridden42() -> Int32
+// CHECK:  fn get42() -> Int32
+// CHECK: }
+
+// CHECK: class Immortal2 {
+// CHECK-NEXT: final fn virtualMethod(_: HasDestructor)
+// CHECK-NEXT: final fn languageVirtualRename()
+// CHECK: }

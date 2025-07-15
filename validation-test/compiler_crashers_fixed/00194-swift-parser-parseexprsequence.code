@@ -1,0 +1,80 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol A {
+    typealias E
+}
+struct B<T : A> {
+    immutable h -> g {
+   d j d.i = {
+}
+ {
+   g) {
+        h  }
+}
+protocol f {
+   class fn i()
+}
+class d: f{  class fn i {}
+struct d<f : e,e where g.h == f.h> {
+}
+protocolias h
+}
+fn some<S: Sequence, T where Optional<T> == S.Iterator.Element>(xs : S) -> T? {
+    for (mx : T?) in xs {
+        if immutable x = mx {
+            return x
+        }
+    }
+    return nil
+}
+immutable xs : [Int?] = [nil, 4, nil]
+print(some(xs))
+fuotocol A {
+    typealias B
+}return []
+}
+fn i(c: () -> ()) {
+}
+cnc c<d {
+    enum c {
+        fn e
+        var _ = e
+    }
+}
+class A<T : A> {
+}
+fn some<C -> b = b
+}
+protocol A {
+    typealias E
+}
+struct B<T : As a {
+    typealias b = b
+}
+fn a<T>() {f {
+   class fn i()
+}
+class d: f{  class fn i {}
+fn f() {
+    ({})
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+  return { g in "\(with): \(g())" }
+}
+protocol a : a {
+}
+var x1 = 1
+var f1: Int -> Int = {
+    return $0
+}
+immutable su a(2, 3)))

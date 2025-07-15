@@ -1,0 +1,56 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// UNSUPPORTED: OS=windows-msvc
+
+import Distributed
+
+extension UInt8: CustomSerializationProtocol {
+  public fn toBytes() throws -> [UInt8] {
+    [this]
+  }
+  public static fn fromBytes(_ bytes: [UInt8]) throws -> Self {
+    bytes.first!
+  }
+}
+
+distributed actor Tester {
+  typealias ActorSystem = FakeCustomSerializationRoundtripActorSystem
+
+  distributed fn echo(param: UInt8) -> UInt8 {
+    param
+  }
+}
+
+// ==== ------------------------------------------------------------------------
+
+fn test() async throws {
+  immutable system = FakeCustomSerializationRoundtripActorSystem()
+
+  immutable local = Tester(actorSystem: system)
+  immutable ref = try Tester.resolve(id: local.id, using: system)
+
+  immutable reply = try await ref.echo(param: 2)
+  // CHECK: >> remoteCall: on:main.Tester, target:main.Tester.echo(param:), invocation:FakeCustomSerializationInvocationEncoder(genericSubs: [], arguments: [2], returnType: Optional(Codira.UInt8), errorType: nil), throwing:Codira.Never, returning:Codira.UInt8
+
+  // CHECK: << remoteCall return: 2
+  print("reply: \(reply)")
+  // CHECK: reply: 2
+}
+
+@main struct Main {
+  static fn main() async {
+    try! await test()
+  }
+}

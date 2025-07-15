@@ -1,4 +1,4 @@
-//===--- TypeCheckOverride.cpp - Override Checking ------------------------===//
+//===-- Sema/TypeCheckDeclOverride.cpp - Override Checking ------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for declaration overrides.
@@ -74,7 +75,7 @@ static Type dropResultOptionality(Type type, unsigned uncurryLevel) {
   return FunctionType::get(parameters, resultType, fnType->getExtInfo());
 }
 
-Type swift::getMemberTypeForComparison(const ValueDecl *member,
+Type language::getMemberTypeForComparison(const ValueDecl *member,
                                        const ValueDecl *derivedDecl) {
   auto *method = dyn_cast<AbstractFunctionDecl>(member);
   auto *ctor = dyn_cast_or_null<ConstructorDecl>(method);
@@ -154,7 +155,7 @@ areAccessorsOverrideCompatible(const AbstractStorageDecl *storage,
   return true;
 }
 
-bool swift::isOverrideBasedOnType(const ValueDecl *decl, Type declTy,
+bool language::isOverrideBasedOnType(const ValueDecl *decl, Type declTy,
                                   const ValueDecl *parentDecl) {
   auto genericSig =
       decl->getInnermostDeclContext()->getGenericSignatureOfContext();
@@ -220,6 +221,9 @@ bool swift::isOverrideBasedOnType(const ValueDecl *decl, Type declTy,
         return false;
     }
 
+    if (declTy->is<ErrorType>())
+      return false;
+
     auto fnType1 = declTy->castTo<AnyFunctionType>();
     auto fnType2 = parentDeclTy->castTo<AnyFunctionType>();
     return AnyFunctionType::equalParams(fnType1->getParams(),
@@ -227,13 +231,13 @@ bool swift::isOverrideBasedOnType(const ValueDecl *decl, Type declTy,
 
   // In a non-static protocol requirement, verify that the self access kind
   // matches.
-  } else if (auto func = dyn_cast<FuncDecl>(decl)) {
+  } else if (auto fn = dyn_cast<FuncDecl>(decl)) {
     // We only compare `isMutating()` rather than `getSelfAccessKind()`
     // because we don't want to complain about `nonmutating` vs. `__consuming`
     // conflicts at this time, especially since `__consuming` is not yet
     // officially part of the language.
-    if (!func->isStatic() &&
-        func->isMutating() != cast<FuncDecl>(parentDecl)->isMutating())
+    if (!fn->isStatic() &&
+        fn->isMutating() != cast<FuncDecl>(parentDecl)->isMutating())
       return false;
 
   // In abstract storage, verify that the accessor mutating-ness matches.
@@ -581,7 +585,7 @@ static void diagnoseGeneralOverrideFailure(ValueDecl *decl,
             diags
                 .diagnose(decl, diag::override_sendability_mismatch,
                           decl->getName())
-                .limitBehaviorUntilSwiftVersion(limit, 6)
+                .limitBehaviorUntilCodiraVersion(limit, 6)
                 .limitBehaviorIf(
                     fromContext.preconcurrencyBehavior(baseDeclClass));
             return false;
@@ -599,7 +603,7 @@ static void diagnoseGeneralOverrideFailure(ValueDecl *decl,
       diags
           .diagnose(decl, diag::override_global_actor_isolation_mismatch,
                     decl->getName())
-          .limitBehaviorUntilSwiftVersion(DiagnosticBehavior::Warning, 6)
+          .limitBehaviorUntilCodiraVersion(DiagnosticBehavior::Warning, 6)
           .limitBehaviorIf(fromContext.preconcurrencyBehavior(baseDeclClass));
     }
     break;
@@ -623,7 +627,7 @@ static void diagnoseGeneralOverrideFailure(ValueDecl *decl,
     break;
   }
   case OverrideCheckingAttempt::Final:
-    llvm_unreachable("should have exited already");
+    toolchain_unreachable("should have exited already");
   }
 
   for (auto match : matches) {
@@ -758,7 +762,7 @@ static bool hasOverridingDifferentiableAttribute(ValueDecl *derivedDecl,
         baseParameters->getNumIndices() == inferredParameters->getNumIndices();
     // Get `@differentiable` attribute description.
     std::string baseDiffAttrString;
-    llvm::raw_string_ostream os(baseDiffAttrString);
+    toolchain::raw_string_ostream os(baseDiffAttrString);
     baseDA->print(os, derivedDecl, omitWrtClause);
     os.flush();
     diags
@@ -1218,7 +1222,7 @@ bool OverrideMatcher::checkOverride(ValueDecl *baseDecl,
   // is helpful in several cases - just not this one.
   auto dc = decl->getDeclContext();
   auto classDecl = dc->getSelfClassDecl();
-  if (decl->getASTContext().isSwiftVersionAtLeast(5) &&
+  if (decl->getASTContext().isCodiraVersionAtLeast(5) &&
       baseDecl->getInterfaceType()->hasDynamicSelfType() &&
       !decl->getInterfaceType()->hasDynamicSelfType() &&
       !classDecl->isSemanticallyFinal()) {
@@ -1490,7 +1494,7 @@ checkPotentialOverrides(ValueDecl *decl,
 /// (if any).
 ///
 /// \returns true if an error occurred.
-bool swift::checkOverrides(ValueDecl *decl) {
+bool language::checkOverrides(ValueDecl *decl) {
   // If there is a @_nonoverride attribute, this does not override anything.
   if (decl->getAttrs().hasAttribute<NonOverrideAttr>())
     return false;
@@ -1535,7 +1539,8 @@ bool swift::checkOverrides(ValueDecl *decl) {
 
   auto &ctx = decl->getASTContext();
   if (overridden.empty() &&
-      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility)) {
+      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                              /*allowMigration=*/true)) {
     // If we didn't find anything, try broadening the search by ignoring missing
     // imports.
     if (!checkPotentialOverrides(decl, overridden,
@@ -1613,7 +1618,7 @@ namespace  {
     UNINTERESTING_ATTR(Isolated)
     UNINTERESTING_ATTR(Optimize)
     UNINTERESTING_ATTR(Exclusivity)
-    UNINTERESTING_ATTR(Extensible)
+    UNINTERESTING_ATTR(Nonexhaustive)
     UNINTERESTING_ATTR(NoLocks)
     UNINTERESTING_ATTR(NoAllocation)
     UNINTERESTING_ATTR(NoRuntime)
@@ -1656,9 +1661,10 @@ namespace  {
     UNINTERESTING_ATTR(UnsafeNoObjCTaggedPointer)
     UNINTERESTING_ATTR(Used)
     UNINTERESTING_ATTR(Section)
-    UNINTERESTING_ATTR(SwiftNativeObjCRuntimeBase)
+    UNINTERESTING_ATTR(CodiraNativeObjCRuntimeBase)
     UNINTERESTING_ATTR(ShowInInterface)
     UNINTERESTING_ATTR(Specialize)
+    UNINTERESTING_ATTR(Specialized)
     UNINTERESTING_ATTR(SpecializeExtension)
     UNINTERESTING_ATTR(DynamicReplacement)
     UNINTERESTING_ATTR(PrivateImport)
@@ -1788,7 +1794,7 @@ namespace  {
 } // end anonymous namespace
 
 /// Determine whether overriding the given declaration requires a keyword.
-OverrideRequiresKeyword swift::overrideRequiresKeyword(ValueDecl *overridden) {
+OverrideRequiresKeyword language::overrideRequiresKeyword(ValueDecl *overridden) {
   if (isa<AccessorDecl>(overridden))
     return OverrideRequiresKeyword::Never;
 
@@ -1890,10 +1896,9 @@ isRedundantAccessorOverrideAvailabilityDiagnostic(ValueDecl *override,
     break;
 
 #define OPAQUE_ACCESSOR(ID, KEYWORD)
-#define ACCESSOR(ID) \
-  case AccessorKind::ID:
+#define ACCESSOR(ID, KEYWORD) case AccessorKind::ID:
 #include "language/AST/AccessorKinds.def"
-    llvm_unreachable("checking override for non-opaque accessor");
+    toolchain_unreachable("checking override for non-opaque accessor");
   }
 
   return false;
@@ -1983,9 +1988,9 @@ static bool checkSingleOverride(ValueDecl *override, ValueDecl *base) {
          overrideASD->getAttrs().hasAttribute<LazyAttr>()) &&
         !overrideASD->hasObservers()) {
       bool downgradeToWarning = false;
-      if (!ctx.isSwiftVersionAtLeast(5) &&
+      if (!ctx.isCodiraVersionAtLeast(5) &&
           overrideASD->getAttrs().hasAttribute<LazyAttr>()) {
-        // Swift 4.0 had a bug where lazy properties were considered
+        // Codira 4.0 had a bug where lazy properties were considered
         // computed by the time of this check. Downgrade this diagnostic to
         // a warning.
         downgradeToWarning = true;
@@ -2115,7 +2120,7 @@ static bool checkSingleOverride(ValueDecl *override, ValueDecl *base) {
     diags.diagnose(base, diag::overridden_here);
   }
 
-  // If the overridden method is declared in a Swift Class Declaration,
+  // If the overridden method is declared in a Codira Class Declaration,
   // dispatch will use table dispatch. If the override is in an extension
   // warn, since it is not added to the class vtable.
   //
@@ -2123,7 +2128,7 @@ static bool checkSingleOverride(ValueDecl *override, ValueDecl *base) {
   // it is in the same module, update the vtable.
   if (auto *baseDecl = dyn_cast<ClassDecl>(base->getDeclContext())) {
     if (!isAccessor &&
-        baseDecl->hasKnownSwiftImplementation() &&
+        baseDecl->hasKnownCodiraImplementation() &&
         !base->shouldUseObjCDispatch() &&
         isa<ExtensionDecl>(override->getDeclContext())) {
       diags.diagnose(override, diag::override_class_declaration_in_extension);
@@ -2259,7 +2264,7 @@ static bool checkSingleOverride(ValueDecl *override, ValueDecl *base) {
     diagnoseOverrideForAvailability(override, base);
   }
 
-  if (ctx.LangOpts.hasFeature(Feature::StrictMemorySafety)) {
+  if (ctx.LangOpts.hasFeature(Feature::StrictMemorySafety, /*allowMigration=*/true)) {
     // If the override is unsafe but the base declaration is not, then the
     // inheritance itself is unsafe.
     auto subs = SubstitutionMap::getOverrideSubstitutions(base, override);
@@ -2288,7 +2293,7 @@ static bool checkSingleOverride(ValueDecl *override, ValueDecl *base) {
 /// Minimize the set of overridden associated types, eliminating any
 /// associated types that are overridden by other associated types.
 static void minimizeOverriddenAssociatedTypes(
-                           llvm::TinyPtrVector<ValueDecl *> &assocTypes) {
+                           toolchain::TinyPtrVector<ValueDecl *> &assocTypes) {
   // Mark associated types that are "worse" than some other associated type,
   // because they come from an inherited protocol.
   bool anyWorse = false;
@@ -2335,11 +2340,11 @@ static int compareSimilarAssociatedTypes(ValueDecl *const *lhs,
 
 /// Compute the set of associated types that are overridden by the given
 /// associated type.
-static llvm::TinyPtrVector<ValueDecl *>
+static toolchain::TinyPtrVector<ValueDecl *>
 computeOverriddenAssociatedTypes(AssociatedTypeDecl *assocType) {
   // Find associated types with the given name in all of the inherited
   // protocols.
-  llvm::TinyPtrVector<ValueDecl *> overriddenAssocTypes;
+  toolchain::TinyPtrVector<ValueDecl *> overriddenAssocTypes;
   auto proto = assocType->getProtocol();
   proto->walkInheritedProtocols([&](ProtocolDecl *inheritedProto) {
     if (proto == inheritedProto) return TypeWalker::Action::Continue;
@@ -2363,17 +2368,17 @@ computeOverriddenAssociatedTypes(AssociatedTypeDecl *assocType) {
   minimizeOverriddenAssociatedTypes(overriddenAssocTypes);
 
   // Sort the set of inherited associated types.
-  llvm::array_pod_sort(overriddenAssocTypes.begin(),
+  toolchain::array_pod_sort(overriddenAssocTypes.begin(),
                        overriddenAssocTypes.end(),
                        compareSimilarAssociatedTypes);
 
   return overriddenAssocTypes;
 }
 
-static llvm::TinyPtrVector<ValueDecl *>
+static toolchain::TinyPtrVector<ValueDecl *>
 computeOverriddenDecls(ValueDecl *decl, bool ignoreMissingImports) {
   // Value to return in error cases
-  auto noResults = llvm::TinyPtrVector<ValueDecl *>();
+  auto noResults = toolchain::TinyPtrVector<ValueDecl *>();
 
   // If there is a @_nonoverride attribute, this does not override anything.
   if (decl->getAttrs().hasAttribute<NonOverrideAttr>())
@@ -2456,10 +2461,9 @@ computeOverriddenDecls(ValueDecl *decl, bool ignoreMissingImports) {
         break;
 
 #define OPAQUE_ACCESSOR(ID, KEYWORD)
-#define ACCESSOR(ID) \
-      case AccessorKind::ID:
+#define ACCESSOR(ID, KEYWORD) case AccessorKind::ID:
 #include "language/AST/AccessorKinds.def"
-        llvm_unreachable("non-opaque accessor was required as opaque by base");
+        toolchain_unreachable("non-opaque accessor was required as opaque by base");
       }
 
       // We are overriding the base accessor.
@@ -2509,7 +2513,7 @@ computeOverriddenDecls(ValueDecl *decl, bool ignoreMissingImports) {
                                          OverrideCheckingAttempt::PerfectMatch);
 }
 
-llvm::TinyPtrVector<ValueDecl *>
+toolchain::TinyPtrVector<ValueDecl *>
 OverriddenDeclsRequest::evaluate(Evaluator &evaluator, ValueDecl *decl) const {
   auto abiRole = ABIRoleInfo(decl);
   if (!abiRole.providesAPI() && abiRole.getCounterpart()) {
@@ -2530,7 +2534,8 @@ OverriddenDeclsRequest::evaluate(Evaluator &evaluator, ValueDecl *decl) const {
   // If we didn't find anything, try broadening the search by ignoring missing
   // imports.
   if (overridden.empty() &&
-      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility)) {
+      ctx.LangOpts.hasFeature(Feature::MemberImportVisibility,
+                              /*allowMigration=*/true)) {
     overridden = computeOverriddenDecls(decl, true);
     if (!overridden.empty()) {
       auto first = overridden.front();
@@ -2561,7 +2566,7 @@ bool IsABICompatibleOverrideRequest::evaluate(Evaluator &evaluator,
                                      TypeMatchFlags::AllowABICompatible);
 }
 
-void swift::checkImplementationOnlyOverride(const ValueDecl *VD) {
+void language::checkImplementationOnlyOverride(const ValueDecl *VD) {
   if (VD->isImplicit())
     return;
 

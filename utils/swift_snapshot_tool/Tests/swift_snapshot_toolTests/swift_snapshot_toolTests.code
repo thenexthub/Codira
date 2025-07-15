@@ -1,8 +1,8 @@
 import XCTest
-@testable import swift_snapshot_tool
+@testable import language_snapshot_tool
 
-final class swift_snapshot_toolTests: XCTestCase {
-    func testExample() throws {
+final class language_snapshot_toolTests: XCTestCase {
+    fn testExample() throws {
         // XCTest Documentation
         // https://developer.apple.com/documentation/xctest
 

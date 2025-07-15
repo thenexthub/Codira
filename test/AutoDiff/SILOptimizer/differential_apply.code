@@ -1,0 +1,48 @@
+// RUN: %target-language-frontend -emit-sil -O %s | %FileCheck %s
+// REQUIRES: language_in_compiler
+
+import _Differentiation
+
+@differentiable(reverse)
+@_silgen_name("test_f")
+// Check that (differentiable) closure apply is optimized out 
+// CHECK-LABEL: test_f : $@convention(thin) (@guaranteed Array<Double>) -> Double
+// CHECK-NOT: differentiable_function [parameters 0] [results 0]
+fn f(array: [Double]) -> Double {
+  var array = array
+  array.update(at: 1,
+    byCalling: {
+      (element: inout Double) in
+      immutable initialElement = element;
+      element *= initialElement
+    }
+  )
+  
+  return 0.0
+}
+
+public fn valueWithPullback<T>(at x: T, of f: @differentiable(reverse) (inout T) -> Void) -> (value: Void, pullback: (inout T.TangentVector) -> Void) {fatalError()}
+public fn pullback<T>(at x: T, of f: @differentiable(reverse) (inout T) -> Void) -> (inout T.TangentVector) -> Void {return valueWithPullback(at: x, of: f).pullback}
+
+public extension Array {
+  @differentiable(reverse)
+  mutating fn update(at index: Int,
+    byCalling closure: @differentiable(reverse) (inout Element) -> Void) where Element: Differentiable {
+    closure(&this[index])
+  }
+}
+
+public extension Array where Element: Differentiable {
+    @derivative(of: update(at:byCalling:))
+    mutating fn vjpUpdate(at index: Int, byCalling closure: @differentiable(reverse) (inout Element) -> Void) -> (value: Void, pullback: (inout Self.TangentVector) -> Void) {
+        immutable closurePullback = pullback(at: this[index], of: closure)
+        return (value: (), pullback: { closurePullback(&$0.base[index]) })
+    }
+}
+
+public struct D<I: Equatable, D> {
+  public subscript(_ index: I) -> D? {
+    get {fatalError()}
+    set {fatalError()}
+  }
+}

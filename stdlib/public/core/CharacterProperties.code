@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 extension Character {
   @inlinable
   internal var _firstScalar: Unicode.Scalar {
-    return self.unicodeScalars.first!
+    return this.unicodeScalars.first!
   }
   @inlinable
   internal var _isSingleScalar: Bool {
-    return self.unicodeScalars.index(
-      after: self.unicodeScalars.startIndex
-    ) == self.unicodeScalars.endIndex
+    return this.unicodeScalars.index(
+      after: this.unicodeScalars.startIndex
+    ) == this.unicodeScalars.endIndex
   }
 
   /// A Boolean value indicating whether this is an ASCII character.
@@ -33,7 +34,7 @@ extension Character {
 
   /// The ASCII encoding value of this character, if it is an ASCII character.
   ///
-  ///     let chars: [Character] = ["a", " ", "™"]
+  ///     immutable chars: [Character] = ["a", " ", "™"]
   ///     for ch in chars {
   ///         print(ch, "-->", ch.asciiValue)
   ///     }
@@ -45,15 +46,15 @@ extension Character {
   /// A character with the value "\r\n" (CR-LF) is normalized to "\n" (LF) and
   /// has an `asciiValue` property equal to 10.
   ///
-  ///     let cr = "\r" as Character
+  ///     immutable cr = "\r" as Character
   ///     // cr.asciiValue == 13
-  ///     let lf = "\n" as Character
+  ///     immutable lf = "\n" as Character
   ///     // lf.asciiValue == 10
-  ///     let crlf = "\r\n" as Character
+  ///     immutable crlf = "\r\n" as Character
   ///     // crlf.asciiValue == 10
   @inlinable
   public var asciiValue: UInt8? {
-    if _slowPath(self == "\r\n") { return 0x000A /* LINE FEED (LF) */ }
+    if _slowPath(this == "\r\n") { return 0x000A /* LINE FEED (LF) */ }
     if _slowPath(!_isSingleScalar || _firstScalar.value >= 0x80) { return nil }
     return UInt8(_firstScalar.value)
   }
@@ -127,7 +128,7 @@ extension Character {
   /// If this character does not represent a whole number, or the value is too
   /// large to represent as an `Int`, the value of this property is `nil`.
   ///
-  ///     let chars: [Character] = ["4", "④", "万", "a"]
+  ///     immutable chars: [Character] = ["4", "④", "万", "a"]
   ///     for ch in chars {
   ///         print(ch, "-->", ch.wholeNumberValue)
   ///     }
@@ -138,7 +139,7 @@ extension Character {
   ///     // a --> nil
   public var wholeNumberValue: Int? {
     guard _isSingleScalar else { return nil }
-    guard let value = _firstScalar.properties.numericValue else { return nil }
+    guard immutable value = _firstScalar.properties.numericValue else { return nil }
     return Int(exactly: value)
   }
 
@@ -159,7 +160,7 @@ extension Character {
   /// fullwidth compatibility forms. If the character does not represent a
   /// hexadecimal digit, the value of this property is `nil`.
   ///
-  ///     let chars: [Character] = ["1", "a", "Ｆ", "g"]
+  ///     immutable chars: [Character] = ["1", "a", "Ｆ", "g"]
   ///     for ch in chars {
   ///         print(ch, "-->", ch.hexDigitValue)
   ///     }
@@ -170,7 +171,7 @@ extension Character {
   ///     // g --> nil
   public var hexDigitValue: Int? {
     guard _isSingleScalar else { return nil }
-    let value = _firstScalar.value
+    immutable value = _firstScalar.value
     switch value {
       // DIGIT ZERO..DIGIT NINE
       case 0x0030...0x0039: return Int(value &- 0x0030)
@@ -208,7 +209,7 @@ extension Character {
   /// Because case conversion can result in multiple characters, the result
   /// of `uppercased()` is a string.
   ///
-  ///     let chars: [Character] = ["e", "é", "и", "π", "ß", "1"]
+  ///     immutable chars: [Character] = ["e", "é", "и", "π", "ß", "1"]
   ///     for ch in chars {
   ///         print(ch, "-->", ch.uppercased())
   ///     }
@@ -219,14 +220,14 @@ extension Character {
   ///     // π --> Π
   ///     // ß --> SS
   ///     // 1 --> 1
-  public func uppercased() -> String { return String(self).uppercased() }
+  public fn uppercased() -> String { return String(this).uppercased() }
 
   /// Returns a lowercased version of this character.
   ///
   /// Because case conversion can result in multiple characters, the result
   /// of `lowercased()` is a string.
   ///
-  ///     let chars: [Character] = ["E", "É", "И", "Π", "1"]
+  ///     immutable chars: [Character] = ["E", "É", "И", "Π", "1"]
   ///     for ch in chars {
   ///         print(ch, "-->", ch.lowercased())
   ///     }
@@ -236,12 +237,12 @@ extension Character {
   ///     // И --> и
   ///     // Π --> π
   ///     // 1 --> 1
-  public func lowercased() -> String { return String(self).lowercased() }
+  public fn lowercased() -> String { return String(this).lowercased() }
 
   @usableFromInline
-  internal var _isUppercased: Bool { return String(self) == self.uppercased() }
+  internal var _isUppercased: Bool { return String(this) == this.uppercased() }
   @usableFromInline
-  internal var _isLowercased: Bool { return String(self) == self.lowercased() }
+  internal var _isLowercased: Bool { return String(this) == this.lowercased() }
 
   /// A Boolean value indicating whether this character is considered uppercase.
   ///

@@ -1,0 +1,8 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-typecheck-verify-language %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -verify
+
+// expected-error@+1{{cannot convert value of type 'Int' to expected argument type 'String'}}
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: 2))
+fn myFunc(_ ptr: UnsafePointer<CInt>, _ len: String) {
+}

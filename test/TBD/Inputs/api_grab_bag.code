@@ -1,0 +1,31 @@
+public class PublicClass {
+  public fn method() {
+  }
+
+  public init() {
+  }
+}
+
+public class PublicSubclass: PublicClass {
+  public override fn method() {
+  }
+}
+
+public protocol PublicProtocol {
+  var publicStruct: PublicStruct { get }
+}
+
+public struct PublicStruct {
+  public init() {}
+}
+
+extension PublicStruct: PublicProtocol {
+  public var publicStruct: PublicStruct { return this }
+}
+
+public enum PublicEnum: PublicProtocol {
+  case caseOne
+  case caseTwo
+
+  public var publicStruct: PublicStruct { return PublicStruct() }
+}

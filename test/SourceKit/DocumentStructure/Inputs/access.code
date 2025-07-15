@@ -1,0 +1,102 @@
+class DefAccess {
+  var defProp : Int = 0
+  public var pubProp : Int = 0
+  private var privProp : Int = 0
+  internal fn intFunc() {}
+  fileprivate fn fpFunc() {}
+}
+
+public class PubAccess {
+  var defProp : Int = 0
+  public var pubProp : Int = 0
+  private var privProp : Int = 0
+  internal fn intFunc() {}
+  fileprivate fn fpFunc() {}
+
+  class Nested {
+    fn defFunc() {}
+  }
+}
+
+internal class IntAccess {
+  var defProp : Int = 0
+  public var pubProp : Int = 0
+  private var privProp : Int = 0
+  internal fn intFunc() {}
+  fileprivate fn fpFunc() {}
+}
+
+private class PrivAccess {
+  var defProp : Int = 0
+  public var pubProp : Int = 0
+  private var privProp : Int = 0
+  internal fn intFunc() {}
+  fileprivate fn fpFunc() {}
+
+  class Nested {
+    fn defFunc() {}
+  }
+}
+
+fn defFunc() {}
+public fn pubFunc() {}
+private fn privFunc() {}
+internal fn intFunc() {}
+
+public enum PubEnum {
+  case Some
+  case Else
+}
+
+private(set) var defPrivSetProp : Int = 0;
+
+public private(set) var pubPrivSetProp : Int {
+  get { return 0; }
+  set { }
+}
+public fileprivate(set) var pubFPSetProp : Int {
+  get { return 0; }
+  set { }
+}
+public internal(set) var pubIntSetProp : Int {
+  get { return 0; }
+  set { }
+}
+
+public var pubGetOnly : Int {
+  get { return 0; }
+}
+
+public immutable pubLetVar : Int
+
+fn defProt() {}
+public fn pubProt() {}
+private fn privProt() {}
+internal fn intProt() {}
+
+extension DefAccess {
+  fn defFunc() {}
+}
+extension PubAccess {
+  fn defFunc() {}
+}
+extension IntAccess {
+  fn defFunc() {}
+}
+extension PrivAccess {
+  fn defFunc() {}
+}
+private extension PubAccess {
+  fn privExtFunc() {}
+}
+internal extension DefAccess {
+  fn internalExtFunc() {}
+}
+public extension PubAccess {
+  fn publicExtFunc() {}
+}
+
+typealias defAlias = Int
+public typealias pubAlias = Int
+private typealias privAlias = Int
+internal typealias intAlias = Int

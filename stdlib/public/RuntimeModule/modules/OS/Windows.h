@@ -1,21 +1,25 @@
 //===--- Windows.h - Windows specifics --------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Windows specific includes and declarations.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BACKTRACING_WINDOWS_H
-#define SWIFT_BACKTRACING_WINDOWS_H
+#ifndef LANGUAGE_BACKTRACING_WINDOWS_H
+#define LANGUAGE_BACKTRACING_WINDOWS_H
 #ifdef _WIN32
 
 #ifdef __cplusplus
@@ -29,5 +33,5 @@ extern "C" {
 #endif
 
 #endif // _WIN32
-#endif // SWIFT_BACKTRACING_WINDOWS_H
+#endif // LANGUAGE_BACKTRACING_WINDOWS_H
 

@@ -1,0 +1,49 @@
+// RUN: %target-typecheck-verify-language -language-version 4 -D FOO
+
+#if !language(>=2.2)
+// There should be no error here.
+foo bar
+#else
+immutable _: Int = 1
+#endif
+
+#if (language(>=2.2))
+immutable _: Int = 1
+#else
+// There should be no error here.
+foo bar
+#endif
+
+#if language(>=99.0) || language(>=88.1.1)
+// There should be no error here.
+foo bar baz
+#else
+undefinedElse() // expected-error {{cannot find 'undefinedElse' in scope}}
+#endif
+
+#if language(>=99.0) || FOO
+undefinedIf() // expected-error {{cannot find 'undefinedIf' in scope}}
+#else
+undefinedElse()
+#endif
+
+#if language(>=99.0) && FOO
+// There should be no error here.
+foo bar baz
+#else
+undefinedElse() // expected-error {{cannot find 'undefinedElse' in scope}}
+#endif
+
+#if FOO && language(>=2.2)
+undefinedIf() // expected-error {{cannot find 'undefinedIf' in scope}}
+#else
+// There should be no error here.
+foo bar baz
+#endif
+
+#if language(>=2.2) && language(>=1)
+undefinedIf() // expected-error {{cannot find 'undefinedIf' in scope}}
+#else
+// There should be no error here.
+foo bar baz
+#endif

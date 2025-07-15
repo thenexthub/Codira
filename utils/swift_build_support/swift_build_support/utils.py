@@ -1,12 +1,12 @@
 # ===-- utils.py ---------------------------------------------------------===#
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2021 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https:#swift.org/LICENSE.txt for license information
-# See https:#swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https:#language.org/LICENSE.txt for license information
+# See https:#language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ===---------------------------------------------------------------------===#
 
@@ -17,7 +17,7 @@ import sys
 import time
 
 
-from build_swift.build_swift.constants import SWIFT_BUILD_ROOT
+from build_language.build_language.constants import LANGUAGE_BUILD_ROOT
 
 
 def fatal_error(message, stream=sys.stderr):
@@ -38,7 +38,7 @@ def exit_rejecting_arguments(message, parser=None):
 
 
 def log_time_path():
-    return os.path.join(SWIFT_BUILD_ROOT, '.build_script_log')
+    return os.path.join(LANGUAGE_BUILD_ROOT, '.build_script_log')
 
 
 def clear_log_time():
@@ -97,12 +97,13 @@ def log_analyzer():
         print("================ \t ==================== \t ===========",
               file=sys.stderr)
         event_row = '{:<17.1%} \t {:<21} \t {}'
-        for build_event in finish_events:
-            duration_percentage = \
-                (float(build_event["duration"]) / float(total_duration))
-            print(event_row.format(duration_percentage,
-                                   build_event["duration"],
-                                   build_event["command"]), file=sys.stderr)
+        if total_duration > 0:
+            for build_event in finish_events:
+                duration_percentage = \
+                    (float(build_event["duration"]) / float(total_duration))
+                print(event_row.format(duration_percentage,
+                                       build_event["duration"],
+                                       build_event["command"]), file=sys.stderr)
 
         hours, remainder = divmod(total_duration, 3600)
         minutes, seconds = divmod(remainder, 60)

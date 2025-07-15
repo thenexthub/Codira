@@ -1,4 +1,4 @@
-//===--- AvailabilityContext.cpp - Swift Availability Structures ----------===//
+//===--- AvailabilityContext.cpp - Codira Availability Structures ----------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/AvailabilityContext.h"
@@ -61,8 +62,8 @@ static bool constrainRange(AvailabilityRange &existing,
 ///
 static bool constrainDomainInfos(
     AvailabilityContext::DomainInfo otherDomainInfo,
-    llvm::SmallVectorImpl<AvailabilityContext::DomainInfo> &domainInfos,
-    llvm::SmallVectorImpl<AvailabilityContext::DomainInfo> &domainInfosToAdd) {
+    toolchain::SmallVectorImpl<AvailabilityContext::DomainInfo> &domainInfos,
+    toolchain::SmallVectorImpl<AvailabilityContext::DomainInfo> &domainInfosToAdd) {
   bool isConstrained = false;
   bool shouldAdd = true;
   auto otherDomain = otherDomainInfo.getDomain();
@@ -114,10 +115,10 @@ static bool constrainDomainInfos(
 /// Constrains `domainInfos` by merging them with `otherDomainInfos`. Returns
 /// true if any changes were made to `domainInfos`.
 static bool constrainDomainInfos(
-    llvm::SmallVectorImpl<AvailabilityContext::DomainInfo> &domainInfos,
-    llvm::ArrayRef<AvailabilityContext::DomainInfo> otherDomainInfos) {
+    toolchain::SmallVectorImpl<AvailabilityContext::DomainInfo> &domainInfos,
+    toolchain::ArrayRef<AvailabilityContext::DomainInfo> otherDomainInfos) {
   bool isConstrained = false;
-  llvm::SmallVector<AvailabilityContext::DomainInfo, 4> domainInfosToAdd;
+  toolchain::SmallVector<AvailabilityContext::DomainInfo, 4> domainInfosToAdd;
   for (auto otherDomainInfo : otherDomainInfos) {
     isConstrained |=
         constrainDomainInfos(otherDomainInfo, domainInfos, domainInfosToAdd);
@@ -130,7 +131,7 @@ static bool constrainDomainInfos(
   for (auto domainInfo : domainInfosToAdd)
     domainInfos.push_back(domainInfo);
 
-  llvm::sort(domainInfos, AvailabilityDomainInfoComparator());
+  toolchain::sort(domainInfos, AvailabilityDomainInfoComparator());
   return true;
 }
 
@@ -339,11 +340,11 @@ void AvailabilityContext::constrainWithDeclAndPlatformRange(
   // Compute the availability constraints for the decl when used in this context
   // and then map those constraints to domain infos. The result will be merged
   // into the existing domain infos for this context.
-  llvm::SmallVector<DomainInfo, 4> declDomainInfos;
+  toolchain::SmallVector<DomainInfo, 4> declDomainInfos;
   AvailabilityConstraintFlags flags =
       AvailabilityConstraintFlag::SkipEnclosingExtension;
   auto constraints =
-      swift::getAvailabilityConstraintsForDecl(decl, *this, flags);
+      language::getAvailabilityConstraintsForDecl(decl, *this, flags);
   for (auto constraint : constraints) {
     auto attr = constraint.getAttr();
     auto domain = attr.getDomain();
@@ -386,9 +387,9 @@ bool AvailabilityContext::isContainedIn(const AvailabilityContext other) const {
 
   // Every unavailable domain in the other context should be contained in some
   // unavailable domain in this context.
-  bool disjointUnavailability = llvm::any_of(
+  bool disjointUnavailability = toolchain::any_of(
       other.storage->getDomainInfos(), [&](const DomainInfo &otherDomainInfo) {
-        return llvm::none_of(storage->getDomainInfos(),
+        return toolchain::none_of(storage->getDomainInfos(),
                              [&otherDomainInfo](const DomainInfo &domainInfo) {
                                return domainInfo.getDomain().contains(
                                    otherDomainInfo.getDomain());
@@ -410,17 +411,17 @@ stringForAvailability(const AvailabilityRange &availability) {
   return availability.getVersionString();
 }
 
-void AvailabilityContext::print(llvm::raw_ostream &os) const {
+void AvailabilityContext::print(toolchain::raw_ostream &os) const {
   os << "version=" << stringForAvailability(getPlatformRange());
 
   auto domainInfos = storage->getDomainInfos();
   if (!domainInfos.empty()) {
-    auto availableInfos = llvm::make_filter_range(
+    auto availableInfos = toolchain::make_filter_range(
         domainInfos, [](auto info) { return !info.isUnavailable(); });
 
     if (!availableInfos.empty()) {
       os << " available=";
-      llvm::interleave(
+      toolchain::interleave(
           availableInfos, os,
           [&](const DomainInfo &domainInfo) {
             domainInfo.getDomain().print(os);
@@ -431,12 +432,12 @@ void AvailabilityContext::print(llvm::raw_ostream &os) const {
           ",");
     }
 
-    auto unavailableInfos = llvm::make_filter_range(
+    auto unavailableInfos = toolchain::make_filter_range(
         domainInfos, [](auto info) { return info.isUnavailable(); });
 
     if (!unavailableInfos.empty()) {
       os << " unavailable=";
-      llvm::interleave(
+      toolchain::interleave(
           unavailableInfos, os,
           [&](const DomainInfo &domainInfo) {
             domainInfo.getDomain().print(os);
@@ -449,10 +450,10 @@ void AvailabilityContext::print(llvm::raw_ostream &os) const {
     os << " deprecated";
 }
 
-void AvailabilityContext::dump() const { print(llvm::errs()); }
+void AvailabilityContext::dump() const { print(toolchain::errs()); }
 
 bool verifyDomainInfos(
-    llvm::ArrayRef<AvailabilityContext::DomainInfo> domainInfos) {
+    toolchain::ArrayRef<AvailabilityContext::DomainInfo> domainInfos) {
   // Checks that the following invariants hold:
   //   - The domain infos are sorted using AvailabilityDomainInfoComparator.
   //   - There is not more than one info per-domain.
@@ -484,9 +485,9 @@ bool AvailabilityContext::verify(const ASTContext &ctx) const {
 }
 
 void AvailabilityContext::Storage::Profile(
-    llvm::FoldingSetNodeID &ID, const AvailabilityRange &platformRange,
+    toolchain::FoldingSetNodeID &ID, const AvailabilityRange &platformRange,
     bool isDeprecated,
-    llvm::ArrayRef<AvailabilityContext::DomainInfo> domainInfos) {
+    toolchain::ArrayRef<AvailabilityContext::DomainInfo> domainInfos) {
   platformRange.getRawVersionRange().Profile(ID);
   ID.AddBoolean(isDeprecated);
   ID.AddInteger(domainInfos.size());

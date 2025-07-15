@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines utility functions for constant folding.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_CONSTANTFOLDING_H
-#define SWIFT_SIL_CONSTANTFOLDING_H
+#ifndef LANGUAGE_SIL_CONSTANTFOLDING_H
+#define LANGUAGE_SIL_CONSTANTFOLDING_H
 
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 #include <functional>
 
 namespace language {
@@ -49,7 +50,7 @@ APInt constantFoldComparisonInt(APInt lhs, APInt rhs, BuiltinValueKind ID);
 ///
 /// The \p ID must be the ID of a binary operation with overflow.
 APInt constantFoldBinaryWithOverflow(APInt lhs, APInt rhs, bool &Overflow,
-                                     llvm::Intrinsic::ID ID);
+                                     toolchain::Intrinsic::ID ID);
 
 /// Evaluates the constant result of a division operation.
 ///
@@ -72,7 +73,7 @@ private:
   SILOptFunctionBuilder &FuncBuilder;
 
   /// The worklist of the constants that could be folded into their users.
-  llvm::SetVector<SILInstruction *> WorkList;
+  toolchain::SetVector<SILInstruction *> WorkList;
 
   /// The assert configuration of SILOptions.
   unsigned AssertConfiguration;

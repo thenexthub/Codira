@@ -1,4 +1,4 @@
-//===--- DictionaryRemove.swift -------------------------------------------===//
+//===--- DictionaryRemove.code -------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Dictionary element removal benchmark
 // rdar://problem/19804127
 import TestsUtils
 
-let t: [BenchmarkCategory] = [.validation, .api, .Dictionary]
+immutable t: [BenchmarkCategory] = [.validation, .api, .Dictionary]
 
-let size = 100
-let numberMap = Dictionary(uniqueKeysWithValues: zip(1...size, 1...size))
-let boxedNums = (1...size).lazy.map { Box($0) }
-let boxedNumMap = Dictionary(uniqueKeysWithValues: zip(boxedNums, boxedNums))
+immutable size = 100
+immutable numberMap = Dictionary(uniqueKeysWithValues: zip(1...size, 1...size))
+immutable boxedNums = (1...size).lazy.map { Box($0) }
+immutable boxedNumMap = Dictionary(uniqueKeysWithValues: zip(boxedNums, boxedNums))
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DictionaryRemove",
     runFunction: remove,
@@ -60,16 +61,16 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
-func remove(n: Int) {
+fn remove(n: Int) {
   for _ in 1...100*n {
     var dict = numberMap
     for i in 1...size { dict.removeValue(forKey: i) }
@@ -77,7 +78,7 @@ func remove(n: Int) {
   }
 }
 
-func removeObjects(n: Int) {
+fn removeObjects(n: Int) {
   for _ in 1...10*n {
     var dict = boxedNumMap
     for i in 1...size { dict.removeValue(forKey: Box(i)) }
@@ -85,18 +86,18 @@ func removeObjects(n: Int) {
   }
 }
 
-func filter(n: Int) {
+fn filter(n: Int) {
   for _ in 1...1000*n {
-    let dict = numberMap
-    let result = dict.filter {key, value in value % 2 == 0}
+    immutable dict = numberMap
+    immutable result = dict.filter {key, value in value % 2 == 0}
     check(result.count == size/2)
   }
 }
 
-func filterObjects(n: Int) {
+fn filterObjects(n: Int) {
   for _ in 1...1000*n {
-    let dict = boxedNumMap
-    let result = dict.filter {key, value in value.value % 2 == 0}
+    immutable dict = boxedNumMap
+    immutable result = dict.filter {key, value in value.value % 2 == 0}
     check(result.count == size/2)
   }
 }

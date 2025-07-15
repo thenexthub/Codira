@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides the implementation class definitions for the Clang
 // module loader.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CLANG_IMPORTER_IMPL_H
-#define SWIFT_CLANG_IMPORTER_IMPL_H
+#ifndef LANGUAGE_CLANG_IMPORTER_IMPL_H
+#define LANGUAGE_CLANG_IMPORTER_IMPL_H
 
 #include "ClangAdapter.h"
 #include "ClangSourceBufferImporter.h"
 #include "ImportEnumInfo.h"
 #include "ImportName.h"
-#include "languageLookupTable.h"
+#include "CodiraLookupTable.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
 #include "language/AST/ForeignErrorConvention.h"
@@ -48,22 +49,22 @@
 #include "clang/Lex/MacroInfo.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Serialization/ModuleFileExtension.h"
-#include "llvm/ADT/APSInt.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/APSInt.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/Path.h"
 #include <functional>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 
 class SmallBitVector;
 
@@ -197,16 +198,15 @@ enum class ImportTypeAttr : uint8_t {
   NoEscape = 1 << 0,
 
   /// Type should be imported as though declaration was marked with
-  /// \c __attribute__((swift_attr("@MainActor"))) .
+  /// \c __attribute__((language_attr("@MainActor"))) .
   MainActor = 1 << 1,
 
   /// Type should be imported as though declaration was marked with
-  /// \c __attribute__((swift_attr("@Sendable"))) .
+  /// \c __attribute__((language_attr("@Sendable"))) .
   Sendable = 1 << 2,
 
   /// Type is in a declaration where it would be imported as Sendable by
-  /// default. This comes directly from the parameters to
-  /// \c getImportTypeAttrs() and merely affects diagnostics.
+  /// default. Currently used for completion handlers.
   DefaultsToSendable = 1 << 3,
 
   /// Import the type of a parameter declared with
@@ -220,13 +220,17 @@ enum class ImportTypeAttr : uint8_t {
   ///
   /// This ensures that the parameter is not marked as Unmanaged.
   CFUnretainedOutParameter = 1 << 5,
+
+  /// Type should be imported as though declaration was marked with
+  /// \c __attribute__((language_attr("sending"))) .
+  Sending = 1 << 6,
 };
 
-/// Find and iterate over swift attributes embedded in the type
+/// Find and iterate over language attributes embedded in the type
 /// without looking through typealiases.
-void findSwiftAttributes(
+void findCodiraAttributes(
     clang::QualType type,
-    llvm::function_ref<void(const clang::SwiftAttrAttr *)> callback);
+    toolchain::function_ref<void(const clang::CodiraAttrAttr *)> callback);
 
 /// Attributes which were set on the declaration and affect how its type is
 /// imported.
@@ -243,11 +247,11 @@ ImportTypeAttrs getImportTypeAttrs(const clang::Decl *D, bool isParam = false);
 
 /// Extract concurrency related attributes from a type.
 ///
-/// \param SwiftContext The context.
+/// \param CodiraContext The context.
 /// \param importKind The kind of import being performed.
 /// \param attrs The list to add the new attributes to.
 /// \param type The type to extract attributes from.
-void getConcurrencyAttrs(ASTContext &SwiftContext, ImportTypeKind importKind,
+void getConcurrencyAttrs(ASTContext &CodiraContext, ImportTypeKind importKind,
                          ImportTypeAttrs &attrs, clang::QualType type);
 
 struct ImportDiagnostic {
@@ -266,13 +270,13 @@ struct ImportDiagnostic {
 };
 
 /// Controls whether \p decl, when imported, should name the fully-bridged
-/// Swift type or the original Clang type.
+/// Codira type or the original Clang type.
 ///
 /// In either case we end up losing sugar at some uses sites, so this is more
 /// about what the right default is.
 static inline Bridgeability
 getTypedefBridgeability(const clang::TypedefNameDecl *decl) {
-  if (decl->hasAttr<clang::SwiftBridgedTypedefAttr>() ||
+  if (decl->hasAttr<clang::CodiraBridgedTypedefAttr>() ||
       decl->getUnderlyingType()->isBlockPointerType()) {
     return Bridgeability::Full;
   }
@@ -280,7 +284,7 @@ getTypedefBridgeability(const clang::TypedefNameDecl *decl) {
 }
 
 /// Describes the kind of the C type that can be mapped to a stdlib
-/// swift type.
+/// language type.
 enum class MappedCTypeKind {
   UnsignedInt,
   SignedInt,
@@ -299,7 +303,7 @@ enum class MappedCTypeKind {
 };
 
 /// Describes what to do with the C name of a type that can be mapped to
-/// a Swift standard library type.
+/// a Codira standard library type.
 enum class MappedTypeNameKind {
   DoNothing,
   DefineOnly,
@@ -314,8 +318,8 @@ enum class SpecialMethodKind {
   NSDictionarySubscriptGetter
 };
 
-#define SWIFT_PROTOCOL_SUFFIX "Protocol"
-#define SWIFT_CFTYPE_SUFFIX "Ref"
+#define LANGUAGE_PROTOCOL_SUFFIX "Protocol"
+#define LANGUAGE_CFTYPE_SUFFIX "Ref"
 
 /// Describes whether to classify a factory method as an initializer.
 enum class FactoryAsInitKind {
@@ -341,7 +345,7 @@ public:
   /// should be included in the cutoff of imported deprecated APIs marked
   /// unavailable.
   bool treatDeprecatedAsUnavailable(const clang::Decl *clangDecl,
-                                    const llvm::VersionTuple &version,
+                                    const toolchain::VersionTuple &version,
                                     bool isAsync) const;
 
   /// The message to embed for implicitly unavailability if a deprecated
@@ -361,9 +365,9 @@ private:
 }
 
 using LookupTableMap =
-    llvm::DenseMap<StringRef, std::unique_ptr<SwiftLookupTable>>;
+    toolchain::DenseMap<StringRef, std::unique_ptr<CodiraLookupTable>>;
 
-/// The result of importing a clang type. It holds both the Swift Type
+/// The result of importing a clang type. It holds both the Codira Type
 /// as well as a bool in which 'true' indicates either:
 ///   This is an Optional type.
 ///   This is a function type where the result type is an Optional.
@@ -422,13 +426,13 @@ struct ImportDiagnosticTargetHasher {
 
 struct ImportDiagnosticHasher {
   std::size_t operator()(const ImportDiagnostic &diag) const {
-    return llvm::hash_combine(diag.target.getOpaqueValue(), diag.diag.getID(),
+    return toolchain::hash_combine(diag.target.getOpaqueValue(), diag.diag.getID(),
                               diag.loc.getHashValue());
   }
 };
 
 /// Implementation of the Clang importer.
-class LLVM_LIBRARY_VISIBILITY ClangImporter::Implementation 
+class TOOLCHAIN_LIBRARY_VISIBILITY ClangImporter::Implementation 
   : public LazyMemberLoader,
     public LazyConformanceLoader
 {
@@ -455,8 +459,8 @@ public:
     clang::SourceLocation TypeReferenceSourceLocation;
   };
 
-  /// Swift AST context.
-  ASTContext &SwiftContext;
+  /// Codira AST context.
+  ASTContext &CodiraContext;
 
   // Associates a vector of import diagnostics with a ClangNode
   std::unordered_map<ImportDiagnosticTarget, std::vector<ImportDiagnostic>,
@@ -469,38 +473,36 @@ public:
       CollectedDiagnostics;
 
   // Keeps track of `clang::RecordDecl`s where diagnostics have already been
-  // emitted due to failed SWIFT_SHARED_REFERENCE inference.
+  // emitted due to failed LANGUAGE_SHARED_REFERENCE inference.
   std::unordered_set<const clang::RecordDecl *> DiagnosedCxxRefDecls;
 
   const bool ImportForwardDeclarations;
-  const bool DisableSwiftBridgeAttr;
+  const bool DisableCodiraBridgeAttr;
   const bool BridgingHeaderExplicitlyRequested;
   const bool DisableOverlayModules;
   const bool EnableClangSPI;
-  const bool UseClangIncludeTree;
-  bool importSymbolicCXXDecls;
 
   bool IsReadingBridgingPCH;
-  llvm::SmallVector<clang::serialization::SubmoduleID, 2> PCHImportedSubmodules;
+  toolchain::SmallVector<clang::serialization::SubmoduleID, 2> PCHImportedSubmodules;
 
   const Version CurrentVersion;
 
   constexpr static const char * const moduleImportBufferName =
-    "<swift-imported-modules>";
+    "<language-imported-modules>";
   constexpr static const char * const bridgingHeaderBufferName =
     "<bridging-header-import>";
 
 private:
   DiagnosticWalker Walker;
 
-  /// The Swift lookup tables, per module.
+  /// The Codira lookup tables, per module.
   ///
   /// Annoyingly, we list this table early so that it gets torn down after
   /// the underlying Clang instances that reference it
-  /// (through the Swift name lookup module file extension).
+  /// (through the Codira name lookup module file extension).
   LookupTableMap LookupTables;
 
-  /// A helper class used to bring Clang buffers into Swift's SourceManager
+  /// A helper class used to bring Clang buffers into Codira's SourceManager
   /// for the purpose of emitting diagnostics.
   ///
   /// Listed early so that it gets torn down after the underlying Clang
@@ -546,70 +548,70 @@ private:
   /// Clang arguments used to create the Clang invocation.
   std::vector<std::string> ClangArgs;
 
-  /// Mapping from Clang swift_attr attribute text to the Swift source file(s)
+  /// Mapping from Clang language_attr attribute text to the Codira source file(s)
   /// that contain that attribute text.
   ///
-  /// These are re-used when parsing the Swift attributes on import.
-  llvm::StringMap<llvm::TinyPtrVector<SourceFile *>> ClangSwiftAttrSourceFiles;
+  /// These are re-used when parsing the Codira attributes on import.
+  toolchain::StringMap<toolchain::TinyPtrVector<SourceFile *>> ClangCodiraAttrSourceFiles;
 
 public:
-  /// The Swift lookup table for the bridging header.
-  std::unique_ptr<SwiftLookupTable> BridgingHeaderLookupTable;
+  /// The Codira lookup table for the bridging header.
+  std::unique_ptr<CodiraLookupTable> BridgingHeaderLookupTable;
 
   /// Mapping of already-imported declarations.
-  llvm::DenseMap<std::pair<const clang::Decl *, Version>, Decl *> ImportedDecls;
+  toolchain::DenseMap<std::pair<const clang::Decl *, Version>, Decl *> ImportedDecls;
 
   /// The set of "special" typedef-name declarations, which are
-  /// mapped to specific Swift types.
+  /// mapped to specific Codira types.
   ///
-  /// Normal typedef-name declarations imported into Swift will maintain
+  /// Normal typedef-name declarations imported into Codira will maintain
   /// equality between the imported declaration's underlying type and the
   /// import of the underlying type. A typedef-name declaration is special
   /// when this is not the case, e.g., Objective-C's "BOOL" has an underlying
-  /// type of "signed char", but is mapped to a special Swift struct type
+  /// type of "signed char", but is mapped to a special Codira struct type
   /// ObjCBool.
-  llvm::SmallDenseMap<const clang::TypedefNameDecl *, MappedTypeNameKind, 16>
+  toolchain::SmallDenseMap<const clang::TypedefNameDecl *, MappedTypeNameKind, 16>
     SpecialTypedefNames;
 
   /// Provide a single extension point for any given type per clang
   /// submodule
-  llvm::DenseMap<std::pair<NominalTypeDecl *, const clang::Module *>,
+  toolchain::DenseMap<std::pair<NominalTypeDecl *, const clang::Module *>,
                  ExtensionDecl *> extensionPoints;
 
   /// Typedefs that we should not be importing.  We should be importing
   /// underlying decls instead.
-  llvm::DenseSet<const clang::Decl *> SuperfluousTypedefs;
+  toolchain::DenseSet<const clang::Decl *> SuperfluousTypedefs;
 
   /// Tag decls whose typedefs were imported instead.
   ///
   /// \sa SuperfluousTypedefs
-  llvm::DenseSet<const clang::Decl *> DeclsWithSuperfluousTypedefs;
+  toolchain::DenseSet<const clang::Decl *> DeclsWithSuperfluousTypedefs;
 
   /// Mapping of already-imported declarations from protocols, which
   /// can (and do) get replicated into classes.
-  llvm::DenseMap<std::tuple<const clang::Decl *, DeclContext *, Version>,
+  toolchain::DenseMap<std::tuple<const clang::Decl *, DeclContext *, Version>,
                  Decl *> ImportedProtocolDecls;
 
   /// Mapping from identifiers to the set of macros that have that name along
-  /// with their corresponding Swift declaration.
+  /// with their corresponding Codira declaration.
   ///
   /// Multiple macro definitions can map to the same declaration if the
   /// macros are identically defined.
-  llvm::DenseMap<Identifier,
+  toolchain::DenseMap<Identifier,
                  SmallVector<std::pair<const clang::MacroInfo *, ValueDecl *>,
                              2>>
     ImportedMacros;
 
   // Mapping from macro to value for macros that expand to constant values.
-  llvm::DenseMap<const clang::MacroInfo *, std::pair<clang::APValue, Type>>
+  toolchain::DenseMap<const clang::MacroInfo *, std::pair<clang::APValue, Type>>
     ImportedMacroConstants;
 
   // Mapping from imported types to their raw value types.
-  llvm::DenseMap<const NominalTypeDecl *, Type> RawTypes;
+  toolchain::DenseMap<const NominalTypeDecl *, Type> RawTypes;
 
   // Caches used by ObjCInterfaceAndImplementationRequest.
-  llvm::DenseMap<Decl *, Decl *> ImplementationsByInterface;
-  llvm::DenseMap<Decl *, llvm::TinyPtrVector<Decl*>> InterfacesByImplementation;
+  toolchain::DenseMap<Decl *, Decl *> ImplementationsByInterface;
+  toolchain::DenseMap<Decl *, toolchain::TinyPtrVector<Decl*>> InterfacesByImplementation;
 
   clang::CompilerInstance *getClangInstance() {
     return Instance.get();
@@ -627,29 +629,29 @@ public:
   /// check when making a source breaking C++ interop change.
   bool isCxxInteropCompatVersionAtLeast(unsigned major,
                                         unsigned minor = 0) const {
-    return SwiftContext.LangOpts.isCxxInteropCompatVersionAtLeast(major, minor);
+    return CodiraContext.LangOpts.isCxxInteropCompatVersionAtLeast(major, minor);
   }
 
 private:
   /// The Importer may be configured to load modules of a different OS Version
-  /// than the underlying Swift compilation. This is the `TargetOptions`
-  /// corresponding to the instantiating Swift compilation's triple. These are
+  /// than the underlying Codira compilation. This is the `TargetOptions`
+  /// corresponding to the instantiating Codira compilation's triple. These are
   /// to be used by all IRGen/CodeGen clients of `ClangImporter`.
   std::unique_ptr<clang::TargetInfo> CodeGenTargetInfo;
   std::unique_ptr<clang::CodeGenOptions> CodeGenOpts;
 
 public:
-  void setSwiftTargetInfo(clang::TargetInfo *SwiftTargetInfo) {
-    CodeGenTargetInfo.reset(SwiftTargetInfo);
+  void setCodiraTargetInfo(clang::TargetInfo *CodiraTargetInfo) {
+    CodeGenTargetInfo.reset(CodiraTargetInfo);
   }
-  clang::TargetInfo *getSwiftTargetInfo() const {
+  clang::TargetInfo *getCodiraTargetInfo() const {
     return CodeGenTargetInfo.get();
   }
 
-  void setSwiftCodeGenOptions(clang::CodeGenOptions *SwiftCodeGenOpts) {
-    CodeGenOpts.reset(SwiftCodeGenOpts);
+  void setCodiraCodeGenOptions(clang::CodeGenOptions *CodiraCodeGenOpts) {
+    CodeGenOpts.reset(CodiraCodeGenOpts);
   }
-  clang::CodeGenOptions *getSwiftCodeGenOptions() const {
+  clang::CodeGenOptions *getCodiraCodeGenOptions() const {
     return CodeGenOpts.get();
   }
 
@@ -661,17 +663,17 @@ private:
 
   void bumpGeneration() {
     ++Generation;
-    SwiftContext.bumpGeneration();
+    CodiraContext.bumpGeneration();
   }
 
 public:
   /// Keep track of subscript declarations based on getter/setter
   /// pairs.
-  llvm::DenseMap<std::pair<FuncDecl *, FuncDecl *>, SubscriptDecl *> Subscripts;
+  toolchain::DenseMap<std::pair<FuncDecl *, FuncDecl *>, SubscriptDecl *> Subscripts;
 
-  llvm::DenseMap<
+  toolchain::DenseMap<
       NominalTypeDecl *,
-      llvm::DenseMap<llvm::StringRef, std::pair<FuncDecl *, FuncDecl *>>>
+      toolchain::DenseMap<toolchain::StringRef, std::pair<FuncDecl *, FuncDecl *>>>
       GetterSetterMap;
 
   /// Keep track of getter/setter pairs for functions imported from C++
@@ -680,37 +682,42 @@ public:
   ///
   /// `.first` corresponds to a getter
   /// `.second` corresponds to a setter
-  llvm::MapVector<std::pair<NominalTypeDecl *, Type>,
+  toolchain::MapVector<std::pair<NominalTypeDecl *, Type>,
                   std::pair<FuncDecl *, FuncDecl *>> cxxSubscripts;
 
-  llvm::MapVector<NominalTypeDecl *, std::pair<FuncDecl *, FuncDecl *>>
+  toolchain::MapVector<NominalTypeDecl *, std::pair<FuncDecl *, FuncDecl *>>
       cxxDereferenceOperators;
 
-  llvm::SmallPtrSet<const clang::Decl *, 1> synthesizedAndAlwaysVisibleDecls;
+  toolchain::SmallPtrSet<const clang::Decl *, 1> synthesizedAndAlwaysVisibleDecls;
 
 private:
   // Keep track of the decls that were already cloned for this specific class.
-  llvm::DenseMap<std::pair<ValueDecl *, DeclContext *>, ValueDecl *>
+  toolchain::DenseMap<std::pair<ValueDecl *, DeclContext *>, ValueDecl *>
       clonedBaseMembers;
 
+  // Map all cloned methods back to the original member
+  toolchain::DenseMap<ValueDecl *, ValueDecl *> clonedMembers;
+
 public:
-  llvm::DenseMap<const clang::ParmVarDecl*, FuncDecl*> defaultArgGenerators;
+  toolchain::DenseMap<const clang::ParmVarDecl*, FuncDecl*> defaultArgGenerators;
 
   bool isDefaultArgSafeToImport(const clang::ParmVarDecl *param);
 
   ValueDecl *importBaseMemberDecl(ValueDecl *decl, DeclContext *newContext,
                                   ClangInheritanceInfo inheritance);
 
+  ValueDecl *getOriginalForClonedMember(const ValueDecl *decl);
+
   static size_t getImportedBaseMemberDeclArity(const ValueDecl *valueDecl);
 
   // Cache for already-specialized function templates and any thunks they may
   // have.
-  llvm::DenseMap<clang::FunctionDecl *, ValueDecl *>
+  toolchain::DenseMap<clang::FunctionDecl *, ValueDecl *>
       specializedFunctionTemplates;
 
   /// Keeps track of the Clang functions that have been turned into
   /// properties.
-  llvm::DenseMap<const clang::FunctionDecl *, VarDecl *> FunctionsAsProperties;
+  toolchain::DenseMap<const clang::FunctionDecl *, VarDecl *> FunctionsAsProperties;
 
   importer::EnumInfo getEnumInfo(const clang::EnumDecl *decl) {
     return getNameImporter().getEnumInfo(decl);
@@ -722,34 +729,34 @@ public:
 private:
   /// A mapping from imported declarations to their "alternate" declarations,
   /// for cases where a single Clang declaration is imported to two
-  /// different Swift declarations.
-  llvm::DenseMap<Decl *, TinyPtrVector<ValueDecl *>> AlternateDecls;
+  /// different Codira declarations.
+  toolchain::DenseMap<Decl *, TinyPtrVector<ValueDecl *>> AlternateDecls;
 
 public:
   /// Keep track of initializer declarations that correspond to
   /// imported methods.
-  llvm::DenseMap<
+  toolchain::DenseMap<
       std::tuple<const clang::ObjCMethodDecl *, const DeclContext *, Version>,
       ConstructorDecl *> Constructors;
 
   /// Keep track of all initializers that have been imported into a
   /// nominal type.
-  llvm::DenseMap<const NominalTypeDecl *, TinyPtrVector<ConstructorDecl *>>
+  toolchain::DenseMap<const NominalTypeDecl *, TinyPtrVector<ConstructorDecl *>>
       ConstructorsForNominal;
 
   /// Keep track of all member declarations that have been imported into
   /// a nominal type.
-  llvm::DenseMap<const NominalTypeDecl *,
-                 llvm::DenseMap<DeclBaseName,
+  toolchain::DenseMap<const NominalTypeDecl *,
+                 toolchain::DenseMap<DeclBaseName,
                                 TinyPtrVector<ValueDecl *>>>
       MembersForNominal;
 
   /// Keep track of the nested 'Code' enum for imported error wrapper
   /// structs.
-  llvm::DenseMap<const StructDecl *, EnumDecl *> ErrorCodeEnums;
+  toolchain::DenseMap<const StructDecl *, EnumDecl *> ErrorCodeEnums;
 
   /// Retrieve the alternative declaration for the given imported
-  /// Swift declaration.
+  /// Codira declaration.
   ArrayRef<ValueDecl *> getAlternateDecls(Decl *decl) {
     auto known = AlternateDecls.find(decl);
     if (known == AlternateDecls.end()) return {};
@@ -766,27 +773,27 @@ public:
   }
 
 private:
-  /// NSObject, imported into Swift.
+  /// NSObject, imported into Codira.
   Type NSObjectTy;
 
   /// A pair containing a ClangModuleUnit,
   /// and whether the overlays of its re-exported modules have all been forced
   /// to load already.
-  using ModuleInitPair = llvm::PointerIntPair<ClangModuleUnit *, 1, bool>;
+  using ModuleInitPair = toolchain::PointerIntPair<ClangModuleUnit *, 1, bool>;
 
 public:
-  /// A map from Clang modules to their Swift wrapper modules.
-  llvm::SmallDenseMap<const clang::Module *, ModuleInitPair, 16> ModuleWrappers;
+  /// A map from Clang modules to their Codira wrapper modules.
+  toolchain::SmallDenseMap<const clang::Module *, ModuleInitPair, 16> ModuleWrappers;
 
   /// The module unit that contains declarations from imported headers.
   ClangModuleUnit *ImportedHeaderUnit = nullptr;
 
   /// The modules re-exported by imported headers.
-  llvm::SmallVector<clang::Module *, 8> ImportedHeaderExports;
+  toolchain::SmallVector<clang::Module *, 8> ImportedHeaderExports;
 
   /// The modules that requested imported headers.
   ///
-  /// These are used to look up Swift classes forward-declared with \@class.
+  /// These are used to look up Codira classes forward-declared with \@class.
   TinyPtrVector<ModuleDecl *> ImportedHeaderOwners;
 
   /// Clang's objectAtIndexedSubscript: selector.
@@ -803,17 +810,22 @@ public:
 
 private:
   /// Records those modules that we have looked up.
-  llvm::DenseMap<Identifier, ModuleDecl *> checkedModules;
+  toolchain::DenseMap<Identifier, ModuleDecl *> checkedModules;
 
   /// The set of imported protocols for a declaration, used only to
   /// load all members of the declaration.
-  llvm::DenseMap<const Decl *, ArrayRef<ProtocolDecl *>>
+  toolchain::DenseMap<const Decl *, ArrayRef<ProtocolDecl *>>
     ImportedProtocols;
 
   void startedImportingEntity();
 
 public:
   importer::PlatformAvailability platformAvailability;
+
+  /// The synthesized predicate functions for imported `VarDecl`s that represent
+  /// availability domains.
+  toolchain::DenseMap<const clang::VarDecl *, FuncDecl *>
+      availabilityDomainPredicates;
 
 private:
   /// For importing names. This is initialized by the ClangImporter::create()
@@ -833,13 +845,13 @@ public:
 
   /// Tracks top level decls from the bridging header.
   std::vector<clang::Decl *> BridgeHeaderTopLevelDecls;
-  std::vector<llvm::PointerUnion<clang::ImportDecl *, ImportDecl *>>
+  std::vector<toolchain::PointerUnion<clang::ImportDecl *, ImportDecl *>>
     BridgeHeaderTopLevelImports;
 
   /// Tracks macro definitions from the bridging header.
   std::vector<clang::IdentifierInfo *> BridgeHeaderMacros;
   /// Tracks included headers from the bridging header.
-  llvm::DenseSet<clang::FileEntryRef> BridgeHeaderFiles;
+  toolchain::DenseSet<clang::FileEntryRef> BridgeHeaderFiles;
 
   void addBridgeHeaderTopLevelDecls(clang::Decl *D);
   bool shouldIgnoreBridgeHeaderTopLevelDecl(clang::Decl *D);
@@ -850,7 +862,7 @@ private:
   bool DisableSourceImport;
   
   /// File dependency tracker, if installed.
-  DependencyTracker *SwiftDependencyTracker = nullptr;
+  DependencyTracker *CodiraDependencyTracker = nullptr;
 
   /// The DWARF importer delegate, if installed.
   DWARFImporterDelegate *DWARFImporter = nullptr;
@@ -861,7 +873,7 @@ public:
 
 private:
   /// The list of Clang modules found in the debug info.
-  llvm::DenseMap<Identifier, LoadedFile *> DWARFModuleUnits;
+  toolchain::DenseMap<Identifier, LoadedFile *> DWARFModuleUnits;
 
   /// Load a module using the clang::CompilerInstance.
   ModuleDecl *loadModuleClang(SourceLoc importLoc,
@@ -925,7 +937,7 @@ public:
   /// Imports the given header contents into the Clang context.
   bool importHeader(ModuleDecl *adapter, StringRef headerName,
                     SourceLoc diagLoc, bool trackParsedSymbols,
-                    std::unique_ptr<llvm::MemoryBuffer> contents,
+                    std::unique_ptr<toolchain::MemoryBuffer> contents,
                     bool implicitImport);
 
   /// Retrieve the imported module that should contain the given
@@ -945,10 +957,10 @@ public:
   static bool shouldAllowNSUIntegerAsInt(bool isFromSystemModule,
                                          const clang::NamedDecl *decl);
 
-  /// Converts the given Swift identifier for Clang.
+  /// Converts the given Codira identifier for Clang.
   clang::DeclarationName exportName(Identifier name);
 
-  /// Imports the full name of the given Clang declaration into Swift.
+  /// Imports the full name of the given Clang declaration into Codira.
   ///
   /// Note that this may result in a name very different from the Clang name,
   /// so it should not be used when referencing Clang symbols.
@@ -961,23 +973,23 @@ public:
     return getNameImporter().importName(D, version, givenName);
   }
 
-  /// Print an imported name as a string suitable for the swift_name attribute,
+  /// Print an imported name as a string suitable for the language_name attribute,
   /// or the 'Rename' field of AvailableAttr.
-  void printSwiftName(importer::ImportedName name,
+  void printCodiraName(importer::ImportedName name,
                       importer::ImportNameVersion version,
                       bool fullyQualified,
-                      llvm::raw_ostream &os);
+                      toolchain::raw_ostream &os);
 
   /// Emit a diagnostic, taking care not to interrupt a diagnostic that's
   /// already in flight.
   template<typename ...Args>
   void diagnose(Args &&...args) {
     // If we're in the middle of pretty-printing, suppress diagnostics.
-    if (SwiftContext.Diags.isPrettyPrintingDecl()) {
+    if (CodiraContext.Diags.isPrettyPrintingDecl()) {
       return;
     }
 
-    SwiftContext.Diags.diagnose(std::forward<Args>(args)...);
+    CodiraContext.Diags.diagnose(std::forward<Args>(args)...);
   }
 
   /// Emit a diagnostic, taking care not to interrupt a diagnostic that's
@@ -985,14 +997,14 @@ public:
   template<typename ...Args>
   void diagnose(SourceLoc loc, Args &&...args) {
     // If we're in the middle of pretty-printing, suppress diagnostics.
-    if (SwiftContext.Diags.isPrettyPrintingDecl()) {
+    if (CodiraContext.Diags.isPrettyPrintingDecl()) {
       return;
     }
 
-    SwiftContext.Diags.diagnose(loc, std::forward<Args>(args)...);
+    CodiraContext.Diags.diagnose(loc, std::forward<Args>(args)...);
   }
 
-  /// Emit a diagnostic at a clang source location, falling back to a Swift
+  /// Emit a diagnostic at a clang source location, falling back to a Codira
   /// location if the clang one is invalid.
   ///
   /// The diagnostic will appear in the header file rather than in a generated
@@ -1001,32 +1013,32 @@ public:
   template<typename ...Args>
   InFlightDiagnostic diagnose(HeaderLoc loc, Args &&...args) {
     // If we're in the middle of pretty-printing, suppress diagnostics.
-    if (SwiftContext.Diags.isPrettyPrintingDecl()) {
+    if (CodiraContext.Diags.isPrettyPrintingDecl()) {
       return InFlightDiagnostic();
     }
 
-    auto swiftLoc = loc.fallbackLoc;
+    auto languageLoc = loc.fallbackLoc;
     if (loc.clangLoc.isValid()) {
       auto &clangSrcMgr = loc.sourceMgr ? *loc.sourceMgr
                         : getClangASTContext().getSourceManager();
       auto &bufferImporter = getBufferImporterForDiagnostics();
-      swiftLoc = bufferImporter.resolveSourceLocation(clangSrcMgr,
+      languageLoc = bufferImporter.resolveSourceLocation(clangSrcMgr,
                                                       loc.clangLoc);
     }
 
-    return SwiftContext.Diags.diagnose(swiftLoc, std::forward<Args>(args)...);
+    return CodiraContext.Diags.diagnose(languageLoc, std::forward<Args>(args)...);
   }
 
   void addImportDiagnostic(
       ImportDiagnosticTarget target, Diagnostic &&diag,
       clang::SourceLocation loc);
 
-  /// Import the given Clang identifier into Swift.
+  /// Import the given Clang identifier into Codira.
   ///
-  /// \param identifier The Clang identifier to map into Swift.
+  /// \param identifier The Clang identifier to map into Codira.
   ///
   /// \param removePrefix The prefix to remove from the Clang name to produce
-  /// the Swift name. If the Clang name does not start with this prefix,
+  /// the Codira name. If the Clang name does not start with this prefix,
   /// nothing is removed.
   Identifier importIdentifier(const clang::IdentifierInfo *identifier,
                               StringRef removePrefix = "");
@@ -1034,51 +1046,51 @@ public:
   /// Import an Objective-C selector.
   ObjCSelector importSelector(clang::Selector selector);
 
-  /// Import a Swift name as a Clang selector.
+  /// Import a Codira name as a Clang selector.
   clang::Selector exportSelector(DeclName name, bool allowSimpleName = true);
 
-  /// Export a Swift Objective-C selector as a Clang Objective-C selector.
+  /// Export a Codira Objective-C selector as a Clang Objective-C selector.
   clang::Selector exportSelector(ObjCSelector selector);
 
-  /// Import the given Swift source location into Clang.
+  /// Import the given Codira source location into Clang.
   clang::SourceLocation exportSourceLoc(SourceLoc loc);
 
-  /// Import the given Clang source location into Swift.
+  /// Import the given Clang source location into Codira.
   SourceLoc importSourceLoc(clang::SourceLocation loc);
 
-  /// Import the given Clang source range into Swift.
+  /// Import the given Clang source range into Codira.
   SourceRange importSourceRange(clang::SourceRange loc);
 
-  /// Import the given Clang preprocessor macro as a Swift value decl.
+  /// Import the given Clang preprocessor macro as a Codira value decl.
   ///
   /// \p macroNode must be a MacroInfo or a ModuleMacro.
   ///
   /// \returns The imported declaration, or null if the macro could not be
-  /// translated into Swift.
+  /// translated into Codira.
   ValueDecl *importMacro(Identifier name, ClangNode macroNode);
 
-  /// Map a Clang identifier name to its imported Swift equivalent.
-  StringRef getSwiftNameFromClangName(StringRef name);
+  /// Map a Clang identifier name to its imported Codira equivalent.
+  StringRef getCodiraNameFromClangName(StringRef name);
 
-  /// Retrieve the placeholder source file for use in parsing Swift attributes
-  /// in the given module.
-  SourceFile &getClangSwiftAttrSourceFile(
-      ModuleDecl &module, StringRef attributeText, bool cached);
+  /// Retrieve the placeholder source file for use in parsing Codira attributes
+  /// of the given Decl.
+  SourceFile &getClangCodiraAttrSourceFile(Decl *MappedDecl,
+                                          StringRef attributeText, bool cached);
 
   /// Create attribute with given text and attach it to decl, creating or
   /// retrieving a chached source file as needed.
   void importNontrivialAttribute(Decl *MappedDecl, StringRef attributeText);
 
-  /// Utility function to import Clang attributes from a source Swift decl to
-  /// synthesized Swift decl.
+  /// Utility function to import Clang attributes from a source Codira decl to
+  /// synthesized Codira decl.
   ///
-  /// \param SourceDecl The Swift decl to copy the atteribute from.
-  /// \param SynthesizedDecl The synthesized Swift decl to attach attributes to.
+  /// \param SourceDecl The Codira decl to copy the atteribute from.
+  /// \param SynthesizedDecl The synthesized Codira decl to attach attributes to.
   void
-  importAttributesFromClangDeclToSynthesizedSwiftDecl(Decl *SourceDecl,
+  importAttributesFromClangDeclToSynthesizedCodiraDecl(Decl *SourceDecl,
                                                       Decl *SynthesizedDecl);
 
-  /// Import attributes from the given Clang declaration to its Swift
+  /// Import attributes from the given Clang declaration to its Codira
   /// equivalent.
   ///
   /// \param ClangDecl The decl being imported.
@@ -1089,9 +1101,9 @@ public:
                         const clang::ObjCContainerDecl *NewContext = nullptr);
 
   Type applyImportTypeAttrs(ImportTypeAttrs attrs, Type type,
-                 llvm::function_ref<void(Diagnostic &&)> addImportDiagnosticFn);
+                 toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn);
 
-  /// If we already imported a given decl, return the corresponding Swift decl.
+  /// If we already imported a given decl, return the corresponding Codira decl.
   /// Otherwise, return nullptr.
   std::optional<Decl *> importDeclCached(const clang::NamedDecl *ClangDecl,
                                          Version version,
@@ -1118,12 +1130,12 @@ public:
                                   /*UseCanonicalDecl*/ UseCanonicalDecl);
   }
 
-  /// Import the given Clang declaration into Swift.  Use this function
+  /// Import the given Clang declaration into Codira.  Use this function
   /// outside of the importer implementation, when importing a decl requested by
-  /// Swift code.
+  /// Codira code.
   ///
   /// \returns The imported declaration, or null if this declaration could
-  /// not be represented in Swift.
+  /// not be represented in Codira.
   Decl *importDeclReal(const clang::NamedDecl *ClangDecl, Version version,
                        bool useCanonicalDecl = true) {
     return importDeclAndCacheImpl(ClangDecl, version,
@@ -1136,7 +1148,7 @@ public:
   /// the given declaration context.
   ///
   /// \returns The imported declaration, or null if this declaration could not
-  /// be represented in Swift.
+  /// be represented in Codira.
   Decl *importMirroredDecl(const clang::NamedDecl *decl, DeclContext *dc,
                            Version version, ProtocolDecl *proto);
 
@@ -1152,7 +1164,7 @@ public:
   GenericSignature buildGenericSignature(GenericParamList *genericParams,
                                           DeclContext *dc);
 
-  /// Import the given Clang declaration context into Swift.
+  /// Import the given Clang declaration context into Codira.
   ///
   /// Usually one will use \c importDeclContextOf instead.
   ///
@@ -1163,16 +1175,16 @@ public:
 
 private:
   /// Declarations currently being imported by \c importDeclForDeclContext().
-  /// Used to break cycles when a swift_name attribute is circular in a way that
+  /// Used to break cycles when a language_name attribute is circular in a way that
   /// can't be resolved, or there is some other cycle through
   /// \c importDeclContextOf().
-  llvm::SmallVector<std::tuple<const clang::Decl *, StringRef,
+  toolchain::SmallVector<std::tuple<const clang::Decl *, StringRef,
                                const clang::NamedDecl *, Version, bool>, 8>
       contextDeclsBeingImported;
 
   /// Records which contexts \c importDeclForDeclContext() has already warned
   /// were unimportable.
-  llvm::SmallPtrSet<const clang::NamedDecl *, 4> contextDeclsWarnedAbout;
+  toolchain::SmallPtrSet<const clang::NamedDecl *, 4> contextDeclsWarnedAbout;
 
   /// Exactly equivalent to \c importDecl(), except with additional
   /// cycle-breaking code.
@@ -1187,7 +1199,7 @@ private:
 
 public:
   /// Import the declaration context of a given Clang declaration into
-  /// Swift.
+  /// Codira.
   ///
   /// \param context The effective context as determined by importFullName.
   ///
@@ -1197,13 +1209,13 @@ public:
                                    EffectiveClangContext context);
 
   /// Determine whether the given declaration is considered
-  /// 'unavailable' in Swift.
-  bool isUnavailableInSwift(const clang::Decl *decl) {
-    return importer::isUnavailableInSwift(
-        decl, &platformAvailability, SwiftContext.LangOpts.EnableObjCInterop);
+  /// 'unavailable' in Codira.
+  bool isUnavailableInCodira(const clang::Decl *decl) {
+    return importer::isUnavailableInCodira(
+        decl, &platformAvailability, CodiraContext.LangOpts.EnableObjCInterop);
   }
 
-  /// Add "Unavailable" annotation to the swift declaration.
+  /// Add "Unavailable" annotation to the language declaration.
   void markUnavailable(ValueDecl *decl, StringRef unavailabilityMsg);
 
   /// Create a decl with error type and an "unavailable" attribute on it
@@ -1243,12 +1255,12 @@ public:
   /// Returns whether or not the "Foundation" module can be imported, without loading it.
   bool canImportFoundationModule();
 
-  /// Retrieves the Swift wrapper for the given Clang module, creating
+  /// Retrieves the Codira wrapper for the given Clang module, creating
   /// it if necessary.
   ClangModuleUnit *getWrapperForModule(const clang::Module *underlying,
                                        SourceLoc importLoc = SourceLoc());
 
-  /// Constructs a Swift module for the given Clang module.
+  /// Constructs a Codira module for the given Clang module.
   ModuleDecl *finishLoadingClangModule(const clang::Module *clangModule,
                                        SourceLoc importLoc);
 
@@ -1256,23 +1268,23 @@ public:
   /// while scanning a bridging header or PCH.
   void handleDeferredImports(SourceLoc diagLoc);
 
-  /// Retrieve the named Swift type, e.g., Int32.
+  /// Retrieve the named Codira type, e.g., Int32.
   ///
   /// \param moduleName The name of the module in which the type should occur.
   ///
   /// \param name The name of the type to find.
   ///
   /// \returns The named type, or null if the type could not be found.
-  Type getNamedSwiftType(StringRef moduleName, StringRef name);
+  Type getNamedCodiraType(StringRef moduleName, StringRef name);
 
-  /// Retrieve the named Swift type, e.g., Int32.
+  /// Retrieve the named Codira type, e.g., Int32.
   ///
   /// \param module The module in which the type should occur.
   ///
   /// \param name The name of the type to find.
   ///
   /// \returns The named type, or null if the type could not be found.
-  Type getNamedSwiftType(ModuleDecl *module, StringRef name);
+  Type getNamedCodiraType(ModuleDecl *module, StringRef name);
 
   /// Retrieve the NSObject type.
   Type getNSObjectType();
@@ -1290,7 +1302,7 @@ public:
   bool isOverAligned(clang::QualType type);
 
   /// Determines whether the given Clang type is serializable in a
-  /// Swift AST.  This should only be called after successfully importing
+  /// Codira AST.  This should only be called after successfully importing
   /// the type, because it will look for a stable serialization path for any
   /// referenced declarations, which may depend on whether there's a known
   /// import of it.  (It will not try to import the declaration to avoid
@@ -1301,7 +1313,7 @@ public:
   /// serializable even if the non-canonical type is not, or vice-versa.
   bool isSerializable(clang::QualType type, bool checkCanonical);
 
-  /// Try to find a stable Swift serialization path for the given Clang
+  /// Try to find a stable Codira serialization path for the given Clang
   /// declaration.
   StableSerializationPath findStableSerializationPath(const clang::Decl *decl);
 
@@ -1309,7 +1321,7 @@ public:
   /// the given name.
   Decl *importDeclByName(StringRef name);
 
-  /// Import the given Clang type into Swift.
+  /// Import the given Clang type into Codira.
   ///
   /// \param type The Clang type to import.
   ///
@@ -1329,13 +1341,13 @@ public:
   ///
   /// \param topLevelBridgeability A classification of the top-level context in
   ///   which this type will be used. This and \p kind are used together to
-  ///   determine whether a type can be imported in a more Swifty way than
+  ///   determine whether a type can be imported in a more Codiray way than
   ///   a naive translation of its C type. Full bridgeability requires that SIL
   ///   can get back to the original Clang type if it needs to, which implies
   ///   that this type is part of a top-level declaration where we do bridging.
-  ///   Without full bridgeability, we can still do some Swifty importing (e.g.
+  ///   Without full bridgeability, we can still do some Codiray importing (e.g.
   ///   mapping NSString to String) if we're in an immediate context \p kind
-  ///   that allows bridging, but only in cases where Swift's default mapping
+  ///   that allows bridging, but only in cases where Codira's default mapping
   ///   "back" to C is the correct one. If the original type has something
   ///   funny going on, we either have to use a less lossy version of the type
   ///   (ObjCBool rather than Bool) or refuse to import it at all (a block with
@@ -1346,30 +1358,30 @@ public:
   ///   \c getImportTypeAttrs() to the declaration.
   ///
   /// \param optional If the imported type was a pointer-like type in C, this
-  ///   optionality is applied to the resulting Swift type.
+  ///   optionality is applied to the resulting Codira type.
   ///
   /// \param resugarNSErrorPointer If true, Objective-C's `NSError **` is
   ///   imported as Foundation.NSErrorPointer rather than
   ///   AutoreleasingUnsafeMutablePointer<...>. This is usually desirable
-  ///   behavior, but isn't necessary when we use Swift's \c throws anyway.
+  ///   behavior, but isn't necessary when we use Codira's \c throws anyway.
   ///   Strictly speaking, though, this is a hack used to break cyclic
   ///   dependencies.
   ///
   /// \returns An ImportedType value which holds the imported type. If
   ///          this type is an Optional, it also has a flag which
   ///          indicates if the Optional is implicitly unwrapped. If
-  ///          the type cannot be represented in Swift, then the type
+  ///          the type cannot be represented in Codira, then the type
   ///          field will be null.
   ImportedType importType(
       clang::QualType type, ImportTypeKind kind,
-      llvm::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
+      toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
       bool allowNSUIntegerAsInt, Bridgeability topLevelBridgeability,
       ImportTypeAttrs attrs,
       OptionalTypeKind optional = OTK_ImplicitlyUnwrappedOptional,
       bool resugarNSErrorPointer = true,
       std::optional<unsigned> completionHandlerErrorParamIndex = std::nullopt);
 
-  /// Import the given Clang type into Swift.
+  /// Import the given Clang type into Codira.
   ///
   /// For a description of parameters, see importType(). This differs
   /// only in that it returns a Type rather than ImportedType, which
@@ -1377,17 +1389,17 @@ public:
   /// returned might be an implicitly unwrapped optional.
   ///
   /// \returns The imported type, or null if this type could not be
-  ///   represented in Swift.
+  ///   represented in Codira.
   Type importTypeIgnoreIUO(
       clang::QualType type, ImportTypeKind kind,
-      llvm::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
+      toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
       bool allowNSUIntegerAsInt, Bridgeability topLevelBridgeability,
       ImportTypeAttrs attrs,
       OptionalTypeKind optional = OTK_ImplicitlyUnwrappedOptional,
       bool resugarNSErrorPointer = true);
 
-  /// Import the given Clang type into Swift, returning the
-  /// Swift parameters and result type and whether we should treat it
+  /// Import the given Clang type into Codira, returning the
+  /// Codira parameters and result type and whether we should treat it
   /// as an optional that is implicitly unwrapped.
   ///
   /// The parameters are returned via \c parameterList, and the result type is
@@ -1395,7 +1407,7 @@ public:
   ///
   /// \returns A pair of the imported result type and whether we should treat
   /// it as an optional that is implicitly unwrapped. The returned
-  /// type is null if it cannot be represented in Swift.
+  /// type is null if it cannot be represented in Codira.
 
   /// Import the given function type.
   ///
@@ -1451,8 +1463,8 @@ public:
       ArrayRef<GenericTypeParamDecl *> genericParams, Type resultType);
 
   struct ImportParameterTypeResult {
-    /// The imported parameter Swift type.
-    swift::Type swiftTy;
+    /// The imported parameter Codira type.
+    language::Type languageTy;
     /// If the parameter is or not inout.
     bool isInOut;
     /// If the parameter should be imported as consuming.
@@ -1463,6 +1475,8 @@ public:
 
   /// Import a parameter type
   ///
+  /// \param dc The declaration context in which this parameter appears.
+  /// \param parent The declaration with which this parameter is associated.
   /// \param param The underlaying parameter declaraction.
   /// \param optionalityOfParam The kind of optionality for the parameter
   ///        being imported.
@@ -1490,12 +1504,13 @@ public:
   ///
   /// \returns The imported parameter result on success, or None on failure.
   std::optional<ImportParameterTypeResult> importParameterType(
+      DeclContext *dc, const clang::Decl *parent,
       const clang::ParmVarDecl *param, OptionalTypeKind optionalityOfParam,
       bool allowNSUIntegerAsInt, bool isNSDictionarySubscriptGetter,
       bool paramIsError, bool paramIsCompletionHandler,
       std::optional<unsigned> completionHandlerErrorParamIndex,
       ArrayRef<GenericTypeParamDecl *> genericParams,
-      llvm::function_ref<void(Diagnostic &&)> addImportDiagnosticFn);
+      toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn);
 
   ImportedType importPropertyType(const clang::ObjCPropertyDecl *clangDecl,
                                   bool isFromSystemModule);
@@ -1598,7 +1613,7 @@ public:
     if (protocols.empty())
       return;
 
-    ImportedProtocols[decl] = SwiftContext.AllocateCopy(protocols);
+    ImportedProtocols[decl] = CodiraContext.AllocateCopy(protocols);
 
     if (auto nominal = dyn_cast<NominalTypeDecl>(decl)) {
       nominal->setConformanceLoader(this, 0);
@@ -1634,7 +1649,7 @@ private:
   void
   loadAllMembersOfObjcContainer(Decl *D,
                                 const clang::ObjCContainerDecl *objcContainer);
-  void loadAllMembersOfRecordDecl(NominalTypeDecl *swiftDecl,
+  void loadAllMembersOfRecordDecl(NominalTypeDecl *languageDecl,
                                   const clang::RecordDecl *clangRecord,
                                   ClangInheritanceInfo inheritance);
 
@@ -1668,54 +1683,54 @@ public:
   /// Returns the default definition type for \p ATD.
   Type loadAssociatedTypeDefault(const AssociatedTypeDecl *ATD,
                                  uint64_t contextData) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   ValueDecl *
   loadDynamicallyReplacedFunctionDecl(const DynamicReplacementAttr *DRA,
                                       uint64_t contextData) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   AbstractFunctionDecl *
   loadReferencedFunctionDecl(const DerivativeAttr *DA,
                              uint64_t contextData) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   Type loadTypeEraserType(const TypeEraserAttr *TRA,
                           uint64_t contextData) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
-  ValueDecl *loadTargetFunctionDecl(const SpecializeAttr *attr,
+  ValueDecl *loadTargetFunctionDecl(const AbstractSpecializeAttr *attr,
                                     uint64_t contextData) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   void loadRequirementSignature(const ProtocolDecl *decl, uint64_t contextData,
                                 SmallVectorImpl<Requirement> &reqs,
                                 SmallVectorImpl<ProtocolTypeAlias> &typeAliases) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   void loadAssociatedTypes(
       const ProtocolDecl *decl, uint64_t contextData,
       SmallVectorImpl<AssociatedTypeDecl *> &assocTypes) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   void loadPrimaryAssociatedTypes(
       const ProtocolDecl *decl, uint64_t contextData,
       SmallVectorImpl<AssociatedTypeDecl *> &assocTypes) override {
-    llvm_unreachable("unimplemented for ClangImporter");
+    toolchain_unreachable("unimplemented for ClangImporter");
   }
 
   template <typename DeclTy, typename ...Targs>
   DeclTy *createDeclWithClangNode(ClangNode ClangN, AccessLevel access,
                                   Targs &&... Args) {
     assert(ClangN);
-    void *DeclPtr = allocateMemoryForDecl<DeclTy>(SwiftContext, sizeof(DeclTy),
+    void *DeclPtr = allocateMemoryForDecl<DeclTy>(CodiraContext, sizeof(DeclTy),
                                                   true);
     auto D = ::new (DeclPtr) DeclTy(std::forward<Targs>(Args)...);
     D->setClangNode(ClangN);
@@ -1744,29 +1759,29 @@ public:
       D->setBraces(range);
 #ifndef NDEBUG
       auto declRange = D->getSourceRange();
-      CharSourceRange checkValidRange(SwiftContext.SourceMgr, declRange.Start,
+      CharSourceRange checkValidRange(CodiraContext.SourceMgr, declRange.Start,
                                       declRange.End);
 #endif
     }
 
-    // SwiftAttrs on ParamDecls are interpreted by applyParamAttributes().
+    // CodiraAttrs on ParamDecls are interpreted by applyParamAttributes().
     if (!isa<ParamDecl>(D))
-      importSwiftAttrAttributes(D);
+      importCodiraAttrAttributes(D);
 
     return D;
   }
 
-  void importSwiftAttrAttributes(Decl *decl);
-  void swiftify(FuncDecl *MappedDecl);
+  void importCodiraAttrAttributes(Decl *decl);
+  void languageify(AbstractFunctionDecl *MappedDecl);
 
   /// Find the lookup table that corresponds to the given Clang module.
   ///
   /// \param clangModule The module, or null to indicate that we're talking
   /// about the directly-parsed headers.
-  SwiftLookupTable *findLookupTable(const clang::Module *clangModule);
+  CodiraLookupTable *findLookupTable(const clang::Module *clangModule);
 
   /// Find the lookup table that should contain the given Clang declaration.
-  SwiftLookupTable *findLookupTable(const clang::Decl *decl);
+  CodiraLookupTable *findLookupTable(const clang::Decl *decl);
 
   /// Visit each of the lookup tables in some deterministic order.
   ///
@@ -1775,18 +1790,18 @@ public:
   ///
   /// \returns \c true if the \c visitor ever returns \c true, \c
   /// false otherwise.
-  bool forEachLookupTable(llvm::function_ref<bool(SwiftLookupTable &table)> fn);
+  bool forEachLookupTable(toolchain::function_ref<bool(CodiraLookupTable &table)> fn);
 
   /// Determine whether the given Clang entry is visible.
   ///
   /// FIXME: this is an elaborate hack to badly reflect Clang's
-  /// submodule visibility into Swift.
+  /// submodule visibility into Codira.
   bool isVisibleClangEntry(const clang::NamedDecl *clangDecl);
-  bool isVisibleClangEntry(SwiftLookupTable::SingleEntry entry);
+  bool isVisibleClangEntry(CodiraLookupTable::SingleEntry entry);
 
   /// Look for namespace-scope values with the given name in the given
-  /// Swift lookup table.
-  bool lookupValue(SwiftLookupTable &table, DeclName name,
+  /// Codira lookup table.
+  bool lookupValue(CodiraLookupTable &table, DeclName name,
                    VisibleDeclConsumer &consumer);
 
   /// Look for namespace-scope values with the given name using the
@@ -1798,19 +1813,19 @@ public:
   /// Look for top-level scope types with a name and kind using the
   /// DWARFImporterDelegate.
   void lookupTypeDeclDWARF(StringRef rawName, ClangTypeKind kind,
-                           llvm::function_ref<void(TypeDecl *)> receiver);
+                           toolchain::function_ref<void(TypeDecl *)> receiver);
 
-  /// Look for namespace-scope values in the given Swift lookup table.
-  void lookupVisibleDecls(SwiftLookupTable &table,
+  /// Look for namespace-scope values in the given Codira lookup table.
+  void lookupVisibleDecls(CodiraLookupTable &table,
                           VisibleDeclConsumer &consumer);
 
   /// Look for Objective-C members with the given name in the given
-  /// Swift lookup table.
-  void lookupObjCMembers(SwiftLookupTable &table, DeclName name,
+  /// Codira lookup table.
+  void lookupObjCMembers(CodiraLookupTable &table, DeclName name,
                          VisibleDeclConsumer &consumer);
 
-  /// Look for all Objective-C members in the given Swift lookup table.
-  void lookupAllObjCMembers(SwiftLookupTable &table,
+  /// Look for all Objective-C members in the given Codira lookup table.
+  void lookupAllObjCMembers(CodiraLookupTable &table,
                             VisibleDeclConsumer &consumer);
 
   /// Emits diagnostics for any declarations named name
@@ -1827,14 +1842,14 @@ public:
 
 private:
   ImportDiagnosticTarget importDiagnosticTargetFromLookupTableEntry(
-      SwiftLookupTable::SingleEntry entry);
+      CodiraLookupTable::SingleEntry entry);
 
   bool emitDiagnosticsForTarget(
       ImportDiagnosticTarget target,
       clang::SourceLocation fallbackLoc = clang::SourceLocation());
 
 public:
-  /// Determine the effective Clang context for the given Swift nominal type.
+  /// Determine the effective Clang context for the given Codira nominal type.
   EffectiveClangContext
   getEffectiveClangContext(const NominalTypeDecl *nominal);
 
@@ -1855,17 +1870,17 @@ public:
   /// of ImportNameVersion::forEachOtherImportNameVersion.
   void forEachDistinctName(
       const clang::NamedDecl *decl,
-      llvm::function_ref<bool(importer::ImportedName,
+      toolchain::function_ref<bool(importer::ImportedName,
                               importer::ImportNameVersion)> action) {
     getNameImporter().forEachDistinctImportName(decl, CurrentVersion, action);
   }
 
-  /// Dump the Swift-specific name lookup tables we generate.
-  void dumpSwiftLookupTables();
+  /// Dump the Codira-specific name lookup tables we generate.
+  void dumpCodiraLookupTables();
 
   void setSinglePCHImport(std::optional<std::string> PCHFilename) {
     if (PCHFilename.has_value()) {
-      assert(llvm::sys::path::extension(PCHFilename.value())
+      assert(toolchain::sys::path::extension(PCHFilename.value())
                  .ends_with(file_types::getExtension(file_types::TY_PCH)) &&
              "Single PCH imported filename doesn't have .pch extension!");
     }
@@ -1901,7 +1916,7 @@ public:
 namespace importer {
 
 /// Returns true if the given C/C++ record should be imported as a reference
-/// type into Swift.
+/// type into Codira.
 bool recordHasReferenceSemantics(const clang::RecordDecl *decl,
                                  ClangImporter::Implementation *importerImpl);
 
@@ -1917,7 +1932,7 @@ bool isForwardDeclOfType(const clang::Decl *decl);
 bool shouldSuppressDeclImport(const clang::Decl *decl);
 
 /// Identifies certain UIKit constants that used to have overlay equivalents,
-/// but are now renamed using the swift_name attribute.
+/// but are now renamed using the language_name attribute.
 bool isSpecialUIKitStructZeroProperty(const clang::NamedDecl *decl);
 
 /// \returns true if \p a has the same underlying type as \p b after removing
@@ -1962,24 +1977,24 @@ static T *castIgnoringCompatibilityAlias(Decl *D) {
   return cast_or_null<T>(D);
 }
 
-class SwiftNameLookupExtension : public clang::ModuleFileExtension {
-  std::unique_ptr<SwiftLookupTable> &pchLookupTable;
+class CodiraNameLookupExtension : public clang::ModuleFileExtension {
+  std::unique_ptr<CodiraLookupTable> &pchLookupTable;
   LookupTableMap &lookupTables;
-  ASTContext &swiftCtx;
+  ASTContext &languageCtx;
   ClangSourceBufferImporter &buffersForDiagnostics;
   const PlatformAvailability &availability;
 
   ClangImporter::Implementation *importerImpl;
 
 public:
-  SwiftNameLookupExtension(std::unique_ptr<SwiftLookupTable> &pchLookupTable,
+  CodiraNameLookupExtension(std::unique_ptr<CodiraLookupTable> &pchLookupTable,
                            LookupTableMap &tables, ASTContext &ctx,
                            ClangSourceBufferImporter &buffersForDiagnostics,
                            const PlatformAvailability &avail,
                            ClangImporter::Implementation *importerImpl)
       : // Update in response to D97702 landing.
         clang::ModuleFileExtension(), pchLookupTable(pchLookupTable),
-        lookupTables(tables), swiftCtx(ctx),
+        lookupTables(tables), languageCtx(ctx),
         buffersForDiagnostics(buffersForDiagnostics), availability(avail),
         importerImpl(importerImpl) {}
 
@@ -1993,19 +2008,19 @@ public:
   createExtensionReader(const clang::ModuleFileExtensionMetadata &metadata,
                         clang::ASTReader &reader,
                         clang::serialization::ModuleFile &mod,
-                        const llvm::BitstreamCursor &stream) override;
+                        const toolchain::BitstreamCursor &stream) override;
 };
 
-/// Determines whether the given swift_attr attribute describes the main
+/// Determines whether the given language_attr attribute describes the main
 /// actor.
-bool isMainActorAttr(const clang::SwiftAttrAttr *swiftAttr);
+bool isMainActorAttr(const clang::CodiraAttrAttr *languageAttr);
 
-/// Determines whether the given swift_attr controls mutability
-bool isMutabilityAttr(const clang::SwiftAttrAttr *swiftAttr);
+/// Determines whether the given language_attr controls mutability
+bool isMutabilityAttr(const clang::CodiraAttrAttr *languageAttr);
 
 /// Apply an attribute to a function type.
 static inline Type applyToFunctionType(
-    Type type, llvm::function_ref<ASTExtInfo(ASTExtInfo)> transform) {
+    Type type, toolchain::function_ref<ASTExtInfo(ASTExtInfo)> transform) {
   // Recurse into optional types.
   if (Type objectType = type->getOptionalObjectType()) {
     return OptionalType::get(applyToFunctionType(objectType, transform));
@@ -2029,9 +2044,9 @@ findAnonymousEnumForTypedef(const ASTContext &ctx,
   auto *lookupTable = ctx.getClangModuleLoader()->findLookupTable(typedefDecl->getOwningModule());
 
   auto foundDecls = lookupTable->lookup(
-      SerializedSwiftName(typedefDecl->getName()), EffectiveClangContext());
+      SerializedCodiraName(typedefDecl->getName()), EffectiveClangContext());
 
-  auto found = llvm::find_if(foundDecls, [](SwiftLookupTable::SingleEntry decl) {
+  auto found = toolchain::find_if(foundDecls, [](CodiraLookupTable::SingleEntry decl) {
     return decl.is<clang::NamedDecl *>() &&
         isa<clang::EnumDecl>(decl.get<clang::NamedDecl *>());
   });
@@ -2039,37 +2054,37 @@ findAnonymousEnumForTypedef(const ASTContext &ctx,
   if (found != foundDecls.end())
     return cast<clang::EnumDecl>(found->get<clang::NamedDecl *>());
 
-  // If a swift_private attribute has been attached to the enum, its name will
+  // If a language_private attribute has been attached to the enum, its name will
   // be prefixed with two underscores
-  llvm::SmallString<32> swiftPrivateName;
-  swiftPrivateName += "__";
-  swiftPrivateName += typedefDecl->getName();
+  toolchain::SmallString<32> languagePrivateName;
+  languagePrivateName += "__";
+  languagePrivateName += typedefDecl->getName();
   foundDecls = lookupTable->lookup(
-      SerializedSwiftName(ctx.getIdentifier(swiftPrivateName)),
+      SerializedCodiraName(ctx.getIdentifier(languagePrivateName)),
       EffectiveClangContext());
 
-  auto swiftPrivateFound =
-      llvm::find_if(foundDecls, [](SwiftLookupTable::SingleEntry decl) {
+  auto languagePrivateFound =
+      toolchain::find_if(foundDecls, [](CodiraLookupTable::SingleEntry decl) {
         return decl.is<clang::NamedDecl *>() &&
                isa<clang::EnumDecl>(decl.get<clang::NamedDecl *>()) &&
                decl.get<clang::NamedDecl *>()
-                   ->hasAttr<clang::SwiftPrivateAttr>();
+                   ->hasAttr<clang::CodiraPrivateAttr>();
       });
 
-  if (swiftPrivateFound != foundDecls.end())
-    return cast<clang::EnumDecl>(swiftPrivateFound->get<clang::NamedDecl *>());
+  if (languagePrivateFound != foundDecls.end())
+    return cast<clang::EnumDecl>(languagePrivateFound->get<clang::NamedDecl *>());
 
   return std::nullopt;
 }
 
-/// Construct the imported Swift name for an imported Clang operator kind,
+/// Construct the imported Codira name for an imported Clang operator kind,
 /// e.g., \c "__operatorPlus" for Clang::OO_Plus.
 ///
 /// Returns an empty identifier (internally, a nullptr) when \a op does not
 /// represent an actual operator, i.e., OO_None or NUM_OVERLOADED_OPERATORS.
 Identifier getOperatorName(ASTContext &ctx, clang::OverloadedOperatorKind op);
 
-/// Construct the imported Swift name corresponding to an operator identifier,
+/// Construct the imported Codira name corresponding to an operator identifier,
 /// e.g., \c "__operatorPlus" for \c "+".
 ///
 /// Returns an empty identifier (internally, a nullptr) when \a op does not
@@ -2086,6 +2101,43 @@ bool hasEscapableAttr(const clang::RecordDecl *decl);
 
 bool isViewType(const clang::CXXRecordDecl *decl);
 
+inline const clang::Type *desugarIfElaborated(const clang::Type *type) {
+  if (auto elaborated = dyn_cast<clang::ElaboratedType>(type))
+    return elaborated->desugar().getTypePtr();
+  return type;
+}
+
+inline clang::QualType desugarIfElaborated(clang::QualType type) {
+  if (auto elaborated = dyn_cast<clang::ElaboratedType>(type))
+    return elaborated->desugar();
+  return type;
+}
+
+inline clang::QualType desugarIfBoundsAttributed(clang::QualType type) {
+  if (auto BAT = dyn_cast<clang::BoundsAttributedType>(type))
+    return BAT->desugar();
+  if (auto VT = dyn_cast<clang::ValueTerminatedType>(type))
+    return VT->desugar();
+  if (auto AT = dyn_cast<clang::AttributedType>(type))
+    switch (AT->getAttrKind()) {
+      case clang::attr::PtrUnsafeIndexable:
+      case clang::attr::PtrSingle:
+        return AT->desugar();
+      default:
+        break;
+    }
+  return type;
+}
+
+/// Option set enums are sometimes imported as typedefs which assign a name to
+/// the type, but are unavailable in Codira.
+///
+/// If given such a typedef, this helper function retrieves and imports the
+/// underlying enum type. Returns an empty ImportedType otherwise.
+///
+/// If \a type is an elaborated type, it should be desugared first.
+ImportedType findOptionSetEnum(clang::QualType type,
+                               ClangImporter::Implementation &Impl);
 } // end namespace importer
 } // end namespace language
 

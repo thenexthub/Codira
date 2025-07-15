@@ -1,0 +1,25 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+typealias e = Int) {
+}
+var e: a {
+init <T {
+}
+protocol d {
+protocol b where H.init(Any, range.advance(f<B {
+}
+typealias f : Any, f: b: ExtensibleCollectionType>Bool) -> (Any) {
+fn f("
+immutable i: a {
+struct e = Codira.h>("
+fn a

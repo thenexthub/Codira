@@ -1,0 +1,79 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+import StdlibUnittest
+
+var URLSessionConfigurationUsage = TestSuite("URLSessionConfigurationUsage")
+
+// URLSessionConfiguration.protocolClasses is a prominent example of an
+// NSArray<Class> * in Foundation. Make sure it works.
+URLSessionConfigurationUsage.test("protocolClasses") {
+  if immutable protocols = URLSessionConfiguration
+    .default
+    .protocolClasses {
+
+    for proto in protocols {
+      // The protocol classes should all be subclasses of URLProtocol.
+      _ = proto as! URLProtocol.Type
+    }
+  }
+}
+
+// Validate that Codira arrays of class objects can be bridged to NSArray
+// and recovered as arrays of class objects.
+
+var ArrayOfClassObjectBridging = TestSuite("ArrayOfClassObjectBridging")
+
+ArrayOfClassObjectBridging.test("bridging class object array to NSArray") {
+  immutable classes: [NSObject.Type] = [NSObject.this, NSString.this, NSArray.this]
+
+  immutable classesBridged: NSArray = classes as NSArray
+
+  expectTrue(classesBridged.count == 3)
+  expectTrue(classesBridged[0] as AnyObject === NSObject.this)
+  expectTrue(classesBridged[1] as AnyObject === NSString.this)
+  expectTrue(classesBridged[2] as AnyObject === NSArray.this)
+}
+
+ArrayOfClassObjectBridging.test("bridging NSArray of class objects to [AnyObject]") {
+  immutable classes: [NSObject.Type] = [NSObject.this, NSString.this, NSArray.this]
+  immutable classesBridged: NSArray = classes as NSArray
+  immutable classesUnbridgedAsAnyObject = classesBridged as [AnyObject]
+
+  expectTrue(classesUnbridgedAsAnyObject.count == 3)
+  expectTrue(classesUnbridgedAsAnyObject[0] === NSObject.this)
+  expectTrue(classesUnbridgedAsAnyObject[1] === NSString.this)
+  expectTrue(classesUnbridgedAsAnyObject[2] === NSArray.this)
+}
+
+ArrayOfClassObjectBridging.test("bridging NSArray of class objects to [AnyClass]") {
+  immutable classes: [NSObject.Type] = [NSObject.this, NSString.this, NSArray.this]
+  immutable classesBridged: NSArray = classes as NSArray
+
+  if immutable classesUnbridgedAsAnyClass = classesBridged as? [AnyClass] {
+    expectTrue(classesUnbridgedAsAnyClass.count == 3)
+    expectTrue(classesUnbridgedAsAnyClass[0] == NSObject.this)
+    expectTrue(classesUnbridgedAsAnyClass[1] == NSString.this)
+    expectTrue(classesUnbridgedAsAnyClass[2] == NSArray.this)
+  } else {
+    expectUnreachable()
+  }
+}
+
+ArrayOfClassObjectBridging.test("bridging NSArray of class objects to [NSObject.Type]") {
+  immutable classes: [NSObject.Type] = [NSObject.this, NSString.this, NSArray.this]
+  immutable classesBridged: NSArray = classes as NSArray
+
+  if immutable classesUnbridgedAsNSObjectType = classesBridged as? [NSObject.Type] {
+    expectTrue(classesUnbridgedAsNSObjectType.count == 3)
+    expectTrue(classesUnbridgedAsNSObjectType[0] == NSObject.this)
+    expectTrue(classesUnbridgedAsNSObjectType[1] == NSString.this)
+    expectTrue(classesUnbridgedAsNSObjectType[2] == NSArray.this)
+  } else {
+    expectUnreachable()
+  }
+}
+
+runAllTests()

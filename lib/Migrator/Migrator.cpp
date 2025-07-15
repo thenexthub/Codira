@@ -10,6 +10,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Diff.h"
@@ -25,8 +26,8 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Edit/EditedSource.h"
 #include "clang/Rewrite/Core/RewriteBuffer.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
 
 using namespace language;
 using namespace language::migrator;
@@ -39,7 +40,7 @@ bool migrator::updateCodeAndEmitRemapIfNeeded(CompilerInstance *Instance) {
   // Delete the remap file, in case someone is re-running the Migrator. If the
   // file fails to compile and we don't get a chance to overwrite it, the old
   // changes may get picked up.
-  llvm::sys::fs::remove(Invocation.getMigratorOptions().EmitRemapFilePath);
+  toolchain::sys::fs::remove(Invocation.getMigratorOptions().EmitRemapFilePath);
 
   Migrator M { Instance, Invocation }; // Provide inputs and configuration
   auto EffectiveVersion = Invocation.getLangOptions().EffectiveLanguageVersion;
@@ -48,7 +49,7 @@ bool migrator::updateCodeAndEmitRemapIfNeeded(CompilerInstance *Instance) {
   // Phase 1: Pre Fix-it passes
   // These uses the initial frontend invocation to apply any obvious fix-its
   // to see if we can get an error-free AST to get to Phase 2.
-  std::unique_ptr<swift::CompilerInstance> PreFixItInstance;
+  std::unique_ptr<language::CompilerInstance> PreFixItInstance;
   if (Instance->getASTContext().hadError()) {
     PreFixItInstance = M.repeatFixitMigrations(2, EffectiveVersion);
 
@@ -62,11 +63,11 @@ bool migrator::updateCodeAndEmitRemapIfNeeded(CompilerInstance *Instance) {
   }
 
   // Phase 2: Syntactic Transformations
-  // Don't run these passes if we're already in newest Swift version.
+  // Don't run these passes if we're already in newest Codira version.
   if (EffectiveVersion != CurrentVersion) {
     SyntacticPassOptions Opts;
 
-    // Type of optional try changes since Swift 5.
+    // Type of optional try changes since Codira 5.
     Opts.RunOptionalTryMigration = !EffectiveVersion.isVersionAtLeast(5);
     auto FailedSyntacticPasses = M.performSyntacticPasses(Opts);
     if (FailedSyntacticPasses) {
@@ -102,17 +103,17 @@ Migrator::Migrator(CompilerInstance *StartInstance,
                    const CompilerInvocation &StartInvocation)
   : StartInstance(StartInstance), StartInvocation(StartInvocation) {
 
-    auto ErrorOrStartBuffer = llvm::MemoryBuffer::getFile(getInputFilename());
+    auto ErrorOrStartBuffer = toolchain::MemoryBuffer::getFile(getInputFilename());
     auto &StartBuffer = ErrorOrStartBuffer.get();
     auto StartBufferID = SrcMgr.addNewSourceBuffer(std::move(StartBuffer));
     States.push_back(MigrationState::start(SrcMgr, StartBufferID));
 }
 
-std::unique_ptr<swift::CompilerInstance>
+std::unique_ptr<language::CompilerInstance>
 Migrator::repeatFixitMigrations(const unsigned Iterations,
-                                version::Version SwiftLanguageVersion) {
+                                version::Version CodiraLanguageVersion) {
   for (unsigned i = 0; i < Iterations; ++i) {
-    auto ThisInstance = performAFixItMigration(SwiftLanguageVersion);
+    auto ThisInstance = performAFixItMigration(CodiraLanguageVersion);
     if (ThisInstance == nullptr) {
       break;
     } else {
@@ -124,16 +125,16 @@ Migrator::repeatFixitMigrations(const unsigned Iterations,
   return nullptr;
 }
 
-std::unique_ptr<swift::CompilerInstance>
-Migrator::performAFixItMigration(version::Version SwiftLanguageVersion) {
+std::unique_ptr<language::CompilerInstance>
+Migrator::performAFixItMigration(version::Version CodiraLanguageVersion) {
   auto InputState = States.back();
   auto InputText = InputState->getOutputText();
   auto InputBuffer =
-    llvm::MemoryBuffer::getMemBufferCopy(InputText, getInputFilename());
+    toolchain::MemoryBuffer::getMemBufferCopy(InputText, getInputFilename());
 
   CompilerInvocation Invocation { StartInvocation };
   Invocation.getFrontendOptions().InputsAndOutputs.clearInputs();
-  Invocation.getLangOptions().EffectiveLanguageVersion = SwiftLanguageVersion;
+  Invocation.getLangOptions().EffectiveLanguageVersion = CodiraLanguageVersion;
   auto &LLVMArgs = Invocation.getFrontendOptions().LLVMArgs;
   auto aarch64_use_tbi = std::find(LLVMArgs.begin(), LLVMArgs.end(),
                                    "-aarch64-use-tbi");
@@ -152,10 +153,10 @@ Migrator::performAFixItMigration(version::Version SwiftLanguageVersion) {
                   input.getType()));
   }
 
-  auto Instance = std::make_unique<swift::CompilerInstance>();
+  auto Instance = std::make_unique<language::CompilerInstance>();
   // rdar://78576743 - Reset LLVM global state for command-line arguments set
   // by prior calls to setup.
-  llvm::cl::ResetAllOptionOccurrences();
+  toolchain::cl::ResetAllOptionOccurrences();
   std::string InstanceSetupError;
   if (Instance->setup(Invocation, InstanceSetupError)) {
     return nullptr;
@@ -174,9 +175,9 @@ Migrator::performAFixItMigration(version::Version SwiftLanguageVersion) {
 
   if (FixitApplyConsumer.getNumFixitsApplied() > 0) {
     SmallString<4096> Scratch;
-    llvm::raw_svector_ostream OS(Scratch);
+    toolchain::raw_svector_ostream OS(Scratch);
     FixitApplyConsumer.printResult(OS);
-    auto ResultBuffer = llvm::MemoryBuffer::getMemBufferCopy(OS.str());
+    auto ResultBuffer = toolchain::MemoryBuffer::getMemBufferCopy(OS.str());
     ResultText = ResultBuffer->getBuffer();
     ResultBufferID = SrcMgr.addNewSourceBuffer(std::move(ResultBuffer));
   }
@@ -191,7 +192,7 @@ bool Migrator::performSyntacticPasses(SyntacticPassOptions Opts) {
   clang::FileSystemOptions ClangFileSystemOptions;
   clang::FileManager ClangFileManager { ClangFileSystemOptions };
 
-  llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> DummyClangDiagIDs {
+  toolchain::IntrusiveRefCntPtr<clang::DiagnosticIDs> DummyClangDiagIDs {
     new clang::DiagnosticIDs()
   };
   auto ClangDiags =
@@ -220,7 +221,7 @@ bool Migrator::performSyntacticPasses(SyntacticPassOptions Opts) {
 
   RewriteBufferEditsReceiver Rewriter {
     ClangSourceManager,
-    Editor.getClangFileIDForSwiftBufferID(
+    Editor.getClangFileIDForCodiraBufferID(
       StartInstance->getPrimarySourceFile()->getBufferID()),
     InputState->getOutputText()
   };
@@ -228,7 +229,7 @@ bool Migrator::performSyntacticPasses(SyntacticPassOptions Opts) {
   Edits.applyRewrites(Rewriter);
 
   SmallString<1024> Scratch;
-  llvm::raw_svector_ostream OS(Scratch);
+  toolchain::raw_svector_ostream OS(Scratch);
   Rewriter.printResult(OS);
   auto ResultBuffer = this->SrcMgr.addMemBufferCopy(OS.str());
 
@@ -248,7 +249,7 @@ namespace {
 /// \param OS The output stream
 void printReplacement(const StringRef Filename,
                       const Replacement &Rep,
-                      llvm::raw_ostream &OS) {
+                      toolchain::raw_ostream &OS) {
   assert(!Filename.empty());
   if (Rep.Remove == 0 && Rep.Text.empty()) {
     return;
@@ -285,7 +286,7 @@ void printReplacement(const StringRef Filename,
 void printRemap(const StringRef OriginalFilename,
                 const StringRef InputText,
                 const StringRef OutputText,
-                llvm::raw_ostream &OS) {
+                toolchain::raw_ostream &OS) {
   assert(!OriginalFilename.empty());
 
   diff_match_patch<std::string> DMP;
@@ -296,7 +297,7 @@ void printRemap(const StringRef OriginalFilename,
 
   size_t Offset = 0;
 
-  llvm::SmallVector<Replacement, 32> Replacements;
+  toolchain::SmallVector<Replacement, 32> Replacements;
 
   for (const auto &Diff : Diffs) {
     size_t OffsetIncrement = 0;
@@ -389,8 +390,8 @@ bool Migrator::emitRemap() const {
   }
 
   std::error_code Error;
-  llvm::raw_fd_ostream FileOS(RemapPath,
-                              Error, llvm::sys::fs::OF_Text);
+  toolchain::raw_fd_ostream FileOS(RemapPath,
+                              Error, toolchain::sys::fs::OF_Text);
   if (FileOS.has_error()) {
     return true;
   }
@@ -410,8 +411,8 @@ bool Migrator::emitMigratedFile() const {
   }
 
   std::error_code Error;
-  llvm::raw_fd_ostream FileOS(OutFilename,
-                              Error, llvm::sys::fs::OF_Text);
+  toolchain::raw_fd_ostream FileOS(OutFilename,
+                              Error, toolchain::sys::fs::OF_Text);
   if (FileOS.has_error()) {
     return true;
   }

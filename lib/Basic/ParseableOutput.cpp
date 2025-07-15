@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/ParseableOutput.h"
@@ -19,9 +20,9 @@
 #include "language/Basic/TaskQueue.h"
 #include "language/Driver/Action.h"
 #include "language/Driver/Job.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <sstream>
 
@@ -33,7 +34,7 @@ using namespace language;
 namespace language {
 namespace json {
 template <> struct ScalarTraits<CommandInput> {
-  static void output(const CommandInput &value, llvm::raw_ostream &os) {
+  static void output(const CommandInput &value, toolchain::raw_ostream &os) {
     os << value.Path;
   }
   static bool mustQuote(StringRef) { return true; }
@@ -79,7 +80,7 @@ public:
   Message(StringRef Kind, StringRef Name) : Kind(Kind), Name(Name) {}
   virtual ~Message() = default;
 
-  virtual void provideMapping(swift::json::Output &out) {
+  virtual void provideMapping(language::json::Output &out) {
     out.mapRequired("kind", Kind);
     out.mapRequired("name", Name);
   }
@@ -93,7 +94,7 @@ public:
                   DetailedTaskDescription TascDesc)
       : Message(Kind, Name), TascDesc(TascDesc) {}
 
-  void provideMapping(swift::json::Output &out) override {
+  void provideMapping(language::json::Output &out) override {
     Message::provideMapping(out);
     out.mapRequired("command",
                     TascDesc.CommandLine); // Deprecated, do not document
@@ -115,7 +116,7 @@ public:
       : DetailedMessage("began", Name, TascDesc),
         Pid(Pid), ProcInfo(ProcInfo) {}
 
-  void provideMapping(swift::json::Output &out) override {
+  void provideMapping(language::json::Output &out) override {
     DetailedMessage::provideMapping(out);
     out.mapRequired("pid", Pid);
     out.mapRequired("process", ProcInfo);
@@ -139,7 +140,7 @@ public:
       : Message(Kind, Name),
         Output(Output), Pid(Pid), ProcInfo(ProcInfo) {}
 
-  void provideMapping(swift::json::Output &out) override {
+  void provideMapping(language::json::Output &out) override {
     Message::provideMapping(out);
     out.mapRequired("pid", Pid);
     out.mapOptional("output", Output, std::string());
@@ -158,7 +159,7 @@ public:
       : TaskOutputMessage("signalled", Name, Output, Pid, ProcInfo),
         ErrorMsg(ErrorMsg), Signal(Signal) {}
 
-  void provideMapping(swift::json::Output &out) override {
+  void provideMapping(language::json::Output &out) override {
     TaskOutputMessage::provideMapping(out);
     out.mapOptional("error-message", ErrorMsg, std::string());
     out.mapOptional("signal", Signal);
@@ -174,7 +175,7 @@ public:
       : TaskOutputMessage("finished", Name, Output, Pid, ProcInfo),
         ExitStatus(ExitStatus) {}
 
-  void provideMapping(swift::json::Output &out) override {
+  void provideMapping(language::json::Output &out) override {
     TaskOutputMessage::provideMapping(out);
     out.mapRequired("exit-status", ExitStatus);
   }
@@ -194,7 +195,7 @@ template <> struct ObjectTraits<Message> {
 
 static void emitMessage(raw_ostream &os, Message &msg) {
   std::string JSONString;
-  llvm::raw_string_ostream BufferStream(JSONString);
+  toolchain::raw_string_ostream BufferStream(JSONString);
   json::Output yout(BufferStream);
   yout << msg;
   BufferStream.flush();

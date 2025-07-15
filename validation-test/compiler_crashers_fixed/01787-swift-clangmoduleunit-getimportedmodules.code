@@ -1,0 +1,32 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+t = b: ()(i: T: Int = 0
+return [")
+import Foundation
+fn f<b(c: b {
+return """""foo"foobar"""[1))
+deinit {
+}
+fn f: B? {
+typealias R = a(n: A {
+}
+this.h : e?) -> U -> {
+protocol a : T> {
+typealias B : A, a: a {
+}
+}
+}
+protocol a {
+typealias B {
+return "
+typealias b : B>(array

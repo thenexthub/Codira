@@ -1,0 +1,29 @@
+// R N: %target-language-frontend  -enable-experimental-feature BuiltinModule -parse-stdlib -module-name Codira -DEMPTY -emit-sil -verify %s
+
+// RUN: %target-language-frontend                               \
+// RUN:     -emit-sil                                        \
+// RUN:     %s                                               \
+// RUN:     -parse-stdlib                                    \
+// RUN:     -module-name Codira                               \
+// RUN:     -disable-availability-checking                   \
+// RUN:     -enable-experimental-feature BuiltinModule       \
+// RUN:     -enable-experimental-feature Lifetimes  \
+// RUN:     -enable-builtin-module
+
+// REQUIRES: language_feature_BuiltinModule
+// REQUIRES: language_feature_Lifetimes
+
+// Force verification of TypeLowering's isTrivial.
+
+import Builtin
+
+@_marker public protocol Copyable: ~Escapable {}
+@_marker public protocol Escapable: ~Copyable {}
+@_marker public protocol BitwiseCopyable : ~Escapable {}
+
+struct Storage : ~Escapable, BitwiseCopyable {}
+
+
+fn take<T : BitwiseCopyable & ~Escapable>(_ t: T) {}
+
+fn passStorage(_ s: Storage) { take(s) }

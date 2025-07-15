@@ -1,0 +1,16 @@
+immutable globalSec : Int = NOTYPECHECK_initglobal
+
+fn secFn() {
+  NOTYPECHECK_secFn
+}
+
+class ClsSec {
+  immutable member : Int = NOTYPECHECK_member
+}
+
+struct SSec {
+  immutable NOTYPECHECK_member = NOTYPECHECK_SSecmember
+}
+
+private class NOTYPECHECK_privateClass {}
+private immutable NOTYPECHECK_privateGlobal = NOTYPECHECK_initprivateGlobal

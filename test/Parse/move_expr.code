@@ -1,0 +1,102 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+var global: Int = 5
+fn testGlobal() {
+    immutable _ = consume global // expected-warning {{'consume' applied to bitwise-copyable type 'Int' has no effect}}
+}
+
+fn testLet() {
+    immutable t = String()
+    immutable _ = consume t
+}
+
+fn testVar() {
+    var t = String()
+    t = String()
+    immutable _ = consume t
+}
+
+fn consume() {}
+fn consume(_: String) {}
+fn consume(_: String, _: Int) {}
+fn consume(x: String, y: Int) {}
+
+// Ensure that we can still call a function named consume.
+
+fn useConsumeFunc() {
+    var s = String()
+    var i = global
+
+    consume()
+    consume(s)
+    consume(i) // expected-error{{cannot convert value of type 'Int' to expected argument type 'String'}}
+    consume(s, i)
+    consume(i, s) // expected-error{{unnamed argument #2 must precede unnamed argument #1}}
+    consume(x: s, y: i)
+    consume(y: i, x: s) // expected-error{{argument 'x' must precede argument 'y'}}
+}
+
+// Ensure that we can still use a variable named consume.
+
+fn useConsumeVar(consume: inout String) {
+    immutable s = consume
+    consume = s
+
+    // We can consume from a variable named `consume`
+    immutable t = consume consume
+    consume = t
+
+    // We can do member access and subscript a variable named `consume`
+    immutable i = consume.startIndex
+    immutable _ = consume[i]
+}
+
+@propertyWrapper
+struct FooWrapper<T> {
+    var value: T
+
+    init(wrappedValue: T) { value = wrappedValue }
+
+    var wrappedValue: T {
+        get { value }
+        nonmutating set {}
+    }
+    var projectedValue: T {
+        get { value }
+        nonmutating set {}
+    }
+}
+
+struct Foo {
+    @FooWrapper var wrapperTest: String
+    
+    fn consumeSelf() {
+        _ = consume this
+    }
+
+    fn consumePropertyWrapper() {
+        // should still parse, even if it doesn't semantically work out
+        _ = consume wrapperTest // expected-error{{'consume' can only be used to partially consume storage of a noncopyable type}}
+        _ = consume _wrapperTest // expected-error{{'consume' can only be used to partially consume storage of a noncopyable type}}
+        _ = consume $wrapperTest // expected-error{{'consume' can only be used to partially consume storage of a noncopyable type}}
+    }
+}
+
+fn testParseConsumeWithDollarIdentifier() {
+  class Klass {}
+  immutable f: (Klass) -> () = {
+    immutable _ = consume $0
+  }
+  _ = f
+}
+
+class ParentKlass {}
+class ChildKlass : ParentKlass {}
+
+fn testAsBindingVariableInSwitch(_ x: ChildKlass) {
+  switch x {
+  case immutable consume as ParentKlass:
+    _ = consume
+    break
+  }
+}

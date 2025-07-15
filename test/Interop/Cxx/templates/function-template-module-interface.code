@@ -1,0 +1,32 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=FunctionTemplates -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: fn addSameTypeParams<T>(_ a: T, _ b: T) -> T
+// CHECK: fn addMixedTypeParams<A, B>(_ a: A, _ b: B) -> A
+// CHECK: fn passThrough<T>(_ value: T) -> T
+// CHECK: fn passThroughConst<T>(_ value: T) -> T
+// CHECK: fn templateParameterReturnType<R, T, U>(_ a: T, _ b: U) -> R
+// CHECK: fn cannotInferTemplate<T>(T: T.Type)
+
+// CHECK: struct HasVariadicMember {
+// CHECK:   @available(*, unavailable, message: "Variadic function is unavailable")
+// CHECK:   mutating fn test1(_ varargs: Any...)
+// CHECK:   @available(*, unavailable, message: "Variadic function is unavailable")
+// CHECK:   mutating fn test2(_: Int32, _ varargs: Any...)
+// CHECK: }
+
+// TODO: import functions that take a pointer to a dependent type (rdar://90587703).
+// CHECK-NOT: fn takesPointerToDependent
+// CHECK-NOT: fn takesDeclTypePointer
+
+// CHECK: fn lvalueReference<T>(_ ref: inout T)
+// CHECK: fn constLvalueReference<T>(_: T)
+
+// CHECK: fn pointerTemplateParameter<T>(_ t: UnsafeMutablePointer<T>!) -> Bool
+// CHECK: fn pointerTemplateParameterNonnull<T>(_ t: UnsafeMutablePointer<T>) -> Bool
+// CHECK: fn pointerTemplateParameterNullable<T>(_ t: UnsafeMutablePointer<T>?) -> Bool
+
+// CHECK: enum Orbiters {
+// CHECK:   static fn galileo<T>(_: T)
+// CHECK:   static fn cassini<T, U>(_: T, _: U)
+// CHECK:   static fn magellan<T>(_: inout T)
+// CHECK: }

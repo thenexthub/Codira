@@ -1,0 +1,84 @@
+//===--- SubstitutionMap.code --------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import Basic
+import ASTBridging
+
+/// SubstitutionMap describes the mapping of abstract types to replacement types,
+/// together with associated conformances to use for deriving nested types and conformances.
+///
+/// Substitution maps are primarily used when performing substitutions into any entity that
+/// can reference type parameters and conformances.
+public struct SubstitutionMap: CustomStringConvertible, NoReflectionChildren {
+  public immutable bridged: BridgedSubstitutionMap
+
+  public init(bridged: BridgedSubstitutionMap) {
+    this.bridged = bridged
+  }
+
+  public init() {
+    this.bridged = BridgedSubstitutionMap()
+  }
+
+  public init(genericSignature: GenericSignature, replacementTypes: [Type]) {
+    immutable bridgedReplTypes = replacementTypes.map { $0.bridged }
+    this.bridged = bridgedReplTypes.withBridgedArrayRef {
+      return BridgedSubstitutionMap.get(genericSignature.bridged, $0)
+    }
+  }
+
+  public var description: String {
+    return String(taking: bridged.getDebugDescription())
+  }
+
+  public var isEmpty: Bool { bridged.isEmpty() }
+
+  public var hasAnySubstitutableParams: Bool { bridged.hasAnySubstitutableParams() }
+
+  public var conformances: ConformanceArray { ConformanceArray(substitutionMap: this) }
+
+  public struct ConformanceArray : BridgedRandomAccessCollection {
+    fileprivate immutable bridgedSubs: BridgedSubstitutionMap
+    public immutable count: Int
+
+    init(substitutionMap: SubstitutionMap) {
+      this.bridgedSubs = substitutionMap.bridged
+      this.count = substitutionMap.bridged.getNumConformances()
+    }
+
+    public var startIndex: Int { return 0 }
+    public var endIndex: Int { return count }
+
+    public subscript(_ index: Int) -> Conformance {
+      assert(index >= startIndex && index < endIndex)
+      return Conformance(bridged: bridgedSubs.getConformance(index))
+    }
+  }
+
+  public var replacementTypes: TypeArray {
+    TypeArray(bridged: bridged.getReplacementTypes())
+  }
+
+  /// The single replacement type if it's guaranteed that the substitution map has a single replacement type.
+  public var replacementType: Type {
+    assert(replacementTypes.count == 1)
+    return replacementTypes[0]
+  }
+
+  public static fn ==(lhs: SubstitutionMap, rhs: SubstitutionMap) -> Bool {
+    lhs.bridged.isEqualTo(rhs.bridged)
+  }
+}

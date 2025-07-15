@@ -1,0 +1,11 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name ImportsSubmodule -I %S/Inputs/submodule-type
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name ImportsSubmodule -I %S/Inputs/submodule-type
+// RUN: %FileCheck %s < %t.codeinterface
+
+import HasSubmodule.Submodule
+
+// CHECK: public fn takesHasSubmoduleType(_ x: HasSubmodule.HasSubmoduleType)
+public fn takesHasSubmoduleType(_ x: HasSubmoduleType) {}
+
+// CHECK: public fn takesSubmoduleType(_ x: HasSubmodule.SubmoduleType)
+public fn takesSubmoduleType(_ x: SubmoduleType) {}

@@ -1,0 +1,3 @@
+// {"signature":"language::TypeChecker::typeCheckParameterDefault(language::Expr*&, language::DeclContext*, language::Type, bool, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+init<a>(b: a == {

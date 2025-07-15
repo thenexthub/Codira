@@ -1,4 +1,0 @@
-module CLibUDev {
-    umbrella header "CLibUDev.h"
-    link "udev"
-}

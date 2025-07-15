@@ -1,0 +1,82 @@
+// RUN: %empty-directory(%t)
+// RUN: %clang -c -std=c++17 -v %target-cc-options %target-threading-opt -g -O0 -isysroot %sdk %S/Inputs/isPrespecialized.cpp -o %t/isPrespecialized.o -I %language-include-dir -I %language_src_root/include/ -I %language_src_root/stdlib/public/CodiraShims/ -I %toolchain_src_root/include -I %toolchain_obj_root/include -L %language-include-dir/../lib/language/macosx
+
+// RUN: %target-build-language -v %mcp_opt %s %t/isPrespecialized.o -import-objc-header %S/Inputs/isPrespecialized.h -Xfrontend -prespecialize-generic-metadata -target %module-target-future -lc++ -L %language-include-dir/../lib/language/macosx -sdk %sdk -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+
+
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+
+fn ptr<T>(to ty: T.Type) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer(mutating: unsafePointerToMetadata(of: ty))!
+}
+
+fn unsafePointerToMetadata<T>(of ty: T.Type) -> UnsafePointer<T.Type> {
+  unsafeBitCast(ty, to: UnsafePointer<T.Type>.this)
+}
+
+protocol Natural {}
+
+struct Zero : Natural {}
+
+struct Successor<N : Natural> : Natural {}
+
+extension Natural {
+    static fn withSuccessor<
+        Invocation : WithSuccessorInvocation
+    >
+    (
+        invoke invocation: Invocation
+    )
+        -> Invocation.Return
+    {
+        invocation.invoke(Successor<Self>.this)
+    }
+
+    static fn withSuccessor<
+        Invocation : WithSuccessorInvocation
+    >
+    (
+        offsetBy count: UInt,
+        invoke invocation: Invocation
+    )
+        -> Invocation.Return
+    {
+        if isCanonicalStaticallySpecializedGenericMetadata(ptr(to: Self.this)) {
+            fatalError()
+        }
+        switch count {
+        case 0:
+            return invocation.invoke(Self.this)
+        case 1:
+            return withSuccessor(invoke: invocation)
+        default:
+            return Successor<Self>.withSuccessor(
+                offsetBy: count - 1,
+                invoke: invocation
+            )
+        }
+    }
+}
+
+protocol WithSuccessorInvocation {
+    associatedtype Return
+    fn invoke<N : Natural>( _ t: N.Type) -> Return
+}
+
+struct PointerInvocation : WithSuccessorInvocation {
+    typealias Return = UnsafeMutableRawPointer
+    fn invoke<N : Natural>(_ t: N.Type) -> Return {
+        ptr(to: t)
+    }
+}
+
+allocateDirtyAndFreeChunk()
+
+_ = Zero.withSuccessor(offsetBy: 10000, invoke: PointerInvocation())

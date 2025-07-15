@@ -1,0 +1,13 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %S/../require-layout-generic-arg.code %S/../Inputs/require-layout-generic-class.code %s -o %t/test
+// RUN: %target-codesign %t/test
+// RUN: %target-run %t/test | %FileCheck %s
+
+// REQUIRES: executable_test
+
+fn test() {
+  requestType(Sub(1))
+}
+
+// CHECK: Int
+test()

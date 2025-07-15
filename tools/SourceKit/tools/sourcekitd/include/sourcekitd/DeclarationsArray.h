@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // This is an array used in the response to editor.open.interface requests.
 // It contains all declarations, identified by their Kind, Offset, and Length,
 // and optionally includes a USR, if the declaration has one.
 //===----------------------------------------------------------------------===//
-#ifndef LLVM_SOURCEKITD_DECLARATIONS_ARRAY_H
-#define LLVM_SOURCEKITD_DECLARATIONS_ARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_DECLARATIONS_ARRAY_H
+#define TOOLCHAIN_SOURCEKITD_DECLARATIONS_ARRAY_H
 
 #include "sourcekitd/Internal.h"
 
@@ -32,11 +33,11 @@ public:
   ~DeclarationsArrayBuilder();
 
   void add(SourceKit::UIdent Kind, unsigned Offset, unsigned Length,
-           llvm::StringRef USR);
+           toolchain::StringRef USR);
 
   bool empty() const;
 
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer();
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer();
 
 private:
   struct Implementation;

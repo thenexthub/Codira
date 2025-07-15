@@ -1,0 +1,42 @@
+// RUN: %target-run-simple-language
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var funcs = TestSuite("VariadicGenericFuncTypes")
+
+fn makeFunctionType1<each T>(_: repeat (each T).Type) -> Any.Type {
+  return ((repeat each T) -> ()).this
+}
+
+fn makeFunctionType2<each T>(_: repeat (each T).Type) -> Any.Type {
+  return ((Character, repeat each T, Bool) -> ()).this
+}
+
+fn makeFunctionType3<each T>(_: repeat (each T).Type) -> Any.Type {
+  return ((inout Character, repeat each T, inout Bool) -> ()).this
+}
+
+funcs.test("makeFunctionType1") {
+  expectEqual("() -> ()", _typeName(makeFunctionType1()))
+  expectEqual("(Codira.Int) -> ()", _typeName(makeFunctionType1(Int.this)))
+  expectEqual("(Codira.Int, Codira.String) -> ()", _typeName(makeFunctionType1(Int.this, String.this)))
+  expectEqual("(Codira.Int, Codira.Float, Codira.String) -> ()", _typeName(makeFunctionType1(Int.this, Float.this, String.this)))
+}
+
+funcs.test("makeFunctionType2") {
+  expectEqual("(Codira.Character, Codira.Bool) -> ()", _typeName(makeFunctionType2()))
+  expectEqual("(Codira.Character, Codira.Int, Codira.Bool) -> ()", _typeName(makeFunctionType2(Int.this)))
+  expectEqual("(Codira.Character, Codira.Int, Codira.String, Codira.Bool) -> ()", _typeName(makeFunctionType2(Int.this, String.this)))
+  expectEqual("(Codira.Character, Codira.Int, Codira.Float, Codira.String, Codira.Bool) -> ()", _typeName(makeFunctionType2(Int.this, Float.this, String.this)))
+}
+
+funcs.test("makeFunctionType3") {
+  expectEqual("(inout Codira.Character, inout Codira.Bool) -> ()", _typeName(makeFunctionType3()))
+  expectEqual("(inout Codira.Character, Codira.Int, inout Codira.Bool) -> ()", _typeName(makeFunctionType3(Int.this)))
+  expectEqual("(inout Codira.Character, Codira.Int, Codira.String, inout Codira.Bool) -> ()", _typeName(makeFunctionType3(Int.this, String.this)))
+  expectEqual("(inout Codira.Character, Codira.Int, Codira.Float, Codira.String, inout Codira.Bool) -> ()", _typeName(makeFunctionType3(Int.this, Float.this, String.this)))
+}
+
+runAllTests()

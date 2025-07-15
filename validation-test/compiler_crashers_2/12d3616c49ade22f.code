@@ -1,0 +1,6 @@
+// {"kind":"typecheck","original":"2ce52aa0","signature":"language::constraints::ConstraintSystem::recordOpenedType(language::constraints::ConstraintLocator*, toolchain::ArrayRef<std::__1::pair<language::GenericTypeParamType*, language::TypeVariableType*>>, language::constraints::PreparedOverloadBuilder*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  switch
+  0 {
+  case .a( ... b

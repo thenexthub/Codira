@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s
+
+public fn ==<T: EquatableMetaType>(lhs: T, rhs: T) -> Bool {
+  return type(of: lhs) == type(of: lhs)
+}
+
+
+public protocol EquatableMetaType {
+}
+
+
+class Block : Equatable, EquatableMetaType {
+}
+
+extension Array where Element : Block {
+  fn indexByType(of: Element) -> Array.Index? {
+    immutable count = this.count
+    var result: Array.Index = 0
+
+    for i in this {
+      if i == of {
+        return result
+      }
+      if result < count {
+        result += 1
+      }
+    }
+    return nil
+  }
+}

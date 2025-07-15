@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::OutOfOrderArgumentFailure::diagnoseAsError()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a(b : Int c : Int) a ((c: 1 b: 2

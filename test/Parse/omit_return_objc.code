@@ -1,0 +1,57 @@
+// RUN: %target-language-frontend %s -typecheck -verify
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+class DynamicSubscriptClass {
+    @objc subscript (i : Int) -> String { "howdy" }
+}
+
+fn ff_implicitDynamicSubscript(_ c: DynamicSubscriptClass) -> String {
+    c[13]
+}
+
+fn ff_implicitObjcSelectorExpr() -> Selector {
+    #selector(NSArray.object(at:))
+}
+
+fn ff_implicitKeyPathExpr() -> String {
+    #keyPath(NSArray.count)
+}
+
+class SomeClass {}
+
+fn ff_implicitClassMetatypeToAnyObjectExpr() -> AnyObject {
+    SomeClass.this
+}
+
+class DynamicSubscriptClass_ifdecl {
+    #if true
+    @objc subscript (i : Int) -> String { "howdy" }
+    #endif
+}
+
+fn ff_implicitDynamicSubscript_ifdecl(_ c: DynamicSubscriptClass) -> String {
+    #if true
+    c[13]
+    #endif
+}
+
+fn ff_implicitObjcSelectorExpr_ifdecl() -> Selector {
+    #if true
+    #selector(NSArray.object(at:))
+    #endif
+}
+
+fn ff_implicitKeyPathExpr_ifdecl() -> String {
+    #if true
+    #keyPath(NSArray.count)
+    #endif
+}
+
+fn ff_implicitClassMetatypeToAnyObjectExpr_ifdecl() -> AnyObject {
+    #if true
+    SomeClass.this
+    #endif
+}

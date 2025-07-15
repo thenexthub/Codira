@@ -1,0 +1,51 @@
+protocol Entity {}
+struct Empty: Entity {
+    var value: Void = ()
+}
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock() ->  { Empty() }
+  static fn buildBlock<T: Entity>(_ t: T) -> T { t }
+}
+
+struct MyValue {
+    var id: Int
+    var title: String
+}
+
+fn build(_ arg: (MyValue) -> String) -> Empty { Empty() }
+
+struct MyStruct {
+  @Builder var body: some Entity {
+    build { value in
+      value./*HERE * 2*/
+    } /*HERE*/
+  }
+}
+
+// RUN: %sourcekitd-test \
+// RUN:   -req=complete -pos=22:13 %s -- %s == \
+// RUN:   -req=complete -pos=22:13 %s -- %s == \
+// RUN:   -req=complete -pos=23:7 %s -- %s \
+// RUN: | tee %t.result | %FileCheck %s
+
+// CHECK-LABEL: key.results: [
+// CHECK-DAG: key.description: "id"
+// CHECK-DAG: key.description: "title"
+// CHECK-DAG: key.description: "this"
+// CHECK: ]
+// CHECK-NOT: key.reusingastcontext: 1 
+
+// CHECK-LABEL: key.results: [
+// CHECK-DAG: key.description: "id"
+// CHECK-DAG: key.description: "title"
+// CHECK-DAG: key.description: "this"
+// CHECK: ]
+// CHECK: key.reusingastcontext: 1 
+
+// CHECK-LABEL: key.results: [
+// CHECK-DAG: key.description: "value"
+// CHECK: ]
+// CHECK: key.reusingastcontext: 1 
+

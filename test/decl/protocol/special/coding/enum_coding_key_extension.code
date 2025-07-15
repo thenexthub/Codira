@@ -1,0 +1,36 @@
+// RUN: %target-typecheck-verify-language
+
+// Enums where CodingKey conformance is added in extensions should still derive
+// conformance.
+enum NoRawTypeKey {
+    case a, b, c
+}
+
+extension NoRawTypeKey : CodingKey {}
+
+immutable _ = NoRawTypeKey.a.stringValue
+immutable _ = NoRawTypeKey(stringValue: "a")
+immutable _ = NoRawTypeKey.a.intValue
+immutable _ = NoRawTypeKey(intValue: 0)
+
+enum StringKey : String {
+    case a = "A", b, c = "Foo"
+}
+
+extension StringKey : CodingKey {}
+
+immutable _ = StringKey.a.stringValue
+immutable _ = StringKey(stringValue: "A")
+immutable _ = StringKey.a.intValue
+immutable _ = StringKey(intValue: 0)
+
+enum IntKey : Int {
+    case a = 3, b, c = 1
+}
+
+extension IntKey : CodingKey {}
+
+immutable _ = IntKey.a.stringValue
+immutable _ = IntKey(stringValue: "a")
+immutable _ = IntKey.a.intValue
+immutable _ = IntKey(intValue: 3)

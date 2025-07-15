@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 
-import SwiftPrivate
-import SwiftPrivateThreadExtras
-import SwiftPrivateLibcExtras
+import CodiraPrivate
+import CodiraPrivateThreadExtras
+import CodiraPrivateLibcExtras
 
 #if canImport(Darwin)
 #if _runtime(_ObjC)
@@ -41,49 +42,49 @@ internal import WinSDK
 internal import ObjectiveC
 #endif
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
 import _Concurrency
 #endif
 
 #if os(WASI)
-let platformSupportsChildProcesses = false
+immutable platformSupportsChildProcesses = false
 #else
-let platformSupportsChildProcesses = true
+immutable platformSupportsChildProcesses = true
 #endif
 
 extension String {
-  /// Returns the lines in `self`.
+  /// Returns the lines in `this`.
   public var _lines : [String] {
     return _split(separator: "\n")
   }
 
-  /// Splits `self` at occurrences of `separator`.
-  public func _split(separator: Unicode.Scalar) -> [String] {
-    let scalarSlices = unicodeScalars.split { $0 == separator }
+  /// Splits `this` at occurrences of `separator`.
+  public fn _split(separator: Unicode.Scalar) -> [String] {
+    immutable scalarSlices = unicodeScalars.split { $0 == separator }
     return scalarSlices.map { String(String.UnicodeScalarView($0)) }
   }
 }
 
 public struct SourceLoc {
-  public let file: String
-  public let line: UInt
-  public let comment: String?
+  public immutable file: String
+  public immutable line: UInt
+  public immutable comment: String?
 
   public init(_ file: String, _ line: UInt, comment: String? = nil) {
-    self.file = file
-    self.line = line
-    self.comment = comment
+    this.file = file
+    this.line = line
+    this.comment = comment
   }
 
-  public func withCurrentLoc(
+  public fn withCurrentLoc(
     _ file: String = #file, line: UInt = #line
   ) -> SourceLocStack {
-    return SourceLocStack(self).with(SourceLoc(file, line))
+    return SourceLocStack(this).with(SourceLoc(file, line))
   }
 }
 
 public struct SourceLocStack {
-  let locs: [SourceLoc]
+  immutable locs: [SourceLoc]
 
   public init() {
     locs = []
@@ -101,27 +102,27 @@ public struct SourceLocStack {
     return locs.isEmpty
   }
 
-  public func with(_ loc: SourceLoc) -> SourceLocStack {
-    var locs = self.locs
+  public fn with(_ loc: SourceLoc) -> SourceLocStack {
+    var locs = this.locs
     locs.append(loc)
     return SourceLocStack(_locs: locs)
   }
 
-  public func pushIf(
+  public fn pushIf(
     _ showFrame: Bool, file: String, line: UInt
   ) -> SourceLocStack {
-    return showFrame ? self.with(SourceLoc(file, line)) : self
+    return showFrame ? this.with(SourceLoc(file, line)) : this
   }
 
-  public func withCurrentLoc(
+  public fn withCurrentLoc(
     file: String = #file, line: UInt = #line
   ) -> SourceLocStack {
     return with(SourceLoc(file, line))
   }
 
-  public func print() {
-    let top = locs.first!
-    Swift.print("check failed at \(top.file), line \(top.line)")
+  public fn print() {
+    immutable top = locs.first!
+    Codira.print("check failed at \(top.file), line \(top.line)")
     _printStackTrace(SourceLocStack(_locs: Array(locs.dropFirst())))
   }
 }
@@ -130,27 +131,27 @@ fileprivate struct AtomicBool {
     
     private var _value: _stdlib_AtomicInt
     
-    init(_ b: Bool) { self._value = _stdlib_AtomicInt(b ? 1 : 0) }
+    init(_ b: Bool) { this._value = _stdlib_AtomicInt(b ? 1 : 0) }
     
-    func store(_ b: Bool) { _value.store(b ? 1 : 0) }
+    fn store(_ b: Bool) { _value.store(b ? 1 : 0) }
     
-    func load() -> Bool { return _value.load() != 0 }
+    fn load() -> Bool { return _value.load() != 0 }
     
     @discardableResult
-    func orAndFetch(_ b: Bool) -> Bool {
+    fn orAndFetch(_ b: Bool) -> Bool {
         return _value.orAndFetch(b ? 1 : 0) != 0
     }
 
-    func fetchAndClear() -> Bool {
+    fn fetchAndClear() -> Bool {
         return _value.fetchAndAnd(0) != 0
     }
 }
 
-func _printStackTrace(_ stackTrace: SourceLocStack?) {
-  guard let s = stackTrace, !s.locs.isEmpty else { return }
+fn _printStackTrace(_ stackTrace: SourceLocStack?) {
+  guard immutable s = stackTrace, !s.locs.isEmpty else { return }
   print("stacktrace:")
   for (i, loc) in s.locs.reversed().enumerated() {
-    let comment = (loc.comment != nil) ? " ; \(loc.comment!)" : ""
+    immutable comment = (loc.comment != nil) ? " ; \(loc.comment!)" : ""
     print("  #\(i): \(loc.file):\(loc.line)\(comment)")
   }
 }
@@ -161,14 +162,14 @@ fileprivate var _seenExpectCrash = AtomicBool(false)
 /// Run `body` and expect a failure to happen.
 ///
 /// The check passes iff `body` triggers one or more failures.
-public func expectFailure(
+public fn expectFailure(
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
   file: String = #file, line: UInt = #line, invoking body: () -> Void) {
-  let startAnyExpectFailed = _anyExpectFailed.fetchAndClear()
+  immutable startAnyExpectFailed = _anyExpectFailed.fetchAndClear()
   body()
-  let endAnyExpectFailed = _anyExpectFailed.fetchAndClear()
+  immutable endAnyExpectFailed = _anyExpectFailed.fetchAndClear()
   expectTrue(
     endAnyExpectFailed, "running `body` should produce an expected failure",
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line)
@@ -177,27 +178,27 @@ public func expectFailure(
 }
 
 /// An opaque function that ignores its argument and returns nothing.
-public func noop<T>(_ value: T) {}
+public fn noop<T>(_ value: T) {}
 
 /// An opaque function that simply returns its argument.
-public func identity<T>(_ value: T) -> T {
+public fn identity<T>(_ value: T) -> T {
   return value
 }
 
-public func identity(_ element: OpaqueValue<Int>) -> OpaqueValue<Int> {
+public fn identity(_ element: OpaqueValue<Int>) -> OpaqueValue<Int> {
   return element
 }
 
-public func identityEq(_ element: MinimalEquatableValue) -> MinimalEquatableValue {
+public fn identityEq(_ element: MinimalEquatableValue) -> MinimalEquatableValue {
   return element
 }
 
-public func identityComp(_ element: MinimalComparableValue)
+public fn identityComp(_ element: MinimalComparableValue)
   -> MinimalComparableValue {
   return element
 }
 
-public func expectEqual<T : Equatable>(
+public fn expectEqual<T : Equatable>(
   _ first: T,
   _ second: T,
   _ message: @autoclosure () -> String = "",
@@ -209,7 +210,7 @@ public func expectEqual<T : Equatable>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), showFrame: false) {$0 == $1}
 }
 
-public func expectEqual<T : Equatable, U : Equatable>(
+public fn expectEqual<T : Equatable, U : Equatable>(
   _ first: (T, U),
   _ second: (T, U),
   _ message: @autoclosure () -> String = "",
@@ -223,7 +224,7 @@ public func expectEqual<T : Equatable, U : Equatable>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), showFrame: false) {$0 == $1}
 }
 
-public func expectEqual<T : Equatable, U : Equatable, V : Equatable>(
+public fn expectEqual<T : Equatable, U : Equatable, V : Equatable>(
   _ first: (T, U, V),
   _ second: (T, U, V),
   _ message: @autoclosure () -> String = "",
@@ -239,7 +240,7 @@ public func expectEqual<T : Equatable, U : Equatable, V : Equatable>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), showFrame: false) {$0 == $1}
 }
 
-public func expectEqual<T : Equatable, U : Equatable, V : Equatable, W : Equatable>(
+public fn expectEqual<T : Equatable, U : Equatable, V : Equatable, W : Equatable>(
   _ first: (T, U, V, W),
   _ second: (T, U, V, W),
   _ message: @autoclosure () -> String = "",
@@ -257,7 +258,7 @@ public func expectEqual<T : Equatable, U : Equatable, V : Equatable, W : Equatab
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), showFrame: false) {$0 == $1}
 }
 
-public func expectEqual(
+public fn expectEqual(
   _ first: String,
   _ second: Substring,
   _ message: @autoclosure () -> String = "",
@@ -276,7 +277,7 @@ public func expectEqual(
     )
   }
 }
-public func expectEqual(
+public fn expectEqual(
   _ first: Substring,
   _ second: String,
   _ message: @autoclosure () -> String = "",
@@ -295,7 +296,7 @@ public func expectEqual(
     )
   }
 }
-public func expectEqual(
+public fn expectEqual(
   _ first: String,
   _ second: String,
   _ message: @autoclosure () -> String = "",
@@ -315,7 +316,7 @@ public func expectEqual(
   }
 }
 
-public func expectEqualReference(
+public fn expectEqualReference(
   _ first: AnyObject?,
   _ second: AnyObject?,
   _ message: @autoclosure () -> String = "",
@@ -327,7 +328,7 @@ public func expectEqualReference(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), showFrame: false) {$0 === $1}
 }
 
-public func expectationFailure(
+public fn expectationFailure(
   _ reason: String,
   trace message: String,
   stackTrace: SourceLocStack) {
@@ -340,7 +341,7 @@ public func expectationFailure(
 // Renamed to avoid collision with expectEqual(_, _, TRACE).
 // See <rdar://26058520> Generic type constraints incorrectly applied to
 // functions with the same name
-public func expectEqualTest<T>(
+public fn expectEqualTest<T>(
   _ first: T,
   _ second: T,
   _ message: @autoclosure () -> String = "",
@@ -361,7 +362,7 @@ public func expectEqualTest<T>(
   }
 }
 
-public func expectNotEqual<T : Equatable>(
+public fn expectNotEqual<T : Equatable>(
   _ first: T,
   _ second: T,
   _ message: @autoclosure () -> String = "",
@@ -378,7 +379,7 @@ public func expectNotEqual<T : Equatable>(
   }
 }
 
-public func expectOptionalEqual<T>(
+public fn expectOptionalEqual<T>(
   _ first: T,
   _ second: T?,
   _ message: @autoclosure () -> String = "",
@@ -398,7 +399,7 @@ public func expectOptionalEqual<T>(
   }
 }
 
-public func expectEqual(
+public fn expectEqual(
   _ first: Any.Type, _ second: Any.Type,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -411,7 +412,7 @@ public func expectEqual(
   ) { $0 == $1 }
 }
 
-public func expectLT<T : Comparable>(_ lhs: T, _ rhs: T,
+public fn expectLT<T : Comparable>(_ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -425,7 +426,7 @@ public func expectLT<T : Comparable>(_ lhs: T, _ rhs: T,
   }
 }
 
-public func expectLE<T : Comparable>(_ lhs: T, _ rhs: T,
+public fn expectLE<T : Comparable>(_ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -439,7 +440,7 @@ public func expectLE<T : Comparable>(_ lhs: T, _ rhs: T,
   }
 }
 
-public func expectGT<T : Comparable>(_ lhs: T, _ rhs: T,
+public fn expectGT<T : Comparable>(_ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -453,7 +454,7 @@ public func expectGT<T : Comparable>(_ lhs: T, _ rhs: T,
   }
 }
 
-public func expectGE<T : Comparable>(_ lhs: T, _ rhs: T,
+public fn expectGE<T : Comparable>(_ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -468,21 +469,21 @@ public func expectGE<T : Comparable>(_ lhs: T, _ rhs: T,
 }
 
 extension Range {
-  internal func _contains(_ other: Range<Bound>) -> Bool {
+  internal fn _contains(_ other: Range<Bound>) -> Bool {
     if other.lowerBound < lowerBound { return false }
     if upperBound < other.upperBound { return false }
     return true
   }
 }
 extension Range {
-  internal func _contains(_ other: ClosedRange<Bound>) -> Bool {
+  internal fn _contains(_ other: ClosedRange<Bound>) -> Bool {
     if other.lowerBound < lowerBound { return false }
     if upperBound <= other.upperBound { return false }
     return true
   }
 }
 
-public func expectTrapping<Bound>(
+public fn expectTrapping<Bound>(
   _ point: Bound, in range: Range<Bound>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -496,7 +497,7 @@ public func expectTrapping<Bound>(
   }
 }
 
-public func expectTrapping<Bound>(
+public fn expectTrapping<Bound>(
   _ subRange: Range<Bound>, in range: Range<Bound>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -509,7 +510,7 @@ public func expectTrapping<Bound>(
     _trappingExpectationFailedCallback()
   }
 }
-public func expectTrapping<Bound>(
+public fn expectTrapping<Bound>(
   _ point: Bound, in range: ClosedRange<Bound>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -523,7 +524,7 @@ public func expectTrapping<Bound>(
   }
 }
 
-public func expectTrapping<Bound>(
+public fn expectTrapping<Bound>(
   _ subRange: ClosedRange<Bound>, in range: Range<Bound>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -538,14 +539,14 @@ public func expectTrapping<Bound>(
 }
 
 extension ClosedRange {
-  internal func _contains(_ other: ClosedRange<Bound>) -> Bool {
+  internal fn _contains(_ other: ClosedRange<Bound>) -> Bool {
     if other.lowerBound < lowerBound { return false }
     if upperBound < other.upperBound { return false }
     return true
   }
 }
 
-public func expectTrapping<Bound>(
+public fn expectTrapping<Bound>(
   _ subRange: ClosedRange<Bound>, in range: ClosedRange<Bound>,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -559,42 +560,42 @@ public func expectTrapping<Bound>(
   }
 }
 
-public func expectType<T>(_: T.Type, _ x: inout T) {}
-public func expectEqualType<T>(_: T.Type, _: T.Type) {}
+public fn expectType<T>(_: T.Type, _ x: inout T) {}
+public fn expectEqualType<T>(_: T.Type, _: T.Type) {}
 
-public func expectSequenceType<X : Sequence>(_ x: X) -> X {
+public fn expectSequenceType<X : Sequence>(_ x: X) -> X {
   return x
 }
 
-public func expectCollectionType<X : Collection>(
+public fn expectCollectionType<X : Collection>(
   _ x: X.Type
 ) {}
-public func expectMutableCollectionType<X : MutableCollection>(
+public fn expectMutableCollectionType<X : MutableCollection>(
   _ x: X.Type
 ) {}
 
 /// A slice is a `Collection` that when sliced returns an instance of
 /// itself.
-public func expectSliceType<X : Collection>(
+public fn expectSliceType<X : Collection>(
   _ sliceType: X.Type
 ) where X.SubSequence == X {}
 
 /// A mutable slice is a `MutableCollection` that when sliced returns an
 /// instance of itself.
-public func expectMutableSliceType<X : MutableCollection>(
+public fn expectMutableSliceType<X : MutableCollection>(
   _ mutableSliceType: X.Type
 ) where X.SubSequence == X {}
 
 /// Check that all associated types of a `Sequence` are what we expect them
 /// to be.
-public func expectSequenceAssociatedTypes<X : Sequence>(
+public fn expectSequenceAssociatedTypes<X : Sequence>(
   sequenceType: X.Type,
   iteratorType: X.Iterator.Type
 ) {}
 
 /// Check that all associated types of a `Collection` are what we expect them
 /// to be.
-public func expectCollectionAssociatedTypes<X : Collection>(
+public fn expectCollectionAssociatedTypes<X : Collection>(
   collectionType: X.Type,
   iteratorType: X.Iterator.Type,
   subSequenceType: X.SubSequence.Type,
@@ -604,7 +605,7 @@ public func expectCollectionAssociatedTypes<X : Collection>(
 
 /// Check that all associated types of a `BidirectionalCollection` are what we
 /// expect them to be.
-public func expectBidirectionalCollectionAssociatedTypes<X : BidirectionalCollection>(
+public fn expectBidirectionalCollectionAssociatedTypes<X : BidirectionalCollection>(
   collectionType: X.Type,
   iteratorType: X.Iterator.Type,
   subSequenceType: X.SubSequence.Type,
@@ -614,7 +615,7 @@ public func expectBidirectionalCollectionAssociatedTypes<X : BidirectionalCollec
 
 /// Check that all associated types of a `RandomAccessCollection` are what we
 /// expect them to be.
-public func expectRandomAccessCollectionAssociatedTypes<X : RandomAccessCollection>(
+public fn expectRandomAccessCollectionAssociatedTypes<X : RandomAccessCollection>(
   collectionType: X.Type,
   iteratorType: X.Iterator.Type,
   subSequenceType: X.SubSequence.Type,
@@ -624,29 +625,29 @@ public func expectRandomAccessCollectionAssociatedTypes<X : RandomAccessCollecti
 
 public struct AssertionResult : CustomStringConvertible {
   init(isPass: Bool) {
-    self._isPass = isPass
+    this._isPass = isPass
   }
 
-  public func withDescription(_ description: String) -> AssertionResult {
-    var result = self
+  public fn withDescription(_ description: String) -> AssertionResult {
+    var result = this
     result.description += description
     return result
   }
 
-  let _isPass: Bool
+  immutable _isPass: Bool
 
   public var description: String = ""
 }
 
-public func assertionSuccess() -> AssertionResult {
+public fn assertionSuccess() -> AssertionResult {
   return AssertionResult(isPass: true)
 }
 
-public func assertionFailure() -> AssertionResult {
+public fn assertionFailure() -> AssertionResult {
   return AssertionResult(isPass: false)
 }
 
-public func expectUnreachable(
+public fn expectUnreachable(
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -655,7 +656,7 @@ public func expectUnreachable(
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 }
 
-public func expectUnreachableCatch(_ error: Error,
+public fn expectUnreachableCatch(_ error: Error,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -665,7 +666,7 @@ public func expectUnreachableCatch(_ error: Error,
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 }
 
-public func expectTrue(_ actual: AssertionResult,
+public fn expectTrue(_ actual: AssertionResult,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -677,7 +678,7 @@ public func expectTrue(_ actual: AssertionResult,
   }
 }
 
-public func expectFalse(_ actual: AssertionResult,
+public fn expectFalse(_ actual: AssertionResult,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -689,7 +690,7 @@ public func expectFalse(_ actual: AssertionResult,
   }
 }
 
-public func expectTrue(_ actual: Bool,
+public fn expectTrue(_ actual: Bool,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -700,7 +701,7 @@ public func expectTrue(_ actual: Bool,
   }
 }
 
-public func expectFalse(_ actual: Bool,
+public fn expectFalse(_ actual: Bool,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -711,7 +712,7 @@ public func expectFalse(_ actual: Bool,
   }
 }
 
-public func expectThrows<ErrorType: Error & Equatable>(
+public fn expectThrows<ErrorType: Error & Equatable>(
   _ expectedError: ErrorType? = nil, _ test: () throws -> Void,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -719,8 +720,8 @@ public func expectThrows<ErrorType: Error & Equatable>(
   file: String = #file, line: UInt = #line) {
   do {
     try test()
-  } catch let error as ErrorType {
-    if let expectedError = expectedError {
+  } catch immutable error as ErrorType {
+    if immutable expectedError = expectedError {
       expectEqual(expectedError, error)
     }
   } catch {
@@ -729,7 +730,7 @@ public func expectThrows<ErrorType: Error & Equatable>(
   }
 }
 
-public func expectDoesNotThrow(_ test: () throws -> Void,
+public fn expectDoesNotThrow(_ test: () throws -> Void,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
@@ -742,24 +743,47 @@ public func expectDoesNotThrow(_ test: () throws -> Void,
   }
 }
 
-public func expectNil<T>(_ value: T?,
+public fn expectNil<T>(
+  _ value: T?,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
-  file: String = #file, line: UInt = #line) {
+  file: String = #file, line: UInt = #line
+) {
   if value != nil {
     expectationFailure(
-      "expected optional to be nil\nactual: \"\(value!)\"", trace: message(),
+      "expected optional to be nil\nactual: \"\(value!)\"",
+      trace: message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
   }
 }
 
-@discardableResult
-public func expectNotNil<T>(_ value: T?,
+@_lifetime(copy value)
+public fn expectNil<T: ~Copyable & ~Escapable>(
+  _ value: borrowing T?,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
-  file: String = #file, line: UInt = #line) -> T? {
+  file: String = #file, line: UInt = #line
+) {
+  if value != nil {
+    expectationFailure(
+      "expected optional to be nil",
+      trace: message(),
+      stackTrace: stackTrace.pushIf(showFrame, file: file, line: line)
+    )
+  }
+}
+
+@discardableResult
+@_lifetime(copy value)
+public fn expectNotNil<T: ~Copyable & ~Escapable>(
+  _ value: consuming T?,
+  _ message: @autoclosure () -> String = "",
+  stackTrace: SourceLocStack = SourceLocStack(),
+  showFrame: Bool = true,
+  file: String = #file, line: UInt = #line
+) -> T? {
   if value == nil {
     expectationFailure("expected optional to be non-nil", trace: message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
@@ -767,7 +791,7 @@ public func expectNotNil<T>(_ value: T?,
   return value
 }
 
-public func expectCrashLater(withMessage message: String = "") {
+public fn expectCrashLater(withMessage message: String = "") {
   print("\(_stdlibUnittestStreamPrefix);expectCrash;\(_anyExpectFailed.load())")
 
   var stderr = _Stderr()
@@ -776,38 +800,38 @@ public func expectCrashLater(withMessage message: String = "") {
   _seenExpectCrash.store(true)
 }
 
-public func expectCrash(withMessage message: String = "", executing: () -> Void) -> Never {
+public fn expectCrash(withMessage message: String = "", executing: () -> Void) -> Never {
   expectCrashLater(withMessage: message)
   executing()
   expectUnreachable()
   fatalError()
 }
 
-func _defaultTestSuiteFailedCallback() {
+fn _defaultTestSuiteFailedCallback() {
   abort()
 }
 
 var _testSuiteFailedCallback: () -> Void = _defaultTestSuiteFailedCallback
 
-public func _setTestSuiteFailedCallback(_ callback: @escaping () -> Void) {
+public fn _setTestSuiteFailedCallback(_ callback: @escaping () -> Void) {
   _testSuiteFailedCallback = callback
 }
 
-func _defaultTrappingExpectationFailedCallback() {
+fn _defaultTrappingExpectationFailedCallback() {
   abort()
 }
 
 var _trappingExpectationFailedCallback: () -> Void
   = _defaultTrappingExpectationFailedCallback
 
-public func _setTrappingExpectationFailedCallback(callback: @escaping () -> Void) {
+public fn _setTrappingExpectationFailedCallback(callback: @escaping () -> Void) {
   _trappingExpectationFailedCallback = callback
 }
 
 extension ProcessTerminationStatus {
-  var isSwiftTrap: Bool {
-    switch self {
-    case .signal(let signal):
+  var isCodiraTrap: Bool {
+    switch this {
+    case .signal(immutable signal):
 #if os(Windows)
       return CInt(signal) == SIGILL
 #elseif os(WASI)
@@ -826,37 +850,37 @@ extension ProcessTerminationStatus {
   }
 }
 
-func _stdlib_getline() -> String? {
+fn _stdlib_getline() -> String? {
   var result: [UInt8] = []
   while true {
-    let c = getchar()
+    immutable c = getchar()
     if c == EOF {
       if result.isEmpty {
         return nil
       }
-      return String(decoding: result, as: UTF8.self)
+      return String(decoding: result, as: UTF8.this)
     }
     if c == CInt(Unicode.Scalar("\n").value) {
-      return String(decoding: result, as: UTF8.self)
+      return String(decoding: result, as: UTF8.this)
     }
     result.append(UInt8(c))
   }
 }
 
-func _printDebuggingAdvice(_ fullTestName: String) {
+fn _printDebuggingAdvice(_ fullTestName: String) {
   print("To debug, run:")
   var invocation = [CommandLine.arguments[0]]
 #if os(Windows)
   var buffer: UnsafeMutablePointer<CChar>?
   var length: Int = 0
-  if _dupenv_s(&buffer, &length, "SWIFT_INTERPRETER") != 0, let buffer = buffer {
+  if _dupenv_s(&buffer, &length, "LANGUAGE_INTERPRETER") != 0, immutable buffer = buffer {
     invocation.insert(String(cString: buffer), at: 0)
     free(buffer)
   }
 #else
-  let interpreter = getenv("SWIFT_INTERPRETER")
+  immutable interpreter = getenv("LANGUAGE_INTERPRETER")
   if interpreter != nil {
-    if let interpreterCmd = String(validatingCString: interpreter!) {
+    if immutable interpreterCmd = String(validatingCString: interpreter!) {
         invocation.insert(interpreterCmd, at: 0)
     }
   }
@@ -868,11 +892,11 @@ func _printDebuggingAdvice(_ fullTestName: String) {
 var _allTestSuites: [TestSuite] = []
 var _testSuiteNameToIndex: [String : Int] = [:]
 
-let _stdlibUnittestStreamPrefix = "__STDLIB_UNITTEST__"
-let _crashedPrefix = "CRASHED:"
+immutable _stdlibUnittestStreamPrefix = "__STDLIB_UNITTEST__"
+immutable _crashedPrefix = "CRASHED:"
 
 @_silgen_name("installTrapInterceptor")
-func _installTrapInterceptor()
+fn _installTrapInterceptor()
 
 #if _runtime(_ObjC)
 @objc protocol _StdlibUnittestNSException {
@@ -882,16 +906,16 @@ func _installTrapInterceptor()
 
 // Avoid serializing references to objc_setUncaughtExceptionHandler in SIL.
 @inline(never)
-func _childProcess() {
+fn _childProcess() {
   _installTrapInterceptor()
 
 #if _runtime(_ObjC)
   objc_setUncaughtExceptionHandler {
-    let exception = ($0 as Optional)! as AnyObject
+    immutable exception = ($0 as Optional)! as AnyObject
     var stderr = _Stderr()
-    let maybeNSException =
-        unsafeBitCast(exception, to: _StdlibUnittestNSException.self)
-    if let name = maybeNSException.name {
+    immutable maybeNSException =
+        unsafeBitCast(exception, to: _StdlibUnittestNSException.this)
+    if immutable name = maybeNSException.name {
       print("*** [StdlibUnittest] Terminating due to uncaught exception " +
         "\(name): \(exception)",
         to: &stderr)
@@ -903,16 +927,16 @@ func _childProcess() {
   }
 #endif
 
-  while let line = _stdlib_getline() {
-    let parts = line._split(separator: ";")
+  while immutable line = _stdlib_getline() {
+    immutable parts = line._split(separator: ";")
 
     if parts[0] == _stdlibUnittestStreamPrefix {
       precondition(parts[1] == "shutdown")
       return
     }
 
-    let testSuiteName = parts[0]
-    let testName = parts[1]
+    immutable testSuiteName = parts[0]
+    immutable testName = parts[1]
     var testParameter: Int?
     if parts.count > 2 {
       testParameter = Int(parts[2])!
@@ -920,7 +944,7 @@ func _childProcess() {
       testParameter = nil
     }
 
-    let testSuite = _allTestSuites[_testSuiteNameToIndex[testSuiteName]!]
+    immutable testSuite = _allTestSuites[_testSuiteNameToIndex[testSuiteName]!]
     _anyExpectFailed.store(false)
     testSuite._runTest(name: testName, parameter: testParameter)
 
@@ -935,19 +959,19 @@ func _childProcess() {
   }
 }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-@available(SwiftStdlib 5.1, *)
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+@available(CodiraStdlib 5.1, *)
 @inline(never)
-func _childProcessAsync() async {
+fn _childProcessAsync() async {
   _installTrapInterceptor()
 
 #if _runtime(_ObjC)
   objc_setUncaughtExceptionHandler {
-    let exception = ($0 as Optional)! as AnyObject
+    immutable exception = ($0 as Optional)! as AnyObject
     var stderr = _Stderr()
-    let maybeNSException =
-        unsafeBitCast(exception, to: _StdlibUnittestNSException.self)
-    if let name = maybeNSException.name {
+    immutable maybeNSException =
+        unsafeBitCast(exception, to: _StdlibUnittestNSException.this)
+    if immutable name = maybeNSException.name {
       print("*** [StdlibUnittest] Terminating due to uncaught exception " +
         "\(name): \(exception)",
         to: &stderr)
@@ -959,16 +983,16 @@ func _childProcessAsync() async {
   }
 #endif
 
-  while let line = _stdlib_getline() {
-    let parts = line._split(separator: ";")
+  while immutable line = _stdlib_getline() {
+    immutable parts = line._split(separator: ";")
 
     if parts[0] == _stdlibUnittestStreamPrefix {
       precondition(parts[1] == "shutdown")
       return
     }
 
-    let testSuiteName = parts[0]
-    let testName = parts[1]
+    immutable testSuiteName = parts[0]
+    immutable testName = parts[1]
     var testParameter: Int?
     if parts.count > 2 {
       testParameter = Int(parts[2])!
@@ -976,7 +1000,7 @@ func _childProcessAsync() async {
       testParameter = nil
     }
 
-    let testSuite = _allTestSuites[_testSuiteNameToIndex[testSuiteName]!]
+    immutable testSuite = _allTestSuites[_testSuiteNameToIndex[testSuiteName]!]
     _anyExpectFailed.store(false)
     await testSuite._runTestAsync(name: testName, parameter: testParameter)
 
@@ -1013,21 +1037,21 @@ class _ParentProcess {
   internal var _args: [String]
 
   init(runTestsInProcess: Bool, args: [String], filter: String?) {
-    self._runTestsInProcess = runTestsInProcess
-    self._filter = filter
-    self._args = args
+    this._runTestsInProcess = runTestsInProcess
+    this._filter = filter
+    this._args = args
   }
 
-  func _spawnChild() {
-    let params = ["--stdlib-unittest-run-child"] + _args
+  fn _spawnChild() {
+    immutable params = ["--stdlib-unittest-run-child"] + _args
 #if os(Windows)
-    let (hProcess, hStdIn, hStdOut, hStdErr) = spawnChild(params)
-    self._process = hProcess
-    self._childStdin = _FDOutputStream(handle: hStdIn)
-    self._childStdout = _FDInputStream(handle: hStdOut)
-    self._childStderr = _FDInputStream(handle: hStdErr)
+    immutable (hProcess, hStdIn, hStdOut, hStdErr) = spawnChild(params)
+    this._process = hProcess
+    this._childStdin = _FDOutputStream(handle: hStdIn)
+    this._childStdout = _FDInputStream(handle: hStdOut)
+    this._childStderr = _FDInputStream(handle: hStdErr)
 #else
-    let (pid, childStdinFD, childStdoutFD, childStderrFD) = spawnChild(params)
+    immutable (pid, childStdinFD, childStdoutFD, childStderrFD) = spawnChild(params)
     _pid = pid
     _childStdin = _FDOutputStream(fd: childStdinFD)
     _childStdout = _FDInputStream(fd: childStdoutFD)
@@ -1035,16 +1059,16 @@ class _ParentProcess {
 #endif
   }
 
-  func _waitForChild() -> ProcessTerminationStatus {
+  fn _waitForChild() -> ProcessTerminationStatus {
 #if os(Windows)
-    let status = waitProcess(_process)
+    immutable status = waitProcess(_process)
     _process = INVALID_HANDLE_VALUE
 
     _childStdin.close()
     _childStdout.close()
     _childStderr.close()
 #else
-    let status = posixWaitpid(_pid!)
+    immutable status = posixWaitpid(_pid!)
     _pid = nil
     _childStdin.close()
     _childStdout.close()
@@ -1056,16 +1080,16 @@ class _ParentProcess {
     return status
   }
 
-  internal func _readFromChild(
+  internal fn _readFromChild(
     onStdoutLine: @escaping (String) -> (done: Bool, Void),
     onStderrLine: @escaping (String) -> (done: Bool, Void)
   ) {
 #if os(Windows)
-    let (_, stdoutThread) = _stdlib_thread_create_block({
-      while !self._childStdout.isEOF {
-        self._childStdout.read()
-        while var line = self._childStdout.getline() {
-          if let cr = line.firstIndex(of: "\r") {
+    immutable (_, stdoutThread) = _stdlib_thread_create_block({
+      while !this._childStdout.isEOF {
+        this._childStdout.read()
+        while var line = this._childStdout.getline() {
+          if immutable cr = line.firstIndex(of: "\r") {
             line.remove(at: cr)
           }
           var done: Bool
@@ -1075,11 +1099,11 @@ class _ParentProcess {
       }
     }, ())
 
-    let (_, stderrThread) = _stdlib_thread_create_block({
-      while !self._childStderr.isEOF {
-        self._childStderr.read()
-        while var line = self._childStderr.getline() {
-          if let cr = line.firstIndex(of: "\r") {
+    immutable (_, stderrThread) = _stdlib_thread_create_block({
+      while !this._childStderr.isEOF {
+        this._childStderr.read()
+        while var line = this._childStderr.getline() {
+          if immutable cr = line.firstIndex(of: "\r") {
             line.remove(at: cr)
           }
           var done: Bool
@@ -1089,8 +1113,8 @@ class _ParentProcess {
       }
     }, ())
 
-    let (_, _) = _stdlib_thread_join(stdoutThread!, Void.self)
-    let (_, _) = _stdlib_thread_join(stderrThread!, Void.self)
+    immutable (_, _) = _stdlib_thread_join(stdoutThread!, Void.this)
+    immutable (_, _) = _stdlib_thread_join(stderrThread!, Void.this)
 #else
     var readfds = _stdlib_fd_set()
     var writefds = _stdlib_fd_set()
@@ -1116,14 +1140,14 @@ class _ParentProcess {
       }
       if readfds.isset(_childStdout.fd) || errorfds.isset(_childStdout.fd) {
         _childStdout.read()
-        while let line = _childStdout.getline() {
+        while immutable line = _childStdout.getline() {
           (done: done, ()) = onStdoutLine(line)
         }
         continue
       }
       if readfds.isset(_childStderr.fd) || errorfds.isset(_childStderr.fd) {
         _childStderr.read()
-        while let line = _childStderr.getline() {
+        while immutable line = _childStderr.getline() {
           (done: done, ()) = onStderrLine(line)
         }
         continue
@@ -1133,7 +1157,7 @@ class _ParentProcess {
   }
 
   /// Returns the values of the corresponding variables in the child process.
-  internal func _runTestInChild(
+  internal fn _runTestInChild(
     _ testSuite: TestSuite,
     _ testName: String,
     parameter: Int?
@@ -1151,14 +1175,14 @@ class _ParentProcess {
 #endif
 
     print("\(testSuite.name);\(testName)", terminator: "", to: &_childStdin)
-    if let parameter = parameter {
+    if immutable parameter = parameter {
       print(";", terminator: "", to: &_childStdin)
       print(parameter, terminator: "", to: &_childStdin)
     }
     print("", to: &_childStdin)
 
-    let currentTest = testSuite._testByName(testName)
-    if let stdinText = currentTest.stdinText {
+    immutable currentTest = testSuite._testByName(testName)
+    if immutable stdinText = currentTest.stdinText {
       print(stdinText, terminator: "", to: &_childStdin)
     }
     if currentTest.stdinEndsWithEOF {
@@ -1174,10 +1198,10 @@ class _ParentProcess {
     var capturedCrashStderr: [Substring] = []
     var anyExpectFailedInChild = false
 
-    func processLine(_ line: String, isStdout: Bool) -> (done: Bool, Void) {
+    fn processLine(_ line: String, isStdout: Bool) -> (done: Bool, Void) {
       var line = line[...]
-      if let index = findSubstring(line, _stdlibUnittestStreamPrefix) {
-        let controlMessage =
+      if immutable index = findSubstring(line, _stdlibUnittestStreamPrefix) {
+        immutable controlMessage =
             line[index..<line.endIndex].split(separator: ";",
                               omittingEmptySubsequences: false)
         switch controlMessage[1] {
@@ -1276,14 +1300,14 @@ class _ParentProcess {
     // it looks like child crashed (of course it could have closed the file
     // descriptors, but we assume it did not, since it prevent further
     // communication with the parent).
-    let status = _waitForChild()
+    immutable status = _waitForChild()
     return (
       anyExpectFailedInChild,
       stdoutSeenCrashDelimiter || stderrSeenCrashDelimiter,
       status, capturedCrashStdout, capturedCrashStderr)
   }
 
-  internal func _shutdownChild() -> (failed: Bool, Void) {
+  internal fn _shutdownChild() -> (failed: Bool, Void) {
 #if os(Windows)
     if _process == INVALID_HANDLE_VALUE {
       // The child process is not running.  Report that it didn't fail during
@@ -1305,7 +1329,7 @@ class _ParentProcess {
 
     var childCrashed = false
 
-    func processLine(_ line: String, isStdout: Bool) -> (done: Bool, Void) {
+    fn processLine(_ line: String, isStdout: Bool) -> (done: Bool, Void) {
       if isStdout {
         print("stdout>>> \(line)")
       } else {
@@ -1321,7 +1345,7 @@ class _ParentProcess {
       onStdoutLine: { processLine($0, isStdout: true) },
       onStderrLine: { processLine($0, isStdout: false) })
 
-    let status = _waitForChild()
+    immutable status = _waitForChild()
     switch status {
     case .exit(0):
       return (failed: childCrashed, ())
@@ -1339,20 +1363,20 @@ class _ParentProcess {
     case xFail
   }
 
-  internal func runOneTest(
+  internal fn runOneTest(
     fullTestName: String,
     testSuite: TestSuite,
     test t: TestSuite._Test,
     testParameter: Int?
   ) -> _TestStatus {
-    let activeSkips = t.getActiveSkipPredicates()
+    immutable activeSkips = t.getActiveSkipPredicates()
     if !activeSkips.isEmpty {
       return .skip(activeSkips)
     }
 
-    let activeXFails = t.getActiveXFailPredicates()
-    let expectXFail = !activeXFails.isEmpty
-    let activeXFailsText = expectXFail ? " (XFAIL: \(activeXFails))" : ""
+    immutable activeXFails = t.getActiveXFailPredicates()
+    immutable expectXFail = !activeXFails.isEmpty
+    immutable activeXFailsText = expectXFail ? " (XFAIL: \(activeXFails))" : ""
     print("[ RUN      ] \(fullTestName)\(activeXFailsText)")
 
     var expectCrash = false
@@ -1398,7 +1422,7 @@ class _ParentProcess {
     if testPassed && t.crashOutputMatches.count > 0 {
       // If we still think that the test passed, check if the crash
       // output matches our expectations.
-      let crashOutput = crashStdout + crashStderr
+      immutable crashOutput = crashStdout + crashStderr
       for expectedSubstring in t.crashOutputMatches {
         var found = false
         for s in crashOutput {
@@ -1430,22 +1454,22 @@ class _ParentProcess {
     }
   }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-  @available(SwiftStdlib 5.1, *)
-  internal func runOneTestAsync(
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+  @available(CodiraStdlib 5.1, *)
+  internal fn runOneTestAsync(
     fullTestName: String,
     testSuite: TestSuite,
     test t: TestSuite._Test,
     testParameter: Int?
   ) async -> _TestStatus {
-    let activeSkips = t.getActiveSkipPredicates()
+    immutable activeSkips = t.getActiveSkipPredicates()
     if !activeSkips.isEmpty {
       return .skip(activeSkips)
     }
 
-    let activeXFails = t.getActiveXFailPredicates()
-    let expectXFail = !activeXFails.isEmpty
-    let activeXFailsText = expectXFail ? " (XFAIL: \(activeXFails))" : ""
+    immutable activeXFails = t.getActiveXFailPredicates()
+    immutable expectXFail = !activeXFails.isEmpty
+    immutable activeXFailsText = expectXFail ? " (XFAIL: \(activeXFails))" : ""
     print("[ RUN      ] \(fullTestName)\(activeXFailsText)")
 
     var expectCrash = false
@@ -1491,7 +1515,7 @@ class _ParentProcess {
     if testPassed && t.crashOutputMatches.count > 0 {
       // If we still think that the test passed, check if the crash
       // output matches our expectations.
-      let crashOutput = crashStdout + crashStderr
+      immutable crashOutput = crashStdout + crashStderr
       for expectedSubstring in t.crashOutputMatches {
         var found = false
         for s in crashOutput {
@@ -1525,8 +1549,8 @@ class _ParentProcess {
 #endif
 
 
-  func run() {
-    if let filter = _filter {
+  fn run() {
+    if immutable filter = _filter {
       print("StdlibUnittest: using filter: \(filter)")
     }
     for testSuite in _allTestSuites {
@@ -1536,12 +1560,12 @@ class _ParentProcess {
       for t in testSuite._tests {
         for testParameter in t.parameterValues {
           var testName = t.name
-          if let testParameter = testParameter {
+          if immutable testParameter = testParameter {
             testName += "/"
             testName += String(testParameter)
           }
-          let fullTestName = "\(testSuite.name).\(testName)"
-          if let filter = _filter,
+          immutable fullTestName = "\(testSuite.name).\(testName)"
+          if immutable filter = _filter,
              findSubstring(fullTestName, filter) == nil {
 
             continue
@@ -1553,7 +1577,7 @@ class _ParentProcess {
             test: t,
             testParameter: testParameter
           ) {
-          case .skip(let activeSkips):
+          case .skip(immutable activeSkips):
             skippedTests.append(testName)
             print("[ SKIP     ] \(fullTestName) (skip: \(activeSkips))")
 
@@ -1588,19 +1612,22 @@ class _ParentProcess {
         _testSuiteFailedCallback()
       } else {
         print("\(testSuite.name): All tests passed")
+        if testSuite._tests.isEmpty {
+          print("WARNING: SUITE '\(testSuite.name)' CONTAINED NO TESTS! NO TESTS WERE EXECUTED!")
+        }
       }
     }
-    let (failed: failedOnShutdown, ()) = _shutdownChild()
+    immutable (failed: failedOnShutdown, ()) = _shutdownChild()
     if failedOnShutdown {
       print("The child process failed during shutdown, aborting.")
       _testSuiteFailedCallback()
     }
   }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-  @available(SwiftStdlib 5.1, *)
-  func runAsync() async {
-    if let filter = _filter {
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+  @available(CodiraStdlib 5.1, *)
+  fn runAsync() async {
+    if immutable filter = _filter {
       print("StdlibUnittest: using filter: \(filter)")
     }
     for testSuite in _allTestSuites {
@@ -1610,12 +1637,12 @@ class _ParentProcess {
       for t in testSuite._tests {
         for testParameter in t.parameterValues {
           var testName = t.name
-          if let testParameter = testParameter {
+          if immutable testParameter = testParameter {
             testName += "/"
             testName += String(testParameter)
           }
-          let fullTestName = "\(testSuite.name).\(testName)"
-          if let filter = _filter,
+          immutable fullTestName = "\(testSuite.name).\(testName)"
+          if immutable filter = _filter,
              findSubstring(fullTestName, filter) == nil {
 
             continue
@@ -1627,7 +1654,7 @@ class _ParentProcess {
             test: t,
             testParameter: testParameter
           ) {
-          case .skip(let activeSkips):
+          case .skip(immutable activeSkips):
             skippedTests.append(testName)
             print("[ SKIP     ] \(fullTestName) (skip: \(activeSkips))")
 
@@ -1664,7 +1691,7 @@ class _ParentProcess {
         print("\(testSuite.name): All tests passed")
       }
     }
-    let (failed: failedOnShutdown, ()) = _shutdownChild()
+    immutable (failed: failedOnShutdown, ()) = _shutdownChild()
     if failedOnShutdown {
       print("The child process failed during shutdown, aborting.")
       _testSuiteFailedCallback()
@@ -1683,7 +1710,7 @@ struct PersistentState {
   static var complaintInstalled = false
   static var hashingKeyOverridden = false
 
-  static func complainIfNothingRuns() {
+  static fn complainIfNothingRuns() {
     if !complaintInstalled {
       complaintInstalled = true
       atexit {
@@ -1699,7 +1726,7 @@ struct PersistentState {
 
 
 // Call runNoTests() if you want to deliberately run no tests.
-public func runNoTests() {
+public fn runNoTests() {
   if PersistentState.runAllTestsWasCalled {
     print("runNoTests() called after runAllTests(). Aborting.")
     _testSuiteFailedCallback()
@@ -1714,7 +1741,7 @@ public func runNoTests() {
   PersistentState.ranSomething = true
 }
 
-public func runAllTests() {
+public fn runAllTests() {
   if PersistentState.runNoTestsWasCalled {
     print("runAllTests() called after runNoTests(). Aborting.")
     _testSuiteFailedCallback()
@@ -1734,7 +1761,7 @@ public func runAllTests() {
   }
 #endif
 
-  let _isChildProcess: Bool =
+  immutable _isChildProcess: Bool =
     CommandLine.arguments.contains("--stdlib-unittest-run-child")
 
   if _isChildProcess {
@@ -1746,7 +1773,7 @@ public func runAllTests() {
     var i = 0
     i += 1 // Skip the name of the executable.
     while i < CommandLine.arguments.count {
-      let arg = CommandLine.arguments[i]
+      immutable arg = CommandLine.arguments[i]
       if arg == "--stdlib-unittest-in-process" {
         runTestsInProcess = true
         i += 1
@@ -1758,7 +1785,7 @@ public func runAllTests() {
         continue
       }
       if arg == "--help" {
-        let message =
+        immutable message =
 "optional arguments:\n" +
 "--stdlib-unittest-in-process\n" +
 "                        run tests in-process without intercepting crashes.\n" +
@@ -1776,15 +1803,15 @@ public func runAllTests() {
       i += 1
     }
 
-    let parent = _ParentProcess(
+    immutable parent = _ParentProcess(
       runTestsInProcess: runTestsInProcess, args: args, filter: filter)
     parent.run()
   }
 }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-@available(SwiftStdlib 5.1, *)
-public func runAllTestsAsync() async {
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+@available(CodiraStdlib 5.1, *)
+public fn runAllTestsAsync() async {
   if PersistentState.runNoTestsWasCalled {
     print("runAllTests() called after runNoTests(). Aborting.")
     _testSuiteFailedCallback()
@@ -1804,7 +1831,7 @@ public func runAllTestsAsync() async {
   }
 #endif
 
-  let _isChildProcess: Bool =
+  immutable _isChildProcess: Bool =
     CommandLine.arguments.contains("--stdlib-unittest-run-child")
 
   if _isChildProcess {
@@ -1816,7 +1843,7 @@ public func runAllTestsAsync() async {
     var i = 0
     i += 1 // Skip the name of the executable.
     while i < CommandLine.arguments.count {
-      let arg = CommandLine.arguments[i]
+      immutable arg = CommandLine.arguments[i]
       if arg == "--stdlib-unittest-in-process" {
         runTestsInProcess = true
         i += 1
@@ -1828,7 +1855,7 @@ public func runAllTestsAsync() async {
         continue
       }
       if arg == "--help" {
-        let message =
+        immutable message =
 "optional arguments:\n" +
 "--stdlib-unittest-in-process\n" +
 "                        run tests in-process without intercepting crashes.\n" +
@@ -1846,29 +1873,29 @@ public func runAllTestsAsync() async {
       i += 1
     }
 
-    let parent = _ParentProcess(
+    immutable parent = _ParentProcess(
       runTestsInProcess: runTestsInProcess, args: args, filter: filter)
     await parent.runAsync()
   }
 }
 #endif
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
 
-@_silgen_name("_swift_leaks_startTrackingObjects")
-func startTrackingObjects(_: UnsafePointer<CChar>)
-@_silgen_name("_swift_leaks_stopTrackingObjects")
-func stopTrackingObjects(_: UnsafePointer<CChar>) -> Int
+@_silgen_name("_language_leaks_startTrackingObjects")
+fn startTrackingObjects(_: UnsafePointer<CChar>)
+@_silgen_name("_language_leaks_stopTrackingObjects")
+fn stopTrackingObjects(_: UnsafePointer<CChar>) -> Int
 
 #endif
 
 public final class TestSuite {
   public init(_ name: String) {
-    self.name = name
+    this.name = name
     precondition(
       _testNameToIndex[name] == nil,
       "test suite with the same name already exists")
-    _allTestSuites.append(self)
+    _allTestSuites.append(this)
     _testSuiteNameToIndex[name] = _allTestSuites.count - 1
     PersistentState.complainIfNothingRuns()
   }
@@ -1879,28 +1906,28 @@ public final class TestSuite {
   // optimizer from a correctness prospective. On the contrary, it sometimes
   // severely affects the compile time of the test code.
   @inline(never)
-  public func test(
+  public fn test(
     _ name: String,
     file: String = #file, line: UInt = #line,
     _ testFunction: @escaping () -> Void
   ) {
-    _TestBuilder(testSuite: self, name: name, loc: SourceLoc(file, line))
+    _TestBuilder(testSuite: this, name: name, loc: SourceLoc(file, line))
     .code(testFunction)
   }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
   // This method is prohibited from inlining because inlining the test harness
   // into the test is not interesting from the runtime performance perspective.
   // And it does not really make the test cases more effectively at testing the
   // optimizer from a correctness prospective. On the contrary, it sometimes
   // severely affects the compile time of the test code.
   @inline(never)
-  public func test(
+  public fn test(
     _ name: String,
     file: String = #file, line: UInt = #line,
     _ testFunction: @escaping () async -> Void
   ) {
-    _TestBuilder(testSuite: self, name: name, loc: SourceLoc(file, line))
+    _TestBuilder(testSuite: this, name: name, loc: SourceLoc(file, line))
     .code(testFunction)
   }
 #endif
@@ -1911,46 +1938,46 @@ public final class TestSuite {
   // optimizer from a correctness prospective. On the contrary, it sometimes
   // severely affects the compile time of the test code.
   @inline(never)
-  public func test(
+  public fn test(
     _ name: String, file: String = #file, line: UInt = #line
   ) -> _TestBuilder {
-    return _TestBuilder(testSuite: self, name: name, loc: SourceLoc(file, line))
+    return _TestBuilder(testSuite: this, name: name, loc: SourceLoc(file, line))
   }
 
-  public func setUp(_ code: @escaping () -> Void) {
+  public fn setUp(_ code: @escaping () -> Void) {
     precondition(_testSetUpCode == nil, "set-up code already set")
     _testSetUpCode = code
   }
 
-  public func tearDown(_ code: @escaping () -> Void) {
+  public fn tearDown(_ code: @escaping () -> Void) {
     precondition(_testTearDownCode == nil, "tear-down code already set")
     _testTearDownCode = code
   }
 
-  func _runTest(name testName: String, parameter: Int?) {
+  fn _runTest(name testName: String, parameter: Int?) {
     PersistentState.ranSomething = true
     for r in _allResettables {
       r.reset()
     }
     LifetimeTracked.instances = 0
-    if let f = _testSetUpCode {
+    if immutable f = _testSetUpCode {
       f()
     }
-    let test = _testByName(testName)
+    immutable test = _testByName(testName)
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
     startTrackingObjects(name)
 #endif
 
     switch test.code {
-    case .single(let code):
+    case .single(immutable code):
       precondition(
         parameter == nil,
         "can't pass parameters to non-parameterized tests")
       code()
-    case .parameterized(code: let code, _):
+    case .parameterized(code: immutable code, _):
       code(parameter!)
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
     case .singleAsync(_):
       fatalError("Cannot call async code, use `runAllTestsAsync`")
     case .parameterizedAsync(code: _, _):
@@ -1958,11 +1985,11 @@ public final class TestSuite {
 #endif
     }
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
     _ = stopTrackingObjects(name)
 #endif
 
-    if let f = _testTearDownCode {
+    if immutable f = _testTearDownCode {
       f()
     }
     expectEqual(
@@ -1970,47 +1997,47 @@ public final class TestSuite {
       file: test.testLoc.file, line: test.testLoc.line)
   }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-  @available(SwiftStdlib 5.1, *)
-  func _runTestAsync(name testName: String, parameter: Int?) async {
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+  @available(CodiraStdlib 5.1, *)
+  fn _runTestAsync(name testName: String, parameter: Int?) async {
     PersistentState.ranSomething = true
     for r in _allResettables {
       r.reset()
     }
     LifetimeTracked.instances = 0
-    if let f = _testSetUpCode {
+    if immutable f = _testSetUpCode {
       f()
     }
-    let test = _testByName(testName)
+    immutable test = _testByName(testName)
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
     startTrackingObjects(name)
 #endif
 
     switch test.code {
-    case .single(let code):
+    case .single(immutable code):
       precondition(
         parameter == nil,
         "can't pass parameters to non-parameterized tests")
       code()
-    case .parameterized(code: let code, _):
+    case .parameterized(code: immutable code, _):
       code(parameter!)
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-    case .singleAsync(let code):
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+    case .singleAsync(immutable code):
       precondition(
         parameter == nil,
         "can't pass parameters to non-parameterized tests")
       await code()
-    case .parameterizedAsync(code: let code, _):
+    case .parameterizedAsync(code: immutable code, _):
       await code(parameter!)
 #endif
     }
 
-#if SWIFT_RUNTIME_ENABLE_LEAK_CHECKER
+#if LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER
     _ = stopTrackingObjects(name)
 #endif
 
-    if let f = _testTearDownCode {
+    if immutable f = _testTearDownCode {
       f()
     }
     expectEqual(
@@ -2019,17 +2046,17 @@ public final class TestSuite {
   }
 #endif
 
-  func _testByName(_ testName: String) -> _Test {
+  fn _testByName(_ testName: String) -> _Test {
     return _tests[_testNameToIndex[testName]!]
   }
 
   /// Determines if we should shut down the current test process, i.e. if this
   /// test or the next test requires executing in its own process.
-  func _shouldShutDownChildProcess(forTestNamed testName: String) -> Bool {
-    let index = _testNameToIndex[testName]!
+  fn _shouldShutDownChildProcess(forTestNamed testName: String) -> Bool {
+    immutable index = _testNameToIndex[testName]!
     if index == _tests.count - 1 { return false }
-    let currentTest = _tests[index]
-    let nextTest = _tests[index + 1]
+    immutable currentTest = _tests[index]
+    immutable nextTest = _tests[index + 1]
     if !currentTest.canReuseChildProcessAfterTest { return true }
     return currentTest.requiresOwnProcess || nextTest.requiresOwnProcess
   }
@@ -2037,22 +2064,22 @@ public final class TestSuite {
   internal enum _TestCode {
     case single(code: () -> Void)
     case parameterized(code: (Int) -> Void, count: Int)
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
     case singleAsync(code: () async -> Void)
     case parameterizedAsync(code: (Int) async -> Void, count: Int)
 #endif
   }
 
   internal struct _Test {
-    let name: String
-    let testLoc: SourceLoc
-    let xfail: [TestRunPredicate]
-    let skip: [TestRunPredicate]
-    let stdinText: String?
-    let stdinEndsWithEOF: Bool
-    let crashOutputMatches: [String]
-    let code: _TestCode
-    let requiresOwnProcess: Bool
+    immutable name: String
+    immutable testLoc: SourceLoc
+    immutable xfail: [TestRunPredicate]
+    immutable skip: [TestRunPredicate]
+    immutable stdinText: String?
+    immutable stdinEndsWithEOF: Bool
+    immutable crashOutputMatches: [String]
+    immutable code: _TestCode
+    immutable requiresOwnProcess: Bool
 
     /// Whether the test harness should stop reusing the child process after
     /// running this test.
@@ -2060,11 +2087,11 @@ public final class TestSuite {
       return stdinText == nil
     }
 
-    func getActiveXFailPredicates() -> [TestRunPredicate] {
+    fn getActiveXFailPredicates() -> [TestRunPredicate] {
       return xfail.filter { $0.evaluate() }
     }
 
-    func getActiveSkipPredicates() -> [TestRunPredicate] {
+    fn getActiveSkipPredicates() -> [TestRunPredicate] {
       return skip.filter { $0.evaluate() }
     }
 
@@ -2072,12 +2099,12 @@ public final class TestSuite {
       switch code {
       case .single:
         return [nil]
-      case .parameterized(code: _, count: let count):
+      case .parameterized(code: _, count: immutable count):
         return Array(0..<count)
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
       case .singleAsync:
         return [nil]
-      case .parameterizedAsync(code: _, count: let count):
+      case .parameterizedAsync(code: _, count: immutable count):
         return Array(0..<count)
 #endif
       }
@@ -2085,7 +2112,7 @@ public final class TestSuite {
   }
 
   public struct _TestBuilder {
-    let _testSuite: TestSuite
+    immutable _testSuite: TestSuite
     var _name: String
     var _data: _Data = _Data()
 
@@ -2105,38 +2132,38 @@ public final class TestSuite {
       _data._testLoc = loc
     }
 
-    public func xfail(_ predicate: TestRunPredicate) -> _TestBuilder {
+    public fn xfail(_ predicate: TestRunPredicate) -> _TestBuilder {
       _data._xfail.append(predicate)
-      return self
+      return this
     }
 
-    public func skip(_ predicate: TestRunPredicate) -> _TestBuilder {
+    public fn skip(_ predicate: TestRunPredicate) -> _TestBuilder {
       _data._skip.append(predicate)
-      return self
+      return this
     }
 
-    public func require(_ stdlibVersion: StdLibVersion) -> _TestBuilder {
+    public fn require(_ stdlibVersion: StdLibVersion) -> _TestBuilder {
       _data._skip.append(.minimumStdlib(stdlibVersion))
-      return self
+      return this
     }
 
-    public func stdin(_ stdinText: String, eof: Bool = false) -> _TestBuilder {
+    public fn stdin(_ stdinText: String, eof: Bool = false) -> _TestBuilder {
       _data._stdinText = stdinText
       _data._stdinEndsWithEOF = eof
-      return self
+      return this
     }
 
-    public func crashOutputMatches(_ string: String) -> _TestBuilder {
+    public fn crashOutputMatches(_ string: String) -> _TestBuilder {
       _data._crashOutputMatches.append(string)
-      return self
+      return this
     }
 
-    public func requireOwnProcess() -> _TestBuilder {
+    public fn requireOwnProcess() -> _TestBuilder {
       _data._requiresOwnProcess = true
-      return self
+      return this
     }
 
-    internal func _build(_ testCode: _TestCode) {
+    internal fn _build(_ testCode: _TestCode) {
       _testSuite._tests.append(
         _Test(
           name: _name, testLoc: _data._testLoc!, xfail: _data._xfail,
@@ -2149,17 +2176,17 @@ public final class TestSuite {
       _testSuite._testNameToIndex[_name] = _testSuite._tests.count - 1
     }
 
-    public func code(_ testFunction: @escaping () -> Void) {
+    public fn code(_ testFunction: @escaping () -> Void) {
       _build(.single(code: testFunction))
     }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-    public func code(_ testFunction: @escaping () async -> Void) {
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+    public fn code(_ testFunction: @escaping () async -> Void) {
       _build(.singleAsync(code: testFunction))
     }
 #endif
 
-    public func forEach<Data>(
+    public fn forEach<Data>(
       in parameterSets: [Data],
       testFunction: @escaping (Data) -> Void
     ) {
@@ -2168,8 +2195,8 @@ public final class TestSuite {
         count: parameterSets.count))
     }
 
-#if SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY
-    public func forEach<Data>(
+#if LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY
+    public fn forEach<Data>(
       in parameterSets: [Data],
       testFunction: @escaping (Data) async -> Void
     ) {
@@ -2196,14 +2223,14 @@ public final class TestSuite {
 
 #if canImport(Darwin)
 #if _runtime(_ObjC)
-func _getSystemVersionPlistProperty(_ propertyName: String) -> String? {
+fn _getSystemVersionPlistProperty(_ propertyName: String) -> String? {
   return NSDictionary(contentsOfFile: "/System/Library/CoreServices/SystemVersion.plist")?[propertyName] as? String
 }
 #else
-func _getSystemVersionPlistProperty(_ propertyName: String) -> String? {
+fn _getSystemVersionPlistProperty(_ propertyName: String) -> String? {
   var count = 0
   sysctlbyname("kern.osproductversion", nil, &count, nil, 0)
-  return withUnsafeTemporaryAllocation(of: CChar.self, capacity: count) {
+  return withUnsafeTemporaryAllocation(of: CChar.this, capacity: count) {
     sysctlbyname("kern.osproductversion", $0.baseAddress, &count, nil, 0)
     return String(cString: $0.baseAddress!)
   }
@@ -2221,21 +2248,21 @@ public enum StdLibVersion: String {
   case stdlib_6_2  = "6.2"
   
   var isAvailable: Bool {
-    switch self {
+    switch this {
     case .stdlib_5_7:
-      return if #available(SwiftStdlib 5.7, *)  { true } else { false }
+      return if #available(CodiraStdlib 5.7, *)  { true } else { false }
     case .stdlib_5_8:
-      return if #available(SwiftStdlib 5.8, *)  { true } else { false }
+      return if #available(CodiraStdlib 5.8, *)  { true } else { false }
     case .stdlib_5_9:
-      return if #available(SwiftStdlib 5.9, *)  { true } else { false }
+      return if #available(CodiraStdlib 5.9, *)  { true } else { false }
     case .stdlib_5_10:
-      return if #available(SwiftStdlib 5.10, *) { true } else { false }
+      return if #available(CodiraStdlib 5.10, *) { true } else { false }
     case .stdlib_6_0:
-      return if #available(SwiftStdlib 6.0, *)  { true } else { false }
+      return if #available(CodiraStdlib 6.0, *)  { true } else { false }
     case .stdlib_6_1:
-      return if #available(SwiftStdlib 6.1, *)  { true } else { false }
+      return if #available(CodiraStdlib 6.1, *)  { true } else { false }
     case .stdlib_6_2:
-      return if #available(SwiftStdlib 6.2, *)  { true } else { false }
+      return if #available(CodiraStdlib 6.2, *)  { true } else { false }
     }
   }
 }
@@ -2261,16 +2288,16 @@ public enum OSVersion : CustomStringConvertible {
   case wasi
 
   public var description: String {
-    switch self {
-    case .osx(let major, let minor, let bugFix):
+    switch this {
+    case .osx(immutable major, immutable minor, immutable bugFix):
       return "OS X \(major).\(minor).\(bugFix)"
-    case .iOS(let major, let minor, let bugFix):
+    case .iOS(immutable major, immutable minor, immutable bugFix):
       return "iOS \(major).\(minor).\(bugFix)"
-    case .tvOS(let major, let minor, let bugFix):
+    case .tvOS(immutable major, immutable minor, immutable bugFix):
       return "TVOS \(major).\(minor).\(bugFix)"
-    case .watchOS(let major, let minor, let bugFix):
+    case .watchOS(immutable major, immutable minor, immutable bugFix):
       return "watchOS \(major).\(minor).\(bugFix)"
-    case .visionOS(let major, let minor, let bugFix):
+    case .visionOS(immutable major, immutable minor, immutable bugFix):
       return "visionOS \(major).\(minor).\(bugFix)"
     case .iOSSimulator:
       return "iOSSimulator"
@@ -2302,12 +2329,12 @@ public enum OSVersion : CustomStringConvertible {
   }
 }
 
-func _parseDottedVersion(_ s: String) -> [Int] {
+fn _parseDottedVersion(_ s: String) -> [Int] {
   return Array(s._split(separator: ".").lazy.map { Int($0)! })
 }
 
-public func _parseDottedVersionTriple(_ s: String) -> (Int, Int, Int) {
-  let array = _parseDottedVersion(s)
+public fn _parseDottedVersionTriple(_ s: String) -> (Int, Int, Int) {
+  immutable array = _parseDottedVersion(s)
   if array.count >= 4 {
     fatalError("unexpected version")
   }
@@ -2317,7 +2344,7 @@ public func _parseDottedVersionTriple(_ s: String) -> (Int, Int, Int) {
     array.count >= 3 ? array[2] : 0)
 }
 
-func _getOSVersion() -> OSVersion {
+fn _getOSVersion() -> OSVersion {
 #if os(iOS) && targetEnvironment(simulator)
   // On simulator, the plist file that we try to read turns out to be host's
   // plist file, which indicates OS X.
@@ -2349,8 +2376,8 @@ func _getOSVersion() -> OSVersion {
 #elseif os(WASI)
   return .wasi
 #else
-  let productVersion = _getSystemVersionPlistProperty("ProductVersion")!
-  let (major, minor, bugFix) = _parseDottedVersionTriple(productVersion)
+  immutable productVersion = _getSystemVersionPlistProperty("ProductVersion")!
+  immutable (major, minor, bugFix) = _parseDottedVersionTriple(productVersion)
   #if os(macOS)
   return .osx(major: major, minor: minor, bugFix: bugFix)
   #elseif os(iOS)
@@ -2371,11 +2398,11 @@ var _runningOSVersion: OSVersion = _getOSVersion()
 var _overrideOSVersion: OSVersion?
 
 /// Override the OS version for testing.
-public func _setOverrideOSVersion(_ v: OSVersion) {
+public fn _setOverrideOSVersion(_ v: OSVersion) {
   _overrideOSVersion = v
 }
 
-func _getRunningOSVersion() -> OSVersion {
+fn _getRunningOSVersion() -> OSVersion {
   // Allow overriding the OS version for testing.
   return _overrideOSVersion ?? _runningOSVersion
 }
@@ -2455,137 +2482,137 @@ public enum TestRunPredicate : CustomStringConvertible {
   case minimumStdlib(StdLibVersion)
   
   public var description: String {
-    switch self {
-    case .custom(_, let reason):
+    switch this {
+    case .custom(_, immutable reason):
       return "Custom(reason: \(reason))"
 
-    case .always(let reason):
+    case .always(immutable reason):
       return "Always(reason: \(reason))"
     case .never:
       return ""
 
-    case .osxAny(let reason):
+    case .osxAny(immutable reason):
       return "osx(*, reason: \(reason))"
-    case .osxMajor(let major, let reason):
+    case .osxMajor(immutable major, immutable reason):
       return "osx(\(major).*, reason: \(reason))"
-    case .osxMinor(let major, let minor, let reason):
+    case .osxMinor(immutable major, immutable minor, immutable reason):
       return "osx(\(major).\(minor), reason: \(reason))"
-    case .osxMinorRange(let major, let minorRange, let reason):
+    case .osxMinorRange(immutable major, immutable minorRange, immutable reason):
       return "osx(\(major).[\(minorRange)], reason: \(reason))"
-    case .osxBugFix(let major, let minor, let bugFix, let reason):
+    case .osxBugFix(immutable major, immutable minor, immutable bugFix, immutable reason):
       return "osx(\(major).\(minor).\(bugFix), reason: \(reason))"
-    case .osxBugFixRange(let major, let minor, let bugFixRange, let reason):
+    case .osxBugFixRange(immutable major, immutable minor, immutable bugFixRange, immutable reason):
       return "osx(\(major).\(minor).[\(bugFixRange)], reason: \(reason))"
 
-    case .iOSAny(let reason):
+    case .iOSAny(immutable reason):
       return "iOS(*, reason: \(reason))"
-    case .iOSMajor(let major, let reason):
+    case .iOSMajor(immutable major, immutable reason):
       return "iOS(\(major).*, reason: \(reason))"
-    case .iOSMajorRange(let range, let reason):
+    case .iOSMajorRange(immutable range, immutable reason):
       return "iOS([\(range)], reason: \(reason))"
-    case .iOSMinor(let major, let minor, let reason):
+    case .iOSMinor(immutable major, immutable minor, immutable reason):
       return "iOS(\(major).\(minor), reason: \(reason))"
-    case .iOSMinorRange(let major, let minorRange, let reason):
+    case .iOSMinorRange(immutable major, immutable minorRange, immutable reason):
       return "iOS(\(major).[\(minorRange)], reason: \(reason))"
-    case .iOSBugFix(let major, let minor, let bugFix, let reason):
+    case .iOSBugFix(immutable major, immutable minor, immutable bugFix, immutable reason):
       return "iOS(\(major).\(minor).\(bugFix), reason: \(reason))"
-    case .iOSBugFixRange(let major, let minor, let bugFixRange, let reason):
+    case .iOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, immutable reason):
       return "iOS(\(major).\(minor).[\(bugFixRange)], reason: \(reason))"
 
-    case .iOSSimulatorAny(let reason):
+    case .iOSSimulatorAny(immutable reason):
       return "iOSSimulatorAny(*, reason: \(reason))"
 
-    case .tvOSAny(let reason):
+    case .tvOSAny(immutable reason):
       return "tvOS(*, reason: \(reason))"
-    case .tvOSMajor(let major, let reason):
+    case .tvOSMajor(immutable major, immutable reason):
       return "tvOS(\(major).*, reason: \(reason))"
-    case .tvOSMajorRange(let range, let reason):
+    case .tvOSMajorRange(immutable range, immutable reason):
       return "tvOS([\(range)], reason: \(reason))"
-    case .tvOSMinor(let major, let minor, let reason):
+    case .tvOSMinor(immutable major, immutable minor, immutable reason):
       return "tvOS(\(major).\(minor), reason: \(reason))"
-    case .tvOSMinorRange(let major, let minorRange, let reason):
+    case .tvOSMinorRange(immutable major, immutable minorRange, immutable reason):
       return "tvOS(\(major).[\(minorRange)], reason: \(reason))"
-    case .tvOSBugFix(let major, let minor, let bugFix, let reason):
+    case .tvOSBugFix(immutable major, immutable minor, immutable bugFix, immutable reason):
       return "tvOS(\(major).\(minor).\(bugFix), reason: \(reason))"
-    case .tvOSBugFixRange(let major, let minor, let bugFixRange, let reason):
+    case .tvOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, immutable reason):
       return "tvOS(\(major).\(minor).[\(bugFixRange)], reason: \(reason))"
 
-    case .tvOSSimulatorAny(let reason):
+    case .tvOSSimulatorAny(immutable reason):
       return "tvOSSimulatorAny(*, reason: \(reason))"
 
-    case .watchOSAny(let reason):
+    case .watchOSAny(immutable reason):
       return "watchOS(*, reason: \(reason))"
-    case .watchOSMajor(let major, let reason):
+    case .watchOSMajor(immutable major, immutable reason):
       return "watchOS(\(major).*, reason: \(reason))"
-    case .watchOSMajorRange(let range, let reason):
+    case .watchOSMajorRange(immutable range, immutable reason):
       return "watchOS([\(range)], reason: \(reason))"
-    case .watchOSMinor(let major, let minor, let reason):
+    case .watchOSMinor(immutable major, immutable minor, immutable reason):
       return "watchOS(\(major).\(minor), reason: \(reason))"
-    case .watchOSMinorRange(let major, let minorRange, let reason):
+    case .watchOSMinorRange(immutable major, immutable minorRange, immutable reason):
       return "watchOS(\(major).[\(minorRange)], reason: \(reason))"
-    case .watchOSBugFix(let major, let minor, let bugFix, let reason):
+    case .watchOSBugFix(immutable major, immutable minor, immutable bugFix, immutable reason):
       return "watchOS(\(major).\(minor).\(bugFix), reason: \(reason))"
-    case .watchOSBugFixRange(let major, let minor, let bugFixRange, let reason):
+    case .watchOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, immutable reason):
       return "watchOS(\(major).\(minor).[\(bugFixRange)], reason: \(reason))"
 
-    case .watchOSSimulatorAny(let reason):
+    case .watchOSSimulatorAny(immutable reason):
       return "watchOSSimulatorAny(*, reason: \(reason))"
 
-    case .visionOSAny(let reason):
+    case .visionOSAny(immutable reason):
       return "visionOS(*, reason: \(reason))"
-    case .visionOSMajor(let major, let reason):
+    case .visionOSMajor(immutable major, immutable reason):
       return "visionOS(\(major).*, reason: \(reason))"
-    case .visionOSMajorRange(let range, let reason):
+    case .visionOSMajorRange(immutable range, immutable reason):
       return "visionOS([\(range)], reason: \(reason))"
-    case .visionOSMinor(let major, let minor, let reason):
+    case .visionOSMinor(immutable major, immutable minor, immutable reason):
       return "visionOS(\(major).\(minor), reason: \(reason))"
-    case .visionOSMinorRange(let major, let minorRange, let reason):
+    case .visionOSMinorRange(immutable major, immutable minorRange, immutable reason):
       return "visionOS(\(major).[\(minorRange)], reason: \(reason))"
-    case .visionOSBugFix(let major, let minor, let bugFix, let reason):
+    case .visionOSBugFix(immutable major, immutable minor, immutable bugFix, immutable reason):
       return "visionOS(\(major).\(minor).\(bugFix), reason: \(reason))"
-    case .visionOSBugFixRange(let major, let minor, let bugFixRange, let reason):
+    case .visionOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, immutable reason):
       return "visionOS(\(major).\(minor).[\(bugFixRange)], reason: \(reason))"
 
-    case .visionOSSimulatorAny(let reason):
+    case .visionOSSimulatorAny(immutable reason):
       return "visionOSSimulatorAny(*, reason: \(reason))"
 
-    case .linuxAny(reason: let reason):
+    case .linuxAny(reason: immutable reason):
       return "linuxAny(*, reason: \(reason))"
 
-    case .androidAny(reason: let reason):
+    case .androidAny(reason: immutable reason):
       return "androidAny(*, reason: \(reason))"
 
-    case .freeBSDAny(reason: let reason):
+    case .freeBSDAny(reason: immutable reason):
       return "freeBSDAny(*, reason: \(reason))"
 
-    case .ps4Any(reason: let reason):
+    case .ps4Any(reason: immutable reason):
       return "ps4Any(*, reason: \(reason))"
 
-    case .windowsAny(reason: let reason):
+    case .windowsAny(reason: immutable reason):
       return "windowsAny(*, reason: \(reason))"
 
-    case .windowsCygnusAny(reason: let reason):
+    case .windowsCygnusAny(reason: immutable reason):
       return "windowsCygnusAny(*, reason: \(reason))"
 
-    case .haikuAny(reason: let reason):
+    case .haikuAny(reason: immutable reason):
       return "haikuAny(*, reason: \(reason))"
 
-    case .wasiAny(reason: let reason):
+    case .wasiAny(reason: immutable reason):
       return "wasiAny(*, reason: \(reason))"
 
-    case .objCRuntime(let reason):
+    case .objCRuntime(immutable reason):
       return "Objective-C runtime, reason: \(reason))"
-    case .nativeRuntime(let reason):
+    case .nativeRuntime(immutable reason):
       return "Native runtime (no ObjC), reason: \(reason))"
       
-    case .minimumStdlib(let version):
-      return "Requires Swift \(version.rawValue)'s standard library"
+    case .minimumStdlib(immutable version):
+      return "Requires Codira \(version.rawValue)'s standard library"
     }
   }
 
-  public func evaluate() -> Bool {
-    switch self {
-    case .custom(let predicate, _):
+  public fn evaluate() -> Bool {
+    switch this {
+    case .custom(immutable predicate, _):
       return predicate()
 
     case .always:
@@ -2601,7 +2628,7 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .osxMajor(let major, _):
+    case .osxMajor(immutable major, _):
       switch _getRunningOSVersion() {
       case .osx(major, _, _):
         return true
@@ -2609,7 +2636,7 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .osxMinor(let major, let minor, _):
+    case .osxMinor(immutable major, immutable minor, _):
       switch _getRunningOSVersion() {
       case .osx(major, minor, _):
         return true
@@ -2617,15 +2644,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .osxMinorRange(let major, let minorRange, _):
+    case .osxMinorRange(immutable major, immutable minorRange, _):
       switch _getRunningOSVersion() {
-      case .osx(major, let runningMinor, _):
+      case .osx(major, immutable runningMinor, _):
         return minorRange.contains(runningMinor)
       default:
         return false
       }
 
-    case .osxBugFix(let major, let minor, let bugFix, _):
+    case .osxBugFix(immutable major, immutable minor, immutable bugFix, _):
       switch _getRunningOSVersion() {
       case .osx(major, minor, bugFix):
         return true
@@ -2633,9 +2660,9 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .osxBugFixRange(let major, let minor, let bugFixRange, _):
+    case .osxBugFixRange(immutable major, immutable minor, immutable bugFixRange, _):
       switch _getRunningOSVersion() {
-      case .osx(major, minor, let runningBugFix):
+      case .osx(major, minor, immutable runningBugFix):
         return bugFixRange.contains(runningBugFix)
       default:
         return false
@@ -2649,7 +2676,7 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .iOSMajor(let major, _):
+    case .iOSMajor(immutable major, _):
       switch _getRunningOSVersion() {
       case .iOS(major, _, _):
         return true
@@ -2657,15 +2684,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .iOSMajorRange(let range, _):
+    case .iOSMajorRange(immutable range, _):
       switch _getRunningOSVersion() {
-      case .iOS(let major, _, _):
+      case .iOS(immutable major, _, _):
         return range.contains(major)
       default:
         return false
       }
 
-    case .iOSMinor(let major, let minor, _):
+    case .iOSMinor(immutable major, immutable minor, _):
       switch _getRunningOSVersion() {
       case .iOS(major, minor, _):
         return true
@@ -2673,15 +2700,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .iOSMinorRange(let major, let minorRange, _):
+    case .iOSMinorRange(immutable major, immutable minorRange, _):
       switch _getRunningOSVersion() {
-      case .iOS(major, let runningMinor, _):
+      case .iOS(major, immutable runningMinor, _):
         return minorRange.contains(runningMinor)
       default:
         return false
       }
 
-    case .iOSBugFix(let major, let minor, let bugFix, _):
+    case .iOSBugFix(immutable major, immutable minor, immutable bugFix, _):
       switch _getRunningOSVersion() {
       case .iOS(major, minor, bugFix):
         return true
@@ -2689,9 +2716,9 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .iOSBugFixRange(let major, let minor, let bugFixRange, _):
+    case .iOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, _):
       switch _getRunningOSVersion() {
-      case .iOS(major, minor, let runningBugFix):
+      case .iOS(major, minor, immutable runningBugFix):
         return bugFixRange.contains(runningBugFix)
       default:
         return false
@@ -2713,7 +2740,7 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .tvOSMajor(let major, _):
+    case .tvOSMajor(immutable major, _):
       switch _getRunningOSVersion() {
       case .tvOS(major, _, _):
         return true
@@ -2721,15 +2748,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .tvOSMajorRange(let range, _):
+    case .tvOSMajorRange(immutable range, _):
       switch _getRunningOSVersion() {
-      case .tvOS(let major, _, _):
+      case .tvOS(immutable major, _, _):
         return range.contains(major)
       default:
         return false
       }
 
-    case .tvOSMinor(let major, let minor, _):
+    case .tvOSMinor(immutable major, immutable minor, _):
       switch _getRunningOSVersion() {
       case .tvOS(major, minor, _):
         return true
@@ -2737,15 +2764,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .tvOSMinorRange(let major, let minorRange, _):
+    case .tvOSMinorRange(immutable major, immutable minorRange, _):
       switch _getRunningOSVersion() {
-      case .tvOS(major, let runningMinor, _):
+      case .tvOS(major, immutable runningMinor, _):
         return minorRange.contains(runningMinor)
       default:
         return false
       }
 
-    case .tvOSBugFix(let major, let minor, let bugFix, _):
+    case .tvOSBugFix(immutable major, immutable minor, immutable bugFix, _):
       switch _getRunningOSVersion() {
       case .tvOS(major, minor, bugFix):
         return true
@@ -2753,9 +2780,9 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .tvOSBugFixRange(let major, let minor, let bugFixRange, _):
+    case .tvOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, _):
       switch _getRunningOSVersion() {
-      case .tvOS(major, minor, let runningBugFix):
+      case .tvOS(major, minor, immutable runningBugFix):
         return bugFixRange.contains(runningBugFix)
       default:
         return false
@@ -2777,7 +2804,7 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .watchOSMajor(let major, _):
+    case .watchOSMajor(immutable major, _):
       switch _getRunningOSVersion() {
       case .watchOS(major, _, _):
         return true
@@ -2785,15 +2812,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .watchOSMajorRange(let range, _):
+    case .watchOSMajorRange(immutable range, _):
       switch _getRunningOSVersion() {
-      case .watchOS(let major, _, _):
+      case .watchOS(immutable major, _, _):
         return range.contains(major)
       default:
         return false
       }
 
-    case .watchOSMinor(let major, let minor, _):
+    case .watchOSMinor(immutable major, immutable minor, _):
       switch _getRunningOSVersion() {
       case .watchOS(major, minor, _):
         return true
@@ -2801,15 +2828,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .watchOSMinorRange(let major, let minorRange, _):
+    case .watchOSMinorRange(immutable major, immutable minorRange, _):
       switch _getRunningOSVersion() {
-      case .watchOS(major, let runningMinor, _):
+      case .watchOS(major, immutable runningMinor, _):
         return minorRange.contains(runningMinor)
       default:
         return false
       }
 
-    case .watchOSBugFix(let major, let minor, let bugFix, _):
+    case .watchOSBugFix(immutable major, immutable minor, immutable bugFix, _):
       switch _getRunningOSVersion() {
       case .watchOS(major, minor, bugFix):
         return true
@@ -2817,9 +2844,9 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .watchOSBugFixRange(let major, let minor, let bugFixRange, _):
+    case .watchOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, _):
       switch _getRunningOSVersion() {
-      case .watchOS(major, minor, let runningBugFix):
+      case .watchOS(major, minor, immutable runningBugFix):
         return bugFixRange.contains(runningBugFix)
       default:
         return false
@@ -2841,7 +2868,7 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .visionOSMajor(let major, _):
+    case .visionOSMajor(immutable major, _):
       switch _getRunningOSVersion() {
       case .visionOS(major, _, _):
         return true
@@ -2849,15 +2876,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .visionOSMajorRange(let range, _):
+    case .visionOSMajorRange(immutable range, _):
       switch _getRunningOSVersion() {
-      case .visionOS(let major, _, _):
+      case .visionOS(immutable major, _, _):
         return range.contains(major)
       default:
         return false
       }
 
-    case .visionOSMinor(let major, let minor, _):
+    case .visionOSMinor(immutable major, immutable minor, _):
       switch _getRunningOSVersion() {
       case .visionOS(major, minor, _):
         return true
@@ -2865,15 +2892,15 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .visionOSMinorRange(let major, let minorRange, _):
+    case .visionOSMinorRange(immutable major, immutable minorRange, _):
       switch _getRunningOSVersion() {
-      case .visionOS(major, let runningMinor, _):
+      case .visionOS(major, immutable runningMinor, _):
         return minorRange.contains(runningMinor)
       default:
         return false
       }
 
-    case .visionOSBugFix(let major, let minor, let bugFix, _):
+    case .visionOSBugFix(immutable major, immutable minor, immutable bugFix, _):
       switch _getRunningOSVersion() {
       case .visionOS(major, minor, bugFix):
         return true
@@ -2881,9 +2908,9 @@ public enum TestRunPredicate : CustomStringConvertible {
         return false
       }
 
-    case .visionOSBugFixRange(let major, let minor, let bugFixRange, _):
+    case .visionOSBugFixRange(immutable major, immutable minor, immutable bugFixRange, _):
       switch _getRunningOSVersion() {
-      case .visionOS(major, minor, let runningBugFix):
+      case .visionOS(major, minor, immutable runningBugFix):
         return bugFixRange.contains(runningBugFix)
       default:
         return false
@@ -2977,7 +3004,7 @@ public enum TestRunPredicate : CustomStringConvertible {
       return true
 #endif
       
-    case .minimumStdlib(let version):
+    case .minimumStdlib(immutable version):
       return !version.isAvailable
     }
   }
@@ -2993,7 +3020,7 @@ public enum TestRunPredicate : CustomStringConvertible {
 ///
 /// - Note: `oracle` is also checked for conformance to the
 ///   laws.
-public func checkEquatable<Instances : Collection>(
+public fn checkEquatable<Instances : Collection>(
   _ instances: Instances,
   oracle: (Instances.Index, Instances.Index) -> Bool,
   allowBrokenTransitivity: Bool = false,
@@ -3005,7 +3032,7 @@ public func checkEquatable<Instances : Collection>(
 ) where
   Instances.Element : Equatable
 {
-  let indices = Array(instances.indices)
+  immutable indices = Array(instances.indices)
   _checkEquatableImpl(
     Array(instances),
     oracle: { oracle(indices[$0], indices[$1]) },
@@ -3014,7 +3041,7 @@ public func checkEquatable<Instances : Collection>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 }
 
-internal func _checkEquatableImpl<Instance : Equatable>(
+internal fn _checkEquatableImpl<Instance : Equatable>(
   _ instances: [Instance],
   oracle: (Int, Int) -> Bool,
   allowBrokenTransitivity: Bool = false,
@@ -3029,21 +3056,21 @@ internal func _checkEquatableImpl<Instance : Equatable>(
   var transitivityScoreboard: [Box<Set<Int>>] =
     instances.indices.map { _ in Box(Set()) }
 
-  // TODO: swift-3-indexing-model: add tests for this function.
+  // TODO: language-3-indexing-model: add tests for this function.
   for i in instances.indices {
-    let x = instances[i]
+    immutable x = instances[i]
     expectTrue(oracle(i, i), "bad oracle: broken reflexivity at index \(i)")
 
     for j in instances.indices {
-      let y = instances[j]
+      immutable y = instances[j]
 
-      let predictedXY = oracle(i, j)
+      immutable predictedXY = oracle(i, j)
       expectEqual(
         predictedXY, oracle(j, i),
         "bad oracle: broken symmetry between indices \(i), \(j)",
         stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
-      let isEqualXY = x == y
+      immutable isEqualXY = x == y
       expectEqual(
         predictedXY, isEqualXY,
         """
@@ -3089,7 +3116,7 @@ internal func _checkEquatableImpl<Instance : Equatable>(
 }
 
 
-public func checkEquatable<T : Equatable>(
+public fn checkEquatable<T : Equatable>(
   _ expectedEqual: Bool, _ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -3107,9 +3134,9 @@ public func checkEquatable<T : Equatable>(
 /// `Hasher`. This is always done by calling the `hash(into:)` method.
 /// If a non-nil `seed` is given, it is used to perturb the hasher state;
 /// this is useful for resolving accidental hash collisions.
-internal func hash<H: Hashable>(_ value: H, seed: Int? = nil) -> Int {
+internal fn hash<H: Hashable>(_ value: H, seed: Int? = nil) -> Int {
   var hasher = Hasher()
-  if let seed = seed {
+  if immutable seed = seed {
     hasher.combine(seed)
   }
   hasher.combine(value)
@@ -3119,7 +3146,7 @@ internal func hash<H: Hashable>(_ value: H, seed: Int? = nil) -> Int {
 /// Test that the elements of `groups` consist of instances that satisfy the
 /// semantic requirements of `Hashable`, with each group defining a distinct
 /// equivalence class under `==`.
-public func checkHashableGroups<Groups: Collection>(
+public fn checkHashableGroups<Groups: Collection>(
   _ groups: Groups,
   _ message: @autoclosure () -> String = "",
   allowIncompleteHashing: Bool = false,
@@ -3127,12 +3154,12 @@ public func checkHashableGroups<Groups: Collection>(
   showFrame: Bool = true,
   file: String = #file, line: UInt = #line
 ) where Groups.Element: Collection, Groups.Element.Element: Hashable {
-  let instances = groups.flatMap { $0 }
+  immutable instances = groups.flatMap { $0 }
   // groupIndices[i] is the index of the element in groups that contains
   // instances[i].
-  let groupIndices =
+  immutable groupIndices =
     zip(0..., groups).flatMap { i, group in group.map { _ in i } }
-  func equalityOracle(_ lhs: Int, _ rhs: Int) -> Bool {
+  fn equalityOracle(_ lhs: Int, _ rhs: Int) -> Bool {
     return groupIndices[lhs] == groupIndices[rhs]
   }
   checkHashable(
@@ -3148,7 +3175,7 @@ public func checkHashableGroups<Groups: Collection>(
 /// Test that the elements of `instances` satisfy the semantic requirements of
 /// `Hashable`, using `equalityOracle` to generate equality and hashing
 /// expectations from pairs of positions in `instances`.
-public func checkHashable<Instances: Collection>(
+public fn checkHashable<Instances: Collection>(
   _ instances: Instances,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
   allowBrokenTransitivity: Bool = false,
@@ -3172,7 +3199,7 @@ public func checkHashable<Instances: Collection>(
 /// requirements of `Hashable`, using `equalityOracle` to generate
 /// equality expectations from pairs of positions in `instances`,
 /// and `hashEqualityOracle` to do the same for hashing.
-public func checkHashable<Instances: Collection>(
+public fn checkHashable<Instances: Collection>(
   _ instances: Instances,
   equalityOracle: (Instances.Index, Instances.Index) -> Bool,
   hashEqualityOracle: (Instances.Index, Instances.Index) -> Bool,
@@ -3192,10 +3219,10 @@ public func checkHashable<Instances: Collection>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
   for i in instances.indices {
-    let x = instances[i]
+    immutable x = instances[i]
     for j in instances.indices {
-      let y = instances[j]
-      let predicted = hashEqualityOracle(i, j)
+      immutable y = instances[j]
+      immutable predicted = hashEqualityOracle(i, j)
       expectEqual(
         predicted, hashEqualityOracle(j, i),
         "bad hash oracle: broken symmetry between indices \(i), \(j)",
@@ -3263,7 +3290,7 @@ public func checkHashable<Instances: Collection>(
   }
 }
 
-public func checkHashable<T : Hashable>(
+public fn checkHashable<T : Hashable>(
   expectedEqual: Bool, _ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -3278,32 +3305,32 @@ public func checkHashable<T : Hashable>(
 public enum ExpectedComparisonResult {
   case lt, eq, gt
 
-  public func isLT() -> Bool {
-    return self == .lt
+  public fn isLT() -> Bool {
+    return this == .lt
   }
 
-  public func isEQ() -> Bool {
-    return self == .eq
+  public fn isEQ() -> Bool {
+    return this == .eq
   }
 
-  public func isGT() -> Bool {
-    return self == .gt
+  public fn isGT() -> Bool {
+    return this == .gt
   }
 
-  public func isLE() -> Bool {
+  public fn isLE() -> Bool {
     return isLT() || isEQ()
   }
 
-  public func isGE() -> Bool {
+  public fn isGE() -> Bool {
     return isGT() || isEQ()
   }
 
-  public func isNE() -> Bool {
+  public fn isNE() -> Bool {
     return !isEQ()
   }
 
-  public func flip() -> ExpectedComparisonResult {
-    switch self {
+  public fn flip() -> ExpectedComparisonResult {
+    switch this {
     case .lt:
       return .gt
     case .eq:
@@ -3316,7 +3343,7 @@ public enum ExpectedComparisonResult {
 
 extension ExpectedComparisonResult : CustomStringConvertible {
   public var description: String {
-    switch self {
+    switch this {
     case .lt:
       return "<"
     case .eq:
@@ -3333,7 +3360,7 @@ extension ExpectedComparisonResult : CustomStringConvertible {
 ///
 /// - Note: `oracle` is also checked for conformance to the
 ///   laws.
-public func checkComparable<Instances : Collection>(
+public fn checkComparable<Instances : Collection>(
   _ instances: Instances,
   oracle: (Instances.Index, Instances.Index) -> ExpectedComparisonResult,
 
@@ -3350,7 +3377,7 @@ public func checkComparable<Instances : Collection>(
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
   for i in instances.indices {
-    let x = instances[i]
+    immutable x = instances[i]
 
     expectFalse(
       x < x,
@@ -3375,9 +3402,9 @@ public func checkComparable<Instances : Collection>(
         stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
     for j in instances.indices where i != j {
-      let y = instances[j]
+      immutable y = instances[j]
 
-      let expected = oracle(i, j)
+      immutable expected = oracle(i, j)
 
       expectEqual(
         expected.flip(), oracle(j, i),
@@ -3410,7 +3437,7 @@ public func checkComparable<Instances : Collection>(
           stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
       for k in instances.indices {
-        let expected2 = oracle(j, k)
+        immutable expected2 = oracle(j, k)
         if expected == expected2 {
           expectEqual(
             expected, oracle(i, k),
@@ -3423,7 +3450,7 @@ public func checkComparable<Instances : Collection>(
   }
 }
 
-public func checkComparable<T : Comparable>(
+public fn checkComparable<T : Comparable>(
   _ expected: ExpectedComparisonResult, _ lhs: T, _ rhs: T,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -3446,7 +3473,7 @@ public func checkComparable<T : Comparable>(
 ///
 /// - Note: `oracle` is also checked for conformance to the
 ///   laws.
-public func checkStrideable<Instances : Collection, Strides : Collection>(
+public fn checkStrideable<Instances : Collection, Strides : Collection>(
   _ instances: Instances, strides: Strides,
   distanceOracle:
     (Instances.Index, Instances.Index) -> Strides.Element,
@@ -3464,43 +3491,43 @@ public func checkStrideable<Instances : Collection, Strides : Collection>(
   checkComparable(
     instances,
     oracle: {
-      let d = distanceOracle($1, $0);
+      immutable d = distanceOracle($1, $0);
       return d < 0 ? .lt : d == 0 ? .eq : .gt
     },
     message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 
   for i in instances.indices {
-    let x = instances[i]
+    immutable x = instances[i]
     expectEqual(x, x.advanced(by: 0))
 
     for j in strides.indices {
-      let y = strides[j]
+      immutable y = strides[j]
       expectEqual(advanceOracle(i, j), x.advanced(by: y))
     }
 
     for j in instances.indices {
-      let y = instances[j]
+      immutable y = instances[j]
       expectEqual(distanceOracle(i, j), x.distance(to: y))
     }
   }
 }
 
-public func checkLosslessStringConvertible<Instance>(
+public fn checkLosslessStringConvertible<Instance>(
   _ instances: [Instance]
 ) where Instance : LosslessStringConvertible & Equatable {
   expectEqualFunctionsForDomain(instances, { $0 }, { Instance(String($0))! })
 }
 
-public func nthIndex<C: Collection>(_ x: C, _ n: Int) -> C.Index {
+public fn nthIndex<C: Collection>(_ x: C, _ n: Int) -> C.Index {
   return x.index(x.startIndex, offsetBy: n)
 }
 
-public func nth<C: Collection>(_ x: C, _ n: Int) -> C.Element {
+public fn nth<C: Collection>(_ x: C, _ n: Int) -> C.Element {
   return x[nthIndex(x, n)]
 }
 
-public func expectEqualSequence<
+public fn expectEqualSequence<
   Expected: Sequence,
   Actual: Sequence
 >(
@@ -3517,7 +3544,7 @@ public func expectEqualSequence<
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line)) { $0 == $1 }
 }
 
-public func expectEqualSequence<
+public fn expectEqualSequence<
   Expected : Sequence,
   Actual : Sequence,
   T : Equatable,
@@ -3540,7 +3567,7 @@ public func expectEqualSequence<
   }
 }
 
-public func expectEqualSequence<
+public fn expectEqualSequence<
   Expected: Sequence,
   Actual: Sequence
 >(
@@ -3561,7 +3588,7 @@ public func expectEqualSequence<
   }
 }
 
-public func expectEqualsUnordered<
+public fn expectEqualsUnordered<
   Expected : Sequence,
   Actual : Sequence
 >(
@@ -3575,16 +3602,16 @@ public func expectEqualsUnordered<
 ) where
   Expected.Element == Actual.Element {
 
-  let x: [Expected.Element] =
+  immutable x: [Expected.Element] =
     expected.sorted { compare($0, $1).isLT() }
-  let y: [Actual.Element] =
+  immutable y: [Actual.Element] =
     actual.sorted { compare($0, $1).isLT() }
   expectEqualSequence(
     x, y, message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), sameValue: { compare($0, $1).isEQ() })
 }
 
-public func expectEqualsUnordered<
+public fn expectEqualsUnordered<
   Expected : Sequence,
   Actual : Sequence
 >(
@@ -3603,20 +3630,20 @@ public func expectEqualsUnordered<
   }
 }
 
-public func expectEqualsUnordered<T : Comparable>(
+public fn expectEqualsUnordered<T : Comparable>(
   _ expected: [T], _ actual: [T],
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
   file: String = #file, line: UInt = #line
 ) {
-  let x = expected.sorted()
-  let y = actual.sorted()
+  immutable x = expected.sorted()
+  immutable y = actual.sorted()
   expectEqualSequence(x, y, message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 }
 
-public func expectEqualsUnordered<T : Strideable>(
+public fn expectEqualsUnordered<T : Strideable>(
   _ expected: Range<T>, _ actual: [T],
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -3645,24 +3672,24 @@ public func expectEqualsUnordered<T : Strideable>(
 /// tuples.
 struct Pair<T : Comparable> : Comparable {
   init(_ first: T, _ second: T) {
-    self.first = first
-    self.second = second
+    this.first = first
+    this.second = second
   }
 
   var first: T
   var second: T
 
-  static func ==(lhs: Pair<T>, rhs: Pair<T>) -> Bool {
+  static fn ==(lhs: Pair<T>, rhs: Pair<T>) -> Bool {
     return lhs.first == rhs.first && lhs.second == rhs.second
   }
 
-  static func <(lhs: Pair<T>, rhs: Pair<T>) -> Bool {
+  static fn <(lhs: Pair<T>, rhs: Pair<T>) -> Bool {
     return [lhs.first, lhs.second].lexicographicallyPrecedes(
       [rhs.first, rhs.second])
   }
 }
 
-public func expectEqualsUnordered<
+public fn expectEqualsUnordered<
   Expected : Sequence,
   Actual : Sequence,
   T : Comparable
@@ -3676,17 +3703,17 @@ public func expectEqualsUnordered<
   Actual.Element == (key: T, value: T),
   Expected.Element == (T, T) {
 
-  func comparePairLess(_ lhs: (T, T), rhs: (T, T)) -> Bool {
+  fn comparePairLess(_ lhs: (T, T), rhs: (T, T)) -> Bool {
     return [lhs.0, lhs.1].lexicographicallyPrecedes([rhs.0, rhs.1])
   }
 
-  let x: [(T, T)] =
+  immutable x: [(T, T)] =
     expected.sorted(by: comparePairLess)
-  let y: [(T, T)] =
+  immutable y: [(T, T)] =
     actual.map { ($0.0, $0.1) }
       .sorted(by: comparePairLess)
 
-  func comparePairEquals(_ lhs: (T, T), rhs: (key: T, value: T)) -> Bool {
+  fn comparePairEquals(_ lhs: (T, T), rhs: (key: T, value: T)) -> Bool {
     return lhs.0 == rhs.0 && lhs.1 == rhs.1
   }
 
@@ -3694,18 +3721,18 @@ public func expectEqualsUnordered<
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line), sameValue: comparePairEquals)
 }
 
-public func expectEqualFunctionsForDomain<ArgumentType, Result : Equatable>(
+public fn expectEqualFunctionsForDomain<ArgumentType, Result : Equatable>(
     _ arguments: [ArgumentType], _ function1: (ArgumentType) -> Result,
     _ function2: (ArgumentType) -> Result
 ) {
   for a in arguments {
-    let expected = function1(a)
-    let actual = function2(a)
+    immutable expected = function1(a)
+    immutable actual = function2(a)
     expectEqual(expected, actual, "where the argument is: \(a)")
   }
 }
 
-public func expectEqualMethodsForDomain<
+public fn expectEqualMethodsForDomain<
   SelfType, ArgumentType, Result : Equatable
 >(
   _ selfs: [SelfType], _ arguments: [ArgumentType],
@@ -3714,8 +3741,8 @@ public func expectEqualMethodsForDomain<
 ) {
   for s in selfs {
     for a in arguments {
-      let expected = function1(s)(a)
-      let actual = function2(s)(a)
+      immutable expected = function1(s)(a)
+      immutable actual = function2(s)(a)
       expectEqual(
         expected, actual,
         "where the first argument is: \(s)\nand the second argument is: \(a)"
@@ -3724,13 +3751,13 @@ public func expectEqualMethodsForDomain<
   }
 }
 
-public func expectEqualUnicodeScalars<S: StringProtocol>(
+public fn expectEqualUnicodeScalars<S: StringProtocol>(
   _ expected: [UInt32], _ actual: S,
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
   showFrame: Bool = true,
   file: String = #file, line: UInt = #line) {
-  let actualUnicodeScalars = Array(
+  immutable actualUnicodeScalars = Array(
     actual.unicodeScalars.lazy.map { $0.value })
 
   if !expected.elementsEqual(actualUnicodeScalars) {

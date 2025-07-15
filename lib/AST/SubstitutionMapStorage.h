@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SubstitutionMap::Storage class, which is used as the
 // backing storage for SubstitutionMap.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_SUBSTITUTION_MAP_STORAGE_H
-#define SWIFT_AST_SUBSTITUTION_MAP_STORAGE_H
+#ifndef LANGUAGE_AST_SUBSTITUTION_MAP_STORAGE_H
+#define LANGUAGE_AST_SUBSTITUTION_MAP_STORAGE_H
 
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsCommon.h"
@@ -26,15 +27,15 @@
 #include "language/AST/FileSystem.h"
 #include "language/AST/GenericSignature.h"
 #include "language/AST/SubstitutionMap.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
 
 class SubstitutionMap::Storage final
-  : public llvm::FoldingSetNode,
-    llvm::TrailingObjects<Storage, Type, ProtocolConformanceRef>
+  : public toolchain::FoldingSetNode,
+    toolchain::TrailingObjects<Storage, Type, ProtocolConformanceRef>
 {
   friend TrailingObjects;
 
@@ -83,7 +84,7 @@ public:
   /// Note that the types may be null, for cases where the generic parameter
   /// is concrete but hasn't been queried yet.
   ArrayRef<Type> getReplacementTypes() const {
-    return llvm::ArrayRef(getTrailingObjects<Type>(), getNumReplacementTypes());
+    return toolchain::ArrayRef(getTrailingObjects<Type>(), getNumReplacementTypes());
   }
 
   MutableArrayRef<Type> getReplacementTypes() {
@@ -94,7 +95,7 @@ public:
   /// Retrieve the array of protocol conformances, which line up with the
   /// requirements of the generic signature.
   ArrayRef<ProtocolConformanceRef> getConformances() const {
-    return llvm::ArrayRef(getTrailingObjects<ProtocolConformanceRef>(),
+    return toolchain::ArrayRef(getTrailingObjects<ProtocolConformanceRef>(),
                           numConformanceRequirements);
   }
   MutableArrayRef<ProtocolConformanceRef> getConformances() {
@@ -104,13 +105,13 @@ public:
   }
 
   /// Profile the substitution map storage, for use with LLVM's FoldingSet.
-  void Profile(llvm::FoldingSetNodeID &id) const {
+  void Profile(toolchain::FoldingSetNodeID &id) const {
     Profile(id, getGenericSignature(), getReplacementTypes(),
             getConformances());
   }
 
   /// Profile the substitution map storage, for use with LLVM's FoldingSet.
-  static void Profile(llvm::FoldingSetNodeID &id,
+  static void Profile(toolchain::FoldingSetNodeID &id,
                       GenericSignature genericSig,
                       ArrayRef<Type> replacementTypes,
                       ArrayRef<ProtocolConformanceRef> conformances);
@@ -118,4 +119,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_SUBSTITUTION_MAP_STORAGE_H
+#endif // LANGUAGE_AST_SUBSTITUTION_MAP_STORAGE_H

@@ -1,0 +1,2 @@
+// RUN: not %target-sil-opt %s
+protocol O{fn f(<u,a{},a.i

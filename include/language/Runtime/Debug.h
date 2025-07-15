@@ -1,4 +1,4 @@
-//===--- Debug.h - Swift Runtime debug helpers ------------------*- C++ -*-===//
+//===--- Debug.h - Codira Runtime debug helpers ------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Random debug support
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_DEBUG_HELPERS_H
-#define SWIFT_RUNTIME_DEBUG_HELPERS_H
+#ifndef LANGUAGE_RUNTIME_DEBUG_HELPERS_H
+#define LANGUAGE_RUNTIME_DEBUG_HELPERS_H
 
 #include "language/Runtime/Config.h"
 #include "language/Basic/Unreachable.h"
@@ -27,7 +28,7 @@
 #include <functional>
 #include <stdint.h>
 
-#ifdef SWIFT_HAVE_CRASHREPORTERCLIENT
+#ifdef LANGUAGE_HAVE_CRASHREPORTERCLIENT
 
 #define CRASHREPORTER_ANNOTATIONS_VERSION 5
 #define CRASHREPORTER_ANNOTATIONS_SECTION "__crash_info"
@@ -44,23 +45,23 @@ struct crashreporter_annotations_t {
 };
 
 extern "C" {
-SWIFT_RUNTIME_LIBRARY_VISIBILITY
+LANGUAGE_RUNTIME_LIBRARY_VISIBILITY
 extern struct crashreporter_annotations_t gCRAnnotations;
 }
 
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
 static inline void CRSetCrashLogMessage(const char *message) {
   gCRAnnotations.message = reinterpret_cast<uint64_t>(message);
 }
 
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
 static inline const char *CRGetCrashLogMessage() {
   return reinterpret_cast<const char *>(gCRAnnotations.message);
 }
 
 #else
 
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE
 static inline void CRSetCrashLogMessage(const char *) {}
 
 #endif
@@ -73,99 +74,99 @@ struct InProcess;
 template <typename Runtime> struct TargetMetadata;
 using Metadata = TargetMetadata<InProcess>;
 
-// swift::crash() halts with a crash log message, 
+// language::crash() halts with a crash log message, 
 // but otherwise tries not to disturb register state.
 
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN
-SWIFT_RUNTIME_ATTRIBUTE_ALWAYS_INLINE // Minimize trashed registers
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN
+LANGUAGE_RUNTIME_ATTRIBUTE_ALWAYS_INLINE // Minimize trashed registers
 static inline void crash(const char *message) {
   CRSetCrashLogMessage(message);
 
-  SWIFT_RUNTIME_BUILTIN_TRAP;
-  swift_unreachable("Expected compiler to crash.");
+  LANGUAGE_RUNTIME_BUILTIN_TRAP;
+  language_unreachable("Expected compiler to crash.");
 }
 
-// swift::fatalErrorv() halts with a crash log message,
+// language::fatalErrorv() halts with a crash log message,
 // but makes no attempt to preserve register state.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN
-SWIFT_VFORMAT(2)
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN
+LANGUAGE_VFORMAT(2)
 extern void fatalErrorv(uint32_t flags, const char *format, va_list args);
 
-// swift::fatalError() halts with a crash log message,
+// language::fatalError() halts with a crash log message,
 // but makes no attempt to preserve register state.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN
-SWIFT_FORMAT(2, 3)
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN
+LANGUAGE_FORMAT(2, 3)
 extern void
 fatalError(uint32_t flags, const char *format, ...);
 
-/// swift::warning() emits a warning from the runtime.
+/// language::warning() emits a warning from the runtime.
 extern void
-SWIFT_VFORMAT(2)
+LANGUAGE_VFORMAT(2)
 warningv(uint32_t flags, const char *format, va_list args);
 
-/// swift::warning() emits a warning from the runtime.
+/// language::warning() emits a warning from the runtime.
 extern void
-SWIFT_FORMAT(2, 3)
+LANGUAGE_FORMAT(2, 3)
 warning(uint32_t flags, const char *format, ...);
 
-// swift_dynamicCastFailure halts using fatalError()
+// language_dynamicCastFailure halts using fatalError()
 // with a description of a failed cast's types.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN
 void
-swift_dynamicCastFailure(const Metadata *sourceType,
+language_dynamicCastFailure(const Metadata *sourceType,
                          const Metadata *targetType,
                          const char *message = nullptr);
 
-// swift_dynamicCastFailure halts using fatalError()
+// language_dynamicCastFailure halts using fatalError()
 // with a description of a failed cast's types.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN
 void
-swift_dynamicCastFailure(const void *sourceType, const char *sourceName, 
+language_dynamicCastFailure(const void *sourceType, const char *sourceName, 
                          const void *targetType, const char *targetName, 
                          const char *message = nullptr);
 
-SWIFT_RUNTIME_EXPORT
-void swift_reportError(uint32_t flags, const char *message);
+LANGUAGE_RUNTIME_EXPORT
+void language_reportError(uint32_t flags, const char *message);
 
-SWIFT_RUNTIME_EXPORT
-void swift_reportWarning(uint32_t flags, const char *message);
+LANGUAGE_RUNTIME_EXPORT
+void language_reportWarning(uint32_t flags, const char *message);
 
-#if !defined(SWIFT_HAVE_CRASHREPORTERCLIENT)
-SWIFT_RUNTIME_EXPORT
-std::atomic<const char *> *swift_getFatalErrorMessageBuffer();
+#if !defined(LANGUAGE_HAVE_CRASHREPORTERCLIENT)
+LANGUAGE_RUNTIME_EXPORT
+std::atomic<const char *> *language_getFatalErrorMessageBuffer();
 #endif
 
-// Halt due to an overflow in swift_retain().
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortRetainOverflow();
+// Halt due to an overflow in language_retain().
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortRetainOverflow();
 
 // Halt due to reading an unowned reference to a dead object.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortRetainUnowned(const void *object);
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortRetainUnowned(const void *object);
 
-// Halt due to an overflow in swift_unownedRetain().
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortUnownedRetainOverflow();
+// Halt due to an overflow in language_unownedRetain().
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortUnownedRetainOverflow();
 
 // Halt due to an overflow in incrementWeak().
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortWeakRetainOverflow();
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortWeakRetainOverflow();
 
 // Halt due to enabling an already enabled dynamic replacement().
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortDynamicReplacementEnabling();
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortDynamicReplacementEnabling();
 
 // Halt due to disabling an already disabled dynamic replacement().
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortDynamicReplacementDisabling();
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortDynamicReplacementDisabling();
 
 // Halt due to trying to use unicode data on platforms that don't have it.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
-void swift_abortDisabledUnicodeSupport();
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
+void language_abortDisabledUnicodeSupport();
 
 // Halt due to a failure to allocate memory.
-SWIFT_RUNTIME_ATTRIBUTE_NORETURN
-void swift_abortAllocationFailure(size_t size, size_t alignMask);
+LANGUAGE_RUNTIME_ATTRIBUTE_NORETURN
+void language_abortAllocationFailure(size_t size, size_t alignMask);
 
 /// This function dumps one line of a stack trace. It is assumed that \p framePC
 /// is the address of the stack frame at index \p index. If \p shortOutput is
@@ -174,10 +175,10 @@ void swift_abortAllocationFailure(size_t size, size_t alignMask);
 void dumpStackTraceEntry(unsigned index, void *framePC,
                          bool shortOutput = false);
 
-SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
+LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
 bool withCurrentBacktrace(std::function<void(void **, int)> call);
 
-SWIFT_RUNTIME_ATTRIBUTE_NOINLINE
+LANGUAGE_RUNTIME_ATTRIBUTE_NOINLINE
 void printCurrentBacktrace(unsigned framesToSkip = 1);
 
 /// Debugger breakpoint ABI. This structure is passed to the debugger (and needs
@@ -198,7 +199,7 @@ struct RuntimeErrorDetails {
   const char *currentStackDescription;
 
   // Number of frames in the current stack that should be ignored when reporting
-  // the issue (excluding the reportToDebugger/_swift_runtime_on_report frame).
+  // the issue (excluding the reportToDebugger/_language_runtime_on_report frame).
   // The remaining top frame should point to user's code where the bug is.
   uintptr_t framesToSkip;
 
@@ -253,32 +254,32 @@ enum: uintptr_t {
 
 /// Debugger hook. Calling this stops the debugger with a message and details
 /// about the issues. Called by overlays.
-SWIFT_RUNTIME_STDLIB_SPI
-void _swift_reportToDebugger(uintptr_t flags, const char *message,
+LANGUAGE_RUNTIME_STDLIB_SPI
+void _language_reportToDebugger(uintptr_t flags, const char *message,
                              RuntimeErrorDetails *details = nullptr);
 
-SWIFT_RUNTIME_STDLIB_SPI
-bool _swift_reportFatalErrorsToDebugger;
+LANGUAGE_RUNTIME_STDLIB_SPI
+bool _language_reportFatalErrorsToDebugger;
 
-SWIFT_RUNTIME_STDLIB_SPI
-bool _swift_shouldReportFatalErrorsToDebugger();
+LANGUAGE_RUNTIME_STDLIB_SPI
+bool _language_shouldReportFatalErrorsToDebugger();
 
-SWIFT_RUNTIME_STDLIB_SPI
-bool _swift_debug_metadataAllocationIterationEnabled;
+LANGUAGE_RUNTIME_STDLIB_SPI
+bool _language_debug_metadataAllocationIterationEnabled;
 
-SWIFT_RUNTIME_STDLIB_SPI
-const void * const _swift_debug_allocationPoolPointer;
+LANGUAGE_RUNTIME_STDLIB_SPI
+const void * const _language_debug_allocationPoolPointer;
 
-SWIFT_RUNTIME_STDLIB_SPI
-std::atomic<const void *> _swift_debug_metadataAllocationBacktraceList;
+LANGUAGE_RUNTIME_STDLIB_SPI
+std::atomic<const void *> _language_debug_metadataAllocationBacktraceList;
 
-SWIFT_RUNTIME_STDLIB_SPI
-const void * const _swift_debug_protocolConformanceStatePointer;
+LANGUAGE_RUNTIME_STDLIB_SPI
+const void * const _language_debug_protocolConformanceStatePointer;
 
-SWIFT_RUNTIME_STDLIB_SPI
-const uint64_t _swift_debug_multiPayloadEnumPointerSpareBitsMask;
+LANGUAGE_RUNTIME_STDLIB_SPI
+const uint64_t _language_debug_multiPayloadEnumPointerSpareBitsMask;
 
 // namespace language
 }
 
-#endif // SWIFT_RUNTIME_DEBUG_HELPERS_H
+#endif // LANGUAGE_RUNTIME_DEBUG_HELPERS_H

@@ -1,0 +1,29 @@
+public protocol View {}
+
+struct InternalView : View {}
+struct InternalGenericView<T> : View {}
+
+public struct PublicView : View {}
+public struct PublicGenericView<T> : View {}
+
+extension View {
+  public fn passThrough() -> some View {
+    return this
+  }
+
+  public fn wrapWithInternalView() -> some View {
+    return InternalView()
+  }
+
+  public fn wrapWithInternalGenericView() -> some View {
+    return InternalGenericView<Self>()
+  }
+
+  public fn wrapWithPublicView() -> some View {
+    return PublicView()
+  }
+
+  public fn wrapWithPublicGenericView() -> some View {
+    return PublicGenericView<Self>()
+  }
+}

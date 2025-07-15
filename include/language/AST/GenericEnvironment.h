@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the GenericEnvironment class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_GENERIC_ENVIRONMENT_H
-#define SWIFT_AST_GENERIC_ENVIRONMENT_H
+#ifndef LANGUAGE_AST_GENERIC_ENVIRONMENT_H
+#define LANGUAGE_AST_GENERIC_ENVIRONMENT_H
 
 #include "language/AST/SubstitutionMap.h"
 #include "language/AST/GenericParamKey.h"
@@ -27,9 +28,9 @@
 #include "language/Basic/Compiler.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/UUID.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <utility>
 
 namespace language {
@@ -84,7 +85,7 @@ struct OpenedElementEnvironmentData {
 /// TypeBase::mapTypeOutOfContext().
 ///
 class alignas(1 << DeclAlignInBits) GenericEnvironment final
-    : private llvm::TrailingObjects<
+    : private toolchain::TrailingObjects<
         GenericEnvironment,
         SubstitutionMap,
         OpaqueEnvironmentData,
@@ -108,7 +109,7 @@ public:
   class NestedTypeStorage;
 
 private:
-  mutable llvm::PointerIntPair<GenericSignature, 2, Kind> SignatureAndKind{
+  mutable toolchain::PointerIntPair<GenericSignature, 2, Kind> SignatureAndKind{
       GenericSignature(), Kind::Primary};
   NestedTypeStorage *nestedTypeStorage = nullptr;
 
@@ -206,13 +207,13 @@ public:
   unsigned getNumOpenedPackParams() const;
 
   void forEachPackElementArchetype(
-          llvm::function_ref<void(ElementArchetypeType*)> function) const;
+          toolchain::function_ref<void(ElementArchetypeType*)> function) const;
 
   void forEachPackElementGenericTypeParam(
-      llvm::function_ref<void(GenericTypeParamType *)> function) const;
+      toolchain::function_ref<void(GenericTypeParamType *)> function) const;
 
   using PackElementBindingCallback =
-    llvm::function_ref<void(ElementArchetypeType *elementType,
+    toolchain::function_ref<void(ElementArchetypeType *elementType,
                             PackType *packSubstitution)>;
 
   /// Given that this is an opened element environment, iterate the
@@ -334,7 +335,7 @@ public:
 
   void dump(raw_ostream &os) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 /// A pair of an opened-element generic signature and an opened-element
@@ -356,5 +357,5 @@ struct OpenedElementContext {
   
 } // end namespace language
 
-#endif // SWIFT_AST_GENERIC_ENVIRONMENT_H
+#endif // LANGUAGE_AST_GENERIC_ENVIRONMENT_H
 

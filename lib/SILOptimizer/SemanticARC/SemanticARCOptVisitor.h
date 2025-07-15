@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTVISITOR_H
-#define SWIFT_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTVISITOR_H
+#ifndef LANGUAGE_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTVISITOR_H
+#define LANGUAGE_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTVISITOR_H
 
 #include "Context.h"
 #include "OwnershipLiveRange.h"
@@ -38,7 +39,7 @@ namespace semanticarc {
 /// issues. Rather than revisit the entire CFG like SILCombine and other
 /// visitors do, we maintain a visitedSinceLastMutation list to ensure that we
 /// revisit all interesting instructions in between mutations.
-struct LLVM_LIBRARY_VISIBILITY SemanticARCOptVisitor
+struct TOOLCHAIN_LIBRARY_VISIBILITY SemanticARCOptVisitor
     : SILValueVisitor<SemanticARCOptVisitor, bool> {
   /// Our main worklist. We use this after an initial run through.
   SmallBlotSetVector<SILValue, 32> worklist;
@@ -215,4 +216,4 @@ struct LLVM_LIBRARY_VISIBILITY SemanticARCOptVisitor
 } // namespace semanticarc
 } // namespace language
 
-#endif // SWIFT_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTVISITOR_H
+#endif // LANGUAGE_SILOPTIMIZER_SEMANTICARC_SEMANTICARCOPTVISITOR_H

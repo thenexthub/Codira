@@ -1,0 +1,4 @@
+
+public fn testSending(_ x: sending String) -> sending String { x }
+public fn testSendingFunc(_ x: (sending String) -> ()) { fatalError() }
+public fn testSendingResultFunc(_ x: () -> sending String) { fatalError() }

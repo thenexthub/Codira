@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_GENERIC_REQUIREMENT_H
-#define SWIFT_AST_GENERIC_REQUIREMENT_H
+#ifndef LANGUAGE_AST_GENERIC_REQUIREMENT_H
+#define LANGUAGE_AST_GENERIC_REQUIREMENT_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
-namespace llvm {
+namespace toolchain {
 class Type;
 }
 
@@ -128,14 +129,14 @@ public:
     return GenericRequirement(Kind::Value, type, nullptr);
   }
 
-  static llvm::Type *typeForKind(irgen::IRGenModule &IGM,
+  static toolchain::Type *typeForKind(irgen::IRGenModule &IGM,
                                  GenericRequirement::Kind kind);
 
-  llvm::Type *getType(irgen::IRGenModule &IGM) const {
+  toolchain::Type *getType(irgen::IRGenModule &IGM) const {
     return typeForKind(IGM, getKind());
   }
 
-  void dump(llvm::raw_ostream &out) const {
+  void dump(toolchain::raw_ostream &out) const {
     switch (kind) {
     case Kind::Shape:
       out << "shape: " << type;
@@ -161,10 +162,10 @@ public:
 
 } // end namespace language
 
-namespace llvm {
-template <> struct DenseMapInfo<swift::GenericRequirement> {
-  using GenericRequirement = swift::GenericRequirement;
-  using CanTypeInfo = llvm::DenseMapInfo<swift::CanType>;
+namespace toolchain {
+template <> struct DenseMapInfo<language::GenericRequirement> {
+  using GenericRequirement = language::GenericRequirement;
+  using CanTypeInfo = toolchain::DenseMapInfo<language::CanType>;
   static GenericRequirement getEmptyKey() {
     return GenericRequirement(GenericRequirement::Kind::Metadata,
                               CanTypeInfo::getEmptyKey(),
@@ -175,7 +176,7 @@ template <> struct DenseMapInfo<swift::GenericRequirement> {
                               CanTypeInfo::getTombstoneKey(),
                               nullptr);
   }
-  static llvm::hash_code getHashValue(GenericRequirement req) {
+  static toolchain::hash_code getHashValue(GenericRequirement req) {
     return hash_combine(CanTypeInfo::getHashValue(req.getTypeParameter()),
                         hash_value(req.getProtocol()));
   }
@@ -185,6 +186,6 @@ template <> struct DenseMapInfo<swift::GenericRequirement> {
             lhs.getProtocol() == rhs.getProtocol());
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_AST_GENERIC_REQUIREMENT_H
+#endif // LANGUAGE_AST_GENERIC_REQUIREMENT_H

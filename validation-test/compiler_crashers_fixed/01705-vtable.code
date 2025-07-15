@@ -1,0 +1,41 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<h = T: $0.endIndex - range.B {
+struct D : P {
+var b where Optional<d = nil
+typealias F = b: Array<b(c) + seq: d = { c<T : B<D>(.f == A<T : C> {
+b(a("""""A
+protocol c {
+import Foundation
+t: Array<T.a<T>) -> S {
+}
+override init<U : A = a<b
+typealias B : Int {
+return { }
+fn x) {
+}
+var d : X.Type
+class a {
+}
+}
+typealias F = .Element>() {
+zzzz(seq: A) -> {
+}
+immutable v: B, B
+}
+enum S()(start, ()
+}
+immutable c = e: 1])
+fn b
+fn d<h : A.d
+class A<l : d

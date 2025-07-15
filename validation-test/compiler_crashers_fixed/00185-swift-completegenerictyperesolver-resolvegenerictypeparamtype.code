@@ -1,0 +1,273 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol b {
+    class fn e()
+}
+struct c {
+    var d: b.Type
+    fn e() {
+        d.e()
+    }
+}
+import Foun {
+        fn j
+        var _ = j
+    }
+}
+class x  {
+    s m
+    fn j(m)
+}
+struct j<u> : r {
+    fn j(j: j.n) {
+    }
+}
+enum q<v> {   immutable k: v
+    immutable u: v.l
+}
+protocol y {
+    o= p>(r: m<v>)
+}
+struct D : y {
+    s p = Int
+    fn y<v k r {
+    s m
+}
+class y<D> {
+    w <r:
+fn j<v x: v) {
+    x.k()
+}
+fn x(j: Int = a) {
+}
+immutable k = x
+class j {
+    fn y((Any, j))(v: (Any, AnyObject)) {
+        y(v)
+    }
+}
+fn w(j: () -> ()) {
+}
+class v {
+    l _ = w() {
+    }
+}
+({})
+fn v<x>() -> (x, x -> x) -> x {
+    l y j s<q : l, y: l m y.n == q.n> {
+}
+o l {
+    u n
+}
+y q<x> {
+    s w(x, () -> ())
+}
+o n {
+    fn j()  p
+}
+class r {
+    fn s() -> p {
+        t ""
+    }
+}
+class w: r, n {
+    k v: ))] = []
+}
+class n<x : n>
+  }
+}
+class b<i : b> i: g{ fn c {}
+e g {
+ : g {
+h fn i() ->  }
+fn b<e>(e : e) -> c {  e
+struct j<l : o> {
+    k b: l
+}
+fn a<l>() -> [j<l>] {
+    return []
+}
+f
+k)
+fn f<l>() -> (l, l -> l) -> l {
+   l j l.n = {
+}
+ {
+   l) {
+        n  }
+}
+protocol f {
+   class fn n()
+}
+class l: f{  class fn n {}
+fn a<i>() {
+    b b {
+        l j
+    }
+}
+class a<f : b, l : b m f.l == l> {
+}
+protocol b {
+    typealias l
+    typealias k
+}
+struct j<n : b> : b {
+    typealias l = n
+    typealias k = a<j<n>, l>
+}
+protocol a {
+    class fn c()
+}
+class b: a {
+    class fn c() { }
+}
+(b() as a).dynamicType.c()
+fn f(c: i, l: i) -> (((i, i) -> i) -> i) {
+    b {
+        (h -> i)   d $k
+}
+immutable e: Int = 1, 1)
+class g<j :g
+fn f<m>() -> (m, m -> m) -> m {
+   e c e.i = {
+}}
+fn h<d {
+    enum h {
+        fn e
+        var _ = e
+    }
+}
+protocol e {
+    e fn e()
+}
+struct h {
+    var d: e.h
+    fn e() {
+        d.e()
+    }
+}
+protocol f {
+  i []
+}
+fn f<g>() -> (g, g -> g) -> g
+fn a<T>() {
+    enum b {
+        case c
+    }
+}
+)
+fn n<w>() -> (w, w -> w) -> w {
+   o m o.q = {
+}
+ {
+   w) {
+        k  }
+}
+protocol n {
+   class fn q()
+}
+class o: n{  class fn q {}
+fn p(e: Int = x) {
+}
+immutable c = p
+c()
+fn r<o: y, s q n<s> ==(r(t))
+protocol p : p {
+}
+protocol p {
+    class fn c()
+}
+class e: p {
+    class fn c() { }
+}
+(e() u p).v.c()
+k e.w == l> {
+}
+fn p(c: Any, m: Any) -> (((Any, Any) -> Any) -> Any) {
+fn o() as o).m.k()
+fn p(k: b) -> <i>(() -> i) -> b {
+  n { o f "\(k): \(o())" }
+}
+struct d<d : n, o:j n {
+    l p
+}
+protocol o : o {
+}
+fn o<
+protocol a {
+  typealias d
+  typealias e = d
+  typealias f = d
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+    typealias g
+}
+fn m(c: b) -> <h>(() -> h) -> b {
+  f) -> j) -> > j {
+    l i !(k)
+}
+d
+l)
+fn d<m>-> (m, m -
+w
+class x<u>: d {
+    l i: u
+    init(i: u) {
+        o.i = j {
+  r { w s "\(f): \(w())" }
+}
+protocol h {
+    q k {
+    t w
+}
+w
+protocol k : w { fn v <h: h m h.p == k>(l: h.p) {
+    }
+}
+protocol h {
+    n  fn w(w:
+}
+class h<u : h> {
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (m: (Any, Any) -> Any) -> Any in
+        return m(x, y)
+    }
+}
+fn b(z: (((Any, Any) -> Any) -> Any)) -> Any {
+    return z({
+        (p: Any, q:Any) -> Any in
+        return p
+    })
+}
+b(a(1, a(2, 3)))
+fn n<p>() -> (p, p -> p) -> p {
+    b, l]
+g(o(q))
+h e {
+    j   class fn r()
+}
+class k: h{  class fn r {}
+var k = 1
+var s: r -> r t -> r) -> r m
+    u h>] {
+    u []
+}
+fn r(e: () -> ()) {
+}
+class n {
+    var _ = r()

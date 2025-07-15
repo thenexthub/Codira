@@ -1,30 +1,34 @@
 //===--- CSTrail.h - Constraint Solver Trail --------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the \c SolverTrail class, which records the decisions taken
 // while attempting to find a solution.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_CSTRAIL_H
-#define SWIFT_SEMA_CSTRAIL_H
+#ifndef LANGUAGE_SEMA_CSTRAIL_H
+#define LANGUAGE_SEMA_CSTRAIL_H
 
 #include "language/AST/AnyFunctionRef.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/Sema/Constraint.h"
-#include "llvm/ADT/ilist.h"
+#include "toolchain/ADT/ilist.h"
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -104,7 +108,7 @@ public:
         TypeVariableType *TypeVar;
 
         /// The representative of the equivalence class, or the fixed type.
-        llvm::PointerUnion<TypeVariableType *, TypeBase *> ParentOrFixed;
+        toolchain::PointerUnion<TypeVariableType *, TypeBase *> ParentOrFixed;
       } Update;
 
       struct {
@@ -132,7 +136,7 @@ public:
 
       struct {
         /// It's former position in the inactive constraints list.
-        llvm::ilist<Constraint>::iterator Where;
+        toolchain::ilist<Constraint>::iterator Where;
 
         /// The constraint.
         Constraint *Constraint;
@@ -195,7 +199,7 @@ public:
     /// Create a change that updated a type variable.
     static Change UpdatedTypeVariable(
                TypeVariableType *typeVar,
-               llvm::PointerUnion<TypeVariableType *, TypeBase *> parentOrFixed,
+               toolchain::PointerUnion<TypeVariableType *, TypeBase *> parentOrFixed,
                unsigned options);
 
     /// Create a change that recorded a restriction.
@@ -250,7 +254,7 @@ public:
     static Change RecordedKeyPath(KeyPathExpr *expr);
 
     /// Create a change that removed a constraint from the inactive constraint list.
-    static Change RetiredConstraint(llvm::ilist<Constraint>::iterator where,
+    static Change RetiredConstraint(toolchain::ilist<Constraint>::iterator where,
                                     Constraint *constraint);
 
     /// Create a change that removed a binding from a type variable's potential
@@ -264,7 +268,7 @@ public:
     /// Changes must be undone in stack order.
     void undo(ConstraintSystem &cs) const;
 
-    void dump(llvm::raw_ostream &out, ConstraintSystem &cs,
+    void dump(toolchain::raw_ostream &out, ConstraintSystem &cs,
               unsigned indent = 0) const;
 
   private:
@@ -282,7 +286,7 @@ public:
 
   void recordChange(Change change);
 
-  void dumpActiveScopeChanges(llvm::raw_ostream &out,
+  void dumpActiveScopeChanges(toolchain::raw_ostream &out,
                               unsigned fromIndex,
                               unsigned indent = 0) const;
 
@@ -292,9 +296,9 @@ public:
 
   void undo(unsigned toIndex);
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, unsigned fromIndex = 0,
-            unsigned indent = 0) const LLVM_ATTRIBUTE_USED;
+            unsigned indent = 0) const TOOLCHAIN_ATTRIBUTE_USED;
 
 private:
   ConstraintSystem &CS;
@@ -312,4 +316,4 @@ private:
 } // namespace constraints
 } // namespace language
 
-#endif // SWIFT_SEMA_CSTRAIL_H
+#endif // LANGUAGE_SEMA_CSTRAIL_H

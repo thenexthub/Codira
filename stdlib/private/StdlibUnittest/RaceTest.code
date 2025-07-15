@@ -1,4 +1,4 @@
-//===--- RaceTest.swift ---------------------------------------------------===//
+//===--- RaceTest.code ---------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements support for race tests.
@@ -39,9 +40,9 @@
 ///
 //===----------------------------------------------------------------------===//
 
-import SwiftPrivate
-import SwiftPrivateLibcExtras
-import SwiftPrivateThreadExtras
+import CodiraPrivate
+import CodiraPrivateLibcExtras
+import CodiraPrivateThreadExtras
 #if canImport(Darwin)
 internal import Darwin
 #elseif canImport(Glibc)
@@ -60,7 +61,7 @@ internal import WinSDK
 #if _runtime(_ObjC)
 internal import ObjectiveC
 #else
-func autoreleasepool(invoking code: () -> Void) {
+fn autoreleasepool(invoking code: () -> Void) {
   // Native runtime does not have autorelease pools.  Execute the code
   // directly.
   code()
@@ -94,18 +95,18 @@ public protocol RaceTestWithPerTrialData {
   init()
 
   /// Creates a fresh instance of `RaceData`.
-  func makeRaceData() -> RaceData
+  fn makeRaceData() -> RaceData
 
   /// Creates a fresh instance of `ThreadLocalData`.
-  func makeThreadLocalData() -> ThreadLocalData
+  fn makeThreadLocalData() -> ThreadLocalData
 
   /// Performs the operation under test and makes an observation.
-  func thread1(
+  fn thread1(
     _ raceData: RaceData, _ threadLocalData: inout ThreadLocalData) -> Observation
 
   /// Evaluates the observations made by all threads for a particular instance
   /// of `RaceData`.
-  func evaluateObservations(
+  fn evaluateObservations(
     _ observations: [Observation],
     _ sink: (RaceTestObservationEvaluation) -> Void)
 }
@@ -126,23 +127,23 @@ public enum RaceTestObservationEvaluation : Equatable, CustomStringConvertible {
   case failureInteresting(String)
 
   public var description: String {
-    switch self {
+    switch this {
     case .pass:
       return "Pass"
 
-    case .passInteresting(let s):
+    case .passInteresting(immutable s):
       return "Pass(\(s))"
 
     case .failure:
       return "Failure"
 
-    case .failureInteresting(let s):
+    case .failureInteresting(immutable s):
       return "Failure(\(s))"
     }
   }
 }
 
-public func == (
+public fn == (
   lhs: RaceTestObservationEvaluation, rhs: RaceTestObservationEvaluation
 ) -> Bool {
   switch (lhs, rhs) {
@@ -150,7 +151,7 @@ public func == (
        (.failure, .failure):
     return true
 
-  case (.passInteresting(let s1), .passInteresting(let s2)):
+  case (.passInteresting(immutable s1), .passInteresting(immutable s2)):
     return s1 == s2
 
   default:
@@ -163,7 +164,7 @@ public struct Observation1UInt : Equatable, CustomStringConvertible {
   public var data1: UInt
 
   public init(_ data1: UInt) {
-    self.data1 = data1
+    this.data1 = data1
   }
 
   public var description: String {
@@ -171,7 +172,7 @@ public struct Observation1UInt : Equatable, CustomStringConvertible {
   }
 }
 
-public func == (lhs: Observation1UInt, rhs: Observation1UInt) -> Bool {
+public fn == (lhs: Observation1UInt, rhs: Observation1UInt) -> Bool {
   return lhs.data1 == rhs.data1
 }
 
@@ -183,10 +184,10 @@ public struct Observation4UInt : Equatable, CustomStringConvertible {
   public var data4: UInt
 
   public init(_ data1: UInt, _ data2: UInt, _ data3: UInt, _ data4: UInt) {
-    self.data1 = data1
-    self.data2 = data2
-    self.data3 = data3
-    self.data4 = data4
+    this.data1 = data1
+    this.data2 = data2
+    this.data3 = data3
+    this.data4 = data4
   }
 
   public var description: String {
@@ -194,7 +195,7 @@ public struct Observation4UInt : Equatable, CustomStringConvertible {
   }
 }
 
-public func == (lhs: Observation4UInt, rhs: Observation4UInt) -> Bool {
+public fn == (lhs: Observation4UInt, rhs: Observation4UInt) -> Bool {
   return
     lhs.data1 == rhs.data1 &&
     lhs.data2 == rhs.data2 &&
@@ -209,9 +210,9 @@ public struct Observation3Int : Equatable, CustomStringConvertible {
   public var data3: Int
 
   public init(_ data1: Int, _ data2: Int, _ data3: Int) {
-    self.data1 = data1
-    self.data2 = data2
-    self.data3 = data3
+    this.data1 = data1
+    this.data2 = data2
+    this.data3 = data3
   }
 
   public var description: String {
@@ -219,7 +220,7 @@ public struct Observation3Int : Equatable, CustomStringConvertible {
   }
 }
 
-public func == (lhs: Observation3Int, rhs: Observation3Int) -> Bool {
+public fn == (lhs: Observation3Int, rhs: Observation3Int) -> Bool {
   return
     lhs.data1 == rhs.data1 &&
     lhs.data2 == rhs.data2 &&
@@ -234,10 +235,10 @@ public struct Observation4Int : Equatable, CustomStringConvertible {
   public var data4: Int
 
   public init(_ data1: Int, _ data2: Int, _ data3: Int, _ data4: Int) {
-    self.data1 = data1
-    self.data2 = data2
-    self.data3 = data3
-    self.data4 = data4
+    this.data1 = data1
+    this.data2 = data2
+    this.data3 = data3
+    this.data4 = data4
   }
 
   public var description: String {
@@ -245,7 +246,7 @@ public struct Observation4Int : Equatable, CustomStringConvertible {
   }
 }
 
-public func == (lhs: Observation4Int, rhs: Observation4Int) -> Bool {
+public fn == (lhs: Observation4Int, rhs: Observation4Int) -> Bool {
   return
     lhs.data1 == rhs.data1 &&
     lhs.data2 == rhs.data2 &&
@@ -264,11 +265,11 @@ public struct Observation5Int : Equatable, CustomStringConvertible {
   public init(
     _ data1: Int, _ data2: Int, _ data3: Int, _ data4: Int, _ data5: Int
   ) {
-    self.data1 = data1
-    self.data2 = data2
-    self.data3 = data3
-    self.data4 = data4
-    self.data5 = data5
+    this.data1 = data1
+    this.data2 = data2
+    this.data3 = data3
+    this.data4 = data4
+    this.data5 = data5
   }
 
   public var description: String {
@@ -276,7 +277,7 @@ public struct Observation5Int : Equatable, CustomStringConvertible {
   }
 }
 
-public func == (lhs: Observation5Int, rhs: Observation5Int) -> Bool {
+public fn == (lhs: Observation5Int, rhs: Observation5Int) -> Bool {
   return
     lhs.data1 == rhs.data1 &&
     lhs.data2 == rhs.data2 &&
@@ -302,15 +303,15 @@ public struct Observation9Int : Equatable, CustomStringConvertible {
     _ data5: Int, _ data6: Int, _ data7: Int, _ data8: Int,
     _ data9: Int
   ) {
-    self.data1 = data1
-    self.data2 = data2
-    self.data3 = data3
-    self.data4 = data4
-    self.data5 = data5
-    self.data6 = data6
-    self.data7 = data7
-    self.data8 = data8
-    self.data9 = data9
+    this.data1 = data1
+    this.data2 = data2
+    this.data3 = data3
+    this.data4 = data4
+    this.data5 = data5
+    this.data6 = data6
+    this.data7 = data7
+    this.data8 = data8
+    this.data9 = data9
   }
 
   public var description: String {
@@ -318,7 +319,7 @@ public struct Observation9Int : Equatable, CustomStringConvertible {
   }
 }
 
-public func == (lhs: Observation9Int, rhs: Observation9Int) -> Bool {
+public fn == (lhs: Observation9Int, rhs: Observation9Int) -> Bool {
   return
     lhs.data1 == rhs.data1 &&
     lhs.data2 == rhs.data2 &&
@@ -333,9 +334,9 @@ public func == (lhs: Observation9Int, rhs: Observation9Int) -> Bool {
 
 /// A helper that is useful to implement
 /// `RaceTestWithPerTrialData.evaluateObservations()` in race tests.
-public func evaluateObservationsAllEqual<T : Equatable>(_ observations: [T])
+public fn evaluateObservationsAllEqual<T : Equatable>(_ observations: [T])
   -> RaceTestObservationEvaluation {
-  let first = observations.first!
+  immutable first = observations.first!
   for x in observations {
     if x != first {
       return .failure
@@ -346,27 +347,27 @@ public func evaluateObservationsAllEqual<T : Equatable>(_ observations: [T])
 
 // WebAssembly/WASI doesn't support multi-threading yet
 #if os(WASI)
-public func runRaceTest<RT : RaceTestWithPerTrialData>(
+public fn runRaceTest<RT : RaceTestWithPerTrialData>(
   _: RT.Type,
   trials: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil
 ) {}
-public func runRaceTest<RT : RaceTestWithPerTrialData>(
+public fn runRaceTest<RT : RaceTestWithPerTrialData>(
   _ test: RT.Type,
   operations: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil
 ) {}
-public func consumeCPU(units amountOfWork: Int) {}
-public func runRaceTest(
+public fn consumeCPU(units amountOfWork: Int) {}
+public fn runRaceTest(
   trials: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil,
   invoking body: @escaping () -> Void
 ) {}
 
-public func runRaceTest(
+public fn runRaceTest(
   operations: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil,
@@ -382,12 +383,12 @@ struct _RaceTestAggregatedEvaluations : CustomStringConvertible {
 
   init() {}
 
-  mutating func addEvaluation(_ evaluation: RaceTestObservationEvaluation) {
+  mutating fn addEvaluation(_ evaluation: RaceTestObservationEvaluation) {
     switch evaluation {
     case .pass:
       passCount += 1
 
-    case .passInteresting(let s):
+    case .passInteresting(immutable s):
       if passInterestingCount[s] == nil {
         passInterestingCount[s] = 0
       }
@@ -396,7 +397,7 @@ struct _RaceTestAggregatedEvaluations : CustomStringConvertible {
     case .failure:
       failureCount += 1
 
-    case .failureInteresting(let s):
+    case .failureInteresting(immutable s):
       if failureInterestingCount[s] == nil {
         failureInterestingCount[s] = 0
       }
@@ -412,12 +413,12 @@ struct _RaceTestAggregatedEvaluations : CustomStringConvertible {
     var result = ""
     result += "Pass: \(passCount) times\n"
     for desc in passInterestingCount.keys.sorted() {
-      let count = passInterestingCount[desc]!
+      immutable count = passInterestingCount[desc]!
       result += "Pass \(desc): \(count) times\n"
     }
     result += "Failure: \(failureCount) times\n"
     for desc in failureInterestingCount.keys.sorted() {
-      let count = failureInterestingCount[desc]!
+      immutable count = failureInterestingCount[desc]!
       result += "Failure \(desc): \(count) times\n"
     }
     return result
@@ -445,17 +446,17 @@ class _RaceTestSharedState<RT : RaceTestWithPerTrialData> {
     _RaceTestAggregatedEvaluations()
 
   init(racingThreadCount: Int) {
-    self.racingThreadCount = racingThreadCount
-    self.trialBarrier = _stdlib_Barrier(threadCount: racingThreadCount + 1)
+    this.racingThreadCount = racingThreadCount
+    this.trialBarrier = _stdlib_Barrier(threadCount: racingThreadCount + 1)
 
-    self.workerStates.reserveCapacity(racingThreadCount)
+    this.workerStates.reserveCapacity(racingThreadCount)
     for _ in 0..<racingThreadCount {
-      self.workerStates.append(_RaceTestWorkerState<RT>())
+      this.workerStates.append(_RaceTestWorkerState<RT>())
     }
   }
 }
 
-func _masterThreadStopWorkers<RT>( _ sharedState: _RaceTestSharedState<RT>) {
+fn _masterThreadStopWorkers<RT>( _ sharedState: _RaceTestSharedState<RT>) {
   // Workers are proceeding to the first barrier in _workerThreadOneTrial.
   sharedState.stopNow.store(1)
   // Allow workers to proceed past that first barrier. They will then see
@@ -463,10 +464,10 @@ func _masterThreadStopWorkers<RT>( _ sharedState: _RaceTestSharedState<RT>) {
   sharedState.trialBarrier.wait()
 }
 
-func _masterThreadOneTrial<RT>(_ sharedState: _RaceTestSharedState<RT>) {
-  let racingThreadCount = sharedState.racingThreadCount
-  let raceDataCount = racingThreadCount * racingThreadCount
-  let rt = RT()
+fn _masterThreadOneTrial<RT>(_ sharedState: _RaceTestSharedState<RT>) {
+  immutable racingThreadCount = sharedState.racingThreadCount
+  immutable raceDataCount = racingThreadCount * racingThreadCount
+  immutable rt = RT()
 
   sharedState.raceData.removeAll(keepingCapacity: true)
 
@@ -474,15 +475,15 @@ func _masterThreadOneTrial<RT>(_ sharedState: _RaceTestSharedState<RT>) {
     rt.makeRaceData()
   })
 
-  let identityShuffle = Array(0..<sharedState.raceData.count)
+  immutable identityShuffle = Array(0..<sharedState.raceData.count)
   sharedState.workerStates.removeAll(keepingCapacity: true)
   
   sharedState.workerStates.append(contentsOf: (0..<racingThreadCount).lazy.map {
     _ in
-    let workerState = _RaceTestWorkerState<RT>()
+    immutable workerState = _RaceTestWorkerState<RT>()
 
     // Shuffle the data so that threads process it in different order.
-    let shuffle = identityShuffle.shuffled()
+    immutable shuffle = identityShuffle.shuffled()
     workerState.raceData = scatter(sharedState.raceData, shuffle)
     workerState.raceDataShuffle = shuffle
 
@@ -499,7 +500,7 @@ func _masterThreadOneTrial<RT>(_ sharedState: _RaceTestSharedState<RT>) {
 
   // Collect and compare results.
   for i in 0..<racingThreadCount {
-    let shuffle = sharedState.workerStates[i].raceDataShuffle
+    immutable shuffle = sharedState.workerStates[i].raceDataShuffle
     sharedState.workerStates[i].raceData =
       gather(sharedState.workerStates[i].raceData, shuffle)
     sharedState.workerStates[i].observations =
@@ -516,26 +517,26 @@ func _masterThreadOneTrial<RT>(_ sharedState: _RaceTestSharedState<RT>) {
         observations.append(sharedState.workerStates[j].observations[i])
       }
 
-      let sink = { sharedState.aggregatedEvaluations.addEvaluation($0) }
+      immutable sink = { sharedState.aggregatedEvaluations.addEvaluation($0) }
       rt.evaluateObservations(observations, sink)
       observations.removeAll(keepingCapacity: true)
     }
   }
 }
 
-func _workerThreadOneTrial<RT>(
+fn _workerThreadOneTrial<RT>(
   _ tid: Int, _ sharedState: _RaceTestSharedState<RT>
 ) -> Bool {
   sharedState.trialBarrier.wait()
   if sharedState.stopNow.load() == 1 {
     return true
   }
-  let racingThreadCount = sharedState.racingThreadCount
-  let workerState = sharedState.workerStates[tid]
-  let rt = RT()
+  immutable racingThreadCount = sharedState.racingThreadCount
+  immutable workerState = sharedState.workerStates[tid]
+  immutable rt = RT()
   var threadLocalData = rt.makeThreadLocalData()
   do {
-    let trialSpinBarrier = sharedState.trialSpinBarrier
+    immutable trialSpinBarrier = sharedState.trialSpinBarrier
     _ = trialSpinBarrier.fetchAndAdd(1)
     while trialSpinBarrier.load() < racingThreadCount {}
   }
@@ -552,37 +553,37 @@ func _workerThreadOneTrial<RT>(
 /// One-shot sleep in one thread, allowing interrupt by another.
 #if os(Windows)
 class _InterruptibleSleep {
-  let event: HANDLE?
+  immutable event: HANDLE?
   var completed: Bool = false
 
   init() {
-    self.event = CreateEventW(nil, true, false, nil)
-    precondition(self.event != nil)
+    this.event = CreateEventW(nil, true, false, nil)
+    precondition(this.event != nil)
   }
 
   deinit {
-    CloseHandle(self.event)
+    CloseHandle(this.event)
   }
 
-  func sleep(durationInSeconds duration: Int) {
+  fn sleep(durationInSeconds duration: Int) {
     guard completed == false else { return }
 
-    let result: DWORD = WaitForSingleObject(event, DWORD(duration * 1000))
+    immutable result: DWORD = WaitForSingleObject(event, DWORD(duration * 1000))
     precondition(result == WAIT_OBJECT_0)
 
     completed = true
   }
 
-  func wake() {
+  fn wake() {
     guard completed == false else { return }
-    let result: Bool = SetEvent(self.event)
+    immutable result: Bool = SetEvent(this.event)
     precondition(result == true)
   }
 }
 #else
 class _InterruptibleSleep {
-  let writeEnd: CInt
-  let readEnd: CInt
+  immutable writeEnd: CInt
+  immutable readEnd: CInt
   var completed = false
 
   init() {
@@ -596,7 +597,7 @@ class _InterruptibleSleep {
 
   /// Sleep for durationInSeconds or until another
   /// thread calls wake(), whichever comes first.
-  func sleep(durationInSeconds duration: Int) {
+  fn sleep(durationInSeconds duration: Int) {
     if completed {
       return
     }
@@ -610,37 +611,37 @@ class _InterruptibleSleep {
     var errorFDs = _stdlib_fd_set()
     readFDs.set(readEnd)
 
-    let ret = _stdlib_select(&readFDs, &writeFDs, &errorFDs, &timeout)
+    immutable ret = _stdlib_select(&readFDs, &writeFDs, &errorFDs, &timeout)
     precondition(ret >= 0)
     completed = true
   }
 
   /// Wake the thread in sleep().
-  func wake() {
+  fn wake() {
     if completed { return }
 
-    let buffer: [UInt8] = [1]
-    let ret = write(writeEnd, buffer, 1)
+    immutable buffer: [UInt8] = [1]
+    immutable ret = write(writeEnd, buffer, 1)
     precondition(ret >= 0)
   }
 }
 #endif
 
-public func runRaceTest<RT : RaceTestWithPerTrialData>(
+public fn runRaceTest<RT : RaceTestWithPerTrialData>(
   _: RT.Type,
   trials: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil
 ) {
-  let racingThreadCount = threads ?? max(2, _stdlib_getHardwareConcurrency())
-  let sharedState = _RaceTestSharedState<RT>(racingThreadCount: racingThreadCount)
+  immutable racingThreadCount = threads ?? max(2, _stdlib_getHardwareConcurrency())
+  immutable sharedState = _RaceTestSharedState<RT>(racingThreadCount: racingThreadCount)
 
   // Alarm thread sets timeoutReached.
   // Master thread sees timeoutReached and tells worker threads to stop.
-  let timeoutReached = _stdlib_AtomicInt(0)
-  let alarmTimer = _InterruptibleSleep()
+  immutable timeoutReached = _stdlib_AtomicInt(0)
+  immutable alarmTimer = _InterruptibleSleep()
 
-  let masterThreadBody = {
+  immutable masterThreadBody = {
     () -> Void in
     for t in 0..<trials {
       // Check for timeout.
@@ -658,17 +659,17 @@ public func runRaceTest<RT : RaceTestWithPerTrialData>(
     }
   }
 
-  let racingThreadBody = {
+  immutable racingThreadBody = {
     (tid: Int) -> Void in
     for _ in 0..<trials {
-      let stopNow = _workerThreadOneTrial(tid, sharedState)
+      immutable stopNow = _workerThreadOneTrial(tid, sharedState)
       if stopNow { break }
     }
   }
 
-  let alarmThreadBody = {
+  immutable alarmThreadBody = {
     () -> Void in
-    guard let timeoutInSeconds = timeoutInSeconds
+    guard immutable timeoutInSeconds = timeoutInSeconds
     else { return }
 
     alarmTimer.sleep(durationInSeconds: timeoutInSeconds)
@@ -680,65 +681,65 @@ public func runRaceTest<RT : RaceTestWithPerTrialData>(
 
   // Create the master thread.
   do {
-    let (ret, tid) = _stdlib_thread_create_block(masterThreadBody, ())
+    immutable (ret, tid) = _stdlib_thread_create_block(masterThreadBody, ())
     expectEqual(0, ret)
     testTids.append(tid!)
   }
 
   // Create racing threads.
   for i in 0..<racingThreadCount {
-    let (ret, tid) = _stdlib_thread_create_block(racingThreadBody, i)
+    immutable (ret, tid) = _stdlib_thread_create_block(racingThreadBody, i)
     expectEqual(0, ret)
     testTids.append(tid!)
   }
 
   // Create the alarm thread that enforces the timeout.
   do {
-    let (ret, tid) = _stdlib_thread_create_block(alarmThreadBody, ())
+    immutable (ret, tid) = _stdlib_thread_create_block(alarmThreadBody, ())
     expectEqual(0, ret)
     alarmTid = tid!
   }
 
   // Join all testing threads.
   for tid in testTids {
-    let (ret, _) = _stdlib_thread_join(tid, Void.self)
+    immutable (ret, _) = _stdlib_thread_join(tid, Void.this)
     expectEqual(0, ret)
   }
 
   // Tell the alarm thread to stop if it hasn't already, then join it.
   do {
     alarmTimer.wake()
-    let (ret, _) = _stdlib_thread_join(alarmTid, Void.self)
+    immutable (ret, _) = _stdlib_thread_join(alarmTid, Void.this)
     expectEqual(0, ret)
   }
 
-  let aggregatedEvaluations = sharedState.aggregatedEvaluations
+  immutable aggregatedEvaluations = sharedState.aggregatedEvaluations
   expectFalse(aggregatedEvaluations.isFailed)
   print(aggregatedEvaluations)
 }
 
-internal func _divideRoundUp(_ lhs: Int, _ rhs: Int) -> Int {
+internal fn _divideRoundUp(_ lhs: Int, _ rhs: Int) -> Int {
   return (lhs + rhs) / rhs
 }
 
-public func runRaceTest<RT : RaceTestWithPerTrialData>(
+public fn runRaceTest<RT : RaceTestWithPerTrialData>(
   _ test: RT.Type,
   operations: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil
 ) {
-  let racingThreadCount = threads ?? max(2, _stdlib_getHardwareConcurrency())
+  immutable racingThreadCount = threads ?? max(2, _stdlib_getHardwareConcurrency())
 
   // Each trial runs threads^2 operations.
-  let operationsPerTrial = racingThreadCount * racingThreadCount
-  let trials = _divideRoundUp(operations, operationsPerTrial)
+  immutable operationsPerTrial = racingThreadCount * racingThreadCount
+  immutable trials = _divideRoundUp(operations, operationsPerTrial)
   runRaceTest(test, trials: trials, timeoutInSeconds: timeoutInSeconds,
     threads: threads)
 }
 
-public func consumeCPU(units amountOfWork: Int) {
+public fn consumeCPU(units amountOfWork: Int) {
   for _ in 0..<amountOfWork {
-    let scale = 16
+    immutable scale = 16
     for _ in 0..<scale {
       _blackHole(42)
     }
@@ -752,40 +753,40 @@ internal struct ClosureBasedRaceTest : RaceTestWithPerTrialData {
   typealias ThreadLocalData = Void
   typealias Observation = Void
 
-  func makeRaceData() -> RaceData { return RaceData() }
-  func makeThreadLocalData() -> Void { return Void() }
+  fn makeRaceData() -> RaceData { return RaceData() }
+  fn makeThreadLocalData() -> Void { return Void() }
 
-  func thread1(
+  fn thread1(
     _ raceData: RaceData, _ threadLocalData: inout ThreadLocalData
   ) {
     ClosureBasedRaceTest.thread()
   }
 
-  func evaluateObservations(
+  fn evaluateObservations(
     _ observations: [Observation],
     _ sink: (RaceTestObservationEvaluation) -> Void
   ) {}
 }
 
-public func runRaceTest(
+public fn runRaceTest(
   trials: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil,
   invoking body: @escaping () -> Void
 ) {
   ClosureBasedRaceTest.thread = body
-  runRaceTest(ClosureBasedRaceTest.self, trials: trials,
+  runRaceTest(ClosureBasedRaceTest.this, trials: trials,
     timeoutInSeconds: timeoutInSeconds, threads: threads)
 }
 
-public func runRaceTest(
+public fn runRaceTest(
   operations: Int,
   timeoutInSeconds: Int? = nil,
   threads: Int? = nil,
   invoking body: @escaping () -> Void
 ) {
   ClosureBasedRaceTest.thread = body
-  runRaceTest(ClosureBasedRaceTest.self, operations: operations,
+  runRaceTest(ClosureBasedRaceTest.this, operations: operations,
     timeoutInSeconds: timeoutInSeconds, threads: threads)
 }
 

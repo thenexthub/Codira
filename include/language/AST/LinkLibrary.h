@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_LINKLIBRARY_H
-#define SWIFT_AST_LINKLIBRARY_H
+#ifndef LANGUAGE_AST_LINKLIBRARY_H
+#define LANGUAGE_AST_LINKLIBRARY_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
 #include <string>
 
 namespace language {

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-outliner"
@@ -37,15 +38,15 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/BitVector.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/BitVector.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
-llvm::cl::opt<std::string> DumpFuncsBeforeOutliner(
-    "sil-dump-functions-before-outliner", llvm::cl::init(""),
-    llvm::cl::desc(
+toolchain::cl::opt<std::string> DumpFuncsBeforeOutliner(
+    "sil-dump-functions-before-outliner", toolchain::cl::init(""),
+    toolchain::cl::desc(
         "Break before running each function pass on a particular function"));
 
 namespace {
@@ -59,16 +60,16 @@ class OutlinerMangler : public Mangle::ASTMangler {
     BridgedMethod,
   };
 
-  llvm::BitVector *IsParameterBridged;
-  llvm::BitVector *IsParameterGuaranteed;
+  toolchain::BitVector *IsParameterBridged;
+  toolchain::BitVector *IsParameterGuaranteed;
   SILDeclRef MethodDecl;
   MethodKind Kind;
   bool IsReturnBridged;
 
 public:
   /// Create an mangler for an outlined bridged method.
-  OutlinerMangler(SILDeclRef Method, llvm::BitVector *ParameterBridged,
-                  llvm::BitVector *IsParameterGuaranteed, bool ReturnBridged)
+  OutlinerMangler(SILDeclRef Method, toolchain::BitVector *ParameterBridged,
+                  toolchain::BitVector *IsParameterGuaranteed, bool ReturnBridged)
       : ASTMangler(Method.getASTContext()), IsParameterBridged(ParameterBridged),
         IsParameterGuaranteed(IsParameterGuaranteed), MethodDecl(Method),
         Kind(BridgedMethod), IsReturnBridged(ReturnBridged) {}
@@ -96,7 +97,7 @@ private:
     case BridgedMethod:
       return 'm';
     }
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 };
 } // end anonymous namespace.
@@ -106,8 +107,8 @@ std::string OutlinerMangler::mangle() {
 
   appendOperator(MethodDecl.mangle());
 
-  llvm::SmallString<128> Buffer;
-  llvm::raw_svector_ostream Out(Buffer);
+  toolchain::SmallString<128> Buffer;
+  toolchain::raw_svector_ostream Out(Buffer);
 
   Out << getMethodKindMangling();
   if (IsParameterBridged) {
@@ -168,7 +169,7 @@ static SILDeclRef getBridgeToObjectiveC(CanType NativeType) {
 
   auto Conformance = ConformanceRef.getConcrete();
   // bridgeToObjectiveC
-  DeclName Name(Ctx, Ctx.Id_bridgeToObjectiveC, llvm::ArrayRef<Identifier>());
+  DeclName Name(Ctx, Ctx.Id_bridgeToObjectiveC, toolchain::ArrayRef<Identifier>());
   auto *Requirement = dyn_cast_or_null<FuncDecl>(
     Proto->getSingleRequirement(Name));
   if (!Requirement)
@@ -190,7 +191,7 @@ SILDeclRef getBridgeFromObjectiveC(CanType NativeType) {
   auto Conformance = ConformanceRef.getConcrete();
   // _unconditionallyBridgeFromObjectiveC
   DeclName Name(Ctx, Ctx.getIdentifier("_unconditionallyBridgeFromObjectiveC"),
-                llvm::ArrayRef(Identifier()));
+                toolchain::ArrayRef(Identifier()));
   auto *Requirement = dyn_cast_or_null<FuncDecl>(
       Proto->getSingleRequirement(Name));
   if (!Requirement)
@@ -1034,8 +1035,8 @@ class ObjCMethodCall : public OutlinePattern {
   ApplyInst *BridgedCall;
   SmallVector<BridgedArgument, 4> BridgedArguments;
   std::string OutlinedName;
-  llvm::BitVector IsBridgedArgument;
-  llvm::BitVector IsGuaranteedArgument;
+  toolchain::BitVector IsBridgedArgument;
+  toolchain::BitVector IsGuaranteedArgument;
   ::BridgedReturn BridgedReturn;
 public:
   bool matchInstSequence(SILBasicBlock::iterator I) override;
@@ -1207,7 +1208,7 @@ bool ObjCMethodCall::matchInstSequence(SILBasicBlock::iterator I) {
   // the index in the apply at which they appear or UINT_MAX if we've seen them
   // more than once (which means we've already nulled out all the
   // BridgedArguments' ReleaseAfterBridge).
-  llvm::DenseMap<SILValue, unsigned> seenOwnedBridgedValues;
+  toolchain::DenseMap<SILValue, unsigned> seenOwnedBridgedValues;
   for (auto &Param : BridgedCall->getArgumentOperands()) {
     unsigned CurIdx = Idx++;
 
@@ -1444,6 +1445,6 @@ public:
 
 } //end anonymous namespace.
 
-SILTransform *swift::createOutliner() {
+SILTransform *language::createOutliner() {
   return new Outliner();
 }

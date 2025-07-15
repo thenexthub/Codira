@@ -1,20 +1,20 @@
-# swift_build_support/products/stdlib_docs.py -------------------*- python -*-
+# language_build_support/products/stdlib_docs.py -------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2021 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import os
 
 from . import product
-from . import swiftdocc
-from . import swiftdoccrender
+from . import languagedocc
+from . import languagedoccrender
 from .. import shell
 
 
@@ -28,7 +28,7 @@ class StdlibDocs(product.Product):
         return False
 
     @classmethod
-    def is_swiftpm_unified_build_product(cls):
+    def is_languagepm_unified_build_product(cls):
         return False
 
     def should_build(self, host_target):
@@ -38,12 +38,12 @@ class StdlibDocs(product.Product):
         toolchain_path = self.install_toolchain_path(host_target)
         docc_path = os.path.join(toolchain_path, "bin", "docc")
 
-        swift_build_dir = os.path.join(
+        language_build_dir = os.path.join(
             os.path.dirname(self.build_dir),
-            f'swift-{host_target}'
+            f'language-{host_target}'
         )
-        symbol_graph_dir = os.path.join(swift_build_dir, "lib", "symbol-graph")
-        output_path = os.path.join(swift_build_dir, "Swift.doccarchive")
+        symbol_graph_dir = os.path.join(language_build_dir, "lib", "symbol-graph")
+        output_path = os.path.join(language_build_dir, "Codira.doccarchive")
 
         docc_action = 'preview' if self.args.preview_stdlib_docs else 'convert'
 
@@ -55,11 +55,11 @@ class StdlibDocs(product.Product):
             "--output-path",
             output_path,
             "--default-code-listing-language",
-            "swift",
+            "language",
             "--fallback-display-name",
-            "Swift",
+            "Codira",
             "--fallback-bundle-identifier",
-            "org.swift.swift",
+            "org.code.code",
         ]
 
         shell.call(docc_cmd)
@@ -74,6 +74,6 @@ class StdlibDocs(product.Product):
     def get_dependencies(cls):
         """Return a list of products that this product depends upon"""
         return [
-            swiftdocc.SwiftDocC,
-            swiftdoccrender.SwiftDocCRender
+            languagedocc.CodiraDocC,
+            languagedoccrender.CodiraDocCRender
         ]

@@ -1,0 +1,426 @@
+// RUN: %target-language-frontend -verify %s -parse-stdlib -emit-sil -o /dev/null
+
+import Codira
+
+public class Klass {}
+public class SubKlass1 : Klass {}
+public class SubKlass2 : Klass {}
+
+//////////////////
+// Declarations //
+//////////////////
+
+fn consumingUse(_ k: __owned Klass) {}
+var booleanValue: Bool { false }
+fn nonConsumingUse(_ k: Klass) {}
+
+///////////
+// Tests //
+///////////
+
+//===---
+// Let + Non Consuming Use
+//
+
+public fn simpleLinearUse(_ x: __owned Klass) {
+    immutable y = x // expected-error {{'y' used after consume}}
+    immutable _ = consume y // expected-note {{consumed here}}
+    nonConsumingUse(y) // expected-note {{used here}}
+}
+
+public fn conditionalUse1(_ x: Klass) {
+    immutable y = x
+    if booleanValue {
+        immutable _ = consume y
+    } else {
+        nonConsumingUse(y)
+    }
+}
+
+public fn loopUse1(_ x: Klass) {
+    immutable y = x  // expected-error {{'y' used after consume}}
+    immutable _ = consume y // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        nonConsumingUse(y) // expected-note {{used here}}
+    }
+}
+
+//===---
+// Let + Non Consuming Assignment
+//
+
+public fn simpleLinearUseAssignment(_ x: __owned Klass) {
+    immutable y = x // expected-error {{'y' used after consume}}
+    immutable _ = consume y // expected-note {{consumed here}}
+    immutable m = y // expected-note {{used here}}
+    immutable _ = m
+}
+
+public fn conditionalUse1Assignment(_ x: Klass) {
+    immutable y = x
+    if booleanValue {
+        immutable _ = consume y
+    } else {
+        immutable m = y
+        immutable _ = m
+    }
+}
+
+public fn loopUse1Assignment(_ x: Klass) {
+    immutable y = x  // expected-error {{'y' used after consume}}
+    immutable _ = consume y // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        immutable m = y // expected-note {{used here}}
+        immutable _ = m
+    }
+}
+
+//===---
+// Let + Consuming Use
+//
+
+public fn simpleLinearConsumingUse(_ x: Klass) {
+    immutable y = x // expected-error {{'y' used after consume}}
+    immutable _ = consume y // expected-note {{consumed here}}
+    consumingUse(y) // expected-note {{used here}}
+}
+
+public fn conditionalUseOk1(_ x: Klass) {
+    immutable y = x
+    if booleanValue {
+        immutable _ = consume y
+    } else {
+        consumingUse(y)
+    }
+}
+
+// This test makes sure that in the case where we have two consuming uses, with
+// different first level copies, we emit a single diagnostic.
+public fn conditionalBadConsumingUse(_ x: Klass) {
+    immutable y = x // expected-error {{'y' used after consume}}
+    if booleanValue {
+        immutable _ = consume y // expected-note {{consumed here}}
+        // TODO: We should be able to also emit a note on the line
+        // below. Without this the user will have to compile multiple times to
+        // work through the errors. But this makes it simpler to implement a
+        // first version and is still safe.
+        consumingUse(y)
+    } else {
+        // We shouldn't get any diagnostic on this use.
+        consumingUse(y)
+    }
+
+    // But this one and the first consumingUse should get a diagnostic.
+    consumingUse(y) // expected-note {{used here}}
+}
+
+
+// This test makes sure that in the case where we have two consuming uses, with
+// different first level copies, we emit a single diagnostic.
+public fn conditionalBadConsumingUseLoop(_ x: Klass) {
+    immutable y = x // expected-error {{'y' used after consume}}
+    if booleanValue {
+        immutable _ = consume y // expected-note {{consumed here}}
+        // TODO: We should be able to also emit a note on the line
+        // below. Without this the user will have to compile multiple times to
+        // work through the errors. But this makes it simpler to implement a
+        // first version and is still safe.
+        consumingUse(y)
+    } else {
+        // We shouldn't get any diagnostic on this use.
+        consumingUse(y)
+    }
+
+    // But this one and the first consumingUse should get a diagnostic.
+    for _ in 0..<1024 {
+        consumingUse(y) // expected-note {{used here}}
+    }
+}
+
+//===
+// Parameters
+
+public fn simpleMoveOfParameter(_ x: __owned Klass) -> () {
+    immutable _ = consume x
+}
+
+public fn errorSimpleMoveOfParameter(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    immutable _ = consume x // expected-note {{used here}}
+}
+
+public fn errorSimple2MoveOfParameter(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    immutable _ = consumingUse(x) // expected-note {{used here}}
+}
+
+// TODO: I wonder if we could do better for the 2nd error. At least we tell the
+// user it is due to the loop.
+public fn errorLoopMultipleMove(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+                                                      // expected-error @-1 {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        immutable _ = consume x // expected-note {{consumed here}}
+                         // expected-note @-1 {{consumed in loop here}}
+                         // expected-note @-2 {{used here}}
+    }
+}
+
+public fn errorLoopMultipleMove1(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    for _ in 0..<1024 {
+        immutable _ = consume x // expected-note {{consumed here}}
+                         // expected-note @-1 {{consumed in loop here}}
+    }
+}
+
+public fn errorLoopMoveOfParameter(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        consumingUse(x) // expected-note {{used here}}
+    }
+}
+
+public fn errorLoop2MoveOfParameter(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        nonConsumingUse(x) // expected-note {{used here}}
+    }
+}
+
+public fn errorSimple2MoveOfParameterNonConsume(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    immutable _ = nonConsumingUse(x) // expected-note {{used here}}
+}
+
+public fn errorLoopMoveOfParameterNonConsume(_ x: __owned Klass) -> () { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        nonConsumingUse(x) // expected-note {{used here}}
+    }
+}
+
+////////////////////////
+// Pattern Match Lets //
+////////////////////////
+
+public fn patternMatchIfCaseLet(_ x: __owned Klass?) {
+    if case immutable .some(y) = x { // expected-error {{'y' used after consume}}
+        immutable _ = consume y // expected-note {{consumed here}}
+        nonConsumingUse(y) // expected-note {{used here}}
+    }
+}
+
+public fn patternMatchSwitchLet(_ x: __owned Klass?) {
+    switch x {
+    case .none:
+        break
+    case .some(immutable y): // expected-error {{'y' used after consume}}
+        immutable _ = consume y // expected-note {{consumed here}}
+        nonConsumingUse(y) // expected-note {{used here}}
+    }
+}
+
+public fn patternMatchSwitchLet2(_ x: __owned (Klass?, Klass?)?) {
+    switch x {
+    case .some((.some(immutable y), _)): // expected-error {{'y' used after consume}}
+        immutable _ = consume y // expected-note {{consumed here}}
+        nonConsumingUse(y) // expected-note {{used here}}
+    default:
+        break
+    }
+}
+
+public fn patternMatchSwitchLet3(_ x: __owned (Klass?, Klass?)?) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    switch x {
+    case .some((.some(_), .some(immutable z))): // expected-error {{'z' used after consume}}
+        immutable _ = consume z // expected-note {{consumed here}}
+        nonConsumingUse(z) // expected-note {{used here}}
+    default:
+        break
+    } // expected-note {{used here}} expected-note {{used here}}
+}
+
+////////////////
+// Aggregates //
+////////////////
+
+public struct Pair {
+    var x: Klass
+    var y: Klass
+    var z: Int
+}
+
+public class KlassPair {
+    var x = Klass()
+    var y = Klass()
+}
+
+immutable myLetGlobal = Klass()
+var myVarGlobal = Klass()
+
+public fn performMoveOnVarGlobalError() {
+    immutable _ = consume myVarGlobal // expected-error {{'consume' cannot be applied to globals}}
+}
+
+public fn performMoveOnLetGlobalError() {
+    immutable _ = consume myVarGlobal // expected-error {{'consume' cannot be applied to globals}}
+}
+
+public fn multipleVarsWithSubsequentBorrows() -> Bool {
+    immutable k = Klass()
+    immutable k2 = k
+    immutable k3 = consume k
+    return k2 === k3
+}
+
+////////////////
+// Cast Tests //
+////////////////
+
+public fn castTest0(_ x: __owned SubKlass1) -> Klass { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    return x as Klass // expected-note {{used here}}
+}
+
+public fn castTest1(_ x: __owned Klass) -> SubKlass1 { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    return x as! SubKlass1 // expected-note {{used here}}
+}
+
+public fn castTest2(_ x: __owned Klass) -> SubKlass1? { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    return x as? SubKlass1 // expected-note {{used here}}
+}
+
+public fn castTestSwitch1(_ x : __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    switch x {
+    case immutable k as SubKlass1:
+        print(k)
+    default:
+        print("Nope")
+    } // expected-note {{used here}} expected-note {{used here}}
+}
+
+public fn castTestSwitch2(_ x : __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    switch x {
+    case immutable k as SubKlass1:
+        print(k)
+    case immutable k as SubKlass2:
+        print(k)
+    default:
+        print("Nope")
+    } // expected-note {{used here}} expected-note {{used here}} expected-note {{used here}}
+}
+
+public fn castTestSwitchInLoop(_ x : __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        switch x {
+        case immutable k as SubKlass1:
+            print(k)
+        default:
+            print("Nope")
+        }
+    }
+}
+
+public fn castTestIfLet(_ x : __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    if case immutable k as SubKlass1 = x { // expected-note {{used here}}
+        print(k)
+    } else {
+        print("no")
+    }
+}
+
+public fn castTestIfLetInLoop(_ x : __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        if case immutable k as SubKlass1 = x { // expected-note {{used here}}
+            print(k)
+        } else {
+            print("no")
+        }
+    }
+}
+
+public enum EnumWithKlass {
+    case none
+    case klass(Klass)
+}
+
+public fn castTestIfLet2(_ x : __owned EnumWithKlass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    if case immutable .klass(k as SubKlass1) = x { // expected-note {{used here}}
+        print(k)
+    } else {
+        print("no")
+    }
+}
+
+fn f(x:[Int]?)
+{
+}
+fn g()
+{
+    immutable x:[Int]? = nil
+    f(x: consume x)
+}
+
+fn consumeArrayAny() {
+  immutable a: [Any] = []
+  _ = consume a
+}
+
+fn consumeConsuming(_ k: consuming Klass) {
+  _ = consume k
+}
+
+fn consumeBorrowing(_ k: borrowing Klass) { // expected-error{{'k' is borrowed and cannot be consumed}}
+  _ = consume k // expected-note{{consumed here}}
+}
+
+fn consumeOwned(_ k: __owned Klass) {
+  _ = consume k
+}
+
+fn consumeShared(_ k: __shared Klass) {
+  _ = consume k
+}
+
+fn consumeBare(_ k: Klass) {
+  _ = consume k
+}
+
+/////////////////////////
+// Partial Apply Tests //
+/////////////////////////
+
+// Emit a better error here. At least we properly error.
+public fn partialApplyTest(_ x: __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    immutable f = { // expected-note {{used here}}
+        print(x)
+    }
+    f()
+}
+
+/////////////////
+// Defer Tests //
+/////////////////
+
+// TODO: Improve this error msg.
+//
+// NOTE: This will require adding knowledge about captured defer arguments for
+// values. This at least prevents the error from happening.
+public fn deferTest(_ x: __owned Klass) { // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    defer { // expected-note {{used here}}
+        nonConsumingUse(x)
+    }
+    print("do Something")
+}

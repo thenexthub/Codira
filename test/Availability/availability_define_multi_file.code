@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t --leading-lines
+
+// RUN: not %target-language-frontend -typecheck -diagnostic-style toolchain \
+// RUN:   %t/FileA.code %t/FileB.code \
+// RUN:   -define-availability "_justAName" \
+// RUN:   2>&1 | %FileCheck %s
+
+// CHECK: -define-availability argument:1:11: error: expected ':' after '_justAName' in availability macro definition
+// CHECK-NEXT: _justAName
+
+/// It's parsed once so the diagnostic is produced once as well.
+// CHECK-NOT: _justAName
+
+//--- FileA.code
+
+@available(_triggerParsingMacros)
+public fn brokenPlatforms() {}
+
+//--- FileB.code
+
+@available(_triggerParsingMacros)
+public fn brokenPlatforms() {}

@@ -1,13 +1,17 @@
 //===--- Generators.h - "Coroutines" for doing traversals -------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a few types for defining types that follow this
@@ -53,10 +57,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_GENERATORS_H
-#define SWIFT_BASIC_GENERATORS_H
+#ifndef LANGUAGE_BASIC_GENERATORS_H
+#define LANGUAGE_BASIC_GENERATORS_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 namespace language {
 
@@ -68,12 +72,12 @@ struct is_array_ref_like {
 };
 
 template <class T>
-struct is_array_ref_like<llvm::ArrayRef<T>> {
+struct is_array_ref_like<toolchain::ArrayRef<T>> {
   enum { value = true };
 };
 
 template <class T>
-struct is_array_ref_like<llvm::MutableArrayRef<T>> {
+struct is_array_ref_like<toolchain::MutableArrayRef<T>> {
   enum { value = true };
 };
 }

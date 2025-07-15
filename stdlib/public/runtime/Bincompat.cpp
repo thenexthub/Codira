@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Checks for enabling binary compatibility workarounds.
@@ -27,7 +28,7 @@
 #include <stdint.h>
 
 // If this is an Apple OS, use the Apple binary compatibility rules
-#if __has_include(<mach-o/dyld_priv.h>) && defined(SWIFT_RUNTIME_OS_VERSIONING)
+#if __has_include(<mach-o/dyld_priv.h>) && defined(LANGUAGE_RUNTIME_OS_VERSIONING)
   #include <mach-o/dyld_priv.h>
   #ifndef BINARY_COMPATIBILITY_APPLE
     #define BINARY_COMPATIBILITY_APPLE 1
@@ -77,17 +78,17 @@ static enum sdk_test isAppAtLeastFall2024() {
 }
 #endif
 
-static _SwiftStdlibVersion binCompatVersionOverride = { 0 };
+static _CodiraStdlibVersion binCompatVersionOverride = { 0 };
 
-static _SwiftStdlibVersion const knownVersions[] = {
+static _CodiraStdlibVersion const knownVersions[] = {
   { /* 5.6.0 */0x050600 },
   { /* 5.7.0 */0x050700 },
   // Note: If you add a new entry here, also add it to versionMap in
-  // _swift_stdlib_isExecutableLinkedOnOrAfter below.
+  // _language_stdlib_isExecutableLinkedOnOrAfter below.
   { 0 },
 };
 
-static bool isKnownBinCompatVersion(_SwiftStdlibVersion version) {
+static bool isKnownBinCompatVersion(_CodiraStdlibVersion version) {
   for (int i = 0; knownVersions[i]._value != 0; ++i) {
     if (knownVersions[i]._value == version._value) {
       return true;
@@ -97,12 +98,12 @@ static bool isKnownBinCompatVersion(_SwiftStdlibVersion version) {
 }
 
 static void checkBinCompatEnvironmentVariable(void *context) {
-  _SwiftStdlibVersion version =
-    { runtime::environment::SWIFT_BINARY_COMPATIBILITY_VERSION() };
+  _CodiraStdlibVersion version =
+    { runtime::environment::LANGUAGE_BINARY_COMPATIBILITY_VERSION() };
 
   if (version._value > 0 && !isKnownBinCompatVersion(version)) {
-    swift::warning(RuntimeErrorFlagNone,
-                   "Warning: ignoring unknown SWIFT_BINARY_COMPATIBILITY_VERSION %x.\n",
+    language::warning(RuntimeErrorFlagNone,
+                   "Warning: ignoring unknown LANGUAGE_BINARY_COMPATIBILITY_VERSION %x.\n",
                    version._value);
     return;
   }
@@ -110,11 +111,11 @@ static void checkBinCompatEnvironmentVariable(void *context) {
   binCompatVersionOverride = version;
 }
 
-extern "C" __swift_bool _swift_stdlib_isExecutableLinkedOnOrAfter(
-  _SwiftStdlibVersion version
+extern "C" __language_bool _language_stdlib_isExecutableLinkedOnOrAfter(
+  _CodiraStdlibVersion version
 ) {
   static once_t getenvToken;
-  swift::once(getenvToken, checkBinCompatEnvironmentVariable, nullptr);
+  language::once(getenvToken, checkBinCompatEnvironmentVariable, nullptr);
 
   if (binCompatVersionOverride._value > 0) {
     return version._value <= binCompatVersionOverride._value;
@@ -122,7 +123,7 @@ extern "C" __swift_bool _swift_stdlib_isExecutableLinkedOnOrAfter(
 
 #if BINARY_COMPATIBILITY_APPLE
   typedef struct {
-    _SwiftStdlibVersion stdlib;
+    _CodiraStdlibVersion stdlib;
     dyld_build_version_t dyld;
   } stdlib_version_map;
 
@@ -151,7 +152,7 @@ extern "C" __swift_bool _swift_stdlib_isExecutableLinkedOnOrAfter(
 // Should we mimic the old override behavior when scanning protocol conformance records?
 
 // Old apps expect protocol conformances to override each other in a particular
-// order.  Starting with Swift 5.4, that order has changed as a result of
+// order.  Starting with Codira 5.4, that order has changed as a result of
 // significant performance improvements to protocol conformance scanning.  If
 // this returns `true`, the protocol conformance scan will do extra work to
 // mimic the old override behavior.
@@ -171,9 +172,9 @@ bool useLegacyProtocolConformanceReverseIteration() {
 // a non-nullable Obj-C pointer with a null value?
 
 // Obj-C does not strictly enforce non-nullability in all cases, so it is
-// possible for Obj-C code to pass null pointers into Swift code even when
+// possible for Obj-C code to pass null pointers into Codira code even when
 // declared non-nullable.  Such null pointers can lead to undefined behavior
-// later on.  Starting in Swift 5.4, these unexpected null pointers are fatal
+// later on.  Starting in Codira 5.4, these unexpected null pointers are fatal
 // runtime errors, but this is selectively disabled for old apps.
 bool useLegacyPermissiveObjCNullSemanticsInCasting() {
 #if BINARY_COMPATIBILITY_APPLE
@@ -190,10 +191,10 @@ bool useLegacyPermissiveObjCNullSemanticsInCasting() {
 // Should casting a nil optional to another optional
 // use the legacy semantics?
 
-// For consistency, starting with Swift 5.4, casting Optional<Int> to
+// For consistency, starting with Codira 5.4, casting Optional<Int> to
 // Optional<Optional<Int>> always wraps the source in another layer
 // of Optional.
-// Earlier versions of the Swift runtime did not do this if the source
+// Earlier versions of the Codira runtime did not do this if the source
 // optional was nil.  In that case, the outer target optional would be
 // set to nil.
 bool useLegacyOptionalNilInjectionInCasting() {
@@ -209,12 +210,12 @@ bool useLegacyOptionalNilInjectionInCasting() {
 }
 
 // Should casting be strict about protocol conformance when
-// boxing Swift values to pass to Obj-C?
+// boxing Codira values to pass to Obj-C?
 
-// Earlier versions of the Swift runtime would allow you to
-// cast a swift value to e.g., `NSCopying` or `NSObjectProtocol`
+// Earlier versions of the Codira runtime would allow you to
+// cast a language value to e.g., `NSCopying` or `NSObjectProtocol`
 // even if that value did not actually conform.  This was
-// due to the fact that the `__SwiftValue` box type itself
+// due to the fact that the `__CodiraValue` box type itself
 // conformed to these protocols.
 
 // But this was not really sound, as it implies for example that
@@ -238,14 +239,14 @@ bool useLegacyObjCBoxingInCasting() {
 
 // Similar to `useLegacyObjCBoxingInCasting()`, but
 // this applies to the case where you have already boxed
-// some Swift non-reference-type into a `__SwiftValue`
+// some Codira non-reference-type into a `__CodiraValue`
 // and are now casting to a protocol.
 
 // For example, this cast
 // `x as! AnyObject as? NSCopying`
 // always succeeded with the legacy semantics.
 
-bool useLegacySwiftValueUnboxingInCasting() {
+bool useLegacyCodiraValueUnboxingInCasting() {
 #if BINARY_COMPATIBILITY_APPLE
   switch (isAppAtLeastFall2023()) {
   case oldOS: return true; // Legacy behavior on old OS
@@ -258,22 +259,22 @@ bool useLegacySwiftValueUnboxingInCasting() {
 }
 
 // Controls how ObjC -hashValue and -isEqual are handled
-// by Swift objects.
+// by Codira objects.
 // There are two basic semantics:
 // * pointer: -hashValue returns pointer, -isEqual: tests pointer equality
 // * proxy: -hashValue calls on Hashable conformance, -isEqual: calls Equatable conformance
 //
 // Legacy handling:
-// * Swift struct/enum values that implement Hashable: proxy -hashValue and -isEqual:
-// * Swift struct/enum values that implement Equatable but not Hashable: pointer semantics
-// * Swift class values regardless of hashable/Equatable support: pointer semantics
+// * Codira struct/enum values that implement Hashable: proxy -hashValue and -isEqual:
+// * Codira struct/enum values that implement Equatable but not Hashable: pointer semantics
+// * Codira class values regardless of hashable/Equatable support: pointer semantics
 //
 // New behavior:
-// * Swift struct/enum/class values that implement Hashable: proxy -hashValue and -isEqual:
-// * Swift struct/enum/class values that implement Equatable but not Hashable: proxy -isEqual:, constant -hashValue
+// * Codira struct/enum/class values that implement Hashable: proxy -hashValue and -isEqual:
+// * Codira struct/enum/class values that implement Equatable but not Hashable: proxy -isEqual:, constant -hashValue
 // * All other cases: pointer semantics
 //
-bool useLegacySwiftObjCHashing() {
+bool useLegacyCodiraObjCHashing() {
 #if BINARY_COMPATIBILITY_APPLE
   switch (isAppAtLeastFall2024()) {
   case oldOS: return true; // Legacy behavior on old OS
@@ -285,20 +286,20 @@ bool useLegacySwiftObjCHashing() {
 #endif
 }
 
-// Controls legacy mode for the 'swift_task_isCurrentExecutorImpl' runtime function.
+// Controls legacy mode for the 'language_task_isCurrentExecutorImpl' runtime function.
 //
 // In "legacy" / "no crash" mode:
-// * The `swift_task_isCurrentExecutorImpl` cannot crash
+// * The `language_task_isCurrentExecutorImpl` cannot crash
 // * This means cases where no "current" executor is present cannot be diagnosed correctly
 //    * The runtime can NOT use 'SerialExecutor/checkIsolated'
 //    * The runtime can NOT use 'dispatch_precondition' which is able to handle some dispatch and main actor edge cases
 //
-// New behavior in "swift6" "crash" mode:
-// * The 'swift_task_isCurrentExecutorImpl' will CRASH rather than return 'false'
+// New behavior in "language6" "crash" mode:
+// * The 'language_task_isCurrentExecutorImpl' will CRASH rather than return 'false'
 // * This allows the method to invoke 'SerialExecutor/checkIsolated'
-//   * Which is allowed to call 'dispatch_precondition' and handle "on dispatch queue but not on Swift executor" cases
+//   * Which is allowed to call 'dispatch_precondition' and handle "on dispatch queue but not on Codira executor" cases
 //
-bool swift_bincompat_useLegacyNonCrashingExecutorChecks() {
+bool language_bincompat_useLegacyNonCrashingExecutorChecks() {
 #if BINARY_COMPATIBILITY_APPLE
   switch (isAppAtLeastFall2024()) {
   case oldOS: return true; // Legacy behavior on old OS

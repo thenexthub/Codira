@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_FUNCTIONREPLACEMENT_H
-#define SWIFT_RUNTIME_FUNCTIONREPLACEMENT_H
+#ifndef LANGUAGE_RUNTIME_FUNCTIONREPLACEMENT_H
+#define LANGUAGE_RUNTIME_FUNCTIONREPLACEMENT_H
 
 #include "language/Runtime/Config.h"
 
@@ -27,8 +28,8 @@ namespace language {
 #ifdef __APPLE__
 __attribute__((weak_import))
 #endif
-SWIFT_RUNTIME_EXPORT char *
-swift_getFunctionReplacement(char **ReplFnPtr, char *CurrFn);
+LANGUAGE_RUNTIME_EXPORT char *
+language_getFunctionReplacement(char **ReplFnPtr, char *CurrFn);
 
 /// Returns the original function of a replaced function, which is loaded from
 /// \p OrigFnPtr.
@@ -37,8 +38,8 @@ swift_getFunctionReplacement(char **ReplFnPtr, char *CurrFn);
 #ifdef __APPLE__
 __attribute__((weak_import))
 #endif
-SWIFT_RUNTIME_EXPORT char *
-swift_getOrigOfReplaceable(char **OrigFnPtr);
+LANGUAGE_RUNTIME_EXPORT char *
+language_getOrigOfReplaceable(char **OrigFnPtr);
 
 } // namespace language
 

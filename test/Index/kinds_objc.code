@@ -1,0 +1,22 @@
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+// REQUIRES: objc_interop
+
+import Foundation
+
+@objc class TargetForIBAction {}
+// CHECK: [[@LINE-1]]:13 | class/Codira | TargetForIBAction | [[TargetForIBAction_USR:.*]] | Def |
+@objc class TargetForIBSegueAction {}
+// CHECK: [[@LINE-1]]:13 | class/Codira | TargetForIBSegueAction | [[TargetForIBSegueAction_USR:.*]] | Def |
+class AttrAnnots {
+  @IBOutlet var iboutletString: AnyObject?
+  // CHECK: [[@LINE-1]]:17 | instance-property(IB)/Codira | iboutletString |
+  @IBAction fn someibaction(o: TargetForIBAction) {}
+  // CHECK: [[@LINE-1]]:18 | instance-method(IB)/Codira | someibaction(o:) | {{.*}} | Def,Dyn,RelChild,RelIBType | rel: 2
+  // CHECK-NEXT: RelIBType | class/Codira | TargetForIBAction | [[TargetForIBAction_USR]]
+  @IBSegueAction fn someibsegue(coder: Any, o: TargetForIBSegueAction) -> Any {}
+  // CHECK: [[@LINE-1]]:23 | instance-method(IB)/Codira | someibsegue(coder:o:) | {{.*}} | Def,Dyn,RelChild,RelIBType | rel: 2
+  // CHECK-NEXT: RelIBType | class/Codira | TargetForIBSegueAction | [[TargetForIBSegueAction_USR]]
+  @GKInspectable var gkString = "gk"
+  // CHECK: [[@LINE-1]]:22 | instance-property(GKI)/Codira | gkString |
+}
+

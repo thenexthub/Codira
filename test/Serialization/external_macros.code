@@ -1,0 +1,73 @@
+// REQUIRES: language_language_parser
+
+/// Test loading dependencies that has macros.
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build macros.
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroOne) -module-name=MacroOne %t/macro-1.code
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroTwo) -module-name=MacroTwo %t/macro-2.code
+
+// RUN: %target-language-frontend -emit-module %t/test.code -module-name Test -o %t/Test.codemodule \
+// RUN:   -language-version 5 -external-plugin-path %t#%language-plugin-server
+// RUN: toolchain-bcanalyzer -dump %t/Test.codemodule | %FileCheck %s
+
+// CHECK-COUNT-1: <EXTERNAL_MACRO abbrevid=13 op0=4/> blob data = 'MacroOne'
+// CHECK-COUNT-1: <EXTERNAL_MACRO abbrevid=13 op0=4/> blob data = 'MacroTwo'
+
+// RUN: %target-language-frontend -emit-module %t/test2.code -module-name Test2 -o %t/Test2.codemodule \
+// RUN:   -language-version 5 -external-plugin-path %t#%language-plugin-server -package-name Test
+// RUN: toolchain-bcanalyzer -dump %t/Test2.codemodule | %FileCheck %s --check-prefix CHECK2
+
+// CHECK2-COUNT-1: <EXTERNAL_MACRO abbrevid=13 op0=4/> blob data = 'MacroOne'
+// CHECK2-COUNT-1: <EXTERNAL_MACRO abbrevid=13 op0=3/> blob data = 'MacroTwo'
+
+//--- macro-1.code
+import CodiraSyntax
+@_spi(ExperimentalLanguageFeature) import CodiraSyntaxMacros
+
+public struct AssertMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "assert(\(argument))"
+  }
+}
+
+//--- macro-2.code
+import CodiraSyntax
+@_spi(ExperimentalLanguageFeature) import CodiraSyntaxMacros
+
+public struct StringifyMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "(\(argument), \(StringLiteralExprSyntax(content: argument.description)))"
+  }
+}
+
+//--- test.code
+import Codira
+@freestanding(expression) public macro assert(_: Bool) = #externalMacro(module: "MacroOne", type: "AssertMacro")
+@freestanding(expression) public macro assert_2(_: Bool) = #externalMacro(module: "MacroOne", type: "AssertMacro")
+@freestanding(expression) public macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "MacroTwo", type: "StringifyMacro")
+@freestanding(expression) public macro stringify_2<T>(_ value: T) -> (T, String) = #externalMacro(module: "MacroTwo", type: "StringifyMacro")
+
+//--- test2.code
+import Codira
+@freestanding(expression) public macro assert(_: Bool) = #externalMacro(module: "MacroOne", type: "AssertMacro")
+@freestanding(expression) package macro assertPackage(_: Bool) = #externalMacro(module: "MacroOne", type: "AssertMacro")
+@freestanding(expression) macro assertInternal(_: Bool) = #externalMacro(module: "MacroOne", type: "AssertMacro")
+
+@freestanding(expression) macro stringifyPackage<T>(_ value: T) -> (T, String) = #externalMacro(module: "MacroTwo", type: "StringifyMacro")
+@freestanding(expression) package macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "MacroTwo", type: "StringifyMacro")

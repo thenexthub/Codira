@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the data structure that holds all the debug info
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_DEBUGTYPEINFO_H
-#define SWIFT_IRGEN_DEBUGTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_DEBUGTYPEINFO_H
+#define LANGUAGE_IRGEN_DEBUGTYPEINFO_H
 
 #include "IRGen.h"
 #include "language/AST/Decl.h"
 #include "language/AST/Types.h"
 
-namespace llvm {
+namespace toolchain {
 class Type;
 }
 
@@ -55,26 +56,26 @@ protected:
 
 public:
   DebugTypeInfo() = default;
-  DebugTypeInfo(swift::Type Ty, Alignment AlignInBytes = Alignment(1),
+  DebugTypeInfo(language::Type Ty, Alignment AlignInBytes = Alignment(1),
                 bool HasDefaultAlignment = true, bool IsMetadataType = false,
                 bool IsFixedBuffer = false,
                 std::optional<uint32_t> NumExtraInhabitants = {});
 
   /// Create type for a local variable.
-  static DebugTypeInfo getLocalVariable(VarDecl *Decl, swift::Type Ty,
+  static DebugTypeInfo getLocalVariable(VarDecl *Decl, language::Type Ty,
                                         const TypeInfo &Info, IRGenModule &IGM);
   /// Create type for global type metadata.
-  static DebugTypeInfo getGlobalMetadata(swift::Type Ty, Size size,
+  static DebugTypeInfo getGlobalMetadata(language::Type Ty, Size size,
                                          Alignment align);
   /// Create type for an artificial metadata variable.
-  static DebugTypeInfo getTypeMetadata(swift::Type Ty, Size size,
+  static DebugTypeInfo getTypeMetadata(language::Type Ty, Size size,
                                        Alignment align);
 
   /// Create a forward declaration for a type whose size is unknown.
-  static DebugTypeInfo getForwardDecl(swift::Type Ty);
+  static DebugTypeInfo getForwardDecl(language::Type Ty);
 
   /// Create a standalone type from a TypeInfo object.
-  static DebugTypeInfo getFromTypeInfo(swift::Type Ty, const TypeInfo &Info,
+  static DebugTypeInfo getFromTypeInfo(language::Type Ty, const TypeInfo &Info,
                                        IRGenModule &IGM);
   /// Global variables.
   static DebugTypeInfo getGlobal(SILGlobalVariable *GV, IRGenModule &IGM);
@@ -84,7 +85,7 @@ public:
   static DebugTypeInfo getObjCClass(ClassDecl *theClass, Size size,
                                     Alignment align);
   /// Error type.
-  static DebugTypeInfo getErrorResult(swift::Type Ty, IRGenModule &IGM);
+  static DebugTypeInfo getErrorResult(language::Type Ty, IRGenModule &IGM);
 
   TypeBase *getType() const { return Type; }
 
@@ -111,8 +112,8 @@ public:
 
   bool operator==(DebugTypeInfo T) const;
   bool operator!=(DebugTypeInfo T) const;
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  LLVM_DUMP_METHOD void dump() const;
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+  TOOLCHAIN_DUMP_METHOD void dump() const;
 #endif
 };
 
@@ -132,7 +133,7 @@ public:
   }
 
   static std::optional<CompletedDebugTypeInfo>
-  getFromTypeInfo(swift::Type Ty, const TypeInfo &Info, IRGenModule &IGM,
+  getFromTypeInfo(language::Type Ty, const TypeInfo &Info, IRGenModule &IGM,
                   std::optional<Size::int_type> SizeInBits = {});
 
   Size::int_type getSizeInBits() const { return SizeInBits; }
@@ -141,23 +142,23 @@ public:
 }
 }
 
-namespace llvm {
+namespace toolchain {
 
 // Dense map specialization.
-template <> struct DenseMapInfo<swift::irgen::DebugTypeInfo> {
-  static swift::irgen::DebugTypeInfo getEmptyKey() {
+template <> struct DenseMapInfo<language::irgen::DebugTypeInfo> {
+  static language::irgen::DebugTypeInfo getEmptyKey() {
     return {};
   }
-  static swift::irgen::DebugTypeInfo getTombstoneKey() {
-    return swift::irgen::DebugTypeInfo(
-        llvm::DenseMapInfo<swift::TypeBase *>::getTombstoneKey(),
-        swift::irgen::Alignment(), /* HasDefaultAlignment = */ false);
+  static language::irgen::DebugTypeInfo getTombstoneKey() {
+    return language::irgen::DebugTypeInfo(
+        toolchain::DenseMapInfo<language::TypeBase *>::getTombstoneKey(),
+        language::irgen::Alignment(), /* HasDefaultAlignment = */ false);
   }
-  static unsigned getHashValue(swift::irgen::DebugTypeInfo Val) {
-    return DenseMapInfo<swift::CanType>::getHashValue(Val.getType());
+  static unsigned getHashValue(language::irgen::DebugTypeInfo Val) {
+    return DenseMapInfo<language::CanType>::getHashValue(Val.getType());
   }
-  static bool isEqual(swift::irgen::DebugTypeInfo LHS,
-                      swift::irgen::DebugTypeInfo RHS) {
+  static bool isEqual(language::irgen::DebugTypeInfo LHS,
+                      language::irgen::DebugTypeInfo RHS) {
     return LHS == RHS;
   }
 };

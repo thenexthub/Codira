@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines some async-signal-safe formatting functions.
@@ -25,8 +26,8 @@ namespace backtracing {
 
 // We can't call sprintf() here because we're in a signal handler,
 // so we need to be async-signal-safe.
-SWIFT_RUNTIME_STDLIB_INTERNAL void
-_swift_formatAddress(uintptr_t addr, char buffer[18])
+LANGUAGE_RUNTIME_STDLIB_INTERNAL void
+_language_formatAddress(uintptr_t addr, char buffer[18])
 {
   char *ptr = buffer + 18;
   *--ptr = '\0';
@@ -50,8 +51,8 @@ _swift_formatAddress(uintptr_t addr, char buffer[18])
 }
 
 // See above; we can't use sprintf() here.
-SWIFT_RUNTIME_STDLIB_INTERNAL void
-_swift_formatUnsigned(unsigned u, char buffer[22])
+LANGUAGE_RUNTIME_STDLIB_INTERNAL void
+_language_formatUnsigned(unsigned u, char buffer[22])
 {
   char *ptr = buffer + 22;
   *--ptr = '\0';

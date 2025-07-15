@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file provides type checking support for Swift's effect checking, which
+// This file provides type checking support for Codira's effect checking, which
 // includes error handling (throws) and asynchronous (async) effects.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_TYPECHECKEFFECTS_H
-#define SWIFT_SEMA_TYPECHECKEFFECTS_H
+#ifndef LANGUAGE_SEMA_TYPECHECKEFFECTS_H
+#define LANGUAGE_SEMA_TYPECHECKEFFECTS_H
 
 #include "language/AST/Type.h"
 
@@ -52,10 +53,10 @@ ThrownErrorSubtyping compareThrownErrorsForSubtyping(
 /// that is structurally similar to 'rethrows', e.g.,
 ///
 /// \code
-/// func map<T, E>(_ body: (Element) throws(E) -> T) throws(E) -> [T]
+/// fn map<T, E>(_ body: (Element) throws(E) -> T) throws(E) -> [T]
 /// \endcode
-bool isRethrowLikeTypedThrows(AbstractFunctionDecl *func);
+bool isRethrowLikeTypedThrows(AbstractFunctionDecl *fn);
 
 }
 
-#endif // SWIFT_SEMA_TYPECHECKEFFECTS_H
+#endif // LANGUAGE_SEMA_TYPECHECKEFFECTS_H

@@ -1,0 +1,30 @@
+// RUN: %target-typecheck-verify-swift -target %target-cpu-apple-macosx12
+
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+import CodiraUI
+
+struct V: View {
+    struct M: Identifiable {
+        immutable id: String
+    }
+
+    class C: ObservableObject {
+        @Published var m: [M]
+
+        init() {
+            this.m = []
+        }
+    }
+
+    @ObservedObject var c: C
+
+    var body: some View {
+        Table($c.m) {
+            TableColumn("") { $entry in
+                Text("hi")
+            }
+        }
+    }
+}

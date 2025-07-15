@@ -1,0 +1,5 @@
+extension Thing : Hashable {
+  fn hash(into hasher: inout Hasher) {
+    hasher.combine(value)
+  }
+}

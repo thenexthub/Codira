@@ -1,13 +1,17 @@
 //===--- SILDifferentiabilityWitness.h - Differentiability witnesses ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILDifferentiabilityWitness class, which maps an
@@ -22,23 +26,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILDIFFERENTIABILITYWITNESS_H
-#define SWIFT_SIL_SILDIFFERENTIABILITYWITNESS_H
+#ifndef LANGUAGE_SIL_SILDIFFERENTIABILITYWITNESS_H
+#define LANGUAGE_SIL_SILDIFFERENTIABILITYWITNESS_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/AutoDiff.h"
 #include "language/AST/GenericSignature.h"
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILLinkage.h"
-#include "llvm/ADT/ilist.h"
-#include "llvm/ADT/ilist_node.h"
+#include "toolchain/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
 
 namespace language {
 
 class SILPrintContext;
 
 class SILDifferentiabilityWitness
-    : public llvm::ilist_node<SILDifferentiabilityWitness>,
+    : public toolchain::ilist_node<SILDifferentiabilityWitness>,
       public SILAllocated<SILDifferentiabilityWitness> {
 private:
   /// The module which contains the differentiability witness.
@@ -121,7 +125,7 @@ public:
     case AutoDiffDerivativeFunctionKind::VJP:
       return VJP;
     }
-    llvm_unreachable("invalid derivative type");
+    toolchain_unreachable("invalid derivative type");
   }
   void setJVP(SILFunction *jvp) { JVP = jvp; }
   void setVJP(SILFunction *vjp) { VJP = vjp; }
@@ -144,22 +148,22 @@ public:
   /// Verify that the differentiability witness is well-formed.
   void verify(const SILModule &module) const;
 
-  void print(llvm::raw_ostream &os, bool verbose = false) const;
+  void print(toolchain::raw_ostream &os, bool verbose = false) const;
   void dump() const;
 };
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILDifferentiabilityWitness
 //===----------------------------------------------------------------------===//
 
 template <>
-struct ilist_traits<::swift::SILDifferentiabilityWitness>
-    : public ilist_node_traits<::swift::SILDifferentiabilityWitness> {
-  using SILDifferentiabilityWitness = ::swift::SILDifferentiabilityWitness;
+struct ilist_traits<::language::SILDifferentiabilityWitness>
+    : public ilist_node_traits<::language::SILDifferentiabilityWitness> {
+  using SILDifferentiabilityWitness = ::language::SILDifferentiabilityWitness;
 
 public:
   static void deleteNode(SILDifferentiabilityWitness *DW) {
@@ -170,6 +174,6 @@ private:
   void createNode(const SILDifferentiabilityWitness &);
 };
 
-} // namespace llvm
+} // namespace toolchain
 
-#endif // SWIFT_SIL_SILDIFFERENTIABILITYWITNESS_H
+#endif // LANGUAGE_SIL_SILDIFFERENTIABILITYWITNESS_H

@@ -1,8 +1,8 @@
-add_swift_host_library(swiftSILOptimizer STATIC
+add_language_host_library(languageSILOptimizer STATIC
   SILOptimizer.cpp)
-target_link_libraries(swiftSILOptimizer PRIVATE
-  swiftSIL)
-set_swift_llvm_is_available(swiftSILOptimizer)
+target_link_libraries(languageSILOptimizer PRIVATE
+  languageSIL)
+set_language_toolchain_is_available(languageSILOptimizer)
 
 add_subdirectory(ARC)
 add_subdirectory(Analysis)

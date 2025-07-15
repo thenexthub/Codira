@@ -1,12 +1,12 @@
-;===--- swift-mode.el ----------------------------------------------------===;
+;===--- language-mode.el ----------------------------------------------------===;
 ;
-; This source file is part of the Swift.org open source project
+; This source file is part of the Codira.org open source project
 ;
-; Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
+; Copyright (c) 2014 - 2024 Apple Inc. and the Codira project authors
 ; Licensed under Apache License v2.0 with Runtime Library Exception
 ;
-; See https://swift.org/LICENSE.txt for license information
-; See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+; See https://language.org/LICENSE.txt for license information
+; See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 ;
 ;===----------------------------------------------------------------------===;
 
@@ -26,16 +26,16 @@
     `(make-variable-buffer-local (defvar ,var ,val ,docstring))))
 
 ;; Create mode-specific variables
-(defcustom swift-basic-offset 2
-  "Default indentation width for Swift source"
+(defcustom language-basic-offset 2
+  "Default indentation width for Codira source"
   :type 'integer)
 
 
 ;; Create mode-specific tables.
-(defvar swift-mode-syntax-table nil
-  "Syntax table used while in SWIFT mode.")
+(defvar language-mode-syntax-table nil
+  "Syntax table used while in LANGUAGE mode.")
 
-(defvar swift-font-lock-keywords
+(defvar language-font-lock-keywords
   (list
    ;; Comments
    '("^#!.*" . font-lock-comment-face)
@@ -50,7 +50,7 @@
    ;; Decl and type keywords
    `(,(regexp-opt '("import"
                     "class" "struct" "enum" "extension" "protocol" "typealias" "var" "let" "actor"
-                    "func" "init" "deinit" "subscript" "associatedtype"
+                    "fn" "init" "deinit" "subscript" "associatedtype"
                     "public" "internal" "private" "fileprivate" "package"
                     "static"
                     "where")
@@ -93,18 +93,18 @@
    ;; Unnamed variables
    '("$[0-9]+" . font-lock-variable-name-face)
    )
-  "Syntax highlighting for SWIFT"
+  "Syntax highlighting for LANGUAGE"
   )
 
 ;; ---------------------- Syntax table ---------------------------
 
-(if (not swift-mode-syntax-table)
+(if (not language-mode-syntax-table)
     (progn
-      (setq swift-mode-syntax-table (make-syntax-table))
+      (setq language-mode-syntax-table (make-syntax-table))
       (mapc (function (lambda (n)
                         (modify-syntax-entry (aref n 0)
                                              (aref n 1)
-                                             swift-mode-syntax-table)))
+                                             language-mode-syntax-table)))
             '(
               ;; whitespace (` ')
               [?\f  " "]
@@ -138,25 +138,25 @@
 
 ;; --------------------- Abbrev table -----------------------------
 
-(defvar swift-mode-abbrev-table nil
-  "Abbrev table used while in SWIFT mode.")
-(define-abbrev-table 'swift-mode-abbrev-table ())
+(defvar language-mode-abbrev-table nil
+  "Abbrev table used while in LANGUAGE mode.")
+(define-abbrev-table 'language-mode-abbrev-table ())
 
-(defvar swift-mode-map
+(defvar language-mode-map
   (let ((keymap (make-sparse-keymap)))
     keymap)
-  "Keymap for `swift-mode'.")
+  "Keymap for `language-mode'.")
 
 
 ;;;###autoload
-(define-derived-mode swift-mode prog-mode "Swift"
-  "Major mode for editing SWIFT source files.
-  \\{swift-mode-map}
-  Runs swift-mode-hook on startup."
-  :group 'swift
+(define-derived-mode language-mode prog-mode "Codira"
+  "Major mode for editing LANGUAGE source files.
+  \\{language-mode-map}
+  Runs language-mode-hook on startup."
+  :group 'language
 
   (require 'electric)
-  (set (make-local-variable 'indent-line-function) 'swift-indent-line)
+  (set (make-local-variable 'indent-line-function) 'language-indent-line)
   (set (make-local-variable 'parse-sexp-ignore-comments) t)
   (set (make-local-variable 'comment-use-syntax) nil) ;; don't use the syntax table; use our regexp
   (set (make-local-variable 'comment-start-skip) "\\(?:/\\)\\(?:/[:/]?\\|[*]+\\)[ \t]*")
@@ -180,9 +180,9 @@
        '((?\{ . after) (?\} . before)))
 
   (set (make-local-variable 'font-lock-defaults)
-       '(swift-font-lock-keywords) ))
+       '(language-font-lock-keywords) ))
 
-(defconst swift-doc-comment-detail-re
+(defconst language-doc-comment-detail-re
   (let* ((just-space "[ \t\n]*")
         (not-just-space "[ \t]*[^ \t\n].*")
         (eol "\\(?:$\\)")
@@ -193,9 +193,9 @@
             "\\(" continue just-space eol
             "\\(?:" continue ".*" eol "\\)*"
             "\\)"))
-  "regexp that finds the non-summary part of a swift doc comment as subexpression 2")
+  "regexp that finds the non-summary part of a language doc comment as subexpression 2")
 
-(defun swift-hide-doc-comment-detail ()
+(defun language-hide-doc-comment-detail ()
   "Hide everything but the summary part of doc comments.
 
 Use `M-x hs-show-all' to show them again."
@@ -204,68 +204,68 @@ Use `M-x hs-show-all' to show them again."
   (save-excursion
     (save-match-data
       (goto-char (point-min))
-      (while (search-forward-regexp swift-doc-comment-detail-re (point-max) :noerror)
+      (while (search-forward-regexp language-doc-comment-detail-re (point-max) :noerror)
         (hs-hide-comment-region (match-beginning 2) (match-end 2))
         (goto-char (match-end 2))))))
 
-(defvar swift-mode-generic-parameter-list-syntax-table
-  (let ((s (copy-syntax-table swift-mode-syntax-table)))
+(defvar language-mode-generic-parameter-list-syntax-table
+  (let ((s (copy-syntax-table language-mode-syntax-table)))
     (modify-syntax-entry ?\< "(>" s)
     (modify-syntax-entry ?\> ")<" s)
     s))
 
-(defun swift-skip-comments-and-space ()
+(defun language-skip-comments-and-space ()
   "Skip comments and whitespace, returning t"
   (while (forward-comment 1))
   t)
 
-(defconst swift-identifier-re "\\_<[[:alpha:]_].*?\\_>")
+(defconst language-identifier-re "\\_<[[:alpha:]_].*?\\_>")
 
-(defun swift-skip-optionality ()
+(defun language-skip-optionality ()
   "Hop over any comments, whitespace, and strings
 of `!' or `?', returning t unconditionally."
-  (swift-skip-comments-and-space)
+  (language-skip-comments-and-space)
   (while (not (zerop (skip-chars-forward "!?")))
-    (swift-skip-comments-and-space)))
+    (language-skip-comments-and-space)))
 
-(defun swift-skip-generic-parameter-list ()
+(defun language-skip-generic-parameter-list ()
   "Hop over any comments, whitespace, and, if present, a generic
 parameter list, returning t if the parameter list was found and
 nil otherwise."
-  (swift-skip-comments-and-space)
+  (language-skip-comments-and-space)
   (when (looking-at "<")
-    (with-syntax-table swift-mode-generic-parameter-list-syntax-table
+    (with-syntax-table language-mode-generic-parameter-list-syntax-table
       (ignore-errors (forward-sexp) t))))
 
-(defun swift-skip-re (pattern)
+(defun language-skip-re (pattern)
   "Hop over any comments and whitespace; then if PATTERN matches
 the next characters skip over them, returning t if so and nil
 otherwise."
-  (swift-skip-comments-and-space)
+  (language-skip-comments-and-space)
   (save-match-data
     (when (looking-at pattern)
       (goto-char (match-end 0))
       t)))
 
-(defun swift-skip-identifier ()
+(defun language-skip-identifier ()
   "Hop over any comments, whitespace, and an identifier if one is
 present, returning t if so and nil otherwise."
-  (swift-skip-re swift-identifier-re))
+  (language-skip-re language-identifier-re))
 
-(defun swift-skip-simple-type-name ()
+(defun language-skip-simple-type-name ()
   "Hop over a chain of the form identifier
 generic-parameter-list? ( `.' identifier generic-parameter-list?
 )*, returning t if the initial identifier was found and nil otherwise."
-  (when (swift-skip-identifier)
-    (swift-skip-generic-parameter-list)
-    (when (swift-skip-re "\\.")
-      (swift-skip-simple-type-name))
+  (when (language-skip-identifier)
+    (language-skip-generic-parameter-list)
+    (when (language-skip-re "\\.")
+      (language-skip-simple-type-name))
     t))
 
-(defun swift-skip-type-name ()
+(defun language-skip-type-name ()
     "Hop over any comments, whitespace, and the name of a type if
 one is present, returning t if so and nil otherwise"
-  (swift-skip-comments-and-space)
+  (language-skip-comments-and-space)
   (let ((found nil))
     ;; repeatedly
     (while
@@ -276,39 +276,39 @@ one is present, returning t if so and nil otherwise"
            (forward-sexp)
            (setq found t))
 
-          ((swift-skip-simple-type-name)
+          ((language-skip-simple-type-name)
            (setq found t)))
 
           ;; followed by "->"
-         (prog2 (swift-skip-re "\\?+")
-             (swift-skip-re "throws\\|rethrows\\|->")
-           (swift-skip-re "->") ;; accounts for the throws/rethrows cases on the previous line
-           (swift-skip-comments-and-space))))
+         (prog2 (language-skip-re "\\?+")
+             (language-skip-re "throws\\|rethrows\\|->")
+           (language-skip-re "->") ;; accounts for the throws/rethrows cases on the previous line
+           (language-skip-comments-and-space))))
     found))
 
-(defun swift-skip-constraint ()
+(defun language-skip-constraint ()
     "Hop over a single type constraint if one is present,
 returning t if so and nil otherwise"
-  (swift-skip-comments-and-space)
-  (and (swift-skip-type-name)
-       (swift-skip-re ":\\|==")
-       (swift-skip-type-name)))
+  (language-skip-comments-and-space)
+  (and (language-skip-type-name)
+       (language-skip-re ":\\|==")
+       (language-skip-type-name)))
 
-(defun swift-skip-where-clause ()
+(defun language-skip-where-clause ()
     "Hop over a where clause if one is present, returning t if so
 and nil otherwise"
-  (when (swift-skip-re "\\<where\\>")
-    (while (and (swift-skip-constraint) (swift-skip-re ",")))
+  (when (language-skip-re "\\<where\\>")
+    (while (and (language-skip-constraint) (language-skip-re ",")))
     t))
 
-(defun swift-in-string-or-comment ()
+(defun language-in-string-or-comment ()
   "Return non-nil if point is in a string or comment."
   (or (nth 3 (syntax-ppss)) (nth 4 (syntax-ppss))))
 
-(defconst swift-body-keyword-re
-  "\\_<\\(var\\|func\\|init\\|deinit\\|subscript\\)\\_>")
+(defconst language-body-keyword-re
+  "\\_<\\(var\\|fn\\|init\\|deinit\\|subscript\\)\\_>")
 
-(defun swift-hide-bodies ()
+(defun language-hide-bodies ()
   "Hide the bodies of methods, functions, and computed properties.
 
 Use `M-x hs-show-all' to show them again."
@@ -317,39 +317,39 @@ Use `M-x hs-show-all' to show them again."
   (save-excursion
     (save-match-data
       (goto-char (point-min))
-      (while (search-forward-regexp swift-body-keyword-re (point-max) :noerror)
+      (while (search-forward-regexp language-body-keyword-re (point-max) :noerror)
         (when
             (and
-             (not (swift-in-string-or-comment))
+             (not (language-in-string-or-comment))
              (let ((keyword (match-string 0)))
                ;; parse up to the opening brace
                (cond
                 ((equal keyword "deinit") t)
 
                 ((equal keyword "var")
-                 (and (swift-skip-identifier)
-                      (swift-skip-re ":")
-                      (swift-skip-type-name)))
+                 (and (language-skip-identifier)
+                      (language-skip-re ":")
+                      (language-skip-type-name)))
 
                 ;; otherwise, there's a parameter list
                 (t
                  (and
                   ;; parse the function's base name or operator symbol
-                  (if (equal keyword "func") (forward-symbol 1) t)
+                  (if (equal keyword "fn") (forward-symbol 1) t)
                   ;; advance to the beginning of the function
                   ;; parameter list
                   (progn
-                    (swift-skip-generic-parameter-list)
-                    (swift-skip-comments-and-space)
+                    (language-skip-generic-parameter-list)
+                    (language-skip-comments-and-space)
                     (equal (char-after) ?\())
                   ;; parse the parameter list and any return type
                   (prog1
-                    (swift-skip-type-name)
-                    (swift-skip-where-clause))))))
-             (swift-skip-re "{"))
+                    (language-skip-type-name)
+                    (language-skip-where-clause))))))
+             (language-skip-re "{"))
           (hs-hide-block :reposition-at-end))))))
 
-(defun swift-indent-line ()
+(defun language-indent-line ()
   (interactive)
   (let (indent-level target-column)
     (save-excursion
@@ -361,7 +361,7 @@ Use `M-x hs-show-all' to show them again."
       (skip-syntax-forward " ")
       (setq target-column
             (if (or (equal (char-after) ?\#) (looking-at "//:")) 0
-              (* swift-basic-offset
+              (* language-basic-offset
                  (- indent-level
                     (cond ((= (char-syntax (or (char-after) ?\X)) ?\))
                            1)
@@ -376,11 +376,11 @@ Use `M-x hs-show-all' to show them again."
   )
 
 ;; Compilation error parsing
-(push 'swift0 compilation-error-regexp-alist)
-(push 'swift1 compilation-error-regexp-alist)
-(push 'swift-fatal compilation-error-regexp-alist)
+(push 'language0 compilation-error-regexp-alist)
+(push 'language1 compilation-error-regexp-alist)
+(push 'language-fatal compilation-error-regexp-alist)
 
-(push `(swift0
+(push `(language0
         ,(concat
      "^"
        "[ \t]+" "\\(?:(@\\)?"
@@ -402,7 +402,7 @@ Use `M-x hs-show-all' to show them again."
      1 2 3 0)
       compilation-error-regexp-alist-alist)
 
-(push `(swift1
+(push `(language1
         ,(concat
      "^"
        "[0-9]+[.][ \t]+While .* at \\[?"
@@ -423,7 +423,7 @@ Use `M-x hs-show-all' to show them again."
      1 2 3 2)
       compilation-error-regexp-alist-alist)
 
-(push `(swift-fatal
+(push `(language-fatal
         ,(concat
      "^\\(?:assertion failed\\|fatal error\\): \\(?:.*: \\)?file "
      ;; Filename \1
@@ -445,78 +445,78 @@ Use `M-x hs-show-all' to show them again."
 (require 'flymake)
 
 ;; This name doesn't end in "function" to avoid being unconditionally marked as risky.
-(defvar-local swift-find-executable-fn 'executable-find
+(defvar-local language-find-executable-fn 'executable-find
   "Function to find a command executable.
 The function is called with one argument, the name of the executable to find.
-Might be useful if you want to use a swiftc that you built instead
+Might be useful if you want to use a languagec that you built instead
 of the one in your PATH.")
-(put 'swift-find-executable-fn 'safe-local-variable 'functionp)
+(put 'language-find-executable-fn 'safe-local-variable 'functionp)
 
-(defvar-local swift-syntax-check-fn 'swift-syntax-check-directory
-"Function to create the swift command-line that syntax-checks the current buffer.
-The function is called with two arguments, the swiftc executable, and
+(defvar-local language-syntax-check-fn 'language-syntax-check-directory
+"Function to create the language command-line that syntax-checks the current buffer.
+The function is called with two arguments, the languagec executable, and
 the name of a temporary file that will contain the contents of the
 current buffer.
-Set to 'swift-syntax-check-single-file to ignore other files in the current directory.")
-(put 'swift-syntax-check-fn 'safe-local-variable 'functionp)
+Set to 'language-syntax-check-single-file to ignore other files in the current directory.")
+(put 'language-syntax-check-fn 'safe-local-variable 'functionp)
 
-(defvar-local swift-syntax-check-args '("-typecheck")
-  "List of arguments to be passed to swiftc for syntax checking.
+(defvar-local language-syntax-check-args '("-typecheck")
+  "List of arguments to be passed to languagec for syntax checking.
 Elements of this list that are strings are inserted literally
 into the command line.  Elements that are S-expressions are
 evaluated.  The resulting list is cached in a file-local
-variable, `swift-syntax-check-evaluated-args', so if you change
+variable, `language-syntax-check-evaluated-args', so if you change
 this variable you should set that one to nil.")
-(put 'swift-syntax-check-args 'safe-local-variable 'listp)
+(put 'language-syntax-check-args 'safe-local-variable 'listp)
 
-(defvar-local swift-syntax-check-evaluated-args
-  "File-local cache of swift arguments used for syntax checking
-variable, `swift-syntax-check-args', so if you change
+(defvar-local language-syntax-check-evaluated-args
+  "File-local cache of language arguments used for syntax checking
+variable, `language-syntax-check-args', so if you change
 that variable you should set this one to nil.")
 
-(defun swift-syntax-check-single-file (swiftc temp-file)
+(defun language-syntax-check-single-file (languagec temp-file)
   "Return a flymake command-line list for syntax-checking the current buffer in isolation"
-  `(,swiftc ("-typecheck" ,temp-file)))
+  `(,languagec ("-typecheck" ,temp-file)))
 
-(defun swift-syntax-check-directory (swiftc temp-file)
+(defun language-syntax-check-directory (languagec temp-file)
   "Return a flymake command-line list for syntax-checking the
-current buffer along with the other swift files in the same
+current buffer along with the other language files in the same
 directory."
   (let* ((sources nil))
     (dolist (x (directory-files (file-name-directory (buffer-file-name))))
-      (when (and (string-equal "swift" (file-name-extension x))
+      (when (and (string-equal "language" (file-name-extension x))
                  (not (file-equal-p x (buffer-file-name))))
         (setq sources (cons x sources))))
-    `(,swiftc ("-typecheck" ,temp-file ,@sources))))
+    `(,languagec ("-typecheck" ,temp-file ,@sources))))
 
-(defun flymake-swift-init ()
+(defun flymake-language-init ()
   (let* ((temp-file
           (flymake-init-create-temp-buffer-copy
            (lambda (x y)
              (make-temp-file
               (concat (file-name-nondirectory x) "-" y)
               (not :DIR_FLAG)
-              ;; grab *all* the extensions; handles .swift.gyb files, for example
+              ;; grab *all* the extensions; handles .code.gyb files, for example
               ;; whereas using file-name-extension would only get ".gyb"
               (replace-regexp-in-string "^\\(?:.*/\\)?[^.]*" "" (buffer-file-name)))))))
-    (funcall swift-syntax-check-fn
-             (funcall swift-find-executable-fn "swiftc")
+    (funcall language-syntax-check-fn
+             (funcall language-find-executable-fn "languagec")
              temp-file)))
 
 (require 'flymake-proc)
-(add-to-list 'flymake-allowed-file-name-masks '(".+\\.swift$" flymake-swift-init))
+(add-to-list 'flymake-allowed-file-name-masks '(".+\\.code$" flymake-language-init))
 
 (setq flymake-err-line-patterns
       (append
        (flymake-reformat-err-line-patterns-from-compile-el
         (mapcar (lambda (x) (assoc x compilation-error-regexp-alist-alist))
-                '(swift0 swift1 swift-fatal)))
+                '(language0 language1 language-fatal)))
        flymake-err-line-patterns))
 
-(defgroup swift nil
-  "Major mode for editing swift source files."
-  :prefix "swift-")
+(defgroup language nil
+  "Major mode for editing language source files."
+  :prefix "language-")
 
-(provide 'swift-mode)
+(provide 'language-mode)
 
-;; end of swift-mode.el
+;; end of language-mode.el

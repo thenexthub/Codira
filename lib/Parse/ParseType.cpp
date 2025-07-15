@@ -1,4 +1,4 @@
-//===--- ParseType.cpp - Swift Language Parser for Types ------------------===//
+//===--- ParseType.cpp - Codira Language Parser for Types ------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Type Parsing and AST Building
@@ -28,11 +29,11 @@
 #include "language/Parse/IDEInspectionCallbacks.h"
 #include "language/Parse/Lexer.h"
 #include "language/Parse/Parser.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 
@@ -255,7 +256,7 @@ ParserResult<TypeRepr> Parser::parseTypeSimple(
       ty = parseOldStyleProtocolComposition();
       break;
     }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   default:
     {
       auto diag = diagnose(Tok, MessageID);
@@ -745,6 +746,10 @@ ParserStatus Parser::parseGenericArguments(SmallVectorImpl<TypeRepr *> &Args,
       // Parse the comma, if the list continues.
       if (!consumeIf(tok::comma))
         break;
+      
+      // If the comma was a trailing comma, finish parsing the list of types
+      if (startsWithGreater(Tok))
+        break;
     }
   }
 
@@ -1164,7 +1169,7 @@ ParserResult<TypeRepr> Parser::parseTypeTupleBody() {
   SmallVector<TupleTypeReprElement, 8> ElementsR;
 
   ParserStatus Status = parseList(tok::r_paren, LPLoc, RPLoc,
-                                  /*AllowSepAfterLast=*/false,
+                                  /*AllowSepAfterLast=*/true,
                                   diag::expected_rparen_tuple_type_list,
                                   [&] () -> ParserStatus {
     TupleTypeReprElement element;
@@ -1321,13 +1326,13 @@ ParserResult<TypeRepr> Parser::parseTypeInlineArray(SourceLoc lSquare) {
 
   ParserStatus status;
 
-  // 'isStartOfInlineArrayTypeBody' means we should at least have a type and 'x'
-  // to start with.
+  // 'isStartOfInlineArrayTypeBody' means we should at least have a type and
+  // 'of' to start with.
   auto count = parseTypeOrValue();
   auto *countTy = count.get();
   status |= count;
 
-  // 'x'
+  // 'of'
   consumeToken(tok::identifier);
 
   // Allow parsing a value for better recovery, Sema will diagnose any
@@ -1385,7 +1390,7 @@ ParserResult<TypeRepr> Parser::parseTypeArray(ParserResult<TypeRepr> Base) {
   auto baseTyR = Base.get();
 
   // If we parsed something valid, diagnose it with a fixit to rewrite it to
-  // Swift syntax.
+  // Codira syntax.
   diagnose(lsquareLoc, diag::new_array_syntax)
     .fixItInsert(baseTyR->getStartLoc(), "[")
     .fixItRemove(lsquareLoc);
@@ -1548,7 +1553,7 @@ static bool isGenericTypeDisambiguatingToken(Parser &P) {
   default:
     // If this is the end of the expr (wouldn't match parseExprSequenceElement),
     // prefer generic type list over an illegal unary postfix '>' operator.
-    return P.isStartOfSwiftDecl() || P.isStartOfStmt(/*prefer expr=*/true);
+    return P.isStartOfCodiraDecl() || P.isStartOfStmt(/*prefer expr=*/true);
   case tok::r_paren:
   case tok::r_square:
   case tok::l_brace:
@@ -1568,7 +1573,7 @@ static bool isGenericTypeDisambiguatingToken(Parser &P) {
     if (tok.getText() == "&")
       return true;
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case tok::oper_binary_unspaced:
   case tok::oper_postfix:
     // These might be '?' or '!' type modifiers.
@@ -1608,7 +1613,8 @@ bool Parser::canParseGenericArguments() {
     if (!canParseType())
       return false;
     // Parse the comma, if the list continues.
-  } while (consumeIf(tok::comma));
+    // This could be the trailing comma.
+  } while (consumeIf(tok::comma) && !startsWithGreater(Tok));
 
   if (!startsWithGreater(Tok)) {
     return false;
@@ -1825,16 +1831,16 @@ bool Parser::canParseStartOfInlineArrayType() {
   if (!Context.LangOpts.hasFeature(Feature::InlineArrayTypeSugar))
     return false;
 
-  // We must have at least '[<type> x', which cannot be any other kind of
+  // We must have at least '[<type> of', which cannot be any other kind of
   // expression or type. We specifically look for any type, not just integers
-  // for better recovery in e.g cases where the user writes '[Int x 2]'. We
-  // only do type-scalar since variadics would be ambiguous e.g 'Int...x'.
+  // for better recovery in e.g cases where the user writes '[Int of 2]'. We
+  // only do type-scalar since variadics would be ambiguous e.g 'Int...of'.
   if (!canParseTypeScalar())
     return false;
 
   // For now we don't allow multi-line since that would require
   // disambiguation.
-  if (Tok.isAtStartOfLine() || !Tok.isContextualKeyword("x"))
+  if (Tok.isAtStartOfLine() || !Tok.isContextualKeyword("of"))
     return false;
 
   consumeToken();
@@ -1940,7 +1946,7 @@ bool Parser::canParseTypeTupleBody() {
       Tok.isNotEllipsis() &&
       // In types, we do not allow for an inout binding to be declared in a
       // tuple type.
-      (Tok.is(tok::kw_inout) || !isStartOfSwiftDecl())) {
+      (Tok.is(tok::kw_inout) || !isStartOfCodiraDecl())) {
     do {
       bool hadParameterName = false;
 
@@ -1969,7 +1975,7 @@ bool Parser::canParseTypeTupleBody() {
       if (hadParameterName && consumeIf(tok::equal)) {
         while (Tok.isNot(tok::eof) && Tok.isNot(tok::r_paren) &&
                Tok.isNot(tok::r_brace) && Tok.isNotEllipsis() &&
-               Tok.isNot(tok::comma) && !isStartOfSwiftDecl()) {
+               Tok.isNot(tok::comma) && !isStartOfCodiraDecl()) {
           skipSingle();
         }
       }

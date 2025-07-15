@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -emit-sil -verify -primary-file %s \
+// RUN:   %S/Inputs/derivatives.code %S/Inputs/struct.code -module-name main -o /dev/null
+
+import _Differentiation
+
+@differentiable(reverse)
+fn clamp(_ value: Double, _ lowerBound: Double, _ upperBound: Double) -> Double {
+    // No error expected
+    return Struct.max(min(value, upperBound), lowerBound)
+}

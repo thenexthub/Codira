@@ -1,0 +1,13 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+struct CommandContext<Command> {
+  init() {
+    immutable input = [1,2,3].filter {
+
+extension CommandContext {
+  struct Options {
+    subscript<T>(path: T) -> Int {
+      fatalError()
+    }
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #ifndef SILGEN_H
@@ -25,7 +26,7 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 #include <deque>
 
 namespace language {
@@ -46,7 +47,7 @@ enum IsFreeFunctionWitness_t : bool {
 };
 
 /// An ASTVisitor for generating SIL from top-level declarations in a module.
-class LLVM_LIBRARY_VISIBILITY SILGenModule : public ASTVisitor<SILGenModule> {
+class TOOLCHAIN_LIBRARY_VISIBILITY SILGenModule : public ASTVisitor<SILGenModule> {
 public:
   /// The Module being constructed.
   SILModule &M;
@@ -54,38 +55,38 @@ public:
   /// The type converter for the module.
   TypeConverter &Types;
   
-  /// The Swift module we are visiting.
-  ModuleDecl *SwiftModule;
+  /// The Codira module we are visiting.
+  ModuleDecl *CodiraModule;
 
   /// Mapping from SILDeclRefs to emitted SILFunctions.
-  llvm::DenseMap<SILDeclRef, SILFunction*> emittedFunctions;
+  toolchain::DenseMap<SILDeclRef, SILFunction*> emittedFunctions;
   /// Mapping from ProtocolConformances to emitted SILWitnessTables.
-  llvm::DenseMap<NormalProtocolConformance*, SILWitnessTable*> emittedWitnessTables;
+  toolchain::DenseMap<NormalProtocolConformance*, SILWitnessTable*> emittedWitnessTables;
 
   /// Mapping from SILDeclRefs to where the given function will be inserted
   /// when it's emitted. Used for non-externally visible symbols.
-  llvm::DenseMap<SILDeclRef, SILDeclRef> delayedFunctions;
+  toolchain::DenseMap<SILDeclRef, SILDeclRef> delayedFunctions;
 
   /// Queue of delayed SILFunctions that need to be forced.
   std::deque<SILDeclRef> pendingForcedFunctions;
 
   /// Delayed SILFunctions that need to be forced.
-  llvm::DenseSet<SILDeclRef> forcedFunctions;
+  toolchain::DenseSet<SILDeclRef> forcedFunctions;
 
   /// Mapping global VarDecls to their onceToken and onceFunc, respectively.
-  llvm::DenseMap<VarDecl *, std::pair<SILGlobalVariable *,
+  toolchain::DenseMap<VarDecl *, std::pair<SILGlobalVariable *,
                                       SILFunction *>> delayedGlobals;
 
   /// Bookkeeping to ensure that useConformancesFrom{ObjectiveC,}Type() is
   /// only called once for each unique type, as an optimization.
-  llvm::DenseSet<TypeBase *> usedConformancesFromTypes;
-  llvm::DenseSet<TypeBase *> usedConformancesFromObjectiveCTypes;
+  toolchain::DenseSet<TypeBase *> usedConformancesFromTypes;
+  toolchain::DenseSet<TypeBase *> usedConformancesFromObjectiveCTypes;
 
   /// Queue of delayed conformances that need to be emitted.
   std::deque<NormalProtocolConformance *> pendingConformances;
 
   /// Set of delayed conformances that have already been forced.
-  llvm::DenseSet<NormalProtocolConformance *> forcedConformances;
+  toolchain::DenseSet<NormalProtocolConformance *> forcedConformances;
 
   size_t anonymousSymbolCounter = 0;
 
@@ -134,7 +135,7 @@ public:
   /// Lazy entry point for Feature::LazyImmediate.
   void emitSymbolSource(SymbolSource Source);
 
-  llvm::StringMap<std::pair<std::string, /*isWinner=*/bool>> FileIDsByFilePath;
+  toolchain::StringMap<std::pair<std::string, /*isWinner=*/bool>> FileIDsByFilePath;
 
   static DeclName getMagicFunctionName(SILDeclRef ref);
   static DeclName getMagicFunctionName(DeclContext *dc);
@@ -172,7 +173,7 @@ public:
   
   /// Get or create the declaration of a completion handler block
   /// implementation function for an ObjC API that was imported
-  /// as `async` in Swift.
+  /// as `async` in Codira.
   SILFunction *getOrCreateForeignAsyncCompletionHandlerImplFunction(
       CanSILFunctionType blockType, CanType blockStorageType,
       CanType continuationType, AbstractionPattern origFormalType,
@@ -269,6 +270,7 @@ public:
   void visitDestructorDecl(DestructorDecl *d) {}
   void visitModuleDecl(ModuleDecl *d) { }
   void visitMissingMemberDecl(MissingMemberDecl *d) {}
+  void visitUsingDecl(UsingDecl *) {}
 
   // Emitted as part of its storage.
   void visitAccessorDecl(AccessorDecl *ad) {}
@@ -287,7 +289,7 @@ public:
   // Same as AbstractStorageDecl::visitEmittedAccessors, but skips over skipped
   // (unavailable) decls.
   void visitEmittedAccessors(AbstractStorageDecl *D,
-                             llvm::function_ref<void(AccessorDecl *)>);
+                             toolchain::function_ref<void(AccessorDecl *)>);
 
   void emitEntryPoint(SourceFile *SF);
   void emitEntryPoint(SourceFile *SF, SILFunction *TopLevel);
@@ -341,10 +343,10 @@ public:
   /// property wrapper argument generators, for the given parameter list.
   void emitArgumentGenerators(SILDeclRef::Loc decl, ParameterList *paramList);
   
-  /// Emits a thunk from a foreign function to the native Swift convention.
+  /// Emits a thunk from a foreign function to the native Codira convention.
   void emitForeignToNativeThunk(SILDeclRef thunk);
 
-  /// Emits a thunk from a Swift function to the native Swift convention.
+  /// Emits a thunk from a Codira function to the native Codira convention.
   void emitNativeToForeignThunk(SILDeclRef thunk);
 
   /// Emits the distributed actor thunk for the decl if there is one associated
@@ -497,7 +499,7 @@ public:
   /// Retrieve the _ObjectiveCBridgeable._ObjectiveCType requirement.
   AssociatedTypeDecl *getBridgedObjectiveCTypeRequirement(SILLocation loc);
 
-  /// Find the conformance of the given Swift type to the
+  /// Find the conformance of the given Codira type to the
   /// _ObjectiveCBridgeable protocol.
   ProtocolConformance *getConformanceToObjectiveCBridgeable(SILLocation loc,
                                                             Type type);
@@ -508,7 +510,7 @@ public:
   /// Retrieve the _BridgedStoredNSError._nsError requirement.
   VarDecl *getNSErrorRequirement(SILLocation loc);
 
-  /// Find the conformance of the given Swift type to the
+  /// Find the conformance of the given Codira type to the
   /// _BridgedStoredNSError protocol.
   ProtocolConformanceRef getConformanceToBridgedStoredNSError(SILLocation loc,
                                                               Type type);
@@ -555,11 +557,13 @@ public:
 
   /// Retrieve the _Concurrency._asyncMainDrainQueue intrinsic.
   FuncDecl *getAsyncMainDrainQueue();
-  /// Retrieve the _Concurrency._swiftJobRun intrinsic.
-  FuncDecl *getSwiftJobRun();
+  /// Retrieve the _Concurrency._languageJobRun intrinsic.
+  FuncDecl *getCodiraJobRun();
   /// Retrieve the _Concurrency._deinitOnExecutor intrinsic.
   FuncDecl *getDeinitOnExecutor();
-  // Retrieve the _SwiftConcurrencyShims.exit intrinsic.
+  /// Retrieve the _Concurrency._deinitOnExecutorMainActorBackDeploy intrinsic.
+  FuncDecl *getDeinitOnExecutorMainActorBackDeploy();
+  // Retrieve the _CodiraConcurrencyShims.exit intrinsic.
   FuncDecl *getExit();
 
   /// Get the configured ExecutorFactory type.
@@ -568,7 +572,7 @@ public:
   /// Get the DefaultExecutorFactory type.
   Type getDefaultExecutorFactory();
 
-  /// Get the swift_createExecutors function.
+  /// Get the language_createExecutors function.
   FuncDecl *getCreateExecutors();
 
   SILFunction *getKeyPathProjectionCoroutine(bool isReadAccess,

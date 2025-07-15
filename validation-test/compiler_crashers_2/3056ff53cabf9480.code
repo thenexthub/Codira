@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ConstraintSystem::setClosureType(language::ClosureExpr const*, language::FunctionType*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol b immutable c = {(a : b)in switch a{case.d {

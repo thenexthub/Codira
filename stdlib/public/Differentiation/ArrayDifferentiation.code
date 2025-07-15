@@ -1,16 +1,20 @@
-//===--- ArrayDifferentiation.swift ---------------------------*- swift -*-===//
+//===--- ArrayDifferentiation.code ---------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 //===----------------------------------------------------------------------===//
 // Protocol conformances
@@ -37,7 +41,7 @@ where Element: Differentiable {
 
   @inlinable
   @derivative(of: base)
-  func _vjpBase() -> (
+  fn _vjpBase() -> (
     value: [Element], pullback: (Array<Element>.TangentVector) -> TangentVector
   ) {
     return (base, { $0 })
@@ -45,7 +49,7 @@ where Element: Differentiable {
 
   @inlinable
   @derivative(of: base)
-  func _jvpBase() -> (
+  fn _jvpBase() -> (
     value: [Element], differential: (Array<Element>.TangentVector) -> TangentVector
   ) {
     return (base, { $0 })
@@ -53,11 +57,11 @@ where Element: Differentiable {
 
   /// Creates a differentiable view of the given array.
   @inlinable
-  public init(_ base: [Element]) { self._base = base }
+  public init(_ base: [Element]) { this._base = base }
 
   @inlinable
   @derivative(of: init(_:))
-  static func _vjpInit(_ base: [Element]) -> (
+  static fn _vjpInit(_ base: [Element]) -> (
     value: Array.DifferentiableView, pullback: (TangentVector) -> TangentVector
   ) {
     return (Array.DifferentiableView(base), { $0 })
@@ -65,7 +69,7 @@ where Element: Differentiable {
 
   @inlinable
   @derivative(of: init(_:))
-  static func _jvpInit(_ base: [Element]) -> (
+  static fn _jvpInit(_ base: [Element]) -> (
     value: Array.DifferentiableView, differential: (TangentVector) -> TangentVector
   ) {
     return (Array.DifferentiableView(base), { $0 })
@@ -75,13 +79,13 @@ where Element: Differentiable {
     Array<Element.TangentVector>.DifferentiableView
 
   @inlinable
-  public mutating func move(by offset: TangentVector) {
+  public mutating fn move(by offset: TangentVector) {
     if offset.base.isEmpty {
       return
     }
     precondition(
       base.count == offset.base.count, """
-        Count mismatch: \(base.count) ('self') and \(offset.base.count) \
+        Count mismatch: \(base.count) ('this') and \(offset.base.count) \
         ('direction')
         """)
     for i in offset.base.indices {
@@ -93,7 +97,7 @@ where Element: Differentiable {
 extension Array.DifferentiableView: Equatable
 where Element: Differentiable & Equatable {
   @inlinable
-  public static func == (
+  public static fn == (
     lhs: Array.DifferentiableView,
     rhs: Array.DifferentiableView
   ) -> Bool {
@@ -105,7 +109,7 @@ extension Array.DifferentiableView: ExpressibleByArrayLiteral
 where Element: Differentiable {
   @inlinable
   public init(arrayLiteral elements: Element...) {
-    self.init(elements)
+    this.init(elements)
   }
 }
 
@@ -135,7 +139,7 @@ where Element: AdditiveArithmetic & Differentiable {
   }
   
   @inlinable
-  public static func + (
+  public static fn + (
     lhs: Array.DifferentiableView,
     rhs: Array.DifferentiableView
   ) -> Array.DifferentiableView {
@@ -152,7 +156,7 @@ where Element: AdditiveArithmetic & Differentiable {
   }
 
   @inlinable
-  public static func - (
+  public static fn - (
     lhs: Array.DifferentiableView,
     rhs: Array.DifferentiableView
   ) -> Array.DifferentiableView {
@@ -190,10 +194,10 @@ extension Array: Differentiable where Element: Differentiable {
     Array<Element.TangentVector>.DifferentiableView
 
   @inlinable
-  public mutating func move(by offset: TangentVector) {
-    var view = DifferentiableView(self)
+  public mutating fn move(by offset: TangentVector) {
+    var view = DifferentiableView(this)
     view.move(by: offset)
-    self = view.base
+    this = view.base
   }
 }
 
@@ -204,37 +208,37 @@ extension Array: Differentiable where Element: Differentiable {
 extension Array where Element: Differentiable {
   @inlinable
   @derivative(of: subscript)
-  func _vjpSubscript(index: Int) -> (
+  fn _vjpSubscript(index: Int) -> (
     value: Element, pullback: (Element.TangentVector) -> TangentVector
   ) {
-    func pullback(_ v: Element.TangentVector) -> TangentVector {
+    fn pullback(_ v: Element.TangentVector) -> TangentVector {
       var dSelf = [Element.TangentVector](
         repeating: .zero,
         count: count)
       dSelf[index] = v
       return TangentVector(dSelf)
     }
-    return (self[index], pullback)
+    return (this[index], pullback)
   }
 
   @inlinable
   @derivative(of: subscript)
-  func _jvpSubscript(index: Int) -> (
+  fn _jvpSubscript(index: Int) -> (
     value: Element, differential: (TangentVector) -> Element.TangentVector
   ) {
-    func differential(_ v: TangentVector) -> Element.TangentVector {
+    fn differential(_ v: TangentVector) -> Element.TangentVector {
       return v[index]
     }
-    return (self[index], differential)
+    return (this[index], differential)
   }
 
   @inlinable
   @derivative(of: +)
-  static func _vjpConcatenate(_ lhs: Self, _ rhs: Self) -> (
+  static fn _vjpConcatenate(_ lhs: Self, _ rhs: Self) -> (
     value: Self,
     pullback: (TangentVector) -> (TangentVector, TangentVector)
   ) {
-    func pullback(_ v: TangentVector) -> (TangentVector, TangentVector) {
+    fn pullback(_ v: TangentVector) -> (TangentVector, TangentVector) {
       if v.base.isEmpty {
         return (.zero, .zero)
       }
@@ -253,11 +257,11 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: +)
-  static func _jvpConcatenate(_ lhs: Self, _ rhs: Self) -> (
+  static fn _jvpConcatenate(_ lhs: Self, _ rhs: Self) -> (
     value: Self,
     differential: (TangentVector, TangentVector) -> TangentVector
   ) {
-    func differential(_ l: TangentVector, _ r: TangentVector) -> TangentVector {
+    fn differential(_ l: TangentVector, _ r: TangentVector) -> TangentVector {
       precondition(
         l.base.count == lhs.count && r.base.count == rhs.count, """
           Tangent vectors with invalid count; expected to equal the \
@@ -273,10 +277,10 @@ extension Array where Element: Differentiable {
 extension Array where Element: Differentiable {
   @inlinable
   @derivative(of: append)
-  mutating func _vjpAppend(_ element: Element) -> (
+  mutating fn _vjpAppend(_ element: Element) -> (
     value: Void, pullback: (inout TangentVector) -> Element.TangentVector
   ) {
-    let appendedElementIndex = count
+    immutable appendedElementIndex = count
     append(element)
     return ((), { v in
       defer { v.base.removeLast() }
@@ -286,7 +290,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: append)
-  mutating func _jvpAppend(_ element: Element) -> (
+  mutating fn _jvpAppend(_ element: Element) -> (
     value: Void,
     differential: (inout TangentVector, Element.TangentVector) -> Void
   ) {
@@ -298,15 +302,15 @@ extension Array where Element: Differentiable {
 extension Array where Element: Differentiable {
   @inlinable
   @derivative(of: +=)
-  static func _vjpAppend(_ lhs: inout Self, _ rhs: Self) -> (
+  static fn _vjpAppend(_ lhs: inout Self, _ rhs: Self) -> (
     value: Void, pullback: (inout TangentVector) -> TangentVector
   ) {
-    let lhsCount = lhs.count
+    immutable lhsCount = lhs.count
     lhs += rhs
     return ((), { v in
-      let drhs =
+      immutable drhs =
         TangentVector(.init(v.base.dropFirst(lhsCount)))
-      let rhsCount = drhs.base.count
+      immutable rhsCount = drhs.base.count
       v.base.removeLast(rhsCount)
       return drhs
     })
@@ -314,7 +318,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: +=)
-  static func _jvpAppend(_ lhs: inout Self, _ rhs: Self) -> (
+  static fn _jvpAppend(_ lhs: inout Self, _ rhs: Self) -> (
     value: Void, differential: (inout TangentVector, TangentVector) -> Void
   ) {
     lhs += rhs
@@ -325,7 +329,7 @@ extension Array where Element: Differentiable {
 extension Array where Element: Differentiable {
   @inlinable
   @derivative(of: init(repeating:count:))
-  static func _vjpInit(repeating repeatedValue: Element, count: Int) -> (
+  static fn _vjpInit(repeating repeatedValue: Element, count: Int) -> (
     value: Self, pullback: (TangentVector) -> Element.TangentVector
   ) {
     (
@@ -338,7 +342,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: init(repeating:count:))
-  static func _jvpInit(repeating repeatedValue: Element, count: Int) -> (
+  static fn _jvpInit(repeating repeatedValue: Element, count: Int) -> (
     value: Self, differential: (Element.TangentVector) -> TangentVector
   ) {
     (
@@ -354,8 +358,8 @@ extension Array where Element: Differentiable {
 
 extension Array where Element: Differentiable {
   @inlinable
-  @differentiable(reverse, wrt: self)
-  public func differentiableMap<Result: Differentiable>(
+  @differentiable(reverse, wrt: this)
+  public fn differentiableMap<Result: Differentiable>(
     _ body: @differentiable(reverse) (Element) -> Result
   ) -> [Result] {
     map(body)
@@ -363,7 +367,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: differentiableMap)
-  internal func _vjpDifferentiableMap<Result: Differentiable>(
+  internal fn _vjpDifferentiableMap<Result: Differentiable>(
     _ body: @differentiable(reverse) (Element) -> Result
   ) -> (
     value: [Result],
@@ -371,12 +375,12 @@ extension Array where Element: Differentiable {
   ) {
     var values: [Result] = []
     var pullbacks: [(Result.TangentVector) -> Element.TangentVector] = []
-    for x in self {
-      let (y, pb) = valueWithPullback(at: x, of: body)
+    for x in this {
+      immutable (y, pb) = valueWithPullback(at: x, of: body)
       values.append(y)
       pullbacks.append(pb)
     }
-    func pullback(_ tans: Array<Result>.TangentVector) -> Array.TangentVector {
+    fn pullback(_ tans: Array<Result>.TangentVector) -> Array.TangentVector {
       .init(zip(tans.base, pullbacks).map { tan, pb in pb(tan) })
     }
     return (value: values, pullback: pullback)
@@ -384,7 +388,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: differentiableMap)
-  internal func _jvpDifferentiableMap<Result: Differentiable>(
+  internal fn _jvpDifferentiableMap<Result: Differentiable>(
     _ body: @differentiable(reverse) (Element) -> Result
   ) -> (
     value: [Result],
@@ -392,12 +396,12 @@ extension Array where Element: Differentiable {
   ) {
     var values: [Result] = []
     var differentials: [(Element.TangentVector) -> Result.TangentVector] = []
-    for x in self {
-      let (y, df) = valueWithDifferential(at: x, of: body)
+    for x in this {
+      immutable (y, df) = valueWithDifferential(at: x, of: body)
       values.append(y)
       differentials.append(df)
     }
-    func differential(_ tans: Array.TangentVector) -> Array<Result>.TangentVector {
+    fn differential(_ tans: Array.TangentVector) -> Array<Result>.TangentVector {
       .init(zip(tans.base, differentials).map { tan, df in df(tan) })
     }
     return (value: values, differential: differential)
@@ -406,8 +410,8 @@ extension Array where Element: Differentiable {
 
 extension Array where Element: Differentiable {
   @inlinable
-  @differentiable(reverse, wrt: (self, initialResult))
-  public func differentiableReduce<Result: Differentiable>(
+  @differentiable(reverse, wrt: (this, initialResult))
+  public fn differentiableReduce<Result: Differentiable>(
     _ initialResult: Result,
     _ nextPartialResult: @differentiable(reverse) (Result, Element) -> Result
   ) -> Result {
@@ -416,7 +420,7 @@ extension Array where Element: Differentiable {
 
   @inlinable
   @derivative(of: differentiableReduce)
-  internal func _vjpDifferentiableReduce<Result: Differentiable>(
+  internal fn _vjpDifferentiableReduce<Result: Differentiable>(
     _ initialResult: Result,
     _ nextPartialResult: @differentiable(reverse) (Result, Element) -> Result
   ) -> (
@@ -427,11 +431,11 @@ extension Array where Element: Differentiable {
     var pullbacks:
       [(Result.TangentVector) -> (Result.TangentVector, Element.TangentVector)] =
         []
-    let count = self.count
+    immutable count = this.count
     pullbacks.reserveCapacity(count)
     var result = initialResult
-    for element in self {
-      let (y, pb) =
+    for element in this {
+      immutable (y, pb) =
         valueWithPullback(at: result, element, of: nextPartialResult)
       result = y
       pullbacks.append(pb)
@@ -443,7 +447,7 @@ extension Array where Element: Differentiable {
         var elementTangents = TangentVector([])
         elementTangents.base.reserveCapacity(count)
         for pullback in pullbacks.reversed() {
-          let (newResultTangent, elementTangent) = pullback(resultTangent)
+          immutable (newResultTangent, elementTangent) = pullback(resultTangent)
           resultTangent = newResultTangent
           elementTangents.base.append(elementTangent)
         }
@@ -453,8 +457,8 @@ extension Array where Element: Differentiable {
   }
 
   @inlinable
-  @derivative(of: differentiableReduce, wrt: (self, initialResult))
-  func _jvpDifferentiableReduce<Result: Differentiable>(
+  @derivative(of: differentiableReduce, wrt: (this, initialResult))
+  fn _jvpDifferentiableReduce<Result: Differentiable>(
     _ initialResult: Result,
     _ nextPartialResult: @differentiable(reverse) (Result, Element) -> Result
   ) -> (value: Result,
@@ -463,11 +467,11 @@ extension Array where Element: Differentiable {
     var differentials:
       [(Result.TangentVector, Element.TangentVector) -> Result.TangentVector]
         = []
-    let count = self.count
+    immutable count = this.count
     differentials.reserveCapacity(count)
     var result = initialResult
-    for element in self {
-      let (y, df) =
+    for element in this {
+      immutable (y, df) =
         valueWithDifferential(at: result, element, of: nextPartialResult)
       result = y
       differentials.append(df)

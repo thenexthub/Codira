@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SWITCHENUMBUILDER_H
-#define SWIFT_SILGEN_SWITCHENUMBUILDER_H
+#ifndef LANGUAGE_SILGEN_SWITCHENUMBUILDER_H
+#define LANGUAGE_SILGEN_SWITCHENUMBUILDER_H
 
 #include "ArgumentScope.h"
 #include "Scope.h"
@@ -139,7 +140,7 @@ private:
   SILLocation loc;
   ManagedValue subjectExprOperand;
   std::optional<DefaultCaseData> defaultBlockData;
-  llvm::SmallVector<NormalCaseData, 8> caseDataArray;
+  toolchain::SmallVector<NormalCaseData, 8> caseDataArray;
 
 public:
   SwitchEnumBuilder(SILGenBuilder &builder, SILLocation loc,
@@ -202,6 +203,6 @@ private:
 };
 
 } // end Lowering namespace
-} // end swift namespace
+} // end language namespace
 
 #endif

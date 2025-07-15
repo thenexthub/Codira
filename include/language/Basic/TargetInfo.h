@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides a high-level API for emitting target info
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TARGETINFO_H
-#define SWIFT_TARGETINFO_H
+#ifndef LANGUAGE_TARGETINFO_H
+#define LANGUAGE_TARGETINFO_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 #include <optional>
 
-namespace llvm {
+namespace toolchain {
 class Triple;
 class VersionTuple;
 }
@@ -34,12 +35,12 @@ class CompilerInvocation;
 
 namespace targetinfo {
 void printTargetInfo(const CompilerInvocation &invocation,
-                     llvm::raw_ostream &out);
+                     toolchain::raw_ostream &out);
 
 void printTripleInfo(const CompilerInvocation &invocation,
-                     const llvm::Triple &triple,
-                     std::optional<llvm::VersionTuple> runtimeVersion,
-                     llvm::raw_ostream &out);
+                     const toolchain::Triple &triple,
+                     std::optional<toolchain::VersionTuple> runtimeVersion,
+                     toolchain::raw_ostream &out);
 } // namespace targetinfo
 } // namespace language
 

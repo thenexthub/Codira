@@ -1,0 +1,5 @@
+import MixModA
+
+open class TyB : CodiraClsA {
+  public override init() { super.init() }
+}

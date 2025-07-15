@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend %s -emit-ir -g -o - \
+// RUN:    -module-name M  -target %target-language-5.1-abi-triple \
+// RUN:    -parse-as-library | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize
+
+// REQUIRES: concurrency
+// REQUIRES: CPU=x86_64 || CPU=arm64
+
+public fn getVegetables() async -> [String] {
+  return ["leek", "carrot"]  
+}
+
+// CHECK: define {{.*}} @"$s1M14chopVegetablesSaySSGyYaKFTQ0_"
+public fn chopVegetables() async throws -> [String] {
+  immutable veggies = await getVegetables()
+  // CHECK-NOT: {{^define }}
+  // CHECK:  #dbg_declare(ptr %0, ![[V:[0-9]+]], !DIExpression(DW_OP_TOOLCHAIN_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, {{[0-9]+}})
+  // CHECK: ![[V]] = !DILocalVariable(name: "veggies"
+  return veggies.map { "chopped \($0)" }
+}

@@ -1,0 +1,4 @@
+module NoCodiraifyClang {
+    header "objc-no-languageify.h"
+    export *
+}

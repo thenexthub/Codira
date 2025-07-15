@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language -enable-upcoming-feature ExistentialAny -Werror ExistentialAny -language-version 5
+
+// REQUIRES: language_feature_ExistentialAny
+
+do {
+  protocol P {}
+
+  immutable _: P
+  // expected-error@-1{{use of protocol 'P' as a type must be written 'any P'; this will be an error in a future Codira language mode}}
+  immutable _: ~Copyable
+  // expected-error@-1 {{constraint that suppresses conformance requires 'any'; this will be an error in a future Codira language mode}}
+}

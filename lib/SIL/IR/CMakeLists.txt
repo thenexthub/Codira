@@ -1,4 +1,4 @@
-target_sources(swiftSIL PRIVATE
+target_sources(languageSIL PRIVATE
   AbstractionPattern.cpp
   ApplySite.cpp
   Bridging.cpp

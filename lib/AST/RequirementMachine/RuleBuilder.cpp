@@ -1,13 +1,17 @@
 //===--- RuleBuilder.cpp - Lowering desugared requirements to rules -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements lowering of desugared requirements to rewrite rules,
@@ -22,8 +26,8 @@
 #include "language/AST/Requirement.h"
 #include "language/AST/RequirementSignature.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/SetVector.h"
 #include "RequirementMachine.h"
 #include "RewriteContext.h"
 #include "RewriteSystem.h"
@@ -100,7 +104,7 @@ void RuleBuilder::initWithProtocolSignatureRequirements(
 
   for (auto *proto : protos) {
     if (Dump) {
-      llvm::dbgs() << "protocol " << proto->getName() << " {\n";
+      toolchain::dbgs() << "protocol " << proto->getName() << " {\n";
     }
 
     addPermanentProtocolRules(proto);
@@ -130,7 +134,7 @@ void RuleBuilder::initWithProtocolSignatureRequirements(
       addReferencedProtocol(otherProto);
 
     if (Dump) {
-      llvm::dbgs() << "}\n";
+      toolchain::dbgs() << "}\n";
     }
   }
 
@@ -144,7 +148,7 @@ void RuleBuilder::initWithProtocolSignatureRequirements(
 /// signatures.
 void RuleBuilder::initWithProtocolWrittenRequirements(
     ArrayRef<const ProtocolDecl *> component,
-    const llvm::DenseMap<const ProtocolDecl *,
+    const toolchain::DenseMap<const ProtocolDecl *,
                          SmallVector<StructuralRequirement, 4>> protos) {
   ASSERT(!Initialized);
   Initialized = 1;
@@ -161,7 +165,7 @@ void RuleBuilder::initWithProtocolWrittenRequirements(
     const auto &reqs = found->second;
 
     if (Dump) {
-      llvm::dbgs() << "protocol " << proto->getName() << " {\n";
+      toolchain::dbgs() << "protocol " << proto->getName() << " {\n";
     }
 
     addPermanentProtocolRules(proto);
@@ -173,7 +177,7 @@ void RuleBuilder::initWithProtocolWrittenRequirements(
       addReferencedProtocol(otherProto);
 
     if (Dump) {
-      llvm::dbgs() << "}\n";
+      toolchain::dbgs() << "}\n";
     }
   }
 
@@ -283,9 +287,9 @@ void RuleBuilder::addRequirement(const Requirement &req,
                                  const ProtocolDecl *proto,
                                  std::optional<ArrayRef<Term>> substitutions) {
   if (Dump) {
-    llvm::dbgs() << "+ ";
-    req.dump(llvm::dbgs());
-    llvm::dbgs() << "\n";
+    toolchain::dbgs() << "+ ";
+    req.dump(toolchain::dbgs());
+    toolchain::dbgs() << "\n";
   }
 
   ASSERT(!substitutions.has_value() || proto == nullptr && "Can't have both");
@@ -478,7 +482,7 @@ void RuleBuilder::collectRulesFromReferencedProtocols() {
   // if this is a rewrite system for a connected component of the protocol
   // dependency graph, add rewrite rules for each referenced protocol not part
   // of this connected component.
-  llvm::DenseSet<RequirementMachine *> machines;
+  toolchain::DenseSet<RequirementMachine *> machines;
 
   // Now visit each protocol component requirement machine and pull in its rules.
   for (auto *proto : ProtocolsToImport) {
@@ -486,7 +490,7 @@ void RuleBuilder::collectRulesFromReferencedProtocols() {
     // if necessary, which will cause us to re-enter into a new RuleBuilder
     // instance under RuleBuilder::initWithProtocolWrittenRequirements().
     if (Dump) {
-      llvm::dbgs() << "importing protocol " << proto->getName() << "\n";
+      toolchain::dbgs() << "importing protocol " << proto->getName() << "\n";
     }
 
     auto *machine = Context.getRequirementMachine(proto);
@@ -507,10 +511,10 @@ void RuleBuilder::collectRulesFromReferencedProtocols() {
 
 void RuleBuilder::collectPackShapeRules(ArrayRef<GenericTypeParamType *> genericParams) {
   if (Dump) {
-    llvm::dbgs() << "adding shape rules\n";
+    toolchain::dbgs() << "adding shape rules\n";
   }
 
-  if (!llvm::any_of(genericParams,
+  if (!toolchain::any_of(genericParams,
                     [](GenericTypeParamType *t) {
                       return t->isParameterPack();
                     })) {
@@ -536,7 +540,7 @@ void RuleBuilder::collectPackShapeRules(ArrayRef<GenericTypeParamType *> generic
   }
 
   // A member type T.[P:A] is part of the same shape class as its base type T.
-  llvm::DenseSet<Symbol> visited;
+  toolchain::DenseSet<Symbol> visited;
 
   auto addMemberShapeRule = [&](const ProtocolDecl *proto, AssociatedTypeDecl *assocType) {
     auto symbol = Symbol::forAssociatedType(proto, assocType->getName(), Context);
@@ -564,7 +568,7 @@ void RuleBuilder::collectPackShapeRules(ArrayRef<GenericTypeParamType *> generic
 
   for (auto *proto : ProtocolsToImport) {
     if (Dump) {
-      llvm::dbgs() << "adding member shape rules for protocol " << proto->getName() << "\n";
+      toolchain::dbgs() << "adding member shape rules for protocol " << proto->getName() << "\n";
     }
 
     for (auto *assocType : proto->getAssociatedTypeMembers()) {

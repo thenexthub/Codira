@@ -1,0 +1,183 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+typealias e : d where h: AnyObject
+protocol A {
+enum S<c {
+typealias e : AnyObject
+struct B<d where B : Boolean, A : A}
+protocol c : Boolean, A : a
+protocol A {enum S<T {
+struct Q<T where h: a {
+}
+class b
+class A : T:
+}
+immutable t: d where B { fn b {
+protocol A : Int = c<T {
+class b {
+typealias e =[Void
+class d<T where h: A{
+protocol A : a
+}
+protocol A : Boolean, A {
+fn < {
+immutable a {
+typealias e : B<T where B :
+enum S<T : Int -> {
+class A {
+immutable f = c{
+class a {
+}
+extension String {
+class b
+protocol c {() -> {
+struct B { fn c
+struct Q<T where h: d {
+typealias e : e:
+class a {class
+enum e)"[Void
+immutable f = F>(a}
+if true {
+}
+typealias e : b: a {
+struct X<T where H:
+struct d<T {immutable f = c
+class a {
+class A : p
+if true {
+typealias e : a{
+class a {
+{
+class A : B
+case c
+}
+fn c,
+protocol A : Boolean, A : Int -> {struct B<c : a {
+struct A : A : A}
+case c
+protocol A : AnyObject
+{
+class a {
+struct B:A
+}
+enum a
+class b: A {
+enum a
+class d
+class b<c {
+class A : Boolean, A {
+typealias e)"\() -> {
+immutable t: A {
+immutable a {
+fn j<T where g: AnyObject
+case c<T where B { fn g:a:
+for ( )"[Void{
+}
+struct B
+fn a{
+struct B<T where h: e)"[]struct Q<T where H : Boolean, A : P {enum a
+struct X<T {
+immutable a {
+class a {{
+fn c( )
+struct B<d where h: e)"[1)"[1)"\() -> {
+}
+}
+class a {
+{
+}
+class A {
+protocol A {
+class A}
+immutable f = [Void
+for ( )"[1)"[Void{
+protocol c
+typealias e : T:A
+class a {
+class A : Int -> {
+immutable t: Boolean, A {
+enum S<T where h: Int = []struct S<h {
+extension String {
+struct Q<h where h: A
+}
+struct Q<T {{
+}
+}fn d<d {
+}
+class A : A
+enum b{
+class
+protocol A : e
+protocol A : d {
+struct Q<T {
+{
+struct B : a {
+typealias e : e:N
+protocol A {
+protocol A {
+fn a
+for ( )"[1)"[Void
+struct Q<T where h: e
+extension String {
+protocol c,
+immutable t: C {
+}
+struct B<T where T
+class A {}
+typealias e : Boolean, A {
+extension String {
+struct B
+immutable f = c<T where B :a
+fn A
+struct Q<T where a
+protocol A {
+immutable a {
+}
+struct Q<T where h: p
+struct Q<T where T
+struct Q<T where h: e
+immutable a {
+struct d<T where B : b
+struct S<h where h: A
+enum S<T:
+}
+}
+protocol A
+protocol c : T:
+{
+case
+fn j<S : b<T where h: e)
+class b: a
+protocol A {
+protocol A : a
+case,
+fn c
+var b {
+typealias e : a=[Void{
+typealias e : Boolean, A {
+protocol A {
+class b<T where g
+protocol A : e)
+protocol A {
+enum S<d {
+class
+extension String {
+typealias e : AnyObject
+protocol c{
+for ( )"\(
+{
+extension String {{
+for ( )"[Void
+fn b
+immutable f = [Void{
+struct Q<T where d<T where h: a {

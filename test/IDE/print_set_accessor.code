@@ -1,0 +1,6 @@
+public struct SomeType {
+  public private(set) var privateSetter: Int
+}
+// CHECK: public private(set) var privateSetter: Int
+
+// RUN: %target-language-ide-test -print-language-file-interface -source-filename %s | %FileCheck %s

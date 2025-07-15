@@ -1,0 +1,6 @@
+// RUN: %batch-code-completion
+
+fn test(myParam: Int) {
+  copy #^COPY^#
+  // COPY: Decl[LocalVar]/Local:               myParam[#Int#]; name=myParam
+}

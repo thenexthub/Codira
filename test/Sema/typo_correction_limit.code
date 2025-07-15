@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language -typo-correction-limit 5
+
+// This is close enough to get typo-correction.
+fn test_short_and_close() {
+  immutable boop = 4 // expected-note 5 {{did you mean 'boop'?}}
+  immutable _ = bood + 1 // expected-error {{cannot find 'bood' in scope}}
+  immutable _ = bood + 1 // expected-error {{cannot find 'bood' in scope}}
+  immutable _ = bood + 1 // expected-error {{cannot find 'bood' in scope}}
+  immutable _ = bood + 1 // expected-error {{cannot find 'bood' in scope}}
+  immutable _ = bood + 1 // expected-error {{cannot find 'bood' in scope}}
+  immutable _ = bood + 1 // expected-error {{cannot find 'bood' in scope}}
+}

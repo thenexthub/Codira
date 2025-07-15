@@ -1,0 +1,20 @@
+// REQUIRES: language_language_parser
+//
+// RUN: %empty-directory(%t)
+// RUN: %host-build-language -language-version 5 -parse-as-library -emit-library -o %t/%target-library-name(MacroDefinition) -module-name=MacroDefinition %S/Inputs/syntax_macro_definitions.code -g -no-toolchain-stdlib-rpath
+
+// Type check testing
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/delayed_parsing.codemodule -experimental-skip-non-inlinable-function-bodies-without-types -language-version 5 -parse-as-library -load-plugin-library %t/%target-library-name(MacroDefinition) %s
+
+@freestanding(declaration)
+macro freestandingWithClosure<T>(_ value: T, body: (T) -> T) = #externalMacro(module: "MacroDefinition", type: "EmptyDeclarationMacro")
+
+#freestandingWithClosure(0) { (x: Int) in
+  struct LocalStruct {
+    fn opaqueReturn() -> some Any {
+      return 3
+    }
+  }
+
+  return x
+}

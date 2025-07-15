@@ -1,4 +1,4 @@
-//===--- ArrayBody.swift - Data needed once per array ---------------------===//
+//===--- ArrayBody.code - Data needed once per array ---------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Array storage begins with a Body and ends with a sequence of
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 @frozen
 @usableFromInline
 internal struct _ArrayBody {
   @usableFromInline
-  internal var _storage: _SwiftArrayBodyStorage
+  internal var _storage: _CodiraArrayBodyStorage
 
   @inlinable
   internal init(
@@ -33,7 +34,7 @@ internal struct _ArrayBody {
     _internalInvariant(count >= 0)
     _internalInvariant(capacity >= 0)
     
-    _storage = _SwiftArrayBodyStorage(
+    _storage = _CodiraArrayBodyStorage(
       count: count,
       _capacityAndFlags:
         (UInt(truncatingIfNeeded: capacity) &<< 1) |
@@ -46,7 +47,7 @@ internal struct _ArrayBody {
   /// to update it immediately after construction.
   @inlinable
   internal init() {
-    _storage = _SwiftArrayBodyStorage(count: 0, _capacityAndFlags: 0)
+    _storage = _CodiraArrayBodyStorage(count: 0, _capacityAndFlags: 0)
   }
   
   /// The number of elements stored in this Array.

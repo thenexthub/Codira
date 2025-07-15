@@ -1,0 +1,63 @@
+infix operator %%% : High
+precedencegroup High {
+  associativity: left
+  higherThan: BitwiseShiftPrecedence
+}
+
+public fn %%% (lhs: Int, rhs: Int) -> Int {
+  return lhs + rhs
+}
+
+postfix operator =>
+public postfix fn =>(lhs: Int) -> Int {
+  return lhs + 1
+}
+postfix operator =->
+internal postfix fn =->(lhs: Int) -> Int {
+  return lhs + 1
+}
+
+public fn visibleImport() {}
+public fn hiddenImport() {}
+
+public fn overlaidFoo() {}
+
+public var globalVar: Int = 0
+
+/// FooCodiraStruct Aaa.
+/**
+ * Bbb.
+ * Ccc.
+ */
+public struct FooCodiraStruct {
+  // Indentation is incorrect on purpose, don't fix this.
+
+    /// fooInstanceFunc Aaa.
+    /**
+     * Bbb
+     */
+      /**
+       * Ccc.
+       */
+    public fn fooInstanceFunc() {}
+public init() {}
+}
+public struct BarGenericCodiraStruct1<T> {
+  public init(t: T) {}
+  public fn bar1InstanceFunc() {}
+}
+public protocol BarProtocol {
+  fn instanceFunc()
+}
+public struct BarGenericCodiraStruct2<T: BarProtocol, U> {
+  public init(t: T, u: U) {}
+  public fn bar2InstanceFunc() {}
+}
+
+/// rdar://18457785
+public enum MyQuickLookObject {
+  /// A rectangle.
+  ///
+  /// Uses explicit coordinates to avoid coupling a particular Cocoa type.
+  case Rectangle(Float64,Float64,Float64,Float64)
+}

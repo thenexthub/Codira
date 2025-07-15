@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -21,42 +22,42 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/SILOptimizer/PassManager/PassPipeline.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
 struct SILPassPipelineDumperOptions {
-  llvm::cl::opt<PassPipelineKind>
-    PipelineKind = llvm::cl::opt<PassPipelineKind>(llvm::cl::desc("<pipeline kind>"),
-                                                   llvm::cl::values(
+  toolchain::cl::opt<PassPipelineKind>
+    PipelineKind = toolchain::cl::opt<PassPipelineKind>(toolchain::cl::desc("<pipeline kind>"),
+                                                   toolchain::cl::values(
 #define PASSPIPELINE(NAME, DESCRIPTION)                                        \
   clEnumValN(PassPipelineKind::NAME, #NAME, DESCRIPTION),
 #include "language/SILOptimizer/PassManager/PassPipeline.def"
                                                         clEnumValN(0, "", "")));
 };
 
-namespace llvm {
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, PassPipelineKind Kind) {
+namespace toolchain {
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, PassPipelineKind Kind) {
   switch (Kind) {
 #define PASSPIPELINE(NAME, DESCRIPTION)                                        \
   case PassPipelineKind::NAME:                                                 \
     return os << #NAME;
 #include "language/SILOptimizer/PassManager/PassPipeline.def"
   }
-  llvm_unreachable("Unhandled PassPipelineKind in switch");
+  toolchain_unreachable("Unhandled PassPipelineKind in switch");
 }
-} // namespace llvm
+} // namespace toolchain
 
 int sil_passpipeline_dumper_main(ArrayRef<const char *> argv, void *MainAddr) {
   INITIALIZE_LLVM();
 
   SILPassPipelineDumperOptions options;
 
-  llvm::cl::ParseCommandLineOptions(argv.size(), argv.data(),
-                                    "Swift SIL Pass Pipeline Dumper\n");
+  toolchain::cl::ParseCommandLineOptions(argv.size(), argv.data(),
+                                    "Codira SIL Pass Pipeline Dumper\n");
 
   // TODO: add options to manipulate this.
   SILOptions Opt;
@@ -64,13 +65,13 @@ int sil_passpipeline_dumper_main(ArrayRef<const char *> argv, void *MainAddr) {
   switch (options.PipelineKind) {
 #define PASSPIPELINE(NAME, DESCRIPTION)                                        \
   case PassPipelineKind::NAME: {                                               \
-    SILPassPipelinePlan::get##NAME##PassPipeline(Opt).print(llvm::outs());     \
+    SILPassPipelinePlan::get##NAME##PassPipeline(Opt).print(toolchain::outs());     \
     break;                                                                     \
   }
 #include "language/SILOptimizer/PassManager/PassPipeline.def"
   }
 
-  llvm::outs() << '\n';
+  toolchain::outs() << '\n';
 
   return 0;
 }

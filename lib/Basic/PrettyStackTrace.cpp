@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements several PrettyStackTraceEntries that probably
@@ -21,17 +22,17 @@
 #include "language/Basic/PrettyStackTrace.h"
 #include "language/Basic/QuotedString.h"
 #include "language/Basic/Version.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
-void PrettyStackTraceStringAction::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceStringAction::print(toolchain::raw_ostream &out) const {
   out << "While " << Action << ' ' << QuotedString(TheString) << '\n';
 }
 
-void PrettyStackTraceFileContents::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceFileContents::print(toolchain::raw_ostream &out) const {
   out << "Contents of " << Buffer.getBufferIdentifier() << ":\n---\n"
       << Buffer.getBuffer();
   if (!Buffer.getBuffer().ends_with("\n"))
@@ -39,21 +40,6 @@ void PrettyStackTraceFileContents::print(llvm::raw_ostream &out) const {
   out << "---\n";
 }
 
-void PrettyStackTraceSwiftVersion::print(llvm::raw_ostream &out) const {
-  out << version::getSwiftFullVersion() << '\n';
-}
-
-void swift::abortWithPrettyStackTraceMessage(
-    llvm::function_ref<void(llvm::raw_ostream &)> message) {
-  llvm::SmallString<0> errorStr;
-  llvm::raw_svector_ostream out(errorStr);
-  message(out);
-  llvm::PrettyStackTraceString trace(errorStr.c_str());
-  abort();
-}
-
-void swift::abortWithPrettyStackTraceMessage(StringRef message) {
-  auto messageStr = message.str();
-  llvm::PrettyStackTraceString trace(messageStr.c_str());
-  abort();
+void PrettyStackTraceCodiraVersion::print(toolchain::raw_ostream &out) const {
+  out << version::getCodiraFullVersion() << '\n';
 }

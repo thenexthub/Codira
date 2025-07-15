@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ContextualFailure::getDiagnosticFor(language::ContextualTypePurpose, language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{ struct a fn b< c >->c->() var : (inout a)->() = b(

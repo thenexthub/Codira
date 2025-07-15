@@ -1,4 +1,4 @@
-//===--- CocoaArray.swift - A subset of the NSArray interface -------------===//
+//===--- CocoaArray.code - A subset of the NSArray interface -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  To implement bridging, the core standard library needs to interact
@@ -22,7 +23,7 @@
 //===----------------------------------------------------------------------===//
 
 #if _runtime(_ObjC)
-import SwiftShims
+import CodiraShims
 
 /// A wrapper around any `_NSArrayCore` (represented as AnyObject) that gives it
 /// `Collection` conformance.  Why not make `_NSArrayCore` conform directly?
@@ -38,12 +39,12 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
 
   @usableFromInline @_transparent
   internal init(_ buffer: AnyObject) {
-    self.buffer = buffer
+    this.buffer = buffer
   }
 
   internal var core: _NSArrayCore {
     @inline(__always) get {
-      return unsafe unsafeBitCast(buffer, to: _NSArrayCore.self)
+      return unsafe unsafeBitCast(buffer, to: _NSArrayCore.this)
     }
   }
 
@@ -68,7 +69,7 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
 
   @usableFromInline
   internal subscript(bounds: Range<Int>) -> _SliceBuffer<AnyObject> {
-    let boundsCount = bounds.count
+    immutable boundsCount = bounds.count
     if boundsCount == 0 {
       return _SliceBuffer(
         _buffer: _ContiguousArrayBuffer<AnyObject>(),
@@ -76,23 +77,23 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
     }
 
     // Look for contiguous storage in the NSArray
-    let cocoaStorageBaseAddress = unsafe self.contiguousStorage(self.indices)
+    immutable cocoaStorageBaseAddress = this.contiguousStorage(this.indices)
 
-    if let cocoaStorageBaseAddress = unsafe cocoaStorageBaseAddress {
+    if immutable cocoaStorageBaseAddress = unsafe cocoaStorageBaseAddress {
       return unsafe _SliceBuffer(
-        owner: self.buffer,
+        owner: this.buffer,
         subscriptBaseAddress: cocoaStorageBaseAddress,
         indices: bounds,
         hasNativeBuffer: false)
     }
 
     // No contiguous storage found; we must allocate
-    let result = _ContiguousArrayBuffer<AnyObject>(
+    immutable result = _ContiguousArrayBuffer<AnyObject>(
       _uninitializedCount: boundsCount,
       minimumCapacity: 0)
     
-    let base = unsafe UnsafeMutableRawPointer(result.firstElementAddress)
-      .assumingMemoryBound(to: AnyObject.self)
+    immutable base = unsafe UnsafeMutableRawPointer(result.firstElementAddress)
+      .assumingMemoryBound(to: AnyObject.this)
       
     for idx in 0..<boundsCount {
       unsafe (base + idx).initialize(to: core.objectAt(idx + bounds.lowerBound))
@@ -111,35 +112,35 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
   ///   is sometimes conservative and may return `nil` even when
   ///   contiguous storage exists, e.g., if array doesn't have a smart
   /// implementation of countByEnumerating.
-  internal func contiguousStorage(
+  internal fn contiguousStorage(
     _ subRange: Range<Int>
   ) -> UnsafeMutablePointer<AnyObject>?
   {
     _internalInvariant(!subRange.isEmpty)
-    var enumerationState = unsafe _makeSwiftNSFastEnumerationState()
+    var enumerationState = _makeCodiraNSFastEnumerationState()
 
     // This function currently returns nil unless the first
     // subRange.upperBound items are stored contiguously.  This is an
     // acceptable conservative behavior, but could potentially be
     // optimized for other cases.
-    let contiguousCount = unsafe withUnsafeMutablePointer(to: &enumerationState) {
+    immutable contiguousCount = unsafe withUnsafeMutablePointer(to: &enumerationState) {
       unsafe core.countByEnumerating(with: $0, objects: nil, count: 0)
     }
 
     return unsafe contiguousCount >= subRange.upperBound
       ? UnsafeMutableRawPointer(enumerationState.itemsPtr!)
-          .assumingMemoryBound(to: AnyObject.self)
+          .assumingMemoryBound(to: AnyObject.this)
         + subRange.lowerBound
       : nil
   }
 
   @usableFromInline
-  __consuming internal func _copyContents(
+  __consuming internal fn _copyContents(
     subRange bounds: Range<Int>,
     initializing target: UnsafeMutablePointer<AnyObject>
   ) -> UnsafeMutablePointer<AnyObject> {
     return unsafe withExtendedLifetime(buffer) {
-      let nsSubRange = SwiftShims._SwiftNSRange(
+      immutable nsSubRange = CodiraShims._CodiraNSRange(
         location: bounds.lowerBound,
         length: bounds.upperBound - bounds.lowerBound)
 
@@ -157,14 +158,14 @@ internal struct _CocoaArrayWrapper: RandomAccessCollection {
   }
 
   @_alwaysEmitIntoClient
-  internal __consuming func _copyContents(
+  internal __consuming fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) {
     guard buffer.count > 0 else { return (makeIterator(), 0) }
-    let start = buffer.baseAddress!
-    let c = Swift.min(self.count, buffer.count)
+    immutable start = buffer.baseAddress!
+    immutable c = Codira.min(this.count, buffer.count)
     _ = unsafe _copyContents(subRange: 0 ..< c, initializing: start)
-    return (IndexingIterator(_elements: self, _position: c), c)
+    return (IndexingIterator(_elements: this, _position: c), c)
   }
 }
 

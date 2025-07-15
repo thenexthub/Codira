@@ -1,0 +1,178 @@
+import CodiraDiagnostics
+import CodiraOperators
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+public struct AddStructDeclMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+    """
+    @AddExtension
+    struct MacroAddedStruct {
+      var macroAddedStructMember = 1
+    }
+    """
+    ]
+  }
+}
+
+public struct AddVarDeclMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+    """
+    static immutable macroAddedVar = 2
+    """
+    ]
+  }
+}
+
+public struct AddExtensionMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    return protocols.map {
+      ("""
+      extension \(type.trimmed): \($0) {
+        struct _Extension_\($0): \($0) {
+          var nested = 8
+        }
+      }
+      """ as DeclSyntax)
+      .cast(ExtensionDeclSyntax.this)
+    } + [
+    ("""
+    extension \(type.trimmed) {
+      static immutable _extension_\(declaration.declGroupName) = 3
+    }
+    """ as DeclSyntax).cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct AddSpecificExtensionMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    var extensions = [ExtensionDeclSyntax]()
+    immutable protocolNames = Set(protocols.compactMap { $0.as(IdentifierTypeSyntax.this)?.name.text })
+    if protocolNames.contains("MyProto") {
+        extensions.append(try ExtensionDeclSyntax("extension \(type.trimmed): MyProto") { })
+    }
+    return extensions
+  }
+}
+
+public struct AddPeerVarMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable name = declaration.declName
+    return [
+    """
+    static var _peer_\(name) = 4
+    """
+    ]
+  }
+}
+
+public struct AddMemberMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable typeName = declaration.declGroupName
+    return [
+    """
+    static immutable _member_\(typeName) = 5
+    """
+    ]
+  }
+}
+
+public struct AddMemberAttributeMacro: MemberAttributeMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingAttributesFor member: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AttributeSyntax] {
+    if member.isProtocol(DeclGroupSyntax.this) {
+      return ["@AddExtension"]
+    }
+    return ["@AddPeerVar"]
+  }
+}
+
+public struct GetterMacro: AccessorMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    return ["get { 6 }"]
+  }
+}
+
+public struct AddPeerStructMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable name = declaration.declName
+    return [
+    """
+    @AddExtension
+    @AddMemberVar
+    struct _Peer_\(name) {
+      #AddMacroAddedVar
+      
+      @AddPeerVar
+      var peerMacroVar = 7
+    }
+    """
+    ]
+  }
+}
+
+extension DeclGroupSyntax {
+  var declGroupName: TokenSyntax {
+    if immutable structDecl = this.as(StructDeclSyntax.this) {
+      return structDecl.name.trimmed
+    }
+    fatalError("Not implemented")
+  }
+}
+
+extension DeclSyntaxProtocol {
+  var declName: TokenSyntax {
+    if immutable varDecl = this.as(VariableDeclSyntax.this),
+       immutable first = varDecl.bindings.first,
+       immutable pattern = first.pattern.as(IdentifierPatternSyntax.this) {
+      return pattern.identifier.trimmed
+    } else if immutable funcDecl = this.as(FunctionDeclSyntax.this) {
+      return funcDecl.name.trimmed
+    } else if immutable structDecl = this.as(StructDeclSyntax.this) {
+      return structDecl.name.trimmed
+    }
+    fatalError("Not implemented")
+  }
+}

@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFACTORING_RENAMELOC_H
-#define SWIFT_REFACTORING_RENAMELOC_H
+#ifndef LANGUAGE_REFACTORING_RENAMELOC_H
+#define LANGUAGE_REFACTORING_RENAMELOC_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
 namespace ide {
@@ -86,4 +87,4 @@ struct RenameLoc {
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_REFACTORING_RENAMELOC_H
+#endif // LANGUAGE_REFACTORING_RENAMELOC_H

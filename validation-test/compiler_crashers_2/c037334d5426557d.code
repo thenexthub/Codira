@@ -1,0 +1,4 @@
+// {"kind":"typecheck","signature":"language::constraints::AllowArgumentMismatch::create(language::constraints::ConstraintSystem&, language::Type, language::Type, language::constraints::ConstraintLocator*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<each b>(repeat each b, repeat each b)
+a(repeat (

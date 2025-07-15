@@ -1,0 +1,165 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=CustomIterator -source-filename=x -I %S/Inputs -enable-experimental-cxx-interop | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -module-to-print=CustomIterator -source-filename=x -I %S/Inputs -cxx-interoperability-mode=language-6 | %FileCheck %s
+// RUN: %target-language-ide-test -print-module -module-to-print=CustomIterator -source-filename=x -I %S/Inputs -cxx-interoperability-mode=upcoming-language | %FileCheck %s
+
+// CHECK: struct ConstIterator : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> ConstIterator
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: ConstIterator, other: ConstIterator) -> Bool
+// CHECK: }
+
+// CHECK: struct ConstRACIterator : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> ConstRACIterator
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   typealias Distance = Int32
+// CHECK:   static fn += (lhs: inout ConstRACIterator, v: ConstRACIterator.difference_type)
+// CHECK:   static fn - (lhs: ConstRACIterator, other: ConstRACIterator) -> Int32
+// CHECK:   static fn == (lhs: ConstRACIterator, other: ConstRACIterator) -> Bool
+// CHECK: }
+
+// CHECK: struct ConstRACIteratorRefPlusEq : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> ConstRACIterator
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   typealias Distance = Int32
+// CHECK:   static fn += (lhs: inout ConstRACIteratorRefPlusEq, v: ConstRACIteratorRefPlusEq.difference_type)
+// CHECK:   static fn - (lhs: ConstRACIteratorRefPlusEq, other: ConstRACIteratorRefPlusEq) -> Int32
+// CHECK:   static fn == (lhs: ConstRACIteratorRefPlusEq, other: ConstRACIteratorRefPlusEq) -> Bool
+// CHECK: }
+
+// CHECK: struct ConstIteratorOutOfLineEq : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> ConstIteratorOutOfLineEq
+// CHECK:   var pointee: Int32 { get }
+// CHECK: }
+// CHECK: fn == (lhs: ConstIteratorOutOfLineEq, rhs: ConstIteratorOutOfLineEq) -> Bool
+
+// CHECK: struct MinimalIterator : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> MinimalIterator
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: MinimalIterator, other: MinimalIterator) -> Bool
+// CHECK: }
+
+// CHECK: struct ForwardIterator : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> ForwardIterator
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: ForwardIterator, other: ForwardIterator) -> Bool
+// CHECK: }
+
+// CHECK: struct HasCustomIteratorTag : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> HasCustomIteratorTag
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: HasCustomIteratorTag, other: HasCustomIteratorTag) -> Bool
+// CHECK: }
+
+// CHECK: struct HasCustomRACIteratorTag : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> HasCustomRACIteratorTag
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   typealias Distance = Int32
+// CHECK:   static fn += (lhs: inout HasCustomRACIteratorTag, x: Int32)
+// CHECK:   static fn - (lhs: HasCustomRACIteratorTag, x: HasCustomRACIteratorTag) -> Int32
+// CHECK:   static fn == (lhs: HasCustomRACIteratorTag, other: HasCustomRACIteratorTag) -> Bool
+// CHECK: }
+
+// CHECK: struct HasCustomInheritedRACIteratorTag : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> HasCustomInheritedRACIteratorTag
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   typealias Distance = Int32
+// CHECK:   struct CustomTag0 {
+// CHECK:     init()
+// CHECK:   }
+// CHECK:   typealias CustomTag1 = HasCustomInheritedRACIteratorTag.CustomTag0
+// CHECK:   struct CustomTag2 {
+// CHECK:     init()
+// CHECK:   }
+// CHECK:   typealias CustomTag3 = HasCustomInheritedRACIteratorTag.CustomTag2
+// CHECK:   typealias CustomTag4 = HasCustomInheritedRACIteratorTag.CustomTag3
+// CHECK:   typealias iterator_category = HasCustomInheritedRACIteratorTag.CustomTag4
+// CHECK: }
+
+// CHECK: struct HasCustomIteratorTagInline : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> HasCustomIteratorTagInline
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: HasCustomIteratorTagInline, other: HasCustomIteratorTagInline) -> Bool
+// CHECK: }
+
+// CHECK: struct HasTypedefIteratorTag : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> HasTypedefIteratorTag
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: HasTypedefIteratorTag, other: HasTypedefIteratorTag) -> Bool
+// CHECK: }
+
+// CHECK: struct MutableRACIterator : UnsafeCxxMutableRandomAccessIterator, UnsafeCxxMutableInputIterator {
+// CHECK:   fn successor() -> MutableRACIterator
+// CHECK:   var pointee: Int32
+// CHECK:   typealias Pointee = Int32
+// CHECK:   typealias Distance = Int32
+// CHECK: }
+
+// CHECK-NOT: struct HasNoIteratorCategory : UnsafeCxxInputIterator
+// CHECK-NOT: struct HasInvalidIteratorCategory : UnsafeCxxInputIterator
+// CHECK-NOT: struct HasNoEqualEqual : UnsafeCxxInputIterator
+// CHECK-NOT: struct HasInvalidEqualEqual : UnsafeCxxInputIterator
+// CHECK-NOT: struct HasNoIncrementOperator : UnsafeCxxInputIterator
+// CHECK-NOT: struct HasNoPreIncrementOperator : UnsafeCxxInputIterator
+// CHECK-NOT: struct HasNoDereferenceOperator : UnsafeCxxInputIterator
+
+// CHECK: struct TemplatedIterator<CInt> : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> TemplatedIterator<CInt>
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   static fn == (lhs: TemplatedIterator<CInt>, other: TemplatedIterator<CInt>) -> Bool
+// CHECK: }
+
+// CHECK: struct TemplatedIteratorOutOfLineEq<CInt> : UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> TemplatedIteratorOutOfLineEq<CInt>
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK: }
+
+// CHECK: struct TemplatedRACIteratorOutOfLineEq<CInt> : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK:   fn successor() -> TemplatedRACIteratorOutOfLineEq<CInt>
+// CHECK:   var pointee: Int32 { get }
+// CHECK:   typealias Pointee = Int32
+// CHECK:   typealias Distance = TemplatedRACIteratorOutOfLineEq<CInt>.difference_type
+// CHECK: }
+
+// CHECK: struct BaseIntIterator {
+// CHECK: }
+// CHECK: struct InheritedConstIterator : UnsafeCxxInputIterator {
+// CHECK: }
+
+// CHECK: struct InheritedTemplatedConstIterator<T> {
+// CHECK: }
+// CHECK: struct InheritedTemplatedConstIterator<CInt> : UnsafeCxxInputIterator {
+// CHECK: }
+
+// CHECK: struct InheritedTemplatedConstRACIterator<T> {
+// CHECK: }
+// CHECK: struct InheritedTemplatedConstRACIterator<CInt> : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK: }
+
+// CHECK: struct InheritedTemplatedConstRACIteratorOutOfLineOps<T> {
+// CHECK: }
+// CHECK: struct InheritedTemplatedConstRACIteratorOutOfLineOps<CInt> : UnsafeCxxRandomAccessIterator, UnsafeCxxInputIterator {
+// CHECK: }
+
+// CHECK: struct InputOutputIterator : UnsafeCxxMutableInputIterator {
+// CHECK:   fn successor() -> InputOutputIterator
+// CHECK:   var pointee: Int32
+// CHECK:   typealias Pointee = Int32
+// CHECK: }
+
+// CHECK: struct InputOutputConstIterator : UnsafeCxxMutableInputIterator {
+// CHECK:   fn successor() -> InputOutputConstIterator
+// CHECK:   var pointee: Int32 { get nonmutating set }
+// CHECK:   typealias Pointee = Int32
+// CHECK: }

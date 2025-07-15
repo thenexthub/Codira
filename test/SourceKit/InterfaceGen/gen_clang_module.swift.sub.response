@@ -1,0 +1,494 @@
+public fn fooSubFunc1(_ a: Int32) -> Int32
+
+public struct FooSubEnum1 : Hashable, Equatable, RawRepresentable {
+
+    public init(_ rawValue: UInt32)
+
+    public init(rawValue: UInt32)
+
+    public var rawValue: UInt32
+}
+
+public var FooSubEnum1X: FooSubEnum1 { get }
+
+public var FooSubEnum1Y: FooSubEnum1 { get }
+
+public var FooSubUnnamedEnumeratorA1: Int { get }
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 12,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 24,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 26,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 29,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 39,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 46,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 53,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 60,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 74,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 84,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 95,
+    key.length: 16
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 119,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 126,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 131,
+    key.length: 1
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 133,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 143,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 156,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 163,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 168,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 178,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 191,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 198,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 202,
+    key.length: 8
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 212,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 222,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 229,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 233,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 247,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 261,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 268,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 275,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 279,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 293,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 307,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 314,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 321,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 325,
+    key.length: 25
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 352,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 358,
+    key.length: 3
+  }
+]
+[
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 29,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 39,
+    key.length: 5,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 74,
+    key.length: 8,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 84,
+    key.length: 9,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.protocol,
+    key.offset: 95,
+    key.length: 16,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 143,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 178,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 212,
+    key.length: 6,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 247,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 293,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 352,
+    key.length: 3,
+    key.is_system: 1
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fooSubFunc1(_:)",
+    key.offset: 7,
+    key.length: 37,
+    key.typename: "Int32",
+    key.nameoffset: 12,
+    key.namelength: 23,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.parameter,
+        key.name: "a",
+        key.offset: 24,
+        key.length: 10,
+        key.typename: "Int32"
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooSubEnum1",
+    key.offset: 53,
+    key.length: 167,
+    key.nameoffset: 60,
+    key.namelength: 11,
+    key.bodyoffset: 113,
+    key.bodylength: 106,
+    key.inheritedtypes: [
+      {
+        key.name: "Hashable"
+      },
+      {
+        key.name: "Equatable"
+      },
+      {
+        key.name: "RawRepresentable"
+      }
+    ],
+    key.attributes: [
+      {
+        key.offset: 46,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.elements: [
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 74,
+        key.length: 8
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 84,
+        key.length: 9
+      },
+      {
+        key.kind: source.lang.code.structure.elem.typeref,
+        key.offset: 95,
+        key.length: 16
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(_:)",
+        key.offset: 126,
+        key.length: 24,
+        key.nameoffset: 126,
+        key.namelength: 24,
+        key.attributes: [
+          {
+            key.offset: 119,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 131,
+            key.length: 18,
+            key.typename: "UInt32"
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(rawValue:)",
+        key.offset: 163,
+        key.length: 22,
+        key.nameoffset: 163,
+        key.namelength: 22,
+        key.attributes: [
+          {
+            key.offset: 156,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "rawValue",
+            key.offset: 168,
+            key.length: 16,
+            key.typename: "UInt32",
+            key.nameoffset: 168,
+            key.namelength: 8
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.setter_accessibility: source.lang.code.accessibility.public,
+        key.name: "rawValue",
+        key.offset: 198,
+        key.length: 20,
+        key.typename: "UInt32",
+        key.nameoffset: 202,
+        key.namelength: 8,
+        key.attributes: [
+          {
+            key.offset: 191,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooSubEnum1X",
+    key.offset: 229,
+    key.length: 37,
+    key.typename: "FooSubEnum1",
+    key.nameoffset: 233,
+    key.namelength: 12,
+    key.bodyoffset: 260,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 222,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooSubEnum1Y",
+    key.offset: 275,
+    key.length: 37,
+    key.typename: "FooSubEnum1",
+    key.nameoffset: 279,
+    key.namelength: 12,
+    key.bodyoffset: 306,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 268,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.var.global,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "FooSubUnnamedEnumeratorA1",
+    key.offset: 321,
+    key.length: 42,
+    key.typename: "Int",
+    key.nameoffset: 325,
+    key.namelength: 25,
+    key.bodyoffset: 357,
+    key.bodylength: 5,
+    key.attributes: [
+      {
+        key.offset: 314,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  }
+]

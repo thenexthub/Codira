@@ -1,0 +1,22 @@
+// RUN: %target-language-frontend -emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public struct MyStruct {
+}
+
+public fn main() {
+  var arr: [MyStruct] = []
+  var arr2: [MyStruct] = [.init()]
+  var arr3 = arr2
+  arr3.append(MyStruct())
+}
+
+public fn copy(_ a: inout [MyStruct]) {
+  var a = a
+}
+
+// CHECK: define {{.*}}@"$e4mainAAyyF"
+// CHECK: define {{.*}}@"$e4main4copyyySayAA8MyStructVGzF"

@@ -1,3 +1,3 @@
-target_sources(swift_Concurrency PRIVATE
-  ExecutorImpl.swift
-  PlatformExecutorNone.swift)
+target_sources(language_Concurrency PRIVATE
+  ExecutorImpl.code
+  PlatformExecutorNone.code)

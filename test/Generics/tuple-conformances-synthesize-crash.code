@@ -1,0 +1,5 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// Just don't crash.
+extension () : Comparable {}
+

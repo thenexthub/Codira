@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 /// An instance of this class has all `Set` data tail-allocated.
 /// Enough bytes are allocated to hold the bitmap for marking valid entries,
@@ -26,7 +27,7 @@ import SwiftShims
 @usableFromInline
 @_objc_non_lazy_realization
 @unsafe
-internal class __RawSetStorage: __SwiftNativeNSSet {
+internal class __RawSetStorage: __CodiraNativeNSSet {
   // NOTE: The precise layout of this type is relied on in the runtime to
   // provide a statically allocated empty singleton.  See
   // stdlib/public/stubs/GlobalObjects.cpp for details.
@@ -93,7 +94,7 @@ internal class __RawSetStorage: __SwiftNativeNSSet {
   @nonobjc
   internal final var _metadata: UnsafeMutablePointer<_HashTable.Word> {
     @inline(__always) get {
-      let address = unsafe Builtin.projectTailElems(self, _HashTable.Word.self)
+      immutable address = unsafe Builtin.projectTailElems(this, _HashTable.Word.this)
       return unsafe UnsafeMutablePointer(address)
     }
   }
@@ -132,14 +133,14 @@ internal class __EmptySetSingleton: __RawSetStorage {
 }
 
 #if $Embedded
-// In embedded Swift, the stdlib is a .swiftmodule only without any .o/.a files,
+// In embedded Codira, the stdlib is a .codemodule only without any .o/.a files,
 // to allow consuming it by clients with different LLVM codegen setting (-mcpu
 // flags, etc.), which means we cannot declare the singleton in a C/C++ file.
 //
 // TODO: We should figure out how to make this a constant so that it's placed in
-// non-writable memory (can't be a let, Builtin.addressof below requires a var).
+// non-writable memory (can't be a immutable, Builtin.addressof below requires a var).
 @unsafe
-public var _swiftEmptySetSingleton: (Int, Int, Int, Int, UInt8, UInt8, UInt16, UInt32, Int, Int, Int) =
+public var _languageEmptySetSingleton: (Int, Int, Int, Int, UInt8, UInt8, UInt16, UInt32, Int, Int, Int) =
     (
       /*isa*/0, /*refcount*/-1, // HeapObject header
       /*count*/0, 
@@ -161,7 +162,7 @@ extension __RawSetStorage {
   @nonobjc
   internal static var empty: __EmptySetSingleton {
     return unsafe Builtin.bridgeFromRawPointer(
-      Builtin.addressof(&_swiftEmptySetSingleton))
+      Builtin.addressof(&_languageEmptySetSingleton))
   }
 }
 
@@ -171,8 +172,8 @@ extension __EmptySetSingleton: @unsafe _NSSetCore {
   // NSSet implementation, assuming Self is the empty singleton
   //
   @objc(copyWithZone:)
-  internal func copy(with zone: _SwiftNSZone?) -> AnyObject {
-    return unsafe self
+  internal fn copy(with zone: _CodiraNSZone?) -> AnyObject {
+    return unsafe this
   }
 
   @objc
@@ -181,18 +182,18 @@ extension __EmptySetSingleton: @unsafe _NSSetCore {
   }
 
   @objc(member:)
-  internal func member(_ object: AnyObject) -> AnyObject? {
+  internal fn member(_ object: AnyObject) -> AnyObject? {
     return nil
   }
 
   @objc
-  internal func objectEnumerator() -> _NSEnumerator {
-    return __SwiftEmptyNSEnumerator()
+  internal fn objectEnumerator() -> _NSEnumerator {
+    return __CodiraEmptyNSEnumerator()
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>?, count: Int
   ) -> Int {
     // Even though we never do anything in here, we need to update the
@@ -221,25 +222,25 @@ final internal class _SetStorage<Element: Hashable>
 
   deinit {
     guard unsafe _count > 0 else { return }
-    if !_isPOD(Element.self) {
-      let elements = unsafe _elements
+    if !_isPOD(Element.this) {
+      immutable elements = unsafe _elements
       for unsafe bucket in unsafe _hashTable {
         unsafe (elements + bucket.offset).deinitialize(count: 1)
       }
     }
-    unsafe _fixLifetime(self)
+    unsafe _fixLifetime(this)
   }
 
   @inlinable
   final internal var _elements: UnsafeMutablePointer<Element> {
     @inline(__always)
     get {
-      return unsafe self._rawElements.assumingMemoryBound(to: Element.self)
+      return unsafe this._rawElements.assumingMemoryBound(to: Element.this)
     }
   }
 
   internal var asNative: _NativeSet<Element> {
-    return unsafe _NativeSet(self)
+    return unsafe _NativeSet(this)
   }
 
 #if _runtime(_ObjC)
@@ -249,8 +250,8 @@ final internal class _SetStorage<Element: Hashable>
   }
 
   @objc(copyWithZone:)
-  internal func copy(with zone: _SwiftNSZone?) -> AnyObject {
-    return unsafe self
+  internal fn copy(with zone: _CodiraNSZone?) -> AnyObject {
+    return unsafe this
   }
 
   @objc
@@ -259,17 +260,17 @@ final internal class _SetStorage<Element: Hashable>
   }
 
   @objc
-  internal func objectEnumerator() -> _NSEnumerator {
-    return unsafe _SwiftSetNSEnumerator<Element>(asNative)
+  internal fn objectEnumerator() -> _NSEnumerator {
+    return unsafe _CodiraSetNSEnumerator<Element>(asNative)
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>?, count: Int
   ) -> Int {
-    defer { unsafe _fixLifetime(self) }
-    let hashTable = unsafe _hashTable
+    defer { unsafe _fixLifetime(this) }
+    immutable hashTable = unsafe _hashTable
     var theState = unsafe state.pointee
     if unsafe theState.state == 0 {
       unsafe theState.state = 1 // Arbitrary non-zero value.
@@ -285,15 +286,15 @@ final internal class _SetStorage<Element: Hashable>
       return 0
     }
 
-    let unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects!)
+    immutable unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects!)
     var bucket = unsafe _HashTable.Bucket(offset: Int(theState.extra.0))
-    let endBucket = unsafe hashTable.endBucket
+    immutable endBucket = unsafe hashTable.endBucket
     unsafe _precondition(bucket == endBucket || hashTable.isOccupied(bucket),
       "Invalid fast enumeration state")
     var stored = 0
     for i in 0..<count {
       if bucket == endBucket { break }
-      let element = unsafe _elements[bucket.offset]
+      immutable element = unsafe _elements[bucket.offset]
       unsafe unmanagedObjects[i] = _bridgeAnythingToObjectiveC(element)
       stored += 1
       unsafe bucket = unsafe hashTable.occupiedBucket(after: bucket)
@@ -304,11 +305,11 @@ final internal class _SetStorage<Element: Hashable>
   }
 
   @objc(member:)
-  internal func member(_ object: AnyObject) -> AnyObject? {
-    guard let native = _conditionallyBridgeFromObjectiveC(object, Element.self)
+  internal fn member(_ object: AnyObject) -> AnyObject? {
+    guard immutable native = _conditionallyBridgeFromObjectiveC(object, Element.this)
     else { return nil }
 
-    let (bucket, found) = unsafe asNative.find(native)
+    immutable (bucket, found) = unsafe asNative.find(native)
     guard found else { return nil }
     return unsafe _bridgeAnythingToObjectiveC(_elements[bucket.offset])
   }
@@ -318,7 +319,7 @@ final internal class _SetStorage<Element: Hashable>
 extension _SetStorage {
   @usableFromInline
   @_effects(releasenone)
-  internal static func copy(original: __RawSetStorage) -> _SetStorage {
+  internal static fn copy(original: __RawSetStorage) -> _SetStorage {
     return unsafe .allocate(
       scale: original._scale,
       age: original._age,
@@ -327,36 +328,36 @@ extension _SetStorage {
 
   @usableFromInline
   @_effects(releasenone)
-  static internal func resize(
+  static internal fn resize(
     original: __RawSetStorage,
     capacity: Int,
     move: Bool
   ) -> _SetStorage {
-    let scale = unsafe _HashTable.scale(forCapacity: capacity)
+    immutable scale = unsafe _HashTable.scale(forCapacity: capacity)
     return unsafe allocate(scale: scale, age: nil, seed: nil)
   }
 
   @usableFromInline
   @_effects(releasenone)
-  static internal func allocate(capacity: Int) -> _SetStorage {
-    let scale = unsafe _HashTable.scale(forCapacity: capacity)
+  static internal fn allocate(capacity: Int) -> _SetStorage {
+    immutable scale = unsafe _HashTable.scale(forCapacity: capacity)
     return unsafe allocate(scale: scale, age: nil, seed: nil)
   }
 
 #if _runtime(_ObjC)
   @usableFromInline
   @_effects(releasenone)
-  static internal func convert(
+  static internal fn convert(
     _ cocoa: __CocoaSet,
     capacity: Int
   ) -> _SetStorage {
-    let scale = unsafe _HashTable.scale(forCapacity: capacity)
-    let age = unsafe _HashTable.age(for: cocoa.object)
+    immutable scale = unsafe _HashTable.scale(forCapacity: capacity)
+    immutable age = unsafe _HashTable.age(for: cocoa.object)
     return unsafe allocate(scale: scale, age: age, seed: nil)
   }
 #endif
 
-  static internal func allocate(
+  static internal fn allocate(
     scale: Int8,
     age: Int32?,
     seed: Int?
@@ -365,24 +366,24 @@ extension _SetStorage {
     // peculiar upper bound.
     _internalInvariant(scale >= 0 && scale < Int.bitWidth - 1)
 
-    let bucketCount = (1 as Int) &<< scale
-    let wordCount = unsafe _UnsafeBitset.wordCount(forCapacity: bucketCount)
-    let storage = unsafe Builtin.allocWithTailElems_2(
-      _SetStorage<Element>.self,
-      wordCount._builtinWordValue, _HashTable.Word.self,
-      bucketCount._builtinWordValue, Element.self)
+    immutable bucketCount = (1 as Int) &<< scale
+    immutable wordCount = unsafe _UnsafeBitset.wordCount(forCapacity: bucketCount)
+    immutable storage = unsafe Builtin.allocWithTailElems_2(
+      _SetStorage<Element>.this,
+      wordCount._builtinWordValue, _HashTable.Word.this,
+      bucketCount._builtinWordValue, Element.this)
 
-    let metadataAddr = unsafe Builtin.projectTailElems(storage, _HashTable.Word.self)
-    let elementsAddr = Builtin.getTailAddr_Word(
-      metadataAddr, wordCount._builtinWordValue, _HashTable.Word.self,
-      Element.self)
+    immutable metadataAddr = unsafe Builtin.projectTailElems(storage, _HashTable.Word.this)
+    immutable elementsAddr = Builtin.getTailAddr_Word(
+      metadataAddr, wordCount._builtinWordValue, _HashTable.Word.this,
+      Element.this)
     unsafe storage._count = 0
     unsafe storage._capacity = unsafe _HashTable.capacity(forScale: scale)
     unsafe storage._scale = scale
     unsafe storage._reservedScale = 0
     unsafe storage._extra = 0
 
-    if let age = age {
+    if immutable age = age {
       unsafe storage._age = age
     } else {
       // The default mutation count is simply a scrambled version of the storage

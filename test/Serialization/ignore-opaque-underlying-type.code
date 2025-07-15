@@ -1,0 +1,122 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// REQUIRES: asserts
+
+/// Resilient scenario, we ignore underlying type of non-inlinable functions.
+/// Build libraries.
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -emit-module-path %t/Lib.codemodule \
+// RUN:   -emit-module-interface-path %t/Lib.codeinterface -verify
+
+/// Build clients, with and without safety.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -verify -Xtoolchain -debug-only=Serialization \
+// RUN:   -enable-deserialization-safety 2>&1 \
+// RUN:   | %FileCheck %s
+
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -verify -Xtoolchain -debug-only=Serialization \
+// RUN:   -disable-deserialization-safety 2>&1 \
+// RUN:   | %FileCheck %s
+
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -verify -Xtoolchain -debug-only=Serialization \
+// RUN:   -disable-access-control 2>&1 \
+// RUN:   | %FileCheck %s
+
+/// Build against the languageinterface.
+// RUN: rm %t/Lib.codemodule
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -verify -Xtoolchain -debug-only=Serialization \
+// RUN:   -disable-deserialization-safety 2>&1 \
+// RUN:   | %FileCheck %s
+
+/// Non-resilient scenario, all underlying types are loaded.
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -language-version 5 \
+// RUN:   -emit-module-path %t/Lib.codemodule -verify
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -verify -Xtoolchain -debug-only=Serialization \
+// RUN:   -disable-deserialization-safety 2>&1 \
+// RUN:   | %FileCheck --check-prefix=NON-RESILIENT %s
+// NON-RESILIENT-NOT: Ignoring underlying information
+
+//--- Lib.code
+public protocol V {}
+
+public struct EV : V {
+    public init () {}
+}
+
+@available(CodiraStdlib 5.1, *)
+public extension V {
+  private fn referencedPrivateFunc(v: some V) -> some V { return v }
+
+  /// Hidden underlying types.
+// CHECK: Ignoring underlying information for opaque type of 'opaqueReferencingPrivate()'
+  fn opaqueReferencingPrivate() -> some V {
+    referencedPrivateFunc(v: EV())
+  }
+
+// CHECK: Ignoring underlying information for opaque type of 'opaqueReferencingPrivateVar'
+  var opaqueReferencingPrivateVar: some V {
+    referencedPrivateFunc(v: EV())
+  }
+
+// CHECK: Ignoring underlying information for opaque type of 'opaqueReferencingPrivateVarPattern'
+  var opaqueReferencingPrivateVarPattern: some V {
+    get {
+      referencedPrivateFunc(v: EV())
+    }
+  }
+
+// CHECK: Ignoring underlying information for opaque type of 'subscript(_:)'
+  subscript(v: some V) -> some V {
+    referencedPrivateFunc(v: v)
+  }
+
+  /// Visible underlying types.
+// CHECK: Loading underlying information for opaque type of 'inlinableOpaqueFunc()'
+  @inlinable
+  fn inlinableOpaqueFunc() -> some V { EV() }
+
+// CHECK: Loading underlying information for opaque type of 'aeicOpaqueFunc()'
+  @_alwaysEmitIntoClient
+  fn aeicOpaqueFunc() -> some V { EV() }
+
+// CHECK: Loading underlying information for opaque type of 'transparentOpaqueFunc()'
+  @_transparent
+  fn transparentOpaqueFunc() -> some V { EV() }
+
+// CHECK: Loading underlying information for opaque type of 'inlinableOpaqueVar'
+  @inlinable
+  var inlinableOpaqueVar: some V { EV() }
+
+// CHECK: Loading underlying information for opaque type of 'inlinableOpaqueVarPattern'
+  var inlinableOpaqueVarPattern: some V {
+      @inlinable
+      get { EV() }
+  }
+}
+
+//--- Client.code
+import Lib
+
+if #available(CodiraStdlib 5.1, *) {
+  immutable v = EV()
+  immutable _ = v.opaqueReferencingPrivate()
+  immutable _ = v.opaqueReferencingPrivateVar
+  immutable _ = v.opaqueReferencingPrivateVarPattern
+  immutable _ = v[v]
+
+  immutable _ = v.inlinableOpaqueFunc()
+  immutable _ = v.aeicOpaqueFunc()
+  immutable _ = v.transparentOpaqueFunc()
+
+  immutable _ = v.inlinableOpaqueVar
+  immutable _ = v.inlinableOpaqueVarPattern
+}

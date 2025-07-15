@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Fingerprint.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <inttypes.h>
 #include <sstream>
 
 using namespace language;
 
-llvm::raw_ostream &llvm::operator<<(llvm::raw_ostream &OS,
+toolchain::raw_ostream &toolchain::operator<<(toolchain::raw_ostream &OS,
                                     const Fingerprint &FP) {
   return OS << FP.getRawValue();
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const Fingerprint &fp) {
+void language::simple_display(toolchain::raw_ostream &out, const Fingerprint &fp) {
   out << fp.getRawValue();
 }
 
-std::optional<Fingerprint> Fingerprint::fromString(llvm::StringRef value) {
+std::optional<Fingerprint> Fingerprint::fromString(toolchain::StringRef value) {
   assert(value.size() == Fingerprint::DIGEST_LENGTH &&
          "Only supports 32-byte hash values!");
   auto fp = Fingerprint::ZERO();
@@ -52,10 +53,10 @@ std::optional<Fingerprint> Fingerprint::fromString(llvm::StringRef value) {
   return fp;
 }
 
-llvm::SmallString<Fingerprint::DIGEST_LENGTH> Fingerprint::getRawValue() const {
-  llvm::SmallString<Fingerprint::DIGEST_LENGTH> Str;
-  llvm::raw_svector_ostream Res(Str);
-  Res << llvm::format_hex_no_prefix(core.first, 16);
-  Res << llvm::format_hex_no_prefix(core.second, 16);
+toolchain::SmallString<Fingerprint::DIGEST_LENGTH> Fingerprint::getRawValue() const {
+  toolchain::SmallString<Fingerprint::DIGEST_LENGTH> Str;
+  toolchain::raw_svector_ostream Res(Str);
+  Res << toolchain::format_hex_no_prefix(core.first, 16);
+  Res << toolchain::format_hex_no_prefix(core.second, 16);
   return Str;
 }

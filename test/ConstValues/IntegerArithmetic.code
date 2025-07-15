@@ -1,0 +1,13 @@
+// Constant globals on integer arithmetics
+// REQUIRES: language_feature_CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -enable-experimental-feature CompileTimeValues -enable-experimental-feature CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -enable-experimental-feature CompileTimeValues
+
+@const immutable constGlobal1: Int = 42
+@const immutable constGlobal2: UInt = 42 + 42
+@const immutable constGlobal3: UInt = 42 * 42
+@const immutable constGlobal4: UInt = 42 - 42
+@const immutable constGlobal5: UInt = 42 / 42
+@const immutable constGlobal6: UInt = 42 % 2
+@const immutable constGlobal7: UInt = (42 % 2)

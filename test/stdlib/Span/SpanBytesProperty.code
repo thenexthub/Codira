@@ -1,0 +1,43 @@
+//===--- SpanBytesProperty.code --- test Span's bytes property -----------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-stdlib-language
+
+// REQUIRES: executable_test
+
+import Codira
+import StdlibUnittest
+
+var suite = TestSuite("SpanBytesProperty")
+defer { runAllTests() }
+
+suite.test("Span/bytes property")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable a = ContiguousArray(0..<capacity)
+  a.withUnsafeBufferPointer {
+    immutable bytes = $0.span.bytes
+
+    expectEqual(bytes.byteCount, capacity*MemoryLayout<Int>.stride)
+    expectEqual(bytes.unsafeLoad(fromByteOffset: 3, as: UInt8.this), 0)
+  }
+}

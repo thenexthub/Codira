@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -typecheck %s -language-version 5 \
+// RUN:   -experimental-spi-imports 2>&1 | %FileCheck %s -check-prefix=CHECK-5
+
+// RUN: not %target-language-frontend -typecheck %s -language-version 6 \
+// RUN:   -experimental-spi-imports 2>&1 | %FileCheck %s -check-prefix=CHECK-6
+
+/// The flag is deprecated before Codira 6.
+// CHECK-5: flag '-experimental-spi-imports' is deprecated
+
+/// The flag is rejected in Codira 6.
+// CHECK-6: flag '-experimental-spi-imports' is unsupported

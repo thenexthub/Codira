@@ -1,0 +1,34 @@
+
+// RUN: %target-language-emit-silgen -Xtoolchain -sil-print-types -module-name objc_attr_NSManaged_multi -sdk %S/Inputs -primary-file %s %S/objc_attr_NSManaged.code -I %S/Inputs -enable-source-import | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+// CHECK-LABEL: sil hidden [ossa] @$s25objc_attr_NSManaged_multi9testMultiyyXlAA10CodiraGizmoCF : $@convention(thin) (@guaranteed CodiraGizmo) -> @owned AnyObject {
+// CHECK: bb0([[ARG:%.*]] : @guaranteed $CodiraGizmo):
+// CHECK: = objc_method [[ARG]] : $CodiraGizmo, #CodiraGizmo.kvc!foreign : (CodiraGizmo) -> () -> (), $@convention(objc_method) (CodiraGizmo) -> ()
+// CHECK-NOT: return
+// CHECK: = objc_method [[ARG]] : $CodiraGizmo, #CodiraGizmo.extKVC!foreign : (CodiraGizmo) -> () -> (), $@convention(objc_method) (CodiraGizmo) -> ()
+// CHECK-NOT: return
+// CHECK: objc_method [[ARG]] : $CodiraGizmo, #CodiraGizmo.x!getter.foreign : (CodiraGizmo) -> () -> X, $@convention(objc_method) (CodiraGizmo) -> @autoreleased X
+// CHECK: return
+fn testMulti(_ obj: CodiraGizmo) -> AnyObject {
+  obj.kvc()
+  obj.extKVC()
+  return obj.x
+}
+
+// CHECK-LABEL: sil hidden [ossa] @$s25objc_attr_NSManaged_multi14testFinalMultiySSAA0F5GizmoCF : $@convention(thin) (@guaranteed FinalGizmo) -> @owned String {
+// CHECK: bb0([[ARG:%.*]] : @guaranteed $FinalGizmo):
+// CHECK: objc_method [[ARG]] : $FinalGizmo, #FinalGizmo.kvc2!foreign : (FinalGizmo) -> () -> (), $@convention(objc_method) (FinalGizmo) -> ()
+// CHECK-NOT: return
+// CHECK: objc_method [[ARG]] : $FinalGizmo, #FinalGizmo.extKVC2!foreign : (FinalGizmo) -> () -> (), $@convention(objc_method) (FinalGizmo) -> ()
+// CHECK-NOT: return
+// CHECK: objc_method [[ARG]] : $FinalGizmo, #FinalGizmo.y!getter.foreign : (FinalGizmo) -> () -> String, $@convention(objc_method) (FinalGizmo) -> @autoreleased NSString
+// CHECK: return
+fn testFinalMulti(_ obj: FinalGizmo) -> String {
+  obj.kvc2()
+  obj.extKVC2()
+  return obj.y
+}

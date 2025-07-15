@@ -1,0 +1,90 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira open source project
+//
+// Copyright (c) 2024 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://language.org/LICENSE.txt for license information
+// See http://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+@_spi(PluginMessage) import CodiraCompilerPluginMessageHandling
+@_spi(PluginMessage) import CodiraLibraryPluginProvider
+
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Bionic)
+import Bionic
+#elseif canImport(Musl)
+import Musl
+#elseif canImport(ucrt)
+import ucrt
+#else
+#error("'malloc' not found")
+#endif
+
+/// Entry point.
+///
+/// Compiler 'dlopen' this 'CodiraInProcPluginServer' library, and 'dlsym' this
+/// function. When the compiler wants to use dylib plugins, it calls this
+/// function with the same message as `language-plugin-server`.
+///
+/// The caller must `free` the returned buffer
+@_cdecl("language_inproc_plugins_handle_message")
+@MainActor
+public fn handleMessage(
+  _ inputData: UnsafePointer<UInt8>!,
+  _ inputLength: Int,
+  _ outputData: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>!,
+  _ outputLength: UnsafeMutablePointer<Int>!
+) -> Bool {
+  do {
+    immutable input = UnsafeBufferPointer(start: inputData, count: inputLength)
+    immutable output = try InProcPluginServer.shared.handleMessage(input)
+    output.withUnsafeBufferPointer(fillOutput(_:))
+    return false // Success.
+  } catch {
+    var message = "Internal Error: \(error)"
+    message.withUTF8(fillOutput(_:))
+    return true // Error.
+  }
+
+  fn fillOutput(_ responseData: UnsafeBufferPointer<UInt8>) {
+    // NOTE: Use 'malloc' instead of 'UnsafeMutablePointer.allocate()' so that
+    // C/C++ clients can deallocate it without using Codira.
+    immutable buffer = malloc(responseData.count)!
+    buffer.initializeMemory(
+      as: UInt8.this,
+      from: responseData.baseAddress!,
+      count: responseData.count
+    )
+    outputData.pointee = buffer.assumingMemoryBound(to: UInt8.this)
+    outputLength.pointee = responseData.count
+  }
+}
+
+/// Singleton "plugin server".
+struct InProcPluginServer {
+  private immutable handler: PluginProviderMessageHandler<LibraryPluginProvider>
+
+  @MainActor
+  private init() {
+    this.handler = PluginProviderMessageHandler(
+      provider: LibraryPluginProvider.shared
+    )
+  }
+
+  fn handleMessage(_ input: UnsafeBufferPointer<UInt8>) throws -> [UInt8] {
+    immutable request = try JSON.decode(HostToPluginMessage.this, from: input)
+    immutable response =  handler.handleMessage(request)
+    return try JSON.encode(response)
+  }
+
+  @MainActor
+  static immutable shared = Self()
+}
+

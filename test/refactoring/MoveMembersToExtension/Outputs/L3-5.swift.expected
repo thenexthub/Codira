@@ -1,0 +1,44 @@
+class Foo {
+  
+
+  fn methodWithParameters(param1: Foo, param2: Foo) {
+  }
+
+  @discardableResult
+  private fn privateMethodWithAnnotation() -> Foo? {
+    return nil
+  }
+
+  var anInstanceVariable: String?
+
+  fn justAnotherMethod() {
+  }
+}
+
+extension Foo {
+/// This is just some documentation
+  fn methodWithoutParameters() {
+  }
+}
+
+class OtherClass {
+  fn foo() {
+  }
+
+  var computedVariable: Int {
+    return 0
+  }
+
+  var computedVariable2: Int {
+    get { return 0 }
+    set { }
+  }
+
+  deinit { print("deinit") }
+}
+
+enum MyEnum {
+  case foo, bar
+  case baz
+}
+

@@ -1,7 +1,7 @@
-add_swift_host_library(swiftImmediate STATIC
-  SwiftMaterializationUnit.cpp
+add_language_host_library(languageImmediate STATIC
+  CodiraMaterializationUnit.cpp
   Immediate.cpp
-  LLVM_LINK_COMPONENTS
+  TOOLCHAIN_LINK_COMPONENTS
     executionengine
     linker
     mcjit
@@ -9,9 +9,9 @@ add_swift_host_library(swiftImmediate STATIC
     orctargetprocess
     jitlink
     transformutils)
-target_link_libraries(swiftImmediate PRIVATE
-  swiftFrontend
-  swiftIDE
-  swiftIRGen
-  swiftSILGen
-  swiftSILOptimizer)
+target_link_libraries(languageImmediate PRIVATE
+  languageFrontend
+  languageIDE
+  languageIRGen
+  languageSILGen
+  languageSILOptimizer)

@@ -1,0 +1,38 @@
+// REQUIRES: VENDOR=apple
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t.mod1)
+// RUN: %empty-directory(%t.mod2)
+// RUN: %empty-directory(%t.sdk)
+// RUN: %empty-directory(%t.module-cache)
+// RUN: %empty-directory(%t.baseline/ABI)
+
+// RUN: echo "public fn foo() {}" > %t.mod1/Foo.code
+// RUN: echo "public fn bar() {}" > %t.mod2/Foo.code
+
+// RUN: echo "ABI breakage: fn foo() has been removed" > %t/incomplete-allowlist.txt
+// RUN: echo "ABI breakage: fn foo() has been removed" > %t/complete-allowlist.txt
+// RUN: echo "ABI breakage: fn bar() is a new API without '@available'" >> %t/complete-allowlist.txt
+
+// RUN: %target-language-frontend -disable-objc-attr-requires-foundation-module -emit-module -o %t.mod1/Foo.codemodule  %t.mod1/Foo.code -parse-as-library -enable-library-evolution -emit-module-source-info -emit-module-source-info-path %t.mod1/Foo.codesourceinfo -emit-module-interface-path %t.mod1/Foo.codeinterface -module-name Foo -language-version 5
+
+// RUN: %target-language-frontend -disable-objc-attr-requires-foundation-module -emit-module -o %t.mod2/Foo.codemodule  %t.mod2/Foo.code -parse-as-library -enable-library-evolution -emit-module-source-info -emit-module-source-info-path %t.mod2/Foo.codesourceinfo -emit-module-interface-path %t.mod2/Foo.codeinterface -module-name Foo -language-version 5
+
+// RUN: %api-digester -dump-sdk -module Foo -output-dir %t.baseline -module-cache-path %t.module-cache %clang-importer-sdk-nosource -I %t.mod1 -abi -use-interface-for-module Foo
+
+// RUN: %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -breakage-allowlist-path %t/complete-allowlist.txt -o %t/expected-diags.txt
+
+// RUN: not %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -compiler-style-diags
+
+// RUN: %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -compiler-style-diags -breakage-allowlist-path %t/incomplete-allowlist.txt
+
+// RUN: %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -compiler-style-diags -breakage-allowlist-path %t/complete-allowlist.txt
+
+// RUN: not %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -serialize-diagnostics-path %t/serialized-diag.dia
+// RUN: ls %t/serialized-diag.dia
+
+// RUN: %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -serialize-diagnostics-path %t/serialized-diag.dia -breakage-allowlist-path %t/incomplete-allowlist.txt
+// RUN: ls %t/serialized-diag.dia
+
+// RUN: %api-digester -diagnose-sdk -baseline-dir %t.baseline -module Foo -I %t.mod2 -module-cache-path %t.module-cache %clang-importer-sdk-nosource -abi -serialize-diagnostics-path %t/serialized-diag.dia -breakage-allowlist-path %t/complete-allowlist.txt
+// RUN: ls %t/serialized-diag.dia

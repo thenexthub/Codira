@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift doesn't support exception handlers, but might call code that uses
-// exceptions, and when they leak out into Swift code, we want to trap them.
+// Codira doesn't support exception handlers, but might call code that uses
+// exceptions, and when they leak out into Codira code, we want to trap them.
 //
 // To that end, we have our own exception personality routine, which we use
 // to trap exceptions and terminate.
@@ -36,8 +37,8 @@ using namespace language;
 
 extern "C" void *__cxa_begin_catch(void *);
 
-SWIFT_RUNTIME_STDLIB_API _Unwind_Reason_Code
-_swift_exceptionPersonality(int version,
+LANGUAGE_RUNTIME_STDLIB_API _Unwind_Reason_Code
+_language_exceptionPersonality(int version,
                             _Unwind_Action actions,
                             uint64_t exceptionClass,
                             struct _Unwind_Exception *exceptionObject,
@@ -51,7 +52,7 @@ _swift_exceptionPersonality(int version,
   std::terminate();
 #else
   fatalError(0,
-             "C++ exception handling detected but the Swift runtime was "
+             "C++ exception handling detected but the Codira runtime was "
              "compiled with exceptions disabled\n");
 #endif
 

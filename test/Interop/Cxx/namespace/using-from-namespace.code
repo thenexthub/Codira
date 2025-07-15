@@ -1,0 +1,6 @@
+// RUN: %target-language-emit-irgen -I %S/Inputs/ -cxx-interoperability-mode=default -g %s
+
+import UsingFromNamespace
+
+fn f(_ foo: Foo) {}
+fn g(_ bar: Bar) {}

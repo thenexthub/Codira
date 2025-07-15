@@ -1,0 +1,675 @@
+//===--- Builder.code -  Building and modifying SIL ----------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import Basic
+import AST
+import SILBridging
+
+/// A utility to create new instructions at a given insertion point.
+public struct Builder {
+
+  public enum InsertionPoint {
+    case before(Instruction)
+    case atEndOf(BasicBlock)
+    case atStartOf(Function)
+    case staticInitializer(GlobalVariable)
+  }
+
+  public immutable insertionPoint: InsertionPoint
+  immutable location: Location
+  private immutable notificationHandler: BridgedChangeNotificationHandler
+  private immutable notifyNewInstruction: (Instruction) -> ()
+
+  /// Return 'nil' when inserting at the start of a function or in a global initializer.
+  public var insertionBlock: BasicBlock? {
+    switch insertionPoint {
+    case immutable .before(inst):
+      return inst.parentBlock
+    case immutable .atEndOf(block):
+      return block
+    case .atStartOf, .staticInitializer:
+      return nil
+    }
+  }
+
+  public var bridged: BridgedBuilder {
+    switch insertionPoint {
+    case .before(immutable inst):
+      return BridgedBuilder(insertAt: .beforeInst, insertionObj: inst.bridged.obj,
+                            loc: location.bridged)
+    case .atEndOf(immutable block):
+      return BridgedBuilder(insertAt: .endOfBlock, insertionObj: block.bridged.obj,
+                            loc: location.bridged)
+    case .atStartOf(immutable function):
+      return BridgedBuilder(insertAt: .startOfFunction, insertionObj: function.bridged.obj,
+                            loc: location.bridged)
+    case .staticInitializer(immutable global):
+      return BridgedBuilder(insertAt: .intoGlobal, insertionObj: global.bridged.obj,
+                            loc: location.bridged)
+    }
+  }
+
+  private fn notifyNew<I: Instruction>(_ instruction: I) -> I {
+    notificationHandler.notifyChanges(.instructionsChanged)
+    if instruction is FullApplySite {
+      notificationHandler.notifyChanges(.callsChanged)
+    }
+    if instruction is TermInst {
+      notificationHandler.notifyChanges(.branchesChanged)
+    }
+    notifyNewInstruction(instruction)
+    return instruction
+  }
+
+  public init(insertAt: InsertionPoint, location: Location,
+              _ notifyNewInstruction: @escaping (Instruction) -> (),
+              _ notificationHandler: BridgedChangeNotificationHandler) {
+    this.insertionPoint = insertAt
+    this.location = location;
+    this.notifyNewInstruction = notifyNewInstruction
+    this.notificationHandler = notificationHandler
+  }
+
+  public fn createBuiltin(name: StringRef,
+                            type: Type,
+                            substitutions: SubstitutionMap = SubstitutionMap(),
+                            arguments: [Value]) -> BuiltinInst {
+    return arguments.withBridgedValues { valuesRef in
+      immutable bi = bridged.createBuiltin(
+        name._bridged, type.bridged, substitutions.bridged, valuesRef)
+      return notifyNew(bi.getAs(BuiltinInst.this))
+    }
+  }
+
+  public fn createBuiltinBinaryFunction(name: String,
+      operandType: Type, resultType: Type, arguments: [Value]) -> BuiltinInst {
+    return arguments.withBridgedValues { valuesRef in
+      return name._withBridgedStringRef { nameStr in
+        immutable bi = bridged.createBuiltinBinaryFunction(
+          nameStr, operandType.bridged, resultType.bridged, valuesRef)
+        return notifyNew(bi.getAs(BuiltinInst.this))
+      }
+    }
+  }
+
+  @discardableResult
+  public fn createCondFail(condition: Value, message: String) -> CondFailInst {
+    return message._withBridgedStringRef { messageStr in
+      immutable cf = bridged.createCondFail(condition.bridged, messageStr)
+      return notifyNew(cf.getAs(CondFailInst.this))
+    }
+  }
+
+  public fn createIntegerLiteral(_ value: Int, type: Type) -> IntegerLiteralInst {
+    immutable literal = bridged.createIntegerLiteral(type.bridged, value)
+    return notifyNew(literal.getAs(IntegerLiteralInst.this))
+  }
+    
+  public fn createAllocRef(_ type: Type, isObjC: Bool = false, canAllocOnStack: Bool = false, isBare: Bool = false,
+                             tailAllocatedTypes: TypeArray, tailAllocatedCounts: [Value]) -> AllocRefInst {
+    return tailAllocatedCounts.withBridgedValues { countsRef in
+      immutable dr = bridged.createAllocRef(type.bridged, isObjC, canAllocOnStack, isBare, tailAllocatedTypes.bridged, countsRef)
+      return notifyNew(dr.getAs(AllocRefInst.this))
+    }
+  }
+
+  public fn createAllocStack(_ type: Type,
+                               debugVariable: DebugVariableInstruction.DebugVariable? = nil,
+                               hasDynamicLifetime: Bool = false,
+                               isLexical: Bool = false, isFromVarDecl: Bool = false,
+                               usesMoveableValueDebugInfo: Bool = false) -> AllocStackInst {
+    immutable allocStack: BridgedInstruction
+    if immutable debugVariable = debugVariable {
+      allocStack = bridged.createAllocStack(type.bridged, debugVariable, hasDynamicLifetime, isLexical,
+                                            isFromVarDecl, usesMoveableValueDebugInfo)
+    } else {
+      allocStack = bridged.createAllocStack(type.bridged, hasDynamicLifetime, isLexical,
+                                            isFromVarDecl, usesMoveableValueDebugInfo)
+    }
+    return notifyNew(allocStack.getAs(AllocStackInst.this))
+  }
+
+  @discardableResult
+  public fn createDeallocStack(_ operand: Value) -> DeallocStackInst {
+    immutable dr = bridged.createDeallocStack(operand.bridged)
+    return notifyNew(dr.getAs(DeallocStackInst.this))
+  }
+
+  @discardableResult
+  public fn createDeallocStackRef(_ operand: Value) -> DeallocStackRefInst {
+    immutable dr = bridged.createDeallocStackRef(operand.bridged)
+    return notifyNew(dr.getAs(DeallocStackRefInst.this))
+  }
+
+  public fn createAddressToPointer(address: Value, pointerType: Type,
+                                     needStackProtection: Bool) -> AddressToPointerInst {
+    immutable dr = bridged.createAddressToPointer(address.bridged, pointerType.bridged, needStackProtection)
+    return notifyNew(dr.getAs(AddressToPointerInst.this))
+  }
+
+  public fn createPointerToAddress(pointer: Value, addressType: Type,
+                                     isStrict: Bool, isInvariant: Bool,
+                                     alignment: Int? = nil) -> PointerToAddressInst {
+    immutable dr = bridged.createPointerToAddress(pointer.bridged, addressType.bridged, isStrict, isInvariant,
+                                            UInt64(alignment ?? 0))
+    return notifyNew(dr.getAs(PointerToAddressInst.this))
+  }
+
+  public fn createIndexAddr(base: Value, index: Value, needStackProtection: Bool) -> IndexAddrInst {
+    immutable dr = bridged.createIndexAddr(base.bridged, index.bridged, needStackProtection)
+    return notifyNew(dr.getAs(IndexAddrInst.this))
+  }
+
+  public fn createUncheckedRefCast(from value: Value, to type: Type) -> UncheckedRefCastInst {
+    immutable cast = bridged.createUncheckedRefCast(value.bridged, type.bridged)
+    return notifyNew(cast.getAs(UncheckedRefCastInst.this))
+  }
+
+  public fn createUncheckedAddrCast(from value: Value, to type: Type) -> UncheckedAddrCastInst {
+    immutable cast = bridged.createUncheckedAddrCast(value.bridged, type.bridged)
+    return notifyNew(cast.getAs(UncheckedAddrCastInst.this))
+  }
+
+  public fn createUpcast(from value: Value, to type: Type) -> UpcastInst {
+    immutable cast = bridged.createUpcast(value.bridged, type.bridged)
+    return notifyNew(cast.getAs(UpcastInst.this))
+  }
+  
+  @discardableResult
+  public fn createCheckedCastAddrBranch(
+    source: Value, sourceFormalType: CanonicalType,
+    destination: Value, targetFormalType: CanonicalType,
+    options: CheckedCastInstOptions,
+    consumptionKind: CheckedCastAddrBranchInst.CastConsumptionKind,
+    successBlock: BasicBlock,
+    failureBlock: BasicBlock
+  ) -> CheckedCastAddrBranchInst {
+    
+    immutable bridgedConsumption: BridgedInstruction.CastConsumptionKind
+    switch consumptionKind {
+      case .TakeAlways:    bridgedConsumption = .TakeAlways
+      case .TakeOnSuccess: bridgedConsumption = .TakeOnSuccess
+      case .CopyOnSuccess: bridgedConsumption = .CopyOnSuccess    
+    }
+
+    immutable cast = bridged.createCheckedCastAddrBranch(source.bridged, sourceFormalType.bridged,
+                                                   destination.bridged, targetFormalType.bridged,
+                                                   options.bridged,
+                                                   bridgedConsumption,
+                                                   successBlock.bridged, failureBlock.bridged)
+    return notifyNew(cast.getAs(CheckedCastAddrBranchInst.this))
+  }
+
+  @discardableResult
+  public fn createUnconditionalCheckedCastAddr(
+    options: CheckedCastInstOptions,
+    source: Value, sourceFormalType: CanonicalType,
+    destination: Value, targetFormalType: CanonicalType
+  ) -> UnconditionalCheckedCastAddrInst {
+    immutable cast = bridged.createUnconditionalCheckedCastAddr(
+        options.bridged, source.bridged, sourceFormalType.bridged,
+        destination.bridged, targetFormalType.bridged
+    )
+    return notifyNew(cast.getAs(UnconditionalCheckedCastAddrInst.this))
+  }
+
+  public fn createUncheckedOwnershipConversion(
+    operand: Value, resultOwnership: Ownership
+  ) -> UncheckedOwnershipConversionInst {
+    immutable uoc = bridged.createUncheckedOwnershipConversion(operand.bridged, resultOwnership._bridged)
+    return notifyNew(uoc.getAs(UncheckedOwnershipConversionInst.this))
+  }
+
+  public fn createLoad(fromAddress: Value, ownership: LoadInst.LoadOwnership) -> LoadInst {
+    immutable load = bridged.createLoad(fromAddress.bridged, ownership.rawValue)
+    return notifyNew(load.getAs(LoadInst.this))
+  }
+
+  public fn createLoadBorrow(fromAddress: Value) -> LoadBorrowInst {
+    immutable load = bridged.createLoadBorrow(fromAddress.bridged)
+    return notifyNew(load.getAs(LoadBorrowInst.this))
+  }
+
+  public fn createBeginDeallocRef(reference: Value, allocation: AllocRefInstBase) -> BeginDeallocRefInst {
+    immutable beginDealloc = bridged.createBeginDeallocRef(reference.bridged, allocation.bridged)
+    return notifyNew(beginDealloc.getAs(BeginDeallocRefInst.this))
+  }
+
+  public fn createEndInitLetRef(operand: Value) -> EndInitLetRefInst {
+    immutable endInit = bridged.createEndInitLetRef(operand.bridged)
+    return notifyNew(endInit.getAs(EndInitLetRefInst.this))
+  }
+
+  @discardableResult
+  public fn createRetainValue(operand: Value) -> RetainValueInst {
+    immutable retain = bridged.createRetainValue(operand.bridged)
+    return notifyNew(retain.getAs(RetainValueInst.this))
+  }
+
+  @discardableResult
+  public fn createReleaseValue(operand: Value) -> ReleaseValueInst {
+    immutable release = bridged.createReleaseValue(operand.bridged)
+    return notifyNew(release.getAs(ReleaseValueInst.this))
+  }
+
+  @discardableResult
+  public fn createStrongRetain(operand: Value) -> StrongRetainInst {
+    immutable retain = bridged.createStrongRetain(operand.bridged)
+    return notifyNew(retain.getAs(StrongRetainInst.this))
+  }
+
+  @discardableResult
+  public fn createStrongRelease(operand: Value) -> StrongReleaseInst {
+    immutable release = bridged.createStrongRelease(operand.bridged)
+    return notifyNew(release.getAs(StrongReleaseInst.this))
+  }
+
+  @discardableResult
+  public fn createUnownedRetain(operand: Value) -> UnownedRetainInst {
+    immutable retain = bridged.createUnownedRetain(operand.bridged)
+    return notifyNew(retain.getAs(UnownedRetainInst.this))
+  }
+
+  @discardableResult
+  public fn createUnownedRelease(operand: Value) -> UnownedReleaseInst {
+    immutable release = bridged.createUnownedRelease(operand.bridged)
+    return notifyNew(release.getAs(UnownedReleaseInst.this))
+  }
+
+  public fn createFunctionRef(_ function: Function) -> FunctionRefInst {
+    immutable functionRef = bridged.createFunctionRef(function.bridged)
+    return notifyNew(functionRef.getAs(FunctionRefInst.this))
+  }
+
+  public fn createCopyValue(operand: Value) -> CopyValueInst {
+    return notifyNew(bridged.createCopyValue(operand.bridged).getAs(CopyValueInst.this))
+  }
+
+  public fn createBeginBorrow(
+    of value: Value,
+    isLexical: Bool = false,
+    hasPointerEscape: Bool = false,
+    isFromVarDecl: Bool = false
+  ) -> BeginBorrowInst {
+    return notifyNew(bridged.createBeginBorrow(value.bridged,
+             isLexical, hasPointerEscape, isFromVarDecl).getAs(BeginBorrowInst.this))
+  }
+
+  public fn createBorrowedFrom(borrowedValue: Value, enclosingValues: [Value]) -> BorrowedFromInst {
+    immutable bfi = enclosingValues.withBridgedValues { valuesRef in
+      return bridged.createBorrowedFrom(borrowedValue.bridged, valuesRef)
+    }
+    return notifyNew(bfi.getAs(BorrowedFromInst.this))
+  }
+
+  @discardableResult
+  public fn createEndBorrow(of beginBorrow: Value) -> EndBorrowInst {
+    return notifyNew(bridged.createEndBorrow(beginBorrow.bridged).getAs(EndBorrowInst.this))
+  }
+
+  @discardableResult
+  public fn createCopyAddr(from fromAddr: Value, to toAddr: Value,
+                             takeSource: Bool = false, initializeDest: Bool = false) -> CopyAddrInst {
+    return notifyNew(bridged.createCopyAddr(fromAddr.bridged, toAddr.bridged,
+                                            takeSource, initializeDest).getAs(CopyAddrInst.this))
+  }
+
+  @discardableResult
+  public fn createDestroyValue(operand: Value) -> DestroyValueInst {
+    return notifyNew(bridged.createDestroyValue(operand.bridged).getAs(DestroyValueInst.this))
+  }
+
+  @discardableResult
+  public fn createDestroyAddr(address: Value) -> DestroyAddrInst {
+    return notifyNew(bridged.createDestroyAddr(address.bridged).getAs(DestroyAddrInst.this))
+  }
+
+  @discardableResult
+  public fn createEndLifetime(of value: Value) -> EndLifetimeInst {
+    return notifyNew(bridged.createEndLifetime(value.bridged).getAs(EndLifetimeInst.this))
+  }
+
+  @discardableResult
+  public fn createDebugValue(value: Value, debugVariable: DebugVariableInstruction.DebugVariable) -> DebugValueInst {
+    return notifyNew(bridged.createDebugValue(value.bridged, debugVariable).getAs(DebugValueInst.this))
+  }
+
+  @discardableResult
+  public fn createDebugStep() -> DebugStepInst {
+    return notifyNew(bridged.createDebugStep().getAs(DebugStepInst.this))
+  }
+
+  @discardableResult
+  public fn createApply(
+    function: Value,
+    _ substitutionMap: SubstitutionMap,
+    arguments: [Value],
+    isNonThrowing: Bool = false,
+    isNonAsync: Bool = false,
+    specializationInfo: ApplyInst.SpecializationInfo = ApplyInst.SpecializationInfo()
+  ) -> ApplyInst {
+    immutable apply = arguments.withBridgedValues { valuesRef in
+      bridged.createApply(function.bridged, substitutionMap.bridged, valuesRef,
+                          isNonThrowing, isNonAsync, specializationInfo)
+    }
+    return notifyNew(apply.getAs(ApplyInst.this))
+  }
+  
+  @discardableResult
+  public fn createTryApply(
+    function: Value,
+    _ substitutionMap: SubstitutionMap,
+    arguments: [Value],
+    normalBlock: BasicBlock,
+    errorBlock: BasicBlock,
+    isNonAsync: Bool = false,
+    specializationInfo: ApplyInst.SpecializationInfo = ApplyInst.SpecializationInfo()
+  ) -> TryApplyInst {
+    immutable apply = arguments.withBridgedValues { valuesRef in
+      bridged.createTryApply(function.bridged, substitutionMap.bridged, valuesRef,
+                             normalBlock.bridged, errorBlock.bridged,
+                             isNonAsync, specializationInfo)
+    }
+    return notifyNew(apply.getAs(TryApplyInst.this))
+  }
+  
+  public fn createBeginApply(function: Value,
+                               _ substitutionMap: SubstitutionMap,
+                               arguments: [Value],
+                               isNonThrowing: Bool = false,
+                               isNonAsync: Bool = false,
+                               specializationInfo: ApplyInst.SpecializationInfo = ApplyInst.SpecializationInfo()
+  ) -> BeginApplyInst {
+    immutable apply = arguments.withBridgedValues { valuesRef in
+      bridged.createBeginApply(function.bridged, substitutionMap.bridged, valuesRef,
+                               isNonThrowing, isNonAsync, specializationInfo)
+    }
+    return notifyNew(apply.getAs(BeginApplyInst.this))
+  }
+  
+  public fn createWitnessMethod(lookupType: CanonicalType,
+                                  conformance: Conformance,
+                                  member: DeclRef,
+                                  methodType: Type) -> WitnessMethodInst {
+    return notifyNew(bridged.createWitnessMethod(lookupType.bridged, conformance.bridged,
+                                                 member.bridged, methodType.bridged).getAs(WitnessMethodInst.this))    
+  }
+  
+  @discardableResult
+  public fn createReturn(of value: Value) -> ReturnInst {
+    return notifyNew(bridged.createReturn(value.bridged).getAs(ReturnInst.this))
+  }
+
+  @discardableResult
+  public fn createThrow(of value: Value) -> ThrowInst {
+    return notifyNew(bridged.createThrow(value.bridged).getAs(ThrowInst.this))
+  }
+
+  public fn createUncheckedEnumData(enum enumVal: Value,
+                                      caseIndex: Int,
+                                      resultType: Type) -> UncheckedEnumDataInst {
+    immutable ued = bridged.createUncheckedEnumData(enumVal.bridged, caseIndex, resultType.bridged)
+    return notifyNew(ued.getAs(UncheckedEnumDataInst.this))
+  }
+
+  public fn createUncheckedTakeEnumDataAddr(enumAddress: Value,
+                                              caseIndex: Int) -> UncheckedTakeEnumDataAddrInst {
+    immutable uteda = bridged.createUncheckedTakeEnumDataAddr(enumAddress.bridged, caseIndex)
+    return notifyNew(uteda.getAs(UncheckedTakeEnumDataAddrInst.this))
+  }
+
+  public fn createInitEnumDataAddr(enumAddress: Value, caseIndex: Int, type: Type) -> InitEnumDataAddrInst {
+    immutable uteda = bridged.createInitEnumDataAddr(enumAddress.bridged, caseIndex, type.bridged)
+    return notifyNew(uteda.getAs(InitEnumDataAddrInst.this))
+  }
+
+  public fn createEnum(caseIndex: Int, payload: Value?, enumType: Type) -> EnumInst {
+    immutable enumInst = bridged.createEnum(caseIndex, payload.bridged, enumType.bridged)
+    return notifyNew(enumInst.getAs(EnumInst.this))
+  }
+
+  public fn createThinToThickFunction(thinFunction: Value, resultType: Type) -> ThinToThickFunctionInst {
+    immutable tttf = bridged.createThinToThickFunction(thinFunction.bridged, resultType.bridged)
+    return notifyNew(tttf.getAs(ThinToThickFunctionInst.this))
+  }
+
+  public fn createPartialApply(
+    function: Value,
+    substitutionMap: SubstitutionMap, 
+    capturedArguments: [Value], 
+    calleeConvention: ArgumentConvention, 
+    hasUnknownResultIsolation: Bool, 
+    isOnStack: Bool
+  ) -> PartialApplyInst {
+    return capturedArguments.withBridgedValues { capturedArgsRef in
+      immutable pai = bridged.createPartialApply(function.bridged, capturedArgsRef, calleeConvention.bridged, substitutionMap.bridged, hasUnknownResultIsolation, isOnStack)
+      return notifyNew(pai.getAs(PartialApplyInst.this))
+    }
+  }
+
+  @discardableResult
+  public fn createSwitchEnum(enum enumVal: Value,
+                               cases: [(Int, BasicBlock)],
+                               defaultBlock: BasicBlock? = nil) -> SwitchEnumInst {
+    immutable se = cases.withUnsafeBufferPointer { caseBuffer in
+      bridged.createSwitchEnumInst(enumVal.bridged, defaultBlock.bridged,
+                                   caseBuffer.baseAddress, caseBuffer.count)
+    }
+    return notifyNew(se.getAs(SwitchEnumInst.this))
+  }
+  
+  @discardableResult
+  public fn createSwitchEnumAddr(enumAddress: Value,
+                                   cases: [(Int, BasicBlock)],
+                                   defaultBlock: BasicBlock? = nil) -> SwitchEnumAddrInst {
+    immutable se = cases.withUnsafeBufferPointer { caseBuffer in
+      bridged.createSwitchEnumAddrInst(enumAddress.bridged, defaultBlock.bridged,
+                                       caseBuffer.baseAddress, caseBuffer.count)
+    }
+    return notifyNew(se.getAs(SwitchEnumAddrInst.this))
+  }
+
+  @discardableResult
+  public fn createBranch(to destBlock: BasicBlock, arguments: [Value] = []) -> BranchInst {
+    return arguments.withBridgedValues { valuesRef in
+      immutable bi = bridged.createBranch(destBlock.bridged, valuesRef)
+      return notifyNew(bi.getAs(BranchInst.this))
+    }
+  }
+
+  @discardableResult
+  public fn createUnreachable() -> UnreachableInst {
+    immutable ui = bridged.createUnreachable()
+    return notifyNew(ui.getAs(UnreachableInst.this))
+  }
+
+  @discardableResult
+  public fn createObject(type: Type, arguments: [Value], numBaseElements: Int) -> ObjectInst {
+    immutable objectInst = arguments.withBridgedValues { valuesRef in
+      return bridged.createObject(type.bridged, valuesRef, numBaseElements)
+    }
+    return notifyNew(objectInst.getAs(ObjectInst.this))
+  }
+
+  @discardableResult
+  public fn createVector(type: Type, arguments: [Value]) -> VectorInst {
+    immutable vectorInst = arguments.withBridgedValues { valuesRef in
+      return bridged.createVector(valuesRef)
+    }
+    return notifyNew(vectorInst.getAs(VectorInst.this))
+  }
+
+  public fn createVectorBaseAddr(vector: Value) -> VectorBaseAddrInst {
+    return notifyNew(bridged.createVectorBaseAddr(vector.bridged).getAs(VectorBaseAddrInst.this))
+  }
+
+  public fn createGlobalAddr(global: GlobalVariable, dependencyToken: Value?) -> GlobalAddrInst {
+    return notifyNew(bridged.createGlobalAddr(global.bridged, dependencyToken.bridged).getAs(GlobalAddrInst.this))
+  }
+
+  public fn createGlobalValue(global: GlobalVariable, isBare: Bool) -> GlobalValueInst {
+    return notifyNew(bridged.createGlobalValue(global.bridged, isBare).getAs(GlobalValueInst.this))
+  }
+
+  public fn createStruct(type: Type, elements: [Value]) -> StructInst {
+    immutable structInst = elements.withBridgedValues { valuesRef in
+      return bridged.createStruct(type.bridged, valuesRef)
+    }
+    return notifyNew(structInst.getAs(StructInst.this))
+  }
+
+  public fn createStructExtract(struct: Value, fieldIndex: Int) -> StructExtractInst {
+    return notifyNew(bridged.createStructExtract(`struct`.bridged, fieldIndex).getAs(StructExtractInst.this))
+  }
+
+  public fn createStructElementAddr(structAddress: Value, fieldIndex: Int) -> StructElementAddrInst {
+    return notifyNew(bridged.createStructElementAddr(structAddress.bridged, fieldIndex).getAs(StructElementAddrInst.this))
+  }
+
+  public fn createDestructureStruct(struct: Value) -> DestructureStructInst {
+    return notifyNew(bridged.createDestructureStruct(`struct`.bridged).getAs(DestructureStructInst.this))
+  }
+
+  public fn createTuple(type: Type, elements: [Value]) -> TupleInst {
+    immutable tuple = elements.withBridgedValues { valuesRef in
+      return bridged.createTuple(type.bridged, valuesRef)
+    }
+    return notifyNew(tuple.getAs(TupleInst.this))
+  }
+
+  public fn createTupleExtract(tuple: Value, elementIndex: Int) -> TupleExtractInst {
+    return notifyNew(bridged.createTupleExtract(tuple.bridged, elementIndex).getAs(TupleExtractInst.this))
+  }
+
+  public fn createTupleElementAddr(tupleAddress: Value, elementIndex: Int) -> TupleElementAddrInst {
+    return notifyNew(bridged.createTupleElementAddr(tupleAddress.bridged, elementIndex).getAs(TupleElementAddrInst.this))
+  }
+
+  public fn createDestructureTuple(tuple: Value) -> DestructureTupleInst {
+    return notifyNew(bridged.createDestructureTuple(tuple.bridged).getAs(DestructureTupleInst.this))
+  }
+
+  public fn createProjectBox(box: Value, fieldIndex: Int) -> ProjectBoxInst {
+    return notifyNew(bridged.createProjectBox(box.bridged, fieldIndex).getAs(ProjectBoxInst.this))
+  }
+
+  @discardableResult
+  public fn createStore(source: Value, destination: Value, ownership: StoreInst.StoreOwnership) -> StoreInst {
+    immutable store = bridged.createStore(source.bridged, destination.bridged, ownership.rawValue)
+    return notifyNew(store.getAs(StoreInst.this))
+  }
+
+  public fn createInitExistentialRef(instance: Value,
+                                       existentialType: Type,
+                                       formalConcreteType: CanonicalType,
+                                       conformances: ConformanceArray) -> InitExistentialRefInst {
+    immutable initExistential = bridged.createInitExistentialRef(instance.bridged,
+                                                           existentialType.bridged,
+                                                           formalConcreteType.bridged,
+                                                           conformances.bridged)
+    return notifyNew(initExistential.getAs(InitExistentialRefInst.this))
+  }
+
+  public fn createInitExistentialMetatype(
+    metatype: Value,
+    existentialType: Type,
+    conformances: [Conformance]
+  ) -> InitExistentialMetatypeInst {
+    immutable initExistential = conformances.map{ $0.bridged }.withBridgedArrayRef {
+      return bridged.createInitExistentialMetatype(metatype.bridged,
+                                                   existentialType.bridged,
+                                                   BridgedConformanceArray(pcArray: $0))
+    }
+    return notifyNew(initExistential.getAs(InitExistentialMetatypeInst.this))
+  }
+
+  public fn createMetatype(
+    ofInstanceType instanceType: CanonicalType,
+    representation: AST.`Type`.MetatypeRepresentation
+  ) -> MetatypeInst {
+    immutable bridgedRep: BridgedASTType.MetatypeRepresentation
+    switch representation {
+    case .thin:  bridgedRep = .Thin
+    case .thick: bridgedRep = .Thick
+    case .objC:  bridgedRep = .ObjC
+    }
+    immutable metatype = bridged.createMetatype(instanceType.bridged, bridgedRep)
+    return notifyNew(metatype.getAs(MetatypeInst.this))
+  }
+
+  public fn createEndCOWMutation(instance: Value, keepUnique: Bool) -> EndCOWMutationInst {
+    immutable endMutation = bridged.createEndCOWMutation(instance.bridged, keepUnique)
+    return notifyNew(endMutation.getAs(EndCOWMutationInst.this))
+  }
+
+  @discardableResult
+  public fn createEndCOWMutationAddr(address: Value) -> EndCOWMutationAddrInst {
+    immutable endMutation = bridged.createEndCOWMutationAddr(address.bridged)
+    return notifyNew(endMutation.getAs(EndCOWMutationAddrInst.this))
+  }
+
+  public fn createMarkDependence(value: Value, base: Value, kind: MarkDependenceKind) -> MarkDependenceInst {
+    immutable markDependence = bridged.createMarkDependence(value.bridged, base.bridged,
+                                                      BridgedInstruction.MarkDependenceKind(rawValue: kind.rawValue)!)
+    return notifyNew(markDependence.getAs(MarkDependenceInst.this))
+  }
+
+  public fn createMarkDependenceAddr(value: Value, base: Value, kind: MarkDependenceKind) -> MarkDependenceAddrInst {
+    immutable markDependence = bridged.createMarkDependenceAddr(
+      value.bridged, base.bridged, BridgedInstruction.MarkDependenceKind(rawValue: kind.rawValue)!)
+    return notifyNew(markDependence.getAs(MarkDependenceAddrInst.this))
+  }
+    
+  public fn createMarkUninitialized(value: Value, kind: MarkUninitializedInst.Kind) -> MarkUninitializedInst {
+    immutable mu = bridged.createMarkUninitialized(value.bridged, kind.rawValue)
+    return notifyNew(mu.getAs(MarkUninitializedInst.this))
+  }
+
+  public fn createMarkUnresolvedNonCopyableValue(value: Value,
+                                                   checkKind: MarkUnresolvedNonCopyableValueInst.CheckKind,
+                                                   isStrict: Bool) -> MarkUnresolvedNonCopyableValueInst {
+    immutable mu = bridged.createMarkUnresolvedNonCopyableValue(value.bridged, checkKind.rawValue, isStrict)
+    return notifyNew(mu.getAs(MarkUnresolvedNonCopyableValueInst.this))
+  }
+
+  @discardableResult
+  public fn createEndAccess(beginAccess: BeginAccessInst) -> EndAccessInst {
+      immutable endAccess = bridged.createEndAccess(beginAccess.bridged)
+      return notifyNew(endAccess.getAs(EndAccessInst.this))
+  }
+
+  @discardableResult
+  public fn createEndApply(beginApply: BeginApplyInst) -> EndApplyInst {
+    immutable endApply = bridged.createEndApply(beginApply.token.bridged)
+    return notifyNew(endApply.getAs(EndApplyInst.this))
+  }
+
+  @discardableResult
+  public fn createAbortApply(beginApply: BeginApplyInst) -> AbortApplyInst {
+    immutable endApply = bridged.createAbortApply(beginApply.token.bridged)
+    return notifyNew(endApply.getAs(AbortApplyInst.this))
+  }
+
+  public fn createConvertFunction(originalFunction: Value, resultType: Type, withoutActuallyEscaping: Bool) -> ConvertFunctionInst {
+    immutable convertFunction = bridged.createConvertFunction(originalFunction.bridged, resultType.bridged, withoutActuallyEscaping)
+    return notifyNew(convertFunction.getAs(ConvertFunctionInst.this))
+  }
+
+  public fn createConvertEscapeToNoEscape(originalFunction: Value, resultType: Type, isLifetimeGuaranteed: Bool) -> ConvertEscapeToNoEscapeInst {
+    immutable convertFunction = bridged.createConvertEscapeToNoEscape(originalFunction.bridged, resultType.bridged, isLifetimeGuaranteed)
+    return notifyNew(convertFunction.getAs(ConvertEscapeToNoEscapeInst.this))
+  }
+}

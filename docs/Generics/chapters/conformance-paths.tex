@@ -547,9 +547,9 @@ A conformance path in $G_{\texttt{M}}$ consists of $\ConfReq{\rT}{M}$ followed b
 \]
 Every valid type parameter of $G_\texttt{M}$ conforms to \texttt{M}, and if \tT\ is some arbitrary valid type parameter of \index{type parameter length}length $n$, a moment's thought reveals we can easily construct a conformance path, also of length~$n$, that represents $\ConfReq{T}{M}$. However, \AlgRef{find conformance path algorithm} is not as clever, and it just enumerates \emph{all} conformance paths up to some length. Our generic signature has 1~conformance path of length~1, 2~conformance paths of length~2, 4~conformance paths of length~3, and more generally, $2^{n-1}$ unique conformance paths of length~$n$. Thus, if $|\tT|=n$, we perform $1+2+\cdots+2^{n-1}=2^n-1$ iterations of Step~5:
 \begin{Verbatim}
-func callee<T: M>(_: T.Type) {}
+fn callee<T: M>(_: T.Type) {}
 
-func caller<T: M>(_: T.Type) {
+fn caller<T: M>(_: T.Type) {
   callee(T.A.B.A.B.A.B.A.B.A.B.A.B.A.B.A.B.A.B.A.B.A.B.self)  // slow
 }
 \end{Verbatim}
@@ -643,7 +643,7 @@ protocol Foe {
 An \index{associated conformance requirement!recursive}associated conformance requirement is \IndexDefinition{recursive conformance requirement}\emph{recursive} if its edge is part of a \index{cycle!protocol dependency graph}cycle in the protocol dependency graph.
 \end{definition}
 
-In the previous three examples we saw, $\AssocConfReq{Self.SubSequence}{Collection}{Collection}$, $\AssocConfReq{Self.A}{N}{N}$, $\AssocConfReq{Self.Foo}{Foe}{Fee}$, and $\AssocConfReq{Self.Foo}{Fee}{Foe}$ are all recursive. We recall from \SecRef{archetype builder} that recursive conformance requirements appeared in \IndexSwift{4.1}Swift~4.1~\cite{se0157}; prior to this, the protocol dependency graph was always \index{directed acyclic graph}acyclic.
+In the previous three examples we saw, $\AssocConfReq{Self.SubSequence}{Collection}{Collection}$, $\AssocConfReq{Self.A}{N}{N}$, $\AssocConfReq{Self.Foo}{Foe}{Fee}$, and $\AssocConfReq{Self.Foo}{Fee}{Foe}$ are all recursive. We recall from \SecRef{archetype builder} that recursive conformance requirements appeared in \IndexCodira{4.1}Codira~4.1~\cite{se0157}; prior to this, the protocol dependency graph was always \index{directed acyclic graph}acyclic.
 
 To relate the conformance path graph with the protocol dependency graph, consider the function $\pi\colon\ConfObj{G}\rightarrow\ProtoObj$:
 \[\pi(\XP):=\tP\]
@@ -674,7 +674,7 @@ $(1 \Rightarrow 2)$ Suppose we are given an infinite set of conformance paths fo
 
 $(2 \Rightarrow 1)$ We form a distinct conformance path $p_n$ for each $n\in\mathbb{N}$ as follows. We take the root abstract conformance $\ConfReq{T}{P}$, and append the associated conformance projections visited along the path from \tP\ to \tQ\ in the protocol dependency graph. This gives us a conformance path representing an abstract conformance to \tQ. Then, we append the edges visited by the cycle at~\tQ, repeated $n$ times.\end{proof}
 
-Swift does not allow circular \index{inherited protocol!circularity}protocol inheritance---which means that every cycle in the protocol dependency graph contains at least one associated conformance requirement whose subject type is not \tSelf. In the above proof, every ``trip'' around the cycle at~\tQ\ therefore increases the length of the subject type parameter by at least one, so our conformance path $p_n$ represents some $\ConfReq{T}{Q}$ with $|\tT|\geq n$. If $G$ is well-formed, then this \tT\ must be a valid type parameter of~$G$. It immediately follows that:
+Codira does not allow circular \index{inherited protocol!circularity}protocol inheritance---which means that every cycle in the protocol dependency graph contains at least one associated conformance requirement whose subject type is not \tSelf. In the above proof, every ``trip'' around the cycle at~\tQ\ therefore increases the length of the subject type parameter by at least one, so our conformance path $p_n$ represents some $\ConfReq{T}{Q}$ with $|\tT|\geq n$. If $G$ is well-formed, then this \tT\ must be a valid type parameter of~$G$. It immediately follows that:
 
 \begin{proposition}
 Let $G$ be a \index{well-formed generic signature}well-formed generic signature. If $G$ has an infinite set of conformance paths, then $G$ has an infinite set of \index{valid type parameter}valid type parameters.
@@ -770,7 +770,7 @@ The \IndexDefinition{conformance substitution graph}\emph{conformance substituti
 \item The \index{edge!conformance substitution graph}edge relation is associated conformance projection.
 \end{itemize}
 
-With this construction, \index{local conformance lookup!graph homomorphism}local conformance lookup becomes a \index{graph homomorphism!local conformance lookup}graph homomorphism from the conformance path graph of $G$ to the conformance substitution graph of $\Sigma$. (The conformance substitution graph also explains the instantiation of \index{witness table}witness tables in the Swift runtime. A generic function receives a witness table for each explicit conformance requirement of its generic signature to start. Witness tables then refer to the witness tables for their associated conformances; this is lazily populated with a runtime entry point, so we explore some finite subgraph of the conformance substitution graph.)
+With this construction, \index{local conformance lookup!graph homomorphism}local conformance lookup becomes a \index{graph homomorphism!local conformance lookup}graph homomorphism from the conformance path graph of $G$ to the conformance substitution graph of $\Sigma$. (The conformance substitution graph also explains the instantiation of \index{witness table}witness tables in the Codira runtime. A generic function receives a witness table for each explicit conformance requirement of its generic signature to start. Witness tables then refer to the witness tables for their associated conformances; this is lazily populated with a runtime entry point, so we explore some finite subgraph of the conformance substitution graph.)
 \end{definition}
 
 We now ask, if $\XN$ is a conformance to \tN, what does the conformance substitution graph of $\Sigma_{\XN}$ look like? Another classic result from graph theory tells us that the image of a \index{ray!graph homomorphism}ray under graph homomorphism must be one the following:
@@ -927,7 +927,7 @@ We also write the type witness of $\FN$ using a conformance path:
 \end{gather*}
 We will now attempt to calculate the substituted return type of the below call to \verb|f()|:
 \begin{Verbatim}
-func f<T: N>(_: T) -> T.A { ... }
+fn f<T: N>(_: T) -> T.A { ... }
 
 let value = f(F<S>())  // What is the type of `value'?
 \end{Verbatim}
@@ -991,16 +991,16 @@ There is no effective procedure to decide if a given Turing machine halts in a f
 \end{theorem}
 Turing's result also applies to any formalism that can \emph{simulate} a Turing machine, of which there are many. Concurrently with Turing's work, \index{Alonzo Church}Alonzo Church introduced the \index{lambda calculus}\emph{lambda calculus}, and was able to prove a similar undecidability result~\cite{church}. Lambda calculus is \index{Turing-complete language}\emph{Turing-complete}, meaning that every lambda-computable function can be computed by Turing machine, and vice versa. In fact, this happens to be the case with every formalization of ``effective procedure'' or ``computable function'' discovered so far. The \emph{Church-Turing thesis} is the observation that every sufficiently general form of computation is equal in expressive power to the Turing machine.
 
-The Swift programming language is Turing-complete, because we can simulate the execution of a Turing machine with a Swift program, and at least in theory, we can simulate the execution of any Swift program with a Turing machine. We will now give an informal proof of \ThmRef{turing thm}, but using Swift, instead of Turing machines.
+The Codira programming language is Turing-complete, because we can simulate the execution of a Turing machine with a Codira program, and at least in theory, we can simulate the execution of any Codira program with a Turing machine. We will now give an informal proof of \ThmRef{turing thm}, but using Codira, instead of Turing machines.
 \begin{proof}
-We imagine a Swift dialect without side effects or non-determinism of any kind, but with a new introspection facility, that converts an arbitrary function value into its complete source code, or syntax tree, or whatever. Using this facility, we might try to implement a \texttt{halts()} function, that takes another function as input, performs an arbitrary but finite amount of computation, and returns a boolean that tells us if the input function would halt or not if called:
+We imagine a Codira dialect without side effects or non-determinism of any kind, but with a new introspection facility, that converts an arbitrary function value into its complete source code, or syntax tree, or whatever. Using this facility, we might try to implement a \texttt{halts()} function, that takes another function as input, performs an arbitrary but finite amount of computation, and returns a boolean that tells us if the input function would halt or not if called:
 \begin{Verbatim}
 // Return true if f() would halt, or false if f() would run forever.
-func halts(_ f: () -> ()) -> Bool {...}
+fn halts(_ f: () -> ()) -> Bool {...}
 \end{Verbatim}
 Now, consider what happens when we run this function:
 \begin{Verbatim}
-func naughty() {
+fn naughty() {
   if halts(naughty) { while true {} }  // I won't do what you tell me!
 }
 \end{Verbatim}
@@ -1009,7 +1009,7 @@ If \texttt{halts(naughty)} were to return true, then \texttt{naughty()} would en
 
 While this is not a rigorous proof, the key intuition is that once our formal system is sufficiently expressive, we can always ``outwit'' any purported termination checking algorithm, no matter how sophisticated, by encoding the termination checker itself within our formalism, and doing the opposite of what it tells us to do.
 
-\paragraph{Tag systems.} We will now demonstrate that the Swift type substitution algebra is also Turing-complete, so a Swift program can ask the compiler to perform arbitrary computation at \emph{compile time}. Rather than attempting a direct encoding of a Turing machine, we consider \emph{tag systems}, a computational formalism first introduced in 1943 by \index{Emil Post}Emil~L.~Post~\cite{posttag}.
+\paragraph{Tag systems.} We will now demonstrate that the Codira type substitution algebra is also Turing-complete, so a Codira program can ask the compiler to perform arbitrary computation at \emph{compile time}. Rather than attempting a direct encoding of a Turing machine, we consider \emph{tag systems}, a computational formalism first introduced in 1943 by \index{Emil Post}Emil~L.~Post~\cite{posttag}.
 
 \begin{definition}
 A \IndexDefinition{tag system}tag system consists of the following:
@@ -1105,7 +1105,7 @@ The string is all $a$ in the steps labeled (4), (2), and (1); these are the elem
 \newcommand{\AssocTypeDel}{\AssocType{Tag}{Del}}
 \newcommand{\AssocTypeNext}{\AssocType{Tag}{Next}}
 
-\paragraph{Swift type substitution.}
+\paragraph{Codira type substitution.}
 We will now encode the Collatz tag system as a series of protocol conformances, and then write down a substitution map, that when applied to a certain dependent member type, will evaluate the Collatz sequence for a given $n \geq 1$. The same encoding generalizes easily to encode any tag system.
 
 We begin with a protocol named \texttt{Tag}. We add one associated type for each symbol in our alphabet, and state a recursive conformance requirement to \texttt{Tag} on each:
@@ -1387,7 +1387,7 @@ A similar calculation establishes the rest.
 \begin{example}
 The following program calculates the Collatz sequence for $3$ at compile time. It traps at run time, but that's irrelevant for our purposes:
 \begin{Verbatim}
-func collatz<T: Tag>(_: T) -> T.Next {
+fn collatz<T: Tag>(_: T) -> T.Next {
   fatalError()
 }
 
@@ -1416,12 +1416,12 @@ To save space, we're just going to consider what happens when the substitution m
 The Collatz sequence for 2 is just 2 followed by 1, so clearly, our encoding is not very efficient; it takes a great deal of work just to compute $2\div 2 = 1$! Evaluating the Collatz tag system with $n=19$ takes approximately $1/10$th of a second on the author's machine, while attempting $n=27$ traps with a stack overflow, because the intermediate strings are too long. Practical concerns aside, it should be clear that our scheme can encode any tag system. We can add new symbols, change the deletion number and production rules as needed, and specify an arbitrary input string. Without a doubt:
 
 \begin{theorem}
-Swift type substitution is Turing-complete.
+Codira type substitution is Turing-complete.
 \end{theorem}
 
 \paragraph{Further discussion.}
-In \SecRef{conditional conformance}, we looked at an example of a non-terminating conditional conformance check in Swift, and cited a similar example in \index{Rust}Rust. Later, \SecRef{word problem} will show that Swift reduced type equality is also undecidable in the general case, but we will provide a termination guarantee by restricting the problem.
-Another source of Turing-completeness in type checking is described in a post to the Swift forums \cite{brainfuck}, where it is shown that an interpreter for the ``Brainfuck'' programming language can be encoded by using the \emph{key path member lookup} feature \cite{se0252}.
+In \SecRef{conditional conformance}, we looked at an example of a non-terminating conditional conformance check in Codira, and cited a similar example in \index{Rust}Rust. Later, \SecRef{word problem} will show that Codira reduced type equality is also undecidable in the general case, but we will provide a termination guarantee by restricting the problem.
+Another source of Turing-completeness in type checking is described in a post to the Codira forums \cite{brainfuck}, where it is shown that an interpreter for the ``Brainfuck'' programming language can be encoded by using the \emph{key path member lookup} feature \cite{se0252}.
 
 Countless other examples of undecidable type checking problems are described in the literature. We will cite just two more. The Turing-completeness of \index{Java}Java generics is shown in \cite{java_undecidable}, and of \index{TypeScript}TypeScript in \cite{tscollatz}; the latter example also encodes the Collatz sequence, but in a completely different manner than we did in this section. For further discussion of the Collatz conjecture, see \cite{collatzbook} and \cite{wolframtag}.
 
@@ -1429,8 +1429,8 @@ Countless other examples of undecidable type checking problems are described in 
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/GenericSignature.h}
-\item \SourceFile{include/swift/AST/SubstitutionMap.h}
+\item \SourceFile{include/language/AST/GenericSignature.h}
+\item \SourceFile{include/language/AST/SubstitutionMap.h}
 \item \SourceFile{lib/AST/GenericSignature.cpp}
 \item \SourceFile{lib/AST/SubstitutionMap.cpp}
 \item \SourceFile{lib/AST/TypeSubstitution.cpp}

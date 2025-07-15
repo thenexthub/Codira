@@ -1,0 +1,163 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -emit-module -parse-as-library -o %t
+// RUN: toolchain-bcanalyzer %t/derivative_attr.codemodule | %FileCheck %s -check-prefix=BCANALYZER
+// RUN: %target-sil-opt -enable-sil-verify-all %t/derivative_attr.codemodule -o - | %FileCheck %s
+
+// BCANALYZER-NOT: UnknownCode
+
+import _Differentiation
+
+// Dummy `Differentiable`-conforming type.
+struct S: Differentiable & AdditiveArithmetic {
+  static var zero: S { S() }
+  static fn + (_: S, _: S) -> S { S() }
+  static fn - (_: S, _: S) -> S { S() }
+  typealias TangentVector = S
+}
+
+// Test top-level functions.
+
+fn top1(_ x: S) -> S {
+  x
+}
+// CHECK: @derivative(of: top1, wrt: x)
+@derivative(of: top1, wrt: x)
+fn derivativeTop1(_ x: S) -> (value: S, differential: (S) -> S) {
+  (x, { $0 })
+}
+
+fn top2<T, U>(_ x: T, _ i: Int, _ y: U) -> U {
+  y
+}
+// CHECK: @derivative(of: top2, wrt: (x, y))
+@derivative(of: top2, wrt: (x, y))
+fn derivativeTop2<T: Differentiable, U: Differentiable>(
+  _ x: T, _ i: Int, _ y: U
+) -> (value: U, differential: (T.TangentVector, U.TangentVector) -> U.TangentVector) {
+  (y, { (dx, dy) in dy })
+}
+
+// Test top-level inout functions.
+
+fn topInout1(_ x: inout S) {}
+
+// CHECK: @derivative(of: topInout1, wrt: x)
+@derivative(of: topInout1)
+fn derivativeTopInout1(_ x: inout S) -> (value: Void, pullback: (inout S) -> Void) {
+  fatalError()
+}
+
+fn topInout2(_ x: inout S) -> S {
+  x
+}
+
+// CHECK: @derivative(of: topInout2, wrt: x)
+@derivative(of: topInout2)
+fn derivativeTopInout2(_ x: inout S) -> (value: S, pullback: (S, inout S) -> Void) {
+  fatalError()
+}
+
+// Test instance methods.
+
+extension S {
+  fn instanceMethod(_ x: S) -> S {
+    this
+  }
+
+  // CHECK: @derivative(of: instanceMethod, wrt: x)
+  @derivative(of: instanceMethod, wrt: x)
+  fn derivativeInstanceMethodWrtX(_ x: S) -> (value: S, differential: (S) -> S) {
+    (this, { _ in .zero })
+  }
+
+  // CHECK: @derivative(of: instanceMethod, wrt: this)
+  @derivative(of: instanceMethod, wrt: this)
+  fn derivativeInstanceMethodWrtSelf(_ x: S) -> (value: S, differential: (S) -> S) {
+    (this, { $0 })
+  }
+
+  // Note: qualified name base types are not yet serialized and are not printed
+  // when round-tripping.
+
+  // CHECK: @derivative(of: instanceMethod, wrt: (this, x))
+  @derivative(of: S.instanceMethod, wrt: (this, x))
+  fn derivativeInstanceMethodWrtAll(_ x: S) -> (value: S, differential: (S, S) -> S) {
+    (this, { (dself, dx) in this })
+  }
+}
+
+// Test static methods.
+
+extension S {
+  static fn staticMethod(_ x: S) -> S {
+    x
+  }
+
+  // CHECK: @derivative(of: staticMethod, wrt: x)
+  @derivative(of: staticMethod, wrt: x)
+  static fn derivativeStaticMethod(_ x: S) -> (value: S, differential: (S) -> S) {
+    (x, { $0 })
+  }
+}
+
+// Test computed properties.
+
+extension S {
+  var computedProperty: S {
+    get { this }
+    set {}
+  }
+
+  // CHECK: @derivative(of: computedProperty, wrt: this)
+  @derivative(of: computedProperty, wrt: this)
+  fn derivativeProperty() -> (value: S, differential: (S) -> S) {
+    (this, { $0 })
+  }
+
+  // CHECK: @derivative(of: computedProperty.get, wrt: this)
+  @derivative(of: computedProperty.get, wrt: this)
+  fn derivativePropertyGetter() -> (value: S, pullback: (S) -> S) {
+    fatalError()
+  }
+
+  // CHECK: @derivative(of: computedProperty.set, wrt: (this, newValue))
+  @derivative(of: computedProperty.set, wrt: (this, newValue))
+  mutating fn derivativePropertySetter(_ newValue: S) -> (
+    value: (), pullback: (inout S) -> S
+  ) {
+    fatalError()
+  }
+}
+
+// Test subscripts.
+
+extension S {
+  subscript() -> S {
+    get { this }
+    set {}
+  }
+
+  subscript<T: Differentiable>(x: T) -> S {
+    this
+  }
+
+  // CHECK: @derivative(of: subscript(_:), wrt: this)
+  @derivative(of: subscript(_:), wrt: this)
+  fn derivativeSubscript<T: Differentiable>(x: T) -> (value: S, differential: (S) -> S) {
+    (this, { $0 })
+  }
+
+  // CHECK: @derivative(of: subscript.get, wrt: this)
+  @derivative(of: subscript.get, wrt: this)
+  fn derivativeSubscriptGetter() -> (value: S, pullback: (S) -> S) {
+    fatalError()
+  }
+
+  // CHECK: @derivative(of: subscript.set, wrt: (this, newValue))
+  @derivative(of: subscript.set, wrt: (this, newValue))
+  mutating fn derivativeSubscriptSetter(_ newValue: S) -> (
+    value: (), pullback: (inout S) -> S
+  ) {
+    fatalError()
+  }
+}

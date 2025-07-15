@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -primary-file %S/Inputs/call_as_function_other_module.code -emit-module-path %t/call_as_function_other_module.codemodule
+// RUN: %target-language-frontend -typecheck -I %t -primary-file %s -verify
+
+import call_as_function_other_module
+
+fn testLayer<L: Layer>(_ layer: L) -> Float {
+  return layer(1)
+}
+
+fn testDense() -> Float {
+  immutable dense = Dense()
+  return dense(1)
+}

@@ -1,0 +1,4 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+protocol c{fn a:P
+protocol P{#^A^#fn a:b
+associatedtype b:a

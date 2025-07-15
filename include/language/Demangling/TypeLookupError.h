@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Provides the TypeLookupError class, which represents errors when demangling
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_TypeLookupError_H
-#define SWIFT_DEMANGLING_TypeLookupError_H
+#ifndef LANGUAGE_DEMANGLING_TypeLookupError_H
+#define LANGUAGE_DEMANGLING_TypeLookupError_H
 
 #include "language/Basic/TaggedUnion.h"
 #include "language/Runtime/Portability.h"
@@ -153,7 +154,7 @@ public:
         delete castContext;
         return nullptr;
       }
-      llvm_unreachable("unhandled command!");
+      toolchain_unreachable("unhandled command!");
     };
   }
 
@@ -200,15 +201,15 @@ public:
 };
 
 /// Construct a TypeLookupError that creates a string using asprintf. The
-/// passed-in format string and arguments are passed directly to swift_asprintf
+/// passed-in format string and arguments are passed directly to language_asprintf
 /// when the string is requested. The arguments are captured and the string is
 /// only formatted when needed.
 ///
-/// The crazy sizeof(swift_asprintf(... construct gives us compile-time type
+/// The crazy sizeof(language_asprintf(... construct gives us compile-time type
 /// checking of the format string and arguments, while still letting us use the
 /// variadic template to safely capture the arguments in the lambda.
 #define TYPE_LOOKUP_ERROR_FMT(...)                                             \
-  (sizeof(swift_asprintf(NULL, __VA_ARGS__)), TypeLookupErrorImpl(__VA_ARGS__))
+  (sizeof(language_asprintf(NULL, __VA_ARGS__)), TypeLookupErrorImpl(__VA_ARGS__))
 
 // Implementation for TYPE_LOOKUP_ERROR_FMT. Don't call directly.
 template <typename... Args>
@@ -218,7 +219,7 @@ static TypeLookupError TypeLookupErrorImpl(const char *fmt, Args... args) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-security"
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
-    swift_asprintf(&str, fmt, args...);
+    language_asprintf(&str, fmt, args...);
 #pragma clang diagnostic pop
     return str;
   });
@@ -226,4 +227,4 @@ static TypeLookupError TypeLookupErrorImpl(const char *fmt, Args... args) {
 
 } // namespace language
 
-#endif // SWIFT_DEMANGLING_TypeLookupError_H
+#endif // LANGUAGE_DEMANGLING_TypeLookupError_H

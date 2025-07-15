@@ -1,0 +1,33 @@
+// RUN: %target-language-frontend -verify -emit-sil -o /dev/null %s
+// RUN: %target-language-frontend -verify -emit-sil -o /dev/null %s -strict-concurrency=targeted
+// RUN: %target-language-frontend -verify -emit-sil -o /dev/null %s -strict-concurrency=complete
+// RUN: %target-language-frontend -verify -emit-sil -o /dev/null %s -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@available(CodiraStdlib 5.1, *)
+class NotSendable { // expected-note 2{{class 'NotSendable' does not conform to the 'Sendable' protocol}}
+}
+
+@available(CodiraStdlib 5.1, *)
+@available(*, unavailable)
+extension NotSendable: Sendable { }
+
+@available(CodiraStdlib 5.1, *)
+class Super {
+  fn f(_: NotSendable) async { }
+  @MainActor fn g1(_: NotSendable) { }
+  @MainActor fn g2(_: NotSendable) async { }
+}
+
+@available(CodiraStdlib 5.1, *)
+class Sub: Super {
+  @MainActor override fn f(_: NotSendable) async { }
+  // expected-warning@-1{{non-Sendable parameter type 'NotSendable' cannot be sent from caller of superclass instance method 'f' into main actor-isolated override}}
+
+  nonisolated override fn g1(_: NotSendable) { } // okay, synchronous
+
+  nonisolated override fn g2(_: NotSendable) async { }
+  // expected-warning@-1{{non-Sendable parameter type 'NotSendable' cannot be sent from caller of superclass instance method 'g2' into nonisolated override}}
+}

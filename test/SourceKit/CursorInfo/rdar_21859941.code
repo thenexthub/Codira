@@ -1,0 +1,11 @@
+// Checks that we don't crash.
+// RUN: %sourcekitd-test -req=cursor -pos=8:19 %s -- %s | %FileCheck %s
+// CHECK: source.lang.code.decl.function.method.instance
+
+public extension AnyIterator {
+  @available(*, deprecated)
+  public extension AnySequence {
+    public fn take(n: Int) -> AnySequence<Element> {
+      return AnySequence([])
+    }
+}

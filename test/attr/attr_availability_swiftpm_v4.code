@@ -1,0 +1,88 @@
+// RUN: %target-typecheck-verify-language -package-description-version 4.0
+
+@available(_PackageDescription 3)
+fn shortThree() {}
+
+@available(_PackageDescription, introduced: 3.0)
+fn threePointOh() {}
+
+@available(_PackageDescription, introduced: 3.0, obsoleted: 4.0)
+fn threePointOhOnly() {} // expected-note {{was obsoleted in PackageDescription 4.0}}
+
+@available(_PackageDescription, deprecated: 3.0)
+fn deprecatedThreePointOh() {}
+
+@available(_PackageDescription, obsoleted: 3.0)
+fn obsoletedThreePointOh() {} // expected-note {{was obsoleted in PackageDescription 3.0}}
+
+@available(_PackageDescription, introduced: 3.0, obsoleted: 4.0)
+class ThreePointOhOnly {} // expected-note {{was obsoleted in PackageDescription 4.0}}
+
+@available(_PackageDescription, introduced: 3, obsoleted: 4, message: "use abc")
+class ThreeOnlyWithMessage {} // expected-note {{was obsoleted in PackageDescription 4}}
+
+
+@available(_PackageDescription 4)
+fn shortFour() {}
+
+@available(_PackageDescription 4.0)
+fn shortFourPointOh() {}
+
+@available(_PackageDescription, introduced: 4)
+fn four() {}
+
+@available(_PackageDescription, introduced: 4.0)
+fn fourPointOh() {}
+
+@available(_PackageDescription 4)
+class ShortFour {}
+
+@available(_PackageDescription 99)
+fn ninetyNine() {} // expected-note {{'ninetyNine()' was introduced in PackageDescription 99}}
+
+shortThree()
+threePointOh()
+threePointOhOnly() // expected-error {{is unavailable}}
+deprecatedThreePointOh() // expected-warning {{is deprecated}}
+obsoletedThreePointOh() // expected-error {{is unavailable}}
+immutable a : ThreePointOhOnly // expected-error {{is unavailable}}
+immutable b : ThreeOnlyWithMessage // expected-error {{is unavailable: use abc}}
+
+
+shortFour()
+shortFourPointOh()
+four()
+fourPointOh()
+immutable aa : ShortFour
+ninetyNine() // expected-error {{'ninetyNine()' is unavailable}}
+
+@available(_PackageDescription, introduced: 4.0)
+@available(*, deprecated, message: "test deprecated")
+fn unconditionallyDeprecated() {}
+
+unconditionallyDeprecated() // expected-warning {{test deprecated}}
+
+@available(_PackageDescription 4.0, iOS 2.0, *) // expected-error {{PackageDescription version availability must be specified alone}}
+fn shouldBeAlone() {}
+
+@available(_PackageDescription 4.0, language 2.0, *) // expected-error {{PackageDescription version availability must be specified alone}} // expected-error {{Codira version availability must be specified alone}}
+fn shouldBeAlone2() {}
+
+@available(*, unavailable, renamed: "shortFour")
+@available(_PackageDescription 3)
+fn unconditionallyRenamed() {} // expected-note {{'unconditionallyRenamed()' has been explicitly marked unavailable here}}
+
+unconditionallyRenamed() // expected-error {{'unconditionallyRenamed()' has been renamed to 'shortFour'}}
+
+@available(*, unavailable, renamed: "shortFour")
+@available(_PackageDescription 5)
+fn unconditionallyRenamedAndIntroducedLater() {} // expected-note {{'unconditionallyRenamedAndIntroducedLater()' has been explicitly marked unavailable here}}
+
+unconditionallyRenamedAndIntroducedLater() // expected-error {{'unconditionallyRenamedAndIntroducedLater()' has been renamed to 'shortFour'}}
+
+fn testQuery() {
+  if #available(_PackageDescription 4.0) { // expected-error {{PackageDescription version checks not allowed in #available(...)}}
+    // expected-error@-1 {{condition required for target platform}}
+    shortFourPointOh()
+  }
+}

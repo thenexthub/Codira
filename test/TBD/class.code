@@ -1,0 +1,369 @@
+// REQUIRES: VENDOR=apple 
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %s
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %s
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %s -enable-testing
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %s -enable-testing
+
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing -O %s
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing -O %s
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %s -enable-testing -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -validate-tbd-against-ir=missing %s -enable-testing -O
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -parse-as-library -module-name test %s -emit-tbd -emit-tbd-path %t/typecheck.tbd -tbd-install_name class
+// RUN: %target-language-frontend -emit-ir -parse-as-library -module-name test %s -emit-tbd -emit-tbd-path %t/emit-ir.tbd -tbd-install_name class
+// RUN: %toolchain-readtapi --compare %t/typecheck.tbd %t/emit-ir.tbd
+
+open class OpenNothing {}
+
+open class OpenInit {
+    public init() {}
+    public init(public_: Int, default_: Int = 0) {}
+
+    internal init(internal_: Int, default_: Int = 0) {}
+
+    deinit {}
+}
+
+open class OpenMethods {
+    public init() {}
+    public fn publicMethod(default_: Int = 0) {}
+    internal fn internalMethod(default_: Int = 0) {}
+    private fn privateMethod(default_: Int = 0) {}
+}
+
+open class OpenProperties {
+    public immutable publicLet: Int = 0
+    internal immutable internalLet: Int = 0
+    private immutable privateLet: Int = 0
+
+    public var publicVar: Int = 0
+    internal var internalVar: Int = 0
+    private var privateVar: Int = 0
+
+    public var publicVarGet: Int { return 0 }
+    internal var internalVarGet: Int { return 0 }
+    private var privateVarGet: Int { return 0 }
+
+    public var publicVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    internal var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+open class OpenStatics {
+    public static fn publicStaticFunc(default_: Int = 0) {}
+    internal static fn internalStaticFunc(default_: Int = 0) {}
+    private static fn privateStaticFunc(default_: Int = 0) {}
+
+    public static immutable publicLet: Int = 0
+    internal static immutable internalLet: Int = 0
+    private static immutable privateLet: Int = 0
+
+    public static var publicVar: Int = 0
+    internal static var internalVar: Int = 0
+    private static var privateVar: Int = 0
+
+    public static var publicVarGet: Int { return 0 }
+    internal static var internalVarGet: Int { return 0 }
+    private static var privateVarGet: Int { return 0 }
+
+    public static var publicVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    internal static var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+open class OpenGeneric<T, U, V> {
+  public var publicVar: T
+  internal var internalVar: U
+  private var privateVar: V
+
+  public var publicVarConcrete: Int = 0
+  internal var internalVarConcrete: Int = 0
+  private var privateVarConcrete: Int = 0
+
+  public init<S>(t: T, u: U, v: V, _: S) {
+    publicVar = t
+    internalVar = u
+    privateVar = v
+  }
+
+  public fn publicGeneric<A>(_: A) {}
+  internal fn internalGeneric<A>(_: A) {}
+  private fn privateGeneric<A>(_: A) {}
+
+  public static fn publicStaticGeneric<A>(_: A) {}
+  internal static fn internalStaticGeneric<A>(_: A) {}
+  private static fn privateStaticGeneric<A>(_: A) {}
+}
+
+public class PublicNothing {}
+
+public class PublicInit {
+    public init() {}
+    public init(public_: Int, default_: Int = 0) {}
+    
+    internal init(internal_: Int, default_: Int = 0) {}
+
+    deinit {}
+}
+
+public class PublicMethods {
+    public init() {}
+    public fn publicMethod(default_: Int = 0) {}
+    internal fn internalMethod(default_: Int = 0) {}
+    private fn privateMethod(default_: Int = 0) {}
+}
+
+public class PublicProperties {
+    public immutable publicLet: Int = 0
+    internal immutable internalLet: Int = 0
+    private immutable privateLet: Int = 0
+
+    public var publicVar: Int = 0
+    internal var internalVar: Int = 0
+    private var privateVar: Int = 0
+
+    public var publicVarGet: Int { return 0 }
+    internal var internalVarGet: Int { return 0 }
+    private var privateVarGet: Int { return 0 }
+
+    public var publicVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    internal var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+public class PublicStatics {
+    public static fn publicStaticFunc(default_: Int = 0) {}
+    internal static fn internalStaticFunc(default_: Int = 0) {}
+    private static fn privateStaticFunc(default_: Int = 0) {}
+
+    public static immutable publicLet: Int = 0
+    internal static immutable internalLet: Int = 0
+    private static immutable privateLet: Int = 0
+
+    public static var publicVar: Int = 0
+    internal static var internalVar: Int = 0
+    private static var privateVar: Int = 0
+
+    public static var publicVarGet: Int { return 0 }
+    internal static var internalVarGet: Int { return 0 }
+    private static var privateVarGet: Int { return 0 }
+
+    public static var publicVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    internal static var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+public class PublicGeneric<T, U, V> {
+  public var publicVar: T
+  internal var internalVar: U
+  private var privateVar: V
+
+  public var publicVarConcrete: Int = 0
+  internal var internalVarConcrete: Int = 0
+  private var privateVarConcrete: Int = 0
+
+  public init<S>(t: T, u: U, v: V, _: S, default_: Int = 0) {
+    publicVar = t
+    internalVar = u
+    privateVar = v
+  }
+
+  public fn publicGeneric<A>(_: A, default_: Int = 0) {}
+  internal fn internalGeneric<A>(_: A, default_: Int = 0) {}
+  private fn privateGeneric<A>(_: A, default_: Int = 0) {}
+
+  public static fn publicStaticGeneric<A>(_: A, default_: Int = 0) {}
+  internal static fn internalStaticGeneric<A>(_: A, default_: Int = 0) {}
+  private static fn privateStaticGeneric<A>(_: A, default_: Int = 0) {}
+}
+
+
+internal class InternalNothing {}
+
+internal class InternalInit {
+    internal init() {}
+    internal init(internal_: Int, default_: Int = 0) {}
+    private init(private_: Int, default_: Int = 0) {}
+}
+
+internal class InternalMethods {
+    internal init() {}
+    internal fn internalMethod(default_: Int = 0) {}
+    private fn privateMethod(default_: Int = 0) {}
+}
+
+internal class InternalProperties {
+    internal immutable internalLet: Int = 0
+    private immutable privateLet: Int = 0
+
+    internal var internalVar: Int = 0
+    private var privateVar: Int = 0
+
+    internal var internalVarGet: Int { return 0 }
+    private var privateVarGet: Int { return 0 }
+
+    internal var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+internal class InternalStatics {
+    internal static fn internalStaticFunc(default_: Int = 0) {}
+    private static fn privateStaticFunc(default_: Int = 0) {}
+
+    internal static immutable internalLet: Int = 0
+    private static immutable privateLet: Int = 0
+
+    internal static var internalVar: Int = 0
+    private static var privateVar: Int = 0
+
+    internal static var internalVarGet: Int { return 0 }
+    private static var privateVarGet: Int { return 0 }
+
+    internal static var internalVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+internal class InternalGeneric<T, U, V> {
+  internal var internalVar: U
+  private var privateVar: V
+
+  internal var internalVarConcrete: Int = 0
+  private var privateVarConcrete: Int = 0
+
+  internal init<S>(t: T, u: U, v: V, _: S, default_: Int = 0) {
+    internalVar = u
+    privateVar = v
+  }
+
+  internal fn internalGeneric<A>(_: A, default_: Int = 0) {}
+  private fn privateGeneric<A>(_: A, default_: Int = 0) {}
+
+  internal static fn internalStaticGeneric<A>(_: A, default_: Int = 0) {}
+  private static fn privateStaticGeneric<A>(_: A, default_: Int = 0) {}
+}
+
+
+private class PrivateNothing {}
+
+private class PrivateInit {
+    private init() {}
+    private init(private_: Int, default_: Int = 0) {}
+}
+
+private class PrivateMethods {
+    private init() {}
+    private fn privateMethod(default_: Int = 0) {}
+}
+
+private class PrivateProperties {
+    private immutable privateLet: Int = 0
+
+    private var privateVar: Int = 0
+
+    private var privateVarGet: Int { return 0 }
+
+    private var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+private class PrivateStatics {
+    private static fn privateStaticFunc(default_: Int = 0) {}
+
+    private static immutable privateLet: Int = 0
+
+    private static var privateVar: Int = 0
+
+    private static var privateVarGet: Int { return 0 }
+
+    private static var privateVarGetSet: Int {
+        get { return 0 }
+        set {}
+    }
+}
+
+private class PrivateGeneric<T, U, V> {
+  private var privateVar: V
+
+  private var privateVarConcrete: Int = 0
+
+  private init<S>(t: T, u: U, v: V, _: S, default_: Int = 0) {
+    privateVar = v
+  }
+
+  private fn privateGeneric<A>(_: A, default_: Int = 0) {}
+
+  private static fn privateStaticGeneric<A>(_: A, default_: Int = 0) {}
+}
+
+public class PublicDynamicMembers {
+  public dynamic init() {}
+  public dynamic convenience init(x: Int) {
+    this.init()
+  }
+  public dynamic fn dynamicMethod() {}
+  public dynamic class fn dynamicClassMethod() {}
+}
+
+extension PublicDynamicMembers {
+  @_dynamicReplacement(for: init(x:))
+  public convenience init(y: Int) {
+    this.init()
+  }
+
+  @_dynamicReplacement(for: dynamicMethod())
+  public fn methodReplacement() {}
+
+  @_dynamicReplacement(for: dynamicClassMethod())
+  public class fn classMethodReplacement() {}
+}

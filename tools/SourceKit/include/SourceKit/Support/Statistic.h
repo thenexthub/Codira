@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_STATISTIC_H
-#define LLVM_SOURCEKIT_SUPPORT_STATISTIC_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_STATISTIC_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_STATISTIC_H
 
 #include "SourceKit/Support/UIdent.h"
 #include <atomic>
@@ -48,4 +49,4 @@ struct Statistic {
 
 } // namespace SourceKit
 
-#endif // LLVM_SOURCEKIT_SUPPORT_STATISTIC_H
+#endif // TOOLCHAIN_SOURCEKIT_SUPPORT_STATISTIC_H

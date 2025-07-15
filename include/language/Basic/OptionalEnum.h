@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_OPTIONALENUM_H
-#define SWIFT_BASIC_OPTIONALENUM_H
+#ifndef LANGUAGE_BASIC_OPTIONALENUM_H
+#define LANGUAGE_BASIC_OPTIONALENUM_H
 
 #include "language/Basic/type_traits.h"
 #include <type_traits>
@@ -114,4 +115,4 @@ namespace language {
   };
 } // end namespace language
   
-#endif // SWIFT_BASIC_OPTIONALENUM_H
+#endif // LANGUAGE_BASIC_OPTIONALENUM_H

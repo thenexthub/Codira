@@ -1,0 +1,62 @@
+// RUN: %target-typecheck-verify-language
+// rdar://81228221
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock(_ components: Int...) -> Int { 0 }
+  static fn buildEither(first component: Int) -> Int { 0 }
+  static fn buildEither(second component: Int) -> Int { 0 }
+  static fn buildOptional(_ component: Int?) -> Int { 0 }
+  static fn buildArray(_ components: [Int]) -> Int { 0 }
+}
+
+@Builder
+fn foo(_ x: String) -> Int {
+  if .random() {
+    switch x {
+    case 1: // expected-error {{expression pattern of type 'Int' cannot match values of type 'String'}}
+      0
+    default:
+      1
+    }
+  }
+}
+
+@Builder
+fn bar(_ x: String) -> Int {
+  switch 0 {
+  case 0:
+    switch x {
+    case 1: // expected-error {{expression pattern of type 'Int' cannot match values of type 'String'}}
+      0
+    default:
+      1
+    }
+  default:
+    0
+  }
+}
+
+@Builder
+fn baz(_ x: String) -> Int {
+  do {
+    switch x {
+    case 1: // expected-error {{expression pattern of type 'Int' cannot match values of type 'String'}}
+      0
+    default:
+      1
+    }
+  }
+}
+
+@Builder
+fn qux(_ x: String) -> Int {
+  for _ in 0 ... 0 {
+    switch x {
+    case 1: // expected-error {{expression pattern of type 'Int' cannot match values of type 'String'}}
+      0
+    default:
+      1
+    }
+  }
+}

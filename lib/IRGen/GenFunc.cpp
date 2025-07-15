@@ -1,4 +1,4 @@
-//===--- GenFunc.cpp - Swift IR Generation for Function Types -------------===//
+//===--- GenFunc.cpp - Codira IR Generation for Function Types -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements IR generation for function types in Swift.  This
+//  This file implements IR generation for function types in Codira.  This
 //  includes creating the IR type as well as capturing variables and
 //  performing calls.
 //
-//  Swift supports three representations of functions:
+//  Codira supports three representations of functions:
 //
 //    - thin, which are just a function pointer;
 //
@@ -81,17 +82,19 @@
 #include "language/AST/SubstitutionMap.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
+#include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/Linking.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/Basic/CodeGenOptions.h"
 #include "clang/CodeGen/CodeGenABITypes.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/GlobalValue.h"
-#include "llvm/IR/Module.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/DerivedTypes.h"
+#include "toolchain/IR/Function.h"
+#include "toolchain/IR/GlobalValue.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/Debug.h"
 
 #include "BitPatternBuilder.h"
 #include "CallEmission.h"
@@ -163,7 +166,7 @@ namespace {
       return static_cast<const Derived &>(*this);
     }
 
-    ThinFuncTypeInfoImpl(CanSILFunctionType formalType, llvm::Type *storageType,
+    ThinFuncTypeInfoImpl(CanSILFunctionType formalType, toolchain::Type *storageType,
                      Size size, Alignment align,
                      const SpareBitVector &spareBits)
       : PODSingleScalarTypeInfo<Derived, LoadableTypeInfo>(storageType, size, spareBits, align)
@@ -196,14 +199,14 @@ namespace {
                .getFixedExtraInhabitantValue(IGM, bits, index, 0);
     }
 
-    llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF, Address src,
+    toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF, Address src,
                                          SILType T, bool isOutlined)
     const override {
       return PointerInfo::forFunction(IGF.IGM)
                .getExtraInhabitantIndex(IGF, src);
     }
 
-    void storeExtraInhabitant(IRGenFunction &IGF, llvm::Value *index,
+    void storeExtraInhabitant(IRGenFunction &IGF, toolchain::Value *index,
                               Address dest, SILType T, bool isOutlined)
     const override {
       return PointerInfo::forFunction(IGF.IGM)
@@ -216,7 +219,7 @@ namespace {
                            public FuncSignatureInfo {
   public:
 
-    ThinFuncTypeInfo(CanSILFunctionType formalType, llvm::Type *storageType,
+    ThinFuncTypeInfo(CanSILFunctionType formalType, toolchain::Type *storageType,
                      Size size, Alignment align,
                      const SpareBitVector &spareBits) :
       ThinFuncTypeInfoImpl(formalType, storageType, size, align, spareBits),
@@ -224,7 +227,7 @@ namespace {
 
 
     static const ThinFuncTypeInfo *create(CanSILFunctionType formalType,
-                                          llvm::Type *storageType,
+                                          toolchain::Type *storageType,
                                           Size size, Alignment align,
                                           const SpareBitVector &spareBits) {
       return new ThinFuncTypeInfo(formalType, storageType, size, align,
@@ -245,7 +248,7 @@ namespace {
                            public ObjCFuncSignatureInfo {
   public:
 
-    ObjCFuncTypeInfo(CanSILFunctionType formalType, llvm::Type *storageType,
+    ObjCFuncTypeInfo(CanSILFunctionType formalType, toolchain::Type *storageType,
                      Size size, Alignment align,
                      const SpareBitVector &spareBits) :
       ThinFuncTypeInfoImpl(formalType, storageType, size, align, spareBits),
@@ -253,7 +256,7 @@ namespace {
 
 
     static const ObjCFuncTypeInfo *create(CanSILFunctionType formalType,
-                                          llvm::Type *storageType,
+                                          toolchain::Type *storageType,
                                           Size size, Alignment align,
                                           const SpareBitVector &spareBits) {
       return new ObjCFuncTypeInfo(formalType, storageType, size, align,
@@ -267,7 +270,7 @@ namespace {
       public ScalarPairTypeInfo<FuncTypeInfo, ReferenceTypeInfo>,
       public FuncSignatureInfo {
   protected:
-    FuncTypeInfo(CanSILFunctionType formalType, llvm::StructType *storageType,
+    FuncTypeInfo(CanSILFunctionType formalType, toolchain::StructType *storageType,
                  Size size, Alignment align, SpareBitVector &&spareBits,
                  IsTriviallyDestroyable_t pod)
       : ScalarPairTypeInfo(storageType, size, std::move(spareBits), align, pod),
@@ -277,7 +280,7 @@ namespace {
 
   public:
     static const FuncTypeInfo *create(CanSILFunctionType formalType,
-                                      llvm::StructType *storageType,
+                                      toolchain::StructType *storageType,
                                       Size size, Alignment align,
                                       SpareBitVector &&spareBits,
                                       IsTriviallyDestroyable_t pod) {
@@ -290,7 +293,7 @@ namespace {
     const TypeInfo * \
     create##Name##StorageType(TypeConverter &TC, \
                               bool isOptional) const override { \
-      llvm_unreachable("[" #name "] function type"); \
+      toolchain_unreachable("[" #name "] function type"); \
     }
 #include "language/AST/ReferenceStorage.def"
 
@@ -319,12 +322,12 @@ namespace {
       return true;
     }
     void emitRetainFirstElement(
-        IRGenFunction &IGF, llvm::Value *fn,
+        IRGenFunction &IGF, toolchain::Value *fn,
         std::optional<Atomicity> atomicity = std::nullopt) const {}
     void emitReleaseFirstElement(
-        IRGenFunction &IGF, llvm::Value *fn,
+        IRGenFunction &IGF, toolchain::Value *fn,
         std::optional<Atomicity> atomicity = std::nullopt) const {}
-    void emitAssignFirstElement(IRGenFunction &IGF, llvm::Value *fn,
+    void emitAssignFirstElement(IRGenFunction &IGF, toolchain::Value *fn,
                                 Address fnAddr) const {
       IGF.Builder.CreateStore(fn, fnAddr);
     }
@@ -342,7 +345,7 @@ namespace {
       return isTriviallyDestroyable(ResilienceExpansion::Maximal);
     }
     void emitRetainSecondElement(
-        IRGenFunction &IGF, llvm::Value *data,
+        IRGenFunction &IGF, toolchain::Value *data,
         std::optional<Atomicity> atomicity = std::nullopt) const {
       if (!isTriviallyDestroyable(ResilienceExpansion::Maximal)) {
         if (!atomicity) atomicity = IGF.getDefaultAtomicity();
@@ -350,14 +353,14 @@ namespace {
       }
     }
     void emitReleaseSecondElement(
-        IRGenFunction &IGF, llvm::Value *data,
+        IRGenFunction &IGF, toolchain::Value *data,
         std::optional<Atomicity> atomicity = std::nullopt) const {
       if (!isTriviallyDestroyable(ResilienceExpansion::Maximal)) {
         if (!atomicity) atomicity = IGF.getDefaultAtomicity();
         IGF.emitNativeStrongRelease(data, *atomicity);
       }
     }
-    void emitAssignSecondElement(IRGenFunction &IGF, llvm::Value *context,
+    void emitAssignSecondElement(IRGenFunction &IGF, toolchain::Value *context,
                                  Address dataAddr) const {
       if (isTriviallyDestroyable(ResilienceExpansion::Maximal))
         IGF.Builder.CreateStore(context, dataAddr);
@@ -389,37 +392,37 @@ namespace {
 #define NEVER_LOADABLE_CHECKED_REF_STORAGE(Name, name, ...) \
     void name##LoadStrong(IRGenFunction &IGF, Address src, \
                           Explosion &out, bool isOptional) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     } \
     void name##TakeStrong(IRGenFunction &IGF, Address src, \
                           Explosion &out, bool isOptional) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     } \
     void name##Init(IRGenFunction &IGF, Explosion &in, \
                     Address dest, bool isOptional) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     } \
     void name##Assign(IRGenFunction &IGF, Explosion &in, \
                        Address dest, bool isOptional) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     }
 #define ALWAYS_LOADABLE_CHECKED_REF_STORAGE(Name, name, ...) \
     void strongRetain##Name(IRGenFunction &IGF, Explosion &e, \
                             Atomicity atomicity) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     } \
     void strongRetain##Name##Release(IRGenFunction &IGF, \
                                      Explosion &e, \
                                      Atomicity atomicity) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     } \
     void name##Retain(IRGenFunction &IGF, Explosion &e, \
                        Atomicity atomicity) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     } \
     void name##Release(IRGenFunction &IGF, Explosion &e, \
                         Atomicity atomicity) const override { \
-      llvm_unreachable(#name " references to functions are not supported"); \
+      toolchain_unreachable(#name " references to functions are not supported"); \
     }
 #define SOMETIMES_LOADABLE_CHECKED_REF_STORAGE(Name, name, ...) \
     NEVER_LOADABLE_CHECKED_REF_STORAGE(Name, name, "...") \
@@ -442,14 +445,14 @@ namespace {
                .getFixedExtraInhabitantValue(IGM, bits, index, 0);
     }
 
-    llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF, Address src,
+    toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF, Address src,
                                          SILType T, bool isOutlined)
     const override {
       return PointerInfo::forFunction(IGF.IGM)
                .getExtraInhabitantIndex(IGF, projectFunction(IGF, src));
     }
 
-    void storeExtraInhabitant(IRGenFunction &IGF, llvm::Value *index,
+    void storeExtraInhabitant(IRGenFunction &IGF, toolchain::Value *index,
                               Address dest, SILType T, bool isOutlined)
     const override {
       return PointerInfo::forFunction(IGF.IGM)
@@ -473,7 +476,7 @@ namespace {
   {
   public:
     BlockTypeInfo(CanSILFunctionType ty,
-                  llvm::PointerType *storageType,
+                  toolchain::PointerType *storageType,
                   Size size, SpareBitVector spareBits, Alignment align)
       : HeapTypeInfo(ReferenceCounting::Block, storageType, size, spareBits,
                      align),
@@ -502,7 +505,7 @@ namespace {
   {
     Size CaptureOffset;
   public:
-    BlockStorageTypeInfo(llvm::Type *type, Size size, Alignment align,
+    BlockStorageTypeInfo(toolchain::Type *type, Size size, Alignment align,
                          SpareBitVector &&spareBits,
                          IsTriviallyDestroyable_t pod, IsBitwiseTakable_t bt, Size captureOffset)
       : IndirectTypeInfo(type, size, std::move(spareBits), align, pod, bt,
@@ -559,7 +562,7 @@ const TypeInfo *TypeConverter::convertBlockStorageType(SILBlockStorageType *T) {
   
   // TODO: Support dynamic-sized captures.
   const auto *fixedCapture = dyn_cast<FixedTypeInfo>(&capture);
-  llvm::Type *fixedCaptureTy;
+  toolchain::Type *fixedCaptureTy;
   // The block header is pointer aligned. The capture may be worse aligned.
   Alignment align = IGM.getPointerAlignment();
   Size captureOffset(
@@ -572,7 +575,7 @@ const TypeInfo *TypeConverter::convertBlockStorageType(SILBlockStorageType *T) {
   IsBitwiseTakable_t bt = IsNotBitwiseTakable;
   if (!fixedCapture) {
     IGM.unimplemented(SourceLoc(), "dynamic @block_storage capture");
-    fixedCaptureTy = llvm::StructType::get(IGM.getLLVMContext(), {});
+    fixedCaptureTy = toolchain::StructType::get(IGM.getLLVMContext(), {});
   } else {
     fixedCaptureTy = cast<FixedTypeInfo>(capture).getStorageType();
     align = std::max(align, fixedCapture->getFixedAlignment());
@@ -585,12 +588,12 @@ const TypeInfo *TypeConverter::convertBlockStorageType(SILBlockStorageType *T) {
     bt = fixedCapture->getBitwiseTakable(ResilienceExpansion::Maximal);
   }
 
-  llvm::Type *storageElts[] = {
+  toolchain::Type *storageElts[] = {
     IGM.ObjCBlockStructTy,
     fixedCaptureTy,
   };
 
-  auto storageTy = llvm::StructType::get(IGM.getLLVMContext(), storageElts,
+  auto storageTy = toolchain::StructType::get(IGM.getLLVMContext(), storageElts,
                                          /*packed*/ false);
   return new BlockStorageTypeInfo(storageTy, size, align, spareBits.build(),
                                   pod, bt, captureOffset);
@@ -668,7 +671,7 @@ const TypeInfo *TypeConverter::convertFunctionType(SILFunctionType *T) {
         IGM.getPointerAlignment(), std::move(spareBits), IsNotTriviallyDestroyable);
   }
   }
-  llvm_unreachable("bad function type representation");
+  toolchain_unreachable("bad function type representation");
 }
 
 Signature FuncSignatureInfo::getSignature(IRGenModule &IGM) const {
@@ -732,7 +735,7 @@ getFuncSignatureInfoForLowered(IRGenModule &IGM, CanSILFunctionType type) {
   case SILFunctionType::Representation::Thick:
     return ti.as<FuncTypeInfo>();
   }
-  llvm_unreachable("bad function type representation");
+  toolchain_unreachable("bad function type representation");
 }
 
 Signature
@@ -764,9 +767,9 @@ IRGenModule::getSignature(CanSILFunctionType type, FunctionPointerKind kind,
   return sigInfo.getSignature(*this);
 }
 
-llvm::FunctionType *
+toolchain::FunctionType *
 IRGenModule::getFunctionType(CanSILFunctionType type,
-                             llvm::AttributeList &attrs,
+                             toolchain::AttributeList &attrs,
                              ForeignFunctionInfo *foreignInfo) {
   auto &sigInfo = getFuncSignatureInfoForLowered(*this, type);
   Signature sig = sigInfo.getSignature(*this);
@@ -777,7 +780,7 @@ IRGenModule::getFunctionType(CanSILFunctionType type,
 
 ForeignFunctionInfo
 IRGenModule::getForeignFunctionInfo(CanSILFunctionType type) {
-  if (type->getLanguage() == SILFunctionLanguage::Swift)
+  if (type->getLanguage() == SILFunctionLanguage::Codira)
     return ForeignFunctionInfo();
 
   auto &sigInfo = getFuncSignatureInfoForLowered(*this, type);
@@ -862,27 +865,27 @@ CanType irgen::getArgumentLoweringType(CanType type, SILParameterInfo paramInfo,
   case ParameterConvention::Indirect_InoutAliasable:
     return CanInOutType::get(type);
   }
-  llvm_unreachable("unhandled convention");
+  toolchain_unreachable("unhandled convention");
 }
 
-llvm::Constant *irgen::getCoroFrameAllocStubFn(IRGenModule &IGM) {
+toolchain::Constant *irgen::getCoroFrameAllocStubFn(IRGenModule &IGM) {
   return IGM.getOrCreateHelperFunction(
-    "__swift_coroFrameAllocStub", IGM.Int8PtrTy,
+    "__language_coroFrameAllocStub", IGM.Int8PtrTy,
     {IGM.SizeTy, IGM.Int64Ty},
     [&](IRGenFunction &IGF) {
       auto parameters = IGF.collectParameters();
       auto *size = parameters.claimNext();
       auto coroAllocPtr = IGF.IGM.getCoroFrameAllocFn();
-      auto coroAllocFn = dyn_cast<llvm::Function>(coroAllocPtr);
-      coroAllocFn->setLinkage(llvm::GlobalValue::ExternalWeakLinkage);
+      auto coroAllocFn = dyn_cast<toolchain::Function>(coroAllocPtr);
+      coroAllocFn->setLinkage(toolchain::GlobalValue::ExternalWeakLinkage);
       auto *coroFrameAllocFn = IGF.IGM.getOpaquePtr(coroAllocPtr);
-      auto *nullSwiftCoroFrameAlloc = IGF.Builder.CreateCmp(
-        llvm::CmpInst::Predicate::ICMP_NE, coroFrameAllocFn,
-        llvm::ConstantPointerNull::get(
-            cast<llvm::PointerType>(coroFrameAllocFn->getType())));
+      auto *nullCodiraCoroFrameAlloc = IGF.Builder.CreateCmp(
+        toolchain::CmpInst::Predicate::ICMP_NE, coroFrameAllocFn,
+        toolchain::ConstantPointerNull::get(
+            cast<toolchain::PointerType>(coroFrameAllocFn->getType())));
       auto *coroFrameAllocReturn = IGF.createBasicBlock("return-coroFrameAlloc");
       auto *mallocReturn = IGF.createBasicBlock("return-malloc");
-      IGF.Builder.CreateCondBr(nullSwiftCoroFrameAlloc, coroFrameAllocReturn, mallocReturn);
+      IGF.Builder.CreateCondBr(nullCodiraCoroFrameAlloc, coroFrameAllocReturn, mallocReturn);
 
       IGF.Builder.emitBlock(coroFrameAllocReturn);
       auto *mallocTypeId = parameters.claimNext();
@@ -896,7 +899,7 @@ llvm::Constant *irgen::getCoroFrameAllocStubFn(IRGenModule &IGM) {
     /*setIsNoInline=*/false,
     /*forPrologue=*/false,
     /*isPerformanceConstraint=*/false,
-    /*optionalLinkageOverride=*/nullptr, llvm::CallingConv::C);
+    /*optionalLinkageOverride=*/nullptr, toolchain::CallingConv::C);
 }
 
 static Size getOffsetOfOpaqueIsolationField(IRGenModule &IGM,
@@ -909,7 +912,7 @@ static Size getOffsetOfOpaqueIsolationField(IRGenModule &IGM,
 /// Load the stored isolation of an @isolated(any) function type, which
 /// is assumed to be at a known offset within a closure object.
 void irgen::emitExtractFunctionIsolation(IRGenFunction &IGF,
-                                         llvm::Value *fnContext,
+                                         toolchain::Value *fnContext,
                                          Explosion &result) {
   auto isolationTy = SILType::getOpaqueIsolationType(IGF.IGM.Context);
   auto &isolationTI = cast<LoadableTypeInfo>(IGF.getTypeInfo(isolationTy));
@@ -969,7 +972,7 @@ class PartialApplicationForwarderEmission {
 protected:
   IRGenModule &IGM;
   IRGenFunction &subIGF;
-  llvm::Function *fwd;
+  toolchain::Function *fwd;
   const std::optional<FunctionPointer> &staticFnPtr;
   bool calleeHasContext;
   const Signature &origSig;
@@ -988,7 +991,7 @@ protected:
   Address resultValueAddr;
 
   PartialApplicationForwarderEmission(
-      IRGenModule &IGM, IRGenFunction &subIGF, llvm::Function *fwd,
+      IRGenModule &IGM, IRGenFunction &subIGF, toolchain::Function *fwd,
       const std::optional<FunctionPointer> &staticFnPtr, bool calleeHasContext,
       const Signature &origSig, CanSILFunctionType origType,
       CanSILFunctionType substType, CanSILFunctionType outType,
@@ -1138,11 +1141,11 @@ public:
   void addArgument(Explosion &explosion) {
     args.add(explosion.claimAll());
   }
-  void addArgument(llvm::Value *argValue) { args.add(argValue); }
+  void addArgument(toolchain::Value *argValue) { args.add(argValue); }
   void addArgument(Explosion &explosion, unsigned index) {
     addArgument(explosion);
   }
-  void addArgument(llvm::Value *argValue, unsigned index) {
+  void addArgument(toolchain::Value *argValue, unsigned index) {
     addArgument(argValue);
   }
 
@@ -1150,18 +1153,18 @@ public:
     return substType->getParameters()[index];
   }
 
-  llvm::Value *getContext() { return origParams.claimNext(); }
+  toolchain::Value *getContext() { return origParams.claimNext(); }
 
-  virtual llvm::Value *getDynamicFunctionPointer() = 0;
-  virtual llvm::Value *getDynamicFunctionContext() = 0;
+  virtual toolchain::Value *getDynamicFunctionPointer() = 0;
+  virtual toolchain::Value *getDynamicFunctionContext() = 0;
   virtual void addDynamicFunctionContext(Explosion &explosion) = 0;
   virtual void addDynamicFunctionPointer(Explosion &explosion) = 0;
 
   void addSelf(Explosion &explosion) { addArgument(explosion); }
-  void addWitnessSelfMetadata(llvm::Value *value) {
+  void addWitnessSelfMetadata(toolchain::Value *value) {
     addArgument(value);
   }
-  void addWitnessSelfWitnessTable(llvm::Value *value) {
+  void addWitnessSelfWitnessTable(toolchain::Value *value) {
     addArgument(value);
   }
   virtual void forwardErrorResult() = 0;
@@ -1169,8 +1172,8 @@ public:
   void addPolymorphicArguments(Explosion polyArgs) {
     polyArgs.transferInto(args, polyArgs.size());
   }
-  virtual llvm::CallInst *createCall(FunctionPointer &fnPtr) = 0;
-  virtual void createReturn(llvm::CallInst *call) = 0;
+  virtual toolchain::CallInst *createCall(FunctionPointer &fnPtr) = 0;
+  virtual void createReturn(toolchain::CallInst *call) = 0;
   virtual void end(){};
   virtual ~PartialApplicationForwarderEmission() {}
 };
@@ -1188,7 +1191,7 @@ class SyncPartialApplicationForwarderEmission
 
 public:
   SyncPartialApplicationForwarderEmission(
-      IRGenModule &IGM, IRGenFunction &subIGF, llvm::Function *fwd,
+      IRGenModule &IGM, IRGenFunction &subIGF, toolchain::Function *fwd,
       const std::optional<FunctionPointer> &staticFnPtr, bool calleeHasContext,
       const Signature &origSig, CanSILFunctionType origType,
       CanSILFunctionType substType, CanSILFunctionType outType,
@@ -1202,8 +1205,8 @@ public:
   void gatherArgumentsFromApply() override {
     super::gatherArgumentsFromApply(false);
   }
-  llvm::Value *getDynamicFunctionPointer() override { return args.takeLast(); }
-  llvm::Value *getDynamicFunctionContext() override { return args.takeLast(); }
+  toolchain::Value *getDynamicFunctionPointer() override { return args.takeLast(); }
+  toolchain::Value *getDynamicFunctionContext() override { return args.takeLast(); }
   void addDynamicFunctionContext(Explosion &explosion) override {
     addArgument(explosion);
   }
@@ -1211,7 +1214,7 @@ public:
     addArgument(explosion);
   }
   void forwardErrorResult() override {
-    llvm::Value *errorResultPtr = origParams.claimNext();
+    toolchain::Value *errorResultPtr = origParams.claimNext();
     args.add(errorResultPtr);
     if (origConv.isTypedError()) {
       auto errorType =
@@ -1232,10 +1235,10 @@ public:
       }
     }
   }
-  llvm::CallInst *createCall(FunctionPointer &fnPtr) override {
+  toolchain::CallInst *createCall(FunctionPointer &fnPtr) override {
     return subIGF.Builder.CreateCall(fnPtr, args.claimAll());
   }
-  void createReturn(llvm::CallInst *call) override {
+  void createReturn(toolchain::CallInst *call) override {
     // Reabstract the result value as substituted.
     SILFunctionConventions origConv(origType, IGM.getSILModule());
     auto &outResultTI = IGM.getTypeInfo(
@@ -1261,8 +1264,8 @@ public:
         if (nativeResult.size() == 1)
           subIGF.Builder.CreateRet(nativeResult.claimNext());
         else {
-          llvm::Value *nativeAgg =
-              llvm::UndefValue::get(nativeResultSchema.getExpandedType(IGM));
+          toolchain::Value *nativeAgg =
+              toolchain::UndefValue::get(nativeResultSchema.getExpandedType(IGM));
           for (unsigned i = 0, e = nativeResult.size(); i != e; ++i) {
             auto *elt = nativeResult.claimNext();
             nativeAgg = subIGF.Builder.CreateInsertValue(nativeAgg, elt, i);
@@ -1271,7 +1274,7 @@ public:
         }
       }
     } else {
-      llvm::Value *callResult = call;
+      toolchain::Value *callResult = call;
       // If the result type is dependent on a type parameter we might have to
       // cast to the result type - it could be substituted.
       if (origConv.getSILResultType(IGM.getMaximalTypeExpansionContext())
@@ -1290,8 +1293,8 @@ class AsyncPartialApplicationForwarderEmission
     : public PartialApplicationForwarderEmission {
   using super = PartialApplicationForwarderEmission;
   AsyncContextLayout layout;
-  llvm::Value *calleeFunction;
-  llvm::Value *currentResumeFn;
+  toolchain::Value *calleeFunction;
+  toolchain::Value *currentResumeFn;
   Size contextSize;
   Address context;
   Address calleeContextBuffer;
@@ -1302,7 +1305,7 @@ class AsyncPartialApplicationForwarderEmission
       WitnessMethod,
     };
     Kind kind;
-    llvm::Value *value;
+    toolchain::Value *value;
   };
   std::optional<Self> self = std::nullopt;
   unsigned asyncParametersInsertionIndex = 0;
@@ -1315,7 +1318,7 @@ class AsyncPartialApplicationForwarderEmission
 
 public:
   AsyncPartialApplicationForwarderEmission(
-      IRGenModule &IGM, IRGenFunction &subIGF, llvm::Function *fwd,
+      IRGenModule &IGM, IRGenFunction &subIGF, toolchain::Function *fwd,
       const std::optional<FunctionPointer> &staticFnPtr, bool calleeHasContext,
       const Signature &origSig, CanSILFunctionType origType,
       CanSILFunctionType substType, CanSILFunctionType outType,
@@ -1336,7 +1339,7 @@ public:
     asyncParametersInsertionIndex = args.size();
   }
   void mapAsyncParameters(FunctionPointer fnPtr) override {
-    llvm::Value *dynamicContextSize32;
+    toolchain::Value *dynamicContextSize32;
     std::tie(calleeFunction, dynamicContextSize32) =
         getAsyncFunctionAndSize(subIGF, fnPtr, std::make_pair(true, true));
     auto *dynamicContextSize =
@@ -1348,7 +1351,7 @@ public:
         layout.emitCastTo(subIGF, calleeContextBuffer.getAddress());
     args.insert(asyncParametersInsertionIndex,
                 subIGF.Builder.CreateBitOrPointerCast(
-                    calleeContextBuffer.getAddress(), IGM.SwiftContextPtrTy));
+                    calleeContextBuffer.getAddress(), IGM.CodiraContextPtrTy));
 
     // Set caller info into the context.
     { // caller context
@@ -1369,7 +1372,7 @@ public:
     { // Return to caller function.
       auto fieldLayout = layout.getResumeParentLayout();
       currentResumeFn = subIGF.Builder.CreateIntrinsicCall(
-          llvm::Intrinsic::coro_async_resume, {});
+          toolchain::Intrinsic::coro_async_resume, {});
       auto fnVal = currentResumeFn;
       // Sign the pointer.
       if (auto schema = subIGF.IGM.getOptions().PointerAuth.AsyncContextResume) {
@@ -1389,8 +1392,8 @@ public:
   void gatherArgumentsFromApply() override {
     super::gatherArgumentsFromApply(true);
   }
-  llvm::Value *getDynamicFunctionPointer() override { return args.takeLast(); }
-  llvm::Value *getDynamicFunctionContext() override {
+  toolchain::Value *getDynamicFunctionPointer() override { return args.takeLast(); }
+  toolchain::Value *getDynamicFunctionContext() override {
     return args.takeLast();
   }
   void addDynamicFunctionContext(Explosion &explosion) override {
@@ -1422,7 +1425,7 @@ public:
       }
     }
   }
-  llvm::CallInst *createCall(FunctionPointer &fnPtr) override {
+  toolchain::CallInst *createCall(FunctionPointer &fnPtr) override {
     PointerAuthInfo newAuthInfo =
         fnPtr.getAuthInfo().getCorrespondingCodeAuthInfo();
     auto newFnPtr = FunctionPointer::createSigned(
@@ -1434,13 +1437,13 @@ public:
     auto argValues = args.claimAll();
 
     // Setup the suspend point.
-    SmallVector<llvm::Value *, 8> arguments;
+    SmallVector<toolchain::Value *, 8> arguments;
     auto signature = newFnPtr.getSignature();
     auto asyncContextIndex = signature.getAsyncContextIndex();
     auto paramAttributeFlags =
         asyncContextIndex |
-        (signature.getAsyncResumeFunctionSwiftSelfIndex() << 8);
-    // Index of swiftasync context | ((index of swiftself) << 8).
+        (signature.getAsyncResumeFunctionCodiraSelfIndex() << 8);
+    // Index of languageasync context | ((index of languageself) << 8).
     arguments.push_back(
         IGM.getInt32(paramAttributeFlags));
     arguments.push_back(currentResumeFn);
@@ -1459,10 +1462,10 @@ public:
     for (auto arg : argValues)
       arguments.push_back(arg);
     auto resultTy =
-        cast<llvm::StructType>(signature.getType()->getReturnType());
+        cast<toolchain::StructType>(signature.getType()->getReturnType());
     return subIGF.emitSuspendAsyncCall(asyncContextIndex, resultTy, arguments);
   }
-  void createReturn(llvm::CallInst *call) override {
+  void createReturn(toolchain::CallInst *call) override {
     emitDeallocAsyncContext(subIGF, calleeContextBuffer);
     forwardAsyncCallResult(subIGF, origType, layout, call);
   }
@@ -1478,7 +1481,7 @@ class CoroPartialApplicationForwarderEmission
 
 public:
   CoroPartialApplicationForwarderEmission(
-      IRGenModule &IGM, IRGenFunction &subIGF, llvm::Function *fwd,
+      IRGenModule &IGM, IRGenFunction &subIGF, toolchain::Function *fwd,
       const std::optional<FunctionPointer> &staticFnPtr, bool calleeHasContext,
       const Signature &origSig, CanSILFunctionType origType,
       CanSILFunctionType substType, CanSILFunctionType outType,
@@ -1499,21 +1502,19 @@ public:
     // Use free as our allocator.
     auto deallocFn = subIGF.IGM.getOpaquePtr(subIGF.IGM.getFreeFn());
 
-    // Call the right 'llvm.coro.id.retcon' variant.
-    llvm::Value *buffer = origParams.claimNext();
-    llvm::Value *id;
-    if (subIGF.IGM.getOptions().EmitTypeMallocForCoroFrame
-        && !llvm::Triple(subIGF.IGM.Triple).isOSLinux()
-        && !llvm::Triple(subIGF.IGM.Triple).isOSWindows()) {
-      // Use swift_coroFrameAllocStub to emit our allocator.
+    // Call the right 'toolchain.coro.id.retcon' variant.
+    toolchain::Value *buffer = origParams.claimNext();
+    toolchain::Value *id;
+    if (subIGF.IGM.getOptions().EmitTypeMallocForCoroFrame) {
+      // Use language_coroFrameAllocStub to emit our allocator.
       auto coroAllocFn = subIGF.IGM.getOpaquePtr(getCoroFrameAllocStubFn(subIGF.IGM));
       auto mallocTypeId = subIGF.getMallocTypeId();
       id = subIGF.Builder.CreateIntrinsicCall(
-        llvm::Intrinsic::coro_id_retcon_once,
-        {llvm::ConstantInt::get(
+        toolchain::Intrinsic::coro_id_retcon_once,
+        {toolchain::ConstantInt::get(
              subIGF.IGM.Int32Ty,
              getYieldOnceCoroutineBufferSize(subIGF.IGM).getValue()),
-         llvm::ConstantInt::get(
+         toolchain::ConstantInt::get(
              subIGF.IGM.Int32Ty,
              getYieldOnceCoroutineBufferAlignment(subIGF.IGM).getValue()),
          buffer, prototype, coroAllocFn, deallocFn, mallocTypeId});
@@ -1521,21 +1522,21 @@ public:
       // Use malloc as our allocator.
       auto allocFn = subIGF.IGM.getOpaquePtr(subIGF.IGM.getMallocFn());
       id = subIGF.Builder.CreateIntrinsicCall(
-        llvm::Intrinsic::coro_id_retcon_once,
-        {llvm::ConstantInt::get(
+        toolchain::Intrinsic::coro_id_retcon_once,
+        {toolchain::ConstantInt::get(
              subIGF.IGM.Int32Ty,
              getYieldOnceCoroutineBufferSize(subIGF.IGM).getValue()),
-         llvm::ConstantInt::get(
+         toolchain::ConstantInt::get(
              subIGF.IGM.Int32Ty,
              getYieldOnceCoroutineBufferAlignment(subIGF.IGM).getValue()),
          buffer, prototype, allocFn, deallocFn});
     }
 
-    // Call 'llvm.coro.begin', just for consistency with the normal pattern.
+    // Call 'toolchain.coro.begin', just for consistency with the normal pattern.
     // This serves as a handle that we can pass around to other intrinsics.
     auto hdl = subIGF.Builder.CreateIntrinsicCall(
-        llvm::Intrinsic::coro_begin,
-        {id, llvm::ConstantPointerNull::get(subIGF.IGM.Int8PtrTy)});
+        toolchain::Intrinsic::coro_begin,
+        {id, toolchain::ConstantPointerNull::get(subIGF.IGM.Int8PtrTy)});
 
     // Set the coroutine handle; this also flags that is a coroutine so that
     // e.g. dynamic allocas use the right code generation.
@@ -1550,8 +1551,8 @@ public:
   void gatherArgumentsFromApply() override {
     super::gatherArgumentsFromApply(false);
   }
-  llvm::Value *getDynamicFunctionPointer() override { return args.takeLast(); }
-  llvm::Value *getDynamicFunctionContext() override { return args.takeLast(); }
+  toolchain::Value *getDynamicFunctionPointer() override { return args.takeLast(); }
+  toolchain::Value *getDynamicFunctionContext() override { return args.takeLast(); }
   void addDynamicFunctionContext(Explosion &explosion) override {
     addArgument(explosion);
   }
@@ -1571,7 +1572,7 @@ public:
         isTypedError ? IGM.Int8PtrTy
                      : cast<FixedTypeInfo>(subIGF.getTypeInfo(origErrorTy))
                            .getStorageType();
-    llvm::Value *errorResultPtr = origParams.claimNext();
+    toolchain::Value *errorResultPtr = origParams.claimNext();
     subIGF.setCallerErrorResultSlot(
         Address(errorResultPtr, errorStorageType, errorAlignment));
   }
@@ -1586,14 +1587,14 @@ public:
       witnessMetadata.SelfMetadata = args.takeLast();
     }
 
-    llvm::Value *selfValue = nullptr;
+    toolchain::Value *selfValue = nullptr;
     if (calleeHasContext || hasSelfContextParameter(origType))
       selfValue = args.takeLast();
 
     Callee callee({origType, substType, subs}, fnPtr, selfValue);
 
     std::unique_ptr<CallEmission> emitSuspend =
-        getCallEmission(subIGF, callee.getSwiftContext(), std::move(callee));
+        getCallEmission(subIGF, callee.getCodiraContext(), std::move(callee));
 
     emitSuspend->begin();
     emitSuspend->setArgs(args, /*isOutlined=*/false, &witnessMetadata);
@@ -1605,14 +1606,14 @@ public:
     if (origConv.getSILResultType(subIGF.IGM.getMaximalTypeExpansionContext())
             .hasTypeParameter()) {
 
-      ArrayRef<llvm::Value *> yieldValues = yieldedValues.claimAll();
-      ArrayRef<llvm::Type *> retTypes =
-          cast<llvm::StructType>(fwd->getReturnType())->elements();
+      ArrayRef<toolchain::Value *> yieldValues = yieldedValues.claimAll();
+      ArrayRef<toolchain::Type *> retTypes =
+          cast<toolchain::StructType>(fwd->getReturnType())->elements();
       Explosion yieldCoerced;
       assert(yieldValues.size() == retTypes.size() &&
              "mismatch between return types of the wrapper and the callee");
       for (unsigned i = 0; i < yieldValues.size(); ++i) {
-        llvm::Value *v = yieldValues[i];
+        toolchain::Value *v = yieldValues[i];
         if (v->getType() != retTypes[i]) {
           v = subIGF.coerceValue(v, retTypes[i], subIGF.IGM.DataLayout);
         }
@@ -1624,11 +1625,11 @@ public:
     return yieldedValues;
   }
 
-  llvm::CallInst *createCall(FunctionPointer &fnPtr) override {
+  toolchain::CallInst *createCall(FunctionPointer &fnPtr) override {
     /// Call the wrapped coroutine
     ///
     Address calleeBuf = emitAllocYieldOnceCoroutineBuffer(subIGF);
-    llvm::Value *calleeHandle = calleeBuf.getAddress();
+    toolchain::Value *calleeHandle = calleeBuf.getAddress();
     args.insert(0, calleeHandle);
     Explosion yieldedValues = callCoroutine(fnPtr);
 
@@ -1646,11 +1647,11 @@ public:
 
     /// Forward the remaining yields of the wrapped coroutine
     ///
-    llvm::Value *condUnwind = emitYield(subIGF, substType, yieldedValues);
+    toolchain::Value *condUnwind = emitYield(subIGF, substType, yieldedValues);
 
-    llvm::BasicBlock *unwindBB = subIGF.createBasicBlock("unwind");
-    llvm::BasicBlock *resumeBB = subIGF.createBasicBlock("resume");
-    llvm::BasicBlock *cleanupBB = subIGF.createBasicBlock("cleanup");
+    toolchain::BasicBlock *unwindBB = subIGF.createBasicBlock("unwind");
+    toolchain::BasicBlock *resumeBB = subIGF.createBasicBlock("resume");
+    toolchain::BasicBlock *cleanupBB = subIGF.createBasicBlock("cleanup");
     subIGF.CurFn->insert(subIGF.CurFn->end(), unwindBB);
     subIGF.CurFn->insert(subIGF.CurFn->end(), resumeBB);
     subIGF.CurFn->insert(subIGF.CurFn->end(), cleanupBB);
@@ -1660,50 +1661,50 @@ public:
     ///
     subIGF.Builder.SetInsertPoint(resumeBB);
 
-    auto isResume = llvm::ConstantInt::get(IGM.Int1Ty, /*isAbort*/ false);
+    auto isResume = toolchain::ConstantInt::get(IGM.Int1Ty, /*isAbort*/ false);
     auto *call = subIGF.Builder.CreateCall(contFn, {calleeHandle, isResume});
 
     /// Emit coro_end for results and forward them
     ///
-    llvm::Type *callTy = call->getType();
-    llvm::Value *noneToken =
-        llvm::ConstantTokenNone::get(subIGF.Builder.getContext());
-    llvm::Value *resultToken = nullptr;
+    toolchain::Type *callTy = call->getType();
+    toolchain::Value *noneToken =
+        toolchain::ConstantTokenNone::get(subIGF.Builder.getContext());
+    toolchain::Value *resultToken = nullptr;
     if (callTy->isVoidTy()) {
       resultToken = noneToken;
-    } else if (llvm::StructType *sty = dyn_cast<llvm::StructType>(callTy)) {
+    } else if (toolchain::StructType *sty = dyn_cast<toolchain::StructType>(callTy)) {
       Explosion splitCall;
       subIGF.emitAllExtractValues(call, sty, splitCall);
       resultToken = subIGF.Builder.CreateIntrinsicCall(
-          llvm::Intrinsic::coro_end_results, splitCall.claimAll());
+          toolchain::Intrinsic::coro_end_results, splitCall.claimAll());
     } else {
       resultToken = subIGF.Builder.CreateIntrinsicCall(
-          llvm::Intrinsic::coro_end_results, call);
+          toolchain::Intrinsic::coro_end_results, call);
     }
 
-    llvm::Value *fwdHandle = subIGF.getCoroutineHandle();
-    subIGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::coro_end,
+    toolchain::Value *fwdHandle = subIGF.getCoroutineHandle();
+    subIGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::coro_end,
                                        {fwdHandle, isResume, resultToken});
     subIGF.Builder.CreateBr(cleanupBB);
 
     /// Emit coro_end for unwind
     ///
     subIGF.Builder.SetInsertPoint(unwindBB);
-    auto isUnwind = llvm::ConstantInt::get(IGM.Int1Ty, /*isAbort*/ true);
+    auto isUnwind = toolchain::ConstantInt::get(IGM.Int1Ty, /*isAbort*/ true);
     subIGF.Builder.CreateCall(contFn, {calleeHandle, isUnwind});
-    subIGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::coro_end,
+    subIGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::coro_end,
                                        {fwdHandle, isUnwind, noneToken});
     subIGF.Builder.CreateBr(cleanupBB);
 
     subIGF.Builder.SetInsertPoint(cleanupBB);
     emitDeallocYieldOnceCoroutineBuffer(subIGF, calleeBuf);
-    llvm::Instruction *cleanupPt = subIGF.Builder.CreateUnreachable();
+    toolchain::Instruction *cleanupPt = subIGF.Builder.CreateUnreachable();
     subIGF.Builder.SetInsertPoint(cleanupPt);
 
     return nullptr;
   }
 
-  void createReturn(llvm::CallInst *call) override {
+  void createReturn(toolchain::CallInst *call) override {
     // Do nothing, yield/return/unwind blocks are already created in createCall.
   }
   void end() override { super::end(); }
@@ -1711,7 +1712,7 @@ public:
 
 std::unique_ptr<PartialApplicationForwarderEmission>
 getPartialApplicationForwarderEmission(
-    IRGenModule &IGM, IRGenFunction &subIGF, llvm::Function *fwd,
+    IRGenModule &IGM, IRGenFunction &subIGF, toolchain::Function *fwd,
     const std::optional<FunctionPointer> &staticFnPtr, bool calleeHasContext,
     const Signature &origSig, CanSILFunctionType origType,
     CanSILFunctionType substType, CanSILFunctionType outType,
@@ -1738,17 +1739,17 @@ getPartialApplicationForwarderEmission(
 /// Emit the forwarding stub function for a partial application.
 ///
 /// If 'layout' is null, there is a single captured value of
-/// Swift-refcountable type that is being used directly as the
+/// Codira-refcountable type that is being used directly as the
 /// context object.
-static llvm::Value *emitPartialApplicationForwarder(
+static toolchain::Value *emitPartialApplicationForwarder(
     IRGenModule &IGM, const std::optional<FunctionPointer> &staticFnPtr,
     bool calleeHasContext, const Signature &origSig,
     CanSILFunctionType origType, CanSILFunctionType substType,
     CanSILFunctionType outType, SubstitutionMap subs, HeapLayout const *layout,
     ArrayRef<ParameterConvention> conventions) {
   auto outSig = IGM.getSignature(outType);
-  llvm::AttributeList outAttrs = outSig.getAttributes();
-  llvm::FunctionType *fwdTy = outSig.getType();
+  toolchain::AttributeList outAttrs = outSig.getAttributes();
+  toolchain::FunctionType *fwdTy = outSig.getType();
   SILFunctionConventions outConv(outType, IGM.getSILModule());
   std::optional<AsyncContextLayout> asyncLayout;
 
@@ -1760,15 +1761,15 @@ static llvm::Value *emitPartialApplicationForwarder(
   std::string thunkName = Mangler.manglePartialApplyForwarder(FnName);
 
   // FIXME: Maybe cache the thunk by function and closure types?.
-  llvm::Function *fwd =
-      llvm::Function::Create(fwdTy, llvm::Function::InternalLinkage,
-                             llvm::StringRef(thunkName), &IGM.Module);
-  llvm::Value *asyncFunctionPtr = nullptr;
+  toolchain::Function *fwd =
+      toolchain::Function::Create(fwdTy, toolchain::Function::InternalLinkage,
+                             toolchain::StringRef(thunkName), &IGM.Module);
+  toolchain::Value *asyncFunctionPtr = nullptr;
   fwd->setCallingConv(outSig.getCallingConv());
 
   fwd->setAttributes(outAttrs);
   // Merge initial attributes with outAttrs.
-  llvm::AttrBuilder b(IGM.getLLVMContext());
+  toolchain::AttrBuilder b(IGM.getLLVMContext());
   IGM.constructInitialFnAttributes(b);
   fwd->addFnAttrs(b);
 
@@ -1791,7 +1792,7 @@ static llvm::Value *emitPartialApplicationForwarder(
     // TODO: if calleeAFP is definition:
 #if 0
     subIGF.Builder.CreateIntrinsicCall(
-        llvm::Intrinsic::coro_async_size_replace,
+        toolchain::Intrinsic::coro_async_size_replace,
         {subIGF.Builder.CreateBitCast(asyncFunctionPtr, IGM.Int8PtrTy),
          subIGF.Builder.CreateBitCast(calleeAFP, IGM.Int8PtrTy)});
 #endif
@@ -1832,14 +1833,14 @@ static llvm::Value *emitPartialApplicationForwarder(
   case ParameterConvention::Pack_Guaranteed:
   case ParameterConvention::Pack_Owned:
   case ParameterConvention::Pack_Inout:
-    llvm_unreachable("indirect or pack callables not supported");
+    toolchain_unreachable("indirect or pack callables not supported");
   }
 
   // Lower the captured arguments in the original function's generic context.
   GenericContextScope scope(IGM, origType->getInvocationGenericSignature());
 
   // This is where the context parameter appears.
-  llvm::Value *rawData = nullptr;
+  toolchain::Value *rawData = nullptr;
   Address data;
   if (!layout) {
     rawData = emission->getContext();
@@ -1862,7 +1863,7 @@ static llvm::Value *emitPartialApplicationForwarder(
   // or there's an error result.
   } else if (outType->getRepresentation()==SILFunctionTypeRepresentation::Thick
              || outType->hasErrorResult()) {
-    llvm::Value *contextPtr = emission->getContext(); (void)contextPtr;
+    toolchain::Value *contextPtr = emission->getContext(); (void)contextPtr;
     assert(contextPtr->getType() == IGM.RefCountedPtrTy);
   }
 
@@ -1898,9 +1899,9 @@ static llvm::Value *emitPartialApplicationForwarder(
           IGM.getSILModule(), substType, IGM.getMaximalTypeExpansionContext()));
       Explosion param;
       auto ref = rawData;
-      // We can get a '{ swift.refcounted* }' type for AnyObject on linux.
+      // We can get a '{ language.refcounted* }' type for AnyObject on linux.
       if (!ti.getStorageType()->isPointerTy() &&
-          ti.isSingleSwiftRetainablePointer(ResilienceExpansion::Maximal))
+          ti.isSingleCodiraRetainablePointer(ResilienceExpansion::Maximal))
         ref = subIGF.coerceValue(rawData, ti.getStorageType(),
                                  subIGF.IGM.DataLayout);
       param.add(ref);
@@ -1924,9 +1925,9 @@ static llvm::Value *emitPartialApplicationForwarder(
       origType->getRepresentation() == SILFunctionTypeRepresentation::Method;
   Explosion witnessMethodSelfValue;
 
-  llvm::Value *lastCapturedFieldPtr = nullptr;
+  toolchain::Value *lastCapturedFieldPtr = nullptr;
 
-  // If there's a data pointer required, but it's a swift-retainable
+  // If there's a data pointer required, but it's a language-retainable
   // value being passed as the context, just forward it down.
   if (!layout) {
     assert(conventions.size() == 1);
@@ -1963,7 +1964,7 @@ static llvm::Value *emitPartialApplicationForwarder(
     case ParameterConvention::Pack_Guaranteed:
     case ParameterConvention::Pack_Owned:
     case ParameterConvention::Pack_Inout:
-      llvm_unreachable("should never happen!");
+      toolchain_unreachable("should never happen!");
     }
 
     // FIXME: The naming and documentation here isn't ideal. This
@@ -1980,11 +1981,11 @@ static llvm::Value *emitPartialApplicationForwarder(
     if (origType->isAsync() || origType->isCoroutine())
       argIndex += 1;
 
-    llvm::Type *expectedArgTy = origSig.getType()->getParamType(argIndex);
+    toolchain::Type *expectedArgTy = origSig.getType()->getParamType(argIndex);
 
-    llvm::Value *argValue;
+    toolchain::Value *argValue;
     if (isIndirectFormalParameter(argConvention)) {
-      // We can use rawData's type for the alloca because it is a swift
+      // We can use rawData's type for the alloca because it is a language
       // retainable value. Defensively, give it that type. We can't use the
       // expectedArgType because it might be a generic parameter and therefore
       // have opaque storage.
@@ -2082,7 +2083,7 @@ static llvm::Value *emitPartialApplicationForwarder(
       case ParameterConvention::Pack_Guaranteed:
       case ParameterConvention::Pack_Owned:
       case ParameterConvention::Pack_Inout:
-        llvm_unreachable("partial application of pack?");
+        toolchain_unreachable("partial application of pack?");
         break;
       case ParameterConvention::Indirect_Inout:
       case ParameterConvention::Indirect_InoutAliasable:
@@ -2144,7 +2145,7 @@ static llvm::Value *emitPartialApplicationForwarder(
           emission->addDynamicFunctionPointer(param);
           break;
         default:
-          llvm_unreachable("unexpected extra field in thick context");
+          toolchain_unreachable("unexpected extra field in thick context");
         }
         ++extraFieldIndex;
       }
@@ -2211,7 +2212,7 @@ static llvm::Value *emitPartialApplicationForwarder(
   //     function pointer (which we already popped off of 'args'); or
   //   - 'self', in which case it was the last formal argument.
   // In either case, it's the last thing in 'args'.
-  llvm::Value *fnContext = nullptr;
+  toolchain::Value *fnContext = nullptr;
   if (haveContextArgument)
     fnContext = emission->getDynamicFunctionContext();
 
@@ -2223,7 +2224,7 @@ static llvm::Value *emitPartialApplicationForwarder(
   // context.
   if (isWitnessMethodCallee) {
     assert(fnContext->getType() == IGM.Int8PtrTy);
-    llvm::Value *wtable = subIGF.Builder.CreateBitCast(
+    toolchain::Value *wtable = subIGF.Builder.CreateBitCast(
         fnContext, IGM.WitnessTablePtrTy);
     assert(wtable->getType() == IGM.WitnessTablePtrTy);
     witnessMetadata.SelfWitnessTable = wtable;
@@ -2240,7 +2241,7 @@ static llvm::Value *emitPartialApplicationForwarder(
 
   // Pass a placeholder for thin function calls.
   } else if (origType->hasErrorResult() && !origType->isAsync() && !origType->isCoroutine()) {
-    emission->addArgument(llvm::UndefValue::get(IGM.RefCountedPtrTy));
+    emission->addArgument(toolchain::UndefValue::get(IGM.RefCountedPtrTy));
   }
 
   // Add the witness methods self argument before the error parameter after the
@@ -2262,7 +2263,7 @@ static llvm::Value *emitPartialApplicationForwarder(
     emission->addWitnessSelfWitnessTable(witnessMetadata.SelfWitnessTable);
   }
 
-  llvm::CallInst *call = emission->createCall(fnPtr);
+  toolchain::CallInst *call = emission->createCall(fnPtr);
 
   if (!origType->isAsync() && !origType->isCoroutine() && addressesToDeallocate.empty() &&
       !needsAllocas &&  (!consumesContext || !dependsOnContextLifetime))
@@ -2290,16 +2291,16 @@ static llvm::Value *emitPartialApplicationForwarder(
 /// set of argument values.
 std::optional<StackAddress> irgen::emitFunctionPartialApplication(
     IRGenFunction &IGF, SILFunction &SILFn, const FunctionPointer &fn,
-    llvm::Value *fnContext, Explosion &args, ArrayRef<SILParameterInfo> params,
+    toolchain::Value *fnContext, Explosion &args, ArrayRef<SILParameterInfo> params,
     SubstitutionMap subs, CanSILFunctionType origType,
     CanSILFunctionType substType, CanSILFunctionType outType, Explosion &out,
     bool isOutlined) {
-  // If we have a single Swift-refcounted context value, we can adopt it
+  // If we have a single Codira-refcounted context value, we can adopt it
   // directly as our closure context without creating a box and thunk.
-  enum HasSingleSwiftRefcountedContext { Maybe, Yes, No, Thunkable }
-    hasSingleSwiftRefcountedContext = Maybe;
+  enum HasSingleCodiraRefcountedContext { Maybe, Yes, No, Thunkable }
+    hasSingleCodiraRefcountedContext = Maybe;
   std::optional<ParameterConvention> singleRefcountedConvention;
-  std::optional<llvm::Type *> singleRefCountedType;
+  std::optional<toolchain::Type *> singleRefCountedType;
 
   SmallVector<const TypeInfo *, 4> argTypeInfos;
   SmallVector<SILType, 4> argValTypes;
@@ -2348,25 +2349,25 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
     argConventions.push_back(param.getConvention());
     argTypeInfos.push_back(&ti);
 
-    // Update the single-swift-refcounted check, unless we already ruled that
+    // Update the single-language-refcounted check, unless we already ruled that
     // out.
-    if (hasSingleSwiftRefcountedContext == No)
+    if (hasSingleCodiraRefcountedContext == No)
       return;
     
     
     // Adding nonempty values when we already have a single refcounted pointer
     // means we don't have a single value anymore.
-    if (hasSingleSwiftRefcountedContext != Maybe) {
-      hasSingleSwiftRefcountedContext = No;
+    if (hasSingleCodiraRefcountedContext != Maybe) {
+      hasSingleCodiraRefcountedContext = No;
       return;
     }
       
-    if (ti.isSingleSwiftRetainablePointer(ResilienceExpansion::Maximal)) {
-      hasSingleSwiftRefcountedContext = Yes;
+    if (ti.isSingleCodiraRetainablePointer(ResilienceExpansion::Maximal)) {
+      hasSingleCodiraRefcountedContext = Yes;
       singleRefcountedConvention = param.getConvention();
       singleRefCountedType = ti.getStorageType();
     } else {
-      hasSingleSwiftRefcountedContext = No;
+      hasSingleCodiraRefcountedContext = No;
     }
   };
 
@@ -2387,7 +2388,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
   std::optional<unsigned> bindingsIndex;
   if (!bindings.empty()) {
     bindingsIndex = argTypeInfos.size();
-    hasSingleSwiftRefcountedContext = No;
+    hasSingleCodiraRefcountedContext = No;
     auto bindingsSize = bindings.getBufferSize(IGF.IGM);
     auto &bindingsTI = IGF.IGM.getOpaqueStorageTypeInfo(bindingsSize,
                                                  IGF.IGM.getPointerAlignment());
@@ -2408,9 +2409,9 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
   // but the output signature needs to be
   //   %result (%context*, %error*)
   //
-  // 'swifterror' fixes this physically, but there's still a risk of
+  // 'languageerror' fixes this physically, but there's still a risk of
   // miscompiles because the LLVM optimizer may forward arguments
-  // positionally without considering 'swifterror'.
+  // positionally without considering 'languageerror'.
   //
   // Note, however, that we will override this decision below if the
   // only thing we have to forward is already a context pointer.
@@ -2420,16 +2421,16 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
   // emitted with a convention that takes the closure box as the
   // context parameter.  When we do that, all of this code will
   // disappear.
-  if (hasSingleSwiftRefcountedContext == Yes &&
+  if (hasSingleCodiraRefcountedContext == Yes &&
       origType->hasErrorResult()) {
-    hasSingleSwiftRefcountedContext = Thunkable;
+    hasSingleCodiraRefcountedContext = Thunkable;
   }
   
   // If the function pointer is a witness method call, include the witness
   // table in the context.
   if (origType->getRepresentation() ==
         SILFunctionTypeRepresentation::WitnessMethod) {
-    llvm::Value *wtable = fnContext;
+    toolchain::Value *wtable = fnContext;
     assert(wtable->getType() == IGF.IGM.WitnessTablePtrTy);
 
     // TheRawPointerType lowers as i8*, not i8**.
@@ -2439,7 +2440,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
     argTypeInfos.push_back(
          &IGF.getTypeInfoForLowered(IGF.IGM.Context.TheRawPointerType));
     argConventions.push_back(ParameterConvention::Direct_Unowned);
-    hasSingleSwiftRefcountedContext = No;
+    hasSingleCodiraRefcountedContext = No;
 
   // Otherwise, we might have a reference-counted context pointer.
   } else if (fnContext) {
@@ -2452,7 +2453,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
     // it.
     if (args.size() == 1) {
       assert(bindings.empty());
-      hasSingleSwiftRefcountedContext = Yes;
+      hasSingleCodiraRefcountedContext = Yes;
       singleRefcountedConvention = origType->getCalleeConvention();
       singleRefCountedType = IGF.IGM.getNativeObjectTypeInfo().getStorageType();
     }
@@ -2464,19 +2465,19 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
   // to capture), and the dest ownership semantics match the parameter's,
   // skip building the box and thunk and just take the pointer as
   // context.
-  // TODO: We can only do this and use swiftself if all our swiftcc emit the
-  // last parameter that fits into a register as swiftself.
+  // TODO: We can only do this and use languageself if all our languagecc emit the
+  // last parameter that fits into a register as languageself.
   // We should get this optimization back using the @convention(closure) whose
-  // box argument should just be swift self.
+  // box argument should just be language self.
   if (/* DISABLES CODE */ (false) &&
       !origType->isPolymorphic() &&
-      hasSingleSwiftRefcountedContext == Yes &&
+      hasSingleCodiraRefcountedContext == Yes &&
       outType->getCalleeConvention() == *singleRefcountedConvention) {
     assert(args.size() == 1);
     auto fnPtr = emitPointerAuthResign(IGF, fn, outAuthInfo).getPointer(IGF);
     fnPtr = IGF.Builder.CreateBitCast(fnPtr, IGF.IGM.Int8PtrTy);
     out.add(fnPtr);
-    llvm::Value *ctx = args.claimNext();
+    toolchain::Value *ctx = args.claimNext();
     ctx = IGF.Builder.CreateBitCast(ctx, IGF.IGM.RefCountedPtrTy);
     out.add(ctx);
     return {};
@@ -2493,13 +2494,13 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
     argTypeInfos.push_back(
          &IGF.getTypeInfoForLowered(IGF.IGM.Context.TheRawPointerType));
     argConventions.push_back(ParameterConvention::Direct_Unowned);
-    hasSingleSwiftRefcountedContext = No;
+    hasSingleCodiraRefcountedContext = No;
   }
 
-  // If we only need to capture a single Swift-refcounted object, we
+  // If we only need to capture a single Codira-refcounted object, we
   // still need to build a thunk, but we don't need to allocate anything.
-  if ((hasSingleSwiftRefcountedContext == Yes ||
-       hasSingleSwiftRefcountedContext == Thunkable) &&
+  if ((hasSingleCodiraRefcountedContext == Yes ||
+       hasSingleCodiraRefcountedContext == Thunkable) &&
       *singleRefcountedConvention != ParameterConvention::Indirect_Inout &&
       *singleRefcountedConvention !=
         ParameterConvention::Indirect_InoutAliasable) {
@@ -2510,7 +2511,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
 
     auto origSig = IGF.IGM.getSignature(origType);
 
-    llvm::Value *forwarder =
+    toolchain::Value *forwarder =
       emitPartialApplicationForwarder(IGF.IGM, staticFn, fnContext != nullptr,
                                       origSig, origType, substType,
                                       outType, subs, nullptr, argConventions);
@@ -2518,7 +2519,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
     forwarder = IGF.Builder.CreateBitCast(forwarder, IGF.IGM.Int8PtrTy);
     out.add(forwarder);
 
-    llvm::Value *ctx = args.claimNext();
+    toolchain::Value *ctx = args.claimNext();
     if (isIndirectFormalParameter(*singleRefcountedConvention))
       ctx = IGF.Builder.CreateLoad(
           Address(ctx, *singleRefCountedType, IGF.IGM.getPointerAlignment()));
@@ -2553,13 +2554,13 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
   }
 #endif
 
-  llvm::Value *data;
+  toolchain::Value *data;
 
   std::optional<StackAddress> stackAddr;
 
   if (args.empty() && layout.isKnownEmpty()) {
     if (outType->isNoEscape())
-      data = llvm::ConstantPointerNull::get(IGF.IGM.OpaquePtrTy);
+      data = toolchain::ConstantPointerNull::get(IGF.IGM.OpaquePtrTy);
     else
       data = IGF.IGM.RefCountedNull;
   } else {
@@ -2599,7 +2600,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
       // We don't add non-constant function pointers to the explosion above,
       // so we need to handle them specially now.
       if (i == nonStaticFnIndex) {
-        llvm::Value *fnPtr = fn.getRawPointer();
+        toolchain::Value *fnPtr = fn.getRawPointer();
         if (auto &schema =
                 origType->isAsync()
                     ? IGF.getOptions().PointerAuth.AsyncPartialApplyCapture
@@ -2648,7 +2649,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
       case ParameterConvention::Pack_Guaranteed:
       case ParameterConvention::Pack_Owned:
       case ParameterConvention::Pack_Inout:
-        llvm_unreachable("partial application of pack?");
+        toolchain_unreachable("partial application of pack?");
         break;
       }
     }
@@ -2658,7 +2659,7 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
   // Create the forwarding stub.
   auto origSig = IGF.IGM.getSignature(origType);
 
-  llvm::Value *forwarder = emitPartialApplicationForwarder(
+  toolchain::Value *forwarder = emitPartialApplicationForwarder(
       IGF.IGM, staticFn, fnContext != nullptr, origSig, origType, substType,
       outType, subs, &layout, argConventions);
   forwarder = emitPointerAuthSign(IGF, forwarder, outAuthInfo);
@@ -2669,26 +2670,26 @@ std::optional<StackAddress> irgen::emitFunctionPartialApplication(
 }
 
 /// Emit the block copy helper for a block.
-static llvm::Function *emitBlockCopyHelper(IRGenModule &IGM,
+static toolchain::Function *emitBlockCopyHelper(IRGenModule &IGM,
                                            CanSILBlockStorageType blockTy,
                                            const BlockStorageTypeInfo &blockTL){
   // See if we've produced a block copy helper for this type before.
   // TODO
   
   // Create the helper.
-  llvm::Type *args[] = {
+  toolchain::Type *args[] = {
     blockTL.getStorageType()->getPointerTo(),
     blockTL.getStorageType()->getPointerTo(),
   };
-  auto copyTy = llvm::FunctionType::get(IGM.VoidTy, args, /*vararg*/ false);
+  auto copyTy = toolchain::FunctionType::get(IGM.VoidTy, args, /*vararg*/ false);
   // TODO: Give these predictable mangled names and shared linkage.
-  auto func = llvm::Function::Create(copyTy, llvm::GlobalValue::InternalLinkage,
+  auto fn = toolchain::Function::Create(copyTy, toolchain::GlobalValue::InternalLinkage,
                                      "block_copy_helper",
                                      IGM.getModule());
-  func->setAttributes(IGM.constructInitialAttributes());
-  IRGenFunction IGF(IGM, func);
+  fn->setAttributes(IGM.constructInitialAttributes());
+  IRGenFunction IGF(IGM, fn);
   if (IGM.DebugInfo)
-    IGM.DebugInfo->emitArtificialFunction(IGF, func);
+    IGM.DebugInfo->emitArtificialFunction(IGF, fn);
   
   // Copy the captures from the source to the destination.
   Explosion params = IGF.collectParameters();
@@ -2705,30 +2706,30 @@ static llvm::Function *emitBlockCopyHelper(IRGenModule &IGM,
 
   IGF.Builder.CreateRetVoid();
   
-  return func;
+  return fn;
 }
 
 /// Emit the block copy helper for a block.
-static llvm::Function *emitBlockDisposeHelper(IRGenModule &IGM,
+static toolchain::Function *emitBlockDisposeHelper(IRGenModule &IGM,
                                            CanSILBlockStorageType blockTy,
                                            const BlockStorageTypeInfo &blockTL){
   // See if we've produced a block destroy helper for this type before.
   // TODO
   
   // Create the helper.
-  auto destroyTy = llvm::FunctionType::get(IGM.VoidTy,
+  auto destroyTy = toolchain::FunctionType::get(IGM.VoidTy,
                                        blockTL.getStorageType()->getPointerTo(),
                                        /*vararg*/ false);
   // TODO: Give these predictable mangled names and shared linkage.
-  auto func = llvm::Function::Create(destroyTy,
-                                     llvm::GlobalValue::InternalLinkage,
+  auto fn = toolchain::Function::Create(destroyTy,
+                                     toolchain::GlobalValue::InternalLinkage,
                                      "block_destroy_helper",
                                      IGM.getModule());
-  func->setAttributes(IGM.constructInitialAttributes());
-  IRGenFunction IGF(IGM, func);
-  assert(!func->hasFnAttribute(llvm::Attribute::SanitizeThread));
+  fn->setAttributes(IGM.constructInitialAttributes());
+  IRGenFunction IGF(IGM, fn);
+  assert(!fn->hasFnAttribute(toolchain::Attribute::SanitizeThread));
   if (IGM.DebugInfo)
-    IGM.DebugInfo->emitArtificialFunction(IGF, func);
+    IGM.DebugInfo->emitArtificialFunction(IGF, fn);
   
   // Destroy the captures.
   Explosion params = IGF.collectParameters();
@@ -2740,28 +2741,31 @@ static llvm::Function *emitBlockDisposeHelper(IRGenModule &IGM,
                     false /*block storage code path: never outlined*/);
   IGF.Builder.CreateRetVoid();
   
-  return func;
+  return fn;
 }
 
 /// Emit the block header into a block storage slot.
 void irgen::emitBlockHeader(IRGenFunction &IGF,
                             Address storage,
                             CanSILBlockStorageType blockTy,
-                            llvm::Constant *invokeFunction,
+                            toolchain::Constant *invokeFunction,
                             CanSILFunctionType invokeTy,
                             ForeignFunctionInfo foreignInfo) {
   auto &storageTL
     = IGF.getTypeInfoForLowered(blockTy).as<BlockStorageTypeInfo>();
 
   Address headerAddr = storageTL.projectBlockHeader(IGF, storage);
-  
+
   //
   // Initialize the "isa" pointer, which is _NSConcreteStackBlock.
   auto NSConcreteStackBlock =
       IGF.IGM.getModule()->getOrInsertGlobal("_NSConcreteStackBlock",
                                              IGF.IGM.ObjCClassStructTy);
-  ApplyIRLinkage(IRLinkage::ExternalImport)
-      .to(cast<llvm::GlobalVariable>(NSConcreteStackBlock));
+  language::ClangImporter *CI =
+      static_cast<ClangImporter *>(IGF.IGM.Context.getClangModuleLoader());
+  if (!CI->getCodeGenOpts().StaticClosure)
+    ApplyIRLinkage(IRLinkage::ExternalImport)
+        .to(cast<toolchain::GlobalVariable>(NSConcreteStackBlock));
 
   //
   // Set the flags.
@@ -2781,11 +2785,11 @@ void irgen::emitBlockHeader(IRGenFunction &IGF,
   // - HAS_SIGNATURE
   flags |= 1 << 30;
   
-  auto flagsVal = llvm::ConstantInt::get(IGF.IGM.Int32Ty, flags);
+  auto flagsVal = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, flags);
   
   // Collect the reserved and invoke pointer fields.
-  auto reserved = llvm::ConstantInt::get(IGF.IGM.Int32Ty, 0);
-  llvm::Value *invokeVal = llvm::ConstantExpr::getBitCast(invokeFunction,
+  auto reserved = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 0);
+  toolchain::Value *invokeVal = toolchain::ConstantExpr::getBitCast(invokeFunction,
                                                       IGF.IGM.FunctionPtrTy);
   
   // Build the block descriptor.
@@ -2793,8 +2797,8 @@ void irgen::emitBlockHeader(IRGenFunction &IGF,
   auto descriptorFields = builder.beginStruct();
 
   const clang::ASTContext &ASTContext = IGF.IGM.getClangASTContext();
-  llvm::IntegerType *UnsignedLongTy =
-      llvm::IntegerType::get(IGF.IGM.getLLVMContext(),
+  toolchain::IntegerType *UnsignedLongTy =
+      toolchain::IntegerType::get(IGF.IGM.getLLVMContext(),
                              ASTContext.getTypeSize(ASTContext.UnsignedLongTy));
   descriptorFields.addInt(UnsignedLongTy, 0);
   descriptorFields.addInt(UnsignedLongTy,
@@ -2821,7 +2825,7 @@ void irgen::emitBlockHeader(IRGenFunction &IGF,
                                            IGF.IGM.getPointerAlignment(),
                                            /*constant*/ true);
 
-  auto descriptorVal = llvm::ConstantExpr::getBitCast(descriptor,
+  auto descriptorVal = toolchain::ConstantExpr::getBitCast(descriptor,
                                                       IGF.IGM.Int8PtrTy);
   
   // Store the block header.
@@ -2847,10 +2851,10 @@ void irgen::emitBlockHeader(IRGenFunction &IGF,
                           IGF.Builder.CreateStructGEP(headerAddr, 4, layout));
 }
 
-llvm::Value *IRGenFunction::popAsyncContext(llvm::Value *calleeContext) {
+toolchain::Value *IRGenFunction::popAsyncContext(toolchain::Value *calleeContext) {
   auto addr = Builder.CreateBitOrPointerCast(calleeContext, IGM.Int8PtrPtrTy);
   Address callerContextAddr(addr, IGM.Int8PtrTy, IGM.getPointerAlignment());
-  llvm::Value *callerContext = Builder.CreateLoad(callerContextAddr);
+  toolchain::Value *callerContext = Builder.CreateLoad(callerContextAddr);
   if (auto schema = IGM.getOptions().PointerAuth.AsyncContextParent) {
     auto authInfo =
         PointerAuthInfo::emit(*this, schema, addr, PointerAuthEntity());
@@ -2859,17 +2863,17 @@ llvm::Value *IRGenFunction::popAsyncContext(llvm::Value *calleeContext) {
   return callerContext;
 }
 
-llvm::Value *
-IRGenFunction::emitAsyncResumeProjectContext(llvm::Value *calleeContext) {
+toolchain::Value *
+IRGenFunction::emitAsyncResumeProjectContext(toolchain::Value *calleeContext) {
   auto  callerContext = popAsyncContext(calleeContext);
 
   // TODO: remove this once all platforms support lowering the intrinsic.
   // At the time of this writing only arm64 supports it.
-  if (IGM.TargetInfo.canUseSwiftAsyncContextAddrIntrinsic()) {
-    llvm::Value *storedCallerContext = callerContext;
+  if (IGM.TargetInfo.canUseCodiraAsyncContextAddrIntrinsic()) {
+    toolchain::Value *storedCallerContext = callerContext;
     auto contextLocationInExtendedFrame =
         Address(Builder.CreateIntrinsicCall(
-                    llvm::Intrinsic::swift_async_context_addr, {}),
+                    toolchain::Intrinsic::language_async_context_addr, {}),
                 IGM.Int8PtrTy, IGM.getPointerAlignment());
     // On arm64e we need to sign this pointer address discriminated
     // with 0xc31a and process dependent key.
@@ -2886,13 +2890,13 @@ IRGenFunction::emitAsyncResumeProjectContext(llvm::Value *calleeContext) {
   return callerContext;
 }
 
-llvm::Function *IRGenFunction::getOrCreateResumePrjFn() {
-  auto name = "__swift_async_resume_project_context";
+toolchain::Function *IRGenFunction::getOrCreateResumePrjFn() {
+  auto name = "__language_async_resume_project_context";
   // This is effectively an outlined function with `alwaysinline`. Don't emit
   // debug locations for those to avoid creating unnecessary inlined frames.
   // Instead, rely on the inliner to propagate the call site debug location.
   const bool skipDebugInfo = true;
-  auto Fn = cast<llvm::Function>(IGM.getOrCreateHelperFunction(
+  auto Fn = cast<toolchain::Function>(IGM.getOrCreateHelperFunction(
       name, IGM.Int8PtrTy, {IGM.Int8PtrTy},
       [&](IRGenFunction &IGF) {
         auto it = IGF.CurFn->arg_begin();
@@ -2902,13 +2906,13 @@ llvm::Function *IRGenFunction::getOrCreateResumePrjFn() {
         Builder.CreateRet(callerContext);
       },
       false /*isNoInline*/, skipDebugInfo));
-  Fn->addFnAttr(llvm::Attribute::AlwaysInline);
+  Fn->addFnAttr(toolchain::Attribute::AlwaysInline);
   return Fn;
 }
-llvm::Function *
+toolchain::Function *
 IRGenFunction::createAsyncDispatchFn(const FunctionPointer &fnPtr,
-                                     ArrayRef<llvm::Value *> args) {
-  SmallVector<llvm::Type*, 8> argTys;
+                                     ArrayRef<toolchain::Value *> args) {
+  SmallVector<toolchain::Type*, 8> argTys;
   for (auto arg : args) {
     auto *ty = arg->getType();
     argTys.push_back(ty);
@@ -2916,10 +2920,10 @@ IRGenFunction::createAsyncDispatchFn(const FunctionPointer &fnPtr,
   return createAsyncDispatchFn(fnPtr, argTys);
 }
 
-llvm::Function *
+toolchain::Function *
 IRGenFunction::createAsyncDispatchFn(const FunctionPointer &fnPtr,
-                                     ArrayRef<llvm::Type *> argTypes) {
-  SmallVector<llvm::Type*, 8> argTys;
+                                     ArrayRef<toolchain::Type *> argTypes) {
+  SmallVector<toolchain::Type*, 8> argTys;
   argTys.push_back(IGM.Int8PtrTy); // Function pointer to be called.
   auto originalAuthInfo = fnPtr.getAuthInfo();
   if (fnPtr.getAuthInfo()) {
@@ -2930,21 +2934,21 @@ IRGenFunction::createAsyncDispatchFn(const FunctionPointer &fnPtr,
   }
   auto calleeFnPtrType = fnPtr.getRawPointer()->getType();
   auto *dispatchFnTy =
-      llvm::FunctionType::get(IGM.VoidTy, argTys, false /*vaargs*/);
-  llvm::SmallString<40> name;
-  llvm::raw_svector_ostream(name) << CurFn->getName() << ".0";
-  llvm::Function *dispatch =
-      llvm::Function::Create(dispatchFnTy, llvm::Function::InternalLinkage,
-                             llvm::StringRef(name), &IGM.Module);
-  dispatch->setCallingConv(IGM.SwiftAsyncCC);
+      toolchain::FunctionType::get(IGM.VoidTy, argTys, false /*vaargs*/);
+  toolchain::SmallString<40> name;
+  toolchain::raw_svector_ostream(name) << CurFn->getName() << ".0";
+  toolchain::Function *dispatch =
+      toolchain::Function::Create(dispatchFnTy, toolchain::Function::InternalLinkage,
+                             toolchain::StringRef(name), &IGM.Module);
+  dispatch->setCallingConv(IGM.CodiraAsyncCC);
   dispatch->setDoesNotThrow();
-  dispatch->addFnAttr(llvm::Attribute::AlwaysInline);
+  dispatch->addFnAttr(toolchain::Attribute::AlwaysInline);
   IRGenFunction dispatchIGF(IGM, dispatch);
   auto &Builder = dispatchIGF.Builder;
   auto it = dispatchIGF.CurFn->arg_begin(), end = dispatchIGF.CurFn->arg_end();
-  llvm::Value *fnPtrArg = &*(it++);
-  llvm::Value *discriminatorArg = ((bool)originalAuthInfo) ? &*(it++) : nullptr;
-  SmallVector<llvm::Value *, 8> callArgs;
+  toolchain::Value *fnPtrArg = &*(it++);
+  toolchain::Value *discriminatorArg = ((bool)originalAuthInfo) ? &*(it++) : nullptr;
+  SmallVector<toolchain::Value *, 8> callArgs;
   for (; it != end; ++it) {
     callArgs.push_back(&*it);
   }
@@ -2964,17 +2968,17 @@ IRGenFunction::createAsyncDispatchFn(const FunctionPointer &fnPtr,
 }
 
 void IRGenFunction::emitSuspensionPoint(Explosion &toExecutor,
-                                        llvm::Value *asyncResume) {
+                                        toolchain::Value *asyncResume) {
 
   // Setup the suspend point.
-  SmallVector<llvm::Value *, 8> arguments;
-  unsigned swiftAsyncContextIndex = 0;
-  arguments.push_back(IGM.getInt32(swiftAsyncContextIndex)); // context index
+  SmallVector<toolchain::Value *, 8> arguments;
+  unsigned languageAsyncContextIndex = 0;
+  arguments.push_back(IGM.getInt32(languageAsyncContextIndex)); // context index
   arguments.push_back(asyncResume);
   auto resumeProjFn = getOrCreateResumeFromSuspensionFn();
   arguments.push_back(
       Builder.CreateBitOrPointerCast(resumeProjFn, IGM.Int8PtrTy));
-  llvm::Function *suspendFn = createAsyncSuspendFn();
+  toolchain::Function *suspendFn = createAsyncSuspendFn();
   arguments.push_back(
       Builder.CreateBitOrPointerCast(suspendFn, IGM.Int8PtrTy));
 
@@ -2983,55 +2987,55 @@ void IRGenFunction::emitSuspensionPoint(Explosion &toExecutor,
   arguments.push_back(toExecutor.claimNext());
   arguments.push_back(toExecutor.claimNext());
   arguments.push_back(getAsyncContext());
-  auto resultTy = llvm::StructType::get(IGM.getLLVMContext(), {IGM.Int8PtrTy},
+  auto resultTy = toolchain::StructType::get(IGM.getLLVMContext(), {IGM.Int8PtrTy},
                                         false /*packed*/);
-  emitSuspendAsyncCall(swiftAsyncContextIndex, resultTy, arguments);
+  emitSuspendAsyncCall(languageAsyncContextIndex, resultTy, arguments);
 }
 
-llvm::Function *IRGenFunction::getOrCreateResumeFromSuspensionFn() {
-  auto name = "__swift_async_resume_get_context";
-  auto fn = cast<llvm::Function>(IGM.getOrCreateHelperFunction(
+toolchain::Function *IRGenFunction::getOrCreateResumeFromSuspensionFn() {
+  auto name = "__language_async_resume_get_context";
+  auto fn = cast<toolchain::Function>(IGM.getOrCreateHelperFunction(
       name, IGM.Int8PtrTy, {IGM.Int8PtrTy},
       [&](IRGenFunction &IGF) {
         auto &Builder = IGF.Builder;
         Builder.CreateRet(&*IGF.CurFn->arg_begin());
       },
       false /*isNoInline*/, true /*forPrologue*/));
-  fn->addFnAttr(llvm::Attribute::AlwaysInline);
+  fn->addFnAttr(toolchain::Attribute::AlwaysInline);
   return fn;
 }
 
-llvm::Function *IRGenFunction::createAsyncSuspendFn() {
-  llvm::SmallString<40> nameBuffer;
-  llvm::raw_svector_ostream(nameBuffer) << CurFn->getName() << ".1";
+toolchain::Function *IRGenFunction::createAsyncSuspendFn() {
+  toolchain::SmallString<40> nameBuffer;
+  toolchain::raw_svector_ostream(nameBuffer) << CurFn->getName() << ".1";
   StringRef name(nameBuffer);
-  if (llvm::GlobalValue *F = IGM.Module.getNamedValue(name))
-    return cast<llvm::Function>(F);
+  if (toolchain::GlobalValue *F = IGM.Module.getNamedValue(name))
+    return cast<toolchain::Function>(F);
 
   // The parameters here match the extra arguments passed to
-  // @llvm.coro.suspend.async by emitSuspensionPoint.
-  SmallVector<llvm::Type*, 8> argTys;
+  // @toolchain.coro.suspend.async by emitSuspensionPoint.
+  SmallVector<toolchain::Type*, 8> argTys;
   argTys.push_back(IGM.Int8PtrTy); // resume function
   argTys.push_back(IGM.ExecutorFirstTy); // target executor (first half)
   argTys.push_back(IGM.ExecutorSecondTy); // target executor (second half)
   argTys.push_back(getAsyncContext()->getType()); // current context
   auto *suspendFnTy =
-      llvm::FunctionType::get(IGM.VoidTy, argTys, false /*vaargs*/);
+      toolchain::FunctionType::get(IGM.VoidTy, argTys, false /*vaargs*/);
 
-  llvm::Function *suspendFn =
-      llvm::Function::Create(suspendFnTy, llvm::Function::InternalLinkage,
+  toolchain::Function *suspendFn =
+      toolchain::Function::Create(suspendFnTy, toolchain::Function::InternalLinkage,
                              name, &IGM.Module);
-  suspendFn->setCallingConv(IGM.SwiftAsyncCC);
+  suspendFn->setCallingConv(IGM.CodiraAsyncCC);
   suspendFn->setDoesNotThrow();
-  suspendFn->addFnAttr(llvm::Attribute::AlwaysInline);
+  suspendFn->addFnAttr(toolchain::Attribute::AlwaysInline);
   IRGenFunction suspendIGF(IGM, suspendFn);
   auto &Builder = suspendIGF.Builder;
 
-  llvm::Value *resumeFunction = suspendFn->getArg(0);
-  llvm::Value *targetExecutorFirst = suspendFn->getArg(1);
-  llvm::Value *targetExecutorSecond = suspendFn->getArg(2);
-  llvm::Value *context = suspendFn->getArg(3);
-  context = Builder.CreateBitCast(context, IGM.SwiftContextPtrTy);
+  toolchain::Value *resumeFunction = suspendFn->getArg(0);
+  toolchain::Value *targetExecutorFirst = suspendFn->getArg(1);
+  toolchain::Value *targetExecutorSecond = suspendFn->getArg(2);
+  toolchain::Value *context = suspendFn->getArg(3);
+  context = Builder.CreateBitCast(context, IGM.CodiraContextPtrTy);
 
   // Sign the task resume function with the C function pointer schema.
   if (auto schema = IGM.getOptions().PointerAuth.FunctionPointers) {
@@ -3047,12 +3051,12 @@ llvm::Function *IRGenFunction::createAsyncSuspendFn() {
   auto *suspendCall = Builder.CreateCall(
       IGM.getTaskSwitchFuncFunctionPointer(),
       {context, resumeFunction, targetExecutorFirst, targetExecutorSecond});
-  suspendCall->setCallingConv(IGM.SwiftAsyncCC);
+  suspendCall->setCallingConv(IGM.CodiraAsyncCC);
   suspendCall->setDoesNotThrow();
   suspendCall->setTailCallKind(IGM.AsyncTailCallKind);
 
-  llvm::AttributeList attrs = suspendCall->getAttributes();
-  IGM.addSwiftAsyncContextAttributes(attrs, /*context arg index*/ 0);
+  toolchain::AttributeList attrs = suspendCall->getAttributes();
+  IGM.addCodiraAsyncContextAttributes(attrs, /*context arg index*/ 0);
   suspendCall->setAttributes(attrs);
 
   Builder.CreateRetVoid();

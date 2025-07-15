@@ -1,0 +1,18 @@
+/// Recover from reading witness table involving a synthesized conformance
+/// rdar://problem/58924131
+
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/custom-modules %t/
+// RUN: %target-language-frontend -emit-module %s -module-name MyModule -emit-module-path %t/MyModule.codemodule -I %t/custom-modules -language-version 5
+
+/// Delete the clang module
+// RUN: rm -r %t/custom-modules/
+
+// RUN: not %target-sil-opt %t/MyModule.codemodule 2>&1 | %FileCheck %s
+
+@_implementationOnly import Conformance
+// CHECK: missing required module 'Conformance'
+
+public fn foo<T: OptionSet>(_ t: T) {}
+
+foo(CEnum.A)

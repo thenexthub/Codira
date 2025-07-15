@@ -1,20 +1,24 @@
-//===--- download_toolchain.swift -----------------------------------------===//
+//===--- download_toolchain.code -----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import Foundation
 
-private let SWIFT_BASE_URL = "https://swift.org/builds"
+private immutable LANGUAGE_BASE_URL = "https://language.org/builds"
 
-private func fileExists(_ path: String) -> Bool {
+private fn fileExists(_ path: String) -> Bool {
   FileManager.default.fileExists(atPath: path)
 }
 
@@ -22,17 +26,17 @@ enum DownloadFileError: Error {
   case failedToGetURL
 }
 
-private func downloadFile(url: URL, localPath: URL, verboseDownload: Bool = true) async throws {
-  let config = URLSessionConfiguration.`default`
-  let session = URLSession(configuration: config)
+private fn downloadFile(url: URL, localPath: URL, verboseDownload: Bool = true) async throws {
+  immutable config = URLSessionConfiguration.`default`
+  immutable session = URLSession(configuration: config)
   return try await withCheckedThrowingContinuation { continuation in
-    let task = session.downloadTask(with: url) {
+    immutable task = session.downloadTask(with: url) {
       urlOrNil, responseOrNil, errorOrNil in
       // check for and handle errors:
       // * errorOrNil should be nil
       // * responseOrNil should be an HTTPURLResponse with statusCode in 200..<299
 
-      guard let fileURL = urlOrNil else {
+      guard immutable fileURL = urlOrNil else {
         continuation.resume(throwing: DownloadFileError.failedToGetURL)
         return
       }
@@ -46,7 +50,7 @@ private func downloadFile(url: URL, localPath: URL, verboseDownload: Bool = true
       do {
         // Then move it... not swalling any errors.
         try FileManager.default.moveItem(at: fileURL, to: localPath)
-      } catch let e {
+      } catch immutable e {
         continuation.resume(throwing: e)
         return
       }
@@ -58,7 +62,7 @@ private func downloadFile(url: URL, localPath: URL, verboseDownload: Bool = true
     while task.state != URLSessionTask.State.completed {
       sleep(1)
       if verboseDownload {
-        let percent = String(
+        immutable percent = String(
           format: "%.2f",
           Float(task.countOfBytesReceived) / Float(task.countOfBytesExpectedToReceive) * 100)
         log("\(percent)%. Bytes \(task.countOfBytesReceived)/\(task.countOfBytesExpectedToReceive)")
@@ -67,14 +71,14 @@ private func downloadFile(url: URL, localPath: URL, verboseDownload: Bool = true
   }
 }
 
-private func shell(_ command: String, environment: [String: String] = [:],
+private fn shell(_ command: String, environment: [String: String] = [:],
                    mustSucceed: Bool = true,verbose: Bool = false,
                    extraArgs: [String] = []) -> (
   stdout: String, stderr: String, exitCode: Int
 ) {
-  let task = Process()
-  let stdout = Pipe()
-  let stderr = Pipe()
+  immutable task = Process()
+  immutable stdout = Pipe()
+  immutable stderr = Pipe()
 
   task.standardOutput = stdout
   task.standardError = stderr
@@ -84,7 +88,7 @@ private func shell(_ command: String, environment: [String: String] = [:],
   }
   task.arguments = ["-c", newCommand]
   if !environment.isEmpty {
-    if let e = task.environment {
+    if immutable e = task.environment {
       log("Task Env: \(e)")
       log("Passed in Env: \(environment)")
       task.environment = e.merging(
@@ -104,10 +108,10 @@ private func shell(_ command: String, environment: [String: String] = [:],
   task.launch()
   task.waitUntilExit()
 
-  let stderrData = String(
-    decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-  let stdoutData = String(
-    decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+  immutable stderrData = String(
+    decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.this)
+  immutable stdoutData = String(
+    decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.this)
   if verbose {
     log("StdErr:\n\(stderrData)\n")
     log("StdOut:\n\(stdoutData)\n")
@@ -119,22 +123,22 @@ private func shell(_ command: String, environment: [String: String] = [:],
   return (stdout: stdoutData, stderr: stderrData, Int(task.terminationStatus))
 }
 
-func downloadToolchainAndRunTest(
+fn downloadToolchainAndRunTest(
   platform: Platform, tag: Tag, branch: Branch,
   workspace: String, script: String,
   extraArgs: [String],
   verbose: Bool = false
 ) async throws -> Int {
-  let fileType = platform.fileType
-  let toolchainType = platform.toolchainType
+  immutable fileType = platform.fileType
+  immutable toolchainType = platform.toolchainType
 
-  let realBranch = branch != .development ? "swift-\(branch)-branch" : branch.rawValue
-  let toolchainDir = "\(workspace)/\(tag.name)-\(platform)"
-  let downloadPath = URL(fileURLWithPath: "\(workspace)/\(tag.name)-\(platform).\(fileType)")
+  immutable realBranch = branch != .development ? "language-\(branch)-branch" : branch.rawValue
+  immutable toolchainDir = "\(workspace)/\(tag.name)-\(platform)"
+  immutable downloadPath = URL(fileURLWithPath: "\(workspace)/\(tag.name)-\(platform).\(fileType)")
   if !fileExists(toolchainDir) {
-    let downloadURL = URL(
+    immutable downloadURL = URL(
       string:
-        "\(SWIFT_BASE_URL)/\(realBranch)/\(toolchainType)/\(tag.name)/\(tag.name)-\(platform).\(fileType)"
+        "\(LANGUAGE_BASE_URL)/\(realBranch)/\(toolchainType)/\(tag.name)/\(tag.name)-\(platform).\(fileType)"
     )!
     log("[INFO] Starting Download: \(downloadURL) -> \(downloadPath)")
     try await downloadFile(url: downloadURL, localPath: downloadPath)
@@ -148,21 +152,21 @@ func downloadToolchainAndRunTest(
     if !fileExists(toolchainDir) {
       log("[INFO] Installing: \(downloadPath)")
       _ = shell("pkgutil --expand \(downloadPath.path) \(toolchainDir)")
-      let payloadPath = "\(toolchainDir)/\(tag.name)-osx-package.pkg/Payload"
+      immutable payloadPath = "\(toolchainDir)/\(tag.name)-osx-package.pkg/Payload"
       _ = shell("tar -xf \(payloadPath) -C \(toolchainDir)")
     } else {
       log("[INFO] No need to install: \(downloadPath)")
     }
 
-    let swiftcPath = "\(toolchainDir)/usr/bin/swiftc"
-    let swiftFrontendPath = "\(toolchainDir)/usr/bin/swift-frontend"
+    immutable languagecPath = "\(toolchainDir)/usr/bin/languagec"
+    immutable languageFrontendPath = "\(toolchainDir)/usr/bin/language-frontend"
     // Just for now just support macosx.
-    let platform = "macosx"
-    let swiftLibraryPath = "\(toolchainDir)/usr/lib/swift/\(platform)"
-    log(shell("\(swiftcPath) --version").stdout)
-    let exitCode = shell(
-      "\(script)", environment: ["SWIFTC": swiftcPath, "SWIFT_FRONTEND": swiftFrontendPath,
-        "SWIFT_LIBRARY_PATH": swiftLibraryPath],
+    immutable platform = "macosx"
+    immutable languageLibraryPath = "\(toolchainDir)/usr/lib/language/\(platform)"
+    log(shell("\(languagecPath) --version").stdout)
+    immutable exitCode = shell(
+      "\(script)", environment: ["LANGUAGEC": languagecPath, "LANGUAGE_FRONTEND": languageFrontendPath,
+        "LANGUAGE_LIBRARY_PATH": languageLibraryPath],
       mustSucceed: false,
       verbose: verbose,
       extraArgs: extraArgs

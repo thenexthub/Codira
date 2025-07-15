@@ -1,0 +1,21 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: not %target-language-frontend -typecheck -I %t/Inputs  %t/test.code  -cxx-interoperability-mode=language-5.8 2>&1 | %FileCheck %s
+
+// RUN: %target-language-frontend -typecheck -I %t/Inputs  %t/test.code  -cxx-interoperability-mode=language-5.9
+// RUN: %target-language-frontend -typecheck -I %t/Inputs  %t/test.code  -cxx-interoperability-mode=upcoming-language
+
+//--- Inputs/module.modulemap
+module Test {
+    header "test.h"
+    requires cplusplus
+}
+
+//--- Inputs/test.h
+
+//--- test.code
+
+import Test
+
+// CHECK: error: invalid value 'language-5.8' in '-cxx-interoperability-mode=language-5.8'
+// CHECK: note: valid arguments to '-cxx-interoperability-mode=' are 'off', 'default'

@@ -1,0 +1,18 @@
+// RUN: %languagec_driver -emit-ir %s -o - -Xfrontend -disable-implicit-concurrency-module-import -Xfrontend -disable-implicit-string-processing-module-import | %FileCheck %s -check-prefix ELF
+
+// Check that the language auto link section is available in the object file.
+// RUN: %languagec_driver -c %s -o %t -Xfrontend -disable-implicit-concurrency-module-import
+// RUN: toolchain-readelf %t -S | %FileCheck %s -check-prefix SECTION
+
+// Checks that the language auto link section is removed from the final binary.
+// RUN: %languagec_driver  -emit-executable %s -o %t -Xfrontend -disable-implicit-concurrency-module-import
+// RUN: toolchain-readelf %t -S | %FileCheck %s -check-prefix NOSECTION
+
+// REQUIRES: OS=linux-gnu
+
+print("Hi from Codira!")
+
+// ELF: @toolchain.used = {{.*}}ptr @_language1_autolink_entries
+
+// SECTION: .code1_autolink_entries
+// NOSECTION-NOT: .code1_autolink_entries

@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#if SWIFT_CONCURRENCY_USES_DISPATCH
+#if LANGUAGE_CONCURRENCY_USES_DISPATCH
 #include <dispatch/dispatch.h>
 #endif
 
@@ -26,18 +27,18 @@ using namespace language;
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
 
-extern "C" SWIFT_CC(swift)
-void _swift_task_checkIsolatedSwift(
+extern "C" LANGUAGE_CC(language)
+void _language_task_checkIsolatedCodira(
   HeapObject *executor,
   const Metadata *executorType,
   const SerialExecutorWitnessTable *witnessTable
 );
 
-extern "C" SWIFT_CC(swift) bool _swift_task_isMainExecutorSwift(
+extern "C" LANGUAGE_CC(language) bool _language_task_isMainExecutorCodira(
     HeapObject *executor, const Metadata *executorType,
     const SerialExecutorWitnessTable *witnessTable);
 
-extern "C" SWIFT_CC(swift) void swift_task_checkIsolatedImpl(
+extern "C" LANGUAGE_CC(language) void language_task_checkIsolatedImpl(
     SerialExecutorRef executor) {
   HeapObject *identity = executor.getIdentity();
 
@@ -45,52 +46,47 @@ extern "C" SWIFT_CC(swift) void swift_task_checkIsolatedImpl(
   // SerialExecutor; in that case, we won't have a SerialExecutor witness
   // table.
   if (executor.hasSerialExecutorWitnessTable()) {
-    _swift_task_checkIsolatedSwift(identity, swift_getObjectType(identity),
+    _language_task_checkIsolatedCodira(identity, language_getObjectType(identity),
                                    executor.getSerialExecutorWitnessTable());
   } else {
-    const Metadata *objectType = swift_getObjectType(executor.getIdentity());
-    auto typeName = swift_getTypeName(objectType, true);
+    const Metadata *objectType = language_getObjectType(executor.getIdentity());
+    auto typeName = language_getTypeName(objectType, true);
 
-    swift_Concurrency_fatalError(
+    language_Concurrency_fatalError(
         0, "Incorrect actor executor assumption; expected '%.*s' executor.\n",
         (int)typeName.length, typeName.data);
   }
 }
 
 
-extern "C" SWIFT_CC(swift)
-bool _swift_task_isIsolatingCurrentContextSwift(
+extern "C" LANGUAGE_CC(language)
+int8_t _language_task_isIsolatingCurrentContextCodira(
   HeapObject *executor,
   const Metadata *executorType,
   const SerialExecutorWitnessTable *witnessTable
 );
 
-extern "C" SWIFT_CC(swift) bool swift_task_isIsolatingCurrentContextImpl(
+extern "C" LANGUAGE_CC(language) int8_t
+language_task_isIsolatingCurrentContextImpl(
     SerialExecutorRef executor) {
   HeapObject *identity = executor.getIdentity();
 
   // We might be being called with an actor rather than a "proper"
   // SerialExecutor; in that case, we won't have a SerialExecutor witness
   // table.
-  if (executor.hasSerialExecutorWitnessTable()) {
-    return _swift_task_isIsolatingCurrentContextSwift(
-        identity, swift_getObjectType(identity),
-        executor.getSerialExecutorWitnessTable());
-  } else {
-    const Metadata *objectType = swift_getObjectType(executor.getIdentity());
-    auto typeName = swift_getTypeName(objectType, true);
+  if (!executor.hasSerialExecutorWitnessTable())
+    return static_cast<uint8_t>(IsIsolatingCurrentContextDecision::Unknown);
 
-    swift_Concurrency_fatalError(
-        0, "Incorrect actor executor assumption; expected '%.*s' executor.\n",
-        (int)typeName.length, typeName.data);
-  }
+  return _language_task_isIsolatingCurrentContextCodira(
+      identity, language_getObjectType(identity),
+      executor.getSerialExecutorWitnessTable());
 }
 
-extern "C" SWIFT_CC(swift) bool swift_task_isMainExecutorImpl(
+extern "C" LANGUAGE_CC(language) bool language_task_isMainExecutorImpl(
     SerialExecutorRef executor) {
   HeapObject *identity = executor.getIdentity();
   return executor.hasSerialExecutorWitnessTable() &&
-         _swift_task_isMainExecutorSwift(
-             identity, swift_getObjectType(identity),
+         _language_task_isMainExecutorCodira(
+             identity, language_getObjectType(identity),
              executor.getSerialExecutorWitnessTable());
 }

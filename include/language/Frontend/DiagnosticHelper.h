@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file exposes helper class to emit diagnostics from swift-frontend.
+// This file exposes helper class to emit diagnostics from language-frontend.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_DIAGNOSTIC_HELPER_H
-#define SWIFT_FRONTEND_DIAGNOSTIC_HELPER_H
+#ifndef LANGUAGE_FRONTEND_DIAGNOSTIC_HELPER_H
+#define LANGUAGE_FRONTEND_DIAGNOSTIC_HELPER_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/Support/raw_ostream.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 class CompilerInstance;
@@ -39,7 +40,7 @@ public:
   static DiagnosticHelper create(CompilerInstance &instance,
                                  const CompilerInvocation &invocation,
                                  ArrayRef<const char *> args,
-                                 llvm::raw_pwrite_stream &OS = llvm::errs(),
+                                 toolchain::raw_pwrite_stream &OS = toolchain::errs(),
                                  bool useQuasiPID = false);
 
   /// Begin emitting the message, specifically the parseable output message.
@@ -64,7 +65,7 @@ public:
 private:
   DiagnosticHelper(CompilerInstance &instance,
                    const CompilerInvocation &invocation,
-                   ArrayRef<const char *> args, llvm::raw_pwrite_stream &OS,
+                   ArrayRef<const char *> args, toolchain::raw_pwrite_stream &OS,
                    bool useQuasiPID);
 };
 

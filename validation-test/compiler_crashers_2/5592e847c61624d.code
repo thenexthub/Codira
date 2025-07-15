@@ -1,0 +1,7 @@
+// {"signature":"language::GenericEnvironment::getMappingIfPresent(language::CanType) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  struct b < each c {
+    extension a {
+      struct d {
+        e(repeat(each c))

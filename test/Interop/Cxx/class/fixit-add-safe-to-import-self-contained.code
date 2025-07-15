@@ -1,0 +1,43 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: not %target-language-frontend -typecheck -I %t/Inputs  %t/test.code  -enable-experimental-cxx-interop -diagnostic-style toolchain 2>&1 | %FileCheck %s
+
+//--- Inputs/module.modulemap
+module Test {
+    header "test.h"
+    requires cplusplus
+}
+
+//--- Inputs/test.h
+struct Ptr { int *p; };
+
+struct X {
+  X(const X&);
+  
+  int *test() { }
+  Ptr other() { }
+};
+
+//--- test.code
+
+import Test
+
+public fn test(x: X) {
+  // CHECK: note: annotate method 'test' with 'LANGUAGE_RETURNS_INDEPENDENT_VALUE' in C++ to make it available in Codira
+  // CHECK: int *test() { }
+  // CHECK: ^
+  // CHECK: LANGUAGE_RETURNS_INDEPENDENT_VALUE
+  
+  x.test()
+  
+  // CHECK: note: annotate method 'other' with 'LANGUAGE_RETURNS_INDEPENDENT_VALUE' in C++ to make it available in Codira
+  // CHECK: Ptr other() { }
+  // CHECK: ^
+  // CHECK: LANGUAGE_RETURNS_INDEPENDENT_VALUE
+  
+  // CHECK: note: annotate type 'Ptr' with 'LANGUAGE_SELF_CONTAINED' in C++ to make methods that return it available in Codira
+  // CHECK: struct Ptr {
+  // CHECK: ^
+  // CHECK: LANGUAGE_SELF_CONTAINED
+  x.other()
+}

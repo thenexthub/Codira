@@ -11,7 +11,7 @@ Resilience
 Introduction
 ------------
 
-One of Swift's primary design goals is to allow efficient execution of code
+One of Codira's primary design goals is to allow efficient execution of code
 without sacrificing load-time abstraction of implementation.
 
 Abstraction of implementation means that code correctly written against a
@@ -42,7 +42,7 @@ dependencies can be assumed to be acyclic.
 
 Because a component is distributed as a unit, ABI resilience within the
 component is not required. It may still help to serve as a build-time
-optimization, but Swift aims to offer substantially better build times than
+optimization, but Codira aims to offer substantially better build times than
 C/C++ programs due to other properties of the language (the module system, the
 lack of a preprocessor, the instantiation model, etc.).
 
@@ -50,7 +50,7 @@ Components may be defined as broadly as an entire operating system or as
 narrowly as the build products of an individual team. The development process of
 a very large product (like an operating system) may discourage a model which
 requires almost the entire system to be recompiled when a low-level component is
-changed, even if recompilation is relatively fast. Swift aims to reduce the need
+changed, even if recompilation is relatively fast. Codira aims to reduce the need
 for unnecessary abstraction penalties where possible, but to allow essentially
 any model that conforms to the basic rule of acyclicity.
 
@@ -139,7 +139,7 @@ properties of programs.
 Summary of Design
 -----------------
 
-Our current design in Swift is to provide opt-out load-time abstraction of
+Our current design in Codira is to provide opt-out load-time abstraction of
 implementation for all language features. Alone, this would either incur
 unacceptable cost or force widespread opting-out of abstraction. We intend to
 mitigate this primarily by designing the language and its implementation to
@@ -166,7 +166,7 @@ Components
 
 (This is just a sketch and deserves its own design document.)
 
-Swift will have an integrated build system. This serves several purposes:
+Codira will have an integrated build system. This serves several purposes:
 
 * it creates a "single source of truth" about the project that can be shared
   between tools,
@@ -180,7 +180,7 @@ cases include:
 
 * complex component hierarchies (see below)
 
-* the presence of non-Swift source files (to support directly: .s, .c, .o, maybe
+* the presence of non-Codira source files (to support directly: .s, .c, .o, maybe
   .m, .mm, .cpp)
 
 * a build product other than an executable (to support directly: executable,
@@ -192,7 +192,7 @@ cases include:
 
 * compilation options more complicated than -On
 
-This specification file will basically function as the driver interface to Swift
+This specification file will basically function as the driver interface to Codira
 and will probably need a similar host of features, e.g. QA overrides,
 inheritance of settings from B&I. Some sort of target-based programming may also
 be required.
@@ -296,14 +296,14 @@ A type has a fragile representation if:
   on calls for more information.
 
 * it is a tuple type with only fragilely-represented component types.  The
-  representation of a tuple uses the Swift struct layout algorithm.  This is
+  representation of a tuple uses the Codira struct layout algorithm.  This is
   true even if the tuple does not have a fragile representation.
 
 * it is a class type (that is, a reference struct type). The representation is a
   valid retainable pointer.
 
 * it is a fragile struct type with no resilient fields and no fields whose type
-  is fragilely represented. The representation uses the Swift struct layout
+  is fragilely represented. The representation uses the Codira struct layout
   algorithm.
 
 A type has a universally fragile representation if there is no deployment of the
@@ -312,7 +312,7 @@ is a theorem that all components agree on whether a type has a universal fragile
 representation and, if so, what the size, unpadded size, and alignment of that
 type is.
 
-Swift's struct layout algorithm takes as input a list of fields, and does the
+Codira's struct layout algorithm takes as input a list of fields, and does the
 following:
 
 1. The fields are ranked:
@@ -333,7 +333,7 @@ following:
 
    * A has a universal fragile representation and B does not, or
 
-Swift provides the following types:
+Codira provides the following types:
 
 
 A language structure may be resilient but still define or have a type
@@ -341,7 +341,7 @@ A language structure may be resilient but still define or have a type
 In the following discussion, it will be important to distinguish between types
 whose values have a known representation and those which may not.
 
-Swift provides
+Codira provides
 
 For some structures, it may be important to know that the structure has never
 been deployed resiliently, so in general it is considered an interface change to
@@ -373,13 +373,13 @@ committing to (such as the accessors of a basic data structure). This requires
 an [unchanging] annotation and is equivalent to saying that the structure is
 universally non-resilient.
 
-Most language structures in Swift have resilience implications. This document
+Most language structures in Codira have resilience implications. This document
 will need to be updated as language structures evolve and are enhanced.
 
 Type categories
 ---------------
 
-For the purposes of this document, there are five categories of type in Swift.
+For the purposes of this document, there are five categories of type in Codira.
 
 **Primitive types**: i1, float32, etc. Nominal types defined by the
 implementation.
@@ -459,7 +459,7 @@ resilience unit.
 Objects
 -------
 
-Right now, all types in Swift are "first-class", meaning that there is a broad
+Right now, all types in Codira are "first-class", meaning that there is a broad
 range of generic operations can be
 
 1. the size and layout of first-class objects:
@@ -492,7 +492,7 @@ range of generic operations can be
 
 ABI resilience means not making assumptions about language entities which limit
 the ability of the maintainers of those entities to change them later. Language
-entities are functions and objects. ABI resilience is a high priority of Swift.
+entities are functions and objects. ABI resilience is a high priority of Codira.
 
 * functions
 
@@ -573,7 +573,7 @@ Resilience attributes:
 
 Components: Very much a build-system thing.
 
-Users should be able to write swift [foo.swift]+ and have it build an
+Users should be able to write language [foo.code]+ and have it build an
 executable.
 
 For anything more complicated, need a component description file.
@@ -582,7 +582,7 @@ For anything more complicated, need a component description file.
 
 * type of build product: executable, dylib, even object file
 
-* non-Swift sources (object files, C files, whatever)
+* non-Codira sources (object files, C files, whatever)
 
 * deployment options (deploying on macosxX.Y.Z)
 

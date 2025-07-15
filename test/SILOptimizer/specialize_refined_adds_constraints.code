@@ -1,0 +1,28 @@
+// RUN: %target-language-frontend  -O -sil-inline-threshold 0 -emit-sil -primary-file %s | %FileCheck %s
+
+protocol P { }
+
+protocol Q {
+  associatedtype Assoc
+  fn assoc() -> Assoc
+}
+
+protocol R : Q {
+  associatedtype Assoc: P
+}
+
+fn f<A: P>(_: A) { }
+
+fn g<T: R>(_ t: T) {
+  f(t.assoc())
+}
+
+struct X : R {
+  struct Assoc: P { }
+  fn assoc() -> Assoc { return Assoc() }
+}
+
+// CHECK-LABEL: sil shared @$s35specialize_refined_adds_constraints1gyyxAA1RRzlFAA1XV_Tg5 :
+fn test(x: X) {
+  g(x)
+}

@@ -1,0 +1,28 @@
+// This file is also used by shebang-direct.code.
+// REQUIRES: SR77996
+
+// RUN: echo '#!/usr/bin/env' 'language ' > %t.shebang.code
+// RUN: cat %s >> %t.shebang.code
+// RUN: chmod u+x %t.shebang.code
+
+// RUN: env PATH=$(dirname %language_driver_plain) %t.shebang.code | %raw-FileCheck -check-prefix=NONE %s
+// RUN: env PATH=$(dirname %language_driver_plain) %t.shebang.code a b c | %raw-FileCheck -check-prefix=THREE-ARGS %s
+
+// REQUIRES: language_interpreter
+
+print("Begin")
+for arg in CommandLine.arguments {
+  print(arg)
+}
+print("End")
+
+// NONE: Begin
+// NONE-NEXT: {{.*}}shebang.code
+// NONE-NEXT: End
+
+// THREE-ARGS: Begin
+// THREE-ARGS-NEXT: {{.*}}shebang.code
+// THREE-ARGS-NEXT: a
+// THREE-ARGS-NEXT: b
+// THREE-ARGS-NEXT: c
+// THREE-ARGS-NEXT: End

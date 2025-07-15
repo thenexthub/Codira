@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
@@ -60,7 +61,7 @@ static bool decodeRegexCaptureTypes(ASTContext &ctx,
   // 〚`(T0, T1, ...)` (top level)〛 ==> 〚`T0`〛, 〚`T1`〛, ...
   // 〚`(T0, T1, ...)`〛 ==> .beginTuple, 〚`T0`〛, 〚`T1`〛, ..., .endTuple
   //
-  // For details, see apple/swift-experimental-string-processing.
+  // For details, see apple/language-experimental-string-processing.
   using Version = CaptureStructureSerializationVersion;
   static const Version implVersion = 1;
   unsigned size = serialization.size();
@@ -128,7 +129,7 @@ static bool decodeRegexCaptureTypes(ASTContext &ctx,
       break;
     }
     case RegexCaptureStructureCode::CaseCount:
-      llvm_unreachable("Handled earlier");
+      toolchain_unreachable("Handled earlier");
     }
   } while (offset < size);
   if (scopes.size() != 1)
@@ -168,11 +169,11 @@ static Type computeRegexLiteralType(const RegexLiteralExpr *regex,
 RegexLiteralPatternInfo
 RegexLiteralPatternInfoRequest::evaluate(Evaluator &eval,
                                          const RegexLiteralExpr *regex) const {
-#if SWIFT_BUILD_REGEX_PARSER_IN_COMPILER
+#if LANGUAGE_BUILD_REGEX_PARSER_IN_COMPILER
   auto &ctx = regex->getASTContext();
   auto regexText = regex->getParsedRegexText();
 
-  // Let the Swift library parse the contents, returning an error, or null if
+  // Let the Codira library parse the contents, returning an error, or null if
   // successful.
   size_t version = 0;
   auto capturesSize =
@@ -180,11 +181,11 @@ RegexLiteralPatternInfoRequest::evaluate(Evaluator &eval,
   std::vector<uint8_t> capturesBuf(capturesSize);
 
   BridgedRegexLiteralPatternFeatures bridgedFeatures;
-  SWIFT_DEFER {
-    swift_ASTGen_freeBridgedRegexLiteralPatternFeatures(bridgedFeatures);
+  LANGUAGE_DEFER {
+    language_ASTGen_freeBridgedRegexLiteralPatternFeatures(bridgedFeatures);
   };
 
-  bool hadError = swift_ASTGen_parseRegexLiteral(
+  bool hadError = language_ASTGen_parseRegexLiteral(
       regexText,
       /*versionOut=*/&version,
       /*captureStructureOut=*/capturesBuf.data(),
@@ -206,32 +207,32 @@ RegexLiteralPatternInfoRequest::evaluate(Evaluator &eval,
   return {/*regexToEmit*/ regexText, regexTy, version,
           ctx.AllocateCopy(features)};
 #else
-  llvm_unreachable("Shouldn't have parsed a RegexLiteralExpr");
+  toolchain_unreachable("Shouldn't have parsed a RegexLiteralExpr");
 #endif
 }
 
 StringRef RegexLiteralFeatureDescriptionRequest::evaluate(
     Evaluator &evaluator, RegexLiteralPatternFeatureKind kind,
     ASTContext *ctx) const {
-#if SWIFT_BUILD_REGEX_PARSER_IN_COMPILER
+#if LANGUAGE_BUILD_REGEX_PARSER_IN_COMPILER
   // The resulting string is allocated in the ASTContext, we can return the
   // StringRef directly.
   BridgedStringRef str;
-  swift_ASTGen_getDescriptionForRegexPatternFeature(kind, *ctx, &str);
+  language_ASTGen_getDescriptionForRegexPatternFeature(kind, *ctx, &str);
   return str.unbridged();
 #else
-  llvm_unreachable("Shouldn't have parsed a RegexLiteralExpr");
+  toolchain_unreachable("Shouldn't have parsed a RegexLiteralExpr");
 #endif
 }
 
 AvailabilityRange RegexLiteralFeatureAvailabilityRequest::evaluate(
     Evaluator &evaluator, RegexLiteralPatternFeatureKind kind,
     ASTContext *ctx) const {
-#if SWIFT_BUILD_REGEX_PARSER_IN_COMPILER
-  BridgedSwiftVersion version;
-  swift_ASTGen_getSwiftVersionForRegexPatternFeature(kind, &version);
-  return ctx->getSwiftAvailability(version.getMajor(), version.getMinor());
+#if LANGUAGE_BUILD_REGEX_PARSER_IN_COMPILER
+  BridgedCodiraVersion version;
+  language_ASTGen_getCodiraVersionForRegexPatternFeature(kind, &version);
+  return ctx->getCodiraAvailability(version.getMajor(), version.getMinor());
 #else
-  llvm_unreachable("Shouldn't have parsed a RegexLiteralExpr");
+  toolchain_unreachable("Shouldn't have parsed a RegexLiteralExpr");
 #endif
 }

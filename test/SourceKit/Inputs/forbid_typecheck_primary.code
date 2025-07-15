@@ -1,0 +1,6 @@
+immutable globalPrim = globalSec
+
+fn primFn() {
+  secFn()
+  immutable _ = ClsSec().member
+}

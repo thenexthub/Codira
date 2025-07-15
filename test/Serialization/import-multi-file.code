@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir %t/a %t/b %t/c %t/d %t/e
+// RUN: %target-language-frontend -emit-module -o %t/a/A.codemodule %S/../Inputs/empty.code
+// RUN: %target-language-frontend -emit-module -o %t/b/B.codemodule %S/../Inputs/empty.code
+// RUN: %target-language-frontend -emit-module -o %t/c/C.codemodule %S/../Inputs/empty.code
+// RUN: %target-language-frontend -emit-module -o %t/d/D.codemodule %S/../Inputs/empty.code
+// RUN: %target-language-frontend -emit-module -o %t/e/E.codemodule %S/../Inputs/empty.code
+
+// RUN: %target-language-frontend -emit-module -o %t/Library.codemodule %s %S/Inputs/import-multi-file-other.code -I %t/a -I %t/b -I %t/c -I %t/d -I %t/e
+
+// RUN: echo "import Library" > %t/main.code
+// RUN: %target-language-frontend -typecheck %t/main.code -I %t -I %t/a -I %t/b -I %t/c -I %t/d -I %t/e
+
+// We should be able to drop "E", which is implementation-only imported in both
+// files, but not any of the others.
+// RUN: %target-language-frontend -typecheck %t/main.code -I %t -I %t/a -I %t/b -I %t/c -I %t/d
+// RUN: not %target-language-frontend -typecheck %t/main.code -I %t -I %t/a -I %t/b -I %t/c -I %t/e
+// RUN: not %target-language-frontend -typecheck %t/main.code -I %t -I %t/a -I %t/b -I %t/d -I %t/e
+// RUN: not %target-language-frontend -typecheck %t/main.code -I %t -I %t/a -I %t/c -I %t/d -I %t/e
+// RUN: not %target-language-frontend -typecheck %t/main.code -I %t -I %t/b -I %t/c -I %t/d -I %t/e
+
+import A
+@_implementationOnly import B
+@_exported import C
+@_implementationOnly import D
+@_implementationOnly import E

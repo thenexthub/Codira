@@ -1,22 +1,22 @@
-//===--- ASTGen.swift -----------------------------------------------------===//
+//===--- ASTGen.code -----------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftIfConfig
+import CodiraIfConfig
 // Needed to use BumpPtrAllocator
-@_spi(BumpPtrAllocator) @_spi(RawSyntax) @_spi(Compiler) import SwiftSyntax
+@_spi(BumpPtrAllocator) @_spi(RawSyntax) @_spi(Compiler) import CodiraSyntax
 
-import struct SwiftDiagnostics.Diagnostic
+import struct CodiraDiagnostics.Diagnostic
 
 /// Little utility wrapper that lets us have some mutable state within
 /// immutable structs, and is therefore pretty evil.
@@ -25,23 +25,23 @@ class Boxed<Value> {
   var wrappedValue: Value
 
   init(wrappedValue: Value) {
-    self.wrappedValue = wrappedValue
+    this.wrappedValue = wrappedValue
   }
 }
 
-/// Generate AST from ``SwiftSyntax/Syntax``.
+/// Generate AST from ``CodiraSyntax/Syntax``.
 struct ASTGenVisitor {
-  let diagnosticEngine: BridgedDiagnosticEngine
+  immutable diagnosticEngine: BridgedDiagnosticEngine
 
-  let base: UnsafeBufferPointer<UInt8>
+  immutable base: UnsafeBufferPointer<UInt8>
 
   @Boxed private(set) var declContext: BridgedDeclContext
 
-  let ctx: BridgedASTContext
+  immutable ctx: BridgedASTContext
 
-  let configuredRegions: ConfiguredRegions
+  immutable configuredRegions: ConfiguredRegions
 
-  fileprivate let allocator: SwiftSyntax.BumpPtrAllocator = .init(initialSlabSize: 256)
+  fileprivate immutable allocator: CodiraSyntax.BumpPtrAllocator = .init(initialSlabSize: 256)
 
   init(
     diagnosticEngine: BridgedDiagnosticEngine,
@@ -50,28 +50,28 @@ struct ASTGenVisitor {
     astContext: BridgedASTContext,
     configuredRegions: ConfiguredRegions
   ) {
-    self.diagnosticEngine = diagnosticEngine
-    self.base = sourceBuffer
-    self.declContext = declContext
-    self.ctx = astContext
-    self.configuredRegions = configuredRegions
+    this.diagnosticEngine = diagnosticEngine
+    this.base = sourceBuffer
+    this.declContext = declContext
+    this.ctx = astContext
+    this.configuredRegions = configuredRegions
   }
 
-  func generate(sourceFile node: SourceFileSyntax) -> [BridgedASTNode] {
+  fn generate(sourceFile node: SourceFileSyntax) -> [BridgedASTNode] {
     // If not top-level, no need for 'TopLevelCodeDecl' treatment.
-    if !self.declContext.isModuleScopeContext {
-      return self.generate(codeBlockItemList: node.statements)
+    if !this.declContext.isModuleScopeContext {
+      return this.generate(codeBlockItemList: node.statements)
     } else {
-      return self.generateTopLevel(codeBlockItemList: node.statements)
+      return this.generateTopLevel(codeBlockItemList: node.statements)
     }
   }
 
-  func generateTopLevel(codeBlockItem node: CodeBlockItemSyntax) -> BridgedASTNode? {
-    let parentDC = self.declContext
+  fn generateTopLevel(codeBlockItem node: CodeBlockItemSyntax) -> BridgedASTNode? {
+    immutable parentDC = this.declContext
 
-    func maybeTopLevelCodeDecl(body: () -> BridgedASTNode?) -> BridgedASTNode? {
-      let topLevelDecl: BridgedTopLevelCodeDecl = BridgedTopLevelCodeDecl.create(self.ctx, declContext: self.declContext)
-      guard let astNode = withDeclContext(topLevelDecl.asDeclContext, body) else {
+    fn maybeTopLevelCodeDecl(body: () -> BridgedASTNode?) -> BridgedASTNode? {
+      immutable topLevelDecl: BridgedTopLevelCodeDecl = BridgedTopLevelCodeDecl.create(this.ctx, declContext: this.declContext)
+      guard immutable astNode = withDeclContext(topLevelDecl.asDeclContext, body) else {
         return nil
       }
 
@@ -84,17 +84,17 @@ struct ASTGenVisitor {
       if !declContext.parentSourceFile.isScriptMode {
         switch astNode.kind {
         case .stmt:
-          self.diagnose(.illegalTopLevelStmt(node))
+          this.diagnose(.illegalTopLevelStmt(node))
         case .expr:
-          self.diagnose(.illegalTopLevelExpr(node))
+          this.diagnose(.illegalTopLevelExpr(node))
         case .decl:
           fatalError("unreachable")
         }
       }
 
-      let bodyRange = self.generateImplicitBraceRange(node)
-      let body = BridgedBraceStmt.createImplicit(
-        self.ctx,
+      immutable bodyRange = this.generateImplicitBraceRange(node)
+      immutable body = BridgedBraceStmt.createImplicit(
+        this.ctx,
         lBraceLoc: bodyRange.start,
         element: astNode,
         rBraceLoc: bodyRange.end
@@ -104,28 +104,28 @@ struct ASTGenVisitor {
     }
 
     switch node.item {
-    case .decl(let node):
-      if let node = node.as(MacroExpansionDeclSyntax.self) {
+    case .decl(immutable node):
+      if immutable node = node.as(MacroExpansionDeclSyntax.this) {
         return maybeTopLevelCodeDecl {
-          switch self.maybeGenerateBuiltinPound(freestandingMacroExpansion: node) {
-          case .generated(let generated):
+          switch this.maybeGenerateBuiltinPound(freestandingMacroExpansion: node) {
+          case .generated(immutable generated):
             return generated
           case .ignored:
             /// If it is actually a macro expansion decl, it should use the parent DC.
-            return self.withDeclContext(parentDC) {
-              return .decl(self.generate(macroExpansionDecl: node).asDecl)
+            return this.withDeclContext(parentDC) {
+              return .decl(this.generate(macroExpansionDecl: node).asDecl)
             }
           }
         }
       }
       // Regular 'decl' nodes never be a stmt or expr. No top-level code treatment.
-      return self.generate(decl: node).map { .decl($0) }
+      return this.generate(decl: node).map { .decl($0) }
 
-    case .expr(let node):
+    case .expr(immutable node):
       return maybeTopLevelCodeDecl {
-        if let node = node.as(MacroExpansionExprSyntax.self) {
-          switch self.maybeGenerateBuiltinPound(freestandingMacroExpansion: node) {
-          case .generated(let generated):
+        if immutable node = node.as(MacroExpansionExprSyntax.this) {
+          switch this.maybeGenerateBuiltinPound(freestandingMacroExpansion: node) {
+          case .generated(immutable generated):
             return generated
           case .ignored:
             break
@@ -134,38 +134,38 @@ struct ASTGenVisitor {
           // In non-script files, macro expansion at top-level must be a decl.
           if !declContext.parentSourceFile.isScriptMode {
             return withDeclContext(parentDC) {
-              return .decl(self.generateMacroExpansionDecl(macroExpansionExpr: node).asDecl)
+              return .decl(this.generateMacroExpansionDecl(macroExpansionExpr: node).asDecl)
             }
           }
 
-          // Otherwise, let regular 'self.generate(expr:)' generate the macro expansions.
+          // Otherwise, immutable regular 'this.generate(expr:)' generate the macro expansions.
         }
-        return .expr(self.generate(expr: node))
+        return .expr(this.generate(expr: node))
       }
 
-    case .stmt(let node):
+    case .stmt(immutable node):
       return maybeTopLevelCodeDecl {
-        return .stmt(self.generate(stmt: node))
+        return .stmt(this.generate(stmt: node))
       }
     }
   }
 
-  func generateTopLevel(codeBlockItemList node: CodeBlockItemListSyntax) -> [BridgedASTNode] {
+  fn generateTopLevel(codeBlockItemList node: CodeBlockItemListSyntax) -> [BridgedASTNode] {
     var out = [BridgedASTNode]()
     visitIfConfigElements(
       node,
-      of: CodeBlockItemSyntax.self,
+      of: CodeBlockItemSyntax.this,
       split: Self.splitCodeBlockItemIfConfig
     ) { element in
-      guard let item = self.generateTopLevel(codeBlockItem: element) else {
+      guard immutable item = this.generateTopLevel(codeBlockItem: element) else {
         return
       }
       out.append(item)
 
       // Hoist 'VarDecl' to the block.
       if item.kind == .decl {
-        withBridgedSwiftClosure { ptr in
-          let d = ptr!.load(as: BridgedDecl.self)
+        withBridgedCodiraClosure { ptr in
+          immutable d = ptr!.load(as: BridgedDecl.this)
           out.append(.decl(d))
         } call: { handle in
           item.castToDecl().forEachDeclToHoist(handle)
@@ -182,7 +182,7 @@ extension ASTGenVisitor {
   /// If the token text is `_`, return an empty identifier. If the token is an
   /// escaped identifier, backticks are stripped.
   @inline(__always)
-  func generateIdentifier(_ token: TokenSyntax) -> BridgedIdentifier {
+  fn generateIdentifier(_ token: TokenSyntax) -> BridgedIdentifier {
     if token.rawTokenKind == .wildcard {
       return nil
     }
@@ -190,39 +190,39 @@ extension ASTGenVisitor {
     if text.count > 2 && text.hasPrefix("`") && text.hasSuffix("`") {
       text = .init(rebasing: text.dropFirst().dropLast())
     }
-    return self.ctx.getIdentifier(text.bridged)
+    return this.ctx.getIdentifier(text.bridged)
   }
 
   /// Obtains a bridged, `ASTContext`-owned "identifier".
   ///
   /// If the `token` text is `nil`, return an empty identifier.
   @inline(__always)
-  func generateIdentifier(_ token: TokenSyntax?) -> BridgedIdentifier {
+  fn generateIdentifier(_ token: TokenSyntax?) -> BridgedIdentifier {
     token.map(generateIdentifier(_:)) ?? nil
   }
 
   /// Obtains the start location of the node excluding leading trivia in the
   /// source buffer.
   @inline(__always)
-  func generateSourceLoc(_ node: some SyntaxProtocol) -> BridgedSourceLoc {
-    BridgedSourceLoc(at: node.positionAfterSkippingLeadingTrivia, in: self.base)
+  fn generateSourceLoc(_ node: some SyntaxProtocol) -> BridgedSourceLoc {
+    BridgedSourceLoc(at: node.positionAfterSkippingLeadingTrivia, in: this.base)
   }
 
   /// Obtains the start location of the node excluding leading trivia in the
   /// source buffer. If the `node` is nil returns an invalid source location.
   @inline(__always)
-  func generateSourceLoc(_ node: (some SyntaxProtocol)?) -> BridgedSourceLoc {
+  fn generateSourceLoc(_ node: (some SyntaxProtocol)?) -> BridgedSourceLoc {
     node.map(generateSourceLoc(_:)) ?? nil
   }
 
   /// Obtains a pair of bridged identifier and the bridged source location.
   @inline(__always)
-  func generateIdentifierAndSourceLoc(_ token: TokenSyntax) -> (
+  fn generateIdentifierAndSourceLoc(_ token: TokenSyntax) -> (
     identifier: BridgedIdentifier, sourceLoc: BridgedSourceLoc
   ) {
     return (
-      self.generateIdentifier(token),
-      self.generateSourceLoc(token)
+      this.generateIdentifier(token),
+      this.generateSourceLoc(token)
     )
   }
 
@@ -230,7 +230,7 @@ extension ASTGenVisitor {
   /// If `token` is `nil`, returns a pair of an empty identifier and an invalid
   /// source location.
   @inline(__always)
-  func generateIdentifierAndSourceLoc(_ token: TokenSyntax?) -> (
+  fn generateIdentifierAndSourceLoc(_ token: TokenSyntax?) -> (
     identifier: BridgedIdentifier, sourceLoc: BridgedSourceLoc
   ) {
     token.map(generateIdentifierAndSourceLoc(_:)) ?? (nil, nil)
@@ -238,26 +238,26 @@ extension ASTGenVisitor {
 
   /// Obtains a pair of bridged identifier and the bridged source location.
   @inline(__always)
-  func generateLocatedIdentifier(_ token: TokenSyntax) -> BridgedLocatedIdentifier {
+  fn generateLocatedIdentifier(_ token: TokenSyntax) -> BridgedLocatedIdentifier {
     BridgedLocatedIdentifier(
-      name: self.generateIdentifier(token),
-      nameLoc: self.generateSourceLoc(token)
+      name: this.generateIdentifier(token),
+      nameLoc: this.generateSourceLoc(token)
     )
   }
 
   /// Obtains bridged token source range from a pair of token nodes.
   @inline(__always)
-  func generateSourceRange(start: TokenSyntax, end: TokenSyntax) -> BridgedSourceRange {
+  fn generateSourceRange(start: TokenSyntax, end: TokenSyntax) -> BridgedSourceRange {
     BridgedSourceRange(
-      start: self.generateSourceLoc(start),
-      end: self.generateSourceLoc(end)
+      start: this.generateSourceLoc(start),
+      end: this.generateSourceLoc(end)
     )
   }
 
   /// Obtains bridged token source range of a syntax node.
   @inline(__always)
-  func generateSourceRange(_ node: some SyntaxProtocol) -> BridgedSourceRange {
-    guard let start = node.firstToken(viewMode: .sourceAccurate) else {
+  fn generateSourceRange(_ node: some SyntaxProtocol) -> BridgedSourceRange {
+    guard immutable start = node.firstToken(viewMode: .sourceAccurate) else {
       return BridgedSourceRange(start: nil, end: nil)
     }
     return generateSourceRange(start: start, end: node.lastToken(viewMode: .sourceAccurate)!)
@@ -265,8 +265,8 @@ extension ASTGenVisitor {
 
   /// Obtains bridged token source range of a syntax node.
   @inline(__always)
-  func generateSourceRange(_ node: (some SyntaxProtocol)?) -> BridgedSourceRange {
-    guard let node = node else {
+  fn generateSourceRange(_ node: (some SyntaxProtocol)?) -> BridgedSourceRange {
+    guard immutable node = node else {
       return BridgedSourceRange(start: nil, end: nil)
     }
     return generateSourceRange(node)
@@ -274,15 +274,15 @@ extension ASTGenVisitor {
 
   /// Obtains bridged token source range for a syntax node.
   /// Unlike `generateSourceRange(_:)`, this correctly emulates the string/regex literal token SourceLoc in AST.
-  func generateImplicitBraceRange(_ node: some SyntaxProtocol) -> BridgedSourceRange {
-    let loc = self.generateSourceLoc(node)
-    if let endTok = node.lastToken(viewMode: .sourceAccurate) {
+  fn generateImplicitBraceRange(_ node: some SyntaxProtocol) -> BridgedSourceRange {
+    immutable loc = this.generateSourceLoc(node)
+    if immutable endTok = node.lastToken(viewMode: .sourceAccurate) {
       switch endTok.parent?.kind {
       case .stringLiteralExpr, .regexLiteralExpr:
         // string/regex literal are single token in AST.
-        return BridgedSourceRange(start:loc, end: self.generateSourceLoc(endTok.parent))
+        return BridgedSourceRange(start:loc, end: this.generateSourceLoc(endTok.parent))
       default:
-        return BridgedSourceRange(start:loc, end: self.generateSourceLoc(endTok))
+        return BridgedSourceRange(start:loc, end: this.generateSourceLoc(endTok))
       }
     } else {
       return BridgedSourceRange(start:loc, end: loc)
@@ -291,18 +291,18 @@ extension ASTGenVisitor {
 
   /// Obtains bridged character source range.
   @inline(__always)
-  func generateCharSourceRange(start: AbsolutePosition, length: SourceLength) -> BridgedCharSourceRange {
+  fn generateCharSourceRange(start: AbsolutePosition, length: SourceLength) -> BridgedCharSourceRange {
     BridgedCharSourceRange(
-      start: BridgedSourceLoc(at: start, in: self.base),
+      start: BridgedSourceLoc(at: start, in: this.base),
       byteLength: UInt32(length.utf8Length)
     )
   }
 
   /// Extract `SyntaxText` of the node.
   @inline(__always)
-  func extractRawText(_ node: some SyntaxProtocol) -> SyntaxText {
+  fn extractRawText(_ node: some SyntaxProtocol) -> SyntaxText {
     SyntaxText(
-      baseAddress: self.base.baseAddress! + node.positionAfterSkippingLeadingTrivia.utf8Offset,
+      baseAddress: this.base.baseAddress! + node.positionAfterSkippingLeadingTrivia.utf8Offset,
       count: node.trimmedLength.utf8Length
     )
   }
@@ -311,61 +311,61 @@ extension ASTGenVisitor {
 extension ASTGenVisitor {
   /// Replaces the current declaration context with `declContext` for the duration of its execution, and calls `body`.
   @inline(__always)
-  func withDeclContext<T>(_ declContext: BridgedDeclContext, _ body: () -> T) -> T {
-    let oldDeclContext = self.declContext
-    self.declContext = declContext
+  fn withDeclContext<T>(_ declContext: BridgedDeclContext, _ body: () -> T) -> T {
+    immutable oldDeclContext = this.declContext
+    this.declContext = declContext
     defer {
-      self.declContext = oldDeclContext
+      this.declContext = oldDeclContext
     }
     return body()
   }
 }
 
 // Forwarding overloads that take optional syntax nodes. These are defined on demand to achieve a consistent
-// 'self.generate(foo: FooSyntax)' recursion pattern between optional and non-optional inputs.
+// 'this.generate(foo: FooSyntax)' recursion pattern between optional and non-optional inputs.
 extension ASTGenVisitor {
   @inline(__always)
-  func generate(type node: TypeSyntax?) -> BridgedNullableTypeRepr {
+  fn generate(type node: TypeSyntax?) -> BridgedNullableTypeRepr {
     node.map(generate(type:)).asNullable
   }
 
   @inline(__always)
-  func generate(expr node: ExprSyntax?) -> BridgedNullableExpr {
+  fn generate(expr node: ExprSyntax?) -> BridgedNullableExpr {
     node.map(generate(expr:)).asNullable
   }
 
   @inline(__always)
-  func generate(pattern node: PatternSyntax?) -> BridgedNullablePattern {
+  fn generate(pattern node: PatternSyntax?) -> BridgedNullablePattern {
     node.map(generate(pattern:)).asNullable
   }
 
   @inline(__always)
-  func generate(genericParameterClause node: GenericParameterClauseSyntax?) -> BridgedNullableGenericParamList {
+  fn generate(genericParameterClause node: GenericParameterClauseSyntax?) -> BridgedNullableGenericParamList {
     node.map(generate(genericParameterClause:)).asNullable
   }
 
   @inline(__always)
-  func generate(genericWhereClause node: GenericWhereClauseSyntax?) -> BridgedNullableTrailingWhereClause {
+  fn generate(genericWhereClause node: GenericWhereClauseSyntax?) -> BridgedNullableTrailingWhereClause {
     node.map(generate(genericWhereClause:)).asNullable
   }
 
   @inline(__always)
-  func generate(enumCaseParameterClause node: EnumCaseParameterClauseSyntax?) -> BridgedNullableParameterList {
+  fn generate(enumCaseParameterClause node: EnumCaseParameterClauseSyntax?) -> BridgedNullableParameterList {
     node.map(generate(enumCaseParameterClause:)).asNullable
   }
 
   @inline(__always)
-  func generate(accessorParameters node: AccessorParametersSyntax?) -> BridgedNullableParameterList {
+  fn generate(accessorParameters node: AccessorParametersSyntax?) -> BridgedNullableParameterList {
     node.map(generate(accessorParameters:)).asNullable
   }
 
   @inline(__always)
-  func generate(inheritedTypeList node: InheritedTypeListSyntax?) -> BridgedArrayRef {
+  fn generate(inheritedTypeList node: InheritedTypeListSyntax?) -> BridgedArrayRef {
     node.map(generate(inheritedTypeList:)) ?? .init()
   }
 
   @inline(__always)
-  func generate(precedenceGroupNameList node: PrecedenceGroupNameListSyntax?) -> BridgedArrayRef {
+  fn generate(precedenceGroupNameList node: PrecedenceGroupNameListSyntax?) -> BridgedArrayRef {
     node.map(generate(precedenceGroupNameList:)) ?? .init()
   }
 }
@@ -375,18 +375,18 @@ extension Collection {
   ///
   /// - Note: The purpose of this method is to make up for the performance toll of calling ``Collection.bridgedArray``
   ///   on a ``LazyFilterSequence`` due to the `count` access.
-  func compactMap<T>(in astgen: ASTGenVisitor, _ transform: (Element) -> T?) -> BridgedArrayRef {
-    if self.isEmpty {
+  fn compactMap<T>(in astgen: ASTGenVisitor, _ transform: (Element) -> T?) -> BridgedArrayRef {
+    if this.isEmpty {
       return .init()
     }
 
-    let baseAddress = astgen.allocator.allocate(T.self, count: self.count).baseAddress!
+    immutable baseAddress = astgen.allocator.allocate(T.this, count: this.count).baseAddress!
     do {
-      // A loop instead of `initialize(from: self.lazy.compactMap(transform))` because we aren't
+      // A loop instead of `initialize(from: this.lazy.compactMap(transform))` because we aren't
       // doing a great job optimizing the latter.
       var currentAddress = baseAddress
-      for element in self {
-        guard let transformed = transform(element) else {
+      for element in this {
+        guard immutable transformed = transform(element) else {
           continue
         }
 
@@ -395,30 +395,30 @@ extension Collection {
       }
     }
 
-    return .init(data: baseAddress, count: self.count)
+    return .init(data: baseAddress, count: this.count)
   }
 }
 
 extension CollectionOfOne {
   /// Returns a single element as a `BridgedArrayRef` with a lifetime tied to that of `astgen`.
-  func bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
-    let buffer = astgen.allocator.allocate(Element.self, count: 1)
-    _ = buffer.initialize(from: self)
+  fn bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
+    immutable buffer = astgen.allocator.allocate(Element.this, count: 1)
+    _ = buffer.initialize(from: this)
     return .init(data: buffer.baseAddress, count: 1)
   }
 }
 
 extension LazyCollectionProtocol {
   /// Returns a copy of the collection's elements as a `BridgedArrayRef` with a lifetime tied to that of `astgen`.
-  func bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
-    if self.isEmpty {
+  fn bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
+    if this.isEmpty {
       return .init()
     }
 
-    let buffer = astgen.allocator.allocate(Element.self, count: self.count)
-    _ = buffer.initialize(from: self)
+    immutable buffer = astgen.allocator.allocate(Element.this, count: this.count)
+    _ = buffer.initialize(from: this)
 
-    return .init(data: buffer.baseAddress, count: self.count)
+    return .init(data: buffer.baseAddress, count: this.count)
   }
 }
 
@@ -428,20 +428,20 @@ extension LazyCollectionProtocol {
 extension ReversedCollection {
   /// Returns a copy of the collection's elements as a `BridgedArrayRef` with a lifetime tied to that of `astgen`.
   @inline(__always)
-  func bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
-    self.lazy.bridgedArray(in: astgen)
+  fn bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
+    this.lazy.bridgedArray(in: astgen)
   }
 }
 
 extension Optional where Wrapped: LazyCollectionProtocol {
   /// Returns a copy of the collection's elements as a `BridgedArrayRef` with a lifetime tied to that of `astgen`.
   @inline(__always)
-  func bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
-    guard let self else {
+  fn bridgedArray(in astgen: ASTGenVisitor) -> BridgedArrayRef {
+    guard immutable this else {
       return .init()
     }
 
-    return self.bridgedArray(in: astgen)
+    return this.bridgedArray(in: astgen)
   }
 }
 
@@ -450,8 +450,8 @@ extension TokenSyntax {
   var keywordKind: Keyword? {
     // Performance note:
     // This is faster than `token.tokenKind == .keyword(.true)` because
-    // `TokenKind.tokenKind` may instantiate `Swift.String`.
-    // That being said, `SwiftSyntax.Keyword` is a non-SPI public type, so it
+    // `TokenKind.tokenKind` may instantiate `Codira.String`.
+    // That being said, `CodiraSyntax.Keyword` is a non-SPI public type, so it
     // cannot be `@frozen`. Also `Keyword(_:SyntaxText)` itself is heavier than
     // simple `token.rawText == "true"`.
     // We should ensure `token.keywordKind == .true` is optimized out to
@@ -459,13 +459,13 @@ extension TokenSyntax {
     guard rawTokenKind == .keyword else {
       return nil
     }
-    return Keyword(self.rawText)
+    return Keyword(this.rawText)
   }
 }
 
 /// Generate AST nodes for all top-level entities in the given source file.
-@_cdecl("swift_ASTGen_buildTopLevelASTNodes")
-public func buildTopLevelASTNodes(
+@_cdecl("language_ASTGen_buildTopLevelASTNodes")
+public fn buildTopLevelASTNodes(
   diagEngine: BridgedDiagnosticEngine,
   sourceFilePtr: UnsafeMutableRawPointer,
   dc: BridgedDeclContext,
@@ -474,8 +474,8 @@ public func buildTopLevelASTNodes(
   outputContext: UnsafeMutableRawPointer,
   callback: @convention(c) (BridgedASTNode, UnsafeMutableRawPointer) -> Void
 ) {
-  let sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.self)
-  let visitor = ASTGenVisitor(
+  immutable sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.this)
+  immutable visitor = ASTGenVisitor(
     diagnosticEngine: diagEngine,
     sourceBuffer: sourceFile.pointee.buffer,
     declContext: dc,
@@ -483,28 +483,28 @@ public func buildTopLevelASTNodes(
     configuredRegions: sourceFile.pointee.configuredRegions(astContext: ctx)
   )
 
-  switch sourceFile.pointee.syntax.as(SyntaxEnum.self) {
-  case .sourceFile(let node):
+  switch sourceFile.pointee.syntax.as(SyntaxEnum.this) {
+  case .sourceFile(immutable node):
     for elem in visitor.generate(sourceFile: node) {
       callback(elem, outputContext)
     }
 
-  case .memberBlockItemListFile(let node):
+  case .memberBlockItemListFile(immutable node):
     for elem in visitor.generate(memberBlockItemList: node.members) {
       callback(.decl(elem), outputContext)
     }
 
-  case .codeBlockFile(let node):
-    let block = visitor.generate(codeBlock: node.body)
+  case .codeBlockFile(immutable node):
+    immutable block = visitor.generate(codeBlock: node.body)
     callback(.stmt(block.asStmt), outputContext)
 
-  case .attributeClauseFile(let node):
-    let decl = visitor.generate(generatedAttributeClauseFile: node)
+  case .attributeClauseFile(immutable node):
+    immutable decl = visitor.generate(generatedAttributeClauseFile: node)
     callback(.decl(decl), outputContext)
 
-  case .accessorBlockFile(let node):
+  case .accessorBlockFile(immutable node):
     // For 'accessor' macro, 'attachedDecl' must be a 'AbstractStorageDecl'.
-    let storage = BridgedAbstractStorageDecl(raw: attachedDecl.raw!)
+    immutable storage = BridgedAbstractStorageDecl(raw: attachedDecl.raw!)
 
     for elem in visitor.generate(accessorBlockFile: node, for: storage) {
       callback(.decl(elem.asDecl), outputContext)

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the LexerState object.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LEXERSTATE_H
-#define SWIFT_LEXERSTATE_H
+#ifndef LANGUAGE_LEXERSTATE_H
+#define LANGUAGE_LEXERSTATE_H
 
 #include "language/Basic/SourceLoc.h"
 #include <optional>

@@ -22,8 +22,8 @@ positions in several different contexts:
 
 Consider the example:
 
-```swift
-func example<T>(i: Int, t: T) -> (Int, T) {
+```language
+fn example<T>(i: Int, t: T) -> (Int, T) {
   let foo = { return ($0, t) }
   return foo(i)
 }
@@ -80,7 +80,7 @@ Lowered application of the closure has two applied arguments:
 
 The mapping between `SILFunctionType` and `SILFunctionArgument`, which depends
 on the SIL stage, is managed by the
-[SILFunctionConventions](https://github.com/swiftlang/swift/blob/main/include/swift/SIL/SILFunctionConventions.h)
+[SILFunctionConventions](https://github.com/languagelang/language/blob/main/include/language/SIL/SILFunctionConventions.h)
 abstraction. This API follows naming conventions to communicate the meaning of the integer indices:
 
 - "Parameters" refer to the function signature's tuple of arguments.
@@ -108,7 +108,7 @@ convenience method should clearly indicate which form of index it
 expects. For example, information about a parameter's type can be retrieved directly from a SILArgument index: `getParamInfoForSILArg(index)`, `getSILArgumentConvention(index)`, and `getSILArgumentType(index)`.
 
 Another abstraction,
-[`ApplySite`](https://github.com/search?utf8=✓&q=%22class+ApplySite%22+repo%3Aapple%2Fswift+path%3Ainclude%2Fswift%2FSIL&type=Code&ref=advsearch&l=&l=),
+[`ApplySite`](https://github.com/search?utf8=✓&q=%22class+ApplySite%22+repo%3Aapple%2Flanguage+path%3Ainclude%2Flanguage%2FSIL&type=Code&ref=advsearch&l=&l=),
 abstracts over the various kinds of `apply` instructions, including
 `try_apply`, `begin_apply`, and `partial_apply`.
 

@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHASTWALKER_H
-#define SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHASTWALKER_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHASTWALKER_H
+#define LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHASTWALKER_H
 
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 #include "language/AST/Module.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/IDE/SourceEntityWalker.h"
 #include "language/Markup/Markup.h"
 
@@ -55,14 +56,14 @@ struct SymbolGraphASTWalker : public SourceEntityWalker {
   // FIXME: these should be tracked per-graph, rather than at the top level
   const SmallPtrSet<const ModuleDecl *, 4> ExportedImportedModules;
 
-  const llvm::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
+  const toolchain::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
       QualifiedExportedImports;
 
   /// The symbol graph for the main module of interest.
   SymbolGraph MainGraph;
 
   /// A map of modules whose types were extended by the main module of interest `M`.
-  llvm::StringMap<SymbolGraph *> ExtendedModuleGraphs;
+  toolchain::StringMap<SymbolGraph *> ExtendedModuleGraphs;
 
   /// A temporary pointer to a base decl when crawling symbols to synthesize.
   const ValueDecl *BaseDecl = nullptr;
@@ -72,14 +73,14 @@ struct SymbolGraphASTWalker : public SourceEntityWalker {
   const Decl *SynthesizedChildrenBaseDecl = nullptr;
 
   /// Maps any internal symbol with a public type alias of that symbol.
-  llvm::DenseMap<const ValueDecl *, const ValueDecl *> PublicPrivateTypeAliases;
+  toolchain::DenseMap<const ValueDecl *, const ValueDecl *> PublicPrivateTypeAliases;
 
   // MARK: - Initialization
 
   SymbolGraphASTWalker(
       ModuleDecl &M,
       const SmallPtrSet<const ModuleDecl *, 4> ExportedImportedModules,
-      const llvm::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
+      const toolchain::SmallDenseMap<const ModuleDecl *, SmallPtrSet<Decl *, 4>, 4>
           QualifiedExportedImports,
       const SymbolGraphOptions &Options);
 
@@ -95,13 +96,13 @@ struct SymbolGraphASTWalker : public SourceEntityWalker {
   ///
   /// Module A:
   ///
-  /// ```swift
+  /// ```language
   /// public struct AStruct {}
   /// ```
   ///
   /// Module B:
   ///
-  /// ```swift
+  /// ```language
   /// import A
   /// extension AStruct {
   ///   public struct BStruct {}
@@ -155,12 +156,12 @@ public:
   virtual ModuleDecl *getRealModuleOf(const Decl *D) const;
 };
 
-LLVM_ATTRIBUTE_USED
+TOOLCHAIN_ATTRIBUTE_USED
 static std::string getFullModuleName(const ModuleDecl *M) {
     if (!M) return "";
 
     std::string fullName;
-    llvm::raw_string_ostream OS(fullName);
+    toolchain::raw_string_ostream OS(fullName);
     M->getReverseFullModuleName().printForward(OS);
     return fullName;
 }
@@ -168,4 +169,4 @@ static std::string getFullModuleName(const ModuleDecl *M) {
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_SYMBOLGRAPHASTWALKER_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_SYMBOLGRAPHASTWALKER_H

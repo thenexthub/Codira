@@ -1,4 +1,4 @@
-//===--- Options.td - Options for swift driver ----------------------------===//
+//===--- Options.td - Options for language driver ----------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,32 +11,33 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines the options accepted by the swift driver.
+//  This file defines the options accepted by the language driver.
 //
 //===----------------------------------------------------------------------===//
 
 // Include the common option parsing interfaces.
-include "llvm/Option/OptParser.td"
+include "toolchain/Option/OptParser.td"
 
 /////////
 // Flags
 
-// The option should be accepted by swift -frontend.
+// The option should be accepted by language -frontend.
 def FrontendOption : OptionFlag;
 
-// The option should be accepted by swift-autolink-extract
+// The option should be accepted by language-autolink-extract
 def AutolinkExtractOption : OptionFlag;
 
-// The option should be accepted by swift -modulewrap
+// The option should be accepted by language -modulewrap
 def ModuleWrapOption : OptionFlag;
 
 // The option should not be accepted by the driver.
 def NoDriverOption : OptionFlag;
 
 // Some options should not be available depending on whether this is the
-// interactive driver 'swift', or the batch compiler 'swiftc'.
+// interactive driver 'language', or the aot compiler 'languagec'.
 def NoInteractiveOption : OptionFlag;
 def NoBatchOption : OptionFlag;
 
@@ -47,12 +48,12 @@ def DoesNotAffectIncrementalBuild : OptionFlag;
 // current working directory.
 def ArgumentIsPath : OptionFlag;
 
-// The option should be written into a .swiftinterface module interface file,
-// and read/parsed from there when reconstituting a .swiftmodule from it.
+// The option should be written into a .codeinterface module interface file,
+// and read/parsed from there when reconstituting a .codemodule from it.
 def ModuleInterfaceOption : OptionFlag;
 
-// The option should be written into a .swiftinterface module interface file,
-// and read/parsed from there when reconstituting a .swiftmodule from it.
+// The option should be written into a .codeinterface module interface file,
+// and read/parsed from there when reconstituting a .codemodule from it.
 // The option can be safely ignored by the older compiler.
 def ModuleInterfaceOptionIgnorable : OptionFlag;
 
@@ -60,14 +61,14 @@ def ModuleInterfaceOptionIgnorable : OptionFlag;
 // for a supplementary output. E.g., `-emit-module` and `-emit-module-path`.
 def SupplementaryOutput : OptionFlag;
 
-// The option should be accepted by swift-symbolgraph-extract.
-def SwiftSymbolGraphExtractOption : OptionFlag;
+// The option should be accepted by language-symbolgraph-extract.
+def CodiraSymbolGraphExtractOption : OptionFlag;
 
-// The option should be accepted by swift-synthesize-interface.
-def SwiftSynthesizeInterfaceOption : OptionFlag;
+// The option should be accepted by language-synthesize-interface.
+def CodiraSynthesizeInterfaceOption : OptionFlag;
 
-// The option should be accepted by swift-api-digester.
-def SwiftAPIDigesterOption : OptionFlag;
+// The option should be accepted by language-api-digester.
+def CodiraAPIDigesterOption : OptionFlag;
 
 // The option only functions in the new driver.
 def NewDriverOnlyOption : OptionFlag;
@@ -85,7 +86,7 @@ def CacheInvariant : OptionFlag;
 // Options
 
 // The internal option ID must be a valid C++ identifier and results in a
-// swift::driver::options::OPT_XX enum constant for XX.
+// language::driver::options::OPT_XX enum constant for XX.
 //
 // We want to unambiguously be able to refer to options from the driver source
 // code, for this reason the option name is mangled into an ID. This mangling
@@ -103,9 +104,9 @@ def CacheInvariant : OptionFlag;
 //   C++ => CXX
 //   . => _
 
-def internal_Group : OptionGroup<"<swift internal options>">;
+def internal_Group : OptionGroup<"<language internal options>">;
 def internal_debug_Group :
-  OptionGroup<"<swift debug/development internal options>">,
+  OptionGroup<"<language debug/development internal options>">,
   Group<internal_Group>, HelpText<"DEBUG/DEVELOPMENT OPTIONS">;
 
 class InternalDebugOpt : Group<internal_debug_Group>,
@@ -204,12 +205,12 @@ def clang_build_session_file : Separate<["-"], "clang-build-session-file">,
 
 def disallow_forwarding_driver :
   Flag<["-"], "disallow-use-new-driver">, Flags<[]>,
-  HelpText<"Disable using new swift-driver">;
+  HelpText<"Disable using new language-driver">;
 
 def driver_emit_fine_grained_dependency_dot_file_after_every_import :
 Flag<["-"], "driver-emit-fine-grained-dependency-dot-file-after-every-import">,
 InternalDebugOpt,
-HelpText<"Emit dot files every time driver imports an fine-grained swiftdeps file.">;
+HelpText<"Emit dot files every time driver imports an fine-grained languagedeps file.">;
 
 def emit_fine_grained_dependency_sourcefile_dot_files :
 Flag<["-"], "emit-fine-grained-dependency-sourcefile-dot-files">,
@@ -217,12 +218,12 @@ Flags<[FrontendOption, HelpHidden]>,
 HelpText<"Emit dot files for every source file.">;
 
 def driver_mode : Joined<["--"], "driver-mode=">, Flags<[HelpHidden]>,
-  HelpText<"Set the driver mode to either 'swift' or 'swiftc'">;
+  HelpText<"Set the driver mode to either 'language' or 'languagec'">;
 
 def help : Flag<["-", "--"], "help">,
   Flags<[FrontendOption, AutolinkExtractOption, ModuleWrapOption,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"Display available options">;
 def h : Flag<["-"], "h">, Alias<help>;
 def help_hidden : Flag<["-", "--"], "help-hidden">,
@@ -230,8 +231,8 @@ def help_hidden : Flag<["-", "--"], "help-hidden">,
   HelpText<"Display available options, including hidden options">;
 
 def v : Flag<["-"], "v">,
-  Flags<[DoesNotAffectIncrementalBuild, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[DoesNotAffectIncrementalBuild, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Show commands to run and use verbose output">;
 def version : Flag<["-", "--"], "version">, Flags<[FrontendOption]>,
   HelpText<"Print version information and exit">;
@@ -244,30 +245,30 @@ def parseable_output : Flag<["-"], "parseable-output">,
 
 def windows_sdk_root : Separate<["-"], "windows-sdk-root">,
   Flags<[ArgumentIsPath, FrontendOption,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"Windows SDK Root">, MetaVarName<"<root>">;
 def windows_sdk_version : Separate<["-"], "windows-sdk-version">,
   Flags<[FrontendOption,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"Windows SDK Version">, MetaVarName<"<version>">;
 def visualc_tools_root : Separate<["-"], "visualc-tools-root">,
   Flags<[ArgumentIsPath, FrontendOption,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"VisualC++ Tools Root">, MetaVarName<"<root>">;
 def visualc_tools_version : Separate<["-"], "visualc-tools-version">,
   Flags<[FrontendOption,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"VisualC++ ToolSet Version">, MetaVarName<"<version>">;
 
 // Android Options
 
 def sysroot : Separate<["-"], "sysroot">,
-  Flags<[ArgumentIsPath, FrontendOption, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[ArgumentIsPath, FrontendOption, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Native Platform sysroot">, MetaVarName<"<sysroot>">;
 
 // Standard Options
@@ -276,39 +277,39 @@ def _DASH_DASH : Option<["--"], "", KIND_REMAINING_ARGS>,
 
 def o : JoinedOrSeparate<["-"], "o">,
   Flags<[FrontendOption, AutolinkExtractOption, ModuleWrapOption,
-         NoInteractiveOption, ArgumentIsPath, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption, CacheInvariant]>,
+         NoInteractiveOption, ArgumentIsPath, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption, CacheInvariant]>,
   HelpText<"Write output to <file>">, MetaVarName<"<file>">;
 
 def j : JoinedOrSeparate<["-"], "j">, Flags<[DoesNotAffectIncrementalBuild]>,
   HelpText<"Number of commands to execute in parallel">, MetaVarName<"<n>">;
 
 def sdk : Separate<["-"], "sdk">,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Compile against <sdk>">, MetaVarName<"<sdk>">;
 
-def swift_version : Separate<["-"], "swift-version">,
-  Flags<[FrontendOption, ModuleInterfaceOption, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
-  HelpText<"Interpret input according to a specific Swift language version number">,
+def language_version : Separate<["-"], "language-version">,
+  Flags<[FrontendOption, ModuleInterfaceOption, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
+  HelpText<"Interpret input according to a specific Codira language version number">,
   MetaVarName<"<vers>">;
 
 def language_mode : Separate<["-"], "language-mode">,
-  Flags<[FrontendOption, ModuleInterfaceOption, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
-  HelpText<"Interpret input according to a specific Swift language mode">,
+  Flags<[FrontendOption, ModuleInterfaceOption, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
+  HelpText<"Interpret input according to a specific Codira language mode">,
   MetaVarName<"<mode>">,
-  Alias<swift_version>;
+  Alias<language_version>;
 
 def package_description_version: Separate<["-"], "package-description-version">,
   Flags<[FrontendOption, HelpHidden, ModuleInterfaceOption]>,
   HelpText<"The version number to be applied on the input for the PackageDescription availability kind">,
   MetaVarName<"<vers>">;
 
-def swiftinterface_compiler_version : Separate<["-"], "interface-compiler-version">,
+def languageinterface_compiler_version : Separate<["-"], "interface-compiler-version">,
   Flags<[FrontendOption, HelpHidden]>,
-  HelpText<"The version of the Swift compiler used to generate a .swiftinterface file">,
+  HelpText<"The version of the Codira compiler used to generate a .codeinterface file">,
   MetaVarName<"<intcvers>">;
 
 def tools_directory : Separate<["-"], "tools-directory">,
@@ -323,27 +324,27 @@ def e : Separate<["-"], "e">, Flags<[NewDriverOnlyOption]>,
   HelpText<"Executes a line of code provided on the command line">;
 
 def F : JoinedOrSeparate<["-"], "F">,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Add directory to framework search path">;
 def F_EQ : Joined<["-"], "F=">, Flags<[FrontendOption, ArgumentIsPath]>,
   Alias<F>;
 
 def Fsystem : Separate<["-"], "Fsystem">,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption,
-         SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Add directory to system framework search path">;
 
 def I : JoinedOrSeparate<["-"], "I">,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Add directory to the import search path">;
 def I_EQ : Joined<["-"], "I=">, Flags<[FrontendOption, ArgumentIsPath]>,
   Alias<I>;
 
 def Isystem : Separate<["-"], "Isystem">,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption,
-         SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Add directory to the system import search path">;
 
 def import_underlying_module : Flag<["-"], "import-underlying-module">,
@@ -491,12 +492,12 @@ def serialize_diagnostics : Flag<["-"], "serialize-diagnostics">,
   Flags<[FrontendOption, NoInteractiveOption, SupplementaryOutput, CacheInvariant]>,
   HelpText<"Serialize diagnostics in a binary format">;
 def serialize_diagnostics_path : Separate<["-"], "serialize-diagnostics-path">,
-  Flags<[FrontendOption, SwiftAPIDigesterOption, NoBatchOption,
+  Flags<[FrontendOption, CodiraAPIDigesterOption, NoBatchOption,
          ArgumentIsPath, SupplementaryOutput, CacheInvariant]>,
   HelpText<"Emit a serialized diagnostics file to <path>">,
   MetaVarName<"<path>">;
 def serialize_diagnostics_path_EQ: Joined<["-"], "serialize-diagnostics-path=">,
-  Flags<[FrontendOption, SwiftAPIDigesterOption, NoBatchOption,
+  Flags<[FrontendOption, CodiraAPIDigesterOption, NoBatchOption,
          ArgumentIsPath, SupplementaryOutput, CacheInvariant]>,
   Alias<serialize_diagnostics_path>;
 def color_diagnostics : Flag<["-"], "color-diagnostics">,
@@ -517,7 +518,7 @@ def print_educational_notes : Flag<["-"], "print-educational-notes">,
 def diagnostic_style : Separate<["-"], "diagnostic-style">,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild]>,
   MetaVarName<"<style>">,
-  HelpText<"The formatting style used when printing diagnostics ('swift' or 'llvm')">;
+  HelpText<"The formatting style used when printing diagnostics ('language' or 'toolchain')">;
 def diagnostic_style_EQ : Joined<["-"], "diagnostic-style=">,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild]>,
   MetaVarName<"<style>">, Alias<diagnostic_style>;
@@ -532,8 +533,8 @@ def localization_path : Separate<["-"], "localization-path">,
 
 def module_cache_path : Separate<["-"], "module-cache-path">,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild, ArgumentIsPath,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"Specifies the module cache path">;
 
 def enable_library_evolution : Flag<["-"], "enable-library-evolution">,
@@ -612,11 +613,11 @@ def library_level_EQ : Joined<["-"], "library-level=">,
 
 def module_name : Separate<["-"], "module-name">,
   Flags<[FrontendOption, ModuleInterfaceOption,
-         SwiftSymbolGraphExtractOption, SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Name of the module to build">;
 def project_name : Separate<["-"], "project-name">,
   Flags<[FrontendOption, ModuleInterfaceOptionIgnorable,
-         SwiftSymbolGraphExtractOption, SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Name of the project this module to build belongs to">;
 
 def module_name_EQ : Joined<["-"], "module-name=">, Flags<[FrontendOption]>,
@@ -728,7 +729,7 @@ def no_verify_emitted_module_interface :
 def avoid_emit_module_source_info :
   Flag<["-"], "avoid-emit-module-source-info">,
   Flags<[NoInteractiveOption, DoesNotAffectIncrementalBuild]>,
-  HelpText<"don't emit Swift source info file">;
+  HelpText<"don't emit Codira source info file">;
 
 def emit_module_source_info_path :
   Separate<["-"], "emit-module-source-info-path">,
@@ -802,10 +803,6 @@ def import_cf_types : Flag<["-"], "import-cf-types">,
   Flags<[FrontendOption, HelpHidden]>,
   HelpText<"Recognize and import CF types as class types">;
 
-def solver_memory_threshold : Separate<["-"], "solver-memory-threshold">,
-  Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
-  HelpText<"Set the upper bound for memory consumption, in bytes, by the constraint solver">;
-
 def solver_shrink_unsolved_threshold : Separate<["-"], "solver-shrink-unsolved-threshold">,
 Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
 HelpText<"Set The upper bound to number of sub-expressions unsolved before termination of the shrink phrase">;
@@ -814,9 +811,9 @@ def value_recursion_threshold : Separate<["-"], "value-recursion-threshold">,
   Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
   HelpText<"Set the maximum depth for direct recursion in value types">;
 
-def disable_swift_bridge_attr : Flag<["-"], "disable-swift-bridge-attr">,
+def disable_language_bridge_attr : Flag<["-"], "disable-language-bridge-attr">,
   Flags<[FrontendOption, HelpHidden]>,
-  HelpText<"Disable using the swift bridge attribute">;
+  HelpText<"Disable using the language bridge attribute">;
 
 def enable_bridging_pch : Flag<["-"], "enable-bridging-pch">,
   Flags<[HelpHidden]>,
@@ -828,7 +825,7 @@ def disable_bridging_pch : Flag<["-"], "disable-bridging-pch">,
 
 def lto : Joined<["-"], "lto=">,
   Flags<[FrontendOption, NoInteractiveOption]>,
-  HelpText<"Specify the LTO type to either 'llvm-thin' or 'llvm-full'">;
+  HelpText<"Specify the LTO type to either 'toolchain-thin' or 'toolchain-full'">;
 
 def lto_library : Separate<["-"], "lto-library">,
   Flags<[FrontendOption, ArgumentIsPath, NoInteractiveOption]>,
@@ -836,7 +833,7 @@ def lto_library : Separate<["-"], "lto-library">,
 
 def access_notes_path : Separate<["-"], "access-notes-path">,
   Flags<[FrontendOption, ArgumentIsPath]>,
-  HelpText<"Specify YAML file to override attributes on Swift declarations in this module">;
+  HelpText<"Specify YAML file to override attributes on Codira declarations in this module">;
 def access_notes_path_EQ : Joined<["-"], "access-notes-path=">,
   Flags<[FrontendOption, ArgumentIsPath]>,
   Alias<access_notes_path>;
@@ -867,14 +864,14 @@ def enable_experimental_cxx_interop :
 
 def cxx_interoperability_mode :
   Joined<["-"], "cxx-interoperability-mode=">,
-  Flags<[FrontendOption, SwiftSymbolGraphExtractOption,
-         SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, CodiraSymbolGraphExtractOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"Enables C++ interoperability; pass 'default' to enable or 'off' to disable">;
 
 def experimental_c_foreign_reference_types :
   Flag<["-"], "experimental-c-foreign-reference-types">,
   Flags<[FrontendOption, HelpHidden, ModuleInterfaceOption]>,
-  HelpText<"Enable experimental C foreign references types (with reference counting).">;
+  HelpText<"Enable experimental C foreign references types. Deprecated, has no effect.">;
 
 def experimental_hermetic_seal_at_link:
   Flag<["-"], "experimental-hermetic-seal-at-link">,
@@ -927,13 +924,13 @@ def continue_building_after_errors : Flag<["-"], "continue-building-after-errors
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild]>,
   HelpText<"Continue building, even after errors are encountered">;
 
-def warn_swift3_objc_inference_complete :
-  Flag<["-"], "warn-swift3-objc-inference-complete">,
+def warn_language3_objc_inference_complete :
+  Flag<["-"], "warn-language3-objc-inference-complete">,
   Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
   HelpText<"Deprecated, has no effect">;
 
-def warn_swift3_objc_inference_minimal :
-  Flag<["-"], "warn-swift3-objc-inference-minimal">,
+def warn_language3_objc_inference_minimal :
+  Flag<["-"], "warn-language3-objc-inference-minimal">,
   Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
   HelpText<"Deprecated, has no effect">;
 
@@ -971,13 +968,13 @@ def typo_correction_limit : Separate<["-"], "typo-correction-limit">,
   MetaVarName<"<n>">,
   HelpText<"Limit the number of times the compiler will attempt typo correction to <n>">;
 
-def warn_swift3_objc_inference : Flag<["-"], "warn-swift3-objc-inference">,
-  Alias<warn_swift3_objc_inference_complete>,
+def warn_language3_objc_inference : Flag<["-"], "warn-language3-objc-inference">,
+  Alias<warn_language3_objc_inference_complete>,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild, HelpHidden]>;
 
 def warn_concurrency : Flag<["-"], "warn-concurrency">,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild]>,
-  HelpText<"Warn about code that is unsafe according to the Swift Concurrency "
+  HelpText<"Warn about code that is unsafe according to the Codira Concurrency "
            "model and will become ill-formed in a future language version">;
 
 def strict_concurrency : Joined<["-"], "strict-concurrency=">,
@@ -1019,8 +1016,12 @@ def disable_upcoming_feature : Separate<["-"], "disable-upcoming-feature">,
 
 def strict_memory_safety : Flag<["-"], "strict-memory-safety">,
   Flags<[FrontendOption, ModuleInterfaceOptionIgnorable,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Enable strict memory safety checking">;
+def strict_memory_safety_migrate : Flag<["-"], "strict-memory-safety:migrate">,
+  Flags<[FrontendOption, ModuleInterfaceOptionIgnorable,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
+  HelpText<"Enable migration to strict memory safety checking">;
 
 def Rpass_EQ : Joined<["-"], "Rpass=">,
   Flags<[FrontendOption]>,
@@ -1040,7 +1041,7 @@ def save_optimization_record_EQ : Joined<["-"], "save-optimization-record=">,
            "(default: YAML)">, MetaVarName<"<format>">;
 def save_optimization_record_path :
   Separate<["-"], "save-optimization-record-path">,
-  Flags<[FrontendOption, ArgumentIsPath]>,
+  Flags<[FrontendOption, ArgumentIsPath, CacheInvariant]>,
   HelpText<"Specify the file name of any generated optimization record">;
 def save_optimization_record_passes :
   Separate<["-"], "save-optimization-record-passes">,
@@ -1063,7 +1064,7 @@ def enable_app_extension_library : Flag<["-"], "application-extension-library">,
   HelpText<"Restrict code to those available for App Extension Libraries">;
 
 def libc : Separate<["-"], "libc">,
-           Flags<[SwiftSymbolGraphExtractOption]>,
+           Flags<[CodiraSymbolGraphExtractOption]>,
            HelpText<"libc runtime library to use">;
 
 // Linker options
@@ -1079,7 +1080,7 @@ def framework : Separate<["-"], "framework">, Group<linker_option_Group>,
 
 def L : JoinedOrSeparate<["-"], "L">, Group<linker_option_Group>,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild, ArgumentIsPath,
-         SwiftSymbolGraphExtractOption]>,
+         CodiraSymbolGraphExtractOption]>,
   HelpText<"Add directory to library link search path">;
 def L_EQ : Joined<["-"], "L=">, Group<linker_option_Group>,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild, ArgumentIsPath]>,
@@ -1096,10 +1097,10 @@ def no_link_objc_runtime : Flag<["-"], "no-link-objc-runtime">,
 
 def static_stdlib: Flag<["-"], "static-stdlib">,
   Flags<[DoesNotAffectIncrementalBuild]>,
-  HelpText<"Statically link the Swift standard library">;
+  HelpText<"Statically link the Codira standard library">;
 def no_static_stdlib: Flag<["-"], "no-static-stdlib">,
   Flags<[HelpHidden,DoesNotAffectIncrementalBuild]>,
-  HelpText<"Don't statically link the Swift standard library">;
+  HelpText<"Don't statically link the Codira standard library">;
 def toolchain_stdlib_rpath: Flag<["-"], "toolchain-stdlib-rpath">,
   Flags<[HelpHidden,DoesNotAffectIncrementalBuild]>,
   HelpText<"Add an rpath entry for the toolchain's standard library, rather than the OS's">;
@@ -1175,7 +1176,7 @@ def EnableDefaultCMO : Flag<["-"], "enable-default-cmo">,
 def EnableCMOEverything : Flag<["-"], "enable-cmo-everything">,
   Flags<[HelpHidden, FrontendOption]>,
   HelpText<"Perform cross-module optimization on everything (all APIs). "
-           "This is the same level of serialization as Embedded Swift.">;
+           "This is the same level of serialization as Embedded Codira.">;
 
 def CrossModuleOptimization : Flag<["-"], "cross-module-optimization">,
   Flags<[HelpHidden, FrontendOption]>,
@@ -1236,7 +1237,7 @@ def dwarf_version : Joined<["-"], "dwarf-version=">,
 
 def prefix_serialized_debugging_options : Flag<["-"], "prefix-serialized-debugging-options">,
   Flags<[FrontendOption]>,
-  HelpText<"Apply debug prefix mappings to serialized debug info in Swiftmodule files">;
+  HelpText<"Apply debug prefix mappings to serialized debug info in Codiramodule files">;
 
 // Verify debug info
 def verify_debug_info : Flag<["-"], "verify-debug-info">,
@@ -1286,12 +1287,12 @@ def line_range : Separate<["-"], "line-range">, Group<code_formatting_Group>,
 // Migrator Options
 
 def update_code : Flag<["-"], "update-code">,
-  HelpText<"Update Swift code">,
+  HelpText<"Update Codira code">,
   Flags<[FrontendOption, HelpHidden, NoInteractiveOption, DoesNotAffectIncrementalBuild]>;
 
 def migrate_keep_objc_visibility: Flag<["-"], "migrate-keep-objc-visibility">,
   Flags<[FrontendOption, NoInteractiveOption]>,
-  HelpText<"When migrating, add '@objc' to declarations that would've been implicitly visible in Swift 3">;
+  HelpText<"When migrating, add '@objc' to declarations that would've been implicitly visible in Codira 3">;
 
 def disable_migrator_fixits: Flag<["-"], "disable-migrator-fixits">,
   Flags<[FrontendOption, NoInteractiveOption]>,
@@ -1299,7 +1300,7 @@ def disable_migrator_fixits: Flag<["-"], "disable-migrator-fixits">,
 
 def emit_remap_file_path: Separate<["-"], "emit-remap-file-path">,
   Flags<[FrontendOption, NoDriverOption, NoInteractiveOption, DoesNotAffectIncrementalBuild]>,
-  HelpText<"Emit the replacement map describing Swift Migrator changes to <path>">,
+  HelpText<"Emit the replacement map describing Codira Migrator changes to <path>">,
   MetaVarName<"<path>">;
 
 def emit_migrated_file_path: Separate<["-"], "emit-migrated-file-path">,
@@ -1337,7 +1338,7 @@ def migrator_update_sdk: Flag<["-"], "migrator-update-sdk">,
   Flags<[FrontendOption, NoInteractiveOption]>,
   HelpText<"Does nothing. Temporary compatibility flag for Xcode.">;
 
-def migrator_update_swift: Flag<["-"], "migrator-update-swift">,
+def migrator_update_language: Flag<["-"], "migrator-update-language">,
   Flags<[FrontendOption, NoInteractiveOption]>,
   HelpText<"Does nothing. Temporary compatibility flag for Xcode.">;
 
@@ -1348,10 +1349,10 @@ def parse_as_library : Flag<["-"], "parse-as-library">,
   HelpText<"Parse the input file(s) as libraries, not scripts">;
 def parse_sil : Flag<["-"], "parse-sil">,
   Flags<[FrontendOption, NoInteractiveOption]>,
-  HelpText<"Parse the input file as SIL code, not Swift source">;
+  HelpText<"Parse the input file as SIL code, not Codira source">;
 def parse_stdlib : Flag<["-"], "parse-stdlib">,
   Flags<[FrontendOption, HelpHidden, ModuleInterfaceOption]>,
-  HelpText<"Parse the input file(s) as the Swift standard library">;
+  HelpText<"Parse the input file(s) as the Codira standard library">;
 
 def enable_builtin_module : Flag<["-"], "enable-builtin-module">,
   Flags<[FrontendOption, ModuleInterfaceOption]>,
@@ -1500,32 +1501,32 @@ def num_threads : Separate<["-"], "num-threads">,
   MetaVarName<"<n>">;
 
 def Xfrontend : Separate<["-"], "Xfrontend">, Flags<[HelpHidden]>,
-  MetaVarName<"<arg>">, HelpText<"Pass <arg> to the Swift frontend">;
+  MetaVarName<"<arg>">, HelpText<"Pass <arg> to the Codira frontend">;
 
 def Xcc : Separate<["-"], "Xcc">,
-  Flags<[FrontendOption, SwiftSymbolGraphExtractOption,
-         SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, CodiraSymbolGraphExtractOption,
+         CodiraSynthesizeInterfaceOption]>,
   MetaVarName<"<arg>">,
   HelpText<"Pass <arg> to the C/C++/Objective-C compiler">;
 
 def Xclang_linker : Separate<["-"], "Xclang-linker">, Flags<[HelpHidden]>,
   MetaVarName<"<arg>">, HelpText<"Pass <arg> to Clang when it is used for linking.">;
 
-def Xllvm : Separate<["-"], "Xllvm">,
+def Xtoolchain : Separate<["-"], "Xtoolchain">,
   Flags<[FrontendOption, HelpHidden]>,
   MetaVarName<"<arg>">, HelpText<"Pass <arg> to LLVM.">;
 
 def resource_dir : Separate<["-"], "resource-dir">,
-  Flags<[FrontendOption, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption,
+  Flags<[FrontendOption, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption,
          HelpHidden, ArgumentIsPath]>,
-  MetaVarName<"</usr/lib/swift>">,
+  MetaVarName<"</usr/lib/language>">,
   HelpText<"The directory that holds the compiler resource files">;
 
 def target : Separate<["-"], "target">,
   Flags<[FrontendOption, ModuleWrapOption, ModuleInterfaceOption,
-         SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
-         SwiftSynthesizeInterfaceOption]>,
+         CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
+         CodiraSynthesizeInterfaceOption]>,
   HelpText<"Generate code for the given target <triple>, such as x86_64-apple-macos10.9">, MetaVarName<"<triple>">;
 def target_legacy_spelling : Joined<["--"], "target=">,
   Flags<[FrontendOption]>, Alias<target>;
@@ -1546,12 +1547,12 @@ def target_variant : Separate<["-"], "target-variant">,
            " variant target triple in addition to the main -target triple">;
 
 def clang_target : Separate<["-"], "clang-target">,
-  Flags<[FrontendOption, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Separately set the target we should use for internal Clang instance">;
 def clang_target_variant : Separate<["-"], "clang-target-variant">,
-  Flags<[FrontendOption, SwiftSymbolGraphExtractOption,
-         SwiftAPIDigesterOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[FrontendOption, CodiraSymbolGraphExtractOption,
+         CodiraAPIDigesterOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Separately set the target we should use for internal Clang instance"
            " for the 'zippered' code for macCatalyst">;
 
@@ -1570,6 +1571,10 @@ def explain_module_dependency_detailed : Separate<["-"], "explain-module-depende
 def explicit_auto_linking : Flag<["-"], "explicit-auto-linking">,
   Flags<[NewDriverOnlyOption]>,
   HelpText<"Instead of linker-load directives, have the driver specify all link dependencies on the linker invocation. Requires '-explicit-module-build'.">;
+  
+def experimental_emit_variant_module : Flag<["-"], "experimental-emit-variant-module">,
+  Flags<[NewDriverOnlyOption]>,
+  HelpText<"When a target variant triple is specified, the same driver invocation will emit two Codira modules, one for the primary target and one for the variant.">;
 
 def min_inlining_target_version : Separate<["-"], "target-min-inlining-version">,
   Flags<[FrontendOption, ModuleInterfaceOption]>,
@@ -1601,7 +1606,7 @@ def profile_coverage_mapping : Flag<["-"], "profile-coverage-mapping">,
 def profile_sample_use : Joined<["-"], "profile-sample-use=">,
   Flags<[FrontendOption, NoInteractiveOption, ArgumentIsPath, NewDriverOnlyOption]>,
   MetaVarName<"<profile data>">,
-  HelpText<"Supply sampling-based profiling data from llvm-profdata to enable profile-guided optimization">;
+  HelpText<"Supply sampling-based profiling data from toolchain-profdata to enable profile-guided optimization">;
 
 def embed_bitcode : Flag<["-"], "embed-bitcode">,
   Flags<[FrontendOption, NoInteractiveOption]>,
@@ -1650,7 +1655,7 @@ def sanitize_stable_abi_EQ : Flag<["-"], "sanitize-stable-abi">,
     HelpText<"Link against the Sanitizers stable ABI.">;
 
 def scan_dependencies : Flag<["-"], "scan-dependencies">,
-  HelpText<"Scan dependencies of the given Swift sources">, ModeOpt,
+  HelpText<"Scan dependencies of the given Codira sources">, ModeOpt,
   Flags<[FrontendOption, NoInteractiveOption, DoesNotAffectIncrementalBuild]>;
 
 def emit_supported_arguments : Flag<["-"], "emit-supported-arguments">,
@@ -1665,13 +1670,25 @@ def enable_incremental_imports :
   Flag<["-"], "enable-incremental-imports">,
   Flags<[FrontendOption]>,
   HelpText<"Enable cross-module incremental build metadata and "
-           "driver scheduling for Swift modules">;
+           "driver scheduling for Codira modules">;
 
 def disable_incremental_imports :
   Flag<["-"], "disable-incremental-imports">,
   Flags<[FrontendOption]>,
   HelpText<"Disable cross-module incremental build metadata and "
-           "driver scheduling for Swift modules">;
+           "driver scheduling for Codira modules">;
+
+def enable_incremental_file_hashing :
+  Flag<["-"], "enable-incremental-file-hashing">,
+  Flags<[NewDriverOnlyOption]>,
+  HelpText<"Enable hashing of input and dependency file data "
+           "that can prevent unnecessary invalidation">;
+
+def disable_incremental_file_hashing :
+  Flag<["-"], "disable-incremental-file-hashing">,
+  Flags<[NewDriverOnlyOption]>,
+  HelpText<"Disable hashing of input and dependency file data "
+           "that can prevent unnecessary invalidation">;
 
 def index_file : Flag<["-"], "index-file">,
   HelpText<"Produce index data for a source file">, ModeOpt,
@@ -1714,7 +1731,7 @@ def working_directory_EQ : Joined<["-"], "working-directory=">,
 
 def user_module_version : Separate<["-"], "user-module-version">,
   Flags<[FrontendOption, ModuleInterfaceOption, NewDriverOnlyOption]>,
-  HelpText<"Module version specified from Swift module authors">,
+  HelpText<"Module version specified from Codira module authors">,
   MetaVarName<"<vers>">;
 
 def allowable_client : Separate<["-"], "allowable-client">,
@@ -1732,7 +1749,7 @@ def vfsoverlay_EQ : Joined<["-"], "vfsoverlay=">,
 // Runtime compatibility version
 def runtime_compatibility_version : Separate<["-"], "runtime-compatibility-version">,
   Flags<[FrontendOption]>,
-  HelpText<"Link compatibility library for Swift runtime version, or 'none'">;
+  HelpText<"Link compatibility library for Codira runtime version, or 'none'">;
 
 def disable_autolinking_runtime_compatibility : Flag<["-"], "disable-autolinking-runtime-compatibility">,
   Flags<[FrontendOption]>,
@@ -1773,247 +1790,247 @@ def symbol_graph_minimum_access_level: Separate<["-"], "symbol-graph-minimum-acc
 
 def symbol_graph_allow_availability_platforms: Separate<["-"], "symbol-graph-allow-availability-platforms">,
   Flags<[FrontendOption, NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
-  HelpText<"Restrict availability metadata to the given platforms, e.g. 'macOS,Swift'">,
+  HelpText<"Restrict availability metadata to the given platforms, e.g. 'macOS,Codira'">,
   MetaVarName<"<platforms>">;
 
 def symbol_graph_block_availability_platforms: Separate<["-"], "symbol-graph-block-availability-platforms">,
   Flags<[FrontendOption, NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
-  HelpText<"Remove the given platforms from symbol graph availability metadata, e.g. 'macOS,Swift'">,
+  HelpText<"Remove the given platforms from symbol graph availability metadata, e.g. 'macOS,Codira'">,
   MetaVarName<"<platforms>">;
 
 def pretty_print: Flag<["-"], "pretty-print">,
-  Flags<[SwiftSymbolGraphExtractOption]>,
+  Flags<[CodiraSymbolGraphExtractOption]>,
   HelpText<"Pretty-print the output JSON">;
 
 def emit_extension_block_symbols: Flag<["-"], "emit-extension-block-symbols">,
-  Flags<[SwiftSymbolGraphExtractOption, FrontendOption,
+  Flags<[CodiraSymbolGraphExtractOption, FrontendOption,
         NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
-  HelpText<"Emit 'swift.extension' symbols for extensions to external types instead of directly associating members and conformances with the extended nominal when generating symbol graphs">;
+  HelpText<"Emit 'language.extension' symbols for extensions to external types instead of directly associating members and conformances with the extended nominal when generating symbol graphs">;
 
 def omit_extension_block_symbols: Flag<["-"], "omit-extension-block-symbols">,
-  Flags<[SwiftSymbolGraphExtractOption, FrontendOption,
+  Flags<[CodiraSymbolGraphExtractOption, FrontendOption,
         NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
-  HelpText<"Directly associate members and conformances with the extended nominal when generating symbol graphs instead of emitting 'swift.extension' symbols for extensions to external types">;
+  HelpText<"Directly associate members and conformances with the extended nominal when generating symbol graphs instead of emitting 'language.extension' symbols for extensions to external types">;
 
 def allow_availability_platforms: Separate<["-"], "allow-availability-platforms">,
-  Flags<[SwiftSymbolGraphExtractOption]>,
-  HelpText<"Restrict availability metadata to the given platforms, e.g. 'macOS,Swift'">,
+  Flags<[CodiraSymbolGraphExtractOption]>,
+  HelpText<"Restrict availability metadata to the given platforms, e.g. 'macOS,Codira'">,
   MetaVarName<"<platforms>">;
 
 def block_availability_platforms: Separate<["-"], "block-availability-platforms">,
-  Flags<[SwiftSymbolGraphExtractOption]>,
-  HelpText<"Remove the given platforms from symbol graph availability metadata, e.g. 'macOS,Swift'">,
+  Flags<[CodiraSymbolGraphExtractOption]>,
+  HelpText<"Remove the given platforms from symbol graph availability metadata, e.g. 'macOS,Codira'">,
   MetaVarName<"<platforms>">;
 
-// swift-synthesize-interface-only options
+// language-synthesize-interface-only options
 def include_submodules : Flag<["-"], "include-submodules">,
-  Flags<[NoDriverOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[NoDriverOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Also print the declarations synthesized for any Clang submodules">;
 
 def print_fully_qualified_types : Flag<["-"], "print-fully-qualified-types">,
-  Flags<[NoDriverOption, SwiftSynthesizeInterfaceOption]>,
+  Flags<[NoDriverOption, CodiraSynthesizeInterfaceOption]>,
   HelpText<"Always print fully qualified type names">;
 
-// swift-symbolgraph-extract-only options
+// language-symbolgraph-extract-only options
 def output_dir : Separate<["-"], "output-dir">,
-  Flags<[NoDriverOption, SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption,
+  Flags<[NoDriverOption, CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption,
          ArgumentIsPath]>,
   HelpText<"Output directory">,
   MetaVarName<"<dir>">;
 
 def experimental_allowed_reexported_modules: CommaJoined<["-"], "experimental-allowed-reexported-modules=">,
-  Flags<[NoDriverOption, SwiftSymbolGraphExtractOption]>,
+  Flags<[NoDriverOption, CodiraSymbolGraphExtractOption]>,
   HelpText<"Allow reexporting symbols from the provided modules if they are themselves exported from the main module. This is a comma separated list of module names.">;
 
 def skip_synthesized_members: Flag<[ "-" ], "skip-synthesized-members">,
-  Flags<[NoDriverOption, SwiftSymbolGraphExtractOption]>,
+  Flags<[NoDriverOption, CodiraSymbolGraphExtractOption]>,
   HelpText<"Skip members inherited through classes or default implementations">;
 
 def minimum_access_level : Separate<["-"], "minimum-access-level">,
-  Flags<[NoDriverOption, SwiftSymbolGraphExtractOption]>,
+  Flags<[NoDriverOption, CodiraSymbolGraphExtractOption]>,
   HelpText<"Include symbols with this access level or more">,
   MetaVarName<"<level>">;
 
 def skip_inherited_docs : Flag<["-"], "skip-inherited-docs">,
-  Flags<[SwiftSymbolGraphExtractOption, FrontendOption,
+  Flags<[CodiraSymbolGraphExtractOption, FrontendOption,
          NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
   HelpText<"Skip emitting doc comments for members inherited through classes or "
            "default implementations">;
 
 def include_spi_symbols : Flag<["-"], "include-spi-symbols">,
-  Flags<[SwiftSymbolGraphExtractOption, FrontendOption,
+  Flags<[CodiraSymbolGraphExtractOption, FrontendOption,
          NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
   HelpText<"Add symbols with SPI information to the symbol graph">;
 
 def skip_protocol_implementations : Flag<["-"], "skip-protocol-implementations">,
-  Flags<[SwiftSymbolGraphExtractOption, FrontendOption,
+  Flags<[CodiraSymbolGraphExtractOption, FrontendOption,
          NoInteractiveOption, SupplementaryOutput, HelpHidden]>,
   HelpText<"Skip emitting symbols that are implementations of protocol requirements or inherited from protocol extensions">;
 
-// swift-api-digester-only options
+// language-api-digester-only options
 def dump_sdk: Flag<["-", "--"], "dump-sdk">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Dump SDK content to JSON file">;
 
 def generate_migration_script: Flag<["-", "--"], "generate-migration-script">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Compare SDK content in JSON file and generate migration script">;
 
 def diagnose_sdk: Flag<["-", "--"], "diagnose-sdk">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Diagnose SDK content in JSON file">;
 
 def deserialize_diff: Flag<["-", "--"], "deserialize-diff">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Deserialize diff items in a JSON file">;
 
 def deserialize_sdk: Flag<["-", "--"], "deserialize-sdk">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Deserialize sdk digester in a JSON file">;
 
 def find_usr: Flag<["-", "--"], "find-usr">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Find USR for decls by given condition">;
 
 def generate_name_correction: Flag<["-", "--"], "generate-name-correction">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Generate name correction template">;
 
 def generate_empty_baseline: Flag<["-", "--"], "generate-empty-baseline">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Generate an empty baseline">;
 
 def empty_baseline: Flag<["-", "--"], "empty-baseline">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Use empty baseline for diagnostics">;
 
 def ignored_usrs: Separate<["-", "--"], "ignored-usrs">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"the file containing USRs of removed decls that the digester should ignore">,
   MetaVarName<"<path>">;
 
 def ignore_spi_groups : Separate<["-", "--"], "ignore-spi-group">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"SPI group name to not diagnose about">;
 
 def protocol_requirement_allow_list: Separate<["-", "--"], "protocol-requirement-allow-list">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"File containing a new-line separated list of protocol names">,
   MetaVarName<"<path>">;
 
 def input_paths: Separate<["-", "--"], "input-paths">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"The SDK contents under comparison">,
   MetaVarName<"<path>">;
 
 def compiler_style_diags: Flag<["-", "--"], "compiler-style-diags">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Print compiler style diagnostics to stderr.">;
 
 def error_on_abi_breakage: Flag<["-", "--"], "error-on-abi-breakage">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Always treat ABI checker issues as errors">;
 
 def json: Flag<["-", "--"], "json">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Print output in JSON format.">;
 
 def avoid_location: Flag<["-", "--"], "avoid-location">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Avoid serializing the file paths of SDK nodes.">;
 
 def location: Separate<["-", "--"], "location">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Filter nodes with the given location.">,
   MetaVarName<"<location>">;
 
 def avoid_tool_args: Flag<["-", "--"], "avoid-tool-args">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Avoid serializing the arguments for invoking the tool.">;
 
 def abi: Flag<["-", "--"], "abi">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Dumping ABI interface">;
 
-def swift_only: Flag<["-", "--"], "swift-only">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
-  HelpText<"Only include APIs defined from Swift source">;
+def language_only: Flag<["-", "--"], "language-only">,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
+  HelpText<"Only include APIs defined from Codira source">;
 
 def disable_os_checks: Flag<["-", "--"], "disable-os-checks">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Skip OS related diagnostics">;
 
 def disable_remove_deprecated_check: Flag<["-", "--"], "disable-remove-deprecated-check">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Skip diagnosing removal of deprecated symbols">;
 
 def enable_remove_deprecated_check: Flag<["-", "--"], "enable-remove-deprecated-check">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Diagnosing removal of deprecated symbols">;
 
 def print_module: Flag<["-", "--"], "print-module">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Print module names in diagnostics">;
 
 def migrator: Flag<["-", "--"], "migrator">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Dump Json suitable for generating migration script">;
 
 def abort_on_module_fail: Flag<["-", "--"], "abort-on-module-fail">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Abort if a module failed to load">;
 
 def disable_fail_on_error: Flag<["-", "--"], "disable-fail-on-error">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Don't exit with a nonzero status if errors are emitted">;
 
 def debug_mapping: Flag<["-", "--"], "debug-mapping">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Dumping information for debug purposes">;
 
 def BF : JoinedOrSeparate<["-"], "BF">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"add a directory to the baseline framework search path">;
-def BF_EQ : Joined<["-"], "BF=">, Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+def BF_EQ : Joined<["-"], "BF=">, Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   Alias<BF>;
 
 def BI : JoinedOrSeparate<["-"], "BI">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"add a module for baseline input">;
-def BI_EQ : Joined<["-"], "BI=">, Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+def BI_EQ : Joined<["-"], "BI=">, Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   Alias<BI>;
 
 def iframework : JoinedOrSeparate<["-"], "iframework">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"add a directory to the clang importer system framework search path">;
 
 def baseline_path : JoinedOrSeparate<["-"], "baseline-path">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"The path to the Json file that we should use as the baseline">;
 
 def baseline_dir : JoinedOrSeparate<["-"], "baseline-dir">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"The path to a directory containing baseline files: macos.json, iphoneos.json, appletvos.json, watchos.json, and iosmac.json">;
 
 def breakage_allowlist_path : JoinedOrSeparate<["-"], "breakage-allowlist-path">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"An allowlist of breakages to not complain about">;
 
 def bsdk : JoinedOrSeparate<["-"], "bsdk">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"path to the baseline SDK to import frameworks">;
 
 def module_list_file : JoinedOrSeparate<["-"], "module-list-file">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption, ArgumentIsPath]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption, ArgumentIsPath]>,
   HelpText<"File containing a new-line separated list of modules">;
 
 def module: Separate<["-", "--"], "module">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Names of modules">,
   MetaVarName<"<name>">;
 
 def use_interface_for_module: Separate<["-", "--"], "use-interface-for-module">,
-  Flags<[NoDriverOption, SwiftAPIDigesterOption]>,
+  Flags<[NoDriverOption, CodiraAPIDigesterOption]>,
   HelpText<"Prefer loading these modules via interface">,
   MetaVarName<"<name>">;
 
@@ -2026,7 +2043,7 @@ def load_pass_plugin_EQ : Joined<["-"], "load-pass-plugin=">,
 
 // These flags only exist here so that the old driver doesn't fail with unknown
 // arguments when they're given. The option definitions (and ie. their flags)
-// matter since they are synced to the new swift-driver. The options themselves
+// matter since they are synced to the new language-driver. The options themselves
 // are completely unimplemented in the old driver, however.
 
 def driver_print_graphviz:
@@ -2053,7 +2070,7 @@ def driver_experimental_explicit_module_build:
 def driver_scan_dependencies_non_lib:
   Flag<["-"], "nonlib-dependency-scanner">,
   Flags<[HelpHidden, NewDriverOnlyOption]>,
-  HelpText<"Use calls to `swift-frontend -scan-dependencies` instead of "
+  HelpText<"Use calls to `language-frontend -scan-dependencies` instead of "
            "dedicated dependency scanning library">;
 
 def always_rebuild_module_dependencies:
@@ -2085,7 +2102,7 @@ def emit_module_separately_WMO:
 def no_emit_module_separately_WMO:
   Flag<["-"], "no-emit-module-separately-wmo">,
   Flags<[HelpHidden, NewDriverOnlyOption]>,
-  HelpText<"Force emitting the swiftmodule in the same job in wmo builds">;
+  HelpText<"Force emitting the languagemodule in the same job in wmo builds">;
 
 def emit_module_serialize_diagnostics_path:
   Separate<["-"], "emit-module-serialize-diagnostics-path">,
@@ -2104,7 +2121,7 @@ def emit_module_dependencies_path:
 def use_frontend_parseable_output:
   Flag<["-"], "use-frontend-parseable-output">,
   Flags<[HelpHidden, NewDriverOnlyOption, CacheInvariant]>,
-  HelpText<"Emit parseable-output from swift-frontend jobs instead of from "
+  HelpText<"Emit parseable-output from language-frontend jobs instead of from "
            "the driver">;
 
 def print_explicit_dependency_graph:
@@ -2167,7 +2184,7 @@ def nostartfiles:
   Flag<["-"], "nostartfiles">,
   Flags<[FrontendOption, DoesNotAffectIncrementalBuild, NoInteractiveOption,
          HelpHidden]>,
-  HelpText<"Do not link in the Swift language startup routines">;
+  HelpText<"Do not link in the Codira language startup routines">;
 
 def gcc_toolchain: Separate<["-"], "gcc-toolchain">,
   Flags<[HelpHidden, NewDriverOnlyOption, ArgumentIsPath]>,
@@ -2177,7 +2194,7 @@ def gcc_toolchain: Separate<["-"], "gcc-toolchain">,
 def experimental_clang_importer_direct_cc1_scan:
   Flag<["-"], "experimental-clang-importer-direct-cc1-scan">,
   Flags<[FrontendOption, NewDriverOnlyOption, HelpHidden]>,
-  HelpText<"Enables swift driver to construct swift-frontend invocations using -direct-clang-cc1-module-build">;
+  HelpText<"Enables language driver to construct language-frontend invocations using -direct-clang-cc1-module-build">;
 
 def cache_compile_job:  Flag<["-"], "cache-compile-job">,
   Flags<[FrontendOption, NewDriverOnlyOption]>,
@@ -2233,11 +2250,11 @@ def cache_replay_prefix_map: Separate<["-"], "cache-replay-prefix-map">,
 def plugin_search_Group : OptionGroup<"<plugin search options>">;
 
 def plugin_path : Separate<["-"], "plugin-path">, Group<plugin_search_Group>,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption]>,
   HelpText<"Add directory to the plugin search path">;
 
 def external_plugin_path : Separate<["-"], "external-plugin-path">, Group<plugin_search_Group>,
-  Flags<[FrontendOption, ArgumentIsPath, SwiftSymbolGraphExtractOption, SwiftAPIDigesterOption]>,
+  Flags<[FrontendOption, ArgumentIsPath, CodiraSymbolGraphExtractOption, CodiraAPIDigesterOption]>,
   HelpText<"Add directory to the plugin search path with a plugin server executable">,
   MetaVarName<"<path>#<plugin-server-path>">;
 

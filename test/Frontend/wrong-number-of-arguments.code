@@ -1,0 +1,2 @@
+// RUN: not %language  -c -primary-file a.code b.code -emit-module-path one -emit-module-path two 2>&1 | %FileCheck %s -check-prefix=CHECK1
+// CHECK1: <unknown>:0: error: wrong number of '-emit-module-path' arguments (expected 1, got 2)

@@ -1,0 +1,3 @@
+// {"signature":"void toolchain::function_ref<void (toolchain::raw_ostream&)>::callback_fn<getTypeForSymbolRange(language::rewriting::Symbol const*, language::rewriting::Symbol const*, toolchain::ArrayRef<language::GenericTypeParamType*>, language::rewriting::PropertyMap const&)::$_0::operator()(language::GenericTypeParamType*) const::'lambda'(auto&)>(long, toolchain::raw_ostream&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a<each b { extension a!

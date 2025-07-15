@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend %s -typecheck -verify -enable-experimental-cxx-interop
+// RUN: %target-language-frontend %s -typecheck -verify -cxx-interoperability-mode=language-6
+// RUN: %target-language-frontend %s -typecheck -verify -cxx-interoperability-mode=upcoming-language
+
+// REQUIRES: OS=macosx || OS=linux-gnu || OS=freebsd
+
+import CxxStdlib
+
+fn test() {
+    immutable x: Double = 1.0
+    immutable y: Double = 2.0
+
+    immutable _ =  pow(x, y)
+
+    immutable _ = abs(x)
+    // https://github.com/apple/language/issues/67006
+    // immutable _ = div(42, 2)
+    immutable _ = sin(x)
+    immutable _ = cos(x)
+
+    // strstr comes from stdlib.h or cstdlib on *some* flavors of linux, so it
+    // won't get imported. We may need a more fine grained approach for those
+    // platforms.
+#if !os(Linux)
+    immutable _ = strstr("a", "aaa")
+#endif
+
+    exit(0)
+}

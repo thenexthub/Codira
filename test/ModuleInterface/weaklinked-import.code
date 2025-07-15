@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: echo 'public struct S {}' > %t/Other.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Other.codemodule -parse-as-library %t/Other.code -enable-library-evolution
+//
+// RUN: %target-language-emit-module-interface(%t/WeakLinksOther.codeinterface) %s -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/WeakLinksOther.codeinterface) -I %t
+// RUN: %FileCheck %s < %t/WeakLinksOther.codeinterface
+
+// UNSUPPORTED: OS=windows-msvc
+
+// The @_weakLinked attribute should not be printed in languageinterfaces.
+// CHECK-NOT: @_weakLinked
+@_weakLinked import Other

@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/textual)
+// RUN: %empty-directory(%t/binary)
+// RUN: %empty-directory(%t/module-cache)
+
+// RUN: %target-language-frontend -emit-module %s -module-name Foo -language-version 5 -disable-implicit-concurrency-module-import -user-module-version 113.33.44.55.66.77 -emit-module-interface-path %t/textual/Foo.codeinterface -enable-library-evolution -emit-module-path %t/binary/Foo.codemodule
+
+// RUN: %FileCheck %s --check-prefix=INTERFACE-FLAG < %t/textual/Foo.codeinterface
+
+// RUN: %target-language-ide-test -print-module-metadata -module-to-print Foo -I %t/textual -source-filename %s -module-cache-path %t/module-cache | %FileCheck %s --check-prefix=USER-MODULE-PRINT
+
+// RUN: %target-language-ide-test -print-module-metadata -module-to-print Foo -I %t/binary -source-filename %s | %FileCheck %s --check-prefix=USER-MODULE-PRINT
+
+// RUN: rm %t/binary/Foo.codemodule
+// RUN: %target-language-frontend -compile-module-from-interface %t/textual/Foo.codeinterface -o %t/binary/Foo.codemodule
+// RUN: %target-language-ide-test -print-module-metadata -module-to-print Foo -I %t/binary -source-filename %s | %FileCheck %s --check-prefix=USER-MODULE-PRINT
+
+// INTERFACE-FLAG: -user-module-version 113.33.44.55
+
+// USER-MODULE-PRINT: user module version: 113.33.44.55

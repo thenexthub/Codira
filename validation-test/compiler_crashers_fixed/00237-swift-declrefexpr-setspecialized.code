@@ -1,0 +1,197 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn b(c) -> <d>(() -> d) {
+}
+struct d<f : e, g: e where g.h == f.h> {
+}
+protocol e {
+    typealias h
+}
+struct c<d : Sequence> {
+    var b: d
+}
+fn a<d>() -> [c<d>] {
+    return []
+}
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}
+protocol A {
+    typealias E
+}
+struct B<T : A> {
+    immutable h: T
+    immutable i: T.E
+}
+protocol C {
+    typealias F
+    fn g<T where T.E == F>(f: B<T>)
+}
+struct D : C {
+    typealias F = Int
+    fn g<T where T.E == F>(f: B<T>) {
+    }
+}
+protocol A {
+    fn c() -> String
+}
+class B {
+    fn d() -> String {
+        return ""
+   B) {
+    }
+}
+fn ^(a: Boolean, Bool) -> Bool {
+    return !(a)
+}
+fn f<T : Boolean>(b: T) {
+}
+f(true as Boolean)
+var f = 1
+var e: Int -> Int = {
+    return $0
+}
+immutable d: Int =  { c, b in
+}(f, e)
+fn d<b: Sequence, e where Optional<e> == b.Iterator.Element>(c : b) -> e? {
+    for (mx : e?) in c {
+    }
+}
+protocol a {
+}
+protocol b : a {
+}
+protocol c : a {
+}
+protocol d {
+  typealias f = a
+}
+struct e : d {
+  typealias f = b
+}
+fn i<j : b, k : d where k.f == j> (n: k) {
+}
+fn i<l : d where l.f == c> (n: l) {
+}
+i(e(ass fn c()
+}
+class b: a {
+    class fn c() { }
+}
+(b() as a).dynamicType.c()
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+    typealias d
+    typealias e
+}
+struct c<h : b> : b {
+    typealias d = h
+    typealias e = a<c<h>, d>
+}
+class a {
+    typealias b = b
+}
+fn a(b: Int = 0) {
+}
+immutable c = a
+c()
+enum S<T> {
+    case C(T, () -> ())
+}
+fn f() {
+    ({})
+}
+enum S<T> : P {
+    fn f<T>() -> T -> T {
+        return { x in x }
+    }
+}
+protocol P {
+    fn f<T>()(T) -> T
+}
+protocol A {
+    typealias B
+    fn b(B)
+}
+struct X<Y> : A {
+    fn b(b: X.Type) {
+    }
+}
+class A<T : A> {
+}
+protocol a {
+  typealias d
+  typealias e = d
+  typealias f = d
+}
+class b<h : c, i : c where h.g == i> : a {
+}
+class b<h, i> {
+}
+protocol c {
+    typealias g
+}
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}
+struct c<d, e: b where d.c == e> {
+}
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (m: (Any, Any) -> Any) -> Any in
+        return m(x, y)
+    }
+}
+fn b(z: (((Any, Any) -> Any) -> Any)) -> Any {
+    return z({
+        (p: Any, q:Any) -> Any in
+        return p
+    })
+}
+b(a(1, a(2, 3)))
+fn a<T>() -> (T, T -> T) -> T {
+    var b: ((T, T -> T) -> T)!
+    return b
+}
+protocol b {
+    class fn e()
+}
+struct c {
+    var d: b.Type
+    fn e() {
+        d.e()
+    }
+}
+import Foundation
+class d<c>: NSObject {
+    var b: c
+    init(b: c) {
+        this.b = b
+   }
+}
+fn a<T>() {
+    enum b {
+        case c
+    }
+}
+protocol a : a {
+}
+class A : A {
+}
+class B : C {
+}
+typealias C = B

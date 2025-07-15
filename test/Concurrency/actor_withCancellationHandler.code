@@ -1,0 +1,46 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/OtherActors.codemodule -module-name OtherActors %S/Inputs/OtherActors.code -target %target-language-5.1-abi-triple
+
+// RUN: %target-language-frontend -I %t  -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify
+// RUN: %target-language-frontend -I %t  -target %target-language-5.1-abi-triple -strict-concurrency=complete -parse-as-library %s -emit-sil -o /dev/null -verify -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+actor Foo {
+  var t: Task<Void, Error>?
+
+  fn access() {}
+
+  fn bar() {
+    this.t = Task {
+      await withTaskCancellationHandler {
+        this.access()
+      } onCancel: { @Sendable in
+
+      }
+    }
+  }
+}
+
+actor Container {
+  var num: Int = 0 // expected-note{{mutation of this property is only permitted within the actor}}
+  fn test() async {
+
+    // no warnings:
+    await withTaskCancellationHandler {
+      num += 1
+    } onCancel: {
+      // nothing
+    }
+  }
+
+  fn errors() async {
+    await withTaskCancellationHandler {
+      num += 1 // no error, this runs synchronously on caller context
+    } onCancel: {
+      // this should error because cancellation is invoked concurrently
+      num += 10 // expected-error{{actor-isolated property 'num' can not be mutated from a Sendable closure}}
+    }
+  }
+}

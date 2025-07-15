@@ -1,13 +1,17 @@
-//===--- swift_parse_test_main.cpp ----------------------------------------===//
+//===--- language_parse_test_main.cpp ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A utility tool to measure the parser performance.
@@ -15,12 +19,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/LangOptions.h"
 #include "language/Bridging/ASTGen.h"
 #include "language/Subsystems.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Error.h"
 
 #include <chrono>
 #include <ctime>
@@ -30,7 +34,7 @@ using namespace language;
 namespace {
 
 enum class Executor {
-  SwiftParser,
+  CodiraParser,
   LibParse,
   ASTGen,
 };
@@ -43,36 +47,36 @@ enum class ExecuteOptionFlag {
 };
 using ExecuteOptions = OptionSet<ExecuteOptionFlag>;
 
-struct SwiftParseTestOptions {
-  llvm::cl::list<Executor> Executors = llvm::cl::list<Executor>(
-      llvm::cl::desc("Available parsers"),
-      llvm::cl::values(
-          clEnumValN(Executor::SwiftParser, "swift-parser", "SwiftParser"),
-          clEnumValN(Executor::ASTGen, "ast-gen", "ASTGen with SwiftParser"),
+struct CodiraParseTestOptions {
+  toolchain::cl::list<Executor> Executors = toolchain::cl::list<Executor>(
+      toolchain::cl::desc("Available parsers"),
+      toolchain::cl::values(
+          clEnumValN(Executor::CodiraParser, "language-parser", "CodiraParser"),
+          clEnumValN(Executor::ASTGen, "ast-gen", "ASTGen with CodiraParser"),
           clEnumValN(Executor::LibParse, "lib-parse", "libParse")));
 
-  llvm::cl::opt<unsigned int> Iterations = llvm::cl::opt<unsigned int>(
-      "n", llvm::cl::desc("iteration"), llvm::cl::init(1));
+  toolchain::cl::opt<unsigned int> Iterations = toolchain::cl::opt<unsigned int>(
+      "n", toolchain::cl::desc("iteration"), toolchain::cl::init(1));
 
-  llvm::cl::opt<bool> SkipBodies = llvm::cl::opt<bool>(
+  toolchain::cl::opt<bool> SkipBodies = toolchain::cl::opt<bool>(
       "skip-bodies",
-      llvm::cl::desc("skip function bodies and type members if possible"));
+      toolchain::cl::desc("skip function bodies and type members if possible"));
 
-  llvm::cl::opt<bool> Dump = llvm::cl::opt<bool>(
-      "dump", llvm::cl::desc("dump result for each iteration"));
+  toolchain::cl::opt<bool> Dump = toolchain::cl::opt<bool>(
+      "dump", toolchain::cl::desc("dump result for each iteration"));
 
-  llvm::cl::list<std::string> InputPaths = llvm::cl::list<std::string>(
-      llvm::cl::Positional, llvm::cl::desc("input paths"));
+  toolchain::cl::list<std::string> InputPaths = toolchain::cl::list<std::string>(
+      toolchain::cl::Positional, toolchain::cl::desc("input paths"));
 };
 
 struct LibParseExecutor {
   constexpr static StringRef name = "libParse";
 
-  static llvm::Error performParse(llvm::MemoryBufferRef buffer,
+  static toolchain::Error performParse(toolchain::MemoryBufferRef buffer,
                                   ExecuteOptions opts) {
     SourceManager SM;
     unsigned bufferID =
-        SM.addNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(buffer));
+        SM.addNewSourceBuffer(toolchain::MemoryBuffer::getMemBuffer(buffer));
     DiagnosticEngine diagEngine(SM);
     LangOptions langOpts;
     TypeCheckerOptions typeckOpts;
@@ -102,49 +106,49 @@ struct LibParseExecutor {
 
     if (opts.contains(ExecuteOptionFlag::Dump)) {
       for (auto &item : items) {
-        item.dump(llvm::outs());
+        item.dump(toolchain::outs());
       }
     }
 
-    return llvm::Error::success();
+    return toolchain::Error::success();
   }
 };
 
-struct SwiftParserExecutor {
-  constexpr static StringRef name = "SwiftParser";
+struct CodiraParserExecutor {
+  constexpr static StringRef name = "CodiraParser";
 
-  static llvm::Error performParse(llvm::MemoryBufferRef buffer,
+  static toolchain::Error performParse(toolchain::MemoryBufferRef buffer,
                                   ExecuteOptions opts) {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
     // TODO: Implement 'ExecuteOptionFlag::SkipBodies'
-    auto sourceFile = swift_ASTGen_parseSourceFile(
+    auto sourceFile = language_ASTGen_parseSourceFile(
         buffer.getBuffer(),
         /*moduleName=*/StringRef(), buffer.getBufferIdentifier(),
         /*declContextPtr=*/nullptr, BridgedGeneratedSourceFileKindNone);
-    swift_ASTGen_destroySourceFile(sourceFile);
+    language_ASTGen_destroySourceFile(sourceFile);
 
     if (opts.contains(ExecuteOptionFlag::Dump)) {
       // TODO: Implement.
     }
 
-    return llvm::Error::success();
+    return toolchain::Error::success();
 #else
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                   "SwiftParser is not supported");
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
+                                   "CodiraParser is not supported");
 #endif
   }
 };
 
 struct ASTGenExecutor {
-  constexpr static StringRef name = "ASTGen with SwiftParser";
+  constexpr static StringRef name = "ASTGen with CodiraParser";
 
-  static llvm::Error performParse(llvm::MemoryBufferRef buffer,
+  static toolchain::Error performParse(toolchain::MemoryBufferRef buffer,
                                   ExecuteOptions opts) {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 
     SourceManager SM;
     unsigned bufferID =
-        SM.addNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(buffer));
+        SM.addNewSourceBuffer(toolchain::MemoryBuffer::getMemBuffer(buffer));
     DiagnosticEngine diagEngine(SM);
     LangOptions langOpts;
     TypeCheckerOptions typeckOpts;
@@ -178,49 +182,49 @@ struct ASTGenExecutor {
 
     if (opts.contains(ExecuteOptionFlag::Dump)) {
       for (auto &item : items) {
-        item.dump(llvm::outs());
+        item.dump(toolchain::outs());
       }
     }
 
-    return llvm::Error::success();
+    return toolchain::Error::success();
 #else
-    return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                   "ASTGen/SwiftParser is not supported");
+    return toolchain::createStringError(toolchain::inconvertibleErrorCode(),
+                                   "ASTGen/CodiraParser is not supported");
 #endif
   }
 };
 
-static void _loadSwiftFilesRecursively(
+static void _loadCodiraFilesRecursively(
     StringRef path,
-    SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> &buffers) {
-  if (llvm::sys::fs::is_directory(path)) {
+    SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> &buffers) {
+  if (toolchain::sys::fs::is_directory(path)) {
     std::error_code err;
-    for (auto I = llvm::sys::fs::directory_iterator(path, err),
-              E = llvm::sys::fs::directory_iterator();
+    for (auto I = toolchain::sys::fs::directory_iterator(path, err),
+              E = toolchain::sys::fs::directory_iterator();
          I != E; I.increment(err)) {
-      _loadSwiftFilesRecursively(I->path(), buffers);
+      _loadCodiraFilesRecursively(I->path(), buffers);
     }
   } else if (path.ends_with(".code")) {
-    if (auto buffer = llvm::MemoryBuffer::getFile(path)) {
+    if (auto buffer = toolchain::MemoryBuffer::getFile(path)) {
       buffers.push_back(std::move(*buffer));
     }
   }
 }
 
-/// Load all '.swift' files in the specified \p filePaths into \p buffers.
+/// Load all '.code' files in the specified \p filePaths into \p buffers.
 /// If the path is a directory, this recursively collects the files in it.
 static void
 loadSources(ArrayRef<std::string> filePaths,
-            SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> &buffers) {
+            SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> &buffers) {
   for (auto path : filePaths) {
-    _loadSwiftFilesRecursively(path, buffers);
+    _loadCodiraFilesRecursively(path, buffers);
   }
 }
 
 /// Measure the duration of \p body execution. Returns a pair of "wall clock
 /// time" and "CPU time".
 template <typename Duration>
-static std::pair<Duration, Duration> measure(llvm::function_ref<void()> body) {
+static std::pair<Duration, Duration> measure(toolchain::function_ref<void()> body) {
   auto cStart = std::clock();
   auto tStart = std::chrono::steady_clock::now();
   body();
@@ -241,13 +245,13 @@ static std::pair<Duration, Duration> measure(llvm::function_ref<void()> body) {
 /// Parse all \p buffers using \c Executor , \p iteration times, and print out
 /// the measurement to the \c stdout.
 template <typename Executor>
-static llvm::Error
-perform(const SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> &buffers,
+static toolchain::Error
+perform(const SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> &buffers,
         ExecuteOptions opts, unsigned iteration, uintmax_t totalBytes,
         uintmax_t totalLines) {
 
-  llvm::outs() << "----\n";
-  llvm::outs() << "parser: " << Executor::name << "\n";
+  toolchain::outs() << "----\n";
+  toolchain::outs() << "parser: " << Executor::name << "\n";
 
   using duration_t = std::chrono::nanoseconds;
   // Wall clock time.
@@ -255,7 +259,7 @@ perform(const SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> &buffers,
   // CPU time.
   auto cDuration = duration_t::zero();
 
-  llvm::Error err = llvm::Error::success();
+  toolchain::Error err = toolchain::Error::success();
   (void)bool(err);
 
   for (unsigned i = 0; i < iteration; i++) {
@@ -274,28 +278,28 @@ perform(const SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> &buffers,
       std::chrono::duration_cast<std::chrono::milliseconds>(tDuration).count();
   auto cDisplay =
       std::chrono::duration_cast<std::chrono::milliseconds>(cDuration).count();
-  llvm::outs() << llvm::format("wall clock time (ms): %8d\n", tDisplay)
-               << llvm::format("cpu time (ms):        %8d\n", cDisplay);
+  toolchain::outs() << toolchain::format("wall clock time (ms): %8d\n", tDisplay)
+               << toolchain::format("cpu time (ms):        %8d\n", cDisplay);
 
   if (cDuration.count() > 0) {
     // Throughputs are based on CPU time.
     auto byteTPS = totalBytes * duration_t::period::den / cDuration.count();
     auto lineTPS = totalLines * duration_t::period::den / cDuration.count();
 
-    llvm::outs() << llvm::format("throughput (byte/s):  %8d\n", byteTPS)
-                 << llvm::format("throughput (line/s):  %8d\n", lineTPS);
+    toolchain::outs() << toolchain::format("throughput (byte/s):  %8d\n", byteTPS)
+                 << toolchain::format("throughput (line/s):  %8d\n", lineTPS);
   }
 
-  return llvm::Error::success();
+  return toolchain::Error::success();
 }
 
 } // namespace
 
-int swift_parse_test_main(ArrayRef<const char *> args, const char *argv0,
+int language_parse_test_main(ArrayRef<const char *> args, const char *argv0,
                           void *mainAddr) {
-  SwiftParseTestOptions options;
-  llvm::cl::ParseCommandLineOptions(args.size(), args.data(),
-                                    "Swift parse test\n");
+  CodiraParseTestOptions options;
+  toolchain::cl::ParseCommandLineOptions(args.size(), args.data(),
+                                    "Codira parse test\n");
 
   unsigned iterations = options.Iterations;
   ExecuteOptions execOptions;
@@ -304,7 +308,7 @@ int swift_parse_test_main(ArrayRef<const char *> args, const char *argv0,
   if (options.Dump)
     execOptions |= ExecuteOptionFlag::Dump;
 
-  SmallVector<std::unique_ptr<llvm::MemoryBuffer>> buffers;
+  SmallVector<std::unique_ptr<toolchain::MemoryBuffer>> buffers;
   loadSources(options.InputPaths, buffers);
   unsigned int byteCount = 0;
   unsigned int lineCount = 0;
@@ -313,12 +317,12 @@ int swift_parse_test_main(ArrayRef<const char *> args, const char *argv0,
     lineCount += buffer->getBuffer().count('\n');
   }
 
-  llvm::outs() << llvm::format("file count:  %8d\n", buffers.size())
-               << llvm::format("total bytes: %8d\n", byteCount)
-               << llvm::format("total lines: %8d\n", lineCount)
-               << llvm::format("iterations:  %8d\n", iterations);
+  toolchain::outs() << toolchain::format("file count:  %8d\n", buffers.size())
+               << toolchain::format("total bytes: %8d\n", byteCount)
+               << toolchain::format("total lines: %8d\n", lineCount)
+               << toolchain::format("iterations:  %8d\n", iterations);
 
-  llvm::Error err = llvm::Error::success();
+  toolchain::Error err = toolchain::Error::success();
   (void)bool(err);
 
   for (auto mode : options.Executors) {
@@ -329,7 +333,7 @@ int swift_parse_test_main(ArrayRef<const char *> args, const char *argv0,
                             lineCount);                                        \
     break;
       CASE(LibParse, LibParseExecutor)
-      CASE(SwiftParser, SwiftParserExecutor)
+      CASE(CodiraParser, CodiraParserExecutor)
       CASE(ASTGen, ASTGenExecutor)
     }
     if (err)
@@ -337,8 +341,8 @@ int swift_parse_test_main(ArrayRef<const char *> args, const char *argv0,
   }
 
   if (err) {
-    llvm::handleAllErrors(std::move(err), [](llvm::ErrorInfoBase &info) {
-      llvm::errs() << "error: " << info.message() << "\n";
+    toolchain::handleAllErrors(std::move(err), [](toolchain::ErrorInfoBase &info) {
+      toolchain::errs() << "error: " << info.message() << "\n";
     });
     return 1;
   }

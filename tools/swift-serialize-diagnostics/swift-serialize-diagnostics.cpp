@@ -1,4 +1,4 @@
-//===--- swift-serialize-diagnostics.cpp ----------------------------------===//
+//===--- language-serialize-diagnostics.cpp ----------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Convert localization YAML files to a serialized format.
 //
 //===----------------------------------------------------------------------===//
 
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Localization/LocalizationFormat.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Bitstream/BitstreamReader.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/EndianStream.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/OnDiskHashTable.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/EndianStream.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/OnDiskHashTable.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <cstdlib>
 
 using namespace language;
@@ -41,52 +42,52 @@ using namespace language::diag;
 
 namespace options {
 
-static llvm::cl::OptionCategory Category("swift-serialize-diagnostics Options");
+static toolchain::cl::OptionCategory Category("language-serialize-diagnostics Options");
 
-static llvm::cl::opt<std::string>
+static toolchain::cl::opt<std::string>
     InputFilePath("input-file-path",
-                  llvm::cl::desc("Path to the `.strings` input file"),
-                  llvm::cl::cat(Category));
+                  toolchain::cl::desc("Path to the `.strings` input file"),
+                  toolchain::cl::cat(Category));
 
-static llvm::cl::opt<std::string>
+static toolchain::cl::opt<std::string>
     OutputDirectory("output-directory",
-                    llvm::cl::desc("Directory for the output file"),
-                    llvm::cl::cat(Category));
+                    toolchain::cl::desc("Directory for the output file"),
+                    toolchain::cl::cat(Category));
 
 } // namespace options
 
 int main(int argc, char *argv[]) {
   PROGRAM_START(argc, argv);
 
-  llvm::cl::HideUnrelatedOptions(options::Category);
-  llvm::cl::ParseCommandLineOptions(argc, argv,
-                                    "Swift Serialize Diagnostics Tool\n");
+  toolchain::cl::HideUnrelatedOptions(options::Category);
+  toolchain::cl::ParseCommandLineOptions(argc, argv,
+                                    "Codira Serialize Diagnostics Tool\n");
 
-  if (!llvm::sys::fs::exists(options::InputFilePath)) {
-    llvm::errs() << "diagnostics file not found\n";
+  if (!toolchain::sys::fs::exists(options::InputFilePath)) {
+    toolchain::errs() << "diagnostics file not found\n";
     return EXIT_FAILURE;
   }
 
-  auto localeCode = llvm::sys::path::filename(options::InputFilePath);
-  llvm::SmallString<128> SerializedFilePath(options::OutputDirectory);
-  llvm::sys::path::append(SerializedFilePath, localeCode);
-  llvm::sys::path::replace_extension(SerializedFilePath, ".db");
+  auto localeCode = toolchain::sys::path::filename(options::InputFilePath);
+  toolchain::SmallString<128> SerializedFilePath(options::OutputDirectory);
+  toolchain::sys::path::append(SerializedFilePath, localeCode);
+  toolchain::sys::path::replace_extension(SerializedFilePath, ".db");
 
   SerializedLocalizationWriter Serializer;
 
   {
-    assert(llvm::sys::path::extension(options::InputFilePath) == ".strings");
+    assert(toolchain::sys::path::extension(options::InputFilePath) == ".strings");
 
     StringsLocalizationProducer strings(options::InputFilePath);
 
     strings.forEachAvailable(
-        [&Serializer](swift::DiagID id, llvm::StringRef translation) {
+        [&Serializer](language::DiagID id, toolchain::StringRef translation) {
           Serializer.insert(id, translation);
         });
   }
 
   if (Serializer.emit(SerializedFilePath.str())) {
-    llvm::errs() << "Cannot serialize diagnostic file "
+    toolchain::errs() << "Cannot serialize diagnostic file "
                  << options::InputFilePath << '\n';
     return EXIT_FAILURE;
   }

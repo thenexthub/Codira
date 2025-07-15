@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language
+
+struct S: Hashable {
+  immutable e: E?
+}
+
+enum E: Hashable {
+  case foo
+  case bar
+}
+
+immutable a = S(e: .foo)
+immutable b = S(e: .bar)
+
+_ = a == b

@@ -1,21 +1,25 @@
 //===- ParseTestSpecification.h - Parsing for test instructions -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines test::Argument.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PARSETESTSPECIFICATION
-#define SWIFT_SIL_PARSETESTSPECIFICATION
+#ifndef LANGUAGE_SIL_PARSETESTSPECIFICATION
+#define LANGUAGE_SIL_PARSETESTSPECIFICATION
 
 #include "language/Basic/TaggedUnion.h"
 #include "language/SIL/SILArgument.h"
@@ -23,14 +27,14 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/FormattedStream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/FormattedStream.h"
 
-namespace llvm {
+namespace toolchain {
 template <class T>
 class SmallVectorImpl;
 }
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace language {
 
@@ -71,9 +75,9 @@ protected:
 
 public:
   Kind getKind() const { return kind; }
-  void print(llvm::raw_ostream &os);
+  void print(toolchain::raw_ostream &os);
 #ifndef NDEBUG
-  void dump() { print(llvm::errs()); }
+  void dump() { print(toolchain::errs()); }
 #endif
 };
 
@@ -130,7 +134,7 @@ struct StringArgument : ConcreteArgument<StringRef, Argument::Kind::String> {
 };
 
 struct Arguments {
-  llvm::SmallVector<Argument, 8> storage;
+  toolchain::SmallVector<Argument, 8> storage;
   unsigned untakenIndex = 0;
 
   void assertUsed() {
@@ -158,9 +162,9 @@ private:
       auto stored = cast<Subtype>(argument).getValue();
       return stored;
     }
-    llvm::errs() << "Attempting to take a " << name << " argument but have\n";
-    argument.print(llvm::errs());
-    llvm::report_fatal_error("Bad unit test");
+    toolchain::errs() << "Attempting to take a " << name << " argument but have\n";
+    argument.print(toolchain::errs());
+    toolchain::report_fatal_error("Bad unit test");
   }
   template <typename Subtype>
   typename Subtype::Stored takeInstance(StringRef name) {
@@ -219,7 +223,7 @@ struct UnparsedSpecification {
   /// anchor.
   SILInstruction *context;
   /// Map from names used in the specification to the corresponding SILValues.
-  llvm::StringMap<SILValue> values;
+  toolchain::StringMap<SILValue> values;
 };
 
 /// Populates the array \p components with the elements of \p

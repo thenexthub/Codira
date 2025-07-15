@@ -1,0 +1,37 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h)
+
+// CHECK-LABEL: namespace Functions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Functions") {
+
+// CHECK-LABEL: namespace _impl {
+
+// CHECK: LANGUAGE_EXTERN void $s9Functions16alwaysDeprecatedyyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL LANGUAGE_DEPRECATED; // alwaysDeprecated()
+// CHECK: LANGUAGE_EXTERN void $s9Functions19alwaysDeprecatedTwoyyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL LANGUAGE_DEPRECATED_MSG("it should not be used"); // alwaysDeprecatedTwo()
+// CHECK: LANGUAGE_EXTERN void $s9Functions17alwaysUnavailableyyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL LANGUAGE_UNAVAILABLE; // alwaysUnavailable()
+// CHECK: LANGUAGE_EXTERN void $s9Functions24alwaysUnavailableMessageyyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL LANGUAGE_UNAVAILABLE_MSG("stuff happened"); // alwaysUnavailableMessage()
+// CHECK: LANGUAGE_EXTERN void $s9Functions22singlePlatAvailabilityyyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL LANGUAGE_AVAILABILITY(macos,introduced=11); // singlePlatAvailability()
+
+// CHECK: }
+
+// CHECK: LANGUAGE_INLINE_THUNK void alwaysDeprecated() noexcept LANGUAGE_SYMBOL("{{.*}}") LANGUAGE_DEPRECATED {
+@available(*, deprecated)
+public fn alwaysDeprecated() {}
+
+// CHECK: LANGUAGE_INLINE_THUNK void alwaysDeprecatedTwo() noexcept LANGUAGE_SYMBOL("{{.*}}") LANGUAGE_DEPRECATED_MSG("it should not be used")
+@available(*, deprecated, message: "it should not be used")
+public fn alwaysDeprecatedTwo() {}
+
+// CHECK: LANGUAGE_INLINE_THUNK void alwaysUnavailable() noexcept LANGUAGE_SYMBOL("{{.*}}") LANGUAGE_UNAVAILABLE
+@available(*, unavailable)
+public fn alwaysUnavailable() {}
+
+// CHECK: LANGUAGE_INLINE_THUNK void alwaysUnavailableMessage() noexcept LANGUAGE_SYMBOL("{{.*}}") LANGUAGE_UNAVAILABLE_MSG("stuff happened")
+@available(*, unavailable, message: "stuff happened")
+public fn alwaysUnavailableMessage() {}
+
+// CHECK: LANGUAGE_INLINE_THUNK void singlePlatAvailability() noexcept LANGUAGE_SYMBOL("{{.*}}") LANGUAGE_AVAILABILITY(macos,introduced=11)
+@available(macOS 11, *)
+public fn singlePlatAvailability() {}

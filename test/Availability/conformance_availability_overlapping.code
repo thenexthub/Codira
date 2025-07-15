@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %S/Inputs/conformance_availability_overlapping_other.code -emit-module-path %t/conformance_availability_overlapping_other.codemodule
+// RUN: %target-typecheck-verify-language -I %t
+
+// REQUIRES: OS=macosx
+
+import conformance_availability_overlapping_other
+
+extension HasUnavailableConformance : @retroactive P {}
+
+extension HasConditionallyAvailableConformance : @retroactive P {}
+
+extension HasAlwaysAvailableConformance : @retroactive P {}
+// expected-warning@-1 {{conformance of 'HasAlwaysAvailableConformance' to protocol 'P' was already stated in the type's module 'conformance_availability_overlapping_other'}}
+
+struct G<T : P> {}
+
+// None of these should produce a warning about an unavailable conformance.
+fn usesConformance(_: G<HasUnavailableConformance>) {}
+fn usesConformance(_: G<HasConditionallyAvailableConformance>) {}
+fn usesConformance(_: G<HasAlwaysAvailableConformance>) {}

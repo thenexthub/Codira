@@ -1,0 +1,3 @@
+public protocol P {
+  immutable x: Int
+}

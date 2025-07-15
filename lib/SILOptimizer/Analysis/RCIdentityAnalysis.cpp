@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
@@ -19,7 +20,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/DynamicCasts.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
@@ -270,7 +271,7 @@ findDominatingNonPayloadedEdge(SILBasicBlock *IncomingEdgeBB,
 }
 
 static SILValue allIncomingValuesEqual(
-    llvm::SmallVectorImpl<std::pair<SILBasicBlock *,
+    toolchain::SmallVectorImpl<std::pair<SILBasicBlock *,
                                     SILValue >> &IncomingValues) {
   SILValue First = stripRCIdentityPreservingInsts(IncomingValues[0].second);
   if (std::all_of(std::next(IncomingValues.begin()), IncomingValues.end(),
@@ -331,7 +332,7 @@ SILValue RCIdentityFunctionInfo::stripRCIdentityPreservingArgs(SILValue V,
   // Ok, this is the first time that we have visited this BB. Get the
   // SILArgument's incoming values. If we don't have an incoming value for each
   // one of our predecessors, just return SILValue().
-  llvm::SmallVector<std::pair<SILBasicBlock *, SILValue>, 8> IncomingValues;
+  toolchain::SmallVector<std::pair<SILBasicBlock *, SILValue>, 8> IncomingValues;
   if (!A->getSingleTerminatorOperands(IncomingValues)
       || IncomingValues.empty()) {
     return SILValue();
@@ -357,7 +358,7 @@ SILValue RCIdentityFunctionInfo::stripRCIdentityPreservingArgs(SILValue V,
     return V;
 
   // Ok, we have multiple predecessors. First find the first non-payloaded enum.
-  llvm::SmallVector<SILBasicBlock *, 8> NoPayloadEnumBBs;
+  toolchain::SmallVector<SILBasicBlock *, 8> NoPayloadEnumBBs;
   unsigned i = 0;
   for (; i < IVListSize && isNoPayloadEnum(IncomingValues[i].second); ++i) {
     NoPayloadEnumBBs.push_back(IncomingValues[i].first);
@@ -421,9 +422,9 @@ SILValue RCIdentityFunctionInfo::stripRCIdentityPreservingArgs(SILValue V,
   return FirstIV;
 }
 
-llvm::cl::opt<bool> StripOffArgs(
-    "enable-rc-identity-arg-strip", llvm::cl::init(true),
-    llvm::cl::desc("Should RC identity try to strip off arguments"));
+toolchain::cl::opt<bool> StripOffArgs(
+    "enable-rc-identity-arg-strip", toolchain::cl::init(true),
+    toolchain::cl::desc("Should RC identity try to strip off arguments"));
 
 //===----------------------------------------------------------------------===//
 //                   Top Level RC Identity Root Entrypoints
@@ -522,16 +523,16 @@ static bool isNonOverlappingTrivialAccess(SILValue value) {
 }
 
 void RCIdentityFunctionInfo::getRCUsers(
-    SILValue V, llvm::SmallVectorImpl<SILInstruction *> &Users) {
+    SILValue V, toolchain::SmallVectorImpl<SILInstruction *> &Users) {
   // We assume that Users is empty.
   assert(Users.empty() && "Expected an empty out variable.");
 
   // First grab our RC uses.
-  llvm::SmallVector<Operand *, 32> TmpUsers;
+  toolchain::SmallVector<Operand *, 32> TmpUsers;
   getRCUses(V, TmpUsers);
 
   // Then map our operands out of TmpUsers into Users.
-  llvm::transform(TmpUsers, std::back_inserter(Users),
+  toolchain::transform(TmpUsers, std::back_inserter(Users),
                   [](Operand *Op) { return Op->getUser(); });
 
   // Finally sort/unique our users array.
@@ -544,7 +545,7 @@ void RCIdentityFunctionInfo::getRCUsers(
 ///
 /// We only use the instruction analysis here.
 void RCIdentityFunctionInfo::getRCUses(SILValue InputValue,
-                                       llvm::SmallVectorImpl<Operand *> &Uses) {
+                                       toolchain::SmallVectorImpl<Operand *> &Uses) {
   return visitRCUses(InputValue,
                      [&](Operand *op) { return Uses.push_back(op); });
 }
@@ -605,6 +606,6 @@ void RCIdentityAnalysis::initialize(SILPassManager *PM) {
   DA = PM->getAnalysis<DominanceAnalysis>();
 }
 
-SILAnalysis *swift::createRCIdentityAnalysis(SILModule *M) {
+SILAnalysis *language::createRCIdentityAnalysis(SILModule *M) {
   return new RCIdentityAnalysis(M);
 }

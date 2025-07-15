@@ -1,38 +1,38 @@
-add_pure_swift_host_library(swiftASTGen STATIC CXX_INTEROP
-  ASTGen.swift
-  ASTGen+CompilerBuildConfiguration.swift
-  Availability.swift
-  Bridge.swift
-  BuiltinPound.swift
-  CompilerBuildConfiguration.swift
-  DeclAttrs.swift
-  Decls.swift
-  Diagnostics.swift
-  DiagnosticsBridge.swift
-  Exprs.swift
-  Fingerprint.swift
-  Generics.swift
-  LexicalLookup.swift
-  Literals.swift
-  ParameterClause.swift
-  Patterns.swift
-  Regex.swift
-  SourceFile.swift
-  StableHasher.swift
-  Stmts.swift
-  TypeAttrs.swift
-  Types.swift
+add_pure_language_host_library(languageASTGen STATIC CXX_INTEROP
+  ASTGen.code
+  ASTGen+CompilerBuildConfiguration.code
+  Availability.code
+  Bridge.code
+  BuiltinPound.code
+  CompilerBuildConfiguration.code
+  DeclAttrs.code
+  Decls.code
+  Diagnostics.code
+  DiagnosticsBridge.code
+  Exprs.code
+  Fingerprint.code
+  Generics.code
+  LexicalLookup.code
+  Literals.code
+  ParameterClause.code
+  Patterns.code
+  Regex.code
+  SourceFile.code
+  StableHasher.code
+  Stmts.code
+  TypeAttrs.code
+  Types.code
 
   DEPENDENCIES
-    swiftAST
-  SWIFT_DEPENDENCIES
+    languageAST
+  LANGUAGE_DEPENDENCIES
     _CompilerRegexParser
-    _CompilerSwiftSyntax
-    _CompilerSwiftIfConfig
-    _CompilerSwiftLexicalLookup
-    _CompilerSwiftOperators
-    _CompilerSwiftSyntaxBuilder
-    _CompilerSwiftParser
-    _CompilerSwiftParserDiagnostics
-    _CompilerSwiftDiagnostics
+    _CompilerCodiraSyntax
+    _CompilerCodiraIfConfig
+    _CompilerCodiraLexicalLookup
+    _CompilerCodiraOperators
+    _CompilerCodiraSyntaxBuilder
+    _CompilerCodiraParser
+    _CompilerCodiraParserDiagnostics
+    _CompilerCodiraDiagnostics
 )

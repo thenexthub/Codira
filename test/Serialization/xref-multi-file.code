@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/struct_with_operators.code
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/alias.code -module-name has_alias
+// RUN: %target-language-frontend -emit-module -o %t -I %t %S/Inputs/has_xref.code
+// RUN: toolchain-bcanalyzer %t/has_xref.codemodule | %FileCheck %s
+// RUN: %target-language-frontend -emit-silgen -I %t -primary-file %s %S/Inputs/xref-multi-file-other.code -module-name main > /dev/null
+
+// CHECK-NOT: UnknownCode
+
+import has_xref
+
+fn use<T: DefaultInitializable>(_: T) {}
+fn test(x: SpecialInt) {
+  use(x)
+}

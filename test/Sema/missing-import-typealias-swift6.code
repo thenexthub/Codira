@@ -1,0 +1,33 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-emit-module-interface(%t/Original.codeinterface) %t/Original.code
+// RUN: %target-language-typecheck-module-from-interface(%t/Original.codeinterface)
+
+// RUN: %target-language-emit-module-interface(%t/Aliases.codeinterface) %t/Aliases.code -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Aliases.codeinterface) -I %t
+
+// RUN: %target-language-frontend -typecheck -verify %t/UsesAliasesNoImport.code -enable-library-evolution -I %t -language-version 6
+
+// This test is a simplified version of missing-import-typealias.code that
+// verifies errors are emitted instead of warnings in Codira 6.
+
+//--- Original.code
+
+open class Clazz {}
+
+
+//--- Aliases.code
+
+import Original
+
+public typealias ClazzAlias = Clazz
+
+
+//--- UsesAliasesNoImport.code
+
+public import Aliases
+
+// expected-error@+1 {{'ClazzAlias' aliases 'Original.Clazz' and cannot be used in a public or '@usableFromInline' conformance because 'Original' was not imported by this file}}
+public class InheritsFromClazzAlias: ClazzAlias {}
+

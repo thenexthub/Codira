@@ -1,11 +1,11 @@
-add_swift_host_tool(swift-refactor
-  swift-refactor.cpp
-  SWIFT_COMPONENT testsuite-tools
-  LLVM_LINK_COMPONENTS support
+add_language_host_tool(language-refactor
+  language-refactor.cpp
+  LANGUAGE_COMPONENT testsuite-tools
+  TOOLCHAIN_LINK_COMPONENTS support
 )
-target_link_libraries(swift-refactor
+target_link_libraries(language-refactor
                       PRIVATE
-                        swiftDriver
-                        swiftFrontend
-                        swiftIDE
-                        swiftRefactoring)
+                        languageDriver
+                        languageFrontend
+                        languageIDE
+                        languageRefactoring)

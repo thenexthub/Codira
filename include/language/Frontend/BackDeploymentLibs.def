@@ -11,27 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Enumerates the backward deployment libraries that need to be linked
-// into Swift targets. Clients of this file must define the macro
+// into Codira targets. Clients of this file must define the macro
 //
 //   BACK_DEPLOYMENT_LIB(Version, Filter, LibraryName)
 //
 // where:
-//   Version is a maximum Swift version written like a tuple, e.g., (5, 1)
+//   Version is a maximum Codira version written like a tuple, e.g., (5, 1)
 //   Filter is one of executable or all.
-//   LibraryName is the name of the library, e.g., "swiftCompatibility51"
+//   LibraryName is the name of the library, e.g., "languageCompatibility51"
 //===----------------------------------------------------------------------===//
 
 #ifndef BACK_DEPLOYMENT_LIB
 #  error "Must define BACK_DEPLOYMENT_LIB(Version, Filter, Library, ForceLoad)"
 #endif
 
-BACK_DEPLOYMENT_LIB((5, 0), all, "swiftCompatibility50", true)
-BACK_DEPLOYMENT_LIB((5, 1), all, "swiftCompatibility51", true)
-BACK_DEPLOYMENT_LIB((5, 0), executable, "swiftCompatibilityDynamicReplacements", true)
-BACK_DEPLOYMENT_LIB((5, 4), all, "swiftCompatibilityConcurrency", true)
-BACK_DEPLOYMENT_LIB((5, 6), all, "swiftCompatibility56", true)
-BACK_DEPLOYMENT_LIB((5, 8), all, "swiftCompatibilityPacks", false)
+BACK_DEPLOYMENT_LIB((5, 0), all, "languageCompatibility50", true)
+BACK_DEPLOYMENT_LIB((5, 1), all, "languageCompatibility51", true)
+BACK_DEPLOYMENT_LIB((5, 0), executable, "languageCompatibilityDynamicReplacements", true)
+BACK_DEPLOYMENT_LIB((5, 4), all, "languageCompatibilityConcurrency", true)
+BACK_DEPLOYMENT_LIB((5, 6), all, "languageCompatibility56", true)
+BACK_DEPLOYMENT_LIB((5, 8), all, "languageCompatibilityPacks", false)
                     
 #undef BACK_DEPLOYMENT_LIB

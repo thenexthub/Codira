@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 // Implementation Note: this file intentionally uses very LOW-LEVEL
 // CONSTRUCTS, so that assert and fatal may be used liberally in
@@ -24,7 +25,7 @@ import SwiftShims
 
 @_transparent
 public // @testable
-func _isDebugAssertConfiguration() -> Bool {
+fn _isDebugAssertConfiguration() -> Bool {
   // The values for the assert_configuration call are:
   // 0: Debug
   // 1: Release
@@ -34,7 +35,7 @@ func _isDebugAssertConfiguration() -> Bool {
 
 @_transparent
 public // @testable, used in _Concurrency executor preconditions
-func _isReleaseAssertConfiguration() -> Bool {
+fn _isReleaseAssertConfiguration() -> Bool {
   // The values for the assert_configuration call are:
   // 0: Debug
   // 1: Release
@@ -44,7 +45,7 @@ func _isReleaseAssertConfiguration() -> Bool {
 
 @_transparent
 public // @testable
-func _isFastAssertConfiguration() -> Bool {
+fn _isFastAssertConfiguration() -> Bool {
   // The values for the assert_configuration call are:
   // 0: Debug
   // 1: Release
@@ -54,7 +55,7 @@ func _isFastAssertConfiguration() -> Bool {
 
 @_transparent
 public // @testable
-func _isStdlibInternalChecksEnabled() -> Bool {
+fn _isStdlibInternalChecksEnabled() -> Bool {
 #if INTERNAL_CHECKS_ENABLED
   return true
 #else
@@ -65,8 +66,8 @@ func _isStdlibInternalChecksEnabled() -> Bool {
 @_transparent
 @_alwaysEmitIntoClient // Introduced in 5.7
 public // @testable
-func _isStdlibDebugChecksEnabled() -> Bool {
-#if SWIFT_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
+fn _isStdlibDebugChecksEnabled() -> Bool {
+#if LANGUAGE_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE
   return !_isFastAssertConfiguration()
 #else
   return _isDebugAssertConfiguration()
@@ -74,7 +75,7 @@ func _isStdlibDebugChecksEnabled() -> Bool {
 }
 
 @usableFromInline @_transparent
-internal func _fatalErrorFlags() -> UInt32 {
+internal fn _fatalErrorFlags() -> UInt32 {
   // The current flags are:
   // (1 << 0): Report backtrace on fatal error
 #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
@@ -87,8 +88,8 @@ internal func _fatalErrorFlags() -> UInt32 {
 /// This function should be used only in the implementation of user-level
 /// assertions.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
 @usableFromInline
 #if !$Embedded
@@ -97,7 +98,7 @@ internal func _fatalErrorFlags() -> UInt32 {
 @inline(__always)
 #endif
 @_semantics("programtermination_point")
-internal func _assertionFailure(
+internal fn _assertionFailure(
   _ prefix: StaticString, _ message: StaticString,
   file: StaticString, line: UInt,
   flags: UInt32
@@ -109,7 +110,7 @@ internal func _assertionFailure(
       (message) -> Void in
       file.withUTF8Buffer {
         (file) -> Void in
-        unsafe _swift_stdlib_reportFatalErrorInFile(
+        unsafe _language_stdlib_reportFatalErrorInFile(
           prefix.baseAddress!, CInt(prefix.count),
           message.baseAddress!, CInt(message.count),
           file.baseAddress!, CInt(file.count), UInt32(line),
@@ -130,8 +131,8 @@ internal func _assertionFailure(
 /// This function should be used only in the implementation of user-level
 /// assertions.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
 @usableFromInline
 #if !$Embedded
@@ -141,7 +142,7 @@ internal func _assertionFailure(
 @inline(__always)
 #endif
 @_semantics("programtermination_point")
-internal func _assertionFailure(
+internal fn _assertionFailure(
   _ prefix: StaticString, _ message: String,
   file: StaticString, line: UInt,
   flags: UInt32
@@ -154,7 +155,7 @@ internal func _assertionFailure(
       (messageUTF8) -> Void in
       file.withUTF8Buffer {
         (file) -> Void in
-        unsafe _swift_stdlib_reportFatalErrorInFile(
+        unsafe _language_stdlib_reportFatalErrorInFile(
           prefix.baseAddress!, CInt(prefix.count),
           messageUTF8.baseAddress!, CInt(messageUTF8.count),
           file.baseAddress!, CInt(file.count), UInt32(line),
@@ -177,8 +178,8 @@ internal func _assertionFailure(
 /// This function should be used only in the implementation of user-level
 /// assertions.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
 @usableFromInline
 #if !$Embedded
@@ -188,7 +189,7 @@ internal func _assertionFailure(
 #endif
 @_semantics("programtermination_point")
 @_unavailableInEmbedded
-internal func _assertionFailure(
+internal fn _assertionFailure(
   _ prefix: StaticString, _ message: String,
   flags: UInt32
 ) -> Never {
@@ -197,7 +198,7 @@ internal func _assertionFailure(
     var message = message
     message.withUTF8 {
       (messageUTF8) -> Void in
-      unsafe _swift_stdlib_reportFatalError(
+      unsafe _language_stdlib_reportFatalError(
         prefix.baseAddress!, CInt(prefix.count),
         messageUTF8.baseAddress!, CInt(messageUTF8.count),
         flags)
@@ -211,7 +212,7 @@ internal func _assertionFailure(
 @usableFromInline
 @inline(never)
 @_semantics("programtermination_point")
-internal func _assertionFailure(
+internal fn _assertionFailure(
   _ prefix: StaticString, _ message: StaticString,
   flags: UInt32
 ) -> Never {
@@ -226,8 +227,8 @@ internal func _assertionFailure(
 /// This function should be used only in the implementation of stdlib
 /// assertions.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
 @usableFromInline
 #if !$Embedded
@@ -236,7 +237,7 @@ internal func _assertionFailure(
 @inline(__always)
 #endif
 @_semantics("programtermination_point")
-internal func _fatalErrorMessage(
+internal fn _fatalErrorMessage(
   _ prefix: StaticString, _ message: StaticString,
   file: StaticString, line: UInt,
   flags: UInt32
@@ -248,7 +249,7 @@ internal func _fatalErrorMessage(
 /// called by the Objective-C runtime.
 @_transparent
 public // COMPILER_INTRINSIC
-func _unimplementedInitializer(className: StaticString,
+fn _unimplementedInitializer(className: StaticString,
                                initName: StaticString = #function,
                                file: StaticString = #file,
                                line: UInt = #line,
@@ -267,7 +268,7 @@ func _unimplementedInitializer(className: StaticString,
         (initName) in
         file.withUTF8Buffer {
           (file) in
-          unsafe _swift_stdlib_reportUnimplementedInitializerInFile(
+          unsafe _language_stdlib_reportUnimplementedInitializerInFile(
             className.baseAddress!, CInt(className.count),
             initName.baseAddress!, CInt(initName.count),
             file.baseAddress!, CInt(file.count),
@@ -281,7 +282,7 @@ func _unimplementedInitializer(className: StaticString,
       (className) in
       initName.withUTF8Buffer {
         (initName) in
-        unsafe _swift_stdlib_reportUnimplementedInitializer(
+        unsafe _language_stdlib_reportUnimplementedInitializer(
           className.baseAddress!, CInt(className.count),
           initName.baseAddress!, CInt(initName.count),
           /*flags:*/ 0)
@@ -297,7 +298,7 @@ func _unimplementedInitializer(className: StaticString,
 
 /// Used to evaluate editor placeholders.
 public // COMPILER_INTRINSIC
-func _undefined<T>(
+fn _undefined<T>(
   _ message: @autoclosure () -> String = String(),
   file: StaticString = #file, line: UInt = #line
 ) -> T {
@@ -308,7 +309,7 @@ func _undefined<T>(
 
 /// Used to evaluate editor placeholders.
 public // COMPILER_INTRINSIC
-func _undefined<T>(
+fn _undefined<T>(
   _ message: @autoclosure () -> StaticString = StaticString(),
   file: StaticString = #file, line: UInt = #line
 ) -> T {
@@ -320,8 +321,8 @@ func _undefined<T>(
 /// Called when falling off the end of a switch and the type can be represented
 /// as a raw value.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
 ///
 /// It doesn't take a source location because it's most important
@@ -332,7 +333,7 @@ func _undefined<T>(
 @inline(__always)
 #endif
 @usableFromInline // COMPILER_INTRINSIC
-internal func _diagnoseUnexpectedEnumCaseValue<SwitchedValue, RawValue>(
+internal fn _diagnoseUnexpectedEnumCaseValue<SwitchedValue, RawValue>(
   type: SwitchedValue.Type,
   rawValue: RawValue
 ) -> Never {
@@ -348,8 +349,8 @@ internal func _diagnoseUnexpectedEnumCaseValue<SwitchedValue, RawValue>(
 /// Called when falling off the end of a switch and the value is not safe to
 /// print.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
 ///
 /// It doesn't take a source location because it's most important
@@ -360,7 +361,7 @@ internal func _diagnoseUnexpectedEnumCaseValue<SwitchedValue, RawValue>(
 @inline(__always)
 #endif
 @usableFromInline // COMPILER_INTRINSIC
-internal func _diagnoseUnexpectedEnumCase<SwitchedValue>(
+internal fn _diagnoseUnexpectedEnumCase<SwitchedValue>(
   type: SwitchedValue.Type
 ) -> Never {
 #if !$Embedded
@@ -377,10 +378,10 @@ internal func _diagnoseUnexpectedEnumCase<SwitchedValue>(
 /// and the module containing the unavailable function was compiled with
 /// `-unavailable-decl-optimization=stub`.
 ///
-/// This function should not be inlined in desktop Swift because it is cold and
-/// inlining just bloats code. In Embedded Swift, we force inlining as this
+/// This function should not be inlined in desktop Codira because it is cold and
+/// inlining just bloats code. In Embedded Codira, we force inlining as this
 /// function is typically just a trap (in release configurations).
-@backDeployed(before: SwiftStdlib 5.9)
+@backDeployed(before: CodiraStdlib 5.9)
 #if !$Embedded
 @inline(never)
 #else
@@ -388,7 +389,7 @@ internal func _diagnoseUnexpectedEnumCase<SwitchedValue>(
 #endif
 @_semantics("unavailable_code_reached")
 @usableFromInline // COMPILER_INTRINSIC
-internal func _diagnoseUnavailableCodeReached() -> Never {
+internal fn _diagnoseUnavailableCodeReached() -> Never {
   _assertionFailure(
     "Fatal error", "Unavailable code reached", flags: _fatalErrorFlags())
 }

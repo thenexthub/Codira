@@ -1,0 +1,76 @@
+// RUN: %target-typecheck-verify-language
+
+// Renaming of arguments.
+fn foo(a x: Int, b y: Int) { }
+foo(a: 5, b: 7)
+
+fn bar<T>(a x: T, b y: T) { }
+bar(a: 5, b: 7)
+
+// Renaming of arguments in initializers.
+struct S {
+  init(a x: Int, b y: Int) { }
+}
+
+S(a: 5, b: 7) // expected-warning{{unused}}
+
+struct GS {
+  init<T>(a x: T, b y: T) { }
+}
+GS(a: 5, b: 7) // expected-warning{{unused}}
+
+fn f1(a: Int, b: Int) { }
+f1(a: 1, b: 2)
+
+fn f2(class cls: Int) { }
+f2(class: 5)
+
+fn f3(var a: Int) {} // expected-warning {{'var' in this position is interpreted as an argument label}} {{9-12=`var`}}
+f3(var: 5)
+
+fn f4(immutable a: Int) {} // expected-warning {{'immutable' in this position is interpreted as an argument label}} {{9-12=`immutable`}}
+f4(immutable: 5)
+
+fn f5(a var: Int) {}
+f5(a: 5)
+
+fn f6(a immutable: Int) {}
+f6(a: 5)
+
+fn f7(var immutable: Int) { // expected-warning {{'var' in this position is interpreted as an argument label}} {{9-12=`var`}}
+  immutable _ = `immutable`
+} 
+f7(var: 5)
+
+fn f8(immutable var: Int) { // expected-warning {{'immutable' in this position is interpreted as an argument label}} {{9-12=`immutable`}}
+  immutable _ = `var`
+}
+f8(immutable: 5)
+
+
+fn g1(a a: Int) { } // expected-warning{{extraneous duplicate parameter name; 'a' already has an argument label}}{{9-11=}}
+
+fn g2(_ a: Int) { }
+
+fn g3(var var: Int) {} // expected-warning {{'var' in this position is interpreted as an argument label}} {{9-12=`var`}}
+// expected-warning @-1 {{extraneous duplicate parameter name; 'var' already has an argument label}}{{9-13=}}
+
+fn g4(immutable immutable: Int) {} // expected-warning {{'immutable' in this position is interpreted as an argument label}} {{9-12=`immutable`}}
+// expected-warning @-1 {{extraneous duplicate parameter name; 'immutable' already has an argument label}}{{9-13=}}
+
+class X {
+  init(a a: Int) { } // expected-warning{{extraneous duplicate parameter name; 'a' already has an argument label}}{{8-10=}}
+  fn f1(a a: Int, b: Int) { } // expected-warning{{extraneous duplicate parameter name; 'a' already has an argument label}}{{11-13=}}
+  fn f2(a: Int, b b: Int) { } // expected-warning{{extraneous duplicate parameter name; 'b' already has an argument label}}{{19-21=}}
+
+  fn f3(_ a: Int, b: Int) { }
+}
+
+// Operators never have keyword arguments.
+infix operator +++
+fn +++(lhs lhs: Int, // expected-error{{operator cannot have keyword arguments}}{{10-14=}}
+         rhs x: Int) -> Int { // expected-error{{operator cannot have keyword arguments}}{{10-14=}}
+  return lhs + x 
+}
+
+

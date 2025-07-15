@@ -1,0 +1,194 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+
+// RUN: %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -emit-dependencies -emit-dependencies-path %t/deps.d -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4
+
+// RUN: %{python} %S/../CAS/Inputs/BuildCommandExtractor.py %t/deps.json deps | %FileCheck --check-prefix CHECK-NO-MODULES %s --allow-empty
+// CHECK-NO-MODULES-NOT: -language-module-file
+// CHECK-NO-MODULES-NOT: -fmodule-file
+
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix CHECK-NO-SEARCH-PATHS
+
+// Check the make-style dependencies file
+// RUN: %FileCheck %s -check-prefix CHECK-MAKE-DEPS < %t/deps.d
+
+// Check that the JSON parses correctly into the canonical Codira data
+// structures.
+
+// RUN: mkdir -p %t/PrintGraph
+// RUN: cp %S/Inputs/PrintGraph.code %t/main.code
+// RUN: %target-build-language %S/Inputs/ModuleDependencyGraph.code %t/main.code -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main %t/deps.json
+
+// Ensure that round-trip serialization does not affect result
+// RUN: %target-language-frontend -scan-dependencies -test-dependency-scan-cache-serialization -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4
+
+// Ensure that scanning with `-clang-target` makes sure that Codira modules' respective PCM-dependency-build-argument sets do not contain target triples.
+// RUN: %target-language-frontend -scan-dependencies -module-cache-path %t/clang-module-cache %s -o %t/deps_clang_target.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4 -clang-target %target-cpu-apple-macosx10.14
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import C
+import E
+import G
+import SubE
+
+// CHECK: "mainModuleName": "deps"
+
+/// --------Main module
+// CHECK-LABEL: "modulePath": "deps.codemodule",
+// CHECK-NEXT: sourceFiles
+// CHECK-NEXT: module_deps.code
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-DAG:     "language": "A"
+// CHECK-DAG:     "clang": "C"
+// CHECK-DAG:     "language": "E"
+// CHECK-DAG:     "language": "F"
+// CHECK-DAG:     "language": "G"
+// CHECK-DAG:     "language": "SubE"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-DAG:     "language": "_Concurrency"
+// CHECK-DAG:     "language": "_cross_import_E"
+// CHECK: ],
+
+// CHECK:      "contextHash":
+// CHECK-NOT: "error: cannot open Codira placeholder dependency module map from"
+// CHECK: "bridgingHeader":
+// CHECK-NEXT: "path":
+// CHECK-SAME: Bridging.h
+
+// CHECK-NEXT: "sourceFiles":
+// CHECK-NEXT: Bridging.h
+// CHECK-NEXT: BridgingOther.h
+
+// CHECK: "moduleDependencies": [
+// CHECK-NEXT: "F"
+// CHECK-NEXT: ]
+
+/// --------Codira module A
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}A-{{.*}}.codemodule",
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "A"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-NEXT: },
+
+/// --------Clang module C
+// CHECK-LABEL: "modulePath": "C.pcm",
+
+// CHECK: "sourceFiles": [
+// CHECK-DAG: module.modulemap
+// CHECK-DAG: C.h
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-NEXT: "clang": "B"
+
+// CHECK: "moduleMapPath"
+// CHECK-SAME: module.modulemap
+
+// CHECK: "contextHash"
+// CHECK-SAME: "{{.*}}"
+
+// CHECK: "commandLine": [
+// CHECK-NEXT: "-frontend"
+// CHECK: "-direct-clang-cc1-module-build"
+// CHECK-NOT:  "BUILD_DIR/bin/clang"
+// CHECK:      "-Xcc"
+// CHECK-NEXT: "-resource-dir"
+// CHECK-NEXT: "-Xcc"
+// CHECK-NEXT: "BUILD_DIR/lib/language/clang"
+// CHECK:      "-fsystem-module",
+// CHECK-NEXT: "-emit-pcm",
+// CHECK-NEXT: "-module-name",
+// CHECK-NEXT: "C"
+
+/// --------Codira module E
+// CHECK: "language": "E"
+// CHECK-LABEL: modulePath": "{{.*}}{{/|\\}}E-{{.*}}.codemodule"
+// CHECK: "directDependencies"
+// CHECK-NEXT: {
+// CHECK-NEXT: "language": "Codira"
+
+// CHECK: "moduleInterfacePath"
+// CHECK-SAME: E.codeinterface
+
+/// --------Codira module F
+// CHECK:      "modulePath": "{{.*}}{{/|\\}}F-{{.*}}.codemodule",
+// CHECK-NEXT: "sourceFiles": [
+// CHECK-NEXT: ],
+// CHECK-NEXT: "directDependencies": [
+// CHECK-NEXT:   {
+// CHECK-DAG:     "clang": "F"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK-NEXT:   }
+// CHECK-NEXT: ],
+
+/// --------Codira module G
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}G-{{.*}}.codemodule"
+// CHECK: "directDependencies"
+// CHECK-NEXT: {
+// CHECK-DAG:   "clang": "G"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-DAG:   "language": "CodiraOnoneSupport"
+// CHECK: ],
+// CHECK-NEXT: "details": {
+
+// CHECK: "contextHash": "{{.*}}",
+// CHECK: "commandLine": [
+// CHECK: "-compile-module-from-interface"
+// CHECK: "-target"
+// CHECK: "-module-name"
+// CHECK: "G"
+// CHECK: "-language-version"
+// CHECK: "5"
+// CHECK: ],
+
+/// --------Codira module Codira
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}Codira-{{.*}}.codemodule",
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-NEXT: "clang": "CodiraShims"
+
+/// --------Clang module B
+// CHECK-LABEL: "modulePath": "B.pcm"
+// CHECK: "contextHash": [[B_CONTEXT:"{{.*}}"]],
+// CHECK: "-o"
+// CHECK-NEXT: "-Xcc"
+// CHECK-NEXT: "%t/clang-module-cache/B-[[B_CONTEXT]].pcm",
+
+// CHECK-NEXT: sourceFiles
+// CHECK-DAG: module.modulemap
+// CHECK-DAG: B.h
+
+// CHECK: directDependencies
+// CHECK-NEXT: {
+// CHECK-NEXT: "clang": "A"
+// CHECK-NEXT: }
+
+/// --------Clang module CodiraShims
+// CHECK-LABEL: "modulePath": "CodiraShims.pcm",
+// CHECK: "contextHash": [[SHIMS_CONTEXT:"{{.*}}"]],
+// CHECK: "-o"
+// CHECK-NEXT: "-Xcc"
+// CHECK-NEXT: "%t/clang-module-cache/CodiraShims-[[SHIMS_CONTEXT]].pcm",
+// CHECK: "-fmodule-file=A=%t/clang-module-cache/A-{{.*}}.pcm"
+// CHECK-NO-SEARCH-PATHS-NOT: "-prebuilt-module-cache-path"
+
+// Check make-style dependencies
+// CHECK-MAKE-DEPS: module_deps.code
+// CHECK-MAKE-DEPS-SAME: A.codeinterface
+// CHECK-MAKE-DEPS-SAME: G.codeinterface
+// CHECK-MAKE-DEPS-SAME: B.h
+// CHECK-MAKE-DEPS-SAME: F.h
+// CHECK-MAKE-DEPS-SAME: Bridging.h
+// CHECK-MAKE-DEPS-SAME: BridgingOther.h
+// CHECK-MAKE-DEPS-SAME: module.modulemap

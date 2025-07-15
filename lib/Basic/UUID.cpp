@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This is an interface over the standard OSF uuid library that gives UUIDs
@@ -20,8 +21,8 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/UUID.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallString.h"
 
 // WIN32 doesn't natively support <uuid/uuid.h>. Instead, we use Win32 APIs.
 #if defined(_WIN32)
@@ -36,7 +37,7 @@
 
 using namespace language;
 
-swift::UUID::UUID(FromRandom_t) {
+language::UUID::UUID(FromRandom_t) {
 #if defined(_WIN32)
   ::UUID uuid;
   ::CoCreateGuid(&uuid);
@@ -47,7 +48,7 @@ swift::UUID::UUID(FromRandom_t) {
 #endif
 }
 
-swift::UUID::UUID(FromTime_t) {
+language::UUID::UUID(FromTime_t) {
 #if defined(_WIN32)
   ::UUID uuid;
   ::CoCreateGuid(&uuid);
@@ -58,7 +59,7 @@ swift::UUID::UUID(FromTime_t) {
 #endif
 }
 
-swift::UUID::UUID() {
+language::UUID::UUID() {
 #if defined(_WIN32)
   ::UUID uuid = *((::UUID *)&Value);
   UuidCreateNil(&uuid);
@@ -69,7 +70,7 @@ swift::UUID::UUID() {
 #endif
 }
 
-std::optional<swift::UUID> swift::UUID::fromString(const char *s) {
+std::optional<language::UUID> language::UUID::fromString(const char *s) {
 #if defined(_WIN32)
   RPC_CSTR t = const_cast<RPC_CSTR>(reinterpret_cast<const unsigned char*>(s));
 
@@ -79,18 +80,18 @@ std::optional<swift::UUID> swift::UUID::fromString(const char *s) {
     return std::nullopt;
   }
 
-  swift::UUID result = UUID();
+  language::UUID result = UUID();
   memcpy(result.Value, &uuid, Size);
   return result;
 #else
-  swift::UUID result;
+  language::UUID result;
   if (uuid_parse(s, result.Value))
     return std::nullopt;
   return result;
 #endif
 }
 
-void swift::UUID::toString(llvm::SmallVectorImpl<char> &out) const {
+void language::UUID::toString(toolchain::SmallVectorImpl<char> &out) const {
   out.resize(UUID::StringBufferSize);
 #if defined(_WIN32)
   ::UUID uuid;
@@ -101,7 +102,7 @@ void swift::UUID::toString(llvm::SmallVectorImpl<char> &out) const {
 
   char* signedStr = reinterpret_cast<char*>(str);
   memcpy(out.data(), signedStr, StringBufferSize);
-  llvm::transform(out, std::begin(out), toupper);
+  toolchain::transform(out, std::begin(out), toupper);
 #else
   uuid_unparse_upper(Value, out.data());
 #endif
@@ -110,7 +111,7 @@ void swift::UUID::toString(llvm::SmallVectorImpl<char> &out) const {
   out.pop_back();
 }
 
-int swift::UUID::compare(UUID y) const {
+int language::UUID::compare(UUID y) const {
 #if defined(_WIN32)
   RPC_STATUS s;
   ::UUID uuid1;
@@ -125,8 +126,8 @@ int swift::UUID::compare(UUID y) const {
 #endif
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os, UUID uuid) {
-  llvm::SmallString<UUID::StringBufferSize> buf;
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os, UUID uuid) {
+  toolchain::SmallString<UUID::StringBufferSize> buf;
   uuid.toString(buf);
   os << buf;
   return os;

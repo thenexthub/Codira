@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend %s -mergeable-symbols    -enable-experimental-feature Embedded -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend %s -mergeable-symbols -O -enable-experimental-feature Embedded -emit-ir | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public fn foo1() { }
+
+fn foo2() { }
+
+// CHECK: foo1
+// CHECK-NOT: foo2

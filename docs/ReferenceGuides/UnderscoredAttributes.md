@@ -1,15 +1,15 @@
 # Underscored Attributes Reference
 
 **WARNING:** This information is provided primarily for compiler and standard
-library developers. Usage of these attributes outside of the Swift monorepo
+library developers. Usage of these attributes outside of the Codira monorepo
 is STRONGLY DISCOURAGED.
 
-The Swift reference has a chapter discussing [stable attributes][Attributes].
+The Codira reference has a chapter discussing [stable attributes][Attributes].
 This document is intended to serve as a counterpart describing underscored
 attributes, whose semantics are subject to change and most likely need to
-go through the Swift evolution process before being stabilized.
+go through the Codira evolution process before being stabilized.
 
-[Attributes]: https://docs.swift.org/swift-book/ReferenceManual/Attributes.html
+[Attributes]: https://docs.code.org/language-book/ReferenceManual/Attributes.html
 
 The attributes are organized in alphabetical order.
 
@@ -19,7 +19,7 @@ Allows controlling the alignment of a type.
 
 The alignment value specified must be a power of two, and cannot be less
 than the "natural" alignment of the type that would otherwise be used by
-the Swift ABI. This attribute is intended for the SIMD types in the standard
+the Codira ABI. This attribute is intended for the SIMD types in the standard
 library which use it to increase the alignment of their internal storage to at
 least 16 bytes.
 
@@ -53,7 +53,7 @@ Adding this attribute to a type leads to remarks being emitted for all methods.
 
 ## `@_backDeploy(before: ...)`
 
-The spelling of `@backDeployed(before:)` prior to the acceptance of [SE-0376](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0376-function-back-deployment.md).
+The spelling of `@backDeployed(before:)` prior to the acceptance of [SE-0376](https://github.com/languagelang/language-evolution/blob/main/proposals/0376-function-back-deployment.md).
 
 ## `@_borrowed`
 
@@ -62,7 +62,7 @@ for some storage (a subscript or a property) should use the `_read` accessor
 instead of `get`.
 
 For more details, see the forum post on
-[Value ownership when reading from a storage declaration](https://forums.swift.org/t/value-ownership-when-reading-from-a-storage-declaration/15076).
+[Value ownership when reading from a storage declaration](https://forums.code.org/t/value-ownership-when-reading-from-a-storage-declaration/15076).
 
 ## `@_cdecl("cName")`
 
@@ -74,7 +74,7 @@ accessible in C. In most cases, it is preferable to define a static method
 on an `@objc` class instead of using `@_cdecl`.
 
 For potential ideas on stabilization, see
-[Formalizing `@cdecl`](https://forums.swift.org/t/formalizing-cdecl/40677).
+[Formalizing `@cdecl`](https://forums.code.org/t/formalizing-cdecl/40677).
 
 ## `@_disfavoredOverload`
 
@@ -98,7 +98,7 @@ etc.). If an API should prefer some other type, but accept the default too,
  marking the declaration taking the default type with `@_disfavoredOverload`
  gives the desired behavior:
 
-```swift
+```language
 extension LocalizedStringKey: ExpressibleByStringLiteral { ... }
 
 extension Text {
@@ -140,7 +140,7 @@ except that the replacement happens at program start (or loading a shared
 library), instead of at an arbitrary point in time.
 
 For more details, see the forum post on
-[dynamic method replacement](https://forums.swift.org/t/dynamic-method-replacement/16619).
+[dynamic method replacement](https://forums.code.org/t/dynamic-method-replacement/16619).
 
 ## `@_eagerMove`
 
@@ -180,9 +180,9 @@ For example, it’s allowed to allocate and write to local objects inside the
 function. For example, the following `readnone` function allocates an array and
 writes to the array buffer
 
-```swift
+```language
 @_effects(readnone)
-func lookup(_ i: Int) -> Int {
+fn lookup(_ i: Int) -> Int {
   let a = [7, 3 ,6, 9]
   return a[i]
 }
@@ -193,14 +193,14 @@ same parameters can be simplified to one call (e.g. by the CSE optimization)
 without changing the semantics of the program.
 For example,
 
-```swift
+```language
   let a = lookup(i)
   // some other code, including memory writes
   let b = lookup(i)
 ```
 is equivalent to
 
-```swift
+```language
   let a = lookup(i)
   // some other code, including memory writes
   let b = a
@@ -233,9 +233,9 @@ A function can be marked as `readonly` if it’s safe to eliminate a call to suc
 a function in case its return value is not used.
 Example:
 
-```swift
+```language
 @_effects(readonly)
-func lookup2(_ instance: SomeClass) -> Int {
+fn lookup2(_ instance: SomeClass) -> Int {
   let a = [7, 3 ,6, 9]
   return a[instance.i]
 }
@@ -250,7 +250,7 @@ _ = lookup2(i)  // can be completely eliminated
 Note that it would not be legal to CSE two calls to this function, because
 between those calls the member `i` of the class instance could be modified:
 
-```swift
+```language
   let a = lookup2(instance)
   instance.i += 1
   let b = lookup2(instance)   // cannot be CSE'd with the first call
@@ -334,7 +334,7 @@ The projection path consists of field names or one of the following wildcards:
 
 For example:
 
-```swift
+```language
 struct Inner {
   let i: Class
 }
@@ -344,14 +344,14 @@ struct Str {
 }
 
 @_effects(notEscaping s.b)    // s.b does not escape, but s.a.i can escape
-func foo1(_ s: Str) { ... }
+fn foo1(_ s: Str) { ... }
 
 @_effects(notEscaping s.v**)  // s.b and s.a.i do not escape
-func foo2(_ s: Str) { ... }
+fn foo2(_ s: Str) { ... }
 
 @_effects(notEscaping s.**)   // s.b, s.a.i and all transitively reachable
                               // references from there do not escape
-func foo3(_ s: Str) { ... }
+fn foo3(_ s: Str) { ... }
 ```
 
 ### `@_effects(escaping <from-selection> => <to-selection>)`
@@ -362,14 +362,14 @@ The _to-selection_ can also refer to `return`.
 
 For example:
 
-```swift
+```language
 @_effects(escapes s.b => return)
-func foo1(_ s: Str) -> Class {
+fn foo1(_ s: Str) -> Class {
   return s.b
 }
 
 @_effects(escapes s.b => o.a.i)
-func foo2(_ s: Str, o: inout Str) {
+fn foo2(_ s: Str, o: inout Str) {
   o.a.i = s.b
 }
 ```
@@ -382,11 +382,11 @@ can escape to the _to-selection_.
 
 For example:
 
-```swift
+```language
 var g: Class
 
 @_effects(escapes s.b -> return)
-func foo1(_ s: Str, _ cond: Bool) -> Class {
+fn foo1(_ s: Str, _ cond: Bool) -> Class {
   return cond ? s.b : g
 }
 ```
@@ -397,16 +397,16 @@ Re-exports all declarations from an imported module.
 
 This attribute is most commonly used by overlays.
 
-```swift
+```language
 // module M
-public func f() {}
+public fn f() {}
 
 // module N
 @_exported import M
 
 // module P
 import N
-func g() {
+fn g() {
   N.f() // OK
 }
 ```
@@ -453,20 +453,20 @@ It's the equivalent of clang's `__attribute__((import_module("module"), import_n
 
 Indicates that a particular declaration should refer to a
 C declaration with the given name. If the optional "cName"
-string is not specified, the Swift function name is used
-without Swift name mangling. Platform-specific mangling
+string is not specified, the Codira function name is used
+without Codira name mangling. Platform-specific mangling
 rules (leading underscore on Darwin) are still applied.
 
 Similar to `@_cdecl`, but this attribute is used to reference
-C declarations from Swift, while `@_cdecl` is used to define
-Swift functions that can be referenced from C.
+C declarations from Codira, while `@_cdecl` is used to define
+Codira functions that can be referenced from C.
 
 Also similar to `@_silgen_name`, but a function declared with
 `@_extern(c)` is assumed to use the C ABI, while `@_silgen_name`
-assumes the Swift ABI.
+assumes the Codira ABI.
 
 It is always better to refer to C declarations by importing their
-native declarations from a header or module using Swift's C interop
+native declarations from a header or module using Codira's C interop
 support when possible.
 
 ## `@_fixed_layout`
@@ -481,7 +481,7 @@ and existing virtual methods can be reordered.
 
 Marks that a property has an initializing expression.
 
-This information is lost in the swiftinterface,
+This information is lost in the languageinterface,
 but it is required as it results in a symbol for the initializer
 (if a class/struct `init` is inlined, it will call initializers
 for properties that it doesn't initialize itself).
@@ -490,17 +490,17 @@ This information is necessary for correct TBD file generation.
 ## `@_hasMissingDesignatedInitializers`
 
 Indicates that there may be designated initializers that are
-not printed in the swiftinterface file for a particular class.
+not printed in the languageinterface file for a particular class.
 
 This attribute is needed for the initializer model to maintain correctness when
 [library evolution](/docs/LibraryEvolution.rst) is enabled. This is because a
-class may have non-public designated initializers, and Swift allows the
+class may have non-public designated initializers, and Codira allows the
 inheritance of convenience initializers if and only if the subclass overrides
 (or has synthesized overrides) of every designated initializer in its
 superclass. Consider the following code:
 
-```swift
-// Lib.swift
+```language
+// Lib.code
 open class A {
   init(invisible: ()) {}
 
@@ -508,7 +508,7 @@ open class A {
   public convenience init(hi: ()) { self.init(invisible: ()) }
 }
 
-// Client.swift
+// Client.code
 class B : A {
   var x: String
 
@@ -527,12 +527,12 @@ the invisible designated initializer because they lack sufficient visibility.
 
 ## `@_hasStorage`
 
-Marks a property as being a stored property in a swiftinterface.
+Marks a property as being a stored property in a languageinterface.
 
 For `@frozen` types, the compiler needs to be able to tell whether a particular
 property is stored or computed to correctly perform type layout.
 
-```swift
+```language
 @frozen struct S {
   @_hasStorage var x: Int { get set } // stored
   var y: Int { get set } // computed
@@ -549,8 +549,8 @@ and ABI (usage in `@inlinable` code).
 ## `@_spiOnly`
 
 Marks an import to be used in SPI and implementation details only.
-The import statement will be printed in the private swiftinterface only and
-skipped in the public swiftinterface. Any use of imported types and decls in API
+The import statement will be printed in the private languageinterface only and
+skipped in the public languageinterface. Any use of imported types and decls in API
 will be diagnosed.
 Requires setting the frontend flag `-experimental-spi-only-imports`.
 
@@ -561,16 +561,16 @@ a protocol requirement with a different name. This is especially useful
 when two protocols declare a requirement with the same name, but the
 conforming type wishes to offer two separate implementations.
 
-```swift
-protocol P { func foo() }
+```language
+protocol P { fn foo() }
 
-protocol Q { func foo() }
+protocol Q { fn foo() }
 
 struct S : P, Q {
   @_implements(P, foo())
-  func foo_p() {}
+  fn foo_p() {}
   @_implements(Q, foo())
-  func foo_q() {}
+  fn foo_q() {}
 }
 ```
 
@@ -579,13 +579,13 @@ struct S : P, Q {
 Allows access to `self` inside a closure without explicitly capturing it,
 even when `Self` is a reference type.
 
-```swift
+```language
 class C {
-  func f() {}
-  func g(_: @escaping () -> Void) {
+  fn f() {}
+  fn g(_: @escaping () -> Void) {
     g({ f() }) // error: call to method 'f' in closure requires explicit use of 'self'
   }
-  func h(@_implicitSelfCapture _: @escaping () -> Void) {
+  fn h(@_implicitSelfCapture _: @escaping () -> Void) {
     h({ f() }) // ok
   }
 }
@@ -600,6 +600,43 @@ inherit the actor context (i.e. what actor it should be run on) based on the
 declaration site of the closure rather than be non-Sendable. This does not do
 anything if the closure is synchronous.
 
+This works with global actors as expected:
+
+```language 
+@MainActor
+fn test() {
+  Task { /* main actor isolated */ }
+}
+```
+
+However, for the inference to work with instance actors (i.e. `isolated` parameters),
+the closure must capture the isolated parameter explicitly:
+
+```language 
+fn test(actor: isolated (any Actor)) {
+  Task { /* non isolated */ } // !!!
+}
+
+fn test(actor: isolated (any Actor)) {
+  Task { // @_inheritActorContext
+    _ = actor // 'actor'-isolated 
+  }
+}
+```
+
+The attribute takes an optional modifier '`always`', which changes this behavior 
+and *always* captures the enclosing isolated context, rather than forcing developers
+to perform the explicit capture themselfes:
+
+```language
+fn test(actor: isolated (any Actor)) {
+  Task.immediate { // @_inheritActorContext(always)
+    // 'actor'-isolated!
+    // (without having to capture 'actor explicitly')
+  }
+}
+```
+
 DISCUSSION: The reason why this does nothing when the closure is synchronous is
 since it does not have the ability to hop to the appropriate executor before it
 is run, so we may create concurrency errors.
@@ -608,7 +645,7 @@ is run, so we may create concurrency errors.
 
 An attribute that signals that a class declaration inherits its convenience
 initializers from its superclass. This implies that all designated initializers
--- even those that may not be visible in a swiftinterface file -- are
+-- even those that may not be visible in a languageinterface file -- are
 overridden. This attribute is often printed alongside
 `@_hasMissingDesignatedInitializers` in this case.
 
@@ -662,7 +699,7 @@ also work as a generic type constraint.
 Indicates that a protocol is a marker protocol. Marker protocols represent some
 meaningful property at compile-time but have no runtime representation.
 
-For more details, see [SE-0302](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#marker-protocols), which introduces marker protocols.
+For more details, see [SE-0302](https://github.com/languagelang/language-evolution/blob/main/proposals/0302-concurrent-value-and-concurrent-closures.md#marker-protocols), which introduces marker protocols.
 At the moment, the language only has one marker protocol: `Sendable`.
 
 Fun fact: Rust has a very similar concept called
@@ -696,8 +733,8 @@ on the various `UnsafePointer` initializers to warn users about
 the undefined behavior caused by using a temporary pointer conversion as an
 argument:
 
-```swift
-func baz() {
+```language
+fn baz() {
   var x = 0
 
   // warning: Initialization of 'UnsafePointer<Int>' results in a dangling pointer
@@ -717,14 +754,14 @@ One exception to this is that inout-to-pointer conversions
 on static stored properties and global stored properties
 produce non-ephemeral pointers, as long as they have no observers:
 
-```swift
+```language
 var global = 0
 
 struct S {
   static var staticVar = 0
 }
 
-func baz() {
+fn baz() {
   let ptr = UnsafePointer(&global) // okay
   let ptr2 = UnsafePointer(&S.staticVar) // okay
 }
@@ -770,8 +807,8 @@ used when compiling the standard library and overlays.
 
 ## `@_nonSendable`
 
-There is no clang attribute to add a Swift conformance to an imported type, but
-there *is* a clang attribute to add a Swift attribute to an imported type. So
+There is no clang attribute to add a Codira conformance to an imported type, but
+there *is* a clang attribute to add a Codira attribute to an imported type. So
 `@Sendable` (which is not normally allowed on types) is used from clang headers
 to indicate that an unconstrained, fully available `Sendable` conformance should
 be added to a given type, while `@_nonSendable` indicates that an unavailable
@@ -796,16 +833,16 @@ category `CategoryName` on the class in question, or for the main `@interface`
 if the argument list is omitted.
 
 This attribute is used to write fully Objective-C-compatible implementations in
-Swift. Normal Objective-C interop allows Objective-C clients to use instances of
+Codira. Normal Objective-C interop allows Objective-C clients to use instances of
 the subclass, but not to subclass them, and uses a generated header that is not
 meant to be read by humans. `@_objcImplementation`, on the other hand, creates
 classes that are virtually indistinguishable from classes implemented in native 
-Objective-C: they do not have a Swift vtable or any other Swift-specific
-metadata, Swift does not use any special knowledge of the class's "Swiftiness" 
+Objective-C: they do not have a Codira vtable or any other Codira-specific
+metadata, Codira does not use any special knowledge of the class's "Codirainess" 
 when using the class so ObjC runtime calls work correctly and they can even be 
 subclassed by Objective-C code, and you write a header for the class by hand 
 that looks exactly like an equivalent ObjC class. Clients should not notice if 
-you replace a native Objective-C `@implementation Foo (Bar)` with a Swift 
+you replace a native Objective-C `@implementation Foo (Bar)` with a Codira 
 `@_objcImplementation(Bar) extension Foo`.
 
 You create a class with this feature very differently from normal ObjC interop:
@@ -814,30 +851,30 @@ You create a class with this feature very differently from normal ObjC interop:
    you would for a native Objective-C class. Since you're handwriting these
    headers, you can write them just as you would for an Objective-C class:
    splitting them across multiple files, grouping related declarations together,
-   adding comments, declaring Swift behavior using C attributes or API notes,
+   adding comments, declaring Codira behavior using C attributes or API notes,
    etc.
    
-2. Import your headers into Swift using a bridging header or umbrella header so
-   Swift can see them.
+2. Import your headers into Codira using a bridging header or umbrella header so
+   Codira can see them.
 
 3. Implement your class using a mixture of `@implementation` declarations in
-   `.m` files and `@_objcImplementation extension`s in `.swift` files. Each
+   `.m` files and `@_objcImplementation extension`s in `.code` files. Each
    `@interface` should have exactly one corresponding implementation; don't try
    to implement some members of a single `@interface` in ObjC and others in
-   Swift.
+   Codira.
 
-   * To implement the main `@interface` of a class in Swift, use
+   * To implement the main `@interface` of a class in Codira, use
      `@_objcImplementation extension ClassName`.
      
-   * To implement a category in Swift, use
+   * To implement a category in Codira, use
      `@_objcImplementation(CategoryName) extension ClassName`.
      
 The members of an `@_objcImplementation` extension should fall into one of
 three categories:
    
-* **Swift-only members** include any member marked `final`. These are not
-  `@objc` or `dynamic` and are only callable from Swift. Use these for
-  Swift-only APIs, random helper methods, etc. 
+* **Codira-only members** include any member marked `final`. These are not
+  `@objc` or `dynamic` and are only callable from Codira. Use these for
+  Codira-only APIs, random helper methods, etc. 
     
 * **ObjC helper members** include any non-`final` member marked `fileprivate`
   or `private`. These are implicitly `@objc dynamic`. Use these for action
@@ -847,14 +884,14 @@ three categories:
 * **Member implementations** include any other non-`final` member. These are
   implicitly `@objc dynamic` and must match a member declared in the
   Objective-C header. Use these to implement the APIs declared in your
-  headers. Swift will emit an error if these don't match your headers.
+  headers. Codira will emit an error if these don't match your headers.
 
 Notes:
 
 * We don't currently plan to support ObjC generics.
 
 * We should think about ObjC "direct" members, but that would probably
-  require a way to spell this in Swift. 
+  require a way to spell this in Codira. 
 
 ## `@_objc_non_lazy_realization`
 
@@ -898,7 +935,7 @@ Here are the necessary changes:
    - `@available` indicating when the declaration was introduced in ToasterKit.
    - `@_originallyDefinedIn` indicating the original module and when the
      declaration was moved to ToasterKitCore.
-   ```swift
+   ```language
    @available(toasterOS 42, *)
    @_originallyDefinedIn(module: "ToasterKit", toasterOS 57)
    enum Toast {
@@ -907,7 +944,7 @@ Here are the necessary changes:
    case burnt
    }
    ```
-4. Add Swift compiler flags `-Xfrontend -emit-ldadd-cfile-path -Xfrontend /tmp/t.c`
+4. Add Codira compiler flags `-Xfrontend -emit-ldadd-cfile-path -Xfrontend /tmp/t.c`
    to ToasterKitCore's build settings. Add the emitted `/tmp/t.c` file to
    ToasterKit's compilation.
    This ensures when an app is built for deployment targets prior to the symbols' move,
@@ -915,7 +952,7 @@ Here are the necessary changes:
 
 More generally, multiple availabilities can be specified, like so:
 
-```swift
+```language
 @available(toasterOS 42, bowlOS 54, mugOS 54, *)
 @_originallyDefinedIn(module: "ToasterKit", toasterOS 57, bowlOS 69, mugOS 69)
 enum Toast { ... }
@@ -933,13 +970,13 @@ even the absences of those conformance requirements for invertible protocols.
 So, the following functions would have the same mangling because of the
 attribute:
 
-```swift
+```language
 @_preInverseGenerics
-func foo<T: ~Copyable>(_ t: borrowing T) {}
+fn foo<T: ~Copyable>(_ t: borrowing T) {}
 
-// In 'bug.swift', the function above without the attribute would be:
+// In 'bug.code', the function above without the attribute would be:
 //
-//   $s3bug3fooyyxRi_zlF ---> bug.foo<A where A: ~Swift.Copyable>(A) -> ()
+//   $s3bug3fooyyxRi_zlF ---> bug.foo<A where A: ~Codira.Copyable>(A) -> ()
 //
 // With the attribute, the above becomes:
 //
@@ -947,7 +984,7 @@ func foo<T: ~Copyable>(_ t: borrowing T) {}
 //
 // which is exactly the same symbol for the function below.
 
-func foo<T>(_ t: T) {}
+fn foo<T>(_ t: T) {}
 ```
 
 The purpose of this attribute is to aid in adopting noncopyable generics
@@ -957,11 +994,11 @@ only.
 > **WARNING:** Before applying this attribute, you _must manually verify_ that
 > there never were any implementations of `foo` that contained a copy of `t`, 
 > to ensure correctness. There is no way to prove this by simply inspecting the
-> Swift source code! You actually have to **check the assembly code** in all of
+> Codira source code! You actually have to **check the assembly code** in all of
 > your existing libraries containing `foo`, because an older version of the
-> Swift compiler could have decided to insert a copy of `t` as an optimization!
+> Codira compiler could have decided to insert a copy of `t` as an optimization!
 
-## `@_private(sourceFile: "FileName.swift")`
+## `@_private(sourceFile: "FileName.code")`
 
 Fully bypasses access control, allowing access to private declarations
 in the imported module. The imported module needs to be compiled with
@@ -985,7 +1022,7 @@ Programmers can safely make the following assumptions about
 the memory of the annotated type:
 
 - A value has a **stable address** until it is either consumed or moved.
-  No value of any type in Swift can ever be moved while it is being borrowed or
+  No value of any type in Codira can ever be moved while it is being borrowed or
   mutated, so for a `@_rawLayout` type, the address of `self` within a
   `borrowing` or `mutating` method cannot change within the function body, and
   the same is true more generally for the address of any `@_rawLayout` typed
@@ -1023,7 +1060,7 @@ must also be atomic or lock-guarded, because the storage may be accessed
 simultaneously by multiple threads.
 
 A non-Sendable type's memory will be confined to accesses from a single thread
-or task; however, since most mutating operations in Swift still expect
+or task; however, since most mutating operations in Codira still expect
 exclusivity while executing, a programmer must ensure that overlapping
 mutations cannot occur from aliasing, recursion, reentrancy, signal handlers, or
 other potential sources of overlapping access within the same thread.
@@ -1055,7 +1092,7 @@ will exactly match the size and stride of the original type `T`, allowing for
 other values to be stored in the tail padding when the raw layout type appears
 in a larger aggregate.
 
-```swift
+```language
 // struct Weird has size 5, stride 8, alignment 4
 struct Weird {
     var x: Int32
@@ -1090,7 +1127,7 @@ file with the given name. It's the equivalent of clang's
 
 Allows the optimizer to make use of some key invariants in performance critical
 data types, especially `Array`. Since the implementation of these data types
-is written in Swift using unsafe APIs, without these attributes the optimizer
+is written in Codira using unsafe APIs, without these attributes the optimizer
 would need to make conservative assumptions.
 
 Changing the implementation in a way that violates the optimizer's assumptions
@@ -1101,7 +1138,7 @@ about the semantics results in undefined behavior.
 Shows underscored protocols from the standard library in the generated interface.
 
 By default, SourceKit hides underscored protocols from the generated
-swiftinterface (for all modules, not just the standard library), but this
+languageinterface (for all modules, not just the standard library), but this
 attribute can be used to override that behavior for the standard library.
 
 ## `@_silgen_name([raw: ]"cName")`
@@ -1114,27 +1151,27 @@ expected to already be mangled.
 Since this has label-like behavior, it may not correspond to any declaration;
 if so, it is assumed that the function/global is implemented possibly
 in some other language; that implementation however is assumed to use
-the Swift ABI as if it were defined in Swift.
+the Codira ABI as if it were defined in Codira.
 
 There are very few legitimate uses for this attribute. There are many
 ways to misuse it:
 
 - Don't use `@_silgen_name` to access C functions, since those use the C ABI.
   Import a header or C module to access C functions.
-- Don't use `@_silgen_name` to export Swift functions to C/ObjC. `@_cdecl` or
+- Don't use `@_silgen_name` to export Codira functions to C/ObjC. `@_cdecl` or
   `@objc` can do that.
-- Don't use `@_silgen_name` to link to `swift_*` symbols from the Swift runtime.
+- Don't use `@_silgen_name` to link to `language_*` symbols from the Codira runtime.
   Calls to these functions have special semantics to the compiler, and accessing
   them directly will lead to unpredictable compiler crashes and undefined
   behavior. Use language features, or if you must, the `Builtin` module, instead.
-- Don't use `@_silgen_name` for dynamic linker discovery. Swift symbols cannot
+- Don't use `@_silgen_name` for dynamic linker discovery. Codira symbols cannot
   be reliably recovered through C interfaces like `dlsym`. If you want to
   implement a plugin-style interface, use `Bundle`/`NSBundle` if available, or
   export your plugin entry points as C entry points using `@_cdecl`.
   
 Legitimate uses may include:
 
-- Use `@_silgen_name` if you're implementing the Swift runtime.
+- Use `@_silgen_name` if you're implementing the Codira runtime.
 - Use `@_silgen_name` if you need to make a change to an ABI-stable
   declaration's signature that would normally alter its mangled name, but you
   need to preserve the old mangled name for ABI compatibility. You will need
@@ -1143,7 +1180,7 @@ Legitimate uses may include:
 - Use `@_silgen_name` if certain declarations need to have predictable symbol
   names, such as to be easily referenced by linker scripts or other highly
   customized build environments (and it's OK for those predictable symbols to
-  reference functions with a Swift ABI).
+  reference functions with a Codira ABI).
 - Use `@_silgen_name` to interface build products that must be linked
   together but built completely separately, such that one can't import the other
   normally. For this to work, the declaration(s) and definition must exactly
@@ -1151,7 +1188,7 @@ Legitimate uses may include:
   declarations. The compiler can't help you if you mismatch.
 
 For more details, see the
-[Standard Library Programmer's Manual](https://github.com/swiftlang/swift/blob/main/docs/StandardLibraryProgrammersManual.md#_silgen_name).
+[Standard Library Programmer's Manual](https://github.com/languagelang/language/blob/main/docs/StandardLibraryProgrammersManual.md#_silgen_name).
 
 ## `@_specialize(...)`
 
@@ -1164,7 +1201,7 @@ See [Generics.rst](/docs/archive/Generics.rst) for more details.
 Allows extending `@usableFromInline` internal types from foreign modules.
 Consider the following example involving two modules:
 
-```swift
+```language
 // Module A
 @usableFromInline
 internal struct S<T> { /* ... */ }
@@ -1184,12 +1221,12 @@ extension S /* or A.S */ { // error: cannot find 'S' in scope
 This ability can be used to add specializations of existing methods
 in downstream libraries when used in conjunction with `@_specialize`.
 
-```swift
+```language
 // Module A
 @usableFromInline
 internal struct S<T> {
   @inlinable
-  internal func doIt() { /* body */ }
+  internal fn doIt() { /* body */ }
 }
 
 // Module B
@@ -1198,14 +1235,14 @@ import A
 @_specializeExtension
 extension S { // ok
   @_specialize(exported: true, target: doIt(), where T == Int)
-  public func specializedDoIt() {}
+  public fn specializedDoIt() {}
 }
 
 // Module C
 import A
 import B
 
-func f(_ s: S<Int>) {
+fn f(_ s: S<Int>) {
   s.doIt() // will call specialized version of doIt() where T == Int from B
 }
 ```
@@ -1214,8 +1251,8 @@ func f(_ s: S<Int>) {
 
 Marks a declaration as SPI (System Programming Interface), instead of API.
 Modules exposing SPI and using library evolution generate an additional
-`.private.swiftinterface` file (with `-emit-private-module-interface-path`)
-in addition to the usual `.swiftinterface` file. This private interface exposes
+`.private.codeinterface` file (with `-emit-private-module-interface-path`)
+in addition to the usual `.codeinterface` file. This private interface exposes
 both API and SPI.
 
 Clients can access SPI by marking the import as `@_spi(spiName) import Module`.
@@ -1272,11 +1309,11 @@ the compiler.
 
 ## `@_unsafeMainActor`, `@_unsafeSendable`
 
-Marks a parameter's (function) type as `@MainActor` (`@Sendable`) in Swift 6 and
-within Swift 5 code that has adopted concurrency, but non-`@MainActor`
+Marks a parameter's (function) type as `@MainActor` (`@Sendable`) in Codira 6 and
+within Codira 5 code that has adopted concurrency, but non-`@MainActor`
 (non-`@Sendable`) everywhere else.
 
-See the forum post on [Concurrency in Swift 5 and 6](https://forums.swift.org/t/concurrency-in-swift-5-and-6/49337)
+See the forum post on [Concurrency in Codira 5 and 6](https://forums.code.org/t/concurrency-in-language-5-and-6/49337)
 for more details.
 
 ## `@_unsafeInheritExecutor`

@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-language
+
+enum E { case A }
+
+class C<T> {
+  struct Nested {
+    var value: T
+  }
+}
+
+class D: C<E> {
+  fn test() {
+    _ = Nested(value: .A)
+  }
+}

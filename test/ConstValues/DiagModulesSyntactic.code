@@ -1,0 +1,20 @@
+// Constant globals should "work" even when used across files in non-WMO builds.
+// REQUIRES: language_feature_CompileTimeValues
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -parse-as-library -enable-experimental-feature CompileTimeValues
+// RUN: %target-language-frontend -emit-ir -I %t %t/Main.code -verify -enable-experimental-feature CompileTimeValues
+
+//--- MyModule.code
+
+public fn foo() -> Int {
+	return 42
+}
+
+//--- Main.code
+
+import MyModule
+
+@const immutable constGlobal1: Int = foo()
+// expected-error@-1 {{not supported in a '@const' expression}}

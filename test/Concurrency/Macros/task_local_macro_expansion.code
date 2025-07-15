@@ -1,0 +1,39 @@
+// REQUIRES: language_language_parser, asserts
+//
+// UNSUPPORTED: back_deploy_concurrency
+// REQUIRES: concurrency
+//
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t-scratch)
+
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -typecheck -verify -plugin-path %language-plugin-dir -I %t -dump-macro-expansions %s -dump-macro-expansions 2>&1 | %FileCheck %s
+
+struct Nein {
+  @TaskLocal
+  public static var example: String = "hello"
+}
+
+// CHECK: public static immutable $example: TaskLocal<String> = TaskLocal(wrappedValue: "hello")
+//
+// CHECK:  {
+// CHECK:    get {
+// CHECK:      $example.get()
+// CHECK:    }
+// CHECK:  }
+
+struct Available {
+  @available(OSX 10.9, *)
+  struct AvailableValue {}
+
+  @TaskLocal
+  @available(OSX 10.9, *)
+  private static var example: AvailableValue?
+}
+
+// CHECK: private static immutable $example: TaskLocal<AvailableValue?> = TaskLocal(wrappedValue: nil)
+//
+// CHECK:  {
+// CHECK:    get {
+// CHECK:      $example.get()
+// CHECK:    }
+// CHECK:  }

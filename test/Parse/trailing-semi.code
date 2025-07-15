@@ -1,0 +1,44 @@
+// RUN: %target-typecheck-verify-language
+
+struct S {
+  var a : Int ;
+  fn b () {};
+  static fn c () {};
+}
+
+struct SpuriousSemi {
+  ; // expected-error{{unexpected ';' separator}} {{3-5=}}
+  var a : Int ; ; // expected-error{{unexpected ';' separator}} {{17-19=}}
+  fn b () {};
+  ; static fn c () {};  // expected-error{{unexpected ';' separator}} {{3-5=}}
+  ;;
+  // expected-error @-1 {{unexpected ';' separator}} {{3-4=}}
+  // expected-error @-2 {{unexpected ';' separator}} {{4-5=}}
+}
+
+class C {
+  var a : Int = 10 fn aa() {}; // expected-error {{consecutive declarations on a line must be separated by ';'}} {{19-19=;}}
+#if FLAG1
+  var aaa: Int = 42 fn aaaa() {}; // expected-error {{consecutive declarations on a line must be separated by ';'}} {{20-20=;}}
+#elseif FLAG2
+  var aaa: Int = 42 fn aaaa() {} // expected-error {{consecutive declarations on a line must be separated by ';'}} {{20-20=;}}
+#else
+  var aaa: Int = 42 fn aaaa() {} // expected-error {{consecutive declarations on a line must be separated by ';'}} {{20-20=;}}
+#endif
+
+  fn b () {};
+  class fn c () {};
+}
+
+extension S {
+  //var a : Int ;
+  fn bb () {};
+  static fn cc () {};
+  fn dd() {} subscript(i: Int) -> Int { return 1 } // expected-error {{consecutive declarations on a line must be separated by ';'}} {{15-15=;}}
+}
+
+protocol P {
+  var a : Int { get };
+  fn b ();
+  static fn c ();
+}

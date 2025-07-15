@@ -1,0 +1,116 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -target %target-language-5.7-abi-triple -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -target %target-language-5.7-abi-triple -typecheck -verify -I %t 2>&1 %s
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+distributed actor YesVeryMuchSo {
+  typealias ActorSystem = FakeRoundtripActorSystem
+}
+fn test_YesVeryMuchSo(_ actor: YesVeryMuchSo) {
+  immutable _: any Codable = actor // implicit conformance, ID was Codable
+
+  // unrelated protocol
+  immutable _: any CustomSerializationProtocol = actor // expected-error{{value of type 'YesVeryMuchSo' does not conform to specified type 'CustomSerializationProtocol'}}
+}
+
+// ==== ------------------------------------------------------------------------
+
+distributed actor SerReqNotCodable {
+  typealias ActorSystem = FakeCustomSerializationRoundtripActorSystem
+}
+fn test_NotAtAll_NoImplicit(_ actor: SerReqNotCodable) {
+  immutable _: any Codable = actor // OK, the ID was Codable, even though SerializationRequirement was something else
+
+  // no implicit conformance
+  immutable _: any CustomSerializationProtocol = actor // expected-error{{value of type 'SerReqNotCodable' does not conform to specified type 'CustomSerializationProtocol'}}
+}
+
+// ==== ------------------------------------------------------------------------
+
+distributed actor NotAtAll_NothingCodable {
+  typealias ActorSystem = FakeIdIsNotCodableActorSystem
+}
+fn test_NotAtAll_NoImplicit(_ actor: NotAtAll_NothingCodable) {
+  immutable _: any Codable = actor // expected-error{{value of type 'NotAtAll_NothingCodable' does not conform to specified type 'Decodable'}}
+
+  // no implicit conformance
+  immutable _: any CustomSerializationProtocol = actor // expected-error{{value of type 'NotAtAll_NothingCodable' does not conform to specified type 'CustomSerializationProtocol'}}
+}
+
+public struct NotCodableID: Sendable, Hashable {}
+
+@available(CodiraStdlib 5.7, *)
+public struct FakeIdIsNotCodableActorSystem: DistributedActorSystem, CustomStringConvertible {
+  public typealias ActorID = NotCodableID
+  public typealias InvocationDecoder = FakeInvocationDecoder
+  public typealias InvocationEncoder = FakeInvocationEncoder
+  public typealias SerializationRequirement = Codable
+  public typealias ResultHandler = FakeRoundtripResultHandler
+
+  // just so that the struct does not become "trivial"
+  immutable someValue: String = ""
+  immutable someValue2: String = ""
+  immutable someValue3: String = ""
+  immutable someValue4: String = ""
+
+  public init() {
+  }
+
+  public fn resolve<Act>(id: ActorID, as actorType: Act.Type) throws -> Act?
+    where Act: DistributedActor,
+    Act.ID == ActorID  {
+    nil
+  }
+
+  public fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+    where Act: DistributedActor,
+    Act.ID == ActorID {
+    .init()
+  }
+
+  public fn actorReady<Act>(_ actor: Act)
+    where Act: DistributedActor,
+    Act.ID == ActorID {
+  }
+
+  public fn resignID(_ id: ActorID) {
+  }
+
+  public fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  public fn remoteCall<Act, Err, Res>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type,
+    returning: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+    Act.ID == ActorID,
+    Err: Error,
+    Res: SerializationRequirement {
+    throw ExecuteDistributedTargetError(message: "\(#function) not implemented.")
+  }
+
+  public fn remoteCallVoid<Act, Err>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation invocationEncoder: inout InvocationEncoder,
+    throwing: Err.Type
+  ) async throws
+    where Act: DistributedActor,
+    Act.ID == ActorID,
+    Err: Error {
+    throw ExecuteDistributedTargetError(message: "\(#function) not implemented.")
+  }
+
+  public nonisolated var description: Codira.String {
+    "\(Self.this)()"
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if defined(__APPLE__)
@@ -21,11 +22,11 @@
 //  its entries.
 
 #include "language/Basic/Cache.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/Mutex.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/Mutex.h"
 
 using namespace language::sys;
-using llvm::StringRef;
+using toolchain::StringRef;
 
 namespace {
 struct DefaultCacheKey {
@@ -37,15 +38,15 @@ struct DefaultCacheKey {
 };
 
 struct DefaultCache {
-  llvm::sys::Mutex Mux;
+  toolchain::sys::Mutex Mux;
   CacheImpl::CallBacks CBs;
-  llvm::DenseMap<DefaultCacheKey, void *> Entries;
+  toolchain::DenseMap<DefaultCacheKey, void *> Entries;
 
   explicit DefaultCache(CacheImpl::CallBacks CBs) : CBs(std::move(CBs)) { }
 };
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 template<> struct DenseMapInfo<DefaultCacheKey> {
   static inline DefaultCacheKey getEmptyKey() {
     return { DenseMapInfo<void*>::getEmptyKey(), nullptr };
@@ -68,7 +69,7 @@ template<> struct DenseMapInfo<DefaultCacheKey> {
     return LHS.CBs->keyIsEqualCB(LHS.Key, RHS.Key, nullptr);
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
 CacheImpl::ImplTy CacheImpl::create(StringRef Name, const CallBacks &CBs) {
   return new DefaultCache(CBs);
@@ -76,7 +77,7 @@ CacheImpl::ImplTy CacheImpl::create(StringRef Name, const CallBacks &CBs) {
 
 void CacheImpl::setAndRetain(void *Key, void *Value, size_t Cost) {
   DefaultCache &DCache = *static_cast<DefaultCache*>(Impl);
-  llvm::sys::ScopedLock L(DCache.Mux);
+  toolchain::sys::ScopedLock L(DCache.Mux);
 
   DefaultCacheKey CKey(Key, &DCache.CBs);
   auto Entry = DCache.Entries.find(CKey);
@@ -106,7 +107,7 @@ void CacheImpl::setAndRetain(void *Key, void *Value, size_t Cost) {
 
 bool CacheImpl::getAndRetain(const void *Key, void **Value_out) {
   DefaultCache &DCache = *static_cast<DefaultCache*>(Impl);
-  llvm::sys::ScopedLock L(DCache.Mux);
+  toolchain::sys::ScopedLock L(DCache.Mux);
 
   DefaultCacheKey CKey(const_cast<void*>(Key), &DCache.CBs);
   auto Entry = DCache.Entries.find(CKey);
@@ -125,7 +126,7 @@ void CacheImpl::releaseValue(void *Value) {
 
 bool CacheImpl::remove(const void *Key) {
   DefaultCache &DCache = *static_cast<DefaultCache*>(Impl);
-  llvm::sys::ScopedLock L(DCache.Mux);
+  toolchain::sys::ScopedLock L(DCache.Mux);
 
   DefaultCacheKey CKey(const_cast<void*>(Key), &DCache.CBs);
   auto Entry = DCache.Entries.find(CKey);
@@ -140,7 +141,7 @@ bool CacheImpl::remove(const void *Key) {
 
 void CacheImpl::removeAll() {
   DefaultCache &DCache = *static_cast<DefaultCache*>(Impl);
-  llvm::sys::ScopedLock L(DCache.Mux);
+  toolchain::sys::ScopedLock L(DCache.Mux);
 
   for (auto Entry : DCache.Entries) {
     DCache.CBs.keyDestroyCB(Entry.first.Key, nullptr);

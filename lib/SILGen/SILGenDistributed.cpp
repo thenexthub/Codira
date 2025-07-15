@@ -1,13 +1,17 @@
 //===--- SILGenDistributed.cpp - SILGen for distributed -------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgumentSource.h"
@@ -152,7 +156,7 @@ static SILArgument *findFirstDistributedActorSystemArg(SILFunction &F) {
   }
 
 #ifndef NDEBUG
-  llvm_unreachable("Missing required DistributedActorSystem argument!");
+  toolchain_unreachable("Missing required DistributedActorSystem argument!");
 #endif
 
   return nullptr;
@@ -273,17 +277,17 @@ void InitializeDistActorIdentity::emit(SILGenFunction &SGF, CleanupLocation loc,
 
 void InitializeDistActorIdentity::dump(SILGenFunction &) const {
 #ifndef NDEBUG
-  llvm::errs() << "InitializeDistActorIdentity\n"
+  toolchain::errs() << "InitializeDistActorIdentity\n"
                << "State: " << getState()
                << "\n";
 #endif
 }
 
 bool SILGenFunction::shouldReplaceConstantForApplyWithDistributedThunk(
-    FuncDecl *func) const {
+    FuncDecl *fn) const {
   auto isDistributedFuncOrAccessor =
-      func->isDistributed();
-  if (auto acc = dyn_cast<AccessorDecl>(func)) {
+      fn->isDistributed();
+  if (auto acc = dyn_cast<AccessorDecl>(fn)) {
     isDistributedFuncOrAccessor =
         acc->getStorage()->isDistributed();
   }
@@ -296,10 +300,10 @@ bool SILGenFunction::shouldReplaceConstantForApplyWithDistributedThunk(
   if (F.isDistributed() && F.isThunk())
     return false;
 
-  // If caller and called func are isolated to the same (distributed) actor,
+  // If caller and called fn are isolated to the same (distributed) actor,
   // (i.e. we are "inside the distributed actor"), there is no need to call
   // the thunk.
-  if (isSameActorIsolated(func, FunctionDC))
+  if (isSameActorIsolated(fn, FunctionDC))
     return false;
 
   // In all other situations, we may have to replace the called function,

@@ -1,4 +1,4 @@
-//===--- Expr.h - Swift Language Expression ASTs ----------------*- C++ -*-===//
+//===--- Expr.h - Codira Language Expression ASTs ----------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Expr class and subclasses.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_EXPR_H
-#define SWIFT_AST_EXPR_H
+#ifndef LANGUAGE_AST_EXPR_H
+#define LANGUAGE_AST_EXPR_H
 
 #include "language/AST/ArgumentList.h"
 #include "language/AST/Attr.h"
@@ -35,11 +36,11 @@
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/InlineBitfield.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <optional>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
   struct fltSemantics;
 }
 
@@ -140,7 +141,7 @@ enum class AccessSemantics : uint8_t {
   DistributedThunk,
 };
 
-/// Expr - Base class for all expressions in swift.
+/// Expr - Base class for all expressions in language.
 class alignas(8) Expr : public ASTAllocated<Expr> {
   Expr(const Expr&) = delete;
   void operator=(const Expr&) = delete;
@@ -149,7 +150,7 @@ protected:
   // clang-format off
   union { uint64_t OpaqueBits;
 
-  SWIFT_INLINE_BITFIELD_BASE(Expr, bitmax(NumExprKindBits,8)+1,
+  LANGUAGE_INLINE_BITFIELD_BASE(Expr, bitmax(NumExprKindBits,8)+1,
     /// The subclass of Expr that this is.
     Kind : bitmax(NumExprKindBits,8),
     /// Whether the Expr represents something directly written in source or
@@ -157,7 +158,7 @@ protected:
     Implicit : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(CollectionExpr, Expr, 64-NumExprBits,
+  LANGUAGE_INLINE_BITFIELD_FULL(CollectionExpr, Expr, 64-NumExprBits,
     /// True if the type of this collection expr was inferred by the collection
     /// fallback type, like [Any].
     IsTypeDefaulted : 1,
@@ -168,56 +169,56 @@ protected:
     NumSubExprs : 32
   );
 
-  SWIFT_INLINE_BITFIELD_EMPTY(LiteralExpr, Expr);
-  SWIFT_INLINE_BITFIELD_EMPTY(IdentityExpr, Expr);
-  SWIFT_INLINE_BITFIELD(LookupExpr, Expr, 1+1+1,
+  LANGUAGE_INLINE_BITFIELD_EMPTY(LiteralExpr, Expr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(IdentityExpr, Expr);
+  LANGUAGE_INLINE_BITFIELD(LookupExpr, Expr, 1+1+1,
     IsSuper : 1,
     IsImplicitlyAsync : 1,
     IsImplicitlyThrows : 1
   );
-  SWIFT_INLINE_BITFIELD_EMPTY(DynamicLookupExpr, LookupExpr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(DynamicLookupExpr, LookupExpr);
 
-  SWIFT_INLINE_BITFIELD_EMPTY(ParenExpr, IdentityExpr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(ParenExpr, IdentityExpr);
 
-  SWIFT_INLINE_BITFIELD(NumberLiteralExpr, LiteralExpr, 1+1,
+  LANGUAGE_INLINE_BITFIELD(NumberLiteralExpr, LiteralExpr, 1+1,
     IsNegative : 1,
     IsExplicitConversion : 1
   );
 
-  SWIFT_INLINE_BITFIELD(StringLiteralExpr, LiteralExpr, 3+1+1,
+  LANGUAGE_INLINE_BITFIELD(StringLiteralExpr, LiteralExpr, 3+1+1,
     Encoding : 3,
     IsSingleUnicodeScalar : 1,
     IsSingleExtendedGraphemeCluster : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(InterpolatedStringLiteralExpr, LiteralExpr, 32+20,
+  LANGUAGE_INLINE_BITFIELD_FULL(InterpolatedStringLiteralExpr, LiteralExpr, 32+20,
     : NumPadBits,
     InterpolationCount : 20,
     LiteralCapacity : 32
   );
 
-  SWIFT_INLINE_BITFIELD(DeclRefExpr, Expr, 2+3+1+1,
+  LANGUAGE_INLINE_BITFIELD(DeclRefExpr, Expr, 2+3+1+1,
     Semantics : 2, // an AccessSemantics
     FunctionRefInfo : 3,
     IsImplicitlyAsync : 1,
     IsImplicitlyThrows : 1
   );
 
-  SWIFT_INLINE_BITFIELD(UnresolvedDeclRefExpr, Expr, 2+3,
+  LANGUAGE_INLINE_BITFIELD(UnresolvedDeclRefExpr, Expr, 2+3,
     DeclRefKind : 2,
     FunctionRefInfo : 3
   );
 
-  SWIFT_INLINE_BITFIELD(MemberRefExpr, LookupExpr, 2,
+  LANGUAGE_INLINE_BITFIELD(MemberRefExpr, LookupExpr, 2,
     Semantics : 2 // an AccessSemantics
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TupleElementExpr, Expr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(TupleElementExpr, Expr, 32,
     : NumPadBits,
     FieldNo : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TupleExpr, Expr, 1+1+32,
+  LANGUAGE_INLINE_BITFIELD_FULL(TupleExpr, Expr, 1+1+32,
     /// Whether this tuple has any labels.
     HasElementNames : 1,
 
@@ -228,49 +229,49 @@ protected:
     NumElements : 32
   );
 
-  SWIFT_INLINE_BITFIELD(UnresolvedDotExpr, Expr, 3,
+  LANGUAGE_INLINE_BITFIELD(UnresolvedDotExpr, Expr, 3,
     FunctionRefInfo : 3
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(SubscriptExpr, LookupExpr, 2,
+  LANGUAGE_INLINE_BITFIELD_FULL(SubscriptExpr, LookupExpr, 2,
     Semantics : 2 // an AccessSemantics
   );
 
-  SWIFT_INLINE_BITFIELD_EMPTY(DynamicSubscriptExpr, DynamicLookupExpr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(DynamicSubscriptExpr, DynamicLookupExpr);
 
-  SWIFT_INLINE_BITFIELD_FULL(UnresolvedMemberExpr, Expr, 3,
+  LANGUAGE_INLINE_BITFIELD_FULL(UnresolvedMemberExpr, Expr, 3,
     FunctionRefInfo : 3
   );
 
-  SWIFT_INLINE_BITFIELD(OverloadSetRefExpr, Expr, 3,
+  LANGUAGE_INLINE_BITFIELD(OverloadSetRefExpr, Expr, 3,
     FunctionRefInfo : 3
   );
 
-  SWIFT_INLINE_BITFIELD(BooleanLiteralExpr, LiteralExpr, 1,
+  LANGUAGE_INLINE_BITFIELD(BooleanLiteralExpr, LiteralExpr, 1,
     Value : 1
   );
 
-  SWIFT_INLINE_BITFIELD(MagicIdentifierLiteralExpr, LiteralExpr, 3+1,
+  LANGUAGE_INLINE_BITFIELD(MagicIdentifierLiteralExpr, LiteralExpr, 3+1,
     Kind : 3,
     StringEncoding : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(ObjectLiteralExpr, LiteralExpr, 3,
+  LANGUAGE_INLINE_BITFIELD_FULL(ObjectLiteralExpr, LiteralExpr, 3,
     LitKind : 3
   );
 
-  SWIFT_INLINE_BITFIELD(AbstractClosureExpr, Expr, (16-NumExprBits)+16,
+  LANGUAGE_INLINE_BITFIELD(AbstractClosureExpr, Expr, (16-NumExprBits)+16,
     : 16 - NumExprBits, // Align and leave room for subclasses
     Discriminator : 16
   );
 
-  SWIFT_INLINE_BITFIELD(AutoClosureExpr, AbstractClosureExpr, 2,
+  LANGUAGE_INLINE_BITFIELD(AutoClosureExpr, AbstractClosureExpr, 2,
     /// If the autoclosure was built for a curry thunk, the thunk kind is
     /// stored here.
     Kind : 2
   );
 
-  SWIFT_INLINE_BITFIELD(ClosureExpr, AbstractClosureExpr, 1+1+1+1+1+1+1+1,
+  LANGUAGE_INLINE_BITFIELD(ClosureExpr, AbstractClosureExpr, 1+1+1+1+1+1+1+1+1,
     /// True if closure parameters were synthesized from anonymous closure
     /// variables.
     HasAnonymousClosureVars : 1,
@@ -279,9 +280,11 @@ protected:
     /// on each member reference.
     ImplicitSelfCapture : 1,
 
-    /// True if this @Sendable async closure parameter should implicitly
-    /// inherit the actor context from where it was formed.
+    /// True if this closure parameter should implicitly inherit the actor
+    /// context from where it was formed.
     InheritActorContext : 1,
+    /// The kind for inheritance - none or always at the moment.
+    InheritActorContextKind : 1,
 
     /// True if this closure's actor isolation behavior was determined by an
     /// \c \@preconcurrency declaration.
@@ -306,47 +309,47 @@ protected:
     IsMacroArgument : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(BindOptionalExpr, Expr, 16,
+  LANGUAGE_INLINE_BITFIELD_FULL(BindOptionalExpr, Expr, 16,
     : NumPadBits,
     Depth : 16
   );
 
-  SWIFT_INLINE_BITFIELD_EMPTY(ImplicitConversionExpr, Expr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(ImplicitConversionExpr, Expr);
 
-  SWIFT_INLINE_BITFIELD_FULL(DestructureTupleExpr, ImplicitConversionExpr, 16,
+  LANGUAGE_INLINE_BITFIELD_FULL(DestructureTupleExpr, ImplicitConversionExpr, 16,
     /// The number of elements in the tuple type being destructured.
     NumElements : 16
   );
 
-  SWIFT_INLINE_BITFIELD(ForceValueExpr, Expr, 1,
+  LANGUAGE_INLINE_BITFIELD(ForceValueExpr, Expr, 1,
     ForcedIUO : 1
   );
 
-  SWIFT_INLINE_BITFIELD(InOutToPointerExpr, ImplicitConversionExpr, 1,
+  LANGUAGE_INLINE_BITFIELD(InOutToPointerExpr, ImplicitConversionExpr, 1,
     IsNonAccessing : 1
   );
 
-  SWIFT_INLINE_BITFIELD(ArrayToPointerExpr, ImplicitConversionExpr, 1,
+  LANGUAGE_INLINE_BITFIELD(ArrayToPointerExpr, ImplicitConversionExpr, 1,
     IsNonAccessing : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(ErasureExpr, ImplicitConversionExpr, 32+20,
+  LANGUAGE_INLINE_BITFIELD_FULL(ErasureExpr, ImplicitConversionExpr, 32+20,
     : NumPadBits,
     NumConformances : 32,
     NumArgumentConversions : 20
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(UnresolvedSpecializeExpr, Expr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(UnresolvedSpecializeExpr, Expr, 32,
     : NumPadBits,
     NumUnresolvedParams : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(CaptureListExpr, Expr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(CaptureListExpr, Expr, 32,
     : NumPadBits,
     NumCaptures : 32
   );
 
-  SWIFT_INLINE_BITFIELD(ApplyExpr, Expr, 1+1+1+1+1,
+  LANGUAGE_INLINE_BITFIELD(ApplyExpr, Expr, 1+1+1+1+1,
     ThrowsIsSet : 1,
     ImplicitlyAsync : 1,
     ImplicitlyThrows : 1,
@@ -354,38 +357,38 @@ protected:
     ShouldApplyDistributedThunk : 1
   );
 
-  SWIFT_INLINE_BITFIELD_EMPTY(CallExpr, ApplyExpr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(CallExpr, ApplyExpr);
 
   enum { NumCheckedCastKindBits = 4 };
-  SWIFT_INLINE_BITFIELD(CheckedCastExpr, Expr, NumCheckedCastKindBits,
+  LANGUAGE_INLINE_BITFIELD(CheckedCastExpr, Expr, NumCheckedCastKindBits,
     CastKind : NumCheckedCastKindBits
   );
   static_assert(unsigned(CheckedCastKind::Last_CheckedCastKind)
                   < (1 << NumCheckedCastKindBits),
                 "unable to fit a CheckedCastKind in the given number of bits");
 
-  SWIFT_INLINE_BITFIELD_EMPTY(CollectionUpcastConversionExpr, Expr);
+  LANGUAGE_INLINE_BITFIELD_EMPTY(CollectionUpcastConversionExpr, Expr);
 
-  SWIFT_INLINE_BITFIELD(ObjCSelectorExpr, Expr, 2,
+  LANGUAGE_INLINE_BITFIELD(ObjCSelectorExpr, Expr, 2,
     /// The selector kind.
     SelectorKind : 2
   );
 
-  SWIFT_INLINE_BITFIELD(KeyPathExpr, Expr, 1,
+  LANGUAGE_INLINE_BITFIELD(KeyPathExpr, Expr, 1,
     /// Whether this is an ObjC stringified keypath.
     IsObjC : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(SequenceExpr, Expr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(SequenceExpr, Expr, 32,
     : NumPadBits,
     NumElements : 32
   );
 
-  SWIFT_INLINE_BITFIELD(OpaqueValueExpr, Expr, 1,
+  LANGUAGE_INLINE_BITFIELD(OpaqueValueExpr, Expr, 1,
     IsPlaceholder : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TypeJoinExpr, Expr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(TypeJoinExpr, Expr, 32,
     : NumPadBits,
     NumElements : 32
   );
@@ -433,7 +436,7 @@ public:
   /// getLoc - Return the caret location of this expression.
   SourceLoc getLoc() const;
 
-#define SWIFT_FORWARD_SOURCE_LOCS_TO(SUBEXPR) \
+#define LANGUAGE_FORWARD_SOURCE_LOCS_TO(SUBEXPR) \
   SourceLoc getStartLoc() const { return (SUBEXPR)->getStartLoc(); } \
   SourceLoc getEndLoc() const { return (SUBEXPR)->getEndLoc(); } \
   SourceLoc getLoc() const { return (SUBEXPR)->getLoc(); } \
@@ -499,23 +502,23 @@ public:
   /// Enumerate each immediate child expression of this node, invoking the
   /// specific functor on it.  This ignores statements and other non-expression
   /// children.
-  void forEachImmediateChildExpr(llvm::function_ref<Expr *(Expr *)> callback);
+  void forEachImmediateChildExpr(toolchain::function_ref<Expr *(Expr *)> callback);
 
   /// Enumerate each expr node within this expression subtree, invoking the
   /// specific functor on it.  This ignores statements and other non-expression
   /// children, and if there is a closure within the expression, this does not
   /// walk into the body of it (unless it is single-expression).
-  void forEachChildExpr(llvm::function_ref<Expr *(Expr *)> callback);
+  void forEachChildExpr(toolchain::function_ref<Expr *(Expr *)> callback);
 
   /// Determine whether this expression refers to a type by name.
   ///
   /// This distinguishes static references to types, like Int, from metatype
   /// values, "someTy: Any.Type".
   bool isTypeReference(
-      llvm::function_ref<Type(Expr *)> getType = [](Expr *E) -> Type {
+      toolchain::function_ref<Type(Expr *)> getType = [](Expr *E) -> Type {
         return E->getType();
       },
-      llvm::function_ref<Decl *(Expr *)> getDecl = [](Expr *E) -> Decl * {
+      toolchain::function_ref<Decl *(Expr *)> getDecl = [](Expr *E) -> Decl * {
         return nullptr;
       }) const;
 
@@ -524,10 +527,10 @@ public:
   /// This implies `isTypeReference`, but also requires that the referenced type
   /// is not an archetype or dependent type.
   bool isStaticallyDerivedMetatype(
-      llvm::function_ref<Type(Expr *)> getType = [](Expr *E) -> Type {
+      toolchain::function_ref<Type(Expr *)> getType = [](Expr *E) -> Type {
         return E->getType();
       },
-      llvm::function_ref<bool(Expr *)> isTypeReference =
+      toolchain::function_ref<bool(Expr *)> isTypeReference =
           [](Expr *E) { return E->isTypeReference(); }) const;
 
   /// isImplicit - Determines whether this expression was implicitly-generated,
@@ -554,8 +557,8 @@ public:
     return getSemanticsProvidingExpr()->getKind() == ExprKind::InOut;
   }
 
-  bool printConstExprValue(llvm::raw_ostream *OS, llvm::function_ref<bool(Expr*)> additionalCheck) const;
-  bool isSemanticallyConstExpr(llvm::function_ref<bool(Expr*)> additionalCheck = nullptr) const;
+  bool printConstExprValue(toolchain::raw_ostream *OS, toolchain::function_ref<bool(Expr*)> additionalCheck) const;
+  bool isSemanticallyConstExpr(toolchain::function_ref<bool(Expr*)> additionalCheck = nullptr) const;
 
   /// Returns false if this expression needs to be wrapped in parens when
   /// used inside of a any postfix expression, true otherwise.
@@ -583,16 +586,16 @@ public:
   /// Produce a mapping from each subexpression to its parent
   /// expression, with the provided expression serving as the root of
   /// the parent map.
-  llvm::DenseMap<Expr *, Expr *> getParentMap();
+  toolchain::DenseMap<Expr *, Expr *> getParentMap();
 
   /// Whether this expression is a valid parent for a given TypeExpr.
   bool isValidParentOfTypeExpr(Expr *typeExpr) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, unsigned Indent = 0) const;
-  void dump(raw_ostream &OS, llvm::function_ref<Type(Expr *)> getType,
-            llvm::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr,
-            llvm::function_ref<Type(KeyPathExpr *E, unsigned index)>
+  void dump(raw_ostream &OS, toolchain::function_ref<Type(Expr *)> getType,
+            toolchain::function_ref<Type(TypeRepr *)> getTypeOfTypeRepr,
+            toolchain::function_ref<Type(KeyPathExpr *E, unsigned index)>
                 getTypeOfKeyPathComponent,
             unsigned Indent = 0) const;
 
@@ -692,14 +695,12 @@ public:
   /// literal.
   ///
   /// Any type-checked literal will have a builtin initializer, which is
-  /// called first to form a concrete Swift type.
+  /// called first to form a concrete Codira type.
   ConcreteDeclRef getBuiltinInitializer() const { return BuiltinInitializer; }
 
   /// Set the builtin initializer that will be used to construct the
   /// literal.
-  void setBuiltinInitializer(ConcreteDeclRef builtinInitializer) {
-    BuiltinInitializer = builtinInitializer;
-  }
+  void setBuiltinInitializer(ConcreteDeclRef builtinInitializer);
 };
 
 /// The 'nil' literal.
@@ -819,7 +820,7 @@ public:
   {}
   
   APFloat getValue() const;
-  static APFloat getValue(StringRef Text, const llvm::fltSemantics &Semantics,
+  static APFloat getValue(StringRef Text, const toolchain::fltSemantics &Semantics,
                           bool Negative);
   
   static bool classof(const Expr *E) {
@@ -1013,7 +1014,7 @@ public:
   
   /// Call the \c callback with information about each segment in turn.
   void forEachSegment(ASTContext &Ctx,
-                      llvm::function_ref<void(bool, CallExpr *)> callback);
+                      toolchain::function_ref<void(bool, CallExpr *)> callback);
   
   static bool classof(const Expr *E) {
     return E->getKind() == ExprKind::InterpolatedStringLiteral;
@@ -1033,9 +1034,9 @@ public:
   AvailabilityRange getAvailability(ASTContext &ctx) const;
   StringRef getDescription(ASTContext &ctx) const;
 
-  friend llvm::hash_code
+  friend toolchain::hash_code
   hash_value(const RegexLiteralPatternFeatureKind &kind) {
-    return llvm::hash_value(kind.getRawValue());
+    return toolchain::hash_value(kind.getRawValue());
   }
 
   friend bool operator==(const RegexLiteralPatternFeatureKind &lhs,
@@ -1120,7 +1121,7 @@ public:
 #include "language/AST/MagicIdentifierKinds.def"
     }
 
-    llvm_unreachable("Unhandled MagicIdentifierLiteralExpr in getKindString.");
+    toolchain_unreachable("Unhandled MagicIdentifierLiteralExpr in getKindString.");
   }
 
 private:
@@ -1149,7 +1150,7 @@ public:
       return false;
 #include "language/AST/MagicIdentifierKinds.def"
     }
-    llvm_unreachable("bad Kind");
+    toolchain_unreachable("bad Kind");
   }
 
   SourceRange getSourceRange() const { return Loc; }
@@ -1294,7 +1295,7 @@ public:
 
   /// Determine whether this reference needs may implicitly throw.
   ///
-  /// This is the case for non-throwing `distributed func` declarations,
+  /// This is the case for non-throwing `distributed fn` declarations,
   /// which are cross-actor invoked, because such calls actually go over the
   /// transport/network, and may throw from this, rather than the function
   /// implementation itself..
@@ -1312,7 +1313,7 @@ public:
 
   /// Set whether this reference must account for a `throw` occurring for reasons
   /// other than the function implementation itself throwing, e.g. an
-  /// `DistributedActorSystem` implementing a `distributed func` call throwing a
+  /// `DistributedActorSystem` implementing a `distributed fn` call throwing a
   /// networking error.
   void setImplicitlyThrows(bool isImplicitlyThrows) {
     Bits.DeclRefExpr.IsImplicitlyThrows = isImplicitlyThrows;
@@ -1736,7 +1737,7 @@ public:
 
   /// Determine whether this reference needs may implicitly throw.
   ///
-  /// This is the case for non-throwing `distributed func` declarations,
+  /// This is the case for non-throwing `distributed fn` declarations,
   /// which are cross-actor invoked, because such calls actually go over the
   /// transport/network, and may throw from this, rather than the function
   /// implementation itself..
@@ -1744,7 +1745,7 @@ public:
 
   /// Set whether this reference must account for a `throw` occurring for reasons
   /// other than the function implementation itself throwing, e.g. an
-  /// `DistributedActorSystem` implementing a `distributed func` call throwing a
+  /// `DistributedActorSystem` implementing a `distributed fn` call throwing a
   /// networking error.
   void setImplicitlyThrows(bool isImplicitlyThrows) {
     Bits.LookupExpr.IsImplicitlyThrows = isImplicitlyThrows;
@@ -1829,7 +1830,7 @@ public:
 ///
 /// \code
 /// class C {
-///   func @objc foo(i : Int) -> String { ... }
+///   fn @objc foo(i : Int) -> String { ... }
 /// };
 ///
 /// var x : AnyObject = <some value>
@@ -2163,7 +2164,7 @@ public:
 
   UnresolvedMemberExpr *getChainBase() const { return ChainBase; }
 
-  SWIFT_FORWARD_SOURCE_LOCS_TO(getSubExpr())
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(getSubExpr())
 
   static bool classof(const Expr *E) {
     return E->getKind() == ExprKind::UnresolvedMemberChainResult;
@@ -2320,7 +2321,7 @@ public:
 /// TupleExpr - Parenthesized expressions like '(a: x+x)' and '(x, y, 4)'. Note
 /// that expressions like '(4)' are represented with a ParenExpr.
 class TupleExpr final : public Expr,
-    private llvm::TrailingObjects<TupleExpr, Expr *, Identifier, SourceLoc> {
+    private toolchain::TrailingObjects<TupleExpr, Expr *, Identifier, SourceLoc> {
   friend TrailingObjects;
 
   SourceLoc LParenLoc;
@@ -2526,7 +2527,7 @@ public:
  
 /// An array literal expression [a, b, c].
 class ArrayExpr final : public CollectionExpr,
-    private llvm::TrailingObjects<ArrayExpr, Expr*, SourceLoc> {
+    private toolchain::TrailingObjects<ArrayExpr, Expr*, SourceLoc> {
   friend TrailingObjects;
   friend CollectionExpr;
 
@@ -2558,7 +2559,7 @@ public:
 
 /// A dictionary literal expression [a : x, b : y, c : z].
 class DictionaryExpr final : public CollectionExpr,
-    private llvm::TrailingObjects<DictionaryExpr, Expr*, SourceLoc> {
+    private toolchain::TrailingObjects<DictionaryExpr, Expr*, SourceLoc> {
   friend TrailingObjects;
   friend CollectionExpr;
 
@@ -2857,7 +2858,7 @@ public:
     : Expr(ExprKind::OptionalEvaluation, /*Implicit=*/ true, ty),
       SubExpr(subExpr) {}
 
-  SWIFT_FORWARD_SOURCE_LOCS_TO(SubExpr)
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(SubExpr)
 
   Expr *getSubExpr() const { return SubExpr; }
   void setSubExpr(Expr *expr) { SubExpr = expr; }
@@ -2870,7 +2871,7 @@ public:
 /// An expression that forces an optional to its underlying value.
 ///
 /// \code
-/// func parseInt(s : String) -> Int? { ... }
+/// fn parseInt(s : String) -> Int? { ... }
 ///
 /// var maybeInt = parseInt("5")     // returns an Int?
 /// var forcedInt = parseInt("5")!   // returns an Int; fails on empty optional
@@ -3012,7 +3013,7 @@ public:
       ExistentialValue(existentialValue), OpaqueValue(opaqueValue), 
       SubExpr(subExpr) { }
 
-  SWIFT_FORWARD_SOURCE_LOCS_TO(SubExpr)
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(SubExpr)
 
   /// Retrieve the expression that is being evaluated using the
   /// archetype value.
@@ -3053,7 +3054,7 @@ protected:
     : Expr(kind, /*Implicit=*/true, ty), SubExpr(subExpr) {}
 
 public:
-  SWIFT_FORWARD_SOURCE_LOCS_TO(SubExpr)
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(SubExpr)
 
   Expr *getSubExpr() const { return SubExpr; }
   void setSubExpr(Expr *e) { SubExpr = e; }
@@ -3279,7 +3280,7 @@ public:
 /// expression, binding the elements to OpaqueValueExprs, then evaluate the
 /// result expression written in terms of the OpaqueValueExprs.
 class DestructureTupleExpr final : public ImplicitConversionExpr,
-    private llvm::TrailingObjects<DestructureTupleExpr, OpaqueValueExpr *> {
+    private toolchain::TrailingObjects<DestructureTupleExpr, OpaqueValueExpr *> {
   friend TrailingObjects;
 
   size_t numTrailingObjects(OverloadToken<OpaqueValueExpr *>) const {
@@ -3496,7 +3497,7 @@ public:
 /// "Appropriate kind" means e.g. a concrete/existential metatype if the
 /// result is an existential metatype.
 class ErasureExpr final : public ImplicitConversionExpr,
-    private llvm::TrailingObjects<ErasureExpr, ProtocolConformanceRef,
+    private toolchain::TrailingObjects<ErasureExpr, ProtocolConformanceRef,
                                   CollectionUpcastConversionExpr::ConversionPair> {
   friend TrailingObjects;
   using ConversionPair = CollectionUpcastConversionExpr::ConversionPair;
@@ -3513,7 +3514,7 @@ class ErasureExpr final : public ImplicitConversionExpr,
     std::uninitialized_copy(argConversions.begin(), argConversions.end(),
                             getTrailingObjects<ConversionPair>());
 
-    assert(llvm::all_of(conformances, [](ProtocolConformanceRef ref) {
+    assert(toolchain::all_of(conformances, [](ProtocolConformanceRef ref) {
       return !ref.isInvalid();
     }));
   }
@@ -3714,7 +3715,7 @@ public:
 /// UnresolvedSpecializeExpr - Represents an explicit specialization using
 /// a type parameter list (e.g. "Vector<Int>") that has not been resolved.
 class UnresolvedSpecializeExpr final : public Expr,
-    private llvm::TrailingObjects<UnresolvedSpecializeExpr, TypeRepr *> {
+    private toolchain::TrailingObjects<UnresolvedSpecializeExpr, TypeRepr *> {
   friend TrailingObjects;
 
   Expr *SubExpr;
@@ -3833,7 +3834,7 @@ public:
   static VarargExpansionExpr *createParamExpansion(ASTContext &ctx, Expr *E);
   static VarargExpansionExpr *createArrayExpansion(ASTContext &ctx, ArrayExpr *AE);
 
-  SWIFT_FORWARD_SOURCE_LOCS_TO(SubExpr)
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(SubExpr)
 
   Expr *getSubExpr() const { return SubExpr; }
   void setSubExpr(Expr *subExpr) { SubExpr = subExpr; }
@@ -3847,7 +3848,7 @@ public:
 /// keyword applied to a pack reference expression.
 ///
 /// \code
-///  func zip<T..., U...>(t: (each T)..., u: (each U)...) {
+///  fn zip<T..., U...>(t: (each T)..., u: (each U)...) {
 ///    let zipped = (each t, each u)...
 ///  }
 /// \endcode
@@ -3990,7 +3991,7 @@ public:
 /// subexpressions with odd indices are all (potentially overloaded)
 /// references to binary operators.
 class SequenceExpr final : public Expr,
-    private llvm::TrailingObjects<SequenceExpr, Expr *> {
+    private toolchain::TrailingObjects<SequenceExpr, Expr *> {
   friend TrailingObjects;
 
   /// The cached folded expression.
@@ -4138,7 +4139,7 @@ public:
   enum : unsigned { InvalidDiscriminator = 0xFFFF };
 
   /// Retrieve the result type of this closure.
-  Type getResultType(llvm::function_ref<Type(Expr *)> getType =
+  Type getResultType(toolchain::function_ref<Type(Expr *)> getType =
                          [](Expr *E) -> Type { return E->getType(); }) const;
 
   /// Return whether this closure is throwing when fully applied.
@@ -4207,14 +4208,14 @@ public:
 /// the correct AST structure and remangling after deserialization.
 class SerializedAbstractClosureExpr : public DeclContext {
   const Type Ty;
-  llvm::PointerIntPair<Type, 1> TypeAndImplicit;
+  toolchain::PointerIntPair<Type, 1> TypeAndImplicit;
   const unsigned Discriminator;
 
 public:
   SerializedAbstractClosureExpr(Type Ty, bool Implicit, unsigned Discriminator,
                                 DeclContext *Parent)
     : DeclContext(DeclContextKind::SerializedAbstractClosure, Parent),
-      TypeAndImplicit(llvm::PointerIntPair<Type, 1>(Ty, Implicit)),
+      TypeAndImplicit(toolchain::PointerIntPair<Type, 1>(Ty, Implicit)),
       Discriminator(Discriminator) {}
 
   Type getType() const {
@@ -4288,7 +4289,7 @@ private:
   TypeExpr *ThrownType;
 
   /// The explicitly-specified result type.
-  llvm::PointerIntPair<TypeExpr *, 2, BodyState> ExplicitResultTypeAndBodyState;
+  toolchain::PointerIntPair<TypeExpr *, 2, BodyState> ExplicitResultTypeAndBodyState;
 
   /// The body of the closure.
   BraceStmt *Body;
@@ -4321,6 +4322,7 @@ public:
     Bits.ClosureExpr.HasAnonymousClosureVars = false;
     Bits.ClosureExpr.ImplicitSelfCapture = false;
     Bits.ClosureExpr.InheritActorContext = false;
+    Bits.ClosureExpr.InheritActorContextKind = 0;
     Bits.ClosureExpr.IsPassedToSendingParameter = false;
     Bits.ClosureExpr.NoGlobalActorAttribute = false;
     Bits.ClosureExpr.RequiresDynamicIsolationChecking = false;
@@ -4369,8 +4371,29 @@ public:
     return Bits.ClosureExpr.InheritActorContext;
   }
 
-  void setInheritsActorContext(bool value = true) {
+  /// Whether this closure should _always_ implicitly inherit the actor context
+  /// regardless of whether the isolation parameter is captured or not.
+  bool alwaysInheritsActorContext() const {
+    if (!inheritsActorContext())
+      return false;
+    return getInheritActorIsolationModifier() ==
+           InheritActorContextModifier::Always;
+  }
+
+  void setInheritsActorContext(bool value = true,
+                               InheritActorContextModifier modifier =
+                                   InheritActorContextModifier::None) {
     Bits.ClosureExpr.InheritActorContext = value;
+    Bits.ClosureExpr.InheritActorContextKind = uint8_t(modifier);
+    assert((static_cast<InheritActorContextModifier>(
+                Bits.ClosureExpr.InheritActorContextKind) == modifier) &&
+           "not enough bits for modifier");
+  }
+
+  InheritActorContextModifier getInheritActorIsolationModifier() const {
+    assert(inheritsActorContext());
+    return static_cast<InheritActorContextModifier>(
+        Bits.ClosureExpr.InheritActorContextKind);
   }
 
   /// Whether the closure's concurrency behavior was determined by an
@@ -4523,7 +4546,7 @@ public:
 /// This is an implicit closure of the contained subexpression that is usually
 /// formed when a scalar expression is converted to @autoclosure function type.
 /// \code
-///   func f(x : @autoclosure () -> Int)
+///   fn f(x : @autoclosure () -> Int)
 ///   f(42)  // AutoclosureExpr convert from Int to ()->Int
 /// \endcode
 class AutoClosureExpr : public AbstractClosureExpr {
@@ -4624,7 +4647,7 @@ struct CaptureListEntry {
 /// the variable bindings from the capture list, then evaluates the
 /// subexpression (the closure itself) and returns the result.
 class CaptureListExpr final : public Expr,
-    private llvm::TrailingObjects<CaptureListExpr, CaptureListEntry> {
+    private toolchain::TrailingObjects<CaptureListExpr, CaptureListEntry> {
   friend TrailingObjects;
 
   AbstractClosureExpr *closureBody;
@@ -4655,7 +4678,7 @@ public:
 
   /// This is a bit weird, but the capture list is lexically contained within
   /// the closure, so the ClosureExpr has the full source range.
-  SWIFT_FORWARD_SOURCE_LOCS_TO(closureBody)
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(closureBody)
 
   // Implement isa/cast/dyncast/etc.
   static bool classof(const Expr *E) {
@@ -5592,7 +5615,7 @@ class RebindSelfInConstructorExpr : public Expr {
 public:
   RebindSelfInConstructorExpr(Expr *SubExpr, VarDecl *Self);
   
-  SWIFT_FORWARD_SOURCE_LOCS_TO(SubExpr)
+  LANGUAGE_FORWARD_SOURCE_LOCS_TO(SubExpr)
   
   VarDecl *getSelf() const { return Self; }
   Expr *getSubExpr() const { return SubExpr; }
@@ -5847,7 +5870,7 @@ public:
       return true;
     }
 
-    llvm_unreachable("Unhandled ObjcSelectorKind in switch.");
+    toolchain_unreachable("Unhandled ObjcSelectorKind in switch.");
   }
 
   /// Whether this selector references a method.
@@ -5911,10 +5934,10 @@ class KeyPathExpr : public Expr {
   SourceLoc EndLoc;
   Expr *ObjCStringLiteralExpr = nullptr;
 
-  // The parsed root of a Swift keypath (the section before an unusual dot, like
+  // The parsed root of a Codira keypath (the section before an unusual dot, like
   // Foo.Bar in \Foo.Bar.?.baz).
   Expr *ParsedRoot = nullptr;
-  // The parsed path of a Swift keypath (the section after an unusual dot, like
+  // The parsed path of a Codira keypath (the section after an unusual dot, like
   // ?.baz in \Foo.Bar.?.baz).
   Expr *ParsedPath = nullptr;
 
@@ -6135,7 +6158,7 @@ public:
       case Kind::CodeCompletion:
         return false;
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     ArgumentList *getArgs() const {
@@ -6158,7 +6181,7 @@ public:
       case Kind::CodeCompletion:
         return nullptr;
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     void setArgs(ArgumentList *newArgs) {
@@ -6188,7 +6211,7 @@ public:
       case Kind::CodeCompletion:
         return {};
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     DeclNameRef getUnresolvedDeclName() const {
@@ -6209,9 +6232,9 @@ public:
       case Kind::Identity:
       case Kind::TupleElement:
       case Kind::CodeCompletion:
-        llvm_unreachable("no unresolved name for this kind");
+        toolchain_unreachable("no unresolved name for this kind");
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     bool hasDeclRef() const {
@@ -6234,7 +6257,7 @@ public:
       case Kind::CodeCompletion:
         return false;
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     ConcreteDeclRef getDeclRef() const {
@@ -6255,9 +6278,9 @@ public:
       case Kind::TupleElement:
       case Kind::DictionaryKey:
       case Kind::CodeCompletion:
-        llvm_unreachable("no decl ref for this kind");
+        toolchain_unreachable("no decl ref for this kind");
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
       
     unsigned getTupleIndex() const {
@@ -6278,9 +6301,9 @@ public:
         case Kind::Subscript:
         case Kind::DictionaryKey:
         case Kind::CodeCompletion:
-          llvm_unreachable("no field number for this kind");
+          toolchain_unreachable("no field number for this kind");
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     FunctionRefInfo getFunctionRefInfo() const {
@@ -6303,9 +6326,9 @@ public:
       case Kind::CodeCompletion:
       case Kind::UnresolvedApply:
       case Kind::Apply:
-        llvm_unreachable("no function ref kind for this kind");
+        toolchain_unreachable("no function ref kind for this kind");
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     Type getComponentType() const {
@@ -6318,7 +6341,7 @@ public:
   };
 
 private:
-  llvm::MutableArrayRef<Component> Components;
+  toolchain::MutableArrayRef<Component> Components;
 
   KeyPathExpr(SourceLoc startLoc, Expr *parsedRoot, Expr *parsedPath,
               SourceLoc endLoc, bool hasLeadingDot, bool isObjC,
@@ -6334,7 +6357,7 @@ private:
               bool isImplicit);
 
 public:
-  /// Create a new parsed Swift key path expression.
+  /// Create a new parsed Codira key path expression.
   static KeyPathExpr *createParsed(ASTContext &ctx, SourceLoc backslashLoc,
      Expr *parsedRoot, Expr *parsedPath,
      bool hasLeadingDot);
@@ -6346,13 +6369,13 @@ public:
                                                ArrayRef<Component> components,
                                                SourceLoc rParenLoc);
 
-  /// Create an implicit Swift key path expression with a set of resolved
+  /// Create an implicit Codira key path expression with a set of resolved
   /// components.
   static KeyPathExpr *createImplicit(ASTContext &ctx, SourceLoc backslashLoc,
                                      ArrayRef<Component> components,
                                      SourceLoc endLoc);
 
-  /// Create an implicit Swift key path expression with a root and path
+  /// Create an implicit Codira key path expression with a root and path
   /// expression to be resolved.
   static KeyPathExpr *createImplicit(ASTContext &ctx, SourceLoc backslashLoc,
                                      Expr *parsedRoot, Expr *parsedPath,
@@ -6572,7 +6595,7 @@ public:
 };
 
 class TypeJoinExpr final : public Expr,
-                           private llvm::TrailingObjects<TypeJoinExpr, Expr *> {
+                           private toolchain::TrailingObjects<TypeJoinExpr, Expr *> {
   friend TrailingObjects;
 
   DeclRefExpr *Var;
@@ -6589,12 +6612,12 @@ class TypeJoinExpr final : public Expr,
     return { getTrailingObjects<Expr *>(), getNumElements() };
   }
 
-  TypeJoinExpr(llvm::PointerUnion<DeclRefExpr *, TypeBase *> result,
+  TypeJoinExpr(toolchain::PointerUnion<DeclRefExpr *, TypeBase *> result,
                ArrayRef<Expr *> elements, SingleValueStmtExpr *SVE);
 
   static TypeJoinExpr *
   createImpl(ASTContext &ctx,
-             llvm::PointerUnion<DeclRefExpr *, TypeBase *> varOrType,
+             toolchain::PointerUnion<DeclRefExpr *, TypeBase *> varOrType,
              ArrayRef<Expr *> elements,
              AllocationArena arena = AllocationArena::Permanent,
              SingleValueStmtExpr *SVE = nullptr);
@@ -6720,7 +6743,7 @@ inline Expr *const *CollectionExpr::getTrailingObjectsPointer() const {
     return ty->getTrailingObjects<Expr*>();
   if (auto ty = dyn_cast<DictionaryExpr>(this))
     return ty->getTrailingObjects<Expr*>();
-  llvm_unreachable("Unhandled CollectionExpr!");
+  toolchain_unreachable("Unhandled CollectionExpr!");
 }
 
 inline const SourceLoc *CollectionExpr::getTrailingSourceLocs() const {
@@ -6728,14 +6751,14 @@ inline const SourceLoc *CollectionExpr::getTrailingSourceLocs() const {
     return ty->getTrailingObjects<SourceLoc>();
   if (auto ty = dyn_cast<DictionaryExpr>(this))
     return ty->getTrailingObjects<SourceLoc>();
-  llvm_unreachable("Unhandled CollectionExpr!");
+  toolchain_unreachable("Unhandled CollectionExpr!");
 }
 
-#undef SWIFT_FORWARD_SOURCE_LOCS_TO
+#undef LANGUAGE_FORWARD_SOURCE_LOCS_TO
 
-void simple_display(llvm::raw_ostream &out, const ClosureExpr *CE);
-void simple_display(llvm::raw_ostream &out, const DefaultArgumentExpr *expr);
-void simple_display(llvm::raw_ostream &out, const Expr *expr);
+void simple_display(toolchain::raw_ostream &out, const ClosureExpr *CE);
+void simple_display(toolchain::raw_ostream &out, const DefaultArgumentExpr *expr);
+void simple_display(toolchain::raw_ostream &out, const Expr *expr);
 
 SourceLoc extractNearestSourceLoc(const ClosureExpr *expr);
 SourceLoc extractNearestSourceLoc(const Expr *expr);

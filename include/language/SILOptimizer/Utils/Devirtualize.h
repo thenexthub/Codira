@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This contains helper functions that perform the work of devirtualizing a
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_DEVIRTUALIZE_H
-#define SWIFT_SIL_DEVIRTUALIZE_H
+#ifndef LANGUAGE_SIL_DEVIRTUALIZE_H
+#define LANGUAGE_SIL_DEVIRTUALIZE_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Types.h"
@@ -31,7 +32,7 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/ClassHierarchyAnalysis.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 namespace language {
 namespace OptRemark {
@@ -79,7 +80,7 @@ bool canDevirtualizeClassMethod(FullApplySite AI, ClassDecl *CD,
                                 CanType ClassType,
                                 OptRemark::Emitter *ORE = nullptr,
                                 bool isEffectivelyFinalMethod = false);
-SILFunction *getTargetClassMethod(SILModule &M, ClassDecl *CD,
+SILFunction *getTargetClassMethod(SILModule &M, FullApplySite as, ClassDecl *CD,
                                   CanType ClassType, MethodInst *MI);
 CanType getSelfInstanceType(CanType ClassOrMetatypeType);
 

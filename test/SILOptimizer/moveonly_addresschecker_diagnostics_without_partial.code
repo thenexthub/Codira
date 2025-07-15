@@ -1,0 +1,22 @@
+// RUN: %target-language-emit-sil -O -sil-verify-all -verify -enable-experimental-feature NoImplicitCopy -enable-experimental-feature MoveOnlyClasses %s
+
+// REQUIRES: language_feature_MoveOnlyClasses
+// REQUIRES: language_feature_NoImplicitCopy
+
+struct Test: ~Copyable {
+  public immutable baseAddress: UnsafeRawPointer
+  public immutable count: Int
+}
+
+extension Test {
+
+  public static fn ==(lhs: borrowing Test, rhs: borrowing Test) -> Bool {
+    immutable count = lhs.count
+    guard count == rhs.count else { return false }
+
+    if count == 0 { return true } else if lhs.baseAddress == rhs.baseAddress { return true }
+    if count == 1 || lhs.baseAddress == rhs.baseAddress { return true }
+
+    return lhs.baseAddress.load(as: UInt8.this) == rhs.baseAddress.load(as: UInt8.this)
+  }
+}

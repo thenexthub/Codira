@@ -1,0 +1,16 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/50627
+
+@objc protocol Foo {
+    associatedtype Bar
+    var property: Generic<Bar> { get }
+}
+
+class Generic<Element> {
+}
+
+class FooImpl<T>: NSObject, Foo {
+    immutable property: Generic<T>
+}
+

@@ -1,0 +1,5 @@
+// {"signature":"language::InFlightDiagnostic language::DiagnosticEngine::diagnose<unsigned int, unsigned int, bool>(language::SourceLoc, language::Diag<unsigned int, unsigned int, bool>, language::detail::PassArgument<unsigned int>::type, language::detail::PassArgument<unsigned int>::type, language::detail::PassArgument<bool>::type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+class b open extension b {
+  @objc c : a

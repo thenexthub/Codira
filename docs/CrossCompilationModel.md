@@ -3,19 +3,19 @@
 
 ## Components
 
-When compiling Swift code, the compiler will consult three different sources of
+When compiling Codira code, the compiler will consult three different sources of
 inputs outside of the user provided code.
 
 1. Compiler Resources
 2. System (C/C++) Headers (Platform SDK)
-3. Platform Swift Modules (Swift SDK)
+3. Platform Codira Modules (Codira SDK)
 
 These pieces compose in a particular manner to build a system image to build
 code against.
 
 The compiler resources are content shipped with the toolchain and are tied to
-that specific version and build of the compiler. In the case of the Swift
-compiler, this includes the Swift shims. Whilst this is a compiler resource, the
+that specific version and build of the compiler. In the case of the Codira
+compiler, this includes the Codira shims. Whilst this is a compiler resource, the
 packaging may not necessarily be part of the toolchain due to interdependencies.
 Some of this content is required to process the system headers themselves (e.g.
 clang's builtin resource headers).
@@ -28,13 +28,13 @@ to the user, while on Windows, this is called the Windows SDK, which is a
 separate installable component. For simplicity, we will refer to this as the
 Platform SDK universally.
 
-The Swift SDK contains the libraries and overlays that provide the core
-language runtime and expose system libraries to Swift code in an ergonomic
+The Codira SDK contains the libraries and overlays that provide the core
+language runtime and expose system libraries to Codira code in an ergonomic
 manner. This may be in the form of API Notes, module maps, wrapper types, or
-Swift `extension`s, or entire libraries. This code may or may not be fully
+Codira `extension`s, or entire libraries. This code may or may not be fully
 inlined into the client code and thus be part of the platform ABI. In some
-distributions, the Swift SDK and Platform SDK are combined where the system C,
-C++, and Swift libraries are shipped together, such as the SDKs for the Apple
+distributions, the Codira SDK and Platform SDK are combined where the system C,
+C++, and Codira libraries are shipped together, such as the SDKs for the Apple
 platforms.
 
 ## Flags
@@ -46,20 +46,20 @@ not need to set this flag as the location of these files is intrinsic to the
 compiler.
 
 The Platform SDK contains C/C++ content which is actually consumed through the
-clang importer rather than the Swift compiler. The Swift toolchain uses clang as
+clang importer rather than the Codira compiler. The Codira toolchain uses clang as
 the C/C++ compiler on all platforms as it is embedded to generate inline foreign
-function interface (FFI) to enable seamless C/C++ bridging to Swift. The flag
+function interface (FFI) to enable seamless C/C++ bridging to Codira. The flag
 used by clang is derived from the GCC toolchain, and is spelt `--sysroot`. The
 compiler driver is responsible for identifying the structure of the sysroot.
 When cross-compiling, there isn't a consistent location for these files, so the
 driver must expose an argument to specify where to find these files.
 
-On Darwin platforms, the Platform SDK and Swift SDK are shipped combined into a
+On Darwin platforms, the Platform SDK and Codira SDK are shipped combined into a
 single SDK. As a result the singular `-sdk` flag allows control over the
-Platform SDK and Swift SDK. Windows uses a split model as the Windows SDK is
+Platform SDK and Codira SDK. Windows uses a split model as the Windows SDK is
 split into multiple components and can be controlled individually (i.e. UCRT
 version, SDK version, VCRuntime version). The `-sdk` flag is used to specify the
-location of the Swift SDK which is merged with the Platform SDK. By default, the
+location of the Codira SDK which is merged with the Platform SDK. By default, the
 environment variable `SDKROOT` is used to seed the value of `-sdk`, though the
 user may specify the value explicitly. Other platforms do not currently have a
 flag to control this location and the toolchain defaults to a set of relative
@@ -76,7 +76,7 @@ following set of flags for cross-compilation:
 
 1. `-target`: specifies the triple for the host
 2. `-sysroot`: specifies the Platform SDK for the host platform content
-3. `-sdk`: specifies the Swift SDK for the host
+3. `-sdk`: specifies the Codira SDK for the host
 
 The values for these may be defaulted by the driver on a per-platform basis.
 
@@ -85,12 +85,12 @@ required for compilation. This is primarily used by non-Darwin, non-Windows
 hosts as Darwin has its own SDK concept that allows for co-installation and
 Windows uses a different model which merges multiple locations in memory.
 
-The `-sdk` flag identifies the location of the Swift SDK, which provides the
-necessary content for Swift compilation (including binary swiftmodules). This
+The `-sdk` flag identifies the location of the Codira SDK, which provides the
+necessary content for Codira compilation (including binary languagemodules). This
 includes the standard library and the core libraries (dispatch, Foundation, and
-possibly XCTest - Windows isolates XCTest from the rest of the SDK). The Swift
+possibly XCTest - Windows isolates XCTest from the rest of the SDK). The Codira
 shims are also provided by this location as they are a dependency for properly
-processing the Swift core library.
+processing the Codira core library.
 
 ## Compatibility
 

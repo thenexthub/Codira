@@ -1,0 +1,159 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn c<b:c
+fn d<b: Sequence, e where Optional<e> == b.Iterator.Element>(c : b) -> e? {
+    for (mx : e?) in c {
+    }
+}
+protocol A {
+    typealias B
+    fn b(B)
+}
+struct X<Y> : A {
+    fn b(b: X.Type) {
+    }
+}
+struct c<e> {
+    immutable d: i h
+}
+fn f(h: b) -> <e>(()-> e
+fn c<g>() -> (g, g -> g) -> g {
+   d b d.f = {
+}
+ {
+   g) {
+        i  }
+}
+i c {
+   class fn f()
+}
+class d: c{  class fn f {}
+struct d<c : f,f where g.i == c.i>
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (m: (Any, Any) -> Any) -> Any in
+        return m(x, y)
+    }
+}
+fn b(z: (((Any, Any) -> Any) -> Any)) -> Any {
+    return z({
+        (p: Any, q:Any) -> Any in
+        return p
+    })
+}
+b(a(1, a(2  class fn g() { }
+}
+(h() as p).dynamicType.g()
+protocol p {
+}
+protocol h : p {
+}
+protocol g : p {
+}
+protocol n {
+  o t = p
+}
+struct h : n {
+  t : n q m.t == m> (h: m) {
+}
+fn q<t : n q t.t == g> (h: t) {
+}
+q(h())
+fn r(g: m) -> <s>(() -> s) -> n
+import Foundation
+class Foo<T>: NSObject {
+    var foo: T
+    init(foo: T) {
+ B>(t: T) {
+    t.c()
+} x
+      x) {
+}
+class a {
+    var _ = i() {
+    }
+}
+a=1 as a=1
+class c {
+    fn b((Any, c))(a: (Any, AnyObject)) {
+        b(a)
+    }
+}
+fn i(f: g) -> <j>(() -> j) -> g { fn g
+k, l {
+    typealias l = m<k<m>, f>
+}
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}
+protocol A {
+    fn c() -> String
+}
+class B {
+    fn d() -> String {
+        return ""
+    }
+}
+class C: B, A {
+    override fn d() -> String {
+        return ""
+    }
+    fn c() -> String {
+        return ""
+    }
+}
+fn e<T where T: A, T: B>(t: T) {
+    t.c()
+}
+  }
+}
+class b<i : b> i: g{ fn c {}
+e g {
+ : g {
+h fn i() ->  }
+fn h<j>() -> (j, j -> j) -> j {
+    var f: ({ (c: e, f: e -> e) ->   return f(c)
+}(k, i)
+immutable o: e = { c, g
+    return f(c)
+}(l) -> m) -> p>, e>
+}
+class n<j : n>
+b
+prot    q g: n
+}
+fn p<n>() -> [q<n>] {
+    o : g.l) {
+    }
+}
+class p {
+    typealias g = g
+class a {
+    typealias b = b
+}
+import Foundation
+class m<j>k i<g : g, e : f k(f: l) {
+}
+i(())
+class h {
+    typealias g = g
+protocol A {
+    typealias B
+}
+class C<D> {
+    init <A: A where A.B == D>(e: A.B) {
+    }
+}

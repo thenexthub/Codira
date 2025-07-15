@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language-c/CommonString/CommonString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
 #include <string>
 #include <vector>
 
@@ -24,24 +25,24 @@ namespace language {
 namespace c_string_utils {
 
 /// Create null string
-swiftscan_string_ref_t create_null();
+languagescan_string_ref_t create_null();
 
-/// Create a \c swiftscan_string_ref_t object from a nul-terminated C string.  New
-/// \c swiftscan_string_ref_t will contain a copy of \p string.
-swiftscan_string_ref_t create_clone(const char *string);
+/// Create a \c languagescan_string_ref_t object from a nul-terminated C string.  New
+/// \c languagescan_string_ref_t will contain a copy of \p string.
+languagescan_string_ref_t create_clone(const char *string);
 
-/// Create an array of \c swiftscan_string_ref_t objects from a vector of C++ strings using the
+/// Create an array of \c languagescan_string_ref_t objects from a vector of C++ strings using the
 /// create_clone routine.
-swiftscan_string_set_t *create_set(const std::vector<std::string> &strings);
+languagescan_string_set_t *create_set(const std::vector<std::string> &strings);
 
-/// Create an array of swiftscan_string_ref_t objects from an array of C strings using the
+/// Create an array of languagescan_string_ref_t objects from an array of C strings using the
 /// create_clone routine.
-swiftscan_string_set_t *create_set(int count, const char **strings);
+languagescan_string_set_t *create_set(int count, const char **strings);
 
-/// Create an empty array of swiftscan_string_ref_t objects
-swiftscan_string_set_t *create_empty_set();
+/// Create an empty array of languagescan_string_ref_t objects
+languagescan_string_set_t *create_empty_set();
 
 /// Retrieve the character data associated with the given string.
-const char *get_C_string(swiftscan_string_ref_t string);
+const char *get_C_string(languagescan_string_ref_t string);
 }
 }

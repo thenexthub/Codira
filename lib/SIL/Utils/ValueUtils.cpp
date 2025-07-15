@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/ValueUtils.h"
@@ -20,7 +21,7 @@
 
 using namespace language;
 
-ValueOwnershipKind swift::getSILValueOwnership(ArrayRef<SILValue> values,
+ValueOwnershipKind language::getSILValueOwnership(ArrayRef<SILValue> values,
                                                SILType ty) {
   auto range = makeTransformRange(values, [](SILValue v) {
     assert(v->getType().isObject());

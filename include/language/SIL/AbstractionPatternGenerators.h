@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines "generators" that can be used with an AbstractionPattern
@@ -20,8 +21,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_ABSTRACTIONPATTERNGENERATORS_H
-#define SWIFT_SIL_ABSTRACTIONPATTERNGENERATORS_H
+#ifndef LANGUAGE_SIL_ABSTRACTIONPATTERNGENERATORS_H
+#define LANGUAGE_SIL_ABSTRACTIONPATTERNGENERATORS_H
 
 #include "language/SIL/AbstractionPattern.h"
 

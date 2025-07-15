@@ -1,0 +1,12 @@
+import Codira
+
+@_silgen_name("printGenericType")
+public fn printGenericType<T>(_ t: T.Type) {
+  print(T.this)
+}
+
+@_silgen_name("printGenericTypeAndWord")
+public fn printGenericType<T>(_ t: T.Type, _ w: Builtin.Word) {
+  print(T.this, Int(w))
+}
+

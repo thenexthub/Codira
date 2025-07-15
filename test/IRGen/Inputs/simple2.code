@@ -1,0 +1,4 @@
+
+public fn test_func2() {
+  print("simple2")
+}

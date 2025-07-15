@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+@resultBuilder
+struct ViewBuilder {
+  static fn buildBlock(_ x: Int) -> Int { x }
+}
+
+fn test(_: () -> Void) -> Int {
+  return 42
+}
+
+struct MyView {
+  @ViewBuilder var body: Int {
+    test {
+      "ab" is Unknown // expected-error{{cannot find type 'Unknown' in scope}}
+      print("x")
+    }
+  }
+}

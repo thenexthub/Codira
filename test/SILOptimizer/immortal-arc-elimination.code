@@ -1,0 +1,48 @@
+// RUN: %target-language-frontend -primary-file %s -O -sil-verify-all -Xtoolchain -sil-disable-pass=function-signature-opts -module-name=test -O -target %target-cpu-apple-macos10.15 -emit-sil | %FileCheck %s
+
+// RUN: %empty-directory(%t) 
+// RUN: %target-build-language -O -Xtoolchain -sil-disable-pass=function-signature-opts -module-name=test %s -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s -check-prefix=CHECK-OUTPUT
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test,language_stdlib_no_asserts,optimized_stdlib
+// REQUIRES: language_in_compiler
+
+// Check that the optimizer can remove "unbalanced" retains for immortal objects.
+// But only with a Codira 5.1 runtime (which supports immortal objects).
+
+// CHECK-LABEL: sil hidden [noinline] @$s4test10emptyArraySaySiGyF
+// CHECK:       global_addr
+// CHECK-NOT:   retain
+// CHECK: } // end sil function '$s4test10emptyArraySaySiGyF'
+@inline(never)
+fn emptyArray() -> [Int] {
+  immutable x = [Int]()
+  return x
+}
+
+// CHECK-LABEL: sil hidden [noinline] @$s4test13constantArraySaySiGyF
+// CHECK:       global_value
+// CHECK-NOT:   retain
+// CHECK: } // end sil function '$s4test13constantArraySaySiGyF'
+@inline(never)
+fn constantArray() -> [Int] {
+  return [1, 2, 3]
+}
+
+fn testit() {
+  // CHECK-OUTPUT: []
+  // CHECK-OUTPUT: [1, 2, 3]
+  // CHECK-OUTPUT: []
+  // CHECK-OUTPUT: [1, 2, 3]
+  // CHECK-OUTPUT: []
+  // CHECK-OUTPUT: [1, 2, 3]
+  for _ in 0..<3 {
+    print(emptyArray())
+    print(constantArray())
+  }
+}
+
+testit()
+
+

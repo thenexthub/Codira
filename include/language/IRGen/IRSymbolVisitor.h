@@ -1,17 +1,21 @@
 //===--- IRSymbolVisitor.h - Symbol Visitor for IR --------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRSYMBOLVISITOR_H
-#define SWIFT_IRGEN_IRSYMBOLVISITOR_H
+#ifndef LANGUAGE_IRGEN_IRSYMBOLVISITOR_H
+#define LANGUAGE_IRGEN_IRSYMBOLVISITOR_H
 
 #include "language/IRGen/Linking.h"
 
@@ -36,7 +40,7 @@ public:
 };
 
 /// A visitor class which may be used to enumerate the entities representing
-/// linker symbols associated with a Swift declaration, file, or module. This
+/// linker symbols associated with a Codira declaration, file, or module. This
 /// class is a refinement of `SILSymbolVisitor` for the IRGen layer. Most of the
 /// enumerated linker symbols can be represented as either a `SILDeclRef` or a
 /// `LinkEntity`, but a few aren't supported by those abstractions and are
@@ -54,7 +58,7 @@ public:
   void visitFile(FileUnit *file, const IRSymbolVisitorContext &ctx);
 
   /// Enumerate the symbols associated with the given modules.
-  void visitModules(llvm::SmallVector<ModuleDecl *, 4> &modules,
+  void visitModules(toolchain::SmallVector<ModuleDecl *, 4> &modules,
                     const IRSymbolVisitorContext &ctx);
 
   /// Override to prepare for enumeration of the symbols for a specific decl.

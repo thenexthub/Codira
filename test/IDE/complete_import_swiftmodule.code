@@ -1,0 +1,97 @@
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: CPU=x86_64
+
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/Frameworks
+// RUN: mkdir -p %t/Modules
+
+// RUN: mkdir -p %t/Frameworks/MacAndLinuxInterfaceFW.framework/Modules/MacAndLinuxInterfaceFW.codemodule/
+// RUN: touch    %t/Frameworks/MacAndLinuxInterfaceFW.framework/Modules/MacAndLinuxInterfaceFW.codemodule/x86_64-apple-macos.codeinterface
+// RUN: touch    %t/Frameworks/MacAndLinuxInterfaceFW.framework/Modules/MacAndLinuxInterfaceFW.codemodule/x86_64-unknown-linux-gnu.codeinterface
+
+// RUN: mkdir -p %t/Frameworks/MacAndLinuxSerializedFW.framework/Modules/MacAndLinuxSerializedFW.codemodule/
+// RUN: touch    %t/Frameworks/MacAndLinuxSerializedFW.framework/Modules/MacAndLinuxSerializedFW.codemodule/x86_64-apple-macos.codemodule
+// RUN: touch    %t/Frameworks/MacAndLinuxSerializedFW.framework/Modules/MacAndLinuxSerializedFW.codemodule/x86_64-unknown-linux-gnu.codemodule
+
+// Not-matching target.
+// RUN: mkdir -p %t/Frameworks/IosInterfaceFW.framework/Modules/IosInterfaceFW.codemodule/
+// RUN: touch    %t/Frameworks/IosInterfaceFW.framework/Modules/IosInterfaceFW.codemodule/arm64-apple-ios.codeinterface
+
+// Invalid - Framework must be target specific.
+// RUN: mkdir -p %t/Frameworks/NonTargetInterfaceFW.framework/Modules/
+// RUN: touch    %t/Frameworks/NonTargetInterfaceFW.framework/Modules/NonTargetInterfaceFW.codeinterface
+
+// Invalid - Framework must be target specific.
+// RUN: mkdir -p %t/Frameworks/NonTargetSerializedFW.framework/Modules/
+// RUN: touch    %t/Frameworks/NonTargetSerializedFW.framework/Modules/NonTargetSerializedFW.codemodule
+
+// RUN: mkdir -p %t/Modules/MacAndLinuxInterfaceMod.codemodule/
+// RUN: touch    %t/Modules/MacAndLinuxInterfaceMod.codemodule/x86_64-apple-macos.codeinterface
+// RUN: touch    %t/Modules/MacAndLinuxInterfaceMod.codemodule/x86_64-unknown-linux-gnu.codeinterface
+
+// RUN: mkdir -p %t/Modules/MacAndLinuxSerializedMod.codemodule/
+// RUN: touch    %t/Modules/MacAndLinuxSerializedMod.codemodule/x86_64-apple-macos.codemodule
+// RUN: touch    %t/Modules/MacAndLinuxSerializedMod.codemodule/x86_64-unknown-linux-gnu.codemodule
+
+// Non-matching target.
+// RUN: mkdir -p %t/Modules/IosInterfaceMod.codemodule
+// RUN: touch    %t/Modules/IosInterfaceMod.codemodule/arm64-apple-ios.codeinterface
+
+// RUN: touch %t/Modules/NonTargetInterfaceMod.codeinterface
+// RUN: touch %t/Modules/NonTargetSerializedMod.codemodule
+
+// Invalid - '.codeinterface' directory.
+// RUN: mkdir -p %t/Modules/DirInterfaceMod.codeinterface
+// RUN: touch    %t/Modules/DirInterfaceMod.codeinterface/x86_64-apple-macos.codeinterface
+// RUN: touch    %t/Modules/DirInterfaceMod.codeinterface/x86_64-unknown-linux-gnu.codeinterface
+
+// Invalid - Empty directory.
+// RUN: mkdir -p %t/Modules/EmptyDirInterfaceMod.codeinterface
+// RUN: mkdir -p %t/Modules/EmptyDirSerializedMod.codemodule
+
+// Invalid - Not a module.
+// RUN: touch %t/Modules/UnrelatedFile.dat
+
+// Invalid - Serialized in -F directory.
+// RUN: touch %t/Frameworks/ModuleInFrameworkDir.codemodule
+
+// Invalid - Framework in -I directory.
+// RUN: mkdir -p %t/Modules/FrameworkInModuleDir.framework/Modules/FrameworkInModuleDir.codemodule/
+// RUN: touch    %t/Modules/FrameworkInModuleDir.framework/Modules/FrameworkInModuleDir.codemodule/x86_64-apple-macos.codeinterface
+// RUN: touch    %t/Modules/FrameworkInModuleDir.framework/Modules/FrameworkInModuleDir.codemodule/x86_64-unknown-linux-gnu.codeinterface
+
+// Invalid - FrameworkName/SerializedName mismatch
+// RUN: mkdir -p %t/Frameworks/NameMismatchFW.framework/Modules/MismatchNameFW.codemodule/
+// RUN: touch    %t/Frameworks/NameMismatchFW.framework/Modules/MismatchNameFW.codemodule/x86_64-apple-macos.codeinterface
+// RUN: touch    %t/Frameworks/NameMismatchFW.framework/Modules/MismatchNameFW.codemodule/x86_64-unknown-linux-gnu.codeinterface
+
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=COMPLETE -F %t/Frameworks -sdk %t -I %t/Modules | %FileCheck %s
+
+// CHECK: Begin completion
+// CHECK-NOT: IosInterfaceFW[#Module#]
+// CHECK-NOT: NonTargetInterfaceFW[#Module#]
+// CHECK-NOT: NonTargetSerializedFW[#Module#]
+// CHECK-NOT: IosInterfaceMod[#Module#]
+// CHECK-NOT: DirInterfaceMod[#Module#]
+// CHECK-NOT: EmptyDirInterfaceMod[#Module#]
+// CHECK-NOT: EmptyDirSerializedMod[#Module#]
+// CHECK-NOT: UnrelatedFile[#Module#]
+// CHECK-NOT: ModuleInFrameworkDir[#Module#]
+// CHECK-NOT: FrameworkInModuleDir[#Module#]
+// CHECK-NOT: NameMismatchFW[#Module#]
+// CHECK-NOT: MismatchNameFW[#Module#]
+// CHECK-NOT: CodiraOnoneSupport[#Module#]
+// CHECK-NOT: Builtin[#Module#]
+// CHECK-NOT: Module[_
+
+// CHECK-DAG: MacAndLinuxInterfaceFW[#Module#]
+// CHECK-DAG: MacAndLinuxSerializedFW[#Module#]
+// CHECK-DAG: MacAndLinuxInterfaceMod[#Module#]
+// CHECK-DAG: MacAndLinuxSerializedMod[#Module#]
+// CHECK-DAG: NonTargetInterfaceMod[#Module#]
+// CHECK-DAG: NonTargetSerializedMod[#Module#]
+
+// CHECK-DAG: Codira[#Module#]
+// CHECK: End completion
+
+import #^COMPLETE^#

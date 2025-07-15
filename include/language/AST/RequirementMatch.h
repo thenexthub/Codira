@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_REQUIREMENTMATCH_H
-#define SWIFT_AST_REQUIREMENTMATCH_H
+#ifndef LANGUAGE_AST_REQUIREMENTMATCH_H
+#define LANGUAGE_AST_REQUIREMENTMATCH_H
 
 #include "language/AST/RequirementEnvironment.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/AST/Witness.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -199,7 +200,7 @@ public:
       return false;
     }
 
-    llvm_unreachable("Unhandled OptionalAdjustmentKind in switch.");
+    toolchain_unreachable("Unhandled OptionalAdjustmentKind in switch.");
   }
 
   /// Retrieve the source location at which the optional is
@@ -377,7 +378,7 @@ struct RequirementMatch {
       return false;
     }
 
-    llvm_unreachable("Unhandled MatchKind in switch.");
+    toolchain_unreachable("Unhandled MatchKind in switch.");
   }
 
   /// Determine whether this match is viable, meaning that we could generate
@@ -414,7 +415,7 @@ struct RequirementMatch {
       return false;
     }
 
-    llvm_unreachable("Unhandled MatchKind in switch.");
+    toolchain_unreachable("Unhandled MatchKind in switch.");
   }
 
   /// Determine whether this requirement match has a witness type.
@@ -450,7 +451,7 @@ struct RequirementMatch {
       return false;
     }
 
-    llvm_unreachable("Unhandled MatchKind in switch.");
+    toolchain_unreachable("Unhandled MatchKind in switch.");
   }
 
   /// Determine whether this requirement match has a requirement.
@@ -461,8 +462,8 @@ struct RequirementMatch {
     return Kind == MatchKind::MissingDifferentiableAttr;
   }
 
-  swift::Witness getWitness(ASTContext &ctx) const {
-    return swift::Witness(this->Witness, WitnessSubstitutions,
+  language::Witness getWitness(ASTContext &ctx) const {
+    return language::Witness(this->Witness, WitnessSubstitutions,
                           ReqEnv->getWitnessThunkSignature(),
                           ReqEnv->getRequirementToWitnessThunkSubs(),
                           DerivativeGenSig, std::nullopt);
@@ -471,4 +472,4 @@ struct RequirementMatch {
 
 }
 
-#endif // SWIFT_AST_REQUIREMENTMATCH_H
+#endif // LANGUAGE_AST_REQUIREMENTMATCH_H

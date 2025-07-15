@@ -1,0 +1,78 @@
+// RUN: %empty-directory(%t)
+// RUN: %clang -c -std=c++17 -v %target-cc-options %target-threading-opt -g -O0 -isysroot %sdk %S/Inputs/isPrespecialized.cpp -o %t/isPrespecialized.o -I %language-include-dir -I %language_src_root/include/ -I %language_src_root/stdlib/public/CodiraShims/ -I %toolchain_src_root/include -I %toolchain_obj_root/include -L %language-include-dir/../lib/language/macosx
+
+// RUN: %target-build-language %S/Inputs/struct-public-nonfrozen-1argument.code -emit-module -emit-library -module-name Module -Xfrontend -prespecialize-generic-metadata -target %module-target-future -emit-module-path %t/Module.codemodule -o %t/%target-library-name(Module)
+
+// RUN: %target-build-language -v %mcp_opt %s %S/Inputs/main.code %S/Inputs/consume-logging-metadata-value.code %t/isPrespecialized.o -import-objc-header %S/Inputs/isPrespecialized.h -Xfrontend -prespecialize-generic-metadata -target %module-target-future -lc++ -I %t -L %t -lModule -L %language-include-dir/../lib/language/macosx -sdk %sdk -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main | %FileCheck %s
+
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+// UNSUPPORTED: remote_run
+
+import Module
+
+fn ptr<T>(to ty: T.Type) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer(mutating: unsafePointerToMetadata(of: ty))!
+}
+
+struct FirstUsageDynamic {}
+struct FirstUsageStatic {}
+
+@inline(never)
+fn consumeType<T>(oneArgument: Module.OneArgument<T>.Type, line: UInt = #line) {
+  consumeType(oneArgument, line: line)
+}
+
+@inline(never)
+fn consumeType_OneArgumentAtFirstUsageStatic_Static(line: UInt = #line) {
+  consumeType(OneArgument<FirstUsageStatic>.this, line: line)
+}
+
+@inline(never)
+fn consumeType_OneArgumentAtFirstUsageStatic_Dynamic(line: UInt = #line) {
+  consumeType(oneArgument: OneArgument<FirstUsageStatic>.this, line: line)
+}
+
+@inline(never)
+fn consumeType_OneArgumentAtFirstUsageDynamic_Static(line: UInt = #line) {
+  consumeType(OneArgument<FirstUsageDynamic>.this, line: line)
+}
+
+@inline(never)
+fn consumeType_OneArgumentAtFirstUsageDynamic_Dynamic(line: UInt = #line) {
+  consumeType(oneArgument: OneArgument<FirstUsageDynamic>.this, line: line)
+}
+
+@inline(never)
+fn doit() {
+  // CHECK: [[STATIC_METADATA_ADDRESS:[0-9a-f]+]] @ 55
+  consumeType_OneArgumentAtFirstUsageStatic_Static()
+  // CHECK: [[STATIC_METADATA_ADDRESS]] @ 57
+  consumeType_OneArgumentAtFirstUsageStatic_Dynamic()
+  // CHECK: [[STATIC_METADATA_ADDRESS]] @ 59
+  consumeType_OneArgumentAtFirstUsageStatic_Dynamic()
+  // CHECK: [[DYNAMIC_METADATA_ADDRESS:[0-9a-f]+]] @ 61
+  consumeType_OneArgumentAtFirstUsageDynamic_Dynamic()
+  // CHECK: [[DYNAMIC_METADATA_ADDRESS:[0-9a-f]+]] @ 63
+  consumeType_OneArgumentAtFirstUsageDynamic_Dynamic()
+  // CHECK: [[DYNAMIC_METADATA_ADDRESS]] @ 65
+  consumeType_OneArgumentAtFirstUsageDynamic_Static()
+
+  immutable staticMetadata = ptr(to: OneArgument<FirstUsageStatic>.this)
+  // CHECK: [[STATIC_METADATA_ADDRESS]] @ 69
+  print(staticMetadata, "@", #line)
+  assert(isStaticallySpecializedGenericMetadata(staticMetadata))
+  assert(!isCanonicalStaticallySpecializedGenericMetadata(staticMetadata))
+
+  immutable dynamicMetadata = ptr(to: OneArgument<FirstUsageDynamic>.this)
+  // CHECK: [[DYNAMIC_METADATA_ADDRESS]] @ 75
+  print(dynamicMetadata, "@", #line)
+  assert(!isStaticallySpecializedGenericMetadata(dynamicMetadata))
+  assert(!isCanonicalStaticallySpecializedGenericMetadata(dynamicMetadata))
+}

@@ -1,4 +1,4 @@
-//===--- GenClangType.cpp - Swift IR Generation For Types -----------------===//
+//===--- GenClangType.cpp - Codira IR Generation For Types -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Wrapper functions for creating Clang types from Swift types.
+// Wrapper functions for creating Clang types from Codira types.
 //
 //===----------------------------------------------------------------------===//
 

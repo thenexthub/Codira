@@ -1,4 +1,4 @@
-//===--- DictionaryCompactMapValues.swift ---------------------------------===//
+//===--- DictionaryCompactMapValues.code ---------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-let size = 100
-let oddNumbers = stride(from: 1, to: size, by: 2)
-let smallOddNumMap: [Int: Int?] =
+immutable size = 100
+immutable oddNumbers = stride(from: 1, to: size, by: 2)
+immutable smallOddNumMap: [Int: Int?] =
   Dictionary(uniqueKeysWithValues: zip(oddNumbers, oddNumbers))
-let compactOddNums: [Int: Int] =
+immutable compactOddNums: [Int: Int] =
   Dictionary(uniqueKeysWithValues: zip(oddNumbers, oddNumbers))
-let oddStringMap: [Int: String] = Dictionary(uniqueKeysWithValues:
+immutable oddStringMap: [Int: String] = Dictionary(uniqueKeysWithValues:
   (1...size).lazy.map { ($0, $0 % 2 == 0 ? "dummy" : "\($0)") })
 
-let t: [BenchmarkCategory] = [.validation, .api, .Dictionary]
+immutable t: [BenchmarkCategory] = [.validation, .api, .Dictionary]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "DictionaryCompactMapValuesOfNilValue",
     runFunction: compactMapValues, tags: t,
     setUpFunction: { blackHole(smallOddNumMap); blackHole(compactOddNums)},
@@ -37,13 +38,13 @@ public let benchmarks = [
     legacyFactor: 54),
 ]
 
-func compactMapValues(n: Int) {
+fn compactMapValues(n: Int) {
   for _ in 1...20*n {
     check(smallOddNumMap.compactMapValues({$0}) == compactOddNums)
   }
 }
 
-func compactMapValuesInt(n: Int) {
+fn compactMapValuesInt(n: Int) {
   for _ in 1...20*n {
     check(oddStringMap.compactMapValues(Int.init) == compactOddNums)
   }

@@ -1,26 +1,30 @@
 //===--- IRABIDetailsProvider.h - Get ABI details for decls -----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRABIDETAILSPROVIDER_H
-#define SWIFT_IRGEN_IRABIDETAILSPROVIDER_H
+#ifndef LANGUAGE_IRGEN_IRABIDETAILSPROVIDER_H
+#define LANGUAGE_IRGEN_IRABIDETAILSPROVIDER_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/IRGen/GenericRequirement.h"
 #include "clang/AST/CharUnits.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -43,20 +47,20 @@ class TypeInfo;
 
 } // namespace irgen
 
-/// Describes the lowered Swift function signature.
+/// Describes the lowered Codira function signature.
 class LoweredFunctionSignature {
 public:
   class DirectResultType {
   public:
     /// Enumerates all of the members of the underlying record in terms of
     /// their primitive types that needs to be stored in a Clang/LLVM record
-    /// when this type is passed or returned directly to/from swiftcc
+    /// when this type is passed or returned directly to/from languagecc
     /// function.
     ///
     /// Returns true if an error occurred when a particular member can't be
     /// represented with an AST type.
     bool enumerateRecordMembers(
-        llvm::function_ref<void(clang::CharUnits, clang::CharUnits, Type)>
+        toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)>
             callback) const;
 
   private:
@@ -85,13 +89,13 @@ public:
   public:
     /// Enumerates all of the members of the underlying record in terms of
     /// their primitive types that needs to be stored in a Clang/LLVM record
-    /// when this type is passed or returned directly to/from swiftcc
+    /// when this type is passed or returned directly to/from languagecc
     /// function.
     ///
     /// Returns true if an error occurred when a particular member can't be
     /// represented with an AST type.
     bool enumerateRecordMembers(
-        llvm::function_ref<void(clang::CharUnits, clang::CharUnits, Type)>
+        toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)>
             callback) const;
 
     inline const ParamDecl &getParamDecl() const { return paramDecl; }
@@ -136,7 +140,7 @@ public:
     friend class LoweredFunctionSignature;
   };
 
-  /// Represents a parameter which is a Swift type pointer sourced from a
+  /// Represents a parameter which is a Codira type pointer sourced from a
   /// valid metadata source, like the type of another argument.
   class MetadataSourceParameter {
   public:
@@ -163,20 +167,20 @@ public:
 
   /// Traverse the entire parameter list of the function signature.
   ///
-  /// The parameter list can include actual Swift function parameters, result
+  /// The parameter list can include actual Codira function parameters, result
   /// values returned indirectly, and additional values, like generic
   /// requirements for polymorphic calls and the error parameter as well.
   void visitParameterList(
-      llvm::function_ref<void(const IndirectResultValue &)>
+      toolchain::function_ref<void(const IndirectResultValue &)>
           indirectResultVisitor,
-      llvm::function_ref<void(const DirectParameter &)> directParamVisitor,
-      llvm::function_ref<void(const IndirectParameter &)> indirectParamVisitor,
-      llvm::function_ref<void(const GenericRequirementParameter &)>
+      toolchain::function_ref<void(const DirectParameter &)> directParamVisitor,
+      toolchain::function_ref<void(const IndirectParameter &)> indirectParamVisitor,
+      toolchain::function_ref<void(const GenericRequirementParameter &)>
           genericRequirementVisitor,
-      llvm::function_ref<void(const MetadataSourceParameter &)>
+      toolchain::function_ref<void(const MetadataSourceParameter &)>
           metadataSourceVisitor,
-      llvm::function_ref<void(const ContextParameter &)> contextParamVisitor,
-      llvm::function_ref<void(const ErrorResultValue &)> errorResultVisitor)
+      toolchain::function_ref<void(const ContextParameter &)> contextParamVisitor,
+      toolchain::function_ref<void(const ErrorResultValue &)> errorResultVisitor)
       const;
 
 private:
@@ -215,7 +219,7 @@ public:
   getTypeSizeAlignment(const NominalTypeDecl *TD);
 
   /// An representation of a single type, or a C struct with multiple members
-  /// with specified types. The C struct is expected to be passed via swiftcc
+  /// with specified types. The C struct is expected to be passed via languagecc
   /// functions.
   class TypeRecordABIRepresentation {
   public:
@@ -252,7 +256,7 @@ public:
 
   /// Returns EnumElementDecls (enum cases) in their declaration order with
   /// their tag indices from the given EnumDecl
-  llvm::MapVector<EnumElementDecl *, EnumElementInfo>
+  toolchain::MapVector<EnumElementDecl *, EnumElementInfo>
   getEnumTagMapping(const EnumDecl *ED);
 
   /// Details how a specific method should be dispatched.

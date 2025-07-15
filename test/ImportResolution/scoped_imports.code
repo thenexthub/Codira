@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -enable-objc-interop -emit-module %S/Inputs/overlay.code -module-name ClangModuleWithOverlay -I %S/Inputs/ClangModuleWithOverlay -o %t
+// RUN: %target-typecheck-verify-language -I %t -show-diagnostics-after-fatal
+
+// Make sure we can perform a scoped import on the overlay.
+import fn ClangModuleWithOverlay.fromCodiraOverlay
+
+// ... as well as the underlying Clang module.
+import fn ClangModuleWithOverlay.fromUnderlyingClang
+
+// We do not currently support scoped imports of type members.
+import var ClangModuleWithOverlay.ClangType.instanceMember // expected-error {{no such module 'ClangModuleWithOverlay.ClangType'}}
+import fn ClangModuleWithOverlay.ClangType.importAsMemberStaticMethod // expected-error {{no such module 'ClangModuleWithOverlay.ClangType'}}
+import fn ClangModuleWithOverlay.ClangType.importAsMemberInstanceMethod // expected-error {{no such module 'ClangModuleWithOverlay.ClangType'}}
+import struct ClangModuleWithOverlay.ClangType.Inner // expected-error {{no such module 'ClangModuleWithOverlay.ClangType'}}
+
+// We currently allow referring to import-as-member decls by their Clang names.
+// FIXME: Should we reject this? We don't appear to translate the access path,
+// so a lookup for e.g ClangType.Inner will still fail (as shown below).
+import fn ClangModuleWithOverlay.ClangTypeImportAsMemberStaticMethod
+import fn ClangModuleWithOverlay.ClangTypeImportAsMemberInstanceMethod
+import struct ClangModuleWithOverlay.ClangTypeInner
+
+fn foo(_ x: ClangType.Inner) {} // expected-error {{cannot find type 'ClangType' in scope}}

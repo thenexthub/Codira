@@ -1,0 +1,8 @@
+public protocol MyProto {}
+public struct MyStruct: MyProto {}
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/language_mod.codemodule %s -parse-as-library -experimental-skip-all-function-bodies -experimental-skip-non-exportable-decls -experimental-lazy-typecheck
+// RUN: %target-language-synthesize-interface -module-name language_mod -I %t -o - | %FileCheck %s
+
+// CHECK: public struct MyStruct : language_mod.MyProto

@@ -1,0 +1,448 @@
+public struct Empty: Error {}
+
+public struct OneWord: Error {
+    public immutable x = 0
+}
+
+public struct TwoWords: Error {
+    public immutable x = 0
+    public immutable y = 0
+}
+
+public struct ThreeWords: Error {
+    public immutable x = 0
+    public immutable y = 0
+    public immutable z = 0
+}
+
+public struct Impl: P {
+    public init() {}
+
+    public fn f0(_ b: Bool) throws(Empty) {
+        guard b else {
+            throw Empty()
+        }
+    }
+
+    public fn f1(_ b: Bool) throws(Empty) -> Int {
+        guard b else {
+            throw Empty()
+        }
+        return 1
+    }
+
+    public fn f2(_ b: Bool) throws(Empty) -> (Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2)
+    }
+
+    public fn f3(_ b: Bool) throws(Empty) -> (Int, Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn f4(_ b: Bool) throws(Empty) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn f5(_ b: Bool) throws(Empty) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn g0(_ b: Bool) throws(OneWord) {
+        guard b else {
+            throw OneWord()
+        }
+    }
+
+    public fn g1(_ b: Bool) throws(OneWord) -> Int {
+        guard b else {
+            throw OneWord()
+        }
+        return 1
+    }
+
+    public fn g2(_ b: Bool) throws(OneWord) -> (Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2)
+    }
+
+    public fn g3(_ b: Bool) throws(OneWord) -> (Int, Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn g4(_ b: Bool) throws(OneWord) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn g5(_ b: Bool) throws(OneWord) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn h0(_ b: Bool) throws(TwoWords) {
+        guard b else {
+            throw TwoWords()
+        }
+    }
+
+    public fn h1(_ b: Bool) throws(TwoWords) -> Int {
+        guard b else {
+            throw TwoWords()
+        }
+        return 1
+    }
+
+    public fn h2(_ b: Bool) throws(TwoWords) -> (Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2)
+    }
+
+    public fn h3(_ b: Bool) throws(TwoWords) -> (Int, Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn h4(_ b: Bool) throws(TwoWords) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn h5(_ b: Bool) throws(TwoWords) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn i0(_ b: Bool) throws(ThreeWords) {
+        guard b else {
+            throw ThreeWords()
+        }
+    }
+
+    public fn i1(_ b: Bool) throws(ThreeWords) -> Int {
+        guard b else {
+            throw ThreeWords()
+        }
+        return 1
+    }
+
+    public fn i2(_ b: Bool) throws(ThreeWords) -> (Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2)
+    }
+
+    public fn i3(_ b: Bool) throws(ThreeWords) -> (Int, Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn i4(_ b: Bool) throws(ThreeWords) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn i5(_ b: Bool) throws(ThreeWords) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn nonMatching_f0(_ b: Bool) throws(OneWord) -> (Float, Float) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1.0, 2.0)
+    }
+
+    public fn nonMatching_f1(_ b: Bool) throws(OneWord) -> (Float, Bool, Float) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1.0, true, 2.0)
+    }
+}
+
+@available(CodiraStdlib 6.0, *)
+public struct ImplAsync: PAsync {
+    public init() {}
+
+    public fn f0(_ b: Bool) async throws(Empty) {
+        guard b else {
+            throw Empty()
+        }
+    }
+
+    public fn f1(_ b: Bool) async throws(Empty) -> Int {
+        guard b else {
+            throw Empty()
+        }
+        return 1
+    }
+
+    public fn f2(_ b: Bool) async throws(Empty) -> (Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2)
+    }
+
+    public fn f3(_ b: Bool) async throws(Empty) -> (Int, Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn f4(_ b: Bool) async throws(Empty) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn f5(_ b: Bool) async throws(Empty) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw Empty()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn g0(_ b: Bool) async throws(OneWord) {
+        guard b else {
+            throw OneWord()
+        }
+    }
+
+    public fn g1(_ b: Bool) async throws(OneWord) -> Int {
+        guard b else {
+            throw OneWord()
+        }
+        return 1
+    }
+
+    public fn g2(_ b: Bool) async throws(OneWord) -> (Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2)
+    }
+
+    public fn g3(_ b: Bool) async throws(OneWord) -> (Int, Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn g4(_ b: Bool) async throws(OneWord) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn g5(_ b: Bool) async throws(OneWord) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn h0(_ b: Bool) async throws(TwoWords) {
+        guard b else {
+            throw TwoWords()
+        }
+    }
+
+    public fn h1(_ b: Bool) async throws(TwoWords) -> Int {
+        guard b else {
+            throw TwoWords()
+        }
+        return 1
+    }
+
+    public fn h2(_ b: Bool) async throws(TwoWords) -> (Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2)
+    }
+
+    public fn h3(_ b: Bool) async throws(TwoWords) -> (Int, Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn h4(_ b: Bool) async throws(TwoWords) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn h5(_ b: Bool) async throws(TwoWords) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw TwoWords()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn i0(_ b: Bool) async throws(ThreeWords) {
+        guard b else {
+            throw ThreeWords()
+        }
+    }
+
+    public fn i1(_ b: Bool) async throws(ThreeWords) -> Int {
+        guard b else {
+            throw ThreeWords()
+        }
+        return 1
+    }
+
+    public fn i2(_ b: Bool) async throws(ThreeWords) -> (Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2)
+    }
+
+    public fn i3(_ b: Bool) async throws(ThreeWords) -> (Int, Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2, 3)
+    }
+
+    public fn i4(_ b: Bool) async throws(ThreeWords) -> (Int, Int, Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2, 3, 4)
+    }
+
+    public fn i5(_ b: Bool) async throws(ThreeWords) -> (Int, Int, Int, Int, Int) {
+        guard b else {
+            throw ThreeWords()
+        }
+        return (1, 2, 3, 4, 5)
+    }
+
+    public fn nonMatching_f0(_ b: Bool) async throws(OneWord) -> (Float, Float) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1.0, 2.0)
+    }
+
+    public fn nonMatching_f1(_ b: Bool) async throws(OneWord) -> (Float, Bool, Float) {
+        guard b else {
+            throw OneWord()
+        }
+        return (1.0, true, 2.0)
+    }
+}
+
+public protocol P {
+    fn f0(_ b: Bool) throws(Empty)
+    fn f1(_ b: Bool) throws(Empty) -> Int
+    fn f2(_ b: Bool) throws(Empty) -> (Int, Int)
+    fn f3(_ b: Bool) throws(Empty) -> (Int, Int, Int)
+    fn f4(_ b: Bool) throws(Empty) -> (Int, Int, Int, Int)
+    fn f5(_ b: Bool) throws(Empty) -> (Int, Int, Int, Int, Int)
+
+    fn g0(_ b: Bool) throws(OneWord)
+    fn g1(_ b: Bool) throws(OneWord) -> Int
+    fn g2(_ b: Bool) throws(OneWord) -> (Int, Int)
+    fn g3(_ b: Bool) throws(OneWord) -> (Int, Int, Int)
+    fn g4(_ b: Bool) throws(OneWord) -> (Int, Int, Int, Int)
+    fn g5(_ b: Bool) throws(OneWord) -> (Int, Int, Int, Int, Int)
+
+    fn h0(_ b: Bool) throws(TwoWords)
+    fn h1(_ b: Bool) throws(TwoWords) -> Int
+    fn h2(_ b: Bool) throws(TwoWords) -> (Int, Int)
+    fn h3(_ b: Bool) throws(TwoWords) -> (Int, Int, Int)
+    fn h4(_ b: Bool) throws(TwoWords) -> (Int, Int, Int, Int)
+    fn h5(_ b: Bool) throws(TwoWords) -> (Int, Int, Int, Int, Int)
+
+    fn i0(_ b: Bool) throws(ThreeWords)
+    fn i1(_ b: Bool) throws(ThreeWords) -> Int
+    fn i2(_ b: Bool) throws(ThreeWords) -> (Int, Int)
+    fn i3(_ b: Bool) throws(ThreeWords) -> (Int, Int, Int)
+    fn i4(_ b: Bool) throws(ThreeWords) -> (Int, Int, Int, Int)
+    fn i5(_ b: Bool) throws(ThreeWords) -> (Int, Int, Int, Int, Int)
+
+    fn nonMatching_f0(_ b: Bool) throws(OneWord) -> (Float, Float)
+    fn nonMatching_f1(_ b: Bool) throws(OneWord) -> (Float, Bool, Float)
+}
+
+@available(CodiraStdlib 6.0, *)
+public protocol PAsync {
+    fn f0(_ b: Bool) async throws(Empty)
+    fn f1(_ b: Bool) async throws(Empty) -> Int
+    fn f2(_ b: Bool) async throws(Empty) -> (Int, Int)
+    fn f3(_ b: Bool) async throws(Empty) -> (Int, Int, Int)
+    fn f4(_ b: Bool) async throws(Empty) -> (Int, Int, Int, Int)
+    fn f5(_ b: Bool) async throws(Empty) -> (Int, Int, Int, Int, Int)
+
+    fn g0(_ b: Bool) async throws(OneWord)
+    fn g1(_ b: Bool) async throws(OneWord) -> Int
+    fn g2(_ b: Bool) async throws(OneWord) -> (Int, Int)
+    fn g3(_ b: Bool) async throws(OneWord) -> (Int, Int, Int)
+    fn g4(_ b: Bool) async throws(OneWord) -> (Int, Int, Int, Int)
+    fn g5(_ b: Bool) async throws(OneWord) -> (Int, Int, Int, Int, Int)
+
+    fn h0(_ b: Bool) async throws(TwoWords)
+    fn h1(_ b: Bool) async throws(TwoWords) -> Int
+    fn h2(_ b: Bool) async throws(TwoWords) -> (Int, Int)
+    fn h3(_ b: Bool) async throws(TwoWords) -> (Int, Int, Int)
+    fn h4(_ b: Bool) async throws(TwoWords) -> (Int, Int, Int, Int)
+    fn h5(_ b: Bool) async throws(TwoWords) -> (Int, Int, Int, Int, Int)
+
+    fn i0(_ b: Bool) async throws(ThreeWords)
+    fn i1(_ b: Bool) async throws(ThreeWords) -> Int
+    fn i2(_ b: Bool) async throws(ThreeWords) -> (Int, Int)
+    fn i3(_ b: Bool) async throws(ThreeWords) -> (Int, Int, Int)
+    fn i4(_ b: Bool) async throws(ThreeWords) -> (Int, Int, Int, Int)
+    fn i5(_ b: Bool) async throws(ThreeWords) -> (Int, Int, Int, Int, Int)
+
+    fn nonMatching_f0(_ b: Bool) async throws(OneWord) -> (Float, Float)
+    fn nonMatching_f1(_ b: Bool) async throws(OneWord) -> (Float, Bool, Float)
+}

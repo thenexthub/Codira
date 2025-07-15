@@ -11,36 +11,39 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SOURCEMANAGER_H
-#define SWIFT_BASIC_SOURCEMANAGER_H
+#ifndef LANGUAGE_BASIC_SOURCEMANAGER_H
+#define LANGUAGE_BASIC_SOURCEMANAGER_H
 
+#include "language/AST/ClangNode.h"
 #include "language/Basic/FileSystem.h"
 #include "language/Basic/SourceLoc.h"
 #include "clang/Basic/FileManager.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/SourceMgr.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/SourceMgr.h"
 #include <map>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace language {
   class SourceFile;
 }
 
-namespace llvm {
-  template <> struct PointerLikeTypeTraits<swift::SourceFile *> {
+namespace toolchain {
+  template <> struct PointerLikeTypeTraits<language::SourceFile *> {
   public:
-    static inline swift::SourceFile *getFromVoidPointer(void *P) {
-      return (swift::SourceFile *)P;
+    static inline language::SourceFile *getFromVoidPointer(void *P) {
+      return (language::SourceFile *)P;
     }
-    static inline void *getAsVoidPointer(swift::SourceFile *S) {
+    static inline void *getAsVoidPointer(language::SourceFile *S) {
       return (void *)S;
     }
-    enum { NumLowBitsAvailable = /*swift::DeclContextAlignInBits=*/ 3 };
+    enum { NumLowBitsAvailable = /*language::DeclContextAlignInBits=*/ 3 };
   };
 }
 
@@ -69,7 +72,7 @@ public:
     /// The expansion of default argument at caller side
     DefaultArgument,
 
-    /// A Swift attribute expressed in C headers.
+    /// A Codira attribute expressed in C headers.
     AttributeFromClang,
   } kind;
 
@@ -89,7 +92,7 @@ public:
     case AttributeFromClang:
       return "AttributeFromClang";
     }
-    llvm_unreachable("Invalid kind");
+    toolchain_unreachable("Invalid kind");
   }
 
   /// The source range in the enclosing buffer where this source was generated.
@@ -124,7 +127,11 @@ public:
 
   /// Contains the ancestors of this source buffer, starting with the root source
   /// buffer and ending at this source buffer.
-  mutable llvm::ArrayRef<unsigned> ancestors = llvm::ArrayRef<unsigned>();
+  mutable toolchain::ArrayRef<unsigned> ancestors = toolchain::ArrayRef<unsigned>();
+
+  /// Clang node where this buffer comes from. This should be set when this is
+  /// an 'AttributeFromClang'.
+  ClangNode clangNode = ClangNode();
 };
 
 /// This class manages and owns source buffers.
@@ -141,38 +148,38 @@ public:
   };
 
 private:
-  llvm::SourceMgr LLVMSourceMgr;
-  llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FileSystem;
+  toolchain::SourceMgr LLVMSourceMgr;
+  toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FileSystem;
   bool OpenSourcesAsVolatile = false;
   unsigned IDEInspectionTargetBufferID = 0U;
   unsigned IDEInspectionTargetOffset;
 
   /// Associates buffer identifiers to buffer IDs.
-  llvm::DenseMap<StringRef, unsigned> BufIdentIDMap;
+  toolchain::DenseMap<StringRef, unsigned> BufIdentIDMap;
 
   /// A cache mapping buffer identifiers to vfs Status entries.
   ///
   /// This is as much a hack to prolong the lifetime of status objects as it is
   /// to speed up stats.
-  mutable llvm::DenseMap<StringRef, llvm::vfs::Status> StatusCache;
+  mutable toolchain::DenseMap<StringRef, toolchain::vfs::Status> StatusCache;
 
   /// Holds generated source information, indexed by the buffer ID.
-  llvm::DenseMap<unsigned, GeneratedSourceInfo> GeneratedSourceInfos;
+  toolchain::DenseMap<unsigned, GeneratedSourceInfo> GeneratedSourceInfos;
 
   /// Holds replaced ranges. Keys are original ranges, and values are new ranges
   /// in different buffers. This is used for code completion and ASTContext
   /// reusing compilation.
-  llvm::DenseMap<SourceRange, SourceRange> ReplacedRanges;
+  toolchain::DenseMap<SourceRange, SourceRange> ReplacedRanges;
 
   /// The starting source locations of regex literals written in source. This
   /// is an unfortunate hack needed to allow for correct re-lexing.
-  llvm::DenseSet<SourceLoc> RegexLiteralStartLocs;
+  toolchain::DenseSet<SourceLoc> RegexLiteralStartLocs;
 
   /// Mapping from each buffer ID to the source files that describe it
   /// semantically.
-  llvm::DenseMap<
+  toolchain::DenseMap<
     unsigned,
-    llvm::TinyPtrVector<SourceFile *>
+    toolchain::TinyPtrVector<SourceFile *>
   > bufferIDToSourceFiles;
 
   std::map<const char *, VirtualFile> VirtualFiles;
@@ -203,23 +210,23 @@ private:
   std::optional<unsigned> findBufferContainingLocInternal(SourceLoc Loc) const;
 
 public:
-  SourceManager(llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS =
-                    llvm::vfs::getRealFileSystem())
+  SourceManager(toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FS =
+                    toolchain::vfs::getRealFileSystem())
     : FileSystem(FS) {}
   ~SourceManager();
 
-  llvm::SourceMgr &getLLVMSourceMgr() {
+  toolchain::SourceMgr &getLLVMSourceMgr() {
     return LLVMSourceMgr;
   }
-  const llvm::SourceMgr &getLLVMSourceMgr() const {
+  const toolchain::SourceMgr &getLLVMSourceMgr() const {
     return LLVMSourceMgr;
   }
 
-  void setFileSystem(llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS) {
+  void setFileSystem(toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> FS) {
     FileSystem = FS;
   }
 
-  llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> getFileSystem() const {
+  toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> getFileSystem() const {
     return FileSystem;
   }
 
@@ -261,7 +268,7 @@ public:
   bool rangeContainsRespectingReplacedRanges(SourceRange Enclosing,
                                              SourceRange Inner) const;
 
-  const llvm::DenseMap<SourceRange, SourceRange> &getReplacedRanges() const {
+  const toolchain::DenseMap<SourceRange, SourceRange> &getReplacedRanges() const {
     return ReplacedRanges;
   }
 
@@ -373,13 +380,13 @@ public:
   bool isOwning(SourceLoc Loc) const;
 
   /// Adds a memory buffer to the SourceManager, taking ownership of it.
-  unsigned addNewSourceBuffer(std::unique_ptr<llvm::MemoryBuffer> Buffer);
+  unsigned addNewSourceBuffer(std::unique_ptr<toolchain::MemoryBuffer> Buffer);
 
   /// Record the source file as having the given buffer ID.
   void recordSourceFile(unsigned bufferID, SourceFile *sourceFile);
 
   /// Retrieve the source files for the given buffer ID.
-  llvm::TinyPtrVector<SourceFile *>
+  toolchain::TinyPtrVector<SourceFile *>
   getSourceFilesForBufferID(unsigned bufferID) const;
 
   /// Add a \c #sourceLocation-defined virtual file region of \p Length.
@@ -401,7 +408,7 @@ public:
 
   /// Creates a copy of a \c MemoryBuffer and adds it to the \c SourceManager,
   /// taking ownership of the copy.
-  unsigned addMemBufferCopy(llvm::MemoryBuffer *Buffer);
+  unsigned addMemBufferCopy(toolchain::MemoryBuffer *Buffer);
 
   /// Creates and adds a memory buffer to the \c SourceManager, taking
   /// ownership of the newly created copy.
@@ -506,10 +513,10 @@ public:
   StringRef extractText(CharSourceRange Range,
                         std::optional<unsigned> BufferID = std::nullopt) const;
 
-  llvm::SMDiagnostic GetMessage(SourceLoc Loc, llvm::SourceMgr::DiagKind Kind,
+  toolchain::SMDiagnostic GetMessage(SourceLoc Loc, toolchain::SourceMgr::DiagKind Kind,
                                 const Twine &Msg,
-                                ArrayRef<llvm::SMRange> Ranges,
-                                ArrayRef<llvm::SMFixIt> FixIts,
+                                ArrayRef<toolchain::SMRange> Ranges,
+                                ArrayRef<toolchain::SMFixIt> FixIts,
                                 bool EmitMacroExpansionFiles = false) const;
 
   /// Verifies that all buffers are still valid.
@@ -554,7 +561,7 @@ public:
   SourceLoc getLocForForeignLoc(SourceLoc otherLoc, SourceManager &otherMgr);
 
   /// Returns true when the location is in a buffer generated by the
-  /// \p _SwiftifyImport macro.
+  /// \p _CodiraifyImport macro.
   bool isImportMacroGeneratedLoc(SourceLoc loc);
 
 private:
@@ -568,5 +575,5 @@ private:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_SOURCEMANAGER_H
+#endif // LANGUAGE_BASIC_SOURCEMANAGER_H
 

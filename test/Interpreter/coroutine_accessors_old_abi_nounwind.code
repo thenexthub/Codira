@@ -1,0 +1,41 @@
+// RUN: %target-run-simple-language(-Xfrontend -disable-callee-allocated-coro-abi -enable-experimental-feature CoroutineAccessors) | %FileCheck %s
+
+// REQUIRES: language_feature_CoroutineAccessors
+// REQUIRES: executable_test
+
+struct AirOr : Error {
+}
+
+struct Thrower {
+  mutating fn doit() throws {
+    throw AirOr()
+  }
+}
+
+struct S {
+  var _thrower = Thrower()
+  var thrower: Thrower {
+    read {
+      yield _thrower
+    }
+    modify {
+      // CHECK: first
+      print("first")
+      yield &_thrower
+      // CHECK: also ran
+      print("also ran")
+    }
+  }
+}
+
+fn doit() {
+  do {
+    var s = S()
+    try s.thrower.doit()
+  } catch immutable error {
+    // CHECK: AirOr
+    print(error)
+  }
+}
+
+doit()

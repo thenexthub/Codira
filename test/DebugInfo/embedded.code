@@ -1,0 +1,12 @@
+// Check that the "-enable-embedded-language" is stored as a flag in the 
+// Compile Unit.
+
+// RUN: %target-language-frontend -target %target-cpu-apple-macos14 -emit-ir -enable-experimental-feature Embedded -g %s -o - | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx
+// REQUIRES: embedded_stdlib
+// REQUIRES: language_feature_Embedded
+
+// CHECK:          !DICompileUnit({{.*}}flags: "-enable-embedded-language"

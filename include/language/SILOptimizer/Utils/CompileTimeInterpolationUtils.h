@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Utilities for the compile-time string interpolation approach used by the
 // OSLogOptimization pass.
 
-#ifndef SWIFT_SILOPTIMIZER_COMPILE_TIME_INTERPOLATION_H
-#define SWIFT_SILOPTIMIZER_COMPILE_TIME_INTERPOLATION_H
+#ifndef LANGUAGE_SILOPTIMIZER_COMPILE_TIME_INTERPOLATION_H
+#define LANGUAGE_SILOPTIMIZER_COMPILE_TIME_INTERPOLATION_H
 
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILConstants.h"

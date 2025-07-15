@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_TRANSFORMS_FUNCTIONSIGNATUREOPTS_H
-#define SWIFT_SILOPTIMIZER_TRANSFORMS_FUNCTIONSIGNATUREOPTS_H
+#ifndef LANGUAGE_SILOPTIMIZER_TRANSFORMS_FUNCTIONSIGNATUREOPTS_H
+#define LANGUAGE_SILOPTIMIZER_TRANSFORMS_FUNCTIONSIGNATUREOPTS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/Projection.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILDebugScope.h"
@@ -32,7 +33,7 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
 
@@ -92,7 +93,7 @@ struct ArgumentDescriptor {
   /// when optimizing.
   ArgumentDescriptor(
       SILFunctionArgument *A,
-      llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator)
+      toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> &Allocator)
       : Arg(A), PInfo(A->getKnownParameterInfo()), Index(A->getIndex()),
         Decl(A->getDecl()), IsEntirelyDead(false), WasErased(false),
         Explode(false), OwnedToGuaranteed(false),
@@ -150,7 +151,7 @@ struct ResultDescriptor {
   /// If non-null, this is the release in the return block of the callee, which
   /// is associated with this parameter if it is @owned. If the parameter is not
   /// @owned or we could not find such a release in the callee, this is null.
-  llvm::SmallSetVector<SILInstruction *, 1> CalleeRetain;
+  toolchain::SmallSetVector<SILInstruction *, 1> CalleeRetain;
 
   /// This is owned to guaranteed.
   bool OwnedToGuaranteed;
@@ -185,7 +186,7 @@ struct FunctionSignatureTransformDescriptor {
   NullablePtr<SILFunction> OptimizedFunction;
 
   /// A map from a pre-transformed argument to a post-transformed argument.
-  llvm::SmallDenseMap<int, int> &AIM;
+  toolchain::SmallDenseMap<int, int> &AIM;
 
   /// Set to true if we are going to modify self during our transformation.
   ///
@@ -316,9 +317,9 @@ public:
       SILOptFunctionBuilder &FunctionBuilder, SILFunction *F,
       RCIdentityAnalysis *RCIA, EpilogueARCAnalysis *EA,
       Mangle::FunctionSignatureSpecializationMangler &Mangler,
-      llvm::SmallDenseMap<int, int> &AIM,
-      llvm::SmallVector<ArgumentDescriptor, 4> &ADL,
-      llvm::SmallVector<ResultDescriptor, 4> &RDL,
+      toolchain::SmallDenseMap<int, int> &AIM,
+      toolchain::SmallVector<ArgumentDescriptor, 4> &ADL,
+      toolchain::SmallVector<ResultDescriptor, 4> &RDL,
       bool hasOnlyDirectInModuleCallers)
       : FunctionBuilder(FunctionBuilder),
         TransformDescriptor{F,   nullptr, AIM,   false,

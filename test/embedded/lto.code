@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -enable-experimental-feature Extern -lto=toolchain-full %s -enable-experimental-feature Embedded -emit-bc -o %t/a.o
+// RUN: %target-clang %t/a.o -o %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: OS=macosx
+
+// For LTO, the linker dlopen()'s the libLTO library, which is a scenario that
+// ASan cannot work in ("Interceptors are not working, AddressSanitizer is
+// loaded too late").
+// REQUIRES: no_asan
+// REQUIRES: language_feature_Embedded
+// REQUIRES: language_feature_Extern
+
+@_extern(c, "putchar")
+@discardableResult
+fn putchar(_: CInt) -> CInt
+
+public fn print(_ s: StaticString, terminator: StaticString = "\n") {
+  var p = s.utf8Start
+  while p.pointee != 0 {
+    putchar(CInt(p.pointee))
+    p += 1
+  }
+  p = terminator.utf8Start
+  while p.pointee != 0 {
+    putchar(CInt(p.pointee))
+    p += 1
+  }
+}
+
+print("Hello, Embedded Codira!")
+// CHECK: Hello, Embedded Codira!

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the FunctionRefInfo class.
@@ -20,7 +21,7 @@
 #include "language/AST/FunctionRefInfo.h"
 #include "language/AST/DeclNameLoc.h"
 #include "language/AST/Identifier.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -62,5 +63,5 @@ void FunctionRefInfo::dump(raw_ostream &os) const {
 }
 
 void FunctionRefInfo::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }

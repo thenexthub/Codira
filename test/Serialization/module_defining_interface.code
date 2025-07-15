@@ -1,0 +1,27 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/inputs)
+// RUN: %empty-directory(%t/test-sdk)
+// RUN: %empty-directory(%t/test-sdk/usr/lib/language)
+// RUN: cp -r %platform-module-dir/Codira.codemodule %t/test-sdk/usr/lib/language/Codira.codemodule
+
+// RUN: %empty-directory(%t/test-sdk/usr/lib/Foo.codemodule)
+// RUN: split-file %s %t
+
+// --- Verify that a non-SDK module gets its absolute path serialized into the binary '.codemodule'
+// RUN: %target-language-frontend -compile-module-from-interface -module-name Foo %t/modules/Foo.codeinterface -o %t/inputs/FreestandingFoo.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/inputs/FreestandingFoo.codemodule > %t/Foo.freestanding.moduledump.txt
+// RUN: cat %t/Foo.freestanding.moduledump.txt | %FileCheck %s -check-prefix CHECK-FREESTANDING-FOO
+
+// --- Verify that an SDK module gets its SDK-relative path serialized into the binary '.codemodule'
+// RUN: cp %t/modules/Foo.codeinterface %t/test-sdk/usr/lib/Foo.codemodule
+// RUN: %target-language-frontend(mock-sdk: -sdk %t/test-sdk) -compile-module-from-interface -module-name Foo %t/test-sdk/usr/lib/Foo.codemodule/Foo.codeinterface -o %t/inputs/Foo.codemodule
+// RUN: toolchain-bcanalyzer -dump %t/inputs/Foo.codemodule > %t/Foo.sdk.moduledump.txt
+// RUN: cat %t/Foo.sdk.moduledump.txt | %FileCheck %s -check-prefix CHECK-SDK-FOO
+
+// CHECK-FREESTANDING-FOO: <MODULE_INTERFACE_PATH abbrevid={{[0-9]+}} op0=0/> blob data = '{{.*}}{{/|\\}}modules{{/|\\}}Foo.codeinterface'
+// CHECK-SDK-FOO: <MODULE_INTERFACE_PATH abbrevid={{[0-9]+}} op0=1/> blob data = 'usr/lib/Foo.codemodule/Foo.codeinterface'
+
+//--- modules/Foo.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name Foo
+public fn foo()

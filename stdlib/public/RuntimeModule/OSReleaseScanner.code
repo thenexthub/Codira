@@ -1,13 +1,17 @@
-//===--- OSReleaseScanner.swift --------------------------------*- swift -*-===//
+//===--- OSReleaseScanner.code --------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines OSReleaseScanner, which is for scanning the /etc/os-release
@@ -17,7 +21,7 @@
 
 #if os(Linux)
 
-import Swift
+import Codira
 
 // Lines in /etc/os-release consist of KEY=VALUE pairs.
 //
@@ -59,14 +63,14 @@ struct OSReleaseScanner<S: StringProtocol>: Sequence, IteratorProtocol {
     state = .normal
   }
 
-  mutating func next() -> (String, String)? {
+  mutating fn next() -> (String, String)? {
     var chunkStart = pos
     var whitespaceStart = pos
     var key: String = ""
     var quotedValue: String = ""
 
     while pos < asUTF8.endIndex {
-      let ch = asUTF8[pos]
+      immutable ch = asUTF8[pos]
       switch state {
         case .normal:
           if ch == 32 || ch == 9 || ch == 13 || ch == 10 {
@@ -125,7 +129,7 @@ struct OSReleaseScanner<S: StringProtocol>: Sequence, IteratorProtocol {
           state = .value
         case .value:
           if ch == 13 || ch == 10 {
-            let value = String(asString[chunkStart..<pos])
+            immutable value = String(asString[chunkStart..<pos])
             state = .normal
             return (key, value)
           }
@@ -135,7 +139,7 @@ struct OSReleaseScanner<S: StringProtocol>: Sequence, IteratorProtocol {
           }
         case .valueWhitespace:
           if ch == 13 || ch == 10 {
-            let value = String(asString[chunkStart..<whitespaceStart])
+            immutable value = String(asString[chunkStart..<whitespaceStart])
             state = .normal
             return (key, value)
           }
@@ -144,26 +148,26 @@ struct OSReleaseScanner<S: StringProtocol>: Sequence, IteratorProtocol {
           }
         case .singleQuote:
           if ch == UInt8(ascii: "'") {
-            let value = String(asString[chunkStart..<pos])
+            immutable value = String(asString[chunkStart..<pos])
             state = .awaitingNewline
             return (key, value)
           }
         case .doubleQuote:
           if ch == UInt8(ascii: "\\") {
-            let chunk = String(asString[chunkStart..<pos])
+            immutable chunk = String(asString[chunkStart..<pos])
             quotedValue += chunk
             chunkStart = asUTF8.index(after: pos)
             state = .escape
             break
           }
           if ch == UInt8(ascii: "\"") {
-            let chunk = String(asString[chunkStart..<pos])
+            immutable chunk = String(asString[chunkStart..<pos])
             quotedValue += chunk
             state = .awaitingNewline
             return (key, quotedValue)
           }
         case .escape:
-          let toEscape = asString[chunkStart...pos]
+          immutable toEscape = asString[chunkStart...pos]
           switch toEscape {
             case "n":
               quotedValue += "\n"

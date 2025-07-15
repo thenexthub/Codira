@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSER_PARSESILSUPPORT_H
-#define SWIFT_PARSER_PARSESILSUPPORT_H
+#ifndef LANGUAGE_PARSER_PARSESILSUPPORT_H
+#define LANGUAGE_PARSER_PARSESILSUPPORT_H
 
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
 namespace language {
   class Parser;
@@ -44,5 +45,5 @@ namespace language {
   };
 } // end namespace language
 
-#endif // SWIFT_PARSER_PARSESILSUPPORT_H
+#endif // LANGUAGE_PARSER_PARSESILSUPPORT_H
 

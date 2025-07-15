@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_ARCREGIONSTATE_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARC_ARCREGIONSTATE_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_ARCREGIONSTATE_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARC_ARCREGIONSTATE_H
 
 #include "GlobalLoopARCSequenceDataflow.h"
 #include "language/Basic/NullablePtr.h"
@@ -65,7 +66,7 @@ private:
   /// path. This is for simplicity in the first iteration.
   ///
   /// TODO: This needs a better name.
-  llvm::SmallVector<SILInstruction *, 4> SummarizedInterestingInsts;
+  toolchain::SmallVector<SILInstruction *, 4> SummarizedInterestingInsts;
 
 public:
   ARCRegionState(LoopRegion *R, bool AllowsLeaks);
@@ -191,9 +192,9 @@ public:
   bool processTopDown(
       AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA,
       LoopRegionFunctionInfo *LRFI,
-      llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
+      toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
       BlotMapVector<SILInstruction *, TopDownRefCountState> &DecToIncStateMap,
-      llvm::DenseMap<const LoopRegion *, ARCRegionState *> &LoopRegionState,
+      toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &LoopRegionState,
       ImmutablePointerSetFactory<SILInstruction *> &SetFactory);
 
   /// If this region is a block, process all instructions bottom up. Otherwise,
@@ -204,16 +205,16 @@ public:
       AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA,
       EpilogueARCFunctionInfo *EAFI, LoopRegionFunctionInfo *LRFI,
       bool FreezeOwnedArgEpilogueReleases,
-      llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
+      toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
       BlotMapVector<SILInstruction *, BottomUpRefCountState> &IncToDecStateMap,
-      llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
+      toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
       ImmutablePointerSetFactory<SILInstruction *> &SetFactory);
 
   void summarizeBlock(SILBasicBlock *BB);
 
   void summarize(
       LoopRegionFunctionInfo *LRFI,
-      llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo);
+      toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo);
 
   /// Add \p I to the interesting instruction list of this region if it is a
   /// block. We assume that I is an instruction in the block.
@@ -233,8 +234,8 @@ private:
   bool processLoopBottomUp(
       const LoopRegion *R, AliasAnalysis *AA, LoopRegionFunctionInfo *LRFI,
       RCIdentityFunctionInfo *RCIA,
-      llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
-      llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts);
+      toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
+      toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts);
 
   bool processBlockTopDown(
       SILBasicBlock &BB, AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA,
@@ -243,13 +244,13 @@ private:
   bool processLoopTopDown(
       const LoopRegion *R, ARCRegionState *State, AliasAnalysis *AA,
       LoopRegionFunctionInfo *LRFI, RCIdentityFunctionInfo *RCIA,
-      llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts);
+      toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts);
 
   void summarizeLoop(
       const LoopRegion *R, LoopRegionFunctionInfo *LRFI,
-      llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo);
+      toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo);
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

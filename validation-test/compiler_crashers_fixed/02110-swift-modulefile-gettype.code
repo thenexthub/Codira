@@ -1,0 +1,25 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var b[(with: B>) -> {
+protocol b = b<c where Optional<d = b(")() -> <r : (bytes: String {
+class B<T where f{ x in 0)
+var d { class a {
+var b {
+}
+fn a<1 {
+fn r.init(this.i : Any, e<o : Range<d {
+class m>? = { class a(b[c, "
+}
+fn a<T : c == {
+}
+fn c(t: a {

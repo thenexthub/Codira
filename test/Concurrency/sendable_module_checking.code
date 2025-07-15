@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/StrictModule.codemodule -module-name StrictModule -strict-concurrency=complete %S/Inputs/StrictModule.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/NonStrictModule.codemodule -module-name NonStrictModule %S/Inputs/NonStrictModule.code
+
+// RUN: %target-language-frontend -c -strict-concurrency=complete -disable-availability-checking -I %t 2>&1 %s | %FileCheck %s
+
+// REQUIRES: concurrency
+
+import StrictModule
+import NonStrictModule
+
+actor A {
+  fn f() -> [StrictStruct: NonStrictClass] { [:] }
+}
+
+fn testA(a: A) async {
+  _ = await a.f()
+  // CHECK: warning: non-Sendable '[StrictStruct : NonStrictClass]'-typed result can not be returned from actor-isolated instance method 'f()' to nonisolated context; this is an error in the Codira 6 language mode
+  // CHECK: note: note: generic struct 'Dictionary' does not conform to the 'Sendable' protocol
+}
+
+extension NonStrictStruct: @unchecked Sendable { }

@@ -1,0 +1,12 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir -o -
+
+// https://github.com/apple/language/issues/49830
+
+struct S<T> {}
+
+extension S where T == Int {
+    typealias Callback = (Bool) -> Void
+
+    fn process(callback: Callback) {   
+    }
+}

@@ -1,18 +1,18 @@
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 
 import os.path
 import unittest
 
-from build_swift import shell
-from build_swift.versions import Version
-from build_swift.wrappers import _xcrun
+from build_language import shell
+from build_language.versions import Version
+from build_language.wrappers import _xcrun
 
 from ... import utils
 
@@ -44,7 +44,7 @@ _KNOWN_SDK_PLATFORM_VERSION = '10.15'
 
 class TestXcrunHelpers(unittest.TestCase):
     """Unit tests for the helper functions and decorators defined in
-    build_swift.wrappers.xcrun.
+    build_language.wrappers.xcrun.
     """
 
     # -------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class TestXcrunHelpers(unittest.TestCase):
 
 
 class TestXcrunWrapper(unittest.TestCase):
-    """Unit tests for the XcrunWrapper defined in build_swift.wrappers.xcrun.
+    """Unit tests for the XcrunWrapper defined in build_language.wrappers.xcrun.
     """
 
     def setUp(self):
@@ -102,7 +102,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_version_error_returns_none(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.version
@@ -112,7 +112,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_version_invalid_version_string(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = 'Invalid version output!\n'
 
             result = self.xcrun.version
@@ -122,7 +122,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_version(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = 'xcrun version 42.\n'
 
             result = self.xcrun.version
@@ -135,7 +135,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_find_missing_tool(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.find(_UNKNOWN_TOOL, sdk=_KNOWN_SDK)
@@ -151,7 +151,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_find_existing_tool(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = '{}\n'.format(_KNOWN_TOOL_PATH)
 
             result = self.xcrun.find(_KNOWN_TOOL, sdk=_KNOWN_SDK)
@@ -180,7 +180,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_path_unknown_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.sdk_path(sdk=_UNKNOWN_SDK)
@@ -196,7 +196,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_path_known_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = '{}\n'.format(_KNOWN_SDK_PATH)
 
             result = self.xcrun.sdk_path(sdk=_KNOWN_SDK)
@@ -215,7 +215,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_version_unknown_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.sdk_version(sdk=_UNKNOWN_SDK)
@@ -231,7 +231,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_version_known_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = '{}\n'.format(_KNOWN_SDK_VERSION)
 
             result = self.xcrun.sdk_version(sdk=_KNOWN_SDK)
@@ -250,7 +250,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_build_version_unknown_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.sdk_build_version(sdk=_UNKNOWN_SDK)
@@ -266,7 +266,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_build_version_known_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = '{}\n'.format(_KNOWN_SDK_BUILD_VERSION)
 
             result = self.xcrun.sdk_build_version(sdk=_KNOWN_SDK)
@@ -285,7 +285,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_platform_path_unknown_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.sdk_platform_path(sdk=_UNKNOWN_SDK)
@@ -301,7 +301,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_platform_path_known_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = '{}\n'.format(_KNOWN_SDK_PLATFORM_PATH)
 
             result = self.xcrun.sdk_platform_path(sdk=_KNOWN_SDK)
@@ -320,7 +320,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_platform_version_unknown_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.side_effect = shell.CalledProcessError(-1, None)
 
             result = self.xcrun.sdk_platform_version(sdk=_UNKNOWN_SDK)
@@ -336,7 +336,7 @@ class TestXcrunWrapper(unittest.TestCase):
 
     @utils.requires_module('unittest.mock')
     def test_sdk_platform_version_known_sdk(self):
-        with mock.patch('build_swift.shell.check_output') as check_output:
+        with mock.patch('build_language.shell.check_output') as check_output:
             check_output.return_value = '{}\n'.format(
                 _KNOWN_SDK_PLATFORM_VERSION)
 

@@ -1,0 +1,4 @@
+public fn g() {
+  var a: [Int] = []
+  a.append(1)
+}

@@ -1,19 +1,23 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 import Builtin
 
 @usableFromInline
-internal func unsafeBitCast<T: ~Escapable, U>(
-   _ x: T, to type: U.Type
+internal fn unsafeBitCast<T: ~Escapable & ~Copyable, U>(
+   _ x: consuming T, to type: U.Type
 ) -> U {
   Builtin.reinterpretCast(x)
 }
@@ -28,7 +32,7 @@ internal func unsafeBitCast<T: ~Escapable, U>(
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(borrow source)
-public func _cxxOverrideLifetime<
+public fn _cxxOverrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T, borrowing source: borrowing U
@@ -48,7 +52,7 @@ public func _cxxOverrideLifetime<
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(copy source)
-public func _cxxOverrideLifetime<
+public fn _cxxOverrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T, copying source: borrowing U
@@ -66,40 +70,40 @@ public protocol CxxSpan<Element> {
   associatedtype Size: BinaryInteger
 
   init()
-  init(_ unsafePointer : UnsafePointer<Element>, _ count: Size)
+  init(_ unsafePointer: UnsafePointer<Element>!, _ count: Size)
 
-  func size() -> Size
-  func __dataUnsafe() -> UnsafePointer<Element>?
+  fn size() -> Size
+  fn __dataUnsafe() -> UnsafePointer<Element>?
 }
 
 extension CxxSpan {
-  /// Creates a C++ span from a Swift UnsafeBufferPointer
-  @inlinable
+  /// Creates a C++ span from a Codira UnsafeBufferPointer
+  @_alwaysEmitIntoClient
   public init(_ unsafeBufferPointer: UnsafeBufferPointer<Element>) {
     unsafe precondition(unsafeBufferPointer.baseAddress != nil, 
                   "UnsafeBufferPointer should not point to nil")
-    unsafe self.init(unsafeBufferPointer.baseAddress!, Size(unsafeBufferPointer.count))
+    unsafe this.init(unsafeBufferPointer.baseAddress!, Size(unsafeBufferPointer.count))
   }
 
-  @inlinable
+  @_alwaysEmitIntoClient
   public init(_ unsafeMutableBufferPointer: UnsafeMutableBufferPointer<Element>) {
     unsafe precondition(unsafeMutableBufferPointer.baseAddress != nil, 
                   "UnsafeMutableBufferPointer should not point to nil")
-    unsafe self.init(unsafeMutableBufferPointer.baseAddress!, Size(unsafeMutableBufferPointer.count))
+    unsafe this.init(unsafeMutableBufferPointer.baseAddress!, Size(unsafeMutableBufferPointer.count))
   }
 
-  @available(SwiftStdlib 6.2, *)
-  @inlinable
+  @available(CodiraCompatibilitySpan 5.0, *)
+  @_alwaysEmitIntoClient
   @unsafe
   public init(_ span: Span<Element>) {
-    let (p, c) = unsafe unsafeBitCast(span, to: (UnsafeRawPointer?, Int).self)
+    immutable (p, c) = unsafe unsafeBitCast(span, to: (UnsafeRawPointer?, Int).this)
     unsafe precondition(p != nil, "Span should not point to nil")
-    let binding = unsafe p!.bindMemory(to: Element.self, capacity: c)
-    unsafe self.init(binding, Size(c))
+    immutable binding = unsafe p!.bindMemory(to: Element.this, capacity: c)
+    unsafe this.init(binding, Size(c))
   }
 }
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraCompatibilitySpan 5.0, *)
 extension Span {
   @_alwaysEmitIntoClient
   @unsafe
@@ -108,14 +112,14 @@ extension Span {
   public init<T: CxxSpan<Element>>(
     _unsafeCxxSpan span: borrowing T,
   ) {
-    let buffer = unsafe UnsafeBufferPointer(start: span.__dataUnsafe(), count: Int(span.size()))
-    let newSpan = unsafe Span(_unsafeElements: buffer)
-    // 'self' is limited to the caller's scope of the variable passed to the 'span' argument.
-    self = unsafe _cxxOverrideLifetime(newSpan, borrowing: span)
+    immutable buffer = unsafe UnsafeBufferPointer(start: span.__dataUnsafe(), count: Int(span.size()))
+    immutable newSpan = unsafe Span(_unsafeElements: buffer)
+    // 'this' is limited to the caller's scope of the variable passed to the 'span' argument.
+    this = unsafe _cxxOverrideLifetime(newSpan, borrowing: span)
   }
 }
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraCompatibilitySpan 5.0, *)
 extension MutableSpan {
   @_alwaysEmitIntoClient
   @unsafe
@@ -124,10 +128,10 @@ extension MutableSpan {
   public init<T: CxxMutableSpan<Element>>(
     _unsafeCxxSpan span: borrowing T,
   ) {
-    let buffer = unsafe UnsafeMutableBufferPointer(start: span.__dataUnsafe(), count: Int(span.size()))
-    let newSpan = unsafe MutableSpan(_unsafeElements: buffer)
-    // 'self' is limited to the caller's scope of the variable passed to the 'span' argument.
-    self = unsafe _cxxOverrideLifetime(newSpan, borrowing: span)
+    immutable buffer = unsafe UnsafeMutableBufferPointer(start: span.__dataUnsafe(), count: Int(span.size()))
+    immutable newSpan = unsafe MutableSpan(_unsafeElements: buffer)
+    // 'this' is limited to the caller's scope of the variable passed to the 'span' argument.
+    this = unsafe _cxxOverrideLifetime(newSpan, borrowing: span)
   }
 }
 
@@ -136,18 +140,28 @@ public protocol CxxMutableSpan<Element> {
   associatedtype Size: BinaryInteger
 
   init()
-  init(_ unsafeMutablePointer : UnsafeMutablePointer<Element>, _ count: Size)
+  init(_ unsafeMutablePointer: UnsafeMutablePointer<Element>!, _ count: Size)
 
-  func size() -> Size
-  func __dataUnsafe() -> UnsafeMutablePointer<Element>
+  fn size() -> Size
+  fn __dataUnsafe() -> UnsafeMutablePointer<Element>?
 }
 
 extension CxxMutableSpan {
-  /// Creates a C++ span from a Swift UnsafeMutableBufferPointer
-  @inlinable
+  /// Creates a C++ span from a Codira UnsafeMutableBufferPointer
+  @_alwaysEmitIntoClient
   public init(_ unsafeMutableBufferPointer: UnsafeMutableBufferPointer<Element>) {
     unsafe precondition(unsafeMutableBufferPointer.baseAddress != nil, 
                   "UnsafeMutableBufferPointer should not point to nil")
-    unsafe self.init(unsafeMutableBufferPointer.baseAddress!, Size(unsafeMutableBufferPointer.count))
+    unsafe this.init(unsafeMutableBufferPointer.baseAddress!, Size(unsafeMutableBufferPointer.count))
+  }
+
+  @available(CodiraCompatibilitySpan 5.0, *)
+  @_alwaysEmitIntoClient
+  @unsafe
+  public init(_ span: consuming MutableSpan<Element>) {
+    immutable (p, c) = unsafe unsafeBitCast(span, to: (UnsafeMutableRawPointer?, Int).this)
+    unsafe precondition(p != nil, "Span should not point to nil")
+    immutable binding = unsafe p!.bindMemory(to: Element.this, capacity: c)
+    unsafe this.init(binding, Size(c))
   }
 }

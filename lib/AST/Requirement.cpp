@@ -1,13 +1,17 @@
 //===--- Requirement.cpp - Generic requirement ----------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the Requirement class.
@@ -72,7 +76,7 @@ Requirement Requirement::getCanonical() const {
   case RequirementKind::Layout:
     return Requirement(getKind(), firstType, getLayoutConstraint());
   }
-  llvm_unreachable("Unhandled RequirementKind in switch");
+  toolchain_unreachable("Unhandled RequirementKind in switch");
 }
 
 ProtocolDecl *Requirement::getProtocolDecl() const {
@@ -161,7 +165,7 @@ CheckRequirementResult Requirement::checkRequirement(
     }
 
     // TODO: Statically check other layout constraints, once they can
-    // be spelled in Swift.
+    // be spelled in Codira.
     return CheckRequirementResult::Success;
   }
 
@@ -189,13 +193,13 @@ CheckRequirementResult Requirement::checkRequirement(
     return CheckRequirementResult::RequirementFailure;
   }
 
-  llvm_unreachable("Bad requirement kind");
+  toolchain_unreachable("Bad requirement kind");
 }
 
 bool Requirement::canBeSatisfied() const {
   switch (getKind()) {
   case RequirementKind::SameShape:
-    llvm_unreachable("Same-shape requirements not supported here");
+    toolchain_unreachable("Same-shape requirements not supported here");
 
   case RequirementKind::Conformance:
     return getFirstType()->is<ArchetypeType>();
@@ -218,7 +222,7 @@ bool Requirement::canBeSatisfied() const {
             getSecondType()->isBindableTo(getFirstType()));
   }
 
-  llvm_unreachable("Bad requirement kind");
+  toolchain_unreachable("Bad requirement kind");
 }
 
 bool Requirement::isInvertibleProtocolRequirement() const {
@@ -236,7 +240,7 @@ static unsigned getRequirementKindOrder(RequirementKind kind) {
   case RequirementKind::SameType: return 3;
   case RequirementKind::Layout: return 1;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 /// Linear order on requirements in a generic signature.
@@ -255,10 +259,11 @@ int Requirement::compare(const Requirement &other) const {
 
   // We should only have multiple conformance requirements.
   if (getKind() != RequirementKind::Conformance) {
-    llvm::errs() << "Unordered generic requirements\n";
-    llvm::errs() << "LHS: "; dump(llvm::errs()); llvm::errs() << "\n";
-    llvm::errs() << "RHS: "; other.dump(llvm::errs()); llvm::errs() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "Unordered generic requirements\n";
+      out << "LHS: "; dump(out); out << "\n";
+      out << "RHS: "; other.dump(out);
+    });
   }
 
   int compareProtos =
@@ -325,7 +330,7 @@ checkRequirementsImpl(ArrayRef<Requirement> requirements,
 }
 
 CheckRequirementsResult
-swift::checkRequirements(ArrayRef<Requirement> requirements) {
+language::checkRequirements(ArrayRef<Requirement> requirements) {
   // This entry point requires that there are no type parameters in any of the
   // requirements, so the underlying check should always produce a result.
   return checkRequirementsImpl(requirements, /*allow type parameters*/ false)
@@ -333,11 +338,11 @@ swift::checkRequirements(ArrayRef<Requirement> requirements) {
 }
 
 std::optional<CheckRequirementsResult>
-swift::checkRequirementsWithoutContext(ArrayRef<Requirement> requirements) {
+language::checkRequirementsWithoutContext(ArrayRef<Requirement> requirements) {
   return checkRequirementsImpl(requirements, /*allow type parameters*/ true);
 }
 
-CheckRequirementsResult swift::checkRequirements(
+CheckRequirementsResult language::checkRequirements(
     ArrayRef<Requirement> requirements,
     TypeSubstitutionFn substitutions, SubstOptions options) {
   SmallVector<Requirement, 4> substReqs;

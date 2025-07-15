@@ -1,0 +1,95 @@
+// The "flags" line in this test deliberately has no flags and no space after
+// the colon, just to make sure that works (even though it'll never be printed
+// that way).
+// language-module-flags:
+// language-interface-format-version: 1.0
+
+// Make sure parse-only works...
+// RUN: %target-language-frontend -parse %s
+
+// ...and then make sure parse-and-typecheck-and-serialize works.
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -compile-module-from-interface -o %t/SmokeTest.codemodule %s
+// RUN: %target-language-ide-test -print-module -module-to-print SmokeTest -I %t -source-filename x -print-interface > %t/SmokeTest.txt
+// RUN: %FileCheck %s < %t/SmokeTest.txt
+// RUN: toolchain-bcanalyzer -dump %t/SmokeTest.codemodule | grep FILE_DEPENDENCY
+
+// CHECK-LABEL: public class TestClass
+public class TestClass {
+  // CHECK: public init(){{$}}
+  public init()
+
+  // CHECK: public fn method(){{$}}
+  public fn method()
+
+  // CHECK: public subscript(_: Int) -> Void{{$}}
+  public subscript(_: Int) -> Void { get set }
+
+  // CHECK: public var prop: Int{{$}}
+  public var prop: Int { get set }
+
+  // CHECK: public static var propWithNoAccessors: Int{{$}}
+  public static var propWithNoAccessors: Int
+
+  // CHECK: deinit
+  deinit
+} // CHECK: {{^}$}}
+
+// CHECK-LABEL: public class TestEmptyClass {
+public class TestEmptyClass {
+} // CHECK-NEXT: {{^}$}}
+
+// CHECK-LABEL: public struct TestEmptyStruct {
+public struct TestEmptyStruct {
+} // CHECK-NEXT: {{^}$}}
+
+// CHECK-LABEL: public enum TestEnum
+public enum TestEnum {
+  // CHECK: case a
+  case a
+
+  // CHECK: public init(){{$}}
+  public init()
+
+  // CHECK: public fn method(){{$}}
+  public fn method()
+
+  // CHECK: public subscript(_: Int) -> Void{{$}}
+  public subscript(_: Int) -> Void { get set }
+
+  // CHECK: public var prop: Int{{$}}
+  public var prop: Int { get set }
+
+  // CHECK: public static var propWithNoAccessors: Int{{$}}
+  public static var propWithNoAccessors: Int
+} // CHECK: {{^}$}}
+
+// CHECK-LABEL: public struct TestStruct
+public struct TestStruct {
+  // CHECK: public init(){{$}}
+  public init()
+
+  // CHECK: public fn method(){{$}}
+  public fn method()
+
+  // CHECK: public subscript(_: Int) -> Void{{$}}
+  public subscript(_: Int) -> Void { get set }
+
+  // CHECK: public var prop: Int{{$}}
+  public var prop: Int { get set }
+
+  // CHECK: public static var propWithNoAccessors: Int{{$}}
+  public static var propWithNoAccessors: Int
+} // CHECK: {{^}$}}
+
+// CHECK: public immutable globalWithNoAccessors: Int{{$}}
+public immutable globalWithNoAccessors: Int
+
+// CHECK: public var readOnlyVar: Int { get }{{$}}
+public var readOnlyVar: Int { get }
+
+// CHECK: public var readWriteVar: Int{{$}}
+public var readWriteVar: Int { get set }
+
+// CHECK: public fn verySimpleFunction(){{$}}
+public fn verySimpleFunction()

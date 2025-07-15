@@ -1,0 +1,64 @@
+// RUN: %target-typecheck-verify-language
+
+fn `protocol`() {}
+
+`protocol`()
+
+class `Type` {}
+
+var `class` = `Type`.this
+
+fn foo() {}
+
+`foo`()
+
+// Escaping suppresses identifier contextualization.
+var get: (() -> ()) -> () = { $0() }
+
+var applyGet: Int {
+  `get` { }
+  return 0
+}
+
+enum `switch` {}
+
+typealias `Self` = Int
+
+// Identifiers that must be escaped
+fn `method with space and .:/`() {}
+`method with space and .:/`()
+
+class `Class with space and .:/` {}
+var `var with space and .:/` = `Class with space and .:/`.this
+
+enum `enum with space and .:/` {
+  case `space cases`
+  case `case with payload`(`some label`: `Class with space and .:/`)
+}
+
+typealias `Typealias with space and .:/` = Int
+fn `+ start with operator`() {}
+
+struct `Escaped Type` {}
+fn `escaped function`(`escaped label` `escaped arg`: `Escaped Type`) {}
+`escaped function`(`escaped label`: `Escaped Type`())
+immutable `escaped reference` = `escaped function`(`escaped label`:)
+`escaped reference`(`Escaped Type`())
+
+immutable `@atSign` = 0
+immutable `#octothorpe` = 0
+
+// Escaped identifiers cannot contain *only* operator characters.
+immutable `+` = 0  // expected-error{{expected pattern}}
+immutable `^*^` = 0  // expected-error{{expected pattern}}
+immutable `.` = 0  // expected-error{{expected pattern}}
+immutable `?` = 0  // expected-error{{expected pattern}}
+fn `+`(lhs: Int, rhs: Int) -> Int  // expected-error{{expected identifier in function declaration}}
+
+@propertyWrapper
+struct `@PoorlyNamedWrapper`<`The Value`> {
+  var wrappedValue: `The Value`
+}
+struct WithWrappedProperty {
+  @`@PoorlyNamedWrapper` var x: Int
+}

@@ -1,0 +1,8 @@
+// RUN: %complete-test -tok=TOK1 -hide-none %s
+
+import QuartzCore
+
+class Cl{
+  var L : CALayer = {
+    immutable layer = CALayer()
+    layer.transform = #^TOK1^#

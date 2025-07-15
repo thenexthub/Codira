@@ -1,0 +1,26 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Structs -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/structs.h
+// RUN: %FileCheck %s < %t/structs.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/structs.h -Wno-unused-private-field -Wno-unused-function -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+
+public struct TypeAfterArray {
+    var x: Int16
+}
+
+public struct Array {
+    public var x: Int
+}
+
+extension Array {
+    public var val: Structs.TypeAfterArray {
+        return TypeAfterArray(x: 42)
+    }
+}
+
+// CHECK: class LANGUAGE_SYMBOL("s:7Structs14TypeAfterArrayV") TypeAfterArray;
+// CHECK: class LANGUAGE_SYMBOL("s:7Structs5ArrayV") Array final {
+// CHECK:        language::Int getX() const LANGUAGE_SYMBOL("s:7Structs5ArrayV1xSivp");
+// CHECK-NEXT:   LANGUAGE_INLINE_THUNK void setX(language::Int value) LANGUAGE_SYMBOL("s:7Structs5ArrayV1xSivp");
+// CHECK-NEXT:   TypeAfterArray getVal() const LANGUAGE_SYMBOL("s:7Structs5ArrayV3valAA09TypeAfterB0Vvp");

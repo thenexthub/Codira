@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with feature
@@ -20,7 +21,7 @@
 
 /// FEATURE(N, V)
 ///   N - The name of the feature (in UpperCamelCase).
-///   V - The Swift version number, as a tuple, or FUTURE.
+///   V - The Codira version number, as a tuple, or FUTURE.
 ///
 /// The feature Foo turns into two methods on ASTContext:
 /// getFooRuntimeAvailability(), which returns the exact version provided
@@ -70,7 +71,7 @@ FEATURE(SignedDescriptor,                               (5, 9))
 FEATURE(ObjCSymbolicReferences,                         (6, 0))
 FEATURE(TypedThrows,                                    (6, 0))
 FEATURE(StaticReadOnlyArrays,                           (6, 0))
-FEATURE(SwiftExceptionPersonality,                      (6, 0))
+FEATURE(CodiraExceptionPersonality,                      (6, 0))
 // Metadata support for @isolated(any) function types
 FEATURE(IsolatedAny,                                    (6, 0))
 

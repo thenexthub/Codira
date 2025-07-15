@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "clang/AST/DeclObjC.h"
@@ -38,7 +39,7 @@ using namespace symbolgraphgen;
 SymbolGraph::SymbolGraph(SymbolGraphASTWalker &Walker, ModuleDecl &M,
                          std::optional<ModuleDecl *> ExtendedModule,
                          markup::MarkupContext &Ctx,
-                         std::optional<llvm::VersionTuple> ModuleVersion,
+                         std::optional<toolchain::VersionTuple> ModuleVersion,
                          bool IsForSingleNode)
     : Walker(Walker), M(M), ExtendedModule(ExtendedModule), Ctx(Ctx),
       ModuleVersion(ModuleVersion), IsForSingleNode(IsForSingleNode) {
@@ -79,7 +80,7 @@ PrintOptions SymbolGraph::getDeclarationFragmentsPrintOptions() const {
 
   Opts.ExclusiveAttrList.clear();
 
-  llvm::StringMap<AnyAttrKind> ExcludeAttrs;
+  toolchain::StringMap<AnyAttrKind> ExcludeAttrs;
 
 #define TYPE_ATTR(X, C)                                                        \
   ExcludeAttrs.insert(std::make_pair("TypeAttrKind::" #C, TypeAttrKind::C));
@@ -252,7 +253,7 @@ void SymbolGraph::recordMemberRelationship(Symbol S) {
   switch (DC->getContextKind()) {
     case DeclContextKind::GenericTypeDecl:
     case DeclContextKind::ExtensionDecl:
-    case swift::DeclContextKind::EnumElementDecl:
+    case language::DeclContextKind::EnumElementDecl:
       /*
        If this symbol is itself a protocol requirement, or
        is a default implementation of a protocol requirement,
@@ -280,17 +281,17 @@ void SymbolGraph::recordMemberRelationship(Symbol S) {
 
       return recordEdge(S, Symbol(this, ParentDecl, nullptr),
                         RelationshipKind::MemberOf());
-    case swift::DeclContextKind::AbstractClosureExpr:
-    case swift::DeclContextKind::SerializedAbstractClosure:
-    case swift::DeclContextKind::Initializer:
-    case swift::DeclContextKind::TopLevelCodeDecl:
-    case swift::DeclContextKind::SerializedTopLevelCodeDecl:
-    case swift::DeclContextKind::SubscriptDecl:
-    case swift::DeclContextKind::AbstractFunctionDecl:
-    case swift::DeclContextKind::Package:
-    case swift::DeclContextKind::Module:
-    case swift::DeclContextKind::FileUnit:
-    case swift::DeclContextKind::MacroDecl:
+    case language::DeclContextKind::AbstractClosureExpr:
+    case language::DeclContextKind::SerializedAbstractClosure:
+    case language::DeclContextKind::Initializer:
+    case language::DeclContextKind::TopLevelCodeDecl:
+    case language::DeclContextKind::SerializedTopLevelCodeDecl:
+    case language::DeclContextKind::SubscriptDecl:
+    case language::DeclContextKind::AbstractFunctionDecl:
+    case language::DeclContextKind::Package:
+    case language::DeclContextKind::Module:
+    case language::DeclContextKind::FileUnit:
+    case language::DeclContextKind::MacroDecl:
       break;
   }
 }
@@ -610,18 +611,18 @@ void SymbolGraph::recordOverrideRelationship(Symbol S) {
 
 // MARK: - Serialization
 
-void SymbolGraph::serialize(llvm::json::OStream &OS) {
+void SymbolGraph::serialize(toolchain::json::OStream &OS) {
   OS.object([&](){
     OS.attributeObject("metadata", [&](){
       {
         AttributeRAII FV("formatVersion", OS);
-        llvm::VersionTuple FormatVersion(SWIFT_SYMBOLGRAPH_FORMAT_MAJOR,
-                                         SWIFT_SYMBOLGRAPH_FORMAT_MINOR,
-                                         SWIFT_SYMBOLGRAPH_FORMAT_PATCH);
+        toolchain::VersionTuple FormatVersion(LANGUAGE_SYMBOLGRAPH_FORMAT_MAJOR,
+                                         LANGUAGE_SYMBOLGRAPH_FORMAT_MINOR,
+                                         LANGUAGE_SYMBOLGRAPH_FORMAT_PATCH);
         symbolgraphgen::serialize(FormatVersion, OS);
       } // end formatVersion:
 
-      auto VersionString = version::getSwiftFullVersion();
+      auto VersionString = version::getCodiraFullVersion();
       StringRef VersionStringRef(VersionString.c_str(), VersionString.size());
       OS.attribute("generator", VersionStringRef);
     }); // end metadata:
@@ -665,7 +666,7 @@ void SymbolGraph::serialize(llvm::json::OStream &OS) {
 void
 SymbolGraph::serializeDeclarationFragments(StringRef Key,
                                            const Symbol &S,
-                                           llvm::json::OStream &OS) {
+                                           toolchain::json::OStream &OS) {
   DeclarationFragmentPrinter Printer(this, OS, Key);
   auto Options = getDeclarationFragmentsPrintOptions();
   if (S.getBaseType()) {
@@ -678,7 +679,7 @@ SymbolGraph::serializeDeclarationFragments(StringRef Key,
 void
 SymbolGraph::serializeNavigatorDeclarationFragments(StringRef Key,
                                                     const Symbol &S,
-                                                    llvm::json::OStream &OS) {
+                                                    toolchain::json::OStream &OS) {
   if (const auto *TD = dyn_cast<GenericTypeDecl>(S.getSymbolDecl())) {
     DeclarationFragmentPrinter Printer(this, OS, Key);
     Printer.printAbridgedType(TD, /*PrintKeyword=*/false);
@@ -688,7 +689,7 @@ SymbolGraph::serializeNavigatorDeclarationFragments(StringRef Key,
 void
 SymbolGraph::serializeSubheadingDeclarationFragments(StringRef Key,
                                                      const Symbol &S,
-                                                     llvm::json::OStream &OS) {
+                                                     toolchain::json::OStream &OS) {
   DeclarationFragmentPrinter Printer(this, OS, Key);
 
   if (const auto *TD = dyn_cast<GenericTypeDecl>(S.getLocalSymbolDecl())) {
@@ -706,7 +707,7 @@ SymbolGraph::serializeSubheadingDeclarationFragments(StringRef Key,
 void
 SymbolGraph::serializeDeclarationFragments(StringRef Key, Type T,
                                            Type BaseType,
-                                           llvm::json::OStream &OS) {
+                                           toolchain::json::OStream &OS) {
   DeclarationFragmentPrinter Printer(this, OS, Key);
   auto Options = getDeclarationFragmentsPrintOptions();
   if (BaseType) {
@@ -730,7 +731,7 @@ const ValueDecl *getProtocolRequirement(const ValueDecl *VD) {
 }
 
 bool SymbolGraph::isImplicitlyPrivate(
-    const Decl *D, llvm::function_ref<bool(const Decl *)> IgnoreContext) const {
+    const Decl *D, toolchain::function_ref<bool(const Decl *)> IgnoreContext) const {
   // Don't record unconditionally private declarations
   if (D->isPrivateSystemDecl(/*treatNonBuiltinProtocolsAsPublic=*/false)) {
     return true;
@@ -807,7 +808,7 @@ bool SymbolGraph::isImplicitlyPrivate(
     // Symbols from exported-imported modules should only be included if they
     // were originally public.
     // We force compiler-equality here to ensure that the presence of an underlying
-    // Clang module does not prevent internal Swift symbols from being emitted when
+    // Clang module does not prevent internal Codira symbols from being emitted when
     // MinimumAccessLevel is set to `internal` or below.
     if (Walker.isFromExportedImportedModule(D, /*countUnderlyingClangModule*/false) &&
         VD->getFormalAccess() < AccessLevel::Public) {
@@ -824,13 +825,13 @@ bool SymbolGraph::isImplicitlyPrivate(
     }
 
     // Automatically mapped SIMD types
-    auto IsGlobalSIMDType = llvm::StringSwitch<bool>(BaseName)
+    auto IsGlobalSIMDType = toolchain::StringSwitch<bool>(BaseName)
   #define MAP_SIMD_TYPE(C_TYPE, _, __) \
-  .Case("swift_" #C_TYPE "2", true) \
-  .Case("swift_" #C_TYPE "3", true) \
-  .Case("swift_" #C_TYPE "4", true)
+  .Case("language_" #C_TYPE "2", true) \
+  .Case("language_" #C_TYPE "3", true) \
+  .Case("language_" #C_TYPE "4", true)
   #include "language/ClangImporter/SIMDMappedTypes.def"
-    .Case("SWIFT_TYPEDEFS", true)
+    .Case("LANGUAGE_TYPEDEFS", true)
     .Case("char16_t", true)
     .Case("char32_t", true)
     .Default(false);
@@ -887,7 +888,7 @@ bool SymbolGraph::canIncludeDeclAsNode(const Decl *D,
   // If this decl isn't in this module or module that this module imported with `@_exported`, don't record it,
   // as it will appear elsewhere in its module's symbol graph.
 
-  // If a Clang decl was declared in a submodule, the Swift decl's context will still point to the
+  // If a Clang decl was declared in a submodule, the Codira decl's context will still point to the
   // top-level module. Instead, we need to probe the owning module on the Clang side, which will
   // correctly point to the submodule.
   auto RealModuleName = (std::string)D->getModuleContext()->getName();

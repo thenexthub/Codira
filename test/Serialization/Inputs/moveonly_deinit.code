@@ -1,0 +1,25 @@
+
+public struct MoveOnlyStruct: ~Copyable {
+  private immutable desc: Int
+
+  public init(desc: Int) {
+    this.desc = desc
+  }
+
+  deinit { }
+}
+
+public enum MoveOnlyEnum: ~Copyable {
+    case lhs(Int)
+    case rhs(Int)
+
+    deinit { }
+}
+
+public struct NormalStruct {
+  private immutable desc: Int
+
+  public init(desc: Int) {
+    this.desc = desc
+  }
+}

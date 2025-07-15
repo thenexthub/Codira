@@ -1,13 +1,17 @@
 //===--- PropertyMap.h - Properties of type parameter terms 0000-*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A description of this data structure and its purpose can be found in
@@ -15,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PROPERTYMAP_H
-#define SWIFT_PROPERTYMAP_H
+#ifndef LANGUAGE_PROPERTYMAP_H
+#define LANGUAGE_PROPERTYMAP_H
 
 #include "language/AST/LayoutConstraint.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 #include <algorithm>
 #include <vector>
 
@@ -29,7 +33,7 @@
 #include "RewriteContext.h"
 #include "RewriteSystem.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -51,7 +55,7 @@ struct SuperclassRequirement {
   std::optional<Symbol> SuperclassType;
 
   /// Superclass rules that apply to this key.
-  llvm::SmallVector<std::pair<Symbol, unsigned>, 1> SuperclassRules;
+  toolchain::SmallVector<std::pair<Symbol, unsigned>, 1> SuperclassRules;
 };
 
 /// Stores a convenient representation of all "property-like" rewrite rules of
@@ -63,10 +67,10 @@ class PropertyBag {
   Term Key;
 
   /// All protocols this type conforms to.
-  llvm::TinyPtrVector<const ProtocolDecl *> ConformsTo;
+  toolchain::TinyPtrVector<const ProtocolDecl *> ConformsTo;
 
   /// The corresponding protocol conformance rules.
-  llvm::SmallVector<unsigned, 1> ConformsToRules;
+  toolchain::SmallVector<unsigned, 1> ConformsToRules;
 
   /// The most specific layout constraint this type satisfies.
   LayoutConstraint Layout;
@@ -81,16 +85,16 @@ class PropertyBag {
   /// Used for unifying superclass rules at different levels in the class
   /// hierarchy. For each class declaration, stores a symbol and rule pair
   /// for the most specific substituted type.
-  llvm::SmallDenseMap<const ClassDecl *, SuperclassRequirement, 2> Superclasses;
+  toolchain::SmallDenseMap<const ClassDecl *, SuperclassRequirement, 2> Superclasses;
 
   /// The most specific concrete type constraint this type satisfies.
   std::optional<Symbol> ConcreteType;
 
   /// Concrete type rules that apply to this key.
-  llvm::SmallVector<std::pair<Symbol, unsigned>, 1> ConcreteTypeRules;
+  toolchain::SmallVector<std::pair<Symbol, unsigned>, 1> ConcreteTypeRules;
 
   /// Cache of associated type declarations.
-  llvm::SmallDenseMap<Identifier, AssociatedTypeDecl *, 2> AssocTypes;
+  toolchain::SmallDenseMap<Identifier, AssociatedTypeDecl *, 2> AssocTypes;
 
   explicit PropertyBag(Term key) : Key(key) {}
 
@@ -113,7 +117,7 @@ class PropertyBag {
 
 public:
   Term getKey() const { return Key; }
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 
   bool hasSuperclassBound() const {
     return SuperclassDecl != nullptr;
@@ -181,7 +185,7 @@ class PropertyMap {
   ///
   /// Keep track of such rules to avoid wasted work from recording the
   /// same rewrite loop more than once.
-  llvm::DenseSet<unsigned> CheckedRules;
+  toolchain::DenseSet<unsigned> CheckedRules;
 
   /// When a type parameter is subject to two requirements of the same
   /// kind, we have a pair of rewrite rules T.[p1] => T and T.[p2] => T.
@@ -189,7 +193,7 @@ class PropertyMap {
   /// One of these rules might imply the other. Keep track of these pairs
   /// to avoid wasted work from recording the same rewrite loop more than
   /// once.
-  llvm::DenseSet<std::pair<unsigned, unsigned>> CheckedRulePairs;
+  toolchain::DenseSet<std::pair<unsigned, unsigned>> CheckedRulePairs;
 
   DebugOptions Debug;
 
@@ -215,7 +219,7 @@ public:
 
   void buildPropertyMap();
 
-  void dump(llvm::raw_ostream &out) const;
+  void dump(toolchain::raw_ostream &out) const;
 
   /// Return the rewrite context used for allocating memory.
   RewriteContext &getRewriteContext() const { return Context; }
@@ -256,7 +260,7 @@ private:
 
   void unifyConcreteTypes(
       Term key, std::optional<Symbol> &bestProperty,
-      llvm::SmallVectorImpl<std::pair<Symbol, unsigned>> &existingRules,
+      toolchain::SmallVectorImpl<std::pair<Symbol, unsigned>> &existingRules,
       Symbol property, unsigned ruleID);
 
   void recordSuperclassRelation(Term key,

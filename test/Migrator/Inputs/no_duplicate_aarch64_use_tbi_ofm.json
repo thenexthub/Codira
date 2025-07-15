@@ -1,0 +1,7 @@
+{
+  ".\/no_duplicate_aarch64_use_tbi.code": {
+    "object": ".\/no_duplicate_aarch64_use_tbi.o",
+    "languagemodule": ".\/no_duplicate_aarch64_use_tbi.codemodule",
+    "remap": ".\/no_duplicate_aarch64_use_tbi.remap"
+  }
+}

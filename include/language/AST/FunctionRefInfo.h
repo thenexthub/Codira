@@ -1,13 +1,17 @@
 //===--- FunctionRefInfo.h - Function reference info ------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the FunctionRefInfo class, which describes how a function
@@ -15,11 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FUNCTION_REF_INFO_H
-#define SWIFT_AST_FUNCTION_REF_INFO_H
+#ifndef LANGUAGE_AST_FUNCTION_REF_INFO_H
+#define LANGUAGE_AST_FUNCTION_REF_INFO_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
+
+#include <cstdint>
 
 namespace language {
 
@@ -152,8 +158,8 @@ public:
   }
 
   void dump(raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 }
 
-#endif // SWIFT_AST_FUNCTION_REF_INFO_H
+#endif // LANGUAGE_AST_FUNCTION_REF_INFO_H

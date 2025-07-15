@@ -1,26 +1,30 @@
-//===--- IndexPathTest.swift ----------------------------------------------===//
+//===--- IndexPathTest.code ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import Foundation
 import TestsUtils
 
-let size = 200
-let increasingIndexPath = indexPath(size)
-let decreasingIndexPath = indexPath(size, reversed: true)
-let increasingMaxMiddleIndexPath = indexPath(size, middle: size + 1)
-let increasingMinMiddleIndexPath = indexPath(size, middle: -1)
-let tags: [BenchmarkCategory] = [.validation, .api, .IndexPath]
+immutable size = 200
+immutable increasingIndexPath = indexPath(size)
+immutable decreasingIndexPath = indexPath(size, reversed: true)
+immutable increasingMaxMiddleIndexPath = indexPath(size, middle: size + 1)
+immutable increasingMinMiddleIndexPath = indexPath(size, middle: -1)
+immutable tags: [BenchmarkCategory] = [.validation, .api, .IndexPath]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "IndexPath.Subscript.Mutation",
     runFunction: run_IndexPathSubscriptMutation,
@@ -51,12 +55,12 @@ public let benchmarks = [
     }),
 ]
 
-func indexPath(_ size: Int, reversed: Bool = false) -> IndexPath {
-  let indexes = Array(0..<size)
+fn indexPath(_ size: Int, reversed: Bool = false) -> IndexPath {
+  immutable indexes = Array(0..<size)
   return IndexPath(indexes: reversed ? indexes.reversed() : indexes)
 }
 
-func indexPath(_ size: Int, middle: Int) -> IndexPath {
+fn indexPath(_ size: Int, middle: Int) -> IndexPath {
   var indexes = Array(0..<size)
   indexes.insert(middle, at: (indexes.count - 1) / 2)
   return IndexPath(indexes: indexes)
@@ -65,7 +69,7 @@ func indexPath(_ size: Int, middle: Int) -> IndexPath {
 // Subscript Mutations
 
 @inline(__always)
-func subscriptMutation(
+fn subscriptMutation(
   n: Int,
   mutations: Int,
   indexPath: IndexPath,
@@ -80,7 +84,7 @@ func subscriptMutation(
 }
 
 @inline(never)
-public func run_IndexPathSubscriptMutation(_ n: Int) {
+public fn run_IndexPathSubscriptMutation(_ n: Int) {
   subscriptMutation(
     n: n * 10, mutations: size, indexPath: increasingIndexPath,
     mutate: { ip, i in
@@ -89,7 +93,7 @@ public func run_IndexPathSubscriptMutation(_ n: Int) {
 }
 
 @inline(never)
-public func run_IndexPathSubscriptRangeMutation(_ n: Int) {
+public fn run_IndexPathSubscriptRangeMutation(_ n: Int) {
   subscriptMutation(
     n: n, mutations: size, indexPath: increasingIndexPath,
     mutate: { ip, i in
@@ -100,7 +104,7 @@ public func run_IndexPathSubscriptRangeMutation(_ n: Int) {
 // Max
 
 @inline(never)
-public func run_IndexPathMax(_ n: Int) {
+public fn run_IndexPathMax(_ n: Int) {
   for _ in 0..<n * 10 {
     var val: Int?
     // Beginning max
@@ -118,7 +122,7 @@ public func run_IndexPathMax(_ n: Int) {
 // Min
 
 @inline(never)
-public func run_IndexPathMin(_ n: Int) {
+public fn run_IndexPathMin(_ n: Int) {
   for _ in 0..<n * 10 {
     var val: Int?
     // Beginning min

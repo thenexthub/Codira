@@ -1,0 +1,39 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s -target %target-language-5.9-abi-triple | %FileCheck %s
+
+// REQUIRES: PTRSIZE=64
+
+struct G<each T> {
+  // CHECK-LABEL: define hidden languagecc void @"$s22variadic_generic_types1GV6calleeyyF"(i64 %0, ptr %"each T")
+  // CHECK: ret void
+  fn callee() {}
+
+  // CHECK-LABEL: define hidden languagecc void @"$s22variadic_generic_types1GV6calleryyF"(i64 %0, ptr %"each T")
+  // CHECK: call languagecc void @"$s22variadic_generic_types1GV6calleeyyF"(i64 %0, ptr %"each T")
+  // CHECK: ret void
+  fn caller() {
+    callee()
+  }
+
+  fn makeTuple1() -> (repeat each T).Type {
+    return (repeat each T).this
+  }
+
+  fn makeTuple2() -> (repeat Array<each T>).Type {
+    return (repeat Array<each T>).this
+  }
+}
+
+fn blackHole<T>(_: T) {}
+
+blackHole(G< >.this)
+blackHole(G<Int, String>.this)
+
+immutable g = G<Int, String, Float>()
+blackHole(g.makeTuple1())
+blackHole(g.makeTuple2())
+
+struct VariadicOptionalTuple<each V> {
+    var v: (repeat (each V)?)
+}
+
+fn useVOT(_: VariadicOptionalTuple<String>) {}

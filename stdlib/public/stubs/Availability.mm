@@ -1,4 +1,4 @@
-//===--- Availability.mm - Swift Language API Availability Support --------===//
+//===--- Availability.mm - Codira Language API Availability Support --------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implementation of run-time API availability queries.
@@ -19,7 +20,7 @@
 
 #include "language/Runtime/Config.h"
 
-#if SWIFT_OBJC_INTEROP && defined(SWIFT_RUNTIME_OS_VERSIONING)
+#if LANGUAGE_OBJC_INTEROP && defined(LANGUAGE_RUNTIME_OS_VERSIONING)
 #include "language/Basic/Lazy.h"
 #include "language/Runtime/Debug.h"
 #include "language/shims/FoundationShims.h"
@@ -32,7 +33,7 @@ struct os_system_version_s {
 };
 
 // This is in libSystem, so it's OK to refer to it directly here
-extern "C" int os_system_version_get_current_version(struct os_system_version_s * _Nonnull) SWIFT_RUNTIME_WEAK_IMPORT;
+extern "C" int os_system_version_get_current_version(struct os_system_version_s * _Nonnull) LANGUAGE_RUNTIME_WEAK_IMPORT;
 
 static os_system_version_s getOSVersion() {
   struct os_system_version_s vers = { 0, 0, 0 };
@@ -48,8 +49,8 @@ using namespace language;
 /// This is ABI and cannot be removed. Even though _stdlib_isOSVersionAtLeast()
 /// is no longer inlinable, is previously was and so calls to this method
 /// have been inlined into shipped apps.
-_SwiftNSOperatingSystemVersion _swift_stdlib_operatingSystemVersion() {
-  os_system_version_s version = SWIFT_LAZY_CONSTANT(getOSVersion());
+_CodiraNSOperatingSystemVersion _language_stdlib_operatingSystemVersion() {
+  os_system_version_s version = LANGUAGE_LAZY_CONSTANT(getOSVersion());
 
   return { (int)version.major, (int)version.minor, (int)version.patch };
 }

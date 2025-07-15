@@ -1,0 +1,5 @@
+// {"signature":"language::constraints::ConstraintSystem::simplifyKeyPathConstraint(language::Type, language::Type, language::Type, toolchain::ArrayRef<language::TypeVariableType*>, language::optionset::OptionSet<language::constraints::ConstraintSystem::TypeMatchFlags, unsigned int>, language::constraints::ConstraintLocatorBuilder)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<each b>() -> (repeat Array<each b>) {
+  (repeat \ [<#type#>])
+}

@@ -1,10 +1,10 @@
 //===--- TypeCheckCompletionCallback.h  -----------------------------------===//
 //
-// Copyright (c) 2014 - 2020 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2020 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -15,14 +15,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_TYPECHECKCOMPLETIONCALLBACK_H
-#define SWIFT_IDE_TYPECHECKCOMPLETIONCALLBACK_H
+#ifndef LANGUAGE_IDE_TYPECHECKCOMPLETIONCALLBACK_H
+#define LANGUAGE_IDE_TYPECHECKCOMPLETIONCALLBACK_H
 
 #include "language/AST/Expr.h"
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 class Decl;
@@ -80,16 +80,16 @@ Type getPatternMatchType(const constraints::Solution &S, Expr *E);
 /// were type-checked with the code completion expression.
 void getSolutionSpecificVarTypes(
     const constraints::Solution &S,
-    llvm::SmallDenseMap<const VarDecl *, Type> &Result);
+    toolchain::SmallDenseMap<const VarDecl *, Type> &Result);
 
 /// While this RAII is alive the interface types of the variables defined in
 /// \c SolutionSpecificVarTypes are temporarily set to the types in the map.
 /// Afterwards, their types are restored.
 struct WithSolutionSpecificVarTypesRAII {
-  llvm::SmallDenseMap<const VarDecl *, Type> RestoreVarTypes;
+  toolchain::SmallDenseMap<const VarDecl *, Type> RestoreVarTypes;
 
   WithSolutionSpecificVarTypesRAII(
-      llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes) {
+      toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes) {
     for (auto SolutionVarType : SolutionSpecificVarTypes) {
       if (SolutionVarType.first->hasInterfaceType()) {
         RestoreVarTypes[SolutionVarType.first] =
@@ -140,4 +140,4 @@ bool nullableTypesEqual(Type LHS, Type RHS);
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_TYPECHECKCOMPLETIONCALLBACK_H
+#endif // LANGUAGE_IDE_TYPECHECKCOMPLETIONCALLBACK_H

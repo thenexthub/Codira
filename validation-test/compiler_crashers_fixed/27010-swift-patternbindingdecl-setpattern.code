@@ -1,0 +1,13 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+{{class a{class B<T where g:a{class b<f{class d:b class a{class a{{}fn a{class a{class where{fn a{class n{{}class a{immutable a{{fn f{enum S{class a{fn f{immutable a{{fn f{{}immutable a{immutable:{fn f{class a{class n{struct B{struct S{class d{class B{immutable a{struct d{{}fn a{fn a{immutable a{struct B{fn a{struct S{immutable a{{immutable a{{}immutable a

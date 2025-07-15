@@ -1,32 +1,32 @@
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules)
 include(StdlibOptions)
 
-set(SWIFT_CXX_DEPS symlink_clang_headers)
-if(SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT)
-  list(APPEND SWIFT_CXX_DEPS copy-legacy-layouts)
+set(LANGUAGE_CXX_DEPS symlink_clang_headers)
+if(LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT)
+  list(APPEND LANGUAGE_CXX_DEPS copy-legacy-layouts)
 endif()
 
-add_swift_target_library(swiftCxx STATIC NO_LINK_NAME IS_STDLIB IS_SWIFT_ONLY
-    CxxConvertibleToBool.swift
-    CxxConvertibleToCollection.swift
-    CxxDictionary.swift
-    CxxPair.swift
-    CxxOptional.swift
-    CxxSet.swift
-    CxxRandomAccessCollection.swift
-    CxxSequence.swift
-    CxxVector.swift
-    CxxSpan.swift
-    UnsafeCxxIterators.swift
+add_language_target_library(languageCxx STATIC NO_LINK_NAME IS_STDLIB IS_LANGUAGE_ONLY
+    CxxConvertibleToBool.code
+    CxxConvertibleToCollection.code
+    CxxDictionary.code
+    CxxPair.code
+    CxxOptional.code
+    CxxSet.code
+    CxxRandomAccessCollection.code
+    CxxSequence.code
+    CxxVector.code
+    CxxSpan.code
+    UnsafeCxxIterators.code
 
-    SWIFT_COMPILE_FLAGS ${SWIFT_RUNTIME_SWIFT_COMPILE_FLAGS} ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+    LANGUAGE_COMPILE_FLAGS ${LANGUAGE_RUNTIME_LANGUAGE_COMPILE_FLAGS} ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
     -cxx-interoperability-mode=default
     -enable-experimental-feature Span
     -enable-experimental-feature BuiltinModule
     -enable-experimental-feature AllowUnsafeAttribute
     -strict-memory-safety
     # This module should not pull in the C++ standard library, so we disable it explicitly.
-    # For functionality that depends on the C++ stdlib, use C++ stdlib overlay (`swiftstd` module).
+    # For functionality that depends on the C++ stdlib, use C++ stdlib overlay (`languagestd` module).
     -Xcc -nostdinc++
 
     DEPLOYMENT_VERSION_OSX ${COMPATIBILITY_MINIMUM_DEPLOYMENT_VERSION_OSX}
@@ -35,10 +35,11 @@ add_swift_target_library(swiftCxx STATIC NO_LINK_NAME IS_STDLIB IS_SWIFT_ONLY
     DEPLOYMENT_VERSION_WATCHOS ${COMPATIBILITY_MINIMUM_DEPLOYMENT_VERSION_WATCHOS}
     DEPLOYMENT_VERSION_XROS ${COMPATIBILITY_MINIMUM_DEPLOYMENT_VERSION_XROS}
 
-    LINK_FLAGS "${SWIFT_RUNTIME_SWIFT_LINK_FLAGS}"
-    DEPENDS ${SWIFT_CXX_DEPS}
+    LINK_FLAGS "${LANGUAGE_RUNTIME_LANGUAGE_LINK_FLAGS}"
+    DEPENDS ${LANGUAGE_CXX_DEPS}
     MACCATALYST_BUILD_FLAVOR zippered
     INSTALL_IN_COMPONENT compiler
+    INSTALL_BINARY_LANGUAGEMODULE NON_DARWIN_ONLY
     INSTALL_WITH_SHARED)
 
 add_subdirectory(libstdcxx)

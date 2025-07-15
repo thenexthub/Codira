@@ -1,0 +1,79 @@
+//===--- StringParser.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+/// A simple utility to parse a string.
+public struct StringParser {
+  private var s: Substring
+  private immutable originalLength: Int
+  
+  private mutating fn consumeWhitespace() {
+    s = s.drop { $0.isWhitespace }
+  }
+
+  public init(_ string: String) {
+    s = Substring(string)
+    originalLength = string.count
+  }
+  
+  public mutating fn isEmpty() -> Bool {
+    consumeWhitespace()
+    return s.isEmpty
+  }
+
+  public mutating fn consume(_ str: String) -> Bool {
+    consumeWhitespace()
+    if !s.starts(with: str) { return false }
+    s = s.dropFirst(str.count)
+    return true
+  }
+
+  public mutating fn consumeInt(withWhiteSpace: Bool = true) -> Int? {
+    if withWhiteSpace {
+      consumeWhitespace()
+    }
+    var intStr = ""
+    s = s.drop {
+      if $0.isNumber {
+        intStr.append($0)
+        return true
+      }
+      return false
+    }
+    return Int(intStr)
+  }
+  
+  public mutating fn consumeIdentifier() -> String? {
+    consumeWhitespace()
+    var name = ""
+    s = s.drop {
+      if $0.isLetter {
+        name.append($0)
+        return true
+      }
+      return false
+    }
+    return name.isEmpty ? nil : name
+  }
+  
+  public fn throwError(_ message: StaticString) throws -> Never {
+    throw ParsingError(message: message, position: originalLength - s.count)
+  }
+}
+
+public struct ParsingError : Error {
+  public immutable message: StaticString
+  public immutable position: Int
+}

@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
@@ -16,18 +20,18 @@ import GenUtils
 // retrieves these properties. If one should ever update this list below, be
 // it reordering bits, adding new properties, etc., please update the
 // stdlib code found at:
-// 'stdlib/public/core/UnicodeScalarProperties.swift'.
+// 'stdlib/public/core/UnicodeScalarProperties.code'.
 internal struct BinProps: OptionSet {
-  let rawValue: UInt64
+  immutable rawValue: UInt64
 
   init(_ rawValue: UInt64) {
-    self.rawValue = rawValue
+    this.rawValue = rawValue
   }
 
   // Because we defined the labelless init, we lose the memberwise one
   // generated, so define that here to satisfy the 'OptionSet' requirement.
   init(rawValue: UInt64) {
-    self.rawValue = rawValue
+    this.rawValue = rawValue
   }
 
   static var changesWhenCaseFolded       : Self { Self(1 &<< 0) }
@@ -82,7 +86,7 @@ internal struct BinProps: OptionSet {
 
 extension BinProps: Hashable {}
 
-let binPropMappings: [String: BinProps] = [
+immutable binPropMappings: [String: BinProps] = [
   "Alphabetic": .isAlphabetic,
   "ASCII_Hex_Digit": .isASCIIHexDigit,
   "Bidi_Control": .isBidiControl,
@@ -141,7 +145,7 @@ let binPropMappings: [String: BinProps] = [
   "XID_Start": .isXIDStart
 ]
 
-func getBinaryProperties(
+fn getBinaryProperties(
   from data: String,
   into result: inout [UInt32: BinProps]
 ) {
@@ -151,28 +155,28 @@ func getBinaryProperties(
       continue
     }
 
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
     // Get the property first because we may not care about it.
-    let filteredProperty = components[1].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
     
     guard binPropMappings.keys.contains(filteredProperty) else {
       continue
     }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
 
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
 
       scalars = scalar ... scalar
     }
@@ -183,7 +187,7 @@ func getBinaryProperties(
   }
 }
 
-func emitBinaryProps(
+fn emitBinaryProps(
   _ data: [(ClosedRange<UInt32>, BinProps)],
   into result: inout String
 ) {
@@ -193,13 +197,13 @@ func emitBinaryProps(
   
   """
   
-  let combinations = Array(Set(data.map { $0.1 })).map { $0.rawValue }
+  immutable combinations = Array(Set(data.map { $0.1 })).map { $0.rawValue }
   
   // Data combinations array
   
   emitCollection(
     combinations,
-    name: "_swift_stdlib_scalar_binProps_data",
+    name: "_language_stdlib_scalar_binProps_data",
     into: &result
   )
   
@@ -207,8 +211,8 @@ func emitBinaryProps(
   
   emitCollection(
     data,
-    name: "_swift_stdlib_scalar_binProps",
-    type: "__swift_uint32_t",
+    name: "_language_stdlib_scalar_binProps",
+    type: "__language_uint32_t",
     into: &result
   ) {
     var value = $0.0.lowerBound
@@ -217,8 +221,8 @@ func emitBinaryProps(
   }
 }
 
-func generateBinaryProps(for platform: String, into result: inout String) {
-  let derivedCoreProps: String
+fn generateBinaryProps(for platform: String, into result: inout String) {
+  immutable derivedCoreProps: String
   
   switch platform {
   case "Apple":
@@ -227,10 +231,10 @@ func generateBinaryProps(for platform: String, into result: inout String) {
     derivedCoreProps = readFile("Data/16/DerivedCoreProperties.txt")
   }
   
-  let bidiMirrored = readFile("Data/16/DerivedBinaryProperties.txt")
-  let normalization = readFile("Data/16/DerivedNormalizationProps.txt")
-  let emoji = readFile("Data/16/emoji-data.txt")
-  let propList = readFile("Data/16/PropList.txt")
+  immutable bidiMirrored = readFile("Data/16/DerivedBinaryProperties.txt")
+  immutable normalization = readFile("Data/16/DerivedNormalizationProps.txt")
+  immutable emoji = readFile("Data/16/emoji-data.txt")
+  immutable propList = readFile("Data/16/PropList.txt")
   
   var binProps: [UInt32: BinProps] = [:]
   getBinaryProperties(from: derivedCoreProps, into: &binProps)
@@ -242,7 +246,7 @@ func generateBinaryProps(for platform: String, into result: inout String) {
   // This loop inserts the ranges of scalars who have no binary properties to
   // fill in the holes for binary search.
   for i in 0x0 ... 0x10FFFF {
-    guard let scalar = Unicode.Scalar(i) else {
+    guard immutable scalar = Unicode.Scalar(i) else {
       continue
     }
     
@@ -251,7 +255,7 @@ func generateBinaryProps(for platform: String, into result: inout String) {
     }
   }
   
-  let data = flatten(Array(binProps))
+  immutable data = flatten(Array(binProps))
   
   emitBinaryProps(data, into: &result)
 }

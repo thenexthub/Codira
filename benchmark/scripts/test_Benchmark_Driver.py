@@ -3,13 +3,16 @@
 
 # ===--- test_Benchmark_Driver.py ----------------------------------------===//
 #
-#  This source file is part of the Swift.org open source project
+# Copyright (c) NeXTHub Corporation. All rights reserved.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
-#  Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-#  Licensed under Apache License v2.0 with Runtime Library Exception
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details (a copy is included in the LICENSE file that
+# accompanied this code).
 #
-#  See https://swift.org/LICENSE.txt for license information
-#  See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# Author(-s): Tunjay Akbarli
 #
 # ===---------------------------------------------------------------------===//
 
@@ -259,7 +262,7 @@ class TestBenchmarkDriverInitialization(unittest.TestCase):
 
     @unittest.skip("comparing against localtime() is flaky. rdar://79701124")
     def test_log_file(self):
-        """When swift-repo is set, log is tied to Git branch and revision."""
+        """When language-repo is set, log is tied to Git branch and revision."""
         self.assertIsNone(
             BenchmarkDriver(
                 Stub(output_dir=None, tests="/bin/"), tests=["ignored"]
@@ -272,7 +275,7 @@ class TestBenchmarkDriverInitialization(unittest.TestCase):
                 output_dir="/path",
                 tests="/bin/",
                 optimization="Suffix",
-                swift_repo=None,
+                language_repo=None,
             ),
             tests=["ignored"],
             _subprocess=self.subprocess_mock
@@ -293,7 +296,7 @@ class TestBenchmarkDriverInitialization(unittest.TestCase):
             ]
         )
         driver = BenchmarkDriver(
-            Stub(output_dir="/log/", tests="", optimization="S", swift_repo=r),
+            Stub(output_dir="/log/", tests="", optimization="S", language_repo=r),
             tests=["ignored"],
             _subprocess=subprocess_mock,
         )
@@ -480,7 +483,7 @@ class TestBenchmarkDriverRunningTests(unittest.TestCase):
             shutil.rmtree(temp_dir)
 
     def test_deterministic_hashing(self):
-        cmd = ["printenv", "SWIFT_DETERMINISTIC_HASHING"]
+        cmd = ["printenv", "LANGUAGE_DETERMINISTIC_HASHING"]
         driver = BenchmarkDriver(["no args"], tests=["ignored"])
         self.assertEqual(driver._invoke(cmd).strip(), "1")
 

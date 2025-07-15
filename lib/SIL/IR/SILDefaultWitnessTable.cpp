@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILDefaultWitnessTable class, which is used to provide
@@ -25,7 +26,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILDefaultWitnessTable.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 using namespace language;
 

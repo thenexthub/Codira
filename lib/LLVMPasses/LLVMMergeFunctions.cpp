@@ -1,10 +1,10 @@
-//===--- LLVMMergeFunctions.cpp - Merge similar functions for swift -------===//
+//===--- LLVMMergeFunctions.cpp - Merge similar functions for language -------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 // Licensed under Apache License v2.0 with Runtime Library Exception
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
-// Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+// Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 //
@@ -12,7 +12,7 @@
 // The implementation is similar to LLVM's MergeFunctions pass. Instead of
 // merging identical functions, it merges functions which only differ by a few
 // constants in certain instructions.
-// Currently this is very Swift specific in the sense that it's intended to
+// Currently this is very Codira specific in the sense that it's intended to
 // merge specialized functions which only differ by loading different metadata
 // pointers.
 // TODO: It could make sense to generalize this pass and move it to LLVM.
@@ -32,51 +32,51 @@
 #include "language/LLVMPasses/Passes.h"
 #include "clang/AST/StableHash.h"
 #include "clang/Basic/PointerAuthOptions.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Attributes.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/GlobalPtrAuthInfo.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/InlineAsm.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Operator.h"
-#include "llvm/IR/StructuralHash.h"
-#include "llvm/IR/ValueHandle.h"
-#include "llvm/IR/ValueMap.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Transforms/IPO.h"
-#include "llvm/Transforms/Utils/FunctionComparator.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/IR/Attributes.h"
+#include "toolchain/IR/Constants.h"
+#include "toolchain/IR/DataLayout.h"
+#include "toolchain/IR/GlobalPtrAuthInfo.h"
+#include "toolchain/IR/IRBuilder.h"
+#include "toolchain/IR/InlineAsm.h"
+#include "toolchain/IR/Instructions.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/IR/Operator.h"
+#include "toolchain/IR/StructuralHash.h"
+#include "toolchain/IR/ValueHandle.h"
+#include "toolchain/IR/ValueMap.h"
+#include "toolchain/Pass.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Transforms/IPO.h"
+#include "toolchain/Transforms/Utils/FunctionComparator.h"
 #include <vector>
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
 
-#define DEBUG_TYPE "swift-mergefunc"
+#define DEBUG_TYPE "language-mergefunc"
 
-STATISTIC(NumSwiftFunctionsMerged, "Number of functions merged");
-STATISTIC(NumSwiftThunksWritten, "Number of thunks generated");
+STATISTIC(NumCodiraFunctionsMerged, "Number of functions merged");
+STATISTIC(NumCodiraThunksWritten, "Number of thunks generated");
 
 static cl::opt<unsigned> NumFunctionsForSanityCheck(
-    "swiftmergefunc-sanity",
+    "languagemergefunc-sanity",
     cl::desc("How many functions in module could be used for "
-             "SwiftMergeFunctions pass sanity check. "
+             "CodiraMergeFunctions pass sanity check. "
              "'0' disables this check. Works only with '-debug' key."),
     cl::init(0), cl::Hidden);
 
 static cl::opt<unsigned> FunctionMergeThreshold(
-    "swiftmergefunc-threshold",
+    "languagemergefunc-threshold",
     cl::desc("Functions larger than the threshold are considered for merging."
              "'0' disables function merging at all."),
     cl::init(15), cl::Hidden);
@@ -87,9 +87,9 @@ namespace {
 /// they will generate machine code with the same behavior. DataLayout is
 /// used if available. The comparator always fails conservatively (erring on the
 /// side of claiming that two functions are different).
-class SwiftFunctionComparator : FunctionComparator {
+class CodiraFunctionComparator : FunctionComparator {
 public:
-  SwiftFunctionComparator(const Function *F1, const Function *F2,
+  CodiraFunctionComparator(const Function *F1, const Function *F2,
                             GlobalNumberState* GN) :
     FunctionComparator(F1, F2, GN) {}
 
@@ -142,7 +142,7 @@ static bool canParameterizeCallOperand(const CallInst *CI, unsigned opIdx) {
   return true;
 }
 
-int SwiftFunctionComparator::
+int CodiraFunctionComparator::
 cmpOperandsIgnoringConsts(const Instruction *L, const Instruction *R,
                           unsigned opIdx) {
   Value *OpL = L->getOperand(opIdx);
@@ -172,7 +172,7 @@ cmpOperandsIgnoringConsts(const Instruction *L, const Instruction *R,
 }
 
 // Test whether two basic blocks have equivalent behavior.
-int SwiftFunctionComparator::
+int CodiraFunctionComparator::
 cmpBasicBlocksIgnoringConsts(const BasicBlock *BBL, const BasicBlock *BBR) {
   BasicBlock::const_iterator InstL = BBL->begin(), InstLE = BBL->end();
   BasicBlock::const_iterator InstR = BBR->begin(), InstRE = BBR->end();
@@ -203,7 +203,7 @@ cmpBasicBlocksIgnoringConsts(const BasicBlock *BBL, const BasicBlock *BBR) {
 }
 
 // Test whether the two functions have equivalent behavior.
-int SwiftFunctionComparator::compareIgnoringConsts() {
+int CodiraFunctionComparator::compareIgnoringConsts() {
   beginCompare();
 
   if (int Res = compareSignature())
@@ -230,18 +230,18 @@ int SwiftFunctionComparator::compareIgnoringConsts() {
 
 namespace {
 
-/// SwiftMergeFunctions finds functions which only differ by constants in
+/// CodiraMergeFunctions finds functions which only differ by constants in
 /// certain instructions, e.g. resulting from specialized functions of layout
 /// compatible types.
 /// Such functions are merged by replacing the differing constants by a
 /// parameter. The original functions are replaced by thunks which call the
 /// merged function with the specific argument constants.
 ///
-class SwiftMergeFunctions {
+class CodiraMergeFunctions {
 public:
-  SwiftMergeFunctions() : FnTree(FunctionNodeCmp(&GlobalNumbers)) {}
+  CodiraMergeFunctions() : FnTree(FunctionNodeCmp(&GlobalNumbers)) {}
 
-  SwiftMergeFunctions(bool ptrAuthEnabled, unsigned ptrAuthKey)
+  CodiraMergeFunctions(bool ptrAuthEnabled, unsigned ptrAuthKey)
       : FnTree(FunctionNodeCmp(&GlobalNumbers)), ptrAuthOptionsSet(true),
         ptrAuthEnabled(ptrAuthEnabled), ptrAuthKey(ptrAuthKey) {}
 
@@ -258,12 +258,12 @@ private:
     FunctionEntry *First;
 
     /// A very cheap hash, used to early exit if functions do not match.
-    llvm::IRHash Hash;
+    toolchain::IRHash Hash;
 
   public:
     // Note the hash is recalculated potentially multiple times, but it is cheap.
     EquivalenceClass(FunctionEntry *First)
-        : First(First), Hash(llvm::StructuralHash(*First->F)) {
+        : First(First), Hash(toolchain::StructuralHash(*First->F)) {
       assert(!First->Next);
     }
   };
@@ -278,7 +278,7 @@ private:
       // Order first by hashes, then full function comparison.
       if (LHS.Hash != RHS.Hash)
         return LHS.Hash < RHS.Hash;
-      SwiftFunctionComparator FCmp(LHS.First->F, RHS.First->F, GlobalNumbers);
+      CodiraFunctionComparator FCmp(LHS.First->F, RHS.First->F, GlobalNumbers);
       return FCmp.compareIgnoringConsts() == -1;
     }
   };
@@ -439,7 +439,7 @@ private:
   ValueMap<Function*, FunctionEntry *> FuncEntries;
 
   // Maps a function-pointer / discriminator pair to a corresponding global in
-  // the llvm.ptrauth section.
+  // the toolchain.ptrauth section.
   // This map is used as a cache to not create ptrauth globals twice.
   DenseMap<std::pair<Constant *, ConstantInt *>, Constant *> ptrAuthGlobals;
 
@@ -530,35 +530,35 @@ private:
                             const ParamInfos &Params, unsigned FuncIdx);
 };
 
-class LegacySwiftMergeFunctions : public ModulePass {
+class LegacyCodiraMergeFunctions : public ModulePass {
 public:
   static char ID;
-  SwiftMergeFunctions impl;
+  CodiraMergeFunctions impl;
 
-  LegacySwiftMergeFunctions() : ModulePass(ID) {}
+  LegacyCodiraMergeFunctions() : ModulePass(ID) {}
 
-  LegacySwiftMergeFunctions(bool ptrAuthEnabled, unsigned ptrAuthKey)
+  LegacyCodiraMergeFunctions(bool ptrAuthEnabled, unsigned ptrAuthKey)
       : ModulePass(ID), impl(ptrAuthEnabled, ptrAuthKey) {}
   bool runOnModule(Module &M) override { return impl.runOnModule(M); }
 };
 
 } // end anonymous namespace
 
-char LegacySwiftMergeFunctions::ID = 0;
-INITIALIZE_PASS_BEGIN(LegacySwiftMergeFunctions, "swift-merge-functions",
-                      "Swift merge function pass", false, false)
-INITIALIZE_PASS_END(LegacySwiftMergeFunctions, "swift-merge-functions",
-                    "Swift merge function pass", false, false)
+char LegacyCodiraMergeFunctions::ID = 0;
+INITIALIZE_PASS_BEGIN(LegacyCodiraMergeFunctions, "language-merge-functions",
+                      "Codira merge function pass", false, false)
+INITIALIZE_PASS_END(LegacyCodiraMergeFunctions, "language-merge-functions",
+                    "Codira merge function pass", false, false)
 
-llvm::ModulePass *
-swift::createLegacySwiftMergeFunctionsPass(bool ptrAuthEnabled,
+toolchain::ModulePass *
+language::createLegacyCodiraMergeFunctionsPass(bool ptrAuthEnabled,
                                            unsigned ptrAuthKey) {
-  initializeLegacySwiftMergeFunctionsPass(
-      *llvm::PassRegistry::getPassRegistry());
-  return new LegacySwiftMergeFunctions(ptrAuthEnabled, ptrAuthKey);
+  initializeLegacyCodiraMergeFunctionsPass(
+      *toolchain::PassRegistry::getPassRegistry());
+  return new LegacyCodiraMergeFunctions(ptrAuthEnabled, ptrAuthKey);
 }
 
-bool SwiftMergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
+bool CodiraMergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
   if (const unsigned Max = NumFunctionsForSanityCheck) {
     unsigned TripleNumber = 0;
     bool Valid = true;
@@ -574,17 +574,17 @@ bool SwiftMergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
            ++J, ++j) {
         Function *F1 = cast<Function>(*I);
         Function *F2 = cast<Function>(*J);
-        int Res1 = SwiftFunctionComparator(F1, F2, &GlobalNumbers).
+        int Res1 = CodiraFunctionComparator(F1, F2, &GlobalNumbers).
                      compareIgnoringConsts();
-        int Res2 = SwiftFunctionComparator(F2, F1, &GlobalNumbers).
+        int Res2 = CodiraFunctionComparator(F2, F1, &GlobalNumbers).
                      compareIgnoringConsts();
 
         // If F1 <= F2, then F2 >= F1, otherwise report failure.
         if (Res1 != -Res2) {
           dbgs() << "MERGEFUNC-SANITY: Non-symmetric; triple: " << TripleNumber
                  << "\n";
-          LLVM_DEBUG(F1->dump());
-          LLVM_DEBUG(F2->dump());
+          TOOLCHAIN_DEBUG(F1->dump());
+          TOOLCHAIN_DEBUG(F2->dump());
           Valid = false;
         }
 
@@ -598,9 +598,9 @@ bool SwiftMergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
             continue;
 
           Function *F3 = cast<Function>(*K);
-          int Res3 = SwiftFunctionComparator(F1, F3, &GlobalNumbers).
+          int Res3 = CodiraFunctionComparator(F1, F3, &GlobalNumbers).
                        compareIgnoringConsts();
-          int Res4 = SwiftFunctionComparator(F2, F3, &GlobalNumbers).
+          int Res4 = CodiraFunctionComparator(F2, F3, &GlobalNumbers).
                        compareIgnoringConsts();
 
           bool Transitive = true;
@@ -621,9 +621,9 @@ bool SwiftMergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
                    << TripleNumber << "\n";
             dbgs() << "Res1, Res3, Res4: " << Res1 << ", " << Res3 << ", "
                    << Res4 << "\n";
-            LLVM_DEBUG(F1->dump());
-            LLVM_DEBUG(F2->dump());
-            LLVM_DEBUG(F3->dump());
+            TOOLCHAIN_DEBUG(F1->dump());
+            TOOLCHAIN_DEBUG(F2->dump());
+            TOOLCHAIN_DEBUG(F3->dump());
             Valid = false;
           }
         }
@@ -683,7 +683,7 @@ static bool isEligibleFunction(Function *F) {
   if (F->getFunctionType()->isVarArg())
     return false;
 
-  if (F->getCallingConv() == CallingConv::SwiftTail)
+  if (F->getCallingConv() == CallingConv::CodiraTail)
     return false;
   
   unsigned Benefit = getBenefit(F);
@@ -693,7 +693,7 @@ static bool isEligibleFunction(Function *F) {
   return true;
 }
 
-bool SwiftMergeFunctions::runOnModule(Module &M) {
+bool CodiraMergeFunctions::runOnModule(Module &M) {
   
   if (FunctionMergeThreshold == 0)
     return false;
@@ -702,7 +702,7 @@ bool SwiftMergeFunctions::runOnModule(Module &M) {
 
   if (!ptrAuthOptionsSet) {
     // If invoked from IRGen in the compiler, those options are already set.
-    // If invoked from swift-llvm-opt, derive the options from the target triple.
+    // If invoked from language-toolchain-opt, derive the options from the target triple.
     Triple triple(M.getTargetTriple());
     ptrAuthEnabled = (triple.getSubArch() == Triple::AArch64SubArch_arm64e);
     ptrAuthKey = (unsigned)clang::PointerAuthSchema::ARM8_3Key::ASIA;
@@ -717,7 +717,7 @@ bool SwiftMergeFunctions::runOnModule(Module &M) {
 
   for (Function &Func : M) {
     if (isEligibleFunction(&Func)) {
-      HashedFuncs.push_back({llvm::StructuralHash(Func), &Func});
+      HashedFuncs.push_back({toolchain::StructuralHash(Func), &Func});
     }
   }
 
@@ -749,9 +749,9 @@ bool SwiftMergeFunctions::runOnModule(Module &M) {
     std::vector<WeakTrackingVH> Worklist;
     Deferred.swap(Worklist);
 
-    LLVM_DEBUG(dbgs() << "======\nbuild tree: worklist-size="
+    TOOLCHAIN_DEBUG(dbgs() << "======\nbuild tree: worklist-size="
                       << Worklist.size() << '\n');
-    LLVM_DEBUG(doSanityCheck(Worklist));
+    TOOLCHAIN_DEBUG(doSanityCheck(Worklist));
 
     SmallVector<FunctionEntry *, 8> FuncsToMerge;
 
@@ -770,10 +770,10 @@ bool SwiftMergeFunctions::runOnModule(Module &M) {
 
       if (Result.second) {
         assert(Eq.First == FE);
-        LLVM_DEBUG(dbgs() << "  new in tree: " << F->getName() << '\n');
+        TOOLCHAIN_DEBUG(dbgs() << "  new in tree: " << F->getName() << '\n');
       } else {
         assert(Eq.First != FE);
-        LLVM_DEBUG(dbgs() << "  add to existing: " << F->getName() << '\n');
+        TOOLCHAIN_DEBUG(dbgs() << "  add to existing: " << F->getName() << '\n');
         // Add the function to the existing equivalence class.
         FE->Next = Eq.First->Next;
         Eq.First->Next = FE;
@@ -783,7 +783,7 @@ bool SwiftMergeFunctions::runOnModule(Module &M) {
           FuncsToMerge.push_back(Eq.First);
       }
     }
-    LLVM_DEBUG(dbgs() << "merge functions: tree-size=" << FnTree.size()
+    TOOLCHAIN_DEBUG(dbgs() << "merge functions: tree-size=" << FnTree.size()
                       << '\n');
 
     // Figure out the leaf functions. We want to do the merging in bottom-up
@@ -826,7 +826,7 @@ bool SwiftMergeFunctions::runOnModule(Module &M) {
   return Changed;
 }
 
-void SwiftMergeFunctions::updateUnhandledCalleeCount(FunctionEntry *FE,
+void CodiraMergeFunctions::updateUnhandledCalleeCount(FunctionEntry *FE,
                                                      int Delta) {
   // Iterate over all functions of FE's equivalence class.
   do {
@@ -844,7 +844,7 @@ void SwiftMergeFunctions::updateUnhandledCalleeCount(FunctionEntry *FE,
   } while (FE);
 }
 
-bool SwiftMergeFunctions::tryMergeEquivalenceClass(FunctionEntry *FirstInClass) {
+bool CodiraMergeFunctions::tryMergeEquivalenceClass(FunctionEntry *FirstInClass) {
   // Build the FInfos vector from all functions in the equivalence class.
   FunctionInfos FInfos;
   FunctionEntry *FE = FirstInClass;
@@ -895,7 +895,7 @@ bool SwiftMergeFunctions::tryMergeEquivalenceClass(FunctionEntry *FirstInClass) 
 
 /// Remove the function from \p FInfos which needs the most parameters. Add the
 /// removed function to
-SwiftMergeFunctions::FunctionInfo SwiftMergeFunctions::
+CodiraMergeFunctions::FunctionInfo CodiraMergeFunctions::
 removeFuncWithMostParams(FunctionInfos &FInfos) {
   FunctionInfos::iterator MaxIter = FInfos.end();
   for (auto Iter = FInfos.begin(), End = FInfos.end(); Iter != End; ++Iter) {
@@ -913,7 +913,7 @@ removeFuncWithMostParams(FunctionInfos &FInfos) {
 /// \p FInfos.
 /// Returns true on success, i.e. the functions in \p FInfos can be merged with
 /// the parameters returned in \p Params.
-bool SwiftMergeFunctions::deriveParams(ParamInfos &Params,
+bool CodiraMergeFunctions::deriveParams(ParamInfos &Params,
                                        FunctionInfos &FInfos,
                                        unsigned maxParams) {
   for (FunctionInfo &FI : FInfos)
@@ -960,7 +960,7 @@ bool SwiftMergeFunctions::deriveParams(ParamInfos &Params,
 }
 
 /// Returns true if the number of operands of the current instruction differs.
-bool SwiftMergeFunctions::numOperandsDiffer(FunctionInfos &FInfos) {
+bool CodiraMergeFunctions::numOperandsDiffer(FunctionInfos &FInfos) {
   unsigned numOps = FInfos[0].CurrentInst->getNumOperands();
   for (const FunctionInfo &FI : ArrayRef<FunctionInfo>(FInfos).drop_front(1)) {
     if (FI.CurrentInst->getNumOperands() != numOps)
@@ -971,7 +971,7 @@ bool SwiftMergeFunctions::numOperandsDiffer(FunctionInfos &FInfos) {
 
 /// Returns true if the \p OpIdx's constant operand in the current instruction
 /// does differ in any of the functions in \p FInfos.
-bool SwiftMergeFunctions::constsDiffer(const FunctionInfos &FInfos,
+bool CodiraMergeFunctions::constsDiffer(const FunctionInfos &FInfos,
                                        unsigned OpIdx) {
   Constant *CommonConst = nullptr;
 
@@ -992,7 +992,7 @@ bool SwiftMergeFunctions::constsDiffer(const FunctionInfos &FInfos,
 /// parameter.
 /// Returns true if a parameter could be created or found without exceeding the
 /// maximum number of parameters.
-bool SwiftMergeFunctions::tryMapToParameter(FunctionInfos &FInfos,
+bool CodiraMergeFunctions::tryMapToParameter(FunctionInfos &FInfos,
                                             unsigned OpIdx, ParamInfos &Params,
                                             unsigned maxParams) {
   ParamInfo *Matching = nullptr;
@@ -1030,16 +1030,16 @@ bool SwiftMergeFunctions::tryMapToParameter(FunctionInfos &FInfos,
 
 /// Copy \p origCall with a \p newCalle and add a ptrauth bundle with \p
 /// discriminator.
-void SwiftMergeFunctions::replaceCallWithAddedPtrAuth(CallInst *origCall,
+void CodiraMergeFunctions::replaceCallWithAddedPtrAuth(CallInst *origCall,
                                     Value *newCallee,
                                     ConstantInt *discriminator) {
-  SmallVector<llvm::OperandBundleDef, 4> bundles;
+  SmallVector<toolchain::OperandBundleDef, 4> bundles;
   origCall->getOperandBundlesAsDefs(bundles);
   ConstantInt *key = getPtrAuthKey();
-  llvm::Value *bundleArgs[] = { key, discriminator };
+  toolchain::Value *bundleArgs[] = { key, discriminator };
   bundles.emplace_back("ptrauth", bundleArgs);
 
-  SmallVector<llvm::Value *, 4> copiedArgs;
+  SmallVector<toolchain::Value *, 4> copiedArgs;
   for (Value *op : origCall->args()) {
     copiedArgs.push_back(op);
   }
@@ -1055,7 +1055,7 @@ void SwiftMergeFunctions::replaceCallWithAddedPtrAuth(CallInst *origCall,
 
 /// Merge all functions in \p FInfos by creating thunks which call the single
 /// merged function with additional parameters.
-void SwiftMergeFunctions::mergeWithParams(const FunctionInfos &FInfos,
+void CodiraMergeFunctions::mergeWithParams(const FunctionInfos &FInfos,
                                           ParamInfos &Params) {
   // We reuse the body of the first function for the new merged function.
   Function *FirstF = FInfos.front().F;
@@ -1090,7 +1090,7 @@ void SwiftMergeFunctions::mergeWithParams(const FunctionInfos &FInfos,
   FirstF->getParent()->getFunctionList().insert(
                         std::next(FInfos[1].F->getIterator()), NewFunction);
   
-  LLVM_DEBUG(dbgs() << "  Merge into " << NewFunction->getName() << '\n');
+  TOOLCHAIN_DEBUG(dbgs() << "  Merge into " << NewFunction->getName() << '\n');
 
   // Move the body of FirstF into the NewFunction.
   NewFunction->splice(NewFunction->begin(), FirstF);
@@ -1150,19 +1150,19 @@ void SwiftMergeFunctions::mergeWithParams(const FunctionInfos &FInfos,
       assert(!isInEquivalenceClass(&*Iter->second));
       Iter->second->F = nullptr;
       FuncEntries.erase(Iter);
-      LLVM_DEBUG(dbgs() << "    Erase " << OrigFunc->getName() << '\n');
+      TOOLCHAIN_DEBUG(dbgs() << "    Erase " << OrigFunc->getName() << '\n');
       OrigFunc->eraseFromParent();
     } else {
       // Otherwise we need a thunk which calls the merged function.
       writeThunk(NewFunction, OrigFunc, Params, FIdx);
     }
-    ++NumSwiftFunctionsMerged;
+    ++NumCodiraFunctionsMerged;
   }
 }
 
 /// Remove all functions of \p FE's equivalence class from FnTree. Add them to
 /// Deferred so that we'll look at them in the next round.
-void SwiftMergeFunctions::removeEquivalenceClassFromTree(FunctionEntry *FE) {
+void CodiraMergeFunctions::removeEquivalenceClassFromTree(FunctionEntry *FE) {
   if (!isInEquivalenceClass(FE))
     return;
 
@@ -1170,7 +1170,7 @@ void SwiftMergeFunctions::removeEquivalenceClassFromTree(FunctionEntry *FE) {
   FunctionEntry *Unlink = Iter->First;
   Unlink->numUnhandledCallees = 0;
   while (Unlink) {
-    LLVM_DEBUG(dbgs() << "    remove from tree: " << Unlink->F->getName()
+    TOOLCHAIN_DEBUG(dbgs() << "    remove from tree: " << Unlink->F->getName()
                       << '\n');
     if (!Unlink->isMerged)
       Deferred.emplace_back(Unlink->F);
@@ -1197,10 +1197,10 @@ static Value *createCast(IRBuilder<> &Builder, Value *V, Type *DestTy) {
     Value *Result = UndefValue::get(DestTy);
     for (unsigned int I = 0, E = SrcTy->getStructNumElements(); I < E; ++I) {
       Value *Element =
-          createCast(Builder, Builder.CreateExtractValue(V, llvm::ArrayRef(I)),
+          createCast(Builder, Builder.CreateExtractValue(V, toolchain::ArrayRef(I)),
                      DestTy->getStructElementType(I));
 
-      Result = Builder.CreateInsertValue(Result, Element, llvm::ArrayRef(I));
+      Result = Builder.CreateInsertValue(Result, Element, toolchain::ArrayRef(I));
     }
     return Result;
   }
@@ -1216,7 +1216,7 @@ static Value *createCast(IRBuilder<> &Builder, Value *V, Type *DestTy) {
 /// Replace \p Thunk with a simple tail call to \p ToFunc. Also add parameters
 /// to the call to \p ToFunc, which are defined by the FuncIdx's value in
 /// \p Params.
-void SwiftMergeFunctions::writeThunk(Function *ToFunc, Function *Thunk,
+void CodiraMergeFunctions::writeThunk(Function *ToFunc, Function *Thunk,
                                      const ParamInfos &Params,
                                      unsigned FuncIdx) {
   // Delete the existing content of Thunk.
@@ -1244,11 +1244,11 @@ void SwiftMergeFunctions::writeThunk(Function *ToFunc, Function *Thunk,
   }
 
   CallInst *CI = Builder.CreateCall(ToFunc, Args);
-  bool isSwiftTailCall =
-   ToFunc->getCallingConv() == CallingConv::SwiftTail &&
-   Thunk->getCallingConv() == CallingConv::SwiftTail;
+  bool isCodiraTailCall =
+   ToFunc->getCallingConv() == CallingConv::CodiraTail &&
+   Thunk->getCallingConv() == CallingConv::CodiraTail;
   CI->setTailCallKind(
-    isSwiftTailCall ? llvm::CallInst::TCK_MustTail : llvm::CallInst::TCK_Tail);
+    isCodiraTailCall ? toolchain::CallInst::TCK_MustTail : toolchain::CallInst::TCK_Tail);
   CI->setCallingConv(ToFunc->getCallingConv());
   CI->setAttributes(ToFunc->getAttributes());
   if (Thunk->getReturnType()->isVoidTy()) {
@@ -1257,13 +1257,13 @@ void SwiftMergeFunctions::writeThunk(Function *ToFunc, Function *Thunk,
     Builder.CreateRet(createCast(Builder, CI, Thunk->getReturnType()));
   }
 
-  LLVM_DEBUG(dbgs() << "    writeThunk: " << Thunk->getName() << '\n');
-  ++NumSwiftThunksWritten;
+  TOOLCHAIN_DEBUG(dbgs() << "    writeThunk: " << Thunk->getName() << '\n');
+  ++NumCodiraThunksWritten;
 }
 
 /// Replace direct callers of Old with New. Also add parameters to the call to
 /// \p New, which are defined by the FuncIdx's value in \p Params.
-bool SwiftMergeFunctions::replaceDirectCallers(Function *Old, Function *New,
+bool CodiraMergeFunctions::replaceDirectCallers(Function *Old, Function *New,
                                    const ParamInfos &Params, unsigned FuncIdx) {
   bool AllReplaced = true;
 
@@ -1342,9 +1342,9 @@ bool SwiftMergeFunctions::replaceDirectCallers(Function *Old, Function *New,
   return Old->hasLocalLinkage();
 }
 
-PreservedAnalyses SwiftMergeFunctionsPass::run(Module &M,
+PreservedAnalyses CodiraMergeFunctionsPass::run(Module &M,
                                                ModuleAnalysisManager &AM) {
-  SwiftMergeFunctions helper(ptrAuthEnabled, ptrAuthKey);
+  CodiraMergeFunctions helper(ptrAuthEnabled, ptrAuthKey);
   bool changed = helper.runOnModule(M);
 
   if (!changed)

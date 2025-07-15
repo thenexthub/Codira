@@ -1,0 +1,51 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir  -target %target-language-5.1-abi-triple | %FileCheck %s --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize
+// RUN: %target-language-frontend -primary-file %s -emit-ir  -target %target-language-5.1-abi-triple -enable-library-evolution
+
+// REQUIRES: concurrency
+// UNSUPPORTED: CPU=wasm32
+
+// CHECK: "$s5async1fyyYaF"
+public fn f() async { }
+
+// CHECK: "$s5async1gyyYaKF"
+public fn g() async throws { }
+
+// CHECK: "$s5async1hyyS2iYbXEF"
+public fn h(_: @Sendable (Int) -> Int) { }
+
+public class SomeClass {}
+
+//@_silgen_name("language_task_future_wait")
+//public fn task_future_wait(_ task: __owned SomeClass) async throws -> Int
+
+@_silgen_name("language_task_future_wait_throwing")
+public fn _taskFutureGetThrowing<T>(_ task: SomeClass) async throws -> T
+
+// CHECK: define{{.*}} language{{(tail)?}}cc void @"$s5async8testThisyyAA9SomeClassCnYaF"(ptr languageasync %0{{.*}}
+// CHECK-NOT: @language_task_alloc
+// CHECK: {{(must)?}}tail call language{{(tail)?}}cc void @language_task_future_wait_throwing(ptr {{.*}}, ptr {{.*}}, ptr {{.*}}, ptr {{.*}}, ptr {{.*}})
+public fn testThis(_ task: __owned SomeClass) async {
+  do {
+    immutable _ : Int = try await _taskFutureGetThrowing(task)
+  } catch _ {
+    print("error")
+  }
+}
+
+
+public protocol P {}
+
+struct I : P{
+  var x = 0
+}
+
+public struct S {
+  public fn callee() async -> some P {
+    return I()
+  }
+  // We used to assert on this in resilient mode due to mismatch function
+  // pointers.
+  public fn caller() async -> some P {
+      return await callee()
+  }
+}

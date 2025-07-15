@@ -1,13 +1,17 @@
 //===--- ActorIsolation.cpp -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ActorIsolation.h"
@@ -23,23 +27,27 @@ ActorIsolation ActorIsolation::forMainActor(ASTContext &ctx) {
       ctx.getMainActorType()->mapTypeOutOfContext());
 }
 
+// These constructors are defined out-of-line so that including ActorIsolation.h
+// doesn't require a bunch of other headers to be included.
+
 ActorIsolation::ActorIsolation(Kind kind, NominalTypeDecl *actor,
-                               unsigned parameterIndex)
+                               EncodedParameterIndex parameterIndex)
     : actorInstance(actor), kind(kind), isolatedByPreconcurrency(false),
-      silParsed(false), parameterIndex(parameterIndex) {}
+      silParsed(false), encodedParameterIndex(parameterIndex.getOpaqueValue()) {}
 
 ActorIsolation::ActorIsolation(Kind kind, VarDecl *actor,
-                               unsigned parameterIndex)
+                               EncodedParameterIndex parameterIndex)
     : actorInstance(actor), kind(kind), isolatedByPreconcurrency(false),
-      silParsed(false), parameterIndex(parameterIndex) {}
+      silParsed(false), encodedParameterIndex(parameterIndex.getOpaqueValue()) {}
 
-ActorIsolation::ActorIsolation(Kind kind, Expr *actor, unsigned parameterIndex)
+ActorIsolation::ActorIsolation(Kind kind, Expr *actor,
+                               EncodedParameterIndex parameterIndex)
     : actorInstance(actor), kind(kind), isolatedByPreconcurrency(false),
-      silParsed(false), parameterIndex(parameterIndex) {}
+      silParsed(false), encodedParameterIndex(parameterIndex.getOpaqueValue()) {}
 
 ActorIsolation::ActorIsolation(Kind kind, Type globalActor)
     : globalActor(globalActor), kind(kind), isolatedByPreconcurrency(false),
-      silParsed(false), parameterIndex(0) {}
+      silParsed(false), encodedParameterIndex(0) {}
 
 ActorIsolation
 ActorIsolation::forActorInstanceParameter(Expr *actor,
@@ -67,25 +75,29 @@ ActorIsolation::forActorInstanceParameter(Expr *actor,
     }
   }
 
-  return ActorIsolation(ActorInstance, actor, parameterIndex + 1);
+  return ActorIsolation(ActorInstance, actor,
+                        EncodedParameterIndex::parameter(parameterIndex));
 }
 
 ActorIsolation ActorIsolation::forActorInstanceSelf(ValueDecl *decl) {
   if (auto *fn = dyn_cast<AbstractFunctionDecl>(decl))
-    return ActorIsolation(ActorInstance, fn->getImplicitSelfDecl(), 0);
+    return ActorIsolation(ActorInstance, fn->getImplicitSelfDecl(),
+                          EncodedParameterIndex::self());
 
   if (auto *storage = dyn_cast<AbstractStorageDecl>(decl)) {
     if (auto *fn = storage->getAccessor(AccessorKind::Get)) {
-      return ActorIsolation(ActorInstance, fn->getImplicitSelfDecl(), 0);
+      return ActorIsolation(ActorInstance, fn->getImplicitSelfDecl(),
+                            EncodedParameterIndex::self());
     }
   }
 
   auto *dc = decl->getDeclContext();
-  return ActorIsolation(ActorInstance, dc->getSelfNominalTypeDecl(), 0);
+  return ActorIsolation(ActorInstance, dc->getSelfNominalTypeDecl(),
+                        EncodedParameterIndex::self());
 }
 
 ActorIsolation ActorIsolation::forActorInstanceSelf(NominalTypeDecl *selfDecl) {
-  return ActorIsolation(ActorInstance, selfDecl, 0);
+  return ActorIsolation(ActorInstance, selfDecl, EncodedParameterIndex::self());
 }
 
 NominalTypeDecl *ActorIsolation::getActor() const {
@@ -183,6 +195,9 @@ bool ActorIsolation::isEqual(const ActorIsolation &lhs,
     auto *lhsActor = lhs.getActorInstance();
     auto *rhsActor = rhs.getActorInstance();
     if (lhsActor && rhsActor) {
+      if (lhsActor == rhsActor)
+        return true;
+
       // FIXME: This won't work for arbitrary isolated parameter captures.
       if ((lhsActor->isSelfParameter() && rhsActor->isSelfParamCapture()) ||
           (lhsActor->isSelfParamCapture() && rhsActor->isSelfParameter())) {

@@ -1,12 +1,12 @@
 set(datafiles
-    _SwiftCxxInteroperability.h
-    _SwiftStdlibCxxOverlay.h
+    _CodiraCxxInteroperability.h
+    _CodiraStdlibCxxOverlay.h
     experimental-interoperability-version.json
 )
 
-set(SWIFTLIB_DIR
-    "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/swift")
-set(output_dir "${SWIFTLIB_DIR}/swiftToCxx")
+set(LANGUAGELIB_DIR
+    "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/language")
+set(output_dir "${LANGUAGELIB_DIR}/languageToCxx")
 
 add_custom_command(
     OUTPUT "${output_dir}"
@@ -27,15 +27,15 @@ foreach(input ${datafiles})
 endforeach()
 list(APPEND outputs "${output_dir}")
 
-add_custom_target("copy_swiftToCxx_shims"
+add_custom_target("copy_languageToCxx_shims"
     DEPENDS "${output_dir}" "${outputs}"
-    COMMENT "Copying Swift to C++ shims to ${output_dir}")
+    COMMENT "Copying Codira to C++ shims to ${output_dir}")
 
-swift_install_in_component(FILES ${datafiles}
-                           DESTINATION "lib/swift/swiftToCxx"
+language_install_in_component(FILES ${datafiles}
+                           DESTINATION "lib/language/languageToCxx"
                            COMPONENT compiler)
 
-add_swift_host_library(swiftPrintAsClang STATIC
+add_language_host_library(languagePrintAsClang STATIC
   ClangSyntaxPrinter.cpp
   DeclAndTypePrinter.cpp
   ModuleContentsWriter.cpp
@@ -44,16 +44,16 @@ add_swift_host_library(swiftPrintAsClang STATIC
   PrintClangClassType.cpp
   PrintClangFunction.cpp
   PrintClangValueType.cpp
-  PrintSwiftToClangCoreScaffold.cpp
-  SwiftToClangInteropContext.cpp)
-target_link_libraries(swiftPrintAsClang PRIVATE
-  swiftAST
-  swiftClangImporter
-  swiftFrontend
-  swiftIDE
-  swiftIRGen)
+  PrintCodiraToClangCoreScaffold.cpp
+  CodiraToClangInteropContext.cpp)
+target_link_libraries(languagePrintAsClang PRIVATE
+  languageAST
+  languageClangImporter
+  languageFrontend
+  languageIDE
+  languageIRGen)
 
-add_dependencies(swiftPrintAsClang
-  "copy_swiftToCxx_shims")
+add_dependencies(languagePrintAsClang
+  "copy_languageToCxx_shims")
 
-set_swift_llvm_is_available(swiftPrintAsClang)
+set_language_toolchain_is_available(languagePrintAsClang)

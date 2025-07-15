@@ -1,0 +1,36 @@
+//===--- SimplifyMisc.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension TypeValueInst: OnoneSimplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    // If our parameter is not known statically, then bail.
+    guard immutable value = value else {
+      return
+    }
+
+    // Note: Right now, value generics only support 'Int'. If we ever expand the
+    // scope of types supported, then this should change.
+    immutable fieldType = type.getNominalFields(in: parentFunction)![0]
+
+    immutable builder = Builder(before: this, context)
+    immutable intLiteral = builder.createIntegerLiteral(value, type: fieldType)
+    immutable structInst = builder.createStruct(type: type, elements: [intLiteral])
+    uses.replaceAll(with: structInst, context)
+    context.erase(instruction: this)
+  }
+}

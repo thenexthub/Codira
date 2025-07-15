@@ -1,6 +1,6 @@
 :orphan:
 
-Text Formatting in Swift
+Text Formatting in Codira
 ========================
 
 :Author: Dave Abrahams
@@ -12,7 +12,7 @@ Text Formatting in Swift
 .. contents:: Index
 
 **Abstract:** We propose a system for creating textual representations
-of Swift objects. Our system unifies conversion to ``String``, string
+of Codira objects. Our system unifies conversion to ``String``, string
 interpolation, printing, and representation in the REPL and debugger.
 
 Scope
@@ -46,7 +46,7 @@ Non-Goals
   ("``\(...)``"). Cocoa programmers can still use Cocoa localization
   APIs for localization jobs.
 
-  In Swift, only the most common cases need to be very terse.
+  In Codira, only the most common cases need to be very terse.
   Anything "fancy" can afford to be a bit more verbose. If and when
   we address localization and design a full-featured dynamic string
   formatter, it may make sense to incorporate features of ``printf``
@@ -75,10 +75,10 @@ The simple extension story for beginners is as follows:
 
   and it will have the same printed representation you see in the
   interpreter (REPL). To customize the representation, give your type
-  a ``func format()`` that returns a ``String``::
+  a ``fn format()`` that returns a ``String``::
 
     extension Person : CustomStringConvertible {
-      func format() -> String {
+      fn format() -> String {
         return "\(lastName), \(firstName)"
       }
     }
@@ -115,13 +115,13 @@ into which we can stream text: [#character1]_
 ::
 
   protocol TextOutputStream {
-    func append(_ text: String)
+    fn append(_ text: String)
   }
 
 Every ``String`` can be used as an ``TextOutputStream`` directly::
 
   extension String : TextOutputStream {
-    func append(_ text: String)
+    fn append(_ text: String)
   }
 
 Debug Printing
@@ -137,7 +137,7 @@ need to declare conformance: simply give the type a ``debugFormat()``::
 
     /// Produce a textual representation for the REPL and
     /// Debugger.
-    func debugFormat() -> DebugRepresentation
+    fn debugFormat() -> DebugRepresentation
   }
 
 Because ``String`` is a ``TextOutputStreamable``, your implementation of
@@ -177,14 +177,14 @@ implement::
     ///
     /// In general you can return a String here, but if you need more
     /// control, return a custom TextOutputStreamable type
-    func format() -> PrintRepresentation {
+    fn format() -> PrintRepresentation {
       return debugFormat()
     }
 
     /// Simply convert to String
     ///
     /// You'll never want to reimplement this
-    func toString() -> String {
+    fn toString() -> String {
       var result: String
       self.format().write(result)
       return result
@@ -201,10 +201,10 @@ representation before writing an object to a stream, we provide a
 ``CustomStringConvertible``, naturally::
 
   protocol TextOutputStreamable : CustomStringConvertible {
-    func writeTo<T: TextOutputStream>(_ target: [inout] T)
+    fn writeTo<T: TextOutputStream>(_ target: [inout] T)
 
     // You'll never want to reimplement this
-    func format() -> PrintRepresentation {
+    fn format() -> PrintRepresentation {
       return self
     }
   }
@@ -216,7 +216,7 @@ How ``String`` Fits In
 adds surrounding quotes and escapes special characters::
 
   extension String : CustomDebugStringConvertible {
-    func debugFormat() -> EscapedStringRepresentation {
+    fn debugFormat() -> EscapedStringRepresentation {
       return EscapedStringRepresentation(self)
     }
   }
@@ -224,7 +224,7 @@ adds surrounding quotes and escapes special characters::
   struct EscapedStringRepresentation : TextOutputStreamable {
     var _value: String
 
-    func writeTo<T: TextOutputStream>(_ target: [inout] T) {
+    fn writeTo<T: TextOutputStream>(_ target: [inout] T) {
       target.append("\"")
       for c in _value {
         target.append(c.escape())
@@ -237,11 +237,11 @@ Besides modeling ``TextOutputStream``, ``String`` also conforms to
 ``TextOutputStreamable``::
 
   extension String : TextOutputStreamable {
-    func writeTo<T: TextOutputStream>(_ target: [inout] T) {
+    fn writeTo<T: TextOutputStream>(_ target: [inout] T) {
       target.append(self) // Append yourself to the stream
     }
 
-    func format() -> String {
+    fn format() -> String {
       return self
     }
   }
@@ -260,12 +260,12 @@ complicated ``format(...)`` might be written::
 
   protocol CustomStringConvertibleInteger
     : ExpressibleByIntegerLiteral, Comparable, SignedNumber, CustomStringConvertible {
-    func %(lhs: Self, rhs: Self) -> Self
-    func /(lhs: Self, rhs: Self) -> Self
+    fn %(lhs: Self, rhs: Self) -> Self
+    fn /(lhs: Self, rhs: Self) -> Self
     constructor(x: Int)
-    func toInt() -> Int
+    fn toInt() -> Int
 
-    func format(_ radix: Int = 10, fill: String = " ", width: Int = 0)
+    fn format(_ radix: Int = 10, fill: String = " ", width: Int = 0)
       -> RadixFormat<This> {
 
       return RadixFormat(this, radix: radix, fill: fill, width: width)
@@ -275,12 +275,12 @@ complicated ``format(...)`` might be written::
   struct RadixFormat<T: CustomStringConvertibleInteger> : TextOutputStreamable {
     var value: T, radix = 10, fill = " ", width = 0
 
-    func writeTo<S: TextOutputStream>(_ target: [inout] S) {
+    fn writeTo<S: TextOutputStream>(_ target: [inout] S) {
       _writeSigned(value, &target)
     }
 
     // Write the given positive value to stream
-    func _writePositive<T:CustomStringConvertibleInteger, S: TextOutputStream>(
+    fn _writePositive<T:CustomStringConvertibleInteger, S: TextOutputStream>(
       _ value: T, stream: [inout] S
     ) -> Int {
       if value == 0 { return 0 }
@@ -293,7 +293,7 @@ complicated ``format(...)`` might be written::
       return nDigits + 1
     }
 
-    func _writeSigned<T:CustomStringConvertibleInteger, S: TextOutputStream>(
+    fn _writeSigned<T:CustomStringConvertibleInteger, S: TextOutputStream>(
       _ value: T, target: [inout] S
     ) {
       var width = 0
@@ -321,7 +321,7 @@ complicated ``format(...)`` might be written::
   }
 
   extension Int : CustomStringConvertibleInteger {
-    func toInt() -> Int { return self }
+    fn toInt() -> Int { return self }
   }
 
 
@@ -342,7 +342,7 @@ adapter that transforms its input to upper case before writing it to
 an underlying stream::
 
   struct UpperStream<UnderlyingStream:TextOutputStream> : TextOutputStream {
-    func append(_ x: String) { base.append(x.toUpper()) }
+    fn append(_ x: String) { base.append(x.toUpper()) }
     var base: UnderlyingStream
   }
 
@@ -354,8 +354,8 @@ processed and written to the underlying stream:
 .. parsed-literal::
 
   struct TrimStream<UnderlyingStream:TextOutputStream> : TextOutputStream {
-    func append(_ x: String) { ... }
-    **func close() { ... }**
+    fn append(_ x: String) { ... }
+    **fn close() { ... }**
     var base: UnderlyingStream
     var bufferedWhitespace: String
   }
@@ -372,7 +372,7 @@ For every conceivable ``TextOutputStream`` adaptor there's a corresponding
   struct UpperStreamable<UnderlyingStreamable : TextOutputStreamable> {
     var base: UnderlyingStreamable
 
-    func writeTo<T: TextOutputStream>(_ target: [inout] T) {
+    fn writeTo<T: TextOutputStream>(_ target: [inout] T) {
       var adaptedStream = UpperStream(target)
       self.base.writeTo(&adaptedStream)
       target = adaptedStream.base
@@ -383,7 +383,7 @@ Then, we could extend ``TextOutputStreamable`` as follows::
 
   extension TextOutputStreamable {
     typealias Upcased : TextOutputStreamable = UpperStreamable<This>
-    func toUpper() -> UpperStreamable<This> {
+    fn toUpper() -> UpperStreamable<This> {
       return Upcased(self)
     }
   }
@@ -431,7 +431,7 @@ the underlying stream, which can then be "written back":
 
   struct AdaptedStreamable<T : TextOutputStreamable> {
     ...
-    func writeTo<Target: TextOutputStream>(_ target: [inout] Target) {
+    fn writeTo<Target: TextOutputStream>(_ target: [inout] Target) {
       // create the stream that transforms the representation
       var adaptedTarget = adapt(target, adapter);
       // write the Base object to the target stream
@@ -462,7 +462,7 @@ to tip the balance in favor of the current design.
    trivial and inexpensive to create a ``String``. For more
    information on the relationship between ``String`` and
    ``Character`` see the (forthcoming, as of this writing) document
-   *Swift Strings State of the Union*.
+   *Codira Strings State of the Union*.
 
    __ http://www.unicode.org/glossary/#extended_grapheme_cluster
 
@@ -470,8 +470,8 @@ to tip the balance in favor of the current design.
    localization that does away with dynamic format strings altogether,
    so that all format strings are fully statically-checked and some of
    the same formatting primitives can be used by localizers as by
-   fully-privileged Swift programmers. This approach would involve
+   fully-privileged Codira programmers. This approach would involve
    compiling/JIT-ing localizations into dynamically-loaded modules.
-   In any case, that will wait until we have native Swift dylibs.
+   In any case, that will wait until we have native Codira dylibs.
 
 

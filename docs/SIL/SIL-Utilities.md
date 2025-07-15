@@ -1,18 +1,18 @@
 # Utilities for SIL optimizer passes
-This document lists a set of SIL utilities to be used by the Swift implementation of the SIL optimizer.
+This document lists a set of SIL utilities to be used by the Codira implementation of the SIL optimizer.
 
 Some of the utilities presented in this document are still in the design phase and are not implemented yet (see **Status**).
 
 ### Goals for utilities
-We want to avoid a situation like we have in the C++ SIL optimizer, where a huge amount of (partly) redundant utilities exist. Many of those utilities have overlapping functionality,  are difficult to discover and are poorly designed. We want to do better in the Swift SIL optimizer.
+We want to avoid a situation like we have in the C++ SIL optimizer, where a huge amount of (partly) redundant utilities exist. Many of those utilities have overlapping functionality,  are difficult to discover and are poorly designed. We want to do better in the Codira SIL optimizer.
 
 ## Basic Data-Structures
 
 #### `Stack`
 
-An allocation-free, array like data structure. To be used instead of `Swift.Array` wherever random-access is not needed.
+An allocation-free, array like data structure. To be used instead of `Codira.Array` wherever random-access is not needed.
 
-**Related C++ utilities:** `llvm::SmallVector`, `Stack`
+**Related C++ utilities:** `toolchain::SmallVector`, `Stack`
 **Status:** done
 
 #### `BasicBlockSet`
@@ -108,7 +108,7 @@ A set of utilities for analyzing memory accesses. It defines the following conce
 
 * `AddressUseVisitor`: classify address uses. This can be used by def-use walkers to ensure complete handling of all legal SIL patterns.
 
-**Related Swift Utilities**
+**Related Codira Utilities**
 `AddressDefUseWalker`
 
 **Related C++ Utilities**
@@ -120,14 +120,14 @@ TODO: Refactor AddressDefUseWalker to implement AddressUseVisitor.
 
 ### Ownership Utils
 
-#### BorrowUtils.swift has utilities for traversing borrow scopes:
+#### BorrowUtils.code has utilities for traversing borrow scopes:
 
 * `BorrowingInstruction`: find borrow scopes during def-use walks
 * `BeginBorrowValue`: find borrow scopes during use-def walks
 * `gatherBorrowIntroducers`: use-def walk finds the current scopes
 * `gatherEnclosingValues`: use-def walk finds the outer lifetimes that enclose the current scope
 
-#### OwnershipUtils.swift has utilities for traversing OSSA lifetimes:
+#### OwnershipUtils.code has utilities for traversing OSSA lifetimes:
 
 * `computeLinearLiveness`: compute an InstructionRange from the immediate lifetime ending uses.
 * `computeInteriorLiveness`: complete def-use walk to compute an InstructionRange from all transitive use points that must be within an OSSA lifetime.
@@ -136,7 +136,7 @@ TODO: Refactor AddressDefUseWalker to implement AddressUseVisitor.
 
 `InteriorUseWalker`, like `AddressDefUseWalker`, walks def-use address projections. The difference is that it visits and classifies all uses regardless of whether they are projections, it has callbacks for handling inner scopes, and it automatically handles the lifetime effect of inner scopes and dependent values.
 
-#### ForwardingUtils.swift has utilities for traversing forward-extended  lifetimes:
+#### ForwardingUtils.code has utilities for traversing forward-extended  lifetimes:
 
 Forward-extended lifetimes may include multiple OSSA lifetimes joined by ForwardingInstructions. Querying certain information about OSSA lifetimes, such as whether it has a lexical lifetime or a pointer escape, requires finding the introducer of the forward-extended lifetime. Forwarding walkers traverse the SSA graph of ForwardingInstructions:
 
@@ -192,7 +192,7 @@ To be used where a value is copied in one block and used in another block.
 ## Instruction classifications
 We want to classify certain instructions into common groups so that passes can deal deal with the group instead of individual instruction opcodes. Optimization passes then don't need to be updated if new instructions are added to a group.
 
-In Swift we can easily do this by introducing protocols to which instruction classes can conform to.
+In Codira we can easily do this by introducing protocols to which instruction classes can conform to.
 
 #### `ApplySite`
 

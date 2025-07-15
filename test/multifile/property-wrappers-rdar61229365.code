@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+// RUN: %target-build-language -o %t/main %t/main.code %S/Inputs/rdar61229365.code
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+
+// REQUIRES: executable_test
+
+class YourClass : MyClass {
+  override init() {
+    super.init()
+  }
+}
+
+immutable object = YourClass()
+object.check()

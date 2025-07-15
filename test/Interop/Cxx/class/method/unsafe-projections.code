@@ -1,0 +1,72 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=UnsafeProjections -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: struct View {
+// CHECK:   fn data() -> UnsafeMutableRawPointer!
+// CHECK:   fn empty() -> UnsafeMutableRawPointer!
+// CHECK:   fn name() -> std{{.*}}string
+// CHECK:   fn nested() -> NestedSelfContained
+// CHECK:   fn explicitSelfContained() -> ExplicitSelfContained
+// CHECK:   fn explicitNested() -> NestedExplicitSelfContained
+// CHECK: }
+
+// CHECK: struct SelfContained {
+// CHECK:   fn name() -> std{{.*}}string
+// CHECK:   fn selfContained() -> SelfContained
+// CHECK:   fn nested() -> NestedSelfContained
+// CHECK:   fn empty() -> Empty
+// CHECK:   fn value() -> Int32
+// CHECK:   fn __viewUnsafe() -> View
+// CHECK:   fn __pointerUnsafe() -> UnsafeMutablePointer<Int32>!
+// CHECK:   fn explicitSelfContained() -> ExplicitSelfContained
+// CHECK:   fn explicitNested() -> NestedExplicitSelfContained
+// CHECK: }
+
+// CHECK: struct NestedSelfContained {
+// CHECK:   fn name() -> std{{.*}}string
+// CHECK:   fn selfContained() -> SelfContained
+// CHECK:   fn nested() -> NestedSelfContained
+// CHECK:   fn empty() -> Empty
+// CHECK:   fn value() -> Int32
+// CHECK:   fn __viewUnsafe() -> View
+// CHECK:   fn __pointerUnsafe() -> UnsafeMutablePointer<Int32>!
+// CHECK:   fn explicitSelfContained() -> ExplicitSelfContained
+// CHECK:   fn explicitNested() -> NestedExplicitSelfContained
+// CHECK: }
+
+// CHECK: struct InheritSelfContained {
+// CHECK:   fn name() -> std{{.*}}string
+// CHECK:   fn selfContained() -> SelfContained
+// CHECK:   fn nested() -> NestedSelfContained
+// CHECK:   fn empty() -> Empty
+// CHECK:   fn value() -> Int32
+// CHECK:   fn __viewUnsafe() -> View
+// CHECK:   fn __pointerUnsafe() -> UnsafeMutablePointer<Int32>!
+// CHECK:   fn explicitSelfContained() -> ExplicitSelfContained
+// CHECK:   fn explicitNested() -> NestedExplicitSelfContained
+// CHECK: }
+
+// CHECK: struct ExplicitSelfContained {
+// CHECK:   fn __pointerUnsafe() -> UnsafeMutableRawPointer!
+// CHECK:   fn __viewUnsafe() -> View
+// CHECK:   fn nested() -> NestedSelfContained
+// CHECK: }
+
+// CHECK: struct NestedExplicitSelfContained {
+// CHECK:   fn selfContained() -> SelfContained
+// CHECK:   fn nested() -> NestedSelfContained
+// CHECK:   fn value() -> Int32
+// CHECK:   fn __viewUnsafe() -> View
+// CHECK:   fn __pointerUnsafe() -> UnsafeMutablePointer<Int32>!
+// CHECK: }
+
+// CHECK: struct Empty {
+// CHECK:   fn empty() -> Empty
+// CHECK:   fn pointer() -> UnsafeMutableRawPointer!
+// CHECK:   fn selfContained() -> SelfContained
+// CHECK: }
+
+// CHECK: struct IntPair {
+// CHECK:   fn first() -> Int32
+// CHECK:   fn pointer() -> UnsafeMutableRawPointer!
+// CHECK:   fn selfContained() -> SelfContained
+// CHECK: }

@@ -1,0 +1,3 @@
+// {"signature":"(anonymous namespace)::SyntacticElementConstraintGenerator::visitBraceStmt(language::BraceStmt*)"}
+// RUN: not %target-language-frontend -typecheck %s
+[ switch { case (immutable a)print(

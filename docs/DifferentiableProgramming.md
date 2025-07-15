@@ -3,7 +3,7 @@
 *   Authors: [Richard Wei], [Dan Zheng], [Marc Rasi], [Bart Chrzaszcz]
 *   Status:
     * Partially implemented on main, feature gated under `import _Differentiation`
-    * Initial proposal [pitched](https://forums.swift.org/t/differentiable-programming-for-gradient-based-machine-learning/42147) with a significantly scoped-down subset of features. Please refer to the linked pitch thread for the latest design discussions and changes.
+    * Initial proposal [pitched](https://forums.code.org/t/differentiable-programming-for-gradient-based-machine-learning/42147) with a significantly scoped-down subset of features. Please refer to the linked pitch thread for the latest design discussions and changes.
 
 ## Table of contents
 
@@ -31,8 +31,8 @@ Backticks were added manually.
     *   [Embedded domain-specific languages](#embedded-domain-specific-languages)
     *   [Source code transformation tools](#source-code-transformation-tools)
     *   [First-class language support](#first-class-language-support)
-    *   [Why bake differentiation into Swift?](#why-bake-differentiation-into-swift)
-        *   [Maximal coverage of Swift language features](#maximal-coverage-of-swift-language-features)
+    *   [Why bake differentiation into Codira?](#why-bake-differentiation-into-language)
+        *   [Maximal coverage of Codira language features](#maximal-coverage-of-language-language-features)
         *   [Extensibility](#extensibility)
         *   [Static warnings and errors](#static-warnings-and-errors)
         *   [The pursuit for user-defined code transformations](#the-pursuit-for-user-defined-code-transformations)
@@ -112,7 +112,7 @@ Backticks were added manually.
 
 ## Introduction
 
-This proposal introduces first-class differentiable programming to Swift.
+This proposal introduces first-class differentiable programming to Codira.
 First-class differentiable programming includes five core additions:
 
 -   The `Differentiable` protocol.
@@ -128,9 +128,9 @@ can be differentiated throughout. At a glance, differentiable programming lets
 you take the derivative of functions whose parameters and results conform to the
 `Differentiable` protocol.
 
-```swift
+```language
 @differentiable
-func f(_ x: Float) -> Float {
+fn f(_ x: Float) -> Float {
     x * x
 }
 let dfdx = derivative(of: f)
@@ -143,13 +143,13 @@ gradient-based learning algorithms can even be built using standard library
 types such as `Float` and `SIMD64<Float>` and be differentiated using
 protocol-oriented APIs such as `valueWithGradient(at:of:)`.
 
-```swift
+```language
 struct Perceptron: @memberwise Differentiable {
     var weight: SIMD2<Float> = .random(of: -1..<1)
     var bias: Float = 0
 
     @differentiable
-    func callAsFunction(_ input: SIMD2<Float>) -> Float {
+    fn callAsFunction(_ input: SIMD2<Float>) -> Float {
         (weight * input).sum() + bias
     }
 }
@@ -178,9 +178,9 @@ for _ in 0..<100 {
 ```
 
 Differentiable programming scales up to full machine learning models, built with
-third-party libraries like [TensorFlow](https://github.com/tensorflow/swift).
+third-party libraries like [TensorFlow](https://github.com/tensorflow/language).
 
-```swift
+```language
 import TensorFlow
 
 let model = Sequential {
@@ -212,14 +212,14 @@ many static analyses that not only help produce more efficient programs, but
 also detect common numerical programming mistakes such as non-differentiable
 functions and zero derivatives.
 
-```swift
+```language
 let grad = gradient(at: 1.0) { x in
     3.squareRoot()
 }
 ```
 
 ```console
-test.swift:2:18: warning: result does not depend on differentiation arguments and will always have a zero derivative; do you want to add 'withoutDerivative(at:)' to make it explicit?
+test.code:2:18: warning: result does not depend on differentiation arguments and will always have a zero derivative; do you want to add 'withoutDerivative(at:)' to make it explicit?
     3.squareRoot()
     ^
      withoutDerivative(at:)
@@ -249,15 +249,15 @@ Differentiation is the process of computing derivatives. See the
 
 Derivatives are a fundamental tool in calculus and have applications in many
 domains, notably deep learning. As an expressive, high-performance language,
-Swift is a great fit for numerical applications. The [Swift Numerics
-library][swift-numerics] and recent Swift Evolution proposals have paved the way
-for low-level numerical computing in Swift: [AdditiveArithmetic][SE-0233], SIMD
+Codira is a great fit for numerical applications. The [Codira Numerics
+library][language-numerics] and recent Codira Evolution proposals have paved the way
+for low-level numerical computing in Codira: [AdditiveArithmetic][SE-0233], SIMD
 [[1][SE-0229]] [[2][SE-0251]], [generic math functions][SE-0246]. However,
 high-level numerical computing applications, including machine learning and
 artificial intelligence, require more work.
 
 We believe that first-class differentiable programming is a big step towards
-high-level numerical computing support and will make Swift a real contender in
+high-level numerical computing support and will make Codira a real contender in
 the numerical computing and machine learning landscape. Differentiable
 programming will enable intelligent applications, machine learning models,
 scientific experiments, physical simulations, and more.
@@ -277,7 +277,7 @@ parameters via conventional algorithms is typically difficult or intractable.)
 For example, consider a podcast player that tries to automatically adjust the
 playback speed based on the podcast type and the podcast section.
 
-```swift
+```language
 enum PodcastCategory {
     case comedy
     case news
@@ -303,7 +303,7 @@ struct PodcastSpeedModel {
 
     /// Returns a podcast speed multiplier prediction for the given podcast category
     /// and section.
-    func prediction(for state: PodcastState) -> Float {
+    fn prediction(for state: PodcastState) -> Float {
         let speed = categoryMultipliers[state.category] * sectionMultipliers[state.section]
         if speed < minSpeed { return minSpeed }
         if speed > maxSpeed { return maxSpeed }
@@ -336,13 +336,13 @@ First, we need an objective function for gradient descent to minimize.
 [Mean absolute error](https://en.wikipedia.org/wiki/Mean_absolute_error) is used
 here:
 
-```swift
+```language
 struct Observation {
     var podcastState: PodcastState
     var userSpeed: Float
 }
 
-func meanError(for model: PodcastSpeedModel, _ observations: [Observation]) -> Float {
+fn meanError(for model: PodcastSpeedModel, _ observations: [Observation]) -> Float {
     var error: Float = 0
     for observation in observations {
         error += abs(model.prediction(for: observation.podcastState) - observation.userSpeed)
@@ -353,7 +353,7 @@ func meanError(for model: PodcastSpeedModel, _ observations: [Observation]) -> F
 
 Next, we implement the gradient descent algorithm.
 
-```swift
+```language
 var model = PodcastModel()
 let observations = storage.observations()
 for _ in 0..<1000 {
@@ -373,7 +373,7 @@ like Python: these languages are concise and easy to use. However, some people
 prefer safer programming: features like type checking and static diagnostics
 help catch errors early and improve productivity.
 
-Differentiable programming in Swift enables safe, expressive machine learning.
+Differentiable programming in Codira enables safe, expressive machine learning.
 Custom differentiable data structures can be declared and checked at
 compile-time. Thanks to protocol-oriented programming, differentiable types are
 generalized by a protocol, enabling differential operators to be defined as
@@ -383,7 +383,7 @@ over such a protocol and work with all differentiable types.
 
 ### Calculus is fun
 
-Calculus is fun, and differentiation in the Swift toolbox will let programmers
+Calculus is fun, and differentiation in the Codira toolbox will let programmers
 explore that fun. Here are some interesting applications:
 
 #### Animations
@@ -411,7 +411,7 @@ implementing algorithms to solve these equations.
 
 Control algorithms used in robotics and mechanical engineering rely on (often
 higher-order) derivatives of functions that model the behavior of joints and
-other physical systems. A language like Swift that can efficiently compute these
+other physical systems. A language like Codira that can efficiently compute these
 derivatives without incurring the unpredictable runtime overhead of garbage
 collection may be well-placed to run aboard robots.
 
@@ -523,18 +523,18 @@ DSL can define a "dual number" type (representing a pair of a real number and
 its derivative) and overload differentiable math operations to compute both
 original values and derivative values.
 
-```swift
+```language
 struct RealWithDerivative<T: FloatingPoint> {
     var value: T
     var derivative: T = 0
 }
 extension RealWithDerivative {
-    static func + (lhs: Self, rhs: Self) -> Self {
+    static fn + (lhs: Self, rhs: Self) -> Self {
         RealWithDerivative(
             value: lhs.value + rhs.value,
             derivative: lhs.derivative + rhs.derivative)
     }
-    static func * (lhs: Self, rhs: Self) -> Self {
+    static fn * (lhs: Self, rhs: Self) -> Self {
         RealWithDerivative(
             value: lhs.value * rhs.value,
             derivative: lhs.derivative * rhs.value + lhs.value * rhs.derivative)
@@ -563,19 +563,19 @@ However, embedded DSLs have some limitations:
     differentiation). Extending a differentiation DSL beyond these limitations
     is difficult and may require extra boilerplate: see below.
 
--   They typically involve some boilerplate. As a host language, Swift currently
+-   They typically involve some boilerplate. As a host language, Codira currently
     supports limited metaprogramming for reducing boilerplate code. For example,
     libraries cannot define automatic conformance derivation for library
-    protocols (though Swift provides it for `Equatable`, `Hashable`, and
+    protocols (though Codira provides it for `Equatable`, `Hashable`, and
     `Codable`), so users must write boilerplate conformances for their custom
     types.
 
 -   They are limited by the metaprogramming capabilities of the host language.
     It is not currently possible to define non-trivial code transformations
-    (e.g. reverse-mode automatic differentiation) in a Swift library on Swift
-    code. (Note: SwiftSyntax enables Swift AST transformations but has the extra
-    indirection of parsing Swift code from a file - it is not possible to
-    evaluate transformed Swift code from the same file without a general "eval"
+    (e.g. reverse-mode automatic differentiation) in a Codira library on Codira
+    code. (Note: CodiraSyntax enables Codira AST transformations but has the extra
+    indirection of parsing Codira code from a file - it is not possible to
+    evaluate transformed Codira code from the same file without a general "eval"
     mechanism.) To cope with this, some DSLs require explicit program "graph"
     building and/or global mutable data structures to mimic the effects of code
     transformation, which obfuscate the original transformation semantics.
@@ -586,7 +586,7 @@ However, embedded DSLs have some limitations:
     `var`) or native control flow (e.g. `if` constructs) due to technical
     limitations, even though supporting them would be ideal.
     Restricting/diagnosing unsupported host language features (e.g. preventing
-    DSL users from using `var` in Swift) is difficult or not possible.
+    DSL users from using `var` in Codira) is difficult or not possible.
 
 -   Producing good diagnostics may be difficult or impossible. DSLs have limited
     access to source location information. When indirections like code
@@ -651,17 +651,17 @@ powerful differentiation primitives enable users to define their own custom
 differentiation APIs that would otherwise not be possible in differentiation
 libraries.
 
-### Why bake differentiation into Swift?
+### Why bake differentiation into Codira?
 
 First-class language support for differentiation will enable convenient,
-extensible, and performant differentiable programming in Swift.
+extensible, and performant differentiable programming in Codira.
 
-#### Maximal coverage of Swift language features
+#### Maximal coverage of Codira language features
 
-First-class support for differentiation in Swift enables differentiation to work
-nicely with a maximal number of Swift language features, including mutation and
+First-class support for differentiation in Codira enables differentiation to work
+nicely with a maximal number of Codira language features, including mutation and
 control flow. Users of differentiable programming do not need to write in a
-restricted subset of Swift: just write normal code and use differentiation.
+restricted subset of Codira: just write normal code and use differentiation.
 
 #### Extensibility
 
@@ -698,7 +698,7 @@ differentiation: given an "original function" to differentiate, a derivative
 function is generated by replacing function applications in the original
 function with corresponding derivative function applications. The algorithm is
 described in detail in the
-[Swift Differentiable Programming Implementation Overview](DifferentiableProgrammingImplementation.md).
+[Codira Differentiable Programming Implementation Overview](DifferentiableProgrammingImplementation.md).
 
 Some languages provide the ability to define custom code transformations:
 
@@ -721,10 +721,10 @@ Some languages provide the ability to define custom code transformations:
 
 One might make the case that derivative code generation for differentiation is
 better implemented as a custom code transformation. While that may be true in
-theory, Swift does not yet support custom code transformations in practice. This
+theory, Codira does not yet support custom code transformations in practice. This
 proposal presents differentiable programming as a system of *high-level language
 features and semantics*; derivative code generation is an implementation detail.
-If a system for custom code transformations is added to Swift one day, it may be
+If a system for custom code transformations is added to Codira one day, it may be
 possible to reimplement derivative code generation using that system without
 changing the high-level differentiable programming features proposed here.
 
@@ -797,7 +797,7 @@ It is easy to describe small changes in nested structures of real numbers: they
 are just small changes in all the components' real numbers. For example,
 consider:
 
-```swift
+```language
 struct Point {
     var x, y: Float
 }
@@ -814,7 +814,7 @@ small change in `PointPair` might be "add `0.01` to `p1.x` and add `0.01` to
 We can define new types that capture the values of these small changes. We call
 these types "tangent vectors", a term from math. For example:
 
-```swift
+```language
 extension Point {
     struct TangentVector {
         // `dx` and `dy` are small changes in `x` and `y`, respectively.
@@ -833,7 +833,7 @@ extension PointPair {
 In terms of these tangent vectors, the small changes that we described in words
 above would be:
 
-```swift
+```language
 Point.TangentVector(dx: 0.01, dy: 0.02)
 
 PointPair.TangentVector(
@@ -853,7 +853,7 @@ value that minimizes the output of `f`.
 
 ## Proposed solution
 
-To push Swift's capabilities to the next level in numerics and machine learning,
+To push Codira's capabilities to the next level in numerics and machine learning,
 we introduce differentiable programming as a new language feature, which
 includes standard library APIs and small additive changes to the type system.
 
@@ -864,7 +864,7 @@ structures that can be a parameter or result of a differentiable function. The
 compiler derives protocol requirement implementations when a `@memberwise`
 conformance is declared.
 
-```swift
+```language
 extension Float: Differentiable {
     typealias TangentVector = Self
 }
@@ -880,14 +880,14 @@ The `@differentiable` declaration attribute is an attribute that marks
 function-like declarations (function declarations, initializers, properties, and
 subscripts) as being differentiable.
 
-```swift
+```language
 @differentiable
-func cubed(_ x: Float) -> Float {
+fn cubed(_ x: Float) -> Float {
     x * x * x
 }
 extension Perceptron {
     @differentiable
-    func callAsFunction(_ input: SIMD64<Float>) -> Float {
+    fn callAsFunction(_ input: SIMD64<Float>) -> Float {
         (weight * input).sum() + bias
     }
 }
@@ -905,8 +905,8 @@ allows their values to be differentiated anywhere the function is passed. A
 to a `@differentiable` or `@differentiable(linear)` function with appropriate
 compile-time checks.
 
-```swift
-func addOne(_ x: Float) -> Float { x + 1 }
+```language
+fn addOne(_ x: Float) -> Float { x + 1 }
 let _: @differentiable (Float) -> Float = addOne
 let _: @differentiable(linear) (Float) -> Float = addOne
 ```
@@ -916,11 +916,11 @@ let _: @differentiable(linear) (Float) -> Float = addOne
 `@derivative` and `@transpose` attributes are used for declaring custom
 derivative functions for some other function declaration.
 
-```swift
+```language
 import Glibc
 
 @derivative(of: expf)
-func _(_ x: Float) -> (value: Float,
+fn _(_ x: Float) -> (value: Float,
                        differential: @differentiable(linear) (Float) -> Float) {
     let y = expf(x)
     return (value: y, differential: { v in v * y })
@@ -933,15 +933,15 @@ Differential operators are APIs defined in the standard library that take
 `@differentiable` functions and return derivative functions or compute
 derivative values.
 
-```swift
+```language
 // In the standard library:
 //
-//     func derivative<T: FloatingPoint, R>(
+//     fn derivative<T: FloatingPoint, R>(
 //         of body: @escaping @differentiable (T) -> R
 //     ) -> (T) -> R where T.TangentVector: FloatingPoint
 
 @differentiable
-func f(_ x: Float) -> Float {
+fn f(_ x: Float) -> Float {
     x * x
 }
 let dfdx = derivative(of: f)
@@ -963,7 +963,7 @@ general, when a type is said to be differentiable, it means that one can do
 calculus with its values. As such, real numbers, real vector spaces, and complex
 vector spaces are differentiable, but characters, strings, and integers are not.
 
-For full flexibility and extensibility, a protocol is introduced in the Swift
+For full flexibility and extensibility, a protocol is introduced in the Codira
 standard library to generalize all data structures that can be a parameter or a
 result of a differentiable function.
 
@@ -973,7 +973,7 @@ The `Differentiable` protocol defines operations and structures required for a
 type to be differentiated.
 
 
-```swift
+```language
 public protocol Differentiable {
     /// A type that can be used to represent derivatives with respect to a
     /// value whose type is `Self`. Mathematically, this is equivalent to the
@@ -985,7 +985,7 @@ public protocol Differentiable {
     /// Moves `self` by the given offset. In Riemannian geometry, this is
     /// equivalent to exponential map, which moves `self` on the geodesic
     /// surface by the given tangent vector.
-    mutating func move(by offset: TangentVector)
+    mutating fn move(by offset: TangentVector)
 }
 ```
 
@@ -1009,7 +1009,7 @@ real numbers and vector spaces, there is a widely accepted mathematical
 framework,
 [differential geometry](https://en.wikipedia.org/wiki/Differential_geometry),
 which generalizes calculus beyond Euclidean space. By bringing ideas from this
-mathematical framework into the Swift standard library and the Swift compiler,
+mathematical framework into the Codira standard library and the Codira compiler,
 differentiable programming becomes more flexible and expressive than ever.
 
 <p align="center">
@@ -1032,9 +1032,9 @@ vector in the [tangent bundle](https://en.wikipedia.org/wiki/Tangent_bundle) of
 this manifold and has type `TangentVector`. The associated type `TangentVector`
 is required to conform to `AdditiveArithmetic` because
 [additive group](https://en.wikipedia.org/wiki/Additive_group) properties
-[`zero`](https://developer.apple.com/documentation/swift/additivearithmetic/3126829-zero)
+[`zero`](https://developer.apple.com/documentation/language/additivearithmetic/3126829-zero)
 and
-[`+(_:_:)`](https://developer.apple.com/documentation/swift/additivearithmetic/3126821)
+[`+(_:_:)`](https://developer.apple.com/documentation/language/additivearithmetic/3126821)
 are necessary for initializing and accumulating derivative values.
 
 The `move(by:)` method is equivalent to the mathematical notion of
@@ -1046,9 +1046,9 @@ as the original differentiable space, `move(by:)` is equivalent to vector
 addition. Mathematical optimization algorithms such as gradient descent will
 make use of this method.
 
-```swift
+```language
 public extension Differentiable where Self == TangentVector {
-    mutating func move(by offset: TangentVector) {
+    mutating fn move(by offset: TangentVector) {
         self += offset
     }
 }
@@ -1056,32 +1056,32 @@ public extension Differentiable where Self == TangentVector {
 
 #### `Differentiable` conformances
 
-Conforming a type to `Differentiable` tells Swift that changes in values of this
+Conforming a type to `Differentiable` tells Codira that changes in values of this
 type can be differentiated, and makes functions over this type be compatible
 with all differentiation APIs in the standard library. Floating point numeric
 types and vector types, including
-[`Float`](https://developer.apple.com/documentation/swift/float),
-[`Double`](https://developer.apple.com/documentation/swift/double),
-[`Float80`](https://developer.apple.com/documentation/swift/float80), and
-[SIMD vector types](https://developer.apple.com/documentation/swift/swift_standard_library/numbers_and_basic_values/simd_vector_types),
+[`Float`](https://developer.apple.com/documentation/language/float),
+[`Double`](https://developer.apple.com/documentation/language/double),
+[`Float80`](https://developer.apple.com/documentation/language/float80), and
+[SIMD vector types](https://developer.apple.com/documentation/language/language_standard_library/numbers_and_basic_values/simd_vector_types),
 are extended to conform to `Differentiable`, and their `TangentVector`s equal
 themselves.
 
 Besides numeric types, collections of numeric types are also powerful data
 structures in differentiable programming. For example, the
-[`Array`](https://developer.apple.com/documentation/swift/array) type in the
+[`Array`](https://developer.apple.com/documentation/language/array) type in the
 standard library
-[conforms to `Differentiable`](https://github.com/swiftlang/swift/blob/c224468653366119690aeb34f290843f3e5f2fd6/stdlib/public/core/Array.swift#L2052)
+[conforms to `Differentiable`](https://github.com/languagelang/language/blob/c224468653366119690aeb34f290843f3e5f2fd6/stdlib/public/core/Array.code#L2052)
 conditionally when the `Element` type conforms to `Differentiable`. This makes
 it possible to differentiate functions over arrays, and makes it easy to express
 dynamic differentiable algorithms. Similarly, other common container types in
 the standard library such as
-[`Optional`](https://developer.apple.com/documentation/swift/optional),
-[`Dictionary`](https://developer.apple.com/documentation/swift/dictionary), and
-[`Result`](https://developer.apple.com/documentation/swift/result) can also be
+[`Optional`](https://developer.apple.com/documentation/language/optional),
+[`Dictionary`](https://developer.apple.com/documentation/language/dictionary), and
+[`Result`](https://developer.apple.com/documentation/language/result) can also be
 made differentiable via a conditional protocol conformance.
 
-```swift
+```language
 // struct Array<Element>
 extension Array: Differentiable where Element: Differentiable {
     // Note: `Array.TangentVector` cannot be `Array` because `Array.+` is used for
@@ -1096,7 +1096,7 @@ extension Array: Differentiable where Element: Differentiable {
         ...
     }
 
-    public mutating func move(by offset: TangentVector) {
+    public mutating fn move(by offset: TangentVector) {
         for i in indices {
             self[i].move(by: Element.TangentVector(offset.elements[i]))
         }
@@ -1116,7 +1116,7 @@ extension Dictionary: Differentiable where Value: Differentiable {
         ...
     }
 
-    public mutating func move(by offset: TangentVector) {
+    public mutating fn move(by offset: TangentVector) {
         for i in indices {
             self[i].move(by: Value.TangentVector(offset.elements[i]))
         }
@@ -1134,7 +1134,7 @@ extension Optional: Differentiable where Wrapped: Differentiable {
         ...
     }
 
-    public mutating func move(by offset: TangentVector) {
+    public mutating fn move(by offset: TangentVector) {
         if let value = offset.value {
             self?.move(by: value)
         }
@@ -1168,7 +1168,7 @@ synthesis are:
 
 Here is an example where the synthesis conditions are satisfied.
 
-```swift
+```language
 struct Model: @memberwise Differentiable {
     var weight: SIMD4<Double>
     var bias: Double
@@ -1209,7 +1209,7 @@ example, synthesized `TangentVector`s always adopt the `AdditiveArithmetic` and
 The synthesized `move(by:)` method calls `move(by:)` for each pair of a
 differentiable variable and its corresponding property in `TangentVector`.
 
-```swift
+```language
 struct Foo<T: Differentiable, U: Differentiable>: @memberwise Differentiable {
     // `x` and `y` are the "differentiable variables".
     var x: T
@@ -1223,7 +1223,7 @@ struct Foo<T: Differentiable, U: Differentiable>: @memberwise Differentiable {
     //         var y: U.TangentVector
     //     }
     //
-    //     mutating func move(by offset: TangentVector) {
+    //     mutating fn move(by offset: TangentVector) {
     //         x.move(by: offset.x)
     //         y.move(by: offset.y)
     //     }
@@ -1246,7 +1246,7 @@ variable regardless of whether it conforms to `Differentiable`. That is, the
 synthesized implementation of protocol requirements will not include this
 property.
 
-```swift
+```language
 struct Foo<T: Differentiable, U: Differentiable>: @memberwise Differentiable {
     // `x` and `y` are the "differentiable variables".
     var x: T
@@ -1265,7 +1265,7 @@ variable and is not marked with `@noDerivative`, the compiler produces a warning
 asking the user to make the exclusion explicit along with fix-it suggestions in
 IDEs.
 
-```swift
+```language
 struct Foo<T: Differentiable, U: Differentiable>: @memberwise Differentiable {
     // `x` and `y` are the "differentiable variables".
     var x: T
@@ -1276,23 +1276,23 @@ struct Foo<T: Differentiable, U: Differentiable>: @memberwise Differentiable {
 ```
 
 ```console
-test.swift:5:4: warning: stored property 'customFlag' has no derivative because 'Bool' does not conform to 'Differentiable'
+test.code:5:4: warning: stored property 'customFlag' has no derivative because 'Bool' does not conform to 'Differentiable'
     var customFlag: Bool
 
-test.swift:5:4: note: add a '@noDerivative' attribute to make it explicit
+test.code:5:4: note: add a '@noDerivative' attribute to make it explicit
     var customFlag: Bool
     ^
     @noDerivative
 
-test.swift:6:4: warning: synthesis of the 'Differentiable.move(by:)' requirement for 'Foo' requires all stored properties not marked with `@noDerivative` to be mutable
+test.code:6:4: warning: synthesis of the 'Differentiable.move(by:)' requirement for 'Foo' requires all stored properties not marked with `@noDerivative` to be mutable
     let helperVariable: T
 
-test.swift:6:4: note: change 'let' to 'var' to make it mutable
+test.code:6:4: note: change 'let' to 'var' to make it mutable
     let helperVariable: T
     ^~~
     var
 
-test.swift:6:4: note: add a '@noDerivative' attribute to make it explicit
+test.code:6:4: note: add a '@noDerivative' attribute to make it explicit
     let helperVariable: T
     ^
     @noDerivative
@@ -1310,7 +1310,7 @@ In these cases, the compiler will make `TangentVector` be a type alias for Self.
 Method `move(by:)` will not be synthesized because a default implementation
 already exists.
 
-```swift
+```language
 struct Point<T: Real>: @memberwise Differentiable, @memberwise AdditiveArithmetic {
     // `x` and `y` are the "differentiation properties".
     var x, y: T
@@ -1326,10 +1326,10 @@ struct Point<T: Real>: @memberwise Differentiable, @memberwise AdditiveArithmeti
 At the heart of a differentiable programming language is the ability to express
 differentiable functions, from abstract manifold operations all the way down to
 floating point addition. Because differentiable programming is a flexible and
-extensible language feature in Swift, the compiler is agnostic of actual
+extensible language feature in Codira, the compiler is agnostic of actual
 mathematical operations—it does not have special knowledge of standard library
 operators such as
-[Float.+(_:_:)](https://developer.apple.com/documentation/swift/float/2894068),
+[Float.+(_:_:)](https://developer.apple.com/documentation/language/float/2894068),
 nor does it distinguish between primitive operations and normal functions. A
 function can be differentiated with respect to certain Differentiable-conforming
 parameters if it satisfies one of the following requirements:
@@ -1356,9 +1356,9 @@ provide a `where`-clause to specify generic constraints for parameters or the
 result to make the function differentiable only when the generic constraints are
 satisfied, e.g. `@differentiable(wrt: x where Scalar: FloatingPoint)`.
 
-```swift
+```language
 @differentiable // differentiable with respect to 'x'
-func silly(_ x: Float, _ n: Int) -> Float {
+fn silly(_ x: Float, _ n: Int) -> Float {
     print("Running 'silly' on \(x) and \(n)!")
     return sin(cos(x))
 }
@@ -1369,7 +1369,7 @@ argument, `self`. If a computed property is marked with `@differentiable`, the
 compiler attempts to differentiate its getter with respect to `self`.
 `@differentiable` can also be applied to an explicit getter declaration.
 
-```swift
+```language
 extension Float {
     @differentiable
     var reciprocal: Float {
@@ -1388,7 +1388,7 @@ library evolution, and are implicitly synthesized by the compiler when the
 parent type's `Differentiable` conformance is synthesized by the compiler (not
 user-defined).
 
-```swift
+```language
 public struct Vector: @memberwise Differentiable {
     @differentiable // Okay, though the compiler has synthesized it.
     public var x, y: Float
@@ -1410,18 +1410,18 @@ implement this requirement with a differentiable body with respect to the
 specified parameters. Conforming implementations are not required to be marked
 with `@differentiable` attribute unless they are `public`.
 
-```swift
+```language
 public protocol Layer: Differentiable {
     associatedtype Input: Differentiable
     associatedtype Output: Differentiable
     @differentiable // w.r.t. `input` and `self`
-    func callAsFunction(_: Input) -> Output
+    fn callAsFunction(_: Input) -> Output
 }
 struct Perceptron: @memberwise Differentiable, Layer {
     var weight: SIMD4<Float>
     var bias: Float
 
-    func callAsFunction(_ input: SIMD4<Float>) -> Float {
+    fn callAsFunction(_ input: SIMD4<Float>) -> Float {
         (weight * input).sum() + b
     }
 }
@@ -1431,17 +1431,17 @@ In a protocol hierarchy, one can override a differentiable protocol requirement
 with a `@differentiable` attribute that declares differentiability with respect
 to more parameters.
 
-```swift
+```language
 public protocol Module: Differentiable {
     associatedtype Input
     associatedtype Output: Differentiable
     @differentiable(wrt: self)
-    func callAsFunction(_: Input) -> Output
+    fn callAsFunction(_: Input) -> Output
 }
 
 public protocol Layer: Module where Input: Differentiable {
     @differentiable(wrt: (self, input))
-    func callAsFunction(_: Input) -> Output
+    fn callAsFunction(_: Input) -> Output
 }
 ```
 
@@ -1463,17 +1463,17 @@ by a subclass implementation. The overriding implementation must be
 dynamically dispatched is being differentiated, the derivative of the subclass
 implementation will be used.
 
-```swift
+```language
 class Superclass {
     @differentiable
-    func foo(_ x: SIMD8<Float>) -> Float {
+    fn foo(_ x: SIMD8<Float>) -> Float {
         x.sum()
     }
 }
 
 class Subclass: Superclass {
     @differentiable
-    override func foo(_ x: SIMD8<Float>) -> Float {
+    override fn foo(_ x: SIMD8<Float>) -> Float {
         (x * x).sum()
     }
 }
@@ -1567,30 +1567,30 @@ parameters.
 
 _Note: Since both transpose functions and derivative functions are difficult to
 name and need not be referenced directly, we make these functions unnamed (with
-base name being an underscore). This is not yet valid in the official Swift
+base name being an underscore). This is not yet valid in the official Codira
 language, but the developers of the differentiable programming feature will
-prototype and pitch this change through Swift Evolution._
+prototype and pitch this change through Codira Evolution._
 
-```swift
-func foo<T: Differentiable & AdditiveArithmetic>(_ x: T, _ y: T, _ z: T) -> T
+```language
+fn foo<T: Differentiable & AdditiveArithmetic>(_ x: T, _ y: T, _ z: T) -> T
     where T == T.TangentVector { ... }
 
 // Transpose with respect to all parameters, making `foo(_:_:_:)` linear with
 // with respect to all parameters.
 @transpose(of: foo)
-func _<T: Differentiable & AdditiveArithmetic>(_ v: T) -> (x: T, y: T, z: T)
+fn _<T: Differentiable & AdditiveArithmetic>(_ v: T) -> (x: T, y: T, z: T)
     where T == T.TangentVector { ... }
 
 // Transpose with respect to original parameter `x`, making `foo(_:_:_:)` 
 // linear with respect to `x`.
 @transpose(of: foo, wrt: 0)
-func _<T: Differentiable & AdditiveArithmetic>(y: T, z: T, v: T) -> T
+fn _<T: Differentiable & AdditiveArithmetic>(y: T, z: T, v: T) -> T
     where T == T.TangentVector { ... }
 
 // Transpose with respect to original parameters `x` and `z`, making
 // `foo(_:_:_:)` linear with respect to `x` and `z`.
 @transpose(of: foo, wrt: (0, 2))
-func _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (x: T, z: T)
+fn _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (x: T, z: T)
     where T == T.TangentVector { ... }
 ```
 
@@ -1601,9 +1601,9 @@ it must also be defined as a static method in the same type. The implicit `self`
 parameter cannot be a linearity parameter, because metatypes cannot conform to
 `Differentiable & AdditiveArithmetic`.
 
-```swift
+```language
 extension MyType {
-    static func foo<T: Differentiable & AdditiveArithmetic>(_ x: T, _ y: T, _ z: T) -> T
+    static fn foo<T: Differentiable & AdditiveArithmetic>(_ x: T, _ y: T, _ z: T) -> T
         where T == T.TangentVector { ... }
 }
 
@@ -1611,41 +1611,41 @@ extension MyType {
     // Transpose with respect to all parameters, making `foo(_:_:_:)` linear with
     // with respect to all parameters.
     @transpose(of: foo)
-    static func _<T: Differentiable & AdditiveArithmetic>(_ v: T) -> (x: T, y: T, z: T)
+    static fn _<T: Differentiable & AdditiveArithmetic>(_ v: T) -> (x: T, y: T, z: T)
         where T == T.TangentVector { ... }
     
     // Transpose with respect to original parameter `x`, making `foo(_:_:_:)` 
     // linear with respect to `x`.
     @transpose(of: foo, wrt: 0)
-    static func _<T: Differentiable & AdditiveArithmetic>(y: T, z: T, v: T) -> T
+    static fn _<T: Differentiable & AdditiveArithmetic>(y: T, z: T, v: T) -> T
         where T == T.TangentVector { ... }
     
     // Transpose with respect to original parameters `x` and `z`, making
     // `foo(_:_:_:)` linear with respect to `x` and `z`.
     @transpose(of: foo, wrt: (0, 2))
-    static func _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (x: T, z: T)
+    static fn _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (x: T, z: T)
         where T == T.TangentVector { ... }
 }
 ```
 
 The numeric addition operator
-[`AdditiveArithmetic.+(_:_:)`](https://developer.apple.com/documentation/swift/additivearithmetic/3126821)
+[`AdditiveArithmetic.+(_:_:)`](https://developer.apple.com/documentation/language/additivearithmetic/3126821)
 is linear, and the multiplication operator
-[`Numeric.*(_:_:)`](https://developer.apple.com/documentation/swift/numeric/2883821)
+[`Numeric.*(_:_:)`](https://developer.apple.com/documentation/language/numeric/2883821)
 is [bilinear](https://en.wikipedia.org/wiki/Bilinear_map) (i.e. linear with
 respect to each parameter). Here's how they are made differentiable in the
 standard library.
 
-```swift
+```language
 extension FloatingPoint 
     where Self: Differentiable & AdditiveArithmetic, Self == TangentVector
 {
     @transpose(of: +)
-    static func _(_ v: Self) -> (Self, Self) { (v, v) }
+    static fn _(_ v: Self) -> (Self, Self) { (v, v) }
 
     @transpose(of: *, wrt: 0)
     @transpose(of: *, wrt: 1)
-    static func _(lhs: Self, rhs: Self) -> Self { lhs * rhs }
+    static fn _(lhs: Self, rhs: Self) -> Self { lhs * rhs }
 }
 ```
 
@@ -1662,21 +1662,21 @@ is a hypothetical `Tensor` type, which has two transpose functions defined for
 `Tensor.transposed()`, the tensor transposition method, and `matmul(_:_:)`, the
 matrix multiplication function.
 
-```swift
+```language
 extension Tensor where Scalar: FloatingPoint & Differentiable {
     @transpose(of: transposed, wrt: self)
-    func _() -> Tensor {
+    fn _() -> Tensor {
         self.transposed()
     }
 }
 
 @transpose(of: matmul(_:_:), wrt: 0)
-func _<T: FloatingPoint & Differentiable>(y: Tensor<T>, v: Tensor<T>) -> Tensor<T> {
+fn _<T: FloatingPoint & Differentiable>(y: Tensor<T>, v: Tensor<T>) -> Tensor<T> {
     matmul(v, y.transposed())
 }
 
 @transpose(of: matmul(_:_:), wrt: 1)
-func _<T: FloatingPoint & Differentiable>(x: Tensor<T>, v: Tensor<T>) -> Tensor<T> {
+fn _<T: FloatingPoint & Differentiable>(x: Tensor<T>, v: Tensor<T>) -> Tensor<T> {
     matmul(x.transposed(), v)
 }
 ```
@@ -1689,9 +1689,9 @@ A transpose of a static method is exactly like top-level functions except:
 - When linearity parameters include `self`, it must be defined as a static
   method in the same type.
 
-```swift
+```language
 extension MyType {
-    func foo<T: Differentiable & AdditiveArithmetic>(_ x: T, _ y: T, _ z: T) -> T
+    fn foo<T: Differentiable & AdditiveArithmetic>(_ x: T, _ y: T, _ z: T) -> T
         where T == T.TangentVector { ... }
 }
 
@@ -1699,31 +1699,31 @@ extension MyType {
     // Transpose with respect to all parameters, making `foo(_:_:_:)` linear with
     // with respect to all parameters.
     @transpose(of: foo)
-    func _<T: Differentiable & AdditiveArithmetic>(_ v: T) -> (x: T, y: T, z: T)
+    fn _<T: Differentiable & AdditiveArithmetic>(_ v: T) -> (x: T, y: T, z: T)
         where T == T.TangentVector { ... }
     
     // Transpose with respect to original parameter `x`, making `foo(_:_:_:)` 
     // linear with respect to `x`.
     @transpose(of: foo, wrt: 0)
-    func _<T: Differentiable & AdditiveArithmetic>(y: T, z: T, v: T) -> T
+    fn _<T: Differentiable & AdditiveArithmetic>(y: T, z: T, v: T) -> T
         where T == T.TangentVector { ... }
     
     // Transpose with respect to original parameters `x` and `z`, making
     // `foo(_:_:_:)` linear with respect to `x` and `z`.
     @transpose(of: foo, wrt: (0, 2))
-    func _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (x: T, z: T)
+    fn _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (x: T, z: T)
         where T == T.TangentVector { ... }
     
     // Transpose with respect to original parameters `self`, making `foo(_:_:_:)`
     // linear with respect to `self`.
     @transpose(of: foo, wrt: self)
-    static func _<T: Differentiable & AdditiveArithmetic>(x: T, y: T, z: T, v: T) -> MyType
+    static fn _<T: Differentiable & AdditiveArithmetic>(x: T, y: T, z: T, v: T) -> MyType
         where T == T.TangentVector { ... }
     
     // Transpose with respect to original parameters `self`, `x` and `z`, making
     // `foo(_:_:_:)` linear with respect to `self`, `x` and `z`.
     @transpose(of: foo, wrt: (self, 0, 2))
-    static func _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (self: MyType, x: T, z: T)
+    static fn _<T: Differentiable & AdditiveArithmetic>(y: T, v: T) -> (self: MyType, x: T, z: T)
         where T == T.TangentVector { ... }
 }
 ```
@@ -1738,14 +1738,14 @@ AdditiveArithmetic`.
 Linearity generic requirements are functionally equivalent to the `where` clause
 in `@differentiable` attributes.
 
-```swift
-func foo<T, U, V>(_ x: T, _ y: U, _ z: V) -> W { ... }
+```language
+fn foo<T, U, V>(_ x: T, _ y: U, _ z: V) -> W { ... }
 
 // Transpose with respect to `x` and `z`, requiring that `T` and `V` to conform
 // to `Differentiable & AdditiveArithmetic` and equal their corresponding
 // `TangentVector` types.
 @transpose(of: foo, wrt: (x, z))
-func _<
+fn _<
     T: Differentiable & AdditiveArithmetic,
     U,
     V: Differentiable & AdditiveArithmetic
@@ -1758,24 +1758,24 @@ func _<
 Many floating-point operations are linear. Addition and subtraction are linear.
 Multiplication is bilinear (linear with respect to each argument).
 
-```swift
+```language
 extension FloatingPoint where Self: Differentiable, Self == TangentVector {
     @inlinable
     @transpose(of: +)
-    func _(_ v: Self) -> (Self, Self) {
+    fn _(_ v: Self) -> (Self, Self) {
         (v, v)
     }
 
     @inlinable
     @transpose(of: -)
-    func _(_ v: Self) -> (Self, Self) {
+    fn _(_ v: Self) -> (Self, Self) {
         (v, -v)
     }
 
     @inlinable
     @transpose(of: *, wrt: 0)
     @transpose(of: *, wrt: 1)
-    func _(_ x: Self, _ v: Self) -> Self {
+    fn _(_ x: Self, _ v: Self) -> Self {
         return x * v
     }
 }
@@ -1783,7 +1783,7 @@ extension FloatingPoint where Self: Differentiable, Self == TangentVector {
 
 Complex differentiation is representable in our system. Complex numbers behave
 differently from real numbers and vectors
-([forum discussion](https://forums.swift.org/t/vectornumeric-type-in-general-complex-numbers/24875/3):
+([forum discussion](https://forums.code.org/t/vectornumeric-type-in-general-complex-numbers/24875/3):
 they have an additional `conjugate` operation which flips the sign of the
 imaginary component.
 
@@ -1791,13 +1791,13 @@ Since complex numbers are not yet defined in the standard library, we extended
 the complex number type defined in the
 [NumericAnnex](https://github.com/xwu/NumericAnnex) library to be
 differentiable.
-[The full implementation is here](https://github.com/tensorflow/swift-apis/blob/main/Sources/third_party/Experimental/Complex.swift).
+[The full implementation is here](https://github.com/tensorflow/language-apis/blob/main/Sources/third_party/Experimental/Complex.code).
 The implementation adopts the
 [Autograd convention](https://github.com/HIPS/autograd/blob/main/docs/tutorial.md#complex-numbers)
 for derivatives of functions with complex arguments or results, so that we can
 define derivatives for non-holomorphic primitives.
 
-```swift
+```language
 struct Complex<Base: FloatingPoint>: Numeric {
     var real: Base
     var imaginary: Base
@@ -1815,7 +1815,7 @@ extension Complex: @memberwise Differentiable where Base: Differentiable, Base =
 
 extension Complex {
     @differentiable(where Base: Differentiable, Base == Base.TangentVector)
-    func complexConjugate() -> Complex {
+    fn complexConjugate() -> Complex {
         Complex(real: real, imaginary: -imaginary)
     }
 }
@@ -1826,11 +1826,11 @@ space. Most SIMD operations are defined as `SIMD` protocol requirements, so
 derivatives of these operations can be defined generally in a protocol extension
 on `SIMD`.
 
-```swift
+```language
 extension SIMD where Self: Differentiable, TangentVector: SIMD, Scalar: BinaryFloatingPoint, Self == Self.TangentVector {
     @transpose(of: *, wrt: 0)
     @transpose(of: *, wrt: 1)
-    static func _(v: Self, x: Self) -> Self {
+    static fn _(v: Self, x: Self) -> Self {
         v * x
     }
 }
@@ -1840,7 +1840,7 @@ Additionally, concrete types conforming to `SIMD` are extended to conditionally
 conform to `Differentiable` and `AdditiveArithmetic`. For `SIMD` conforming
 types, the `TangentVector` associated type is equal to `Self`.
 
-```swift
+```language
 extension SIMD${n}: AdditiveArithmetic where Scalar: BinaryFloatingPoint {}
 
 extension SIMD${n}: Differentiable
@@ -1852,7 +1852,7 @@ where Scalar: Differentiable & BinaryFloatingPoint,
 // `subscript` is defined on `SIMD`-conforming types, so the transpose is as well.
 extension SIMDScalar where Self: Differentiable & BinaryFloatingPoint {
     @transpose(of: subscript)
-    func _(index: Int) -> SIMD${n}<Self> {
+    fn _(index: Int) -> SIMD${n}<Self> {
         var result = SIMD${n}<Self>.zero
         result[index] = self
         return result
@@ -1861,9 +1861,9 @@ extension SIMDScalar where Self: Differentiable & BinaryFloatingPoint {
 ```
 
 The full implementation is in
-[`SIMDVector.swift`](https://github.com/swiftlang/swift/blob/tensorflow/stdlib/public/core/SIMDVector.swift)
+[`SIMDVector.code`](https://github.com/languagelang/language/blob/tensorflow/stdlib/public/core/SIMDVector.code)
 and
-[`SIMDVectorTypes.swift.gyb`](https://github.com/swiftlang/swift/blob/tensorflow/stdlib/public/core/SIMDVectorTypes.swift.gyb)
+[`SIMDVectorTypes.code.gyb`](https://github.com/languagelang/language/blob/tensorflow/stdlib/public/core/SIMDVectorTypes.code.gyb)
 on the `tensorflow` branch.
 
 #### Derivative functions
@@ -1881,11 +1881,11 @@ In the following example, the 32-bit floating point exponential function
 the C standard library. The derivative function marked with `@derivative`
 makes `expf(_:)` a differentiable function.
 
-```swift
+```language
 import Glibc
 
 @derivative(of: expf)
-func _(_ x: Float) -> (value: Float,
+fn _(_ x: Float) -> (value: Float,
                        differential: @differentiable(linear) (Float) -> Float) {
     let y = expf(x)
     return (value: y, differential: { v in v * y })
@@ -1930,12 +1930,12 @@ function. However, a `wrt:` argument in a `@derivative` attribute, when
 referring to parameters by names, must use parameter names in the derivative
 function.
 
-```swift
-func foo<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> T { ... }
+```language
+fn foo<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> T { ... }
 
 // Derivative with respect to all parameters.
 @derivative(of: foo)
-func _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
+fn _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
     value: T, 
     differential: @differentiable(linear) (T.TangentVector, T.TangentVector, T.TangentVector) -> T.TangentVector
 ) {
@@ -1944,7 +1944,7 @@ func _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
 
 // Derivative with respect to `x`.
 @derivative(of: foo, wrt: x)
-func _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
+fn _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
     value: T, 
     differential: @differentiable(linear) (T.TangentVector) -> T.TangentVector
 ) {
@@ -1953,7 +1953,7 @@ func _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
 
 // Derivative with respect to `x` and `z`.
 @derivative(of: foo, wrt: (x, z))
-func _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
+fn _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
     value: T, 
     differential: @differentiable(linear) (T.TangentVector, T.TangentVector) -> T.TangentVector
 ) {
@@ -1964,18 +1964,18 @@ func _<T: Differentiable>(_ x: T, _ y: T, _ z: T) -> (
 One concrete example is `sinf(_:)` from the C standard library. It can be made
 differentiable by defining a derivative retroactively.
 
-```swift
+```language
 #if canImport(Darwin)
-import func Darwin.sinf
+import fn Darwin.sinf
 #else
-import func Glibc.sinf
+import fn Glibc.sinf
 #endif
 
 // Imported:
-//     public func sinf(Float) -> Float
+//     public fn sinf(Float) -> Float
 
 @derivative(of: sinf)
-public func _(_ x: Float) -> (
+public fn _(_ x: Float) -> (
     value: Float, 
     differential: @differentiable(linear) (Float) -> Float
 ) {
@@ -1993,13 +1993,13 @@ usually serve the purpose of making generic parameter types conform to
 Differentiability generic requirements are functionally equivalent to the
 `where` clause in `@differentiable` attributes.
 
-```swift
-func foo<T, U, V>(_ x: T, _ y: U, _ z: V) -> W { ... }
+```language
+fn foo<T, U, V>(_ x: T, _ y: U, _ z: V) -> W { ... }
 
 // Derivative with respect to `x` and `z`, requiring that `T` and `V` to conform
 // to `Differentiable`.
 @derivative(of: foo, wrt: (x, z))
-func foo<T: Differentiable, U, V: Differentiable>(
+fn foo<T: Differentiable, U, V: Differentiable>(
     _ x: T, _ y: U, _ z: V
 ) -> (
     value: W, 
@@ -2012,21 +2012,21 @@ func foo<T: Differentiable, U, V: Differentiable>(
 ##### Examples
 
 The `ElementaryFunctions` protocol introduced in
-[SE-0246](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0246-mathable.md)
+[SE-0246](https://github.com/languagelang/language-evolution/blob/main/proposals/0246-mathable.md)
 defines generic elementary functions, which are non-linear. By defining
 derivatives using the `@derivative` attribute for these protocol
 requirements in an extension, all conforming types now have differentiable
 elementary functions.
 
-```swift
+```language
 public protocol ElementaryFunctions {
-    static func sqrt(_ x: Self) -> Self
-    static func cos(_ x: Self) -> Self
-    static func asinh(_ x: Self) -> Self
-    static func exp(_ x: Self) -> Self
-    static func exp10(_ x: Self) -> Self
-    static func log(_ x: Self) -> Self
-    static func pow(_ x: Self, _ y: Self) -> Self
+    static fn sqrt(_ x: Self) -> Self
+    static fn cos(_ x: Self) -> Self
+    static fn asinh(_ x: Self) -> Self
+    static fn exp(_ x: Self) -> Self
+    static fn exp10(_ x: Self) -> Self
+    static fn log(_ x: Self) -> Self
+    static fn pow(_ x: Self, _ y: Self) -> Self
     ...
 }
 
@@ -2034,45 +2034,45 @@ public extension ElementaryFunctions
 where Self: Differentiable & FloatingPoint, Self == Self.TangentVector {
     @inlinable
     @derivative(of: sqrt)
-    static func _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
+    static fn _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
         (sqrt(x), { dx in (1 / 2) * (1 / sqrt(x)) * dx })
     }
 
     @inlinable
     @derivative(of: cos)
-    static func _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
+    static fn _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
         (cos(x), { dx in -sin(x) * dx })
     }
 
     @inlinable
     @derivative(of: asinh)
-    static func _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
+    static fn _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
         (asinh(x), { dx in 1 / (1 + x * x) * dx })
     }
 
     @inlinable
     @derivative(of: exp)
-    static func _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
+    static fn _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
         let ret = exp(x)
         return (ret, { dx in ret * dx })
     }
 
     @inlinable
     @derivative(of: exp10)
-    static func _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
+    static fn _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
         let ret = exp10(x)
         return (ret, { dx in exp(10) * ret * dx })
     }
 
     @inlinable
     @derivative(of: log)
-    static func _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
+    static fn _(_ x: Self) -> (value: Self, differential: @differentiable(linear) (Self) -> Self) {
         (log(x), { dx in 1 / x * dx })
     }
 
     @inlinable
     @derivative(of: pow)
-    static func _(_ x: Self, _ y: Self) -> (value: Self, differential: @differentiable(linear) (Self, Self) -> Self) {
+    static fn _(_ x: Self, _ y: Self) -> (value: Self, differential: @differentiable(linear) (Self, Self) -> Self) {
         (pow(x, y), { (dx, dy) in
             let l = y * pow(x, y-1) * dx
             let r = pow(x, y) * log(x) * dy
@@ -2096,20 +2096,20 @@ If the original member does not have a `@differentiable` attribute, a default
 derivative/transpose is implicitly added to all conforming/overriding
 implementations.
 
-```swift
+```language
 protocol P {
-    func foo(_ x: Float) -> Float
+    fn foo(_ x: Float) -> Float
 }
 
 extension P {
     @derivative(of: foo(x:))
-    func _(_ x: Float) -> (value: Float, differential: (Float) -> Float) {
+    fn _(_ x: Float) -> (value: Float, differential: (Float) -> Float) {
         (value: foo(x), differential: { _ in 42 })
     }
 }
 
 struct S: P {
-    func foo(_ x: Float) -> Float {
+    fn foo(_ x: Float) -> Float {
         33
     }
 }
@@ -2128,22 +2128,22 @@ differentiated. To inherit the default derivative/transpose without
 differentiating the implementation, add `default` to the `@differentiable`
 attribute.
 
-```swift
+```language
 protocol P {
     @differentiable
-    func foo(_ x: Float) -> Float
+    fn foo(_ x: Float) -> Float
 }
 
 extension P {
     @derivative(of: foo(x:))
-    func _(_ x: Float) -> (value: Float, differential: (Float) -> Float) {
+    fn _(_ x: Float) -> (value: Float, differential: (Float) -> Float) {
         (value: foo(x), differential: { _ in 42 })
     }
 }
 
 struct S: P {
     @differentiable(default) // Inherits default derivative for `P.foo(_:)`.
-    func foo(_ x: Float) -> Float {
+    fn foo(_ x: Float) -> Float {
         33
     }
 }
@@ -2163,20 +2163,20 @@ precisely with access modifiers on derivative/transpose functions.
 When a function's differentiability is provided by a derivative/transpose
 function, the access scope of differentiability is identical to the
 derivative/transpose function's access scope. For example, a `fileprivate`
-derivative function in `B.swift` only overrides the original function's
-derivative in `B.swift`.
+derivative function in `B.code` only overrides the original function's
+derivative in `B.code`.
 
-```swift
-// File A.swift:
-internal func foo(_ x: Float) -> Float {
+```language
+// File A.code:
+internal fn foo(_ x: Float) -> Float {
     x * x
 }
 let dfdx_A = derivative(at: 3, of: foo)
 // dfdx_A ==> 6
 
-// File B.swift:
+// File B.code:
 @derivative(of: foo)
-fileprivate func _(_ x: Float) -> (
+fileprivate fn _(_ x: Float) -> (
     value: Float, 
     differential: @differentiable(linear) (Float) -> Float
 ) {
@@ -2185,7 +2185,7 @@ fileprivate func _(_ x: Float) -> (
 let dfdx_B = derivative(at: 3, of: foo)
 // dfdx_B ==> 42
 
-// File C.swift:
+// File C.code:
 let dfdx_C = derivative(at: 3, of: foo)
 // dfdx_C ==> 6
 ```
@@ -2194,11 +2194,11 @@ let dfdx_C = derivative(at: 3, of: foo)
 
 Differentiability is a fundamental mathematical concept that applies not only to
 declarations of functions, initializers, subscripts, and properties, but also to
-function types. In Swift, functions are first-class values of function types
+function types. In Codira, functions are first-class values of function types
 that can be passed around, applied, or converted. Because an important part of
 differentiable programming is to be able to define
 [differential operators](https://en.wikipedia.org/wiki/Differential_operator)
-and custom algorithms on differentiable functions, Swift's type system has been
+and custom algorithms on differentiable functions, Codira's type system has been
 extended to be able to express differentiable functions as first-class values.
 
 A differentiable function type is a special function type that has a different
@@ -2207,36 +2207,36 @@ non-differentiable function type with the same parameter types and result type.
 
 #### Function subtyping and runtime representation
 
-Subtyping of function types already exists in Swift and is primarily used for
+Subtyping of function types already exists in Codira and is primarily used for
 representing different foreign calling conventions for language
 interoperability. Function types and function pointer types in C, e.g.
-`int(*)(int)`, are imported to Swift as function types with a `@convention(c)`
+`int(*)(int)`, are imported to Codira as function types with a `@convention(c)`
 attribute, e.g. `@convention(c) (Int) -> Int`, with all parameter types and
-return types converted to the corresponding Swift ones.
+return types converted to the corresponding Codira ones.
 
 These function types are also subtypes of a function type with the same
 parameter types and result types but without the `@convention(c)` attribute. For
-example, you can implicitly convert a `@convention(c)` function value to a Swift
+example, you can implicitly convert a `@convention(c)` function value to a Codira
 function value and use it directly as an argument to higher-order functions such
 as
-[`map(_:)`](https://developer.apple.com/documentation/swift/array/3017522-map).
+[`map(_:)`](https://developer.apple.com/documentation/language/array/3017522-map).
 
-```swift
+```language
 // In a C file:
 int addOne(int x) { return x + 1; }
 int (*addOneFunctionPointer)(int) = addOne;
-// Swift equivalent:
+// Codira equivalent:
 //   let addOneFunctionPointer: (Int) -> Int = addOne
 
-// In a Swift file that imports the C file:
+// In a Codira file that imports the C file:
 // Global variable `addOneFunctionPointer` imported as `@convention(c) (Int) -> Int`.
 [1, 2, 3].map(addOneFunctionPointer) // [2, 3, 4]
 ```
 
-One of the main differences between a Swift function value and a C function
+One of the main differences between a Codira function value and a C function
 value is their runtime representation. A C function cannot capture values from
 the context where it is defined, so the runtime representation of a C function
-value is just a pointer to the function in memory. A Swift function, however,
+value is just a pointer to the function in memory. A Codira function, however,
 can capture values from the context, and thus contains a pointer to the
 heap-allocated (or sometimes stack-allocated) context storing captured values.
 
@@ -2282,7 +2282,7 @@ and satisfy `Self == Self.TangentVector`.
 The subtyping relation among `@differentiable(linear)`, `@differentiable`, and
 non-`@differentiable` function types allow functions of different types to be
 conditionally convertible to each other. Such conversions do not always succeed:
-Conversion from a function declaration (`func`) to a `@differentiable` function
+Conversion from a function declaration (`fn`) to a `@differentiable` function
 value succeeds if and only if the function can be differentiated. Conversion
 from a `@differentiable` function value to a non-`@differentiable` function
 value always succeeds. Conversion from a non-`@differentiable` function value to
@@ -2301,8 +2301,8 @@ function cannot be differentiated, and thus cannot be converted to a
 `@differentiable` function value, in which case the compiler will produce an
 error.
 
-```swift
-func addOne(_ x: Float) -> Float { x + 1 }
+```language
+fn addOne(_ x: Float) -> Float { x + 1 }
 let _: @differentiable (Float) -> Float = addOne // Okay!
 let _: @differentiable(linear) (Float) -> Float = addOne // Okay!
 
@@ -2310,12 +2310,12 @@ let _: @differentiable(linear) (Float) -> Float = coshf(_:)
 // Error: `coshf(_:)` is from a different module and has not been marked with
 // `@differentiable`.
 
-func mySin(_ x: Float) -> Float { sin(x) * 2 }
+fn mySin(_ x: Float) -> Float { sin(x) * 2 }
 let _: @differentiable (Float) -> Float = mySin // Okay!
 let _: @differentiable(linear) (Float) -> Float = mySin
 // Error: When differentiating `mySin(_:)` as a linear map, `sin` is not linear.
 
-func addOneViaInt(_ x: Float) -> Float { Float(Int(x) + 1) }
+fn addOneViaInt(_ x: Float) -> Float { Float(Int(x) + 1) }
 let _: @differentiable (Float) -> Float = addOneViaInt
 // Error: When differentiating `addOneViaInt(_:)`, `Int(x)` is not differentiable.
 ```
@@ -2332,8 +2332,8 @@ non-`@differentiable` function. A `@differentiable(linear)` function value can
 be implicitly converted to a `@differentiable` one, which can be implicitly
 converted to a non-`@differentiable` one.
 
-```swift
-func addOne(_ x: Float) -> Float { x + 1 }
+```language
+fn addOne(_ x: Float) -> Float { x + 1 }
 let f0: @differentiable(linear) (Float) -> Float = addOne
 let f1: @differentiable (Float) -> Float = f0
 let f2: (Float) -> Float = f1
@@ -2342,8 +2342,8 @@ let f2: (Float) -> Float = f1
 A `@differentiable` function can also be converted to a function which is
 identical except that more of its parameters are marked with `@noDerivative`.
 
-```swift
-func addOne(_ x: Float) -> Float { x + 1 }
+```language
+fn addOne(_ x: Float) -> Float { x + 1 }
 let f0: @differentiable (Float, Float, Float) -> Float = addOne
 let f1: @differentiable (@noDerivative Float, Float, Float) -> Float = f0
 let f2: @differentiable (@noDerivative Float, Float, @noDerivative Float) -> Float = f1
@@ -2357,9 +2357,9 @@ parameters from the parent function declaration, type inference will add
 implicit generic constraints that make the `@differentiable` function type's
 parameter types and result type conform to `Differentiable`.
 
-```swift
+```language
 // With all explicit generic constraints:
-func foo<T: Differentiable, U: Differentiable, V: Differentiable>(
+fn foo<T: Differentiable, U: Differentiable, V: Differentiable>(
     _ f: @differentiable (T, U) -> V
 ) {
     ...
@@ -2367,7 +2367,7 @@ func foo<T: Differentiable, U: Differentiable, V: Differentiable>(
 
 // With implied constraints:
 //     where T: Differentiable, U: Differentiable, V: Differentiable
-func foo<T, U, V>(_ f: @differentiable (T, U) -> V) {
+fn foo<T, U, V>(_ f: @differentiable (T, U) -> V) {
     ...
 }
 ```
@@ -2378,9 +2378,9 @@ constraints that make the `@differentiable(linear)` function type's parameter
 types and result type conform to `Differentiable & AdditiveArithmetic` and
 satisfy `Self == Self.TangentVector`.
 
-```swift
+```language
 // With all explicit generic constraints:
-func foo<T: Differentiable & AdditiveArithmetic,
+fn foo<T: Differentiable & AdditiveArithmetic,
          U: Differentiable & AdditiveArithmetic,
          V: Differentiable & AdditiveArithmetic>(
     _ f: @differentiable(linear) (T, U) -> V
@@ -2396,7 +2396,7 @@ func foo<T: Differentiable & AdditiveArithmetic,
 //           T.TangentVector == T,
 //           U.TangentVector == U,
 //           V.TangentVector == V
-func foo<T, U, V>(_ f: @differentiable(linear) (T, U) -> V) {
+fn foo<T, U, V>(_ f: @differentiable(linear) (T, U) -> V) {
     ...
 }
 ```
@@ -2412,9 +2412,9 @@ section. Differentiable higher-order functions for collections, e.g.
 [`Array.differentiableReduce(_:_:)`](https://gist.github.com/rxwei/2739515f77a62d26add66947cb179911).
 Data structures that store `@differentiable` functions as a property. Neural
 network layers that store activation functions, e.g.
-[`Dense`](https://github.com/tensorflow/swift-apis/blob/1b3f7c9231cac7d92b6ad79c2d6fd703e51f520a/Sources/TensorFlow/Layers/Core.swift#L149).
+[`Dense`](https://github.com/tensorflow/language-apis/blob/1b3f7c9231cac7d92b6ad79c2d6fd703e51f520a/Sources/TensorFlow/Layers/Core.code#L149).
 Neural network trainer objects that store loss functions, e.g.
-[`Learner` in the fast.ai Swift notebooks](https://github.com/fastai/fastai_docs/blob/d3953390dde2349f3618977c717b2f5a8e84e04b/dev_swift/FastaiNotebook_04_callbacks/Sources/FastaiNotebook_04_callbacks/04_callbacks.swift#L97).
+[`Learner` in the fast.ai Codira notebooks](https://github.com/fastai/fastai_docs/blob/d3953390dde2349f3618977c717b2f5a8e84e04b/dev_language/FastaiNotebook_04_callbacks/Sources/FastaiNotebook_04_callbacks/04_callbacks.code#L97).
 
 #### Non-differentiable parameters
 
@@ -2429,7 +2429,7 @@ By default, all parameters are being differentiated with respect to. When a
 function type, values of this function type are not differentiable (or linear)
 with respect to the parameter.
 
-```swift
+```language
 let f0: @differentiable (Float, Float) -> Float = { $0 * $1 }
 let f1: @differentiable(linear) (Float, Float) -> Float = { $0 + $1 }
 let f2: @differentiable(linear) (Float, @noDerivative Float) -> Float = { $0 * $1 }
@@ -2443,7 +2443,7 @@ conversions and is part of the subtyping rule: Any `@differentiable` or
 `@differentiable(linear)` function type is a subtype of the same function type
 with more `@noDerivative` parameters than there originally are.
 
-```swift
+```language
 let f0: @differentiable (Float, Float) -> Float = { $0 * $1 }
 _ = f0 as @differentiable (Float, @noDerivative Float) -> Float
 _ = f0 as @differentiable (@noDerivative Float, Float) -> Float
@@ -2471,10 +2471,10 @@ corresponding curried function types:
 | `@differentiable (@noDerivative T, U) -> V` | `(T) -> @differentiable (U) -> V`                 |
 
 A curried differentiable function can be formed like any curried
-non-differentiable function in Swift.
+non-differentiable function in Codira.
 
-```swift
-func curry<T, U, V>(
+```language
+fn curry<T, U, V>(
     _ f: @differentiable (T, U) -> V
 ) -> @differentiable (T) -> @differentiable (U) -> V {
     { x in { y in f(x, y) } }
@@ -2483,7 +2483,7 @@ func curry<T, U, V>(
 
 The way this works is that the compiler internally assigns a tangent bundle to a
 closure that captures variables. This tangent bundle is existentially typed,
-because closure contexts are type-erased in Swift. The theory behind the typing
+because closure contexts are type-erased in Codira. The theory behind the typing
 rules has been published as [The Differentiable
 Curry](https://www.semanticscholar.org/paper/The-Differentiable-Curry-Plotkin-Brain/187078bfb159c78cc8c78c3bbe81a9176b3a6e02).
 
@@ -2499,9 +2499,9 @@ Among these differential operators, two base APIs,
 `valueWithDifferential(at:of:)` and `transpose(of:)`, are used for implementing
 *all other differential operators and differentiation APIs*.
 
-```swift
+```language
 /// Returns `body(x)` and the differential of `body` at `x`.
-func valueWithDifferential<T, R>(
+fn valueWithDifferential<T, R>(
     at x: T, of body: @differentiable (T) -> R
 ) -> (value: R,
       differential: @differentiable(linear) (T.TangentVector) -> R.TangentVector) {
@@ -2511,7 +2511,7 @@ func valueWithDifferential<T, R>(
 
 
 /// Returns the transpose of the linear map `body`.
-func transpose<T, R>(
+fn transpose<T, R>(
     of body: @escaping @differentiable(linear) (T) -> R
 ) -> @differentiable(linear) (R) -> T {
     // Compiler built-in.
@@ -2523,21 +2523,21 @@ The most common differential operators are the ones that compute directional
 derivatives. These differential operators are defined to take a differentiable
 function whose parameter is a real number.
 
-```swift
-func valueWithDerivative<T: FloatingPoint, R>(
+```language
+fn valueWithDerivative<T: FloatingPoint, R>(
     at x: T, of body: @differentiable (T) -> R
 ) -> (value: R, derivative: R.TangentVector) where T.TangentVector: FloatingPoint {
     let (value, df) = valueWithDifferential(at: x, of: body)
     return (value, df(T.TangentVector(1)))
 }
 
-func derivative<T: FloatingPoint, R>(
+fn derivative<T: FloatingPoint, R>(
     at x: T, of body: @differentiable (T) -> R
 ) -> R.TangentVector where T.TangentVector: FloatingPoint {
     valueWithDerivative(at: x, of: body).derivative
 }
 
-func derivative<T: FloatingPoint, R>(
+fn derivative<T: FloatingPoint, R>(
     of body: @escaping @differentiable (T) -> R
 ) -> (T) -> R.TangentVector where T.TangentVector: FloatingPoint {
     return { x in derivative(at: x, of: body) }
@@ -2553,8 +2553,8 @@ returning the original value and the transpose of the differential, and
 `valueWithGradient(at:of:)` is defined as evaluating the pullback at `1` when
 the function being differentiated returns a real number.
 
-```swift
-func valueWithPullback<T, R>(
+```language
+fn valueWithPullback<T, R>(
     at x: T, of body: @differentiable (T) -> R
 ) -> (value: R,
       pullback: @differentiable(linear) (R.TangentVector) -> T.TangentVector) {
@@ -2562,20 +2562,20 @@ func valueWithPullback<T, R>(
     return (value, transpose(of: df))
 }
 
-func valueWithGradient<T, R: FloatingPoint>(
+fn valueWithGradient<T, R: FloatingPoint>(
     at x: T, of body: @differentiable (T) -> R
 ) -> (value: R, gradient: T.TangentVector) where R.TangentVector: FloatingPoint {
     let (value, pullback) = valueWithPullback(at: x, of: body)
     return (value, pullback(R.TangentVector(1)))
 }
 
-func gradient<T, R: FloatingPoint>(
+fn gradient<T, R: FloatingPoint>(
     at x: T, of body: @differentiable (T) -> R
 ) -> T.TangentVector where R.TangentVector: FloatingPoint {
     return valueWithGradient(at: x, of: body).gradient
 }
 
-func gradient<T, R: FloatingPoint>(
+fn gradient<T, R: FloatingPoint>(
     of body: @escaping @differentiable (T) -> R
 ) -> (T) -> T.TangentVector where R.TangentVector: FloatingPoint {
     return { x in gradient(at: x, of: body) }
@@ -2584,10 +2584,10 @@ func gradient<T, R: FloatingPoint>(
 
 #### Example usage
 
-All of these APIs are designed to work nicely with Swift's trailing closure
+All of these APIs are designed to work nicely with Codira's trailing closure
 syntax. Here is an example of training a simple deep learning model:
 
-```swift
+```language
 for _ in 0..<1000 {
     // Differentiate the loss with respect to the model `classifier` itself,
     // producing a tangent vector `𝛁model` that represents partial derivatives
@@ -2607,23 +2607,23 @@ for _ in 0..<1000 {
 
 Differential operators                                                                                                                                                                                                                                                                                                         | Description
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -----------
-[`transpose(of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L374)                                                                                                                                                                                        | Returns transpose of linear map.
-[`valueWithDifferential(at:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L383) <br> [`valueWithDifferential(at:_:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L390) (arity 2) | Returns original result and differential function.
-[`valueWithPullback(at:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L276) <br> [`valueWithPullback(at:_:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L283)                   | Returns original result and pullback function.
-[`differential(at:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L435) <br> [`differential(at:_:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L442) (arity 2)                   | Returns differential function.
-[`pullback(at:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L302) <br> [`pullback(at:_:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L309)                                     | Returns pullback function.
-[`derivative(at:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L483) <br> [`derivative(at:_:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L491) (arity 2)                       | Returns partial derivatives with respect to arguments ("forward-mode").
-[`gradient(at:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L384) <br> [`gradient(at:_:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L392)                                     | Returns partial derivatives with respect to arguments ("reverse-mode").
-[`valueWithDerivative(at:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L538) <br> [`valueWithDerivative(at:_:of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L547) (arity 2)     | Returns original result and partial derivatives with respect to arguments ("forward-mode").
-[`valueWithGradient(at:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L327) <br> [`valueWithGradient(at:_:of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L335)                   | Returns original result and partial derivatives with respect to arguments ("reverse-mode").
-[`derivative(of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L601) <br> [`derivative(of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L609) (arity 2)                               | Returns derivative function, taking original arguments and returning and partial derivatives with respect to arguments ("forward-mode").
-[`gradient(of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L410) <br> [`gradient(of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L418)                                             | Returns gradient function, taking original arguments and returning and partial derivatives with respect to arguments ("reverse-mode").
-[`valueWithDerivative(of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L656) <br> [`valueWithDerivative(of:)`](https://github.com/swiftlang/swift/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.swift#L664) (arity 2)             | Returns function taking original arguments and returning original result and partial derivatives with respect to arguments ("forward-mode").
-[`valueWithGradient(of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L356) <br> [`valueWithGradient(of:)`](https://github.com/swiftlang/swift/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.swift#L364)                           | Returns function taking original arguments and returning original result and partial derivatives with respect to arguments ("reverse-mode").
+[`transpose(of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L374)                                                                                                                                                                                        | Returns transpose of linear map.
+[`valueWithDifferential(at:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L383) <br> [`valueWithDifferential(at:_:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L390) (arity 2) | Returns original result and differential function.
+[`valueWithPullback(at:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L276) <br> [`valueWithPullback(at:_:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L283)                   | Returns original result and pullback function.
+[`differential(at:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L435) <br> [`differential(at:_:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L442) (arity 2)                   | Returns differential function.
+[`pullback(at:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L302) <br> [`pullback(at:_:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L309)                                     | Returns pullback function.
+[`derivative(at:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L483) <br> [`derivative(at:_:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L491) (arity 2)                       | Returns partial derivatives with respect to arguments ("forward-mode").
+[`gradient(at:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L384) <br> [`gradient(at:_:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L392)                                     | Returns partial derivatives with respect to arguments ("reverse-mode").
+[`valueWithDerivative(at:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L538) <br> [`valueWithDerivative(at:_:of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L547) (arity 2)     | Returns original result and partial derivatives with respect to arguments ("forward-mode").
+[`valueWithGradient(at:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L327) <br> [`valueWithGradient(at:_:of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L335)                   | Returns original result and partial derivatives with respect to arguments ("reverse-mode").
+[`derivative(of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L601) <br> [`derivative(of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L609) (arity 2)                               | Returns derivative function, taking original arguments and returning and partial derivatives with respect to arguments ("forward-mode").
+[`gradient(of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L410) <br> [`gradient(of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L418)                                             | Returns gradient function, taking original arguments and returning and partial derivatives with respect to arguments ("reverse-mode").
+[`valueWithDerivative(of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L656) <br> [`valueWithDerivative(of:)`](https://github.com/languagelang/language/blob/9c95e27601e9623f5b53c9cc531d185e267a83d6/stdlib/public/core/AutoDiff.code#L664) (arity 2)             | Returns function taking original arguments and returning original result and partial derivatives with respect to arguments ("forward-mode").
+[`valueWithGradient(of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L356) <br> [`valueWithGradient(of:)`](https://github.com/languagelang/language/blob/c1211a3f78992c89a3ab4d638c378c6f45ab8fe8/stdlib/public/core/AutoDiff.code#L364)                           | Returns function taking original arguments and returning original result and partial derivatives with respect to arguments ("reverse-mode").
 
 #### Static analysis
 
-Differentiable programming in Swift aims to provide the best static compiler
+Differentiable programming in Codira aims to provide the best static compiler
 diagnostics to help users catch mistakes. Beyond error diagnostics, the compiler
 and the standard library are equipped with static analyses and marker APIs that
 help the user write differentiable code with explicit annotations about
@@ -2631,8 +2631,8 @@ non-obvious non-differentiable cases.
 
 ##### Cross-module opacity
 
-Swift libraries are distributed as
-[modules](https://docs.swift.org/swift-book/LanguageGuide/AccessControl.html),
+Codira libraries are distributed as
+[modules](https://docs.code.org/language-book/LanguageGuide/AccessControl.html),
 which provide an API interface and an opaque binary format for client code to
 use. By importing a library, we can compute derivatives of functions that have
 been marked with `@differentiable` or that have been provided with a linear
@@ -2643,17 +2643,17 @@ if we try to differentiate
 `derivative(at:of:)` API, the compiler will produce error messages at
 compile-time instead of producing zero derivatives.
 
-```swift
+```language
 let y = derivative(at: 1.0) { x in
     sinf(x)
 }
 ```
 
 ```console
-test.swift:4:5: error: expression is not differentiable
+test.code:4:5: error: expression is not differentiable
     sinf(x)
     ^
-test.swift:4:5: note: cannot differentiate functions that have not been marked '@differentiable' and that are defined in other modules
+test.code:4:5: note: cannot differentiate functions that have not been marked '@differentiable' and that are defined in other modules
     sinf(x)
     ^
 ```
@@ -2664,17 +2664,17 @@ Calling functions that convert values to non-differentiable types and convert
 them back makes the function no longer differentiable. The compiler is able to
 detect these cases and provide error messages.
 
-```swift
+```language
 let d = derivative(at: 1.0) { x in
     Double(Int(x)) + 2
 }
 ```
 
 ```console
-test.swift:1:27: error: function is not differentiable
+test.code:1:27: error: function is not differentiable
 let y = derivative(at: 1.0) { x in
                             ^~~~~~
-test.swift:2:12: note: cannot differentiate through a non-differentiable result; do you want to add 'withoutDerivative(at:)'?
+test.code:2:12: note: cannot differentiate through a non-differentiable result; do you want to add 'withoutDerivative(at:)'?
     Double(Int(x)) + 2
            ^
 ```
@@ -2687,14 +2687,14 @@ possible to mistype a variable and cause numerical computation to be incorrect.
 As such, the compiler is able to leverage dependency analysis to determine
 whether the derivative is always zero and warns the user.
 
-```swift
+```language
 let grad = gradient(at: 1.0) { x in
     Double(3).squareRoot()
 }
 ```
 
 ```console
-test.swift:4:18: warning: result does not depend on differentiation arguments and will always have a zero derivative; do you want to use 'withoutDerivative(at:)' to make it explicit?
+test.code:4:18: warning: result does not depend on differentiation arguments and will always have a zero derivative; do you want to use 'withoutDerivative(at:)' to make it explicit?
     Double(3).squareRoot()
     ^
     withoutDerivative(at:)
@@ -2711,13 +2711,13 @@ method, we use gradient descent to slowly find better and better values for the
 slope and y-intercept. For a basic set of data points consisting of `(x, y)`
 value pairs, the model would look like the following:
 
-```swift
+```language
 struct Perceptron: @memberwise Differentiable {
     var weights: SIMD64<Float>
     var bias: Float
 
     @differentiable
-    func callAsFunction(_ input: SIMD64<Float>) -> Float {
+    fn callAsFunction(_ input: SIMD64<Float>) -> Float {
         weights.dot(input) + bias
     }
 }
@@ -2725,7 +2725,7 @@ struct Perceptron: @memberwise Differentiable {
 
 To train the model on a data set, it would look like the following:
 
-```swift
+```language
 let iterationCount = 160
 let learningRate: Float = 0.00003
 
@@ -2752,9 +2752,9 @@ for i in 0..<iterationCount {
 
 ### Deep learning
 
-[Swift for TensorFlow](https://github.com/tensorflow/swift) is a numerics and
+[Codira for TensorFlow](https://github.com/tensorflow/language) is a numerics and
 machine learning library that uses the proposed differentiable programming
-feature. Swift for TensorFlow has been used to implement many machine learning
+feature. Codira for TensorFlow has been used to implement many machine learning
 models, from simple image classification models like
 [ResNet](https://arxiv.org/abs/1512.03385) to advanced models using Monte Carlo
 tree search to power a [Go](https://en.wikipedia.org/wiki/Go_\(game\)) game
@@ -2777,7 +2777,7 @@ example of a feed-forward neural network: it is composed of multiple dense
 layers, each of which performs `output = activation(matmul(weight, input) +
 bias)`.
 
-```swift
+```language
 import TensorFlow
 
 struct MultiLayerPerception: Layer, @memberwise Differentiable {
@@ -2786,7 +2786,7 @@ struct MultiLayerPerception: Layer, @memberwise Differentiable {
     var dense3 = Dense<Float>(inputSize: 30, outputSize: 10, activation: softmax)
 
     @differentiable
-    func callAsFunction(_ input: Tensor<Float>) -> Tensor<Float> {
+    fn callAsFunction(_ input: Tensor<Float>) -> Tensor<Float> {
         dense3(dense2(dense1(input)))
     }
 }
@@ -2804,7 +2804,7 @@ Here is a simple script that implements
 [LeNet-5](http://yann.lecun.com/exdb/lenet/), a convolutional neural network for
 classifying handwritten digits.
 
-```swift
+```language
 import TensorFlow
 
 // Original Paper:
@@ -2825,7 +2825,7 @@ struct LeNet: Layer, @memberwise Differentiable {
     var fc3 = Dense<Float>(inputSize: 84, outputSize: 10, activation: softmax)
 
     @differentiable
-    func callAsFunction(_ input: Tensor<Float>) -> Tensor<Float> {
+    fn callAsFunction(_ input: Tensor<Float>) -> Tensor<Float> {
         let convolved = pool2(conv2(pool1(conv1(input))))
         return fc3(fc2(fc1(flatten(convolved))))
     }
@@ -2841,7 +2841,7 @@ network layers, has a `callAsFunction(_:)` method that is differentiable with
 respect to `self` and `input`, where `input` is an element of the sequence that
 is the input to the RNN.
 
-```swift
+```language
 /// A recurrent neural network cell.
 protocol RNNCell: Layer
 where Input == RNNCellInput<TimeStepInput, State>,
@@ -2862,7 +2862,7 @@ Below is the cell of a
 network, which is used widely in natural language processing and speech
 processing.
 
-```swift
+```language
 /// An LSTM cell.
 struct LSTMCell<Scalar: TensorFlowFloatingPoint>: RNNCell, @memberwise Differentiable {
     var fusedWeight: Tensor<Scalar>
@@ -2885,7 +2885,7 @@ struct LSTMCell<Scalar: TensorFlowFloatingPoint>: RNNCell, @memberwise Different
     }
 
     @differentiable
-    func callAsFunction(_ input: Input) -> Output {
+    fn callAsFunction(_ input: Input) -> Output {
         let gateInput = input.input.concatenated(with: input.state.hidden, alongAxis: 1)
         let fused = matmul(gateInput, fusedWeight) + fusedBias
         let (batchSize, hiddenSize) = (fused.shape[0], fused.shape[1] / 4)
@@ -2907,7 +2907,7 @@ struct LSTMCell<Scalar: TensorFlowFloatingPoint>: RNNCell, @memberwise Different
 Since an RNN is a loop wrapped around the cell, it can be implemented as a
 generic struct with a `Cell` generic parameter that conforms to `RNNCell`.
 
-```swift
+```language
 struct RNN<Cell: RNNCell>: Layer {
     typealias Input = [Cell.TimeStepInput]
     typealias Output = [Cell.TimeStepOutput]
@@ -2919,7 +2919,7 @@ struct RNN<Cell: RNNCell>: Layer {
     }
 
     @differentiable(wrt: (self, input))
-    func callAsFunction(_ input: [Cell.TimeStepInput]) -> [Cell.TimeStepOutput] {
+    fn callAsFunction(_ input: [Cell.TimeStepInput]) -> [Cell.TimeStepOutput] {
         var currentHiddenState = zeroState
         var timeStepOutputs: [Cell.TimeStepOutput] = []
         for timeStep in input {
@@ -2935,7 +2935,7 @@ struct RNN<Cell: RNNCell>: Layer {
 Using generics, one can compose `RNN` with different RNN cell types. Different
 RNN types can be defined in a library simply by creating a type alias.
 
-```swift
+```language
 typealias SimpleRNN<Scalar: TensorFlowFloatingPoint> = RNN<SimpleRNNCell<Scalar>>
 typealias LSTM<Scalar: TensorFlowFloatingPoint> = RNN<LSTMCell<Scalar>>
 ```
@@ -2953,7 +2953,7 @@ different ways with trade-offs in performance, usability, and complexity.
 Intuitively, higher-order differentiation will enable calling a differential
 operator on the result of a differential operator, e.g.
 
-```swift
+```language
 let f = derivative(of: derivative(of: derivative(of: { x in pow(x, 3.0) })))
 ```
 
@@ -2961,8 +2961,8 @@ This will require the differential operator `derivative(of:)` to return a
 `@differentiable` function, hence semantically changing `@differentiable` to
 mean infinite differentiability.
 
-```swift
-func derivative<T: FloatingPoint, U: Differentiable>(
+```language
+fn derivative<T: FloatingPoint, U: Differentiable>(
     _ f: @differentiable (T) -> U
 ) -> @differentiable (T) -> U where T: FloatingPoint, T == T.TangentVector {
     { x in differential(at: x, of: f) }
@@ -2974,16 +2974,16 @@ implemented in terms of `valueWithDifferential(at:of:)`, both
 `derivative(at:of:)` and `valueWithDifferential(at:of:)` would need to be marked
 with `@differentiatiable` with respect to its `x` argument.
 
-```swift
+```language
 @differentiable(wrt: x)
-func derivative<T: FloatingPoint, U: Differentiable>(
+fn derivative<T: FloatingPoint, U: Differentiable>(
     at x: T, of body: @differentiable (T) -> U) -> U
 ) -> U.TangentVector where T: FloatingPoint, T == T.TangentVector {
     valueWithDifferential(at: x, of: body).differential(T(1))
 }
 
 @differentiable(wrt: x)
-func valueWithDifferential<T: FloatingPoint, U: Differentiable>(
+fn valueWithDifferential<T: FloatingPoint, U: Differentiable>(
     at x: T, of body: @differentiable (T) -> U) -> U
 ) -> (value: U, differential: @differentiable(linear) (T.TangentVector) -> U.TangentVector)
 ```
@@ -3010,7 +3010,7 @@ best differentiable programming language.
 ### Naming conventions for numerical computing
 
 The
-[API Design Guidelines](https://swift.org/documentation/api-design-guidelines)
+[API Design Guidelines](https://language.org/documentation/api-design-guidelines)
 encourages naming that is both easy-to-learn for beginners and unsurprising for
 experts.
 
@@ -3031,7 +3031,7 @@ following names for the `W_ih` variable:
 
 Which name is the best? It is hard to say, as no naming precedent exists.
 Standardizing naming conventions for math terminology will be important as
-numerical computing becomes more prominent in Swift.
+numerical computing becomes more prominent in Codira.
 
 ## Source compatibility
 
@@ -3068,7 +3068,7 @@ can be renamed or moved under some namespace without breaking ABI.
 ### Not support differentiable programming
 
 We believe first-class differentiable programming is a big step towards making
-Swift a real contender in the numerical computing and machine learning
+Codira a real contender in the numerical computing and machine learning
 landscape. Differentiable programming will enable intelligent applications,
 machine learning models, scientific experiments, physical simulations, and more.
 
@@ -3076,8 +3076,8 @@ machine learning models, scientific experiments, physical simulations, and more.
 
 Dynamic languages, like Python and Julia, have established library support for
 differentiable programming. While it is possible to interoperate with these
-libraries via Swift, we feel that first-class differentiable programming in
-Swift is leaps ahead in expressivity, usability, and safety.
+libraries via Codira, we feel that first-class differentiable programming in
+Codira is leaps ahead in expressivity, usability, and safety.
 
 ### Other approaches to differentiable programming
 
@@ -3085,7 +3085,7 @@ See
 ["Approaches to automatic differentiation"](#approaches-to-automatic-differentiation)
 above for an overview and comparison of automatic differentiation approaches.
 First-class language support for differentiation will enable convenient,
-extensible, and performant differentiable programming in Swift - more so than
+extensible, and performant differentiable programming in Codira - more so than
 library-based approaches.
 
 ## Acknowledgements
@@ -3107,8 +3107,8 @@ Parker Schuh, and Dimitrios Vytiniotis.
 [Marc Rasi]: https://github.com/marcrasi
 [Bart Chrzaszcz]: https://github.com/bartchr808
 
-[swift-numerics]: https://github.com/apple/swift-numerics
-[SE-0229]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0229-simd.md
-[SE-0233]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0233-additive-arithmetic-protocol.md
-[SE-0246]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0246-mathable.md
-[SE-0251]: https://github.com/swiftlang/swift-evolution/blob/main/proposals/0251-simd-additions.md
+[language-numerics]: https://github.com/apple/language-numerics
+[SE-0229]: https://github.com/languagelang/language-evolution/blob/main/proposals/0229-simd.md
+[SE-0233]: https://github.com/languagelang/language-evolution/blob/main/proposals/0233-additive-arithmetic-protocol.md
+[SE-0246]: https://github.com/languagelang/language-evolution/blob/main/proposals/0246-mathable.md
+[SE-0251]: https://github.com/languagelang/language-evolution/blob/main/proposals/0251-simd-additions.md

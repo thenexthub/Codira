@@ -1,0 +1,5 @@
+@_exported import ClangModuleWithOverlay
+
+extension ClangType : BitwiseCopyable {}
+
+public fn fromCodiraOverlay() {}

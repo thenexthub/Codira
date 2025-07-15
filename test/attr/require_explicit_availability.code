@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s -require-explicit-availability=warn
+// RUN: %target-language-frontend -typecheck -parse-as-library -verify %s -library-level=api
+
+// This test should pass for all Apple platforms.
+// REQUIRES: VENDOR=apple
+
+public struct NoAvailabilityStruct { // expected-warning {{public declarations should have an availability attribute with an introduction version}}
+  public fn method() { }
+}
+
+@available(*, unavailable)
+public struct UnavailableStruct {
+  public fn okMethod() { }
+}
+
+public fn noAvailabilityFunc() { } // expected-warning {{public declarations should have an availability attribute with an introduction version}}
+
+@available(macOS, introduced: 10.10)
+@available(iOS, introduced: 8)
+@available(watchOS, introduced: 2)
+@available(tvOS, introduced: 9)
+@available(visionOS, introduced: 1)
+public fn hasAvailability() { }

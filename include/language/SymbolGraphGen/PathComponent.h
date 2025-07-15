@@ -1,4 +1,4 @@
-//===--- SymbolGraphPathComponent.h - Swift SymbolGraph Path Component ----===//
+//===--- SymbolGraphPathComponent.h - Codira SymbolGraph Path Component ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_PATHCOMPONENT_H
-#define SWIFT_SYMBOLGRAPHGEN_PATHCOMPONENT_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_PATHCOMPONENT_H
+#define LANGUAGE_SYMBOLGRAPHGEN_PATHCOMPONENT_H
 
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 namespace language {
 class ValueDecl;
@@ -29,11 +30,11 @@ struct PathComponent {
   SmallString<32> Title;
   /// The kind of the corresponding symbol graph node.
   StringRef Kind;
-  /// The swift decl associated with the corresponding symbol graph node.
+  /// The language decl associated with the corresponding symbol graph node.
   const ValueDecl *VD;
 };
 
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_PATHCOMPONENT_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_PATHCOMPONENT_H

@@ -4,7 +4,7 @@ Finddispatch
 
 Find libdispatch, deferring to dispatchConfig.cmake when requested.
 This is meant to find the C implementation of libdispatch for use as the
-executor for Swift concurrency. This library is not intended for use by
+executor for Codira concurrency. This library is not intended for use by
 third-party program on Linux or Windows.
 
 Imported Targets
@@ -17,8 +17,8 @@ The following :prop_tgt:`IMPORTED` TARGETS may be defined:
 Hint Variables
 ^^^^^^^^^^^^^^
 
- ``swift_SDKROOT``
-   Set the path to the Swift SDK installation.
+ ``language_SDKROOT``
+   Set the path to the Codira SDK installation.
    This only affects Linux and Windows builds.
    Apple builds always use the library provided by the SDK.
 
@@ -77,18 +77,18 @@ elseif(LINUX)
   if(dispatch_STATIC)
     find_path(dispatch_INCLUDE_DIR
       "dispatch/dispatch.h"
-      HINTS "${Swift_SDKROOT}/usr/lib/swift_static")
+      HINTS "${Codira_SDKROOT}/usr/lib/language_static")
     find_library(dispatch_LIBRARY
       NAMES "libdispatch.a"
-      HINTS "${Swift_SDKROOT}/usr/lib/swift_static/linux")
+      HINTS "${Codira_SDKROOT}/usr/lib/language_static/linux")
     add_library(dispatch STATIC IMPORTED GLOBAL)
   else()
     find_path(dispatch_INCLUDE_DIR
       "dispatch/dispatch.h"
-      HINTS "${Swift_SDKROOT}/usr/lib/swift")
+      HINTS "${Codira_SDKROOT}/usr/lib/language")
     find_library(dispatch_LIBRARY
       NAMES "libdispatch.so"
-      HINTS "${Swift_SDKROOT}/usr/lib/swift/linux")
+      HINTS "${Codira_SDKROOT}/usr/lib/language/linux")
     add_library(dispatch SHARED IMPORTED GLOBAL)
   endif()
   set_target_properties(dispatch PROPERTIES
@@ -100,15 +100,15 @@ elseif(WIN32)
   find_path(dispatch_INCLUDE_DIR
     "dispatch/dispatch.h"
     HINTS
-      "${Swift_SDKROOT}/usr/include"
+      "${Codira_SDKROOT}/usr/include"
       "$ENV{SDKROOT}/usr/include")
   find_library(dispatch_LIBRARY
     NAMES "dispatch.lib"
     HINTS
-      "${Swift_SDKROOT}/usr/lib/swift/${SwiftCore_PLATFORM_SUBDIR}/${SwiftCore_ARCH_SUBDIR}"
-      "${Swift_SDKROOT}/usr/lib/swift"
-      "$ENV{SDKROOT}/usr/lib/swift/${SwiftCore_PLATFORM_SUBDIR}/${SwiftCore_ARCH_SUBDIR}"
-      "$ENV{SDKROOT}/usr/lib/swift")
+      "${Codira_SDKROOT}/usr/lib/language/${CodiraCore_PLATFORM_SUBDIR}/${CodiraCore_ARCH_SUBDIR}"
+      "${Codira_SDKROOT}/usr/lib/language"
+      "$ENV{SDKROOT}/usr/lib/language/${CodiraCore_PLATFORM_SUBDIR}/${CodiraCore_ARCH_SUBDIR}"
+      "$ENV{SDKROOT}/usr/lib/language")
 
   add_library(dispatch SHARED IMPORTED GLOBAL)
   set_target_properties(dispatch PROPERTIES

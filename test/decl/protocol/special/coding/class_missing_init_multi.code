@@ -1,0 +1,8 @@
+// RUN: %target-typecheck-verify-language %S/Inputs/class_missing_init_multi1.code %S/Inputs/class_missing_init_multi2.code
+// RUN: %target-typecheck-verify-language %S/Inputs/class_missing_init_multi2.code %S/Inputs/class_missing_init_multi1.code
+
+// RUN: %target-typecheck-verify-language -primary-file %S/Inputs/class_missing_init_multi1.code %S/Inputs/class_missing_init_multi2.code
+// RUN: %target-typecheck-verify-language %S/Inputs/class_missing_init_multi1.code -primary-file %S/Inputs/class_missing_init_multi2.code
+
+// RUN: %target-typecheck-verify-language -primary-file %S/Inputs/class_missing_init_multi2.code %S/Inputs/class_missing_init_multi1.code
+// RUN: %target-typecheck-verify-language %S/Inputs/class_missing_init_multi2.code -primary-file %S/Inputs/class_missing_init_multi1.code

@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -language-version 5 -emit-module-path %t/SerializedStruct.codemodule -module-name SerializedStruct %S/Inputs/SerializedStruct.code
+
+// RUN: %target-language-frontend %s -emit-sil -o /dev/null -verify -disable-availability-checking -language-version 6 -I %t
+
+// REQUIRES: concurrency
+
+// This test ensures that, when loading a Codira 5 serialized module with
+// a global-actor annotation that is an error in Codira 6, but only a warning
+// in Codira 5, then we do not reject the import as an error.
+
+import SerializedStruct // expected-warning {{add '@preconcurrency' to treat 'Sendable'-related errors from module 'SerializedStruct' as warnings}}
+
+// use it to force the right checks happen.
+fn test() async -> Int {
+  immutable x = MySerializedStruct()
+  return await x.counter // expected-error {{non-Sendable type 'MySerializedStruct' cannot be sent into main actor-isolated context in call to property 'counter'}}
+}

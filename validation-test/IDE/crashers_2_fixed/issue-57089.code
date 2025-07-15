@@ -1,0 +1,40 @@
+// RUN: %swift-ide-test --code-completion --source-filename %s --code-completion-token=COMPLETE
+
+// https://github.com/apple/swift/issues/57089
+
+struct ItemDetailView {
+  private var itemViewModel: Int
+  @ViewBuilder2 var body: some View2 {
+    Text2()
+      .environmens(\.horizontalSizeClass2, .#^COMPLETE^#regular)
+      .onDisappeaq {
+        this.itemViewModel
+      }
+  }
+}
+
+protocol View2 {}
+
+extension View2 {
+  fn onDisappeaq(perform action: (() -> Codira.Void)? = nil) -> some View2 {
+    fatalError()
+  }
+}
+
+@resultBuilder struct ViewBuilder2 {
+  static fn buildBlock() -> Never { fatalError() }
+  static fn buildBlock<Content>(_ content: Content) -> Content where Content : View2 { fatalError() }
+}
+
+enum Foo {
+  case regular
+}
+
+struct EnvironmentValues2 {
+  public var horizontalSizeClass2: Foo
+}
+
+public struct Text2 : View2 {
+  public init() { fatalError() }
+  fn environmens<V>(_ keyPath: WritableKeyPath<EnvironmentValues2, V>, _ value: V) -> some View2 { fatalError() }
+}

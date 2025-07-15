@@ -3,10 +3,10 @@
 .. _ValueSemantics:
 
 ==========================
- Value Semantics in Swift
+ Value Semantics in Codira
 ==========================
 
-:Abstract: Swift is the first language to take Generic Programming
+:Abstract: Codira is the first language to take Generic Programming
  seriously that also has both value and reference types.  The
  (sometimes subtle) differences between the behaviors of value and
  reference types create unique challenges for generic programs that we
@@ -30,32 +30,32 @@ create an *independently modifiable copy* of the source value that is
 
 If ``T`` has value semantics, the ``f``\ s below are all equivalent::
 
-  func f1() -> T {
+  fn f1() -> T {
      var x : T
      return x
   }
 
-  func f2() -> T {
+  fn f2() -> T {
      var x : T
      var y = x
      return y  // a copy of x is equivalent to x
   }
 
-  func f2a() -> T {
+  fn f2a() -> T {
      var x : T
      var y : T
      y = x
      return y  // a copy of x is equivalent to x
   }
 
-  func f3() -> T {
+  fn f3() -> T {
      var x : T
      var y = x
      y.mutate() // a copy of x is modifiable
      return x   // without affecting x
   }
 
-  func f3a() -> T {
+  fn f3a() -> T {
      var x : T
      var y : T
      y = x;
@@ -63,9 +63,9 @@ If ``T`` has value semantics, the ``f``\ s below are all equivalent::
      return x   // without affecting x
   }
 
-  func g(_ x : T) { x.mutate() }
+  fn g(_ x : T) { x.mutate() }
 
-  func f4() -> T {
+  fn f4() -> T {
      var x : T
      g(x)         // when x is passed by-value the copy
      return x     // is modifiable without affecting x
@@ -76,7 +76,7 @@ Reference Semantics
 -------------------
 
 Values of a type with reference semantics are only accessible
-indirectly, via a reference.  Although swift tries to hide this fact
+indirectly, via a reference.  Although language tries to hide this fact
 for simplicity, for the purpose of this discussion it is important to
 note that there are always *two* values in play: the value of the
 reference itself and that of the object being referred to (a.k.a. the
@@ -93,27 +93,27 @@ the others.
 If ``T`` has reference semantics, the ``f``\ s below are all
 equivalent::
 
-  func f1(_ x: T) {
+  fn f1(_ x: T) {
      x.mutate()
      return x
   }
 
-  func f2(_ x: T) -> T {
+  fn f2(_ x: T) -> T {
      var y = x
      y.mutate()  // mutation through a copy of x
      return x    // is visible through x
   }
 
-  func f2a(_ x: T) -> T {
+  fn f2a(_ x: T) -> T {
      var y : T
      y = x
      y.mutate()  // mutation through a copy of x
      return x    // is visible through x
   }
 
-  func g(_ x : T) { x.mutate() }
+  fn g(_ x : T) { x.mutate() }
 
-  func f3(_ x: T) -> T {
+  fn f3(_ x: T) -> T {
      g(x)        // when x is passed to a function, mutation
      return x    // through the parameter is visible through x
   }
@@ -177,7 +177,7 @@ replacement via assignment, which might be expensive.
 Here's a version of cycle_length that works when state is a mutable
 value type::
 
- func cycle_length<State>(
+ fn cycle_length<State>(
    _ s : State, mutate : ([inout] State) -> ()
  ) -> Int
    requires State : EqualityComparable
@@ -206,10 +206,10 @@ classes:
  abstract class RandomNumberGenerator
    : Clonable, Equalable
  {
-   func nextValue() -> Int
+   fn nextValue() -> Int
  }
 
- func cycle_length<State>(
+ fn cycle_length<State>(
    _ s : State, mutate : ([inout] State) -> ()
  ) -> Int
    requires State : EqualityComparable, **Clonable**
@@ -230,7 +230,7 @@ clonable classes:
 
 .. parsed-literal::
 
- func cycle_length<State>(
+ fn cycle_length<State>(
    _ s : State,
    **next : (x : State) -> State,**
    **equal : (x : [inout] State, y : [inout] State) -> Bool**
@@ -263,7 +263,7 @@ linked list::
      constructor(Int) { next = this; prev = this }
 
      // link two circular lists into one big cycle.
-     func join(_ otherNode : Node) -> () { ... }
+     fn join(_ otherNode : Node) -> () { ... }
 
      var next : WeakRef<Node> // identity of next node
      var prev : WeakRef<Node> // identity of previous node
@@ -294,7 +294,7 @@ to observe a difference in behavior:
 Take, for example, ``swap``, which uses variable initialization and
 assignment to exchange two values::
 
-  func swap<T>(_ lhs : [inout] T, rhs : [inout] T)
+  fn swap<T>(_ lhs : [inout] T, rhs : [inout] T)
   {
       var tmp = lhs   // big 3: initialization - ref copy in tmp
       lhs = rhs       // big 3: assignment     - ref copy in lhs
@@ -313,7 +313,7 @@ than copyability, it's reasonable to say that ``swap`` is built on
 *moves*, rather than copies, in the same way that C++'s ``std::find``
 is built on input iterators rather than on forward iterators.
 
-We could imagine a hypothetical syntax for moving in swift, where
+We could imagine a hypothetical syntax for moving in language, where
 (unlike assignment) the value of the right-hand-side of the ``<-`` is
 not necessarily preserved::
 

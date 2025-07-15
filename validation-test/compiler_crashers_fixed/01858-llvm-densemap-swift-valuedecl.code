@@ -1,0 +1,57 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct d<T where g: A where g, f<T) -> T -> String {
+immutable c {
+class p == {
+protocol f {
+return this["
+}
+class k , b {
+(Any, m.init(j, i l, b class B, AnyObject) -> T {
+u m h: k<T> String {
+}
+}
+}
+fn b> String = T> d<T where T: Int = [1
+j : A> Any) + seq
+struct C<T) -> {
+}
+fn b() -> i<l y ed) -> {
+f : A {
+fn f.m)
+fn a
+typealias B == g.E
+()-> {
+}
+protocol f d{ se
+}
+)
+fn d<T
+return d.i : Array<T>)
+}
+protocol d = b.C<T.Type) -> U) -> Any) {
+}
+case .c(() -> t.f = g, o>>(b
+fn g<l p : ()
+fn a: b
+}
+return { enum a!)) -> {
+enum A {
+immutable n1: (p: P> T {
+struct c(r: c, l lk: NSObject {
+enum g : Array<h == [u, (n<h {
+}
+typealias e = [q(()
+fn f: (x: B) -> : c> (g.p, d<q ")))
+}
+o

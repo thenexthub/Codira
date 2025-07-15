@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-value-tracking"
@@ -23,11 +24,11 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/SimplifyInstruction.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 using namespace language::PatternMatch;
 
-bool swift::isExclusiveArgument(SILValue V) {
+bool language::isExclusiveArgument(SILValue V) {
   auto *Arg = dyn_cast<SILFunctionArgument>(V);
   if (!Arg)
     return false;
@@ -87,12 +88,12 @@ static bool isLocalObject(SILValue Obj) {
   return true;
 }
 
-bool swift::pointsToLocalObject(SILValue V) {
+bool language::pointsToLocalObject(SILValue V) {
   return isLocalObject(getUnderlyingObject(V));
 }
 
 /// Check if the value \p Value is known to be zero, non-zero or unknown.
-IsZeroKind swift::isZeroValue(SILValue Value) {
+IsZeroKind language::isZeroValue(SILValue Value) {
   // Inspect integer literals.
   if (auto *L = dyn_cast<IntegerLiteralInst>(Value)) {
     if (!L->getValue())
@@ -164,7 +165,7 @@ IsZeroKind swift::isZeroValue(SILValue Value) {
 
 /// Check if the sign bit of the value \p V is known to be:
 /// set (true), not set (false) or unknown (None).
-std::optional<bool> swift::computeSignBit(SILValue V) {
+std::optional<bool> language::computeSignBit(SILValue V) {
   SILValue Value = V;
   while (true) {
     ValueBase *Def = Value;
@@ -387,7 +388,7 @@ static bool checkTruncOverflow(BuiltinInst *BI) {
 
 /// Check if execution of a given Apply instruction can result in overflows.
 /// Returns true if an overflow can happen. Otherwise returns false.
-bool swift::canOverflow(BuiltinInst *BI) {
+bool language::canOverflow(BuiltinInst *BI) {
   if (simplifyOverflowBuiltinInstruction(BI) != SILValue())
     return false;
 

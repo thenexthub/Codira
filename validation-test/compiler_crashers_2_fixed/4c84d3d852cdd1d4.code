@@ -1,0 +1,4 @@
+// {"signature":"language::ProtocolConformanceRef::forAbstract(language::Type, language::ProtocolDecl*)"}
+// RUN: not %target-language-frontend -typecheck %s
+var sixDoubles
+    : Double "six has the value [\( ( sixDoubles \[]) }0 \0\0 \0 \sixDoubles)"

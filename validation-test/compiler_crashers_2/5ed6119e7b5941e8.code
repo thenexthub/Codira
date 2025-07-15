@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::TrailingClosureRequiresExplicitLabel::fixIt(language::InFlightDiagnostic&, language::constraints::FunctionArgApplyInfo const&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+a {}
+fn a<each b, c>(repeat each b, c)

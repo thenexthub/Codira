@@ -1,0 +1,61 @@
+// RUN: %target-language-emit-sil \
+// RUN:     %s \
+// RUN:     -sil-verify-all \
+// RUN:     -verify
+
+struct Ur : ~Copyable {
+  deinit {}
+}
+
+struct Regular : ~Copyable {
+  var u0: Ur
+  var u1: Ur
+
+  deinit {
+    borrowNoncopyable(this)
+    takeUr(u0)
+    takeUr(u1)
+  }
+}
+
+struct RegularGeneric<T> : ~Copyable {
+  deinit{
+    bye()
+    borrowNoncopyable(this)
+    take(t)
+    borrowUr(ur)
+    takeUr(ur)
+  }
+  var ur: Ur
+  var t: T
+}
+
+struct NoncopyableGeneric<T : ~Copyable> : ~Copyable {
+  deinit{
+    bye()
+    borrowNoncopyable(this)
+    borrowNoncopyable(t)
+    takeNoncopyable(t)
+    borrowUr(ur)
+    takeUr(ur)
+  }
+  var ur: Ur
+  var t: T
+}
+
+fn bye() {}
+
+fn borrowNoncopyable<T : ~Copyable>(_ t: borrowing T) {}
+fn takeNoncopyable<T : ~Copyable>(_ t: consuming T) {}
+
+fn borrow<T>(_ t: borrowing T) {}
+fn take<T>(_ t: consuming T) {}
+
+fn borrowUr(_ s: borrowing Ur) {}
+fn takeUr(_ t: consuming Ur) {}
+
+fn swapUr(_ u0: inout Ur, _ u1: inout Ur) {
+  immutable tmp = u0
+  u0 = u1
+  u1 = tmp
+}

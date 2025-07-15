@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// Ensure .code -> .ll
+// RUN: %target-language-frontend -emit-ir %s | %FileCheck %s
+
+// Ensure .code -> .sib -> .ll
+// RUN: %target-language-frontend -emit-sib %s -o %t/cdecl_attr.sib
+// RUN: %target-language-frontend -emit-ir %t/cdecl_attr.sib | %FileCheck %s
+
+// CHECK: define hidden {{.*}} @foo
+
+@_cdecl("foo")
+fn foo() {}

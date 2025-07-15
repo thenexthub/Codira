@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -language-version 5
+
+struct S {
+  @available(language, obsoleted: 4.2)
+  init(foo: Int) throws {}
+
+  @available(language, introduced: 4.2)
+  init?(foo: Int) throws {}
+}
+
+_ = try S(foo: 42)

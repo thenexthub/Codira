@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file declares the DiagnosticConsumer class, which receives callbacks
@@ -19,12 +20,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_DIAGNOSTICCONSUMER_H
-#define SWIFT_BASIC_DIAGNOSTICCONSUMER_H
+#ifndef LANGUAGE_BASIC_DIAGNOSTICCONSUMER_H
+#define LANGUAGE_BASIC_DIAGNOSTICCONSUMER_H
 
-#include "language/Basic/LLVM.h"
+#include "language/AST/DiagnosticKind.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/Support/SourceMgr.h"
+#include "toolchain/Support/SourceMgr.h"
 #include <optional>
 
 namespace language {
@@ -32,15 +34,6 @@ namespace language {
   class DiagnosticEngine;
   class SourceManager;
   enum class DiagID : uint32_t;
-
-/// Describes the kind of diagnostic.
-///
-enum class DiagnosticKind : uint8_t {
-  Error,
-  Warning,
-  Remark,
-  Note
-};
 
 /// Information about a diagnostic passed to DiagnosticConsumers.
 struct DiagnosticInfo {
@@ -107,15 +100,15 @@ struct DiagnosticInfo {
 /// Abstract interface for classes that present diagnostics to the user.
 class DiagnosticConsumer {
 protected:
-  static llvm::SMLoc getRawLoc(SourceLoc Loc);
+  static toolchain::SMLoc getRawLoc(SourceLoc Loc);
 
-  static llvm::SMRange getRawRange(SourceManager &SM, CharSourceRange R) {
-    return llvm::SMRange(getRawLoc(R.getStart()), getRawLoc(R.getEnd()));
+  static toolchain::SMRange getRawRange(SourceManager &SM, CharSourceRange R) {
+    return toolchain::SMRange(getRawLoc(R.getStart()), getRawLoc(R.getEnd()));
   }
 
-  static llvm::SMFixIt getRawFixIt(SourceManager &SM, DiagnosticInfo::FixIt F) {
+  static toolchain::SMFixIt getRawFixIt(SourceManager &SM, DiagnosticInfo::FixIt F) {
     // FIXME: It's unfortunate that we have to copy the replacement text.
-    return llvm::SMFixIt(getRawRange(SM, F.getRange()), F.getText());
+    return toolchain::SMFixIt(getRawRange(SM, F.getRange()), F.getText());
   }
 
 public:
@@ -341,4 +334,4 @@ private:
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_DIAGNOSTICCONSUMER_H
+#endif // LANGUAGE_BASIC_DIAGNOSTICCONSUMER_H

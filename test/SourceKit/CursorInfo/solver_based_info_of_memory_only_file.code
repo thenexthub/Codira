@@ -1,0 +1,16 @@
+// RUN: split-file --leading-lines %s %t
+
+//--- input.code
+
+fn foo() -> Int { 1 }
+fn foo() -> String { "" }
+fn test() {
+// RUN: %sourcekitd-test \
+// RUN:   -req=open %t/memory-only.code -text-input %t/input.code -print-raw-response -- %t/memory-only.code == \
+// RUN:   -req=cursor -pos=%(line + 1):7 %t/memory-only.code -text-input %t/input.code -- %t/memory-only.code | %FileCheck %s
+  _ = foo()
+}
+
+// CHECK: () -> Int
+// CHECK-LABEL: SECONDARY SYMBOLS BEGIN
+// CHECK: () -> String

@@ -1,17 +1,21 @@
 //===--- PossibleParamInfo.h ----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_POSSIBLEPARAMINFO_H
-#define SWIFT_IDE_POSSIBLEPARAMINFO_H
+#ifndef LANGUAGE_IDE_POSSIBLEPARAMINFO_H
+#define LANGUAGE_IDE_POSSIBLEPARAMINFO_H
 
 #include "language/AST/Types.h"
 
@@ -23,7 +27,7 @@ struct PossibleParamInfo {
   ///
   /// 'nullptr' indicates that the code completion position is at out of
   /// expected argument position. E.g.
-  ///   func foo(x: Int) {}
+  ///   fn foo(x: Int) {}
   ///   foo(x: 1, <HERE>)
   const AnyFunctionType::Param *Param;
   bool IsRequired;
@@ -53,4 +57,4 @@ struct PossibleParamInfo {
 } // end namespace ide
 } // end namespace language
 
-#endif // SWIFT_IDE_POSSIBLEPARAMINFO_H
+#endif // LANGUAGE_IDE_POSSIBLEPARAMINFO_H

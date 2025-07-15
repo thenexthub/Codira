@@ -1,4 +1,4 @@
-//===--- Reverse.swift - Sequence and collection reversal -----------------===//
+//===--- Reverse.code - Sequence and collection reversal -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 extension MutableCollection where Self: BidirectionalCollection {
@@ -26,7 +27,7 @@ extension MutableCollection where Self: BidirectionalCollection {
   /// - Complexity: O(*n*), where *n* is the number of elements in the
   ///   collection.
   @inlinable // protocol-only
-  public mutating func reverse() {
+  public mutating fn reverse() {
     if isEmpty { return }
     var f = startIndex
     var l = index(before: endIndex)
@@ -54,7 +55,7 @@ extension MutableCollection where Self: BidirectionalCollection {
 /// * `c.lazy.reversed().map(f)` maps lazily and returns a `LazyMapCollection`
 @frozen
 public struct ReversedCollection<Base: BidirectionalCollection> {
-  public let _base: Base
+  public immutable _base: Base
 
   /// Creates an instance that presents the elements of `base` in
   /// reverse order.
@@ -62,7 +63,7 @@ public struct ReversedCollection<Base: BidirectionalCollection> {
   /// - Complexity: O(1)
   @inlinable
   internal init(_base: Base) {
-    self._base = _base
+    this._base = _base
   }
 }
 
@@ -73,7 +74,7 @@ extension ReversedCollection {
   @frozen
   public struct Iterator {
     @usableFromInline
-    internal let _base: Base
+    internal immutable _base: Base
     @usableFromInline
     internal var _position: Base.Index
 
@@ -82,8 +83,8 @@ extension ReversedCollection {
     /// Creates an iterator over the given collection.
     public /// @testable
     init(_base: Base) {
-      self._base = _base
-      self._position = _base.endIndex
+      this._base = _base
+      this._position = _base.endIndex
     }
   }
 }
@@ -96,7 +97,7 @@ extension ReversedCollection.Iterator: IteratorProtocol, Sequence {
   
   @inlinable
   @inline(__always)
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     guard _fastPath(_position != _base.startIndex) else { return nil }
     _base.formIndex(before: &_position)
     return _base[_position]
@@ -112,7 +113,7 @@ extension ReversedCollection: Sequence {
 
   @inlinable
   @inline(__always)
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     return Iterator(_base: _base)
   }
 }
@@ -135,20 +136,20 @@ extension ReversedCollection {
     /// array's `index(before:)` method to return the correct position in the
     /// passed array.
     ///
-    ///     func indexOfLastEven(_ numbers: [Int]) -> Int? {
-    ///         let reversedNumbers = numbers.reversed()
-    ///         guard let i = reversedNumbers.firstIndex(where: { $0 % 2 == 0 })
+    ///     fn indexOfLastEven(_ numbers: [Int]) -> Int? {
+    ///         immutable reversedNumbers = numbers.reversed()
+    ///         guard immutable i = reversedNumbers.firstIndex(where: { $0 % 2 == 0 })
     ///             else { return nil }
     ///
     ///         return numbers.index(before: i.base)
     ///     }
     ///
-    ///     let numbers = [10, 20, 13, 19, 30, 52, 17, 40, 51]
-    ///     if let lastEven = indexOfLastEven(numbers) {
+    ///     immutable numbers = [10, 20, 13, 19, 30, 52, 17, 40, 51]
+    ///     if immutable lastEven = indexOfLastEven(numbers) {
     ///         print("Last even number: \(numbers[lastEven])")
     ///     }
     ///     // Prints "Last even number: 40"
-    public let base: Base.Index
+    public immutable base: Base.Index
 
     /// Creates a new index into a reversed collection for the position before
     /// the specified index.
@@ -159,12 +160,12 @@ extension ReversedCollection {
     /// following example creates a new `ReversedIndex` from the index of the
     /// `"a"` character in a string's character view.
     ///
-    ///     let name = "Horatio"
-    ///     let aIndex = name.firstIndex(of: "a")!
+    ///     immutable name = "Horatio"
+    ///     immutable aIndex = name.firstIndex(of: "a")!
     ///     // name[aIndex] == "a"
     ///
-    ///     let reversedName = name.reversed()
-    ///     let i = ReversedCollection<String>.Index(aIndex)
+    ///     immutable reversedName = name.reversed()
+    ///     immutable i = ReversedCollection<String>.Index(aIndex)
     ///     // reversedName[i] == "r"
     ///
     /// The element at the position created using `ReversedIndex<...>(aIndex)` is
@@ -173,7 +174,7 @@ extension ReversedCollection {
     /// - Parameter base: The position after the element to create an index for.
     @inlinable
     public init(_ base: Base.Index) {
-      self.base = base
+      this.base = base
     }
   }
 }
@@ -182,7 +183,7 @@ extension ReversedCollection.Index: Sendable where Base.Index: Sendable {}
 
 extension ReversedCollection.Index: Comparable {
   @inlinable
-  public static func == (
+  public static fn == (
     lhs: ReversedCollection<Base>.Index,
     rhs: ReversedCollection<Base>.Index
   ) -> Bool {
@@ -191,7 +192,7 @@ extension ReversedCollection.Index: Comparable {
   }
 
   @inlinable
-  public static func < (
+  public static fn < (
     lhs: ReversedCollection<Base>.Index,
     rhs: ReversedCollection<Base>.Index
   ) -> Bool {
@@ -207,7 +208,7 @@ extension ReversedCollection.Index: Hashable where Base.Index: Hashable {
   /// - Parameter hasher: The hasher to use when combining the components
   ///   of this instance.
   @inlinable
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     hasher.combine(base)
   }
 }
@@ -224,32 +225,32 @@ extension ReversedCollection: BidirectionalCollection {
   }
 
   @inlinable
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     return Index(_base.index(before: i.base))
   }
 
   @inlinable
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     return Index(_base.index(after: i.base))
   }
 
   @inlinable
-  public func index(_ i: Index, offsetBy n: Int) -> Index {
-    // FIXME: swift-3-indexing-model: `-n` can trap on Int.min.
+  public fn index(_ i: Index, offsetBy n: Int) -> Index {
+    // FIXME: language-3-indexing-model: `-n` can trap on Int.min.
     return Index(_base.index(i.base, offsetBy: -n))
   }
 
   @inlinable
-  public func index(
+  public fn index(
     _ i: Index, offsetBy n: Int, limitedBy limit: Index
   ) -> Index? {
-    // FIXME: swift-3-indexing-model: `-n` can trap on Int.min.
+    // FIXME: language-3-indexing-model: `-n` can trap on Int.min.
     return _base.index(i.base, offsetBy: -n, limitedBy: limit.base)
                 .map(Index.init)
   }
 
   @inlinable
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     return _base.distance(from: end.base, to: start.base)
   }
 
@@ -266,8 +267,8 @@ extension ReversedCollection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  @available(swift, introduced: 4.2)
-  public __consuming func reversed() -> Base {
+  @available(language, introduced: 4.2)
+  public __consuming fn reversed() -> Base {
     return _base
   }
 }
@@ -282,7 +283,7 @@ extension BidirectionalCollection {
   /// elements in reverse order. This example prints the characters of a
   /// string in reverse order:
   ///
-  ///     let word = "Backwards"
+  ///     immutable word = "Backwards"
   ///     for char in word.reversed() {
   ///         print(char, terminator: "")
   ///     }
@@ -293,13 +294,13 @@ extension BidirectionalCollection {
   /// example, to get the reversed version of a string, reverse its
   /// characters and initialize a new `String` instance from the result.
   ///
-  ///     let reversedWord = String(word.reversed())
+  ///     immutable reversedWord = String(word.reversed())
   ///     print(reversedWord)
   ///     // Prints "sdrawkcaB"
   ///
   /// - Complexity: O(1)
   @inlinable
-  public __consuming func reversed() -> ReversedCollection<Self> {
-    return ReversedCollection(_base: self)
+  public __consuming fn reversed() -> ReversedCollection<Self> {
+    return ReversedCollection(_base: this)
   }
 }

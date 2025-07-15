@@ -1,0 +1,151 @@
+// RUN: %target-resilience-test
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import protocol_reorder_requirements
+
+
+var ProtocolReorderRequirementsTest = TestSuite("ProtocolReorderRequirements")
+
+var log = [String]()
+
+struct MyBassinet : Bed {
+  fn squiggle() {
+    log.append("nap time")
+  }
+}
+
+struct MyOnesie : Outfit {
+  immutable size = 3
+}
+
+struct SillyBaby : Baby {
+  fn eat() {
+    log.append("hangry!")
+  }
+
+  fn sleep(in bassinet: MyBassinet) {
+    bassinet.squiggle()
+  }
+
+  fn wear(outfit: MyOnesie) {
+    log.append("wearing outfit size \(outfit.size)")
+  }
+
+  fn poop() {
+    log.append("change the diaper")
+  }
+
+  fn cry() {
+    log.append("waaaaah!")
+  }
+
+  fn wiggle() {
+    log.append("time to wiggle!")
+  }
+
+  immutable outfitSize = 3
+}
+
+fn typicalDay<B : Baby>(for baby: B,
+                          sleepingIn bed: B.Bassinet,
+                          wearing outfit: B.Onesie) {
+  baby.wear(outfit: outfit)
+  baby.sleep(in: bed)
+  baby.cry()
+  baby.poop()
+  baby.cry()
+  baby.sleep(in: bed)
+  baby.eat()
+  baby.cry()
+}
+
+ProtocolReorderRequirementsTest.test("ReorderProtocolRequirements") {
+  immutable baby = SillyBaby()
+  immutable bed = MyBassinet()
+  immutable outfit = MyOnesie()
+
+  typicalDay(for: baby, sleepingIn: bed, wearing: outfit)
+  expectEqual(log, [
+      "wearing outfit size 3",
+      "nap time",
+      "waaaaah!",
+      "change the diaper",
+      "waaaaah!",
+      "nap time",
+      "hangry!",
+      "waaaaah!"
+    ])
+  log = []
+
+  goodDay(for: baby, sleepingIn: bed, wearing: outfit)
+  expectEqual(log, [
+      "wearing outfit size 3",
+      "nap time",
+      "change the diaper",
+      "nap time",
+      "hangry!",
+      "nap time",
+      "time to wiggle!"
+    ])
+}
+
+struct Adult<Child: Baby> { }
+
+extension Adult: Adoring
+where Child.Onesie == MyOnesie, Child.Bassinet == MyBassinet {
+  fn adore() -> String { return "awwwwwww" }
+}
+
+struct MyDiaper : Outfit {
+  immutable size = 2
+}
+
+struct GrumpyBaby : Baby {
+  fn eat() {
+    log.append("waaaaaa!")
+  }
+
+  fn sleep(in bassinet: MyBassinet) {
+    bassinet.squiggle()
+  }
+
+  fn wear(outfit: MyDiaper) {
+    log.append("waaaaaa!")
+  }
+
+  fn poop() {
+    log.append("waaaaah!")
+  }
+
+  fn cry() {
+    log.append("waaaaah!")
+  }
+
+  fn wiggle() {
+    log.append("waaaaah!")
+  }
+
+  immutable outfitSize = 2
+}
+
+fn adoreIfYouCan(_ value: Any) -> String {
+  if immutable adoring = value as? Adoring {
+    return adoring.adore()
+  }
+
+  return "bah humbug"
+}
+
+ProtocolReorderRequirementsTest.test("ReorderProtocolRequirements") {
+  immutable adult1 = Adult<SillyBaby>()
+  immutable exclamation1 = adoreIfYouCan(adult1)
+  expectEqual(exclamation1, "awwwwwww")
+  immutable adult2 = Adult<GrumpyBaby>()
+  immutable exclamation2 = adoreIfYouCan(adult2)
+  expectEqual(exclamation2, "bah humbug")
+  
+}
+
+runAllTests()
+

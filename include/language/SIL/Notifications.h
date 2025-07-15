@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_NOTIFICATIONS_H
-#define SWIFT_SIL_NOTIFICATIONS_H
+#ifndef LANGUAGE_SIL_NOTIFICATIONS_H
+#define LANGUAGE_SIL_NOTIFICATIONS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/STLExtras.h"
 #include "language/SIL/SILMoveOnlyDeinit.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
 #include <memory>
 
 namespace language {
@@ -222,7 +223,7 @@ public:
   /// An iterator into the notification set that returns a bare
   /// 'DeserializationNotificationHandler *' projected from one of the
   /// underlying std::unique_ptr<DeserializationNotificationHandler>.
-  using iterator = llvm::mapped_iterator<
+  using iterator = toolchain::mapped_iterator<
       decltype(handlerSet)::const_iterator,
       decltype(&DeserializationNotificationHandlerSet::getUnderlyingHandler)>;
   using range = iterator_range<iterator>;
@@ -233,7 +234,7 @@ public:
   /// 'DeserializationNotificationHandler'.
   iterator begin() const {
     auto *fptr = &DeserializationNotificationHandlerSet::getUnderlyingHandler;
-    return llvm::map_iterator(handlerSet.begin(), fptr);
+    return toolchain::map_iterator(handlerSet.begin(), fptr);
   }
 
   /// Returns an iterator to the end of the handler set.
@@ -242,7 +243,7 @@ public:
   /// 'DeserializationNotificationHandler'.
   iterator end() const {
     auto *fptr = &DeserializationNotificationHandlerSet::getUnderlyingHandler;
-    return llvm::map_iterator(handlerSet.end(), fptr);
+    return toolchain::map_iterator(handlerSet.end(), fptr);
   }
 
   /// Returns a range that iterates over bare pointers projected from the
@@ -250,7 +251,7 @@ public:
   ///
   /// NOTE: The underlying iterator value_type here is
   /// 'DeserializationNotificationHandler *'.
-  auto getRange() const -> range { return llvm::make_range(begin(), end()); }
+  auto getRange() const -> range { return toolchain::make_range(begin(), end()); }
 
   //===--------------------------------------------------------------------===//
   // DeserializationNotificationHandler implementation via chaining to the

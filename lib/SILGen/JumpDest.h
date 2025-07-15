@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Types relating to branch destinations.
@@ -22,7 +23,7 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILLocation.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include "Cleanup.h"
 
 namespace language {
@@ -31,7 +32,7 @@ namespace language {
   
 namespace Lowering {
 
-struct LLVM_LIBRARY_VISIBILITY ThrownErrorInfo {
+struct TOOLCHAIN_LIBRARY_VISIBILITY ThrownErrorInfo {
   SILValue IndirectErrorResult;
   bool Discard;
 
@@ -43,10 +44,10 @@ struct LLVM_LIBRARY_VISIBILITY ThrownErrorInfo {
   }
 };
 
-/// The destination of a direct jump.  Swift currently does not
+/// The destination of a direct jump.  Codira currently does not
 /// support indirect branches or goto, so the jump mechanism only
 /// needs to worry about branches out of scopes, not into them.
-class LLVM_LIBRARY_VISIBILITY JumpDest {
+class TOOLCHAIN_LIBRARY_VISIBILITY JumpDest {
   SILBasicBlock *Block = nullptr;
   CleanupsDepth Depth = CleanupsDepth::invalid();
   CleanupLocation CleanupLoc;

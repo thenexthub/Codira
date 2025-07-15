@@ -1,4 +1,4 @@
-//===--- QueueTest.swift --------------------------------------------===//
+//===--- QueueTest.code --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "QueueGeneric",
     runFunction: run_QueueGeneric,
@@ -32,7 +33,7 @@ public let benchmarks = [
 
 // TODO: remove when there is a native equivalent in the std lib
 extension RangeReplaceableCollection where Self: BidirectionalCollection {
-  public mutating func popLast() -> Element? {
+  public mutating fn popLast() -> Element? {
     if isEmpty { return nil}
     else { return removeLast() }
   }
@@ -52,11 +53,11 @@ where Storage: BidirectionalCollection {
 }
 
 extension Queue {
-  public mutating func enqueue(_ newElement: Element) {
+  public mutating fn enqueue(_ newElement: Element) {
     _in.append(newElement)
   }
 
-  public mutating func dequeue() -> Element? {
+  public mutating fn dequeue() -> Element? {
     if _out.isEmpty {
       _out.append(contentsOf: _in.reversed())
       _in.removeAll()
@@ -65,27 +66,27 @@ extension Queue {
   }
 }
 
-func testQueue<Elements: Collection>(elements: Elements)
+fn testQueue<Elements: Collection>(elements: Elements)
 where Elements.Element: Equatable {
   var q = Queue<[Elements.Element]>()
   for x in elements { q.enqueue(x) }
-  let results = sequence(state: q) { $0.dequeue() }
-  let i = results.reduce(0, { i,_ in i &+ 1 })
+  immutable results = sequence(state: q) { $0.dequeue() }
+  immutable i = results.reduce(0, { i,_ in i &+ 1 })
   for x in elements { q.enqueue(x) }
-  let j = results.reduce(i, { i,_ in i &+ 1 })
+  immutable j = results.reduce(i, { i,_ in i &+ 1 })
   check(j == elements.count*2)
 }
 
-let n = 1_000
-let workload = (0..<n).map { "\($0): A long enough string to defeat the SSO, or so I hope." }
+immutable n = 1_000
+immutable workload = (0..<n).map { "\($0): A long enough string to defeat the SSO, or so I hope." }
 
-public func buildWorkload() {
-  let contents = workload
+public fn buildWorkload() {
+  immutable contents = workload
   _ = contents.reduce(0) { $0 + $1.count }
 }
 
 @inline(never)
-func run_QueueGeneric(_ scale: Int) {
+fn run_QueueGeneric(_ scale: Int) {
   for _ in 0..<scale {
     testQueue(elements: workload)
   }
@@ -102,11 +103,11 @@ public struct ConcreteQueue {
 }
 
 extension ConcreteQueue {
-  public mutating func enqueue(_ newElement: String) {
+  public mutating fn enqueue(_ newElement: String) {
     _in.append(newElement)
   }
 
-  public mutating func dequeue() -> String? {
+  public mutating fn dequeue() -> String? {
     if _out.isEmpty {
       _out.append(contentsOf: _in.reversed())
       _in.removeAll()
@@ -115,19 +116,19 @@ extension ConcreteQueue {
   }
 }
 
-func testConcreteQueue(elements: [String]) {
+fn testConcreteQueue(elements: [String]) {
   var q = ConcreteQueue()
   for x in elements { q.enqueue(x) }
-  let results = sequence(state: q) { $0.dequeue() }
-  let i = results.reduce(0, { i,_ in i &+ 1 })
+  immutable results = sequence(state: q) { $0.dequeue() }
+  immutable i = results.reduce(0, { i,_ in i &+ 1 })
   for x in elements { q.enqueue(x) }
-  let j = results.reduce(i, { i,_ in i &+ 1 })
+  immutable j = results.reduce(i, { i,_ in i &+ 1 })
   check(j == elements.count*2)
 }
 
 
 @inline(never)
-func run_QueueConcrete(_ scale: Int) {
+fn run_QueueConcrete(_ scale: Int) {
   for _ in 0..<scale {
     testConcreteQueue(elements: workload)
   }

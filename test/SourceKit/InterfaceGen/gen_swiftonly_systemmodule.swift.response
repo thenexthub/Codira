@@ -1,0 +1,266 @@
+public class PublicClass {
+}
+
+public struct SomeValue {
+
+    public var publicValue: Int { get }
+
+    public fn publicMethod() -> Int
+
+    public init(public: Int)
+}
+
+public fn publicFunc()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 5
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 13,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 30,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 37,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 44,
+    key.length: 9
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 61,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 68,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 72,
+    key.length: 11
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 85,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 91,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 102,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 109,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 114,
+    key.length: 12
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 132,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 141,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 148,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 153,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.typeidentifier,
+    key.offset: 161,
+    key.length: 3
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 169,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 176,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 181,
+    key.length: 10
+  }
+]
+[
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 85,
+    key.length: 3,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 132,
+    key.length: 3,
+    key.is_system: 1
+  },
+  {
+    key.kind: source.lang.code.ref.struct,
+    key.offset: 161,
+    key.length: 3,
+    key.is_system: 1
+  }
+]
+[
+  {
+    key.kind: source.lang.code.decl.class,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "PublicClass",
+    key.offset: 7,
+    key.length: 21,
+    key.nameoffset: 13,
+    key.namelength: 11,
+    key.bodyoffset: 26,
+    key.bodylength: 1,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.struct,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "SomeValue",
+    key.offset: 37,
+    key.length: 130,
+    key.nameoffset: 44,
+    key.namelength: 9,
+    key.bodyoffset: 55,
+    key.bodylength: 111,
+    key.attributes: [
+      {
+        key.offset: 30,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ],
+    key.substructure: [
+      {
+        key.kind: source.lang.code.decl.var.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "publicValue",
+        key.offset: 68,
+        key.length: 28,
+        key.typename: "Int",
+        key.nameoffset: 72,
+        key.namelength: 11,
+        key.bodyoffset: 90,
+        key.bodylength: 5,
+        key.attributes: [
+          {
+            key.offset: 61,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "publicMethod()",
+        key.offset: 109,
+        key.length: 26,
+        key.typename: "Int",
+        key.nameoffset: 114,
+        key.namelength: 14,
+        key.attributes: [
+          {
+            key.offset: 102,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ]
+      },
+      {
+        key.kind: source.lang.code.decl.function.method.instance,
+        key.accessibility: source.lang.code.accessibility.public,
+        key.name: "init(public:)",
+        key.offset: 148,
+        key.length: 17,
+        key.nameoffset: 148,
+        key.namelength: 17,
+        key.attributes: [
+          {
+            key.offset: 141,
+            key.length: 6,
+            key.attribute: source.decl.attribute.public
+          }
+        ],
+        key.substructure: [
+          {
+            key.kind: source.lang.code.decl.var.parameter,
+            key.name: "public",
+            key.offset: 153,
+            key.length: 11,
+            key.typename: "Int",
+            key.nameoffset: 153,
+            key.namelength: 6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "publicFunc()",
+    key.offset: 176,
+    key.length: 17,
+    key.nameoffset: 181,
+    key.namelength: 12,
+    key.attributes: [
+      {
+        key.offset: 169,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  }
+]

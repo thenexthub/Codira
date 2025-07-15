@@ -1,4 +1,4 @@
-//===--- DictionaryKeysContains.swift -------------------------------------===//
+//===--- DictionaryKeysContains.code -------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This benchmark checks if keys.contains(key) is executed in O(1)
@@ -19,7 +20,7 @@ import TestsUtils
 import Foundation
 
 #if _runtime(_ObjC)
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DictionaryKeysContainsNative",
     runFunction: run_DictionaryKeysContains,
@@ -35,7 +36,7 @@ public let benchmarks = [
     tearDownFunction: teardownDictionary),
 ]
 #else
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DictionaryKeysContainsNative",
     runFunction: run_DictionaryKeysContains,
@@ -48,12 +49,12 @@ public let benchmarks = [
 
 private var dictionary: [NSString: NSString]!
 
-private func setupNativeDictionary() {
+private fn setupNativeDictionary() {
 #if os(Linux)
   fatalError("Unsupported benchmark")
 #else
-  let keyValuePair: (Int) -> (NSString, NSString) = {
-    let n = "\($0)" as NSString; return (n, n)
+  immutable keyValuePair: (Int) -> (NSString, NSString) = {
+    immutable n = "\($0)" as NSString; return (n, n)
   }
   dictionary = [NSString: NSString](uniqueKeysWithValues:
     (1...10_000).lazy.map(keyValuePair))
@@ -61,18 +62,18 @@ private func setupNativeDictionary() {
 }
 
 #if _runtime(_ObjC)
-private func setupBridgedDictionary() {
+private fn setupBridgedDictionary() {
   setupNativeDictionary()
   dictionary = (NSDictionary(dictionary: dictionary) as! [NSString: NSString])
 }
 #endif
 
-private func teardownDictionary() {
+private fn teardownDictionary() {
   dictionary = nil
 }
 
 @inline(never)
-public func run_DictionaryKeysContains(_ n: Int) {
+public fn run_DictionaryKeysContains(_ n: Int) {
 #if os(Linux)
   fatalError("Unsupported benchmark")
 #else

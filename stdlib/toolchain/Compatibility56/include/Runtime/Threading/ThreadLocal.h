@@ -11,56 +11,57 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Declarations and macros for working with thread-local storage in the
-// Swift runtime.
+// Codira runtime.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_THREADLOCAL_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_THREADLOCAL_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_THREADLOCAL_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_THREADLOCAL_BACKDEPLOY56_H
 
 #include <type_traits>
 #include "ThreadLocalStorage.h"
 
-/// SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL - Does the current configuration
-/// allow the use of SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL?
+/// LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL - Does the current configuration
+/// allow the use of LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL?
 #if defined(__APPLE__)
 // The pthread TLS APIs work better than C++ TLS on Apple platforms.
-#define SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL 0
-#elif defined(SWIFT_STDLIB_SINGLE_THREADED_RUNTIME)
-// We define SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL to nothing in this
+#define LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL 0
+#elif defined(LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME)
+// We define LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL to nothing in this
 // configuration and just use a global variable, so this is okay.
-#define SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL 1
+#define LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL 1
 #elif __has_feature(tls)
 // If __has_feature reports that TLS is available, use it.
-#define SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL 1
+#define LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL 1
 #elif !defined(__clang__)
 // If we're not using Clang, assume that __has_feature is unreliable
 // and that we can safely use TLS.
 #else
 // Otherwise we can't use TLS and have to fall back on something else.
-#define SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL 0
+#define LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL 0
 #endif
 
-/// SWIFT_RUNTIME_THREAD_LOCAL - Declare that something is a
+/// LANGUAGE_RUNTIME_THREAD_LOCAL - Declare that something is a
 /// thread-local variable in the runtime.
-#if defined(SWIFT_STDLIB_SINGLE_THREADED_RUNTIME)
+#if defined(LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME)
 // In a single-threaded runtime, thread-locals are global.
-#define SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL
+#define LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL
 #elif defined(__GNUC__)
 // In GCC-compatible compilers, we prefer __thread because it's understood
 // to guarantee a constant initializer, which permits more efficient access
 // patterns.
-#define SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL __thread
+#define LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL __thread
 #else
 // Otherwise, just fall back on the standard C++ feature.
-#define SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL thread_local
+#define LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL thread_local
 #endif
 
-// Implementation of SWIFT_RUNTIME_DECLARE_THREAD_LOCAL
-#if !SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL
+// Implementation of LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL
+#if !LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL
 #include <pthread.h>
 #include <dispatch/dispatch.h>
 #endif
@@ -79,20 +80,20 @@ namespace language {
 
 // A wrapper class for thread-local storage.
 //
-// - On platforms that report SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL
+// - On platforms that report LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL
 //   above, an object of this type is declared with
-//   SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL.  This makes the object
+//   LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL.  This makes the object
 //   itself thread-local, and no internal support is required.
 //
 //   Note that this includes platforms that set
-//   SWIFT_STDLIB_SINGLE_THREADED_RUNTIME, for which
-//   SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL is empty;
+//   LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME, for which
+//   LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL is empty;
 //   thread-local declarations then create an ordinary global.
 //
-// - On platforms that don't report SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL,
+// - On platforms that don't report LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL,
 //   we have to simulate thread-local storage.  Fortunately, all of
 //   these platforms (at least for now) support pthread_getspecific.
-#if SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL
+#if LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL
 template <class T>
 class ThreadLocal {
   VALIDATE_THREAD_LOCAL_TYPE(T)
@@ -142,7 +143,7 @@ public:
   constexpr ThreadLocal() {}
 
   T get() {
-    void *storedValue = SWIFT_THREAD_GETSPECIFIC(key.getKey());
+    void *storedValue = LANGUAGE_THREAD_GETSPECIFIC(key.getKey());
     T value;
     memcpy(&value, &storedValue, sizeof(T));
     return value;
@@ -151,29 +152,29 @@ public:
   void set(T newValue) {
     void *storedValue;
     memcpy(&storedValue, &newValue, sizeof(T));
-    SWIFT_THREAD_SETSPECIFIC(key.getKey(), storedValue);
+    LANGUAGE_THREAD_SETSPECIFIC(key.getKey(), storedValue);
   }
 };
 #endif
 
 } // end namespace language
 
-/// SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME) - Declare a variable
+/// LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME) - Declare a variable
 /// to be a thread-local variable.  The declaration must have static
 /// storage duration; it may be prefixed with "static".
 ///
 /// Because of the fallback path, the default-initialization of the
 /// type must be equivalent to a bitwise zero-initialization, and the
 /// type must be small and trivially copyable and destructible.
-#if SWIFT_RUNTIME_SUPPORTS_THREAD_LOCAL
-#define SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME, KEY) \
-  SWIFT_RUNTIME_ATTRIBUTE_THREAD_LOCAL swift::ThreadLocal<TYPE> NAME
-#elif SWIFT_TLS_HAS_RESERVED_PTHREAD_SPECIFIC
-#define SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME, KEY) \
-  swift::ThreadLocal<TYPE, ConstantThreadLocalKey<KEY>> NAME
+#if LANGUAGE_RUNTIME_SUPPORTS_THREAD_LOCAL
+#define LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME, KEY) \
+  LANGUAGE_RUNTIME_ATTRIBUTE_THREAD_LOCAL language::ThreadLocal<TYPE> NAME
+#elif LANGUAGE_TLS_HAS_RESERVED_PTHREAD_SPECIFIC
+#define LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME, KEY) \
+  language::ThreadLocal<TYPE, ConstantThreadLocalKey<KEY>> NAME
 #else
-#define SWIFT_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME, KEY) \
-  swift::ThreadLocal<TYPE, ThreadLocalKey> NAME
+#define LANGUAGE_RUNTIME_DECLARE_THREAD_LOCAL(TYPE, NAME, KEY) \
+  language::ThreadLocal<TYPE, ThreadLocalKey> NAME
 #endif
 
-#endif // SWIFT_RUNTIME_THREADLOCAL_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_THREADLOCAL_BACKDEPLOY56_H

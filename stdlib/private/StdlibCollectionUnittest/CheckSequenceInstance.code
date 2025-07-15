@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 
@@ -20,7 +21,7 @@ import StdlibUnittest
 // picked up when the caller passes a literal), and another that
 // accepts any appropriate Collection type.
 
-public func checkIterator<
+public fn checkIterator<
   Expected: Collection, I : IteratorProtocol
 >(
   _ expected: Expected,
@@ -35,7 +36,7 @@ public func checkIterator<
   // Copying a `IteratorProtocol` is allowed.
   var mutableGen = iterator
   var actual: [Expected.Element] = []
-  while let e = mutableGen.next() {
+  while immutable e = mutableGen.next() {
     actual.append(e)
   }
   expectEqualSequence(
@@ -50,7 +51,7 @@ public func checkIterator<
   }
 }
 
-public func checkIterator<
+public fn checkIterator<
   Expected: Collection, I : IteratorProtocol
 >(
   _ expected: Expected,
@@ -68,7 +69,7 @@ public func checkIterator<
   ) { $0 == $1 }
 }
 
-public func checkSequence<
+public fn checkSequence<
   Expected: Collection, S : Sequence
 >(
   _ expected: Expected,
@@ -80,7 +81,7 @@ public func checkSequence<
   resiliencyChecks: CollectionMisuseResiliencyChecks = .all,
   sameValue: (Expected.Element, Expected.Element) -> Bool
 ) where S.Element == Expected.Element {
-  let expectedCount: Int = expected.count
+  immutable expectedCount: Int = expected.count
   checkIterator(
     expected, sequence.makeIterator(), message(),
   stackTrace: stackTrace.pushIf(showFrame, file: file, line: line),
@@ -92,7 +93,7 @@ public func checkSequence<
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 }
 
-public func checkSequence<
+public fn checkSequence<
   Expected: Collection, S : Sequence
 >(
   _ expected: Expected,
@@ -113,7 +114,7 @@ public func checkSequence<
   ) { $0 == $1 }
 }
 
-public func checkIterator<
+public fn checkIterator<
   Element, I : IteratorProtocol
 >(
   _ expected: Array<Element>,
@@ -128,7 +129,7 @@ public func checkIterator<
   // Copying a `IteratorProtocol` is allowed.
   var mutableGen = iterator
   var actual: [Element] = []
-  while let e = mutableGen.next() {
+  while immutable e = mutableGen.next() {
     actual.append(e)
   }
   expectEqualSequence(
@@ -143,7 +144,7 @@ public func checkIterator<
   }
 }
 
-public func checkIterator<
+public fn checkIterator<
   Element, I : IteratorProtocol
 >(
   _ expected: Array<Element>,
@@ -161,7 +162,7 @@ public func checkIterator<
   ) { $0 == $1 }
 }
 
-public func checkSequence<
+public fn checkSequence<
   Element, S : Sequence
 >(
   _ expected: Array<Element>,
@@ -173,7 +174,7 @@ public func checkSequence<
   resiliencyChecks: CollectionMisuseResiliencyChecks = .all,
   sameValue: (Element, Element) -> Bool
 ) where S.Element == Element {
-  let expectedCount: Int = expected.count
+  immutable expectedCount: Int = expected.count
   checkIterator(
     expected, sequence.makeIterator(), message(),
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line),
@@ -185,7 +186,7 @@ public func checkSequence<
     stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
 }
 
-public func checkSequence<
+public fn checkSequence<
   Element, S : Sequence
 >(
   _ expected: Array<Element>,

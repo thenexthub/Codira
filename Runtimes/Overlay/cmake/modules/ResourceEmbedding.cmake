@@ -2,7 +2,7 @@
 # the use of the variable. This aliases `MT` to `CMAKE_MT` and tries to fallback
 # to known spellings for the tool.
 if(WIN32 AND BUILD_SHARED_LIBS)
-  find_program(MT HINTS ${CMAKE_MT} NAMES mt llvm-mt REQUIRED)
+  find_program(MT HINTS ${CMAKE_MT} NAMES mt toolchain-mt REQUIRED)
 endif()
 
 function(embed_manifest target)

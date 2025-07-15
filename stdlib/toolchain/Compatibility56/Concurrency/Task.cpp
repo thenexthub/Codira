@@ -6,16 +6,16 @@
 
 using namespace language;
 using FutureFragment = AsyncTask::FutureFragment;
-using TaskGroup = swift::TaskGroup;
+using TaskGroup = language::TaskGroup;
 
-Metadata swift::TaskAllocatorSlabMetadata;
+Metadata language::TaskAllocatorSlabMetadata;
 
 FutureFragment::Status AsyncTask::waitFuture(AsyncTask *waitingTask,
                                              AsyncContext *waitingTaskContext,
                                              TaskContinuationFunction *resumeFn,
                                              AsyncContext *callerContext,
                                              OpaqueValue *result) {
-  SWIFT_TASK_DEBUG_LOG("compat 56 task task %p", this);
+  LANGUAGE_TASK_DEBUG_LOG("compat 56 task task %p", this);
   using Status = FutureFragment::Status;
   using WaitQueueItem = FutureFragment::WaitQueueItem;
 
@@ -29,17 +29,17 @@ FutureFragment::Status AsyncTask::waitFuture(AsyncTask *waitingTask,
     switch (queueHead.getStatus()) {
     case Status::Error:
     case Status::Success:
-      SWIFT_TASK_DEBUG_LOG("task %p waiting on task %p, completed immediately",
+      LANGUAGE_TASK_DEBUG_LOG("task %p waiting on task %p, completed immediately",
                            waitingTask, this);
-      _swift_tsan_acquire(static_cast<Job *>(this));
+      _language_tsan_acquire(static_cast<Job *>(this));
       if (contextInitialized) waitingTask->flagAsRunning();
       // The task is done; we don't need to wait.
       return queueHead.getStatus();
 
     case Status::Executing:
-      SWIFT_TASK_DEBUG_LOG("task %p waiting on task %p, going to sleep",
+      LANGUAGE_TASK_DEBUG_LOG("task %p waiting on task %p, going to sleep",
                            waitingTask, this);
-      _swift_tsan_release(static_cast<Job *>(waitingTask));
+      _language_tsan_release(static_cast<Job *>(waitingTask));
       // Task is not complete. We'll need to add ourselves to the queue.
       break;
     }
@@ -92,7 +92,7 @@ FutureFragment::Status AsyncTask::waitFuture(AsyncTask *waitingTask,
     auto waitingStatus =
       waitingTask->_private().Status.load(std::memory_order_relaxed);
     if (waitingStatus.getStoredPriority() > escalatedPriority) {
-      swift_task_escalateBackdeploy56(this, waitingStatus.getStoredPriority());
+      language_task_escalateBackdeploy56(this, waitingStatus.getStoredPriority());
       escalatedPriority = waitingStatus.getStoredPriority();
     }
 
@@ -103,25 +103,25 @@ FutureFragment::Status AsyncTask::waitFuture(AsyncTask *waitingTask,
             queueHead, newQueueHead,
             /*success*/ std::memory_order_release,
             /*failure*/ std::memory_order_acquire)) {
-      _swift_task_clearCurrent();
+      _language_task_clearCurrent();
       return FutureFragment::Status::Executing;
     }
   }
 }
 
-//===--- swift_task_future_wait -------------------------------------------===//
+//===--- language_task_future_wait -------------------------------------------===//
 
-SWIFT_CC(swiftasync)
+LANGUAGE_CC(languageasync)
 static void
-task_future_wait_resume_adapter(SWIFT_ASYNC_CONTEXT AsyncContext *_context) {
+task_future_wait_resume_adapter(LANGUAGE_ASYNC_CONTEXT AsyncContext *_context) {
   return _context->ResumeParent(_context->Parent);
 }
 
 
 #ifdef __ARM_ARCH_7K__
 __attribute__((noinline))
-SWIFT_CC(swiftasync) static void workaround_function_swift_task_future_waitImpl(
-    OpaqueValue *result, SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync) static void workaround_function_language_task_future_waitImpl(
+    OpaqueValue *result, LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
     AsyncTask *task, TaskContinuationFunction resumeFunction,
     AsyncContext *callContext) {
   // Make sure we don't eliminate calls to this function.
@@ -134,15 +134,15 @@ SWIFT_CC(swiftasync) static void workaround_function_swift_task_future_waitImpl(
 }
 #endif
 
-void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait(
+void LANGUAGE_CC(languageasync) language::language56override_language_task_future_wait(
                                             OpaqueValue *result,
-                                            SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                                            LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                                             AsyncTask *task,
                                             TaskContinuationFunction *resumeFn,
                                             AsyncContext *callContext,
                                             TaskFutureWait_t *original) {
   // Suspend the waiting task.
-  auto waitingTask = swift_task_getCurrent();
+  auto waitingTask = language_task_getCurrent();
   waitingTask->ResumeTask = task_future_wait_resume_adapter;
   waitingTask->ResumeContext = callContext;
 
@@ -154,7 +154,7 @@ void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait(
   case FutureFragment::Status::Executing:
     // The waiting task has been queued on the future.
 #ifdef __ARM_ARCH_7K__
-    return workaround_function_swift_task_future_waitImpl(
+    return workaround_function_language_task_future_waitImpl(
         result, callerContext, task, resumeFn, callContext);
 #else
     return;
@@ -169,14 +169,14 @@ void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait(
   }
 
   case FutureFragment::Status::Error:
-    swift_Concurrency_fatalError(0, "future reported an error, but wait cannot throw");
+    language_Concurrency_fatalError(0, "future reported an error, but wait cannot throw");
   }
 }
 
-//===--- swift_task_future_wait_throwing ----------------------------------===//
+//===--- language_task_future_wait_throwing ----------------------------------===//
 
-SWIFT_CC(swiftasync)
-static void task_wait_throwing_resume_adapter(SWIFT_ASYNC_CONTEXT AsyncContext *_context) {
+LANGUAGE_CC(languageasync)
+static void task_wait_throwing_resume_adapter(LANGUAGE_ASYNC_CONTEXT AsyncContext *_context) {
 
   auto context = static_cast<TaskFutureWaitAsyncContext *>(_context);
 #pragma clang diagnostic push
@@ -189,8 +189,8 @@ static void task_wait_throwing_resume_adapter(SWIFT_ASYNC_CONTEXT AsyncContext *
 
 #ifdef __ARM_ARCH_7K__
 __attribute__((noinline))
-SWIFT_CC(swiftasync) static void workaround_function_swift_task_future_wait_throwingImpl(
-    OpaqueValue *result, SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+LANGUAGE_CC(languageasync) static void workaround_function_language_task_future_wait_throwingImpl(
+    OpaqueValue *result, LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
     AsyncTask *task, ThrowingTaskFutureWaitContinuationFunction resumeFunction,
     AsyncContext *callContext) {
   // Make sure we don't eliminate calls to this function.
@@ -203,14 +203,14 @@ SWIFT_CC(swiftasync) static void workaround_function_swift_task_future_wait_thro
 }
 #endif
 
-void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait_throwing(
+void LANGUAGE_CC(languageasync) language::language56override_language_task_future_wait_throwing(
                                             OpaqueValue *result,
-                                            SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                                            LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                                             AsyncTask *task,
                                             ThrowingTaskFutureWaitContinuationFunction *resumeFunction,
                                             AsyncContext *callContext,
                                             TaskFutureWaitThrowing_t *original) {
-  auto waitingTask = swift_task_getCurrent();
+  auto waitingTask = language_task_getCurrent();
   // Suspend the waiting task.
   waitingTask->ResumeTask = task_wait_throwing_resume_adapter;
   waitingTask->ResumeContext = callContext;
@@ -228,7 +228,7 @@ void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait_throwing
   case FutureFragment::Status::Executing:
     // The waiting task has been queued on the future.
 #ifdef __ARM_ARCH_7K__
-    return workaround_function_swift_task_future_wait_throwingImpl(
+    return workaround_function_language_task_future_wait_throwingImpl(
         result, callerContext, task, resumeFunction, callContext);
 #else
     return;
@@ -245,13 +245,13 @@ void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait_throwing
     // Run the task with an error result.
     auto future = task->futureFragment();
     auto error = future->getError();
-    swift_errorRetain(error);
+    language_errorRetain(error);
     return resumeFunction(callerContext, error);
   }
   }
 }
 
-//===--- swift_task_create_common -----------------------------------------===//
+//===--- language_task_create_common -----------------------------------------===//
 
 // NOTE: this function is currently only installed as an override on
 // 64-bit targets.  The fix in it has been written to work correctly
@@ -259,8 +259,8 @@ void SWIFT_CC(swiftasync) swift::swift56override_swift_task_future_wait_throwing
 // fix, you should be able to just define and install it unconditionally.
 #if __POINTER_WIDTH__ == 64
 
-AsyncTaskAndContext SWIFT_CC(swift)
-swift::swift56override_swift_task_create_common(
+AsyncTaskAndContext LANGUAGE_CC(language)
+language::language56override_language_task_create_common(
     size_t rawTaskCreateFlags,
     TaskOptionRecord *options,
     const Metadata *futureResultType,

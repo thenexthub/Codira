@@ -1,12 +1,12 @@
 # tests/test_shell.py -------------------------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 # ----------------------------------------------------------------------------
 
 import os
@@ -18,7 +18,7 @@ import tempfile
 import unittest
 from io import StringIO
 
-from swift_build_support import shell
+from language_build_support import shell
 
 
 class ShellTestCase(unittest.TestCase):
@@ -47,12 +47,12 @@ class ShellTestCase(unittest.TestCase):
         bar_file = os.path.join(self.tmpdir, 'bar.txt')
 
         with open(foo_file, 'w') as f:
-            f.write("Hello Swift")
+            f.write("Hello Codira")
 
         shell.call(['cp', foo_file, bar_file])
 
         with open(bar_file, 'r') as f:
-            self.assertEqual(f.read(), "Hello Swift")
+            self.assertEqual(f.read(), "Hello Codira")
 
         self.assertEqual(self.stdout.getvalue(), "")
         self.assertEqual(self.stderr.getvalue(), '''\

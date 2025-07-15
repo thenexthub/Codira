@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Mutex, ConditionVariable, Read/Write lock, and Scoped lock abstractions
-// for use in Swift runtime.
+// for use in Codira runtime.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_MUTEX_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_MUTEX_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_MUTEX_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_MUTEX_BACKDEPLOY56_H
 
 #include <type_traits>
 #include <utility>
@@ -28,7 +29,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(SWIFT_STDLIB_SINGLE_THREADED_RUNTIME) || defined(__wasi__)
+#if defined(LANGUAGE_STDLIB_SINGLE_THREADED_RUNTIME) || defined(__wasi__)
 #include "MutexSingleThreaded.h"
 #elif defined(_POSIX_THREADS)
 #include "MutexPThread.h"
@@ -655,7 +656,7 @@ class StaticConditionVariable {
   StaticConditionVariable &operator=(StaticConditionVariable &&) = delete;
 
 public:
-#if SWIFT_CONDITION_SUPPORTS_CONSTEXPR
+#if LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR
   constexpr
 #endif
       StaticConditionVariable()
@@ -682,7 +683,7 @@ public:
     StaticMutex &operator=(StaticMutex &&) = delete;
 
   public:
-#if SWIFT_MUTEX_SUPPORTS_CONSTEXPR
+#if LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR
     constexpr
 #endif
     StaticMutex()
@@ -778,7 +779,7 @@ class StaticMutex {
   StaticMutex &operator=(StaticMutex &&) = delete;
 
 public:
-#if SWIFT_MUTEX_SUPPORTS_CONSTEXPR
+#if LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR
   constexpr
 #endif
   StaticMutex()
@@ -829,7 +830,7 @@ class StaticReadWriteLock {
   StaticReadWriteLock &operator=(StaticReadWriteLock &&) = delete;
 
 public:
-#if SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR
+#if LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR
   constexpr
 #endif
   StaticReadWriteLock()
@@ -894,7 +895,7 @@ class StaticUnsafeMutex {
   StaticUnsafeMutex &operator=(StaticUnsafeMutex &&) = delete;
 
 public:
-#if SWIFT_MUTEX_SUPPORTS_CONSTEXPR
+#if LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR
   constexpr
 #endif
   StaticUnsafeMutex()
@@ -984,7 +985,7 @@ using SmallMutex =
     std::conditional_t<sizeof(Mutex) <= sizeof(void *), Mutex, IndirectMutex>;
 
 // Enforce literal requirements for static variants.
-#if SWIFT_MUTEX_SUPPORTS_CONSTEXPR
+#if LANGUAGE_MUTEX_SUPPORTS_CONSTEXPR
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 static_assert(std::is_literal_type<StaticMutex>::value,
@@ -997,7 +998,7 @@ static_assert(std::is_literal_type<StaticUnsafeMutex>::value,
 // you will possibly see global-constructors warnings
 #endif
 
-#if SWIFT_CONDITION_SUPPORTS_CONSTEXPR
+#if LANGUAGE_CONDITION_SUPPORTS_CONSTEXPR
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 static_assert(std::is_literal_type<StaticConditionVariable>::value,
@@ -1008,7 +1009,7 @@ static_assert(std::is_literal_type<StaticConditionVariable>::value,
 // you will possibly see global-constructors warnings
 #endif
 
-#if SWIFT_READWRITELOCK_SUPPORTS_CONSTEXPR
+#if LANGUAGE_READWRITELOCK_SUPPORTS_CONSTEXPR
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 static_assert(std::is_literal_type<StaticReadWriteLock>::value,
@@ -1020,4 +1021,4 @@ static_assert(std::is_literal_type<StaticReadWriteLock>::value,
 #endif
 }
 
-#endif // SWIFT_RUNTIME_MUTEX_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_MUTEX_BACKDEPLOY56_H

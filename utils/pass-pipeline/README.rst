@@ -5,7 +5,7 @@ Purpose
 =======
 
 ``Pass Pipeline`` is a python library for generating pipeline json descriptors
-for Swift. The goal is to enable a user to generate various pass pipelines
+for Codira. The goal is to enable a user to generate various pass pipelines
 without needing to recompile the compiler. The main targets for this work are:
 
 1. Correctness issues exposed by adding and removing parts of pass pipelines.

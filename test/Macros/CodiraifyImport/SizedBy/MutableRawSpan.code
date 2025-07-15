@@ -1,0 +1,16 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -strict-memory-safety -warnings-as-errors -dump-macro-expansions > %t.log 2>&1
+// RUN: %FileCheck --match-full-lines %s < %t.log
+
+@_CodiraifyImport(.sizedBy(pointer: .param(1), size: "size"), .nonescaping(pointer: .param(1)))
+fn myFunc(_ ptr: UnsafeMutableRawPointer, _ size: CInt) {
+}
+
+// CHECK:      @_alwaysEmitIntoClient @_lifetime(ptr: copy ptr) @_disfavoredOverload
+// CHECK-NEXT: fn myFunc(_ ptr: inout MutableRawSpan) {
+// CHECK-NEXT:     immutable size = CInt(exactly: ptr.byteCount)!
+// CHECK-NEXT:     return unsafe ptr.withUnsafeMutableBytes { _ptrPtr in
+// CHECK-NEXT:       return unsafe myFunc(_ptrPtr.baseAddress!, size)
+// CHECK-NEXT:     }
+// CHECK-NEXT: }

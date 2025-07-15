@@ -1,12 +1,12 @@
-# swift_build_support/products/swiftpm.py -----------------------*- python -*-
+# language_build_support/products/languagepm.py -----------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -17,19 +17,19 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swift_testing
+from . import language
+from . import language_testing
 from . import xctest
 from .. import shell
 from ..targets import StdlibDeploymentTarget
 
 
-class SwiftPM(product.Product):
+class CodiraPM(product.Product):
     @classmethod
     def product_source_name(cls):
-        return "swiftpm"
+        return "languagepm"
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -54,8 +54,9 @@ class SwiftPM(product.Product):
             self.source_dir, 'Utilities', 'bootstrap')
 
         toolchain_path = self.native_toolchain_path(host_target)
-        swiftc = os.path.join(toolchain_path, "bin", "swiftc")
-        clang = os.path.join(toolchain_path, "bin", "clang")
+        clang_tools_path = self.native_clang_tools_path(host_target)
+        languagec = os.path.join(toolchain_path, "bin", "languagec")
+        clang = os.path.join(clang_tools_path, "bin", "clang")
 
         # FIXME: We require llbuild build directory in order to build. Is
         # there a better way to get this?
@@ -74,7 +75,7 @@ class SwiftPM(product.Product):
             helper_cmd.append("--release")
 
         helper_cmd += [
-            "--swiftc-path", swiftc,
+            "--languagec-path", languagec,
             "--clang-path", clang,
             "--cmake-path", self.toolchain.cmake,
             "--ninja-path", self.toolchain.ninja,
@@ -105,12 +106,12 @@ class SwiftPM(product.Product):
                                '--skip-cmake-bootstrap']
                 build_toolchain_path = self.host_install_destdir(
                     host_target) + self.args.install_prefix
-                resource_dir = '%s/lib/swift' % build_toolchain_path
+                resource_dir = '%s/lib/language' % build_toolchain_path
                 helper_cmd += [
                     '--cross-compile-config',
                     StdlibDeploymentTarget.get_target_for_name(host_target).platform
-                    .swiftpm_config(self.args, output_dir=build_toolchain_path,
-                                    swift_toolchain=toolchain_path,
+                    .codepm_config(self.args, output_dir=build_toolchain_path,
+                                    language_toolchain=toolchain_path,
                                     resource_path=resource_dir)]
 
         helper_cmd.extend(additional_params)
@@ -128,7 +129,7 @@ class SwiftPM(product.Product):
         )
 
     def should_test(self, host_target):
-        return self.args.test_swiftpm
+        return self.args.test_languagepm
 
     def test(self, host_target):
         self.run_bootstrap_script(
@@ -141,13 +142,13 @@ class SwiftPM(product.Product):
         )
 
     def should_clean(self, host_target):
-        return self.args.clean_swiftpm
+        return self.args.clean_languagepm
 
     def clean(self, host_target):
         self.run_bootstrap_script('clean', host_target)
 
     def should_install(self, host_target):
-        return self.args.install_swiftpm
+        return self.args.install_languagepm
 
     def install(self, host_target):
         install_destdir = self.host_install_destdir(host_target)
@@ -161,11 +162,11 @@ class SwiftPM(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swift_testing.SwiftTesting]
+                language_testing.CodiraTesting]

@@ -11,44 +11,44 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-//===----------------------------------------------------------------------===//
-//
-// This file defines types and APIs for layout constraints.
-//
+
 //===----------------------------------------------------------------------===//
 
-#include <cstdint>
+#ifndef LANGUAGE_LAYOUT_CONSTRAINTKIND_H
+#define LANGUAGE_LAYOUT_CONSTRAINTKIND_H
 
-#ifndef SWIFT_LAYOUT_CONSTRAINTKIND_H
-#define SWIFT_LAYOUT_CONSTRAINTKIND_H
+/// This header is included in a bridging header. Be *very* careful with what
+/// you include here! See include caveats in `ASTBridging.h`.
+#include "language/Basic/LanguageBridging.h"
+#include <stdint.h>
 
 namespace language {
 /// Describes a layout constraint information.
-enum class LayoutConstraintKind : uint8_t {
+enum class ENUM_EXTENSIBILITY_ATTR(closed) LayoutConstraintKind : uint8_t {
   // It is not a known layout constraint.
-  UnknownLayout,
+  UnknownLayout LANGUAGE_NAME("unknownLayout"),
   // It is a layout constraint representing a trivial type of a known size.
-  TrivialOfExactSize,
+  TrivialOfExactSize LANGUAGE_NAME("trivialOfExactSize"),
   // It is a layout constraint representing a trivial type of a size known to
   // be no larger than a given size.
-  TrivialOfAtMostSize,
+  TrivialOfAtMostSize LANGUAGE_NAME("trivialOfAtMostSize"),
   // It is a layout constraint representing a trivial type of an unknown size.
-  Trivial,
+  Trivial LANGUAGE_NAME("trivial"),
   // It is a layout constraint representing a reference counted class instance.
-  Class,
+  Class LANGUAGE_NAME("class"),
   // It is a layout constraint representing a reference counted native class
   // instance.
-  NativeClass,
+  NativeClass LANGUAGE_NAME("nativeClass"),
   // It is a layout constraint representing a reference counted object.
-  RefCountedObject,
+  RefCountedObject LANGUAGE_NAME("refCountedObject"),
   // It is a layout constraint representing a native reference counted object.
-  NativeRefCountedObject,
+  NativeRefCountedObject LANGUAGE_NAME("nativeRefCountedObject"),
   // It is a layout constraint representing a bridge object
-  BridgeObject,
+  BridgeObject LANGUAGE_NAME("bridgeObject"),
   // It is a layout constraint representing a trivial type of a known stride.
-  TrivialStride,
+  TrivialStride LANGUAGE_NAME("trivialStride"),
   LastLayout = TrivialStride,
 };
 } // namespace language
 
-#endif // SWIFT_LAYOUT_CONSTRAINTKIND_H
+#endif // LANGUAGE_LAYOUT_CONSTRAINTKIND_H

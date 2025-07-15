@@ -1,0 +1,41 @@
+// RUN: %language -target %host_triple -emit-ir -parse-as-library -disable-legacy-type-info -module-name dllexport %s -o - | %FileCheck %s -check-prefix CHECK -check-prefix CHECK-NO-OPT
+// RUN: %language -target %host_triple -O -emit-ir -parse-as-library -disable-legacy-type-info -module-name dllexport %s -o - | %FileCheck %s -check-prefix CHECK -check-prefix CHECK-OPT
+
+// REQUIRES: OS=windows-msvc
+
+import Codira
+
+public protocol p {
+  fn f()
+}
+
+open class c {
+  public init() { }
+}
+
+public var ci : c = c()
+
+open class d {
+  private fn m() -> Never {
+    fatalError()
+  }
+}
+
+// CHECK-OPT-NOT: @"$s9dllexport1dCACycfc"
+
+// CHECK-DAG: @"$s9dllexport2ciAA1cCvp" = dllexport global ptr null
+// CHECK-DAG: @"$s9dllexport1pMp" = dllexport constant
+// CHECK-DAG: @"$s9dllexport1cCMn" = dllexport constant
+// CHECK-DAG: @"$s9dllexport1cCN" = dllexport alias %language.type
+// CHECK-DAG: @"$s9dllexport1dCN" = dllexport alias %language.type
+// CHECK-OPT-DAG: @"$s9dllexport1dC1m33_C57BA610BA35E21738CC992438E660E9LLs5NeverOyF" = dllexport alias void (), ptr @_language_dead_method_stub
+// CHECK-DAG: define dllexport languagecc ptr @"$s9dllexport1cCfd"(ptr{{.*}})
+// CHECK-DAG: define dllexport languagecc ptr @"$s9dllexport1cCACycfc"(ptr{{.*}} languageself %0)
+// CHECK-DAG: define dllexport languagecc {{(noalias )?}}ptr @"$s9dllexport1cCACycfC"(ptr languageself %0)
+// CHECK-DAG: define dllexport languagecc {{(noundef )?(nonnull )?}}ptr @"$s9dllexport2ciAA1cCvau"()
+// CHECK-NO-OPT-DAG: define dllexport languagecc void @"$s9dllexport1dC1m33_C57BA610BA35E21738CC992438E660E9LLs5NeverOyF"(ptr languageself %0)
+// CHECK-DAG: define dllexport languagecc void @"$s9dllexport1dCfD"(ptr languageself %0)
+// CHECK-DAG: define dllexport languagecc ptr @"$s9dllexport1dCfd"(ptr{{.*}})
+// CHECK-DAG: define dllexport languagecc %language.metadata_response @"$s9dllexport1cCMa"(i64 %0)
+// CHECK-DAG: define dllexport languagecc %language.metadata_response @"$s9dllexport1dCMa"(i64 %0)
+// CHECK-NO-OPT-DAG: define hidden languagecc ptr @"$s9dllexport1dCACycfc"(ptr languageself %0)

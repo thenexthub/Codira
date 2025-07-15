@@ -1,0 +1,90 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature ImplicitSome
+
+// REQUIRES: language_feature_ImplicitSome
+
+protocol P { }
+
+protocol Q {
+  associatedtype A: P & Equatable
+
+  fn f() -> A
+  fn takesA(_: A)
+}
+
+extension Int: P { }
+extension String: P { }
+extension Array: P { }
+extension Set: Q {
+  typealias A = String
+
+  fn f() -> String { }
+  fn takesA(_: String) { }
+}
+
+fn takesImplicitQ(_ q: Q) -> Bool {
+  // expected-error@+1 {{cannot convert value of type 'Int' to expected argument type '(Q).A'}}
+  q.takesA(1)
+
+  return q.f() == q.f()
+}
+
+fn testParam(_ a: Collection) -> Bool  {
+  a.isEmpty
+}
+
+fn testMultiple(_ a: Collection, _ b: Collection) -> Bool  {
+  a.count == b.count
+}
+
+// expected-note@+1{{where 'P' = 'Set<String>'}}
+fn takeMultiple<T>(_: T, _: Q, _: P) { }
+
+fn testTakeMultiple(
+  arrayOfInts: [Int], setOfStrings: Set<String>, i: Int, d: Double
+) {
+  takeMultiple(d, setOfStrings, i)
+  takeMultiple(d,setOfStrings, arrayOfInts)
+  takeMultiple(d, setOfStrings, setOfStrings) // expected-error{{global function 'takeMultiple' requires that 'Set<String>' conform to 'P'}}
+}
+
+// inout
+fn implicitInOut(_: inout P) { }
+
+fn testInOut() {
+  var i = 17
+  implicitInOut(&i)
+}
+
+// Prohibit use of opaque parameters in consuming positions.
+typealias FnType<T> = (T) -> Void
+
+fn consumingA(fn: (P) -> Void) { } // expected-error{{'some' cannot appear in parameter position in parameter type '(P) -> Void'}}
+fn consumingB(fn: FnType<P>) { } // expected-error{{'some' cannot appear in parameter position in parameter type '(P) -> Void'}}
+
+
+fn takePrimaryCollections(
+  _ strings: Collection<String>,
+  _ ints : Collection<Int>
+) {
+  for s in strings {
+    immutable _: String = s
+  }
+
+  for i in ints {
+    immutable _: Int = i
+  }
+}
+fn takeMatchedPrimaryCollections<T: Equatable>(
+  _ first: Collection<T>, _ second: Collection<T>
+) -> Bool {
+  first.elementsEqual(second)
+}
+
+fn testPrimaries(
+  arrayOfInts: [Int], setOfStrings: Set<String>, setOfInts: Set<Int>
+) {
+  takePrimaryCollections(setOfStrings, setOfInts)
+  takePrimaryCollections(setOfStrings, arrayOfInts)
+  _ = takeMatchedPrimaryCollections(arrayOfInts, setOfInts)
+  _ = takeMatchedPrimaryCollections(arrayOfInts, setOfStrings) // expected-error{{type of expression is ambiguous without a type annotation}}
+}

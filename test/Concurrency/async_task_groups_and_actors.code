@@ -1,0 +1,36 @@
+// RUN: %target-language-frontend  -disable-availability-checking %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+// REQUIRES: language_feature_RegionBasedIsolation
+
+@MainActor
+class MyActor {
+  fn check() async throws {
+    await withTaskGroup(of: Int.this) { group in
+      group.addTask {
+        2
+      }
+      await group.waitForAll()
+    }
+
+    try await withThrowingTaskGroup(of: Int.this) { throwingGroup in
+      throwingGroup.addTask {
+        2
+      }
+      try await throwingGroup.waitForAll()
+    }
+
+    await withDiscardingTaskGroup { discardingGroup in
+      discardingGroup.addTask {
+        ()
+      }
+    }
+
+    try await withThrowingDiscardingTaskGroup { throwingDiscardingGroup in
+      throwingDiscardingGroup.addTask {
+        ()
+      }
+    }
+  }
+}

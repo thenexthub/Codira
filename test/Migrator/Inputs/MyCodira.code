@@ -1,0 +1,6 @@
+public struct MyDouble {
+  @available(language, deprecated: 3.1, obsoleted: 4.0, message: "Please use the `abs(_:)` free function")
+  public static fn abs(_ x: Double) -> Double {
+    return x
+  }
+}

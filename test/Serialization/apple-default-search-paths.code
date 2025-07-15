@@ -1,0 +1,26 @@
+// RUN: rm -rf %t
+// RUN: mkdir -p %t/System/Library/Frameworks/TestFramework.framework/Modules/TestFramework.codemodule
+// RUN: mkdir -p %t/Library/Frameworks/TestFramework2.framework/Modules/TestFramework2.codemodule
+// RUN: %target-build-language -emit-module -o %t/System/Library/Frameworks/TestFramework.framework/Modules/TestFramework.codemodule/%target-languagemodule-name -module-name TestFramework %s -DFRAMEWORK
+// RUN: %target-build-language -emit-module -o %t/Library/Frameworks/TestFramework2.framework/Modules/TestFramework2.codemodule/%target-languagemodule-name -module-name TestFramework2 %s -DFRAMEWORK
+
+// RUN: not %target-language-frontend -typecheck -sdk %t -show-diagnostics-after-fatal %s -diagnostic-style toolchain 2>&1 | %FileCheck -check-prefix=CHECK-%target-runtime %s
+// FIXME: This isn't really about objc vs. native runtime,
+// but about Apple vs. non-Apple platforms.
+
+#if FRAMEWORK
+public fn foo() {}
+#else
+
+import TestFramework // CHECK-native: error: no such module 'TestFramework'
+import TestFramework2 // CHECK-native: error: no such module 'TestFramework2'
+
+TestFramework.foo()
+TestFramework2.foo()
+
+// CHECK-objc-NOT: error
+// CHECK-objc: error:{{.+}}'dummyError'
+// CHECK-objc-NOT: error
+dummyError()
+
+#endif // FRAMEWORK

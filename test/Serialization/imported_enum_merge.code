@@ -1,0 +1,11 @@
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t %clang-importer-sdk-path/language-modules/CoreGraphics.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t %clang-importer-sdk-path/language-modules/Foundation.code
+// FIXME: END -enable-source-import hackaround
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t/UsesImportedEnums-a.codemodule -parse-as-library %S/Inputs/use_imported_enums.code -module-name UsesImportedEnums
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -merge-modules -module-name UsesImportedEnums -emit-module -o %t/UsesImportedEnums.codemodule %t/UsesImportedEnums-a.codemodule
+
+// REQUIRES: objc_interop

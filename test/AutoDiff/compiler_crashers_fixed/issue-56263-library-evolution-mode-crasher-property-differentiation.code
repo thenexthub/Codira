@@ -1,0 +1,77 @@
+// RUN: %target-language-frontend -c -enable-library-evolution %s
+
+// https://github.com/apple/language/issues/56263
+// AutoDiff crasher on property derivatives in library evolution mode
+
+import _Differentiation
+
+public struct Struct: Differentiable {
+  var stored: Float
+
+  // Test property.
+  @differentiable(reverse)
+  public var property: Float {
+    stored
+  }
+
+  @differentiable(reverse)
+  public var property2: Float {
+    stored + stored
+  }
+
+  @differentiable(reverse)
+  public var property3: Float {
+    stored.squareRoot()
+  }
+}
+
+// Original crasher:
+// Assertion failed: ((!dyn_cast_or_null<VarDecl>(Loc.getAsASTNode<Decl>()) || Var) && "location is a VarDecl, but SILDebugVariable is empty"), function createAllocStack, file .../language/include/language/SIL/SILBuilder.h, line 418.
+// Please submit a bug report (https://language.org/contributing/#reporting-bugs) and include the project and the crash backtrace.
+// Stack dump:
+// 0.	Program arguments: language-frontend -c test2.code -enable-library-evolution
+// 1.	Codira version 5.3-dev (LLVM f681f671e2e9538, Codira 36090faaded56c2)
+// 2.	While evaluating request ExecuteSILPipelineRequest(Run pipelines { Mandatory Diagnostic Passes + Enabling Optimization Passes } on SIL for test2.test2)
+// 3.	While running pass #157 SILModuleTransform "Differentiation".
+// 4.	While processing // differentiability witness for Struct.property.getter
+// sil_differentiability_witness [serialized] [reverse] [parameters 0] [results 0] @$s5test26StructV8propertySfvg : $@convention(method) (@in_guaranteed Struct) -> Float {
+// }
+// 
+//  on SIL function "@$s5test26StructV8propertySfvg".
+//  for getter for property (at test2.code:8:14)
+// 5.	While generating VJP for SIL function "@$s5test26StructV8propertySfvg".
+//  for getter for property (at test2.code:8:14)
+// 6.	While generating pullback for SIL function "@$s5test26StructV8propertySfvg".
+//  for getter for property (at test2.code:8:14)
+// 0  language-frontend           0x000000010de4a185 toolchain::sys::PrintStackTrace(toolchain::raw_ostream&) + 37
+// 1  language-frontend           0x000000010de490c8 toolchain::sys::RunSignalHandlers() + 248
+// 2  language-frontend           0x000000010de4a766 SignalHandler(int) + 262
+// 3  libsystem_platform.dylib 0x00007fff2035bd7d _sigtramp + 29
+// 4  libsystem_platform.dylib 000000000000000000 _sigtramp + 18446603339975770784
+// 5  libsystem_c.dylib        0x00007fff2026c741 abort + 120
+// 6  libsystem_c.dylib        0x00007fff2026bb18 err + 0
+// 7  language-frontend           0x000000010e1cb063 language::SILBuilder::createAllocStack(language::SILLocation, language::SILType, toolchain::Optional<language::SILDebugVariable>, bool) (.cold.2) + 35
+// 8  language-frontend           0x000000010a06716b language::SILBuilder::createAllocStack(language::SILLocation, language::SILType, toolchain::Optional<language::SILDebugVariable>, bool) + 315
+// 9  language-frontend           0x0000000109af96d3 language::autodiff::PullbackCloner::Implementation::visitLoadOperation(language::SingleValueInstruction*) + 275
+// 10 language-frontend           0x0000000109aec37b language::autodiff::PullbackCloner::Implementation::visit(language::SILInstruction*) + 203
+// 11 language-frontend           0x0000000109ae8196 language::autodiff::PullbackCloner::Implementation::visitSILBasicBlock(language::SILBasicBlock*) + 838
+// 12 language-frontend           0x0000000109ae5504 language::autodiff::PullbackCloner::Implementation::run() + 7268
+// 13 language-frontend           0x0000000109b077d3 language::autodiff::VJPCloner::Implementation::run() + 1539
+// 14 language-frontend           0x0000000109c4e0b4 (anonymous namespace)::DifferentiationTransformer::canonicalizeDifferentiabilityWitness(language::SILFunction*, language::SILDifferentiabilityWitness*, language::autodiff::DifferentiationInvoker, language::SerializedKind_t) + 7172
+// 15 language-frontend           0x0000000109c4bafa (anonymous namespace)::Differentiation::run() + 1530
+// 16 language-frontend           0x0000000109c9c86e language::SILPassManager::runModulePass(unsigned int) + 558
+// 17 language-frontend           0x0000000109ca144a language::SILPassManager::execute() + 666
+// 18 language-frontend           0x0000000109c996a8 language::SILPassManager::executePassPipelinePlan(language::SILPassPipelinePlan const&) + 72
+// 19 language-frontend           0x0000000109c99643 language::ExecuteSILPipelineRequest::evaluate(language::Evaluator&, language::SILPipelineExecutionDescriptor) const + 51
+// 20 language-frontend           0x0000000109cbc83d language::SimpleRequest<language::ExecuteSILPipelineRequest, std::__1::tuple<> (language::SILPipelineExecutionDescriptor), (language::RequestFlags)1>::evaluateRequest(language::ExecuteSILPipelineRequest const&, language::Evaluator&) + 29
+// 21 language-frontend           0x0000000109ca3a37 toolchain::Expected<language::ExecuteSILPipelineRequest::OutputType> language::Evaluator::getResultUncached<language::ExecuteSILPipelineRequest>(language::ExecuteSILPipelineRequest const&) + 375
+// 22 language-frontend           0x0000000109c998d4 language::executePassPipelinePlan(language::SILModule*, language::SILPassPipelinePlan const&, bool, language::irgen::IRGenModule*) + 68
+// 23 language-frontend           0x0000000109ca6507 language::runSILDiagnosticPasses(language::SILModule&) + 87
+// 24 language-frontend           0x00000001096dd7bc language::CompilerInstance::performSILProcessing(language::SILModule*) + 60
+// 25 language-frontend           0x00000001095c4aa5 performCompileStepsPostSILGen(language::CompilerInstance&, std::__1::unique_ptr<language::SILModule, std::__1::default_delete<language::SILModule> >, toolchain::PointerUnion<language::ModuleDecl*, language::SourceFile*>, language::PrimarySpecificPaths const&, int&, language::FrontendObserver*) + 901
+// 26 language-frontend           0x00000001095c44fc performCompileStepsPostSema(language::CompilerInstance&, int&, language::FrontendObserver*) + 636
+// 27 language-frontend           0x00000001095ba328 language::performFrontend(toolchain::ArrayRef<char const*>, char const*, void*, language::FrontendObserver*) + 4632
+// 28 language-frontend           0x0000000109551fee main + 846
+// 29 libdyld.dylib            0x00007fff20332689 start + 1
+// 30 libdyld.dylib            0x0000000000000004 start + 18446603339975940476
+// [1]    21458 abort      xcrun $LANGUAGE_NINJA_BUILD_DIR/bin/language-frontend -c test2.code

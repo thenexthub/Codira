@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines classes that describe the physical layout of nominal
@@ -28,10 +29,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LAYOUT_H
-#define SWIFT_SIL_LAYOUT_H
+#ifndef LANGUAGE_SIL_LAYOUT_H
+#define LANGUAGE_SIL_LAYOUT_H
 
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include "language/AST/GenericSignature.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Type.h"
@@ -48,7 +49,7 @@ class SILField final {
   
   static constexpr const unsigned NumFlags = 1;
 
-  llvm::PointerIntPair<CanType, NumFlags, unsigned> LoweredTypeAndFlags;
+  toolchain::PointerIntPair<CanType, NumFlags, unsigned> LoweredTypeAndFlags;
   
   static unsigned getFlagsValue(bool Mutable) {
     unsigned flags = 0;
@@ -85,8 +86,8 @@ public:
 };
 
 /// A layout.
-class SILLayout final : public llvm::FoldingSetNode,
-                        private llvm::TrailingObjects<SILLayout, SILField>
+class SILLayout final : public toolchain::FoldingSetNode,
+                        private toolchain::TrailingObjects<SILLayout, SILField>
 {
   friend TrailingObjects;
 
@@ -109,7 +110,7 @@ class SILLayout final : public llvm::FoldingSetNode,
     return flags;
   }
   
-  llvm::PointerIntPair<CanGenericSignature, NumFlags, unsigned>
+  toolchain::PointerIntPair<CanGenericSignature, NumFlags, unsigned>
     GenericSigAndFlags;
   
   unsigned NumFields;
@@ -145,17 +146,17 @@ public:
   
   /// Get the fields inside the layout.
   ArrayRef<SILField> getFields() const {
-    return llvm::ArrayRef(getTrailingObjects<SILField>(), NumFields);
+    return toolchain::ArrayRef(getTrailingObjects<SILField>(), NumFields);
   }
   
   /// Produce a profile of this layout, for use in a folding set.
-  static void Profile(llvm::FoldingSetNodeID &id,
+  static void Profile(toolchain::FoldingSetNodeID &id,
                       CanGenericSignature Generics,
                       ArrayRef<SILField> Fields,
                       bool CapturesGenericEnvironment);
   
   /// Produce a profile of this locator, for use in a folding set.
-  void Profile(llvm::FoldingSetNodeID &id) {
+  void Profile(toolchain::FoldingSetNodeID &id) {
     Profile(id, getGenericSignature(), getFields(),
             capturesGenericEnvironment());
   }
@@ -163,4 +164,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_SIL_LAYOUT_H
+#endif // LANGUAGE_SIL_LAYOUT_H

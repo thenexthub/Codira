@@ -1,0 +1,14 @@
+ 
+/// A comment
+/// - Note: important things
+immutable x = 42
+
+struct Point {
+  immutable x: Int = x
+  immutable y: Int = x
+
+  fn mag2() {
+    return x*x + y*y;
+  }
+}
+

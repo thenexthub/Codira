@@ -1,4 +1,4 @@
-//===--- Requirement.h - Swift Requirement ASTs -----------------*- C++ -*-===//
+//===--- Requirement.h - Codira Requirement ASTs -----------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Requirement class and subclasses.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_REQUIREMENT_H
-#define SWIFT_AST_REQUIREMENT_H
+#ifndef LANGUAGE_AST_REQUIREMENT_H
+#define LANGUAGE_AST_REQUIREMENT_H
 
 #include "language/AST/LayoutConstraint.h"
 #include "language/AST/RequirementKind.h"
 #include "language/AST/KnownProtocols.h"
 #include "language/AST/Type.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 class GenericContext;
@@ -57,7 +58,7 @@ enum class CheckRequirementResult : uint8_t {
 /// A single requirement placed on the type parameters (or associated
 /// types thereof) of a
 class Requirement {
-  llvm::PointerIntPair<Type, 3, RequirementKind> FirstTypeAndKind;
+  toolchain::PointerIntPair<Type, 3, RequirementKind> FirstTypeAndKind;
   /// The second element of the requirement. Its content is dependent
   /// on the requirement kind.
   /// The payload of the following enum should always match the kind!
@@ -106,12 +107,12 @@ public:
     return SecondLayout;
   }
 
-  friend llvm::hash_code hash_value(const Requirement &requirement) {
-    using llvm::hash_value;
+  friend toolchain::hash_code hash_value(const Requirement &requirement) {
+    using toolchain::hash_value;
 
-    llvm::hash_code first =
+    toolchain::hash_code first =
         hash_value(requirement.FirstTypeAndKind.getOpaqueValue());
-    llvm::hash_code second;
+    toolchain::hash_code second;
     switch (requirement.getKind()) {
     case RequirementKind::SameShape:
     case RequirementKind::Conformance:
@@ -125,7 +126,7 @@ public:
       break;
     }
 
-    return llvm::hash_combine(first, second);
+    return toolchain::hash_combine(first, second);
   }
 
   friend bool operator==(const Requirement &lhs,
@@ -145,7 +146,7 @@ public:
     case RequirementKind::Layout:
       return lhs.getLayoutConstraint() == rhs.getLayoutConstraint();
     }
-    llvm_unreachable("Unhandled RequirementKind in switch");
+    toolchain_unreachable("Unhandled RequirementKind in switch");
   }
 
   friend bool operator!=(const Requirement &lhs,
@@ -180,7 +181,7 @@ public:
       return Requirement(getKind(), newFirst, getLayoutConstraint());
     }
 
-    llvm_unreachable("Unhandled RequirementKind in switch.");
+    toolchain_unreachable("Unhandled RequirementKind in switch.");
   }
 
   ProtocolDecl *getProtocolDecl() const;
@@ -213,13 +214,13 @@ public:
   /// Linear order on requirements in a generic signature.
   int compare(const Requirement &other) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &out) const;
   void print(raw_ostream &os, const PrintOptions &opts) const;
   void print(ASTPrinter &printer, const PrintOptions &opts) const;
 };
 
-inline void simple_display(llvm::raw_ostream &out, const Requirement &req) {
+inline void simple_display(toolchain::raw_ostream &out, const Requirement &req) {
   req.print(out, PrintOptions());
 }
 

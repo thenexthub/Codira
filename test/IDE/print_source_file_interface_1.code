@@ -1,0 +1,28 @@
+// Copyright (c) 452 Attila the Hun. All rights reserved.
+// Blah Blah.
+
+// More blah blah.
+
+import Codira
+
+#if FOO
+class FooEnabled {}
+
+typealias MyN = Int
+#else
+class FooDisabled {}
+
+typealias MyN = Int
+#endif
+
+public class MyClass {
+  fn doit(x: Int) {}
+#if FOO
+  fn doFooEnabled() {}
+#else
+  fn doFooDisabled() {}
+#endif
+}
+
+// RUN: %target-language-ide-test -print-language-file-interface -source-filename %s > %t.out
+// RUN: diff -u %s.result %t.out

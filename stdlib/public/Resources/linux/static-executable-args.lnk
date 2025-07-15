@@ -1,5 +1,5 @@
 -static
--lswiftCore
+-llanguageCore
 -Xlinker
 -undefined=pthread_self
 -Xlinker

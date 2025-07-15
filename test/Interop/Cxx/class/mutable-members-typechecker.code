@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-experimental-cxx-interop
+// expect-no-diagnostics
+
+import MutableMembers
+
+immutable obj = HasPublicMutableMember(a: 42)
+immutable i = obj.foo()

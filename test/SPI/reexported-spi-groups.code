@@ -1,0 +1,188 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Build lib defining SPIs
+// RUN: %target-language-frontend -emit-module %t/Exported.code \
+// RUN:   -module-name Exported -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Exported.codemodule \
+// RUN:   -emit-module-interface-path %t/Exported.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Exported.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Exported.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Exported.private.codeinterface) -module-name Exported -I %t
+
+/// Build lib reexporting SPIs
+// RUN: %target-language-frontend -emit-module %t/Exporter.code \
+// RUN:   -module-name Exporter -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/Exporter.codemodule \
+// RUN:   -emit-module-interface-path %t/Exporter.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Exporter.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/Exporter.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Exporter.private.codeinterface) -module-name Exporter -I %t
+
+// RUN: %target-language-frontend -emit-module %t/NonExportedAs.code \
+// RUN:   -module-name NonExportedAs -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/NonExportedAs.codemodule \
+// RUN:   -emit-module-interface-path %t/NonExportedAs.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/NonExportedAs.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/NonExportedAs.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/NonExportedAs.private.codeinterface) -module-name NonExportedAs -I %t
+
+/// Build lib not reexporting SPIs (a normal import)
+// RUN: %target-language-frontend -emit-module %t/NonExporter.code \
+// RUN:   -module-name NonExporter -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/NonExporter.codemodule \
+// RUN:   -emit-module-interface-path %t/NonExporter.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/NonExporter.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/NonExporter.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/NonExporter.private.codeinterface) -module-name NonExporter -I %t
+
+/// Build client of transitive SPIs and its languageinterfaces
+// RUN: %target-language-frontend -emit-module %t/ClientLib.code \
+// RUN:   -module-name ClientLib -language-version 5 -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -emit-module-path %t/ClientLib.codemodule \
+// RUN:   -emit-module-interface-path %t/ClientLib.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/ClientLib.private.codeinterface
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientLib.private.codeinterface) -module-name ClientLib -I %t
+
+/// Test diagnostics of a multifile client
+// RUN: %target-language-frontend -typecheck \
+// RUN:   %t/Client_FileA.code %t/Client_FileB.code\
+// RUN:   -language-version 5 -I %t -verify
+
+/// SPIs are now reexported by any `@_exported` from Codira modules, no matter
+/// if `export_as` is present or not.
+// RUN: %target-language-frontend -typecheck \
+// RUN:   %t/NonExportedAsClient.code \
+// RUN:   -language-version 5 -I %t -verify
+
+/// Test that SPIs don't leak when not reexported
+// RUN: %target-language-frontend -typecheck \
+// RUN:   %t/NonExporterClient.code \
+// RUN:   -language-version 5 -I %t -verify
+
+/// Test diagnostics against private languageinterfaces
+// RUN: rm %t/Exported.codemodule %t/Exporter.codemodule
+// RUN: %target-language-frontend -typecheck \
+// RUN:   %t/Client_FileA.code %t/Client_FileB.code\
+// RUN:   -language-version 5 -I %t -verify
+
+/// Test diagnostics against public languageinterfaces
+// RUN: rm %t/Exported.private.codeinterface %t/Exporter.private.codeinterface
+// RUN: %target-language-frontend -typecheck \
+// RUN:   %t/PublicClient.code \
+// RUN:   -language-version 5 -I %t -verify
+
+//--- module.modulemap
+module Exported {
+    export_as Exporter
+}
+
+//--- Exported.code
+
+@_exported import Exported
+
+public fn exportedPublicFunc() {}
+
+@_spi(X) public fn exportedSpiFunc() {}
+
+@_spi(X) public struct ExportedSpiType {}
+
+@_spi(O) public fn exportedSpiFuncOtherGroup() {}
+
+//--- Exporter.code
+
+@_exported import Exported
+
+@_spi(X) public fn exporterSpiFunc() {}
+
+//--- NonExportedAs.code
+
+@_exported import Exported
+
+@_spi(X) public fn exporterSpiFunc() {}
+
+//--- NonExporter.code
+
+@_spi(X) import Exported
+
+@_spi(X) public fn exporterSpiFunc() {}
+
+//--- ClientLib.code
+
+@_spi(X) import Exporter
+
+public fn clientA() {
+    exportedPublicFunc()
+    exportedSpiFunc()
+    exporterSpiFunc()
+}
+
+@_spi(X) public fn spiUseExportedSpiType(_ a: ExportedSpiType) {}
+
+//--- Client_FileA.code
+
+@_spi(X) import Exporter
+
+public fn clientA() {
+    exportedPublicFunc()
+    exportedSpiFunc()
+    exporterSpiFunc()
+    exportedSpiFuncOtherGroup() // expected-error {{cannot find 'exportedSpiFuncOtherGroup' in scope}}
+}
+
+@inlinable
+public fn inlinableClient() {
+    exportedPublicFunc()
+    exportedSpiFunc() // expected-error {{global function 'exportedSpiFunc()' cannot be used in an '@inlinable' function because it is an SPI imported from 'Exported'}}
+    exporterSpiFunc() // expected-error {{global function 'exporterSpiFunc()' cannot be used in an '@inlinable' function because it is an SPI imported from 'Exporter'}}
+}
+
+@_spi(X) public fn spiUseExportedSpiType(_ a: ExportedSpiType) {}
+
+public fn publicUseExportedSpiType(_ a: ExportedSpiType) {} // expected-error {{cannot use struct 'ExportedSpiType' here; it is an SPI imported from 'Exported'}}
+
+//--- Client_FileB.code
+
+import Exporter
+
+public fn clientB() {
+    exportedPublicFunc()
+    exportedSpiFunc() // expected-error {{cannot find 'exportedSpiFunc' in scope}}
+    exporterSpiFunc() // expected-error {{cannot find 'exporterSpiFunc' in scope}}
+}
+
+//--- NonExportedAsClient.code
+
+@_spi(X) import NonExportedAs
+
+public fn client() {
+    exportedPublicFunc()
+    exportedSpiFunc()
+    exporterSpiFunc()
+}
+
+//--- NonExporterClient.code
+
+@_spi(X) import NonExporter
+
+public fn client() {
+    exportedPublicFunc() // expected-error {{cannot find 'exportedPublicFunc' in scope}}
+    exportedSpiFunc() // expected-error {{cannot find 'exportedSpiFunc' in scope}}
+    exporterSpiFunc()
+}
+
+//--- PublicClient.code
+
+@_spi(X) import Exporter // expected-warning {{'@_spi' import of 'Exporter' will not include any SPI symbols}}
+
+public fn client() {
+    exportedPublicFunc()
+    exportedSpiFunc() // expected-error {{cannot find 'exportedSpiFunc' in scope}}
+    exporterSpiFunc() // expected-error {{cannot find 'exporterSpiFunc' in scope}}
+}

@@ -1,0 +1,43 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Lib.code -I %t \
+// RUN:   -module-name Lib -emit-module-path %t/Lib.codemodule \
+// RUN:   -language-version 5
+// RUN: %target-language-frontend -emit-module %t/APILib.code -I %t \
+// RUN:   -language-version 5 -verify \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -library-level api \
+// RUN:   -require-explicit-availability=ignore
+// RUN: %target-language-frontend -emit-module %t/SPILib.code -I %t \
+// RUN:   -language-version 5 -verify \
+// RUN:   -experimental-spi-only-imports \
+// RUN:   -library-level spi
+// RUN: %target-language-frontend -emit-module %t/OtherLib.code -I %t \
+// RUN:   -language-version 5 -verify \
+// RUN:   -experimental-spi-only-imports
+
+//--- Lib.code
+
+public struct LibStruct {}
+
+//--- APILib.code
+
+@_spiOnly import Lib
+
+public fn publicClient() -> LibStruct { fatalError() } // expected-error {{cannot use struct 'LibStruct' here; 'Lib' was imported for SPI only}}
+@_spi(X) public fn spiClient() -> LibStruct { fatalError() }
+
+//--- SPILib.code
+
+@_spiOnly import Lib
+
+public fn publicClient() -> LibStruct { fatalError() }
+@_spi(X) public fn spiClient() -> LibStruct { fatalError() }
+
+//--- OtherLib.code
+
+@_spiOnly import Lib
+
+public fn publicClient() -> LibStruct { fatalError() } // expected-error {{cannot use struct 'LibStruct' here; 'Lib' was imported for SPI only}}
+@_spi(X) public fn spiClient() -> LibStruct { fatalError() }

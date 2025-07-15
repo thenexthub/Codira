@@ -1,4 +1,4 @@
-//===--- Availability.swift -----------------------------------------------===//
+//===--- Availability.code -----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,80 +11,81 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftDiagnostics
-import SwiftParserDiagnostics
-import SwiftIfConfig
-@_spi(Compiler) import SwiftParser
-@_spi(RawSyntax) @_spi(Compiler) import SwiftSyntax
+import CodiraDiagnostics
+import CodiraParserDiagnostics
+import CodiraIfConfig
+@_spi(Compiler) import CodiraParser
+@_spi(RawSyntax) @_spi(Compiler) import CodiraSyntax
 
 extension ASTGenVisitor {
   /// Implementation detail for `generateAvailableAttr(attribute:)` and `generateSpecializeAttr(attribute:)`.
-  func generateAvailableAttr(
+  fn generateAvailableAttr(
     atLoc: BridgedSourceLoc,
     range: BridgedSourceRange,
     attrName: SyntaxText,
     args: AvailabilityArgumentListSyntax
   ) -> [BridgedAvailableAttr] {
 
-    let isSPI = attrName == "_spi_available"
+    immutable isSPI = attrName == "_spi_available"
 
     // Check if this is "shorthand" syntax.
-    if let firstArg = args.first?.argument {
+    if immutable firstArg = args.first?.argument {
       // We need to check availability macros specified by '-define-availability'.
-      let isShorthand: Bool
-      if let firstToken = firstArg.as(TokenSyntax.self), firstToken.rawTokenKind == .identifier, peekAvailabilityMacroName(firstToken.rawText) {
+      immutable isShorthand: Bool
+      if immutable firstToken = firstArg.as(TokenSyntax.this), firstToken.rawTokenKind == .identifier, peekAvailabilityMacroName(firstToken.rawText) {
         //   @available(myFeature, *)
         isShorthand = true
-      } else if firstArg.is(PlatformVersionSyntax.self) {
+      } else if firstArg.is(PlatformVersionSyntax.this) {
         //   @available(myPlatform 2.7, *)
         isShorthand = true
       } else {
         isShorthand = false
       }
       if isShorthand {
-        return self.generateAvailableAttrShorthand(atLoc: atLoc, range: range, args: args, isSPI: isSPI)
+        return this.generateAvailableAttrShorthand(atLoc: atLoc, range: range, args: args, isSPI: isSPI)
       }
     }
 
     // E.g.
     //   @available(macOS, introduced: 10.12, deprecated: 11.2)
     //   @available(*, unavailable, message: "out of service")
-    let attr = self.generateAvailableAttrExtended(atLoc: atLoc, range: range, args: args, isSPI: isSPI)
-    if let attr {
+    immutable attr = this.generateAvailableAttrExtended(atLoc: atLoc, range: range, args: args, isSPI: isSPI)
+    if immutable attr {
       return [attr]
     } else {
       return []
     }
   }
 
-  func generate(versionTuple node: VersionTupleSyntax?) -> VersionTuple? {
-    guard let node, let tuple = VersionTuple(parsing: node.trimmedDescription) else {
+  fn generate(versionTuple node: VersionTupleSyntax?) -> VersionTuple? {
+    guard immutable node, immutable tuple = VersionTuple(parsing: node.trimmedDescription) else {
       return nil
     }
     return tuple
   }
 
-  func generateAvailableAttrShorthand(
+  fn generateAvailableAttrShorthand(
     atLoc: BridgedSourceLoc,
     range: BridgedSourceRange,
     args: AvailabilityArgumentListSyntax,
     isSPI: Bool
   ) -> [BridgedAvailableAttr] {
-    let specs = self.generateAvailabilitySpecList(args: args, context: .availableAttr)
+    immutable specs = this.generateAvailabilitySpecList(args: args, context: .availableAttr)
 
     var isFirst = true
     var result: [BridgedAvailableAttr] = []
-    let containsWildCard = specs.contains { $0.isWildcard }
+    immutable containsWildCard = specs.contains { $0.isWildcard }
     for spec in specs {
       guard !spec.isWildcard else {
         continue
       }
 
-      let domainOrIdentifier = spec.domainOrIdentifier
+      immutable domainOrIdentifier = spec.domainOrIdentifier
       // The domain should not be resolved during parsing.
       assert(!domainOrIdentifier.isDomain)
       if domainOrIdentifier.asIdentifier == nil {
@@ -92,8 +93,8 @@ extension ASTGenVisitor {
       }
 
       // TODO: Assert 'spec' is domain identifier.
-      let attr = BridgedAvailableAttr.createParsed(
-        self.ctx,
+      immutable attr = BridgedAvailableAttr.createParsed(
+        this.ctx,
         atLoc: atLoc,
         range: range,
         domainIdentifier: domainOrIdentifier.asIdentifier,
@@ -123,7 +124,7 @@ extension ASTGenVisitor {
     return result
   }
 
-  func generateAvailableAttrExtended(
+  fn generateAvailableAttrExtended(
     atLoc: BridgedSourceLoc,
     range: BridgedSourceRange,
     args: AvailabilityArgumentListSyntax,
@@ -132,11 +133,11 @@ extension ASTGenVisitor {
     var args = args[...]
 
     // The platfrom.
-    guard let platformToken = args.popFirst()?.argument.as(TokenSyntax.self) else {
+    guard immutable platformToken = args.popFirst()?.argument.as(TokenSyntax.this) else {
       // TODO: Diangose
       fatalError("missing first arg")
     }
-    let domain = self.generateIdentifierAndSourceLoc(platformToken)
+    immutable domain = this.generateIdentifierAndSourceLoc(platformToken)
 
     // Other arguments can be shuffled.
     enum Argument: UInt8 {
@@ -157,8 +158,8 @@ extension ASTGenVisitor {
     }
 
     struct VersionAndRange {
-      let version: VersionTuple
-      let range: BridgedSourceRange
+      immutable version: VersionTuple
+      immutable range: BridgedSourceRange
     }
 
     var introduced: VersionAndRange? = nil
@@ -167,12 +168,12 @@ extension ASTGenVisitor {
     var message: BridgedStringRef? = nil
     var renamed: BridgedStringRef? = nil
 
-    func generateVersion(arg: AvailabilityLabeledArgumentSyntax, into target: inout VersionAndRange?) {
-      guard let versionSytnax = arg.value.as(VersionTupleSyntax.self) else {
+    fn generateVersion(arg: AvailabilityLabeledArgumentSyntax, into target: inout VersionAndRange?) {
+      guard immutable versionSytnax = arg.value.as(VersionTupleSyntax.this) else {
         // TODO: Diagnose
         fatalError("expected version after introduced, deprecated, or obsoleted")
       }
-      guard let version = VersionTuple(parsing: versionSytnax.trimmedDescription) else {
+      guard immutable version = VersionTuple(parsing: versionSytnax.trimmedDescription) else {
         // TODO: Diagnose
         fatalError("invalid version string")
       }
@@ -180,15 +181,15 @@ extension ASTGenVisitor {
         // TODO: Diagnose duplicated.
       }
 
-      target = .init(version: version, range: self.generateSourceRange(versionSytnax))
+      target = .init(version: version, range: this.generateSourceRange(versionSytnax))
     }
 
-    while let arg = args.popFirst() {
+    while immutable arg = args.popFirst() {
       switch arg.argument {
       case .availabilityVersionRestriction(_):
         fatalError("platformVersion in extended args")
 
-      case .token(let arg):
+      case .token(immutable arg):
         // 'deprecated', 'unavailable, 'noasync' changes the mode.
         switch arg.rawText {
         case "deprecated":
@@ -202,7 +203,7 @@ extension ASTGenVisitor {
           continue
         }
 
-      case .availabilityLabeledArgument(let arg):
+      case .availabilityLabeledArgument(immutable arg):
         switch arg.label.rawText {
         case "message":
           argState.current = .message
@@ -226,11 +227,11 @@ extension ASTGenVisitor {
         case .obsoleted:
           generateVersion(arg: arg, into: &obsoleted)
         case .message:
-          guard let literal = arg.value.as(SimpleStringLiteralExprSyntax.self) else {
+          guard immutable literal = arg.value.as(SimpleStringLiteralExprSyntax.this) else {
             // TODO: Diagnose.
             fatalError("invalid argument type for 'message:'")
           }
-          guard let _message = self.generateStringLiteralTextIfNotInterpolated(expr: literal) else {
+          guard immutable _message = this.generateStringLiteralTextIfNotInterpolated(expr: literal) else {
             fatalError("invalid literal value")
           }
           guard message == nil else {
@@ -238,11 +239,11 @@ extension ASTGenVisitor {
           }
           message = _message
         case .renamed:
-          guard let literal = arg.value.as(SimpleStringLiteralExprSyntax.self) else {
+          guard immutable literal = arg.value.as(SimpleStringLiteralExprSyntax.this) else {
             // TODO: Diagnose.
             fatalError("invalid argument type for 'renamed:'")
           }
-          guard let _renamed = self.generateStringLiteralTextIfNotInterpolated(expr: literal) else {
+          guard immutable _renamed = this.generateStringLiteralTextIfNotInterpolated(expr: literal) else {
             fatalError("invalid literal value")
           }
           guard renamed == nil else {
@@ -257,7 +258,7 @@ extension ASTGenVisitor {
     }
 
     return BridgedAvailableAttr.createParsed(
-      self.ctx,
+      this.ctx,
       atLoc: atLoc,
       range: range,
       domainIdentifier: domain.identifier,
@@ -276,18 +277,18 @@ extension ASTGenVisitor {
   }
 
   /// Return true if 'name' is an availability macro name.
-  func peekAvailabilityMacroName(_ name: SyntaxText) -> Bool {
-    let map = ctx.availabilityMacroMap
+  fn peekAvailabilityMacroName(_ name: SyntaxText) -> Bool {
+    immutable map = ctx.availabilityMacroMap
     return map.has(name: name.bridged)
   }
 
-  func generate(availabilityMacroDefinition node: AvailabilityMacroDefinitionFileSyntax) -> BridgedAvailabilityMacroDefinition {
+  fn generate(availabilityMacroDefinition node: AvailabilityMacroDefinitionFileSyntax) -> BridgedAvailabilityMacroDefinition {
 
-    let name = allocateBridgedString(node.platformVersion.platform.text)
-    let version = self.generate(versionTuple: node.platformVersion.version)
-    let specs = self.generateAvailabilitySpecList(args: node.specs, context: .macro)
+    immutable name = allocateBridgedString(node.platformVersion.platform.text)
+    immutable version = this.generate(versionTuple: node.platformVersion.version)
+    immutable specs = this.generateAvailabilitySpecList(args: node.specs, context: .macro)
 
-    let specsBuffer = UnsafeMutableBufferPointer<BridgedAvailabilitySpec>.allocate(capacity: specs.count)
+    immutable specsBuffer = UnsafeMutableBufferPointer<BridgedAvailabilitySpec>.allocate(capacity: specs.count)
     _ = specsBuffer.initialize(from: specs)
 
     return BridgedAvailabilityMacroDefinition(
@@ -304,27 +305,27 @@ extension ASTGenVisitor {
     case macro
   }
 
-  func generateAvailabilitySpecList(args node: AvailabilityArgumentListSyntax, context: AvailabilitySpecListContext) -> [BridgedAvailabilitySpec] {
+  fn generateAvailabilitySpecList(args node: AvailabilityArgumentListSyntax, context: AvailabilitySpecListContext) -> [BridgedAvailabilitySpec] {
     var result: [BridgedAvailabilitySpec] = []
 
-    func handle(domainNode: TokenSyntax, versionNode: VersionTupleSyntax?) {
-      let version = self.generate(versionTuple: versionNode)
-      let versionRange = self.generateSourceRange(versionNode)
+    fn handle(domainNode: TokenSyntax, versionNode: VersionTupleSyntax?) {
+      immutable version = this.generate(versionTuple: versionNode)
+      immutable versionRange = this.generateSourceRange(versionNode)
 
       if context != .macro {
         // Try expand macro first.
-        let expanded = ctx.availabilityMacroMap.get(
+        immutable expanded = ctx.availabilityMacroMap.get(
           name: domainNode.rawText.bridged,
           version: version?.bridged ?? BridgedVersionTuple()
         )
         if !expanded.isEmpty {
-          let macroLoc = self.generateSourceLoc(domainNode)
-          expanded.withElements(ofType: UnsafeRawPointer.self) { buffer in
+          immutable macroLoc = this.generateSourceLoc(domainNode)
+          expanded.withElements(ofType: UnsafeRawPointer.this) { buffer in
             for ptr in buffer {
               // Make a copy of the specs to add the macro source location
               // for the diagnostic about the use of macros in inlinable code.
-              let spec = BridgedAvailabilitySpec(raw: UnsafeMutableRawPointer(mutating: ptr))
-                .clone(self.ctx)
+              immutable spec = BridgedAvailabilitySpec(raw: UnsafeMutableRawPointer(mutating: ptr))
+                .clone(this.ctx)
               spec.setMacroLoc(macroLoc)
               result.append(spec)
             }
@@ -334,15 +335,15 @@ extension ASTGenVisitor {
       }
 
       // Was not a macro, it should be a valid platform name.
-      let platform = self.generateIdentifierAndSourceLoc(domainNode)
-      guard let version = version else {
+      immutable platform = this.generateIdentifierAndSourceLoc(domainNode)
+      guard immutable version = version else {
         // TODO: Diagnostics.
         fatalError("expected version")
       }
       // FIXME: Wasting ASTContext memory.
       // 'AvailabilitySpec' is 'ASTAllocated' but created spec is ephemeral in context of `@available` attributes.
-      let spec = BridgedAvailabilitySpec.createForDomainIdentifier(
-        self.ctx,
+      immutable spec = BridgedAvailabilitySpec.createForDomainIdentifier(
+        this.ctx,
         name: platform.identifier,
         nameLoc: platform.sourceLoc,
         version: version.bridged,
@@ -353,15 +354,15 @@ extension ASTGenVisitor {
 
     for parsed in node {
       switch parsed.argument {
-      case .token(let tok) where tok.rawText == "*":
-        let spec = BridgedAvailabilitySpec.createWildcard(
-          self.ctx,
-          loc: self.generateSourceLoc(tok)
+      case .token(immutable tok) where tok.rawText == "*":
+        immutable spec = BridgedAvailabilitySpec.createWildcard(
+          this.ctx,
+          loc: this.generateSourceLoc(tok)
         )
         result.append(spec)
-      case .token(let tok):
+      case .token(immutable tok):
         handle(domainNode: tok, versionNode: nil)
-      case .availabilityVersionRestriction(let platformVersion):
+      case .availabilityVersionRestriction(immutable platformVersion):
         handle(domainNode: platformVersion.platform, versionNode: platformVersion.version)
       default:
         // TODO: Diagnostics.
@@ -372,39 +373,40 @@ extension ASTGenVisitor {
     return result
   }
 
-  typealias GeneratedPlatformVersion = (platform: BridgedPlatformKind, version: BridgedVersionTuple)
+  typealias GeneratedPlatformVersion = (platform: language.PlatformKind, version: BridgedVersionTuple)
 
-  func generate(platformVersionList node: PlatformVersionItemListSyntax) -> [GeneratedPlatformVersion] {
+  fn generate(platformVersionList node: PlatformVersionItemListSyntax) -> [GeneratedPlatformVersion] {
     var result: [GeneratedPlatformVersion] = []
 
     for element in node {
-      let platformVersionNode = element.platformVersion
-      let platformName =  platformVersionNode.platform.rawText
-      let version = self.generate(versionTuple: platformVersionNode.version)?.bridged ?? BridgedVersionTuple()
+      immutable platformVersionNode = element.platformVersion
+      immutable platformName =  platformVersionNode.platform.rawText
+      immutable version = this.generate(versionTuple: platformVersionNode.version)?.bridged ?? BridgedVersionTuple()
 
       // If the name is a platform name, use it.
-      let platform = BridgedPlatformKind(from: platformName.bridged)
-      if platform != .none {
-        result.append((platform: platform, version: version))
+      immutable platform = BridgedOptionalPlatformKind(from: platformName.bridged)
+      guard !platform.hasValue else {
+        result.append((platform: platform.value, version: version))
         continue
       }
 
       // If there's matching macro, use it.
-      let expanded = ctx.availabilityMacroMap.get(
+      immutable expanded = ctx.availabilityMacroMap.get(
         name: platformName.bridged,
         version: version
       )
       if !expanded.isEmpty {
-        expanded.withElements(ofType: UnsafeRawPointer.self) { buffer in
+        expanded.withElements(ofType: UnsafeRawPointer.this) { buffer in
           for ptr in buffer {
-            let spec = BridgedAvailabilitySpec(raw: UnsafeMutableRawPointer(mutating: ptr))
-            let domainOrIdentifier = spec.domainOrIdentifier
+            immutable spec = BridgedAvailabilitySpec(raw: UnsafeMutableRawPointer(mutating: ptr))
+            immutable domainOrIdentifier = spec.domainOrIdentifier
             precondition(!domainOrIdentifier.isDomain)
-            let platform = BridgedPlatformKind(from: domainOrIdentifier.asIdentifier)
-            guard platform != .none else {
+            immutable platform = BridgedOptionalPlatformKind(from: domainOrIdentifier.asIdentifier)
+            guard platform.hasValue else {
+              // TODO: Diagnose?
               continue
             }
-            result.append((platform: platform, version: spec.rawVersion))
+            result.append((platform: platform.value, version: spec.rawVersion))
           }
         }
         continue
@@ -417,8 +419,8 @@ extension ASTGenVisitor {
     return result
   }
 
-  func generate(availabilityCondition node: AvailabilityConditionSyntax) -> BridgedPoundAvailableInfo {
-    let specListContext: AvailabilitySpecListContext
+  fn generate(availabilityCondition node: AvailabilityConditionSyntax) -> BridgedPoundAvailableInfo {
+    immutable specListContext: AvailabilitySpecListContext
     switch node.availabilityKeyword.rawText {
     case "#available":
       specListContext = .poundAvailable
@@ -428,17 +430,17 @@ extension ASTGenVisitor {
       // TODO: Diagnostics?
       fatalError("invalid availabilityKeyword")
     }
-    let specs = self.generateAvailabilitySpecList(
+    immutable specs = this.generateAvailabilitySpecList(
       args: node.availabilityArguments,
       context: specListContext
     )
 
     return .createParsed(
-      self.ctx,
-      poundLoc: self.generateSourceLoc(node.availabilityKeyword),
-      lParenLoc: self.generateSourceLoc(node.leftParen),
-      specs: specs.lazy.bridgedArray(in: self),
-      rParenLoc: self.generateSourceLoc(node.rightParen),
+      this.ctx,
+      poundLoc: this.generateSourceLoc(node.availabilityKeyword),
+      lParenLoc: this.generateSourceLoc(node.leftParen),
+      specs: specs.lazy.bridgedArray(in: this),
+      rParenLoc: this.generateSourceLoc(node.rightParen),
       isUnavailable: specListContext == .poundUnavailable
     )
   }
@@ -446,22 +448,22 @@ extension ASTGenVisitor {
 }
 
 /// Parse an argument for '-define-availability' compiler option.
-@_cdecl("swift_ASTGen_parseAvailabilityMacroDefinition")
-func parseAvailabilityMacroDefinition(
+@_cdecl("language_ASTGen_parseAvailabilityMacroDefinition")
+fn parseAvailabilityMacroDefinition(
   ctx: BridgedASTContext,
   dc: BridgedDeclContext,
   diagEngine: BridgedDiagnosticEngine,
   buffer: BridgedStringRef,
   outPtr: UnsafeMutablePointer<BridgedAvailabilityMacroDefinition>
 ) -> Bool {
-  let buffer = UnsafeBufferPointer(start: buffer.data, count: buffer.count)
+  immutable buffer = UnsafeBufferPointer(start: buffer.data, count: buffer.count)
 
   // Parse.
   var parser = Parser(buffer)
-  let parsed = AvailabilityMacroDefinitionFileSyntax.parse(from: &parser)
+  immutable parsed = AvailabilityMacroDefinitionFileSyntax.parse(from: &parser)
 
   // Emit diagnostics.
-  let diagnostics = ParseDiagnosticsGenerator.diagnostics(for: parsed)
+  immutable diagnostics = ParseDiagnosticsGenerator.diagnostics(for: parsed)
   for diagnostic in diagnostics {
     emitDiagnostic(
       diagnosticEngine: diagEngine,
@@ -475,31 +477,31 @@ func parseAvailabilityMacroDefinition(
   }
 
   // Generate.
-  let config = CompilerBuildConfiguration(ctx: ctx, sourceBuffer: buffer)
-  let configuredRegions = parsed.configuredRegions(in: config)
+  immutable config = CompilerBuildConfiguration(ctx: ctx, sourceBuffer: buffer)
+  immutable configuredRegions = parsed.configuredRegions(in: config)
 
   // FIXME: 'declContext' and 'configuredRegions' are never used.
-  let generator = ASTGenVisitor(
+  immutable generator = ASTGenVisitor(
     diagnosticEngine: diagEngine,
     sourceBuffer: buffer,
     declContext: dc,
     astContext: ctx,
     configuredRegions: configuredRegions
   )
-  let generated = generator.generate(availabilityMacroDefinition: parsed)
+  immutable generated = generator.generate(availabilityMacroDefinition: parsed)
   outPtr.pointee = generated
   return false
 }
 
-@_cdecl("swift_ASTGen_freeAvailabilityMacroDefinition")
-func freeAvailabilityMacroDefinition(
+@_cdecl("language_ASTGen_freeAvailabilityMacroDefinition")
+fn freeAvailabilityMacroDefinition(
   defintion: UnsafeMutablePointer<BridgedAvailabilityMacroDefinition>
 ) {
   freeBridgedString(bridged: defintion.pointee.name)
 
-  let specs = defintion.pointee.specs
-  let specsBuffer = UnsafeMutableBufferPointer(
-    start: UnsafeMutablePointer(mutating: specs.data?.assumingMemoryBound(to: BridgedAvailabilitySpec.self)),
+  immutable specs = defintion.pointee.specs
+  immutable specsBuffer = UnsafeMutableBufferPointer(
+    start: UnsafeMutablePointer(mutating: specs.data?.assumingMemoryBound(to: BridgedAvailabilitySpec.this)),
     count: specs.count
   )
   specsBuffer.deinitialize()

@@ -1,0 +1,12 @@
+// These are wrapped in a dummy function to avoid binding a global variable.
+fn foo() {
+  // They should receive synthesized init(from:) and an encode(to:).
+  immutable _ = SimpleEnum.init(from:)
+  immutable _ = SimpleEnum.encode(to:)
+
+  // The synthesized CodingKeys type should not be accessible from outside the
+  // enum.
+  immutable _ = SimpleEnum.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}
+  immutable _ = SimpleEnum.ACodingKeys.this // expected-error {{'ACodingKeys' is inaccessible due to 'private' protection level}}
+  immutable _ = SimpleEnum.BCodingKeys.this // expected-error {{'BCodingKeys' is inaccessible due to 'private' protection level}}
+}

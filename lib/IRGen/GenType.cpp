@@ -1,4 +1,4 @@
-//===--- GenType.cpp - Swift IR Generation For Types ----------------------===//
+//===--- GenType.cpp - Codira IR Generation For Types ----------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements IR generation for types in Swift.
+//  This file implements IR generation for types in Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -30,11 +31,11 @@
 #include "language/Basic/SourceManager.h"
 #include "language/IRGen/Linking.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/Path.h"
-#include "clang/CodeGen/SwiftCallingConv.h"
+#include "toolchain/IR/DerivedTypes.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/Path.h"
+#include "clang/CodeGen/CodiraCallingConv.h"
 
 #include "BitPatternBuilder.h"
 #include "CallEmission.h"
@@ -68,14 +69,14 @@ Alignment IRGenModule::getCappedAlignment(Alignment align) {
   return std::min(align, Alignment(MaximumAlignment));
 }
 
-llvm::DenseMap<TypeBase *, const TypeInfo *> &
+toolchain::DenseMap<TypeBase *, const TypeInfo *> &
 TypeConverter::Types_t::getCacheFor(bool isDependent, TypeConverter::Mode mode) {
   return (isDependent
           ? DependentCache[unsigned(mode)]
           : IndependentCache[unsigned(mode)]);
 }
 
-llvm::DenseMap<TypeBase *, const TypeLayoutEntry *> &
+toolchain::DenseMap<TypeBase *, const TypeLayoutEntry *> &
 TypeConverter::Types_t::getTypeLayoutCacheFor(bool isDependent,
                                               TypeConverter::Mode mode) {
   return (isDependent ? DependentTypeLayoutCache[unsigned(mode)]
@@ -118,12 +119,12 @@ TypeInfo::~TypeInfo() {
     delete nativeParameterSchema;
 }
 
-Address TypeInfo::getAddressForPointer(llvm::Value *ptr) const {
+Address TypeInfo::getAddressForPointer(toolchain::Value *ptr) const {
   return Address(ptr, getStorageType(), getBestKnownAlignment());
 }
 
 Address TypeInfo::getUndefAddress() const {
-  return Address(llvm::UndefValue::get(getStorageType()->getPointerTo(0)),
+  return Address(toolchain::UndefValue::get(getStorageType()->getPointerTo(0)),
                  getStorageType(), getBestKnownAlignment());
 }
 
@@ -204,53 +205,53 @@ LoadedRef LoadableTypeInfo::loadRefcountedPtr(IRGenFunction &IGF,
                                               Address addr) const {
   IGF.IGM.error(loc, "Can only load from an address that holds a reference to "
                 "a refcounted type or an address of an optional reference.");
-  llvm::report_fatal_error("loadRefcountedPtr: Invalid SIL in IRGen");
+  toolchain::report_fatal_error("loadRefcountedPtr: Invalid SIL in IRGen");
 }
 
 void LoadableTypeInfo::addScalarToAggLowering(IRGenModule &IGM,
-                                              SwiftAggLowering &lowering,
-                                              llvm::Type *type, Size offset,
+                                              CodiraAggLowering &lowering,
+                                              toolchain::Type *type, Size offset,
                                               Size storageSize) {
   lowering.addTypedData(type, offset.asCharUnits(),
                         offset.asCharUnits() + storageSize.asCharUnits());
 }
 
-llvm::Value *FixedTypeInfo::getSize(IRGenFunction &IGF, SILType T) const {
+toolchain::Value *FixedTypeInfo::getSize(IRGenFunction &IGF, SILType T) const {
   return FixedTypeInfo::getStaticSize(IGF.IGM);
 }
-llvm::Constant *FixedTypeInfo::getStaticSize(IRGenModule &IGM) const {
+toolchain::Constant *FixedTypeInfo::getStaticSize(IRGenModule &IGM) const {
   return IGM.getSize(getFixedSize());
 }
 
-llvm::Value *FixedTypeInfo::getAlignmentMask(IRGenFunction &IGF,
+toolchain::Value *FixedTypeInfo::getAlignmentMask(IRGenFunction &IGF,
                                              SILType T) const {
   return FixedTypeInfo::getStaticAlignmentMask(IGF.IGM);
 }
-llvm::Constant *FixedTypeInfo::getStaticAlignmentMask(IRGenModule &IGM) const {
+toolchain::Constant *FixedTypeInfo::getStaticAlignmentMask(IRGenModule &IGM) const {
   return IGM.getSize(Size(getFixedAlignment().getValue() - 1));
 }
 
-llvm::Value *FixedTypeInfo::getStride(IRGenFunction &IGF, SILType T) const {
+toolchain::Value *FixedTypeInfo::getStride(IRGenFunction &IGF, SILType T) const {
   return FixedTypeInfo::getStaticStride(IGF.IGM);
 }
-llvm::Value *FixedTypeInfo::getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const {
-  return llvm::ConstantInt::get(IGF.IGM.Int1Ty,
+toolchain::Value *FixedTypeInfo::getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const {
+  return toolchain::ConstantInt::get(IGF.IGM.Int1Ty,
                                 isTriviallyDestroyable(ResilienceExpansion::Maximal) == IsTriviallyDestroyable);
 }
-llvm::Value *FixedTypeInfo::getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const {
-  return llvm::ConstantInt::get(IGF.IGM.Int1Ty,
+toolchain::Value *FixedTypeInfo::getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const {
+  return toolchain::ConstantInt::get(IGF.IGM.Int1Ty,
       getBitwiseTakable(ResilienceExpansion::Maximal) >= IsBitwiseTakableOnly);
 }
-llvm::Constant *FixedTypeInfo::getStaticStride(IRGenModule &IGM) const {
+toolchain::Constant *FixedTypeInfo::getStaticStride(IRGenModule &IGM) const {
   return IGM.getSize(getFixedStride());
 }
 
-llvm::Value *FixedTypeInfo::isDynamicallyPackedInline(IRGenFunction &IGF,
+toolchain::Value *FixedTypeInfo::isDynamicallyPackedInline(IRGenFunction &IGF,
                                                       SILType T) const {
   auto packing = getFixedPacking(IGF.IGM);
   assert(packing == FixedPacking::Allocate ||
          packing == FixedPacking::OffsetZero);
-  return llvm::ConstantInt::get(IGF.IGM.Int1Ty,
+  return toolchain::ConstantInt::get(IGF.IGM.Int1Ty,
                                 packing == FixedPacking::OffsetZero);
 }
 
@@ -321,7 +322,7 @@ FixedTypeInfo::getSpareBitFixedExtraInhabitantValue(IRGenModule &IGM,
   return v;
 }
 
-llvm::Value *
+toolchain::Value *
 FixedTypeInfo::getSpareBitExtraInhabitantIndex(IRGenFunction &IGF,
                                                Address src) const {
   assert(!SpareBits.none() && "no spare bits");
@@ -329,21 +330,21 @@ FixedTypeInfo::getSpareBitExtraInhabitantIndex(IRGenFunction &IGF,
   auto &C = IGF.IGM.getLLVMContext();
   
   // Load the value.
-  auto payloadTy = llvm::IntegerType::get(C, getFixedSize().getValueInBits());
+  auto payloadTy = toolchain::IntegerType::get(C, getFixedSize().getValueInBits());
   src = IGF.Builder.CreateElementBitCast(src, payloadTy);
   auto val = IGF.Builder.CreateLoad(src);
   
   // If the spare bits are all zero, then we have a valid value and not an
   // extra inhabitant.
   auto spareBitsMask
-    = llvm::ConstantInt::get(C, SpareBits.asAPInt());
+    = toolchain::ConstantInt::get(C, SpareBits.asAPInt());
   auto valSpareBits = IGF.Builder.CreateAnd(val, spareBitsMask);
   auto isValid = IGF.Builder.CreateICmpEQ(valSpareBits,
-                                          llvm::ConstantInt::get(payloadTy, 0));
+                                          toolchain::ConstantInt::get(payloadTy, 0));
   
   auto *origBB = IGF.Builder.GetInsertBlock();
-  auto *endBB = llvm::BasicBlock::Create(C);
-  auto *spareBB = llvm::BasicBlock::Create(C);
+  auto *endBB = toolchain::BasicBlock::Create(C);
+  auto *spareBB = toolchain::BasicBlock::Create(C);
   IGF.Builder.CreateCondBr(isValid, endBB, spareBB);
 
   IGF.Builder.emitBlock(spareBB);
@@ -352,20 +353,20 @@ FixedTypeInfo::getSpareBitExtraInhabitantIndex(IRGenFunction &IGF,
   // Gather the occupied bits.
   auto OccupiedBits = SpareBits;
   OccupiedBits.flipAll();
-  llvm::Value *idx = emitGatherBits(IGF, OccupiedBits.asAPInt(), val, 0, 31);
+  toolchain::Value *idx = emitGatherBits(IGF, OccupiedBits.asAPInt(), val, 0, 31);
   
   // See if spare bits fit into the 31 bits of the index.
   unsigned numSpareBits = SpareBits.count();
   unsigned numOccupiedBits = getFixedSize().getValueInBits() - numSpareBits;
   if (numOccupiedBits < 31) {
     // Gather the spare bits.
-    llvm::Value *spareIdx
+    toolchain::Value *spareIdx
       = emitGatherBits(IGF, SpareBits.asAPInt(), val, numOccupiedBits, 31);
     // Unbias by subtracting one.
 
     uint64_t shifted = static_cast<uint64_t>(1) << numOccupiedBits;
     spareIdx = IGF.Builder.CreateSub(spareIdx,
-            llvm::ConstantInt::get(spareIdx->getType(), shifted));
+            toolchain::ConstantInt::get(spareIdx->getType(), shifted));
     idx = IGF.Builder.CreateOr(idx, spareIdx);
   }
   idx = IGF.Builder.CreateZExt(idx, IGF.IGM.Int32Ty);
@@ -375,15 +376,15 @@ FixedTypeInfo::getSpareBitExtraInhabitantIndex(IRGenFunction &IGF,
   
   // If we had a valid value, return -1. Otherwise, return the index.
   auto phi = IGF.Builder.CreatePHI(IGF.IGM.Int32Ty, 2);
-  phi->addIncoming(llvm::ConstantInt::get(IGF.IGM.Int32Ty, -1), origBB);
+  phi->addIncoming(toolchain::ConstantInt::get(IGF.IGM.Int32Ty, -1), origBB);
   phi->addIncoming(idx, spareBB);
   
   return phi;
 }
 
-static llvm::Value *computeExtraTagBytes(IRGenFunction &IGF, IRBuilder &Builder,
+static toolchain::Value *computeExtraTagBytes(IRGenFunction &IGF, IRBuilder &Builder,
                                          Size fixedSize,
-                                         llvm::Value *numEmptyCases) {
+                                         toolchain::Value *numEmptyCases) {
   // We can use the payload area with a tag bit set somewhere outside of the
   // payload area to represent cases. See how many bytes we need to cover
   // all the empty cases.
@@ -406,20 +407,20 @@ static llvm::Value *computeExtraTagBytes(IRGenFunction &IGF, IRBuilder &Builder,
   auto &Ctx = Builder.getContext();
   auto *int32Ty = IGM.Int32Ty;
 
-  auto *one = llvm::ConstantInt::get(int32Ty, 1U);
+  auto *one = toolchain::ConstantInt::get(int32Ty, 1U);
   if (fixedSize >= Size(4)) {
     return one;
   }
 
   auto *entryBB = Builder.GetInsertBlock();
-  llvm::Value *size = IGM.getSize(fixedSize);
-  auto *returnBB = llvm::BasicBlock::Create(Ctx);
+  toolchain::Value *size = IGM.getSize(fixedSize);
+  auto *returnBB = toolchain::BasicBlock::Create(Ctx);
   size = Builder.CreateZExtOrTrunc(size, int32Ty); // We know size < 4.
 
-  auto *two = llvm::ConstantInt::get(int32Ty, 2U);
-  auto *four = llvm::ConstantInt::get(int32Ty, 4U);
+  auto *two = toolchain::ConstantInt::get(int32Ty, 2U);
+  auto *four = toolchain::ConstantInt::get(int32Ty, 4U);
 
-  auto *bits = Builder.CreateMul(size, llvm::ConstantInt::get(int32Ty, 8U));
+  auto *bits = Builder.CreateMul(size, toolchain::ConstantInt::get(int32Ty, 8U));
   auto *casesPerTagBitValue = Builder.CreateShl(one, bits);
 
   auto *numTags = Builder.CreateSub(casesPerTagBitValue, one);
@@ -427,14 +428,14 @@ static llvm::Value *computeExtraTagBytes(IRGenFunction &IGF, IRBuilder &Builder,
   numTags = Builder.CreateLShr(numTags, bits);
   numTags = Builder.CreateAdd(numTags, one);
 
-  auto *notLT256BB = llvm::BasicBlock::Create(Ctx);
+  auto *notLT256BB = toolchain::BasicBlock::Create(Ctx);
   auto *isLT256 =
-      Builder.CreateICmpULT(numTags, llvm::ConstantInt::get(int32Ty, 256U));
+      Builder.CreateICmpULT(numTags, toolchain::ConstantInt::get(int32Ty, 256U));
   Builder.CreateCondBr(isLT256, returnBB, notLT256BB);
 
   Builder.emitBlock(notLT256BB);
   auto *isLT65536 =
-      Builder.CreateICmpULT(numTags, llvm::ConstantInt::get(int32Ty, 65536U));
+      Builder.CreateICmpULT(numTags, toolchain::ConstantInt::get(int32Ty, 65536U));
   numTags = Builder.CreateSelect(isLT65536, two, four);
   Builder.CreateBr(returnBB);
 
@@ -451,14 +452,14 @@ static llvm::Value *computeExtraTagBytes(IRGenFunction &IGF, IRBuilder &Builder,
 /// a known constant value passed as a parameter to the function.
 static void emitSpecializedMemOperation(
     IRGenFunction &IGF,
-    llvm::function_ref<void(IRBuilder &, Size)> emitMemOpFn,
-    llvm::Value *size,
+    toolchain::function_ref<void(IRBuilder &, Size)> emitMemOpFn,
+    toolchain::Value *size,
     const std::array<Size, 4> &sizes) {
   auto &Ctx = IGF.IGM.getLLVMContext();
   auto &Builder = IGF.Builder;
 
   // Block to jump to after successful match.
-  auto *returnBB = llvm::BasicBlock::Create(Ctx);
+  auto *returnBB = toolchain::BasicBlock::Create(Ctx);
 
   // Test all the sizes in turn, generating code similar to:
   //
@@ -475,8 +476,8 @@ static void emitSpecializedMemOperation(
   //   }
   //
   for (const Size &s : sizes) {
-    auto *matchBB = llvm::BasicBlock::Create(Ctx);
-    auto *nextBB = llvm::BasicBlock::Create(Ctx);
+    auto *matchBB = toolchain::BasicBlock::Create(Ctx);
+    auto *nextBB = toolchain::BasicBlock::Create(Ctx);
 
     // Check if size matches.
     auto *imm = Builder.getInt32(s.getValue());
@@ -500,10 +501,10 @@ static void emitSpecializedMemOperation(
 
 /// Emit a load of the \p size byte integer values zero extended to 4 bytes. \p
 /// size maybe any of the four values specified in the \p sizes array.
-static llvm::Value *emitLoadBytes(IRGenFunction &IGF, Address from,
-                                  llvm::Value *size,
+static toolchain::Value *emitLoadBytes(IRGenFunction &IGF, Address from,
+                                  toolchain::Value *size,
                                   const std::array<Size, 4> &sizes) {
-  auto *phi = llvm::PHINode::Create(IGF.IGM.Int32Ty, 4);
+  auto *phi = toolchain::PHINode::Create(IGF.IGM.Int32Ty, 4);
 
   emitSpecializedMemOperation(IGF,
       [=](IRBuilder &B, Size s) {
@@ -526,8 +527,8 @@ static llvm::Value *emitLoadBytes(IRGenFunction &IGF, Address from,
 
 /// Emit a load of a \p size byte integer value zero extended to 4 bytes \p size
 /// may be 1, 2, 3, or 4.
-llvm::Value *irgen::emitLoad1to4Bytes(IRGenFunction &IGF, Address from,
-                                      llvm::Value *size) {
+toolchain::Value *irgen::emitLoad1to4Bytes(IRGenFunction &IGF, Address from,
+                                      toolchain::Value *size) {
   // Sizes to try. Tested in order.
   const std::array<Size, 4> sizes = {
     Size(1),
@@ -540,8 +541,8 @@ llvm::Value *irgen::emitLoad1to4Bytes(IRGenFunction &IGF, Address from,
 
 /// Emit a load of a \p size byte integer value zero extended to 4 bytes.
 /// \p size may be 0, 1, 2 or 4.
-llvm::Value *irgen::emitGetTag(IRGenFunction &IGF, Address from,
-                               llvm::Value *size) {
+toolchain::Value *irgen::emitGetTag(IRGenFunction &IGF, Address from,
+                               toolchain::Value *size) {
   // Sizes to try. Tested in order.
   const std::array<Size, 4> sizes = {
     Size(0),
@@ -554,8 +555,8 @@ llvm::Value *irgen::emitGetTag(IRGenFunction &IGF, Address from,
 
 /// Emit a store of \p val truncated to \p size bytes.
 /// \p size may be one of the entries in the \p sizes array.
-static void emitStoreBytes(IRGenFunction &IGF, Address to, llvm::Value *val,
-                           llvm::Value *size,
+static void emitStoreBytes(IRGenFunction &IGF, Address to, toolchain::Value *val,
+                           toolchain::Value *size,
                            const std::array<Size, 4> &sizes) {
   emitSpecializedMemOperation(IGF,
       [=](IRBuilder &B, Size s) {
@@ -575,8 +576,8 @@ static void emitStoreBytes(IRGenFunction &IGF, Address to, llvm::Value *val,
 
 /// Emit a store of \p val truncated to \p size bytes.
 /// \p size may be  1, 2, 3, or 4.
-void irgen::emitStore1to4Bytes(IRGenFunction &IGF, Address to, llvm::Value *val,
-                              llvm::Value *size) {
+void irgen::emitStore1to4Bytes(IRGenFunction &IGF, Address to, toolchain::Value *val,
+                              toolchain::Value *size) {
   // Sizes to try. Tested in order.
   const std::array<Size, 4> sizes = {
     Size(1),
@@ -590,8 +591,8 @@ void irgen::emitStore1to4Bytes(IRGenFunction &IGF, Address to, llvm::Value *val,
 /// Emit a store of \p val truncated to \p size bytes.
 /// \p size may be 0, 1, 2 or 4.
 void irgen::emitSetTag(IRGenFunction &IGF,
-                       Address to, llvm::Value *val,
-                       llvm::Value *size) {
+                       Address to, toolchain::Value *val,
+                       toolchain::Value *size) {
   // Sizes to try. Tested in order.
   const std::array<Size, 4> sizes = {
     Size(0),
@@ -602,8 +603,8 @@ void irgen::emitSetTag(IRGenFunction &IGF,
   emitStoreBytes(IGF, to, val, size, sizes);
 }
 
-llvm::Value *FixedTypeInfo::getEnumTagSinglePayload(IRGenFunction &IGF,
-                                                    llvm::Value *numEmptyCases,
+toolchain::Value *FixedTypeInfo::getEnumTagSinglePayload(IRGenFunction &IGF,
+                                                    toolchain::Value *numEmptyCases,
                                                     Address enumAddr,
                                                     SILType T,
                                                     bool isOutlined) const {
@@ -611,9 +612,9 @@ llvm::Value *FixedTypeInfo::getEnumTagSinglePayload(IRGenFunction &IGF,
                                           T, isOutlined);
 }
 
-llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
+toolchain::Value *irgen::getFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
                                                      const FixedTypeInfo &ti,
-                                                     llvm::Value *numEmptyCases,
+                                                     toolchain::Value *numEmptyCases,
                                                      Address enumAddr,
                                                      SILType T,
                                                      bool isOutlined) {
@@ -623,16 +624,16 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
 
   return getFixedTypeEnumTagSinglePayload(
       IGF, numEmptyCases, enumAddr, size, fixedSize, fixedExtraInhabitantCount,
-      [&](Address addr) -> llvm::Value * {
+      [&](Address addr) -> toolchain::Value * {
         return ti.getExtraInhabitantIndex(IGF, addr, T, false);
       },
       isOutlined);
 }
 
-llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
-    IRGenFunction &IGF, llvm::Value *numEmptyCases, Address enumAddr,
-    llvm::Value *size, Size fixedSize, unsigned fixedExtraInhabitantCount,
-    llvm::function_ref<llvm::Value *(Address)> getExtraInhabitantIndex,
+toolchain::Value *irgen::getFixedTypeEnumTagSinglePayload(
+    IRGenFunction &IGF, toolchain::Value *numEmptyCases, Address enumAddr,
+    toolchain::Value *size, Size fixedSize, unsigned fixedExtraInhabitantCount,
+    toolchain::function_ref<toolchain::Value *(Address)> getExtraInhabitantIndex,
     bool isOutlined) {
 
   auto &IGM = IGF.IGM;
@@ -640,17 +641,17 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
   auto &Builder = IGF.Builder;
 
   auto *numExtraInhabitants =
-      llvm::ConstantInt::get(IGM.Int32Ty, fixedExtraInhabitantCount);
+      toolchain::ConstantInt::get(IGM.Int32Ty, fixedExtraInhabitantCount);
 
-  auto *zero = llvm::ConstantInt::get(IGM.Int32Ty, 0U);
-  auto *one = llvm::ConstantInt::get(IGM.Int32Ty, 1U);
-  auto *four = llvm::ConstantInt::get(IGM.Int32Ty, 4U);
-  auto *eight = llvm::ConstantInt::get(IGM.Int32Ty, 8U);
+  auto *zero = toolchain::ConstantInt::get(IGM.Int32Ty, 0U);
+  auto *one = toolchain::ConstantInt::get(IGM.Int32Ty, 1U);
+  auto *four = toolchain::ConstantInt::get(IGM.Int32Ty, 4U);
+  auto *eight = toolchain::ConstantInt::get(IGM.Int32Ty, 8U);
 
-  auto *extraTagBitsBB = llvm::BasicBlock::Create(Ctx);
-  auto *noExtraTagBitsBB = llvm::BasicBlock::Create(Ctx);
-  auto *hasEmptyCasesBB = llvm::BasicBlock::Create(Ctx);
-  auto *singleCaseEnumBB = llvm::BasicBlock::Create(Ctx);
+  auto *extraTagBitsBB = toolchain::BasicBlock::Create(Ctx);
+  auto *noExtraTagBitsBB = toolchain::BasicBlock::Create(Ctx);
+  auto *hasEmptyCasesBB = toolchain::BasicBlock::Create(Ctx);
+  auto *singleCaseEnumBB = toolchain::BasicBlock::Create(Ctx);
 
   // No empty cases so we must be the payload.
   auto *hasNoEmptyCases = Builder.CreateICmpEQ(zero, numEmptyCases);
@@ -680,11 +681,11 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
       emitGetTag(IGF, Address(extraTagBitsAddr, IGM.Int8Ty, Alignment(1)),
                  numExtraTagBytes);
 
-  extraTagBitsBB = llvm::BasicBlock::Create(Ctx);
+  extraTagBitsBB = toolchain::BasicBlock::Create(Ctx);
   Builder.CreateCondBr(Builder.CreateICmpEQ(extraTagBits, zero),
                        noExtraTagBitsBB, extraTagBitsBB);
 
-  auto *resultBB = llvm::BasicBlock::Create(Ctx);
+  auto *resultBB = toolchain::BasicBlock::Create(Ctx);
 
   Builder.emitBlock(extraTagBitsBB);
 
@@ -695,15 +696,15 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
       Builder.CreateShl(Builder.CreateSub(extraTagBits, one),
                         Builder.CreateMul(eight, truncSize)));
 
-  llvm::Value *caseIndexFromValue = zero;
+  toolchain::Value *caseIndexFromValue = zero;
   if (fixedSize > Size(0)) {
-    // llvm only supports integer types upto a certain size (i.e selection dag
+    // toolchain only supports integer types upto a certain size (i.e selection dag
     // will crash).
-    if (fixedSize.getValueInBits() <= llvm::IntegerType::MAX_INT_BITS / 4) {
+    if (fixedSize.getValueInBits() <= toolchain::IntegerType::MAX_INT_BITS / 4) {
       // Read up to one pointer-sized 'chunk' of the payload.
       // The size of the chunk does not have to be a power of 2.
       auto *caseIndexType =
-          llvm::IntegerType::get(Ctx, fixedSize.getValueInBits());
+          toolchain::IntegerType::get(Ctx, fixedSize.getValueInBits());
       auto *caseIndexAddr =
           Builder.CreateBitCast(valueAddr, caseIndexType->getPointerTo());
       caseIndexFromValue = Builder.CreateZExtOrTrunc(
@@ -711,7 +712,7 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
               Address(caseIndexAddr, caseIndexType, Alignment(1))),
           IGM.Int32Ty);
     } else {
-      auto *caseIndexType = llvm::IntegerType::get(Ctx, 32);
+      auto *caseIndexType = toolchain::IntegerType::get(Ctx, 32);
       auto *caseIndexAddr =
           Builder.CreateBitCast(valueAddr, caseIndexType->getPointerTo());
       caseIndexFromValue = Builder.CreateZExtOrTrunc(
@@ -730,18 +731,18 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
   // bits.
   Builder.emitBlock(noExtraTagBitsBB);
   // If there are extra inhabitants, see whether the payload is valid.
-  llvm::Value *result0;
+  toolchain::Value *result0;
   if (fixedExtraInhabitantCount > 0) {
     result0 = getExtraInhabitantIndex(enumAddr);
     noExtraTagBitsBB = Builder.GetInsertBlock();
   } else {
-    result0 = llvm::ConstantInt::getSigned(IGM.Int32Ty, -1);
+    result0 = toolchain::ConstantInt::getSigned(IGM.Int32Ty, -1);
   }
   Builder.CreateBr(resultBB);
 
   Builder.emitBlock(singleCaseEnumBB);
   // Otherwise, we have a valid payload.
-  auto *result2 = llvm::ConstantInt::getSigned(IGM.Int32Ty, -1);
+  auto *result2 = toolchain::ConstantInt::getSigned(IGM.Int32Ty, -1);
   Builder.CreateBr(resultBB);
 
   Builder.emitBlock(resultBB);
@@ -750,12 +751,12 @@ llvm::Value *irgen::getFixedTypeEnumTagSinglePayload(
   result->addIncoming(result1, extraTagBitsBB);
   result->addIncoming(result2, singleCaseEnumBB);
 
-  return Builder.CreateAdd(result, llvm::ConstantInt::get(IGM.Int32Ty, 1));
+  return Builder.CreateAdd(result, toolchain::ConstantInt::get(IGM.Int32Ty, 1));
 }
 
 void FixedTypeInfo::storeEnumTagSinglePayload(IRGenFunction &IGF,
-                                              llvm::Value *whichCase,
-                                              llvm::Value *numEmptyCases,
+                                              toolchain::Value *whichCase,
+                                              toolchain::Value *numEmptyCases,
                                               Address enumAddr,
                                               SILType T,
                                               bool isOutlined) const {
@@ -765,8 +766,8 @@ void FixedTypeInfo::storeEnumTagSinglePayload(IRGenFunction &IGF,
 
 void irgen::storeFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
                                                const FixedTypeInfo &ti,
-                                               llvm::Value *whichCase,
-                                               llvm::Value *numEmptyCases,
+                                               toolchain::Value *whichCase,
+                                               toolchain::Value *numEmptyCases,
                                                Address enumAddr,
                                                SILType T,
                                                bool isOutlined) {
@@ -776,7 +777,7 @@ void irgen::storeFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
   storeFixedTypeEnumTagSinglePayload(
       IGF, whichCase, numEmptyCases, enumAddr, size, fixedSize,
       fixedExtraInhabitantCount,
-      [&](llvm::Value *nonPayloadElementIndex, Address enumAddr) {
+      [&](toolchain::Value *nonPayloadElementIndex, Address enumAddr) {
         ti.storeExtraInhabitant(IGF, nonPayloadElementIndex, enumAddr, T,
                                 /*outlined*/ false);
       },
@@ -784,10 +785,10 @@ void irgen::storeFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
 }
 
 void irgen::storeFixedTypeEnumTagSinglePayload(
-    IRGenFunction &IGF, llvm::Value *whichCase, llvm::Value *numEmptyCases,
-    Address enumAddr, llvm::Value *size, Size fixedSize,
+    IRGenFunction &IGF, toolchain::Value *whichCase, toolchain::Value *numEmptyCases,
+    Address enumAddr, toolchain::Value *size, Size fixedSize,
     unsigned fixedExtraInhabitantCount,
-    llvm::function_ref<void(llvm::Value *, Address)> storeExtraInhabitant,
+    toolchain::function_ref<void(toolchain::Value *, Address)> storeExtraInhabitant,
     bool isOutlined) {
 
   auto &IGM = IGF.IGM;
@@ -795,10 +796,10 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
   auto &Builder = IGF.Builder;
   auto &int32Ty = IGM.Int32Ty;
 
-  auto *zero = llvm::ConstantInt::get(int32Ty, 0U);
-  auto *one = llvm::ConstantInt::get(int32Ty, 1U);
-  auto *four = llvm::ConstantInt::get(int32Ty, 4U);
-  auto *eight = llvm::ConstantInt::get(int32Ty, 8U);
+  auto *zero = toolchain::ConstantInt::get(int32Ty, 0U);
+  auto *one = toolchain::ConstantInt::get(int32Ty, 1U);
+  auto *four = toolchain::ConstantInt::get(int32Ty, 4U);
+  auto *eight = toolchain::ConstantInt::get(int32Ty, 8U);
 
 
   Address valueAddr = Builder.CreateElementBitCast(enumAddr, IGM.Int8Ty);
@@ -806,12 +807,12 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
     Builder.CreateConstByteArrayGEP(valueAddr, fixedSize);
 
   auto *numExtraInhabitants =
-      llvm::ConstantInt::get(IGM.Int32Ty, fixedExtraInhabitantCount);
+      toolchain::ConstantInt::get(IGM.Int32Ty, fixedExtraInhabitantCount);
 
   // Do we need extra tag bytes.
   auto *entryBB = Builder.GetInsertBlock();
-  auto *continueBB = llvm::BasicBlock::Create(Ctx);
-  auto *computeExtraTagBytesBB = llvm::BasicBlock::Create(Ctx);
+  auto *continueBB = toolchain::BasicBlock::Create(Ctx);
+  auto *computeExtraTagBytesBB = toolchain::BasicBlock::Create(Ctx);
   auto *hasExtraTagBits =
       Builder.CreateICmpUGT(numEmptyCases, numExtraInhabitants);
   Builder.CreateCondBr(hasExtraTagBits, computeExtraTagBytesBB, continueBB);
@@ -830,8 +831,8 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
   numExtraTagBytes->addIncoming(numExtraTagBytes0, computeExtraTagBytesBB);
 
   // Check whether we need to set the extra tag bits to non zero.
-  auto *isExtraTagBitsCaseBB = llvm::BasicBlock::Create(Ctx);
-  auto *isPayloadOrInhabitantCaseBB = llvm::BasicBlock::Create(Ctx);
+  auto *isExtraTagBitsCaseBB = toolchain::BasicBlock::Create(Ctx);
+  auto *isPayloadOrInhabitantCaseBB = toolchain::BasicBlock::Create(Ctx);
   auto *isPayloadOrExtraInhabitant =
       Builder.CreateICmpULE(whichCase, numExtraInhabitants);
   Builder.CreateCondBr(isPayloadOrExtraInhabitant, isPayloadOrInhabitantCaseBB,
@@ -842,8 +843,8 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
   // Zero the tag bits.
   emitSetTag(IGF, extraTagBitsAddr, zero, numExtraTagBytes);
   isPayloadOrInhabitantCaseBB = Builder.GetInsertBlock();
-  auto *storeInhabitantBB = llvm::BasicBlock::Create(Ctx);
-  auto *returnBB = llvm::BasicBlock::Create(Ctx);
+  auto *storeInhabitantBB = toolchain::BasicBlock::Create(Ctx);
+  auto *returnBB = toolchain::BasicBlock::Create(Ctx);
   auto *isPayload = Builder.CreateICmpEQ(whichCase, zero);
   Builder.CreateCondBr(isPayload, returnBB, storeInhabitantBB);
 
@@ -867,8 +868,8 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
   auto *truncSize = Builder.CreateZExtOrTrunc(size, IGM.Int32Ty);
   auto *isFourBytesPayload = Builder.CreateICmpUGE(truncSize, four);
   auto *payloadGE4BB = Builder.GetInsertBlock();
-  auto *payloadLT4BB = llvm::BasicBlock::Create(Ctx);
-  continueBB = llvm::BasicBlock::Create(Ctx);
+  auto *payloadLT4BB = toolchain::BasicBlock::Create(Ctx);
+  continueBB = toolchain::BasicBlock::Create(Ctx);
   Builder.CreateCondBr(isFourBytesPayload, continueBB, payloadLT4BB);
 
   Builder.emitBlock(payloadLT4BB);
@@ -882,7 +883,7 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
 
   Builder.emitBlock(continueBB);
   auto *extraTagIndex = Builder.CreatePHI(int32Ty, 2);
-  extraTagIndex->addIncoming(llvm::ConstantInt::get(int32Ty, 1), payloadGE4BB);
+  extraTagIndex->addIncoming(toolchain::ConstantInt::get(int32Ty, 1), payloadGE4BB);
   extraTagIndex->addIncoming(extraTagIndex0, payloadLT4BB);
 
   auto *payloadIndex = Builder.CreatePHI(int32Ty, 2);
@@ -890,7 +891,7 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
   payloadIndex->addIncoming(payloadIndex0, payloadLT4BB);
 
   if (fixedSize > Size(0)) {
-    if (fixedSize.getValueInBits() <= llvm::IntegerType::MAX_INT_BITS / 4) {
+    if (fixedSize.getValueInBits() <= toolchain::IntegerType::MAX_INT_BITS / 4) {
       // Write the value to the payload as a zero extended integer.
       auto *intType = Builder.getIntNTy(fixedSize.getValueInBits());
       Builder.CreateStore(Builder.CreateZExtOrTrunc(payloadIndex, intType),
@@ -904,7 +905,7 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
       // Zero the remainder of the payload.
       auto zeroAddr = Builder.CreateConstByteArrayGEP(valueAddr, limit);
       auto zeroSize = Builder.CreateSub(
-          size, llvm::ConstantInt::get(size->getType(), limit.getValue()));
+          size, toolchain::ConstantInt::get(size->getType(), limit.getValue()));
       Builder.CreateMemSet(zeroAddr, Builder.getInt8(0), zeroSize);
     }
   }
@@ -917,22 +918,22 @@ void irgen::storeFixedTypeEnumTagSinglePayload(
 
 void
 FixedTypeInfo::storeSpareBitExtraInhabitant(IRGenFunction &IGF,
-                                            llvm::Value *index,
+                                            toolchain::Value *index,
                                             Address dest) const {
   assert(!SpareBits.none() && "no spare bits");
   
   auto &C = IGF.IGM.getLLVMContext();
 
-  auto payloadTy = llvm::IntegerType::get(C, getFixedSize().getValueInBits());
+  auto payloadTy = toolchain::IntegerType::get(C, getFixedSize().getValueInBits());
 
   unsigned spareBitCount = SpareBits.count();
   unsigned occupiedBitCount = SpareBits.size() - spareBitCount;
-  llvm::Value *occupiedIndex;
-  llvm::Value *spareIndex;
+  toolchain::Value *occupiedIndex;
+  toolchain::Value *spareIndex;
   
   // The spare bit value is biased by one because all zero spare bits
   // represents a valid value of the type.
-  auto spareBitBias = llvm::ConstantInt::get(IGF.IGM.Int32Ty, 1U);
+  auto spareBitBias = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, 1U);
   
   // Factor the spare and occupied bit values from the index.
   if (occupiedBitCount >= 31) {
@@ -941,26 +942,26 @@ FixedTypeInfo::storeSpareBitExtraInhabitant(IRGenFunction &IGF,
   } else {
     auto occupiedBitMask = APInt::getAllOnes(occupiedBitCount);
     occupiedBitMask = occupiedBitMask.zext(32);
-    auto occupiedBitMaskValue = llvm::ConstantInt::get(C, occupiedBitMask);
+    auto occupiedBitMaskValue = toolchain::ConstantInt::get(C, occupiedBitMask);
     occupiedIndex = IGF.Builder.CreateAnd(index, occupiedBitMaskValue);
     
     auto occupiedBitCountValue
-      = llvm::ConstantInt::get(IGF.IGM.Int32Ty, occupiedBitCount);
+      = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, occupiedBitCount);
     spareIndex = IGF.Builder.CreateLShr(index, occupiedBitCountValue);
     spareIndex = IGF.Builder.CreateAdd(spareIndex, spareBitBias);
   }
   
   // Scatter the occupied bits.
   auto OccupiedBits = ~SpareBits.asAPInt();
-  llvm::Value *occupied = emitScatterBits(IGF.IGM, IGF.Builder, OccupiedBits,
+  toolchain::Value *occupied = emitScatterBits(IGF.IGM, IGF.Builder, OccupiedBits,
                                           occupiedIndex, 0);
   
   // Scatter the spare bits.
-  llvm::Value *spare = emitScatterBits(IGF.IGM, IGF.Builder, SpareBits.asAPInt(),
+  toolchain::Value *spare = emitScatterBits(IGF.IGM, IGF.Builder, SpareBits.asAPInt(),
                                        spareIndex, 0);
   
   // Combine the values and store to the destination.
-  llvm::Value *inhabitant = IGF.Builder.CreateOr(occupied, spare);
+  toolchain::Value *inhabitant = IGF.Builder.CreateOr(occupied, spare);
 
   dest = IGF.Builder.CreateElementBitCast(dest, payloadTy);
   IGF.Builder.CreateStore(inhabitant, dest);
@@ -969,14 +970,14 @@ FixedTypeInfo::storeSpareBitExtraInhabitant(IRGenFunction &IGF,
 namespace {
   /// A TypeInfo implementation for empty types.
   struct EmptyTypeInfo : ScalarTypeInfo<EmptyTypeInfo, LoadableTypeInfo> {
-    EmptyTypeInfo(llvm::Type *ty)
+    EmptyTypeInfo(toolchain::Type *ty)
       : ScalarTypeInfo(ty, Size(0), SpareBitVector{}, Alignment(1),
                        IsTriviallyDestroyable,
                        IsCopyable,
                        IsFixedSize, IsABIAccessible) {}
     unsigned getExplosionSize() const override { return 0; }
     void getSchema(ExplosionSchema &schema) const override {}
-    void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+    void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                           Size offset) const override {}
     void loadAsCopy(IRGenFunction &IGF, Address addr,
                     Explosion &e) const override {}
@@ -1014,7 +1015,7 @@ namespace {
   class PrimitiveTypeInfo final :
     public PODSingleScalarTypeInfo<PrimitiveTypeInfo, LoadableTypeInfo> {
   public:
-    PrimitiveTypeInfo(llvm::Type *storage, Size size,
+    PrimitiveTypeInfo(toolchain::Type *storage, Size size,
                       SpareBitVector &&spareBits,
                       Alignment align)
       : PODSingleScalarTypeInfo(storage, size, std::move(spareBits), align) {}
@@ -1032,7 +1033,7 @@ namespace {
                                    LoadableTypeInfo> {
     Alignment PointeeAlign;
   public:
-    AlignedRawPointerTypeInfo(llvm::Type *storage,
+    AlignedRawPointerTypeInfo(toolchain::Type *storage,
                               Size size, SpareBitVector &&spareBits,
                               Alignment align, Alignment pointeeAlign)
       : PODSingleScalarTypeInfo(storage, size, std::move(spareBits), align),
@@ -1056,14 +1057,14 @@ namespace {
                .getFixedExtraInhabitantValue(IGM, bits, index, 0);
     }
 
-    llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
+    toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
                                          Address src,
                                          SILType T,
                                          bool isOutlined) const override {
       return getPointerInfo().getExtraInhabitantIndex(IGF, src);
     }
 
-    void storeExtraInhabitant(IRGenFunction &IGF, llvm::Value *index,
+    void storeExtraInhabitant(IRGenFunction &IGF, toolchain::Value *index,
                               Address dest, SILType T,
                               bool isOutlined) const override {
       getPointerInfo().storeExtraInhabitant(IGF, index, dest);
@@ -1081,7 +1082,7 @@ namespace {
   class RawPointerTypeInfo final :
     public PODSingleScalarTypeInfo<RawPointerTypeInfo, LoadableTypeInfo> {
   public:
-    RawPointerTypeInfo(llvm::Type *storage, Size size, Alignment align)
+    RawPointerTypeInfo(toolchain::Type *storage, Size size, Alignment align)
       : PODSingleScalarTypeInfo(
           storage, size,
           SpareBitVector::getConstant(size.getValueInBits(), false),
@@ -1101,40 +1102,40 @@ namespace {
       return APInt(bits, 0);
     }
 
-    llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
+    toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
                                          Address src,
                                          SILType T,
                                          bool isOutlined) const override {
       // Copied from BridgeObjectTypeInfo.
       src = IGF.Builder.CreateElementBitCast(src, IGF.IGM.IntPtrTy);
       auto val = IGF.Builder.CreateLoad(src);
-      auto zero = llvm::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
+      auto zero = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
       auto isNonzero = IGF.Builder.CreateICmpNE(val, zero);
       // We either have extra inhabitant 0 or no extra inhabitant (-1).
       // Conveniently, this is just a sext i1 -> i32 away.
       return IGF.Builder.CreateSExt(isNonzero, IGF.IGM.Int32Ty);
     }
 
-    void storeExtraInhabitant(IRGenFunction &IGF, llvm::Value *index,
+    void storeExtraInhabitant(IRGenFunction &IGF, toolchain::Value *index,
                               Address dest, SILType T,
                               bool isOutlined) const override {
       // Copied from BridgeObjectTypeInfo.
       // There's only one extra inhabitant, 0.
       dest = IGF.Builder.CreateElementBitCast(dest, IGF.IGM.IntPtrTy);
-      IGF.Builder.CreateStore(llvm::ConstantInt::get(IGF.IGM.IntPtrTy, 0),dest);
+      IGF.Builder.CreateStore(toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, 0),dest);
     }
   };
 
-  /// A TypeInfo implementation for opaque storage. Swift will preserve any
+  /// A TypeInfo implementation for opaque storage. Codira will preserve any
   /// data stored into this arbitrarily sized and aligned field, but doesn't
   /// know anything about the data.
   class OpaqueStorageTypeInfo final :
     public ScalarTypeInfo<OpaqueStorageTypeInfo, LoadableTypeInfo>
   {
-    std::vector<llvm::IntegerType *> ScalarTypes;
+    std::vector<toolchain::IntegerType *> ScalarTypes;
   public:
-    OpaqueStorageTypeInfo(llvm::ArrayType *storage,
-                          std::vector<llvm::IntegerType *> &&scalarTypes,
+    OpaqueStorageTypeInfo(toolchain::ArrayType *storage,
+                          std::vector<toolchain::IntegerType *> &&scalarTypes,
                           Size size,
                           SpareBitVector &&spareBits,
                           Alignment align)
@@ -1146,8 +1147,8 @@ namespace {
         ScalarTypes(std::move(scalarTypes))
     {}
     
-    llvm::ArrayType *getStorageType() const {
-      return cast<llvm::ArrayType>(ScalarTypeInfo::getStorageType());
+    toolchain::ArrayType *getStorageType() const {
+      return cast<toolchain::ArrayType>(ScalarTypeInfo::getStorageType());
     }
 
     TypeLayoutEntry
@@ -1246,7 +1247,7 @@ namespace {
       }
     }
 
-    void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+    void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                           Size offset) const override {
       lowering.addOpaqueData(offset.asCharUnits(),
                              (offset + getFixedSize()).asCharUnits());
@@ -1294,30 +1295,30 @@ namespace {
 
     void assignWithCopy(IRGenFunction &IGF, Address dest, Address src,
                         SILType T, bool isOutlined) const override {
-      llvm_unreachable("cannot opaquely manipulate immovable types!");
+      toolchain_unreachable("cannot opaquely manipulate immovable types!");
     }
 
     void assignWithTake(IRGenFunction &IGF, Address dest, Address src,
                         SILType T, bool isOutlined) const override {
-      llvm_unreachable("cannot opaquely manipulate immovable types!");
+      toolchain_unreachable("cannot opaquely manipulate immovable types!");
     }
 
     void initializeWithTake(IRGenFunction &IGF, Address destAddr,
                             Address srcAddr, SILType T,
                             bool isOutlined,
                             bool zeroizeIfSensitive) const override {
-      llvm_unreachable("cannot opaquely manipulate immovable types!");
+      toolchain_unreachable("cannot opaquely manipulate immovable types!");
     }
 
     void initializeWithCopy(IRGenFunction &IGF, Address destAddr,
                             Address srcAddr, SILType T,
                             bool isOutlined) const override {
-      llvm_unreachable("cannot opaquely manipulate immovable types!");
+      toolchain_unreachable("cannot opaquely manipulate immovable types!");
     }
 
     void destroy(IRGenFunction &IGF, Address address, SILType T,
                  bool isOutlined) const override {
-      llvm_unreachable("cannot opaquely manipulate immovable types!");
+      toolchain_unreachable("cannot opaquely manipulate immovable types!");
     }
   };
 
@@ -1326,7 +1327,7 @@ namespace {
   class ImmovableTypeInfo :
     public ImmovableTypeInfoBase<ImmovableTypeInfo, FixedTypeInfo> {
   public:
-    ImmovableTypeInfo(llvm::Type *storage, Size size,
+    ImmovableTypeInfo(toolchain::Type *storage, Size size,
                       SpareBitVector &&spareBits,
                       Alignment align)
       : ImmovableTypeInfoBase(storage, size, std::move(spareBits), align,
@@ -1341,7 +1342,7 @@ namespace {
   class OpaqueImmovableTypeInfo :
     public ImmovableTypeInfoBase<OpaqueImmovableTypeInfo, TypeInfo> {
   public:
-    OpaqueImmovableTypeInfo(llvm::Type *storage, Alignment minAlign)
+    OpaqueImmovableTypeInfo(toolchain::Type *storage, Alignment minAlign)
       : ImmovableTypeInfoBase(storage, minAlign, IsNotTriviallyDestroyable,
                               IsNotBitwiseTakable,
                               IsNotCopyable,
@@ -1349,68 +1350,68 @@ namespace {
                               IsNotABIAccessible,
                               SpecialTypeInfoKind::None) {}
 
-    llvm::Value *getSize(IRGenFunction &IGF, SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+    toolchain::Value *getSize(IRGenFunction &IGF, SILType T) const override {
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Value *getAlignmentMask(IRGenFunction &IGF, SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+    toolchain::Value *getAlignmentMask(IRGenFunction &IGF, SILType T) const override {
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Value *getStride(IRGenFunction &IGF, SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+    toolchain::Value *getStride(IRGenFunction &IGF, SILType T) const override {
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Value *getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+    toolchain::Value *getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const override {
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Value *getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+    toolchain::Value *getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const override {
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
+    toolchain::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
                                           SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Constant *getStaticSize(IRGenModule &IGM) const override {
+    toolchain::Constant *getStaticSize(IRGenModule &IGM) const override {
       return nullptr;
     }
-    llvm::Constant *getStaticAlignmentMask(IRGenModule &IGM) const override {
+    toolchain::Constant *getStaticAlignmentMask(IRGenModule &IGM) const override {
       return nullptr;
     }
-    llvm::Constant *getStaticStride(IRGenModule &IGM) const override {
+    toolchain::Constant *getStaticStride(IRGenModule &IGM) const override {
       return nullptr;
     }
     StackAddress allocateStack(IRGenFunction &IGF, SILType T,
-                               const llvm::Twine &name) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+                               const toolchain::Twine &name) const override {
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
     void deallocateStack(IRGenFunction &IGF, StackAddress addr,
                          SILType T) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
     void destroyStack(IRGenFunction &IGF, StackAddress addr, SILType T,
                       bool isOutlined) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
     void initializeFromParams(IRGenFunction &IGF, Explosion &params,
                               Address src, SILType T,
                               bool isOutlined) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
     bool mayHaveExtraInhabitants(IRGenModule &IGM) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
-    llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                         llvm::Value *numEmptyCases,
+    toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                         toolchain::Value *numEmptyCases,
                                          Address enumAddr,
                                          SILType T,
                                          bool isOutlined) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
     void storeEnumTagSinglePayload(IRGenFunction &IGF,
-                                   llvm::Value *whichCase,
-                                   llvm::Value *numEmptyCases,
+                                   toolchain::Value *whichCase,
+                                   toolchain::Value *numEmptyCases,
                                    Address enumAddr,
                                    SILType T,
                                    bool isOutlined) const override {
-      llvm_unreachable("should not call on an immovable opaque type");
+      toolchain_unreachable("should not call on an immovable opaque type");
     }
   };
 } // end anonymous namespace
@@ -1418,7 +1419,7 @@ namespace {
 /// Constructs a type info which performs simple loads and stores of
 /// the given IR type.
 const LoadableTypeInfo *
-TypeConverter::createPrimitive(llvm::Type *type, Size size, Alignment align) {
+TypeConverter::createPrimitive(toolchain::Type *type, Size size, Alignment align) {
   return new PrimitiveTypeInfo(type, size, IGM.getSpareBitsForType(type, size),
                                align);
 }
@@ -1434,7 +1435,7 @@ static SpareBitVector getSpareBitsForAlignedPointer(IRGenModule &IGM,
 }
 
 static LoadableTypeInfo *createAlignedPointerTypeInfo(IRGenModule &IGM,
-                                                      llvm::Type *ty,
+                                                      toolchain::Type *ty,
                                                       Alignment pointeeAlign) {
   return new AlignedRawPointerTypeInfo(ty, IGM.getPointerSize(),
                               getSpareBitsForAlignedPointer(IGM, pointeeAlign),
@@ -1445,19 +1446,19 @@ static LoadableTypeInfo *createAlignedPointerTypeInfo(IRGenModule &IGM,
 /// Constructs a fixed-size type info which asserts if you try to copy
 /// or destroy it.
 const FixedTypeInfo *
-TypeConverter::createImmovable(llvm::Type *type, Size size, Alignment align) {
+TypeConverter::createImmovable(toolchain::Type *type, Size size, Alignment align) {
   auto spareBits = SpareBitVector::getConstant(size.getValueInBits(), false);
   return new ImmovableTypeInfo(type, size, std::move(spareBits), align);
 }
 
 const TypeInfo *
-TypeConverter::createOpaqueImmovable(llvm::Type *type, Alignment align) {
+TypeConverter::createOpaqueImmovable(toolchain::Type *type, Alignment align) {
   return new OpaqueImmovableTypeInfo(type, align);
 }
 
 static TypeInfo *invalidTypeInfo() { return (TypeInfo*) 1; }
 
-bool TypeConverter::readLegacyTypeInfo(llvm::vfs::FileSystem &fs,
+bool TypeConverter::readLegacyTypeInfo(toolchain::vfs::FileSystem &fs,
                                        StringRef path) {
   auto fileOrErr = fs.getBufferForFile(path);
   if (!fileOrErr)
@@ -1465,7 +1466,7 @@ bool TypeConverter::readLegacyTypeInfo(llvm::vfs::FileSystem &fs,
 
   auto file = std::move(fileOrErr.get());
 
-  llvm::yaml::Input yin(file->getBuffer());
+  toolchain::yaml::Input yin(file->getBuffer());
 
   // Read the document list.
   std::vector<YAMLModuleNode> modules;
@@ -1506,13 +1507,13 @@ TypeConverter::getLegacyTypeInfo(NominalTypeDecl *decl) const {
   return found->second;
 }
 
-// The following Apple platforms support backward deployment of Swift
-// code built with Swift 5.0 running on an old Objective-C runtime
+// The following Apple platforms support backward deployment of Codira
+// code built with Codira 5.0 running on an old Objective-C runtime
 // that does not support the class metadata update hook.
 //
 // We ship a YAML legacy type info file for these platforms as part
 // of the toolchain.
-static llvm::StringLiteral platformsWithLegacyLayouts[][2] = {
+static toolchain::StringLiteral platformsWithLegacyLayouts[][2] = {
   {"appletvos", "arm64"},
   {"appletvsimulator", "x86_64"},
   {"iphoneos", "armv7"},
@@ -1542,7 +1543,7 @@ TypeConverter::TypeConverter(IRGenModule &IGM)
   : IGM(IGM),
     FirstType(invalidTypeInfo()) {
   // Whether the Objective-C runtime is guaranteed to invoke the class
-  // metadata update callback when realizing a Swift class referenced from
+  // metadata update callback when realizing a Codira class referenced from
   // Objective-C.
   auto deploymentAvailability =
       AvailabilityRange::forDeploymentTarget(IGM.Context);
@@ -1563,11 +1564,11 @@ TypeConverter::TypeConverter(IRGenModule &IGM)
   if (IGM.IRGen.Opts.DisableLegacyTypeInfo)
     return;
 
-  llvm::SmallString<128> defaultPath;
+  toolchain::SmallString<128> defaultPath;
 
   StringRef path = IGM.IRGen.Opts.ReadLegacyTypeInfoPath;
   auto fs =
-      IGM.getSwiftModule()->getASTContext().SourceMgr.getFileSystem();
+      IGM.getCodiraModule()->getASTContext().SourceMgr.getFileSystem();
   if (path.empty()) {
     const auto &Triple = IGM.Context.LangOpts.Target;
 
@@ -1575,13 +1576,13 @@ TypeConverter::TypeConverter(IRGenModule &IGM)
     // platform-specific location, if this platform is known to require
     // one.
     auto platformName = getPlatformNameForTriple(Triple);
-    auto archName = swift::getMajorArchitectureName(Triple);
+    auto archName = language::getMajorArchitectureName(Triple);
 
     if (!doesPlatformUseLegacyLayouts(platformName, archName))
       return;
 
     defaultPath = IGM.Context.SearchPathOpts.RuntimeLibraryPaths[0];
-    llvm::sys::path::append(defaultPath, "layouts-");
+    toolchain::sys::path::append(defaultPath, "layouts-");
     defaultPath.append(archName);
     defaultPath.append(".yaml");
 
@@ -1686,18 +1687,18 @@ const TypeInfo &TypeConverter::getTypeMetadataPtrTypeInfo() {
   return *TypeMetadataPtrTI;
 }
 
-const TypeInfo &IRGenModule::getSwiftContextPtrTypeInfo() {
-  return Types.getSwiftContextPtrTypeInfo();
+const TypeInfo &IRGenModule::getCodiraContextPtrTypeInfo() {
+  return Types.getCodiraContextPtrTypeInfo();
 }
 
-const TypeInfo &TypeConverter::getSwiftContextPtrTypeInfo() {
-  if (SwiftContextPtrTI) return *SwiftContextPtrTI;
-  SwiftContextPtrTI = createUnmanagedStorageType(IGM.SwiftContextPtrTy,
+const TypeInfo &TypeConverter::getCodiraContextPtrTypeInfo() {
+  if (CodiraContextPtrTI) return *CodiraContextPtrTI;
+  CodiraContextPtrTI = createUnmanagedStorageType(IGM.CodiraContextPtrTy,
                                                  ReferenceCounting::Unknown,
                                                  /*isOptional*/false);
-  SwiftContextPtrTI->NextConverted = FirstType;
-  FirstType = SwiftContextPtrTI;
-  return *SwiftContextPtrTI;
+  CodiraContextPtrTI->NextConverted = FirstType;
+  FirstType = CodiraContextPtrTI;
+  return *CodiraContextPtrTI;
 }
 
 const TypeInfo &IRGenModule::getTaskContinuationFunctionPtrTypeInfo() {
@@ -1728,10 +1729,10 @@ IRGenModule::getReferenceObjectTypeInfo(ReferenceCounting refcounting) {
   case ReferenceCounting::ObjC:
   case ReferenceCounting::Custom:
   case ReferenceCounting::None:
-    llvm_unreachable("not implemented");
+    toolchain_unreachable("not implemented");
   }
 
-  llvm_unreachable("Not a valid ReferenceCounting.");
+  toolchain_unreachable("Not a valid ReferenceCounting.");
 }
 
 const LoadableTypeInfo &IRGenModule::getNativeObjectTypeInfo() {
@@ -1798,7 +1799,7 @@ const LoadableTypeInfo &TypeConverter::getRawUnsafeContinuationTypeInfo() {
   // running again.
   //
   // TODO: It is possible to retain and release task pointers, which means
-  // they can be used directly as Swift function contexts.  Preserve this
+  // they can be used directly as Codira function contexts.  Preserve this
   // information to optimize closure-creation (partial apply).
   auto ty = IGM.Int8PtrTy;
   auto pointeeAlign = Alignment(2 * IGM.getPointerAlignment().getValue());
@@ -1817,7 +1818,7 @@ const LoadableTypeInfo &TypeConverter::getJobTypeInfo() {
   // they're valid until they are scheduled, and then they're responsible
   // for destroying themselves.  (Jobs are often interior pointers into
   // an AsyncTask*, but that's not guaranteed.)
-  auto ty = IGM.SwiftJobPtrTy;
+  auto ty = IGM.CodiraJobPtrTy;
   auto pointeeAlign = Alignment(2 * IGM.getPointerAlignment().getValue());
   JobTI = createAlignedPointerTypeInfo(IGM, ty, pointeeAlign);
   JobTI->NextConverted = FirstType;
@@ -1913,26 +1914,26 @@ bool IRGenModule::isTypeABIAccessible(SILType type) const {
 /// Get a pointer to the storage type for the given type.  Note that,
 /// unlike fetching the type info and asking it for the storage type,
 /// this operation will succeed for forward-declarations.
-llvm::PointerType *IRGenModule::getStoragePointerType(SILType T) {
+toolchain::PointerType *IRGenModule::getStoragePointerType(SILType T) {
   return getStoragePointerTypeForLowered(T.getASTType());
 }
-llvm::PointerType *IRGenModule::getStoragePointerTypeForUnlowered(Type T) {
+toolchain::PointerType *IRGenModule::getStoragePointerTypeForUnlowered(Type T) {
   return getStorageTypeForUnlowered(T)->getPointerTo();
 }
-llvm::PointerType *IRGenModule::getStoragePointerTypeForLowered(CanType T) {
+toolchain::PointerType *IRGenModule::getStoragePointerTypeForLowered(CanType T) {
   return getStorageTypeForLowered(T)->getPointerTo();
 }
 
-llvm::Type *IRGenModule::getStorageTypeForUnlowered(Type subst) {
+toolchain::Type *IRGenModule::getStorageTypeForUnlowered(Type subst) {
   return getStorageType(getLoweredType(subst));
 }
 
-llvm::Type *IRGenModule::getStorageType(SILType T) {
+toolchain::Type *IRGenModule::getStorageType(SILType T) {
   return getStorageTypeForLowered(T.getASTType());
 }
 
 /// Get the storage type for the given type.
-llvm::Type *IRGenModule::getStorageTypeForLowered(CanType T) {
+toolchain::Type *IRGenModule::getStorageTypeForLowered(CanType T) {
   return Types.getTypeEntry(T)->getStorageType();
 }
 
@@ -2119,21 +2120,21 @@ TypeConverter::getOpaqueStorageTypeInfo(Size size, Alignment align) {
 
   // Use an [N x i8] array for storage, but load and store as a single iNNN
   // scalar.
-  auto storageType = llvm::ArrayType::get(IGM.Int8Ty, size.getValue());
+  auto storageType = toolchain::ArrayType::get(IGM.Int8Ty, size.getValue());
 
   // Create chunks of MAX_INT_BITS integer scalar types if necessary.
-  std::vector<llvm::IntegerType*> scalarTypes;
+  std::vector<toolchain::IntegerType*> scalarTypes;
   Size chunkSize = size;
-  auto maxChunkSize = Size(llvm::IntegerType::MAX_INT_BITS/8);
+  auto maxChunkSize = Size(toolchain::IntegerType::MAX_INT_BITS/8);
   while (chunkSize) {
     if (chunkSize > maxChunkSize) {
-      auto intType = llvm::IntegerType::get(IGM.getLLVMContext(),
+      auto intType = toolchain::IntegerType::get(IGM.getLLVMContext(),
                                             maxChunkSize.getValueInBits());
       scalarTypes.push_back(intType);
       chunkSize -= maxChunkSize;
       continue;
     }
-    auto intType = llvm::IntegerType::get(IGM.getLLVMContext(),
+    auto intType = toolchain::IntegerType::get(IGM.getLLVMContext(),
                                           chunkSize.getValueInBits());
     scalarTypes.push_back(intType);
     chunkSize = Size(0);
@@ -2155,10 +2156,10 @@ TypeConverter::getOpaqueStorageTypeInfo(Size size, Alignment align) {
 
 /// Convert a primitive builtin type to its LLVM type, size, and
 /// alignment.
-static std::tuple<llvm::Type *, Size, Alignment>
+static std::tuple<toolchain::Type *, Size, Alignment>
 convertPrimitiveBuiltin(IRGenModule &IGM, CanType canTy) {
-  using RetTy = std::tuple<llvm::Type *, Size, Alignment>;
-  llvm::LLVMContext &ctx = IGM.getLLVMContext();
+  using RetTy = std::tuple<toolchain::Type *, Size, Alignment>;
+  toolchain::LLVMContext &ctx = IGM.getLLVMContext();
   TypeBase *ty = canTy.getPointer();
   switch (ty->getKind()) {
   case TypeKind::BuiltinRawPointer:
@@ -2167,54 +2168,54 @@ convertPrimitiveBuiltin(IRGenModule &IGM, CanType canTy) {
   case TypeKind::BuiltinFloat:
     switch (cast<BuiltinFloatType>(ty)->getFPKind()) {
     case BuiltinFloatType::IEEE16:
-      return RetTy{ llvm::Type::getHalfTy(ctx), Size(2), Alignment(2) };
+      return RetTy{ toolchain::Type::getHalfTy(ctx), Size(2), Alignment(2) };
     case BuiltinFloatType::IEEE32:
-      return RetTy{ llvm::Type::getFloatTy(ctx), Size(4), Alignment(4) };
+      return RetTy{ toolchain::Type::getFloatTy(ctx), Size(4), Alignment(4) };
     case BuiltinFloatType::IEEE64:
-      return RetTy{ llvm::Type::getDoubleTy(ctx), Size(8), Alignment(8) };
+      return RetTy{ toolchain::Type::getDoubleTy(ctx), Size(8), Alignment(8) };
     case BuiltinFloatType::IEEE80: {
-      llvm::Type *floatTy = llvm::Type::getX86_FP80Ty(ctx);
+      toolchain::Type *floatTy = toolchain::Type::getX86_FP80Ty(ctx);
       uint64_t ByteSize = IGM.DataLayout.getTypeAllocSize(floatTy);
       unsigned align = IGM.DataLayout.getABITypeAlign(floatTy).value();
       return RetTy{ floatTy, Size(ByteSize), Alignment(align) };
     }
     case BuiltinFloatType::IEEE128:
-      return RetTy{ llvm::Type::getFP128Ty(ctx), Size(16), Alignment(16) };
+      return RetTy{ toolchain::Type::getFP128Ty(ctx), Size(16), Alignment(16) };
     case BuiltinFloatType::PPC128:
-      return RetTy{ llvm::Type::getPPC_FP128Ty(ctx),Size(16), Alignment(16) };
+      return RetTy{ toolchain::Type::getPPC_FP128Ty(ctx),Size(16), Alignment(16) };
     }
-    llvm_unreachable("bad builtin floating-point type kind");
+    toolchain_unreachable("bad builtin floating-point type kind");
   case TypeKind::BuiltinInteger: {
     auto intTy = cast<BuiltinIntegerType>(ty);
     unsigned BitWidth = IGM.getBuiltinIntegerWidth(intTy);
     unsigned ByteSize = (BitWidth+7U)/8U;
     // Round up the memory size and alignment to a power of 2.
-    if (!llvm::isPowerOf2_32(ByteSize))
-      ByteSize = llvm::NextPowerOf2(ByteSize);
+    if (!toolchain::isPowerOf2_32(ByteSize))
+      ByteSize = toolchain::NextPowerOf2(ByteSize);
 
-    return RetTy{ llvm::IntegerType::get(ctx, BitWidth), Size(ByteSize),
+    return RetTy{ toolchain::IntegerType::get(ctx, BitWidth), Size(ByteSize),
              Alignment(ByteSize) };
   }
   case TypeKind::BuiltinVector: {
     auto vecTy = ty->castTo<BuiltinVectorType>();
-    llvm::Type *elementTy;
+    toolchain::Type *elementTy;
     Size size;
     Alignment align;
     std::tie(elementTy, size, align)
       = convertPrimitiveBuiltin(IGM,
                                 vecTy->getElementType()->getCanonicalType());
 
-    auto llvmVecTy =
-        llvm::FixedVectorType::get(elementTy, vecTy->getNumElements());
+    auto toolchainVecTy =
+        toolchain::FixedVectorType::get(elementTy, vecTy->getNumElements());
 
     unsigned bitSize = size.getValue() * vecTy->getNumElements() * 8;
-    if (!llvm::isPowerOf2_32(bitSize))
-      bitSize = llvm::NextPowerOf2(bitSize);
+    if (!toolchain::isPowerOf2_32(bitSize))
+      bitSize = toolchain::NextPowerOf2(bitSize);
 
-    return RetTy{ llvmVecTy, Size(bitSize / 8), align };
+    return RetTy{ toolchainVecTy, Size(bitSize / 8), align };
   }
   default:
-    llvm_unreachable("Not a primitive builtin type");
+    toolchain_unreachable("Not a primitive builtin type");
   }
 }
 
@@ -2230,16 +2231,16 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
   }
 #define UNCHECKED_TYPE(id, parent) \
   case TypeKind::id: \
-    llvm_unreachable("found a " #id "Type in IR-gen");
+    toolchain_unreachable("found a " #id "Type in IR-gen");
 #define SUGARED_TYPE(id, parent) \
   case TypeKind::id: \
-    llvm_unreachable("converting a " #id "Type after canonicalization");
+    toolchain_unreachable("converting a " #id "Type after canonicalization");
 #define TYPE(id, parent)
 #include "language/AST/TypeNodes.def"
   case TypeKind::LValue:
-    llvm_unreachable("@lvalue type made it to IRGen");
+    toolchain_unreachable("@lvalue type made it to IRGen");
   case TypeKind::BuiltinTuple:
-    llvm_unreachable("BuiltinTupleType made it to IRGen");
+    toolchain_unreachable("BuiltinTupleType made it to IRGen");
   case TypeKind::ExistentialMetatype:
     return convertExistentialMetatypeType(cast<ExistentialMetatypeType>(ty));
   case TypeKind::Metatype:
@@ -2276,12 +2277,12 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
   case TypeKind::BuiltinFloat:
   case TypeKind::BuiltinInteger:
   case TypeKind::BuiltinVector: {
-    llvm::Type *llvmTy;
+    toolchain::Type *toolchainTy;
     Size size;
     Alignment align;
-    std::tie(llvmTy, size, align) = convertPrimitiveBuiltin(IGM, ty);
+    std::tie(toolchainTy, size, align) = convertPrimitiveBuiltin(IGM, ty);
     align = IGM.getCappedAlignment(align);
-    return createPrimitive(llvmTy, size, align);
+    return createPrimitive(toolchainTy, size, align);
   }
   case TypeKind::BuiltinDefaultActorStorage: {
     // Builtin.DefaultActorStorage represents the extra storage
@@ -2289,9 +2290,9 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
     // fixed-size and totally opaque.
     auto numWords = NumWords_DefaultActor;
 
-    auto ty = llvm::StructType::create(IGM.getLLVMContext(),
-                                 llvm::ArrayType::get(IGM.Int8PtrTy, numWords),
-                                       "swift.defaultactor");
+    auto ty = toolchain::StructType::create(IGM.getLLVMContext(),
+                                 toolchain::ArrayType::get(IGM.Int8PtrTy, numWords),
+                                       "language.defaultactor");
     auto size = IGM.getPointerSize() * numWords;
     auto align = Alignment(2 * IGM.getPointerAlignment().getValue());
     auto spareBits = SpareBitVector::getConstant(size.getValueInBits(), false);
@@ -2303,16 +2304,16 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
     // It is fixed-size and totally opaque.
     auto numWords = NumWords_NonDefaultDistributedActor;
 
-    auto ty = llvm::StructType::create(IGM.getLLVMContext(),
-                                 llvm::ArrayType::get(IGM.Int8PtrTy, numWords),
-                                       "swift.nondefaultdistributedactor");
+    auto ty = toolchain::StructType::create(IGM.getLLVMContext(),
+                                 toolchain::ArrayType::get(IGM.Int8PtrTy, numWords),
+                                       "language.nondefaultdistributedactor");
     auto size = IGM.getPointerSize() * numWords;
     auto align = Alignment(2 * IGM.getPointerAlignment().getValue());
     auto spareBits = SpareBitVector::getConstant(size.getValueInBits(), false);
     return new PrimitiveTypeInfo(ty, size, std::move(spareBits), align);
   }
   case TypeKind::BuiltinUnboundGeneric:
-    llvm_unreachable("not a real type");
+    toolchain_unreachable("not a real type");
     
   case TypeKind::BuiltinFixedArray: {
     return convertBuiltinFixedArrayType(cast<BuiltinFixedArrayType>(ty));
@@ -2332,14 +2333,14 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
   case TypeKind::BoundGenericStruct:
     return convertAnyNominalType(ty, cast<BoundGenericType>(ty)->getDecl());
   case TypeKind::SILMoveOnlyWrapped:
-    llvm_unreachable("implement this");
+    toolchain_unreachable("implement this");
   case TypeKind::InOut:
     return convertInOutType(cast<InOutType>(ty));
   case TypeKind::Tuple:
     return convertTupleType(cast<TupleType>(ty));
   case TypeKind::Function:
   case TypeKind::GenericFunction:
-    llvm_unreachable("AST FunctionTypes should be lowered by SILGen");
+    toolchain_unreachable("AST FunctionTypes should be lowered by SILGen");
   case TypeKind::SILFunction:
     return convertFunctionType(cast<SILFunctionType>(ty));
   case TypeKind::Protocol:
@@ -2352,7 +2353,7 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
     return convertExistentialType(cast<ExistentialType>(ty));
   case TypeKind::GenericTypeParam:
   case TypeKind::DependentMember:
-    llvm_unreachable("can't convert dependent type");
+    toolchain_unreachable("can't convert dependent type");
 #define REF_STORAGE(Name, ...) \
   case TypeKind::Name##Storage: \
     return convert##Name##StorageType(cast<Name##StorageType>(ty));
@@ -2362,21 +2363,21 @@ const TypeInfo *TypeConverter::convertType(CanType ty) {
   case TypeKind::SILBox:
     return convertBoxType(cast<SILBoxType>(ty));
   case TypeKind::Pack:
-    llvm_unreachable("AST pack types should be lowered by SILGen");
+    toolchain_unreachable("AST pack types should be lowered by SILGen");
   case TypeKind::SILPack:
     return convertPackType(cast<SILPackType>(ty));
   case TypeKind::PackArchetype:
   case TypeKind::PackExpansion:
   case TypeKind::PackElement:
-    llvm_unreachable("pack archetypes and expansions should not be seen in "
+    toolchain_unreachable("pack archetypes and expansions should not be seen in "
                      " arbitrary type positions");
   case TypeKind::SILToken:
-    llvm_unreachable("should not be asking for representation of a SILToken");
+    toolchain_unreachable("should not be asking for representation of a SILToken");
   case TypeKind::Integer:
-    llvm_unreachable("should not be asking for the type info an IntegerType");
+    toolchain_unreachable("should not be asking for the type info an IntegerType");
   }
   }
-  llvm_unreachable("bad type kind");
+  toolchain_unreachable("bad type kind");
 }
 
 /// Convert an inout type.  This is always just a bare pointer.
@@ -2412,7 +2413,7 @@ TypeConverter::convert##Name##StorageType(Name##StorageType *refType) { \
 }
 #include "language/AST/ReferenceStorage.def"
 
-static void overwriteForwardDecl(llvm::DenseMap<TypeBase *, const TypeInfo *> &cache,
+static void overwriteForwardDecl(toolchain::DenseMap<TypeBase *, const TypeInfo *> &cache,
                                  TypeBase *key, const TypeInfo *result) {
   assert(cache.count(key) && "no forward declaration?");
   assert(cache[key] == nullptr && "overwriting real entry!");
@@ -2542,7 +2543,7 @@ class LegacyTypeInfo : public FixedTypeInfo {
   unsigned NumExtraInhabitants;
 
 public:
-  LegacyTypeInfo(llvm::Type *type, const SpareBitVector &spareBits,
+  LegacyTypeInfo(toolchain::Type *type, const SpareBitVector &spareBits,
                  const YAMLTypeInfoNode &node)
     : FixedTypeInfo(type,
                     Size(node.Size),
@@ -2559,7 +2560,7 @@ public:
   *buildTypeLayoutEntry(IRGenModule &IGM,
                         SILType T,
                         bool useStructLayouts) const override {
-    llvm_unreachable("Cannot construct type layout for legacy types");
+    toolchain_unreachable("Cannot construct type layout for legacy types");
   }
 
   virtual unsigned getFixedExtraInhabitantCount(IRGenModule &IGM) const override {
@@ -2567,44 +2568,44 @@ public:
   }
 
   virtual APInt getFixedExtraInhabitantMask(IRGenModule &IGM) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual APInt getFixedExtraInhabitantValue(IRGenModule &IGM,
                                              unsigned bits,
                                              unsigned index) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual void getSchema(ExplosionSchema &schema) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual void assignWithCopy(IRGenFunction &IGF, Address dest, Address src,
                               SILType T, bool isOutlined) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual void assignWithTake(IRGenFunction &IGF, Address dest, Address src,
                               SILType T, bool isOutlined) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual void initializeWithCopy(IRGenFunction &IGF, Address destAddr,
                                   Address srcAddr, SILType T,
                                   bool isOutlined) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual void initializeFromParams(IRGenFunction &IGF, Explosion &params,
                                     Address src, SILType T,
                                     bool isOutlined) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 
   virtual void destroy(IRGenFunction &IGF, Address address, SILType T,
                        bool isOutlined) const override {
-    llvm_unreachable("TypeConverter::Mode::Legacy is not for real values");
+    toolchain_unreachable("TypeConverter::Mode::Legacy is not for real values");
   }
 };
 
@@ -2624,7 +2625,7 @@ const TypeInfo *TypeConverter::convertAnyNominalType(CanType type,
       Size size(node->Size);
 
       auto ty = IGM.createNominalType(type);
-      ty->setBody(llvm::ArrayType::get(IGM.Int8Ty, size.getValue()));
+      ty->setBody(toolchain::ArrayType::get(IGM.Int8Ty, size.getValue()));
 
       SpareBitVector spareBits;
       spareBits.appendClearBits(size.getValueInBits());
@@ -2643,9 +2644,9 @@ const TypeInfo *TypeConverter::convertAnyNominalType(CanType type,
 #define DECL(ID, PARENT) \
     case DeclKind::ID:
 #include "language/AST/DeclNodes.def"
-      llvm_unreachable("not a nominal type declaration");
+      toolchain_unreachable("not a nominal type declaration");
     case DeclKind::Protocol:
-      llvm_unreachable("protocol types shouldn't be handled here");
+      toolchain_unreachable("protocol types shouldn't be handled here");
 
     case DeclKind::Class:
       return convertClassType(type, cast<ClassDecl>(decl));
@@ -2655,9 +2656,9 @@ const TypeInfo *TypeConverter::convertAnyNominalType(CanType type,
       return convertStructType(type.getPointer(), type, cast<StructDecl>(decl));
 
     case DeclKind::BuiltinTuple:
-      llvm_unreachable("BuiltinTupleType should not show up here");
+      toolchain_unreachable("BuiltinTupleType should not show up here");
     }
-    llvm_unreachable("bad declaration kind");
+    toolchain_unreachable("bad declaration kind");
   }
 
   assert(decl->isGenericContext());
@@ -2681,16 +2682,16 @@ const TypeInfo *TypeConverter::convertAnyNominalType(CanType type,
 #define DECL(ID, PARENT) \
   case DeclKind::ID:
 #include "language/AST/DeclNodes.def"
-    llvm_unreachable("not a nominal type declaration");
+    toolchain_unreachable("not a nominal type declaration");
 
   case DeclKind::Protocol:
-    llvm_unreachable("protocol types don't take generic parameters");
+    toolchain_unreachable("protocol types don't take generic parameters");
 
   case DeclKind::Class:
-    llvm_unreachable("classes are always considered dependent for now");
+    toolchain_unreachable("classes are always considered dependent for now");
 
   case DeclKind::BuiltinTuple:
-    llvm_unreachable("BuiltinTupleType should not show up here");
+    toolchain_unreachable("BuiltinTupleType should not show up here");
 
   case DeclKind::Enum: {
     auto type = decl->getDeclaredTypeInContext()->getCanonicalType();
@@ -2706,7 +2707,7 @@ const TypeInfo *TypeConverter::convertAnyNominalType(CanType type,
     return result;
   }
   }
-  llvm_unreachable("bad declaration kind");
+  toolchain_unreachable("bad declaration kind");
 }
 
 const TypeInfo *TypeConverter::convertModuleType(ModuleType *T) {
@@ -2735,11 +2736,11 @@ TypeConverter::getMetatypeTypeInfo(MetatypeRepresentation representation) {
     // ObjC metatypes are represented with an objc_class pointer.
     return getObjCClassPtrTypeInfo();
   }
-  llvm_unreachable("bad representation");
+  toolchain_unreachable("bad representation");
 }
 
 /// createNominalType - Create a new nominal type.
-llvm::StructType *IRGenModule::createNominalType(CanType type) {
+toolchain::StructType *IRGenModule::createNominalType(CanType type) {
   assert(type.getNominalOrBoundGenericNominal());
 
   // We share type infos for different instantiations of a generic type
@@ -2752,27 +2753,27 @@ llvm::StructType *IRGenModule::createNominalType(CanType type) {
 
   IRGenMangler Mangler(Context);
   std::string typeName = Mangler.mangleTypeForLLVMTypeName(type);
-  return llvm::StructType::create(getLLVMContext(), StringRef(typeName));
+  return toolchain::StructType::create(getLLVMContext(), StringRef(typeName));
 }
 
 /// createNominalType - Create a new nominal LLVM type for the given
 /// protocol composition type.  Protocol composition types are
-/// structural in the swift type system, but LLVM's type system
+/// structural in the language type system, but LLVM's type system
 /// doesn't really care about this distinction, and it's nice to
 /// distinguish different cases.
-llvm::StructType *
+toolchain::StructType *
 IRGenModule::createNominalType(ProtocolCompositionType *type) {
   IRGenMangler Mangler(Context);
   std::string typeName = Mangler.mangleProtocolForLLVMTypeName(type);
-  return llvm::StructType::create(getLLVMContext(), StringRef(typeName));
+  return toolchain::StructType::create(getLLVMContext(), StringRef(typeName));
 }
 
-SpareBitVector IRGenModule::getSpareBitsForType(llvm::Type *scalarTy, Size size) {
+SpareBitVector IRGenModule::getSpareBitsForType(toolchain::Type *scalarTy, Size size) {
   auto it = SpareBitsForTypes.find(scalarTy);
   if (it != SpareBitsForTypes.end())
     return it->second;
 
-  assert(!isa<llvm::StructType>(scalarTy));
+  assert(!isa<toolchain::StructType>(scalarTy));
 
   unsigned allocBits = size.getValueInBits();
   assert(allocBits >= DataLayout.getTypeAllocSizeInBits(scalarTy) &&
@@ -2783,9 +2784,9 @@ SpareBitVector IRGenModule::getSpareBitsForType(llvm::Type *scalarTy, Size size)
 
   // FIXME: Currently we only implement spare bits for primitive integer
   // types.
-  if (auto *intTy = dyn_cast<llvm::IntegerType>(scalarTy)) {
+  if (auto *intTy = dyn_cast<toolchain::IntegerType>(scalarTy)) {
     // Pad integers with spare bits up to their allocation size.
-    auto v = llvm::APInt::getBitsSetFrom(allocBits, intTy->getBitWidth());
+    auto v = toolchain::APInt::getBitsSetFrom(allocBits, intTy->getBitWidth());
     // FIXME: byte swap v on big-endian platforms.
     result = SpareBitVector::fromAPInt(v);
     return result;
@@ -2805,12 +2806,12 @@ unsigned IRGenModule::getBuiltinIntegerWidth(BuiltinIntegerWidth w) {
     return w.getFixedWidth();
   if (w.isPointerWidth())
     return getPointerSize().getValueInBits();
-  llvm_unreachable("impossible width value");
+  toolchain_unreachable("impossible width value");
 }
 
 void IRGenFunction::setDynamicSelfMetadata(CanType selfClass,
                                            bool isExactSelfClass,
-                                           llvm::Value *value,
+                                           toolchain::Value *value,
                                            IRGenFunction::DynamicSelfKind kind) {
   assert(!SelfValue && "already have local self metadata");
   SelfValue = value;
@@ -2869,7 +2870,7 @@ SILType irgen::getSingletonAggregateFieldType(IRGenModule &IGM, SILType t,
     if (allFields.size() == 1) {
       auto fieldTy = t.getFieldType(
           allFields[0], IGM.getSILModule(),
-          TypeExpansionContext(expansion, IGM.getSwiftModule(),
+          TypeExpansionContext(expansion, IGM.getCodiraModule(),
                                IGM.getSILModule().isWholeModule()));
       if (!IGM.isTypeABIAccessible(fieldTy))
         return SILType();
@@ -2894,7 +2895,7 @@ SILType irgen::getSingletonAggregateFieldType(IRGenModule &IGM, SILType t,
         && (*theCase)->hasAssociatedValues()) {
       auto enumEltTy = t.getEnumElementType(
           *theCase, IGM.getSILModule(),
-          TypeExpansionContext(expansion, IGM.getSwiftModule(),
+          TypeExpansionContext(expansion, IGM.getCodiraModule(),
                                IGM.getSILModule().isWholeModule()));
       if (!IGM.isTypeABIAccessible(enumEltTy))
         return SILType();
@@ -2908,16 +2909,16 @@ SILType irgen::getSingletonAggregateFieldType(IRGenModule &IGM, SILType t,
 }
 
 void TypeInfo::verify(IRGenTypeVerifierFunction &IGF,
-                      llvm::Value *typeMetadata,
+                      toolchain::Value *typeMetadata,
                       SILType T) const {
   // By default, no type-specific verifier behavior.
 }
 
 static bool tryEmitDeinitCall(IRGenFunction &IGF,
                           SILType T,
-                          llvm::function_ref<void (Explosion &)> direct,
-                          llvm::function_ref<Address ()> indirect,
-                          llvm::function_ref<void ()> indirectCleanup) {
+                          toolchain::function_ref<void (Explosion &)> direct,
+                          toolchain::function_ref<Address ()> indirect,
+                          toolchain::function_ref<void ()> indirectCleanup) {
   auto ty = T.getASTType();
   auto nominal = ty->getAnyNominal();
 
@@ -2970,17 +2971,17 @@ static bool tryEmitDeinitCall(IRGenFunction &IGF,
     indirectArg = indirect();
     break;
   default:
-    llvm_unreachable("move-only deinit should only have consuming parameter convention");
+    toolchain_unreachable("move-only deinit should only have consuming parameter convention");
   }
                   
   // If the deinit's convention has a special `self` parameter, then the
   // (pointer to) the value being destroyed is that parameter.
-  llvm::Value *self = nullptr;
+  toolchain::Value *self = nullptr;
   if (hasSelfContextParameter(deinitTy)) {
     self = isIndirect ? indirectArg.getAddress() : directArg.claimNext();
     assert(directArg.empty()
            && "direct param (if any) should be a single pointer if "
-              "it's the swiftself param");
+              "it's the languageself param");
   }
    
   GenericContextScope scope(IGF.IGM,

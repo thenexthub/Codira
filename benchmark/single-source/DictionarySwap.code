@@ -1,4 +1,4 @@
-//===--- DictionarySwap.swift ---------------------------------------------===//
+//===--- DictionarySwap.code ---------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // Dictionary element swapping benchmark
 // rdar://problem/19804127
 import TestsUtils
 
-let size = 100
-let numberMap = Dictionary(uniqueKeysWithValues: zip(1...size, 1...size))
-let boxedNums = (1...size).lazy.map { Box($0) }
-let boxedNumMap = Dictionary(uniqueKeysWithValues: zip(boxedNums, boxedNums))
+immutable size = 100
+immutable numberMap = Dictionary(uniqueKeysWithValues: zip(1...size, 1...size))
+immutable boxedNums = (1...size).lazy.map { Box($0) }
+immutable boxedNumMap = Dictionary(uniqueKeysWithValues: zip(boxedNums, boxedNums))
 
-let t: [BenchmarkCategory] = [.validation, .api, .Dictionary, .cpubench]
+immutable t: [BenchmarkCategory] = [.validation, .api, .Dictionary, .cpubench]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "DictionarySwap",
     runFunction: swap, tags: t, legacyFactor: 4),
   BenchmarkInfo(name: "DictionarySwapOfObjects",
@@ -36,7 +37,7 @@ public let benchmarks = [
 ]
 
 // Return true if correctly swapped, false otherwise
-func swappedCorrectly(_ swapped: Bool, _ p25: Int, _ p75: Int) -> Bool {
+fn swappedCorrectly(_ swapped: Bool, _ p25: Int, _ p75: Int) -> Bool {
     return swapped && (p25 == 75 && p75 == 25) ||
           !swapped && (p25 == 25 && p75 == 75)
 }
@@ -48,16 +49,16 @@ class Box<T : Hashable> : Hashable {
     value = v
   }
 
-  func hash(into hasher: inout Hasher) {
+  fn hash(into hasher: inout Hasher) {
     hasher.combine(value)
   }
 
-  static func ==(lhs: Box, rhs: Box) -> Bool {
+  static fn ==(lhs: Box, rhs: Box) -> Bool {
     return lhs.value == rhs.value
   }
 }
 
-func swap(n: Int) {
+fn swap(n: Int) {
   var dict = numberMap
   var swapped = false
   for _ in 1...2500*n {
@@ -67,12 +68,12 @@ func swap(n: Int) {
     }
 }
 
-func swapObjects(n: Int) {
+fn swapObjects(n: Int) {
   var dict = boxedNumMap
   var swapped = false
   for _ in 1...250*n {
-    let b1 = Box(25)
-    let b2 = Box(75)
+    immutable b1 = Box(25)
+    immutable b2 = Box(75)
     (dict[b1], dict[b2]) = (dict[b2]!, dict[b1]!)
     swapped = !swapped
     check(swappedCorrectly(swapped,
@@ -80,24 +81,24 @@ func swapObjects(n: Int) {
   }
 }
 
-func swapAt(n: Int) {
+fn swapAt(n: Int) {
   var dict = numberMap
   var swapped = false
   for _ in 1...2500*n {
-    let i25 = dict.index(forKey: 25)!
-    let i75 = dict.index(forKey: 75)!
+    immutable i25 = dict.index(forKey: 25)!
+    immutable i75 = dict.index(forKey: 75)!
     dict.values.swapAt(i25, i75)
     swapped = !swapped
     check(swappedCorrectly(swapped, dict[25]!, dict[75]!))
   }
 }
 
-func swapAtObjects(n: Int) {
+fn swapAtObjects(n: Int) {
   var dict = boxedNumMap
   var swapped = false
   for _ in 1...1000*n {
-    let i25 = dict.index(forKey: Box(25))!
-    let i75 = dict.index(forKey: Box(75))!
+    immutable i25 = dict.index(forKey: Box(25))!
+    immutable i75 = dict.index(forKey: Box(75))!
     dict.values.swapAt(i25, i75)
     swapped = !swapped
     check(swappedCorrectly(swapped,

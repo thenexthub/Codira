@@ -1,14 +1,14 @@
-[** ‼️ The official C++ interoperability documentation and status page is live at Swift.org and provides an up-to-date guide for mixing Swift and C++ ‼️ **](https://www.swift.org/documentation/cxx-interop/status)
+[** ‼️ The official C++ interoperability documentation and status page is live at Codira.org and provides an up-to-date guide for mixing Codira and C++ ‼️ **](https://www.code.org/documentation/cxx-interop/status)
 
 #  C++ Interoperability Status
 
-Swift has some experimental ability to interoperate with C++.
-This document provides an overview of the status of the Swift and C++ interoperability support.
+Codira has some experimental ability to interoperate with C++.
+This document provides an overview of the status of the Codira and C++ interoperability support.
 
-## C++ to Swift Interoperability Status
+## C++ to Codira Interoperability Status
 
-Swift has the experimental ability to import a large subset of C++.
-This section of the document describes which C++ language and standard library features can be imported and used from Swift in an experimental manner.
+Codira has the experimental ability to import a large subset of C++.
+This section of the document describes which C++ language and standard library features can be imported and used from Codira in an experimental manner.
 
 ### Example
 The following example demonstrates several interop features. It compiles and runs on main.
@@ -21,12 +21,12 @@ The following example demonstrates several interop features. It compiles and run
 using V = std::vector<long>;
 ```
 
-```Swift
-// main.swift
+```Codira
+// main.code
 import CxxTypes
 import CxxStdlib
 
-// We can extend C++ types in Swift.
+// We can extend C++ types in Codira.
 extension V : RandomAccessCollection {
   public var startIndex: Int { 0 }
   public var endIndex: Int { size() }
@@ -42,7 +42,7 @@ std.transform(numbers.beginMutating(), numbers.endMutating(),
   return element + 1
 }
 
-// Loop over it in Swift.
+// Loop over it in Codira.
 for (index, element) in numbers.enumerated() {
   print("v[\(index)] = \(element)")
 }
@@ -56,20 +56,20 @@ for (s, n) in zip(strings, numbers) {
 
 ### Importing C++
 
-There are currently two experimental ways to import C++ into Swift:
-- **Clang modules**: can be imported into Swift. This requires a module map.
-- **Bridging header**: can be imported into Swift. Headers included in the bridging header will be imported.
+There are currently two experimental ways to import C++ into Codira:
+- **Clang modules**: can be imported into Codira. This requires a module map.
+- **Bridging header**: can be imported into Codira. Headers included in the bridging header will be imported.
 Please note that support for importing C++ 20 modules isn’t implemented.
 
-Both CMake and the Swift package manager can be configured to invoke Swift with the correct arguments to import C++ headers.
+Both CMake and the Codira package manager can be configured to invoke Codira with the correct arguments to import C++ headers.
 
 **Note**: C++ code is imported using the Objective-C++ language mode on Apple platforms.
 
 ### Experimental C++ Language Support
 
-This status table describes which of the following C++ language features can be used in Swift: 
+This status table describes which of the following C++ language features can be used in Codira: 
 
-| **C++ Language Feature**                    | **Implemented Experimental Support For Using It In Swift**    |
+| **C++ Language Feature**                    | **Implemented Experimental Support For Using It In Codira**    |
 |---------------------------------------------|---------------------------------------------------------------|
 | Top-level functions                         | Yes    |
 | Enumerations                                | Yes. That includes `enum class`  |
@@ -77,16 +77,16 @@ This status table describes which of the following C++ language features can be 
 | Typedefs / Type aliases                     | Yes    |
 | Global Variables                            | Yes    |
 | Namespaces                                  | Yes    |
-| Inline Namespaces                           | Yes, with some known issues ([#58217](https://github.com/swiftlang/swift/issues/58217)) |
-| Exceptions                                  | No. Uncaught exceptions that propagate into Swift frames are UB.  |
+| Inline Namespaces                           | Yes, with some known issues ([#58217](https://github.com/languagelang/language/issues/58217)) |
+| Exceptions                                  | No. Uncaught exceptions that propagate into Codira frames are UB.  |
 | Fields                                      | Yes |
 | Member functions                            | Yes. Some value category overloads aren't imported |
 | Virtual Member Functions                    | No |
 | Operators                                   | Yes, with some known issues    |
 | Subscript Operators                         | Yes |
 | Constructors                                | Yes. That includes implicit constructors    |
-| Destructor                                  | Yes. C++ destructors are invoked automatically when the value is no longer used in Swift |
-| Copy constructor / copy assignment operator | Yes. Swift invokes the underlying copy constructor when copying a C++ value |
+| Destructor                                  | Yes. C++ destructors are invoked automatically when the value is no longer used in Codira |
+| Copy constructor / copy assignment operator | Yes. Codira invokes the underlying copy constructor when copying a C++ value |
 | Move constructor / move assignment operator | No    |
 | Base class member functions / operators     | Yes, with some known issues |
 | Function templates                          | Yes    |
@@ -95,25 +95,25 @@ This status table describes which of the following C++ language features can be 
 | Availability Attributes                     | Yes    |
 
 
-The following C++ code patterns or language features have specific mappings to Swift language features when imported in Swift:
+The following C++ code patterns or language features have specific mappings to Codira language features when imported in Codira:
 
 
-| **C++ Language Feature**                             | **Imported Into Swift**                                                                  |
+| **C++ Language Feature**                             | **Imported Into Codira**                                                                  |
 |------------------------------------------------------|------------------------------------------------------------------------------------------|
-| `get`/`set` member functions                         | Imported as computed property (starting from Swift-5.7)                                          |
-| `const`/non-`const` member function overload set     | Both overloads are imported as a method, with non-`const` method being renamed to `mutating…` (starting from Swift-5.7). The renaming logic will change in a future version of Swift, and non-`const` methods won't be renamed |
+| `get`/`set` member functions                         | Imported as computed property (starting from Codira-5.7)                                          |
+| `const`/non-`const` member function overload set     | Both overloads are imported as a method, with non-`const` method being renamed to `mutating…` (starting from Codira-5.7). The renaming logic will change in a future version of Codira, and non-`const` methods won't be renamed |
 
 
-Unless stated otherwise (i.e., imported reference types) all Swift features work with imported types. For example: use in generic contexts, protocol conformance, extensions, etc.
+Unless stated otherwise (i.e., imported reference types) all Codira features work with imported types. For example: use in generic contexts, protocol conformance, extensions, etc.
 
 
 ### C++ Standard Library Support
 
-Parts of libc++ can be imported and used from Swift. C++ standard library types are bridged directly to Swift, and there is not automatic bridging to native Swift types. This means that if an imported C++ API returns `std::string`, you will get a `std::string` value in Swift as well, and not Swift's `String`.
+Parts of libc++ can be imported and used from Codira. C++ standard library types are bridged directly to Codira, and there is not automatic bridging to native Codira types. This means that if an imported C++ API returns `std::string`, you will get a `std::string` value in Codira as well, and not Codira's `String`.
 
-This status table describes which of the following C++ standard library features have some experimental support for using them in Swift. Please note that this is not a comprehensive list and other libc++ APIs that use the above supported C++ language features could be imported into Swift.
+This status table describes which of the following C++ standard library features have some experimental support for using them in Codira. Please note that this is not a comprehensive list and other libc++ APIs that use the above supported C++ language features could be imported into Codira.
 
-| **C++ Standard Library Feature**   | **Can Be Used From Swift**                   |
+| **C++ Standard Library Feature**   | **Can Be Used From Codira**                   |
 |------------------------------------|----------------------------------------------|
 | `std::string`                      | Yes                                          |
 | `std::vector`                      | Yes                                          |
@@ -121,44 +121,44 @@ This status table describes which of the following C++ standard library features
 ## Known Issues
 
 ### Inline Namespaces
-- [#58217](https://github.com/swiftlang/swift/issues/58217): Swift's typechecker currently doesn't allow calling a function from an inline namespace when it's referenced through the parent namespace. Example of a test that fails: https://github.com/swiftlang/swift/blob/main/test/Interop/Cxx/namespace/inline-namespace-function-call-broken.swift
+- [#58217](https://github.com/languagelang/language/issues/58217): Codira's typechecker currently doesn't allow calling a function from an inline namespace when it's referenced through the parent namespace. Example of a test that fails: https://github.com/languagelang/language/blob/main/test/Interop/Cxx/namespace/inline-namespace-function-call-broken.code
 
 
-## Swift to C++ Interoperability Status
+## Codira to C++ Interoperability Status
 
-This section of the document describes which Swift language and standard library features can be imported and used from C++. 
+This section of the document describes which Codira language and standard library features can be imported and used from C++. 
 
-### Importing Swift
+### Importing Codira
 
-Swift has some experimental support for generating a header that can be imported by C++.
+Codira has some experimental support for generating a header that can be imported by C++.
 
-### Swift Language Support
+### Codira Language Support
 
-This status table describes which of the following Swift language features have some experimental support for using them in C++.
+This status table describes which of the following Codira language features have some experimental support for using them in C++.
 
 **Functions**
 
-Swift functions can be called from C++, with some restrictions. See this table for details:
+Codira functions can be called from C++, with some restrictions. See this table for details:
 
-| **Swift Language Feature**     | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**     | **Implemented Experimental Support For Using It In C++** |
 |--------------------------------|----------------------------------------------------------|
 | Top-level `@_cdecl` functions  | Yes                                                      |
-| Top-level Swift functions      | Yes |
-| Swift Methods                  | Yes (see the **Methods** section below for more details) |
+| Top-level Codira functions      | Yes |
+| Codira Methods                  | Yes (see the **Methods** section below for more details) |
 | Primitive parameter or result types  | Yes           |
-| Swift `struct`/`enum`/`class` parameter or result types  | Yes           |
+| Codira `struct`/`enum`/`class` parameter or result types  | Yes           |
 | `inout` parameters             | Yes                                                      |
 | C++ `struct`/`class` parameter or result types  | Yes   |
 | Objective-C `@interface` parameter or result types  | Yes   |
-| Swift closure parameter or result types  | No           |
-| Swift protocol type parameter or result types  | No           |
+| Codira closure parameter or result types  | No           |
+| Codira protocol type parameter or result types  | No           |
 | SIMD type parameter or result types  | No           |
 | Variadic parameters            | No                                                       |
 | Multiple return values         | No                                                       |
 
 **Structs**
 
-| **Swift Language Feature**     | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**     | **Implemented Experimental Support For Using It In C++** |
 |--------------------------------|----------------------------------------------------------|
 | Fixed layout structs           | Yes                                                      |
 | Resilient / opaque structs     | Yes                                                      |
@@ -167,7 +167,7 @@ Swift functions can be called from C++, with some restrictions. See this table f
 
 **Enums**
 
-| **Swift Language Feature**   | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**   | **Implemented Experimental Support For Using It In C++** |
 |------------------------------|----------------------------------------------------------|
 | Fixed layout enums           | Yes                                                      |
 | Resilient / opaque enums     | Yes                                                      |
@@ -179,7 +179,7 @@ Swift functions can be called from C++, with some restrictions. See this table f
 
 **Class types**
 
-| **Swift Language Feature**     | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**     | **Implemented Experimental Support For Using It In C++** |
 |--------------------------------|----------------------------------------------------------|
 | Class reference values         | Yes                                                      |
 | ARC semantics                  | Yes (C++ copy constructor,assignment operator, destructor perform ARC operations)  |
@@ -187,14 +187,14 @@ Swift functions can be called from C++, with some restrictions. See this table f
 
 **Methods**
 
-| **Swift Language Feature**     | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**     | **Implemented Experimental Support For Using It In C++** |
 |--------------------------------|----------------------------------------------------------|
 | Instance methods               | Yes on structs and enums. Instance methods on class types are partially supported (virtual calls won't be virtual due to a bug right now) |
 | Static methods                 | No                                                       |
 
 **Properties**
 
-| **Swift Language Feature**     | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**     | **Implemented Experimental Support For Using It In C++** |
 |--------------------------------|----------------------------------------------------------|
 | Getter accessors               | Yes, via `get<name>`. Boolean properties that start with `is` or `has` are remapped directly to a getter method using their original name                         |
 | Setter accessors               | Yes, via `set<name>`                                     |
@@ -203,7 +203,7 @@ Swift functions can be called from C++, with some restrictions. See this table f
 
 **Generics**
 
-| **Swift Language Feature**   | **Implemented Experimental Support For Using It In C++** |
+| **Codira Language Feature**   | **Implemented Experimental Support For Using It In C++** |
 |------------------------------|----------------------------------------------------------|
 | Generic functions            | Partially, only without generic constraints              |
 | Generic methods              | Partially, only without generic constraints              |
@@ -211,11 +211,11 @@ Swift functions can be called from C++, with some restrictions. See this table f
 | Generic `enum` types         | Partially, only without generic constraints and less than 4 generic parameters |
 | Generic `class` types        | No |
 
-### Swift standard library
+### Codira standard library
 
-This status table describes which of the following Swift standard library APIs have some experimental support for using them in C++.
+This status table describes which of the following Codira standard library APIs have some experimental support for using them in C++.
 
-| **Swift Library Type**     | **Can be used from C++** |
+| **Codira Library Type**     | **Can be used from C++** |
 |--------------------------------|----------------------------------------------------------|
 | `String`     | Can be used as a type in C++. APIs in extensions are not exposed to C++. Conversion between `std.string` is not yet supported   |
 | `Array<T>`   | Can be used as a type in C++. Ranged for loops are supported. Limited set of APIs in some extensions are exposed to C++. |

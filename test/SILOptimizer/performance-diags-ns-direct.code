@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-ir -verify -I %t/Inputs %t/test.code 
+
+// REQUIRES: objc_interop
+
+//--- Inputs/header.h
+
+@interface Interface
+
+- (void)test __attribute__((objc_direct)) __attribute__((language_attr("@_noObjCBridging")));
+
+@end
+
+
+//--- Inputs/module.modulemap
+
+module ObjCModule {
+    header "header.h"
+    export *
+}
+
+//--- test.code
+
+import Foundation
+import ObjCModule
+
+@_noObjCBridging
+fn test(i: Interface) {
+  i.test()
+}

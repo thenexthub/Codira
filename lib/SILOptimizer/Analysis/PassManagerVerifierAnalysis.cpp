@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-passmanager-verifier-analysis"
 #include "language/SILOptimizer/Analysis/PassManagerVerifierAnalysis.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
     EnableVerifier("enable-sil-passmanager-verifier-analysis",
-                   llvm::cl::desc("Enable verification of the passmanagers "
+                   toolchain::cl::desc("Enable verification of the passmanagers "
                                   "function notification infrastructure"),
-                   llvm::cl::init(true));
+                   toolchain::cl::init(true));
 
 using namespace language;
 
@@ -33,7 +34,7 @@ PassManagerVerifierAnalysis::PassManagerVerifierAnalysis(SILModule *mod)
   if (!EnableVerifier)
     return;
   for (auto &fn : *mod) {
-    LLVM_DEBUG(llvm::dbgs() << "PMVerifierAnalysis. Add: " << fn.getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "PMVerifierAnalysis. Add: " << fn.getName()
                             << '\n');
     liveFunctionNames.insert(fn.getName());
   }
@@ -54,7 +55,7 @@ void PassManagerVerifierAnalysis::notifyAddedOrModifiedFunction(
 #ifndef NDEBUG
   if (!EnableVerifier)
     return;
-  LLVM_DEBUG(llvm::dbgs() << "PMVerifierAnalysis. Add|Mod: " << f->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "PMVerifierAnalysis. Add|Mod: " << f->getName()
                           << '\n');
   liveFunctionNames.insert(f->getName());
 #endif
@@ -65,15 +66,15 @@ void PassManagerVerifierAnalysis::notifyWillDeleteFunction(SILFunction *f) {
 #ifndef NDEBUG
   if (!EnableVerifier)
     return;
-  LLVM_DEBUG(llvm::dbgs() << "PMVerifierAnalysis. Delete: " << f->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "PMVerifierAnalysis. Delete: " << f->getName()
                           << '\n');
   if (liveFunctionNames.erase(f->getName()))
     return;
 
-  llvm::errs()
+  toolchain::errs()
       << "Error! Tried to delete function that analysis was not aware of: "
       << f->getName() << '\n';
-  llvm_unreachable("triggering standard assertion failure routine");
+  toolchain_unreachable("triggering standard assertion failure routine");
 #endif
 }
 
@@ -100,7 +101,7 @@ void PassManagerVerifierAnalysis::verifyFull() const {
       ++count;
       continue;
     }
-    llvm::errs() << "Found function in module that was not added to verifier: "
+    toolchain::errs() << "Found function in module that was not added to verifier: "
                  << fn.getName() << '\n';
     foundError = true;
   }
@@ -112,12 +113,12 @@ void PassManagerVerifierAnalysis::verifyFull() const {
   // error, do the expensive work of finding the missing deletes. This is an
   // important performance optimization to avoid a large copy on the hot path.
   if (liveFunctionNames.size() != count) {
-    auto liveFunctionNamesCopy = llvm::StringSet<>(liveFunctionNames);
+    auto liveFunctionNamesCopy = toolchain::StringSet<>(liveFunctionNames);
     for (auto &fn : mod) {
       liveFunctionNamesCopy.erase(fn.getName());
     }
     for (auto &iter : liveFunctionNamesCopy) {
-      llvm::errs() << "Missing delete message for function: " << iter.first()
+      toolchain::errs() << "Missing delete message for function: " << iter.first()
                    << '\n';
       foundError = true;
     }
@@ -132,6 +133,6 @@ void PassManagerVerifierAnalysis::verifyFull() const {
 //                              Main Entry Point
 //===----------------------------------------------------------------------===//
 
-SILAnalysis *swift::createPassManagerVerifierAnalysis(SILModule *m) {
+SILAnalysis *language::createPassManagerVerifierAnalysis(SILModule *m) {
   return new PassManagerVerifierAnalysis(m);
 }

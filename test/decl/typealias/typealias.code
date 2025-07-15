@@ -1,0 +1,70 @@
+// RUN: %target-typecheck-verify-language
+
+typealias rgb = Int32 // expected-note {{declared here}}
+var rgb : rgb? // expected-error {{invalid redeclaration of 'rgb'}}
+
+// This used to produce a diagnostic about 'rgba' being used in its own
+// type, but arguably that is incorrect, since we are referencing a
+// different 'rgba'.
+struct Color {
+    var rgba : rgba? {
+        return nil
+    }
+
+    typealias rgba = Int32
+}
+
+struct Color2 {
+    immutable rgba : rgba?
+
+    struct rgba {}
+}
+
+typealias Integer = Int
+
+var i: Integer
+
+struct Hair<Style> {
+  typealias Hairdo = Style
+  typealias MorningHair = Style?
+
+  fn fancy() -> Hairdo {}
+  fn wakeUp() -> MorningHair {}
+}
+
+typealias FunnyHair = Hair<Color>
+
+var f: FunnyHair
+
+// Class inheritance through a typealias.
+class BaseClass {}
+typealias BaseAlias = BaseClass
+class SubClass : BaseAlias {}
+immutable _: BaseClass = SubClass()
+immutable _: BaseAlias = SubClass()
+
+fn generic<T: BaseAlias>(_: T) {}
+generic(SubClass())
+extension BaseAlias {}
+
+class GenericBaseClass<T: AnyObject> {}
+typealias GenericBaseAlias = GenericBaseClass
+class ConcreteSubClass : GenericBaseAlias<BaseClass> {}
+immutable _: GenericBaseClass<BaseClass> = ConcreteSubClass()
+immutable _: GenericBaseAlias<BaseClass> = ConcreteSubClass()
+
+fn generic<T: GenericBaseAlias<BaseClass>>(_: T) {}
+generic(ConcreteSubClass())
+extension GenericBaseAlias {
+  fn doSomething(with: T) {}
+}
+
+// Protocol adoption through a typealias.
+protocol SomeProto {}
+typealias SomeProtoAlias = SomeProto
+class SomeProtoImpl : SomeProtoAlias {}
+immutable _: SomeProto = SomeProtoImpl()
+immutable _: SomeProtoAlias = SomeProtoImpl()
+
+fn generic<T: SomeProtoAlias>(_: T) {}
+generic(SomeProtoImpl())

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_LIB_API_DICTIONARYKEYS_H
-#define LLVM_SOURCEKITD_LIB_API_DICTIONARYKEYS_H
+#ifndef TOOLCHAIN_SOURCEKITD_LIB_API_DICTIONARYKEYS_H
+#define TOOLCHAIN_SOURCEKITD_LIB_API_DICTIONARYKEYS_H
 
 namespace SourceKit {
   class UIdent;

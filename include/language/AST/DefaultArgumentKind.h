@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the DefaultArgumentKind enumeration.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEFAULTARGUMENTKIND_H
-#define SWIFT_DEFAULTARGUMENTKIND_H
+#ifndef LANGUAGE_DEFAULTARGUMENTKIND_H
+#define LANGUAGE_DEFAULTARGUMENTKIND_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <cstdint>
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
 }
 
@@ -59,13 +60,13 @@ enum { NumDefaultArgumentKindBits = 4 };
 
 struct ArgumentAttrs {
   DefaultArgumentKind argumentKind;
-  bool isUnavailableInSwift = false;
-  llvm::StringRef CXXOptionsEnumName = "";
+  bool isUnavailableInCodira = false;
+  toolchain::StringRef CXXOptionsEnumName = "";
 
   ArgumentAttrs(DefaultArgumentKind argumentKind,
-                bool isUnavailableInSwift = false,
-                llvm::StringRef CXXOptionsEnumName = "")
-      : argumentKind(argumentKind), isUnavailableInSwift(isUnavailableInSwift),
+                bool isUnavailableInCodira = false,
+                toolchain::StringRef CXXOptionsEnumName = "")
+      : argumentKind(argumentKind), isUnavailableInCodira(isUnavailableInCodira),
         CXXOptionsEnumName(CXXOptionsEnumName) {}
 
   bool operator !=(const DefaultArgumentKind &rhs) const {
@@ -81,10 +82,10 @@ struct ArgumentAttrs {
   }
 
   bool hasAlternateCXXOptionsEnumName() const {
-    return !CXXOptionsEnumName.empty() && isUnavailableInSwift;
+    return !CXXOptionsEnumName.empty() && isUnavailableInCodira;
   }
 
-  llvm::StringRef getAlternateCXXOptionsEnumName() const {
+  toolchain::StringRef getAlternateCXXOptionsEnumName() const {
     assert(hasAlternateCXXOptionsEnumName() &&
            "Expected a C++ Options type for C++-Interop but found none.");
     return CXXOptionsEnumName;
@@ -93,5 +94,5 @@ struct ArgumentAttrs {
 
 } // end namespace language
 
-#endif // LLVM_SWIFT_DEFAULTARGUMENTKIND_H
+#endif // TOOLCHAIN_LANGUAGE_DEFAULTARGUMENTKIND_H
 

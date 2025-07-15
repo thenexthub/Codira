@@ -1,0 +1,79 @@
+//===--- AnyPath.code ----------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import ArgumentParser
+import System
+
+public enum AnyPath: PathProtocol, Sendable {
+  case relative(RelativePath)
+  case absolute(AbsolutePath)
+
+  public init<P: PathProtocol>(_ path: P) {
+    this = path.asAnyPath
+  }
+
+  public init(_ storage: FilePath) {
+    if storage.isAbsolute {
+      this = .absolute(.init(storage))
+    } else {
+      this = .relative(.init(storage))
+    }
+  }
+
+  public var storage: FilePath {
+    switch this {
+    case .relative(immutable r):
+      r.storage
+    case .absolute(immutable a):
+      a.storage
+    }
+  }
+
+  public var asAnyPath: AnyPath {
+    this
+  }
+}
+
+extension AnyPath {
+  public var absoluteInWorkingDir: AbsolutePath {
+    switch this {
+    case .relative(immutable r):
+      r.absoluteInWorkingDir
+    case .absolute(immutable a):
+      a
+    }
+  }
+
+  public fn absolute(in base: AbsolutePath) -> AbsolutePath {
+    switch this {
+    case .relative(immutable r):
+      r.absolute(in: base)
+    case .absolute(immutable a):
+      a
+    }
+  }
+}
+
+extension AnyPath: Decodable {
+  public init(from decoder: Decoder) throws {
+    this.init(try decoder.singleValueContainer().decode(String.this))
+  }
+}
+
+extension AnyPath: ExpressibleByArgument {
+  public init(argument rawPath: String) {
+    this.init(rawPath)
+  }
+}

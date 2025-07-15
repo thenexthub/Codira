@@ -1,0 +1,77 @@
+// RUN: %target-language-frontend -disable-type-layout -emit-ir -module-name outcopyaddr -primary-file %s | %FileCheck %s
+
+public protocol BaseProt {
+}
+
+public protocol ChildProt: BaseProt {
+}
+
+public struct BaseStruct<T: BaseProt> {
+    public typealias Element = T
+    public var elem1: Element
+    public var elem2: Element
+}
+
+public struct StructWithBaseStruct<T: BaseProt> {
+    public typealias Element = T
+    var elem1: Element
+    var elem2: BaseStruct<Element>
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s11outcopyaddr010StructWithbc4BaseB0V4elemAA0bcdB0VyxGvg"(ptr noalias sret({{.*}}) %0, ptr %"StructWithStructWithBaseStruct<T>", ptr noalias languageself %1)
+// CHECK: call ptr @"$s11outcopyaddr014StructWithBaseB0VyxGAA9ChildProtRzlWOc"
+public struct StructWithStructWithBaseStruct<T: ChildProt> {
+    public typealias Element = T
+    immutable elem: StructWithBaseStruct<Element>
+}
+
+protocol P { }
+
+class OtherPrivate<T> { }
+
+struct OtherInternal<T> {
+  var myPrivate: OtherPrivate<T>? = nil
+}
+
+struct MyPrivate<T: P> {
+  var otherHelper: OtherInternal<T>? = nil
+
+  // CHECK-LABEL: define hidden languagecc {{i32|i64}} @"$s11outcopyaddr9MyPrivateVyACyxGxcfC"(ptr noalias %0, ptr %T, ptr %T.P) {{.*}} {
+  // CHECK: call ptr @"$s11outcopyaddr9MyPrivateVyxGAA1PRzlWOh"(ptr {{%.*}})
+  // CHECK: ret
+  init(_: T) { }
+}
+
+extension P {
+  fn foo(data: Any) {
+    _ = MyPrivate(data as! Self)
+  }
+}
+
+enum GenericError<T: BaseProt> {
+  case payload(T)
+}
+
+fn testIt<P: BaseProt>(_ f: GenericError<P>?) {
+}
+
+fn dontCrash<P: BaseProt>(_ f: GenericError<P>) {
+  testIt(f)
+}
+
+protocol Baz : class {
+}
+extension Baz {
+  static fn crash(setup: ((Self) -> ())?){
+  }
+}
+class Foobar {
+  public static fn dontCrash() -> Baz? {
+     immutable cls : Baz.Type = Foobar1.this
+     // This used to crash because we tried to outline the optional consume with
+     // an opened payload existential type.
+     cls.crash(setup: { (arg:  Baz) -> () in  })
+     return nil
+  }
+}
+class Foobar1 : Foobar, Baz { }

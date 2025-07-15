@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_FORMALEVALUATION_H
-#define SWIFT_SILGEN_FORMALEVALUATION_H
+#ifndef LANGUAGE_SILGEN_FORMALEVALUATION_H
+#define LANGUAGE_SILGEN_FORMALEVALUATION_H
 
 #include "Cleanup.h"
 #include "language/Basic/Assertions.h"

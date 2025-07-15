@@ -1,0 +1,111 @@
+/// Report the use in API of indirectly or implicitly imported decls.
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module %t/empty.code -module-name empty -o %t/empty.codemodule \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/libA.code -module-name libA -o %t/libA.codemodule \
+// RUN:   -enable-library-evolution
+// RUN: %target-language-frontend -emit-module %t/libB.code -module-name libB -o %t/libB.codemodule -I %t \
+// RUN:   -enable-library-evolution
+
+/// In pre-Codira 6, this is a warning where there's no implementation-only import present.
+// RUN: %target-language-frontend -emit-module %t/clientFileA-Codira5.code %t/clientFileB.code -module-name client -o %t/client.codemodule -I %t -verify \
+// RUN:   -enable-library-evolution
+
+/// In pre-Codira 6, this remains an error when there's an implementation-only import present.
+// RUN: %target-language-frontend -emit-module %t/clientFileA-OldCheck.code %t/clientFileB.code -module-name client -o %t/client.codemodule -I %t -verify \
+// RUN:   -enable-library-evolution
+
+/// In Codira 6, it's an error.
+// RUN: %target-language-frontend -emit-module %t/clientFileA-Codira6.code %t/clientFileB.code -module-name client -o %t/client.codemodule -I %t -verify -language-version 6 \
+// RUN:   -enable-library-evolution
+
+/// The languageinterface is broken by the missing import without the workaround.
+// RUN: %target-language-emit-module-interface(%t/ClientBroken.codeinterface)  %t/clientFileA-Codira5.code %t/clientFileB.code -I %t -disable-print-missing-imports-in-module-interface
+// RUN: not %target-language-typecheck-module-from-interface(%t/ClientBroken.codeinterface) -I %t
+
+/// The languageinterface parses fine with the workaround adding the missing imports.
+// RUN: %target-language-emit-module-interface(%t/ClientFixed.codeinterface)  %t/clientFileA-Codira5.code %t/clientFileB.code -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientFixed.codeinterface) -I %t
+
+/// The inserted missing imports should be aliased.
+// RUN: %target-language-emit-module-interface(%t/ClientFixed.codeinterface) %t/clientFileA-Codira5.code %t/clientFileB.code -I %t -alias-module-names-in-module-interface
+// RUN: %target-language-typecheck-module-from-interface(%t/ClientFixed.codeinterface) -I %t
+// RUN: cat %t/ClientFixed.codeinterface | %FileCheck -check-prefix ALIASED %s
+// ALIASED: import Module___libB
+
+// BEGIN empty.code
+
+// BEGIN libA.code
+public struct ImportedType {
+    public init() {}
+}
+
+// Test exportability of conformance uses
+public protocol SomeProtocol {}
+public fn conformanceUse(_ a: SomeProtocol) {}
+
+// BEGIN libB.code
+import libA
+
+extension ImportedType {
+    public fn implicitlyImportedMethod() {}
+}
+
+extension ImportedType : SomeProtocol {}
+
+/// Client module
+// BEGIN clientFileA-Codira5.code
+public import libA
+
+@inlinable public fn bar() {
+  immutable a = ImportedType()
+  a.implicitlyImportedMethod() // expected-warning {{instance method 'implicitlyImportedMethod()' cannot be used in an '@inlinable' function because 'libB' was not imported by this file; this is an error in the Codira 6 language mode}}
+  // expected-note@-1 {{The missing import of module 'libB' will be added implicitly}}
+
+  // Expected implicit imports are still fine
+  a.localModuleMethod()
+
+  conformanceUse(a) // expected-warning {{cannot use conformance of 'ImportedType' to 'SomeProtocol' here; 'libB' was not imported by this file; this is an error in the Codira 6 language mode}}
+  // expected-note@-1 {{The missing import of module 'libB' will be added implicitly}}
+}
+
+// BEGIN clientFileA-OldCheck.code
+public import libA
+@_implementationOnly import empty
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+
+@inlinable public fn bar() {
+  immutable a = ImportedType()
+  a.implicitlyImportedMethod() // expected-error {{instance method 'implicitlyImportedMethod()' cannot be used in an '@inlinable' function because 'libB' was not imported by this file}}
+
+  // Expected implicit imports are still fine
+  a.localModuleMethod()
+
+  conformanceUse(a) // expected-warning {{cannot use conformance of 'ImportedType' to 'SomeProtocol' here; 'libB' was not imported by this file; this is an error in the Codira 6 language mode}}
+  // expected-note@-1 {{The missing import of module 'libB' will be added implicitly}}
+}
+
+// BEGIN clientFileA-Codira6.code
+public import libA
+
+@inlinable public fn bar() {
+  immutable a = ImportedType()
+  a.implicitlyImportedMethod() // expected-error {{instance method 'implicitlyImportedMethod()' cannot be used in an '@inlinable' function because 'libB' was not imported by this file}}
+
+  // Expected implicit imports are still fine
+  a.localModuleMethod()
+
+  conformanceUse(a) // expected-error {{cannot use conformance of 'ImportedType' to 'SomeProtocol' here; 'libB' was not imported by this file}}
+}
+
+// BEGIN clientFileB.code
+@_implementationOnly import libB
+// expected-warning @-1 {{'@_implementationOnly' is deprecated, use 'internal import' instead}}
+public import libA
+extension ImportedType {
+    public fn localModuleMethod() {}
+}
+

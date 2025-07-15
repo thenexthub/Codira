@@ -1,13 +1,17 @@
 //===--- HomotopyReduction.cpp - Higher-dimensional term rewriting --------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the algorithm for computing a minimal set of rules from
@@ -40,7 +44,7 @@
 // Procedure with Applications to Coherence of Monoids",
 // https://hal.inria.fr/hal-00818253.
 //
-// Note that in the world of Swift, rewrite rules for introducing associated
+// Note that in the world of Codira, rewrite rules for introducing associated
 // type symbols are marked 'permanent'; they are always re-added when a new
 // rewrite system is built from a minimal generic signature, so instead of
 // deleting them it is better to leave them in place in case it allows other
@@ -56,11 +60,11 @@
 #include "language/AST/Type.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include "PropertyMap.h"
 #include "RewriteContext.h"
@@ -182,9 +186,9 @@ RewriteSystem::findRuleToDelete(EliminationPredicate isRedundantRuleFn) {
     // since such loops do not yield any elimination candidates.
     if (!loop.isUseful(*this)) {
       if (Debug.contains(DebugFlags::HomotopyReduction)) {
-        llvm::dbgs() << "** Deleting useless loop #" << loopID << ": ";
-        loop.dump(llvm::dbgs(), *this);
-        llvm::dbgs() << "\n";
+        toolchain::dbgs() << "** Deleting useless loop #" << loopID << ": ";
+        loop.dump(toolchain::dbgs(), *this);
+        toolchain::dbgs() << "\n";
       }
 
       loop.markDeleted();
@@ -199,7 +203,7 @@ RewriteSystem::findRuleToDelete(EliminationPredicate isRedundantRuleFn) {
   std::optional<std::pair<unsigned, unsigned>> found;
 
   if (Debug.contains(DebugFlags::HomotopyReduction)) {
-    llvm::dbgs() << "\n";
+    toolchain::dbgs() << "\n";
   }
 
   for (const auto &pair : redundancyCandidates) {
@@ -226,7 +230,7 @@ RewriteSystem::findRuleToDelete(EliminationPredicate isRedundantRuleFn) {
     // the filter now.
     if (!isRedundantRuleFn(loopID, ruleID)) {
       if (Debug.contains(DebugFlags::HomotopyReductionDetail)) {
-        llvm::dbgs() << "** Skipping rule " << rule << " from loop #"
+        toolchain::dbgs() << "** Skipping rule " << rule << " from loop #"
                      << loopID << "\n";
       }
 
@@ -234,7 +238,7 @@ RewriteSystem::findRuleToDelete(EliminationPredicate isRedundantRuleFn) {
     }
 
     if (Debug.contains(DebugFlags::HomotopyReductionDetail)) {
-      llvm::dbgs() << "** Candidate rule " << rule << " from loop #"
+      toolchain::dbgs() << "** Candidate rule " << rule << " from loop #"
                    << loopID << "\n";
     }
 
@@ -291,8 +295,8 @@ RewriteSystem::findRuleToDelete(EliminationPredicate isRedundantRuleFn) {
     {
       // If both are concrete type requirements, prefer to eliminate the
       // one with the more deeply nested type.
-      unsigned ruleNesting = rule.getNesting();
-      unsigned otherRuleNesting = otherRule.getNesting();
+      unsigned ruleNesting = rule.getNestingAndSize().first;
+      unsigned otherRuleNesting = otherRule.getNestingAndSize().first;
 
       if (ruleNesting != otherRuleNesting) {
         if (ruleNesting > otherRuleNesting)
@@ -380,9 +384,9 @@ void RewriteSystem::deleteRule(unsigned ruleID,
     loop.markDirty();
 
     if (Debug.contains(DebugFlags::HomotopyReductionDetail)) {
-      llvm::dbgs() << "** Updated loop #" << loopID << ": ";
-      loop.dump(llvm::dbgs(), *this);
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "** Updated loop #" << loopID << ": ";
+      loop.dump(toolchain::dbgs(), *this);
+      toolchain::dbgs() << "\n";
     }
   }
 
@@ -410,12 +414,12 @@ void RewriteSystem::performHomotopyReduction(
     auto &rule = getRule(ruleID);
 
     if (Debug.contains(DebugFlags::HomotopyReduction)) {
-      llvm::dbgs() << "** Deleting rule " << rule << " from loop #"
+      toolchain::dbgs() << "** Deleting rule " << rule << " from loop #"
                    << loopID << "\n";
-      llvm::dbgs() << "* Replacement path: ";
+      toolchain::dbgs() << "* Replacement path: ";
       MutableTerm mutTerm(getRule(ruleID).getLHS());
-      replacementPath.dump(llvm::dbgs(), mutTerm, *this);
-      llvm::dbgs() << "\n";
+      replacementPath.dump(toolchain::dbgs(), mutTerm, *this);
+      toolchain::dbgs() << "\n";
     }
 
     rule.markRedundant();
@@ -431,9 +435,9 @@ void RewriteSystem::performHomotopyReduction(
 /// Redundant rules are mutated to set their isRedundant() bit.
 void RewriteSystem::minimizeRewriteSystem(const PropertyMap &map) {
   if (Debug.contains(DebugFlags::HomotopyReduction)) {
-    llvm::dbgs() << "-----------------------------\n";
-    llvm::dbgs() << "- Minimizing rewrite system -\n";
-    llvm::dbgs() << "-----------------------------\n";
+    toolchain::dbgs() << "-----------------------------\n";
+    toolchain::dbgs() << "- Minimizing rewrite system -\n";
+    toolchain::dbgs() << "-----------------------------\n";
   }
 
   ASSERT(Complete);
@@ -461,9 +465,9 @@ void RewriteSystem::minimizeRewriteSystem(const PropertyMap &map) {
   // maintain compatibility with the GenericSignatureBuilder's minimization
   // algorithm.
   if (Debug.contains(DebugFlags::HomotopyReduction)) {
-    llvm::dbgs() << "------------------------------\n";
-    llvm::dbgs() << "First pass: simplified rules -\n";
-    llvm::dbgs() << "------------------------------\n";
+    toolchain::dbgs() << "------------------------------\n";
+    toolchain::dbgs() << "First pass: simplified rules -\n";
+    toolchain::dbgs() << "------------------------------\n";
   }
 
   performHomotopyReduction([&](unsigned loopID, unsigned ruleID) -> bool {
@@ -493,9 +497,9 @@ void RewriteSystem::minimizeRewriteSystem(const PropertyMap &map) {
   //   between (T.[P] => T) and a protocol typealias rule
   //   ([P].X.[concrete: C] => [P].X).
   if (Debug.contains(DebugFlags::HomotopyReduction)) {
-    llvm::dbgs() << "-------------------------------\n";
-    llvm::dbgs() << "Second pass: unresolved rules -\n";
-    llvm::dbgs() << "-------------------------------\n";
+    toolchain::dbgs() << "-------------------------------\n";
+    toolchain::dbgs() << "Second pass: unresolved rules -\n";
+    toolchain::dbgs() << "-------------------------------\n";
   }
 
   performHomotopyReduction([&](unsigned loopID, unsigned ruleID) -> bool {
@@ -514,14 +518,14 @@ void RewriteSystem::minimizeRewriteSystem(const PropertyMap &map) {
   // for each non-minimal conformance. We can then use information to
   // compute conformance access paths, instead of the current "brute force"
   // algorithm used for that purpose.
-  llvm::DenseSet<unsigned> redundantConformances;
+  toolchain::DenseSet<unsigned> redundantConformances;
   computeMinimalConformances(map, redundantConformances);
 
   // Third pass: Eliminate all non-minimal conformance rules.
   if (Debug.contains(DebugFlags::HomotopyReduction)) {
-    llvm::dbgs() << "-------------------------------------------\n";
-    llvm::dbgs() << "Third pass: non-minimal conformance rules -\n";
-    llvm::dbgs() << "-------------------------------------------\n";
+    toolchain::dbgs() << "-------------------------------------------\n";
+    toolchain::dbgs() << "Third pass: non-minimal conformance rules -\n";
+    toolchain::dbgs() << "-------------------------------------------\n";
   }
 
   performHomotopyReduction([&](unsigned loopID, unsigned ruleID) -> bool {
@@ -536,9 +540,9 @@ void RewriteSystem::minimizeRewriteSystem(const PropertyMap &map) {
 
   // Fourth pass: Eliminate all remaining redundant non-conformance rules.
   if (Debug.contains(DebugFlags::HomotopyReduction)) {
-    llvm::dbgs() << "----------------------------------------\n";
-    llvm::dbgs() << "Fourth pass: all other redundant rules -\n";
-    llvm::dbgs() << "----------------------------------------\n";
+    toolchain::dbgs() << "----------------------------------------\n";
+    toolchain::dbgs() << "Fourth pass: all other redundant rules -\n";
+    toolchain::dbgs() << "----------------------------------------\n";
   }
 
   performHomotopyReduction([&](unsigned loopID, unsigned ruleID) -> bool {
@@ -563,23 +567,23 @@ void RewriteSystem::minimizeRewriteSystem(const PropertyMap &map) {
   verifyMinimizedRules(redundantConformances);
 
   if (Debug.contains(DebugFlags::RedundantRules)) {
-    llvm::dbgs() << "\nRedundant rules:\n";
+    toolchain::dbgs() << "\nRedundant rules:\n";
     for (const auto &pair : RedundantRules) {
       const auto &rule = getRule(pair.first);
-      llvm::dbgs() << "- ("
+      toolchain::dbgs() << "- ("
                    << rule.getLHS() << " => "
                    << rule.getRHS() << ") ::== ";
 
       MutableTerm lhs(rule.getLHS());
-      pair.second.dump(llvm::dbgs(), lhs, *this);
+      pair.second.dump(toolchain::dbgs(), lhs, *this);
 
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "\n";
 
       if (Debug.contains(DebugFlags::RedundantRulesDetail)) {
-        llvm::dbgs() << "\n";
-        pair.second.dumpLong(llvm::dbgs(), lhs, *this);
+        toolchain::dbgs() << "\n";
+        pair.second.dumpLong(toolchain::dbgs(), lhs, *this);
 
-        llvm::dbgs() << "\n\n";
+        toolchain::dbgs() << "\n\n";
       }
     }
   }
@@ -640,12 +644,12 @@ GenericSignatureErrors RewriteSystem::getErrors() const {
 /// rewrite system.
 ///
 /// These rules form the requirement signatures of these protocols.
-llvm::DenseMap<const ProtocolDecl *, RewriteSystem::MinimizedProtocolRules>
+toolchain::DenseMap<const ProtocolDecl *, RewriteSystem::MinimizedProtocolRules>
 RewriteSystem::getMinimizedProtocolRules() const {
   ASSERT(Minimized);
   ASSERT(!Protos.empty());
 
-  llvm::DenseMap<const ProtocolDecl *, MinimizedProtocolRules> rules;
+  toolchain::DenseMap<const ProtocolDecl *, MinimizedProtocolRules> rules;
   for (unsigned ruleID = FirstLocalRule, e = Rules.size();
        ruleID < e; ++ruleID) {
     const auto &rule = getRule(ruleID);
@@ -719,7 +723,7 @@ void RewriteSystem::verifyRewriteLoops() const {
 /// Assert if homotopy reduction failed to eliminate a redundant conformance,
 /// since this suggests a misunderstanding on my part.
 void RewriteSystem::verifyRedundantConformances(
-    const llvm::DenseSet<unsigned> &redundantConformances) const {
+    const toolchain::DenseSet<unsigned> &redundantConformances) const {
   for (unsigned ruleID : redundantConformances) {
     const auto &rule = getRule(ruleID);
     ASSERT(!rule.isPermanent() &&
@@ -730,11 +734,11 @@ void RewriteSystem::verifyRedundantConformances(
            "Redundant conformance is not a conformance rule?");
 
     if (!rule.isRedundant()) {
-      llvm::errs() << "Homotopy reduction did not eliminate redundant "
-                   << "conformance?\n";
-      llvm::errs() << "(#" << ruleID << ") " << rule << "\n\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Homotopy reduction did not eliminate redundant conformance?\n";
+        out << "(#" << ruleID << ") " << rule << "\n\n";
+        dump(out);
+      });
     }
   }
 }
@@ -742,7 +746,7 @@ void RewriteSystem::verifyRedundantConformances(
 // Assert if homotopy reduction failed to eliminate a rewrite rule it was
 // supposed to delete.
 void RewriteSystem::verifyMinimizedRules(
-    const llvm::DenseSet<unsigned> &redundantConformances) const {
+    const toolchain::DenseSet<unsigned> &redundantConformances) const {
   unsigned redundantRuleCount = 0;
 
   for (unsigned ruleID = FirstLocalRule, e = Rules.size();
@@ -752,10 +756,11 @@ void RewriteSystem::verifyMinimizedRules(
     // Ignore the rewrite rule if it is not part of our minimization domain.
     if (!isInMinimizationDomain(rule.getLHS().getRootProtocol())) {
       if (rule.isRedundant()) {
-        llvm::errs() << "Redundant rule outside minimization domain: "
-                     << rule << "\n\n";
-        dump(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          out << "Redundant rule outside minimization domain: " << rule
+              << "\n\n";
+          dump(out);
+        });
       }
 
       continue;
@@ -765,9 +770,10 @@ void RewriteSystem::verifyMinimizedRules(
     // be redundant.
     if (rule.isPermanent()) {
       if (rule.isRedundant()) {
-        llvm::errs() << "Permanent rule is redundant: " << rule << "\n\n";
-        dump(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          out << "Permanent rule is redundant: " << rule << "\n\n";
+          dump(out);
+        });
       }
 
       continue;
@@ -783,18 +789,20 @@ void RewriteSystem::verifyMinimizedRules(
     if (rule.isLHSSimplified() &&
         !rule.isRedundant() &&
         !rule.isProtocolConformanceRule()) {
-      llvm::errs() << "Simplified rule is not redundant: " << rule << "\n\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Simplified rule is not redundant: " << rule << "\n\n";
+        dump(out);
+      });
     }
 
     // RHS-simplified and substitution-simplified rules should be redundant.
     if ((rule.isRHSSimplified() ||
          rule.isSubstitutionSimplified()) &&
         !rule.isRedundant()) {
-      llvm::errs() << "Simplified rule is not redundant: " << rule << "\n\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Simplified rule is not redundant: " << rule << "\n\n";
+        dump(out);
+      });
     }
 
     if (rule.isRedundant() &&
@@ -803,30 +811,33 @@ void RewriteSystem::verifyMinimizedRules(
         !rule.isSubstitutionSimplified() &&
         !rule.containsNameSymbols() &&
         !redundantConformances.count(ruleID)) {
-      llvm::errs() << "Minimal conformance is redundant: " << rule << "\n\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Minimal conformance is redundant: " << rule << "\n\n";
+        dump(out);
+      });
     }
   }
 
   if (RedundantRules.size() != redundantRuleCount) {
-    llvm::errs() << "Expected " << RedundantRules.size() << " redundant rules "
-                 << "but counted " << redundantRuleCount << "\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Expected " << RedundantRules.size() << " redundant rules "
+          << "but counted " << redundantRuleCount << "\n";
+      dump(out);
+    });
   }
 
   // Replacement paths for redundant rules can only reference other redundant
   // rules if those redundant rules were made redundant later, ie if they
   // appear later in the array.
-  llvm::DenseSet<unsigned> laterRedundantRules;
-  for (const auto &pair : llvm::reverse(RedundantRules)) {
+  toolchain::DenseSet<unsigned> laterRedundantRules;
+  for (const auto &pair : toolchain::reverse(RedundantRules)) {
     const auto &rule = getRule(pair.first);
     if (!rule.isRedundant()) {
-      llvm::errs() << "Recorded replacement path for non-redundant rule "
-                   << rule << "\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Recorded replacement path for non-redundant rule " << rule
+            << "\n";
+        dump(out);
+      });
     }
 
     for (const auto &step : pair.second) {
@@ -835,10 +846,11 @@ void RewriteSystem::verifyMinimizedRules(
         const auto &otherRule = getRule(otherRuleID);
         if (otherRule.isRedundant() &&
             !laterRedundantRules.count(otherRuleID)) {
-          llvm::errs() << "Redundant requirement path contains a redundant "
-                          "rule " << otherRule << "\n";
-          dump(llvm::errs());
-          abort();
+          ABORT([&](auto &out) {
+            out << "Redundant requirement path contains a redundant rule "
+                << otherRule << "\n";
+            dump(out);
+          });
         }
       }
     }

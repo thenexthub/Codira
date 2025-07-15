@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides necessary abstractions for constraint system diagnostics.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_CSDIAGNOSTICS_H
-#define SWIFT_SEMA_CSDIAGNOSTICS_H
+#ifndef LANGUAGE_SEMA_CSDIAGNOSTICS_H
+#define LANGUAGE_SEMA_CSDIAGNOSTICS_H
 
 #include "TypeChecker.h"
 #include "language/AST/ASTContext.h"
@@ -32,7 +33,7 @@
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/FixBehavior.h"
 #include "language/Sema/OverloadChoice.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <tuple>
 
 namespace language {
@@ -202,7 +203,7 @@ protected:
   /// generic parameters substituted back into being generic parameter type.
   Type restoreGenericParameters(
       Type type,
-      llvm::function_ref<void(GenericTypeParamType *, Type)> substitution =
+      toolchain::function_ref<void(GenericTypeParamType *, Type)> substitution =
           [](GenericTypeParamType *, Type) {});
 
   bool conformsToKnownProtocol(Type type, KnownProtocolKind protocol) const;
@@ -210,7 +211,7 @@ protected:
   /// Retrieve an editor placeholder with a given description, or a given
   /// type if specified.
   StringRef getEditorPlaceholder(StringRef description, Type ty,
-                                 llvm::SmallVectorImpl<char> &scratch) const;
+                                 toolchain::SmallVectorImpl<char> &scratch) const;
 };
 
 /// Base class for all of the diagnostics related to generic requirement
@@ -329,9 +330,9 @@ private:
 
 /// Diagnostics for failed conformance checks originating from
 /// generic requirements e.g.
-/// ```swift
+/// ```language
 ///   struct S {}
-///   func foo<T: Hashable>(_ t: T) {}
+///   fn foo<T: Hashable>(_ t: T) {}
 ///   foo(S())
 /// ```
 class MissingConformanceFailure final : public RequirementFailure {
@@ -383,7 +384,7 @@ private:
 };
 
 /// Diagnose failures related to same-type generic requirements, e.g.
-/// ```swift
+/// ```language
 /// protocol P {
 ///   associatedtype T
 /// }
@@ -392,7 +393,7 @@ private:
 ///   typealias T = String
 /// }
 ///
-/// func foo<U: P>(_ t: [U]) where U.T == Int {}
+/// fn foo<U: P>(_ t: [U]) where U.T == Int {}
 /// foo([S()])
 /// ```
 ///
@@ -423,9 +424,9 @@ protected:
 };
 
 /// Diagnose failures related to same-shape generic requirements, e.g.
-/// ```swift
-/// func foo<T..., U...>(t: T..., u: U...) -> (T, U)... {}
-/// func bar<T..., U...>(t: T..., u: U...) {
+/// ```language
+/// fn foo<T..., U...>(t: T..., u: U...) -> (T, U)... {}
+/// fn bar<T..., U...>(t: T..., u: U...) {
 ///   foo(t: t..., u: u...)
 /// }
 /// ```
@@ -471,14 +472,14 @@ public:
 };
 
 /// Diagnose failures related to superclass generic requirements, e.g.
-/// ```swift
+/// ```language
 /// class A {
 /// }
 ///
 /// class B {
 /// }
 ///
-/// func foo<T>(_ t: [T]) where T: A {}
+/// fn foo<T>(_ t: [T]) where T: A {}
 /// foo([B()])
 /// ```
 ///
@@ -510,8 +511,8 @@ protected:
 
 /// Diagnose errors associated with missing, extraneous
 /// or incorrect labels supplied by arguments, e.g.
-/// ```swift
-///   func foo(q: String, _ a: Int) {}
+/// ```language
+///   fn foo(q: String, _ a: Int) {}
 ///   foo("ultimate question", a: 42)
 /// ```
 /// Call to `foo` is going to be diagnosed as missing `q:`
@@ -883,7 +884,7 @@ public:
 };
 
 /// Diagnostics for mismatched generic arguments e.g
-/// ```swift
+/// ```language
 /// struct F<G> {}
 /// let _:F<Int> = F<Bool>()
 /// ```
@@ -929,8 +930,8 @@ private:
 /// Diagnose failures related to conversion between throwing function type
 /// and non-throwing one e.g.
 ///
-/// ```swift
-/// func foo<T>(_ t: T) throws -> Void {}
+/// ```language
+/// fn foo<T>(_ t: T) throws -> Void {}
 /// let _: (Int) -> Void = foo // `foo` can't be implicitly converted to
 ///                            // non-throwing type `(Int) -> Void`
 /// ```
@@ -952,8 +953,8 @@ public:
 /// Diagnose failures related to conversion between the thrown error type
 /// of two function types, e.g.,
 ///
-/// ```swift
-/// func foo<T>(_ t: T) throws(MyError) -> Void {}
+/// ```language
+/// fn foo<T>(_ t: T) throws(MyError) -> Void {}
 /// let _: (Int) throws (OtherError)-> Void = foo
 ///   // `MyError` can't be implicitly converted to `OtherError`
 /// ```
@@ -970,8 +971,8 @@ public:
 /// Diagnose failures related to conversion between 'async' function type
 /// and a synchronous one e.g.
 ///
-/// ```swift
-/// func foo<T>(_ t: T) async -> Void {}
+/// ```language
+/// fn foo<T>(_ t: T) async -> Void {}
 /// let _: (Int) -> Void = foo // `foo` can't be implicitly converted to
 ///                            // synchronous function type `(Int) -> Void`
 /// ```
@@ -1018,7 +1019,7 @@ public:
 /// Diagnose extraneous use of address of (`&`) which could only be
 /// associated with arguments to inout parameters e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {}
 ///
 /// var a: S = ...
@@ -1042,12 +1043,12 @@ protected:
 /// Diagnose mismatches relating to tuple destructuring.
 class TupleContextualFailure final : public ContextualFailure {
   /// Indices of the tuple elements whose types do not match.
-  llvm::SmallVector<unsigned, 4> Indices;
+  toolchain::SmallVector<unsigned, 4> Indices;
 
 public:
   TupleContextualFailure(const Solution &solution,
                          ContextualTypePurpose purpose, Type lhs, Type rhs,
-                         llvm::ArrayRef<unsigned> indices,
+                         toolchain::ArrayRef<unsigned> indices,
                          ConstraintLocator *locator)
       : ContextualFailure(solution, purpose, lhs, rhs, locator),
         Indices(indices.begin(), indices.end()) {
@@ -1066,11 +1067,11 @@ public:
 
 class FunctionTypeMismatch final : public ContextualFailure {
   /// Indices of the parameters whose types do not match.
-  llvm::SmallVector<unsigned, 4> Indices;
+  toolchain::SmallVector<unsigned, 4> Indices;
 
 public:
   FunctionTypeMismatch(const Solution &solution, ContextualTypePurpose purpose,
-                       Type lhs, Type rhs, llvm::ArrayRef<unsigned> indices,
+                       Type lhs, Type rhs, toolchain::ArrayRef<unsigned> indices,
                        ConstraintLocator *locator)
       : ContextualFailure(solution, purpose, lhs, rhs, locator),
         Indices(indices.begin(), indices.end()) {
@@ -1084,7 +1085,7 @@ public:
 /// Diagnose invalid pointer conversions for an autoclosure result type.
 ///
 /// \code
-/// func foo(_ x: @autoclosure () -> UnsafePointer<Int>) {}
+/// fn foo(_ x: @autoclosure () -> UnsafePointer<Int>) {}
 ///
 /// var i = 0
 /// foo(&i) // Invalid conversion to UnsafePointer
@@ -1102,12 +1103,12 @@ public:
 /// Diagnose situations when there was an attempt to unwrap entity
 /// of non-optional type e.g.
 ///
-/// ```swift
+/// ```language
 /// let i: Int = 0
 /// _ = i!
 ///
-/// struct A { func foo() {} }
-/// func foo(_ a: A) {
+/// struct A { fn foo() {} }
+/// fn foo(_ a: A) {
 ///   a?.foo()
 /// }
 /// ```
@@ -1241,9 +1242,9 @@ protected:
 /// Diagnose situations when member referenced by name is missing
 /// from the associated base type, e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {}
-/// func foo(_ s: S) {
+/// fn foo(_ s: S) {
 ///   let _: Int = s.foo(1, 2) // expected type is `(Int, Int) -> Int`
 /// }
 /// ```
@@ -1274,7 +1275,7 @@ private:
   bool diagnoseForDynamicCallable() const;
 
   /// Diagnose methods that return unsafe projections and suggest fixits.
-  /// For example, if Swift cannot find "vector::data" because it is unsafe, try
+  /// For example, if Codira cannot find "vector::data" because it is unsafe, try
   /// to diagnose this and tell the user why we did not import "vector::data".
   ///
   /// Provides fixits for:
@@ -1290,7 +1291,7 @@ private:
 
   /// Tailored diagnostics for missing subscript member on a tuple base type.
   /// e.g
-  /// ```swift
+  /// ```language
   ///   let tuple: (Int, Int) = (0, 0)
   ///   _ = tuple[0] // -> tuple.0.
   ///  ```
@@ -1324,13 +1325,13 @@ public:
 /// existential, e.g. due to occurrences of `Self` in non-covariant position in
 /// the type of the member reference:
 ///
-/// ```swift
+/// ```language
 /// struct G<T> {}
 /// protocol P {
-///   func foo() -> G<Self>
+///   fn foo() -> G<Self>
 /// }
 ///
-/// func bar(p: any P) {
+/// fn bar(p: any P) {
 ///   p.foo()
 /// }
 /// ```
@@ -1347,16 +1348,16 @@ public:
 /// Diagnose situations when we use an instance member on a type
 /// or a type member on an instance
 ///
-/// ```swift
+/// ```language
 /// class Bar {}
 ///
 /// enum Foo {
 ///
-///   static func f() {
+///   static fn f() {
 ///     g(Bar())
 ///   }
 ///
-///   func g(_: Bar) {}
+///   fn g(_: Bar) {}
 ///
 /// }
 /// ```
@@ -1416,12 +1417,12 @@ public:
 /// Diagnose an attempt to construct an object of class type with a metatype
 /// value without using 'required' initializer:
 ///
-/// ```swift
+/// ```language
 ///  class C {
 ///    init(value: Int) {}
 ///  }
 ///
-///  func make<T: C>(type: T.Type) -> T {
+///  fn make<T: C>(type: T.Type) -> T {
 ///    return T.init(value: 42)
 ///  }
 /// ```
@@ -1438,12 +1439,12 @@ public:
 
 /// Diagnose an attempt to call initializer on protocol metatype:
 ///
-/// ```swift
+/// ```language
 ///  protocol P {
 ///    init(value: Int)
 ///  }
 ///
-///  func make(type: P.Type) -> P {
+///  fn make(type: P.Type) -> P {
 ///    return type.init(value: 42)
 ///  }
 /// ```
@@ -1464,7 +1465,7 @@ public:
 /// Diagnose an attempt to construct an instance using non-constant
 /// metatype base without explicitly specifying `init`:
 ///
-/// ```swift
+/// ```language
 /// let foo = Int.self
 /// foo(0) // should be `foo.init(0)`
 /// ```
@@ -1527,7 +1528,7 @@ private:
 
   /// Transform given argument into format suitable for a fix-it
   /// text e.g. `[<label>:]? <#<type#>`
-  void forFixIt(llvm::raw_svector_ostream &out,
+  void forFixIt(toolchain::raw_svector_ostream &out,
                 const AnyFunctionType::Param &argument) const;
 
 public:
@@ -1536,7 +1537,7 @@ public:
   /// arguments to parameters, for cases where both arguments
   /// are un-labeled, it's impossible to say which one is missing:
   ///
-  /// func foo(_: Int, _: String) {}
+  /// fn foo(_: Int, _: String) {}
   /// foo("")
   ///
   /// In this case first argument is missing, but we end up with
@@ -1600,7 +1601,7 @@ public:
 /// Diagnose an attempt to destructure a single tuple closure parameter
 /// into a multiple (possibly anonymous) arguments e.g.
 ///
-/// ```swift
+/// ```language
 /// let _: ((Int, Int)) -> Void = { $0 + $1 }
 /// ```
 class ClosureParamDestructuringFailure final : public FailureDiagnostic {
@@ -1626,7 +1627,7 @@ private:
 
 /// Diagnose an attempt to reference inaccessible member e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {
 ///   var foo: String
 ///
@@ -1650,13 +1651,13 @@ public:
 /// Diagnose an attempt to reference member marked as `mutating`
 /// on immutable base e.g. `let` variable:
 ///
-/// ```swift
+/// ```language
 /// struct S {
-///   mutating func foo(_ i: Int) {}
-///   func foo(_ f: Float) {}
+///   mutating fn foo(_ i: Int) {}
+///   fn foo(_ f: Float) {}
 /// }
 ///
-/// func bar(_ s: S, _ answer: Int) {
+/// fn bar(_ s: S, _ answer: Int) {
 ///  s.foo(answer)
 /// }
 /// ```
@@ -1673,7 +1674,7 @@ public:
 
 /// Diagnose an attempt to use AnyObject as the root type of a KeyPath
 ///
-/// ```swift
+/// ```language
 /// let keyPath = \AnyObject.bar
 /// ```
 class AnyObjectKeyPathRootFailure final : public FailureDiagnostic {
@@ -1692,14 +1693,14 @@ public:
 /// Diagnose an attempt to reference subscript as a keypath component
 /// where at least one of the index arguments doesn't conform to Hashable e.g.
 ///
-/// ```swift
+/// ```language
 /// protocol P {}
 ///
 /// struct S {
 ///   subscript<T: P>(x: Int, _ y: T) -> Bool { return true }
 /// }
 ///
-/// func foo<T: P>(_ x: Int, _ y: T) {
+/// fn foo<T: P>(_ x: Int, _ y: T) {
 ///   _ = \S.[x, y]
 /// }
 /// ```
@@ -1752,7 +1753,7 @@ protected:
 /// Diagnose an attempt to reference a static member as a key path component
 /// without .Type e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {
 ///   static var foo: Int = 42
 /// }
@@ -1776,7 +1777,7 @@ public:
 /// Diagnose an attempt to reference a static member from an unsupported module.
 ///
 /// Only modules built either from source with 6.1+ compiler or
-/// from .swiftinterface that was generated by 6.1+ compiler are supported.
+/// from .codeinterface that was generated by 6.1+ compiler are supported.
 class UnsupportedStaticMemberRefInKeyPath final
     : public InvalidMemberRefInKeyPath {
   Type BaseType;
@@ -1794,7 +1795,7 @@ public:
 /// Diagnose an attempt to reference an enum case as a key path component
 /// e.g.
 ///
-/// ```swift
+/// ```language
 /// enum E {
 ///   case foo
 /// }
@@ -1815,11 +1816,11 @@ public:
 ///
 /// Only diagnosed if `-KeyPathWithMethodMember` feature flag is not set.
 ///
-/// ```swift
+/// ```language
 /// struct S {
 ///   init() { }
-///   func foo() -> Int { return 42 }
-///   static func bar() -> Int { return 0 }
+///   fn foo() -> Int { return 42 }
+///   static fn bar() -> Int { return 0 }
 /// }
 ///
 /// _ = \S.foo
@@ -1840,11 +1841,11 @@ public:
 /// Diagnose an attempt to reference a mutating method as a key path component
 /// e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {
 ///   var year = 2024
 ///
-///   mutating func updateYear(to newYear: Int) {
+///   mutating fn updateYear(to newYear: Int) {
 ///     self.year = newYear
 ///   }
 ///
@@ -1865,11 +1866,11 @@ public:
 /// Diagnose an attempt to reference an async or throwing method as a key path
 /// component e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {
 ///   var year = 2024
 ///
-///   func fetchAndValidate() async throws -> Int {
+///   fn fetchAndValidate() async throws -> Int {
 ///     let fetchedYear = await fetchValue()
 ///       if fetchedYear < 0 {
 ///         throw ValidationError.invalidYear
@@ -1895,7 +1896,7 @@ public:
 /// Diagnose an attempt to reference a member which has a mutating getter as a
 /// key path component e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S {
 ///   var foo: Int {
 ///     mutating get { return 42 }
@@ -1923,8 +1924,8 @@ public:
 /// Diagnose an attempt return something from a function which
 /// doesn't have a return type specified e.g.
 ///
-/// ```swift
-/// func foo() { return 42 }
+/// ```language
+/// fn foo() { return 42 }
 /// ```
 class ExtraneousReturnFailure final : public FailureDiagnostic {
 public:
@@ -1993,7 +1994,7 @@ public:
 /// and the one provided (e.g. source of the assignment or argument to a call)
 /// e.g.:
 ///
-/// ```swift
+/// ```language
 /// let _: [Int] = ["hello"]
 /// ```
 class CollectionElementContextualFailure final : public ContextualFailure {
@@ -2047,7 +2048,7 @@ protected:
 
 /// Diagnose generic argument omission e.g.
 ///
-/// ```swift
+/// ```language
 /// struct S<T> {}
 ///
 /// _ = S()
@@ -2087,13 +2088,13 @@ private:
   ///
   /// \returns true if all of the parameters have been covered.
   bool findArgumentLocations(
-      llvm::function_ref<void(TypeRepr *, GenericTypeParamType *)> callback);
+      toolchain::function_ref<void(TypeRepr *, GenericTypeParamType *)> callback);
 };
 
 class SkipUnhandledConstructInResultBuilderFailure final
     : public FailureDiagnostic {
 public:
-  using UnhandledNode = llvm::PointerUnion<Stmt *, Decl *>;
+  using UnhandledNode = toolchain::PointerUnion<Stmt *, Decl *>;
 
   UnhandledNode unhandled;
   NominalTypeDecl *builder;
@@ -2123,8 +2124,8 @@ private:
 
 /// Diagnose situation when a single "tuple" parameter is given N arguments e.g.
 ///
-/// ```swift
-/// func foo<T>(_ x: (T, Bool)) {}
+/// ```language
+/// fn foo<T>(_ x: (T, Bool)) {}
 /// foo(1, false) // foo expects a single argument of tuple type `(1, false)`
 /// ```
 class InvalidTupleSplatWithSingleParameterFailure final
@@ -2141,8 +2142,8 @@ public:
 
 /// Diagnose situation when an array is passed instead of varargs.
 ///
-/// ```swift
-/// func foo(_ x: Int...) {}
+/// ```language
+/// fn foo(_ x: Int...) {}
 /// foo([1,2,3]]) // foo expects varags like foo(1,2,3) instead.
 /// ```
 class ExpandArrayIntoVarargsFailure final : public ContextualFailure {
@@ -2160,9 +2161,9 @@ public:
 /// Diagnose a situation there is a mismatch between argument and parameter
 /// types e.g.:
 ///
-/// ```swift
-/// func foo(_: String) {}
-/// func bar(_ v: Int) { foo(v) } // `Int` is not convertible to `String`
+/// ```language
+/// fn foo(_: String) {}
+/// fn bar(_ v: Int) { foo(v) } // `Int` is not convertible to `String`
 /// ```
 class ArgumentMismatchFailure : public ContextualFailure {
   FunctionArgApplyInfo Info;
@@ -2173,7 +2174,7 @@ public:
                           FixBehavior fixBehavior =
                               FixBehavior::Error)
       : ContextualFailure(solution, argType, paramType, locator, fixBehavior),
-        Info(*getFunctionArgApplyInfo(getLocator())) {}
+        Info(getFunctionArgApplyInfo(getLocator()).value()) {}
 
   bool diagnoseAsError() override;
   bool diagnoseAsNote() override;
@@ -2206,7 +2207,7 @@ public:
 
   /// Situations like this:
   ///
-  /// func foo(_: Int, _: String) {}
+  /// fn foo(_: Int, _: String) {}
   /// foo("")
   ///
   /// Are currently impossible to fix correctly,
@@ -2340,8 +2341,8 @@ public:
 /// Diagnose the invalid conversion of a temporary pointer argument generated
 /// from an X-to-pointer conversion to an @_nonEphemeral parameter.
 ///
-/// ```swift
-/// func foo(@_nonEphemeral _ ptr: UnsafePointer<Int>) {}
+/// ```language
+/// fn foo(@_nonEphemeral _ ptr: UnsafePointer<Int>) {}
 ///
 /// foo([1, 2, 3])
 /// ```
@@ -2453,16 +2454,16 @@ public:
 /// Diagnose an attempt to reference a top-level name shadowed by a local
 /// member e.g.
 ///
-/// ```swift
+/// ```language
 /// extension Sequence {
-///   func test() -> Int {
+///   fn test() -> Int {
 ///     return max(1, 2)
 ///   }
 /// }
 /// ```
 ///
-/// Here `max` refers to a global function `max<T>(_: T, _: T)` in `Swift`
-/// module and can only be accessed by adding `Swift.` to it, because `Sequence`
+/// Here `max` refers to a global function `max<T>(_: T, _: T)` in `Codira`
+/// module and can only be accessed by adding `Codira.` to it, because `Sequence`
 /// has a member named `max` which accepts a single argument.
 class MissingQualifierInMemberRefFailure final : public FailureDiagnostic {
 public:
@@ -2488,7 +2489,7 @@ public:
 /// base that has another type.
 ///
 /// \code
-/// func f(_ bar: Bar , keyPath: KeyPath<Foo, Int> ) {
+/// fn f(_ bar: Bar , keyPath: KeyPath<Foo, Int> ) {
 ///   bar[keyPath: keyPath]
 /// }
 /// \endcode
@@ -2503,7 +2504,7 @@ public:
 
 /// Diagnose an attempt to use a KeyPath where a multi-argument function is expected
 ///
-/// ```swift
+/// ```language
 /// [Item].sorted(\Item.name)
 /// ```
 class MultiArgFuncKeyPathFailure final : public FailureDiagnostic {
@@ -2519,7 +2520,7 @@ public:
 
 /// Diagnose a failure to infer a KeyPath type by context.
 ///
-/// ```swift
+/// ```language
 /// _ = \.x
 /// let _ : AnyKeyPath = \.x
 /// ```
@@ -2559,7 +2560,7 @@ protected:
 /// Diagnose an attempt to initialize raw representable type or convert to it
 /// a value of some other type that matches its `RawValue` type.
 ///
-/// ```swift
+/// ```language
 /// enum E : Int {
 ///   case a, b, c
 /// }
@@ -2588,7 +2589,7 @@ protected:
 /// Diagnose an attempt to pass raw representable type where its raw value
 /// is expected instead.
 ///
-/// ```swift
+/// ```language
 /// enum E : Int {
 ///   case one = 1
 /// }
@@ -2617,7 +2618,7 @@ private:
 /// apply key path subscript.
 ///
 /// \code
-/// func f(_ bar: Bar? , keyPath: KeyPath<Bar, Int>) {
+/// fn f(_ bar: Bar? , keyPath: KeyPath<Bar, Int>) {
 ///   bar[keyPath: keyPath]
 /// }
 /// \endcode
@@ -2635,7 +2636,7 @@ public:
 /// parameter via a deprecated backward scan.
 ///
 /// \code
-/// func multiple_trailing_with_defaults(
+/// fn multiple_trailing_with_defaults(
 ///   duration: Int,
 ///   animations: (() -> Void)? = nil,
 ///   completion: (() -> Void)? = nil) {}
@@ -2970,20 +2971,20 @@ public:
   bool diagnoseAsError() override;
 };
 
-/// Diagnose situations where Swift -> C pointer implicit conversion
-/// is attempted on a Swift function instead of one imported from C header.
+/// Diagnose situations where Codira -> C pointer implicit conversion
+/// is attempted on a Codira function instead of one imported from C header.
 ///
 /// \code
-/// func test(_: UnsafePointer<UInt8>) {}
+/// fn test(_: UnsafePointer<UInt8>) {}
 ///
-/// func pass_ptr(ptr: UnsafeRawPointer) {
+/// fn pass_ptr(ptr: UnsafeRawPointer) {
 ///   test(ptr) // Only okay if `test` was an imported C function.
 /// }
 /// \endcode
-class SwiftToCPointerConversionInInvalidContext final
+class CodiraToCPointerConversionInInvalidContext final
     : public FailureDiagnostic {
 public:
-  SwiftToCPointerConversionInInvalidContext(const Solution &solution,
+  CodiraToCPointerConversionInInvalidContext(const Solution &solution,
                                             ConstraintLocator *locator)
       : FailureDiagnostic(solution, locator) {}
 
@@ -2995,7 +2996,7 @@ public:
 /// was inferred from result:
 ///
 /// \code
-/// func test<T>(_: T = 42) -> T { ... }
+/// fn test<T>(_: T = 42) -> T { ... }
 ///
 /// let _: String = test() // conflict between `String` and `Int`.
 /// \endcode
@@ -3024,9 +3025,9 @@ public:
 ///  associatedtype B: P where B.A == Int
 /// }
 ///
-/// func getB<T: Q>(_: T) -> T.B { ... }
+/// fn getB<T: Q>(_: T) -> T.B { ... }
 ///
-/// func test(v: any Q) {
+/// fn test(v: any Q) {
 ///   let _ = getB(v) // <- produces `any P` which looses A == Int
 /// }
 /// \endcode
@@ -3069,7 +3070,7 @@ private:
 /// case b(String)
 /// }
 ///
-/// func test(e: E) {
+/// fn test(e: E) {
 ///   switch e {
 ///    case .a(let x), .b(let x): ...
 ///   }
@@ -3099,10 +3100,10 @@ public:
 /// that was not indicated as a missing # in the source.:
 ///
 /// \code
-/// func print(_ value: Any)
+/// fn print(_ value: Any)
 /// @expression macro print<Value...>(_ value: Value...)
 ///
-/// func test(e: E) {
+/// fn test(e: E) {
 ///   print(a, b, c) // missing # to use the macro
 /// }
 /// \endcode
@@ -3136,9 +3137,9 @@ private:
 /// Diagnose situation when a single argument to tuple type is passed to
 /// a value pack expansion parameter that expects distinct N elements:
 ///
-/// ```swift
+/// ```language
 /// struct S<each T> {
-///   func test(x: Int, _: repeat each T) {}
+///   fn test(x: Int, _: repeat each T) {}
 /// }
 ///
 /// S<Int, String>().test(x: 42, (2, "b"))
@@ -3160,8 +3161,8 @@ public:
 /// Diagnose situations when value pack expansion doesn't have any pack
 /// references i.e.:
 ///
-/// ```swift
-/// func test(x: Int) {
+/// ```language
+/// fn test(x: Int) {
 ///   repeat x
 /// }
 /// ```
@@ -3177,9 +3178,9 @@ public:
 /// Diagnose situations where value pack is referenced without explicit 'each':
 ///
 /// \code
-/// func compute<each T>(_: repeat each T) {}
+/// fn compute<each T>(_: repeat each T) {}
 ///
-/// func test<each T>(v: repeat each T) {
+/// fn test<each T>(v: repeat each T) {
 ///   repeat compute(v) // should be `repeat compute(each v)`
 /// }
 /// \endcode
@@ -3280,7 +3281,7 @@ public:
 /// Diagnose attempts to pass non-keypath as an argument to key path subscript:
 ///
 /// \code
-/// func test(data: Int) {
+/// fn test(data: Int) {
 ///   data[keyPath: 42] // error `42` is not a key path
 /// }
 /// \endcode
@@ -3331,4 +3332,4 @@ public:
 } // end namespace constraints
 } // end namespace language
 
-#endif // SWIFT_SEMA_CSDIAGNOSTICS_H
+#endif // LANGUAGE_SEMA_CSDIAGNOSTICS_H

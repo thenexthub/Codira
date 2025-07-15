@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a class for recording incremental dependencies.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_DEPENDENCY_COLLECTOR_H
-#define SWIFT_AST_DEPENDENCY_COLLECTOR_H
+#ifndef LANGUAGE_AST_DEPENDENCY_COLLECTOR_H
+#define LANGUAGE_AST_DEPENDENCY_COLLECTOR_H
 
 #include "language/AST/Identifier.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
 
 namespace language {
 
@@ -62,14 +63,14 @@ struct DependencyCollector {
 
   public:
     static Reference empty() {
-      return {Kind::Empty, llvm::DenseMapInfo<DeclContext *>::getEmptyKey(),
-              llvm::DenseMapInfo<DeclBaseName>::getEmptyKey()};
+      return {Kind::Empty, toolchain::DenseMapInfo<DeclContext *>::getEmptyKey(),
+              toolchain::DenseMapInfo<DeclBaseName>::getEmptyKey()};
     }
 
     static Reference tombstone() {
       return {Kind::Tombstone,
-              llvm::DenseMapInfo<DeclContext *>::getTombstoneKey(),
-              llvm::DenseMapInfo<DeclBaseName>::getTombstoneKey()};
+              toolchain::DenseMapInfo<DeclContext *>::getTombstoneKey(),
+              toolchain::DenseMapInfo<DeclBaseName>::getTombstoneKey()};
     }
 
   public:
@@ -96,7 +97,7 @@ struct DependencyCollector {
         return Reference::tombstone();
       }
       static inline unsigned getHashValue(const Reference &Val) {
-        return llvm::hash_combine(Val.kind, Val.subject,
+        return toolchain::hash_combine(Val.kind, Val.subject,
                                   Val.name.getAsOpaquePointer());
       }
       static bool isEqual(const Reference &LHS, const Reference &RHS) {
@@ -159,4 +160,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_AST_DEPENDENCY_COLLECTOR_H
+#endif // LANGUAGE_AST_DEPENDENCY_COLLECTOR_H

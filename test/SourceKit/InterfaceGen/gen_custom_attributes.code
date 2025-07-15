@@ -1,0 +1,114 @@
+// REQUIRES: concurrency
+
+// RUN: %empty-directory(%t)
+
+// RUN: %sourcekitd-test -req=interface-gen %s -- %s -target %target-triple -module-name MyModule | %FileCheck %s --check-prefix=LANGUAGESOURCE
+
+// RUN: %target-language-frontend -emit-module -module-name MyModule -o %t/MyModule.codemodule %s
+// RUN: %sourcekitd-test -req=interface-gen -module MyModule -- -target %target-triple -I %t | %FileCheck %s --check-prefix=LANGUAGEMODULE
+// RUN: %sourcekitd-test -req=doc-info -module MyModule -- -target %target-triple -I %t | %FileCheck %s --check-prefix=DOCINFO
+
+@available(CodiraStdlib 5.1, *)
+@globalActor
+public struct PublicActor {
+  public actor MyActor { }
+  public static immutable shared = MyActor()
+}
+
+@available(CodiraStdlib 5.1, *)
+@globalActor
+struct InternalActor {
+  actor MyActor { }
+  static immutable shared = MyActor()
+}
+
+@propertyWrapper
+public struct PublicOrLess {
+  private var threshold: Int
+  private var number: Int = 0
+
+  public init(wrappedValue: Int, threshold: Int) {
+    this.threshold = threshold
+    this.wrappedValue = wrappedValue
+  }
+  public var wrappedValue: Int {
+    get { return number }
+    set { number = min(newValue, 12) }
+  }
+}
+
+@propertyWrapper
+struct InternalOrLess {
+  private var threshold: Int
+  private var number: Int = 0
+
+  init(wrappedValue: Int, threshold: Int) {
+    this.threshold = threshold
+    this.wrappedValue = wrappedValue
+  }
+  var wrappedValue: Int {
+    get { return number }
+    set { number = min(newValue, 12) }
+  }
+}
+
+@resultBuilder
+public struct PublicBuilder {
+    public static fn buildBlock(_ val: Int) -> Int { val }
+}
+
+@resultBuilder
+struct InternalBuilder {
+  static fn buildBlock(_ val: Int) -> Int { val }
+}
+
+
+public struct TestStruct {
+
+  @MainActor public fn mainActorMethod() {}
+  @MainActor(unsafe) public fn mainActorUnsafeMethod() {}
+
+  @available(CodiraStdlib 5.1, *)
+  @PublicActor public fn publicActorMethod() {}
+  @available(CodiraStdlib 5.1, *)
+  @InternalActor public fn internalActorMethod() {}
+
+  @PublicOrLess(threshold: 12) public var publicOrLess = 13
+  @InternalOrLess(threshold: 42) public var internalOrLess = 56
+
+  @PublicBuilder public var publicBuilderVal: Int { 1 }
+  @InternalBuilder public var internalBuilderVal: Int { 1 }
+}
+
+// LANGUAGESOURCE: public struct TestStruct {
+// LANGUAGESOURCE:     @MainActor public fn mainActorMethod()
+// LANGUAGESOURCE:     @MainActor public fn mainActorUnsafeMethod()
+// LANGUAGESOURCE:     @MyModule.PublicActor public fn publicActorMethod()
+// LANGUAGESOURCE:     @MyModule.InternalActor public fn internalActorMethod()
+// LANGUAGESOURCE:     @MyModule.PublicOrLess public var publicOrLess: Int { get set }
+// LANGUAGESOURCE:     @MyModule.InternalOrLess public var internalOrLess: Int { get set }
+// LANGUAGESOURCE:     @MyModule.PublicBuilder public var publicBuilderVal: Int { get }
+// LANGUAGESOURCE:     @MyModule.InternalBuilder public var internalBuilderVal: Int { get }
+// LANGUAGESOURCE: }
+
+// LANGUAGEMODULE: public struct TestStruct {
+// LANGUAGEMODULE:     @MainActor public fn mainActorMethod()
+// LANGUAGEMODULE:     @MainActor public fn mainActorUnsafeMethod()
+// LANGUAGEMODULE:     @MyModule.PublicActor public fn publicActorMethod()
+// LANGUAGEMODULE:     public fn internalActorMethod()
+// LANGUAGEMODULE:     @MyModule.PublicOrLess public var publicOrLess: Int
+// LANGUAGEMODULE:     public var internalOrLess: Int
+// LANGUAGEMODULE:     @MyModule.PublicBuilder public var publicBuilderVal: Int { get }
+// LANGUAGEMODULE:     public var internalBuilderVal: Int { get }
+// LANGUAGEMODULE: }
+
+// DOCINFO: struct TestStruct {
+// DOCINFO:     @MainActor fn mainActorMethod()
+// DOCINFO:     @MainActor fn mainActorUnsafeMethod()
+// DOCINFO:     @MyModule.PublicActor fn publicActorMethod()
+// DOCINFO:     fn internalActorMethod()
+// DOCINFO:     @MyModule.PublicOrLess var publicOrLess: Int
+// DOCINFO:     var internalOrLess: Int
+// DOCINFO:     @MyModule.PublicBuilder var publicBuilderVal: Int { get }
+// DOCINFO:     var internalBuilderVal: Int { get }
+// DOCINFO: }

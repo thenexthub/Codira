@@ -1,0 +1,3 @@
+// {"signature":"(anonymous namespace)::ABIDependencyEvaluator::computeABIDependenciesForModule(language::ModuleDecl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a immutable _ a.init = 0

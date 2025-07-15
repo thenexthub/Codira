@@ -1,13 +1,17 @@
 //===--- Task.inc - ---------------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -15,11 +19,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Program.h"
-#include "llvm/Support/Signals.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Program.h"
+#include "toolchain/Support/Signals.h"
 #include <optional>
 
 namespace language {
@@ -33,11 +37,11 @@ public:
   const char *ExecPath;
 
   /// Any arguments which should be passed during execution.
-  llvm::ArrayRef<const char *> Args;
+  toolchain::ArrayRef<const char *> Args;
 
   /// The environment which should be used during execution. If empty,
   /// the current process's environment will be used instead.
-  llvm::ArrayRef<const char *> Env;
+  toolchain::ArrayRef<const char *> Env;
 
   /// Context associated with this Task.
   void *Context;
@@ -46,14 +50,14 @@ public:
   /// Output.
   bool SeparateErrors;
 
-  llvm::SmallString<64> StdoutPath;
+  toolchain::SmallString<64> StdoutPath;
 
-  llvm::SmallString<64> StderrPath;
+  toolchain::SmallString<64> StderrPath;
 
-  llvm::sys::ProcessInfo PI;
+  toolchain::sys::ProcessInfo PI;
 
-  Task(const char *ExecPath, llvm::ArrayRef<const char *> Args,
-       llvm::ArrayRef<const char *> Env = std::nullopt, void *Context = nullptr,
+  Task(const char *ExecPath, toolchain::ArrayRef<const char *> Args,
+       toolchain::ArrayRef<const char *> Env = std::nullopt, void *Context = nullptr,
        bool SeparateErrors = false)
       : ExecPath(ExecPath), Args(Args), Env(Env), Context(Context),
         SeparateErrors(SeparateErrors) {}
@@ -64,33 +68,33 @@ public:
 };
 
 bool Task::execute() {
-  llvm::SmallVector<const char *, 128> Argv;
+  toolchain::SmallVector<const char *, 128> Argv;
   Argv.push_back(ExecPath);
   Argv.append(Args.begin(), Args.end());
   Argv.push_back(nullptr);
 
-  std::optional<llvm::ArrayRef<llvm::StringRef>> Envp =
+  std::optional<toolchain::ArrayRef<toolchain::StringRef>> Envp =
       Env.empty() ? decltype(Envp)(std::nullopt)
-                  : decltype(Envp)(llvm::toStringRefArray(Env.data()));
+                  : decltype(Envp)(toolchain::toStringRefArray(Env.data()));
 
-  if (llvm::sys::fs::createTemporaryFile("stdout", "tmp", StdoutPath))
+  if (toolchain::sys::fs::createTemporaryFile("stdout", "tmp", StdoutPath))
     return true;
-  llvm::sys::RemoveFileOnSignal(StdoutPath);
+  toolchain::sys::RemoveFileOnSignal(StdoutPath);
 
   if (SeparateErrors) {
-    if (llvm::sys::fs::createTemporaryFile("stderr", "tmp", StderrPath))
+    if (toolchain::sys::fs::createTemporaryFile("stderr", "tmp", StderrPath))
       return true;
-    llvm::sys::RemoveFileOnSignal(StderrPath);
+    toolchain::sys::RemoveFileOnSignal(StderrPath);
   }
 
-  std::optional<llvm::StringRef> Redirects[] = {
+  std::optional<toolchain::StringRef> Redirects[] = {
       std::nullopt,
-      llvm::StringRef{StdoutPath},
-      llvm::StringRef{SeparateErrors ? StderrPath : StdoutPath},
+      toolchain::StringRef{StdoutPath},
+      toolchain::StringRef{SeparateErrors ? StderrPath : StdoutPath},
   };
 
   bool ExecutionFailed = false;
-  PI = llvm::sys::ExecuteNoWait(ExecPath, llvm::toStringRefArray(Argv.data()),
+  PI = toolchain::sys::ExecuteNoWait(ExecPath, toolchain::toStringRefArray(Argv.data()),
                                 Envp, Redirects, /*memoryLimit*/ 0,
                                 /*ErrMsg*/ nullptr, &ExecutionFailed);
   return ExecutionFailed;

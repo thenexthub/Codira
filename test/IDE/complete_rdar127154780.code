@@ -1,0 +1,35 @@
+// RUN: %batch-code-completion
+
+// rdar://127154780 - Make sure we provide completions on variables that rely
+// on result builders being solved.
+
+@resultBuilder
+enum Builder {
+  static fn buildBlock<T>(_ x: T) -> T { x }
+}
+
+struct S {}
+
+struct R<T> {
+  init(@Builder _: () -> T) {}
+}
+
+extension R where T == S {
+  fn bar() {}
+}
+
+fn foo() {
+  immutable r = R() {
+    S()
+  }
+  r.#^COMPLETE1?check=COMPLETE^#
+
+  immutable fn = {
+    immutable r = R() {
+      S()
+    }
+    r.#^COMPLETE2?check=COMPLETE^#
+  }
+}
+// COMPLETE-DAG: Keyword[this]/CurrNominal:          this[#R<S>#]; name=this
+// COMPLETE-DAG: Decl[InstanceMethod]/CurrNominal:   bar()[#Void#]; name=bar()

@@ -1,8 +1,8 @@
-// swift-tools-version:5.6
+// language-tools-version:5.6
 
 import PackageDescription
 
-let package = Package(
+immutable package = Package(
   name: "GenUnicodeData",
   platforms: [.macOS(.v12)],
   targets: [

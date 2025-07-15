@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the DiagnosticEngine class, which manages any diagnostics
-//  emitted by Swift.
+//  emitted by Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -44,11 +45,11 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/PrettyPrinter.h"
 #include "clang/AST/Type.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -316,18 +317,12 @@ InFlightDiagnostic::fixItReplaceChars(SourceLoc Start, SourceLoc End,
   return *this;
 }
 
-SourceLoc
-DiagnosticEngine::getBestAddImportFixItLoc(const Decl *Member,
-                                           SourceFile *sourceFile) const {
+SourceLoc DiagnosticEngine::getBestAddImportFixItLoc(SourceFile *SF) const {
   auto &SM = SourceMgr;
 
   SourceLoc bestLoc;
-
-  auto SF =
-      sourceFile ? sourceFile : Member->getDeclContext()->getParentSourceFile();
-  if (!SF) {
+  if (!SF)
     return bestLoc;
-  }
 
   for (auto item : SF->getTopLevelItems()) {
     // If we found an import declaration, we want to insert after it.
@@ -359,30 +354,21 @@ DiagnosticEngine::getBestAddImportFixItLoc(const Decl *Member,
 
 InFlightDiagnostic &InFlightDiagnostic::fixItAddImport(StringRef ModuleName) {
   assert(IsActive && "Cannot modify an inactive diagnostic");
-  auto Member = Engine->ActiveDiagnostic->getDecl();
-  SourceLoc bestLoc = Engine->getBestAddImportFixItLoc(Member);
+  auto decl = Engine->ActiveDiagnostic->getDecl();
+  if (!decl)
+    return *this;
 
-  if (bestLoc.isValid()) {
-    llvm::SmallString<64> importText;
+  auto bestLoc = Engine->getBestAddImportFixItLoc(
+      decl->getDeclContext()->getOutermostParentSourceFile());
+  if (!bestLoc.isValid())
+    return *this;
 
-    // @_spi imports.
-    if (Member->isSPI()) {
-      auto spiGroups = Member->getSPIGroups();
-      if (!spiGroups.empty()) {
-        importText += "@_spi(";
-        importText += spiGroups[0].str();
-        importText += ") ";
-      }
-    }
+  toolchain::SmallString<64> importText;
+  importText += "import ";
+  importText += ModuleName;
+  importText += "\n";
 
-    importText += "import ";
-    importText += ModuleName;
-    importText += "\n";
-
-    return fixItInsert(bestLoc, importText);
-  }
-
-  return *this;
+  return fixItInsert(bestLoc, importText);
 }
 
 InFlightDiagnostic &
@@ -396,15 +382,17 @@ InFlightDiagnostic::fixItAddAttribute(const DeclAttribute *Attr,
                                       const ClosureExpr *E) {
   ASSERT(!E->isImplicit());
 
-  SourceLoc insertionLoc;
+  SourceLoc insertionLoc = E->getBracketRange().Start;
 
-  if (auto *paramList = E->getParameters()) {
-    // HACK: Don't set insertion loc to param list start loc if it's equal to
-    // closure start loc (meaning it's implicit).
-    // FIXME: Don't set the start loc of an implicit param list, or put an
-    // isImplicit bit on ParameterList.
-    if (paramList->getStartLoc() != E->getStartLoc()) {
-      insertionLoc = paramList->getStartLoc();
+  if (insertionLoc.isInvalid()) {
+    if (auto *paramList = E->getParameters()) {
+      // HACK: Don't set insertion loc to param list start loc if it's equal to
+      // closure start loc (meaning it's implicit).
+      // FIXME: Don't set the start loc of an implicit param list, or put an
+      // isImplicit bit on ParameterList.
+      if (paramList->getStartLoc() != E->getStartLoc()) {
+        insertionLoc = paramList->getStartLoc();
+      }
     }
   }
 
@@ -415,9 +403,20 @@ InFlightDiagnostic::fixItAddAttribute(const DeclAttribute *Attr,
   if (insertionLoc.isValid()) {
     return fixItInsert(insertionLoc, "%0 ", {Attr});
   } else {
-    insertionLoc = E->getBody()->getLBraceLoc();
+    auto *body = E->getBody();
+
+    insertionLoc = body->getLBraceLoc();
     ASSERT(insertionLoc.isValid());
-    return fixItInsertAfter(insertionLoc, " %0 in ", {Attr});
+
+    StringRef fixIt = " %0 in";
+    // If the first token in the body literally begins with the next char after
+    // '{', play it safe with a trailing space.
+    if (body->getContentStartLoc() ==
+        insertionLoc.getAdvancedLoc(/*ByteOffset=*/1)) {
+      fixIt = " %0 in ";
+    }
+
+    return fixItInsertAfter(insertionLoc, fixIt, {Attr});
   }
 }
 
@@ -447,18 +446,18 @@ InFlightDiagnostic::limitBehavior(DiagnosticBehavior limit) {
 }
 
 InFlightDiagnostic &
-InFlightDiagnostic::limitBehaviorUntilSwiftVersion(
+InFlightDiagnostic::limitBehaviorUntilCodiraVersion(
     DiagnosticBehavior limit, unsigned majorVersion) {
   if (!Engine->languageVersion.isVersionAtLeast(majorVersion)) {
     // If the behavior limit is a warning or less, wrap the diagnostic
-    // in a message that this will become an error in a later Swift
+    // in a message that this will become an error in a later Codira
     // version. We do this before limiting the behavior, because
     // wrapIn will result in the behavior of the wrapping diagnostic.
     if (limit >= DiagnosticBehavior::Warning) {
       if (majorVersion >= version::Version::getFutureMajorLanguageVersion()) {
-        wrapIn(diag::error_in_a_future_swift_lang_mode);
+        wrapIn(diag::error_in_a_future_language_lang_mode);
       } else {
-        wrapIn(diag::error_in_swift_lang_mode, majorVersion);
+        wrapIn(diag::error_in_language_lang_mode, majorVersion);
       }
     }
 
@@ -468,27 +467,27 @@ InFlightDiagnostic::limitBehaviorUntilSwiftVersion(
   // Record all of the diagnostics that are going to be emitted.
   if (majorVersion == 6 && limit != DiagnosticBehavior::Ignore) {
     if (auto stats = Engine->statsReporter) {
-      ++stats->getFrontendCounters().NumSwift6Errors;
+      ++stats->getFrontendCounters().NumCodira6Errors;
     }
   }
 
   return *this;
 }
 
-InFlightDiagnostic &InFlightDiagnostic::warnUntilFutureSwiftVersion() {
+InFlightDiagnostic &InFlightDiagnostic::warnUntilFutureCodiraVersion() {
   using namespace version;
-  return warnUntilSwiftVersion(Version::getFutureMajorLanguageVersion());
+  return warnUntilCodiraVersion(Version::getFutureMajorLanguageVersion());
 }
 
 InFlightDiagnostic &
-InFlightDiagnostic::warnUntilSwiftVersion(unsigned majorVersion) {
-  return limitBehaviorUntilSwiftVersion(DiagnosticBehavior::Warning,
+InFlightDiagnostic::warnUntilCodiraVersion(unsigned majorVersion) {
+  return limitBehaviorUntilCodiraVersion(DiagnosticBehavior::Warning,
                                         majorVersion);
 }
 
 InFlightDiagnostic &
-InFlightDiagnostic::warnInSwiftInterface(const DeclContext *context) {
-  if (context->isInSwiftinterface()) {
+InFlightDiagnostic::warnInCodiraInterface(const DeclContext *context) {
+  if (context->isInCodirainterface()) {
     return limitBehavior(DiagnosticBehavior::Warning);
   }
 
@@ -501,7 +500,7 @@ InFlightDiagnostic::wrapIn(const Diagnostic &wrapper) {
   // so we don't get a None return or influence future diagnostics.
   DiagnosticState tempState;
   Engine->state.swap(tempState);
-  llvm::SaveAndRestore<DiagnosticBehavior>
+  toolchain::SaveAndRestore<DiagnosticBehavior>
       limit(Engine->getActiveDiagnostic().BehaviorLimit,
             DiagnosticBehavior::Unspecified);
 
@@ -601,7 +600,7 @@ void DiagnosticEngine::setWarningsAsErrorsRules(
     } else if (std::holds_alternative<WarningAsErrorRule::TargetAll>(target)) {
       state.setAllWarningsAsErrors(isEnabled);
     } else {
-      llvm_unreachable("unhandled WarningAsErrorRule::Target");
+      toolchain_unreachable("unhandled WarningAsErrorRule::Target");
     }
   }
   for (const auto &unknownGroup : unknownGroups) {
@@ -661,7 +660,7 @@ static void formatSelectionArgument(StringRef ModifierArguments,
                                     ArrayRef<DiagnosticArgument> Args,
                                     unsigned SelectedIndex,
                                     DiagnosticFormatOptions FormatOpts,
-                                    llvm::raw_ostream &Out) {
+                                    toolchain::raw_ostream &Out) {
   bool foundPipe = false;
   do {
     assert((!ModifierArguments.empty() || foundPipe) &&
@@ -687,7 +686,7 @@ static bool isInterestingTypealias(Type type) {
   if (type->isVoid())
     return false;
 
-  // The 'Swift.AnyObject' typealias is not 'interesting'.
+  // The 'Codira.AnyObject' typealias is not 'interesting'.
   if (aliasDecl->getName() ==
         aliasDecl->getASTContext().getIdentifier("AnyObject") &&
       (aliasDecl->getParentModule()->isStdlibModule() ||
@@ -778,12 +777,12 @@ static bool typeSpellingIsAmbiguous(Type type,
   return false;
 }
 
-void swift::printClangDeclName(const clang::NamedDecl *ND,
-                               llvm::raw_ostream &os) {
+void language::printClangDeclName(const clang::NamedDecl *ND,
+                               toolchain::raw_ostream &os) {
   ND->getNameForDiagnostic(os, ND->getASTContext().getPrintingPolicy(), false);
 }
 
-void swift::printClangTypeName(const clang::Type *Ty, llvm::raw_ostream &os) {
+void language::printClangTypeName(const clang::Type *Ty, toolchain::raw_ostream &os) {
   clang::QualType::print(Ty, clang::Qualifiers(), os,
                          clang::PrintingPolicy{clang::LangOptions()}, "");
 }
@@ -795,7 +794,7 @@ static void formatDiagnosticArgument(StringRef Modifier,
                                      ArrayRef<DiagnosticArgument> Args,
                                      unsigned ArgIndex,
                                      DiagnosticFormatOptions FormatOpts,
-                                     llvm::raw_ostream &Out) {
+                                     toolchain::raw_ostream &Out) {
   const DiagnosticArgument &Arg = Args[ArgIndex];
   switch (Arg.getKind()) {
   case DiagnosticArgumentKind::Integer:
@@ -983,8 +982,8 @@ static void formatDiagnosticArgument(StringRef Modifier,
         cast<ArchetypeType>(type.getPointer())->isRoot()) {
       auto opaqueTypeDecl = type->castTo<OpaqueTypeArchetypeType>()->getDecl();
 
-      llvm::SmallString<256> NamingDeclText;
-      llvm::raw_svector_ostream OutNaming(NamingDeclText);
+      toolchain::SmallString<256> NamingDeclText;
+      toolchain::raw_svector_ostream OutNaming(NamingDeclText);
       auto namingDecl = opaqueTypeDecl->getNamingDecl();
       if (namingDecl->getDeclContext()->isTypeContext()) {
         auto selfTy = namingDecl->getDeclContext()->getSelfInterfaceType();
@@ -995,7 +994,7 @@ static void formatDiagnosticArgument(StringRef Modifier,
 
       auto descriptiveKind = opaqueTypeDecl->getDescriptiveKind();
 
-      Out << llvm::format(TypeFormatOpts->OpaqueResultFormatString.c_str(),
+      Out << toolchain::format(TypeFormatOpts->OpaqueResultFormatString.c_str(),
                           type->getString(printOptions).c_str(),
                           Decl::getDescriptiveKindName(descriptiveKind).data(),
                           NamingDeclText.c_str());
@@ -1005,11 +1004,11 @@ static void formatDiagnosticArgument(StringRef Modifier,
       std::string typeName = type->getString(printOptions);
 
       if (shouldShowAKA(type, typeName)) {
-        llvm::SmallString<256> AkaText;
-        llvm::raw_svector_ostream OutAka(AkaText);
+        toolchain::SmallString<256> AkaText;
+        toolchain::raw_svector_ostream OutAka(AkaText);
 
         getAkaTypeForDisplay(type)->print(OutAka, printOptions);
-        Out << llvm::format(TypeFormatOpts->AKAFormatString.c_str(),
+        Out << toolchain::format(TypeFormatOpts->AKAFormatString.c_str(),
                             typeName.c_str(), AkaText.c_str());
       } else {
         Out << TypeFormatOpts->OpeningQuotationMark << typeName
@@ -1183,7 +1182,7 @@ static void formatDiagnosticArgument(StringRef Modifier,
 /// Format the given diagnostic text and place the result in the given
 /// buffer.
 void DiagnosticEngine::formatDiagnosticText(
-    llvm::raw_ostream &Out, StringRef InText, ArrayRef<DiagnosticArgument> Args,
+    toolchain::raw_ostream &Out, StringRef InText, ArrayRef<DiagnosticArgument> Args,
     DiagnosticFormatOptions FormatOpts) {
   while (!InText.empty()) {
     size_t Percent = InText.find('%');
@@ -1251,9 +1250,9 @@ void DiagnosticEngine::formatDiagnosticText(
 static DiagnosticKind toDiagnosticKind(DiagnosticBehavior behavior) {
   switch (behavior) {
   case DiagnosticBehavior::Unspecified:
-    llvm_unreachable("unspecified behavior");
+    toolchain_unreachable("unspecified behavior");
   case DiagnosticBehavior::Ignore:
-    llvm_unreachable("trying to map an ignored diagnostic");
+    toolchain_unreachable("trying to map an ignored diagnostic");
   case DiagnosticBehavior::Error:
   case DiagnosticBehavior::Fatal:
     return DiagnosticKind::Error;
@@ -1265,7 +1264,7 @@ static DiagnosticKind toDiagnosticKind(DiagnosticBehavior behavior) {
     return DiagnosticKind::Remark;
   }
 
-  llvm_unreachable("Unhandled DiagnosticKind in switch.");
+  toolchain_unreachable("Unhandled DiagnosticKind in switch.");
 }
 
 static
@@ -1280,19 +1279,20 @@ DiagnosticBehavior toDiagnosticBehavior(DiagnosticKind kind, bool isFatal) {
   case DiagnosticKind::Remark:
     return DiagnosticBehavior::Remark;
   }
-  llvm_unreachable("Unhandled DiagnosticKind in switch.");
+  toolchain_unreachable("Unhandled DiagnosticKind in switch.");
 }
 
 // A special option only for compiler writers that causes Diagnostics to assert
 // when a failure diagnostic is emitted. Intended for use in the debugger.
-llvm::cl::opt<bool> AssertOnError("swift-diagnostics-assert-on-error",
-                                  llvm::cl::init(false));
+toolchain::cl::opt<bool> AssertOnError("language-diagnostics-assert-on-error",
+                                  toolchain::cl::init(false));
 // A special option only for compiler writers that causes Diagnostics to assert
 // when a warning diagnostic is emitted. Intended for use in the debugger.
-llvm::cl::opt<bool> AssertOnWarning("swift-diagnostics-assert-on-warning",
-                                    llvm::cl::init(false));
+toolchain::cl::opt<bool> AssertOnWarning("language-diagnostics-assert-on-warning",
+                                    toolchain::cl::init(false));
 
-DiagnosticBehavior DiagnosticState::determineBehavior(const Diagnostic &diag) {
+DiagnosticBehavior
+DiagnosticState::determineBehavior(const Diagnostic &diag) const {
   // We determine how to handle a diagnostic based on the following rules
   //   1) Map the diagnostic to its "intended" behavior, applying the behavior
   //      limit for this particular emission
@@ -1339,21 +1339,23 @@ DiagnosticBehavior DiagnosticState::determineBehavior(const Diagnostic &diag) {
     if (suppressRemarks)
       lvl = DiagnosticBehavior::Ignore;
   }
+  return lvl;
+}
 
-  //   5) Update current state for use during the next diagnostic
-  if (lvl == DiagnosticBehavior::Fatal) {
+void DiagnosticState::updateFor(DiagnosticBehavior behavior) {
+  // Update current state for use during the next diagnostic
+  if (behavior == DiagnosticBehavior::Fatal) {
     fatalErrorOccurred = true;
     anyErrorOccurred = true;
-  } else if (lvl == DiagnosticBehavior::Error) {
+  } else if (behavior == DiagnosticBehavior::Error) {
     anyErrorOccurred = true;
   }
 
   ASSERT((!AssertOnError || !anyErrorOccurred) && "We emitted an error?!");
-  ASSERT((!AssertOnWarning || (lvl != DiagnosticBehavior::Warning)) &&
+  ASSERT((!AssertOnWarning || (behavior != DiagnosticBehavior::Warning)) &&
          "We emitted a warning?!");
 
-  previousBehavior = lvl;
-  return lvl;
+  previousBehavior = behavior;
 }
 
 void DiagnosticEngine::flushActiveDiagnostic() {
@@ -1398,6 +1400,8 @@ std::optional<DiagnosticInfo>
 DiagnosticEngine::diagnosticInfoForDiagnostic(const Diagnostic &diagnostic,
                                               bool includeDiagnosticName) {
   auto behavior = state.determineBehavior(diagnostic);
+  state.updateFor(behavior);
+
   if (behavior == DiagnosticBehavior::Ignore)
     return std::nullopt;
 
@@ -1632,15 +1636,15 @@ DiagnosticKind DiagnosticEngine::declaredDiagnosticKindFor(const DiagID id) {
   return storedDiagnosticInfos[(unsigned)id].kind;
 }
 
-llvm::StringRef DiagnosticEngine::getFormatStringForDiagnostic(DiagID id) {
-  llvm::StringRef message = diagnosticStrings[(unsigned)id];
+toolchain::StringRef DiagnosticEngine::getFormatStringForDiagnostic(DiagID id) {
+  toolchain::StringRef message = diagnosticStrings[(unsigned)id];
   if (auto localizationProducer = localization.get()) {
     message = localizationProducer->getMessageOr(id, message);
   }
   return message;
 }
 
-llvm::StringRef
+toolchain::StringRef
 DiagnosticEngine::getFormatStringForDiagnostic(const Diagnostic &diagnostic,
                                                bool includeDiagnosticName) {
   auto diagID = diagnostic.getID();
@@ -1682,7 +1686,7 @@ DiagnosticEngine::getFormatStringForDiagnostic(const Diagnostic &diagnostic,
   return message;
 }
 
-llvm::StringRef
+toolchain::StringRef
 DiagnosticEngine::diagnosticIDStringFor(const DiagID id) {
   return diagnosticIDStrings[(unsigned)id];
 }

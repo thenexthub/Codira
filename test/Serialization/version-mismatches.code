@@ -1,0 +1,19 @@
+// RUN: not %target-language-frontend %s -typecheck -I %S/Inputs/too-old/ -show-diagnostics-after-fatal 2>&1 | %FileCheck -check-prefix CHECK -check-prefix TOO-OLD %s
+// RUN: not %target-language-frontend %s -typecheck -I %S/Inputs/too-new/ -show-diagnostics-after-fatal 2>&1 | %FileCheck -check-prefix CHECK -check-prefix TOO-NEW %s
+
+// Update this line if "-language-version 4" is no longer supported.
+// RUN: not %target-language-frontend %s -typecheck -I %S/Inputs/too-new-language/ -show-diagnostics-after-fatal -language-version 4 2>&1 | %FileCheck -check-prefix CHECK -check-prefix LANGUAGE %s
+// RUN: not %target-language-frontend %s -typecheck -I %S/Inputs/too-new-language/ -show-diagnostics-after-fatal -language-version 5 2>&1 | %FileCheck -check-prefix CHECK -check-prefix LANGUAGE %s
+
+// RUN: not %target-language-frontend %s -typecheck -I %S/Inputs/too-old-language/ -show-diagnostics-after-fatal 2>&1 | %FileCheck -check-prefix CHECK -check-prefix LANGUAGE %s
+
+import Library
+// TOO-OLD: :[[@LINE-1]]:8: error: compiled module was created by an older version of the compiler; rebuild 'Library' and try again: {{.*}}too-old/Library.codemodule{{$}}
+// TOO-NEW: :[[@LINE-2]]:8: error: compiled module was created by a newer version of the compiler: {{.*}}too-new/Library.codemodule{{$}}
+
+// Update this line when the compiler version changes.
+// LANGUAGE: :[[@LINE-5]]:8: error: module compiled with Codira X.Y cannot be imported by the Codira 6.{{.+}} compiler: {{.*}}too-{{old|new}}-language/Library.codemodule{{$}}
+
+// Compiler thinks that the module is empty in all cases.
+// CHECK: :[[@LINE+1]]:1: error: module 'Library' has no member named 'foo'
+Library.foo()

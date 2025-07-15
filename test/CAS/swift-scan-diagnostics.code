@@ -1,0 +1,63 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %s -o %t/deps.json -language-version 5 -cache-compile-job -cas-path %t/cas
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+// RUN: echo "\"-disable-implicit-string-processing-module-import\"" >> %t/MyApp.cmd
+// RUN: echo "\"-disable-implicit-concurrency-module-import\"" >> %t/MyApp.cmd
+// RUN: echo "\"-parse-stdlib\"" >> %t/MyApp.cmd
+
+// RUN: %language-scan-test -action compute_cache_key -cas-path %t/cas -input %s -- %target-language-frontend -cache-compile-job %s \
+// RUN:   -emit-module -emit-module-path %t/Test.codemodule -c -emit-dependencies -module-name Test -o %t/test.o -cas-path %t/cas \
+// RUN:   @%t/MyApp.cmd > %t/key.casid
+
+// RUN: %language-scan-test -action compute_cache_key_from_index -cas-path %t/cas -input 0 -- %target-language-frontend -cache-compile-job %s \
+// RUN:   -emit-module -emit-module-path %t/Test.codemodule -c -emit-dependencies -module-name Test -o %t/test.o -cas-path %t/cas \
+// RUN:   @%t/MyApp.cmd > %t/key1.casid
+
+// RUN: diff %t/key.casid %t/key1.casid
+
+// RUN: not %language-scan-test -action cache_query -id @%t/key.casid -cas-path %t/cas 2>&1 | %FileCheck %s --check-prefix=CHECK-QUERY-NOT-FOUND
+
+// RUN: %target-language-frontend -cache-compile-job %s -emit-module -emit-module-path %t/Test.codemodule -c -emit-dependencies \
+// RUN:  -serialize-diagnostics -serialize-diagnostics-path %t/test.dia \
+// RUN:  -module-name Test -o %t/test.o -cas-path %t/cas @%t/MyApp.cmd
+
+// RUN: %language-scan-test -action cache_query -id @%t/key.casid -cas-path %t/cas | %FileCheck %s --check-prefix=CHECK-QUERY
+
+// RUN: %language-scan-test -action replay_result -cas-path %t/cas -id @%t/key.casid -- %target-language-frontend -cache-compile-job %s \
+// RUN:   -emit-module -emit-module-path %t/Test2.codemodule -c -emit-dependencies -module-name Test -o %t/test2.o -cas-path %t/cas \
+// RUN:   -serialize-diagnostics -serialize-diagnostics-path %t/test2.dia \
+// RUN:   @%t/MyApp.cmd
+
+// RUN: diff %t/Test.codemodule %t/Test2.codemodule
+// RUN: diff %t/test.o %t/test2.o
+// RUN: diff %t/test.dia %t/test2.dia
+
+// CHECK-QUERY-NOT-FOUND: cached output not found
+// CHECK-QUERY: Cached Compilation for key "toolchaincas://{{.*}}" has 4 outputs:
+// CHECK-QUERY-NEXT: object: toolchaincas://
+// CHECK-QUERY-NEXT: dependencies: toolchaincas://
+// CHECK-QUERY-NEXT: languagemodule: toolchaincas://
+// CHECK-QUERY-NEXT: cached-diagnostics: toolchaincas://
+
+// RUN: %language-scan-test -action replay_result -cas-path %t/cas -id @%t/key.casid -- %target-language-frontend -cache-compile-job %s \
+// RUN:   -emit-module -emit-module-path %t/Test2.codemodule -c -emit-dependencies -module-name Test -o %t/test2.o -cas-path %t/cas \
+// RUN:   -frontend-parseable-output -serialize-diagnostics -serialize-diagnostics-path %t/test3.dia \
+// RUN:   @%t/MyApp.cmd 2>&1 | %FileCheck %s --check-prefix=PARSEABLE
+
+// RUN: diff %t/test.dia %t/test3.dia
+
+// PARSEABLE: {{[1-9][0-9]*}}
+// PARSEABLE-NEXT: {
+// PARSEABLE-NEXT:   "kind": "began",
+// PARSEABLE-NEXT:   "name": "compile",
+// PARSEABLE-NEXT:   "command": "language-frontend
+
+// PARSEABLE:   "kind": "finished",
+// PARSEABLE-NEXT:   "name": "compile",
+
+
+#warning("This is a warning")

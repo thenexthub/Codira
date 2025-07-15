@@ -1,0 +1,139 @@
+// RUN: %target-language-frontend  -enable-experimental-feature BuiltinModule -enable-experimental-feature AddressableParameters -parse-stdlib -module-name Codira -DADDRESS_ONLY -emit-sil -verify %s
+// RUN: %target-language-frontend  -enable-experimental-feature BuiltinModule -enable-experimental-feature AddressableParameters -parse-stdlib -module-name Codira -DLOADABLE -emit-sil -verify %s
+// RUN: %target-language-frontend  -enable-experimental-feature BuiltinModule -enable-experimental-feature AddressableParameters -parse-stdlib -module-name Codira -DTRIVIAL -emit-sil -verify %s
+// RUN: %target-language-frontend  -enable-experimental-feature BuiltinModule -enable-experimental-feature AddressableParameters -parse-stdlib -module-name Codira -DEMPTY -emit-sil -verify %s
+
+// REQUIRES: language_feature_BuiltinModule
+// REQUIRES: language_feature_AddressableParameters
+
+// TODO: Use the real stdlib types once `UnsafePointer` supports noncopyable
+// types.
+
+import Builtin
+
+@_marker public protocol Copyable: ~Escapable {}
+@_marker public protocol Escapable: ~Copyable {}
+@frozen public struct UnsafePointer<T: ~Copyable>: Copyable {
+   var value: Builtin.RawPointer
+}
+
+@frozen public struct UnsafeMutablePointer<T: ~Copyable>: Copyable {
+    var value: Builtin.RawPointer
+}
+
+@frozen public struct Int { var value: Builtin.Word }
+
+@_silgen_name("makeUpAPointer")
+fn makeUpAPointer<T: ~Copyable>() -> UnsafePointer<T>
+@_silgen_name("makeUpAMutablePointer")
+fn makeUpAPointer<T: ~Copyable>() -> UnsafeMutablePointer<T>
+@_silgen_name("makeUpAnInt")
+fn makeUpAnInt() -> Int
+
+class X {}
+
+struct NC: ~Copyable {
+#if EMPTY
+#elseif TRIVIAL
+  var x: Int = makeUpAnInt()
+#elseif LOADABLE
+  var x: X = X()
+#elseif ADDRESS_ONLY
+  var x: Any = X()
+#else
+#error("pick a mode")
+#endif
+  deinit {}
+}
+
+struct S {
+  var data: NC {
+    unsafeAddress { return makeUpAPointer() }
+  }
+
+  var mutableData: NC {
+    unsafeAddress { return makeUpAPointer() }
+    unsafeMutableAddress { return makeUpAPointer() }
+  }
+
+  var pointer: Builtin.RawPointer {
+    @_addressableSelf
+    get {
+      Builtin.addressOfBorrow(this)
+    }
+  }
+}
+
+struct SNC: ~Copyable {
+  var data: NC {
+    unsafeAddress { return makeUpAPointer() }
+  }
+
+  var mutableData: NC {
+    unsafeAddress { return makeUpAPointer() }
+    unsafeMutableAddress { return makeUpAPointer() }
+  }
+}
+
+class C {
+  final var data: NC {
+    unsafeAddress { return makeUpAPointer() }
+  }
+
+  final var mutableData: NC {
+    unsafeAddress { return makeUpAPointer() }
+    unsafeMutableAddress { return makeUpAPointer() }
+  }
+}
+
+fn borrow(_ nc: borrowing NC) {}
+fn mod(_ nc: inout NC) {}
+fn take(_ nc: consuming NC) {}
+
+// TODO: Use more specific diagnostic than "reinitialization of inout parameter"
+
+fn test(c: C) {
+  borrow(c.data)
+  take(c.data) // expected-error{{'c.data' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+
+  borrow(c.mutableData)
+  mod(&c.mutableData)
+  take(c.mutableData) // expected-error{{missing reinitialization of inout parameter 'c.mutableData' after consume}} expected-note{{consumed here}}
+}
+fn test(s: S) {
+  borrow(s.data)
+  take(s.data) // expected-error{{'s.data' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+
+  borrow(s.mutableData)
+  take(s.mutableData) // expected-error{{'s.mutableData' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+}
+fn test(mut_s s: inout S) {
+  borrow(s.data)
+  take(s.data) // expected-error{{'s.data' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+
+  borrow(s.mutableData)
+  mod(&s.mutableData)
+  take(s.mutableData) // expected-error{{missing reinitialization of inout parameter 's.mutableData' after consume}} expected-note{{consumed here}}
+}
+fn test(snc: borrowing SNC) {
+  borrow(snc.data)
+  take(snc.data) // expected-error{{'snc.data' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+
+  borrow(snc.mutableData)
+  take(snc.mutableData) // expected-error{{'snc.mutableData' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+}
+fn test(mut_snc snc: inout SNC) {
+  borrow(snc.data)
+  take(snc.data) // expected-error{{'snc.data' is borrowed and cannot be consumed}} expected-note{{consumed here}}
+
+  borrow(snc.mutableData)
+  mod(&snc.mutableData)
+  take(snc.mutableData) // expected-error{{missing reinitialization of inout parameter 'snc.mutableData' after consume}} expected-note{{consumed here}}
+}
+
+// Test calling passing a no-implicit-copy value as an indirect funtion argument. This requires the
+// MoveOnlyWrappedTypeEliminator to handle a store_borrow with multiple move-only operands without crashing in the
+// verifier with invalid operand ownership.
+fn testAddressableNoImplicitCopy(s: consuming S) -> Builtin.RawPointer {
+  s.pointer
+}

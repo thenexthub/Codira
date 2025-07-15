@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Callee type, which stores all necessary
@@ -18,17 +19,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_CALLEE_H
-#define SWIFT_IRGEN_CALLEE_H
+#ifndef LANGUAGE_IRGEN_CALLEE_H
+#define LANGUAGE_IRGEN_CALLEE_H
 
 #include <type_traits>
 #include "language/AST/IRGenOptions.h"
-#include "llvm/IR/DerivedTypes.h"
+#include "toolchain/IR/DerivedTypes.h"
 #include "language/SIL/SILType.h"
 #include "IRGen.h"
 #include "Signature.h"
 
-namespace llvm {
+namespace toolchain {
   class ConstantInt;
 }
 
@@ -63,12 +64,12 @@ namespace irgen {
   class PointerAuthInfo {
     unsigned Signed : 1;
     unsigned Key : 31;
-    llvm::Value *Discriminator;
+    toolchain::Value *Discriminator;
   public:
     PointerAuthInfo() {
       Signed = false;
     }
-    PointerAuthInfo(unsigned key, llvm::Value *discriminator)
+    PointerAuthInfo(unsigned key, toolchain::Value *discriminator)
         : Discriminator(discriminator) {
       assert(discriminator->getType()->isIntegerTy() ||
              discriminator->getType()->isPointerTy());
@@ -78,22 +79,22 @@ namespace irgen {
 
     static PointerAuthInfo emit(IRGenFunction &IGF,
                                 const PointerAuthSchema &schema,
-                                llvm::Value *storageAddress,
+                                toolchain::Value *storageAddress,
                                 const PointerAuthEntity &entity);
 
     static PointerAuthInfo emit(IRGenFunction &IGF,
                                 clang::PointerAuthQualifier pointerAuthQual,
-                                llvm::Value *storageAddress);
+                                toolchain::Value *storageAddress);
 
     static PointerAuthInfo emit(IRGenFunction &IGF,
                                 const PointerAuthSchema &schema,
-                                llvm::Value *storageAddress,
-                                llvm::ConstantInt *otherDiscriminator);
+                                toolchain::Value *storageAddress,
+                                toolchain::ConstantInt *otherDiscriminator);
 
     static PointerAuthInfo forFunctionPointer(IRGenModule &IGM,
                                               CanSILFunctionType fnType);
 
-    static llvm::ConstantInt *getOtherDiscriminator(IRGenModule &IGM,
+    static toolchain::ConstantInt *getOtherDiscriminator(IRGenModule &IGM,
                                            const PointerAuthSchema &schema,
                                            const PointerAuthEntity &entity);
 
@@ -106,7 +107,7 @@ namespace irgen {
     }
 
     bool isConstant() const {
-      return (!isSigned() || isa<llvm::Constant>(Discriminator));
+      return (!isSigned() || isa<toolchain::Constant>(Discriminator));
     }
 
     unsigned getKey() const {
@@ -131,7 +132,7 @@ namespace irgen {
       case (unsigned)PointerAuthSchema::ARM8_3Key::ASDB:
         return (unsigned)PointerAuthSchema::ARM8_3Key::ASIB;
       }
-      llvm_unreachable("unhandled case");
+      toolchain_unreachable("unhandled case");
     }
     unsigned getCorrespondingDataKey() const {
       assert(hasCodeKey());
@@ -141,9 +142,9 @@ namespace irgen {
       case (unsigned)PointerAuthSchema::ARM8_3Key::ASIB:
         return (unsigned)PointerAuthSchema::ARM8_3Key::ASDB;
       }
-      llvm_unreachable("unhandled case");
+      toolchain_unreachable("unhandled case");
     }
-    llvm::Value *getDiscriminator() const {
+    toolchain::Value *getDiscriminator() const {
       assert(isSigned());
       return Discriminator;
     }
@@ -275,7 +276,7 @@ namespace irgen {
       case SpecialKind::KeyPathAccessor:
         return false;
       }
-      llvm_unreachable("covered switch");
+      toolchain_unreachable("covered switch");
     }
 
     /// Should we suppress passing arguments associated with the generic
@@ -309,7 +310,7 @@ namespace irgen {
       case SpecialKind::DistributedExecuteTarget:
         return false;
       }
-      llvm_unreachable("covered switch");
+      toolchain_unreachable("covered switch");
     }
 
     friend bool operator==(FunctionPointerKind lhs, FunctionPointerKind rhs) {
@@ -331,7 +332,7 @@ namespace irgen {
     Kind kind;
 
     /// The actual pointer, either to the function or to its descriptor.
-    llvm::Value *Value;
+    toolchain::Value *Value;
 
     /// An additional value whose meaning varies by the FunctionPointer's Kind:
     /// - Kind::AsyncFunctionPointer -> pointer to the corresponding function
@@ -340,14 +341,14 @@ namespace irgen {
     /// - Kind::CoroFunctionPointer - pointer to the corresponding function
     ///                               if the FunctionPointer was created via
     ///                               forDirect; nullptr otherwise.
-    llvm::Value *SecondaryValue;
+    toolchain::Value *SecondaryValue;
 
     PointerAuthInfo AuthInfo;
 
     Signature Sig;
     // If this is an await function pointer contains the signature of the await
     // call (without return values).
-    llvm::Type *awaitSignature = nullptr;
+    toolchain::Type *awaitSignature = nullptr;
     bool useSignature = false;
 
     // True when this function pointer points to a non-throwing foreign
@@ -358,11 +359,11 @@ namespace irgen {
     // on exception in the always_inline thunk.
     bool foreignCallCatchesExceptionInThunk = false;
 
-    explicit FunctionPointer(Kind kind, llvm::Value *value,
+    explicit FunctionPointer(Kind kind, toolchain::Value *value,
                              const Signature &signature)
         : FunctionPointer(kind, value, PointerAuthInfo(), signature) {}
 
-    explicit FunctionPointer(Kind kind, llvm::Value *value,
+    explicit FunctionPointer(Kind kind, toolchain::Value *value,
                              PointerAuthInfo authInfo,
                              const Signature &signature)
         : FunctionPointer(kind, value, nullptr, authInfo, signature){};
@@ -370,11 +371,11 @@ namespace irgen {
     /// Construct a FunctionPointer for an arbitrary pointer value.
     /// We may add more arguments to this; try to use the other
     /// constructors/factories if possible.
-    explicit FunctionPointer(Kind kind, llvm::Value *value,
-                             llvm::Value *secondaryValue,
+    explicit FunctionPointer(Kind kind, toolchain::Value *value,
+                             toolchain::Value *secondaryValue,
                              PointerAuthInfo authInfo,
                              const Signature &signature,
-                             llvm::Type *awaitSignature = nullptr)
+                             toolchain::Type *awaitSignature = nullptr)
         : kind(kind), Value(value), SecondaryValue(secondaryValue),
           AuthInfo(authInfo), Sig(signature), awaitSignature(awaitSignature) {
       // TODO: maybe assert similarity to signature.getType()?
@@ -389,7 +390,7 @@ namespace irgen {
 
   public:
 
-    FunctionPointer withProfilingThunk(llvm::Function *thunk) const {
+    FunctionPointer withProfilingThunk(toolchain::Function *thunk) const {
       auto res = FunctionPointer(kind, thunk, nullptr/*secondaryValue*/,
                                  AuthInfo, Sig);
       res.useSignature = useSignature;
@@ -401,15 +402,15 @@ namespace irgen {
         : kind(FunctionPointer::Kind::Function), Value(nullptr),
           SecondaryValue(nullptr) {}
 
-    static FunctionPointer createForAsyncCall(llvm::Value *value,
+    static FunctionPointer createForAsyncCall(toolchain::Value *value,
                                               PointerAuthInfo authInfo,
                                               const Signature &signature,
-                                              llvm::Type *awaitCallSignature) {
+                                              toolchain::Type *awaitCallSignature) {
       return FunctionPointer(FunctionPointer::Kind::Function, value, nullptr,
                              authInfo, signature, awaitCallSignature);
     }
 
-    static FunctionPointer createSigned(Kind kind, llvm::Value *value,
+    static FunctionPointer createSigned(Kind kind, toolchain::Value *value,
                                         PointerAuthInfo authInfo,
                                         const Signature &signature,
                                         bool useSignature = false) {
@@ -417,7 +418,7 @@ namespace irgen {
       res.useSignature = useSignature;
       return res;
     }
-    static FunctionPointer createSignedClosure(Kind kind, llvm::Value *value,
+    static FunctionPointer createSignedClosure(Kind kind, toolchain::Value *value,
                                         PointerAuthInfo authInfo,
                                         const Signature &signature) {
       auto res = FunctionPointer(kind, value, authInfo, signature);
@@ -426,7 +427,7 @@ namespace irgen {
     }
 
 
-    static FunctionPointer createUnsigned(Kind kind, llvm::Value *value,
+    static FunctionPointer createUnsigned(Kind kind, toolchain::Value *value,
                                           const Signature &signature,
                                           bool useSignature = false) {
       auto res = FunctionPointer(kind, value, signature);
@@ -434,12 +435,12 @@ namespace irgen {
       return res;
     }
 
-    static FunctionPointer forDirect(IRGenModule &IGM, llvm::Constant *value,
-                                     llvm::Constant *secondaryValue,
+    static FunctionPointer forDirect(IRGenModule &IGM, toolchain::Constant *value,
+                                     toolchain::Constant *secondaryValue,
                                      CanSILFunctionType fnType);
 
-    static FunctionPointer forDirect(Kind kind, llvm::Constant *value,
-                                     llvm::Constant *secondaryValue,
+    static FunctionPointer forDirect(Kind kind, toolchain::Constant *value,
+                                     toolchain::Constant *secondaryValue,
                                      const Signature &signature,
                                      bool useSignature = false) {
       auto res = FunctionPointer(kind, value, secondaryValue, PointerAuthInfo(),
@@ -449,13 +450,13 @@ namespace irgen {
     }
 
     static FunctionPointer forExplosionValue(IRGenFunction &IGF,
-                                             llvm::Value *fnPtr,
+                                             toolchain::Value *fnPtr,
                                              CanSILFunctionType fnType);
 
     /// Is this function pointer completely constant?  That is, can it
     /// be safely moved to a different function context?
     bool isConstant() const {
-      return (isa<llvm::Constant>(Value) && AuthInfo.isConstant());
+      return (isa<toolchain::Constant>(Value) && AuthInfo.isConstant());
     }
 
     Kind getKind() const { return kind; }
@@ -466,32 +467,32 @@ namespace irgen {
     StringRef getName(IRGenModule &IGM) const;
 
     /// Return the actual function pointer.
-    llvm::Value *getPointer(IRGenFunction &IGF) const;
+    toolchain::Value *getPointer(IRGenFunction &IGF) const;
 
     /// Return the actual function pointer.
-    llvm::Value *getRawPointer() const { return Value; }
+    toolchain::Value *getRawPointer() const { return Value; }
 
     /// Assuming that the receiver is of kind AsyncFunctionPointer, returns the
     /// pointer to the corresponding function if available.
-    llvm::Value *getRawAsyncFunction() const {
+    toolchain::Value *getRawAsyncFunction() const {
       assert(kind.isAsyncFunctionPointer());
       return SecondaryValue;
     }
 
     /// Assuming that the receiver is of kind CoroFunctionPointer, returns the
     /// pointer to the corresponding function if available.
-    llvm::Value *getRawCoroFunction() const {
+    toolchain::Value *getRawCoroFunction() const {
       assert(kind.isCoroFunctionPointer());
       return SecondaryValue;
     }
 
     /// Given that this value is known to have been constructed from
     /// a direct function, return the function pointer.
-    llvm::Constant *getDirectPointer() const {
-      return cast<llvm::Constant>(Value);
+    toolchain::Constant *getDirectPointer() const {
+      return cast<toolchain::Constant>(Value);
     }
 
-    llvm::FunctionType *getFunctionType() const;
+    toolchain::FunctionType *getFunctionType() const;
 
     const PointerAuthInfo &getAuthInfo() const {
       return AuthInfo;
@@ -501,14 +502,14 @@ namespace irgen {
       return Sig;
     }
 
-    llvm::CallingConv::ID getCallingConv() const {
+    toolchain::CallingConv::ID getCallingConv() const {
       return Sig.getCallingConv();
     }
 
-    llvm::AttributeList getAttributes() const {
+    toolchain::AttributeList getAttributes() const {
       return Sig.getAttributes();
     }
-    llvm::AttributeList &getMutableAttributes() & {
+    toolchain::AttributeList &getMutableAttributes() & {
       return Sig.getMutableAttributes();
     }
 
@@ -516,7 +517,7 @@ namespace irgen {
       return Sig.getForeignInfo();
     }
 
-    llvm::Value *getExplosionValue(IRGenFunction &IGF,
+    toolchain::Value *getExplosionValue(IRGenFunction &IGF,
                                    CanSILFunctionType fnType) const;
 
     /// Form a FunctionPointer whose Kind is ::Function.
@@ -558,10 +559,10 @@ namespace irgen {
     FunctionPointer Fn;
 
     /// The first data pointer required by the function invocation.
-    llvm::Value *FirstData;
+    toolchain::Value *FirstData;
 
     /// The second data pointer required by the function invocation.
-    llvm::Value *SecondData;
+    toolchain::Value *SecondData;
 
   public:
     Callee(const Callee &other) = delete;
@@ -571,8 +572,8 @@ namespace irgen {
     Callee &operator=(Callee &&other) = default;
 
     Callee(CalleeInfo &&info, const FunctionPointer &fn,
-           llvm::Value *firstData = nullptr,
-           llvm::Value *secondData = nullptr);
+           toolchain::Value *firstData = nullptr,
+           toolchain::Value *secondData = nullptr);
 
     SILFunctionTypeRepresentation getRepresentation() const {
       return Info.OrigFnType->getRepresentation();
@@ -593,14 +594,14 @@ namespace irgen {
 
     const FunctionPointer &getFunctionPointer() const { return Fn; }
 
-    llvm::FunctionType *getLLVMFunctionType() {
+    toolchain::FunctionType *getLLVMFunctionType() {
       return Fn.getFunctionType();
     }
 
-    llvm::AttributeList getAttributes() const {
+    toolchain::AttributeList getAttributes() const {
       return Fn.getAttributes();
     }
-    llvm::AttributeList &getMutableAttributes() & {
+    toolchain::AttributeList &getMutableAttributes() & {
       return Fn.getMutableAttributes();
     }
 
@@ -622,23 +623,23 @@ namespace irgen {
       return Fn.shouldSuppressPolymorphicArguments();
     }
 
-    /// If this callee has a value for the Swift context slot, return
+    /// If this callee has a value for the Codira context slot, return
     /// it; otherwise return non-null.
-    llvm::Value *getSwiftContext() const;
+    toolchain::Value *getCodiraContext() const;
 
     /// Given that this callee is a block, return the block pointer.
-    llvm::Value *getBlockObject() const;
+    toolchain::Value *getBlockObject() const;
 
     /// Given that this callee is a C++ method, return the self argument.
-    llvm::Value *getCXXMethodSelf() const;
+    toolchain::Value *getCXXMethodSelf() const;
 
     /// Given that this callee is an ObjC method, return the receiver
     /// argument.  This might not be 'self' anymore.
-    llvm::Value *getObjCMethodReceiver() const;
+    toolchain::Value *getObjCMethodReceiver() const;
 
     /// Given that this callee is an ObjC method, return the receiver
     /// argument.  This might not be 'self' anymore.
-    llvm::Value *getObjCMethodSelector() const;
+    toolchain::Value *getObjCMethodSelector() const;
     bool isDirectObjCMethod() const;
   };
 

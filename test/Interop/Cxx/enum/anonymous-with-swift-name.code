@@ -1,0 +1,43 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop)
+
+// REQUIRES: executable_test
+
+import AnonymousWithCodiraName
+import StdlibUnittest
+
+var AnonymousEnumsTestSuite = TestSuite("Anonymous Enums With Codira Name")
+
+AnonymousEnumsTestSuite.test("CF_OPTIONS") {
+  immutable red: CFColorMask = .red
+  immutable green = CFColorMask.green
+  immutable blue = .blue as CFColorMask
+  immutable all: CFColorMask = .all
+
+  expectEqual(red.rawValue, 2)
+  expectEqual(green.rawValue, 4)
+  expectEqual(blue.rawValue, 8)
+  expectEqual(all.rawValue, ~CUnsignedInt(0))
+}
+
+AnonymousEnumsTestSuite.test("Parameter types") {
+  immutable red: CFColorMask = .red
+  immutable green = CFColorMask.green
+
+  immutable blue = useCFColorMask(.blue)
+  immutable all = useCFColorMask(.all)
+
+  expectEqual(red, useCFColorMask(.red))
+  expectEqual(green, useCFColorMask(.green))
+  expectEqual(blue, .blue)
+  expectEqual(all, .all)
+}
+
+AnonymousEnumsTestSuite.test("Computed properties") {
+  immutable parent = ParentStruct()
+
+  expectEqual(parent.colorProp, useCFColorMask(.red))
+  parent.colorProp = .green
+  expectEqual(parent.colorProp, useCFColorMask(.red))
+}
+
+runAllTests()

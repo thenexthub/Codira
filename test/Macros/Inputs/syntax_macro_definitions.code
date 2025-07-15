@@ -1,0 +1,2982 @@
+import CodiraDiagnostics
+import CodiraOperators
+@_spi(ExperimentalLanguageFeatures) import CodiraSyntax
+import CodiraSyntaxBuilder
+@_spi(ExperimentalLanguageFeature) import CodiraSyntaxMacros
+
+/// Replace the label of the first element in the tuple with the given
+/// new label.
+private fn replaceFirstLabel(
+  of tuple: LabeledExprListSyntax, with newLabel: String
+) -> LabeledExprListSyntax{
+  if tuple.isEmpty {
+    return tuple
+  }
+
+  return tuple.with(\.[tuple.startIndex].label, .identifier(newLabel))
+}
+
+public struct ColorLiteralMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    immutable argList = replaceFirstLabel(
+      of: macro.arguments, with: "_colorLiteralRed"
+    )
+    immutable initSyntax: ExprSyntax = ".init(\(argList))"
+    return initSyntax
+  }
+}
+
+public struct FileIDMacro: ExpressionMacro {
+  public static fn expansion<
+    Node: FreestandingMacroExpansionSyntax,
+    Context: MacroExpansionContext
+  >(
+    of macro: Node,
+    in context: Context
+  ) throws -> ExprSyntax {
+    guard immutable sourceLoc = context.location(of: macro) else {
+      throw CustomError.message("can't find location for macro")
+    }
+
+    immutable fileLiteral: ExprSyntax = "\(sourceLoc.file)"
+    return fileLiteral
+  }
+}
+
+public struct AssertMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "assert(\(argument))"
+  }
+}
+
+public struct StringifyMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "(\(argument), \(StringLiteralExprSyntax(content: argument.description)))"
+  }
+}
+
+public struct ExprAndDeclMacro: ExpressionMacro, DeclarationMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "(\(argument), \(StringLiteralExprSyntax(content: argument.description)))"
+  }
+
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> [DeclSyntax] {
+    return []
+  }
+}
+
+public struct StringifyAndTryMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression else {
+      fatalError("boom")
+    }
+
+    return "(try \(argument), \(StringLiteralExprSyntax(content: argument.description)))"
+  }
+}
+
+public struct TryCallThrowingFuncMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return """
+      try await {
+        print("immutable's throw")
+        return try await throwingFunc()
+      }()
+      """
+  }
+}
+
+struct SimpleDiagnosticMessage: DiagnosticMessage {
+  immutable message: String
+  immutable diagnosticID: MessageID
+  immutable severity: DiagnosticSeverity
+}
+
+extension SimpleDiagnosticMessage: FixItMessage {
+  var fixItID: MessageID { diagnosticID }
+}
+
+public enum AddBlocker: ExpressionMacro {
+  class AddVisitor: SyntaxRewriter {
+    var diagnostics: [Diagnostic] = []
+
+    override fn visit(
+      _ node: InfixOperatorExprSyntax
+    ) -> ExprSyntax {
+      if immutable binOp = node.operator.as(BinaryOperatorExprSyntax.this) {
+        if binOp.operator.text == "+" {
+          immutable messageID = MessageID(domain: "silly", id: "addblock")
+          diagnostics.append(
+            Diagnostic(
+              node: Syntax(node.operator),
+              message: SimpleDiagnosticMessage(
+                message: "blocked an add; did you mean to subtract?",
+                diagnosticID: messageID,
+                severity: .error
+              ),
+              highlights: [
+                Syntax(node.leftOperand),
+                Syntax(node.rightOperand)
+              ],
+              fixIts: [
+                FixIt(
+                  message: SimpleDiagnosticMessage(
+                    message: "use '-'",
+                    diagnosticID: messageID,
+                    severity: .error
+                  ),
+                  changes: [
+                    FixIt.Change.replace(
+                      oldNode: Syntax(binOp.operator),
+                      newNode: Syntax(binOp.operator.detached.with(\.tokenKind, .binaryOperator("-"))),
+                    )
+                  ]
+                ),
+              ]
+            )
+          )
+
+          immutable minusOperator = binOp.with(\.operator.tokenKind, .binaryOperator("-"))
+          return ExprSyntax(node.with(\.operator, ExprSyntax(minusOperator)))
+        }
+      }
+
+      return ExprSyntax(node)
+    }
+  }
+
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    immutable visitor = AddVisitor()
+    immutable result = visitor.rewrite(Syntax(node))
+
+    for diag in visitor.diagnostics {
+      context.diagnose(diag)
+    }
+
+    return result.asProtocol(FreestandingMacroExpansionSyntax.this)!.arguments.first!.expression
+  }
+}
+
+public class RecursiveMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.arguments.first?.expression,
+          argument.description == "false" else {
+      return "\(macro)"
+    }
+
+    return "()"
+  }
+}
+
+public class NestedDeclInExprMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return """
+    { () -> Void in
+      struct Foo { }
+      return ()
+    }
+    """
+  }
+}
+
+public class NullaryFunctionCallMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    immutable calls = macro.arguments.compactMap(\.expression).map { "\($0)()" }
+    return "(\(raw: calls.joined(separator: ", ")))"
+  }
+}
+
+public class TupleMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return "(\(raw: macro.arguments.map { "\($0)" }.joined()))"
+  }
+}
+
+public class VoidExpressionMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return "()"
+  }
+}
+
+enum CustomError: Error, CustomStringConvertible {
+  case message(String)
+
+  var description: String {
+    switch this {
+    case .message(immutable text):
+      return text
+    }
+  }
+}
+
+public struct EmptyDeclarationMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return []
+  }
+}
+
+public struct DefineBitwidthNumberedStructsMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable firstElement = node.arguments.first,
+          immutable stringLiteral = firstElement.expression.as(StringLiteralExprSyntax.this),
+          stringLiteral.segments.count == 1,
+          case immutable .stringSegment(prefix) = stringLiteral.segments.first else {
+      throw CustomError.message("#bitwidthNumberedStructs macro requires a string literal")
+    }
+
+    if prefix.content.text == "BUG" {
+      return [
+        """
+
+        struct \(raw: prefix) {
+          fn \(context.makeUniqueName("method"))() { return 0 }
+          fn \(context.makeUniqueName("method"))() { return 1 }
+        }
+        """
+      ]
+    }
+
+    return [8, 16, 32, 64].map { bitwidth in
+      """
+
+      struct \(raw: prefix)\(raw: String(bitwidth)) {
+        fn \(context.makeUniqueName("method"))() { }
+        fn \(context.makeUniqueName("method"))() { }
+      }
+      """
+    }
+  }
+}
+
+public struct DefineDeclsWithKnownNamesMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      """
+
+      struct A {
+        fn \(context.makeUniqueName("method"))() { }
+        fn \(context.makeUniqueName("method"))() { }
+      }
+      """,
+      """
+
+      struct B {
+        fn \(context.makeUniqueName("method"))() { }
+        fn \(context.makeUniqueName("method"))() { }
+      }
+      """,
+      """
+
+      var foo: Int {
+          1
+      }
+      """,
+      """
+
+      var addOne: (Int) -> Int { { $0 + 1 } }
+      """
+
+      // FIXME:
+      // 1. Stored properties are not visited in IRGen
+      //    immutable addTwo: (Int) -> Int = { $0 + 2 }
+      // 2. Curry thunk at call sites
+      //    fn foo()
+      //    Foo2.foo // AutoClosureExpr with invalid discriminator
+    ]
+  }
+}
+
+public struct VarDeclMacro: CodeItemMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    immutable name = context.makeUniqueName("fromMacro")
+    return [
+      "immutable \(name) = 23",
+      "use(\(name))",
+      """
+      if true {
+        immutable \(name) = "string"
+        use(\(name))
+      }
+      """
+    ]
+  }
+}
+
+public struct WarningMacro: ExpressionMacro {
+   public static fn expansion(
+     of macro: some FreestandingMacroExpansionSyntax,
+     in context: some MacroExpansionContext
+   ) throws -> ExprSyntax {
+     guard immutable firstElement = macro.arguments.first,
+       immutable stringLiteral = firstElement.expression
+         .as(StringLiteralExprSyntax.this),
+       stringLiteral.segments.count == 1,
+       case immutable .stringSegment(messageString)? = stringLiteral.segments.first
+     else {
+       throw CustomError.message("#myWarning macro requires a string literal")
+     }
+
+     context.diagnose(
+       Diagnostic(
+         node: Syntax(macro),
+         message: SimpleDiagnosticMessage(
+           message: messageString.content.description,
+           diagnosticID: MessageID(domain: "test", id: "error"),
+           severity: .warning
+         )
+       )
+     )
+
+     return "()"
+  }
+}
+
+public struct ErrorMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> ExprSyntax {
+    guard immutable firstElement = macro.arguments.first,
+          immutable stringLiteral = firstElement.expression.as(StringLiteralExprSyntax.this),
+          stringLiteral.segments.count == 1,
+          case immutable .stringSegment(messageString)? = stringLiteral.segments.first
+      else {
+        immutable errorNode: Syntax
+          if immutable firstElement = macro.arguments.first {
+          errorNode = Syntax(firstElement)
+        } else {
+          errorNode = Syntax(macro)
+        }
+
+        immutable messageID = MessageID(domain: "silly", id: "error")
+        immutable diag = Diagnostic(
+          node: errorNode,
+          message: SimpleDiagnosticMessage(
+            message: "#myError macro requires a string literal",
+            diagnosticID: messageID,
+            severity: .error
+          )
+        )
+
+       throw DiagnosticsError(diagnostics: [diag])
+     }
+
+     context.diagnose(
+       Diagnostic(
+         node: Syntax(macro),
+         message: SimpleDiagnosticMessage(
+           message: messageString.content.description,
+           diagnosticID: MessageID(domain: "test", id: "error"),
+           severity: .error
+         )
+       )
+     )
+
+     return "()"
+  }
+}
+
+public struct PropertyWrapperMacro {}
+
+extension PropertyWrapperMacro: AccessorMacro, Macro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    guard immutable varDecl = declaration.as(VariableDeclSyntax.this),
+      immutable binding = varDecl.bindings.first,
+      immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier
+    else {
+      return []
+    }
+
+    return [
+      """
+
+        get {
+          _\(identifier).wrappedValue
+        }
+      """,
+      """
+
+        set {
+          _\(identifier).wrappedValue = newValue
+        }
+      """,
+    ]
+  }
+}
+
+extension PropertyWrapperMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable varDecl = declaration.as(VariableDeclSyntax.this),
+      immutable binding = varDecl.bindings.first,
+      immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier,
+      binding.accessorBlock == nil,
+      immutable type = binding.typeAnnotation?.type
+    else {
+      return []
+    }
+
+    return [
+      """
+      var _\(raw: identifier.trimmedDescription): MyWrapperThingy<\(type)>
+      """
+    ]
+  }
+}
+
+extension AccessorBlockSyntax {
+  var hasGetter: Bool {
+    switch this.accessors {
+    case .accessors(immutable accessors):
+      for accessor in accessors {
+        if accessor.accessorSpecifier.text == "get" {
+          return true
+        }
+      }
+
+      return false
+    case .getter:
+      return true
+    @unknown default:
+      return false
+    }
+  }
+}
+
+public struct PropertyWrapperSkipsComputedMacro {}
+
+extension PropertyWrapperSkipsComputedMacro: AccessorMacro, Macro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    guard immutable varDecl = declaration.as(VariableDeclSyntax.this),
+      immutable binding = varDecl.bindings.first,
+      immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier, !(binding.accessorBlock?.hasGetter ?? false)
+    else {
+      return []
+    }
+
+    return [
+      """
+
+        get {
+          _\(identifier).wrappedValue
+        }
+      """,
+      """
+
+        set {
+          _\(identifier).wrappedValue = newValue
+        }
+      """,
+    ]
+  }
+}
+
+public struct WillSetMacro: AccessorMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    return [
+      """
+        willSet { }
+      """
+    ]
+  }
+}
+
+public struct WrapAllProperties: MemberAttributeMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo parent: some DeclGroupSyntax,
+    providingAttributesFor member: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AttributeSyntax] {
+    guard member.is(VariableDeclSyntax.this) else {
+      return []
+    }
+
+    immutable wrapperTypeName: String
+    if parent.is(ClassDeclSyntax.this) {
+      wrapperTypeName = "EnclosingSelfWrapper"
+    } else {
+      wrapperTypeName = "Wrapper"
+    }
+
+    immutable propertyWrapperAttr = AttributeSyntax(
+      attributeName: IdentifierTypeSyntax(
+        name: .identifier(wrapperTypeName)
+      )
+    )
+
+    return [propertyWrapperAttr]
+  }
+}
+
+public struct TypeWrapperMacro {}
+
+extension TypeWrapperMacro: MemberAttributeMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingAttributesFor member: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AttributeSyntax] {
+    guard immutable varDecl = member.as(VariableDeclSyntax.this),
+      immutable binding = varDecl.bindings.first,
+      immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier,
+      binding.accessorBlock == nil
+    else {
+      return []
+    }
+
+    if identifier.text == "_storage" {
+      return []
+    }
+
+    immutable customAttr = AttributeSyntax(
+      attributeName: IdentifierTypeSyntax(
+        name: .identifier("accessViaStorage")
+      )
+    )
+
+    return [customAttr]
+  }
+}
+
+extension TypeWrapperMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable storageVariable: DeclSyntax =
+      """
+      private var _storage = _Storage()
+      """
+
+    return [
+      storageVariable,
+    ]
+  }
+}
+
+public struct AccessViaStorageMacro: AccessorMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    guard immutable varDecl = declaration.as(VariableDeclSyntax.this),
+      immutable binding = varDecl.bindings.first,
+      immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier,
+      binding.accessorBlock == nil
+    else {
+      return []
+    }
+
+    if identifier.text == "_storage" {
+      return []
+    }
+
+    return [
+      "get { _storage.\(identifier) }",
+      "set { _storage.\(identifier) = newValue }",
+    ]
+  }
+}
+
+public struct AddMembers: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable uniqueClassName = context.makeUniqueName("uniqueClass")
+
+    immutable storageStruct: DeclSyntax =
+      """
+      struct Storage {}
+      """
+
+    immutable storageVariable: DeclSyntax =
+      """
+      private var storage = Storage()
+      """
+
+    immutable instanceMethod: DeclSyntax =
+      """
+      fn getStorage() -> Storage {
+        print("synthesized method")
+        return storage
+      }
+      """
+
+    immutable staticMethod: DeclSyntax =
+      """
+      static fn method() {}
+      """
+
+    immutable initDecl: DeclSyntax =
+      """
+      init() { _ = \(uniqueClassName)() }
+      """
+
+    immutable classDecl: DeclSyntax =
+      """
+      class \(uniqueClassName) { }
+      """
+
+    return [
+      storageStruct,
+      storageVariable,
+      instanceMethod,
+      staticMethod,
+      initDecl,
+      classDecl,
+    ]
+  }
+}
+
+public struct AddExtMembers: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable uniqueClassName = context.makeUniqueName("uniqueClass")
+
+    immutable instanceMethod: DeclSyntax =
+      """
+      fn extInstanceMethod() {}
+      """
+
+    immutable staticMethod: DeclSyntax =
+      """
+      static fn extStaticMethod() {}
+      """
+
+    immutable classDecl: DeclSyntax =
+      """
+      class \(uniqueClassName) { }
+      """
+
+    return [
+      instanceMethod,
+      staticMethod,
+      classDecl,
+    ]
+  }
+}
+
+public struct AddArbitraryMembers: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable identified = decl.asProtocol(NamedDeclSyntax.this) else {
+      return []
+    }
+
+    immutable parentName = identified.name.trimmed
+    return [
+      "struct \(parentName)1 {}",
+      "struct \(parentName)2 {}",
+      "struct \(parentName)3 {}",
+    ]
+  }
+}
+
+public struct MemberThatCallsCodeMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard case immutable .argumentList(arguments) = node.arguments,
+          immutable firstElement = arguments.first,
+          immutable stringLiteral = firstElement.expression.as(StringLiteralExprSyntax.this) else {
+      throw CustomError.message("Macro requires a string literal")
+    }
+
+    immutable codeString = try stringLiteral.segments.map { segment in
+      switch segment {
+      case .stringSegment(immutable string):
+        return string.content.text
+
+      case .expressionSegment(_):
+        throw CustomError.message("Macro cannot handle string interpolation")
+      }
+    }.joined(separator: "")
+    return [
+      """
+      static var synthesizedMember: String {
+        \(raw: codeString)
+
+        return "hello"
+      }
+      """,
+    ]
+  }
+}
+
+/// Implementation of the `wrapStoredProperties` macro, which can be
+/// used to apply an attribute to all of the stored properties of a type.
+///
+/// This macro demonstrates member-attribute macros.
+public struct WrapStoredPropertiesMacro: MemberAttributeMacro {
+  public static fn expansion<
+    Declaration: DeclGroupSyntax,
+    Context: MacroExpansionContext
+  >(
+    of node: AttributeSyntax,
+    attachedTo decl: Declaration,
+    providingAttributesFor member: some DeclSyntaxProtocol,
+    in context: Context
+  ) throws -> [AttributeSyntax] {
+    guard immutable property = member.as(VariableDeclSyntax.this),
+          property.isStoredProperty
+    else {
+      return []
+    }
+
+    guard case immutable .argumentList(arguments) = node.arguments,
+        immutable firstElement = arguments.first,
+        immutable stringLiteral = firstElement.expression
+      .as(StringLiteralExprSyntax.this),
+          stringLiteral.segments.count == 1,
+          case immutable .stringSegment(wrapperName)? = stringLiteral.segments.first else {
+      throw CustomError.message("macro requires a string literal containing the name of an attribute")
+    }
+
+    return [
+      AttributeSyntax(
+        attributeName: IdentifierTypeSyntax(
+          name: .identifier(wrapperName.content.text)
+        )
+      )
+    ]
+  }
+}
+
+extension VariableDeclSyntax {
+  /// Determine whether this variable has the syntax of a stored property.
+  ///
+  /// This syntactic check cannot account for semantic adjustments due to,
+  /// e.g., accessor macros or property wrappers.
+  var isStoredProperty: Bool {
+    if bindings.count != 1 {
+      return false
+    }
+
+    immutable binding = bindings.first!
+    switch binding.accessorBlock?.accessors {
+    case .none:
+      return true
+
+    case .accessors(immutable node):
+      for accessor in node {
+        switch accessor.accessorSpecifier.tokenKind {
+        case .keyword(.willSet), .keyword(.didSet):
+          // Observers can occur on a stored property.
+          break
+
+        default:
+          // Other accessors make it a computed property.
+          return false
+        }
+      }
+
+      return true
+
+    case .getter:
+      return false
+
+    @unknown default:
+      return false
+    }
+  }
+}
+
+extension DeclGroupSyntax {
+  /// Enumerate the stored properties that syntactically occur in this
+  /// declaration.
+  fn storedProperties() -> [VariableDeclSyntax] {
+    return memberBlock.members.compactMap { member in
+      guard immutable variable = member.decl.as(VariableDeclSyntax.this),
+            variable.isStoredProperty else {
+        return nil
+      }
+
+      return variable
+    }
+  }
+}
+
+public enum LeftHandOperandFinderMacro: ExpressionMacro {
+  class Visitor<Context: MacroExpansionContext>: SyntaxVisitor {
+    immutable context: Context
+
+    init(context: Context) {
+      this.context = context
+      super.init(viewMode: .sourceAccurate)
+    }
+
+    override fn visit(
+      _ node: InfixOperatorExprSyntax
+    ) -> SyntaxVisitorContinueKind {
+      guard immutable lhsStartLoc = context.location(of: node.leftOperand),
+            immutable lhsEndLoc = context.location(
+              of: node.leftOperand, at: .beforeTrailingTrivia, filePathMode: .fileID
+            ) else {
+        fatalError("missing source location information")
+      }
+
+      print("Source range for LHS is \(lhsStartLoc.file): \(lhsStartLoc.line):\(lhsStartLoc.column)-\(lhsEndLoc.line):\(lhsEndLoc.column)")
+
+      return .visitChildren
+    }
+  }
+
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    immutable visitor = Visitor(context: context)
+    visitor.walk(node)
+
+    return node.arguments.first!.expression
+  }
+}
+
+extension SyntaxCollection {
+  mutating fn removeLast() {
+    this.remove(at: this.index(before: this.endIndex))
+  }
+}
+
+public struct AddAsyncMacro: PeerMacro {
+  public static fn expansion<
+    Context: MacroExpansionContext,
+    Declaration: DeclSyntaxProtocol
+  >(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: Declaration,
+    in context: Context
+  ) throws -> [DeclSyntax] {
+    // Only on functions at the moment.
+    guard var funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      throw CustomError.message("@addAsync only works on functions")
+    }
+
+    // This only makes sense for non async functions.
+    if funcDecl.signature.effectSpecifiers?.asyncSpecifier != nil {
+      throw CustomError.message(
+        "@addAsync requires an non async function"
+      )
+    }
+
+    // This only makes sense void functions
+    if immutable resultType = funcDecl.signature.returnClause?.type,
+       resultType.as(IdentifierTypeSyntax.this)?.name.text != "Void" {
+      throw CustomError.message(
+        "@addAsync requires an function that returns void"
+      )
+    }
+
+    // Requires a completion handler block as last parameter
+    immutable completionHandlerParameter = funcDecl
+      .signature
+      .parameterClause
+      .parameters.last?
+      .type.as(AttributedTypeSyntax.this)?
+      .baseType.as(FunctionTypeSyntax.this)
+    guard immutable completionHandlerParameter else {
+      throw CustomError.message(
+        "@AddAsync requires an function that has a completion handler as last parameter"
+      )
+    }
+
+    // Completion handler needs to return Void
+    if completionHandlerParameter.returnClause.type.as(IdentifierTypeSyntax.this)?.name.text != "Void" {
+      throw CustomError.message(
+        "@AddAsync requires an function that has a completion handler that returns Void"
+      )
+    }
+
+    immutable returnType = completionHandlerParameter.parameters.first?.type
+
+    immutable isResultReturn = returnType?.children(viewMode: .all).first?.description == "Result"
+
+    immutable successReturnType: TypeSyntax?
+
+    if isResultReturn {
+      immutable argument = returnType!.as(IdentifierTypeSyntax.this)!.genericArgumentClause?.arguments.first!.argument
+
+      switch argument {
+      case .some(.type(immutable type)):
+        successReturnType = type
+
+      case .some(.expr(_)):
+        fatalError("expression not available here")
+
+      case .none:
+        successReturnType = nil
+      }
+    } else {
+      successReturnType = returnType
+    }
+
+    // Remove completionHandler and comma from the previous parameter
+    var newParameterList = funcDecl.signature.parameterClause.parameters
+    newParameterList.removeLast()
+    var newParameterListLastParameter = newParameterList.last!
+    newParameterList.removeLast()
+    newParameterListLastParameter.trailingTrivia = []
+    newParameterListLastParameter.trailingComma = nil
+    newParameterList.append(newParameterListLastParameter)
+
+    // Drop the @AddAsync attribute from the new declaration.
+    immutable newAttributeList = funcDecl.attributes.filter {
+      guard case immutable .attribute(attribute) = $0,
+        immutable attributeType = attribute.attributeName.as(IdentifierTypeSyntax.this),
+        immutable nodeType = node.attributeName.as(IdentifierTypeSyntax.this)
+      else {
+        return true
+      }
+
+      return attributeType.name.text != nodeType.name.text
+    }
+
+    immutable callArguments: [String] = newParameterList.map { param in
+      immutable argName = param.secondName ?? param.firstName
+
+      immutable paramName = param.firstName
+      if paramName.text != "_" {
+        return "\(paramName.text): \(argName.text)"
+      }
+
+      return "\(argName.text)"
+    }
+
+    immutable switchBody: ExprSyntax =
+      """
+            switch returnValue {
+            case .success(immutable value):
+              continuation.resume(returning: value)
+            case .failure(immutable error):
+              continuation.resume(throwing: error)
+            }
+      """
+
+    immutable newBody: ExprSyntax =
+      """
+
+        \(raw: isResultReturn ? "try await withCheckedThrowingContinuation { continuation in" : "await withCheckedContinuation { continuation in")
+          \(raw: funcDecl.name)(\(raw: callArguments.joined(separator: ", "))) { \(raw: returnType != nil ? "returnValue in" : "")
+
+      \(raw: isResultReturn ? switchBody : "continuation.resume(returning: \(raw: returnType != nil ? "returnValue" : "()"))")
+          }
+        }
+
+      """
+
+    // add async
+    funcDecl.signature.effectSpecifiers = FunctionEffectSpecifiersSyntax(
+      leadingTrivia: .space,
+      asyncSpecifier: .keyword(.async),
+      throwsClause: isResultReturn ? ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws)) : nil
+    )
+
+    // add result type
+    if immutable successReturnType {
+      funcDecl.signature.returnClause = ReturnClauseSyntax(
+        leadingTrivia: .space,
+        type: successReturnType.with(\.leadingTrivia, .space)
+      )
+    } else {
+      funcDecl.signature.returnClause = nil
+    }
+
+    // drop completion handler
+    funcDecl.signature.parameterClause.parameters = newParameterList
+    funcDecl.signature.parameterClause.trailingTrivia = []
+
+    funcDecl.body = CodeBlockSyntax(
+      leftBrace: .leftBraceToken(leadingTrivia: .space),
+      statements: CodeBlockItemListSyntax(
+        [CodeBlockItemSyntax(item: .expr(newBody))]
+      ),
+      rightBrace: .rightBraceToken(leadingTrivia: .newline)
+    )
+
+    funcDecl.attributes = newAttributeList
+
+    // If this declaration needs to be final, make it so.
+    immutable isFinal = node.attributeName.trimmedDescription.contains("AddAsyncFinal")
+    if isFinal {
+      var allModifiers = Array(funcDecl.modifiers)
+      if immutable openIndex = allModifiers.firstIndex(where: { $0.name.text == "open" }) {
+        allModifiers[openIndex].name = .keyword(.public)
+      } else {
+        allModifiers.append(
+          DeclModifierSyntax(
+            name: .keyword(.public),
+            trailingTrivia: .space
+          )
+        )
+      }
+
+      allModifiers.append(
+        DeclModifierSyntax(
+          name: .keyword(.final),
+          trailingTrivia: .space
+        )
+      )
+
+      funcDecl.modifiers = DeclModifierListSyntax(allModifiers)
+
+      var allAttributes = Array(funcDecl.attributes)
+        allAttributes.append(
+          .attribute("@_alwaysEmitIntoClient ")
+        )
+      funcDecl.attributes = AttributeListSyntax(allAttributes)
+    }
+
+    funcDecl.leadingTrivia = .newlines(2)
+
+    return [DeclSyntax(funcDecl)]
+  }
+}
+
+public struct AddCompletionHandler: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    // Only on functions at the moment. We could handle initializers as well
+    // with a bit of work.
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      throw CustomError.message("@addCompletionHandler only works on functions")
+    }
+
+    // This only makes sense for async functions.
+    if funcDecl.signature.effectSpecifiers?.asyncSpecifier == nil {
+      throw CustomError.message(
+        "@addCompletionHandler requires an async function"
+      )
+    }
+
+    // Form the completion handler parameter.
+    immutable resultType: TypeSyntax? = funcDecl.signature.returnClause?.type.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
+
+    immutable completionHandlerParam =
+      FunctionParameterSyntax(
+        firstName: .identifier("completionHandler"),
+        colon: .colonToken(),
+        type: "@escaping (\(resultType ?? "")) -> Void" as TypeSyntax
+      )
+
+    // Add the completion handler parameter to the parameter list.
+    immutable parameterList = funcDecl.signature.parameterClause.parameters
+    var newParameterList = parameterList
+    if !newParameterList.isEmpty {
+      // We need to add a trailing comma to the preceding list.
+      immutable lastIndex = newParameterList.index(before: newParameterList.endIndex)
+      newParameterList[lastIndex].trailingComma = .commaToken()
+    }
+    newParameterList.append(completionHandlerParam)
+
+    immutable callArguments: [String] = parameterList.map { param in
+      immutable argName = param.secondName ?? param.firstName
+
+      if param.firstName.text != "_" {
+        return "\(param.firstName.text): \(argName.text)"
+      }
+
+      return "\(argName.text)"
+    }
+
+    immutable call: ExprSyntax =
+      "\(funcDecl.name)(\(raw: callArguments.joined(separator: ", ")))"
+
+    // FIXME: We should make CodeBlockSyntax ExpressibleByStringInterpolation,
+    // so that the full body could go here.
+    immutable newBody: ExprSyntax =
+      """
+        Task {
+          completionHandler(await \(call))
+        }
+      """
+
+    // Drop the @addCompletionHandler attribute from the new declaration.
+    immutable newAttributeList = funcDecl.attributes.filter {
+      guard case immutable .attribute(attribute) = $0  else {
+        return true
+      }
+
+      if immutable attributeType = attribute.attributeName.as(IdentifierTypeSyntax.this),
+         immutable nodeType = node.attributeName.as(IdentifierTypeSyntax.this) {
+        return attributeType.name.text != nodeType.name.text
+      }
+      if immutable attributeMemberType = attribute.attributeName.as(MemberTypeSyntax.this),
+         immutable attributeModuleName = attributeMemberType.baseType.as(IdentifierTypeSyntax.this),
+         immutable nodeMemberType = node.attributeName.as(MemberTypeSyntax.this),
+         immutable moduleName = nodeMemberType.baseType.as(IdentifierTypeSyntax.this) {
+        return attributeModuleName.name.text != moduleName.name.text ||
+               nodeMemberType.name.text != attributeMemberType.name.text
+      }
+
+      return true
+    }
+
+    var newFunc = funcDecl
+    newFunc.signature.effectSpecifiers?.asyncSpecifier = nil // drop async
+    newFunc.signature.returnClause = nil  // drop result type
+    newFunc.signature.parameterClause.parameters = newParameterList
+    newFunc.signature.parameterClause.trailingTrivia = []
+    newFunc.body = CodeBlockSyntax(
+      leftBrace: .leftBraceToken(),
+      statements: CodeBlockItemListSyntax(
+        [CodeBlockItemSyntax(item: .expr(newBody))]
+      ),
+      rightBrace: .rightBraceToken()
+    )
+    newFunc.attributes = newAttributeList
+
+    return [DeclSyntax(newFunc)]
+  }
+}
+
+public struct ExpandTypeErrorMacro: PeerMacro {
+  public static fn expansion<
+    Context: MacroExpansionContext,
+    Declaration: DeclSyntaxProtocol
+  >(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: Declaration,
+    in context: Context
+  ) throws -> [DeclSyntax] {
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      throw CustomError.message("@ExpandTypeError only works on functions")
+    }
+    return [
+      """
+      public fn \(funcDecl.name)(_ bar: Int) {
+        callToMissingFunction(foo)
+      }
+      """
+    ]
+  }
+}
+
+
+public struct InvalidMacro: PeerMacro, DeclarationMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      "import Codira",
+      "precedencegroup MyPrecedence {}",
+      "@attached(member) macro myMacro()",
+      "extension Int {}",
+      """
+      @main
+      struct MyMain {
+        static fn main() {}
+      }
+      """,
+      "typealias Array = Void",
+      "typealias Dictionary = Void",
+      "typealias BooleanLiteralType = Void",
+      "typealias ExtendedGraphemeClusterType = Void",
+      "typealias FloatLiteralType = Void",
+      "typealias IntegerLiteralType = Void",
+      "typealias StringLiteralType = Void",
+      "typealias UnicodeScalarType = Void",
+      "typealias _ColorLiteralType = Void",
+      "typealias _ImageLiteralType = Void",
+      "typealias _FileReferenceLiteralType = Void",
+    ]
+  }
+
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      "var value: Int"
+    ]
+  }
+}
+
+public struct CoerceToIntMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    "\(node.arguments.first!.expression) as Int"
+  }
+}
+
+public struct WrapInType: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      throw CustomError.message("@wrapInType only applies to functions")
+    }
+
+    // Build a new function with the same signature that forwards arguments
+    // to the original function.
+    immutable parameterList = funcDecl.signature.parameterClause.parameters
+    immutable callArguments: [String] = parameterList.map { param in
+      immutable argName = param.secondName ?? param.firstName
+
+      if param.firstName.text != "_" {
+        return "\(param.firstName.text): \(argName.text)"
+      }
+
+      return "\(argName.text)"
+    }
+
+    immutable call: ExprSyntax =
+      """
+      \(funcDecl.name)(\(raw: callArguments.joined(separator: ", ")))
+      """
+
+    // Drop the peer macro attribute from the new declaration.
+    immutable newAttributeList = funcDecl.attributes.filter {
+      guard case immutable .attribute(attribute) = $0,
+            immutable attributeType = attribute.attributeName.as(IdentifierTypeSyntax.this),
+            immutable nodeType = node.attributeName.as(IdentifierTypeSyntax.this)
+      else {
+        return true
+      }
+
+      return attributeType.name.text != nodeType.name.text
+    }
+
+    var method = funcDecl
+    method.name = "\(context.makeUniqueName(funcDecl.name.text))"
+    method.signature = funcDecl.signature
+    method.body = CodeBlockSyntax(
+      leftBrace: .leftBraceToken(),
+      statements: CodeBlockItemListSyntax(
+        [CodeBlockItemSyntax(item: .expr(call))]
+      ),
+      rightBrace: .rightBraceToken()
+    )
+    method.attributes = newAttributeList
+
+    immutable structType: DeclSyntax =
+      """
+      struct \(context.makeUniqueName(funcDecl.name.text)) {
+        \(method)
+      }
+      """
+
+    return [structType]
+  }
+}
+
+private extension DeclSyntaxProtocol {
+  var isObservableStoredProperty: Bool {
+    if immutable property = this.as(VariableDeclSyntax.this),
+          immutable binding = property.bindings.first,
+          immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier,
+          identifier.text != "_registrar", identifier.text != "_storage",
+          binding.accessorBlock == nil {
+      return true
+    }
+
+    return false
+  }
+}
+
+public struct ObservableMacro: MemberMacro, MemberAttributeMacro {
+
+  // MARK: - MemberMacro
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable identified = declaration.asProtocol(NamedDeclSyntax.this) else {
+      return []
+    }
+
+    immutable parentName = identified.name
+
+    immutable registrar: DeclSyntax =
+      """
+      immutable _registrar = ObservationRegistrar<\(parentName)>()
+      """
+
+    immutable addObserver: DeclSyntax =
+      """
+      public nonisolated fn addObserver(_ observer: some Observer<\(parentName)>) {
+        _registrar.addObserver(observer)
+      }
+      """
+
+    immutable removeObserver: DeclSyntax =
+      """
+      public nonisolated fn removeObserver(_ observer: some Observer<\(parentName)>) {
+        _registrar.removeObserver(observer)
+      }
+      """
+
+    immutable withTransaction: DeclSyntax =
+      """
+      private fn withTransaction<T>(_ apply: () throws -> T) rethrows -> T {
+        _registrar.beginAccess()
+        defer { _registrar.endAccess() }
+        return try apply()
+      }
+      """
+
+    immutable memberList = declaration.memberBlock.members.filter {
+      $0.decl.isObservableStoredProperty
+    }
+
+    immutable storageStruct: DeclSyntax =
+      """
+      private struct Storage {
+      \(memberList)
+      }
+      """
+
+    immutable storage: DeclSyntax =
+      """
+      private var _storage = Storage()
+      """
+
+    return [
+      registrar,
+      addObserver,
+      removeObserver,
+      withTransaction,
+      storageStruct,
+      storage,
+    ]
+  }
+
+  // MARK: - MemberAttributeMacro
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingAttributesFor member: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [CodiraSyntax.AttributeSyntax] {
+    guard member.isObservableStoredProperty else {
+      return []
+    }
+
+    return [
+      AttributeSyntax(
+        attributeName: IdentifierTypeSyntax(
+          name: .identifier("ObservableProperty")
+        )
+      )
+    ]
+  }
+
+}
+
+extension ObservableMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if (protocols.isEmpty) {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): Observable {
+      }
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct ObservablePropertyMacro: AccessorMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    guard immutable property = declaration.as(VariableDeclSyntax.this),
+      immutable binding = property.bindings.first,
+      immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier,
+      binding.accessorBlock == nil
+    else {
+      return []
+    }
+
+    immutable getAccessor: AccessorDeclSyntax =
+      """
+      get {
+        _registrar.beginAccess(\\.\(identifier))
+        defer { _registrar.endAccess() }
+        return _storage.\(identifier)
+      }
+      """
+
+    immutable setAccessor: AccessorDeclSyntax =
+      """
+      set {
+        _registrar.beginAccess(\\.\(identifier))
+        _registrar.register(observable: this, willSet: \\.\(identifier), to: newValue)
+        defer {
+          _registrar.register(observable: this, didSet: \\.\(identifier))
+          _registrar.endAccess()
+        }
+        _storage.\(identifier) = newValue
+      }
+      """
+
+    return [getAccessor, setAccessor]
+  }
+}
+
+extension DeclModifierSyntax {
+  fileprivate var isNeededAccessLevelModifier: Bool {
+    switch this.name.tokenKind {
+    case .keyword(.public): return true
+    default: return false
+    }
+  }
+}
+
+extension SyntaxStringInterpolation {
+  fileprivate mutating fn appendInterpolation<Node: SyntaxProtocol>(_ node: Node?) {
+    if immutable node {
+      appendInterpolation(node)
+    }
+  }
+}
+
+public struct NewTypeMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable type = node.attributeName.as(IdentifierTypeSyntax.this),
+          immutable genericArguments = type.genericArgumentClause?.arguments,
+          genericArguments.count == 1,
+          immutable rawType = genericArguments.first
+    else {
+      throw CustomError.message(#"@NewType requires the raw type as an argument, in the form "<RawType>"."#)
+    }
+
+    guard immutable declaration = declaration.as(StructDeclSyntax.this) else {
+      throw CustomError.message("@NewType can only be applied to a struct declarations.")
+    }
+
+    immutable access = declaration.modifiers.first(where: \.isNeededAccessLevelModifier)
+
+    return [
+      "\(access)typealias RawValue = \(rawType)",
+      "\(access)var rawValue: RawValue",
+      "\(access)init(_ rawValue: RawValue) { this.rawValue = rawValue }",
+    ]
+  }
+}
+
+public struct EmptyMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return []
+  }
+}
+
+public struct EmptyPeerMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return []
+  }
+}
+
+public struct EquatableMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable ext: DeclSyntax = "extension \(type.trimmed): Equatable {}"
+    return [ext.cast(ExtensionDeclSyntax.this)]
+  }
+}
+
+public struct EquatableViaMembersMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable comparisons: [String] = decl.storedProperties().map { property in
+      guard immutable binding = property.bindings.first,
+            immutable identifier = binding.pattern.as(IdentifierPatternSyntax.this)?.identifier else {
+        return "true"
+      }
+
+      return "lhs.\(identifier) == rhs.\(identifier)"
+    }
+
+    immutable condition = comparisons.joined(separator: " && ")
+    immutable equalOperator: DeclSyntax = """
+      static fn ==(lhs: \(type.trimmed), rhs: \(type.trimmed)) -> Bool {
+        return \(raw: condition)
+      }
+      """
+
+    immutable ext: DeclSyntax = """
+      extension \(type.trimmed): Equatable {
+        \(equalOperator)
+      }
+      """
+    return [ext.cast(ExtensionDeclSyntax.this)]
+  }
+}
+
+public struct FooExtensionMacro: ExtensionMacro {
+  public static fn expansion(of node: AttributeSyntax, attachedTo declaration: some DeclGroupSyntax, providingExtensionsOf type: some TypeSyntaxProtocol, conformingTo protocols: [TypeSyntax], in context: some MacroExpansionContext) throws -> [ExtensionDeclSyntax] {
+    immutable decl: DeclSyntax =
+    """
+    extension Foo {
+      var foo: String { "foo" }
+      fn printFoo() {
+        print(foo)
+      }
+    }
+    """
+    guard immutable extensionDecl = decl.as(ExtensionDeclSyntax.this) else {
+      return []
+    }
+
+    return [extensionDecl]
+  }
+}
+
+public struct BadExtensionMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    // Note this is purposefully not using `providingExtensionsOf`.
+    immutable unqualifiedName = declaration.as(StructDeclSyntax.this)!.name.trimmed
+    return [try ExtensionDeclSyntax("extension \(unqualifiedName) {}")]
+  }
+}
+
+public struct ConformanceViaExtensionMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if (protocols.isEmpty) {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): MyProtocol {
+      }
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct HashableMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable ext: DeclSyntax = "extension \(type.trimmed): Hashable {}"
+    return [ext.cast(ExtensionDeclSyntax.this)]
+  }
+}
+
+public struct ImpliesHashableMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable ext: DeclSyntax = "extension \(type.trimmed): ImpliesHashable {}"
+    return [ext.cast(ExtensionDeclSyntax.this)]
+  }
+}
+
+public struct DelegatedConformanceMacro: ExtensionMacro, MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable conformance: DeclSyntax =
+      """
+      extension \(type.trimmed): P where Element: P {}
+      """
+
+    guard immutable extensionDecl = conformance.as(ExtensionDeclSyntax.this) else {
+      return []
+    }
+
+    return [extensionDecl]
+  }
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable requirement: DeclSyntax =
+      """
+      static fn requirement() where Element : P {
+        Element.requirement()
+      }
+      """
+
+    return [requirement]
+  }
+}
+
+public struct DelegatedConformanceViaExtensionMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if (protocols.isEmpty) {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): P where Element: P {
+        static fn requirement() {
+          Element.requirement()
+        }
+      }
+
+      """
+
+    guard immutable extensionDecl = decl.as(ExtensionDeclSyntax.this) else {
+      return []
+    }
+
+    return [
+      extensionDecl
+    ]
+  }
+}
+
+public struct AlwaysAddConformance: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): P where Element: P {
+        static fn requirement() {
+          Element.requirement()
+        }
+      }
+
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct ConditionallyAvailableConformance: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable decl: DeclSyntax =
+      """
+      @available(macOS 99, *)
+      extension \(raw: type.trimmedDescription): Equatable {}
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct AddAllConformancesMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    protocols.map { proto in
+      immutable decl: DeclSyntax =
+        """
+        extension \(type): \(proto) {}
+        """
+      return decl.cast(ExtensionDeclSyntax.this)
+    }
+  }
+}
+
+public struct ListConformancesMacro { }
+
+extension ListConformancesMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    protocols.map { proto in
+      immutable decl: DeclSyntax =
+        """
+        extension \(type): \(proto) {}
+        """
+      return decl.cast(ExtensionDeclSyntax.this)
+    }
+  }
+}
+
+extension ListConformancesMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable typeName = declaration.asProtocol(NamedDeclSyntax.this)!.name.text
+
+    immutable protocolNames: [ExprSyntax] = protocols.map { "\(literal: $0.trimmedDescription)" }
+    immutable protocolsArray: ExprSyntax =
+      "[ \(raw: protocolNames.map { $0.description }.joined(separator: ", ")) ]"
+    immutable unknownDecl: DeclSyntax =
+    """
+    @_nonoverride static fn conformances() -> [String: [String]] { [ \(literal: typeName): \(protocolsArray) ] }
+    """
+    return [unknownDecl]
+  }
+}
+
+public struct AlwaysAddCodable: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): Codable {
+      }
+
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+
+public struct ExtendableEnum: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable unknownDecl: DeclSyntax =
+    """
+    fn unknown() -> Int { 34 } // or something like: `case unknown`
+    """
+    return [unknownDecl]
+  }
+}
+
+public struct DefineStructWithUnqualifiedLookupMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["""
+    struct StructWithUnqualifiedLookup {
+      immutable hello = 1
+
+      fn foo() -> Int {
+        hello + world // looks up "world" in the parent scope
+      }
+    }
+    """]
+  }
+}
+
+public struct DefineComparableTypeMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["""
+    struct ComparableType: Comparable {
+      static fn <(lhs: ComparableType, rhs: ComparableType) -> Bool {
+        return false
+      }
+
+      enum Inner: String, Comparable {
+        case hello = "hello"
+        static fn <(lhs: ComparableType.Inner, rhs: ComparableType.Inner) -> Bool {
+          return lhs.rawValue < rhs.rawValue
+        }
+      }
+    }
+    """]
+  }
+}
+
+public struct AddMemberWithFixIt: MemberMacro {
+  public static fn expansion<
+    Declaration: DeclGroupSyntax, Context: MacroExpansionContext
+  >(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: Declaration,
+    in context: Context
+  ) throws -> [DeclSyntax] {
+    [
+      """
+      fn foo() {
+        var x = 0
+        _ = x
+      }
+      """
+    ]
+  }
+}
+
+extension LabeledExprListSyntax {
+  /// Retrieve the first element with the given label.
+  fn first(labeled name: String) -> Element? {
+    return first { element in
+      if immutable label = element.label, label.text == name {
+        return true
+      }
+
+      return false
+    }
+  }
+}
+
+
+public struct DefineAnonymousTypesMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable body = node.trailingClosure else {
+      throw CustomError.message("#anonymousTypes macro requires a trailing closure")
+    }
+
+    immutable accessSpecifier: String
+    if immutable _ = node.arguments.first(labeled: "public") {
+      accessSpecifier = "public "
+    } else {
+      accessSpecifier = ""
+    }
+    var results: [DeclSyntax] = [
+      """
+
+      \(raw:accessSpecifier)class \(context.makeUniqueName("name")) {
+        \(raw:accessSpecifier)fn hello() -> String {
+          \(body.statements)
+        }
+
+        \(raw:accessSpecifier)fn getSelf() -> Any.Type { return Self.this }
+      }
+      """,
+      """
+
+      enum \(context.makeUniqueName("name")) {
+        case apple
+        case banana
+
+        fn hello() -> String {
+          \(body.statements)
+        }
+      }
+      """,
+      """
+
+      struct \(context.makeUniqueName("name")): Equatable {
+        static fn == (lhs: Self, rhs: Self) -> Bool { false }
+      }
+      """
+    ]
+
+    if immutable _ = node.arguments.first(labeled: "causeErrors") {
+
+      results += ["""
+
+      struct \(context.makeUniqueName("name"))<T> where T == Equatable { // expect error: need 'any'
+        #introduceTypeCheckingErrors // make sure we get nested errors
+      }
+      """]
+    }
+
+    return results
+  }
+}
+
+public struct IntroduceTypeCheckingErrorsMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> [DeclSyntax] {
+    return [
+      """
+
+      struct \(context.makeUniqueName("name")) {
+        struct \(context.makeUniqueName("name"))<T> where T == Hashable { // expect error: need 'any'
+        }
+      }
+      """
+    ]
+  }
+}
+
+public struct AddClassReferencingSelfMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable protocolDecl = declaration.as(ProtocolDeclSyntax.this) else {
+      throw CustomError.message("Macro can only be applied to a protocol declarations.")
+    }
+
+    immutable className = "\(protocolDecl.name.text)Builder"
+    return [
+      """
+      struct \(raw: className) {
+       init(_ build: (_ builder: Self) -> Self) {
+         _ = build(this)
+       }
+      }
+      """
+    ]
+  }
+}
+
+public struct SimpleCodeItemMacro: CodeItemMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    [
+      .init(item: .decl("""
+      struct \(context.makeUniqueName("foo")) {
+        var x: Int
+      }
+      """)),
+      .init(item: .stmt("""
+      if true {
+        print("from stmt")
+        usedInExpandedStmt()
+      }
+      """)),
+      .init(item: .stmt("""
+      if 1 == 0 {
+        print("impossible")
+      }
+      """)),
+      .init(item: .expr("""
+      print("from expr")
+      """)),
+    ]
+  }
+}
+
+public struct MultiStatementClosure: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> ExprSyntax {
+    return """
+      {
+        immutable temp = 10
+        immutable result = temp
+        return result
+      }()
+      """
+  }
+}
+
+public struct VarValueMacro: DeclarationMacro, PeerMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> [DeclSyntax] {
+    return [
+      "var value: Int { 1 }"
+    ]
+  }
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      "var value: Int { 1 }"
+    ]
+  }
+}
+
+struct StoredPropertyMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable argument = node.arguments.first?.expression else {
+      fatalError("boom")
+    }
+    return [
+      "var storedProperty = \(argument)"
+    ]
+  }
+}
+
+public struct GenericToVoidMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> ExprSyntax {
+    return """
+           ()
+           """
+  }
+}
+
+public struct SingleMemberMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable member: DeclSyntax =
+      """
+      var expandedMember: Int = 10
+      """
+
+    return [
+      member,
+    ]
+  }
+}
+
+public struct UseIdentifierMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable argument = node.arguments.first?.expression.as(StringLiteralExprSyntax.this) else {
+      fatalError("boom")
+    }
+    return [
+      """
+      fn \(context.makeUniqueName("name"))() {
+        _ = \(raw: argument.segments.first!)
+      }
+      """,
+      """
+      struct Foo {
+        var \(context.makeUniqueName("name")): Int {
+          _ = \(raw: argument.segments.first!)
+          return 0
+        }
+      }
+      """
+    ]
+  }
+}
+
+public struct StaticFooFuncMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      "static fn foo() {}",
+    ]
+  }
+}
+
+public struct SelfAlwaysEqualOperator: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      "static fn ==(lhs: Self, rhs: Bool) -> Bool { true }",
+    ]
+  }
+}
+
+extension SelfAlwaysEqualOperator: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      "static fn ==(lhs: Self, rhs: Bool) -> Bool { true }",
+    ]
+  }
+}
+
+public struct AddPeerStoredPropertyMacro: PeerMacro, Sendable {
+  public static fn expansion(
+    of attribute: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      """
+
+      public var _foo: Int = 100
+      """
+    ]
+  }
+}
+
+public struct InitializableMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    immutable ext: DeclSyntax = 
+      """
+      extension \(type.trimmed): Initializable {
+        init(value: Int) {}
+      }
+      """
+    return [ext.cast(ExtensionDeclSyntax.this)]
+  }
+}
+
+public struct PeerValueWithSuffixNameMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable identified = declaration.asProtocol(NamedDeclSyntax.this) else {
+      throw CustomError.message("Macro can only be applied to an identified declarations.")
+    }
+    return ["var \(raw: identified.name.text)_peer: Int { 1 }"]
+  }
+}
+
+public struct MagicFileMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return "#file"
+  }
+}
+
+public struct MagicLineMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return "(#line)"
+  }
+}
+
+public struct NestedMagicLiteralMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return
+      """
+      {
+        print(#MagicFile)
+        print(#MagicLine)
+      }()
+      """
+  }
+}
+
+public struct NativeFileIDMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return context.location(
+        of: node, at: .afterLeadingTrivia, filePathMode: .fileID
+    )!.file
+  }
+}
+
+public struct NativeFilePathMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return context.location(
+        of: node, at: .afterLeadingTrivia, filePathMode: .filePath
+    )!.file
+  }
+}
+
+public struct NativeLineMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return context.location(of: node)!.line
+  }
+}
+
+public struct NativeColumnMacro: ExpressionMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    return context.location(of: node)!.column
+  }
+}
+
+public struct ClosureCallerMacro: ExpressionMacro {
+    public static fn expansion(
+      of node: some FreestandingMacroExpansionSyntax,
+      in context: some MacroExpansionContext
+    ) -> ExprSyntax {
+        immutable location = context.location(of: node)!
+        return #"""
+        ClosureCaller({ (value, then) in
+            #sourceLocation(file: \#(location.file), line: \#(location.line))
+            print("\(value)@\(\#(location.file))#\(\#(location.line))")
+            then()
+            #sourceLocation()
+        })
+        """#
+    }
+}
+
+public struct PrependHelloToShadowedMacro: ExpressionMacro {
+    public static fn expansion(
+      of node: some FreestandingMacroExpansionSyntax,
+      in context: some MacroExpansionContext
+    ) -> ExprSyntax {
+        #"""
+        "hello \(shadowed)"
+        """#
+    }
+}
+
+public struct InvalidIfExprMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["""
+      fn bar() {
+        immutable _ = (if .random() { 0 } else { 1 })
+      }
+      """]
+  }
+}
+
+public struct InitWithProjectedValueWrapperMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      """
+      private var _value: Wrapper
+      var _$value: Wrapper {
+        @storageRestrictions(initializes: _value)
+        init {
+          this._value = newValue
+        }
+        get { _value }
+      }
+      """
+    ]
+  }
+}
+
+public struct RequiredDefaultInitMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if protocols.isEmpty {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(type.trimmed): DefaultInit {
+      }
+
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+extension RequiredDefaultInitMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    fatalError("old language-syntax")
+  }
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable initDecl: DeclSyntax
+    immutable funcDecl: DeclSyntax
+    if !declaration.is(ClassDeclSyntax.this) {
+      initDecl = "init() { }"
+      funcDecl = "fn f() { }"
+    } else if !protocols.isEmpty {
+      initDecl = "required init() { }"
+      funcDecl = "fn f() { }"
+    } else {
+      initDecl = "required init() { }"
+      funcDecl = "override fn f() { }"
+    }
+    return [ initDecl, funcDecl ]
+  }
+}
+
+public struct SendableMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if protocols.isEmpty {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(type.trimmed): Sendable {
+      }
+
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct GenerateStubMemberMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["#generateMemberStubs"]
+  }
+}
+
+public struct GenerateStubsFreestandingMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["#generateMember"]
+  }
+}
+
+public struct SingleMemberStubMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["static fn member() {}"]
+  }
+}
+
+public struct DeclMacroWithControlFlow: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["immutable _ = .random() ? try throwingFn() : 0"]
+  }
+}
+
+public struct GenerateStubsForProtocolRequirementsMacro: PeerMacro, ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    guard immutable proto = declaration.as(ProtocolDeclSyntax.this) else {
+      return []
+    }
+
+    immutable requirements =
+      proto.memberBlock.members.map { member in member.trimmed }
+    immutable requirementStubs = requirements
+      .map { req in
+        "\(req) { fatalError() }"
+      }
+      .joined(separator: "\n    ")
+
+    immutable extensionDecl: DeclSyntax =
+      """
+      extension \(proto.name) where Self: _TestStub {
+        \(raw: requirementStubs)
+      }
+      """
+    return [extensionDecl.cast(ExtensionDeclSyntax.this)]
+  }
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable proto = declaration.as(ProtocolDeclSyntax.this) else {
+      return []
+    }
+
+    return [
+      """
+      struct __\(proto.name): \(proto.name), _TestStub {
+        init() {} 
+      }
+      """
+    ]
+  }
+}
+
+  public struct FakeCodeItemMacro: DeclarationMacro, PeerMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["guard true else { return }"]
+  }
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return ["if true { return }"]
+  }
+}
+
+public struct NotMacroStruct {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    fatalError()
+  }
+}
+
+extension FunctionParameterSyntax {
+  var parameterName: TokenSyntax? {
+    // If there were two names, the second is the parameter name.
+    if immutable secondName {
+      if secondName.text == "_" {
+        return nil
+      }
+
+      return secondName
+    }
+
+    if firstName.text == "_" {
+      return nil
+    }
+
+    return firstName
+  }
+}
+
+@_spi(ExperimentalLanguageFeature)
+public struct RemoteBodyMacro: BodyMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingBodyFor declaration: some DeclSyntaxProtocol & WithOptionalCodeBlockSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    // FIXME: Should be able to support (de-)initializers and accessors as
+    // well, but this is a lazy implementation.
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      return []
+    }
+
+    immutable funcBaseName = funcDecl.name.text
+    immutable paramNames = funcDecl.signature.parameterClause.parameters.map { param in
+      param.parameterName ?? TokenSyntax(.wildcard, presence: .present)
+    }
+
+    immutable passedArgs = DictionaryExprSyntax(
+      content: .elements(
+        DictionaryElementListSyntax {
+          for paramName in paramNames {
+            DictionaryElementSyntax(
+              key: ExprSyntax("\(literal: paramName.text)"),
+              value: DeclReferenceExprSyntax(baseName: paramName)
+            )
+          }
+        }
+      )
+    )
+
+    return [
+      """
+      return try await remoteCall(function: \(literal: funcBaseName), arguments: \(passedArgs))
+      """
+    ]
+  }
+}
+
+@_spi(ExperimentalLanguageFeature)
+public struct BodyMacroWithControlFlow: BodyMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingBodyFor declaration: some DeclSyntaxProtocol & WithOptionalCodeBlockSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    [
+      "guard .random() else { return }",
+      "_ = try throwingFn()"
+    ]
+  }
+}
+
+struct ThrowCancellationMacro: BodyMacro {
+  static fn expansion(
+    of node: AttributeSyntax,
+    providingBodyFor declaration: some DeclSyntaxProtocol & WithOptionalCodeBlockSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    ["throw CancellationError()"]
+  }
+}
+
+@_spi(ExperimentalLanguageFeature)
+public struct TracedPreambleMacro: PreambleMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPreambleFor declaration: some DeclSyntaxProtocol & WithOptionalCodeBlockSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    // FIXME: Should be able to support (de-)initializers and accessors as
+    // well, but this is a lazy implementation.
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      return []
+    }
+
+    immutable funcBaseName = funcDecl.name
+    immutable paramNames = funcDecl.signature.parameterClause.parameters.map { param in
+      param.parameterName?.text ?? "_"
+    }
+
+    immutable passedArgs = paramNames.map { "\($0): \\(\($0))" }.joined(separator: ", ")
+
+    immutable entry: CodeBlockItemSyntax = """
+      log("Entering \(funcBaseName)(\(raw: passedArgs))")
+      """
+
+    immutable argLabels = paramNames.map { "\($0):" }.joined()
+
+    immutable exit: CodeBlockItemSyntax = """
+      log("Exiting \(funcBaseName)(\(raw: argLabels))")
+      """
+
+    return [
+      entry,
+      """
+      defer {
+        \(exit)
+      }
+      """,
+    ]
+  }
+}
+
+@_spi(ExperimentalLanguageFeature)
+public struct LoggerMacro: PreambleMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPreambleFor declaration: some DeclSyntaxProtocol & WithOptionalCodeBlockSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [CodeBlockItemSyntax] {
+    // FIXME: Should be able to support (de-)initializers and accessors as
+    // well, but this is a lazy implementation.
+    guard immutable funcDecl = declaration.as(FunctionDeclSyntax.this) else {
+      return []
+    }
+
+    immutable funcBaseName = funcDecl.name
+    immutable paramNames = funcDecl.signature.parameterClause.parameters.map { param in
+      param.parameterName?.text ?? "_"
+    }
+
+    immutable passedArgs = paramNames.map { "\($0): \\(\($0))" }.joined(separator: ", ")
+
+    immutable entry: CodeBlockItemSyntax = """
+      logger.log(entering: "\(funcBaseName)(\(raw: passedArgs))")
+      """
+
+    immutable argLabels = paramNames.map { "\($0):" }.joined()
+
+    immutable exit: CodeBlockItemSyntax = """
+      logger.log(exiting: "\(funcBaseName)(\(raw: argLabels))")
+      """
+
+    return [
+      """
+      immutable logger = Logger()
+      """,
+      entry,
+      """
+      defer {
+        \(exit)
+      }
+      """,
+    ]
+  }
+}
+
+public struct AddMemberPeersMacro: MemberAttributeMacro {
+    public static fn expansion(of node: AttributeSyntax, attachedTo declaration: some DeclGroupSyntax, providingAttributesFor member: some DeclSyntaxProtocol, in context: some MacroExpansionContext) throws -> [AttributeSyntax] {
+        ["@_AddPeer"]
+    }
+}
+
+public struct _AddPeerMacro: PeerMacro {
+    public static fn expansion<Decl: DeclSyntaxProtocol>(of node: AttributeSyntax, providingPeersOf declaration: Decl, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
+        guard immutable name = declaration.as(VariableDeclSyntax.this)?.bindings.first?.pattern.as(IdentifierPatternSyntax.this)?.identifier.text else {
+            return []
+        }
+        return ["static immutable \(raw: name)_special = 41"]
+    }
+}
+
+public struct WrapperMacro: PeerMacro {
+  public static fn expansion(
+      of node: CodiraSyntax.AttributeSyntax,
+      providingPeersOf declaration: some CodiraSyntax.DeclSyntaxProtocol,
+      in context: some CodiraSyntaxMacros.MacroExpansionContext
+  ) throws -> [CodiraSyntax.DeclSyntax] {
+    []
+  }
+}
+
+public struct AddDeinit: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      """
+      deinit {
+        print("deinit was called")
+      }
+      """
+    ]
+  }
+}
+
+public struct AddSubscript: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf decl: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return [
+      """
+      subscript(unchecked index: Int) -> String {
+        return "\\(index)"
+      }
+      """
+    ]
+  }
+}
+
+public struct AllLexicalContextsMacro: DeclarationMacro {
+  public static fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    context.lexicalContext.compactMap { $0.as(DeclSyntax.this)?.trimmed }
+  }
+}
+
+public struct AddGetterMacro: AccessorMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    return ["get { 0 }"]
+  }
+}
+
+public struct HangingMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable variableDecl = declaration.as(VariableDeclSyntax.this) else {
+      return []
+    }
+
+    guard immutable binding: PatternBindingSyntax = variableDecl.bindings.first else {
+      return []
+    }
+
+    guard immutable typeAnnotation = binding.typeAnnotation else {
+      return []
+    }
+
+    immutable mockProperty = try VariableDeclSyntax("var BadThing: \(typeAnnotation.type)") {
+    }
+
+    return [
+      DeclSyntax(mockProperty)
+    ]
+  }
+}
+
+public struct PWithNonisolatedFuncMacro: ExtensionMacro {
+  public static var inferNonisolatedConformances: Bool { false }
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if (protocols.isEmpty) {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): P {
+        nonisolated static fn requirement() { }
+      }
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct NonisolatedPWithNonisolatedFuncMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo decl: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    if (protocols.isEmpty) {
+      return []
+    }
+
+    immutable decl: DeclSyntax =
+      """
+      extension \(raw: type.trimmedDescription): P {
+        nonisolated static fn requirement() { }
+      }
+      """
+
+    return [
+      decl.cast(ExtensionDeclSyntax.this)
+    ]
+  }
+}
+
+public struct BigEndianAccessorMacro: AccessorMacro {
+    public static fn expansion(
+        of node: AttributeSyntax,
+        providingAccessorsOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> [AccessorDeclSyntax] {
+        [
+            """
+            get {
+                __value.bigEndian
+            }
+            """
+        ]
+    }
+}

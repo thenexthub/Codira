@@ -1,0 +1,19 @@
+/// Test the warning on an SPI import of the public interface of a module.
+
+// RUN: %empty-directory(%t)
+
+/// Compile the SPI lib.
+// RUN: %target-language-frontend -emit-module %S/Inputs/spi_helper.code -module-name SPIHelper -emit-module-path %t/SPIHelper.codemodule -emit-module-interface-path %t/SPIHelper.codeinterface -emit-private-module-interface-path %t/SPIHelper.private.codeinterface -enable-library-evolution -language-version 5 -parse-as-library
+
+/// Reading from languagemodule, no warning.
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+/// Reading from .private.codeinterface, no warning.
+// RUN: rm %t/SPIHelper.codemodule
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+/// Reading from the public .codeinterface should produce the warning.
+// RUN: rm %t/SPIHelper.private.codeinterface
+// RUN: %target-typecheck-verify-language -I %t
+
+@_spi(SPIHelper) import SPIHelper // expected-warning {{'@_spi' import of 'SPIHelper' will not include any SPI symbols; 'SPIHelper' was built from the public interface at}}

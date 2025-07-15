@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the Evaluator class that evaluates and caches
@@ -25,9 +26,9 @@
 #include "language/Basic/LangOptions.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/SaveAndRestore.h"
 #include <vector>
 
 using namespace language;
@@ -65,8 +66,8 @@ Evaluator::Evaluator(DiagnosticEngine &diags, const LangOptions &opts)
       recorder(opts.RecordRequestReferences) {}
 
 SourceLoc Evaluator::getInnermostSourceLoc(
-    llvm::function_ref<bool(SourceLoc)> fn) {
-  for (auto request : llvm::reverse(activeRequests)) {
+    toolchain::function_ref<bool(SourceLoc)> fn) {
+  for (auto request : toolchain::reverse(activeRequests)) {
     SourceLoc loc = request.getNearestLoc();
     if (fn(loc))
       return loc;
@@ -93,19 +94,19 @@ void Evaluator::finishedRequest(const ActiveRequest &request) {
 
 void Evaluator::diagnoseCycle(const ActiveRequest &request) {
   if (debugDumpCycles) {
-    const auto printIndent = [](llvm::raw_ostream &OS, unsigned indent) {
+    const auto printIndent = [](toolchain::raw_ostream &OS, unsigned indent) {
       OS.indent(indent);
       OS << "`--";
     };
 
     unsigned indent = 1;
-    auto &OS = llvm::errs();
+    auto &OS = toolchain::errs();
 
     OS << "===CYCLE DETECTED===\n";
     for (const auto &step : activeRequests) {
       printIndent(OS, indent);
       if (step == request) {
-        OS.changeColor(llvm::raw_ostream::GREEN);
+        OS.changeColor(toolchain::raw_ostream::GREEN);
         simple_display(OS, step);
         OS.resetColor();
       } else {
@@ -116,10 +117,10 @@ void Evaluator::diagnoseCycle(const ActiveRequest &request) {
     }
 
     printIndent(OS, indent);
-    OS.changeColor(llvm::raw_ostream::GREEN);
+    OS.changeColor(toolchain::raw_ostream::GREEN);
     simple_display(OS, request);
 
-    OS.changeColor(llvm::raw_ostream::RED);
+    OS.changeColor(toolchain::raw_ostream::RED);
     OS << " (cyclic dependency)";
     OS.resetColor();
 
@@ -127,13 +128,19 @@ void Evaluator::diagnoseCycle(const ActiveRequest &request) {
   }
 
   request.diagnoseCycle(diags);
-  for (const auto &step : llvm::reverse(activeRequests)) {
+  for (const auto &step : toolchain::reverse(activeRequests)) {
     if (step == request) return;
+
+    // Reporting the lifetime dependence location generates a redundant
+    // diagnostic.
+    if (step.getAs<LifetimeDependenceInfoRequest>()) {
+      continue;
+    }
 
     step.noteCycleStep(diags);
   }
 
-  llvm_unreachable("Diagnosed a cycle but it wasn't represented in the stack");
+  toolchain_unreachable("Diagnosed a cycle but it wasn't represented in the stack");
 }
 
 void evaluator::DependencyRecorder::recordDependency(
@@ -191,7 +198,7 @@ void evaluator::DependencyRecorder::enumerateReferencesInFile(
     switch (ref.kind) {
     case DependencyCollector::Reference::Kind::Empty:
     case DependencyCollector::Reference::Kind::Tombstone:
-      llvm_unreachable("Cannot enumerate dead reference!");
+      toolchain_unreachable("Cannot enumerate dead reference!");
     case DependencyCollector::Reference::Kind::UsedMember:
     case DependencyCollector::Reference::Kind::PotentialMember:
     case DependencyCollector::Reference::Kind::TopLevel:

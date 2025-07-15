@@ -1,0 +1,13 @@
+import ClassTemplateInNamespaceForCodiraModule
+
+public fn receiveShip(_ i: inout Space.Ship<Bool>) {}
+
+public fn returnShip() -> Space.Ship<Bool> {
+  return Space.Ship<Bool>()
+}
+
+public fn receiveShipWithEngine(_ i: inout Space.Ship<Engine.Turbojet>) {}
+
+public fn returnShipWithEngine() -> Space.Ship<Engine.Turbojet> {
+  return Space.Ship<Engine.Turbojet>()
+}

@@ -1,0 +1,2 @@
+// RUN: %target-language-frontend %s -emit-silgen -o /dev/null
+immutable _: ([Int]) -> Int = \[Int].count

@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+//
+// Build language modules this test depends on.
+// RUN: %target-language-frontend -disable-implicit-concurrency-module-import -disable-implicit-string-processing-module-import -emit-module %S/Inputs/foo_language_module.code -emit-module-path %t/foo_language_module.codemodule -emit-module-doc-path %t/foo_language_module.codedoc
+//
+// RUN: %target-language-ide-test -print-module -source-filename %s -I %t -module-to-print=foo_language_module > %t.printed.txt
+// RUN: diff -u %S/Inputs/foo_language_module.printed.comments.txt %t.printed.txt
+

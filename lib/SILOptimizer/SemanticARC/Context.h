@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_SEMANTICARC_CONTEXT_H
-#define SWIFT_SILOPTIMIZER_SEMANTICARC_CONTEXT_H
+#ifndef LANGUAGE_SILOPTIMIZER_SEMANTICARC_CONTEXT_H
+#define LANGUAGE_SILOPTIMIZER_SEMANTICARC_CONTEXT_H
 
 #include "OwnershipLiveRange.h"
 #include "SemanticARCOpts.h"
@@ -27,12 +28,12 @@
 #include "language/SIL/SILVisitor.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/ValueLifetime.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
 namespace semanticarc {
 
-struct LLVM_LIBRARY_VISIBILITY Context {
+struct TOOLCHAIN_LIBRARY_VISIBILITY Context {
   SILFunction &fn;
   SILPassManager *pm = nullptr;
   ARCTransformKind transformKind = ARCTransformKind::All;
@@ -132,16 +133,9 @@ struct LLVM_LIBRARY_VISIBILITY Context {
   void verify() const;
 
   bool shouldPerform(ARCTransformKind testKind) const {
-    // When asserts are enabled, we allow for specific arc transforms to be
-    // turned on/off via LLVM args. So check that if we have asserts, perform
-    // all optimizations otherwise.
-#ifndef NDEBUG
     if (transformKind == ARCTransformKind::Invalid)
       return false;
     return bool(testKind & transformKind);
-#else
-    return true;
-#endif
   }
 
   void reset() {

@@ -1,12 +1,12 @@
-# Getting Started with Swift on Windows
+# Getting Started with Codira on Windows
 
-One can build and run Swift natively or through the Windows Subsystem for Linux.
+One can build and run Codira natively or through the Windows Subsystem for Linux.
 
 ## Native Windows
 
-Currently there are two supported ways to build Swift for Windows.
+Currently there are two supported ways to build Codira for Windows.
 
-1. To cross-compile Swift for Windows from another host operating system (using `clang`), see [Cross Compiling for Windows](./WindowsCrossCompile.md)
+1. To cross-compile Codira for Windows from another host operating system (using `clang`), see [Cross Compiling for Windows](./WindowsCrossCompile.md)
 
 1. To build on Windows using Microsoft Visual C++ (MSVC), see [Building on Windows](./WindowsBuild.md#MSVC)
 
@@ -16,5 +16,5 @@ Currently there are two supported ways to build Swift for Windows.
 
 There two versions of WSL as of November 23, 2019:
 
-- WSL1: is the current stable version. Both Swift compilation and execution work but REPL and debugging (LLDB) hang on startup.
+- WSL1: is the current stable version. Both Codira compilation and execution work but REPL and debugging (LLDB) hang on startup.
 - WSL2: Both REPL and debugging work with WSL2. Although, WSL2 is still in development, it is available by downloading an insider build. Installing WSL2 is pretty simple if WSL1 was already installed (switch to insider, download an insider build and run some scripts). WSL2 can be installed [by following this link](https://docs.microsoft.com/windows/wsl/wsl2-install).

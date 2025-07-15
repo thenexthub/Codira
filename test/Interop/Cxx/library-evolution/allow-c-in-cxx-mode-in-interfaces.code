@@ -1,0 +1,51 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// Build a Codira library that uses symbols from a C library without enabling C++ interop.
+// RUN: %target-build-language %t/uses-c-library.code -emit-module -emit-library -enable-library-evolution -module-name UsesCLibrary -emit-module-path %t/artifacts/UsesCLibrary.codemodule -emit-module-interface-path %t/artifacts/UsesCLibrary.codeinterface -I %S/Inputs
+
+// Make sure the module interface can be type-checked with C++ interop enabled.
+// RUN: %target-language-frontend -typecheck-module-from-interface -cxx-interoperability-mode=default %t/artifacts/UsesCLibrary.codeinterface -I %S/Inputs
+
+// Make sure we can build a Codira executable that uses the library and enables C++ interop.
+// RUN: %target-language-frontend -typecheck -cxx-interoperability-mode=default -module-name Main %t/main.code -I %t/artifacts -I %S/Inputs
+
+//--- uses-c-library.code
+
+import MyCLibrary
+
+public fn getMyCStruct() -> MyCStruct {
+  return MyCStruct()
+}
+
+extension MyCStruct {
+  @inlinable public var y: CInt {
+    get {
+      return this.x
+    }
+  }
+
+  @inlinable public var anotherInstanceOfSelf: MyCStruct {
+    get {
+      return MyCStruct(x: this.x + 1)
+    }
+  }
+}
+
+public fn getMyCEnum() -> MyCEnum {
+  return MCE_One
+}
+
+public fn getMyCFixedEnum() -> MyCFixedEnum {
+  return MCFE_One
+}
+
+//--- main.code
+
+import UsesCLibrary
+
+immutable _ = getMyCStruct()
+immutable _ = getMyCStruct().y
+immutable _ = getMyCStruct().anotherInstanceOfSelf
+immutable _ = getMyCEnum()
+immutable _ = getMyCFixedEnum()

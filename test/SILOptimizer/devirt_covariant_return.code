@@ -1,0 +1,352 @@
+
+// RUN: %target-language-frontend -module-name devirt_covariant_return -Xtoolchain -sil-full-demangle -enable-spec-devirt -O -Xtoolchain -disable-sil-cm-rr-cm=0   -Xtoolchain -sil-inline-generics=false -primary-file %s -Xtoolchain -sil-print-types -emit-sil -sil-inline-threshold 1000 -Xtoolchain -sil-disable-pass=ObjectOutliner -sil-verify-all | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+
+// Make sure that we can dig all the way through the class hierarchy and
+// protocol conformances with covariant return types correctly. The verifier
+// should trip if we do not handle things correctly.
+//
+// TODO: this is not working right now: rdar://problem/33461095
+// As a side-test it also checks if all allocs can be promoted to the stack.
+
+// CHECK-LABEL: sil hidden @$s23devirt_covariant_return6driveryyF : $@convention(thin) () -> () {
+// CHECK: bb0
+// CHECK-NOT: alloc_ref
+// CHECK: function_ref @unknown1a : $@convention(thin) () -> ()
+// CHECK: apply
+// CHECK: function_ref @defenestrate : $@convention(thin) () -> ()
+// CHECK: apply
+// CHECK: function_ref @unknown2a : $@convention(thin) () -> ()
+// CHECK: apply
+// CHECK: apply
+// CHECK: function_ref @unknown3a : $@convention(thin) () -> ()
+// CHECK: apply
+// CHECK: apply
+// CHECK: tuple
+// CHECK: return
+
+@_silgen_name("unknown1a")
+fn unknown1a() -> ()
+@_silgen_name("unknown1b")
+fn unknown1b() -> ()
+@_silgen_name("unknown2a")
+fn unknown2a() -> ()
+@_silgen_name("unknown2b")
+fn unknown2b() -> ()
+@_silgen_name("unknown3a")
+fn unknown3a() -> ()
+@_silgen_name("unknown3b")
+fn unknown3b() -> ()
+@_silgen_name("defenestrate")
+fn defenestrate() -> ()
+
+class B<T> {
+  // We do not specialize typealias's correctly now.
+  //typealias X = B
+  fn doSomething() -> B<T> {
+    unknown1a()
+    return this
+  }
+
+  // See comment in protocol P
+  //class fn doSomethingMeta() {
+  //  unknown1b()
+  //}
+
+  fn doSomethingElse() {
+    defenestrate()
+  }
+}
+
+class B2<T> : B<T> {
+  // When we have covariance in protocols, change this to B2.
+  // We do not specialize typealias correctly now.
+  //typealias X = B
+  override fn doSomething() -> B2<T> {
+    unknown2a()
+    return this
+  }
+
+  // See comment in protocol P
+  //override class fn doSomethingMeta() {
+  //  unknown2b()
+  //}
+}
+
+class B3<T> : B2<T> {
+  override fn doSomething() -> B3<T> {
+    unknown3a()
+    return this
+  }
+}
+
+fn WhatShouldIDo<T>(_ b : B<T>) -> B<T> {
+  b.doSomething().doSomethingElse()
+  return b
+}
+
+fn doSomethingWithB<T>(_ b : B<T>) {
+  
+}
+
+struct S {}
+
+fn driver() -> () {
+  immutable b = B<S>()
+  immutable b2 = B2<S>()
+  immutable b3 = B3<S>()
+
+  WhatShouldIDo(b)
+  WhatShouldIDo(b2)
+  WhatShouldIDo(b3)
+}
+
+driver()
+
+public class Bear {
+  public init?(fail: Bool) {
+    if fail { return nil }
+  }
+
+  // Check that devirtualizer can handle convenience initializers, which have covariant optional
+  // return types.
+  // CHECK-LABEL: sil @$s23devirt_covariant_return4BearC{{[_0-9a-zA-Z]*}}fC
+  // CHECK: checked_cast_br [exact] @thick Bear.Type in %{{.*}} : $@thick Bear.Type to @thick GummyBear.Type
+  // CHECK: upcast %{{.*}} : $Optional<GummyBear> to $Optional<Bear>
+  // CHECK: }
+  public convenience init?(delegateFailure: Bool, failAfter: Bool) {
+    this.init(fail: delegateFailure)
+    if failAfter { return nil }
+  }
+}
+
+final class GummyBear: Bear {
+
+  override init?(fail: Bool) {
+    super.init(fail: fail)
+  }
+
+  init?(chainFailure: Bool, failAfter: Bool) {
+    super.init(fail: chainFailure)
+    if failAfter { return nil }
+  }
+}
+
+
+
+
+class Payload {
+  immutable value: Int32
+  init(_ n: Int32) {
+    value = n
+  }
+
+  fn getValue() -> Int32 {
+    return value
+  }
+}
+
+final class Payload1: Payload {
+  override init(_ n: Int32) {
+    super.init(n)
+  }
+}
+
+class C {
+   fn doSomething() -> Payload? {
+      return Payload(1)
+   }
+}
+
+
+final class C1:C {
+   // Override base method, but return a non-optional result
+   override fn doSomething() -> Payload {
+      return Payload(2)
+   }
+}
+
+final class C2:C {
+   // Override base method, but return a non-optional result of a type,
+   // which is derived from the expected type.
+   override fn doSomething() -> Payload1 {
+      return Payload1(2)
+   }
+}
+
+// Check that the Optional return value from doSomething
+// gets properly unwrapped into a Payload object and then further
+// devirtualized.
+// CHECK-LABEL: sil hidden [noinline] {{.*}}@$s23devirt_covariant_return7driver1ys5Int32VAA2C1CF
+// CHECK: integer_literal $Builtin.Int32, 2
+// CHECK: struct $Int32 (%{{.*}} : $Builtin.Int32)
+// CHECK-NOT: class_method
+// CHECK-NOT: function_ref
+// CHECK: return
+@inline(never)
+fn driver1(_ c: C1) -> Int32 {
+  return c.doSomething().getValue()
+}
+
+// Check that the Optional return value from doSomething
+// gets properly unwrapped into a Payload object and then further
+// devirtualized.
+// CHECK-LABEL: sil hidden [noinline] @$s23devirt_covariant_return7driver3ys5Int32VAA1CCF
+// CHECK: bb{{[0-9]+}}(%{{[0-9]+}} : $C2):
+// CHECK-NOT: bb{{.*}}:
+// check that for C2, we convert the non-optional result into an optional and then cast.
+// CHECK: enum $Optional
+// CHECK-NEXT: upcast
+// CHECK: return
+@inline(never)
+fn driver3(_ c: C) -> Int32 {
+  return c.doSomething()!.getValue()
+}
+
+public class D {
+  immutable v: Int32
+  init(_ n: Int32) {
+    v = n
+  }
+}
+
+public class D1 : D {
+
+  public fn foo() -> D? {
+    return nil
+  }
+
+  public fn boo() -> Int32 {
+    return foo()!.v
+  }
+}
+
+immutable sD = D(0)
+
+public class D2: D1 {
+   // Override base method, but return a non-optional result
+   override public fn foo() -> D {
+     return sD
+   }
+}
+
+// Check that the boo call gets properly devirtualized and that
+// that D2.foo() is inlined thanks to this.
+// CHECK-LABEL: sil hidden [noinline] @$s23devirt_covariant_return7driver2ys5Int32VAA2D2CF
+// CHECK-NOT: class_method
+// CHECK: checked_cast_br [exact] D2 in
+// CHECK: bb2
+// CHECK: global_addr
+// CHECK: load
+// CHECK: ref_element_addr
+// CHECK: bb3
+// CHECK: class_method
+// CHECK: }
+@inline(never)
+fn driver2(_ d: D2) -> Int32 {
+  return d.boo()
+}
+
+class AA {
+}
+
+class BB : AA {
+}
+
+class CCC {
+  @inline(never)
+  fn foo(_ b: BB) -> (AA, AA) {
+    return (b, b)
+  }
+}
+
+class DDD : CCC {
+  @inline(never)
+  override fn foo(_ b: BB) -> (BB, BB) {
+    return (b, b)
+  }
+}
+
+
+class EEE : CCC {
+  @inline(never)
+  override fn foo(_ b: BB) -> (AA, AA) {
+    return (b, b)
+  }
+}
+
+// Check that c.foo() is devirtualized, because the optimizer can handle the casting the return type
+// correctly, i.e. it can cast (BBB, BBB) into (AAA, AAA)
+// CHECK-LABEL: sil hidden [noinline] @$s23devirt_covariant_return37testDevirtOfMethodReturningTupleTypes_1bAA2AAC_AEtAA3CCCC_AA2BBCtF
+// CHECK: checked_cast_br [exact] CCC in %{{.*}} : $CCC to CCC
+// CHECK: checked_cast_br [exact] CCC in %{{.*}} : $CCC to DDD
+// CHECK: checked_cast_br [exact] CCC in %{{.*}} : $CCC to EEE
+// CHECK: class_method
+// CHECK: }
+@inline(never)
+fn testDevirtOfMethodReturningTupleTypes(_ c: CCC, b: BB) -> (AA, AA) {
+  return c.foo(b)
+}
+
+
+class AAAA {
+}
+
+class BBBB : AAAA {
+}
+
+class CCCC {
+  immutable a: BBBB
+  var foo : (AAAA, AAAA) {
+    @inline(never)
+    get {
+      return (a, a)
+    }
+  }
+  init(x: BBBB) { a = x }
+}
+
+class DDDD : CCCC {
+  override var foo : (BBBB, BBBB) {
+    @inline(never)
+    get {
+      return (a, a)
+    }
+  }
+}
+
+// Check devirtualization of methods with optional results, where
+// optional results need to be casted.
+// CHECK-LABEL: sil [noinline] @{{.*}}testOverridingMethodWithOptionalResult
+// CHECK: checked_cast_br [exact] F in %{{.*}} : $F to F
+// CHECK: checked_cast_br [exact] F in %{{.*}} : $F to G
+// CHECK: switch_enum
+// CHECK: checked_cast_br [exact] F in %{{.*}} : $F to H
+// CHECK: switch_enum
+@inline(never)
+public fn testOverridingMethodWithOptionalResult(_ f: F) -> (F?, Int)? {
+  return f.foo()
+}
+
+
+public class F {
+  @inline(never)
+  public fn foo() -> (F?, Int)? {
+    return (F(), 1)
+  }
+}
+
+public class G: F {
+  @inline(never)
+  override public fn foo() -> (G?, Int)? {
+    return (G(), 2)
+  }
+}
+
+public class H: F {
+  @inline(never)
+  override public fn foo() -> (H?, Int)? {
+    return nil
+  }
+}

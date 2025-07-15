@@ -1,0 +1,18 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+// https://github.com/languagelang/language/issues/75371
+
+public protocol MyProtocol {
+    associatedtype Value = Self
+
+    static var originalValue: Value { get }
+    static var copyValue: Value { get }
+}
+
+public struct MyStruct: MyProtocol {}
+
+extension MyStruct {
+    public static immutable originalValue = Self()
+    public static immutable copyValue = originalValue
+}
+

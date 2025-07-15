@@ -1,4 +1,4 @@
-//===--- Ownership.h - Swift ASTs for Ownership ---------------*- C++ -*-===//
+//===--- Ownership.h - Codira ASTs for Ownership ---------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,28 +11,29 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines common structures for working with the different kinds of
-// reference ownership supported by Swift, such as 'weak' and 'unowned', as well
+// reference ownership supported by Codira, such as 'weak' and 'unowned', as well
 // as the different kinds of value ownership, such as 'inout' and '__shared'.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_OWNERSHIP_H
-#define SWIFT_OWNERSHIP_H
+#ifndef LANGUAGE_OWNERSHIP_H
+#define LANGUAGE_OWNERSHIP_H
 
 #include "language/Basic/InlineBitfield.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdint.h>
 
 namespace language {
 
-/// Different kinds of reference ownership supported by Swift.
+/// Different kinds of reference ownership supported by Codira.
 // This enum is used in diagnostics. If you add a case here, the diagnostics
 // must be updated as well.
 enum class ReferenceOwnership : uint8_t {
@@ -47,7 +48,7 @@ enum class ReferenceOwnership : uint8_t {
 enum : unsigned { NumReferenceOwnershipBits =
   countBitsUsed(static_cast<unsigned>(ReferenceOwnership::Last_Kind)) };
 
-static inline llvm::StringRef keywordOf(ReferenceOwnership ownership) {
+static inline toolchain::StringRef keywordOf(ReferenceOwnership ownership) {
   switch (ownership) {
   case ReferenceOwnership::Strong:
     break;
@@ -55,12 +56,12 @@ static inline llvm::StringRef keywordOf(ReferenceOwnership ownership) {
   case ReferenceOwnership::Unowned: return "unowned";
   case ReferenceOwnership::Unmanaged: return "unowned(unsafe)";
   }
-  // We cannot use llvm_unreachable() because this is used by the stdlib.
+  // We cannot use toolchain_unreachable() because this is used by the stdlib.
   assert(false && "impossible");
-  LLVM_BUILTIN_UNREACHABLE;
+  TOOLCHAIN_BUILTIN_UNREACHABLE;
 }
 
-static inline llvm::StringRef manglingOf(ReferenceOwnership ownership) {
+static inline toolchain::StringRef manglingOf(ReferenceOwnership ownership) {
   switch (ownership) {
   case ReferenceOwnership::Strong:
     break;
@@ -68,9 +69,9 @@ static inline llvm::StringRef manglingOf(ReferenceOwnership ownership) {
   case ReferenceOwnership::Unowned: return "Xo";
   case ReferenceOwnership::Unmanaged: return "Xu";
   }
-  // We cannot use llvm_unreachable() because this is used by the stdlib.
+  // We cannot use toolchain_unreachable() because this is used by the stdlib.
   assert(false && "impossible");
-  LLVM_BUILTIN_UNREACHABLE;
+  TOOLCHAIN_BUILTIN_UNREACHABLE;
 }
 
 static inline bool isLessStrongThan(ReferenceOwnership left,
@@ -91,7 +92,7 @@ static inline bool isLessStrongThan(ReferenceOwnership left,
     case ReferenceOwnership::Name: return INT_MIN;
 #include "language/AST/ReferenceStorage.def"
     }
-    llvm_unreachable("impossible");
+    toolchain_unreachable("impossible");
   };
 
   return strengthOf(left) < strengthOf(right);
@@ -117,10 +118,10 @@ optionalityOf(ReferenceOwnership ownership) {
   case ReferenceOwnership::Weak:
     return ReferenceOwnershipOptionality::Required;
   }
-  llvm_unreachable("impossible");
+  toolchain_unreachable("impossible");
 }
 
-/// Different kinds of value ownership supported by Swift.
+/// Different kinds of value ownership supported by Codira.
 ///
 /// The order of these constants is significant. Ascending order indicates
 /// stricter requirements on the value to be used with the given ownership
@@ -153,7 +154,7 @@ ParameterOwnership asParameterOwnership(ValueOwnership o);
 /// Map an ABI-stable ownership identifier to a `ValueOwnership`.
 ValueOwnership asValueOwnership(ParameterOwnership o);
 
-static inline llvm::StringRef getOwnershipSpelling(ValueOwnership ownership) {
+static inline toolchain::StringRef getOwnershipSpelling(ValueOwnership ownership) {
   switch (ownership) {
   case ValueOwnership::Default:
     return "";
@@ -164,7 +165,7 @@ static inline llvm::StringRef getOwnershipSpelling(ValueOwnership ownership) {
   case ValueOwnership::Owned:
     return "consuming";
   }
-  llvm_unreachable("Invalid ValueOwnership");
+  toolchain_unreachable("Invalid ValueOwnership");
 }
 } // end namespace language
 

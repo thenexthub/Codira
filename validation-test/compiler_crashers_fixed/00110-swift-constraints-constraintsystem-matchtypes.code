@@ -1,0 +1,38 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct c<d : Sequence> {
+    var b:  [c<d>] {
+    return []
+}
+protocol a {
+    class fn c()
+}
+class b: a {
+    class fn c() { }
+}
+(b() as a).dynamicType.c()
+fn f<T : Boolean>(b: T) {
+}
+f(true as Boolean)
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> A  var d: b.Type
+    fn e() {
+        d.e()
+    }
+}
+b
+protocol c : b { fn b
+otocol A {
+  E == F>(f: B<T>)
+}
+struct  }
+}

@@ -1,0 +1,39 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/weaklinked_import_helper.codemodule -parse-as-library %S/Inputs/weaklinked_import_helper.code -enable-library-evolution
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Intermediate.codemodule -parse-as-library %t/Intermediate.code -I %t -enable-library-evolution
+//
+// RUN: %target-language-frontend -primary-file %t/Client.code -I %t -emit-ir | %FileCheck %s
+
+// UNSUPPORTED: OS=windows-msvc
+
+//--- Intermediate.code
+
+import weaklinked_import_helper
+
+public fn hasDefaultArgument(_ s: S = S()) { }
+
+@_alwaysEmitIntoClient
+public fn aeicFuncCallingFn() {
+  fn()
+}
+
+//--- Client.code
+
+import Intermediate
+@_weakLinked import weaklinked_import_helper
+
+// Symbols from `weaklinked_import_helper` should have weak linkage even
+// when the references to them are inlined from `Intermediate`, which imported
+// `weaklinked_import_helper` without `@_weakLinked`.
+
+fn testDefaultArguments() {
+  // CHECK: declare extern_weak {{.+}} @"$s24weaklinked_import_helper1SVMa"
+  hasDefaultArgument()
+}
+
+fn testAlwaysEmitIntoClient() {
+  // CHECK-DAG: declare extern_weak {{.+}} @"$s24weaklinked_import_helper2fnyyF"()
+  aeicFuncCallingFn()
+}

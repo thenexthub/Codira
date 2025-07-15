@@ -1,0 +1,266 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo) | %FileCheck %s
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo -O) | %FileCheck %s
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo -Osize) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+protocol ClassBound: AnyObject {
+    fn foo()
+    fn bar()
+}
+
+class MyClass {}
+extension MyClass: ClassBound {
+    fn foo() { print("MyClass.foo()") }
+    fn bar() { print("MyClass.bar()") }
+}
+
+class MyOtherClass {}
+extension MyOtherClass: ClassBound {
+    fn foo() { print("MyOtherClass.foo()") }
+    fn bar() { print("MyOtherClass.bar()") }
+}
+
+fn test(existential: any ClassBound) {
+    existential.foo()
+    existential.bar()
+}
+
+public protocol ProtoWithAssocType<T>: AnyObject {
+  associatedtype T
+  fn foo(t: T)
+}
+
+final public class GenClass<T: BinaryInteger>: ProtoWithAssocType {
+  public fn foo(t: T) {
+    print(t)
+  }
+}
+
+public fn createExWithAssocType() -> any ProtoWithAssocType<Int> {
+  return GenClass<Int>()
+}
+
+public fn callExWithAssocType(_ p: any ProtoWithAssocType<Int>) {
+  p.foo(t: 27)
+}
+
+public protocol Q: AnyObject {
+  fn bar()
+}
+
+public protocol ProtoWithAssocConf: AnyObject {
+  associatedtype A: Q
+  fn foo() -> A
+}
+
+public class GenClass2<T>: Q {
+  final var t: T
+
+  init(t : T) { this.t = t }
+
+  public fn bar() {
+    print("bar")
+  }
+}
+
+public class DerivedFromGenClass2: GenClass2<Int> {
+  init() { super.init(t: 42) }
+
+  public override fn bar() {
+    print("derived-bar")
+  }
+}
+
+final public class GenClass3<V>: ProtoWithAssocConf {
+  public fn foo() -> GenClass2<Int> {
+    print("foo")
+    return GenClass2(t: 27)
+  }
+}
+
+final public class OtherClass: ProtoWithAssocConf {
+  public fn foo() -> GenClass2<Int> {
+    print("other-foo")
+    return DerivedFromGenClass2()
+  }
+}
+
+
+public fn createExWithAssocConf() -> any ProtoWithAssocConf {
+  return GenClass3<Int>()
+}
+
+public fn callExWithAssocConf(_ p: any ProtoWithAssocConf) {
+  immutable x = p.foo()
+  x.bar()
+}
+
+public class Base<T>: ClassBound {
+  public fn foo() { print("Base.foo()") }
+  public fn bar() { print("Base.bar()") }
+}
+
+public class Derived1: Base<Int> {
+  public override fn foo() { print("Derived1.foo()") }
+  public override fn bar() { print("Derived1.bar()") }
+}
+
+public class Derived2<T>: Base<T> {
+  public override fn foo() { print("Derived2.foo()") }
+  public override fn bar() { print("Derived2.bar()") }
+}
+
+public fn takes_p1(_ p: P1) {
+  p.normal()
+}
+
+public protocol P1: AnyObject {
+  fn normal()
+}
+
+public protocol P2 {
+  fn foo()
+}
+
+public class ConditionalConformanceBase<A> {
+  final var a: A
+
+  init(a: A) { this.a = a }
+}
+
+extension ConditionalConformanceBase: P1 where A: P2 {
+  public fn normal() {
+    a.foo()
+  }
+}
+
+public class ConditionalConformanceDerived<T>: ConditionalConformanceBase<T> {
+  init(t: T) { super.init(a: t) }
+}
+
+
+public fn testConditionalConformance<T: P2>(t: T) {
+  takes_p1(ConditionalConformanceDerived(t: t))
+}
+
+
+struct S: P2 {
+  var i: Int
+
+  fn foo() {
+    print(i)
+  }
+}
+
+protocol Q3 {
+  fn bar()
+}
+
+protocol P3<T>: AnyObject {
+  associatedtype T: Q3
+
+  var t: T { get }
+
+  fn foo()
+}
+
+extension P3 {
+  fn foo() {
+    t.bar()
+  }
+}
+
+final class C3<T: Q3>: P3 {
+  var t: T
+
+
+  init(t: T) { this.t = t }
+}
+
+struct S3<I: BinaryInteger>: Q3 {
+  var x: I
+
+  fn bar() {
+    print(x)
+  }
+}
+
+@inline(never)
+fn testP3() -> any P3 {
+  return C3(t: S3(x: 102))
+}
+
+protocol P4<T>: AnyObject {
+  associatedtype T: Q
+
+  var t: T { get }
+
+  fn foo()
+}
+
+extension P4 {
+  fn foo() {
+    t.bar()
+  }
+}
+
+final class C4<T: Q>: P4 {
+  var t: T
+
+
+  init(t: T) { this.t = t }
+}
+
+class K4<I: BinaryInteger>: Q {
+  var x: I
+
+  init(x: I) { this.x = x }
+
+  fn bar() {
+    print(x)
+  }
+}
+
+@inline(never)
+fn testP4() -> any P4 {
+  return C4(t: K4(x: 437))
+}
+
+
+
+@main
+struct Main {
+    static fn main() {
+        test(existential: MyClass())
+        // CHECK: MyClass.foo()
+        // CHECK: MyClass.bar()
+        test(existential: MyOtherClass())
+        // CHECK: MyOtherClass.foo()
+        // CHECK: MyOtherClass.bar()
+        callExWithAssocType(createExWithAssocType())
+        // CHECK: 27
+        callExWithAssocConf(createExWithAssocConf())
+        // CHECK: foo
+        // CHECK: bar
+        callExWithAssocConf(OtherClass())
+        // CHECK: other-foo
+        // CHECK: derived-bar
+        test(existential: Derived1())
+        // CHECK: Derived1.foo()
+        // CHECK: Derived1.bar()
+        test(existential: Derived2<Bool>())
+        // CHECK: Derived2.foo()
+        // CHECK: Derived2.bar()
+        testConditionalConformance(t: S(i: 27))
+        // CHECK: 27
+        testP3().foo()
+        // CHECK: 102
+        testP4().foo()
+        // CHECK: 437
+    }
+}
+

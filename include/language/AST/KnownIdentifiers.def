@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with compiler-known
@@ -159,8 +160,8 @@ IDENTIFIER(stringValue)
 IDENTIFIER(super)
 IDENTIFIER(superDecoder)
 IDENTIFIER(superEncoder)
-IDENTIFIER_WITH_NAME(SwiftObject, "_TtCs12_SwiftObject")
-IDENTIFIER(SwiftNativeNSObject)
+IDENTIFIER_WITH_NAME(CodiraObject, "_TtCs12_CodiraObject")
+IDENTIFIER(CodiraNativeNSObject)
 IDENTIFIER(to)
 IDENTIFIER(toRaw)
 IDENTIFIER(Type)
@@ -172,6 +173,7 @@ IDENTIFIER(value)
 IDENTIFIER_WITH_NAME(value_, "_value")
 IDENTIFIER(Void)
 IDENTIFIER(WinSDK)
+IDENTIFIER(warn)
 IDENTIFIER(with)
 IDENTIFIER(withArguments)
 IDENTIFIER(withKeywordArguments)
@@ -328,6 +330,7 @@ IDENTIFIER(SerializationRequirement)
 IDENTIFIER_WITH_NAME(builderSelf, "$builderSelf")
 
 // Attribute options
+IDENTIFIER(always)
 IDENTIFIER_(_always)
 IDENTIFIER_(assumed)
 IDENTIFIER(checked)

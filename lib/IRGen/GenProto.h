@@ -1,4 +1,4 @@
-//===--- GenProto.h - Swift IR generation for prototypes --------*- C++ -*-===//
+//===--- GenProto.h - Codira IR generation for prototypes --------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the protocol-emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENPROTO_H
-#define SWIFT_IRGEN_GENPROTO_H
+#ifndef LANGUAGE_IRGEN_GENPROTO_H
+#define LANGUAGE_IRGEN_GENPROTO_H
 
 #include "language/SIL/SILFunction.h"
 
@@ -26,7 +27,7 @@
 #include "GenericRequirement.h"
 #include "MetadataSource.h"
 
-namespace llvm {
+namespace toolchain {
   class Type;
 }
 
@@ -57,36 +58,36 @@ namespace irgen {
   class TypeInfo;
 
   /// Set an LLVM value name for the given type metadata.
-  void setTypeMetadataName(IRGenModule &IGM, llvm::Value *value, CanType type);
+  void setTypeMetadataName(IRGenModule &IGM, toolchain::Value *value, CanType type);
 
   /// Set an LLVM value name for the given protocol witness table.
-  void setProtocolWitnessTableName(IRGenModule &IGM, llvm::Value *value,
+  void setProtocolWitnessTableName(IRGenModule &IGM, toolchain::Value *value,
                                    CanType type, ProtocolDecl *protocol);
 
   /// Extract the method pointer from the given witness table
   /// as a function value.
   FunctionPointer emitWitnessMethodValue(IRGenFunction &IGF,
-                                         llvm::Value *wtable,
+                                         toolchain::Value *wtable,
                                          SILDeclRef member);
 
   /// Extract the method pointer from an archetype's witness table
   /// as a function value.
   FunctionPointer emitWitnessMethodValue(IRGenFunction &IGF, CanType baseTy,
-                                         llvm::Value **baseMetadataCache,
+                                         toolchain::Value **baseMetadataCache,
                                          SILDeclRef member,
                                          ProtocolConformanceRef conformance);
 
-  llvm::Value *emitAssociatedConformanceValue(IRGenFunction &IGF,
-                                              llvm::Value *wtable,
+  toolchain::Value *emitAssociatedConformanceValue(IRGenFunction &IGF,
+                                              toolchain::Value *wtable,
                                               const AssociatedConformance &conf);
 
   /// Compute the index into a witness table for a resilient protocol given
   /// a reference to a descriptor of one of the requirements in that witness
   /// table.
-  llvm::Value *computeResilientWitnessTableIndex(
+  toolchain::Value *computeResilientWitnessTableIndex(
                                             IRGenFunction &IGF,
                                             ProtocolDecl *proto,
-                                            llvm::Constant *reqtDescriptor);
+                                            toolchain::Constant *reqtDescriptor);
 
   /// Given a type T and an associated type X of some protocol P to
   /// which T conforms, return the type metadata for T.X.
@@ -95,8 +96,8 @@ namespace irgen {
   /// \param wtable - the witness table witnessing the conformance of T to P
   /// \param assocType - the declaration of X; a member of P
   MetadataResponse emitAssociatedTypeMetadataRef(IRGenFunction &IGF,
-                                                 llvm::Value *parentMetadata,
-                                                 llvm::Value *wtable,
+                                                 toolchain::Value *parentMetadata,
+                                                 toolchain::Value *wtable,
                                                  AssociatedTypeDecl *assocType,
                                                  DynamicMetadataRequest request);
 
@@ -106,12 +107,12 @@ namespace irgen {
     return -1 - (int)index;
   }
 
-  llvm::Value *loadParentProtocolWitnessTable(IRGenFunction &IGF,
-                                              llvm::Value *wtable,
+  toolchain::Value *loadParentProtocolWitnessTable(IRGenFunction &IGF,
+                                              toolchain::Value *wtable,
                                               WitnessIndex index);
 
-  llvm::Value *loadConditionalConformance(IRGenFunction &IGF,
-                                          llvm::Value *wtable,
+  toolchain::Value *loadConditionalConformance(IRGenFunction &IGF,
+                                          toolchain::Value *wtable,
                                           WitnessIndex index);
 
   struct ExpandedSignature {
@@ -126,7 +127,7 @@ namespace irgen {
   /// Returns the number of lowered parameters of each kind.
   ExpandedSignature expandPolymorphicSignature(
       IRGenModule &IGM, CanSILFunctionType type,
-      SmallVectorImpl<llvm::Type *> &types,
+      SmallVectorImpl<toolchain::Type *> &types,
       SmallVectorImpl<PolymorphicSignatureExpandedTypeSource> *outReqs =
           nullptr);
 
@@ -140,11 +141,11 @@ namespace irgen {
   /// Add the trailing arguments necessary for calling a witness method.
   void expandTrailingWitnessSignature(IRGenModule &IGM,
                                       CanSILFunctionType type,
-                                      SmallVectorImpl<llvm::Type*> &types);
+                                      SmallVectorImpl<toolchain::Type*> &types);
 
   struct WitnessMetadata {
-    llvm::Value *SelfMetadata = nullptr;
-    llvm::Value *SelfWitnessTable = nullptr;
+    toolchain::Value *SelfMetadata = nullptr;
+    toolchain::Value *SelfWitnessTable = nullptr;
   };
 
   /// Collect any required metadata for a witness method from the end
@@ -154,7 +155,7 @@ namespace irgen {
                                  NativeCCEntryPointArgumentEmission &params,
                                  WitnessMetadata &metadata);
 
-  using GetParameterFn = llvm::function_ref<llvm::Value*(unsigned)>;
+  using GetParameterFn = toolchain::function_ref<toolchain::Value*(unsigned)>;
 
   /// In the prelude of a generic function, perform the bindings for a
   /// generics clause.
@@ -187,26 +188,26 @@ namespace irgen {
 
   /// Load a reference to the protocol descriptor for the given protocol.
   ///
-  /// For Swift protocols, this is a constant reference to the protocol
+  /// For Codira protocols, this is a constant reference to the protocol
   /// descriptor symbol.
   /// For ObjC protocols, descriptors are uniqued at runtime by the ObjC
   /// runtime. We need to load the unique reference from a global variable fixed up at
   /// startup.
-  llvm::Value *emitProtocolDescriptorRef(IRGenFunction &IGF,
+  toolchain::Value *emitProtocolDescriptorRef(IRGenFunction &IGF,
                                          ProtocolDecl *protocol);
 
   /// Emit a witness table reference.
-  llvm::Value *emitWitnessTableRef(IRGenFunction &IGF,
+  toolchain::Value *emitWitnessTableRef(IRGenFunction &IGF,
                                    CanType srcType,
-                                   llvm::Value **srcMetadataCache,
+                                   toolchain::Value **srcMetadataCache,
                                    ProtocolConformanceRef conformance);
 
-  llvm::Value *emitWitnessTableRef(IRGenFunction &IGF,
+  toolchain::Value *emitWitnessTableRef(IRGenFunction &IGF,
                                    CanType srcType,
                                    ProtocolConformanceRef conformance);
 
   using GenericParamFulfillmentCallback =
-    llvm::function_ref<void(GenericRequirement req,
+    toolchain::function_ref<void(GenericRequirement req,
                             const MetadataSource &source,
                             const MetadataPath &path)>;
 

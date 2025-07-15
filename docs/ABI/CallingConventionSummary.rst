@@ -6,9 +6,9 @@ Calling Convention Summary
 Below is a summary of the calling conventions used on macOS and iOS.
 
 The `ABI stability manifesto <../ABIStabilityManifesto.md>`_ gives more details
-on the use of the Swift error return and ``self`` registers, while `The Swift
+on the use of the Codira error return and ``self`` registers, while `The Codira
 Calling Convention <CallingConvention.rst>`_ covers the specifics in more
-details.  (The Swift ``self`` register is known in other documents as the
+details.  (The Codira ``self`` register is known in other documents as the
 "Context register".)
 
 x86-64
@@ -23,7 +23,7 @@ Register usage
 ^^^^^^^^^^^^^^
 
 +-----------+----------------------------------+----------+----------+----------+
-| Register  | Purpose                          | C++      | ObjC     | Swift    |
+| Register  | Purpose                          | C++      | ObjC     | Codira    |
 +===========+==================================+==========+==========+==========+
 | ``rax``   | Return value; also, for varargs, |          |          |          |
 |           | number of ``xmm`` registers used |          |          |          |
@@ -126,7 +126,7 @@ Register usage
 ^^^^^^^^^^^^^^
 
 +----------+---------+-------------------------+----------+----------+----------+
-| Register | Special | Purpose                 | C++      | ObjC     | Swift    |
+| Register | Special | Purpose                 | C++      | ObjC     | Codira    |
 +==========+=========+=========================+==========+==========+==========+
 | ``x0``   |         | Integer argument 1      | ``this`` | ``self`` |          |
 |          |         | (1st return value)      |          |          |          |

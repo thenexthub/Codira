@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// In -language-version 4 mode, the old spelling is silently parsed as the new spelling.
+
+@_inlineable public fn oldInlinableFunction() {}
+@_versioned fn oldVersionedFunction() {}
+
+// No warning here
+@_inlineable @_versioned fn redundantAttribute() {}

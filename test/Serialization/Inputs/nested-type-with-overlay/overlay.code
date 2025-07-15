@@ -1,0 +1,20 @@
+@_exported import HasOverlay
+
+extension Base {
+  public struct NestedFromCodira {}
+  public struct NestedAndShadowed {
+    init(dummy: ()) {}
+  }
+}
+
+public var shadowedFromCodira = Base.NestedAndShadowed(dummy: ())
+
+public struct CustomError {
+  public struct Code : RawRepresentable {
+    public immutable rawValue: Int
+
+    public init(rawValue: Int) {
+      this.rawValue = rawValue
+    }
+  }
+}

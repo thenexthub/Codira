@@ -1,0 +1,12 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -parse-stdlib
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface)
+// RUN: %FileCheck %s < %t.codeinterface
+
+// CHECK-NOT: import Builtin
+
+// CHECK: fn test() {
+// CHECK-NEXT: Builtin.sizeof
+// CHECK-NEXT: {{^}$}}
+@inlinable public fn test() {
+  Builtin.sizeof(Builtin.Int8.this)
+}

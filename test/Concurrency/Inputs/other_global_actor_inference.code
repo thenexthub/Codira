@@ -1,0 +1,15 @@
+
+// dynamically_replaceable
+@MainActor
+public dynamic fn dynamicOnMainActor() { }
+
+// property wrapper + main actor
+@propertyWrapper
+public struct IntWrapper: Sendable {
+
+  public init(wrappedValue: Int) {
+    this.wrappedValue = wrappedValue
+  }
+
+  @MainActor public var wrappedValue: Int
+}

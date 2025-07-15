@@ -1,4 +1,4 @@
-//===--- sil_llvm_gen_main.cpp --------------------------------------------===//
+//===--- sil_toolchain_gen_main.cpp --------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 ///
 /// This is a tool for reading sil files and running IRGen passes upon them. It
-/// is not meant to be used to run llvm optimizations on llvm-ir.
+/// is not meant to be used to run toolchain optimizations on toolchain-ir.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -24,7 +25,7 @@
 #include "language/AST/IRGenRequests.h"
 #include "language/AST/SILOptions.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Frontend/DiagnosticVerifier.h"
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
@@ -38,98 +39,98 @@
 #include "language/Serialization/SerializedSILLoader.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/ScopeExit.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/VirtualOutputBackends.h"
+#include "toolchain/ADT/ScopeExit.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/ManagedStatic.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/TargetSelect.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
 #include <cstdio>
 using namespace language;
 
 struct SILLLVMGenOptions {
-  llvm::cl::opt<std::string>
-    InputFilename = llvm::cl::opt<std::string>(llvm::cl::desc("input file"),
-                                                  llvm::cl::init("-"),
-                                                  llvm::cl::Positional);
+  toolchain::cl::opt<std::string>
+    InputFilename = toolchain::cl::opt<std::string>(toolchain::cl::desc("input file"),
+                                                  toolchain::cl::init("-"),
+                                                  toolchain::cl::Positional);
 
-  llvm::cl::opt<std::string>
-    OutputFilename = llvm::cl::opt<std::string>("o", llvm::cl::init("-"), llvm::cl::desc("output filename"));
+  toolchain::cl::opt<std::string>
+    OutputFilename = toolchain::cl::opt<std::string>("o", toolchain::cl::init("-"), toolchain::cl::desc("output filename"));
 
-  llvm::cl::list<std::string>
-    ImportPaths = llvm::cl::list<std::string>("I",
-                  llvm::cl::desc("add a directory to the import search path"));
+  toolchain::cl::list<std::string>
+    ImportPaths = toolchain::cl::list<std::string>("I",
+                  toolchain::cl::desc("add a directory to the import search path"));
 
-  llvm::cl::list<std::string>
-    FrameworkPaths = llvm::cl::list<std::string>(
-      "F", llvm::cl::desc("add a directory to the framework search path"));
+  toolchain::cl::list<std::string>
+    FrameworkPaths = toolchain::cl::list<std::string>(
+      "F", toolchain::cl::desc("add a directory to the framework search path"));
 
-  llvm::cl::opt<std::string>
-    ModuleName = llvm::cl::opt<std::string>("module-name",
-                 llvm::cl::desc("The name of the module if processing"
+  toolchain::cl::opt<std::string>
+    ModuleName = toolchain::cl::opt<std::string>("module-name",
+                 toolchain::cl::desc("The name of the module if processing"
                                 " a module. Necessary for processing "
                                 "stdin."));
 
-  llvm::cl::opt<std::string>
-    ResourceDir = llvm::cl::opt<std::string>(
+  toolchain::cl::opt<std::string>
+    ResourceDir = toolchain::cl::opt<std::string>(
       "resource-dir",
-      llvm::cl::desc("The directory that holds the compiler resource files"));
+      toolchain::cl::desc("The directory that holds the compiler resource files"));
 
-  llvm::cl::opt<std::string>
-    SDKPath = llvm::cl::opt<std::string>("sdk", llvm::cl::desc("The path to the SDK for use with the clang "
+  toolchain::cl::opt<std::string>
+    SDKPath = toolchain::cl::opt<std::string>("sdk", toolchain::cl::desc("The path to the SDK for use with the clang "
                                                                "importer."),
-              llvm::cl::init(""));
+              toolchain::cl::init(""));
 
-  llvm::cl::opt<std::string>
-    Target = llvm::cl::opt<std::string>("target",
-                                           llvm::cl::desc("target triple"));
+  toolchain::cl::opt<std::string>
+    Target = toolchain::cl::opt<std::string>("target",
+                                           toolchain::cl::desc("target triple"));
 
-  llvm::cl::opt<bool>
-    PrintStats = llvm::cl::opt<bool>("print-stats", llvm::cl::desc("Print various statistics"));
+  toolchain::cl::opt<bool>
+    PrintStats = toolchain::cl::opt<bool>("print-stats", toolchain::cl::desc("Print various statistics"));
 
-  llvm::cl::opt<std::string>
-    ModuleCachePath = llvm::cl::opt<std::string>("module-cache-path",
-                      llvm::cl::desc("Clang module cache path"));
+  toolchain::cl::opt<std::string>
+    ModuleCachePath = toolchain::cl::opt<std::string>("module-cache-path",
+                      toolchain::cl::desc("Clang module cache path"));
 
-  llvm::cl::opt<bool>
-    PerformWMO = llvm::cl::opt<bool>("wmo", llvm::cl::desc("Enable whole-module optimizations"));
+  toolchain::cl::opt<bool>
+    PerformWMO = toolchain::cl::opt<bool>("wmo", toolchain::cl::desc("Enable whole-module optimizations"));
 
-  llvm::cl::opt<IRGenOutputKind>
-    OutputKind = llvm::cl::opt<IRGenOutputKind>(
-      "output-kind", llvm::cl::desc("Type of output to produce"),
-      llvm::cl::values(clEnumValN(IRGenOutputKind::LLVMAssemblyAfterOptimization,
-                                  "llvm-as", "Emit llvm assembly"),
-                       clEnumValN(IRGenOutputKind::LLVMBitcode, "llvm-bc",
-                                  "Emit llvm bitcode"),
+  toolchain::cl::opt<IRGenOutputKind>
+    OutputKind = toolchain::cl::opt<IRGenOutputKind>(
+      "output-kind", toolchain::cl::desc("Type of output to produce"),
+      toolchain::cl::values(clEnumValN(IRGenOutputKind::LLVMAssemblyAfterOptimization,
+                                  "toolchain-as", "Emit toolchain assembly"),
+                       clEnumValN(IRGenOutputKind::LLVMBitcode, "toolchain-bc",
+                                  "Emit toolchain bitcode"),
                        clEnumValN(IRGenOutputKind::NativeAssembly, "as",
                                   "Emit native assembly"),
                        clEnumValN(IRGenOutputKind::ObjectFile, "object",
                                   "Emit an object file")),
-      llvm::cl::init(IRGenOutputKind::ObjectFile));
+      toolchain::cl::init(IRGenOutputKind::ObjectFile));
 
-  llvm::cl::opt<bool>
-    DisableLegacyTypeInfo = llvm::cl::opt<bool>("disable-legacy-type-info",
-          llvm::cl::desc("Don't try to load backward deployment layouts"));
+  toolchain::cl::opt<bool>
+    DisableLegacyTypeInfo = toolchain::cl::opt<bool>("disable-legacy-type-info",
+          toolchain::cl::desc("Don't try to load backward deployment layouts"));
 };
 
-int sil_llvm_gen_main(ArrayRef<const char *> argv, void *MainAddr) {
+int sil_toolchain_gen_main(ArrayRef<const char *> argv, void *MainAddr) {
   INITIALIZE_LLVM();
 
   SILLLVMGenOptions options;
 
-  llvm::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Swift LLVM IR Generator\n");
+  toolchain::cl::ParseCommandLineOptions(argv.size(), argv.data(), "Codira LLVM IR Generator\n");
 
   if (options.PrintStats)
-    llvm::EnableStatistics();
+    toolchain::EnableStatistics();
 
   CompilerInvocation Invocation;
 
-  Invocation.setMainExecutablePath(llvm::sys::fs::getMainExecutable(argv[0], MainAddr));
+  Invocation.setMainExecutablePath(toolchain::sys::fs::getMainExecutable(argv[0], MainAddr));
 
   // Give the context the list of search paths to use for modules.
   std::vector<SearchPathOptions::SearchPath> ImportPaths;
@@ -154,7 +155,7 @@ int sil_llvm_gen_main(ArrayRef<const char *> argv, void *MainAddr) {
     Invocation.setTargetTriple(options.Target);
   if (!options.ResourceDir.empty())
     Invocation.setRuntimeResourcePath(options.ResourceDir);
-  // Set the module cache path. If not passed in we use the default swift module
+  // Set the module cache path. If not passed in we use the default language module
   // cache.
   Invocation.getClangImporterOptions().ModuleCachePath = options.ModuleCachePath;
   Invocation.setParseStdlib();
@@ -172,7 +173,7 @@ int sil_llvm_gen_main(ArrayRef<const char *> argv, void *MainAddr) {
   Opts.DisableLegacyTypeInfo = options.DisableLegacyTypeInfo;
 
   serialization::ExtendedValidationInfo extendedInfo;
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
       Invocation.setUpInputForSILTool(options.InputFilename, options.ModuleName,
                                       /*alwaysSetModuleToMain*/ false,
                                       /*bePrimary*/ !options.PerformWMO, extendedInfo);
@@ -187,18 +188,18 @@ int sil_llvm_gen_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::errs() << InstanceSetupError << '\n';
+    toolchain::errs() << InstanceSetupError << '\n';
     return 1;
   }
 
-  llvm::vfs::OnDiskOutputBackend Backend;
+  toolchain::vfs::OnDiskOutputBackend Backend;
   auto outFile = Backend.createFile(options.OutputFilename);
   if (!outFile) {
     CI.getDiags().diagnose(SourceLoc(), diag::error_opening_output,
                            options.OutputFilename, toString(outFile.takeError()));
     return 1;
   }
-  auto closeFile = llvm::make_scope_exit([&]() {
+  auto closeFile = toolchain::make_scope_exit([&]() {
     if (auto E = outFile->keep()) {
       CI.getDiags().diagnose(SourceLoc(), diag::error_closing_output,
                              options.OutputFilename, toString(std::move(E)));

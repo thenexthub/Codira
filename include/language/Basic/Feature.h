@@ -1,4 +1,4 @@
-//===--- Feature.h - Helpers related to Swift features ----------*- C++ -*-===//
+//===--- Feature.h - Helpers related to Codira features ----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FEATURE_H
-#define SWIFT_BASIC_FEATURE_H
+#ifndef LANGUAGE_BASIC_FEATURE_H
+#define LANGUAGE_BASIC_FEATURE_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
 namespace language {
@@ -58,10 +59,10 @@ struct Feature {
   bool isAvailableInProduction() const;
 
   /// Determine the in-source name of the given feature.
-  llvm::StringRef getName() const;
+  toolchain::StringRef getName() const;
 
-  /// Determine whether the given feature supports adoption mode.
-  bool isAdoptable() const;
+  /// Determine whether the given feature supports migration mode.
+  bool isMigratable() const;
 
   /// Determine whether this feature should be included in the
   /// module interface
@@ -94,4 +95,4 @@ struct Feature {
 #include "language/Basic/Features.def"
 }
 
-#endif // SWIFT_BASIC_FEATURES_H
+#endif // LANGUAGE_BASIC_FEATURES_H

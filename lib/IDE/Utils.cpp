@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/Utils.h"
@@ -24,10 +25,10 @@
 #include "language/Subsystems.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/Rewrite/Core/RewriteBuffer.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
 using namespace ide;
@@ -98,7 +99,7 @@ static const char *skipStringInCode(const char *p, const char *End) {
 }
 
 SourceCompleteResult
-ide::isSourceInputComplete(std::unique_ptr<llvm::MemoryBuffer> MemBuf,
+ide::isSourceInputComplete(std::unique_ptr<toolchain::MemoryBuffer> MemBuf,
                            SourceFileKind SFKind, const LangOptions &LangOpts) {
   SourceManager SM;
   auto BufferID = SM.addNewSourceBuffer(std::move(MemBuf));
@@ -183,7 +184,7 @@ ide::isSourceInputComplete(std::unique_ptr<llvm::MemoryBuffer> MemBuf,
 SourceCompleteResult ide::isSourceInputComplete(StringRef Text,
                                                 SourceFileKind SFKind,
                                                 const LangOptions &LangOpts) {
-  return ide::isSourceInputComplete(llvm::MemoryBuffer::getMemBufferCopy(Text),
+  return ide::isSourceInputComplete(toolchain::MemoryBuffer::getMemBufferCopy(Text),
                                     SFKind, LangOpts);
 }
 
@@ -199,7 +200,7 @@ static void walkOverriddenClangDecls(const clang::NamedDecl *D, const FnTy &Fn){
 
 void
 ide::walkOverriddenDecls(const ValueDecl *VD,
-                         llvm::function_ref<void(llvm::PointerUnion<
+                         toolchain::function_ref<void(toolchain::PointerUnion<
                              const ValueDecl*, const clang::NamedDecl*>)> Fn) {
   for (auto CurrOver = VD; CurrOver; CurrOver = CurrOver->getOverriddenDecl()) {
     if (CurrOver != VD)
@@ -243,24 +244,24 @@ static bool findPlaceholder(StringRef Input, PlaceholderOccurrence &Occur) {
   }
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
-ide::replacePlaceholders(std::unique_ptr<llvm::MemoryBuffer> InputBuf,
-             llvm::function_ref<void(const PlaceholderOccurrence &)> Callback) {
+std::unique_ptr<toolchain::MemoryBuffer>
+ide::replacePlaceholders(std::unique_ptr<toolchain::MemoryBuffer> InputBuf,
+             toolchain::function_ref<void(const PlaceholderOccurrence &)> Callback) {
   StringRef Input = InputBuf->getBuffer();
   PlaceholderOccurrence Occur;
   bool Found = findPlaceholder(Input, Occur);
   if (!Found)
     return InputBuf;
 
-  std::unique_ptr<llvm::MemoryBuffer> NewBuf =
-    llvm::MemoryBuffer::getMemBufferCopy(InputBuf->getBuffer(),
+  std::unique_ptr<toolchain::MemoryBuffer> NewBuf =
+    toolchain::MemoryBuffer::getMemBufferCopy(InputBuf->getBuffer(),
                                          InputBuf->getBufferIdentifier());
 
   unsigned Counter = 0;
   auto replacePlaceholder = [&](PlaceholderOccurrence &Occur) {
-    llvm::SmallString<10> Id;
+    toolchain::SmallString<10> Id;
     Id = "$_";
-    llvm::raw_svector_ostream(Id) << (Counter++);
+    toolchain::raw_svector_ostream(Id) << (Counter++);
     assert(Occur.FullPlaceholder.size() >= 2);
     if (Id.size() > Occur.FullPlaceholder.size()) {
       // The identifier+counter exceeds placeholder size; replace it without
@@ -293,8 +294,8 @@ ide::replacePlaceholders(std::unique_ptr<llvm::MemoryBuffer> InputBuf,
   return NewBuf;
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
-ide::replacePlaceholders(std::unique_ptr<llvm::MemoryBuffer> InputBuf,
+std::unique_ptr<toolchain::MemoryBuffer>
+ide::replacePlaceholders(std::unique_ptr<toolchain::MemoryBuffer> InputBuf,
                          bool *HadPlaceholder) {
   if (HadPlaceholder)
     *HadPlaceholder = false;
@@ -410,7 +411,7 @@ static const char *OSXModuleList[] = {
   "PreferencePanes",
   "PubSub",
   "Python",
-  //  "QTKit", QTKit is unavailable on Swift.
+  //  "QTKit", QTKit is unavailable on Codira.
   "Quartz",
   "QuartzCore",
   "QuickLook",
@@ -584,7 +585,7 @@ DeclNameViewer::DeclNameViewer(StringRef Text): IsValid(true), HasParen(false) {
     return;
   if ((IsValid = Labels.back().empty())) {
     Labels.pop_back();
-    llvm::transform(Labels, Labels.begin(), [](StringRef Label) {
+    toolchain::transform(Labels, Labels.begin(), [](StringRef Label) {
       return Label == "_" ? StringRef() : Label;
     });
   }
@@ -604,26 +605,26 @@ unsigned DeclNameViewer::commonPartsCount(DeclNameViewer &Other) const {
   return Result;
 }
 
-void swift::ide::SourceEditConsumer::
+void language::ide::SourceEditConsumer::
 accept(SourceManager &SM, SourceLoc Loc, StringRef Text,
        ArrayRef<NoteRegion> SubRegions) {
   accept(SM, CharSourceRange(Loc, 0), Text, SubRegions);
 }
 
-void swift::ide::SourceEditConsumer::
+void language::ide::SourceEditConsumer::
 accept(SourceManager &SM, CharSourceRange Range, StringRef Text,
        ArrayRef<NoteRegion> SubRegions) {
   accept(SM, RegionType::ActiveCode,
          {{/*Path=*/{}, Range, /*BufferName=*/{}, Text, SubRegions}});
 }
 
-void swift::ide::SourceEditConsumer::
+void language::ide::SourceEditConsumer::
 insertAfter(SourceManager &SM, SourceLoc Loc, StringRef Text,
             ArrayRef<NoteRegion> SubRegions) {
   accept(SM, Lexer::getLocForEndOfToken(SM, Loc), Text, SubRegions);
 }
 
-void swift::ide::SourceEditConsumer::
+void language::ide::SourceEditConsumer::
 remove(SourceManager &SM, CharSourceRange Range) {
   accept(SM, Range, "");
 }
@@ -633,7 +634,7 @@ remove(SourceManager &SM, CharSourceRange Range) {
 static StringRef
 adjustMacroExpansionWhitespace(GeneratedSourceInfo::Kind kind,
                                StringRef expandedCode,
-                               llvm::SmallString<64> &scratch) {
+                               toolchain::SmallString<64> &scratch) {
   scratch.clear();
 
   switch (kind) {
@@ -669,7 +670,7 @@ adjustMacroExpansionWhitespace(GeneratedSourceInfo::Kind kind,
   }
 }
 
-void swift::ide::SourceEditConsumer::acceptMacroExpansionBuffer(
+void language::ide::SourceEditConsumer::acceptMacroExpansionBuffer(
     SourceManager &SM, unsigned bufferID, SourceFile *containingSF,
     bool adjustExpansion, bool includeBufferName) {
   auto generatedInfo = SM.getGeneratedSourceInfo(bufferID);
@@ -693,7 +694,7 @@ void swift::ide::SourceEditConsumer::acceptMacroExpansionBuffer(
   // `containingFile` is the file of the actual expansion site, where as
   // `originalFile` is the possibly enclosing buffer. Concretely:
   // ```
-  // // m.swift
+  // // m.code
   // @AddMemberAttributes
   // struct Foo {
   //   // --- expanded from @AddMemberAttributes eg. @_someBufferName ---
@@ -704,7 +705,7 @@ void swift::ide::SourceEditConsumer::acceptMacroExpansionBuffer(
   // ```
   //
   // When expanding `AddedAttribute`, the expansion actually applies to the
-  // original source (`m.swift`) rather than the buffer of the expansion
+  // original source (`m.code`) rather than the buffer of the expansion
   // site (`@_someBufferName`). Thus, we need to include the path to the
   // original source as well. Note that this path could itself be another
   // expansion.
@@ -729,32 +730,32 @@ void swift::ide::SourceEditConsumer::acceptMacroExpansionBuffer(
               {}});
 }
 
-struct swift::ide::SourceEditJsonConsumer::Implementation {
-  llvm::raw_ostream &OS;
+struct language::ide::SourceEditJsonConsumer::Implementation {
+  toolchain::raw_ostream &OS;
   SourceEdits AllEdits;
-  Implementation(llvm::raw_ostream &OS) : OS(OS) {}
+  Implementation(toolchain::raw_ostream &OS) : OS(OS) {}
   ~Implementation() {
     writeEditsInJson(AllEdits, OS);
   }
   void accept(SourceManager &SM, CharSourceRange Range,
-              llvm::StringRef Text) {
+              toolchain::StringRef Text) {
     AllEdits.addEdit(SM, Range, Text);
   }
 };
 
-swift::ide::SourceEditJsonConsumer::SourceEditJsonConsumer(llvm::raw_ostream &OS) :
+language::ide::SourceEditJsonConsumer::SourceEditJsonConsumer(toolchain::raw_ostream &OS) :
   Impl(*new Implementation(OS)) {}
 
-swift::ide::SourceEditJsonConsumer::~SourceEditJsonConsumer() { delete &Impl; }
+language::ide::SourceEditJsonConsumer::~SourceEditJsonConsumer() { delete &Impl; }
 
-void swift::ide::SourceEditJsonConsumer::
+void language::ide::SourceEditJsonConsumer::
 accept(SourceManager &SM, RegionType Type, ArrayRef<Replacement> Replacements) {
   for (const auto &Replacement: Replacements) {
     Impl.accept(SM, Replacement.Range, Replacement.Text);
   }
 }
 
-void swift::ide::SourceEditTextConsumer::
+void language::ide::SourceEditTextConsumer::
 accept(SourceManager &SM, RegionType Type, ArrayRef<Replacement> Replacements) {
   for (const auto &Replacement: Replacements) {
     OS << "// ";
@@ -787,7 +788,7 @@ class ClangFileRewriterHelper {
   unsigned InterestedId;
   clang::RewriteBuffer RewriteBuf;
   bool HasChange;
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
 
   void removeCommentLines(clang::RewriteBuffer &Buffer, StringRef Input,
                           StringRef LineHeader) {
@@ -808,7 +809,7 @@ class ClangFileRewriterHelper {
 
 public:
   ClangFileRewriterHelper(SourceManager &SM, unsigned InterestedId,
-                          llvm::raw_ostream &OS)
+                          toolchain::raw_ostream &OS)
   : InterestedId(InterestedId), HasChange(false), OS(OS) {
     StringRef Input(SM.getLLVMSourceMgr().getMemoryBuffer(InterestedId)->
                     getBuffer());
@@ -836,22 +837,22 @@ public:
   }
 };
 } // end anonymous namespace
-struct swift::ide::SourceEditOutputConsumer::Implementation {
+struct language::ide::SourceEditOutputConsumer::Implementation {
   ClangFileRewriterHelper Rewriter;
-  Implementation(SourceManager &SM, unsigned BufferId, llvm::raw_ostream &OS)
+  Implementation(SourceManager &SM, unsigned BufferId, toolchain::raw_ostream &OS)
   : Rewriter(SM, BufferId, OS) {}
   void accept(SourceManager &SM, CharSourceRange Range, StringRef Text) {
     Rewriter.replaceText(SM, Range, Text);
   }
 };
 
-swift::ide::SourceEditOutputConsumer::
+language::ide::SourceEditOutputConsumer::
 SourceEditOutputConsumer(SourceManager &SM, unsigned BufferId,
-  llvm::raw_ostream &OS) : Impl(*new Implementation(SM, BufferId, OS)) {}
+  toolchain::raw_ostream &OS) : Impl(*new Implementation(SM, BufferId, OS)) {}
 
-swift::ide::SourceEditOutputConsumer::~SourceEditOutputConsumer() { delete &Impl; }
+language::ide::SourceEditOutputConsumer::~SourceEditOutputConsumer() { delete &Impl; }
 
-void swift::ide::SourceEditOutputConsumer::
+void language::ide::SourceEditOutputConsumer::
 accept(SourceManager &SM, RegionType RegionType,
        ArrayRef<Replacement> Replacements) {
   // ignore mismatched or
@@ -863,7 +864,7 @@ accept(SourceManager &SM, RegionType RegionType,
   }
 }
 
-void swift::ide::BroadcastingSourceEditConsumer::accept(
+void language::ide::BroadcastingSourceEditConsumer::accept(
     SourceManager &SM, RegionType RegionType,
     ArrayRef<Replacement> Replacements) {
   for (auto &Consumer : Consumers) {
@@ -871,7 +872,7 @@ void swift::ide::BroadcastingSourceEditConsumer::accept(
   }
 }
 
-bool swift::ide::isFromClang(const Decl *D) {
+bool language::ide::isFromClang(const Decl *D) {
   if (getEffectiveClangNode(D))
     return true;
   if (auto *Ext = dyn_cast<ExtensionDecl>(D))
@@ -879,14 +880,14 @@ bool swift::ide::isFromClang(const Decl *D) {
   return false;
 }
 
-ClangNode swift::ide::getEffectiveClangNode(const Decl *decl) {
+ClangNode language::ide::getEffectiveClangNode(const Decl *decl) {
   auto &ctx = decl->getASTContext();
   auto *importer = static_cast<ClangImporter *>(ctx.getClangModuleLoader());
   return importer->getEffectiveClangNode(decl);
 }
 
 /// Retrieve the Clang node for the given extension, if it has one.
-ClangNode swift::ide::extensionGetClangNode(const ExtensionDecl *ext) {
+ClangNode language::ide::extensionGetClangNode(const ExtensionDecl *ext) {
   // If it has a Clang node (directly),
   if (ext->hasClangNode()) return ext->getClangNode();
 
@@ -903,7 +904,7 @@ ClangNode swift::ide::extensionGetClangNode(const ExtensionDecl *ext) {
   return ClangNode();
 }
 
-std::pair<Type, ConcreteDeclRef> swift::ide::getReferencedDecl(Expr *expr,
+std::pair<Type, ConcreteDeclRef> language::ide::getReferencedDecl(Expr *expr,
                                                                bool semantic) {
   if (semantic)
     expr = expr->getSemanticsProvidingExpr();
@@ -928,8 +929,8 @@ std::pair<Type, ConcreteDeclRef> swift::ide::getReferencedDecl(Expr *expr,
   if (!refDecl) {
     if (auto *applyExpr = dyn_cast<ApplyExpr>(expr)) {
       auto fnDecl = applyExpr->getFn()->getReferencedDecl();
-      if (auto *func = fnDecl.getDecl()) {
-        if (func->isImplicitlyUnwrappedOptional()) {
+      if (auto *fn = fnDecl.getDecl()) {
+        if (fn->isImplicitlyUnwrappedOptional()) {
           if (auto objectTy = exprTy->getOptionalObjectType())
             exprTy = objectTy;
         }
@@ -940,7 +941,7 @@ std::pair<Type, ConcreteDeclRef> swift::ide::getReferencedDecl(Expr *expr,
   return std::make_pair(exprTy, refDecl);
 }
 
-bool swift::ide::isBeingCalled(ArrayRef<Expr *> ExprStack) {
+bool language::ide::isBeingCalled(ArrayRef<Expr *> ExprStack) {
   if (ExprStack.empty())
     return false;
 
@@ -978,7 +979,7 @@ static Expr *getContainingExpr(ArrayRef<Expr *> ExprStack, size_t index) {
   return nullptr;
 }
 
-Expr *swift::ide::getBase(ArrayRef<Expr *> ExprStack) {
+Expr *language::ide::getBase(ArrayRef<Expr *> ExprStack) {
   if (ExprStack.empty())
     return nullptr;
 
@@ -1012,7 +1013,7 @@ Expr *swift::ide::getBase(ArrayRef<Expr *> ExprStack) {
   return Base;
 }
 
-bool swift::ide::isDeclOverridable(ValueDecl *D) {
+bool language::ide::isDeclOverridable(ValueDecl *D) {
   auto *NTD = D->getDeclContext()->getSelfNominalTypeDecl();
   if (!NTD)
     return false;
@@ -1048,7 +1049,7 @@ bool swift::ide::isDeclOverridable(ValueDecl *D) {
   return true;
 }
 
-bool swift::ide::isDynamicRef(Expr *Base, ValueDecl *D, llvm::function_ref<Type(Expr *)> getType) {
+bool language::ide::isDynamicRef(Expr *Base, ValueDecl *D, toolchain::function_ref<Type(Expr *)> getType) {
   if (!isDeclOverridable(D))
     return false;
 
@@ -1079,7 +1080,7 @@ bool swift::ide::isDynamicRef(Expr *Base, ValueDecl *D, llvm::function_ref<Type(
   return true;
 }
 
-void swift::ide::getReceiverType(Expr *Base,
+void language::ide::getReceiverType(Expr *Base,
                                  SmallVectorImpl<NominalTypeDecl *> &Types) {
   Type ReceiverTy = Base->getType();
   if (!ReceiverTy)
@@ -1101,9 +1102,9 @@ void swift::ide::getReceiverType(Expr *Base,
   }
 }
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 extern "C" {
-/// Low-level entry point to run the NameMatcher written in swift-syntax.
+/// Low-level entry point to run the NameMatcher written in language-syntax.
 ///
 /// - Parameters:
 ///   - sourceFilePtr: A pointer to an `ExportedSourceFile`, used to access the
@@ -1112,13 +1113,13 @@ extern "C" {
 ///     resolved by the name matcher.
 ///   - locationsCount: Number of elements in `locations`.
 /// - Returns: The opaque value of a `BridgedResolvedLocVector`.
-void *swift_SwiftIDEUtilsBridging_runNameMatcher(const void *sourceFilePtr,
+void *language_CodiraIDEUtilsBridging_runNameMatcher(const void *sourceFilePtr,
                                                  BridgedSourceLoc *locations,
                                                  size_t locationsCount);
 }
 
 std::vector<ResolvedLoc>
-swift::ide::runNameMatcher(const SourceFile &sourceFile,
+language::ide::runNameMatcher(const SourceFile &sourceFile,
                            ArrayRef<SourceLoc> locations) {
   std::vector<BridgedSourceLoc> bridgedUnresolvedLocs;
   bridgedUnresolvedLocs.reserve(locations.size());
@@ -1127,9 +1128,9 @@ swift::ide::runNameMatcher(const SourceFile &sourceFile,
   }
 
   BridgedResolvedLocVector bridgedResolvedLocs =
-      swift_SwiftIDEUtilsBridging_runNameMatcher(
+      language_CodiraIDEUtilsBridging_runNameMatcher(
           sourceFile.getExportedSourceFile(), bridgedUnresolvedLocs.data(),
           bridgedUnresolvedLocs.size());
   return bridgedResolvedLocs.takeUnbridged();
 }
-#endif // SWIFT_BUILD_SWIFT_SYNTAX
+#endif // LANGUAGE_BUILD_LANGUAGE_SYNTAX

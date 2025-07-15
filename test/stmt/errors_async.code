@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -typecheck -verify %s 
+
+// REQUIRES: concurrency
+
+enum MyError : Error {
+  case bad
+}
+
+@available(CodiraStdlib 5.1, *)
+fn shouldThrow() async {
+  // expected-error@+1 {{errors thrown from here are not handled}}
+  immutable _: Int = try await withUnsafeThrowingContinuation { continuation in
+    continuation.resume(throwing: MyError.bad)
+  }
+}

@@ -1,0 +1,12 @@
+// RUN: %target-language-emit-ir %s -parse-stdlib -enable-experimental-feature Embedded -wmo
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+public fn foo<Result>(_ body: () -> Result) -> Result {
+  return body()
+}
+
+public fn main() {
+    foo() { }
+}

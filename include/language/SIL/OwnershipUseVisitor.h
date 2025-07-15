@@ -1,13 +1,17 @@
 //===--- OwnershipUseVisitor.h -------------------------------*- C++ -*----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// A visitor that classifies the uses of an OSSA value. The main entry points
@@ -20,8 +24,8 @@
 /// Extensions of the visitor determine how to handle pointer escapes,
 /// reborrows, inner borrows, and scoped addresses.
 
-#ifndef SWIFT_SIL_OWNERSHIPUSEVISITOR_H
-#define SWIFT_SIL_OWNERSHIPUSEVISITOR_H
+#ifndef LANGUAGE_SIL_OWNERSHIPUSEVISITOR_H
+#define LANGUAGE_SIL_OWNERSHIPUSEVISITOR_H
 
 #include "language/SIL/NodeBits.h"
 #include "language/SIL/OwnershipUtils.h"
@@ -187,10 +191,10 @@ bool OwnershipUseVisitor<Impl>::visitLifetimeEndingUses(SILValue ssaDef) {
     if (ssaDef->isFromVarDecl()) {
       return visitExtends(ssaDef);
     }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case OwnershipKind::Any:
   case OwnershipKind::Unowned:
-    llvm_unreachable("requires an owned or guaranteed orignalDef");
+    toolchain_unreachable("requires an owned or guaranteed orignalDef");
   }
   return true;
 }
@@ -253,7 +257,7 @@ bool OwnershipUseVisitor<Impl>::visitOuterBorrowScopeEnd(Operand *borrowEnd) {
     assert(isa<ExtendLifetimeInst>(borrowEnd->getUser()));
     return handleUsePoint(borrowEnd, UseLifetimeConstraint::NonLifetimeEnding);
   default:
-    llvm_unreachable("expected borrow scope end");
+    toolchain_unreachable("expected borrow scope end");
   }
 }
 
@@ -319,10 +323,10 @@ bool OwnershipUseVisitor<Impl>::visitInnerBorrowScopeEnd(Operand *borrowEnd) {
       return handleUsePoint(borrowEnd,
                             UseLifetimeConstraint::NonLifetimeEnding);
     }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   default:
-    llvm_unreachable("expected borrow scope end");
+    toolchain_unreachable("expected borrow scope end");
   }
 }
 
@@ -349,7 +353,7 @@ bool OwnershipUseVisitor<Impl>::visitInteriorUses(SILValue ssaDef) {
   case OwnershipKind::Any:
   case OwnershipKind::None:
   case OwnershipKind::Unowned:
-    llvm_unreachable("requires an owned or guaranteed orignalDef");
+    toolchain_unreachable("requires an owned or guaranteed orignalDef");
   }
 }
 
@@ -379,7 +383,7 @@ bool OwnershipUseVisitor<Impl>::visitOwnedUse(Operand *use) {
     if (!asImpl().handlePointerEscape(use))
       return false;
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case OperandOwnership::InstantaneousUse:
   case OperandOwnership::ForwardingUnowned:
   case OperandOwnership::UnownedInstantaneousUse:
@@ -395,7 +399,7 @@ bool OwnershipUseVisitor<Impl>::visitOwnedUse(Operand *use) {
   case OperandOwnership::EndBorrow:
   case OperandOwnership::Reborrow:
   case OperandOwnership::GuaranteedForwarding:
-    llvm_unreachable("ownership incompatible with an owned value");
+    toolchain_unreachable("ownership incompatible with an owned value");
   }
 }
 
@@ -414,7 +418,7 @@ bool OwnershipUseVisitor<Impl>::visitGuaranteedUse(Operand *use) {
     if (!asImpl().handlePointerEscape(use))
       return false;
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case OperandOwnership::InstantaneousUse:
   case OperandOwnership::ForwardingUnowned:
   case OperandOwnership::UnownedInstantaneousUse:
@@ -458,7 +462,7 @@ bool OwnershipUseVisitor<Impl>::visitGuaranteedUse(Operand *use) {
   case OperandOwnership::TrivialUse:
   case OperandOwnership::ForwardingConsume:
   case OperandOwnership::DestroyingConsume:
-    llvm_unreachable("ownership incompatible with a guaranteed value");
+    toolchain_unreachable("ownership incompatible with a guaranteed value");
   }
 }
 

@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: sed -e "s@VFS_DIR@%{/t:regex_replacement}/vfs@g" -e "s@EXTERNAL_DIR@%{/t:regex_replacement}/hidden@g" %t/base.yaml > %t/overlay.yaml
+
+// RUN: %target-language-frontend -emit-module -module-name B -o %t/B.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/hidden/B.codeinterface -enable-library-evolution %t/hidden/B.code
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -module-cache-path %t/clang-module-cache -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %t/vfs/test.code -o %t/deps.json -language-version 5 -cache-compile-job -cas-path %t/cas \
+// RUN:   -vfsoverlay %t/overlay.yaml -Xcc -ivfsoverlay -Xcc %t/overlay.yaml -I %t/vfs
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:A > %t/A.cmd
+// RUN: %language_frontend_plain @%t/A.cmd
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json B > %t/B.cmd
+// RUN: %language_frontend_plain @%t/B.cmd
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+// RUN: %target-language-frontend \
+// RUN:   -typecheck -cache-compile-job -cas-path %t/cas -vfsoverlay %t/overlay.yaml \
+// RUN:   -language-version 5 -disable-implicit-language-modules \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -module-name Test -explicit-language-module-map-file @%t/map.casid \
+// RUN:   %t/vfs/test.code @%t/MyApp.cmd
+
+//--- hidden/test.code
+import A
+import B
+
+//--- hidden/module.modulemap
+module A {
+  header "A.h"
+  export *
+}
+
+//--- hidden/A.h
+void a(void);
+
+//--- hidden/B.code
+public fn b() {}
+
+//--- base.yaml
+{
+  version: 0,
+  roots: [
+    {
+      type: "directory-remap",
+      name: "VFS_DIR",
+      external-contents: "EXTERNAL_DIR"
+    }
+  ]
+}

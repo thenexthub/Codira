@@ -1,0 +1,127 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/Inputs -I %t) %s -emit-ir | %FileCheck %s
+
+// REQUIRES: CPU=x86_64
+// REQUIRES: objc_interop
+
+sil_stage raw
+
+import Builtin
+import Codira
+import gizmo
+
+class X { }
+sil_vtable X {}
+sil @$s12objc_dealloc1XCfD : $@convention(method) (X) -> ()
+
+fn onDestruct() { }
+
+class CodiraGizmo : Gizmo {
+  var x : X
+  override init()
+  deinit
+}
+sil_vtable CodiraGizmo {}
+sil @$s12objc_dealloc10CodiraGizmoCfD : $@convention(method) (CodiraGizmo) -> ()
+
+sil @$s12objc_dealloc10onDestructyyF : $@convention(thin) () -> () {
+bb0:
+  %0 = tuple ()
+  %1 = tuple ()                                   // user: %2
+  return %1 : $()                                 // id: %2
+}
+
+sil [ossa] @$s12objc_dealloc10CodiraGizmoCfd : $@convention(thin) (@owned CodiraGizmo) -> @owned Builtin.NativeObject {
+bb0(%0 : @owned $CodiraGizmo):
+  // function_ref objc_dealloc.onDestruct () -> ()
+  %1 = function_ref @$s12objc_dealloc10onDestructyyF : $@convention(thin) () -> () // user: %2
+  %2 = apply %1() : $@convention(thin) () -> ()
+  %3 = begin_borrow %0 : $CodiraGizmo
+  %4 = ref_element_addr %3 : $CodiraGizmo, #CodiraGizmo.x      // user: %4
+  destroy_addr %4 : $*X                           // id: %4
+  end_borrow %3 : $CodiraGizmo
+  %5 = unchecked_ref_cast %0 : $CodiraGizmo to $Builtin.NativeObject // user: %6
+  return %5 : $Builtin.NativeObject              // id: %6
+}
+
+sil private [ossa] @$s12objc_dealloc10CodiraGizmoC1xAA1XCfgTo : $@convention(objc_method) (CodiraGizmo) -> @autoreleased X {
+bb0(%0 : @unowned $CodiraGizmo):
+  %1 = unchecked_ownership_conversion %0 : $CodiraGizmo, @unowned to @guaranteed
+  %2 = ref_element_addr %1 : $CodiraGizmo, #CodiraGizmo.x      // user: %2
+  %3 = load [copy] %2 : $*X                              // users: %4, %3
+  end_borrow %1 : $CodiraGizmo
+  return %3 : $X                                  // id: %4
+}
+
+sil private [ossa] @$s12objc_dealloc10CodiraGizmoC1xAA1XCfsTo : $@convention(objc_method) (X, CodiraGizmo) -> () {
+bb0(%0 : @unowned $X, %1 : @unowned $CodiraGizmo):
+  %2 = copy_value %0 : $X
+  %3 = copy_value %1 : $CodiraGizmo
+  %4 = begin_borrow %3 : $CodiraGizmo
+  %5 = ref_element_addr %4 : $CodiraGizmo, #CodiraGizmo.x      // user: %5
+  assign %2 to %5 : $*X                           // id: %5
+  end_borrow %4 : $CodiraGizmo
+  destroy_value %3 : $CodiraGizmo                 // id: %6
+  %7 = tuple ()                                   // user: %8
+  return %7 : $()                                 // id: %8
+}
+
+// CHECK: define internal void @"$s12objc_dealloc10CodiraGizmoCfDTo"(ptr %0, ptr %1) {{[#0-9]*}} {
+sil private [ossa] @$s12objc_dealloc10CodiraGizmoCfDTo : $@convention(objc_method) (CodiraGizmo) -> () {
+bb0(%0 : @unowned $CodiraGizmo):
+  // CHECK-NEXT: entry
+  // CHECK-NEXT: [[OBJC_SUPER:%[a-zA-Z0-9_]+]] = alloca %objc_super, align 8
+
+  // Call to onDestruct()
+  // CHECK: call languagecc void @"$s12objc_dealloc10onDestructyyF"()
+
+  // function_ref objc_dealloc.onDestruct () -> ()
+  %1 = function_ref @$s12objc_dealloc10onDestructyyF : $@convention(thin) () -> () // user: %2
+  %2 = apply %1() : $@convention(thin) () -> ()
+
+  // Destroy instance variables
+  // FIXME: This should move to .cxx_destruct
+  // CHECK: [[XOFFSET:%[a-zA-Z0-9]+]] = load i64, ptr @"$s12objc_dealloc10CodiraGizmoC1xAA1XCvpWvd", align 8
+  // CHECK-NEXT: [[IVAR_ADDR:%[a-zA-Z0-9]+]] = getelementptr inbounds i8, ptr {{.*}}, i64 [[XOFFSET]]
+  // CHECK-NEXT: [[X:%[a-zA-Z0-9]+]] = load ptr, ptr [[IVAR_ADDR]], align 8
+  // CHECK-NEXT: call void @language_release(ptr [[X]])
+  %3 = unchecked_ownership_conversion %0 : $CodiraGizmo, @unowned to @guaranteed
+  %4 = ref_element_addr %3 : $CodiraGizmo, #CodiraGizmo.x      // user: %4
+  destroy_addr %4 : $*X                           // id: %4
+  end_borrow %3 : $CodiraGizmo
+
+  // Call super -dealloc.
+  // CHECK: [[TMP:%.*]] = call languagecc %language.metadata_response @"$s12objc_dealloc10CodiraGizmoCMa"(i64 0)
+  // CHECK-NEXT: [[T0:%.*]] = extractvalue %language.metadata_response [[TMP]], 0
+  // CHECK-NEXT: [[OBJC_SUPER_RECEIVER:%[a-zA-Z0-9]+]] = getelementptr inbounds{{.*}} %objc_super, ptr [[OBJC_SUPER]], i32 0, i32 0
+  // CHECK-NEXT: store ptr %0, ptr [[OBJC_SUPER_RECEIVER]], align 8
+  // CHECK-NEXT: [[OBJC_SUPER_CLASS:%[a-zA-Z0-9]+]] = getelementptr inbounds{{.*}} %objc_super, ptr [[OBJC_SUPER]], i32 0, i32 1
+  // CHECK-NEXT: store ptr [[T0]], ptr [[OBJC_SUPER_CLASS]], align 8
+  // CHECK-NEXT: [[DEALLOC_SEL:%[a-zA-Z0-9]+]] = load ptr, ptr @"\01L_selector(dealloc)", align 8
+  // CHECK-NEXT: call void @objc_msgSendSuper2(ptr [[OBJC_SUPER]], ptr [[DEALLOC_SEL]])
+  %5 = objc_super_method %0 : $CodiraGizmo, #Gizmo.deinit!deallocator.foreign : (Gizmo) -> () -> (), $@convention(objc_method) (Gizmo) -> () // user: %7
+  %6 = upcast %0 : $CodiraGizmo to $Gizmo          // user: %7
+  %7 = apply %5(%6) : $@convention(objc_method) (Gizmo) -> ()
+
+  // CHECK-NEXT: ret void
+  %8 = tuple ()                                   // user: %9
+  return %8 : $()                                 // id: %9
+}
+
+// @objc ObjectiveC.CodiraGizmo.__ivar_destroyer
+sil [ossa] @$s12objc_dealloc10CodiraGizmoCfETo : $@convention(objc_method) (CodiraGizmo) -> () {
+bb0(%0 : @unowned $CodiraGizmo):
+  %3 = tuple ()
+  return %3 : $()                                 // id: %4
+}
+
+sil [ossa] @$s12objc_dealloc10CodiraGizmoCACycfcTo : $@convention(objc_method) (@owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : @owned $CodiraGizmo):
+  return %0 : $CodiraGizmo
+}
+
+sil [ossa] @$s12objc_dealloc10CodiraGizmoC7bellsOnACSgSi_tcfcTo : $@convention(objc_method) (Int, @owned CodiraGizmo) -> @owned CodiraGizmo? {
+bb0(%0 : $Int, %1 : @owned $CodiraGizmo):
+  unreachable
+}

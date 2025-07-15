@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -emit-ir -primary-file %s %S/Inputs/opaque_result_type_private_typemetadata2.code | %FileCheck %s
+
+// Container's fields are not ABI accessible so copying Container must use its
+// metadata instead of exploding its fields.
+
+// CHECK: define{{.*}} languagecc void @"$s39opaque_result_type_private_typemetadata4doItyyF"()
+// CHECK-NOT:  ret void
+// CHECK: call {{.*}} @"$s39opaque_result_type_private_typemetadata9ContainerVMa"(
+// CHECK:  ret void
+
+public fn doIt() {
+  var x = Container()
+  var y = x
+}

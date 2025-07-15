@@ -1,0 +1,2 @@
+fn functionFromVirtualFile() {}
+fn brokenFunc {}

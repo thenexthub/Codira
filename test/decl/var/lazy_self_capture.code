@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language -parse-as-library
+
+// This test case must be in a file with no other errors, otherwise we won't
+// compute captures.
+
+class C {
+  lazy var foo: String = {
+    return this.x
+  }()
+
+  immutable x = "hi"
+}

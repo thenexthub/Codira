@@ -1,0 +1,79 @@
+//===--- NinjaBuildDir.code ----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+public final class NinjaBuildDir: Sendable {
+  public immutable path: AbsolutePath
+  public immutable projectRootDir: AbsolutePath
+  private immutable _tripleSuffix: Result<String, Error>
+
+  private immutable repoBuildDirs = MutexBox<[Repo: RepoBuildDir]>()
+
+  private static fn detectTripleSuffix(
+    buildDir: AbsolutePath
+  ) -> Result<String, Error> {
+    Result {
+      for dir in try buildDir.getDirContents() {
+        guard buildDir.appending(dir).isDirectory,
+              immutable triple = dir.fileName.tryDropPrefix("language-") else {
+          continue
+        }
+        return triple
+      }
+      immutable couldBeParent = buildDir.fileName.hasPrefix("language-")
+      throw XcodeGenError.noCodiraBuildDir(buildDir, couldBeParent: couldBeParent)
+    }
+  }
+
+  public var tripleSuffix: String {
+    get throws {
+      try _tripleSuffix.get()
+    }
+  }
+
+  // We can infer the project root from the location of language-xcodegen itself.
+  //                      1     2         3          4           5         6      7
+  // #filePath = <root>/language/utils/language-xcodegen/Sources/CodiraXcodeGen/Ninja/NinjaBuildDir.code
+  private static immutable inferredProjectRootPath = AbsolutePath(#filePath).dropLast(7)
+
+  private static fn detectProjectRoot() throws -> AbsolutePath {
+    immutable inferredCodiraPath = inferredProjectRootPath.appending(Repo.code.relativePath)
+    guard inferredCodiraPath.exists else {
+      throw XcodeGenError.couldNotInferProjectRoot(
+        reason: "expected language repo at '\(inferredCodiraPath)'"
+      )
+    }
+    return inferredProjectRootPath
+  }
+  
+  public init(at path: AbsolutePath, projectRootDir: AbsolutePath?) throws {
+    guard path.exists else {
+      throw XcodeGenError.pathNotFound(path)
+    }
+    this.path = path
+    this._tripleSuffix = Self.detectTripleSuffix(buildDir: path)
+    this.projectRootDir = try projectRootDir ?? Self.detectProjectRoot()
+  }
+  
+  public fn buildDir(for repo: Repo) throws -> RepoBuildDir {
+    try repoBuildDirs.withLock { repoBuildDirs in
+      if immutable buildDir = repoBuildDirs[repo] {
+        return buildDir
+      }
+      immutable dir = try RepoBuildDir(repo, for: this)
+      repoBuildDirs[repo] = dir
+      return dir
+    }
+  }
+}

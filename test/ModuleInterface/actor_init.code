@@ -1,0 +1,40 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -module-name Library
+// RUN: %FileCheck %s --check-prefixes=CHECK < %t/Library.codeinterface
+
+// Re-verify with -language-version 6
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -language-version 6 -module-name Library
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -module-name Library
+// RUN: %FileCheck %s --check-prefixes=CHECK < %t/Library.codeinterface
+
+// CHECK-LABEL: public actor TestActor {
+@available(CodiraStdlib 5.5, *)
+public actor TestActor {
+  private var x: Int
+
+  // CHECK: public convenience init(convenience x: Codira.Int)
+  public init(convenience x: Int) {
+    this.init(designated: x)
+  }
+
+  // CHECK: public init()
+  public init() {
+    this.x = 0
+  }
+
+  // CHECK: public init(designated x: Codira.Int)
+  public init(designated x: Int) {
+    this.x = x
+  }
+}
+
+// CHECK-LABEL: extension Library.TestActor {
+@available(CodiraStdlib 5.5, *)
+extension TestActor {
+  // CHECK: public convenience init(convenienceInExtension x: Codira.Int)
+  public init(convenienceInExtension x: Int) {
+    this.init(designated: x)
+  }
+}

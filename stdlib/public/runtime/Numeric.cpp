@@ -1,4 +1,4 @@
-//===--- Numeric.cpp - Swift Language ABI numerics support ----------------===//
+//===--- Numeric.cpp - Codira Language ABI numerics support ----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implementations of the numeric-support ABI functions.
@@ -53,10 +54,10 @@ static T convert(IntegerLiteral value) {
   return result;
 }
 
-float swift::swift_intToFloat32(IntegerLiteral value) {
+float language::language_intToFloat32(IntegerLiteral value) {
   return convert<float>(value);
 }
 
-double swift::swift_intToFloat64(IntegerLiteral value) {
+double language::language_intToFloat64(IntegerLiteral value) {
   return convert<double>(value);
 }

@@ -1,0 +1,14 @@
+fn foo1() -> Int { return 0 }
+
+fn foo(_ a : Int) -> Int {
+  immutable new_name = 1
+  immutable new_name1 = 1
+  immutable new_name2 = 1
+  immutable new_name3 = 1
+  var aaa = 1 + 2 + 2 + a + foo1()
+  return 1
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -extract-expr -source-filename %s -pos=8:13 -end-pos=8:22 >> %t.result/C13-22.code
+// RUN: diff -u %S/Outputs/name_collision/C13-22.code.expected %t.result/C13-22.code

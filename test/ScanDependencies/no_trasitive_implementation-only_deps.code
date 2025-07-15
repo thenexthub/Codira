@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/Frameworks
+// RUN: mkdir -p %t/Frameworks/Foo.framework/
+// RUN: mkdir -p %t/Frameworks/Foo.framework/Modules
+// RUN: mkdir -p %t/Frameworks/Foo.framework/Modules/Foo.codemodule
+
+// Build a dependency into a binary module with an @_implementationOnly dependency on `E`
+// RUN: echo "@_implementationOnly import E;public fn foo() {}" >> %t/foo.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Frameworks/Foo.framework/Modules/Foo.codemodule/%target-cpu.codemodule -module-cache-path %t.module-cache %t/foo.code -module-name Foo -I %S/Inputs/Codira
+
+// Run the scan
+// RUN: %target-language-frontend -scan-dependencies %s -o %t/deps.json -F %t/Frameworks/ -sdk %t
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+import Foo
+
+// CHECK-NOT: "language": "E"

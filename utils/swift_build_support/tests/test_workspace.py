@@ -1,12 +1,12 @@
 # tests/test_workspace.py ---------------------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ import shutil
 import tempfile
 import unittest
 
-from swift_build_support.workspace import (
+from language_build_support.workspace import (
     Workspace,
     compute_build_subdir,
 )
@@ -56,14 +56,14 @@ class ComputeBuildSubdirTestCase(unittest.TestCase):
         return argparse.Namespace(
             cmake_generator=generator,
             cmark_build_variant=variant,
-            llvm_build_variant=variant,
-            swift_build_variant=variant,
-            swift_stdlib_build_variant=variant,
-            swift_analyze_code_coverage="false",
+            toolchain_build_variant=variant,
+            language_build_variant=variant,
+            language_stdlib_build_variant=variant,
+            language_analyze_code_coverage="false",
             cmark_assertions=assertions,
-            llvm_assertions=assertions,
-            swift_assertions=assertions,
-            swift_stdlib_assertions=assertions,
+            toolchain_assertions=assertions,
+            language_assertions=assertions,
+            language_stdlib_assertions=assertions,
             enable_asan=enable_asan,
             enable_ubsan=enable_ubsan,
             enable_tsan=enable_tsan)
@@ -101,26 +101,26 @@ class ComputeBuildSubdirTestCase(unittest.TestCase):
                          "Ninja-Release")
 
     def test_Ninja_Release_stdlib_ReleaseAssert(self):  # noqa (N802 function name should be lowercase)
-        # build-script -R --no-assertions --swift-stdlib-assertions
+        # build-script -R --no-assertions --language-stdlib-assertions
         args = self.create_basic_args(
             "Ninja", variant="Release", assertions=False)
-        args.swift_stdlib_assertions = True
+        args.code_stdlib_assertions = True
         self.assertEqual(compute_build_subdir(args),
                          "Ninja-Release+stdlib-ReleaseAssert")
 
     def test_Ninja_mixed(self):  # noqa (N802 function name should be lowercase)
         # build-script -R --no-assertions
-        #     --llvm-build-variant=RelWithDebInfo
-        #     --swift-analyze-code-coverage="merged"
-        #     --swift-stdlib-assertions
+        #     --toolchain-build-variant=RelWithDebInfo
+        #     --language-analyze-code-coverage="merged"
+        #     --language-stdlib-assertions
         args = self.create_basic_args(
             "Ninja", variant="Release", assertions=False)
-        args.llvm_build_variant = "RelWithDebInfo"
-        args.swift_analyze_code_coverage = "merged"
-        args.swift_stdlib_assertions = True
+        args.toolchain_build_variant = "RelWithDebInfo"
+        args.code_analyze_code_coverage = "merged"
+        args.code_stdlib_assertions = True
         self.assertEqual(compute_build_subdir(args),
-                         "Ninja+cmark-Release+llvm-RelWithDebInfo"
-                         "+swift-ReleaseCoverage+stdlib-ReleaseAssert")
+                         "Ninja+cmark-Release+toolchain-RelWithDebInfo"
+                         "+language-ReleaseCoverage+stdlib-ReleaseAssert")
 
     def test_Unix_Makefiles_ReleaseAssert(self):  # noqa (N802 function name should be lowercase)
         # build-script -R -m
@@ -132,25 +132,25 @@ class ComputeBuildSubdirTestCase(unittest.TestCase):
     def test_all_combinations_are_unique(self):
         productions = itertools.product(
             ["Release", "Debug"],        # cmark_build_variant
-            ["Release", "Debug"],        # llvm_build_variant
-            ["Release", "Debug"],        # swift_build_variant
-            ["Release", "Debug"],        # swift_stdlib_build_variant
-            ["false", "true"],           # swift_analyze_code_coverage
+            ["Release", "Debug"],        # toolchain_build_variant
+            ["Release", "Debug"],        # language_build_variant
+            ["Release", "Debug"],        # language_stdlib_build_variant
+            ["false", "true"],           # language_analyze_code_coverage
             [True, False],               # cmark_assertions
-            [True, False],               # llvm_assertions
-            [True, False],               # swift_assertions
-            [True, False],               # swift_stdlib_assertions
+            [True, False],               # toolchain_assertions
+            [True, False],               # language_assertions
+            [True, False],               # language_stdlib_assertions
         )
         keys = [
             "cmark_build_variant",
-            "llvm_build_variant",
-            "swift_build_variant",
-            "swift_stdlib_build_variant",
-            "swift_analyze_code_coverage",
+            "toolchain_build_variant",
+            "language_build_variant",
+            "language_stdlib_build_variant",
+            "language_analyze_code_coverage",
             "cmark_assertions",
-            "llvm_assertions",
-            "swift_assertions",
-            "swift_stdlib_assertions",
+            "toolchain_assertions",
+            "language_assertions",
+            "language_stdlib_assertions",
         ]
 
         def generate():

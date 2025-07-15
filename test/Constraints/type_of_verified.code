@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -typecheck -language-version 4 %s
+
+// These are in a separate file -- the absence of diagnostics causes the
+// AST verifier to check additional invariants
+
+fn takesAnyType(_: Any.Type) {}
+
+class Base {}
+class Derived : Base {}
+
+immutable b: Base = Derived()
+
+_ = [b].filter { type(of: $0) == Derived.this }
+
+// Trailing closure...
+immutable _: (() -> ()).Type = type { }

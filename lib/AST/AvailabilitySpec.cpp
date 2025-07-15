@@ -1,4 +1,4 @@
-//===--- AvailabilitySpec.cpp - Swift Availability Query ASTs -------------===//
+//===--- AvailabilitySpec.cpp - Codira Availability Query ASTs -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the availability specification AST classes.
@@ -22,7 +23,7 @@
 #include "language/AST/AvailabilityDomain.h"
 #include "language/AST/DiagnosticsSema.h"
 #include "language/AST/TypeCheckRequests.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -47,7 +48,7 @@ static SourceRange getSpecSourceRange(SourceLoc domainLoc,
 AvailabilitySpec *AvailabilitySpec::createForDomain(ASTContext &ctx,
                                                     AvailabilityDomain domain,
                                                     SourceLoc loc,
-                                                    llvm::VersionTuple version,
+                                                    toolchain::VersionTuple version,
                                                     SourceRange versionRange) {
   return new (ctx)
       AvailabilitySpec(domain, getSpecSourceRange(loc, versionRange), version,
@@ -56,7 +57,7 @@ AvailabilitySpec *AvailabilitySpec::createForDomain(ASTContext &ctx,
 
 AvailabilitySpec *AvailabilitySpec::createForDomainIdentifier(
     ASTContext &ctx, Identifier domainIdentifier, SourceLoc loc,
-    llvm::VersionTuple version, SourceRange versionRange) {
+    toolchain::VersionTuple version, SourceRange versionRange) {
   return new (ctx)
       AvailabilitySpec(domainIdentifier, getSpecSourceRange(loc, versionRange),
                        version, versionRange.Start);
@@ -67,7 +68,7 @@ AvailabilitySpec *AvailabilitySpec::clone(ASTContext &ctx) const {
                                     Version, VersionStartLoc);
 }
 
-void AvailabilitySpec::print(llvm::raw_ostream &os) const {
+void AvailabilitySpec::print(toolchain::raw_ostream &os) const {
   getDomainOrIdentifier().print(os);
 
   if (!getRawVersion().empty())
@@ -91,7 +92,7 @@ AvailabilitySpec::getSemanticAvailabilitySpec(
                            std::nullopt);
 }
 
-llvm::VersionTuple SemanticAvailabilitySpec::getVersion() const {
+toolchain::VersionTuple SemanticAvailabilitySpec::getVersion() const {
   // For macOS Big Sur, we canonicalize 10.16 to 11.0 for compile-time
   // checking since clang canonicalizes availability markup. However, to
   // support Beta versions of macOS Big Sur where the OS

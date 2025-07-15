@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/BasicCalleeAnalysis.h"
@@ -25,7 +26,7 @@
 #include "language/SILOptimizer/OptimizerBridging.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 #include <algorithm>
 
@@ -34,14 +35,14 @@
 using namespace language;
 
 void BasicCalleeAnalysis::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
-void BasicCalleeAnalysis::print(llvm::raw_ostream &os) const {
+void BasicCalleeAnalysis::print(toolchain::raw_ostream &os) const {
   if (!Cache) {
     os << "<no cache>\n";
   }
-  llvm::DenseSet<SILDeclRef> printed;
+  toolchain::DenseSet<SILDeclRef> printed;
   for (auto &VTable : M.getVTables()) {
     for (const SILVTable::Entry &entry : VTable->getEntries()) {
       if (printed.insert(entry.getMethod()).second) {
@@ -53,7 +54,7 @@ void BasicCalleeAnalysis::print(llvm::raw_ostream &os) const {
 }
 
 //===----------------------------------------------------------------------===//
-//                            Swift Bridging
+//                            Codira Bridging
 //===----------------------------------------------------------------------===//
 
 static BridgedCalleeAnalysis::IsDeinitBarrierFn instructionIsDeinitBarrierFunction;
@@ -76,7 +77,7 @@ getMemoryBehavior(FullApplySite as, bool observeRetains) {
   return MemoryBehavior::MayHaveSideEffects;
 }
 
-bool swift::isDeinitBarrier(SILInstruction *const instruction,
+bool language::isDeinitBarrier(SILInstruction *const instruction,
                             BasicCalleeAnalysis *bca) {
   if (!instructionIsDeinitBarrierFunction || !bca) {
     return mayBeDeinitBarrierNotConsideringSideEffects(instruction);
@@ -99,8 +100,8 @@ static FunctionTest IsDeinitBarrierTest("is_deinit_barrier", [](auto &function,
   auto *instruction = arguments.takeInstruction();
   auto *analysis = test.template getAnalysis<BasicCalleeAnalysis>();
   auto isBarrier = isDeinitBarrier(instruction, analysis);
-  instruction->print(llvm::outs());
+  instruction->print(toolchain::outs());
   auto *boolString = isBarrier ? "true" : "false";
-  llvm::outs() << boolString << "\n";
+  toolchain::outs() << boolString << "\n";
 });
 } // namespace language::test

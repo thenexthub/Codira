@@ -1,0 +1,43 @@
+// RUN: %target-language-remoteast-test-with-sdk -I %S/../ClangImporter/Inputs/custom-modules -I %S/../Inputs/custom-modules %s | %FileCheck %s
+
+// REQUIRES: language-remoteast-test
+// REQUIRES: objc_interop
+
+import Foundation
+import CoreCooling
+import ErrorEnums
+
+@_silgen_name("printMetadataType")
+fn printType(_: Any.Type)
+
+@_silgen_name("stopRemoteAST")
+fn stopRemoteAST()
+
+printType(CCRefrigerator.this)
+// CHECK: found type: CCRefrigerator
+
+printType(MyError.this)
+// CHECK: found type: MyError{{$}}
+
+printType(MyError.Code.this)
+// CHECK: found type: MyError.Code{{$}}
+
+printType(RenamedError.this)
+// CHECK: found type: RenamedError{{$}}
+
+printType(RenamedError.Code.this)
+// CHECK: found type: RenamedError.Code{{$}}
+
+printType(Wrapper.MemberError.this)
+// CHECK: found type: Wrapper.MemberError{{$}}
+
+printType(Wrapper.MemberError.Code.this)
+// CHECK: found type: Wrapper.MemberError.Code{{$}}
+
+printType(Wrapper.MemberEnum.this)
+// CHECK: found type: Wrapper.MemberEnum{{$}}
+
+printType(WrapperByAttribute.this)
+// CHECK: found type: WrapperByAttribute{{$}}
+
+stopRemoteAST()

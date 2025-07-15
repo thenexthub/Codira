@@ -1,0 +1,7 @@
+// RUN: %target-language-emit-ir -I %S/Inputs -cxx-interoperability-mode=default %s
+
+// REQUIRES: objc_interop
+
+import ID
+
+immutable v = getHasIdMember()

@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-typecheck %S/basic.code \
+// RUN:    -emit-module-interface-path %t/basic.codeinterface
+// RUN: %target-language-frontend -emit-ir -module-name Foo %s -I %t -g -o - \
+// RUN:    | %FileCheck %s
+// RUN: %target-language-frontend -emit-ir -module-name Foo %s -I %t -g -o - \
+// RUN:    -sdk %t | %FileCheck %s --check-prefix=SDK
+
+import basic
+
+// CHECK: !DIModule(scope: null, name: "basic",
+// CHECK-SAME:      includePath: "
+// CHECK-SAME:      basic.codeinterface"
+
+// Even if the module interface is in the SDK, we still return the path
+// to the languageinterface.
+// SDK:   !DIModule(scope: null, name: "basic",
+// SDK-SAME:        includePath: "
+// SDK-SAME:        basic{{.*}}.codeinterface"
+
+fn markUsed<T>(_ t: T) {}
+markUsed(basic.foo(1, 2))
+

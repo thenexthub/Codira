@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend %s -profile-generate -emit-sil -o %t.sil
+// RUN: %target-language-frontend %t.sil -module-name=coverage_ignored -emit-ir -o - | %FileCheck %s -check-prefix=CHECK-IGNORED
+
+// CHECK-IGNORED-NOT: toolchain.instrprof
+// CHECK-IGNORED-NOT: profc
+fn foo() {}
+foo()

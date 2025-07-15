@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-codemotion"
@@ -31,10 +32,10 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 #include <optional>
 
 STATISTIC(NumSunk, "Number of instructions sunk");
@@ -42,7 +43,7 @@ STATISTIC(NumRefCountOpsSimplified, "Number of enum ref count ops simplified");
 STATISTIC(NumHoisted, "Number of instructions hoisted");
 STATISTIC(NumSILArgumentReleaseHoisted, "Number of silargument release instructions hoisted");
 
-llvm::cl::opt<bool> DisableSILRRCodeMotion("disable-sil-cm-rr-cm", llvm::cl::init(true));
+toolchain::cl::opt<bool> DisableSILRRCodeMotion("disable-sil-cm-rr-cm", toolchain::cl::init(true));
 
 using namespace language;
 
@@ -120,7 +121,7 @@ namespace {
 class EnumCaseDataflowContext;
 
 using EnumBBCaseList =
-    llvm::SmallVector<std::pair<SILBasicBlock *, EnumElementDecl *>, 2>;
+    toolchain::SmallVector<std::pair<SILBasicBlock *, EnumElementDecl *>, 2>;
 
 /// Class that performs enum tag state dataflow on the given BB.
 class BBEnumTagDataflowState
@@ -136,7 +137,7 @@ public:
   BBEnumTagDataflowState(const BBEnumTagDataflowState &Other) = default;
   ~BBEnumTagDataflowState() = default;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   bool init(EnumCaseDataflowContext &Context, SILBasicBlock *NewBB);
 
@@ -186,7 +187,7 @@ class EnumCaseDataflowContext {
   PostOrderFunctionInfo *PO;
   std::vector<BBEnumTagDataflowState> BBToStateVec;
   std::vector<SILValue> IDToEnumValueMap;
-  llvm::DenseMap<SILValue, unsigned> EnumValueToIDMap;
+  toolchain::DenseMap<SILValue, unsigned> EnumValueToIDMap;
 
 public:
   EnumCaseDataflowContext(PostOrderFunctionInfo *PO) : PO(PO), BBToStateVec() {
@@ -293,7 +294,7 @@ void BBEnumTagDataflowState::handlePredSwitchEnum(SwitchEnumInst *S) {
     ValueToCaseMap[getIDForValue(S->getOperand())] = P.first;
     return;
   }
-  llvm_unreachable("A successor of a switch_enum terminated BB should be in "
+  toolchain_unreachable("A successor of a switch_enum terminated BB should be in "
                    "the switch_enum.");
 }
 
@@ -324,7 +325,7 @@ void BBEnumTagDataflowState::handlePredCondSelectEnum(CondBranchInst *CondBr) {
     // We can't do this optimization on non-exhaustive enums.
     const SILFunction *Fn = CondBr->getFunction();
     bool IsExhaustive =
-        E->isEffectivelyExhaustive(Fn->getModule().getSwiftModule(),
+        E->isEffectivelyExhaustive(Fn->getModule().getCodiraModule(),
                                    Fn->getResilienceExpansion());
     if (!IsExhaustive)
       return;
@@ -357,7 +358,7 @@ bool BBEnumTagDataflowState::initWithFirstPred(SILBasicBlock *FirstPredBB) {
 
   // If we fail, we found an unreachable block, bail.
   if (FirstPredState == nullptr) {
-    LLVM_DEBUG(llvm::dbgs() << "        Found an unreachable block!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found an unreachable block!\n");
     return false;
   }
 
@@ -401,13 +402,13 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
 
   // If we have no predecessors, there is nothing to do so return early...
   if (getBB()->pred_empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "            No Preds.\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            No Preds.\n");
     return;
   }
 
   auto PI = getBB()->pred_begin(), PE = getBB()->pred_end();
   if (*PI == getBB()) {
-    LLVM_DEBUG(llvm::dbgs() << "            Found a self loop. Bailing!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found a self loop. Bailing!\n");
     return;
   }
 
@@ -432,23 +433,23 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
     return;
   }
 
-  LLVM_DEBUG(llvm::dbgs() <<"            Merging in rest of predecessors...\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() <<"            Merging in rest of predecessors...\n");
 
   // Enum values that while merging we found conflicting values for. We blot
   // them after the loop in order to ensure that we can still find the ends of
   // switch regions.
-  llvm::SmallVector<unsigned, 4> CurBBValuesToBlot;
+  toolchain::SmallVector<unsigned, 4> CurBBValuesToBlot;
 
   // If we do not find state for a specific value in any of our predecessor BBs,
   // we cannot be the end of a switch region since we cannot cover our
   // predecessor BBs with enum decls. Blot after the loop.
-  llvm::SmallVector<unsigned, 4> PredBBValuesToBlot;
+  toolchain::SmallVector<unsigned, 4> PredBBValuesToBlot;
 
   // And for each remaining predecessor...
   do {
     // If we loop on ourselves, bail...
     if (*PI == getBB()) {
-      LLVM_DEBUG(llvm::dbgs() << "            Found a self loop. Bailing!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found a self loop. Bailing!\n");
       return;
     }
 
@@ -457,7 +458,7 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
 
     BBEnumTagDataflowState *PredBBState = getContext().getBBState(PredBB);
     if (PredBBState == nullptr) {
-      LLVM_DEBUG(llvm::dbgs() << "            Found an unreachable block!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found an unreachable block!\n");
       return;
     }
 
@@ -482,7 +483,7 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
           !(*PredIter).has_value()) {
         // Otherwise, we are conservative and do not forward the EnumTag that we
         // are tracking. Blot it!
-        LLVM_DEBUG(llvm::dbgs() << "                Blotting: " << P->first);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "                Blotting: " << P->first);
         CurBBValuesToBlot.push_back(P->first);
         PredBBValuesToBlot.push_back(P->first);
         continue;
@@ -498,7 +499,7 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
       // clear all the state since we cannot hoist safely.
       if (!PredBB->getSingleSuccessorBlock()) {
         EnumToEnumBBCaseListMap.clear();
-        LLVM_DEBUG(llvm::dbgs() << "                Predecessor has other "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "                Predecessor has other "
                                    "successors. Clearing BB cast list map.\n");
       } else {
         // Otherwise, add this case to our predecessor case list. We will unique
@@ -513,7 +514,7 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
 
       // Otherwise, we are conservative and do not forward the EnumTag that we
       // are tracking. Blot it!
-      LLVM_DEBUG(llvm::dbgs() << "                Blotting: " << P->first);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "                Blotting: " << P->first);
       CurBBValuesToBlot.push_back(P->first);
     }
   } while (PI != PE);
@@ -528,7 +529,7 @@ void BBEnumTagDataflowState::mergePredecessorStates() {
 
 bool BBEnumTagDataflowState::visitEnumInst(EnumInst *EI) {
   unsigned ID = getIDForValue(SILValue(EI));
-  LLVM_DEBUG(llvm::dbgs() << "    Storing enum into map. ID: " << ID
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Storing enum into map. ID: " << ID
                           << ". Value: " << *EI);
   ValueToCaseMap[ID] = EI->getElement();
   return false;
@@ -537,7 +538,7 @@ bool BBEnumTagDataflowState::visitEnumInst(EnumInst *EI) {
 bool BBEnumTagDataflowState::visitUncheckedEnumDataInst(
     UncheckedEnumDataInst *UEDI) {
   unsigned ID = getIDForValue(UEDI->getOperand());
-  LLVM_DEBUG(llvm::dbgs() << "    Storing unchecked enum data into map. ID: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Storing unchecked enum data into map. ID: "
                           << ID << ". Value: " << *UEDI);
   ValueToCaseMap[ID] = UEDI->getElement();
   return false;
@@ -554,8 +555,8 @@ bool BBEnumTagDataflowState::visitRetainValueInst(RetainValueInst *RVI) {
     return true;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Found RetainValue: " << *RVI);
-  LLVM_DEBUG(llvm::dbgs() << "        Paired to Enum Oracle: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found RetainValue: " << *RVI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Paired to Enum Oracle: "
                           << (*FindResult)->first);
 
   SILBuilderWithScope Builder(RVI);
@@ -579,8 +580,8 @@ bool BBEnumTagDataflowState::visitReleaseValueInst(ReleaseValueInst *RVI) {
     return true;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Found ReleaseValue: " << *RVI);
-  LLVM_DEBUG(llvm::dbgs() << "        Paired to Enum Oracle: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found ReleaseValue: " << *RVI);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Paired to Enum Oracle: "
                           << (*FindResult)->first);
 
   SILBuilderWithScope Builder(RVI);
@@ -615,7 +616,7 @@ bool BBEnumTagDataflowState::hoistDecrementsIntoSwitchRegions(
     if (!RVI)
       continue;
 
-    LLVM_DEBUG(llvm::dbgs() << "        Visiting release: " << *RVI);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Visiting release: " << *RVI);
 
     // Grab the operand of the release value inst.
     SILValue Op = RVI->getOperand();
@@ -625,7 +626,7 @@ bool BBEnumTagDataflowState::hoistDecrementsIntoSwitchRegions(
     auto R = EnumToEnumBBCaseListMap.find(ID);
     // If we don't have one, skip this release value inst.
     if (R == EnumToEnumBBCaseListMap.end()) {
-      LLVM_DEBUG(llvm::dbgs() << "            Could not find [(BB, EnumTag)] "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Could not find [(BB, EnumTag)] "
                                 "list for release_value's operand. Bailing!\n");
       continue;
     }
@@ -638,13 +639,13 @@ bool BBEnumTagDataflowState::hoistDecrementsIntoSwitchRegions(
     // If we don't have an enum tag for each predecessor of this BB, bail since
     // we do not know how to handle that BB.
     if (EnumBBCaseList.size() != NumPreds) {
-      LLVM_DEBUG(llvm::dbgs() << "            Found [(BB, EnumTag)] list for "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Found [(BB, EnumTag)] list for "
                                  "release_value's operand, but we do not have "
                                 "an enum tag for each predecessor. Bailing!\n");
-      LLVM_DEBUG(llvm::dbgs() << "            List:\n");
-      LLVM_DEBUG(for (auto P : EnumBBCaseList) {
-        llvm::dbgs() << "                ";
-        P.second->dump(llvm::dbgs());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            List:\n");
+      TOOLCHAIN_DEBUG(for (auto P : EnumBBCaseList) {
+        toolchain::dbgs() << "                ";
+        P.second->dump(toolchain::dbgs());
       });
       continue;
     }
@@ -659,12 +660,12 @@ bool BBEnumTagDataflowState::hoistDecrementsIntoSwitchRegions(
     // if we are going to use it.
     if (valueHasARCUsesInInstructionRange(Op, getBB()->begin(),
                                           SILBasicBlock::iterator(RVI), AA)) {
-      LLVM_DEBUG(llvm::dbgs() << "            Release value has use that stops "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Release value has use that stops "
                                  "hoisting! Bailing!\n");
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "            Its safe to perform the "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Its safe to perform the "
                                "transformation!\n");
 
     // Otherwise perform the transformation.
@@ -761,7 +762,7 @@ bool BBEnumTagDataflowState::sinkIncrementsOutOfSwitchRegions(
     AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA) {
   bool Changed = false;
   unsigned NumPreds = std::distance(getBB()->pred_begin(), getBB()->pred_end());
-  llvm::SmallVector<SILInstruction *, 4> DeleteList;
+  toolchain::SmallVector<SILInstruction *, 4> DeleteList;
 
   // For each (EnumValue, [(BB, EnumTag)]) that we are tracking...
   for (auto &P : EnumToEnumBBCaseListMap) {
@@ -821,43 +822,43 @@ bool BBEnumTagDataflowState::sinkIncrementsOutOfSwitchRegions(
 
 void BBEnumTagDataflowState::dump() const {
 #ifndef NDEBUG
-  llvm::dbgs() << "Dumping state for BB" << BB.get()->getDebugID() << "\n";
-  llvm::dbgs() << "Block States:\n";
+  toolchain::dbgs() << "Dumping state for BB" << BB.get()->getDebugID() << "\n";
+  toolchain::dbgs() << "Block States:\n";
   for (auto &P : ValueToCaseMap) {
     if (!P) {
-      llvm::dbgs() << "  Skipping blotted value.\n";
+      toolchain::dbgs() << "  Skipping blotted value.\n";
       continue;
     }
     unsigned ID = P->first;
     SILValue V = getContext().getValueForID(ID);
     if (!V) {
-      llvm::dbgs() << "  ID: " << ID << ". Value: BLOTTED.\n";
+      toolchain::dbgs() << "  ID: " << ID << ". Value: BLOTTED.\n";
       continue;
     }
-    llvm::dbgs() << "  ID: " << ID << ". Value: " << V;
+    toolchain::dbgs() << "  ID: " << ID << ". Value: " << V;
   }
 
-  llvm::dbgs() << "Predecessor States:\n";
+  toolchain::dbgs() << "Predecessor States:\n";
   // For each (EnumValue, [(BB, EnumTag)]) that we are tracking...
   for (auto &P : EnumToEnumBBCaseListMap) {
     if (!P) {
-      llvm::dbgs() << "  Skipping blotted value.\n";
+      toolchain::dbgs() << "  Skipping blotted value.\n";
       continue;
     }
     unsigned ID = P->first;
     SILValue V = getContext().getValueForID(ID);
     if (!V) {
-      llvm::dbgs() << "  ID: " << ID << ". Value: BLOTTED.\n";
+      toolchain::dbgs() << "  ID: " << ID << ". Value: BLOTTED.\n";
       continue;
     }
-    llvm::dbgs() << "  ID: " << ID << ". Value: " << V;
-    llvm::dbgs() << "  Case List:\n";
+    toolchain::dbgs() << "  ID: " << ID << ". Value: " << V;
+    toolchain::dbgs() << "  Case List:\n";
     for (auto &P2 : P->second) {
-      llvm::dbgs() << "    BB" << P2.first->getDebugID() << ": ";
-      P2.second->dump(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "    BB" << P2.first->getDebugID() << ": ";
+      P2.second->dump(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     }
-    llvm::dbgs() << "  End Case List.\n";
+    toolchain::dbgs() << "  End Case List.\n";
   }
 #endif
 }
@@ -902,7 +903,7 @@ static bool hoistSILArgumentReleaseInst(SILBasicBlock *BB) {
   }
 
   // Make sure we can get all the incoming values.
-  llvm::SmallVector<SILValue, 4> PredValues;
+  toolchain::SmallVector<SILValue, 4> PredValues;
   if (!SA->getIncomingPhiValues(PredValues))
     return false;
 
@@ -939,7 +940,7 @@ static bool isSinkBarrier(SILInstruction *Inst) {
 }
 
 using ValueInBlock = std::pair<SILValue, SILBasicBlock *>;
-using ValueToBBArgIdxMap = llvm::DenseMap<ValueInBlock, int>;
+using ValueToBBArgIdxMap = toolchain::DenseMap<ValueInBlock, int>;
 
 enum OperandRelation {
   /// Uninitialized state.
@@ -982,8 +983,8 @@ static SILValue findValueShallowRoot(const SILValue &In) {
     if (auto CCBI = dyn_cast<CheckedCastBranchInst>(Pred->getTerminator())) {
       assert(CCBI->getSuccessBB() == Parent && "Inspecting the wrong block");
 
-      // In swift it is legal to cast non reference-counted references into
-      // object references. For example: func f(x : C.Type) -> Any {return x}
+      // In language it is legal to cast non reference-counted references into
+      // object references. For example: fn f(x : C.Type) -> Any {return x}
       // Here we check that the uncasted reference is reference counted.
       SILValue V = CCBI->getOperand();
       if (V->getType().isReferenceCounted(Pred->getParent()->getModule())) {
@@ -1047,7 +1048,7 @@ SILInstruction *findIdenticalInBlock(SILBasicBlock *BB, SILInstruction *Iden,
     // then return it.
     if (canSinkInstruction(&*InstToSink) &&
         Iden->isIdenticalTo(&*InstToSink, operandCompare)) {
-      LLVM_DEBUG(llvm::dbgs() << "Found an identical instruction.");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found an identical instruction.");
       return &*InstToSink;
     }
 
@@ -1061,7 +1062,7 @@ SILInstruction *findIdenticalInBlock(SILBasicBlock *BB, SILInstruction *Iden,
 
     --SkipBudget;
     InstToSink = std::prev(InstToSink);
-    LLVM_DEBUG(llvm::dbgs() << "Continuing scan. Next inst: " << *InstToSink);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Continuing scan. Next inst: " << *InstToSink);
   }
 
   return nullptr;
@@ -1397,7 +1398,7 @@ static bool sinkCodeFromPredecessors(EnumCaseDataflowContext &Context,
   if (FirstPred->getTerminator() == &*FirstPred->begin())
     return Changed;
 
-  LLVM_DEBUG(llvm::dbgs() << " Sinking values from predecessors.\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << " Sinking values from predecessors.\n");
 
   // Map values in predecessor blocks to argument indices of the successor
   // block. For example:
@@ -1424,7 +1425,7 @@ static bool sinkCodeFromPredecessors(EnumCaseDataflowContext &Context,
   auto InstToSink = FirstPred->getTerminator()->getIterator();
 
   while (SkipBudget) {
-    LLVM_DEBUG(llvm::dbgs() << "Processing: " << *InstToSink);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Processing: " << *InstToSink);
 
     // Save the duplicated instructions in case we need to remove them.
     SmallVector<SILInstruction *, 4> Dups;
@@ -1443,7 +1444,7 @@ static bool sinkCodeFromPredecessors(EnumCaseDataflowContext &Context,
                 P, &*InstToSink, valueToArgIdxMap, opRelation)) {
           Dups.push_back(DupInst);
         } else {
-          LLVM_DEBUG(llvm::dbgs() << "Instruction mismatch.\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Instruction mismatch.\n");
           Dups.clear();
           break;
         }
@@ -1452,7 +1453,7 @@ static bool sinkCodeFromPredecessors(EnumCaseDataflowContext &Context,
       // If we found duplicated instructions, sink one of the copies and delete
       // the rest.
       if (Dups.size()) {
-        LLVM_DEBUG(llvm::dbgs() << "Moving: " << *InstToSink);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Moving: " << *InstToSink);
         InstToSink->moveBefore(&*BB->begin());
 
         if (opRelation == EqualAfterMove) {
@@ -1478,7 +1479,7 @@ static bool sinkCodeFromPredecessors(EnumCaseDataflowContext &Context,
 
         // Restart the scan.
         InstToSink = FirstPred->getTerminator()->getIterator();
-        LLVM_DEBUG(llvm::dbgs() << "Restarting scan. Next inst: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Restarting scan. Next inst: "
                                 << *InstToSink);
         continue;
       }
@@ -1486,19 +1487,19 @@ static bool sinkCodeFromPredecessors(EnumCaseDataflowContext &Context,
 
     // If this instruction was a barrier then we can't sink anything else.
     if (isSinkBarrier(&*InstToSink)) {
-      LLVM_DEBUG(llvm::dbgs() << "Aborting on barrier: " << *InstToSink);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Aborting on barrier: " << *InstToSink);
       return Changed;
     }
 
     // This is the first instruction, we are done.
     if (InstToSink == FirstPred->begin()) {
-      LLVM_DEBUG(llvm::dbgs() << "Reached the first instruction.");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Reached the first instruction.");
       return Changed;
     }
 
     --SkipBudget;
     InstToSink = std::prev(InstToSink);
-    LLVM_DEBUG(llvm::dbgs() << "Continuing scan. Next inst: " << *InstToSink);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Continuing scan. Next inst: " << *InstToSink);
   }
 
   return Changed;
@@ -1745,28 +1746,28 @@ static bool processFunction(SILFunction *F, AliasAnalysis *AA,
   for (unsigned RPOIdx = 0, RPOEnd = BBToStateMap.size(); RPOIdx < RPOEnd;
        ++RPOIdx) {
 
-    LLVM_DEBUG(llvm::dbgs() << "Visiting BB RPO#" << RPOIdx << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting BB RPO#" << RPOIdx << "\n");
 
     BBEnumTagDataflowState &State = BBToStateMap.getRPOState(RPOIdx);
 
-    LLVM_DEBUG(llvm::dbgs() <<"    Predecessors (empty if no predecessors):\n");
-    LLVM_DEBUG(for (SILBasicBlock *Pred
+    TOOLCHAIN_DEBUG(toolchain::dbgs() <<"    Predecessors (empty if no predecessors):\n");
+    TOOLCHAIN_DEBUG(for (SILBasicBlock *Pred
                : State.getBB()->getPredecessorBlocks()) {
-      llvm::dbgs() << "        BB#" << RPOIdx << "; Ptr: " << Pred << "\n";
+      toolchain::dbgs() << "        BB#" << RPOIdx << "; Ptr: " << Pred << "\n";
     });
-    LLVM_DEBUG(llvm::dbgs() << "    State Addr: " << &State << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    State Addr: " << &State << "\n");
 
     // Merge in our predecessor states. We relook up our the states for our
     // predecessors to avoid memory invalidation issues due to copying in the
     // dense map.
-    LLVM_DEBUG(llvm::dbgs() << "    Merging predecessors!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Merging predecessors!\n");
     State.mergePredecessorStates();
 
     if (!F->hasOwnership()) {
       // If our predecessors cover any of our enum values, attempt to hoist
       // releases up the CFG onto enum payloads or sink retains out of switch
       // regions.
-      LLVM_DEBUG(llvm::dbgs() << "    Attempting to move releases into "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Attempting to move releases into "
                                  "predecessors!\n");
 
       // Perform a relatively local forms of retain sinking and release hoisting
@@ -1796,7 +1797,7 @@ static bool processFunction(SILFunction *F, AliasAnalysis *AA,
       Changed |= hoistSILArgumentReleaseInst(State.getBB());
 
       // Then perform the dataflow.
-      LLVM_DEBUG(llvm::dbgs() << "    Performing the dataflow!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Performing the dataflow!\n");
       Changed |= State.process();
     }
   }
@@ -1820,7 +1821,7 @@ public:
     auto *PO = getAnalysis<PostOrderAnalysis>()->get(F);
     auto *RCIA = getAnalysis<RCIdentityAnalysis>()->get(getFunction());
 
-    LLVM_DEBUG(llvm::dbgs() << "***** CodeMotion on function: " << F->getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** CodeMotion on function: " << F->getName()
                             << " *****\n");
 
     if (processFunction(F, AA, PO, RCIA, HoistReleases))
@@ -1832,11 +1833,11 @@ public:
 } // end anonymous namespace
 
 /// Code motion that does not releases into diamonds.
-SILTransform *swift::createEarlyCodeMotion() {
+SILTransform *language::createEarlyCodeMotion() {
   return new SILCodeMotion(false);
 }
 
 /// Code motion that hoists releases into diamonds.
-SILTransform *swift::createLateCodeMotion() {
+SILTransform *language::createLateCodeMotion() {
   return new SILCodeMotion(true);
 }

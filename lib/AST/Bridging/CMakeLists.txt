@@ -1,4 +1,4 @@
-target_sources(swiftAST PRIVATE
+target_sources(languageAST PRIVATE
   ASTContextBridging.cpp
   AvailabilityBridging.cpp
   DeclAttributeBridging.cpp

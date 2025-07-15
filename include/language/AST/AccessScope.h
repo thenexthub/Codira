@@ -1,4 +1,4 @@
-//===--- AccessScope.h - Swift Access Scope ---------------------*- C++ -*-===//
+//===--- AccessScope.h - Codira Access Scope ---------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ACCESSSCOPE_H
-#define SWIFT_ACCESSSCOPE_H
+#ifndef LANGUAGE_ACCESSSCOPE_H
+#define LANGUAGE_ACCESSSCOPE_H
 
 #include "language/AST/AttrKind.h"
 #include "language/AST/DeclContext.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include <optional>
 
 namespace language {
@@ -51,15 +52,15 @@ class AccessScope {
   /// \see AccessScope::getAccessScopeForFormalAccess
   /// \see AccessScope::checkAccessUsingAccessScope
   /// \see DeclContext::ASTHierarchy
-  llvm::PointerIntPair<const DeclContext *, 1, bool> Value;
+  toolchain::PointerIntPair<const DeclContext *, 1, bool> Value;
 
 public:
   AccessScope(const DeclContext *DC, bool isPrivate = false);
 
   static AccessScope getPublic() { return AccessScope(nullptr, false); }
 
-  /// Check if private access is allowed. This is a lexical scope check in Swift
-  /// 3 mode. In Swift 4 mode, declarations and extensions of the same type will
+  /// Check if private access is allowed. This is a lexical scope check in Codira
+  /// 3 mode. In Codira 4 mode, declarations and extensions of the same type will
   /// also allow access.
   static bool allowsPrivateAccess(const DeclContext *useDC, const DeclContext *sourceDC);
 
@@ -98,7 +99,7 @@ public:
   /// import OtherModule
   ///
   /// // `Foo` is a `public` struct defined in `OtherModule`
-  /// public func myFunc(_ arg: OtherModule.Foo) {}
+  /// public fn myFunc(_ arg: OtherModule.Foo) {}
   /// ```
   ///
   /// The use site of `Foo`is a function `myFunc`, and its DeclContext is
@@ -152,7 +153,7 @@ public:
     return std::nullopt;
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 } // end namespace language

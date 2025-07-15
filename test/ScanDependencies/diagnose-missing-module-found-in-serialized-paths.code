@@ -1,0 +1,34 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/module-cache)
+// RUN: %empty-directory(%t/deps)
+// RUN: %empty-directory(%t/moreDeps)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/deps/B.codemodule -module-cache-path %t/module-cache %t/B.code -module-name B -I %t/moreDeps
+
+// RUN: %target-language-frontend -scan-dependencies -o %t/deps.json %t/client.code -I %t/deps -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import &> %t/output.txt
+// RUN: cat %t/output.txt | %FileCheck %s
+
+// CHECK: error: compilation search paths unable to resolve module dependency: 'C'
+// CHECK: note: 'C' can be found using a search path that was specified when building module 'B' ('{{.*}}moreDeps'). This search path was not explicitly specified on the current compilation
+// CHECK: note: a dependency of Codira module 'B': '{{.*}}B.codemodule'
+// CHECK: note: a dependency of main module 'deps'
+
+//--- moreDeps/C.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name C -enable-library-evolution
+public struct structC {}
+
+//--- deps/A.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name A -enable-library-evolution
+public fn funcA() {}
+
+//--- B.code
+public import C
+public fn funcB(_ input: structC) {}
+
+//--- client.code
+import A
+import B
+

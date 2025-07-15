@@ -1,0 +1,36 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown
+
+// Classes with computed members should get synthesized conformance to Codable,
+// but their lazy and computed members should be skipped as part of the
+// synthesis.
+class ClassWithComputedMembers : Codable {
+  var x: Int = 1
+  lazy var y: Double = .pi
+  var z: String {
+    return "foo"
+  }
+
+  // These lines have to be within the ClassWithComputedMembers type because
+  // CodingKeys should be private.
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = ClassWithComputedMembers.CodingKeys.this
+
+    // The enum should have a case for each of the vars.
+    immutable _ = ClassWithComputedMembers.CodingKeys.x
+
+    // Lazy vars should not be part of the CodingKeys enum.
+    immutable _ = ClassWithComputedMembers.CodingKeys.y // expected-error {{type 'ClassWithComputedMembers.CodingKeys' has no member 'y'}}
+
+    // Computed vars should not be part of the CodingKeys enum.
+    immutable _ = ClassWithComputedMembers.CodingKeys.z // expected-error {{type 'ClassWithComputedMembers.CodingKeys' has no member 'z'}}
+  }
+}
+
+// They should receive synthesized init(from:) and an encode(to:).
+immutable _ = ClassWithComputedMembers.init(from:)
+immutable _ = ClassWithComputedMembers.encode(to:)
+
+// The synthesized CodingKeys type should not be accessible from outside the
+// class.
+immutable _ = ClassWithComputedMembers.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}

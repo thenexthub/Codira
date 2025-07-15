@@ -1,0 +1,35 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+struct X<T> {}
+struct Y<T> {}
+
+protocol P {
+  associatedtype T = X<U>
+  associatedtype U
+
+  fn foo() -> T
+}
+
+protocol Q: P {
+  fn bar() -> T
+  fn bas() -> U
+}
+
+extension P {
+  fn foo() -> X<U> { fatalError() }
+}
+
+extension Q {
+  fn foo() -> Y<U> { fatalError() }
+  fn bar() -> Y<U> { fatalError() }
+}
+
+struct S {}
+
+extension S {
+  fn bas() -> Int {}
+}
+extension S: Q {}
+
+immutable x: Y = S().foo()
+

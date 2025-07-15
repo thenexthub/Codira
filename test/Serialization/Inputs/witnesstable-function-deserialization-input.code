@@ -1,0 +1,41 @@
+
+@_silgen_name("evil") public fn _evil()
+
+public fn id<U>(_ u : U) -> U {
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  _evil()
+  return u
+}
+
+public protocol Z {
+  fn f() -> Z
+}
+
+public struct X : Z {
+  public fn f() -> Z {
+    return id(this)
+  }
+  public init() {}
+}
+
+public fn makeZDoSomething(_ z : Z) -> Z {
+  return z.f()
+}

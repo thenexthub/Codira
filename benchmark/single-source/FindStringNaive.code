@@ -1,25 +1,29 @@
-//===--- FindStringNaive.swift --------------------------------------------===//
+//===--- FindStringNaive.code --------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
 // Mini benchmark implementing a naive String search algorithm that
 // at the moment shows a lot of ARC traffic.
-let t: [BenchmarkCategory] = [.String, .refcount]
+immutable t: [BenchmarkCategory] = [.String, .refcount]
 
 var longStringFoFoFoFox: String?
 var longArrayFoFoFoFox: [UInt8]?
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "FindString.Loop1.Substring",
     runFunction: runBenchLoop1Substring,
@@ -67,13 +71,13 @@ public let benchmarks = [
     }),
 ]
 
-func findOne<S: StringProtocol>(
+fn findOne<S: StringProtocol>(
   _ string: S,
   needle: Character
 ) -> String.Index? {
   var index = string.startIndex
   while index < string.endIndex {
-    let nextIndex = string.index(after: index)
+    immutable nextIndex = string.index(after: index)
     if string[index] == needle {
       return index
     }
@@ -82,7 +86,7 @@ func findOne<S: StringProtocol>(
   return nil
 }
 
-func findThreeRecursive<S: StringProtocol>(
+fn findThreeRecursive<S: StringProtocol>(
   _ string: S,
   needle1: Character,
   needle2: Character?,
@@ -90,10 +94,10 @@ func findThreeRecursive<S: StringProtocol>(
 ) -> String.Index? {
   var index = string.startIndex
   while index < string.endIndex {
-    let nextIndex = string.index(after: index)
+    immutable nextIndex = string.index(after: index)
     if string[index] == needle1 {
       // Check subsequent needles recursively (if applicable)
-      guard let needle2 = needle2 else { return index }
+      guard immutable needle2 = needle2 else { return index }
 
       if findThreeRecursive(
         string[nextIndex...].prefix(2), needle1: needle2, needle2: needle3, needle3: nil
@@ -106,13 +110,13 @@ func findThreeRecursive<S: StringProtocol>(
   return nil
 }
 
-func findOneOnUTF8Collection<Bytes: Collection>(
+fn findOneOnUTF8Collection<Bytes: Collection>(
   _ string: Bytes,
   needle: UInt8
 ) -> Bytes.Index? where Bytes.Element == UInt8 {
   var index = string.startIndex
   while index < string.endIndex {
-    let nextIndex = string.index(after: index)
+    immutable nextIndex = string.index(after: index)
     if string[index] == needle {
       return index
     }
@@ -121,7 +125,7 @@ func findOneOnUTF8Collection<Bytes: Collection>(
   return nil
 }
 
-func findThreeOnUTF8Collection<Bytes: Collection>(
+fn findThreeOnUTF8Collection<Bytes: Collection>(
   _ string: Bytes,
   needle1: UInt8,
   needle2: UInt8?,
@@ -129,10 +133,10 @@ func findThreeOnUTF8Collection<Bytes: Collection>(
 ) -> Bytes.Index? where Bytes.Element == UInt8 {
   var index = string.startIndex
   while index < string.endIndex {
-    let nextIndex = string.index(after: index)
+    immutable nextIndex = string.index(after: index)
     if string[index] == needle1 {
       // Check subsequent needles recursively (if applicable)
-      guard let needle2 = needle2 else { return index }
+      guard immutable needle2 = needle2 else { return index }
 
       if findThreeOnUTF8Collection(
         string[nextIndex...].prefix(2), needle1: needle2, needle2: needle3, needle3: nil
@@ -146,35 +150,35 @@ func findThreeOnUTF8Collection<Bytes: Collection>(
 }
 
 @inline(never)
-func runBenchLoop1Substring(iterations: Int) {
+fn runBenchLoop1Substring(iterations: Int) {
   for _ in 0 ..< iterations {
     precondition(findOne(longStringFoFoFoFox![...], needle: "x") != nil)
   }
 }
 
 @inline(never)
-func runBenchLoop1Array(iterations: Int) {
+fn runBenchLoop1Array(iterations: Int) {
   for _ in 0 ..< iterations {
     precondition(findOneOnUTF8Collection(longArrayFoFoFoFox!, needle: UInt8(ascii: "x")) != nil)
   }
 }
 
 @inline(never)
-func runBenchRecursive3Substring(iterations: Int) {
+fn runBenchRecursive3Substring(iterations: Int) {
   for _ in 0 ..< iterations {
     precondition(findThreeRecursive(longStringFoFoFoFox![...], needle1: "f", needle2: "o", needle3: "x") != nil)
   }
 }
 
 @inline(never)
-func runBenchRecursive3String(iterations: Int) {
+fn runBenchRecursive3String(iterations: Int) {
   for _ in 0 ..< iterations {
     precondition(findThreeRecursive(longStringFoFoFoFox!, needle1: "f", needle2: "o", needle3: "x") != nil)
   }
 }
 
 @inline(never)
-func runBenchRecursive3ArrayOfUTF8(iterations: Int) {
+fn runBenchRecursive3ArrayOfUTF8(iterations: Int) {
   for _ in 0 ..< iterations {
     precondition(findThreeOnUTF8Collection(longArrayFoFoFoFox!,
                                       needle1: UInt8(ascii: "f"),

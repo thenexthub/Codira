@@ -1,0 +1,4 @@
+// {"signature":"language::ConformanceChecker::recordOptionalWitness(language::ValueDecl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a : Codable {
+  b = a(

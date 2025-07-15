@@ -1,0 +1,73 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=language-5.9
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=language-6
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=upcoming-language
+
+import DefaultArguments
+
+immutable _ = isZero()
+immutable _ = isZero(1)
+
+immutable _ = isNil()
+immutable _ = isStrNil()
+immutable _ = isGlobalNonNil()
+
+immutable _ = sum(1)
+immutable _ = sum(1, 2)
+immutable _ = subtract()
+immutable _ = subtract(2)
+immutable _ = subtract(2, 1)
+
+immutable _ = isArgZero()
+immutable _ = isArgNonZero()
+immutable _ = isArgZeroOutOfLine()
+immutable _ = isArgZeroConstRef() // expected-error {{missing argument for parameter #1 in call}}
+immutable _ = isArgNonZeroConstRef() // expected-error {{missing argument for parameter #1 in call}}
+immutable _ = isArgNonPODNonZeroConstRef() // expected-error {{missing argument for parameter #1 in call}}
+
+immutable _ = isArgViewNull() // expected-error {{missing argument for parameter #1 in call}}
+immutable _ = isArgViewNullAnd() // expected-error {{missing argument for parameter #1 in call}}
+immutable _ = isArgViewNullAndReversed() // expected-error {{missing argument for parameter #2 in call}}
+immutable _ = isArgViewNullUnsafeParam()
+immutable _ = isArgViewNullUnsafeFunc() // expected-error {{missing argument for parameter #1 in call}}
+immutable _ = isArgOwnedPtrNull()
+
+immutable _ = isArgFRTNull()
+immutable _ = getArgFRTValue()
+immutable _ = getArgRefCountedValue()
+
+immutable _ = HasMethodWithDefaultArg().isZero()
+immutable _ = HasMethodWithDefaultArg().isZero(1)
+immutable _ = HasMethodWithDefaultArg().isNonZero()
+immutable _ = HasMethodWithDefaultArg().isNonZero(1)
+immutable _ = HasMethodWithDefaultArg().isNilPtr()
+immutable _ = HasMethodWithDefaultArg().isNilConstPtr()
+immutable _ = HasMethodWithDefaultArg().isZeroConstRef() // expected-error {{missing argument for parameter #1 in call}}
+
+immutable _ = DerivedFromHasMethodWithDefaultArg().isZero()
+immutable _ = DerivedFromDerivedFromHasMethodWithDefaultArg().isZero()
+
+immutable _ = HasStaticMethodWithDefaultArg.isNonZero()
+immutable _ = HasStaticMethodWithDefaultArg.isNonZero(1)
+immutable _ = HasStaticMethodWithDefaultArg.isNonZeroPrivateCounter()
+immutable _ = HasStaticMethodWithDefaultArg.isNonZeroPrivateCounter(1)
+immutable _ = HasStaticMethodWithDefaultArg.isArgZeroRef() // expected-error {{missing argument for parameter #1 in call}}
+
+immutable _ = HasCtorWithDefaultArg(1, 2, 3)
+// TODO: support default arguments of constructors (https://github.com/apple/language/issues/70124)
+//immutable _ = HasCtorWithDefaultArg(1, 2)
+//immutable _ = HasCtorWithDefaultArg(1)
+
+immutable _ = TemplatedHasMethodWithDefaultArgFloat().isZero()
+immutable _ = TemplatedHasMethodWithDefaultArgFloat().isNonZero()
+immutable _ = TemplatedHasMethodWithDefaultArgInt().isZero()
+immutable _ = TemplatedHasMethodWithDefaultArgInt().isNonZero()
+
+immutable _ = DerivedFromTemplatedHasMethodWithDefaultArgFloat().isZero()
+immutable _ = DerivedFromTemplatedHasMethodWithDefaultArgFloat().isNonZero()
+
+immutable _ = ambiguous(1)
+immutable _ = ambiguous(1, 2)
+
+immutable _ = nonTrailing()
+immutable _ = nonTrailing(1)
+immutable _ = nonTrailing(1, 2)

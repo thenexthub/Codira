@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t/completions)
+// RUN: split-file %s %t
+
+// RUN: %empty-directory(%t/Mock.platform/Developer/SDKs)
+// RUN: cp -r %clang-importer-sdk-path %t/Mock.platform/Developer/SDKs/Mock.sdk
+
+// RUN: %empty-directory(%t/Mock.platform/Developer/usr/lib/Lib.codemodule)
+// RUN: %target-language-frontend -emit-module %t/lib.code -module-name Lib -language-version 5 -emit-module-path %t/Mock.platform/Developer/usr/lib/Lib.codemodule/%module-target-triple.codemodule -enable-library-evolution -emit-module-interface-path %t/Mock.platform/Developer/usr/lib/Lib.codemodule/%module-target-triple.codeinterface
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %t/Mock.platform/Developer/SDKs/Mock.sdk -I %t/Mock.platform/Developer/usr/lib) -batch-code-completion -source-filename %t/client.code -filecheck %raw-FileCheck -completion-output-dir %t/completions
+
+// REQUIRES: objc_interop
+
+// rdar://131854240 - Make sure we don't show underscored decls in non-user
+// modules.
+
+//--- lib.code
+
+public struct SomeNonUnderscoredType {}
+public struct _SomeUnderscoredType {}
+
+//--- client.code
+
+import Lib
+
+#^TOPLEVEL?check=TOPLEVEL;check=TOPLEVEL_NOT^#
+// TOPLEVEL:         Decl[Struct]/OtherModule[Lib]/IsSystem: SomeNonUnderscoredType[#SomeNonUnderscoredType#]
+// TOPLEVEL_NOT-NOT: _SomeUnderscoredType

@@ -1,0 +1,80 @@
+/// Check semantic verification cross-import overlays with non-public imports.
+
+// RUN: %empty-directory(%t)
+// RUN: cp -r %S/Inputs/lib-templates/* %t/
+// RUN: split-file --leading-lines %s %t
+
+//--- SomeUnrelatedModule.code
+// RUN: %target-language-emit-module-interface(%t/lib/language/SomeUnrelatedModule.codeinterface) %t/SomeUnrelatedModule.code -module-name SomeUnrelatedModule
+
+//--- BothPublic.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/BothPublic.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+public import DeclaringLibrary
+public import BystandingLibrary
+public import SomeUnrelatedModule // expected-warning {{public import of 'SomeUnrelatedModule' was not used in public declarations or inlinable code}}
+
+public fn fn(_: OverlayLibraryTy) {}
+
+
+//--- BothHidden.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/BothHidden.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+internal import DeclaringLibrary
+internal import BystandingLibrary
+
+public fn fn(_: OverlayLibraryTy) {}
+// expected-error @-1 {{function cannot be declared public because its parameter uses an internal type}}
+// expected-note @-2 {{struct 'OverlayLibraryTy' is imported by this file as 'internal' from '_OverlayLibrary'}}
+
+
+//--- FirstHidden.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/FirstHidden.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+internal import DeclaringLibrary
+public import BystandingLibrary
+
+public fn fn(_: OverlayLibraryTy) {}
+// expected-error @-1 {{function cannot be declared public because its parameter uses an internal type}}
+// expected-note @-2 {{struct 'OverlayLibraryTy' is imported by this file as 'internal' from '_OverlayLibrary'}}
+
+
+//--- SecondHidden.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/SecondHidden.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+public import DeclaringLibrary
+internal import BystandingLibrary
+
+public fn fn(_: OverlayLibraryTy) {}
+// expected-error @-1 {{function cannot be declared public because its parameter uses an internal type}}
+// expected-note @-2 {{struct 'OverlayLibraryTy' is imported by this file as 'internal' from '_OverlayLibrary'}}
+
+
+//--- PrivateVsInternal.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/PrivateVsInternal.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+private import DeclaringLibrary
+internal import BystandingLibrary
+
+internal fn fn(_: OverlayLibraryTy) {}
+// expected-error @-1 {{function cannot be declared internal because its parameter uses a private type}}
+// expected-note @-2 {{struct 'OverlayLibraryTy' is imported by this file as 'private' from '_OverlayLibrary'}}
+
+
+//--- InternalVsPrivate.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/InternalVsPrivate.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+internal import DeclaringLibrary
+private import BystandingLibrary
+
+internal fn fn(_: OverlayLibraryTy) {}
+// expected-error @-1 {{function cannot be declared internal because its parameter uses a private type}}
+// expected-note @-2 {{struct 'OverlayLibraryTy' is imported by this file as 'private' from '_OverlayLibrary'}}
+
+
+//--- UnusedOverlay.code
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %t/UnusedOverlay.code -enable-cross-import-overlays -I %t/lib/language -module-name ClientLibrary -verify
+
+public import DeclaringLibrary // expected-warning {{public import of 'DeclaringLibrary' was not used in public declarations or inlinable code}}
+public import BystandingLibrary // expected-warning {{public import of 'BystandingLibrary' was not used in public declarations or inlinable code}}
+public import SomeUnrelatedModule // expected-warning {{public import of 'SomeUnrelatedModule' was not used in public declarations or inlinable code}}

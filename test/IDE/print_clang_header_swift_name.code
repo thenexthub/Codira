@@ -1,0 +1,27 @@
+// RUN: echo '#include "print_clang_header_language_name.h"' > %t.m
+// RUN: %target-language-ide-test -source-filename %s -print-header -header-to-print \
+// RUN:     %S/Inputs/print_clang_header_language_name.h -skip-unavailable --cc-args %target-cc-options \
+// RUN:     -isysroot %clang-importer-sdk-path -fsyntax-only %t.m -I %S/Inputs | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+// CHECK-LABEL: enum Normal : Int, @unchecked Sendable {
+// CHECK-NOT: {{^}}}
+// CHECK: case one
+// CHECK-NEXT: case two
+// CHECK-NEXT: case three
+// CHECK-NEXT: }
+
+// CHECK-LABEL: enum CodiraEnum : Int, @unchecked Sendable {
+// CHECK-NOT: {{^}}}
+// CHECK: case one
+// CHECK-NEXT: case two
+// CHECK-NEXT: case three
+// CHECK-NEXT: }
+
+// CHECK-LABEL: enum CodiraEnumTwo : Int, @unchecked Sendable {
+// CHECK-NOT: {{^}}}
+// CHECK: case CodiraEnumTwoA
+// CHECK-NEXT: case CodiraEnumTwoB
+// CHECK-NEXT: case CodiraEnumTwoC
+// CHECK-NEXT: }

@@ -1,4 +1,4 @@
-//===--- FrontendOptions.td - Options for swift -frontend -----------------===//
+//===--- FrontendOptions.td - Options for language -frontend -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file defines the options accepted by swift -frontend.
+//  This file defines the options accepted by language -frontend.
 //
 //===----------------------------------------------------------------------===//
 
@@ -49,7 +50,7 @@ def emit_dependencies_path
     HelpText<"Output basic Make-compatible dependencies file to <path>">;
 def emit_reference_dependencies_path
   : Separate<["-"], "emit-reference-dependencies-path">, MetaVarName<"<path>">,
-    HelpText<"Output Swift-style dependencies file to <path>">;
+    HelpText<"Output Codira-style dependencies file to <path>">;
 
 def emit_fixits_path
   : Separate<["-"], "emit-fixits-path">, MetaVarName<"<path>">,
@@ -71,7 +72,7 @@ def diagnostic_documentation_path
   HelpText<"Path to diagnostic documentation resources">;
 
 def dump_api_path : Separate<["-"], "dump-api-path">,
-  HelpText<"The path to output swift interface files for the compiled source files">;
+  HelpText<"The path to output language interface files for the compiled source files">;
 
 def group_info_path : Separate<["-"], "group-info-path">,
   HelpText<"The path to collect the group information of the compiled module">;
@@ -115,13 +116,13 @@ def emit_module_doc : Flag<["-"], "emit-module-doc">,
 def emit_module_source_info : Flag<["-"], "emit-module-source-info">,
   HelpText<"Output module source info file">;
 def ignore_module_source_info : Flag<["-"], "ignore-module-source-info">,
-  HelpText<"Avoid getting source location from .swiftsourceinfo files">;
+  HelpText<"Avoid getting source location from .codesourceinfo files">;
 
 def merge_modules
   : Flag<["-"], "merge-modules">, ModeOpt,
     HelpText<"Merge the input modules without otherwise processing them">;
 def emit_reference_dependencies : Flag<["-"], "emit-reference-dependencies">,
-  HelpText<"Emit a Swift-style dependencies file">;
+  HelpText<"Emit a Codira-style dependencies file">;
 
 def serialize_module_interface_dependency_hashes
   : Flag<["-"], "serialize-module-interface-dependency-hashes">,
@@ -190,7 +191,7 @@ def disable_testable_attr_requires_testable_module :
 
 def disable_clang_spi :
   Flag<["-"], "disable-clang-spi">,
-  HelpText<"Don't import Clang SPIs as Swift SPIs">;
+  HelpText<"Don't import Clang SPIs as Codira SPIs">;
 
 def enable_target_os_checking :
   Flag<["-"], "enable-target-os-checking">,
@@ -228,15 +229,15 @@ def autolink_library : Separate<["-"], "autolink-library">,
 def disable_typo_correction : Flag<["-"], "disable-typo-correction">,
   HelpText<"Disable typo correction">;
 
-def disable_implicit_swift_modules: Flag<["-"], "disable-implicit-swift-modules">,
-  HelpText<"Disable building Swift modules implicitly by the compiler">;
+def disable_implicit_language_modules: Flag<["-"], "disable-implicit-language-modules">,
+  HelpText<"Disable building Codira modules implicitly by the compiler">;
 
-def swift_module_file: Joined<["-"], "swift-module-file=">,
+def language_module_file: Joined<["-"], "language-module-file=">,
   MetaVarName<"<name>=<path>">,
-  HelpText<"Specify Swift module input explicitly built from textual interface">;
+  HelpText<"Specify Codira module input explicitly built from textual interface">;
 
-def swift_module_cross_import: MultiArg<["-"], "swift-module-cross-import", 2>,
-  MetaVarName<"<moduleName> <crossImport.swiftoverlay>">,
+def language_module_cross_import: MultiArg<["-"], "language-module-cross-import", 2>,
+  MetaVarName<"<moduleName> <crossImport.codeoverlay>">,
   HelpText<"Specify the cross import module">;
 
 def module_can_import: Separate<["-"], "module-can-import">,
@@ -247,23 +248,22 @@ def module_can_import_version: MultiArg<["-"], "module-can-import-version", 3>,
   MetaVarName<"<moduleName> <version> <underlyingVersion>">,
   HelpText<"Specify canImport module and versions">;
 
+def module_import_from_cas: Flag<["-"], "module-import-from-cas">,
+  HelpText<"Import modules from CAS instead of file system">;
+
 def disable_cross_import_overlay_search: Flag<["-"], "disable-cross-import-overlay-search">,
   HelpText<"Disable searching for cross import overlay file">;
 
-def explicit_swift_module_map
-  : Separate<["-"], "explicit-swift-module-map-file">, MetaVarName<"<path>">,
-    HelpText<"Specify a JSON file containing information of explicit Swift modules">;
+def explicit_language_module_map
+  : Separate<["-"], "explicit-language-module-map-file">, MetaVarName<"<path>">,
+    HelpText<"Specify a JSON file containing information of explicit Codira modules">;
 
 def const_gather_protocols_file
   : Separate<["-"], "const-gather-protocols-file">, MetaVarName<"<path>">,
     HelpText<"Specify a list of protocols for extraction of conformances' const values'">;
 
-def placeholder_dependency_module_map
-  : Separate<["-"], "placeholder-dependency-module-map-file">, MetaVarName<"<path>">,
-    HelpText<"Specify a JSON file containing information of external Swift module dependencies">;
-
 def import_prescan : Flag<["-"], "import-prescan">,
-   HelpText<"When performing a dependency scan, only identify all imports of the main Swift module sources">;
+   HelpText<"When performing a dependency scan, only identify all imports of the main Codira module sources">;
 
 def serialize_dependency_scan_cache : Flag<["-"], "serialize-dependency-scan-cache">,
    HelpText<"After performing a dependency scan, serialize the scanner's internal state.">;
@@ -391,13 +391,13 @@ def public_autolink_library :
 // HIDDEN FLAGS
 let Flags = [FrontendOption, NoDriverOption, HelpHidden] in {
 
-def enable_experimental_swift_based_closure_specialization :
-  Flag<["-"], "experimental-swift-based-closure-specialization">,
-  HelpText<"Use the experimental Swift based closure-specialization optimization pass instead of the existing C++ one">;
+def enable_experimental_language_based_closure_specialization :
+  Flag<["-"], "experimental-language-based-closure-specialization">,
+  HelpText<"Use the experimental Codira based closure-specialization optimization pass instead of the existing C++ one">;
 
 def checked_async_objc_bridging : Joined<["-"], "checked-async-objc-bridging=">,
   HelpText<"Control whether checked continuations are used when bridging "
-           "async calls from Swift to ObjC: 'on', 'off' ">;
+           "async calls from Codira to ObjC: 'on', 'off' ">;
 
 def debug_constraints : Flag<["-"], "debug-constraints">,
   HelpText<"Debug the constraint-based type checker">;
@@ -416,7 +416,7 @@ def disable_named_lazy_member_loading : Flag<["-"], "disable-named-lazy-member-l
 
 def disable_named_lazy_import_as_member_loading :
   Flag<["-"], "disable-named-lazy-import-as-member-loading">,
-  HelpText<"Import all of a type's import-as-member globals together, as Swift "
+  HelpText<"Import all of a type's import-as-member globals together, as Codira "
            "5.10 and earlier did; temporary workaround for modules that are "
            "sensitive to this change">;
 
@@ -450,6 +450,14 @@ def requirement_machine_max_rule_length : Joined<["-"], "requirement-machine-max
 def requirement_machine_max_concrete_nesting : Joined<["-"], "requirement-machine-max-concrete-nesting=">,
   Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
   HelpText<"Set the maximum concrete type nesting depth before giving up">;
+
+def requirement_machine_max_concrete_size : Joined<["-"], "requirement-machine-max-concrete-size=">,
+  Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
+  HelpText<"Set the maximum concrete type total size before giving up">;
+
+def requirement_machine_max_type_differences : Joined<["-"], "requirement-machine-max-type-differences=">,
+  Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
+  HelpText<"Set the maximum number of type difference structures allocated before giving up">;
 
 def requirement_machine_max_split_concrete_equiv_class_attempts : Joined<["-"], "requirement-machine-max-split-concrete-equiv-class-attempts=">,
   Flags<[FrontendOption, HelpHidden, DoesNotAffectIncrementalBuild]>,
@@ -486,14 +494,14 @@ def debug_inverse_requirements : Flag<["-"], "debug-inverse-requirements">,
   HelpText<"Print real requirements in -debug-generic-signatures output">;
 
 def debug_forbid_typecheck_prefix : Separate<["-"], "debug-forbid-typecheck-prefix">,
-  HelpText<"Triggers llvm fatal_error if typechecker tries to typecheck a decl "
+  HelpText<"Triggers toolchain fatal_error if typechecker tries to typecheck a decl "
            "with the provided prefix name">;
 
 def experimental_lazy_typecheck : Flag<["-"], "experimental-lazy-typecheck">,
   HelpText<"Type-check lazily as needed to produce requested outputs">;
 
-def debug_emit_invalid_swiftinterface_syntax : Flag<["-"], "debug-emit-invalid-swiftinterface-syntax">,
-  HelpText<"Write an invalid declaration into swiftinterface files">;
+def debug_emit_invalid_languageinterface_syntax : Flag<["-"], "debug-emit-invalid-languageinterface-syntax">,
+  HelpText<"Write an invalid declaration into languageinterface files">;
 
 def debug_cycles : Flag<["-"], "debug-cycles">,
   HelpText<"Print out debug dumps when cycles are detected in evaluation">;
@@ -516,7 +524,7 @@ def debug_test_dependency_scan_cache_serialization: Flag<["-"], "test-dependency
    HelpText<"After performing a dependency scan, serialize and then deserialize the scanner's internal state.">;
 
 def debugger_support : Flag<["-"], "debugger-support">,
-  HelpText<"Process swift code as if running in the debugger">;
+  HelpText<"Process language code as if running in the debugger">;
 
 def disable_clangimporter_source_import : Flag<["-"],
   "disable-clangimporter-source-import">,
@@ -578,40 +586,40 @@ def disable_autolink_frameworks : Flag<["-"],"disable-autolink-frameworks">,
   HelpText<"Disable autolinking against all frameworks">;
 
 def disable_all_autolinking : Flag<["-"],"disable-all-autolinking">,
-  HelpText<"Disable all Swift autolink directives">;
+  HelpText<"Disable all Codira autolink directives">;
 
 def disable_force_load_symbols : Flag<["-"],"disable-force-load-symbols">,
   Flags<[FrontendOption, HelpHidden]>,
-  HelpText<"Disable generation of all Swift _FORCE_LOAD symbols">;
+  HelpText<"Disable generation of all Codira _FORCE_LOAD symbols">;
 
 def disable_diagnostic_passes : Flag<["-"], "disable-diagnostic-passes">,
   HelpText<"Don't run diagnostic passes">;
 
-def disable_llvm_optzns : Flag<["-"], "disable-llvm-optzns">,
+def disable_toolchain_optzns : Flag<["-"], "disable-toolchain-optzns">,
   HelpText<"Don't run LLVM optimization passes">;
 
 def disable_sil_perf_optzns : Flag<["-"], "disable-sil-perf-optzns">,
   HelpText<"Don't run SIL performance optimization passes">;
 
-def disable_swift_specific_llvm_optzns : Flag<["-"], "disable-swift-specific-llvm-optzns">,
-  HelpText<"Don't run Swift specific LLVM optimization passes.">;
+def disable_language_specific_toolchain_optzns : Flag<["-"], "disable-language-specific-toolchain-optzns">,
+  HelpText<"Don't run Codira specific LLVM optimization passes.">;
 
-def disable_llvm_verify : Flag<["-"], "disable-llvm-verify">,
+def disable_toolchain_verify : Flag<["-"], "disable-toolchain-verify">,
   HelpText<"Don't run the LLVM IR verifier.">;
 
-def enable_llvm_verify_each : Flag<["-"], "enable-llvm-verify-each">,
+def enable_toolchain_verify_each : Flag<["-"], "enable-toolchain-verify-each">,
   HelpText<"Run the LLVM IR verifier after every pass.">;
 
-def disable_llvm_verify_each : Flag<["-"], "disable-llvm-verify-each">,
+def disable_toolchain_verify_each : Flag<["-"], "disable-toolchain-verify-each">,
   HelpText<"Don't run the LLVM IR verifier after every pass.">;
 
-def disable_llvm_value_names : Flag<["-"], "disable-llvm-value-names">,
+def disable_toolchain_value_names : Flag<["-"], "disable-toolchain-value-names">,
   HelpText<"Don't add names to local values in LLVM IR">;
 
 def dump_jit : JoinedOrSeparate<["-"], "dump-jit">,
   HelpText<"Dump JIT contents">;
 
-def enable_llvm_value_names : Flag<["-"], "enable-llvm-value-names">,
+def enable_toolchain_value_names : Flag<["-"], "enable-toolchain-value-names">,
   HelpText<"Add names to local values in LLVM IR">;
 
 def enable_anonymous_context_mangled_names :
@@ -628,14 +636,14 @@ def disable_reflection_names : Flag<["-"], "disable-reflection-names">,
   HelpText<"Disable emission of names of stored properties and enum cases in"
            "reflection metadata">;
 
-def disable_llvm_merge_functions_pass : Flag<["-"], "disable-llvm-merge-functions-pass">,
+def disable_toolchain_merge_functions_pass : Flag<["-"], "disable-toolchain-merge-functions-pass">,
   HelpText<"Disable the MergeFunctionPass LLVM IR pass">;
 
 def function_sections: Flag<["-"], "function-sections">,
   Flags<[FrontendOption, NoInteractiveOption]>,
   HelpText<"Emit functions to separate sections.">;
 
-def enable_single_module_llvm_emission: Flag<["-"], "enable-single-module-llvm-emission">,
+def enable_single_module_toolchain_emission: Flag<["-"], "enable-single-module-toolchain-emission">,
   Flags<[FrontendOption, NoInteractiveOption]>,
   HelpText<"Emit LLVM IR into a single LLVM module in multithreaded mode.">;
 
@@ -654,7 +662,7 @@ def dump_clang_diagnostics : Flag<["-"], "dump-clang-diagnostics">,
   HelpText<"Dump Clang diagnostics to stderr">;
 
 def dump_clang_lookup_tables : Flag<["-"], "dump-clang-lookup-tables">,
-  HelpText<"Dump the importer's Swift-name-to-Clang-name lookup tables to "
+  HelpText<"Dump the importer's Codira-name-to-Clang-name lookup tables to "
            "stderr">;
 
 def disable_modules_validate_system_headers : Flag<["-"], "disable-modules-validate-system-headers">,
@@ -701,17 +709,17 @@ def disable_experimental_opened_existential_types :
 
 def enable_deserialization_recovery :
   Flag<["-"], "enable-deserialization-recovery">,
-  HelpText<"Attempt to recover from missing xrefs (etc) in swiftmodules">;
+  HelpText<"Attempt to recover from missing xrefs (etc) in languagemodules">;
 def disable_deserialization_recovery :
   Flag<["-"], "disable-deserialization-recovery">,
-  HelpText<"Don't attempt to recover from missing xrefs (etc) in swiftmodules">;
+  HelpText<"Don't attempt to recover from missing xrefs (etc) in languagemodules">;
 
 def enable_deserialization_safety :
   Flag<["-"], "enable-deserialization-safety">,
-  HelpText<"Avoid reading potentially unsafe decls in swiftmodules">;
+  HelpText<"Avoid reading potentially unsafe decls in languagemodules">;
 def disable_deserialization_safety :
   Flag<["-"], "disable-deserialization-safety">,
-  HelpText<"Don't avoid reading potentially unsafe decls in swiftmodules">;
+  HelpText<"Don't avoid reading potentially unsafe decls in languagemodules">;
 
 def force_workaround_broken_modules :
   Flag<["-"], "experimental-force-workaround-broken-modules">,
@@ -747,12 +755,12 @@ def warn_on_editor_placeholder : Flag<["-"],
 def report_errors_to_debugger : Flag<["-"], "report-errors-to-debugger">,
   HelpText<"Deprecated, will be removed in future versions.">;
 
-def enable_swift3_objc_inference : Flag<["-"], "enable-swift3-objc-inference">,
+def enable_language3_objc_inference : Flag<["-"], "enable-language3-objc-inference">,
   Flags<[FrontendOption, HelpHidden]>,
   HelpText<"Deprecated, has no effect">;
 
-def disable_swift3_objc_inference :
-  Flag<["-"], "disable-swift3-objc-inference">,
+def disable_language3_objc_inference :
+  Flag<["-"], "disable-language3-objc-inference">,
   Flags<[FrontendOption, HelpHidden]>,
   HelpText<"Deprecated, has no effect">;
 
@@ -764,13 +772,13 @@ def bypass_resilience : Flag<["-"], "bypass-resilience-checks">,
   Flags<[FrontendOption, NoInteractiveOption, HelpHidden]>,
   HelpText<"Ignore all checks for module resilience.">;
 
-def enable_llvm_vfe : Flag<["-"], "enable-llvm-vfe">,
+def enable_toolchain_vfe : Flag<["-"], "enable-toolchain-vfe">,
   Flags<[FrontendOption, NoInteractiveOption, HelpHidden]>,
-  HelpText<"Use LLVM IR Virtual Function Elimination on Swift class virtual tables">;
+  HelpText<"Use LLVM IR Virtual Function Elimination on Codira class virtual tables">;
 
-def enable_llvm_wme : Flag<["-"], "enable-llvm-wme">,
+def enable_toolchain_wme : Flag<["-"], "enable-toolchain-wme">,
   Flags<[FrontendOption, NoInteractiveOption, HelpHidden]>,
-  HelpText<"Use LLVM IR Witness Method Elimination on Swift protocol witness tables">;
+  HelpText<"Use LLVM IR Witness Method Elimination on Codira protocol witness tables">;
 
 def internalize_at_link : Flag<["-"], "internalize-at-link">,
   Flags<[FrontendOption, NoInteractiveOption, HelpHidden]>,
@@ -841,7 +849,10 @@ def downgrade_typecheck_interface_error : Flag<["-"], "downgrade-typecheck-inter
   HelpText<"Downgrade error to warning when typechecking emitted module interfaces">;
 
 def enable_volatile_modules : Flag<["-"], "enable-volatile-modules">,
-  HelpText<"Load Swift modules in memory">;
+  HelpText<"Load Codira modules in memory">;
+
+def solver_memory_threshold_EQ : Joined<["-"], "solver-memory-threshold=">,
+  HelpText<"Set the upper bound for memory consumption, in bytes, by the constraint solver">;
 
 def solver_expression_time_threshold_EQ : Joined<["-"], "solver-expression-time-threshold=">,
   HelpText<"Expression type checking timeout, in seconds">;
@@ -852,15 +863,11 @@ def solver_scope_threshold_EQ : Joined<["-"], "solver-scope-threshold=">,
 def solver_trail_threshold_EQ : Joined<["-"], "solver-trail-threshold=">,
   HelpText<"Expression type checking trail change limit">;
 
-def solver_disable_shrink :
-  Flag<["-"], "solver-disable-shrink">,
-  HelpText<"Disable the shrink phase of expression type checking">;
-
 def solver_disable_splitter : Flag<["-"], "solver-disable-splitter">,
   HelpText<"Disable the component splitter phase of expression type checking">;
 
-def disable_constraint_solver_performance_hacks : Flag<["-"], "disable-constraint-solver-performance-hacks">,
-  HelpText<"Disable all the hacks in the constraint solver">;
+def enable_constraint_solver_performance_hacks : Flag<["-"], "enable-constraint-solver-performance-hacks">,
+  HelpText<"Enable all the old hacks in the constraint solver">;
 
 def enable_operator_designated_types :
   Flag<["-"], "enable-operator-designated-types">,
@@ -886,7 +893,7 @@ def disable_new_operator_lookup :
   HelpText<"Disable the new operator decl and precedencegroup lookup behavior">;
 
 def enable_source_import : Flag<["-"], "enable-source-import">,
-  HelpText<"Enable importing of Swift source files">;
+  HelpText<"Enable importing of Codira source files">;
 
 def enable_throw_without_try : Flag<["-"], "enable-throw-without-try">,
   HelpText<"Allow throwing function calls without 'try'">;
@@ -991,12 +998,12 @@ def debug_on_sil : Flag<["-"], "sil-based-debuginfo">,
 def legacy_gsil : Flag<["-"], "gsil">,
   HelpText<"Deprecated, use '-sil-based-debuginfo' instead">;
 
-def print_llvm_inline_tree : Flag<["-"], "print-llvm-inline-tree">,
+def print_toolchain_inline_tree : Flag<["-"], "print-toolchain-inline-tree">,
   HelpText<"Print the LLVM inline tree.">;
 
-def disable_incremental_llvm_codegeneration :
-  Flag<["-"], "disable-incremental-llvm-codegen">,
-       HelpText<"Disable incremental llvm code generation.">;
+def disable_incremental_toolchain_codegeneration :
+  Flag<["-"], "disable-incremental-toolchain-codegen">,
+       HelpText<"Disable incremental toolchain code generation.">;
 
 def ignore_always_inline : Flag<["-"], "ignore-always-inline">,
   HelpText<"Ignore @inline(__always) attributes.">;
@@ -1007,12 +1014,12 @@ def emit_sorted_sil : Flag<["-"], "emit-sorted-sil">,
 
 def cxx_interop_getters_setters_as_properties :
   Flag<["-"], "cxx-interop-getters-setters-as-properties">,
-  HelpText<"Import getters and setters as computed properties in Swift">,
+  HelpText<"Import getters and setters as computed properties in Codira">,
   Flags<[FrontendOption, HelpHidden]>;
 
 def cxx_interop_disable_requirement_at_import :
   Flag<["-"], "disable-cxx-interop-requirement-at-import">,
-  HelpText<"Do not require C++ interoperability to be enabled when importing a Swift module that enables C++ interoperability">,
+  HelpText<"Do not require C++ interoperability to be enabled when importing a Codira module that enables C++ interoperability">,
   Flags<[FrontendOption, HelpHidden]>;
 
 def cxx_interop_use_opaque_pointer_for_moveonly :
@@ -1035,7 +1042,7 @@ def external_pass_pipeline_filename : Separate<["-"], "external-pass-pipeline-fi
     MetaVarName<"<pass_pipeline_file>">;
 
 def index_system_modules : Flag<["-"], "index-system-modules">,
-  HelpText<"Emit index data for imported serialized swift system modules">;
+  HelpText<"Emit index data for imported serialized language system modules">;
 
 def index_ignore_stdlib :
   Flag<["-"], "index-ignore-stdlib">,
@@ -1047,7 +1054,7 @@ def dump_interface_hash : Flag<["-"], "dump-interface-hash">,
 
 def compile_module_from_interface :
   Flag<["-"], "compile-module-from-interface">,
-  HelpText<"Treat the (single) input as a swiftinterface and produce a module">,
+  HelpText<"Treat the (single) input as a languageinterface and produce a module">,
   ModeOpt;
 
 def explicit_interface_module_build :
@@ -1065,7 +1072,7 @@ def build_module_from_parseable_interface :
 
 def typecheck_module_from_interface :
   Flag<["-"], "typecheck-module-from-interface">,
-  HelpText<"Treat the (single) input as a swiftinterface and typecheck it">,
+  HelpText<"Treat the (single) input as a languageinterface and typecheck it">,
   ModeOpt;
 
 def module_interface_preserve_types_as_written :
@@ -1092,7 +1099,7 @@ def disable_print_missing_imports_in_module_interface :
            "missing from the sources">;
 
 // [FIXME: Clang-type-plumbing] Make this a SIL-only option once we start
-// unconditionally emitting non-canonical Clang types in swiftinterfaces.
+// unconditionally emitting non-canonical Clang types in languageinterfaces.
 def experimental_print_full_convention :
  Flag<["-"], "experimental-print-full-convention">,
  HelpText<"When emitting a module interface or SIL, emit additional @convention"
@@ -1140,7 +1147,7 @@ def type_info_dump_filter_EQ : Joined<["-"], "type-info-dump-filter=">,
   Flags<[FrontendOption]>,
   HelpText<"One of 'all', 'resilient' or 'fragile'">;
 
-def swift_async_frame_pointer_EQ : Joined<["-"], "swift-async-frame-pointer=">,
+def language_async_frame_pointer_EQ : Joined<["-"], "language-async-frame-pointer=">,
   Flags<[FrontendOption]>,
   HelpText<"One of 'auto', 'always' or 'never'">;
 
@@ -1167,16 +1174,16 @@ def disable_large_loadable_types_reg2mem : Flag<["-"], "disable-large-loadable-t
   HelpText<"Disable large loadable types register to memory pass">;
 
 def enable_x86_64_corocc : Flag<["-"], "enable-x86_64-corocc">,
-  HelpText<"Use swiftcorocc for yield_once_2 routines on x86_64.">;
+  HelpText<"Use languagecorocc for yield_once_2 routines on x86_64.">;
 
 def disable_x86_64_corocc : Flag<["-"], "disable-x86_64-corocc">,
-  HelpText<"Don't use swiftcorocc for yield_once_2 routines on x86_64.">;
+  HelpText<"Don't use languagecorocc for yield_once_2 routines on x86_64.">;
 
 def enable_arm64_corocc : Flag<["-"], "enable-arm64-corocc">,
-  HelpText<"Use swiftcorocc for yield_once_2 routines on arm64 variants.">;
+  HelpText<"Use languagecorocc for yield_once_2 routines on arm64 variants.">;
 
 def disable_arm64_corocc : Flag<["-"], "disable-arm64-corocc">,
-  HelpText<"Don't use swiftcorocc for yield_once_2 routines on arm64 variants.">;
+  HelpText<"Don't use languagecorocc for yield_once_2 routines on arm64 variants.">;
 
 def enable_callee_allocated_coro_abi : Flag<["-"], "enable-callee-allocated-coro-abi">,
   HelpText<"Override per-platform settings and use yield_once_2.">;
@@ -1189,6 +1196,10 @@ def enable_cond_fail_message_annotation : Flag<["-"], "enable-cond-fail-message-
 
 def disable_cond_fail_message_annotation : Flag<["-"], "dissable-cond-fail-message-annotation">,
   HelpText<"Disable cond_fail message annotation.">;
+
+def min_valid_pointer_value : Joined<["-"], "min-valid-pointer-value=">,
+  MetaVarName<"<value>">,
+  HelpText<"Overrides the target's least valid pointer value.'">;
 
 let Flags = [FrontendOption, NoDriverOption, HelpHidden, ModuleInterfaceOptionIgnorable] in {
   def enable_pack_metadata_stack_promotion :
@@ -1229,7 +1240,7 @@ def target_sdk_name : Separate<["-"], "target-sdk-name">,
 
 def candidate_module_file
   : Separate<["-"], "candidate-module-file">, MetaVarName<"<path>">,
-    HelpText<"Specify Swift module may be ready to use for an interface">;
+    HelpText<"Specify Codira module may be ready to use for an interface">;
 
 def use_static_resource_dir
   : Flag<["-"], "use-static-resource-dir">,
@@ -1246,7 +1257,7 @@ def experimental_skip_all_function_bodies:
 def experimental_allow_module_with_compiler_errors:
   Flag<["-"], "experimental-allow-module-with-compiler-errors">,
   Flags<[HelpHidden]>,
-  HelpText<"Attempt to output .swiftmodule, regardless of compilation errors">;
+  HelpText<"Attempt to output .codemodule, regardless of compilation errors">;
 
 def experimental_skip_non_exportable_decls
   : Flag<["-"], "experimental-skip-non-exportable-decls">,
@@ -1414,12 +1425,12 @@ def mergeable_traps :
   Flag<["-"], "mergeable-traps">,
   HelpText<"Emit mergeable traps even in optimized builds">;
 
-def enable_new_llvm_pass_manager :
-  Flag<["-"], "enable-new-llvm-pass-manager">,
-  HelpText<"Enable the new llvm pass manager">;
-def disable_new_llvm_pass_manager :
-  Flag<["-"], "disable-new-llvm-pass-manager">,
-  HelpText<"Disable the new llvm pass manager">;
+def enable_new_toolchain_pass_manager :
+  Flag<["-"], "enable-new-toolchain-pass-manager">,
+  HelpText<"Enable the new toolchain pass manager">;
+def disable_new_toolchain_pass_manager :
+  Flag<["-"], "disable-new-toolchain-pass-manager">,
+  HelpText<"Disable the new toolchain pass manager">;
 
 def enable_profiling_marker_thunks :
   Flag<["-"], "enable-profiling-marker-thunks">,
@@ -1457,9 +1468,6 @@ def bridging_header_pch_key : Separate<["-"], "bridging-header-pch-key">,
 def no_clang_include_tree: Flag<["-"], "no-clang-include-tree">,
   HelpText<"Do not use clang include tree, fallback to use CAS filesystem to build clang modules">;
 
-def cas_fs: Separate<["-"], "cas-fs">,
-  HelpText<"Root CASID for CAS FileSystem">, MetaVarName<"<cas-id>">;
-
 def clang_include_tree_root: Separate<["-"], "clang-include-tree-root">,
   HelpText<"Clang Include Tree CASID">, MetaVarName<"<cas-id>">;
 def clang_include_tree_filelist: Separate<["-"], "clang-include-tree-filelist">,
@@ -1485,8 +1493,8 @@ def disable_ossa_verify_complete :
 
 def platform_c_calling_convention :
     Separate<["-"], "experimental-platform-c-calling-convention">,
-    HelpText<"Which calling convention is used to perform non-swift calls. "
-             "Defaults to llvm's standard C calling convention.">;
+    HelpText<"Which calling convention is used to perform non-language calls. "
+             "Defaults to toolchain's standard C calling convention.">;
 def platform_c_calling_convention_EQ :
     Joined<["-"], "experimental-platform-c-calling-convention=">,
     Alias<platform_c_calling_convention>;
@@ -1494,19 +1502,19 @@ def platform_c_calling_convention_EQ :
 
 def disable_sending_args_and_results_with_region_isolation : Flag<["-"],
   "disable-sending-args-and-results-with-region-based-isolation">,
-  HelpText<"Disable sending args and results when region based isolation is enabled. Only enabled with asserts">,
+  HelpText<"Disable sending args and results when region-based isolation is enabled. Only enabled with asserts">,
   Flags<[HelpHidden]>;
 
 def scanner_module_validation: Flag<["-"], "scanner-module-validation">,
     HelpText<"Validate binary modules in the dependency scanner">;
 def no_scanner_module_validation: Flag<["-"], "no-scanner-module-validation">,
-    HelpText<"Do not validate binary modules in scanner and delegate the validation to swift-frontend">;
+    HelpText<"Do not validate binary modules in scanner and delegate the validation to language-frontend">;
 def module_load_mode: Separate<["-"], "module-load-mode">,
     MetaVarName<"only-interface|prefer-interface|prefer-serialized|only-serialized">,
     HelpText<"Module loading mode">;
 
 def scanner_output_dir: Separate<["-"], "scanner-output-dir">,
-  HelpText<"Directory for generated files from swift dependency scanner">;
+  HelpText<"Directory for generated files from language dependency scanner">;
 def scanner_debug_write_output: Flag<["-"], "scanner-debug-write-output">,
   HelpText<"Write generated output from scanner for debugging purpose">,
   Flags<[HelpHidden]>;
@@ -1525,5 +1533,5 @@ def disable_address_dependencies : Flag<["-"], "disable-address-dependencies">,
 
 def disable_experimental_parser_round_trip : Flag<["-"],
   "disable-experimental-parser-round-trip">,
-  HelpText<"Disable round trip through the new swift parser">,
+  HelpText<"Disable round trip through the new language parser">,
   Flags<[FrontendOption, NoDriverOption, HelpHidden, ModuleInterfaceOptionIgnorable]>;

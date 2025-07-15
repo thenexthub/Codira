@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-based-debuginfo-gen"
@@ -19,8 +20,8 @@
 #include "language/SIL/SILPrintContext.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace language;
 
@@ -49,8 +50,8 @@ class SILDebugInfoGenerator : public SILModuleTransform {
   };
 
   /// A stream for counting line numbers.
-  struct LineCountStream : public llvm::raw_ostream {
-    llvm::raw_ostream &Underlying;
+  struct LineCountStream : public toolchain::raw_ostream {
+    toolchain::raw_ostream &Underlying;
     int LineNum = 1;
     uint64_t Pos = 0;
 
@@ -66,8 +67,8 @@ class SILDebugInfoGenerator : public SILModuleTransform {
 
     uint64_t current_pos() const override { return Pos; }
 
-    LineCountStream(llvm::raw_ostream &Underlying) :
-      llvm::raw_ostream(/* unbuffered = */ true),
+    LineCountStream(toolchain::raw_ostream &Underlying) :
+      toolchain::raw_ostream(/* unbuffered = */ true),
       Underlying(Underlying) { }
     
     ~LineCountStream() override {
@@ -81,14 +82,14 @@ class SILDebugInfoGenerator : public SILModuleTransform {
 
     LineCountStream LCS;
 
-    llvm::DenseMap<const SILInstruction *, int> LineNums;
+    toolchain::DenseMap<const SILInstruction *, int> LineNums;
 
     void printInstructionCallBack(const SILInstruction *I) override {
       // Record the current line number of the instruction.
       LineNums[I] = LCS.LineNum;
     }
 
-    PrintContext(llvm::raw_ostream &OS) : SILPrintContext(LCS), LCS(OS) { }
+    PrintContext(toolchain::raw_ostream &OS) : SILPrintContext(LCS), LCS(OS) { }
 
     ~PrintContext() override { }
   };
@@ -99,7 +100,7 @@ class SILDebugInfoGenerator : public SILModuleTransform {
     if (FileBaseName.empty())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "** SILDebugInfoGenerator **\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "** SILDebugInfoGenerator **\n");
 
     std::vector<SILFunction *> PrintedFuncs;
     int FileIdx = 0;
@@ -107,18 +108,18 @@ class SILDebugInfoGenerator : public SILModuleTransform {
     while (FIter != M->end()) {
 
       std::string FileName;
-      llvm::raw_string_ostream NameOS(FileName);
+      toolchain::raw_string_ostream NameOS(FileName);
       NameOS << FileBaseName << ".sil_dbg_" << FileIdx++ << ".sil";
       NameOS.flush();
 
       char *FileNameBuf = (char *)M->allocate(FileName.size() + 1, 1);
       strcpy(FileNameBuf, FileName.c_str());
 
-      LLVM_DEBUG(llvm::dbgs() << "Write debug SIL file " << FileName << '\n');
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Write debug SIL file " << FileName << '\n');
 
       std::error_code EC;
-      llvm::raw_fd_ostream OutFile(FileName, EC,
-                                   llvm::sys::fs::OpenFlags::OF_None);
+      toolchain::raw_fd_ostream OutFile(FileName, EC,
+                                   toolchain::sys::fs::OpenFlags::OF_None);
       assert(!OutFile.has_error() && !EC && "Can't write SIL debug file");
 
       PrintContext Ctx(OutFile);
@@ -185,6 +186,6 @@ class SILDebugInfoGenerator : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createSILDebugInfoGenerator() {
+SILTransform *language::createSILDebugInfoGenerator() {
   return new SILDebugInfoGenerator();
 }

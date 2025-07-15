@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,30 +20,30 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_IMAGEINSPECTIONCOMMON_H
-#define SWIFT_RUNTIME_IMAGEINSPECTIONCOMMON_H
+#ifndef LANGUAGE_RUNTIME_IMAGEINSPECTIONCOMMON_H
+#define LANGUAGE_RUNTIME_IMAGEINSPECTIONCOMMON_H
 
 #if defined(__MACH__)
 
 /// The Mach-O section name for the section containing protocol descriptor
 /// references. This lives within SEG_TEXT.
-#define MachOProtocolsSection "__swift5_protos"
+#define MachOProtocolsSection "__language5_protos"
 /// The Mach-O section name for the section containing protocol conformances.
 /// This lives within SEG_TEXT.
-#define MachOProtocolConformancesSection "__swift5_proto"
+#define MachOProtocolConformancesSection "__language5_proto"
 /// The Mach-O section name for the section containing copyable type references.
 /// This lives within SEG_TEXT.
-#define MachOTypeMetadataRecordSection "__swift5_types"
+#define MachOTypeMetadataRecordSection "__language5_types"
 /// The Mach-O section name for the section containing additional type references.
 /// This lives within SEG_TEXT.
-#define MachOExtraTypeMetadataRecordSection "__swift5_types2"
+#define MachOExtraTypeMetadataRecordSection "__language5_types2"
 /// The Mach-O section name for the section containing dynamic replacements.
 /// This lives within SEG_TEXT.
-#define MachODynamicReplacementSection "__swift5_replace"
-#define MachODynamicReplacementSomeSection "__swift5_replac2"
+#define MachODynamicReplacementSection "__language5_replace"
+#define MachODynamicReplacementSomeSection "__language5_replac2"
 /// The Mach-O section name for the section containing accessible functions.
 /// This lives within SEG_TEXT.
-#define MachOAccessibleFunctionsSection "__swift5_acfuncs"
+#define MachOAccessibleFunctionsSection "__language5_acfuncs"
 
 #define MachOTextSegment "__TEXT"
 
@@ -70,11 +71,11 @@ struct SectionInfo {
 /// \warning The runtime keeps a reference to \a sections and may mutate it, so
 ///   it \em must be mutable and long-lived (that is, statically or dynamically
 ///   allocated.) The effect of passing a pointer to a local value is undefined.
-SWIFT_RUNTIME_EXPORT
-void swift_addNewDSOImage(struct swift::MetadataSections *sections);
+LANGUAGE_RUNTIME_EXPORT
+void language_addNewDSOImage(struct language::MetadataSections *sections);
 
 /// Enumerate all metadata sections in the current process that are known to the
-/// Swift runtime.
+/// Codira runtime.
 ///
 /// \param body A function to invoke once per metadata sections structure.
 ///   If this function returns \c false, enumeration is stopped.
@@ -83,28 +84,28 @@ void swift_addNewDSOImage(struct swift::MetadataSections *sections);
 /// On Mach-O-based platforms (i.e. Apple platforms), this function is
 /// unavailable. On those platforms, use dyld API to enumerate loaded images and
 /// their corresponding metadata sections.
-SWIFT_RUNTIME_EXPORT SWIFT_WEAK_IMPORT
-void swift_enumerateAllMetadataSections(
-  bool (* body)(const swift::MetadataSections *sections, void *context),
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_WEAK_IMPORT
+void language_enumerateAllMetadataSections(
+  bool (* body)(const language::MetadataSections *sections, void *context),
   void *context
 );
 
 #ifndef NDEBUG
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const char *
-swift_getMetadataSectionName(const struct swift::MetadataSections *section);
+language_getMetadataSectionName(const struct language::MetadataSections *section);
 
-SWIFT_RUNTIME_EXPORT
-void swift_getMetadataSectionBaseAddress(
-  const struct swift::MetadataSections *section,
+LANGUAGE_RUNTIME_EXPORT
+void language_getMetadataSectionBaseAddress(
+  const struct language::MetadataSections *section,
   void const **out_actual, void const **out_expected);
 
-SWIFT_RUNTIME_EXPORT
-size_t swift_getMetadataSectionCount();
+LANGUAGE_RUNTIME_EXPORT
+size_t language_getMetadataSectionCount();
 
 #endif // NDEBUG
 
 #endif // !defined(__MACH__)
 
-#endif // SWIFT_RUNTIME_IMAGEINSPECTIONCOMMON_H
+#endif // LANGUAGE_RUNTIME_IMAGEINSPECTIONCOMMON_H

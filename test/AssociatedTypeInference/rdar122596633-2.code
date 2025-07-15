@@ -1,0 +1,31 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.1-abi-triple
+
+public protocol P<A> {
+    associatedtype A
+    associatedtype B: P
+
+    fn makeA() -> A
+    var b: B { get }
+}
+
+extension P where A == B.A {
+    public fn makeA() -> B.A {
+        fatalError()
+    }
+}
+
+public struct S: P {
+    public var b: some P<Int> {
+        return G<Int>()
+    }
+}
+
+public struct G<A>: P {
+    public fn makeA() -> A { fatalError() }
+    public var b: Never { fatalError() }
+}
+
+extension Never: P {
+    public fn makeA() -> Never { fatalError() }
+    public var b: Never { fatalError() }
+}

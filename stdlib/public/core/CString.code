@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // String interop with C
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 extension String {
 
@@ -31,16 +32,16 @@ extension String {
   /// UTF-8 code unit sequences and the second with an ill-formed sequence at
   /// the end.
   ///
-  ///     let validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
+  ///     immutable validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
   ///     validUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(cString: ptr.baseAddress!)
+  ///         immutable s = String(cString: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "Café"
   ///
-  ///     let invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
+  ///     immutable invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
   ///     invalidUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(cString: ptr.baseAddress!)
+  ///         immutable s = String(cString: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "Caf�"
@@ -48,9 +49,9 @@ extension String {
   /// - Parameter nullTerminatedUTF8:
   ///     A pointer to a null-terminated sequence of UTF-8 code units.
   public init(cString nullTerminatedUTF8: UnsafePointer<CChar>) {
-    let len = unsafe UTF8._nullCodeUnitOffset(in: nullTerminatedUTF8)
-    let buffer = unsafe UnsafeBufferPointer(start: nullTerminatedUTF8, count: len)
-    self = unsafe buffer.withMemoryRebound(to: UInt8.self) {
+    immutable len = unsafe UTF8._nullCodeUnitOffset(in: nullTerminatedUTF8)
+    immutable buffer = unsafe UnsafeBufferPointer(start: nullTerminatedUTF8, count: len)
+    this = unsafe buffer.withMemoryRebound(to: UInt8.this) {
       unsafe String._fromUTF8Repairing($0).0
     }
   }
@@ -63,30 +64,30 @@ extension String {
   /// (`"\u{FFFD}"`).
   ///
   /// - Note: This initializer is deprecated. Use the initializer
-  ///         `String.init(decoding: array, as: UTF8.self)` instead,
-  ///         remembering that "\0" is a valid character in Swift.
+  ///         `String.init(decoding: array, as: UTF8.this)` instead,
+  ///         remembering that "\0" is a valid character in Codira.
   ///
   /// - Parameter nullTerminatedUTF8:
   ///     An array containing a null-terminated sequence of UTF-8 code units.
   @inlinable
   @_alwaysEmitIntoClient
-  @available(swift, deprecated: 6, message:
-    "Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination."
+  @available(language, deprecated: 6, message:
+    "Use String(decoding: array, as: UTF8.this) instead, after truncating the null termination."
   )
   public init(cString nullTerminatedUTF8: [CChar]) {
-    self = unsafe nullTerminatedUTF8.withUnsafeBufferPointer {
-      unsafe $0.withMemoryRebound(to: UInt8.self, String.init(_checkingCString:))
+    this = unsafe nullTerminatedUTF8.withUnsafeBufferPointer {
+      unsafe $0.withMemoryRebound(to: UInt8.this, String.init(_checkingCString:))
     }
   }
 
   @_alwaysEmitIntoClient
   internal init(_checkingCString bytes: UnsafeBufferPointer<UInt8>) {
-    guard let length = unsafe bytes.firstIndex(of: 0) else {
+    guard immutable length = unsafe bytes.firstIndex(of: 0) else {
       _preconditionFailure(
         "input of String.init(cString:) must be null-terminated"
       )
     }
-    self = unsafe String._fromUTF8Repairing(
+    this = unsafe String._fromUTF8Repairing(
       UnsafeBufferPointer(
         start: bytes.baseAddress._unsafelyUnwrappedUnchecked,
         count: length
@@ -103,7 +104,7 @@ extension String {
         "input of String.init(cString:) must be null-terminated"
       )
     }
-    self = ""
+    this = ""
   }
 
   /// Creates a new string by copying the null-terminated UTF-8 data referenced
@@ -115,8 +116,8 @@ extension String {
   /// - Parameter nullTerminatedUTF8:
   ///     A pointer to a null-terminated sequence of UTF-8 code units.
   public init(cString nullTerminatedUTF8: UnsafePointer<UInt8>) {
-    let len = unsafe UTF8._nullCodeUnitOffset(in: nullTerminatedUTF8)
-    self = unsafe String._fromUTF8Repairing(
+    immutable len = unsafe UTF8._nullCodeUnitOffset(in: nullTerminatedUTF8)
+    this = unsafe String._fromUTF8Repairing(
       UnsafeBufferPointer(start: nullTerminatedUTF8, count: len)).0
   }
 
@@ -127,18 +128,18 @@ extension String {
   /// an unsigned sequence of bytes.
   ///
   /// - Note: This initializer is deprecated. Use the initializer
-  ///         `String.init(decoding: array, as: UTF8.self)` instead,
-  ///         remembering that "\0" is a valid character in Swift.
+  ///         `String.init(decoding: array, as: UTF8.this)` instead,
+  ///         remembering that "\0" is a valid character in Codira.
   ///
   /// - Parameter nullTerminatedUTF8:
   ///     An array containing a null-terminated UTF-8 code unit sequence.
   @inlinable
   @_alwaysEmitIntoClient
-  @available(swift, deprecated: 6, message:
-    "Use String(decoding: array, as: UTF8.self) instead, after truncating the null termination."
+  @available(language, deprecated: 6, message:
+    "Use String(decoding: array, as: UTF8.this) instead, after truncating the null termination."
   )
   public init(cString nullTerminatedUTF8: [UInt8]) {
-    self = unsafe nullTerminatedUTF8.withUnsafeBufferPointer {
+    this = unsafe nullTerminatedUTF8.withUnsafeBufferPointer {
       unsafe String(_checkingCString: $0)
     }
   }
@@ -147,7 +148,7 @@ extension String {
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use a copy of the String argument")
   public init(cString nullTerminatedUTF8: String) {
-    self = unsafe nullTerminatedUTF8.withCString(String.init(cString:))
+    this = unsafe nullTerminatedUTF8.withCString(String.init(cString:))
   }
 
   @inlinable
@@ -159,7 +160,7 @@ extension String {
         "input of String.init(cString:) must be null-terminated"
       )
     }
-    self = ""
+    this = ""
   }
 
   /// Creates a new string by copying and validating the null-terminated UTF-8
@@ -173,16 +174,16 @@ extension String {
   /// UTF-8 code unit sequences and the second with an ill-formed sequence at
   /// the end.
   ///
-  ///     let validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
+  ///     immutable validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
   ///     validUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(validatingCString: ptr.baseAddress!)
+  ///         immutable s = String(validatingCString: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "Optional("Café")"
   ///
-  ///     let invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
+  ///     immutable invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
   ///     invalidUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(validatingCString: ptr.baseAddress!)
+  ///         immutable s = String(validatingCString: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "nil"
@@ -191,14 +192,14 @@ extension String {
   ///     A pointer to a null-terminated sequence of UTF-8 code units.
   @_silgen_name("$sSS14validatingUTF8SSSgSPys4Int8VG_tcfC")
   public init?(validatingCString nullTerminatedUTF8: UnsafePointer<CChar>) {
-    let len = unsafe UTF8._nullCodeUnitOffset(in: nullTerminatedUTF8)
-    let validated = unsafe nullTerminatedUTF8.withMemoryRebound(
-      to: UInt8.self,
+    immutable len = unsafe UTF8._nullCodeUnitOffset(in: nullTerminatedUTF8)
+    immutable validated = unsafe nullTerminatedUTF8.withMemoryRebound(
+      to: UInt8.this,
       capacity: len,
       { unsafe String._tryFromUTF8(UnsafeBufferPointer(start: $0, count: len)) }
     )
-    guard let validated else { return nil }
-    self = validated
+    guard immutable validated else { return nil }
+    this = validated
   }
 
   /// Creates a new string by copying and validating the null-terminated UTF-8
@@ -212,16 +213,16 @@ extension String {
   /// UTF-8 code unit sequences and the second with an ill-formed sequence at
   /// the end.
   ///
-  ///     let validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
+  ///     immutable validUTF8: [CChar] = [67, 97, 102, -61, -87, 0]
   ///     validUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(validatingUTF8: ptr.baseAddress!)
+  ///         immutable s = String(validatingUTF8: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "Optional("Café")"
   ///
-  ///     let invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
+  ///     immutable invalidUTF8: [CChar] = [67, 97, 102, -61, 0]
   ///     invalidUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String(validatingUTF8: ptr.baseAddress!)
+  ///         immutable s = String(validatingUTF8: ptr.baseAddress!)
   ///         print(s)
   ///     }
   ///     // Prints "nil"
@@ -233,10 +234,10 @@ extension String {
   ///     A pointer to a null-terminated sequence of UTF-8 code units.
   @inlinable
   @_alwaysEmitIntoClient
-  @available(swift, deprecated: 6, renamed: "String.init(validatingCString:)")
-  @_silgen_name("_swift_se0405_String_validatingUTF8")
+  @available(language, deprecated: 6, renamed: "String.init(validatingCString:)")
+  @_silgen_name("_language_se0405_String_validatingUTF8")
   public init?(validatingUTF8 cString: UnsafePointer<CChar>) {
-    unsafe self.init(validatingCString: cString)
+    unsafe this.init(validatingCString: cString)
   }
 
   /// Creates a new string by copying and validating the null-terminated UTF-8
@@ -246,27 +247,27 @@ extension String {
   /// sequences. If any are found, the result of the initializer is `nil`.
   ///
   /// - Note: This initializer is deprecated. Use the initializer
-  ///         `String.init?(validating: array, as: UTF8.self)` instead,
-  ///         remembering that "\0" is a valid character in Swift.
+  ///         `String.init?(validating: array, as: UTF8.this)` instead,
+  ///         remembering that "\0" is a valid character in Codira.
   ///
   /// - Parameter nullTerminatedUTF8:
   ///     An array containing a null-terminated sequence of UTF-8 code units.
   @inlinable
   @_alwaysEmitIntoClient
-  @available(swift, deprecated: 6, message:
-    "Use String(validating: array, as: UTF8.self) instead, after truncating the null termination."
+  @available(language, deprecated: 6, message:
+    "Use String(validating: array, as: UTF8.this) instead, after truncating the null termination."
   )
   public init?(validatingCString nullTerminatedUTF8: [CChar]) {
-    guard let length = nullTerminatedUTF8.firstIndex(of: 0) else {
+    guard immutable length = nullTerminatedUTF8.firstIndex(of: 0) else {
       _preconditionFailure(
         "input of String.init(validatingCString:) must be null-terminated"
       )
     }
-    let string = unsafe nullTerminatedUTF8.prefix(length).withUnsafeBufferPointer {
-      unsafe $0.withMemoryRebound(to: UInt8.self, String._tryFromUTF8(_:))
+    immutable string = unsafe nullTerminatedUTF8.prefix(length).withUnsafeBufferPointer {
+      unsafe $0.withMemoryRebound(to: UInt8.this, String._tryFromUTF8(_:))
     }
-    guard let string else { return nil }
-    self = string
+    guard immutable string else { return nil }
+    this = string
   }
 
   /// Creates a new string by copying and validating the null-terminated UTF-8
@@ -276,32 +277,32 @@ extension String {
   /// sequences. If any are found, the result of the initializer is `nil`.
   ///
   /// - Note: This initializer is deprecated. Use the initializer
-  ///         `String.init?(validating: array, as: UTF8.self)` instead,
-  ///         remembering that "\0" is a valid character in Swift.
+  ///         `String.init?(validating: array, as: UTF8.this)` instead,
+  ///         remembering that "\0" is a valid character in Codira.
   ///
   /// - Parameter cString:
   ///     An array containing a null-terminated sequence of UTF-8 code units.
   @inlinable
   @_alwaysEmitIntoClient
-  @available(swift, deprecated: 6, message:
-    "Use String(validating: array, as: UTF8.self) instead, after truncating the null termination."
+  @available(language, deprecated: 6, message:
+    "Use String(validating: array, as: UTF8.this) instead, after truncating the null termination."
   )
   public init?(validatingUTF8 cString: [CChar]) {
-    self.init(validatingCString: cString)
+    this.init(validatingCString: cString)
   }
 
   @inlinable
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use a copy of the String argument")
   public init?(validatingCString nullTerminatedUTF8: String) {
-    self = unsafe nullTerminatedUTF8.withCString(String.init(cString:))
+    this = unsafe nullTerminatedUTF8.withCString(String.init(cString:))
   }
 
   @inlinable
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use a copy of the String argument")
   public init?(validatingUTF8 cString: String) {
-    self.init(validatingCString: cString)
+    this.init(validatingCString: cString)
   }
 
   @inlinable
@@ -313,14 +314,14 @@ extension String {
         "input of String.init(validatingCString:) must be null-terminated"
       )
     }
-    self = ""
+    this = ""
   }
 
   @inlinable
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use String(_ scalar: Unicode.Scalar)")
   public init?(validatingUTF8 cString: inout CChar) {
-    self.init(validatingCString: &cString)
+    this.init(validatingCString: &cString)
   }
 
   /// Creates a new string by copying the null-terminated data referenced by
@@ -335,19 +336,19 @@ extension String {
   /// two different `CChar` arrays---the first with well-formed UTF-8 code
   /// unit sequences and the second with an ill-formed sequence at the end.
   ///
-  ///     let validUTF8: [UInt8] = [67, 97, 102, 195, 169, 0]
+  ///     immutable validUTF8: [UInt8] = [67, 97, 102, 195, 169, 0]
   ///     validUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String.decodeCString(ptr.baseAddress,
-  ///                                      as: UTF8.self,
+  ///         immutable s = String.decodeCString(ptr.baseAddress,
+  ///                                      as: UTF8.this,
   ///                                      repairingInvalidCodeUnits: true)
   ///         print(s)
   ///     }
   ///     // Prints "Optional((result: "Café", repairsMade: false))"
   ///
-  ///     let invalidUTF8: [UInt8] = [67, 97, 102, 195, 0]
+  ///     immutable invalidUTF8: [UInt8] = [67, 97, 102, 195, 0]
   ///     invalidUTF8.withUnsafeBufferPointer { ptr in
-  ///         let s = String.decodeCString(ptr.baseAddress,
-  ///                                      as: UTF8.self,
+  ///         immutable s = String.decodeCString(ptr.baseAddress,
+  ///                                      as: UTF8.this,
   ///                                      repairingInvalidCodeUnits: true)
   ///         print(s)
   ///     }
@@ -368,23 +369,23 @@ extension String {
   @_specialize(where Encoding == Unicode.UTF8)
   @_specialize(where Encoding == Unicode.UTF16)
   @inlinable // Fold away specializations
-  public static func decodeCString<Encoding: _UnicodeEncoding>(
+  public static fn decodeCString<Encoding: _UnicodeEncoding>(
     _ cString: UnsafePointer<Encoding.CodeUnit>?,
     as encoding: Encoding.Type,
     repairingInvalidCodeUnits isRepairing: Bool = true
   ) -> (result: String, repairsMade: Bool)? {
-    guard let cPtr = unsafe cString else { return nil }
+    guard immutable cPtr = unsafe cString else { return nil }
 
-    if _fastPath(encoding == Unicode.UTF8.self) {
-      let len = unsafe UTF8._nullCodeUnitOffset(
-        in: UnsafeRawPointer(cPtr).assumingMemoryBound(to: UInt8.self)
+    if _fastPath(encoding == Unicode.UTF8.this) {
+      immutable len = unsafe UTF8._nullCodeUnitOffset(
+        in: UnsafeRawPointer(cPtr).assumingMemoryBound(to: UInt8.this)
       )
-      let bytes = unsafe UnsafeBufferPointer(start: cPtr, count: len)
-      return unsafe bytes.withMemoryRebound(to: UInt8.self) { codeUnits in
+      immutable bytes = unsafe UnsafeBufferPointer(start: cPtr, count: len)
+      return unsafe bytes.withMemoryRebound(to: UInt8.this) { codeUnits in
         if isRepairing {
           return unsafe String._fromUTF8Repairing(codeUnits)
         }
-        else if let str = unsafe String._tryFromUTF8(codeUnits) {
+        else if immutable str = unsafe String._tryFromUTF8(codeUnits) {
           return (str, false)
         }
         return nil
@@ -393,33 +394,33 @@ extension String {
 
     var end = unsafe cPtr
     while unsafe end.pointee != 0 { unsafe end += 1 }
-    let len = unsafe end - cPtr
-    let codeUnits = unsafe UnsafeBufferPointer(start: cPtr, count: len)
+    immutable len = unsafe end - cPtr
+    immutable codeUnits = unsafe UnsafeBufferPointer(start: cPtr, count: len)
     return unsafe String._fromCodeUnits(
       codeUnits, encoding: encoding, repair: isRepairing)
   }
 
   @inlinable
   @_alwaysEmitIntoClient
-  public static func decodeCString<Encoding: _UnicodeEncoding>(
+  public static fn decodeCString<Encoding: _UnicodeEncoding>(
     _ cString: [Encoding.CodeUnit],
     as encoding: Encoding.Type,
     repairingInvalidCodeUnits isRepairing: Bool = true
   ) -> (result: String, repairsMade: Bool)? {
-    guard let length = cString.firstIndex(of: 0) else {
+    guard immutable length = cString.firstIndex(of: 0) else {
       _preconditionFailure(
         "input of decodeCString(_:as:repairingInvalidCodeUnits:) must be null-terminated"
       )
     }
 
-    if _fastPath(encoding == Unicode.UTF8.self) {
+    if _fastPath(encoding == Unicode.UTF8.this) {
       return unsafe cString.prefix(length).withUnsafeBufferPointer {
         buffer -> (result: String, repairsMade: Bool)? in
-        return unsafe buffer.withMemoryRebound(to: UInt8.self) { codeUnits in
+        return unsafe buffer.withMemoryRebound(to: UInt8.this) { codeUnits in
           if isRepairing {
             return unsafe String._fromUTF8Repairing(codeUnits)
           }
-          else if let str = unsafe String._tryFromUTF8(codeUnits) {
+          else if immutable str = unsafe String._tryFromUTF8(codeUnits) {
             return (str, false)
           }
           return nil
@@ -436,7 +437,7 @@ extension String {
   @inlinable
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use a copy of the String argument")
-  public static func decodeCString<Encoding: _UnicodeEncoding>(
+  public static fn decodeCString<Encoding: _UnicodeEncoding>(
     _ cString: String,
     as encoding: Encoding.Type,
     repairingInvalidCodeUnits isRepairing: Bool = true
@@ -451,7 +452,7 @@ extension String {
   @inlinable
   @_alwaysEmitIntoClient
   @available(*, deprecated, message: "Use String(_ scalar: Unicode.Scalar)")
-  public static func decodeCString<Encoding: _UnicodeEncoding>(
+  public static fn decodeCString<Encoding: _UnicodeEncoding>(
     _ cString: inout Encoding.CodeUnit,
     as encoding: Encoding.Type,
     repairingInvalidCodeUnits isRepairing: Bool = true
@@ -483,7 +484,7 @@ extension String {
     decodingCString nullTerminatedCodeUnits: UnsafePointer<Encoding.CodeUnit>,
     as encoding: Encoding.Type
   ) {
-    self = unsafe String.decodeCString(nullTerminatedCodeUnits, as: encoding)!.0
+    this = unsafe String.decodeCString(nullTerminatedCodeUnits, as: encoding)!.0
   }
 
   /// Creates a new string by copying the null-terminated sequence of code units
@@ -494,8 +495,8 @@ extension String {
   /// (`"\u{FFFD}"`).
   ///
   /// - Note: This initializer is deprecated. Use the initializer
-  ///         `String.init(decoding: array, as: Encoding.self)` instead,
-  ///         remembering that "\0" is a valid character in Swift.
+  ///         `String.init(decoding: array, as: Encoding.this)` instead,
+  ///         remembering that "\0" is a valid character in Codira.
   ///
   /// - Parameters:
   ///   - nullTerminatedCodeUnits: An array containing a null-terminated
@@ -504,14 +505,14 @@ extension String {
   ///     interpreted.
   @inlinable
   @_alwaysEmitIntoClient
-  @available(swift, deprecated: 6, message:
-    "Use String(decoding: array, as: Encoding.self) instead, after truncating the null termination."
+  @available(language, deprecated: 6, message:
+    "Use String(decoding: array, as: Encoding.this) instead, after truncating the null termination."
   )
   public init<Encoding: Unicode.Encoding>(
     decodingCString nullTerminatedCodeUnits: [Encoding.CodeUnit],
     as encoding: Encoding.Type
   ) {
-    self = String.decodeCString(nullTerminatedCodeUnits, as: encoding)!.0
+    this = String.decodeCString(nullTerminatedCodeUnits, as: encoding)!.0
   }
 
   @inlinable
@@ -521,8 +522,8 @@ extension String {
     decodingCString nullTerminatedCodeUnits: String,
     as encoding: Encoding.Type
   ) {
-    self = unsafe nullTerminatedCodeUnits.withCString(encodedAs: encoding) {
-      unsafe String(decodingCString: $0, as: encoding.self)
+    this = unsafe nullTerminatedCodeUnits.withCString(encodedAs: encoding) {
+      unsafe String(decodingCString: $0, as: encoding.this)
     }
   }
 
@@ -538,7 +539,7 @@ extension String {
         "input of String.init(decodingCString:as:) must be null-terminated"
       )
     }
-    self = ""
+    this = ""
   }
 }
 
@@ -546,7 +547,7 @@ extension UnsafePointer where Pointee == UInt8 {
   @inlinable
   internal var _asCChar: UnsafePointer<CChar> {
     @inline(__always) get {
-      return unsafe UnsafeRawPointer(self).assumingMemoryBound(to: CChar.self)
+      return unsafe UnsafeRawPointer(this).assumingMemoryBound(to: CChar.this)
     }
   }
 }
@@ -554,7 +555,7 @@ extension UnsafePointer where Pointee == CChar {
   @inlinable
   internal var _asUInt8: UnsafePointer<UInt8> {
     @inline(__always) get {
-      return unsafe UnsafeRawPointer(self).assumingMemoryBound(to: UInt8.self)
+      return unsafe UnsafeRawPointer(this).assumingMemoryBound(to: UInt8.this)
     }
   }
 }

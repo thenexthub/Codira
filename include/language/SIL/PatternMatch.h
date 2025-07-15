@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides a simple and efficient mechanism for performing general
@@ -21,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PATTERNMATCH_H
-#define SWIFT_SIL_PATTERNMATCH_H
+#ifndef LANGUAGE_SIL_PATTERNMATCH_H
+#define LANGUAGE_SIL_PATTERNMATCH_H
 
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILInstruction.h"
@@ -475,10 +476,10 @@ struct Callee_match<BuiltinValueKind> {
 };
 
 template<>
-struct Callee_match<llvm::Intrinsic::ID> {
-  llvm::Intrinsic::ID IntrinsicID;
+struct Callee_match<toolchain::Intrinsic::ID> {
+  toolchain::Intrinsic::ID IntrinsicID;
 
-  Callee_match(const llvm::Intrinsic::ID ID) : IntrinsicID(ID) { }
+  Callee_match(const toolchain::Intrinsic::ID ID) : IntrinsicID(ID) { }
 
   template <typename ITy>
   bool match(ITy *V) {

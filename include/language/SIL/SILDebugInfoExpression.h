@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,15 +20,15 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_DEBUGINFOEXPRESSION_H
-#define SWIFT_SIL_DEBUGINFOEXPRESSION_H
+#ifndef LANGUAGE_SIL_DEBUGINFOEXPRESSION_H
+#define LANGUAGE_SIL_DEBUGINFOEXPRESSION_H
 
 #include "language/AST/Decl.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/iterator_range.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/iterator_range.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 namespace language {
@@ -134,8 +135,8 @@ public:
 };
 
 /// Returns the hashcode for the di expr element.
-inline llvm::hash_code hash_value(const SILDIExprElement &elt) {
-  return llvm::hash_combine(elt.getKind(), elt.getAsDecl(), elt.getAsDecl(),
+inline toolchain::hash_code hash_value(const SILDIExprElement &elt) {
+  return toolchain::hash_combine(elt.getKind(), elt.getAsDecl(), elt.getAsDecl(),
                             elt.getAsConstInt());
 }
 
@@ -150,9 +151,9 @@ struct SILDIExprInfo {
 
 /// A DIExpr operand is consisting of a SILDIExprOperator and
 /// SILDIExprElement arguments following after.
-struct SILDIExprOperand : public llvm::ArrayRef<SILDIExprElement> {
+struct SILDIExprOperand : public toolchain::ArrayRef<SILDIExprElement> {
   // Reuse all the ctors
-  using llvm::ArrayRef<SILDIExprElement>::ArrayRef;
+  using toolchain::ArrayRef<SILDIExprElement>::ArrayRef;
 
   SILDIExprOperator getOperator() const {
     assert(size() && "empty DIExpr operand");
@@ -165,7 +166,7 @@ struct SILDIExprOperand : public llvm::ArrayRef<SILDIExprElement> {
     return size() - 1;
   }
 
-  llvm::ArrayRef<SILDIExprElement> args() const {
+  toolchain::ArrayRef<SILDIExprElement> args() const {
     return drop_front();
   }
 };
@@ -173,12 +174,12 @@ struct SILDIExprOperand : public llvm::ArrayRef<SILDIExprElement> {
 /// Represents a debug info expression in SIL
 class SILDebugInfoExpression {
   friend class TailAllocatedDebugVariable;
-  llvm::SmallVector<SILDIExprElement, 2> Elements;
+  toolchain::SmallVector<SILDIExprElement, 2> Elements;
 
 public:
   SILDebugInfoExpression() = default;
 
-  explicit SILDebugInfoExpression(llvm::ArrayRef<SILDIExprElement> EL)
+  explicit SILDebugInfoExpression(toolchain::ArrayRef<SILDIExprElement> EL)
       : Elements(EL.begin(), EL.end()) {}
 
   void clear() { Elements.clear(); }
@@ -194,12 +195,12 @@ public:
   const_iterator element_begin() const { return Elements.begin(); }
   const_iterator element_end() const { return Elements.end(); }
 
-  llvm::iterator_range<iterator> elements() {
-    return llvm::make_range(element_begin(), element_end());
+  toolchain::iterator_range<iterator> elements() {
+    return toolchain::make_range(element_begin(), element_end());
   }
 
-  llvm::iterator_range<const_iterator> elements() const {
-    return llvm::make_range(element_begin(), element_end());
+  toolchain::iterator_range<const_iterator> elements() const {
+    return toolchain::make_range(element_begin(), element_end());
   }
 
   const SILDIExprElement &getElement(size_t index) const {
@@ -211,7 +212,7 @@ public:
     Elements.push_back(Element);
   }
 
-  void appendElements(llvm::ArrayRef<SILDIExprElement> NewElements) {
+  void appendElements(toolchain::ArrayRef<SILDIExprElement> NewElements) {
     if (NewElements.size())
       Elements.append(NewElements.begin(), NewElements.end());
   }
@@ -220,7 +221,7 @@ public:
     appendElements(Tail.Elements);
   }
 
-  void prependElements(llvm::ArrayRef<SILDIExprElement> NewElements) {
+  void prependElements(toolchain::ArrayRef<SILDIExprElement> NewElements) {
     Elements.insert(Elements.begin(),
                     NewElements.begin(), NewElements.end());
   }
@@ -234,12 +235,12 @@ public:
     friend class SILDebugInfoExpression;
 
     SILDIExprOperand Current;
-    llvm::ArrayRef<SILDIExprElement> Remain;
+    toolchain::ArrayRef<SILDIExprElement> Remain;
 
     void increment();
 
     explicit
-    op_iterator(llvm::ArrayRef<SILDIExprElement> Remain): Remain(Remain) {
+    op_iterator(toolchain::ArrayRef<SILDIExprElement> Remain): Remain(Remain) {
       increment();
     }
 
@@ -277,11 +278,11 @@ public:
     return op_iterator(Elements);
   }
   op_iterator operand_end() const {
-    return op_iterator(llvm::ArrayRef<SILDIExprElement>{});
+    return op_iterator(toolchain::ArrayRef<SILDIExprElement>{});
   }
 
-  llvm::iterator_range<op_iterator> operands() const {
-    return llvm::make_range(operand_begin(), operand_end());
+  toolchain::iterator_range<op_iterator> operands() const {
+    return toolchain::make_range(operand_begin(), operand_end());
   }
 
   /// Return true if this expression is not empty
@@ -312,8 +313,8 @@ public:
 };
 
 /// Returns the hashcode for the di expr element.
-inline llvm::hash_code hash_value(const SILDebugInfoExpression &elt) {
-  return llvm::hash_combine_range(elt.element_begin(), elt.element_end());
+inline toolchain::hash_code hash_value(const SILDebugInfoExpression &elt) {
+  return toolchain::hash_combine_range(elt.element_begin(), elt.element_end());
 }
 
 } // end namespace language

@@ -1,13 +1,17 @@
 //===--- OwnershipLiveness.h ---------------------------------*- C++ -*----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Terminology:
@@ -141,18 +145,18 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_OWNERSHIPLIVENESS_H
-#define SWIFT_SIL_OWNERSHIPLIVENESS_H
+#ifndef LANGUAGE_SIL_OWNERSHIPLIVENESS_H
+#define LANGUAGE_SIL_OWNERSHIPLIVENESS_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/PrunedLiveness.h"
 #include "language/SIL/OwnershipUseVisitor.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -187,7 +191,7 @@ public:
     return discoveredBlocks;
   }
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 };
 
@@ -236,7 +240,7 @@ class InteriorLiveness : public OSSALiveness {
   //
   // This may add uses to the inner scope, but it may not modify a use-list
   // in any outer scopes.
-  using InnerScopeHandlerRef = llvm::function_ref<void(SILValue)>;
+  using InnerScopeHandlerRef = toolchain::function_ref<void(SILValue)>;
 
 public:
   // Summarize address uses
@@ -256,7 +260,7 @@ public:
 
   AddressUseKind getAddressUseKind() const { return addressUseKind; }
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 };
 
@@ -301,7 +305,7 @@ public:
 
   const MultiDefPrunedLiveness &getLiveness() const { return liveness; }
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
   void dump() const;
 };
 

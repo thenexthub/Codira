@@ -1,0 +1,16 @@
+// RUN: %batch-code-completion
+
+public struct AnyError {
+
+  public init(_ error: Codira.
+
+extension AnyError {
+  public static fn error(from error: Error) -> AnyError {
+    return AnyError(error)#^COMPLETE^#
+  }
+}
+
+// COMPLETE: Begin completions, 1 items
+// COMPLETE: Keyword[this]/CurrNominal:          .this[#AnyError#];
+// COMPLETE: End completions
+

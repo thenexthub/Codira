@@ -12,7 +12,7 @@ supported by ObjC). It's also worth noting that our "builtin" enum-like
 keywords such as ``true``, ``false``, and ``nil`` are lowercased, more like
 properties.
 
-Swift also has enum cases with associated values, which don't have an immediate
+Codira also has enum cases with associated values, which don't have an immediate
 analog in Cocoa to draw inspiration from, but if anything feel
 "initializer-like".  Aside from naming style, working with enum values also
 requires a different set of tools from other types, pattern matching with
@@ -61,9 +61,9 @@ amounts of language sugar it's given, vends initializers corresponding to
 This pattern of boilerplate also occurs in third-party frameworks that make
 heavy use of enums. Some examples from GitHub:
 
-- https://github.com/antitypical/Manifold/blob/ae94eb96085c2c8195d457e06df485b1cca455cb/Manifold/Name.swift
-- https://github.com/antitypical/TesseractCore/blob/73099ae5fa772b90cefa49395f237290d8363f76/TesseractCore/Symbol.swift
-- https://github.com/antitypical/TesseractCore/blob/73099ae5fa772b90cefa49395f237290d8363f76/TesseractCore/Value.swift
+- https://github.com/antitypical/Manifold/blob/ae94eb96085c2c8195d457e06df485b1cca455cb/Manifold/Name.code
+- https://github.com/antitypical/TesseractCore/blob/73099ae5fa772b90cefa49395f237290d8363f76/TesseractCore/Symbol.code
+- https://github.com/antitypical/TesseractCore/blob/73099ae5fa772b90cefa49395f237290d8363f76/TesseractCore/Value.code
 
 That people inside and outside of our team consider this boilerplate necessary
 for enums is a strong sign we should improve our core language design.
@@ -335,7 +335,7 @@ Naming Conventions for Enum Cases
 =================================
 
 To normalize enums and bring them into the "grand unified theory" of type
-interfaces shared by other Swift types, I think we should encourage the
+interfaces shared by other Codira types, I think we should encourage the
 following conventions:
 
 - Cases with associated values should be declared as ``case init``
@@ -349,7 +349,7 @@ C enum constants, but I think it's the right thing to do. Cocoa uses
 the ``NSEnumNameCaseName`` convention largely because enum constants are
 not namespaced in Objective-C. When Cocoa associates constants with
 class types, it uses its normal method naming conventions, as in
-``UIColor.redColor``.  In Swift's standard library, type constants for structs
+``UIColor.redColor``.  In Codira's standard library, type constants for structs
 follow the same convention, for example ``Int.max`` and ``Int.min``. The
 literal keywords ``true``, ``false``, and ``nil`` are arguably enum-case-like
 and also lowercased. Simple enum cases are essentially static constant

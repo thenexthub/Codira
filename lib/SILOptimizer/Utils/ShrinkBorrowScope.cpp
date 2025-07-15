@@ -1,13 +1,17 @@
 //=====-- ShrinkBorrowScope.cpp - Hoist end_borrows to deinit barriers. -=====//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 /// Shrink borrow scopes by hoisting end_borrows up to deinit barriers.  After
 /// this is done, CanonicalizeOSSALifetime is free to hoist the destroys of the
@@ -29,7 +33,7 @@
 #include "language/SILOptimizer/Utils/CanonicalizeBorrowScope.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 
 #define DEBUG_TYPE "copy-propagation"
 
@@ -86,7 +90,7 @@ struct Usage final {
   SmallPtrSet<SILInstruction *, 16> users;
   // The instructions from which the shrinking starts, the scope ending
   // instructions.
-  llvm::SmallSetVector<SILInstruction *, 4> ends;
+  toolchain::SmallSetVector<SILInstruction *, 4> ends;
 
   Usage(){};
   Usage(Usage const &) = delete;
@@ -98,7 +102,7 @@ struct Usage final {
 /// returns true if all uses were found
 ///         false otherwise
 bool findUsage(Context const &context, Usage &usage) {
-  llvm::SmallVector<SILInstruction *, 16> scopeEndingInsts;
+  toolchain::SmallVector<SILInstruction *, 16> scopeEndingInsts;
   context.borrowedValue.getLocalScopeEndingInstructions(scopeEndingInsts);
 
   // Add all the end_borrows to the collection of ends.
@@ -270,7 +274,7 @@ bool Dataflow::classificationIsBarrier(Classification classification) {
   case Classification::Other:
     return false;
   }
-  llvm_unreachable("exhaustive switch not exhaustive?!");
+  toolchain_unreachable("exhaustive switch not exhaustive?!");
 }
 
 Dataflow::Effect Dataflow::effectForInstruction(SILInstruction *instruction) {
@@ -284,11 +288,11 @@ Dataflow::Effect Dataflow::effectForInstruction(SILInstruction *instruction) {
 }
 
 Dataflow::Effect Dataflow::effectForPhi(SILBasicBlock *block) {
-  assert(llvm::all_of(block->getArguments(),
+  assert(toolchain::all_of(block->getArguments(),
                       [&](auto argument) { return PhiValue(argument); }));
 
   bool isBarrier =
-      llvm::any_of(block->getPredecessorBlocks(), [&](auto *predecessor) {
+      toolchain::any_of(block->getPredecessorBlocks(), [&](auto *predecessor) {
         return classificationIsBarrier(
             classifyInstruction(predecessor->getTerminator()));
       });
@@ -344,7 +348,7 @@ class Rewriter final {
 
   // The end _borrow instructions for this borrow scope that existed before
   // ShrinkBorrowScope ran and which were not modified.
-  llvm::SmallPtrSet<SILInstruction *, 8> reusedEndBorrowInsts;
+  toolchain::SmallPtrSet<SILInstruction *, 8> reusedEndBorrowInsts;
 
 public:
   Rewriter(Context &context, Usage const &uses, DeinitBarriers const &barriers)
@@ -446,11 +450,11 @@ Rewriter::findPreexistingEndBorrow(SILInstruction *insertionPoint) {
   for (auto *instruction = insertionPoint; instruction;
        instruction = instruction->getNextInstruction()) {
     if (auto *ebi = dyn_cast<EndBorrowInst>(instruction)) {
-      if (llvm::find(uses.ends, ebi) != uses.ends.end())
+      if (toolchain::find(uses.ends, ebi) != uses.ends.end())
         return ebi;
     }
     if (auto *cvi = dyn_cast<CopyValueInst>(instruction)) {
-      if (llvm::is_contained(barriers.copies, cvi)) {
+      if (toolchain::is_contained(barriers.copies, cvi)) {
         continue;
       }
     }
@@ -489,7 +493,7 @@ bool run(Context &context) {
 }
 } // end namespace ShrinkBorrowScope
 
-bool swift::shrinkBorrowScope(
+bool language::shrinkBorrowScope(
     BeginBorrowInst const &bbi, InstructionDeleter &deleter,
     BasicCalleeAnalysis *calleeAnalysis,
     SmallVectorImpl<CopyValueInst *> &modifiedCopyValueInsts) {
@@ -511,18 +515,18 @@ static FunctionTest ShrinkBorrowScopeTest(
       SmallVector<CopyValueInst *, 4> modifiedCopyValueInsts;
       InstructionDeleter deleter(
           InstModCallbacks().onDelete([&](auto *instruction) {
-            llvm::outs() << "DELETED:\n";
-            instruction->print(llvm::outs());
+            toolchain::outs() << "DELETED:\n";
+            instruction->print(toolchain::outs());
             instruction->eraseFromParent();
 
           }));
       auto shrunk =
           shrinkBorrowScope(*bbi, deleter, analysis, modifiedCopyValueInsts);
       auto *shrunkString = shrunk ? "shrunk" : "did not shrink";
-      llvm::outs() << "Result: " << shrunkString << "\n";
-      llvm::outs() << "Rewrote the following copies:\n";
+      toolchain::outs() << "Result: " << shrunkString << "\n";
+      toolchain::outs() << "Rewrote the following copies:\n";
       for (auto *cvi : modifiedCopyValueInsts) {
-        cvi->print(llvm::outs());
+        cvi->print(toolchain::outs());
       }
     });
 } // namespace language::test

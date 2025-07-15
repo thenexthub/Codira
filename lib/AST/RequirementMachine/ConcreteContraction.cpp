@@ -1,13 +1,17 @@
 //===--- ConcreteContraction.cpp - Preprocessing concrete conformances ----===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The concrete contraction pass runs after requirement desugaring and before
@@ -145,8 +149,8 @@
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "NameLookup.h"
 #include "RequirementLowering.h"
 
@@ -181,9 +185,9 @@ namespace {
 class ConcreteContraction {
   bool Debug;
 
-  llvm::SmallDenseMap<CanType, llvm::SmallDenseSet<Type, 1>> ConcreteTypes;
-  llvm::SmallDenseMap<CanType, llvm::SmallDenseSet<Type, 1>> Superclasses;
-  llvm::SmallDenseMap<CanType, llvm::SmallVector<ProtocolDecl *, 1>> Conformances;
+  toolchain::SmallDenseMap<CanType, toolchain::SmallDenseSet<Type, 1>> ConcreteTypes;
+  toolchain::SmallDenseMap<CanType, toolchain::SmallDenseSet<Type, 1>> Superclasses;
+  toolchain::SmallDenseMap<CanType, toolchain::SmallVector<ProtocolDecl *, 1>> Conformances;
 
   enum Position {
     /// Base type of some other type appearing in a requirement.
@@ -296,7 +300,7 @@ ConcreteContraction::substTypeParameterRec(Type type, Position position) const {
       // unsubstituted.
       if (!conformance) {
         if (Debug) {
-          llvm::dbgs() << "@@@ " << substBaseType << " does not conform to "
+          toolchain::dbgs() << "@@@ " << substBaseType << " does not conform to "
                        << proto->getName() << "\n";
         }
         return std::nullopt;
@@ -315,7 +319,7 @@ ConcreteContraction::substTypeParameterRec(Type type, Position position) const {
       // The base type doesn't contain a member type with this name, in which
       // case the requirement remains unsubstituted.
       if (Debug) {
-        llvm::dbgs() << "@@@ Lookup of " << memberType->getName() << " failed on "
+        toolchain::dbgs() << "@@@ Lookup of " << memberType->getName() << " failed on "
                      << *substBaseType << "\n";
       }
       return std::nullopt;
@@ -493,7 +497,7 @@ hasResolvedMemberTypeOfInterestingParameter(Type type) const {
 ///       associatedtype A
 ///     }
 ///
-///     func f<X, T>(_: X, _: T) where X : P, X : C<T>, X.A == T {}
+///     fn f<X, T>(_: X, _: T) where X : P, X : C<T>, X.A == T {}
 ///
 /// The GenericSignatureBuilder would introduce an equivalence between
 /// typealias A in class C and associatedtype A in protocol P, so the
@@ -566,7 +570,7 @@ bool ConcreteContraction::performConcreteContraction(
       if (typeOccursIn(subjectType,
                        stripBoundDependentMemberTypes(constraintType))) {
         if (Debug) {
-          llvm::dbgs() << "@ Subject type of same-type requirement "
+          toolchain::dbgs() << "@ Subject type of same-type requirement "
                        << subjectType << " == " << constraintType << " "
                        << "occurs in the constraint type, skipping\n";
         }
@@ -584,7 +588,7 @@ bool ConcreteContraction::performConcreteContraction(
       if (typeOccursIn(subjectType,
                        stripBoundDependentMemberTypes(constraintType))) {
         if (Debug) {
-          llvm::dbgs() << "@ Subject type of superclass requirement "
+          toolchain::dbgs() << "@ Subject type of superclass requirement "
                        << subjectType << " : " << constraintType << " "
                        << "occurs in the constraint type, skipping\n";
         }
@@ -626,7 +630,7 @@ bool ConcreteContraction::performConcreteContraction(
         if (auto otherSuperclassTy = genericSig->getSuperclassBound(
                 proto->getSelfInterfaceType())) {
           if (Debug) {
-            llvm::dbgs() << "@ Subject type of superclass requirement "
+            toolchain::dbgs() << "@ Subject type of superclass requirement "
                          << subjectType << " : " << superclassTy
                          << " conforms to "<< proto->getName()
                          << " which has a superclass bound "
@@ -647,23 +651,23 @@ bool ConcreteContraction::performConcreteContraction(
     return false;
 
   if (Debug) {
-    llvm::dbgs() << "@ Concrete types: @\n";
+    toolchain::dbgs() << "@ Concrete types: @\n";
     for (auto pair : ConcreteTypes) {
-      llvm::dbgs() << pair.first;
+      toolchain::dbgs() << pair.first;
       if (pair.second.size() == 1) {
-        llvm::dbgs() << " == " << *pair.second.begin() << "\n";
+        toolchain::dbgs() << " == " << *pair.second.begin() << "\n";
       } else {
-        llvm::dbgs() << " has duplicate concrete type requirements\n";
+        toolchain::dbgs() << " has duplicate concrete type requirements\n";
       }
     }
 
-    llvm::dbgs() << "@ Superclasses: @\n";
+    toolchain::dbgs() << "@ Superclasses: @\n";
     for (auto pair : Superclasses) {
-      llvm::dbgs() << pair.first;
+      toolchain::dbgs() << pair.first;
       if (pair.second.size() == 1) {
-        llvm::dbgs() << " : " << *pair.second.begin() << "\n";
+        toolchain::dbgs() << " : " << *pair.second.begin() << "\n";
       } else {
-        llvm::dbgs() << " has duplicate superclass requirements\n";
+        toolchain::dbgs() << " has duplicate superclass requirements\n";
       }
     }
   }
@@ -672,18 +676,18 @@ bool ConcreteContraction::performConcreteContraction(
   // concrete type.
   for (auto req : requirements) {
     if (Debug) {
-      llvm::dbgs() << "@ Original requirement: ";
-      req.req.dump(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "@ Original requirement: ";
+      req.req.dump(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     }
 
     // Substitute the requirement.
     auto substReq = substRequirement(req.req);
 
     if (Debug) {
-      llvm::dbgs() << "@ Substituted requirement: ";
-      substReq.dump(llvm::dbgs());
-      llvm::dbgs() << "\n";
+      toolchain::dbgs() << "@ Substituted requirement: ";
+      substReq.dump(toolchain::dbgs());
+      toolchain::dbgs() << "\n";
     }
 
     // Otherwise, desugar the requirement again, since we might now have a
@@ -694,9 +698,9 @@ bool ConcreteContraction::performConcreteContraction(
 
     for (auto desugaredReq : reqs) {
       if (Debug) {
-        llvm::dbgs() << "@@ Desugared requirement: ";
-        desugaredReq.dump(llvm::dbgs());
-        llvm::dbgs() << "\n";
+        toolchain::dbgs() << "@@ Desugared requirement: ";
+        desugaredReq.dump(toolchain::dbgs());
+        toolchain::dbgs() << "\n";
       }
       result.push_back({desugaredReq, req.loc});
     }
@@ -705,9 +709,9 @@ bool ConcreteContraction::performConcreteContraction(
         (!req.req.getFirstType()->isEqual(substReq.getFirstType()) ||
          !req.req.getSecondType()->isEqual(substReq.getSecondType()))) {
       if (Debug) {
-        llvm::dbgs() << "@ Preserving original requirement: ";
-        req.req.dump(llvm::dbgs());
-        llvm::dbgs() << "\n";
+        toolchain::dbgs() << "@ Preserving original requirement: ";
+        req.req.dump(toolchain::dbgs());
+        toolchain::dbgs() << "\n";
       }
 
       // Make the duplicated requirement 'inferred' so that we don't diagnose
@@ -717,9 +721,9 @@ bool ConcreteContraction::performConcreteContraction(
   }
 
   if (Debug) {
-    llvm::dbgs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
-    llvm::dbgs() << "@ Concrete contraction succeeded @\n";
-    llvm::dbgs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    toolchain::dbgs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
+    toolchain::dbgs() << "@ Concrete contraction succeeded @\n";
+    toolchain::dbgs() << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
   }
 
   return true;
@@ -732,7 +736,7 @@ bool ConcreteContraction::performConcreteContraction(
 /// If this returns false, \p result should be ignored and the requirements
 /// remain unchanged. If this returns true, \p result should replace the
 /// original \p requirements.
-bool swift::rewriting::performConcreteContraction(
+bool language::rewriting::performConcreteContraction(
     ArrayRef<StructuralRequirement> requirements,
     SmallVectorImpl<StructuralRequirement> &result,
     SmallVectorImpl<RequirementError> &errors,

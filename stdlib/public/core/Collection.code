@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that iterates over a collection using its indices.
@@ -33,10 +34,10 @@
 /// that always holds two elements of a specific type.
 ///
 ///     struct CollectionOfTwo<Element>: Collection {
-///         let elements: (Element, Element)
+///         immutable elements: (Element, Element)
 ///
 ///         init(_ first: Element, _ second: Element) {
-///             self.elements = (first, second)
+///             this.elements = (first, second)
 ///         }
 ///
 ///         var startIndex: Int { return 0 }
@@ -50,7 +51,7 @@
 ///             }
 ///         }
 ///         
-///         func index(after i: Int) -> Int {
+///         fn index(after i: Int) -> Int {
 ///             precondition(i < endIndex, "Can't advance beyond endIndex")
 ///             return i + 1
 ///         }
@@ -62,7 +63,7 @@
 /// can be created holding the values of a point, and then iterated over
 /// using a `for`-`in` loop.
 ///
-///     let point = CollectionOfTwo(15.0, 20.0)
+///     immutable point = CollectionOfTwo(15.0, 20.0)
 ///     for element in point {
 ///         print(element)
 ///     }
@@ -71,7 +72,7 @@
 @frozen
 public struct IndexingIterator<Elements: Collection> {
   @usableFromInline
-  internal let _elements: Elements
+  internal immutable _elements: Elements
   @usableFromInline
   internal var _position: Elements.Index
 
@@ -80,8 +81,8 @@ public struct IndexingIterator<Elements: Collection> {
   @inline(__always)
   public /// @testable
   init(_elements: Elements) {
-    self._elements = _elements
-    self._position = _elements.startIndex
+    this._elements = _elements
+    this._position = _elements.startIndex
   }
 
   /// Creates an iterator over the given collection.
@@ -89,8 +90,8 @@ public struct IndexingIterator<Elements: Collection> {
   @inline(__always)
   public /// @testable
   init(_elements: Elements, _position: Elements.Index) {
-    self._elements = _elements
-    self._position = _position
+    this._elements = _elements
+    this._position = _position
   }
 }
 
@@ -110,10 +111,10 @@ extension IndexingIterator: IteratorProtocol, Sequence {
   /// `for`-`in` loop. First, retrieve a sequence's iterator, and then call
   /// the iterator's `next()` method until it returns `nil`.
   ///
-  ///     let numbers = [2, 3, 5, 7]
+  ///     immutable numbers = [2, 3, 5, 7]
   ///     var numbersIterator = numbers.makeIterator()
   ///
-  ///     while let num = numbersIterator.next() {
+  ///     while immutable num = numbersIterator.next() {
   ///         print(num)
   ///     }
   ///     // Prints "2"
@@ -125,9 +126,9 @@ extension IndexingIterator: IteratorProtocol, Sequence {
   ///   exists; otherwise, `nil`.
   @inlinable
   @inline(__always)
-  public mutating func next() -> Elements.Element? {
+  public mutating fn next() -> Elements.Element? {
     if _position == _elements.endIndex { return nil }
-    let element = _elements[_position]
+    immutable element = _elements[_position]
     _elements.formIndex(after: &_position)
     return element
   }
@@ -150,8 +151,8 @@ extension IndexingIterator: Sendable
 /// search for the index of the first space, and then create a substring up to
 /// that position.
 ///
-///     let text = "Buffalo buffalo buffalo buffalo."
-///     if let firstSpace = text.firstIndex(of: " ") {
+///     immutable text = "Buffalo buffalo buffalo buffalo."
+///     if immutable firstSpace = text.firstIndex(of: " ") {
 ///         print(text[..<firstSpace])
 ///     }
 ///     // Prints "Buffalo"
@@ -173,7 +174,7 @@ extension IndexingIterator: Sendable
 /// Here's an example of accessing the first character in a string through its
 /// subscript:
 ///
-///     let firstChar = text[text.startIndex]
+///     immutable firstChar = text[text.startIndex]
 ///     print(firstChar)
 ///     // Prints "B"
 ///
@@ -209,14 +210,14 @@ extension IndexingIterator: Sendable
 /// The following example creates a `firstWord` constant by using the
 /// `prefix(while:)` method to get a slice of the `text` string.
 ///
-///     let firstWord = text.prefix(while: { $0 != " " })
+///     immutable firstWord = text.prefix(while: { $0 != " " })
 ///     print(firstWord)
 ///     // Prints "Buffalo"
 ///
 /// You can retrieve the same slice using the string's ranged subscript, which
 /// takes a range expression.
 ///
-///     if let firstSpace = text.firstIndex(of: " ") {
+///     if immutable firstSpace = text.firstIndex(of: " ") {
 ///         print(text[..<firstSpace])
 ///         // Prints "Buffalo"
 ///     }
@@ -249,8 +250,8 @@ extension IndexingIterator: Sendable
 ///
 /// Here's an implementation of those steps:
 ///
-///     let secondHalf = absences.suffix(absences.count / 2)
-///     if let i = secondHalf.indices.max(by: { secondHalf[$0] < secondHalf[$1] }) {
+///     immutable secondHalf = absences.suffix(absences.count / 2)
+///     if immutable i = secondHalf.indices.max(by: { secondHalf[$0] < secondHalf[$1] }) {
 ///         print("Highest second-half absences: \(absences[i])")
 ///     }
 ///     // Prints "Highest second-half absences: 3"
@@ -289,7 +290,7 @@ extension IndexingIterator: Sendable
 /// string returns the same characters in the same order whether the view's
 /// indices or the view itself is being iterated.
 ///
-///     let word = "Swift"
+///     immutable word = "Codira"
 ///     for character in word {
 ///         print(character)
 ///     }
@@ -339,7 +340,7 @@ extension IndexingIterator: Sendable
 /// the number of contained elements, accessing its `count` property is an
 /// O(*n*) operation.
 public protocol Collection<Element>: Sequence {
-  // FIXME: ideally this would be in MigrationSupport.swift, but it needs
+  // FIXME: ideally this would be in MigrationSupport.code, but it needs
   // to be on the protocol instead of as an extension
   @available(*, deprecated/*, obsoleted: 5.0*/, message: "all index distances are now of type Int")
   typealias IndexDistance = Int  
@@ -349,8 +350,8 @@ public protocol Collection<Element>: Sequence {
 
   // FIXME: <rdar://problem/34142121>
   // This typealias should be removed as it predates the source compatibility
-  // guarantees of Swift 3, but it cannot due to a bug.
-  @available(swift, deprecated: 3.2, obsoleted: 5.0, renamed: "Element")
+  // guarantees of Codira 3, but it cannot due to a bug.
+  @available(language, deprecated: 3.2, obsoleted: 5.0, renamed: "Element")
   typealias _Element = Element
 
   /// A type that represents a position in the collection.
@@ -373,8 +374,8 @@ public protocol Collection<Element>: Sequence {
   /// creates a range that doesn't include the upper bound, so it's always
   /// safe to use with `endIndex`. For example:
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     if let index = numbers.firstIndex(of: 30) {
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     if immutable index = numbers.firstIndex(of: 30) {
   ///         print(numbers[index ..< numbers.endIndex])
   ///     }
   ///     // Prints "[30, 40, 50]"
@@ -394,7 +395,7 @@ public protocol Collection<Element>: Sequence {
   // we get an `IndexingIterator` rather than properly deducing the
   // Iterator type from makeIterator(). <rdar://problem/21539115>
   /// Returns an iterator over the elements of the collection.
-  override __consuming func makeIterator() -> Iterator
+  override __consuming fn makeIterator() -> Iterator
 
   /// A collection representing a contiguous subrange of this collection's
   /// elements. The subsequence shares indices with the original collection.
@@ -434,8 +435,8 @@ public protocol Collection<Element>: Sequence {
   /// accesses the subrange from the start of the range expression until the
   /// end of the array.
   ///
-  ///     let streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2..<5]
+  ///     immutable streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
+  ///     immutable streetsSlice = streets[2..<5]
   ///     print(streetsSlice)
   ///     // ["Channing", "Douglas", "Evarts"]
   ///
@@ -443,7 +444,7 @@ public protocol Collection<Element>: Sequence {
   /// original collection. This example searches `streetsSlice` for one of the
   /// strings in the slice, and then uses that index in the original array.
   ///
-  ///     let index = streetsSlice.firstIndex(of: "Evarts")!    // 4
+  ///     immutable index = streetsSlice.firstIndex(of: "Evarts")!    // 4
   ///     print(streets[index])
   ///     // "Evarts"
   ///
@@ -500,7 +501,7 @@ public protocol Collection<Element>: Sequence {
   /// `RandomAccessCollection`, accessing the `count` property iterates
   /// through the elements of the collection.
   ///
-  ///     let horseName = "Silver"
+  ///     immutable horseName = "Silver"
   ///     if horseName.isEmpty {
   ///         print("My horse has no name.")
   ///     } else {
@@ -531,7 +532,7 @@ public protocol Collection<Element>: Sequence {
   /// otherwise, `nil`.
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
-  func _customIndexOfEquatableElement(_ element: Element) -> Index??
+  fn _customIndexOfEquatableElement(_ element: Element) -> Index??
 
   /// Customization point for `Collection.lastIndex(of:)`.
   ///
@@ -543,15 +544,15 @@ public protocol Collection<Element>: Sequence {
   ///   `Optional(Optional(index))` if an element was found.
   ///
   /// - Complexity: Hopefully less than O(`count`).
-  func _customLastIndexOfEquatableElement(_ element: Element) -> Index??
+  fn _customLastIndexOfEquatableElement(_ element: Element) -> Index??
 
   /// Returns an index that is the specified distance from the given index.
   ///
   /// The following example obtains an index advanced four positions from a
   /// string's starting index and then prints the character at that position.
   ///
-  ///     let s = "Swift"
-  ///     let i = s.index(s.startIndex, offsetBy: 4)
+  ///     immutable s = "Codira"
+  ///     immutable i = s.index(s.startIndex, offsetBy: 4)
   ///     print(s[i])
   ///     // Prints "t"
   ///
@@ -572,7 +573,7 @@ public protocol Collection<Element>: Sequence {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
-  func index(_ i: Index, offsetBy distance: Int) -> Index
+  fn index(_ i: Index, offsetBy distance: Int) -> Index
 
   /// Returns an index that is the specified distance from the given index,
   /// unless that distance is beyond a given limiting index.
@@ -582,8 +583,8 @@ public protocol Collection<Element>: Sequence {
   /// The operation doesn't require going beyond the limiting `s.endIndex`
   /// value, so it succeeds.
   ///
-  ///     let s = "Swift"
-  ///     if let i = s.index(s.startIndex, offsetBy: 4, limitedBy: s.endIndex) {
+  ///     immutable s = "Codira"
+  ///     if immutable i = s.index(s.startIndex, offsetBy: 4, limitedBy: s.endIndex) {
   ///         print(s[i])
   ///     }
   ///     // Prints "t"
@@ -592,7 +593,7 @@ public protocol Collection<Element>: Sequence {
   /// `s.startIndex` but fails, because that distance is beyond the index
   /// passed as `limit`.
   ///
-  ///     let j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
+  ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
   ///     // Prints "nil"
   ///
@@ -616,7 +617,7 @@ public protocol Collection<Element>: Sequence {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
-  func index(
+  fn index(
     _ i: Index, offsetBy distance: Int, limitedBy limit: Index
   ) -> Index?
 
@@ -636,7 +637,7 @@ public protocol Collection<Element>: Sequence {
   /// - Complexity: O(1) if the collection conforms to
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the
   ///   resulting distance.
-  func distance(from start: Index, to end: Index) -> Int
+  fn distance(from start: Index, to end: Index) -> Int
 
   /// Performs a range check in O(1), or a no-op when a range check is not
   /// implementable in O(1).
@@ -654,9 +655,9 @@ public protocol Collection<Element>: Sequence {
   /// range check.
   ///
   /// - Complexity: O(1).
-  func _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>)
+  fn _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>)
 
-  func _failEarlyRangeCheck(_ index: Index, bounds: ClosedRange<Index>)
+  fn _failEarlyRangeCheck(_ index: Index, bounds: ClosedRange<Index>)
 
   /// Performs a range check in O(1), or a no-op when a range check is not
   /// implementable in O(1).
@@ -679,7 +680,7 @@ public protocol Collection<Element>: Sequence {
   /// range check.
   ///
   /// - Complexity: O(1).
-  func _failEarlyRangeCheck(_ range: Range<Index>, bounds: Range<Index>)
+  fn _failEarlyRangeCheck(_ range: Range<Index>, bounds: Range<Index>)
 
   /// Returns the position immediately after the given index.
   ///
@@ -690,13 +691,13 @@ public protocol Collection<Element>: Sequence {
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
   /// - Returns: The index value immediately after `i`.
-  func index(after i: Index) -> Index
+  fn index(after i: Index) -> Index
 
   /// Replaces the given index with its successor.
   ///
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
-  func formIndex(after i: inout Index)
+  fn formIndex(after i: inout Index)
 }
 
 /// Default implementation for forward collections.
@@ -707,29 +708,29 @@ extension Collection {
   ///   `endIndex`.
   @inlinable // protocol-only
   @inline(__always)
-  public func formIndex(after i: inout Index) {
+  public fn formIndex(after i: inout Index) {
     i = index(after: i)
   }
 
   @inlinable
-  public func _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
-    // FIXME: swift-3-indexing-model: tests.
+  public fn _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
+    // FIXME: language-3-indexing-model: tests.
     _precondition(
       bounds.lowerBound <= index && index < bounds.upperBound,
       "Index out of bounds")
   }
 
   @inlinable
-  public func _failEarlyRangeCheck(_ index: Index, bounds: ClosedRange<Index>) {
-    // FIXME: swift-3-indexing-model: tests.
+  public fn _failEarlyRangeCheck(_ index: Index, bounds: ClosedRange<Index>) {
+    // FIXME: language-3-indexing-model: tests.
     _precondition(
       bounds.lowerBound <= index && index <= bounds.upperBound,
       "Index out of bounds")
   }
 
   @inlinable
-  public func _failEarlyRangeCheck(_ range: Range<Index>, bounds: Range<Index>) {
-    // FIXME: swift-3-indexing-model: tests.
+  public fn _failEarlyRangeCheck(_ range: Range<Index>, bounds: Range<Index>) {
+    // FIXME: language-3-indexing-model: tests.
     _precondition(
       bounds.lowerBound <= range.lowerBound &&
       range.upperBound <= bounds.upperBound,
@@ -741,8 +742,8 @@ extension Collection {
   /// The following example obtains an index advanced four positions from a
   /// string's starting index and then prints the character at that position.
   ///
-  ///     let s = "Swift"
-  ///     let i = s.index(s.startIndex, offsetBy: 4)
+  ///     immutable s = "Codira"
+  ///     immutable i = s.index(s.startIndex, offsetBy: 4)
   ///     print(s[i])
   ///     // Prints "t"
   ///
@@ -764,8 +765,8 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
-  public func index(_ i: Index, offsetBy distance: Int) -> Index {
-    return self._advanceForward(i, by: distance)
+  public fn index(_ i: Index, offsetBy distance: Int) -> Index {
+    return this._advanceForward(i, by: distance)
   }
 
   /// Returns an index that is the specified distance from the given index,
@@ -776,8 +777,8 @@ extension Collection {
   /// The operation doesn't require going beyond the limiting `s.endIndex`
   /// value, so it succeeds.
   ///
-  ///     let s = "Swift"
-  ///     if let i = s.index(s.startIndex, offsetBy: 4, limitedBy: s.endIndex) {
+  ///     immutable s = "Codira"
+  ///     if immutable i = s.index(s.startIndex, offsetBy: 4, limitedBy: s.endIndex) {
   ///         print(s[i])
   ///     }
   ///     // Prints "t"
@@ -786,7 +787,7 @@ extension Collection {
   /// `s.startIndex` but fails, because that distance is beyond the index
   /// passed as `limit`.
   ///
-  ///     let j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
+  ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
   ///     // Prints "nil"
   ///
@@ -811,10 +812,10 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
-  public func index(
+  public fn index(
     _ i: Index, offsetBy distance: Int, limitedBy limit: Index
   ) -> Index? {
-    return self._advanceForward(i, by: distance, limitedBy: limit)
+    return this._advanceForward(i, by: distance, limitedBy: limit)
   }
 
   /// Offsets the given index by the specified distance.
@@ -832,7 +833,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
-  public func formIndex(_ i: inout Index, offsetBy distance: Int) {
+  public fn formIndex(_ i: inout Index, offsetBy distance: Int) {
     i = index(i, offsetBy: distance)
   }
 
@@ -860,10 +861,10 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the absolute
   ///   value of `distance`.
   @inlinable
-  public func formIndex(
+  public fn formIndex(
     _ i: inout Index, offsetBy distance: Int, limitedBy limit: Index
   ) -> Bool {
-    if let advancedIndex = index(i, offsetBy: distance, limitedBy: limit) {
+    if immutable advancedIndex = index(i, offsetBy: distance, limitedBy: limit) {
       i = advancedIndex
       return true
     }
@@ -888,7 +889,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the
   ///   resulting distance.
   @inlinable
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     _precondition(start <= end,
       "Only BidirectionalCollections can have end come before start")
 
@@ -908,8 +909,8 @@ extension Collection {
   /// another collection when you are using a custom random number generator.
   /// This example picks a name at random from an array:
   ///
-  ///     let names = ["Zoey", "Chloe", "Amani", "Amaia"]
-  ///     let randomName = names.randomElement(using: &myGenerator)!
+  ///     immutable names = ["Zoey", "Chloe", "Amani", "Amaia"]
+  ///     immutable randomName = names.randomElement(using: &myGenerator)!
   ///     // randomName == "Amani"
   ///
   /// - Parameter generator: The random number generator to use when choosing a
@@ -921,18 +922,18 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
   ///   of the collection.
   /// - Note: The algorithm used to select a random element may change in a
-  ///   future version of Swift. If you're passing a generator that results in
+  ///   future version of Codira. If you're passing a generator that results in
   ///   the same sequence of elements each time you run your program, that
   ///   sequence may change when your program is compiled using a different
-  ///   version of Swift.
+  ///   version of Codira.
   @inlinable
-  public func randomElement<T: RandomNumberGenerator>(
+  public fn randomElement<T: RandomNumberGenerator>(
     using generator: inout T
   ) -> Element? {
     guard !isEmpty else { return nil }
-    let random = Int.random(in: 0 ..< count, using: &generator)
-    let idx = index(startIndex, offsetBy: random)
-    return self[idx]
+    immutable random = Int.random(in: 0 ..< count, using: &generator)
+    immutable idx = index(startIndex, offsetBy: random)
+    return this[idx]
   }
 
   /// Returns a random element of the collection.
@@ -940,8 +941,8 @@ extension Collection {
   /// Call `randomElement()` to select a random element from an array or
   /// another collection. This example picks a name at random from an array:
   ///
-  ///     let names = ["Zoey", "Chloe", "Amani", "Amaia"]
-  ///     let randomName = names.randomElement()!
+  ///     immutable names = ["Zoey", "Chloe", "Amani", "Amaia"]
+  ///     immutable randomName = names.randomElement()!
   ///     // randomName == "Amani"
   ///
   /// This method is equivalent to calling `randomElement(using:)`, passing in
@@ -954,7 +955,7 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
   ///   of the collection.
   @inlinable
-  public func randomElement() -> Element? {
+  public fn randomElement() -> Element? {
     var g = SystemRandomNumberGenerator()
     return randomElement(using: &g)
   }
@@ -962,7 +963,7 @@ extension Collection {
   /// Do not use this method directly; call advanced(by: n) instead.
   @inlinable
   @inline(__always)
-  internal func _advanceForward(_ i: Index, by n: Int) -> Index {
+  internal fn _advanceForward(_ i: Index, by n: Int) -> Index {
     _precondition(n >= 0,
       "Only BidirectionalCollections can be advanced by a negative amount")
 
@@ -976,7 +977,7 @@ extension Collection {
   /// Do not use this method directly; call advanced(by: n, limit) instead.
   @inlinable
   @inline(__always)
-  internal func _advanceForward(
+  internal fn _advanceForward(
     _ i: Index, by n: Int, limitedBy limit: Index
   ) -> Index? {
     _precondition(n >= 0,
@@ -1000,8 +1001,8 @@ extension Collection where Iterator == IndexingIterator<Self> {
   /// Returns an iterator over the elements of the collection.
   @inlinable // trivial-implementation
   @inline(__always)
-  public __consuming func makeIterator() -> IndexingIterator<Self> {
-    return IndexingIterator(_elements: self)
+  public __consuming fn makeIterator() -> IndexingIterator<Self> {
+    return IndexingIterator(_elements: this)
   }
 }
 
@@ -1018,12 +1019,12 @@ extension Collection where SubSequence == Slice<Self> {
   /// the index of one of the strings in the slice, and then using that index
   /// in the original array.
   ///
-  ///     let streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2 ..< streets.endIndex]
+  ///     immutable streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
+  ///     immutable streetsSlice = streets[2 ..< streets.endIndex]
   ///     print(streetsSlice)
   ///     // Prints "["Channing", "Douglas", "Evarts"]"
   ///
-  ///     let index = streetsSlice.firstIndex(of: "Evarts")    // 4
+  ///     immutable index = streetsSlice.firstIndex(of: "Evarts")    // 4
   ///     print(streets[index!])
   ///     // Prints "Evarts"
   ///
@@ -1034,7 +1035,7 @@ extension Collection where SubSequence == Slice<Self> {
   @inlinable
   public subscript(bounds: Range<Index>) -> Slice<Self> {
     _failEarlyRangeCheck(bounds, bounds: startIndex..<endIndex)
-    return Slice(base: self, bounds: bounds)
+    return Slice(base: this, bounds: bounds)
   }
 }
 
@@ -1058,11 +1059,11 @@ extension Collection where SubSequence == Self {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public mutating func popFirst() -> Element? {
-    // TODO: swift-3-indexing-model - review the following
+  public mutating fn popFirst() -> Element? {
+    // TODO: language-3-indexing-model - review the following
     guard !isEmpty else { return nil }
-    let element = first!
-    self = self[index(after: startIndex)..<endIndex]
+    immutable element = first!
+    this = this[index(after: startIndex)..<endIndex]
     return element
   }
 }
@@ -1077,7 +1078,7 @@ extension Collection {
   /// `RandomAccessCollection`, accessing the `count` property iterates
   /// through the elements of the collection.
   ///
-  ///     let horseName = "Silver"
+  ///     immutable horseName = "Silver"
   ///     if horseName.isEmpty {
   ///         print("My horse has no name.")
   ///     } else {
@@ -1095,15 +1096,15 @@ extension Collection {
   ///
   /// If the collection is empty, the value of this property is `nil`.
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     if let firstNumber = numbers.first {
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     if immutable firstNumber = numbers.first {
   ///         print(firstNumber)
   ///     }
   ///     // Prints "10"
   @inlinable
   public var first: Element? {
-    let start = startIndex
-    if start != endIndex { return self[start] }
+    immutable start = startIndex
+    if start != endIndex { return this[start] }
     else { return nil }
   }
 
@@ -1114,7 +1115,7 @@ extension Collection {
   ///   of the collection.
   @inlinable
   public var underestimatedCount: Int {
-    // TODO: swift-3-indexing-model - review the following
+    // TODO: language-3-indexing-model - review the following
     return count
   }
 
@@ -1133,7 +1134,7 @@ extension Collection {
     return distance(from: startIndex, to: endIndex)
   }
 
-  // TODO: swift-3-indexing-model - rename the following to _customIndexOfEquatable(element)?
+  // TODO: language-3-indexing-model - rename the following to _customIndexOfEquatable(element)?
   /// Customization point for `Collection.firstIndex(of:)`.
   ///
   /// Define this method if the collection can find an element in less than
@@ -1147,7 +1148,7 @@ extension Collection {
   @inlinable
   @inline(__always)
   public // dispatching
-  func _customIndexOfEquatableElement(_: Element) -> Index?? {
+  fn _customIndexOfEquatableElement(_: Element) -> Index?? {
     return nil
   }
 
@@ -1164,7 +1165,7 @@ extension Collection {
   @inlinable
   @inline(__always)
   public // dispatching
-  func _customLastIndexOfEquatableElement(_ element: Element) -> Index?? {
+  fn _customLastIndexOfEquatableElement(_ element: Element) -> Index?? {
     return nil
   }
 }
@@ -1180,10 +1181,10 @@ extension Collection {
   /// In this example, `map` is used first to convert the names in the array
   /// to lowercase strings and then to count their characters.
   ///
-  ///     let cast = ["Vivien", "Marlon", "Kim", "Karl"]
-  ///     let lowercaseNames = cast.map { $0.lowercased() }
+  ///     immutable cast = ["Vivien", "Marlon", "Kim", "Karl"]
+  ///     immutable lowercaseNames = cast.map { $0.lowercased() }
   ///     // 'lowercaseNames' == ["vivien", "marlon", "kim", "karl"]
-  ///     let letterCounts = cast.map { $0.count }
+  ///     immutable letterCounts = cast.map { $0.count }
   ///     // 'letterCounts' == [6, 6, 3, 4]
   ///
   /// - Parameter transform: A mapping closure. `transform` accepts an
@@ -1193,11 +1194,11 @@ extension Collection {
   ///   sequence.
   @inlinable
   @_alwaysEmitIntoClient
-  public func map<T, E>(
+  public fn map<T, E>(
     _ transform: (Element) throws(E) -> T
   ) throws(E) -> [T] {
-    // TODO: swift-3-indexing-model - review the following
-    let n = self.count
+    // TODO: language-3-indexing-model - review the following
+    immutable n = this.count
     if n == 0 {
       return []
     }
@@ -1205,24 +1206,24 @@ extension Collection {
     var result = ContiguousArray<T>()
     result.reserveCapacity(n)
 
-    var i = self.startIndex
+    var i = this.startIndex
 
     for _ in 0..<n {
-      result.append(try transform(self[i]))
+      result.append(try transform(this[i]))
       formIndex(after: &i)
     }
 
-    _expectEnd(of: self, is: i)
+    _expectEnd(of: this, is: i)
     return Array(result)
   }
 
   // ABI-only entrypoint for the rethrows version of map, which has been
   // superseded by the typed-throws version. Expressed as "throws", which is
   // ABI-compatible with "rethrows".
-  @_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+  @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
   @usableFromInline
   @_silgen_name("$sSlsE3mapySayqd__Gqd__7ElementQzKXEKlF")
-  func __rethrows_map<T>(
+  fn __rethrows_map<T>(
     _ transform: (Element) throws -> T
   ) throws -> [T] {
     try map(transform)
@@ -1234,7 +1235,7 @@ extension Collection {
   /// If the number of elements to drop exceeds the number of elements in
   /// the collection, the result is an empty subsequence.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.dropFirst(2))
   ///     // Prints "[3, 4, 5]"
   ///     print(numbers.dropFirst(10))
@@ -1249,10 +1250,10 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the number of
   ///   elements to drop from the beginning of the collection.
   @inlinable
-  public __consuming func dropFirst(_ k: Int = 1) -> SubSequence {
+  public __consuming fn dropFirst(_ k: Int = 1) -> SubSequence {
     _precondition(k >= 0, "Can't drop a negative number of elements from a collection")
-    let start = index(startIndex, offsetBy: k, limitedBy: endIndex) ?? endIndex
-    return self[start..<endIndex]
+    immutable start = index(startIndex, offsetBy: k, limitedBy: endIndex) ?? endIndex
+    return this[start..<endIndex]
   }
 
   /// Returns a subsequence containing all but the specified number of final
@@ -1261,7 +1262,7 @@ extension Collection {
   /// If the number of elements to drop exceeds the number of elements in the
   /// collection, the result is an empty subsequence.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.dropLast(2))
   ///     // Prints "[1, 2, 3]"
   ///     print(numbers.dropLast(10))
@@ -1276,13 +1277,13 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length of
   ///   the collection.
   @inlinable
-  public __consuming func dropLast(_ k: Int = 1) -> SubSequence {
+  public __consuming fn dropLast(_ k: Int = 1) -> SubSequence {
     _precondition(
       k >= 0, "Can't drop a negative number of elements from a collection")
-    let amount = Swift.max(0, count - k)
-    let end = index(startIndex,
+    immutable amount = Codira.max(0, count - k)
+    immutable end = index(startIndex,
       offsetBy: amount, limitedBy: endIndex) ?? endIndex
-    return self[startIndex..<end]
+    return this[startIndex..<end]
   }
     
   /// Returns a subsequence by skipping elements while `predicate` returns
@@ -1295,14 +1296,14 @@ extension Collection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public __consuming func drop(
+  public __consuming fn drop(
     while predicate: (Element) throws -> Bool
   ) rethrows -> SubSequence {
     var start = startIndex
-    while try start != endIndex && predicate(self[start]) {
+    while try start != endIndex && predicate(this[start]) {
       formIndex(after: &start)
     } 
-    return self[start..<endIndex]
+    return this[start..<endIndex]
   }
 
   /// Returns a subsequence, up to the specified maximum length, containing
@@ -1311,7 +1312,7 @@ extension Collection {
   /// If the maximum length exceeds the number of elements in the collection,
   /// the result contains all the elements in the collection.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.prefix(2))
   ///     // Prints "[1, 2]"
   ///     print(numbers.prefix(10))
@@ -1326,13 +1327,13 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the number of
   ///   elements to select from the beginning of the collection.
   @inlinable
-  public __consuming func prefix(_ maxLength: Int) -> SubSequence {
+  public __consuming fn prefix(_ maxLength: Int) -> SubSequence {
     _precondition(
       maxLength >= 0,
       "Can't take a prefix of negative length from a collection")
-    let end = index(startIndex,
+    immutable end = index(startIndex,
       offsetBy: maxLength, limitedBy: endIndex) ?? endIndex
-    return self[startIndex..<end]
+    return this[startIndex..<end]
   }
   
   /// Returns a subsequence containing the initial elements until `predicate`
@@ -1345,14 +1346,14 @@ extension Collection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public __consuming func prefix(
+  public __consuming fn prefix(
     while predicate: (Element) throws -> Bool
   ) rethrows -> SubSequence {
     var end = startIndex
-    while try end != endIndex && predicate(self[end]) {
+    while try end != endIndex && predicate(this[end]) {
       formIndex(after: &end)
     }
-    return self[startIndex..<end]
+    return this[startIndex..<end]
   }
 
   /// Returns a subsequence, up to the given maximum length, containing the
@@ -1361,7 +1362,7 @@ extension Collection {
   /// If the maximum length exceeds the number of elements in the collection,
   /// the result contains all the elements in the collection.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.suffix(2))
   ///     // Prints "[4, 5]"
   ///     print(numbers.suffix(10))
@@ -1376,14 +1377,14 @@ extension Collection {
   ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length of
   ///   the collection.
   @inlinable
-  public __consuming func suffix(_ maxLength: Int) -> SubSequence {
+  public __consuming fn suffix(_ maxLength: Int) -> SubSequence {
     _precondition(
       maxLength >= 0,
       "Can't take a suffix of negative length from a collection")
-    let amount = Swift.max(0, count - maxLength)
-    let start = index(startIndex,
+    immutable amount = Codira.max(0, count - maxLength)
+    immutable start = index(startIndex,
       offsetBy: amount, limitedBy: endIndex) ?? endIndex
-    return self[start..<endIndex]
+    return this[start..<endIndex]
   }
 
   /// Returns a subsequence from the start of the collection up to, but not
@@ -1394,8 +1395,8 @@ extension Collection {
   /// in an array of integers, and then prints the prefix of the array up to,
   /// but not including, that index:
   ///
-  ///     let numbers = [10, 20, 30, 40, 50, 60]
-  ///     if let i = numbers.firstIndex(of: 40) {
+  ///     immutable numbers = [10, 20, 30, 40, 50, 60]
+  ///     if immutable i = numbers.firstIndex(of: 40) {
   ///         print(numbers.prefix(upTo: i))
   ///     }
   ///     // Prints "[10, 20, 30]"
@@ -1410,7 +1411,7 @@ extension Collection {
   /// half-open range as the collection's subscript. The subscript notation is
   /// preferred over `prefix(upTo:)`.
   ///
-  ///     if let i = numbers.firstIndex(of: 40) {
+  ///     if immutable i = numbers.firstIndex(of: 40) {
   ///         print(numbers[..<i])
   ///     }
   ///     // Prints "[10, 20, 30]"
@@ -1421,8 +1422,8 @@ extension Collection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public __consuming func prefix(upTo end: Index) -> SubSequence {
-    return self[startIndex..<end]
+  public __consuming fn prefix(upTo end: Index) -> SubSequence {
+    return this[startIndex..<end]
   }
 
   /// Returns a subsequence from the specified position to the end of the
@@ -1432,8 +1433,8 @@ extension Collection {
   /// array of integers, and then prints the suffix of the array starting at
   /// that index:
   ///
-  ///     let numbers = [10, 20, 30, 40, 50, 60]
-  ///     if let i = numbers.firstIndex(of: 40) {
+  ///     immutable numbers = [10, 20, 30, 40, 50, 60]
+  ///     if immutable i = numbers.firstIndex(of: 40) {
   ///         print(numbers.suffix(from: i))
   ///     }
   ///     // Prints "[40, 50, 60]"
@@ -1448,7 +1449,7 @@ extension Collection {
   /// from the index as the collection's subscript. The subscript notation is
   /// preferred over `suffix(from:)`.
   ///
-  ///     if let i = numbers.firstIndex(of: 40) {
+  ///     if immutable i = numbers.firstIndex(of: 40) {
   ///         print(numbers[i...])
   ///     }
   ///     // Prints "[40, 50, 60]"
@@ -1459,8 +1460,8 @@ extension Collection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public __consuming func suffix(from start: Index) -> SubSequence {
-    return self[start..<endIndex]
+  public __consuming fn suffix(from start: Index) -> SubSequence {
+    return this[start..<endIndex]
   }
 
   /// Returns a subsequence from the start of the collection through the
@@ -1472,8 +1473,8 @@ extension Collection {
   /// array of integers, and then prints the prefix of the array up to, and
   /// including, that index:
   ///
-  ///     let numbers = [10, 20, 30, 40, 50, 60]
-  ///     if let i = numbers.firstIndex(of: 40) {
+  ///     immutable numbers = [10, 20, 30, 40, 50, 60]
+  ///     if immutable i = numbers.firstIndex(of: 40) {
   ///         print(numbers.prefix(through: i))
   ///     }
   ///     // Prints "[10, 20, 30, 40]"
@@ -1482,7 +1483,7 @@ extension Collection {
   /// closed range as the collection's subscript. The subscript notation is
   /// preferred over `prefix(through:)`.
   ///
-  ///     if let i = numbers.firstIndex(of: 40) {
+  ///     if immutable i = numbers.firstIndex(of: 40) {
   ///         print(numbers[...i])
   ///     }
   ///     // Prints "[10, 20, 30, 40]"
@@ -1494,7 +1495,7 @@ extension Collection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public __consuming func prefix(through position: Index) -> SubSequence {
+  public __consuming fn prefix(through position: Index) -> SubSequence {
     return prefix(upTo: index(after: position))
   }
 
@@ -1510,7 +1511,7 @@ extension Collection {
   /// closure that matches spaces. The first use of `split` returns each word
   /// that was originally separated by one or more spaces.
   ///
-  ///     let line = "BLANCHE:   I don't want realism. I want magic!"
+  ///     immutable line = "BLANCHE:   I don't want realism. I want magic!"
   ///     print(line.split(whereSeparator: { $0 == " " }))
   ///     // Prints "["BLANCHE:", "I", "don\'t", "want", "realism.", "I", "want", "magic!"]"
   ///
@@ -1547,22 +1548,22 @@ extension Collection {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public __consuming func split(
+  public __consuming fn split(
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true,
     whereSeparator isSeparator: (Element) throws -> Bool
   ) rethrows -> [SubSequence] {
-    // TODO: swift-3-indexing-model - review the following
+    // TODO: language-3-indexing-model - review the following
     _precondition(maxSplits >= 0, "Must take zero or more splits")
 
     var result: [SubSequence] = []
     var subSequenceStart: Index = startIndex
 
-    func appendSubsequence(end: Index) -> Bool {
+    fn appendSubsequence(end: Index) -> Bool {
       if subSequenceStart == end && omittingEmptySubsequences {
         return false
       }
-      result.append(self[subSequenceStart..<end])
+      result.append(this[subSequenceStart..<end])
       return true
     }
 
@@ -1572,10 +1573,10 @@ extension Collection {
     }
 
     var subSequenceEnd = subSequenceStart
-    let cachedEndIndex = endIndex
+    immutable cachedEndIndex = endIndex
     while subSequenceEnd != cachedEndIndex {
-      if try isSeparator(self[subSequenceEnd]) {
-        let didAppend = appendSubsequence(end: subSequenceEnd)
+      if try isSeparator(this[subSequenceEnd]) {
+        immutable didAppend = appendSubsequence(end: subSequenceEnd)
         formIndex(after: &subSequenceEnd)
         subSequenceStart = subSequenceEnd
         if didAppend && result.count == maxSplits {
@@ -1587,7 +1588,7 @@ extension Collection {
     }
 
     if subSequenceStart != cachedEndIndex || !omittingEmptySubsequences {
-      result.append(self[subSequenceStart..<cachedEndIndex])
+      result.append(this[subSequenceStart..<cachedEndIndex])
     }
 
     return result
@@ -1607,7 +1608,7 @@ extension Collection where Element: Equatable {
   /// space character (" "). The first use of `split` returns each word that
   /// was originally separated by one or more spaces.
   ///
-  ///     let line = "BLANCHE:   I don't want realism. I want magic!"
+  ///     immutable line = "BLANCHE:   I don't want realism. I want magic!"
   ///     print(line.split(separator: " "))
   ///     // Prints "["BLANCHE:", "I", "don\'t", "want", "realism.", "I", "want", "magic!"]"
   ///
@@ -1642,12 +1643,12 @@ extension Collection where Element: Equatable {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the collection.
   @inlinable
-  public __consuming func split(
+  public __consuming fn split(
     separator: Element,
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true
   ) -> [SubSequence] {
-    // TODO: swift-3-indexing-model - review the following
+    // TODO: language-3-indexing-model - review the following
     return split(
       maxSplits: maxSplits,
       omittingEmptySubsequences: omittingEmptySubsequences,
@@ -1665,11 +1666,11 @@ extension Collection where SubSequence == Self {
   /// - Complexity: O(1)
   @inlinable
   @discardableResult
-  public mutating func removeFirst() -> Element {
-    // TODO: swift-3-indexing-model - review the following
+  public mutating fn removeFirst() -> Element {
+    // TODO: language-3-indexing-model - review the following
     _precondition(!isEmpty, "Can't remove items from an empty collection")
-    let element = first!
-    self = self[index(after: startIndex)..<endIndex]
+    immutable element = first!
+    this = this[index(after: startIndex)..<endIndex]
     return element
   }
 
@@ -1684,13 +1685,13 @@ extension Collection where SubSequence == Self {
   ///   `RandomAccessCollection`; otherwise, O(*k*), where *k* is the specified
   ///   number of elements.
   @inlinable
-  public mutating func removeFirst(_ k: Int) {
+  public mutating fn removeFirst(_ k: Int) {
     if k == 0 { return }
     _precondition(k >= 0, "Number of elements to remove should be non-negative")
-    guard let idx = index(startIndex, offsetBy: k, limitedBy: endIndex) else {
+    guard immutable idx = index(startIndex, offsetBy: k, limitedBy: endIndex) else {
       _preconditionFailure(
         "Can't remove more items from a collection than it contains")
     }
-    self = self[idx..<endIndex]
+    this = this[idx..<endIndex]
   }
 }

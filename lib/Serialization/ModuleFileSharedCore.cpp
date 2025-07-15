@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ModuleFileSharedCore.h"
@@ -26,21 +27,21 @@
 #include "language/Parse/ParseVersion.h"
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Strings.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/OnDiskHashTable.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/OnDiskHashTable.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
 using namespace language;
 using namespace language::serialization;
-using namespace llvm::support;
-using llvm::Expected;
+using namespace toolchain::support;
+using toolchain::Expected;
 
-static bool checkModuleSignature(llvm::BitstreamCursor &cursor,
+static bool checkModuleSignature(toolchain::BitstreamCursor &cursor,
                                  ArrayRef<unsigned char> signature) {
   for (unsigned char byte : signature) {
     if (cursor.AtEndOfStream())
       return false;
-    if (Expected<llvm::SimpleBitstreamCursor::word_t> maybeRead =
+    if (Expected<toolchain::SimpleBitstreamCursor::word_t> maybeRead =
             cursor.Read(8)) {
       if (maybeRead.get() != byte)
         return false;
@@ -52,21 +53,21 @@ static bool checkModuleSignature(llvm::BitstreamCursor &cursor,
   return true;
 }
 
-static bool enterTopLevelModuleBlock(llvm::BitstreamCursor &cursor,
+static bool enterTopLevelModuleBlock(toolchain::BitstreamCursor &cursor,
                                      unsigned ID,
                                      bool shouldReadBlockInfo = true) {
-  Expected<llvm::BitstreamEntry> maybeNext = cursor.advance();
+  Expected<toolchain::BitstreamEntry> maybeNext = cursor.advance();
   if (!maybeNext) {
     // FIXME this drops the error on the floor.
     consumeError(maybeNext.takeError());
     return false;
   }
-  llvm::BitstreamEntry next = maybeNext.get();
+  toolchain::BitstreamEntry next = maybeNext.get();
 
-  if (next.Kind != llvm::BitstreamEntry::SubBlock)
+  if (next.Kind != toolchain::BitstreamEntry::SubBlock)
     return false;
 
-  if (next.ID == llvm::bitc::BLOCKINFO_BLOCK_ID) {
+  if (next.ID == toolchain::bitc::BLOCKINFO_BLOCK_ID) {
     if (shouldReadBlockInfo) {
       if (!cursor.ReadBlockInfoBlock())
         return false;
@@ -80,7 +81,7 @@ static bool enterTopLevelModuleBlock(llvm::BitstreamCursor &cursor,
   if (next.ID != ID)
     return false;
 
-  if (llvm::Error Err = cursor.EnterSubBlock(ID)) {
+  if (toolchain::Error Err = cursor.EnterSubBlock(ID)) {
     // FIXME this drops the error on the floor.
     consumeError(std::move(Err));
     return false;
@@ -92,25 +93,25 @@ static bool enterTopLevelModuleBlock(llvm::BitstreamCursor &cursor,
 /// Populate \p extendedInfo with the data from the options block.
 ///
 /// Returns true on success.
-static bool readOptionsBlock(llvm::BitstreamCursor &cursor,
+static bool readOptionsBlock(toolchain::BitstreamCursor &cursor,
                              SmallVectorImpl<uint64_t> &scratch,
                              ExtendedValidationInfo &extendedInfo,
                              PathObfuscator &pathRecoverer) {
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry = cursor.advance();
+    Expected<toolchain::BitstreamEntry> maybeEntry = cursor.advance();
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
       consumeError(maybeEntry.takeError());
       return false;
     }
-    llvm::BitstreamEntry entry = maybeEntry.get();
-    if (entry.Kind == llvm::BitstreamEntry::EndBlock)
+    toolchain::BitstreamEntry entry = maybeEntry.get();
+    if (entry.Kind == toolchain::BitstreamEntry::EndBlock)
       break;
 
-    if (entry.Kind == llvm::BitstreamEntry::Error)
+    if (entry.Kind == toolchain::BitstreamEntry::Error)
       return false;
 
-    if (entry.Kind == llvm::BitstreamEntry::SubBlock) {
+    if (entry.Kind == toolchain::BitstreamEntry::SubBlock) {
       // Unknown metadata sub-block, possibly for use by a future version of
       // the module format.
       if (cursor.SkipBlock())
@@ -170,8 +171,8 @@ static bool readOptionsBlock(llvm::BitstreamCursor &cursor,
     case options_block::HAS_HERMETIC_SEAL_AT_LINK:
       extendedInfo.setHasHermeticSealAtLink(true);
       break;
-    case options_block::IS_EMBEDDED_SWIFT_MODULE:
-      extendedInfo.setIsEmbeddedSwiftModule(true);
+    case options_block::IS_EMBEDDED_LANGUAGE_MODULE:
+      extendedInfo.setIsEmbeddedCodiraModule(true);
       break;
     case options_block::IS_TESTABLE:
       extendedInfo.setIsTestable(true);
@@ -222,8 +223,8 @@ static bool readOptionsBlock(llvm::BitstreamCursor &cursor,
     case options_block::PUBLIC_MODULE_NAME:
       extendedInfo.setPublicModuleName(blobData);
       break;
-    case options_block::SWIFT_INTERFACE_COMPILER_VERSION:
-      extendedInfo.setSwiftInterfaceCompilerVersion(blobData);
+    case options_block::LANGUAGE_INTERFACE_COMPILER_VERSION:
+      extendedInfo.setCodiraInterfaceCompilerVersion(blobData);
       break;
     case options_block::STRICT_MEMORY_SAFETY:
       extendedInfo.setStrictMemorySafety(true);
@@ -239,7 +240,7 @@ static bool readOptionsBlock(llvm::BitstreamCursor &cursor,
 }
 
 static ValidationInfo validateControlBlock(
-    llvm::BitstreamCursor &cursor, SmallVectorImpl<uint64_t> &scratch,
+    toolchain::BitstreamCursor &cursor, SmallVectorImpl<uint64_t> &scratch,
     std::pair<uint16_t, uint16_t> expectedVersion,
     bool requiresOSSAModules,
     bool requiresRevisionMatch,
@@ -253,25 +254,25 @@ static ValidationInfo validateControlBlock(
   bool revisionSeen = false;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry = cursor.advance();
+    Expected<toolchain::BitstreamEntry> maybeEntry = cursor.advance();
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
       consumeError(maybeEntry.takeError());
       result.status = Status::Malformed;
       return result;
     }
-    llvm::BitstreamEntry entry = maybeEntry.get();
-    if (entry.Kind == llvm::BitstreamEntry::EndBlock)
+    toolchain::BitstreamEntry entry = maybeEntry.get();
+    if (entry.Kind == toolchain::BitstreamEntry::EndBlock)
       break;
 
-    if (entry.Kind == llvm::BitstreamEntry::Error) {
+    if (entry.Kind == toolchain::BitstreamEntry::Error) {
       result.status = Status::Malformed;
       return result;
     }
 
-    if (entry.Kind == llvm::BitstreamEntry::SubBlock) {
+    if (entry.Kind == toolchain::BitstreamEntry::SubBlock) {
       if (entry.ID == OPTIONS_BLOCK_ID && extendedInfo) {
-        if (llvm::Error Err = cursor.EnterSubBlock(OPTIONS_BLOCK_ID)) {
+        if (toolchain::Error Err = cursor.EnterSubBlock(OPTIONS_BLOCK_ID)) {
           // FIXME this drops the error on the floor.
           consumeError(std::move(Err));
           result.status = Status::Malformed;
@@ -346,9 +347,9 @@ static ValidationInfo validateControlBlock(
           subMinor = scratch[6];
           build = scratch[7];
         }
-        result.userModuleVersion = llvm::VersionTuple(scratch[4], scratch[5],
+        result.userModuleVersion = toolchain::VersionTuple(scratch[4], scratch[5],
                                                       subMinor, build);
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       }
       case 4:
         if (scratch[3] != 0) {
@@ -356,7 +357,7 @@ static ValidationInfo validateControlBlock(
               blobData.substr(scratch[2] + 1, scratch[3]), SourceLoc(),
               nullptr);
         }
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case 3:
         result.shortVersion = blobData.slice(0, scratch[2]);
 
@@ -365,7 +366,7 @@ static ValidationInfo validateControlBlock(
         if (result.status != Status::Valid)
           return result;
 
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case 2:
       case 1:
       case 0:
@@ -394,8 +395,8 @@ static ValidationInfo validateControlBlock(
       // Enable this check for tagged compiler or when the
       // env var is set (for testing).
       static const char* forceDebugPreSDKRestriction =
-        ::getenv("SWIFT_DEBUG_FORCE_SWIFTMODULE_PER_SDK");
-      if (!version::isCurrentCompilerTagged() &&
+        ::getenv("LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_PER_SDK");
+      if (version::getCurrentCompilerSerializationTag().empty() &&
           !forceDebugPreSDKRestriction) {
         break;
       }
@@ -406,7 +407,7 @@ static ValidationInfo validateControlBlock(
       // that a module built with macOS11 can be used with the macOS11.secret SDK.
       // This is generally the case as SDKs with suffixes are a superset of the
       // short SDK name equivalent. While this is accepted, this is still not a
-      // recommended configuration and may lead to unreadable swiftmodules.
+      // recommended configuration and may lead to unreadable languagemodules.
       StringRef moduleSDK = blobData;
       if (!moduleSDK.empty() && !requiredSDK.empty() &&
           !requiredSDK.starts_with(moduleSDK)) {
@@ -425,7 +426,7 @@ static ValidationInfo validateControlBlock(
       // Disable this restriction for compiler testing by setting this
       // env var to any value.
       static const char* ignoreRevision =
-        ::getenv("SWIFT_IGNORE_SWIFTMODULE_REVISION");
+        ::getenv("LANGUAGE_IGNORE_LANGUAGEMODULE_REVISION");
       if (ignoreRevision)
         break;
 
@@ -433,13 +434,15 @@ static ValidationInfo validateControlBlock(
       // compiler and using the env var value to override this compiler's
       // revision.
       static const char* forcedDebugRevision =
-        ::getenv("SWIFT_DEBUG_FORCE_SWIFTMODULE_REVISION");
+        ::getenv("LANGUAGE_DEBUG_FORCE_LANGUAGEMODULE_REVISION");
 
       StringRef moduleRevision = blobData;
+      StringRef serializationTag =
+          version::getCurrentCompilerSerializationTag();
       if (forcedDebugRevision ||
-          (requiresRevisionMatch && version::isCurrentCompilerTagged())) {
-        StringRef compilerRevision = forcedDebugRevision ?
-          forcedDebugRevision : version::getCurrentCompilerSerializationTag();
+          (requiresRevisionMatch && !serializationTag.empty())) {
+        StringRef compilerRevision =
+            forcedDebugRevision ? forcedDebugRevision : serializationTag;
         if (moduleRevision != compilerRevision) {
           // The module versions are mismatching, record it and diagnose later.
           result.problematicRevision = moduleRevision;
@@ -459,7 +462,7 @@ static ValidationInfo validateControlBlock(
     }
     case control_block::CHANNEL: {
       static const char* ignoreRevision =
-        ::getenv("SWIFT_IGNORE_SWIFTMODULE_REVISION");
+        ::getenv("LANGUAGE_IGNORE_LANGUAGEMODULE_REVISION");
       if (ignoreRevision)
         break;
 
@@ -496,24 +499,24 @@ static ValidationInfo validateControlBlock(
 }
 
 static bool validateInputBlock(
-    llvm::BitstreamCursor &cursor, SmallVectorImpl<uint64_t> &scratch,
+    toolchain::BitstreamCursor &cursor, SmallVectorImpl<uint64_t> &scratch,
     SmallVectorImpl<SerializationOptions::FileDependency> *dependencies,
     SmallVectorImpl<SearchPath> *searchPaths) {
   SmallVector<StringRef, 4> dependencyDirectories;
   SmallString<256> dependencyFullPathBuffer;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry = cursor.advance();
+    Expected<toolchain::BitstreamEntry> maybeEntry = cursor.advance();
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
       consumeError(maybeEntry.takeError());
       return true;
     }
-    llvm::BitstreamEntry entry = maybeEntry.get();
-    if (entry.Kind == llvm::BitstreamEntry::EndBlock)
+    toolchain::BitstreamEntry entry = maybeEntry.get();
+    if (entry.Kind == toolchain::BitstreamEntry::EndBlock)
       break;
 
-    if (entry.Kind == llvm::BitstreamEntry::Error)
+    if (entry.Kind == toolchain::BitstreamEntry::Error)
       return true;
 
     scratch.clear();
@@ -538,7 +541,7 @@ static bool validateInputBlock(
           if (directoryIndex > dependencyDirectories.size())
             return true;
           dependencyFullPathBuffer = dependencyDirectories[directoryIndex - 1];
-          llvm::sys::path::append(dependencyFullPathBuffer, blobData);
+          toolchain::sys::path::append(dependencyFullPathBuffer, blobData);
           path = dependencyFullPathBuffer;
         }
 
@@ -593,12 +596,12 @@ std::string serialization::StatusToString(Status S) {
   case Status::TargetTooNew: return "TargetTooNew";
   case Status::SDKMismatch: return "SDKMismatch";
   }
-  llvm_unreachable("The switch should cover all cases");
+  toolchain_unreachable("The switch should cover all cases");
 }
 
 bool serialization::isSerializedAST(StringRef data) {
-  StringRef signatureStr(reinterpret_cast<const char *>(SWIFTMODULE_SIGNATURE),
-                         std::size(SWIFTMODULE_SIGNATURE));
+  StringRef signatureStr(reinterpret_cast<const char *>(LANGUAGEMODULE_SIGNATURE),
+                         std::size(LANGUAGEMODULE_SIGNATURE));
   return data.starts_with(signatureStr);
 }
 
@@ -611,21 +614,21 @@ ValidationInfo serialization::validateSerializedAST(
   ValidationInfo result;
 
   // Check 32-bit alignment.
-  if (data.size() % SWIFTMODULE_ALIGNMENT != 0 ||
-      reinterpret_cast<uintptr_t>(data.data()) % SWIFTMODULE_ALIGNMENT != 0)
+  if (data.size() % LANGUAGEMODULE_ALIGNMENT != 0 ||
+      reinterpret_cast<uintptr_t>(data.data()) % LANGUAGEMODULE_ALIGNMENT != 0)
     return result;
 
-  llvm::BitstreamCursor cursor(data);
+  toolchain::BitstreamCursor cursor(data);
   SmallVector<uint64_t, 32> scratch;
 
-  if (!checkModuleSignature(cursor, SWIFTMODULE_SIGNATURE) ||
+  if (!checkModuleSignature(cursor, LANGUAGEMODULE_SIGNATURE) ||
       !enterTopLevelModuleBlock(cursor, MODULE_BLOCK_ID, false))
     return result;
 
-  llvm::BitstreamEntry topLevelEntry;
+  toolchain::BitstreamEntry topLevelEntry;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry =
+    Expected<toolchain::BitstreamEntry> maybeEntry =
         cursor.advance(AF_DontPopBlockAtEnd);
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
@@ -634,11 +637,11 @@ ValidationInfo serialization::validateSerializedAST(
       return result;
     }
     topLevelEntry = maybeEntry.get();
-    if (topLevelEntry.Kind != llvm::BitstreamEntry::SubBlock)
+    if (topLevelEntry.Kind != toolchain::BitstreamEntry::SubBlock)
       break;
 
     if (topLevelEntry.ID == CONTROL_BLOCK_ID) {
-      if (llvm::Error Err = cursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
+      if (toolchain::Error Err = cursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         result.status = Status::Malformed;
@@ -647,7 +650,7 @@ ValidationInfo serialization::validateSerializedAST(
       PathObfuscator localObfuscator;
       result = validateControlBlock(
           cursor, scratch,
-          {SWIFTMODULE_VERSION_MAJOR, SWIFTMODULE_VERSION_MINOR},
+          {LANGUAGEMODULE_VERSION_MAJOR, LANGUAGEMODULE_VERSION_MINOR},
           requiresOSSAModules,
           /*requiresRevisionMatch=*/true,
           requiredSDK,
@@ -657,7 +660,7 @@ ValidationInfo serialization::validateSerializedAST(
     } else if ((dependencies || searchPaths) &&
                result.status == Status::Valid &&
                topLevelEntry.ID == INPUT_BLOCK_ID) {
-      if (llvm::Error Err = cursor.EnterSubBlock(INPUT_BLOCK_ID)) {
+      if (toolchain::Error Err = cursor.EnterSubBlock(INPUT_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         result.status = Status::Malformed;
@@ -675,7 +678,7 @@ ValidationInfo serialization::validateSerializedAST(
     }
   }
 
-  if (topLevelEntry.Kind == llvm::BitstreamEntry::EndBlock) {
+  if (topLevelEntry.Kind == toolchain::BitstreamEntry::EndBlock) {
     cursor.ReadBlockEnd();
     assert(cursor.GetCurrentBitNo() % CHAR_BIT == 0);
     result.bytes = cursor.GetCurrentBitNo() / CHAR_BIT;
@@ -697,15 +700,15 @@ std::string ModuleFileSharedCore::Dependency::getPrettyPrintedPath() const {
   return output;
 }
 
-void ModuleFileSharedCore::fatal(llvm::Error error) const {
-  abortWithPrettyStackTraceMessage([&](auto &out) {
+void ModuleFileSharedCore::fatal(toolchain::Error error) const {
+  ABORT([&](auto &out) {
     out << "*** DESERIALIZATION FAILURE ***\n";
     out << "*** If any module named here was modified in the SDK, please delete the ***\n";
-    out << "*** new swiftmodule files from the SDK and keep only swiftinterfaces.   ***\n";
+    out << "*** new languagemodule files from the SDK and keep only languageinterfaces.   ***\n";
     outputDiagnosticInfo(out);
     out << "\n";
     if (error) {
-      handleAllErrors(std::move(error), [&](const llvm::ErrorInfoBase &ei) {
+      handleAllErrors(std::move(error), [&](const toolchain::ErrorInfoBase &ei) {
         ei.log(out);
         out << "\n";
       });
@@ -713,13 +716,13 @@ void ModuleFileSharedCore::fatal(llvm::Error error) const {
   });
 }
 
-void ModuleFileSharedCore::outputDiagnosticInfo(llvm::raw_ostream &os) const {
+void ModuleFileSharedCore::outputDiagnosticInfo(toolchain::raw_ostream &os) const {
   bool resilient = ResilienceStrategy(Bits.ResilienceStrategy) ==
                    ResilienceStrategy::Resilient;
   os << "module '" << Name
      << "', builder version '" << MiscVersion
      << "', built from "
-     << (Bits.IsBuiltFromInterface? "swiftinterface": "source")
+     << (Bits.IsBuiltFromInterface? "languageinterface": "source")
      << " against SDK " << SDKVersion
      << ", " << (resilient? "resilient": "non-resilient");
   if (Bits.AllowNonResilientAccess)
@@ -843,8 +846,8 @@ ModuleFileSharedCore::readDerivativeFunctionConfigTable(
       base + tableOffset, base + sizeof(uint32_t), base));
 }
 
-bool ModuleFileSharedCore::readIndexBlock(llvm::BitstreamCursor &cursor) {
-  if (llvm::Error Err = cursor.EnterSubBlock(INDEX_BLOCK_ID)) {
+bool ModuleFileSharedCore::readIndexBlock(toolchain::BitstreamCursor &cursor) {
+  if (toolchain::Error Err = cursor.EnterSubBlock(INDEX_BLOCK_ID)) {
     // FIXME this drops the error on the floor.
     consumeError(std::move(Err));
     return false;
@@ -854,36 +857,36 @@ bool ModuleFileSharedCore::readIndexBlock(llvm::BitstreamCursor &cursor) {
   StringRef blobData;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry = cursor.advance();
+    Expected<toolchain::BitstreamEntry> maybeEntry = cursor.advance();
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
       consumeError(maybeEntry.takeError());
       return false;
     }
-    llvm::BitstreamEntry entry = maybeEntry.get();
+    toolchain::BitstreamEntry entry = maybeEntry.get();
     switch (entry.Kind) {
-    case llvm::BitstreamEntry::EndBlock:
+    case toolchain::BitstreamEntry::EndBlock:
       return true;
 
-    case llvm::BitstreamEntry::Error:
+    case toolchain::BitstreamEntry::Error:
       return false;
 
-    case llvm::BitstreamEntry::SubBlock:
+    case toolchain::BitstreamEntry::SubBlock:
       if (entry.ID == DECL_MEMBER_TABLES_BLOCK_ID) {
         DeclMemberTablesCursor = cursor;
-        if (llvm::Error Err = DeclMemberTablesCursor.EnterSubBlock(
+        if (toolchain::Error Err = DeclMemberTablesCursor.EnterSubBlock(
                 DECL_MEMBER_TABLES_BLOCK_ID)) {
           // FIXME this drops the error on the floor.
           consumeError(std::move(Err));
           return false;
         }
-        llvm::BitstreamEntry subentry;
+        toolchain::BitstreamEntry subentry;
         do {
           // Scan forward, to load the cursor with any abbrevs we'll need while
           // seeking inside this block later.
-          Expected<llvm::BitstreamEntry> maybeEntry =
+          Expected<toolchain::BitstreamEntry> maybeEntry =
               DeclMemberTablesCursor.advance(
-                  llvm::BitstreamCursor::AF_DontPopBlockAtEnd);
+                  toolchain::BitstreamCursor::AF_DontPopBlockAtEnd);
           if (!maybeEntry) {
             // FIXME this drops the error on the floor.
             consumeError(maybeEntry.takeError());
@@ -891,14 +894,14 @@ bool ModuleFileSharedCore::readIndexBlock(llvm::BitstreamCursor &cursor) {
           }
           subentry = maybeEntry.get();
         } while (!DeclMemberTablesCursor.AtEndOfStream() &&
-                 subentry.Kind != llvm::BitstreamEntry::Record &&
-                 subentry.Kind != llvm::BitstreamEntry::EndBlock);
+                 subentry.Kind != toolchain::BitstreamEntry::Record &&
+                 subentry.Kind != toolchain::BitstreamEntry::EndBlock);
       }
       if (cursor.SkipBlock())
         return false;
       break;
 
-    case llvm::BitstreamEntry::Record:
+    case toolchain::BitstreamEntry::Record:
       scratch.clear();
       blobData = {};
       Expected<unsigned> maybeKind =
@@ -1037,7 +1040,7 @@ ModuleFileSharedCore::readDeclCommentTable(ArrayRef<uint64_t> fields,
 std::unique_ptr<ModuleFileSharedCore::GroupNameTable>
 ModuleFileSharedCore::readGroupTable(ArrayRef<uint64_t> Fields,
                                      StringRef BlobData) const {
-  auto pMap = std::make_unique<llvm::DenseMap<unsigned, StringRef>>();
+  auto pMap = std::make_unique<toolchain::DenseMap<unsigned, StringRef>>();
   auto Data = reinterpret_cast<const uint8_t *>(BlobData.data());
   unsigned GroupCount = readNext<uint32_t>(Data);
   for (unsigned I = 0; I < GroupCount; ++I) {
@@ -1049,8 +1052,8 @@ ModuleFileSharedCore::readGroupTable(ArrayRef<uint64_t> Fields,
   return std::unique_ptr<ModuleFileSharedCore::GroupNameTable>(pMap.release());
 }
 
-bool ModuleFileSharedCore::readCommentBlock(llvm::BitstreamCursor &cursor) {
-  if (llvm::Error Err = cursor.EnterSubBlock(COMMENT_BLOCK_ID)) {
+bool ModuleFileSharedCore::readCommentBlock(toolchain::BitstreamCursor &cursor) {
+  if (toolchain::Error Err = cursor.EnterSubBlock(COMMENT_BLOCK_ID)) {
     // FIXME this drops the error on the floor.
     consumeError(std::move(Err));
     return false;
@@ -1060,27 +1063,27 @@ bool ModuleFileSharedCore::readCommentBlock(llvm::BitstreamCursor &cursor) {
   StringRef blobData;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry = cursor.advance();
+    Expected<toolchain::BitstreamEntry> maybeEntry = cursor.advance();
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
       consumeError(maybeEntry.takeError());
       return false;
     }
-    llvm::BitstreamEntry entry = maybeEntry.get();
+    toolchain::BitstreamEntry entry = maybeEntry.get();
     switch (entry.Kind) {
-    case llvm::BitstreamEntry::EndBlock:
+    case toolchain::BitstreamEntry::EndBlock:
       return true;
 
-    case llvm::BitstreamEntry::Error:
+    case toolchain::BitstreamEntry::Error:
       return false;
 
-    case llvm::BitstreamEntry::SubBlock:
+    case toolchain::BitstreamEntry::SubBlock:
       // Unknown sub-block, which this version of the compiler won't use.
       if (cursor.SkipBlock())
         return false;
       break;
 
-    case llvm::BitstreamEntry::Record:
+    case toolchain::BitstreamEntry::Record:
       scratch.clear();
       Expected<unsigned> maybeKind =
           cursor.readRecord(entry.ID, scratch, &blobData);
@@ -1109,7 +1112,7 @@ bool ModuleFileSharedCore::readCommentBlock(llvm::BitstreamCursor &cursor) {
   return false;
 }
 
-static std::optional<swift::LibraryKind>
+static std::optional<language::LibraryKind>
 getActualLibraryKind(unsigned rawKind) {
   auto stableKind = static_cast<serialization::LibraryKind>(rawKind);
   if (stableKind != rawKind)
@@ -1117,9 +1120,9 @@ getActualLibraryKind(unsigned rawKind) {
 
   switch (stableKind) {
   case serialization::LibraryKind::Library:
-    return swift::LibraryKind::Library;
+    return language::LibraryKind::Library;
   case serialization::LibraryKind::Framework:
-    return swift::LibraryKind::Framework;
+    return language::LibraryKind::Framework;
   }
 
   // If there's a new case value in the module file, ignore it.
@@ -1166,20 +1169,20 @@ bool ModuleFileSharedCore::readModuleDocIfPresent(PathObfuscator &pathRecoverer)
   if (!this->ModuleDocInputBuffer)
     return true;
 
-  llvm::BitstreamCursor docCursor{ModuleDocInputBuffer->getMemBufferRef()};
-  if (!checkModuleSignature(docCursor, SWIFTDOC_SIGNATURE) ||
+  toolchain::BitstreamCursor docCursor{ModuleDocInputBuffer->getMemBufferRef()};
+  if (!checkModuleSignature(docCursor, LANGUAGEDOC_SIGNATURE) ||
       !enterTopLevelModuleBlock(docCursor, MODULE_DOC_BLOCK_ID)) {
     return false;
   }
 
   SmallVector<uint64_t, 64> scratch;
-  llvm::BitstreamEntry topLevelEntry;
+  toolchain::BitstreamEntry topLevelEntry;
 
   bool hasValidControlBlock = false;
   ValidationInfo info;
 
   while (!docCursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry =
+    Expected<toolchain::BitstreamEntry> maybeEntry =
         docCursor.advance(AF_DontPopBlockAtEnd);
     if (!maybeEntry) {
       // FIXME this drops the error on the floor.
@@ -1187,25 +1190,25 @@ bool ModuleFileSharedCore::readModuleDocIfPresent(PathObfuscator &pathRecoverer)
       return false;
     }
     topLevelEntry = maybeEntry.get();
-    if (topLevelEntry.Kind != llvm::BitstreamEntry::SubBlock)
+    if (topLevelEntry.Kind != toolchain::BitstreamEntry::SubBlock)
       break;
 
     switch (topLevelEntry.ID) {
     case CONTROL_BLOCK_ID: {
-      if (llvm::Error Err = docCursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
+      if (toolchain::Error Err = docCursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         return false;
       }
 
       info = validateControlBlock(
-          docCursor, scratch, {SWIFTDOC_VERSION_MAJOR, SWIFTDOC_VERSION_MINOR},
+          docCursor, scratch, {LANGUAGEDOC_VERSION_MAJOR, LANGUAGEDOC_VERSION_MINOR},
           RequiresOSSAModules,
           /*requiresRevisionMatch*/false,
           /*requiredSDK*/StringRef(), /*extendedInfo*/nullptr, pathRecoverer);
       if (info.status != Status::Valid)
         return false;
-      // Check that the swiftdoc is actually for this module.
+      // Check that the languagedoc is actually for this module.
       if (info.name != Name)
         return false;
       hasValidControlBlock = true;
@@ -1227,7 +1230,7 @@ bool ModuleFileSharedCore::readModuleDocIfPresent(PathObfuscator &pathRecoverer)
     }
   }
 
-  if (topLevelEntry.Kind != llvm::BitstreamEntry::EndBlock)
+  if (topLevelEntry.Kind != toolchain::BitstreamEntry::EndBlock)
     return false;
 
   return true;
@@ -1245,8 +1248,8 @@ ModuleFileSharedCore::readDeclUSRsTable(ArrayRef<uint64_t> fields,
                                    base));
 }
 
-bool ModuleFileSharedCore::readDeclLocsBlock(llvm::BitstreamCursor &cursor) {
-  if (llvm::Error Err = cursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
+bool ModuleFileSharedCore::readDeclLocsBlock(toolchain::BitstreamCursor &cursor) {
+  if (toolchain::Error Err = cursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
     consumeError(std::move(Err));
     return false;
   }
@@ -1255,25 +1258,25 @@ bool ModuleFileSharedCore::readDeclLocsBlock(llvm::BitstreamCursor &cursor) {
   StringRef blobData;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> entry = cursor.advance();
+    Expected<toolchain::BitstreamEntry> entry = cursor.advance();
     if (!entry) {
       consumeError(entry.takeError());
       return false;
     }
     switch (entry->Kind) {
-    case llvm::BitstreamEntry::EndBlock:
+    case toolchain::BitstreamEntry::EndBlock:
       return true;
 
-    case llvm::BitstreamEntry::Error:
+    case toolchain::BitstreamEntry::Error:
       return false;
 
-    case llvm::BitstreamEntry::SubBlock:
+    case toolchain::BitstreamEntry::SubBlock:
       // Unknown sub-block, which this version of the compiler won't use.
       if (cursor.SkipBlock())
         return false;
       break;
 
-    case llvm::BitstreamEntry::Record:
+    case toolchain::BitstreamEntry::Record:
       scratch.clear();
       Expected<unsigned> kind =
           cursor.readRecord(entry->ID, scratch, &blobData);
@@ -1312,9 +1315,9 @@ bool ModuleFileSharedCore::readModuleSourceInfoIfPresent(PathObfuscator &pathRec
   if (!this->ModuleSourceInfoInputBuffer)
     return true;
 
-  llvm::BitstreamCursor infoCursor{
+  toolchain::BitstreamCursor infoCursor{
       ModuleSourceInfoInputBuffer->getMemBufferRef()};
-  if (!checkModuleSignature(infoCursor, SWIFTSOURCEINFO_SIGNATURE) ||
+  if (!checkModuleSignature(infoCursor, LANGUAGESOURCEINFO_SIGNATURE) ||
       !enterTopLevelModuleBlock(infoCursor, MODULE_SOURCEINFO_BLOCK_ID)) {
     return false;
   }
@@ -1323,34 +1326,34 @@ bool ModuleFileSharedCore::readModuleSourceInfoIfPresent(PathObfuscator &pathRec
 
   bool hasValidControlBlock = false;
   ValidationInfo info;
-  unsigned kind = llvm::BitstreamEntry::Error;
+  unsigned kind = toolchain::BitstreamEntry::Error;
 
   while (!infoCursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> topLevelEntry =
+    Expected<toolchain::BitstreamEntry> topLevelEntry =
         infoCursor.advance(AF_DontPopBlockAtEnd);
     if (!topLevelEntry) {
       consumeError(topLevelEntry.takeError());
       return false;
     }
     kind = topLevelEntry->Kind;
-    if (kind != llvm::BitstreamEntry::SubBlock)
+    if (kind != toolchain::BitstreamEntry::SubBlock)
       break;
 
     switch (topLevelEntry->ID) {
     case CONTROL_BLOCK_ID: {
-      if (llvm::Error Err = infoCursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
+      if (toolchain::Error Err = infoCursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
         consumeError(std::move(Err));
         return false;
       }
       info = validateControlBlock(
           infoCursor, scratch,
-          {SWIFTSOURCEINFO_VERSION_MAJOR, SWIFTSOURCEINFO_VERSION_MINOR},
+          {LANGUAGESOURCEINFO_VERSION_MAJOR, LANGUAGESOURCEINFO_VERSION_MINOR},
           RequiresOSSAModules,
           /*requiresRevisionMatch*/false,
           /*requiredSDK*/StringRef(), /*extendedInfo*/nullptr, pathRecoverer);
       if (info.status != Status::Valid)
         return false;
-      // Check that the swiftsourceinfo is actually for this module.
+      // Check that the languagesourceinfo is actually for this module.
       if (info.name != Name)
         return false;
       hasValidControlBlock = true;
@@ -1372,7 +1375,7 @@ bool ModuleFileSharedCore::readModuleSourceInfoIfPresent(PathObfuscator &pathRec
     }
   }
 
-  if (kind != llvm::BitstreamEntry::EndBlock)
+  if (kind != toolchain::BitstreamEntry::EndBlock)
     return false;
 
   return true;
@@ -1390,9 +1393,9 @@ StringRef ModuleFileSharedCore::getModuleNameFromID(ModuleID MID) const {
     case SUBSCRIPT_ID:
     case CONSTRUCTOR_ID:
     case DESTRUCTOR_ID:
-      llvm_unreachable("Modules cannot be named with special names");
+      toolchain_unreachable("Modules cannot be named with special names");
     case NUM_SPECIAL_IDS:
-      llvm_unreachable("implementation detail only");
+      toolchain_unreachable("implementation detail only");
     }
   }
   return getIdentifierText(MID);
@@ -1418,9 +1421,9 @@ StringRef ModuleFileSharedCore::getIdentifierText(IdentifierID IID) const {
 }
 
 ModuleFileSharedCore::ModuleFileSharedCore(
-    std::unique_ptr<llvm::MemoryBuffer> moduleInputBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> moduleDocInputBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> moduleSourceInfoInputBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> moduleInputBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> moduleDocInputBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> moduleSourceInfoInputBuffer,
     bool isFramework,
     bool requiresOSSAModules,
     StringRef requiredSDK,
@@ -1434,9 +1437,9 @@ ModuleFileSharedCore::ModuleFileSharedCore(
 
   PrettyStackTraceModuleFileCore stackEntry(*this);
 
-  llvm::BitstreamCursor cursor{ModuleInputBuffer->getMemBufferRef()};
+  toolchain::BitstreamCursor cursor{ModuleInputBuffer->getMemBufferRef()};
 
-  if (!checkModuleSignature(cursor, SWIFTMODULE_SIGNATURE) ||
+  if (!checkModuleSignature(cursor, LANGUAGEMODULE_SIGNATURE) ||
       !enterTopLevelModuleBlock(cursor, MODULE_BLOCK_ID)) {
     info.status = error(Status::Malformed);
     return;
@@ -1447,10 +1450,10 @@ ModuleFileSharedCore::ModuleFileSharedCore(
   bool hasValidControlBlock = false;
   SmallVector<uint64_t, 64> scratch;
 
-  llvm::BitstreamEntry topLevelEntry;
+  toolchain::BitstreamEntry topLevelEntry;
 
   while (!cursor.AtEndOfStream()) {
-    Expected<llvm::BitstreamEntry> maybeEntry =
+    Expected<toolchain::BitstreamEntry> maybeEntry =
         cursor.advance(AF_DontPopBlockAtEnd);
     if (!maybeEntry) {
       // FIXME this drops the error diagnostic on the floor.
@@ -1459,12 +1462,12 @@ ModuleFileSharedCore::ModuleFileSharedCore(
       return;
     }
     topLevelEntry = maybeEntry.get();
-    if (topLevelEntry.Kind != llvm::BitstreamEntry::SubBlock)
+    if (topLevelEntry.Kind != toolchain::BitstreamEntry::SubBlock)
       break;
 
     switch (topLevelEntry.ID) {
     case CONTROL_BLOCK_ID: {
-      if (llvm::Error Err = cursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
+      if (toolchain::Error Err = cursor.EnterSubBlock(CONTROL_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         info.status = error(Status::Malformed);
@@ -1474,7 +1477,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
       ExtendedValidationInfo extInfo;
       info = validateControlBlock(
           cursor, scratch,
-          {SWIFTMODULE_VERSION_MAJOR, SWIFTMODULE_VERSION_MINOR},
+          {LANGUAGEMODULE_VERSION_MAJOR, LANGUAGEMODULE_VERSION_MINOR},
           RequiresOSSAModules,
           /*requiresRevisionMatch=*/true, requiredSDK,
           &extInfo, pathRecoverer);
@@ -1492,7 +1495,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
       Bits.IsSIB = extInfo.isSIB();
       Bits.IsStaticLibrary = extInfo.isStaticLibrary();
       Bits.HasHermeticSealAtLink = extInfo.hasHermeticSealAtLink();
-      Bits.IsEmbeddedSwiftModule = extInfo.isEmbeddedSwiftModule();
+      Bits.IsEmbeddedCodiraModule = extInfo.isEmbeddedCodiraModule();
       Bits.IsTestable = extInfo.isTestable();
       Bits.ResilienceStrategy = unsigned(extInfo.getResilienceStrategy());
       Bits.IsImplicitDynamicEnabled = extInfo.isImplicitDynamicEnabled();
@@ -1511,8 +1514,8 @@ ModuleFileSharedCore::ModuleFileSharedCore(
       ModulePackageName = extInfo.getModulePackageName();
       ModuleExportAsName = extInfo.getExportAsName();
       PublicModuleName = extInfo.getPublicModuleName();
-      SwiftInterfaceCompilerVersion =
-          extInfo.getSwiftInterfaceCompilerVersion();
+      CodiraInterfaceCompilerVersion =
+          extInfo.getCodiraInterfaceCompilerVersion();
 
       hasValidControlBlock = true;
       break;
@@ -1524,22 +1527,22 @@ ModuleFileSharedCore::ModuleFileSharedCore(
         return;
       }
 
-      if (llvm::Error Err = cursor.EnterSubBlock(INPUT_BLOCK_ID)) {
+      if (toolchain::Error Err = cursor.EnterSubBlock(INPUT_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         info.status = error(Status::Malformed);
         return;
       }
 
-      Expected<llvm::BitstreamEntry> maybeNext = cursor.advance();
+      Expected<toolchain::BitstreamEntry> maybeNext = cursor.advance();
       if (!maybeNext) {
         // FIXME this drops the error on the floor.
         consumeError(maybeNext.takeError());
         info.status = error(Status::Malformed);
         return;
       }
-      llvm::BitstreamEntry next = maybeNext.get();
-      while (next.Kind == llvm::BitstreamEntry::Record) {
+      toolchain::BitstreamEntry next = maybeNext.get();
+      while (next.Kind == toolchain::BitstreamEntry::Record) {
         scratch.clear();
         StringRef blobData;
         Expected<unsigned> maybeKind =
@@ -1570,7 +1573,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
           if (hasSPI) {
             scratch.clear();
 
-            llvm::BitstreamEntry entry =
+            toolchain::BitstreamEntry entry =
                 fatalIfUnexpected(cursor.advance(AF_DontPopBlockAtEnd));
             unsigned recordID = fatalIfUnexpected(
                 cursor.readRecord(entry.ID, scratch, &spiBlob));
@@ -1597,7 +1600,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
           // results in significant code size increase on Windows.
           //
           // We propogate it on Darwin as ld64 has special handling for
-          // preserving the Swift conformances. The `_swift_FORCE_LOAD_$_`
+          // preserving the Codira conformances. The `_language_FORCE_LOAD_$_`
           // symbols will force the static library to be scanned for inclusion.
           // The other platforms do not have this special handling and so this
           // will only slow down the linker and not guarantee any conformances
@@ -1607,7 +1610,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
           // When using dynamic libraries, the force load symbol will force the
           // shared library to be loaded and register the conformances.
           bool EmitForceLinkSymbol = shouldForceLink;
-          if (!llvm::Triple(TargetTriple).isOSDarwin())
+          if (!toolchain::Triple(TargetTriple).isOSDarwin())
             EmitForceLinkSymbol = !isStaticLibrary && shouldForceLink;
           if (auto libKind = getActualLibraryKind(rawKind))
             LinkLibraries.emplace_back(blobData, *libKind, isStaticLibrary,
@@ -1675,7 +1678,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
         next = maybeNext.get();
       }
 
-      if (next.Kind != llvm::BitstreamEntry::EndBlock)
+      if (next.Kind != toolchain::BitstreamEntry::EndBlock)
         info.status = error(Status::Malformed);
 
       break;
@@ -1690,7 +1693,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
       // The decls-and-types block is lazily loaded. Save the cursor and load
       // any abbrev records at the start of the block.
       DeclTypeCursor = cursor;
-      if (llvm::Error Err =
+      if (toolchain::Error Err =
               DeclTypeCursor.EnterSubBlock(DECLS_AND_TYPES_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
@@ -1698,14 +1701,14 @@ ModuleFileSharedCore::ModuleFileSharedCore(
         return;
       }
 
-      Expected<llvm::BitstreamEntry> maybeCursor = DeclTypeCursor.advance();
+      Expected<toolchain::BitstreamEntry> maybeCursor = DeclTypeCursor.advance();
       if (!maybeCursor) {
         // FIXME this drops the error on the floor.
         consumeError(maybeCursor.takeError());
         info.status = error(Status::Malformed);
         return;
       }
-      if (maybeCursor.get().Kind == llvm::BitstreamEntry::Error)
+      if (maybeCursor.get().Kind == toolchain::BitstreamEntry::Error)
         info.status = error(Status::Malformed);
 
       // With the main cursor, skip over the block and continue.
@@ -1722,14 +1725,14 @@ ModuleFileSharedCore::ModuleFileSharedCore(
         return;
       }
 
-      if (llvm::Error Err = cursor.EnterSubBlock(IDENTIFIER_DATA_BLOCK_ID)) {
+      if (toolchain::Error Err = cursor.EnterSubBlock(IDENTIFIER_DATA_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         info.status = error(Status::Malformed);
         return;
       }
 
-      Expected<llvm::BitstreamEntry> maybeNext =
+      Expected<toolchain::BitstreamEntry> maybeNext =
           cursor.advanceSkippingSubblocks();
       if (!maybeNext) {
         // FIXME this drops the error on the floor.
@@ -1737,8 +1740,8 @@ ModuleFileSharedCore::ModuleFileSharedCore(
         info.status = error(Status::Malformed);
         return;
       }
-      llvm::BitstreamEntry next = maybeNext.get();
-      while (next.Kind == llvm::BitstreamEntry::Record) {
+      toolchain::BitstreamEntry next = maybeNext.get();
+      while (next.Kind == toolchain::BitstreamEntry::Record) {
         scratch.clear();
         StringRef blobData;
         Expected<unsigned> maybeKind =
@@ -1772,7 +1775,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
         next = maybeNext.get();
       }
 
-      if (next.Kind != llvm::BitstreamEntry::EndBlock) {
+      if (next.Kind != toolchain::BitstreamEntry::EndBlock) {
         info.status = error(Status::Malformed);
         return;
       }
@@ -1791,7 +1794,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
     case SIL_INDEX_BLOCK_ID: {
       // Save the cursor.
       SILIndexCursor = cursor;
-      if (llvm::Error Err = SILIndexCursor.EnterSubBlock(SIL_INDEX_BLOCK_ID)) {
+      if (toolchain::Error Err = SILIndexCursor.EnterSubBlock(SIL_INDEX_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         info.status = error(Status::Malformed);
@@ -1809,7 +1812,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
     case SIL_BLOCK_ID: {
       // Save the cursor.
       SILCursor = cursor;
-      if (llvm::Error Err = SILCursor.EnterSubBlock(SIL_BLOCK_ID)) {
+      if (toolchain::Error Err = SILCursor.EnterSubBlock(SIL_BLOCK_ID)) {
         // FIXME this drops the error on the floor.
         consumeError(std::move(Err));
         info.status = error(Status::Malformed);
@@ -1846,7 +1849,7 @@ ModuleFileSharedCore::ModuleFileSharedCore(
     }
   }
 
-  if (topLevelEntry.Kind != llvm::BitstreamEntry::EndBlock) {
+  if (topLevelEntry.Kind != toolchain::BitstreamEntry::EndBlock) {
     info.status = error(Status::Malformed);
     return;
   }
@@ -1867,9 +1870,9 @@ std::string ModuleFileSharedCore::resolveModuleDefiningFilePath(const StringRef 
     std::string interfacePath = ModuleInterfacePath.str();
     if (IsModuleInterfaceSDKRelative &&
         !ModuleInterfacePath.starts_with(SDKPath) &&
-        llvm::sys::path::is_relative(interfacePath)) {
+        toolchain::sys::path::is_relative(interfacePath)) {
       SmallString<128> resolvedPath(SDKPath);
-      llvm::sys::path::append(resolvedPath, interfacePath);
+      toolchain::sys::path::append(resolvedPath, interfacePath);
       return resolvedPath.str().str();
     } else
       return interfacePath;

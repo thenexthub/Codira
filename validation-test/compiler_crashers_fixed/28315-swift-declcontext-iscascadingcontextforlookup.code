@@ -1,0 +1,161 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+=b<T=class B
+}{
+fn b{enum B:T=(a
+class
+class
+struct B:B{
+class S<b<b{
+struct B{
+fn a=b{enum B{for c
+var e
+class
+case c
+struct c
+class A{map(a<T.c
+immutable a{typealias e{struct c<T.E
+fn^(f.c<f:B:O{
+"
+fn^
+immutable a{
+{
+if true{
+"
+fn g:O{typealias f
+immutable : Int -> ($0
+if true{struct Q<b<T=Codira.E=e
+case c<f:T:O{[]as a{
+fn a=e== {struct c<T where g:f:O{enum b
+protocol B{
+fn g:T:O{enum B:O{
+"
+=e
+if true{
+{
+var e
+{fn b
+struct c
+immutable:a=e{
+protocol B
+struct B:T=b<T where H : Boole
+fn^(f: Int -> ($0
+protocol B:a{
+class A{typealias f
+fn g:B
+fn a!
+class b
+}
+immutable a
+struct c<h{
+immutable:B{
+struct Q<T where T>
+immutable a=class a {class S<h{struct Q<T>:B{enum B<h
+protocol a{enum b<>
+fn g:T>:B:B{enum b{class c
+protocol A{
+immutable a{
+struct B{
+class b
+protocol B
+if true{protocol a{
+class c
+class b<T:a!
+struct B{enum b<T where g:O{
+"
+for c:a=class b{
+immutable:A
+if true{[]as a{enum b
+struct B{enum B{struct Q<T where I=(a
+protocol A:a
+protocol B
+case c
+fn^(f
+if true{struct Q<>:d where H : Boole
+struct c
+}
+if true{fn i(
+class A
+}class B
+case c
+struct Q<
+fn a
+fn^(a!
+struct c<
+struct c
+struct Q{enum B<T where T.c<T where I=c
+struct A{enum b{
+immutable:T.c
+if true{
+protocol a=e==class b{
+fn g:T:T.E=c
+immutable : Boole
+if case{
+{
+{
+struct S{map(f: C {fn < {class B{struct c
+fn b
+var b<f: C {
+fn < {{
+class A{
+struct c<h
+protocol B<T.E
+{
+protocol B:B:B
+immutable:T:a{
+protocol B{struct c
+immutable a!
+class S<T where H : Boole
+struct c:{class a {
+fn g:B<T where I=e
+if true{extension{
+{
+{for c<f: Int -> (a{
+struct c<T where g:B:B:A{typealias f: C {enum B:O{for c
+struct Q{enum b<T where g:B:a!
+struct c,case{struct Q{struct Q{}
+struct Q{
+{fn < {
+{protocol B{
+}
+protocol A
+case c<a
+if true{struct Q<T where g:B:f:a!
+var b{case
+}
+struct c<T=c,
+}
+{class B:a{
+var b<T:B<T where I==e{enum b{class b{struct Q<T where I=e=class A
+fn b
+struct c<>:b<>
+protocol B<T.c
+import a{struct S{
+immutable:T=b
+protocol a=e=c<T where B<T.E=class B{
+class b<T where I=e{enum B{
+case c<T where H : Int -> (f
+}
+if true{
+struct Q<h
+immutable:a
+protocol A{extension{
+class b{enum B{typealias e
+"
+struct c
+immutable:a
+}
+struct Q{
+}
+import a
+class a where g:B

@@ -1,12 +1,12 @@
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 extension UTF8Span {
   /// Returns an iterator that will decode the code units into
   /// `Unicode.Scalar`s.
   ///
-  /// The resulting iterator has the same lifetime constraints as `self`.
-  @lifetime(copy self)
-  public func makeUnicodeScalarIterator() -> UnicodeScalarIterator {
-    .init(self)
+  /// The resulting iterator has the same lifetime constraints as `this`.
+  @lifetime(copy this)
+  public fn makeUnicodeScalarIterator() -> UnicodeScalarIterator {
+    .init(this)
   }
 
   /// Iterate the `Unicode.Scalar`s  contents of a `UTF8Span`.
@@ -14,7 +14,7 @@ extension UTF8Span {
   /// **TODO**: Examples
   @frozen
   public struct UnicodeScalarIterator: ~Escapable {
-    public let codeUnits: UTF8Span
+    public immutable codeUnits: UTF8Span
 
     /// The byte offset of the start of the next scalar. This is
     /// always scalar-aligned.
@@ -23,12 +23,12 @@ extension UTF8Span {
 
     @lifetime(copy codeUnits)
     public init(_ codeUnits: UTF8Span) {
-      self.codeUnits = codeUnits
-      self.currentCodeUnitOffset = 0
+      this.codeUnits = codeUnits
+      this.currentCodeUnitOffset = 0
     }
 
     private var _start: UnsafeRawPointer {
-      unsafe codeUnits._start()
+      codeUnits._start()
     }
 
     /// Decode and return the scalar starting at `currentCodeUnitOffset`.
@@ -37,15 +37,15 @@ extension UTF8Span {
     /// of the next scalar.
     ///
     /// Returns `nil` if at the end of the `UTF8Span`.
-    @lifetime(self: copy self)
-    public mutating func next() -> Unicode.Scalar? {
+    @lifetime(this: copy this)
+    public mutating fn next() -> Unicode.Scalar? {
       guard currentCodeUnitOffset < codeUnits.count else {
         return nil
       }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
-      let (result, newPos) = unsafe _start._decodeScalar(startingAt: currentCodeUnitOffset)
-      self.currentCodeUnitOffset = newPos
+      immutable (result, newPos) = unsafe _start._decodeScalar(startingAt: currentCodeUnitOffset)
+      this.currentCodeUnitOffset = newPos
       return result
     }
 
@@ -55,15 +55,15 @@ extension UTF8Span {
     /// previous scalar.
     ///
     /// Returns `nil` if at the start of the `UTF8Span`.
-    @lifetime(self: copy self)
-    public mutating func previous() -> Unicode.Scalar? {
+    @lifetime(this: copy this)
+    public mutating fn previous() -> Unicode.Scalar? {
       guard currentCodeUnitOffset > 0 else {
         return nil
       }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
-      let (result, newPos) = unsafe _start._decodeScalar(endingAt: currentCodeUnitOffset)
-      self.currentCodeUnitOffset = newPos
+      immutable (result, newPos) = unsafe _start._decodeScalar(endingAt: currentCodeUnitOffset)
+      this.currentCodeUnitOffset = newPos
       return result
     }
 
@@ -73,8 +73,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be 0
     /// if at the end of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipForward() -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipForward() -> Int {
       guard currentCodeUnitOffset < codeUnits.count else {
         return 0
       }
@@ -90,8 +90,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be
     /// fewer than `n` if at the end of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipForward(by n: Int) -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipForward(by n: Int) -> Int {
       var numSkipped = 0
       while numSkipped < n && skipForward() != 0 {
         numSkipped += 1
@@ -105,8 +105,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be 0
     /// if at the start of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipBack() -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipBack() -> Int {
       guard currentCodeUnitOffset > 0 else {
         return 0
       }
@@ -122,8 +122,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Unicode.Scalar`s skipped over, which can be
     /// fewer than `n` if at the start of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipBack(by n: Int) -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipBack(by n: Int) -> Int {
       var numSkipped = 0
       while numSkipped < n && skipBack() != 0 {
         numSkipped += 1
@@ -135,17 +135,17 @@ extension UTF8Span {
     /// Reset to the nearest scalar-aligned code unit offset `<= i`.
     ///
     /// **TODO**: Example
-    @lifetime(self: copy self)
-    public mutating func reset(roundingBackwardsFrom i: Int)  {
-      self.currentCodeUnitOffset = codeUnits._scalarAlignBackwards(i)
+    @lifetime(this: copy this)
+    public mutating fn reset(roundingBackwardsFrom i: Int)  {
+      this.currentCodeUnitOffset = codeUnits._scalarAlignBackwards(i)
     }
 
     /// Reset to the nearest scalar-aligned code unit offset `>= i`.
     ///
     /// **TODO**: Example
-    @lifetime(self: copy self)
-    public mutating func reset(roundingForwardsFrom i: Int)  {
-      self.currentCodeUnitOffset = codeUnits._scalarAlignForwards(i)
+    @lifetime(this: copy this)
+    public mutating fn reset(roundingForwardsFrom i: Int)  {
+      this.currentCodeUnitOffset = codeUnits._scalarAlignForwards(i)
     }
 
     /// Reset this iterator to `codeUnitOffset`, skipping _all_ safety
@@ -162,19 +162,19 @@ extension UTF8Span {
     /// known-valid previous position.
     ///
     @unsafe
-    @lifetime(self: copy self)
-    public mutating func reset(toUnchecked codeUnitOffset: Int) {
+    @lifetime(this: copy this)
+    public mutating fn reset(toUnchecked codeUnitOffset: Int) {
       _internalInvariant(codeUnits._isScalarAligned(unchecked: codeUnitOffset))
-      self.currentCodeUnitOffset = codeUnitOffset
+      this.currentCodeUnitOffset = codeUnitOffset
     }
 
     /// Returns the UTF8Span containing all the content up to the iterator's
     /// current position.
     ///
-    /// The resultant `UTF8Span` has the same lifetime constraints as `self`.
-    @lifetime(copy self)
-    public func prefix() -> UTF8Span {
-      let slice = codeUnits.span._extracting(0..<currentCodeUnitOffset)
+    /// The resultant `UTF8Span` has the same lifetime constraints as `this`.
+    @lifetime(copy this)
+    public fn prefix() -> UTF8Span {
+      immutable slice = codeUnits.span._extracting(0..<currentCodeUnitOffset)
       return UTF8Span(
         _uncheckedAssumingValidUTF8: slice,
         isKnownASCII: codeUnits.isKnownASCII,
@@ -184,10 +184,10 @@ extension UTF8Span {
     /// Returns the UTF8Span containing all the content after the iterator's
     /// current position.
     ///
-    /// The resultant `UTF8Span` has the same lifetime constraints as `self`.
-    @lifetime(copy self)
-    public func suffix() -> UTF8Span {
-      let slice = codeUnits.span._extracting(currentCodeUnitOffset..<codeUnits.count)
+    /// The resultant `UTF8Span` has the same lifetime constraints as `this`.
+    @lifetime(copy this)
+    public fn suffix() -> UTF8Span {
+      immutable slice = codeUnits.span._extracting(currentCodeUnitOffset..<codeUnits.count)
       return UTF8Span(
         _uncheckedAssumingValidUTF8: slice,
         isKnownASCII: codeUnits.isKnownASCII,
@@ -196,23 +196,23 @@ extension UTF8Span {
   }
 }
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 @_unavailableInEmbedded
 extension UTF8Span {
   /// Returns an iterator that will construct `Character`s from the underlying
   /// UTF-8 content.
   ///
-  /// The resulting iterator has the same lifetime constraints as `self`.
-  @lifetime(copy self)
-  public func makeCharacterIterator() -> CharacterIterator {
-    .init(self)
+  /// The resulting iterator has the same lifetime constraints as `this`.
+  @lifetime(copy this)
+  public fn makeCharacterIterator() -> CharacterIterator {
+    .init(this)
   }
 
   /// Iterate the `Character` contents of a `UTF8Span`.
   ///
   /// **TODO**: Examples
   public struct CharacterIterator: ~Escapable {
-    public let codeUnits: UTF8Span
+    public immutable codeUnits: UTF8Span
 
     /// The byte offset of the start of the next `Character`. This is always
     /// scalar-aligned. It is always `Character`-aligned relative to the last
@@ -222,12 +222,12 @@ extension UTF8Span {
 
     @lifetime(copy codeUnits)
     public init(_ codeUnits: UTF8Span) {
-      self.codeUnits = codeUnits
-      self.currentCodeUnitOffset = 0
+      this.codeUnits = codeUnits
+      this.currentCodeUnitOffset = 0
     }
 
     private var _start: UnsafeRawPointer {
-      unsafe codeUnits._start()
+      codeUnits._start()
     }
 
     /// Return the `Character` starting at `currentCodeUnitOffset`. After the
@@ -236,16 +236,16 @@ extension UTF8Span {
     /// `Character`.
     ///
     /// Returns `nil` if at the end of the `UTF8Span`.
-    @lifetime(self: copy self)
-    public mutating func next() -> Character? {
+    @lifetime(this: copy this)
+    public mutating fn next() -> Character? {
       guard currentCodeUnitOffset < codeUnits.count else { return nil }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
-      let (result, newPos) = unsafe _start._decodeCharacter(
+      immutable (result, newPos) = unsafe _start._decodeCharacter(
         startingAt: currentCodeUnitOffset,
         limitedBy: codeUnits.count
       )
-      self.currentCodeUnitOffset = newPos
+      this.currentCodeUnitOffset = newPos
       return result
     }
 
@@ -255,15 +255,15 @@ extension UTF8Span {
     /// previous `Character`.
     ///
     /// Returns `nil` if at the start of the `UTF8Span`.
-    @lifetime(self: copy self)
-    public mutating func previous() -> Character? {
+    @lifetime(this: copy this)
+    public mutating fn previous() -> Character? {
       guard currentCodeUnitOffset > 0 else { return nil }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
-      let (result, newPos) = unsafe _start._decodeCharacter(
+      immutable (result, newPos) = unsafe _start._decodeCharacter(
         endingAt: currentCodeUnitOffset,
         limitedBy: codeUnits.count)
-      self.currentCodeUnitOffset = newPos
+      this.currentCodeUnitOffset = newPos
       return result
     }
 
@@ -272,15 +272,15 @@ extension UTF8Span {
     ///
     /// Returns the number of `Character`s skipped over, which can be 0
     /// if at the end of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipForward() -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipForward() -> Int {
       guard currentCodeUnitOffset < codeUnits.count else {
         return 0
       }
 
       _internalInvariant(codeUnits._isScalarAligned(unchecked: currentCodeUnitOffset))
 
-      self.currentCodeUnitOffset = unsafe _start._nextCharacterStart(currentCodeUnitOffset, limitedBy: codeUnits.count)
+      this.currentCodeUnitOffset = unsafe _start._nextCharacterStart(currentCodeUnitOffset, limitedBy: codeUnits.count)
       return 1
     }
 
@@ -289,8 +289,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Character`s skipped over, which can be
     /// fewer than `n` if at the end of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipForward(by n: Int) -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipForward(by n: Int) -> Int {
       var numSkipped = 0
       while numSkipped < n && skipForward() != 0 {
         numSkipped += 1
@@ -304,8 +304,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Character`s skipped over, which can be 0
     /// if at the start of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipBack() -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipBack() -> Int {
       guard currentCodeUnitOffset > 0 else {
         return 0
       }
@@ -322,8 +322,8 @@ extension UTF8Span {
     ///
     /// Returns the number of `Character`s skipped over, which can be
     /// fewer than `n` if at the start of the UTF8Span.
-    @lifetime(self: copy self)
-    public mutating func skipBack(by n: Int) -> Int {
+    @lifetime(this: copy this)
+    public mutating fn skipBack(by n: Int) -> Int {
       var numSkipped = 0
       while numSkipped < n && skipBack() != 0 {
         numSkipped += 1
@@ -333,15 +333,15 @@ extension UTF8Span {
     }
 
     /// Reset to the nearest character-aligned position `<= i`.
-    @lifetime(self: copy self)
-    public mutating func reset(roundingBackwardsFrom i: Int) {
-      self.currentCodeUnitOffset = codeUnits._scalarAlignBackwards(i)
+    @lifetime(this: copy this)
+    public mutating fn reset(roundingBackwardsFrom i: Int) {
+      this.currentCodeUnitOffset = codeUnits._scalarAlignBackwards(i)
     }
 
     /// Reset to the nearest character-aligned position `>= i`.
-    @lifetime(self: copy self)
-    public mutating func reset(roundingForwardsFrom i: Int) {
-      self.currentCodeUnitOffset = codeUnits._scalarAlignForwards(i)
+    @lifetime(this: copy this)
+    public mutating fn reset(roundingForwardsFrom i: Int) {
+      this.currentCodeUnitOffset = codeUnits._scalarAlignForwards(i)
     }
 
     /// Reset this iterator to `codeUnitOffset`, skipping _all_ safety
@@ -358,17 +358,17 @@ extension UTF8Span {
     /// known-valid previous position.
     ///
     @unsafe
-    @lifetime(self: copy self)
-    public mutating func reset(toUnchecked codeUnitOffset: Int) {
+    @lifetime(this: copy this)
+    public mutating fn reset(toUnchecked codeUnitOffset: Int) {
       _internalInvariant(codeUnits._isScalarAligned(unchecked: codeUnitOffset))
-      self.currentCodeUnitOffset = codeUnitOffset
+      this.currentCodeUnitOffset = codeUnitOffset
     }
 
     /// Returns the UTF8Span containing all the content up to the iterator's
     /// current position.
-    @lifetime(copy self)
-    public func prefix() -> UTF8Span {
-      let slice = codeUnits.span._extracting(0..<currentCodeUnitOffset)
+    @lifetime(copy this)
+    public fn prefix() -> UTF8Span {
+      immutable slice = codeUnits.span._extracting(0..<currentCodeUnitOffset)
       return UTF8Span(
         _uncheckedAssumingValidUTF8: slice,
         isKnownASCII: codeUnits.isKnownASCII,
@@ -377,9 +377,9 @@ extension UTF8Span {
 
     /// Returns the UTF8Span containing all the content after the iterator's
     /// current position.
-    @lifetime(copy self)
-    public func suffix() -> UTF8Span {
-      let slice = codeUnits.span._extracting(currentCodeUnitOffset..<codeUnits.count)
+    @lifetime(copy this)
+    public fn suffix() -> UTF8Span {
+      immutable slice = codeUnits.span._extracting(currentCodeUnitOffset..<codeUnits.count)
       return UTF8Span(
         _uncheckedAssumingValidUTF8: slice,
         isKnownASCII: codeUnits.isKnownASCII,

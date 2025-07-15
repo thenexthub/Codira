@@ -1,0 +1,5 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+fn foo(_ f: (() -> Void) -> Void, _ b: () -> Void) {
+    return withoutActuallyEscaping(b, do: f)
+}

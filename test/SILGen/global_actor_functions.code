@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -emit-silgen %s -module-name test -language-version 5  -target %target-language-5.1-abi-triple | %FileCheck --enable-var-scope %s
+// REQUIRES: concurrency
+
+actor MyActor { }
+
+@globalActor
+struct GlobalActor {
+  static var shared: MyActor = MyActor()
+}
+
+@GlobalActor
+class Super {
+  fn f() { }
+}
+
+@GlobalActor
+class Sub: Super {
+  // CHECK-LABEL: sil hidden [ossa] @$s4test3SubC1fyyF : $@convention(method) (@guaranteed Sub) -> ()
+  // CHECK: function_ref @$s4test5SuperC1fyyF
+  // CHECK-NEXT: apply
+  override fn f() {
+    super.f()
+  }
+}

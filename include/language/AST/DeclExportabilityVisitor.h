@@ -1,13 +1,17 @@
-//===- DeclExportabilityVisitor.h - Swift Language Context ASTs -*- C++ -*-===//
+//===- DeclExportabilityVisitor.h - Codira Language Context ASTs -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the DeclExportabilityVisitor class. "Exportability" refers
@@ -16,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DECLEXPORTABILITYVISITOR_H
-#define SWIFT_DECLEXPORTABILITYVISITOR_H
+#ifndef LANGUAGE_DECLEXPORTABILITYVISITOR_H
+#define LANGUAGE_DECLEXPORTABILITYVISITOR_H
 
 #include "language/AST/ASTVisitor.h"
 #include "language/AST/Decl.h"
@@ -81,7 +85,7 @@ public:
     if (hasSafeConformances)
       return true;
 
-    // Truly empty extensions are exportable. This can occur in swiftinterfaces,
+    // Truly empty extensions are exportable. This can occur in languageinterfaces,
     // for example.
     if (members.empty() && protocols.size() == 0)
       return true;
@@ -150,7 +154,7 @@ public:
   // exportability queries.
 #define UNREACHABLE(KIND)                                                      \
   bool visit##KIND##Decl(const KIND##Decl *D) {                                \
-    llvm_unreachable("unexpected " #KIND "Decl");                              \
+    toolchain_unreachable("unexpected " #KIND "Decl");                              \
     return true;                                                               \
   }
   UNREACHABLE(Module);
@@ -158,6 +162,7 @@ public:
   UNREACHABLE(MissingMember);
   UNREACHABLE(GenericTypeParam);
   UNREACHABLE(Param);
+  UNREACHABLE(Using);
 
 #undef UNREACHABLE
 

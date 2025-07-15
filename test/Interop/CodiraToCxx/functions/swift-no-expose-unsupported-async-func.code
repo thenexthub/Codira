@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -target %target-language-5.1-abi-triple -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h)
+
+// CHECK-NOT: LANGUAGE_EXTERN double $s9Functions9asyncFuncyS2dYaF(double x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // asyncFunc(_:)
+
+// CHECK:       namespace Functions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Functions") {
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK: // Unavailable in C++: Codira global function 'asyncFunc(_:)'.
+// CHECK-EMPTY:
+// CHECK-NEXT:  } // namespace Functions
+
+// REQUIRES: concurrency
+
+public fn asyncFunc(_ x: Double) async -> Double { return 2 * x }

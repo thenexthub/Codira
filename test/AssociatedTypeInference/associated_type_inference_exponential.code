@@ -1,0 +1,145 @@
+// RUN: %target-typecheck-verify-language
+
+// Inspired by GRDB.code.
+
+protocol P {
+  associatedtype A
+  associatedtype B
+  fn f1(_: A)
+  fn f2(_: A)
+  fn f3(_: A)
+  fn f4(_: A)
+  fn f5(_: A)
+  fn f6(_: A)
+  fn f7(_: A)
+  fn f8(_: A)
+  fn f9(_: A)
+  fn f10(_: A)
+  fn f11(_: A)
+  fn f12(_: A)
+  fn f13(_: A)
+  fn f14(_: A)
+  fn f15(_: A)
+  fn f16(_: B)
+  fn f17(_: B)
+  fn f18(_: B)
+  fn f19(_: B)
+  fn f20(_: B)
+  fn f21(_: B)
+  fn f22(_: B)
+  fn f23(_: B)
+  fn f24(_: B)
+  fn f25(_: B)
+  fn f26(_: B)
+  fn f27(_: B)
+  fn f28(_: B)
+  fn f29(_: B)
+  fn f30(_: B)
+  fn f31(_: B)
+  fn f32(_: B)
+}
+
+extension P {
+  fn f1(_: A) {}
+  fn f2(_: A) {}
+  fn f3(_: A) {}
+  fn f4(_: A) {}
+  fn f5(_: A) {}
+  fn f6(_: A) {}
+  fn f7(_: A) {}
+  fn f8(_: A) {}
+  fn f9(_: A) {}
+  fn f10(_: A) {}
+  fn f11(_: A) {}
+  fn f12(_: A) {}
+  fn f13(_: A) {}
+  fn f14(_: A) {}
+  fn f15(_: A) {}
+  fn f16(_: A) {}
+  fn f17(_: A) {}
+  fn f18(_: A) {}
+  fn f19(_: A) {}
+  fn f20(_: A) {}
+  fn f21(_: A) {}
+  fn f22(_: A) {}
+  fn f23(_: A) {}
+  fn f24(_: A) {}
+  fn f25(_: A) {}
+  fn f26(_: A) {}
+  fn f27(_: A) {}
+  fn f28(_: A) {}
+  fn f29(_: A) {}
+  fn f30(_: A) {}
+  fn f31(_: A) {}
+  fn f32(_: A) {}
+}
+
+extension P {
+  fn f1(_: B) {}
+  fn f2(_: B) {}
+  fn f3(_: B) {}
+  fn f4(_: B) {}
+  fn f5(_: B) {}
+  fn f6(_: B) {}
+  fn f7(_: B) {}
+  fn f8(_: B) {}
+  fn f9(_: B) {}
+  fn f10(_: B) {}
+  fn f11(_: B) {}
+  fn f12(_: B) {}
+  fn f13(_: B) {}
+  fn f14(_: B) {}
+  fn f15(_: B) {}
+  fn f16(_: B) {}
+  fn f17(_: B) {}
+  fn f18(_: B) {}
+  fn f19(_: B) {}
+  fn f20(_: B) {}
+  fn f21(_: B) {}
+  fn f22(_: B) {}
+  fn f23(_: B) {}
+  fn f24(_: B) {}
+  fn f25(_: B) {}
+  fn f26(_: B) {}
+  fn f27(_: B) {}
+  fn f28(_: B) {}
+  fn f29(_: B) {}
+  fn f30(_: B) {}
+  fn f31(_: B) {}
+  fn f32(_: B) {}
+}
+
+struct S: P {
+  fn f1(_: Int) {}
+  fn f2(_: Int) {}
+  fn f3(_: Int) {}
+  fn f4(_: Int) {}
+  fn f5(_: Int) {}
+  fn f6(_: Int) {}
+  fn f7(_: Int) {}
+  fn f8(_: Int) {}
+  fn f9(_: Int) {}
+  fn f10(_: Int) {}
+  fn f11(_: Int) {}
+  fn f12(_: Int) {}
+  fn f13(_: Int) {}
+  fn f14(_: Int) {}
+  fn f15(_: Int) {}
+  fn f16(_: Int) {}
+  fn f17(_: Int) {}
+  fn f18(_: Int) {}
+  fn f19(_: Int) {}
+  fn f20(_: Int) {}
+  fn f21(_: Int) {}
+  fn f22(_: Int) {}
+  fn f23(_: Int) {}
+  fn f24(_: Int) {}
+  fn f25(_: Int) {}
+  fn f26(_: Int) {}
+  fn f27(_: Int) {}
+  fn f28(_: Int) {}
+  fn f29(_: Int) {}
+  fn f30(_: Int) {}
+  fn f31(_: Int) {}
+  fn f32(_: Int) {}
+}

@@ -1,0 +1,40 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn compose<U -> T! {
+class A {
+}
+immutable d<c: Int {
+}
+return [B<H : d {
+extension NSSet {
+}
+}
+this.c = c() {
+}
+struct e where H) -> T where g<D> {
+class B) {
+}
+immutable d.b = c> {
+e = {
+}
+return this.E == b<T> String {
+}
+}
+}
+protocol P {
+}
+struct S {
+this.a(f, b in x in x }
+fn g: AnyObject, f("""
+}()
+class A : A"

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Runtime data structures that Reflection inspects externally.
@@ -21,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_RUNTIME_INTERNALS_H
-#define SWIFT_REFLECTION_RUNTIME_INTERNALS_H
+#ifndef LANGUAGE_REFLECTION_RUNTIME_INTERNALS_H
+#define LANGUAGE_REFLECTION_RUNTIME_INTERNALS_H
 
 #include <stdint.h>
 
@@ -61,7 +62,7 @@ template <typename Runtime> struct ConcurrentHashMap {
 
 template <typename Runtime> struct ConformanceCacheEntry {
   typename Runtime::StoredPointer Type;
-  typename Runtime::StoredPointer Proto;
+  typename Runtime::StoredSignedPointer Proto;
   typename Runtime::StoredPointer Witness;
 };
 
@@ -85,8 +86,7 @@ template <typename Runtime>
 struct StackAllocator {
   typename Runtime::StoredPointer LastAllocation;
   typename Runtime::StoredPointer FirstSlab;
-  int32_t NumAllocatedSlabs;
-  bool FirstSlabIsPreallocated;
+  int32_t NumAllocatedSlabsAndFirstSlabIsPreallocated;
 
   struct Slab {
     typename Runtime::StoredPointer Metadata;
@@ -126,7 +126,8 @@ struct AsyncTaskPrivateStorage {
   StackAllocator<Runtime> Allocator;
   typename Runtime::StoredPointer Local;
   uint32_t Id;
-  uint32_t BasePriority;
+  typename Runtime::StoredSize BasePriority;
+  typename Runtime::StoredPointer DependencyRecord;
 };
 
 template <typename Runtime, typename ActiveTaskStatus>
@@ -205,4 +206,4 @@ struct ChildFragment {
 } // end namespace reflection
 } // end namespace language
 
-#endif // SWIFT_REFLECTION_RUNTIME_INTERNALS_H
+#endif // LANGUAGE_REFLECTION_RUNTIME_INTERNALS_H

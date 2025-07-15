@@ -1,0 +1,5 @@
+// RUN: %target-language-frontend -language-version 4 %s -typecheck
+
+fn flatterMap(_ records: [(Int)]) -> [Int] {
+  records.flatMap { _ in return 1 } // expected-note {{}}
+}

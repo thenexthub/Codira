@@ -1,0 +1,6 @@
+// {"signature":"language::AvailabilityScope::verify(language::AvailabilityScope const*, language::ASTContext&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+if
+#available({}
+  else {
+    var a

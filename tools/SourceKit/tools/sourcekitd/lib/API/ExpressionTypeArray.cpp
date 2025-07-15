@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/ExpressionTypeArray.h"
 #include "sourcekitd/CompactArray.h"
 #include "sourcekitd/DictionaryKeys.h"
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Core/LangSupport.h"
 #include "SourceKit/Support/UIdent.h"
 
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 using namespace SourceKit;
 using namespace sourcekitd;
@@ -184,7 +185,7 @@ struct ExpressionTypeArrayBuilder::Implementation {
     return reader.count();
   }
 
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer(CustomBufferKind Kind) {
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer(CustomBufferKind Kind) {
     std::array<CompactArrayBuilderImpl*, 3> builders =
       {&builder, &strBuilder, &protoBuilder};
     auto kindSize = sizeof(uint64_t);
@@ -192,7 +193,7 @@ struct ExpressionTypeArrayBuilder::Implementation {
     auto allSize = kindSize + headerSize;
     for (auto *b: builders)
       allSize += b->sizeInBytes();
-    auto result = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(allSize);
+    auto result = toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(allSize);
     *reinterpret_cast<uint64_t*>(result->getBufferStart()) = (uint64_t)Kind;
 
     char *start = result->getBufferStart() + kindSize;
@@ -232,7 +233,7 @@ void ExpressionTypeArrayBuilder::add(const ExpressionType &expType) {
                         protoCount/*Number of conforming protocols*/);
 }
 
-std::unique_ptr<llvm::MemoryBuffer>
+std::unique_ptr<toolchain::MemoryBuffer>
 ExpressionTypeArrayBuilder::createBuffer() {
   return Impl.createBuffer(CustomBufferKind::ExpressionTypeArray);
 }

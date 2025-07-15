@@ -1,0 +1,96 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-emit-ir %t/test.code -I %t/Inputs -enable-experimental-cxx-interop -Xcc -fignore-exceptions | %FileCheck %s
+// RUN: %target-language-emit-ir %t/test.code -I %t/Inputs -enable-experimental-cxx-interop -Xcc -fno-exceptions -Xcc -fno-objc-exceptions  -Xcc -DNOEXCEPTION | %FileCheck %s
+
+//--- Inputs/module.modulemap
+module CxxModule {
+    header "cxxHeader.h"
+    requires cplusplus
+}
+
+//--- Inputs/cxxHeader.h
+
+inline int freeFunctionThrows(int x) {
+#ifndef NOEXCEPTION
+  if (x > 0)
+    throw 2;
+#endif
+  return -x;
+}
+
+inline int freeFunctionNoThrow(int x) noexcept {
+  return -x;
+}
+
+class ClassWithThrowingCopyConstructor {
+public:
+  int m = 0;
+  inline ClassWithThrowingCopyConstructor() noexcept {}
+  inline ClassWithThrowingCopyConstructor(const ClassWithThrowingCopyConstructor &) { (void)freeFunctionThrows(0); }
+};
+
+class ClassWithThrowingConstructor {
+public:
+  int m = 0;
+  inline ClassWithThrowingConstructor() { }
+};
+
+//--- test.code
+
+import CxxModule
+
+fn makeCInt() -> CInt {
+  return 42
+}
+
+fn testFreeFunctionNoThrowOnly() -> CInt {
+  return freeFunctionNoThrow(makeCInt())
+}
+
+fn testFreeFunctionCalls() -> CInt {
+  immutable p = freeFunctionThrows(0)
+  freeFunctionNoThrow(1)
+  freeFunctionThrows(makeCInt())
+  return p
+}
+
+fn testClassWithThrowingCopyConstructor() -> CInt {
+  immutable p1 = ClassWithThrowingCopyConstructor()
+  immutable p2 = p1
+  return p2.m
+}
+
+fn testClassWithThrowingConstructor() -> CInt {
+  immutable obj = ClassWithThrowingConstructor()
+  return obj.m
+}
+
+immutable _ = testFreeFunctionNoThrowOnly()
+immutable _ = testFreeFunctionCalls()
+immutable _ = testClassWithThrowingCopyConstructor()
+immutable _ = testClassWithThrowingConstructor()
+
+// CHECK: define {{.*}} @"$s4test0A23FreeFunctionNoThrowOnlys5Int32VyF"() #[[#LANGUAGEMETA:]] {
+// CHECK-NEXT: :
+// CHECK-NEXT:  call languagecc i32 @"$s4test8makeCInts5Int32VyF"()
+// CHECK-NEXT:  call i32 @{{_Z19freeFunctionNoThrowi|"\?freeFunctionNoThrow@@YAHH@Z"}}(i32 {{.*}})
+// CHECK-NEXT:  ret i32
+// CHECK-NEXT: }
+
+// CHECK: define {{.*}} @"$s4test0A17FreeFunctionCallss5Int32VyF"() #[[#LANGUAGEMETA]] {
+// CHECK: call i32 @{{_Z18freeFunctionThrowsi|"\?freeFunctionThrows@@YAHH@Z"}}(i32 0)
+// CHECK: call i32 @{{_Z19freeFunctionNoThrowi|"\?freeFunctionNoThrow@@YAHH@Z"}}(i32 1)
+// CHECK: call languagecc i32 @"$s4test8makeCInts5Int32VyF"()
+// CHECK: call i32 @{{_Z18freeFunctionThrowsi|"\?freeFunctionThrows@@YAHH@Z"}}(i32
+// CHECK: ret i32
+// CHECK-NEXT: }
+
+// CHECK: define {{.*}} @"$s4test0A32ClassWithThrowingCopyConstructors5Int32VyF"() #[[#LANGUAGEMETA]] {
+// CHECK-NOT: invoke
+// CHECK: }
+
+// CHECK: define {{.*}} @"$s4test0A28ClassWithThrowingConstructors5Int32VyF"() #[[#LANGUAGEMETA]] {
+// CHECK-NOT: invoke
+// CHECK: }

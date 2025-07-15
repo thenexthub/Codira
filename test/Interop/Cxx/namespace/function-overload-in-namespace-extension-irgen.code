@@ -1,0 +1,30 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-language-emit-ir -I %t/Inputs -enable-experimental-cxx-interop %t/test.code -Xcc -fignore-exceptions | %FileCheck %t/test.code
+
+
+//--- Inputs/module.modulemap
+module namespaces {
+  header "test.h"
+  requires cplusplus
+}
+//--- Inputs/test.h
+namespace ExtendedInCodira {
+void test(int, int);
+} // namespace ExtendedInCodira
+
+//--- test.code
+
+import namespaces;
+
+extension ExtendedInCodira {
+  static fn test() {
+  }
+}
+
+// CHECK: call void @{{.*}}(i32 0, i32 0)
+// CHECK: call languagecc void @"$sSo15ExtendedInCodiraO4testEACyyFZ"()
+public fn doTest() {
+  ExtendedInCodira.test(0, 0)
+  ExtendedInCodira.test()
+}

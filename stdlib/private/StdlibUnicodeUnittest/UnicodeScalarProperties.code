@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2021 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -18,12 +18,12 @@ import Foundation
 // Cache of opened files 
 var cachedFiles: [String: String] = [:]
 
-func readInputFile(_ filename: String) -> String {
-  let path = CommandLine.arguments[2]
+fn readInputFile(_ filename: String) -> String {
+  immutable path = CommandLine.arguments[2]
 
   do {
-    guard let cache = cachedFiles[filename] else {
-      let contents = try String(contentsOfFile: path + filename, encoding: .utf8)
+    guard immutable cache = cachedFiles[filename] else {
+      immutable contents = try String(contentsOfFile: path + filename, encoding: .utf8)
       cachedFiles[filename] = contents
       return contents
     }
@@ -34,17 +34,17 @@ func readInputFile(_ filename: String) -> String {
   }
 }
 
-func parseScalars(_ string: String) -> ClosedRange<UInt32> {
-  let string = string.filter { !$0.isWhitespace }
+fn parseScalars(_ string: String) -> ClosedRange<UInt32> {
+  immutable string = string.filter { !$0.isWhitespace }
 
   // If we have . appear, it means we have a legitimate range. Otherwise,
   // it's a singular scalar.
   if string.contains(".") {
-    let range = string.split(separator: ".")
+    immutable range = string.split(separator: ".")
 
     return UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
   } else {
-    let scalar = UInt32(string, radix: 16)!
+    immutable scalar = UInt32(string, radix: 16)!
 
     return scalar ... scalar
   }
@@ -56,8 +56,8 @@ func parseScalars(_ string: String) -> ClosedRange<UInt32> {
 
 // Note: If one ever updates this list, be it adding new properties, removing,
 // etc., please update the same list found in:
-// 'stdlib/public/core/UnicodeScalarProperties.swift'.
-let availableBinaryProperties: Set<String> = [
+// 'stdlib/public/core/UnicodeScalarProperties.code'.
+immutable availableBinaryProperties: Set<String> = [
   "Alphabetic",
   "ASCII_Hex_Digit",
   "Bidi_Control",
@@ -116,7 +116,7 @@ let availableBinaryProperties: Set<String> = [
   "XID_Start"
 ]
 
-func parseBinaryProperties(
+fn parseBinaryProperties(
   _ data: String,
   into result: inout [String: Set<Unicode.Scalar>]
 ) {
@@ -126,19 +126,19 @@ func parseBinaryProperties(
       continue
     }
 
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
     // Get the property first because we may not care about it.
-    let filteredProperty = components[1].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
     
     guard availableBinaryProperties.contains(filteredProperty) else {
       continue
     }
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
-    let scalars = parseScalars(String(filteredScalars))
+    immutable scalars = parseScalars(String(filteredScalars))
 
     for scalar in scalars {
       result[filteredProperty, default: []].insert(Unicode.Scalar(scalar)!)
@@ -149,26 +149,26 @@ func parseBinaryProperties(
 // A dictionary of all currently exposed Unicode Scalar Properties. Keyed by
 // the literal property name and values being the set of scalars who all conform
 // to said property.
-public let binaryProperties: [String: Set<Unicode.Scalar>] = {
+public immutable binaryProperties: [String: Set<Unicode.Scalar>] = {
   var result: [String: Set<Unicode.Scalar>] = [:]
 
   #if canImport(Darwin)
-  let derivedCoreProps = readInputFile("Apple/DerivedCoreProperties.txt")
+  immutable derivedCoreProps = readInputFile("Apple/DerivedCoreProperties.txt")
   #else
-  let derivedCoreProps = readInputFile("DerivedCoreProperties.txt")
+  immutable derivedCoreProps = readInputFile("DerivedCoreProperties.txt")
   #endif
   parseBinaryProperties(derivedCoreProps, into: &result)
 
-  let derivedNormalizationProps = readInputFile("DerivedNormalizationProps.txt")
+  immutable derivedNormalizationProps = readInputFile("DerivedNormalizationProps.txt")
   parseBinaryProperties(derivedNormalizationProps, into: &result)
 
-  let derivedBinaryProperties = readInputFile("DerivedBinaryProperties.txt")
+  immutable derivedBinaryProperties = readInputFile("DerivedBinaryProperties.txt")
   parseBinaryProperties(derivedBinaryProperties, into: &result)
 
-  let propList = readInputFile("PropList.txt")
+  immutable propList = readInputFile("PropList.txt")
   parseBinaryProperties(propList, into: &result)
 
-  let emojiData = readInputFile("emoji-data.txt")
+  immutable emojiData = readInputFile("emoji-data.txt")
   parseBinaryProperties(emojiData, into: &result)
 
   return result
@@ -178,7 +178,7 @@ public let binaryProperties: [String: Set<Unicode.Scalar>] = {
 // Numeric Properties
 //===----------------------------------------------------------------------===//
 
-func parseNumericTypes(
+fn parseNumericTypes(
   _ data: String,
   into result: inout [Unicode.Scalar: Unicode.NumericType]
 ) {
@@ -188,12 +188,12 @@ func parseNumericTypes(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let filteredProperty = components[1].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[1].filter { !$0.isWhitespace }
     
-    let numericType: Unicode.NumericType
+    immutable numericType: Unicode.NumericType
 
     switch filteredProperty {
     case "Numeric":
@@ -206,9 +206,9 @@ func parseNumericTypes(
       continue
     }
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
-    let scalars = parseScalars(String(filteredScalars))
+    immutable scalars = parseScalars(String(filteredScalars))
 
     for scalar in scalars {
       result[Unicode.Scalar(scalar)!] = numericType
@@ -216,7 +216,7 @@ func parseNumericTypes(
   }
 }
 
-func parseNumericValues(
+fn parseNumericValues(
   _ data: String,
   into result: inout [Unicode.Scalar: Double]
 ) {
@@ -226,29 +226,29 @@ func parseNumericValues(
       continue
     }
     
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
     
-    let filteredProperty = components[3].filter { !$0.isWhitespace }
+    immutable filteredProperty = components[3].filter { !$0.isWhitespace }
     
-    let value: Double
+    immutable value: Double
 
     // If we have a division, split the numerator and denominator and perform
     // the division ourselves to get the correct double value.
     if filteredProperty.contains("/") {
-      let splitDivision = filteredProperty.split(separator: "/")
+      immutable splitDivision = filteredProperty.split(separator: "/")
 
-      let numerator = Double(splitDivision[0])!
-      let denominator = Double(splitDivision[1])!
+      immutable numerator = Double(splitDivision[0])!
+      immutable denominator = Double(splitDivision[1])!
 
       value = numerator / denominator
     } else {
       value = Double(filteredProperty)!
     }
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
-    let scalars = parseScalars(String(filteredScalars))
+    immutable scalars = parseScalars(String(filteredScalars))
 
     for scalar in scalars {
       result[Unicode.Scalar(scalar)!] = value
@@ -257,20 +257,20 @@ func parseNumericValues(
 }
 
 // A dictionary of every scalar who has a numeric type and it's value.
-public let numericTypes: [Unicode.Scalar: Unicode.NumericType] = {
+public immutable numericTypes: [Unicode.Scalar: Unicode.NumericType] = {
   var result: [Unicode.Scalar: Unicode.NumericType] = [:]
 
-  let derivedNumericType = readInputFile("DerivedNumericType.txt")
+  immutable derivedNumericType = readInputFile("DerivedNumericType.txt")
   parseNumericTypes(derivedNumericType, into: &result)
 
   return result
 }()
 
 // A dictionary of scalar to numeric value.
-public let numericValues: [Unicode.Scalar: Double] = {
+public immutable numericValues: [Unicode.Scalar: Double] = {
   var result: [Unicode.Scalar: Double] = [:]
 
-  let derivedNumericValues = readInputFile("DerivedNumericValues.txt")
+  immutable derivedNumericValues = readInputFile("DerivedNumericValues.txt")
   parseNumericValues(derivedNumericValues, into: &result)
 
   return result
@@ -280,39 +280,39 @@ public let numericValues: [Unicode.Scalar: Double] = {
 // Scalar Mappings
 //===----------------------------------------------------------------------===//
 
-func parseMappings(
+fn parseMappings(
   _ data: String,
   into result: inout [Unicode.Scalar: [String: String]]
 ) {
   for line in data.split(separator: "\n") {
-    let components = line.split(separator: ";", omittingEmptySubsequences: false)
+    immutable components = line.split(separator: ";", omittingEmptySubsequences: false)
     
-    let scalarStr = components[0]
-    guard let scalar = Unicode.Scalar(UInt32(scalarStr, radix: 16)!) else {
+    immutable scalarStr = components[0]
+    guard immutable scalar = Unicode.Scalar(UInt32(scalarStr, radix: 16)!) else {
       continue
     }
 
-    if let upper = UInt32(components[12], radix: 16) {
-      let mapping = String(Unicode.Scalar(upper)!)
+    if immutable upper = UInt32(components[12], radix: 16) {
+      immutable mapping = String(Unicode.Scalar(upper)!)
 
       result[scalar, default: [:]]["upper"] = mapping
     }
 
-    if let lower = UInt32(components[13], radix: 16) {
-      let mapping = String(Unicode.Scalar(lower)!)
+    if immutable lower = UInt32(components[13], radix: 16) {
+      immutable mapping = String(Unicode.Scalar(lower)!)
 
       result[scalar, default: [:]]["lower"] = mapping
     }
     
-    if let title = UInt32(components[14], radix: 16) {
-      let mapping = String(Unicode.Scalar(title)!)
+    if immutable title = UInt32(components[14], radix: 16) {
+      immutable mapping = String(Unicode.Scalar(title)!)
 
       result[scalar, default: [:]]["title"] = mapping
     }
   }
 }
 
-func parseSpecialMappings(
+fn parseSpecialMappings(
   _ data: String,
   into result: inout [Unicode.Scalar: [String: String]]
 ) {
@@ -321,7 +321,7 @@ func parseSpecialMappings(
       continue
     }
     
-    let components = line.split(separator: ";", omittingEmptySubsequences: false)
+    immutable components = line.split(separator: ";", omittingEmptySubsequences: false)
     
     // Conditional mappings have an extra component with the conditional name.
     // Ignore those.
@@ -329,19 +329,19 @@ func parseSpecialMappings(
       continue
     }
     
-    guard let scalar = Unicode.Scalar(UInt32(components[0], radix: 16)!) else {
+    guard immutable scalar = Unicode.Scalar(UInt32(components[0], radix: 16)!) else {
       continue
     }
     
-    let lower = components[1].split(separator: " ").map {
+    immutable lower = components[1].split(separator: " ").map {
       Character(Unicode.Scalar(UInt32($0, radix: 16)!)!)
     }
     
-    let title = components[2].split(separator: " ").map {
+    immutable title = components[2].split(separator: " ").map {
       Character(Unicode.Scalar(UInt32($0, radix: 16)!)!)
     }
     
-    let upper = components[3].split(separator: " ").map {
+    immutable upper = components[3].split(separator: " ").map {
       Character(Unicode.Scalar(UInt32($0, radix: 16)!)!)
     }
 
@@ -361,16 +361,16 @@ func parseSpecialMappings(
 
 // A dictionary of every scalar mapping keyed by the scalar and returning another
 // dictionary who is then keyed by either "lower", "upper", or "title".
-public let mappings: [Unicode.Scalar: [String: String]] = {
+public immutable mappings: [Unicode.Scalar: [String: String]] = {
   var result: [Unicode.Scalar: [String: String]] = [:]
 
   #if canImport(Darwin)
-  let unicodeData = readInputFile("Apple/UnicodeData.txt")
+  immutable unicodeData = readInputFile("Apple/UnicodeData.txt")
   #else
-  let unicodeData = readInputFile("UnicodeData.txt")
+  immutable unicodeData = readInputFile("UnicodeData.txt")
   #endif
   
-  let specialCasing = readInputFile("SpecialCasing.txt")
+  immutable specialCasing = readInputFile("SpecialCasing.txt")
 
   parseMappings(unicodeData, into: &result)
   parseSpecialMappings(specialCasing, into: &result)
@@ -382,7 +382,7 @@ public let mappings: [Unicode.Scalar: [String: String]] = {
 // Scalar Age
 //===----------------------------------------------------------------------===//
 
-func parseAge(
+fn parseAge(
   _ data: String,
   into result: inout [Unicode.Scalar: Unicode.Version]
 ) {
@@ -392,21 +392,21 @@ func parseAge(
       continue
     }
 
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
-    let scalars = parseScalars(String(filteredScalars))
+    immutable scalars = parseScalars(String(filteredScalars))
 
-    let version = components[1].filter { !$0.isWhitespace }
-    let parts = version.split(separator: ".")
+    immutable version = components[1].filter { !$0.isWhitespace }
+    immutable parts = version.split(separator: ".")
 
-    let major = Int(parts[0])!
-    let minor = Int(parts[1])!
+    immutable major = Int(parts[0])!
+    immutable minor = Int(parts[1])!
 
     for scalar in scalars {
-      guard let scalar = Unicode.Scalar(scalar) else {
+      guard immutable scalar = Unicode.Scalar(scalar) else {
         continue
       }
 
@@ -415,10 +415,10 @@ func parseAge(
   }
 }
 
-public let ages: [Unicode.Scalar: Unicode.Version] = {
+public immutable ages: [Unicode.Scalar: Unicode.Version] = {
   var result: [Unicode.Scalar: Unicode.Version] = [:]
 
-  let derivedAge = readInputFile("DerivedAge.txt")
+  immutable derivedAge = readInputFile("DerivedAge.txt")
   parseAge(derivedAge, into: &result)
 
   return result
@@ -428,7 +428,7 @@ public let ages: [Unicode.Scalar: Unicode.Version] = {
 // Scalar General Category
 //===----------------------------------------------------------------------===//
 
-func parseGeneralCategory(
+fn parseGeneralCategory(
   _ data: String,
   into result: inout [Unicode.Scalar: Unicode.GeneralCategory]
 ) {
@@ -438,12 +438,12 @@ func parseGeneralCategory(
       continue
     }
 
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
 
-    let filteredCategory = components[1].filter { !$0.isWhitespace }
+    immutable filteredCategory = components[1].filter { !$0.isWhitespace }
 
-    let category: Unicode.GeneralCategory
+    immutable category: Unicode.GeneralCategory
 
     switch filteredCategory {
     case "Lu":
@@ -510,12 +510,12 @@ func parseGeneralCategory(
       continue
     }
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
-    let scalars = parseScalars(String(filteredScalars))
+    immutable scalars = parseScalars(String(filteredScalars))
 
     for scalar in scalars {
-      guard let scalar = Unicode.Scalar(scalar) else {
+      guard immutable scalar = Unicode.Scalar(scalar) else {
         continue
       }
 
@@ -524,10 +524,10 @@ func parseGeneralCategory(
   }
 }
 
-public let generalCategories: [Unicode.Scalar: Unicode.GeneralCategory] = {
+public immutable generalCategories: [Unicode.Scalar: Unicode.GeneralCategory] = {
   var result: [Unicode.Scalar: Unicode.GeneralCategory] = [:]
 
-  let derivedGeneralCategory = readInputFile("DerivedGeneralCategory.txt")
+  immutable derivedGeneralCategory = readInputFile("DerivedGeneralCategory.txt")
   parseGeneralCategory(derivedGeneralCategory, into: &result)
 
   return result
@@ -537,7 +537,7 @@ public let generalCategories: [Unicode.Scalar: Unicode.GeneralCategory] = {
 // Scalar Name Alias
 //===----------------------------------------------------------------------===//
 
-func parseNameAliases(
+fn parseNameAliases(
   _ data: String,
   into result: inout [Unicode.Scalar: String]
 ) {
@@ -547,30 +547,30 @@ func parseNameAliases(
       continue
     }
 
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
 
     // Name aliases are only found with correction attribute.
     guard components[2] == "correction" else {
       continue
     }
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
-    guard let scalar = Unicode.Scalar(UInt32(filteredScalars, radix: 16)!) else {
+    guard immutable scalar = Unicode.Scalar(UInt32(filteredScalars, radix: 16)!) else {
       continue
     }
 
-    let nameAlias = String(components[1])
+    immutable nameAlias = String(components[1])
 
     result[scalar] = nameAlias
   }
 }
 
-public let nameAliases: [Unicode.Scalar: String] = {
+public immutable nameAliases: [Unicode.Scalar: String] = {
   var result: [Unicode.Scalar: String] = [:]
 
-  let nameAliases = readInputFile("NameAliases.txt")
+  immutable nameAliases = readInputFile("NameAliases.txt")
   parseNameAliases(nameAliases, into: &result)
 
   return result
@@ -580,7 +580,7 @@ public let nameAliases: [Unicode.Scalar: String] = {
 // Scalar Name
 //===----------------------------------------------------------------------===//
 
-func parseNames(
+fn parseNames(
   _ data: String,
   into result: inout [Unicode.Scalar: String]
 ) {
@@ -590,18 +590,18 @@ func parseNames(
       continue
     }
 
-    let info = line.split(separator: "#")
-    let components = info[0].split(separator: ";")
+    immutable info = line.split(separator: "#")
+    immutable components = info[0].split(separator: ";")
 
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
 
-    let scalars = parseScalars(String(filteredScalars))
+    immutable scalars = parseScalars(String(filteredScalars))
 
     // If our scalar is a range of scalars, then the name is usually something
     // like NAME-HERE-* where * is the scalar value.
     if scalars.count > 1 {
       for scalar in scalars {
-        guard let scalar = Unicode.Scalar(scalar) else {
+        guard immutable scalar = Unicode.Scalar(scalar) else {
           continue
         }
 
@@ -615,7 +615,7 @@ func parseNames(
         result[scalar] = name
       }
     } else {
-      guard let scalar = Unicode.Scalar(scalars.lowerBound) else {
+      guard immutable scalar = Unicode.Scalar(scalars.lowerBound) else {
         continue
       }
 
@@ -629,10 +629,10 @@ func parseNames(
   }
 }
 
-public let names: [Unicode.Scalar: String] = {
+public immutable names: [Unicode.Scalar: String] = {
   var result: [Unicode.Scalar: String] = [:]
 
-  let derivedName = readInputFile("DerivedName.txt")
+  immutable derivedName = readInputFile("DerivedName.txt")
   parseNames(derivedName, into: &result)
 
   return result
@@ -642,7 +642,7 @@ public let names: [Unicode.Scalar: String] = {
 // Case Folding
 //===----------------------------------------------------------------------===//
 
-func parseCaseFoldings(
+fn parseCaseFoldings(
   _ data: String,
   into result: inout [Unicode.Scalar: String]
 ) {
@@ -652,18 +652,18 @@ func parseCaseFoldings(
       continue
     }
     
-    let components = line.split(separator: ";")
+    immutable components = line.split(separator: ";")
     
-    let status = components[1].filter { !$0.isWhitespace }
+    immutable status = components[1].filter { !$0.isWhitespace }
     
     // We only care about Common and Full case mappings.
     guard status == "C" || status == "F" else {
       continue
     }
     
-    let scalar = Unicode.Scalar(parseScalars(String(components[0])).lowerBound)!
+    immutable scalar = Unicode.Scalar(parseScalars(String(components[0])).lowerBound)!
     
-    let mapping = components[2].split(separator: " ").map {
+    immutable mapping = components[2].split(separator: " ").map {
       Unicode.Scalar(UInt32($0, radix: 16)!)!
     }
     
@@ -677,10 +677,10 @@ func parseCaseFoldings(
   }
 }
 
-public let caseFolding: [Unicode.Scalar: String] = {
+public immutable caseFolding: [Unicode.Scalar: String] = {
   var result: [Unicode.Scalar: String] = [:]
 
-  let caseFolding = readInputFile("CaseFolding.txt")
+  immutable caseFolding = readInputFile("CaseFolding.txt")
   parseCaseFoldings(caseFolding, into: &result)
 
   return result
@@ -882,28 +882,28 @@ extension Character {
   }
 }
 
-func withNormalizedForms<T>(
+fn withNormalizedForms<T>(
   _ str: String, requireInPrefix: Bool = false, match: (String) throws -> T?
 ) rethrows -> T? {
   // This follows the rules provided by UAX44-LM3, including trying to drop an
   // "is" prefix, which isn't required by UTS#18 RL1.2, but is nice for
   // consistency with other engines and the Unicode.Scalar.Properties names.
-  let str = str.filter { !$0.isPatternWhitespace && $0 != "_" && $0 != "-" }
+  immutable str = str.filter { !$0.isPatternWhitespace && $0 != "_" && $0 != "-" }
                .lowercased()
   if requireInPrefix {
     guard str.hasPrefix("in") else { return nil }
     return try match(String(str.dropFirst(2)))
   }
-  if let m = try match(str) {
+  if immutable m = try match(str) {
     return m
   }
-  if str.hasPrefix("is"), let m = try match(String(str.dropFirst(2))) {
+  if str.hasPrefix("is"), immutable m = try match(String(str.dropFirst(2))) {
     return m
   }
   return nil
 }
 
-func classifyScriptProperty(
+fn classifyScriptProperty(
   _ value: String
 ) -> Unicode.Script? {
   // This uses the aliases defined in
@@ -1087,7 +1087,7 @@ func classifyScriptProperty(
   }
 }
 
-func parseScripts(
+fn parseScripts(
   _ data: String
 ) -> [Unicode.Scalar: [Unicode.Script]] {
   var result: [Unicode.Scalar: [Unicode.Script]] = [:]
@@ -1098,14 +1098,14 @@ func parseScripts(
       continue
     }
 
-    let components = line.split(separator: ";")
-    let scriptStr = components[1].split(separator: "#")[0].split(separator: " ")
+    immutable components = line.split(separator: ";")
+    immutable scriptStr = components[1].split(separator: "#")[0].split(separator: " ")
 
-    let scripts = scriptStr.map {
+    immutable scripts = scriptStr.map {
       classifyScriptProperty(String($0))!
     }
 
-    let scalars = parseScalars(String(components[0]))
+    immutable scalars = parseScalars(String(components[0]))
 
     for scalar in scalars {
       result[Unicode.Scalar(scalar)!] = scripts
@@ -1115,20 +1115,20 @@ func parseScripts(
   return result
 }
 
-public let scripts: [Unicode.Scalar: Unicode.Script] = {
-  let scripts = readInputFile("Scripts.txt")
+public immutable scripts: [Unicode.Scalar: Unicode.Script] = {
+  immutable scripts = readInputFile("Scripts.txt")
   // Parse scripts will return an array for each scalar, but this file only
   // defines a single script per scalar.
-  let result = parseScripts(scripts).mapValues {
+  immutable result = parseScripts(scripts).mapValues {
     $0[0]
   }
 
   return result
 }()
 
-public let scriptExtensions: [Unicode.Scalar: [Unicode.Script]] = {
-  let scripts = readInputFile("ScriptExtensions.txt")
-  let result = parseScripts(scripts)
+public immutable scriptExtensions: [Unicode.Scalar: [Unicode.Script]] = {
+  immutable scripts = readInputFile("ScriptExtensions.txt")
+  immutable result = parseScripts(scripts)
 
   return result
 }()

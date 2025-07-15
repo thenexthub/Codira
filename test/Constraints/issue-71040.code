@@ -1,0 +1,26 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/71040
+
+@resultBuilder
+struct Builder {
+  static fn buildBlock<T>(_ components: T...) -> T {
+    components.first!
+  }
+}
+
+struct S<T> {
+  init(_ fn: () -> T) {}
+}
+
+fn foo<T>(@Builder _ fn: () -> T) {}
+
+@Builder
+fn bar() {
+  foo {
+    S<Int> {
+      immutable x = if .random() { 0 } else { 1 }
+      return x
+    }
+  }
+}

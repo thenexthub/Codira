@@ -1,4 +1,4 @@
-//===--- Error.h - Swift Concurrency error helpers --------------*- C++ -*-===//
+//===--- Error.h - Codira Concurrency error helpers --------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Error handling support.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_ERROR_BACKDEPLOY56_H
-#define SWIFT_CONCURRENCY_ERROR_BACKDEPLOY56_H
+#ifndef LANGUAGE_CONCURRENCY_ERROR_BACKDEPLOY56_H
+#define LANGUAGE_CONCURRENCY_ERROR_BACKDEPLOY56_H
 
-#include "public/SwiftShims/swift/shims/Visibility.h"
+#include "public/CodiraShims/language/shims/Visibility.h"
 #include <cstdint>
 #include <stdlib.h>
 
 namespace language {
 
 __attribute__((visibility("hidden")))
-SWIFT_NORETURN void swift_Concurrency_fatalError(uint32_t flags, const char *format, ...);
+LANGUAGE_NORETURN void language_Concurrency_fatalError(uint32_t flags, const char *format, ...);
 
 } // namespace language
 
-#endif // SWIFT_CONCURRENCY_ERROR_BACKDEPLOY56_H
+#endif // LANGUAGE_CONCURRENCY_ERROR_BACKDEPLOY56_H

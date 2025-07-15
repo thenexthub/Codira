@@ -1,22 +1,22 @@
-# swift_build_support/products/staticswiftlinux.py --------------*- python -*-
+# language_build_support/products/staticlanguagelinux.py --------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import os
 
-from . import earlyswiftdriver
+from . import earlylanguagedriver
 from . import product
 
 
-class StaticSwiftLinuxConfig(product.Product):
+class StaticCodiraLinuxConfig(product.Product):
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -40,14 +40,14 @@ class StaticSwiftLinuxConfig(product.Product):
     @classmethod
     def get_dependencies(cls):
         """Return a list of products that this product depends upon"""
-        # This is a lie; we don't depend on EarlySwiftDriver, but the
+        # This is a lie; we don't depend on EarlyCodiraDriver, but the
         # DAG generator used for --infer doesn't support more than one
         # root.
-        return [earlyswiftdriver.EarlySwiftDriver]
+        return [earlylanguagedriver.EarlyCodiraDriver]
 
     def install_static_linux_config(self, arch, bin_dir):
         """Install the .cfg files to set the relevant Clang options for the
-        fully static Linux SDK's <arch>-swift-linux-musl triple.
+        fully static Linux SDK's <arch>-language-linux-musl triple.
 
         Doing it this way means it's easier to modify the defaults without
         having to change the compiler driver."""
@@ -57,11 +57,11 @@ class StaticSwiftLinuxConfig(product.Product):
         except FileExistsError:
             pass
 
-        musl_cfg_name = f'{arch}-swift-linux-musl-clang.cfg'
+        musl_cfg_name = f'{arch}-language-linux-musl-clang.cfg'
         musl_cfg = os.path.join(bin_dir, musl_cfg_name)
         with open(musl_cfg, "wt") as f:
             f.write(f"""
--target {arch}-swift-linux-musl
+-target {arch}-language-linux-musl
 -rtlib=compiler-rt
 -stdlib=libc++
 -fuse-ld=lld
@@ -69,7 +69,7 @@ class StaticSwiftLinuxConfig(product.Product):
 -lc++abi
 -static
             """)
-        for name in (f'{arch}-swift-linux-musl-clang++.cfg', ):
+        for name in (f'{arch}-language-linux-musl-clang++.cfg', ):
             try:
                 os.symlink(musl_cfg_name, os.path.join(bin_dir, name))
             except FileExistsError:

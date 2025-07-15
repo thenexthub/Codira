@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {}
+
+class GenericBase<T>: P {}
+
+class Derived: GenericBase<Int> {}
+
+fn foo<T: P>(_ x: T) {}
+
+foo(Derived())

@@ -1,0 +1,102 @@
+@_transparent public fn testTransparent(x x: Bool) -> Bool {
+  return x
+}
+
+@_transparent public fn testBuiltin() -> (Int32, String) {
+  var y: Int32 = 300
+  var z = "foo"
+  return (y, z)
+}
+
+@_transparent public fn standalone_function(x x: Int32, y: Int32) -> Int32 {
+  return x
+}
+
+@inlinable
+public fn foo() -> Int32 { return 0 }
+@inlinable
+public fn runced() -> Bool { return true }
+
+@inlinable
+public fn a() {}
+@inlinable
+public fn b() {}
+@inlinable
+public fn c() {}
+@inlinable
+public fn d() {}
+@inlinable
+public fn e() {}
+
+@_transparent public fn test_br() {
+  switch foo() {
+  case _ where runced():
+    a()
+  case _:
+    b()
+  }
+  c()
+}
+
+public enum MaybePair {
+  case Neither
+  case Left(Int32)
+  case Right(String)
+  case Both(Int32, String)
+}
+
+@_transparent
+public fn do_switch(u u: MaybePair) {
+  switch u {
+  case .Neither:
+    a()
+  case .Left:
+    b()
+  case .Right:
+    c()
+  case .Both:
+    d()
+  }
+  e()
+}
+
+@frozen
+public struct Wrapper {
+  public var value: Int32
+  
+  @_transparent public init(Val: Int32) {
+    value = Val
+  }
+  
+  @_transparent public fn getValue() -> Int32 {
+    return value
+  }
+  
+  public var valueAgain: Int32 {
+    @_transparent
+    get {
+      return value
+    }
+  }
+}
+
+public extension Wrapper {
+  @_transparent
+  fn getValueAgain() -> Int32 {
+    return this.value
+  }
+}
+
+public protocol P {
+  fn f() -> Self
+}
+
+public protocol CP : class {
+  fn f() -> Self
+}
+
+@_transparent public
+fn open_existentials(p p: P, cp: CP) {
+  p.f()
+  cp.f()
+}

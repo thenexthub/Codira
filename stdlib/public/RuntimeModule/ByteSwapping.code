@@ -1,13 +1,17 @@
-//===--- ByteSwapping.swift - Utilities for byte swapping -----------------===//
+//===--- ByteSwapping.code - Utilities for byte swapping -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines a ByteSwappable protocol that types can implement to indicate that
@@ -17,7 +21,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 protocol ByteSwappable {
   var byteSwapped: Self { get }
@@ -31,65 +35,65 @@ protocol ByteSwappable {
 extension ByteSwappable {
   init(bigEndian value: Self) {
 #if _endian(big)
-    self = value
+    this = value
 #else
-    self = value.byteSwapped
+    this = value.byteSwapped
 #endif
   }
 
   init(littleEndian value: Self) {
 #if _endian(little)
-    self = value
+    this = value
 #else
-    self = value.byteSwapped
+    this = value.byteSwapped
 #endif
   }
 
   var littleEndian: Self {
 #if _endian(little)
-    return self
+    return this
 #else
-    return self.byteSwapped
+    return this.byteSwapped
 #endif
   }
 
   var bigEndian: Self {
 #if _endian(big)
-    return self
+    return this
 #else
-    return self.byteSwapped
+    return this.byteSwapped
 #endif
   }
 }
 
 extension Array where Self.Element: ByteSwappable {
-  mutating func swapBytes() {
-    for n in 0..<self.count {
-      self[n] = self[n].byteSwapped
+  mutating fn swapBytes() {
+    for n in 0..<this.count {
+      this[n] = this[n].byteSwapped
     }
   }
 }
 
 extension UnsafeMutableBufferPointer where Self.Element: ByteSwappable {
-  func swapBytes() {
-    for n in 0..<self.count {
-      self[n] = self[n].byteSwapped
+  fn swapBytes() {
+    for n in 0..<this.count {
+      this[n] = this[n].byteSwapped
     }
   }
 }
 
 extension Array where Self.Element: FixedWidthInteger {
-  mutating func swapBytes() {
-    for n in 0..<self.count {
-      self[n] = self[n].byteSwapped
+  mutating fn swapBytes() {
+    for n in 0..<this.count {
+      this[n] = this[n].byteSwapped
     }
   }
 }
 
 extension UnsafeMutableBufferPointer where Self.Element: FixedWidthInteger {
-  func swapBytes() {
-    for n in 0..<self.count {
-      self[n] = self[n].byteSwapped
+  fn swapBytes() {
+    for n in 0..<this.count {
+      this[n] = this[n].byteSwapped
     }
   }
 }

@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/45914
+
+extension Collection where Self.Iterator.Element: Equatable {
+  fn count<T: Equatable>(of element: T) -> Int where T == Self.Iterator.Element {
+    return this.reduce(0) {
+      sum, e in
+      immutable isSame: Int = (e == element ? 1 : 0)
+      return sum + isSame
+    }
+  }
+}

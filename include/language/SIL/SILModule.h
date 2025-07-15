@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILModule class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILMODULE_H
-#define SWIFT_SIL_SILMODULE_H
+#ifndef LANGUAGE_SIL_SILMODULE_H
+#define LANGUAGE_SIL_SILMODULE_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Builtins.h"
@@ -44,27 +45,27 @@
 #include "language/SIL/SILVTable.h"
 #include "language/SIL/SILWitnessTable.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/ilist.h"
-#include "llvm/ProfileData/InstrProfReader.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/ilist.h"
+#include "toolchain/ProfileData/InstrProfReader.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <functional>
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 class Output;
 } // end namespace yaml
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace language {
 
 /// The payload for the FixedSizeSlab.
-/// This is a super-class rather than a member of FixedSizeSlab to make swift
+/// This is a super-class rather than a member of FixedSizeSlab to make language
 /// bridging easier.
 class FixedSizeSlabPayload {
 public:
@@ -97,7 +98,7 @@ public:
 /// A fixed size slab of memory, which can be allocated and freed by the
 /// SILModule at (basically) zero cost.
 /// See SILModule::allocSlab().
-class FixedSizeSlab : public llvm::ilist_node<FixedSizeSlab>,
+class FixedSizeSlab : public toolchain::ilist_node<FixedSizeSlab>,
                       public SILAllocated<FixedSizeSlab>,
                       public FixedSizeSlabPayload {
 public:
@@ -153,25 +154,25 @@ enum class SILStage {
 };
 
 /// A SIL module. The SIL module owns all of the SILFunctions generated
-/// when a Swift compilation context is lowered to SIL.
+/// when a Codira compilation context is lowered to SIL.
 class SILModule {
   friend class SILFunctionBuilder;
 
 public:
-  using FunctionListType = llvm::ilist<SILFunction>;
-  using GlobalListType = llvm::ilist<SILGlobalVariable>;
-  using VTableListType = llvm::ArrayRef<SILVTable*>;
-  using PropertyListType = llvm::ilist<SILProperty>;
-  using WitnessTableListType = llvm::ilist<SILWitnessTable>;
-  using DefaultWitnessTableListType = llvm::ilist<SILDefaultWitnessTable>;
-  using DefaultOverrideTableListType = llvm::ilist<SILDefaultOverrideTable>;
+  using FunctionListType = toolchain::ilist<SILFunction>;
+  using GlobalListType = toolchain::ilist<SILGlobalVariable>;
+  using VTableListType = toolchain::ArrayRef<SILVTable*>;
+  using PropertyListType = toolchain::ilist<SILProperty>;
+  using WitnessTableListType = toolchain::ilist<SILWitnessTable>;
+  using DefaultWitnessTableListType = toolchain::ilist<SILDefaultWitnessTable>;
+  using DefaultOverrideTableListType = toolchain::ilist<SILDefaultOverrideTable>;
   using DifferentiabilityWitnessListType =
-      llvm::ilist<SILDifferentiabilityWitness>;
-  using SILMoveOnlyDeinitListType = llvm::ArrayRef<SILMoveOnlyDeinit *>;
+      toolchain::ilist<SILDifferentiabilityWitness>;
+  using SILMoveOnlyDeinitListType = toolchain::ArrayRef<SILMoveOnlyDeinit *>;
   using CoverageMapCollectionType =
-      llvm::MapVector<StringRef, SILCoverageMap *>;
+      toolchain::MapVector<StringRef, SILCoverageMap *>;
   using BasicBlockNameMapType =
-      llvm::DenseMap<const SILBasicBlock *, std::string>;
+      toolchain::DenseMap<const SILBasicBlock *, std::string>;
 
   enum class LinkingMode : uint8_t {
     /// Link functions with shared linkage. Used by the mandatory pipeline.
@@ -182,7 +183,7 @@ public:
   };
 
   using ActionCallback = std::function<void()>;
-  using SlabList = llvm::simple_ilist<FixedSizeSlab>;
+  using SlabList = toolchain::simple_ilist<FixedSizeSlab>;
 
 private:
   friend KeyPathPattern;
@@ -204,7 +205,7 @@ private:
   class SerializationCallback;
 
   /// Allocator that manages the memory of all the pieces of the SILModule.
-  mutable llvm::BumpPtrAllocator BPA;
+  mutable toolchain::BumpPtrAllocator BPA;
 
   /// The list of freed slabs, which can be reused.
   SlabList freeSlabs;
@@ -223,8 +224,8 @@ private:
   /// that analysis caches are invalidated before flushDeletedInsts().
   std::vector<SILInstruction*> scheduledForDeletion;
 
-  /// The swift Module associated with this SILModule.
-  ModuleDecl *TheSwiftModule;
+  /// The language Module associated with this SILModule.
+  ModuleDecl *TheCodiraModule;
 
   /// A specific context for AST-level declarations associated with this SIL
   /// module.
@@ -234,8 +235,8 @@ private:
 
   /// Lookup table for SIL functions. This needs to be declared before \p
   /// functions so that the destructor of \p functions is called first.
-  llvm::StringMap<SILFunction *> FunctionTable;
-  llvm::StringMap<SILFunction *> ZombieFunctionTable;
+  toolchain::StringMap<SILFunction *> FunctionTable;
+  toolchain::StringMap<SILFunction *> ZombieFunctionTable;
 
   /// The list of SILFunctions in the module.
   FunctionListType functions;
@@ -245,56 +246,56 @@ private:
   FunctionListType zombieFunctions;
 
   /// Lookup table for SIL vtables from class decls.
-  llvm::DenseMap<const ClassDecl *, SILVTable *> VTableMap;
+  toolchain::DenseMap<const ClassDecl *, SILVTable *> VTableMap;
 
   /// Lookup table for specialized SIL vtables from types.
-  llvm::DenseMap<SILType, SILVTable *> SpecializedVTableMap;
+  toolchain::DenseMap<SILType, SILVTable *> SpecializedVTableMap;
 
   /// The list of SILVTables in the module.
   std::vector<SILVTable*> vtables;
 
   /// This is a cache of vtable entries for quick look-up
-  llvm::DenseMap<std::pair<const SILVTable *, SILDeclRef>, SILVTable::Entry>
+  toolchain::DenseMap<std::pair<const SILVTable *, SILDeclRef>, SILVTable::Entry>
       VTableEntryCache;
 
   /// Lookup table for SIL witness tables from conformances.
-  llvm::DenseMap<const RootProtocolConformance *, SILWitnessTable *>
+  toolchain::DenseMap<const RootProtocolConformance *, SILWitnessTable *>
   WitnessTableMap;
 
   /// Lookup table for specialized witness tables from conformances.
   /// Currently only used in embedded mode.
-  llvm::DenseMap<const ProtocolConformance *, SILWitnessTable *>
+  toolchain::DenseMap<const ProtocolConformance *, SILWitnessTable *>
   specializedWitnessTableMap;
 
   /// The list of SILWitnessTables in the module.
   WitnessTableListType witnessTables;
 
   /// Lookup table for SIL default witness tables from protocols.
-  llvm::DenseMap<const ProtocolDecl *, SILDefaultWitnessTable *>
+  toolchain::DenseMap<const ProtocolDecl *, SILDefaultWitnessTable *>
   DefaultWitnessTableMap;
 
   /// The list of SILDefaultWitnessTables in the module.
   DefaultWitnessTableListType defaultWitnessTables;
 
   /// Lookup table for SIL default override tables from classes.
-  llvm::DenseMap<const ClassDecl *, SILDefaultOverrideTable *>
+  toolchain::DenseMap<const ClassDecl *, SILDefaultOverrideTable *>
       DefaultOverrideTableMap;
 
   DefaultOverrideTableListType defaultOverrideTables;
 
   /// Lookup table for SIL differentiability witnesses, keyed by mangled name.
-  llvm::StringMap<SILDifferentiabilityWitness *> DifferentiabilityWitnessMap;
+  toolchain::StringMap<SILDifferentiabilityWitness *> DifferentiabilityWitnessMap;
 
   /// Lookup table for SILDifferentiabilityWitnesses, keyed by original
   /// function name.
-  llvm::StringMap<llvm::SmallVector<SILDifferentiabilityWitness *, 1>>
+  toolchain::StringMap<toolchain::SmallVector<SILDifferentiabilityWitness *, 1>>
       DifferentiabilityWitnessesByFunction;
 
   /// The list of SILDifferentiabilityWitnesses in the module.
   DifferentiabilityWitnessListType differentiabilityWitnesses;
 
   /// Lookup table for SIL vtables from class decls.
-  llvm::DenseMap<const NominalTypeDecl *, SILMoveOnlyDeinit *>
+  toolchain::DenseMap<const NominalTypeDecl *, SILMoveOnlyDeinit *>
       MoveOnlyDeinitMap;
 
   /// The list of move only deinits in the module.
@@ -307,10 +308,10 @@ private:
   /// any attributes or linkage which mark them as externally visible by
   /// default.
   /// Currently this table is not serialized.
-  llvm::SetVector<ValueDecl *> externallyVisible;
+  toolchain::SetVector<ValueDecl *> externallyVisible;
 
   /// Lookup table for SIL Global Variables.
-  llvm::StringMap<SILGlobalVariable *> GlobalVariableMap;
+  toolchain::StringMap<SILGlobalVariable *> GlobalVariableMap;
 
   /// The list of SILGlobalVariables in the module.
   GlobalListType silGlobals;
@@ -322,16 +323,16 @@ private:
   PropertyListType properties;
 
   /// The remark streamer used to serialize SIL remarks to a file.
-  std::unique_ptr<swift::SILRemarkStreamer> silRemarkStreamer;
+  std::unique_ptr<language::SILRemarkStreamer> silRemarkStreamer;
 
   /// This is a cache of intrinsic Function declarations to numeric ID mappings.
-  llvm::DenseMap<Identifier, IntrinsicInfo> IntrinsicIDCache;
+  toolchain::DenseMap<Identifier, IntrinsicInfo> IntrinsicIDCache;
 
   /// This is a cache of builtin Function declarations to numeric ID mappings.
-  llvm::DenseMap<Identifier, BuiltinInfo> BuiltinIDCache;
+  toolchain::DenseMap<Identifier, BuiltinInfo> BuiltinIDCache;
 
-  llvm::DenseMap<std::pair<Decl *, VarDecl *>, unsigned> fieldIndices;
-  llvm::DenseMap<EnumElementDecl *, unsigned> enumCaseIndices;
+  toolchain::DenseMap<std::pair<Decl *, VarDecl *>, unsigned> fieldIndices;
+  toolchain::DenseMap<EnumElementDecl *, unsigned> enumCaseIndices;
 
   /// The stage of processing this module is at.
   SILStage Stage;
@@ -354,7 +355,7 @@ private:
   std::unique_ptr<SerializedSILLoader> SILLoader;
 
   /// The indexed profile data to be used for PGO, or nullptr.
-  std::unique_ptr<llvm::IndexedInstrProfReader> PGOReader;
+  std::unique_ptr<toolchain::IndexedInstrProfReader> PGOReader;
 
   /// A trie of integer indices that gives pointer identity to a path of
   /// projections, shared between all functions in the module.
@@ -372,7 +373,7 @@ private:
   /// in some rare cases SILGen re-uses the same local archetype for multiple
   /// functions.
   using LocalArchetypeKey = std::pair<GenericEnvironment *, SILFunction *>;
-  llvm::DenseMap<LocalArchetypeKey, SILValue> RootLocalArchetypeDefs;
+  toolchain::DenseMap<LocalArchetypeKey, SILValue> RootLocalArchetypeDefs;
 
   /// The number of PlaceholderValues in RootLocalArchetypeDefs.
   int numUnresolvedLocalArchetypes = 0;
@@ -418,9 +419,9 @@ private:
 
   // Specialization attributes which need to be added to a function once it is created.
   // The key of this map is the function name.
-  llvm::StringMap<std::vector<SILSpecializeAttr *>> pendingSpecializeAttrs;
+  toolchain::StringMap<std::vector<SILSpecializeAttr *>> pendingSpecializeAttrs;
 
-  SILModule(llvm::PointerUnion<FileUnit *, ModuleDecl *> context,
+  SILModule(toolchain::PointerUnion<FileUnit *, ModuleDecl *> context,
             Lowering::TypeConverter &TC, const SILOptions &Options,
             const IRGenOptions *irgenOptions = nullptr);
 
@@ -428,7 +429,7 @@ private:
   void operator=(const SILModule&) = delete;
 
   /// Folding set for key path patterns.
-  llvm::FoldingSet<KeyPathPattern> KeyPathPatterns;
+  toolchain::FoldingSet<KeyPathPattern> KeyPathPatterns;
 
 public:
   ~SILModule();
@@ -583,7 +584,7 @@ public:
   /// Serialize a SIL module using the configured SerializeSILAction.
   void serialize();
 
-  /// This converts Swift types to SILTypes.
+  /// This converts Codira types to SILTypes.
   Lowering::TypeConverter &Types;
 
   /// Invalidate cached entries in SIL Loader.
@@ -609,24 +610,24 @@ public:
   /// \param context The associated decl context. This should be a FileUnit in
   /// single-file mode, and a ModuleDecl in whole-module mode.
   static std::unique_ptr<SILModule>
-  createEmptyModule(llvm::PointerUnion<FileUnit *, ModuleDecl *> context,
+  createEmptyModule(toolchain::PointerUnion<FileUnit *, ModuleDecl *> context,
                     Lowering::TypeConverter &TC, const SILOptions &Options,
                     const IRGenOptions *irgenOptions = nullptr);
 
-  /// Get the Swift module associated with this SIL module.
-  ModuleDecl *getSwiftModule() const { return TheSwiftModule; }
+  /// Get the Codira module associated with this SIL module.
+  ModuleDecl *getCodiraModule() const { return TheCodiraModule; }
   /// Get the AST context used for type uniquing etc. by this SIL module.
   ASTContext &getASTContext() const;
   SourceManager &getSourceManager() const { return getASTContext().SourceMgr; }
 
-  /// Get the Swift DeclContext associated with this SIL module. This is never
+  /// Get the Codira DeclContext associated with this SIL module. This is never
   /// null.
   ///
   /// All AST declarations within this context are assumed to have been fully
   /// processed as part of generating this module. This allows certain passes
   /// to make additional assumptions about these declarations.
   ///
-  /// If this is the same as TheSwiftModule, the entire module is being
+  /// If this is the same as TheCodiraModule, the entire module is being
   /// compiled as a single unit.
   const DeclContext *getAssociatedContext() const {
     return AssociatedDeclContext;
@@ -675,8 +676,8 @@ public:
   const_iterator zombies_begin() const { return zombieFunctions.begin(); }
   const_iterator zombies_end() const { return zombieFunctions.end(); }
 
-  llvm::ArrayRef<SILVTable*> getVTables() const {
-    return llvm::ArrayRef<SILVTable*>(vtables);
+  toolchain::ArrayRef<SILVTable*> getVTables() const {
+    return toolchain::ArrayRef<SILVTable*>(vtables);
   }
   using vtable_iterator = VTableListType::iterator;
   using vtable_const_iterator = VTableListType::const_iterator;
@@ -802,7 +803,7 @@ public:
     return coverageMaps;
   }
 
-  swift::SILRemarkStreamer *getSILRemarkStreamer() {
+  language::SILRemarkStreamer *getSILRemarkStreamer() {
     return silRemarkStreamer.get();
   }
 
@@ -938,7 +939,7 @@ public:
   lookUpDifferentiabilityWitness(SILDifferentiabilityWitnessKey key);
 
   /// Look up the differentiability witness corresponding to the given function.
-  llvm::ArrayRef<SILDifferentiabilityWitness *>
+  toolchain::ArrayRef<SILDifferentiabilityWitness *>
   lookUpDifferentiabilityWitnessesForFunction(StringRef name);
 
   /// Attempt to deserialize the SILDifferentiabilityWitness. Returns true if
@@ -979,9 +980,9 @@ public:
     }
   }
 
-  llvm::IndexedInstrProfReader *getPGOReader() const { return PGOReader.get(); }
+  toolchain::IndexedInstrProfReader *getPGOReader() const { return PGOReader.get(); }
 
-  void setPGOReader(std::unique_ptr<llvm::IndexedInstrProfReader> IPR) {
+  void setPGOReader(std::unique_ptr<toolchain::IndexedInstrProfReader> IPR) {
     PGOReader = std::move(IPR);
   }
 
@@ -1109,11 +1110,11 @@ public:
     return !scheduledForDeletion.empty();
   }
 
-  /// Looks up the llvm intrinsic ID and type for the builtin function.
+  /// Looks up the toolchain intrinsic ID and type for the builtin function.
   ///
-  /// \returns Returns llvm::Intrinsic::not_intrinsic if the function is not an
+  /// \returns Returns toolchain::Intrinsic::not_intrinsic if the function is not an
   /// intrinsic. The particular intrinsic functions which correspond to the
-  /// returned value are defined in llvm/Intrinsics.h.
+  /// returned value are defined in toolchain/Intrinsics.h.
   const IntrinsicInfo &getIntrinsicInfo(Identifier ID);
 
   /// Looks up the lazily cached identification for the builtin function.
@@ -1137,14 +1138,14 @@ public:
 
   /// Gather prespecialized from extensions.
   void performOnceForPrespecializedImportedExtensions(
-      llvm::function_ref<void(AbstractFunctionDecl *)> action);
+      toolchain::function_ref<void(AbstractFunctionDecl *)> action);
 
   void addPendingSpecializeAttr(StringRef functionName, SILSpecializeAttr *attr) {
     pendingSpecializeAttrs[functionName].push_back(attr);
   }
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, const SILModule &M){
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS, const SILModule &M){
   M.print(OS);
   return OS;
 }
@@ -1172,7 +1173,7 @@ inline bool SILOptions::supportsLexicalLifetimes(const SILModule &mod) const {
 }
 
 /// Print a simple description of a SILModule for the request evaluator.
-void simple_display(llvm::raw_ostream &out, const SILModule *M);
+void simple_display(toolchain::raw_ostream &out, const SILModule *M);
 
 /// Retrieve a SourceLoc for a SILModule that the request evaluator can use for
 /// diagnostics.
@@ -1181,9 +1182,9 @@ SourceLoc extractNearestSourceLoc(const SILModule *SM);
 namespace Lowering {
 /// Determine whether the given class will be allocated/deallocated using the
 /// Objective-C runtime, i.e., +alloc and -dealloc.
-LLVM_LIBRARY_VISIBILITY bool usesObjCAllocator(ClassDecl *theClass);
+TOOLCHAIN_LIBRARY_VISIBILITY bool usesObjCAllocator(ClassDecl *theClass);
 /// Determine if isolating destructor is needed.
-LLVM_LIBRARY_VISIBILITY bool needsIsolatingDestructor(DestructorDecl *dd);
+TOOLCHAIN_LIBRARY_VISIBILITY bool needsIsolatingDestructor(DestructorDecl *dd);
 
 } // namespace Lowering
 } // namespace language

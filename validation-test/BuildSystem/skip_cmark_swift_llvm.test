@@ -1,0 +1,34 @@
+# REQUIRES: standalone_build
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --install-all --cmake %cmake --skip-build-cmark 2>&1 | %FileCheck --check-prefix=SKIP-CMARK-CHECK %s
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --install-all --cmake %cmake --skip-build-toolchain 2>&1 | %FileCheck --check-prefix=SKIP-LLVM-CHECK %s
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --install-all --cmake %cmake --skip-build-language 2>&1 | %FileCheck --check-prefix=SKIP-LANGUAGE-CHECK %s
+
+# SKIP-CMARK-CHECK-NOT: cmake --build {{.*}}cmark-
+# SKIP-CMARK-CHECK-NOT: --- Installing cmark ---
+# SKIP-CMARK-CHECK: cmake --build {{.*}}toolchain-
+# SKIP-CMARK-CHECK: --- Installing toolchain ---
+# SKIP-CMARK-CHECK: cmake --build {{.*}}language-
+# SKIP-CMARK-CHECK: --- Installing language ---
+
+# SKIP-LLVM-CHECK: cmake --build {{.*}}cmark-
+# SKIP-LLVM-CHECK: --- Installing cmark ---
+# SKIP-LLVM-CHECK: cmake --build {{.*}}toolchain-tblgen
+# SKIP-LLVM-CHECK: cmake --build {{.*}}language-
+# SKIP-LLVM-CHECK-NOT: --- Installing toolchain ---
+# SKIP-LLVM-CHECK: --- Installing language ---
+
+# SKIP-LANGUAGE-CHECK: cmake --build {{.*}}cmark-
+# SKIP-LANGUAGE-CHECK: --- Installing cmark ---
+# SKIP-LANGUAGE-CHECK: cmake --build {{.*}}toolchain-
+# SKIP-LANGUAGE-CHECK-NOT: cmake --build {{.*}}language-
+# SKIP-LANGUAGE-CHECK: --- Installing toolchain ---
+# SKIP-LANGUAGE-CHECK-NOT: --- Installing language ---

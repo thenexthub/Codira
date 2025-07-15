@@ -1,0 +1,40 @@
+// RUN: %target-language-frontend %s -emit-sil -emit-verbose-sil -g -o - | %FileCheck %s --check-prefixes=CHECK
+
+class NSURL {}
+
+class NSPathControlItem {
+  var URL: NSURL?
+}
+
+class NSPathControl {
+  var clickedPathItem: NSPathControlItem?;
+}
+
+class AppDelegate {
+    
+  fn LogStr(_ message: String) {
+  }
+
+  fn componentClicked(_ sender: AnyObject)
+  {
+    if immutable control = sender as? NSPathControl
+    {
+      LogStr( "Got a path control" )
+      if immutable item = control.clickedPathItem
+      {
+        LogStr( "Got an NSPathControlItem" )
+        // Verify that the branch's location is >= the cleanup's location.
+        // (The implicit false block of the conditional
+        //  below inherits the location from the condition.)
+        // CHECK: br{{.*}}line:[[@LINE+1]]
+        if immutable url = item.URL
+        {
+          LogStr( "There is a url" )
+        }
+        // Verify that the branch's location is >= the cleanup's location.
+        // CHECK-NCP: strong_release{{.*}}$NSPathControlItem{{.*}}line:[[@LINE+2]]
+        // CHECK: br{{.*}}line:[[@LINE+1]]
+      }
+    }
+  }
+}

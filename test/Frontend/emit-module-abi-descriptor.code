@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' >%t/main.code
+// RUN: cd %t
+
+// RUN: %target-language-frontend -emit-module -emit-abi-descriptor-path %t/main.abi.json %t/main.code
+// RUN: test -f %t/main.abi.json
+
+// RUN: echo '"%/t/main.code": { abi-baseline-json: "%/t/foo.abi.json" }' > %/t/filemap.yaml
+// RUN: %target-language-frontend -emit-module -supplementary-output-file-map %/t/filemap.yaml %/t/main.code
+// RUN: test -f %t/foo.abi.json

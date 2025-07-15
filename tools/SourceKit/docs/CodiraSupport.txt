@@ -1,0 +1,57 @@
+================================================
+Entity Kinds
+================================================
+
+-- source.lang.code.[decl/ref].function.free
+-- source.lang.code.[decl/ref].function.method.instance
+-- source.lang.code.[decl/ref].function.method.static
+-- source.lang.code.[decl/ref].function.constructor
+-- source.lang.code.[decl/ref].function.destructor
+-- source.lang.code.[decl/ref].function.operator
+-- source.lang.code.[decl/ref].function.subscript
+-- source.lang.code.[decl/ref].function.accessor.getter
+-- source.lang.code.[decl/ref].function.accessor.setter
+-- source.lang.code.[decl/ref].class
+-- source.lang.code.[decl/ref].struct
+-- source.lang.code.[decl/ref].enum
+-- source.lang.code.[decl/ref].enumelement
+-- source.lang.code.[decl/ref].protocol
+-- source.lang.code.[decl/ref].typealias
+-- source.lang.code.[decl/ref].var.global
+-- source.lang.code.[decl/ref].var.instance
+-- source.lang.code.[decl/ref].var.static
+-- source.lang.code.[decl/ref].var.local
+-- source.lang.code.decl.extension.struct
+-- source.lang.code.decl.extension.class
+-- source.lang.code.decl.extension.enum
+
+source.lang.code.decl.function.accessor.* kinds can only be reported as
+child entities of a source.lang.code.decl.var.* entity.
+
+================================================
+Indexing
+================================================
+
+--- Imports ---
+
+The indexing request will report the imported modules under <key.dependencies>,
+like this:
+
+    {
+      <key.kind>: (UID) // Module kind
+      <key.name>: (string) // module name
+      <key.filepath>: (string) // path to the module file
+      [opt] <key.hash>: (string) // Hash associated with this module import
+    }
+
+The imported module kinds are:
+
+-- source.lang.code.import.module.clang
+-- source.lang.code.import.module.code
+-- source.lang.code.import.sourcefile
+
+The hash entry is only returned for an import of a language module/file, not for
+imports of clang modules.
+If the same hash is returned for the module file, it means that the indexed
+symbols will be the same, even if the module file was modified; this can be used
+to avoid re-indexing of the module file.

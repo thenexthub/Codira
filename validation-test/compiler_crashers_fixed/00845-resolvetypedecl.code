@@ -1,0 +1,31 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class a<T where d: T> V {
+}
+fn f() {
+protocol a {
+class A: A<T : a {
+}
+}
+}
+class B {
+public subscript () -> {
+convenience init(bytes: Int) {
+}
+class fn e? {
+class c : (i: Any))) {
+}
+}
+}
+}
+fn f<d : a {

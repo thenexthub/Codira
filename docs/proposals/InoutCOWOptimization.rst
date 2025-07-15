@@ -53,7 +53,7 @@ could be written as follows:
   protocol Sliceable {
     ...
     @mutating
-    func quickSort(_ compare: (StreamType.Element, StreamType.Element) -> Bool) {
+    fn quickSort(_ compare: (StreamType.Element, StreamType.Element) -> Bool) {
       let (start, end) = (startIndex, endIndex)
       if start != end && start.succ() != end {
         let pivot = self[start]
@@ -120,7 +120,7 @@ for the following reasons:
   unspecified::
 
     var arr = [1,2,3]
-    func mutate(_ x: inout Int[]) -> Int[] {
+    fn mutate(_ x: inout Int[]) -> Int[] {
       x = [3...4]
       return arr[0...2]
     }
@@ -165,8 +165,8 @@ A type may declare a stored property as being ``@cow``::
 The property must meet the following criteria:
 
 - It must be a stored property.
-- It must be of a pure Swift class type. (More specifically, at the
-  implementation level, it must have a Swift refcount.)
+- It must be of a pure Codira class type. (More specifically, at the
+  implementation level, it must have a Codira refcount.)
 - It must be mutable. A ``@cow val`` property would not be useful.
 
 Values with ``@cow`` properties have special implicit behavior when they are

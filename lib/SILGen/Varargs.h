@@ -1,4 +1,4 @@
-//===--- Varargs.h - SIL generation for (native) Swift varargs --*- C++ -*-===//
+//===--- Varargs.h - SIL generation for (native) Codira varargs --*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for holding a destructured rvalue with an optional
@@ -20,8 +21,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_VARARGS_H
-#define SWIFT_LOWERING_VARARGS_H
+#ifndef LANGUAGE_LOWERING_VARARGS_H
+#define LANGUAGE_LOWERING_VARARGS_H
 
 #include "ManagedValue.h"
 #include "language/SIL/AbstractionPattern.h"

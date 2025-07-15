@@ -1,8 +1,8 @@
 
-import Swift
+import Codira
 
 @inline(never)
-public func foo0() {
+public fn foo0() {
   print("foo0")
   foo236()
   foo218()
@@ -11,7 +11,7 @@ public func foo0() {
   foo508()
 }
 @inline(never)
-public func foo1() {
+public fn foo1() {
   print("foo1")
   foo142()
   foo109()
@@ -20,7 +20,7 @@ public func foo1() {
   foo404()
 }
 @inline(never)
-public func foo2() {
+public fn foo2() {
   print("foo2")
   foo61()
   foo256()
@@ -29,7 +29,7 @@ public func foo2() {
   foo20()
 }
 @inline(never)
-public func foo3() {
+public fn foo3() {
   print("foo3")
   foo133()
   foo345()
@@ -38,7 +38,7 @@ public func foo3() {
   foo493()
 }
 @inline(never)
-public func foo4() {
+public fn foo4() {
   print("foo4")
   foo66()
   foo469()
@@ -47,7 +47,7 @@ public func foo4() {
   foo425()
 }
 @inline(never)
-public func foo5() {
+public fn foo5() {
   print("foo5")
   foo419()
   foo92()
@@ -56,7 +56,7 @@ public func foo5() {
   foo90()
 }
 @inline(never)
-public func foo6() {
+public fn foo6() {
   print("foo6")
   foo431()
   foo488()
@@ -65,7 +65,7 @@ public func foo6() {
   foo137()
 }
 @inline(never)
-public func foo7() {
+public fn foo7() {
   print("foo7")
   foo95()
   foo32()
@@ -74,7 +74,7 @@ public func foo7() {
   foo318()
 }
 @inline(never)
-public func foo8() {
+public fn foo8() {
   print("foo8")
   foo392()
   foo278()
@@ -83,7 +83,7 @@ public func foo8() {
   foo411()
 }
 @inline(never)
-public func foo9() {
+public fn foo9() {
   print("foo9")
   foo453()
   foo409()
@@ -92,7 +92,7 @@ public func foo9() {
   foo439()
 }
 @inline(never)
-public func foo10() {
+public fn foo10() {
   print("foo10")
   foo84()
   foo24()
@@ -101,7 +101,7 @@ public func foo10() {
   foo148()
 }
 @inline(never)
-public func foo11() {
+public fn foo11() {
   print("foo11")
   foo98()
   foo63()
@@ -110,7 +110,7 @@ public func foo11() {
   foo161()
 }
 @inline(never)
-public func foo12() {
+public fn foo12() {
   print("foo12")
   foo271()
   foo182()
@@ -119,7 +119,7 @@ public func foo12() {
   foo29()
 }
 @inline(never)
-public func foo13() {
+public fn foo13() {
   print("foo13")
   foo287()
   foo330()
@@ -128,7 +128,7 @@ public func foo13() {
   foo202()
 }
 @inline(never)
-public func foo14() {
+public fn foo14() {
   print("foo14")
   foo233()
   foo116()
@@ -137,7 +137,7 @@ public func foo14() {
   foo231()
 }
 @inline(never)
-public func foo15() {
+public fn foo15() {
   print("foo15")
   foo316()
   foo108()
@@ -145,7 +145,7 @@ public func foo15() {
   foo386()
 }
 @inline(never)
-public func foo16() {
+public fn foo16() {
   print("foo16")
   foo445()
   foo404()
@@ -154,7 +154,7 @@ public func foo16() {
   foo142()
 }
 @inline(never)
-public func foo17() {
+public fn foo17() {
   print("foo17")
   foo500()
   foo479()
@@ -163,7 +163,7 @@ public func foo17() {
   foo114()
 }
 @inline(never)
-public func foo18() {
+public fn foo18() {
   print("foo18")
   foo328()
   foo224()
@@ -172,7 +172,7 @@ public func foo18() {
   foo80()
 }
 @inline(never)
-public func foo19() {
+public fn foo19() {
   print("foo19")
   foo124()
   foo309()
@@ -181,7 +181,7 @@ public func foo19() {
   foo76()
 }
 @inline(never)
-public func foo20() {
+public fn foo20() {
   print("foo20")
   foo151()
   foo455()
@@ -190,7 +190,7 @@ public func foo20() {
   foo378()
 }
 @inline(never)
-public func foo21() {
+public fn foo21() {
   print("foo21")
   foo270()
   foo248()
@@ -199,7 +199,7 @@ public func foo21() {
   foo408()
 }
 @inline(never)
-public func foo22() {
+public fn foo22() {
   print("foo22")
   foo233()
   foo8()
@@ -208,7 +208,7 @@ public func foo22() {
   foo109()
 }
 @inline(never)
-public func foo23() {
+public fn foo23() {
   print("foo23")
   foo112()
   foo417()
@@ -217,7 +217,7 @@ public func foo23() {
   foo294()
 }
 @inline(never)
-public func foo24() {
+public fn foo24() {
   print("foo24")
   foo321()
   foo70()
@@ -226,7 +226,7 @@ public func foo24() {
   foo248()
 }
 @inline(never)
-public func foo25() {
+public fn foo25() {
   print("foo25")
   foo12()
   foo383()
@@ -235,7 +235,7 @@ public func foo25() {
   foo299()
 }
 @inline(never)
-public func foo26() {
+public fn foo26() {
   print("foo26")
   foo134()
   foo153()
@@ -244,7 +244,7 @@ public func foo26() {
   foo164()
 }
 @inline(never)
-public func foo27() {
+public fn foo27() {
   print("foo27")
   foo260()
   foo368()
@@ -253,7 +253,7 @@ public func foo27() {
   foo84()
 }
 @inline(never)
-public func foo28() {
+public fn foo28() {
   print("foo28")
   foo177()
   foo238()
@@ -262,7 +262,7 @@ public func foo28() {
   foo79()
 }
 @inline(never)
-public func foo29() {
+public fn foo29() {
   print("foo29")
   foo501()
   foo332()
@@ -271,7 +271,7 @@ public func foo29() {
   foo73()
 }
 @inline(never)
-public func foo30() {
+public fn foo30() {
   print("foo30")
   foo260()
   foo312()
@@ -280,7 +280,7 @@ public func foo30() {
   foo275()
 }
 @inline(never)
-public func foo31() {
+public fn foo31() {
   print("foo31")
   foo300()
   foo462()
@@ -289,7 +289,7 @@ public func foo31() {
   foo492()
 }
 @inline(never)
-public func foo32() {
+public fn foo32() {
   print("foo32")
   foo96()
   foo486()
@@ -298,7 +298,7 @@ public func foo32() {
   foo326()
 }
 @inline(never)
-public func foo33() {
+public fn foo33() {
   print("foo33")
   foo454()
   foo89()
@@ -307,7 +307,7 @@ public func foo33() {
   foo295()
 }
 @inline(never)
-public func foo34() {
+public fn foo34() {
   print("foo34")
   foo340()
   foo374()
@@ -316,7 +316,7 @@ public func foo34() {
   foo7()
 }
 @inline(never)
-public func foo35() {
+public fn foo35() {
   print("foo35")
   foo246()
   foo16()
@@ -325,7 +325,7 @@ public func foo35() {
   foo387()
 }
 @inline(never)
-public func foo36() {
+public fn foo36() {
   print("foo36")
   foo53()
   foo434()
@@ -334,7 +334,7 @@ public func foo36() {
   foo396()
 }
 @inline(never)
-public func foo37() {
+public fn foo37() {
   print("foo37")
   foo196()
   foo1()
@@ -343,7 +343,7 @@ public func foo37() {
   foo324()
 }
 @inline(never)
-public func foo38() {
+public fn foo38() {
   print("foo38")
   foo378()
   foo288()
@@ -352,7 +352,7 @@ public func foo38() {
   foo231()
 }
 @inline(never)
-public func foo39() {
+public fn foo39() {
   print("foo39")
   foo149()
   foo127()
@@ -361,7 +361,7 @@ public func foo39() {
   foo118()
 }
 @inline(never)
-public func foo40() {
+public fn foo40() {
   print("foo40")
   foo333()
   foo390()
@@ -370,7 +370,7 @@ public func foo40() {
   foo295()
 }
 @inline(never)
-public func foo41() {
+public fn foo41() {
   print("foo41")
   foo219()
   foo213()
@@ -379,7 +379,7 @@ public func foo41() {
   foo345()
 }
 @inline(never)
-public func foo42() {
+public fn foo42() {
   print("foo42")
   foo350()
   foo405()
@@ -388,7 +388,7 @@ public func foo42() {
   foo314()
 }
 @inline(never)
-public func foo43() {
+public fn foo43() {
   print("foo43")
   foo14()
   foo404()
@@ -397,7 +397,7 @@ public func foo43() {
   foo41()
 }
 @inline(never)
-public func foo44() {
+public fn foo44() {
   print("foo44")
   foo105()
   foo100()
@@ -406,7 +406,7 @@ public func foo44() {
   foo235()
 }
 @inline(never)
-public func foo45() {
+public fn foo45() {
   print("foo45")
   foo496()
   foo181()
@@ -415,7 +415,7 @@ public func foo45() {
   foo498()
 }
 @inline(never)
-public func foo46() {
+public fn foo46() {
   print("foo46")
   foo12()
   foo249()
@@ -424,7 +424,7 @@ public func foo46() {
   foo369()
 }
 @inline(never)
-public func foo47() {
+public fn foo47() {
   print("foo47")
   foo317()
   foo145()
@@ -433,7 +433,7 @@ public func foo47() {
   foo399()
 }
 @inline(never)
-public func foo48() {
+public fn foo48() {
   print("foo48")
   foo129()
   foo264()
@@ -442,7 +442,7 @@ public func foo48() {
   foo193()
 }
 @inline(never)
-public func foo49() {
+public fn foo49() {
   print("foo49")
   foo482()
   foo414()
@@ -451,7 +451,7 @@ public func foo49() {
   foo368()
 }
 @inline(never)
-public func foo50() {
+public fn foo50() {
   print("foo50")
   foo69()
   foo101()
@@ -460,7 +460,7 @@ public func foo50() {
   foo452()
 }
 @inline(never)
-public func foo51() {
+public fn foo51() {
   print("foo51")
   foo102()
   foo316()
@@ -469,7 +469,7 @@ public func foo51() {
   foo449()
 }
 @inline(never)
-public func foo52() {
+public fn foo52() {
   print("foo52")
   foo243()
   foo229()
@@ -478,7 +478,7 @@ public func foo52() {
   foo162()
 }
 @inline(never)
-public func foo53() {
+public fn foo53() {
   print("foo53")
   foo67()
   foo472()
@@ -487,7 +487,7 @@ public func foo53() {
   foo45()
 }
 @inline(never)
-public func foo54() {
+public fn foo54() {
   print("foo54")
   foo435()
   foo112()
@@ -496,7 +496,7 @@ public func foo54() {
   foo195()
 }
 @inline(never)
-public func foo55() {
+public fn foo55() {
   print("foo55")
   foo392()
   foo432()
@@ -505,7 +505,7 @@ public func foo55() {
   foo82()
 }
 @inline(never)
-public func foo56() {
+public fn foo56() {
   print("foo56")
   foo509()
   foo314()
@@ -514,7 +514,7 @@ public func foo56() {
   foo405()
 }
 @inline(never)
-public func foo57() {
+public fn foo57() {
   print("foo57")
   foo226()
   foo342()
@@ -523,7 +523,7 @@ public func foo57() {
   foo23()
 }
 @inline(never)
-public func foo58() {
+public fn foo58() {
   print("foo58")
   foo148()
   foo338()
@@ -532,7 +532,7 @@ public func foo58() {
   foo202()
 }
 @inline(never)
-public func foo59() {
+public fn foo59() {
   print("foo59")
   foo339()
   foo451()
@@ -541,7 +541,7 @@ public func foo59() {
   foo32()
 }
 @inline(never)
-public func foo60() {
+public fn foo60() {
   print("foo60")
   foo274()
   foo151()
@@ -550,7 +550,7 @@ public func foo60() {
   foo489()
 }
 @inline(never)
-public func foo61() {
+public fn foo61() {
   print("foo61")
   foo397()
   foo426()
@@ -559,7 +559,7 @@ public func foo61() {
   foo401()
 }
 @inline(never)
-public func foo62() {
+public fn foo62() {
   print("foo62")
   foo160()
   foo131()
@@ -568,7 +568,7 @@ public func foo62() {
   foo308()
 }
 @inline(never)
-public func foo63() {
+public fn foo63() {
   print("foo63")
   foo456()
   foo321()
@@ -577,7 +577,7 @@ public func foo63() {
   foo144()
 }
 @inline(never)
-public func foo64() {
+public fn foo64() {
   print("foo64")
   foo456()
   foo36()
@@ -586,7 +586,7 @@ public func foo64() {
   foo212()
 }
 @inline(never)
-public func foo65() {
+public fn foo65() {
   print("foo65")
   foo42()
   foo33()
@@ -595,7 +595,7 @@ public func foo65() {
   foo265()
 }
 @inline(never)
-public func foo66() {
+public fn foo66() {
   print("foo66")
   foo164()
   foo313()
@@ -604,7 +604,7 @@ public func foo66() {
   foo57()
 }
 @inline(never)
-public func foo67() {
+public fn foo67() {
   print("foo67")
   foo498()
   foo460()
@@ -613,7 +613,7 @@ public func foo67() {
   foo207()
 }
 @inline(never)
-public func foo68() {
+public fn foo68() {
   print("foo68")
   foo20()
   foo5()
@@ -622,7 +622,7 @@ public func foo68() {
   foo307()
 }
 @inline(never)
-public func foo69() {
+public fn foo69() {
   print("foo69")
   foo66()
   foo93()
@@ -631,7 +631,7 @@ public func foo69() {
   foo44()
 }
 @inline(never)
-public func foo70() {
+public fn foo70() {
   print("foo70")
   foo104()
   foo218()
@@ -640,7 +640,7 @@ public func foo70() {
   foo409()
 }
 @inline(never)
-public func foo71() {
+public fn foo71() {
   print("foo71")
   foo501()
   foo123()
@@ -649,7 +649,7 @@ public func foo71() {
   foo11()
 }
 @inline(never)
-public func foo72() {
+public fn foo72() {
   print("foo72")
   foo466()
   foo156()
@@ -658,7 +658,7 @@ public func foo72() {
   foo463()
 }
 @inline(never)
-public func foo73() {
+public fn foo73() {
   print("foo73")
   foo380()
   foo199()
@@ -667,7 +667,7 @@ public func foo73() {
   foo136()
 }
 @inline(never)
-public func foo74() {
+public fn foo74() {
   print("foo74")
   foo228()
   foo483()
@@ -676,7 +676,7 @@ public func foo74() {
   foo177()
 }
 @inline(never)
-public func foo75() {
+public fn foo75() {
   print("foo75")
   foo476()
   foo38()
@@ -685,7 +685,7 @@ public func foo75() {
   foo144()
 }
 @inline(never)
-public func foo76() {
+public fn foo76() {
   print("foo76")
   foo300()
   foo420()
@@ -694,7 +694,7 @@ public func foo76() {
   foo118()
 }
 @inline(never)
-public func foo77() {
+public fn foo77() {
   print("foo77")
   foo6()
   foo460()
@@ -703,7 +703,7 @@ public func foo77() {
   foo335()
 }
 @inline(never)
-public func foo78() {
+public fn foo78() {
   print("foo78")
   foo338()
   foo242()
@@ -712,7 +712,7 @@ public func foo78() {
   foo303()
 }
 @inline(never)
-public func foo79() {
+public fn foo79() {
   print("foo79")
   foo279()
   foo77()
@@ -721,7 +721,7 @@ public func foo79() {
   foo473()
 }
 @inline(never)
-public func foo80() {
+public fn foo80() {
   print("foo80")
   foo393()
   foo337()
@@ -730,7 +730,7 @@ public func foo80() {
   foo155()
 }
 @inline(never)
-public func foo81() {
+public fn foo81() {
   print("foo81")
   foo345()
   foo439()
@@ -739,7 +739,7 @@ public func foo81() {
   foo104()
 }
 @inline(never)
-public func foo82() {
+public fn foo82() {
   print("foo82")
   foo77()
   foo25()
@@ -748,7 +748,7 @@ public func foo82() {
   foo38()
 }
 @inline(never)
-public func foo83() {
+public fn foo83() {
   print("foo83")
   foo463()
   foo133()
@@ -757,7 +757,7 @@ public func foo83() {
   foo389()
 }
 @inline(never)
-public func foo84() {
+public fn foo84() {
   print("foo84")
   foo425()
   foo193()
@@ -766,7 +766,7 @@ public func foo84() {
   foo318()
 }
 @inline(never)
-public func foo85() {
+public fn foo85() {
   print("foo85")
   foo336()
   foo498()
@@ -775,7 +775,7 @@ public func foo85() {
   foo483()
 }
 @inline(never)
-public func foo86() {
+public fn foo86() {
   print("foo86")
   foo200()
   foo355()
@@ -784,7 +784,7 @@ public func foo86() {
   foo247()
 }
 @inline(never)
-public func foo87() {
+public fn foo87() {
   print("foo87")
   foo508()
   foo463()
@@ -793,7 +793,7 @@ public func foo87() {
   foo176()
 }
 @inline(never)
-public func foo88() {
+public fn foo88() {
   print("foo88")
   foo221()
   foo388()
@@ -802,7 +802,7 @@ public func foo88() {
   foo77()
 }
 @inline(never)
-public func foo89() {
+public fn foo89() {
   print("foo89")
   foo99()
   foo127()
@@ -811,7 +811,7 @@ public func foo89() {
   foo252()
 }
 @inline(never)
-public func foo90() {
+public fn foo90() {
   print("foo90")
   foo29()
   foo415()
@@ -820,7 +820,7 @@ public func foo90() {
   foo192()
 }
 @inline(never)
-public func foo91() {
+public fn foo91() {
   print("foo91")
   foo116()
   foo135()
@@ -829,7 +829,7 @@ public func foo91() {
   foo85()
 }
 @inline(never)
-public func foo92() {
+public fn foo92() {
   print("foo92")
   foo434()
   foo231()
@@ -838,7 +838,7 @@ public func foo92() {
   foo360()
 }
 @inline(never)
-public func foo93() {
+public fn foo93() {
   print("foo93")
   foo447()
   foo390()
@@ -847,7 +847,7 @@ public func foo93() {
   foo181()
 }
 @inline(never)
-public func foo94() {
+public fn foo94() {
   print("foo94")
   foo476()
   foo367()
@@ -856,7 +856,7 @@ public func foo94() {
   foo291()
 }
 @inline(never)
-public func foo95() {
+public fn foo95() {
   print("foo95")
   foo472()
   foo457()
@@ -865,7 +865,7 @@ public func foo95() {
   foo463()
 }
 @inline(never)
-public func foo96() {
+public fn foo96() {
   print("foo96")
   foo64()
   foo471()
@@ -874,7 +874,7 @@ public func foo96() {
   foo459()
 }
 @inline(never)
-public func foo97() {
+public fn foo97() {
   print("foo97")
   foo140()
   foo399()
@@ -883,7 +883,7 @@ public func foo97() {
   foo325()
 }
 @inline(never)
-public func foo98() {
+public fn foo98() {
   print("foo98")
   foo508()
   foo440()
@@ -892,7 +892,7 @@ public func foo98() {
   foo16()
 }
 @inline(never)
-public func foo99() {
+public fn foo99() {
   print("foo99")
   foo78()
   foo118()
@@ -901,7 +901,7 @@ public func foo99() {
   foo379()
 }
 @inline(never)
-public func foo100() {
+public fn foo100() {
   print("foo100")
   foo454()
   foo59()
@@ -910,7 +910,7 @@ public func foo100() {
   foo222()
 }
 @inline(never)
-public func foo101() {
+public fn foo101() {
   print("foo101")
   foo232()
   foo174()
@@ -919,7 +919,7 @@ public func foo101() {
   foo335()
 }
 @inline(never)
-public func foo102() {
+public fn foo102() {
   print("foo102")
   foo267()
   foo509()
@@ -928,7 +928,7 @@ public func foo102() {
   foo445()
 }
 @inline(never)
-public func foo103() {
+public fn foo103() {
   print("foo103")
   foo59()
   foo214()
@@ -937,7 +937,7 @@ public func foo103() {
   foo188()
 }
 @inline(never)
-public func foo104() {
+public fn foo104() {
   print("foo104")
   foo283()
   foo485()
@@ -946,7 +946,7 @@ public func foo104() {
   foo426()
 }
 @inline(never)
-public func foo105() {
+public fn foo105() {
   print("foo105")
   foo437()
   foo494()
@@ -955,7 +955,7 @@ public func foo105() {
   foo167()
 }
 @inline(never)
-public func foo106() {
+public fn foo106() {
   print("foo106")
   foo264()
   foo159()
@@ -964,7 +964,7 @@ public func foo106() {
   foo88()
 }
 @inline(never)
-public func foo107() {
+public fn foo107() {
   print("foo107")
   foo238()
   foo217()
@@ -973,7 +973,7 @@ public func foo107() {
   foo445()
 }
 @inline(never)
-public func foo108() {
+public fn foo108() {
   print("foo108")
   foo489()
   foo371()
@@ -982,7 +982,7 @@ public func foo108() {
   foo366()
 }
 @inline(never)
-public func foo109() {
+public fn foo109() {
   print("foo109")
   foo436()
   foo451()
@@ -991,7 +991,7 @@ public func foo109() {
   foo44()
 }
 @inline(never)
-public func foo110() {
+public fn foo110() {
   print("foo110")
   foo24()
   foo80()
@@ -1000,7 +1000,7 @@ public func foo110() {
   foo182()
 }
 @inline(never)
-public func foo111() {
+public fn foo111() {
   print("foo111")
   foo202()
   foo330()
@@ -1009,7 +1009,7 @@ public func foo111() {
   foo388()
 }
 @inline(never)
-public func foo112() {
+public fn foo112() {
   print("foo112")
   foo482()
   foo49()
@@ -1018,7 +1018,7 @@ public func foo112() {
   foo120()
 }
 @inline(never)
-public func foo113() {
+public fn foo113() {
   print("foo113")
   foo56()
   foo329()
@@ -1027,7 +1027,7 @@ public func foo113() {
   foo350()
 }
 @inline(never)
-public func foo114() {
+public fn foo114() {
   print("foo114")
   foo228()
   foo108()
@@ -1036,7 +1036,7 @@ public func foo114() {
   foo404()
 }
 @inline(never)
-public func foo115() {
+public fn foo115() {
   print("foo115")
   foo226()
   foo362()
@@ -1045,7 +1045,7 @@ public func foo115() {
   foo67()
 }
 @inline(never)
-public func foo116() {
+public fn foo116() {
   print("foo116")
   foo249()
   foo136()
@@ -1054,7 +1054,7 @@ public func foo116() {
   foo269()
 }
 @inline(never)
-public func foo117() {
+public fn foo117() {
   print("foo117")
   foo291()
   foo358()
@@ -1063,7 +1063,7 @@ public func foo117() {
   foo47()
 }
 @inline(never)
-public func foo118() {
+public fn foo118() {
   print("foo118")
   foo249()
   foo224()
@@ -1072,7 +1072,7 @@ public func foo118() {
   foo432()
 }
 @inline(never)
-public func foo119() {
+public fn foo119() {
   print("foo119")
   foo95()
   foo343()
@@ -1081,7 +1081,7 @@ public func foo119() {
   foo135()
 }
 @inline(never)
-public func foo120() {
+public fn foo120() {
   print("foo120")
   foo415()
   foo96()
@@ -1090,7 +1090,7 @@ public func foo120() {
   foo33()
 }
 @inline(never)
-public func foo121() {
+public fn foo121() {
   print("foo121")
   foo363()
   foo244()
@@ -1099,7 +1099,7 @@ public func foo121() {
   foo230()
 }
 @inline(never)
-public func foo122() {
+public fn foo122() {
   print("foo122")
   foo476()
   foo446()
@@ -1108,7 +1108,7 @@ public func foo122() {
   foo363()
 }
 @inline(never)
-public func foo123() {
+public fn foo123() {
   print("foo123")
   foo345()
   foo377()
@@ -1117,7 +1117,7 @@ public func foo123() {
   foo159()
 }
 @inline(never)
-public func foo124() {
+public fn foo124() {
   print("foo124")
   foo272()
   foo68()
@@ -1126,7 +1126,7 @@ public func foo124() {
   foo30()
 }
 @inline(never)
-public func foo125() {
+public fn foo125() {
   print("foo125")
   foo457()
   foo318()
@@ -1135,7 +1135,7 @@ public func foo125() {
   foo223()
 }
 @inline(never)
-public func foo126() {
+public fn foo126() {
   print("foo126")
   foo474()
   foo190()
@@ -1144,7 +1144,7 @@ public func foo126() {
   foo130()
 }
 @inline(never)
-public func foo127() {
+public fn foo127() {
   print("foo127")
   foo238()
   foo477()
@@ -1153,7 +1153,7 @@ public func foo127() {
   foo446()
 }
 @inline(never)
-public func foo128() {
+public fn foo128() {
   print("foo128")
   foo165()
   foo335()
@@ -1162,7 +1162,7 @@ public func foo128() {
   foo264()
 }
 @inline(never)
-public func foo129() {
+public fn foo129() {
   print("foo129")
   foo375()
   foo145()
@@ -1171,7 +1171,7 @@ public func foo129() {
   foo276()
 }
 @inline(never)
-public func foo130() {
+public fn foo130() {
   print("foo130")
   foo51()
   foo340()
@@ -1180,7 +1180,7 @@ public func foo130() {
   foo186()
 }
 @inline(never)
-public func foo131() {
+public fn foo131() {
   print("foo131")
   foo366()
   foo461()
@@ -1189,7 +1189,7 @@ public func foo131() {
   foo462()
 }
 @inline(never)
-public func foo132() {
+public fn foo132() {
   print("foo132")
   foo80()
   foo92()
@@ -1198,7 +1198,7 @@ public func foo132() {
   foo392()
 }
 @inline(never)
-public func foo133() {
+public fn foo133() {
   print("foo133")
   foo279()
   foo482()
@@ -1207,7 +1207,7 @@ public func foo133() {
   foo148()
 }
 @inline(never)
-public func foo134() {
+public fn foo134() {
   print("foo134")
   foo500()
   foo475()
@@ -1216,7 +1216,7 @@ public func foo134() {
   foo465()
 }
 @inline(never)
-public func foo135() {
+public fn foo135() {
   print("foo135")
   foo79()
   foo357()
@@ -1225,7 +1225,7 @@ public func foo135() {
   foo32()
 }
 @inline(never)
-public func foo136() {
+public fn foo136() {
   print("foo136")
   foo27()
   foo437()
@@ -1234,7 +1234,7 @@ public func foo136() {
   foo378()
 }
 @inline(never)
-public func foo137() {
+public fn foo137() {
   print("foo137")
   foo257()
   foo107()
@@ -1243,7 +1243,7 @@ public func foo137() {
   foo404()
 }
 @inline(never)
-public func foo138() {
+public fn foo138() {
   print("foo138")
   foo469()
   foo312()
@@ -1252,7 +1252,7 @@ public func foo138() {
   foo337()
 }
 @inline(never)
-public func foo139() {
+public fn foo139() {
   print("foo139")
   foo200()
   foo170()
@@ -1261,7 +1261,7 @@ public func foo139() {
   foo91()
 }
 @inline(never)
-public func foo140() {
+public fn foo140() {
   print("foo140")
   foo337()
   foo366()
@@ -1270,7 +1270,7 @@ public func foo140() {
   foo229()
 }
 @inline(never)
-public func foo141() {
+public fn foo141() {
   print("foo141")
   foo205()
   foo440()
@@ -1279,7 +1279,7 @@ public func foo141() {
   foo397()
 }
 @inline(never)
-public func foo142() {
+public fn foo142() {
   print("foo142")
   foo77()
   foo502()
@@ -1288,7 +1288,7 @@ public func foo142() {
   foo325()
 }
 @inline(never)
-public func foo143() {
+public fn foo143() {
   print("foo143")
   foo424()
   foo311()
@@ -1297,7 +1297,7 @@ public func foo143() {
   foo55()
 }
 @inline(never)
-public func foo144() {
+public fn foo144() {
   print("foo144")
   foo180()
   foo459()
@@ -1306,7 +1306,7 @@ public func foo144() {
   foo311()
 }
 @inline(never)
-public func foo145() {
+public fn foo145() {
   print("foo145")
   foo385()
   foo247()
@@ -1315,7 +1315,7 @@ public func foo145() {
   foo183()
 }
 @inline(never)
-public func foo146() {
+public fn foo146() {
   print("foo146")
   foo392()
   foo37()
@@ -1324,7 +1324,7 @@ public func foo146() {
   foo88()
 }
 @inline(never)
-public func foo147() {
+public fn foo147() {
   print("foo147")
   foo218()
   foo39()
@@ -1333,7 +1333,7 @@ public func foo147() {
   foo259()
 }
 @inline(never)
-public func foo148() {
+public fn foo148() {
   print("foo148")
   foo216()
   foo141()
@@ -1342,7 +1342,7 @@ public func foo148() {
   foo81()
 }
 @inline(never)
-public func foo149() {
+public fn foo149() {
   print("foo149")
   foo251()
   foo331()
@@ -1351,7 +1351,7 @@ public func foo149() {
   foo77()
 }
 @inline(never)
-public func foo150() {
+public fn foo150() {
   print("foo150")
   foo55()
   foo230()
@@ -1360,7 +1360,7 @@ public func foo150() {
   foo74()
 }
 @inline(never)
-public func foo151() {
+public fn foo151() {
   print("foo151")
   foo338()
   foo159()
@@ -1369,7 +1369,7 @@ public func foo151() {
   foo387()
 }
 @inline(never)
-public func foo152() {
+public fn foo152() {
   print("foo152")
   foo226()
   foo163()
@@ -1378,7 +1378,7 @@ public func foo152() {
   foo39()
 }
 @inline(never)
-public func foo153() {
+public fn foo153() {
   print("foo153")
   foo288()
   foo83()
@@ -1387,7 +1387,7 @@ public func foo153() {
   foo27()
 }
 @inline(never)
-public func foo154() {
+public fn foo154() {
   print("foo154")
   foo151()
   foo69()
@@ -1396,7 +1396,7 @@ public func foo154() {
   foo358()
 }
 @inline(never)
-public func foo155() {
+public fn foo155() {
   print("foo155")
   foo16()
   foo242()
@@ -1405,7 +1405,7 @@ public func foo155() {
   foo232()
 }
 @inline(never)
-public func foo156() {
+public fn foo156() {
   print("foo156")
   foo395()
   foo348()
@@ -1414,7 +1414,7 @@ public func foo156() {
   foo152()
 }
 @inline(never)
-public func foo157() {
+public fn foo157() {
   print("foo157")
   foo440()
   foo65()
@@ -1423,7 +1423,7 @@ public func foo157() {
   foo6()
 }
 @inline(never)
-public func foo158() {
+public fn foo158() {
   print("foo158")
   foo380()
   foo487()
@@ -1432,7 +1432,7 @@ public func foo158() {
   foo413()
 }
 @inline(never)
-public func foo159() {
+public fn foo159() {
   print("foo159")
   foo233()
   foo384()
@@ -1441,7 +1441,7 @@ public func foo159() {
   foo102()
 }
 @inline(never)
-public func foo160() {
+public fn foo160() {
   print("foo160")
   foo269()
   foo75()
@@ -1450,7 +1450,7 @@ public func foo160() {
   foo117()
 }
 @inline(never)
-public func foo161() {
+public fn foo161() {
   print("foo161")
   foo121()
   foo451()
@@ -1459,7 +1459,7 @@ public func foo161() {
   foo264()
 }
 @inline(never)
-public func foo162() {
+public fn foo162() {
   print("foo162")
   foo493()
   foo273()
@@ -1468,7 +1468,7 @@ public func foo162() {
   foo457()
 }
 @inline(never)
-public func foo163() {
+public fn foo163() {
   print("foo163")
   foo260()
   foo35()
@@ -1477,7 +1477,7 @@ public func foo163() {
   foo76()
 }
 @inline(never)
-public func foo164() {
+public fn foo164() {
   print("foo164")
   foo223()
   foo320()
@@ -1486,7 +1486,7 @@ public func foo164() {
   foo257()
 }
 @inline(never)
-public func foo165() {
+public fn foo165() {
   print("foo165")
   foo320()
   foo108()
@@ -1495,7 +1495,7 @@ public func foo165() {
   foo302()
 }
 @inline(never)
-public func foo166() {
+public fn foo166() {
   print("foo166")
   foo433()
   foo26()
@@ -1504,7 +1504,7 @@ public func foo166() {
   foo22()
 }
 @inline(never)
-public func foo167() {
+public fn foo167() {
   print("foo167")
   foo321()
   foo357()
@@ -1513,7 +1513,7 @@ public func foo167() {
   foo174()
 }
 @inline(never)
-public func foo168() {
+public fn foo168() {
   print("foo168")
   foo443()
   foo453()
@@ -1522,7 +1522,7 @@ public func foo168() {
   foo343()
 }
 @inline(never)
-public func foo169() {
+public fn foo169() {
   print("foo169")
   foo312()
   foo5()
@@ -1531,7 +1531,7 @@ public func foo169() {
   foo359()
 }
 @inline(never)
-public func foo170() {
+public fn foo170() {
   print("foo170")
   foo510()
   foo461()
@@ -1540,7 +1540,7 @@ public func foo170() {
   foo203()
 }
 @inline(never)
-public func foo171() {
+public fn foo171() {
   print("foo171")
   foo375()
   foo239()
@@ -1552,7 +1552,7 @@ public func foo171() {
 // The only function that calls this is foo413. That is our target function.
 @_silgen_name("__TF_test_target")
 @inline(never)
-public func foo172() {
+public fn foo172() {
   print("foo172")
   foo18()
   foo131()
@@ -1561,7 +1561,7 @@ public func foo172() {
   foo99()
 }
 @inline(never)
-public func foo173() {
+public fn foo173() {
   print("foo173")
   foo80()
   foo391()
@@ -1570,7 +1570,7 @@ public func foo173() {
   foo511()
 }
 @inline(never)
-public func foo174() {
+public fn foo174() {
   print("foo174")
   foo176()
   foo83()
@@ -1579,7 +1579,7 @@ public func foo174() {
   foo217()
 }
 @inline(never)
-public func foo175() {
+public fn foo175() {
   print("foo175")
   foo157()
   foo115()
@@ -1588,7 +1588,7 @@ public func foo175() {
   foo220()
 }
 @inline(never)
-public func foo176() {
+public fn foo176() {
   print("foo176")
   foo264()
   foo238()
@@ -1597,7 +1597,7 @@ public func foo176() {
   foo129()
 }
 @inline(never)
-public func foo177() {
+public fn foo177() {
   print("foo177")
   foo114()
   foo357()
@@ -1606,7 +1606,7 @@ public func foo177() {
   foo237()
 }
 @inline(never)
-public func foo178() {
+public fn foo178() {
   print("foo178")
   foo452()
   foo299()
@@ -1615,7 +1615,7 @@ public func foo178() {
   foo40()
 }
 @inline(never)
-public func foo179() {
+public fn foo179() {
   print("foo179")
   foo339()
   foo371()
@@ -1624,7 +1624,7 @@ public func foo179() {
   foo170()
 }
 @inline(never)
-public func foo180() {
+public fn foo180() {
   print("foo180")
   foo25()
   foo81()
@@ -1633,7 +1633,7 @@ public func foo180() {
   foo288()
 }
 @inline(never)
-public func foo181() {
+public fn foo181() {
   print("foo181")
   foo249()
   foo447()
@@ -1642,7 +1642,7 @@ public func foo181() {
   foo118()
 }
 @inline(never)
-public func foo182() {
+public fn foo182() {
   print("foo182")
   foo232()
   foo1()
@@ -1651,7 +1651,7 @@ public func foo182() {
   foo36()
 }
 @inline(never)
-public func foo183() {
+public fn foo183() {
   print("foo183")
   foo353()
   foo246()
@@ -1660,7 +1660,7 @@ public func foo183() {
   foo440()
 }
 @inline(never)
-public func foo184() {
+public fn foo184() {
   print("foo184")
   foo242()
   foo341()
@@ -1669,7 +1669,7 @@ public func foo184() {
   foo347()
 }
 @inline(never)
-public func foo185() {
+public fn foo185() {
   print("foo185")
   foo156()
   foo478()
@@ -1678,7 +1678,7 @@ public func foo185() {
   foo197()
 }
 @inline(never)
-public func foo186() {
+public fn foo186() {
   print("foo186")
   foo466()
   foo510()
@@ -1687,7 +1687,7 @@ public func foo186() {
   foo108()
 }
 @inline(never)
-public func foo187() {
+public fn foo187() {
   print("foo187")
   foo74()
   foo455()
@@ -1696,7 +1696,7 @@ public func foo187() {
   foo509()
 }
 @inline(never)
-public func foo188() {
+public fn foo188() {
   print("foo188")
   foo170()
   foo446()
@@ -1705,7 +1705,7 @@ public func foo188() {
   foo63()
 }
 @inline(never)
-public func foo189() {
+public fn foo189() {
   print("foo189")
   foo316()
   foo498()
@@ -1714,7 +1714,7 @@ public func foo189() {
   foo469()
 }
 @inline(never)
-public func foo190() {
+public fn foo190() {
   print("foo190")
   foo353()
   foo83()
@@ -1723,7 +1723,7 @@ public func foo190() {
   foo399()
 }
 @inline(never)
-public func foo191() {
+public fn foo191() {
   print("foo191")
   foo79()
   foo395()
@@ -1732,7 +1732,7 @@ public func foo191() {
   foo222()
 }
 @inline(never)
-public func foo192() {
+public fn foo192() {
   print("foo192")
   foo169()
   foo238()
@@ -1741,7 +1741,7 @@ public func foo192() {
   foo294()
 }
 @inline(never)
-public func foo193() {
+public fn foo193() {
   print("foo193")
   foo203()
   foo103()
@@ -1750,7 +1750,7 @@ public func foo193() {
   foo314()
 }
 @inline(never)
-public func foo194() {
+public fn foo194() {
   print("foo194")
   foo245()
   foo281()
@@ -1759,7 +1759,7 @@ public func foo194() {
   foo357()
 }
 @inline(never)
-public func foo195() {
+public fn foo195() {
   print("foo195")
   foo202()
   foo490()
@@ -1768,7 +1768,7 @@ public func foo195() {
   foo304()
 }
 @inline(never)
-public func foo196() {
+public fn foo196() {
   print("foo196")
   foo347()
   foo459()
@@ -1777,7 +1777,7 @@ public func foo196() {
   foo215()
 }
 @inline(never)
-public func foo197() {
+public fn foo197() {
   print("foo197")
   foo433()
   foo437()
@@ -1786,7 +1786,7 @@ public func foo197() {
   foo471()
 }
 @inline(never)
-public func foo198() {
+public fn foo198() {
   print("foo198")
   foo171()
   foo477()
@@ -1795,7 +1795,7 @@ public func foo198() {
   foo313()
 }
 @inline(never)
-public func foo199() {
+public fn foo199() {
   print("foo199")
   foo473()
   foo43()
@@ -1804,7 +1804,7 @@ public func foo199() {
   foo214()
 }
 @inline(never)
-public func foo200() {
+public fn foo200() {
   print("foo200")
   foo507()
   foo409()
@@ -1813,7 +1813,7 @@ public func foo200() {
   foo60()
 }
 @inline(never)
-public func foo201() {
+public fn foo201() {
   print("foo201")
   foo179()
   foo84()
@@ -1822,7 +1822,7 @@ public func foo201() {
   foo438()
 }
 @inline(never)
-public func foo202() {
+public fn foo202() {
   print("foo202")
   foo82()
   foo149()
@@ -1831,7 +1831,7 @@ public func foo202() {
   foo106()
 }
 @inline(never)
-public func foo203() {
+public fn foo203() {
   print("foo203")
   foo37()
   foo481()
@@ -1840,7 +1840,7 @@ public func foo203() {
   foo489()
 }
 @inline(never)
-public func foo204() {
+public fn foo204() {
   print("foo204")
   foo219()
   foo272()
@@ -1849,7 +1849,7 @@ public func foo204() {
   foo110()
 }
 @inline(never)
-public func foo205() {
+public fn foo205() {
   print("foo205")
   foo68()
   foo295()
@@ -1858,7 +1858,7 @@ public func foo205() {
   foo277()
 }
 @inline(never)
-public func foo206() {
+public fn foo206() {
   print("foo206")
   foo137()
   foo235()
@@ -1867,7 +1867,7 @@ public func foo206() {
   foo382()
 }
 @inline(never)
-public func foo207() {
+public fn foo207() {
   print("foo207")
   foo230()
   foo161()
@@ -1876,7 +1876,7 @@ public func foo207() {
   foo486()
 }
 @inline(never)
-public func foo208() {
+public fn foo208() {
   print("foo208")
   foo223()
   foo283()
@@ -1885,7 +1885,7 @@ public func foo208() {
   foo493()
 }
 @inline(never)
-public func foo209() {
+public fn foo209() {
   print("foo209")
   foo255()
   foo471()
@@ -1894,7 +1894,7 @@ public func foo209() {
   foo511()
 }
 @inline(never)
-public func foo210() {
+public fn foo210() {
   print("foo210")
   foo229()
   foo508()
@@ -1903,7 +1903,7 @@ public func foo210() {
   foo484()
 }
 @inline(never)
-public func foo211() {
+public fn foo211() {
   print("foo211")
   foo307()
   foo25()
@@ -1912,7 +1912,7 @@ public func foo211() {
   foo4()
 }
 @inline(never)
-public func foo212() {
+public fn foo212() {
   print("foo212")
   foo477()
   foo127()
@@ -1921,7 +1921,7 @@ public func foo212() {
   foo423()
 }
 @inline(never)
-public func foo213() {
+public fn foo213() {
   print("foo213")
   foo57()
   foo252()
@@ -1930,7 +1930,7 @@ public func foo213() {
   foo506()
 }
 @inline(never)
-public func foo214() {
+public fn foo214() {
   print("foo214")
   foo236()
   foo105()
@@ -1939,7 +1939,7 @@ public func foo214() {
   foo285()
 }
 @inline(never)
-public func foo215() {
+public fn foo215() {
   print("foo215")
   foo479()
   foo378()
@@ -1948,7 +1948,7 @@ public func foo215() {
   foo132()
 }
 @inline(never)
-public func foo216() {
+public fn foo216() {
   print("foo216")
   foo125()
   foo142()
@@ -1957,7 +1957,7 @@ public func foo216() {
   foo282()
 }
 @inline(never)
-public func foo217() {
+public fn foo217() {
   print("foo217")
   foo7()
   foo433()
@@ -1966,7 +1966,7 @@ public func foo217() {
   foo385()
 }
 @inline(never)
-public func foo218() {
+public fn foo218() {
   print("foo218")
   foo478()
   foo445()
@@ -1975,7 +1975,7 @@ public func foo218() {
   foo390()
 }
 @inline(never)
-public func foo219() {
+public fn foo219() {
   print("foo219")
   foo261()
   foo346()
@@ -1984,7 +1984,7 @@ public func foo219() {
   foo369()
 }
 @inline(never)
-public func foo220() {
+public fn foo220() {
   print("foo220")
   foo99()
   foo501()
@@ -1993,7 +1993,7 @@ public func foo220() {
   foo421()
 }
 @inline(never)
-public func foo221() {
+public fn foo221() {
   print("foo221")
   foo159()
   foo75()
@@ -2002,7 +2002,7 @@ public func foo221() {
   foo356()
 }
 @inline(never)
-public func foo222() {
+public fn foo222() {
   print("foo222")
   foo351()
   foo180()
@@ -2011,7 +2011,7 @@ public func foo222() {
   foo344()
 }
 @inline(never)
-public func foo223() {
+public fn foo223() {
   print("foo223")
   foo39()
   foo403()
@@ -2020,7 +2020,7 @@ public func foo223() {
   foo58()
 }
 @inline(never)
-public func foo224() {
+public fn foo224() {
   print("foo224")
   foo472()
   foo52()
@@ -2029,7 +2029,7 @@ public func foo224() {
   foo301()
 }
 @inline(never)
-public func foo225() {
+public fn foo225() {
   print("foo225")
   foo412()
   foo1()
@@ -2038,7 +2038,7 @@ public func foo225() {
   foo31()
 }
 @inline(never)
-public func foo226() {
+public fn foo226() {
   print("foo226")
   foo136()
   foo248()
@@ -2047,7 +2047,7 @@ public func foo226() {
   foo321()
 }
 @inline(never)
-public func foo227() {
+public fn foo227() {
   print("foo227")
   foo235()
   foo452()
@@ -2056,7 +2056,7 @@ public func foo227() {
   foo9()
 }
 @inline(never)
-public func foo228() {
+public fn foo228() {
   print("foo228")
   foo396()
   foo223()
@@ -2065,7 +2065,7 @@ public func foo228() {
   foo450()
 }
 @inline(never)
-public func foo229() {
+public fn foo229() {
   print("foo229")
   foo50()
   foo378()
@@ -2074,7 +2074,7 @@ public func foo229() {
   foo368()
 }
 @inline(never)
-public func foo230() {
+public fn foo230() {
   print("foo230")
   foo511()
   foo194()
@@ -2083,7 +2083,7 @@ public func foo230() {
   foo335()
 }
 @inline(never)
-public func foo231() {
+public fn foo231() {
   print("foo231")
   foo440()
   foo437()
@@ -2092,7 +2092,7 @@ public func foo231() {
   foo403()
 }
 @inline(never)
-public func foo232() {
+public fn foo232() {
   print("foo232")
   foo361()
   foo454()
@@ -2101,7 +2101,7 @@ public func foo232() {
   foo497()
 }
 @inline(never)
-public func foo233() {
+public fn foo233() {
   print("foo233")
   foo388()
   foo257()
@@ -2110,7 +2110,7 @@ public func foo233() {
   foo54()
 }
 @inline(never)
-public func foo234() {
+public fn foo234() {
   print("foo234")
   foo268()
   foo365()
@@ -2119,7 +2119,7 @@ public func foo234() {
   foo54()
 }
 @inline(never)
-public func foo235() {
+public fn foo235() {
   print("foo235")
   foo82()
   foo453()
@@ -2128,7 +2128,7 @@ public func foo235() {
   foo238()
 }
 @inline(never)
-public func foo236() {
+public fn foo236() {
   print("foo236")
   foo48()
   foo495()
@@ -2137,7 +2137,7 @@ public func foo236() {
   foo3()
 }
 @inline(never)
-public func foo237() {
+public fn foo237() {
   print("foo237")
   foo330()
   foo257()
@@ -2146,7 +2146,7 @@ public func foo237() {
   foo171()
 }
 @inline(never)
-public func foo238() {
+public fn foo238() {
   print("foo238")
   foo358()
   foo429()
@@ -2155,7 +2155,7 @@ public func foo238() {
   foo215()
 }
 @inline(never)
-public func foo239() {
+public fn foo239() {
   print("foo239")
   foo446()
   foo71()
@@ -2164,7 +2164,7 @@ public func foo239() {
   foo475()
 }
 @inline(never)
-public func foo240() {
+public fn foo240() {
   print("foo240")
   foo293()
   foo500()
@@ -2173,7 +2173,7 @@ public func foo240() {
   foo4()
 }
 @inline(never)
-public func foo241() {
+public fn foo241() {
   print("foo241")
   foo470()
   foo427()
@@ -2182,7 +2182,7 @@ public func foo241() {
   foo319()
 }
 @inline(never)
-public func foo242() {
+public fn foo242() {
   print("foo242")
   foo249()
   foo352()
@@ -2191,7 +2191,7 @@ public func foo242() {
   foo121()
 }
 @inline(never)
-public func foo243() {
+public fn foo243() {
   print("foo243")
   foo491()
   foo160()
@@ -2200,7 +2200,7 @@ public func foo243() {
   foo387()
 }
 @inline(never)
-public func foo244() {
+public fn foo244() {
   print("foo244")
   foo285()
   foo137()
@@ -2209,7 +2209,7 @@ public func foo244() {
   foo150()
 }
 @inline(never)
-public func foo245() {
+public fn foo245() {
   print("foo245")
   foo504()
   foo385()
@@ -2218,7 +2218,7 @@ public func foo245() {
   foo244()
 }
 @inline(never)
-public func foo246() {
+public fn foo246() {
   print("foo246")
   foo496()
   foo318()
@@ -2227,7 +2227,7 @@ public func foo246() {
   foo424()
 }
 @inline(never)
-public func foo247() {
+public fn foo247() {
   print("foo247")
   foo321()
   foo391()
@@ -2236,7 +2236,7 @@ public func foo247() {
   foo164()
 }
 @inline(never)
-public func foo248() {
+public fn foo248() {
   print("foo248")
   foo130()
   foo415()
@@ -2245,7 +2245,7 @@ public func foo248() {
   foo337()
 }
 @inline(never)
-public func foo249() {
+public fn foo249() {
   print("foo249")
   foo484()
   foo129()
@@ -2254,7 +2254,7 @@ public func foo249() {
   foo33()
 }
 @inline(never)
-public func foo250() {
+public fn foo250() {
   print("foo250")
   foo351()
   foo421()
@@ -2263,7 +2263,7 @@ public func foo250() {
   foo417()
 }
 @inline(never)
-public func foo251() {
+public fn foo251() {
   print("foo251")
   foo112()
   foo30()
@@ -2272,7 +2272,7 @@ public func foo251() {
   foo86()
 }
 @inline(never)
-public func foo252() {
+public fn foo252() {
   print("foo252")
   foo427()
   foo197()
@@ -2281,7 +2281,7 @@ public func foo252() {
   foo508()
 }
 @inline(never)
-public func foo253() {
+public fn foo253() {
   print("foo253")
   foo207()
   foo47()
@@ -2290,7 +2290,7 @@ public func foo253() {
   foo366()
 }
 @inline(never)
-public func foo254() {
+public fn foo254() {
   print("foo254")
   foo279()
   foo35()
@@ -2299,7 +2299,7 @@ public func foo254() {
   foo360()
 }
 @inline(never)
-public func foo255() {
+public fn foo255() {
   print("foo255")
   foo206()
   foo367()
@@ -2308,7 +2308,7 @@ public func foo255() {
   foo61()
 }
 @inline(never)
-public func foo256() {
+public fn foo256() {
   print("foo256")
   foo311()
   foo118()
@@ -2317,7 +2317,7 @@ public func foo256() {
   foo237()
 }
 @inline(never)
-public func foo257() {
+public fn foo257() {
   print("foo257")
   foo66()
   foo421()
@@ -2326,7 +2326,7 @@ public func foo257() {
   foo457()
 }
 @inline(never)
-public func foo258() {
+public fn foo258() {
   print("foo258")
   foo470()
   foo20()
@@ -2335,7 +2335,7 @@ public func foo258() {
   foo412()
 }
 @inline(never)
-public func foo259() {
+public fn foo259() {
   print("foo259")
   foo295()
   foo324()
@@ -2344,7 +2344,7 @@ public func foo259() {
   foo75()
 }
 @inline(never)
-public func foo260() {
+public fn foo260() {
   print("foo260")
   foo427()
   foo447()
@@ -2353,7 +2353,7 @@ public func foo260() {
   foo494()
 }
 @inline(never)
-public func foo261() {
+public fn foo261() {
   print("foo261")
   foo86()
   foo286()
@@ -2362,7 +2362,7 @@ public func foo261() {
   foo489()
 }
 @inline(never)
-public func foo262() {
+public fn foo262() {
   print("foo262")
   foo154()
   foo372()
@@ -2371,7 +2371,7 @@ public func foo262() {
   foo234()
 }
 @inline(never)
-public func foo263() {
+public fn foo263() {
   print("foo263")
   foo346()
   foo321()
@@ -2380,7 +2380,7 @@ public func foo263() {
   foo194()
 }
 @inline(never)
-public func foo264() {
+public fn foo264() {
   print("foo264")
   foo209()
   foo258()
@@ -2389,7 +2389,7 @@ public func foo264() {
   foo497()
 }
 @inline(never)
-public func foo265() {
+public fn foo265() {
   print("foo265")
   foo233()
   foo67()
@@ -2398,7 +2398,7 @@ public func foo265() {
   foo299()
 }
 @inline(never)
-public func foo266() {
+public fn foo266() {
   print("foo266")
   foo262()
   foo13()
@@ -2407,7 +2407,7 @@ public func foo266() {
   foo84()
 }
 @inline(never)
-public func foo267() {
+public fn foo267() {
   print("foo267")
   foo65()
   foo98()
@@ -2416,7 +2416,7 @@ public func foo267() {
   foo92()
 }
 @inline(never)
-public func foo268() {
+public fn foo268() {
   print("foo268")
   foo13()
   foo360()
@@ -2425,7 +2425,7 @@ public func foo268() {
   foo60()
 }
 @inline(never)
-public func foo269() {
+public fn foo269() {
   print("foo269")
   foo223()
   foo383()
@@ -2434,7 +2434,7 @@ public func foo269() {
   foo140()
 }
 @inline(never)
-public func foo270() {
+public fn foo270() {
   print("foo270")
   foo219()
   foo297()
@@ -2443,7 +2443,7 @@ public func foo270() {
   foo262()
 }
 @inline(never)
-public func foo271() {
+public fn foo271() {
   print("foo271")
   foo393()
   foo226()
@@ -2452,7 +2452,7 @@ public func foo271() {
   foo484()
 }
 @inline(never)
-public func foo272() {
+public fn foo272() {
   print("foo272")
   foo486()
   foo441()
@@ -2461,7 +2461,7 @@ public func foo272() {
   foo5()
 }
 @inline(never)
-public func foo273() {
+public fn foo273() {
   print("foo273")
   foo103()
   foo168()
@@ -2470,7 +2470,7 @@ public func foo273() {
   foo332()
 }
 @inline(never)
-public func foo274() {
+public fn foo274() {
   print("foo274")
   foo382()
   foo10()
@@ -2479,7 +2479,7 @@ public func foo274() {
   foo411()
 }
 @inline(never)
-public func foo275() {
+public fn foo275() {
   print("foo275")
   foo407()
   foo330()
@@ -2488,7 +2488,7 @@ public func foo275() {
   foo334()
 }
 @inline(never)
-public func foo276() {
+public fn foo276() {
   print("foo276")
   foo283()
   foo225()
@@ -2497,7 +2497,7 @@ public func foo276() {
   foo263()
 }
 @inline(never)
-public func foo277() {
+public fn foo277() {
   print("foo277")
   foo207()
   foo274()
@@ -2506,7 +2506,7 @@ public func foo277() {
   foo44()
 }
 @inline(never)
-public func foo278() {
+public fn foo278() {
   print("foo278")
   foo292()
   foo366()
@@ -2515,7 +2515,7 @@ public func foo278() {
   foo463()
 }
 @inline(never)
-public func foo279() {
+public fn foo279() {
   print("foo279")
   foo21()
   foo97()
@@ -2524,7 +2524,7 @@ public func foo279() {
   foo380()
 }
 @inline(never)
-public func foo280() {
+public fn foo280() {
   print("foo280")
   foo36()
   foo217()
@@ -2533,7 +2533,7 @@ public func foo280() {
   foo445()
 }
 @inline(never)
-public func foo281() {
+public fn foo281() {
   print("foo281")
   foo490()
   foo321()
@@ -2542,7 +2542,7 @@ public func foo281() {
   foo14()
 }
 @inline(never)
-public func foo282() {
+public fn foo282() {
   print("foo282")
   foo267()
   foo472()
@@ -2551,7 +2551,7 @@ public func foo282() {
   foo232()
 }
 @inline(never)
-public func foo283() {
+public fn foo283() {
   print("foo283")
   foo502()
   foo231()
@@ -2560,7 +2560,7 @@ public func foo283() {
   foo203()
 }
 @inline(never)
-public func foo284() {
+public fn foo284() {
   print("foo284")
   foo274()
   foo99()
@@ -2569,7 +2569,7 @@ public func foo284() {
   foo233()
 }
 @inline(never)
-public func foo285() {
+public fn foo285() {
   print("foo285")
   foo196()
   foo95()
@@ -2578,7 +2578,7 @@ public func foo285() {
   foo167()
 }
 @inline(never)
-public func foo286() {
+public fn foo286() {
   print("foo286")
   foo501()
   foo81()
@@ -2587,7 +2587,7 @@ public func foo286() {
   foo505()
 }
 @inline(never)
-public func foo287() {
+public fn foo287() {
   print("foo287")
   foo314()
   foo239()
@@ -2596,7 +2596,7 @@ public func foo287() {
   foo294()
 }
 @inline(never)
-public func foo288() {
+public fn foo288() {
   print("foo288")
   foo279()
   foo154()
@@ -2605,7 +2605,7 @@ public func foo288() {
   foo469()
 }
 @inline(never)
-public func foo289() {
+public fn foo289() {
   print("foo289")
   foo415()
   foo313()
@@ -2614,7 +2614,7 @@ public func foo289() {
   foo488()
 }
 @inline(never)
-public func foo290() {
+public fn foo290() {
   print("foo290")
   foo62()
   foo318()
@@ -2623,7 +2623,7 @@ public func foo290() {
   foo185()
 }
 @inline(never)
-public func foo291() {
+public fn foo291() {
   print("foo291")
   foo353()
   foo25()
@@ -2632,7 +2632,7 @@ public func foo291() {
   foo497()
 }
 @inline(never)
-public func foo292() {
+public fn foo292() {
   print("foo292")
   foo384()
   foo291()
@@ -2641,7 +2641,7 @@ public func foo292() {
   foo339()
 }
 @inline(never)
-public func foo293() {
+public fn foo293() {
   print("foo293")
   foo447()
   foo457()
@@ -2650,7 +2650,7 @@ public func foo293() {
   foo10()
 }
 @inline(never)
-public func foo294() {
+public fn foo294() {
   print("foo294")
   foo102()
   foo387()
@@ -2659,7 +2659,7 @@ public func foo294() {
   foo160()
 }
 @inline(never)
-public func foo295() {
+public fn foo295() {
   print("foo295")
   foo243()
   foo481()
@@ -2668,7 +2668,7 @@ public func foo295() {
   foo482()
 }
 @inline(never)
-public func foo296() {
+public fn foo296() {
   print("foo296")
   foo406()
   foo26()
@@ -2677,7 +2677,7 @@ public func foo296() {
   foo499()
 }
 @inline(never)
-public func foo297() {
+public fn foo297() {
   print("foo297")
   foo470()
   foo272()
@@ -2686,7 +2686,7 @@ public func foo297() {
   foo461()
 }
 @inline(never)
-public func foo298() {
+public fn foo298() {
   print("foo298")
   foo37()
   foo122()
@@ -2695,7 +2695,7 @@ public func foo298() {
   foo164()
 }
 @inline(never)
-public func foo299() {
+public fn foo299() {
   print("foo299")
   foo436()
   foo220()
@@ -2704,7 +2704,7 @@ public func foo299() {
   foo460()
 }
 @inline(never)
-public func foo300() {
+public fn foo300() {
   print("foo300")
   foo21()
   foo300()
@@ -2713,7 +2713,7 @@ public func foo300() {
   foo265()
 }
 @inline(never)
-public func foo301() {
+public fn foo301() {
   print("foo301")
   foo135()
   foo507()
@@ -2722,7 +2722,7 @@ public func foo301() {
   foo203()
 }
 @inline(never)
-public func foo302() {
+public fn foo302() {
   print("foo302")
   foo104()
   foo239()
@@ -2731,7 +2731,7 @@ public func foo302() {
   foo141()
 }
 @inline(never)
-public func foo303() {
+public fn foo303() {
   print("foo303")
   foo231()
   foo505()
@@ -2740,7 +2740,7 @@ public func foo303() {
   foo448()
 }
 @inline(never)
-public func foo304() {
+public fn foo304() {
   print("foo304")
   foo497()
   foo137()
@@ -2749,7 +2749,7 @@ public func foo304() {
   foo1()
 }
 @inline(never)
-public func foo305() {
+public fn foo305() {
   print("foo305")
   foo331()
   foo273()
@@ -2758,7 +2758,7 @@ public func foo305() {
   foo433()
 }
 @inline(never)
-public func foo306() {
+public fn foo306() {
   print("foo306")
   foo385()
   foo106()
@@ -2767,7 +2767,7 @@ public func foo306() {
   foo341()
 }
 @inline(never)
-public func foo307() {
+public fn foo307() {
   print("foo307")
   foo302()
   foo439()
@@ -2776,7 +2776,7 @@ public func foo307() {
   foo502()
 }
 @inline(never)
-public func foo308() {
+public fn foo308() {
   print("foo308")
   foo252()
   foo342()
@@ -2785,7 +2785,7 @@ public func foo308() {
   foo373()
 }
 @inline(never)
-public func foo309() {
+public fn foo309() {
   print("foo309")
   foo147()
   foo306()
@@ -2794,7 +2794,7 @@ public func foo309() {
   foo160()
 }
 @inline(never)
-public func foo310() {
+public fn foo310() {
   print("foo310")
   foo389()
   foo267()
@@ -2803,7 +2803,7 @@ public func foo310() {
   foo179()
 }
 @inline(never)
-public func foo311() {
+public fn foo311() {
   print("foo311")
   foo91()
   foo69()
@@ -2812,7 +2812,7 @@ public func foo311() {
   foo175()
 }
 @inline(never)
-public func foo312() {
+public fn foo312() {
   print("foo312")
   foo286()
   foo199()
@@ -2821,7 +2821,7 @@ public func foo312() {
   foo295()
 }
 @inline(never)
-public func foo313() {
+public fn foo313() {
   print("foo313")
   foo392()
   foo179()
@@ -2830,7 +2830,7 @@ public func foo313() {
   foo153()
 }
 @inline(never)
-public func foo314() {
+public fn foo314() {
   print("foo314")
   foo372()
   foo417()
@@ -2839,7 +2839,7 @@ public func foo314() {
   foo280()
 }
 @inline(never)
-public func foo315() {
+public fn foo315() {
   print("foo315")
   foo315()
   foo276()
@@ -2848,7 +2848,7 @@ public func foo315() {
   foo417()
 }
 @inline(never)
-public func foo316() {
+public fn foo316() {
   print("foo316")
   foo346()
   foo188()
@@ -2857,7 +2857,7 @@ public func foo316() {
   foo343()
 }
 @inline(never)
-public func foo317() {
+public fn foo317() {
   print("foo317")
   foo8()
   foo44()
@@ -2866,7 +2866,7 @@ public func foo317() {
   foo117()
 }
 @inline(never)
-public func foo318() {
+public fn foo318() {
   print("foo318")
   foo146()
   foo372()
@@ -2875,7 +2875,7 @@ public func foo318() {
   foo110()
 }
 @inline(never)
-public func foo319() {
+public fn foo319() {
   print("foo319")
   foo327()
   foo8()
@@ -2884,7 +2884,7 @@ public func foo319() {
   foo75()
 }
 @inline(never)
-public func foo320() {
+public fn foo320() {
   print("foo320")
   foo405()
   foo105()
@@ -2893,7 +2893,7 @@ public func foo320() {
   foo243()
 }
 @inline(never)
-public func foo321() {
+public fn foo321() {
   print("foo321")
   foo462()
   foo35()
@@ -2902,7 +2902,7 @@ public func foo321() {
   foo104()
 }
 @inline(never)
-public func foo322() {
+public fn foo322() {
   print("foo322")
   foo230()
   foo80()
@@ -2911,7 +2911,7 @@ public func foo322() {
   foo200()
 }
 @inline(never)
-public func foo323() {
+public fn foo323() {
   print("foo323")
   foo175()
   foo210()
@@ -2920,7 +2920,7 @@ public func foo323() {
   foo469()
 }
 @inline(never)
-public func foo324() {
+public fn foo324() {
   print("foo324")
   foo160()
   foo489()
@@ -2929,7 +2929,7 @@ public func foo324() {
   foo343()
 }
 @inline(never)
-public func foo325() {
+public fn foo325() {
   print("foo325")
   foo453()
   foo483()
@@ -2938,7 +2938,7 @@ public func foo325() {
   foo138()
 }
 @inline(never)
-public func foo326() {
+public fn foo326() {
   print("foo326")
   foo207()
   foo326()
@@ -2947,7 +2947,7 @@ public func foo326() {
   foo402()
 }
 @inline(never)
-public func foo327() {
+public fn foo327() {
   print("foo327")
   foo259()
   foo364()
@@ -2956,7 +2956,7 @@ public func foo327() {
   foo252()
 }
 @inline(never)
-public func foo328() {
+public fn foo328() {
   print("foo328")
   foo222()
   foo154()
@@ -2965,7 +2965,7 @@ public func foo328() {
   foo76()
 }
 @inline(never)
-public func foo329() {
+public fn foo329() {
   print("foo329")
   foo188()
   foo142()
@@ -2974,7 +2974,7 @@ public func foo329() {
   foo488()
 }
 @inline(never)
-public func foo330() {
+public fn foo330() {
   print("foo330")
   foo287()
   foo363()
@@ -2983,7 +2983,7 @@ public func foo330() {
   foo252()
 }
 @inline(never)
-public func foo331() {
+public fn foo331() {
   print("foo331")
   foo249()
   foo88()
@@ -2992,7 +2992,7 @@ public func foo331() {
   foo75()
 }
 @inline(never)
-public func foo332() {
+public fn foo332() {
   print("foo332")
   foo432()
   foo195()
@@ -3001,7 +3001,7 @@ public func foo332() {
   foo384()
 }
 @inline(never)
-public func foo333() {
+public fn foo333() {
   print("foo333")
   foo423()
   foo466()
@@ -3010,7 +3010,7 @@ public func foo333() {
   foo283()
 }
 @inline(never)
-public func foo334() {
+public fn foo334() {
   print("foo334")
   foo44()
   foo328()
@@ -3019,7 +3019,7 @@ public func foo334() {
   foo112()
 }
 @inline(never)
-public func foo335() {
+public fn foo335() {
   print("foo335")
   foo316()
   foo349()
@@ -3028,7 +3028,7 @@ public func foo335() {
   foo218()
 }
 @inline(never)
-public func foo336() {
+public fn foo336() {
   print("foo336")
   foo97()
   foo319()
@@ -3037,7 +3037,7 @@ public func foo336() {
   foo280()
 }
 @inline(never)
-public func foo337() {
+public fn foo337() {
   print("foo337")
   foo335()
   foo461()
@@ -3046,7 +3046,7 @@ public func foo337() {
   foo221()
 }
 @inline(never)
-public func foo338() {
+public fn foo338() {
   print("foo338")
   foo378()
   foo110()
@@ -3055,7 +3055,7 @@ public func foo338() {
   foo113()
 }
 @inline(never)
-public func foo339() {
+public fn foo339() {
   print("foo339")
   foo261()
   foo293()
@@ -3064,7 +3064,7 @@ public func foo339() {
   foo383()
 }
 @inline(never)
-public func foo340() {
+public fn foo340() {
   print("foo340")
   foo24()
   foo157()
@@ -3073,7 +3073,7 @@ public func foo340() {
   foo362()
 }
 @inline(never)
-public func foo341() {
+public fn foo341() {
   print("foo341")
   foo104()
   foo253()
@@ -3082,7 +3082,7 @@ public func foo341() {
   foo182()
 }
 @inline(never)
-public func foo342() {
+public fn foo342() {
   print("foo342")
   foo51()
   foo242()
@@ -3091,7 +3091,7 @@ public func foo342() {
   foo15()
 }
 @inline(never)
-public func foo343() {
+public fn foo343() {
   print("foo343")
   foo255()
   foo436()
@@ -3100,7 +3100,7 @@ public func foo343() {
   foo419()
 }
 @inline(never)
-public func foo344() {
+public fn foo344() {
   print("foo344")
   foo271()
   foo29()
@@ -3109,7 +3109,7 @@ public func foo344() {
   foo99()
 }
 @inline(never)
-public func foo345() {
+public fn foo345() {
   print("foo345")
   foo92()
   foo115()
@@ -3118,7 +3118,7 @@ public func foo345() {
   foo51()
 }
 @inline(never)
-public func foo346() {
+public fn foo346() {
   print("foo346")
   foo256()
   foo49()
@@ -3127,7 +3127,7 @@ public func foo346() {
   foo409()
 }
 @inline(never)
-public func foo347() {
+public fn foo347() {
   print("foo347")
   foo182()
   foo477()
@@ -3136,7 +3136,7 @@ public func foo347() {
   foo100()
 }
 @inline(never)
-public func foo348() {
+public fn foo348() {
   print("foo348")
   foo286()
   foo148()
@@ -3145,7 +3145,7 @@ public func foo348() {
   foo152()
 }
 @inline(never)
-public func foo349() {
+public fn foo349() {
   print("foo349")
   foo262()
   foo370()
@@ -3154,7 +3154,7 @@ public func foo349() {
   foo437()
 }
 @inline(never)
-public func foo350() {
+public fn foo350() {
   print("foo350")
   foo377()
   foo315()
@@ -3163,7 +3163,7 @@ public func foo350() {
   foo304()
 }
 @inline(never)
-public func foo351() {
+public fn foo351() {
   print("foo351")
   foo260()
   foo261()
@@ -3172,7 +3172,7 @@ public func foo351() {
   foo151()
 }
 @inline(never)
-public func foo352() {
+public fn foo352() {
   print("foo352")
   foo380()
   foo287()
@@ -3181,7 +3181,7 @@ public func foo352() {
   foo313()
 }
 @inline(never)
-public func foo353() {
+public fn foo353() {
   print("foo353")
   foo336()
   foo117()
@@ -3190,7 +3190,7 @@ public func foo353() {
   foo226()
 }
 @inline(never)
-public func foo354() {
+public fn foo354() {
   print("foo354")
   foo446()
   foo435()
@@ -3199,7 +3199,7 @@ public func foo354() {
   foo53()
 }
 @inline(never)
-public func foo355() {
+public fn foo355() {
   print("foo355")
   foo196()
   foo214()
@@ -3208,7 +3208,7 @@ public func foo355() {
   foo224()
 }
 @inline(never)
-public func foo356() {
+public fn foo356() {
   print("foo356")
   foo65()
   foo247()
@@ -3217,7 +3217,7 @@ public func foo356() {
   foo503()
 }
 @inline(never)
-public func foo357() {
+public fn foo357() {
   print("foo357")
   foo2()
   foo189()
@@ -3226,7 +3226,7 @@ public func foo357() {
   foo449()
 }
 @inline(never)
-public func foo358() {
+public fn foo358() {
   print("foo358")
   foo471()
   foo332()
@@ -3235,7 +3235,7 @@ public func foo358() {
   foo79()
 }
 @inline(never)
-public func foo359() {
+public fn foo359() {
   print("foo359")
   foo288()
   foo429()
@@ -3244,7 +3244,7 @@ public func foo359() {
   foo77()
 }
 @inline(never)
-public func foo360() {
+public fn foo360() {
   print("foo360")
   foo78()
   foo350()
@@ -3253,7 +3253,7 @@ public func foo360() {
   foo193()
 }
 @inline(never)
-public func foo361() {
+public fn foo361() {
   print("foo361")
   foo486()
   foo209()
@@ -3262,7 +3262,7 @@ public func foo361() {
   foo17()
 }
 @inline(never)
-public func foo362() {
+public fn foo362() {
   print("foo362")
   foo153()
   foo169()
@@ -3271,7 +3271,7 @@ public func foo362() {
   foo367()
 }
 @inline(never)
-public func foo363() {
+public fn foo363() {
   print("foo363")
   foo24()
   foo323()
@@ -3280,7 +3280,7 @@ public func foo363() {
   foo128()
 }
 @inline(never)
-public func foo364() {
+public fn foo364() {
   print("foo364")
   foo491()
   foo182()
@@ -3289,7 +3289,7 @@ public func foo364() {
   foo219()
 }
 @inline(never)
-public func foo365() {
+public fn foo365() {
   print("foo365")
   foo278()
   foo333()
@@ -3298,7 +3298,7 @@ public func foo365() {
   foo461()
 }
 @inline(never)
-public func foo366() {
+public fn foo366() {
   print("foo366")
   foo136()
   foo129()
@@ -3307,7 +3307,7 @@ public func foo366() {
   foo511()
 }
 @inline(never)
-public func foo367() {
+public fn foo367() {
   print("foo367")
   foo85()
   foo442()
@@ -3316,7 +3316,7 @@ public func foo367() {
   foo31()
 }
 @inline(never)
-public func foo368() {
+public fn foo368() {
   print("foo368")
   foo221()
   foo254()
@@ -3325,7 +3325,7 @@ public func foo368() {
   foo199()
 }
 @inline(never)
-public func foo369() {
+public fn foo369() {
   print("foo369")
   foo70()
   foo242()
@@ -3334,7 +3334,7 @@ public func foo369() {
   foo232()
 }
 @inline(never)
-public func foo370() {
+public fn foo370() {
   print("foo370")
   foo191()
   foo148()
@@ -3343,7 +3343,7 @@ public func foo370() {
   foo229()
 }
 @inline(never)
-public func foo371() {
+public fn foo371() {
   print("foo371")
   foo375()
   foo495()
@@ -3352,7 +3352,7 @@ public func foo371() {
   foo221()
 }
 @inline(never)
-public func foo372() {
+public fn foo372() {
   print("foo372")
   foo225()
   foo267()
@@ -3361,7 +3361,7 @@ public func foo372() {
   foo301()
 }
 @inline(never)
-public func foo373() {
+public fn foo373() {
   print("foo373")
   foo443()
   foo77()
@@ -3370,7 +3370,7 @@ public func foo373() {
   foo283()
 }
 @inline(never)
-public func foo374() {
+public fn foo374() {
   print("foo374")
   foo2()
   foo388()
@@ -3379,7 +3379,7 @@ public func foo374() {
   foo34()
 }
 @inline(never)
-public func foo375() {
+public fn foo375() {
   print("foo375")
   foo414()
   foo372()
@@ -3388,7 +3388,7 @@ public func foo375() {
   foo438()
 }
 @inline(never)
-public func foo376() {
+public fn foo376() {
   print("foo376")
   foo64()
   foo278()
@@ -3397,7 +3397,7 @@ public func foo376() {
   foo383()
 }
 @inline(never)
-public func foo377() {
+public fn foo377() {
   print("foo377")
   foo486()
   foo337()
@@ -3406,7 +3406,7 @@ public func foo377() {
   foo384()
 }
 @inline(never)
-public func foo378() {
+public fn foo378() {
   print("foo378")
   foo482()
   foo267()
@@ -3415,7 +3415,7 @@ public func foo378() {
   foo398()
 }
 @inline(never)
-public func foo379() {
+public fn foo379() {
   print("foo379")
   foo420()
   foo322()
@@ -3424,7 +3424,7 @@ public func foo379() {
   foo311()
 }
 @inline(never)
-public func foo380() {
+public fn foo380() {
   print("foo380")
   foo247()
   foo139()
@@ -3433,7 +3433,7 @@ public func foo380() {
   foo315()
 }
 @inline(never)
-public func foo381() {
+public fn foo381() {
   print("foo381")
   foo175()
   foo326()
@@ -3442,7 +3442,7 @@ public func foo381() {
   foo43()
 }
 @inline(never)
-public func foo382() {
+public fn foo382() {
   print("foo382")
   foo315()
   foo318()
@@ -3451,7 +3451,7 @@ public func foo382() {
   foo104()
 }
 @inline(never)
-public func foo383() {
+public fn foo383() {
   print("foo383")
   foo417()
   foo250()
@@ -3460,7 +3460,7 @@ public func foo383() {
   foo431()
 }
 @inline(never)
-public func foo384() {
+public fn foo384() {
   print("foo384")
   foo271()
   foo26()
@@ -3469,7 +3469,7 @@ public func foo384() {
   foo467()
 }
 @inline(never)
-public func foo385() {
+public fn foo385() {
   print("foo385")
   foo470()
   foo26()
@@ -3478,7 +3478,7 @@ public func foo385() {
   foo501()
 }
 @inline(never)
-public func foo386() {
+public fn foo386() {
   print("foo386")
   foo113()
   foo381()
@@ -3487,7 +3487,7 @@ public func foo386() {
   foo511()
 }
 @inline(never)
-public func foo387() {
+public fn foo387() {
   print("foo387")
   foo416()
   foo392()
@@ -3496,7 +3496,7 @@ public func foo387() {
   foo379()
 }
 @inline(never)
-public func foo388() {
+public fn foo388() {
   print("foo388")
   foo333()
   foo302()
@@ -3505,7 +3505,7 @@ public func foo388() {
   foo359()
 }
 @inline(never)
-public func foo389() {
+public fn foo389() {
   print("foo389")
   foo128()
   foo409()
@@ -3514,7 +3514,7 @@ public func foo389() {
   foo32()
 }
 @inline(never)
-public func foo390() {
+public fn foo390() {
   print("foo390")
   foo247()
   foo242()
@@ -3523,7 +3523,7 @@ public func foo390() {
   foo438()
 }
 @inline(never)
-public func foo391() {
+public fn foo391() {
   print("foo391")
   foo412()
   foo335()
@@ -3532,7 +3532,7 @@ public func foo391() {
   foo484()
 }
 @inline(never)
-public func foo392() {
+public fn foo392() {
   print("foo392")
   foo185()
   foo352()
@@ -3541,7 +3541,7 @@ public func foo392() {
   foo383()
 }
 @inline(never)
-public func foo393() {
+public fn foo393() {
   print("foo393")
   foo5()
   foo376()
@@ -3550,7 +3550,7 @@ public func foo393() {
   foo12()
 }
 @inline(never)
-public func foo394() {
+public fn foo394() {
   print("foo394")
   foo493()
   foo402()
@@ -3559,7 +3559,7 @@ public func foo394() {
   foo90()
 }
 @inline(never)
-public func foo395() {
+public fn foo395() {
   print("foo395")
   foo215()
   foo340()
@@ -3568,7 +3568,7 @@ public func foo395() {
   foo162()
 }
 @inline(never)
-public func foo396() {
+public fn foo396() {
   print("foo396")
   foo291()
   foo119()
@@ -3577,7 +3577,7 @@ public func foo396() {
   foo50()
 }
 @inline(never)
-public func foo397() {
+public fn foo397() {
   print("foo397")
   foo66()
   foo498()
@@ -3586,7 +3586,7 @@ public func foo397() {
   foo323()
 }
 @inline(never)
-public func foo398() {
+public fn foo398() {
   print("foo398")
   foo230()
   foo331()
@@ -3595,7 +3595,7 @@ public func foo398() {
   foo291()
 }
 @inline(never)
-public func foo399() {
+public fn foo399() {
   print("foo399")
   foo269()
   foo343()
@@ -3604,7 +3604,7 @@ public func foo399() {
   foo45()
 }
 @inline(never)
-public func foo400() {
+public fn foo400() {
   print("foo400")
   foo277()
   foo355()
@@ -3613,7 +3613,7 @@ public func foo400() {
   foo195()
 }
 @inline(never)
-public func foo401() {
+public fn foo401() {
   print("foo401")
   foo250()
   foo127()
@@ -3622,7 +3622,7 @@ public func foo401() {
   foo208()
 }
 @inline(never)
-public func foo402() {
+public fn foo402() {
   print("foo402")
   foo101()
   foo286()
@@ -3631,7 +3631,7 @@ public func foo402() {
   foo241()
 }
 @inline(never)
-public func foo403() {
+public fn foo403() {
   print("foo403")
   foo273()
   foo427()
@@ -3640,7 +3640,7 @@ public func foo403() {
   foo124()
 }
 @inline(never)
-public func foo404() {
+public fn foo404() {
   print("foo404")
   foo353()
   foo472()
@@ -3649,7 +3649,7 @@ public func foo404() {
   foo0()
 }
 @inline(never)
-public func foo405() {
+public fn foo405() {
   print("foo405")
   foo33()
   foo51()
@@ -3658,7 +3658,7 @@ public func foo405() {
   foo497()
 }
 @inline(never)
-public func foo406() {
+public fn foo406() {
   print("foo406")
   foo223()
   foo12()
@@ -3667,7 +3667,7 @@ public func foo406() {
   foo266()
 }
 @inline(never)
-public func foo407() {
+public fn foo407() {
   print("foo407")
   foo331()
   foo298()
@@ -3676,7 +3676,7 @@ public func foo407() {
   foo397()
 }
 @inline(never)
-public func foo408() {
+public fn foo408() {
   print("foo408")
   foo154()
   foo50()
@@ -3685,7 +3685,7 @@ public func foo408() {
   foo509()
 }
 @inline(never)
-public func foo409() {
+public fn foo409() {
   print("foo409")
   foo81()
   foo2()
@@ -3694,7 +3694,7 @@ public func foo409() {
   foo318()
 }
 @inline(never)
-public func foo410() {
+public fn foo410() {
   print("foo410")
   foo97()
   foo258()
@@ -3703,7 +3703,7 @@ public func foo410() {
   foo251()
 }
 @inline(never)
-public func foo411() {
+public fn foo411() {
   print("foo411")
   foo242()
   foo164()
@@ -3712,7 +3712,7 @@ public func foo411() {
   foo3()
 }
 @inline(never)
-public func foo412() {
+public fn foo412() {
   print("foo412")
   foo107()
   foo340()
@@ -3721,7 +3721,7 @@ public func foo412() {
   foo412()
 }
 @inline(never)
-public func foo413() {
+public fn foo413() {
   print("foo413")
   foo134()
   foo19()
@@ -3730,7 +3730,7 @@ public func foo413() {
   foo83()
 }
 @inline(never)
-public func foo414() {
+public fn foo414() {
   print("foo414")
   foo68()
   foo401()
@@ -3739,7 +3739,7 @@ public func foo414() {
   foo287()
 }
 @inline(never)
-public func foo415() {
+public fn foo415() {
   print("foo415")
   foo467()
   foo70()
@@ -3748,7 +3748,7 @@ public func foo415() {
   foo432()
 }
 @inline(never)
-public func foo416() {
+public fn foo416() {
   print("foo416")
   foo237()
   foo259()
@@ -3757,7 +3757,7 @@ public func foo416() {
   foo90()
 }
 @inline(never)
-public func foo417() {
+public fn foo417() {
   print("foo417")
   foo373()
   foo359()
@@ -3766,7 +3766,7 @@ public func foo417() {
   foo433()
 }
 @inline(never)
-public func foo418() {
+public fn foo418() {
   print("foo418")
   foo346()
   foo293()
@@ -3775,7 +3775,7 @@ public func foo418() {
   foo227()
 }
 @inline(never)
-public func foo419() {
+public fn foo419() {
   print("foo419")
   foo375()
   foo278()
@@ -3784,7 +3784,7 @@ public func foo419() {
   foo182()
 }
 @inline(never)
-public func foo420() {
+public fn foo420() {
   print("foo420")
   foo212()
   foo5()
@@ -3793,7 +3793,7 @@ public func foo420() {
   foo364()
 }
 @inline(never)
-public func foo421() {
+public fn foo421() {
   print("foo421")
   foo446()
   foo201()
@@ -3802,7 +3802,7 @@ public func foo421() {
   foo465()
 }
 @inline(never)
-public func foo422() {
+public fn foo422() {
   print("foo422")
   foo83()
   foo161()
@@ -3811,7 +3811,7 @@ public func foo422() {
   foo103()
 }
 @inline(never)
-public func foo423() {
+public fn foo423() {
   print("foo423")
   foo376()
   foo431()
@@ -3820,7 +3820,7 @@ public func foo423() {
   foo219()
 }
 @inline(never)
-public func foo424() {
+public fn foo424() {
   print("foo424")
   foo450()
   foo440()
@@ -3829,7 +3829,7 @@ public func foo424() {
   foo117()
 }
 @inline(never)
-public func foo425() {
+public fn foo425() {
   print("foo425")
   foo58()
   foo156()
@@ -3838,7 +3838,7 @@ public func foo425() {
   foo10()
 }
 @inline(never)
-public func foo426() {
+public fn foo426() {
   print("foo426")
   foo72()
   foo51()
@@ -3847,7 +3847,7 @@ public func foo426() {
   foo29()
 }
 @inline(never)
-public func foo427() {
+public fn foo427() {
   print("foo427")
   foo321()
   foo140()
@@ -3856,7 +3856,7 @@ public func foo427() {
   foo402()
 }
 @inline(never)
-public func foo428() {
+public fn foo428() {
   print("foo428")
   foo95()
   foo84()
@@ -3865,7 +3865,7 @@ public func foo428() {
   foo428()
 }
 @inline(never)
-public func foo429() {
+public fn foo429() {
   print("foo429")
   foo272()
   foo348()
@@ -3874,7 +3874,7 @@ public func foo429() {
   foo26()
 }
 @inline(never)
-public func foo430() {
+public fn foo430() {
   print("foo430")
   foo281()
   foo57()
@@ -3883,7 +3883,7 @@ public func foo430() {
   foo373()
 }
 @inline(never)
-public func foo431() {
+public fn foo431() {
   print("foo431")
   foo263()
   foo457()
@@ -3892,7 +3892,7 @@ public func foo431() {
   foo486()
 }
 @inline(never)
-public func foo432() {
+public fn foo432() {
   print("foo432")
   foo406()
   foo369()
@@ -3901,7 +3901,7 @@ public func foo432() {
   foo155()
 }
 @inline(never)
-public func foo433() {
+public fn foo433() {
   print("foo433")
   foo494()
   foo24()
@@ -3910,7 +3910,7 @@ public func foo433() {
   foo59()
 }
 @inline(never)
-public func foo434() {
+public fn foo434() {
   print("foo434")
   foo268()
   foo160()
@@ -3919,7 +3919,7 @@ public func foo434() {
   foo408()
 }
 @inline(never)
-public func foo435() {
+public fn foo435() {
   print("foo435")
   foo306()
   foo64()
@@ -3928,7 +3928,7 @@ public func foo435() {
   foo373()
 }
 @inline(never)
-public func foo436() {
+public fn foo436() {
   print("foo436")
   foo119()
   foo477()
@@ -3937,7 +3937,7 @@ public func foo436() {
   foo316()
 }
 @inline(never)
-public func foo437() {
+public fn foo437() {
   print("foo437")
   foo11()
   foo315()
@@ -3946,7 +3946,7 @@ public func foo437() {
   foo281()
 }
 @inline(never)
-public func foo438() {
+public fn foo438() {
   print("foo438")
   foo6()
   foo266()
@@ -3955,7 +3955,7 @@ public func foo438() {
   foo79()
 }
 @inline(never)
-public func foo439() {
+public fn foo439() {
   print("foo439")
   foo330()
   foo30()
@@ -3964,7 +3964,7 @@ public func foo439() {
   foo468()
 }
 @inline(never)
-public func foo440() {
+public fn foo440() {
   print("foo440")
   foo103()
   foo177()
@@ -3973,7 +3973,7 @@ public func foo440() {
   foo203()
 }
 @inline(never)
-public func foo441() {
+public fn foo441() {
   print("foo441")
   foo138()
   foo353()
@@ -3982,7 +3982,7 @@ public func foo441() {
   foo20()
 }
 @inline(never)
-public func foo442() {
+public fn foo442() {
   print("foo442")
   foo235()
   foo310()
@@ -3991,7 +3991,7 @@ public func foo442() {
   foo215()
 }
 @inline(never)
-public func foo443() {
+public fn foo443() {
   print("foo443")
   foo105()
   foo214()
@@ -4000,7 +4000,7 @@ public func foo443() {
   foo143()
 }
 @inline(never)
-public func foo444() {
+public fn foo444() {
   print("foo444")
   foo122()
   foo99()
@@ -4009,7 +4009,7 @@ public func foo444() {
   foo399()
 }
 @inline(never)
-public func foo445() {
+public fn foo445() {
   print("foo445")
   foo221()
   foo217()
@@ -4018,7 +4018,7 @@ public func foo445() {
   foo237()
 }
 @inline(never)
-public func foo446() {
+public fn foo446() {
   print("foo446")
   foo404()
   foo322()
@@ -4027,7 +4027,7 @@ public func foo446() {
   foo142()
 }
 @inline(never)
-public func foo447() {
+public fn foo447() {
   print("foo447")
   foo503()
   foo402()
@@ -4036,7 +4036,7 @@ public func foo447() {
   foo59()
 }
 @inline(never)
-public func foo448() {
+public fn foo448() {
   print("foo448")
   foo224()
   foo400()
@@ -4045,7 +4045,7 @@ public func foo448() {
   foo476()
 }
 @inline(never)
-public func foo449() {
+public fn foo449() {
   print("foo449")
   foo479()
   foo198()
@@ -4054,7 +4054,7 @@ public func foo449() {
   foo465()
 }
 @inline(never)
-public func foo450() {
+public fn foo450() {
   print("foo450")
   foo202()
   foo291()
@@ -4063,7 +4063,7 @@ public func foo450() {
   foo423()
 }
 @inline(never)
-public func foo451() {
+public fn foo451() {
   print("foo451")
   foo340()
   foo252()
@@ -4072,7 +4072,7 @@ public func foo451() {
   foo58()
 }
 @inline(never)
-public func foo452() {
+public fn foo452() {
   print("foo452")
   foo147()
   foo462()
@@ -4081,7 +4081,7 @@ public func foo452() {
   foo440()
 }
 @inline(never)
-public func foo453() {
+public fn foo453() {
   print("foo453")
   foo100()
   foo132()
@@ -4090,7 +4090,7 @@ public func foo453() {
   foo418()
 }
 @inline(never)
-public func foo454() {
+public fn foo454() {
   print("foo454")
   foo198()
   foo220()
@@ -4099,7 +4099,7 @@ public func foo454() {
   foo269()
 }
 @inline(never)
-public func foo455() {
+public fn foo455() {
   print("foo455")
   foo236()
   foo324()
@@ -4108,7 +4108,7 @@ public func foo455() {
   foo426()
 }
 @inline(never)
-public func foo456() {
+public fn foo456() {
   print("foo456")
   foo153()
   foo297()
@@ -4117,7 +4117,7 @@ public func foo456() {
   foo80()
 }
 @inline(never)
-public func foo457() {
+public fn foo457() {
   print("foo457")
   foo329()
   foo22()
@@ -4126,7 +4126,7 @@ public func foo457() {
   foo323()
 }
 @inline(never)
-public func foo458() {
+public fn foo458() {
   print("foo458")
   foo332()
   foo501()
@@ -4135,7 +4135,7 @@ public func foo458() {
   foo360()
 }
 @inline(never)
-public func foo459() {
+public fn foo459() {
   print("foo459")
   foo8()
   foo457()
@@ -4144,7 +4144,7 @@ public func foo459() {
   foo359()
 }
 @inline(never)
-public func foo460() {
+public fn foo460() {
   print("foo460")
   foo70()
   foo2()
@@ -4153,7 +4153,7 @@ public func foo460() {
   foo500()
 }
 @inline(never)
-public func foo461() {
+public fn foo461() {
   print("foo461")
   foo377()
   foo203()
@@ -4162,7 +4162,7 @@ public func foo461() {
   foo328()
 }
 @inline(never)
-public func foo462() {
+public fn foo462() {
   print("foo462")
   foo270()
   foo278()
@@ -4171,7 +4171,7 @@ public func foo462() {
   foo441()
 }
 @inline(never)
-public func foo463() {
+public fn foo463() {
   print("foo463")
   foo242()
   foo413()
@@ -4180,7 +4180,7 @@ public func foo463() {
   foo331()
 }
 @inline(never)
-public func foo464() {
+public fn foo464() {
   print("foo464")
   foo67()
   foo270()
@@ -4189,7 +4189,7 @@ public func foo464() {
   foo93()
 }
 @inline(never)
-public func foo465() {
+public fn foo465() {
   print("foo465")
   foo368()
   foo219()
@@ -4198,7 +4198,7 @@ public func foo465() {
   foo250()
 }
 @inline(never)
-public func foo466() {
+public fn foo466() {
   print("foo466")
   foo359()
   foo228()
@@ -4207,7 +4207,7 @@ public func foo466() {
   foo449()
 }
 @inline(never)
-public func foo467() {
+public fn foo467() {
   print("foo467")
   foo245()
   foo90()
@@ -4216,7 +4216,7 @@ public func foo467() {
   foo85()
 }
 @inline(never)
-public func foo468() {
+public fn foo468() {
   print("foo468")
   foo331()
   foo135()
@@ -4225,7 +4225,7 @@ public func foo468() {
   foo186()
 }
 @inline(never)
-public func foo469() {
+public fn foo469() {
   print("foo469")
   foo362()
   foo16()
@@ -4234,7 +4234,7 @@ public func foo469() {
   foo254()
 }
 @inline(never)
-public func foo470() {
+public fn foo470() {
   print("foo470")
   foo190()
   foo60()
@@ -4243,7 +4243,7 @@ public func foo470() {
   foo100()
 }
 @inline(never)
-public func foo471() {
+public fn foo471() {
   print("foo471")
   foo22()
   foo251()
@@ -4252,7 +4252,7 @@ public func foo471() {
   foo24()
 }
 @inline(never)
-public func foo472() {
+public fn foo472() {
   print("foo472")
   foo488()
   foo363()
@@ -4261,7 +4261,7 @@ public func foo472() {
   foo210()
 }
 @inline(never)
-public func foo473() {
+public fn foo473() {
   print("foo473")
   foo307()
   foo106()
@@ -4270,7 +4270,7 @@ public func foo473() {
   foo364()
 }
 @inline(never)
-public func foo474() {
+public fn foo474() {
   print("foo474")
   foo242()
   foo207()
@@ -4279,7 +4279,7 @@ public func foo474() {
   foo371()
 }
 @inline(never)
-public func foo475() {
+public fn foo475() {
   print("foo475")
   foo129()
   foo395()
@@ -4288,7 +4288,7 @@ public func foo475() {
   foo223()
 }
 @inline(never)
-public func foo476() {
+public fn foo476() {
   print("foo476")
   foo44()
   foo455()
@@ -4297,7 +4297,7 @@ public func foo476() {
   foo50()
 }
 @inline(never)
-public func foo477() {
+public fn foo477() {
   print("foo477")
   foo112()
   foo357()
@@ -4306,7 +4306,7 @@ public func foo477() {
   foo386()
 }
 @inline(never)
-public func foo478() {
+public fn foo478() {
   print("foo478")
   foo59()
   foo407()
@@ -4315,7 +4315,7 @@ public func foo478() {
   foo230()
 }
 @inline(never)
-public func foo479() {
+public fn foo479() {
   print("foo479")
   foo307()
   foo218()
@@ -4324,7 +4324,7 @@ public func foo479() {
   foo160()
 }
 @inline(never)
-public func foo480() {
+public fn foo480() {
   print("foo480")
   foo275()
   foo209()
@@ -4333,7 +4333,7 @@ public func foo480() {
   foo0()
 }
 @inline(never)
-public func foo481() {
+public fn foo481() {
   print("foo481")
   foo252()
   foo17()
@@ -4342,7 +4342,7 @@ public func foo481() {
   foo443()
 }
 @inline(never)
-public func foo482() {
+public fn foo482() {
   print("foo482")
   foo82()
   foo215()
@@ -4351,7 +4351,7 @@ public func foo482() {
   foo227()
 }
 @inline(never)
-public func foo483() {
+public fn foo483() {
   print("foo483")
   foo65()
   foo305()
@@ -4360,7 +4360,7 @@ public func foo483() {
   foo188()
 }
 @inline(never)
-public func foo484() {
+public fn foo484() {
   print("foo484")
   foo464()
   foo104()
@@ -4369,7 +4369,7 @@ public func foo484() {
   foo194()
 }
 @inline(never)
-public func foo485() {
+public fn foo485() {
   print("foo485")
   foo424()
   foo338()
@@ -4378,7 +4378,7 @@ public func foo485() {
   foo312()
 }
 @inline(never)
-public func foo486() {
+public fn foo486() {
   print("foo486")
   foo375()
   foo254()
@@ -4387,7 +4387,7 @@ public func foo486() {
   foo78()
 }
 @inline(never)
-public func foo487() {
+public fn foo487() {
   print("foo487")
   foo98()
   foo347()
@@ -4396,7 +4396,7 @@ public func foo487() {
   foo136()
 }
 @inline(never)
-public func foo488() {
+public fn foo488() {
   print("foo488")
   foo471()
   foo479()
@@ -4405,7 +4405,7 @@ public func foo488() {
   foo427()
 }
 @inline(never)
-public func foo489() {
+public fn foo489() {
   print("foo489")
   foo458()
   foo283()
@@ -4414,7 +4414,7 @@ public func foo489() {
   foo422()
 }
 @inline(never)
-public func foo490() {
+public fn foo490() {
   print("foo490")
   foo306()
   foo503()
@@ -4423,7 +4423,7 @@ public func foo490() {
   foo26()
 }
 @inline(never)
-public func foo491() {
+public fn foo491() {
   print("foo491")
   foo371()
   foo42()
@@ -4432,7 +4432,7 @@ public func foo491() {
   foo387()
 }
 @inline(never)
-public func foo492() {
+public fn foo492() {
   print("foo492")
   foo197()
   foo421()
@@ -4441,7 +4441,7 @@ public func foo492() {
   foo282()
 }
 @inline(never)
-public func foo493() {
+public fn foo493() {
   print("foo493")
   foo79()
   foo366()
@@ -4450,7 +4450,7 @@ public func foo493() {
   foo328()
 }
 @inline(never)
-public func foo494() {
+public fn foo494() {
   print("foo494")
   foo207()
   foo86()
@@ -4459,7 +4459,7 @@ public func foo494() {
   foo319()
 }
 @inline(never)
-public func foo495() {
+public fn foo495() {
   print("foo495")
   foo403()
   foo141()
@@ -4468,7 +4468,7 @@ public func foo495() {
   foo40()
 }
 @inline(never)
-public func foo496() {
+public fn foo496() {
   print("foo496")
   foo101()
   foo459()
@@ -4477,7 +4477,7 @@ public func foo496() {
   foo116()
 }
 @inline(never)
-public func foo497() {
+public fn foo497() {
   print("foo497")
   foo472()
   foo339()
@@ -4486,7 +4486,7 @@ public func foo497() {
   foo334()
 }
 @inline(never)
-public func foo498() {
+public fn foo498() {
   print("foo498")
   foo280()
   foo115()
@@ -4495,7 +4495,7 @@ public func foo498() {
   foo437()
 }
 @inline(never)
-public func foo499() {
+public fn foo499() {
   print("foo499")
   foo87()
   foo171()
@@ -4504,7 +4504,7 @@ public func foo499() {
   foo270()
 }
 @inline(never)
-public func foo500() {
+public fn foo500() {
   print("foo500")
   foo4()
   foo58()
@@ -4513,7 +4513,7 @@ public func foo500() {
   foo266()
 }
 @inline(never)
-public func foo501() {
+public fn foo501() {
   print("foo501")
   foo500()
   foo417()
@@ -4522,7 +4522,7 @@ public func foo501() {
   foo4()
 }
 @inline(never)
-public func foo502() {
+public fn foo502() {
   print("foo502")
   foo190()
   foo32()
@@ -4531,7 +4531,7 @@ public func foo502() {
   foo148()
 }
 @inline(never)
-public func foo503() {
+public fn foo503() {
   print("foo503")
   foo451()
   foo192()
@@ -4540,7 +4540,7 @@ public func foo503() {
   foo312()
 }
 @inline(never)
-public func foo504() {
+public fn foo504() {
   print("foo504")
   foo38()
   foo118()
@@ -4549,7 +4549,7 @@ public func foo504() {
   foo332()
 }
 @inline(never)
-public func foo505() {
+public fn foo505() {
   print("foo505")
   foo104()
   foo318()
@@ -4558,7 +4558,7 @@ public func foo505() {
   foo319()
 }
 @inline(never)
-public func foo506() {
+public fn foo506() {
   print("foo506")
   foo212()
   foo125()
@@ -4567,7 +4567,7 @@ public func foo506() {
   foo128()
 }
 @inline(never)
-public func foo507() {
+public fn foo507() {
   print("foo507")
   foo496()
   foo405()
@@ -4576,7 +4576,7 @@ public func foo507() {
   foo423()
 }
 @inline(never)
-public func foo508() {
+public fn foo508() {
   print("foo508")
   foo404()
   foo430()
@@ -4585,7 +4585,7 @@ public func foo508() {
   foo385()
 }
 @inline(never)
-public func foo509() {
+public fn foo509() {
   print("foo509")
   foo302()
   foo492()
@@ -4594,7 +4594,7 @@ public func foo509() {
   foo422()
 }
 @inline(never)
-public func foo510() {
+public fn foo510() {
   print("foo510")
   foo228()
   foo297()
@@ -4603,7 +4603,7 @@ public func foo510() {
   foo492()
 }
 @inline(never)
-public func foo511() {
+public fn foo511() {
   print("foo511")
   foo24()
   foo381()

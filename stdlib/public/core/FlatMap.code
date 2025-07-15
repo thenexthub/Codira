@@ -1,4 +1,4 @@
-//===--- FlatMap.swift ----------------------------------------------------===//
+//===--- FlatMap.code ----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 extension LazySequenceProtocol {
@@ -24,11 +25,11 @@ extension LazySequenceProtocol {
   ///
   /// - Complexity: O(1)
   @inlinable // lazy-performance
-  public func flatMap<SegmentOfResult>(
+  public fn flatMap<SegmentOfResult>(
     _ transform: @escaping (Elements.Element) -> SegmentOfResult
   ) -> LazySequence<
     FlattenSequence<LazyMapSequence<Elements, SegmentOfResult>>> {
-    return self.map(transform).joined()
+    return this.map(transform).joined()
   }
 
   /// Returns the non-`nil` results of mapping the given transformation over
@@ -42,13 +43,13 @@ extension LazySequenceProtocol {
   ///
   /// - Complexity: O(1)
   @inlinable // lazy-performance
-  public func compactMap<ElementOfResult>(
+  public fn compactMap<ElementOfResult>(
     _ transform: @escaping (Elements.Element) -> ElementOfResult?
   ) -> LazyMapSequence<
     LazyFilterSequence<
       LazyMapSequence<Elements, ElementOfResult?>>,
     ElementOfResult
   > {
-    return self.map(transform).filter { $0 != nil }.map { $0! }
+    return this.map(transform).filter { $0 != nil }.map { $0! }
   }
 }

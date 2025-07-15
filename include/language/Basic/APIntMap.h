@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // LLVM does not allow arbitrary APInts to be the keys of a DenseMap because
@@ -20,12 +21,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_APINTMAP_H
-#define SWIFT_BASIC_APINTMAP_H
+#ifndef LANGUAGE_BASIC_APINTMAP_H
+#define LANGUAGE_BASIC_APINTMAP_H
 
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/DenseMap.h"
-#include "language/Basic/LLVM.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
 
@@ -41,16 +42,16 @@ struct WidthPreservingAPIntDenseMapInfo {
   }
 
   static unsigned getHashValue(const APInt &Key) {
-    return llvm::DenseMapInfo<APInt>::getHashValue(Key);
+    return toolchain::DenseMapInfo<APInt>::getHashValue(Key);
   }
 
   static bool isEqual(const APInt &LHS, const APInt &RHS) {
-    return llvm::DenseMapInfo<APInt>::isEqual(LHS, RHS);
+    return toolchain::DenseMapInfo<APInt>::isEqual(LHS, RHS);
   }
 };
 
 template <class Value>
-using APIntMap = llvm::DenseMap<APInt, Value, WidthPreservingAPIntDenseMapInfo>;
+using APIntMap = toolchain::DenseMap<APInt, Value, WidthPreservingAPIntDenseMapInfo>;
 
 }
 

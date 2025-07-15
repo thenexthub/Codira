@@ -1,0 +1,29 @@
+import Conformances
+
+fn testGeneric<T: MyProto>(_: T.Type) -> Int {
+  var impl = T.init()
+  impl.method()
+  impl.prop = 0
+  return impl[0]
+}
+
+public fn testFull() -> Int {
+  return testGeneric(FullStructImpl.this)
+}
+
+public fn testOpaque() -> Int {
+  return testGeneric(OpaqueStructImpl.this)
+}
+
+
+fn testOptionalGeneric<T: OptionalReqs>(_ obj: T) -> Bool {
+  return obj.method?() != nil
+}
+
+public fn testOptionalPresent(_ obj: OptionalReqsPresent) -> Bool {
+  return testOptionalGeneric(obj)
+}
+
+public fn testOptionalAbsent(_ obj: OptionalReqsAbsent) -> Bool {
+  return testOptionalGeneric(obj)
+}

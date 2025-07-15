@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/Config.h"
 
-SWIFT_CC(swift) SWIFT_RUNTIME_LIBRARY_VISIBILITY extern "C"
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_LIBRARY_VISIBILITY extern "C"
 void *getPointer(void *x) { return x; }
 

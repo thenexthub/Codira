@@ -1,4 +1,4 @@
-//===--- ASTScopeImpl.cpp - Swift Object-Oriented AST Scope ---------------===//
+//===--- ASTScopeImpl.cpp - Codira Object-Oriented AST Scope ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements the common functions of the 49 ontology.
@@ -35,7 +36,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/NullablePtr.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include <algorithm>
 
 using namespace language;
@@ -64,7 +65,7 @@ public:
   /// IndexOfFirstOuterResult when necessary.
   ///
   /// Additionally, each name is logged to `recordedElements` and
-  /// can be later used in validation of `SwiftLexicalLookup` result.
+  /// can be later used in validation of `CodiraLexicalLookup` result.
   ///
   /// \param baseDC either a type context or the local context of a
   /// `self` parameter declaration. See LookupResult for a discussion
@@ -93,7 +94,7 @@ public:
   /// Look for members of a nominal type or extension scope.
   ///
   /// Each call is recorded in `recordedElements` with a special flag set.
-  /// It can be later used in validation of `SwiftLexicalLookup` result.
+  /// It can be later used in validation of `CodiraLexicalLookup` result.
   ///
   /// \return true if the lookup should be stopped at this point.
   bool lookInMembers(const DeclContext *scopeDC) const override {
@@ -151,8 +152,8 @@ void ASTScope::unqualifiedLookup(
   if (auto *s = SF->getASTContext().Stats)
     ++s->getFrontendCounters().NumASTScopeLookups;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
-  // Perform validation of SwiftLexicalLookup if option
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+  // Perform validation of CodiraLexicalLookup if option
   // Feature::UnqualifiedLookupValidation is enabled and lookup was not
   // performed in a macro.
   if (SF->getASTContext().LangOpts.hasFeature(
@@ -163,7 +164,7 @@ void ASTScope::unqualifiedLookup(
 
     ASTScopeImpl::unqualifiedLookup(SF, loc, loggingASTScopeDeclConsumer);
 
-    bool passed = swift_ASTGen_validateUnqualifiedLookup(
+    bool passed = language_ASTGen_validateUnqualifiedLookup(
         SF->getExportedSourceFile(), SF->getASTContext(), loc,
         loggingASTScopeDeclConsumer.finishLookupInBraceStmt(nullptr),
         BridgedArrayRef(loggingASTScopeDeclConsumer.recordedElements.data(),
@@ -180,7 +181,7 @@ void ASTScope::unqualifiedLookup(
 #endif
 }
 
-llvm::SmallVector<LabeledStmt *, 4> ASTScope::lookupLabeledStmts(
+toolchain::SmallVector<LabeledStmt *, 4> ASTScope::lookupLabeledStmts(
     SourceFile *sourceFile, SourceLoc loc) {
   return ASTScopeImpl::lookupLabeledStmts(sourceFile, loc);
 }
@@ -192,7 +193,7 @@ std::pair<CaseStmt *, CaseStmt *> ASTScope::lookupFallthroughSourceAndDest(
 
 void ASTScope::lookupEnclosingMacroScope(
     SourceFile *sourceFile, SourceLoc loc,
-    llvm::function_ref<bool(PotentialMacro)> body) {
+    toolchain::function_ref<bool(PotentialMacro)> body) {
   return ASTScopeImpl::lookupEnclosingMacroScope(sourceFile, loc, body);
 }
 
@@ -205,13 +206,13 @@ CatchNode ASTScope::lookupCatchNode(ModuleDecl *module, SourceLoc loc) {
   return ASTScopeImpl::lookupCatchNode(module, loc);
 }
 
-#if SWIFT_COMPILER_IS_MSVC
+#if LANGUAGE_COMPILER_IS_MSVC
 #pragma warning(supress: 4996)
 #endif
 
 void ASTScope::dump() const { impl->dump(); }
 
-void ASTScope::print(llvm::raw_ostream &out) const { impl->print(out); }
+void ASTScope::print(toolchain::raw_ostream &out) const { impl->print(out); }
 void ASTScope::dumpOneScopeMapLocation(std::pair<unsigned, unsigned> lineCol) {
   impl->dumpOneScopeMapLocation(lineCol);
 }
@@ -359,6 +360,8 @@ SourceRange NominalTypeScope::getBraces() const { return decl->getBraces(); }
 
 NullablePtr<NominalTypeDecl>
 ExtensionScope::getCorrespondingNominalTypeDecl() const {
+  if (!decl->hasBeenBound())
+    return nullptr;
   return decl->getExtendedNominal();
 }
 

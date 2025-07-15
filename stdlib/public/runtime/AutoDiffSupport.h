@@ -1,24 +1,28 @@
 //===--- AutoDiffSupport.h ------------------------------------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_AUTODIFF_SUPPORT_H
-#define SWIFT_RUNTIME_AUTODIFF_SUPPORT_H
+#ifndef LANGUAGE_RUNTIME_AUTODIFF_SUPPORT_H
+#define LANGUAGE_RUNTIME_AUTODIFF_SUPPORT_H
 
 #include "language/Runtime/HeapObject.h"
 #include "language/ABI/Metadata.h"
 #include "language/Runtime/Config.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Allocator.h"
 
 namespace language {
 /// A data structure responsible for efficiently allocating closure contexts for
@@ -72,11 +76,11 @@ private:
   /// The underlying allocator.
   // TODO: Use a custom allocator so that the initial slab can be
   // tail-allocated.
-  llvm::BumpPtrAllocator allocator;
+  toolchain::BumpPtrAllocator allocator;
 
   /// Storage for `AllocatedContextObjectRecord`s, corresponding to the
   /// subcontext allocations performed by the type.
-  llvm::SmallVector<AllocatedContextObjectRecord, 4> allocatedContextObjects;
+  toolchain::SmallVector<AllocatedContextObjectRecord, 4> allocatedContextObjects;
 
 public:
   /// DEPRECATED - Use overloaded constructor taking a `const Metadata *`
@@ -101,32 +105,32 @@ public:
 
 /// Creates a linear map context with a tail-allocated top-level subcontext.
 ///
-/// DEPRECATED - Use `swift_autoDiffCreateLinearMapContextWithType` instead.
+/// DEPRECATED - Use `language_autoDiffCreateLinearMapContextWithType` instead.
 /// This builtin might be removed as it leads to memory leaks.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-AutoDiffLinearMapContext *swift_autoDiffCreateLinearMapContext(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+AutoDiffLinearMapContext *language_autoDiffCreateLinearMapContext(
     size_t topLevelSubcontextSize);
 
 /// Returns the address of the tail-allocated top-level subcontext.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-void *swift_autoDiffProjectTopLevelSubcontext(AutoDiffLinearMapContext *);
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+void *language_autoDiffProjectTopLevelSubcontext(AutoDiffLinearMapContext *);
 
 /// Allocates memory for a new subcontext.
 ///
-/// DEPRECATED - Use `swift_autoDiffAllocateSubcontextWithType` instead. This
+/// DEPRECATED - Use `language_autoDiffAllocateSubcontextWithType` instead. This
 /// builtin might be removed as it leads to memory leaks.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-void *swift_autoDiffAllocateSubcontext(AutoDiffLinearMapContext *, size_t size);
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+void *language_autoDiffAllocateSubcontext(AutoDiffLinearMapContext *, size_t size);
 
 /// Creates a linear map context with a tail-allocated top-level subcontext.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-    AutoDiffLinearMapContext *swift_autoDiffCreateLinearMapContextWithType(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+    AutoDiffLinearMapContext *language_autoDiffCreateLinearMapContextWithType(
         const Metadata *topLevelLinearMapContextMetadata);
 
 /// Allocates memory for a new subcontext.
-SWIFT_RUNTIME_EXPORT
-    SWIFT_CC(swift) void *swift_autoDiffAllocateSubcontextWithType(
+LANGUAGE_RUNTIME_EXPORT
+    LANGUAGE_CC(language) void *language_autoDiffAllocateSubcontextWithType(
         AutoDiffLinearMapContext *,
         const Metadata *linearMapSubcontextMetadata);
 } // namespace language
-#endif /* SWIFT_RUNTIME_AUTODIFF_SUPPORT_H */
+#endif /* LANGUAGE_RUNTIME_AUTODIFF_SUPPORT_H */

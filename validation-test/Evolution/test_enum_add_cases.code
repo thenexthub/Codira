@@ -1,0 +1,417 @@
+// RUN: %target-resilience-test
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import enum_add_cases
+
+
+var EnumAddCasesTest = TestSuite("EnumAddCases")
+
+fn myAddNoPayloadToSingletonCases() -> [AddNoPayloadToSingleton] {
+  return [.Noses]
+}
+
+fn evaluateAddNoPayloadToSingletonCases(_ e: [AddNoPayloadToSingleton]) -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Noses:
+      return 0
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddNoPayloadToSingleton") {
+  expectEqual([0],
+      evaluateAddNoPayloadToSingletonCases(myAddNoPayloadToSingletonCases()))
+  if getVersion() == 0 {
+    expectEqual([0],
+        evaluateAddNoPayloadToSingletonCases(addNoPayloadToSingletonCases()))
+  } else {
+    expectEqual([0, -1, -1],
+        evaluateAddNoPayloadToSingletonCases(addNoPayloadToSingletonCases()))
+  }
+}
+
+fn evaluateAddNoPayloadToSingletonCasesUC(_ e: [AddNoPayloadToSingleton]) -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Noses:
+      return 0
+    @unknown case _:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddNoPayloadToSingleton/UnknownCase") {
+  expectEqual([0],
+      evaluateAddNoPayloadToSingletonCasesUC(myAddNoPayloadToSingletonCases()))
+  if getVersion() == 0 {
+    expectEqual([0],
+        evaluateAddNoPayloadToSingletonCasesUC(addNoPayloadToSingletonCases()))
+  } else {
+    expectEqual([0, -1, -1],
+        evaluateAddNoPayloadToSingletonCasesUC(addNoPayloadToSingletonCases()))
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+
+fn myAddPayloadToSingletonCases() -> [AddPayloadToSingleton] {
+  return [.Cats]
+}
+
+fn evaluateAddPayloadToSingletonCases(_ e: [AddPayloadToSingleton]) -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats:
+      return 0
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddPayloadToSingleton") {
+  do {
+    immutable s = Starfish()
+
+    expectEqual([0],
+        evaluateAddPayloadToSingletonCases(myAddPayloadToSingletonCases()))
+    if getVersion() == 0 {
+      expectEqual([0],
+          evaluateAddPayloadToSingletonCases(addPayloadToSingletonCases(s)))
+    } else {
+      expectEqual([0, -1],
+          evaluateAddPayloadToSingletonCases(addPayloadToSingletonCases(s)))
+    }
+  }
+
+  expectEqual(starfishCount, 0)
+}
+
+fn evaluateAddPayloadToSingletonCasesUC(_ e: [AddPayloadToSingleton]) -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats:
+      return 0
+    @unknown case _:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddPayloadToSingleton/UnknownCase") {
+  do {
+    immutable s = Starfish()
+
+    expectEqual([0],
+        evaluateAddPayloadToSingletonCasesUC(myAddPayloadToSingletonCases()))
+    if getVersion() == 0 {
+      expectEqual([0],
+          evaluateAddPayloadToSingletonCasesUC(addPayloadToSingletonCases(s)))
+    } else {
+      expectEqual([0, -1],
+          evaluateAddPayloadToSingletonCasesUC(addPayloadToSingletonCases(s)))
+    }
+  }
+
+  expectEqual(starfishCount, 0)
+}
+
+///////////////////////////////////////////////////////////////////////
+
+fn myAddNoPayloadToSinglePayloadCases(_ s: Starfish)
+    -> [AddNoPayloadToSinglePayload] {
+  return [.Cats(s), .Noses]
+}
+
+fn evaluateAddNoPayloadToSinglePayloadCases(_ s: Starfish,
+                                            _ e: [AddNoPayloadToSinglePayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats(immutable ss):
+      expectTrue(s === ss)
+      return 0
+    case .Noses:
+      return 1
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddNoPayloadToSinglePayload") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1],
+        evaluateAddNoPayloadToSinglePayloadCases(s, myAddNoPayloadToSinglePayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1],
+          evaluateAddNoPayloadToSinglePayloadCases(s, addNoPayloadToSinglePayloadCases(s)))
+    } else {
+      expectEqual([0, 1, -1],
+          evaluateAddNoPayloadToSinglePayloadCases(s, addNoPayloadToSinglePayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+fn evaluateAddNoPayloadToSinglePayloadCasesUC(_ s: Starfish,
+                                                _ e: [AddNoPayloadToSinglePayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats(immutable ss):
+      expectTrue(s === ss)
+      return 0
+    case .Noses:
+      return 1
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddNoPayloadToSinglePayload/UnknownCase") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1],
+        evaluateAddNoPayloadToSinglePayloadCasesUC(s, myAddNoPayloadToSinglePayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1],
+          evaluateAddNoPayloadToSinglePayloadCasesUC(s, addNoPayloadToSinglePayloadCases(s)))
+    } else {
+      expectEqual([0, 1, -1],
+          evaluateAddNoPayloadToSinglePayloadCasesUC(s, addNoPayloadToSinglePayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+///////////////////////////////////////////////////////////////////////
+
+fn myAddPayloadToSinglePayloadCases(_ s: Starfish)
+    -> [AddPayloadToSinglePayload] {
+  return [.Cats, .Paws(s)]
+}
+
+fn evaluateAddPayloadToSinglePayloadCases(_ s: Starfish,
+                                            _ e: [AddPayloadToSinglePayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats:
+      return 0
+    case .Paws(immutable ss):
+      expectTrue(s === ss)
+      return 1
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddPayloadToSinglePayload") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1],
+        evaluateAddPayloadToSinglePayloadCases(s, myAddPayloadToSinglePayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1],
+          evaluateAddPayloadToSinglePayloadCases(s, addPayloadToSinglePayloadCases(s)))
+    } else {
+      expectEqual([0, 1, -1],
+          evaluateAddPayloadToSinglePayloadCases(s, addPayloadToSinglePayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+fn evaluateAddPayloadToSinglePayloadCasesUC(_ s: Starfish,
+                                              _ e: [AddPayloadToSinglePayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats:
+      return 0
+    case .Paws(immutable ss):
+      expectTrue(s === ss)
+      return 1
+    @unknown case _:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddPayloadToSinglePayload/UnknownCase") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1],
+        evaluateAddPayloadToSinglePayloadCasesUC(s, myAddPayloadToSinglePayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1],
+          evaluateAddPayloadToSinglePayloadCasesUC(s, addPayloadToSinglePayloadCases(s)))
+    } else {
+      expectEqual([0, 1, -1],
+          evaluateAddPayloadToSinglePayloadCasesUC(s, addPayloadToSinglePayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+///////////////////////////////////////////////////////////////////////
+
+fn myAddNoPayloadToMultiPayloadCases(_ s: Starfish)
+    -> [AddNoPayloadToMultiPayload] {
+  return [.Cats(s), .Puppies(s)]
+}
+
+fn evaluateAddNoPayloadToMultiPayloadCases(_ s: Starfish,
+                                            _ e: [AddNoPayloadToMultiPayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats(immutable ss):
+      expectTrue(s === ss)
+      return 0
+    case .Puppies(immutable ss):
+      expectTrue(s === ss)
+      return 1
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddNoPayloadToMultiPayload") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1],
+        evaluateAddNoPayloadToMultiPayloadCases(s, myAddNoPayloadToMultiPayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1],
+          evaluateAddNoPayloadToMultiPayloadCases(s, addNoPayloadToMultiPayloadCases(s)))
+    } else {
+      expectEqual([0, 1, -1, -1],
+          evaluateAddNoPayloadToMultiPayloadCases(s, addNoPayloadToMultiPayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+fn evaluateAddNoPayloadToMultiPayloadCasesUC(_ s: Starfish,
+                                               _ e: [AddNoPayloadToMultiPayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats(immutable ss):
+      expectTrue(s === ss)
+      return 0
+    case .Puppies(immutable ss):
+      expectTrue(s === ss)
+      return 1
+    @unknown case _:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddNoPayloadToMultiPayload/UnknownCase") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1],
+        evaluateAddNoPayloadToMultiPayloadCasesUC(s, myAddNoPayloadToMultiPayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1],
+          evaluateAddNoPayloadToMultiPayloadCasesUC(s, addNoPayloadToMultiPayloadCases(s)))
+    } else {
+      expectEqual([0, 1, -1, -1],
+          evaluateAddNoPayloadToMultiPayloadCasesUC(s, addNoPayloadToMultiPayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+///////////////////////////////////////////////////////////////////////
+
+fn myAddPayloadToMultiPayloadCases(_ s: Starfish)
+    -> [AddPayloadToMultiPayload] {
+  return [.Cats(s), .Ponies(s), .Pandas]
+}
+
+fn evaluateAddPayloadToMultiPayloadCases(_ s: Starfish,
+                                            _ e: [AddPayloadToMultiPayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats(immutable ss):
+      expectTrue(s === ss)
+      return 0
+    case .Ponies(immutable ss):
+      expectTrue(s === ss)
+      return 1
+    case .Pandas:
+      return 2
+    default:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddPayloadToMultiPayload") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1, 2],
+        evaluateAddPayloadToMultiPayloadCases(s, myAddPayloadToMultiPayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1, 2],
+          evaluateAddPayloadToMultiPayloadCases(s, addPayloadToMultiPayloadCases(s)))
+    } else {
+      expectEqual([0, 1, 2, -1],
+          evaluateAddPayloadToMultiPayloadCases(s, addPayloadToMultiPayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+fn evaluateAddPayloadToMultiPayloadCasesUC(_ s: Starfish,
+                                             _ e: [AddPayloadToMultiPayload])
+    -> [Int] {
+  return e.map {
+    switch $0 {
+    case .Cats(immutable ss):
+      expectTrue(s === ss)
+      return 0
+    case .Ponies(immutable ss):
+      expectTrue(s === ss)
+      return 1
+    case .Pandas:
+      return 2
+    @unknown case _:
+      return -1
+    }
+  }
+}
+
+EnumAddCasesTest.test("AddPayloadToMultiPayload/UnknownCase") {
+  do {
+    immutable s = Starfish()
+    expectEqual([0, 1, 2],
+        evaluateAddPayloadToMultiPayloadCasesUC(s, myAddPayloadToMultiPayloadCases(s)))
+    if getVersion() == 0 {
+      expectEqual([0, 1, 2],
+          evaluateAddPayloadToMultiPayloadCasesUC(s, addPayloadToMultiPayloadCases(s)))
+    } else {
+      expectEqual([0, 1, 2, -1],
+          evaluateAddPayloadToMultiPayloadCasesUC(s, addPayloadToMultiPayloadCases(s)))
+    }
+  }
+  expectEqual(starfishCount, 0)
+}
+
+runAllTests()
+

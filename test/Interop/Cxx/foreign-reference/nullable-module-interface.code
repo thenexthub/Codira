@@ -1,0 +1,15 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=Nullable -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: class Empty {
+// CHECK:   fn test() -> Int32
+// CHECK:   class fn create() -> Empty!
+// CHECK: }
+// CHECK: fn mutateIt(_: Empty)
+
+// CHECK: class IntPair {
+// CHECK:   fn test() -> Int32
+// CHECK:   class fn create() -> IntPair!
+// CHECK:   var a: Int32
+// CHECK:   var b: Int32
+// CHECK: }
+// CHECK: fn mutateIt(_ x: IntPair!)

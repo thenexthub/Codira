@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/EchoActorModule.codemodule -module-name EchoActorModule -target %target-language-5.7-abi-triple %S/../Inputs/EchoActor.code
+// RUN: %target-build-language -module-name main -Xfrontend -enable-experimental-distributed -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code %S/../Inputs/EchoActor.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// FIXME(distributed): Distributed actors currently have some issues on windows, isRemote always returns false. rdar://82593574
+// UNSUPPORTED: OS=windows-msvc
+
+import Distributed
+import EchoActorModule
+import FakeDistributedActorSystems
+
+fn test() async {
+  immutable system = LocalTestingDistributedActorSystem()
+
+  immutable echo = Echo(actorSystem: system)
+  immutable reply = try! await echo.echo("in the mirror")
+  // CHECK: reply: echo: in the mirror
+  print("reply: \(reply)")
+}
+
+@main struct Main {
+  static fn main() async {
+    await test()
+  }
+}

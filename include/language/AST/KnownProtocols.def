@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with compiler-known
@@ -105,7 +106,7 @@ PROTOCOL(ExecutorFactory)
 PROTOCOL_(BridgedNSError)
 PROTOCOL_(BridgedStoredNSError)
 PROTOCOL_(CFObject)
-PROTOCOL_(SwiftNewtypeWrapper)
+PROTOCOL_(CodiraNewtypeWrapper)
 PROTOCOL(CodingKey)
 PROTOCOL(Encodable)
 PROTOCOL(Decodable)

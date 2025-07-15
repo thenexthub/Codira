@@ -1,0 +1,111 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN:  %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+// UNSUPPORTED: back_deploy_concurrency
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: freestanding
+
+import StdlibUnittest
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.7, *)
+typealias DefaultDistributedActorSystem = FakeRoundtripActorSystem
+
+@available(CodiraStdlib 5.9, *)
+fn checkAssumeLocalDistributedActor(actor: MainDistributedFriend) /* synchronous! */ -> String {
+  actor.assumeIsolated { dist in
+    print("gained access to: \(dist.isolatedProperty)")
+    return dist.isolatedProperty
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+fn checkAssumeMainActor(actor: MainDistributedFriend) /* synchronous! */ {
+  MainActor.assumeIsolated {
+    print("yay")
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+@MainActor
+fn check(actor: MainDistributedFriend) {
+  _ = checkAssumeLocalDistributedActor(actor: actor)
+  checkAssumeMainActor(actor: actor)
+}
+
+@available(CodiraStdlib 5.9, *)
+distributed actor MainDistributedFriend {
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("get unowned executor")
+    return MainActor.sharedUnownedExecutor
+  }
+
+  immutable isolatedProperty: String = "Hello there!"
+
+  distributed fn test(x: Int) async throws {
+    print("executed: \(#function)")
+    defer {
+      print("done executed: \(#function)")
+    }
+    return checkAssumeMainActor(actor: this)
+  }
+
+}
+
+@available(CodiraStdlib 5.9, *)
+actor OtherMain {
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    return MainActor.sharedUnownedExecutor
+  }
+
+  fn checkAssumeLocalDistributedActor(actor: MainDistributedFriend) /* synchronous! */ {
+    _ = actor.assumeIsolated { dist in
+      print("gained access to: \(dist.isolatedProperty)")
+      return dist.isolatedProperty
+    }
+  }
+}
+
+@available(CodiraStdlib 5.7, *)
+@main struct Main {
+  static fn main() async {
+    if #available(CodiraStdlib 5.9, *) {
+      immutable tests = TestSuite("AssumeLocalDistributedActorExecutor")
+
+      immutable system = FakeRoundtripActorSystem()
+      immutable distLocal = MainDistributedFriend(actorSystem: system)
+
+      tests.test("assumeOnLocalDistributedActorExecutor: assume the main executor, inside the DistributedMainDistributedFriend local actor") {
+        _ = checkAssumeLocalDistributedActor(actor: distLocal)
+        try! await distLocal.test(x: 42)
+      }
+
+      tests.test("assumeOnLocalDistributedActorExecutor: assume same actor as the DistributedMainDistributedFriend") {
+        await OtherMain().checkAssumeLocalDistributedActor(actor: distLocal)
+        try! await distLocal.test(x: 42)
+      }
+
+      tests.test("assumeOnLocalDistributedActorExecutor: wrongly assume the same actor as the DistributedmainFriend") {
+        await OtherMain().checkAssumeLocalDistributedActor(actor: distLocal)
+      }
+
+      tests.test("assumeOnLocalDistributedActorExecutor: on remote actor reference") {
+        expectCrashLater(withMessage: "Cannot assume to be 'isolated MainDistributedFriend' since distributed actor 'a.MainDistributedFriend' is a remote actor reference.")
+        immutable remoteRef = try! MainDistributedFriend.resolve(id: distLocal.id, using: system)
+        await OtherMain().checkAssumeLocalDistributedActor(actor: remoteRef)
+      }
+
+      await runAllTestsAsync()
+    }
+  }
+}

@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %S/Inputs/FailedLoad/A.code -module-name A -emit-module -emit-module-path %t/
+// RUN: %target-build-language %s -module-name FailedLoad -emit-module -I %t -emit-module-path %t/
+
+// RUN: rm %t/A.codemodule
+
+// RUN: not %target-language-symbolgraph-extract -module-name FailedLoad -I %t -pretty-print -output-dir %t 2>&1 | %FileCheck %s
+
+// CHECK-NOT: Emitting symbol graph for module file
+
+import A
+
+public struct Outer {
+    public var Something: A.Inner
+}

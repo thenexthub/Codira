@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements solution ranking heuristics for the
@@ -25,8 +26,8 @@
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Compiler.h"
 
 using namespace language;
 using namespace constraints;
@@ -128,22 +129,22 @@ void ConstraintSystem::increaseScore(ScoreKind kind,
       shouldIgnoreScoreIncreaseForCodeCompletion(kind, Locator, *this)) {
     if (isDebugMode() && value > 0) {
       if (solverState)
-        llvm::errs().indent(solverState->getCurrentIndent());
-      llvm::errs() << "(not increasing '" << Score::getNameFor(kind)
+        toolchain::errs().indent(solverState->getCurrentIndent());
+      toolchain::errs() << "(not increasing '" << Score::getNameFor(kind)
       << "' score by " << value
       << " because of proximity to code completion token";
-      Locator.dump(&getASTContext().SourceMgr, llvm::errs());
-      llvm::errs() << ")\n";
+      Locator.dump(&getASTContext().SourceMgr, toolchain::errs());
+      toolchain::errs() << ")\n";
     }
     return;
   }
   if (isDebugMode() && value > 0) {
     if (solverState)
-      llvm::errs().indent(solverState->getCurrentIndent());
-    llvm::errs() << "(increasing '" << Score::getNameFor(kind) << "' score by "
+      toolchain::errs().indent(solverState->getCurrentIndent());
+    toolchain::errs() << "(increasing '" << Score::getNameFor(kind) << "' score by "
     << value << " @ ";
-    Locator.dump(&getASTContext().SourceMgr, llvm::errs());
-    llvm::errs() << ")\n";
+    Locator.dump(&getASTContext().SourceMgr, toolchain::errs());
+    toolchain::errs() << ")\n";
   }
 
   increaseScore(kind, value);
@@ -171,22 +172,19 @@ void ConstraintSystem::clearScore() {
 }
 
 bool ConstraintSystem::worseThanBestSolution() const {
-  if (getASTContext().TypeCheckerOpts.DisableConstraintSolverPerformanceHacks)
-    return false;
-
   if (!solverState || !solverState->BestScore ||
       CurrentScore <= *solverState->BestScore)
     return false;
 
   if (isDebugMode()) {
-    llvm::errs().indent(solverState->getCurrentIndent())
+    toolchain::errs().indent(solverState->getCurrentIndent())
         << "(solution is worse than the best solution)\n";
   }
 
   return true;
 }
 
-llvm::raw_ostream &constraints::operator<<(llvm::raw_ostream &out,
+toolchain::raw_ostream &constraints::operator<<(toolchain::raw_ostream &out,
                                            const Score &score) {
   for (unsigned i = 0; i != NumScoreKinds; ++i) {
     if (i) out << ' ';
@@ -242,7 +240,7 @@ static bool sameOverloadChoice(const OverloadChoice &x,
     return true;
   }
 
-  llvm_unreachable("Unhandled OverloadChoiceKind in switch.");
+  toolchain_unreachable("Unhandled OverloadChoiceKind in switch.");
 }
 
 namespace {
@@ -380,11 +378,11 @@ static bool isDeclMoreConstrainedThan(ValueDecl *decl1, ValueDecl *decl2) {
         auto p2 = params2[i];
 
         int np1 =
-            llvm::count_if(sig1->getRequiredProtocols(p1), [](const auto *P) {
+            toolchain::count_if(sig1->getRequiredProtocols(p1), [](const auto *P) {
               return !P->getInvertibleProtocolKind();
             });
         int np2 =
-            llvm::count_if(sig2->getRequiredProtocols(p2), [](const auto *P) {
+            toolchain::count_if(sig2->getRequiredProtocols(p2), [](const auto *P) {
               return !P->getInvertibleProtocolKind();
             });
 
@@ -429,7 +427,8 @@ static bool isProtocolExtensionAsSpecializedAs(DeclContext *dc1,
   // the second protocol extension.
   ConstraintSystem cs(dc1, std::nullopt);
   SmallVector<OpenedType, 4> replacements;
-  cs.openGeneric(dc2, sig2, ConstraintLocatorBuilder(nullptr), replacements);
+  cs.openGeneric(dc2, sig2, ConstraintLocatorBuilder(nullptr), replacements,
+                 /*preparedOverload=*/nullptr);
 
   // Bind the 'Self' type from the first extension to the type parameter from
   // opening 'Self' of the second extension.
@@ -459,7 +458,7 @@ static Type getAdjustedParamType(const AnyFunctionType::Param &param) {
 // Is a particular parameter of a function or subscript declaration
 // declared to be an IUO?
 static bool paramIsIUO(const ValueDecl *decl, int paramNum) {
-  return swift::getParameterAt(decl, paramNum)
+  return language::getParameterAt(decl, paramNum)
     ->isImplicitlyUnwrappedOptional();
 }
 
@@ -485,18 +484,18 @@ bool CompareDeclSpecializationRequest::evaluate(
   // Construct a constraint system to compare the two declarations.
   ConstraintSystem cs(dc, ConstraintSystemOptions());
   if (cs.isDebugMode()) {
-    llvm::errs() << "Comparing declarations\n";
-    decl1->print(llvm::errs());
-    llvm::errs() << "\nand\n";
-    decl2->print(llvm::errs());
-    llvm::errs() << "\n(isDynamicOverloadComparison: ";
-    llvm::errs() << isDynamicOverloadComparison;
-    llvm::errs() << ")\n";
+    toolchain::errs() << "Comparing declarations\n";
+    decl1->print(toolchain::errs());
+    toolchain::errs() << "\nand\n";
+    decl2->print(toolchain::errs());
+    toolchain::errs() << "\n(isDynamicOverloadComparison: ";
+    toolchain::errs() << isDynamicOverloadComparison;
+    toolchain::errs() << ")\n";
   }
 
   auto completeResult = [&cs](bool result) {
     if (cs.isDebugMode()) {
-      llvm::errs() << "comparison result: "
+      toolchain::errs() << "comparison result: "
                    << (result ? "better" : "not better")
                    << "\n";
     }
@@ -549,7 +548,7 @@ bool CompareDeclSpecializationRequest::evaluate(
   // A concrete type member is always more specialised than a protocol
   // member (bearing in mind that we have already handled the case where
   // exactly one member is in a protocol extension). Only apply this rule in
-  // Swift 5 mode to better maintain source compatibility under Swift 4
+  // Codira 5 mode to better maintain source compatibility under Codira 4
   // mode.
   //
   // Don't apply this rule when comparing two overloads found through
@@ -561,11 +560,11 @@ bool CompareDeclSpecializationRequest::evaluate(
   //    class C {
   //      @objc var i: Int { return 0 }
   //    }
-  //    func foo(_ x: AnyObject) {
+  //    fn foo(_ x: AnyObject) {
   //      x.i // ensure ambiguous.
   //    }
   //
-  if (C.isSwiftVersionAtLeast(5) && !isDynamicOverloadComparison) {
+  if (C.isCodiraVersionAtLeast(5) && !isDynamicOverloadComparison) {
     auto inProto1 = isa<ProtocolDecl>(outerDC1);
     auto inProto2 = isa<ProtocolDecl>(outerDC2);
     if (inProto1 != inProto2)
@@ -587,13 +586,15 @@ bool CompareDeclSpecializationRequest::evaluate(
                       SmallVectorImpl<OpenedType> &replacements,
                       ConstraintLocator *locator) -> Type {
     if (auto *funcType = type->getAs<AnyFunctionType>()) {
-      return cs.openFunctionType(funcType, locator, replacements, outerDC);
+      return cs.openFunctionType(funcType, locator, replacements, outerDC,
+                                 /*preparedOverload=*/nullptr);
     }
 
     cs.openGeneric(outerDC, innerDC->getGenericSignatureOfContext(), locator,
-                   replacements);
+                   replacements, /*preparedOverload=*/nullptr);
 
-    return cs.openType(type, replacements, locator);
+    return cs.openType(type, replacements, locator,
+                       /*preparedOverload=*/nullptr);
   };
 
   bool knownNonSubtype = false;
@@ -988,7 +989,7 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
     ConstraintSystem &cs, ArrayRef<Solution> solutions,
     const SolutionDiff &diff, unsigned idx1, unsigned idx2) {
   if (cs.isDebugMode()) {
-    llvm::errs().indent(cs.solverState->getCurrentIndent())
+    toolchain::errs().indent(cs.solverState->getCurrentIndent())
         << "comparing solutions " << idx1 << " and " << idx2 << "\n";
   }
 
@@ -1049,8 +1050,8 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
     // editor placeholders, it's possible to end up with multiple solutions
     // where each ambiguous declaration is going to have its own overload kind:
     //
-    // func foo(_: Int) -> [Int] { ... }
-    // func foo(_: Double) -> (result: String, count: Int) { ... }
+    // fn foo(_: Int) -> [Int] { ... }
+    // fn foo(_: Double) -> (result: String, count: Int) { ... }
     //
     // _ = foo(<#arg#>).count
     //
@@ -1157,7 +1158,7 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
       continue;
 
     case OverloadChoiceKind::KeyPathApplication:
-      llvm_unreachable("Never considered different");
+      toolchain_unreachable("Never considered different");
 
     case OverloadChoiceKind::DeclViaDynamic:
     case OverloadChoiceKind::Decl:
@@ -1290,21 +1291,21 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
       }
     }
 
-    // Swift 4.1 compatibility hack: If everything else is considered equal,
+    // Codira 4.1 compatibility hack: If everything else is considered equal,
     // favour a property on a concrete type over a protocol property member.
     //
     // This hack is required due to changes in shadowing behaviour where a
     // protocol property member will no longer shadow a property on a concrete
     // type, which created unintentional ambiguities in 4.2. This hack ensures
-    // we at least keep these cases unambiguous in Swift 5 under Swift 4
+    // we at least keep these cases unambiguous in Codira 5 under Codira 4
     // compatibility mode. Don't however apply this hack for decls found through
     // dynamic lookup, as we want the user to have to disambiguate those.
     //
     // This is intentionally narrow in order to best preserve source
-    // compatibility under Swift 4 mode by ensuring we don't introduce any new
+    // compatibility under Codira 4 mode by ensuring we don't introduce any new
     // ambiguities. This will become a more general "is more specialised" rule
-    // in Swift 5 mode.
-    if (!cs.getASTContext().isSwiftVersionAtLeast(5) &&
+    // in Codira 5 mode.
+    if (!cs.getASTContext().isCodiraVersionAtLeast(5) &&
         choice1.getKind() != OverloadChoiceKind::DeclViaDynamic &&
         choice2.getKind() != OverloadChoiceKind::DeclViaDynamic &&
         isa<VarDecl>(decl1) && isa<VarDecl>(decl2)) {
@@ -1352,7 +1353,7 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
   }
 
   // Compare the type variable bindings.
-  llvm::DenseMap<TypeVariableType *, TypeBindingsToCompare> typeDiff;
+  toolchain::DenseMap<TypeVariableType *, TypeBindingsToCompare> typeDiff;
 
   const auto &bindings1 = solutions[idx1].typeBindings;
   const auto &bindings2 = solutions[idx2].typeBindings;
@@ -1416,26 +1417,10 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
     auto type1 = types.Type1;
     auto type2 = types.Type2;
 
-    // If either of the types still contains type variables, we can't
-    // compare them.
-    // FIXME: This is really unfortunate. More type variable sharing
-    // (when it's sound) would help us do much better here.
-    if (type1->hasTypeVariable() || type2->hasTypeVariable()) {
-      identical = false;
-      continue;
-    }
-
-    // With introduction of holes it's currently possible to form solutions
-    // with UnresolvedType bindings, we need to account for that in
-    // ranking. If one solution has a hole for a given type variable
-    // it's always worse than any non-hole type other solution might have.
-    if (type1->is<UnresolvedType>() || type2->is<UnresolvedType>()) {
-      if (type1->is<UnresolvedType>()) {
-        ++score2;
-      } else {
-        ++score1;
-      }
-
+    // If either of the types have holes or unresolved type variables, we can't
+    // compare them. `isSubtypeOf` cannot be used with solver-allocated types.
+    if (type1->hasTypeVariableOrPlaceholder() ||
+        type2->hasTypeVariableOrPlaceholder()) {
       identical = false;
       continue;
     }
@@ -1472,15 +1457,12 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
     // The systems are not considered equivalent.
     identical = false;
 
-    // Archetypes are worse than concrete types (i.e. non-placeholder and
-    // non-archetype)
+    // Archetypes are worse than concrete types
     // FIXME: Total hack.
-    if (type1->is<ArchetypeType>() && !type2->is<ArchetypeType>() &&
-        !type2->is<PlaceholderType>()) {
+    if (type1->is<ArchetypeType>() && !type2->is<ArchetypeType>()) {
       ++score2;
       continue;
-    } else if (type2->is<ArchetypeType>() && !type1->is<ArchetypeType>() &&
-               !type1->is<PlaceholderType>()) {
+    } else if (type2->is<ArchetypeType>() && !type1->is<ArchetypeType>()) {
       ++score1;
       continue;
     }
@@ -1529,10 +1511,10 @@ SolutionCompareResult ConstraintSystem::compareSolutions(
     score1 += isStdlibOptionalMPlusOperator2;
   }
 
-  // All other things being equal, apply the Swift 4.1 compatibility hack for
+  // All other things being equal, apply the Codira 4.1 compatibility hack for
   // preferring var members in concrete types over a protocol requirement
   // (see the comment above for the rationale of this hack).
-  if (!cs.getASTContext().isSwiftVersionAtLeast(5) && score1 == score2) {
+  if (!cs.getASTContext().isCodiraVersionAtLeast(5) && score1 == score2) {
     score1 += isVarAndNotProtocol1;
     score2 += isVarAndNotProtocol2;
   }
@@ -1566,14 +1548,14 @@ ConstraintSystem::findBestSolution(SmallVectorImpl<Solution> &viable,
 
   if (isDebugMode()) {
     auto indent = solverState->getCurrentIndent();
-    auto &log = llvm::errs();
+    auto &log = toolchain::errs();
 
     log.indent(indent) << "Comparing " << viable.size()
                        << " viable solutions\n";
     for (unsigned i = 0, n = viable.size(); i != n; ++i) {
       log << "\n";
       log.indent(indent) << "--- Solution #" << i << " ---\n";
-      viable[i].dump(llvm::errs(), indent);
+      viable[i].dump(toolchain::errs(), indent);
     }
   }
 
@@ -1629,7 +1611,7 @@ ConstraintSystem::findBestSolution(SmallVectorImpl<Solution> &viable,
 
     case SolutionCompareResult::Worse:
       losers[bestIdx] = true;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
     case SolutionCompareResult::Incomparable:
       // If we're not supposed to minimize the result set, just return eagerly.
@@ -1680,7 +1662,7 @@ SolutionDiff::SolutionDiff(ArrayRef<Solution> solutions) {
     return;
 
   // Populate the overload choices with the first solution.
-  llvm::DenseMap<ConstraintLocator *, SmallVector<OverloadChoice, 2>>
+  toolchain::DenseMap<ConstraintLocator *, SmallVector<OverloadChoice, 2>>
     overloadChoices;
   for (auto choice : solutions[0].overloadChoices) {
     overloadChoices[choice.first].push_back(choice.second.choice);

@@ -1,4 +1,4 @@
-//===---- FineGrainedDependencyFormat.cpp - reading and writing swiftdeps -===//
+//===---- FineGrainedDependencyFormat.cpp - reading and writing languagedeps -===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/FileSystem.h"
@@ -19,13 +20,13 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/PrettyStackTrace.h"
 #include "language/Basic/Version.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Bitstream/BitstreamReader.h"
-#include "llvm/Bitstream/BitstreamWriter.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/VirtualOutputBackend.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
+#include "toolchain/Bitstream/BitstreamWriter.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
 
 using namespace language;
 using namespace fine_grained_dependencies;
@@ -35,7 +36,7 @@ namespace {
 class Deserializer {
   std::vector<std::string> Identifiers;
 
-  llvm::BitstreamCursor Cursor;
+  toolchain::BitstreamCursor Cursor;
 
   SmallVector<uint64_t, 64> Scratch;
   StringRef BlobData;
@@ -48,9 +49,9 @@ class Deserializer {
   std::optional<std::string> getIdentifier(unsigned n);
 
 public:
-  Deserializer(llvm::MemoryBufferRef Data) : Cursor(Data) {}
+  Deserializer(toolchain::MemoryBufferRef Data) : Cursor(Data) {}
   bool readFineGrainedDependencyGraph(SourceFileDepGraph &g, Purpose purpose);
-  bool readFineGrainedDependencyGraphFromSwiftModule(SourceFileDepGraph &g);
+  bool readFineGrainedDependencyGraphFromCodiraModule(SourceFileDepGraph &g);
 };
 
 } // end namespace
@@ -71,7 +72,7 @@ bool Deserializer::readSignature() {
 
 bool Deserializer::enterTopLevelBlock() {
   // Read the BLOCKINFO_BLOCK, which contains metadata used when dumping
-  // the binary data with llvm-bcanalyzer.
+  // the binary data with toolchain-bcanalyzer.
   {
     auto next = Cursor.advance();
     if (!next) {
@@ -79,10 +80,10 @@ bool Deserializer::enterTopLevelBlock() {
       return true;
     }
 
-    if (next->Kind != llvm::BitstreamEntry::SubBlock)
+    if (next->Kind != toolchain::BitstreamEntry::SubBlock)
       return true;
 
-    if (next->ID != llvm::bitc::BLOCKINFO_BLOCK_ID)
+    if (next->ID != toolchain::bitc::BLOCKINFO_BLOCK_ID)
       return true;
 
     if (!Cursor.ReadBlockInfoBlock())
@@ -97,7 +98,7 @@ bool Deserializer::enterTopLevelBlock() {
       return true;
     }
 
-    if (next->Kind != llvm::BitstreamEntry::SubBlock)
+    if (next->Kind != toolchain::BitstreamEntry::SubBlock)
       return true;
 
     if (next->ID != RECORD_BLOCK_ID)
@@ -121,7 +122,7 @@ bool Deserializer::readMetadata() {
     return true;
   }
 
-  if (entry->Kind != llvm::BitstreamEntry::Record)
+  if (entry->Kind != toolchain::BitstreamEntry::Record)
     return true;
 
   auto recordID = Cursor.readRecord(entry->ID, Scratch, &BlobData);
@@ -161,15 +162,15 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
   using namespace record_block;
 
   switch (purpose) {
-  case Purpose::ForSwiftDeps:
+  case Purpose::ForCodiraDeps:
     if (readSignature())
       return true;
 
     if (enterTopLevelBlock())
       return true;
-    LLVM_FALLTHROUGH;
-  case Purpose::ForSwiftModule:
-    // N.B. Incremental metadata embedded in swiftmodule files does not have
+    TOOLCHAIN_FALLTHROUGH;
+  case Purpose::ForCodiraModule:
+    // N.B. Incremental metadata embedded in languagemodule files does not have
     // a leading signature, and its top-level block has already been
     // consumed by the time we get here.
     break;
@@ -184,14 +185,14 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
   while (!Cursor.AtEndOfStream()) {
     auto entry = cantFail(Cursor.advance(), "Advance bitstream cursor");
 
-    if (entry.Kind == llvm::BitstreamEntry::EndBlock) {
+    if (entry.Kind == toolchain::BitstreamEntry::EndBlock) {
       Cursor.ReadBlockEnd();
       assert(Cursor.GetCurrentBitNo() % CHAR_BIT == 0);
       break;
     }
 
-    if (entry.Kind != llvm::BitstreamEntry::Record)
-      llvm::report_fatal_error("Bad bitstream entry kind");
+    if (entry.Kind != toolchain::BitstreamEntry::Record)
+      toolchain::report_fatal_error("Bad bitstream entry kind");
 
     Scratch.clear();
     unsigned recordID = cantFail(
@@ -201,7 +202,7 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
     switch (recordID) {
     case METADATA: {
       // METADATA must appear at the beginning and is handled by readMetadata().
-      llvm::report_fatal_error("Unexpected METADATA record");
+      toolchain::report_fatal_error("Unexpected METADATA record");
       break;
     }
 
@@ -215,16 +216,16 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
 
       auto nodeKind = getNodeKind(nodeKindID);
       if (!nodeKind)
-        llvm::report_fatal_error("Bad node kind");
+        toolchain::report_fatal_error("Bad node kind");
       auto declAspect = getDeclAspect(declAspectID);
       if (!declAspect)
-        llvm::report_fatal_error("Bad decl aspect");
+        toolchain::report_fatal_error("Bad decl aspect");
       auto context = getIdentifier(contextID);
       if (!context)
-        llvm::report_fatal_error("Bad context");
+        toolchain::report_fatal_error("Bad context");
       auto name = getIdentifier(nameID);
       if (!name)
-        llvm::report_fatal_error("Bad identifier");
+        toolchain::report_fatal_error("Bad identifier");
 
       node->setKey(DependencyKey(*nodeKind, *declAspect, *context, *name));
       if (isProvides)
@@ -235,18 +236,18 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
     case FINGERPRINT_NODE: {
       // FINGERPRINT_NODE must follow a SOURCE_FILE_DEP_GRAPH_NODE.
       if (node == nullptr)
-        llvm::report_fatal_error("Unexpected FINGERPRINT_NODE record");
+        toolchain::report_fatal_error("Unexpected FINGERPRINT_NODE record");
       if (auto fingerprint = Fingerprint::fromString(BlobData))
         node->setFingerprint(fingerprint.value());
       else
-        llvm::report_fatal_error(Twine("Unconvertable FINGERPRINT_NODE record: '") + BlobData + "'" );
+        toolchain::report_fatal_error(Twine("Unconvertable FINGERPRINT_NODE record: '") + BlobData + "'" );
       break;
     }
 
     case DEPENDS_ON_DEFINITION_NODE: {
       // DEPENDS_ON_DEFINITION_NODE must follow a SOURCE_FILE_DEP_GRAPH_NODE.
       if (node == nullptr)
-        llvm::report_fatal_error("Unexpected DEPENDS_ON_DEFINITION_NODE record");
+        toolchain::report_fatal_error("Unexpected DEPENDS_ON_DEFINITION_NODE record");
 
       unsigned dependsOnDefID;
       DependsOnDefNodeLayout::readRecord(Scratch, dependsOnDefID);
@@ -258,7 +259,7 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
     case IDENTIFIER_NODE: {
       // IDENTIFIER_NODE must come before SOURCE_FILE_DEP_GRAPH_NODE.
       if (node != nullptr)
-        llvm::report_fatal_error("Unexpected IDENTIFIER_NODE record");
+        toolchain::report_fatal_error("Unexpected IDENTIFIER_NODE record");
 
       IdentifierNodeLayout::readRecord(Scratch);
       Identifiers.push_back(BlobData.str());
@@ -266,7 +267,7 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
     }
 
     default: {
-      llvm::report_fatal_error("Unknown record ID");
+      toolchain::report_fatal_error("Unknown record ID");
     }
     }
   }
@@ -274,15 +275,15 @@ bool Deserializer::readFineGrainedDependencyGraph(SourceFileDepGraph &g,
   return false;
 }
 
-bool swift::fine_grained_dependencies::readFineGrainedDependencyGraph(
-    llvm::MemoryBuffer &buffer, SourceFileDepGraph &g) {
+bool language::fine_grained_dependencies::readFineGrainedDependencyGraph(
+    toolchain::MemoryBuffer &buffer, SourceFileDepGraph &g) {
   Deserializer deserializer(buffer.getMemBufferRef());
-  return deserializer.readFineGrainedDependencyGraph(g, Purpose::ForSwiftDeps);
+  return deserializer.readFineGrainedDependencyGraph(g, Purpose::ForCodiraDeps);
 }
 
-bool swift::fine_grained_dependencies::readFineGrainedDependencyGraph(
+bool language::fine_grained_dependencies::readFineGrainedDependencyGraph(
      StringRef path, SourceFileDepGraph &g) {
-  auto buffer = llvm::MemoryBuffer::getFile(path);
+  auto buffer = toolchain::MemoryBuffer::getFile(path);
   if (!buffer)
     return false;
 
@@ -303,11 +304,11 @@ std::optional<std::string> Deserializer::getIdentifier(unsigned n) {
 namespace {
 
 class Serializer {
-  llvm::StringMap<unsigned, llvm::BumpPtrAllocator> IdentifierIDs;
+  toolchain::StringMap<unsigned, toolchain::BumpPtrAllocator> IdentifierIDs;
   unsigned LastIdentifierID = 0;
   std::vector<StringRef> IdentifiersToWrite;
 
-  llvm::BitstreamWriter &Out;
+  toolchain::BitstreamWriter &Out;
 
   /// A reusable buffer for emitting records.
   SmallVector<uint64_t, 64> ScratchRecord;
@@ -336,7 +337,7 @@ class Serializer {
   void writeMetadata();
 
 public:
-  Serializer(llvm::BitstreamWriter &ExistingOut) : Out(ExistingOut) {}
+  Serializer(toolchain::BitstreamWriter &ExistingOut) : Out(ExistingOut) {}
 
 public:
   void writeFineGrainedDependencyGraph(const SourceFileDepGraph &g,
@@ -350,14 +351,14 @@ void Serializer::emitBlockID(unsigned ID, StringRef name,
                              SmallVectorImpl<unsigned char> &nameBuffer) {
   SmallVector<unsigned, 1> idBuffer;
   idBuffer.push_back(ID);
-  Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETBID, idBuffer);
+  Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETBID, idBuffer);
 
   // Emit the block name if present.
   if (name.empty())
     return;
   nameBuffer.resize(name.size());
   memcpy(nameBuffer.data(), name.data(), name.size());
-  Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_BLOCKNAME, nameBuffer);
+  Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_BLOCKNAME, nameBuffer);
 }
 
 void Serializer::emitRecordID(unsigned ID, StringRef name,
@@ -366,7 +367,7 @@ void Serializer::emitRecordID(unsigned ID, StringRef name,
   nameBuffer.resize(name.size()+1);
   nameBuffer[0] = ID;
   memcpy(nameBuffer.data()+1, name.data(), name.size());
-  Out.EmitRecord(llvm::bitc::BLOCKINFO_CODE_SETRECORDNAME, nameBuffer);
+  Out.EmitRecord(toolchain::bitc::BLOCKINFO_CODE_SETRECORDNAME, nameBuffer);
 }
 
 void Serializer::writeSignature() {
@@ -375,7 +376,7 @@ void Serializer::writeSignature() {
 }
 
 void Serializer::writeBlockInfoBlock() {
-  llvm::BCBlockRAII restoreBlock(Out, llvm::bitc::BLOCKINFO_BLOCK_ID, 2);
+  toolchain::BCBlockRAII restoreBlock(Out, toolchain::bitc::BLOCKINFO_BLOCK_ID, 2);
 
   SmallVector<unsigned char, 64> nameBuffer;
 #define BLOCK(X) emitBlockID(X ## _ID, #X, nameBuffer)
@@ -396,7 +397,7 @@ void Serializer::writeMetadata() {
                              AbbrCodes[MetadataLayout::Code],
                              FINE_GRAINED_DEPENDENCY_FORMAT_VERSION_MAJOR,
                              FINE_GRAINED_DEPENDENCY_FORMAT_VERSION_MINOR,
-                             version::getSwiftFullVersion());
+                             version::getCodiraFullVersion());
 }
 
 void
@@ -404,17 +405,17 @@ Serializer::writeFineGrainedDependencyGraph(const SourceFileDepGraph &g,
                                             Purpose purpose) {
   unsigned blockID = 0;
   switch (purpose) {
-  case Purpose::ForSwiftDeps:
+  case Purpose::ForCodiraDeps:
     writeSignature();
     writeBlockInfoBlock();
     blockID = RECORD_BLOCK_ID;
     break;
-  case Purpose::ForSwiftModule:
+  case Purpose::ForCodiraModule:
     blockID = INCREMENTAL_INFORMATION_BLOCK_ID;
     break;
   }
 
-  llvm::BCBlockRAII restoreBlock(Out, blockID, 8);
+  toolchain::BCBlockRAII restoreBlock(Out, blockID, 8);
 
   using namespace record_block;
 
@@ -495,33 +496,33 @@ unsigned Serializer::getIdentifier(StringRef str) {
   return iter->second;
 }
 
-void swift::fine_grained_dependencies::writeFineGrainedDependencyGraph(
-    llvm::BitstreamWriter &Out, const SourceFileDepGraph &g,
+void language::fine_grained_dependencies::writeFineGrainedDependencyGraph(
+    toolchain::BitstreamWriter &Out, const SourceFileDepGraph &g,
     Purpose purpose) {
   Serializer serializer{Out};
   serializer.writeFineGrainedDependencyGraph(g, purpose);
 }
 
-bool swift::fine_grained_dependencies::writeFineGrainedDependencyGraphToPath(
-    DiagnosticEngine &diags, llvm::vfs::OutputBackend &backend, StringRef path,
+bool language::fine_grained_dependencies::writeFineGrainedDependencyGraphToPath(
+    DiagnosticEngine &diags, toolchain::vfs::OutputBackend &backend, StringRef path,
     const SourceFileDepGraph &g) {
   PrettyStackTraceStringAction stackTrace("saving fine-grained dependency graph", path);
-  return withOutputPath(diags, backend, path, [&](llvm::raw_ostream &out) {
+  return withOutputPath(diags, backend, path, [&](toolchain::raw_ostream &out) {
     SmallVector<char, 0> Buffer;
-    llvm::BitstreamWriter Writer{Buffer};
-    writeFineGrainedDependencyGraph(Writer, g, Purpose::ForSwiftDeps);
+    toolchain::BitstreamWriter Writer{Buffer};
+    writeFineGrainedDependencyGraph(Writer, g, Purpose::ForCodiraDeps);
     out.write(Buffer.data(), Buffer.size());
     out.flush();
     return false;
   });
 }
 
-static bool checkModuleSignature(llvm::BitstreamCursor &cursor,
+static bool checkModuleSignature(toolchain::BitstreamCursor &cursor,
                                  ArrayRef<unsigned char> signature) {
   for (unsigned char byte : signature) {
     if (cursor.AtEndOfStream())
       return false;
-    if (llvm::Expected<llvm::SimpleBitstreamCursor::word_t> maybeRead =
+    if (toolchain::Expected<toolchain::SimpleBitstreamCursor::word_t> maybeRead =
             cursor.Read(8)) {
       if (maybeRead.get() != byte)
         return false;
@@ -533,19 +534,19 @@ static bool checkModuleSignature(llvm::BitstreamCursor &cursor,
   return true;
 }
 
-static bool enterTopLevelModuleBlock(llvm::BitstreamCursor &cursor, unsigned ID,
+static bool enterTopLevelModuleBlock(toolchain::BitstreamCursor &cursor, unsigned ID,
                                      bool shouldReadBlockInfo = true) {
-  llvm::Expected<llvm::BitstreamEntry> maybeNext = cursor.advance();
+  toolchain::Expected<toolchain::BitstreamEntry> maybeNext = cursor.advance();
   if (!maybeNext) {
     consumeError(maybeNext.takeError());
     return false;
   }
-  llvm::BitstreamEntry next = maybeNext.get();
+  toolchain::BitstreamEntry next = maybeNext.get();
 
-  if (next.Kind != llvm::BitstreamEntry::SubBlock)
+  if (next.Kind != toolchain::BitstreamEntry::SubBlock)
     return false;
 
-  if (next.ID == llvm::bitc::BLOCKINFO_BLOCK_ID) {
+  if (next.ID == toolchain::bitc::BLOCKINFO_BLOCK_ID) {
     if (shouldReadBlockInfo) {
       if (!cursor.ReadBlockInfoBlock())
         return false;
@@ -559,7 +560,7 @@ static bool enterTopLevelModuleBlock(llvm::BitstreamCursor &cursor, unsigned ID,
   if (next.ID != ID)
     return false;
 
-  if (llvm::Error Err = cursor.EnterSubBlock(ID)) {
+  if (toolchain::Error Err = cursor.EnterSubBlock(ID)) {
     consumeError(std::move(Err));
     return false;
   }
@@ -567,41 +568,41 @@ static bool enterTopLevelModuleBlock(llvm::BitstreamCursor &cursor, unsigned ID,
   return true;
 }
 
-bool swift::fine_grained_dependencies::
-    readFineGrainedDependencyGraphFromSwiftModule(llvm::MemoryBuffer &buffer,
+bool language::fine_grained_dependencies::
+    readFineGrainedDependencyGraphFromCodiraModule(toolchain::MemoryBuffer &buffer,
                                                   SourceFileDepGraph &g) {
   Deserializer deserializer(buffer.getMemBufferRef());
-  return deserializer.readFineGrainedDependencyGraphFromSwiftModule(g);
+  return deserializer.readFineGrainedDependencyGraphFromCodiraModule(g);
 }
 
-bool Deserializer::readFineGrainedDependencyGraphFromSwiftModule(
+bool Deserializer::readFineGrainedDependencyGraphFromCodiraModule(
     SourceFileDepGraph &g) {
   if (!checkModuleSignature(Cursor, {0xE2, 0x9C, 0xA8, 0x0E}) ||
-      !enterTopLevelModuleBlock(Cursor, llvm::bitc::FIRST_APPLICATION_BLOCKID, false)) {
+      !enterTopLevelModuleBlock(Cursor, toolchain::bitc::FIRST_APPLICATION_BLOCKID, false)) {
     return true;
   }
 
-  llvm::BitstreamEntry topLevelEntry;
+  toolchain::BitstreamEntry topLevelEntry;
   bool DidNotReadFineGrainedDependencies = true;
   while (!Cursor.AtEndOfStream()) {
-    llvm::Expected<llvm::BitstreamEntry> maybeEntry =
-        Cursor.advance(llvm::BitstreamCursor::AF_DontPopBlockAtEnd);
+    toolchain::Expected<toolchain::BitstreamEntry> maybeEntry =
+        Cursor.advance(toolchain::BitstreamCursor::AF_DontPopBlockAtEnd);
     if (!maybeEntry) {
       consumeError(maybeEntry.takeError());
       return true;
     }
     topLevelEntry = maybeEntry.get();
-    if (topLevelEntry.Kind != llvm::BitstreamEntry::SubBlock)
+    if (topLevelEntry.Kind != toolchain::BitstreamEntry::SubBlock)
       break;
 
     switch (topLevelEntry.ID) {
     case INCREMENTAL_INFORMATION_BLOCK_ID: {
-      if (llvm::Error Err =
+      if (toolchain::Error Err =
               Cursor.EnterSubBlock(INCREMENTAL_INFORMATION_BLOCK_ID)) {
         consumeError(std::move(Err));
         return true;
       }
-      if (readFineGrainedDependencyGraph(g, Purpose::ForSwiftModule)) {
+      if (readFineGrainedDependencyGraph(g, Purpose::ForCodiraModule)) {
         break;
       }
 

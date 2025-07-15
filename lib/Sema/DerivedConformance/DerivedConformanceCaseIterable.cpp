@@ -1,12 +1,12 @@
 //===--- DerivedConformanceCaseIterable.cpp ---------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2018 - 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2018 - 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 //
@@ -20,7 +20,7 @@
 #include "language/AST/Expr.h"
 #include "language/AST/Stmt.h"
 #include "language/AST/Types.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 

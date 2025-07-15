@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'public fn externalFunc() {}' | %target-language-frontend -typecheck -emit-module-interface-path %t/Library.codeinterface -
+// RUN: %empty-directory(%t/LibraryWithoutThisArchitecture.codemodule)
+// RUN: echo 'public fn externalFunc() {}' | %target-language-frontend -typecheck -emit-module-interface-path %t/LibraryWithoutThisArchitecture.codemodule/arm40000-apple-ios.codeinterface -
+// RUN: %target-language-frontend -typecheck %s -I %t
+
+#if canImport(Library)
+import Library
+externalFunc()
+#else
+#error("unable to import Library from its parseable interface")
+#endif
+
+#if canImport(LibraryThatDoesNotExist)
+#error("should not return true for library that does not exist")
+#endif
+
+#if canImport(LibraryWithoutThisArchitecture)
+#error("should not return true (or diagnose a loader failure) for library that does not exist")
+#endif

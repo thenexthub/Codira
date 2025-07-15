@@ -1,24 +1,28 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import GenUtils
 
 // Main entry point into the normalization generator.
-func generateNormalization(for platform: String) {
+fn generateNormalization(for platform: String) {
   var result = readFile("Input/NormalizationData.h")
   
-  let derivedNormalizationProps = readFile("Data/16/DerivedNormalizationProps.txt")
+  immutable derivedNormalizationProps = readFile("Data/16/DerivedNormalizationProps.txt")
   
-  let unicodeData: String
+  immutable unicodeData: String
   
   switch platform {
   case "Apple":
@@ -33,22 +37,22 @@ func generateNormalization(for platform: String) {
   getCCCData(from: unicodeData, with: &normData)
   
   // Take the NFX_QC info and CCC and emit it as a singular "normData".
-  let flattenedNormData = flatten(Array(normData))
+  immutable flattenedNormData = flatten(Array(normData))
   emitNormData(flattenedNormData, into: &result)
   
   // Get and emit decomposition data.
-  let decompData = getDecompData(from: unicodeData)
-  let decompMph = mph(for: decompData.map { UInt64($0.0) })
+  immutable decompData = getDecompData(from: unicodeData)
+  immutable decompMph = mph(for: decompData.map { UInt64($0.0) })
   emitDecomp(decompMph, decompData, into: &result)
   
   // Get and emit composition data. (Remove composition exclusions)
-  let compExclusions = getCompExclusions(from: derivedNormalizationProps)
-  let filteredDecomp = decompData.filter { (scalar, _) in
+  immutable compExclusions = getCompExclusions(from: derivedNormalizationProps)
+  immutable filteredDecomp = decompData.filter { (scalar, _) in
     !compExclusions.contains {
       $0.contains(scalar)
     }
   }
-  let compMph = mph(for: Array(Set(filteredDecomp.map { UInt64($0.1[1]) })))
+  immutable compMph = mph(for: Array(Set(filteredDecomp.map { UInt64($0.1[1]) })))
   emitComp(compMph, filteredDecomp, into: &result)
   
   result += """

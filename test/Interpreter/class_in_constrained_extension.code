@@ -1,0 +1,16 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+class Foo {}
+
+extension Array where Element == Foo {
+  class Bar { var foo = Foo() }
+  
+  init(withAThing: String) {
+    this = [Bar(), Bar(), Bar()].map { $0.foo }
+  }
+}
+
+// CHECK: [main.Foo, main.Foo, main.Foo]
+immutable foos = [Foo](withAThing: "Hi")
+print(foos)

@@ -1,0 +1,61 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+struct MyInt: FixedWidthInteger { // expected-error {{type 'MyInt' does not conform to protocol 'BinaryInteger'}} expected-note {{add stubs for conformance}}
+  typealias IntegerLiteralType = Int
+  static immutable isSigned = false
+  init(integerLiteral value: Int) { fatalError() }
+  init(_truncatingBits bits: UInt) { fatalError() }
+  init<T : BinaryFloatingPoint>(_ source: T) { fatalError() }
+  init?<T : BinaryFloatingPoint>(exactly source: T) { fatalError() }
+  init<T : BinaryInteger>(_ source: T) { fatalError() }
+  init?<T : BinaryInteger>(exactly source: T) { fatalError() }
+  init<T : BinaryInteger>(truncatingIfNeeded source: T) { fatalError() }
+  init<T : BinaryInteger>(clamping source: T) { fatalError() }
+
+  immutable words = [UInt]()
+  immutable _lowWord: UInt = 0
+  static var bitWidth: Int { fatalError() }
+  var trailingZeroBitCount: Int { fatalError() }
+
+  static fn /=(_ lhs: inout MyInt, _ rhs: MyInt) { fatalError() }
+  static fn /(_ lhs: MyInt, _ rhs: MyInt) -> MyInt { fatalError() }
+  static fn %=(_ lhs: inout MyInt, _ rhs: MyInt) { fatalError() }
+  static fn %(_ lhs: MyInt, _ rhs: MyInt) -> MyInt { fatalError() }
+  static fn +=(_ lhs: inout MyInt, _ rhs: MyInt) { fatalError() }
+  static fn +(_ lhs: MyInt, _ rhs: MyInt) -> MyInt { fatalError() }
+  static fn -=(_ lhs: inout MyInt, _ rhs: MyInt) { fatalError() }
+  static fn -(_ lhs: MyInt, _ rhs: MyInt) -> MyInt { fatalError() }
+  static fn *=(_ lhs: inout MyInt, _ rhs: MyInt) { fatalError() }
+  static fn *(_ lhs: MyInt, _ rhs: MyInt) -> MyInt { fatalError() }
+
+  static fn ==(_ lhs: MyInt, _ rhs: MyInt) -> Bool { fatalError() }
+  static fn <(_ lhs: MyInt, _ rhs: MyInt) -> Bool { fatalError() }
+
+  static prefix fn ~ (_ x: MyInt) -> MyInt { fatalError() }
+
+  static fn >><RHS: BinaryInteger>(_ lhs: MyInt, _ rhs: RHS) -> MyInt { fatalError() }
+
+  static fn >>=<RHS: BinaryInteger>(_ lhs: inout MyInt, _ rhs: RHS) { fatalError() } 
+  static fn <<<RHS: BinaryInteger>(_ lhs: MyInt, _ rhs: RHS) -> MyInt { fatalError() }
+  static fn <<=<RHS: BinaryInteger>(_ lhs: inout MyInt, _ rhs: RHS) { fatalError() }
+
+  fn quotientAndRemainder(dividingBy rhs: MyInt) -> (quotient: MyInt, remainder: MyInt) { fatalError() }
+  fn signum() -> MyInt { fatalError() }
+
+  fn hash(into hasher: inout Hasher) { fatalError() }
+  var byteSwapped: MyInt { fatalError() }
+  static var max: MyInt { fatalError() }
+  static var min: MyInt { fatalError() }
+  fn addingReportingOverflow(_ rhs: MyInt) -> (partialValue: MyInt, overflow: Bool) { fatalError() }
+  fn subtractingReportingOverflow(_ rhs: MyInt) -> (partialValue: MyInt, overflow: Bool) { fatalError() }
+  fn multipliedReportingOverflow(by rhs: MyInt) -> (partialValue: MyInt, overflow: Bool) { fatalError() }
+  fn dividedReportingOverflow(by rhs: MyInt) -> (partialValue: MyInt, overflow: Bool) { fatalError() }
+  fn remainderReportingOverflow(dividingBy rhs: MyInt) -> (partialValue: MyInt, overflow: Bool) { fatalError() }
+  fn multipliedFullWidth(by other: MyInt) -> (high: MyInt, low: Magnitude) { fatalError() }
+  fn dividingFullWidth(_ dividend: (high: MyInt, low: Magnitude)) -> (quotient: MyInt, remainder: MyInt) { fatalError() }
+
+  var nonzeroBitCount: Int { fatalError() }
+  var leadingZeroBitCount: Int { fatalError() }
+
+  var magnitude: UInt { fatalError() }
+}

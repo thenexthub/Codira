@@ -1,0 +1,9 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name DeclaringLibrary -enable-private-imports
+
+import Codira
+
+public struct DeclaringLibraryTy {
+  public init()
+}
+public struct ShadowTy {}

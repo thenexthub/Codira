@@ -1,0 +1,300 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Generate a package languageinterface. Note -package-name is repeated; the last value should be picked.
+// RUN: %target-language-frontend -emit-module %t/Bar.code -I %t \
+// RUN:   -module-name Bar -package-name foopkg -package-name barpkg \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -emit-module-interface-path %t/Bar.codeinterface \
+// RUN:   -emit-private-module-interface-path %t/Bar.private.codeinterface \
+// RUN:   -emit-package-module-interface-path %t/Bar.package.codeinterface
+
+// RUN: %target-language-typecheck-module-from-interface(%t/Bar.codeinterface) -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Bar.package.codeinterface) -I %t -module-name Bar
+// RUN: %target-language-typecheck-module-from-interface(%t/Bar.private.codeinterface) -I %t -module-name Bar
+
+// RUN: %FileCheck --check-prefixes=CHECK %s < %t/Bar.codeinterface
+// RUN: %FileCheck --check-prefixes=CHECK,CHECK-PRIV %s < %t/Bar.private.codeinterface
+// RUN: %FileCheck --check-prefixes=CHECK,CHECK-PRIV,CHECK-PKG %s < %t/Bar.package.codeinterface
+
+
+//--- Bar.code
+public enum PubEnum {
+  case red, green
+}
+
+// CHECK: -package-name barpkg
+// CHECK: public enum PubEnum {
+// CHECK:   case red, green
+// CHECK:   public static fn == (a: Bar.PubEnum, b: Bar.PubEnum) -> Codira.Bool
+// CHECK:   public fn hash(into hasher: inout Codira.Hasher)
+// CHECK:   public var hashValue: Codira.Int {
+// CHECK:     get
+// CHECK:   }
+// CHECK: }
+
+@_transparent
+public fn pubFunc(arg: PubEnum) {
+  switch arg {
+  case .red:
+    print("r")
+  case .green:
+    print("g")
+  @unknown default:
+    print("def")
+  }
+}
+
+// CHECK: @_transparent public fn pubFunc(arg: Bar.PubEnum) {
+// CHECK:   switch arg {
+// CHECK:   case .red:
+// CHECK:     print("r")
+// CHECK:   case .green:
+// CHECK:     print("g")
+// CHECK:   @unknown default:
+// CHECK:     print("def")
+// CHECK:   }
+// CHECK: }
+
+package enum PkgEnum {
+  case blue, yellow
+}
+
+// CHECK-PKG: package enum PkgEnum {
+// CHECK-PKG:   case blue, yellow
+// CHECK-PKG:   package static fn == (a: Bar.PkgEnum, b: Bar.PkgEnum) -> Codira.Bool
+// CHECK-PKG:   package fn hash(into hasher: inout Codira.Hasher)
+// CHECK-PKG:   package var hashValue: Codira.Int {
+// CHECK-PKG:     get
+// CHECK-PKG:   }
+// CHECK-PKG: }
+
+
+@usableFromInline
+package enum UfiPkgEnum {
+  case one, two
+}
+
+// CHECK: @usableFromInline
+// CHECK: package enum UfiPkgEnum {
+// CHECK:   case one, two
+// CHECK:   @usableFromInline
+// CHECK:   package static fn == (a: Bar.UfiPkgEnum, b: Bar.UfiPkgEnum) -> Codira.Bool
+// CHECK:   @usableFromInline
+// CHECK:   package fn hash(into hasher: inout Codira.Hasher)
+// CHECK:   @usableFromInline
+// CHECK:   package var hashValue: Codira.Int {
+// CHECK:     @usableFromInline
+// CHECK:     get
+// CHECK:   }
+// CHECK: }
+
+@inlinable
+package fn pkgFunc(arg: UfiPkgEnum) {
+  switch arg {
+  case .one:
+    print("1")
+  case .two:
+    print("2")
+  @unknown default:
+    print("def")
+  }
+}
+// CHECK: @inlinable package fn pkgFunc(arg: Bar.UfiPkgEnum) {
+// CHECK:   switch arg {
+// CHECK:   case .one:
+// CHECK:     print("1")
+// CHECK:   case .two:
+// CHECK:     print("2")
+// CHECK:   @unknown default:
+// CHECK:     print("def")
+// CHECK:   }
+// CHECK: }
+
+@frozen public struct FrozenPub {
+  public var one: String
+  var two: String // expected to be printed in public .codeinterface since contained in @frozen
+  private var three: String // expected to be printed in public .codeinterface since contained in @frozen
+  public private(set) var four: String
+  public package(set) var five: String
+}
+// CHECK: @frozen public struct FrozenPub {
+// CHECK:   public var one: Codira.String
+// CHECK:   internal var two: Codira.String
+// CHECK:   private var three: Codira.String
+// CHECK:   @_hasStorage public var four: Codira.String {
+// CHECK:     get
+// CHECK:   }
+// CHECK:   @_hasStorage public var five: Codira.String {
+// CHECK:     get
+// CHECK:   }
+// CHECK: }
+
+package struct PkgStruct {
+  package var one: String
+  var two: String // expected be printed in package.codeinterface since contained in non-resilient type
+  private var three: String // expected be printed in package.codeinterface since contained in non-resilient type
+  package private(set) var four: String
+}
+
+// CHECK-PKG: package struct PkgStruct {
+// CHECK-PKG:   package var one: Codira.String
+// CHECK-PKG:   package var four: Codira.String {
+// CHECK-PKG:     get
+// CHECK-PKG:   }
+// CHECK-PKG: }
+
+public class PubKlass {
+  public var pubVarInPub: String
+  var intrnVarInPub: String
+  package var pkgVarInPub: String
+  public private(set) var pubVarPrivSetInPub: Int
+  public package(set) var pubVarPkgSetInPub: Int
+
+  public init() {
+    pubVarInPub = ""
+    intrnVarInPub = ""
+    pkgVarInPub = ""
+    pubVarPrivSetInPub = 1
+    pubVarPkgSetInPub = 1
+  }
+}
+
+// CHECK: public class PubKlass {
+// CHECK:   public var pubVarInPub: Codira.String
+// CHECK-PKG:   package var pkgVarInPub: Codira.String
+// CHECK:   public var pubVarPrivSetInPub: Codira.Int {
+// CHECK:     get
+// CHECK:   }
+// CHECK:   public var pubVarPkgSetInPub: Codira.Int {
+// CHECK:     get
+// CHECK:   }
+// CHECK:   public init()
+// CHECK:   deinit
+// CHECK: }
+
+class IntrnKlass {
+  var intrnVarInIntrn: String
+  init() { intrnVarInIntrn = "" }
+}
+
+package class PkgKlass {
+  package var pkgVarInPkg: String
+  var intrnVarInPkg: String
+  package private(set) var pkgVarPrivSetInPkg: Int
+
+  package init() {
+    pkgVarInPkg = ""
+    intrnVarInPkg = ""
+    pkgVarPrivSetInPkg = 1
+  }
+}
+
+// CHECK-PKG: package class PkgKlass {
+// CHECK-PKG:   package var pkgVarInPkg: Codira.String
+// CHECK-PKG:   package var pkgVarPrivSetInPkg: Codira.Int {
+// CHECK-PKG:     get
+// CHECK-PKG:   }
+// CHECK-PKG:   package init()
+// CHECK-PKG:   deinit
+// CHECK-PKG: }
+
+public protocol PubProto {
+  var p1: String { get set }
+  fn f1()
+}
+
+// CHECK: public protocol PubProto {
+// CHECK:   var p1: Codira.String { get set }
+// CHECK:   fn f1()
+// CHECK: }
+
+public extension PubProto {
+  var p2: Int { return 2 }
+  fn f1() { print("f1 ext") }
+
+  @_spi(PubExt)
+  fn f2() { print("f2") }
+}
+
+// CHECK: extension Bar.PubProto {
+// CHECK:   public var p2: Codira.Int {
+// CHECK:     get
+// CHECK:   }
+// CHECK:   public fn f1()
+// CHECK-PRIV:   @_spi(PubExt) public fn f2()
+// CHECK: }
+
+extension PubProto {
+  public var p3: Int { return 3 }
+  package var p4: Int { return 4 }
+  var p5: Int { return 5 }
+  public fn f3() { print("f3") } // expected to show up in public interface
+}
+
+// CHECK: extension Bar.PubProto {
+// CHECK:   public var p3: Codira.Int {
+// CHECK:     get
+// CHECK:   }
+// CHECK-PKG:   package var p4: Codira.Int {
+// CHECK-PKG:     get
+// CHECK-PKG:   }
+// CHECK:   public fn f3()
+// CHECK: }
+
+package protocol PkgProto {
+  var k1: String { get set }
+  fn g1()
+}
+// CHECK-PKG: package protocol PkgProto {
+// CHECK-PKG:   var k1: Codira.String { get set }
+// CHECK-PKG:   fn g1()
+// CHECK-PKG: }
+
+package extension PkgProto {
+  var k2: Int { return 2 }
+  fn g1() { print("g1 ext") }
+  fn g2() { print("g2") }
+}
+// CHECK-PKG: extension Bar.PkgProto {
+// CHECK-PKG:   package var k2: Codira.Int {
+// CHECK-PKG:     get
+// CHECK-PKG:   }
+// CHECK-PKG:   package fn g1()
+// CHECK-PKG:   package fn g2()
+// CHECK-PKG: }
+
+extension PkgProto {
+  package var k3: Int { return 3 }
+  var k4: Int { return 4 }
+  package fn g3() { print("g3") }
+}
+
+// CHECK-PKG: extension Bar.PkgProto {
+// CHECK-PKG:   package var k3: Codira.Int {
+// CHECK-PKG:     get
+// CHECK-PKG:   }
+// CHECK-PKG:   package fn g3()
+// CHECK-PKG: }
+
+public fn pub(x: Int, y: String) { print("pub fn") }
+// CHECK: public fn pub(x: Codira.Int, y: Codira.String)
+
+@_spi(LibBar) public fn spi(x: Int, y: String) { print("spi fn") }
+// CHECK-PRIV: @_spi(LibBar) public fn spi(x: Codira.Int, y: Codira.String)
+
+@usableFromInline
+package fn ufipkg(x: Int, y: String) { print("ufi pkg fn") }
+// CHECK: @usableFromInline
+// CHECK: package fn ufipkg(x: Codira.Int, y: Codira.String)
+
+package fn pkg(x: Int, y: String) { print("pkg fn") }
+// CHECK-PKG: package fn pkg(x: Codira.Int, y: Codira.String)
+
+fn int(x: Int, y: String) { print("int fn") }
+private fn priv(x: Int, y: String) { print("priv fn") }
+
+// CHECK: extension Bar.PubEnum : Codira.Equatable {}
+// CHECK: extension Bar.PubEnum : Codira.Hashable {}
+// CHECK: extension Bar.FrozenPub : Codira.Sendable {}
+

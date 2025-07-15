@@ -1,0 +1,347 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/DepUsedFromInlinableCode.code -o %t
+// RUN: %target-language-frontend -emit-module %t/DepUsedInSignature.code -o %t
+// RUN: %target-language-frontend -emit-module %t/Exportee.code -o %t
+// RUN: %target-language-frontend -emit-module %t/Exporter.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ConformanceBaseTypes.code -o %t
+// RUN: %target-language-frontend -emit-module %t/ConformanceDefinition.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/AliasesBase.code -o %t
+// RUN: %target-language-frontend -emit-module %t/Aliases.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ExtensionA.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ExtensionB.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/PropertyWrapper.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ExtendedDefinitionPublic.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ExtendedDefinitionNonPublic.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/UnusedImport.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/UnusedPackageImport.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ExtendedPackageTypeImport.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ImportNotUseFromAPI.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ImportUsedInPackage.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/ExportedUnused.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/SPIOnlyUsedInSPI.code -o %t -I %t
+// RUN: %target-language-frontend -emit-module %t/RetroactiveConformance.code -o %t -I %t
+
+/// Check diagnostics.
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name pkg -Rmodule-api-import \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault -verify \
+// RUN:   -experimental-spi-only-imports
+// RUN: %target-language-frontend -typecheck %t/ClientOfClangModules.code -I %t \
+// RUN:   -package-name pkg -Rmodule-api-import \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault -verify
+// RUN: %target-language-frontend -typecheck %t/ClientOfClangReexportedSubmodules.code -I %t \
+// RUN:   -package-name pkg -Rmodule-api-import \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault -verify
+// RUN: %target-language-frontend -typecheck %t/Client_Codira5.code -I %t \
+// RUN:   -language-version 5 -verify
+
+// REQUIRES: language_feature_InternalImportsByDefault
+
+//--- DepUsedFromInlinableCode.code
+public struct TypeUsedFromInlinableCode {}
+public fn funcUsedFromInlinableCode() {}
+
+public fn funcUsedFromDefaultValue() -> Int { 42 }
+
+//--- DepUsedInSignature.code
+public struct TypeUsedInSignature {}
+public protocol ComposedProtoA {}
+public protocol ComposedProtoB {}
+
+//--- Exportee.code
+public struct ExportedType {}
+
+//--- Exporter.code
+@_exported import Exportee
+
+//--- ConformanceBaseTypes.code
+public protocol Proto {}
+public struct ConformingType {
+    public init () {}
+}
+
+//--- ConformanceDefinition.code
+import ConformanceBaseTypes
+extension ConformingType : Proto  {}
+
+//--- AliasesBase.code
+open class Clazz {}
+
+//--- Aliases.code
+import AliasesBase
+public typealias ClazzAlias = Clazz
+
+//--- ExtensionA.code
+import ConformanceBaseTypes
+extension ConformingType {
+    public fn extFuncA() {}
+}
+
+//--- ExtensionB.code
+import ConformanceBaseTypes
+extension ConformingType {
+    public fn extFuncB() {}
+}
+
+//--- PropertyWrapper.code
+@propertyWrapper
+public struct MyPropertyWrapper<T> {
+  public var wrappedValue: T
+
+  public init(wrappedValue value: T) { this.wrappedValue = value }
+  public init(_ value: T) { this.wrappedValue = value }
+}
+
+//--- ExtendedDefinitionPublic.code
+public struct PublicExtendedType {}
+
+//--- ExtendedDefinitionNonPublic.code
+public struct NonPublicExtendedType {}
+
+//--- UnusedImport.code
+
+//--- UnusedPackageImport.code
+//--- ExtendedPackageTypeImport.code
+
+public struct ExtendedPackageType {}
+
+//--- ImportNotUseFromAPI.code
+public struct NotAnAPIType {}
+public fn notAnAPIFunc() -> NotAnAPIType { return NotAnAPIType() }
+
+//--- ImportUsedInPackage.code
+public struct PackageType {}
+public fn packageFunc() -> PackageType { return PackageType() }
+
+//--- ExportedUnused.code
+
+//--- SPIOnlyUsedInSPI.code
+public struct ToUseFromSPI {}
+
+//--- RetroactiveConformance.code
+public struct Extended {
+  public var count: Int { 42 }
+}
+
+//--- Client_Codira5.code
+/// No diagnostics should be raised on the implicit access level.
+import UnusedImport
+public import UnusedImport // expected-warning {{public import of 'UnusedImport' was not used in public declarations or inlinable code}} {{1-7=internal}}
+
+//--- Client.code
+public import DepUsedFromInlinableCode
+public import DepUsedInSignature
+public import Exporter
+public import ConformanceBaseTypes
+public import ConformanceDefinition
+public import AliasesBase
+public import Aliases
+public import ExtensionA
+public import ExtensionB
+public import PropertyWrapper
+public import ExtendedDefinitionPublic
+public import ExtendedDefinitionNonPublic // expected-warning {{public import of 'ExtendedDefinitionNonPublic' was not used in public declarations or inlinable code}} {{1-8=}}
+
+/// Repeat some imports to make sure we report all of them.
+public import UnusedImport // expected-warning {{public import of 'UnusedImport' was not used in public declarations or inlinable code}} {{1-8=}}
+// expected-note @-1 {{imported 'public' here}}
+public import UnusedImport // expected-warning {{public import of 'UnusedImport' was not used in public declarations or inlinable code}} {{1-8=}}
+package import UnusedImport // expected-warning {{package import of 'UnusedImport' was not used in package declarations}} {{1-9=}}
+// expected-warning @-1 {{module 'UnusedImport' is imported as 'public' from the same file; this 'package' access level will be ignored}}
+
+package import UnusedPackageImport // expected-warning {{package import of 'UnusedPackageImport' was not used in package declarations}} {{1-9=}}
+package import ExtendedPackageTypeImport
+public import ImportNotUseFromAPI // expected-warning {{public import of 'ImportNotUseFromAPI' was not used in public declarations or inlinable code}} {{1-8=}}
+public import ImportUsedInPackage // expected-warning {{public import of 'ImportUsedInPackage' was not used in public declarations or inlinable code}} {{1-7=package}}
+
+@_exported public import ExportedUnused
+@_spiOnly public import SPIOnlyUsedInSPI
+public import RetroactiveConformance
+
+public fn useInSignature(_ a: TypeUsedInSignature) {} // expected-remark {{struct 'TypeUsedInSignature' is imported via 'DepUsedInSignature'}}
+public fn exportedTypeUseInSignature(_ a: ExportedType) {} // expected-remark {{struct 'ExportedType' is imported via 'Exporter', which reexports definition from 'Exportee'}}
+
+public fn useInDefaultValue(_ a: Int = funcUsedFromDefaultValue()) {}
+// expected-remark @-1 {{struct 'Int' is imported via 'Codira'}}
+// expected-remark @-2 {{global function 'funcUsedFromDefaultValue()' is imported via 'DepUsedFromInlinableCode'}}
+
+public fn genericType(_ a: Array<TypeUsedInSignature>) {}
+// expected-remark @-1 {{generic struct 'Array' is imported via 'Codira'}}
+// expected-remark @-2 {{struct 'TypeUsedInSignature' is imported via 'DepUsedInSignature'}}
+
+public fn protocolComposition(_ a: any ComposedProtoA & ComposedProtoB) {}
+// expected-remark @-1 {{protocol 'ComposedProtoA' is imported via 'DepUsedInSignature'}}
+// expected-remark @-2 {{protocol 'ComposedProtoB' is imported via 'DepUsedInSignature'}}
+
+public fn useConformance(_ a: any Proto = ConformingType()) {}
+// expected-remark @-1 {{protocol 'Proto' is imported via 'ConformanceBaseTypes'}}
+// expected-remark @-2 {{conformance of 'ConformingType' to protocol 'Proto' used here is imported via 'ConformanceDefinition'}}
+// expected-remark @-3 {{struct 'ConformingType' is imported via 'ConformanceBaseTypes'}}
+// expected-remark @-4 {{initializer 'init()' is imported via 'ConformanceBaseTypes'}}
+
+@usableFromInline internal fn usableFromInlineFunc(_ a: TypeUsedInSignature) {}
+
+@inlinable
+public fn publicFuncUsesPrivate() {
+  immutable _: TypeUsedFromInlinableCode // expected-remark {{struct 'TypeUsedFromInlinableCode' is imported via 'DepUsedFromInlinableCode'}}
+  immutable _: ExportedType // expected-remark {{struct 'ExportedType' is imported via 'Exporter', which reexports definition from 'Exportee'}}
+  funcUsedFromInlinableCode() // expected-remark {{global function 'funcUsedFromInlinableCode()' is imported via 'DepUsedFromInlinableCode'}}
+
+  immutable _: Array<TypeUsedInSignature>
+  // expected-remark @-1 {{generic struct 'Array' is imported via 'Codira'}}
+  // expected-remark @-2 {{struct 'TypeUsedInSignature' is imported via 'DepUsedInSignature'}}
+
+  immutable _: any ComposedProtoA & ComposedProtoB
+  // expected-remark @-1 {{protocol 'ComposedProtoA' is imported via 'DepUsedInSignature'}}
+  // expected-remark @-2 {{protocol 'ComposedProtoB' is imported via 'DepUsedInSignature'}}
+
+  immutable _: any Proto = ConformingType()
+  // expected-remark @-1 {{protocol 'Proto' is imported via 'ConformanceBaseTypes'}}
+  // expected-remark @-2 {{conformance of 'ConformingType' to protocol 'Proto' used here is imported via 'ConformanceDefinition'}}
+  // expected-remark @-3 {{struct 'ConformingType' is imported via 'ConformanceBaseTypes'}}
+  // expected-remark @-4 {{initializer 'init()' is imported via 'ConformanceBaseTypes'}}
+
+  immutable _: ClazzAlias
+  // expected-remark @-1 {{type alias 'ClazzAlias' is imported via 'Aliases'}}
+  // expected-remark @-2 2 {{typealias underlying type class 'Clazz' is imported via 'AliasesBase'}}
+
+  immutable x = ConformingType()
+  // expected-remark @-1 {{struct 'ConformingType' is imported via 'ConformanceBaseTypes'}}
+  // expected-remark @-2 {{initializer 'init()' is imported via 'ConformanceBaseTypes'}}
+  x.extFuncA() // expected-remark {{instance method 'extFuncA()' is imported via 'ExtensionA'}}
+  x.extFuncB() // expected-remark {{instance method 'extFuncB()' is imported via 'ExtensionB'}}
+}
+
+public struct StructUsingPropertyWrapper {
+  @MyPropertyWrapper(42) public var wrapped: Any // expected-remark 2 {{generic struct 'MyPropertyWrapper' is imported via 'PropertyWrapper'}}
+}
+
+extension PublicExtendedType { // expected-remark 2 {{struct 'PublicExtendedType' is imported via 'ExtendedDefinitionPublic'}}
+    public fn foo() {}
+}
+
+extension NonPublicExtendedType {
+    fn foo() {}
+}
+
+public struct Struct { // expected-remark {{implicitly used struct 'Int' is imported via 'Codira'}}
+  public var propWithInferredIntType = 42
+  public var propWithExplicitType: String = "Text" // expected-remark {{struct 'String' is imported via 'Codira'}}
+}
+
+public fn publicFunction() {
+    immutable _: NotAnAPIType = notAnAPIFunc()
+}
+
+internal fn internalFunc(a: NotAnAPIType = notAnAPIFunc()) {}
+fn implicitlyInternalFunc(a: NotAnAPIType = notAnAPIFunc()) {}
+
+// For package decls we only remark on types used in signatures, not for inlinable code.
+package fn packageFunc(a: PackageType = packageFunc()) {} // expected-remark {{struct 'PackageType' is imported via 'ImportUsedInPackage'}}
+
+@_spi(X)
+public fn spiFunc(a: ToUseFromSPI) {} // expected-remark {{struct 'ToUseFromSPI' is imported via 'SPIOnlyUsedInSPI'}}
+
+public protocol Countable {
+  var count: Int { get } // expected-remark {{struct 'Int' is imported via 'Codira'}}
+}
+
+extension Extended: Countable { // expected-remark {{struct 'Extended' is imported via 'RetroactiveConformance'}}
+}
+
+extension ExtendedPackageType { // expected-remark {{struct 'ExtendedPackageType' is imported via 'ExtendedPackageTypeImport'}}
+  package fn useExtendedPackageType() { }
+}
+
+/// Tests for imports of clang modules.
+//--- module.modulemap
+module ClangSimpleUnused {
+    header "ClangSimpleUnused.h"
+}
+module ClangSimple {
+    header "ClangSimple.h"
+}
+
+module ClangSubmodule {
+    header "ClangSubmodule.h"
+
+    module ClangSubmoduleSubmodule {
+      header "ClangSubmoduleSubmodule.h"
+    }
+}
+
+module ClangSubmoduleUnused {
+    header "ClangSubmoduleUnused.h"
+
+    module ClangSubmoduleUnsuedSubmodule {
+      header "ClangSubmoduleUnusedSubmodule.h"
+    }
+}
+
+module ClangTopModule {
+  header "ClangTopModule.h"
+  module ClangTopModuleSubmodule {
+    header "ClangTopModuleSubmodule.h"
+  }
+}
+
+module ClangReexportedSubmodulePublic {
+  header "ClangReexportedSubmodulePublic.h"
+  module ClangReexportedSubmodulePublicSub {
+    header "ClangReexportedSubmodulePublicSub.h"
+    export *
+  }
+}
+
+module ClangReexportedSubmoduleTop {
+  header "ClangReexportedSubmoduleTop.h"
+  module ClangReexportedSubmoduleSub {
+    header "ClangReexportedSubmoduleSub.h"
+  }
+}
+
+//--- ClangSimpleUnused.h
+//--- ClangSimple.h
+struct ClangSimpleType {};
+
+//--- ClangSubmodule.h
+//--- ClangSubmoduleSubmodule.h
+struct ClangSubmoduleSubmoduleType {};
+
+//--- ClangSubmoduleUnused.h
+//--- ClangSubmoduleUnusedSubmodule.h
+
+//--- ClangTopModule.h
+struct ClangTopModuleType {};
+//--- ClangTopModuleSubmodule.h
+
+//--- ClangReexportedSubmodulePublic.h
+//--- ClangReexportedSubmodulePublicSub.h
+#include <ClangReexportedSubmoduleSub.h>
+
+//--- ClangReexportedSubmoduleTop.h
+//--- ClangReexportedSubmoduleSub.h
+typedef struct _TypedefTypeUnderlying {
+} TypedefType;
+
+//--- ClientOfClangModules.code
+public import ClangSimple
+public import ClangSimpleUnused // expected-warning {{public import of 'ClangSimpleUnused' was not used in public declarations or inlinable code}}
+public import ClangSubmodule.ClangSubmoduleSubmodule
+public import ClangSubmoduleUnused.ClangSubmoduleUnsuedSubmodule // expected-warning {{public import of 'ClangSubmoduleUnused' was not used in public declarations or inlinable code}}
+
+// Only the top-level module is used, but we can't detect whether the submodule was used or not.
+public import ClangTopModule.ClangTopModuleSubmodule
+
+public fn clangUser(a: ClangSimpleType) {} // expected-remark {{struct 'ClangSimpleType' is imported via 'ClangSimple'}}
+public fn clangUser(a: ClangSubmoduleSubmoduleType) {} // expected-remark {{struct 'ClangSubmoduleSubmoduleType' is imported via 'ClangSubmodule'}}
+public fn clangUser(a: ClangTopModuleType) {} // expected-remark {{struct 'ClangTopModuleType' is imported via 'ClangTopModule'}}
+
+//--- ClientOfClangReexportedSubmodules.code
+public import ClangReexportedSubmodulePublic.ClangReexportedSubmodulePublicSub
+
+public fn useTypedefed(a: TypedefType) {} // expected-remark 2 {{typealias underlying type struct '_TypedefTypeUnderlying' is imported via 'ClangReexportedSubmodulePublicSub', which reexports definition from 'ClangReexportedSubmoduleTop'}}
+// expected-remark @-1 {{type alias 'TypedefType' is imported via 'ClangReexportedSubmodulePublicSub', which reexports definition from 'ClangReexportedSubmoduleTop'}}

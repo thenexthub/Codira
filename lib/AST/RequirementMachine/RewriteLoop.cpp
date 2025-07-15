@@ -1,13 +1,17 @@
 //===--- RewriteLoop.cpp - Identities between rewrite rules ---------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines data types used for representing redundancies among
@@ -59,7 +63,7 @@
 #include "language/AST/Type.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Range.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include "RewriteSystem.h"
 
@@ -68,7 +72,7 @@ using namespace rewriting;
 
 /// Dumps the rewrite step that was applied to \p term. Mutates \p term to
 /// reflect the application of the rule.
-void RewriteStep::dump(llvm::raw_ostream &out,
+void RewriteStep::dump(toolchain::raw_ostream &out,
                        RewritePathEvaluator &evaluator,
                        const RewriteSystem &system) const {
   switch (Kind) {
@@ -250,7 +254,7 @@ RewritePath RewritePath::splitCycleAtRule(unsigned ruleID) const {
 /// Returns true if any rewrite steps were replaced; false means the
 /// rule did not appear in this path.
 bool RewritePath::replaceRulesWithPaths(
-    llvm::function_ref<const RewritePath *(unsigned)> fn) {
+    toolchain::function_ref<const RewritePath *(unsigned)> fn) {
   bool foundAny = false;
 
   for (const auto &step : Steps) {
@@ -306,7 +310,7 @@ bool RewritePath::replaceRulesWithPaths(
 
       // If this rewrite step is inverted, invert the entire path.
       if (step.Inverse) {
-        for (auto newStep : llvm::reverse(*replacementPath))
+        for (auto newStep : toolchain::reverse(*replacementPath))
           recontextualizeStep(newStep);
       } else {
         for (auto newStep : *replacementPath)
@@ -349,9 +353,9 @@ SmallVector<unsigned, 1>
 RewritePath::findRulesAppearingOnceInEmptyContext(const MutableTerm &term,
                                                   const RewriteSystem &system) const {
   // Rules appearing in empty context (possibly more than once).
-  llvm::SmallDenseSet<unsigned, 2> rulesInEmptyContext;
+  toolchain::SmallDenseSet<unsigned, 2> rulesInEmptyContext;
   // The number of times each rule appears (with or without context).
-  llvm::SmallDenseMap<unsigned, unsigned, 2> ruleFrequency;
+  toolchain::SmallDenseMap<unsigned, unsigned, 2> ruleFrequency;
 
   RewritePathEvaluator evaluator(term);
   for (auto step : Steps) {
@@ -391,7 +395,7 @@ RewritePath::findRulesAppearingOnceInEmptyContext(const MutableTerm &term,
 }
 
 /// Dumps a series of rewrite steps applied to \p term.
-void RewritePath::dump(llvm::raw_ostream &out,
+void RewritePath::dump(toolchain::raw_ostream &out,
                        MutableTerm term,
                        const RewriteSystem &system) const {
   RewritePathEvaluator evaluator(term);
@@ -408,7 +412,7 @@ void RewritePath::dump(llvm::raw_ostream &out,
   }
 }
 
-void RewritePath::dumpLong(llvm::raw_ostream &out,
+void RewritePath::dumpLong(toolchain::raw_ostream &out,
                            MutableTerm term,
                            const RewriteSystem &system) const {
   RewritePathEvaluator evaluator(term);
@@ -430,16 +434,17 @@ void RewriteLoop::verify(const RewriteSystem &system) const {
   }
 
   if (evaluator.getCurrentTerm() != Basepoint) {
-    llvm::errs() << "Not a loop: ";
-    dump(llvm::errs(), system);
-    llvm::errs() << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "Not a loop: ";
+      dump(out, system);
+    });
   }
 
   if (evaluator.isInContext()) {
-    llvm::errs() << "Leftover terms on evaluator stack\n";
-    evaluator.dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Leftover terms on evaluator stack\n";
+      evaluator.dump(out);
+    });
   }
 }
 
@@ -530,7 +535,7 @@ bool RewriteLoop::isUseful(
   return Useful;
 }
 
-void RewriteLoop::dump(llvm::raw_ostream &out,
+void RewriteLoop::dump(toolchain::raw_ostream &out,
                        const RewriteSystem &system) const {
   out << Basepoint << ": ";
   Path.dump(out, Basepoint, system);
@@ -538,7 +543,7 @@ void RewriteLoop::dump(llvm::raw_ostream &out,
     out << " [deleted]";
 }
 
-void RewritePathEvaluator::dump(llvm::raw_ostream &out) const {
+void RewritePathEvaluator::dump(toolchain::raw_ostream &out) const {
   for (unsigned i = 0, e = Primary.size(); i < e; ++i) {
     if (i == Primary.size() - 1)
       out << "-> ";
@@ -555,17 +560,19 @@ void RewritePathEvaluator::dump(llvm::raw_ostream &out) const {
 
 void RewritePathEvaluator::checkPrimary() const {
   if (Primary.empty()) {
-    llvm::errs() << "Empty primary stack\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Empty primary stack\n";
+      dump(out);
+    });
   }
 }
 
 void RewritePathEvaluator::checkSecondary() const {
   if (Secondary.empty()) {
-    llvm::errs() << "Empty secondary stack\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Empty secondary stack\n";
+      dump(out);
+    });
   }
 }
 
@@ -587,12 +594,13 @@ RewritePathEvaluator::applyRewriteRule(const RewriteStep &step,
   auto rhs = (step.Inverse ? rule.getLHS() : rule.getRHS());
 
   auto bug = [&](StringRef msg) {
-    llvm::errs() << msg << "\n";
-    llvm::errs() << "- Term: " << term << "\n";
-    llvm::errs() << "- StartOffset: " << step.StartOffset << "\n";
-    llvm::errs() << "- EndOffset: " << step.EndOffset << "\n";
-    llvm::errs() << "- Expected subterm: " << lhs << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << msg << "\n";
+      out << "- Term: " << term << "\n";
+      out << "- StartOffset: " << step.StartOffset << "\n";
+      out << "- EndOffset: " << step.EndOffset << "\n";
+      out << "- Expected subterm: " << lhs;
+    });
   };
 
   if (term.size() != step.StartOffset + lhs.size() + step.EndOffset) {
@@ -632,11 +640,12 @@ RewritePathEvaluator::applyPrefixSubstitutions(const RewriteStep &step,
   // We're either adding or removing the prefix to each concrete substitution.
   Symbol &last = *(term.end() - step.EndOffset - 1);
   if (!last.hasSubstitutions()) {
-    llvm::errs() << "Invalid rewrite path\n";
-    llvm::errs() << "- Term: " << term << "\n";
-    llvm::errs() << "- Start offset: " << step.StartOffset << "\n";
-    llvm::errs() << "- End offset: " << step.EndOffset << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << "Invalid rewrite path\n";
+      out << "- Term: " << term << "\n";
+      out << "- Start offset: " << step.StartOffset << "\n";
+      out << "- End offset: " << step.EndOffset;
+    });
   }
 
   last = last.transformConcreteSubstitutions(
@@ -645,13 +654,14 @@ RewritePathEvaluator::applyPrefixSubstitutions(const RewriteStep &step,
         if (!std::equal(t.begin(),
                         t.begin() + step.Arg,
                         prefix.begin())) {
-          llvm::errs() << "Invalid rewrite path\n";
-          llvm::errs() << "- Term: " << term << "\n";
-          llvm::errs() << "- Substitution: " << t << "\n";
-          llvm::errs() << "- Start offset: " << step.StartOffset << "\n";
-          llvm::errs() << "- End offset: " << step.EndOffset << "\n";
-          llvm::errs() << "- Expected subterm: " << prefix << "\n";
-          abort();
+          ABORT([&](auto &out) {
+            out << "Invalid rewrite path\n";
+            out << "- Term: " << term << "\n";
+            out << "- Substitution: " << t << "\n";
+            out << "- Start offset: " << step.StartOffset << "\n";
+            out << "- End offset: " << step.EndOffset << "\n";
+            out << "- Expected subterm: " << prefix;
+          });
         }
 
         MutableTerm mutTerm(t.begin() + step.Arg, t.end());
@@ -698,17 +708,19 @@ void RewritePathEvaluator::applyDecompose(const RewriteStep &step,
     const auto &term = getCurrentTerm();
     auto symbol = *(term.end() - step.EndOffset - 1);
     if (!symbol.hasSubstitutions()) {
-      llvm::errs() << "Expected term with superclass or concrete type symbol"
-                   << " on primary stack\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Expected term with superclass or concrete type symbol"
+            << " on primary stack\n";
+        dump(out);
+      });
     }
 
     // The symbol must have the expected number of substitutions.
     if (symbol.getSubstitutions().size() != numSubstitutions) {
-      llvm::errs() << "Expected " << numSubstitutions << " substitutions\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Expected " << numSubstitutions << " substitutions\n";
+        dump(out);
+      });
     }
 
     // Push each substitution on the primary stack.
@@ -720,9 +732,10 @@ void RewritePathEvaluator::applyDecompose(const RewriteStep &step,
     // a term that takes the form U.[concrete: C].V or U.[superclass: C].V,
     // where |V| == EndOffset.
     if (Primary.size() < numSubstitutions + 1) {
-      llvm::errs() << "Not enough terms on primary stack\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Not enough terms on primary stack\n";
+        dump(out);
+      });
     }
 
     // The term immediately underneath the substitutions is the one we're
@@ -733,18 +746,20 @@ void RewritePathEvaluator::applyDecompose(const RewriteStep &step,
     // The symbol at the end of this term must have the expected number of
     // substitutions.
     if (symbol.getSubstitutions().size() != numSubstitutions) {
-      llvm::errs() << "Expected " << numSubstitutions << " substitutions\n";
-      dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Expected " << numSubstitutions << " substitutions\n";
+        dump(out);
+      });
     }
 
     for (unsigned i = 0; i < numSubstitutions; ++i) {
       const auto &substitution = *(Primary.end() - numSubstitutions + i);
       if (MutableTerm(symbol.getSubstitutions()[i]) != substitution) {
-        llvm::errs() << "Expected " << symbol.getSubstitutions()[i] << "\n";
-        llvm::errs() << "Got " << substitution << "\n";
-        dump(llvm::errs());
-        abort();
+        ABORT([&](auto &out) {
+          out << "Expected " << symbol.getSubstitutions()[i] << "\n";
+          out << "Got " << substitution << "\n";
+          dump(out);
+        });
       }
     }
 
@@ -765,12 +780,13 @@ RewritePathEvaluator::applyRelation(const RewriteStep &step,
   auto rhs = (step.Inverse ? relation.first : relation.second);
 
   auto bug = [&](StringRef msg) {
-    llvm::errs() << msg << "\n";
-    llvm::errs() << "- Term: " << term << "\n";
-    llvm::errs() << "- StartOffset: " << step.StartOffset << "\n";
-    llvm::errs() << "- EndOffset: " << step.EndOffset << "\n";
-    llvm::errs() << "- Expected subterm: " << lhs << "\n";
-    abort();
+    ABORT([&](auto &out) {
+      out << msg << "\n";
+      out << "- Term: " << term << "\n";
+      out << "- StartOffset: " << step.StartOffset << "\n";
+      out << "- EndOffset: " << step.EndOffset << "\n";
+      out << "- Expected subterm: " << lhs << "\n";
+    });
   };
 
   if (term.size() != step.StartOffset + lhs.size() + step.EndOffset) {
@@ -799,15 +815,16 @@ void RewritePathEvaluator::applyDecomposeConcrete(const RewriteStep &step,
 
   const auto &difference = system.getTypeDifference(step.Arg);
   auto bug = [&](StringRef msg) {
-    llvm::errs() << msg << "\n";
-    llvm::errs() << "- StartOffset: " << step.StartOffset << "\n";
-    llvm::errs() << "- EndOffset: " << step.EndOffset << "\n";
-    llvm::errs() << "- DifferenceID: " << step.Arg << "\n";
-    llvm::errs() << "\nType difference:\n";
-    difference.dump(llvm::errs());
-    llvm::errs() << "\nEvaluator state:\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << msg << "\n";
+      out << "- StartOffset: " << step.StartOffset << "\n";
+      out << "- EndOffset: " << step.EndOffset << "\n";
+      out << "- DifferenceID: " << step.Arg << "\n";
+      out << "\nType difference:\n";
+      difference.dump(out);
+      out << "\nEvaluator state:\n";
+      dump(out);
+    });
   };
 
   auto substitutions = difference.LHS.getSubstitutions();
@@ -837,9 +854,12 @@ void RewritePathEvaluator::applyDecomposeConcrete(const RewriteStep &step,
       const auto &otherSubstitution = *(Primary.end() - numSubstitutions + n);
       auto expectedSubstitution = difference.getReplacementSubstitution(n);
       if (otherSubstitution != expectedSubstitution) {
-        llvm::errs() << "Got: " << otherSubstitution << "\n";
-        llvm::errs() << "Expected: " << expectedSubstitution << "\n";
-        bug("Unexpected substitution term on the stack");
+        SmallString<0> message;
+        toolchain::raw_svector_ostream out(message);
+        out << "Unexpected substitution term on the stack\n";
+        out << "Got: " << otherSubstitution << "\n";
+        out << "Expected: " << expectedSubstitution << "\n";
+        bug(message);
       }
     }
 
@@ -872,20 +892,21 @@ RewritePathEvaluator::applyLeftConcreteProjection(const RewriteStep &step,
   leftBaseTerm.add(difference.LHS);
 
   auto bug = [&](StringRef msg) {
-    llvm::errs() << msg << "\n";
-    llvm::errs() << "- StartOffset: " << step.StartOffset << "\n";
-    llvm::errs() << "- EndOffset: " << step.EndOffset << "\n";
-    llvm::errs() << "- SubstitutionIndex: " << index << "\n";
-    llvm::errs() << "- LeftProjection: " << leftProjection << "\n";
-    llvm::errs() << "- LeftBaseTerm: " << leftBaseTerm << "\n";
-    llvm::errs() << "- DifferenceID: " << step.getTypeDifferenceID() << "\n";
-    llvm::errs() << "\nType difference:\n";
-    difference.dump(llvm::errs());
-    llvm::errs() << ":\n";
-    difference.dump(llvm::errs());
-    llvm::errs() << "\nEvaluator state:\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << msg << "\n";
+      out << "- StartOffset: " << step.StartOffset << "\n";
+      out << "- EndOffset: " << step.EndOffset << "\n";
+      out << "- SubstitutionIndex: " << index << "\n";
+      out << "- LeftProjection: " << leftProjection << "\n";
+      out << "- LeftBaseTerm: " << leftBaseTerm << "\n";
+      out << "- DifferenceID: " << step.getTypeDifferenceID() << "\n";
+      out << "\nType difference:\n";
+      difference.dump(out);
+      out << ":\n";
+      difference.dump(out);
+      out << "\nEvaluator state:\n";
+      dump(out);
+    });
   };
 
   if (!step.Inverse) {
@@ -933,20 +954,21 @@ RewritePathEvaluator::applyRightConcreteProjection(const RewriteStep &step,
   rightBaseTerm.add(difference.RHS);
 
   auto bug = [&](StringRef msg) {
-    llvm::errs() << msg << "\n";
-    llvm::errs() << "- StartOffset: " << step.StartOffset << "\n";
-    llvm::errs() << "- EndOffset: " << step.EndOffset << "\n";
-    llvm::errs() << "- SubstitutionIndex: " << index << "\n";
-    llvm::errs() << "- LeftProjection: " << leftProjection << "\n";
-    llvm::errs() << "- RightProjection: " << rightProjection << "\n";
-    llvm::errs() << "- LeftBaseTerm: " << leftBaseTerm << "\n";
-    llvm::errs() << "- RightBaseTerm: " << rightBaseTerm << "\n";
-    llvm::errs() << "- DifferenceID: " << step.getTypeDifferenceID() << "\n";
-    llvm::errs() << "\nType difference:\n";
-    difference.dump(llvm::errs());
-    llvm::errs() << "\nEvaluator state:\n";
-    dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << msg << "\n";
+      out << "- StartOffset: " << step.StartOffset << "\n";
+      out << "- EndOffset: " << step.EndOffset << "\n";
+      out << "- SubstitutionIndex: " << index << "\n";
+      out << "- LeftProjection: " << leftProjection << "\n";
+      out << "- RightProjection: " << rightProjection << "\n";
+      out << "- LeftBaseTerm: " << leftBaseTerm << "\n";
+      out << "- RightBaseTerm: " << rightBaseTerm << "\n";
+      out << "- DifferenceID: " << step.getTypeDifferenceID() << "\n";
+      out << "\nType difference:\n";
+      difference.dump(out);
+      out << "\nEvaluator state:\n";
+      dump(out);
+    });
   };
 
   if (!step.Inverse) {

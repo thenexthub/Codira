@@ -18,7 +18,7 @@ normal_pipeline = list(pass_pipeline_library.normal_passpipelines())
 pass_pipelines = [x.identifier for x in normal_pipeline]
 
 parser = argparse.ArgumentParser(description=textwrap.dedent("""
-Generate pass pipelines based off of the normal swift pipeline.
+Generate pass pipelines based off of the normal language pipeline.
 """))
 
 parser.add_argument('--disable-pass', nargs='*', help='Disable this pass',

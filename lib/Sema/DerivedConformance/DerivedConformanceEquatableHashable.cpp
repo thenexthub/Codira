@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements implicit derivation of the Equatable and Hashable
@@ -30,9 +31,9 @@
 #include "language/AST/Stmt.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -344,7 +345,7 @@ deriveEquatable_eq(
   //
   //   @derived
   //   @_implements(Equatable, ==(_:_:))
-  //   func __derived_enum_equals(a: SomeEnum<T...>,
+  //   fn __derived_enum_equals(a: SomeEnum<T...>,
   //                              b: SomeEnum<T...>) -> Bool {
   //     switch (a, b) {
   //     case (.A, .A):
@@ -366,7 +367,7 @@ deriveEquatable_eq(
   //
   //   @derived
   //   @_implements(Equatable, ==(_:_:))
-  //   func __derived_struct_equals(a: SomeStruct<T...>,
+  //   fn __derived_struct_equals(a: SomeStruct<T...>,
   //                                b: SomeStruct<T...>) -> Bool {
   //     guard a.x == b.x else { return false; }
   //     guard a.y == b.y else { return false; }
@@ -397,10 +398,12 @@ deriveEquatable_eq(
   auto boolTy = C.getBoolType();
 
   Identifier generatedIdentifier;
+  bool isDerivedEnumEquals = false;
   if (parentDC->getParentModule()->isResilient()) {
     generatedIdentifier = C.Id_EqualsOperator;
   } else if (selfIfaceTy->getEnumOrBoundGenericEnum()) {
     generatedIdentifier = C.Id_derived_enum_equals;
+    isDerivedEnumEquals = true;
   } else {
     assert(selfIfaceTy->getStructOrBoundGenericStruct());
     generatedIdentifier = C.Id_derived_struct_equals;
@@ -414,6 +417,9 @@ deriveEquatable_eq(
       /*GenericParams=*/nullptr, params, boolTy, parentDC);
   eqDecl->setUserAccessible(false);
   eqDecl->setSynthesized();
+  if (isDerivedEnumEquals) {
+    eqDecl->getAttrs().add(new (C) SemanticsAttr("derived_enum_equals", SourceLoc(), SourceRange(), /*Implicit=*/true));
+  }
 
   // Add the @_implements(Equatable, ==(_:_:)) attribute
   if (generatedIdentifier != C.Id_EqualsOperator) {
@@ -468,7 +474,7 @@ ValueDecl *DerivedConformance::deriveEquatable(ValueDecl *requirement) {
     } else if (isa<StructDecl>(Nominal))
       return deriveEquatable_eq(*this, &deriveBodyEquatable_struct_eq);
     else
-      llvm_unreachable("todo");
+      toolchain_unreachable("todo");
   }
   requirement->diagnose(diag::broken_equatable_requirement);
   return nullptr;
@@ -510,15 +516,15 @@ deriveHashable_hashInto(
     DerivedConformance &derived,
     std::pair<BraceStmt *, bool> (*bodySynthesizer)(AbstractFunctionDecl *,
                                                     void *)) {
-  // @derived func hash(into hasher: inout Hasher)
+  // @derived fn hash(into hasher: inout Hasher)
 
   ASTContext &C = derived.Context;
   auto parentDC = derived.getConformanceContext();
 
   // Expected type: (Self) -> (into: inout Hasher) -> ()
   // Constructed as:
-  //   func type(input: Self,
-  //             output: func type(input: inout Hasher,
+  //   fn type(input: Self,
+  //             output: fn type(input: inout Hasher,
   //                               output: ()))
   // Created from the inside out:
 
@@ -569,7 +575,7 @@ deriveHashable_hashInto(
 /// user-supplied implementation.
 static std::pair<BraceStmt *, bool>
 deriveBodyHashable_compat_hashInto(AbstractFunctionDecl *hashIntoDecl, void *) {
-  // func hash(into hasher: inout Hasher) {
+  // fn hash(into hasher: inout Hasher) {
   //   hasher.combine(self.hashValue)
   // }
   auto parentDC = hashIntoDecl->getDeclContext();
@@ -595,7 +601,7 @@ deriveBodyHashable_enum_rawValue_hashInto(
   AbstractFunctionDecl *hashIntoDecl, void *) {
   // enum SomeEnum: Int {
   //   case A, B, C
-  //   @derived func hash(into hasher: inout Hasher) {
+  //   @derived fn hash(into hasher: inout Hasher) {
   //     hasher.combine(self.rawValue)
   //   }
   // }
@@ -622,7 +628,7 @@ deriveBodyHashable_enum_noAssociatedValues_hashInto(
   AbstractFunctionDecl *hashIntoDecl, void *) {
   // enum SomeEnum {
   //   case A, B, C
-  //   @derived func hash(into hasher: inout Hasher) {
+  //   @derived fn hash(into hasher: inout Hasher) {
   //     let discriminator: Int
   //     switch self {
   //     case A:
@@ -663,7 +669,7 @@ deriveBodyHashable_enum_hasAssociatedValues_hashInto(
   AbstractFunctionDecl *hashIntoDecl, void *) {
   // enum SomeEnumWithAssociatedValues {
   //   case A, B(Int), C(String, Int)
-  //   @derived func hash(into hasher: inout Hasher) {
+  //   @derived fn hash(into hasher: inout Hasher) {
   //     switch self {
   //     case .A:
   //       hasher.combine(0)
@@ -772,7 +778,7 @@ deriveBodyHashable_struct_hashInto(AbstractFunctionDecl *hashIntoDecl, void *) {
   // struct SomeStruct {
   //   var x: Int
   //   var y: String
-  //   @derived func hash(into hasher: inout Hasher) {
+  //   @derived fn hash(into hasher: inout Hasher) {
   //     hasher.combine(x)
   //     hasher.combine(y)
   //   }
@@ -1015,7 +1021,7 @@ ValueDecl *DerivedConformance::deriveHashable(ValueDecl *requirement) {
         return deriveHashable_hashInto(*this,
                                        &deriveBodyHashable_struct_hashInto);
       else // This should've been caught by canDeriveHashable above.
-        llvm_unreachable("Attempt to derive Hashable for a type other "
+        toolchain_unreachable("Attempt to derive Hashable for a type other "
                          "than a struct or enum");      
     } else {
       // hashValue has an explicit implementation, but hash(into:) doesn't.

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_GUARANTEEDPHIVERIFIER_H
-#define SWIFT_SIL_GUARANTEEDPHIVERIFIER_H
+#ifndef LANGUAGE_SIL_GUARANTEEDPHIVERIFIER_H
+#define LANGUAGE_SIL_GUARANTEEDPHIVERIFIER_H
 
 #include "LinearLifetimeCheckerPrivate.h"
 
@@ -95,11 +96,11 @@ class GuaranteedPhiVerifier {
   /// A map of reborrow phi/guaranteed forwarding phi to its base values.
   /// Note that a reborrow phi arg can have different base values based on
   /// different control flow paths.
-  llvm::DenseMap<SILPhiArgument *, SmallPtrSet<SILValue, 8>>
+  toolchain::DenseMap<SILPhiArgument *, SmallPtrSet<SILValue, 8>>
       dependentPhiToBaseValueMap;
 
 public:
-  GuaranteedPhiVerifier(const SILFunction *func, DeadEndBlocks *deadEndBlocks,
+  GuaranteedPhiVerifier(const SILFunction *fn, DeadEndBlocks *deadEndBlocks,
                         LinearLifetimeChecker::ErrorBuilder errorBuilder)
       : deadEndBlocks(deadEndBlocks), errorBuilder(errorBuilder) {}
 

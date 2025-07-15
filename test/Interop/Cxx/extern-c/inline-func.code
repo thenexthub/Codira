@@ -1,0 +1,8 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -enable-experimental-cxx-interop)
+// REQUIRES: executable_test
+
+import InlineFunc
+
+public fn test() {
+  caller()
+}

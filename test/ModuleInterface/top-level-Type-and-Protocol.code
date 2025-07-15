@@ -1,0 +1,46 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/MyModule.codeinterface) %s -module-name MyModule
+// RUN: %target-language-typecheck-module-from-interface(%t/MyModule.codeinterface) -module-name MyModule
+// RUN: %FileCheck %s < %t/MyModule.codeinterface
+
+// CHECK: public struct Type {
+// CHECK-NEXT: }
+public struct Type {}
+
+// CHECK: public protocol Protocol {
+// CHECK-NEXT: }
+public protocol Protocol {}
+
+// CHECK: public fn usesType(_ x: MyModule.`Type`)
+public fn usesType(_ x: Type) {}
+
+// CHECK: public fn genericProtocol<T>(_ x: T) where T : MyModule.`Protocol`
+public fn genericProtocol<T: Protocol>(_ x: T) {}
+
+// CHECK: public fn existentialProtocol(_ x: any MyModule.`Protocol`)
+public fn existentialProtocol(_ x: Protocol) {}
+
+// CHECK: public struct Parent {
+public struct Parent {
+  // CHECK: public struct `Type` {
+  public struct `Type` {
+    // CHECK: public struct `Protocol` {
+    // CHECK-NEXT: }
+    public struct `Protocol` {}
+    // CHECK-NEXT: }
+  }
+  // CHECK: public struct `Protocol` {
+  // CHECK-NEXT: }
+  public struct `Protocol` {}
+  // CHECK-NEXT: }
+}
+
+// CHECK: public fn usesNestedType(_ x: MyModule.Parent.`Type`)
+public fn usesNestedType(_ x: Parent.`Type`) {}
+
+// CHECK: public fn usesNestedTypeProtocol(_ x: MyModule.Parent.`Type`.`Protocol`)
+public fn usesNestedTypeProtocol(_ x: Parent.`Type`.`Protocol`) {}
+
+// CHECK: public fn usesNestedProtocol(_ x: MyModule.Parent.`Protocol`)
+public fn usesNestedProtocol(_ x: Parent.`Protocol`) {}

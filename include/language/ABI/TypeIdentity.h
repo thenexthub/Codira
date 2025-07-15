@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This header declares structures useful for working with the identity of
@@ -18,16 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TYPEIDENTITY_H
-#define SWIFT_ABI_TYPEIDENTITY_H
+#ifndef LANGUAGE_ABI_TYPEIDENTITY_H
+#define LANGUAGE_ABI_TYPEIDENTITY_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Runtime/Config.h"
-#include <llvm/ADT/StringRef.h>
+#include <toolchain/ADT/StringRef.h>
 
 namespace language {
 template <typename Runtime>
-class swift_ptrauth_struct_context_descriptor(TypeContextDescriptor)
+class language_ptrauth_struct_context_descriptor(TypeContextDescriptor)
     TargetTypeContextDescriptor;
 struct InProcess;
 using TypeContextDescriptor = TargetTypeContextDescriptor<InProcess>;
@@ -52,7 +53,7 @@ namespace TypeImportSymbolNamespace {
 /// from a C `typedef` that was imported as a distinct type instead
 /// of a `typealias`.  This can happen for reasons like:
 ///
-/// - the `typedef` was declared with the `swift_wrapper` attribute
+/// - the `typedef` was declared with the `language_wrapper` attribute
 /// - the `typedef` is a CF type
 constexpr static const char CTypedef[] = "t";
 
@@ -74,7 +75,7 @@ public:
   /// symbol namespaces in which types can be declared; for example,
   /// `struct A` and `typedef ... A` can be declared in the same scope and
   /// resolve to unrelated types.  When these declarations are imported,
-  /// there are several possible ways to distinguish them in Swift, e.g.
+  /// there are several possible ways to distinguish them in Codira, e.g.
   /// by implicitly renaming them; however, the external name used for
   /// mangling and metadata must be stable and so is based on the original
   /// declared name.  Therefore, in these languages, we privilege one
@@ -91,10 +92,10 @@ public:
   /// C++ `class`es), and the ObjC protocol namespace (ObjC `@protocol`s).
   /// The languages all forbid multiple types from being declared in a given
   /// scope and namespace --- at least, they do within a translation unit,
-  /// and for the most part we have to assume in Swift that that applies
+  /// and for the most part we have to assume in Codira that that applies
   /// across translation units as well.
   //
-  /// Swift's default symbol-namespace rules for C/C++/ObjC are as follows:
+  /// Codira's default symbol-namespace rules for C/C++/ObjC are as follows:
   /// - Protocols are assumed to come from the ObjC protocol namespace.
   /// - Classes are assumed to come from the ordinary namespace (as an
   ///   Objective-C class would).
@@ -120,7 +121,7 @@ public:
   ///
   /// \return true if collection was successful.
   template <bool Asserting>
-  bool collect(llvm::StringRef value) {
+  bool collect(toolchain::StringRef value) {
 #define check(CONDITION, COMMENT)            \
     do {                                     \
       if (!Asserting) {                      \
@@ -183,17 +184,17 @@ public:
 class ParsedTypeIdentity {
 public:
   /// The user-facing name of the type.
-  llvm::StringRef UserFacingName;
+  toolchain::StringRef UserFacingName;
 
   /// The full identity of the type.
   /// Note that this may include interior '\0' characters.
-  llvm::StringRef FullIdentity;
+  toolchain::StringRef FullIdentity;
 
   /// Any extended information that type might have.
-  std::optional<TypeImportInfo<llvm::StringRef>> ImportInfo;
+  std::optional<TypeImportInfo<toolchain::StringRef>> ImportInfo;
 
   /// The ABI name of the type.
-  llvm::StringRef getABIName() const {
+  toolchain::StringRef getABIName() const {
     if (ImportInfo && !ImportInfo->ABIName.empty())
       return ImportInfo->ABIName;
     return UserFacingName;
@@ -208,11 +209,11 @@ public:
     return ImportInfo && !ImportInfo->RelatedEntityName.empty();
   }
 
-  bool isRelatedEntity(llvm::StringRef entityName) const {
+  bool isRelatedEntity(toolchain::StringRef entityName) const {
     return ImportInfo && ImportInfo->RelatedEntityName == entityName;
   }
 
-  llvm::StringRef getRelatedEntityName() const {
+  toolchain::StringRef getRelatedEntityName() const {
     assert(isAnyRelatedEntity());
     return ImportInfo->RelatedEntityName;
   }
@@ -222,4 +223,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_ABI_TYPEIDENTITY_H
+#endif // LANGUAGE_ABI_TYPEIDENTITY_H

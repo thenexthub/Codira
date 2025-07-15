@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This definition file describes the types in the type checker's
@@ -18,190 +19,190 @@
 //
 //===----------------------------------------------------------------------===//
 
-SWIFT_REQUEST(TypeChecker, AbstractGenericSignatureRequest,
+LANGUAGE_REQUEST(TypeChecker, AbstractGenericSignatureRequest,
               GenericSignatureWithError (const GenericSignatureImpl *,
                                          SmallVector<GenericTypeParamType *, 2>,
                                          SmallVector<Requirement, 2>,
                                          bool),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ApplyAccessNoteRequest,
+LANGUAGE_REQUEST(TypeChecker, ApplyAccessNoteRequest,
               evaluator::SideEffect(ValueDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, AttachedResultBuilderRequest,
+LANGUAGE_REQUEST(TypeChecker, AttachedResultBuilderRequest,
               CustomAttr *(ValueDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, AttachedPropertyWrapperTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, AttachedPropertyWrapperTypeRequest,
               Type(VarDecl *, unsigned), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, AttachedPropertyWrappersRequest,
-              llvm::TinyPtrVector<CustomAttr *>(VarDecl *),
+LANGUAGE_REQUEST(TypeChecker, AttachedPropertyWrappersRequest,
+              toolchain::TinyPtrVector<CustomAttr *>(VarDecl *),
               SeparatelyCached | SplitCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CallerSideDefaultArgExprRequest,
+LANGUAGE_REQUEST(TypeChecker, CallerSideDefaultArgExprRequest,
               Expr *(DefaultArgumentExpr *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckInconsistentImplementationOnlyImportsRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckInconsistentImplementationOnlyImportsRequest,
               evaluator::SideEffect(ModuleDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckInconsistentSPIOnlyImportsRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckInconsistentSPIOnlyImportsRequest,
               evaluator::SideEffect(SourceFile *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckInconsistentAccessLevelOnImport,
+LANGUAGE_REQUEST(TypeChecker, CheckInconsistentAccessLevelOnImport,
               evaluator::SideEffect(SourceFile *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckInconsistentAccessLevelOnImportSameFileRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckInconsistentAccessLevelOnImportSameFileRequest,
               evaluator::SideEffect(SourceFile *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckInconsistentWeakLinkedImportsRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckInconsistentWeakLinkedImportsRequest,
               evaluator::SideEffect(ModuleDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckInitEffectsRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckInitEffectsRequest,
               evaluator::SideEffect(Initializer *, Expr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckRedeclarationRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckRedeclarationRequest,
               evaluator::SideEffect(ValueDecl *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ClassAncestryFlagsRequest,
+LANGUAGE_REQUEST(TypeChecker, ClassAncestryFlagsRequest,
               AncestryFlags(ClassDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CompareDeclSpecializationRequest,
+LANGUAGE_REQUEST(TypeChecker, CompareDeclSpecializationRequest,
               bool (DeclContext *, ValueDecl *, ValueDecl *, bool, bool),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ConditionalRequirementsRequest,
+LANGUAGE_REQUEST(TypeChecker, ConditionalRequirementsRequest,
               ArrayRef<Requirement> (NormalProtocolConformance *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsDeclRefinementOfRequest,
+LANGUAGE_REQUEST(TypeChecker, IsDeclRefinementOfRequest,
               bool (ValueDecl *, ValueDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CustomAttrTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, CustomAttrTypeRequest,
               Type(CustomAttr *, DeclContext *, CustomAttrTypeKind),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DefaultArgumentExprRequest,
+LANGUAGE_REQUEST(TypeChecker, DefaultArgumentExprRequest,
               Expr *(ParamDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DefaultArgumentTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, DefaultArgumentTypeRequest,
               Type(ParamDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DefaultInitializerIsolation,
+LANGUAGE_REQUEST(TypeChecker, DefaultInitializerIsolation,
               ActorIsolation(VarDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DefaultArgumentInitContextRequest,
+LANGUAGE_REQUEST(TypeChecker, DefaultArgumentInitContextRequest,
               Initializer *(ParamDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DefaultDefinitionTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, DefaultDefinitionTypeRequest,
               Type(AssociatedTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DefaultTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, DefaultTypeRequest,
               Type(KnownProtocolKind, const DeclContext *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PrettyPrintDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, PrettyPrintDeclRequest,
               SourceLoc(const Decl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DifferentiableAttributeTypeCheckRequest,
+LANGUAGE_REQUEST(TypeChecker, DifferentiableAttributeTypeCheckRequest,
               IndexSubset *(DifferentiableAttr *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DerivativeAttrOriginalDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, DerivativeAttrOriginalDeclRequest,
               AbstractFunctionDecl *(DerivativeAttr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeEraserHasViableInitRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeEraserHasViableInitRequest,
               bool(TypeEraserAttr *, ProtocolDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DynamicallyReplacedDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, DynamicallyReplacedDeclRequest,
               ValueDecl *(ValueDecl *),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ABIMembersRequest,
+LANGUAGE_REQUEST(TypeChecker, ABIMembersRequest,
               ArrayRef<Decl *>(IterableDeclContext *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, AllMembersRequest,
+LANGUAGE_REQUEST(TypeChecker, AllMembersRequest,
               ArrayRef<Decl *>(IterableDeclContext *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SpecializeAttrTargetDeclRequest,
-              ValueDecl *(const ValueDecl *, SpecializeAttr *),
+LANGUAGE_REQUEST(TypeChecker, SpecializeAttrTargetDeclRequest,
+              ValueDecl *(const ValueDecl *, AbstractSpecializeAttr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, EnumRawValuesRequest,
+LANGUAGE_REQUEST(TypeChecker, EnumRawValuesRequest,
               evaluator::SideEffect (EnumDecl *, TypeResolutionStage),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, EnumRawTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, EnumRawTypeRequest,
               Type(EnumDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExistentialConformsToSelfRequest,
+LANGUAGE_REQUEST(TypeChecker, ExistentialConformsToSelfRequest,
               bool(ProtocolDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasSelfOrAssociatedTypeRequirementsRequest,
+LANGUAGE_REQUEST(TypeChecker, HasSelfOrAssociatedTypeRequirementsRequest,
               bool(ProtocolDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExtendedTypeRequest, Type(ExtensionDecl *), Cached,
+LANGUAGE_REQUEST(TypeChecker, ExtendedTypeRequest, Type(ExtensionDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResultBuilderTypeRequest, Type(ValueDecl *),
+LANGUAGE_REQUEST(TypeChecker, ResultBuilderTypeRequest, Type(ValueDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsActorRequest, bool(NominalTypeDecl *),
+LANGUAGE_REQUEST(TypeChecker, IsActorRequest, bool(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsDefaultActorRequest,
+LANGUAGE_REQUEST(TypeChecker, IsDefaultActorRequest,
               bool(ClassDecl *, ModuleDecl *, ResilienceExpansion),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CheckDistributedFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, CheckDistributedFunctionRequest,
               bool(AbstractFunctionDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsDistributedActorRequest, bool(NominalTypeDecl *),
+LANGUAGE_REQUEST(TypeChecker, IsDistributedActorRequest, bool(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorImplicitCodableRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorImplicitCodableRequest,
               NormalProtocolConformance *(NominalTypeDecl *, KnownProtocolKind),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CanSynthesizeDistributedActorCodableConformanceRequest,
+LANGUAGE_REQUEST(TypeChecker, CanSynthesizeDistributedActorCodableConformanceRequest,
               bool (NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorAsActorConformanceRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorAsActorConformanceRequest,
               NormalProtocolConformance *(ProtocolDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorSystemRemoteCallFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorSystemRemoteCallFunctionRequest,
               AbstractFunctionDecl *(NominalTypeDecl *, bool),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedTargetInvocationEncoderRecordArgumentFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedTargetInvocationEncoderRecordArgumentFunctionRequest,
               AbstractFunctionDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedTargetInvocationEncoderRecordReturnTypeFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedTargetInvocationEncoderRecordReturnTypeFunctionRequest,
               AbstractFunctionDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedTargetInvocationEncoderRecordErrorTypeFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedTargetInvocationEncoderRecordErrorTypeFunctionRequest,
               AbstractFunctionDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedTargetInvocationDecoderDecodeNextArgumentFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedTargetInvocationDecoderDecodeNextArgumentFunctionRequest,
               AbstractFunctionDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedTargetInvocationResultHandlerOnReturnFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedTargetInvocationResultHandlerOnReturnFunctionRequest,
               AbstractFunctionDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedThunkRequest,
-              FuncDecl *(llvm::PointerUnion<AbstractStorageDecl *, AbstractFunctionDecl *>),
+LANGUAGE_REQUEST(TypeChecker, GetDistributedThunkRequest,
+              FuncDecl *(toolchain::PointerUnion<AbstractStorageDecl *, AbstractFunctionDecl *>),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorIDPropertyRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorIDPropertyRequest,
               VarDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorSystemPropertyRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorSystemPropertyRequest,
               VarDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedRemoteCallTargetInitFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedRemoteCallTargetInitFunctionRequest,
               ConstructorDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedMethodWitnessedProtocolRequirements,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedMethodWitnessedProtocolRequirements,
               ArrayRef<ValueDecl *> (AbstractFunctionDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedRemoteCallArgumentInitFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedRemoteCallArgumentInitFunctionRequest,
               ConstructorDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorInvocationDecoderRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorInvocationDecoderRequest,
               NominalTypeDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetDistributedActorConcreteArgumentDecodingMethodRequest,
+LANGUAGE_REQUEST(TypeChecker, GetDistributedActorConcreteArgumentDecodingMethodRequest,
               FuncDecl *(NominalTypeDecl *),
               Cache, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GlobalActorInstanceRequest,
+LANGUAGE_REQUEST(TypeChecker, GlobalActorInstanceRequest,
               VarDecl *(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GlobalActorAttributeRequest,
+LANGUAGE_REQUEST(TypeChecker, GlobalActorAttributeRequest,
               Optional<CustomAttrNominalPair>(
-                  llvm::PointerUnion<Decl *, ClosureExpr *>),
+                  toolchain::PointerUnion<Decl *, ClosureExpr *>),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ActorIsolationRequest,
+LANGUAGE_REQUEST(TypeChecker, ActorIsolationRequest,
               ActorIsolationState(ValueDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasIsolatedSelfRequest,
+LANGUAGE_REQUEST(TypeChecker, HasIsolatedSelfRequest,
               bool(ValueDecl *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, FunctionOperatorRequest, OperatorDecl *(FuncDecl *),
+LANGUAGE_REQUEST(TypeChecker, FunctionOperatorRequest, OperatorDecl *(FuncDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, GenericSignatureRequest,
+LANGUAGE_REQUEST(NameLookup, GenericSignatureRequest,
               GenericSignature (GenericContext *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasCircularInheritedProtocolsRequest,
+LANGUAGE_REQUEST(TypeChecker, HasCircularInheritedProtocolsRequest,
               bool(ProtocolDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasCircularRawValueRequest,
+LANGUAGE_REQUEST(TypeChecker, HasCircularRawValueRequest,
               bool(EnumDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasImportsMatchingFlagRequest,
+LANGUAGE_REQUEST(TypeChecker, HasImportsMatchingFlagRequest,
               bool(SourceFile *, ImportOptions), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ModuleLibraryLevelRequest,
+LANGUAGE_REQUEST(TypeChecker, ModuleLibraryLevelRequest,
               LibraryLevel(ModuleDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, InferredGenericSignatureRequest,
+LANGUAGE_REQUEST(TypeChecker, InferredGenericSignatureRequest,
               GenericSignatureWithError (const GenericSignatureImpl *,
                                          GenericParamList *,
                                          WhereClauseOwner,
@@ -209,429 +210,441 @@ SWIFT_REQUEST(TypeChecker, InferredGenericSignatureRequest,
                                          SmallVector<TypeBase *, 2>,
                                          SourceLoc, ExtensionDecl *, bool),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DistributedModuleIsAvailableRequest,
+LANGUAGE_REQUEST(TypeChecker, DistributedModuleIsAvailableRequest,
               bool(const ValueDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, InheritedTypeRequest,
-              Type(llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *>,
+LANGUAGE_REQUEST(TypeChecker, InheritedTypeRequest,
+              Type(toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *>,
                    unsigned, TypeResolutionStage),
               SeparatelyCached, HasNearestLocation)
-SWIFT_REQUEST(TypeChecker, InheritsSuperclassInitializersRequest,
+LANGUAGE_REQUEST(TypeChecker, InheritsSuperclassInitializersRequest,
               bool(ClassDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, InitKindRequest,
+LANGUAGE_REQUEST(TypeChecker, InitKindRequest,
               CtorInitializerKind(ConstructorDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, BodyInitKindRequest,
+LANGUAGE_REQUEST(TypeChecker, BodyInitKindRequest,
               BodyInitKindAndExpr(ConstructorDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, InterfaceTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, InterfaceTypeRequest,
               Type(ValueDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsAccessorTransparentRequest, bool(AccessorDecl *),
+LANGUAGE_REQUEST(TypeChecker, IsAccessorTransparentRequest, bool(AccessorDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsDynamicRequest, bool(ValueDecl *),
+LANGUAGE_REQUEST(TypeChecker, IsDynamicRequest, bool(ValueDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsFinalRequest, bool(ValueDecl *), SeparatelyCached,
+LANGUAGE_REQUEST(TypeChecker, IsFinalRequest, bool(ValueDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsGetterMutatingRequest, bool(AbstractStorageDecl *),
+LANGUAGE_REQUEST(TypeChecker, IsGetterMutatingRequest, bool(AbstractStorageDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsImplicitlyUnwrappedOptionalRequest,
+LANGUAGE_REQUEST(TypeChecker, IsImplicitlyUnwrappedOptionalRequest,
               bool(ValueDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsObjCRequest, bool(ValueDecl *), SeparatelyCached,
+LANGUAGE_REQUEST(TypeChecker, IsObjCRequest, bool(ValueDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsSetterMutatingRequest, bool(AbstractStorageDecl *),
+LANGUAGE_REQUEST(TypeChecker, IsSetterMutatingRequest, bool(AbstractStorageDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, LazyStoragePropertyRequest, VarDecl *(VarDecl *),
+LANGUAGE_REQUEST(TypeChecker, LazyStoragePropertyRequest, VarDecl *(VarDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ValidatePrecedenceGroupRequest,
+LANGUAGE_REQUEST(TypeChecker, ValidatePrecedenceGroupRequest,
               PrecedenceGroupDecl *(DeclContext *, Identifier, SourceLoc),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, MangleLocalTypeDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, MangleLocalTypeDeclRequest,
               std::string(const TypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ModuleImplicitImportsRequest,
+LANGUAGE_REQUEST(TypeChecker, ModuleImplicitImportsRequest,
               ImplicitImportList(ModuleDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, NamingPatternRequest,
+LANGUAGE_REQUEST(TypeChecker, NamingPatternRequest,
               NamedPattern *(VarDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExprPatternMatchRequest,
+LANGUAGE_REQUEST(TypeChecker, ExprPatternMatchRequest,
               ExprPatternMatchResult(const ExprPattern *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, EnumElementExprPatternRequest,
+LANGUAGE_REQUEST(TypeChecker, EnumElementExprPatternRequest,
               ExprPattern *(const EnumElementPattern *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolvePatternRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolvePatternRequest,
               Pattern *(Pattern *, DeclContext *, bool),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, OpaqueReadOwnershipRequest,
+LANGUAGE_REQUEST(TypeChecker, OpaqueReadOwnershipRequest,
               OpaqueReadOwnership(AbstractStorageDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, OpaqueResultTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, OpaqueResultTypeRequest,
               OpaqueTypeDecl *(ValueDecl *),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, OperatorPrecedenceGroupRequest,
+LANGUAGE_REQUEST(TypeChecker, OperatorPrecedenceGroupRequest,
               PrecedenceGroupDecl *(PrecedenceGroupDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, OverriddenDeclsRequest,
-              llvm::TinyPtrVector<ValueDecl *>(ValueDecl *), SeparatelyCached,
+LANGUAGE_REQUEST(TypeChecker, OverriddenDeclsRequest,
+              toolchain::TinyPtrVector<ValueDecl *>(ValueDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PatternBindingEntryRequest,
+LANGUAGE_REQUEST(TypeChecker, PatternBindingEntryRequest,
               const PatternBindingEntry *(PatternBindingDecl *, unsigned),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PatternBindingCheckedAndContextualizedInitRequest,
+LANGUAGE_REQUEST(TypeChecker, PatternBindingCheckedAndContextualizedInitRequest,
               Expr *(PatternBindingDecl *, unsigned),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PrimarySourceFilesRequest,
+LANGUAGE_REQUEST(TypeChecker, PrimarySourceFilesRequest,
               ArrayRef<SourceFile *>(ModuleDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PropertyWrapperAuxiliaryVariablesRequest,
+LANGUAGE_REQUEST(TypeChecker, PropertyWrapperAuxiliaryVariablesRequest,
               PropertyWrapperAuxiliaryVariables(VarDecl *),
               SeparatelyCached | SplitCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PropertyWrapperInitializerInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, PropertyWrapperInitializerInfoRequest,
               PropertyWrapperInitializerInfo(VarDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PropertyWrapperBackingPropertyTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, PropertyWrapperBackingPropertyTypeRequest,
               Type(VarDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PropertyWrapperLValuenessRequest,
+LANGUAGE_REQUEST(TypeChecker, PropertyWrapperLValuenessRequest,
               Optional<PropertyWrapperLValueness>(VarDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PropertyWrapperMutabilityRequest,
+LANGUAGE_REQUEST(TypeChecker, PropertyWrapperMutabilityRequest,
               Optional<PropertyWrapperMutability>(VarDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PropertyWrapperTypeInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, PropertyWrapperTypeInfoRequest,
               PropertyWrapperTypeInfo(NominalTypeDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ProtocolRequiresClassRequest, bool(ProtocolDecl *),
+LANGUAGE_REQUEST(TypeChecker, ProtocolRequiresClassRequest, bool(ProtocolDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PrimaryAssociatedTypesRequest,
+LANGUAGE_REQUEST(TypeChecker, PrimaryAssociatedTypesRequest,
               ArrayRef<AssociatedTypeDecl *>(ProtocolDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RequirementRequest,
+LANGUAGE_REQUEST(TypeChecker, RequirementRequest,
               Requirement(WhereClauseOwner, unsigned, TypeResolutionStage),
               Cached, HasNearestLocation)
-SWIFT_REQUEST(TypeChecker, StructuralRequirementsRequest,
+LANGUAGE_REQUEST(TypeChecker, StructuralRequirementsRequest,
               ArrayRef<StructuralRequirement>(ProtocolDecl *), Cached,
               HasNearestLocation)
-SWIFT_REQUEST(TypeChecker, TypeAliasRequirementsRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeAliasRequirementsRequest,
               ArrayRef<Requirement>(ProtocolDecl *), Cached,
               HasNearestLocation)
-SWIFT_REQUEST(TypeChecker, ProtocolDependenciesRequest,
+LANGUAGE_REQUEST(TypeChecker, ProtocolDependenciesRequest,
               ArrayRef<ProtocolDecl *>(ProtocolDecl *), Cached,
               HasNearestLocation)
-SWIFT_REQUEST(TypeChecker, RequirementSignatureRequest,
+LANGUAGE_REQUEST(TypeChecker, RequirementSignatureRequest,
               RequirementSignature(ProtocolDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RequiresOpaqueAccessorsRequest, bool(VarDecl *),
+LANGUAGE_REQUEST(TypeChecker, RequiresOpaqueAccessorsRequest, bool(VarDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RequiresOpaqueModifyCoroutineRequest,
+LANGUAGE_REQUEST(TypeChecker, RequiresOpaqueModifyCoroutineRequest,
               bool(AbstractStorageDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, FragileFunctionKindRequest,
+LANGUAGE_REQUEST(TypeChecker, FragileFunctionKindRequest,
               FragileFunctionKind(DeclContext *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PolymorphicEffectKindRequest,
+LANGUAGE_REQUEST(TypeChecker, PolymorphicEffectKindRequest,
               PolymorphicEffectKind(EffectKind, AbstractFunctionDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SelfAccessKindRequest, SelfAccessKind(FuncDecl *),
+LANGUAGE_REQUEST(TypeChecker, SelfAccessKindRequest, SelfAccessKind(FuncDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, StorageImplInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, StorageImplInfoRequest,
               StorageImplInfo(AbstractStorageDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasStorageRequest,
+LANGUAGE_REQUEST(TypeChecker, HasStorageRequest,
               bool(AbstractStorageDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, StoredPropertiesAndMissingMembersRequest,
+LANGUAGE_REQUEST(TypeChecker, StoredPropertiesAndMissingMembersRequest,
               ArrayRef<Decl *>(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, StoredPropertiesRequest,
+LANGUAGE_REQUEST(TypeChecker, StoredPropertiesRequest,
               ArrayRef<VarDecl *>(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, InitAccessorPropertiesRequest,
+LANGUAGE_REQUEST(TypeChecker, InitAccessorPropertiesRequest,
               ArrayRef<VarDecl *>(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, MemberwiseInitPropertiesRequest,
+LANGUAGE_REQUEST(TypeChecker, MemberwiseInitPropertiesRequest,
               ArrayRef<VarDecl *>(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, StructuralTypeRequest, Type(TypeAliasDecl *), Cached,
+LANGUAGE_REQUEST(TypeChecker, StructuralTypeRequest, Type(TypeAliasDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SuperclassTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, SuperclassTypeRequest,
               Type(NominalTypeDecl *, TypeResolutionStage), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SynthesizeAccessorRequest,
+LANGUAGE_REQUEST(TypeChecker, SynthesizeAccessorRequest,
               AccessorDecl *(AbstractStorageDecl *, AccessorKind),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TangentStoredPropertyRequest,
-              llvm::Expected<VarDecl *>(VarDecl *, CanType), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PreCheckFunctionBodyRequest,
+LANGUAGE_REQUEST(TypeChecker, TangentStoredPropertyRequest,
+              toolchain::Expected<VarDecl *>(VarDecl *, CanType), Cached, NoLocationInfo)
+LANGUAGE_REQUEST(TypeChecker, PreCheckFunctionBodyRequest,
               BraceStmt *(AbstractFunctionDecl *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PreCheckClosureBodyRequest,
+LANGUAGE_REQUEST(TypeChecker, PreCheckClosureBodyRequest,
               BraceStmt *(ClosureExpr *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeCheckFunctionBodyRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeCheckFunctionBodyRequest,
               BraceStmt *(AbstractFunctionDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeCheckASTNodeAtLocRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeCheckASTNodeAtLocRequest,
               bool(TypeCheckASTNodeAtLocContext, SourceLoc),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, UnderlyingTypeRequest, Type(TypeAliasDecl *),
+LANGUAGE_REQUEST(TypeChecker, UnderlyingTypeRequest, Type(TypeAliasDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, USRGenerationRequest,
+LANGUAGE_REQUEST(TypeChecker, USRGenerationRequest,
               std::string(const ValueDecl *, USRGenerationOptions),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsABICompatibleOverrideRequest,
+LANGUAGE_REQUEST(TypeChecker, IsABICompatibleOverrideRequest,
               bool(ValueDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsStaticRequest,
+LANGUAGE_REQUEST(TypeChecker, IsStaticRequest,
               bool(FuncDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, NeedsNewVTableEntryRequest,
+LANGUAGE_REQUEST(TypeChecker, NeedsNewVTableEntryRequest,
               bool(AbstractFunctionDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ParamSpecifierRequest,
+LANGUAGE_REQUEST(TypeChecker, ParamSpecifierRequest,
               ParamDecl::Specifier(ParamDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExplicitCaughtTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, ExplicitCaughtTypeRequest,
               Type(ASTContext *, CatchNode), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResultTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, ResultTypeRequest,
               Type(ValueDecl *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, AreAllStoredPropertiesDefaultInitableRequest,
+LANGUAGE_REQUEST(TypeChecker, AreAllStoredPropertiesDefaultInitableRequest,
               bool(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasUserDefinedDesignatedInitRequest,
+LANGUAGE_REQUEST(TypeChecker, HasUserDefinedDesignatedInitRequest,
               bool(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasMemberwiseInitRequest,
+LANGUAGE_REQUEST(TypeChecker, HasMemberwiseInitRequest,
               bool(StructDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, BraceHasExplicitReturnStmtRequest,
+LANGUAGE_REQUEST(TypeChecker, BraceHasExplicitReturnStmtRequest,
               bool(const BraceStmt *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveImplicitMemberRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveImplicitMemberRequest,
               evaluator::SideEffect(NominalTypeDecl *, ImplicitMemberAction),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveMacroRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveMacroRequest,
               ConcreteDeclRef(UnresolvedMacroReference, const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveMacroConformances,
+LANGUAGE_REQUEST(TypeChecker, ResolveMacroConformances,
               ArrayRef<Type>(const MacroRoleAttr *, const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveTypeEraserTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveTypeEraserTypeRequest,
               Type(ProtocolDecl *, TypeEraserAttr *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PolymorphicEffectRequirementsRequest,
+LANGUAGE_REQUEST(TypeChecker, PolymorphicEffectRequirementsRequest,
               PolymorphicEffectRequirementList(EffectKind, ProtocolDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ConformanceHasEffectRequest,
+LANGUAGE_REQUEST(TypeChecker, ConformanceHasEffectRequest,
               bool(EffectKind, ProtocolConformanceRef),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ConformanceIsolationRequest,
-              ActorIsolation(ProtocolConformance *),
+LANGUAGE_REQUEST(TypeChecker, RawConformanceIsolationRequest,
+              std::optional<ActorIsolation>(NormalProtocolConformance *),
               SeparatelyCached | SplitCached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, ConformanceIsolationRequest,
+              ActorIsolation(NormalProtocolConformance *),
+              SeparatelyCached | SplitCached,
+              NoLocationInfo)
+LANGUAGE_REQUEST(TypeChecker, ResolveTypeRequest,
               Type (const TypeResolution *, TypeRepr *, GenericParamList *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveRawLayoutTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveRawLayoutTypeRequest,
               Type(StructDecl *, RawLayoutAttr *, bool),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SPIGroupsRequest,
-              llvm::ArrayRef<Identifier>(Decl *),
+LANGUAGE_REQUEST(TypeChecker, SPIGroupsRequest,
+              toolchain::ArrayRef<Identifier>(Decl *),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SynthesizeMemberwiseInitRequest,
+LANGUAGE_REQUEST(TypeChecker, SynthesizeMemberwiseInitRequest,
               ConstructorDecl *(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveEffectiveMemberwiseInitRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveEffectiveMemberwiseInitRequest,
               ConstructorDecl *(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasDefaultInitRequest,
+LANGUAGE_REQUEST(TypeChecker, HasDefaultInitRequest,
               bool(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SynthesizeDefaultInitRequest,
+LANGUAGE_REQUEST(TypeChecker, SynthesizeDefaultInitRequest,
               ConstructorDecl *(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeCheckPrimaryFileRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeCheckPrimaryFileRequest,
               bool(SouceFile *), SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ConformanceAccessScopeRequest,
+LANGUAGE_REQUEST(TypeChecker, ConformanceAccessScopeRequest,
               ConformanceAccessScope(DeclContext *, ProtocolDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeWitnessRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeWitnessRequest,
               TypeWitnessAndDecl(NormalProtocolConformance *,
                                  AssociatedTypeDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, AssociatedConformanceRequest,
+LANGUAGE_REQUEST(TypeChecker, AssociatedConformanceRequest,
               ProtocolConformanceRef(NormalProtocolConformance *,
                                      Type, ProtocolDecl *, unsigned),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ReferencedAssociatedTypesRequest,
+LANGUAGE_REQUEST(TypeChecker, ReferencedAssociatedTypesRequest,
               TinyPtrVector<AssociatedTypeDecl *>(ValueDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveTypeWitnessesRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveTypeWitnessesRequest,
               evaluator::SideEffect(NormalProtocolConformance *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ValueWitnessRequest,
+LANGUAGE_REQUEST(TypeChecker, ValueWitnessRequest,
               Witness(NormalProtocolConformance *, ValueDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ResolveValueWitnessesRequest,
+LANGUAGE_REQUEST(TypeChecker, ResolveValueWitnessesRequest,
               evaluator::SideEffect(NormalProtocolConformance *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PatternTypeRequest,
+LANGUAGE_REQUEST(TypeChecker, PatternTypeRequest,
               Type(ContextualPattern),
               Cached, HasNearestLocation)
-SWIFT_REQUEST(TypeChecker, ScopedImportLookupRequest,
+LANGUAGE_REQUEST(TypeChecker, ScopedImportLookupRequest,
               ArrayRef<ValueDecl *>(ImportDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ClosureHasResultExprRequest,
+LANGUAGE_REQUEST(TypeChecker, ClosureHasResultExprRequest,
               bool(ClosureExpr *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, LookupAllConformancesInContextRequest,
+LANGUAGE_REQUEST(TypeChecker, LookupAllConformancesInContextRequest,
               ProtocolConformanceLookupResult(const IterableDeclContext *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SimpleDidSetRequest, 
+LANGUAGE_REQUEST(TypeChecker, SimpleDidSetRequest, 
               bool(AccessorDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SynthesizeMainFunctionRequest,
+LANGUAGE_REQUEST(TypeChecker, SynthesizeMainFunctionRequest,
               FuncDecl *(Decl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ImplicitKnownProtocolConformanceRequest,
+LANGUAGE_REQUEST(TypeChecker, ImplicitKnownProtocolConformanceRequest,
               ProtocolConformance *(NominalTypeDecl *, KnownProtocolKind),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RenamedDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, RenamedDeclRequest,
               ValueDecl *(const ValueDecl *, const AvailableAttr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DeclRuntimeAvailabilityRequest,
+LANGUAGE_REQUEST(TypeChecker, DeclRuntimeAvailabilityRequest,
               DeclRuntimeAvailability(const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ClosureEffectsRequest,
+LANGUAGE_REQUEST(TypeChecker, ClosureEffectsRequest,
               FunctionType::ExtInfo(ClosureExpr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, GetSourceFileAsyncNode,
+LANGUAGE_REQUEST(TypeChecker, GetSourceFileAsyncNode,
               AwaitExpr *(const SourceFile *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, BreakTargetRequest,
+LANGUAGE_REQUEST(TypeChecker, BreakTargetRequest,
               LabeledStmt *(const BreakStmt *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ContinueTargetRequest,
+LANGUAGE_REQUEST(TypeChecker, ContinueTargetRequest,
               LabeledStmt *(const ContinueStmt *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, FallthroughSourceAndDestRequest,
+LANGUAGE_REQUEST(TypeChecker, FallthroughSourceAndDestRequest,
               FallthroughSourceAndDest(const FallthroughStmt *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PreCheckReturnStmtRequest,
+LANGUAGE_REQUEST(TypeChecker, PreCheckReturnStmtRequest,
               Stmt *(ReturnStmt *, DeclContext *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsSingleValueStmtRequest,
+LANGUAGE_REQUEST(TypeChecker, IsSingleValueStmtRequest,
               IsSingleValueStmtResult(const Stmt *, ASTContext *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, MacroDefinitionRequest,
+LANGUAGE_REQUEST(TypeChecker, MacroDefinitionRequest,
               MacroDefinition(MacroDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CompilerPluginLoadRequest,
+LANGUAGE_REQUEST(TypeChecker, CompilerPluginLoadRequest,
               CompilerPluginLoadResult(ASTContext *, Identifier),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExternalMacroDefinitionRequest,
+LANGUAGE_REQUEST(TypeChecker, ExternalMacroDefinitionRequest,
               ExternalMacroDefinition(ASTContext *, Identifier, Identifier),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandMacroExpansionDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandMacroExpansionDeclRequest,
               ArrayRef<Decl *>(MacroExpansionDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandMacroExpansionExprRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandMacroExpansionExprRequest,
               ArrayRef<Decl *>(MacroExpansionExpr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandMemberAttributeMacros,
+LANGUAGE_REQUEST(TypeChecker, ExpandMemberAttributeMacros,
               ArrayRef<unsigned>(Decl *),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandAccessorMacros,
+LANGUAGE_REQUEST(TypeChecker, ExpandAccessorMacros,
               ArrayRef<unsigned>(AbstractStorageDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandExtensionMacros,
+LANGUAGE_REQUEST(TypeChecker, ExpandExtensionMacros,
               ArrayRef<unsigned>(NominalTypeDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandSynthesizedMemberMacroRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandSynthesizedMemberMacroRequest,
               ArrayRef<unsigned>(Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandPeerMacroRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandPeerMacroRequest,
               ArrayRef<unsigned>(Decl *),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandPreambleMacroRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandPreambleMacroRequest,
               ArrayRef<unsigned>(AbstractFunctionDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandBodyMacroRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandBodyMacroRequest,
               std::optional<unsigned>(AnyFunctionRef),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, LocalDiscriminatorsRequest,
+LANGUAGE_REQUEST(TypeChecker, LocalDiscriminatorsRequest,
               unsigned(DeclContext *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RawCommentRequest,
+LANGUAGE_REQUEST(TypeChecker, RawCommentRequest,
               RawComment(const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, DocCommentProvidingDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, DocCommentProvidingDeclRequest,
               const Decl *(const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SemanticBriefCommentRequest,
+LANGUAGE_REQUEST(TypeChecker, SemanticBriefCommentRequest,
               StringRef(const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsNonUserModuleRequest,
+LANGUAGE_REQUEST(TypeChecker, IsNonUserModuleRequest,
               bool(ModuleDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeCheckObjCImplementationRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeCheckObjCImplementationRequest,
               unsigned(ExtensionDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, TypeCheckCDeclAttributeRequest,
-              evaluator::SideEffect(FuncDecl *, CDeclAttr *),
+LANGUAGE_REQUEST(TypeChecker, TypeCheckCDeclFunctionRequest,
+              evaluator::SideEffect(FunctionDecl *, CDeclAttr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, HasInitAccessorRequest,
+LANGUAGE_REQUEST(TypeChecker, TypeCheckCDeclEnumRequest,
+              evaluator::SideEffect(EnumDecl *, CDeclAttr *),
+              Cached, NoLocationInfo)
+LANGUAGE_REQUEST(TypeChecker, HasInitAccessorRequest,
               bool(AbstractStorageDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, InitAccessorReferencedVariablesRequest,
+LANGUAGE_REQUEST(TypeChecker, InitAccessorReferencedVariablesRequest,
               ArrayRef<VarDecl *>(DeclAttribute *, AccessorDecl *,
                                   ArrayRef<Identifier>),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ExpandChildAvailabilityScopesRequest,
+LANGUAGE_REQUEST(TypeChecker, ExpandChildAvailabilityScopesRequest,
               std::vector<AvailabilityScope *>(AvailabilityScope *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SerializeAttrGenericSignatureRequest,
-              GenericSignature(Decl *, SpecializeAttr *),
+LANGUAGE_REQUEST(TypeChecker, SerializeAttrGenericSignatureRequest,
+              GenericSignature(Decl *, AbstractSpecializeAttr *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsFunctionBodySkippedRequest,
+LANGUAGE_REQUEST(TypeChecker, IsFunctionBodySkippedRequest,
               bool(const AbstractFunctionDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, IsCCompatibleFuncDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, IsCCompatibleFuncDeclRequest,
               bool(const FuncDecl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SemanticDeclAttrsRequest,
+LANGUAGE_REQUEST(TypeChecker, SemanticDeclAttrsRequest,
               DeclAttributes(const Decl *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, UniqueUnderlyingTypeSubstitutionsRequest,
+LANGUAGE_REQUEST(TypeChecker, UniqueUnderlyingTypeSubstitutionsRequest,
               std::optional<SubstitutionMap>(const Decl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, LocalTypeDeclsRequest,
+LANGUAGE_REQUEST(TypeChecker, LocalTypeDeclsRequest,
               ArrayRef<TypeDecl *>(SourceFile *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ObjCRequirementMapRequest,
+LANGUAGE_REQUEST(TypeChecker, ObjCRequirementMapRequest,
               ObjCRequirementMap(const ProtocolDecl *proto),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ImportDeclRequest,
+LANGUAGE_REQUEST(TypeChecker, ImportDeclRequest,
               std::optional<AttributedImport<ImportedModule>>(
                   const SourceFile *sf, const ModuleDecl *mod),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, LifetimeDependenceInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, LifetimeDependenceInfoRequest,
               LifetimeDependenceInfo(AbstractFunctionDecl *),
               SeparatelyCached | SplitCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SuppressesConformanceRequest,
+LANGUAGE_REQUEST(TypeChecker, SuppressesConformanceRequest,
               bool(NominalTypeDecl *decl, KnownProtocolKind kp),
               SeparatelyCached, NoLocationInfo)
 
-SWIFT_REQUEST(TypeChecker, RegexLiteralPatternInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, RegexLiteralPatternInfoRequest,
               RegexLiteralPatternInfo(const RegexLiteralExpr *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RegexLiteralFeatureDescriptionRequest,
+LANGUAGE_REQUEST(TypeChecker, RegexLiteralFeatureDescriptionRequest,
               StringRef(RegexLiteralPatternFeatureKind, ASTContext *),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, RegexLiteralFeatureAvailabilityRequest,
+LANGUAGE_REQUEST(TypeChecker, RegexLiteralFeatureAvailabilityRequest,
               AvailabilityRange(RegexLiteralPatternFeatureKind, ASTContext *),
               Uncached, NoLocationInfo)
 
-SWIFT_REQUEST(TypeChecker, CaptureInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, CaptureInfoRequest,
               CaptureInfo(AbstractFunctionDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, ParamCaptureInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, ParamCaptureInfoRequest,
               CaptureInfo(ParamDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, PatternBindingCaptureInfoRequest,
+LANGUAGE_REQUEST(TypeChecker, PatternBindingCaptureInfoRequest,
               CaptureInfo(PatternBindingDecl *, unsigned),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, CustomDerivativesRequest,
+LANGUAGE_REQUEST(TypeChecker, CustomDerivativesRequest,
               CustomDerivativesResult(SourceFile *),
               Cached, NoLocationInfo)
 
-SWIFT_REQUEST(TypeChecker, GenericTypeParamDeclGetValueTypeRequest,
-              Type(GenericTypeParamDecl *), Cached, NoLocationInfo)
+LANGUAGE_REQUEST(TypeChecker, GenericTypeParamDeclGetValueTypeRequest,
+              Type(const GenericTypeParamDecl *), Cached, NoLocationInfo)
 
-SWIFT_REQUEST(TypeChecker, SemanticAvailableAttrRequest,
+LANGUAGE_REQUEST(TypeChecker, SemanticAvailableAttrRequest,
               std::optional<SemanticAvailableAttr>
               (const AvailableAttr *, const Decl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(TypeChecker, SemanticAvailabilitySpecRequest,
+LANGUAGE_REQUEST(TypeChecker, SemanticAvailabilitySpecRequest,
               std::optional<SemanticAvailabilitySpec>
               (const AvailabilitySpec *, const DeclContext *),
               SeparatelyCached, NoLocationInfo)
 
-SWIFT_REQUEST(TypeChecker, SourceFileLangOptionsRequest,
-              SourceFileLangOptions (SourceFile *), Cached, NoLocationInfo)
+LANGUAGE_REQUEST(TypeChecker, DefaultIsolationInSourceFileRequest,
+              std::optional<DefaultIsolation>(const SourceFile *),
+              Cached, NoLocationInfo)
+
+LANGUAGE_REQUEST(TypeChecker, ModuleHasTypeCheckerPerformanceHacksEnabledRequest,
+              bool(const ModuleDecl *),
+              Cached, NoLocationInfo)

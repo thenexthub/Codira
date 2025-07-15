@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-// swift_stdlib_random
+// language_stdlib_random
 //
 // Should the implementation of this function add a new platform/change for a
 // platform, make sure to also update the documentation regarding platform
@@ -59,18 +60,18 @@ using namespace language;
 
 #if defined(__APPLE__)
 
-SWIFT_RUNTIME_STDLIB_API
-void swift_stdlib_random(void *buf, __swift_size_t nbytes) {
+LANGUAGE_RUNTIME_STDLIB_API
+void language_stdlib_random(void *buf, __language_size_t nbytes) {
   arc4random_buf(buf, nbytes);
 }
 
 #elif defined(_WIN32) && !defined(__CYGWIN__)
 
-SWIFT_RUNTIME_STDLIB_API
-void swift_stdlib_random(void *buf, __swift_size_t nbytes) {
+LANGUAGE_RUNTIME_STDLIB_API
+void language_stdlib_random(void *buf, __language_size_t nbytes) {
   while (nbytes > 0) {
-    __swift_size_t actual_nbytes =
-        std::min(nbytes, static_cast<__swift_size_t>(ULONG_MAX));
+    __language_size_t actual_nbytes =
+        std::min(nbytes, static_cast<__language_size_t>(ULONG_MAX));
     NTSTATUS status = BCryptGenRandom(nullptr,
                                       static_cast<PUCHAR>(buf),
                                       static_cast<ULONG>(actual_nbytes),
@@ -93,10 +94,10 @@ void swift_stdlib_random(void *buf, __swift_size_t nbytes) {
   return result;                                                               \
 }())
 
-SWIFT_RUNTIME_STDLIB_API
-void swift_stdlib_random(void *buf, __swift_size_t nbytes) {
+LANGUAGE_RUNTIME_STDLIB_API
+void language_stdlib_random(void *buf, __language_size_t nbytes) {
   while (nbytes > 0) {
-    __swift_ssize_t actual_nbytes = -1;
+    __language_ssize_t actual_nbytes = -1;
 
 #if defined(__NR_getrandom)
     static const bool getrandom_available =
@@ -106,7 +107,7 @@ void swift_stdlib_random(void *buf, __swift_size_t nbytes) {
       actual_nbytes = WHILE_EINTR(syscall(__NR_getrandom, buf, nbytes, 0));
     }
 #elif __has_include(<sys/random.h>) && (defined(__CYGWIN__) || defined(__Fuchsia__) || defined(__wasi__))
-    __swift_size_t getentropy_nbytes = std::min(nbytes, __swift_size_t{256});
+    __language_size_t getentropy_nbytes = std::min(nbytes, __language_size_t{256});
     
     if (0 == getentropy(buf, getentropy_nbytes)) {
       actual_nbytes = getentropy_nbytes;

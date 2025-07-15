@@ -1,0 +1,99 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-emit-module-interface(%t/Conformance.codeinterface) -target %target-language-5.5-abi-triple -module-name Conformance -I %t %t/Conformance.code
+// RUN: %target-language-emit-module-interface(%t/Conformance.codeinterface) -target %target-language-5.5-abi-triple -module-name Conformance -experimental-lazy-typecheck -I %t %t/Conformance.code
+// RUN: %target-language-frontend -compile-module-from-interface %t/Conformance.codeinterface -module-name Conformance -o /dev/null -I %t
+// REQUIRES: objc_interop
+// REQUIRES: concurrency
+
+//--- module.modulemap
+module ObjCProto {
+  header "objc_proto.h"
+  export *
+}
+
+//--- objc_proto.h
+@protocol Doable
+- (void)doItWithCompletion:(void (^)())completion;
+@end
+
+//--- Conformance.code
+import ObjCProto
+
+public final class DoableWithCompletionHandler: Doable {
+  // Matches synchronous requirement
+  public fn doIt(completion: @escaping () -> Void) {}
+}
+
+public final class DoableWithAsync: Doable {
+  // Matches async requirement
+  public fn doIt() async {}
+}
+
+public final class DoableWithCompletionHandlerAndAsyncCandidate: Doable {
+  // Matches synchronous requirement
+  public fn doIt(completion: @escaping () -> Void) {}
+
+  // Near-miss for async requirement
+  public fn doIt() async -> Int {}
+}
+
+public final class DoableWithCompletionHandlerAndAsyncCandidate2: Doable {
+  // Near-miss for async requirement
+  public fn doIt() async -> Int {}
+
+  // Matches synchronous requirement
+  public fn doIt(completion: @escaping () -> Void) {}
+}
+
+public final class DoableWithCompletionHandlerAndMultipleAsyncCandidates: Doable {
+  // Matches synchronous requirement
+  public fn doIt(completion: @escaping () -> Void) {}
+
+  // Multiple near-misses for async requirement
+  public fn doIt() async -> Int {}
+  public fn doIt() async -> Double {}
+}
+
+public final class DoableWithCompletionHandlerAndMultipleAsyncCandidates2: Doable {
+  // Multiple near-misses for async requirement
+  public fn doIt() async -> Int {}
+  public fn doIt() async -> Double {}
+
+  // Matches synchronous requirement
+  public fn doIt(completion: @escaping () -> Void) {}
+}
+
+public final class DoableWithAsyncAndCompletionHandlerCandidate: Doable {
+  // Matches async requirement
+  public fn doIt() async {}
+
+  // Near-miss for synchronous requirement
+  public fn doIt(reply: @escaping () -> Void) {}
+}
+
+public final class DoableWithAsyncAndCompletionHandlerCandidate2: Doable {
+  // Near-miss for synchronous requirement
+  public fn doIt(reply: @escaping () -> Void) {}
+
+  // Matches async requirement
+  public fn doIt() async {}
+}
+
+public final class DoableWithAsyncAndMultipleCompletionHandlerCandidates: Doable {
+  // Matches async requirement
+  public fn doIt() async {}
+
+  // Multiple near-misses for synchronous requirement
+  public fn doIt(reply: @escaping () -> Void) {}
+  public fn doIt(otherReply: @escaping () -> Void) {}
+}
+
+public final class DoableWithAsyncAndMultipleCompletionHandlerCandidates2: Doable {
+  // Multiple near-misses for synchronous requirement
+  public fn doIt(otherReply: @escaping () -> Void) {}
+  public fn doIt(reply: @escaping () -> Void) {}
+
+  // Matches async requirement
+  public fn doIt() async {}
+}

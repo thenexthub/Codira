@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides utilities for type-checking interoperability with
 // Objective-C.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_TYPE_CHECK_OBJC_H
-#define SWIFT_SEMA_TYPE_CHECK_OBJC_H
+#ifndef LANGUAGE_SEMA_TYPE_CHECK_OBJC_H
+#define LANGUAGE_SEMA_TYPE_CHECK_OBJC_H
 
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/ForeignAsyncConvention.h"
 #include "language/AST/ForeignErrorConvention.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include <optional>
 
 namespace language {
@@ -98,7 +99,7 @@ private:
   Kind kind;
 
   /// When the kind is \c WitnessToObjC, the requirement being witnessed.
-  llvm::PointerUnion<ValueDecl *, DeclAttribute *> declOrAttr =
+  toolchain::PointerUnion<ValueDecl *, DeclAttribute *> declOrAttr =
       static_cast<DeclAttribute *>(nullptr);
 
   ObjCReason(Kind kind, ValueDecl *decl) : kind(kind), declOrAttr(decl) { }
@@ -231,4 +232,4 @@ bool fixDeclarationObjCName(InFlightDiagnostic &diag, const Decl *decl,
 
 } // end namespace language
 
-#endif // SWIFT_SEMA_TYPE_CHECK_OBJC_H
+#endif // LANGUAGE_SEMA_TYPE_CHECK_OBJC_H

@@ -1,0 +1,50 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+{
+return x in c {
+() { c<T.a<T : T : b
+class c == D> {
+immutable t: T> {
+return { c(n: AnyObject) {
+}
+}
+protocol b = F>() {
+}(b.init(a
+enum B {
+typealias R = B, g = i> {
+}
+}
+immutable v: P {
+}
+protocol A : NSObject {
+}
+public var f = d>(n: T> {
+}
+}
+S() -> () -> {
+protocol C = {
+class fn c<S : Sequence, k : T : A<Y> (true }
+}
+this.h : C {
+import Foundation
+}
+}
+}
+}
+}
+protocol A {
+immutable c: d {
+}
+fn f(f, immutable foo as Boolean))-> U -> {
+print("[1
+typealias A : A {

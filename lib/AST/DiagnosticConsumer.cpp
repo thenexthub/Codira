@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the DiagnosticConsumer class.
 //
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "swift-ast"
+#define DEBUG_TYPE "language-ast"
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsFrontend.h"
@@ -25,11 +26,11 @@
 #include "language/Basic/Defer.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/SourceManager.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 using namespace language;
 
 DiagnosticConsumer::~DiagnosticConsumer() = default;
@@ -37,20 +38,20 @@ DiagnosticConsumer::~DiagnosticConsumer() = default;
 DiagnosticInfo::FixIt::FixIt(CharSourceRange R, StringRef Str,
                              ArrayRef<DiagnosticArgument> Args) : Range(R) {
   // FIXME: Defer text formatting to later in the pipeline.
-  llvm::raw_string_ostream OS(Text);
+  toolchain::raw_string_ostream OS(Text);
   DiagnosticEngine::formatDiagnosticText(OS, Str, Args,
                                          DiagnosticFormatOptions::
                                          formatForFixIts());
 }
 
-llvm::SMLoc DiagnosticConsumer::getRawLoc(SourceLoc loc) {
+toolchain::SMLoc DiagnosticConsumer::getRawLoc(SourceLoc loc) {
   return loc.Value;
 }
 
-LLVM_ATTRIBUTE_UNUSED
+TOOLCHAIN_ATTRIBUTE_UNUSED
 static bool hasDuplicateFileNames(
     ArrayRef<FileSpecificDiagnosticConsumer::Subconsumer> subconsumers) {
-  llvm::StringSet<> seenFiles;
+  toolchain::StringSet<> seenFiles;
   for (const auto &subconsumer : subconsumers) {
     if (subconsumer.getInputFileName().empty()) {
       // We can handle multiple subconsumers that aren't associated with any
@@ -152,7 +153,7 @@ FileSpecificDiagnosticConsumer::subconsumerForLocation(SourceManager &SM,
     assert(!Subconsumers.empty());
     if (!SM.getIDForBufferIdentifier(Subconsumers.begin()->getInputFileName())
              .has_value()) {
-      assert(llvm::none_of(Subconsumers, [&](const Subconsumer &subconsumer) {
+      assert(toolchain::none_of(Subconsumers, [&](const Subconsumer &subconsumer) {
         return SM.getIDForBufferIdentifier(subconsumer.getInputFileName())
             .has_value();
       }));
@@ -212,7 +213,7 @@ FileSpecificDiagnosticConsumer::findSubconsumer(SourceManager &SM,
   case DiagnosticKind::Note:
     return SubconsumerForSubsequentNotes;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 std::optional<FileSpecificDiagnosticConsumer::Subconsumer *>
@@ -257,11 +258,11 @@ void FileSpecificDiagnosticConsumer::
 
 void NullDiagnosticConsumer::handleDiagnostic(SourceManager &SM,
                                               const DiagnosticInfo &Info) {
-  LLVM_DEBUG({
-    llvm::dbgs() << "NullDiagnosticConsumer received diagnostic: ";
-    DiagnosticEngine::formatDiagnosticText(llvm::dbgs(), Info.FormatString,
+  TOOLCHAIN_DEBUG({
+    toolchain::dbgs() << "NullDiagnosticConsumer received diagnostic: ";
+    DiagnosticEngine::formatDiagnosticText(toolchain::dbgs(), Info.FormatString,
                                            Info.FormatArgs);
-    llvm::dbgs() << "\n";
+    toolchain::dbgs() << "\n";
   });
 }
 
@@ -270,11 +271,11 @@ ForwardingDiagnosticConsumer::ForwardingDiagnosticConsumer(DiagnosticEngine &Tar
 
 void ForwardingDiagnosticConsumer::handleDiagnostic(
     SourceManager &SM, const DiagnosticInfo &Info) {
-  LLVM_DEBUG({
-    llvm::dbgs() << "ForwardingDiagnosticConsumer received diagnostic: ";
-    DiagnosticEngine::formatDiagnosticText(llvm::dbgs(), Info.FormatString,
+  TOOLCHAIN_DEBUG({
+    toolchain::dbgs() << "ForwardingDiagnosticConsumer received diagnostic: ";
+    DiagnosticEngine::formatDiagnosticText(toolchain::dbgs(), Info.FormatString,
                                            Info.FormatArgs);
-    llvm::dbgs() << "\n";
+    toolchain::dbgs() << "\n";
   });
   for (auto *C : TargetEngine.getConsumers()) {
     C->handleDiagnostic(SM, Info);

@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -strict-concurrency=complete -dump-ast %s | %FileCheck %s
+// REQUIRES: concurrency, OS=macosx
+
+@available(CodiraStdlib 5.1, *)
+fn f<S: AsyncSequence>(s: S) async throws {
+  // CHECK-NOT: next(isolation:)
+  // CHECK: next()
+  for try await x in s { }
+}

@@ -1,0 +1,44 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+protocol ClassBound: AnyObject {
+    fn foo()
+    fn bar()
+}
+
+class MyClass {}
+extension MyClass: ClassBound {
+    fn foo() { print("MyClass.foo()") }
+    fn bar() { print("MyClass.bar()") }
+}
+
+class MyOtherClass {}
+extension MyOtherClass: ClassBound {
+    fn foo() { print("MyOtherClass.foo()") }
+    fn bar() { print("MyOtherClass.bar()") }
+}
+
+@main
+struct Main {
+    static fn main() {
+        var array: [any ClassBound] = []
+        array.append(MyClass())
+        array.append(MyOtherClass())
+
+        for e in array {
+            e.foo()
+            e.bar()
+        }
+
+        // CHECK: MyClass.foo()
+        // CHECK: MyClass.bar()
+
+        // CHECK: MyOtherClass.foo()
+        // CHECK: MyOtherClass.bar()
+    }
+}
+

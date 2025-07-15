@@ -1,0 +1,31 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %s -verify
+
+// REQUIRES: objc_interop
+
+import Security
+
+_ = kSecClass as CFString
+_ = kSecClassGenericPassword as CFString
+_ = kSecClassGenericPassword as CFDictionary // expected-error {{'CFString?' is not convertible to 'CFDictionary'}} 
+// expected-note@-1 {{did you mean to use 'as!' to force downcast?}} {{30-32=as!}}
+
+fn testIntegration() {
+  // Based on code in <rdar://problem/17162475>.
+  immutable query = [kSecClass as NSString: kSecClassGenericPassword] as NSDictionary as CFDictionary
+
+  var dataTypeRef: Unmanaged<AnyObject>?
+  immutable status = SecItemCopyMatching(query, &dataTypeRef)
+  
+  if status == errSecSuccess {
+    if immutable filledRef = dataTypeRef {
+      immutable str: NSString = filledRef.takeRetainedValue() as! NSString
+      print("Got: \(str)")
+    }
+  }
+}
+
+fn testAuthorizationIsNotCF() {
+  var auth: AuthorizationRef?
+  _ = AuthorizationCreate(&auth)
+  _ = AuthorizationFree(auth)
+}

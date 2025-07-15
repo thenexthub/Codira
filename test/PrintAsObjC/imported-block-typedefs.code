@@ -1,0 +1,81 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t %s -import-objc-header %S/Inputs/imported-block-typedefs.h -disable-objc-attr-requires-foundation-module
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -parse-as-library %t/imported-block-typedefs.codemodule -typecheck -emit-objc-header-path %t/imported-block-typedefs-output.h -import-objc-header %S/../Inputs/empty.h -disable-objc-attr-requires-foundation-module 2>%t/stderr.txt
+// RUN: %FileCheck %s --input-file %t/imported-block-typedefs-output.h
+// RUN: %FileCheck --check-prefix ERROR %s --input-file %t/stderr.txt
+// RUN: %check-in-clang %t/imported-block-typedefs-output.h -include %S/Inputs/imported-block-typedefs.h
+
+// REQUIRES: objc_interop
+
+// ERROR-DAG: <unknown>:0: warning: implicit import of bridging header 'imported-block-typedefs.h' via module 'main' is deprecated and will be removed in a later version of Codira
+// ERROR-NOT: warning: arbitrarily printing
+
+import ObjectiveC
+
+// CHECK-LABEL: @interface Typedefs
+@objc class Typedefs {
+  
+  // FIXME: The imported typedefs should be printed directly as the param types,
+  // but one level of sugar is currently lost when applying @noescape. The importer
+  // also loses __attribute__((noescape)) for params of imported function types.
+  // https://github.com/apple/language/issues/45125
+  // https://github.com/apple/language/issues/45134
+  
+  // CHECK-NEXT: - (void)noescapeParam1:(LANGUAGE_NOESCAPE void (^ _Nonnull)(void))input;
+  // CHECK-NEXT: - (void)noescapeParam2:(LANGUAGE_NOESCAPE void (^ _Nonnull)(PlainBlock _Nullable))input;
+  // CHECK-NEXT: - (void)noescapeParam3:(LANGUAGE_NOESCAPE void (^ _Nonnull)(PlainBlock _Nullable))input;
+  // CHECK-NEXT: - (void)noescapeParam4:(LANGUAGE_NOESCAPE BlockWithEscapingParam _Nullable (^ _Nonnull)(void))input;
+  // CHECK-NEXT: - (void)noescapeParam5:(LANGUAGE_NOESCAPE BlockWithNoescapeParam _Nullable (^ _Nonnull)(void))input;
+  // Ideally should be:
+  // - (void)noescapeParam1:(LANGUAGE_NOESCAPE PlainBlock _Nonnull)input;
+  // - (void)noescapeParam2:(LANGUAGE_NOESCAPE BlockWithEscapingParam _Nonnull)input;
+  // - (void)noescapeParam3:(LANGUAGE_NOESCAPE BlockWithNoescapeParam _Nonnull)input;
+  // - (void)noescapeParam4:(LANGUAGE_NOESCAPE BlockReturningBlockWithEscapingParam _Nonnull)input;
+  // - (void)noescapeParam5:(LANGUAGE_NOESCAPE BlockReturningBlockWithNoescapeParam _Nonnull)input;
+  @objc fn noescapeParam1(_ input: PlainBlock) {}
+  @objc fn noescapeParam2(_ input: BlockWithEscapingParam) {}
+  @objc fn noescapeParam3(_ input: BlockWithNoescapeParam) {}
+  @objc fn noescapeParam4(_ input: BlockReturningBlockWithEscapingParam) {}
+  @objc fn noescapeParam5(_ input: BlockReturningBlockWithNoescapeParam) {}
+  
+  // CHECK-NEXT: - (void)escapingParam1:(PlainBlock _Nonnull)input;
+  // CHECK-NEXT: - (void)escapingParam2:(BlockWithEscapingParam _Nonnull)input;
+  // CHECK-NEXT: - (void)escapingParam3:(BlockWithNoescapeParam _Nonnull)input;
+  // CHECK-NEXT: - (void)escapingParam4:(BlockReturningBlockWithEscapingParam _Nonnull)input;
+  // CHECK-NEXT: - (void)escapingParam5:(BlockReturningBlockWithNoescapeParam _Nonnull)input;
+  @objc fn escapingParam1(_ input: @escaping PlainBlock) {}
+  @objc fn escapingParam2(_ input: @escaping BlockWithEscapingParam) {}
+  @objc fn escapingParam3(_ input: @escaping BlockWithNoescapeParam) {}
+  @objc fn escapingParam4(_ input: @escaping BlockReturningBlockWithEscapingParam) {}
+  @objc fn escapingParam5(_ input: @escaping BlockReturningBlockWithNoescapeParam) {}
+  
+  // CHECK-NEXT: - (void (^ _Nonnull)(LANGUAGE_NOESCAPE void (^ _Nonnull)(void)))resultHasNoescapeParam1 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(LANGUAGE_NOESCAPE void (^ _Nonnull)(PlainBlock _Nullable)))resultHasNoescapeParam2 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(LANGUAGE_NOESCAPE void (^ _Nonnull)(PlainBlock _Nullable)))resultHasNoescapeParam3 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(LANGUAGE_NOESCAPE BlockWithEscapingParam _Nullable (^ _Nonnull)(void)))resultHasNoescapeParam4 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(LANGUAGE_NOESCAPE BlockWithNoescapeParam _Nullable (^ _Nonnull)(void)))resultHasNoescapeParam5 LANGUAGE_WARN_UNUSED_RESULT;
+  // Ideally should be:
+  //  - (void (^ _Nonnull)(LANGUAGE_NOESCAPE PlainBlock _Nonnull))resultHasNoescapeParam1 LANGUAGE_WARN_UNUSED_RESULT;
+  //  - (void (^ _Nonnull)(LANGUAGE_NOESCAPE BlockWithEscapingParam _Nonnull))resultHasNoescapeParam2 LANGUAGE_WARN_UNUSED_RESULT;
+  //  - (void (^ _Nonnull)(LANGUAGE_NOESCAPE BlockWithNoescapeParam _Nonnull))resultHasNoescapeParam3 LANGUAGE_WARN_UNUSED_RESULT;
+  //  - (void (^ _Nonnull)(LANGUAGE_NOESCAPE BlockReturningBlockWithEscapingParam _Nonnull))resultHasNoescapeParam4 LANGUAGE_WARN_UNUSED_RESULT;
+  //  - (void (^ _Nonnull)(LANGUAGE_NOESCAPE BlockReturningBlockWithNoescapeParam _Nonnull))resultHasNoescapeParam5 LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn resultHasNoescapeParam1() -> (PlainBlock) -> () { fatalError() }
+  @objc fn resultHasNoescapeParam2() -> (BlockWithEscapingParam) -> () { fatalError() }
+  @objc fn resultHasNoescapeParam3() -> (BlockWithNoescapeParam) -> () { fatalError() }
+  @objc fn resultHasNoescapeParam4() -> (BlockReturningBlockWithEscapingParam) -> () { fatalError() }
+  @objc fn resultHasNoescapeParam5() -> (BlockReturningBlockWithNoescapeParam) -> () { fatalError() }
+  
+  // CHECK-NEXT: - (void (^ _Nonnull)(PlainBlock _Nonnull))resultHasEscapingParam1 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(BlockWithEscapingParam _Nonnull))resultHasEscapingParam2 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(BlockWithNoescapeParam _Nonnull))resultHasEscapingParam3 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(BlockReturningBlockWithEscapingParam _Nonnull))resultHasEscapingParam4 LANGUAGE_WARN_UNUSED_RESULT;
+  // CHECK-NEXT: - (void (^ _Nonnull)(BlockReturningBlockWithNoescapeParam _Nonnull))resultHasEscapingParam5 LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn resultHasEscapingParam1() -> (@escaping PlainBlock) -> () { fatalError() }
+  @objc fn resultHasEscapingParam2() -> (@escaping BlockWithEscapingParam) -> () { fatalError() }
+  @objc fn resultHasEscapingParam3() -> (@escaping BlockWithNoescapeParam) -> () { fatalError() }
+  @objc fn resultHasEscapingParam4() -> (@escaping BlockReturningBlockWithEscapingParam) -> () { fatalError() }
+  @objc fn resultHasEscapingParam5() -> (@escaping BlockReturningBlockWithNoescapeParam) -> () { fatalError() }
+
+}
+// CHECK-NEXT: @end

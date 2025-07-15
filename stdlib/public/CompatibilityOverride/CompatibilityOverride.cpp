@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Support back-deploying compatibility fixes for newer apps running on older runtimes.
@@ -19,7 +20,7 @@
 
 #include "CompatibilityOverride.h"
 
-#ifdef SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#ifdef LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT
 
 #include "../runtime/ImageInspection.h"
 #include "language/Runtime/Once.h"
@@ -33,7 +34,7 @@ using namespace language;
 /// The definition of the contents of the override section.
 ///
 /// The runtime looks in the main executable (not any libraries!) for a
-/// __swift54_hooks section and uses the hooks defined therein. This struct
+/// __language54_hooks section and uses the hooks defined therein. This struct
 /// defines the layout of that section. These hooks allow extending
 /// runtime functionality when running apps built with a more recent
 /// compiler. If additional hooks are needed, they may be added at the
@@ -73,8 +74,8 @@ static void *lookupSection(const char *segment, const char *section,
 
 static OverrideSection *getOverrideSectionPtr() {
   static OverrideSection *OverrideSectionPtr;
-  static swift_once_t Predicate;
-  swift_once(&Predicate, [](void *) {
+  static language_once_t Predicate;
+  language_once(&Predicate, [](void *) {
     size_t Size;
     OverrideSectionPtr = static_cast<OverrideSection *>(
         lookupSection("__DATA", COMPATIBILITY_OVERRIDE_SECTION_NAME, &Size));
@@ -86,7 +87,7 @@ static OverrideSection *getOverrideSectionPtr() {
 }
 
 #define OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs) \
-  Override_ ## name swift::getOverride_ ## name() {                 \
+  Override_ ## name language::getOverride_ ## name() {                 \
     auto *Section = getOverrideSectionPtr();                        \
     if (Section == nullptr)                                         \
       return nullptr;                                               \
@@ -94,7 +95,7 @@ static OverrideSection *getOverrideSectionPtr() {
   }
 
 #define OVERRIDE_NORETURN(name, attrs, ccAttrs, namespace, typedArgs, namedArgs) \
-  Override_ ## name swift::getOverride_ ## name() {                 \
+  Override_ ## name language::getOverride_ ## name() {                 \
     auto *Section = getOverrideSectionPtr();                        \
     if (Section == nullptr)                                         \
       nullptr;                                               \
@@ -103,4 +104,4 @@ static OverrideSection *getOverrideSectionPtr() {
 
 #include "CompatibilityOverrideIncludePath.h"
 
-#endif // #ifdef SWIFT_STDLIB_SUPPORT_BACK_DEPLOYMENT
+#endif // #ifdef LANGUAGE_STDLIB_SUPPORT_BACK_DEPLOYMENT

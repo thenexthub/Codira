@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "optimize-hop-to-executor"
@@ -46,7 +47,7 @@ class OptimizeHopToExecutor {
 
 private:
 
-  typedef llvm::DenseMap<SILValue, int> Actors;
+  typedef toolchain::DenseMap<SILValue, int> Actors;
 
   /// Basic-block specific information used for dataflow analysis.
   struct BlockState {
@@ -92,7 +93,7 @@ private:
   /// All block states.
   std::vector<BlockState> blockStates;
 
-  llvm::DenseMap<SILBasicBlock *, BlockState *> block2State;
+  toolchain::DenseMap<SILBasicBlock *, BlockState *> block2State;
 
   void collectActors(Actors &actors);
 
@@ -142,7 +143,7 @@ void OptimizeHopToExecutor::allocateBlockStates() {
   // invalidate previous pointers to states, which are stored in block2State.
   blockStates.resize(function->size());
 
-  for (auto blockAndIdx : llvm::enumerate(*function)) {
+  for (auto blockAndIdx : toolchain::enumerate(*function)) {
     BlockState *state = &blockStates[blockAndIdx.index()];
     state->block = &blockAndIdx.value();
     block2State[&blockAndIdx.value()] = state;
@@ -177,7 +178,7 @@ void OptimizeHopToExecutor::solveDataflowBackward() {
   bool firstRound = true;
   do {
     changed = false;
-    for (BlockState &state : llvm::reverse(blockStates)) {
+    for (BlockState &state : toolchain::reverse(blockStates)) {
       int newExit = state.exit;
       for (SILBasicBlock *succ : state.block->getSuccessorBlocks()) {
         newExit = BlockState::merge(newExit, block2State[succ]->entry);
@@ -254,7 +255,7 @@ bool OptimizeHopToExecutor::removeRedundantHopToExecutors(const Actors &actors) 
         continue;
 
       // There is a dominating hop_to_executor with the same operand.
-      LLVM_DEBUG(llvm::dbgs() << "Redundant executor " << *hop);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Redundant executor " << *hop);
       hop->eraseFromParent();
       changed = true;
     }
@@ -275,7 +276,7 @@ bool OptimizeHopToExecutor::removeDeadHopToExecutors() {
     state.exit = (state.block->getSuccessors().empty() ?
                     BlockState::NoExecutorNeeded : BlockState::NotSet);
     state.intra = BlockState::NotSet;
-    for (SILInstruction &inst : llvm::reverse(*state.block)) {
+    for (SILInstruction &inst : toolchain::reverse(*state.block)) {
       updateNeedExecutor(state.intra, &inst);
     }
     state.entry = state.intra;
@@ -295,7 +296,7 @@ bool OptimizeHopToExecutor::removeDeadHopToExecutors() {
       if (hop && !hop->isMandatory()
           && needActor == BlockState::NoExecutorNeeded) {
         // Remove the dead hop_to_executor.
-        LLVM_DEBUG(llvm::dbgs() << "Dead executor " << *hop);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dead executor " << *hop);
         hop->eraseFromParent();
         changed = true;
         continue;
@@ -390,9 +391,9 @@ bool OptimizeHopToExecutor::run() {
   return changed;
 }
 
-LLVM_ATTRIBUTE_USED void OptimizeHopToExecutor::dump() {
+TOOLCHAIN_ATTRIBUTE_USED void OptimizeHopToExecutor::dump() {
   for (BlockState &state : blockStates) {
-    llvm::dbgs() << "bb" << state.block->getDebugID() <<
+    toolchain::dbgs() << "bb" << state.block->getDebugID() <<
       ": entry=" << state.entry <<
       ", intra=" << state.intra <<
       ", exit=" << state.exit << '\n';
@@ -414,6 +415,6 @@ class OptimizeHopToExecutorPass : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createOptimizeHopToExecutor() {
+SILTransform *language::createOptimizeHopToExecutor() {
   return new OptimizeHopToExecutorPass();
 }

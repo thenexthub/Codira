@@ -1,0 +1,9 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name __ABAdditionsCAdditions
+
+import Codira
+@_exported import _ABAdditions
+import C
+
+public fn from__ABAdditionsCAdditions()
+public fn other(x: _ABAdditions.From_ABAdditionsType)

@@ -1,0 +1,36 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/Frameworks
+// RUN: mkdir -p %t/Frameworks/Foo.framework/
+// RUN: mkdir -p %t/Frameworks/Foo.framework/Modules
+// RUN: mkdir -p %t/Frameworks/Foo.framework/Modules/Foo.codemodule
+
+// Build a dependency into a binary module
+// RUN: echo "public fn foo() {}" >> %t/foo.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/Frameworks/Foo.framework/Modules/Foo.codemodule/%target-cpu.codemodule -module-cache-path %t.module-cache %t/foo.code -module-name Foo
+
+// Run the scan
+// RUN: %target-language-frontend -scan-dependencies %s -o %t/deps.json -F %t/Frameworks/ -sdk %t
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+import Foo
+
+// Appears as a dependency of the main module
+// CHECK: "languagePrebuiltExternal": "Foo"
+
+// Appears as, specifically, a source-imported dependency of the main module
+// CHECK:      "languagePrebuiltExternal": "Foo"
+
+// Actual node in the dependency graph for module 'Foo'
+// CHECK:      "languagePrebuiltExternal": "Foo"
+
+// CHECK-NEXT:    },
+// CHECK-NEXT:    {
+// CHECK-NEXT:      "modulePath": 
+// CHECK-NEXT:      "directDependencies": [
+// CHECK:      "details": {
+// CHECK-NEXT:        "languagePrebuiltExternal": {
+// CHECK-NEXT:          "compiledModulePath":
+// CHECK-NEXT:          "userModuleVersion":
+// CHECK-NEXT:          "isFramework": true
+// CHECK-NEXT:        }

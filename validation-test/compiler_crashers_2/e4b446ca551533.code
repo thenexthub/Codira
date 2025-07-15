@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ConstraintSystem::setType(language::ASTNode, language::Type)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@propertyWrapper struct a immutable() = {(@a)in

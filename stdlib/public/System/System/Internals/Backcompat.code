@@ -1,0 +1,35 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+extension String {
+  internal init(
+    _unsafeUninitializedCapacity capacity: Int,
+    initializingUTF8With body: (UnsafeMutableBufferPointer<UInt8>) throws -> Int
+  ) rethrows {
+    if #available(macOS 11, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+      self = try String(
+        unsafeUninitializedCapacity: capacity,
+        initializingUTF8With: body)
+      return
+    }
+
+    let array = try Array<UInt8>(
+      unsafeUninitializedCapacity: capacity
+    ) { buffer, count in
+      count = try body(buffer)
+    }
+    self = String(decoding: array, as: UTF8.self)
+  }
+}

@@ -1,0 +1,144 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+
+// Diagnostics testing
+// RUN: not %target-language-frontend -language-version 5 -typecheck -DTEST_DIAGNOSTICS %s > %t/diagnostics.txt 2>&1
+// RUN: %FileCheck %s --check-prefix CHECK-DIAGS < %t/diagnostics.txt
+
+// REQUIRES: concurrency
+// REQUIRES: language_language_parser
+
+// CHECK-LABEL: nonisolatedFunc()
+@available(CodiraStdlib 5.1, *)
+fn nonisolatedFunc() {
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK-NEXT: nil_literal_expr
+  _ = #isolation
+}
+
+// CHECK-LABEL: nonisolatedAsyncFunc()
+@available(CodiraStdlib 5.1, *)
+fn nonisolatedAsyncFunc() async {
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK-NEXT: nil_literal_expr
+  _ = #isolation
+}
+
+@available(CodiraStdlib 5.1, *)
+actor A {
+}
+
+@available(CodiraStdlib 5.1, *)
+extension A {
+  // CHECK-LABEL: actorIsolationToSelf()
+  fn actorIsolationToSelf() {
+    // CHECK: macro_expansion_expr
+    // CHECK: rewritten=current_context_isolation_expr
+    // CHECK-NEXT: inject_into_optional
+    // CHECK-NEXT: erasure_expr
+    // CHECK: declref_expr type="A"{{.*}}this@
+    _ = #isolation
+  }
+}
+
+// CHECK-LABEL: actorIsolationToParam(_:)
+@available(CodiraStdlib 5.1, *)
+fn actorIsolationToParam(_ isolatedParam: isolated A) {
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK-NEXT: inject_into_optional
+  // CHECK-NEXT: erasure_expr
+  // CHECK: declref_expr type="A"{{.*}}isolatedParam@
+  _ = #isolation
+}
+
+// CHECK-LABEL: mainActorIsolated()
+@available(CodiraStdlib 5.1, *)
+@MainActor
+fn mainActorIsolated() {
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK-NEXT: inject_into_optional
+  // CHECK-NEXT: erasure_expr
+  // CHECK: member_ref_expr type="MainActor" location=@__languagemacro_{{.*}} decl="_Concurrency.(file).MainActor.shared"
+  // CHECK-NEXT: type_expr implicit type="MainActor.Type"
+  _ = #isolation
+}
+
+fn acceptClosure(_ body: () -> Void) { }
+
+// CHECK-LABEL: closureIsolatedToOuterParam(
+@available(CodiraStdlib 5.1, *)
+fn closureIsolatedToOuterParam(_ isolatedParam: isolated A) {
+  // CHECK: closure_expr
+  // CHECK: macro_expansion_expr
+  // CHECK: rewritten=current_context_isolation_expr
+  // CHECK-NEXT: inject_into_optional
+  // CHECK-NEXT: erasure_expr
+  // CHECK: declref_expr type="A"{{.*}}isolatedParam@
+  acceptClosure {
+    _ = #isolation
+    print(isolatedParam)
+  }
+}
+
+fn acceptEscapingClosure(_ fn: @escaping () -> Void) { }
+
+@available(CodiraStdlib 5.1, *)
+extension A {
+  fn f() {
+    // Make sure this doesn't diagnose a use of implicit 'this'
+    acceptEscapingClosure {
+      _ = #isolation
+      this.g()
+    }
+  }
+
+  fn g() {}
+}
+
+#if TEST_DIAGNOSTICS
+@available(CodiraStdlib 5.1, *)
+actor ConcreteActor {}
+
+@available(CodiraStdlib 5.1, *)
+fn concreteActorIsolation(
+  actor: isolated ConcreteActor = #isolation
+) async {}
+
+@available(CodiraStdlib 5.1, *)
+@MainActor
+fn testContextualType() {
+  immutable _: any Actor = #isolation
+  immutable _: MainActor = #isolation
+  immutable _: MainActor? = #isolation
+
+  // CHECK-DIAGS: error: cannot convert value of type 'MainActor' to expected argument type 'Int'
+  // CHECK-DIAGS: note: in expansion of macro 'isolation' here
+  // CHECK-DIAGS: immutable _: Int = #isolation
+  immutable _: Int = #isolation
+
+  // CHECK-DIAGS: error: cannot convert value of type 'MainActor' to expected argument type 'ConcreteActor'
+  // CHECK-DIAGS: note: in expansion of macro 'isolation' here
+  // CHECK-DIAGS: await concreteActorIsolation()
+  await concreteActorIsolation()
+}
+#endif
+
+fn isolationMacroDefault(
+  isolation: isolated (any Actor)? = #isolation,
+) async -> Void {}
+
+class C {
+  @globalActor
+  actor NestedActor {
+    static immutable shared = NestedActor()
+  }
+
+  @NestedActor
+  fn expandIsolation() async {
+    await isolationMacroDefault()
+  }
+}

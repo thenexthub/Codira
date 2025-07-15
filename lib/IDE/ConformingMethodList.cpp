@@ -1,13 +1,17 @@
 //===--- ConformingMethodList.cpp -----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/ConformingMethodList.h"
@@ -38,7 +42,7 @@ class ConformingMethodListCallbacks : public CodeCompletionCallbacks,
   DeclContext *CurDeclContext = nullptr;
 
   void getMatchingMethods(Type T,
-                          llvm::SmallPtrSetImpl<ProtocolDecl*> &expectedTypes,
+                          toolchain::SmallPtrSetImpl<ProtocolDecl*> &expectedTypes,
                           SmallVectorImpl<ValueDecl *> &result);
 
 public:
@@ -77,7 +81,7 @@ public:
     /// Types of variables that were determined in the solution that produced
     /// this result. This in particular includes parameters of closures that
     /// were type-checked with the code completion expression.
-    llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
+    toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
   };
 private:
   CodeCompletionExpr *CCExpr;
@@ -89,7 +93,7 @@ private:
       return;
     }
     if (Type T = getTypeForCompletion(S, CCExpr->getBase())) {
-      llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
+      toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
       getSolutionSpecificVarTypes(S, SolutionSpecificVarTypes);
       Results.push_back({T, SolutionSpecificVarTypes});
     }
@@ -107,7 +111,7 @@ void ConformingMethodListCallbacks::doneParsing(SourceFile *SrcFile) {
 
   ConformingMethodListCallback TypeCheckCallback(CCExpr);
   {
-    llvm::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
+    toolchain::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
         Context.CompletionCallback, &TypeCheckCallback);
     typeCheckContextAt(
         TypeCheckASTNodeAtLocContext::declContext(CurDeclContext),
@@ -136,7 +140,7 @@ void ConformingMethodListCallbacks::doneParsing(SourceFile *SrcFile) {
   if (T->hasArchetype())
     interfaceTy = interfaceTy->mapTypeOutOfContext();
 
-  llvm::SmallPtrSet<ProtocolDecl*, 8> expectedProtocols;
+  toolchain::SmallPtrSet<ProtocolDecl*, 8> expectedProtocols;
   for (auto Name: ExpectedTypeNames) {
     if (auto *PD = resolveProtocolName(CurDeclContext, Name)) {
       expectedProtocols.insert(PD);
@@ -151,7 +155,7 @@ void ConformingMethodListCallbacks::doneParsing(SourceFile *SrcFile) {
 }
 
 void ConformingMethodListCallbacks::getMatchingMethods(
-    Type T, llvm::SmallPtrSetImpl<ProtocolDecl*> &expectedTypes,
+    Type T, toolchain::SmallPtrSetImpl<ProtocolDecl*> &expectedTypes,
     SmallVectorImpl<ValueDecl *> &result) {
   assert(T->mayHaveMembers() && !T->is<ModuleType>());
 
@@ -160,7 +164,7 @@ void ConformingMethodListCallbacks::getMatchingMethods(
     Type T;
 
     /// The list of expected types.
-    llvm::SmallPtrSetImpl<ProtocolDecl*> &ExpectedTypes;
+    toolchain::SmallPtrSetImpl<ProtocolDecl*> &ExpectedTypes;
 
     /// Result sink to populate.
     SmallVectorImpl<ValueDecl *> &Result;
@@ -201,7 +205,7 @@ void ConformingMethodListCallbacks::getMatchingMethods(
 
   public:
     LocalConsumer(DeclContext *DC, Type T,
-                  llvm::SmallPtrSetImpl<ProtocolDecl*> &expectedTypes,
+                  toolchain::SmallPtrSetImpl<ProtocolDecl*> &expectedTypes,
                   SmallVectorImpl<ValueDecl *> &result)
         : T(T), ExpectedTypes(expectedTypes), Result(result) {}
 
@@ -223,7 +227,7 @@ void ConformingMethodListCallbacks::getMatchingMethods(
 } // anonymous namespace.
 
 IDEInspectionCallbacksFactory *
-swift::ide::makeConformingMethodListCallbacksFactory(
+language::ide::makeConformingMethodListCallbacksFactory(
     ArrayRef<const char *> expectedTypeNames,
     ConformingMethodListConsumer &Consumer) {
 

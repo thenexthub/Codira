@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILCoverageMap class, which is used to relay coverage
@@ -18,15 +19,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 #include "language/SIL/SILCoverageMap.h"
 #include "language/SIL/SILModule.h"
 #include "language/Basic/Assertions.h"
 
 using namespace language;
 
-using llvm::coverage::CounterExpression;
-using llvm::coverage::CounterMappingRegion;
+using toolchain::coverage::CounterExpression;
+using toolchain::coverage::CounterMappingRegion;
 
 SILCoverageMap *
 SILCoverageMap::create(SILModule &M, SourceFile *ParentSourceFile,
@@ -71,15 +72,15 @@ SILCoverageMap::MappedRegion::getLLVMRegion(unsigned int FileID) const {
     return CounterMappingRegion::makeSkipped(FileID, StartLine, StartCol,
                                              EndLine, EndCol);
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 namespace {
 struct Printer {
-  const llvm::coverage::Counter &C;
-  ArrayRef<llvm::coverage::CounterExpression> Exprs;
-  Printer(const llvm::coverage::Counter &C,
-          ArrayRef<llvm::coverage::CounterExpression> Exprs)
+  const toolchain::coverage::Counter &C;
+  ArrayRef<toolchain::coverage::CounterExpression> Exprs;
+  Printer(const toolchain::coverage::Counter &C,
+          ArrayRef<toolchain::coverage::CounterExpression> Exprs)
       : C(C), Exprs(Exprs) {}
 
   void print(raw_ostream &OS) const {
@@ -105,7 +106,7 @@ struct Printer {
 } // end anonymous namespace
 
 void SILCoverageMap::printCounter(
-    llvm::raw_ostream &OS, llvm::coverage::Counter C,
-    ArrayRef<llvm::coverage::CounterExpression> Expressions) {
+    toolchain::raw_ostream &OS, toolchain::coverage::Counter C,
+    ArrayRef<toolchain::coverage::CounterExpression> Expressions) {
   OS << Printer(C, Expressions);
 }

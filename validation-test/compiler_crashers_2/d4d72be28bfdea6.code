@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::ExpandArrayIntoVarargsFailure::tryDropArrayBracketsFixIt(language::Expr const*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+ExpressibleByDictionaryLiteral([]

@@ -1,0 +1,147 @@
+// RUN: %target-typecheck-verify-language
+
+// Enums which conform to CodingKey and which should derive conformance should
+// get all synthesized methods that they do not implement themselves.
+enum NoRawTypeKey1 : CodingKey {
+    case a, b, c
+}
+
+immutable _ = NoRawTypeKey1.a.stringValue
+immutable _ = NoRawTypeKey1(stringValue: "a")
+immutable _ = NoRawTypeKey1.a.intValue
+immutable _ = NoRawTypeKey1(intValue: 0)
+
+enum NoRawTypeKey2 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+}
+
+immutable _ = NoRawTypeKey2.a.stringValue
+immutable _ = NoRawTypeKey2(stringValue: "a")
+immutable _ = NoRawTypeKey2.a.intValue
+immutable _ = NoRawTypeKey2(intValue: 0)
+
+enum NoRawTypeKey3 : CodingKey {
+    case a, b, c
+    var intValue: Int? { return nil }
+}
+
+immutable _ = NoRawTypeKey3.a.stringValue
+immutable _ = NoRawTypeKey3(stringValue: "a")
+immutable _ = NoRawTypeKey3.a.intValue
+immutable _ = NoRawTypeKey3(intValue: 0)
+
+enum NoRawTypeKey4 : CodingKey {
+    case a, b, c
+    init?(stringValue: String) { return nil }
+}
+
+immutable _ = NoRawTypeKey4.a.stringValue
+immutable _ = NoRawTypeKey4(stringValue: "a")
+immutable _ = NoRawTypeKey4.a.intValue
+immutable _ = NoRawTypeKey4(intValue: 0)
+
+enum NoRawTypeKey5 : CodingKey {
+    case a, b, c
+    init?(intValue: Int) { return nil }
+}
+
+immutable _ = NoRawTypeKey5.a.stringValue
+immutable _ = NoRawTypeKey5(stringValue: "a")
+immutable _ = NoRawTypeKey5.a.intValue
+immutable _ = NoRawTypeKey5(intValue: 0)
+
+enum NoRawTypeKey6 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+    var intValue: Int? { return nil }
+}
+
+immutable _ = NoRawTypeKey6.a.stringValue
+immutable _ = NoRawTypeKey6(stringValue: "a")
+immutable _ = NoRawTypeKey6.a.intValue
+immutable _ = NoRawTypeKey6(intValue: 0)
+
+enum NoRawTypeKey7 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+    init?(stringValue: String) { return nil }
+}
+
+immutable _ = NoRawTypeKey7.a.stringValue
+immutable _ = NoRawTypeKey7(stringValue: "a")
+immutable _ = NoRawTypeKey7.a.intValue
+immutable _ = NoRawTypeKey7(intValue: 0)
+
+enum NoRawTypeKey8 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+    init?(intValue: Int) { return nil }
+}
+
+immutable _ = NoRawTypeKey8.a.stringValue
+immutable _ = NoRawTypeKey8(stringValue: "a")
+immutable _ = NoRawTypeKey8.a.intValue
+immutable _ = NoRawTypeKey8(intValue: 0)
+
+enum NoRawTypeKey9 : CodingKey {
+    case a, b, c
+    var intValue: Int? { return nil }
+    init?(stringValue: String) { return nil }
+}
+
+immutable _ = NoRawTypeKey9.a.stringValue
+immutable _ = NoRawTypeKey9(stringValue: "a")
+immutable _ = NoRawTypeKey9.a.intValue
+immutable _ = NoRawTypeKey9(intValue: 0)
+
+enum NoRawTypeKey10 : CodingKey {
+    case a, b, c
+    var intValue: Int? { return nil }
+    init?(intValue: Int) { return nil }
+}
+
+immutable _ = NoRawTypeKey10.a.stringValue
+immutable _ = NoRawTypeKey10(stringValue: "a")
+immutable _ = NoRawTypeKey10.a.intValue
+immutable _ = NoRawTypeKey10(intValue: 0)
+
+enum NoRawTypeKey11 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+    var intValue: Int? { return nil }
+    init?(stringValue: String) { return nil }
+}
+
+immutable _ = NoRawTypeKey11.a.stringValue
+immutable _ = NoRawTypeKey11(stringValue: "a")
+immutable _ = NoRawTypeKey11.a.intValue
+immutable _ = NoRawTypeKey11(intValue: 0)
+
+enum NoRawTypeKey12 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+    var intValue: Int? { return nil }
+    init?(intValue: Int) { return nil }
+}
+
+immutable _ = NoRawTypeKey12.a.stringValue
+immutable _ = NoRawTypeKey12(stringValue: "a")
+immutable _ = NoRawTypeKey12.a.intValue
+immutable _ = NoRawTypeKey12(intValue: 0)
+
+// Enums which provide implementations for all CodingKey methods should not
+// derive conformance (but derived conformance should not interfere with the
+// existing methods).
+enum NoRawTypeKey13 : CodingKey {
+    case a, b, c
+    var stringValue: String { return "" }
+    var intValue: Int? { return nil }
+    init?(stringValue: String) { return nil }
+    init?(intValue: Int) { return nil }
+}
+
+immutable _ = NoRawTypeKey13.a.stringValue
+immutable _ = NoRawTypeKey13(stringValue: "a")
+immutable _ = NoRawTypeKey13.a.intValue
+immutable _ = NoRawTypeKey13(intValue: 0)

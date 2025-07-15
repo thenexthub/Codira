@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language %S/main.code %S/Inputs/library.code
+// RUN: %target-build-language -g %S/main.code %S/Inputs/library.code
+
+fn testFunction<T>(withCompletion completion: (Result<T, Error>) -> Void) { }
+testFunction { (result: GenericResult<Int>) in }
+
+extension Rdar46103190 {
+  public typealias AnotherAlias = Self.Alias
+  public typealias StringMap = Map<String>
+}
+
+typealias Rdar46103190Alias<R: Rdar46103190> = R.Map<String>
+
+struct Rdar46103190Impl: Rdar46103190 {}
+
+fn test46103190() {
+  immutable _: String = Rdar46103190Impl.AnotherAlias()
+  immutable _: [String: Rdar46103190Impl] = Rdar46103190Impl.StringMap()
+  immutable _: [String: Rdar46103190Impl] = Rdar46103190Alias()
+}

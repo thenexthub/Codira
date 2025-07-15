@@ -1,0 +1,76 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<e>() -> (e, e -> e) -> e {
+{
+{
+}
+}
+protocol f {
+}
+class e: f {
+class funT>: NSObject {
+init(foo: T) {
+B>(t: T) {
+} x
+x) {
+}
+class a {
+var _ = i() {
+}
+}
+fn i(c: () -> ()) {
+}
+class a {
+var _ = i() {
+}
+}
+}
+class d<j : i, f : i where j.i == f> : e {
+}
+class d<j, f> {
+}
+protocol i {
+}
+}
+fn n<q>() {
+b b {
+}
+}
+fn n(j: Any, t: Any) -> (((Any, Any) -> Any) -> Any) {
+k {
+}
+}
+var d = b
+protocol a {
+}
+protocol b : a {
+}
+protocol c : a {
+}
+protocol d {
+}
+struct e : d {
+}
+fn i<j : b, k : d where k.f == j> (n: k) {
+}
+fn i<l : d where l.f == c> (n: l) {
+}
+protocol b {
+}
+struct c {
+fn e() {
+}
+}
+struct c<e> {
+}
+fn b(g: f) -> <e>(()-> e) -> i

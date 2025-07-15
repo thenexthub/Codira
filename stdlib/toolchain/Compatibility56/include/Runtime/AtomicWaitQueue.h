@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file declares the AtomicWaitQueue class template, which can be
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_ATOMICWAITQUEUE_BACKDEPLOY56_H
-#define SWIFT_RUNTIME_ATOMICWAITQUEUE_BACKDEPLOY56_H
+#ifndef LANGUAGE_RUNTIME_ATOMICWAITQUEUE_BACKDEPLOY56_H
+#define LANGUAGE_RUNTIME_ATOMICWAITQUEUE_BACKDEPLOY56_H
 
 #include "Concurrency/Threading/Mutex.h"
 #include <assert.h>
@@ -490,4 +491,4 @@ struct SimpleAtomicWaitQueue
 } // end namespace language
 
 
-#endif // SWIFT_RUNTIME_ATOMICWAITQUEUE_BACKDEPLOY56_H
+#endif // LANGUAGE_RUNTIME_ATOMICWAITQUEUE_BACKDEPLOY56_H

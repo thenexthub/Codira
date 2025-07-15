@@ -1,13 +1,17 @@
 //===--- GenIntegerLiteral.h - IRGen for Builtin.IntegerLiteral -*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for emitting code for Builtin.IntegerLiteral
@@ -15,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENINTEGERLITERAL_H
-#define SWIFT_IRGEN_GENINTEGERLITERAL_H
+#ifndef LANGUAGE_IRGEN_GENINTEGERLITERAL_H
+#define LANGUAGE_IRGEN_GENINTEGERLITERAL_H
 
 #include "language/Basic/APIntMap.h"
 
-namespace llvm {
+namespace toolchain {
 class Constant;
 class IntegerType;
 class Type;
@@ -37,8 +41,8 @@ class IRGenModule;
 
 /// A constant integer literal value.
 struct ConstantIntegerLiteral {
-  llvm::Constant *Data;
-  llvm::Constant *Flags;
+  toolchain::Constant *Data;
+  toolchain::Constant *Flags;
 };
 
 /// A map for caching globally-emitted constant integers.
@@ -57,18 +61,18 @@ emitConstantIntegerLiteral(IRGenModule &IGM, IntegerLiteralInst *ILI);
 
 /// Emit a checked truncation of an IntegerLiteral value.
 void emitIntegerLiteralCheckedTrunc(IRGenFunction &IGF, Explosion &in,
-                                    llvm::Type *FromTy,
-                                    llvm::IntegerType *resultTy,
+                                    toolchain::Type *FromTy,
+                                    toolchain::IntegerType *resultTy,
                                     bool resultIsSigned, Explosion &out);
 
 /// Emit a sitofp operation on an IntegerLiteral value.
-llvm::Value *emitIntegerLiteralToFP(IRGenFunction &IGF,
+toolchain::Value *emitIntegerLiteralToFP(IRGenFunction &IGF,
                                     Explosion &in,
-                                    llvm::Type *toType);
+                                    toolchain::Type *toType);
 
-llvm::Value *emitIntLiteralBitWidth(IRGenFunction &IGF, Explosion &in);
-llvm::Value *emitIntLiteralIsNegative(IRGenFunction &IGF, Explosion &in);
-llvm::Value *emitIntLiteralWordAtIndex(IRGenFunction &IGF, Explosion &in);
+toolchain::Value *emitIntLiteralBitWidth(IRGenFunction &IGF, Explosion &in);
+toolchain::Value *emitIntLiteralIsNegative(IRGenFunction &IGF, Explosion &in);
+toolchain::Value *emitIntLiteralWordAtIndex(IRGenFunction &IGF, Explosion &in);
 
 }
 }

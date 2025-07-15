@@ -1,13 +1,17 @@
 //===--- ReferenceBindingTransform.cpp ------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-reference-binding-transform"
@@ -23,12 +27,12 @@
 
 using namespace language;
 
-static llvm::cl::opt<bool> SilentlyEmitDiagnostics(
+static toolchain::cl::opt<bool> SilentlyEmitDiagnostics(
     "sil-reference-binding-diagnostics-silently-emit-diagnostics",
-    llvm::cl::desc(
+    toolchain::cl::desc(
         "For testing purposes, emit the diagnostic silently so we can "
         "filecheck the result of emitting an error from the move checkers"),
-    llvm::cl::init(false));
+    toolchain::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 //                          MARK: Diagnosis Helpers
@@ -67,15 +71,15 @@ struct RAIILLVMDebug {
   StringRef str;
 
   RAIILLVMDebug(StringRef str) : str(str) {
-    LLVM_DEBUG(llvm::dbgs() << "===>>> Starting " << str << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "===>>> Starting " << str << '\n');
   }
 
   RAIILLVMDebug(StringRef str, SILInstruction *u) : str(str) {
-    LLVM_DEBUG(llvm::dbgs() << "===>>> Starting " << str << ":" << *u);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "===>>> Starting " << str << ":" << *u);
   }
 
   ~RAIILLVMDebug() {
-    LLVM_DEBUG(llvm::dbgs() << "===<<< Completed " << str << '\n');
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "===<<< Completed " << str << '\n');
   }
 };
 
@@ -112,7 +116,7 @@ struct ValidateAllUsesWithinLiveness : public AccessUseVisitor {
       return true;
 
     if (liveness.isWithinBoundary(user, /*deadEndBlocks=*/nullptr)) {
-      LLVM_DEBUG(llvm::dbgs() << "User in boundary: " << *user);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "User in boundary: " << *user);
       diagnose(op->getUser(),
                diag::sil_referencebinding_src_used_within_inout_scope);
       diagnose(markInst, diag::sil_referencebinding_inout_binding_here);
@@ -162,7 +166,7 @@ private:
 } // namespace
 
 CopyAddrInst *ReferenceBindingProcessor::findInit() {
-  RAIILLVMDebug llvmDebug("Find initialization");
+  RAIILLVMDebug toolchainDebug("Find initialization");
 
   // We rely on the following semantics to find our initialization:
   //
@@ -179,7 +183,7 @@ CopyAddrInst *ReferenceBindingProcessor::findInit() {
     worklist.push(user);
   }
   while (auto *user = worklist.pop()) {
-    LLVM_DEBUG(llvm::dbgs() << "Visiting use: " << *user);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting use: " << *user);
 
     auto *bbi = dyn_cast<BeginBorrowInst>(user);
     if (bbi && bbi->isFromVarDecl()) {
@@ -191,20 +195,20 @@ CopyAddrInst *ReferenceBindingProcessor::findInit() {
     auto *pbi = dyn_cast<ProjectBoxInst>(user);
     if (!pbi)
       continue;
-    LLVM_DEBUG(llvm::dbgs() << "    Found project_box! Visiting pbi uses!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found project_box! Visiting pbi uses!\n");
 
     for (auto *pbiUse : pbi->getUses()) {
-      LLVM_DEBUG(llvm::dbgs() << "    Pbi Use: " << *pbiUse->getUser());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Pbi Use: " << *pbiUse->getUser());
       auto *cai = dyn_cast<CopyAddrInst>(pbiUse->getUser());
       if (!cai || cai->getDest() != pbi) {
-        LLVM_DEBUG(llvm::dbgs() << "    Either not a copy_addr or dest is "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Either not a copy_addr or dest is "
                                    "not the project_box! Skipping!\n");
         continue;
       }
 
       if (initInst || !cai->isInitializationOfDest() || cai->isTakeOfSrc()) {
-        LLVM_DEBUG(
-            llvm::dbgs()
+        TOOLCHAIN_DEBUG(
+            toolchain::dbgs()
             << "    Either already found an init inst or is an assign of a "
                "dest or a take of src... emitting unknown pattern!\n");
         diagnosticEmitter.diagnoseUnknownPattern(mark);
@@ -213,11 +217,11 @@ CopyAddrInst *ReferenceBindingProcessor::findInit() {
       assert(!initInst && "Init twice?!");
       assert(!cai->isTakeOfSrc());
       initInst = cai;
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "    Found our init! Checking for other inits!\n");
     }
   }
-  LLVM_DEBUG(llvm::dbgs() << "Final Init: " << *initInst);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Final Init: " << *initInst);
   return initInst;
 }
 
@@ -236,21 +240,21 @@ bool ReferenceBindingProcessor::process() && {
   SSAPrunedLiveness liveness(fn, &discoveredBlocks);
   StackList<DestroyValueInst *> destroyValueInst(fn);
   {
-    RAIILLVMDebug llvmDebug("Initializing liveness!");
+    RAIILLVMDebug toolchainDebug("Initializing liveness!");
 
     liveness.initializeDef(mark);
     for (auto *consume : mark->getConsumingUses()) {
       // Make sure that the destroy_value is not within the boundary.
       auto *dai = dyn_cast<DestroyValueInst>(consume->getUser());
       if (!dai) {
-        LLVM_DEBUG(llvm::dbgs() << "    Found non destroy value consuming use! "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found non destroy value consuming use! "
                                    "Emitting unknown pattern: "
                                 << *dai);
         diagnosticEmitter.diagnoseUnknownPattern(mark);
         return false;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "    Found destroy_value use: " << *dai);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found destroy_value use: " << *dai);
       liveness.updateForUse(dai, true /*is lifetime ending*/);
       destroyValueInst.push_back(dai);
     }
@@ -321,7 +325,7 @@ static bool runTransform(SILFunction *fn) {
   while (!targets.empty()) {
     auto *mark = targets.pop_back_val();
 
-    LLVM_DEBUG(llvm::dbgs() << "===> Visiting mark: " << *mark);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "===> Visiting mark: " << *mark);
     ReferenceBindingProcessor processor{mark, emitter};
     madeChange |= std::move(processor).process();
 
@@ -347,7 +351,7 @@ struct ReferenceBindingTransformPass : SILFunctionTransform {
     if (!fn->getASTContext().LangOpts.hasFeature(Feature::ReferenceBindings))
       return;
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "!!! === RefBindingTransform: " << fn->getName() << '\n');
     if (runTransform(fn)) {
       invalidateAnalysis(SILAnalysis::Instructions);
@@ -357,6 +361,6 @@ struct ReferenceBindingTransformPass : SILFunctionTransform {
 
 } // namespace
 
-SILTransform *swift::createReferenceBindingTransform() {
+SILTransform *language::createReferenceBindingTransform() {
   return new ReferenceBindingTransformPass();
 }

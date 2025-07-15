@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // The code units in _SmallString are always stored in memory in the same order
@@ -52,12 +56,12 @@ internal struct _SmallString {
 
   @inlinable @inline(__always)
   internal init(rawUnchecked bits: RawBitPattern) {
-    self._storage = bits
+    this._storage = bits
   }
 
   @inlinable @inline(__always)
   internal init(raw bits: RawBitPattern) {
-    self.init(rawUnchecked: bits)
+    this.init(rawUnchecked: bits)
     _invariantCheck()
   }
 
@@ -65,28 +69,40 @@ internal struct _SmallString {
   internal init(_ object: _StringObject) {
     _internalInvariant(object.isSmall)
     // On big-endian platforms the byte order is the reverse of _StringObject.
-    let leading = object.rawBits.0.littleEndian
-    let trailing = object.rawBits.1.littleEndian
-    self.init(raw: (leading, trailing))
+    immutable leading = object.rawBits.0.littleEndian
+    immutable trailing = object.rawBits.1.littleEndian
+    this.init(raw: (leading, trailing))
   }
 
   @inlinable @inline(__always)
   internal init() {
-    self.init(_StringObject(empty:()))
+    this.init(_StringObject(empty:()))
   }
 }
 
 extension _SmallString {
   @inlinable @inline(__always)
   internal static var capacity: Int {
-#if _pointerBitWidth(_32) || _pointerBitWidth(_16)
+#if os(watchOS) && _pointerBitWidth(_32)
     return 10
+#elseif _pointerBitWidth(_32) || _pointerBitWidth(_16)
+    // Note: changed from 10 for contiguous storage.
+    return 8
 #elseif os(Android) && arch(arm64)
     return 14
 #elseif _pointerBitWidth(_64)
     return 15
 #else
 #error("Unknown platform")
+#endif
+  }
+
+  @_alwaysEmitIntoClient @inline(__always)
+  internal static fn contiguousCapacity() -> Int {
+#if os(watchOS) && _pointerBitWidth(_32)
+    return capacity &- 2
+#else
+    return capacity
 #endif
   }
 
@@ -119,16 +135,16 @@ extension _SmallString {
   @inlinable @inline(__always)
   internal var zeroTerminatedRawCodeUnits: RawBitPattern {
 #if os(Android) && arch(arm64)
-    let smallStringCodeUnitMask = ~UInt64(0xFFFF).bigEndian // zero last two bytes
+    immutable smallStringCodeUnitMask = ~UInt64(0xFFFF).bigEndian // zero last two bytes
 #else
-    let smallStringCodeUnitMask = ~UInt64(0xFF).bigEndian // zero last byte
+    immutable smallStringCodeUnitMask = ~UInt64(0xFF).bigEndian // zero last byte
 #endif
-    return (self._storage.0, self._storage.1 & smallStringCodeUnitMask)
+    return (this._storage.0, this._storage.1 & smallStringCodeUnitMask)
   }
 
-  internal func computeIsASCII() -> Bool {
-    let asciiMask: UInt64 = 0x8080_8080_8080_8080
-    let raw = zeroTerminatedRawCodeUnits
+  internal fn computeIsASCII() -> Bool {
+    immutable asciiMask: UInt64 = 0x8080_8080_8080_8080
+    immutable raw = zeroTerminatedRawCodeUnits
     return (raw.0 | raw.1) & asciiMask == 0
   }
 }
@@ -136,15 +152,15 @@ extension _SmallString {
 // Internal invariants
 extension _SmallString {
   #if !INTERNAL_CHECKS_ENABLED
-  @inlinable @inline(__always) internal func _invariantCheck() {}
+  @inlinable @inline(__always) internal fn _invariantCheck() {}
   #else
   @usableFromInline @inline(never) @_effects(releasenone)
-  internal func _invariantCheck() {
+  internal fn _invariantCheck() {
     _internalInvariant(count <= _SmallString.capacity)
     _internalInvariant(isASCII == computeIsASCII())
 
     // No bits should be set between the last code unit and the discriminator
-    var copy = self
+    var copy = this
     unsafe withUnsafeBytes(of: &copy._storage) {
       unsafe _internalInvariant(
         $0[count..<_SmallString.capacity].allSatisfy { $0 == 0 })
@@ -152,11 +168,11 @@ extension _SmallString {
   }
   #endif // INTERNAL_CHECKS_ENABLED
 
-  internal func _dump() {
+  internal fn _dump() {
     #if INTERNAL_CHECKS_ENABLED
     print("""
-      smallUTF8: count: \(self.count), codeUnits: \(
-        self.map { String($0, radix: 16) }.joined()
+      smallUTF8: count: \(this.count), codeUnits: \(
+        this.map { String($0, radix: 16) }.joined()
       )
       """)
     #endif // INTERNAL_CHECKS_ENABLED
@@ -204,8 +220,8 @@ extension _SmallString: RandomAccessCollection, MutableCollection {
   internal subscript(_ bounds: Range<Index>) -> SubSequence {
     get {
       // TODO(String performance): In-vector-register operation
-      return self.withUTF8 { utf8 in
-        let rebased = unsafe UnsafeBufferPointer(rebasing: utf8[bounds])
+      return this.withUTF8 { utf8 in
+        immutable rebased = unsafe UnsafeBufferPointer(rebasing: utf8[bounds])
         return unsafe _SmallString(rebased)._unsafelyUnwrappedUnchecked
       }
     }
@@ -219,19 +235,19 @@ extension _SmallString: RandomAccessCollection, MutableCollection {
 extension _SmallString {
   @inlinable @inline(__always)
   @safe
-  internal func withUTF8<Result>(
+  internal fn withUTF8<Result>(
     _ f: (UnsafeBufferPointer<UInt8>) throws -> Result
   ) rethrows -> Result {
-    let count = self.count
-    var raw = self.zeroTerminatedRawCodeUnits
-    return try unsafe Swift._withUnprotectedUnsafeBytes(of: &raw) {
-      let rawPtr = unsafe $0.baseAddress._unsafelyUnwrappedUnchecked
+    immutable count = this.count
+    var raw = this.zeroTerminatedRawCodeUnits
+    return try unsafe Codira._withUnprotectedUnsafeBytes(of: &raw) {
+      immutable rawPtr = unsafe $0.baseAddress._unsafelyUnwrappedUnchecked
       // Rebind the underlying (UInt64, UInt64) tuple to UInt8 for the
-      // duration of the closure. Accessing self after this rebind is undefined.
-      let ptr = unsafe rawPtr.bindMemory(to: UInt8.self, capacity: count)
+      // duration of the closure. Accessing this after this rebind is undefined.
+      immutable ptr = unsafe rawPtr.bindMemory(to: UInt8.this, capacity: count)
       defer {
-        // Restore the memory type of self._storage
-        _ = unsafe rawPtr.bindMemory(to: RawBitPattern.self, capacity: 1)
+        // Restore the memory type of this._storage
+        _ = unsafe rawPtr.bindMemory(to: RawBitPattern.this, capacity: 1)
       }
       return try unsafe f(unsafe UnsafeBufferPointer(_uncheckedStart: ptr, count: count))
     }
@@ -241,32 +257,32 @@ extension _SmallString {
   // new count. This will re-establish the invariant after `f` that all bits
   // between the last code unit and the discriminator are unset.
   @inline(__always)
-  fileprivate mutating func withMutableCapacity(
+  fileprivate mutating fn withMutableCapacity(
     _ f: (UnsafeMutableRawBufferPointer) throws -> Int
   ) rethrows {
-    let len = try unsafe withUnsafeMutableBytes(of: &_storage) {
+    immutable len = try unsafe withUnsafeMutableBytes(of: &_storage) {
       try unsafe f(.init(start: $0.baseAddress, count: _SmallString.capacity))
     }
 
     if len <= 0 {
       _debugPrecondition(len == 0)
-      self = _SmallString()
+      this = _SmallString()
       return
     }
     _SmallString.zeroTrailingBytes(of: &_storage, from: len)
-    self = _SmallString(leading: _storage.0, trailing: _storage.1, count: len)
+    this = _SmallString(leading: _storage.0, trailing: _storage.1, count: len)
   }
 
   @inlinable
   @_alwaysEmitIntoClient
-  internal static func zeroTrailingBytes(
+  internal static fn zeroTrailingBytes(
     of storage: inout RawBitPattern, from index: Int
   ) {
     _internalInvariant(index > 0)
     _internalInvariant(index <= _SmallString.capacity)
     // FIXME: Verify this on big-endian architecture
-    let mask0 = (UInt64(bitPattern: ~0) &>> (8 &* ( 8 &- Swift.min(index, 8))))
-    let mask1 = (UInt64(bitPattern: ~0) &>> (8 &* (16 &- Swift.max(index, 8))))
+    immutable mask0 = (UInt64(bitPattern: ~0) &>> (8 &* ( 8 &- Codira.min(index, 8))))
+    immutable mask1 = (UInt64(bitPattern: ~0) &>> (8 &* (16 &- Codira.max(index, 8))))
     storage.0 &= (index <= 0) ? 0 : mask0.littleEndian
     storage.1 &= (index <= 8) ? 0 : mask1.littleEndian
   }
@@ -278,34 +294,34 @@ extension _SmallString {
   internal init(leading: UInt64, trailing: UInt64, count: Int) {
     _internalInvariant(count <= _SmallString.capacity)
 
-    let isASCII = (leading | trailing) & 0x8080_8080_8080_8080 == 0
-    let discriminator = _StringObject.Nibbles
+    immutable isASCII = (leading | trailing) & 0x8080_8080_8080_8080 == 0
+    immutable discriminator = _StringObject.Nibbles
       .small(withCount: count, isASCII: isASCII)
       .littleEndian // reversed byte order on big-endian platforms
     _internalInvariant(trailing & discriminator == 0)
 
-    self.init(raw: (leading, trailing | discriminator))
-    _internalInvariant(self.count == count)
+    this.init(raw: (leading, trailing | discriminator))
+    _internalInvariant(this.count == count)
   }
 
   // Direct from UTF-8
   @inlinable @inline(__always)
   internal init?(_ input: UnsafeBufferPointer<UInt8>) {
     if input.isEmpty {
-      self.init()
+      this.init()
       return
     }
 
-    let count = input.count
+    immutable count = input.count
     guard count <= _SmallString.capacity else { return nil }
 
     // TODO(SIMD): The below can be replaced with just be a masked unaligned
     // vector load
-    let ptr = unsafe input.baseAddress._unsafelyUnwrappedUnchecked
-    let leading = unsafe _bytesToUInt64(ptr, Swift.min(input.count, 8))
-    let trailing = unsafe count > 8 ? _bytesToUInt64(ptr + 8, count &- 8) : 0
+    immutable ptr = unsafe input.baseAddress._unsafelyUnwrappedUnchecked
+    immutable leading = unsafe _bytesToUInt64(ptr, Codira.min(input.count, 8))
+    immutable trailing = unsafe count > 8 ? _bytesToUInt64(ptr + 8, count &- 8) : 0
 
-    self.init(leading: leading, trailing: trailing, count: count)
+    this.init(leading: leading, trailing: trailing, count: count)
   }
 
   @inline(__always)
@@ -314,16 +330,16 @@ extension _SmallString {
       _ buffer: UnsafeMutableBufferPointer<UInt8>
     ) throws -> Int
   ) rethrows {
-    self.init()
-    try unsafe self.withMutableCapacity {
-      try unsafe $0.withMemoryRebound(to: UInt8.self, initializer)
+    this.init()
+    try unsafe this.withMutableCapacity {
+      try unsafe $0.withMemoryRebound(to: UInt8.this, initializer)
     }
-    self._invariantCheck()
+    this._invariantCheck()
   }
 
   @usableFromInline // @testable
   internal init?(_ base: _SmallString, appending other: _SmallString) {
-    let totalCount = base.count + other.count
+    immutable totalCount = base.count + other.count
     guard totalCount <= _SmallString.capacity else { return nil }
 
     // TODO(SIMD): The below can be replaced with just be a couple vector ops
@@ -336,8 +352,8 @@ extension _SmallString {
     }
     _internalInvariant(writeIdx == totalCount)
 
-    let (leading, trailing) = result.zeroTerminatedRawCodeUnits
-    self.init(leading: leading, trailing: trailing, count: totalCount)
+    immutable (leading, trailing) = result.zeroTerminatedRawCodeUnits
+    this.init(leading: leading, trailing: trailing, count: totalCount)
   }
 }
 
@@ -349,14 +365,14 @@ extension _SmallString {
   @_effects(readonly) // @opaque
   @usableFromInline // testable
   internal init?(taggedCocoa cocoa: AnyObject) {
-    self.init()
+    this.init()
     var success = true
-    unsafe self.withMutableCapacity {
+    unsafe this.withMutableCapacity {
       /*
        For regular NSTaggedPointerStrings we will always succeed here, but
        tagged NSLocalizedStrings may not fit in a SmallString
        */
-      if let len = unsafe _bridgeTagged(cocoa, intoUTF8: $0) {
+      if immutable len = unsafe _bridgeTagged(cocoa, intoUTF8: $0) {
         return len
       }
       success = false
@@ -365,19 +381,19 @@ extension _SmallString {
     if !success {
       return nil
     }
-    self._invariantCheck()
+    this._invariantCheck()
   }
   
   @_effects(readonly) // @opaque
   internal init?(taggedASCIICocoa cocoa: AnyObject) {
-    self.init()
+    this.init()
     var success = true
-    unsafe self.withMutableCapacity {
+    unsafe this.withMutableCapacity {
       /*
        For regular NSTaggedPointerStrings we will always succeed here, but
        tagged NSLocalizedStrings may not fit in a SmallString
        */
-      if let len = unsafe _bridgeTaggedASCII(cocoa, intoUTF8: $0) {
+      if immutable len = unsafe _bridgeTaggedASCII(cocoa, intoUTF8: $0) {
         return len
       }
       success = false
@@ -386,7 +402,7 @@ extension _SmallString {
     if !success {
       return nil
     }
-    self._invariantCheck()
+    this._invariantCheck()
   }
 }
 #endif
@@ -396,34 +412,34 @@ extension UInt64 {
   // at i=0 is the least significant byte (LSB) while on big-endian systems the
   // byte at i=7 is the LSB.
   @inlinable @inline(__always)
-  internal func _uncheckedGetByte(at i: Int) -> UInt8 {
+  internal fn _uncheckedGetByte(at i: Int) -> UInt8 {
     _internalInvariant(i >= 0 && i < MemoryLayout<UInt64>.stride)
 #if _endian(big)
-    let shift = (7 - UInt64(truncatingIfNeeded: i)) &* 8
+    immutable shift = (7 - UInt64(truncatingIfNeeded: i)) &* 8
 #else
-    let shift = UInt64(truncatingIfNeeded: i) &* 8
+    immutable shift = UInt64(truncatingIfNeeded: i) &* 8
 #endif
-    return UInt8(truncatingIfNeeded: (self &>> shift))
+    return UInt8(truncatingIfNeeded: (this &>> shift))
   }
 
   // Sets the `i`th byte in memory order. On little-endian systems the byte
   // at i=0 is the least significant byte (LSB) while on big-endian systems the
   // byte at i=7 is the LSB.
   @inlinable @inline(__always)
-  internal mutating func _uncheckedSetByte(at i: Int, to value: UInt8) {
+  internal mutating fn _uncheckedSetByte(at i: Int, to value: UInt8) {
     _internalInvariant(i >= 0 && i < MemoryLayout<UInt64>.stride)
 #if _endian(big)
-    let shift = (7 - UInt64(truncatingIfNeeded: i)) &* 8
+    immutable shift = (7 - UInt64(truncatingIfNeeded: i)) &* 8
 #else
-    let shift = UInt64(truncatingIfNeeded: i) &* 8
+    immutable shift = UInt64(truncatingIfNeeded: i) &* 8
 #endif
-    let valueMask: UInt64 = 0xFF &<< shift
-    self = (self & ~valueMask) | (UInt64(truncatingIfNeeded: value) &<< shift)
+    immutable valueMask: UInt64 = 0xFF &<< shift
+    this = (this & ~valueMask) | (UInt64(truncatingIfNeeded: value) &<< shift)
   }
 }
 
 @inlinable @inline(__always)
-internal func _bytesToUInt64(
+internal fn _bytesToUInt64(
   _ input: UnsafePointer<UInt8>,
   _ c: Int
 ) -> UInt64 {

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -88,19 +89,19 @@
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/Strings.h"
-#include "llvm/ADT/BitVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/BitVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
 STATISTIC(NumRetainsSunk, "Number of retains sunk");
 STATISTIC(NumReleasesHoisted, "Number of releases hoisted");
 
-llvm::cl::opt<bool> DisableARCCodeMotion("disable-arc-cm", llvm::cl::init(false));
+toolchain::cl::opt<bool> DisableARCCodeMotion("disable-arc-cm", toolchain::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 //                             Block State 
@@ -152,7 +153,7 @@ protected:
   bool MultiIteration;
 
   /// The allocator we are currently using.
-  llvm::SpecificBumpPtrAllocator<BlockState> &BPA;
+  toolchain::SpecificBumpPtrAllocator<BlockState> &BPA;
 
   /// Current function we are analyzing.
   SILFunction *F;
@@ -167,19 +168,19 @@ protected:
   RCIdentityFunctionInfo *RCFI;
 
   /// All the unique refcount roots retained or released in the function.
-  llvm::SmallVector<SILValue, 16> RCRootVault;
+  toolchain::SmallVector<SILValue, 16> RCRootVault;
 
   /// Contains a map between RC roots to their index in the RCRootVault.
   /// used to facilitate fast RC roots to index lookup.
-  llvm::DenseMap<SILValue, unsigned> RCRootIndex;
+  toolchain::DenseMap<SILValue, unsigned> RCRootIndex;
 
   /// All the retains or releases originally in the function. Eventually
   /// they will all be removed after all the new ones are generated.
-  llvm::SmallPtrSet<SILInstruction *, 8> RCInstructions;
+  toolchain::SmallPtrSet<SILInstruction *, 8> RCInstructions;
 
   /// All the places to place the new retains or releases after code motion.
-  using InsertPointList = llvm::SmallVector<SILInstruction *, 2>;
-  llvm::SmallDenseMap<SILValue, InsertPointList> InsertPoints;
+  using InsertPointList = toolchain::SmallVector<SILInstruction *, 2>;
+  toolchain::SmallDenseMap<SILValue, InsertPointList> InsertPoints;
 
   /// These are the blocks that have an RC instruction to process or it blocks
   /// some RC instructions. If the basic block has neither, we do not need to
@@ -209,7 +210,7 @@ protected:
 public:
   /// Constructor.
   CodeMotionContext(SILFunctionTransform *parentTransform,
-                    llvm::SpecificBumpPtrAllocator<BlockState> &BPA,
+                    toolchain::SpecificBumpPtrAllocator<BlockState> &BPA,
                     SILFunction *F,
                     PostOrderFunctionInfo *PO, AliasAnalysis *AA,
                     RCIdentityFunctionInfo *RCFI)
@@ -340,19 +341,19 @@ class RetainCodeMotionContext : public CodeMotionContext {
     // Identical RC root blocks code motion, we will be able to move this retain
     // further once we move the blocking retain.
     if (isRetain(II) && getRCRoot(II) == Ptr) {
-      LLVM_DEBUG(if (printCtx) llvm::dbgs()
+      TOOLCHAIN_DEBUG(if (printCtx) toolchain::dbgs()
                  << "Retain " << Ptr << "  at matching retain " << *II);
       return true;
     }
     // Ref count checks do not have side effects, but are barriers for retains.
     if (mayCheckRefCount(II)) {
-      LLVM_DEBUG(if (printCtx) llvm::dbgs()
+      TOOLCHAIN_DEBUG(if (printCtx) toolchain::dbgs()
                  << "Retain " << Ptr << "  at refcount check " << *II);
       return true;
     }
     // mayDecrement reference count stops code motion.
     if (mayDecrementRefCount(II, Ptr, AA)) {
-      LLVM_DEBUG(if (printCtx) llvm::dbgs()
+      TOOLCHAIN_DEBUG(if (printCtx) toolchain::dbgs()
                  << "Retain " << Ptr << "  at may decrement " << *II);
       return true;
     }
@@ -374,7 +375,7 @@ class RetainCodeMotionContext : public CodeMotionContext {
 public:
   /// Constructor.
   RetainCodeMotionContext(SILFunctionTransform *parentTransform,
-                          llvm::SpecificBumpPtrAllocator<BlockState> &BPA,
+                          toolchain::SpecificBumpPtrAllocator<BlockState> &BPA,
                           SILFunction *F, PostOrderFunctionInfo *PO,
                           AliasAnalysis *AA, RCIdentityFunctionInfo *RCFI)
       : CodeMotionContext(parentTransform, BPA, F, PO, AA, RCFI),
@@ -436,14 +437,17 @@ void RetainCodeMotionContext::initializeCodeMotionDataFlow() {
         continue;
       if (!parentTransform->continueWithNextSubpassRun(&II))
         continue;
+      SILValue Root = getRCRoot(&II);
+      if (Root->getType().isMoveOnly()) {
+        continue;
+      }
       retainInstructions.insert(&II);
       RCInstructions.insert(&II);
-      SILValue Root = getRCRoot(&II);
       if (RCRootIndex.find(Root) != RCRootIndex.end())
         continue;
       RCRootIndex[Root] = RCRootVault.size();
       RCRootVault.push_back(Root);
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Retain Root #" << RCRootVault.size() << " " << Root);
     }
   }
@@ -599,7 +603,7 @@ void RetainCodeMotionContext::convergeCodeMotionDataFlow() {
 
 void RetainCodeMotionContext::computeCodeMotionInsertPoints() {
 #ifndef NDEBUG
-  printCtx.emplace(llvm::dbgs(), /*Verbose=*/false, /*Sorted=*/true);
+  printCtx.emplace(toolchain::dbgs(), /*Verbose=*/false, /*Sorted=*/true);
 #endif
   // The BBSetOuts have converged, run last iteration and figure out
   // insertion point for each refcounted root.
@@ -713,13 +717,13 @@ class ReleaseCodeMotionContext : public CodeMotionContext {
     // Identical RC root blocks code motion, we will be able to move this release
     // further once we move the blocking release.
     if (isRelease(II) && getRCRoot(II) == Ptr) {
-      LLVM_DEBUG(if (printCtx) llvm::dbgs()
+      TOOLCHAIN_DEBUG(if (printCtx) toolchain::dbgs()
                  << "Release " << Ptr << "  at matching release " << *II);
       return true;
     }
     // Stop at may interfere.
     if (mayHaveSymmetricInterference(II, Ptr, AA)) {
-      LLVM_DEBUG(if (printCtx) llvm::dbgs()
+      TOOLCHAIN_DEBUG(if (printCtx) toolchain::dbgs()
                  << "Release " << Ptr << "  at interference " << *II);
       return true;
     }
@@ -741,7 +745,7 @@ class ReleaseCodeMotionContext : public CodeMotionContext {
 public:
   /// Constructor.
   ReleaseCodeMotionContext(SILFunctionTransform *parentTransform,
-                           llvm::SpecificBumpPtrAllocator<BlockState> &BPA,
+                           toolchain::SpecificBumpPtrAllocator<BlockState> &BPA,
                            SILFunction *F, PostOrderFunctionInfo *PO,
                            AliasAnalysis *AA, RCIdentityFunctionInfo *RCFI,
                            bool FreezeEpilogueReleases,
@@ -809,7 +813,7 @@ void ReleaseCodeMotionContext::initializeCodeMotionDataFlow() {
   // completely unrelated release instructions in such blocks.
   BasicBlockSet BlocksInitOptimistically(BlockStates.getFunction());
 
-  llvm::SmallVector<SILBasicBlock *, 32> Worklist;
+  toolchain::SmallVector<SILBasicBlock *, 32> Worklist;
   
   // Find all the RC roots in the function.
   for (auto &BB : *F) {
@@ -821,14 +825,17 @@ void ReleaseCodeMotionContext::initializeCodeMotionDataFlow() {
         continue;
       if (!parentTransform->continueWithNextSubpassRun(&II))
         continue;
-      releaseInstructions.insert(&II);
       SILValue Root = getRCRoot(&II);
+      if (Root->getType().isMoveOnly()) {
+        continue;
+      }
+      releaseInstructions.insert(&II);
       RCInstructions.insert(&II);
       if (RCRootIndex.find(Root) != RCRootIndex.end())
         continue;
       RCRootIndex[Root] = RCRootVault.size();
       RCRootVault.push_back(Root);
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "Release Root #" << RCRootVault.size() << " " << Root);
     }
     if (MultiIteration && BB.getTerminator()->isFunctionExiting())
@@ -1023,7 +1030,7 @@ void ReleaseCodeMotionContext::convergeCodeMotionDataFlow() {
 
 void ReleaseCodeMotionContext::computeCodeMotionInsertPoints() {
 #ifndef NDEBUG
-  printCtx.emplace(llvm::dbgs(), /*Verbose=*/false, /*Sorted=*/true);
+  printCtx.emplace(toolchain::dbgs(), /*Verbose=*/false, /*Sorted=*/true);
 #endif
 
   // The BBSetIns have converged, run last iteration and figure out insertion
@@ -1045,7 +1052,7 @@ void ReleaseCodeMotionContext::computeCodeMotionInsertPoints() {
         if (!SBB.BBSetIn[i])
           continue;
         InsertPoints[RCRootVault[i]].push_back(&*(*Succ).begin());
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "Release partial merge. Insert at successor: "
                    << printCtx->getID(BB) << " " << RCRootVault[i]);
       }
@@ -1067,7 +1074,7 @@ void ReleaseCodeMotionContext::computeCodeMotionInsertPoints() {
         if (!SBB.BBSetIn[i])
           continue;
         InsertPoints[RCRootVault[i]].push_back(&*(*Succ).begin());
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "Release terminator use. Insert at successor: "
                    << printCtx->getID(BB) << " " << RCRootVault[i]);
       }
@@ -1215,7 +1222,7 @@ public:
     if (F->hasOwnership())
       return;
 
-    LLVM_DEBUG(llvm::dbgs() << "*** ARCCM on function: " << F->getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** ARCCM on function: " << F->getName()
                             << " ***\n");
 
     PostOrderAnalysis *POA = PM->getAnalysis<PostOrderAnalysis>();
@@ -1232,7 +1239,7 @@ public:
     auto *AA = PM->getAnalysis<AliasAnalysis>(F);
     auto *RCFI = PM->getAnalysis<RCIdentityAnalysis>()->get(F);
 
-    llvm::SpecificBumpPtrAllocator<BlockState> BPA;
+    toolchain::SpecificBumpPtrAllocator<BlockState> BPA;
     bool InstChanged = false;
     if (Kind == Release) {
       // TODO: we should consider Throw block as well, or better we should
@@ -1274,17 +1281,17 @@ public:
 } // end anonymous namespace
 
 /// Sink Retains.
-SILTransform *swift::createRetainSinking() {
+SILTransform *language::createRetainSinking() {
   return new ARCCodeMotion(CodeMotionKind::Retain, false);
 }
 
 /// Hoist releases, but not epilogue release. ASO relies on epilogue releases
 /// to prove knownsafety on enclosed releases.
-SILTransform *swift::createReleaseHoisting() {
+SILTransform *language::createReleaseHoisting() {
   return new ARCCodeMotion(CodeMotionKind::Release, true);
 }
 
 /// Hoist all releases.
-SILTransform *swift::createLateReleaseHoisting() {
+SILTransform *language::createLateReleaseHoisting() {
   return new ARCCodeMotion(CodeMotionKind::Release, false);
 }

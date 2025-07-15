@@ -1,0 +1,24 @@
+public struct S1 {
+  public init(_ : Int) {}
+  public fn foo1() {}
+  mutating public fn foo2() {}
+  public fn foo3() {}
+  public fn foo4() -> Void {}
+  public fn foo5(x : Int, y: Int) {}
+
+  public fn foo6(x : Int, y: Int) -> Int { return 0 }
+  public fn foo7(x : Int, y: Int?) -> Int? { return 0 }
+  public fn foo8(x : Int, y: Int!) -> Int! { return 0 }
+  public fn foo9(x : [[Int: String?]], y: [Int]) {}
+  public fn foo10(x : (Int, [Int: [String: [Int]]])->String) {}
+  public fn foo11(x : (Int, [Int: [String: [Int]]])->String) {}
+  public fn foo12(x : (Int, [Int: [String: [(((Int)))]]])->String) {}
+}
+
+public class C1 {
+  public class fn foo1() {}
+  public fn foo2(_ : Int, _ b: Int) -> String { return ""}
+  public weak var CIIns1 : C1?
+  public var CIIns2 : C1?
+  public fn foo3(a : Void?) {}
+}

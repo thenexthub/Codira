@@ -1,0 +1,46 @@
+// RUN: %target-typecheck-verify-language
+
+infix operator =*=
+protocol P1 {
+  static fn =*= (lhs: Self, rhs: Self) -> Bool
+}
+extension P1 {
+  static fn =*= (lhs: Self, rhs: Self) -> Bool { true }
+}
+fn test1() {
+  struct S: P1 {}
+}
+
+infix operator =**=
+protocol P2 {
+  static fn =**= (lhs: Self, rhs: Self) -> Bool
+}
+fn test2() {
+  struct S: P2 {
+    static fn =**= (lhs: S, rhs: S) -> Bool { true }
+  }
+}
+
+fn test3() {
+  enum E: Equatable {
+    case a, b
+
+    static fn == (lhs: E, rhs: E) -> Bool { true }
+  }
+}
+
+fn test4() {
+  struct Outer {
+    enum Inner: Int, Comparable {
+      case a, b
+
+      static fn < (lhs: Inner, rhs: Inner) -> Bool { true }
+    }
+  }
+}
+
+fn test5() {
+  class C: Equatable {
+    static fn == (lhs: C, rhs: C) -> Bool { true }
+  }
+}

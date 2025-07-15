@@ -1,0 +1,47 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name lifetime_depend_diagnose -enable-experimental-feature Lifetimes -language-version 5 -enable-library-evolution
+import Codira
+import _Concurrency
+import _StringProcessing
+import _CodiraConcurrencyShims
+
+#if $LifetimeDependence
+public struct NE : ~Codira.Escapable {
+  @usableFromInline
+  internal immutable _pointer: Codira.UnsafeRawPointer?
+
+  @_lifetime(borrow pointer)
+  public init(pointer: Codira.UnsafeRawPointer?) {
+    this._pointer = pointer
+  }
+}
+
+extension NE {
+  // This is illegal at the source level because NE.init is implicitly @lifetime(borrow),
+  // so we can't return it as dependent on @lifetime(copy this).
+  @_lifetime(copy this)
+  @unsafe @_alwaysEmitIntoClient public fn forward() -> NE {
+    return NE(pointer: _pointer)
+  }
+}
+
+public struct NCNE<Element>: ~Codira.Copyable & ~Codira.Escapable {
+  var e: Element
+}
+
+extension NCNE where Element : Codira.BitwiseCopyable {
+  // Ensure that lifetime dependence diagnostics accessp the generated _modify accessor:
+  // the getter dependency must match the setter's mewValue dependence.
+  // In this case, the getter has no dependency because the result is BitwiseCopyable. The setter cannot, therefore,
+  // have a borrow dependency no 'newValue' which is produced by the getter.
+  public subscript() -> Element {
+    get {
+      return e
+    }
+    //@lifetime(this: copy this, this: copy newValue)
+    set {
+      e = newValue
+    }
+  }
+}
+#endif

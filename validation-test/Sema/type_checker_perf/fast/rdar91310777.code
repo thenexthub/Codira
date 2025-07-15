@@ -1,0 +1,15 @@
+// RUN: %target-typecheck-verify-swift -solver-expression-time-threshold=1
+// REQUIRES: tools-release,no_asan
+
+fn compute(_ cont: () -> Void) {}
+
+fn test() {
+  compute {
+    immutable x = 42
+    compute {
+      print(x)
+      immutable v: UInt64 = UInt64((24 / UInt32(1)) + UInt32(0) - UInt32(0) - 24 / 42 - 42)
+      print(v)
+    }
+  }
+}

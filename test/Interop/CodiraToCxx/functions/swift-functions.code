@@ -1,0 +1,73 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h  -cxx-interoperability-mode=upcoming-language
+// RUN: %FileCheck %s < %t/functions.h
+
+import CxxStdlib
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+@_cdecl("cdeclFunction") public fn cdeclFunction(_ x: CInt) {}
+
+// CHECK: LANGUAGE_EXTERN void cdeclFunction(int x) LANGUAGE_NOEXCEPT;
+
+// CHECK-LABEL: namespace Functions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Functions") {
+
+// CHECK-LABEL: namespace _impl {
+
+// CHECK: LANGUAGE_EXTERN void $s9Functions17passIntReturnVoid1xys5Int32V_tF(int x) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // passIntReturnVoid(x:)
+// CHECK: LANGUAGE_EXTERN int $s9Functions016passTwoIntReturnD01x1ys5Int32VAF_AFtF(int x, int y) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // passTwoIntReturnInt(x:y:)
+// CHECK: LANGUAGE_EXTERN int $s9Functions016passTwoIntReturnD10NoArgLabelys5Int32VAD_ADtF(int, int) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // passTwoIntReturnIntNoArgLabel(_:_:)
+// CHECK: LANGUAGE_EXTERN int $s9Functions016passTwoIntReturnD19NoArgLabelParamNameys5Int32VAD_ADtF(int x2, int y2) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // passTwoIntReturnIntNoArgLabelParamName(_:_:)
+// CHECK: LANGUAGE_EXTERN void $s9Functions19passVoidReturnNevers0E0OyF(void) LANGUAGE_NOEXCEPT LANGUAGE_NORETURN LANGUAGE_CALL; // passVoidReturnNever()
+// CHECK: LANGUAGE_EXTERN void $s9Functions014passVoidReturnC0yyF(void) LANGUAGE_NOEXCEPT LANGUAGE_CALL; // passVoidReturnVoid()
+
+// CHECK: }
+
+public fn passIntReturnVoid(x: CInt) { print("passIntReturnVoid \(x)") }
+
+// CHECK: LANGUAGE_INLINE_THUNK void passIntReturnVoid(int x) noexcept LANGUAGE_SYMBOL("s:9Functions17passIntReturnVoid1xys5Int32V_tF") {
+// CHECK: _impl::$s9Functions17passIntReturnVoid1xys5Int32V_tF(x);
+// CHECK: }
+
+public fn passTwoIntReturnInt(x: CInt, y: CInt) -> CInt { return x + y }
+
+// CHECK: LANGUAGE_INLINE_THUNK int passTwoIntReturnInt(int x, int y) noexcept LANGUAGE_SYMBOL("s:9Functions016passTwoIntReturnD01x1ys5Int32VAF_AFtF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK: return Functions::_impl::$s9Functions016passTwoIntReturnD01x1ys5Int32VAF_AFtF(x, y);
+// CHECK: }
+
+public fn passTwoIntReturnIntNoArgLabel(_: CInt, _: CInt) -> CInt {
+  print("passTwoIntReturnIntNoArgLabel")
+  return 42
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK int passTwoIntReturnIntNoArgLabel(int _1, int _2) noexcept LANGUAGE_SYMBOL("s:9Functions016passTwoIntReturnD10NoArgLabelys5Int32VAD_ADtF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK: return Functions::_impl::$s9Functions016passTwoIntReturnD10NoArgLabelys5Int32VAD_ADtF(_1, _2);
+// CHECK: }
+
+public fn passTwoIntReturnIntNoArgLabelParamName(_ x2: CInt, _ y2: CInt) -> CInt { return x2 + y2 }
+
+// CHECK: LANGUAGE_INLINE_THUNK int passTwoIntReturnIntNoArgLabelParamName(int x2, int y2) noexcept LANGUAGE_SYMBOL("s:9Functions016passTwoIntReturnD19NoArgLabelParamNameys5Int32VAD_ADtF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK:   return Functions::_impl::$s9Functions016passTwoIntReturnD19NoArgLabelParamNameys5Int32VAD_ADtF(x2, y2);
+// CHECK: }
+
+public fn passVoidReturnNever() -> Never {
+  print("passVoidReturnNever")
+  fflush(nil) // before exit() call
+  exit(0)
+}
+
+// CHECK-LABEL: LANGUAGE_INLINE_THUNK void passVoidReturnNever() noexcept LANGUAGE_SYMBOL("s:9Functions19passVoidReturnNevers0E0OyF") LANGUAGE_NORETURN {
+// CHECK-NOT: return
+// CHECK-DAG: _impl::$s9Functions19passVoidReturnNevers0E0OyF();
+// CHECK: }
+
+public fn passVoidReturnVoid() { print("passVoidReturnVoid") }
+
+// CHECK: LANGUAGE_INLINE_THUNK void passVoidReturnVoid() noexcept LANGUAGE_SYMBOL("s:9Functions014passVoidReturnC0yyF") {
+// CHECK: _impl::$s9Functions014passVoidReturnC0yyF();
+// CHECK: }
+
+// CHECK: LANGUAGE_INLINE_THUNK void varFunctionSameName
+public fn varFunctionSameName(_ x: CInt) {}
+
+public var varFunctionSameName: CInt = 0

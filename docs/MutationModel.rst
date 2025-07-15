@@ -14,7 +14,7 @@
 Immutability and Read-Only Methods
 ==================================
 
-:Abstract: Swift programmers can already express the concept of
+:Abstract: Codira programmers can already express the concept of
            read-only properties and subscripts, and can express their
            intention to write on a function parameter.  However, the
            model is incomplete, which currently leads to the compiler
@@ -44,7 +44,7 @@ What do we do with this?  Since ``+=`` has an ``inout`` first
 argument, we detect this situation statically (hopefully one day we'll
 have a better error message):
 
-.. code-block:: swift-console
+.. code-block:: language-console
 
  <REPL Input>:1:9: error: expression does not type-check
  w.title += " (parenthesized remark)"
@@ -91,10 +91,10 @@ Otherwise, it is considered **read-only**.
    struct Number {
      init(x: Int) { name = x.toString() }
 
-     func getValue() {              // read-only method
+     fn getValue() {              // read-only method
        return Int(name)
      }
-     **mutating** func increment() {  // mutating method
+     **mutating** fn increment() {  // mutating method
        name = (Int(name)+1).toString()
      }
      var name: String
@@ -253,7 +253,7 @@ unless the method is attributed with ``mutating``:
 
 .. parsed-literal::
 
-  func f(_ x: Int, y: inout Int) {
+  fn f(_ x: Int, y: inout Int) {
     y = x         // ok, y is an inout parameter
     x = y         // **Error:** function parameter 'x' is immutable
   }

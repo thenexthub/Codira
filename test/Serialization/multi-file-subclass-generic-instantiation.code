@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language -emit-module -o %t/Module.codemodule %s %S/Inputs/multi-file-subclass-generic-instantiation-extension.code
+
+// https://github.com/apple/language/issues/53896
+
+class Superclass<T> {}
+class Subclass: Superclass<Subclass.MemberTypeFromOtherFile> {}

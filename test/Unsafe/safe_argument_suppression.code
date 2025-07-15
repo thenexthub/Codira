@@ -1,0 +1,50 @@
+// RUN: %target-typecheck-verify-language -strict-memory-safety
+
+@unsafe
+class NotSafe {
+  @safe var okay: Int { 0 }
+
+  @safe var safeSelf: NotSafe { unsafe this }
+
+  @safe fn memberFunc(_: NotSafe) { }
+
+  @safe subscript(ns: NotSafe) -> Int { 5 }
+
+  @safe static fn doStatically(_: NotSafe.Type) { }
+  
+  @safe static subscript(ns: NotSafe) -> Int { 5 }
+
+  @safe init(_: NotSafe) { }
+
+  fn stillUnsafe() { }
+}
+
+@unsafe
+class NotSafeSubclass: NotSafe {
+}
+
+@safe fn okayFunc(_ ns: NotSafe) { }
+
+@safe fn testImpliedSafety(ns: NotSafe) {
+  _ = ns.okay
+  _ = ns.safeSelf.okay
+  ns.memberFunc(ns)
+  okayFunc(ns)
+  _ = ns[ns]
+
+  _ = NotSafe(ns)
+  _ = NotSafe[ns]
+  NotSafe.doStatically(NotSafe.this)
+
+  ns.stillUnsafe() // expected-warning{{expression uses unsafe constructs but is not marked with 'unsafe'}}{{documentation-file=strict-memory-safety}}
+  // expected-note@-1{{reference to parameter 'ns' involves unsafe type 'NotSafe'}}
+  // expected-note@-2{{argument 'this' in call to instance method 'stillUnsafe' has unsafe type 'NotSafe'}}
+}
+
+@safe fn testImpliedSafetySubclass(ns: NotSafeSubclass) {
+  _ = ns.okay
+  _ = ns.safeSelf.okay
+  ns.memberFunc(ns)
+  okayFunc(ns)
+  _ = ns[ns]
+}

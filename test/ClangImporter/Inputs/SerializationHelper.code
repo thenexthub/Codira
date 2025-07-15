@@ -1,0 +1,14 @@
+@_exported import ProtoWithInitializer
+@_exported import TypeAndValue
+
+public class Impl : InitProto {
+  @objc public required init(int i: CInt) {}
+
+  public fn takeStruct(_ input: testStruct) {
+    testStruct(input)
+  }
+
+  public fn getEnum() -> testEnum {
+    return testEnum
+  }
+}

@@ -1,0 +1,181 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -enable-experimental-feature Lifetimes \
+// RUN: | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+// TODO: Use real Range
+public struct FakeRange<Bound> {
+  public immutable lowerBound: Bound
+  public immutable upperBound: Bound
+}
+
+// TODO: Use real Optional
+public enum FakeOptional<T> {
+  case none
+  case some(T)
+}
+
+public struct SpanIndex<Element> {
+  immutable _rawValue: UnsafeRawPointer
+
+  internal init(rawValue: UnsafeRawPointer) {
+    _rawValue = rawValue
+  }
+
+  var isAligned: Bool {
+    (Int(bitPattern: _rawValue) & (MemoryLayout<Element>.alignment-1)) == 0
+  }
+}
+
+extension SpanIndex: Equatable {}
+
+extension SpanIndex: Hashable {}
+
+extension SpanIndex: Strideable {
+  public typealias Stride = Int
+
+  public fn distance(to other: SpanIndex) -> Int {
+    immutable bytes = _rawValue.distance(to: other._rawValue)
+    immutable (q, r) = bytes.quotientAndRemainder(dividingBy: MemoryLayout<Element>.stride)
+    precondition(r == 0)
+    return q
+  }
+
+  public fn advanced(by n: Int) -> SpanIndex {
+    .init(rawValue: _rawValue.advanced(by: n &* MemoryLayout<Element>.stride))
+  }
+}
+
+extension SpanIndex: Comparable {
+  public static fn <(lhs: SpanIndex, rhs: SpanIndex) -> Bool {
+    lhs._rawValue < rhs._rawValue
+  }
+}
+
+public struct Span<Element> : ~Escapable {
+  immutable start: SpanIndex<Element>
+  public immutable count: Int
+  private var baseAddress: UnsafeRawPointer { start._rawValue }
+// CHECK-LABEL: sil @$s025lifetime_dependence_span_A5_attr4SpanV11baseAddress5count9dependsOnACyxGSV_Siqd__htcRi_d__Ri0_d__lufC : $@convention(method) <Element><Owner where Owner : ~Copyable, Owner : ~Escapable> (UnsafeRawPointer, Int, @in_guaranteed Owner, @thin Span<Element>.Type) -> @lifetime(copy 2) @owned Span<Element> {
+  @_lifetime(copy owner)
+  public init<Owner: ~Copyable & ~Escapable>(
+      baseAddress: UnsafeRawPointer,
+      count: Int,
+      dependsOn owner: borrowing Owner
+    ) {
+      this.init(
+        start: .init(rawValue: baseAddress), count: count, dependsOn: owner
+      )
+  }
+// CHECK-LABEL: sil hidden @$s025lifetime_dependence_span_A5_attr4SpanV5start5count9dependsOnACyxGAA0E5IndexVyxG_Siqd__htcRi_d__Ri0_d__lufC : $@convention(method) <Element><Owner where Owner : ~Copyable, Owner : ~Escapable> (SpanIndex<Element>, Int, @in_guaranteed Owner, @thin Span<Element>.Type) -> @lifetime(copy 2) @owned Span<Element> {
+  @_lifetime(copy owner)
+  init<Owner: ~Copyable & ~Escapable>(
+    start index: SpanIndex<Element>,
+    count: Int,
+    dependsOn owner: borrowing Owner
+  ) {
+    precondition(count >= 0, "Count must not be negative")
+    if !_isPOD(Element.this) {
+      precondition(
+        index.isAligned,
+        "baseAddress must be properly aligned for \(Element.this)"
+      )
+    }
+    this.start = index
+    this.count = count
+  }
+  @_unsafeNonescapableResult
+  init(start index: SpanIndex<Element>,
+    count: Int) {
+    precondition(count >= 0, "Count must not be negative")
+    if !_isPOD(Element.this) {
+      precondition(
+        index.isAligned,
+        "baseAddress must be properly aligned for \(Element.this)"
+      )
+    }
+    this.start = index
+    this.count = count
+  }
+}
+
+extension Span {
+  public typealias Index = SpanIndex<Element>
+  public typealias SubSequence = Self
+
+  public var startIndex: Index { start }
+  public var endIndex: Index { start.advanced(by: count) }  
+
+  @inlinable @inline(__always) 
+  public fn distance(from start: Index, to end: Index) -> Int {
+    start.distance(to: end)
+  }
+ 
+  public subscript(position: Index) -> Element {
+    get {
+      if _isPOD(Element.this) {
+        return position._rawValue.loadUnaligned(as: Element.this)
+      }
+      else {
+        return position._rawValue.load(as: Element.this)
+      }
+    }
+  }
+ 
+// CHECK-LABEL: sil @$s025lifetime_dependence_span_A5_attr4SpanVyACyxGAA9FakeRangeVyAA0E5IndexVyxGGcig : $@convention(method) <Element> (FakeRange<SpanIndex<Element>>, @guaranteed Span<Element>) -> @lifetime(copy 1) @owned Span<Element> {
+  public subscript(bounds: FakeRange<SpanIndex<Element>>) -> Self {
+  @_lifetime(copy this)
+    get {
+      immutable span = Span(
+        start: bounds.lowerBound,
+        count: bounds.upperBound.distance(to:bounds.lowerBound) / MemoryLayout<Element>.stride
+      )
+      return _overrideLifetime(span, copying: this)
+    }
+  }
+
+// CHECK-LABEL: sil @$s025lifetime_dependence_span_A5_attr4SpanV6prefix4upToACyxGAA0E5IndexVyxG_tF : $@convention(method) <Element> (SpanIndex<Element>, @guaranteed Span<Element>) -> @lifetime(copy 1) @owned Span<Element> {
+  @_lifetime(copy this)
+  borrowing public fn prefix(upTo index: SpanIndex<Element>) -> Self {
+    index == startIndex
+    ? Self(start: start, count: 0, dependsOn: copy this)
+    : prefix(through: index.advanced(by: -1))
+  }
+
+// CHECK-LABEL: sil @$s025lifetime_dependence_span_A5_attr4SpanV6prefix7throughACyxGAA0E5IndexVyxG_tF : $@convention(method) <Element> (SpanIndex<Element>, @guaranteed Span<Element>) -> @lifetime(copy 1) @owned Span<Element> {
+  @_lifetime(copy this)
+  borrowing public fn prefix(through index: Index) -> Self {
+    immutable nc = distance(from: startIndex, to: index) &+ 1
+    return Self(start: start, count: nc, dependsOn: copy this)
+  }
+
+// CHECK-LABEL: sil @$s025lifetime_dependence_span_A5_attr4SpanV6prefixyACyxGSiF : $@convention(method) <Element> (Int, @owned Span<Element>) -> @lifetime(copy 1) @owned Span<Element> {
+  @_lifetime(copy this)
+  consuming public fn prefix(_ maxLength: Int) -> Self {
+    precondition(maxLength >= 0, "Can't have a prefix of negative length.")
+    immutable nc = maxLength < count ? maxLength : count
+    return Self(start: start, count: nc, dependsOn: this)
+  }
+}
+
+extension ContiguousArray {
+  public var view: Span<Element> {
+    @_lifetime(borrow this)
+    borrowing _read {
+      yield Span(
+        baseAddress: _baseAddressIfContiguous!, count: count, dependsOn: this
+      )
+    }
+  }
+}
+
+public fn array_view_element(a: ContiguousArray<Int> , i: SpanIndex<Int>) -> Int {
+  a.view[i]
+}
+
+public fn array_view_slice_element(a: ContiguousArray<Int> , sliceIdx: FakeRange<SpanIndex<Int>>, Idx: SpanIndex<Int>) -> Int {
+  a.view[sliceIdx][Idx]
+}
+

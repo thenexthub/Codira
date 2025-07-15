@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_ARRAYSEMANTIC_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_ARRAYSEMANTIC_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_ARRAYSEMANTIC_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_ARRAYSEMANTIC_H
 
 #include "language/SIL/SILInstruction.h"
 
@@ -195,7 +196,7 @@ public:
   /// copy_addr, which implies that arrays with address-only types would not
   /// be recognized by this function as yet.
   bool mapInitializationStores(
-      llvm::DenseMap<uint64_t, StoreInst *> &ElementStoreMap);
+      toolchain::DenseMap<uint64_t, StoreInst *> &ElementStoreMap);
 
 protected:
   /// Validate the signature of this call.

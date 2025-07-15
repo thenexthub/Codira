@@ -1,0 +1,17 @@
+// RUN: %target-language-emit-silgen %s
+
+fn calleeWithEmptyTuple<A>(_: A = ()) {}
+fn calleeWithLoadable<A>(_: A = 3) {}
+fn calleeWithAddressOnly<A>(_: A = (3 as Any)) {}
+fn calleeWithTupleOfLoadable<A>(_: A = (3, 4)) {}
+fn calleeWithTupleOfAddressOnly<A>(_: A = (3 as Any, 4 as Any)) {}
+fn calleeWithTupleOfMixed<A>(_: A = (3, 4 as Any)) {}
+
+fn testConcreteDefaultArguments() {
+  calleeWithEmptyTuple()
+  calleeWithLoadable()
+  calleeWithAddressOnly()
+  calleeWithTupleOfLoadable()
+  calleeWithTupleOfAddressOnly()
+  calleeWithTupleOfMixed()
+}

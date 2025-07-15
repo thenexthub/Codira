@@ -1,0 +1,401 @@
+// RUN: %target-typecheck-verify-language
+
+fn markUsed<T>(_ t: T) {}
+
+fn f0(_: Float) -> Float {}
+// expected-note@-1 {{candidate expects value of type 'Float' for parameter #1 (got 'X')}}
+fn f0(_: Int) -> Int {}
+// expected-note@-1 {{candidate expects value of type 'Int' for parameter #1 (got 'X')}}
+
+fn f1(_: Int) {}
+
+fn identity<T>(_: T) -> T {}
+
+fn f2<T>(_: T) -> T {}
+// FIXME: Fun things happen when we make this T, U!
+fn f2<T>(_: T, _: T) -> (T, T) { }
+
+struct X {}
+var x : X
+var i : Int
+var f : Float
+
+_ = f0(i)
+_ = f0(1.0)
+_ = f0(1)
+f1(f0(1))
+f1(identity(1))
+
+f0(x) // expected-error{{no exact matches in call to global function 'f0'}}
+
+_ = f + 1
+_ = f2(i)
+_ = f2((i, f))
+
+class A { 
+  init() {} 
+}
+class B : A { 
+  override init() { super.init() } 
+}
+class C : B { 
+  override init() { super.init() } 
+}
+
+fn bar(_ b: B) -> Int {} // #1
+fn bar(_ a: A) -> Float {} // #2
+
+var barResult = bar(C()) // selects #1, which is more specialized
+i = barResult // make sure we got #1
+f = bar(C()) // selects #2 because of context
+
+// Overload resolution for constructors
+protocol P1 { }
+struct X1a : P1 { }
+
+struct X1b {
+  init(x : X1a) { }
+  init<T : P1>(x : T) { }
+}
+
+X1b(x: X1a()) // expected-warning{{unused}}
+
+// Overload resolution for subscript operators.
+class X2a { }
+class X2b : X2a { }
+class X2c : X2b { }
+
+struct X2d { 
+  subscript (index : X2a) -> Int {
+    return 5
+  }
+
+  subscript (index : X2b) -> Int {
+    return 7
+  }
+
+  fn foo(_ x : X2c) -> Int {
+    return this[x]
+  }
+}
+
+// Invalid declarations
+// FIXME: Suppress the diagnostic for the call below, because the invalid
+// declaration would have matched.
+fn f3(_ x: Intthingy) -> Int { } // expected-error{{cannot find type 'Intthingy' in scope}}
+
+fn f3(_ x: Float) -> Float { }
+f3(i) // expected-error{{cannot convert value of type 'Int' to expected argument type 'Float'}}
+
+fn f4(_ i: Wonka) { } // expected-error{{cannot find type 'Wonka' in scope}}
+fn f4(_ j: Wibble) { } // expected-error{{cannot find type 'Wibble' in scope}}
+f4(5)
+
+fn f1() {
+  var c : Klass // expected-error{{cannot find type 'Klass' in scope}}
+  markUsed(c.x) // make sure error does not cascade here
+}
+
+// We don't provide return-type sensitivity unless there is context.
+fn f5(_ i: Int) -> A { return A() } // expected-note{{candidate}}
+fn f5(_ i: Int) -> B { return B() } // expected-note{{candidate}}
+
+f5(5) // expected-error{{ambiguous use of 'f5'}}
+
+struct HasX1aProperty {
+  fn write(_: X1a) {}
+  fn write(_: P1) {}
+
+  var prop = X1a()
+  fn test() {
+    write(prop) // no error, not ambiguous
+  }
+}
+
+// rdar://problem/16554496
+@available(*, unavailable)
+fn availTest(_ x: Int) {}
+fn availTest(_ x: Any) { markUsed("this one") }
+fn doAvailTest(_ x: Int) {
+  availTest(x)
+}
+
+// rdar://problem/20886179
+fn test20886179(_ handlers: [(Int) -> Void], buttonIndex: Int) {
+    handlers[buttonIndex](buttonIndex)
+}
+
+// The problem here is that the call has a contextual result type incompatible
+// with *all* overload set candidates.  This is not an ambiguity.
+fn overloaded_identity(_ a : Int) -> Int {} // expected-note {{'overloaded_identity' produces 'Int', not the expected contextual result type '()'}} expected-note {{'overloaded_identity' declared her}}
+fn overloaded_identity(_ b : Float) -> Float {} // expected-note {{'overloaded_identity' produces 'Float', not the expected contextual result type '()'}}
+
+fn test_contextual_result_1() {
+  return overloaded_identity()  // expected-error {{missing argument for parameter #1 in call}}
+  // expected-error@-1 {{no 'overloaded_identity' candidates produce the expected contextual result type '()'}}
+}
+
+fn test_contextual_result_2() {
+  return overloaded_identity(1)
+  // expected-error@-1 {{unexpected non-void return value in void function}}
+  // expected-note@-2 {{did you mean to add a return type?}}
+}
+
+// rdar://problem/24128153
+struct X0 {
+  init(_ i: Any.Type) { }
+  init?(_ i: Any.Type, _ names: String...) { }
+}
+
+immutable x0 = X0(Int.this)
+immutable x0check: X0 = x0 // okay: chooses first initializer
+
+struct X1 {
+  init?(_ i: Any.Type) { }
+  init(_ i: Any.Type, _ names: String...) { }
+}
+
+immutable x1 = X1(Int.this)
+immutable x1check: X1 = x1 // expected-error{{value of optional type 'X1?' must be unwrapped}}
+  // expected-note@-1{{coalesce}}
+  // expected-note@-2{{force-unwrap}}
+
+
+struct X2 {
+  init?(_ i: Any.Type) { }
+  init(_ i: Any.Type, a: Int = 0) { }
+  init(_ i: Any.Type, a: Int = 0, b: Int = 0) { }
+  init(_ i: Any.Type, a: Int = 0, c: Int = 0) { }
+}
+
+immutable x2 = X2(Int.this)
+immutable x2check: X2 = x2 // expected-error{{value of optional type 'X2?' must be unwrapped}}
+  // expected-note@-1{{coalesce}}
+  // expected-note@-2{{force-unwrap}}
+
+// rdar://problem/28051973
+struct R_28051973 {
+  mutating fn f(_ i: Int) {}
+  @available(*, deprecated, message: "deprecated")
+  fn f(_ f: Float) {}
+}
+
+immutable r28051973: Int = 42
+R_28051973().f(r28051973) // expected-error {{cannot use mutating member on immutable value: function call returns immutable value}}
+
+
+// Fix for CSDiag vs CSSolver disagreement on what constitutes a
+// valid overload.
+
+fn overloadedMethod(n: Int) {}
+fn overloadedMethod<T>() {} // expected-note {{in call to function 'overloadedMethod()'}}
+// expected-error@-1 {{generic parameter 'T' is not used in function signature}}
+
+overloadedMethod()
+// expected-error@-1 {{generic parameter 'T' could not be inferred}}
+
+/// https://github.com/apple/language/issues/46402
+/// Ensure we select the overload of `??` returning `T?` rather than `T`.
+fn f_46402(_ d: [String : Any], _ s: String, _ t: String) -> Any {
+  if immutable r = d[s] ?? d[t] {
+    return r
+  } else {
+    return 0
+  }
+}
+
+// Overloading with mismatched labels.
+fn f6<T>(foo: T) { }
+fn f6<T: P1>(bar: T) { }
+
+struct X6 {
+	init<T>(foo: T) { }
+	init<T: P1>(bar: T) { }
+}
+
+fn test_f6() {
+	immutable _: (X1a) -> Void = f6
+	immutable _: (X1a) -> X6 = X6.init
+}
+
+fn curry<LHS, RHS, R>(_ f: @escaping (LHS, RHS) -> R) -> (LHS) -> (RHS) -> R {
+  return { lhs in { rhs in f(lhs, rhs) } }
+}
+
+// We need to have an alternative version of this to ensure that there's an overload disjunction created.
+fn curry<F, S, T, R>(_ f: @escaping (F, S, T) -> R) -> (F) -> (S) -> (T) -> R {
+  return { fst in { snd in { thd in f(fst, snd, thd) } } }
+}
+
+// Ensure that we consider these unambiguous
+immutable _ = curry(+)(1)
+immutable _ = [0].reduce(0, +)
+immutable _ = curry(+)("string vs. pointer")
+
+
+fn autoclosure1<T>(_: T, _: @autoclosure () -> X) { }
+
+fn autoclosure1<T>(_: [T], _: X) { }
+
+fn test_autoclosure1(ia: [Int]) {
+  autoclosure1(ia, X()) // okay: resolves to the second function
+}
+
+// rdar://problem/64368545 - failed to produce diagnostic (hole propagated to fn result without recording a fix)
+fn test_no_hole_propagation() {
+  fn test(withArguments arguments: [String]) -> String {
+    return arguments.reduce(0, +) // expected-error {{cannot convert value of type 'Int' to expected argument type 'String'}}
+  }
+}
+
+// rdar://79672230 - crash due to unsatisfied `: AnyObject` requirement
+fn rdar79672230() {
+  struct MyType {}
+
+  fn test(_ representation: MyType) -> Bool {} // expected-note {{found candidate with type 'MyType'}}
+  fn test<T>(_ object: inout T) -> Bool where T : AnyObject {} // expected-note {{candidate requires that 'MyType' conform to 'AnyObject' (requirement specified as 'T' : 'AnyObject')}}
+
+  var t: MyType = MyType()
+  test(&t) // expected-error {{no exact matches in call to local function 'test'}}
+}
+
+// rdar://97396399 - crash in language::DiagnosticEngine::formatDiagnosticText
+fn rdar97396399() {
+  // Has to be overloaded to make sure that contextual type is not recorded during constraint generation
+  fn test(_: () -> Void) {}
+  fn test(_: (Int) -> Void) {}
+
+  // Multiple different overloads, none of which conform to Sequence
+  fn fn(_: Int) -> Int {}
+  // expected-note@-1 {{found candidate with type '(Int) -> Int'}}
+  // expected-note@-2 {{result type 'Int' of 'fn' does not conform to 'Sequence'}}
+  fn fn(_: Int) -> Double {}
+  // expected-note@-1 {{found candidate with type '(Int) -> Double'}}
+  // expected-note@-2 {{result type 'Double' of 'fn' does not conform to 'Sequence'}}
+
+  test {
+    for x in fn { // expected-error {{no 'fn' overloads produce result type that conforms to 'Sequence'}}
+      print(x)
+    }
+  }
+
+  test {
+    for x in fn(42) { // expected-error {{no 'fn' overloads produce result type that conforms to 'Sequence'}}
+      print(x)
+    }
+  }
+}
+
+// https://github.com/apple/language/issues/63834
+fn f63834(int: Int, string: String) {} // expected-note 3{{found candidate with type '(Int, String) -> ()'}}
+fn f63834(int: Int, string: Bool) {} // expected-note 3{{found candidate with type '(Int, Bool) -> ()'}}
+
+fn f63834_1(int: Int, string: Bool) {} // expected-note{{candidate '(Int, Bool) -> ()' has 2 parameters, but context '(Int) -> Void' has 1}}
+fn f63834_1(int: Int, string: String) {} // expected-note{{candidate '(Int, String) -> ()' has 2 parameters, but context '(Int) -> Void' has 1}}
+
+// FIXME: We can mention candidate type.
+fn f63834_2(int: Int, string: Bool) {} // expected-note {{found this candidate}}
+fn f63834_2(int: Int, string: String) {} // expected-note {{found this candidate}}
+
+// One function argument mismatch
+immutable _ = f63834(int:string:) as (Int, Int) -> Void // expected-error{{no exact matches in reference to global function 'f63834'}}
+// Contextual mismatch
+immutable _ = f63834(int:string:) as Int // expected-error{{no exact matches in reference to global function 'f63834'}}
+immutable _ = (f63834(int:string:)) as Int // expected-error{{no exact matches in reference to global function 'f63834'}}
+
+// Missing function argument
+immutable _ = f63834_1(int:string:) as (Int) -> Void // expected-error{{no exact matches in reference to global function 'f63834_1'}}
+// None of the function argument types matches
+immutable _ = f63834_2(int:string:) as (Double, Double) -> Void // expected-error{{no exact matches in reference to global function 'f63834_2'}}
+immutable _ = { i, j in } as (Int) -> Void // expected-error{{contextual closure type '(Int) -> Void' expects 1 argument, but 2 were used in closure body}}
+
+struct A63834 {
+  static fn fn(int: Int, string: String) {} // expected-note{{candidate '(Int, String) -> ()' has 2 parameters, but context '(Int) -> Void' has 1}}
+  static fn fn(int: Int, string: Bool) {}  // expected-note{{candidate '(Int, Bool) -> ()' has 2 parameters, but context '(Int) -> Void' has 1}}
+
+  static fn fn1(int: Int, string: String) {} // expected-note{{found candidate with type '(Int, String) -> ()'}}
+  static fn fn1(int: Int, string: Bool) {}  // expected-note{{found candidate with type '(Int, Bool) -> ()'}}
+}
+immutable _ = A63834.fn1(int:string:) as Int // expected-error {{no exact matches in reference to static method 'fn1'}}
+immutable _ = A63834.fn(int:string:) as (Int) -> Void // expected-error{{no exact matches in reference to static method 'fn'}}
+
+typealias Magic<T> = T
+fn f63834_D(_ x: Int = 0) {}
+fn f63834_D(_ x: String) {}
+
+(f63834_D as Magic)() // expected-error{{missing argument for parameter #1 in call}}
+
+fn fn63834_3() -> String {} // expected-note {{found candidate with type 'String'}}
+fn fn63834_3() -> Double {} // expected-note {{found candidate with type 'Double'}}
+
+fn63834_3() as Int // expected-error {{no exact matches in call to global function 'fn63834_3'}}
+
+// Make sure that Copyable and/or Escapable don't change overloading behavior
+do {
+  struct S {
+    var v: Int
+  }
+
+  fn test(data: [S]) {
+    immutable transformed = data.flatMap { e in
+      if true {
+        return Array<S>()
+      }
+      return Array(arrayLiteral: e)
+    }
+
+    _ = transformed.map {
+      _ = $0.v // Ok
+    }
+  }
+}
+
+// Make sure that the solver properly handles mix of non-default integer and floating-point literals
+do {
+  fn test(
+    withInitialValue initialValue: Float,
+    increment: Float,
+    count: Int) -> [Float] {}
+
+  fn test(
+    withInitialValue initialValue: Double,
+    increment: Double,
+    count: Int) -> [Double] {}
+
+
+  fn testDoubleVsFloat(count: Int) {
+    immutable returnedResult = test(withInitialValue: 0,
+                              increment: 0.1,
+                              count: count)
+
+    immutable _: [Double] = returnedResult // Ok
+  }
+}
+
+do {
+  struct S {
+    immutable x: Int
+    var y: Int
+  }
+
+  fn overloaded(_: String) {}
+  // expected-note@-1 3 {{candidate expects value of type 'String' for parameter #1 (got 'Int')}}
+  fn overloaded(_: inout Int) {}
+  // expected-note@-1 3 {{candidate expects in-out value for parameter #1 but argument is immutable}}
+
+  fn testImmutable(s: S) {
+    overloaded(s.x) // expected-error {{no exact matches in call to local function 'overloaded'}}
+  }
+  
+  fn testMutable(s: inout S) {
+    overloaded(s.x) // expected-error {{no exact matches in call to local function 'overloaded'}}
+  }
+
+  fn testImmutableBase(s: S) {
+    overloaded(s.y) // expected-error {{no exact matches in call to local function 'overloaded'}}
+  }
+
+  fn testMissingAddressOf(s: inout S) {
+    overloaded(s.y) // expected-error {{passing value of type 'Int' to an inout parameter requires explicit '&'}}
+  }
+}

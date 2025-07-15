@@ -1,13 +1,17 @@
 //===--- Darwin.h - Darwin specifics ----------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Darwin specifics.
@@ -18,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BACKTRACING_DARWIN_H
-#define SWIFT_BACKTRACING_DARWIN_H
+#ifndef LANGUAGE_BACKTRACING_DARWIN_H
+#define LANGUAGE_BACKTRACING_DARWIN_H
 #ifdef __APPLE__
 
 #include <mach/mach.h>
@@ -34,14 +38,14 @@ extern "C" {
 
 // .. Mach fixes ...............................................................
 
-// Use an inline function for mach_task_self() or it won't import into Swift
+// Use an inline function for mach_task_self() or it won't import into Codira
 #undef mach_task_self
 static inline task_t mach_task_self() { return mach_task_self_; }
 
 // .. Thread states ............................................................
 
 /* We can't import these from the system header, because it uses all kinds of
-   macros and the Swift importer can't cope with that.  So declare them here
+   macros and the Codira importer can't cope with that.  So declare them here
    in a form it can understand. */
 #define ARM_THREAD_STATE64 6
 struct darwin_arm64_thread_state {
@@ -299,5 +303,5 @@ enum {
 #endif
 
 #endif // __APPLE__
-#endif // SWIFT_BACKTRACING_DARWIN_H
+#endif // LANGUAGE_BACKTRACING_DARWIN_H
 

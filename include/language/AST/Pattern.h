@@ -1,4 +1,4 @@
-//===--- Pattern.h - Swift Language Pattern-Matching ASTs -------*- C++ -*-===//
+//===--- Pattern.h - Codira Language Pattern-Matching ASTs -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Pattern class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PATTERN_H
-#define SWIFT_PATTERN_H
+#ifndef LANGUAGE_PATTERN_H
+#define LANGUAGE_PATTERN_H
 
 #include "language/Basic/AnyValue.h"
 #include "language/Basic/SourceLoc.h"
@@ -26,13 +27,13 @@
 #include "language/AST/ASTAllocated.h"
 #include "language/AST/Decl.h"
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/AST/TypeAlignments.h"
 #include "language/Basic/InlineBitfield.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
   class ASTContext;
@@ -65,37 +66,37 @@ enum class DescriptivePatternKind : uint8_t {
   Let
 };
 
-/// Pattern - Base class for all patterns in Swift.
+/// Pattern - Base class for all patterns in Codira.
 class alignas(8) Pattern : public ASTAllocated<Pattern> {
 protected:
   // clang-format off
   union { uint64_t OpaqueBits;
 
-  SWIFT_INLINE_BITFIELD_BASE(Pattern, bitmax(NumPatternKindBits,8)+1+1,
+  LANGUAGE_INLINE_BITFIELD_BASE(Pattern, bitmax(NumPatternKindBits,8)+1+1,
     Kind : bitmax(NumPatternKindBits,8),
     isImplicit : 1,
     hasInterfaceType : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TuplePattern, Pattern, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(TuplePattern, Pattern, 32,
     : NumPadBits,
     NumElements : 32
   );
 
-  SWIFT_INLINE_BITFIELD(TypedPattern, Pattern, 1,
+  LANGUAGE_INLINE_BITFIELD(TypedPattern, Pattern, 1,
     IsPropagatedType : 1
   );
 
-  SWIFT_INLINE_BITFIELD(BoolPattern, Pattern, 1,
+  LANGUAGE_INLINE_BITFIELD(BoolPattern, Pattern, 1,
     Value : 1
   );
 
-  SWIFT_INLINE_BITFIELD(BindingPattern, Pattern, 2,
+  LANGUAGE_INLINE_BITFIELD(BindingPattern, Pattern, 2,
     /// Corresponds to VarDecl::Introducer
     Introducer : 2
   );
 
-  SWIFT_INLINE_BITFIELD(AnyPattern, Pattern, 1,
+  LANGUAGE_INLINE_BITFIELD(AnyPattern, Pattern, 1,
                         /// True if this is an "async let _"  pattern.
                         IsAsyncLet : 1);
 
@@ -197,7 +198,7 @@ public:
 
   /// apply the specified function to all variables referenced in this
   /// pattern.
-  void forEachVariable(llvm::function_ref<void(VarDecl *)> f) const;
+  void forEachVariable(toolchain::function_ref<void(VarDecl *)> f) const;
 
   /// Returns true if \p vd is in the pattern.
   bool containsVarDecl(const VarDecl *inputVD) const {
@@ -208,10 +209,10 @@ public:
 
   /// apply the specified function to all pattern nodes recursively in
   /// this pattern.  This is a pre-order traversal.
-  void forEachNode(llvm::function_ref<void(Pattern *)> f);
+  void forEachNode(toolchain::function_ref<void(Pattern *)> f);
 
-  void forEachNode(llvm::function_ref<void(const Pattern *)> f) const {
-    llvm::function_ref<void(Pattern *)> f2 = f;
+  void forEachNode(toolchain::function_ref<void(const Pattern *)> f) const {
+    toolchain::function_ref<void(Pattern *)> f2 = f;
     const_cast<Pattern *>(this)->forEachNode(f2);
   }
 
@@ -248,9 +249,9 @@ public:
 
   //*** Allocation Routines ************************************************/
 
-  void print(llvm::raw_ostream &OS,
+  void print(toolchain::raw_ostream &OS,
              const PrintOptions &Options = PrintOptions()) const;
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, unsigned Indent = 0) const;
 
   /// walk - This recursively walks the AST rooted at this pattern.
@@ -319,7 +320,7 @@ public:
 
 /// A pattern consisting of a tuple of patterns.
 class TuplePattern final : public Pattern,
-    private llvm::TrailingObjects<TuplePattern, TuplePatternElt> {
+    private toolchain::TrailingObjects<TuplePattern, TuplePatternElt> {
   friend TrailingObjects;
   SourceLoc LPLoc, RPLoc;
   // Bits.TuplePattern.NumElements
@@ -718,14 +719,14 @@ public:
 /// The match will be tested using user-defined '~=' operator function lookup;
 /// the match succeeds if 'patternValue ~= matchedValue' produces a true value.
 class ExprPattern : public Pattern {
-  llvm::PointerIntPair<Expr *, 1, bool> SubExprAndIsResolved;
+  toolchain::PointerIntPair<Expr *, 1, bool> SubExprAndIsResolved;
 
   DeclContext *DC;
 
   /// A synthesized call to the '~=' operator comparing the match expression
   /// on the left to the matched value on the right, pairend with a record of the
   /// ownership of the subject operand.
-  mutable llvm::PointerIntPair<Expr *, 2, ValueOwnership>
+  mutable toolchain::PointerIntPair<Expr *, 2, ValueOwnership>
     MatchExprAndOperandOwnership{nullptr, ValueOwnership::Default};
 
   /// An implicit variable used to represent the RHS value of the synthesized
@@ -879,18 +880,18 @@ inline Pattern *Pattern::getSemanticsProvidingPattern() {
 /// Describes a pattern and the context in which it occurs.
 class ContextualPattern {
   /// The pattern and whether this is the top-level pattern.
-  llvm::PointerIntPair<Pattern *, 1, bool> patternAndTopLevel;
+  toolchain::PointerIntPair<Pattern *, 1, bool> patternAndTopLevel;
 
   /// Either the declaration context or the enclosing pattern binding
   /// declaration.
-  llvm::PointerUnion<PatternBindingDecl *, DeclContext *> declOrContext;
+  toolchain::PointerUnion<PatternBindingDecl *, DeclContext *> declOrContext;
 
   /// Index into the pattern binding declaration, when there is one.
   unsigned index = 0;
 
   ContextualPattern(
       Pattern *pattern, bool topLevel,
-      llvm::PointerUnion<PatternBindingDecl *, DeclContext *> declOrContext,
+      toolchain::PointerUnion<PatternBindingDecl *, DeclContext *> declOrContext,
       unsigned index
     ) : patternAndTopLevel(pattern, topLevel),
         declOrContext(declOrContext),
@@ -942,8 +943,8 @@ public:
   /// expression.
   bool allowsInference() const;
 
-  friend llvm::hash_code hash_value(const ContextualPattern &pattern) {
-    return llvm::hash_combine(pattern.getPattern(),
+  friend toolchain::hash_code hash_value(const ContextualPattern &pattern) {
+    return toolchain::hash_combine(pattern.getPattern(),
                               pattern.isTopLevel(),
                               pattern.declOrContext);
   }
@@ -960,8 +961,8 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const ContextualPattern &pattern);
-void simple_display(llvm::raw_ostream &out, const Pattern *pattern);
+void simple_display(toolchain::raw_ostream &out, const ContextualPattern &pattern);
+void simple_display(toolchain::raw_ostream &out, const Pattern *pattern);
 
 SourceLoc extractNearestSourceLoc(const Pattern *pattern);
 

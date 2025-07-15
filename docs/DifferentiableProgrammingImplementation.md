@@ -1,4 +1,4 @@
-# Swift Differentiable Programming Implementation Overview
+# Codira Differentiable Programming Implementation Overview
 
 - Authors: [Dan Zheng](https://github.com/dan-zheng), [Bart Chrzaszcz](https://github.com/bartchr808)
 - Status: Draft, work in progress.
@@ -12,7 +12,7 @@
     - [Typing rules](#typing-rules)
     - [Registration](#registration)
 - [Background](#background)
-    - [The Swift compilation pipeline](#the-swift-compilation-pipeline)
+    - [The Codira compilation pipeline](#the-language-compilation-pipeline)
     - [Differentiation in the compilation pipeline](#differentiation-in-the-compilation-pipeline)
 - [Two triggers of differentiation](#two-triggers-of-differentiation)
     - [The `@differentiable` declaration attribute](#the-differentiable-declaration-attribute)
@@ -30,18 +30,18 @@
 
 ## Introduction
 
-This document explains how differentiation is implemented in the Swift compiler, stage by stage. Namely, it answers the following questions:
+This document explains how differentiation is implemented in the Codira compiler, stage by stage. Namely, it answers the following questions:
 
-```swift
+```language
 // From the standard library:
-// func gradient<T, R>(at x: T, of f: @differentiable (T) -> R) -> T.TangentVector
+// fn gradient<T, R>(at x: T, of f: @differentiable (T) -> R) -> T.TangentVector
 // where R: FloatingPoint, R.TangentVector == R
 
 // 1. What does the `@differentiable` attribute do?
 // Answer: the attribute marks `cubed` as a differentiable function declaration.
 // The compiler will verify that `cubed` is indeed differentiable.
 @differentiable
-func cubed(_ x: Float) -> Float {
+fn cubed(_ x: Float) -> Float {
     return x * x * x
 }
 
@@ -55,17 +55,17 @@ gradient(at: 4, of: { x in x * x * x }) // 48.0
 ```
 
 > NOTE:
-> - Please see the [Swift Differentiable Programming Manifesto](DifferentiableProgramming.md) for background and a holistic overview of differentiable programming in Swift.
-> - This document describes the current implementation of differentiation in Swift. Some details may differ from [Swift Differentiable Programming Manifesto](DifferentiableProgramming.md), which describes the final design for differentiation in Swift. As the implementation of differentiation changes, this document will be updated accordingly.
+> - Please see the [Codira Differentiable Programming Manifesto](DifferentiableProgramming.md) for background and a holistic overview of differentiable programming in Codira.
+> - This document describes the current implementation of differentiation in Codira. Some details may differ from [Codira Differentiable Programming Manifesto](DifferentiableProgramming.md), which describes the final design for differentiation in Codira. As the implementation of differentiation changes, this document will be updated accordingly.
 
 ## Overview
 
-Swift supports first-class, language-integrated differentiable programming. This includes the following components:
+Codira supports first-class, language-integrated differentiable programming. This includes the following components:
 - [The `Differentiable` protocol](DifferentiableProgramming.md#the-differentiable-protocol): a protocol that generalizes all data structures that can be a parameter or result of a differentiable function.
 - [The `@differentiable` declaration attribute](DifferentiableProgramming.md#the-differentiable-declaration-attribute): used to mark function-like declarations (function declarations, initializers, properties, and subscripts) as being differentiable.
 - [Differentiable function types](DifferentiableProgramming.md#differentiable-function-types): subtypes of normal function types, with a different runtime representation and calling convention. Differentiable function types have differentiable parameters and results.
 - [Differential operators](DifferentiableProgramming.md#differential-operators): core differentiation APIs. Differential operators are higher-order functions that take `@differentiable` functions as inputs and return derivative functions or evaluate derivative values.
-- [The differentiation transform](#the-differentiation-transform): a compiler transformation on the Swift Intermediate Language (SIL) that implements automatic differentiation and generates derivative functions. The differentiation transform is explained in this document.
+- [The differentiation transform](#the-differentiation-transform): a compiler transformation on the Codira Intermediate Language (SIL) that implements automatic differentiation and generates derivative functions. The differentiation transform is explained in this document.
 
 ## Terminology
 
@@ -79,7 +79,7 @@ Consider a function with type `(T0, ...) -> U`, where `T0, ..., U` all conform t
 
 The JVP function type is:
 
-```swift
+```language
 //  (T0, ...)      ->  (U,    (T0.TangentVector, ...) -> (U.TangentVector))
 //   ^                  ^      ^~~~~~~~~~~~~~~~~~~~~      ^~~~~~~~~~~~~~~
 //  original args   result      derivative wrt args    derivative wrt result
@@ -91,7 +91,7 @@ The JVP function returns a tuple with two elements:
 
 The VJP function type is:
 
-```swift
+```language
 //  (T0, ...)      ->  (U,    (U.TangentVector)   -> (T0.TangentVector, ...))
 //   ^                  ^      ^~~~~~~~~~~~~~~        ^~~~~~~~~~~~~~~~~~~~~
 //  original args   result     derivative wrt result    derivative wrt args
@@ -107,7 +107,7 @@ The VJP function returns a tuple with two elements:
 
 JVP and VJP functions can be registered using the `@derivative` attribute. JVP functions should return a tuple with labels `(value: ..., differential: ...)`. VJP functions should return a tuple with labels `(value: ..., pullback: ...)`.
 
-For usage examples of the `@derivative` attribute, refer to the [`@derivative` attribute section](https://github.com/rxwei/swift-evolution/blob/autodiff/proposals/0000-differentiable-programming.md#derivative-attribute) in the proposal.
+For usage examples of the `@derivative` attribute, refer to the [`@derivative` attribute section](https://github.com/rxwei/language-evolution/blob/autodiff/proposals/0000-differentiable-programming.md#derivative-attribute) in the proposal.
 
 Note that derivative functions are defined as "JVP/VJP functions taking original arguments", rather than just the "returned differential/pullback" functions. This is because differential/pullback functions may need to refer to intermediate values computed by the original function - this is possible when they are returned closures that capture values.
 
@@ -115,16 +115,16 @@ Note that derivative functions are defined as "JVP/VJP functions taking original
 
 ## Background
 
-### The Swift compilation pipeline
+### The Codira compilation pipeline
 
-The Swift compiler translates Swift source code into executable machine code. Below is an illustration of the compilation pipeline:
+The Codira compiler translates Codira source code into executable machine code. Below is an illustration of the compilation pipeline:
 
-![Diagram of the Swift compilation pipeline](./assets/DifferentiableProgrammingImplementation/swift-compilation-pipeline.png)
+![Diagram of the Codira compilation pipeline](./assets/DifferentiableProgrammingImplementation/language-compilation-pipeline.png)
 
-Here is a description of the main phases in compilation:[†](https://www.swift.org/swift-compiler/)
-- **Parsing**: The parser takes Swift source code and generates an abstract syntax tree (AST) without type information. Warnings and errors are produced for grammatical problems in source code.
+Here is a description of the main phases in compilation:[†](https://www.code.org/language-compiler/)
+- **Parsing**: The parser takes Codira source code and generates an abstract syntax tree (AST) without type information. Warnings and errors are produced for grammatical problems in source code.
 - **Type checking**: The type checker takes the parsed AST and transforms it into a fully type-checked form, performing type inference. Warnings and errors are produced for semantic problems in source code.
-- **SIL generation**: The Swift Intermediate Language (SIL) is a high-level intermediate language for Swift suitable for analysis and optimization. The SIL generation phase lowers the type-checked AST into ["raw" SIL](SIL.rst#silgen).
+- **SIL generation**: The Codira Intermediate Language (SIL) is a high-level intermediate language for Codira suitable for analysis and optimization. The SIL generation phase lowers the type-checked AST into ["raw" SIL](SIL.rst#silgen).
 - **SIL mandatory passes**: The SIL mandatory passes perform analyses (diagnosing user errors) and lowering (down to canonical SIL).
 - **SIL optimizations passes**: The SIL optimization passes perform additional high-level optimizations to SIL.
 - **LLVM IR generation**: IR generation lowers SIL to LLVM IR. LLVM performs further optimizations and generates machine code.
@@ -154,7 +154,7 @@ Here is how differentiation fits into each of the stages of compilation:
 
 ## Two triggers of differentiation
 
-The differentiation system in Swift needs to handle two main things: `@differentiable` declaration attributes and differentiable function type conversion.
+The differentiation system in Codira needs to handle two main things: `@differentiable` declaration attributes and differentiable function type conversion.
 
 Both of these trigger "differentiation" by the compiler:
 - The compiler verifies that every declaration with the `@differentiable` attribute is indeed differentiable (according to the parameter indices and generic requirements of the attributes). All lowered SIL differentiability witnesses should be "filled in" with corresponding derivative functions.
@@ -166,7 +166,7 @@ This document will explain the internals of the differentiation system via illus
 
 ### Syntax
 
-The `@differentiable` declaration attribute marks "function-like" declarations ([function declarations](https://docs.swift.org/swift-book/LanguageGuide/Functions.html#ID159), [initializers](https://docs.swift.org/swift-book/LanguageGuide/Initialization.html), [properties](https://docs.swift.org/swift-book/LanguageGuide/Properties.html#ID608), and [subscripts](https://docs.swift.org/swift-book/LanguageGuide/Subscripts.html)) as differentiable.
+The `@differentiable` declaration attribute marks "function-like" declarations ([function declarations](https://docs.code.org/language-book/LanguageGuide/Functions.html#ID159), [initializers](https://docs.code.org/language-book/LanguageGuide/Initialization.html), [properties](https://docs.code.org/language-book/LanguageGuide/Properties.html#ID608), and [subscripts](https://docs.code.org/language-book/LanguageGuide/Subscripts.html)) as differentiable.
 
 > TODO: Add `@differentiable` declaration attribute examples.
 
@@ -192,7 +192,7 @@ The `@differentiable` declaration attribute has a few components:
 
 The differentiation transform canonicalizes SIL differentiability witnesses: all SIL differentiability witnesses are filled in with JVP/VJP functions.
 
-```swift
+```language
 // Before: empty differentiability witness, lowered from a `@differentiable`
 // declaration attribute.
 
@@ -213,15 +213,15 @@ sil_differentiability_witness hidden [parameters 0] [results 0] @$s3fooAAyS2fF :
 
 ### Syntax
 
-Swift supports ergonomic implicit function conversions:
+Codira supports ergonomic implicit function conversions:
 
-```swift
+```language
 // Takes a differentiable function argument.
-func f(_ x: @differentiable (Float) -> Float) { }
+fn f(_ x: @differentiable (Float) -> Float) { }
 
 // Calling `f` with a function declaration reference triggers an implicit
 // `@differentiable` function type conversion.
-func identity(_ x: Float) -> Float { x }
+fn identity(_ x: Float) -> Float { x }
 f(identity)
 
 // Calling `f` with a closure literal also triggers an implicit
@@ -231,7 +231,7 @@ f({ x in x })
 
 Explicit conversion is also possible:
 
-```swift
+```language
 let function: (Float) -> Float = { x in x }
 // Explicit conversion.
 let diffFunction: @differentiable (Float) -> Float = function
@@ -241,17 +241,17 @@ let diffFunction: @differentiable (Float) -> Float = function
 
 Differentiable function types are a subtype of normal function types. See [here](DifferentiableProgramming.md#function-subtyping-and-runtime-representation) for more information about type checking rules.
 
-Differentiable function conversion is represented in the AST as an explicit [DifferentiableFunctionExpr](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/include/swift/AST/Expr.h#L2923) expression. Example output from `swiftc -dump-ast` for the explicit conversion example above:
+Differentiable function conversion is represented in the AST as an explicit [DifferentiableFunctionExpr](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/include/language/AST/Expr.h#L2923) expression. Example output from `languagec -dump-ast` for the explicit conversion example above:
 
 ```
 (differentiable_function implicit
                 type='@differentiable (Float) -> Float'
-                location=example.swift:3:54
-                range=[example.swift:3:54 - line:3:54]
+                location=example.code:3:54
+                range=[example.code:3:54 - line:3:54]
 (declref_expr type='(Float) -> Float'
-                location=example.swift:3:54
-                range=[example.swift:3:54 - line:3:54]
-                decl=example.(file).function@example.swift:1:5
+                location=example.code:3:54
+                range=[example.code:3:54 - line:3:54]
+                decl=example.(file).function@example.code:1:5
                 function_ref=unapplied))
 ```
 
@@ -263,7 +263,7 @@ The `DifferentiableFunctionExpr` function conversion expression is lowered to th
 
 The differentiation transform canonicalizes `differentiable_function` instructions: all `differentiable_function` instructions are filled in with JVP/VJP function values.
 
-```swift
+```language
 // Before:
 %fn_ref = function_ref @fn : $@convention(thin) (Float) -> Float
 %diff_fn = differentiable_function [wrt 0] %fn_ref
@@ -287,9 +287,9 @@ The differentiation transform is a SIL mandatory pass that implements automatic 
 
 Activity analysis is a static SIL data flow analysis that determines exactly what values need a derivative. Let’s walk through the following example:
 
-```swift
+```language
 @differentiable
-func f(_ x: Float) -> Float {
+fn f(_ x: Float) -> Float {
     let result = sin(x) * cos(3)
     print(result)
     return result
@@ -303,11 +303,11 @@ Activity analysis classifies values in a function into these categories:
 
 Here is the result of activity analysis for this example:
 
-```swift
+```language
 // Varied values are surrounded by asterisks.
 // These values depend on the input (`x`).
 @differentiable
-func f(_ **x**: Float) -> Float {
+fn f(_ **x**: Float) -> Float {
     let **sinx** = sin(**x**)
     let cos3 = cos(3)
     let **result** = **sinx** * cos3
@@ -318,7 +318,7 @@ func f(_ **x**: Float) -> Float {
 // Useful values are surrounded by asterisks.
 // These values contribute to the output (`result`).
 @differentiable
-func f(_ **x**: Float) -> Float {
+fn f(_ **x**: Float) -> Float {
     let **sinx** = sin(**x**)
     let **cos3** = cos(**3**)
     let **result** = **sinx** * **cos3**
@@ -329,7 +329,7 @@ func f(_ **x**: Float) -> Float {
 // Active values are surrounded by asterisks.
 // These values are varied and useful, and thus need a derivative.
 @differentiable
-func f(_ **x**: Float) -> Float {
+fn f(_ **x**: Float) -> Float {
     let **sinx** = sin(**x**)
     let cos3 = cos(3)
     let **result** = **sinx** * cos3
@@ -348,14 +348,14 @@ The differentiation transform is triggered by:
 1. SIL differentiability witnesses that are missing derivative functions.
 2. SIL `differentiable_function` instructions that are missing derivative function operands.
 
-```swift
+```language
 // 1. SIL differentiability witnesses attributes.
 //
 // `@differentiable` declaration attribute does not register `jvp:` or `vjp:`
 // derivative functions.
 //
 //   @differentiable(wrt: x) // no 'jvp:' or 'vjp:' functions specified
-//   func cubed(_ x: Float) -> Float
+//   fn cubed(_ x: Float) -> Float
 //
 // It is lowered to a SIL differentiability witness that similarly is missing
 // derivative functions:
@@ -372,7 +372,7 @@ The differentiation transform is triggered by:
 //   sil hidden
 //   [differentiable source 0 wrt 0 jvp @cubed_jvp vjp @cubed_vjp] @cubed
 @differentiable(wrt: x)
-func cubed(_ x: Float) -> Float {
+fn cubed(_ x: Float) -> Float {
   return x * x * x
 }
 
@@ -399,14 +399,14 @@ func cubed(_ x: Float) -> Float {
 
 gradient(at: Float(4), of: { x in x * x * x })
 
-// Swift supports implicit function conversions, which happens above.
+// Codira supports implicit function conversions, which happens above.
 // Below is what the conversion looks like explicitly:
 // let foo: (Float) -> Float = { x in x * x * x }
 // let cubed: @differentiable (Float) -> Float = foo
 // gradient(at: Float(4), of: cubed)
 ```
 
-> TODO: Update the \[differentiable\] attribute directly above the Swift declaration of `cubed(_:)` with a SIL differentiability witness.
+> TODO: Update the \[differentiable\] attribute directly above the Codira declaration of `cubed(_:)` with a SIL differentiability witness.
 
 ## Derivative code generation ([automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation))
 
@@ -420,9 +420,9 @@ Eventually, after forward-mode differentiation and linear maps are implemented, 
 
 In the sections below, let us dig into derivative code generation for the following function-to-differentiate (“original function”):
 
-```swift
+```language
 @differentiable
-func f(_ x: Float) -> Float {
+fn f(_ x: Float) -> Float {
     return sin(x) * cos(x)
 }
 
@@ -446,7 +446,7 @@ The generated differential function takes the partial derivative with respect to
 
 Finally, the JVP returns a tuple of the original result and the generated differential function.
 
-```swift
+```language
 // JVP: replaces all function applications with JVP applications.
 sil @jvp_f : $(Float) -> (Float, (Float) -> Float) {
 bb0(%x):
@@ -465,15 +465,15 @@ bb0(%x):
 
 ### Visiting the original function to create a JVP
 
-In the Swift compiler, we have a class called [`JVPCloner`](../include/swift/SILOptimizer/Differentiation/JVPCloner.h) which subclasses [`TypeSubstCloner`](../include/swift/SIL/TypeSubstCloner.h). This uses the [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern) to visit the original function and generate the JVP function. Taking a look at the `JVPCloner` class, there are methods like `visitApplyInst`, `visitStructExtractInst`, etc. Each of these methods visit an instruction that is important in the generation of the JVP and differential, and emits a newly mapped version. We handle each type of instruction differently, explained below.
+In the Codira compiler, we have a class called [`JVPCloner`](../include/language/SILOptimizer/Differentiation/JVPCloner.h) which subclasses [`TypeSubstCloner`](../include/language/SIL/TypeSubstCloner.h). This uses the [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern) to visit the original function and generate the JVP function. Taking a look at the `JVPCloner` class, there are methods like `visitApplyInst`, `visitStructExtractInst`, etc. Each of these methods visit an instruction that is important in the generation of the JVP and differential, and emits a newly mapped version. We handle each type of instruction differently, explained below.
 
 One important note is that in the JVP, we visit every single instruction in the original function - sometimes it’s an exact copy, and other times there is some special logic we wrote to handle it differently (e.g. like control-flow discussed below). This is so that the JVP function behaves just like the original function. With this, if the original function has a print statement, the JVP will as well. However, when we consider the differential, we will only transform SIL instructions from the original that we deem to be fit (so no print statement in the differential!). These instructions are those that should be differentiated, which uses the activity analysis calculated earlier to determine which SIL instructions are important in computing the tangent values of a function. 
 
-In Swift code, the generated differential function can be written as a closure, capturing the "callee differentials" from the JVP. But in SIL, all functions are top-level; closures are represented as top-level functions with captured values as an explicit argument. This requires a differential struct which will be discussed in the next section. What’s important here is that the `JVPCloner` emits code both in a top level JVP function, but also a corresponding top level differential function.
+In Codira code, the generated differential function can be written as a closure, capturing the "callee differentials" from the JVP. But in SIL, all functions are top-level; closures are represented as top-level functions with captured values as an explicit argument. This requires a differential struct which will be discussed in the next section. What’s important here is that the `JVPCloner` emits code both in a top level JVP function, but also a corresponding top level differential function.
 
 Here is what the more accurate, closure-free SIL pseudocode looks like:
 
-```swift
+```language
 // Struct containing differential functions.
 // Partially-applied to `@df_f` in `@jvp_f`.
 struct f_bb0_DF_src_0_wrt_0 {
@@ -518,8 +518,8 @@ These structs consist of two different types of values: the differential functio
 
 In order to define the differential struct type, we preemptively go over the entire function we are going to differentiate in order to generate the struct. When emitting code in the differential we visit all instructions that we deem are needed to take the derivative of the function. We then calculate the expected differential type of the function, and add that as a field to the struct.
 
-```swift
-func f(_ x: Float) -> Float {
+```language
+fn f(_ x: Float) -> Float {
   let a = sin(x)
   return 2 * x // only active in one result!
 }
@@ -532,8 +532,8 @@ struct f_bb0_DF_src_0_wrt_0 {
 
 In order to handle control flow, we need to create a struct for each basic block. In addition to this, we need an enum field that has the successor basic block struct as a payload value on the enum case. The reason this is required is that control flow is dynamic and what route we take down the control flow is determined during runtime. As such, we need to dynamically create instances of these structs, and be able to handle every control flow path. For example:
 
-```swift
-func m(_ x: Float) -> Float {
+```language
+fn m(_ x: Float) -> Float {
   var retVal = f(x) // bb0
   if x < 5 {
     retVal = g(retVal) // bb1
@@ -548,7 +548,7 @@ func m(_ x: Float) -> Float {
 
 There are 4 distinct basic blocks. For `bb0`, there are two basic blocks it can possibly branch to - `bb1` and `bb2`. And then `bb1` and `bb2` can only branch to `bb3`, finally with `bb3` not branching to any other basic blocks. Thus, we have the following enums:
 
-```swift
+```language
 enum EnumBB0 {
   case BB1(StructBB1)
   case BB2(StructBB2)
@@ -563,7 +563,7 @@ enum EnumBB2 {
 
 With the following structs:
 
-```swift
+```language
 struct StructBB0 {
   var diff_f: (Float) -> (Float) { get set }
   var succ: EnumBB0 { get set }
@@ -588,8 +588,8 @@ Another additional transformation that is done in the JVP is the creation of tra
 
 > NOTE: The SIL code below is simplified in both naming and how each instruction looks like. For more information regarding how each instruction looks like in actual code, refer to [SIL.rst](SIL.rst).
 
-```swift
-func m(_ x: Float) -> Float {
+```language
+fn m(_ x: Float) -> Float {
   var retVal = f(x)
   if x < 5 {
     retVal = g(retVal)
@@ -606,7 +606,7 @@ bb0(args...):
   // %condition is the `cond_br` condition calculated earlier.
   %bb0_struct = alloc_stack $StructBB0
   %bb0_diff_field = struct_element_addr %bb0_struct.diff_f
-  store %diff_func to %bb0_diff_field // store diff func.
+  store %diff_func to %bb0_diff_field // store diff fn.
   %bb0_payload_ptr = address_to_pointer %bb0_struct
   cond_br %condition, bb0_bb1_tramp(args..., %bb0_payload_ptr), 
                       bb0_bb2_tramp(args..., %bb0_payload_ptr)
@@ -638,7 +638,7 @@ bb1(args..., %bb1_payload_ptr):
   // %diff_func_ is the differential of `g` gotten from a JVP call earlier in the 
   // basic block code.
   %bb1_diff_field = struct_element_addr %bb1_payload_ptr.diff_g
-  store %diff_func to %bb1_diff_field : $*(Float) -> Float // store diff func.
+  store %diff_func to %bb1_diff_field : $*(Float) -> Float // store diff fn.
   br bb1_bb3_tramp(args..., %bb1_payload_ptr)
 
 bb1_bb3_trampbb1(args..., %bb1_payload_ptr):
@@ -658,7 +658,7 @@ bb2(args..., %bb2_payload_ptr):
   // %diff_func_h is the differential of `h` gotten from a JVP call earlier in the 
   // basic block code.
   %bb2_diff_field = struct_element_addr %bb2_payload_ptr.diff_h
-  store %diff_func_h to %bb2_diff_field // store diff func.
+  store %diff_func_h to %bb2_diff_field // store diff fn.
   br bb2_bb3_tramp(args..., %bb2_payload_ptr)
 
 bb2_bb3_tramp(args..., %bb0_struct, %bb2_payload_ptr):
@@ -677,7 +677,7 @@ bb3(args..., %bb3_payload_ptr):
   // %diff_func_j is the differential of `j` gotten from a JVP call earlier in the 
   // basic block code.
   %bb3_diff_field = struct_element_addr %bb3_payload_ptr.diff_j
-  store %diff_func_j to %bb3_diff_field // store diff func.
+  store %diff_func_j to %bb3_diff_field // store diff fn.
   // Get the differential of bar and partially apply the struct to it so it can call
   // the correct differentials in its body.
   %diff_bar_instance = partial_apply diff_bar_func(%bb0_struct)
@@ -697,7 +697,7 @@ The generated pullback function takes the partial derivatives with respect to ou
 
 Finally, the VJP returns a tuple of the original result and the generated pullback function.
 
-```swift
+```language
 // VJP: replaces all function applications with VJP applications.
 sil @vjp_f : $(Float) -> (Float, (Float) -> Float) {
 bb0(%x):
@@ -736,7 +736,7 @@ bb0(%x):
 
 As explained above in the "JVP and differential generation" section, closures do not exist in SIL. A more accurate, closure-free pseudocode looks like:
 
-```swift
+```language
 // Struct containing pullback functions.
 // Partially-applied to `@pb_f` in `@vjp_f`.
 struct f_bb0_PB_src_0_wrt_0 {
@@ -793,21 +793,21 @@ Many of these instructions have well-defined corresponding tangent instructions 
 
 | Original | Tangent (differential) | Adjoint (pullback)
 | -------- | ---------------------- | ------------------ 
-| `y = load x` | `tan[y] = load tan[x]` | `adj[x] += adj[y]` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5346)
-| `store x to y` | `store tan[x] to tan[y]` | `adj[x] += load adj[y]; adj[y] = 0` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5365)
-| `copy_addr x to y` | `copy_addr tan[x] to tan[y]` | `adj[x] += adj[y]; adj[y] = 0` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5382)
-| `y = struct (x0, x1, ...)` | `tan[y] = struct (tan[x0], tan[x1], ...)` | `adj[x0] += struct_extract adj[y], #x0` `adj[x1] += struct_extract adj[y], #x1` `...` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5110)
-| `y = struct_extract x, #field` | `tan[y] = struct_extract tan[x], #field’` | `adj[x] += struct (0, ..., #field': adj[y], ..., 0)` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5183)
-| `y = struct_element_addr x, #field` | `tan[y] = struct_element_addr tan[x], #field’` | No generated code. `adj[y] = struct_element_addr adj[x], #field’` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L4157)
-| `y = tuple (x0, x1, ...)` | `tan[y] = tuple (tan[x0], tan[x1], ...)` | `adj[x0] += tuple_extract adj[y], 0` `adj[x1] += tuple_extract adj[y], 1` `...` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5257)
-| `y = tuple_extract x, <n>` | `tan[y] = tuple_extract tan[x], <n’>` | `adj[x] += tuple (0, ..., adj[y], ..., 0)` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5298)
-| `y = tuple_element_addr x, <n>` | `tan[y] = tuple_element_addr tan[x], <n’>` | No generated code. `adj[y] = tuple_element_addr adj[x], <n’>` [(code)](https://github.com/swiftlang/swift/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L4169)
+| `y = load x` | `tan[y] = load tan[x]` | `adj[x] += adj[y]` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5346)
+| `store x to y` | `store tan[x] to tan[y]` | `adj[x] += load adj[y]; adj[y] = 0` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5365)
+| `copy_addr x to y` | `copy_addr tan[x] to tan[y]` | `adj[x] += adj[y]; adj[y] = 0` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5382)
+| `y = struct (x0, x1, ...)` | `tan[y] = struct (tan[x0], tan[x1], ...)` | `adj[x0] += struct_extract adj[y], #x0` `adj[x1] += struct_extract adj[y], #x1` `...` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5110)
+| `y = struct_extract x, #field` | `tan[y] = struct_extract tan[x], #field’` | `adj[x] += struct (0, ..., #field': adj[y], ..., 0)` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5183)
+| `y = struct_element_addr x, #field` | `tan[y] = struct_element_addr tan[x], #field’` | No generated code. `adj[y] = struct_element_addr adj[x], #field’` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L4157)
+| `y = tuple (x0, x1, ...)` | `tan[y] = tuple (tan[x0], tan[x1], ...)` | `adj[x0] += tuple_extract adj[y], 0` `adj[x1] += tuple_extract adj[y], 1` `...` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5257)
+| `y = tuple_extract x, <n>` | `tan[y] = tuple_extract tan[x], <n’>` | `adj[x] += tuple (0, ..., adj[y], ..., 0)` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L5298)
+| `y = tuple_element_addr x, <n>` | `tan[y] = tuple_element_addr tan[x], <n’>` | No generated code. `adj[y] = tuple_element_addr adj[x], <n’>` [(code)](https://github.com/languagelang/language/blob/8b7ab1143e260d7bb1db3b98e24f7fe28dc7f0f0/lib/SILOptimizer/Mandatory/Differentiation.cpp#L4169)
 
 In general, tangent transformation rules are simpler because the tangent transformation does not involve control flow reversal and because many instructions themselves are linear.
 
 ### Modules and access levels
 
-Swift organizes code into [modules](Modules.rst). Modules enforce access controls on what code can be used outside of them.
+Codira organizes code into [modules](Modules.rst). Modules enforce access controls on what code can be used outside of them.
 
 Differentiation is designed with modules and access levels in mind. `@differentiable` declaration attributes act like a "differentiability contract": declarations marked with the attribute can be differentiated from other modules. This is because the differentiation transform is guaranteed to fill in all SIL differentiability witnesses with derivatives functions. Conversely, declarations not marked with `@differentiable` cannot be differentiated from other modules because they do not have registered derivative functions and are essentially opaque (their bodies may not be exposed).
 
@@ -844,24 +844,24 @@ JVP/VJP function generation is explained above. The pseudocode above does not me
 Reabstraction thunks currently require special differentiation support.
 One common use case for reabstraction thunk differentiation is differentiating direct references to generic functions. Consider the following program:
 
-```swift
+```language
 @_silgen_name("generic")
-func generic<T>(_ x: T) -> T {
+fn generic<T>(_ x: T) -> T {
   return x
 }
 let _: @differentiable (Float) -> Float = generic
 ```
 
-This generates the following code in SIL (`swiftc -emit-silgen`):
+This generates the following code in SIL (`languagec -emit-silgen`):
 
-``` swift
+``` language
 sil_stage raw
 
 import Builtin
-import Swift
-import SwiftShims
+import Codira
+import CodiraShims
 
-func generic<T>(_ x: T) -> T
+fn generic<T>(_ x: T) -> T
 
 // main
 sil [ossa] @main : $@convention(c) (Int32, UnsafeMutablePointer<Optional<UnsafeMutablePointer<Int8>>>) -> Int32 {
@@ -911,7 +911,7 @@ Notice `%6 = differentiable_function [parameters 0] %5` in `@main`: this trigger
 - Peers through `partial_apply` to find `%4 = function_ref @$sS2fIegnr_S2fIegyd_TR` as the underlying original function (a reabstraction thunk).
 - Generates derivative functions for the reabstraction thunk. This succeeds; the VJP is below:
 
-```swift
+```language
 // AD__$sS2fIegnr_S2fIegyd_TR__vjp_src_0_wrt_0
 sil hidden [serializable] [ossa] @AD__$sS2fIegnr_S2fIegyd_TR__vjp_src_0_wrt_0 : $@convention(thin) (Float, @guaranteed @callee_guaranteed (@in_guaranteed Float) -> @out Float)
 -> (Float, @owned @callee_guaranteed (Float) -> Float) {
@@ -962,7 +962,7 @@ This involves:
 - Adding a JVP/VJP type calculation special case for reabstraction thunks.
 - Changing the differentiation transform so that reabstraction thunk JVP/VJP callers always construct and pass a `@differentiable` function-typed value.
 
-This approach is implemented in https://github.com/swiftlang/swift/pull/28570. A partially-applied reabstraction thunk derivative matches the derivative type of the reabstracted original function.
+This approach is implemented in https://github.com/languagelang/language/pull/28570. A partially-applied reabstraction thunk derivative matches the derivative type of the reabstracted original function.
 
 Alternatives:
 - Make reabstraction thunk JVPs/VJPs take a "JVP/VJP" function-typed argument instead of a `@differentiable` function-typed argument.
@@ -972,13 +972,13 @@ Alternatives:
 
 ## Future directions and infrastructural changes
 
-Below is a list of anticipated infrastructure changes to the Swift differentiation system. Non-core changes (e.g. API changes) are not listed here.
+Below is a list of anticipated infrastructure changes to the Codira differentiation system. Non-core changes (e.g. API changes) are not listed here.
 
 ### Differential-first (forward-mode) automatic differentiation
 
 Differential-first automatic differentiation is currently a work-in-progress. It is not yet at parity with the existing pullback-first (i.e. reverse-mode) automatic differentiation support.
 
-See [here](DifferentiableProgramming.md#differential-operators) for more information about forward-mode differential operators in Swift.
+See [here](DifferentiableProgramming.md#differential-operators) for more information about forward-mode differential operators in Codira.
 
 ### Linear maps and transposition
 
@@ -995,6 +995,6 @@ See [here](DifferentiableProgramming.md#linear-maps) for more information about 
 
 ## Acknowledgements
 
-Please see [here](DifferentiableProgramming.md#acknowledgements) for a list of people who have influenced the design and the implementation of differentiable programming in Swift.
+Please see [here](DifferentiableProgramming.md#acknowledgements) for a list of people who have influenced the design and the implementation of differentiable programming in Codira.
 
-Some content is borrowed from the [Swift Differentiable Programming Manifesto](DifferentiableProgramming.md) by Richard Wei and [Probabilistic & Differentiable Programming Summit '19 slides](https://twitter.com/rxwei/status/1144688743468527617) - thank you Richard.
+Some content is borrowed from the [Codira Differentiable Programming Manifesto](DifferentiableProgramming.md) by Richard Wei and [Probabilistic & Differentiable Programming Summit '19 slides](https://twitter.com/rxwei/status/1144688743468527617) - thank you Richard.

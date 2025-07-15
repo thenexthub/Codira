@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILValue class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILVALUE_H
-#define SWIFT_SIL_SILVALUE_H
+#ifndef LANGUAGE_SIL_SILVALUE_H
+#define LANGUAGE_SIL_SILVALUE_H
 
 #include "language/Basic/ArrayRefView.h"
 #include "language/Basic/Debug.h"
@@ -28,11 +29,11 @@
 #include "language/SIL/SILArgumentConvention.h"
 #include "language/SIL/SILNode.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 namespace language {
@@ -65,8 +66,8 @@ enum class ValueKind : std::underlying_type<SILNodeKind>::type {
 };
 
 /// ValueKind hashes to its underlying integer representation.
-static inline llvm::hash_code hash_value(ValueKind K) {
-  return llvm::hash_value(size_t(K));
+static inline toolchain::hash_code hash_value(ValueKind K) {
+  return toolchain::hash_value(size_t(K));
 }
 
 /// What constraint does the given use of an SSA value put on the lifetime of
@@ -94,7 +95,7 @@ enum class UseLifetimeConstraint {
   LifetimeEnding,
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               UseLifetimeConstraint constraint);
 
 /// A lattice that we use to classify ownership at the SIL level. None is top
@@ -151,7 +152,7 @@ struct OwnershipKind {
     /// must be converted to an owned representation via a copy_value.
     ///
     /// Unowned ownership kind occurs mainly along method/function boundaries in
-    /// between Swift and Objective-C code.
+    /// between Codira and Objective-C code.
     Unowned,
 
     /// A SILValue with `Owned` ownership kind is an independent value that has
@@ -243,7 +244,7 @@ struct OwnershipKind {
   StringRef asString() const;
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const OwnershipKind &kind);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, const OwnershipKind &kind);
 
 struct OperandOwnership;
 
@@ -305,7 +306,7 @@ struct ValueOwnershipKind {
   /// ownership kind, and a subobject of type Proj is being projected from the
   /// aggregate, return Trivial if Proj has trivial type and the aggregate's
   /// ownership kind otherwise.
-  ValueOwnershipKind getProjectedOwnershipKind(const SILFunction &func,
+  ValueOwnershipKind getProjectedOwnershipKind(const SILFunction &fn,
                                                SILType projType) const;
 
   /// Return the lifetime constraint semantics for this
@@ -323,7 +324,7 @@ struct ValueOwnershipKind {
     case OwnershipKind::Owned:
       return UseLifetimeConstraint::LifetimeEnding;
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   /// Return the OperandOwnership for a forwarded operand when the forwarded
@@ -359,7 +360,7 @@ struct ValueOwnershipKind {
   StringRef asString() const;
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, ValueOwnershipKind Kind);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os, ValueOwnershipKind Kind);
 
 /// This is the base class of the SIL value hierarchy, which represents a
 /// runtime computed value. Some examples of ValueBase are SILArgument and
@@ -382,7 +383,7 @@ public:
     assert(use_empty() && "Cannot destroy a value that still has uses!");
   }
 
-  LLVM_ATTRIBUTE_ALWAYS_INLINE
+  TOOLCHAIN_ATTRIBUTE_ALWAYS_INLINE
   ValueKind getKind() const { return ValueKind(SILNode::getKind()); }
 
   SILType getType() const {
@@ -406,7 +407,7 @@ public:
   bool isResultOf(SILInstruction *I) const;
 
   /// Returns true if this value has no uses.
-  /// To ignore debug-info instructions use swift::onlyHaveDebugUses instead
+  /// To ignore debug-info instructions use language::onlyHaveDebugUses instead
   /// (see comment in DebugUtils.h).
   bool use_empty() const { return FirstUse == nullptr; }
 
@@ -438,12 +439,12 @@ public:
   inline non_typedependent_use_iterator non_typedependent_use_end() const;
 
   /// Returns a range of all uses, which is useful for iterating over all uses.
-  /// To ignore debug-info instructions use swift::getNonDebugUses instead
+  /// To ignore debug-info instructions use language::getNonDebugUses instead
   /// (see comment in DebugUtils.h).
   inline use_range getUses() const;
 
   /// Returns true if this value has exactly one use.
-  /// To ignore debug-info instructions use swift::hasOneNonDebugUse instead
+  /// To ignore debug-info instructions use language::hasOneNonDebugUse instead
   /// (see comment in DebugUtils.h).
   inline bool hasOneUse() const;
 
@@ -485,15 +486,15 @@ public:
   struct UseToUser;
 
   using UserRange =
-      llvm::iterator_range<llvm::mapped_iterator<swift::ValueBaseUseIterator,
-                                                 swift::ValueBase::UseToUser,
-                                                 swift::SILInstruction *>>;
+      toolchain::iterator_range<toolchain::mapped_iterator<language::ValueBaseUseIterator,
+                                                 language::ValueBase::UseToUser,
+                                                 language::SILInstruction *>>;
   inline UserRange getUsers() const;
 
   template <typename Subclass>
   using DowncastUserFilterRange =
       DowncastFilterRange<Subclass,
-                          iterator_range<llvm::mapped_iterator<
+                          iterator_range<toolchain::mapped_iterator<
                               use_iterator, UseToUser, SILInstruction *>>>;
 
   /// Iterate over the use list of this ValueBase visiting all users that are of
@@ -504,7 +505,7 @@ public:
   ///   ValueBase *v = ...;
   ///   for (CopyValueInst *cvi : v->getUsersOfType<CopyValueInst>()) { ... }
   ///
-  /// NOTE: Uses llvm::dyn_cast internally.
+  /// NOTE: Uses toolchain::dyn_cast internally.
   template <typename T>
   inline DowncastUserFilterRange<T> getUsersOfType() const;
 
@@ -627,23 +628,23 @@ public:
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 /// ValueBase * is always at least eight-byte aligned; make the three tag bits
 /// available through PointerLikeTypeTraits.
 template<>
-struct PointerLikeTypeTraits<swift::ValueBase *> {
+struct PointerLikeTypeTraits<language::ValueBase *> {
 public:
-  static inline void *getAsVoidPointer(swift::ValueBase *I) {
+  static inline void *getAsVoidPointer(language::ValueBase *I) {
     return (void*)I;
   }
-  static inline swift::ValueBase *getFromVoidPointer(void *P) {
-    return (swift::ValueBase *)P;
+  static inline language::ValueBase *getFromVoidPointer(void *P) {
+    return (language::ValueBase *)P;
   }
   enum { NumLowBitsAvailable = 3 };
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace language {
 
@@ -686,7 +687,7 @@ public:
 
   enum {
     NumLowBitsAvailable =
-    llvm::PointerLikeTypeTraits<ValueBase *>::
+    toolchain::PointerLikeTypeTraits<ValueBase *>::
           NumLowBitsAvailable
   };
 
@@ -707,7 +708,7 @@ public:
   /// \p DEBlocks is nullptr when OSSA lifetimes are complete.
   void verifyOwnership(DeadEndBlocks *DEBlocks) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 inline SILNodePointer::SILNodePointer(SILValue value) : node(value) { }
@@ -771,7 +772,7 @@ public:
   }
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               OwnershipConstraint constraint);
 
 /// Categorize all uses in terms of their ownership effect.
@@ -894,7 +895,7 @@ struct OperandOwnership {
   OwnershipConstraint getOwnershipConstraint();
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                               const OperandOwnership &operandOwnership);
 
 /// Map OperandOwnership to the OwnershipConstraint used in OSSA validation.
@@ -963,7 +964,7 @@ inline OwnershipConstraint OperandOwnership::getOwnershipConstraint() {
   case OperandOwnership::Reborrow:
     return {OwnershipKind::Guaranteed, UseLifetimeConstraint::LifetimeEnding};
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Return true if this use can accept Unowned values.
@@ -990,7 +991,7 @@ inline bool canAcceptUnownedValue(OperandOwnership operandOwnership) {
   case OperandOwnership::Reborrow:
     return false;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Return true if all OperandOwnership invariants hold.
@@ -1015,12 +1016,12 @@ inline OperandOwnership
 ValueOwnershipKind::getForwardingOperandOwnership(bool allowUnowned) const {
   switch (value) {
   case OwnershipKind::Any:
-    llvm_unreachable("invalid value ownership");
+    toolchain_unreachable("invalid value ownership");
   case OwnershipKind::Unowned:
     if (allowUnowned) {
       return OperandOwnership::ForwardingUnowned;
     }
-    llvm_unreachable("invalid value ownership");
+    toolchain_unreachable("invalid value ownership");
   case OwnershipKind::None:
     return OperandOwnership::TrivialUse;
   case OwnershipKind::Guaranteed:
@@ -1184,8 +1185,8 @@ public:
 
   SILFunction *getFunction() const;
 
-  void print(llvm::raw_ostream &os) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &os) const;
+  LANGUAGE_DEBUG_DUMP;
 
 private:
   void removeFromCurrent() {
@@ -1507,14 +1508,14 @@ struct ValueBase::UseToUser {
 };
 
 inline ValueBase::UserRange ValueBase::getUsers() const {
-  return llvm::map_range(getUses(), ValueBase::UseToUser());
+  return toolchain::map_range(getUses(), ValueBase::UseToUser());
 }
 
 template <typename T>
 inline ValueBase::DowncastUserFilterRange<T> ValueBase::getUsersOfType() const {
-  auto begin = llvm::map_iterator(use_begin(), UseToUser());
-  auto end = llvm::map_iterator(use_end(), UseToUser());
-  auto transformRange = llvm::make_range(begin, end);
+  auto begin = toolchain::map_iterator(use_begin(), UseToUser());
+  auto end = toolchain::map_iterator(use_end(), UseToUser());
+  auto transformRange = toolchain::make_range(begin, end);
   return makeDowncastFilterRange<T>(transformRange);
 }
 
@@ -1581,11 +1582,11 @@ public:
 };
 
 /// SILValue hashes just like a pointer.
-static inline llvm::hash_code hash_value(SILValue V) {
-  return llvm::hash_value((ValueBase *)V);
+static inline toolchain::hash_code hash_value(SILValue V) {
+  return toolchain::hash_value((ValueBase *)V);
 }
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, SILValue V) {
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS, SILValue V) {
   V->print(OS);
   return OS;
 }
@@ -1616,38 +1617,38 @@ public:
 } // end namespace language
 
 
-namespace llvm {
+namespace toolchain {
   /// A SILValue casts like a ValueBase *.
-  template<> struct simplify_type<const ::swift::SILValue> {
-    using SimpleType = ::swift::ValueBase *;
-    static SimpleType getSimplifiedValue(::swift::SILValue Val) {
+  template<> struct simplify_type<const ::language::SILValue> {
+    using SimpleType = ::language::ValueBase *;
+    static SimpleType getSimplifiedValue(::language::SILValue Val) {
       return Val;
     }
   };
-  template<> struct simplify_type< ::swift::SILValue>
-    : public simplify_type<const ::swift::SILValue> {};
+  template<> struct simplify_type< ::language::SILValue>
+    : public simplify_type<const ::language::SILValue> {};
 
   // Values hash just like pointers.
-  template<> struct DenseMapInfo<swift::SILValue> {
-    static swift::SILValue getEmptyKey() {
-      return swift::SILValue::getFromOpaqueValue(
-                                      llvm::DenseMapInfo<void*>::getEmptyKey());
+  template<> struct DenseMapInfo<language::SILValue> {
+    static language::SILValue getEmptyKey() {
+      return language::SILValue::getFromOpaqueValue(
+                                      toolchain::DenseMapInfo<void*>::getEmptyKey());
     }
-    static swift::SILValue getTombstoneKey() {
-      return swift::SILValue::getFromOpaqueValue(
-                                  llvm::DenseMapInfo<void*>::getTombstoneKey());
+    static language::SILValue getTombstoneKey() {
+      return language::SILValue::getFromOpaqueValue(
+                                  toolchain::DenseMapInfo<void*>::getTombstoneKey());
     }
-    static unsigned getHashValue(swift::SILValue V) {
-      return DenseMapInfo<swift::ValueBase *>::getHashValue(V);
+    static unsigned getHashValue(language::SILValue V) {
+      return DenseMapInfo<language::ValueBase *>::getHashValue(V);
     }
-    static bool isEqual(swift::SILValue LHS, swift::SILValue RHS) {
+    static bool isEqual(language::SILValue LHS, language::SILValue RHS) {
       return LHS == RHS;
     }
   };
 
   /// SILValue is a PointerLikeType.
-  template<> struct PointerLikeTypeTraits<::swift::SILValue> {
-    using SILValue = ::swift::SILValue;
+  template<> struct PointerLikeTypeTraits<::language::SILValue> {
+    using SILValue = ::language::SILValue;
   public:
     static void *getAsVoidPointer(SILValue v) {
       return v.getOpaqueValue();
@@ -1656,18 +1657,18 @@ namespace llvm {
       return SILValue::getFromOpaqueValue(p);
     }
 
-    enum { NumLowBitsAvailable = swift::SILValue::NumLowBitsAvailable };
+    enum { NumLowBitsAvailable = language::SILValue::NumLowBitsAvailable };
   };
 
   /// A SILValue can be checked if a value is present, so we can use it with
   /// dyn_cast_or_null.
   template <>
-  struct ValueIsPresent<swift::SILValue> {
-    using SILValue = swift::SILValue;
+  struct ValueIsPresent<language::SILValue> {
+    using SILValue = language::SILValue;
     using UnwrappedType = SILValue;
     static inline bool isPresent(const SILValue &t) { return bool(t); }
     static inline decltype(auto) unwrapValue(SILValue &t) { return t; }
   };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

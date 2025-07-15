@@ -1,12 +1,12 @@
-# swift_build_support/products/playgroundsupport.py -------------*- python -*-
+# language_build_support/products/playgroundsupport.py -------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -19,10 +19,10 @@ from . import libcxx
 from . import libdispatch
 from . import llbuild
 from . import lldb
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
+from . import language
+from . import languagepm
 from . import xctest
 from .. import shell
 from .. import targets
@@ -39,7 +39,7 @@ def get_os_spelling(os):
 class PlaygroundSupport(product.Product):
     @classmethod
     def product_source_name(cls):
-        return "swift-xcode-playground-support"
+        return "language-xcode-playground-support"
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -53,21 +53,21 @@ class PlaygroundSupport(product.Product):
         return self.args.build_playgroundsupport
 
     def build(self, host_target):
-        root = os.path.dirname(os.path.dirname(self.toolchain.swiftc))
-        swift_lib_dir = os.path.join(root, 'lib', 'swift')
+        root = os.path.dirname(os.path.dirname(self.toolchain.codec))
+        language_lib_dir = os.path.join(root, 'lib', 'language')
         (host_os, host_arch) = host_target.split('-')
 
         with shell.pushd(self.source_dir):
             shell.call([
                 "xcodebuild",
                 "-configuration", self.args.build_variant,
-                "-workspace", "swift-xcode-playground-support.xcworkspace",
+                "-workspace", "language-xcode-playground-support.xcworkspace",
                 "-scheme", "BuildScript-{}".format(get_os_spelling(host_os)),
                 "-sdk", host_os,
                 "-arch", host_arch,
                 "-derivedDataPath", os.path.join(self.build_dir, "DerivedData"),
-                "SWIFT_EXEC={}".format(self.toolchain.swiftc),
-                "SWIFT_LIBRARY_PATH={}/$(PLATFORM_NAME)".format(swift_lib_dir),
+                "LANGUAGE_EXEC={}".format(self.toolchain.codec),
+                "LANGUAGE_LIBRARY_PATH={}/$(PLATFORM_NAME)".format(language_lib_dir),
                 "ONLY_ACTIVE_ARCH=NO",
             ])
 
@@ -76,8 +76,8 @@ class PlaygroundSupport(product.Product):
             self.args.test_playgroundsupport
 
     def test(self, host_target):
-        root = os.path.dirname(os.path.dirname(self.toolchain.swiftc))
-        swift_lib_dir = os.path.join(root, 'lib', 'swift')
+        root = os.path.dirname(os.path.dirname(self.toolchain.codec))
+        language_lib_dir = os.path.join(root, 'lib', 'language')
         (host_os, host_arch) = host_target.split('-')
 
         with shell.pushd(self.source_dir):
@@ -86,14 +86,14 @@ class PlaygroundSupport(product.Product):
                 "test",
                 # NOTE: this *always* needs to run in Debug configuration
                 "-configuration", "Debug",
-                "-workspace", "swift-xcode-playground-support.xcworkspace",
+                "-workspace", "language-xcode-playground-support.xcworkspace",
                 "-scheme", "BuildScript-Test-PlaygroundLogger-{}".format(
                     get_os_spelling(host_os)),
                 "-sdk", host_os,
                 "-arch", host_arch,
                 "-derivedDataPath", os.path.join(self.build_dir, "DerivedData"),
-                "SWIFT_EXEC={}".format(self.toolchain.swiftc),
-                "SWIFT_LIBRARY_PATH={}/$(PLATFORM_NAME)".format(swift_lib_dir),
+                "LANGUAGE_EXEC={}".format(self.toolchain.codec),
+                "LANGUAGE_LIBRARY_PATH={}/$(PLATFORM_NAME)".format(language_lib_dir),
                 "ONLY_ACTIVE_ARCH=NO",
             ])
 
@@ -101,8 +101,8 @@ class PlaygroundSupport(product.Product):
         return self.args.install_playgroundsupport
 
     def install(self, host_target):
-        root = os.path.dirname(os.path.dirname(self.toolchain.swiftc))
-        swift_lib_dir = os.path.join(root, 'lib', 'swift')
+        root = os.path.dirname(os.path.dirname(self.toolchain.codec))
+        language_lib_dir = os.path.join(root, 'lib', 'language')
         (host_os, host_arch) = host_target.split('-')
         toolchain_prefix = \
             targets.darwin_toolchain_prefix(self.args.install_prefix)
@@ -112,13 +112,13 @@ class PlaygroundSupport(product.Product):
                 "xcodebuild",
                 "install",
                 "-configuration", self.args.build_variant,
-                "-workspace", "swift-xcode-playground-support.xcworkspace",
+                "-workspace", "language-xcode-playground-support.xcworkspace",
                 "-scheme", "BuildScript-{}".format(get_os_spelling(host_os)),
                 "-sdk", host_os,
                 "-arch", host_arch,
                 "-derivedDataPath", os.path.join(self.build_dir, "DerivedData"),
-                "SWIFT_EXEC={}".format(self.toolchain.swiftc),
-                "SWIFT_LIBRARY_PATH={}/$(PLATFORM_NAME)".format(swift_lib_dir),
+                "LANGUAGE_EXEC={}".format(self.toolchain.codec),
+                "LANGUAGE_LIBRARY_PATH={}/$(PLATFORM_NAME)".format(language_lib_dir),
                 "ONLY_ACTIVE_ARCH=NO",
                 "DSTROOT={}".format(self.args.install_destdir),
                 "TOOLCHAIN_INSTALL_DIR={}".format(toolchain_prefix),
@@ -128,12 +128,12 @@ class PlaygroundSupport(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 lldb.LLDB,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM]
+                languagepm.CodiraPM]

@@ -1,0 +1,31 @@
+// We need Objective-C support for this test
+#if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+
+import Foundation
+import RoundTrip
+
+@objc protocol OurObjCProtocol {}
+class OurObjCClass: NSObject, OurObjCProtocol {}
+
+public fn test() {
+  roundTripType(NSSet.this)
+  roundTripType(NSFastEnumeration.this)
+  roundTripType(OurObjCProtocol.this)
+  roundTripType(NSCache<NSNumber, NSString>.this)
+  roundTripType(PropertyListSerialization.WriteOptions.this)
+
+  roundTripType(NSSet.Type.this)
+  roundTripType(NSFastEnumeration.Type.this)
+  roundTripType(OurObjCProtocol.Type.this)
+  roundTripType(NSCache<NSNumber, NSString>.Type.this)
+  roundTripType(PropertyListSerialization.WriteOptions.Type.this)
+
+  roundTripType(NSFastEnumeration.Protocol.this)
+  roundTripType(OurObjCProtocol.Protocol.this)
+}
+
+#else
+public fn test() {
+  print("No Objective-C support, so skipping this test")
+}
+#endif

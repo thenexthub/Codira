@@ -1,4 +1,4 @@
-//===--- Histogram.swift --------------------------------------------------===//
+//===--- Histogram.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test measures performance of histogram generating.
 // <rdar://problem/17384894>
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Histogram",
     runFunction: run_Histogram,
@@ -25,19 +26,19 @@ public let benchmarks =
 
 typealias rrggbb_t = UInt32
 
-func output_sorted_sparse_rgb_histogram<S: Sequence>(_ samples: S, _ n: Int)
+fn output_sorted_sparse_rgb_histogram<S: Sequence>(_ samples: S, _ n: Int)
   where S.Element == rrggbb_t {
   var histogram = Dictionary<rrggbb_t, Int>()
   for  _ in 1...50*n {
     for sample in samples {   // This part is really awful, I agree
-      let i = histogram.index(forKey: sample)
+      immutable i = histogram.index(forKey: sample)
       histogram[sample] = (i != nil ? histogram[i!].1 : 0) + 1
     }
   }
 }
 
 // Packed-RGB test data: four gray samples, two red, two blue, and a 4 pixel gradient from black to white
-let samples: [rrggbb_t] = [
+immutable samples: [rrggbb_t] = [
   0x00808080, 0x00808080, 0x00808080, 0x00808080,
   0x00FF0000, 0x00FF0000, 0x000000FF, 0x000000FF,
   0x00000000, 0x00555555, 0x00AAAAAA, 0x00FFFFFF,
@@ -119,6 +120,6 @@ let samples: [rrggbb_t] = [
 ]
 
 @inline(never)
-public func run_Histogram(_ n: Int) {
+public fn run_Histogram(_ n: Int) {
   output_sorted_sparse_rgb_histogram(samples, n)
 }

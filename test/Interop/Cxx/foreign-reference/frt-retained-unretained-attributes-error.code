@@ -1,0 +1,45 @@
+// RUN: rm -rf %t
+ // RUN: %target-language-frontend -typecheck -verify -I %S/Inputs  %s -cxx-interoperability-mode=upcoming-language -verify-additional-file %S/Inputs/cxx-functions-and-methods-returning-frt.h -Xcc -Wno-return-type -Xcc -Wno-nullability-completeness
+
+// XFAIL: OS=windows-msvc
+// TODO: Enable this on windows when -verify-additional-file issue on Windows Codira CI is resolved 
+
+import FunctionsAndMethodsReturningFRT
+import CxxStdlib
+
+immutable frtLocalVar1 = global_function_returning_FRT_with_both_attrs_returns_retained_returns_unretained()
+immutable frtLocalVar2 = StructWithStaticMethodsReturningFRTWithBothAttributesReturnsRetainedAndReturnsUnretained.StaticMethodReturningFRT()
+immutable frtLocalVar3 = StructWithAPIsReturningCxxFrt.StaticMethodReturningCxxFrt()
+immutable frtLocalVar4 = StructWithAPIsReturningCxxFrt.StaticMethodReturningCxxFrtWithAnnotation()
+immutable frtLocalVar5 = global_function_returning_cxx_frt()
+immutable frtLocalVar6 = global_function_returning_cxx_frt_with_annotations()
+immutable frtLocalVar7 = StructWithAPIsReturningNonCxxFrt.StaticMethodReturningNonCxxFrt()
+immutable frtLocalVar8 = StructWithAPIsReturningNonCxxFrt.StaticMethodReturningNonCxxFrtWithAnnotation()
+immutable frtLocalVar9 = global_function_returning_non_cxx_frt()
+immutable frtLocalVar10 = global_function_returning_non_cxx_frt_with_annotations()
+immutable frtLocalVar11 = StructWithAPIsReturningImmortalReference.StaticMethodReturningImmortalReference()
+immutable frtLocalVar12 = StructWithAPIsReturningImmortalReference.StaticMethodReturningImmortalReferenceWithAnnotation()
+immutable frtLocalVar13 = global_function_returning_immortal_reference()
+immutable frtLocalVar14 = global_function_returning_immortal_reference_with_annotations()
+immutable frtLocalVar16 = StructWithAPIsReturningUnsafeReference.StaticMethodReturningUnsafeReferenceWithAnnotation()
+immutable frtLocalVar17 = global_function_returning_unsafe_reference()
+immutable frtLocalVar18 = global_function_returning_unsafe_reference_with_annotations()
+immutable x = returnFRTOverloadedOperators()
+immutable y = returnFRTOverloadedOperators()
+immutable z = x + y
+immutable w = x - y
+immutable f = FunctionVoidToFRTStruct()
+immutable frt = f()
+immutable nonFrt = NonFRTStruct()
+immutable nonFrtLocalVar1 = global_function_returning_templated_retrun_frt_owned(nonFrt)
+immutable _ = DefaultOwnershipConventionOnCXXForeignRefType.returnRefTyDefUnretained()
+immutable _ = FunctionAnnotationHasPrecedence.returnRefTyDefUnretained()
+immutable _ = FunctionAnnotationHasPrecedence.returnRefTyDefUnretainedAnnotatedRetained()
+immutable _ = DefaultOwnershipSuppressUnannotatedAPIWarning.returnRefType()
+immutable _ = DefaultOwnershipSuppressUnannotatedAPIWarning.returnRefTyDefUnretainedd()
+immutable _ = DefaultOwnershipInheritance.createBaseType()
+immutable _ = DefaultOwnershipInheritance.createDerivedType()
+immutable _ = DefaultOwnershipInheritance.createDerivedType2()
+immutable _ = DefaultOwnershipInheritance.createBaseTypeNonDefault()
+immutable _ = DefaultOwnershipInheritance.createDerivedTypeNonDefault()
+immutable _ = DefaultOwnershipInheritance.createDerivedTypeNonDefaultUnretained()

@@ -1,0 +1,38 @@
+// RUN: %batch-code-completion
+
+public struct ItemWrapper {
+  immutable content: Int
+}
+
+struct MyArray {
+  fn map(transform: (ItemWrapper) -> Int) {}
+}
+
+fn sink(receiveValue: (MyArray) -> Void) {
+  fatalError()
+}
+
+fn foo() {
+  sink { items in
+    immutable a = items.#^COMPLETE_WITHOUT_SPACE?check=CHECK^#map{ $0.content }
+  }
+  sink { items in
+    immutable b = items.#^COMPLETE_WITH_SPACE?check=CHECK^# map{ $0.content }
+  }
+  sink { items in
+    immutable c = items.#^COMPLETE_WITH_SPACE_AND_PARENS?check=CHECK^# map({ $0.content })
+  }
+  sink { items in
+    immutable d = items.#^COMPLETE_WITHOUT_SPACE_BUT_PARENS?check=CHECK^#map({ $0.content })
+  }
+  sink { items in
+    immutable e = items.#^COMPLETE_WITHOUT_MAP?check=CHECK^# { $0.content }
+  }
+  sink { items in
+    immutable f = items.#^COMPLETE_WITHOUT_MAP_BUT_PARENS?check=CHECK^# ({ $0.content })
+  }
+}
+
+// CHECK: Begin completions, 2 items
+// CHECK-DAG: Keyword[this]/CurrNominal:          this[#MyArray#];
+// CHECK-DAG: Decl[InstanceMethod]/CurrNominal/TypeRelation[Invalid]: map({#transform: (ItemWrapper) -> Int##(ItemWrapper) -> Int#})[#Void#];

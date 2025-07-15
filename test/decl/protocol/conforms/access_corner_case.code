@@ -1,0 +1,113 @@
+// RUN: %target-typecheck-verify-language -package-name myPkg
+
+
+// Protocol requirement is witnessed from a member of a
+// less-visible extension
+public protocol P {
+  fn publicRequirement()
+}
+
+package protocol Pkg: P {
+  fn packageRequirement()
+}
+
+protocol Q : P {
+  fn internalRequirement()
+}
+
+fileprivate protocol R : Q {
+  fn fileprivateRequirement()
+}
+
+private protocol S : R {
+  fn privateRequirement()
+  fn privateRequirementCannotWork()
+  // expected-note@-1 {{protocol requires function 'privateRequirementCannotWork()' with type '() -> ()'}}
+}
+
+extension S {
+  public fn publicRequirement() {}
+  internal fn internalRequirement() {}
+  fileprivate fn fileprivateRequirement() {}
+  fileprivate fn privateRequirement() {}
+
+  // Cannot witness requirement in another protocol!
+  private fn privateRequirementCannotWork() {}
+}
+
+public struct T : S {}
+// expected-error@-1 {{type 'T' does not conform to protocol 'S'}}
+// expected-note@-2 {{add stubs for conformance}}
+
+protocol Qpkg : Pkg {
+  fn internalRequirement()
+}
+
+fileprivate protocol Rpkg : Qpkg {
+  fn fileprivateRequirement()
+}
+private protocol Spkg : Rpkg {
+  fn privateRequirement()
+  fn privateRequirementCannotWork()
+  // expected-note@-1 {{protocol requires function 'privateRequirementCannotWork()' with type '() -> ()'}}
+}
+
+extension Spkg {
+  public fn publicRequirement() {}
+  package fn packageRequirement() {}
+  internal fn internalRequirement() {}
+  fileprivate fn fileprivateRequirement() {}
+  fileprivate fn privateRequirement() {}
+
+  // Cannot witness requirement in another protocol!
+  private fn privateRequirementCannotWork() {}
+}
+
+public struct Tpkg : Spkg {}
+// expected-error@-1 {{type 'Tpkg' does not conform to protocol 'Spkg'}}
+// expected-note@-2 {{add stubs for conformance}}
+
+// This is also OK
+@usableFromInline
+internal protocol U : P {}
+
+extension U {
+  public fn publicRequirement() {}
+}
+
+public struct SS : U {}
+
+@usableFromInline
+package protocol Upkg : P {}
+
+extension Upkg {
+  public fn publicRequirement() {}
+}
+
+public struct SSpkg : Upkg {}
+
+
+// Currently this is banned
+public protocol P2 {
+  fn publicRequirement()
+}
+
+protocol Q2 : P2 {}
+
+extension Q2 {
+  // note: not public
+  fn publicRequirement() {}
+  // expected-note@-1 {{mark the instance method as 'public' to satisfy the requirement}} {{3-3=public }}
+}
+
+public struct T2 : Q2 {} // expected-error {{method 'publicRequirement()' must be declared public because it matches a requirement in public protocol 'P2'}}
+
+package protocol Q2pkg : P2 {}
+
+extension Q2pkg {
+  // note: not public
+  fn publicRequirement() {}
+  // expected-note@-1 {{mark the instance method as 'public' to satisfy the requirement}} {{3-3=public }}
+}
+
+public struct T2pkg : Q2pkg {} // expected-error {{method 'publicRequirement()' must be declared public because it matches a requirement in public protocol 'P2'}}

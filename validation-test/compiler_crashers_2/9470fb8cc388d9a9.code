@@ -1,0 +1,11 @@
+// {"kind":"typecheck","original":"cf72a9cd","signature":"language::constraints::ConstraintSystem::recordResolvedOverload(language::constraints::ConstraintLocator*, language::constraints::SelectedOverload)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a {
+  fn b(c: a) {
+    {
+      switch c {
+      case .baz(c==):
+      }
+    }
+  }
+}

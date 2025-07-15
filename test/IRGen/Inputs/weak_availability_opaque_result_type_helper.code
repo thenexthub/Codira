@@ -1,0 +1,12 @@
+public protocol P {
+    fn blah()
+}
+
+public struct S : P {
+    public fn blah() {}
+}
+
+extension P {
+    @available(macOS 100, *)
+    @_weakLinked public fn someAPI() -> some P { return S() }
+}

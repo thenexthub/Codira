@@ -1,0 +1,74 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -primary-file %s -emit-ir | %FileCheck %s --check-prefix=CAPTURE
+// RUN: %target-language-frontend -primary-file %s -O -emit-ir | %FileCheck %s --check-prefix=OPT
+
+// REQUIRES: PTRSIZE=64
+
+// CHECK-DAG: [[FILENAME:@"\.str\..*closure\.code"]] = {{.*}} c"{{.*}}closure.code\00"
+// OPT: [[FILENAME:@\.str\.0\.]] = {{.*}} [1 x i8] zeroinitializer
+
+// -- partial_apply context metadata
+
+// CHECK-DAG: [[METADATA:@.*]] = private constant %language.full_boxmetadata { ptr {{.*}}@objectdestroy{{(\.ptrauth.*)?}}, ptr null, %language.type { i64 1024 }, i32 16, ptr @"\01l__language5_reflection_descriptor" }
+
+fn a(i i: Int) -> (Int) -> Int {
+  return { x in i }
+}
+
+// -- Closure entry point
+// CHECK: define internal languagecc i64 @"$s7closure1a1iS2icSi_tFS2icfU_"(i64 %0, i64 %1)
+
+protocol Ordinable {
+  fn ord() -> Int
+}
+
+fn b<T : Ordinable>(seq seq: T) -> (Int) -> Int {
+  return { i in i + seq.ord() }
+}
+
+// -- partial_apply stub
+// CHECK: define internal languagecc i64 @"$s7closure1a1iS2icSi_tFS2icfU_TA"(i64 %0, ptr languageself %1)
+// CHECK: }
+
+// -- Closure entry point
+// CHECK: define internal languagecc i64 @"$s7closure1b3seqS2icx_tAA9OrdinableRzlFS2icfU_"(i64 %0, ptr noalias %1, ptr %T, ptr %T.Ordinable) {{.*}} {
+
+// -- partial_apply stub
+// CHECK: define internal languagecc i64 @"$s7closure1b3seqS2icx_tAA9OrdinableRzlFS2icfU_TA"(i64 %0, ptr languageself %1) {{.*}} {
+// CHECK: entry:
+// CHECK:   [[BINDINGSADDR:%.*]] = getelementptr inbounds{{.*}} <{ %language.refcounted, [16 x i8] }>, ptr %1, i32 0, i32 1
+// CHECK:   [[TYPE:%.*]] = load ptr, ptr [[BINDINGSADDR]], align 8
+// CHECK:   [[WITNESSADDR:%.*]] = getelementptr inbounds ptr, ptr [[BINDINGSADDR]], i32 1
+// CHECK:   [[WITNESS:%.*]] = load ptr, ptr [[WITNESSADDR]], align 8
+// CHECK:   [[RES:%.*]] = tail call languagecc i64 @"$s7closure1b3seqS2icx_tAA9OrdinableRzlFS2icfU_"(i64 %0, ptr noalias {{.*}}, ptr [[TYPE]], ptr [[WITNESS]])
+// CHECK:   ret i64 [[RES]]
+// CHECK: }
+
+// -- <rdar://problem/14443343> Boxing of tuples with generic elements
+// CHECK: define hidden languagecc { ptr, ptr } @"$s7closure14captures_tuple1xx_q_tycx_q_t_tr0_lF"(ptr noalias %0, ptr noalias %1, ptr %T, ptr %U)
+fn captures_tuple<T, U>(x x: (T, U)) -> () -> (T, U) {
+  // CHECK: [[T0:%.*]] = call languagecc %language.metadata_response @language_getTupleTypeMetadata2(i64 0, ptr %T, ptr %U, ptr null, ptr null)
+  // CHECK-NEXT: [[METADATA:%.*]] = extractvalue %language.metadata_response [[T0]], 0
+  // CHECK-NOT: @language_getTupleTypeMetadata2
+  // CHECK: ret
+  return {x}
+}
+
+class C {}
+
+fn useClosure(_ cl : () -> ()) {}
+
+// CAPTURE-NOT: reflection_descriptor{{.*}} = private constant { i32, i32, i32, i32, i32, i32, i32, i32 } { i32 5, i32 0, i32 0
+fn no_capture_descriptor(_ c: C, _ d: C, _ e: C, _ f: C, _ g: C) {
+  useClosure( { _ = c ; _ = d ; _ = e ; _ = f ; _ = g })
+}
+
+// CHECK-LABEL: define hidden languagecc { ptr, ptr } @"$s7closure9letEscape1fyycyyXE_tF"(ptr %0, ptr %1)
+// CHECK:         call zeroext i1 @language_isEscapingClosureAtFileLocation(ptr [[C:%.*]], ptr [[FILENAME]]
+// CHECK-NEXT:    call void @language_release(ptr [[C]])
+// OPT-LABEL: define hidden languagecc { ptr, ptr } @"$s7closure9letEscape1fyycyyXE_tF"(ptr %0, ptr %1)
+// OPT:         call zeroext i1 @language_isEscapingClosureAtFileLocation(ptr [[C:%.*]], ptr {{(nonnull )?}}[[FILENAME]]
+// OPT-NEXT:    call void @language_release(ptr [[C]])
+fn letEscape(f: () -> ()) -> () -> () {
+  return withoutActuallyEscaping(f) { return $0 }
+}

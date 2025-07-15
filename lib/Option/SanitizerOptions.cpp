@@ -1,4 +1,4 @@
-//===--- SanitizerOptions.cpp - Swift Sanitizer options -------------------===//
+//===--- SanitizerOptions.cpp - Codira Sanitizer options -------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // \file
@@ -24,10 +25,10 @@
 #include "language/AST/DiagnosticsFrontend.h"
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/Platform.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/TargetParser/Triple.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/TargetParser/Triple.h"
 #include <optional>
 
 using namespace language;
@@ -38,7 +39,7 @@ static StringRef toStringRef(const SanitizerKind kind) {
         case SanitizerKind::kind: return #name;
     #include "language/Basic/Sanitizers.def"
   }
-  llvm_unreachable("Unknown sanitizer");
+  toolchain_unreachable("Unknown sanitizer");
 }
 
 static StringRef toFileName(const SanitizerKind kind) {
@@ -47,33 +48,33 @@ static StringRef toFileName(const SanitizerKind kind) {
         case SanitizerKind::kind: return #file;
     #include "language/Basic/Sanitizers.def"
   }
-  llvm_unreachable("Unknown sanitizer");
+  toolchain_unreachable("Unknown sanitizer");
 }
 
 static std::optional<SanitizerKind> parse(const char *arg) {
-  return llvm::StringSwitch<std::optional<SanitizerKind>>(arg)
+  return toolchain::StringSwitch<std::optional<SanitizerKind>>(arg)
 #define SANITIZER(_, kind, name, file) .Case(#name, SanitizerKind::kind)
 #include "language/Basic/Sanitizers.def"
       .Default(std::nullopt);
 }
 
-llvm::SanitizerCoverageOptions swift::parseSanitizerCoverageArgValue(
-    const llvm::opt::Arg *A, const llvm::Triple &Triple,
+toolchain::SanitizerCoverageOptions language::parseSanitizerCoverageArgValue(
+    const toolchain::opt::Arg *A, const toolchain::Triple &Triple,
     DiagnosticEngine &Diags, OptionSet<SanitizerKind> sanitizers) {
 
-  llvm::SanitizerCoverageOptions opts;
+  toolchain::SanitizerCoverageOptions opts;
   // The coverage names here follow the names used by clang's
   // ``-fsanitize-coverage=`` flag.
   for (int i = 0, n = A->getNumValues(); i != n; ++i) {
-    if (opts.CoverageType == llvm::SanitizerCoverageOptions::SCK_None) {
+    if (opts.CoverageType == toolchain::SanitizerCoverageOptions::SCK_None) {
       opts.CoverageType =
-          llvm::StringSwitch<llvm::SanitizerCoverageOptions::Type>(
+          toolchain::StringSwitch<toolchain::SanitizerCoverageOptions::Type>(
               A->getValue(i))
-              .Case("func", llvm::SanitizerCoverageOptions::SCK_Function)
-              .Case("bb", llvm::SanitizerCoverageOptions::SCK_BB)
-              .Case("edge", llvm::SanitizerCoverageOptions::SCK_Edge)
-              .Default(llvm::SanitizerCoverageOptions::SCK_None);
-      if (opts.CoverageType != llvm::SanitizerCoverageOptions::SCK_None)
+              .Case("fn", toolchain::SanitizerCoverageOptions::SCK_Function)
+              .Case("bb", toolchain::SanitizerCoverageOptions::SCK_BB)
+              .Case("edge", toolchain::SanitizerCoverageOptions::SCK_Edge)
+              .Default(toolchain::SanitizerCoverageOptions::SCK_None);
+      if (opts.CoverageType != toolchain::SanitizerCoverageOptions::SCK_None)
         continue;
     }
 
@@ -106,13 +107,13 @@ llvm::SanitizerCoverageOptions swift::parseSanitizerCoverageArgValue(
     // Argument is not supported.
     Diags.diagnose(SourceLoc(), diag::error_unsupported_option_argument,
                    A->getOption().getPrefixedName(), A->getValue(i));
-    return llvm::SanitizerCoverageOptions();
+    return toolchain::SanitizerCoverageOptions();
   }
 
-  if (opts.CoverageType == llvm::SanitizerCoverageOptions::SCK_None) {
+  if (opts.CoverageType == toolchain::SanitizerCoverageOptions::SCK_None) {
     Diags.diagnose(SourceLoc(), diag::error_option_missing_required_argument,
-                   A->getSpelling(), "\"func\", \"bb\", \"edge\"");
-    return llvm::SanitizerCoverageOptions();
+                   A->getSpelling(), "\"fn\", \"bb\", \"edge\"");
+    return toolchain::SanitizerCoverageOptions();
   }
 
   // Running the sanitizer coverage pass will add undefined symbols to
@@ -121,21 +122,21 @@ llvm::SanitizerCoverageOptions swift::parseSanitizerCoverageArgValue(
   // in the various sanitizer runtime libraries so we require that we are
   // doing a sanitized build so we pick up the required functions during
   // linking.
-  if (opts.CoverageType != llvm::SanitizerCoverageOptions::SCK_None &&
+  if (opts.CoverageType != toolchain::SanitizerCoverageOptions::SCK_None &&
       !sanitizers) {
     Diags.diagnose(SourceLoc(), diag::error_option_requires_sanitizer,
                    A->getSpelling());
-    return llvm::SanitizerCoverageOptions();
+    return toolchain::SanitizerCoverageOptions();
   }
   return opts;
 }
 
-OptionSet<SanitizerKind> swift::parseSanitizerArgValues(
-    const llvm::opt::ArgList &Args,
-    const llvm::opt::Arg *A,
-    const llvm::Triple &Triple,
+OptionSet<SanitizerKind> language::parseSanitizerArgValues(
+    const toolchain::opt::ArgList &Args,
+    const toolchain::opt::Arg *A,
+    const toolchain::Triple &Triple,
     DiagnosticEngine &Diags,
-    llvm::function_ref<bool(llvm::StringRef, bool)> sanitizerRuntimeLibExists) {
+    toolchain::function_ref<bool(toolchain::StringRef, bool)> sanitizerRuntimeLibExists) {
   OptionSet<SanitizerKind> sanitizerSet;
 
   // Find the sanitizer kind.
@@ -171,7 +172,7 @@ OptionSet<SanitizerKind> swift::parseSanitizerArgValues(
   }
 
   // Check that we're one of the known supported targets for sanitizers.
-  if (!(Triple.isOSDarwin() || Triple.isOSLinux() || Triple.isOSWindows())) {
+  if (!(Triple.isOSDarwin() || Triple.isOSLinux() || Triple.isOSWindows() || Triple.isOSWASI() || Triple.isOSFreeBSD())) {
     SmallString<128> b;
     Diags.diagnose(SourceLoc(), diag::error_unsupported_opt_for_target,
       (A->getOption().getPrefixedName() +
@@ -215,8 +216,8 @@ OptionSet<SanitizerKind> swift::parseSanitizerArgValues(
   return sanitizerSet;
 }
 
-OptionSet<SanitizerKind> swift::parseSanitizerRecoverArgValues(
-    const llvm::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
+OptionSet<SanitizerKind> language::parseSanitizerRecoverArgValues(
+    const toolchain::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
     DiagnosticEngine &Diags, bool emitWarnings) {
   OptionSet<SanitizerKind> sanitizerRecoverSet;
 
@@ -260,8 +261,8 @@ OptionSet<SanitizerKind> swift::parseSanitizerRecoverArgValues(
 
 // Note this implementation cannot be inlined at its use site because it calls
 // `toStringRef(const SanitizerKind).`
-bool swift::parseSanitizerAddressUseODRIndicator(
-    const llvm::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
+bool language::parseSanitizerAddressUseODRIndicator(
+    const toolchain::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
     DiagnosticEngine &Diags) {
   // Warn if ASan isn't enabled.
   if (!(enabledSanitizers & SanitizerKind::Address)) {
@@ -274,8 +275,8 @@ bool swift::parseSanitizerAddressUseODRIndicator(
   return true;
 }
 
-bool swift::parseSanitizerUseStableABI(
-    const llvm::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
+bool language::parseSanitizerUseStableABI(
+    const toolchain::opt::Arg *A, const OptionSet<SanitizerKind> &enabledSanitizers,
     DiagnosticEngine &Diags) {
   // Warn if ASan isn't enabled.
   if (!(enabledSanitizers & SanitizerKind::Address)) {
@@ -288,7 +289,7 @@ bool swift::parseSanitizerUseStableABI(
   return true;
 }
 
-std::string swift::getSanitizerList(const OptionSet<SanitizerKind> &Set) {
+std::string language::getSanitizerList(const OptionSet<SanitizerKind> &Set) {
   std::string list;
   #define SANITIZER(_, kind, name, file) \
       if (Set & SanitizerKind::kind) list += #name ",";

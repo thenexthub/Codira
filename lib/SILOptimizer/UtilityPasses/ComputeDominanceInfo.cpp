@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-compute-dominance-info"
@@ -29,4 +30,4 @@ class ComputeDominanceInfo : public SILFunctionTransform {
 
 };
 
-SILTransform *swift::createComputeDominanceInfo() { return new ComputeDominanceInfo(); }
+SILTransform *language::createComputeDominanceInfo() { return new ComputeDominanceInfo(); }

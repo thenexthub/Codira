@@ -1,4 +1,4 @@
-//===--- Metadata.h - Swift Language ABI Metadata Support -------*- C++ -*-===//
+//===--- Metadata.h - Codira Language ABI Metadata Support -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime support for generating and uniquing metadata.
+// Codira runtime support for generating and uniquing metadata.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_METADATA_H
-#define SWIFT_RUNTIME_METADATA_H
+#ifndef LANGUAGE_RUNTIME_METADATA_H
+#define LANGUAGE_RUNTIME_METADATA_H
 
 #include "language/ABI/Metadata.h"
 #include "language/RemoteInspection/Records.h"
@@ -52,17 +53,17 @@ struct YieldOnceBuffer {
   void *Data[NumWords_YieldOnceBuffer];
 };
 using YieldOnceContinuation =
-  SWIFT_CC(swift) void (YieldOnceBuffer *buffer, bool forUnwind);
+  LANGUAGE_CC(language) void (YieldOnceBuffer *buffer, bool forUnwind);
 
 /// The return type of a call to a yield-once coroutine.  The function
-/// must be declared with the swiftcall calling convention.
+/// must be declared with the languagecall calling convention.
 template <class ResultTy>
 struct YieldOnceResult {
   YieldOnceContinuation *Continuation;
   ResultTy YieldValue;
 };
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 
   // Const cast shorthands for ObjC types.
 
@@ -94,8 +95,8 @@ struct YieldOnceResult {
 
 /// A standard routine, suitable for placement in the value witness
 /// table, for copying an opaque POD object.
-SWIFT_RUNTIME_EXPORT
-OpaqueValue *swift_copyPOD(OpaqueValue *dest,
+LANGUAGE_RUNTIME_EXPORT
+OpaqueValue *language_copyPOD(OpaqueValue *dest,
                            OpaqueValue *src,
                            const Metadata *self);
 
@@ -123,38 +124,38 @@ template <> inline bool ValueWitnessTable::checkIsComplete() const {
 // Standard value-witness tables.
 
 #define BUILTIN_TYPE(Symbol, _) \
-  SWIFT_RUNTIME_EXPORT const ValueWitnessTable VALUE_WITNESS_SYM(Symbol);
+  LANGUAGE_RUNTIME_EXPORT const ValueWitnessTable VALUE_WITNESS_SYM(Symbol);
 #define BUILTIN_POINTER_TYPE(Symbol, _) \
-  SWIFT_RUNTIME_EXPORT const ValueWitnessTable VALUE_WITNESS_SYM(Symbol);
+  LANGUAGE_RUNTIME_EXPORT const ValueWitnessTable VALUE_WITNESS_SYM(Symbol);
 #include "language/Runtime/BuiltinTypes.def"
 
 // The () -> () table can be used for arbitrary function types.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ValueWitnessTable
   VALUE_WITNESS_SYM(FUNCTION_MANGLING);     // () -> ()
 
 // The @differentiable(reverse) () -> () table can be used for differentiable
 // function types.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ValueWitnessTable
   VALUE_WITNESS_SYM(DIFF_FUNCTION_MANGLING); // @differentiable(reverse) () -> ()
 
 // The @noescape () -> () table can be used for arbitrary noescaping function types.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ValueWitnessTable
   VALUE_WITNESS_SYM(NOESCAPE_FUNCTION_MANGLING);     // @noescape () -> ()
 
 // The @convention(thin) () -> () table can be used for arbitrary thin function types.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ValueWitnessTable
   VALUE_WITNESS_SYM(THIN_FUNCTION_MANGLING);    // @convention(thin) () -> ()
 
 // The () table can be used for arbitrary empty types.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ValueWitnessTable VALUE_WITNESS_SYM(EMPTY_TUPLE_MANGLING);        // ()
 
 // The table for aligned-pointer-to-pointer types.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ValueWitnessTable METATYPE_VALUE_WITNESS_SYM(Bo); // Builtin.NativeObject.Type
 
 /// Return the value witnesses for unmanaged pointers.
@@ -180,23 +181,23 @@ using OpaqueMetadata = TargetOpaqueMetadata<InProcess>;
 // matching characteristics.
 using FullOpaqueMetadata = FullMetadata<OpaqueMetadata>;
 #define BUILTIN_TYPE(Symbol, Name) \
-    SWIFT_RUNTIME_EXPORT \
+    LANGUAGE_RUNTIME_EXPORT \
     const FullOpaqueMetadata METADATA_SYM(Symbol);
 #include "language/Runtime/BuiltinTypes.def"
 
 /// The standard metadata for the empty tuple type.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const
   FullMetadata<TupleTypeMetadata> METADATA_SYM(EMPTY_TUPLE_MANGLING);
 
 /// The standard metadata for the empty protocol composition type, Any.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const
   FullMetadata<ExistentialTypeMetadata> METADATA_SYM(ANY_MANGLING);
 
 /// The standard metadata for the empty class-constrained protocol composition
 /// type, AnyObject.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const
   FullMetadata<ExistentialTypeMetadata> METADATA_SYM(ANYOBJECT_MANGLING);
 
@@ -208,15 +209,15 @@ bool equalContexts(const ContextDescriptor *a, const ContextDescriptor *b);
 /// Determines whether two type context descriptors describe the same type
 /// context.
 ///
-/// Runtime availability: Swift 5.4.
+/// Runtime availability: Codira 5.4.
 ///
 /// \param lhs The first type context descriptor to compare.
 /// \param rhs The second type context descriptor to compare.
 ///
 /// \returns true if both describe the same type context, false otherwise.
-SWIFT_RUNTIME_EXPORT
-SWIFT_CC(swift)
-bool swift_compareTypeContextDescriptors(const TypeContextDescriptor *lhs,
+LANGUAGE_RUNTIME_EXPORT
+LANGUAGE_CC(language)
+bool language_compareTypeContextDescriptors(const TypeContextDescriptor *lhs,
                                          const TypeContextDescriptor *rhs);
 
 /// Compute the bounds of class metadata with a resilient superclass.
@@ -226,16 +227,16 @@ int32_t getResilientImmediateMembersOffset(const ClassDescriptor *descriptor);
 
 /// Fetch a uniqued metadata object for a nominal type which requires
 /// singleton metadata initialization.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getSingletonMetadata(MetadataRequest request,
+language_getSingletonMetadata(MetadataRequest request,
                            const TypeContextDescriptor *description);
 
 /// Fetch a uniqued metadata object for the generic nominal type described by
 /// the provided candidate metadata, using that candidate metadata if there is
 /// not already a canonical metadata.
 ///
-/// Runtime availability: Swift 5.4
+/// Runtime availability: Codira 5.4
 ///
 /// \param candidate A prespecialized metadata record for a type which is not
 ///                  statically made to be canonical which will be canonicalized
@@ -246,8 +247,8 @@ swift_getSingletonMetadata(MetadataRequest request,
 ///              contents will be returned.
 /// \returns The canonical metadata for the specialized generic type described
 ///          by the provided candidate metadata.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift) MetadataResponse
-    swift_getCanonicalSpecializedMetadata(MetadataRequest request,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language) MetadataResponse
+    language_getCanonicalSpecializedMetadata(MetadataRequest request,
                                           const Metadata *candidate,
                                           const Metadata **cache);
 
@@ -256,11 +257,11 @@ SWIFT_RUNTIME_EXPORT SWIFT_CC(swift) MetadataResponse
 /// prespecializations attached to the type descriptor to the metadata cache on
 /// first run.
 ///
-/// In contrast to swift_getGenericMetadata, this function is for use by
+/// In contrast to language_getGenericMetadata, this function is for use by
 /// metadata accessors for which canonical generic metadata has been specialized
 /// at compile time.
 ///
-/// Runtime availability: Swift 5.4
+/// Runtime availability: Codira 5.4
 ///
 /// \param request A specification of the metadata to be returned.
 /// \param arguments The generic arguments--metadata and witness tables--which
@@ -271,15 +272,15 @@ SWIFT_RUNTIME_EXPORT SWIFT_CC(swift) MetadataResponse
 ///              the metadata cache only once.
 /// \returns The canonical metadata for the specialized generic type described
 ///          by the provided candidate metadata.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift) MetadataResponse
-    swift_getCanonicalPrespecializedGenericMetadata(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language) MetadataResponse
+    language_getCanonicalPrespecializedGenericMetadata(
         MetadataRequest request, const void *const *arguments,
-        const TypeContextDescriptor *description, swift_once_t *token);
+        const TypeContextDescriptor *description, language_once_t *token);
 
 /// Fetch a uniqued metadata object for a generic nominal type.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getGenericMetadata(MetadataRequest request,
+language_getGenericMetadata(MetadataRequest request,
                          const void * const *arguments,
                          const TypeContextDescriptor *description);
 
@@ -293,7 +294,7 @@ swift_getGenericMetadata(MetadataRequest request,
 ///     size and the additional requirements imposed by the pattern;
 ///   - copies information from the pattern into the allocated metadata; and
 ///   - fully initializes the ClassMetadata header, except that the
-///     superclass pointer will be null (or SwiftObject under ObjC interop
+///     superclass pointer will be null (or CodiraObject under ObjC interop
 ///     if there is no formal superclass).
 ///
 /// The instantiation function is responsible for completing the
@@ -303,22 +304,22 @@ swift_getGenericMetadata(MetadataRequest request,
 ///   - installing the generic arguments;
 ///   - installing new v-table entries and overrides; and
 ///   - registering the class with the runtime under ObjC interop.
-/// Most of this work can be achieved by calling swift_initClassMetadata.
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD SWIFT_RUNTIME_EXPORT_ATTRIBUTE
+/// Most of this work can be achieved by calling language_initClassMetadata.
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE
 ClassMetadata *
-swift_allocateGenericClassMetadata(const ClassDescriptor *description,
+language_allocateGenericClassMetadata(const ClassDescriptor *description,
                                    const void *arguments,
                                    const GenericClassMetadataPattern *pattern);
 
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
-    SWIFT_RUNTIME_EXPORT_ATTRIBUTE ClassMetadata *
-    swift_cvw_allocateGenericClassMetadataWithLayoutString(
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
+    LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE ClassMetadata *
+    language_cvw_allocateGenericClassMetadataWithLayoutString(
         const ClassDescriptor *description, const void *arguments,
         const GenericClassMetadataPattern *pattern);
 
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD SWIFT_RUNTIME_EXPORT_ATTRIBUTE
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE
 ClassMetadata *
-swift_allocateGenericClassMetadataWithLayoutString(
+language_allocateGenericClassMetadataWithLayoutString(
     const ClassDescriptor *description,
     const void *arguments,
     const GenericClassMetadataPattern *pattern);
@@ -326,30 +327,30 @@ swift_allocateGenericClassMetadataWithLayoutString(
 /// Allocate a generic value metadata object.  This is intended to be
 /// called by the metadata instantiation function of a generic struct or
 /// enum.
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD SWIFT_RUNTIME_EXPORT_ATTRIBUTE
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE
 ValueMetadata *
-swift_allocateGenericValueMetadata(const ValueTypeDescriptor *description,
+language_allocateGenericValueMetadata(const ValueTypeDescriptor *description,
                                    const void *arguments,
                                    const GenericValueMetadataPattern *pattern,
                                    size_t extraDataSize);
 
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD
-    SWIFT_RUNTIME_EXPORT_ATTRIBUTE ValueMetadata *
-    swift_cvw_allocateGenericValueMetadataWithLayoutString(
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD
+    LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE ValueMetadata *
+    language_cvw_allocateGenericValueMetadataWithLayoutString(
         const ValueTypeDescriptor *description, const void *arguments,
         const GenericValueMetadataPattern *pattern, size_t extraDataSize);
 
-SWIFT_EXTERN_C SWIFT_RETURNS_NONNULL SWIFT_NODISCARD SWIFT_RUNTIME_EXPORT_ATTRIBUTE
+LANGUAGE_EXTERN_C LANGUAGE_RETURNS_NONNULL LANGUAGE_NODISCARD LANGUAGE_RUNTIME_EXPORT_ATTRIBUTE
 ValueMetadata *
-swift_allocateGenericValueMetadataWithLayoutString(
+language_allocateGenericValueMetadataWithLayoutString(
     const ValueTypeDescriptor *description,
     const void *arguments,
     const GenericValueMetadataPattern *pattern,
     size_t extraDataSize);
 
 /// Check that the given metadata has the right state.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-MetadataResponse swift_checkMetadataState(MetadataRequest request,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+MetadataResponse language_checkMetadataState(MetadataRequest request,
                                           const Metadata *type);
 
 /// Retrieve a witness table based on a given conformance.
@@ -366,15 +367,15 @@ MetadataResponse swift_checkMetadataState(MetadataRequest request,
 ///   never form part of the uniquing key for the conformance, which
 ///   is ultimately a statement about the user model of overlapping
 ///   conformances.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const WitnessTable *
-swift_getWitnessTable(const ProtocolConformanceDescriptor *conformance,
+language_getWitnessTable(const ProtocolConformanceDescriptor *conformance,
                       const Metadata *type,
                       const void * const *instantiationArgs);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const RelativeWitnessTable *
-swift_getWitnessTableRelative(const ProtocolConformanceDescriptor *conformance,
+language_getWitnessTableRelative(const ProtocolConformanceDescriptor *conformance,
                       const Metadata *type,
                       const void * const *instantiationArgs);
 
@@ -386,15 +387,15 @@ swift_getWitnessTableRelative(const ProtocolConformanceDescriptor *conformance,
 /// \param assocType Associated type descriptor.
 ///
 /// \returns metadata for the associated type witness.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-MetadataResponse swift_getAssociatedTypeWitness(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+MetadataResponse language_getAssociatedTypeWitness(
                                           MetadataRequest request,
                                           WitnessTable *wtable,
                                           const Metadata *conformingType,
                                           const ProtocolRequirement *reqBase,
                                           const ProtocolRequirement *assocType);
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-MetadataResponse swift_getAssociatedTypeWitnessRelative(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+MetadataResponse language_getAssociatedTypeWitnessRelative(
                                           MetadataRequest request,
                                           RelativeWitnessTable *wtable,
                                           const Metadata *conformingType,
@@ -410,16 +411,16 @@ MetadataResponse swift_getAssociatedTypeWitnessRelative(
 /// \param assocConformance Associated conformance descriptor.
 ///
 /// \returns corresponding witness table.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-const WitnessTable *swift_getAssociatedConformanceWitness(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+const WitnessTable *language_getAssociatedConformanceWitness(
                                   WitnessTable *wtable,
                                   const Metadata *conformingType,
                                   const Metadata *assocType,
                                   const ProtocolRequirement *reqBase,
                                   const ProtocolRequirement *assocConformance);
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-const RelativeWitnessTable *swift_getAssociatedConformanceWitnessRelative(
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+const RelativeWitnessTable *language_getAssociatedConformanceWitnessRelative(
                                   RelativeWitnessTable *wtable,
                                   const Metadata *conformingType,
                                   const Metadata *assocType,
@@ -429,29 +430,29 @@ const RelativeWitnessTable *swift_getAssociatedConformanceWitnessRelative(
 /// Compare two witness tables, which may involving checking the
 /// contents of their conformance descriptors.
 ///
-/// Runtime availability: Swift 5.4
+/// Runtime availability: Codira 5.4
 ///
 /// \param lhs The first protocol witness table to compare.
 /// \param rhs The second protocol witness table to compare.
 ///
 /// \returns true if both witness tables describe the same conformance, false otherwise.
-SWIFT_RUNTIME_EXPORT
-SWIFT_CC(swift)
-bool swift_compareWitnessTables(const WitnessTable *lhs,
+LANGUAGE_RUNTIME_EXPORT
+LANGUAGE_CC(language)
+bool language_compareWitnessTables(const WitnessTable *lhs,
                                 const WitnessTable *rhs);
 
 /// Determine whether two protocol conformance descriptors describe the same
 /// conformance of a type to a protocol.
 ///
-/// Runtime availability: Swift 5.4
+/// Runtime availability: Codira 5.4
 ///
 /// \param lhs The first protocol conformance descriptor to compare.
 /// \param rhs The second protocol conformance descriptor to compare.
 ///
 /// \returns true if both describe the same conformance, false otherwise.
-SWIFT_RUNTIME_EXPORT
-SWIFT_CC(swift)
-bool swift_compareProtocolConformanceDescriptors(
+LANGUAGE_RUNTIME_EXPORT
+LANGUAGE_CC(language)
+bool language_compareProtocolConformanceDescriptors(
     const ProtocolConformanceDescriptor *lhs,
     const ProtocolConformanceDescriptor *rhs);
 
@@ -466,9 +467,9 @@ bool swift_compareProtocolConformanceDescriptors(
 ///
 /// \returns a metadata pack allocated on the heap, with the least significant
 /// bit set to true.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 const Metadata * const *
-swift_allocateMetadataPack(const Metadata * const *ptr, size_t count);
+language_allocateMetadataPack(const Metadata * const *ptr, size_t count);
 
 /// Allocate a witness table pack on the heap, unless this pack is already on
 /// the heap.
@@ -481,106 +482,106 @@ swift_allocateMetadataPack(const Metadata * const *ptr, size_t count);
 ///
 /// \returns a witness table pack allocated on the heap, with the least
 /// significant bit set to true.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 const WitnessTable * const *
-swift_allocateWitnessTablePack(const WitnessTable * const *ptr, size_t count);
+language_allocateWitnessTablePack(const WitnessTable * const *ptr, size_t count);
 
 /// Fetch a uniqued metadata for a function type.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadata(FunctionTypeFlags flags,
+language_getFunctionTypeMetadata(FunctionTypeFlags flags,
                               const Metadata *const *parameters,
                               const uint32_t *parameterFlags,
                               const Metadata *result);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadataDifferentiable(
+language_getFunctionTypeMetadataDifferentiable(
     FunctionTypeFlags flags, FunctionMetadataDifferentiabilityKind diffKind,
     const Metadata *const *parameters, const uint32_t *parameterFlags,
     const Metadata *result);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadataGlobalActor(
+language_getFunctionTypeMetadataGlobalActor(
     FunctionTypeFlags flags, FunctionMetadataDifferentiabilityKind diffKind,
     const Metadata *const *parameters, const uint32_t *parameterFlags,
     const Metadata *result, const Metadata *globalActor);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getExtendedFunctionTypeMetadata(
+language_getExtendedFunctionTypeMetadata(
     FunctionTypeFlags flags, FunctionMetadataDifferentiabilityKind diffKind,
     const Metadata *const *parameters, const uint32_t *parameterFlags,
     const Metadata *result, const Metadata *globalActor,
     ExtendedFunctionTypeFlags extFlags, const Metadata *thrownError);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadata0(FunctionTypeFlags flags,
+language_getFunctionTypeMetadata0(FunctionTypeFlags flags,
                                const Metadata *result);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadata1(FunctionTypeFlags flags,
+language_getFunctionTypeMetadata1(FunctionTypeFlags flags,
                                const Metadata *arg0,
                                const Metadata *result);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const FunctionTypeMetadata *
-swift_getFunctionTypeMetadata2(FunctionTypeFlags flags,
+language_getFunctionTypeMetadata2(FunctionTypeFlags flags,
                                const Metadata *arg0,
                                const Metadata *arg1,
                                const Metadata *result);
 
-SWIFT_RUNTIME_EXPORT
-const FunctionTypeMetadata *swift_getFunctionTypeMetadata3(
+LANGUAGE_RUNTIME_EXPORT
+const FunctionTypeMetadata *language_getFunctionTypeMetadata3(
                                                 FunctionTypeFlags flags,
                                                 const Metadata *arg0,
                                                 const Metadata *arg1,
                                                 const Metadata *arg2,
                                                 const Metadata *result);
 
-#if SWIFT_OBJC_INTEROP
-SWIFT_RUNTIME_EXPORT
+#if LANGUAGE_OBJC_INTEROP
+LANGUAGE_RUNTIME_EXPORT
 void
-swift_instantiateObjCClass(const ClassMetadata *theClass);
+language_instantiateObjCClass(const ClassMetadata *theClass);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 Class
-swift_getInitializedObjCClass(Class c);
+language_getInitializedObjCClass(Class c);
 
 /// Fetch a uniqued type metadata for an ObjC class.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const Metadata *
-swift_getObjCClassMetadata(const ClassMetadata *theClass);
+language_getObjCClassMetadata(const ClassMetadata *theClass);
 
 /// Get the ObjC class object from class type metadata.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ClassMetadata *
-swift_getObjCClassFromMetadata(const Metadata *theClass);
+language_getObjCClassFromMetadata(const Metadata *theClass);
 
 // Get the ObjC class object from class type metadata,
 // or nullptr if the type isn't an ObjC class.
 const ClassMetadata *
-swift_getObjCClassFromMetadataConditional(const Metadata *theClass);
+language_getObjCClassFromMetadataConditional(const Metadata *theClass);
 
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ClassMetadata *
-swift_getObjCClassFromObject(HeapObject *object);
+language_getObjCClassFromObject(HeapObject *object);
 #endif
 
 /// Fetch a unique type metadata object for a foreign type.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getForeignTypeMetadata(MetadataRequest request,
+language_getForeignTypeMetadata(MetadataRequest request,
                              ForeignTypeMetadata *nonUnique);
 
 /// Fetch a metadata record representing a `Builtin.FixedArray`
 /// of a given count and element type.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getFixedArrayTypeMetadata(MetadataRequest request,
+language_getFixedArrayTypeMetadata(MetadataRequest request,
                                 intptr_t count,
                                 const Metadata *element);
 
@@ -607,23 +608,23 @@ swift_getFixedArrayTypeMetadata(MetadataRequest request,
 /// \param proposedWitnesses - an optional proposed set of value witnesses.
 ///   This is useful when working with a non-dependent tuple type
 ///   where the entrypoint is just being used to unique the metadata.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getTupleTypeMetadata(MetadataRequest request,
+language_getTupleTypeMetadata(MetadataRequest request,
                            TupleTypeFlags flags,
                            const Metadata * const *elements,
                            const char *labels,
                            const ValueWitnessTable *proposedWitnesses);
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getTupleTypeMetadata2(MetadataRequest request,
+language_getTupleTypeMetadata2(MetadataRequest request,
                             const Metadata *elt0, const Metadata *elt1,
                             const char *labels,
                             const ValueWitnessTable *proposedWitnesses);
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataResponse
-swift_getTupleTypeMetadata3(MetadataRequest request,
+language_getTupleTypeMetadata3(MetadataRequest request,
                             const Metadata *elt0, const Metadata *elt1,
                             const Metadata *elt2, const char *labels,
                             const ValueWitnessTable *proposedWitnesses);
@@ -635,8 +636,8 @@ swift_getTupleTypeMetadata3(MetadataRequest request,
 /// \param elementOffsets - An array into which to write the offsets of
 ///   the elements.  May be null.  Must have space for all elements,
 ///   including element 0 (which will always have offset 0).
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-void swift_getTupleTypeLayout(TypeLayout *tupleLayout,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+void language_getTupleTypeLayout(TypeLayout *tupleLayout,
                               uint32_t *elementOffsets,
                               TupleTypeFlags flags,
                               const TypeLayout * const *elements);
@@ -648,8 +649,8 @@ void swift_getTupleTypeLayout(TypeLayout *tupleLayout,
 ///   Must be non-null.
 /// \returns The offset of the second element.
 ///   The first element always has offset 0.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-size_t swift_getTupleTypeLayout2(TypeLayout *tupleLayout,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+size_t language_getTupleTypeLayout2(TypeLayout *tupleLayout,
                                  const TypeLayout *elt0,
                                  const TypeLayout *elt1);
 
@@ -662,29 +663,29 @@ struct OffsetPair { size_t First; size_t Second; };
 ///   Must be non-null.
 /// \returns The offsets of the second and third elements.
 ///   The first element always has offset 0.
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
-OffsetPair swift_getTupleTypeLayout3(TypeLayout *tupleLayout,
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
+OffsetPair language_getTupleTypeLayout3(TypeLayout *tupleLayout,
                                      const TypeLayout *elt0Layout,
                                      const TypeLayout *elt1Layout,
                                      const TypeLayout *elt2Layout);
 
 /// Initialize the value witness table and struct field offset vector for a
 /// struct, using the "Universal" layout strategy.
-SWIFT_RUNTIME_EXPORT
-void swift_initStructMetadata(StructMetadata *self,
+LANGUAGE_RUNTIME_EXPORT
+void language_initStructMetadata(StructMetadata *self,
                               StructLayoutFlags flags,
                               size_t numFields,
                               const TypeLayout * const *fieldTypes,
                               uint32_t *fieldOffsets);
 
-SWIFT_RUNTIME_EXPORT
-void swift_cvw_initStructMetadataWithLayoutString(
+LANGUAGE_RUNTIME_EXPORT
+void language_cvw_initStructMetadataWithLayoutString(
     StructMetadata *self, StructLayoutFlags flags, size_t numFields,
     const uint8_t *const *fieldTypes, const uint8_t *fieldTags,
     uint32_t *fieldOffsets);
 
-SWIFT_RUNTIME_EXPORT
-void swift_initStructMetadataWithLayoutString(StructMetadata *self,
+LANGUAGE_RUNTIME_EXPORT
+void language_initStructMetadataWithLayoutString(StructMetadata *self,
                                               StructLayoutFlags flags,
                                               size_t numFields,
                                               const uint8_t *const *fieldTypes,
@@ -710,13 +711,13 @@ inline LayoutStringFlags &operator|=(LayoutStringFlags &a, LayoutStringFlags b) 
   return a = (a | b);
 }
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-size_t _swift_refCountBytesForMetatype(const Metadata *type);
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+size_t _language_refCountBytesForMetatype(const Metadata *type);
 
 struct LayoutStringWriter;
 
-SWIFT_RUNTIME_STDLIB_INTERNAL
-void _swift_addRefCountStringForMetatype(LayoutStringWriter &writer,
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+void _language_addRefCountStringForMetatype(LayoutStringWriter &writer,
                                          LayoutStringFlags &flags,
                                          const Metadata *fieldType,
                                          size_t &fullOffset,
@@ -730,10 +731,10 @@ void _swift_addRefCountStringForMetatype(LayoutStringWriter &writer,
 /// of a resilient class pattern.
 ///
 /// The metadata completion function must complete the metadata by calling
-/// swift_initClassMetadata().
-SWIFT_RUNTIME_EXPORT
+/// language_initClassMetadata().
+LANGUAGE_RUNTIME_EXPORT
 ClassMetadata *
-swift_relocateClassMetadata(const ClassDescriptor *descriptor,
+language_relocateClassMetadata(const ClassDescriptor *descriptor,
                             const ResilientClassMetadataPattern *pattern);
 
 /// Initialize various fields of the class metadata.
@@ -756,27 +757,27 @@ swift_relocateClassMetadata(const ClassDescriptor *descriptor,
 ///
 /// - The class is not generic, and has resilient ancestry.
 ///   In this case the class metadata was allocated from a resilient
-///   class metadata pattern by swift_relocateClassMetadata().
+///   class metadata pattern by language_relocateClassMetadata().
 ///
 /// - The class is generic.
 ///   In this case the class metadata was allocated from a generic
-///   class metadata pattern by swift_allocateGenericClassMetadata().
-SWIFT_RUNTIME_EXPORT
-void swift_initClassMetadata(ClassMetadata *self,
+///   class metadata pattern by language_allocateGenericClassMetadata().
+LANGUAGE_RUNTIME_EXPORT
+void language_initClassMetadata(ClassMetadata *self,
                              ClassLayoutFlags flags,
                              size_t numFields,
                              const TypeLayout * const *fieldTypes,
                              size_t *fieldOffsets);
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataDependency
-swift_initClassMetadata2(ClassMetadata *self,
+language_initClassMetadata2(ClassMetadata *self,
                          ClassLayoutFlags flags,
                          size_t numFields,
                          const TypeLayout * const *fieldTypes,
                          size_t *fieldOffsets);
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 /// Initialize various fields of the class metadata.
 ///
 /// This is a special function only used to re-initialize metadata of
@@ -785,24 +786,24 @@ swift_initClassMetadata2(ClassMetadata *self,
 /// This means the class does not have generic or resilient ancestry,
 /// and is itself not generic. However, it might have fields whose
 /// size is not known at compile time.
-SWIFT_RUNTIME_EXPORT
-void swift_updateClassMetadata(ClassMetadata *self,
+LANGUAGE_RUNTIME_EXPORT
+void language_updateClassMetadata(ClassMetadata *self,
                                ClassLayoutFlags flags,
                                size_t numFields,
                                const TypeLayout * const *fieldTypes,
                                size_t *fieldOffsets);
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 MetadataDependency
-swift_updateClassMetadata2(ClassMetadata *self,
+language_updateClassMetadata2(ClassMetadata *self,
                            ClassLayoutFlags flags,
                            size_t numFields,
                            const TypeLayout * const *fieldTypes,
                            size_t *fieldOffsets);
 
-SWIFT_RUNTIME_EXPORT SWIFT_CC(swift)
+LANGUAGE_RUNTIME_EXPORT LANGUAGE_CC(language)
 Class
-swift_updatePureObjCClassMetadata(Class self,
+language_updatePureObjCClassMetadata(Class self,
                                   ClassLayoutFlags flags,
                                   size_t numFields,
                                   const TypeLayout * const *fieldTypes);
@@ -811,28 +812,28 @@ swift_updatePureObjCClassMetadata(Class self,
 /// Given class metadata, a class descriptor and a method descriptor, look up
 /// and load the vtable entry from the given metadata. The metadata must be of
 /// the same class or a subclass of the descriptor.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 void *
-swift_lookUpClassMethod(const ClassMetadata *metadata,
+language_lookUpClassMethod(const ClassMetadata *metadata,
                         const MethodDescriptor *method,
                         const ClassDescriptor *description);
 
 /// Fetch a uniqued metadata for a metatype type.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const MetatypeMetadata *
-swift_getMetatypeMetadata(const Metadata *instanceType);
+language_getMetatypeMetadata(const Metadata *instanceType);
 
 /// Fetch a uniqued metadata for an existential metatype type.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ExistentialMetatypeMetadata *
-swift_getExistentialMetatypeMetadata(const Metadata *instanceType);
+language_getExistentialMetatypeMetadata(const Metadata *instanceType);
 
 /// Fetch a uniqued metadata for an existential type.
 ///
 /// The array referenced by \c protocols will be sorted in-place.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ExistentialTypeMetadata *
-swift_getExistentialTypeMetadata(ProtocolClassConstraint classConstraint,
+language_getExistentialTypeMetadata(ProtocolClassConstraint classConstraint,
                                  const Metadata *superclassConstraint,
                                  size_t numProtocols,
                                  const ProtocolDescriptorRef *protocols);
@@ -842,54 +843,54 @@ swift_getExistentialTypeMetadata(ProtocolClassConstraint classConstraint,
 /// The shape must not correspond to an existential that could be
 /// represented with ExistentialTypeMetadata.  Its uniquing cache
 /// pointer is guaranteed to be filled after this call.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ExtendedExistentialTypeMetadata *
-swift_getExtendedExistentialTypeMetadata(
+language_getExtendedExistentialTypeMetadata(
             const NonUniqueExtendedExistentialTypeShape *shape,
             const void * const *generalizationArguments);
 
 /// Fetch unique metadata for an extended existential type, given its
 /// known-unique existential shape.  The shape must not correspond to
 /// an existential that could be represented with ExistentialTypeMetadata.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ExtendedExistentialTypeMetadata *
-swift_getExtendedExistentialTypeMetadata_unique(
+language_getExtendedExistentialTypeMetadata_unique(
             const ExtendedExistentialTypeShape *shape,
             const void * const *generalizationArguments);
 
 /// Fetch the unique existential shape for the given non-unique shape.
 /// The shape's uniquing cache pointer is guaranteed to be filled after
 /// this call.
-SWIFT_RUNTIME_EXPORT
+LANGUAGE_RUNTIME_EXPORT
 const ExtendedExistentialTypeShape *
-swift_getExtendedExistentialTypeShape(
+language_getExtendedExistentialTypeShape(
             const NonUniqueExtendedExistentialTypeShape *shape);
 
 /// Perform a copy-assignment from one existential container to another.
 /// Both containers must be of the same existential type representable with the
 /// same number of witness tables.
-SWIFT_RUNTIME_EXPORT
-OpaqueValue *swift_assignExistentialWithCopy(OpaqueValue *dest,
+LANGUAGE_RUNTIME_EXPORT
+OpaqueValue *language_assignExistentialWithCopy(OpaqueValue *dest,
                                              const OpaqueValue *src,
                                              const Metadata *type);
 
 /// Perform a copy-assignment from one existential container to another.
 /// Both containers must be of the same existential type representable with no
 /// witness tables.
-OpaqueValue *swift_assignExistentialWithCopy0(OpaqueValue *dest,
+OpaqueValue *language_assignExistentialWithCopy0(OpaqueValue *dest,
                                               const OpaqueValue *src,
                                               const Metadata *type);
 
 /// Perform a copy-assignment from one existential container to another.
 /// Both containers must be of the same existential type representable with one
 /// witness table.
-OpaqueValue *swift_assignExistentialWithCopy1(OpaqueValue *dest,
+OpaqueValue *language_assignExistentialWithCopy1(OpaqueValue *dest,
                                               const OpaqueValue *src,
                                               const Metadata *type);
 
 /// Calculate the numeric index of an extra inhabitant of a heap object
 /// pointer in memory.
-inline int swift_getHeapObjectExtraInhabitantIndex(HeapObject * const* src) {
+inline int language_getHeapObjectExtraInhabitantIndex(HeapObject * const* src) {
   // This must be consistent with the getHeapObjectExtraInhabitantIndex
   // implementation in IRGen's ExtraInhabitants.cpp.
 
@@ -901,7 +902,7 @@ inline int swift_getHeapObjectExtraInhabitantIndex(HeapObject * const* src) {
 
   // Check for tagged pointers on appropriate platforms.  Knowing that
   // value < LeastValidPointerValue tells us a lot.
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   if (value & ((uintptr_t(1) << ObjCReservedLowBits) - 1))
     return -1;
   return int(value >> ObjCReservedLowBits);
@@ -912,11 +913,11 @@ inline int swift_getHeapObjectExtraInhabitantIndex(HeapObject * const* src) {
   
 /// Store an extra inhabitant of a heap object pointer to memory,
 /// in the style of a value witness.
-inline void swift_storeHeapObjectExtraInhabitant(HeapObject **dest, int index) {
+inline void language_storeHeapObjectExtraInhabitant(HeapObject **dest, int index) {
   // This must be consistent with the storeHeapObjectExtraInhabitant
   // implementation in IRGen's ExtraInhabitants.cpp.
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   auto value = uintptr_t(index) << heap_object_abi::ObjCReservedLowBits;
 #else
   auto value = uintptr_t(index);
@@ -925,14 +926,14 @@ inline void swift_storeHeapObjectExtraInhabitant(HeapObject **dest, int index) {
 }
 
 /// Return the number of extra inhabitants in a heap object pointer.
-inline constexpr unsigned swift_getHeapObjectExtraInhabitantCount() {
+inline constexpr unsigned language_getHeapObjectExtraInhabitantCount() {
   // This must be consistent with the getHeapObjectExtraInhabitantCount
   // implementation in IRGen's ExtraInhabitants.cpp.
 
   using namespace heap_object_abi;
 
   // The runtime needs no more than INT_MAX inhabitants.
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   return (LeastValidPointerValue >> ObjCReservedLowBits) > INT_MAX
     ? (unsigned)INT_MAX
     : (unsigned)(LeastValidPointerValue >> ObjCReservedLowBits);
@@ -945,7 +946,7 @@ inline constexpr unsigned swift_getHeapObjectExtraInhabitantCount() {
 
 /// Calculate the numeric index of an extra inhabitant of a function
 /// pointer in memory.
-inline int swift_getFunctionPointerExtraInhabitantIndex(void * const* src) {
+inline int language_getFunctionPointerExtraInhabitantIndex(void * const* src) {
   // This must be consistent with the getFunctionPointerExtraInhabitantIndex
   // implementation in IRGen's ExtraInhabitants.cpp.
   uintptr_t value = reinterpret_cast<uintptr_t>(*src);
@@ -955,14 +956,14 @@ inline int swift_getFunctionPointerExtraInhabitantIndex(void * const* src) {
   
 /// Store an extra inhabitant of a function pointer to memory, in the
 /// style of a value witness.
-inline void swift_storeFunctionPointerExtraInhabitant(void **dest, int index) {
+inline void language_storeFunctionPointerExtraInhabitant(void **dest, int index) {
   // This must be consistent with the storeFunctionPointerExtraInhabitantIndex
   // implementation in IRGen's ExtraInhabitants.cpp.
   *dest = reinterpret_cast<void*>(static_cast<uintptr_t>(index));
 }
 
 /// Return the number of extra inhabitants in a function pointer.
-inline constexpr unsigned swift_getFunctionPointerExtraInhabitantCount() {
+inline constexpr unsigned language_getFunctionPointerExtraInhabitantCount() {
   // This must be consistent with the getFunctionPointerExtraInhabitantCount
   // implementation in IRGen's ExtraInhabitants.cpp.
 
@@ -979,33 +980,33 @@ std::string nameForMetadata(const Metadata *type,
                             bool qualified = true);
 
 /// Register a block of protocol records for dynamic lookup.
-SWIFT_RUNTIME_EXPORT
-void swift_registerProtocols(const ProtocolRecord *begin,
+LANGUAGE_RUNTIME_EXPORT
+void language_registerProtocols(const ProtocolRecord *begin,
                              const ProtocolRecord *end);
 
 /// Register a block of protocol conformance records for dynamic lookup.
-SWIFT_RUNTIME_EXPORT
-void swift_registerProtocolConformances(const ProtocolConformanceRecord *begin,
+LANGUAGE_RUNTIME_EXPORT
+void language_registerProtocolConformances(const ProtocolConformanceRecord *begin,
                                         const ProtocolConformanceRecord *end);
 
 /// Register a block of type context descriptors for dynamic lookup.
-SWIFT_RUNTIME_EXPORT
-void swift_registerTypeMetadataRecords(const TypeMetadataRecord *begin,
+LANGUAGE_RUNTIME_EXPORT
+void language_registerTypeMetadataRecords(const TypeMetadataRecord *begin,
                                        const TypeMetadataRecord *end);
 
 /// Return the superclass, if any.  The result is nullptr for root
 /// classes and class protocol types.
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_INTERNAL
-const Metadata *_swift_class_getSuperclass(const Metadata *theClass);
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_INTERNAL
+const Metadata *_language_class_getSuperclass(const Metadata *theClass);
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_INTERNAL MetadataResponse
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_INTERNAL MetadataResponse
 getSuperclassMetadata(MetadataRequest request, const ClassMetadata *self);
 
-SWIFT_CC(swift)
-SWIFT_RUNTIME_STDLIB_SPI
-bool _swift_class_isSubclass(const Metadata *subclass,
+LANGUAGE_CC(language)
+LANGUAGE_RUNTIME_STDLIB_SPI
+bool _language_class_isSubclass(const Metadata *subclass,
                              const Metadata *superclass);
 
 #if !NDEBUG
@@ -1014,79 +1015,79 @@ bool _swift_class_isSubclass(const Metadata *subclass,
 void verifyMangledNameRoundtrip(const Metadata *metadata);
 #endif
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-const TypeContextDescriptor *swift_getTypeContextDescriptor(const Metadata *type);
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+const TypeContextDescriptor *language_getTypeContextDescriptor(const Metadata *type);
 
-// Defined in KeyPath.swift in the standard library.
-SWIFT_RUNTIME_EXPORT
-const HeapObject *swift_getKeyPath(const void *pattern, const void *arguments);
+// Defined in KeyPath.code in the standard library.
+LANGUAGE_RUNTIME_EXPORT
+const HeapObject *language_getKeyPath(const void *pattern, const void *arguments);
 
 /// Given a pointer to a borrowed value of type `Root` and a
 /// `KeyPath<Root, Value>`, project a pointer to a borrowed value of type
 /// `Value`.
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 YieldOnceResult<const OpaqueValue *>
-swift_readAtKeyPath(YieldOnceBuffer *buffer, const OpaqueValue *root,
+language_readAtKeyPath(YieldOnceBuffer *buffer, const OpaqueValue *root,
                     void *keypath);
 
 /// Given a pointer to a mutable value of type `Root` and a
 /// `WritableKeyPath<Root, Value>`, project a pointer to a mutable value
 /// of type `Value`.
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 YieldOnceResult<OpaqueValue *>
-swift_modifyAtWritableKeyPath(YieldOnceBuffer *buffer, OpaqueValue *root,
+language_modifyAtWritableKeyPath(YieldOnceBuffer *buffer, OpaqueValue *root,
                               void *keyPath);
 
 /// Given a pointer to a borrowed value of type `Root` and a
 /// `ReferenceWritableKeyPath<Root, Value>`, project a pointer to a
 /// mutable value of type `Value`.
-SWIFT_CC(swift) SWIFT_RUNTIME_EXPORT
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_EXPORT
 YieldOnceResult<OpaqueValue *>
-swift_modifyAtReferenceWritableKeyPath(YieldOnceBuffer *buffer,
+language_modifyAtReferenceWritableKeyPath(YieldOnceBuffer *buffer,
                                        const OpaqueValue *root, void *keyPath);
 
-SWIFT_RUNTIME_EXPORT
-void swift_enableDynamicReplacementScope(const DynamicReplacementScope *scope);
+LANGUAGE_RUNTIME_EXPORT
+void language_enableDynamicReplacementScope(const DynamicReplacementScope *scope);
 
-SWIFT_RUNTIME_EXPORT
-void swift_disableDynamicReplacementScope(const DynamicReplacementScope *scope);
+LANGUAGE_RUNTIME_EXPORT
+void language_disableDynamicReplacementScope(const DynamicReplacementScope *scope);
 
 /// A struct containing pointers to all of the type descriptors in the
 /// Concurrency runtime which have standard manglings.
 struct ConcurrencyStandardTypeDescriptors {
 #define STANDARD_TYPE(KIND, MANGLING, TYPENAME)
 #define STANDARD_TYPE_CONCURRENCY(KIND, MANGLING, TYPENAME)                    \
-  const ContextDescriptor * __ptrauth_swift_type_descriptor TYPENAME;
+  const ContextDescriptor * __ptrauth_language_type_descriptor TYPENAME;
 #include "language/Demangling/StandardTypesMangling.def"
 };
 
 /// Function that determines whether we are executing on the given global
 /// actor. The metadata is for the global actor type, and the witness table
 /// is the conformance of that type to the GlobalActor protocol.
-typedef bool (* SWIFT_CC(swift) IsCurrentGlobalActor)(const Metadata *, const WitnessTable *);
+typedef bool (* LANGUAGE_CC(language) IsCurrentGlobalActor)(const Metadata *, const WitnessTable *);
 
-/// Register various concurrency-related data and hooks needed in the Swift
+/// Register various concurrency-related data and hooks needed in the Codira
 /// standard library / runtime. This includes type descriptors with standard
 /// manglings from the Concurrency runtime as well as a hook to check whether
 /// we are running on a specific global actor. Any pointers passed in here must
 /// be immortal.
-SWIFT_RUNTIME_STDLIB_SPI
-void _swift_registerConcurrencyRuntime(
+LANGUAGE_RUNTIME_STDLIB_SPI
+void _language_registerConcurrencyRuntime(
     const ConcurrencyStandardTypeDescriptors *descriptors,
     IsCurrentGlobalActor isCurrentGlobalActor);
 
 /// Initialize the value witness table for a struct using the provided like type
 /// as the basis for the layout.
-SWIFT_RUNTIME_EXPORT
-void swift_initRawStructMetadata(StructMetadata *self,
+LANGUAGE_RUNTIME_EXPORT
+void language_initRawStructMetadata(StructMetadata *self,
                                  StructLayoutFlags flags,
                                  const TypeLayout *likeType,
                                  int32_t count);
 
 /// Initialize the value witness table for a struct using the provided like type
 /// as the basis for the layout.
-SWIFT_RUNTIME_EXPORT
-void swift_initRawStructMetadata2(StructMetadata *self,
+LANGUAGE_RUNTIME_EXPORT
+void language_initRawStructMetadata2(StructMetadata *self,
                                   StructLayoutFlags structLayoutFlags,
                                   const TypeLayout *likeType,
                                   intptr_t count,
@@ -1096,10 +1097,10 @@ void swift_initRawStructMetadata2(StructMetadata *self,
 /// context and if so call the metadata access function and return the metadata.
 ///
 /// Note: This expects the caller to heap allocate all pack pointers within the
-/// generic arguments via 'swift_allocateMetadataPack'.
-SWIFT_RUNTIME_STDLIB_SPI
-SWIFT_CC(swift)
-const Metadata *_swift_instantiateCheckedGenericMetadata(
+/// generic arguments via 'language_allocateMetadataPack'.
+LANGUAGE_RUNTIME_STDLIB_SPI
+LANGUAGE_CC(language)
+const Metadata *_language_instantiateCheckedGenericMetadata(
     const TypeContextDescriptor *context,
     const void * const *genericArgs,
     size_t genericArgsSize);
@@ -1108,4 +1109,4 @@ const Metadata *_swift_instantiateCheckedGenericMetadata(
 
 } // end namespace language
 
-#endif // SWIFT_RUNTIME_METADATA_H
+#endif // LANGUAGE_RUNTIME_METADATA_H

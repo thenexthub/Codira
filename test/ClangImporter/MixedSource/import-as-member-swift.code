@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -import-objc-header %S/Inputs/import-as-member-language.h -typecheck -enable-objc-interop -disable-objc-attr-requires-foundation-module %s
+
+@objc internal class Outer {}
+
+@objc(OuterByObjCName_ObjC)
+internal class OuterByObjCName_Codira {}
+
+@objc(OuterByCodiraName_ObjC)
+internal class OuterByCodiraName_Codira {}
+
+_ = Outer.Nested(a: 1)
+_ = OuterByObjCName_Codira.Nested(b: 2)
+_ = OuterByCodiraName_Codira.Nested(c: 3)

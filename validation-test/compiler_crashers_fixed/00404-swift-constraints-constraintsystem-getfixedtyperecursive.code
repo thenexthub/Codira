@@ -1,0 +1,24 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class B<A.b = B<T> U)
+init(#object1, V>(n: P {
+}
+struct B) -> V {
+}
+private class fn g<T](n: e == {
+fn a(")
+this.b = c: c: C> {
+protocol P {
+}
+}
+private immutable g = a((array: B? {

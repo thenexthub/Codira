@@ -1,0 +1,215 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -O -g -debug-info-format=dwarf -emit-module -module-name M -emit-module-path %t/M.codemodule -language-version 5 -c %s
+
+// https://github.com/apple/language/issues/58123
+// Mutating functions with control flow can cause assertion failure for
+// conflicting debug variable type
+
+import _Differentiation
+
+// Declare `Tensor`
+
+class TensorHandle {} // Crash requires `class` and not `struct`
+
+struct Tensor<Scalar> {
+  immutable handle: TensorHandle
+}
+
+extension Tensor: Differentiable {
+  typealias TangentVector = Tensor
+}
+
+extension Tensor: AdditiveArithmetic  {
+  static fn == (lhs: Tensor, rhs: Tensor) -> Bool { fatalError() }
+  static fn != (lhs: Tensor, rhs: Tensor) -> Bool { fatalError() }
+  
+  static var zero: Tensor { fatalError() }
+
+  @differentiable(reverse)
+  static fn + (lhs: Tensor, rhs: Tensor) -> Tensor { fatalError() }
+  static fn - (lhs: Tensor, rhs: Tensor) -> Tensor { fatalError() }
+}
+
+// Make `+=` differentiable
+
+extension Tensor {
+  @derivative(of: +)
+  static fn _vjpAdd(lhs: Tensor, rhs: Tensor) -> (
+    value: Tensor, pullback: (Tensor) -> (Tensor, Tensor)
+  ) {
+    fatalError()
+  }
+  
+  static fn += (lhs: inout Tensor, rhs: Tensor) {
+    lhs = lhs + rhs
+  }
+}
+
+// Declare `BatchNorm`
+
+protocol Layer: Differentiable {
+  associatedtype Input
+  associatedtype Output: Differentiable
+
+  @differentiable(reverse)
+  fn callAsFunction(_ input: Input) -> Output
+}
+
+struct BatchNorm<Scalar>: Layer { // Crash requires conformance to `Layer`
+  @noDerivative immutable momentum: Scalar // Crash requires `@noDerivative`
+  var offset: Tensor<Scalar>
+
+  @differentiable(reverse)
+  fn callAsFunction(_ input: Tensor<Scalar>) -> Tensor<Scalar> {
+    var offset = this.offset
+    // TODO: cannot use literal `true` because it crashes
+    if 1 == 1 { // Crash requires `if true`
+      offset += offset // Using `offset = offset + offset` stops the crash
+    }
+    return offset
+  }
+}
+
+// Original crash:
+
+/*
+SIL verification failed: conflicting debug variable type!: DebugVars[argNum].second == DebugVarTy
+Verifying instruction:
+     %5 = apply %4<τ_0_0>(%3) : $@convention(method) <τ_0_0> (@thin BatchNorm<τ_0_0>.TangentVector.Type) -> @owned BatchNorm<τ_0_0>.TangentVector // users: %39, %69, %47, %13, %40, %20
+->   debug_value %5 : $BatchNorm<τ_0_0>.TangentVector, immutable, name "this", argno 2, implicit, expr op_deref // id: %20
+In function:
+// pullback of BatchNorm.callAsFunction(_:)
+sil private @$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGFlTJpUSpSr : $@convention(thin) <τ_0_0> (@guaranteed _Tensor<τ_0_0>, @owned _AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__PB__src_0_wrt_1_l<τ_0_0>) -> @out BatchNorm<τ_0_0>.TangentVector {
+// %0                                             // user: %87
+// %1                                             // user: %17
+// %2                                             // users: %50, %16
+bb0(%0 : $*BatchNorm<τ_0_0>.TangentVector, %1 : $_Tensor<τ_0_0>, %2 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__PB__src_0_wrt_1_l<τ_0_0>):
+  %3 = metatype $@thin BatchNorm<τ_0_0>.TangentVector.Type // user: %5
+  // function_ref static BatchNorm.TangentVector.zero.getter
+  %4 = function_ref @$s10TensorFlow9BatchNormV13TangentVectorV4zeroAEyx_GvgZ : $@convention(method) <τ_0_0> (@thin BatchNorm<τ_0_0>.TangentVector.Type) -> @owned BatchNorm<τ_0_0>.TangentVector // user: %5
+  %5 = apply %4<τ_0_0>(%3) : $@convention(method) <τ_0_0> (@thin BatchNorm<τ_0_0>.TangentVector.Type) -> @owned BatchNorm<τ_0_0>.TangentVector // users: %39, %69, %47, %13, %40, %20
+  %6 = alloc_stack $_Tensor<τ_0_0>, var, name "offset" // users: %41, %19, %33, %27, %21, %10, %91
+  %7 = metatype $@thin _Tensor<τ_0_0>.Type        // user: %9
+  // function_ref static _Tensor.zero.getter
+  %8 = function_ref @$s10TensorFlow01_A0V4zeroACyxGvgZ : $@convention(method) <τ_0_0> (@thin _Tensor<τ_0_0>.Type) -> @owned _Tensor<τ_0_0> // user: %9
+  %9 = apply %8<τ_0_0>(%7) : $@convention(method) <τ_0_0> (@thin _Tensor<τ_0_0>.Type) -> @owned _Tensor<τ_0_0> // users: %26, %43, %68, %74, %53, %62, %79, %81, %82, %11, %10
+  store %9 to %6 : $*_Tensor<τ_0_0>               // id: %10
+  debug_value %9 : $_Tensor<τ_0_0>, var, name "offset" // id: %11
+  %12 = alloc_stack $_Tensor<τ_0_0>, immutable, (name "this", loc "/Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Layers/Normalization.code":70:8, scope 0), argno 2, implicit, type $*BatchNorm<τ_0_0>.TangentVector, expr op_fragment:#BatchNorm.TangentVector.offset // users: %84, %57, %70, %85, %72, %59, %14, %90
+  %13 = struct_extract %5 : $BatchNorm<τ_0_0>.TangentVector, #BatchNorm.TangentVector.offset // users: %72, %59, %14
+  store %13 to %12 : $*_Tensor<τ_0_0>             // id: %14
+  %15 = alloc_stack $_Tensor<τ_0_0>, var, name "offset" // users: %56, %22, %35, %29, %23, %49, %89
+  %16 = struct_extract %2 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__PB__src_0_wrt_1_l<τ_0_0>, #_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__PB__src_0_wrt_1_l.predecessor // user: %44
+  debug_value %1 : $_Tensor<τ_0_0>                // id: %17
+  // function_ref specialized static _Tensor.+= infix(_:_:)
+  %18 = function_ref @$s10TensorFlow01_A0V2peoiyyACyxGz_AEtFZTf4ndd_n : $@convention(thin) <τ_0_0> (@inout _Tensor<τ_0_0>) -> () // users: %84, %56, %19
+  %19 = apply %18<τ_0_0>(%6) : $@convention(thin) <τ_0_0> (@inout _Tensor<τ_0_0>) -> ()
+  debug_value %5 : $BatchNorm<τ_0_0>.TangentVector, immutable, name "this", argno 2, implicit, expr op_deref // id: %20
+  %21 = load %6 : $*_Tensor<τ_0_0>                // users: %24, %23
+  %22 = struct_element_addr %15 : $*_Tensor<τ_0_0>, #_Tensor.handle // users: %61, %66, %34, %28
+  store %21 to %15 : $*_Tensor<τ_0_0>             // id: %23
+  %24 = struct_extract %21 : $_Tensor<τ_0_0>, #_Tensor.handle // user: %25
+  strong_retain %24 : $_TensorHandle              // id: %25
+  release_value %9 : $_Tensor<τ_0_0>              // id: %26
+  %27 = load %6 : $*_Tensor<τ_0_0>                // users: %30, %29
+  %28 = load %22 : $*_TensorHandle                // user: %32
+  store %27 to %15 : $*_Tensor<τ_0_0>             // id: %29
+  %30 = struct_extract %27 : $_Tensor<τ_0_0>, #_Tensor.handle // user: %31
+  strong_retain %30 : $_TensorHandle              // id: %31
+  strong_release %28 : $_TensorHandle             // id: %32
+  %33 = load %6 : $*_Tensor<τ_0_0>                // users: %36, %35
+  %34 = load %22 : $*_TensorHandle                // user: %38
+  store %33 to %15 : $*_Tensor<τ_0_0>             // id: %35
+  %36 = struct_extract %33 : $_Tensor<τ_0_0>, #_Tensor.handle // user: %37
+  strong_retain %36 : $_TensorHandle              // id: %37
+  strong_release %34 : $_TensorHandle             // id: %38
+  release_value %5 : $BatchNorm<τ_0_0>.TangentVector // id: %39
+  debug_value %5 : $BatchNorm<τ_0_0>.TangentVector, immutable, name "this", argno 2, implicit, expr op_deref // id: %40
+  %41 = struct_element_addr %6 : $*_Tensor<τ_0_0>, #_Tensor.handle // user: %42
+  %42 = load %41 : $*_TensorHandle                // users: %46, %75
+  release_value %9 : $_Tensor<τ_0_0>              // id: %43
+  switch_enum %16 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__Pred__src_0_wrt_1_l<τ_0_0>, case #_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__Pred__src_0_wrt_1_l.bb1!enumelt: bb1, case #_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__Pred__src_0_wrt_1_l.bb2!enumelt: bb2 // id: %44
+
+// %45                                            // user: %48
+bb1(%45 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb1__PB__src_0_wrt_1_l<τ_0_0>): // Preds: bb0
+  strong_release %42 : $_TensorHandle             // id: %46
+  release_value %5 : $BatchNorm<τ_0_0>.TangentVector // id: %47
+  %48 = struct_extract %45 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb1__PB__src_0_wrt_1_l<τ_0_0>, #_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb1__PB__src_0_wrt_1_l.pullback_0 // user: %49
+  %49 = apply %48(%15) : $@callee_guaranteed @substituted <τ_0_0, τ_0_1, τ_0_2, τ_0_3 where τ_0_0 == τ_0_1, τ_0_2 == τ_0_3> (@inout _Tensor<τ_0_0>) -> @owned _Tensor<τ_0_2> for <τ_0_0, τ_0_0, τ_0_0, τ_0_0> // user: %54
+  release_value %2 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb3__PB__src_0_wrt_1_l<τ_0_0> // id: %50
+  // function_ref specialized static _Tensor.+ infix(_:_:)
+  %51 = function_ref @$s10TensorFlow01_A0V1poiyACyxGAE_AEtFZTf4ddd_n : $@convention(thin) <τ_0_0> () -> @owned _Tensor<τ_0_0> // user: %52
+  %52 = apply %51<τ_0_0>() : $@convention(thin) <τ_0_0> () -> @owned _Tensor<τ_0_0> // users: %63, %55
+  release_value %9 : $_Tensor<τ_0_0>              // id: %53
+  release_value %49 : $_Tensor<τ_0_0>             // id: %54
+  debug_value %52 : $_Tensor<τ_0_0>               // id: %55
+  %56 = apply %18<τ_0_0>(%15) : $@convention(thin) <τ_0_0> (@inout _Tensor<τ_0_0>) -> ()
+  %57 = struct_element_addr %12 : $*_Tensor<τ_0_0>, #_Tensor.handle // user: %58
+  %58 = load %57 : $*_TensorHandle                // user: %60
+  store %13 to %12 : $*_Tensor<τ_0_0>             // id: %59
+  strong_release %58 : $_TensorHandle             // id: %60
+  %61 = load %22 : $*_TensorHandle                // user: %64
+  release_value %9 : $_Tensor<τ_0_0>              // id: %62
+  release_value %52 : $_Tensor<τ_0_0>             // id: %63
+  br bb3(%61 : $_TensorHandle)                    // id: %64
+
+bb2(%65 : $_AD__$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGF_bb2__PB__src_0_wrt_1_l<τ_0_0>): // Preds: bb0
+  %66 = load %22 : $*_TensorHandle                // user: %67
+  strong_release %66 : $_TensorHandle             // id: %67
+  release_value %9 : $_Tensor<τ_0_0>              // id: %68
+  release_value %5 : $BatchNorm<τ_0_0>.TangentVector // id: %69
+  %70 = struct_element_addr %12 : $*_Tensor<τ_0_0>, #_Tensor.handle // user: %71
+  %71 = load %70 : $*_TensorHandle                // user: %73
+  store %13 to %12 : $*_Tensor<τ_0_0>             // id: %72
+  strong_release %71 : $_TensorHandle             // id: %73
+  release_value %9 : $_Tensor<τ_0_0>              // id: %74
+  br bb3(%42 : $_TensorHandle)                    // id: %75
+
+// %76                                            // user: %80
+bb3(%76 : $_TensorHandle):                        // Preds: bb1 bb2
+  // function_ref specialized static _Tensor.+ infix(_:_:)
+  %77 = function_ref @$s10TensorFlow01_A0V1poiyACyxGAE_AEtFZTf4ddd_n : $@convention(thin) <τ_0_0> () -> @owned _Tensor<τ_0_0> // user: %78
+  %78 = apply %77<τ_0_0>() : $@convention(thin) <τ_0_0> () -> @owned _Tensor<τ_0_0> // users: %88, %83
+  release_value %9 : $_Tensor<τ_0_0>              // id: %79
+  strong_release %76 : $_TensorHandle             // id: %80
+  release_value %9 : $_Tensor<τ_0_0>              // id: %81
+  debug_value %9 : $_Tensor<τ_0_0>, var, name "offset" // id: %82
+  debug_value %78 : $_Tensor<τ_0_0>               // id: %83
+  %84 = apply %18<τ_0_0>(%12) : $@convention(thin) <τ_0_0> (@inout _Tensor<τ_0_0>) -> ()
+  %85 = load %12 : $*_Tensor<τ_0_0>               // user: %86
+  %86 = struct $BatchNorm<τ_0_0>.TangentVector (%85 : $_Tensor<τ_0_0>) // user: %87
+  store %86 to %0 : $*BatchNorm<τ_0_0>.TangentVector // id: %87
+  release_value %78 : $_Tensor<τ_0_0>             // id: %88
+  dealloc_stack %15 : $*_Tensor<τ_0_0>            // id: %89
+  dealloc_stack %12 : $*_Tensor<τ_0_0>            // id: %90
+  dealloc_stack %6 : $*_Tensor<τ_0_0>             // id: %91
+  %92 = tuple ()                                  // user: %93
+  return %92 : $()                                // id: %93
+} // end sil function '$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGFlTJpUSpSr'
+
+Please submit a bug report (https://language.org/contributing/#reporting-bugs) and include the project and the crash backtrace.
+Stack dump:
+0.  Program arguments: /Library/Developer/Toolchains/language-DEVELOPMENT-SNAPSHOT-2022-02-03-a.xctoolchain/usr/bin/language-frontend -frontend -c /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Bindings/EagerExecution.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Bindings/RawOpsAugmented.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Bindings/RawOpsDispatching.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Bindings/RawOpsGenerated.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Bindings/TFTensorOperation.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/BroadcastingPullback.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/CopyableToDevice.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/DataTypes.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/DifferentialOperators.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/ElementaryFunctions.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/EuclideanDifferentiable.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/Execution.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/KeyPathIterable.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/LazyTensorContext.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/LazyTensorOperation.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/LazyTensorShapeInference.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/LazyTensorTFFunctionBuilder.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/LazyTensorTrace.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/LazyTensorTraceCache.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/MixedPrecision.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/PointwiseMultiplicative.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/Runtime.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/ShapedArray.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/StringTensor.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/Tensor.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/TensorGroup.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/TensorHandle.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/TensorShape.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/Threading.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/Utilities.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Core/VectorProtocol.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Initializers.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Layers/Normalization.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Operators/Basic.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Operators/Math.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/StdlibExtensions.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/APIs/CrossReplicaSum.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/APIs/DeviceScope.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/APIs/RawOpsManual.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/Device.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/RawOpsXLAGenerated.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/XLAScalarType.code /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/X10/XLATensor.code -supplementary-output-file-map /var/folders/qn/86czb43d3pv03bfnxvb3x66h0000gn/T/TemporaryDirectory.wBRIea/supplementaryOutputs-1 -target arm64-apple-macosx10.13 -Xtoolchain -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk -I /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release -I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -color-diagnostics -g -debug-info-format=dwarf -module-cache-path /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/ModuleCache -language-version 5 -O -D LANGUAGE_PACKAGE -D DEFAULT_BACKEND_EAGER -D TENSORFLOW_USE_STANDARD_TOOLCHAIN -new-driver-path /Library/Developer/Toolchains/language-DEVELOPMENT-SNAPSHOT-2022-02-03-a.xctoolchain/usr/bin/language-driver -resource-dir /Library/Developer/Toolchains/language-DEVELOPMENT-SNAPSHOT-2022-02-03-a.xctoolchain/usr/lib/language -Xcc -fmodule-map-file=/Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/checkouts/language-numerics/Sources/_NumericsShims/include/module.modulemap -Xcc -I -Xcc /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/checkouts/language-numerics/Sources/_NumericsShims/include -Xcc -fmodule-map-file=/Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/CX10Modules/include/module.modulemap -Xcc -I -Xcc /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/CX10Modules/include -Xcc -fmodule-map-file=/Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/CTensorFlow/include/module.modulemap -Xcc -I -Xcc /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/CTensorFlow/include -Xcc -I/Users/philipturner/Documents/building-tensorflow/Library/tensorflow-2.8.0/usr/include -module-name TensorFlow -target-sdk-version 12.1 -parse-as-library -num-threads 10 -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Bindings/EagerExecution.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Bindings/RawOpsAugmented.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Bindings/RawOpsDispatching.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Bindings/RawOpsGenerated.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Bindings/TFTensorOperation.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/BroadcastingPullback.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/CopyableToDevice.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/DataTypes.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/DifferentialOperators.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/ElementaryFunctions.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/EuclideanDifferentiable.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/Execution.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/KeyPathIterable.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/LazyTensorContext.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/LazyTensorOperation.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/LazyTensorShapeInference.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/LazyTensorTFFunctionBuilder.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/LazyTensorTrace.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/LazyTensorTraceCache.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/MixedPrecision.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/PointwiseMultiplicative.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/Runtime.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/ShapedArray.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/StringTensor.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/Tensor.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/TensorGroup.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/TensorHandle.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/TensorShape.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/Threading.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/Utilities.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Core/VectorProtocol.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Initializers.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Layers/Normalization.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Operators/Basic.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/Operators/Math.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/StdlibExtensions.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/APIs/CrossReplicaSum.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/APIs/DeviceScope.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/APIs/RawOpsManual.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/Device.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/RawOpsXLAGenerated.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/XLAScalarType.code.o -o /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/.build/arm64-apple-macosx/release/TensorFlow.build/X10/XLATensor.code.o
+1.  Apple Codira version 5.7-dev (LLVM cd2992b90c95d01, Codira ab85807f0646caa)
+2.  Compiling with the current language version
+3.  While verifying SIL function "@$s10TensorFlow9BatchNormV14callAsFunctionyAA01_A0VyxGAGFlTJpUSpSr".
+ for 'callAsFunction(_:)' (at /Users/philipturner/Documents/building-tensorflow/language-for-tensorflow/Sources/TensorFlow/Layers/Normalization.code:70:3)
+Stack dump without symbol names (ensure you have toolchain-symbolizer in your PATH or set the environment var `TOOLCHAIN_SYMBOLIZER_PATH` to point to it):
+0  language-frontend           0x0000000108961c54 toolchain::sys::PrintStackTrace(toolchain::raw_ostream&, int) + 56
+1  language-frontend           0x0000000108960eb4 toolchain::sys::RunSignalHandlers() + 128
+2  language-frontend           0x00000001089622b8 SignalHandler(int) + 304
+3  libsystem_platform.dylib 0x00000001bb5304e4 _sigtramp + 56
+4  libsystem_pthread.dylib  0x00000001bb518eb0 pthread_kill + 288
+5  libsystem_c.dylib        0x00000001bb456314 abort + 164
+6  language-frontend           0x00000001046aec58 (anonymous namespace)::SILVerifier::_require(bool, toolchain::Twine const&, std::__1::function<void ()> const&) + 1432
+7  language-frontend           0x00000001046c8c6c (anonymous namespace)::SILVerifier::visitSILInstruction(language::SILInstruction*) + 5104
+8  language-frontend           0x00000001046b25e8 (anonymous namespace)::SILVerifier::visitSILBasicBlock(language::SILBasicBlock*) + 1204
+9  language-frontend           0x00000001046b1090 (anonymous namespace)::SILVerifier::visitSILFunction(language::SILFunction*) + 7636
+10 language-frontend           0x00000001046ae150 language::SILModule::verify() const + 216
+11 language-frontend           0x0000000104570a14 language::CompilerInstance::performSILProcessing(language::SILModule*) + 636
+12 language-frontend           0x0000000104517814 performCompileStepsPostSILGen(language::CompilerInstance&, std::__1::unique_ptr<language::SILModule, std::__1::default_delete<language::SILModule> >, toolchain::PointerUnion<language::ModuleDecl*, language::SourceFile*>, language::PrimarySpecificPaths const&, int&, language::FrontendObserver*) + 716
+13 language-frontend           0x00000001045171d8 language::performCompileStepsPostSema(language::CompilerInstance&, int&, language::FrontendObserver*) + 1028
+14 language-frontend           0x0000000104518c74 language::performFrontend(toolchain::ArrayRef<char const*>, char const*, void*, language::FrontendObserver*) + 2940
+15 language-frontend           0x0000000104454900 language::mainEntry(int, char const**) + 500
+16 dyld                     0x0000000110f490f4 start + 520
+*/

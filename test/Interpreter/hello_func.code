@@ -1,0 +1,9 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// CHECK: Nice shoes
+fn hello() {
+  print("Nice shoes")
+}
+
+hello()

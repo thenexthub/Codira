@@ -1,0 +1,3 @@
+// {"signature":"language::adjustFunctionTypeForConcurrency(language::AnyFunctionType*, language::ValueDecl*, language::DeclContext*, unsigned int, bool, toolchain::function_ref<language::Type (language::AbstractClosureExpr const*)>, toolchain::function_ref<bool (language::ClosureExpr const*)>, toolchain::function_ref<language::Type (language::Type)>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+actor a fn b(isolated a...) b

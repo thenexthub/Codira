@@ -1,4 +1,4 @@
-//===--- TypeRepr.h - Swift Language Type Representation --------*- C++ -*-===//
+//===--- TypeRepr.h - Codira Language Type Representation --------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the TypeRepr and related classes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_TYPEREPR_H
-#define SWIFT_AST_TYPEREPR_H
+#ifndef LANGUAGE_AST_TYPEREPR_H
+#define LANGUAGE_AST_TYPEREPR_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/DeclContext.h"
@@ -31,11 +32,11 @@
 #include "language/Basic/Debug.h"
 #include "language/Basic/InlineBitfield.h"
 #include "language/Basic/Located.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/TrailingObjects.h"
 
 namespace language {
   class ASTContext;
@@ -68,7 +69,7 @@ protected:
   // clang-format off
   union { uint64_t OpaqueBits;
 
-  SWIFT_INLINE_BITFIELD_BASE(TypeRepr, bitmax(NumTypeReprKindBits,8)+1+1,
+  LANGUAGE_INLINE_BITFIELD_BASE(TypeRepr, bitmax(NumTypeReprKindBits,8)+1+1,
     /// The subclass of TypeRepr that this is.
     Kind : bitmax(NumTypeReprKindBits,8),
 
@@ -82,12 +83,12 @@ protected:
     Warned : 1
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(TupleTypeRepr, TypeRepr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(TupleTypeRepr, TypeRepr, 32,
     /// The number of elements contained.
     NumElements : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(DeclRefTypeRepr, TypeRepr, 1+32,
+  LANGUAGE_INLINE_BITFIELD_FULL(DeclRefTypeRepr, TypeRepr, 1+32,
     /// Whether this instance has a valid angle bracket source range.
     HasAngleBrackets: 1,
     : NumPadBits,
@@ -95,22 +96,22 @@ protected:
     NumGenericArgs : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(CompositionTypeRepr, TypeRepr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(CompositionTypeRepr, TypeRepr, 32,
     : NumPadBits,
     NumTypes : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(SILBoxTypeRepr, TypeRepr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(SILBoxTypeRepr, TypeRepr, 32,
     NumGenericArgs : NumPadBits,
     NumFields : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(AttributedTypeRepr, TypeRepr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(AttributedTypeRepr, TypeRepr, 32,
     : NumPadBits,
     NumAttributes : 32
   );
 
-  SWIFT_INLINE_BITFIELD_FULL(PackTypeRepr, TypeRepr, 32,
+  LANGUAGE_INLINE_BITFIELD_FULL(PackTypeRepr, TypeRepr, 32,
     /// The number of elements contained.
     NumElements : 32
   );
@@ -180,7 +181,7 @@ public:
   ///
   /// \returns true if the predicate returns true for the given type or any of
   /// its children.
-  bool findIf(llvm::function_ref<bool(TypeRepr *)> pred);
+  bool findIf(toolchain::function_ref<bool(TypeRepr *)> pred);
 
   /// Check recursively whether this type repr or any of its descendants are
   /// opaque return type reprs.
@@ -208,9 +209,11 @@ public:
 
   //*** Allocation Routines ************************************************/
 
-  void print(raw_ostream &OS, const PrintOptions &Opts = PrintOptions()) const;
-  void print(ASTPrinter &Printer, const PrintOptions &Opts) const;
-  SWIFT_DEBUG_DUMP;
+  void print(raw_ostream &OS, const PrintOptions &opts = PrintOptions(),
+             NonRecursivePrintOptions nrOpts = std::nullopt) const;
+  void print(ASTPrinter &Printer, const PrintOptions &opts,
+             NonRecursivePrintOptions nrOpts = std::nullopt) const;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS, unsigned indent = 0) const;
 };
 
@@ -255,7 +258,8 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Range.Start; }
   SourceLoc getEndLocImpl() const { return Range.End; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -265,7 +269,7 @@ private:
 /// \endcode
 class AttributedTypeRepr final
     : public TypeRepr,
-      private llvm::TrailingObjects<AttributedTypeRepr, TypeOrCustomAttr> {
+      private toolchain::TrailingObjects<AttributedTypeRepr, TypeOrCustomAttr> {
   TypeRepr *Ty;
 
   AttributedTypeRepr(ArrayRef<TypeOrCustomAttr> attrs, TypeRepr *Ty)
@@ -285,7 +289,7 @@ public:
                                     TypeRepr *ty);
 
   ArrayRef<TypeOrCustomAttr> getAttrs() const {
-    return llvm::ArrayRef(getTrailingObjects<TypeOrCustomAttr>(),
+    return toolchain::ArrayRef(getTrailingObjects<TypeOrCustomAttr>(),
                           Bits.AttributedTypeRepr.NumAttributes);
   }
 
@@ -305,8 +309,8 @@ public:
   /// there is no such attribute.
   ReferenceOwnership getSILOwnership() const;
 
-  void printAttrs(llvm::raw_ostream &OS) const;
-  void printAttrs(ASTPrinter &Printer, const PrintOptions &Options) const;
+  void printAttrs(toolchain::raw_ostream &OS) const;
+  void printAttrs(ASTPrinter &Printer, const PrintOptions &options) const;
 
   static bool classof(const TypeRepr *T) {
     return T->getKind() == TypeReprKind::Attributed;
@@ -324,7 +328,8 @@ private:
   }
   SourceLoc getEndLocImpl() const { return Ty->getEndLoc(); }
   SourceLoc getLocImpl() const { return Ty->getLoc(); }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -344,7 +349,7 @@ class DeclRefTypeRepr : public TypeRepr {
   ///
   /// The initial parsed representation is always an identifier, and
   /// name lookup will resolve this to a specific declaration.
-  llvm::PointerUnion<DeclNameRef, TypeDecl *> NameOrDecl;
+  toolchain::PointerUnion<DeclNameRef, TypeDecl *> NameOrDecl;
 
   /// The declaration context from which the bound declaration was
   /// found. only valid if IdOrDecl is a TypeDecl.
@@ -420,7 +425,8 @@ protected:
   SourceLoc getLocImpl() const;
   SourceLoc getEndLocImpl() const;
 
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts,
+                 NonRecursivePrintOptions nrOpts) const;
 
   friend class TypeRepr;
 };
@@ -432,7 +438,7 @@ protected:
 /// \endcode
 class UnqualifiedIdentTypeRepr final
     : public DeclRefTypeRepr,
-      private llvm::TrailingObjects<UnqualifiedIdentTypeRepr, TypeRepr *,
+      private toolchain::TrailingObjects<UnqualifiedIdentTypeRepr, TypeRepr *,
                                     SourceRange> {
   friend TrailingObjects;
 
@@ -478,7 +484,7 @@ protected:
 /// \endcode
 class QualifiedIdentTypeRepr final
     : public DeclRefTypeRepr,
-      private llvm::TrailingObjects<QualifiedIdentTypeRepr, TypeRepr *,
+      private toolchain::TrailingObjects<QualifiedIdentTypeRepr, TypeRepr *,
                                     SourceRange> {
   friend TrailingObjects;
 
@@ -613,7 +619,8 @@ private:
   SourceLoc getEndLocImpl() const { return RetTy->getEndLoc(); }
   SourceLoc getLocImpl() const { return ArrowLoc; }
 
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -640,11 +647,12 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Brackets.Start; }
   SourceLoc getEndLocImpl() const { return Brackets.End; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
-/// An InlineArray type e.g `[2 x Foo]`, sugar for `InlineArray<2, Foo>`.
+/// An InlineArray type e.g `[2 of Foo]`, sugar for `InlineArray<2, Foo>`.
 class InlineArrayTypeRepr : public TypeRepr {
   TypeRepr *Count;
   TypeRepr *Element;
@@ -669,7 +677,8 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Brackets.Start; }
   SourceLoc getEndLocImpl() const { return Brackets.End; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -702,7 +711,8 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Brackets.Start; }
   SourceLoc getEndLocImpl() const { return Brackets.End; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -734,7 +744,8 @@ private:
   SourceLoc getLocImpl() const {
     return QuestionLoc.isValid() ? QuestionLoc : Base->getLoc();
   }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -763,7 +774,8 @@ private:
   SourceLoc getStartLocImpl() const { return Base->getStartLoc(); }
   SourceLoc getEndLocImpl() const { return ExclamationLoc; }
   SourceLoc getLocImpl() const { return ExclamationLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -804,7 +816,8 @@ private:
   SourceLoc getStartLocImpl() const { return Element->getEndLoc(); }
   SourceLoc getEndLocImpl() const { return EllipsisLoc; }
   SourceLoc getLocImpl() const { return EllipsisLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -835,7 +848,8 @@ private:
   SourceLoc getStartLocImpl() const { return RepeatLoc; }
   SourceLoc getEndLocImpl() const { return Pattern->getEndLoc(); }
   SourceLoc getLocImpl() const { return RepeatLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -845,7 +859,7 @@ private:
 /// allowed in SIL files.
 class PackTypeRepr final
     : public TypeRepr,
-      private llvm::TrailingObjects<PackTypeRepr, TypeRepr *> {
+      private toolchain::TrailingObjects<PackTypeRepr, TypeRepr *> {
   friend TrailingObjects;
   SourceLoc KeywordLoc;
   SourceRange BraceLocs;
@@ -866,11 +880,11 @@ public:
   SourceRange getBracesRange() const { return BraceLocs; }
 
   MutableArrayRef<TypeRepr*> getMutableElements() {
-    return llvm::MutableArrayRef(getTrailingObjects<TypeRepr *>(),
+    return toolchain::MutableArrayRef(getTrailingObjects<TypeRepr *>(),
                                  Bits.PackTypeRepr.NumElements);
   }
   ArrayRef<TypeRepr*> getElements() const {
-    return llvm::ArrayRef(getTrailingObjects<TypeRepr *>(),
+    return toolchain::ArrayRef(getTrailingObjects<TypeRepr *>(),
                           Bits.PackTypeRepr.NumElements);
   }
 
@@ -883,7 +897,8 @@ private:
   SourceLoc getStartLocImpl() const { return KeywordLoc; }
   SourceLoc getEndLocImpl() const { return BraceLocs.End; }
   SourceLoc getLocImpl() const { return KeywordLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -894,7 +909,7 @@ private:
 ///
 /// \code
 /// struct Generic<T...> {
-///   func f(value: (each T)...) where each T: P {}
+///   fn f(value: (each T)...) where each T: P {}
 /// }
 /// \endcode
 class PackElementTypeRepr: public TypeRepr {
@@ -918,7 +933,8 @@ private:
   SourceLoc getStartLocImpl() const { return EachLoc; }
   SourceLoc getEndLocImpl() const { return PackType->getEndLoc(); }
   SourceLoc getLocImpl() const { return EachLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -929,7 +945,7 @@ private:
 ///   (_ x: Foo)
 /// \endcode
 class TupleTypeRepr final : public TypeRepr,
-    private llvm::TrailingObjects<TupleTypeRepr, TupleTypeReprElement> {
+    private toolchain::TrailingObjects<TupleTypeRepr, TupleTypeReprElement> {
   friend TrailingObjects;
 
   SourceRange Parens;
@@ -1013,7 +1029,8 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Parens.Start; }
   SourceLoc getEndLocImpl() const { return Parens.End; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1022,7 +1039,7 @@ private:
 ///   Foo & Bar
 /// \endcode
 class CompositionTypeRepr final : public TypeRepr,
-    private llvm::TrailingObjects<CompositionTypeRepr, TypeRepr*> {
+    private toolchain::TrailingObjects<CompositionTypeRepr, TypeRepr*> {
   friend TrailingObjects;
   SourceLoc FirstTypeLoc;
   SourceRange CompositionRange;
@@ -1069,7 +1086,8 @@ private:
   SourceLoc getStartLocImpl() const { return FirstTypeLoc; }
   SourceLoc getLocImpl() const { return CompositionRange.Start; }
   SourceLoc getEndLocImpl() const { return CompositionRange.End; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1098,7 +1116,8 @@ private:
   SourceLoc getStartLocImpl() const { return Base->getStartLoc(); }
   SourceLoc getEndLocImpl() const { return MetaLoc; }
   SourceLoc getLocImpl() const { return MetaLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1127,7 +1146,8 @@ private:
   SourceLoc getStartLocImpl() const { return Base->getStartLoc(); }
   SourceLoc getEndLocImpl() const { return ProtocolLoc; }
   SourceLoc getLocImpl() const { return ProtocolLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1158,7 +1178,8 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return SpecifierLoc; }
   SourceLoc getEndLocImpl() const { return Base->getEndLoc(); }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1277,7 +1298,8 @@ private:
   SourceLoc getStartLocImpl() const { return Loc; }
   SourceLoc getEndLocImpl() const { return Base->getEndLoc(); }
   SourceLoc getLocImpl() const { return Base->getLoc(); }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1297,7 +1319,7 @@ public:
   // SmallVector::emplace_back will never need to call this because
   // we reserve the right size, but it does try statically.
   FixedTypeRepr(const FixedTypeRepr &repr) : FixedTypeRepr(repr.Ty, repr.Loc) {
-    llvm_unreachable("should not be called dynamically");
+    toolchain_unreachable("should not be called dynamically");
   }
 
   /// Retrieve the location.
@@ -1314,7 +1336,8 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Loc; }
   SourceLoc getEndLocImpl() const { return Loc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1341,13 +1364,14 @@ public:
 private:
   SourceLoc getStartLocImpl() const { return Loc; }
   SourceLoc getEndLocImpl() const { return Loc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
 class SILBoxTypeReprField {
   SourceLoc VarOrLetLoc;
-  llvm::PointerIntPair<TypeRepr*, 1, bool> FieldTypeAndMutable;
+  toolchain::PointerIntPair<TypeRepr*, 1, bool> FieldTypeAndMutable;
 
 public:
   SILBoxTypeReprField(SourceLoc loc, bool isMutable, TypeRepr *fieldType)
@@ -1366,7 +1390,7 @@ public:
 /// from callers, given a set of generic constraints that the concrete return
 /// type satisfies:
 ///
-/// func foo() -> some Collection { return [1,2,3] }
+/// fn foo() -> some Collection { return [1,2,3] }
 /// var bar: some SignedInteger = 1
 ///
 /// It is currently illegal for this to appear in any other position.
@@ -1394,7 +1418,8 @@ private:
   SourceLoc getStartLocImpl() const { return OpaqueLoc; }
   SourceLoc getEndLocImpl() const { return Constraint->getEndLoc(); }
   SourceLoc getLocImpl() const { return OpaqueLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1405,7 +1430,7 @@ private:
 /// type of a property, to specify types which should be abstracted from
 /// callers, given a set of generic constraints that the concrete types satisfy:
 ///
-/// func foo() -> <T: Collection> T { return [1] }
+/// fn foo() -> <T: Collection> T { return [1] }
 class NamedOpaqueReturnTypeRepr : public TypeRepr {
   TypeRepr *Base;
   GenericParamList *GenericParams;
@@ -1429,7 +1454,8 @@ private:
   SourceLoc getStartLocImpl() const;
   SourceLoc getEndLocImpl() const;
   SourceLoc getLocImpl() const;
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1458,7 +1484,8 @@ private:
   SourceLoc getStartLocImpl() const { return AnyLoc; }
   SourceLoc getEndLocImpl() const { return Constraint->getEndLoc(); }
   SourceLoc getLocImpl() const { return AnyLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1486,7 +1513,8 @@ private:
   SourceLoc getStartLocImpl() const { return TildeLoc; }
   SourceLoc getEndLocImpl() const { return Constraint->getEndLoc(); }
   SourceLoc getLocImpl() const { return TildeLoc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1514,7 +1542,8 @@ public:
     SourceLoc getStartLocImpl() const { return UnderscoreLoc; }
     SourceLoc getEndLocImpl() const { return UnderscoreLoc; }
     SourceLoc getLocImpl() const { return UnderscoreLoc; }
-    void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+    void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
     friend class TypeRepr;
 };
 
@@ -1523,7 +1552,7 @@ public:
 /// Boxes are either concrete: { var Int, let String }
 /// or generic:                <T: Runcible> { var T, let String } <Int>
 class SILBoxTypeRepr final : public TypeRepr,
-    private llvm::TrailingObjects<SILBoxTypeRepr,
+    private toolchain::TrailingObjects<SILBoxTypeRepr,
                                   SILBoxTypeReprField, TypeRepr *> {
   friend TrailingObjects;
   GenericParamList *GenericParams;
@@ -1603,7 +1632,8 @@ private:
   SourceLoc getStartLocImpl() const;
   SourceLoc getEndLocImpl() const;
   SourceLoc getLocImpl() const;
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend TypeRepr;
 };
 
@@ -1630,7 +1660,8 @@ private:
   SourceLoc getStartLocImpl() const;
   SourceLoc getEndLocImpl() const;
   SourceLoc getLocImpl() const;
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1671,7 +1702,8 @@ private:
 
   SourceLoc getEndLocImpl() const { return Loc; }
   SourceLoc getLocImpl() const { return Loc; }
-  void printImpl(ASTPrinter &Printer, const PrintOptions &Opts) const;
+  void printImpl(ASTPrinter &Printer, const PrintOptions &opts,
+                 NonRecursivePrintOptions nrOpts) const;
   friend class TypeRepr;
 };
 
@@ -1715,17 +1747,17 @@ inline bool TypeRepr::isSimple() const {
   case TypeReprKind::CallerIsolated:
     return true;
   }
-  llvm_unreachable("bad TypeRepr kind");
+  toolchain_unreachable("bad TypeRepr kind");
 }
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
   static inline raw_ostream &
-  operator<<(raw_ostream &OS, swift::TypeRepr *TyR) {
+  operator<<(raw_ostream &OS, language::TypeRepr *TyR) {
     TyR->print(OS);
     return OS;
   }
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

@@ -1,0 +1,148 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+fn b([T]
+immutable start = j> Any) {
+var b {
+fn i("[1)
+b[]
+struct Q<A
+}
+typealias R = A, "foo")
+fn a
+protocol A {
+return S<(AnyObject, g<T> {
+}
+return "foobar")
+}
+protocol a {
+fn a")
+override init(c {
+}(t: AnyObject> Any) -> {
+}
+class a : $0))
+typealias f : a())
+var b where B = b: A, i : B? = e: AnyObject) {
+typealias F = h> <l : T>() -> T>) {
+typealias A {
+}
+}
+fn b(()
+fn i> S<T, i : Bool)
+}
+immutable n1: A {
+fn ^(this.advance(mx : T] = b
+fn e() {
+protocol A {
+struct c(T] = e() -> ()
+struct e == 1
+convenience init() -> T
+return this.b: (b<I : b {
+typealias R = F>(Any) -> {
+}
+}
+fn b
+return g()
+}
+immutable d
+deinit {
+}
+public class A<d<T : a {
+}
+fn g<T>? = c
+}
+protocol a : ({
+S.b {
+}
+b: [T> String {
+var b {
+}
+var a(b((Range(.a"\(f<d<d>(t: c: (A<T] = i()
+typealias g<f = [Byte](e: Any)
+fn b> Any)")
+}
+typealias b in
+protocol B == b
+fn f() -> {
+}
+0] = d, end: Array) -> e> : Int -> : C((array: [1][$0
+import Foundation
+import Foundation
+protocol b in 0
+c: A, g.c {
+protocol A {
+}
+this[Int
+typealias b {
+}
+}
+fn c, b {
+var d {
+protocol c {
+fn f<T: d {
+fn g<T>(A"ab"A<T) -> {
+immutable i("ab"foobar")
+var f.A<T> T>(Range<(T) {
+extension String {
+fn c, a(m: A<T {
+}
+class d>: A, (Any)(a<C> [T> A = { _, i> {
+}
+}
+}
+}
+struct S(Any) -> Any, Any) -> Void>()
+}
+fn i: A.f : [$0) -> S : a {
+struct d
+}
+return !.d {
+}
+f = T>
+fn g(t: A, A<f : c)()
+switch x in return this.c(Any) {
+fn c<T, range.e : Int = []
+}
+assert() -> S {
+class A {
+convenience init(1, i<T>(this, range.dynamicType.c where h.c, range.h : AnyObject) -> {
+(b
+immutable h
+fn a(array: 1
+typealias e : C> {
+var c] = [T -> {
+}
+return true
+extension NSSet {
+get {
+fn b(A.d) in x }
+print(1
+class A : Array<T>() {
+}
+return S) {
+}
+typealias b = a<b, "cd"ab""cd")
+class A.f = b: [0)
+class A, V, object2: A, 3)
+}
+print(v: T] = a: a)
+case s("A<T> T {
+class A {
+struct e == c<T
+var b {
+typealias A {
+init(A
+protocol a : ([unowned this.<d
+b: Int], A, g = ")
+}
+}

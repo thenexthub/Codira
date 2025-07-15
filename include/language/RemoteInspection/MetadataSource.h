@@ -1,4 +1,4 @@
-//===- MetadataSource.h - Swift Metadata Sources for Reflection -*- C++ -*-===//
+//===- MetadataSource.h - Codira Metadata Sources for Reflection -*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements a description of a "metadata source": at runtime, emission of
@@ -22,13 +23,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_METADATASOURCE_H
-#define SWIFT_REFLECTION_METADATASOURCE_H
+#ifndef LANGUAGE_REFLECTION_METADATASOURCE_H
+#define LANGUAGE_REFLECTION_METADATASOURCE_H
 
-#include "llvm/Support/Casting.h"
+#include "toolchain/Support/Casting.h"
 #include <optional>
 
-using llvm::cast;
+using toolchain::cast;
 
 #include <cerrno>
 #include <climits>
@@ -356,4 +357,4 @@ public:
 } // end namespace reflection
 } // end namespace language
 
-#endif // SWIFT_REFLECTION_METADATASOURCE_H
+#endif // LANGUAGE_REFLECTION_METADATASOURCE_H

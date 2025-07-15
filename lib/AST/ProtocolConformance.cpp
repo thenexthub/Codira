@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the ProtocolConformance class hierarchy.
@@ -35,9 +36,9 @@
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 #define DEBUG_TYPE "AST"
 
@@ -72,9 +73,9 @@ Witness Witness::withEnterIsolation(ActorIsolation enterIsolation) const {
                  getDerivativeGenericSignature(), enterIsolation);
 }
 
-void Witness::dump() const { dump(llvm::errs()); }
+void Witness::dump() const { dump(toolchain::errs()); }
 
-void Witness::dump(llvm::raw_ostream &out) const {
+void Witness::dump(toolchain::raw_ostream &out) const {
   out << "Witness: ";
   if (auto decl = this->getDecl()) {
     decl->dumpRef(out);
@@ -99,7 +100,7 @@ switch (getKind()) {                                                         \
            && "Must override BuiltinProtocolConformance::" #Method);         \
     return cast<BuiltinProtocolConformance>(this)->Method Args;              \
 }                                                                            \
-llvm_unreachable("bad ProtocolConformanceKind");
+toolchain_unreachable("bad ProtocolConformanceKind");
 
 #define ROOT_CONFORMANCE_SUBCLASS_DISPATCH(Method, Args)                     \
 switch (getKind()) {                                                         \
@@ -111,9 +112,9 @@ switch (getKind()) {                                                         \
     return cast<BuiltinProtocolConformance>(this)->Method Args;              \
   case ProtocolConformanceKind::Specialized:                                 \
   case ProtocolConformanceKind::Inherited:                                   \
-    llvm_unreachable("not a root conformance");                              \
+    toolchain_unreachable("not a root conformance");                              \
 }                                                                            \
-llvm_unreachable("bad ProtocolConformanceKind");
+toolchain_unreachable("bad ProtocolConformanceKind");
 
 /// Get the protocol being conformed to.
 ProtocolDecl *ProtocolConformance::getProtocol() const {
@@ -196,7 +197,7 @@ ValueDecl *ProtocolConformance::getWitnessDecl(ValueDecl *requirement) const {
   case ProtocolConformanceKind::Builtin:
     return requirement;
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 /// Determine whether the witness for the given requirement
@@ -219,7 +220,6 @@ void NormalProtocolConformance::setSourceKindAndImplyingConformance(
   Bits.NormalProtocolConformance.SourceKind = unsigned(sourceKind);
   if (auto implying = implyingConformance) {
     ImplyingConformance = implying;
-    PreconcurrencyLoc = implying->getPreconcurrencyLoc();
     Bits.NormalProtocolConformance.Options =
         implyingConformance->getOptions().toRaw();
     if (getProtocol()->isMarkerProtocol()) {
@@ -276,7 +276,7 @@ GenericEnvironment *ProtocolConformance::getGenericEnvironment() const {
     return nullptr;
   }
 
-  llvm_unreachable("Unhandled ProtocolConformanceKind in switch.");
+  toolchain_unreachable("Unhandled ProtocolConformanceKind in switch.");
 }
 
 GenericSignature ProtocolConformance::getGenericSignature() const {
@@ -287,7 +287,7 @@ GenericSignature ProtocolConformance::getGenericSignature() const {
     // If we have a normal or inherited protocol conformance, look for its
     // generic signature.
 
-    // In -swift-version 5 mode, a conditional conformance to a protocol can imply
+    // In -language-version 5 mode, a conditional conformance to a protocol can imply
     // a Sendable conformance. The implied conformance is unconditional so it uses
     // the generic signature of the nominal type and not the generic signature of
     // the extension that declared the (implying) conditional conformance.
@@ -308,7 +308,7 @@ GenericSignature ProtocolConformance::getGenericSignature() const {
     return nullptr;
   }
 
-  llvm_unreachable("Unhandled ProtocolConformanceKind in switch.");
+  toolchain_unreachable("Unhandled ProtocolConformanceKind in switch.");
 }
 
 SubstitutionMap ProtocolConformance::getSubstitutionMap() const {
@@ -438,7 +438,7 @@ NormalProtocolConformance::getConditionalRequirementsIfAvailable() const {
   return getConditionalRequirements();
 }
 
-llvm::ArrayRef<Requirement>
+toolchain::ArrayRef<Requirement>
 NormalProtocolConformance::getConditionalRequirements() const {
   const auto ext = dyn_cast<ExtensionDecl>(getDeclContext());
   if (ext && ext->isComputingGenericSignature()) {
@@ -450,7 +450,7 @@ NormalProtocolConformance::getConditionalRequirements() const {
                            {});
 }
 
-llvm::ArrayRef<Requirement>
+toolchain::ArrayRef<Requirement>
 ConditionalRequirementsRequest::evaluate(Evaluator &evaluator,
                                          NormalProtocolConformance *NPC) const {
   // A non-extension conformance won't have conditional requirements.
@@ -471,7 +471,7 @@ ConditionalRequirementsRequest::evaluate(Evaluator &evaluator,
     return {};
   }
 
-  // In -swift-version 5 mode, a conditional conformance to a protocol can imply
+  // In -language-version 5 mode, a conditional conformance to a protocol can imply
   // a Sendable conformance. We ask the conformance for its generic signature,
   // which will always be the generic signature of `ext` except in this case,
   // where it's the generic signature of the extended nominal.
@@ -480,7 +480,7 @@ ConditionalRequirementsRequest::evaluate(Evaluator &evaluator,
   // The extension signature should be a superset of the type signature, meaning
   // every thing in the type signature either is included too or is implied by
   // something else. The most important bit is having the same type
-  // parameters. (NB. if/when Swift gets parameterized extensions, this needs to
+  // parameters. (NB. if/when Codira gets parameterized extensions, this needs to
   // change.)
   assert(typeSig.getCanonicalSignature().getGenericParams() ==
          extensionSig.getCanonicalSignature().getGenericParams());
@@ -518,6 +518,22 @@ TypeExpr *NormalProtocolConformance::getExplicitGlobalActorIsolation() const {
   return ctx.getGlobalCache().conformanceExplicitGlobalActorIsolation[this];
 }
 
+SourceLoc NormalProtocolConformance::getPreconcurrencyLoc() const {
+  if (!isPreconcurrency()) {
+    return SourceLoc();
+  }
+
+  if (!getInheritedTypeRepr()) {
+    return SourceLoc();
+  }
+
+  return getInheritedTypeRepr()->findAttrLoc(TypeAttrKind::Preconcurrency);
+}
+
+bool NormalProtocolConformance::hasExplicitGlobalActorIsolation() const {
+  return Bits.NormalProtocolConformance.HasExplicitGlobalActor;
+}
+
 void
 NormalProtocolConformance::setExplicitGlobalActorIsolation(TypeExpr *typeExpr) {
   if (!typeExpr) {
@@ -535,7 +551,7 @@ NormalProtocolConformance::setExplicitGlobalActorIsolation(TypeExpr *typeExpr) {
 }
 
 namespace {
-  class PrettyStackTraceRequirement : public llvm::PrettyStackTraceEntry {
+  class PrettyStackTraceRequirement : public toolchain::PrettyStackTraceEntry {
     const char *Action;
     const ProtocolConformance *Conformance;
     ValueDecl *Requirement;
@@ -545,7 +561,7 @@ namespace {
                                 ValueDecl *requirement)
       : Action(action), Conformance(conformance), Requirement(requirement) { }
 
-    void print(llvm::raw_ostream &out) const override {
+    void print(toolchain::raw_ostream &out) const override {
       out << "While " << Action << " requirement ";
       Requirement->dumpRef(out);
       out << " in conformance ";
@@ -738,6 +754,13 @@ NormalProtocolConformance::getWitnessUncached(ValueDecl *requirement) const {
   return entry->second;
 }
 
+ProtocolConformanceRef
+SelfProtocolConformance::getAssociatedConformance(Type assocType,
+                                                  ProtocolDecl *protocol) const {
+  ASSERT(assocType->isEqual(protocol->getSelfInterfaceType()));
+  return lookupConformance(getType(), protocol);
+}
+
 Witness SelfProtocolConformance::getWitness(ValueDecl *requirement) const {
   return Witness(requirement, SubstitutionMap(), nullptr, SubstitutionMap(),
                  GenericSignature(), std::nullopt);
@@ -795,6 +818,42 @@ void NormalProtocolConformance::resolveValueWitnesses() const {
   evaluateOrDefault(getProtocol()->getASTContext().evaluator,
                     ResolveValueWitnessesRequest{mutableThis},
                     evaluator::SideEffect());
+}
+
+void NormalProtocolConformance::applyConformanceAttribute(
+    InFlightDiagnostic &diag, std::string attrStr) const {
+  TypeRepr *inheritedTypeRepr = nullptr;
+  {
+    // Look through implied conformances.
+    auto *conformance = this;
+    while (conformance->getSourceKind() == ConformanceEntryKind::Implied) {
+      conformance = conformance->getImplyingConformance();
+    }
+    inheritedTypeRepr = conformance->getInheritedTypeRepr();
+  }
+
+  if (!inheritedTypeRepr) {
+    return;
+  }
+
+  // FIXME: We shouldn't be applying the attribute to all the protocols in a
+  // composition.
+  SourceLoc insertionLoc = [&] {
+    if (auto *attrTypeRepr = dyn_cast<AttributedTypeRepr>(inheritedTypeRepr)) {
+      // If this is a modifier, append, rather than prepend, it to the
+      // attribute list. Because e.g. `@unsafe nonisolated P` does parse,
+      // whereas `nonisolated @unsafe P` does not.
+      if (attrStr[0] != '@') {
+        return attrTypeRepr->getTypeRepr()->getStartLoc();
+      }
+    }
+
+    return inheritedTypeRepr->getStartLoc();
+  }();
+
+  attrStr += " ";
+
+  diag.fixItInsert(insertionLoc, attrStr);
 }
 
 SpecializedProtocolConformance::SpecializedProtocolConformance(
@@ -982,9 +1041,12 @@ static bool isVanishingTupleConformance(
 
   auto replacementTypes = substitutions.getReplacementTypes();
   assert(replacementTypes.size() == 1);
-  auto packType = replacementTypes[0]->castTo<PackType>();
 
-  return (packType->getNumElements() == 1 &&
+  // This might not be an actual pack type with an invalid tuple conformance.
+  auto packType = replacementTypes[0]->getAs<PackType>();
+
+  return (packType &&
+          packType->getNumElements() == 1 &&
           !packType->getElementTypes()[0]->is<PackExpansionType>());
 }
 
@@ -1096,7 +1158,7 @@ ProtocolConformance::subst(InFlightSubstitution &IFS) const {
     return ProtocolConformanceRef(concrete);
   }
   }
-  llvm_unreachable("bad ProtocolConformanceKind");
+  toolchain_unreachable("bad ProtocolConformanceKind");
 }
 
 ProtocolConformance *
@@ -1246,7 +1308,7 @@ bool NominalTypeDecl::lookupConformance(
 
   assert(!isa<ProtocolDecl>(this) &&
          "Self-conformances are only found by the higher-level "
-         "swift::lookupConformance() entry point");
+         "language::lookupConformance() entry point");
 
   prepareConformanceTable();
   return ConformanceTable->lookupConformance(
@@ -1560,7 +1622,7 @@ bool ProtocolConformance::isCanonical() const {
     return true;
   }
   }
-  llvm_unreachable("bad ProtocolConformanceKind");
+  toolchain_unreachable("bad ProtocolConformanceKind");
 }
 
 /// Check of all types used by the conformance are canonical.
@@ -1605,7 +1667,7 @@ ProtocolConformance *ProtocolConformance::getCanonicalConformance() {
                                 spec->getSubstitutionMap().getCanonical());
   }
   }
-  llvm_unreachable("bad ProtocolConformanceKind");
+  toolchain_unreachable("bad ProtocolConformanceKind");
 }
 
 BuiltinProtocolConformance::BuiltinProtocolConformance(
@@ -1615,7 +1677,7 @@ BuiltinProtocolConformance::BuiltinProtocolConformance(
   Bits.BuiltinProtocolConformance.Kind = unsigned(kind);
 }
 
-// See swift/Basic/Statistic.h for declaration: this enables tracing
+// See language/Basic/Statistic.h for declaration: this enables tracing
 // ProtocolConformances, is defined here to avoid too much layering violation /
 // circular linkage dependency.
 
@@ -1651,11 +1713,11 @@ FrontendStatsTracer::getTraceFormatter<const ProtocolConformance *>() {
   return &TF;
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const ProtocolConformance *conf) {
   conf->printName(out);
 }
 
-SourceLoc swift::extractNearestSourceLoc(const ProtocolConformance *conformance) {
+SourceLoc language::extractNearestSourceLoc(const ProtocolConformance *conformance) {
   return extractNearestSourceLoc(conformance->getDeclContext());
 }

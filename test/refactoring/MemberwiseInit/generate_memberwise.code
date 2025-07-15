@@ -1,0 +1,66 @@
+class Person {
+  var firstName: String!
+  var lastName: String!
+  var age: Int!
+  var planet = "Earth", solarSystem = "Milky Way"
+  var avgHeight = 175
+  immutable line = #line, file = #file, handle = #dsohandle
+  lazy var idea: Idea = { fatalError() }()
+  var location: () -> Place = { fatalError() }
+  var secondLocation: (() -> Place)!
+  @MyWrapper var wrapped: String = ""
+  var computed: String { "hi" }
+  var getSet: String {
+    get { "hi" }
+    set {}
+  }
+  var didSet: String = "ds" {
+    didSet { print("didSet") }
+  }
+}
+
+struct Place {
+  typealias Callback = () -> ()
+  immutable person: Person
+  immutable street: String
+  immutable apartment: Optional<String>
+  immutable city: String
+  immutable state: String
+  immutable postalCode: Int
+  immutable plusFour: Int?
+  immutable callback: Callback
+  @MyWrapper var wrapped: String
+  var `protocol`: String
+}
+
+protocol Thing {
+  var idea: Idea { get }
+}
+
+enum Idea {
+  var subject: String { fatalError() }
+}
+
+struct OnlyComputed {
+  lazy var idea: Idea = { fatalError() }()
+  var computed: String { "hi" }
+}
+
+@propertyWrapper
+struct MyWrapper {
+  immutable wrappedValue: String
+}
+
+// RUN: %empty-directory(%t.result)
+// RUN: %refactor -memberwise-init -source-filename %s -pos=1:8 > %t.result/generate_memberwise.code
+// RUN: diff -u %S/Outputs/generate_memberwise/class_members.code.expected %t.result/generate_memberwise.code
+
+// RUN: %refactor -memberwise-init -source-filename %s -pos=22:8 > %t.result/struct_members.code
+// RUN: diff -u %S/Outputs/generate_memberwise/struct_members.code.expected %t.result/struct_members.code
+
+// RUN: %refactor -memberwise-init -source-filename %s -pos=44:8 > %t.result/only_computed_members.code
+// RUN: diff -u %S/Outputs/generate_memberwise/only_computed_members.code.expected %t.result/only_computed_members.code
+
+// RUN: not %refactor -memberwise-init -source-filename %s -pos=36:10 > %t.result/protocol_members.code
+// RUN: not %refactor -memberwise-init -source-filename %s -pos=40:6 > %t.result/enum_members.code
+

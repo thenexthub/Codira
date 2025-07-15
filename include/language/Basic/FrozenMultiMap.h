@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -36,12 +37,12 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FROZENMULTIMAP_H
-#define SWIFT_BASIC_FROZENMULTIMAP_H
+#ifndef LANGUAGE_BASIC_FROZENMULTIMAP_H
+#define LANGUAGE_BASIC_FROZENMULTIMAP_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <vector>
 
 namespace language {
@@ -245,7 +246,7 @@ public:
   };
 
   using IgnoringErasedValueRangeType =
-      OptionalTransformRange<llvm::iterator_range<iterator>, ToNonErasedValues>;
+      OptionalTransformRange<toolchain::iterator_range<iterator>, ToNonErasedValues>;
   using RangeType = TransformRange<IgnoringErasedValueRangeType,
                                    PairWithTypeErasedOptionalSecondElt>;
 
@@ -259,7 +260,7 @@ public:
     auto *self = const_cast<FrozenMultiMap *>(this);
     iterator iter1 = iterator(*self, self->storage.begin());
     iterator iter2 = iterator(*self, self->storage.end());
-    auto baseRange = llvm::make_range(iter1, iter2);
+    auto baseRange = toolchain::make_range(iter1, iter2);
     auto optRange = makeOptionalTransformRange(baseRange, ToNonErasedValues());
     return makeTransformRange(optRange, PairWithTypeErasedOptionalSecondElt());
   }
@@ -272,7 +273,7 @@ public:
   /// that all values for all keys were properly handled. One cannot perform
   /// this operation with getRange() in a nice way.
   bool allValuesHaveBeenDeleted() const {
-    return llvm::all_of(storage,
+    return toolchain::all_of(storage,
                         [](const std::pair<Key, std::optional<Value>> &pair) {
                           return !pair.second.hasValue();
                         });

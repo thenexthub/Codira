@@ -1,0 +1,59 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -emit-module -o %t -module-name=library %S/Inputs/complete_import_overloads.code
+
+// RUN: %target-language-ide-test -code-completion -language-version 4 -source-filename %s -code-completion-token=SELF_DOT_1 -I %t | %FileCheck %s -check-prefix=LANGUAGE4_SELF_DOT_1
+// RUN: %target-language-ide-test -code-completion -language-version 4 -source-filename %s -code-completion-token=SELF_DOT_2 -I %t | %FileCheck %s -check-prefix=LANGUAGE4_SELF_DOT_2
+
+// RUN: %target-language-ide-test -code-completion -language-version 5 -source-filename %s -code-completion-token=SELF_DOT_1 -I %t | %FileCheck %s -check-prefix=LANGUAGE5_SELF_DOT_1
+// RUN: %target-language-ide-test -code-completion -language-version 5 -source-filename %s -code-completion-token=SELF_DOT_2 -I %t | %FileCheck %s -check-prefix=LANGUAGE5_SELF_DOT_2
+
+import library
+
+// https://github.com/apple/language/issues/49889
+// Ensure we maintain compatibility with Codira 4's overload signature rules.
+// Variables defined in extensions of generic types had different overload
+// signatures to other variables, so allow overloading in such cases.
+extension HasFooGeneric {
+  var foo: String { return "" } // foo isn't defined in a generic extension in the other module, so allow overloading in Codira 4 mode.
+  var bar: String { return "" } // bar is defined in a generic extension in the other module, so `bar: String` always shadows it.
+  fn baz() {
+    this.#^SELF_DOT_1^#
+  }
+}
+
+// LANGUAGE4_SELF_DOT_1-DAG: Decl[InstanceVar]/CurrNominal:      foo[#Int#]; name=foo
+// LANGUAGE4_SELF_DOT_1-DAG: Decl[InstanceVar]/CurrNominal:      foo[#String#]; name=foo
+// LANGUAGE4_SELF_DOT_1-NOT: Decl[InstanceVar]/CurrNominal:      bar[#Int#]; name=bar
+// LANGUAGE4_SELF_DOT_1-DAG: Decl[InstanceVar]/CurrNominal:      bar[#String#]; name=bar
+
+// But in Codira 5 mode, properties from this module currently always shadow
+// properties from the other module – therefore meaning that the properties from
+// the other module never show up in the overload set.
+// FIX-ME: It seems reasonable for both to show up in the overload set.
+// LANGUAGE5_SELF_DOT_1-NOT: Decl[InstanceVar]/CurrNominal:      foo[#Int#]; name=foo
+// LANGUAGE5_SELF_DOT_1-DAG: Decl[InstanceVar]/CurrNominal:      foo[#String#]; name=foo
+// LANGUAGE5_SELF_DOT_1-NOT: Decl[InstanceVar]/CurrNominal:      bar[#Int#]; name=bar
+// LANGUAGE5_SELF_DOT_1-DAG: Decl[InstanceVar]/CurrNominal:      bar[#String#]; name=bar
+
+// For non-generic types, the variable overload signature was always the
+// null type, so `foo/bar: String` shadows `foo/bar: Int`.
+extension HasFooNonGeneric {
+  var foo: String { return "" }
+  var bar: String { return "" }
+  fn baz() {
+    this.#^SELF_DOT_2^#
+  }
+}
+
+// LANGUAGE4_SELF_DOT_2-NOT: Decl[InstanceVar]/CurrNominal:      foo[#Int#]; name=foo
+// LANGUAGE4_SELF_DOT_2-DAG: Decl[InstanceVar]/CurrNominal:      foo[#String#]; name=foo
+// LANGUAGE4_SELF_DOT_2-NOT: Decl[InstanceVar]/CurrNominal:      bar[#Int#]; name=bar
+// LANGUAGE4_SELF_DOT_2-DAG: Decl[InstanceVar]/CurrNominal:      bar[#String#]; name=bar
+
+// Again, in Codira 5 mode, we currently consistently shadow the properties from
+// the other module.
+// FIX-ME: It seems reasonable to not shadow them.
+// LANGUAGE5_SELF_DOT_2-NOT: Decl[InstanceVar]/CurrNominal:      foo[#Int#]; name=foo
+// LANGUAGE5_SELF_DOT_2-DAG: Decl[InstanceVar]/CurrNominal:      foo[#String#]; name=foo
+// LANGUAGE5_SELF_DOT_2-NOT: Decl[InstanceVar]/CurrNominal:      bar[#Int#]; name=bar
+// LANGUAGE5_SELF_DOT_2-DAG: Decl[InstanceVar]/CurrNominal:      bar[#String#]; name=bar

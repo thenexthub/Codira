@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_LINEARLIFETIMECHECKER_H
-#define SWIFT_SIL_LINEARLIFETIMECHECKER_H
+#ifndef LANGUAGE_SIL_LINEARLIFETIMECHECKER_H
+#define LANGUAGE_SIL_LINEARLIFETIMECHECKER_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILBasicBlock.h"
@@ -25,7 +26,7 @@
 #include "language/SIL/SILValue.h"
 #include "language/SIL/BasicBlockUtils.h"
 #include "language/SIL/BasicBlockBits.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 namespace language {
 

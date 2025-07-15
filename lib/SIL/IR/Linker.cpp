@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -55,11 +56,11 @@
 
 #define DEBUG_TYPE "sil-linker"
 #include "Linker.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/Debug.h"
 #include "language/AST/DiagnosticsSIL.h"
 #include "language/AST/ProtocolConformance.h"
 #include "language/AST/SubstitutionMap.h"
@@ -81,7 +82,7 @@ STATISTIC(NumFuncLinked, "Number of SIL functions linked");
 void SILLinkerVisitor::deserializeAndPushToWorklist(SILFunction *F) {
   ASSERT(F->isExternalDeclaration());
 
-  LLVM_DEBUG(llvm::dbgs() << "Imported function: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Imported function: "
                           << F->getName() << "\n");
   SILFunction *NewF =
     Mod.getSILLoader()->lookupSILFunction(F, /*onlyUpdateLinkage*/ false);
@@ -113,7 +114,7 @@ void SILLinkerVisitor::maybeAddFunctionToWorklist(
             F->hasValidLinkageForFragileRef(callerSerializedKind) ||
             hasSharedVisibility(linkage) || F->isExternForwardDeclaration())) {
     StringRef name = "a serialized function";
-    llvm::SmallVector<char> scratch;
+    toolchain::SmallVector<char> scratch;
 
     if (caller) {
       name = caller->getName();
@@ -144,6 +145,20 @@ void SILLinkerVisitor::maybeAddFunctionToWorklist(
       // are also set to IsSerialized.
       Worklist.push_back(F);
     }
+
+    if (F->markedAsAlwaysEmitIntoClient()) {
+      // For @_alwaysEmitIntoClient functions, we need to lookup its
+      // differentiability witness and, if present, ask SILLoader to obtain its
+      // definition. Otherwise, a linker error would occur due to undefined
+      // reference to these symbols.
+      for (SILDifferentiabilityWitness *witness :
+           F->getModule().lookUpDifferentiabilityWitnessesForFunction(
+               F->getName())) {
+        F->getModule().getSILLoader()->lookupDifferentiabilityWitness(
+            witness->getKey());
+      }
+    }
+
     return;
   }
 
@@ -162,9 +177,23 @@ void SILLinkerVisitor::maybeAddFunctionToWorklist(
   // HiddenExternal linkage when they are declarations, then they
   // become Shared after the body has been deserialized.
   // So try deserializing HiddenExternal functions too.
-  if (linkage == SILLinkage::HiddenExternal)
-    return deserializeAndPushToWorklist(F);
-  
+  if (linkage == SILLinkage::HiddenExternal) {
+    deserializeAndPushToWorklist(F);
+    if (!F->markedAsAlwaysEmitIntoClient())
+      return;
+    // For @_alwaysEmitIntoClient functions, we need to lookup its
+    // differentiability witness and, if present, ask SILLoader to obtain its
+    // definition. Otherwise, a linker error would occur due to undefined
+    // reference to these symbols.
+    for (SILDifferentiabilityWitness *witness :
+         F->getModule().lookUpDifferentiabilityWitnessesForFunction(
+             F->getName())) {
+      F->getModule().getSILLoader()->lookupDifferentiabilityWitness(
+          witness->getKey());
+    }
+    return;
+  }
+
   // Update the linkage of the function in case it's different in the serialized
   // SIL than derived from the AST. This can be the case with cross-module-
   // optimizations.
@@ -280,7 +309,7 @@ void SILLinkerVisitor::visitProtocolConformance(
   if (ref.isAbstract())
     return;
   
-  bool isEmbedded = Mod.getOptions().EmbeddedSwift;
+  bool isEmbedded = Mod.getOptions().EmbeddedCodira;
   bool mustDeserialize = (isEmbedded && referencedFromInitExistential) ||
                          mustDeserializeProtocolConformance(Mod, ref);
 
@@ -319,9 +348,9 @@ void SILLinkerVisitor::visitProtocolConformance(
   if (WT == nullptr || WT->isDeclaration()) {
 #ifndef NDEBUG
     if (mustDeserialize) {
-      llvm::errs() << "SILGen failed to emit required conformance:\n";
-      ref.dump(llvm::errs());
-      llvm::errs() << "\n";
+      toolchain::errs() << "SILGen failed to emit required conformance:\n";
+      ref.dump(toolchain::errs());
+      toolchain::errs() << "\n";
       abort();
     }
 #endif
@@ -331,7 +360,7 @@ void SILLinkerVisitor::visitProtocolConformance(
   if (Mod.getASTContext().LangOpts.hasFeature(Feature::Embedded) &&
       isAvailableExternally(WT->getLinkage()) &&
       WT->getProtocol()->requiresClass()) {
-    // In embedded swift all the code is generated in the top-level module.
+    // In embedded language all the code is generated in the top-level module.
     // De-serialized tables (= public_external) must be code-gen'd and
     // therefore made non-external.
     // Note: for functions we do that at the end of the pipeline in the
@@ -438,7 +467,7 @@ void SILLinkerVisitor::visitBuiltinInst(BuiltinInst *bi) {
     case BuiltinValueKind::BuildOrdinaryTaskExecutorRef:
     case BuiltinValueKind::BuildOrdinarySerialExecutorRef:
     case BuiltinValueKind::BuildComplexEqualitySerialExecutorRef:
-      if (Mod.getOptions().EmbeddedSwift) {
+      if (Mod.getOptions().EmbeddedCodira) {
         // Those builtins act like init_existential_ref instructions and therefore
         // it's important to have the Executor witness tables available in embedded
         // mode.
@@ -491,10 +520,10 @@ void SILLinkerVisitor::visitMetatypeInst(MetatypeInst *MI) {
 }
 
 void SILLinkerVisitor::visitGlobalAddrInst(GlobalAddrInst *GAI) {
-  if (!Mod.getOptions().EmbeddedSwift)
+  if (!Mod.getOptions().EmbeddedCodira)
     return;
 
-  // In Embedded Swift, we want to actually link globals from other modules too,
+  // In Embedded Codira, we want to actually link globals from other modules too,
   // so strip "external" from the linkage.
   SILGlobalVariable *G = GAI->getReferencedGlobal();
   G->setLinkage(stripExternalFromLinkage(G->getLinkage()));
@@ -518,13 +547,13 @@ void SILLinkerVisitor::process() {
       Fn->setSerializedKind(SerializedKind_t::IsNotSerialized);
     }
 
-    if (Fn->getModule().getOptions().EmbeddedSwift &&
+    if (Fn->getModule().getOptions().EmbeddedCodira &&
         Fn->getModule().getASTContext().LangOpts.DebuggerSupport) {
       // LLDB requires that functions with bodies are not external.
       Fn->setLinkage(stripExternalFromLinkage(Fn->getLinkage()));
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Process imports in function: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Process imports in function: "
                             << Fn->getName() << "\n");
 
     for (auto &BB : *Fn) {

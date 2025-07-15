@@ -1,4 +1,4 @@
-//===--- ProtocolDispatch.swift -------------------------------------------===//
+//===--- ProtocolDispatch.code -------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ProtocolDispatch",
     runFunction: run_ProtocolDispatch,
     tags: [.validation, .abstraction])
 
 @inline(never)
-public func run_ProtocolDispatch(_ n: Int) {
+public fn run_ProtocolDispatch(_ n: Int) {
 
-  let x = someProtocolFactory()
+  immutable x = someProtocolFactory()
 
   for _ in 0...100_000 * n {
     _ = x.getValue()

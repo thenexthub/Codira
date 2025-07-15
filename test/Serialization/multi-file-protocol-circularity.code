@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/a.codemodule -primary-file %S/Inputs/circular-protocols/a.code %S/Inputs/circular-protocols/b.code %S/Inputs/circular-protocols/c.code
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/b.codemodule -primary-file %S/Inputs/circular-protocols/b.code %S/Inputs/circular-protocols/a.code %S/Inputs/circular-protocols/c.code
+// RUN: %target-language-frontend -emit-module -module-name Multi -o %t/c.codemodule -primary-file %S/Inputs/circular-protocols/c.code %S/Inputs/circular-protocols/a.code %S/Inputs/circular-protocols/b.code
+
+// RUN: %target-language-frontend -parse-as-library -emit-module -module-name Multi %t/a.codemodule %t/b.codemodule %t/c.codemodule -o %t
+

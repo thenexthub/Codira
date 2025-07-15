@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-build-language -I %S/Inputs %t/main.code %t/second.code -cxx-interoperability-mode=default -Xfrontend -disable-availability-checking
+
+// XFAIL: OS=windows-msvc
+
+//--- main.code
+import ReferenceCounted
+
+protocol P1 {}
+extension GlobalCount : P1 {}
+
+//--- second.code
+import ReferenceCounted
+
+protocol P2 {}
+extension GlobalCount : P2 {}

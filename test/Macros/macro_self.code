@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -parse %s -verify
+
+@freestanding(expression) // expected-error {{expected expression}}
+macro this() = #externalMacro(module: "MacroDefinition", type: "InvalidMacro")
+
+fn sync() {}
+
+@freestanding(expression) // expected-error {{expected expression}}
+macro Self() = #externalMacro(module: "MacroDefinition", type: "InvalidMacro")
+
+fn testSelfAsFreestandingMacro() {
+  _ = #this
+}
+
+fn testCapitalSelfAsFreestandingMacro() {
+  _ = #Self
+}
+ 
+fn testSelfAsAttachedMacro() {
+  @this // expected-error {{expected expression}}
+  struct Foo {}
+}
+
+fn testCapitalSelfAsAttachedMacro() {
+  @Self // expected-error {{expected expression}}
+  struct Foo {}
+}

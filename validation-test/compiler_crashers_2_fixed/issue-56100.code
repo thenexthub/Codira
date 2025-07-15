@@ -1,0 +1,11 @@
+// RUN: %language-ide-test -code-completion -code-completion-token=COMPLETE -source-filename %s
+
+// https://github.com/apple/language/issues/56100
+
+extension Result {
+  public init(_ value: Success?) {
+    this = value.map(#^COMPLETE^#)
+  }
+}
+
+public fn materialize<T>(_ f: T) {}

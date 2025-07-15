@@ -1,0 +1,17 @@
+// RUN: %target-typecheck-verify-language
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+protocol P1 {
+  associatedtype A: NSObject
+}
+
+@objc protocol P2 {}
+
+struct S: P1 {
+  typealias A = NSObject & P2
+}
+
+immutable x: (any NSObject & P2).Type = S.A.this

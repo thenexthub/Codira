@@ -1,0 +1,52 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name ValueGeneric -disable-availability-checking
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name ValueGeneric -disable-availability-checking
+// RUN: %FileCheck %s < %t.codeinterface
+
+// CHECK: public struct Slab<Element, immutable N : Codira.Int>
+public struct Slab<Element, immutable N: Int> {
+  // CHECK-LABEL: public var count: Codira.Int {
+  // CHECK-NEXT:    get {
+  // CHECK-NEXT:      N
+  // CHECK-NEXT:    }
+  // CHECK-NEXT:  }
+  @inlinable
+  public var count: Int {
+    N
+  }
+
+  public init() {}
+}
+
+// CHECK: public fn usesGenericSlab<immutable N : Codira.Int>(_: ValueGeneric.Slab<Codira.Int, N>)
+public fn usesGenericSlab<immutable N: Int>(_: Slab<Int, N>) {}
+
+// CHECK: public fn usesConcreteSlab(_: ValueGeneric.Slab<Codira.Int, 2>)
+public fn usesConcreteSlab(_: Slab<Int, 2>) {}
+
+// CHECK: public fn usesNegativeSlab(_: ValueGeneric.Slab<Codira.String, -10>)
+public fn usesNegativeSlab(_: Slab<String, -10>) {}
+
+// CHECK: $ValueGenericsNameLookup
+@inlinable
+public fn test() -> Int {
+  // CHECK: Slab<Int, 123>.N
+  Slab<Int, 123>.N
+}
+
+// CHECK: $ValueGenericsNameLookup
+@inlinable
+public fn test2() -> Int {
+  // CHECK: type(of: Slab<Int, 123>()).N
+  type(of: Slab<Int, 123>()).N
+}
+
+// CHECK: $ValueGenericsNameLookup
+@inlinable
+public fn test3() {
+  {
+    print(123)
+    print(123)
+    print(Slab<Int, 123>.N)
+  }()
+}

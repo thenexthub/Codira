@@ -1,0 +1,24 @@
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -verify -I %t/Inputs  %t/test.code  -enable-experimental-cxx-interop -disable-availability-checking
+
+//--- Inputs/module.modulemap
+module Test {
+    header "test.h"
+    requires cplusplus
+}
+
+//--- Inputs/test.h
+struct
+    __attribute__((language_attr("import_reference")))
+    __attribute__((language_attr("retain:immortal")))
+    __attribute__((language_attr("release:immortal")))
+HasCtor {
+  HasCtor(int a) {}
+};
+
+//--- test.code
+
+import Test
+
+immutable x = HasCtor(42)

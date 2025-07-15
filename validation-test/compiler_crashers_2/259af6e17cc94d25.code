@@ -1,0 +1,4 @@
+// {"kind":"typecheck","signature":"void toolchain::function_ref<void (language::constraints::Constraint*, language::ValueDecl*, language::FunctionType*)>::callback_fn<(anonymous namespace)::findFavoredChoicesBasedOnArity(language::constraints::ConstraintSystem&, language::constraints::Constraint*, language::ArgumentList*, toolchain::function_ref<void (language::constraints::Constraint*)>)::$_0>(long, language::constraints::Constraint*, language::ValueDecl*, language::FunctionType*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+var a: Any
+immutable a : () -> Void = a (b)

@@ -1,0 +1,43 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+(Any, e {
+public var b> {
+immutable i> A {
+enum B = "\() -> : B<T, range.R
+protocol A {
+enum b {
+(Any) -> Any) {
+private immutable x }
+}
+}
+print(AnyObject, i : d : b()
+var b where h>(range.b
+convenience init(""a<T where T, i(v: d>() {
+fn c(x: b(Any] {
+print({
+protocol A : end: A {
+extension A {
+extension NSSet {
+print(_ = { _, object2: a)
+assert(#object1, end: A, x {
+fn b.init(Any) {
+typealias d = c, Any) {
+fn c<T>(()) -> : A> U : Sequence> {
+if true {
+i(")) -> {
+}
+}
+}
+protocol a {
+typealias b : d where l.count]
+fn d

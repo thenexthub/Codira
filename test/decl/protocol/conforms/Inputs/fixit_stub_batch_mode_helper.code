@@ -1,0 +1,5 @@
+protocol P {
+	fn foo() // expected-note{{protocol requires function 'foo()' with type '() -> ()'}}
+}
+
+class C {}

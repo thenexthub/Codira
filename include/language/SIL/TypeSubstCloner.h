@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines TypeSubstCloner, which derives from SILCloner and
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_TYPESUBSTCLONER_H
-#define SWIFT_SIL_TYPESUBSTCLONER_H
+#ifndef LANGUAGE_SIL_TYPESUBSTCLONER_H
+#define LANGUAGE_SIL_TYPESUBSTCLONER_H
 
 #include "language/AST/GenericEnvironment.h"
 #include "language/AST/ProtocolConformance.h"
@@ -29,7 +30,7 @@
 #include "language/SIL/SILFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -47,7 +48,7 @@ class TypeSubstCloner : public SILClonerWithScopes<ImplClass> {
   using super = SILClonerWithScopes<ImplClass>;
 
   void postProcess(SILInstruction *Orig, SILInstruction *Cloned) {
-    llvm_unreachable("Clients need to explicitly call a base class impl!");
+    toolchain_unreachable("Clients need to explicitly call a base class impl!");
   }
 
   // A helper class for cloning different kinds of apply instructions.
@@ -159,7 +160,7 @@ public:
                   DominanceInfo *DT = nullptr,
                   bool Inlining = false)
     : SILClonerWithScopes<ImplClass>(To, DT, Inlining),
-      SwiftMod(From.getModule().getSwiftModule()),
+      CodiraMod(From.getModule().getCodiraModule()),
       SubsMap(ApplySubs),
       Original(From),
       Inlining(Inlining) {
@@ -168,8 +169,8 @@ public:
 #ifndef NDEBUG
     for (auto substConf : ApplySubs.getConformances()) {
       if (substConf.isInvalid()) {
-        llvm::errs() << "Invalid conformance in SIL cloner:\n";
-        ApplySubs.dump(llvm::errs());
+        toolchain::errs() << "Invalid conformance in SIL cloner:\n";
+        ApplySubs.dump(toolchain::errs());
         abort();
       }
     }
@@ -250,7 +251,7 @@ protected:
     if (canSILUseScalarCheckedCastInstructions(B.getModule(),
                                                sourceType, targetType)) {
       emitIndirectConditionalCastWithScalar(
-          B, SwiftMod, loc, inst->getIsolatedConformances(),
+          B, CodiraMod, loc, inst->getCheckedCastOptions(),
           inst->getConsumptionKind(), src, sourceType, dest,
           targetType, succBB, failBB, TrueCount, FalseCount);
       return;
@@ -258,7 +259,7 @@ protected:
 
     // Otherwise, use the indirect cast.
     B.createCheckedCastAddrBranch(loc,
-                                  inst->getIsolatedConformances(),
+                                  inst->getCheckedCastOptions(),
                                   inst->getConsumptionKind(),
                                   src, sourceType,
                                   dest, targetType,
@@ -287,6 +288,16 @@ protected:
     super::visitCopyValueInst(Copy);
   }
 
+  void visitExplicitCopyValueInst(ExplicitCopyValueInst *Copy) {
+    // If the substituted type is trivial, ignore the copy.
+    SILType copyTy = getOpType(Copy->getType());
+    if (copyTy.isTrivial(*Copy->getFunction())) {
+      recordFoldedValue(SILValue(Copy), getOpValue(Copy->getOperand()));
+      return;
+    }
+    super::visitExplicitCopyValueInst(Copy);
+  }
+
   void visitDestroyValueInst(DestroyValueInst *Destroy) {
     // If the substituted type is trivial, ignore the destroy.
     SILType destroyTy = getOpType(Destroy->getOperand()->getType());
@@ -294,6 +305,24 @@ protected:
       return;
     }
     super::visitDestroyValueInst(Destroy);
+  }
+
+  void visitEndLifetimeInst(EndLifetimeInst *endLifetime) {
+    // If the substituted type is trivial, ignore the end_lifetime.
+    SILType ty = getOpType(endLifetime->getOperand()->getType());
+    if (ty.isTrivial(*endLifetime->getFunction())) {
+      return;
+    }
+    super::visitEndLifetimeInst(endLifetime);
+  }
+
+  void visitExtendLifetimeInst(ExtendLifetimeInst *extendLifetime) {
+    // If the substituted type is trivial, ignore the extend_lifetime.
+    SILType ty = getOpType(extendLifetime->getOperand()->getType());
+    if (ty.isTrivial(*extendLifetime->getFunction())) {
+      return;
+    }
+    super::visitExtendLifetimeInst(extendLifetime);
   }
 
   void visitDifferentiableFunctionExtractInst(
@@ -423,12 +452,12 @@ protected:
     return ParentFunction;
   }
 
-  /// The Swift module that the cloned function belongs to.
-  ModuleDecl *SwiftMod;
+  /// The Codira module that the cloned function belongs to.
+  ModuleDecl *CodiraMod;
   /// The substitutions list for the specialization.
   SubstitutionMap SubsMap;
   /// Cache for substituted types.
-  llvm::DenseMap<SILType, SILType> TypeCache;
+  toolchain::DenseMap<SILType, SILType> TypeCache;
   /// The original function to specialize.
   SILFunction &Original;
   /// True, if used for inlining.

@@ -1,0 +1,15 @@
+class Base {}
+class Sub: Base {}
+
+protocol Proto {
+  associatedtype Assoc
+  fn make() -> Assoc
+}
+
+private struct Container : Proto {
+  fn make() -> some Base {
+    return Sub()
+  }
+
+  fn update(arg: Assoc) {}
+}

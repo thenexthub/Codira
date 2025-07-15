@@ -1,8 +1,8 @@
 add_sourcekit_executable(sourcekitd-repl
   sourcekitd-repl.cpp
-  LLVM_LINK_COMPONENTS coverage lto
+  TOOLCHAIN_LINK_COMPONENTS coverage lto
 )
-if(SWIFT_SOURCEKIT_USE_INPROC_LIBRARY)
+if(LANGUAGE_SOURCEKIT_USE_INPROC_LIBRARY)
   target_link_libraries(sourcekitd-repl PRIVATE sourcekitdInProc)
 else()
   target_link_libraries(sourcekitd-repl PRIVATE sourcekitd)
@@ -21,11 +21,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   target_link_options(sourcekitd-repl PRIVATE
     "LINKER:-exported_symbol,_main")
 endif()
-if(SWIFT_ANALYZE_CODE_COVERAGE)
+if(LANGUAGE_ANALYZE_CODE_COVERAGE)
   set_property(TARGET sourcekitd-repl APPEND_STRING PROPERTY
     LINK_FLAGS " -fprofile-instr-generate -fcoverage-mapping")
 endif()
 
 add_dependencies(tools sourcekitd-repl)
-swift_install_in_component(TARGETS sourcekitd-repl
+language_install_in_component(TARGETS sourcekitd-repl
   RUNTIME DESTINATION bin COMPONENT tools)

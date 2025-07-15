@@ -1,0 +1,3 @@
+// {"signature":"language::ForeignRepresentationInfo::isRepresentableAsOptional() const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+a!!= 1

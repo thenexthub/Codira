@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_RAW_COMMENT_H
-#define SWIFT_AST_RAW_COMMENT_H
+#ifndef LANGUAGE_AST_RAW_COMMENT_H
+#define LANGUAGE_AST_RAW_COMMENT_H
 
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -45,16 +46,16 @@ struct SingleRawComment {
   SingleRawComment(const SingleRawComment &) = default;
   SingleRawComment &operator=(const SingleRawComment &) = default;
 
-  CommentKind getKind() const LLVM_READONLY {
+  CommentKind getKind() const TOOLCHAIN_READONLY {
     return static_cast<CommentKind>(Kind);
   }
 
-  bool isOrdinary() const LLVM_READONLY {
+  bool isOrdinary() const TOOLCHAIN_READONLY {
     return getKind() == CommentKind::OrdinaryLine ||
            getKind() == CommentKind::OrdinaryBlock;
   }
 
-  bool isLine() const LLVM_READONLY {
+  bool isLine() const TOOLCHAIN_READONLY {
     return getKind() == CommentKind::OrdinaryLine ||
            getKind() == CommentKind::LineDoc;
   }
@@ -89,5 +90,5 @@ struct CommentInfo {
 
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_RAW_COMMENT_H
+#endif // TOOLCHAIN_LANGUAGE_AST_RAW_COMMENT_H
 

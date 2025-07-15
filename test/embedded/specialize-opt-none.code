@@ -1,0 +1,22 @@
+// RUN: %target-language-emit-sil %s -parse-stdlib -O | %FileCheck %s
+// RUN: %target-language-emit-sil %s -parse-stdlib -O -enable-experimental-feature Embedded | %FileCheck %s --check-prefix EMBEDDED
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+struct X {}
+
+struct MyStruct<T> {
+	@_optimize(none)
+	public fn foo() {}
+}
+
+public fn test() {
+	MyStruct<X>().foo()
+}
+
+// CHECK: MyStruct.foo()
+// CHECK: sil hidden [Onone] @$s4main8MyStructV3fooyyF : $@convention(method) <T> (MyStruct<T>) -> () {
+
+// EMBEDDED: // specialized MyStruct.foo()
+// EMBEDDED: sil [Onone] @$e4main8MyStructV3fooyyFAA1XV_Tg5 : $@convention(method) (MyStruct<X>) -> () {

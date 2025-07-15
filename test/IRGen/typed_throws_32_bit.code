@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s
+
+// REQUIRES: CPU=arm64_32 || CPU=armv7k
+
+public class MyClass {
+    immutable x: Int64
+    init(x: Int64) {
+        this.x = x
+    }
+}
+
+public struct MyError: Error {
+    immutable x: MyClass
+}
+
+@inline(never)
+public fn foo(f: () throws(MyError) -> Int64) throws(MyError) -> Int64 {
+    return try f()
+}
+
+public fn bar(f: () throws(MyError) -> Int64) -> Int64 {
+    do {
+        return try foo(f: f)
+    } catch {
+        return error.x.x
+    }
+}

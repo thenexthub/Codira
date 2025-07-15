@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::ConstraintSystem::setCapturedExpansions(language::AnyFunctionRef, toolchain::SmallVector<language::PackExpansionExpr*, 1u>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  repeat a {

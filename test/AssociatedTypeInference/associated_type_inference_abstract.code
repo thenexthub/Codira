@@ -1,0 +1,96 @@
+// RUN: %target-typecheck-verify-language
+
+protocol Q {}
+
+extension Int: Q {}
+
+///
+
+protocol P1 {
+  associatedtype A: Q
+  associatedtype B: Q
+
+  fn f(_: A)
+  fn g(_: B)
+}
+
+extension P1 {
+  fn f(_: B) {}
+  fn g(_: A) {}
+}
+
+struct S1a: P1 {
+  fn f(_: Int) {}
+}
+
+struct S1b: P1 {
+  fn g(_: Int) {}
+}
+
+///
+
+protocol P2 {
+  associatedtype A: Q
+  associatedtype B: Q
+
+  fn f(_: A)
+  fn g(_: B)
+}
+
+extension P2 where A == B {
+  fn f(_: B) {}
+}
+
+struct S2a: P2 {
+  fn g(_: Int) {}
+}
+
+extension P2 where A == B {
+  fn g(_: A) {}
+}
+
+struct S2b: P2 {
+  fn f(_: Int) {}
+}
+
+///
+
+protocol P3 {
+  associatedtype A: Q
+
+  fn f(_: A)
+}
+
+extension P3 {
+  fn f(_: Self) {}
+}
+
+struct S3: P3, Q {}
+
+///
+
+protocol P4 {
+  associatedtype A: Q
+
+  fn f(_: A)
+}
+
+extension P4 where Self == A {
+  fn f(_: A) {}
+}
+
+struct S4: P4, Q {}
+
+///
+
+protocol P5 {
+  associatedtype A: Q
+
+  fn f(_: A)
+}
+
+extension P5 where Self: Q {
+  fn f(_: Self) {}
+}
+
+struct S5: P5, Q {}

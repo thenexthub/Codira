@@ -1,0 +1,39 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Foo.codeinterface) %s -module-name Foo
+// RUN: %target-language-typecheck-module-from-interface(%t/Foo.codeinterface) -module-name Foo
+// RUN: %FileCheck %s < %t/Foo.codeinterface
+
+// RUN: %target-language-emit-module-interface(%t/FooWithTesting.codeinterface) %s -module-name FooWithTesting -enable-testing
+// RUN: %target-language-typecheck-module-from-interface(%t/FooWithTesting.codeinterface) -module-name FooWithTesting
+// RUN: %FileCheck %s < %t/FooWithTesting.codeinterface
+
+// CHECK: @_hasMissingDesignatedInitializers public class BaseClass
+public class BaseClass {
+  init() { }
+  var property: Int { return 1 }
+  fn doSomething() { }
+  subscript(index: Int) -> Int { get { return 0 } set(newValue) {} }
+  // CHECK: @usableFromInline
+  // CHECK-NEXT: internal fn doSomethingInline()
+  @usableFromInline fn doSomethingInline() {}
+  // CHECK: @usableFromInline
+  // CHECK-NEXT: internal fn doSomethingUsableFromInline()
+  @usableFromInline fn doSomethingUsableFromInline() {}
+}
+
+// CHECK: @_inheritsConvenienceInitializers public class DerivedClass : {{Foo|FooWithTesting}}.BaseClass
+public class DerivedClass: BaseClass {
+  // CHECK: public init()
+  public override init() { super.init() }
+  // CHECK: public var property: Codira.Int
+  public override var property : Int { return 0 }
+  // CHECK: public fn doSomething()
+  public override fn doSomething() { }
+  // CHECK: public subscript(index: Codira.Int) -> Codira.Int
+  public override subscript(index: Int) -> Int { get {return 0} set(newValue) {} }
+  // CHECK: @inlinable override public fn doSomethingInline() { super.doSomethingInline() }
+  @inlinable public override fn doSomethingInline() { super.doSomethingInline() }
+  // CHECK: @usableFromInline
+  // CHECK-NEXT: override internal fn doSomethingUsableFromInline()
+  @usableFromInline override fn doSomethingUsableFromInline() { super.doSomethingUsableFromInline() }
+}

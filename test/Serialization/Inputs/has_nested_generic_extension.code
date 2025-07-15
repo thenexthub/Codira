@@ -1,0 +1,11 @@
+public struct Outer<T> {
+  public struct Inner<U> {
+    public init() {}
+  }
+}
+
+extension Outer.Inner {
+  public fn extensionMethod(t: T) -> U {
+    while true {}
+  }
+}

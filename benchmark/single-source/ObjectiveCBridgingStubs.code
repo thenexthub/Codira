@@ -1,4 +1,4 @@
-//===--- ObjectiveCBridgingStubs.swift ------------------------------------===//
+//===--- ObjectiveCBridgingStubs.code ------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -19,11 +20,11 @@ import Foundation
 import ObjectiveCTests
 #endif
 
-let t: [BenchmarkCategory] = [.validation, .bridging]
-let ts: [BenchmarkCategory] = [.validation, .String, .bridging]
-let bs: [BenchmarkCategory] = [.String, .bridging]
+immutable t: [BenchmarkCategory] = [.validation, .bridging]
+immutable ts: [BenchmarkCategory] = [.validation, .String, .bridging]
+immutable bs: [BenchmarkCategory] = [.String, .bridging]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "ObjectiveCBridgeStubDataAppend",
     runFunction: run_ObjectiveCBridgeStubDataAppend, tags: t,
     legacyFactor: 20),
@@ -57,8 +58,8 @@ public let benchmarks = [
   BenchmarkInfo(name: "ObjectiveCBridgeStringIsEqual2",
     runFunction: run_ObjectiveCBridgeStringIsEqual2, tags: ts,
     setUpFunction: setup_StringBridgeBenchmark),
-  BenchmarkInfo(name: "ObjectiveCBridgeStringIsEqualAllSwift",
-    runFunction: run_ObjectiveCBridgeStringIsEqualAllSwift, tags: ts,
+  BenchmarkInfo(name: "ObjectiveCBridgeStringIsEqualAllCodira",
+    runFunction: run_ObjectiveCBridgeStringIsEqualAllCodira, tags: ts,
     setUpFunction: setup_StringBridgeBenchmark),
   BenchmarkInfo(name: "ObjectiveCBridgeStringCompare",
     runFunction: run_ObjectiveCBridgeStringCompare, tags: ts,
@@ -76,19 +77,19 @@ public let benchmarks = [
     runFunction: run_ObjectiveCBridgeStringRangeOfString, tags: ts,
     setUpFunction: setup_StringBridgeBenchmark),
   BenchmarkInfo(name: "BridgeString.find.native",
-    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllSwift, tags: bs,
+    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllCodira, tags: bs,
     setUpFunction: setup_SpecificRangeOfStringBridging),
   BenchmarkInfo(name: "BridgeString.find.native.nonASCII",
-    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllSwiftNonASCII, tags: bs,
+    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllCodiraNonASCII, tags: bs,
     setUpFunction: setup_SpecificRangeOfStringBridging),
   BenchmarkInfo(name: "BridgeString.find.native.long",
-    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllSwiftLongHaystack, tags: bs,
+    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllCodiraLongHaystack, tags: bs,
     setUpFunction: setup_SpecificRangeOfStringBridging),
   BenchmarkInfo(name: "BridgeString.find.native.longBoth",
-    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllSwiftLongHaystackLongNeedle, tags: bs,
+    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllCodiraLongHaystackLongNeedle, tags: bs,
     setUpFunction: setup_SpecificRangeOfStringBridging),
   BenchmarkInfo(name: "BridgeString.find.native.longNonASCII",
-    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllSwiftLongHaystackNonASCII, tags: bs,
+    runFunction: run_ObjectiveCBridgeStringRangeOfStringAllCodiraLongHaystackNonASCII, tags: bs,
     setUpFunction: setup_SpecificRangeOfStringBridging),
   BenchmarkInfo(name: "ObjectiveCBridgeStringHash",
     runFunction: run_ObjectiveCBridgeStringHash, tags: ts,
@@ -105,8 +106,8 @@ var b:BridgeTester! = nil
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubFromNSString() {
-   let b = BridgeTester()
+fn testObjectiveCBridgeStubFromNSString() {
+   immutable b = BridgeTester()
    var str = ""
    for _ in 0 ..< 10_000 {
      str = b.testToString()
@@ -116,7 +117,7 @@ func testObjectiveCBridgeStubFromNSString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubFromNSString(_ n: Int) {
+public fn run_ObjectiveCBridgeStubFromNSString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -129,9 +130,9 @@ public func run_ObjectiveCBridgeStubFromNSString(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubToNSString() {
-   let b = BridgeTester()
-   let str = "hello world"
+fn testObjectiveCBridgeStubToNSString() {
+   immutable b = BridgeTester()
+   immutable str = "hello world"
    for _ in 0 ..< 1_000 {
      b.test(from: str)
    }
@@ -139,7 +140,7 @@ func testObjectiveCBridgeStubToNSString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubToNSString(_ n: Int) {
+public fn run_ObjectiveCBridgeStubToNSString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -150,8 +151,8 @@ public func run_ObjectiveCBridgeStubToNSString(_ n: Int) {
 }
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubFromArrayOfNSString() {
-   let b = BridgeTester()
+fn testObjectiveCBridgeStubFromArrayOfNSString() {
+   immutable b = BridgeTester()
    var arr : [String] = []
    var str = ""
    for _ in 0 ..< 100 {
@@ -163,7 +164,7 @@ func testObjectiveCBridgeStubFromArrayOfNSString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubFromArrayOfNSString(_ n: Int) {
+public fn run_ObjectiveCBridgeStubFromArrayOfNSString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -174,10 +175,10 @@ public func run_ObjectiveCBridgeStubFromArrayOfNSString(_ n: Int) {
 }
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubToArrayOfNSString() {
-   let b = BridgeTester()
-   let str = "hello world"
-   let arr = [str, str, str, str, str, str, str, str, str, str]
+fn testObjectiveCBridgeStubToArrayOfNSString() {
+   immutable b = BridgeTester()
+   immutable str = "hello world"
+   immutable arr = [str, str, str, str, str, str, str, str, str, str]
    for _ in 0 ..< 50 {
      b.test(fromArrayOf: arr)
    }
@@ -185,7 +186,7 @@ func testObjectiveCBridgeStubToArrayOfNSString() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubToArrayOfNSString(_ n: Int) {
+public fn run_ObjectiveCBridgeStubToArrayOfNSString(_ n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -197,19 +198,19 @@ public func run_ObjectiveCBridgeStubToArrayOfNSString(_ n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubFromNSDate() {
-  let b = BridgeTester()
+fn testObjectiveCBridgeStubFromNSDate() {
+  immutable b = BridgeTester()
 
   for _ in 0 ..< 10_000 {
-    let bridgedBegin = b.beginDate()
-    let bridgedEnd = b.endDate()
-    let _ = bridgedEnd.timeIntervalSince(bridgedBegin)
+    immutable bridgedBegin = b.beginDate()
+    immutable bridgedEnd = b.endDate()
+    immutable _ = bridgedEnd.timeIntervalSince(bridgedBegin)
   }
 }
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubFromNSDate(n: Int) {
+public fn run_ObjectiveCBridgeStubFromNSDate(n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -221,9 +222,9 @@ public func run_ObjectiveCBridgeStubFromNSDate(n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-public func testObjectiveCBridgeStubToNSDate() {
-  let b = BridgeTester()
-  let d = Date()
+public fn testObjectiveCBridgeStubToNSDate() {
+  immutable b = BridgeTester()
+  immutable d = Date()
   for _ in 0 ..< 1_000 {
     b.use(d)
   }
@@ -231,7 +232,7 @@ public func testObjectiveCBridgeStubToNSDate() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubToNSDate(n: Int) {
+public fn run_ObjectiveCBridgeStubToNSDate(n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -243,9 +244,9 @@ public func run_ObjectiveCBridgeStubToNSDate(n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubDateAccess() {
+fn testObjectiveCBridgeStubDateAccess() {
   var remainders = 0.0
-  let d = Date()
+  immutable d = Date()
   for _ in 0 ..< 100_000 {
     remainders += d.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 10)
   }
@@ -253,7 +254,7 @@ func testObjectiveCBridgeStubDateAccess() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubDateAccess(n: Int) {
+public fn run_ObjectiveCBridgeStubDateAccess(n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -265,7 +266,7 @@ public func run_ObjectiveCBridgeStubDateAccess(n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubDateMutation() {
+fn testObjectiveCBridgeStubDateMutation() {
   var d = Date()
   for _ in 0 ..< 100_000 {
       d += 1
@@ -274,7 +275,7 @@ func testObjectiveCBridgeStubDateMutation() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubDateMutation(n: Int) {
+public fn run_ObjectiveCBridgeStubDateMutation(n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -286,8 +287,8 @@ public func run_ObjectiveCBridgeStubDateMutation(n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubURLAppendPath() {
-  let startUrl = URL(string: "/")!
+fn testObjectiveCBridgeStubURLAppendPath() {
+  immutable startUrl = URL(string: "/")!
   for _ in 0 ..< 10 {
     var url = startUrl
     for _ in 0 ..< 10 {
@@ -298,7 +299,7 @@ func testObjectiveCBridgeStubURLAppendPath() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubURLAppendPath(n: Int) {
+public fn run_ObjectiveCBridgeStubURLAppendPath(n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -310,8 +311,8 @@ public func run_ObjectiveCBridgeStubURLAppendPath(n: Int) {
 
 #if _runtime(_ObjC)
 @inline(never)
-func testObjectiveCBridgeStubDataAppend() {
-  let proto = Data()
+fn testObjectiveCBridgeStubDataAppend() {
+  immutable proto = Data()
   var value: UInt8 = 1
   for _ in 0 ..< 50 {
     var d = proto
@@ -323,7 +324,7 @@ func testObjectiveCBridgeStubDataAppend() {
 #endif
 
 @inline(never)
-public func run_ObjectiveCBridgeStubDataAppend(n: Int) {
+public fn run_ObjectiveCBridgeStubDataAppend(n: Int) {
 #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -334,13 +335,13 @@ public func run_ObjectiveCBridgeStubDataAppend(n: Int) {
 }
 
 @inline(never)
-internal func getStringsToBridge() -> [String] {
-  let strings1 = ["hello", "the quick brown fox jumps over the lazy dog", "the quick brown fox jumps over the lazy dög"]
+internal fn getStringsToBridge() -> [String] {
+  immutable strings1 = ["hello", "the quick brown fox jumps over the lazy dog", "the quick brown fox jumps over the lazy dög"]
   return strings1 + strings1.map { $0 + $0 } //mix of literals and non-literals
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringIsEqual(n: Int) {
+public fn run_ObjectiveCBridgeStringIsEqual(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -351,7 +352,7 @@ public func run_ObjectiveCBridgeStringIsEqual(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringIsEqual2(n: Int) {
+public fn run_ObjectiveCBridgeStringIsEqual2(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -362,18 +363,18 @@ public func run_ObjectiveCBridgeStringIsEqual2(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringIsEqualAllSwift(n: Int) {
+public fn run_ObjectiveCBridgeStringIsEqualAllCodira(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
-      b.testIsEqualToStringAllSwift()
+      b.testIsEqualToStringAllCodira()
     }
   }
   #endif
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringCompare(n: Int) {
+public fn run_ObjectiveCBridgeStringCompare(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -384,7 +385,7 @@ public func run_ObjectiveCBridgeStringCompare(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringCompare2(n: Int) {
+public fn run_ObjectiveCBridgeStringCompare2(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -395,7 +396,7 @@ public func run_ObjectiveCBridgeStringCompare2(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringGetASCIIContents(n: Int) {
+public fn run_ObjectiveCBridgeStringGetASCIIContents(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -406,7 +407,7 @@ public func run_ObjectiveCBridgeStringGetASCIIContents(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringGetUTF8Contents(n: Int) {
+public fn run_ObjectiveCBridgeStringGetUTF8Contents(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -417,7 +418,7 @@ public func run_ObjectiveCBridgeStringGetUTF8Contents(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringRangeOfString(n: Int) {
+public fn run_ObjectiveCBridgeStringRangeOfString(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -428,20 +429,20 @@ public func run_ObjectiveCBridgeStringRangeOfString(n: Int) {
 }
 
 @inline(__always)
-func run_rangeOfStringSpecific(needle: String, haystack: String, n: Int) {
+fn run_rangeOfStringSpecific(needle: String, haystack: String, n: Int) {
 #if _runtime(_ObjC)
   b.testRangeOfStringSpecific(withNeedle: needle, haystack: haystack, n: n)
 #endif
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringRangeOfStringAllSwift(n: Int) {
+public fn run_ObjectiveCBridgeStringRangeOfStringAllCodira(n: Int) {
   run_rangeOfStringSpecific(needle: "y", haystack: "The quick brown fox jumps over the lazy dog", n: 100 * n)
 }
 
 var longNativeASCII: String! = nil
 var longNativeNonASCII: String! = nil
-public func setup_SpecificRangeOfStringBridging() {
+public fn setup_SpecificRangeOfStringBridging() {
   setup_StringBridgeBenchmark()
   longNativeASCII = Array(repeating: "The quick brown fox jump over the lazy dog", count: 1000).joined() + "s"
   longNativeNonASCII = "ü" + longNativeASCII + "ö"
@@ -449,27 +450,27 @@ public func setup_SpecificRangeOfStringBridging() {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringRangeOfStringAllSwiftLongHaystack(n: Int) {
+public fn run_ObjectiveCBridgeStringRangeOfStringAllCodiraLongHaystack(n: Int) {
   run_rangeOfStringSpecific(needle: "s", haystack: longNativeASCII, n: n)
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringRangeOfStringAllSwiftLongHaystackNonASCII(n: Int) {
+public fn run_ObjectiveCBridgeStringRangeOfStringAllCodiraLongHaystackNonASCII(n: Int) {
   run_rangeOfStringSpecific(needle: "s", haystack: longNativeNonASCII, n: n)
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringRangeOfStringAllSwiftNonASCII(n: Int) {
+public fn run_ObjectiveCBridgeStringRangeOfStringAllCodiraNonASCII(n: Int) {
   run_rangeOfStringSpecific(needle: "ü", haystack: "The quick brown fox jump over the lazy dogü", n: 100 * n)
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringRangeOfStringAllSwiftLongHaystackLongNeedle(n: Int) {
+public fn run_ObjectiveCBridgeStringRangeOfStringAllCodiraLongHaystackLongNeedle(n: Int) {
   run_rangeOfStringSpecific(needle: "The quick brown fox jump over the lazy dogs", haystack: longNativeASCII, n: n)
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringHash(n: Int) {
+public fn run_ObjectiveCBridgeStringHash(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -480,7 +481,7 @@ public func run_ObjectiveCBridgeStringHash(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringUTF8String(n: Int) {
+public fn run_ObjectiveCBridgeStringUTF8String(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -491,7 +492,7 @@ public func run_ObjectiveCBridgeStringUTF8String(n: Int) {
 }
 
 @inline(never)
-public func run_ObjectiveCBridgeStringCStringUsingEncoding(n: Int) {
+public fn run_ObjectiveCBridgeStringCStringUsingEncoding(n: Int) {
   #if _runtime(_ObjC)
   for _ in 0 ..< n {
     autoreleasepool {
@@ -502,7 +503,7 @@ public func run_ObjectiveCBridgeStringCStringUsingEncoding(n: Int) {
 }
 
 @inline(never)
-public func setup_StringBridgeBenchmark() {
+public fn setup_StringBridgeBenchmark() {
 #if _runtime(_ObjC)
   b = BridgeTester()
   b.setUpStringTests(getStringsToBridge())

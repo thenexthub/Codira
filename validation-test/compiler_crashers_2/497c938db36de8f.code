@@ -1,0 +1,10 @@
+// {"signature":"language::IsObjCRequest::evaluate(language::Evaluator&, language::ValueDecl*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+class a {
+  @objc var b : Int {
+    get throws {
+    }
+    set
+  }
+}

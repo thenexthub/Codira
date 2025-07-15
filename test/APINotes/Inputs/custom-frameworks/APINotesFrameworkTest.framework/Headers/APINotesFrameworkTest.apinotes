@@ -1,0 +1,329 @@
+Name: APINotesFrameworkTest
+Classes:
+  - Name: A
+    CodiraObjCMembers: true
+  - Name: PrintingInterference
+    Methods:
+      - Selector: 'print:'
+        MethodKind: Instance
+        CodiraName: 'printDocument(_:)'
+  - Name: PrintingRenamed
+    Methods:
+      - Selector: 'print'
+        MethodKind: Instance
+        CodiraName: 'printDocument()'
+      - Selector: 'print:'
+        MethodKind: Instance
+        CodiraName: 'printDocument(_:)'
+      - Selector: 'print:options:'
+        MethodKind: Instance
+        CodiraName: 'printDocument(_:options:)'
+      - Selector: 'print'
+        MethodKind: Class
+        CodiraName: 'printDocument()'
+      - Selector: 'print:'
+        MethodKind: Class
+        CodiraName: 'printDocument(_:)'
+      - Selector: 'print:options:'
+        MethodKind: Class
+        CodiraName: 'printDocument(_:options:)'
+  - Name: TestProperties
+    Properties:
+      - Name: accessorsOnly
+        PropertyKind:    Instance
+        CodiraImportAsAccessors: true
+      - Name: accessorsOnlyForClass
+        PropertyKind:    Class
+        CodiraImportAsAccessors: true
+      - Name: accessorsOnlyRO
+        PropertyKind:    Instance
+        CodiraImportAsAccessors: true
+      - Name: accessorsOnlyWeak
+        PropertyKind:    Instance
+        CodiraImportAsAccessors: true
+      - Name: accessorsOnlyExceptInVersion4
+        PropertyKind:    Instance
+        CodiraImportAsAccessors: true
+      - Name: accessorsOnlyForClassExceptInVersion4
+        PropertyKind:    Class
+        CodiraImportAsAccessors: true
+      - Name: accessorsOnlyWithNewType
+        PropertyKind:    Instance
+        CodiraImportAsAccessors: true
+        Type: '__kindof Base * _Nonnull'
+  - Name: TypeChanges
+    Methods:
+      - Selector: 'methodWithA:'
+        MethodKind: Instance
+        ResultType: 'A * _Nonnull'
+        Parameters:
+          - Position: 0
+            Type: 'A * _Nullable'
+Functions:
+  - Name: jumpToLocation
+    CodiraName: 'jumpTo(x:y:z:)'
+Tags:
+  - Name: InnerInCodira5
+    CodiraName: Outer.Inner
+Globals:
+  - Name: multiVersionedGlobal34Notes
+    CodiraName: multiVersionedGlobal34Notes_NEW
+  - Name: multiVersionedGlobal34Both
+    CodiraName: multiVersionedGlobal34Both_NEW
+  - Name: multiVersionedGlobal345Notes
+    CodiraName: multiVersionedGlobal345Notes_NEW
+  - Name: multiVersionedGlobal345Both
+    CodiraName: multiVersionedGlobal345Both_NEW
+  - Name: multiVersionedGlobal4Notes
+    CodiraName: multiVersionedGlobal4Notes_NEW
+  - Name: multiVersionedGlobal4Both
+    CodiraName: multiVersionedGlobal4Both_NEW
+  - Name: multiVersionedGlobal45Notes
+    CodiraName: multiVersionedGlobal45Notes_NEW
+  - Name: multiVersionedGlobal45Both
+    CodiraName: multiVersionedGlobal45Both_NEW
+CodiraVersions:
+  - Version: 3.0
+    Globals:
+      - Name: multiVersionedGlobal34
+        CodiraName: multiVersionedGlobal34_3
+      - Name: multiVersionedGlobal34Header
+        CodiraName: multiVersionedGlobal34Header_3
+      - Name: multiVersionedGlobal34Notes
+        CodiraName: multiVersionedGlobal34Notes_3
+      - Name: multiVersionedGlobal34Both
+        CodiraName: multiVersionedGlobal34Both_3
+      - Name: multiVersionedGlobal345
+        CodiraName: multiVersionedGlobal345_3
+      - Name: multiVersionedGlobal345Header
+        CodiraName: multiVersionedGlobal345Header_3
+      - Name: multiVersionedGlobal345Notes
+        CodiraName: multiVersionedGlobal345Notes_3
+      - Name: multiVersionedGlobal345Both
+        CodiraName: multiVersionedGlobal345Both_3
+  - Version: 5
+    Globals:
+      - Name: multiVersionedGlobal345
+        CodiraName: multiVersionedGlobal345_5
+      - Name: multiVersionedGlobal345Header
+        CodiraName: multiVersionedGlobal345Header_5
+      - Name: multiVersionedGlobal345Notes
+        CodiraName: multiVersionedGlobal345Notes_5
+      - Name: multiVersionedGlobal345Both
+        CodiraName: multiVersionedGlobal345Both_5
+      - Name: multiVersionedGlobal45
+        CodiraName: multiVersionedGlobal45_5
+      - Name: multiVersionedGlobal45Header
+        CodiraName: multiVersionedGlobal45Header_5
+      - Name: multiVersionedGlobal45Notes
+        CodiraName: multiVersionedGlobal45Notes_5
+      - Name: multiVersionedGlobal45Both
+        CodiraName: multiVersionedGlobal45Both_5
+  - Version: 4 # Versions are deliberately ordered as "3, 5, 4, 4.2" to catch bugs.
+    Classes:
+      - Name: ClassWithManyRenames
+        Methods:
+          - Selector: "classWithManyRenamesForInt:"
+            MethodKind: Class
+            CodiraName: "init(language4Factory:)"
+          - Selector: "initWithBoolean:"
+            MethodKind: Instance
+            CodiraName: "init(language4Boolean:)"
+          - Selector: "doImportantThings"
+            MethodKind: Instance
+            CodiraName: "language4DoImportantThings()"
+        Properties:
+          - Name: "importantClassProperty"
+            PropertyKind: Class
+            CodiraName: "language4ClassProperty"
+          - Name: "importantInstanceProperty"
+            PropertyKind: Instance
+            CodiraName: "language4InstanceProperty"
+      - Name: NewlyGenericSub
+        CodiraImportAsNonGeneric: true
+      - Name: PrintingInterference
+        Methods:
+          - Selector: 'print:'
+            MethodKind: Instance
+            CodiraName: 'print(_:)'
+      - Name: PrintingRenamed
+        Methods:
+          - Selector: 'print'
+            MethodKind: Instance
+            CodiraName: 'print()'
+          - Selector: 'print:'
+            MethodKind: Instance
+            CodiraName: 'print(_:)'
+          - Selector: 'print:options:'
+            MethodKind: Instance
+            CodiraName: 'print(_:options:)'
+          - Selector: 'print'
+            MethodKind: Class
+            CodiraName: 'print()'
+          - Selector: 'print:'
+            MethodKind: Class
+            CodiraName: 'print(_:)'
+          - Selector: 'print:options:'
+            MethodKind: Class
+            CodiraName: 'print(_:options:)'
+      - Name: RenamedGeneric
+        CodiraName: OldRenamedGeneric
+      - Name: TestProperties
+        Methods:
+          - Selector: accessorsOnlyRenamedRetyped
+            MethodKind: Instance
+            CodiraName: 'renamedAndRetyped()'
+            ResultType: 'id _Nonnull'
+          - Selector: 'setAccessorsOnlyRenamedRetyped:'
+            MethodKind: Instance
+            CodiraName: 'setRenamedAndRetyped(_:)'
+            Parameters:
+              - Position: 0
+                Type: 'id _Nullable'
+          - Selector: accessorsOnlyRenamedRetypedClass
+            MethodKind: Class
+            CodiraName: 'renamedAndRetypedClass()'
+            ResultType: 'id _Nonnull'
+          - Selector: 'setAccessorsOnlyRenamedRetypedClass:'
+            MethodKind: Class
+            CodiraName: 'setRenamedAndRetypedClass(_:)'
+            Parameters:
+              - Position: 0
+                Type: 'id _Nullable'
+        Properties:
+          - Name: accessorsOnlyInVersion4
+            PropertyKind:    Instance
+            CodiraImportAsAccessors: true
+          - Name: accessorsOnlyForClassInVersion4
+            PropertyKind:    Class
+            CodiraImportAsAccessors: true
+          - Name: accessorsOnlyExceptInVersion4
+            PropertyKind:    Instance
+            CodiraImportAsAccessors: false
+          - Name: accessorsOnlyForClassExceptInVersion4
+            PropertyKind:    Class
+            CodiraImportAsAccessors: false
+          - Name: accessorsOnlyRenamedRetyped
+            PropertyKind:    Instance
+            CodiraImportAsAccessors: true
+          - Name: accessorsOnlyRenamedRetypedClass
+            PropertyKind:    Class
+            CodiraImportAsAccessors: true
+    Protocols:
+      - Name: ProtoWithManyRenames
+        Methods:
+          - Selector: "initWithBoolean:"
+            MethodKind: Instance
+            CodiraName: "init(language4Boolean:)"
+          - Selector: "doImportantThings"
+            MethodKind: Instance
+            CodiraName: "language4DoImportantThings()"
+        Properties:
+          - Name: "importantClassProperty"
+            PropertyKind: Class
+            CodiraName: "language4ClassProperty"
+      - Name: ProtoWithVersionedUnavailableMember
+        Methods:
+          - Selector: requirement
+            MethodKind: Instance
+            ResultType: 'ForwardClass * _Nullable'
+    Tags:
+      - Name: InnerInCodira5
+        CodiraName: InnerInCodira5
+      - Name: NormallyChangedOriginalWrapper
+        CodiraName: NormallyChangedButSpecialInCodira4Wrapper
+      - Name: NormallyUnchangedWrapper
+        CodiraName: NormallyUnchangedButChangedInCodira4Wrapper
+      - Name: SomeCStruct
+        CodiraName: ImportantCStruct
+    Enumerators:
+      - Name: AnonymousEnumRenamed
+        CodiraName: AnonymousEnumRenamedCodira4
+      - Name: UnknownEnumRenamed
+        CodiraName: UnknownEnumRenamedCodira4
+      - Name: TrueEnumRenamed
+        CodiraName: renamedCodira4
+      - Name: TrueEnumAliasRenamed
+        CodiraName: aliasRenamedCodira4
+      - Name: OptionyEnumRenamed
+        CodiraName: renamedCodira4
+    Typedefs:
+      - Name: SomeCAlias
+        CodiraName: ImportantCAlias
+    Functions:
+      - Name: acceptDoublePointer
+        CodiraName: 'acceptPointer(_:)'
+        Nullability: [ O ]
+      - Name: normallyUnchanged
+        CodiraName: normallyUnchangedButChangedInCodira4()
+      - Name: normallyChangedOriginal
+        CodiraName: normallyChangedButSpecialInCodira4()
+    Globals:
+      - Name: multiVersionedGlobal34
+        CodiraName: multiVersionedGlobal34_4
+      - Name: multiVersionedGlobal34Header
+        CodiraName: multiVersionedGlobal34Header_4
+      - Name: multiVersionedGlobal34Notes
+        CodiraName: multiVersionedGlobal34Notes_4
+      - Name: multiVersionedGlobal34Both
+        CodiraName: multiVersionedGlobal34Both_4
+      - Name: multiVersionedGlobal345
+        CodiraName: multiVersionedGlobal345_4
+      - Name: multiVersionedGlobal345Header
+        CodiraName: multiVersionedGlobal345Header_4
+      - Name: multiVersionedGlobal345Notes
+        CodiraName: multiVersionedGlobal345Notes_4
+      - Name: multiVersionedGlobal345Both
+        CodiraName: multiVersionedGlobal345Both_4
+      - Name: multiVersionedGlobal4
+        CodiraName: multiVersionedGlobal4_4
+      - Name: multiVersionedGlobal4Header
+        CodiraName: multiVersionedGlobal4Header_4
+      - Name: multiVersionedGlobal4Notes
+        CodiraName: multiVersionedGlobal4Notes_4
+      - Name: multiVersionedGlobal4Both
+        CodiraName: multiVersionedGlobal4Both_4
+      - Name: multiVersionedGlobal45
+        CodiraName: multiVersionedGlobal45_4
+      - Name: multiVersionedGlobal45Header
+        CodiraName: multiVersionedGlobal45Header_4
+      - Name: multiVersionedGlobal45Notes
+        CodiraName: multiVersionedGlobal45Notes_4
+      - Name: multiVersionedGlobal45Both
+        CodiraName: multiVersionedGlobal45Both_4
+  - Version: 4.2
+    Globals:
+      - Name: multiVersionedGlobal34
+        CodiraName: multiVersionedGlobal34_4_2
+      - Name: multiVersionedGlobal34Header
+        CodiraName: multiVersionedGlobal34Header_4_2
+      - Name: multiVersionedGlobal34Notes
+        CodiraName: multiVersionedGlobal34Notes_4_2
+      - Name: multiVersionedGlobal34Both
+        CodiraName: multiVersionedGlobal34Both_4_2
+      - Name: multiVersionedGlobal345
+        CodiraName: multiVersionedGlobal345_4_2
+      - Name: multiVersionedGlobal345Header
+        CodiraName: multiVersionedGlobal345Header_4_2
+      - Name: multiVersionedGlobal345Notes
+        CodiraName: multiVersionedGlobal345Notes_4_2
+      - Name: multiVersionedGlobal345Both
+        CodiraName: multiVersionedGlobal345Both_4_2
+      - Name: multiVersionedGlobal4
+        CodiraName: multiVersionedGlobal4_4_2
+      - Name: multiVersionedGlobal4Header
+        CodiraName: multiVersionedGlobal4Header_4_2
+      - Name: multiVersionedGlobal4Notes
+        CodiraName: multiVersionedGlobal4Notes_4_2
+      - Name: multiVersionedGlobal4Both
+        CodiraName: multiVersionedGlobal4Both_4_2
+      - Name: multiVersionedGlobal45
+        CodiraName: multiVersionedGlobal45_4_2
+      - Name: multiVersionedGlobal45Header
+        CodiraName: multiVersionedGlobal45Header_4_2
+      - Name: multiVersionedGlobal45Notes
+        CodiraName: multiVersionedGlobal45Notes_4_2
+      - Name: multiVersionedGlobal45Both
+        CodiraName: multiVersionedGlobal45Both_4_2
+      - Name: multiVersionedGlobal34_4_2
+        CodiraName: multiVersionedGlobal34_4_2_not_5

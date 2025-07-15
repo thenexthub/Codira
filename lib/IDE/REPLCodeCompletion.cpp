@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This module provides completions to the immediate mode environment.
@@ -22,12 +23,12 @@
 #include "language/AST/DiagnosticSuppression.h"
 #include "language/AST/Module.h"
 #include "language/AST/SourceFile.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 
 using namespace language;
@@ -109,7 +110,7 @@ static std::string toInsertableString(CodeCompletionResult *Result) {
 }
 
 static void toDisplayString(CodeCompletionResult *Result,
-                            llvm::raw_ostream &OS) {
+                            toolchain::raw_ostream &OS) {
   std::string Str;
   for (auto C : Result->getCompletionString()->getChunks()) {
     if (C.getKind() ==
@@ -189,9 +190,9 @@ public:
     for (auto Result : SortedResults) {
       std::string InsertableString = toInsertableString(Result);
       if (StringRef(InsertableString).starts_with(Completions.Prefix)) {
-        llvm::SmallString<128> PrintedResult;
+        toolchain::SmallString<128> PrintedResult;
         {
-          llvm::raw_svector_ostream OS(PrintedResult);
+          toolchain::raw_svector_ostream OS(PrintedResult);
           toDisplayString(Result, OS);
         }
         Completions.CompletionStrings.push_back(

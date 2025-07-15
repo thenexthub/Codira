@@ -1,0 +1,41 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -I %S/Inputs/CHeaders/ExtraCModules -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4 -module-name CrossImportTestModule -enable-cross-import-overlays
+// Check the contents of the JSON output
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+// Ensure that round-trip serialization does not affect result
+// RUN: %target-language-frontend -scan-dependencies -module-load-mode prefer-interface -test-dependency-scan-cache-serialization -module-cache-path %t/clang-module-cache %s -o %t/deps.json -I %S/Inputs/CHeaders -I %S/Inputs/Codira -I %S/Inputs/CHeaders/ExtraCModules -import-objc-header %S/Inputs/CHeaders/Bridging.h -language-version 4 -module-name CrossImportTestModule -enable-cross-import-overlays
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+@_exported import CrossImportTestModule
+import EWrapper
+import SubEWrapper
+
+// CHECK:  "directDependencies": [
+// CHECK-DAG:   "language": "EWrapper"
+// CHECK-DAG:   "language": "F"
+// CHECK-DAG:   "language": "SubEWrapper"
+// CHECK-DAG:   "language": "Codira"
+// CHECK-DAG:   "language": "CodiraOnoneSupport"
+// CHECK-DAG:   "language": "_Concurrency"
+// CHECK-DAG:   "language": "_StringProcessing"
+// CHECK-DAG:   "language": "_cross_import_E"
+// CHECK-DAG:   "clang": "_CodiraConcurrencyShims"
+// CHECK-DAG:   "clang": "CrossImportTestModule"
+// Ensure a transitive dependency via "_cross_import_E" is not a direct dep of main module
+// CHECK-NOT:   "clang": "X"
+// CHECK: ],
+
+// CHECK: "language": {
+// CHECK-NEXT: "commandLine": [
+// CHECK-NEXT: "-disable-cross-import-overlay-search",
+// CHECK-NEXT: "-language-module-cross-import",
+// CHECK-NEXT: "E",
+// CHECK-NEXT: SubE.codeoverlay
+
+// Ensure a transitive dependency via "_cross_import_E" is recorded in the graph still
+// CHECK:   "clang": "X"

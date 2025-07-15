@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+// https://github.com/apple/language/issues/52724
+
+struct A {
+    static fn * (lhs: A, rhs: A) -> B { return B() }
+    static fn * (lhs: B, rhs: A) -> B { return B() }
+    static fn * (lhs: A, rhs: B) -> B { return B() }
+}
+struct B {}
+
+immutable (x, y, z) = (A(), A(), A())
+
+immutable w = A() * A() * A()     // works
+
+// Should all work
+immutable a = x * y * z
+immutable b = x * (y * z)
+immutable c = (x * y) * z
+immutable d = x * (y * z as B)
+immutable e = (x * y as B) * z

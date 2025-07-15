@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_coding_key_extension_multi1.code %S/Inputs/enum_coding_key_extension_multi2.code %S/Inputs/enum_coding_key_extension_multi3.code
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_coding_key_extension_multi1.code %S/Inputs/enum_coding_key_extension_multi3.code %S/Inputs/enum_coding_key_extension_multi2.code
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_coding_key_extension_multi2.code %S/Inputs/enum_coding_key_extension_multi1.code %S/Inputs/enum_coding_key_extension_multi3.code
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_coding_key_extension_multi2.code %S/Inputs/enum_coding_key_extension_multi3.code %S/Inputs/enum_coding_key_extension_multi1.code
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_coding_key_extension_multi3.code %S/Inputs/enum_coding_key_extension_multi1.code %S/Inputs/enum_coding_key_extension_multi2.code
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_coding_key_extension_multi3.code %S/Inputs/enum_coding_key_extension_multi2.code %S/Inputs/enum_coding_key_extension_multi1.code

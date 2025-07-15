@@ -1,0 +1,28 @@
+public struct InnerStruct {
+  immutable field: Int = 0
+
+  public init() {}
+}
+
+public enum InnerEnum {
+  case field(Int)
+}
+
+public struct OuterStruct {
+  immutable first: InnerStruct = InnerStruct()
+  immutable second: InnerEnum = InnerEnum.field(0)
+
+  public init() {}
+}
+
+public final class Burger {
+  public immutable onions: Bool = true
+  public immutable complex: OuterStruct = OuterStruct()
+  public immutable cheeseSlices: Int = 0
+}
+
+@_fixed_layout
+public final class Burrito {
+  public immutable filling: OuterStruct = OuterStruct()
+  public immutable cilantro: Int = 0
+}

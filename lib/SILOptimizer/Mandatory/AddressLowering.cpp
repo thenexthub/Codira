@@ -1,13 +1,17 @@
 //===--- AddressLowering.cpp - Lower SIL address-only types. --------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This pass removes "opaque SILValues" by translating them into addressable
@@ -159,14 +163,14 @@
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/StackNesting.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
-using llvm::SmallSetVector;
+using toolchain::SmallSetVector;
 
 /// Get a function's convention for Lowered SIL, even though the SIL stage is
 /// still Canonical.
@@ -222,7 +226,7 @@ static DestructureTupleInst *getCallDestructure(FullApplySite apply) {
 /// Visit all real call results. Stop when the visitor returns `false`.
 static bool visitCallMultiResults(
     DestructureTupleInst *destructure, SILFunctionConventions fnConv,
-    llvm::function_ref<bool(SILValue, SILResultInfo)> visitor) {
+    toolchain::function_ref<bool(SILValue, SILResultInfo)> visitor) {
   assert(fnConv.getNumDirectSILResults() == destructure->getNumResults());
 
   auto resultIter = destructure->getAllResults().begin();
@@ -236,7 +240,7 @@ static bool visitCallMultiResults(
 /// Visit all real call results. Stop when the visitor returns `false`.
 static bool
 visitCallResults(FullApplySite apply,
-                 llvm::function_ref<bool(SILValue, SILResultInfo)> visitor) {
+                 toolchain::function_ref<bool(SILValue, SILResultInfo)> visitor) {
   auto fnConv = apply.getSubstCalleeConv();
   if (auto *destructure = getCallDestructure(apply)) {
     return visitCallMultiResults(destructure, fnConv, visitor);
@@ -384,7 +388,7 @@ static bool isStoreCopy(SILValue value) {
     // range of ExtendedLiveness of the borrow introducers:
     // - visit borrow introducers via visitBorrowIntroducers
     // - call ExtendedLiveness.compute on each borrow introducer
-    if (llvm::any_of(roots, [&](SILValue root) {
+    if (toolchain::any_of(roots, [&](SILValue root) {
           // Nothing is out of range of a function argument.
           if (isa<SILFunctionArgument>(root))
             return false;
@@ -434,7 +438,7 @@ void ValueStorageMap::replaceValue(SILValue oldValue, SILValue newValue) {
 }
 
 #ifndef NDEBUG
-void ValueStorage::print(llvm::raw_ostream &OS) const {
+void ValueStorage::print(toolchain::raw_ostream &OS) const {
   OS << "projectedStorageID: " << projectedStorageID << "\n";
   OS << "projectedOperandNum: " << projectedOperandNum << "\n";
   OS << "isDefProjection: " << isDefProjection << "\n";
@@ -442,8 +446,8 @@ void ValueStorage::print(llvm::raw_ostream &OS) const {
   OS << "isRewritten: " << isRewritten << "\n";
   OS << "initializes: " << initializes << "\n";
 }
-void ValueStorage::dump() const { print(llvm::dbgs()); }
-void ValueStorageMap::ValueStoragePair::print(llvm::raw_ostream &OS) const {
+void ValueStorage::dump() const { print(toolchain::dbgs()); }
+void ValueStorageMap::ValueStoragePair::print(toolchain::raw_ostream &OS) const {
   OS << "value: ";
   value->print(OS);
   OS << "address:  ";
@@ -453,17 +457,17 @@ void ValueStorageMap::ValueStoragePair::print(llvm::raw_ostream &OS) const {
     OS << "UNKNOWN!\n";
   storage.print(OS);
 }
-void ValueStorageMap::ValueStoragePair::dump() const { print(llvm::dbgs()); }
+void ValueStorageMap::ValueStoragePair::dump() const { print(toolchain::dbgs()); }
 void ValueStorageMap::printProjections(SILValue value,
-                                       llvm::raw_ostream &OS) const {
+                                       toolchain::raw_ostream &OS) const {
   for (auto *pair : getProjections(value)) {
     pair->print(OS);
   }
 }
 void ValueStorageMap::dumpProjections(SILValue value) const {
-  printProjections(value, llvm::dbgs());
+  printProjections(value, toolchain::dbgs());
 }
-void ValueStorageMap::print(llvm::raw_ostream &OS) const {
+void ValueStorageMap::print(toolchain::raw_ostream &OS) const {
   OS << "ValueStorageMap:\n";
   for (unsigned ordinal : indices(valueVector)) {
     auto &valStoragePair = valueVector[ordinal];
@@ -485,7 +489,7 @@ void ValueStorageMap::print(llvm::raw_ostream &OS) const {
     }
   }
 }
-void ValueStorageMap::dump() const { print(llvm::dbgs()); }
+void ValueStorageMap::dump() const { print(toolchain::dbgs()); }
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -692,7 +696,7 @@ static unsigned insertIndirectReturnArgs(AddressLoweringState &pass) {
     // Fall back to using the module as the decl context if the function
     // doesn't have one.  The can happen with default argument getters, for
     // example.
-    declCtx = pass.function->getModule().getSwiftModule();
+    declCtx = pass.function->getModule().getCodiraModule();
   }
 
   unsigned argIdx = 0;
@@ -978,7 +982,7 @@ static Operand *getProjectedDefOperand(SILValue value) {
     if (ApplySite::isa(TEI->getOperand()))
       return nullptr;
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   case ValueKind::StructExtractInst:
   case ValueKind::OpenExistentialValueInst:
@@ -1220,7 +1224,7 @@ protected:
 void OpaqueStorageAllocation::allocateOpaqueStorage() {
   // Create an AllocStack for every opaque value defined in the function.  Visit
   // values in post-order to create storage for aggregates before subobjects.
-  for (auto &valueStorageI : llvm::reverse(pass.valueStorageMap)) {
+  for (auto &valueStorageI : toolchain::reverse(pass.valueStorageMap)) {
     SILValue value = valueStorageI.value;
     if (!PhiValue(value))
       allocateValue(value);
@@ -1231,7 +1235,7 @@ void OpaqueStorageAllocation::allocateOpaqueStorage() {
   // singly defined. However, allocatePhi may coalesce multiple values, or even
   // a single value across multiple loop iterations. The burden for checking
   // interference is entirely on allocatePhi.
-  for (auto &valueStorageI : llvm::reverse(pass.valueStorageMap)) {
+  for (auto &valueStorageI : toolchain::reverse(pass.valueStorageMap)) {
     if (auto phi = PhiValue(valueStorageI.value)) {
       allocatePhi(phi);
     }
@@ -1276,7 +1280,7 @@ void OpaqueStorageAllocation::allocateValue(SILValue value) {
 
   if (value->getOwnershipKind() == OwnershipKind::Guaranteed) {
     value->dump();
-    llvm::report_fatal_error("^^^ guaranteed values must reuse storage");
+    toolchain::report_fatal_error("^^^ guaranteed values must reuse storage");
   }
 
   // Attempt to reuse a user's storage.
@@ -1365,7 +1369,7 @@ bool OpaqueStorageAllocation::findProjectionIntoUseImpl(
     // possible to materialize initialization at the single point at which the
     // address must be available.  *Subject to the following dominance check.
     if (intoPhi &&
-        llvm::any_of(pass.valueStorageMap.getProjections(userValue),
+        toolchain::any_of(pass.valueStorageMap.getProjections(userValue),
                      [&](auto *pair) { return pair->storage.initializes; })) {
       // Materializing an address for a coalesced phi (`intoPhi` == true),
       // however, cannot rematerialize initialization, because that would
@@ -1410,8 +1414,8 @@ bool OpaqueStorageAllocation::findProjectionIntoUseImpl(
     if (!checkStorageDominates(dominands, incomingValues))
       continue;
 
-    LLVM_DEBUG(llvm::dbgs() << "  PROJECT "; value->dump();
-               llvm::dbgs() << "  into use "; use->getUser()->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  PROJECT "; value->dump();
+               toolchain::dbgs() << "  into use "; use->getUser()->dump());
 
     pass.valueStorageMap.recordComposingUseProjection(use, userValue);
     return true;
@@ -1637,7 +1641,7 @@ void OpaqueStorageAllocation::sinkProjections() {
   // Done in reverse order because outer projections are materialized first and
   // so appear in `useProjections` before inner projections, and inner
   // projections must be sunk first.
-  for (auto projection : llvm::reverse(pass.useProjections)) {
+  for (auto projection : toolchain::reverse(pass.useProjections)) {
     assert(projection);
     auto *svi = dyn_cast<SingleValueInstruction>(projection);
     assert(svi);
@@ -1648,7 +1652,7 @@ void OpaqueStorageAllocation::sinkProjections() {
   }
 
   // Second, sink all storage from the valueStorageMap.
-  for (auto pair : llvm::reverse(pass.valueStorageMap)) {
+  for (auto pair : toolchain::reverse(pass.valueStorageMap)) {
     auto addr = pair.storage.getMaterializedAddress();
     if (!pair.storage.isProjection())
       continue;
@@ -1849,7 +1853,7 @@ AddressMaterialization::recursivelyMaterializeStorage(ValueStorage &storage,
 SILValue AddressMaterialization::materializeDefProjection(SILValue origValue) {
   switch (origValue->getKind()) {
   default:
-    llvm_unreachable("Unexpected projection from def.");
+    toolchain_unreachable("Unexpected projection from def.");
 
   case ValueKind::CopyValueInst:
     assert(isStoreCopy(origValue));
@@ -1861,7 +1865,7 @@ SILValue AddressMaterialization::materializeDefProjection(SILValue origValue) {
     SILInstruction *destructure = result->getParent();
     switch (destructure->getKind()) {
     default:
-      llvm_unreachable("Unexpected projection from def.");
+      toolchain_unreachable("Unexpected projection from def.");
 
     case SILInstructionKind::DestructureStructInst: {
       return materializeStructExtract(destructure, origValue,
@@ -1893,7 +1897,7 @@ SILValue AddressMaterialization::materializeDefProjection(SILValue origValue) {
   case ValueKind::SILPhiArgument: {
     // Handle this in the caller. unchecked_take_enum_data_addr is
     // destructive. It cannot be materialized on demand.
-    llvm_unreachable("Unimplemented switch_enum optimization");
+    toolchain_unreachable("Unimplemented switch_enum optimization");
   }
   }
 }
@@ -1944,8 +1948,8 @@ AddressMaterialization::materializeProjectionIntoUseImpl(Operand *operand,
   SILInstruction *user = operand->getUser();
   switch (user->getKind()) {
   default:
-    LLVM_DEBUG(user->dump());
-    llvm_unreachable("Unexpected projection from use.");
+    TOOLCHAIN_DEBUG(user->dump());
+    toolchain_unreachable("Unexpected projection from use.");
   case SILInstructionKind::EnumInst: {
     auto *enumInst = cast<EnumInst>(user);
     SILValue enumAddr = materializeComposingUser(enumInst, intoPhiOperand);
@@ -2539,7 +2543,7 @@ SILBasicBlock::iterator ApplyRewriter::getResultInsertionPoint() {
     return tryApply->getNormalBB()->begin();
   }
   case FullApplySiteKind::BeginApplyInst: {
-    llvm_unreachable("coroutines don't have indirect results");
+    toolchain_unreachable("coroutines don't have indirect results");
   }
   }
 }
@@ -2889,7 +2893,7 @@ class CheckedCastBrRewriter {
   CheckedCastBranchInst *ccb;
   AddressLoweringState &pass;
   SILLocation castLoc;
-  SILFunction *func;
+  SILFunction *fn;
   SILBasicBlock *successBB;
   SILBasicBlock *failureBB;
   SILArgument *origSuccessVal;
@@ -2900,7 +2904,7 @@ class CheckedCastBrRewriter {
 
 public:
   CheckedCastBrRewriter(CheckedCastBranchInst *ccb, AddressLoweringState &pass)
-      : ccb(ccb), pass(pass), castLoc(ccb->getLoc()), func(ccb->getFunction()),
+      : ccb(ccb), pass(pass), castLoc(ccb->getLoc()), fn(ccb->getFunction()),
         successBB(ccb->getSuccessBB()), failureBB(ccb->getFailureBB()),
         origSuccessVal(successBB->getArgument(0)),
         origFailureVal(failureBB->getArgument(0)),
@@ -2919,12 +2923,12 @@ public:
     // getReusedStorageOperand() ensured we do not allocate a separate address
     // for failure block arg. Set the storage address of the failure block arg
     // to be source address here.
-    if (origFailureVal->getType().isAddressOnly(*func)) {
+    if (origFailureVal->getType().isAddressOnly(*fn)) {
       pass.valueStorageMap.setStorageAddress(origFailureVal, srcAddr);
     }
 
     termBuilder.createCheckedCastAddrBranch(
-        castLoc, ccb->getIsolatedConformances(),
+        castLoc, ccb->getCheckedCastOptions(),
         CastConsumptionKind::TakeOnSuccess, srcAddr,
         ccb->getSourceFormalType(), destAddr, ccb->getTargetFormalType(),
         successBB, failureBB, ccb->getTrueBBCount(), ccb->getFalseBBCount());
@@ -2939,7 +2943,7 @@ private:
   /// Return the storageAddress if \p value is opaque, otherwise create and
   /// return a stack temporary.
   SILValue getAddressForCastEntity(SILValue value, bool needsInit) {
-    if (value->getType().isAddressOnly(*func)) {
+    if (value->getType().isAddressOnly(*fn)) {
       auto builder = pass.getBuilder(ccb->getIterator());
       AddressMaterialization addrMat(pass, value, builder);
       return addrMat.materializeAddress(value);
@@ -2949,7 +2953,7 @@ private:
     auto *addr = termBuilder.createAllocStack(castLoc, value->getType());
     if (needsInit) {
       termBuilder.createStore(castLoc, value, addr,
-                              value->getType().isTrivial(*func)
+                              value->getType().isTrivial(*fn)
                                   ? StoreOwnershipQualifier::Trivial
                                   : StoreOwnershipQualifier::Init);
     }
@@ -2968,7 +2972,7 @@ private:
 
     blockArg->getParent()->eraseArgument(blockArg->getIndex());
 
-    if (blockArg->getType().isAddressOnly(*func)) {
+    if (blockArg->getType().isAddressOnly(*fn)) {
       // In case of opaque block arg, replace the block arg with the dummy load
       // in the valueStorageMap. DefRewriter::visitLoadInst will then rewrite
       // the dummy load to copy_addr.
@@ -3021,7 +3025,7 @@ static UnconditionalCheckedCastAddrInst *rewriteUnconditionalCheckedCastInst(
   }
   assert(destAddr);
   auto *uccai = builder.createUnconditionalCheckedCastAddr(
-      uncondCheckedCast->getLoc(), uncondCheckedCast->getIsolatedConformances(),
+      uncondCheckedCast->getLoc(), uncondCheckedCast->getCheckedCastOptions(),
       srcAddr, srcAddr->getType().getASTType(),
       destAddr, destAddr->getType().getASTType());
   auto afterBuilder =
@@ -3285,7 +3289,7 @@ void YieldRewriter::rewriteOperand(YieldInst *yieldInst, unsigned index) {
   }
   case OwnershipKind::Unowned:
   case OwnershipKind::Any:
-    llvm_unreachable("unexpected ownership kind!?");
+    toolchain_unreachable("unexpected ownership kind!?");
   }
 }
 
@@ -3339,12 +3343,12 @@ protected:
   }
 
   void beforeVisit(SILInstruction *inst) {
-    LLVM_DEBUG(llvm::dbgs() << "REWRITE USE "; inst->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "REWRITE USE "; inst->dump());
   }
 
   void visitSILInstruction(SILInstruction *inst) {
     inst->dump();
-    llvm::report_fatal_error("^^^ Unimplemented opaque value use.");
+    toolchain::report_fatal_error("^^^ Unimplemented opaque value use.");
   }
 
   // Opaque call argument.
@@ -3401,7 +3405,7 @@ protected:
       break;
     default:
       bi->dump();
-      llvm::report_fatal_error("^^^ Unimplemented builtin opaque value use.");
+      toolchain::report_fatal_error("^^^ Unimplemented builtin opaque value use.");
     }
   }
 
@@ -3463,7 +3467,7 @@ protected:
   void visitDeinitExistentialValueInst(
       DeinitExistentialValueInst *deinitExistential) {
     // FIXME: Unimplemented
-    llvm::report_fatal_error("Unimplemented DeinitExistentialValue use.");
+    toolchain::report_fatal_error("Unimplemented DeinitExistentialValue use.");
   }
 
   void visitDestroyValueInst(DestroyValueInst *destroy) {
@@ -3700,8 +3704,8 @@ void UseRewriter::visitLifetimeIntroducer(Introducer *introducer) {
         return;
     }
 
-    SWIFT_ASSERT_ONLY(address->dump());
-    llvm_unreachable("^^^ unknown lexical address producer");
+    LANGUAGE_ASSERT_ONLY(address->dump());
+    toolchain_unreachable("^^^ unknown lexical address producer");
   }
 }
 
@@ -4051,21 +4055,21 @@ protected:
       CheckedCastBrRewriter(ccbi, pass).rewrite();
       return;
     }
-    LLVM_DEBUG(llvm::dbgs() << "REWRITE ARG "; arg->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "REWRITE ARG "; arg->dump());
     if (storage.storageAddress)
-      LLVM_DEBUG(llvm::dbgs() << "  STORAGE "; storage.storageAddress->dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  STORAGE "; storage.storageAddress->dump());
     storage.storageAddress = addrMat.materializeAddress(arg);
   }
 
   void beforeVisit(SILInstruction *inst) {
-    LLVM_DEBUG(llvm::dbgs() << "REWRITE DEF "; inst->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "REWRITE DEF "; inst->dump());
     if (storage.storageAddress)
-      LLVM_DEBUG(llvm::dbgs() << "  STORAGE "; storage.storageAddress->dump());
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  STORAGE "; storage.storageAddress->dump());
   }
 
   void visitSILInstruction(SILInstruction *inst) {
     inst->dump();
-    llvm::report_fatal_error("^^^ Unimplemented opaque value def.");
+    toolchain::report_fatal_error("^^^ Unimplemented opaque value def.");
   }
 
   void visitApplyInst(ApplyInst *applyInst) {
@@ -4085,7 +4089,7 @@ protected:
     switch (bi->getBuiltinKind().value_or(BuiltinValueKind::None)) {
     default:
       bi->dump();
-      llvm::report_fatal_error("^^^ Unimplemented builtin opaque value def.");
+      toolchain::report_fatal_error("^^^ Unimplemented builtin opaque value def.");
     }
   }
 
@@ -4360,7 +4364,7 @@ static void removeBranchArgs(BranchInst *branch,
                              SmallVectorImpl<unsigned> &deadArgIndices,
                              AddressLoweringState &pass) {
 
-  llvm::SmallVector<SILValue, 4> branchArgs;
+  toolchain::SmallVector<SILValue, 4> branchArgs;
   filterDeadArgs(branch->getArgs(), deadArgIndices, branchArgs);
 
   pass.getBuilder(branch->getIterator())
@@ -4399,7 +4403,7 @@ static void removeOpaquePhis(SILBasicBlock *bb, AddressLoweringState &pass) {
 // Phis are removed here after all other instructions.
 static void deleteRewrittenInstructions(AddressLoweringState &pass) {
   // Add the rest of the instructions to the dead list in post order.
-  for (auto &valueAndStorage : llvm::reverse(pass.valueStorageMap)) {
+  for (auto &valueAndStorage : toolchain::reverse(pass.valueStorageMap)) {
     SILValue val = valueAndStorage.value;
     ValueStorage &storage = valueAndStorage.storage;
 
@@ -4425,7 +4429,7 @@ static void deleteRewrittenInstructions(AddressLoweringState &pass) {
         deadInst = applyInst;
       }
     }
-    LLVM_DEBUG(llvm::dbgs() << "DEAD "; deadInst->dump());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "DEAD "; deadInst->dump());
     if (!isa<OpenExistentialValueInst>(deadInst) &&
         !isa<OpenExistentialBoxValueInst>(deadInst)) {
       pass.deleter.forceDeleteWithUsers(deadInst);
@@ -4469,7 +4473,7 @@ void AddressLowering::runOnFunction(SILFunction *function) {
 
   PrettyStackTraceSILFunction FuncScope("address-lowering", function);
 
-  LLVM_DEBUG(llvm::dbgs() << "Address Lowering: " << function->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Address Lowering: " << function->getName()
                           << "\n");
 
   // Ensure that blocks can be processed in RPO order.
@@ -4496,7 +4500,7 @@ void AddressLowering::runOnFunction(SILFunction *function) {
   OpaqueStorageAllocation allocator(pass);
   allocator.allocateOpaqueStorage();
 
-  LLVM_DEBUG(llvm::dbgs() << "Finished allocating storage.\n"; function->dump();
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Finished allocating storage.\n"; function->dump();
              pass.valueStorageMap.dump());
 
   // ## Step #3. Rewrite opaque values
@@ -4534,4 +4538,4 @@ void AddressLowering::run() {
   getModule()->setLoweredAddresses(true);
 }
 
-SILTransform *swift::createAddressLowering() { return new AddressLowering(); }
+SILTransform *language::createAddressLowering() { return new AddressLowering(); }

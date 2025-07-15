@@ -5,14 +5,14 @@ Introduction
 ============
 
 This document serves to describe the parseable output format provided by the
-Swift compiler driver with the "-parseable-output" flag. This output format is
+Codira compiler driver with the "-parseable-output" flag. This output format is
 intended to be parsed by other programs; one such use case is to allow an IDE to
 construct a detailed log based on the commands the driver issued.
 
 Message Format
 ==============
 
-The parseable output provided by the Swift driver is provided as messages
+The parseable output provided by the Codira driver is provided as messages
 encoded in JSON objects. All messages are structured like this::
 
 ```
@@ -40,7 +40,7 @@ when a job crashes with the file being compiled during that event. Real PIDs are
 always positive numbers, in keeping with POSIX semantics and the unsigned
 Process ID type on Windows.
 
-In more recent versions of this format, the Swift driver combines multiple jobs
+In more recent versions of this format, the Codira driver combines multiple jobs
 together into batches, running each batch in a single subprocess. In this mode,
 the driver writes messages describing each job as before, but assigns to each a
 so-called "quasi-PID" for the "pid" field, which does not correspond to an
@@ -86,23 +86,23 @@ of "process.real_pid".
   "process": {
     "real_pid": 12345
   },
-  "inputs": ["/src/foo.swift"],
+  "inputs": ["/src/foo.code"],
   "outputs": [
      {
        "type": "object",
        "path": "/build/foo.o"
      },
      {
-       "type": "swiftmodule",
-       "path": "/build/foo.swiftmodule"
+       "type": "languagemodule",
+       "path": "/build/foo.codemodule"
      },
      {
        "type": "diagnostics",
        "path": "/build/foo.dia"
      },
   ],
-  "command_executable": "swift",
-  "command_arguments" : ["-frontend", "-c", "-primary-file", "/src/foo.swift", "/src/bar.swift", "-emit-module-path", "/build/foo.swiftmodule", "-emit-diagnostics-path", "/build/foo.dia"]
+  "command_executable": "language",
+  "command_arguments" : ["-frontend", "-c", "-primary-file", "/src/foo.code", "/src/bar.code", "-emit-module-path", "/build/foo.codemodule", "-emit-diagnostics-path", "/build/foo.dia"]
 }
 ```
 
@@ -180,23 +180,23 @@ message, with the exception that it does not include the "pid" key.
 {
  "kind": "skipped",
  "name": "compile",
- "inputs": ["/src/foo.swift"],
+ "inputs": ["/src/foo.code"],
  "outputs": [
     {
       "type": "object",
       "path": "/build/foo.o"
     },
     {
-      "type": "swiftmodule",
-      "path": "/build/foo.swiftmodule"
+      "type": "languagemodule",
+      "path": "/build/foo.codemodule"
     },
     {
       "type": "diagnostics",
       "path": "/build/foo.dia"
     },
  ],
- "command_executable": "swift",
- "command_arguments": ["-frontend", "-c", "-primary-file", "/src/foo.swift", "/src/bar.swift", "-emit-module-path", "/build/foo.swiftmodule", "-emit-diagnostics-path", "/build/foo.dia"]
+ "command_executable": "language",
+ "command_arguments": ["-frontend", "-c", "-primary-file", "/src/foo.code", "/src/bar.code", "-emit-module-path", "/build/foo.codemodule", "-emit-diagnostics-path", "/build/foo.dia"]
 }
 ```
 
@@ -211,9 +211,9 @@ Some valid values are:
    - link
    - generate-dsym
 
-A "compile" message represents a regular Swift frontend command.
-A "merge-module" message represents an invocation of the Swift frontend which is
-used to merge partial swiftmodule files into a complete swiftmodule. A "link"
+A "compile" message represents a regular Codira frontend command.
+A "merge-module" message represents an invocation of the Codira frontend which is
+used to merge partial languagemodule files into a complete languagemodule. A "link"
 message indicates that the driver is invoking the linker to produce an
 executable or a library. A "generate-dsym" message indicates that the driver is
 invoking dsymutil to generate a dSYM.

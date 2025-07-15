@@ -1,0 +1,18 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Extern -enable-experimental-feature Embedded -wmo) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx || OS=linux-gnu
+// REQUIRES: language_feature_Embedded
+// REQUIRES: language_feature_Extern
+
+@_extern(c)
+fn puts(_ string: UnsafePointer<CChar>?) -> CInt
+
+fn foo(_ string: UnsafePointer<CChar>?) {
+  puts(string)
+}
+
+foo("hello")
+// CHECK: hello

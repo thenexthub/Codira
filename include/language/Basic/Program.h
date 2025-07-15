@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PROGRAM_H
-#define SWIFT_BASIC_PROGRAM_H
+#ifndef LANGUAGE_BASIC_PROGRAM_H
+#define LANGUAGE_BASIC_PROGRAM_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/ErrorOr.h"
-#include "llvm/Support/Program.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/ErrorOr.h"
+#include "toolchain/Support/Program.h"
 #include <optional>
 
 namespace language {
@@ -43,11 +44,11 @@ int ExecuteInPlace(const char *Program, const char **args,
                    const char **env = nullptr);
 
 struct ChildProcessInfo {
-  llvm::sys::ProcessInfo ProcessInfo;
+  toolchain::sys::ProcessInfo ProcessInfo;
   int Write;
   int Read;
 
-  ChildProcessInfo(llvm::sys::ProcessInfo ProcessInfo, int Write, int Read)
+  ChildProcessInfo(toolchain::sys::ProcessInfo ProcessInfo, int Write, int Read)
       : ProcessInfo(ProcessInfo), Write(Write), Read(Read) {}
 };
 
@@ -61,10 +62,10 @@ struct ChildProcessInfo {
 /// element should be the name of the program.
 /// \param env An optional array of 'key=value 'strings to use for the program's
 /// environment.
-llvm::ErrorOr<swift::ChildProcessInfo> ExecuteWithPipe(
-    llvm::StringRef program, llvm::ArrayRef<llvm::StringRef> args,
-    std::optional<llvm::ArrayRef<llvm::StringRef>> env = std::nullopt);
+toolchain::ErrorOr<language::ChildProcessInfo> ExecuteWithPipe(
+    toolchain::StringRef program, toolchain::ArrayRef<toolchain::StringRef> args,
+    std::optional<toolchain::ArrayRef<toolchain::StringRef>> env = std::nullopt);
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_PROGRAM_H
+#endif // LANGUAGE_BASIC_PROGRAM_H

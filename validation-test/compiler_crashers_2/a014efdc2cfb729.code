@@ -1,0 +1,4 @@
+// {"signature":"language::getDistributedActorSystemSerializationType(language::NominalTypeDecl*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Distributed typealias a = LocalTestingDistributedActorSystem protocol a{distributed actor b:a

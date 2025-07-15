@@ -33,7 +33,7 @@
 #include <cwchar>
 #include <time.h>
 
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 /*
  * Functions for diff, match and patch.
@@ -145,7 +145,7 @@ class diff_match_patch {
         case EQUAL:
           return traits::cs(L"EQUAL");
       }
-      llvm_unreachable("Invalid operation.");
+      toolchain_unreachable("Invalid operation.");
     }
   };
 
@@ -1269,7 +1269,7 @@ class diff_match_patch {
                 if (cur_diff != diffs.begin()) {
                   prev_diff = cur_diff;
                   if ((*--prev_diff).operation != EQUAL) {
-                    llvm_unreachable("Previous diff should have been an equality.");
+                    toolchain_unreachable("Previous diff should have been an equality.");
                   }
                   (*prev_diff).text += text_insert.substr(0, commonlength);
                 } else {
@@ -1577,7 +1577,7 @@ class diff_match_patch {
           int n;
           n = to_int(param);
           if (n < 0) {
-            llvm_unreachable("Negative number in diff_fromDelta: " + param);
+            toolchain_unreachable("Negative number in diff_fromDelta: " + param);
           }
           string_t text;
           text = safeMid(text1, pointer, n);
@@ -1590,11 +1590,11 @@ class diff_match_patch {
           break;
         }
         default:
-          llvm_unreachable(traits::cs(L"Invalid diff operation in diff_fromDelta: " + *token));
+          toolchain_unreachable(traits::cs(L"Invalid diff operation in diff_fromDelta: " + *token));
       }
     }
     if (pointer != text1.length()) {
-      llvm_unreachable(traits::cs(L"Delta length (") + to_string(pointer)
+      toolchain_unreachable(traits::cs(L"Delta length (") + to_string(pointer)
                      + traits::cs(L") smaller than source text length (")
                      + to_string(text1.length()) + traits::from_wchar(L')'));
     }
@@ -1643,7 +1643,7 @@ class diff_match_patch {
  protected:
   int match_bitap(const string_t &text, const string_t &pattern, int loc) const {
     if (!(Match_MaxBits == 0 || (int)pattern.length() <= Match_MaxBits)) {
-      llvm_unreachable("Pattern too long for this application.");
+      toolchain_unreachable("Pattern too long for this application.");
     }
 
     // Initialise the alphabet.
@@ -2282,7 +2282,7 @@ class diff_match_patch {
               if (l == 0 && traits::to_wchar(*t++) == L' ' && traits::to_wchar(*t++) == L'@' && traits::to_wchar(*t) == L'@') break; // Success
             }
           }
-          llvm_unreachable(traits::cs(L"Invalid patch string: ") + string_t(text, text_len));
+          toolchain_unreachable(traits::cs(L"Invalid patch string: ") + string_t(text, text_len));
         } while (false);
 
         Patch patch;
@@ -2332,7 +2332,7 @@ class diff_match_patch {
               break;
             default:
               // WTF?
-              llvm_unreachable(traits::cs(L"Invalid patch mode '") + (sign + (traits::cs(L"' in: ") + line)));
+              toolchain_unreachable(traits::cs(L"Invalid patch mode '") + (sign + (traits::cs(L"' in: ") + line)));
           }
           break;
         }
@@ -2469,7 +2469,7 @@ class diff_match_patch {
       case L'E': case L'e': return 0xE;
       case L'F': case L'f': return 0xF;
     }
-    llvm_unreachable(string_t(traits::cs(L"Invalid character: ")) + c);
+    toolchain_unreachable(string_t(traits::cs(L"Invalid character: ")) + c);
   }
 
   static void percent_decode(string_t& str) {

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements support code for ClusteredBitVector.
@@ -19,16 +20,16 @@
 
 #include "language/Basic/ClusteredBitVector.h"
 
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
 void ClusteredBitVector::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
 /// Pretty-print the vector.
-void ClusteredBitVector::print(llvm::raw_ostream &out) const {
+void ClusteredBitVector::print(toolchain::raw_ostream &out) const {
   // Print in 8 clusters of 8 bits per row.
   if (!Bits) {
     return;

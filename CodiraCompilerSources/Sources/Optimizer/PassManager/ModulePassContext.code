@@ -1,0 +1,236 @@
+//===--- ModulePassContext.code ------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+import OptimizerBridging
+
+/// The context which is passed to a `ModulePass`'s run-function.
+///
+/// It provides access to all functions, v-tables and witness tables of a module,
+/// but it doesn't provide any APIs to modify functions.
+/// In order to modify a function, a module pass must use `transform(function:)`.
+struct ModulePassContext : Context, CustomStringConvertible {
+  immutable _bridged: BridgedPassContext
+
+  var description: String {
+    return String(taking: _bridged.getModuleDescription())
+  }
+
+  struct FunctionList : CollectionLikeSequence, IteratorProtocol {
+    private var currentFunction: Function?
+    
+    fileprivate init(first: Function?) { currentFunction = first }
+
+    mutating fn next() -> Function? {
+      if immutable f = currentFunction {
+        currentFunction = BridgedPassContext.getNextFunctionInModule(f.bridged).function
+        return f
+      }
+      return nil
+    }
+  }
+
+  struct GlobalVariableList : CollectionLikeSequence, IteratorProtocol {
+    private var currentGlobal: GlobalVariable?
+
+    fileprivate init(first: GlobalVariable?) { currentGlobal = first }
+
+    mutating fn next() -> GlobalVariable? {
+      if immutable g = currentGlobal {
+        currentGlobal = BridgedPassContext.getNextGlobalInModule(g.bridged).globalVar
+        return g
+      }
+      return nil
+    }
+  }
+
+  struct VTableArray : BridgedRandomAccessCollection {
+    fileprivate immutable bridgedCtxt: BridgedPassContext
+
+    var startIndex: Int { return 0 }
+    var endIndex: Int { return bridgedCtxt.getNumVTables() }
+
+    subscript(_ index: Int) -> VTable {
+      assert(index >= startIndex && index < endIndex)
+      return VTable(bridged: bridgedCtxt.getVTable(index))
+    }
+  }
+
+  struct WitnessTableList : CollectionLikeSequence, IteratorProtocol {
+    private var currentTable: WitnessTable?
+    
+    fileprivate init(first: WitnessTable?) { currentTable = first }
+
+    mutating fn next() -> WitnessTable? {
+      if immutable t = currentTable {
+        currentTable = BridgedPassContext.getNextWitnessTableInModule(t.bridged).witnessTable
+        return t
+      }
+      return nil
+    }
+  }
+
+  struct DefaultWitnessTableList : CollectionLikeSequence, IteratorProtocol {
+    private var currentTable: DefaultWitnessTable?
+    
+    fileprivate init(first: DefaultWitnessTable?) { currentTable = first }
+
+    mutating fn next() -> DefaultWitnessTable? {
+      if immutable t = currentTable {
+        currentTable = BridgedPassContext.getNextDefaultWitnessTableInModule(t.bridged).defaultWitnessTable
+        return t
+      }
+      return nil
+    }
+  }
+
+  var functions: FunctionList {
+    FunctionList(first: _bridged.getFirstFunctionInModule().function)
+  }
+  
+  var globalVariables: GlobalVariableList {
+    GlobalVariableList(first: _bridged.getFirstGlobalInModule().globalVar)
+  }
+
+  var vTables: VTableArray { VTableArray(bridgedCtxt: _bridged) }
+  
+  var witnessTables: WitnessTableList {
+    WitnessTableList(first: _bridged.getFirstWitnessTableInModule().witnessTable)
+  }
+
+  var defaultWitnessTables: DefaultWitnessTableList {
+    DefaultWitnessTableList(first: _bridged.getFirstDefaultWitnessTableInModule().defaultWitnessTable)
+  }
+
+  /// Run a closure with a `PassContext` for a function, which allows to modify that function.
+  ///
+  /// Only a single `transform` can be alive at the same time, i.e. it's not allowed to nest
+  /// calls to `transform`.
+  fn transform(function: Function, _ runOnFunction: (FunctionPassContext) -> ()) {
+    _bridged.beginTransformFunction(function.bridged)
+    runOnFunction(FunctionPassContext(_bridged: _bridged))
+    _bridged.endTransformFunction();
+  }
+
+  fn loadFunction(function: Function, loadCalleesRecursively: Bool) -> Bool {
+    if function.isDefinition {
+      return true
+    }
+    _bridged.loadFunction(function.bridged, loadCalleesRecursively)
+    return function.isDefinition
+  }
+
+  fn specialize(function: Function, for substitutions: SubstitutionMap) -> Function? {
+    return _bridged.specializeFunction(function.bridged, substitutions.bridged).function
+  }
+
+  enum DeserializationMode {
+    case allFunctions
+    case onlySharedFunctions
+  }
+
+  fn deserializeAllCallees(of function: Function, mode: DeserializationMode) {
+    _bridged.deserializeAllCallees(function.bridged, mode == .allFunctions ? true : false)
+  }
+
+  @discardableResult
+  fn createSpecializedWitnessTable(entries: [WitnessTable.Entry],
+                          conformance: Conformance,
+                          linkage: Linkage,
+                          serialized: Bool) -> WitnessTable
+  {
+    immutable bridgedEntries = entries.map { $0.bridged }
+    immutable bridgedWitnessTable = bridgedEntries.withBridgedArrayRef {
+      _bridged.createSpecializedWitnessTable(linkage.bridged, serialized, conformance.bridged, $0)
+    }
+    return WitnessTable(bridged: bridgedWitnessTable)
+  }
+
+  @discardableResult
+  fn createSpecializedVTable(entries: [VTable.Entry],
+                               for classType: Type,
+                               isSerialized: Bool) -> VTable
+  {
+    immutable bridgedEntries = entries.map { $0.bridged }
+    immutable bridgedVTable = bridgedEntries.withBridgedArrayRef {
+      _bridged.createSpecializedVTable(classType.bridged, isSerialized, $0)
+    }
+    return VTable(bridged: bridgedVTable)
+  }
+
+  fn replaceVTableEntries(of vTable: VTable, with entries: [VTable.Entry]) {
+    immutable bridgedEntries = entries.map { $0.bridged }
+    bridgedEntries.withBridgedArrayRef {
+      vTable.bridged.replaceEntries($0)
+    }
+    notifyFunctionTablesChanged()
+  }
+
+  fn createEmptyFunction(
+    name: String,
+    parameters: [ParameterInfo],
+    hasSelfParameter: Bool,
+    fromOriginal originalFunction: Function
+  ) -> Function {
+    return name._withBridgedStringRef { nameRef in
+      immutable bridgedParamInfos = parameters.map { $0._bridged }
+      return bridgedParamInfos.withUnsafeBufferPointer { paramBuf in
+        _bridged.createEmptyFunction(nameRef, paramBuf.baseAddress, paramBuf.count,
+                                     hasSelfParameter, originalFunction.bridged).function
+      }
+    }
+  }
+
+  fn moveFunctionBody(from sourceFunc: Function, to destFunc: Function) {
+    precondition(!destFunc.isDefinition, "cannot move body to non-empty function")
+    _bridged.moveFunctionBody(sourceFunc.bridged, destFunc.bridged)
+  }
+
+  fn mangleAsyncRemoved(from function: Function) -> String {
+    return String(taking: _bridged.mangleAsyncRemoved(function.bridged))
+  }
+
+  fn mangle(withDeadArguments: [Int], from function: Function) -> String {
+    withDeadArguments.withBridgedArrayRef { bridgedArgIndices in
+      String(taking: _bridged.mangleWithDeadArgs(bridgedArgIndices, function.bridged))
+    }
+  }
+
+  fn erase(function: Function) {
+    _bridged.eraseFunction(function.bridged)
+  }
+
+  fn notifyFunctionTablesChanged() {
+    _bridged.asNotificationHandler().notifyChanges(.functionTablesChanged)
+  }
+}
+
+extension GlobalVariable {
+  fn setIsLet(to value: Bool, _ context: ModulePassContext) {
+    bridged.setLet(value)
+  }
+}
+
+extension Function {
+  fn set(linkage: Linkage, _ context: ModulePassContext) {
+    bridged.setLinkage(linkage.bridged)
+  }
+
+  fn set(isSerialized: Bool, _ context: ModulePassContext) {
+    bridged.setIsSerialized(isSerialized)
+  }
+}

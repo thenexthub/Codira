@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SymbolInfo.h"
@@ -24,7 +25,7 @@
 
 #pragma comment(lib, "DbgHelp.Lib")
 
-#elif SWIFT_STDLIB_HAS_DLADDR
+#elif LANGUAGE_STDLIB_HAS_DLADDR
 #include <dlfcn.h>
 #endif
 
@@ -37,7 +38,7 @@ using namespace language;
 const char *SymbolInfo::getFilename() const {
 #if defined(_WIN32) && !defined(__CYGWIN__)
   return _moduleFileName;
-#elif SWIFT_STDLIB_HAS_DLADDR
+#elif LANGUAGE_STDLIB_HAS_DLADDR
   return _info.dli_fname;
 #else
   return nullptr;
@@ -47,7 +48,7 @@ const char *SymbolInfo::getFilename() const {
 const void *SymbolInfo::getBaseAddress() const {
 #if defined(_WIN32) && !defined(__CYGWIN__)
   return _moduleBaseAddress;
-#elif SWIFT_STDLIB_HAS_DLADDR
+#elif LANGUAGE_STDLIB_HAS_DLADDR
   return _info.dli_fbase;
 #else
   return nullptr;
@@ -57,7 +58,7 @@ const void *SymbolInfo::getBaseAddress() const {
 const char *SymbolInfo::getSymbolName() const {
 #if defined(_WIN32) && !defined(__CYGWIN__)
   return _symbolName;
-#elif SWIFT_STDLIB_HAS_DLADDR
+#elif LANGUAGE_STDLIB_HAS_DLADDR
   return _info.dli_sname;
 #else
   return nullptr;
@@ -67,7 +68,7 @@ const char *SymbolInfo::getSymbolName() const {
 const void *SymbolInfo::getSymbolAddress() const {
 #if defined(_WIN32) && !defined(__CYGWIN__)
   return _symbolAddress;
-#elif SWIFT_STDLIB_HAS_DLADDR
+#elif LANGUAGE_STDLIB_HAS_DLADDR
   return _info.dli_saddr;
 #else
   return nullptr;
@@ -124,7 +125,7 @@ static Win32ModuleInfo moduleInfoFromAddress(const void *address) {
       return { ::_strdup("<unknown>"), mi.lpBaseOfDll };
     }
 
-    const char *result = _swift_win32_copyUTF8FromWide(pwszFileName);
+    const char *result = _language_win32_copyUTF8FromWide(pwszFileName);
 
     if (pwszFileName != wszBuffer)
       ::free((void *)pwszFileName);
@@ -150,7 +151,7 @@ std::optional<SymbolInfo> SymbolInfo::lookup(const void *address) {
   package.si.SizeOfStruct = sizeof(SYMBOL_INFO);
   package.si.MaxNameLen = MAX_SYM_NAME;
 
-  _swift_win32_withDbgHelpLibrary([&] (HANDLE hProcess) {
+  _language_win32_withDbgHelpLibrary([&] (HANDLE hProcess) {
     if (!hProcess) {
       bRet = false;
       return;
@@ -171,7 +172,7 @@ std::optional<SymbolInfo> SymbolInfo::lookup(const void *address) {
                       moduleInfo.name,
                       moduleInfo.base);
   }
-#elif SWIFT_STDLIB_HAS_DLADDR
+#elif LANGUAGE_STDLIB_HAS_DLADDR
   SymbolInfo info;
   if (dladdr(address, &info._info)) {
     return info;

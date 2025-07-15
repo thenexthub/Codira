@@ -1,8 +1,8 @@
-# See https://clang.llvm.org/extra/clang-tidy/checks/list.html
+# See
 
 Checks: '
 -*,
-llvm-*,
+toolchain-*,
 misc-*,
 -misc-const-correctness,
 -misc-unused-parameters,
@@ -10,5 +10,5 @@ misc-*,
 -misc-no-recursion,
 -misc-use-anonymous-namespace,
 -readability-qualified-auto,
--llvm-qualified-auto
+-toolchain-qualified-auto
 '

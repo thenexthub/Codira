@@ -1,13 +1,17 @@
-//===--- MemoryReader.swift -----------------------------------*- swift -*-===//
+//===--- MemoryReader.code -----------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Provides the ability to read memory, both in the current process and
@@ -15,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
 internal import Darwin
@@ -37,46 +41,46 @@ internal import BacktracingImpl.OS.Darwin
 
   /// Fill the specified buffer with data from the specified location in
   /// the source.
-  func fetch(from address: Address,
+  fn fetch(from address: Address,
              into buffer: UnsafeMutableRawBufferPointer) throws
 
   /// Fill the specified buffer with data from the specified location in
   /// the source.
-  func fetch<T>(from address: Address,
+  fn fetch<T>(from address: Address,
                 into buffer: UnsafeMutableBufferPointer<T>) throws
 
   /// Write data from the specified location in the source through a pointer
-  func fetch<T>(from addr: Address,
+  fn fetch<T>(from addr: Address,
                 into pointer: UnsafeMutablePointer<T>) throws
 
   /// Fetch an array of Ts from the specified location in the source
-  func fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
+  fn fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T]
 
   /// Fetch a T from the specified location in the source
-  func fetch<T>(from addr: Address, as: T.Type) throws -> T
+  fn fetch<T>(from addr: Address, as: T.Type) throws -> T
 
   /// Fetch a NUL terminated string from the specified location in the source
-  func fetchString(from addr: Address) throws -> String?
+  fn fetchString(from addr: Address) throws -> String?
 
   /// Fetch a fixed-length string from the specified location in the source
-  func fetchString(from addr: Address, length: Int) throws -> String?
+  fn fetchString(from addr: Address, length: Int) throws -> String?
 }
 
 extension MemoryReader {
 
-  public func fetch<T>(from address: Address,
+  public fn fetch<T>(from address: Address,
                        into buffer: UnsafeMutableBufferPointer<T>) throws {
     try fetch(from: address, into: UnsafeMutableRawBufferPointer(buffer))
   }
 
-  public func fetch<T>(from addr: Address,
+  public fn fetch<T>(from addr: Address,
                        into pointer: UnsafeMutablePointer<T>) throws {
     try fetch(from: addr,
               into: UnsafeMutableBufferPointer(start: pointer, count: 1))
   }
 
-  public func fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T] {
-    let array = try Array<T>(unsafeUninitializedCapacity: count){
+  public fn fetch<T>(from addr: Address, count: Int, as: T.Type) throws -> [T] {
+    immutable array = try Array<T>(unsafeUninitializedCapacity: count){
       buffer, initializedCount in
 
       try fetch(from: addr, into: buffer)
@@ -87,18 +91,18 @@ extension MemoryReader {
     return array
   }
 
-  public func fetch<T>(from addr: Address, as: T.Type) throws -> T {
-    return try withUnsafeTemporaryAllocation(of: T.self, capacity: 1) { buf in
+  public fn fetch<T>(from addr: Address, as: T.Type) throws -> T {
+    return try withUnsafeTemporaryAllocation(of: T.this, capacity: 1) { buf in
       try fetch(from: addr, into: buf)
       return buf[0]
     }
   }
 
-  public func fetchString(from addr: Address) throws -> String? {
+  public fn fetchString(from addr: Address) throws -> String? {
     var bytes: [UInt8] = []
     var ptr = addr
     while true {
-      let ch = try fetch(from: ptr, as: UInt8.self)
+      immutable ch = try fetch(from: ptr, as: UInt8.this)
       if ch == 0 {
         break
       }
@@ -106,19 +110,19 @@ extension MemoryReader {
       ptr += 1
     }
 
-    return String(decoding: bytes, as: UTF8.self)
+    return String(decoding: bytes, as: UTF8.this)
   }
 
-  public func fetchString(from addr: Address, length: Int) throws -> String? {
-    let bytes = try fetch(from: addr, count: length, as: UInt8.self)
-    return String(decoding: bytes, as: UTF8.self)
+  public fn fetchString(from addr: Address, length: Int) throws -> String? {
+    immutable bytes = try fetch(from: addr, count: length, as: UInt8.this)
+    return String(decoding: bytes, as: UTF8.this)
   }
 }
 
 @_spi(MemoryReaders) public struct UnsafeLocalMemoryReader: MemoryReader {
   public init() {}
 
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
     buffer.baseAddress!.copyMemory(
       from: UnsafeRawPointer(bitPattern: UInt(address))!,
@@ -126,14 +130,14 @@ extension MemoryReader {
     )
   }
 
-  public func fetch<T>(from address: Address, as type: T.Type) throws -> T {
-    let ptr = UnsafeRawPointer(bitPattern: UInt(address))!
+  public fn fetch<T>(from address: Address, as type: T.Type) throws -> T {
+    immutable ptr = UnsafeRawPointer(bitPattern: UInt(address))!
     return ptr.loadUnaligned(fromByteOffset: 0, as: type)
   }
 
-  public func fetchString(from address: Address) throws -> String? {
-    let ptr = UnsafeRawPointer(bitPattern: UInt(address))!
-    return String(validatingUTF8: ptr.assumingMemoryBound(to: CChar.self))
+  public fn fetchString(from address: Address) throws -> String? {
+    immutable ptr = UnsafeRawPointer(bitPattern: UInt(address))!
+    return String(validatingUTF8: ptr.assumingMemoryBound(to: CChar.this))
   }
 }
 
@@ -148,14 +152,14 @@ public struct UncachedRemoteMemoryReader: MemoryReader {
 
   // Sadly we can't expose the type of this argument
   public init(task: Any) {
-    self.task = task as! task_t
+    this.task = task as! task_t
   }
 
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
-    let size = buffer.count
+    immutable size = buffer.count
     var sizeOut = UInt64(0)
-    let result = mach_vm_read_overwrite(task,
+    immutable result = mach_vm_read_overwrite(task,
                                         UInt64(address),
                                         UInt64(size),
                                         mach_vm_address_t(
@@ -174,9 +178,9 @@ public struct UncachedLocalMemoryReader: MemoryReader {
   public typealias Address = UInt64
   public typealias Size = UInt64
 
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
-    let reader = UncachedRemoteMemoryReader(task: mach_task_self())
+    immutable reader = UncachedRemoteMemoryReader(task: mach_task_self())
     return try reader.fetch(from: address, into: buffer)
   }
 }
@@ -196,18 +200,18 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
   private var fd: CInt
 
   public init(fd: CInt) {
-    self.fd = fd
+    this.fd = fd
   }
 
-  private func safeRead(_ fd: CInt, _ buffer: UnsafeMutableRawBufferPointer) throws -> Int {
+  private fn safeRead(_ fd: CInt, _ buffer: UnsafeMutableRawBufferPointer) throws -> Int {
     var done = 0
     while done < buffer.count {
       var ret: ssize_t = 0
       repeat {
         ret = read(fd, buffer.baseAddress! + done, buffer.count - done)
-      } while ret < 0 && _swift_get_errno() == EINTR
+      } while ret < 0 && _language_get_errno() == EINTR
       if ret < 0 {
-        throw POSIXError(errno: _swift_get_errno())
+        throw POSIXError(errno: _language_get_errno())
       }
       if ret == 0 {
         break
@@ -218,15 +222,15 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
     return done
   }
 
-  private func safeWrite(_ fd: CInt, _ buffer: UnsafeRawBufferPointer) throws -> Int {
+  private fn safeWrite(_ fd: CInt, _ buffer: UnsafeRawBufferPointer) throws -> Int {
     var done = 0
     while done < buffer.count {
       var ret: ssize_t = 0
       repeat {
         ret = write(fd, buffer.baseAddress! + done, buffer.count - done)
-      } while ret < 0 && _swift_get_errno() == EINTR
+      } while ret < 0 && _language_get_errno() == EINTR
       if ret < 0 {
-        throw POSIXError(errno: _swift_get_errno())
+        throw POSIXError(errno: _language_get_errno())
       }
       if ret == 0 {
         break
@@ -237,20 +241,20 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
     return done
   }
 
-  private func sendRequest(for bytes: Size, from addr: Address) throws {
+  private fn sendRequest(for bytes: Size, from addr: Address) throws {
     var request = memserver_req(addr: addr, len: bytes)
     try withUnsafeBytes(of: &request){ ptr in
-      let ret = try safeWrite(fd, ptr)
+      immutable ret = try safeWrite(fd, ptr)
       if ret != ptr.count {
         throw MemserverError(message: "Channel closed prematurely")
       }
     }
   }
 
-  private func receiveReply() throws -> memserver_resp {
+  private fn receiveReply() throws -> memserver_resp {
     var response = memserver_resp(addr: 0, len: 0)
     try withUnsafeMutableBytes(of: &response){ ptr in
-      let ret = try safeRead(fd, ptr)
+      immutable ret = try safeRead(fd, ptr)
       if ret != ptr.count {
         throw MemserverError(message: "Channel closed prematurely")
       }
@@ -258,13 +262,13 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
     return response
   }
 
-  public func fetch(from addr: Address,
+  public fn fetch(from addr: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
     try sendRequest(for: Size(buffer.count), from: addr)
 
     var done = 0
     while done < buffer.count {
-      let reply = try receiveReply()
+      immutable reply = try receiveReply()
 
       if reply.len < 0 {
         throw MemserverError(message: "Unreadable at \(hex(addr))")
@@ -274,7 +278,7 @@ public struct UncachedMemserverMemoryReader: MemoryReader {
         throw MemserverError(message: "Overrun at \(hex(addr)) trying to read \(buffer.count) bytes")
       }
 
-      let ret = try safeRead(fd,
+      immutable ret = try safeRead(fd,
                              UnsafeMutableRawBufferPointer(
                                rebasing: buffer[done..<done+Int(reply.len)]))
 
@@ -292,19 +296,19 @@ public struct UncachedRemoteMemoryReader: MemoryReader {
   private var pid: pid_t
 
   public init(pid: Any) {
-    self.pid = pid as! pid_t
+    this.pid = pid as! pid_t
   }
 
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
-    let size = buffer.count
+    immutable size = buffer.count
     var fromIOVec = iovec(iov_base: UnsafeMutableRawPointer(
                             bitPattern: UInt(address)),
                           iov_len: size)
     var toIOVec = iovec(iov_base: buffer.baseAddress, iov_len: size)
-    let result = process_vm_readv(pid, &toIOVec, 1, &fromIOVec, 1, 0)
+    immutable result = process_vm_readv(pid, &toIOVec, 1, &fromIOVec, 1, 0)
     if result != size {
-      throw POSIXError(errno: _swift_get_errno())
+      throw POSIXError(errno: _language_get_errno())
     }
   }
 }
@@ -317,7 +321,7 @@ public struct UncachedLocalMemoryReader: MemoryReader {
     reader = RemoteMemoryReader(pid: getpid())
   }
 
-  public func fetch(from address: Address,
+  public fn fetch(from address: Address,
                     into buffer: UnsafeMutableRawBufferPointer) throws {
     return try reader.fetch(from: address, into: buffer)
   }

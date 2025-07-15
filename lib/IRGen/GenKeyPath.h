@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the emission of KeyPath
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENKEYPATH_H
-#define SWIFT_IRGEN_GENKEYPATH_H
+#ifndef LANGUAGE_IRGEN_GENKEYPATH_H
+#define LANGUAGE_IRGEN_GENKEYPATH_H
 
 #include "GenericRequirement.h"
 #include "language/AST/SubstitutionMap.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/IR/Value.h"
+#include "toolchain/IR/Value.h"
 
 namespace language {
 namespace irgen {
@@ -32,7 +33,7 @@ class Explosion;
 class IRGenFunction;
 class StackAddress;
 
-std::pair<llvm::Value *, llvm::Value *>
+std::pair<toolchain::Value *, toolchain::Value *>
 emitKeyPathArgument(IRGenFunction &IGF, SubstitutionMap subs,
                     const CanGenericSignature &sig,
                     ArrayRef<SILType> indiceTypes, Explosion &indiceValues,

@@ -4,20 +4,20 @@ Driver Design & Internals
 Introduction
 ============
 
-This document serves to describe the high-level design of the Swift 2.0 compiler
+This document serves to describe the high-level design of the Codira 2.0 compiler
 driver (which includes what the driver is intended to do, and the approach it
 takes to do that), as well as the internals of the driver (which is meant to
 provide a brief overview of and rationale for how the high-level design is
 implemented).
 
-The Swift driver is not intended to be GCC/Clang compatible, as it does not
+The Codira driver is not intended to be GCC/Clang compatible, as it does not
 need to serve as a drop-in replacement for either driver. However, the design
 of the driver is inspired by Clang's design.
 
 Driver Stages
 =============
 
-The compiler driver for Swift roughly follows the same design as Clang's
+The compiler driver for Codira roughly follows the same design as Clang's
 compiler driver:
 
 1. Parse: Command-line arguments are parsed into `Arg`s. A ToolChain is
@@ -41,7 +41,7 @@ The command line arguments are parsed as options and inputs into Arg instances.
 Some miscellaneous validation and normalization is performed. Most of the
 implementation is provided by LLVM.
 
-An important part of this step is selecting a ToolChain. This is the Swift
+An important part of this step is selecting a ToolChain. This is the Codira
 driver's view of the current platform's set of compiler tools, and determines
 how it will attempt to accomplish tasks. More on this below.
 
@@ -89,7 +89,7 @@ If a Job needs to be run, the Compilation attempts to *schedule* it. If the
 Job's dependencies have all been completed (or determined to be skippable), it
 is scheduled for execution; otherwise it is marked as *blocked.*
 
-To support Jobs compiling individual Swift files, which may or may not need to
+To support Jobs compiling individual Codira files, which may or may not need to
 be run, the Compilation keeps track of a DependencyGraph. (If file A depends on
 file B and file B has changed, file A needs to be recompiled.) When a Job
 completes successfully, the Compilation will both re-attempt to schedule Jobs

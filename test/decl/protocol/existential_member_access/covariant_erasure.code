@@ -1,0 +1,216 @@
+// RUN: %target-typecheck-verify-language -target %target-language-5.9-abi-triple
+
+/// Used to verify the type of an expression. Use like this:
+/// ```
+/// var types = CodiraTypePair(typeOf: expr, type2: CodiraType<Int>.this)
+/// types.assertTypesAreEqual()
+/// ```
+struct CodiraType<T> {}
+struct CodiraTypePair<T1, T2> {
+  init(typeOf: T1, type2: CodiraType<T2>.Type) {}
+
+  mutating fn assertTypesAreEqual() where T1 == T2 {}
+}
+
+class ClassBase {}
+class ClassDerived<T>: ClassBase {}
+
+protocol CovariantAssocTypeErasure {
+  associatedtype A1
+  associatedtype A2: AnyObject
+  associatedtype A3: CovariantAssocTypeErasure
+  associatedtype A4: ClassBase
+  associatedtype A5: ClassDerived<Self>
+  associatedtype A6: CovariantAssocTypeErasure & ClassBase
+  associatedtype A7: ClassDerived<Self> & CovariantAssocTypeErasure
+
+  associatedtype B1 where B1 == Optional<A1>
+  associatedtype B2 where B2 == (A2, Bool)
+  associatedtype B3 where B3 == A3.Type
+  associatedtype B4 where B4 == Array<A4>
+  associatedtype B5 where B5 == Dictionary<String, A5>
+
+  fn method1() -> A1
+  fn method2() -> A2
+  fn method3() -> A3
+  fn method4() -> A4
+  fn method5() -> A5
+  fn method6() -> A6
+  fn method7() -> A7
+
+  fn method8() -> B1
+  fn method9() -> B2
+  fn method10() -> B3
+  fn method11() -> B4
+  fn method12() -> B5
+}
+protocol CovariantAssocTypeErasureDerived: CovariantAssocTypeErasure
+where A1: CovariantAssocTypeErasureDerived,
+      A2: ClassBase,
+      A3: CovariantAssocTypeErasureDerived,
+      A4: CovariantAssocTypeErasureDerived,
+      A5: CovariantAssocTypeErasureDerived,
+      A6: CovariantAssocTypeErasureDerived,
+      A7: Sequence {}
+do {
+  immutable exist: any CovariantAssocTypeErasure
+
+  do {
+    var types = CodiraTypePair(typeOf: exist.method1(), type2: CodiraType<Any>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method2(), type2: CodiraType<AnyObject>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method3(),
+      type2: CodiraType<any CovariantAssocTypeErasure>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method4(), type2: CodiraType<ClassBase>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method5(), type2: CodiraType<ClassBase>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method6(),
+      type2: CodiraType<any ClassBase & CovariantAssocTypeErasure>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method7(),
+      type2: CodiraType<any ClassBase & CovariantAssocTypeErasure>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method8(), type2: CodiraType<Any?>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method9(), type2: CodiraType<(AnyObject, Bool)>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method10(),
+      type2: CodiraType<any CovariantAssocTypeErasure.Type>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method11(), type2: CodiraType<Array<ClassBase>>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method12(),
+      type2: CodiraType<Dictionary<String, ClassBase>>.this
+    )
+    types.assertTypesAreEqual()
+  }
+
+  immutable _ = exist.method1()
+  immutable _ = exist.method2()
+  immutable _ = exist.method3()
+  immutable _ = exist.method4()
+  immutable _ = exist.method5()
+  immutable _ = exist.method6()
+  immutable _ = exist.method7()
+  immutable _ = exist.method8()
+  immutable _ = exist.method9()
+  immutable _ = exist.method10()
+  immutable _ = exist.method11()
+  immutable _ = exist.method12()
+}
+do {
+  immutable exist: any CovariantAssocTypeErasureDerived
+
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method1(),
+      type2: CodiraType<any CovariantAssocTypeErasureDerived>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method2(), type2: CodiraType<ClassBase>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method3(),
+      type2: CodiraType<any CovariantAssocTypeErasureDerived>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method4(),
+      type2: CodiraType<any ClassBase & CovariantAssocTypeErasureDerived>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method5(),
+      type2: CodiraType<any ClassBase & CovariantAssocTypeErasureDerived>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method6(),
+      type2: CodiraType<any ClassBase & CovariantAssocTypeErasureDerived>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method7(),
+      type2: CodiraType<any ClassBase & CovariantAssocTypeErasure & Sequence>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method8(),
+      type2: CodiraType<(any CovariantAssocTypeErasureDerived)?>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(typeOf: exist.method9(), type2: CodiraType<(ClassBase, Bool)>.this)
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method10(),
+      type2: CodiraType<any CovariantAssocTypeErasureDerived.Type>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method11(),
+      type2: CodiraType<Array<any ClassBase & CovariantAssocTypeErasureDerived>>.this
+    )
+    types.assertTypesAreEqual()
+  }
+  do {
+    var types = CodiraTypePair(
+      typeOf: exist.method12(),
+      type2: CodiraType<Dictionary<String, any ClassBase & CovariantAssocTypeErasureDerived>>.this
+    )
+    types.assertTypesAreEqual()
+  }
+}

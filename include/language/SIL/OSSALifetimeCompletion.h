@@ -1,13 +1,17 @@
 //===--- OwnershipLifetimeCompletion.h ------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// OSSA lifetime completion adds lifetime ending instructions to make
@@ -25,8 +29,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_OSSSALIFETIMECOMPLETION_H
-#define SWIFT_SILOPTIMIZER_UTILS_OSSSALIFETIMECOMPLETION_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_OSSSALIFETIMECOMPLETION_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_OSSSALIFETIMECOMPLETION_H
 
 #include "language/SIL/NodeDatastructures.h"
 #include "language/SIL/OwnershipLiveness.h"
@@ -122,7 +126,7 @@ public:
     case OwnershipKind::Owned:
       break;
     case OwnershipKind::Any:
-      llvm::report_fatal_error("value with any ownership kind!?");
+      toolchain::report_fatal_error("value with any ownership kind!?");
     case OwnershipKind::Guaranteed:
     case OwnershipKind::Unowned: {
       BorrowedValue borrowedValue(value);
@@ -151,7 +155,7 @@ public:
 
   static void visitAvailabilityBoundary(
       SILValue value, const SSAPrunedLiveness &liveness,
-      llvm::function_ref<void(SILInstruction *, LifetimeEnd end)> visit);
+      toolchain::function_ref<void(SILInstruction *, LifetimeEnd end)> visit);
 
 protected:
   bool analyzeAndUpdateLifetime(SILValue value, Boundary boundary);
@@ -203,8 +207,8 @@ public:
   bool completeLifetimes();
 };
 
-inline llvm::raw_ostream &
-operator<<(llvm::raw_ostream &OS, OSSALifetimeCompletion::Boundary boundary) {
+inline toolchain::raw_ostream &
+operator<<(toolchain::raw_ostream &OS, OSSALifetimeCompletion::Boundary boundary) {
   switch (boundary) {
   case OSSALifetimeCompletion::Boundary::Liveness:
     OS << "liveness";

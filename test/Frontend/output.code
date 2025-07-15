@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/sub)
+// RUN: cd %t
+
+// RUN: %target-language-frontend -emit-bc %s
+// RUN: %target-language-frontend -emit-bc %s -module-name explicit
+// RUN: %target-language-frontend -emit-bc %s -o %t/sub/
+// RUN: %target-language-frontend -emit-bc %s -o %t/sub/ -module-name explicit
+// RUN: %target-language-frontend -emit-bc %s -o %t/explicit.toolchainbc
+// RUN: %target-language-frontend -emit-bc %s -o %t/explicit2.toolchainbc -module-name explicit2
+// RUN: echo | %target-language-frontend -emit-bc - -o %t/sub -module-name stdin
+
+// RUN: ls -1 %t | %FileCheck %s
+// RUN: ls -1 %t/sub/ | %FileCheck %s -check-prefix=SUB
+
+// CHECK: explicit.bc
+// CHECK-NEXT: explicit.toolchainbc
+// CHECK-NEXT: explicit2.toolchainbc
+// CHECK-NEXT: output.bc
+// CHECK-NEXT: sub
+
+// SUB: explicit.bc
+// SUB-NEXT: output.bc
+// SUB-NEXT: stdin.bc

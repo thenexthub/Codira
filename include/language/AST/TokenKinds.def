@@ -1,4 +1,4 @@
-//===--- TokenKinds.def - Swift Tokenizer Metaprogramming -----------------===//
+//===--- TokenKinds.def - Codira Tokenizer Metaprogramming -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file defines x-macros used for metaprogramming with lexer tokens.
 ///
 /// TOKEN(name)
 ///   KEYWORD(kw)
-///     SWIFT_KEYWORD(kw)
+///     LANGUAGE_KEYWORD(kw)
 ///       DECL_KEYWORD(kw)
 ///       STMT_KEYWORD(kw)
 ///       EXPR_KEYWORD(kw)
@@ -41,43 +42,43 @@
 #endif
 
 /// KEYWORD(kw)
-///   Expands by default for every Swift keyword and every SIL keyword, such as
-///   'if', 'else', 'sil_global', etc. If you only want to use Swift keywords
-///   see SWIFT_KEYWORD.
+///   Expands by default for every Codira keyword and every SIL keyword, such as
+///   'if', 'else', 'sil_global', etc. If you only want to use Codira keywords
+///   see LANGUAGE_KEYWORD.
 #ifndef KEYWORD
 #define KEYWORD(kw) TOKEN(kw_ ## kw)
 #endif
 
-/// SWIFT_KEYWORD(kw)
-///   Expands for every Swift keyword.
-#ifndef SWIFT_KEYWORD
-#define SWIFT_KEYWORD(kw) KEYWORD(kw)
+/// LANGUAGE_KEYWORD(kw)
+///   Expands for every Codira keyword.
+#ifndef LANGUAGE_KEYWORD
+#define LANGUAGE_KEYWORD(kw) KEYWORD(kw)
 #endif
 
 /// DECL_KEYWORD(kw)
-///   Expands for every Swift keyword that can be used in a declaration.
+///   Expands for every Codira keyword that can be used in a declaration.
 #ifndef DECL_KEYWORD
-#define DECL_KEYWORD(kw) SWIFT_KEYWORD(kw)
+#define DECL_KEYWORD(kw) LANGUAGE_KEYWORD(kw)
 #endif
 
 /// STMT_KEYWORD(kw)
-///   Expands for every Swift keyword used in statement grammar.
+///   Expands for every Codira keyword used in statement grammar.
 #ifndef STMT_KEYWORD
-#define STMT_KEYWORD(kw) SWIFT_KEYWORD(kw)
+#define STMT_KEYWORD(kw) LANGUAGE_KEYWORD(kw)
 #endif
 
 /// EXPR_KEYWORD(kw)
-///   Expands for every Swift keyword used in an expression, such as 'true',
+///   Expands for every Codira keyword used in an expression, such as 'true',
 ///   'false', and 'as'
 #ifndef EXPR_KEYWORD
-#define EXPR_KEYWORD(kw) SWIFT_KEYWORD(kw)
+#define EXPR_KEYWORD(kw) LANGUAGE_KEYWORD(kw)
 #endif
 
 /// PAT_KEYWORD(kw)
-///   Expands for every Swift keyword used in a pattern, which is currently
+///   Expands for every Codira keyword used in a pattern, which is currently
 ///   limited to '_'
 #ifndef PAT_KEYWORD
-#define PAT_KEYWORD(kw) SWIFT_KEYWORD(kw)
+#define PAT_KEYWORD(kw) LANGUAGE_KEYWORD(kw)
 #endif
 
 /// SIL_KEYWORD(kw)
@@ -118,7 +119,7 @@
 #endif
 
 /// PUNCTUATOR(name, str)
-///   Expands for every Swift punctuator.
+///   Expands for every Codira punctuator.
 ///   \param name  The symbolic name of the punctuator, such as
 ///                'l_paren' or 'arrow'.
 ///   \param str   A string literal containing the spelling of the punctuator,
@@ -145,7 +146,7 @@ DECL_KEYWORD(class)
 DECL_KEYWORD(deinit)
 DECL_KEYWORD(enum)
 DECL_KEYWORD(extension)
-DECL_KEYWORD(func)
+DECL_KEYWORD(fn)
 DECL_KEYWORD(import)
 DECL_KEYWORD(init)
 DECL_KEYWORD(let)
@@ -261,9 +262,9 @@ MISC(string_interpolation_anchor)
 MISC(kw_yield)
 MISC(kw_discard)
 MISC(kw_then)
-SWIFT_KEYWORD(inout)
+LANGUAGE_KEYWORD(inout)
 
-// The following tokens are irrelevant for swiftSyntax and thus only declared
+// The following tokens are irrelevant for languageSyntax and thus only declared
 // in this .def file
 
 SIL_KEYWORD(undef)
@@ -291,7 +292,7 @@ MISC(comment)
 
 #undef TOKEN
 #undef KEYWORD
-#undef SWIFT_KEYWORD
+#undef LANGUAGE_KEYWORD
 #undef DECL_KEYWORD
 #undef STMT_KEYWORD
 #undef EXPR_KEYWORD

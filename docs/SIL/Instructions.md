@@ -36,12 +36,12 @@ destruction of the stored value cannot be verified at compile time. This
 is the case, e.g. for conditionally initialized objects.
 
 The optional `lexical` attribute specifies that the operand corresponds
-to a local variable with a lexical lifetime in the Swift source, so
+to a local variable with a lexical lifetime in the Codira source, so
 special care must be taken when hoisting `destroy_addr`s. Compare to the
 `var_decl` attribute. See [Variable Lifetimes](Ownership.md#variable-lifetimes).
 
 The optional `var_decl` attribute specifies that the storage corresponds
-to a local variable in the Swift source.
+to a local variable in the Codira source.
 
 The optional `moveable_value_debuginfo` attribute specifies that when
 emitting debug info, the code generator can not assume that the value in
@@ -116,7 +116,7 @@ allocated on the stack instead on the heap. In this case the instruction
 must be balanced with a `dealloc_stack_ref` instruction to mark the end
 of the object's lifetime. Note that the `stack` attribute only
 specifies that stack allocation is possible. The final decision on stack
-allocation is done during llvm IR generation. This is because the
+allocation is done during toolchain IR generation. This is because the
 decision also depends on the object size, which is not necessarily known
 at SIL level.
 
@@ -347,9 +347,9 @@ following code:
 
 @end
 
-// swift code
+// language code
 extension Klass {
-  func loadCallbackData() async throws -> sending CallbackData {
+  fn loadCallbackData() async throws -> sending CallbackData {
     try await loadData()
   }
 }
@@ -586,7 +586,7 @@ SILLocation specified in the advanced debug variable attributes.
 If the `moveable_value_debuginfo` flag is set, then one knows that the
 debug_value's operand is moved at some point of the program, so one can
 not model the debug_value using constructs that assume that the value is
-live for the entire function (e.x.: llvm.dbg.declare). NOTE: This is
+live for the entire function (e.x.: toolchain.dbg.declare). NOTE: This is
 implicitly set to true if the alloc_stack's type is noncopyable. This
 is just done to make SIL less verbose.
 
@@ -656,7 +656,7 @@ value `%b` sequentially.
 
 Note that normally when the SSA value has an address type, there will be
 a `op_deref` in the SIL DIExpression. Because there is no pointer in
-Swift so you always need to dereference an address-type SSA value to get
+Codira so you always need to dereference an address-type SSA value to get
 the value of a source variable. However, if the SSA value is a
 `alloc_stack`, the `debug_value` is used to indicate the *declaration*
 of a source variable. Or, you can say, used to specify the location
@@ -680,7 +680,7 @@ struct MyStruct {
   var y: Int
 }
 ...
-debug_value %1 : $Int, var, (name "the_struct", loc "file.swift":8:7), type $MyStruct, expr op_fragment:#MyStruct.y, loc "file.swift":9:4
+debug_value %1 : $Int, var, (name "the_struct", loc "file.code":8:7), type $MyStruct, expr op_fragment:#MyStruct.y, loc "file.code":9:4
 ```
 
 In the snippet above, source variable "the_struct" has an aggregate
@@ -697,11 +697,11 @@ takes two arguments: the tuple type and the index. If our struct was
 instead a tuple, we would have:
 
 ```
-  debug_value %1 : $Int, var, (name "the_tuple", loc "file.swift":8:7), type $(x: Int, y: Int), expr op_tuple_fragment:$(x: Int, y: Int):1, loc "file.swift":9:4
+  debug_value %1 : $Int, var, (name "the_tuple", loc "file.code":8:7), type $(x: Int, y: Int), expr op_tuple_fragment:$(x: Int, y: Int):1, loc "file.code":9:4
 ```
 
 It is worth noting that a SIL DIExpression is similar to
-[!DIExpression](https://www.llvm.org/docs/LangRef.html#diexpression) in
+[!DIExpression](https://www.toolchain.org/docs/LangRef.html#diexpression) in
 LLVM debug info metadata. While LLVM represents `!DIExpression` are a
 list of 64-bit integers, SIL DIExpression can have elements with various
 types, like AST nodes or strings.
@@ -812,7 +812,7 @@ increment_profiler_counter 1, "$foo", num_counters 3, hash 0
 ```
 
 Increments a given profiler counter for a given PGO function name. This
-is lowered to the `llvm.instrprof.increment` LLVM intrinsic. This
+is lowered to the `toolchain.instrprof.increment` LLVM intrinsic. This
 instruction is emitted when profiling is enabled, and enables features
 such as code coverage and profile-guided optimization.
 
@@ -931,7 +931,7 @@ live. This makes sense semantically since `%1` is modeling a new value
 with a dependent lifetime on `%0`.
 
 The optional `lexical` attribute specifies that the operand corresponds
-to a local variable with a lexical lifetime in the Swift source, so
+to a local variable with a lexical lifetime in the Codira source, so
 special care must be taken when moving the end_borrow. Compare to the
 `var_decl` attribute. See [Variable Lifetimes](Ownership.md#variable-lifetimes).
 
@@ -939,7 +939,7 @@ The optional `pointer_escape` attribute specifies that a pointer to the
 operand escapes within the borrow scope introduced by this begin_borrow.
 
 The optional `var_decl` attribute specifies that the operand corresponds
-to a local variable in the Swift source.
+to a local variable in the Codira source.
 
 This instruction is only valid in functions in Ownership SSA form.
 
@@ -1131,7 +1131,7 @@ the mark_uninitialized instruction refers to:
 
 -   `rootself`: designates `self` in a struct, enum, or root class
 
--   `crossmodulerootself`: same as `rootself`, but in a case where it's not really safe to treat `self` as a root because the original module might add more stored properties. This is only used for Swift 4 compatibility.
+-   `crossmodulerootself`: same as `rootself`, but in a case where it's not really safe to treat `self` as a root because the original module might add more stored properties. This is only used for Codira 4 compatibility.
 
 -   `derivedself`: designates `self` in a derived (non-root) class
 
@@ -2118,7 +2118,7 @@ This is important to ensure the correctness of
 The operand is consumed and the second result is returned as owned.
 
 The optional `native` attribute specifies that the operand has native
-Swift reference counting.
+Codira reference counting.
 
 For details see [Copy-on-Write Representation](SIL.md#Copy-on-Write-Representation).
 
@@ -2146,13 +2146,29 @@ not replace this reference with a not uniquely reference object.
 
 For details see [Copy-on-Write Representation](SIL.md#Copy-on-Write-Representation).
 
+### end_cow_mutation_addr
+
+```
+sil-instruction ::= 'end_cow_mutation_addr' sil-operand
+
+end_cow_mutation_addr %0 : $*T
+// %0 must be of an address $*T type
+```
+
+This instruction marks the end of mutation of an address. The address could be
+an opaque archetype, a struct, tuple or enum type and the end_cow_mutation_addr
+will apply to all members contained within it.
+It is currently only generated in cases where we maybe deriving a MutableSpan from
+`%0` since it is not possible to schedule an `end_cow_mutation` in the standard
+library automatically for Array.mutableSpan etc.
+
 ### destroy_not_escaped_closure
 
 ```
 sil-instruction ::= 'destroy_not_escaped_closure' sil-operand
 
 %1 = destroy_not_escaped_closure %0 : $@callee_guaranteed () -> ()
-// %0 must be an escaping swift closure.
+// %0 must be an escaping language closure.
 // %1 will be of type Builtin.Int1
 ```
 
@@ -2186,7 +2202,7 @@ operand if the block is copied from the stack to the heap.
 
 Additionally, consumes the `withoutEscaping` operand `%1` which is the
 closure sentinel. SILGen emits these instructions when it passes
-@noescape swift closures to Objective C. A mandatory SIL pass will
+@noescape language closures to Objective C. A mandatory SIL pass will
 lower this instruction into a `copy_block` and a
 `is_escaping`/`cond_fail`/`destroy_value` at the end of the lifetime of
 the objective c closure parameter to check whether the sentinel closure
@@ -2223,12 +2239,12 @@ Creates a reference to a `dynamically_replacable` SIL
 function. A `dynamically_replacable` SIL function can be
 replaced at runtime.
 
-For the following Swift code:
+For the following Codira code:
 
 ```
-dynamic func test_dynamically_replaceable() {}
+dynamic fn test_dynamically_replaceable() {}
 
-func test_dynamic_call() {
+fn test_dynamic_call() {
   test_dynamically_replaceable()
 }
 ```
@@ -2264,11 +2280,11 @@ sil-instruction ::= 'prev_dynamic_function_ref' sil-function-name ':' sil-type
 Creates a reference to a previous implementation of a
 `dynamic_replacement` SIL function.
 
-For the following Swift code:
+For the following Codira code:
 
 ```
 @_dynamicReplacement(for: test_dynamically_replaceable())
-func test_replacement() {
+fn test_replacement() {
   test_dynamically_replaceable() // calls previous implementation
 }
 ```
@@ -2334,7 +2350,7 @@ sil-instruction ::= 'integer_literal' sil-type ',' int-literal
 
 Creates an integer literal value. The result will be of type
 `Builtin.Int<n>`, which must be a builtin integer type. The literal
-value is specified using Swift's integer literal syntax.
+value is specified using Codira's integer literal syntax.
 
 ### float_literal
 
@@ -2349,7 +2365,7 @@ sil-instruction ::= 'float_literal' sil-type ',' int-literal
 Creates a floating-point literal value. The result will be of type
 `Builtin.FP<n>`, which must be a builtin floating-point type. The
 literal value is specified as the bitwise representation of the floating
-point value, using Swift's hexadecimal integer literal syntax.
+point value, using Codira's hexadecimal integer literal syntax.
 
 ### string_literal
 
@@ -2365,7 +2381,7 @@ encoding ::= 'objc_selector'
 
 Creates a reference to a string in the global string table. The result
 is a pointer to the data. The referenced string is always
-null-terminated. The string literal value is specified using Swift's
+null-terminated. The string literal value is specified using Codira's
 string literal syntax (though `()` interpolations are not allowed).
 When the encoding is `objc_selector`, the string literal produces a
 reference to a UTF-8-encoded Objective-C selector in the Objective-C
@@ -2389,7 +2405,7 @@ a null pointer for `base_addr_for_offset`.
 
 These instructions perform dynamic lookup of class and generic methods.
 
-The `class_method` and `super_method` instructions must reference Swift
+The `class_method` and `super_method` instructions must reference Codira
 native methods and always use vtable dispatch.
 
 The `objc_method` and `objc_super_method` instructions must reference
@@ -2408,7 +2424,7 @@ sil-instruction ::= 'class_method' sil-method-attributes?
 
 %1 = class_method %0 : $T, #T.method : $@convention(class_method) U -> V
 // %0 must be of a class type or class metatype $T
-// #T.method must be a reference to a Swift native method of T or
+// #T.method must be a reference to a Codira native method of T or
 // of one of its superclasses
 // %1 will be of type $U -> V
 ```
@@ -2448,7 +2464,7 @@ sil-instruction ::= 'super_method' sil-method-attributes?
 
 %1 = super_method %0 : $T, #Super.method : $@convention(thin) U -> V
 // %0 must be of a non-root class type or class metatype $T
-// #Super.method must be a reference to a native Swift method of T's
+// #Super.method must be a reference to a native Codira method of T's
 // superclass or of one of its ancestor classes
 // %1 will be of type $@convention(thin) U -> V
 ```
@@ -2599,11 +2615,11 @@ except:
     instead of its normal results.
 
 The final (in the case of `@yield_once`) or penultimate (in the case of
-`@yield_once_2`) result of a `begin_apply` is a "token", a special
-value which can only be used as the operand of an `end_apply` or
-`abort_apply` instruction. Before this second instruction is executed,
-the coroutine is said to be "suspended", and the token represents a
-reference to its suspended activation record.
+`@yield_once_2`) result of a `begin_apply` is a "token", a special value which
+can only be used as the operand of an `end_apply`, `abort_apply`, or
+`end_borrow` instruction. Before this second instruction is executed, the
+coroutine is said to be "suspended", and the token represents a reference to its
+suspended activation record.
 
 If the coroutine's kind `yield_once_2`, its final result is an address
 of a "token", representing the allocation done by the callee
@@ -2708,12 +2724,12 @@ Creates a closure by partially applying the function `%0` to a partial
 sequence of its arguments. This instruction is used to implement
 closures.
 
-A local function in Swift that captures context, such as `bar` in the
+A local function in Codira that captures context, such as `bar` in the
 following example:
 
 ```
-func foo(_ x:Int) -> Int {
-  func bar(_ y:Int) -> Int {
+fn foo(_ x:Int) -> Int {
+  fn bar(_ y:Int) -> Int {
     return x + y
   }
   return bar(1)
@@ -2724,12 +2740,12 @@ lowers to an uncurried entry point and is curried in the enclosing
 function:
 
 ```
-func @bar : $@convention(thin) (Int, @box Int, *Int) -> Int {
+fn @bar : $@convention(thin) (Int, @box Int, *Int) -> Int {
 entry(%y : $Int, %x_box : $@box Int, %x_address : $*Int):
   // ... body of bar ...
 }
 
-func @foo : $@convention(thin) Int -> Int {
+fn @foo : $@convention(thin) Int -> Int {
 entry(%x : $Int):
   // Create a box for the 'x' variable
   %x_box = alloc_box $Int
@@ -2861,7 +2877,7 @@ The standard library uses this builtin to define an assert that can be
 disabled at compile time.
 
 ``` none
-func assert(...) {
+fn assert(...) {
   if Int32(Builtin.assert_configuration() == 0) {
     _assertionFailure(message, ...)
   }
@@ -3096,14 +3112,14 @@ introduces (or injects) a type `T` into the move only value
 space.
 
 The `lexical` attribute specifies that the value corresponds to a local
-variable with a lexical lifetime in the Swift source. Compare to the
+variable with a lexical lifetime in the Codira source. Compare to the
 `var_decl` attribute. See [Variable Lifetimes](Ownership.md#variable-lifetimes).
 
 The optional `pointer_escape` attribute specifies that a pointer to the
 operand escapes within the scope introduced by this move_value.
 
 The optional `var_decl` attribute specifies that the operand corresponds
-to a local variable in the Swift source.
+to a local variable in the Codira source.
 
 Note: Although ``move_value`` conceptually forwards an owned value, it also
 summarizes lifetime attributes for a whole [forward-extended
@@ -3451,6 +3467,20 @@ Constructs a statically initialized vector of elements. This instruction
 can only appear as final instruction in a global variable static
 initializer list.
 
+### vector_base_addr
+
+```
+sil-instruction ::= 'vector_base_addr' sil-operand
+
+%1 = vector_base_addr %0 : $*Builtin.FixedArray<N, Element>
+// %0 must have type $*Builtin.FixedArray
+// %1 will be of the element type of the Builtin.FixedArray
+```
+
+Derives the address of the first element of a vector, i.e. a `Builtin.FixedArray`,
+from the address of the vector itself.
+Addresses of other vector elements can then be derived with `index_addr`.
+
 ### ref_element_addr
 
 ```
@@ -3575,7 +3605,7 @@ Both [switch_enum](#switch_enum) and
 unless the enum can be exhaustively switched in the current function,
 i.e. when the compiler can be sure that it knows all possible present
 and future values of the enum in question. This is generally true for
-enums defined in Swift, but there are two exceptions: *non-frozen enums*
+enums defined in Codira, but there are two exceptions: *non-frozen enums*
 declared in libraries compiled with the `-enable-library-evolution`
 flag, which may grow new cases in the future in an ABI-compatible way;
 and enums marked with the `objc` attribute, for which other bit patterns
@@ -3584,7 +3614,7 @@ treated as "non-exhaustive" for the same reason, regardless of the
 presence or value of the `enum_extensibility` Clang attribute.
 
 (See
-[SE-0192](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0192-non-exhaustive-enums.md)
+[SE-0192](https://github.com/languagelang/language-evolution/blob/main/proposals/0192-non-exhaustive-enums.md)
 for more information about non-frozen enums.)
 
 ### enum
@@ -4719,7 +4749,7 @@ operands by tagging and shifting the operand if needed:
 
 ```
 value_to_bridge_object %x ===
-(x << _swift_abi_ObjCReservedLowBits) | _swift_BridgeObject_TaggedPointerBits
+(x << _language_abi_ObjCReservedLowBits) | _language_BridgeObject_TaggedPointerBits
 ```
 
 `%x` thus must not be using any high bits shifted away or the tag bits
@@ -4755,7 +4785,7 @@ away to a no-op.
 On platforms with ObjC interop, there is additionally a
 platform-specific bit in the pointer representation of a `BridgeObject`
 that is reserved to indicate whether the referenced object has native
-Swift refcounting. It is undefined behavior to set this bit when the
+Codira refcounting. It is undefined behavior to set this bit when the
 first operand references an Objective-C object.
 
 ### bridge_object_to_ref
@@ -5633,7 +5663,7 @@ sil-instruction ::= 'ignored_use'
 ```
 
 This instruction acts as a synthetic use instruction that suppresses unused
-variable warnings. In Swift the equivalent operation is '_ = x'. This
+variable warnings. In Codira the equivalent operation is '_ = x'. This
 importantly also provides a way to find the source location for '_ = x' when
 emitting SIL diagnostics. It is only legal in Raw SIL and is removed as dead
 code when we convert to Canonical SIL.

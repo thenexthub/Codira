@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/input.code
+// RUN: %target-language-frontend -c -update-code -primary-file %t/input.code -emit-migrated-file-path %t/always_remove_old_remap_file.result -emit-remap-file-path %t/always_remove_old_remap_file.remap %api_diff_data_dir -o /dev/null %api_diff_data_dir
+// RUN: ls %t/always_remove_old_remap_file.remap
+
+// Simulate leaving behind code that can't build in Codira 4:
+// RUN: echo asdfads >> %t/input.code
+
+// Migrate again. This should delete the old remap file.
+// RUN: not %target-language-frontend -c -update-code -primary-file %t/input.code -emit-migrated-file-path %t/always_remove_old_remap_file.result -emit-remap-file-path %t/always_remove_old_remap_file.remap %api_diff_data_dir -o /dev/null %api_diff_data_dir
+
+// RUN: not ls %t/always_remove_old_remap_file.remap
+
+fn foo() {}

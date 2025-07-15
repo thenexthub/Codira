@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This module provides completions to the immediate mode environment.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_REPL_CODE_COMPLETION_H
-#define SWIFT_IDE_REPL_CODE_COMPLETION_H
+#ifndef LANGUAGE_IDE_REPL_CODE_COMPLETION_H
+#define LANGUAGE_IDE_REPL_CODE_COMPLETION_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/IDE/CodeCompletionCache.h"
 #include "language/IDE/CodeCompletionConsumer.h"
 #include "language/Parse/IDEInspectionCallbacks.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -119,5 +120,5 @@ public:
 
 } // namespace language
 
-#endif // LLVM_SWIFT_IDE_REPL_CODE_COMPLETION_H
+#endif // TOOLCHAIN_LANGUAGE_IDE_REPL_CODE_COMPLETION_H
 

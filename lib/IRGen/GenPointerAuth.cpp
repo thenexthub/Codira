@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements general support for pointer authentication in Swift.
+//  This file implements general support for pointer authentication in Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,8 +29,8 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/TypeLowering.h"
 #include "clang/CodeGen/CodeGenABITypes.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace irgen;
@@ -38,45 +39,45 @@ using namespace irgen;
 
 /// Return the key and discriminator value for the given auth info,
 /// as demanded by the ptrauth intrinsics.
-static std::pair<llvm::Constant*, llvm::Value*>
+static std::pair<toolchain::Constant*, toolchain::Value*>
 getPointerAuthPair(IRGenFunction &IGF, const PointerAuthInfo &authInfo) {
-  auto key = llvm::ConstantInt::get(IGF.IGM.Int32Ty, authInfo.getKey());
-  llvm::Value *discriminator = authInfo.getDiscriminator();
+  auto key = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, authInfo.getKey());
+  toolchain::Value *discriminator = authInfo.getDiscriminator();
   if (discriminator->getType()->isPointerTy()) {
     discriminator = IGF.Builder.CreatePtrToInt(discriminator, IGF.IGM.Int64Ty);
   }
   return { key, discriminator };
 }
 
-llvm::Value *irgen::emitPointerAuthBlend(IRGenFunction &IGF,
-                                         llvm::Value *address,
-                                         llvm::Value *other) {
+toolchain::Value *irgen::emitPointerAuthBlend(IRGenFunction &IGF,
+                                         toolchain::Value *address,
+                                         toolchain::Value *other) {
   address = IGF.Builder.CreatePtrToInt(address, IGF.IGM.Int64Ty);
-  return IGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::ptrauth_blend,
+  return IGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::ptrauth_blend,
                                          {address, other});
 }
 
-llvm::Value *irgen::emitPointerAuthStrip(IRGenFunction &IGF,
-                                          llvm::Value *fnPtr,
+toolchain::Value *irgen::emitPointerAuthStrip(IRGenFunction &IGF,
+                                          toolchain::Value *fnPtr,
                                           unsigned Key) {
   auto fnVal = IGF.Builder.CreatePtrToInt(fnPtr, IGF.IGM.Int64Ty);
-  auto keyArg = llvm::ConstantInt::get(IGF.IGM.Int32Ty, Key);
+  auto keyArg = toolchain::ConstantInt::get(IGF.IGM.Int32Ty, Key);
   auto strippedPtr = IGF.Builder.CreateIntrinsicCall(
-      llvm::Intrinsic::ptrauth_strip, {fnVal, keyArg});
+      toolchain::Intrinsic::ptrauth_strip, {fnVal, keyArg});
   return IGF.Builder.CreateIntToPtr(strippedPtr, fnPtr->getType());
 }
 
 FunctionPointer irgen::emitPointerAuthResign(IRGenFunction &IGF,
                                              const FunctionPointer &fn,
                                           const PointerAuthInfo &newAuthInfo) {
-  llvm::Value *fnPtr = emitPointerAuthResign(IGF, fn.getRawPointer(),
+  toolchain::Value *fnPtr = emitPointerAuthResign(IGF, fn.getRawPointer(),
                                              fn.getAuthInfo(), newAuthInfo);
   return FunctionPointer::createSigned(fn.getKind(), fnPtr, newAuthInfo,
                                        fn.getSignature());
 }
 
-llvm::Value *irgen::emitPointerAuthResign(IRGenFunction &IGF,
-                                          llvm::Value *fnPtr,
+toolchain::Value *irgen::emitPointerAuthResign(IRGenFunction &IGF,
+                                          toolchain::Value *fnPtr,
                                           const PointerAuthInfo &oldAuthInfo,
                                           const PointerAuthInfo &newAuthInfo) {
   // If the signatures match, there's nothing to do.
@@ -100,43 +101,43 @@ llvm::Value *irgen::emitPointerAuthResign(IRGenFunction &IGF,
   auto oldPair = getPointerAuthPair(IGF, oldAuthInfo);
   auto newPair = getPointerAuthPair(IGF, newAuthInfo);
 
-  llvm::Value *args[] = {
+  toolchain::Value *args[] = {
     fnPtr, oldPair.first, oldPair.second, newPair.first, newPair.second
   };
   fnPtr =
-      IGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::ptrauth_resign, args);
+      IGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::ptrauth_resign, args);
   return IGF.Builder.CreateIntToPtr(fnPtr, origTy);
 }
 
-llvm::Value *irgen::emitPointerAuthAuth(IRGenFunction &IGF, llvm::Value *fnPtr,
+toolchain::Value *irgen::emitPointerAuthAuth(IRGenFunction &IGF, toolchain::Value *fnPtr,
                                         const PointerAuthInfo &oldAuthInfo) {
   auto origTy = fnPtr->getType();
   fnPtr = IGF.Builder.CreatePtrToInt(fnPtr, IGF.IGM.Int64Ty);
 
   auto oldPair = getPointerAuthPair(IGF, oldAuthInfo);
 
-  llvm::Value *args[] = {
+  toolchain::Value *args[] = {
     fnPtr, oldPair.first, oldPair.second
   };
-  fnPtr = IGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::ptrauth_auth, args);
+  fnPtr = IGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::ptrauth_auth, args);
   return IGF.Builder.CreateIntToPtr(fnPtr, origTy);
 }
 
-llvm::Value *irgen::emitPointerAuthSign(IRGenFunction &IGF, llvm::Value *fnPtr,
+toolchain::Value *irgen::emitPointerAuthSign(IRGenFunction &IGF, toolchain::Value *fnPtr,
                                         const PointerAuthInfo &newAuthInfo) {
   if (!newAuthInfo.isSigned())
     return fnPtr;
 
   // Special-case constants.
-  if (auto constantFnPtr = dyn_cast<llvm::Constant>(fnPtr)) {
+  if (auto constantFnPtr = dyn_cast<toolchain::Constant>(fnPtr)) {
     if (auto constantDiscriminator =
-          dyn_cast<llvm::Constant>(newAuthInfo.getDiscriminator())) {
-      llvm::Constant *address = nullptr;
-      llvm::ConstantInt *other = nullptr;
+          dyn_cast<toolchain::Constant>(newAuthInfo.getDiscriminator())) {
+      toolchain::Constant *address = nullptr;
+      toolchain::ConstantInt *other = nullptr;
       if (constantDiscriminator->getType()->isPointerTy()) {
         address = constantDiscriminator;
       } else if (auto otherDiscriminator =
-                     dyn_cast<llvm::ConstantInt>(constantDiscriminator)) {
+                     dyn_cast<toolchain::ConstantInt>(constantDiscriminator)) {
         other = otherDiscriminator;
       }
       return IGF.IGM.getConstantSignedPointer(constantFnPtr,
@@ -150,21 +151,21 @@ llvm::Value *irgen::emitPointerAuthSign(IRGenFunction &IGF, llvm::Value *fnPtr,
 
   auto newPair = getPointerAuthPair(IGF, newAuthInfo);
 
-  llvm::Value *args[] = {
+  toolchain::Value *args[] = {
     fnPtr, newPair.first, newPair.second
   };
-  fnPtr = IGF.Builder.CreateIntrinsicCall(llvm::Intrinsic::ptrauth_sign, args);
+  fnPtr = IGF.Builder.CreateIntrinsicCall(toolchain::Intrinsic::ptrauth_sign, args);
   return IGF.Builder.CreateIntToPtr(fnPtr, origTy);
 }
 
 /******************************* DISCRIMINATORS *******************************/
 
 struct IRGenModule::PointerAuthCachesType {
-  llvm::DenseMap<SILDeclRef, llvm::ConstantInt*> Decls;
-  llvm::DenseMap<CanType, llvm::ConstantInt*> Types;
-  llvm::DenseMap<CanType, llvm::ConstantInt*> YieldTypes;
-  llvm::DenseMap<AssociatedTypeDecl *, llvm::ConstantInt*> AssociatedTypes;
-  llvm::DenseMap<AssociatedConformance, llvm::ConstantInt*> AssociatedConformances;
+  toolchain::DenseMap<SILDeclRef, toolchain::ConstantInt*> Decls;
+  toolchain::DenseMap<CanType, toolchain::ConstantInt*> Types;
+  toolchain::DenseMap<CanType, toolchain::ConstantInt*> YieldTypes;
+  toolchain::DenseMap<AssociatedTypeDecl *, toolchain::ConstantInt*> AssociatedTypes;
+  toolchain::DenseMap<AssociatedConformance, toolchain::ConstantInt*> AssociatedConformances;
 };
 
 IRGenModule::PointerAuthCachesType &IRGenModule::getPointerAuthCaches() {
@@ -195,18 +196,18 @@ static const PointerAuthSchema &getFunctionPointerSchema(IRGenModule &IGM,
   case SILFunctionTypeRepresentation::KeyPathAccessorEquals:
   case SILFunctionTypeRepresentation::KeyPathAccessorHash:
     if (fnType->isAsync()) {
-      return options.AsyncSwiftFunctionPointers;
+      return options.AsyncCodiraFunctionPointers;
     } else if (fnType->isCalleeAllocatedCoroutine()) {
-      return options.CoroSwiftFunctionPointers;
+      return options.CoroCodiraFunctionPointers;
     }
 
-    return options.SwiftFunctionPointers;
+    return options.CodiraFunctionPointers;
 
   case SILFunctionTypeRepresentation::ObjCMethod:
   case SILFunctionTypeRepresentation::Block:
-    llvm_unreachable("not just a function pointer");
+    toolchain_unreachable("not just a function pointer");
   }
-  llvm_unreachable("bad representation");
+  toolchain_unreachable("bad representation");
 }
 
 PointerAuthInfo PointerAuthInfo::forFunctionPointer(IRGenModule &IGM,
@@ -225,7 +226,7 @@ PointerAuthInfo PointerAuthInfo::forFunctionPointer(IRGenModule &IGM,
 
 PointerAuthInfo PointerAuthInfo::emit(IRGenFunction &IGF,
                                       const PointerAuthSchema &schema,
-                                      llvm::Value *storageAddress,
+                                      toolchain::Value *storageAddress,
                                       const PointerAuthEntity &entity) {
   if (!schema) return PointerAuthInfo();
 
@@ -233,7 +234,7 @@ PointerAuthInfo PointerAuthInfo::emit(IRGenFunction &IGF,
 
   // Produce the 'other' discriminator.
   auto otherDiscriminator = getOtherDiscriminator(IGF.IGM, schema, entity);
-  llvm::Value *discriminator = otherDiscriminator;
+  toolchain::Value *discriminator = otherDiscriminator;
 
   // Factor in the address.
   if (schema.isAddressDiscriminated()) {
@@ -254,13 +255,13 @@ PointerAuthInfo PointerAuthInfo::emit(IRGenFunction &IGF,
 PointerAuthInfo
 PointerAuthInfo::emit(IRGenFunction &IGF,
                       clang::PointerAuthQualifier pointerAuthQual,
-                      llvm::Value *storageAddress) {
+                      toolchain::Value *storageAddress) {
   unsigned key = pointerAuthQual.getKey();
 
   // Produce the 'other' discriminator.
   auto otherDiscriminator = pointerAuthQual.getExtraDiscriminator();
-  llvm::Value *discriminator =
-      llvm::ConstantInt::get(IGF.IGM.Int64Ty, otherDiscriminator);
+  toolchain::Value *discriminator =
+      toolchain::ConstantInt::get(IGF.IGM.Int64Ty, otherDiscriminator);
 
   // Factor in the address.
   if (pointerAuthQual.isAddressDiscriminated()) {
@@ -280,14 +281,14 @@ PointerAuthInfo::emit(IRGenFunction &IGF,
 
 PointerAuthInfo PointerAuthInfo::emit(IRGenFunction &IGF,
                                       const PointerAuthSchema &schema,
-                                      llvm::Value *storageAddress,
-                                      llvm::ConstantInt *otherDiscriminator) {
+                                      toolchain::Value *storageAddress,
+                                      toolchain::ConstantInt *otherDiscriminator) {
   if (!schema)
     return PointerAuthInfo();
 
   unsigned key = schema.getKey();
 
-  llvm::Value *discriminator = otherDiscriminator;
+  toolchain::Value *discriminator = otherDiscriminator;
 
   // Factor in the address.
   if (schema.isAddressDiscriminated()) {
@@ -305,14 +306,14 @@ PointerAuthInfo PointerAuthInfo::emit(IRGenFunction &IGF,
   return PointerAuthInfo(key, discriminator);
 }
 
-llvm::ConstantInt *
+toolchain::ConstantInt *
 PointerAuthInfo::getOtherDiscriminator(IRGenModule &IGM,
                                        const PointerAuthSchema &schema,
                                        const PointerAuthEntity &entity) {
   assert(schema);
   switch (schema.getOtherDiscrimination()) {
   case PointerAuthSchema::Discrimination::None:
-    return llvm::ConstantInt::get(IGM.Int64Ty, 0);
+    return toolchain::ConstantInt::get(IGM.Int64Ty, 0);
 
   case PointerAuthSchema::Discrimination::Decl:
     return entity.getDeclDiscriminator(IGM);
@@ -321,19 +322,19 @@ PointerAuthInfo::getOtherDiscriminator(IRGenModule &IGM,
     return entity.getTypeDiscriminator(IGM);
 
   case PointerAuthSchema::Discrimination::Constant:
-    return llvm::ConstantInt::get(IGM.Int64Ty,
+    return toolchain::ConstantInt::get(IGM.Int64Ty,
                                   schema.getConstantDiscrimination());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
-static llvm::ConstantInt *getDiscriminatorForHash(IRGenModule &IGM,
+static toolchain::ConstantInt *getDiscriminatorForHash(IRGenModule &IGM,
                                                   uint64_t rawHash) {
   uint16_t reducedHash = (rawHash % 0xFFFF) + 1;
-  return llvm::ConstantInt::get(IGM.Int64Ty, reducedHash);
+  return toolchain::ConstantInt::get(IGM.Int64Ty, reducedHash);
 }
 
-static llvm::ConstantInt *getDiscriminatorForString(IRGenModule &IGM,
+static toolchain::ConstantInt *getDiscriminatorForString(IRGenModule &IGM,
                                                     StringRef string) {
   uint64_t rawHash = clang::CodeGen::computeStableStringHash(string);
   return getDiscriminatorForHash(IGM, rawHash);
@@ -349,13 +350,13 @@ static std::string mangle(const AssociatedConformance &association) {
     .mangleAssociatedTypeWitnessTableAccessFunctionDiscriminator(association);
 }
 
-llvm::ConstantInt *
+toolchain::ConstantInt *
 PointerAuthEntity::getDeclDiscriminator(IRGenModule &IGM) const {
   switch (StoredKind) {
   case Kind::None:
   case Kind::CanSILFunctionType:
   case Kind::CoroutineYieldTypes:
-    llvm_unreachable("no declaration for schema using decl discrimination");
+    toolchain_unreachable("no declaration for schema using decl discrimination");
 
   case Kind::Special: {
     auto getSpecialDiscriminator = [](Special special) -> uint16_t {
@@ -402,12 +403,12 @@ PointerAuthEntity::getDeclDiscriminator(IRGenModule &IGM) const {
         return SpecialPointerAuthDiscriminators::TypeLayoutString;
       case Special::BlockCopyHelper:
       case Special::BlockDisposeHelper:
-        llvm_unreachable("no known discriminator for these foreign entities");
+        toolchain_unreachable("no known discriminator for these foreign entities");
       }
-      llvm_unreachable("bad kind");
+      toolchain_unreachable("bad kind");
     };
     auto specialKind = Storage.get<Special>(StoredKind);
-    return llvm::ConstantInt::get(IGM.Int64Ty,
+    return toolchain::ConstantInt::get(IGM.Int64Ty,
                                   getSpecialDiscriminator(specialKind));
   }
 
@@ -423,18 +424,18 @@ PointerAuthEntity::getDeclDiscriminator(IRGenModule &IGM) const {
       case ValueWitness::Flags:
       case ValueWitness::Stride:
       case ValueWitness::ExtraInhabitantCount:
-        llvm_unreachable("not a function value witness");
+        toolchain_unreachable("not a function value witness");
       }
-      llvm_unreachable("bad kind");
+      toolchain_unreachable("bad kind");
     };
     auto witness = Storage.get<ValueWitness>(StoredKind);
-    return llvm::ConstantInt::get(IGM.Int64Ty,
+    return toolchain::ConstantInt::get(IGM.Int64Ty,
                                   getValueWitnessDiscriminator(witness));
   }
 
   case Kind::AssociatedType: {
     auto association = Storage.get<AssociatedTypeDecl *>(StoredKind);
-    llvm::ConstantInt *&cache =
+    toolchain::ConstantInt *&cache =
       IGM.getPointerAuthCaches().AssociatedTypes[association];
     if (cache) return cache;
 
@@ -445,7 +446,7 @@ PointerAuthEntity::getDeclDiscriminator(IRGenModule &IGM) const {
 
   case Kind::AssociatedConformance: {
     auto conformance = Storage.get<AssociatedConformance>(StoredKind);
-    llvm::ConstantInt *&cache =
+    toolchain::ConstantInt *&cache =
       IGM.getPointerAuthCaches().AssociatedConformances[conformance];
     if (cache) return cache;
 
@@ -456,7 +457,7 @@ PointerAuthEntity::getDeclDiscriminator(IRGenModule &IGM) const {
 
   case Kind::SILDeclRef: {
     auto constant = Storage.get<SILDeclRef>(StoredKind);
-    llvm::ConstantInt *&cache = IGM.getPointerAuthCaches().Decls[constant];
+    toolchain::ConstantInt *&cache = IGM.getPointerAuthCaches().Decls[constant];
     if (cache) return cache;
 
     // Getting the discriminator for a foreign SILDeclRef just means
@@ -475,7 +476,7 @@ PointerAuthEntity::getDeclDiscriminator(IRGenModule &IGM) const {
     return getDiscriminatorForString(IGM, fn->getName());
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static void hashStringForFunctionType(IRGenModule &IGM, CanSILFunctionType type,
@@ -588,7 +589,7 @@ static uint64_t getTypeHash(IRGenModule &IGM, CanSILFunctionType type) {
   // SILFunctionType.cpp.
 
   SmallString<32> Buffer;
-  llvm::raw_svector_ostream Out(Buffer);
+  toolchain::raw_svector_ostream Out(Buffer);
   auto genericSig = type->getInvocationGenericSignature();
   hashStringForFunctionType(
       IGM, type, Out,
@@ -598,7 +599,7 @@ static uint64_t getTypeHash(IRGenModule &IGM, CanSILFunctionType type) {
 
 static uint64_t getYieldTypesHash(IRGenModule &IGM, CanSILFunctionType type) {
   SmallString<32> buffer;
-  llvm::raw_svector_ostream out(buffer);
+  toolchain::raw_svector_ostream out(buffer);
   auto genericSig = type->getInvocationGenericSignature();
   auto *genericEnv =  genericSig.getCanonicalSignature().getGenericEnvironment();
 
@@ -608,9 +609,9 @@ static uint64_t getYieldTypesHash(IRGenModule &IGM, CanSILFunctionType type) {
     case SILCoroutineKind::YieldOnce: return "yield_once:";
     case SILCoroutineKind::YieldOnce2:
       return "yield_once_2:";
-    case SILCoroutineKind::None: llvm_unreachable("not a coroutine");
+    case SILCoroutineKind::None: toolchain_unreachable("not a coroutine");
     }
-    llvm_unreachable("bad coroutine kind");
+    toolchain_unreachable("bad coroutine kind");
   }();
 
   out << type->getNumYields() << ":";
@@ -635,11 +636,11 @@ static uint64_t getYieldTypesHash(IRGenModule &IGM, CanSILFunctionType type) {
   return clang::CodeGen::computeStableStringHash(out.str());  
 }
 
-llvm::ConstantInt *
+toolchain::ConstantInt *
 PointerAuthEntity::getTypeDiscriminator(IRGenModule &IGM) const {
   auto getTypeDiscriminator = [&](CanSILFunctionType fnType) {
     switch (fnType->getRepresentation()) {
-    // Swift function types are type-discriminated.
+    // Codira function types are type-discriminated.
     case SILFunctionTypeRepresentation::Thick:
     case SILFunctionTypeRepresentation::Thin:
     case SILFunctionTypeRepresentation::Method:
@@ -649,7 +650,7 @@ PointerAuthEntity::getTypeDiscriminator(IRGenModule &IGM) const {
     case SILFunctionTypeRepresentation::KeyPathAccessorSetter:
     case SILFunctionTypeRepresentation::KeyPathAccessorEquals:
     case SILFunctionTypeRepresentation::KeyPathAccessorHash: {
-      llvm::ConstantInt *&cache = IGM.getPointerAuthCaches().Types[fnType];
+      toolchain::ConstantInt *&cache = IGM.getPointerAuthCaches().Types[fnType];
       if (cache) return cache;
 
       auto hash = getTypeHash(IGM, fnType);
@@ -660,18 +661,18 @@ PointerAuthEntity::getTypeDiscriminator(IRGenModule &IGM) const {
     // C function pointers are undiscriminated.
     case SILFunctionTypeRepresentation::CXXMethod:
     case SILFunctionTypeRepresentation::CFunctionPointer:
-      return llvm::ConstantInt::get(IGM.Int64Ty, 0);
+      return toolchain::ConstantInt::get(IGM.Int64Ty, 0);
       
     case SILFunctionTypeRepresentation::ObjCMethod:
     case SILFunctionTypeRepresentation::Block: {
-      llvm_unreachable("not type discriminated");
+      toolchain_unreachable("not type discriminated");
     }
     }
-    llvm_unreachable("invalid representation");
+    toolchain_unreachable("invalid representation");
   };
 
   auto getCoroutineYieldTypesDiscriminator = [&](CanSILFunctionType fnType) {
-    llvm::ConstantInt *&cache = IGM.getPointerAuthCaches().Types[fnType];
+    toolchain::ConstantInt *&cache = IGM.getPointerAuthCaches().Types[fnType];
     if (cache) return cache;
 
     auto hash = getYieldTypesHash(IGM, fnType);
@@ -686,7 +687,7 @@ PointerAuthEntity::getTypeDiscriminator(IRGenModule &IGM) const {
   case Kind::AssociatedType:
   case Kind::AssociatedConformance:
   case Kind::SILFunction:
-    llvm_unreachable("no type for schema using type discrimination");
+    toolchain_unreachable("no type for schema using type discrimination");
 
   case Kind::CoroutineYieldTypes: {
     auto fnType = Storage.get<CanSILFunctionType>(StoredKind);
@@ -705,11 +706,11 @@ PointerAuthEntity::getTypeDiscriminator(IRGenModule &IGM) const {
     return getTypeDiscriminator(fnType);
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
-llvm::Constant *
-IRGenModule::getConstantSignedFunctionPointer(llvm::Constant *fn,
+toolchain::Constant *
+IRGenModule::getConstantSignedFunctionPointer(toolchain::Constant *fn,
                                               CanSILFunctionType fnType) {
   if (auto &schema = getFunctionPointerSchema(*this, fnType)) {
     return getConstantSignedPointer(fn, schema, fnType, nullptr);
@@ -717,8 +718,8 @@ IRGenModule::getConstantSignedFunctionPointer(llvm::Constant *fn,
   return fn;
 }
 
-llvm::Constant *
-IRGenModule::getConstantSignedCFunctionPointer(llvm::Constant *fn) {
+toolchain::Constant *
+IRGenModule::getConstantSignedCFunctionPointer(toolchain::Constant *fn) {
   if (auto &schema = getOptions().PointerAuth.FunctionPointers) {
     assert(!schema.hasOtherDiscrimination());
     return getConstantSignedPointer(fn, schema, PointerAuthEntity(), nullptr);
@@ -726,19 +727,19 @@ IRGenModule::getConstantSignedCFunctionPointer(llvm::Constant *fn) {
   return fn;
 }
 
-llvm::Constant *
-IRGenModule::getConstantSignedPointer(llvm::Constant *pointer, unsigned key,
-                                      llvm::Constant *storageAddress,
-                                      llvm::ConstantInt *otherDiscriminator) {
+toolchain::Constant *
+IRGenModule::getConstantSignedPointer(toolchain::Constant *pointer, unsigned key,
+                                      toolchain::Constant *storageAddress,
+                                      toolchain::ConstantInt *otherDiscriminator) {
   return clang::CodeGen::getConstantSignedPointer(getClangCGM(), pointer, key,
                                                   storageAddress,
                                                   otherDiscriminator);
 }
 
-llvm::Constant *IRGenModule::getConstantSignedPointer(llvm::Constant *pointer,
+toolchain::Constant *IRGenModule::getConstantSignedPointer(toolchain::Constant *pointer,
                                           const PointerAuthSchema &schema,
                                           const PointerAuthEntity &entity,
-                                          llvm::Constant *storageAddress) {
+                                          toolchain::Constant *storageAddress) {
   // If the schema doesn't sign pointers, do nothing.
   if (!schema)
     return pointer;
@@ -749,7 +750,7 @@ llvm::Constant *IRGenModule::getConstantSignedPointer(llvm::Constant *pointer,
                    otherDiscriminator);
 }
 
-void ConstantAggregateBuilderBase::addSignedPointer(llvm::Constant *pointer,
+void ConstantAggregateBuilderBase::addSignedPointer(toolchain::Constant *pointer,
                                               const PointerAuthSchema &schema,
                                               const PointerAuthEntity &entity) {
   // If the schema doesn't sign pointers, do nothing.
@@ -762,7 +763,7 @@ void ConstantAggregateBuilderBase::addSignedPointer(llvm::Constant *pointer,
                    otherDiscriminator);
 }
 
-void ConstantAggregateBuilderBase::addSignedPointer(llvm::Constant *pointer,
+void ConstantAggregateBuilderBase::addSignedPointer(toolchain::Constant *pointer,
                                               const PointerAuthSchema &schema,
                                               uint16_t otherDiscriminator) {
   // If the schema doesn't sign pointers, do nothing.
@@ -770,9 +771,9 @@ void ConstantAggregateBuilderBase::addSignedPointer(llvm::Constant *pointer,
     return add(pointer);
 
   addSignedPointer(pointer, schema.getKey(), schema.isAddressDiscriminated(),
-                   llvm::ConstantInt::get(IGM().Int64Ty, otherDiscriminator));
+                   toolchain::ConstantInt::get(IGM().Int64Ty, otherDiscriminator));
 }
 
-llvm::ConstantInt* IRGenFunction::getMallocTypeId() {
+toolchain::ConstantInt* IRGenFunction::getMallocTypeId() {
   return getDiscriminatorForString(IGM, CurFn->getName());
 }

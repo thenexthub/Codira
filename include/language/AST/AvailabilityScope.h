@@ -1,4 +1,4 @@
-//===--- AvailabilityScope.h - Swift Availability Scopes ----*- C++ -----*-===//
+//===--- AvailabilityScope.h - Codira Availability Scopes ----*- C++ -----*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the AvailabilityScope class. An AvailabilityScope
@@ -19,18 +20,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AVAILABILITYSCOPE_H
-#define SWIFT_AVAILABILITYSCOPE_H
+#ifndef LANGUAGE_AVAILABILITYSCOPE_H
+#define LANGUAGE_AVAILABILITYSCOPE_H
 
 #include "language/AST/AvailabilityContext.h"
 #include "language/AST/AvailabilityRange.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Stmt.h" // for PoundAvailableInfo
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 namespace language {
 class BraceStmt;
@@ -272,7 +273,7 @@ public:
   /// version; if zero or multiple such responsible attributes or statements
   /// exist, returns an invalid SourceRange.
   SourceRange getAvailabilityConditionVersionSourceRange(
-      AvailabilityDomain Domain, const llvm::VersionTuple &Version) const;
+      AvailabilityDomain Domain, const toolchain::VersionTuple &Version) const;
 
   /// Returns the availability version range that was explicitly written in
   /// source, if applicable. Otherwise, returns null.
@@ -309,14 +310,14 @@ public:
   /// diagnostics to stderr and aborts.
   void verify(ASTContext &ctx);
 
-  SWIFT_DEBUG_DUMPER(dump(SourceManager &SrcMgr));
+  LANGUAGE_DEBUG_DUMPER(dump(SourceManager &SrcMgr));
   void dump(raw_ostream &OS, SourceManager &SrcMgr) const;
   void print(raw_ostream &OS, SourceManager &SrcMgr, unsigned Indent = 0) const;
 
   static StringRef getReasonName(Reason R);
 };
 
-void simple_display(llvm::raw_ostream &out, const AvailabilityScope *scope);
+void simple_display(toolchain::raw_ostream &out, const AvailabilityScope *scope);
 
 inline SourceLoc extractNearestSourceLoc(const AvailabilityScope *scope) {
   return scope->getIntroductionLoc();

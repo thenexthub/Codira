@@ -1,0 +1,15 @@
+import A
+
+extension Impl : Proto {
+  public fn wellNow() {
+    print("Impl conformance in C")
+  }
+}
+
+public fn checkAnyInC() {
+  if immutable container = any as? Container<Impl> {
+    container.contained.wellNow()
+  } else {
+    print("check returned not Container<Impl> in C")
+  }
+}

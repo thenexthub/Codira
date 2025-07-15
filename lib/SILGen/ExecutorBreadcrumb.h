@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_EXECUTORBREADCRUMB_H
-#define SWIFT_SILGEN_EXECUTORBREADCRUMB_H
+#ifndef LANGUAGE_SILGEN_EXECUTORBREADCRUMB_H
+#define LANGUAGE_SILGEN_EXECUTORBREADCRUMB_H
 
 #include "language/SIL/SILValue.h"
 

@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_SYMBOL_H
-#define SWIFT_SYMBOLGRAPHGEN_SYMBOL_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_SYMBOL_H
+#define LANGUAGE_SYMBOLGRAPHGEN_SYMBOL_H
 
-#include "llvm/Support/JSON.h"
+#include "toolchain/Support/JSON.h"
 #include "language/AST/Attr.h"
 #include "language/AST/Type.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Markup/Markup.h"
 #include "language/SymbolGraphGen/PathComponent.h"
 #include "language/SymbolGraphGen/FragmentInfo.h"
@@ -44,49 +45,49 @@ class Symbol {
          const ValueDecl *SynthesizedBaseTypeDecl,
          Type BaseTypeForSubstitution = Type());
 
-  swift::DeclName getName(const Decl *D) const;
+  language::DeclName getName(const Decl *D) const;
 
   void serializeKind(StringRef Identifier, StringRef DisplayName,
-                     llvm::json::OStream &OS) const;
+                     toolchain::json::OStream &OS) const;
 
-  void serializeKind(llvm::json::OStream &OS) const;
+  void serializeKind(toolchain::json::OStream &OS) const;
 
-  void serializeIdentifier(llvm::json::OStream &OS) const;
+  void serializeIdentifier(toolchain::json::OStream &OS) const;
 
-  void serializePathComponents(llvm::json::OStream &OS) const;
+  void serializePathComponents(toolchain::json::OStream &OS) const;
 
-  void serializeNames(llvm::json::OStream &OS) const;
+  void serializeNames(toolchain::json::OStream &OS) const;
 
   void serializePosition(StringRef Key, SourceLoc Loc,
                          SourceManager &SourceMgr,
-                         llvm::json::OStream &OS) const;
+                         toolchain::json::OStream &OS) const;
 
   void serializeRange(size_t InitialIndentation,
                       SourceRange Range, SourceManager &SourceMgr,
-                      llvm::json::OStream &OS) const;
+                      toolchain::json::OStream &OS) const;
 
-  void serializeDocComment(llvm::json::OStream &OS) const;
+  void serializeDocComment(toolchain::json::OStream &OS) const;
 
-  void serializeFunctionSignature(llvm::json::OStream &OS) const;
+  void serializeFunctionSignature(toolchain::json::OStream &OS) const;
 
-  void serializeGenericParam(const swift::GenericTypeParamType &Param,
-                             llvm::json::OStream &OS) const;
+  void serializeGenericParam(const language::GenericTypeParamType &Param,
+                             toolchain::json::OStream &OS) const;
 
-  void serializeSwiftGenericMixin(llvm::json::OStream &OS) const;
+  void serializeCodiraGenericMixin(toolchain::json::OStream &OS) const;
 
-  void serializeSwiftExtensionMixin(llvm::json::OStream &OS) const;
+  void serializeCodiraExtensionMixin(toolchain::json::OStream &OS) const;
 
-  void serializeDeclarationFragmentMixin(llvm::json::OStream &OS) const;
+  void serializeDeclarationFragmentMixin(toolchain::json::OStream &OS) const;
 
-  void serializeAccessLevelMixin(llvm::json::OStream &OS) const;
+  void serializeAccessLevelMixin(toolchain::json::OStream &OS) const;
 
-  void serializeMetadataMixin(llvm::json::OStream &OS) const;
+  void serializeMetadataMixin(toolchain::json::OStream &OS) const;
 
-  void serializeLocationMixin(llvm::json::OStream &OS) const;
+  void serializeLocationMixin(toolchain::json::OStream &OS) const;
 
-  void serializeAvailabilityMixin(llvm::json::OStream &OS) const;
+  void serializeAvailabilityMixin(toolchain::json::OStream &OS) const;
 
-  void serializeSPIMixin(llvm::json::OStream &OS) const;
+  void serializeSPIMixin(toolchain::json::OStream &OS) const;
 
 public:
   Symbol(SymbolGraph *Graph, const ExtensionDecl *ED,
@@ -97,7 +98,7 @@ public:
          const ValueDecl *SynthesizedBaseTypeDecl,
          Type BaseTypeForSubstitution = Type());
 
-  void serialize(llvm::json::OStream &OS) const;
+  void serialize(toolchain::json::OStream &OS) const;
 
   const SymbolGraph *getGraph() const {
     return Graph;
@@ -124,7 +125,7 @@ public:
   void getFragmentInfo(SmallVectorImpl<FragmentInfo> &FragmentInfo) const;
 
   /// Print the symbol path to an output stream.
-  void printPath(llvm::raw_ostream &OS) const;
+  void printPath(toolchain::raw_ostream &OS) const;
 
   void getUSR(SmallVectorImpl<char> &USR) const;
   
@@ -172,35 +173,35 @@ public:
 } // end namespace symbolgraphgen
 } // end namespace language
 
-namespace llvm {
-using Symbol = swift::symbolgraphgen::Symbol;
-using SymbolGraph = swift::symbolgraphgen::SymbolGraph;
+namespace toolchain {
+using Symbol = language::symbolgraphgen::Symbol;
+using SymbolGraph = language::symbolgraphgen::SymbolGraph;
 
 template <> struct DenseMapInfo<Symbol> {
   static inline Symbol getEmptyKey() {
     return Symbol{
         DenseMapInfo<SymbolGraph *>::getEmptyKey(),
-        DenseMapInfo<const swift::ValueDecl *>::getEmptyKey(),
-        DenseMapInfo<const swift::ValueDecl *>::getTombstoneKey(),
-        DenseMapInfo<swift::Type>::getEmptyKey(),
+        DenseMapInfo<const language::ValueDecl *>::getEmptyKey(),
+        DenseMapInfo<const language::ValueDecl *>::getTombstoneKey(),
+        DenseMapInfo<language::Type>::getEmptyKey(),
     };
   }
   static inline Symbol getTombstoneKey() {
     return Symbol{
         DenseMapInfo<SymbolGraph *>::getTombstoneKey(),
-        DenseMapInfo<const swift::ValueDecl *>::getTombstoneKey(),
-        DenseMapInfo<const swift::ValueDecl *>::getTombstoneKey(),
-        DenseMapInfo<swift::Type>::getTombstoneKey(),
+        DenseMapInfo<const language::ValueDecl *>::getTombstoneKey(),
+        DenseMapInfo<const language::ValueDecl *>::getTombstoneKey(),
+        DenseMapInfo<language::Type>::getTombstoneKey(),
     };
   }
   static unsigned getHashValue(const Symbol S) {
     unsigned H = 0;
     H ^= DenseMapInfo<SymbolGraph *>::getHashValue(S.getGraph());
     H ^=
-        DenseMapInfo<const swift::Decl *>::getHashValue(S.getLocalSymbolDecl());
-    H ^= DenseMapInfo<const swift::ValueDecl *>::getHashValue(
+        DenseMapInfo<const language::Decl *>::getHashValue(S.getLocalSymbolDecl());
+    H ^= DenseMapInfo<const language::ValueDecl *>::getHashValue(
         S.getSynthesizedBaseTypeDecl());
-    H ^= DenseMapInfo<swift::Type>::getHashValue(S.getBaseType());
+    H ^= DenseMapInfo<language::Type>::getHashValue(S.getBaseType());
     return H;
   }
   static bool isEqual(const Symbol LHS, const Symbol RHS) {
@@ -208,11 +209,11 @@ template <> struct DenseMapInfo<Symbol> {
            LHS.getLocalSymbolDecl() == RHS.getLocalSymbolDecl() &&
            LHS.getSynthesizedBaseTypeDecl() ==
                RHS.getSynthesizedBaseTypeDecl() &&
-           DenseMapInfo<swift::Type>::isEqual(LHS.getBaseType(),
+           DenseMapInfo<language::Type>::isEqual(LHS.getBaseType(),
                                               RHS.getBaseType());
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
 
-#endif // SWIFT_SYMBOLGRAPHGEN_SYMBOL_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_SYMBOL_H

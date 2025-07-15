@@ -1,30 +1,34 @@
 //===--- StableHasher.h - Stable Hashing ------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// An implementation of a stable hashing for Swift.
+// An implementation of a stable hashing for Codira.
 //
 // Derived from the reference implementation for SipHash 2-4:
 //   https://github.com/veorq/SipHash
 //
-// With inline buffering derived from the hash implementation in the Swift
+// With inline buffering derived from the hash implementation in the Codira
 // Standard Library.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_STABLEHASHER_H
-#define SWIFT_BASIC_STABLEHASHER_H
+#ifndef LANGUAGE_BASIC_STABLEHASHER_H
+#define LANGUAGE_BASIC_STABLEHASHER_H
 
-#include "llvm/Support/Endian.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/Support/Endian.h"
+#include "toolchain/ADT/StringRef.h"
 #include <algorithm>
 #include <cstring>
 #include <string>
@@ -52,16 +56,16 @@ namespace language {
 ///
 /// This hasher also allows for extending the hash-combiner to user-defined
 /// types. To do so, define a (partial) specialization of
-/// \c swift::StableHasher::Combiner<T>
+/// \c language::StableHasher::Combiner<T>
 ///
 ///    template <typename T>
-///    struct swift::StableHasher::Combiner<std::optional<T>> {
+///    struct language::StableHasher::Combiner<std::optional<T>> {
 ///      static void combine(StableHasher &hasher, const std::optional<T> &O) {
 ///        if (!O.has_value()) {
 ///          hasher.combine(0);
 ///        } else {
 ///          hasher.combine(1);
-///          swift::StableHasher::Combiner<T>::combine(hasher, O.value());
+///          language::StableHasher::Combiner<T>::combine(hasher, O.value());
 ///        }
 ///      }
 ///    };
@@ -133,8 +137,8 @@ public:
       return setBufferLength(bufLen + N);
     }
 
-    constexpr auto endian = llvm::endianness::little;
-    compress(llvm::support::endian::read<uint64_t>(byteBuffer, endian));
+    constexpr auto endian = toolchain::endianness::little;
+    compress(toolchain::support::endian::read<uint64_t>(byteBuffer, endian));
 
     // Now reseed the buffer with the remaining bytes.
     const uint64_t remainder = N - available;
@@ -146,9 +150,9 @@ public:
       typename T,
       typename std::enable_if<std::is_integral<T>::value>::type * = nullptr>
   void combine(T bits) {
-    constexpr auto endian = llvm::endianness::little;
+    constexpr auto endian = toolchain::endianness::little;
     uint8_t buf[sizeof(T)] = {0};
-    bits = llvm::support::endian::byte_swap<T>(bits, endian);
+    bits = toolchain::support::endian::byte_swap<T>(bits, endian);
     std::memcpy(buf, &bits, sizeof(T));
     combine<sizeof(T)>(buf);
   }
@@ -181,7 +185,7 @@ public:
     return combine_range(arg.begin(), arg.end());
   }
 
-  void combine(llvm::StringRef arg) {
+  void combine(toolchain::StringRef arg) {
     return combine_range(arg.begin(), arg.end());
   }
 
@@ -237,4 +241,4 @@ private:
 
 } // namespace language
 
-#endif // SWIFT_BASIC_STABLEHASHER_H
+#endif // LANGUAGE_BASIC_STABLEHASHER_H

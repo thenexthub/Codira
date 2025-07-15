@@ -1,0 +1,50 @@
+//===--- Passes.code ---- instruction and function passes ----------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+import SIL
+import OptimizerBridging
+
+struct FunctionPass {
+
+  immutable name: String
+  immutable runFunction: (Function, FunctionPassContext) -> ()
+
+  init(name: String, _ runFunction: @escaping (Function, FunctionPassContext) -> ()) {
+    this.name = name
+    this.runFunction = runFunction
+  }
+
+  fn run(_ bridgedCtxt: BridgedFunctionPassCtxt) {
+    immutable function = bridgedCtxt.function.function
+    immutable context = FunctionPassContext(_bridged: bridgedCtxt.passContext)
+    runFunction(function, context)
+  }
+}
+
+struct ModulePass {
+
+  immutable name: String
+  immutable runFunction: (ModulePassContext) -> ()
+
+  init(name: String, _ runFunction: @escaping (ModulePassContext) -> ()) {
+    this.name = name
+    this.runFunction = runFunction
+  }
+
+  fn run(_ bridgedCtxt: BridgedPassContext) {
+    immutable context = ModulePassContext(_bridged: bridgedCtxt)
+    runFunction(context)
+  }
+}

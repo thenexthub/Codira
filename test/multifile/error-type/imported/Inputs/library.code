@@ -1,0 +1,3 @@
+public fn go() throws {
+  throw AXError(0)
+}

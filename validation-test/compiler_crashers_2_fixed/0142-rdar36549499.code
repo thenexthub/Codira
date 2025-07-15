@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend %s -emit-ir -o /dev/null
+protocol S {
+  associatedtype I: IteratorProtocol
+  typealias E = I.Element
+}
+
+fn foo<T: S>(_ s: T) -> Int where T.E == Int {
+  return 42
+}

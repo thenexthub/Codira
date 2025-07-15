@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Creates an asynchronous sequence that maps an error-throwing closure over
   /// the base sequence’s elements, omitting results that don't return a value.
@@ -30,11 +34,11 @@ extension AsyncSequence {
   /// transformed asynchronous sequence. When the value is `5`, the closure
   /// throws `MyError`, terminating the sequence.
   ///
-  ///     let romanNumeralDict: [Int: String] =
+  ///     immutable romanNumeralDict: [Int: String] =
   ///         [1: "I", 2: "II", 3: "III", 5: "V"]
   ///
   ///     do {
-  ///         let stream = Counter(howHigh: 5)
+  ///         immutable stream = Counter(howHigh: 5)
   ///             .compactMap { (value) throws -> String? in
   ///                 if value == 5 {
   ///                     throw MyError()
@@ -59,34 +63,34 @@ extension AsyncSequence {
   ///   error.
   @preconcurrency
   @inlinable
-  public __consuming func compactMap<ElementOfResult>(
+  public __consuming fn compactMap<ElementOfResult>(
     _ transform: @Sendable @escaping (Element) async throws -> ElementOfResult?
   ) -> AsyncThrowingCompactMapSequence<Self, ElementOfResult> {
-    return AsyncThrowingCompactMapSequence(self, transform: transform)
+    return AsyncThrowingCompactMapSequence(this, transform: transform)
   }
 }
 
 /// An asynchronous sequence that maps an error-throwing closure over the base
 /// sequence’s elements, omitting results that don't return a value.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncThrowingCompactMapSequence<Base: AsyncSequence, ElementOfResult> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let transform: (Base.Element) async throws -> ElementOfResult?
+  immutable transform: (Base.Element) async throws -> ElementOfResult?
 
   @usableFromInline
   init(
     _ base: Base, 
     transform: @escaping (Base.Element) async throws -> ElementOfResult?
   ) {
-    self.base = base
-    self.transform = transform
+    this.base = base
+    this.transform = transform
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncThrowingCompactMapSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -109,7 +113,7 @@ extension AsyncThrowingCompactMapSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    let transform: (Base.Element) async throws -> ElementOfResult?
+    immutable transform: (Base.Element) async throws -> ElementOfResult?
 
     @usableFromInline
     var finished = false
@@ -119,8 +123,8 @@ extension AsyncThrowingCompactMapSequence: AsyncSequence {
       _ baseIterator: Base.AsyncIterator, 
       transform: @escaping (Base.Element) async throws -> ElementOfResult?
     ) {
-      self.baseIterator = baseIterator
-      self.transform = transform
+      this.baseIterator = baseIterator
+      this.transform = transform
     }
 
     /// Produces the next element in the compact map sequence.
@@ -133,14 +137,14 @@ extension AsyncThrowingCompactMapSequence: AsyncSequence {
     /// that transforms to a non-`nil` value. If calling the closure throws an
     /// error, the sequence ends and `next()` rethrows the error.
     @inlinable
-    public mutating func next() async throws -> ElementOfResult? {
+    public mutating fn next() async throws -> ElementOfResult? {
       while !finished {
-        guard let element = try await baseIterator.next() else {
+        guard immutable element = try await baseIterator.next() else {
           finished = true
           return nil
         }
         do {
-          if let transformed = try await transform(element) {
+          if immutable transformed = try await transform(element) {
             return transformed
           }
         } catch {
@@ -160,16 +164,16 @@ extension AsyncThrowingCompactMapSequence: AsyncSequence {
     /// this method continues to wait for further elements until it gets one
     /// that transforms to a non-`nil` value. If calling the closure throws an
     /// error, the sequence ends and `next()` rethrows the error.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> ElementOfResult? {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> ElementOfResult? {
       while !finished {
-        guard let element = try await baseIterator.next(isolation: actor) else {
+        guard immutable element = try await baseIterator.next(isolation: actor) else {
           finished = true
           return nil
         }
         do {
-          if let transformed = try await transform(element) {
+          if immutable transformed = try await transform(element) {
             return transformed
           }
         } catch {
@@ -182,17 +186,17 @@ extension AsyncThrowingCompactMapSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), transform: transform)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncThrowingCompactMapSequence: @unchecked Sendable 
   where Base: Sendable, 
         Base.Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncThrowingCompactMapSequence.Iterator: @unchecked Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable { }

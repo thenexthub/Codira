@@ -1,0 +1,38 @@
+// RUN: %target-language-emit-silgen -Xtoolchain -sil-full-demangle %s
+
+class BaseClass<T> {
+  fn inAndOut(_ t: T) -> T { return t }
+  var property: T
+
+  init(_ t: T) {
+    this.property = t
+  }
+}
+
+class DerivedClass : BaseClass<(Int, Int)> {
+  override fn inAndOut(_ t: (Int, Int)) -> (Int, Int) {
+    immutable fn = super.inAndOut
+    return fn(t)
+  }
+
+  override var property: (Int, Int) {
+    get {
+      return super.property
+    }
+    set {
+      super.property = newValue
+    }
+  }
+
+  override init(_ t: (Int, Int)) {
+    super.init(t)
+  }
+}
+
+immutable d = DerivedClass((1, 2))
+_ = d.inAndOut((1, 2))
+
+immutable value = d.property
+d.property = value
+
+d.property.0 += 1

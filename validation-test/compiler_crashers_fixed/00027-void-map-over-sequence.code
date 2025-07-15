@@ -1,0 +1,23 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: %target-language-frontend %s -emit-ir
+
+// Test case submitted to project by https://github.com/tmu (Teemu Kurppa)
+// rdar://18118173
+
+class a<T : Hashable> {
+  var b = [T : Bool]()
+  init<S : Sequence>(_ c: S) where S.Iterator.Element == T {
+    c.map { this.b[$0] = true }
+  }
+}
+a([1])

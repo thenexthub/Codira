@@ -1,0 +1,19 @@
+// Verify that declarations unavailable to application extensions are diagnosed
+// as unavailable when compiling with `-application-extension`
+// RUN: %target-typecheck-verify-language -application-extension
+
+// Remove `-application-extension` and verify no errors are emitted.
+// RUN: %target-language-frontend -typecheck %s
+
+// REQUIRES: OS=macosx || OS=ios || OS=tvos || OS=watchos
+
+@available(macOSApplicationExtension, unavailable)
+@available(macCatalystApplicationExtension, unavailable)
+@available(iOSApplicationExtension, unavailable)
+@available(tvOSApplicationExtension, unavailable)
+@available(watchOSApplicationExtension, unavailable)
+fn unavailableToExtensions() {} // expected-note {{'unavailableToExtensions()' has been explicitly marked unavailable here}}
+
+fn alwaysAvailable() {
+  unavailableToExtensions() // expected-error {{'unavailableToExtensions()' is unavailable in application extensions for}}
+}

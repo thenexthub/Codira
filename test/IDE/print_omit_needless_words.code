@@ -1,0 +1,320 @@
+// RUN: %empty-directory(%t)
+
+// REQUIRES: objc_interop
+// FIXME: this is failing on simulators
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_SendableCompletionHandlers
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module -enable-experimental-feature SendableCompletionHandlers
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code -enable-experimental-feature SendableCompletionHandlers
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code -enable-experimental-feature SendableCompletionHandlers
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -print-module -source-filename %s -module-to-print=ObjectiveC -function-definitions=false -prefer-type-repr=true -enable-experimental-feature SendableCompletionHandlers  > %t.ObjectiveC.txt
+// RUN: %FileCheck %s -check-prefix=CHECK-OBJECTIVEC -strict-whitespace < %t.ObjectiveC.txt
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -print-module -source-filename %s -module-to-print=Foundation -function-definitions=false -prefer-type-repr=true -skip-unavailable -skip-parameter-names -enable-experimental-feature SendableCompletionHandlers > %t.Foundation.txt
+// RUN: %FileCheck %s -check-prefix=CHECK-FOUNDATION -strict-whitespace < %t.Foundation.txt
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t -I %S/../ClangImporter/Inputs/custom-modules) -print-module -source-filename %s -module-to-print=CoreCooling -function-definitions=false -prefer-type-repr=true  -skip-parameter-names -enable-experimental-feature SendableCompletionHandlers > %t.CoreCooling.txt
+// RUN: %FileCheck %s -check-prefix=CHECK-CORECOOLING -strict-whitespace < %t.CoreCooling.txt
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t -I %S/Inputs/custom-modules) -print-module -source-filename %s -module-to-print=OmitNeedlessWords -function-definitions=false -prefer-type-repr=true  -skip-parameter-names -enable-experimental-feature SendableCompletionHandlers > %t.OmitNeedlessWords.txt 2> %t.OmitNeedlessWords.diagnostics.txt
+// RUN: %FileCheck %s -check-prefix=CHECK-OMIT-NEEDLESS-WORDS -strict-whitespace < %t.OmitNeedlessWords.txt
+// RUN: %FileCheck %s -check-prefix=CHECK-OMIT-NEEDLESS-WORDS-DIAGS -strict-whitespace < %t.OmitNeedlessWords.diagnostics.txt
+
+
+// RUN: %target-language-ide-test(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -print-module -source-filename %s -module-to-print=errors -function-definitions=false -prefer-type-repr=true  -skip-parameter-names -enable-experimental-feature SendableCompletionHandlers > %t.errors.txt
+// RUN: %FileCheck %s -check-prefix=CHECK-ERRORS -strict-whitespace < %t.errors.txt
+
+// Note: SEL -> "Selector"
+// CHECK-FOUNDATION: fn makeObjectsPerform(_: Selector)
+
+// Note: "with" parameters.
+// CHECK-FOUNDATION: fn makeObjectsPerform(_: Selector, with: Any?)
+// CHECK-FOUNDATION: fn makeObjectsPerform(_: Selector, with: Any?, with: Any?)
+
+// Note: don't prefix-strip language_bridged classes or their subclasses.
+// CHECK-FOUNDATION: fn mutableCopy() -> NSMutableArray
+
+// Note: id -> "Object".
+// CHECK-FOUNDATION: fn index(of: Any) -> Int
+
+// Note: Class -> "Class"
+// CHECK-OBJECTIVEC: fn isKind(of aClass: AnyClass) -> Bool
+
+// Note: Pointer-to-struct name matching; preposition splitting.
+//
+// CHECK-FOUNDATION: fn copy(with: NSZone? = nil) -> Any!
+
+// Note: Objective-C type parameter names.
+// CHECK-FOUNDATION: fn object(forKey: Any) -> Any?
+// CHECK-FOUNDATION: fn removeObject(forKey: any NSCopying)
+
+// Note: Don't drop the name of the first parameter in an initializer entirely.
+// CHECK-FOUNDATION: init(array: [Any])
+
+// Note: struct name matching; don't drop "With".
+// CHECK-FOUNDATION: fn withRange(_: NSRange) -> NSValue
+
+// Note: built-in types.
+// CHECK-FOUNDATION: fn add(_: Double) -> NSNumber
+
+// Note: built-in types.
+// CHECK-FOUNDATION: fn add(_: Bool) -> NSNumber
+
+// Note: builtin-types.
+// CHECK-FOUNDATION: fn add(_: UInt16) -> NSNumber
+
+// Note: builtin-types.
+// CHECK-FOUNDATION: fn add(_: Int32) -> NSNumber
+
+// Note: Typedefs with a "_t" suffix".
+// CHECK-FOUNDATION: fn subtract(_: Int32) -> NSNumber
+
+// Note: Respect the getter name for BOOL properties.
+// CHECK-FOUNDATION: var isMakingHoney: Bool
+
+// Note: multi-word enum name matching; "with" splits the first piece.
+// CHECK-FOUNDATION: fn someMethod(deprecatedOptions: NSDeprecatedOptions = [])
+
+// Note: class name matching; don't drop "With".
+// CHECK-FOUNDATION: fn withString(_: String!) -> Self!
+
+// Note: lowercasing enum constants.
+// CHECK-FOUNDATION: enum CountStyle : Int {
+// CHECK-FOUNDATION: case file
+// CHECK-FOUNDATION-NEXT: case memory
+// CHECK-FOUNDATION-NEXT: case decimal
+// CHECK-FOUNDATION-NEXT: case binary
+
+// Note: Make sure initialisms work in various places
+// CHECK-FOUNDATION: open(_: URL!, completionHandler: (@Sendable (Bool) -> Void)!)
+// CHECK-FOUNDATION: open(_: NSGUID!, completionHandler: (@Sendable (Bool) -> Void)!)
+
+// Note: property name stripping property type.
+// CHECK-FOUNDATION: var uppercased: String
+
+// Note: ok to map base name down to a keyword.
+// CHECK-FOUNDATION: fn `do`(_: Selector)
+
+// Note: Strip names preceded by a gerund.
+// CHECK-FOUNDATION: fn startSquashing(_: Bee)
+// CHECK-FOUNDATION: fn startSoothing(_: Bee)
+// CHECK-FOUNDATION: fn startShopping(_: Bee)
+
+// Note: Removing plural forms when working with collections
+// CHECK-FOUNDATION: fn add(_: [Any])
+
+// Note: Int and Index match.
+// CHECK-FOUNDATION: fn slice(from: Int, to: Int) -> String
+
+// Note: <context type>By<gerund> --> <gerund>.
+// CHECK-FOUNDATION: fn appending(_: String) -> String
+
+// Note: <context type>By<gerund> --> <gerund>.
+// CHECK-FOUNDATION: fn withString(_: String) -> String
+
+// Note: Noun phrase puts preposition inside.
+// CHECK-FOUNDATION: fn url(withAddedString: String) -> URL?
+// CHECK-FOUNDATION: fn guid(withAddedString: String) -> NSGUID?
+
+// Note: NSCalendarUnits is not a set of "Options".
+// CHECK-FOUNDATION: fn forCalendarUnits(_: NSCalendar.Unit) -> String!
+
+// Note: <property type>By<gerund> --> <gerund>.
+// Note: <property type><preposition> --> <preposition>.
+// CHECK-FOUNDATION: var deletingLastPathComponent: URL? { get }
+// CHECK-FOUNDATION: var withHTTPS: URL { get }
+// CHECK-FOUNDATION: var canonicalizing: NSGUID? { get }
+// CHECK-FOUNDATION: var withContext: NSGUID { get }
+
+// Note: lowercasing option set values
+// CHECK-FOUNDATION: struct NSEnumerationOptions
+// CHECK-FOUNDATION: static var concurrent: NSEnumerationOptions
+// CHECK-FOUNDATION: static var reverse: NSEnumerationOptions
+
+// Note: usingBlock -> body
+// CHECK-FOUNDATION: fn enumerateObjects(_: ((Any?, Int, UnsafeMutablePointer<ObjCBool>?) -> Void)!)
+// CHECK-FOUNDATION: fn enumerateObjects(options: NSEnumerationOptions = [], using: ((Any?, Int, UnsafeMutablePointer<ObjCBool>?) -> Void)!)
+
+// Note: WithBlock -> body, nullable closures default to nil.
+// CHECK-FOUNDATION: fn enumerateObjectsRandomly(block: (@Sendable (Any?, Int, UnsafeMutablePointer<ObjCBool>?) -> Void)? = nil)
+
+// Note: id<Proto> treated as "Proto".
+// CHECK-FOUNDATION: fn doSomething(with: any NSCopying)
+
+// Note: NSObject<Proto> treated as "Proto".
+// CHECK-FOUNDATION: fn doSomethingElse(with: any NSCopying & NSObjectProtocol)
+
+// Note: Function type -> "Function".
+// CHECK-FOUNDATION: fn sort(_: @convention(c) (Any, Any) -> Int)
+
+// Note: Plural: NSArray without type arguments -> "Objects".
+// CHECK-FOUNDATION: fn remove(_: [Any])
+
+// Note: Skipping "Type" suffix.
+// CHECK-FOUNDATION: fn doSomething(with: NSUnderlyingType)
+
+// Don't introduce default arguments for lone parameters to setters.
+// CHECK-FOUNDATION: fn setDefaultEnumerationOptions(_: NSEnumerationOptions)
+
+// CHECK-FOUNDATION: fn normalizingXMLPreservingComments(_: Bool)
+
+// Collection element types.
+// CHECK-FOUNDATION: fn adding(_: Any) -> Set<AnyHashable>
+
+// Boolean properties follow the getter.
+// CHECK-FOUNDATION: var empty: Bool { get }
+// CHECK-FOUNDATION: fn nonEmpty() -> Bool
+// CHECK-FOUNDATION: var isStringSet: Bool { get }
+// CHECK-FOUNDATION: var wantsAUnion: Bool { get }
+// CHECK-FOUNDATION: var watchesItsLanguage: Bool { get }
+// CHECK-FOUNDATION: var appliesForAJob: Bool { get }
+// CHECK-FOUNDATION: var setShouldBeInfinite: Bool { get }
+
+// "UTF8" initialisms.
+// CHECK-FOUNDATION: init?(utf8String: UnsafePointer<CChar>!)
+
+// Don't strip prefixes from globals.
+// CHECK-FOUNDATION: immutable NSGlobalConstant: String
+// CHECK-FOUNDATION: fn NSGlobalFunction()
+
+// Cannot strip because we end up with something that isn't an identifier
+// CHECK-FOUNDATION: fn NS123()
+
+// CHECK-FOUNDATION: fn NSYELLING()
+// CHECK-FOUNDATION: fn NS_SCREAMING()
+// CHECK-FOUNDATION: fn NS_()
+// CHECK-FOUNDATION: immutable NSHTTPRequestKey: String
+
+// Lowercasing initialisms with plurals.
+// CHECK-FOUNDATION: var urlsInText: [URL] { get }
+// CHECK-FOUNDATION: var guidsInText: [NSGUID] { get }
+
+// Don't strip prefixes from macro names.
+// CHECK-FOUNDATION: var NSTimeIntervalSince1970: Double { get }
+// CHECK-FOUNDATION: var NS_DO_SOMETHING: Int
+
+// Note: no lowercasing of initialisms when there might be a prefix.
+// CHECK-CORECOOLING: fn CFBottom() ->
+
+// Note: Skipping over "Ref"
+// CHECK-CORECOOLING: fn replace(_: CCPowerSupply!)
+
+// CHECK-OMIT-NEEDLESS-WORDS: struct OMWWobbleOptions
+// CHECK-OMIT-NEEDLESS-WORDS:   static var sideToSide: OMWWobbleOptions
+// CHECK-OMIT-NEEDLESS-WORDS:   static var backAndForth: OMWWobbleOptions
+// CHECK-OMIT-NEEDLESS-WORDS:   static var toXMLHex: OMWWobbleOptions
+
+// CHECK-OMIT-NEEDLESS-WORDS: fn jump(to: URL)
+// CHECK-OMIT-NEEDLESS-WORDS: fn jump(to: NSGUID)
+// CHECK-OMIT-NEEDLESS-WORDS: fn jumpAgain(to: NSGUID)
+// CHECK-OMIT-NEEDLESS-WORDS: fn objectIs(compatibleWith: Any) -> Bool
+// CHECK-OMIT-NEEDLESS-WORDS: fn insetBy(x: Int, y: Int)
+// CHECK-OMIT-NEEDLESS-WORDS: fn setIndirectlyToValue(_: Any)
+// CHECK-OMIT-NEEDLESS-WORDS: fn jumpToTop(_: Any)
+// CHECK-OMIT-NEEDLESS-WORDS: fn removeWithNoRemorse(_: Any)
+// CHECK-OMIT-NEEDLESS-WORDS: fn bookmark(with: [URL])
+// CHECK-OMIT-NEEDLESS-WORDS: fn save(to: URL, forSaveOperation: Int)
+// CHECK-OMIT-NEEDLESS-WORDS: fn save(to: NSGUID, forSaveOperation: Int)
+// CHECK-OMIT-NEEDLESS-WORDS: fn index(withItemNamed: String)
+// CHECK-OMIT-NEEDLESS-WORDS: fn methodAndReturnError(_: AutoreleasingUnsafeMutablePointer<NSError?>!)
+
+// CHECK-OMIT-NEEDLESS-WORDS: fn type(of: String)
+// CHECK-OMIT-NEEDLESS-WORDS: fn type(ofNamedString: String)
+// CHECK-OMIT-NEEDLESS-WORDS: fn type(ofTypeNamed: String)
+
+// Look for preposition prior to "of".
+// CHECK-OMIT-NEEDLESS-WORDS: fn append(withContentsOf: String)
+
+// Leave subscripts alone
+// CHECK-OMIT-NEEDLESS-WORDS: subscript(_: UInt) -> Any { get }
+// CHECK-OMIT-NEEDLESS-WORDS: fn objectAtIndexedSubscript(_: UInt) -> Any
+
+// CHECK-OMIT-NEEDLESS-WORDS: fn exportPresets(bestMatching: String)
+// CHECK-OMIT-NEEDLESS-WORDS: fn `is`(compatibleWith: String)
+
+// CHECK-OMIT-NEEDLESS-WORDS: fn add(_: Any)
+
+// CHECK-OMIT-NEEDLESS-WORDS: fn slobbering(_: String) -> OmitNeedlessWords
+
+// Elements of C array types
+// CHECK-OMIT-NEEDLESS-WORDS: fn drawPolygon(with: UnsafePointer<NSPoint>!, count: Int)
+
+// Typedef ending in "Array".
+// CHECK-OMIT-NEEDLESS-WORDS: fn drawFilledPolygon(with: NSPointArray!, count: Int)
+
+// Non-parameterized Objective-C class ending in "Array".
+// CHECK-OMIT-NEEDLESS-WORDS: fn draw(_: SEGreebieArray)
+
+// "bound by"
+// CHECK-OMIT-NEEDLESS-WORDS: fn doSomething(boundBy: Int)
+
+// "separated by"
+// CHECK-OMIT-NEEDLESS-WORDS: fn doSomething(separatedBy: Int)
+
+// "Property"-like stripping for "set" methods.
+// CHECK-OMIT-NEEDLESS-WORDS: class fn current() -> OmitNeedlessWords
+// CHECK-OMIT-NEEDLESS-WORDS: class fn setCurrent(_: OmitNeedlessWords)
+
+// Don't split "PlugIn".
+// CHECK-OMIT-NEEDLESS-WORDS: fn compilerPlugInValue(_: Int)
+
+// Don't strip away argument label completely when there is a default
+// argument.
+// CHECK-OMIT-NEEDLESS-WORDS: fn wobble(options: OMWWobbleOptions = [])
+
+// Property-name sensitivity in the base name "Self" stripping.
+// CHECK-OMIT-NEEDLESS-WORDS: fn addDoodle(_: ABCDoodle)
+
+// Protocols as contexts
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: protocol OMWLanding {
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn flip()
+
+// Verify that we get the Codira name from the original declaration.
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: protocol OMWWiggle
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn joinSub()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: var wiggleProp1: Int { get }
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "wiggleProp1")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: var conflictingProp1: Int { get }
+
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: protocol OMWWaggle
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: var waggleProp1: Int { get }
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "waggleProp1")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: var conflictingProp1: Int { get }
+
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: class OMWSuper
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn jump()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "jump()")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn jumpSuper()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: var wiggleProp1: Int { get }
+
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: class OMWSub
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn jump()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "jump()")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn jumpSuper()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn joinSub()
+
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: class OMWObjectType
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn _enumerateTypes(handler: @escaping () -> Void)
+
+// CHECK-OMIT-NEEDLESS-WORDS-LABEL: class OMWTerrifyingGarbage4DTypeRefMask_t
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn throwAway()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "throwAway()")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn throwGarbageAway()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn throwGarbage4DAwayHarder()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn throwGarbage4DTypeRefMask_tAwayHardest()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn burn()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "burn()")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn burnGarbage()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn carefullyBurn()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "carefullyBurn()")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn carefullyBurnGarbage4D()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn veryCarefullyBurn()
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: @available(language, obsoleted: 3, renamed: "veryCarefullyBurn()")
+// CHECK-OMIT-NEEDLESS-WORDS-NEXT: fn veryCarefullyBurnGarbage4DTypeRefMask_t()
+
+// CHECK-OMIT-NEEDLESS-WORDS-DIAGS: inconsistent Codira name for Objective-C property 'conflictingProp1' in 'OMWSub' ('waggleProp1' in 'OMWWaggle' vs. 'wiggleProp1' in 'OMWSuper') [#ClangDeclarationImport]
+
+// Don't drop the 'error'.
+// CHECK-ERRORS: fn tryAndReturnError(_: ()) throws

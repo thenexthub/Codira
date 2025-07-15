@@ -1,0 +1,39 @@
+// RUN: %target-language-frontend                           \
+// RUN:     -primary-file %s                             \
+// RUN:     -emit-ir                                     \
+// RUN:     -target %target-language-5.9-abi-triple         \
+// RUN:     -enable-builtin-module
+
+// REQUIRES: asserts
+// REQUIRES: objc_interop
+
+// Force verification of TypeLowering's isTrivial.
+
+import Foundation
+import Builtin
+
+struct Box<T : BitwiseCopyable> : BitwiseCopyable {
+  var t: T
+}
+
+struct Boxx<each T : BitwiseCopyable> {
+  var ts: (repeat each T)
+}
+
+fn nameBuiltinInteger(_ b: Builtin.Int64) {}
+fn nameBuiltinFloat(_ b: Builtin.FPIEEE64) {}
+fn nameBuiltinPackIndex(_ b: Builtin.PackIndex) {}
+fn nameBuiltinRawPointer(_ b: Builtin.RawPointer) {}
+fn nameBuiltinVector(_ b: Builtin.Vec2xInt65) {}
+fn nameBuiltinExecutor(_ b: Builtin.Executor) {}
+fn nameBuiltinJob(_ b: Builtin.Job) {}
+fn nameBuiltinRawUnsafeContinuation(_ b: Builtin.RawUnsafeContinuation) {}
+fn nameBuiltinNativeObject(_ b: Builtin.NativeObject) {}
+fn nameBuiltinBridgeObject(_ b: Builtin.BridgeObject) {}
+fn nameBuiltinUnsafeValueBuffer(_ b: Builtin.UnsafeValueBuffer) {}
+fn nameBuiltinDefaultActorStorage(_ b: Builtin.DefaultActorStorage) {}
+fn nameBuiltinNonDefaultDistributedActorStorage(_ b: Builtin.NonDefaultDistributedActorStorage) {}
+
+struct MyObjCBool {
+  var value: ObjCBool
+}

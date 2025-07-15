@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_TYPETRAITS_H
-#define SWIFT_BASIC_TYPETRAITS_H
+#ifndef LANGUAGE_BASIC_TYPETRAITS_H
+#define LANGUAGE_BASIC_TYPETRAITS_H
 
 #include <type_traits>
 #include "language/Basic/Compiler.h"
@@ -24,7 +25,7 @@
 #endif
 
 #ifndef __has_feature
-#define SWIFT_DEFINED_HAS_FEATURE
+#define LANGUAGE_DEFINED_HAS_FEATURE
 #define __has_feature(x) 0
 #endif
 
@@ -33,11 +34,11 @@ namespace language {
 /// Same as \c std::is_trivially_copyable, which we cannot use directly
 /// because it is not implemented yet in all C++11 standard libraries.
 ///
-/// Unlike \c llvm::isPodLike, this trait should produce a precise result and
+/// Unlike \c toolchain::isPodLike, this trait should produce a precise result and
 /// is not intended to be specialized.
 template<typename T>
 struct IsTriviallyCopyable {
-#if defined(_LIBCPP_VERSION) || SWIFT_COMPILER_IS_MSVC
+#if defined(_LIBCPP_VERSION) || LANGUAGE_COMPILER_IS_MSVC
   // libc++ and MSVC implement is_trivially_copyable.
   static const bool value = std::is_trivially_copyable<T>::value;
 #elif __has_feature(is_trivially_copyable) || __GNUC__ >= 5
@@ -49,7 +50,7 @@ struct IsTriviallyCopyable {
 
 template<typename T>
 struct IsTriviallyConstructible {
-#if defined(_LIBCPP_VERSION) || SWIFT_COMPILER_IS_MSVC
+#if defined(_LIBCPP_VERSION) || LANGUAGE_COMPILER_IS_MSVC
   // libc++ and MSVC implement is_trivially_constructible.
   static const bool value = std::is_trivially_constructible<T>::value;
 #elif __has_feature(is_trivially_constructible) || __has_keyword(__is_trivially_constructible)
@@ -63,7 +64,7 @@ struct IsTriviallyConstructible {
 
 template<typename T>
 struct IsTriviallyDestructible {
-#if defined(_LIBCPP_VERSION) || SWIFT_COMPILER_IS_MSVC
+#if defined(_LIBCPP_VERSION) || LANGUAGE_COMPILER_IS_MSVC
   // libc++ and MSVC implement is_trivially_destructible.
   static const bool value = std::is_trivially_destructible<T>::value;
 #elif __has_feature(is_trivially_destructible) || __has_keyword(__is_trivially_destructible)
@@ -77,8 +78,8 @@ struct IsTriviallyDestructible {
 
 } // end namespace language
 
-#ifdef SWIFT_DEFINED_HAS_FEATURE
+#ifdef LANGUAGE_DEFINED_HAS_FEATURE
 #undef __has_feature
 #endif
 
-#endif // SWIFT_BASIC_TYPETRAITS_H
+#endif // LANGUAGE_BASIC_TYPETRAITS_H

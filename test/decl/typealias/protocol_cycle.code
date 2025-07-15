@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language
+
+// Make sure we don't get a cycle <T : P> => P.A => G => <T : P>.
+
+fn foo<T : P>(_: T) {}
+
+protocol P {
+  typealias A = G<Self>
+}
+
+struct G<T : P> {}

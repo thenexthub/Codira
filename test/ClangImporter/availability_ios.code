@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify -I %S/Inputs/custom-modules %s
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify -I %S/Inputs/custom-modules -application-extension %s
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify -I %S/Inputs/custom-modules -application-extension-library %s
+
+// REQUIRES: OS=ios
+
+import Foundation
+import AvailabilityExtras
+
+fn test_unavailable_because_deprecated() {
+  print(NSRealMemoryAvailable()) // expected-error {{APIs deprecated as of iOS 7 and earlier are unavailable in Codira}}
+}
+
+fn test_language_unavailable_wins() {
+  unavailableWithOS() // expected-error {{'unavailableWithOS()' is unavailable in Codira}}
+}

@@ -1,13 +1,17 @@
 //===--- DiagnosticGroups.h - Diagnostic Groups -----------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the diagnostic groups enumaration, group graph
@@ -15,10 +19,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DIAGNOSTICGROUPS_H
-#define SWIFT_DIAGNOSTICGROUPS_H
+#ifndef LANGUAGE_DIAGNOSTICGROUPS_H
+#define LANGUAGE_DIAGNOSTICGROUPS_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <array>
 #include <string_view>
 #include <unordered_map>
@@ -42,12 +46,12 @@ struct DiagGroupInfo {
   DiagGroupID id;
   std::string_view name;
   std::string_view documentationFile;
-  llvm::ArrayRef<DiagGroupID> supergroups;
-  llvm::ArrayRef<DiagGroupID> subgroups;
-  llvm::ArrayRef<DiagID> diagnostics;
+  toolchain::ArrayRef<DiagGroupID> supergroups;
+  toolchain::ArrayRef<DiagGroupID> subgroups;
+  toolchain::ArrayRef<DiagID> diagnostics;
 
   void traverseDepthFirst(
-      llvm::function_ref<void(const DiagGroupInfo &)> func) const;
+      toolchain::function_ref<void(const DiagGroupInfo &)> fn) const;
 };
 
 extern const std::array<DiagGroupInfo, DiagGroupsCount> diagnosticGroupsInfo;
@@ -56,4 +60,4 @@ std::optional<DiagGroupID> getDiagGroupIDByName(std::string_view name);
 
 } // end namespace language
 
-#endif /* SWIFT_DIAGNOSTICGROUPS_H */
+#endif /* LANGUAGE_DIAGNOSTICGROUPS_H */

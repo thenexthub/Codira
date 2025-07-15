@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/FrontendOptions.h"
@@ -21,16 +22,16 @@
 #include "language/Option/Options.h"
 #include "language/Parse/Lexer.h"
 #include "language/Strings.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/LineIterator.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/LineIterator.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 bool FrontendOptions::needsProperModuleName(ActionType action) {
   switch (action) {
@@ -74,7 +75,7 @@ bool FrontendOptions::needsProperModuleName(ActionType action) {
   case ActionType::ScanDependencies:
     return true;
   }
-  llvm_unreachable("Unknown ActionType");
+  toolchain_unreachable("Unknown ActionType");
 }
 
 bool FrontendOptions::shouldActionOnlyParse(ActionType action) {
@@ -92,7 +93,7 @@ bool FrontendOptions::shouldActionOnlyParse(ActionType action) {
   }
 }
 
-bool FrontendOptions::doesActionRequireSwiftStandardLibrary(ActionType action) {
+bool FrontendOptions::doesActionRequireCodiraStandardLibrary(ActionType action) {
   switch (action) {
   case ActionType::NoneAction:
   case ActionType::Parse:
@@ -134,7 +135,7 @@ bool FrontendOptions::doesActionRequireSwiftStandardLibrary(ActionType action) {
            "Parse-only actions should not load modules!");
     return true;
   }
-  llvm_unreachable("Unknown ActionType");
+  toolchain_unreachable("Unknown ActionType");
 }
 
 bool FrontendOptions::doesActionRequireInputs(ActionType action) {
@@ -177,7 +178,7 @@ bool FrontendOptions::doesActionRequireInputs(ActionType action) {
   case ActionType::DumpTypeInfo:
     return true;
   }
-  llvm_unreachable("Unknown ActionType");
+  toolchain_unreachable("Unknown ActionType");
 }
 
 bool FrontendOptions::doesActionPerformEndOfPipelineActions(ActionType action) {
@@ -220,7 +221,7 @@ bool FrontendOptions::doesActionPerformEndOfPipelineActions(ActionType action) {
   case ActionType::DumpTypeInfo:
     return true;
   }
-  llvm_unreachable("Unknown ActionType");
+  toolchain_unreachable("Unknown ActionType");
 }
 
 bool FrontendOptions::supportCompilationCaching(ActionType action) {
@@ -265,11 +266,11 @@ bool FrontendOptions::supportCompilationCaching(ActionType action) {
   case ActionType::EmitSIB:
     return true;
   }
-  llvm_unreachable("Unknown ActionType");
+  toolchain_unreachable("Unknown ActionType");
 }
 
 void FrontendOptions::forAllOutputPaths(
-    const InputFile &input, llvm::function_ref<void(StringRef)> fn) const {
+    const InputFile &input, toolchain::function_ref<void(StringRef)> fn) const {
   if (RequestedAction != FrontendOptions::ActionType::EmitModuleOnly &&
       RequestedAction != FrontendOptions::ActionType::MergeModules) {
     if (InputsAndOutputs.isWholeModule())
@@ -335,7 +336,7 @@ FrontendOptions::formatForPrincipalOutputFileForAction(ActionType action) {
   case ActionType::MergeModules:
   case ActionType::EmitModuleOnly:
   case ActionType::CompileModuleFromInterface:
-    return TY_SwiftModuleFile;
+    return TY_CodiraModuleFile;
 
   case ActionType::Immediate:
   case ActionType::REPL:
@@ -346,13 +347,13 @@ FrontendOptions::formatForPrincipalOutputFileForAction(ActionType action) {
     return TY_Assembly;
 
   case ActionType::EmitIRGen:
-    return TY_RawLLVM_IR;
+    return TY_RawTOOLCHAIN_IR;
 
   case ActionType::EmitIR:
-    return TY_LLVM_IR;
+    return TY_TOOLCHAIN_IR;
 
   case ActionType::EmitBC:
-    return TY_LLVM_BC;
+    return TY_TOOLCHAIN_BC;
 
   case ActionType::EmitObject:
     return TY_Object;
@@ -368,7 +369,7 @@ FrontendOptions::formatForPrincipalOutputFileForAction(ActionType action) {
   case ActionType::PrintArguments:
     return TY_JSONArguments;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitDependencies(ActionType action) {
@@ -411,7 +412,7 @@ bool FrontendOptions::canActionEmitDependencies(ActionType action) {
   case ActionType::ScanDependencies:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitReferenceDependencies(ActionType action) {
@@ -454,7 +455,7 @@ bool FrontendOptions::canActionEmitReferenceDependencies(ActionType action) {
   case ActionType::EmitImportedModules:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitModuleSummary(ActionType action) {
@@ -497,7 +498,7 @@ bool FrontendOptions::canActionEmitModuleSummary(ActionType action) {
   case ActionType::EmitObject:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitClangHeader(ActionType action) {
@@ -540,7 +541,7 @@ bool FrontendOptions::canActionEmitClangHeader(ActionType action) {
   case ActionType::EmitImportedModules:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitLoadedModuleTrace(ActionType action) {
@@ -583,7 +584,7 @@ bool FrontendOptions::canActionEmitLoadedModuleTrace(ActionType action) {
   case ActionType::EmitImportedModules:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 bool FrontendOptions::canActionEmitModuleSemanticInfo(ActionType action) {
   switch (action) {
@@ -626,7 +627,7 @@ bool FrontendOptions::canActionEmitModuleSemanticInfo(ActionType action) {
   case ActionType::EmitImportedModules:
     return false;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 bool FrontendOptions::canActionEmitABIDescriptor(ActionType action) {
   if (canActionEmitModule(action))
@@ -675,7 +676,7 @@ bool FrontendOptions::canActionEmitConstValues(ActionType action) {
   case ActionType::EmitImportedModules:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 bool FrontendOptions::canActionEmitModule(ActionType action) {
   switch (action) {
@@ -717,7 +718,7 @@ bool FrontendOptions::canActionEmitModule(ActionType action) {
   case ActionType::EmitImportedModules:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitModuleDoc(ActionType action) {
@@ -764,7 +765,7 @@ bool FrontendOptions::canActionEmitInterface(ActionType action) {
   case ActionType::PrintVersion:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::canActionEmitAPIDescriptor(ActionType action) {
@@ -807,7 +808,7 @@ bool FrontendOptions::canActionEmitAPIDescriptor(ActionType action) {
   case ActionType::PrintVersion:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::doesActionProduceOutput(ActionType action) {
@@ -851,7 +852,7 @@ bool FrontendOptions::doesActionProduceOutput(ActionType action) {
   case ActionType::PrintVersion:
     return false;
   }
-  llvm_unreachable("Unknown ActionType");
+  toolchain_unreachable("Unknown ActionType");
 }
 
 bool FrontendOptions::doesActionProduceTextualOutput(ActionType action) {
@@ -895,7 +896,7 @@ bool FrontendOptions::doesActionProduceTextualOutput(ActionType action) {
   case ActionType::PrintArguments:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::doesActionGenerateSIL(ActionType action) {
@@ -938,7 +939,7 @@ bool FrontendOptions::doesActionGenerateSIL(ActionType action) {
   case ActionType::DumpTypeInfo:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::doesActionGenerateIR(ActionType action) {
@@ -981,7 +982,7 @@ bool FrontendOptions::doesActionGenerateIR(ActionType action) {
   case ActionType::EmitObject:
     return true;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 bool FrontendOptions::doesActionBuildModuleFromInterface(ActionType action) {
@@ -1024,7 +1025,7 @@ bool FrontendOptions::doesActionBuildModuleFromInterface(ActionType action) {
   case ActionType::EmitObject:
     return false;
   }
-  llvm_unreachable("unhandled action");
+  toolchain_unreachable("unhandled action");
 }
 
 const PrimarySpecificPaths &

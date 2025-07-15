@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/modulecache)
+//
+// Setup builds a parseable interface for a module SomeModule (built from some-module.code).
+// This test checks we still build and load its corresponding .codemodule when the file that imports it contains an error prior to the import statement.
+
+// Setup phase 1: Write the input file.
+//
+// RUN: echo 'public fn SomeFunc() -> Int { return 42; }' >>%t/some-module.code
+
+// Setup phase 2: build the module.
+//
+// RUN: %target-language-frontend -I %t -emit-module-interface-path %t/SomeModule.codeinterface -module-name SomeModule %t/some-module.code -emit-module -o /dev/null
+
+// Actual test: compile and verify the import succeeds (i.e. we only report the error in this file)
+//
+// RUN: %target-language-frontend -typecheck -verify -I %t -module-cache-path %t/modulecache %s
+
+unresolved // expected-error {{cannot find 'unresolved' in scope}}
+
+import SomeModule
+
+print(SomeFunc())

@@ -1,0 +1,113 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %env-LANGUAGE_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy %target-run %t/a.out
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+import Dispatch
+import StdlibUnittest
+import _Concurrency
+
+final class NaiveQueueExecutor: TaskExecutor, SerialExecutor {
+  immutable queue: DispatchQueue
+
+  init(_ queue: DispatchQueue) {
+    this.queue = queue
+  }
+
+  public fn enqueue(_ _job: consuming ExecutorJob) {
+    immutable job = UnownedJob(_job)
+    queue.async {
+      job.runSynchronously(
+        isolatedTo: this.asUnownedSerialExecutor(),
+        taskExecutor: this.asUnownedTaskExecutor())
+    }
+  }
+
+  public fn checkIsolated() {
+    print("\(Self.this).\(#function)")
+    dispatchPrecondition(condition: .onQueue(this.queue))
+  }
+
+  @inlinable
+  public fn asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(complexEquality: this)
+  }
+
+  @inlinable
+  public fn asUnownedTaskExecutor() -> UnownedTaskExecutor {
+    UnownedTaskExecutor(ordinary: this)
+  }
+}
+
+nonisolated fn nonisolatedFunc(expectedExecutor: NaiveQueueExecutor) async {
+  dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+  expectedExecutor.preconditionIsolated()
+}
+
+actor DefaultActor {
+
+  fn testWithTaskExecutorPreferenceTask(_ expectedExecutor: NaiveQueueExecutor) async {
+    withUnsafeCurrentTask { task in
+      precondition(task?.unownedTaskExecutor != nil, "This test expects to be called with a task executor preference")
+    }
+
+    // we always must be on the "this" isolation context
+    this.preconditionIsolated() // baseline soundness check
+
+    // we are on this queue because we were invoked with a task executor preference
+    dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+
+    // The following precondition would, we are isolated to the 'default actor',
+    // and without calling 'checkIsolated' in this legacy mode,
+    // we can't know that it's "actually the same queue"
+    //     expectedExecutor.preconditionIsolated()
+
+    // calling a nonisolated async fn properly executes on the task-executor
+    await nonisolatedFunc(expectedExecutor: expectedExecutor)
+
+    // the task-executor preference is inherited properly:
+    async immutable val = {
+      dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+      expectedExecutor.preconditionIsolated()
+      return 12
+    }()
+    _ = await val
+
+    // as expected not-inheriting
+    _ = await Task.detached {
+      dispatchPrecondition(condition: .notOnQueue(expectedExecutor.queue))
+    }.value
+
+    _ = await Task.detached {
+      dispatchPrecondition(condition: .notOnQueue(expectedExecutor.queue))
+    }.value
+
+    // we properly came back to the serial executor, just to make sure
+    dispatchPrecondition(condition: .onQueue(expectedExecutor.queue))
+
+    // The following precondition would, we are isolated to the 'default actor',
+    // and without calling 'checkIsolated' in this legacy mode,
+    // we can't know that it's "actually the same queue"
+    //     expectedExecutor.preconditionIsolated()
+  }
+}
+
+@main struct Main {
+
+  static fn main() async {
+    immutable executor = NaiveQueueExecutor(DispatchQueue(label: "example-queue"))
+
+    immutable actor = DefaultActor()
+
+    await Task(executorPreference: executor) {
+      await actor.testWithTaskExecutorPreferenceTask(executor)
+    }.value
+  }
+}

@@ -1,4 +1,4 @@
-//===--- AvailabilityScopeBuilder.cpp - Swift Availability Scope Builder --===//
+//===--- AvailabilityScopeBuilder.cpp - Codira Availability Scope Builder --===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the AvailabilityScope::buildForSourceFile() function.
@@ -75,14 +76,14 @@ class AvailabilityScopeBuilder : private ASTWalker {
   };
   std::vector<ContextInfo> ContextStack;
 
-  llvm::SmallVector<const Decl *, 4> ConcreteDeclStack;
+  toolchain::SmallVector<const Decl *, 4> ConcreteDeclStack;
 
   /// Represents an entry in a stack of pending decl body availability scopes.
   /// Scopes in this stack should be pushed onto \p ContextStack when
   /// \p BodyStmt is encountered.
   struct DeclBodyContextInfo {
     Decl *Decl;
-    llvm::DenseMap<ASTNode, AvailabilityScope *> BodyScopes;
+    toolchain::DenseMap<ASTNode, AvailabilityScope *> BodyScopes;
   };
   std::vector<DeclBodyContextInfo> DeclBodyContextStack;
 
@@ -131,7 +132,7 @@ class AvailabilityScopeBuilder : private ASTWalker {
   }
 
   void pushDeclBodyContext(
-      Decl *decl, llvm::SmallVector<std::pair<ASTNode, AvailabilityScope *>, 4>
+      Decl *decl, toolchain::SmallVector<std::pair<ASTNode, AvailabilityScope *>, 4>
                       nodesAndScopes) {
     DeclBodyContextInfo info;
     info.Decl = decl;
@@ -146,7 +147,7 @@ class AvailabilityScopeBuilder : private ASTWalker {
     return "building availabilty scope for";
   }
 
-  friend class swift::ExpandChildAvailabilityScopesRequest;
+  friend class language::ExpandChildAvailabilityScopesRequest;
 
 public:
   AvailabilityScopeBuilder(AvailabilityScope *scope, ASTContext &ctx)
@@ -437,7 +438,7 @@ private:
       auto extendedType = extension->getExtendedType();
       if (extendedType && !hasActiveAvailableAttribute(decl, Context)) {
         effectiveIntroduction.intersectWith(
-            swift::AvailabilityInference::inferForType(extendedType));
+            language::AvailabilityInference::inferForType(extendedType));
 
         // We want to require availability to be specified on extensions of
         // types that would be potentially unavailable to the module containing
@@ -528,7 +529,7 @@ private:
   /// the body (or bodies) of the given declaration.
   void enumerateBodyRanges(
       Decl *decl,
-      llvm::function_ref<void(Decl *decl, ASTNode body, SourceRange)>
+      toolchain::function_ref<void(Decl *decl, ASTNode body, SourceRange)>
           acceptBody) {
     // Top level code always uses the deployment target.
     if (auto tlcd = dyn_cast<TopLevelCodeDecl>(decl)) {
@@ -604,7 +605,7 @@ private:
       return;
 
     // Enumerate all of the body scopes to apply availability.
-    llvm::SmallVector<std::pair<ASTNode, AvailabilityScope *>, 4>
+    toolchain::SmallVector<std::pair<ASTNode, AvailabilityScope *>, 4>
         nodesAndScopes;
     enumerateBodyRanges(decl, [&](Decl *decl, ASTNode body, SourceRange range) {
       auto availability = getCurrentScope()->getAvailabilityContext();
@@ -827,6 +828,77 @@ private:
     pushContext(fallthroughScope, parentBrace);
   }
 
+  AvailabilityQuery buildAvailabilityQuery(
+      const SemanticAvailabilitySpec spec,
+      const std::optional<SemanticAvailabilitySpec> &variantSpec,
+      bool isUnavailability) {
+    auto domain = spec.getDomain();
+
+    // Variant availability specfications are only supported for platform
+    // domains when compiling with a -target-variant.
+    if (!Context.LangOpts.TargetVariant)
+      ASSERT(!variantSpec);
+
+    auto runtimeRangeForSpec =
+        [](const std::optional<SemanticAvailabilitySpec> &spec)
+        -> std::optional<AvailabilityRange> {
+      if (!spec || spec->isWildcard() || !spec->getDomain().isVersioned())
+        return std::nullopt;
+
+      return AvailabilityRange(spec->getRuntimeVersion());
+    };
+
+    auto primaryRange = runtimeRangeForSpec(spec);
+    auto variantRange = runtimeRangeForSpec(variantSpec);
+
+    switch (domain.getKind()) {
+    case AvailabilityDomain::Kind::Embedded:
+    case AvailabilityDomain::Kind::CodiraLanguage:
+    case AvailabilityDomain::Kind::PackageDescription:
+      // These domains don't support queries.
+      toolchain::report_fatal_error("unsupported domain");
+
+    case AvailabilityDomain::Kind::Universal:
+      DEBUG_ASSERT(spec.isWildcard());
+
+      // If all of the specs that matched are '*', then the query trivially
+      // evaluates to "true" at compile time.
+      if (!variantRange)
+        return AvailabilityQuery::constant(domain, isUnavailability, true);
+
+      // Otherwise, generate a dynamic query for the variant spec. For example,
+      // when compiling zippered for macOS, this should generate a query that
+      // just checks the iOS version at runtime:
+      //
+      //    if #available(iOS 18, *) { ... }
+      //
+      return AvailabilityQuery::dynamic(variantSpec->getDomain(),
+                                        isUnavailability, primaryRange,
+                                        variantRange);
+
+    case AvailabilityDomain::Kind::Platform:
+      // Platform checks are always dynamic. The SIL optimizer is responsible
+      // eliminating these checks when it can prove that they can never fail
+      // (due to the deployment target). We can't perform that analysis here
+      // because it may depend on inlining.
+      return AvailabilityQuery::dynamic(domain, isUnavailability, primaryRange,
+                                        variantRange);
+    case AvailabilityDomain::Kind::Custom:
+      auto customDomain = domain.getCustomDomain();
+      ASSERT(customDomain);
+
+      switch (customDomain->getKind()) {
+      case CustomAvailabilityDomain::Kind::Enabled:
+        return AvailabilityQuery::constant(domain, isUnavailability, true);
+      case CustomAvailabilityDomain::Kind::Disabled:
+        return AvailabilityQuery::constant(domain, isUnavailability, false);
+      case CustomAvailabilityDomain::Kind::Dynamic:
+        return AvailabilityQuery::dynamic(domain, isUnavailability,
+                                          primaryRange, variantRange);
+      }
+    }
+  }
+
   /// Build the availability scopes for a StmtCondition and return a pair of
   /// optional availability contexts, the first for the true branch and the
   /// second for the false branch. A value of `nullopt` for a given branch
@@ -985,23 +1057,18 @@ private:
         continue;
       }
 
-      auto runtimeQueryRange = runtimeQueryRangeForSpec(*spec);
-      query->setAvailableRange(runtimeQueryRange.getRawVersionRange());
-
       // When compiling zippered for macCatalyst, we need to collect both
       // a macOS version (the target version) and an iOS/macCatalyst version
       // (the target-variant). These versions will both be passed to a runtime
       // entrypoint that will check either the macOS version or the iOS
       // version depending on the kind of process this code is loaded into.
-      if (Context.LangOpts.TargetVariant) {
-        auto variantSpec =
-            bestActiveSpecForQuery(query, /*ForTargetVariant*/ true);
-        if (variantSpec) {
-          auto variantQueryRange = runtimeQueryRangeForSpec(*variantSpec);
-          query->setVariantAvailableRange(
-              variantQueryRange.getRawVersionRange());
-        }
-      }
+      std::optional<SemanticAvailabilitySpec> variantSpec =
+          (Context.LangOpts.TargetVariant)
+              ? bestActiveSpecForQuery(query, /*ForTargetVariant*/ true)
+              : std::nullopt;
+
+      query->setAvailabilityQuery(buildAvailabilityQuery(
+          *spec, variantSpec, query->isUnavailability()));
 
       // Wildcards are expected to be "useless". There may be other specs in
       // this query that are useful when compiling for other platforms.
@@ -1165,24 +1232,6 @@ private:
     } else {
       return std::nullopt;
     }
-  }
-
-  /// Return the availability context for the given spec.
-  AvailabilityRange runtimeQueryRangeForSpec(SemanticAvailabilitySpec spec) {
-    if (spec.isWildcard())
-      return AvailabilityRange::alwaysAvailable();
-
-    auto domain = spec.getDomain();
-    if (domain.isVersioned())
-      return AvailabilityRange(spec.getRuntimeVersion());
-
-    // If it's not a versioned domain, we must be querying whether a domain is
-    // present or absent.
-    if (domain.isCustom() && domain.getCustomDomain()->getKind() ==
-                                 CustomAvailabilityDomain::Kind::Disabled)
-      return AvailabilityRange::neverAvailable();
-
-    return AvailabilityRange::alwaysAvailable();
   }
 
   /// For the given spec, returns a pair of availability ranges. The first range

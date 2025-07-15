@@ -1,0 +1,9 @@
+Name: CenumsNSOptionsExternC
+Tags:
+- Name: UIPrinterJobTypes
+  CodiraName: UIPrinter.JobTypes
+CodiraVersions:
+- Version: 4
+  Tags:
+  - Name: UIPrinterJobTypes
+    CodiraName: UIPrinterJobTypes

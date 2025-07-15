@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend %s -typecheck
+
+// https://github.com/apple/language/issues/43442
+
+fn quickSort<T: Comparable>(_ a: [T]) -> [T] {
+  if a.isEmpty {
+    return a
+  } else {
+    immutable head = a[0]
+    immutable body = a[1..<a.count]
+    return quickSort(body.filter({$0 < head})) + [head] + quickSort(body.filter({$0 >= head}))
+  }
+}

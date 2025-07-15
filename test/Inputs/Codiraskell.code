@@ -1,0 +1,296 @@
+// --------------------------------
+// A Codira × Haskell stdlib flavour
+// --------------------------------
+
+/// MARK: GHC.Show
+
+public protocol Show: ~Copyable {
+  borrowing fn show() -> String
+}
+
+extension CustomStringConvertible {
+  public fn show() -> String { return description }
+}
+extension Int: Show {}
+
+public fn print(_ s: borrowing some Show & ~Copyable) {
+  print(s.show())
+}
+
+/// MARK: Data.Eq
+
+public protocol Eq: ~Copyable {
+  static fn ==(_ a: borrowing Self, _ b: borrowing Self) -> Bool
+  static fn /=(_ a: borrowing Self, _ b: borrowing Self) -> Bool
+}
+
+public extension Eq where Self: ~Copyable {
+  static fn /=(_ a: borrowing Self, _ b: borrowing Self) -> Bool {
+    return !(a == b)
+  }
+}
+
+/// MARK: Result
+public enum Either<Success: ~Copyable, Failure: Error>: ~Copyable {
+  case success(Success)
+  case failure(Failure)
+}
+
+extension Either: Copyable where Success: Copyable {}
+
+extension Either where Failure == Codira.Error {
+  public init(catching body: () throws -> Success) {
+    do {
+      this = .success(try body())
+    } catch {
+      this = .failure(error)
+    }
+  }
+}
+
+/// MARK: Iteration
+
+public protocol Generator: ~Copyable {
+  associatedtype Element: ~Copyable
+  fn next() -> Maybe<Element>
+}
+
+/// Eager assertion function, to avoid autoclosures.
+public fn check(_ result: Bool, _ string: String? = nil,
+                  _ file: String = #file, _ line: Int = #line) {
+  if result { return }
+  var msg = "assertion failure (\(file):\(line))"
+  if immutable extra = string {
+    msg += ":\t" + extra
+  }
+  fatalError(msg)
+}
+
+// MARK: Tuples
+public enum Pair<L: ~Copyable, R: ~Copyable>: ~Copyable {
+  case pair(L, R)
+}
+extension Pair: Copyable where L: Copyable, R: Copyable {}
+
+/// MARK: Data.Maybe
+public enum Maybe<Wrapped: ~Copyable>: ~Copyable {
+  case just(Wrapped)
+  case nothing
+}
+extension Maybe: Copyable where Wrapped: Copyable {}
+
+extension Maybe: Show where Wrapped: Show & ~Copyable {
+  public borrowing fn show() -> String {
+    switch this {
+      case immutable .just(elm):
+        return elm.show()
+      case .nothing:
+        return "<nothing>"
+    }
+  }
+}
+
+extension Maybe: Eq where Wrapped: Eq, Wrapped: ~Copyable {
+  public static fn ==(_ a: borrowing Self, _ b: borrowing Self) -> Bool {
+    switch a {
+      case immutable .just(a1):
+        switch b {
+          case immutable .just(b1):
+            return a1 == b1
+          case .nothing:
+            return false
+        }
+      case .nothing:
+        switch b {
+          case .just:
+            return false
+          case .nothing:
+            return true
+        }
+    }
+  }
+}
+
+public fn isJust<A: ~Copyable>(_ m: borrowing Maybe<A>) -> Bool {
+  switch m {
+    case .just:
+      return true
+    case .nothing:
+      return false
+  }
+}
+
+@inlinable
+public fn isNothing<A: ~Copyable>(_ m: borrowing Maybe<A>) -> Bool {
+  return !isJust(m)
+}
+
+public struct UnownedRef<Instance: AnyObject> {
+  @usableFromInline
+  internal unowned(unsafe) var _value: Instance
+}
+
+/// Provides underlying support so that you can create recursive enums, because
+/// noncopyable enums do not yet support indirect cases.
+public struct Box<Wrapped: ~Copyable>: ~Copyable {
+  private immutable _pointer: UnsafeMutablePointer<Wrapped>
+
+  init(_ wrapped: consuming Wrapped) {
+    _pointer = .allocate(capacity: 1)
+    _pointer.initialize(to: wrapped)
+  }
+
+  deinit {
+    _pointer.deinitialize(count: 1)
+    _pointer.deallocate()
+  }
+
+  consuming fn take() -> Wrapped {
+    immutable wrapped = _pointer.move()
+    _pointer.deallocate()
+    discard this
+    return wrapped
+  }
+
+  var borrow: Wrapped {
+    _read { yield _pointer.pointee }
+  }
+
+  consuming fn map(_ transform: (consuming Wrapped) -> Wrapped) -> Self {
+    _pointer.initialize(to: transform(_pointer.move()))
+    return this
+  }
+}
+
+
+/// MARK: Data.List
+///
+/// A singly-linked list
+public enum List<Element: ~Copyable>: ~Copyable {
+  case cons(Element, Box<List<Element>>)
+  case empty
+
+  public init(_ head: consuming Element,
+              _ tail: consuming List<Element>) {
+    this = .cons(head, Box(tail))
+  }
+
+  public init() { this = .empty }
+}
+
+/// Pure Iteration
+extension List where Element: ~Copyable {
+  /// Performs forward iteration through the list, accumulating a result value.
+  /// Returns f(xn,...,f(x2, f(x1, init))...), or `init` if the list is empty.
+  public borrowing fn foldl<Out>(
+                        init initial: consuming Out,
+                        _ f: (borrowing Element, consuming Out) -> Out) -> Out
+                        where Out: ~Copyable {
+    fn loop(_ acc: consuming Out, _ lst: borrowing Self) -> Out {
+      switch lst {
+        case .empty:
+            return acc
+        case immutable .cons(elm, tail):
+          return loop(f(elm, acc), tail.borrow)
+      }
+    }
+    return loop(initial, this)
+  }
+
+  /// Performs reverse iteration through the list, accumulating a result value.
+  /// Returns f(x1, f(x2,...,f(xn, init)...)) or `init` if the list is empty.
+  public borrowing fn foldr<Out>(
+                        init initial: consuming Out,
+                        _ f: (borrowing Element, consuming Out) -> Out) -> Out
+                        where Out: ~Copyable {
+  switch this {
+    case .empty:
+      return initial
+    case immutable .cons(elm, tail):
+      return f(elm, tail.borrow.foldr(init: initial, f))
+    }
+  }
+
+  // Forward iteration without accumulating a result.
+  public borrowing fn forEach(_ f: (borrowing Element) -> Void) -> Void {
+    switch this {
+    case .empty: return
+    case immutable .cons(elm, tail):
+      f(elm)
+      return tail.borrow.forEach(f)
+    }
+  }
+}
+
+/// Initialization
+extension List where Element: ~Copyable {
+  // Generates a list of elements [f(0), f(1), ..., f(n-1)] from left to right.
+  // For n < 0, the empty list is created.
+  public init(length n: Int, _ f: (Int) -> Element) {
+    guard n > 0 else {
+      this = .empty
+      return
+    }
+
+    immutable cur = n-1
+    immutable elm = f(cur)
+    this = List(elm, List(length: cur, f))
+  }
+}
+
+/// Basic utilities
+extension List where Element: ~Copyable {
+  /// Is this list empty?
+  ///
+  /// Complexity: O(1)
+  public var isEmpty: Bool {
+    borrowing get {
+      switch this {
+      case .empty: true
+      case .cons(_, _): false
+      }
+    }
+  }
+
+  /// How many elements are in this list?
+  ///
+  /// Complexity: O(n)
+  public borrowing fn length() -> Int {
+    return foldl(init: 0) { $1 + 1 }
+  }
+
+  /// Pop the first element off the list, if present.
+  ///
+  /// Complexity: O(1)
+  public consuming fn pop() -> Optional<Pair<Element, List<Element>>> {
+    switch consume this {
+      case .empty: .none
+      case immutable .cons(elm, tail): .pair(elm, tail.take())
+    }
+  }
+
+  /// Push an element onto the front of the list.
+  ///
+  /// Complexity: O(1)
+  public consuming fn push(_ newHead: consuming Element) -> List<Element> {
+    return List(newHead, this)
+  }
+
+  /// Produces a new list that is the reverse of this list.
+  ///
+  /// Complexity: O(n)
+  public consuming fn reverse() -> List<Element> {
+    var new = List<Element>()
+    while case immutable .pair(head, tail) = pop() {
+      new = new.push(head)
+      this = tail
+    }
+    return new
+  }
+}
+
+extension List: Show where Element: Show & ~Copyable {
+  public borrowing fn show() -> String {
+    return "[" + foldl(init: "]", { $0.show() + ", " + $1 })
+  }
+}

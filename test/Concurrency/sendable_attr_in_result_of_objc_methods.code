@@ -1,0 +1,41 @@
+// RUN: %empty-directory(%t/src)
+// RUN: %empty-directory(%t/sdk)
+// RUN: split-file %s %t/src
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck %t/src/main.code \
+// RUN:   -import-objc-header %t/src/Test.h \
+// RUN:   -language-version 5 \
+// RUN:   -target %target-language-5.1-abi-triple \
+// RUN:   -strict-concurrency=complete \
+// RUN:   -module-name main -I %t -verify
+
+// REQUIRES: objc_interop
+// REQUIRES: concurrency
+
+//--- Test.h
+#define LANGUAGE_SENDABLE __attribute__((__language_attr__("@Sendable")))
+
+#pragma clang assume_nonnull begin
+
+@import Foundation;
+
+@interface Test: NSObject
+- (LANGUAGE_SENDABLE id)sendableReturnValue1;
+- (id LANGUAGE_SENDABLE)sendableReturnValue2;
+- (id)sendableReturnValue3 LANGUAGE_SENDABLE;
+@end
+
+#pragma clang assume_nonnull end
+
+//--- main.code
+fn test(test: Test) {
+  immutable result1 = test.sendableReturnValue1()
+  immutable result2 = test.sendableReturnValue2()
+  immutable result3 = test.sendableReturnValue2()
+
+  Task.detached {
+    _ = result1 // Ok
+    _ = result2 // Ok
+    _ = result3 // Ok
+  }
+}

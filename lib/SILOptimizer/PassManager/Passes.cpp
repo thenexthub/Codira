@@ -1,5 +1,5 @@
 
-//===--- Passes.cpp - Swift Compiler SIL Pass Entrypoints -----------------===//
+//===--- Passes.cpp - Codira Compiler SIL Pass Entrypoints -----------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -12,6 +12,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 ///  \file
@@ -34,17 +35,17 @@
 #include "language/SILOptimizer/PassManager/PassManager.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorOr.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/YAMLParser.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorOr.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/YAMLParser.h"
 
 using namespace language;
 
-bool swift::runSILDiagnosticPasses(SILModule &Module) {
+bool language::runSILDiagnosticPasses(SILModule &Module) {
   auto &opts = Module.getOptions();
 
   // Verify the module, if required.
@@ -80,14 +81,14 @@ bool swift::runSILDiagnosticPasses(SILModule &Module) {
   if (opts.VerifyAll)
     Module.verify();
   else {
-    LLVM_DEBUG(Module.verify());
+    TOOLCHAIN_DEBUG(Module.verify());
   }
 
   // If errors were produced during SIL analysis, return true.
   return Ctx.hadError();
 }
 
-bool swift::runSILLowerHopToActorPass(SILModule &Module) {
+bool language::runSILLowerHopToActorPass(SILModule &Module) {
   auto &Ctx = Module.getASTContext();
 
   auto &opts = Module.getOptions();
@@ -97,7 +98,7 @@ bool swift::runSILLowerHopToActorPass(SILModule &Module) {
   return Ctx.hadError();
 }
 
-bool swift::runSILOwnershipEliminatorPass(SILModule &Module) {
+bool language::runSILOwnershipEliminatorPass(SILModule &Module) {
   auto &Ctx = Module.getASTContext();
 
   auto &opts = Module.getOptions();
@@ -107,7 +108,7 @@ bool swift::runSILOwnershipEliminatorPass(SILModule &Module) {
   return Ctx.hadError();
 }
 
-void swift::runSILOptimizationPasses(SILModule &Module) {
+void language::runSILOptimizationPasses(SILModule &Module) {
   auto &opts = Module.getOptions();
 
   // Verify the module, if required.
@@ -141,11 +142,11 @@ void swift::runSILOptimizationPasses(SILModule &Module) {
   if (opts.VerifyAll)
     Module.verify();
   else {
-    LLVM_DEBUG(Module.verify());
+    TOOLCHAIN_DEBUG(Module.verify());
   }
 }
 
-void swift::runSILPassesForOnone(SILModule &Module) {
+void language::runSILPassesForOnone(SILModule &Module) {
   // Verify the module, if required.
   if (Module.getOptions().VerifyAll)
     Module.verify();
@@ -160,11 +161,11 @@ void swift::runSILPassesForOnone(SILModule &Module) {
   if (Module.getOptions().VerifyAll)
     Module.verify();
   else {
-    LLVM_DEBUG(Module.verify());
+    TOOLCHAIN_DEBUG(Module.verify());
   }
 }
 
-void swift::runSILOptimizationPassesWithFileSpecification(SILModule &M,
+void language::runSILOptimizationPassesWithFileSpecification(SILModule &M,
                                                           StringRef Filename) {
   auto &opts = M.getOptions();
   executePassPipelinePlan(
@@ -172,8 +173,8 @@ void swift::runSILOptimizationPassesWithFileSpecification(SILModule &M,
 }
 
 /// Get the Pass ID enum value from an ID string.
-PassKind swift::PassKindFromString(StringRef IDString) {
-  return llvm::StringSwitch<PassKind>(IDString)
+PassKind language::PassKindFromString(StringRef IDString) {
+  return toolchain::StringSwitch<PassKind>(IDString)
 #define PASS(ID, TAG, DESCRIPTION) .Case(#ID, PassKind::ID)
 #include "language/SILOptimizer/PassManager/Passes.def"
       .Default(PassKind::invalidPassKind);
@@ -182,32 +183,32 @@ PassKind swift::PassKindFromString(StringRef IDString) {
 /// Get an ID string for the given pass Kind.
 /// This is useful for tools that identify a pass
 /// by its type name.
-StringRef swift::PassKindID(PassKind Kind) {
+StringRef language::PassKindID(PassKind Kind) {
   switch (Kind) {
 #define PASS(ID, TAG, DESCRIPTION)                                             \
   case PassKind::ID:                                                           \
     return #ID;
 #include "language/SILOptimizer/PassManager/Passes.def"
   case PassKind::invalidPassKind:
-    llvm_unreachable("Invalid pass kind?!");
+    toolchain_unreachable("Invalid pass kind?!");
   }
 
-  llvm_unreachable("Unhandled PassKind in switch.");
+  toolchain_unreachable("Unhandled PassKind in switch.");
 }
 
 /// Get a tag string for the given pass Kind.
 /// This format is useful for command line options.
-StringRef swift::PassKindTag(PassKind Kind) {
+StringRef language::PassKindTag(PassKind Kind) {
   switch (Kind) {
 #define PASS(ID, TAG, DESCRIPTION)                                             \
   case PassKind::ID:                                                           \
     return TAG;
 #include "language/SILOptimizer/PassManager/Passes.def"
   case PassKind::invalidPassKind:
-    llvm_unreachable("Invalid pass kind?!");
+    toolchain_unreachable("Invalid pass kind?!");
   }
 
-  llvm_unreachable("Unhandled PassKind in switch.");
+  toolchain_unreachable("Unhandled PassKind in switch.");
 }
 
 // During SIL Lowering, passes may see partially lowered SIL, which is
@@ -217,7 +218,7 @@ StringRef swift::PassKindTag(PassKind Kind) {
 // the function pass needs to read SIL from other functions, it may be best to
 // convert it to a module pass to ensure that the SIL input is always at the
 // same stage of lowering.
-void swift::runSILLoweringPasses(SILModule &Module) {
+void language::runSILLoweringPasses(SILModule &Module) {
   auto &opts = Module.getOptions();
   executePassPipelinePlan(&Module,
                           SILPassPipelinePlan::getLoweringPassPipeline(opts),
@@ -227,8 +228,8 @@ void swift::runSILLoweringPasses(SILModule &Module) {
 }
 
 /// Registered briged pass run functions.
-static llvm::StringMap<BridgedModulePassRunFn> bridgedModulePassRunFunctions;
-static llvm::StringMap<BridgedFunctionPassRunFn> bridgedFunctionPassRunFunctions;
+static toolchain::StringMap<BridgedModulePassRunFn> bridgedModulePassRunFunctions;
+static toolchain::StringMap<BridgedFunctionPassRunFn> bridgedFunctionPassRunFunctions;
 static bool passesRegistered = false;
 
 /// Runs a bridged module pass.
@@ -242,13 +243,14 @@ static void runBridgedModulePass(BridgedModulePassRunFn &runFunction,
     runFunction = bridgedModulePassRunFunctions[passName];
     if (!runFunction) {
       if (passesRegistered) {
-        llvm::errs() << "Swift pass " << passName << " is not registered\n";
-        abort();
+        ABORT([&](auto &out) {
+          out << "Codira pass " << passName << " is not registered";
+        });
       }
       return;
     }
   }
-  runFunction({passManager->getSwiftPassInvocation()});
+  runFunction({passManager->getCodiraPassInvocation()});
 }
 
 /// Runs a bridged function pass.
@@ -262,20 +264,20 @@ static void runBridgedFunctionPass(BridgedFunctionPassRunFn &runFunction,
     runFunction = bridgedFunctionPassRunFunctions[passName];
     if (!runFunction) {
       if (passesRegistered) {
-        llvm::errs() << "Swift pass " << passName << " is not registered\n";
-        abort();
+        ABORT([&](auto &out) {
+          out << "Codira pass " << passName << " is not registered";
+        });
       }
       return;
     }
   }
   if (!f->isBridged()) {
-    llvm::errs() << "SILFunction metatype is not registered\n";
-    abort();
+    ABORT("SILFunction metatype is not registered");
   }
-  runFunction({{f}, {passManager->getSwiftPassInvocation()}});
+  runFunction({{f}, {passManager->getCodiraPassInvocation()}});
 }
 
-// Called from initializeSwiftModules().
+// Called from initializeCodiraModules().
 void SILPassManager_registerModulePass(BridgedStringRef name,
                                        BridgedModulePassRunFn runFn) {
   bridgedModulePassRunFunctions[name.unbridged()] = runFn;
@@ -298,7 +300,7 @@ class ID##Pass : public SILFunctionTransform {                             \
   }                                                                        \
 };                                                                         \
 BridgedFunctionPassRunFn ID##Pass::runFunction = nullptr;                  \
-SILTransform *swift::create##ID() { return new ID##Pass(); }               \
+SILTransform *language::create##ID() { return new ID##Pass(); }               \
 
 #define MODULE_PASS(ID, TAG, DESCRIPTION) \
 class ID##Pass : public SILModuleTransform {                               \
@@ -308,8 +310,8 @@ class ID##Pass : public SILModuleTransform {                               \
   }                                                                        \
 };                                                                         \
 BridgedModulePassRunFn ID##Pass::runFunction = nullptr;                    \
-SILTransform *swift::create##ID() { return new ID##Pass(); }               \
+SILTransform *language::create##ID() { return new ID##Pass(); }               \
 
 #include "language/SILOptimizer/PassManager/Passes.def"
 
-#undef SWIFT_FUNCTION_PASS_COMMON
+#undef LANGUAGE_FUNCTION_PASS_COMMON

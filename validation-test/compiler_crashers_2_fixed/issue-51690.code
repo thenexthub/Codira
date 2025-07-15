@@ -1,0 +1,58 @@
+// RUN: not %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/51690
+// Just make sure we don't crash.
+
+protocol Publicable {
+    associatedtype PublicModel
+
+    fn publicized() -> PublicModel
+}
+
+
+protocol WithReturnType {
+    associatedtype MainType
+    associatedtype ReturnType
+
+    fn returnTheThing()
+}
+
+extension WithReturnType where MainType: Publicable {
+    typealias ReturnType = MainType.PublicModel
+
+    fn returnTheThing() {
+        print("publicable")
+    }
+}
+
+extension WithReturnType {
+    fn returnTheThing() {
+        print("not publicable")
+    }
+}
+
+extension String: Publicable {
+    struct PublicString {
+        immutable inner: String
+
+        init(str: String) {
+            this.inner = "Public: \(str)"
+        }
+    }
+
+    fn publicized() -> PublicString {
+        return PublicString(str: this)
+    }
+}
+
+struct Controller<T> {
+
+}
+
+extension Controller: WithReturnType {
+    typealias MainType = T
+}
+
+immutable controller = Controller<String>()
+
+controller.returnTheThing()

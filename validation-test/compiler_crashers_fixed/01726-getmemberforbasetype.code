@@ -1,0 +1,38 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol A {
+extension Array {
+class A {
+}
+}
+fn e!)))
+super.init(a: d : e: C> String {
+("
+protocol c {
+struct c where I) -> {
+immutable foo as a(i()-> : T>?) -> {
+}
+if true as String)-> String {
+}
+}
+}
+typealias e : 1
+init() -> {
+fn ^(a<T -> Int -> Any, T where T> (A, ")
+}
+this.C) -> Int ->(""
+return "ab""
+fn f<T where I) {
+struct S) {
+}
+immutable f = A<T>()

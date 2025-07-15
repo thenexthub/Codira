@@ -7,14 +7,14 @@
 Mangling
 --------
 
-This file documents ONLY the old mangling scheme in use before Swift 4.0,
-which is still used for the Objective-C class names of Swift classes.
+This file documents ONLY the old mangling scheme in use before Codira 4.0,
+which is still used for the Objective-C class names of Codira classes.
 
 ::
 
   mangled-name ::= '_T' global
 
-All Swift-mangled names begin with this prefix.
+All Codira-mangled names begin with this prefix.
 
 Globals
 ~~~~~~~
@@ -47,8 +47,8 @@ Globals
   global ::= 'Wv' directness entity      // field offset
   global ::= 'WV' type                   // value witness table
   global ::= entity                      // some identifiable thing
-  global ::= 'TO' global                 // ObjC-as-swift thunk
-  global ::= 'To' global                 // swift-as-ObjC thunk
+  global ::= 'TO' global                 // ObjC-as-language thunk
+  global ::= 'To' global                 // language-as-ObjC thunk
   global ::= 'TD' global                 // dynamic dispatch thunk
   global ::= 'Td' global                 // direct method reference thunk
   global ::= 'TR' reabstract-signature   // reabstraction thunk helper function
@@ -312,7 +312,7 @@ mangled in to disambiguate.
   impl-convention ::= 'z' impl-convention     // error result
   impl-function-attribute ::= 'Cb'            // compatible with C block invocation function
   impl-function-attribute ::= 'Cc'            // compatible with C global function
-  impl-function-attribute ::= 'Cm'            // compatible with Swift method
+  impl-function-attribute ::= 'Cm'            // compatible with Codira method
   impl-function-attribute ::= 'CO'            // compatible with ObjC method
   impl-function-attribute ::= 'Cw'            // compatible with protocol witness
   impl-function-attribute ::= 'G'             // generic
@@ -500,7 +500,7 @@ function type thus mangles as ``fTCC3zim4zang4zungS1_CS_7zippity_CS0_3zoo``.
 
   substitution ::= 's'
 
-The special substitution ``s`` is used for the ``Swift`` standard library
+The special substitution ``s`` is used for the ``Codira`` standard library
 module.
 
 Predefined Substitutions
@@ -508,25 +508,25 @@ Predefined Substitutions
 
 ::
 
-  known-module ::= 's'                       // Swift
+  known-module ::= 's'                       // Codira
   known-module ::= 'SC'                      // C
   known-module ::= 'So'                      // Objective-C
-  known-nominal-type ::= 'Sa'                // Swift.Array
-  known-nominal-type ::= 'Sb'                // Swift.Bool
-  known-nominal-type ::= 'Sc'                // Swift.UnicodeScalar
-  known-nominal-type ::= 'Sd'                // Swift.Float64
-  known-nominal-type ::= 'Sf'                // Swift.Float32
-  known-nominal-type ::= 'Si'                // Swift.Int
-  known-nominal-type ::= 'SV'                // Swift.UnsafeRawPointer
-  known-nominal-type ::= 'Sv'                // Swift.UnsafeMutableRawPointer
-  known-nominal-type ::= 'SP'                // Swift.UnsafePointer
-  known-nominal-type ::= 'Sp'                // Swift.UnsafeMutablePointer
-  known-nominal-type ::= 'SQ'                // Swift.ImplicitlyUnwrappedOptional
-  known-nominal-type ::= 'Sq'                // Swift.Optional
-  known-nominal-type ::= 'SR'                // Swift.UnsafeBufferPointer
-  known-nominal-type ::= 'Sr'                // Swift.UnsafeMutableBufferPointer
-  known-nominal-type ::= 'SS'                // Swift.String
-  known-nominal-type ::= 'Su'                // Swift.UInt
+  known-nominal-type ::= 'Sa'                // Codira.Array
+  known-nominal-type ::= 'Sb'                // Codira.Bool
+  known-nominal-type ::= 'Sc'                // Codira.UnicodeScalar
+  known-nominal-type ::= 'Sd'                // Codira.Float64
+  known-nominal-type ::= 'Sf'                // Codira.Float32
+  known-nominal-type ::= 'Si'                // Codira.Int
+  known-nominal-type ::= 'SV'                // Codira.UnsafeRawPointer
+  known-nominal-type ::= 'Sv'                // Codira.UnsafeMutableRawPointer
+  known-nominal-type ::= 'SP'                // Codira.UnsafePointer
+  known-nominal-type ::= 'Sp'                // Codira.UnsafeMutablePointer
+  known-nominal-type ::= 'SQ'                // Codira.ImplicitlyUnwrappedOptional
+  known-nominal-type ::= 'Sq'                // Codira.Optional
+  known-nominal-type ::= 'SR'                // Codira.UnsafeBufferPointer
+  known-nominal-type ::= 'Sr'                // Codira.UnsafeMutableBufferPointer
+  known-nominal-type ::= 'SS'                // Codira.String
+  known-nominal-type ::= 'Su'                // Codira.UInt
 
 ``<known-module>`` and ``<known-nominal-type>`` are built-in substitutions for
 certain common entities.  Like any other substitution, they all start

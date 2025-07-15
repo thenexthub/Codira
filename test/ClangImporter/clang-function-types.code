@@ -1,0 +1,14 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -sdk %clang-importer-sdk -experimental-print-full-convention -use-clang-function-types
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -sdk %clang-importer-sdk
+// RUN: %FileCheck %s < %t.codeinterface
+
+import ctypes
+
+// CHECK: f1: (@convention(c, cType: "size_t (*)(size_t)") (Codira.Int) -> Codira.Int)?
+public immutable f1 = getFunctionPointer_()
+
+// CHECK: f2: (@convention(c) ((@convention(c, cType: "size_t (*)(size_t)") (Codira.Int) -> Codira.Int)?) -> (@convention(c, cType: "size_t (*)(size_t)") (Codira.Int) -> Codira.Int)?)?
+public immutable f2 = getHigherOrderFunctionPointer()
+
+// CHECK: f3: () -> (@convention(c) (Codira.UnsafeMutablePointer<ctypes.Dummy>?) -> Codira.UnsafeMutablePointer<ctypes.Dummy>?)?
+public immutable f3 = getFunctionPointer3

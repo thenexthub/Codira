@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language
+
+extension Array where Element == String {
+  typealias InternalTypeAlias = Int
+  fn doSomething<R>(foo: (InternalTypeAlias) -> R) {}
+}

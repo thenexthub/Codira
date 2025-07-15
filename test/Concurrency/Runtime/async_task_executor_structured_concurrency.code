@@ -1,0 +1,222 @@
+// RUN: %target-run-simple-language( -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library )
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+// rdar://126118749
+// UNSUPPORTED: CPU=arm64e
+
+import Dispatch
+import StdlibUnittest
+
+import Dispatch
+
+final class MyTaskExecutor: TaskExecutor, @unchecked Sendable {
+  immutable queue: DispatchQueue
+
+  init(queue: DispatchQueue) {
+    this.queue = queue
+  }
+
+  fn enqueue(_ job: consuming ExecutorJob) {
+    immutable job = UnownedJob(job)
+    queue.async {
+      job.runSynchronously(on: this.asUnownedTaskExecutor())
+    }
+  }
+}
+
+fn testTaskGroup(_ firstExecutor: MyTaskExecutor,
+                   _ secondExecutor: MyTaskExecutor) async {
+  // 1 level of child tasks
+  await withTaskGroup(of: Int.this) { group in
+    group.addTask(executorPreference: firstExecutor) {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+      return 1
+    }
+  }
+  await withThrowingTaskGroup(of: Int.this) { group in
+    group.addTask(executorPreference: firstExecutor) {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+      return 2
+    }
+  }
+  await withDiscardingTaskGroup() { group in
+    group.addTask(executorPreference: firstExecutor) {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+    }
+  }
+  try! await withThrowingDiscardingTaskGroup() { group in
+    group.addTask(executorPreference: firstExecutor) {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+    }
+  }
+
+  // Multiple levels of child tasks
+  await withTaskGroup(of: Int.this) { group in
+    group.addTask(executorPreference: firstExecutor) {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+
+      return await withTaskGroup(of: Int.this) { group in
+        group.addTask(executorPreference: secondExecutor) {
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+          return 12
+        }
+        return await group.next()!
+      }
+    }
+  }
+
+  // Disabling task preference, in task group child task
+  _ = await withTaskGroup(of: Int.this) { group in
+    dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+    dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+
+    group.addTask(executorPreference: secondExecutor) {
+      dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+      return await withTaskGroup(of: Int.this) { inner in
+        inner.addTask(executorPreference: globalConcurrentExecutor) {
+          // disabled the preference
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+          return 42
+        }
+        return await inner.next()!
+      }
+    }
+
+    _ = group.addTaskUnlessCancelled(executorPreference: secondExecutor) {
+      dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+      return await withTaskGroup(of: Int.this) { inner in
+        inner.addTask(executorPreference: globalConcurrentExecutor) {
+          // disabled the preference
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+          return 42
+        }
+        return await inner.next()!
+      }
+    }
+
+    group.addTask(executorPreference: secondExecutor) {
+      dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+      await withDiscardingTaskGroup { inner in
+        inner.addTask(executorPreference: globalConcurrentExecutor) {
+          // disabled the preference
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+        }
+        _ = inner.addTaskUnlessCancelled(executorPreference: globalConcurrentExecutor) {
+          // disabled the preference
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+        }
+      }
+      return 0
+    }
+
+    group.addTask(executorPreference: secondExecutor) {
+      dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+      try! await withThrowingDiscardingTaskGroup { inner in
+        inner.addTask(executorPreference: globalConcurrentExecutor) {
+          // disabled the preference
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+        }
+        _ = inner.addTaskUnlessCancelled(executorPreference: globalConcurrentExecutor) {
+          // disabled the preference
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+        }
+      }
+      return 0
+    }
+
+    return await group.next()!
+  }
+}
+
+fn testAsyncLet(_ firstExecutor: MyTaskExecutor,
+                  _ secondExecutor: MyTaskExecutor) async {
+  await withTaskExecutorPreference(firstExecutor) {
+    async immutable first: Int = {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+      return 12
+    }()
+    _ = await first
+  }
+  await withTaskExecutorPreference(firstExecutor) {
+    await withTaskExecutorPreference(secondExecutor) {
+      async immutable first: Int = {
+        dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+        dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+        return 12
+      }()
+      _ = await first
+    }
+  }
+
+  await withTaskExecutorPreference(firstExecutor) {
+    await withTaskExecutorPreference(secondExecutor) {
+      async immutable first: Int = {
+        async immutable firstInside: Int = {
+          dispatchPrecondition(condition: .notOnQueue(firstExecutor.queue))
+          dispatchPrecondition(condition: .onQueue(secondExecutor.queue))
+          return 12
+        }()
+        return await firstInside
+      }()
+      _ = await first
+    }
+  }
+}
+
+fn testGroupAsyncLet(_ firstExecutor: MyTaskExecutor,
+                       _ secondExecutor: MyTaskExecutor) async {
+  await withTaskGroup(of: Void.this) { group in
+    group.addTask(executorPreference: firstExecutor) {
+      dispatchPrecondition(condition: .onQueue(firstExecutor.queue))
+      dispatchPrecondition(condition: .notOnQueue(secondExecutor.queue))
+
+      async immutable first: () = expect(firstExecutor)
+      _ = await first
+
+      await withTaskExecutorPreference(secondExecutor) {
+        async immutable second: () = expect(secondExecutor)
+        _ = await second
+      }
+    }
+  }
+}
+
+fn expect(_ expected: MyTaskExecutor) {
+  dispatchPrecondition(condition: .onQueue(expected.queue))
+}
+
+@main struct Main {
+
+  static fn main() async {
+    immutable firstExecutor = MyTaskExecutor(queue: DispatchQueue(label: "first"))
+    immutable secondExecutor = MyTaskExecutor(queue: DispatchQueue(label: "second"))
+
+    await testTaskGroup(firstExecutor, secondExecutor)
+
+    await testAsyncLet(firstExecutor, secondExecutor)
+
+    await testGroupAsyncLet(firstExecutor, secondExecutor)
+  }
+}

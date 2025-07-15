@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2021-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,9 +16,9 @@
 #ifndef NORMALIZATION_DATA_H
 #define NORMALIZATION_DATA_H
 
-#include "language/shims/SwiftStdint.h"
+#include "language/shims/CodiraStdint.h"
 
-static const __swift_uint16_t _swift_stdlib_normData_data[67] = {
+static const __language_uint16_t _language_stdlib_normData_data[67] = {
   0x6B0, 0xD0, 0x1, 0xE0, 0xE8, 0x98, 0x108, 0x118, 0x2DC, 0x68, 0x110, 0xC, 0x4, 0x784, 0xA8, 0x58,
   0xB0, 0xD8, 0x720, 0x60, 0x750, 0xB8, 0x650, 0x80, 0x748, 0x6F0, 0x5, 0x420, 0x78, 0x90, 0x3B0,
   0x6D0, 0x410, 0x2A0, 0x6E0, 0xC8, 0x3D0, 0x44, 0x408, 0x358, 0x30, 0x710, 0x70, 0x700, 0x338,
@@ -26,7 +26,7 @@ static const __swift_uint16_t _swift_stdlib_normData_data[67] = {
   0x6E4, 0xA0, 0x733, 0x4C, 0x48, 0x654, 0x740,
 };
 
-static const __swift_uint8_t _swift_stdlib_normData_data_indices[3092] = {
+static const __language_uint8_t _language_stdlib_normData_data_indices[3092] = {
   0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
   0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
   0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
@@ -212,7 +212,7 @@ static const __swift_uint8_t _swift_stdlib_normData_data_indices[3092] = {
   0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
 };
 
-static const __swift_uint16_t _swift_stdlib_normData_ranks[432] = {
+static const __language_uint16_t _language_stdlib_normData_ranks[432] = {
   0x0, 0x24, 0x24, 0x2A, 0x37, 0x44, 0x48, 0x4B, 0x51, 0x51, 0x51, 0x51, 0x0, 0x0, 0x0, 0x0, 0x35,
   0x0, 0x31, 0x5C, 0x63, 0x9B, 0x0, 0xE, 0xE, 0xE, 0x2E, 0x0, 0x3F, 0x51, 0x59, 0x61, 0x0, 0x9, 0xE,
   0x30, 0x30, 0x0, 0x0, 0x33, 0x33, 0x48, 0x0, 0x1, 0xC, 0x18, 0x33, 0x0, 0x0, 0x5, 0x1F, 0x22, 0x0,
@@ -239,7 +239,7 @@ static const __swift_uint16_t _swift_stdlib_normData_ranks[432] = {
   0x100, 0x0, 0x40, 0x4E, 0x4E, 0x4E,
 };
 
-static const __swift_uint64_t _swift_stdlib_normData[433] = {
+static const __language_uint64_t _language_stdlib_normData[433] = {
   0xC, 0x6D03FFE5FFFF, 0x0, 0x3F0000000, 0xEC5C9C0000000000, 0x5BFF, 0x4A01000, 0x60000400000000,
   0x1358, 0x0, 0x0, 0x0, 0x3800, 0x0, 0x0, 0x0, 0xBE7EFFBF3E7EFFBF, 0xFFFF, 0xF1F87EF1FF3FFFFC,
   0x7FFFFF3FFFF3, 0xE000000180030000, 0xFFFFFF31FFCFDFFF, 0x45CFFF, 0xFFFC0, 0x0, 0x0,
@@ -294,11 +294,11 @@ static const __swift_uint64_t _swift_stdlib_normData[433] = {
 
 #define NFD_DECOMP_LEVEL_COUNT 12
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_sizes[12] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_sizes[12] = {
   0x821, 0x531, 0x359, 0x232, 0x17A, 0xF6, 0x9D, 0x69, 0x40, 0x40, 0x40, 0x40,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys0[33] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys0[33] = {
   0x86C0C09A0007FCA8, 0x10210E04C5305266, 0x180092669F905259, 0xAC1C105FD4F18E12,
   0xD02860AC1892224F, 0x2088062265802912, 0x32A71708C5030C14, 0x2C8F22D2C7A06409,
   0x84B5E186216052C4, 0xD61640B0100C6138, 0x50771100F1C41732, 0x16DA100873C99140,
@@ -309,7 +309,7 @@ static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys0[33] = {
   0x56A41CEA46886832, 0xD84440EE6D420440, 0x1442259C835316A1, 0x6C10E00,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys1[21] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys1[21] = {
   0x148292191B8400D0, 0x8B180446160021F0, 0x620B061268432C21, 0xA449200E428A033A,
   0x18800680EAC4BB54, 0xE33401938E641D39, 0xE368240499014037, 0x700C31A209B68297,
   0xA54A053001F42DC0, 0x3112D34739020D95, 0x3D503C302D843B44, 0x42F984C3C4098740,
@@ -317,114 +317,114 @@ static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys1[21] = {
   0xE09D3C4922118912, 0xD5049F3B10A45C04, 0x604203D1D80C0143, 0x167F46C21D010,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys2[14] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys2[14] = {
   0x9E268CC1D95F2EB2, 0xD070604742804480, 0xA08C47C05B605A21, 0xC08A802284590A46,
   0x2123A611222A0150, 0x340141B818220B26, 0x9A0000D2610C02B, 0xC82360DA913D720C, 0x10086CA62404953E,
   0x16C2FA88E4244829, 0x22800216D49F0124, 0x13894031080A83C, 0x3D11468600F59428, 0x90C4C6,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys3[9] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys3[9] = {
   0x2301ECA68B407111, 0x6430C4CAA112CCF9, 0x990008A3051C311A, 0x958A40891E10702C, 0xB14800054395212,
   0xB41CA91D0000C122, 0x11304C08006208D2, 0x68014DB080826184, 0x1286AC4450351,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys4[6] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys4[6] = {
   0x1A022469D456A21E, 0x2011944E103C2030, 0xA2421123EA8F5C59, 0xC27680C00060CD00,
   0x8444294A3004213E, 0x4CA20B21D8347C,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys5[4] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys5[4] = {
   0x5D212685800C1844, 0x2E8A2721EAC40204, 0xCA6023542251042D, 0x2DA119E0926A2D,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys6[3] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys6[3] = {
   0xC024848CA00460E9, 0x101C8574323A0528, 0x10A65027,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys7[2] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys7[2] = {
   0x10A9626911788089, 0x19DFA0E02FC,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys8[1] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys8[1] = {
   0xBEC1430888503008,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys9[1] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys9[1] = {
   0x10AA53030E4060E2,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys10[1] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys10[1] = {
   0x601808E51200082,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfd_decomp_keys11[1] = {
+static const __language_uint64_t _language_stdlib_nfd_decomp_keys11[1] = {
   0x130042000080,
 };
 
-static const __swift_uint64_t * const _swift_stdlib_nfd_decomp_keys[12] = {
-  _swift_stdlib_nfd_decomp_keys0, _swift_stdlib_nfd_decomp_keys1, _swift_stdlib_nfd_decomp_keys2,
-  _swift_stdlib_nfd_decomp_keys3, _swift_stdlib_nfd_decomp_keys4, _swift_stdlib_nfd_decomp_keys5,
-  _swift_stdlib_nfd_decomp_keys6, _swift_stdlib_nfd_decomp_keys7, _swift_stdlib_nfd_decomp_keys8,
-  _swift_stdlib_nfd_decomp_keys9, _swift_stdlib_nfd_decomp_keys10, _swift_stdlib_nfd_decomp_keys11,
+static const __language_uint64_t * const _language_stdlib_nfd_decomp_keys[12] = {
+  _language_stdlib_nfd_decomp_keys0, _language_stdlib_nfd_decomp_keys1, _language_stdlib_nfd_decomp_keys2,
+  _language_stdlib_nfd_decomp_keys3, _language_stdlib_nfd_decomp_keys4, _language_stdlib_nfd_decomp_keys5,
+  _language_stdlib_nfd_decomp_keys6, _language_stdlib_nfd_decomp_keys7, _language_stdlib_nfd_decomp_keys8,
+  _language_stdlib_nfd_decomp_keys9, _language_stdlib_nfd_decomp_keys10, _language_stdlib_nfd_decomp_keys11,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks0[5] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks0[5] = {
   0x0, 0xB9, 0x16E, 0x229, 0x2E8,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks1[3] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks1[3] = {
   0x2F0, 0x3A2, 0x45A,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks2[2] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks2[2] = {
   0x4C8, 0x579,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks3[2] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks3[2] = {
   0x5EF, 0x695,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks4[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks4[1] = {
   0x6A7,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks5[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks5[1] = {
   0x72B,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks6[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks6[1] = {
   0x784,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks7[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks7[1] = {
   0x7B8,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks8[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks8[1] = {
   0x7E4,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks9[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks9[1] = {
   0x7F8,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks10[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks10[1] = {
   0x80D,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfd_decomp_ranks11[1] = {
+static const __language_uint16_t _language_stdlib_nfd_decomp_ranks11[1] = {
   0x81B,
 };
 
-static const __swift_uint16_t * const _swift_stdlib_nfd_decomp_ranks[12] = {
-  _swift_stdlib_nfd_decomp_ranks0, _swift_stdlib_nfd_decomp_ranks1, _swift_stdlib_nfd_decomp_ranks2,
-  _swift_stdlib_nfd_decomp_ranks3, _swift_stdlib_nfd_decomp_ranks4, _swift_stdlib_nfd_decomp_ranks5,
-  _swift_stdlib_nfd_decomp_ranks6, _swift_stdlib_nfd_decomp_ranks7, _swift_stdlib_nfd_decomp_ranks8,
-  _swift_stdlib_nfd_decomp_ranks9, _swift_stdlib_nfd_decomp_ranks10,
-  _swift_stdlib_nfd_decomp_ranks11,
+static const __language_uint16_t * const _language_stdlib_nfd_decomp_ranks[12] = {
+  _language_stdlib_nfd_decomp_ranks0, _language_stdlib_nfd_decomp_ranks1, _language_stdlib_nfd_decomp_ranks2,
+  _language_stdlib_nfd_decomp_ranks3, _language_stdlib_nfd_decomp_ranks4, _language_stdlib_nfd_decomp_ranks5,
+  _language_stdlib_nfd_decomp_ranks6, _language_stdlib_nfd_decomp_ranks7, _language_stdlib_nfd_decomp_ranks8,
+  _language_stdlib_nfd_decomp_ranks9, _language_stdlib_nfd_decomp_ranks10,
+  _language_stdlib_nfd_decomp_ranks11,
 };
 
-static const __swift_uint8_t _swift_stdlib_nfd_decomp[9627] = {
+static const __language_uint8_t _language_stdlib_nfd_decomp[9627] = {
   0x3, 0xE5, 0xB9, 0xB4, 0x3, 0xE7, 0x9C, 0x9F, 0x3, 0x69, 0xCC, 0xB0, 0x3, 0xE8, 0xB5, 0xB7, 0x3,
   0xE7, 0xB3, 0xA7, 0x3, 0x65, 0xCC, 0x91, 0x6, 0xE1, 0xAC, 0xBE, 0xE1, 0xAC, 0xB5, 0x6, 0xCF, 0x85,
   0xCC, 0x88, 0xCC, 0x81, 0x6, 0xE0, 0xAC, 0xA2, 0xE0, 0xAC, 0xBC, 0x6, 0xE3, 0x83, 0x95, 0xE3,
@@ -996,7 +996,7 @@ static const __swift_uint8_t _swift_stdlib_nfd_decomp[9627] = {
   0xCC, 0xB1, 0x3, 0xE5, 0x99, 0xB4,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfd_decomp_indices[2081] = {
+static const __language_uint32_t _language_stdlib_nfd_decomp_indices[2081] = {
   0xF98E, 0x12F946, 0x201E2D, 0x32F9D7, 0x40F97B, 0x500207, 0x601B40, 0x7C1FE3, 0x980B5D, 0xB430D7,
   0xD2F859, 0xE42285, 0xFC3052, 0x1180139, 0x128F9B0, 0x1380B4B, 0x156FA14, 0x16AF950, 0x17822EB,
   0x190FAB1, 0x1A00205, 0x1B01FA7, 0x1D6F82D, 0x1E6F8E9, 0x1F404ED, 0x208016D, 0x218FB2A, 0x22CF9B1,
@@ -1259,94 +1259,94 @@ static const __swift_uint32_t _swift_stdlib_nfd_decomp_indices[2081] = {
 
 #define NFC_COMP_LEVEL_COUNT 4
 
-static const __swift_uint16_t _swift_stdlib_nfc_comp_sizes[4] = {
+static const __language_uint16_t _language_stdlib_nfc_comp_sizes[4] = {
   0x48, 0x40, 0x40, 0x40,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfc_comp_keys0[2] = {
+static const __language_uint64_t _language_stdlib_nfc_comp_keys0[2] = {
   0xA68807848DEAA8B, 0x42,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfc_comp_keys1[1] = {
+static const __language_uint64_t _language_stdlib_nfc_comp_keys1[1] = {
   0x80C940A420C45481,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfc_comp_keys2[1] = {
+static const __language_uint64_t _language_stdlib_nfc_comp_keys2[1] = {
   0x10208B04138D5024,
 };
 
-static const __swift_uint64_t _swift_stdlib_nfc_comp_keys3[1] = {
+static const __language_uint64_t _language_stdlib_nfc_comp_keys3[1] = {
   0x8000402016100002,
 };
 
-static const __swift_uint64_t * const _swift_stdlib_nfc_comp_keys[4] = {
-  _swift_stdlib_nfc_comp_keys0, _swift_stdlib_nfc_comp_keys1, _swift_stdlib_nfc_comp_keys2,
-  _swift_stdlib_nfc_comp_keys3,
+static const __language_uint64_t * const _language_stdlib_nfc_comp_keys[4] = {
+  _language_stdlib_nfc_comp_keys0, _language_stdlib_nfc_comp_keys1, _language_stdlib_nfc_comp_keys2,
+  _language_stdlib_nfc_comp_keys3,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfc_comp_ranks0[1] = {
+static const __language_uint16_t _language_stdlib_nfc_comp_ranks0[1] = {
   0x0,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfc_comp_ranks1[1] = {
+static const __language_uint16_t _language_stdlib_nfc_comp_ranks1[1] = {
   0x1C,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfc_comp_ranks2[1] = {
+static const __language_uint16_t _language_stdlib_nfc_comp_ranks2[1] = {
   0x2E,
 };
 
-static const __swift_uint16_t _swift_stdlib_nfc_comp_ranks3[1] = {
+static const __language_uint16_t _language_stdlib_nfc_comp_ranks3[1] = {
   0x40,
 };
 
-static const __swift_uint16_t * const _swift_stdlib_nfc_comp_ranks[4] = {
-  _swift_stdlib_nfc_comp_ranks0, _swift_stdlib_nfc_comp_ranks1, _swift_stdlib_nfc_comp_ranks2,
-  _swift_stdlib_nfc_comp_ranks3,
+static const __language_uint16_t * const _language_stdlib_nfc_comp_ranks[4] = {
+  _language_stdlib_nfc_comp_ranks0, _language_stdlib_nfc_comp_ranks1, _language_stdlib_nfc_comp_ranks2,
+  _language_stdlib_nfc_comp_ranks3,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp0[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp0[2] = {
   0x400CC2, 0x80CC6,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp1[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp1[3] = {
   0x6113C2, 0x7138B, 0x713C2,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp2[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp2[3] = {
   0x600325, 0x3B7E0041, 0x3B400061,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp3[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp3[2] = {
   0x4114BA, 0x514B9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp4[4] = {
+static const __language_uint32_t _language_stdlib_nfc_comp4[4] = {
   0x8113C9, 0x31382, 0x31390, 0xD13C2,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp5[25] = {
+static const __language_uint32_t _language_stdlib_nfc_comp5[25] = {
   0x3200309, 0x3CC20041, 0x3CEA0045, 0x3CFE0049, 0x3CFE004F, 0x3D220055, 0x3D3A0059, 0x3C840061,
   0x3CAC0065, 0x3CC00069, 0x3CC0006F, 0x3CE40075, 0x3CFC0079, 0x3BCC00C2, 0x3BF000CA, 0x3C0000D4,
   0x3B8E00E2, 0x3BB200EA, 0x3BC200F4, 0x3B600102, 0x3B600103, 0x3A7C01A0, 0x3A7C01A1, 0x3A7A01AF,
   0x3A7A01B0,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp6[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp6[2] = {
   0x400655, 0x80040627,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp7[18] = {
+static const __language_uint32_t _language_stdlib_nfc_comp7[18] = {
   0x2400331, 0x3B880042, 0x3B940044, 0x3BD2004B, 0x3BDC004C, 0x3BF4004E, 0x3C180052, 0x3C340054,
   0x3C74005A, 0x3B4A0062, 0x3B560064, 0x3C5C0068, 0x3B94006B, 0x3B9E006C, 0x3BB6006E, 0x3BDA0072,
   0x3BF60074, 0x3C36007A,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp8[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp8[3] = {
   0x6115AF, 0x515B8, 0x515B9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp9[49] = {
+static const __language_uint32_t _language_stdlib_nfc_comp9[49] = {
   0x6203099, 0x9C3046, 0x2304B, 0x2304D, 0x2304F, 0x23051, 0x23053, 0x23055, 0x23057, 0x23059,
   0x2305B, 0x2305D, 0x2305F, 0x23061, 0x23064, 0x23066, 0x23068, 0x2306F, 0x23072, 0x23075, 0x23078,
   0x2307B, 0x2309D, 0x9C30A6, 0x230AB, 0x230AD, 0x230AF, 0x230B1, 0x230B3, 0x230B5, 0x230B7,
@@ -1354,11 +1354,11 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp9[49] = {
   0x230D8, 0x230DB, 0x1030EF, 0x1030F0, 0x1030F1, 0x1030F2, 0x230FD,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp10[4] = {
+static const __language_uint32_t _language_stdlib_nfc_comp10[4] = {
   0x80093C, 0x20928, 0x20930, 0x20933,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp11[118] = {
+static const __language_uint32_t _language_stdlib_nfc_comp11[118] = {
   0xEC00301, 0x1000041, 0x1860043, 0x1080045, 0x35A0047, 0x1080049, 0x3BCA004B, 0x1DA004C,
   0x3BE2004D, 0x1EA004E, 0x108004F, 0x3C080050, 0x2040052, 0x20E0053, 0x10A0055, 0x3C560057,
   0x1080059, 0x23E005A, 0x1000061, 0x1480063, 0x1080065, 0x31C0067, 0x1080069, 0x3B8C006B,
@@ -1375,48 +1375,48 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp11[118] = {
   0x81F59, 0x81F60, 0x81F61, 0x81F68, 0x81F69, 0x1E1FBF, 0x80401FFE,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp12[7] = {
+static const __language_uint32_t _language_stdlib_nfc_comp12[7] = {
   0xE00654, 0x80080627, 0x80480648, 0x8048064A, 0x206C1, 0x206D2, 0x802A06D5,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp13[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp13[3] = {
   0x600DCA, 0x20DD9, 0x20DDC,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp14[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp14[3] = {
   0x60032E, 0x3BC40048, 0x3B860068,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp15[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp15[3] = {
   0x600D3E, 0x80D46, 0x80D47,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp16[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp16[2] = {
   0x400C56, 0x40C46,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp17[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp17[3] = {
   0x600324, 0x3C3A0055, 0x3BFC0075,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp18[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp18[2] = {
   0x4113BB, 0x31384,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp19[13] = {
+static const __language_uint32_t _language_stdlib_nfc_comp19[13] = {
   0x1A0032D, 0x3B9C0044, 0x3BA60045, 0x3BE0004C, 0x3BF8004E, 0x3C380054, 0x3C420055, 0x3B5E0064,
   0x3B680065, 0x3BA2006C, 0x3BBA006E, 0x3BFA0074, 0x3C040075,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp20[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp20[2] = {
   0x4114B0, 0x714B9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp21[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp21[2] = {
   0x411357, 0xB1347,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp22[49] = {
+static const __language_uint32_t _language_stdlib_nfc_comp22[49] = {
   0x6200307, 0x3CA0041, 0x3B800042, 0x18E0043, 0x3B8C0044, 0x1A20045, 0x3BB00046, 0x1B20047,
   0x3BB40048, 0x1CE0049, 0x3BE6004D, 0x3BEC004E, 0x3BE004F, 0x3C0C0050, 0x3C0C0052, 0x3C1A0053,
   0x3C2C0054, 0x3C5E0057, 0x3C640058, 0x3C6A0059, 0x242005A, 0x38C0061, 0x3B420062, 0x1500063,
@@ -1426,16 +1426,16 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp22[49] = {
   0x1505DA,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp23[13] = {
+static const __language_uint32_t _language_stdlib_nfc_comp23[13] = {
   0x1A00311, 0x3820041, 0x3820045, 0x3820049, 0x37E004F, 0x3800052, 0x3820055, 0x3440061, 0x3440065,
   0x3440069, 0x340006F, 0x3420072, 0x3440075,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp24[4] = {
+static const __language_uint32_t _language_stdlib_nfc_comp24[4] = {
   0x816D67, 0xD6D63, 0x36D67, 0x36D69,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp25[45] = {
+static const __language_uint32_t _language_stdlib_nfc_comp25[45] = {
   0x5A00304, 0x17E0041, 0x19A0045, 0x3BB20047, 0x1C20049, 0x1FA004F, 0x22A0055, 0x3B20059,
   0x1400061, 0x15C0065, 0x3B740067, 0x1840069, 0x1BC006F, 0x1EC0075, 0x3740079, 0x23400C4,
   0x23800C6, 0x2AE00D5, 0x2A800D6, 0x1F200DC, 0x1F600E4, 0x1FA00E6, 0x27000F5, 0x26A00F6, 0x1B400FC,
@@ -1444,15 +1444,15 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp25[45] = {
   0x41E5A, 0x41E5B,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp26[5] = {
+static const __language_uint32_t _language_stdlib_nfc_comp26[5] = {
   0xA1611F, 0xB611E, 0xB6121, 0xB6122, 0x800B6129,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp27[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp27[2] = {
   0x4009D7, 0xA09C7,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp28[85] = {
+static const __language_uint32_t _language_stdlib_nfc_comp28[85] = {
   0xAA00300, 0xFE0041, 0x1060045, 0x1060049, 0x354004E, 0x106004F, 0x1080055, 0x3C520057,
   0x3D320059, 0xFE0061, 0x1060065, 0x1060069, 0x316006E, 0x106006F, 0x1080075, 0x3C140077,
   0x3CF40079, 0x3E8A00A8, 0x3BC800C2, 0x3BEC00CA, 0x3BFC00D4, 0x1FE00DC, 0x3B8A00E2, 0x3BAE00EA,
@@ -1465,7 +1465,7 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp28[85] = {
   0x41F59, 0x41F60, 0x41F61, 0x41F68, 0x41F69, 0x1C1FBF, 0x80421FFE,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp29[45] = {
+static const __language_uint32_t _language_stdlib_nfc_comp29[45] = {
   0x5A00338, 0x4464003C, 0x4446003D, 0x4462003E, 0x142190, 0x122192, 0x342194, 0x800621D0,
   0x800621D2, 0x800C21D4, 0x22203, 0x22208, 0x2220B, 0x22223, 0x22225, 0xA223C, 0x22243, 0x42245,
   0x22248, 0x40224D, 0x22261, 0x182264, 0x182265, 0x42272, 0x42273, 0x42276, 0x42277, 0xC227A,
@@ -1473,27 +1473,27 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp29[45] = {
   0xA22A8, 0xA22A9, 0x822AB, 0x7022B2, 0x7022B3, 0x7022B4, 0x7022B5,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp30[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp30[3] = {
   0x600BBE, 0x80BC6, 0x80BC7,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp31[5] = {
+static const __language_uint32_t _language_stdlib_nfc_comp31[5] = {
   0xA0031B, 0x2A2004F, 0x2B40055, 0x264006F, 0x2760075,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp32[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp32[2] = {
   0x41611E, 0x7611E,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp33[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp33[2] = {
   0x400D57, 0xC0D46,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp34[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp34[2] = {
   0x411930, 0x71935,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp35[64] = {
+static const __language_uint32_t _language_stdlib_nfc_comp35[64] = {
   0x8000345, 0x38560391, 0x386A0397, 0x38A603A9, 0x381003AC, 0x382C03AE, 0x380403B1, 0x381803B7,
   0x385403C9, 0x384C03CE, 0x1001F00, 0x1001F01, 0x1001F02, 0x1001F03, 0x1001F04, 0x1001F05,
   0x1001F06, 0x1001F07, 0x1001F08, 0x1001F09, 0x1001F0A, 0x1001F0B, 0x1001F0C, 0x1001F0D, 0x1001F0E,
@@ -1504,25 +1504,25 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp35[64] = {
   0x21FC6, 0x21FF6,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp36[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp36[2] = {
   0x40102E, 0x21025,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp37[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp37[2] = {
   0x41133E, 0x91347,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp38[23] = {
+static const __language_uint32_t _language_stdlib_nfc_comp38[23] = {
   0x2E00327, 0x1080043, 0x3B980044, 0x3C60045, 0x1B60047, 0x3BC00048, 0x1D6004B, 0x1DE004C,
   0x1EE004E, 0x2080052, 0x2160053, 0x21C0054, 0x1080063, 0x3B5A0064, 0x3880065, 0x1780067,
   0x3B820068, 0x198006B, 0x1A0006C, 0x1B0006E, 0x1CA0072, 0x1D80073, 0x1DE0074,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp39[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp39[2] = {
   0x416129, 0x9611E,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp40[38] = {
+static const __language_uint32_t _language_stdlib_nfc_comp40[38] = {
   0x4C0030C, 0x3180041, 0x1920043, 0x1940044, 0x1AA0045, 0x33E0047, 0x3AC0048, 0x30C0049, 0x33A004B,
   0x1E2004C, 0x1F2004E, 0x304004F, 0x20C0052, 0x21A0053, 0x2200054, 0x2FC0055, 0x246005A, 0x2DA0061,
   0x1540063, 0x1560064, 0x16C0065, 0x3000067, 0x36E0068, 0x2CE0069, 0x30C006A, 0x2FC006B, 0x1A4006C,
@@ -1530,79 +1530,79 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp40[38] = {
   0x6E01B7, 0x81460292,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp41[4] = {
+static const __language_uint32_t _language_stdlib_nfc_comp41[4] = {
   0x800CD5, 0x20CBF, 0x20CC6, 0x20CCA,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp42[33] = {
+static const __language_uint32_t _language_stdlib_nfc_comp42[33] = {
   0x4200306, 0x1820041, 0x19E0045, 0x1AE0047, 0x1C60049, 0x1FE004F, 0x22E0055, 0x1440061, 0x1600065,
   0x1700067, 0x1880069, 0x1C0006F, 0x1F00075, 0x37E80228, 0x37E80229, 0x384E0391, 0x387E0399,
   0x388603A5, 0x37FE03B1, 0x382E03B9, 0x383603C5, 0x1800410, 0x1820415, 0x1560416, 0x20418,
   0x802A0423, 0x1420430, 0x1440435, 0x1180436, 0x20438, 0x360443, 0x2C1EA0, 0x2C1EA1,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp43[15] = {
+static const __language_uint32_t _language_stdlib_nfc_comp43[15] = {
   0x1E0030F, 0x37E0041, 0x37E0045, 0x37E0049, 0x37A004F, 0x37C0052, 0x37E0055, 0x3400061, 0x3400065,
   0x3400069, 0x33C006F, 0x33E0072, 0x3400075, 0x40474, 0x40475,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp44[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp44[3] = {
   0x600BD7, 0x40B92, 0xC0BC6,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp45[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp45[2] = {
   0x400B57, 0xA0B47,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp46[17] = {
+static const __language_uint32_t _language_stdlib_nfc_comp46[17] = {
   0x2200314, 0x36F00391, 0x37080395, 0x37240397, 0x37400399, 0x3754039F, 0x389603A1, 0x376803A5,
   0x378003A9, 0x36A003B1, 0x36B803B5, 0x36D403B7, 0x36F003B9, 0x370403BF, 0x384803C1, 0x371803C5,
   0x373003C9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp47[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp47[3] = {
   0x611127, 0x80071131, 0x80071132,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp48[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp48[2] = {
   0x400DCF, 0x60DD9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp49[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp49[2] = {
   0x400CD6, 0x40CC6,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp50[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp50[2] = {
   0x400DDF, 0xA0DD9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp51[3] = {
+static const __language_uint32_t _language_stdlib_nfc_comp51[3] = {
   0x616120, 0xF611E, 0xF6121,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp52[7] = {
+static const __language_uint32_t _language_stdlib_nfc_comp52[7] = {
   0xE0030A, 0x1080041, 0x2320055, 0x1080061, 0x1F40075, 0x3C420077, 0x3C400079,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp53[15] = {
+static const __language_uint32_t _language_stdlib_nfc_comp53[15] = {
   0x1E00313, 0x36EE0391, 0x37060395, 0x37220397, 0x373E0399, 0x3752039F, 0x377E03A9, 0x369E03B1,
   0x36B603B5, 0x36D203B7, 0x36EE03B9, 0x370203BF, 0x384603C1, 0x371603C5, 0x372E03C9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp54[11] = {
+static const __language_uint32_t _language_stdlib_nfc_comp54[11] = {
   0x160309A, 0x4306F, 0x43072, 0x43075, 0x43078, 0x4307B, 0x430CF, 0x430D2, 0x430D5, 0x430D8,
   0x430DB,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp55[7] = {
+static const __language_uint32_t _language_stdlib_nfc_comp55[7] = {
   0xE0030B, 0x202004F, 0x2360055, 0x1C4006F, 0x1F80075, 0x19E0423, 0x1600443,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp56[7] = {
+static const __language_uint32_t _language_stdlib_nfc_comp56[7] = {
   0xE00330, 0x3BAA0045, 0x3BC60049, 0x3C3E0055, 0x3B6C0065, 0x3B880069, 0x3C000075,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp57[43] = {
+static const __language_uint32_t _language_stdlib_nfc_comp57[43] = {
   0x5600323, 0x3CBE0041, 0x3B840042, 0x3B900044, 0x3CE60045, 0x3BB80048, 0x3D020049, 0x3BCE004B,
   0x3BD4004C, 0x3BEA004D, 0x3BF0004E, 0x3CFA004F, 0x3C100052, 0x3C1E0053, 0x3C300054, 0x3D1E0055,
   0x3C500056, 0x3C620057, 0x3D360059, 0x3C70005A, 0x3C800061, 0x3B460062, 0x3B520064, 0x3CA80065,
@@ -1611,47 +1611,47 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp57[43] = {
   0x3A8401A1, 0x3A8201AF, 0x3A8201B0,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp58[12] = {
+static const __language_uint32_t _language_stdlib_nfc_comp58[12] = {
   0x1801B35, 0x21B05, 0x21B07, 0x21B09, 0x21B0B, 0x21B0D, 0x21B11, 0x21B3A, 0x21B3C, 0x41B3E,
   0x41B3F, 0x21B42,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp59[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp59[2] = {
   0x400653, 0x800A0627,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp60[11] = {
+static const __language_uint32_t _language_stdlib_nfc_comp60[11] = {
   0x1600328, 0x1860041, 0x1A60045, 0x1CA0049, 0x336004F, 0x23A0055, 0x1480061, 0x1680065, 0x18C0069,
   0x2F8006F, 0x1FC0075,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp61[33] = {
+static const __language_uint32_t _language_stdlib_nfc_comp61[33] = {
   0x4200302, 0x1020041, 0x18A0043, 0x10A0045, 0x1AA0047, 0x1B80048, 0x10A0049, 0x1D4004A, 0x10A004F,
   0x2120053, 0x10C0055, 0x23A0057, 0x23A0059, 0x3C6C005A, 0x1020061, 0x14C0063, 0x10A0065,
   0x16C0067, 0x17A0068, 0x10A0069, 0x196006A, 0x10A006F, 0x1D40073, 0x10C0075, 0x1FC0077, 0x1FC0079,
   0x3C2E007A, 0x181EA0, 0x181EA1, 0x1C1EB8, 0x1C1EB9, 0x181ECC, 0x181ECD,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp62[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp62[2] = {
   0x400B56, 0x20B47,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp63[4] = {
+static const __language_uint32_t _language_stdlib_nfc_comp63[4] = {
   0x8110BA, 0x31099, 0x3109B, 0xD10A5,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp64[29] = {
+static const __language_uint32_t _language_stdlib_nfc_comp64[29] = {
   0x3A00303, 0x1040041, 0x3CEE0045, 0x1BE0049, 0x106004E, 0x10C004F, 0x2260055, 0x3C4C0056,
   0x3D3E0059, 0x1040061, 0x3CB00065, 0x1800069, 0x106006E, 0x10C006F, 0x1E80075, 0x3C0E0076,
   0x3D000079, 0x3BD000C2, 0x3BF400CA, 0x3C0400D4, 0x3B9200E2, 0x3BB600EA, 0x3BC600F4, 0x3B640102,
   0x3B640103, 0x3A8001A0, 0x3A8001A1, 0x3A7E01AF, 0x3A7E01B0,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp65[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp65[2] = {
   0x4009BE, 0x809C7,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp66[55] = {
+static const __language_uint32_t _language_stdlib_nfc_comp66[55] = {
   0x6E00308, 0x1060041, 0x10C0045, 0x3BBC0048, 0x10C0049, 0x10E004F, 0x10E0055, 0x3C5A0057,
   0x3C680058, 0x23E0059, 0x1060061, 0x10C0065, 0x3B7E0068, 0x10C0069, 0x10E006F, 0x3C460074,
   0x10E0075, 0x3C1C0077, 0x3C2A0078, 0x10C0079, 0x3AF200D5, 0x3AB400F5, 0x3A20016A, 0x3A20016B,
@@ -1661,54 +1661,54 @@ static const __swift_uint32_t _swift_stdlib_nfc_comp66[55] = {
   0x404D8, 0x404D9, 0x404E8, 0x404E9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp67[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp67[2] = {
   0x400B3E, 0x80B47,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp68[5] = {
+static const __language_uint32_t _language_stdlib_nfc_comp68[5] = {
   0xA00326, 0x38A0053, 0x38C0054, 0x34C0073, 0x34E0074,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp69[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp69[2] = {
   0x4113B8, 0xB13C2,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp70[2] = {
+static const __language_uint32_t _language_stdlib_nfc_comp70[2] = {
   0x4114BD, 0xB14B9,
 };
 
-static const __swift_uint32_t _swift_stdlib_nfc_comp71[30] = {
+static const __language_uint32_t _language_stdlib_nfc_comp71[30] = {
   0x3C00342, 0x3E3200A8, 0x380A03B1, 0x381E03B7, 0x383A03B9, 0x384203C5, 0x385A03C9, 0x381A03CA,
   0x383803CB, 0xC1F00, 0xC1F01, 0xC1F08, 0xC1F09, 0xC1F20, 0xC1F21, 0xC1F28, 0xC1F29, 0xC1F30,
   0xC1F31, 0xC1F38, 0xC1F39, 0xC1F50, 0xC1F51, 0xC1F59, 0xC1F60, 0xC1F61, 0xC1F68, 0xC1F69,
   0x201FBF, 0x803E1FFE,
 };
 
-static const __swift_uint32_t * const _swift_stdlib_nfc_comp_indices[72] = {
-  _swift_stdlib_nfc_comp0, _swift_stdlib_nfc_comp1, _swift_stdlib_nfc_comp2,
-  _swift_stdlib_nfc_comp3, _swift_stdlib_nfc_comp4, _swift_stdlib_nfc_comp5,
-  _swift_stdlib_nfc_comp6, _swift_stdlib_nfc_comp7, _swift_stdlib_nfc_comp8,
-  _swift_stdlib_nfc_comp9, _swift_stdlib_nfc_comp10, _swift_stdlib_nfc_comp11,
-  _swift_stdlib_nfc_comp12, _swift_stdlib_nfc_comp13, _swift_stdlib_nfc_comp14,
-  _swift_stdlib_nfc_comp15, _swift_stdlib_nfc_comp16, _swift_stdlib_nfc_comp17,
-  _swift_stdlib_nfc_comp18, _swift_stdlib_nfc_comp19, _swift_stdlib_nfc_comp20,
-  _swift_stdlib_nfc_comp21, _swift_stdlib_nfc_comp22, _swift_stdlib_nfc_comp23,
-  _swift_stdlib_nfc_comp24, _swift_stdlib_nfc_comp25, _swift_stdlib_nfc_comp26,
-  _swift_stdlib_nfc_comp27, _swift_stdlib_nfc_comp28, _swift_stdlib_nfc_comp29,
-  _swift_stdlib_nfc_comp30, _swift_stdlib_nfc_comp31, _swift_stdlib_nfc_comp32,
-  _swift_stdlib_nfc_comp33, _swift_stdlib_nfc_comp34, _swift_stdlib_nfc_comp35,
-  _swift_stdlib_nfc_comp36, _swift_stdlib_nfc_comp37, _swift_stdlib_nfc_comp38,
-  _swift_stdlib_nfc_comp39, _swift_stdlib_nfc_comp40, _swift_stdlib_nfc_comp41,
-  _swift_stdlib_nfc_comp42, _swift_stdlib_nfc_comp43, _swift_stdlib_nfc_comp44,
-  _swift_stdlib_nfc_comp45, _swift_stdlib_nfc_comp46, _swift_stdlib_nfc_comp47,
-  _swift_stdlib_nfc_comp48, _swift_stdlib_nfc_comp49, _swift_stdlib_nfc_comp50,
-  _swift_stdlib_nfc_comp51, _swift_stdlib_nfc_comp52, _swift_stdlib_nfc_comp53,
-  _swift_stdlib_nfc_comp54, _swift_stdlib_nfc_comp55, _swift_stdlib_nfc_comp56,
-  _swift_stdlib_nfc_comp57, _swift_stdlib_nfc_comp58, _swift_stdlib_nfc_comp59,
-  _swift_stdlib_nfc_comp60, _swift_stdlib_nfc_comp61, _swift_stdlib_nfc_comp62,
-  _swift_stdlib_nfc_comp63, _swift_stdlib_nfc_comp64, _swift_stdlib_nfc_comp65,
-  _swift_stdlib_nfc_comp66, _swift_stdlib_nfc_comp67, _swift_stdlib_nfc_comp68,
-  _swift_stdlib_nfc_comp69, _swift_stdlib_nfc_comp70, _swift_stdlib_nfc_comp71,
+static const __language_uint32_t * const _language_stdlib_nfc_comp_indices[72] = {
+  _language_stdlib_nfc_comp0, _language_stdlib_nfc_comp1, _language_stdlib_nfc_comp2,
+  _language_stdlib_nfc_comp3, _language_stdlib_nfc_comp4, _language_stdlib_nfc_comp5,
+  _language_stdlib_nfc_comp6, _language_stdlib_nfc_comp7, _language_stdlib_nfc_comp8,
+  _language_stdlib_nfc_comp9, _language_stdlib_nfc_comp10, _language_stdlib_nfc_comp11,
+  _language_stdlib_nfc_comp12, _language_stdlib_nfc_comp13, _language_stdlib_nfc_comp14,
+  _language_stdlib_nfc_comp15, _language_stdlib_nfc_comp16, _language_stdlib_nfc_comp17,
+  _language_stdlib_nfc_comp18, _language_stdlib_nfc_comp19, _language_stdlib_nfc_comp20,
+  _language_stdlib_nfc_comp21, _language_stdlib_nfc_comp22, _language_stdlib_nfc_comp23,
+  _language_stdlib_nfc_comp24, _language_stdlib_nfc_comp25, _language_stdlib_nfc_comp26,
+  _language_stdlib_nfc_comp27, _language_stdlib_nfc_comp28, _language_stdlib_nfc_comp29,
+  _language_stdlib_nfc_comp30, _language_stdlib_nfc_comp31, _language_stdlib_nfc_comp32,
+  _language_stdlib_nfc_comp33, _language_stdlib_nfc_comp34, _language_stdlib_nfc_comp35,
+  _language_stdlib_nfc_comp36, _language_stdlib_nfc_comp37, _language_stdlib_nfc_comp38,
+  _language_stdlib_nfc_comp39, _language_stdlib_nfc_comp40, _language_stdlib_nfc_comp41,
+  _language_stdlib_nfc_comp42, _language_stdlib_nfc_comp43, _language_stdlib_nfc_comp44,
+  _language_stdlib_nfc_comp45, _language_stdlib_nfc_comp46, _language_stdlib_nfc_comp47,
+  _language_stdlib_nfc_comp48, _language_stdlib_nfc_comp49, _language_stdlib_nfc_comp50,
+  _language_stdlib_nfc_comp51, _language_stdlib_nfc_comp52, _language_stdlib_nfc_comp53,
+  _language_stdlib_nfc_comp54, _language_stdlib_nfc_comp55, _language_stdlib_nfc_comp56,
+  _language_stdlib_nfc_comp57, _language_stdlib_nfc_comp58, _language_stdlib_nfc_comp59,
+  _language_stdlib_nfc_comp60, _language_stdlib_nfc_comp61, _language_stdlib_nfc_comp62,
+  _language_stdlib_nfc_comp63, _language_stdlib_nfc_comp64, _language_stdlib_nfc_comp65,
+  _language_stdlib_nfc_comp66, _language_stdlib_nfc_comp67, _language_stdlib_nfc_comp68,
+  _language_stdlib_nfc_comp69, _language_stdlib_nfc_comp70, _language_stdlib_nfc_comp71,
 };
 
 #endif // #ifndef NORMALIZATION_DATA_H

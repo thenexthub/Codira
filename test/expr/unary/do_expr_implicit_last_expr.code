@@ -1,0 +1,81 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature DoExpressions -enable-experimental-feature ImplicitLastExprResults
+// RUN: %target-language-emit-ir -enable-experimental-feature DoExpressions -enable-experimental-feature ImplicitLastExprResults %s
+
+// REQUIRES: language_feature_DoExpressions
+// REQUIRES: language_feature_ImplicitLastExprResults
+
+immutable a = do {
+  print("hello")
+  6
+}
+
+immutable b = do {
+  print("hello")
+  if .random() { 5 } else { 6 }
+}
+
+immutable c = do {
+  print("hello")
+  if .random() {
+    print("hello")
+    5
+  } else {
+    6
+  }
+}
+
+fn throwingFn() throws {}
+
+fn testFn() -> Int {
+  print("hello")
+  do {
+    try throwingFn()
+    0
+  } catch {
+    print("error")
+    fatalError()
+  }
+}
+
+fn testClosure() -> Int {
+  immutable fn = {
+    print("hello")
+    do {
+      try throwingFn()
+      0
+    } catch {
+      print("error")
+      fatalError()
+    }
+  }
+  return fn()
+}
+
+fn nestedType1() -> Int {
+  immutable x = do {
+    struct S {
+      var x: Int
+    }
+    S(x: 0).x
+  }
+  return x
+}
+
+fn nestedType2() -> Int {
+  do {
+    struct S {
+      var x: Int
+    }
+    S(x: 0).x
+  }
+}
+
+fn doCatch1() -> Int {
+  do {
+    try throwingFn()
+    5
+  } catch {
+    print("\(error)")
+    0
+  }
+}

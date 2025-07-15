@@ -1,0 +1,70 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class w<r>: c {
+init(g: r) {
+struct t : o {
+}
+q t<where n.v ==  t<v : o u m : v {
+}
+struct c<e> {
+}
+}
+struct e : f {
+}
+fn i<g : g, e : f where e.f == g> (c: e) {
+}
+fn i<h : f where h.f == c> (c: h) {
+}
+class a<f : g, g : g where f.f == g> {
+}
+protocol g {
+}
+struct c<h : g> : g {
+typealias e = a<c<h>, f>
+protocol b {
+}
+struct c {
+fn e() {
+docol t {
+}
+protocol d : t {
+}
+protocol g : t {
+}
+})
+}
+protocol e {
+}
+struct m<v : e> {
+}
+protocol n {
+g == o>(n: m<v>) {
+}
+}
+struct e<v> {
+}
+struct d<x> : e {
+fn d(d: d.p) {
+}
+}
+class e<v : e> {
+}
+class A<T : A> {
+}
+fn c<d {
+enum c {
+fn e
+var _ = e
+}
+}
+protocol a {

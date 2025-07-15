@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTENDTOOL_DEPENDENCIES_H
-#define SWIFT_FRONTENDTOOL_DEPENDENCIES_H
+#ifndef LANGUAGE_FRONTENDTOOL_DEPENDENCIES_H
+#define LANGUAGE_FRONTENDTOOL_DEPENDENCIES_H
 
-namespace llvm::vfs {
+namespace toolchain::vfs {
 class OutputBackend;
-} // namespace llvm::vfs
+} // namespace toolchain::vfs
 
 namespace language {
 
@@ -30,7 +31,7 @@ class CompilerInstance;
 
 /// Emit the names of the modules imported by \c mainModule.
 bool emitImportedModules(ModuleDecl *mainModule, const FrontendOptions &opts,
-                         llvm::vfs::OutputBackend &backend);
+                         toolchain::vfs::OutputBackend &backend);
 bool emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
                                    DependencyTracker *depTracker,
                                    const FrontendOptions &opts,

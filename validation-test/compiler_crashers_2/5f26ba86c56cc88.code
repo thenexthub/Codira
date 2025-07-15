@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::ConstraintSystem::getCalleeLocator(language::constraints::ConstraintLocator*, bool, toolchain::function_ref<language::Type (language::Expr*)>, toolchain::function_ref<language::Type (language::Type)>, toolchain::function_ref<std::__1::optional<language::constraints::SelectedOverload> (language::constraints::ConstraintLocator*)>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a fn b(c : [Int]) {
+  \ a(c.map{})

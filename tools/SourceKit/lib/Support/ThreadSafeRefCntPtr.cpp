@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/ThreadSafeRefCntPtr.h"
 #include <functional>
 
 using namespace SourceKit;
-using llvm::sys::Mutex;
+using toolchain::sys::Mutex;
 
 static const size_t MtxCount = 16;
 static Mutex Mtxs[MtxCount];

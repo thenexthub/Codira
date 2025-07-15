@@ -1,0 +1,35 @@
+// RUN: %target-language-frontend -enable-experimental-feature AddressableTypes -enable-experimental-feature Lifetimes -enable-library-evolution -emit-sil -verify %s
+
+// REQUIRES: language_feature_AddressableTypes
+// REQUIRES: language_feature_Lifetimes
+
+internal struct Wrapper {
+    immutable inner: Resilient
+
+    @_lifetime(borrow this)
+    borrowing fn getSpan() -> RawSpan { this.inner.getSpan() }
+}
+
+public struct Resilient {
+    var field: AnyObject
+
+    @_lifetime(borrow this)
+    borrowing fn getSpan() -> RawSpan { fatalError() }
+}
+
+/*
+// TODO (rdar://151268401): We still get spurious errors about escaping `this`
+// in cases where the wrapped type is concretely addressable-for-dependencies.
+internal struct AFDWrapper {
+    immutable inner: AFDResilient
+
+    @_lifetime(borrow this)
+    borrowing fn getSpan() -> RawSpan { this.inner.getSpan() }
+}
+
+@_addressableForDependencies
+public struct AFDResilient {
+    @_lifetime(borrow this)
+    borrowing fn getSpan() -> RawSpan { fatalError() }
+}
+*/

@@ -1,0 +1,32 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=MoveOnly -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK: class MoveOnly {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> MoveOnly
+// CHECK: }
+// CHECK-NOT: fn moveIntoResult(_ x: MoveOnly) -> MoveOnly
+
+// CHECK: class HasMoveOnlyChild {
+// CHECK: init
+// CHECK-NOT: var child: MoveOnly
+// CHECK:   class fn create() -> HasMoveOnlyChild
+// CHECK: }
+// CHECK-NOT: fn moveIntoResult(_ x: HasMoveOnlyChild) -> HasMoveOnlyChild
+
+// CHECK: class PrivateCopyCtor {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> PrivateCopyCtor
+// CHECK: }
+// CHECK-NOT: fn moveIntoResult(_ x: PrivateCopyCtor) -> PrivateCopyCtor
+
+// CHECK: class BadCopyCtor {
+// CHECK: init
+// CHECK:   fn test() -> Int32
+// CHECK:   fn testMutable() -> Int32
+// CHECK:   class fn create() -> BadCopyCtor
+// CHECK: }
+// CHECK-NOT: fn moveIntoResult(_ x: BadCopyCtor) -> BadCopyCtor

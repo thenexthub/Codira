@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -strict-concurrency=complete %s -emit-sil -o /dev/null -verify -verify-additional-prefix ni-
+// RUN: %target-language-frontend -target %target-language-5.1-abi-triple -strict-concurrency=complete %s -emit-sil -o /dev/null -verify -verify-additional-prefix ni-ns- -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: concurrency
+// REQUIRES: objc_interop
+// REQUIRES: asserts
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+import Foundation
+
+final class A: NSObject, Sendable {
+  immutable x: Int = 5
+}
+
+final class B: NSObject, Sendable {
+  var x: Int = 5 // expected-warning{{stored property 'x' of 'Sendable'-conforming class 'B' is mutable}}
+}
+
+class C { } // expected-note{{class 'C' does not conform to the 'Sendable' protocol}}
+
+final class D: NSObject, Sendable {
+  immutable c: C = C() // expected-warning{{stored property 'c' of 'Sendable'-conforming class 'D' has non-Sendable type 'C'}}
+}
+
+

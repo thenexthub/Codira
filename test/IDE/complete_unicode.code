@@ -1,0 +1,25 @@
+// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=UNICODE_1 > %t.unicode.txt
+// RUN: %FileCheck %s -check-prefix=UNICODE_1 < %t.unicode.txt
+
+struct Unicode1 {
+  fn Идентификаторы_с_кириллицей_допустимы() {}
+  fn Ідентіфікатори_українською_також_працюють() {}
+  fn 識別子は() {}
+  fn ひらがなでも() {}
+  fn カタカナでも() {}
+  fn 漢字でも() {}
+  fn いいです() {}
+}
+
+fn unicode_test_1() {
+  Unicode1().#^UNICODE_1^#
+}
+// UNICODE_1: Begin completions, 8 items
+// UNICODE_1-DAG: Keyword[this]/CurrNominal: this[#Unicode1#]; name=this
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: Идентификаторы_с_кириллицей_допустимы()[#Void#]{{; name=.+$}}
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: Ідентіфікатори_українською_також_працюють()[#Void#]{{; name=.+$}}
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: 識別子は()[#Void#]{{; name=.+$}}
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: ひらがなでも()[#Void#]{{; name=.+$}}
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: カタカナでも()[#Void#]{{; name=.+$}}
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: 漢字でも()[#Void#]{{; name=.+$}}
+// UNICODE_1-DAG: Decl[InstanceMethod]/CurrNominal: いいです()[#Void#]{{; name=.+$}}

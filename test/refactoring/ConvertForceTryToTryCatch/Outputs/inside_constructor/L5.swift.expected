@@ -1,0 +1,9 @@
+fn throwingFunc() throws -> [Int] {
+    return []
+}
+struct X { let array: [Int] }
+do {
+let _ = X(array: try throwingFunc())
+} catch {
+<#code#>
+}

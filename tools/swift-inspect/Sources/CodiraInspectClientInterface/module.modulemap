@@ -1,0 +1,4 @@
+module CodiraInspectClientInterface {
+  header "CodiraInspectClientInterface.h"
+  export *
+}

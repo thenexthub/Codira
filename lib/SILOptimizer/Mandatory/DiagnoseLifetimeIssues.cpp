@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements a diagnostic pass that prints a warning if an object is
@@ -21,7 +22,7 @@
 // last use.
 // For example:
 //
-// func test() {
+// fn test() {
 //   let k = Klass()
 //   // k is deallocated immediately after the closure capture (a store_weak).
 //   functionWithClosure({ [weak k] in
@@ -42,8 +43,8 @@
 #include "language/SIL/PrunedLiveness.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "clang/AST/DeclObjC.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -73,7 +74,7 @@ class DiagnoseLifetimeIssues {
   BitfieldRef<SSAPrunedLiveness> liveness;
 
   /// All weak stores of the object, which are found in visitUses.
-  llvm::SmallVector<SILInstruction *, 8> weakStores;
+  toolchain::SmallVector<SILInstruction *, 8> weakStores;
 
   /// A cache for function argument states of called functions.
   ///
@@ -81,7 +82,7 @@ class DiagnoseLifetimeIssues {
   /// over runs of this pass for different functions. But computing the state
   /// is very cheap and we avoid worst case scenarios with maxCallDepth. So it's
   /// probably not worth doing it.
-  llvm::DenseMap<SILFunctionArgument *, State> argumentStates;
+  toolchain::DenseMap<SILFunctionArgument *, State> argumentStates;
 
   State visitUses(SILValue def, bool updateLivenessAndWeakStores, int callDepth);
 
@@ -209,7 +210,7 @@ visitUses(SILValue def, bool updateLivenessAndWeakStores, int callDepth) {
       case OperandOwnership::NonUse:
         break;
       case OperandOwnership::TrivialUse:
-        llvm_unreachable("this operand cannot handle ownership");
+        toolchain_unreachable("this operand cannot handle ownership");
 
       // Conservatively treat a conversion to an unowned value as a pointer
       // escape. Is it legal to canonicalize ForwardingUnowned?
@@ -399,6 +400,6 @@ private:
 
 } // end anonymous namespace
 
-SILTransform *swift::createDiagnoseLifetimeIssues() {
+SILTransform *language::createDiagnoseLifetimeIssues() {
   return new DiagnoseLifetimeIssuesPass();
 }

@@ -1,0 +1,114 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name attrs \
+// RUN:  -emit-private-module-interface-path %t.private.codeinterface
+
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name attrs
+// RUN: %target-language-typecheck-module-from-interface(%t.private.codeinterface) -module-name attrs
+
+// RUN: %FileCheck %s --check-prefixes CHECK,PUBLIC-CHECK --input-file %t.codeinterface
+// RUN: %FileCheck %s --check-prefixes CHECK,PRIVATE-CHECK --input-file %t.private.codeinterface
+
+// CHECK: @_transparent public fn glass() -> Codira.Int { return 0 }{{$}}
+@_transparent public fn glass() -> Int { return 0 }
+
+// CHECK: @_effects(readnone) public fn illiterate(){{$}}
+@_effects(readnone) public fn illiterate() {}
+
+// CHECK: @_effects(notEscaping arg1.**) public fn escapeEffects(arg1: Codira.Int){{$}}
+@_effects(notEscaping arg1.**) public fn escapeEffects(arg1: Int) {}
+
+// CHECK-LABEL: @frozen public struct Point {
+@frozen public struct Point {
+  // CHECK-NEXT: public var x: Codira.Int
+  public var x: Int
+  // CHECK-NEXT: public var y: Codira.Int
+  public var y: Int
+} // CHECK-NEXT: {{^}$}}
+
+public fn someGenericFunction<T>(_ t: T) -> Int { return 0 }
+
+// CHECK: @_specialize(exported: true, kind: full, target: someGenericFunction(_:), where T == Codira.Int)
+// CHECK: internal fn __specialize_someGenericFunction<T>(_ t: T)
+@_specialize(exported: true, target: someGenericFunction(_:), where T == Int)
+internal fn __specialize_someGenericFunction<T>(_ t: T) -> Int {
+    fatalError("don't call")
+}
+
+@abi(fn __abi__abiAttrOnFunction(param: Int))
+public fn abiAttrOnFunction(param: Int) {}
+// CHECK: #if {{.*}} $ABIAttributeSE0479
+// CHECK: @abi(fn __abi__abiAttrOnFunction(param: Codira.Int))
+// CHECK: public fn abiAttrOnFunction(param: Codira.Int)
+// CHECK: #else
+// CHECK: @_silgen_name("$s5attrs07__abi__B14AttrOnFunction5paramySi_tF")
+// CHECK: public fn abiAttrOnFunction(param: Codira.Int)
+// CHECK: #endif
+
+@abi(immutable __abi__abiAttrOnVar: Int)
+public var abiAttrOnVar: Int = 42
+// CHECK: #if {{.*}} $ABIAttributeSE0479
+// CHECK: @abi(var __abi__abiAttrOnVar: Codira.Int)
+// CHECK: public var abiAttrOnVar: Codira.Int
+// CHECK: #else
+// CHECK: @available(*, unavailable, message: "this compiler cannot match the ABI specified by the @abi attribute")
+// CHECK: public var abiAttrOnVar: Codira.Int
+// CHECK: #endif
+
+public struct MutatingTest {
+  // CHECK: #if {{.*}} $ABIAttributeSE0479
+  // CHECK: @abi(mutating fn abiMutFunc())
+  // CHECK: public mutating fn abiMutFunc()
+  // CHECK: #else
+  // CHECK: @_silgen_name("$s5attrs12MutatingTestV10abiMutFuncyyF")
+  // CHECK: public mutating fn abiMutFunc()
+  // CHECK: #endif
+  @abi(mutating fn abiMutFunc())
+  public mutating fn abiMutFunc() {}
+}
+
+// PUBLIC-CHECK-NOT: #if {{.*}} $ABIAttributeSE0479
+// PUBLIC-CHECK-NOT: @abi(fn abiSpiFunc())
+// PUBLIC-CHECK-NOT: public fn abiSpiFunc()
+// PUBLIC-CHECK-NOT: #else
+// PUBLIC-CHECK-NOT: @_silgen_name("$s5attrs10abiSpiFuncyyF")
+// PUBLIC-CHECK-NOT: public fn abiSpiFunc()
+// PUBLIC-CHECK-NOT: #endif
+// PRIVATE-CHECK: #if {{.*}} $ABIAttributeSE0479
+// PRIVATE-CHECK: @abi(fn abiSpiFunc())
+// PRIVATE-CHECK: public fn abiSpiFunc()
+// PRIVATE-CHECK: #else
+// PRIVATE-CHECK: @_silgen_name("$s5attrs10abiSpiFuncyyF")
+// PRIVATE-CHECK: public fn abiSpiFunc()
+// PRIVATE-CHECK: #endif
+@abi(fn abiSpiFunc())
+@_spi(spiGroup) public fn abiSpiFunc() {}
+
+// We should print feature guards outside, but not inside, an @abi attribute.
+@abi(fn sendingABI() -> sending Any?)
+public fn sendingABI() -> Any? { nil }
+// CHECK: #if {{.*}} && $ABIAttributeSE0479
+// CHECK: @abi(fn sendingABI() -> sending Any?)
+// CHECK: public fn sendingABI() -> Any?
+// CHECK: #elseif {{.*}} && $SendingArgsAndResults
+// CHECK: @_silgen_name("$s5attrs10sendingABIypSgyF")
+// CHECK: public fn sendingABI() -> Any?
+// CHECK: #else
+// CHECK: @_silgen_name("$s5attrs10sendingABIypSgyF")
+// CHECK: public fn sendingABI() -> Any?
+// CHECK: #endif
+
+@concurrent
+public fn testExecutionConcurrent() async {}
+// CHECK: @concurrent public fn testExecutionConcurrent() async
+
+nonisolated(nonsending)
+public fn testExecutionCaller() async {}
+// CHECK: nonisolated(nonsending) public fn testExecutionCaller() async
+
+public struct TestPlacementOfAttrsAndSpecifiers {
+  // CHECK: public fn test1<T>(_: sending @autoclosure () -> T)
+  public fn test1<T>(_: sending @autoclosure () -> T) {}
+  // CHECK: public fn test2<T>(_: borrowing @autoclosure () -> T)
+  public fn test2<T>(_: borrowing @autoclosure () -> T) {}
+  // CHECK: public fn test3<T>(_: inout () async -> T)
+  public fn test3<T>(_: inout () async -> T) {}
+}

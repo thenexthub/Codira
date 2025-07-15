@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -emit-ir %s -target %target-language-5.9-abi-triple | %FileCheck %s
+
+protocol P {
+  static fn foobar()
+}
+
+struct G<each T> {}
+
+extension G: P where repeat each T: P {
+  static fn foobar() {}
+}
+
+// CHECK-LABEL: define internal languagecc void @"$s41variadic_generic_conditional_conformances1GVyxxQp_QPGAA1PA2aEP6foobaryyFZTW"(ptr languageself %0, ptr %Self, ptr %SelfWitnessTable)

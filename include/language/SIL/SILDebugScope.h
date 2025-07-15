@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -20,11 +21,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_DEBUGSCOPE_H
-#define SWIFT_SIL_DEBUGSCOPE_H
+#ifndef LANGUAGE_SIL_DEBUGSCOPE_H
+#define LANGUAGE_SIL_DEBUGSCOPE_H
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILLocation.h"
 
@@ -92,7 +93,7 @@ public:
   }
 
 #ifndef NDEBUG
-  void print(SourceManager &SM, llvm::raw_ostream &OS = llvm::errs(),
+  void print(SourceManager &SM, toolchain::raw_ostream &OS = toolchain::errs(),
              unsigned Indent = 0) const;
 
   void print(SILModule &Mod) const;
@@ -104,7 +105,7 @@ bool maybeScopeless(const SILInstruction &inst);
 
 /// Knows how to make a deep copy of a debug scope.
 class ScopeCloner {
-  llvm::SmallDenseMap<const SILDebugScope *,
+  toolchain::SmallDenseMap<const SILDebugScope *,
                       const SILDebugScope *> ClonedScopeCache;
   SILFunction &NewFn;
 public:

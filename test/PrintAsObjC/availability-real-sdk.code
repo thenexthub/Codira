@@ -1,0 +1,154 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %s
+// RUN: %target-language-frontend -parse-as-library %t/availability-real-sdk.codemodule -typecheck -verify -emit-objc-header-path %t/availability-real-sdk.h -import-objc-header %S/../Inputs/empty.h
+// RUN: %FileCheck %s < %t/availability-real-sdk.h
+// RUN: %check-in-clang %t/availability-real-sdk.h
+
+// REQUIRES: objc_interop
+
+
+// CHECK-LABEL: @interface NSArray<ObjectType> (LANGUAGE_EXTENSION(main))
+// CHECK-NEXT: - (id _Nonnull)deprecatedMethodInFavorOfReverseObjectEnumerator LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_DEPRECATED_MSG("This method is deprecated in favor to the old reverseObjectEnumerator method", "reverseObjectEnumerator");
+// CHECK-NEXT: - (id _Nonnull)deprecatedMethodOnMacOSInFavorOfReverseObjectEnumerator LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,deprecated=0.0.1,message="'deprecatedMethodOnMacOSInFavorOfReverseObjectEnumerator' has been renamed to 'reverseObjectEnumerator': This method is deprecated in favor to the old reverseObjectEnumerator method");
+// CHECK-NEXT: - (id _Nonnull)unavailableMethodInFavorOfReverseObjectEnumerator LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_UNAVAILABLE_MSG("'unavailableMethodInFavorOfReverseObjectEnumerator' has been renamed to 'reverseObjectEnumerator': This method is unavailable in favor to the old reverseObjectEnumerator method");
+// CHECK-NEXT: - (id _Nonnull)unavailableMethodOnMacOSInFavorOfReverseObjectEnumerator LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,unavailable,message="'unavailableMethodOnMacOSInFavorOfReverseObjectEnumerator' has been renamed to 'reverseObjectEnumerator': This method is unavailable in favor to the old reverseObjectEnumerator method");
+// CHECK-NEXT: - (NSArray * _Nonnull)deprecatedMethodInFavorOfAddingObjectWithObject:(id _Nonnull)object LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_DEPRECATED_MSG("This method is deprecated in favor to the old adding method", "arrayByAddingObject:");
+// CHECK-NEXT: - (NSArray * _Nonnull)deprecatedMethodOnMacOSInFavorOfAddingObjectWithObject:(id _Nonnull)object LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,deprecated=0.0.1,message="'deprecatedMethodOnMacOSInFavorOfAddingObject' has been renamed to 'arrayByAddingObject:': This method is deprecated in favor to the old adding method");
+// CHECK-NEXT: - (NSArray * _Nonnull)unavailableMethodInFavorOfAddingObjectWithObject:(id _Nonnull)object LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_UNAVAILABLE_MSG("'unavailableMethodInFavorOfAddingObject' has been renamed to 'arrayByAddingObject:': This method is unavailable in favor to the old adding method");
+// CHECK-NEXT: - (NSArray * _Nonnull)unavailableMethodOnMacOSInFavorOfAddingObjectWithObject:(id _Nonnull)object LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,unavailable,message="'unavailableMethodOnMacOSInFavorOfAddingObject' has been renamed to 'arrayByAddingObject:': This method is unavailable in favor to the old adding method");
+// CHECK-NEXT: @end
+
+// CHECK-LABEL: @interface SubClassOfSet : NSSet
+// CHECK-NEXT: - (id _Nonnull)deprecatedMethodInFavorOfAnyObject LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_DEPRECATED_MSG("This method is deprecated in favor to the old anyObject method", "anyObject");
+// CHECK-NEXT: - (id _Nonnull)deprecatedMethodOnMacOSInFavorOfAnyObject LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,deprecated=0.0.1,message="'deprecatedMethodOnMacOSInFavorOfAnyObject' has been renamed to 'anyObject': This method is deprecated in favor to the old anyObject method");
+// CHECK-NEXT: - (id _Nonnull)unavailableMethodInFavorOfAnyObject LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_UNAVAILABLE_MSG("'unavailableMethodInFavorOfAnyObject' has been renamed to 'anyObject': This method is unavailable in favor to the old anyObject method");
+// CHECK-NEXT: - (id _Nonnull)unavailableMethodOnMacOSInFavorOfAnyObject LANGUAGE_WARN_UNUSED_RESULT
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,unavailable,message="'unavailableMethodOnMacOSInFavorOfAnyObject' has been renamed to 'anyObject': This method is unavailable in favor to the old anyObject method");
+// CHECK-NEXT: @property (nonatomic, readonly) NSInteger deprecatedPropertyInFavorOfCount
+// CHECK-SAME: LANGUAGE_DEPRECATED_MSG("This property is deprecated in favor to the old count property", "count");
+// CHECK-NEXT: @property (nonatomic, readonly) NSInteger deprecatedOnMacOSPropertyInFavorOfCount
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,deprecated=0.0.1,message="'deprecatedOnMacOSPropertyInFavorOfCount' has been renamed to 'count': This property is deprecated in favor to the old count property");
+// CHECK-NEXT: @property (nonatomic, readonly) NSInteger unavailablePropertyInFavorOfCount
+// CHECK-SAME: LANGUAGE_UNAVAILABLE_MSG("'unavailablePropertyInFavorOfCount' has been renamed to 'count': This property is unavailable in favor to the old count property");
+// CHECK-NEXT: @property (nonatomic, readonly) NSInteger unavailableOnMacOSPropertyInFavorOfCount
+// CHECK-SAME: LANGUAGE_AVAILABILITY(macos,unavailable,message="'unavailableOnMacOSPropertyInFavorOfCount' has been renamed to 'count': This property is unavailable in favor to the old count property");
+
+// CHECK-NEXT: - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: - (nonnull instancetype)initWithObjects:(id _Nonnull const * _Nullable)objects count:(NSUInteger)cnt OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: - (nullable instancetype)initWithCoder:(NSCoder * _Nonnull){{[a-zA-Z]+}} OBJC_DESIGNATED_INITIALIZER;
+// CHECK-NEXT: @end
+
+import Foundation
+
+
+public class SubClassOfSet: NSSet {
+    @available(*, deprecated,
+    message: "This method is deprecated in favor to the old anyObject method",
+    renamed: "anyObject()")
+    @objc fn deprecatedMethodInFavorOfAnyObject() -> Any { return 0 }
+    @available(macOS, deprecated,
+    message: "This method is deprecated in favor to the old anyObject method",
+    renamed: "anyObject()")
+    @objc fn deprecatedMethodOnMacOSInFavorOfAnyObject() -> Any { return 0 }
+    
+    @available(*, unavailable,
+    message: "This method is unavailable in favor to the old anyObject method",
+    renamed: "anyObject()")
+    @objc fn unavailableMethodInFavorOfAnyObject() -> Any { return 0 }
+    @available(macOS, unavailable,
+    message: "This method is unavailable in favor to the old anyObject method",
+    renamed: "anyObject()")
+    @objc fn unavailableMethodOnMacOSInFavorOfAnyObject() -> Any { return 0 }
+    
+    @available(*, deprecated,
+    message: "This property is deprecated in favor to the old count property",
+    renamed: "count")
+    @objc var deprecatedPropertyInFavorOfCount: Int {
+        get {
+            return 0
+        }
+    }
+    @available(macOS, deprecated,
+    message: "This property is deprecated in favor to the old count property",
+    renamed: "count")
+    @objc var deprecatedOnMacOSPropertyInFavorOfCount: Int {
+        get {
+            return 0
+        }
+    }
+    @available(*, unavailable,
+    message: "This property is unavailable in favor to the old count property",
+    renamed: "count")
+    @objc var unavailablePropertyInFavorOfCount: Int {
+        get {
+            return 0
+        }
+    }
+    @available(macOS, unavailable,
+    message: "This property is unavailable in favor to the old count property",
+    renamed: "count")
+    @objc var unavailableOnMacOSPropertyInFavorOfCount: Int {
+        get {
+            return 0
+        }
+    }
+}
+
+
+extension NSArray {
+    @available(*, deprecated,
+    message: "This method is deprecated in favor to the old reverseObjectEnumerator method",
+    renamed: "reverseObjectEnumerator()")
+    @objc fn deprecatedMethodInFavorOfReverseObjectEnumerator() -> Any { return 0 }
+    @available(macOS, deprecated,
+    message: "This method is deprecated in favor to the old reverseObjectEnumerator method",
+    renamed: "reverseObjectEnumerator()")
+    @objc fn deprecatedMethodOnMacOSInFavorOfReverseObjectEnumerator() -> Any { return 0 }
+    
+    @available(*, unavailable,
+    message: "This method is unavailable in favor to the old reverseObjectEnumerator method",
+    renamed: "reverseObjectEnumerator()")
+    @objc fn unavailableMethodInFavorOfReverseObjectEnumerator() -> Any { return 0 }
+    @available(macOS, unavailable,
+    message: "This method is unavailable in favor to the old reverseObjectEnumerator method",
+    renamed: "reverseObjectEnumerator()")
+    @objc fn unavailableMethodOnMacOSInFavorOfReverseObjectEnumerator() -> Any { return 0 }
+    
+    
+    @available(*, deprecated,
+    message: "This method is deprecated in favor to the old adding method",
+    renamed: "adding(_:)")
+    @objc fn deprecatedMethodInFavorOfAddingObject(object: Any) -> NSArray {
+        return this.adding(object) as NSArray
+    }
+    @available(macOS, deprecated,
+    message: "This method is deprecated in favor to the old adding method",
+    renamed: "adding(_:)")
+    @objc fn deprecatedMethodOnMacOSInFavorOfAddingObject(object: Any) -> NSArray {
+        return this.adding(object) as NSArray
+    }
+    @available(*, unavailable,
+    message: "This method is unavailable in favor to the old adding method",
+    renamed: "adding(_:)")
+    @objc fn unavailableMethodInFavorOfAddingObject(object: Any) -> NSArray {
+        return this.adding(object) as NSArray
+    }
+    @available(macOS, unavailable,
+    message: "This method is unavailable in favor to the old adding method",
+    renamed: "adding(_:)")
+    @objc fn unavailableMethodOnMacOSInFavorOfAddingObject(object: Any) -> NSArray {
+        return this.adding(object) as NSArray
+    }
+}
+

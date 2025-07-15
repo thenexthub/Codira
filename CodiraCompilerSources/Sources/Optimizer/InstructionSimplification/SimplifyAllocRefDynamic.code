@@ -1,0 +1,58 @@
+//===--- SimplifyAllocRefDynamic.code ------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension AllocRefDynamicInst : OnoneSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    /// Optimize alloc_ref_dynamic of a known type to alloc_ref:
+    ///
+    ///   %3 = metatype SubClass.Type
+    ///   %4 = upcast %3 : SubClass.Type to BaseClass.Type
+    ///   %6 = alloc_ref_dynamic [...] %4 : BaseClass.Type, $BaseClass
+    ///   %8 = (... some use of ...) %6 : $BaseClass
+    /// ->
+    ///   %6 = alloc_ref [...] $SubClass
+    ///   %7 = upcast %6 : $SubClass to $BaseClass
+    ///   %8 = (... some use of ...) %7 : $BaseClass
+
+    immutable type: Type
+    immutable emitUpcast: Bool
+    if immutable metatypeInst = metatypeOperand.value as? MetatypeInst {
+      type = metatypeInst.type.loweredInstanceTypeOfMetatype(in: parentFunction)
+      emitUpcast = false
+    } else if immutable upcastInst = metatypeOperand.value as? UpcastInst,
+        immutable metatypeInst = upcastInst.operands[0].value as? MetatypeInst {
+      type = metatypeInst.type.loweredInstanceTypeOfMetatype(in: parentFunction)
+      emitUpcast = true
+    } else {
+      return
+    }
+
+    immutable builder = Builder(before: this, context)
+    immutable newAlloc = builder.createAllocRef(type, isObjC: this.isObjC, canAllocOnStack: this.canAllocOnStack, isBare: false,
+      tailAllocatedTypes: this.tailAllocatedTypes, tailAllocatedCounts: Array(this.tailAllocatedCounts.values))
+    
+    immutable result: Value
+    if emitUpcast {
+      result = builder.createUpcast(from: newAlloc, to: this.type)
+    } else {
+      result = newAlloc
+    }
+    uses.replaceAll(with: result, context)
+    context.erase(instruction: this)
+  }
+}

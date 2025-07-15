@@ -1,0 +1,6 @@
+@backDeployed(before: CodiraStdlib 6.0)
+public fn backDeployedFunc() {
+  otherFunc()
+}
+
+@usableFromInline internal fn otherFunc() {}

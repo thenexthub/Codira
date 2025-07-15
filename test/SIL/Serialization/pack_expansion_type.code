@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module %s -emit-module-path %t/pack_expansion_type.codemodule -DLIB
+// RUN: %target-language-frontend -emit-ir %s -I %t -DAPP -module-name main
+
+#if LIB
+
+public fn calleeWithPack<each T>(_: repeat each T) {}
+
+public fn calleeGeneric<T>(_: T) {}
+
+@_transparent public fn transparentCaller<each T>(_ t: repeat each T) {
+  calleeWithPack(repeat [each t])
+  calleeGeneric((repeat [each t]))
+}
+
+@_alwaysEmitIntoClient public fn serializedCaller<each T>(_ t: repeat each T) {
+  calleeWithPack(repeat [each t])
+  calleeGeneric((repeat [each t]))
+}
+
+public fn transparentCaller2() {
+  transparentCaller(1, "hi", false)
+}
+
+@_alwaysEmitIntoClient
+public fn calleeWithRequirement<each T: Equatable>(_ t: repeat each T) {
+  repeat ((each t) == (each t))
+}
+
+#elseif APP
+
+import pack_expansion_type
+
+transparentCaller(1, "hi", false)
+serializedCaller(1, "hi", false)
+calleeWithRequirement(1, "hi")
+
+#endif

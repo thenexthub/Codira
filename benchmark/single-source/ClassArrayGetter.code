@@ -1,4 +1,4 @@
-//===--- ClassArrayGetter.swift -------------------------------------------===//
+//===--- ClassArrayGetter.code -------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "ClassArrayGetter2",
     runFunction: run_ClassArrayGetter,
@@ -26,11 +27,11 @@ public let benchmarks =
 
 class Box {
   var v: Int
-  init(v: Int) { self.v = v }
+  init(v: Int) { this.v = v }
 }
 
 @inline(never)
-func sumArray(_ a: [Box]) -> Int {
+fn sumArray(_ a: [Box]) -> Int {
   var s = 0
   for i in 0..<a.count {
     s += a[i].v
@@ -39,7 +40,7 @@ func sumArray(_ a: [Box]) -> Int {
 }
 
 var inputArray: [Box]! = {
-  let aSize = 10_000
+  immutable aSize = 10_000
   var a: [Box] = []
   a.reserveCapacity(aSize)
   for i in 1...aSize {
@@ -48,8 +49,8 @@ var inputArray: [Box]! = {
   return a
 }()
 
-public func run_ClassArrayGetter(_ n: Int) {
-  let a: [Box] = inputArray
+public fn run_ClassArrayGetter(_ n: Int) {
+  immutable a: [Box] = inputArray
   for _ in 1...n {
     _ = sumArray(a)
   }

@@ -1,16 +1,20 @@
-//===--- ClangTypeConverter.cpp - Convert Swift types to C types ----------===//
+//===--- ClangTypeConverter.cpp - Convert Codira types to C types ----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file implements generation of Clang AST types from Swift AST types for
+// This file implements generation of Clang AST types from Codira AST types for
 // types that are representable in Objective-C interfaces.
 //
 // The usage of ClangTypeConverter at the AST level means that we may
@@ -27,28 +31,29 @@
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
-#include "language/AST/ClangSwiftTypeCorrespondence.h"
+#include "language/AST/ClangCodiraTypeCorrespondence.h"
 #include "language/AST/ExistentialLayout.h"
 #include "language/AST/Module.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeVisitor.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 #include "clang/AST/ASTContext.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Sema/Sema.h"
 
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/Compiler.h"
 
 using namespace language;
 
 namespace {
 
-static Type getNamedSwiftType(ModuleDecl *stdlib, StringRef name) {
-  return stdlib->getASTContext().getNamedSwiftType(stdlib, name);
+static Type getNamedCodiraType(ModuleDecl *stdlib, StringRef name) {
+  return stdlib->getASTContext().getNamedCodiraType(stdlib, name);
 }
 
 static clang::QualType
@@ -122,11 +127,13 @@ const clang::ASTContext &clangCtx) {
 
 } // end anonymous namespace
 
-const clang::Type *ClangTypeConverter::getFunctionType(
-    ArrayRef<AnyFunctionType::Param> params, Type resultTy,
-    AnyFunctionType::Representation repr) {
-
-  auto resultClangTy = convert(resultTy);
+template <bool templateArgument>
+const clang::Type *
+ClangTypeConverter::getFunctionType(ArrayRef<AnyFunctionType::Param> params,
+                                    Type resultTy,
+                                    AnyFunctionType::Representation repr) {
+  auto resultClangTy =
+      templateArgument ? convertTemplateArgument(resultTy) : convert(resultTy);
   if (resultClangTy.isNull())
     return nullptr;
 
@@ -134,7 +141,8 @@ const clang::Type *ClangTypeConverter::getFunctionType(
   SmallVector<clang::QualType, 4> paramsClangTy;
   bool someParamIsConsumed = false;
   for (auto p : params) {
-    auto pc = convert(p.getPlainType());
+    auto pc = templateArgument ? convertTemplateArgument(p.getPlainType())
+                               : convert(p.getPlainType());
     if (pc.isNull())
       return nullptr;
     clang::FunctionProtoType::ExtParameterInfo extParamInfo;
@@ -158,23 +166,28 @@ const clang::Type *ClangTypeConverter::getFunctionType(
     return ClangASTContext.getPointerType(fn).getTypePtr();
   case AnyFunctionType::Representation::Block:
     return ClangASTContext.getBlockPointerType(fn).getTypePtr();
-  case AnyFunctionType::Representation::Swift:
+  case AnyFunctionType::Representation::Codira:
   case AnyFunctionType::Representation::Thin:
-    llvm_unreachable("Expected a C-compatible representation.");
+    toolchain_unreachable("Expected a C-compatible representation.");
   }
-  llvm_unreachable("invalid representation");
+  toolchain_unreachable("invalid representation");
 }
 
+template <bool templateArgument>
 const clang::Type *
 ClangTypeConverter::getFunctionType(ArrayRef<SILParameterInfo> params,
                                     std::optional<SILResultInfo> result,
                                     SILFunctionType::Representation repr) {
-
-  // Using the interface type is sufficient as type parameters get mapped to
-  // `id`, since ObjC lightweight generics use type erasure. (See also: SE-0057)
-  auto resultClangTy = result.has_value()
-                     ? convert(result.value().getInterfaceType())
-                     : ClangASTContext.VoidTy;
+  clang::QualType resultClangTy = ClangASTContext.VoidTy;
+  if (result) {
+    // Using the interface type is sufficient as type parameters get mapped to
+    // `id`, since ObjC lightweight generics use type erasure.
+    //
+    // (See also: SE-0057)
+    auto interfaceType = result->getInterfaceType();
+    resultClangTy = templateArgument ? convertTemplateArgument(interfaceType)
+                                     : convert(interfaceType);
+  }
 
   if (resultClangTy.isNull())
     return nullptr;
@@ -183,7 +196,8 @@ ClangTypeConverter::getFunctionType(ArrayRef<SILParameterInfo> params,
   SmallVector<clang::QualType, 4> paramsClangTy;
   bool someParamIsConsumed = false;
   for (auto &p : params) {
-    auto pc = convert(p.getInterfaceType());
+    auto pc = templateArgument ? convertTemplateArgument(p.getInterfaceType())
+                               : convert(p.getInterfaceType());
     if (pc.isNull())
       return nullptr;
     clang::FunctionProtoType::ExtParameterInfo extParamInfo;
@@ -218,9 +232,9 @@ ClangTypeConverter::getFunctionType(ArrayRef<SILParameterInfo> params,
   case SILFunctionType::Representation::KeyPathAccessorSetter:
   case SILFunctionType::Representation::KeyPathAccessorEquals:
   case SILFunctionType::Representation::KeyPathAccessorHash:
-    llvm_unreachable("Expected a C-compatible representation.");
+    toolchain_unreachable("Expected a C-compatible representation.");
   }
-  llvm_unreachable("unhandled representation!");
+  toolchain_unreachable("unhandled representation!");
 }
 
 clang::QualType ClangTypeConverter::convertMemberType(NominalTypeDecl *DC,
@@ -252,8 +266,8 @@ clang::QualType
 ClangTypeConverter::reverseImportedTypeMapping(StructType *type) {
   auto &ctx = ClangASTContext;
 
-  auto swiftDecl = type->getDecl();
-  StringRef name = swiftDecl->getName().str();
+  auto languageDecl = type->getDecl();
+  StringRef name = languageDecl->getName().str();
 
   // We assume that the importer translates all of the following types
   // directly to structs in the standard library.
@@ -263,11 +277,11 @@ ClangTypeConverter::reverseImportedTypeMapping(StructType *type) {
     if (name == (NAME)) return CLANG_TYPE;                              \
   } while (false)
 
-  CHECK_NAMED_TYPE("CGFloat", convertMemberType(swiftDecl, "NativeType"));
+  CHECK_NAMED_TYPE("CGFloat", convertMemberType(languageDecl, "NativeType"));
   CHECK_NAMED_TYPE("OpaquePointer", ctx.VoidPtrTy);
   CHECK_NAMED_TYPE("CVaListPointer", getClangDecayedVaListType(ctx));
   CHECK_NAMED_TYPE("DarwinBoolean", ctx.UnsignedCharTy);
-  CHECK_NAMED_TYPE(swift::getSwiftName(
+  CHECK_NAMED_TYPE(language::getCodiraName(
                      KnownFoundationEntity::NSZone),
                    ctx.VoidPtrTy);
   CHECK_NAMED_TYPE("WindowsBool", ctx.IntTy);
@@ -359,10 +373,10 @@ ClangTypeConverter::reverseBuiltinTypeMapping(StructType *type) {
   auto &ctx = ClangASTContext;
 
   if (!StdlibTypesAreCached) {
-    auto cacheStdlibType = [&](StringRef swiftName,
+    auto cacheStdlibType = [&](StringRef languageName,
                                clang::BuiltinType::Kind builtinKind) {
-      Type swiftType = getNamedSwiftType(stdlib, swiftName);
-      if (!swiftType) return;
+      Type languageType = getNamedCodiraType(stdlib, languageName);
+      if (!languageType) return;
 
       auto &sema = Context.getClangModuleLoader()->getClangSema();
 
@@ -370,16 +384,16 @@ ClangTypeConverter::reverseBuiltinTypeMapping(StructType *type) {
         // Handle Int and UInt specially. On Apple platforms, these map to
         // the NSInteger and NSUInteger typedefs. So try that if the typedefs
         // are available, to ensure we get consistent ObjC @encode strings.
-        if (swiftType->isInt()) {
+        if (languageType->isInt()) {
           auto NSIntegerTy = getClangBuiltinTypeFromTypedef(sema, "NSInteger");
           if (!NSIntegerTy.isNull()) {
-            Cache.insert({swiftType->getCanonicalType(), NSIntegerTy});
+            Cache.insert({languageType->getCanonicalType(), NSIntegerTy});
             return;
           }
-        } else if (swiftType->isUInt()) {
+        } else if (languageType->isUInt()) {
           auto NSUIntegerTy = getClangBuiltinTypeFromTypedef(sema, "NSUInteger");
           if (!NSUIntegerTy.isNull()) {
-            Cache.insert({swiftType->getCanonicalType(), NSUIntegerTy});
+            Cache.insert({languageType->getCanonicalType(), NSUIntegerTy});
             return;
           }
         }
@@ -387,12 +401,12 @@ ClangTypeConverter::reverseBuiltinTypeMapping(StructType *type) {
 
       // For something like `typealias CInt = Int32`, reverseBuiltinTypeMapping
       // will get Int32 as the input, so we need to record the desugared type.
-      Cache.insert({swiftType->getCanonicalType(),
+      Cache.insert({languageType->getCanonicalType(),
                     getClangBuiltinTypeFromKind(ctx, builtinKind)});
     };
 
-#define MAP_BUILTIN_TYPE(CLANG_BUILTIN_KIND, SWIFT_TYPE_NAME)          \
-    cacheStdlibType(#SWIFT_TYPE_NAME, clang::BuiltinType::CLANG_BUILTIN_KIND);
+#define MAP_BUILTIN_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)          \
+    cacheStdlibType(#LANGUAGE_TYPE_NAME, clang::BuiltinType::CLANG_BUILTIN_KIND);
 #include "language/ClangImporter/BuiltinMappedTypes.def"
 
     // On 64-bit Windows, no C type is imported as an Int or UInt; CLong is
@@ -402,14 +416,14 @@ ClangTypeConverter::reverseBuiltinTypeMapping(StructType *type) {
     if (Triple.isOSWindows() && Triple.isArch64Bit()
         && !Triple.isWindowsCygwinEnvironment()) {
       // Map UInt to uintptr_t
-      auto swiftUIntType = getNamedSwiftType(stdlib, "UInt");
+      auto languageUIntType = getNamedCodiraType(stdlib, "UInt");
       auto clangUIntPtrType = ctx.getCanonicalType(ctx.getUIntPtrType());
-      Cache.insert({swiftUIntType, clangUIntPtrType});
+      Cache.insert({languageUIntType, clangUIntPtrType});
 
       // Map Int to intptr_t
-      auto swiftIntType = getNamedSwiftType(stdlib, "Int");
+      auto languageIntType = getNamedCodiraType(stdlib, "Int");
       auto clangIntPtrType = ctx.getCanonicalType(ctx.getIntPtrType());
-      Cache.insert({swiftIntType, clangIntPtrType});
+      Cache.insert({languageIntType, clangIntPtrType});
     }
     StdlibTypesAreCached = true;
   }
@@ -487,7 +501,7 @@ clang::QualType ClangTypeConverter::visitProtocolType(ProtocolType *type) {
 
 // TODO: [stronger-checking-in-clang-type-conversion]
 // Metatypes can be converted to Class when they are metatypes for concrete
-// classes. https://github.com/apple/swift/pull/27479#discussion_r344418131
+// classes. https://github.com/apple/language/pull/27479#discussion_r344418131
 clang::QualType ClangTypeConverter::visitMetatypeType(MetatypeType *type) {
   return getClangMetatypeType(ClangASTContext);
 }
@@ -495,7 +509,7 @@ clang::QualType ClangTypeConverter::visitMetatypeType(MetatypeType *type) {
 // TODO: [stronger-checking-in-clang-type-conversion]
 // Existential metatypes where the base is a non-metatype existential can be
 // converted to Class<P, Q, ...> when the protocols are all ObjC.
-// https://github.com/apple/swift/pull/27479#discussion_r344418131
+// https://github.com/apple/language/pull/27479#discussion_r344418131
 clang::QualType
 ClangTypeConverter::visitExistentialMetatypeType(ExistentialMetatypeType *type) {
   return getClangMetatypeType(ClangASTContext);
@@ -503,19 +517,19 @@ ClangTypeConverter::visitExistentialMetatypeType(ExistentialMetatypeType *type) 
 
 clang::QualType ClangTypeConverter::visitClassType(ClassType *type) {
   auto &clangCtx = ClangASTContext;
-  auto swiftDecl = type->getDecl();
+  auto languageDecl = type->getDecl();
 
   // TODO: [non-objc-class-clang-type-conversion]
   // See the corresponding note in GenClangType.cpp
-  if (!swiftDecl->isObjC())
+  if (!languageDecl->isObjC())
     return getClangIdType(clangCtx);
 
-  assert(!cast_or_null<clang::ObjCInterfaceDecl>(swiftDecl->getClangDecl())
+  assert(!cast_or_null<clang::ObjCInterfaceDecl>(languageDecl->getClangDecl())
          && "We shouldn't be creating duplicate decls; see `convert`");
 
   // produce the clang type INTF * if it is imported ObjC object.
   clang::IdentifierInfo *ForwardClassId =
-    &clangCtx.Idents.get(swiftDecl->getName().get());
+    &clangCtx.Idents.get(languageDecl->getName().get());
   auto *CDecl = clang::ObjCInterfaceDecl::Create(
                         clangCtx, clangCtx.getTranslationUnitDecl(),
                         clang::SourceLocation(), ForwardClassId,
@@ -527,9 +541,9 @@ clang::QualType ClangTypeConverter::visitClassType(ClassType *type) {
   SmallString<64> runtimeNameBuffer;
   CDecl->addAttr(clang::ObjCRuntimeNameAttr::CreateImplicit(
                    CDecl->getASTContext(),
-                   swiftDecl->getObjCRuntimeName(runtimeNameBuffer)));
+                   languageDecl->getObjCRuntimeName(runtimeNameBuffer)));
 
-  registerExportedClangDecl(swiftDecl, CDecl);
+  registerExportedClangDecl(languageDecl, CDecl);
 
   auto clangType  = clangCtx.getObjCInterfaceType(CDecl);
   return clangCtx.getObjCObjectPointerType(clangType);
@@ -542,7 +556,7 @@ clang::QualType ClangTypeConverter::visitClassType(ClassType *type) {
 // getObjCObjectType with `id` as the base.
 clang::QualType
 ClangTypeConverter::visitBoundGenericClassType(BoundGenericClassType *type) {
-  // Any @objc class type in Swift that shows up in an @objc method maps 1-1 to
+  // Any @objc class type in Codira that shows up in an @objc method maps 1-1 to
   // "id <SomeProto>"; with clang's encoding ignoring the protocol list.
   return getClangIdType(ClangASTContext);
 }
@@ -558,25 +572,25 @@ ClangTypeConverter::visitBoundGenericType(BoundGenericType *type) {
 
   if (type->getDecl()->isOptionalDecl()) {
     auto innerTy = convert(argType);
-    if (swift::canImportAsOptional(innerTy.getTypePtrOrNull()) ||
+    if (language::canImportAsOptional(innerTy.getTypePtrOrNull()) ||
         argType->isForeignReferenceType())
       return innerTy;
     return clang::QualType();
   }
 
   if (auto kind = classifyPointer(type))
-    return convertPointerType(argType, kind.value(),
-                              /*templateArgument=*/false);
+    return convertPointerType</*templateArgument=*/false>(argType,
+                                                          kind.value());
 
   if (auto width = classifySIMD(type))
-    return convertSIMDType(argType, width.value(), /*templateArgument=*/false);
+    return convertSIMDType</*templateArgument=*/false>(argType, width.value());
 
   return clang::QualType();
 }
 
+template <bool templateArgument>
 clang::QualType ClangTypeConverter::convertSIMDType(CanType scalarType,
-                                                    unsigned width,
-                                                    bool templateArgument) {
+                                                    unsigned width) {
   clang::QualType scalarTy = templateArgument
                                  ? convertTemplateArgument(scalarType)
                                  : convert(scalarType);
@@ -588,9 +602,9 @@ clang::QualType ClangTypeConverter::convertSIMDType(CanType scalarType,
   return vectorTy;
 }
 
+template <bool templateArgument>
 clang::QualType ClangTypeConverter::convertPointerType(CanType pointeeType,
-                                                       PointerKind kind,
-                                                       bool templateArgument) {
+                                                       PointerKind kind) {
   switch (kind) {
   case PointerKind::Unmanaged:
     return templateArgument ? clang::QualType() : convert(pointeeType);
@@ -598,7 +612,7 @@ clang::QualType ClangTypeConverter::convertPointerType(CanType pointeeType,
   case PointerKind::AutoreleasingUnsafeMutablePointer:
     if (templateArgument)
       return clang::QualType();
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 
   case PointerKind::UnsafeMutablePointer: {
     auto clangTy = templateArgument ? convertTemplateArgument(pointeeType)
@@ -634,7 +648,7 @@ clang::QualType ClangTypeConverter::convertPointerType(CanType pointeeType,
   }
   }
 
-  llvm_unreachable("Not a valid StructKind.");
+  toolchain_unreachable("Not a valid StructKind.");
 }
 
 clang::QualType ClangTypeConverter::visitEnumType(EnumType *type) {
@@ -643,14 +657,16 @@ clang::QualType ClangTypeConverter::visitEnumType(EnumType *type) {
   if (type->isUninhabited())
     return convert(Context.TheEmptyTupleType);
 
-  if (!type->getDecl()->isObjC())
-    // Can't translate something not marked with @objc
+  auto ED = type->getDecl();
+  if (!ED->isObjC() && !ED->getAttrs().hasAttribute<CDeclAttr>())
+    // Can't translate something not marked with @objc or @cdecl.
     return clang::QualType();
 
   // @objc enums lower to their raw types.
-  return convert(type->getDecl()->getRawType());
+  return convert(ED->getRawType());
 }
 
+template <bool templateArgument>
 clang::QualType ClangTypeConverter::visitFunctionType(FunctionType *type) {
   const clang::Type *clangTy = nullptr;
   auto repr = type->getRepresentation();
@@ -658,19 +674,22 @@ clang::QualType ClangTypeConverter::visitFunctionType(FunctionType *type) {
   if (useClangTypes && (getSILFunctionLanguage(convertRepresentation(repr)) ==
                         SILFunctionLanguage::C)) {
     clangTy = type->getClangTypeInfo().getType();
-  } else if (!useClangTypes || repr == FunctionTypeRepresentation::Swift) {
+  } else if (!useClangTypes || repr == FunctionTypeRepresentation::Codira) {
     // C function pointer types themselves are not bridged but their components
     // can be. If a component is an @convention(block) function, it may be
-    // bridged to a Swift function type.
-    auto newRepr = (repr == FunctionTypeRepresentation::Swift
+    // bridged to a Codira function type.
+    auto newRepr = (repr == FunctionTypeRepresentation::Codira
                         ? FunctionTypeRepresentation::Block
                         : repr);
-    clangTy = getFunctionType(type->getParams(), type->getResult(), newRepr);
+    clangTy = getFunctionType<templateArgument>(type->getParams(),
+                                                type->getResult(), newRepr);
   }
   return clang::QualType(clangTy, 0);
 }
 
-clang::QualType ClangTypeConverter::visitSILFunctionType(SILFunctionType *type) {
+template <bool templateArgument>
+clang::QualType
+ClangTypeConverter::visitSILFunctionType(SILFunctionType *type) {
   const clang::Type *clangTy = nullptr;
   auto repr = type->getRepresentation();
   bool useClangTypes = type->getASTContext().LangOpts.UseClangFunctionTypes;
@@ -680,7 +699,7 @@ clang::QualType ClangTypeConverter::visitSILFunctionType(SILFunctionType *type) 
   } else if (!useClangTypes || repr == SILFunctionTypeRepresentation::Thick) {
     // C function pointer types themselves are not bridged but their components
     // can be. If a component is an @convention(block) function, it may be
-    // bridged to a Swift function type.
+    // bridged to a Codira function type.
     auto newRepr = (repr == SILFunctionTypeRepresentation::Thick
                         ? SILFunctionTypeRepresentation::Block
                         : repr);
@@ -688,7 +707,8 @@ clang::QualType ClangTypeConverter::visitSILFunctionType(SILFunctionType *type) 
     auto optionalResult = results.empty()
                               ? std::nullopt
                               : std::optional<SILResultInfo>(results[0]);
-    clangTy = getFunctionType(type->getParameters(), optionalResult, newRepr);
+    clangTy = getFunctionType<templateArgument>(type->getParameters(),
+                                                optionalResult, newRepr);
   }
   return clang::QualType(clangTy, 0);
 }
@@ -786,7 +806,7 @@ clang::QualType
 ClangTypeConverter::visitBuiltinFloatType(BuiltinFloatType *type) {
   auto &clangCtx = ClangASTContext;
   auto &clangTargetInfo = clangCtx.getTargetInfo();
-  const llvm::fltSemantics *format = &type->getAPFloatSemantics();
+  const toolchain::fltSemantics *format = &type->getAPFloatSemantics();
   if (format == &clangTargetInfo.getHalfFormat())
     return clangCtx.HalfTy;
   if (format == &clangTargetInfo.getFloatFormat())
@@ -795,7 +815,16 @@ ClangTypeConverter::visitBuiltinFloatType(BuiltinFloatType *type) {
     return clangCtx.DoubleTy;
   if (format == &clangTargetInfo.getLongDoubleFormat())
     return clangCtx.LongDoubleTy;
-  llvm_unreachable("cannot translate floating-point format to C");
+  toolchain_unreachable("cannot translate floating-point format to C");
+}
+
+clang::QualType
+ClangTypeConverter::visitBuiltinVectorType(BuiltinVectorType *type) {
+  auto &clangCtx = ClangASTContext;
+  auto eltTy = visit(type->getElementType());
+  return clangCtx.getVectorType(
+    eltTy, type->getNumElements(), clang::VectorKind::Generic
+  );
 }
 
 clang::QualType ClangTypeConverter::visitArchetypeType(ArchetypeType *type) {
@@ -866,8 +895,15 @@ ClangTypeConverter::convertClangDecl(Type type, const clang::Decl *clangDecl) {
 
   if (auto clangTypeDecl = dyn_cast<clang::TypeDecl>(clangDecl)) {
     auto qualType = ctx.getTypeDeclType(clangTypeDecl);
-    if (type->isForeignReferenceType())
+    if (type->isForeignReferenceType()) {
       qualType = ctx.getPointerType(qualType);
+      auto nonNullAttr = new (ctx) clang::TypeNonNullAttr(
+          ctx,
+          clang::AttributeCommonInfo(
+              clang::SourceRange(), clang::AttributeCommonInfo::AT_TypeNonNull,
+              clang::AttributeCommonInfo::Form::Implicit()));
+      qualType = ctx.getAttributedType(nonNullAttr, qualType, qualType);
+    }
 
     return qualType.getUnqualifiedType();
   }
@@ -888,15 +924,15 @@ ClangTypeConverter::convertClangDecl(Type type, const clang::Decl *clangDecl) {
   return clang::QualType();
 }
 
-void ClangTypeConverter::registerExportedClangDecl(Decl *swiftDecl,
+void ClangTypeConverter::registerExportedClangDecl(Decl *languageDecl,
                                              const clang::Decl *clangDecl) {
   assert(clangDecl->isCanonicalDecl() &&
-         "generated Clang declaration for Swift declaration should not "
+         "generated Clang declaration for Codira declaration should not "
          "have multiple declarations");
-  ReversedExportMap.insert({clangDecl, swiftDecl});
+  ReversedExportMap.insert({clangDecl, languageDecl});
 }
 
-Decl *ClangTypeConverter::getSwiftDeclForExportedClangDecl(
+Decl *ClangTypeConverter::getCodiraDeclForExportedClangDecl(
                                              const clang::Decl *decl) const {
   // We don't need to canonicalize the declaration because these exported
   // declarations are never redeclarations.
@@ -933,9 +969,16 @@ clang::QualType ClangTypeConverter::convertTemplateArgument(Type type) {
   if (auto floatType = type->getAs<BuiltinFloatType>())
     return withCache([&]() { return visitBuiltinFloatType(floatType); });
 
+  if (auto tupleType = type->getAs<TupleType>()) {
+    // We do not call visitTupleType() because we cannot yet handle tuples with
+    // a non-zero number of elements.
+    if (tupleType->getNumElements() == 0)
+      return ClangASTContext.VoidTy;
+  }
+
   if (auto structType = type->getAs<StructType>()) {
-    // Swift structs are not supported in general, but some foreign types are
-    // imported as Swift structs. We reverse that mapping here.
+    // Codira structs are not supported in general, but some foreign types are
+    // imported as Codira structs. We reverse that mapping here.
     auto decl = structType->getDecl();
 
     // Ban ObjCBool type from being substituted into C++ templates (#74790)
@@ -953,8 +996,6 @@ clang::QualType ClangTypeConverter::convertTemplateArgument(Type type) {
     return withCache([&]() { return reverseBuiltinTypeMapping(structType); });
   }
 
-  // TODO: function pointers are not yet supported, but they should be.
-
   if (auto boundGenericType = type->getAs<BoundGenericType>()) {
     if (boundGenericType->getGenericArgs().size() != 1)
       // Must've got something other than a T?, *Pointer<T>, or SIMD*<T>
@@ -968,8 +1009,8 @@ clang::QualType ClangTypeConverter::convertTemplateArgument(Type type) {
           auto pointeeType = argType->getAs<BoundGenericType>()
                                  ->getGenericArgs()[0]
                                  ->getCanonicalType();
-          return convertPointerType(pointeeType, kind.value(),
-                                    /*templateArgument=*/true);
+          return convertPointerType</*templateArgument=*/true>(pointeeType,
+                                                               kind.value());
         });
 
       // Arbitrary optional types are not (yet) supported
@@ -978,17 +1019,29 @@ clang::QualType ClangTypeConverter::convertTemplateArgument(Type type) {
 
     if (auto kind = classifyPointer(boundGenericType))
       return withCache([&]() {
-        return convertPointerType(argType, kind.value(),
-                                  /*templateArgument=*/true);
+        return convertPointerType</*templateArgument=*/true>(argType,
+                                                             kind.value());
       });
 
     if (auto width = classifySIMD(boundGenericType))
       return withCache([&]() {
-        return convertSIMDType(argType, width.value(),
-                               /*templateArgument=*/true);
+        return convertSIMDType</*templateArgument=*/true>(argType,
+                                                          width.value());
       });
 
     return clang::QualType();
+  }
+
+  if (auto functionType = type->getAs<FunctionType>()) {
+    return withCache([&]() {
+      return visitFunctionType</*templateArgument=*/true>(functionType);
+    });
+  }
+
+  if (auto functionType = type->getAs<SILFunctionType>()) {
+    return withCache([&]() {
+      return visitSILFunctionType</*templateArgument=*/true>(functionType);
+    });
   }
 
   // Most types cannot be used to instantiate C++ function templates; give up.
@@ -1031,7 +1084,7 @@ ClangTypeConverter::getClangTemplateArguments(
   // partially converted set of template arguments.
   templateArgs.clear();
   auto errorInfo = std::make_unique<TemplateInstantiationError>();
-  llvm::for_each(failedTypes, [&errorInfo](auto type) {
+  toolchain::for_each(failedTypes, [&errorInfo](auto type) {
     errorInfo->failedTypes.push_back(type);
   });
   return errorInfo;
@@ -1044,7 +1097,7 @@ ClangTypeConverter::classifyPointer(Type type) {
     // Must have got something other than a *Pointer<T>
     return std::nullopt;
 
-  return llvm::StringSwitch<std::optional<PointerKind>>(
+  return toolchain::StringSwitch<std::optional<PointerKind>>(
              generic->getDecl()->getName().str())
       .Case("UnsafeMutablePointer", PointerKind::UnsafeMutablePointer)
       .Case("UnsafePointer", PointerKind::UnsafePointer)

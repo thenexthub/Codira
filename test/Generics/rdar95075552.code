@@ -1,0 +1,32 @@
+// RUN: %target-language-frontend -typecheck %s -debug-generic-signatures 2>&1 | %FileCheck %s
+
+// CHECK-LABEL: .Tree@
+// CHECK-NEXT: Requirement signature: <Self where Self.[Tree]Distance : FloatingPoint, Self.[Tree]Distance : SIMDScalar, Self.[Tree]Distance == Self.[Tree]Point.[SIMDStorage]Scalar, Self.[Tree]Point : SIMD>
+protocol Tree {
+  associatedtype Distance: FloatingPoint & SIMDScalar
+  associatedtype Point: SIMD where Point.Scalar == Distance
+}
+
+// CHECK-LABEL: .QuadTree@
+// CHECK-NEXT: Requirement signature: <Self where Self : Tree, Self.[Tree]Point == SIMD2<Self.[Tree]Distance>>
+protocol QuadTree : Tree where Point == SIMD2<Distance> {}
+
+// CHECK-LABEL: .OctTree@
+// CHECK-NEXT: Requirement signature: <Self where Self : Tree, Self.[Tree]Point == SIMD3<Self.[Tree]Distance>>
+protocol OctTree : Tree where Point == SIMD3<Distance> {}
+
+fn sameType<T>(_: T.Type, _: T.Type) {}
+
+extension QuadTree {
+  fn foo() {
+    sameType(Point.MaskStorage.this, SIMD2<Distance.SIMDMaskScalar>.this)
+    sameType(Point.MaskStorage.MaskStorage.this, SIMD2<Distance.SIMDMaskScalar>.this)
+  }
+}
+
+extension OctTree {
+  fn foo() {
+    sameType(Point.MaskStorage.this, SIMD3<Distance.SIMDMaskScalar>.this)
+    sameType(Point.MaskStorage.MaskStorage.this, SIMD3<Distance.SIMDMaskScalar>.this)
+  }
+}

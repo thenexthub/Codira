@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file Contains the BitDataflow utility for performing bit-wise dataflow
@@ -18,11 +19,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_BIT_DATAFLOW_H
-#define SWIFT_SIL_BIT_DATAFLOW_H
+#ifndef LANGUAGE_SIL_BIT_DATAFLOW_H
+#define LANGUAGE_SIL_BIT_DATAFLOW_H
 
 #include "language/SIL/BasicBlockData.h"
-#include "llvm/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallBitVector.h"
 
 namespace language {
 
@@ -48,7 +49,7 @@ class BitDataflow {
   };
 
 public:
-  using Bits = llvm::SmallBitVector;
+  using Bits = toolchain::SmallBitVector;
 
   /// Basic-block specific information used for dataflow analysis.
   struct BlockState {
@@ -144,6 +145,6 @@ public:
   void dump() const;
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

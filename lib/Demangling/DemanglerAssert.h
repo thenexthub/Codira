@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements a macro, DEMANGLE_ASSERT(), which will assert in the
@@ -18,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_ASSERT_H
-#define SWIFT_DEMANGLING_ASSERT_H
+#ifndef LANGUAGE_DEMANGLING_ASSERT_H
+#define LANGUAGE_DEMANGLING_ASSERT_H
 
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include "language/Demangling/Demangle.h"
 #include "language/Demangling/NamespaceMacros.h"
 
-#if defined(NDEBUG) || defined (SWIFT_RUNTIME)
+#if defined(NDEBUG) || defined (LANGUAGE_RUNTIME)
 
 // In the runtime and non-asserts builds, DEMANGLER_ASSERT() returns an error.
 #define DEMANGLER_ASSERT(expr, node)                                           \
@@ -44,7 +45,7 @@
         return ManglingError(ManglingError::AssertionFailed, (node),           \
                              __LINE__);                                        \
       else                                                                     \
-        swift::Demangle::failAssert(__FILE__, __LINE__, node, #expr);          \
+        language::Demangle::failAssert(__FILE__, __LINE__, node, #expr);          \
     }                                                                          \
   } while (0)
 
@@ -54,18 +55,18 @@
 #define DEMANGLER_ALWAYS_ASSERT(expr, node)                                    \
   do {                                                                         \
     if (!(expr))                                                               \
-      swift::Demangle::failAssert(__FILE__, __LINE__, node, #expr);            \
+      language::Demangle::failAssert(__FILE__, __LINE__, node, #expr);            \
   } while (0)
 
 namespace language {
 namespace Demangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 [[noreturn]] void failAssert(const char *file, unsigned line, NodePointer node,
                              const char *expr);
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Demangle
 } // end namespace language
 
-#endif // SWIFT_DEMANGLING_ASSERT_H
+#endif // LANGUAGE_DEMANGLING_ASSERT_H

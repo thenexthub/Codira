@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Cache the set of blocks that contain a non-local end_access, which is a rare
@@ -28,13 +29,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_NONLOCALACCESSBLOCKS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_NONLOCALACCESSBLOCKS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_NONLOCALACCESSBLOCKS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_NONLOCALACCESSBLOCKS_H
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Compiler.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 namespace language {
 
@@ -45,7 +46,7 @@ class NonLocalAccessBlocks {
   friend class NonLocalAccessBlockAnalysis;
 
   SILFunction *function;
-  llvm::SmallPtrSet<SILBasicBlock *, 4> accessBlocks;
+  toolchain::SmallPtrSet<SILBasicBlock *, 4> accessBlocks;
 
 public:
   NonLocalAccessBlocks(SILFunction *function) : function(function) {}
@@ -88,11 +89,11 @@ protected:
     return kind & InvalidationKind::BranchesAndInstructions;
   }
 
-  SWIFT_ASSERT_ONLY_DECL(
+  LANGUAGE_ASSERT_ONLY_DECL(
       virtual void verify(NonLocalAccessBlocks *accessBlocks) const override {
         NonLocalAccessBlocks checkAccessBlocks(accessBlocks->function);
         checkAccessBlocks.compute();
-        assert(llvm::all_of(checkAccessBlocks.accessBlocks,
+        assert(toolchain::all_of(checkAccessBlocks.accessBlocks,
                             [&](SILBasicBlock *bb) {
                               return accessBlocks->accessBlocks.count(bb);
                             }));

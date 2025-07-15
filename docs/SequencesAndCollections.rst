@@ -3,17 +3,17 @@
 .. default-role:: code
 
 ====================================
- Sequences And Collections in Swift
+ Sequences And Collections in Codira
 ====================================
 
-Unlike many languages, Swift provides a rich taxonomy of abstractions
+Unlike many languages, Codira provides a rich taxonomy of abstractions
 for processing series of elements.  This document explains why that
 taxonomy exists and how it is structured.
 
 Sequences
 =========
 
-It all begins with Swift's `for`\ ...\ `in` loop::
+It all begins with Codira's `for`\ ...\ `in` loop::
 
   for x in s {
     doSomethingWith(x)
@@ -31,12 +31,12 @@ Because this construct is generic, `s` could be
 * a user-defined data structure
 * etc.
 
-In Swift, all of the above are called **sequences**, an abstraction
+In Codira, all of the above are called **sequences**, an abstraction
 represented by the `SequenceType` protocol::
 
   protocol SequenceType {
     typealias Iterator : IteratorProtocol
-    func makeIterator() -> Iterator
+    fn makeIterator() -> Iterator
   }
 
 .. sidebar:: Hiding Iterator Type Details
@@ -53,7 +53,7 @@ represented by the `SequenceType` protocol::
 
   .. |AnyIterator| replace:: `AnyIterator<T>`
 
-  __ http://swiftdoc.org/v3.0/type/AnyIterator/
+  __ http://languagedoc.org/v3.0/type/AnyIterator/
 
 As you can see, sequence does nothing more than deliver an iterator.
 To understand the need for iterators, it's important to distinguish
@@ -66,7 +66,7 @@ the two kinds of sequences.
 * **Stable** sequences, like arrays, should *not* be mutated by `for`\
   ...\ `in`, and thus require *separate traversal state*.
 
-To get an initial traversal state for an arbitrary sequence `x`, Swift
+To get an initial traversal state for an arbitrary sequence `x`, Codira
 calls `x.makeIterator()`.  The sequence delivers that state, along with
 traversal logic, in the form of an **iterator**.
 
@@ -85,7 +85,7 @@ something like this::
   protocol NaiveIteratorProtocol {
     typealias Element
     var current() -> Element      // get the current element
-    mutating func advance()       // advance to the next element
+    mutating fn advance()       // advance to the next element
     var isExhausted: Bool         // detect whether there are more elements
   }
 
@@ -101,15 +101,15 @@ the latter unnecessarily adds the possibility of incorrect usage.
   You might recognize the influence on iterators of the `NSEnumerator` API::
 
     class NSEnumerator : NSObject {
-      func nextObject() -> AnyObject?
+      fn nextObject() -> AnyObject?
     }
 
-Therefore, Swift's `IteratorProtocol` merges the three operations into one,
+Therefore, Codira's `IteratorProtocol` merges the three operations into one,
 returning `nil` when the iterator is exhausted::
 
   protocol IteratorProtocol {
     typealias Element
-    mutating func next() -> Element?
+    mutating fn next() -> Element?
   }
 
 Combined with `SequenceType`, we now have everything we need to
@@ -137,7 +137,7 @@ implement a generic `for`\ ...\ `in` loop.
       public init(_ baseIterator: I) {
         self._baseIterator = baseIterator
       }
-      public func next() -> Element? {
+      public fn next() -> Element? {
         latest = _baseIterator.next() ?? latest
         return latest
       }
@@ -154,7 +154,7 @@ end.  For example::
 
   // Return an array containing the elements of `source`, with
   // `separator` interposed between each consecutive pair.
-  func array<S: SequenceType>(
+  fn array<S: SequenceType>(
     _ source: S,
     withSeparator separator: S.Iterator.Element
   ) -> [S.Iterator.Element] {
@@ -170,13 +170,13 @@ end.  For example::
     return result
   }
 
-  let s = String(array("Swift", withSeparator: "|"))
+  let s = String(array("Codira", withSeparator: "|"))
   print(s)        // "S|w|i|f|t"
 
 Because sequences may be volatile, though, you can--in general--only
 make a single traversal.  This capability is quite enough for many
 languages: the iteration abstractions of Java, C#, Python, and Ruby
-all go about as far as `SequenceType`, and no further.  In Swift,
+all go about as far as `SequenceType`, and no further.  In Codira,
 though, we want to do much more generically.  All of the following
 depend on stability that an arbitrary sequence can't provide:
 
@@ -199,7 +199,7 @@ depend on stability that an arbitrary sequence can't provide:
 
        protocol IteratorProtocol **: SequenceType** {
          typealias Element
-         mutating func next() -> Element?
+         mutating fn next() -> Element?
        }
 
   Though we may not currently be able to *require* that every
@@ -243,7 +243,7 @@ linear series of discrete values that can be compared for equality:
 
   protocol ForwardIndexType : Equatable {
     typealias Distance : SignedIntegerType
-    func successor() -> Self
+    fn successor() -> Self
   }
 
 While one can use `successor()` to create an incremented index value,
@@ -305,7 +305,7 @@ range of elements, denoted by two indices, by elements from a collection with a
 ::
 
   public protocol RangeReplaceableCollectionType : MutableCollectionType {
-    mutating func replaceSubrange<
+    mutating fn replaceSubrange<
       C: CollectionType where C.Iterator.Element == Self.Iterator.Element
     >(
       _ subRange: Range<Index>, with newElements: C
@@ -332,7 +332,7 @@ capabilities of indices into a singly-linked list:
 additionally support reverse traversal::
 
   protocol BidirectionalIndexType : ForwardIndexType {
-    func predecessor() -> Self
+    fn predecessor() -> Self
   }
 
 Indices into a doubly-linked list would be bidirectional, as are the
@@ -346,8 +346,8 @@ addressing the same collection, and the ability to advance an index by
 a (possibly negative) number of steps::
 
   public protocol RandomAccessIndexType : BidirectionalIndexType {
-    func distance(to other: Self) -> Distance
-    func advanced(by n: Distance) -> Self
+    fn distance(to other: Self) -> Distance
+    fn advanced(by n: Distance) -> Self
   }
 
 From these methods, the standard library derives several other
@@ -370,7 +370,7 @@ not efficiently support reverse traversal.
 Conclusion
 ==========
 
-Swift's sequence, collection, and index protocols allow us to write
+Codira's sequence, collection, and index protocols allow us to write
 general algorithms that apply to a wide variety of series and data
 structures.  The system has been both easy to extend, and predictably
 performant.  Thanks for taking the tour!

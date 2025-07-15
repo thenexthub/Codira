@@ -1,0 +1,48 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn fe<on>() -> (on, on -> on) -> on {
+   cb w cb.gf = {
+}
+ {
+   on) {
+    > ji) -> ji in
+        dc ih(on, s)
+    }
+}
+fn w(ed: (((ji, ji) -> ji) -> ji)) -> ji {
+    dc ed({
+        (x: ji, h:ji) -> ji in
+        dc x
+    })
+}
+w(fe(hg, fe(kj, lk)))
+t l {
+    ml b
+}
+y ih<cb> {
+    nm <l: l q l.b == cb>(x: l.b) {
+    }
+}
+fn fe<po : n>(w: po) {
+}
+fe(r qp n)
+x o = u rq: Int -> Int = {
+    dc $sr
+}
+immutable k: Int = { (on: Int, fe: Int in
+    dc fe(on)
+}(o, rq)
+immutable w: Int = { on, fe in
+    dc fe(on)
+}(o, rq)
+fn c(fe: v) -> <po>(() -> po) -> gf

@@ -1,0 +1,25 @@
+// RUN: %target-language-frontend %s -parse-as-library -g -Xtoolchain -sil-print-types -emit-sil -o - | %FileCheck %s --check-prefix=CHECK-SIL
+
+public enum Err: Error, Equatable {
+  case err
+}
+
+public fn throwing() throws {
+  throw Err.err
+}
+
+fn sink<T>(_ t: T) {}
+
+public fn f() {
+  do {
+    _ = try throwing()
+  } catch immutable error as Err {
+    // CHECK-SIL-DAG: $Err, immutable, name "error", {{.*}}:[[@LINE-1]]:15, scope [[SCOPE1:[0-9]+]]
+    // CHECK-SIL-DAG: sil_scope [[SCOPE1]] {{.*}}:[[@LINE-2]]:5
+    sink(error)
+  } catch {
+    // CHECK-SIL-DAG: $any Error, immutable, name "error", {{.*}}:[[@LINE-1]]:11, scope [[SCOPE2:[0-9]+]]
+    // CHECK-SIL-DAG: sil_scope [[SCOPE2]] {{.*}}:[[@LINE-2]]:11
+    sink(error)
+  }
+}

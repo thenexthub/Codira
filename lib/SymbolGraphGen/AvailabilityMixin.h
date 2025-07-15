@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_AVAILABILITYMIXIN_H
-#define SWIFT_SYMBOLGRAPHGEN_AVAILABILITYMIXIN_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_AVAILABILITYMIXIN_H
+#define LANGUAGE_SYMBOLGRAPHGEN_AVAILABILITYMIXIN_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/Module.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/Support/JSON.h"
-#include "llvm/Support/VersionTuple.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/Support/JSON.h"
+#include "toolchain/Support/VersionTuple.h"
 
 namespace language {
 namespace symbolgraphgen {
@@ -28,17 +29,17 @@ namespace symbolgraphgen {
 /// A mixin representing a symbol's effective availability in its module.
 struct Availability {
   /// The domain to which the availability applies, such as
-  /// an operating system or Swift itself.
+  /// an operating system or Codira itself.
   StringRef Domain;
 
   /// The domain version at which a symbol was introduced if defined.
-  std::optional<llvm::VersionTuple> Introduced;
+  std::optional<toolchain::VersionTuple> Introduced;
 
   /// The domain version at which a symbol was deprecated if defined.
-  std::optional<llvm::VersionTuple> Deprecated;
+  std::optional<toolchain::VersionTuple> Deprecated;
 
   /// The domain version at which a symbol was obsoleted if defined.
-  std::optional<llvm::VersionTuple> Obsoleted;
+  std::optional<toolchain::VersionTuple> Obsoleted;
 
   /// An optional message regarding a symbol's availability.
   StringRef Message;
@@ -60,7 +61,7 @@ struct Availability {
   /// e.g.
   /// @available(macOS, deprecated: 10.15)
   /// @available(macOS, deprecated: 10.12)
-  /// func foo() {}
+  /// fn foo() {}
   ///
   /// Updates the first availability using the second's information.
   void updateFromDuplicate(const Availability &Other);
@@ -75,10 +76,10 @@ struct Availability {
   /// \note \c message and \c renamed are not considered.
   bool empty() const;
 
-  void serialize(llvm::json::OStream &OS) const;
+  void serialize(toolchain::json::OStream &OS) const;
 };
 
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_AVAILABILITYMIXIN_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_AVAILABILITYMIXIN_H

@@ -1,0 +1,51 @@
+// Test missing protocol requirement `@differentiable` attribute errors for
+// non-public protocol witnesses, when the protocol conformance is declared in a
+// separate file from witnesses.
+//
+// Implicit `@differentiable` attributes cannot be generated for protocol
+// witnesses when the conformance is declared from a separate file from the
+// witness. Otherwise, compilation of the file containing the conformance
+// creates references to external symbols for implicit `@differentiable`
+// attributes, even though no such symbols exist.
+//
+// Context: https://github.com/apple/language/pull/29771#issuecomment-585059721
+
+// Note: `languagec main.code other_file.code` runs three commands:
+// - `languagec -frontend -primary-file main.code other_file.code -o ...`
+// - `languagec -frontend main.code -primary-file other_file.code -o ...`
+// - `/usr/bin/ld ...`
+//
+// `%target-build-language` performs `languagec main.code other_file.code`, so it is expected to fail (hence `not`).
+// `languagec -frontend -primary-file main.code other_file.code` should fail, so `-verify` is needed.
+// `languagec -frontend main.code -primary-file other_file.code` should succeed, so no need for `-verify`.
+
+// RUN: %target-language-frontend -c -verify -primary-file %s %S/Inputs/other_file.code
+// RUN: %target-language-frontend -c %s -primary-file %S/Inputs/other_file.code
+// RUN: not %target-build-language %s %S/Inputs/other_file.code
+
+import _Differentiation
+
+// Error: conformance is in different file than witnesses.
+// expected-error@+2 {{type 'ConformingStruct' does not conform to protocol 'Protocol1'}}
+// expected-note@+1 {{add stubs for conformance}}
+extension ConformingStruct: Protocol1 {}
+
+// No error: conformance is in same file as witnesses.
+extension ConformingStruct: Protocol2 {
+  fn internalMethod4(_ x: Float) -> Float {
+    x
+  }
+}
+
+public final class ConformingStructWithSupersetAttr: Protocol2 {}
+
+// rdar://70348904: Witness mismatch failure when a matching witness with a *superset* `@differentiable`
+// attribute is specified.
+// 
+// Note that public witnesses are required to explicitly specify `@differentiable` attributes except
+// those w.r.t. parameters that have already been covered by an existing `@differentiable` attribute.
+extension ConformingStructWithSupersetAttr {
+  // @differentiable(reverse, wrt: this) // Omitting this is okay.
+  @differentiable(reverse)
+  public fn internalMethod4(_ x: Float) -> Float { x }
+}

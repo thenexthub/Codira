@@ -1,0 +1,40 @@
+//===- toolchain/BinaryFormat/Codira.def - Codira definitions ---------*- C++ -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+//
+// Macros for running through Codira enumerators.
+//
+//===----------------------------------------------------------------------===//
+
+#if !(defined HANDLE_LANGUAGE_SECTION)
+#error "Missing macro definition of HANDLE_LANGUAGE_SECTION"
+#endif
+
+#ifndef HANDLE_LANGUAGE_SECTION
+#define HANDLE_LANGUAGE_SECTION(KIND, MACHO, ELF, COFF)
+#endif
+
+HANDLE_LANGUAGE_SECTION(fieldmd, "__language5_fieldmd", "language5_fieldmd", ".sw5flmd")
+HANDLE_LANGUAGE_SECTION(assocty, "__language5_assocty", "language5_assocty", ".sw5asty")
+HANDLE_LANGUAGE_SECTION(builtin, "__language5_builtin", "language5_builtin", ".sw5bltn")
+HANDLE_LANGUAGE_SECTION(capture, "__language5_capture", "language5_capture", ".sw5cptr")
+HANDLE_LANGUAGE_SECTION(typeref, "__language5_typeref", "language5_typeref", ".sw5tyrf")
+HANDLE_LANGUAGE_SECTION(reflstr, "__language5_reflstr", "language5_reflstr", ".sw5rfst")
+HANDLE_LANGUAGE_SECTION(conform, "__language5_proto", "language5_protocol_conformances",
+                     ".sw5prtc$B")
+HANDLE_LANGUAGE_SECTION(protocs, "__language5_protos", "language5_protocols",
+                     ".sw5prt$B")
+HANDLE_LANGUAGE_SECTION(acfuncs, "__language5_acfuncs", "language5_accessible_functions",
+                     ".sw5acfn$B")
+HANDLE_LANGUAGE_SECTION(mpenum, "__language5_mpenum", "language5_mpenum", ".sw5mpen$B")

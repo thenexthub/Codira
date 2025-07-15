@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,10 +19,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_EDITORPLACEHOLDER_H
-#define SWIFT_BASIC_EDITORPLACEHOLDER_H
+#ifndef LANGUAGE_BASIC_EDITORPLACEHOLDER_H
+#define LANGUAGE_BASIC_EDITORPLACEHOLDER_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
 namespace language {
@@ -35,22 +36,22 @@ struct EditorPlaceholderData {
   /// Placeholder kind.
   EditorPlaceholderKind Kind;
   /// The part that is displayed in the editor.
-  llvm::StringRef Display;
+  toolchain::StringRef Display;
   /// If kind is \c Typed, this is the type string for the placeholder.
-  llvm::StringRef Type;
+  toolchain::StringRef Type;
   /// If kind is \c Typed, this is the type string to be considered for
   /// placeholder expansion.
   /// It can be same as \c Type or different if \c Type is a typealias.
-  llvm::StringRef TypeForExpansion;
+  toolchain::StringRef TypeForExpansion;
 };
 
 /// Deconstructs a placeholder string and returns info about it.
 /// \returns None if the \c PlaceholderText is not a valid placeholder string.
 std::optional<EditorPlaceholderData>
-parseEditorPlaceholder(llvm::StringRef PlaceholderText);
+parseEditorPlaceholder(toolchain::StringRef PlaceholderText);
 
 /// Checks if an identifier with the given text is an editor placeholder
-bool isEditorPlaceholder(llvm::StringRef IdentifierText);
+bool isEditorPlaceholder(toolchain::StringRef IdentifierText);
 } // end namespace language
 
-#endif // SWIFT_BASIC_EDITORPLACEHOLDER_H
+#endif // LANGUAGE_BASIC_EDITORPLACEHOLDER_H

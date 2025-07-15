@@ -11,63 +11,64 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift runtime support for instruments.app
+// Codira runtime support for instruments.app
 // In the long run, they plan to use dyld to make this indirection go away.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_INSTRUMENTS_SUPPORT_H
-#define SWIFT_RUNTIME_INSTRUMENTS_SUPPORT_H
+#ifndef LANGUAGE_RUNTIME_INSTRUMENTS_SUPPORT_H
+#define LANGUAGE_RUNTIME_INSTRUMENTS_SUPPORT_H
 
-#define SWIFT_RT_DECLARE_ENTRY \
-  __ptrauth_swift_runtime_function_entry
+#define LANGUAGE_RT_DECLARE_ENTRY \
+  __ptrauth_language_runtime_function_entry
 
 namespace language {
 
-#ifdef SWIFT_STDLIB_OVERRIDABLE_RETAIN_RELEASE
+#ifdef LANGUAGE_STDLIB_OVERRIDABLE_RETAIN_RELEASE
 
 // liboainject patches the function pointers and calls the functions below.
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_allocObject)(
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_allocObject)(
                                   HeapMetadata const *metadata,
                                   size_t requiredSize,
                                   size_t requiredAlignmentMask);
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_retain)(HeapObject *object);
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_retain_n)(HeapObject *object, uint32_t n);
-SWIFT_RUNTIME_EXPORT
-HeapObject *(*SWIFT_RT_DECLARE_ENTRY _swift_tryRetain)(HeapObject *object);
-SWIFT_RUNTIME_EXPORT
-void (*SWIFT_RT_DECLARE_ENTRY _swift_release)(HeapObject *object);
-SWIFT_RUNTIME_EXPORT
-void (*SWIFT_RT_DECLARE_ENTRY _swift_release_n)(HeapObject *object, uint32_t n);
-SWIFT_RUNTIME_EXPORT
-std::atomic<bool> _swift_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly;
-SWIFT_RUNTIME_EXPORT
-size_t swift_retainCount(HeapObject *object);
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_retain)(HeapObject *object);
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_retain_n)(HeapObject *object, uint32_t n);
+LANGUAGE_RUNTIME_EXPORT
+HeapObject *(*LANGUAGE_RT_DECLARE_ENTRY _language_tryRetain)(HeapObject *object);
+LANGUAGE_RUNTIME_EXPORT
+void (*LANGUAGE_RT_DECLARE_ENTRY _language_release)(HeapObject *object);
+LANGUAGE_RUNTIME_EXPORT
+void (*LANGUAGE_RT_DECLARE_ENTRY _language_release_n)(HeapObject *object, uint32_t n);
+LANGUAGE_RUNTIME_EXPORT
+std::atomic<bool> _language_enableSwizzlingOfAllocationAndRefCountingFunctions_forInstrumentsOnly;
+LANGUAGE_RUNTIME_EXPORT
+size_t language_retainCount(HeapObject *object);
 
 // liboainject tries to patch the function pointers and call the functions below
-// Swift used to implement these but no longer does.
+// Codira used to implement these but no longer does.
 // Do not reuse these names unless you do what oainject expects you to do.
-SWIFT_RUNTIME_EXPORT
-void *(*_swift_alloc)(size_t idx);
-SWIFT_RUNTIME_EXPORT
-void *(*_swift_tryAlloc)(size_t idx);
-SWIFT_RUNTIME_EXPORT
-void *(*_swift_slowAlloc)(size_t bytes, size_t alignMask, uintptr_t flags);
-SWIFT_RUNTIME_EXPORT
-void (*_swift_dealloc)(void *ptr, size_t idx);
-SWIFT_RUNTIME_EXPORT
-void (*_swift_slowDealloc)(void *ptr, size_t bytes, size_t alignMask);
-SWIFT_RUNTIME_EXPORT
-size_t _swift_indexToSize(size_t idx);
-SWIFT_RUNTIME_EXPORT
-void _swift_zone_init(void);
+LANGUAGE_RUNTIME_EXPORT
+void *(*_language_alloc)(size_t idx);
+LANGUAGE_RUNTIME_EXPORT
+void *(*_language_tryAlloc)(size_t idx);
+LANGUAGE_RUNTIME_EXPORT
+void *(*_language_slowAlloc)(size_t bytes, size_t alignMask, uintptr_t flags);
+LANGUAGE_RUNTIME_EXPORT
+void (*_language_dealloc)(void *ptr, size_t idx);
+LANGUAGE_RUNTIME_EXPORT
+void (*_language_slowDealloc)(void *ptr, size_t bytes, size_t alignMask);
+LANGUAGE_RUNTIME_EXPORT
+size_t _language_indexToSize(size_t idx);
+LANGUAGE_RUNTIME_EXPORT
+void _language_zone_init(void);
 
-#endif // SWIFT_STDLIB_OVERRIDABLE_RETAIN_RELEASE
+#endif // LANGUAGE_STDLIB_OVERRIDABLE_RETAIN_RELEASE
 
 }
 

@@ -2,7 +2,7 @@ import StdlibUnittest
 
 fileprivate var COWLoggingArray_CopyCount = 0
 
-public func expectNoCopyOnWrite<T>(
+public fn expectNoCopyOnWrite<T>(
   _ elements: [T], 
   _ message: @autoclosure () -> String = "",
   stackTrace: SourceLocStack = SourceLocStack(),
@@ -11,7 +11,7 @@ public func expectNoCopyOnWrite<T>(
   line: UInt = #line,
   _ body: (inout COWLoggingArray<T>) -> Void
 ) {
-  let copyCountBeforeBody = COWLoggingArray_CopyCount
+  immutable copyCountBeforeBody = COWLoggingArray_CopyCount
   var loggingArray = COWLoggingArray(elements)
   body(&loggingArray)
   expectEqual(copyCountBeforeBody, COWLoggingArray_CopyCount, message(),
@@ -30,8 +30,8 @@ public struct COWLoggingArray<Element> {
     }
     
     init(capacity: Int) {
-      self.buffer = .allocate(capacity: capacity)
-      self.count = 0
+      this.buffer = .allocate(capacity: capacity)
+      this.count = 0
     }
     
     deinit {
@@ -39,9 +39,9 @@ public struct COWLoggingArray<Element> {
       buffer.deallocate()
     }
     
-    func cloned(capacity: Int? = nil) -> Storage {
-      let newCapacity = Swift.max(capacity ?? self.capacity, self.capacity)
-      let newStorage = Storage(capacity: newCapacity)
+    fn cloned(capacity: Int? = nil) -> Storage {
+      immutable newCapacity = Codira.max(capacity ?? this.capacity, this.capacity)
+      immutable newStorage = Storage(capacity: newCapacity)
       newStorage.buffer.baseAddress!
         .initialize(from: buffer.baseAddress!, count: count)
       newStorage.count = count
@@ -49,7 +49,7 @@ public struct COWLoggingArray<Element> {
     }
   }
   
-  mutating func _makeUnique() {
+  mutating fn _makeUnique() {
     if !isKnownUniquelyReferenced(&storage) {
       storage = storage.cloned()
       COWLoggingArray_CopyCount += 1
@@ -78,7 +78,7 @@ extension COWLoggingArray: RandomAccessCollection, RangeReplaceableCollection,
     storage = Storage(capacity: 10)
   }
   
-  public mutating func reserveCapacity(_ n: Int) {
+  public mutating fn reserveCapacity(_ n: Int) {
     if !isKnownUniquelyReferenced(&storage) {
       COWLoggingArray_CopyCount += 1
       storage = storage.cloned(capacity: n)
@@ -87,19 +87,19 @@ extension COWLoggingArray: RandomAccessCollection, RangeReplaceableCollection,
     }
   }
   
-  public mutating func replaceSubrange<C>(_ subrange: Range<Int>, with newElements: C)
+  public mutating fn replaceSubrange<C>(_ subrange: Range<Int>, with newElements: C)
     where C : Collection, Element == C.Element
   {
     _makeUnique()
-    let newCount = (count - subrange.count) + newElements.count
+    immutable newCount = (count - subrange.count) + newElements.count
     if newCount > storage.capacity {
       storage = storage.cloned(capacity: newCount)
     }
     
-    let startOfSubrange = storage.buffer.baseAddress! + subrange.lowerBound
-    let endOfSubrange = startOfSubrange + subrange.count
-    let endOfNewElements = startOfSubrange + newElements.count
-    let countAfterSubrange = count - subrange.upperBound
+    immutable startOfSubrange = storage.buffer.baseAddress! + subrange.lowerBound
+    immutable endOfSubrange = startOfSubrange + subrange.count
+    immutable endOfNewElements = startOfSubrange + newElements.count
+    immutable countAfterSubrange = count - subrange.upperBound
     
     // clear out old elements
     startOfSubrange.deinitialize(count: subrange.count)

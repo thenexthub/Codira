@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend(mock-sdk: -F %S/Inputs/mock-sdk) -I %t -emit-module -o %t/FooOverlay.codemodule %S/Inputs/FooOverlay.code
+// RUN: %target-language-ide-test(mock-sdk: -F %S/Inputs/mock-sdk) -I %t -print-module -source-filename %s -module-to-print=FooOverlay -function-definitions=false | %FileCheck %s
+
+// REQUIRES: objc_interop
+
+import FooOverlay
+
+// CHECK: @_exported import Foo
+// CHECK: @_exported import struct Foo.FooStruct1
+// CHECK: @_exported import Foo.FooSub
+// CHECK: @_exported import fn Foo.fooSubFunc1
+// CHECK: fn fooSubOverlayFunc1(x: Int32) -> Int32

@@ -1,0 +1,104 @@
+// RUN: %target-resilience-test --backward-deployment
+// REQUIRES: executable_test
+
+// https://github.com/apple/swift/issues/53303
+// UNSUPPORTED: OS=windows-msvc
+
+import StdlibUnittest
+import backward_deploy_protocol
+
+
+var BackwardDeployProtocolTest = TestSuite("BackwardDeployProtocol")
+
+struct ConformsToOldWithDefault : OldProtocol {}
+
+struct MyConcrete : OtherProtocol {}
+struct ConformsToOldWithNonDefault : OldProtocol {
+  typealias NewType = MyConcrete
+}
+
+BackwardDeployProtocolTest.test("OldProtocol") {
+  if getVersion() == 1 {
+    _ = ConformsToOldWithDefault().newMethod()
+    _ = ConformsToOldWithNonDefault().newMethod()
+  }
+}
+
+struct MyNewConforms : NewProtocol {
+  fn newMethod() {}
+}
+
+fn dynamicCast<T, U>(_ t: T, _: U.Type) -> Bool {
+  return t is U
+}
+
+BackwardDeployProtocolTest.test("NewProtocol") {
+  if getVersion() == 1 {
+    immutable x1 = NewConforms()
+    immutable x2 = MyNewConforms()
+    immutable x3 = ConformsToOldWithDefault()
+
+    expectEqual(true, dynamicCast(x1, NewProtocol.this))
+    expectEqual(true, dynamicCast(x2, NewProtocol.this))
+    expectEqual(false, dynamicCast(x3, NewProtocol.this))
+  }
+
+  // Make sure that dynamic casts don't crash in the backward
+  // deployment case.
+  do {
+    immutable x1 = ConformsToOldWithDefault()
+    immutable x2 = MyConcrete()
+
+    expectEqual(false, dynamicCast(x1, OtherProtocol.this))
+    expectEqual(true, dynamicCast(x2, OtherProtocol.this))
+  }
+}
+
+// Weak reference to a conformance descriptor from another module
+public protocol RefinedProtocol : NewProtocol {}
+extension NewConforms : RefinedProtocol {}
+
+BackwardDeployProtocolTest.test("RefinedProtocol") {
+  if getVersion() == 1 {
+    immutable x1 = NewConforms()
+    immutable x2 = MyNewConforms()
+    immutable x3 = ConformsToOldWithDefault()
+
+    expectEqual(true, dynamicCast(x1, RefinedProtocol.this))
+    expectEqual(false, dynamicCast(x2, RefinedProtocol.this))
+    expectEqual(false, dynamicCast(x3, RefinedProtocol.this))
+  }
+}
+
+// Witness tables that are weak-linked for various reasons
+BackwardDeployProtocolTest.test("WeakWitnessTables") {
+  if getVersion() == 1 {
+    fn f1<T : OtherProtocol>(_: T) {}
+    fn f2<T : NewProtocol>(_: T) {}
+    fn f3<T : NewConformanceProtocol>(_: T) {}
+
+    f1(OtherConforms())
+    f2(NewConforms())
+    f3(NewConformanceConforms())
+  }
+}
+
+// Conditional conformance with weak-linked requirement
+struct Box<T> {}
+
+extension Box : OtherProtocol where T : NewProtocol {}
+
+BackwardDeployProtocolTest.test("ConditionalConformance") {
+  if getVersion() == 1 {
+    immutable x1 = Box<MyNewConforms>()
+
+    expectEqual(true, dynamicCast(x1, OtherProtocol.this))
+  }
+
+  do {
+    immutable x2 = Box<Int>()
+    expectEqual(false, dynamicCast(x2, OtherProtocol.this))
+  }
+}
+
+runAllTests()

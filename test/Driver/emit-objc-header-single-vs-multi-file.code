@@ -1,0 +1,21 @@
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t %clang-importer-sdk-path/language-modules/Darwin.code
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-module -o %t %clang-importer-sdk-path/language-modules/Foundation.code
+// FIXME: END -enable-source-import hackaround
+
+// RUN: %target-languagec_driver %clang-importer-sdk-nosource -emit-module -o %t.1.codemodule -emit-objc-header -emit-objc-header-path %t.1.h -module-name ThisModule %s %S/Inputs/main.code %S/Inputs/lib.code -I %t
+// RUN: %target-languagec_driver %clang-importer-sdk-nosource -emit-module -o %t.2.codemodule -emit-objc-header -emit-objc-header-path %t.2.h -module-name ThisModule %s %S/Inputs/main.code %S/Inputs/lib.code -whole-module-optimization -I %t
+// RUN: diff %t.1.h %t.2.h
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+public class A: NSObject {
+  fn foo() {}
+  @objc fn bar(x: Int, baz y: Int) -> Int { return 1 }
+}
+public class B: A {
+  fn doSomething() {}
+}

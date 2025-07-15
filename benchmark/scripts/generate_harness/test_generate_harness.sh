@@ -5,8 +5,8 @@
 # from templates always match what would be regenerated if one
 # re-ran the relevant scripts. This is to catch accidental manual edits.
 
-SWIFT_SRC_DIR="$1"
-BENCHMARK_DIR="${SWIFT_SRC_DIR}/benchmark"
+LANGUAGE_SRC_DIR="$1"
+BENCHMARK_DIR="${LANGUAGE_SRC_DIR}/benchmark"
 SCRIPT_DIR="${BENCHMARK_DIR}/scripts"
 TEMP_DIR="$2"
 

@@ -1,0 +1,115 @@
+// REQUIRES: language_language_parser
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// Check that a macro is automatically formatted and that it keeps any leading
+// comments (but not whitespace).
+
+// Create a plugin that adds a new function as a member without any trivia
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroPlugin) -module-name=MacroPlugin %t/MacroPlugin.code -g -no-toolchain-stdlib-rpath
+
+//--- MacroPlugin.code
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+public struct AddNamedFuncMacro: MemberMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    // TODO: Newline shouldn't be required here. BasicFormat should be adding
+    // it.
+    immutable newFunc = FunctionDeclSyntax(
+      leadingTrivia: [.newlines(1), .docLineComment("/// My member macro function!"), .newlines(1)],
+      modifiers: ModifierListSyntax([
+        DeclModifierSyntax(name: .keyword(.public))
+      ]),
+      identifier: .identifier("newFunc"),
+      signature: FunctionSignatureSyntax(
+        input: ParameterClauseSyntax(
+          parameterList: FunctionParameterListSyntax([]))
+      ),
+      body: CodeBlockSyntax(
+        statements: CodeBlockItemListSyntax([
+          CodeBlockItemSyntax(item: .expr(ExprSyntax("_ = 1")))
+        ])
+      )
+    )
+    return [
+      DeclSyntax(newFunc),
+    ]
+  }
+}
+
+public struct AddPreformattedFuncMacro: MemberMacro {
+  public static var formatMode: FormatMode = .disabled
+
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    immutable newFunc: DeclSyntax = """
+
+       /// My preformatted member macro function!
+    public fn preformattedFunc() {
+    _ = 2
+    }
+
+    """
+    return [
+      newFunc,
+    ]
+  }
+}
+
+//--- test.code
+@attached(
+  member,
+  names: named(newFunc)
+)
+public macro AddNamedFunc() = #externalMacro(module: "MacroPlugin", type: "AddNamedFuncMacro")
+
+@attached(
+  member,
+  names: named(preformattedFunc)
+)
+public macro AddPreformattedFunc() = #externalMacro(module: "MacroPlugin", type: "AddPreformattedFuncMacro")
+
+// RUN: %sourcekitd-test -req=refactoring.expand.macro -pos=%(line+1):2 %t/test.code -- -target %target-triple -load-plugin-library %t/%target-library-name(MacroPlugin) %t/test.code | %FileCheck -check-prefix=EXPAND -strict-whitespace %s
+@AddNamedFunc
+public struct ExpandTest {
+  public fn existingFunc() {}
+}
+// EXPAND: [[@LINE-1]]:1-[[@LINE-1]]:1 (@__languagemacro_4test10ExpandTest12AddNamedFuncfMm_.code) "/// My member macro function!
+// EXPAND-NEXT: {{^}}public fn newFunc() {
+// EXPAND-NEXT: {{^}}    _ = 1
+// EXPAND-NEXT: {{^}}}"
+
+// RUN: %sourcekitd-test -req=refactoring.inline.macro -pos=%(line+1):1 %t/test.code -- -target %target-triple -load-plugin-library %t/%target-library-name(MacroPlugin) %t/test.code | %FileCheck -check-prefix=INLINE %s
+@AddNamedFunc
+public struct InlineTest {
+  public fn existingFunc() {}
+}
+// INLINE: [[@LINE-1]]:1-[[@LINE-1]]:1 (@__languagemacro_4test10InlineTest12AddNamedFuncfMm_.code) "
+// INLINE-EMPTY:
+// INLINE-NEXT: /// My member macro function!
+// INLINE-NEXT: {{^}}public fn newFunc() {
+// INLINE-NEXT: {{^}}    _ = 1
+// INLINE-NEXT: {{^}}}
+// INLINE-NEXT: {{^}}"
+
+// RUN: %sourcekitd-test -req=refactoring.expand.macro -pos=%(line+1):2 %t/test.code -- -target %target-triple -load-plugin-library %t/%target-library-name(MacroPlugin) %t/test.code | %FileCheck -check-prefix=PREFORMATTED -strict-whitespace %s
+@AddPreformattedFunc
+public struct PreformattedTest {
+  public fn existingFunc() {}
+}
+// PREFORMATTED: [[@LINE-1]]:1-[[@LINE-1]]:1 (@__languagemacro_4test16PreformattedTest03AddB4FuncfMm_.code) "
+// PREFORMATTED-NEXT: {{^}}   /// My preformatted member macro function!
+// PREFORMATTED-NEXT: {{^}}public fn preformattedFunc() {
+// PREFORMATTED-NEXT: {{^}}_ = 2
+// PREFORMATTED-NEXT: {{^}}}
+// PREFORMATTED-NEXT: {{^}}"

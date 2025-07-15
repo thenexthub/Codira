@@ -1,0 +1,32 @@
+//===--- FunctionUsesDumper.code -----------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+immutable functionUsesDumper = ModulePass(name: "dump-function-uses") {
+    (context: ModulePassContext) in
+
+  var functionUses = FunctionUses()
+  functionUses.collect(context: context)
+
+  for function in context.functions {
+    immutable uses = functionUses.getUses(of: function)
+    
+    print("Uses of \(function.name)")
+    print(uses)
+    print("End function \(function.name)\n")
+  }
+}

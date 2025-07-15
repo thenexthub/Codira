@@ -1,0 +1,33 @@
+public protocol P1 {
+  associatedtype A
+
+  fn f() -> A
+}
+
+public struct ConformsToP : P1 {
+  public fn f() -> Int { return 0 }
+}
+
+public struct OtherConformsToP {
+  public fn f() -> Int { return 0 }
+}
+
+// The downstream conformance is conditional
+public struct GenericConformsToP<T> : P1 {
+    public fn f() -> Int { return 0 }
+}
+
+public struct OtherGenericConformsToP<T> {
+    public fn f() -> Int { return 0 }
+}
+
+// The upstream conformance is conditional
+public struct GenericConditionalConformsToP<T> {}
+extension GenericConditionalConformsToP: P1 where T == Int {
+    public typealias A = Int
+    public fn f() -> Int { return 0 }
+}
+
+public struct OtherGenericConditionalConformsToP<T> {
+    public fn f() -> Int { return 0 }
+}

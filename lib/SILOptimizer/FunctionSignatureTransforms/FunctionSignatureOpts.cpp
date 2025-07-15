@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -49,35 +50,35 @@
 #include "language/SILOptimizer/Utils/SILInliner.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
-STATISTIC(NumFunctionSignaturesOptimized, "Total func sig optimized");
+STATISTIC(NumFunctionSignaturesOptimized, "Total fn sig optimized");
 STATISTIC(NumDeadArgsEliminated, "Total dead args eliminated");
 STATISTIC(NumOwnedConvertedToGuaranteed, "Total owned args -> guaranteed args");
 STATISTIC(NumOwnedConvertedToNotOwnedResult, "Total owned result -> not owned result");
 STATISTIC(NumSROAArguments, "Total SROA arguments optimized");
 
-using SILParameterInfoList = llvm::SmallVector<SILParameterInfo, 8>;
-using ArgumentIndexMap = llvm::SmallDenseMap<int, int>;
+using SILParameterInfoList = toolchain::SmallVector<SILParameterInfo, 8>;
+using ArgumentIndexMap = toolchain::SmallDenseMap<int, int>;
 
 //===----------------------------------------------------------------------===//
 //                           Optimization Heuristic
 //===----------------------------------------------------------------------===//
 
 /// Set to true to enable the support for partial specialization.
-static llvm::cl::opt<bool>
-    FSOEnableGenerics("sil-fso-enable-generics", llvm::cl::init(true),
-                      llvm::cl::desc("Support function signature optimization "
+static toolchain::cl::opt<bool>
+    FSOEnableGenerics("sil-fso-enable-generics", toolchain::cl::init(true),
+                      toolchain::cl::desc("Support function signature optimization "
                                      "of generic functions"));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
     FSOOptimizeIfNotCalled("sil-fso-optimize-if-not-called",
-                           llvm::cl::init(false),
-                           llvm::cl::desc("Optimize even if a function isn't "
+                           toolchain::cl::init(false),
+                           toolchain::cl::desc("Optimize even if a function isn't "
                                           "called. For testing only!"));
 
 static bool isSpecializableRepresentation(SILFunctionTypeRepresentation Rep,
@@ -101,7 +102,7 @@ static bool isSpecializableRepresentation(SILFunctionTypeRepresentation Rep,
     return false;
   }
 
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 /// Returns true if F is a function which the pass knows how to specialize
@@ -165,7 +166,7 @@ static bool canSpecializeFunction(SILFunction *F,
 
 void FunctionSignatureTransformDescriptor::addThunkArgument(
     ArgumentDescriptor &AD, SILBuilder &Builder, SILBasicBlock *BB,
-    llvm::SmallVectorImpl<SILValue> &NewArgs) {
+    toolchain::SmallVectorImpl<SILValue> &NewArgs) {
   // Dead argument.
   if (AD.IsEntirelyDead) {
     return;
@@ -173,7 +174,7 @@ void FunctionSignatureTransformDescriptor::addThunkArgument(
 
   // Explode the argument.
   if (AD.Explode) {
-    llvm::SmallVector<SILValue, 4> LeafValues;
+    toolchain::SmallVector<SILValue, 4> LeafValues;
     AD.ProjTree.createTreeFromValue(Builder, BB->getParent()->getLocation(),
                                     BB->getArgument(AD.Index), LeafValues);
     NewArgs.append(LeafValues.begin(), LeafValues.end());
@@ -357,7 +358,7 @@ FunctionSignatureTransformDescriptor::createOptimizedSILFunctionType() {
   // dead arguments. Doing anything else is unsafe since by definition non-dead
   // arguments will have SSA uses in the function. We would need to be smarter
   // in our moving to handle such cases.
-  llvm::SmallVector<SILParameterInfo, 8> InterfaceParams;
+  toolchain::SmallVector<SILParameterInfo, 8> InterfaceParams;
   for (auto &ArgDesc : ArgumentDescList) {
     computeOptimizedArgInterface(ArgDesc, InterfaceParams);
   }
@@ -365,7 +366,7 @@ FunctionSignatureTransformDescriptor::createOptimizedSILFunctionType() {
   // ResultDescs only covers the direct results; we currently can't ever
   // change an indirect result.  Piece the modified direct result information
   // back into the all-results list.
-  llvm::SmallVector<SILResultInfo, 8> InterfaceResults;
+  toolchain::SmallVector<SILResultInfo, 8> InterfaceResults;
   for (SILResultInfo InterfaceResult : FTy->getResults()) {
     if (InterfaceResult.isFormalDirect()) {
       auto &RV = ResultDescList[0];
@@ -380,7 +381,7 @@ FunctionSignatureTransformDescriptor::createOptimizedSILFunctionType() {
     InterfaceResults.push_back(InterfaceResult);
   }
 
-  llvm::SmallVector<SILYieldInfo, 8> InterfaceYields;
+  toolchain::SmallVector<SILYieldInfo, 8> InterfaceYields;
   for (SILYieldInfo InterfaceYield : FTy->getYields()) {
     // For now, don't touch the yield types.
     InterfaceYields.push_back(InterfaceYield);
@@ -403,16 +404,16 @@ FunctionSignatureTransformDescriptor::createOptimizedSILFunctionType() {
     // The set of used archetypes is complete now.
     if (!UsesGenerics) {
       // None of the generic type parameters are used.
-      LLVM_DEBUG(llvm::dbgs() << "None of generic parameters are used by "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "None of generic parameters are used by "
                               << F->getName() << "\n";
-                 llvm::dbgs() << "Interface params:\n";
+                 toolchain::dbgs() << "Interface params:\n";
                  for (auto Param : InterfaceParams) {
-                   Param.getInterfaceType().dump(llvm::dbgs());
+                   Param.getInterfaceType().dump(toolchain::dbgs());
                  }
 
-                 llvm::dbgs() << "Interface results:\n";
+                 toolchain::dbgs() << "Interface results:\n";
                  for (auto Result : InterfaceResults) {
-                   Result.getInterfaceType().dump(llvm::dbgs());
+                   Result.getInterfaceType().dump(toolchain::dbgs());
                  });
     }
   }
@@ -465,11 +466,11 @@ void FunctionSignatureTransformDescriptor::computeOptimizedArgInterface(
   // Explode the argument or not ?
   if (AD.Explode) {
     ++NumSROAArguments;
-    llvm::SmallVector<const ProjectionTreeNode *, 8> LeafNodes;
+    toolchain::SmallVector<const ProjectionTreeNode *, 8> LeafNodes;
     AD.ProjTree.getLiveLeafNodes(LeafNodes);
     for (auto Node : LeafNodes) {
       SILType Ty = Node->getType();
-      LLVM_DEBUG(llvm::dbgs() << "                " << Ty << "\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "                " << Ty << "\n");
       // If Ty is trivial, just pass it directly.
       if (Ty.isTrivial(*AD.Arg->getFunction())) {
         SILParameterInfo NewInfo(Ty.getASTType(),
@@ -486,7 +487,7 @@ void FunctionSignatureTransformDescriptor::computeOptimizedArgInterface(
         else if (ParameterConvention == ParameterConvention::Indirect_In)
           ParameterConvention = ParameterConvention::Indirect_In_Guaranteed;
         else {
-          llvm_unreachable("Unknown parameter convention transformation");
+          toolchain_unreachable("Unknown parameter convention transformation");
         }
       }
       SILParameterInfo NewInfo(Ty.getASTType(), ParameterConvention);
@@ -506,7 +507,7 @@ void FunctionSignatureTransformDescriptor::computeOptimizedArgInterface(
     else if (ParameterConvention == ParameterConvention::Indirect_In)
       ParameterConvention = ParameterConvention::Indirect_In_Guaranteed;
     else {
-      llvm_unreachable("Unknown parameter convention transformation");
+      toolchain_unreachable("Unknown parameter convention transformation");
     }
 
     SILParameterInfo NewInfo(AD.PInfo.value().getInterfaceType(),
@@ -535,7 +536,7 @@ void FunctionSignatureTransform::createFunctionSignatureOptimizedFunction() {
 
   SILLinkage linkage = getSpecializedLinkage(F, F->getLinkage());
 
-  LLVM_DEBUG(llvm::dbgs() << "  -> create specialized function " << Name
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  -> create specialized function " << Name
                           << "\n");
 
   auto NewFTy = TransformDescriptor.createOptimizedSILFunctionType();
@@ -608,7 +609,7 @@ void FunctionSignatureTransform::createFunctionSignatureOptimizedFunction() {
   FunctionRefInst *FRI = Builder.createFunctionRef(Loc, NewF);
 
   // Create the args for the thunk's apply, ignoring any dead arguments.
-  llvm::SmallVector<SILValue, 8> ThunkArgs;
+  toolchain::SmallVector<SILValue, 8> ThunkArgs;
   for (auto &ArgDesc : TransformDescriptor.ArgumentDescList) {
     TransformDescriptor.addThunkArgument(ArgDesc, Builder, ThunkBody,
                                          ThunkArgs);
@@ -680,7 +681,7 @@ bool FunctionSignatureTransform::run(bool hasCaller) {
   if (!hasCaller && (F->getDynamicallyReplacedFunction() ||
                      F->getReferencedAdHocRequirementWitnessFunction() ||
                      canBeCalledIndirectly(F->getRepresentation()))) {
-    LLVM_DEBUG(llvm::dbgs() << "  function has no caller -> abort\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  function has no caller -> abort\n");
     return false;
   }
 
@@ -690,14 +691,14 @@ bool FunctionSignatureTransform::run(bool hasCaller) {
   //
   // TODO: Add support for this.
   if (F->getLoweredFunctionType()->isPseudogeneric()) {
-    LLVM_DEBUG(llvm::dbgs() << "  function is pseudo-generic -> abort\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  function is pseudo-generic -> abort\n");
     return false;
   }
 
   // Run OwnedToGuaranteed optimization.
   if (OwnedToGuaranteedAnalyze()) {
     Changed = true;
-    LLVM_DEBUG(llvm::dbgs() << "  transform owned-to-guaranteed\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  transform owned-to-guaranteed\n");
     OwnedToGuaranteedTransform();
   }
 
@@ -707,7 +708,7 @@ bool FunctionSignatureTransform::run(bool hasCaller) {
   if ((hasCaller || Changed || hasOnlyDirectInModuleCallers) &&
       DeadArgumentAnalyzeParameters()) {
     Changed = true;
-    LLVM_DEBUG(llvm::dbgs() << "  remove dead arguments\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "  remove dead arguments\n");
     DeadArgumentTransformFunction();
   }
 
@@ -782,7 +783,7 @@ bool FunctionSignatureTransform::removeDeadArgs(int minPartialAppliedArgs) {
     return false;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "  remove dead arguments for partial_apply\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  remove dead arguments for partial_apply\n");
   DeadArgumentTransformFunction();
   createFunctionSignatureOptimizedFunction();
   return true;
@@ -821,7 +822,7 @@ public:
       return;
 
     // This is the function to optimize.
-    LLVM_DEBUG(llvm::dbgs() << "*** FSO on function: " << F->getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** FSO on function: " << F->getName()
                             << " ***\n");
 
     // Check the signature of F to make sure that it is a function that we
@@ -830,7 +831,7 @@ public:
     // applies.
     if (!OptForPartialApply &&
         !canSpecializeFunction(F, nullptr, OptForPartialApply)) {
-      LLVM_DEBUG(llvm::dbgs() << "  cannot specialize function -> abort\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  cannot specialize function -> abort\n");
       return;
     }
 
@@ -841,7 +842,7 @@ public:
     // can specialize. These are conditions independent of the call graph.
     if (OptForPartialApply &&
         !canSpecializeFunction(F, &FuncInfo, OptForPartialApply)) {
-      LLVM_DEBUG(llvm::dbgs() << "  cannot specialize function -> abort\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  cannot specialize function -> abort\n");
       return;
     }
 
@@ -854,7 +855,7 @@ public:
     // discovered during devirtualization. That will cause the original function
     // (now an FSO thunk) to be pushed back on the function pass pipeline.
     if (F->isThunk() == IsSignatureOptimizedThunk) {
-      LLVM_DEBUG(llvm::dbgs() << "  FSO already performed on this thunk\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  FSO already performed on this thunk\n");
       return;
     }
 
@@ -871,16 +872,16 @@ public:
 
     /// Keep a map between the exploded argument index and the original argument
     /// index.
-    llvm::SmallDenseMap<int, int> AIM;
+    toolchain::SmallDenseMap<int, int> AIM;
     int asize = F->begin()->getArguments().size();
     for (unsigned i : range(asize)) {
       AIM[i] = i;
     }
 
     // Allocate the argument and result descriptors.
-    llvm::SpecificBumpPtrAllocator<ProjectionTreeNode> Allocator;
-    llvm::SmallVector<ArgumentDescriptor, 4> ArgumentDescList;
-    llvm::SmallVector<ResultDescriptor, 4> ResultDescList;
+    toolchain::SpecificBumpPtrAllocator<ProjectionTreeNode> Allocator;
+    toolchain::SmallVector<ArgumentDescriptor, 4> ArgumentDescList;
+    toolchain::SmallVector<ResultDescriptor, 4> ResultDescList;
     auto Args = F->begin()->getSILFunctionArguments();
     for (unsigned i : indices(Args)) {
       ArgumentDescList.emplace_back(Args[i], Allocator);
@@ -930,10 +931,10 @@ public:
 
 } // end anonymous namespace
 
-SILTransform *swift::createFunctionSignatureOpts() {
+SILTransform *language::createFunctionSignatureOpts() {
   return new FunctionSignatureOpts(/* OptForPartialApply */ false);
 }
 
-SILTransform *swift::createDeadArgSignatureOpt() {
+SILTransform *language::createDeadArgSignatureOpt() {
   return new FunctionSignatureOpts(/* OptForPartialApply */ true);
 }

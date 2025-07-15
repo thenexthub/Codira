@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/main~partial.codemodule -primary-file %s %S/Inputs/other.code -module-name main
+// RUN: %target-language-frontend -emit-module -o %t/other~partial.codemodule %s -primary-file %S/Inputs/other.code -module-name main
+// RUN: %target-language-frontend -merge-modules -emit-module -o /dev/null -emit-module-interface-path - %t/main~partial.codemodule -module-name main %t/other~partial.codemodule | %FileCheck %s
+
+// CHECK: {{^}}public fn verySimpleFunction(){{$}}
+public fn verySimpleFunction() {}
+
+// CHECK: {{^}}public fn otherFileFunction(){{$}}

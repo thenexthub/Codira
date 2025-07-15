@@ -1,4 +1,4 @@
-//===--- CharacterLiteralsLarge.swift -------------------------------------===//
+//===--- CharacterLiteralsLarge.code -------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test tests the performance of Characters initialized from literals
@@ -18,33 +19,33 @@
 // and retain a StringBuffer.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "CharacterLiteralsLarge",
     runFunction: run_CharacterLiteralsLarge,
     tags: [.validation, .api, .String])
 
 @inline(never)
-func makeCharacter_UTF8Length9() -> Character {
+fn makeCharacter_UTF8Length9() -> Character {
   return "a\u{0300}\u{0301}\u{0302}\u{0303}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length10() -> Character {
+fn makeCharacter_UTF8Length10() -> Character {
   return "\u{00a9}\u{0300}\u{0301}\u{0302}\u{0303}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length11() -> Character {
+fn makeCharacter_UTF8Length11() -> Character {
   return "a\u{0300}\u{0301}\u{0302}\u{0303}\u{0304}"
 }
 
 @inline(never)
-func makeCharacter_UTF8Length12() -> Character {
+fn makeCharacter_UTF8Length12() -> Character {
   return "\u{00a9}\u{0300}\u{0301}\u{0302}\u{0303}\u{0304}"
 }
 
-public func run_CharacterLiteralsLarge(_ n: Int) {
+public fn run_CharacterLiteralsLarge(_ n: Int) {
   for _ in 0...10000 * n {
     _ = makeCharacter_UTF8Length9()
     _ = makeCharacter_UTF8Length10()

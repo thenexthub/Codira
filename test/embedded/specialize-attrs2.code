@@ -1,0 +1,22 @@
+// RUN: %target-run-simple-language(-parse-as-library -Onone -enable-experimental-feature Embedded -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop -Xlinker -dead_strip -Xlinker %language_obj_root/lib/language/embedded/%target-cpu-apple-macos/liblanguageUnicodeDataTables.a) | %FileCheck %s
+// RUN: %target-run-simple-language(-parse-as-library -O     -enable-experimental-feature Embedded -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop -Xlinker -dead_strip -Xlinker %language_obj_root/lib/language/embedded/%target-cpu-apple-macos/liblanguageUnicodeDataTables.a) | %FileCheck %s
+// RUN: %target-run-simple-language(-parse-as-library -Osize -enable-experimental-feature Embedded -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop -Xlinker -dead_strip -Xlinker %language_obj_root/lib/language/embedded/%target-cpu-apple-macos/liblanguageUnicodeDataTables.a) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+@main
+struct Main {
+  static fn main() {
+    immutable chars: [Character] = ["a", "b", "c"]
+    immutable s = Substring.init(chars)
+    print(s)
+    print("OK!")
+  }
+}
+
+// CHECK: abc
+// CHECK: OK!

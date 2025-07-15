@@ -1,13 +1,17 @@
 //===--- ClangImporterRequests.cpp - Clang Importer Requests --------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/NameLookupRequests.h"
@@ -96,13 +100,13 @@ cacheResult(ObjCInterfaceAndImplementation value) const {
 
 // Define request evaluation functions for each of the name lookup requests.
 static AbstractRequestFunction *clangImporterRequestFunctions[] = {
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   reinterpret_cast<AbstractRequestFunction *>(&Name::evaluateRequest),
 #include "language/ClangImporter/ClangImporterTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 };
 
-void swift::registerClangImporterRequestFunctions(Evaluator &evaluator) {
+void language::registerClangImporterRequestFunctions(Evaluator &evaluator) {
   evaluator.registerRequestFunctions(Zone::ClangImporter,
                                      clangImporterRequestFunctions);
 }

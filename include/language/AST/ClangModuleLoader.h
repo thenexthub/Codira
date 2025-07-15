@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_CLANG_MODULE_LOADER_H
-#define SWIFT_AST_CLANG_MODULE_LOADER_H
+#ifndef LANGUAGE_AST_CLANG_MODULE_LOADER_H
+#define LANGUAGE_AST_CLANG_MODULE_LOADER_H
 
 #include "language/AST/ModuleLoader.h"
 #include "language/AST/SubstitutionMap.h"
@@ -43,7 +44,7 @@ class FuncDecl;
 class VarDecl;
 class DeclContext;
 class EffectiveClangContext;
-class SwiftLookupTable;
+class CodiraLookupTable;
 class ValueDecl;
 class VisibleDeclConsumer;
 
@@ -105,9 +106,9 @@ public:
 
   explicit operator bool() const { return !Union.empty(); }
 
-  bool isSwiftDecl() const { return Union.isa<const Decl*>(); }
-  const Decl *getSwiftDecl() const {
-    assert(isSwiftDecl());
+  bool isCodiraDecl() const { return Union.isa<const Decl*>(); }
+  const Decl *getCodiraDecl() const {
+    assert(isCodiraDecl());
     return Union.get<const Decl*>();
   }
 
@@ -117,7 +118,7 @@ public:
     return Union.get<ExternalPath>();
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &os) const;
 };
 
@@ -132,10 +133,10 @@ public:
   /// This module loader's Clang instance may be configured with a different
   /// (higher) OS version than the compilation target itself in order to be able
   /// to load pre-compiled Clang modules that are aligned with the broader SDK,
-  /// and match the SDK deployment target against which Swift modules are also
+  /// and match the SDK deployment target against which Codira modules are also
   /// built.
   ///
-  /// In this case, we must use the Swift compiler's OS version triple when
+  /// In this case, we must use the Codira compiler's OS version triple when
   /// performing codegen, and the importer's Clang instance OS version triple
   /// during module loading. `getModuleAvailabilityTarget` is for module-loading
   /// clients only, and uses the latter.
@@ -149,13 +150,13 @@ public:
   virtual clang::Sema &getClangSema() const = 0;
   virtual const clang::CompilerInstance &getClangInstance() const = 0;
   virtual void printStatistics() const = 0;
-  virtual void dumpSwiftLookupTables() const = 0;
+  virtual void dumpCodiraLookupTables() const = 0;
 
   /// Returns the module that contains imports and declarations from all loaded
   /// header files.
   virtual ModuleDecl *getImportedHeaderModule() const = 0;
 
-  /// Retrieves the Swift wrapper for the given Clang module, creating
+  /// Retrieves the Codira wrapper for the given Clang module, creating
   /// it if necessary.
   virtual ModuleDecl *
   getWrapperForModule(const clang::Module *mod,
@@ -189,7 +190,7 @@ public:
   /// contexts where access is not a problem.
   virtual void
   lookupTypeDecl(StringRef clangName, ClangTypeKind kind,
-                 llvm::function_ref<void(TypeDecl *)> receiver) = 0;
+                 toolchain::function_ref<void(TypeDecl *)> receiver) = 0;
 
   /// Look up type a declaration synthesized by the Clang importer itself, using
   /// a "related entity kind" to determine which type it should be. For example,
@@ -202,7 +203,7 @@ public:
   virtual void
   lookupRelatedEntity(StringRef clangName, ClangTypeKind kind,
                       StringRef relatedEntityKind,
-                      llvm::function_ref<void(TypeDecl *)> receiver) = 0;
+                      toolchain::function_ref<void(TypeDecl *)> receiver) = 0;
 
   /// Imports a clang decl directly, rather than looking up its name.
   virtual Decl *importDeclDirectly(const clang::NamedDecl *decl) = 0;
@@ -218,6 +219,9 @@ public:
   virtual ValueDecl *importBaseMemberDecl(ValueDecl *decl,
                                           DeclContext *newContext,
                                           ClangInheritanceInfo inheritance) = 0;
+
+  /// Returnes the original method if \param decl is a clone from a base class
+  virtual ValueDecl *getOriginalForClonedMember(const ValueDecl *decl) = 0;
 
   /// Emits diagnostics for any declarations named name
   /// whose direct declaration context is a TU.
@@ -250,7 +254,7 @@ public:
 
   /// Print the Clang type.
   virtual void printClangType(const clang::Type *type,
-                              llvm::raw_ostream &os) const = 0;
+                              toolchain::raw_ostream &os) const = 0;
 
   /// Try to find a stable serialization path for the given declaration,
   /// if there is one.
@@ -289,35 +293,38 @@ public:
 
   virtual clang::FunctionDecl *
   instantiateCXXFunctionTemplate(ASTContext &ctx,
-                                 clang::FunctionTemplateDecl *func,
+                                 clang::FunctionTemplateDecl *fn,
                                  SubstitutionMap subst) = 0;
 
   virtual bool isCXXMethodMutating(const clang::CXXMethodDecl *method) = 0;
 
-  virtual bool isUnsafeCXXMethod(const FuncDecl *func) = 0;
+  virtual bool isUnsafeCXXMethod(const FuncDecl *fn) = 0;
 
   virtual FuncDecl *getDefaultArgGenerator(const clang::ParmVarDecl *param) = 0;
+
+  virtual FuncDecl *
+  getAvailabilityDomainPredicate(const clang::VarDecl *var) = 0;
 
   virtual std::optional<Type>
   importFunctionReturnType(const clang::FunctionDecl *clangDecl,
                            DeclContext *dc) = 0;
 
   virtual Type importVarDeclType(const clang::VarDecl *clangDecl,
-                                 VarDecl *swiftDecl,
+                                 VarDecl *languageDecl,
                                  DeclContext *dc) = 0;
 
   /// Find the lookup table that corresponds to the given Clang module.
   ///
   /// \param clangModule The module, or null to indicate that we're talking
   /// about the directly-parsed headers.
-  virtual SwiftLookupTable *
+  virtual CodiraLookupTable *
   findLookupTable(const clang::Module *clangModule) = 0;
 
   virtual DeclName
   importName(const clang::NamedDecl *D,
              clang::DeclarationName givenName = clang::DeclarationName()) = 0;
 
-  /// Determine the effective Clang context for the given Swift nominal type.
+  /// Determine the effective Clang context for the given Codira nominal type.
   virtual EffectiveClangContext getEffectiveClangContext(
       const NominalTypeDecl *nominal) = 0;
 
@@ -340,4 +347,4 @@ struct TemplateInstantiationError {
 
 } // namespace language
 
-#endif // LLVM_SWIFT_AST_CLANG_MODULE_LOADER_H
+#endif // TOOLCHAIN_LANGUAGE_AST_CLANG_MODULE_LOADER_H

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines FixedTypeInfo, which supplements the TypeInfo
@@ -19,15 +20,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_FIXEDTYPEINFO_H
-#define SWIFT_IRGEN_FIXEDTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_FIXEDTYPEINFO_H
+#define LANGUAGE_IRGEN_FIXEDTYPEINFO_H
 
 #include "Address.h"
 #include "TypeInfo.h"
 #include "language/Basic/ClusteredBitVector.h"
 #include "language/SIL/SILType.h"
 
-namespace llvm {
+namespace toolchain {
   class ConstantInt;
 }
 
@@ -43,7 +44,7 @@ private:
   SpareBitVector SpareBits;
   
 protected:
-  FixedTypeInfo(llvm::Type *type, Size size,
+  FixedTypeInfo(toolchain::Type *type, Size size,
                 const SpareBitVector &spareBits,
                 Alignment align, IsTriviallyDestroyable_t pod,
                 IsBitwiseTakable_t bt,
@@ -59,7 +60,7 @@ protected:
     assert(Bits.FixedTypeInfo.Size == size.getValue() && "truncation");
   }
 
-  FixedTypeInfo(llvm::Type *type, Size size,
+  FixedTypeInfo(toolchain::Type *type, Size size,
                 SpareBitVector &&spareBits,
                 Alignment align, IsTriviallyDestroyable_t pod,
                 IsBitwiseTakable_t bt,
@@ -85,7 +86,7 @@ public:
   }
 
   StackAddress allocateStack(IRGenFunction &IGF, SILType T,
-                             const llvm::Twine &name) const override;
+                             const toolchain::Twine &name) const override;
   void deallocateStack(IRGenFunction &IGF, StackAddress addr, SILType T) const override;
   void destroyStack(IRGenFunction &IGF, StackAddress addr, SILType T,
                     bool isOutlined) const override;
@@ -96,17 +97,17 @@ public:
                           SILType T, bool isOutlined,
                           bool zeroizeIfSensitive) const override;
 
-  llvm::Value *getSize(IRGenFunction &IGF, SILType T) const override;
-  llvm::Value *getAlignmentMask(IRGenFunction &IGF, SILType T) const override;
-  llvm::Value *getStride(IRGenFunction &IGF, SILType T) const override;
-  llvm::Value *getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const override;
-  llvm::Value *getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const override;
-  llvm::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
+  toolchain::Value *getSize(IRGenFunction &IGF, SILType T) const override;
+  toolchain::Value *getAlignmentMask(IRGenFunction &IGF, SILType T) const override;
+  toolchain::Value *getStride(IRGenFunction &IGF, SILType T) const override;
+  toolchain::Value *getIsTriviallyDestroyable(IRGenFunction &IGF, SILType T) const override;
+  toolchain::Value *getIsBitwiseTakable(IRGenFunction &IGF, SILType T) const override;
+  toolchain::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
                                          SILType T) const override;
 
-  llvm::Constant *getStaticSize(IRGenModule &IGM) const override;
-  llvm::Constant *getStaticAlignmentMask(IRGenModule &IGM) const override;
-  llvm::Constant *getStaticStride(IRGenModule &IGM) const override;
+  toolchain::Constant *getStaticSize(IRGenModule &IGM) const override;
+  toolchain::Constant *getStaticAlignmentMask(IRGenModule &IGM) const override;
+  toolchain::Constant *getStaticStride(IRGenModule &IGM) const override;
 
   void completeFixed(Size size, Alignment alignment) {
     Bits.FixedTypeInfo.Size = size.getValue();
@@ -176,7 +177,7 @@ public:
   
   /// Map an extra inhabitant representation in memory to a unique 31-bit
   /// identifier, and map a valid representation of the type to -1.
-  virtual llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
+  virtual toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
                                                Address src, SILType T,
                                                bool isOutlined) const {
     return getSpareBitExtraInhabitantIndex(IGF, src);
@@ -184,13 +185,13 @@ public:
   
   /// Map an extra inhabitant representation derived from spare bits to an
   /// index.
-  llvm::Value *getSpareBitExtraInhabitantIndex(IRGenFunction &IGF,
+  toolchain::Value *getSpareBitExtraInhabitantIndex(IRGenFunction &IGF,
                                                Address src) const;
   
   /// Store the extra inhabitant representation indexed by a 31-bit identifier
   /// to memory.
   virtual void storeExtraInhabitant(IRGenFunction &IGF,
-                                    llvm::Value *index,
+                                    toolchain::Value *index,
                                     Address dest, SILType T,
                                     bool isOutlined) const {
     storeSpareBitExtraInhabitant(IGF, index, dest);
@@ -198,7 +199,7 @@ public:
   
   /// Store the indexed spare-bit-derived extra inhabitant to memory.
   void storeSpareBitExtraInhabitant(IRGenFunction &IGF,
-                                    llvm::Value *index,
+                                    toolchain::Value *index,
                                     Address dest) const;
   
   /// Get the spare bit mask for the type.
@@ -234,51 +235,51 @@ public:
     // metadata in order to perform value operations.
   }
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address enumAddr,
                                        SILType T,
                                        bool isOutlined) const override;
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *whichCase,
-                                 llvm::Value *numEmptyCases, Address enumAddr,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *whichCase,
+                                 toolchain::Value *numEmptyCases, Address enumAddr,
                                  SILType T, bool isOutlined) const override;
 
   static bool classof(const FixedTypeInfo *type) { return true; }
   static bool classof(const TypeInfo *type) { return type->isFixedSize(); }
 };
 
-llvm::Value *getFixedTypeEnumTagSinglePayload(
-    IRGenFunction &IGF, llvm::Value *numEmptyCases, Address enumAddr,
-    llvm::Value *size, Size fixedSize, unsigned fixedExtraInhabitantCount,
-    llvm::function_ref<llvm::Value *(Address)> getExtraInhabitantIndex,
+toolchain::Value *getFixedTypeEnumTagSinglePayload(
+    IRGenFunction &IGF, toolchain::Value *numEmptyCases, Address enumAddr,
+    toolchain::Value *size, Size fixedSize, unsigned fixedExtraInhabitantCount,
+    toolchain::function_ref<toolchain::Value *(Address)> getExtraInhabitantIndex,
     bool isOutlined);
 
-llvm::Value *getFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
+toolchain::Value *getFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
                                               const FixedTypeInfo &fixedTI,
-                                              llvm::Value *numEmptyCases,
+                                              toolchain::Value *numEmptyCases,
                                               Address enumAddr,
                                               SILType T, bool isOutlined);
 void storeFixedTypeEnumTagSinglePayload(
-    IRGenFunction &IGF, llvm::Value *whichCase, llvm::Value *numEmptyCases,
-    Address enumAddr, llvm::Value *size, Size fixedSize,
+    IRGenFunction &IGF, toolchain::Value *whichCase, toolchain::Value *numEmptyCases,
+    Address enumAddr, toolchain::Value *size, Size fixedSize,
     unsigned fixedExtraInhabitantCount,
-    llvm::function_ref<void(llvm::Value *, Address)> storeExtraInhabitant,
+    toolchain::function_ref<void(toolchain::Value *, Address)> storeExtraInhabitant,
     bool isOutlined);
 
-llvm::Value *emitLoad1to4Bytes(IRGenFunction &IGF, Address from,
-                               llvm::Value *size);
-void emitStore1to4Bytes(IRGenFunction &IGF, Address to, llvm::Value *val,
-                        llvm::Value *size);
+toolchain::Value *emitLoad1to4Bytes(IRGenFunction &IGF, Address from,
+                               toolchain::Value *size);
+void emitStore1to4Bytes(IRGenFunction &IGF, Address to, toolchain::Value *val,
+                        toolchain::Value *size);
 
-llvm::Value *emitGetTag(IRGenFunction &IGF, Address from, llvm::Value *size);
-void emitSetTag(IRGenFunction &IGF, Address to, llvm::Value *val,
-                llvm::Value *size);
+toolchain::Value *emitGetTag(IRGenFunction &IGF, Address from, toolchain::Value *size);
+void emitSetTag(IRGenFunction &IGF, Address to, toolchain::Value *val,
+                toolchain::Value *size);
 
 void storeFixedTypeEnumTagSinglePayload(IRGenFunction &IGF,
                                         const FixedTypeInfo &fixedTI,
-                                        llvm::Value *index,
-                                        llvm::Value *numEmptyCases,
+                                        toolchain::Value *index,
+                                        toolchain::Value *numEmptyCases,
                                         Address enumAddr,
                                         SILType T, bool isOutlined);
 

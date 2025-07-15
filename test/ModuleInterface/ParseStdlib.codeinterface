@@ -1,0 +1,12 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -parse-stdlib
+
+// Note that the "-parse-stdlib" is picked up from the module flags. It should
+// not be written in any of the invocations below.
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -compile-module-from-interface -o %t/ParseStdlib.codemodule %s
+// RUN: %target-language-ide-test -print-module -module-to-print ParseStdlib -I %t -source-filename x -print-interface | %FileCheck %s
+
+// CHECK: fn test(_: Builtin.Int42)
+public fn test(_: Builtin.Int42) {}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the \c SolverStep class and its related types,
@@ -18,22 +19,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_CSSTEP_H
-#define SWIFT_SEMA_CSSTEP_H
+#ifndef LANGUAGE_SEMA_CSSTEP_H
+#define LANGUAGE_SEMA_CSSTEP_H
 
 #include "language/AST/Types.h"
 #include "language/Sema/Constraint.h"
 #include "language/Sema/ConstraintGraph.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <memory>
 #include <optional>
 
-using namespace llvm;
+using namespace toolchain;
 
 namespace language {
 namespace constraints {
@@ -146,7 +147,7 @@ public:
   ///          this step solved or failed.
   virtual StepResult resume(bool prevFailed) = 0;
 
-  virtual void print(llvm::raw_ostream &Out) = 0;
+  virtual void print(toolchain::raw_ostream &Out) = 0;
 
 protected:
   /// Transition this step into one of the available states.
@@ -178,7 +179,7 @@ protected:
       break;
 
     case StepState::Done:
-      llvm_unreachable("step is already done.");
+      toolchain_unreachable("step is already done.");
     }
 #endif
 
@@ -220,8 +221,8 @@ protected:
     CS.filterSolutions(solutions, minimize);
   }
 
-  llvm::raw_ostream &getDebugLogger(bool indent = true) const {
-    auto &log = llvm::errs();
+  toolchain::raw_ostream &getDebugLogger(bool indent = true) const {
+    auto &log = toolchain::errs();
     return indent ? log.indent(CS.solverState->getCurrentIndent()) : log;
   }
 };
@@ -250,7 +251,7 @@ public:
   StepResult take(bool prevFailed) override;
   StepResult resume(bool prevFailed) override;
 
-  void print(llvm::raw_ostream &Out) override {
+  void print(toolchain::raw_ostream &Out) override {
     Out << "SplitterStep with #" << Components.size() << " components\n";
   }
 
@@ -388,7 +389,7 @@ public:
 
   StepResult resume(bool prevFailed) override { return finalize(!prevFailed); }
 
-  void print(llvm::raw_ostream &Out) override {
+  void print(toolchain::raw_ostream &Out) override {
     Out << "ComponentStep with at #" << Index << '\n';
   }
 
@@ -481,7 +482,7 @@ public:
 
           if (CS.isDebugMode()) {
             CS.solverState->Trail.dumpActiveScopeChanges(
-              llvm::errs(), ActiveChoice->first.startTrailSteps,
+              toolchain::errs(), ActiveChoice->first.startTrailSteps,
               CS.solverState->getCurrentIndent());
           }
           
@@ -555,7 +556,7 @@ public:
 
   StepResult resume(bool prevFailed) override;
 
-  void print(llvm::raw_ostream &Out) override {
+  void print(toolchain::raw_ostream &Out) override {
     PrintOptions PO;
     PO.PrintTypesForDebugging = true;
     Out << "TypeVariableStep for " << TypeVar->getString(PO) << '\n';
@@ -616,9 +617,17 @@ class DisjunctionStep final : public BindingStep<DisjunctionChoiceProducer> {
   std::optional<std::pair<Constraint *, Score>> LastSolvedChoice;
 
 public:
+  DisjunctionStep(
+      ConstraintSystem &cs,
+      std::pair<Constraint *, toolchain::TinyPtrVector<Constraint *>> &disjunction,
+      SmallVectorImpl<Solution> &solutions)
+      : DisjunctionStep(cs, disjunction.first, disjunction.second, solutions) {}
+
   DisjunctionStep(ConstraintSystem &cs, Constraint *disjunction,
+                  toolchain::TinyPtrVector<Constraint *> &favoredChoices,
                   SmallVectorImpl<Solution> &solutions)
-      : BindingStep(cs, {cs, disjunction}, solutions), Disjunction(disjunction) {
+      : BindingStep(cs, {cs, disjunction, favoredChoices}, solutions),
+        Disjunction(disjunction) {
     assert(Disjunction->getKind() == ConstraintKind::Disjunction);
     pruneOverloadSet(Disjunction);
     ++cs.solverState->NumDisjunctions;
@@ -634,7 +643,7 @@ public:
 
   StepResult resume(bool prevFailed) override;
 
-  void print(llvm::raw_ostream &Out) override {
+  void print(toolchain::raw_ostream &Out) override {
     Out << "DisjunctionStep for ";
     Disjunction->print(Out, &CS.getASTContext().SourceMgr,
                        CS.solverState->getCurrentIndent());
@@ -687,6 +696,9 @@ private:
   // chained together. If so, disable choices which differ
   // from currently selected representative.
   void pruneOverloadSet(Constraint *disjunction) {
+    if (!CS.performanceHacksEnabled())
+      return;
+
     auto *choice = disjunction->getNestedConstraints().front();
     if (choice->getKind() != ConstraintKind::BindOverload)
       return;
@@ -773,9 +785,9 @@ class ConjunctionStep : public BindingStep<ConjunctionElementProducer> {
     /// The conjunction this snapshot belongs to.
     Constraint *Conjunction;
 
-    std::optional<llvm::SaveAndRestore<DeclContext *>> DC = std::nullopt;
+    std::optional<toolchain::SaveAndRestore<DeclContext *>> DC = std::nullopt;
 
-    llvm::SetVector<TypeVariableType *> TypeVars;
+    toolchain::SetVector<TypeVariableType *> TypeVars;
     ConstraintList Constraints;
 
     /// If this conjunction has to be solved in isolation,
@@ -855,11 +867,11 @@ class ConjunctionStep : public BindingStep<ConjunctionElementProducer> {
 
   /// The number of constraint solver scopes already explored
   /// before attempting this conjunction.
-  llvm::SaveAndRestore<unsigned> OuterNumSolverScopes;
+  toolchain::SaveAndRestore<unsigned> OuterNumSolverScopes;
 
   /// The number of trail steps already recorded before attempting
   /// this conjunction.
-  llvm::SaveAndRestore<unsigned> OuterNumTrailSteps;
+  toolchain::SaveAndRestore<unsigned> OuterNumTrailSteps;
 
   /// The number of milliseconds until outer constraint system
   /// is considered "too complex" if timer is enabled.
@@ -930,7 +942,7 @@ public:
 
   StepResult resume(bool prevFailed) override;
 
-  void print(llvm::raw_ostream &Out) override {
+  void print(toolchain::raw_ostream &Out) override {
     Out << "ConjunctionStep for ";
     Conjunction->print(Out, &CS.getASTContext().SourceMgr,
                        CS.solverState->getCurrentIndent());
@@ -993,4 +1005,4 @@ private:
 } // end namespace constraints
 } // end namespace language
 
-#endif // SWIFT_SEMA_CSSTEP_H
+#endif // LANGUAGE_SEMA_CSSTEP_H

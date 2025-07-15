@@ -1,0 +1,109 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature InlineArrayTypeSugar -disable-availability-checking
+
+// REQUIRES: language_feature_InlineArrayTypeSugar
+
+immutable _: [3 of Int]
+immutable _ = [3 of Int](repeating: 0)
+immutable _ = [3 of [3 of Int]](repeating: [1, 2, 3])
+
+immutable _ = [[3 of Int] of Int]() // expected-error {{cannot pass type '[3 of Int]' as a value for generic value 'count'}}
+
+do {
+  immutable _: [3 of
+  // expected-error@-1 {{expected type}}
+}
+
+do {
+  immutable _: [3 of Int // expected-note {{to match this opening '['}}
+} // expected-error {{expected ']' in inline array type}}
+
+// We don't currently allow multi-line.
+fn testMultiline(_ of: Int) {
+  immutable _ = [ // expected-error {{cannot call value of non-function type '[Int]'}}
+    3 // expected-error {{expected ',' separator}}
+    of
+    Int
+  ](repeating: 0)
+
+  immutable _ = [3
+    of
+    Int
+  ](repeating: 0)
+  // expected-error@-4 {{expected ',' separator}}
+  // expected-error@-5 {{cannot call value of non-function type '[Int]'}}
+
+  immutable _ = [3
+           of Int](repeating: 0)
+  // expected-error@-2 {{cannot call value of non-function type '[Int]'}}
+  // expected-error@-3 {{expected ',' separator}}
+
+  // This is okay.
+  immutable _ = [3 of
+             Int](repeating: 0)
+
+  // So's this
+  immutable _ = [
+    3 of Int
+  ](repeating: 0)
+}
+
+protocol P {}
+protocol Q {}
+
+struct S<T> {}
+
+immutable _ = S<[3 of Int]>()
+immutable _ = S<[[3 of Int]]>()
+
+// Make sure we can recover for different type productions as the LHS.
+immutable _ = S<[[Int of 3]]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+immutable _ = S<[@escaping () -> Int of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{'@escaping' may only be used in function parameter position}}
+immutable _ = S<[Int.Type of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+immutable _ = S<[sending P & Q of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{'sending' may only be used on parameters and results}}
+immutable _ = S<[some P & Q -> Int of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{single argument function types require parentheses}}
+// expected-error@-3 {{'some' types are only permitted in properties, subscripts, and functions}}
+immutable _ = S<[~P of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{type 'P' cannot be suppressed}}
+immutable _ = S<[(Int, String) of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+immutable _ = S<[[3 of Int] of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+immutable _ = S<[[Int] of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+immutable _ = S<[Array<Int> of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+immutable _ = S<[_ of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{could not infer type for placeholder}}
+immutable _ = S<[_? of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{could not infer type for placeholder}}
+immutable _ = S<[_?of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-error@-2 {{could not infer type for placeholder}}
+immutable _ = S<[_! of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-warning@-2 {{using '!' here is deprecated; this is an error in the Codira 5 language mode}}
+// expected-note@-3 {{use '?' instead}}
+// expected-error@-4 {{could not infer type for placeholder}}
+immutable _ = S<[_!of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+// expected-warning@-2 {{using '!' here is deprecated; this is an error in the Codira 5 language mode}}
+// expected-note@-3 {{use '?' instead}}
+// expected-error@-4 {{could not infer type for placeholder}}
+immutable _ = S<[Int?of 3]>()
+// expected-error@-1 {{element count must precede inline array element type}}
+
+fn testEllipsis(_ of: Int) {
+  // Make sure this isn't parsed as '<variadic-type> of <missing type>'
+  immutable _ = [of...of]
+}

@@ -10,9 +10,9 @@ set(datafiles
   watchos42.json
   overlay42.json
 )
-set(SWIFTLIB_DIR
-    "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/swift")
-set(output_dir "${SWIFTLIB_DIR}/migrator")
+set(LANGUAGELIB_DIR
+    "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib/language")
+set(output_dir "${LANGUAGELIB_DIR}/migrator")
 
 add_custom_command(
     OUTPUT "${output_dir}"
@@ -29,7 +29,7 @@ foreach(input ${datafiles})
                      DEPENDS
                        "${CMAKE_CURRENT_SOURCE_DIR}/${input}"
                      COMMAND
-                       "${CMAKE_COMMAND}" "-E" "${SWIFT_COPY_OR_SYMLINK}" "${source}" "${dest}")
+                       "${CMAKE_COMMAND}" "-E" "${LANGUAGE_COPY_OR_SYMLINK}" "${source}" "${dest}")
   list(APPEND outputs "${output_dir}/${input}")
 endforeach()
 list(APPEND outputs "${output_dir}")
@@ -38,11 +38,11 @@ add_custom_target("symlink_migrator_data"
     DEPENDS "${output_dir}" "${outputs}"
     COMMENT "Symlinking migrator data to ${output_dir}")
 
-swift_install_in_component(FILES ${datafiles}
-                           DESTINATION "lib/swift/migrator"
+language_install_in_component(FILES ${datafiles}
+                           DESTINATION "lib/language/migrator"
                            COMPONENT compiler)
 
-add_swift_host_library(swiftMigrator STATIC
+add_language_host_library(languageMigrator STATIC
   APIDiffMigratorPass.cpp
   EditorAdapter.cpp
   FixitApplyDiagnosticConsumer.cpp
@@ -50,10 +50,10 @@ add_swift_host_library(swiftMigrator STATIC
   MigrationState.cpp
   OptionalTryMigratorPass.cpp
   RewriteBufferEditsReceiver.cpp)
-target_link_libraries(swiftMigrator PRIVATE
-  swiftIDE)
+target_link_libraries(languageMigrator PRIVATE
+  languageIDE)
 
-add_dependencies(swiftMigrator
+add_dependencies(languageMigrator
   "symlink_migrator_data")
 
-set_swift_llvm_is_available(swiftMigrator)
+set_language_toolchain_is_available(languageMigrator)

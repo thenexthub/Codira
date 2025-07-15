@@ -1,9 +1,9 @@
-# Provides auto-completion for swift tools options and for ninja build targets.
+# Provides auto-completion for language tools options and for ninja build targets.
 #
 # Include this bash source code with the source command, e.g. in your bash ~/.profile file:
-#    source swift-autocomplete.bash
+#    source language-autocomplete.bash
 
-_swift_complete()
+_language_complete()
 {
   local tool currentWord prevWord
 
@@ -20,8 +20,8 @@ _swift_complete()
     return 0
   fi
 
-  if [[ ${prevWord} == "-Xllvm" ]] ; then
-    # Don't know how to get the help for llvm options automatically.
+  if [[ ${prevWord} == "-Xtoolchain" ]] ; then
+    # Don't know how to get the help for toolchain options automatically.
     # So we use a grep'ed static list.
     COMPREPLY=( $(compgen -W "\
       -aa-kind \
@@ -29,7 +29,7 @@ _swift_complete()
       -allow-critical-edges \
       -basic-dynamic-replacement \
       -bug-reducer-tester-failure-kind \
-      -bug-reducer-tester-target-func \
+      -bug-reducer-tester-target-fn \
       -canonical-ossa-rewrite-borrows \
       -closure-specialize-eliminate-dead-closures \
       -cmo-function-size-limit \
@@ -38,7 +38,7 @@ _swift_complete()
       -copy-forward-stop \
       -differentiation-skip-folding-differentiable-function-extraction \
       -disable-arc-cm \
-      -disable-llvm-arc-opts \
+      -disable-toolchain-arc-opts \
       -disable-sil-cm-rr-cm \
       -disable-sil-ownership-verification \
       -dont-abort-on-memory-lifetime-errors \
@@ -66,7 +66,7 @@ _swift_complete()
       -optremarkgen-declless-debugvalue-use-sildebugvar-info \
       -optremarkgen-visit-implicit-autogen-funcs \
       -print-shortest-path-info \
-      -print-swift-mangling-stats \
+      -print-language-mangling-stats \
       -sil-bcopts-report \
       -sil-aggressive-inline \
       -sil-assert-on-exclusivity-failure \
@@ -115,10 +115,10 @@ _swift_complete()
       -sil-semantic-arc-opts-verify-after-transform \
       -sil-stats-block-count-delta-threshold \
       -sil-stats-dump-all \
-      -sil-stats-func-block-count-delta-threshold \
-      -sil-stats-func-block-count-min-threshold \
-      -sil-stats-func-inst-count-delta-threshold \
-      -sil-stats-func-inst-count-min-threshold \
+      -sil-stats-fn-block-count-delta-threshold \
+      -sil-stats-fn-block-count-min-threshold \
+      -sil-stats-fn-inst-count-delta-threshold \
+      -sil-stats-fn-inst-count-min-threshold \
       -sil-stats-function-count-delta-threshold \
       -sil-stats-functions \
       -sil-stats-inst-count-delta-threshold \
@@ -138,8 +138,8 @@ _swift_complete()
       -silcombine-owned-code-sinking \
       -simplify-cfg-simplify-unconditional-branches \
       -sroa-args-remove-dead-args-after \
-      -swift-diagnostics-assert-on-error \
-      -swift-diagnostics-assert-on-warning \
+      -language-diagnostics-assert-on-error \
+      -language-diagnostics-assert-on-warning \
       -verify-abort-on-failure \
       -verify-arc-loop-summary \
       -verify-continue-on-failure \
@@ -181,22 +181,22 @@ _ninja_complete()
     return 0
   fi
 
-  targets=`${tool} -t targets 2>/dev/null | grep  -v -e '\.' -e 'swift[A-Z]' -e 'cmake_order' | sed s/:.*//`
+  targets=`${tool} -t targets 2>/dev/null | grep  -v -e '\.' -e 'language[A-Z]' -e 'cmake_order' | sed s/:.*//`
   COMPREPLY=( $(compgen -W "${targets}" -- ${currentWord}) )
   return 0
 }
 
-complete -o default -F _swift_complete swiftc
-complete -o default -F _swift_complete swift
-complete -o default -F _swift_complete swift-frontend
-complete -o default -F _swift_complete sil-opt
-complete -o default -F _swift_complete sil-func-extractor
-complete -o default -F _swift_complete swift-demangle
-complete -o default -F _swift_complete swift-llvm-opt
-complete -o default -F _swift_complete swift-ide-test
-complete -o default -F _swift_complete swift-ios-test
-complete -o default -F _swift_complete swift-sdk-analyzer
-complete -o default -F _swift_complete swift-stdlib-tool
-complete -o default -F _swift_complete lldb-moduleimport-test
+complete -o default -F _language_complete languagec
+complete -o default -F _language_complete language
+complete -o default -F _language_complete language-frontend
+complete -o default -F _language_complete sil-opt
+complete -o default -F _language_complete sil-fn-extractor
+complete -o default -F _language_complete language-demangle
+complete -o default -F _language_complete language-toolchain-opt
+complete -o default -F _language_complete language-ide-test
+complete -o default -F _language_complete language-ios-test
+complete -o default -F _language_complete language-sdk-analyzer
+complete -o default -F _language_complete language-stdlib-tool
+complete -o default -F _language_complete lldb-moduleimport-test
 complete -o default -F _ninja_complete ninja
 

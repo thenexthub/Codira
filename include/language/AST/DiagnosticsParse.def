@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines diagnostics emitted during lexing and parsing.
@@ -1043,10 +1044,10 @@ ERROR(initializer_as_typed_pattern,none,
 ERROR(enum_element_empty_arglist,none,
       "enum element with associated values must have at least one "
       "associated value", ())
-WARNING(enum_element_empty_arglist_swift4,none,
+WARNING(enum_element_empty_arglist_language4,none,
         "enum element with associated values must have at least one "
         "associated value; this will be an error in the future "
-        "version of Swift", ())
+        "version of Codira", ())
 NOTE(enum_element_empty_arglist_delete,none,
      "did you mean to remove the empty associated value list?", ())
 NOTE(enum_element_empty_arglist_add_void,none,
@@ -1204,7 +1205,7 @@ ERROR(do_throws_without_catch,none,
 
 // C-Style For Stmt
 ERROR(c_style_for_stmt_removed,none,
-      "C-style for statement was removed in Swift 3", ())
+      "C-style for statement was removed in Codira 3", ())
 
 // For-each Stmt
 ERROR(expected_foreach_in,PointsToFirstBadToken,
@@ -1330,7 +1331,7 @@ NOTE(trailing_closure_callee_here,none,
      "callee is here", ())
 
 ERROR(string_literal_no_atsign,none,
-      "string literals in Swift are not preceded by an '@' sign", ())
+      "string literals in Codira are not preceded by an '@' sign", ())
 
 ERROR(invalid_float_literal_missing_leading_zero,none,
       "'.%0' is not a valid floating point literal; it must be written '0.%0'",
@@ -1425,11 +1426,11 @@ ERROR(string_interpolation_unclosed, none,
 
 // Interpolations with parameter labels or multiple values
 WARNING(string_interpolation_list_changing,none,
-      "interpolating multiple values will not form a tuple in Swift 5", ())
+      "interpolating multiple values will not form a tuple in Codira 5", ())
 NOTE(string_interpolation_list_insert_parens,none,
       "insert parentheses to keep current behavior", ())
 WARNING(string_interpolation_label_changing,none,
-      "labeled interpolations will not be ignored in Swift 5", ())
+      "labeled interpolations will not be ignored in Codira 5", ())
 NOTE(string_interpolation_remove_label,none,
       "remove %0 label to keep current behavior", (Identifier))
 
@@ -1441,7 +1442,7 @@ ERROR(expr_keypath_expected_property_or_type,PointsToFirstBadToken,
 ERROR(expr_keypath_expected_rparen,PointsToFirstBadToken,
       "expected ')' to complete '#keyPath' expression", ())
 ERROR(expr_keypath_expected_expr,none,
-      "expected expression path in Swift key path",())
+      "expected expression path in Codira key path",())
 
 // Selector expressions.
 ERROR(expr_selector_expected_lparen,PointsToFirstBadToken,
@@ -1498,7 +1499,7 @@ ERROR(mutually_exclusive_attr_names,none,
       (StringRef, StringRef, bool))
 
 ERROR(invalid_infix_on_func,none,
-      "'infix' modifier is not required or allowed on func declarations", ())
+      "'infix' modifier is not required or allowed on fn declarations", ())
 
 ERROR(error_in_effects_attribute,none,
       "error in effects attribute: %0", (StringRef))
@@ -1534,6 +1535,9 @@ ERROR(attr_expected_comma,none,
 
 ERROR(attr_expected_string_literal,none,
 "expected string literal in '%0' attribute", (StringRef))
+
+ERROR(attr_expected_cname,none,
+      "expected C identifier in '%0' attribute", (StringRef))
 
 ERROR(attr_expected_option_such_as,none,
       "expected '%0' option such as '%1'", (StringRef, StringRef))
@@ -1749,22 +1753,26 @@ ERROR(attr_warn_unused_result_expected_rparen,none,
 
 // _specialize
 ERROR(attr_specialize_missing_colon,none,
-      "missing ':' after %0 in '_specialize' attribute", (StringRef))
+      "missing ':' after %0 in %select{'_specialize'|'specialized'}1 attribute", (StringRef, bool))
 
 ERROR(attr_specialize_missing_comma,none,
-      "missing ',' in '_specialize' attribute", ())
+      "missing ',' in %select{'_specialize'|'specialized'}0 attribute", (bool))
 
 ERROR(attr_specialize_unknown_parameter_name,none,
-      "unknown parameter %0 in '_specialize attribute'", (StringRef))
+      "unknown parameter %0 in %select{'_specialize'|'specialized'}1 attribute", (StringRef, bool))
+ERROR(attr_specialize_unsupported_parameter_name,none,
+      "unsupported parameter %0 in 'specialized attribute'", (StringRef))
 
 ERROR(attr_specialize_expected_bool_value,none,
-      "expected a boolean true or false value in '_specialize' attribute", ())
+      "expected a boolean true or false value in %select{'_specialize'|'specialized'}0 attribute", (bool))
 
 ERROR(attr_specialize_missing_parameter_label_or_where_clause,none,
       "expected a parameter label or a where clause in '_specialize' attribute", ())
+ERROR(attr_specialized_missing_where_clause,none,
+      "expected a where clause in 'specialized' attribute", ())
 
 ERROR(attr_specialize_parameter_already_defined,none,
-      "parameter '%0' was already defined in '_specialize' attribute", (StringRef))
+      "parameter '%0' was already defined in %select{'_specialize'|'specialized'}1 attribute", (StringRef, bool))
 
 ERROR(attr_specialize_expected_partial_or_full,none,
       "expected 'partial' or 'full' as values of the 'kind' parameter in '_specialize' attribute", ())
@@ -1920,7 +1928,7 @@ ERROR(unsupported_conditional_compilation_unary_expression,none,
       "expected unary '!' expression", ())
 ERROR(unsupported_platform_condition_expression,none,
       "unexpected platform condition "
-      "(expected 'os', 'arch', or 'swift')",
+      "(expected 'os', 'arch', or 'language')",
       ())
 ERROR(platform_condition_expected_argument,none,
       "expected argument to platform condition",
@@ -1945,7 +1953,7 @@ ERROR(compiler_version_too_many_components,none,
       "compiler version must not have more than five components", ())
 WARNING(unused_compiler_version_component,NoUsage,
       "the second version component is not used for comparison in legacy "
-      "compiler versions%select{|; are you trying to encode a new Swift "
+      "compiler versions%select{|; are you trying to encode a new Codira "
       "compiler version for compatibility with legacy compilers?}0",
       (bool))
 ERROR(empty_version_component,none,
@@ -2097,9 +2105,9 @@ ERROR(extra_tokens_after_expression,PointsToFirstBadToken,
       "extra tokens after expression in macro expansion", ())
 
 ERROR(parser_round_trip_error,none,
-      "source file did not round-trip through the new Swift parser", ())
+      "source file did not round-trip through the new Codira parser", ())
 ERROR(parser_new_parser_errors,none,
-      "new Swift parser generated errors for code that C++ parser accepted",
+      "new Codira parser generated errors for code that C++ parser accepted",
        ())
 
 // MARK: Reference Binding Diagnostics
@@ -2146,7 +2154,7 @@ ERROR(expected_lparen_after_lifetime_dependence, PointsToFirstBadToken,
 
 ERROR(expected_identifier_or_index_or_self_after_lifetime_dependence,
       PointsToFirstBadToken,
-      "expected identifier, index or self in lifetime dependence specifier",
+      "expected 'copy', 'borrow', or '&' followed by an identifier, index or 'self' in lifetime dependence specifier",
       ())
 
 ERROR(expected_rparen_after_lifetime_dependence, PointsToFirstBadToken,
@@ -2185,6 +2193,15 @@ ERROR(nonisolated_nonsending_expected_rparen,PointsToFirstBadToken,
       "expected ')' after 'nonisolated' modifier", ())
 ERROR(nonisolated_nonsending_repeated,none,
       "parameter may have at most one 'nonisolated(nonsending)' specifier", ())
+
+//------------------------------------------------------------------------------
+// MARK: using @<attribute> or using <identifier>
+//------------------------------------------------------------------------------
+ERROR(using_decl_invalid_specifier,PointsToFirstBadToken,
+      "default isolation can only be set to '@MainActor' or 'nonisolated'",
+      ())
+ERROR(experimental_using_decl_disabled,PointsToFirstBadToken,
+      "'using' is an experimental feature that is currently disabled", ())
 
 #define UNDEFINE_DIAGNOSTIC_MACROS
 #include "DefineDiagnosticMacros.h"

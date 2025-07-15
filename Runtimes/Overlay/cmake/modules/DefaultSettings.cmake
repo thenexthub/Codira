@@ -3,7 +3,7 @@
 # out-of-the-box without customization. This does not mean that it is the only
 # way that will work, or that it represents a shipping configuration.
 # User-specified configurations should be done through cache files or by setting
-# the variable with `-DSwiftOverlay_*` on the commandline.
+# the variable with `-DCodiraOverlay_*` on the commandline.
 
 # Provide a boolean option that a user can optionally enable.
 # Variables are defaulted based on the value of `<variable>_default`.
@@ -25,13 +25,13 @@ macro(defaulted_set variable type helptext)
 endmacro()
 
 if(APPLE)
-  set(SwiftOverlay_ENABLE_REFLECTION_default ON)
+  set(CodiraOverlay_ENABLE_REFLECTION_default ON)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "WASM")
-  set(SwiftOverlay_ENABLE_REFLECTION_default OFF)
+  set(CodiraOverlay_ENABLE_REFLECTION_default OFF)
 elseif(LINUX OR ANDROID OR BSD)
-  set(SwiftOverlay_ENABLE_REFLECTION_default OFF)
+  set(CodiraOverlay_ENABLE_REFLECTION_default OFF)
 elseif(WIN32)
-  set(SwiftOverlay_ENABLE_REFLECTION_default OFF)
+  set(CodiraOverlay_ENABLE_REFLECTION_default ON)
 endif()
 
-include("${SwiftOverlay_VENDOR_MODULE_DIR}/DefaultSettings.cmake" OPTIONAL)
+include("${CodiraOverlay_VENDOR_MODULE_DIR}/DefaultSettings.cmake" OPTIONAL)

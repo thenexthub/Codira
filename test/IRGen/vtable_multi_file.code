@@ -1,0 +1,26 @@
+// RUN: %target-language-frontend -enable-objc-interop -primary-file %s %S/Inputs/vtable_multi_file_helper.code -emit-ir | %FileCheck --check-prefixes=CHECK,CHECK-OBJC %s
+// RUN: %target-language-frontend -disable-objc-interop -primary-file %s %S/Inputs/vtable_multi_file_helper.code -emit-ir | %FileCheck --check-prefixes=CHECK,CHECK-NO-OBJC %s
+
+// REQUIRES: CPU=x86_64
+
+// CHECK-LABEL: @"$s17vtable_multi_file7DerivedCMf" = internal global
+// CHECK-SAME: @"$s17vtable_multi_file4BaseC6methodyyF"
+class Derived : Base {
+  fn another() {}
+}
+
+fn markUsed<T>(_ t: T) {}
+
+// CHECK-LABEL: define hidden languagecc void @"$s17vtable_multi_file36baseClassVtablesIncludeImplicitInitsyyF"() {{.*}} {
+fn baseClassVtablesIncludeImplicitInits() {
+  // CHECK: [[TMP:%.*]] = call languagecc %language.metadata_response @"$s17vtable_multi_file8SubclassCMa"(i64 0)
+  // CHECK: [[T0:%.*]] = extractvalue %language.metadata_response [[TMP]], 0
+  // CHECK-OBJC: [[T2:%.*]] = getelementptr inbounds ptr, ptr [[T0]], i64 11
+  // CHECK-NO-OBJC: [[T2:%.*]] = getelementptr inbounds ptr, ptr [[T0]], i64 8
+  // CHECK: load ptr, ptr [[T2]]
+  markUsed(Subclass.classProp)
+}
+
+fn forEachFinalizesVTable(_ h: Holder) {
+  for _ in h.getSillySequence() {}
+}

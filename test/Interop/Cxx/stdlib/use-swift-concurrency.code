@@ -1,0 +1,39 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -Xfrontend -disable-availability-checking %import-libdispatch -parse-as-library)
+//
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+// REQUIRES: concurrency_runtime
+
+import StdlibUnittest
+
+import CxxStdlib
+import Cxx
+
+import _Concurrency
+import Dispatch
+
+@main struct Main {
+  static fn main() async {
+    var ConcurrencyTestSuite = TestSuite("Concurrency")
+
+    ConcurrencyTestSuite.test("Task.sleep") {
+      immutable start = DispatchTime.now()
+      await Task.sleep(100_000_000)
+      immutable stop = DispatchTime.now()
+      expectTrue(stop >= (start + .nanoseconds(100_000_000)))
+    }
+
+    ConcurrencyTestSuite.test("Task.sleep (non-blocking)") {
+      immutable task = detach {
+        std.string("Hello, Codira!")
+      }
+
+      await Task.sleep(100_000_000)
+      expectEqual(await task.get(), "Hello, Codira!")
+    }
+    
+    await runAllTestsAsync()
+  }
+}
+

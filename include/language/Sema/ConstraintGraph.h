@@ -11,27 +11,28 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the \c ConstraintGraph class, which describes the
 // relationships among the type variables within a constraint system.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_CONSTRAINT_GRAPH_H
-#define SWIFT_SEMA_CONSTRAINT_GRAPH_H
+#ifndef LANGUAGE_SEMA_CONSTRAINT_GRAPH_H
+#define LANGUAGE_SEMA_CONSTRAINT_GRAPH_H
 
 #include "language/Basic/Debug.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Type.h"
 #include "language/Sema/CSBindings.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/Compiler.h"
 #include <functional>
 #include <utility>
 
@@ -172,12 +173,12 @@ private:
   /// This is useful in situations when type variable gets bound and unbound,
   /// or equivalence class changes.
   void notifyReferencingVars(
-      llvm::function_ref<void(ConstraintGraphNode &,
+      toolchain::function_ref<void(ConstraintGraphNode &,
                               Constraint *)> notification) const;
 
   /// Notify all of the type variables referenced by this one about a change.
   void notifyReferencedVars(
-      llvm::function_ref<void(ConstraintGraphNode &)> notification) const;
+      toolchain::function_ref<void(ConstraintGraphNode &)> notification) const;
   /// }
 
   /// The constraint graph this node belongs to.
@@ -200,15 +201,15 @@ private:
 
   /// A mapping from the set of constraints that mention this type variable
   /// to the index within the vector of constraints.
-  llvm::SmallDenseMap<Constraint *, unsigned, 2> ConstraintIndex;
+  toolchain::SmallDenseMap<Constraint *, unsigned, 2> ConstraintIndex;
 
   /// The set of type variables that reference type variable associated
   /// with this constraint graph node.
-  llvm::SmallSetVector<TypeVariableType *, 2> ReferencedBy;
+  toolchain::SmallSetVector<TypeVariableType *, 2> ReferencedBy;
 
   /// The set of type variables that occur within the fixed binding of
   /// this type variable.
-  llvm::SmallSetVector<TypeVariableType *, 2> References;
+  toolchain::SmallSetVector<TypeVariableType *, 2> References;
 
   /// All of the type variables in the same equivalence class as this
   /// representative type variable.
@@ -218,10 +219,10 @@ private:
   mutable SmallVector<TypeVariableType *, 2> EquivalenceClass;
 
   /// Print this graph node.
-  void print(llvm::raw_ostream &out, unsigned indent,
-             PrintOptions PO = PrintOptions()) const;
+  void print(toolchain::raw_ostream &out, unsigned indent,
+             const PrintOptions &PO = PrintOptions()) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   /// Verify the invariants of this node within the given constraint graph.
   void verify(ConstraintGraph &cg);
@@ -301,16 +302,16 @@ public:
   /// Gather constraints associated with all of the variables within the
   /// same equivalence class as the given type variable, as well as its
   /// immediate fixed bindings.
-  llvm::TinyPtrVector<Constraint *>
+  toolchain::TinyPtrVector<Constraint *>
   gatherAllConstraints(TypeVariableType *typeVar);
 
   /// Gather all constraints that mention this type variable or type variables
   /// that it is a fixed binding of. Unlike EquivalenceClass, this looks
   /// through transitive fixed bindings. This can be used to find all the
   /// constraints that may be affected when binding a type variable.
-  llvm::TinyPtrVector<Constraint *>
+  toolchain::TinyPtrVector<Constraint *>
   gatherNearbyConstraints(TypeVariableType *typeVar,
-                    llvm::function_ref<bool(Constraint *)> acceptConstraint =
+                    toolchain::function_ref<bool(Constraint *)> acceptConstraint =
                         [](Constraint *constraint) { return true; });
 
   /// Describes a single component, as produced by the connected components
@@ -391,18 +392,18 @@ public:
   }
 
   /// Print the graph.
-  void print(ArrayRef<TypeVariableType *> typeVars, llvm::raw_ostream &out);
-  void dump(llvm::raw_ostream &out);
+  void print(ArrayRef<TypeVariableType *> typeVars, toolchain::raw_ostream &out);
+  void dump(toolchain::raw_ostream &out);
 
   // FIXME: Potentially side-effectful.
-  SWIFT_DEBUG_HELPER(void dump());
+  LANGUAGE_DEBUG_HELPER(void dump());
 
   /// Print the connected components of the graph.
   void printConnectedComponents(ArrayRef<TypeVariableType *> typeVars,
-                                llvm::raw_ostream &out);
+                                toolchain::raw_ostream &out);
 
   // FIXME: Potentially side-effectful.
-  SWIFT_DEBUG_HELPER(void dumpConnectedComponents());
+  LANGUAGE_DEBUG_HELPER(void dumpConnectedComponents());
 
   /// Verify the invariants of the graph.
   void verify();
@@ -457,4 +458,4 @@ private:
 
 } // end namespace language
 
-#endif // LLVM_SWIFT_SEMA_CONSTRAINT_GRAPH_H
+#endif // TOOLCHAIN_LANGUAGE_SEMA_CONSTRAINT_GRAPH_H

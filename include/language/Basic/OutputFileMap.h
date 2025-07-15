@@ -11,26 +11,27 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_OUTPUTFILEMAP_H
-#define SWIFT_BASIC_OUTPUTFILEMAP_H
+#ifndef LANGUAGE_BASIC_OUTPUTFILEMAP_H
+#define LANGUAGE_BASIC_OUTPUTFILEMAP_H
 
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/YAMLParser.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/SourceMgr.h"
+#include "toolchain/Support/YAMLParser.h"
 
 #include <memory>
 #include <string>
 
 namespace language {
 
-using TypeToPathMap = llvm::DenseMap<file_types::ID, std::string>;
+using TypeToPathMap = toolchain::DenseMap<file_types::ID, std::string>;
 
 /// A two-tiered map used to specify paths for multiple output files associated
 /// with each input file in a compilation job.
@@ -39,7 +40,7 @@ using TypeToPathMap = llvm::DenseMap<file_types::ID, std::string>;
 /// file types to output paths.
 class OutputFileMap {
 private:
-  llvm::StringMap<TypeToPathMap> InputToOutputsMap;
+  toolchain::StringMap<TypeToPathMap> InputToOutputsMap;
 
 public:
   OutputFileMap() {}
@@ -48,10 +49,10 @@ public:
 
   /// Loads an OutputFileMap from the given \p Path into the receiver, if
   /// possible.
-  static llvm::Expected<OutputFileMap>
+  static toolchain::Expected<OutputFileMap>
   loadFromPath(StringRef Path, StringRef workingDirector);
 
-  static llvm::Expected<OutputFileMap>
+  static toolchain::Expected<OutputFileMap>
   loadFromBuffer(StringRef Data, StringRef workingDirectory);
 
   /// Loads an OutputFileMap from the given \p Buffer, taking ownership
@@ -59,8 +60,8 @@ public:
   ///
   /// When non-empty, \p workingDirectory is used to resolve relative paths in
   /// the output file map.
-  static llvm::Expected<OutputFileMap>
-  loadFromBuffer(std::unique_ptr<llvm::MemoryBuffer> Buffer,
+  static toolchain::Expected<OutputFileMap>
+  loadFromBuffer(std::unique_ptr<toolchain::MemoryBuffer> Buffer,
                  StringRef workingDirectory);
 
   /// Get the map of outputs for the given \p Input, if present in the
@@ -78,19 +79,19 @@ public:
   TypeToPathMap &getOrCreateOutputMapForSingleOutput();
 
   /// Dump the OutputFileMap to the given \p os.
-  void dump(llvm::raw_ostream &os, bool Sort = false) const;
+  void dump(toolchain::raw_ostream &os, bool Sort = false) const;
 
   /// Write the OutputFileMap for the \p inputs so it can be parsed.
   ///
   /// It is not an error if the map does not contain an entry for a particular
   /// input. Instead, an empty sub-map will be written into the output.
-  void write(llvm::raw_ostream &os, ArrayRef<StringRef> inputs) const;
+  void write(toolchain::raw_ostream &os, ArrayRef<StringRef> inputs) const;
 
 private:
   /// Parses the given \p Buffer and returns either an OutputFileMap or
   /// error, taking ownership of \p Buffer in the process.
-  static llvm::Expected<OutputFileMap>
-  parse(std::unique_ptr<llvm::MemoryBuffer> Buffer, StringRef workingDirectory);
+  static toolchain::Expected<OutputFileMap>
+  parse(std::unique_ptr<toolchain::MemoryBuffer> Buffer, StringRef workingDirectory);
 };
 
 } // end namespace language

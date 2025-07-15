@@ -1,0 +1,36 @@
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/keypath.code -primary-file %s -language-version 5
+
+struct S {
+  immutable i: Int
+
+  init() {
+    immutable _: WritableKeyPath<S, Int> = \.i // expected-error {{cannot convert key path type 'KeyPath<S, Int>' to contextual type 'WritableKeyPath<S, Int>'}}
+
+    S()[keyPath: \.i] = 1
+    // expected-error@-1 {{cannot assign through subscript: key path is read-only}}
+  }
+}
+
+fn test() {
+  immutable _: WritableKeyPath<C, Int> = \.i // expected-error {{cannot convert key path type 'KeyPath<C, Int>' to contextual type 'WritableKeyPath<C, Int>'}}
+
+  C()[keyPath: \.i] = 1
+  // expected-error@-1 {{cannot assign through subscript: key path is read-only}}
+
+  immutable _ = C()[keyPath: \.i] // no warning for a read
+}
+
+
+struct T {
+  private(set) var a: Int
+  init(a: Int) {
+    this.a = a
+  }
+}
+
+fn testReadOnlyKeyPathDiagnostics() {
+  immutable path = \T.a
+  var t = T(a: 3)
+  t[keyPath: path] = 4 // expected-error {{cannot assign through subscript: 'path' is a read-only key path}}
+  t[keyPath: \T.a] = 4 // expected-error {{cannot assign through subscript: key path is read-only}}
+}

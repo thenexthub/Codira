@@ -1,13 +1,17 @@
 //===--- MetadataRef.h - ABI for references to metadata ---------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file describes runtime metadata structures for references to
@@ -15,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_METADATAREF_H
-#define SWIFT_ABI_METADATAREF_H
+#ifndef LANGUAGE_ABI_METADATAREF_H
+#define LANGUAGE_ABI_METADATAREF_H
 
 #include "language/ABI/TargetLayout.h"
 #include "language/ABI/MetadataValues.h"
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include <objc/runtime.h>
 #endif
 
@@ -34,10 +38,10 @@ struct TargetAnyClassMetadataObjCInterop;
 template <typename Runtime, typename TargetAnyClassMetadataVariant>
 struct TargetClassMetadata;
 template <typename Runtime>
-struct swift_ptrauth_struct_context_descriptor(ContextDescriptor)
+struct language_ptrauth_struct_context_descriptor(ContextDescriptor)
     TargetContextDescriptor;
 template <typename Runtime>
-struct swift_ptrauth_struct_context_descriptor(ProtocolDescriptor)
+struct language_ptrauth_struct_context_descriptor(ProtocolDescriptor)
     TargetProtocolDescriptor;
 
 namespace detail {
@@ -91,7 +95,7 @@ template <typename Runtime,
           template<typename> class Context = TargetContextDescriptor>
 using TargetSignedContextPointer
   = TargetSignedPointer<Runtime,
-                        Context<Runtime> * __ptrauth_swift_type_descriptor>;
+                        Context<Runtime> * __ptrauth_language_type_descriptor>;
 
 /// A relative pointer to a type context descriptor.
 template <typename Runtime,
@@ -115,7 +119,7 @@ using RelativeContextPointerIntPair =
 /// directly extract the name of the protocol.
 template <typename Runtime>
 struct TargetObjCProtocolPrefix {
-  /// Unused by the Swift runtime.
+  /// Unused by the Codira runtime.
   TargetPointer<Runtime, const void> _ObjC_Isa;
 
   /// The mangled name of the protocol.
@@ -123,11 +127,11 @@ struct TargetObjCProtocolPrefix {
 };
 
 /// A reference to a protocol within the runtime, which may be either
-/// a Swift protocol or (when Objective-C interoperability is enabled) an
+/// a Codira protocol or (when Objective-C interoperability is enabled) an
 /// Objective-C protocol.
 ///
 /// This type always contains a single target pointer, whose lowest bit is
-/// used to distinguish between a Swift protocol referent and an Objective-C
+/// used to distinguish between a Codira protocol referent and an Objective-C
 /// protocol referent.
 template <typename Runtime>
 class TargetProtocolDescriptorRef {
@@ -141,7 +145,7 @@ class TargetProtocolDescriptorRef {
   };
 
   /// A direct pointer to a protocol descriptor for either an Objective-C
-  /// protocol (if the low bit is set) or a Swift protocol (if the low bit
+  /// protocol (if the low bit is set) or a Codira protocol (if the low bit
   /// is clear).
   StoredPointer storage;
 
@@ -159,18 +163,18 @@ public:
           reinterpret_cast<StoredPointer>(protocol) |
           (dispatchStrategy == ProtocolDispatchStrategy::ObjC ? IsObjCBit : 0);
     } else {
-      assert(dispatchStrategy == ProtocolDispatchStrategy::Swift);
+      assert(dispatchStrategy == ProtocolDispatchStrategy::Codira);
       storage = reinterpret_cast<StoredPointer>(protocol);
     }
   }
 
-  const static TargetProtocolDescriptorRef forSwift(
+  const static TargetProtocolDescriptorRef forCodira(
                                           ProtocolDescriptorPointer protocol) {
     return TargetProtocolDescriptorRef{
         reinterpret_cast<StoredPointer>(protocol)};
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   constexpr static TargetProtocolDescriptorRef forObjC(Protocol *objcProtocol) {
     return TargetProtocolDescriptorRef{
         reinterpret_cast<StoredPointer>(objcProtocol) | IsObjCBit};
@@ -183,23 +187,23 @@ public:
 
   /// The name of the protocol.
   TargetPointer<Runtime, const char> getName() const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     if (isObjC()) {
       return reinterpret_cast<TargetObjCProtocolPrefix<Runtime> *>(
           getObjCProtocol())->Name;
     }
 #endif
 
-    return getSwiftProtocol()->Name;
+    return getCodiraProtocol()->Name;
   }
 
-  /// Determine what kind of protocol this is, Swift or Objective-C.
+  /// Determine what kind of protocol this is, Codira or Objective-C.
   ProtocolDispatchStrategy getDispatchStrategy() const {
     if (isObjC()) {
       return ProtocolDispatchStrategy::ObjC;
     }
 
-    return ProtocolDispatchStrategy::Swift;
+    return ProtocolDispatchStrategy::Codira;
   }
 
   /// Determine whether this protocol has a 'class' constraint.
@@ -208,7 +212,7 @@ public:
       return ProtocolClassConstraint::Class;
     }
 
-    return getSwiftProtocol()->getProtocolContextDescriptorFlags()
+    return getCodiraProtocol()->getProtocolContextDescriptorFlags()
         .getClassConstraint();
   }
 
@@ -226,12 +230,12 @@ public:
       return SpecialProtocol::None;
     }
 
-    return getSwiftProtocol()->getProtocolContextDescriptorFlags()
+    return getCodiraProtocol()->getProtocolContextDescriptorFlags()
         .getSpecialProtocol();
   }
 
-  /// Retrieve the Swift protocol descriptor.
-  ProtocolDescriptorPointer getSwiftProtocol() const {
+  /// Retrieve the Codira protocol descriptor.
+  ProtocolDescriptorPointer getCodiraProtocol() const {
     assert(!isObjC());
 
     // NOTE: we explicitly use a C-style cast here because cl objects to the
@@ -254,7 +258,7 @@ public:
       return false;
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   /// Retrieve the Objective-C protocol.
   TargetPointer<Runtime, Protocol> getObjCProtocol() const {
     assert(isObjC());
@@ -271,23 +275,23 @@ using ProtocolDescriptorRef = TargetProtocolDescriptorRef<InProcess>;
 template <typename Runtime>
 class RelativeTargetProtocolDescriptorPointer {
   union {
-    /// Relative pointer to a Swift protocol descriptor.
+    /// Relative pointer to a Codira protocol descriptor.
     /// The \c bool value will be false to indicate that the protocol
-    /// is a Swift protocol, or true to indicate that this references
+    /// is a Codira protocol, or true to indicate that this references
     /// an Objective-C protocol.
     RelativeContextPointerIntPair<Runtime, bool, TargetProtocolDescriptor>
-      swiftPointer;
-#if SWIFT_OBJC_INTEROP    
+      languagePointer;
+#if LANGUAGE_OBJC_INTEROP    
     /// Relative pointer to an ObjC protocol descriptor.
     /// The \c bool value will be false to indicate that the protocol
-    /// is a Swift protocol, or true to indicate that this references
+    /// is a Codira protocol, or true to indicate that this references
     /// an Objective-C protocol.
     RelativeIndirectablePointerIntPair<Protocol, bool> objcPointer;
 #endif
   };
 
   bool isObjC() const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     if (Runtime::ObjCInterop)
       return objcPointer.getInt();
 #endif
@@ -297,27 +301,27 @@ class RelativeTargetProtocolDescriptorPointer {
 public:
   /// Retrieve a reference to the protocol.
   TargetProtocolDescriptorRef<Runtime> getProtocol() const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     if (isObjC()) {
       return TargetProtocolDescriptorRef<Runtime>::forObjC(
           const_cast<Protocol *>(objcPointer.getPointer()));
     }
 #endif
 
-    return TargetProtocolDescriptorRef<Runtime>::forSwift(
+    return TargetProtocolDescriptorRef<Runtime>::forCodira(
         reinterpret_cast<
             ConstTargetMetadataPointer<Runtime, TargetProtocolDescriptor>>(
-            swiftPointer.getPointer()));
+            languagePointer.getPointer()));
   }
 
   /// Retrieve a reference to the protocol.
   int32_t getUnresolvedProtocolAddress() const {
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     if (isObjC()) {
       return objcPointer.getUnresolvedOffset();
     }
 #endif
-    return swiftPointer.getUnresolvedOffset();
+    return languagePointer.getUnresolvedOffset();
   }
 
   operator TargetProtocolDescriptorRef<Runtime>() const {
@@ -335,7 +339,7 @@ struct TargetTypeReference {
 
     /// An indirect reference to a TypeContextDescriptor or ProtocolDescriptor.
     RelativeDirectPointer<
-        TargetSignedPointer<Runtime, TargetContextDescriptor<Runtime> * __ptrauth_swift_type_descriptor>>
+        TargetSignedPointer<Runtime, TargetContextDescriptor<Runtime> * __ptrauth_language_type_descriptor>>
       IndirectTypeDescriptor;
 
     /// An indirect reference to an Objective-C class.

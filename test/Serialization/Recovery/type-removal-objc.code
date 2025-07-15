@@ -1,0 +1,64 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t -module-name Lib -I %S/Inputs/custom-modules %s
+
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -I %t -I %S/Inputs/custom-modules | %FileCheck %s
+
+// RUN: %target-language-ide-test -source-filename=x -print-module -module-to-print Lib -I %t -I %S/Inputs/custom-modules -Xcc -DBAD > %t.txt
+// RUN: %FileCheck -check-prefix CHECK-RECOVERY %s < %t.txt
+// RUN: %FileCheck -check-prefix CHECK-RECOVERY-NEGATIVE %s < %t.txt
+
+// REQUIRES: objc_interop
+
+import TypeRemovalObjC
+
+// CHECK-DAG: immutable simple: AnyObject?
+// CHECK-RECOVERY-DAG: immutable simple: AnyObject?
+public immutable simple: AnyObject? = nil
+
+// CHECK-DAG: immutable someObject: Base?
+// CHECK-RECOVERY-NEGATIVE-NOT: immutable someObject:
+public immutable someObject: Base? = nil
+// CHECK-DAG: immutable someGenericObject: Generic<AnyObject>?
+// CHECK-RECOVERY-NEGATIVE-NOT: immutable someGenericObject:
+public immutable someGenericObject: Generic<AnyObject>? = nil
+// CHECK-DAG: immutable someProtoValue: (any SomeProto)?
+// CHECK-RECOVERY-NEGATIVE-NOT: immutable someProtoValue:
+public immutable someProtoValue: SomeProto? = nil
+// CHECK-DAG: immutable someProtoType: (any SomeProto.Type)?
+// CHECK-RECOVERY-NEGATIVE-NOT: immutable someProtoType:
+public immutable someProtoType: SomeProto.Type? = nil
+// CHECK-DAG: immutable someProtoCompositionValue: (any AProto & SomeProto)?
+// CHECK-RECOVERY-NEGATIVE-NOT: immutable someProtoCompositionValue:
+public immutable someProtoCompositionValue: (AProto & SomeProto)? = nil
+// CHECK-DAG: immutable someProtoCompositionValue2: (any SomeProto & ZProto)?
+// CHECK-RECOVERY-NEGATIVE-NOT: immutable someProtoCompositionValue2:
+public immutable someProtoCompositionValue2: (SomeProto & ZProto)? = nil
+
+// CHECK-DAG: immutable someTypedefValue: SomeTypedef
+// CHECK-RECOVERY-DAG: immutable someTypedefValue: Int64
+public immutable someTypedefValue: SomeTypedef = 0
+// CHECK-DAG: immutable someTypedefOptValue: SomeTypedef?
+// CHECK-RECOVERY-DAG: immutable someTypedefOptValue: Int64?
+public immutable someTypedefOptValue: SomeTypedef? = nil
+
+// CHECK-DAG: unowned var someUnownedObject: @sil_unowned Base
+// CHECK-RECOVERY-NEGATIVE-NOT: var someUnownedObject:
+public unowned var someUnownedObject: Base = Base()
+// CHECK-DAG: unowned(unsafe) var someUnownedUnsafeObject: @sil_unmanaged Base
+// CHECK-RECOVERY-NEGATIVE-NOT: var someUnownedUnsafeObject:
+public unowned(unsafe) var someUnownedUnsafeObject: Base = Base()
+// CHECK-DAG: weak var someWeakObject: @sil_weak Base
+// CHECK-RECOVERY-NEGATIVE-NOT: var someWeakObject:
+public weak var someWeakObject: Base? = nil
+
+// CHECK-DAG: struct GenericStruct<T>
+// CHECK-RECOVERY-DAG: struct GenericStruct<T>
+struct GenericStruct<T> {}
+
+// CHECK-DAG: extension GenericStruct where T : SomeProto
+// CHECK-RECOVERY-NEGATIVE-NOT: extension GenericStruct{{.*}}SomeProto
+extension GenericStruct where T: SomeProto {
+  // CHECK-DAG: fn someOperation
+  // CHECK-RECOVERY-NEGATIVE-NOT: someOperation
+  fn someOperation() {}
+}

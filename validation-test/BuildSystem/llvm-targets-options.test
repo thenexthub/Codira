@@ -1,0 +1,47 @@
+# REQUIRES: standalone_build
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --build-toolchain=0 --cmake %cmake  2>&1 | %FileCheck --check-prefix=BUILD-LLVM-0-CHECK %s
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --build-toolchain=0 --toolchain-ninja-targets="lib/all clangDependencyScanning" --cmake %cmake  2>&1 | %FileCheck --check-prefix=BUILD-LLVM-0-CHECK %s
+
+# BUILD-LLVM-0-CHECK-NOT: cmake --build {{.*}}/Ninja-DebugAssert/toolchain
+
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --skip-build --cmake %cmake  2>&1 | %FileCheck --check-prefix=SKIP-BUILD-CHECK %s
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --skip-build --toolchain-ninja-targets="lib/all bin/clang" --cmake %cmake  2>&1 | %FileCheck --check-prefix=SKIP-BUILD-CHECK %s
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --skip-build-toolchain --cmake %cmake  2>&1 | %FileCheck --check-prefix=SKIP-BUILD-CHECK %s
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --skip-build-toolchain --toolchain-ninja-targets="bin/clang clangDependencyScanning" --cmake %cmake  2>&1 | %FileCheck --check-prefix=SKIP-BUILD-CHECK %s
+
+# SKIP-BUILD-CHECK: cmake --build {{.*}}/toolchain-{{[^/]*}} toolchain-tblgen clang-resource-headers intrinsics_gen clang-tablegen-targets
+# SKIP-BUILD-CHECK-SAME: FileCheck not toolchain-nm
+
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --skip-build-toolchain --build-toolchain-only=1 --cmake %cmake  2>&1 | %FileCheck --check-prefix=SKIP-BUILD-LLVM-BUILD-TOOLCHAIN-ONLY-CHECK %s
+
+# SKIP-BUILD-LLVM-BUILD-TOOLCHAIN-ONLY-CHECK: cmake --build {{.*}}/toolchain-{{[^/]*}} toolchain-tblgen clang-resource-headers intrinsics_gen clang-tablegen-targets
+# SKIP-BUILD-LLVM-BUILD-TOOLCHAIN-ONLY-CHECK-NOT: FileCheck not toolchain-nm
+
+
+# RUN: %empty-directory(%t)
+# RUN: mkdir -p %t
+# RUN: SKIP_XCODE_VERSION_CHECK=1 LANGUAGE_BUILD_ROOT=%t %language_src_root/utils/build-script --dry-run --toolchain-ninja-targets="lib/all clangDependencyScanning" --cmake %cmake  2>&1 | %FileCheck --check-prefix=LLVM-NINJA-TARGETS-CHECK %s
+
+# LLVM-NINJA-TARGETS-CHECK: cmake --build {{.*}}/toolchain-{{[^/]*}} lib/all clangDependencyScanning
+

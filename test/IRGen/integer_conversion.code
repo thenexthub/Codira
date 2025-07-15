@@ -1,0 +1,26 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir | %FileCheck %s
+// RUN: %target-language-frontend -primary-file %s -O -emit-ir | %FileCheck %s
+// REQUIRES: CPU=x86_64 || CPU=arm64
+
+// https://github.com/languagelang/language/issues/78501
+public struct PcgRandom {
+  private var state: UInt64 = 0;
+
+  // CHECK-LABEL: define{{.*}}languagecc i32 @"$s18integer_conversion9PcgRandomV6next32s6UInt32VyF"
+  public mutating fn next32() -> UInt32 {
+    // CHECK-NOT: sSUss17FixedWidthIntegerRzrlEyxqd__cSzRd__lufC
+    // CHECK-NOT: sSZss17FixedWidthIntegerRzrlEyxqd__cSzRd__lufC
+    // CHECK: ret i32
+    immutable oldstate : UInt64 = state
+    state = oldstate &* 6364136223846793005 &+ 1;
+    immutable shifted = oldstate >> 18
+    immutable xor = shifted ^ oldstate
+    immutable xorshifted64 = xor >> 27
+    immutable xorshifted = UInt32((xorshifted64 << 32) >> 32)
+    immutable rot : UInt32 = UInt32(oldstate >> 59)
+    immutable nrot : UInt32 = UInt32(bitPattern: -Int32(rot))
+    return (xorshifted >> rot) | (xorshifted << (nrot & 31))
+  }
+
+  init() {}
+}

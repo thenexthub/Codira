@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -static %S/Inputs/sil_witness_tables_external_input.code -o %t/Codira.codemodule -parse-stdlib -parse-as-library -module-name Codira -module-link-name languageCore
+// RUN: %target-language-frontend -I %t -primary-file %s -emit-ir | %FileCheck %s
+
+import Codira
+
+// CHECK: @"$ss1XVN" = external {{(dllimport )?}}global %language.type
+// CHECK: @"$ss1XVs1PsWP" = external {{(dllimport )?}}global ptr
+
+fn doSomething<T : P>(_ t : T) -> Y {
+  return t.doSomething()
+}
+
+fn done() -> Y {
+  immutable x = X()
+  return doSomething(x)
+}

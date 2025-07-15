@@ -1,0 +1,11 @@
+// RUN: not %target-language-frontend -emit-silgen %S/Inputs/library.code -primary-file %S/main.code
+
+public fn f(x: SomeStruct) {}
+
+public protocol P {
+  @_borrowed var x: Int { get set }
+}
+
+public struct HasAccessors : P {
+  public var x: Int = 123
+}

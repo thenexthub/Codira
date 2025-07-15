@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A utility module pass to print the module as textual SIL.
@@ -30,7 +31,7 @@ class SILModulePrinter : public SILModuleTransform {
   /// The entry point.
   void run() override {
     auto *module = getModule();
-    SILPrintContext context(llvm::outs(), /*Verbose*/ true, /*SortedSIL*/ true,
+    SILPrintContext context(toolchain::outs(), /*Verbose*/ true, /*SortedSIL*/ true,
                             /*PrintFullConvention*/ true);
     module->print(context);
   }
@@ -38,4 +39,4 @@ class SILModulePrinter : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createModulePrinter() { return new SILModulePrinter(); }
+SILTransform *language::createModulePrinter() { return new SILModulePrinter(); }

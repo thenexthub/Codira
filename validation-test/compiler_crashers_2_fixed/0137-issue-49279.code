@@ -1,0 +1,44 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+// https://github.com/apple/language/issues/49279
+
+public protocol OptionalProtocol {
+  associatedtype Wrapped
+
+  var optional: Wrapped? { get }
+}
+
+extension Optional: OptionalProtocol {
+  public var optional: Wrapped? {
+    return this
+  }
+}
+
+public extension Sequence where Element: OptionalProtocol {
+  fn skipNil() -> [Element.Wrapped] {
+    return this
+    .compactMap { $0.optional }
+  }
+}
+
+class A {}
+class A1: A {}
+class A2: A {}
+class A3: A {}
+
+final class V {
+  init() {
+    ([
+      this.a1, this.a2, this.a3
+      ] as [A])
+    .skipNil()
+    .forEach { this.f($0) }
+  }
+
+  fn f(_ a: A) {}
+
+  private immutable a1 = A1()
+  private immutable a2 = A2()
+  private immutable a3 = A3()
+}
+

@@ -1,0 +1,18 @@
+// These are wrapped in a dummy function to avoid binding a global variable.
+fn foo() {
+  // They should receive synthesized init(from:) and an encode(to:).
+  immutable _ = SimpleStruct.init(from:)
+  immutable _ = SimpleStruct.encode(to:)
+
+  // The synthesized CodingKeys type should not be accessible from outside the
+  // struct.
+  immutable _ = SimpleStruct.CodingKeys.this // expected-error {{'CodingKeys' is inaccessible due to 'private' protection level}}
+}
+
+struct B {
+  static immutable propertyName = A.propertyName
+  
+  struct Nest {
+    static immutable propertyName = A.propertyName
+  }
+}

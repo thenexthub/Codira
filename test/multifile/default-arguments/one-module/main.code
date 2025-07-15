@@ -1,0 +1,7 @@
+// Try with and without whole module optimization
+
+// RUN: %target-build-language -language-version 4 %S/Inputs/library.code %S/main.code
+// RUN: %target-build-language -language-version 4 -whole-module-optimization %S/Inputs/library.code %S/main.code
+
+publicHasDefaultArgument()
+internalHasDefaultArgument()

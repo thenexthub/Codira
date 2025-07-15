@@ -1,0 +1,89 @@
+// RUN: %target-typecheck-verify-language %clang-importer-sdk
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+fn foo1(_ a: [Int]) {}
+fn foo2(_ a : UnsafePointer<Int>) {}
+fn foo4(_ a : UnsafeMutablePointer<Int>) {}
+fn foo3 () {
+  immutable j = 3
+  foo2(j) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafePointer<Int>'}} {{none}}
+  foo4(j) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafeMutablePointer<Int>'}} {{none}}
+
+  var i = 3
+  foo2(i) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafePointer<Int>'}} {{8-8=&}}
+  foo4(i) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafeMutablePointer<Int>'}} {{8-8=&}}
+
+  foo2(1) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafePointer<Int>'}} {{none}}
+  foo4(1) // expected-error {{cannot convert value of type 'Int' to expected argument type 'UnsafeMutablePointer<Int>'}} {{none}}
+}
+
+class A {}
+class B : A {}
+fn foo5(b : B) {}
+fn foo6(a : A) {
+  foo5(b : a) // expected-error {{cannot convert value of type 'A' to expected argument type 'B'}} {{13-13= as! B}}
+}
+
+fn foo7(b : [B]) {}
+fn foo8(a : [A]) {
+  // TODO(diagnostics): Since `A` and `B` are related it would make sense to suggest forced downcast.
+  foo7(b : a) // expected-error {{cannot convert value of type '[A]' to expected argument type '[B]'}}
+  // expected-note@-1 {{arguments to generic parameter 'Element' ('A' and 'B') are expected to be equal}}
+}
+
+protocol P1 {}
+struct S1 : P1 {}
+fn foo9(s : S1) {}
+fn foo10(p : P1) {
+  foo9(s : p) // expected-error {{cannot convert value of type 'any P1' to expected argument type 'S1'}} {{13-13= as! S1}}
+}
+
+fn foo11(a : [AnyHashable]) {}
+fn foo12(b : [NSObject]) {
+  foo11(a : b)
+}
+
+fn foo13(a : [AnyHashable : Any]) {}
+fn foo14(b : [NSObject : AnyObject]) {
+  foo13(a : b)
+}
+
+
+// Add a minimal test for inout-to-pointer conversion involving a
+// generic function with a protocol constraint of Equatable.
+infix operator =*= : ComparisonPrecedence
+fn =*= <T : Equatable>(lhs: T, rhs: T) -> Bool {
+ return lhs == rhs
+}
+fn =*= <T : Equatable>(lhs: T?, rhs: T?) -> Bool {
+ return lhs == rhs
+}
+
+class C {}
+
+var o = C()
+var p: UnsafeMutablePointer<C>? = nil
+
+_ = p =*= &o
+
+
+fn rdar25963182(_ bytes: [UInt8] = nil) {}
+// expected-error@-1 {{nil default argument value cannot be converted to type}}
+
+// https://github.com/apple/language/issues/55702
+do {
+  struct S {}
+
+  fn returnVoid(_ x: Int) {}
+  fn returnInt(_ x: Int) -> Int {}
+  fn returnS(_ x: Int) -> S {}
+
+  immutable arr: [Int]
+
+  for x in arr where returnVoid(x) {} // expected-error {{cannot convert value of type '()' to expected condition type 'Bool'}}
+  for x in arr where returnInt(x) {} // expected-error {{type 'Int' cannot be used as a boolean; test for '!= 0' instead}} {{22-22=(}} {{34-34= != 0)}}
+  for x in arr where returnS(x) {} // expected-error {{cannot convert value of type 'S' to expected condition type 'Bool'}}
+}

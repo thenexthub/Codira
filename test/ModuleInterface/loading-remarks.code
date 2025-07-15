@@ -1,0 +1,59 @@
+/// Test the -Rmodule-loading flag.
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: split-file %s %t
+
+/// Create Codira modules to import.
+// RUN: %target-language-emit-module-interface(%t/CodiraDependency.codeinterface) \
+// RUN:   %t/CodiraDependency.code
+// RUN: %target-language-frontend -emit-module -o %t/CodiraNonResilientDependency.codemodule \
+// RUN:   -module-name CodiraNonResilientDependency %t/CodiraDependency.code
+// RUN: %target-language-emit-module-interface(%t/IndirectMixedDependency.codeinterface) \
+// RUN:   %t/IndirectMixedDependency.code -I %t
+
+/// Use -Rmodule-loading in a client and look for the diagnostics output.
+// RUN: %target-language-frontend -typecheck %t/Client.code -Rmodule-loading \
+// RUN:   -I %t -module-cache-path %t/cache 2>&1 | %FileCheck %s
+
+//--- module.modulemap
+module IndirectMixedDependency {
+  header "IndirectMixedDependency.h"
+}
+
+module DirectMixedDependency {
+  header "DirectMixedDependency.h"
+  export *
+}
+
+//--- IndirectMixedDependency.h
+
+//--- IndirectMixedDependency.code
+
+@_exported import IndirectMixedDependency
+
+//--- DirectMixedDependency.h
+
+#include "IndirectMixedDependency.h"
+
+//--- DirectMixedDependency.code
+
+@_exported import DirectMixedDependency
+
+//--- CodiraDependency.code
+
+public fn publicFunction() {}
+
+//--- Client.code
+
+import CodiraDependency
+import CodiraNonResilientDependency
+import DirectMixedDependency
+
+// CHECK: remark: 'Codira' has a required transitive dependency on 'CodiraShims'
+// CHECK: remark: loaded module 'CodiraShims'; source: '{{.*}}module.modulemap', loaded: '{{.*}}CodiraShims-{{.*}}.pcm'
+// CHECK: remark: loaded module 'Codira'; source: '{{.*}}Codira.codemodule{{.*}}.codeinterface', loaded: '{{.*}}Codira.codemodule{{.*}}.codemodule'
+// CHECK: remark: 'CodiraDependency' has a required transitive dependency on 'Codira'
+// CHECK: remark: loaded module 'CodiraDependency'; source: '{{.*}}CodiraDependency.codeinterface', loaded: '{{.*}}CodiraDependency-{{.*}}.codemodule'
+// CHECK-DAG: remark: loaded module 'CodiraNonResilientDependency'; source: '{{.*}}CodiraNonResilientDependency.codemodule', loaded: '{{.*}}CodiraNonResilientDependency.codemodule'
+// CHECK-DAG: remark: loaded module 'IndirectMixedDependency' (overlay for a clang dependency); source: '{{.*}}IndirectMixedDependency.codeinterface', loaded: '{{.*}}IndirectMixedDependency-{{.*}}.codemodule'
+// CHECK-DAG: remark: loaded module 'DirectMixedDependency'; source: '{{.*}}module.modulemap', loaded: '{{.*}}DirectMixedDependency-{{.*}}.pcm'

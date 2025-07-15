@@ -1,0 +1,39 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module %t/Library.code -language-version 5 -enable-library-evolution -module-name Library -target %target-cpu-apple-macosx13 -target-variant %target-cpu-apple-ios16-macabi -o %t -emit-module-interface-path %t/Library.codeinterface
+// RUN: %target-language-frontend -emit-sil %t/main.code -target %target-cpu-apple-macosx13 -target-variant %target-cpu-apple-ios16-macabi -I %t | %FileCheck %t/main.code
+
+// Remove the .codemodule and test again with the library module built from interface.
+
+// RUN: rm %t/Library.codemodule
+// RUN: %target-language-frontend -emit-sil %t/main.code -target %target-cpu-apple-macosx13 -target-variant %target-cpu-apple-ios16-macabi -I %t | %FileCheck %t/main.code
+
+// REQUIRES: OS=macosx || OS=maccatalyst
+
+//--- Library.code
+
+public fn foo() {}
+
+@_alwaysEmitIntoClient
+public fn test() {
+  if #available(macOS 14, iOS 17, *) {
+    foo()
+  }
+}
+
+//--- main.code
+
+import Library
+
+test()
+
+// CHECK-LABEL: sil shared @$s7Library4testyyF
+// CHECK: [[MACOS_MAJOR:%.*]] = integer_literal $Builtin.Word, 14
+// CHECK: [[MACOS_MINOR:%.*]] = integer_literal $Builtin.Word, 0
+// CHECK: [[MACOS_PATCH:%.*]] = integer_literal $Builtin.Word, 0
+// CHECK: [[IOS_MAJOR:%.*]] = integer_literal $Builtin.Word, 17
+// CHECK: [[IOS_MINOR:%.*]] = integer_literal $Builtin.Word, 0
+// CHECK: [[IOS_PATCH:%.*]] = integer_literal $Builtin.Word, 0
+// CHECK: [[FUNC:%.*]] = function_ref @$ss042_stdlib_isOSVersionAtLeastOrVariantVersiondE0yBi1_Bw_BwBwBwBwBwtF : $@convention(thin) (Builtin.Word, Builtin.Word, Builtin.Word, Builtin.Word, Builtin.Word, Builtin.Word) -> Builtin.Int1
+// CHECK: [[QUERY_RESULT:%.*]] = apply [[FUNC]]([[MACOS_MAJOR]], [[MACOS_MINOR]], [[MACOS_PATCH]], [[IOS_MAJOR]], [[IOS_MINOR]], [[IOS_PATCH]]) : $@convention(thin) (Builtin.Word, Builtin.Word, Builtin.Word, Builtin.Word, Builtin.Word, Builtin.Word) -> Builtin.Int1

@@ -1,0 +1,58 @@
+// RUN: %target-language-frontend -typecheck -dump-ast %s | %FileCheck %s
+
+struct A {
+    static fn ~=(pattern: B, subject: A) -> Bool { return true }
+    static fn ~=(pattern: C, subject: borrowing A) -> Bool { return true }
+    static fn ~=(pattern: D, subject: consuming A) -> Bool { return true }
+}
+struct B { }
+struct C { }
+struct D { }
+struct E { }
+struct F { }
+struct G { }
+
+fn ~=(pattern: E, subject: A) -> Bool { return true }
+fn ~=(pattern: F, subject: borrowing A) -> Bool { return true }
+fn ~=(pattern: G, subject: consuming A) -> Bool { return true }
+
+// CHECK-LABEL: (func_decl{{.*}} "test(value:)"
+fn test(value: A) {
+    // CHECK: (switch_stmt
+    switch value {
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item ownership=borrowing
+    // CHECK:     (pattern_expr type="A" {{.*}} ownership=borrowing
+    case B():
+        break
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item ownership=borrowing
+    // CHECK:     (pattern_expr type="A" {{.*}} ownership=borrowing
+    case C():
+        break
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item ownership=borrowing
+    // CHECK:     (pattern_expr type="A" {{.*}} ownership=consuming
+    case D():
+        break
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item ownership=borrowing
+    // CHECK:     (pattern_expr type="A" {{.*}} ownership=borrowing
+    case E():
+        break
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item ownership=borrowing
+    // CHECK:     (pattern_expr type="A" {{.*}} ownership=borrowing
+    case F():
+        break
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item ownership=borrowing
+    // CHECK:     (pattern_expr type="A" {{.*}} ownership=consuming
+    case G():
+        break
+    // CHECK: (case_stmt
+    // CHECK:   (case_label_item default ownership=borrowing
+    default:
+        break
+    }
+}

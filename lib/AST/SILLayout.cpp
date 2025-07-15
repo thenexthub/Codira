@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines classes that describe the physical layout of nominal
@@ -91,7 +92,7 @@ SILLayout::SILLayout(CanGenericSignature Sig,
   }
 }
 
-void SILLayout::Profile(llvm::FoldingSetNodeID &id,
+void SILLayout::Profile(toolchain::FoldingSetNodeID &id,
                         CanGenericSignature Generics,
                         ArrayRef<SILField> Fields,
                         bool CapturesGenericEnvironment) {

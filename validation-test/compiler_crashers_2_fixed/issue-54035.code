@@ -1,0 +1,26 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: %target-language-frontend %s -O -whole-module-optimization -emit-sil
+
+// https://github.com/apple/language/issues/54035
+
+class ClassA<T> { }
+protocol ProtocolA { }
+
+class MainClass<H> {
+    init(x: ClassA<H> & ProtocolA) { }
+}
+
+final class ClassB: ClassA<String> { }
+extension ClassB: ProtocolA { }
+
+_ = MainClass(x: ClassB())

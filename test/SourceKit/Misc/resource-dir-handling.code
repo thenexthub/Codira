@@ -1,0 +1,12 @@
+// REQUIRES: OS=macosx
+
+var p: CoolInt
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/custom-resource-dir/macosx/Codira.codemodule)
+
+// RUN: %target-language-frontend -emit-module -module-name Codira -parse-stdlib -target %target-cpu-apple-macosx10.12 %S/Inputs/custom-resource-stdlib.code -o %t/custom-resource-dir/macosx/Codira.codemodule/%target-languagemodule-name
+// RUN: %sourcekitd-test -req=cursor -pos=3:8 %s -- -resource-dir %t/custom-resource-dir -target %target-cpu-apple-macosx10.12 %s | %FileCheck %s
+
+// CHECK: source.lang.code.ref.struct
+// CHECK-NEXT: CoolInt

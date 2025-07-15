@@ -1,0 +1,27 @@
+import CModule
+import CodiraModule
+
+fn foo(
+    _ structDefinedInCModule: StructDefinedInCModule,
+    _ structDefinedInCodiraModule: StructDefinedInCodiraModule,
+    _ structDefinedInSameTarget: StructDefinedInSameTarget
+) {
+    structDefinedInCModule.
+    structDefinedInCodiraModule.
+    structDefinedInSameTarget.
+}
+
+// CHECK-CMODULE: key.name: "intFieldDefinedInCModule"
+
+// CHECK-LANGUAGEMODULE: key.name: "methodDefinedInCodiraModule()"
+
+// CHECK-SAMETARGET: key.name: "methodDefinedInSameTarget()"
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/CodiraModule.codemodule -module-name CodiraModule %S/../Inputs/vfs/CodiraModule/CodiraModule.code
+// RUN: %sourcekitd-test -req=complete -pos=9:27 -vfs-files=%t/VFS/target_file1.code=%s,%t/VFS/target_file2.code=%S/../Inputs/vfs/other_file_in_target.code,%t/VFS/CModule/module.modulemap=%S/../Inputs/vfs/CModule/module.modulemap,%t/VFS/CModule/CModule.h=%S/../Inputs/vfs/CModule/CModule.h,%t/VFS/CodiraModule/CodiraModule.codemodule=%t/CodiraModule.codemodule %t/VFS/target_file1.code -pass-as-sourcetext -- %t/VFS/target_file1.code %t/VFS/target_file2.code -I %t/VFS/CModule -I %t/VFS/CodiraModule -target %target-triple | %FileCheck --check-prefix=CHECK-CMODULE %s
+// RUN: %sourcekitd-test -req=complete -pos=10:31 -vfs-files=%t/VFS/target_file1.code=%s,%t/VFS/target_file2.code=%S/../Inputs/vfs/other_file_in_target.code,%t/VFS/CModule/module.modulemap=%S/../Inputs/vfs/CModule/module.modulemap,%t/VFS/CModule/CModule.h=%S/../Inputs/vfs/CModule/CModule.h,%t/VFS/CodiraModule/CodiraModule.codemodule=%t/CodiraModule.codemodule %t/VFS/target_file1.code -pass-as-sourcetext -- %t/VFS/target_file1.code %t/VFS/target_file2.code -I %t/VFS/CModule -I %t/VFS/CodiraModule -target %target-triple | %FileCheck --check-prefix=CHECK-LANGUAGEMODULE %s
+// RUN: %sourcekitd-test -req=complete -pos=11:30 -vfs-files=%t/VFS/target_file1.code=%s,%t/VFS/target_file2.code=%S/../Inputs/vfs/other_file_in_target.code,%t/VFS/CModule/module.modulemap=%S/../Inputs/vfs/CModule/module.modulemap,%t/VFS/CModule/CModule.h=%S/../Inputs/vfs/CModule/CModule.h,%t/VFS/CodiraModule/CodiraModule.codemodule=%t/CodiraModule.codemodule %t/VFS/target_file1.code -pass-as-sourcetext -- %t/VFS/target_file1.code %t/VFS/target_file2.code -I %t/VFS/CModule -I %t/VFS/CodiraModule -target %target-triple | %FileCheck --check-prefix=CHECK-SAMETARGET %s
+
+// RUN: not %sourcekitd-test -req=complete -vfs-name nope %s -pass-as-sourcetext -dont-print-request -pos=9:27 2>&1 | %FileCheck %s -check-prefix=NONEXISTENT_VFS_ERROR
+// NONEXISTENT_VFS_ERROR: error response (Request Failed): unknown virtual filesystem 'nope'

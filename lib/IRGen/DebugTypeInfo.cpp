@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the data structure that holds all the debug info
@@ -23,13 +24,13 @@
 #include "IRGenModule.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILGlobalVariable.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace irgen;
 
-DebugTypeInfo::DebugTypeInfo(swift::Type Ty, Alignment Align,
+DebugTypeInfo::DebugTypeInfo(language::Type Ty, Alignment Align,
                              bool HasDefaultAlignment, bool IsMetadata,
                              bool IsFixedBuffer,
                              std::optional<uint32_t> NumExtraInhabitants)
@@ -40,7 +41,7 @@ DebugTypeInfo::DebugTypeInfo(swift::Type Ty, Alignment Align,
 }
 
 /// Determine whether this type has an attribute specifying a custom alignment.
-static bool hasDefaultAlignment(swift::Type Ty) {
+static bool hasDefaultAlignment(language::Type Ty) {
   if (auto CanTy = Ty->getCanonicalType())
     if (auto *TyDecl = CanTy.getNominalOrBoundGenericNominal())
       if (TyDecl->getAttrs().getAttribute<AlignmentAttr>()
@@ -49,7 +50,7 @@ static bool hasDefaultAlignment(swift::Type Ty) {
   return true;
 }
 
-DebugTypeInfo DebugTypeInfo::getFromTypeInfo(swift::Type Ty, const TypeInfo &TI,
+DebugTypeInfo DebugTypeInfo::getFromTypeInfo(language::Type Ty, const TypeInfo &TI,
                                              IRGenModule &IGM) {
   std::optional<uint32_t> NumExtraInhabitants;
   if (TI.isFixedSize()) {
@@ -63,7 +64,7 @@ DebugTypeInfo DebugTypeInfo::getFromTypeInfo(swift::Type Ty, const TypeInfo &TI,
                        /* IsFixedBuffer = */ false, NumExtraInhabitants);
 }
 
-DebugTypeInfo DebugTypeInfo::getLocalVariable(VarDecl *Decl, swift::Type Ty,
+DebugTypeInfo DebugTypeInfo::getLocalVariable(VarDecl *Decl, language::Type Ty,
                                               const TypeInfo &Info,
                                               IRGenModule &IGM) {
 
@@ -82,7 +83,7 @@ DebugTypeInfo DebugTypeInfo::getLocalVariable(VarDecl *Decl, swift::Type Ty,
   return getFromTypeInfo(Type, Info, IGM);
 }
 
-DebugTypeInfo DebugTypeInfo::getGlobalMetadata(swift::Type Ty, Size size,
+DebugTypeInfo DebugTypeInfo::getGlobalMetadata(language::Type Ty, Size size,
                                                Alignment align) {
   DebugTypeInfo DbgTy(Ty.getPointer(), align,
                       /* HasDefaultAlignment = */ true,
@@ -92,7 +93,7 @@ DebugTypeInfo DebugTypeInfo::getGlobalMetadata(swift::Type Ty, Size size,
   return DbgTy;
 }
 
-DebugTypeInfo DebugTypeInfo::getTypeMetadata(swift::Type Ty, Size size,
+DebugTypeInfo DebugTypeInfo::getTypeMetadata(language::Type Ty, Size size,
                                              Alignment align) {
   DebugTypeInfo DbgTy(Ty.getPointer(), align,
                       /* HasDefaultAlignment = */ true,
@@ -102,7 +103,7 @@ DebugTypeInfo DebugTypeInfo::getTypeMetadata(swift::Type Ty, Size size,
   return DbgTy;
 }
 
-DebugTypeInfo DebugTypeInfo::getForwardDecl(swift::Type Ty) {
+DebugTypeInfo DebugTypeInfo::getForwardDecl(language::Type Ty) {
   DebugTypeInfo DbgTy(Ty.getPointer());
   DbgTy.IsForwardDecl = true;
   return DbgTy;
@@ -155,7 +156,7 @@ DebugTypeInfo DebugTypeInfo::getObjCClass(ClassDecl *theClass, Size SizeInBytes,
   return DbgTy;
 }
 
-DebugTypeInfo DebugTypeInfo::getErrorResult(swift::Type Ty,
+DebugTypeInfo DebugTypeInfo::getErrorResult(language::Type Ty,
                                             IRGenModule &IGM) {
   auto &TI = IGM.getTypeInfoForUnlowered(Ty);
   DebugTypeInfo DbgTy = getFromTypeInfo(Ty, TI, IGM);
@@ -183,19 +184,19 @@ TypeDecl *DebugTypeInfo::getDecl() const {
   return nullptr;
 }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-LLVM_DUMP_METHOD void DebugTypeInfo::dump() const {
-  llvm::errs() << "[";
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+TOOLCHAIN_DUMP_METHOD void DebugTypeInfo::dump() const {
+  toolchain::errs() << "[";
   if (isForwardDecl())
-    llvm::errs() << "forward ";
-  llvm::errs() << "Alignment " << Align.getValue() << "] ";
+    toolchain::errs() << "forward ";
+  toolchain::errs() << "Alignment " << Align.getValue() << "] ";
   if (auto *Type = getType())
-    Type->dump(llvm::errs());
+    Type->dump(toolchain::errs());
 }
 #endif
 
 std::optional<CompletedDebugTypeInfo>
-CompletedDebugTypeInfo::getFromTypeInfo(swift::Type Ty, const TypeInfo &Info,
+CompletedDebugTypeInfo::getFromTypeInfo(language::Type Ty, const TypeInfo &Info,
                                         IRGenModule &IGM,
                                         std::optional<Size::int_type> Size) {
   if (!Ty || Ty->hasTypeParameter())

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CodeCompletion.h"
@@ -32,7 +33,7 @@
 #include "language/AST/USRGeneration.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Defer.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Frontend/FrontendOptions.h"
@@ -61,18 +62,18 @@
 #include "clang/AST/Decl.h"
 #include "clang/Basic/Module.h"
 #include "clang/Index/USRGeneration.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 #include <string>
 
 using namespace language;
 using namespace ide;
 
-std::string swift::ide::removeCodeCompletionTokens(
+std::string language::ide::removeCodeCompletionTokens(
     StringRef Input, StringRef TokenName, unsigned *CompletionOffset) {
   assert(TokenName.size() >= 1);
 
@@ -202,7 +203,7 @@ class CodeCompletionCallbacksImpl : public CodeCompletionCallbacks,
       return true;
     }
 
-    const auto ty = swift::performTypeResolution(
+    const auto ty = language::performTypeResolution(
         ParsedTypeLoc.getTypeRepr(), P.Context,
         CurDeclContext->getGenericSignatureOfContext(),
         /*SILContext=*/nullptr,
@@ -286,6 +287,7 @@ public:
 
   void completePoundAvailablePlatform() override;
   void completeImportDecl(ImportPath::Builder &Path) override;
+  void completeUsingDecl() override;
   void completeUnresolvedMember(CodeCompletionExpr *E,
                                 SourceLoc DotLoc) override;
   void completeCallArg(CodeCompletionExpr *E) override;
@@ -426,7 +428,7 @@ void CodeCompletionCallbacksImpl::completePostfixExpr(CodeCompletionExpr *E,
 void CodeCompletionCallbacksImpl::completeExprKeyPath(KeyPathExpr *KPE,
                                                       SourceLoc DotLoc) {
   Kind = (!KPE || KPE->isObjC()) ? CompletionKind::KeyPathExprObjC
-                                 : CompletionKind::KeyPathExprSwift;
+                                 : CompletionKind::KeyPathExprCodira;
   ParsedExpr = KPE;
   this->DotLoc = DotLoc;
   CurDeclContext = P.CurDeclContext;
@@ -553,6 +555,11 @@ void CodeCompletionCallbacksImpl::completeImportDecl(
   Path.pop_back();
 }
 
+void CodeCompletionCallbacksImpl::completeUsingDecl() {
+  Kind = CompletionKind::Using;
+  CurDeclContext = P.CurDeclContext;
+}
+
 void CodeCompletionCallbacksImpl::completeUnresolvedMember(CodeCompletionExpr *E,
     SourceLoc DotLoc) {
   Kind = CompletionKind::UnresolvedMember;
@@ -667,7 +674,7 @@ void CodeCompletionCallbacksImpl::completeTypeAttrInheritanceBeginning() {
   Kind = CompletionKind::TypeAttrInheritanceBeginning;
 }
 
-bool swift::ide::isDynamicLookup(Type T) {
+bool language::ide::isDynamicLookup(Type T) {
   return T->getRValueType()->isAnyObject();
 }
 
@@ -839,7 +846,7 @@ static void addDeclKeywords(CodeCompletionResultSink &Sink, DeclContext *DC,
 #define CONTEXTUAL_DECL_ATTR(KW, CLASS, ...) CONTEXTUAL_CASE(KW, CLASS)
 #define CONTEXTUAL_DECL_ATTR_ALIAS(KW, CLASS) CONTEXTUAL_CASE(KW, CLASS)
 #define CONTEXTUAL_SIMPLE_DECL_ATTR(KW, CLASS, ...) CONTEXTUAL_CASE(KW, CLASS)
-#include <swift/AST/DeclAttr.def>
+#include <language/AST/DeclAttr.def>
 #undef CONTEXTUAL_CASE
 }
 
@@ -898,7 +905,7 @@ static void addKeywordsAfterReturn(CodeCompletionResultSink &Sink, DeclContext *
       // Note that `TypeContext` must stay alive for the duration of
       // `~CodeCodeCompletionResultBuilder()`.
       ExpectedTypeContext TypeContext;
-      TypeContext.setPossibleTypes({resultType});
+      TypeContext.setPossibleTypes({DC->mapTypeIntoContext(resultType)});
 
       CodeCompletionResultBuilder Builder(Sink, CodeCompletionResultKind::Literal,
                                           SemanticContextKind::None);
@@ -911,7 +918,7 @@ static void addKeywordsAfterReturn(CodeCompletionResultSink &Sink, DeclContext *
   }
 }
 
-void swift::ide::addExprKeywords(CodeCompletionResultSink &Sink,
+void language::ide::addExprKeywords(CodeCompletionResultSink &Sink,
                                  DeclContext *DC) {
   // Expression is invalid at top-level of non-script files.
   CodeCompletionFlair flair;
@@ -928,7 +935,7 @@ void swift::ide::addExprKeywords(CodeCompletionResultSink &Sink,
   addKeyword(Sink, "copy", CodeCompletionKeywordKind::None, "", flair);
 }
 
-void swift::ide::addSuperKeyword(CodeCompletionResultSink &Sink,
+void language::ide::addSuperKeyword(CodeCompletionResultSink &Sink,
                                  DeclContext *DC) {
   if (!DC)
     return;
@@ -980,9 +987,9 @@ addClosureSignatureKeywordsIfApplicable(CodeCompletionResultSink &Sink,
 void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
                                               bool MaybeFuncBody) {
   auto addEffectsSpecifierKeywords = [&] {
-    if (!llvm::is_contained(ParsedKeywords, "async"))
+    if (!toolchain::is_contained(ParsedKeywords, "async"))
       addKeyword(Sink, "async", CodeCompletionKeywordKind::None);
-    if (!llvm::is_contained(ParsedKeywords, "throws"))
+    if (!toolchain::is_contained(ParsedKeywords, "throws"))
       addKeyword(Sink, "throws", CodeCompletionKeywordKind::kw_throws);
   };
 
@@ -993,13 +1000,14 @@ void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
   case CompletionKind::AttributeBegin:
   case CompletionKind::PoundAvailablePlatform:
   case CompletionKind::Import:
+  case CompletionKind::Using:
   case CompletionKind::UnresolvedMember:
   case CompletionKind::AfterPoundExpr:
   case CompletionKind::AfterPoundDirective:
   case CompletionKind::PlatformConditon:
   case CompletionKind::GenericRequirement:
   case CompletionKind::KeyPathExprObjC:
-  case CompletionKind::KeyPathExprSwift:
+  case CompletionKind::KeyPathExprCodira:
   case CompletionKind::PrecedenceGroup:
   case CompletionKind::StmtLabel:
   case CompletionKind::TypeAttrBeginning:
@@ -1028,14 +1036,14 @@ void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
       break;
 
     MaybeFuncBody = true;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   }
   case CompletionKind::StmtOrExpr:
     addDeclKeywords(Sink, CurDeclContext, Context.LangOpts);
     addStmtKeywords(Sink, CurDeclContext, MaybeFuncBody);
     addClosureSignatureKeywordsIfApplicable(Sink, CurDeclContext);
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::PostfixExprBeginning:
     // We need to add 'let' and 'var' keywords in expression position here as
     // we initially parse patterns as expressions.
@@ -1043,10 +1051,10 @@ void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
     // only enable 'let' and 'var' in that case.
     addLetVarKeywords(Sink);
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::ReturnStmtExpr:
     addKeywordsAfterReturn(Sink, CurDeclContext);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::ThenStmtExpr:
   case CompletionKind::YieldStmtExpr:
   case CompletionKind::ForEachSequence:
@@ -1092,34 +1100,34 @@ void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
     addKeyword(Sink, "borrowing", CodeCompletionKeywordKind::None);
     addKeyword(Sink, "consuming", CodeCompletionKeywordKind::None);
     addKeyword(Sink, "isolated", CodeCompletionKeywordKind::None);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::TypeDeclResultBeginning:
     addKeyword(Sink, "sending", CodeCompletionKeywordKind::None);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::TypeBeginning:
     // Not technically allowed after '->', since you need to write in parens.
     if (Kind != CompletionKind::TypeDeclResultBeginning)
       addKeyword(Sink, "repeat", CodeCompletionKeywordKind::None);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::TypeSimpleOrComposition:
     addKeyword(Sink, "some", CodeCompletionKeywordKind::None);
     addKeyword(Sink, "any", CodeCompletionKeywordKind::None);
     addKeyword(Sink, "each", CodeCompletionKeywordKind::None);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case CompletionKind::TypeSimpleBeginning:
     addAnyTypeKeyword(Sink, CurDeclContext->getASTContext().TheAnyType);
     break;
 
   case CompletionKind::NominalMemberBeginning: {
-    bool HasDeclIntroducer = llvm::find_if(ParsedKeywords,
+    bool HasDeclIntroducer = toolchain::find_if(ParsedKeywords,
                                            [this](const StringRef kw) {
-      return llvm::StringSwitch<bool>(kw)
+      return toolchain::StringSwitch<bool>(kw)
         .Case("associatedtype", true)
         .Case("class", !CurDeclContext || !isa<ClassDecl>(CurDeclContext))
         .Case("deinit", true)
         .Case("enum", true)
         .Case("extension", true)
-        .Case("func", true)
+        .Case("fn", true)
         .Case("import", true)
         .Case("init", true)
         .Case("let", true)
@@ -1143,9 +1151,9 @@ void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
     addKeyword(Sink, "if", CodeCompletionKeywordKind::kw_if);
     break;
   case CompletionKind::ForEachPatternBeginning:
-    if (!llvm::is_contained(ParsedKeywords, "try"))
+    if (!toolchain::is_contained(ParsedKeywords, "try"))
       addKeyword(Sink, "try", CodeCompletionKeywordKind::kw_try);
-    if (!llvm::is_contained(ParsedKeywords, "await"))
+    if (!toolchain::is_contained(ParsedKeywords, "await"))
       addKeyword(Sink, "await", CodeCompletionKeywordKind::None);
     addKeyword(Sink, "var", CodeCompletionKeywordKind::kw_var);
     addKeyword(Sink, "case", CodeCompletionKeywordKind::kw_case);
@@ -1158,7 +1166,7 @@ void CodeCompletionCallbacksImpl::addKeywords(CodeCompletionResultSink &Sink,
 static void addPoundDirectives(CodeCompletionResultSink &Sink) {
   auto addWithName =
       [&](StringRef name, CodeCompletionKeywordKind K,
-          llvm::function_ref<void(CodeCompletionResultBuilder &)> consumer =
+          toolchain::function_ref<void(CodeCompletionResultBuilder &)> consumer =
               nullptr) {
         CodeCompletionResultBuilder Builder(Sink,
                                             CodeCompletionResultKind::Keyword,
@@ -1182,7 +1190,7 @@ static void addPoundDirectives(CodeCompletionResultSink &Sink) {
     Builder.addRightParen();
   });
 
-#ifndef SWIFT_BUILD_SWIFT_SYNTAX
+#ifndef LANGUAGE_BUILD_LANGUAGE_SYNTAX
   addWithName("warning", CodeCompletionKeywordKind::pound_warning,
               [&] (CodeCompletionResultBuilder &Builder) {
     Builder.addLeftParen();
@@ -1219,7 +1227,7 @@ static void addPoundDirectives(CodeCompletionResultSink &Sink) {
 static void addPlatformConditions(CodeCompletionResultSink &Sink) {
   auto addWithName =
       [&](StringRef Name,
-          llvm::function_ref<void(CodeCompletionResultBuilder & Builder)>
+          toolchain::function_ref<void(CodeCompletionResultBuilder & Builder)>
               consumer) {
         CodeCompletionResultBuilder Builder(
             Sink, CodeCompletionResultKind::Pattern,
@@ -1248,11 +1256,11 @@ static void addPlatformConditions(CodeCompletionResultSink &Sink) {
   addWithName("targetEnvironment", [](CodeCompletionResultBuilder &Builder) {
     Builder.addTextChunk("macCatalyst");
   });
-  addWithName("swift", [](CodeCompletionResultBuilder &Builder) {
+  addWithName("language", [](CodeCompletionResultBuilder &Builder) {
     Builder.addTextChunk(">=");
     Builder.addSimpleNamedParameter("version");
   });
-  addWithName("swift", [](CodeCompletionResultBuilder &Builder) {
+  addWithName("language", [](CodeCompletionResultBuilder &Builder) {
     Builder.addTextChunk("<");
     Builder.addSimpleNamedParameter("version");
   });
@@ -1289,7 +1297,7 @@ static void addConditionalCompilationFlags(ASTContext &Ctx,
 /// If \p Sink is passed, the pointer of the each result may be replaced with a
 /// pointer to the new item allocated in \p Sink.
 /// If \p Sink is nullptr, the pointee of each result may be modified in place.
-void swift::ide::postProcessCompletionResults(
+void language::ide::postProcessCompletionResults(
     MutableArrayRef<CodeCompletionResult *> results, CompletionKind Kind,
     const DeclContext *DC, CodeCompletionResultSink *Sink) {
   for (CodeCompletionResult *&result : results) {
@@ -1334,12 +1342,12 @@ void swift::ide::postProcessCompletionResults(
   }
 }
 
-void swift::ide::collectCompletionResults(
+void language::ide::collectCompletionResults(
     CodeCompletionContext &CompletionContext, CompletionLookup &Lookup,
     DeclContext *DC, const ExpectedTypeContext &TypeContext,
     bool CanCurrDeclContextHandleAsync) {
   auto &SF = *DC->getParentSourceFile();
-  llvm::SmallPtrSet<Identifier, 8> seenModuleNames;
+  toolchain::SmallPtrSet<Identifier, 8> seenModuleNames;
   std::vector<RequestedCachedModule> RequestedModules;
 
   SmallPtrSet<ModuleDecl *, 4> explictlyImportedModules;
@@ -1360,7 +1368,7 @@ void swift::ide::collectCompletionResults(
   }
 
   for (auto &Request: Lookup.RequestedCachedResults) {
-    llvm::DenseSet<CodeCompletionCache::Key> ImportsSeen;
+    toolchain::DenseSet<CodeCompletionCache::Key> ImportsSeen;
     auto handleImport = [&](ImportedModule Import) {
       ModuleDecl *TheModule = Import.importedModule;
       ImportPath::Access Path = Import.accessPath;
@@ -1383,7 +1391,7 @@ void swift::ide::collectCompletionResults(
       // ModuleFilename can be empty if something strange happened during
       // module loading, for example, the module file is corrupted.
       if (!ModuleFilename.empty()) {
-        llvm::SmallVector<std::string, 2> spiGroups;
+        toolchain::SmallVector<std::string, 2> spiGroups;
         for (auto Import : SF.getImports()) {
           if (Import.module.importedModule == TheModule) {
             for (auto SpiGroup : Import.spiGroups) {
@@ -1392,7 +1400,7 @@ void swift::ide::collectCompletionResults(
             break;
           }
         }
-        llvm::sort(spiGroups);
+        toolchain::sort(spiGroups);
         CodeCompletionCache::Key K{
             ModuleFilename.str(),
             std::string(TheModule->getName()),
@@ -1409,8 +1417,8 @@ void swift::ide::collectCompletionResults(
             CompletionContext.addCallWithNoDefaultArgs(),
             CompletionContext.getAnnotateResult()};
 
-        using PairType = llvm::DenseSet<swift::ide::CodeCompletionCache::Key,
-            llvm::DenseMapInfo<CodeCompletionCache::Key>>::iterator;
+        using PairType = toolchain::DenseSet<language::ide::CodeCompletionCache::Key,
+            toolchain::DenseMapInfo<CodeCompletionCache::Key>>::iterator;
         std::pair<PairType, bool> Result = ImportsSeen.insert(K);
         if (!Result.second)
           return; // already handled.
@@ -1463,7 +1471,7 @@ void swift::ide::collectCompletionResults(
 
 void CodeCompletionCallbacksImpl::typeCheckWithLookup(
     TypeCheckCompletionCallback &Lookup, SourceLoc CompletionLoc) {
-  llvm::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
+  toolchain::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
       Context.CompletionCallback, &Lookup);
   if (AttrWithCompletion) {
     /// The attribute might not be attached to the AST if there is no var
@@ -1498,7 +1506,7 @@ void CodeCompletionCallbacksImpl::typeCheckWithLookup(
   // tooling in general though.
   if (!Lookup.gotCallback()) {
     if (Context.TypeCheckerOpts.DebugConstraintSolver) {
-      llvm::errs() << "--- Fallback typecheck for code completion ---\n";
+      toolchain::errs() << "--- Fallback typecheck for code completion ---\n";
     }
     Lookup.fallbackTypeCheck(CurDeclContext);
   }
@@ -1530,7 +1538,7 @@ void CodeCompletionCallbacksImpl::postfixCompletion(SourceLoc CompletionLoc,
       // Modify the call that has the code completion expression as an
       // additional argument, restore the original arguments afterwards.
       auto OriginalArgs = AE->getArgs();
-      llvm::SmallVector<Argument> ArgsWithCC(OriginalArgs->begin(),
+      toolchain::SmallVector<Argument> ArgsWithCC(OriginalArgs->begin(),
                                              OriginalArgs->end());
       auto CC = new (Ctx) CodeCompletionExpr(CodeCompleteTokenExpr->getLoc());
       ArgsWithCC.emplace_back(SourceLoc(), Identifier(), CC);
@@ -1540,12 +1548,12 @@ void CodeCompletionCallbacksImpl::postfixCompletion(SourceLoc CompletionLoc,
                                OriginalArgs->getFirstTrailingClosureIndex(),
                                OriginalArgs->isImplicit());
       AE->setArgs(ArgList);
-      SWIFT_DEFER { AE->setArgs(OriginalArgs); };
+      LANGUAGE_DEFER { AE->setArgs(OriginalArgs); };
 
       // Perform argument label completions on the newly created call.
       ArgumentTypeCheckCompletionCallback Lookup(CC, CurDeclContext);
 
-      llvm::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
+      toolchain::SaveAndRestore<TypeCheckCompletionCallback *> CompletionCollector(
           Context.CompletionCallback, &Lookup);
       typeCheckContextAt(TypeCheckASTNodeAtLocContext::node(CurDeclContext, AE),
                          CompletionLoc);
@@ -1682,7 +1690,7 @@ void CodeCompletionCallbacksImpl::doneParsing(SourceFile *SrcFile) {
   case CompletionKind::UnresolvedMember:
     unresolvedMemberCompletion(CompletionLoc, MaybeFuncBody);
     return;
-  case CompletionKind::KeyPathExprSwift:
+  case CompletionKind::KeyPathExprCodira:
     keyPathExprCompletion(CompletionLoc, MaybeFuncBody);
     return;
   case CompletionKind::CallArg:
@@ -1759,7 +1767,7 @@ void CodeCompletionCallbacksImpl::doneParsing(SourceFile *SrcFile) {
   case CompletionKind::None:
   case CompletionKind::DotExpr:
   case CompletionKind::UnresolvedMember:
-  case CompletionKind::KeyPathExprSwift:
+  case CompletionKind::KeyPathExprCodira:
   case CompletionKind::CallArg:
   case CompletionKind::StmtOrExpr:
   case CompletionKind::ForEachSequence:
@@ -1771,7 +1779,7 @@ void CodeCompletionCallbacksImpl::doneParsing(SourceFile *SrcFile) {
   case CompletionKind::ReturnStmtExpr:
   case CompletionKind::YieldStmtExpr:
   case CompletionKind::ThenStmtExpr:
-    llvm_unreachable("should be already handled");
+    toolchain_unreachable("should be already handled");
     return;
 
   case CompletionKind::KeyPathExprObjC: {
@@ -1837,7 +1845,7 @@ void CodeCompletionCallbacksImpl::doneParsing(SourceFile *SrcFile) {
       switch (*AttTargetDK) {
       case DeclKind::Var:
         ExpectedCustomAttributeKinds |= CustomAttributeKind::GlobalActor;
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case DeclKind::Param:
         ExpectedCustomAttributeKinds |= CustomAttributeKind::ResultBuilder;
         ExpectedCustomAttributeKinds |= CustomAttributeKind::PropertyWrapper;
@@ -1918,7 +1926,10 @@ void CodeCompletionCallbacksImpl::doneParsing(SourceFile *SrcFile) {
       Lookup.addImportModuleNames();
     break;
   }
-
+  case CompletionKind::Using: {
+    Lookup.addUsingSpecifiers();
+    break;
+  }
   case CompletionKind::AfterPoundDirective: {
     addPoundDirectives(CompletionContext.getResultSink());
 
@@ -2005,13 +2016,13 @@ public:
 } // end anonymous namespace
 
 IDEInspectionCallbacksFactory *
-swift::ide::makeCodeCompletionCallbacksFactory(
+language::ide::makeCodeCompletionCallbacksFactory(
     CodeCompletionContext &CompletionContext,
     CodeCompletionConsumer &Consumer) {
   return new CodeCompletionCallbacksFactoryImpl(CompletionContext, Consumer);
 }
 
-void swift::ide::lookupCodeCompletionResultsFromModule(
+void language::ide::lookupCodeCompletionResultsFromModule(
     CodeCompletionResultSink &targetSink, const ModuleDecl *module,
     ArrayRef<std::string> accessPath, bool needLeadingDot,
     const SourceFile *SF) {

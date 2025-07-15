@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Wraps .swiftmodule files inside an object file container so they
+// Wraps .codemodule files inside an object file container so they
 // can be passed to the linker directly. Mostly useful for platforms
 // where the debug info typically stays in the executable.
 // (ie. ELF-based platforms).
@@ -21,7 +22,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/DiagnosticsFrontend.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/Option/Options.h"
@@ -30,25 +31,25 @@
 #include "language/SIL/TypeLowering.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/Bitstream/BitstreamReader.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/VirtualOutputBackends.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/TargetSelect.h"
+#include "toolchain/Support/VirtualOutputBackends.h"
 
-using namespace llvm::opt;
+using namespace toolchain::opt;
 using namespace language;
 
 class ModuleWrapInvocation {
 private:
   std::string MainExecutablePath;
   std::string OutputFilename = "-";
-  llvm::Triple TargetTriple;
+  toolchain::Triple TargetTriple;
   std::vector<std::string> InputFilenames;
   bool UseSharedResourceFolder = true;
   bool EnableObjCInterop = true;
@@ -66,19 +67,19 @@ public:
   const std::string &getOutputFilename() { return OutputFilename; }
 
   const std::vector<std::string> &getInputFilenames() { return InputFilenames; }
-  llvm::Triple &getTargetTriple() { return TargetTriple; }
+  toolchain::Triple &getTargetTriple() { return TargetTriple; }
 
   bool useSharedResourceFolder() { return UseSharedResourceFolder; }
   bool enableObjCInterop() { return EnableObjCInterop; }
 
-  int parseArgs(llvm::ArrayRef<const char *> Args, DiagnosticEngine &Diags) {
+  int parseArgs(toolchain::ArrayRef<const char *> Args, DiagnosticEngine &Diags) {
     using namespace options;
 
-    // Parse frontend command line options using Swift's option table.
-    std::unique_ptr<llvm::opt::OptTable> Table = createSwiftOptTable();
+    // Parse frontend command line options using Codira's option table.
+    std::unique_ptr<toolchain::opt::OptTable> Table = createCodiraOptTable();
     unsigned MissingIndex;
     unsigned MissingCount;
-    llvm::opt::InputArgList ParsedArgs =
+    toolchain::opt::InputArgList ParsedArgs =
       Table->ParseArgs(Args, MissingIndex, MissingCount,
                        ModuleWrapOption);
     if (MissingCount) {
@@ -88,9 +89,9 @@ public:
     }
 
     if (const Arg *A = ParsedArgs.getLastArg(options::OPT_target))
-      TargetTriple = llvm::Triple(llvm::Triple::normalize(A->getValue()));
+      TargetTriple = toolchain::Triple(toolchain::Triple::normalize(A->getValue()));
     else
-      TargetTriple = llvm::Triple(llvm::sys::getDefaultTargetTriple());
+      TargetTriple = toolchain::Triple(toolchain::sys::getDefaultTargetTriple());
 
     if (ParsedArgs.hasArg(OPT_UNKNOWN)) {
       for (const Arg *A : ParsedArgs.filtered(OPT_UNKNOWN)) {
@@ -102,9 +103,9 @@ public:
 
     if (ParsedArgs.getLastArg(OPT_help)) {
       std::string ExecutableName =
-          llvm::sys::path::stem(MainExecutablePath).str();
-      Table->printHelp(llvm::outs(), ExecutableName.c_str(),
-                       "Swift Module Wrapper", options::ModuleWrapOption, 0,
+          toolchain::sys::path::stem(MainExecutablePath).str();
+      Table->printHelp(toolchain::outs(), ExecutableName.c_str(),
+                       "Codira Module Wrapper", options::ModuleWrapOption, 0,
                        /*ShowAllAliases*/false);
       return 1;
     }
@@ -146,7 +147,7 @@ int modulewrap_main(ArrayRef<const char *> Args, const char *Argv0,
 
   ModuleWrapInvocation Invocation;
   std::string MainExecutablePath =
-      llvm::sys::fs::getMainExecutable(Argv0, MainAddr);
+      toolchain::sys::fs::getMainExecutable(Argv0, MainAddr);
   Invocation.setMainExecutablePath(MainExecutablePath);
 
   // Parse arguments.
@@ -161,14 +162,14 @@ int modulewrap_main(ArrayRef<const char *> Args, const char *Argv0,
   }
 
   StringRef Filename = Invocation.getFilenameOfFirstInput();
-  auto ErrOrBuf = llvm::MemoryBuffer::getFile(Filename);
+  auto ErrOrBuf = toolchain::MemoryBuffer::getFile(Filename);
   if (!ErrOrBuf) {
     Instance.getDiags().diagnose(
         SourceLoc(), diag::error_no_such_file_or_directory, Filename);
     return 1;
   }
 
-  // Superficially verify that the input is a swift module file.
+  // Superficially verify that the input is a language module file.
   if (!serialization::isSerializedAST(ErrOrBuf.get()->getBuffer())) {
     Instance.getDiags().diagnose(SourceLoc(), diag::error_parse_input_file,
                                  Filename, "signature mismatch");
@@ -197,7 +198,7 @@ int modulewrap_main(ArrayRef<const char *> Args, const char *Argv0,
   ASTContext &ASTCtx = *ASTContext::get(
       LangOpts, TypeCheckOpts, SILOpts, SearchPathOpts, ClangImporterOpts,
       SymbolGraphOpts, CASOpts, SerializationOpts, SrcMgr, Instance.getDiags(),
-      llvm::makeIntrusiveRefCnt<llvm::vfs::OnDiskOutputBackend>());
+      toolchain::makeIntrusiveRefCnt<toolchain::vfs::OnDiskOutputBackend>());
   registerParseRequestFunctions(ASTCtx.evaluator);
   registerTypeCheckerRequestFunctions(ASTCtx.evaluator);
 
@@ -206,11 +207,11 @@ int modulewrap_main(ArrayRef<const char *> Args, const char *Argv0,
                                                true),
                          true);
   ModuleDecl *M =
-      ModuleDecl::createEmpty(ASTCtx.getIdentifier("swiftmodule"), ASTCtx);
+      ModuleDecl::createEmpty(ASTCtx.getIdentifier("languagemodule"), ASTCtx);
   std::unique_ptr<Lowering::TypeConverter> TC(
       new Lowering::TypeConverter(*M, ASTCtx.SILOpts.EnableSILOpaqueValues));
   std::unique_ptr<SILModule> SM = SILModule::createEmptyModule(M, *TC, SILOpts);
-  createSwiftModuleObjectFile(*SM, (*ErrOrBuf)->getBuffer(),
+  createCodiraModuleObjectFile(*SM, (*ErrOrBuf)->getBuffer(),
                               Invocation.getOutputFilename());
   return 0;
 }

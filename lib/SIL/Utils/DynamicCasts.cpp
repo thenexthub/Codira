@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/DynamicCasts.h"
@@ -42,7 +43,7 @@ mayBridgeToObjectiveC(ModuleDecl *M, CanType T) {
 }
 
 static bool
-mustBridgeToSwiftValueBox(ModuleDecl *M, CanType T) {
+mustBridgeToCodiraValueBox(ModuleDecl *M, CanType T) {
   // If the target type is either an unknown dynamic type, or statically
   // known to bridge, the cast may succeed.
   if (T->hasArchetype())
@@ -236,7 +237,7 @@ static CanType getHashableExistentialType(ModuleDecl *M) {
 
 // Distinguish between class-bound types that might be AnyObject vs other
 // class-bound types. Only types that are potentially AnyObject might have a
-// transparent runtime type wrapper like __SwiftValue. This must look through
+// transparent runtime type wrapper like __CodiraValue. This must look through
 // all optional types because dynamic casting sees through them.
 static bool isPotentiallyAnyObject(Type type) {
   Type unwrappedTy = type->lookThroughAllOptionalTypes();
@@ -283,7 +284,7 @@ static bool isPotentiallyAnyObject(Type type) {
 //           Object may be any type that can hold an object, including
 //           non-class-bound archetypes and existentials.
 //
-//   (B) one type is transparently wrapped in __SwiftValue, while the other is
+//   (B) one type is transparently wrapped in __CodiraValue, while the other is
 //       unwrapped. Given:
 //
 //     class C : Hashable {}
@@ -291,18 +292,18 @@ static bool isPotentiallyAnyObject(Type type) {
 //
 //     (B1) When the substituted source type is AnyHashable and the
 //          substituted destination type is AnyObject, the cast
-//          instantiates an owned __SwiftValue:
+//          instantiates an owned __CodiraValue:
 //
-//          // instantiates __SwiftValue
+//          // instantiates __CodiraValue
 //          let b = a as! AnyObject
 //        or
 //          let b = a as! T where T.self == AnyObject.self
 //
 //     (B2) When the substituted source type is Any or AnyObject, and the
 //          substituted destination type is not Any or AnyObject, the cast
-//          releases the owned __SwiftValue:
+//          releases the owned __CodiraValue:
 //
-//          let c = b as! C // releases __SwiftValue
+//          let c = b as! C // releases __CodiraValue
 //
 // After unwrapping Optional, the type may fall into one of
 // the following categories that are relevant for cast ownership:
@@ -314,7 +315,7 @@ static bool isPotentiallyAnyObject(Type type) {
 // - excludes any type that are potentially AnyObject after substitution
 // - the value is a single reference
 // - the single reference is "known unwrapped". It never transparently wraps the
-//   underlying dynamically typed value in another type, such as __SwiftValue
+//   underlying dynamically typed value in another type, such as __CodiraValue
 // - casting directly forwards the reference
 //
 // Potentially bridged values:
@@ -330,16 +331,16 @@ static bool isPotentiallyAnyObject(Type type) {
 // - the immediately erased value may itself be an existential
 //   (an AnyObject existential can be wrapped within an Any existential!)
 // - the underlying dynamically typed value may be transparently wrapped in
-//   __SwiftValue
+//   __CodiraValue
 //
 // These type categories are disjoint, except that a non-class archetype is both
 // potentially bridged and potentially Any or AnyObject after substitution.
 //
 // TODO: In the future, when the runtime stops wrapping nontrivial types inside
-// __SwiftValue, cases (B1) and (B2) above will no longer apply. At that time,
+// __CodiraValue, cases (B1) and (B2) above will no longer apply. At that time,
 // expand ownership preserving cast types to AnyObject. Then remove the
 // isPotentiallyAnyObject() check.
-bool swift::doesCastPreserveOwnershipForTypes(SILModule &module,
+bool language::doesCastPreserveOwnershipForTypes(SILModule &module,
                                               CanType sourceType,
                                               CanType targetType) {
   if (!canIRGenUseScalarCheckedCastInstructions(module, sourceType, targetType))
@@ -351,7 +352,7 @@ bool swift::doesCastPreserveOwnershipForTypes(SILModule &module,
 
   // (B1) wrapping
   if (isPotentiallyAnyObject(targetType)) {
-    // A class type cannot be wrapped in __SwiftValue, so casting
+    // A class type cannot be wrapped in __CodiraValue, so casting
     // from a class to AnyObject preserves ownership.
     return
       sourceType->mayHaveSuperclass() || sourceType->isClassExistentialType();
@@ -380,7 +381,7 @@ bool SILDynamicCastInst::isRCIdentityPreserving() const {
 }
 
 /// Check if a given type conforms to _BridgedToObjectiveC protocol.
-bool swift::isObjectiveCBridgeable(CanType Ty) {
+bool language::isObjectiveCBridgeable(CanType Ty) {
   // Retrieve the _BridgedToObjectiveC protocol.
   auto bridgedProto =
       Ty->getASTContext().getProtocol(KnownProtocolKind::ObjectiveCBridgeable);
@@ -394,7 +395,7 @@ bool swift::isObjectiveCBridgeable(CanType Ty) {
 }
 
 /// Check if a given type conforms to _Error protocol.
-bool swift::isError(CanType Ty) {
+bool language::isError(CanType Ty) {
   // Retrieve the Error protocol.
   auto errorTypeProto =
       Ty->getASTContext().getProtocol(KnownProtocolKind::Error);
@@ -443,7 +444,7 @@ classifyClassHierarchyCast(CanType source, CanType target) {
   return DynamicCastFeasibility::WillFail;
 }
 
-CanType swift::getNSBridgedClassOfCFClass(CanType type) {
+CanType language::getNSBridgedClassOfCFClass(CanType type) {
   if (auto classDecl = type->getClassOrBoundGenericClass()) {
     if (classDecl->getForeignClassKind() == ClassDecl::ForeignKind::CFType) {
       if (auto bridgedAttr =
@@ -475,7 +476,7 @@ static bool isCFBridgingConversion(CanType sourceFormalType,
 
 /// Try to classify the dynamic-cast relationship between two types.
 DynamicCastFeasibility
-swift::classifyDynamicCast(SILFunction *function,
+language::classifyDynamicCast(SILFunction *function,
                            CanType source,
                            CanType target,
                            bool isSourceTypeExact,
@@ -488,7 +489,7 @@ swift::classifyDynamicCast(SILFunction *function,
 
   auto sourceObject = source.getOptionalObjectType();
   auto targetObject = target.getOptionalObjectType();
-  ModuleDecl *M = function->getModule().getSwiftModule();
+  ModuleDecl *M = function->getModule().getCodiraModule();
 
   // A common level of optionality doesn't affect the feasibility,
   // except that we can't fold things to failure because nil inhabits
@@ -744,7 +745,10 @@ swift::classifyDynamicCast(SILFunction *function,
           if (targetClass->isSuperclassOf(sourceClass))
             return DynamicCastFeasibility::WillSucceed;
 
-          return DynamicCastFeasibility::WillFail;
+          // In case of ObjectiveC classes, the runtime type can differ from its
+          // declared type. Therefore a cast between (compile-time) unrelated
+          // classes may succeed at runtime.
+          return DynamicCastFeasibility::MaySucceed;
         }
       }
 
@@ -752,6 +756,12 @@ swift::classifyDynamicCast(SILFunction *function,
       auto hierarchyResult = classifyClassHierarchyCast(source, target);
       if (hierarchyResult != DynamicCastFeasibility::WillFail)
         return hierarchyResult;
+
+      // In case of ObjectiveC classes, the runtime type can differ from its
+      // declared type. Therefore a cast between (compile-time) unrelated
+      // classes may succeed at runtime.
+      if (sourceClass->hasClangNode())
+        return DynamicCastFeasibility::MaySucceed;
 
       // As a backup, consider whether either type is a CF class type
       // with an NS bridged equivalent.
@@ -770,12 +780,12 @@ swift::classifyDynamicCast(SILFunction *function,
     }
 
     // Casts from a class into a non-class can never succeed if the target must
-    // be bridged to a SwiftValueBox. You would need an AnyObject source for
+    // be bridged to a CodiraValueBox. You would need an AnyObject source for
     // that.
     if (!target.isAnyExistentialType() &&
         !target.getClassOrBoundGenericClass() &&
         !isa<ArchetypeType>(target) &&
-        mustBridgeToSwiftValueBox(M, target)) {
+        mustBridgeToCodiraValueBox(M, target)) {
       assert((target.getEnumOrBoundGenericEnum() ||
               target.getStructOrBoundGenericStruct() ||
               isa<TupleType>(target) ||
@@ -815,7 +825,7 @@ swift::classifyDynamicCast(SILFunction *function,
       !source.isAnyExistentialType() &&
       !source.getClassOrBoundGenericClass() &&
       !isa<ArchetypeType>(source) &&
-      mustBridgeToSwiftValueBox(M, source)) {
+      mustBridgeToCodiraValueBox(M, source)) {
       assert((source.getEnumOrBoundGenericEnum() ||
               source.getStructOrBoundGenericStruct() ||
               isa<TupleType>(source) ||
@@ -830,7 +840,7 @@ swift::classifyDynamicCast(SILFunction *function,
   if (source->isBridgeableObjectType() && mayBridgeToObjectiveC(M, target)) {
     // Try to get the ObjC type which is bridged to target type.
     assert(!target.isAnyExistentialType());
-    // ObjC-to-Swift casts may fail. And in most cases it is impossible to
+    // ObjC-to-Codira casts may fail. And in most cases it is impossible to
     // statically predict the outcome. So, let's be conservative here.
     return DynamicCastFeasibility::MaySucceed;
   }
@@ -889,7 +899,7 @@ swift::classifyDynamicCast(SILFunction *function,
   return DynamicCastFeasibility::WillFail;
 }
 
-bool swift::matchesActorIsolation(ProtocolConformanceRef conformance, SILFunction *inFunction) {
+bool language::matchesActorIsolation(ProtocolConformanceRef conformance, SILFunction *inFunction) {
   return !conformance.forEachIsolatedConformance([&](ProtocolConformanceRef isolatedConf) -> bool {
     if (!isolatedConf.isConcrete())
       return false;
@@ -1232,17 +1242,17 @@ namespace {
 } // end anonymous namespace
 
 SILValue
-swift::emitSuccessfulScalarUnconditionalCast(SILBuilder &B, SILLocation loc,
+language::emitSuccessfulScalarUnconditionalCast(SILBuilder &B, SILLocation loc,
                                              SILDynamicCastInst dynamicCast) {
   return emitSuccessfulScalarUnconditionalCast(
-      B, B.getModule().getSwiftModule(), loc, dynamicCast.getSource(),
+      B, B.getModule().getCodiraModule(), loc, dynamicCast.getSource(),
       dynamicCast.getTargetLoweredType(), dynamicCast.getSourceFormalType(),
       dynamicCast.getTargetFormalType(), dynamicCast.getInstruction());
 }
 
 /// Emit an unconditional scalar cast that's known to succeed.
 SILValue
-swift::emitSuccessfulScalarUnconditionalCast(SILBuilder &B, ModuleDecl *M,
+language::emitSuccessfulScalarUnconditionalCast(SILBuilder &B, ModuleDecl *M,
                                              SILLocation loc, SILValue value,
                                              SILType targetLoweredType,
                                              CanType sourceFormalType,
@@ -1258,7 +1268,7 @@ swift::emitSuccessfulScalarUnconditionalCast(SILBuilder &B, ModuleDecl *M,
       // Indicate that the existing cast cannot be further improved.
       return SILValue();
 
-    llvm_unreachable("Casts to/from existentials are not supported yet");
+    toolchain_unreachable("Casts to/from existentials are not supported yet");
   }
 
   // Fast path changes that don't change the type.
@@ -1273,15 +1283,15 @@ swift::emitSuccessfulScalarUnconditionalCast(SILBuilder &B, ModuleDecl *M,
   return result.Value;
 }
 
-bool swift::emitSuccessfulIndirectUnconditionalCast(
+bool language::emitSuccessfulIndirectUnconditionalCast(
     SILBuilder &B, SILLocation loc, SILDynamicCastInst dynamicCast) {
   return emitSuccessfulIndirectUnconditionalCast(
-      B, B.getModule().getSwiftModule(), loc, dynamicCast.getSource(),
+      B, B.getModule().getCodiraModule(), loc, dynamicCast.getSource(),
       dynamicCast.getSourceFormalType(), dynamicCast.getDest(),
       dynamicCast.getTargetFormalType(), dynamicCast.getInstruction());
 }
 
-bool swift::emitSuccessfulIndirectUnconditionalCast(
+bool language::emitSuccessfulIndirectUnconditionalCast(
     SILBuilder &B, ModuleDecl *M, SILLocation loc, SILValue src,
     CanType sourceFormalType, SILValue dest, CanType targetFormalType,
     SILInstruction *existingCast) {
@@ -1316,7 +1326,7 @@ bool swift::emitSuccessfulIndirectUnconditionalCast(
     }
 
     B.createUnconditionalCheckedCastAddr(loc,
-                                         CastingIsolatedConformances::Allow,
+                                         CheckedCastInstOptions(),
                                          src, sourceFormalType,
                                          dest, targetFormalType);
     return true;
@@ -1339,7 +1349,7 @@ bool swift::emitSuccessfulIndirectUnconditionalCast(
 /// or forward it. The result is always either +1 or trivial. The cast never
 /// hides a copy. doesCastPreserveOwnershipForTypes determines whether the
 /// scalar cast is also compatible with guaranteed values.
-bool swift::canSILUseScalarCheckedCastInstructions(SILModule &M,
+bool language::canSILUseScalarCheckedCastInstructions(SILModule &M,
                                                    CanType sourceFormalType,
                                                    CanType targetFormalType) {
   if (!M.useLoweredAddresses())
@@ -1351,7 +1361,7 @@ bool swift::canSILUseScalarCheckedCastInstructions(SILModule &M,
 
 /// Can the given cast be performed by the scalar checked-cast
 /// instructions?
-bool swift::canIRGenUseScalarCheckedCastInstructions(SILModule &M,
+bool language::canIRGenUseScalarCheckedCastInstructions(SILModule &M,
                                                      CanType sourceFormalType,
                                                      CanType targetFormalType) {
   // If the cast involves any kind of generalized existential we
@@ -1420,9 +1430,9 @@ bool swift::canIRGenUseScalarCheckedCastInstructions(SILModule &M,
 
 /// Carry out the operations required for an indirect conditional cast
 /// using a scalar cast operation.
-void swift::emitIndirectConditionalCastWithScalar(
+void language::emitIndirectConditionalCastWithScalar(
     SILBuilder &B, ModuleDecl *M, SILLocation loc,
-    CastingIsolatedConformances isolatedConformances,
+    CheckedCastInstOptions options,
     CastConsumptionKind consumption,
     SILValue srcAddr, CanType sourceFormalType,
     SILValue destAddr, CanType targetFormalType,
@@ -1461,7 +1471,7 @@ void swift::emitIndirectConditionalCastWithScalar(
   })();
 
   auto *ccb = B.createCheckedCastBranch(
-      loc, /*exact*/ false, isolatedConformances, srcValue, sourceFormalType,
+      loc, /*exact*/ false, options, srcValue, sourceFormalType,
       targetLoweredType, targetFormalType, scalarSuccBB, scalarFailBB,
       TrueCount, FalseCount);
 
@@ -1481,7 +1491,7 @@ void swift::emitIndirectConditionalCastWithScalar(
       break;
     }
     case CastConsumptionKind::BorrowAlways:
-      llvm_unreachable("should never see a borrow_always here");
+      toolchain_unreachable("should never see a borrow_always here");
     }
 
     // And then store the succValue into dest.
@@ -1518,7 +1528,7 @@ void swift::emitIndirectConditionalCastWithScalar(
       B.emitEndBorrowOperation(loc, srcValue);
       break;
     case CastConsumptionKind::BorrowAlways:
-      llvm_unreachable("borrow_on_success should never appear here");
+      toolchain_unreachable("borrow_on_success should never appear here");
     }
 
     B.createBranch(loc, indirectFailBB);

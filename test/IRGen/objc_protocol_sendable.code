@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -emit-ir %s -language-version 5 -import-objc-header %S/Inputs/objc_protocol_sendable.h | %IRGenFileCheck %s
+
+// REQUIRES: objc_interop
+// REQUIRES: concurrency
+
+// CHECK: define{{.*}}s22objc_protocol_sendable4test1aySo1AC_tF
+public fn test(a: A) {
+  a.foo()
+}

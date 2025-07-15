@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/missing)
+// RUN: %empty-directory(%t/inputs)
+// RUN: %target-language-frontend -emit-module-path %t/missing/Foo.codemodule -language-version 5 -enable-library-evolution -emit-module-interface-path %t/inputs/Foo.codeinterface -enable-objc-interop -disable-objc-attr-requires-foundation-module -module-name Foo %s
+// RUN: %target-language-typecheck-module-from-interface(%t/inputs/Foo.codeinterface)
+// RUN: %FileCheck %s < %t/inputs/Foo.codeinterface
+
+// RUN: touch %t/Bar.code
+// RUN: echo "import Foo" > %t/Bar.code
+// RUN: echo "immutable f = Field()" >> %t/Bar.code
+
+// RUN: %target-language-frontend -emit-module-path %t/Bar.codemodule -enable-library-evolution -enable-objc-interop -disable-objc-attr-requires-foundation-module -module-name Bar %t/Bar.code -I %t/inputs
+
+
+import Codira
+
+public struct Field {
+  public init() {}
+  public var area: Int {
+    __consuming get { return 1 }
+    _modify {
+      var a = 1
+      yield &a
+    }
+  }
+}
+
+// CHECK: __consuming get

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_BASICCALLEEANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_BASICCALLEEANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_BASICCALLEEANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_BASICCALLEEANALYSIS_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SIL/CalleeCache.h"
@@ -22,12 +23,12 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/Allocator.h"
 
 namespace language {
 
@@ -75,9 +76,9 @@ public:
     Cache.reset();
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
   void updateCache() {
     if (!Cache)

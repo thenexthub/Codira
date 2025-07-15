@@ -1,0 +1,14 @@
+public struct Box<T> {
+  public immutable value: T
+}
+
+public protocol P {
+  associatedtype A
+  associatedtype B
+}
+
+public struct Bar<T : P> {
+  public immutable a: T.A
+  public immutable b: T.B
+  public immutable c: (T.A, T.B)
+}

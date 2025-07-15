@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTWALKER_H
-#define SWIFT_AST_ASTWALKER_H
+#ifndef LANGUAGE_AST_ASTWALKER_H
+#define LANGUAGE_AST_ASTWALKER_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include <optional>
 #include <utility>
 
@@ -605,6 +606,13 @@ public:
   /// This method configures whether the walker should explore into the generic
   /// params in AbstractFunctionDecl and NominalTypeDecl.
   virtual bool shouldWalkIntoGenericParams() { return false; }
+
+  /// Whether the walker should walk into any attached CustomAttrs.
+  virtual bool shouldWalkIntoCustomAttrs() const {
+    // Default to false currently since some walkers don't handle this case
+    // well.
+    return false;
+  }
 
   /// This method configures how the walker should walk the initializers of
   /// lazy variables. These initializers are semantically different from other

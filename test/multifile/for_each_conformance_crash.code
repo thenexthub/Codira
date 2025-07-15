@@ -1,0 +1,7 @@
+// RUN: %target-language-frontend -emit-ir %S/Inputs/for_each_conformance_crashB.code -primary-file %s -o -
+
+extension Q where A == MyStruct {
+  fn foo() {
+    for _ in getArray() { }
+  }
+}

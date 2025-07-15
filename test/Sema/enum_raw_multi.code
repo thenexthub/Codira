@@ -1,0 +1,2 @@
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_raw_multi1.code %S/Inputs/enum_raw_multi2.code
+// RUN: %target-language-frontend -typecheck -verify %S/Inputs/enum_raw_multi2.code %S/Inputs/enum_raw_multi1.code

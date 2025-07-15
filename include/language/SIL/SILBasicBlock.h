@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines the high-level BasicBlocks used for Swift SIL code.
+// This file defines the high-level BasicBlocks used for Codira SIL code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_BASICBLOCK_H
-#define SWIFT_SIL_BASICBLOCK_H
+#ifndef LANGUAGE_SIL_BASICBLOCK_H
+#define LANGUAGE_SIL_BASICBLOCK_H
 
 #include "language/Basic/Compiler.h"
 #include "language/Basic/Range.h"
-#include "language/Basic/SwiftObjectHeader.h"
+#include "language/Basic/LanguageObjectHeader.h"
 #include "language/SIL/SILArgumentArrayRef.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILArgument.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -80,20 +81,20 @@ public:
 };
 
 class SILBasicBlock :
-public llvm::ilist_node<SILBasicBlock>, public SILAllocated<SILBasicBlock>,
-public SwiftObjectHeader {
+public toolchain::ilist_node<SILBasicBlock>, public SILAllocated<SILBasicBlock>,
+public LanguageObjectHeader {
   friend class SILSuccessor;
   friend class SILFunction;
   friend class SILGlobalVariable;
   template <typename, unsigned> friend class BasicBlockData;
   template <class, class> friend class SILBitfield;
 
-  static SwiftMetatype registeredMetatype;
+  static CodiraMetatype registeredMetatype;
   
   using CustomBitsType = uint32_t;
   
 public:
-  using InstListType = llvm::iplist<SILInstruction>;
+  using InstListType = toolchain::iplist<SILInstruction>;
 private:
   /// A backreference to the containing SILFunction.
   SILFunction *Parent;
@@ -140,7 +141,7 @@ private:
   // Used by `BasicBlockBitfield`.
   void setCustomBits(unsigned value) { customBits = value; }
 
-  friend struct llvm::ilist_traits<SILBasicBlock>;
+  friend struct toolchain::ilist_traits<SILBasicBlock>;
 
   SILBasicBlock();
   SILBasicBlock(SILFunction *parent);
@@ -149,7 +150,7 @@ private:
   void operator delete(void *Ptr, size_t) = delete;
 
 public:
-  static void registerBridgedMetatype(SwiftMetatype metatype) {
+  static void registerBridgedMetatype(CodiraMetatype metatype) {
     registeredMetatype = metatype;
   }
 
@@ -167,8 +168,8 @@ public:
   ///          debug output.
   int getDebugID() const;
 
-  void setDebugName(llvm::StringRef name);
-  std::optional<llvm::StringRef> getDebugName() const;
+  void setDebugName(toolchain::StringRef name);
+  std::optional<toolchain::StringRef> getDebugName() const;
 
   SILFunction *getParent() { return Parent; }
   SILFunction *getFunction() { return getParent(); }
@@ -237,47 +238,47 @@ public:
   const_reverse_iterator rbegin() const { return InstList.rbegin(); }
   const_reverse_iterator rend() const { return InstList.rend(); }
 
-  llvm::iterator_range<iterator> getRangeStartingAtInst(SILInstruction *inst) {
+  toolchain::iterator_range<iterator> getRangeStartingAtInst(SILInstruction *inst) {
     assert(inst->getParent() == this);
     return {inst->getIterator(), end()};
   }
 
-  llvm::iterator_range<iterator> getRangeEndingAtInst(SILInstruction *inst) {
+  toolchain::iterator_range<iterator> getRangeEndingAtInst(SILInstruction *inst) {
     assert(inst->getParent() == this);
     return {begin(), inst->getIterator()};
   }
 
-  llvm::iterator_range<reverse_iterator>
+  toolchain::iterator_range<reverse_iterator>
   getReverseRangeStartingAtInst(SILInstruction *inst) {
     assert(inst->getParent() == this);
     return {inst->getReverseIterator(), rend()};
   }
 
-  llvm::iterator_range<reverse_iterator>
+  toolchain::iterator_range<reverse_iterator>
   getReverseRangeEndingAtInst(SILInstruction *inst) {
     assert(inst->getParent() == this);
     return {rbegin(), inst->getReverseIterator()};
   }
 
-  llvm::iterator_range<const_iterator>
+  toolchain::iterator_range<const_iterator>
   getRangeStartingAtInst(SILInstruction *inst) const {
     assert(inst->getParent() == this);
     return {inst->getIterator(), end()};
   }
 
-  llvm::iterator_range<const_iterator>
+  toolchain::iterator_range<const_iterator>
   getRangeEndingAtInst(SILInstruction *inst) const {
     assert(inst->getParent() == this);
     return {begin(), inst->getIterator()};
   }
 
-  llvm::iterator_range<const_reverse_iterator>
+  toolchain::iterator_range<const_reverse_iterator>
   getReverseRangeStartingAtInst(SILInstruction *inst) const {
     assert(inst->getParent() == this);
     return {inst->getReverseIterator(), rend()};
   }
 
-  llvm::iterator_range<const_reverse_iterator>
+  toolchain::iterator_range<const_reverse_iterator>
   getReverseRangeEndingAtInst(SILInstruction *inst) const {
     assert(inst->getParent() == this);
     return {rbegin(), inst->getReverseIterator()};
@@ -287,14 +288,14 @@ public:
   /// block.
   ///
   /// For details see `DeletableInstructionsIterator`.
-  llvm::iterator_range<DeletableInstructionsIterator<iterator>>
+  toolchain::iterator_range<DeletableInstructionsIterator<iterator>>
   deletableInstructions() { return {{begin(), end()}, {end(), end()}}; }
 
   /// Allows deleting instructions while iterating over all instructions of the
   /// block in reverse order.
   ///
   /// For details see `DeletableInstructionsIterator`.
-  llvm::iterator_range<DeletableInstructionsIterator<reverse_iterator>>
+  toolchain::iterator_range<DeletableInstructionsIterator<reverse_iterator>>
   reverseDeletableInstructions() { return {{rbegin(), rend()}, {rend(), rend()}}; }
 
   TermInst *getTerminator() {
@@ -362,7 +363,7 @@ public:
 
   ArrayRef<SILArgument *> getArguments() const { return ArgumentList; }
 
-  /// Returns a transform array ref that performs llvm::cast<NAME>
+  /// Returns a transform array ref that performs toolchain::cast<NAME>
   /// each argument and then returns the downcasted value.
 #define ARGUMENT(NAME, PARENT) NAME##ArrayRef get##NAME##s() const;
 #include "language/SIL/SILNodes.def"
@@ -539,7 +540,7 @@ public:
 
   /// Returns true if it is legal to hoist instructions into this block.
   ///
-  /// Used by llvm::LoopInfo.
+  /// Used by toolchain::LoopInfo.
   bool isLegalToHoistInto() const;
 
   /// Returns the debug scope of the first non-meta instructions in the
@@ -564,7 +565,7 @@ public:
   void dump(bool DebugInfo) const;
 
   /// Pretty-print the SILBasicBlock with the designated stream.
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
 
   /// Pretty-print the SILBasicBlock with the designated context.
   void print(SILPrintContext &Ctx) const;
@@ -575,7 +576,7 @@ public:
   void dumpID(bool newline = true) const;
 
   /// Print the ID of the block with \p OS, bbN.
-  void printID(llvm::raw_ostream &OS, bool newline = true) const;
+  void printID(toolchain::raw_ostream &OS, bool newline = true) const;
 
   /// Print the ID of the block with \p Ctx, bbN.
   void printID(SILPrintContext &Ctx, bool newline = true) const;
@@ -601,29 +602,29 @@ private:
   }
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                      const SILBasicBlock &BB) {
   BB.print(OS);
   return OS;
 }
-} // end swift namespace
+} // end language namespace
 
-namespace llvm {
+namespace toolchain {
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILBasicBlock
 //===----------------------------------------------------------------------===//
 
 template <>
-struct ilist_traits<::swift::SILBasicBlock>
-  : ilist_node_traits<::swift::SILBasicBlock> {
-  using SelfTy = ilist_traits<::swift::SILBasicBlock>;
-  using SILBasicBlock = ::swift::SILBasicBlock;
-  using SILFunction = ::swift::SILFunction;
-  using FunctionPtrTy = ::swift::NullablePtr<SILFunction>;
+struct ilist_traits<::language::SILBasicBlock>
+  : ilist_node_traits<::language::SILBasicBlock> {
+  using SelfTy = ilist_traits<::language::SILBasicBlock>;
+  using SILBasicBlock = ::language::SILBasicBlock;
+  using SILFunction = ::language::SILFunction;
+  using FunctionPtrTy = ::language::NullablePtr<SILFunction>;
 
 private:
-  friend class ::swift::SILFunction;
+  friend class ::language::SILFunction;
 
   SILFunction *Parent;
   using block_iterator = simple_ilist<SILBasicBlock>::iterator;
@@ -637,7 +638,7 @@ private:
   static void createNode(const SILBasicBlock &);
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 //===----------------------------------------------------------------------===//
 //                           PhiOperand & PhiValue
@@ -749,41 +750,41 @@ struct PhiValue {
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 
-template <> struct DenseMapInfo<swift::PhiOperand> {
-  static swift::PhiOperand getEmptyKey() { return swift::PhiOperand(); }
-  static swift::PhiOperand getTombstoneKey() {
-    swift::PhiOperand phiOper;
+template <> struct DenseMapInfo<language::PhiOperand> {
+  static language::PhiOperand getEmptyKey() { return language::PhiOperand(); }
+  static language::PhiOperand getTombstoneKey() {
+    language::PhiOperand phiOper;
     phiOper.predBlock =
-        llvm::DenseMapInfo<swift::SILBasicBlock *>::getTombstoneKey();
+        toolchain::DenseMapInfo<language::SILBasicBlock *>::getTombstoneKey();
     return phiOper;
   }
-  static unsigned getHashValue(swift::PhiOperand phiOper) {
-    return llvm::hash_combine(phiOper.predBlock, phiOper.argIndex);
+  static unsigned getHashValue(language::PhiOperand phiOper) {
+    return toolchain::hash_combine(phiOper.predBlock, phiOper.argIndex);
   }
-  static bool isEqual(swift::PhiOperand lhs, swift::PhiOperand rhs) {
+  static bool isEqual(language::PhiOperand lhs, language::PhiOperand rhs) {
     return lhs == rhs;
   }
 };
 
-template <> struct DenseMapInfo<swift::PhiValue> {
-  static swift::PhiValue getEmptyKey() { return swift::PhiValue(); }
-  static swift::PhiValue getTombstoneKey() {
-    swift::PhiValue phiValue;
+template <> struct DenseMapInfo<language::PhiValue> {
+  static language::PhiValue getEmptyKey() { return language::PhiValue(); }
+  static language::PhiValue getTombstoneKey() {
+    language::PhiValue phiValue;
     phiValue.phiBlock =
-        llvm::DenseMapInfo<swift::SILBasicBlock *>::getTombstoneKey();
+        toolchain::DenseMapInfo<language::SILBasicBlock *>::getTombstoneKey();
     return phiValue;
   }
-  static unsigned getHashValue(swift::PhiValue phiValue) {
-    return llvm::hash_combine(phiValue.phiBlock, phiValue.argIndex);
+  static unsigned getHashValue(language::PhiValue phiValue) {
+    return toolchain::hash_combine(phiValue.phiBlock, phiValue.argIndex);
   }
-  static bool isEqual(swift::PhiValue lhs, swift::PhiValue rhs) {
+  static bool isEqual(language::PhiValue lhs, language::PhiValue rhs) {
     return lhs == rhs;
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 //===----------------------------------------------------------------------===//
 // Inline SILInstruction implementations
@@ -796,7 +797,7 @@ inline SILFunction *SILInstruction::getFunction() const {
 }
 
 inline bool SILInstruction::visitPriorInstructions(
-    llvm::function_ref<bool(SILInstruction *)> visitor) {
+    toolchain::function_ref<bool(SILInstruction *)> visitor) {
   if (auto *previous = getPreviousInstruction()) {
     return visitor(previous);
   }
@@ -807,7 +808,7 @@ inline bool SILInstruction::visitPriorInstructions(
   return true;
 }
 inline bool SILInstruction::visitSubsequentInstructions(
-    llvm::function_ref<bool(SILInstruction *)> visitor) {
+    toolchain::function_ref<bool(SILInstruction *)> visitor) {
   if (auto *next = getNextInstruction()) {
     return visitor(next);
   }
@@ -828,6 +829,6 @@ inline SILInstruction *SILInstruction::getNextInstruction() {
   return nextPos == getParent()->end() ? nullptr : &*nextPos;
 }
 
-} // end swift namespace
+} // end language namespace
 
 #endif

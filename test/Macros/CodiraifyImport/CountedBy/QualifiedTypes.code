@@ -1,0 +1,23 @@
+// REQUIRES: language_language_parser
+
+// RUN: %target-language-frontend %s -language-version 5 -module-name main -disable-availability-checking -typecheck -plugin-path %language-plugin-dir -strict-memory-safety -warnings-as-errors -dump-macro-expansions 2>&1 | %FileCheck --match-full-lines %s
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn foo(_ ptr: Codira.UnsafePointer<Codira.Int>, _ len: Codira.Int) -> Codira.Void {
+}
+
+@_CodiraifyImport(.countedBy(pointer: .param(1), count: "len"))
+fn bar(_ ptr: Codira.UnsafePointer<Codira.CInt>, _ len: Codira.Int) -> () {
+}
+
+// CHECK:      @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn foo(_ ptr: Codira.UnsafeBufferPointer<Codira.Int>) -> Codira.Void {
+// CHECK-NEXT:     immutable len = unsafe ptr.count
+// CHECK-NEXT:     return unsafe foo(ptr.baseAddress!, len)
+// CHECK-NEXT: }
+
+// CHECK:      @_alwaysEmitIntoClient @_disfavoredOverload
+// CHECK-NEXT: fn bar(_ ptr: Codira.UnsafeBufferPointer<Codira.CInt>) -> () {
+// CHECK-NEXT:     immutable len = unsafe ptr.count
+// CHECK-NEXT:     return unsafe bar(ptr.baseAddress!, len)
+// CHECK-NEXT: }

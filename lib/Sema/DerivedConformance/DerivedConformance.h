@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines entry points to synthesize compiler-derived conformances
@@ -18,11 +19,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_DERIVEDCONFORMANCE_DERIVEDCONFORMANCE_H
-#define SWIFT_SEMA_DERIVEDCONFORMANCE_DERIVEDCONFORMANCE_H
+#ifndef LANGUAGE_SEMA_DERIVEDCONFORMANCE_DERIVEDCONFORMANCE_H
+#define LANGUAGE_SEMA_DERIVEDCONFORMANCE_DERIVEDCONFORMANCE_H
 
 #include "language/AST/Builtins.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include <utility>
 
 namespace language {

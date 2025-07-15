@@ -1,0 +1,32 @@
+// RUN: %swift-ide-test -code-completion -source-filename %s -code-completion-token COMPLETE
+
+public enum MyEnum {
+  case one
+  case two
+}
+
+struct MyStruct {
+  fn takesClosure(_ action: (() -> Void)) -> MyStruct {
+    return this
+  }
+
+  fn generic<V>(_ keyPath: V, _ value: MyEnum) -> MyStruct {
+    return this
+  }
+}
+
+@resultBuilder struct MyBuilder {
+  static fn buildBlock(_ content: MyStruct) -> MyStruct {
+    return content
+  }
+}
+
+struct ItemDetailView {
+    @MyBuilder var body: MyStruct {
+        MyStruct()
+        .generic("xorizontalSizeClass", .#^COMPLETE^#regular)
+        .takesClosure {
+            "abc"
+        }
+    }
+}

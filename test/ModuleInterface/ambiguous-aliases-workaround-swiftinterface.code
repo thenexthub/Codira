@@ -1,0 +1,57 @@
+/// Test the generated languageinterface with -alias-module-names-in-module-interface.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/PublicLib.codemodule %t/EmptyLib.code
+// RUN: %target-language-frontend -emit-module \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/SPILib.codemodule %t/EmptyLib.code
+// RUN: %target-language-frontend -emit-module \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/IOILib.codemodule %t/EmptyLib.code
+
+// RUN: %target-language-frontend -emit-module \
+// RUN:     -language-version 5 -enable-library-evolution \
+// RUN:     -o %t/Client.codemodule \
+// RUN:     -emit-module-interface-path %t/Client.codeinterface \
+// RUN:     -emit-private-module-interface-path %t/Client.private.codeinterface \
+// RUN:     %t/Client.code -I %t -experimental-spi-only-imports \
+// RUN:     -alias-module-names-in-module-interface -parse-stdlib
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface) -I%t
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.private.codeinterface) -module-name Client -I%t
+
+// RUN: cat %t/Client.codeinterface | %FileCheck %s -check-prefix=PUBLIC
+// RUN: cat %t/Client.private.codeinterface | %FileCheck %s -check-prefix=PRIVATE
+
+//--- EmptyLib.code
+
+public struct SomeType {}
+
+//--- Client.code
+
+@_implementationOnly import IOILib
+@_spiOnly import SPILib
+import PublicLib
+
+/// Check alias declarations.
+// PUBLIC-NOT: IOILib
+// PUBLIC-NOT: SPILib
+// PUBLIC: -module-alias Module___PublicLib
+// PRIVATE-NOT: IOILib
+// PRIVATE: -module-alias Module___SPILib
+// PRIVATE: -module-alias Module___PublicLib
+
+/// Check imports.
+// PUBLIC: import Module___PublicLib
+// PRIVATE: import Module___PublicLib
+// PRIVATE: import Module___SPILib
+
+public fn builtinUser(_ a: Builtin.Int32) {}
+
+@inlinable
+public fn builtinInlinableUser() {
+    var a: Builtin.Int32
+}

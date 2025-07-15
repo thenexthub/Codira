@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the LocalArchetypeRequirementCollector class.
@@ -125,7 +126,7 @@ GenericTypeParamType *LocalArchetypeRequirementCollector::addParameter() {
   return param;
 }
 
-GenericSignature swift::buildGenericSignatureWithCapturedEnvironments(
+GenericSignature language::buildGenericSignatureWithCapturedEnvironments(
     ASTContext &ctx,
     GenericSignature sig,
     ArrayRef<GenericEnvironment *> capturedEnvs) {
@@ -152,7 +153,7 @@ GenericSignature swift::buildGenericSignatureWithCapturedEnvironments(
     }
     }
 
-    llvm_unreachable("Cannot happen");
+    toolchain_unreachable("Cannot happen");
   }
 
   return buildGenericSignature(ctx,
@@ -186,9 +187,10 @@ Type MapLocalArchetypesOutOfContext::getInterfaceType(
     ++depth;
   }
 
-  llvm::errs() << "Fell off the end:\n";
-  interfaceTy->dump(llvm::errs());
-  abort();
+  ABORT([&](auto &out) {
+    out << "Fell off the end:\n";
+    interfaceTy->dump(out);
+  });
 }
 
 Type MapLocalArchetypesOutOfContext::operator()(SubstitutableType *type) const {
@@ -211,7 +213,7 @@ Type MapLocalArchetypesOutOfContext::operator()(SubstitutableType *type) const {
   return getInterfaceType(archetypeTy->getInterfaceType(), genericEnv);
 }
 
-Type swift::mapLocalArchetypesOutOfContext(
+Type language::mapLocalArchetypesOutOfContext(
     Type type,
     GenericSignature baseGenericSig,
     ArrayRef<GenericEnvironment *> capturedEnvs) {
@@ -248,7 +250,7 @@ Type MapIntoLocalArchetypeContext::operator()(SubstitutableType *type) const {
 /// it to include all captured element archetypes; they become primary archetypes
 /// inside the body of the function.
 SubstitutionMap
-swift::buildSubstitutionMapWithCapturedEnvironments(
+language::buildSubstitutionMapWithCapturedEnvironments(
     SubstitutionMap baseSubMap,
     GenericSignature genericSigWithCaptures,
     ArrayRef<GenericEnvironment *> capturedEnvs) {
@@ -269,10 +271,10 @@ swift::buildSubstitutionMapWithCapturedEnvironments(
         return mapIntoLocalContext(param, baseDepth, capturedEnvs);
       return Type(type).subst(baseSubMap);
     },
-    [&](CanType origType, Type substType,
-        ProtocolDecl *proto) -> ProtocolConformanceRef {
+    [&](InFlightSubstitution &IFS, Type origType, ProtocolDecl *proto)
+          -> ProtocolConformanceRef {
       if (origType->getRootGenericParam()->getDepth() >= baseDepth)
-        return ProtocolConformanceRef::forAbstract(substType, proto);
-      return baseSubMap.lookupConformance(origType, proto);
+        return ProtocolConformanceRef::forAbstract(origType.subst(IFS), proto);
+      return baseSubMap.lookupConformance(origType->getCanonicalType(), proto);
     });
 }

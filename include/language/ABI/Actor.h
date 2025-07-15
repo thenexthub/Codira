@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing actors.
+// Codira ABI describing actors.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_ACTOR_H
-#define SWIFT_ABI_ACTOR_H
+#ifndef LANGUAGE_ABI_ACTOR_H
+#define LANGUAGE_ABI_ACTOR_H
 
 #include "language/ABI/HeapObject.h"
 #include "language/ABI/MetadataValues.h"
 
 // lldb knows about some of these internals. If you change things that lldb
 // knows about (or might know about in the future, as a future lldb might be
-// inspecting a process running an older Swift runtime), increment
-// _swift_concurrency_debug_internal_layout_version and add a comment describing
+// inspecting a process running an older Codira runtime), increment
+// _language_concurrency_debug_internal_layout_version and add a comment describing
 // the new version.
 
 namespace language {
@@ -37,7 +38,7 @@ class alignas(Alignment_DefaultActor) DefaultActor : public HeapObject {
 public:
   // These constructors do not initialize the actor instance, and the
   // destructor does not destroy the actor instance; you must call
-  // swift_defaultActor_{initialize,destroy} yourself.
+  // language_defaultActor_{initialize,destroy} yourself.
   constexpr DefaultActor(const HeapMetadata *metadata)
     : HeapObject(metadata), PrivateData{} {}
 
@@ -53,7 +54,7 @@ class alignas(Alignment_NonDefaultDistributedActor) NonDefaultDistributedActor :
 public:
   // These constructors do not initialize the actor instance, and the
   // destructor does not destroy the actor instance; you must call
-  // swift_nonDefaultDistributedActor_initialize yourself.
+  // language_nonDefaultDistributedActor_initialize yourself.
   constexpr NonDefaultDistributedActor(const HeapMetadata *metadata)
     : HeapObject(metadata), PrivateData{} {}
 

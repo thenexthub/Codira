@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the FlagSet template, a class which makes it easier to
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_FLAGSET_H
-#define SWIFT_BASIC_FLAGSET_H
+#ifndef LANGUAGE_BASIC_FLAGSET_H
+#define LANGUAGE_BASIC_FLAGSET_H
 
 #include <type_traits>
 #include <assert.h>

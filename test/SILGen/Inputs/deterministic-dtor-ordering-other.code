@@ -1,0 +1,3 @@
+public fn makeAHorse() -> Horse {
+  return Horse()
+}

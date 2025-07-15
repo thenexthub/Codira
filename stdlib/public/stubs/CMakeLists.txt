@@ -1,4 +1,4 @@
-set(swift_stubs_sources
+set(language_stubs_sources
     Assert.cpp
     GlobalObjects.cpp
     LibcShims.cpp
@@ -12,40 +12,40 @@ set(swift_stubs_sources
     Unicode/UnicodeScalarProps.cpp
     Unicode/UnicodeWord.cpp
 )
-set(swift_stubs_objc_sources
+set(language_stubs_objc_sources
     Availability.mm
     FoundationHelpers.mm
     OptionalBridgingHelper.mm
     Reflection.mm
-    SwiftNativeNSObject.mm
-    SwiftNativeNSXXXBaseARC.m)
-set(swift_stubs_gyb_sources
-    SwiftNativeNSXXXBase.mm.gyb)
-set(LLVM_OPTIONAL_SOURCES
-    ${swift_stubs_objc_sources}
-    ${swift_stubs_gyb_sources})
+    CodiraNativeNSObject.mm
+    CodiraNativeNSXXXBaseARC.m)
+set(language_stubs_gyb_sources
+    CodiraNativeNSXXXBase.mm.gyb)
+set(TOOLCHAIN_OPTIONAL_SOURCES
+    ${language_stubs_objc_sources}
+    ${language_stubs_gyb_sources})
 
-set(swift_stubs_c_compile_flags ${SWIFT_RUNTIME_CORE_CXX_FLAGS})
-list(APPEND swift_stubs_c_compile_flags -DswiftCore_EXPORTS)
-list(APPEND swift_stubs_c_compile_flags -I${SWIFT_SOURCE_DIR}/include -I${SWIFT_SOURCE_DIR}/stdlib/public)
+set(language_stubs_c_compile_flags ${LANGUAGE_RUNTIME_CORE_CXX_FLAGS})
+list(APPEND language_stubs_c_compile_flags -DlanguageCore_EXPORTS)
+list(APPEND language_stubs_c_compile_flags -I${LANGUAGE_SOURCE_DIR}/include -I${LANGUAGE_SOURCE_DIR}/stdlib/public)
 
-add_swift_target_library(swiftStdlibStubs
+add_language_target_library(languageStdlibStubs
                   OBJECT_LIBRARY
-                    ${swift_stubs_sources}
-                    ${swift_stubs_objc_sources}
+                    ${language_stubs_sources}
+                    ${language_stubs_objc_sources}
                   GYB_SOURCES
-                    ${swift_stubs_gyb_sources}
+                    ${language_stubs_gyb_sources}
                   C_COMPILE_FLAGS
-                    ${swift_stubs_c_compile_flags}
+                    ${language_stubs_c_compile_flags}
                   LINK_FLAGS
-                    ${SWIFT_RUNTIME_CORE_LINK_FLAGS}
-                  SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+                    ${LANGUAGE_RUNTIME_CORE_LINK_FLAGS}
+                  LANGUAGE_COMPILE_FLAGS ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
                   INSTALL_IN_COMPONENT
                     stdlib)
 
-if("${SWIFT_PRIMARY_VARIANT_SDK}" IN_LIST SWIFT_DARWIN_PLATFORMS)
+if("${LANGUAGE_PRIMARY_VARIANT_SDK}" IN_LIST LANGUAGE_DARWIN_PLATFORMS)
   set_property(SOURCE
-                 SwiftNativeNSXXXBaseARC.m
+                 CodiraNativeNSXXXBaseARC.m
                APPEND_STRING PROPERTY COMPILE_FLAGS
                  "-fobjc-arc")
 endif()

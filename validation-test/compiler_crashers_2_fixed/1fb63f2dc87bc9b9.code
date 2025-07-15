@@ -1,0 +1,3 @@
+// {"signature":"language::Parser::parseDecl(bool, bool, toolchain::function_ref<void (language::Decl*)>, bool)"}
+// RUN: not %target-language-frontend -typecheck %s
+class a { class override ( override

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This definition file describes the types  in the "C++" TypeID zone,
@@ -19,31 +20,31 @@
 //===----------------------------------------------------------------------===//
 
 // C types.
-SWIFT_TYPEID_NAMED(unsigned char, UnsignedChar)
-SWIFT_TYPEID_NAMED(signed char, SignedChar)
-SWIFT_TYPEID_NAMED(char, Char)
-SWIFT_TYPEID_NAMED(short, Short)
-SWIFT_TYPEID_NAMED(unsigned short, UnsignedShort)
-SWIFT_TYPEID_NAMED(int, Int)
-SWIFT_TYPEID_NAMED(unsigned int, UnsignedInt)
-SWIFT_TYPEID_NAMED(long, Long)
-SWIFT_TYPEID_NAMED(unsigned long, UnsignedLong)
-SWIFT_TYPEID_NAMED(long long, LongLong)
-SWIFT_TYPEID_NAMED(unsigned long long, UnsignedLongLong)
-SWIFT_TYPEID_NAMED(float, Float)
-SWIFT_TYPEID_NAMED(double, Double)
-SWIFT_TYPEID_NAMED(bool, Bool)
-SWIFT_TYPEID_NAMED(decltype(nullptr), NullPtr)
-SWIFT_TYPEID_NAMED(void, Void)
-SWIFT_TYPEID_NAMED(std::string, String)
+LANGUAGE_TYPEID_NAMED(unsigned char, UnsignedChar)
+LANGUAGE_TYPEID_NAMED(signed char, SignedChar)
+LANGUAGE_TYPEID_NAMED(char, Char)
+LANGUAGE_TYPEID_NAMED(short, Short)
+LANGUAGE_TYPEID_NAMED(unsigned short, UnsignedShort)
+LANGUAGE_TYPEID_NAMED(int, Int)
+LANGUAGE_TYPEID_NAMED(unsigned int, UnsignedInt)
+LANGUAGE_TYPEID_NAMED(long, Long)
+LANGUAGE_TYPEID_NAMED(unsigned long, UnsignedLong)
+LANGUAGE_TYPEID_NAMED(long long, LongLong)
+LANGUAGE_TYPEID_NAMED(unsigned long long, UnsignedLongLong)
+LANGUAGE_TYPEID_NAMED(float, Float)
+LANGUAGE_TYPEID_NAMED(double, Double)
+LANGUAGE_TYPEID_NAMED(bool, Bool)
+LANGUAGE_TYPEID_NAMED(decltype(nullptr), NullPtr)
+LANGUAGE_TYPEID_NAMED(void, Void)
+LANGUAGE_TYPEID_NAMED(std::string, String)
 
 // C++ standard library types.
-SWIFT_TYPEID_NAMED(evaluator::SideEffect, SideEffect)
-SWIFT_TYPEID_TEMPLATE1_NAMED(std::vector, Vector, typename T, T)
-SWIFT_TYPEID_TEMPLATE1_NAMED(std::unique_ptr, UniquePtr, typename T, T)
-SWIFT_TYPEID_TEMPLATE2_NAMED(std::pair, Pair, typename T1, T1, typename T2, T2)
+LANGUAGE_TYPEID_NAMED(evaluator::SideEffect, SideEffect)
+LANGUAGE_TYPEID_TEMPLATE1_NAMED(std::vector, Vector, typename T, T)
+LANGUAGE_TYPEID_TEMPLATE1_NAMED(std::unique_ptr, UniquePtr, typename T, T)
+LANGUAGE_TYPEID_TEMPLATE2_NAMED(std::pair, Pair, typename T1, T1, typename T2, T2)
 
 // LLVM ADT types.
-SWIFT_TYPEID_TEMPLATE1_NAMED(llvm::TinyPtrVector, TinyPtrVector, typename T, T)
-SWIFT_TYPEID_TEMPLATE1_NAMED(llvm::ArrayRef, ArrayRef, typename T, T)
-SWIFT_TYPEID_TEMPLATE1_NAMED(std::optional, Optional, typename T, T)
+LANGUAGE_TYPEID_TEMPLATE1_NAMED(toolchain::TinyPtrVector, TinyPtrVector, typename T, T)
+LANGUAGE_TYPEID_TEMPLATE1_NAMED(toolchain::ArrayRef, ArrayRef, typename T, T)
+LANGUAGE_TYPEID_TEMPLATE1_NAMED(std::optional, Optional, typename T, T)

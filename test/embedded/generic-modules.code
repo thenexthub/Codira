@@ -1,0 +1,49 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// Check that this compiles successfully.
+
+// RUN: %target-language-frontend -emit-module -o %t/MyModule.codemodule %t/MyModule.code -enable-experimental-feature Embedded -parse-as-library
+// RUN: %target-language-frontend -c -o %t/Main.o -I %t %t/Main.code -enable-experimental-feature Embedded -parse-as-library
+
+// REQUIRES: language_feature_Embedded
+
+// BEGIN MyModule.code
+
+public fn foo<Info: Collection>(info: Info) {
+    immutable b = MyContainer()
+    _ = b.dropFirst()
+}
+
+struct MyContainer {
+    var x = 42
+    init() { }
+}
+
+extension MyContainer: Collection {
+    typealias Index = Int
+    var startIndex: Index { fatalError() }
+    var endIndex: Index { fatalError() }
+    
+    subscript(_ index: Index) -> UInt8 {
+        get {
+            fatalError()
+        }
+        set {
+            fatalError()
+        }
+    }
+    
+    fn index(after i: Int) -> Int {
+        fatalError()
+    }
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+public fn main() {
+  foo(info: [1, 2, 3])
+}
+

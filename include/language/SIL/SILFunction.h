@@ -11,28 +11,29 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILFunction class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILFUNCTION_H
-#define SWIFT_SIL_SILFUNCTION_H
+#ifndef LANGUAGE_SIL_SILFUNCTION_H
+#define LANGUAGE_SIL_SILFUNCTION_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/AvailabilityRange.h"
 #include "language/AST/Module.h"
 #include "language/AST/ResilienceExpansion.h"
 #include "language/Basic/ProfileCounter.h"
-#include "language/Basic/SwiftObjectHeader.h"
+#include "language/Basic/LanguageObjectHeader.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILDebugScope.h"
 #include "language/SIL/SILDeclRef.h"
 #include "language/SIL/SILLinkage.h"
 #include "language/SIL/SILPrintContext.h"
 #include "language/SIL/SILUndef.h"
-#include "llvm/ADT/MapVector.h"
+#include "toolchain/ADT/MapVector.h"
 
 namespace language {
 
@@ -163,14 +164,14 @@ public:
     return availability;
   }
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
 
 private:
   SpecializationKind kind;
   bool exported;
   GenericSignature specializedSignature;
   GenericSignature unerasedSpecializedSignature;
-  llvm::SmallVector<Type, 2> typeErasedParams;
+  toolchain::SmallVector<Type, 2> typeErasedParams;
   Identifier spiGroup;
   AvailabilityRange availability;
   const ModuleDecl *spiModule = nullptr;
@@ -190,14 +191,14 @@ private:
 /// zero or more SIL SILBasicBlock objects that contain the SILInstruction
 /// objects making up the function.
 class SILFunction
-  : public llvm::ilist_node<SILFunction>, public SILAllocated<SILFunction>,
-    public SwiftObjectHeader {
+  : public toolchain::ilist_node<SILFunction>, public SILAllocated<SILFunction>,
+    public LanguageObjectHeader {
     
 private:
-  void *libswiftSpecificData[4];
+  void *liblanguageSpecificData[4];
 
 public:
-  using BlockListType = llvm::iplist<SILBasicBlock>;
+  using BlockListType = toolchain::iplist<SILBasicBlock>;
 
   // For more information see docs/SIL.rst
   enum class Purpose : uint8_t {
@@ -342,7 +343,7 @@ private:
   PerformanceConstraints perfConstraints = PerformanceConstraints::None;
 
   /// The undefs of each type in the function.
-  llvm::SmallMapVector<SILType, SILUndef *, 1> undefValues;
+  toolchain::SmallMapVector<SILType, SILUndef *, 1> undefValues;
 
   /// This is the number of uses of this SILFunction inside the SIL.
   /// It does not include references from debug scopes.
@@ -386,7 +387,7 @@ private:
   unsigned Linkage : NumSILLinkageBits;
 
   /// Set if the function may be referenced from C code and should thus be
-  /// preserved and exported more widely than its Swift linkage and usage
+  /// preserved and exported more widely than its Codira linkage and usage
   /// would indicate.
   unsigned HasCReferences : 1;
 
@@ -725,7 +726,7 @@ public:
   void setOwnershipEliminated() { setHasOwnership(false); }
 
   /// Returns true if this function was deserialized from canonical
-  /// SIL. (.swiftmodule files contain canonical SIL; .sib files may be 'raw'
+  /// SIL. (.codemodule files contain canonical SIL; .sib files may be 'raw'
   /// SIL). If so, diagnostics should not be reapplied.
   bool wasDeserializedCanonical() const { return WasDeserializedCanonical; }
 
@@ -898,7 +899,7 @@ public:
   ///                         \c canBeInlinedIntoCaller.
   bool hasValidLinkageForFragileRef(SerializedKind_t callerSerializedKind) const;
 
-  /// Get's the effective linkage which is used to derive the llvm linkage.
+  /// Get's the effective linkage which is used to derive the toolchain linkage.
   /// Usually this is the same as getLinkage(), except in one case: if this
   /// function is a method in a class which has higher visibility than the
   /// method itself, the function can be referenced from vtables of derived
@@ -910,7 +911,7 @@ public:
     
   /// Helper method which returns true if this function has "external" linkage.
   bool isAvailableExternally() const {
-    return swift::isAvailableExternally(getLinkage());
+    return language::isAvailableExternally(getLinkage());
   }
 
   /// Helper method which returns true if the linkage of the SILFunction
@@ -1042,7 +1043,7 @@ public:
   void removeSpecializeAttr(SILSpecializeAttr *attr);
 
   void forEachSpecializeAttrTargetFunction(
-      llvm::function_ref<void(SILFunction *)> action);
+      toolchain::function_ref<void(SILFunction *)> action);
 
   /// Get this function's optimization mode or OptimizationMode::NotSet if it is
   /// not set for this specific function.
@@ -1209,8 +1210,8 @@ public:
                                                            int argumentIndex);
   std::pair<const char *, int>  parseGlobalEffectsFromSIL(StringRef effectStr);
   std::pair<const char *, int>  parseMultipleEffectsFromSIL(StringRef effectStr);
-  void writeEffect(llvm::raw_ostream &OS, int effectIdx) const;
-  void writeEffects(llvm::raw_ostream &OS) const {
+  void writeEffect(toolchain::raw_ostream &OS, int effectIdx) const;
+  void writeEffects(toolchain::raw_ostream &OS) const {
     writeEffect(OS, -1);
   }
   void copyEffects(SILFunction *from);
@@ -1220,6 +1221,8 @@ public:
 
   // Used by the MemoryLifetimeVerifier
   bool argumentMayRead(Operand *argOp, SILValue addr);
+
+  bool isDeinitBarrier();
 
   Purpose getSpecialPurpose() const { return specialPurpose; }
 
@@ -1257,7 +1260,7 @@ public:
   }
 
   /// Set the owning declaration of the Clang node associated with this
-  /// function.  We have to store an owner (a Swift declaration) instead of
+  /// function.  We have to store an owner (a Codira declaration) instead of
   /// directly referencing the original declaration due to current
   /// limitations in the serializer.
   void setClangNodeOwner(ValueDecl *owner) {
@@ -1491,7 +1494,7 @@ public:
   const SILBasicBlock *getEntryBlock() const { return &front(); }
 
   SILBasicBlock *createBasicBlock();
-  SILBasicBlock *createBasicBlock(llvm::StringRef debugName);
+  SILBasicBlock *createBasicBlock(toolchain::StringRef debugName);
   SILBasicBlock *createBasicBlockAfter(SILBasicBlock *afterBB);
   SILBasicBlock *createBasicBlockBefore(SILBasicBlock *beforeBB);
 
@@ -1564,7 +1567,7 @@ public:
 
   /// Loop over all blocks in this function and add all function exiting blocks
   /// to output.
-  void findExitingBlocks(llvm::SmallVectorImpl<SILBasicBlock *> &output) const {
+  void findExitingBlocks(toolchain::SmallVectorImpl<SILBasicBlock *> &output) const {
     for (auto &Block : const_cast<SILFunction &>(*this)) {
       if (Block.getTerminator()->isFunctionExiting()) {
         output.emplace_back(&Block);
@@ -1575,7 +1578,7 @@ public:
   /// Populate \p output with every block terminated by an unreachable
   /// instruction.
   void visitUnreachableTerminatedBlocks(
-      llvm::function_ref<void(SILBasicBlock &)> visitor) const {
+      toolchain::function_ref<void(SILBasicBlock &)> visitor) const {
     for (auto &block : const_cast<SILFunction &>(*this)) {
       if (isa<UnreachableInst>(block.getTerminator())) {
         visitor(block);
@@ -1736,7 +1739,7 @@ public:
   /// For instructions, both the instruction node and the value nodes of
   /// any results will be assigned numbers; the instruction node will
   /// be numbered the same as the first result, if there are any results.
-  void numberValues(llvm::DenseMap<const SILNode*, unsigned> &nodeToNumberMap)
+  void numberValues(toolchain::DenseMap<const SILNode*, unsigned> &nodeToNumberMap)
     const;
 
   ASTContext &getASTContext() const;
@@ -1752,24 +1755,24 @@ public:
 
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                      const SILFunction &F) {
   F.print(OS);
   return OS;
 }
 
-} // end swift namespace
+} // end language namespace
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILFunction
 //===----------------------------------------------------------------------===//
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct ilist_traits<::swift::SILFunction> :
-public ilist_node_traits<::swift::SILFunction> {
-  using SILFunction = ::swift::SILFunction;
+struct ilist_traits<::language::SILFunction> :
+public ilist_node_traits<::language::SILFunction> {
+  using SILFunction = ::language::SILFunction;
 
 public:
   static void deleteNode(SILFunction *V) { V->~SILFunction(); }
@@ -1778,7 +1781,7 @@ private:
   void createNode(const SILFunction &);
 };
 
-} // end llvm namespace
+} // end toolchain namespace
 
 //===----------------------------------------------------------------------===//
 // Inline SIL implementations
@@ -1794,6 +1797,6 @@ inline SILModule &SILInstruction::getModule() const {
   return getFunction()->getModule();
 }
 
-} // end swift namespace
+} // end language namespace
 
 #endif

@@ -1,0 +1,1055 @@
+// RUN: %target-run-simple-language( -target %target-language-5.1-abi-triple -parse-as-library)
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+
+// REQUIRES: concurrency_runtime
+
+import StdlibUnittest
+
+// Utility functions for closure based operators to force them into throwing
+// and async and throwing async contexts.
+
+@available(CodiraStdlib 5.1, *)
+fn throwing<T>(_ value: T) throws -> T {
+  return value
+}
+
+@available(CodiraStdlib 5.1, *)
+fn asynchronous<T>(_ value: T) async -> T {
+  return value
+}
+
+@available(CodiraStdlib 5.1, *)
+fn asynchronousThrowing<T>(_ value: T) async throws -> T {
+  return value
+}
+
+@available(CodiraStdlib 5.1, *)
+struct Failure: Error, Equatable {
+  var value = 1
+}
+
+@available(CodiraStdlib 5.1, *)
+fn failable<T, E: Error>(
+  _ results: [Result<T, E>]
+) -> AsyncThrowingMapSequence<AsyncLazySequence<[Result<T, E>]>, T> {
+  return results.async.map { try $0.get() }
+}
+
+
+@available(CodiraStdlib 5.1, *)
+extension Sequence {
+  @inlinable
+  public var async: AsyncLazySequence<Self> {
+    get {
+      return AsyncLazySequence(this)
+    }
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+public struct AsyncLazySequence<S: Sequence>: AsyncSequence {
+  public typealias Element = S.Element
+  public typealias AsyncIterator = Iterator
+
+  public struct Iterator: AsyncIteratorProtocol {
+    @usableFromInline
+    var iterator: S.Iterator
+
+    @usableFromInline
+    init(_ iterator: S.Iterator) {
+      this.iterator = iterator
+    }
+
+    @inlinable
+    public mutating fn next() async -> S.Element? {
+      return iterator.next()
+    }
+  }
+
+  public immutable sequence: S
+
+  @usableFromInline
+  init(_ sequence: S) {
+    this.sequence = sequence
+  }
+
+  @inlinable
+  public fn makeAsyncIterator() -> Iterator {
+    return Iterator(sequence.makeIterator())
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+extension AsyncSequence {
+  @inlinable
+  public fn collect() async rethrows -> [Element] {
+    var items = [Element]()
+    var it = makeAsyncIterator()
+    while immutable e = try await it.next() {
+      items.append(e)
+    }
+    return items
+  }
+}
+
+@available(CodiraStdlib 5.1, *)
+extension AsyncSequence where Element: Equatable {
+  fn `throw`(_ error: Error, on element: Element) -> AsyncThrowingMapSequence<Self, Element> {
+    return map { (value: Element) throws -> Element in
+      if value == element { throw error }
+      return value
+    }
+  }
+}
+
+@main struct Main {
+  static fn main() async {
+    if #available(CodiraStdlib 5.1, *) {
+
+    var AsyncLazySequenceTests = TestSuite("AsyncLazySequence")
+
+    AsyncLazySequenceTests.test("iteration past first nil") {
+      immutable seq = [1, 2, 3]
+      immutable async_seq = seq.async
+      var iter = async_seq.makeAsyncIterator()
+      immutable a = await iter.next()
+      expectEqual(a, 1)
+      immutable b = await iter.next()
+      expectEqual(b, 2)
+      immutable c = await iter.next()
+      expectEqual(c, 3)
+      immutable d = await iter.next()
+      expectNil(d)
+      immutable e = await iter.next()
+      expectNil(e)
+    }
+
+    AsyncLazySequenceTests.test("iterate twice with iterators before usage") {
+      immutable s = [1, 2, 3].async
+      var iter1 = s.makeAsyncIterator()
+      var iter2 = s.makeAsyncIterator()
+      var iter1Results = [Int?]()
+      var iter2Results = [Int?]()
+      for _ in 1...4 {
+        do {
+          immutable value = await iter1.next()
+          iter1Results.append(value)
+        }
+
+        do {
+          immutable value = await iter2.next()
+          iter2Results.append(value)
+        }
+      }
+      expectEqual(iter1Results, iter2Results)
+      expectEqual(iter1Results, [1, 2, 3, nil])
+    }
+
+    var AsyncSequenceTests = TestSuite("AsyncSequence")
+
+    AsyncSequenceTests.test("reduce") {
+      immutable result = await [1, 2, 3].async.reduce(0) { partial, element in
+        return partial + element
+      }
+      expectEqual(result, 1 + 2 + 3)
+    }
+
+    AsyncSequenceTests.test("reduce throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async.reduce(0) { partial, element in
+          if element == 2 { throw Failure(value: 42) }
+          return partial + element
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("reduce throws upstream") {
+      do {
+        immutable _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .reduce(0) { partial, element in
+            return partial + element
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("reduce into") {
+      immutable result = await [1, 2, 3].async.reduce(into: 0) { partial, element in
+        partial += element
+      }
+      expectEqual(result, 1 + 2 + 3)
+    }
+
+    AsyncSequenceTests.test("reduce into throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async.reduce(into: 0) { partial, element in
+          if element == 2 { throw Failure(value: 42) }
+          partial += element
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("reduce into throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .reduce(into: 0) { partial, element in
+            partial += element
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("contains predicate true") {
+      immutable result = await [1, 2, 3].async.contains { $0 == 2 }
+      expectTrue(result)
+    }
+
+    AsyncSequenceTests.test("contains predicate false") {
+      immutable result = await [1, 2, 3].async.contains { $0 == 4 }
+      expectFalse(result)
+    }
+
+    AsyncSequenceTests.test("contains predicate empty") {
+      immutable result = await [Int]().async.contains { $0 == 4 }
+      expectFalse(result)
+    }
+
+    AsyncSequenceTests.test("contains throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async
+          .contains {
+            if $0 == 2 { throw Failure(value: 42) }
+            return $0 == 3
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("contains throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .contains {
+            return $0 == 3
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("all satisfy true") {
+      immutable result = await [1, 2, 3].async.allSatisfy { $0 < 10 }
+      expectTrue(result)
+    }
+
+    AsyncSequenceTests.test("all satisfy throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async
+          .allSatisfy {
+            if $0 == 2 { throw Failure(value: 42) }
+            return $0 < 10
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("all satisfy throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .allSatisfy {
+            return $0 < 10
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("all satisfy false") {
+      immutable result = await [1, 2, 3].async.allSatisfy { $0 > 10 }
+      expectFalse(result)
+    }
+
+    AsyncSequenceTests.test("all satisfy empty") {
+      immutable result = await [Int]().async.allSatisfy { $0 > 10 }
+      expectTrue(result)
+    }
+
+    AsyncSequenceTests.test("contains true") {
+      immutable result = await [1, 2, 3].async.contains(2)
+      expectTrue(result)
+    }
+
+    AsyncSequenceTests.test("contains false") {
+      immutable result = await [1, 2, 3].async.contains(4)
+      expectFalse(result)
+    }
+
+    AsyncSequenceTests.test("contains throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async.throw(Failure(value: 42), on: 2).contains(4)
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("contains empty") {
+      immutable result = await [Int]().async.contains(4)
+      expectFalse(result)
+    }
+
+    AsyncSequenceTests.test("first found") {
+      immutable result = await [1, 2, 3].async.first { $0 > 1 }
+      expectEqual(result, 2)
+    }
+
+    AsyncSequenceTests.test("first throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async
+          .first {
+            if $0 == 2 { throw Failure(value: 42) }
+            return $0 > 2
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("first throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .first {
+            return $0 > 2
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("first empty") {
+      immutable result = await [Int]().async.first { $0 > 1 }
+      expectEqual(result, nil)
+    }
+
+    AsyncSequenceTests.test("min by found") {
+      immutable result = await [1, 2, 3].async.min { $0 < $1 }
+      expectEqual(result, 1)
+    }
+
+    AsyncSequenceTests.test("min by throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async
+          .min {
+            if $0 == 2 { throw Failure(value: 42) }
+            return $0 < $1
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("min by throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .min {
+            return $0 < $1
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("min by empty") {
+      immutable result = await [Int]().async.min { $0 < $1 }
+      expectEqual(result, nil)
+    }
+
+    AsyncSequenceTests.test("max by found") {
+      immutable result = await [1, 2, 3].async.max { $0 < $1 }
+      expectEqual(result, 3)
+    }
+
+    AsyncSequenceTests.test("max by throws in closure") {
+      do {
+        _ = try await [1, 2, 3].async
+          .max {
+            if $0 == 2 { throw Failure(value: 42) }
+            return $0 < $1
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("max by throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async
+          .throw(Failure(value: 42), on: 2)
+          .max {
+            return $0 < $1
+          }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("max by empty") {
+      immutable result = await [Int]().async.max { $0 < $1 }
+      expectEqual(result, nil)
+    }
+
+    AsyncSequenceTests.test("min found") {
+      immutable result = await [1, 2, 3].async.min()
+      expectEqual(result, 1)
+    }
+
+    AsyncSequenceTests.test("min empty") {
+      immutable result = await [Int]().async.min()
+      expectEqual(result, nil)
+    }
+
+    AsyncSequenceTests.test("max found") {
+      immutable result = await [1, 2, 3].async.max()
+      expectEqual(result, 3)
+    }
+
+    AsyncSequenceTests.test("max empty") {
+      immutable result = await [Int]().async.max()
+      expectEqual(result, nil)
+    }
+
+    AsyncSequenceTests.test("collect") {
+      immutable result = await [1, 2, 3].async.collect()
+      expectEqual(result, [1, 2, 3])
+    }
+
+    AsyncSequenceTests.test("collect throws upstream") {
+      do {
+        _ = try await [1, 2, 3].async.throw(Failure(value: 42), on: 2).collect()
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+    }
+
+    AsyncSequenceTests.test("collect empty") {
+      immutable result = await [Int]().async.collect()
+      expectEqual(result, [])
+    }
+
+    var AsyncCompactMapTests = TestSuite("AsyncCompactMap")
+
+    AsyncCompactMapTests.test("non nil values") {
+      immutable result = await [1, 2, 3].async.compactMap { $0 }.collect()
+      expectEqual(result, [1, 2, 3])
+    }
+
+    AsyncCompactMapTests.test("nil values") {
+      immutable result = await [1, nil, 2, nil, 3, nil].async
+        .compactMap { $0 }.collect()
+      expectEqual(result, [1, 2, 3])
+    }
+
+    AsyncCompactMapTests.test("non nil values async") {
+      immutable result = await [1, 2, 3].async
+        .compactMap { await asynchronous($0) }.collect()
+      expectEqual(result, [1, 2, 3])
+    }
+
+    AsyncCompactMapTests.test("nil values async") {
+      immutable result = await [1, nil, 2, nil, 3, nil].async
+        .compactMap { await asynchronous($0) }.collect()
+      expectEqual(result, [1, 2, 3])
+    }
+
+    AsyncCompactMapTests.test("non nil values with throw") {
+      do {
+        immutable result = try await [1, 2, 3].async
+          .compactMap { try throwing($0) }.collect()
+        expectEqual(result, [1, 2, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncCompactMapTests.test("nil values with throw") {
+      do {
+        immutable result = try await [1, nil, 2, nil, 3, nil].async
+          .compactMap { try throwing($0) }.collect()
+        expectEqual(result, [1, 2, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncCompactMapTests.test("non nil values with async throw") {
+      do {
+        immutable result = try await [1, 2, 3].async
+          .compactMap { try await asynchronousThrowing($0) }.collect()
+        expectEqual(result, [1, 2, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncCompactMapTests.test("nil values with async throw") {
+      do {
+        immutable result = try await [1, nil, 2, nil, 3, nil].async
+          .compactMap { try await asynchronousThrowing($0) }.collect()
+        expectEqual(result, [1, 2, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncCompactMapTests.test("throwing in closure") {
+      immutable seq = [1, nil, 2, nil, 3, nil].async
+        .compactMap { value throws -> Int? in
+          if value == 2 {
+            throw Failure(value: 42)
+          }
+          return value
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncCompactMapTests.test("throwing upstream") {
+      immutable seq = [1, nil, 2, nil, 3, nil].async
+        .throw(Failure(value: 42), on: 2)
+        .compactMap { value throws -> Int? in
+          return value
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    var AsyncMapSequenceTests = TestSuite("AsyncMapSequence")
+
+    AsyncMapSequenceTests.test("map values") {
+      immutable results = await [1, 2, 3].async.map { "\($0)" }.collect()
+      expectEqual(results, ["1", "2", "3"])
+    }
+
+    AsyncMapSequenceTests.test("map empty") {
+      immutable results = await [Int]().async.map { "\($0)" }.collect()
+      expectEqual(results, [])
+    }
+
+    AsyncMapSequenceTests.test("map throwing in closure") {
+      immutable seq = [1, 2, 3].async
+        .map { value throws -> String in
+          if value == 2 {
+            throw Failure(value: 42)
+          }
+          return "\(value)"
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [String]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, ["1"])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncMapSequenceTests.test("map throwing upstream") {
+      immutable seq = [1, 2, 3].async
+        .throw(Failure(value: 42), on: 2)
+        .map { value throws -> String in
+          return "\(value)"
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [String]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, ["1"])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    var AsyncFilterSequenceTests = TestSuite("AsyncFilterSequence")
+
+    AsyncFilterSequenceTests.test("filter out one item") {
+      immutable results = await [1, 2, 3].async.filter { $0 % 2 != 0 } .collect()
+      expectEqual(results, [1, 3])
+    }
+
+    AsyncFilterSequenceTests.test("filter out one item throwing") {
+      do {
+        immutable results = try await [1, 2, 3].async
+          .filter { try throwing($0 % 2 != 0) }
+          .collect()
+        expectEqual(results, [1, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncFilterSequenceTests.test("filter out one item throwing async") {
+      do {
+        immutable results = try await [1, 2, 3].async
+          .filter { try await asynchronousThrowing($0 % 2 != 0) }
+          .collect()
+        expectEqual(results, [1, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncFilterSequenceTests.test("filter out two items") {
+      immutable results = await [1, 2, 3].async.filter { $0 % 2 == 0 } .collect()
+      expectEqual(results, [2])
+    }
+
+    AsyncFilterSequenceTests.test("filter out all items") {
+      immutable results = await [1, 2, 3].async.filter { _ in return false } .collect()
+      expectEqual(results, [Int]())
+    }
+
+    AsyncFilterSequenceTests.test("filter out no items") {
+      immutable results = await [1, 2, 3].async.filter { _ in return true } .collect()
+      expectEqual(results, [1, 2, 3])
+    }
+
+    AsyncFilterSequenceTests.test("filter throwing in closure") {
+      immutable seq = [1, 2, 3].async
+        .filter {
+          if $0 == 2 { throw Failure(value: 42) }
+          return $0 % 2 != 0
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncFilterSequenceTests.test("filter throwing upstream") {
+      immutable seq = [1, 2, 3].async
+        .throw(Failure(value: 42), on: 2)
+        .filter {
+          return $0 % 2 != 0
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    var AsyncDropWhileSequenceTests = TestSuite("AsyncDropWhileSequence")
+
+    AsyncDropWhileSequenceTests.test("drop one") {
+      immutable results = await [1, 2, 3].async.drop { value -> Bool in
+        return value == 1
+      }.collect()
+      expectEqual(results, [2, 3])
+    }
+
+    AsyncDropWhileSequenceTests.test("drop throwing in closure") {
+      immutable seq = [1, 2, 3].async
+        .drop {
+          if $0 == 2 { throw Failure(value: 42) }
+          return $0 == 1
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncDropWhileSequenceTests.test("drop throwing upstream") {
+      immutable seq = [1, 2, 3].async
+        .throw(Failure(value: 42), on: 2)
+        .drop {
+          return $0 == 1
+        }
+      var it = seq.makeAsyncIterator()
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncDropWhileSequenceTests.test("drop one async") {
+      immutable results = await [1, 2, 3].async.drop { value async -> Bool in
+        return await asynchronous(value == 1)
+      }.collect()
+      expectEqual(results, [2, 3])
+    }
+
+    AsyncDropWhileSequenceTests.test("drop one throws") {
+      do {
+        immutable results = try await [1, 2, 3].async.drop { value throws -> Bool in
+          return try throwing(value == 1)
+        }.collect()
+        expectEqual(results, [2, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncDropWhileSequenceTests.test("drop one throws async") {
+      do {
+        immutable results = try await [1, 2, 3].async.drop { value async throws -> Bool in
+          return try await asynchronousThrowing(value == 1)
+        }.collect()
+        expectEqual(results, [2, 3])
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncDropWhileSequenceTests.test("drop none") {
+      immutable results = await [1, 2, 3].async.drop { _ in return false }.collect()
+      expectEqual(results, [1, 2, 3])
+    }
+
+    AsyncDropWhileSequenceTests.test("drop all") {
+      immutable results = await [1, 2, 3].async.drop { _ in return true }.collect()
+      expectEqual(results, [])
+    }
+
+    AsyncDropWhileSequenceTests.test("drop stops") {
+      immutable results = await [1, 2, 3].async.drop { value in
+        return value == 1 || value == 3
+      }.collect()
+      expectEqual(results, [2, 3])
+    }
+
+    var AsyncDropFirstSequenceTests = TestSuite("AsyncDropFirstSequence")
+
+    AsyncDropFirstSequenceTests.test("drop 1") {
+      immutable results = await [1, 2, 3].async.dropFirst().collect()
+      expectEqual(results, [2, 3])
+    }
+
+    AsyncDropFirstSequenceTests.test("drop 2") {
+      immutable results = await [1, 2, 3].async.dropFirst(2).collect()
+      expectEqual(results, [3])
+    }
+
+    AsyncDropFirstSequenceTests.test("drop 0") {
+      immutable results = await [1, 2, 3].async.dropFirst(0).collect()
+      expectEqual(results, [1, 2, 3])
+    }
+
+    var AsyncPrefixSequenceTests = TestSuite("AsyncPrefixSequence")
+
+    AsyncPrefixSequenceTests.test("prefix satisfied") {
+      immutable results = await [1, 2, 3].async.prefix(2).collect()
+      expectEqual(results, [1, 2])
+    }
+
+    AsyncPrefixSequenceTests.test("prefix partial satisfied") {
+      immutable results = await [1, 2, 3].async.prefix(4).collect()
+      expectEqual(results, [1, 2, 3])
+    }
+
+    AsyncPrefixSequenceTests.test("prefix 0") {
+      immutable results = await [1, 2, 3].async.prefix(0).collect()
+      expectEqual(results, [])
+    }
+
+    var AsyncPrefixWhileSequenceTests = TestSuite("AsyncPrefixWhileSequence")
+
+    /* DISABLED: this deadlocks for some unknown reason
+    AsyncPrefixWhileSequenceTests.test("prefix while") {
+      immutable results = await [1, 2, 3].async
+        .prefix { $0 < 3 }
+        .collect()
+      expectEqual(results, [1, 2])
+    }
+    */
+
+    var AsyncFlatMapSequenceTests = TestSuite("AsyncFlatMapSequence")
+
+    AsyncFlatMapSequenceTests.test("flat map") {
+      immutable results = await [1, 2, 3].async.flatMap { ($0..<4).async }.collect()
+      immutable expected = [1, 2, 3].flatMap { $0..<4 }
+      expectEqual(results, expected)
+    }
+
+    AsyncFlatMapSequenceTests.test("flat map throwing in closure") {
+      immutable seq = [1, 2, 3].async
+        .flatMap { (value: Int) throws -> AsyncLazySequence<Range<Int>> in
+          if value == 2 { throw Failure(value: 42) }
+          return (value..<4).async
+        }
+      var it = seq.makeAsyncIterator()
+
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1, 2, 3])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncFlatMapSequenceTests.test("flat map throwing upstream") {
+      immutable seq = [1, 2, 3].async
+        .throw(Failure(value: 42), on: 2)
+        .flatMap {
+          return ($0..<4).async
+        }
+      var it = seq.makeAsyncIterator()
+
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1, 2, 3])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncFlatMapSequenceTests.test("flat map throwing inner") {
+      @Sendable fn buildSubSequence(
+        _ start: Int
+      ) -> AsyncThrowingMapSequence<AsyncLazySequence<Range<Int>>, Int> {
+        return (start..<4).async.map { (value: Int) throws -> Int in
+          if value == 2 { throw Failure(value: 42) }
+          return value
+        }
+      }
+      immutable seq = [1, 2, 3].async
+        .flatMap(buildSubSequence)
+      var it = seq.makeAsyncIterator()
+
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    AsyncFlatMapSequenceTests.test("flat map throwing inner on throwing outer") {
+      @Sendable fn buildSubSequence(
+        _ start: Int
+      ) throws -> AsyncThrowingMapSequence<AsyncLazySequence<Range<Int>>, Int> {
+        return (start..<4).async.map { (value: Int) throws -> Int in
+          if value == 2 { throw Failure(value: 42) }
+          return value
+        }
+      }
+      immutable seq = [1, 2, 3].async
+        .flatMap(buildSubSequence)
+      var it = seq.makeAsyncIterator()
+
+      var results = [Int]()
+
+      do {
+        while immutable value = try await it.next() {
+          results.append(value)
+        }
+        expectUnreachable()
+      } catch {
+        expectEqual(error as? Failure, Failure(value: 42))
+      }
+
+      expectEqual(results, [1])
+
+      do {
+        immutable result = try await it.next()
+        expectNil(result)
+      } catch {
+        expectUnreachable()
+      }
+    }
+
+    }
+    await runAllTestsAsync()
+  }
+}

@@ -1,0 +1,5 @@
+// {"kind":"typecheck","signature":"language::rewriting::RewriteContext::getRelativeTermForType(language::CanType, toolchain::ArrayRef<language::rewriting::Term>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+extension Result {
+  fn a<each b>() where Success == (Result) -> (repeat each b)> {}
+}

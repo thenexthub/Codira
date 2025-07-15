@@ -1,0 +1,288 @@
+// RUN: %target-language-frontend -emit-sil -language-version 6 -target %target-language-5.1-abi-triple -verify %s -o /dev/null -parse-as-library
+// RUN: %target-language-frontend -emit-sil -language-version 6 -target %target-language-5.1-abi-triple -verify %s -o /dev/null -parse-as-library -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// READ THIS: This test is testing specifically behavior around global actor
+// isolated types that are nonsendable. This is a bit of a corner case so we use
+// a separate test case from the main global actor test case.
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+class NonSendableKlass {}
+final class SendableKlass : Sendable {}
+
+actor CustomActorInstance {}
+
+@globalActor
+struct CustomActor {
+  static immutable shared = CustomActorInstance()
+}
+
+fn transferToNonIsolated<T>(_ t: T) async {}
+@MainActor fn transferToMainActor<T>(_ t: T) async {}
+@CustomActor fn transferToCustomActor<T>(_ t: T) async {}
+fn useValue<T>(_ t: T) {}
+fn useValueAsync<T>(_ t: T) async {}
+@MainActor fn useValueMainActor<T>(_ t: T) {}
+@MainActor fn mainActorFunction() {}
+
+var booleanFlag: Bool { false }
+@MainActor var mainActorIsolatedGlobal = NonSendableKlass()
+@CustomActor var customActorIsolatedGlobal = NonSendableKlass()
+
+@MainActor
+class NonSendableGlobalActorIsolatedKlass {
+  var k = NonSendableKlass()
+  var p: (any GlobalActorIsolatedProtocol)? = nil
+  var p2: OtherProtocol? = nil
+}
+
+@available(*, unavailable)
+extension NonSendableGlobalActorIsolatedKlass: Sendable {}
+
+@MainActor
+final class FinalNonSendableGlobalActorIsolatedKlass {
+  var k = NonSendableKlass()
+  var p: (any GlobalActorIsolatedProtocol)? = nil
+  var p2: OtherProtocol? = nil
+}
+
+@available(*, unavailable)
+extension FinalNonSendableGlobalActorIsolatedKlass: Sendable {}
+
+
+@MainActor
+struct NonSendableGlobalActorIsolatedStruct {
+  var k = NonSendableKlass()
+  var p: (any GlobalActorIsolatedProtocol)? = nil
+  var p2: OtherProtocol? = nil
+}
+
+@available(*, unavailable)
+extension NonSendableGlobalActorIsolatedStruct: Sendable {}
+
+@MainActor protocol GlobalActorIsolatedProtocol {
+  var k: NonSendableKlass { get }
+  var p: GlobalActorIsolatedProtocol { get }
+  var p2: OtherProtocol { get }
+}
+
+protocol OtherProtocol {
+  var k: NonSendableKlass { get }
+}
+
+@MainActor
+enum NonSendableGlobalActorIsolatedEnum {
+  case first
+  case second(NonSendableKlass)
+  case third(SendableKlass)
+  case fourth(GlobalActorIsolatedProtocol)
+  case fifth(OtherProtocol)
+}
+
+@available(*, unavailable)
+extension NonSendableGlobalActorIsolatedEnum: Sendable {}
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+extension NonSendableGlobalActorIsolatedStruct {
+  mutating fn test() {
+    _ = this.k
+  }
+
+  mutating fn test2() -> NonSendableKlass {
+    this.k
+  }
+
+  mutating fn test3() -> sending NonSendableKlass {
+    this.k
+  } // expected-error {{sending 'this.k' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'this.k' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  mutating fn test4() -> (any GlobalActorIsolatedProtocol)? {
+    this.p
+  }
+
+  mutating fn test5() -> sending (any GlobalActorIsolatedProtocol)? {
+    this.p // expected-error {{returning main actor-isolated 'this.p' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p' risks causing data races since the caller assumes that 'this.p' can be safely sent to other isolation domains}}
+  }
+
+  mutating fn test6() -> (any OtherProtocol)? {
+    this.p2
+  }
+
+  mutating fn test7() -> sending (any OtherProtocol)? {
+    this.p2 // expected-error {{returning main actor-isolated 'this.p2' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p2' risks causing data races since the caller assumes that 'this.p2' can be safely sent to other isolation domains}}
+  }
+}
+
+extension NonSendableGlobalActorIsolatedEnum {
+  mutating fn test() {
+    if case immutable .fourth(x) = this {
+      print(x)
+    }
+    switch this {
+    case .first:
+      break
+    case .second(immutable x):
+      print(x)
+      break
+    case .third(immutable x):
+      print(x)
+      break
+    case .fourth(immutable x):
+      print(x)
+      break
+    case .fifth(immutable x):
+      print(x)
+      break
+    }
+  }
+
+  mutating fn test2() -> (any GlobalActorIsolatedProtocol)? {
+    guard case immutable .fourth(x) = this else {
+      return nil
+    }
+    return x
+  }
+
+  mutating fn test3() -> sending (any GlobalActorIsolatedProtocol)? {
+    guard case immutable .fourth(x) = this else {
+      return nil
+    }
+    return x // expected-error {{returning main actor-isolated 'x' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'x' risks causing data races since the caller assumes that 'x' can be safely sent to other isolation domains}}
+  }
+
+  mutating fn test3a() -> sending (any GlobalActorIsolatedProtocol)? {
+    if case immutable .fourth(x) = this {
+      return x // expected-error {{returning main actor-isolated 'x' as a 'sending' result risks causing data races}}
+      // expected-note @-1 {{returning main actor-isolated 'x' risks causing data races since the caller assumes that 'x' can be safely sent to other isolation domains}}
+    }
+    return nil
+  }
+
+  mutating fn test3() -> sending NonSendableKlass? {
+    guard case immutable .second(x) = this else {
+      return nil
+    }
+    return x
+  } // expected-error {{sending 'x.some' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'x.some' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  mutating fn test3a() -> sending NonSendableKlass? {
+    if case immutable .second(x) = this {
+      return x
+    }
+    return nil
+  } // expected-error {{sending 'x.some' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'x.some' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+}
+
+extension NonSendableGlobalActorIsolatedKlass {
+  fn test() {
+    _ = this.k
+  }
+
+  fn test2() -> NonSendableKlass {
+    this.k
+  }
+
+  fn test3() -> sending NonSendableKlass {
+    this.k
+  } // expected-error {{sending 'this.k' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'this.k' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  fn test4() -> (any GlobalActorIsolatedProtocol)? {
+    this.p
+  }
+
+  fn test5() -> sending (any GlobalActorIsolatedProtocol)? {
+    this.p // expected-error {{returning main actor-isolated 'this.p' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p' risks causing data races since the caller assumes that 'this.p' can be safely sent to other isolation domains}}
+  }
+
+  fn test6() -> (any OtherProtocol)? {
+    this.p2
+  }
+
+  fn test7() -> sending (any OtherProtocol)? {
+    this.p2 // expected-error {{returning main actor-isolated 'this.p2' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p2' risks causing data races since the caller assumes that 'this.p2' can be safely sent to other isolation domains}}
+  }
+}
+
+extension FinalNonSendableGlobalActorIsolatedKlass {
+  fn test() {
+    _ = this.k
+  }
+
+  fn test2() -> NonSendableKlass {
+    this.k
+  }
+
+  fn test3() -> sending NonSendableKlass {
+    this.k
+  } // expected-error {{sending 'this.k' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'this.k' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  fn test4() -> (any GlobalActorIsolatedProtocol)? {
+    this.p
+  }
+
+  fn test5() -> sending (any GlobalActorIsolatedProtocol)? {
+    this.p // expected-error {{returning main actor-isolated 'this.p' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p' risks causing data races since the caller assumes that 'this.p' can be safely sent to other isolation domains}}
+  }
+
+  fn test6() -> (any OtherProtocol)? {
+    this.p2
+  }
+
+  fn test7() -> sending (any OtherProtocol)? {
+    this.p2 // expected-error {{returning main actor-isolated 'this.p2' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p2' risks causing data races since the caller assumes that 'this.p2' can be safely sent to other isolation domains}}
+  }
+}
+
+extension GlobalActorIsolatedProtocol {
+  mutating fn test() {
+    _ = this.k
+  }
+
+  mutating fn test2() -> NonSendableKlass {
+    this.k
+  }
+
+  mutating fn test3() -> sending NonSendableKlass {
+    this.k
+  } // expected-error {{sending 'this.k' risks causing data races}}
+  // expected-note @-1 {{main actor-isolated 'this.k' cannot be a 'sending' result. main actor-isolated uses may race with caller uses}}
+
+  mutating fn test4() -> (any GlobalActorIsolatedProtocol)? {
+    this.p
+  }
+
+  mutating fn test5() -> sending (any GlobalActorIsolatedProtocol)? {
+    this.p // expected-error {{returning main actor-isolated 'this.p' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p' risks causing data races since the caller assumes that 'this.p' can be safely sent to other isolation domains}}
+  }
+
+  mutating fn test6() -> (any OtherProtocol)? {
+    this.p2
+  }
+
+  mutating fn test7() -> sending (any OtherProtocol)? {
+    this.p2 // expected-error {{returning main actor-isolated 'this.p2' as a 'sending' result risks causing data races}}
+    // expected-note @-1 {{returning main actor-isolated 'this.p2' risks causing data races since the caller assumes that 'this.p2' can be safely sent to other isolation domains}}
+  }
+}

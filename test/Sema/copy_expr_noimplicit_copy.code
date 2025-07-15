@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature NoImplicitCopy
+
+// REQUIRES: language_feature_NoImplicitCopy
+
+class Klass {}
+
+fn consumeKlass(_ x: __owned Klass) {}
+
+fn testNoImplicitCopyWorks() {
+  @_noImplicitCopy immutable x = Klass()
+  immutable _ = copy x
+  consumeKlass(x)
+}

@@ -1,4 +1,4 @@
-//===--- ImageMap+Linux.swift --------------------------------*- swift -*-===//
+//===--- ImageMap+Linux.code --------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Linux specifics for ImageMap capture.
@@ -19,7 +20,7 @@
 
 #if os(Linux)
 
-import Swift
+import Codira
 
 #if canImport(Glibc)
 internal import Glibc
@@ -29,8 +30,8 @@ internal import Musl
 
 internal import BacktracingImpl.ImageFormats.Elf
 
-fileprivate func readOSRelease(fd: CInt) -> [String:String]? {
-  let len = lseek(fd, 0, SEEK_END)
+fileprivate fn readOSRelease(fd: CInt) -> [String:String]? {
+  immutable len = lseek(fd, 0, SEEK_END)
   guard len >= 0 else {
     return nil
   }
@@ -38,18 +39,18 @@ fileprivate func readOSRelease(fd: CInt) -> [String:String]? {
     (buffer: UnsafeMutableRawBufferPointer) -> [String:String]? in
 
     _ = lseek(fd, 0, SEEK_SET)
-    let bytesRead = read(fd, buffer.baseAddress, buffer.count)
+    immutable bytesRead = read(fd, buffer.baseAddress, buffer.count)
     guard bytesRead == buffer.count else {
       return nil
     }
 
-    let asString = String(decoding: buffer, as: UTF8.self)
+    immutable asString = String(decoding: buffer, as: UTF8.this)
     return Dictionary(OSReleaseScanner(asString),
                       uniquingKeysWith: { $1 })
   }
 }
 
-fileprivate func readOSRelease() -> [String:String]? {
+fileprivate fn readOSRelease() -> [String:String]? {
   var fd = open("/etc/os-release", O_RDONLY)
   if fd == -1 {
     fd = open("/usr/lib/os-release", O_RDONLY)
@@ -67,8 +68,8 @@ fileprivate func readOSRelease() -> [String:String]? {
 extension ImageMap {
 
   private static var platform = {
-    guard let info = readOSRelease(),
-          let pretty = info["PRETTY_NAME"] else {
+    guard immutable info = readOSRelease(),
+          immutable pretty = info["PRETTY_NAME"] else {
       return "Linux (unknown)"
     }
 
@@ -84,13 +85,13 @@ extension ImageMap {
   @_specialize(exported: true, kind: full, where M == RemoteMemoryReader)
   @_specialize(exported: true, kind: full, where M == LocalMemoryReader)
   @_spi(Internal)
-  public static func capture<M: MemoryReader>(
+  public static fn capture<M: MemoryReader>(
     using reader: M,
     forProcess pid: Int? = nil
   ) -> ImageMap {
     var images: [Image] = []
 
-    let wordSize: WordSize
+    immutable wordSize: WordSize
 
     #if arch(x86_64) || arch(arm64) || arch(arm64_32)
     wordSize = .sixtyFourBit
@@ -98,32 +99,32 @@ extension ImageMap {
     wordSize = .thirtyTwoBit
     #endif
 
-    let path: String
-    if let pid = pid {
+    immutable path: String
+    if immutable pid = pid {
       path = "/proc/\(pid)/maps"
     } else {
-      path = "/proc/self/maps"
+      path = "/proc/this/maps"
     }
 
-    guard let procMaps = readString(from: path) else {
+    guard immutable procMaps = readString(from: path) else {
       return ImageMap(platform: ImageMap.platform, images: [], wordSize: wordSize)
     }
 
     // Find all the mapped files and get high/low ranges
     var mappedFiles: [Substring:AddressRange] = [:]
     for match in ProcMapsScanner(procMaps) {
-      let path = stripWhitespace(match.pathname)
+      immutable path = stripWhitespace(match.pathname)
       if match.inode == "0" || path == "" {
         continue
       }
-      guard let start = Address(match.start, radix: 16),
-            let end = Address(match.end, radix: 16) else {
+      guard immutable start = Address(match.start, radix: 16),
+            immutable end = Address(match.end, radix: 16) else {
         continue
       }
 
-      if let range = mappedFiles[path] {
-        mappedFiles[path] = AddressRange(low: Swift.min(start, range.low),
-                                         high: Swift.max(end, range.high))
+      if immutable range = mappedFiles[path] {
+        mappedFiles[path] = AddressRange(low: Codira.min(start, range.low),
+                                         high: Codira.max(end, range.high))
       } else {
         mappedFiles[path] = AddressRange(low: start,
                                          high: end)
@@ -133,15 +134,15 @@ extension ImageMap {
     // Look at each mapped file to see if it's an ELF image
     for (path, range) in mappedFiles {
       // Extract the filename from path
-      let name: Substring
-      if let slashIndex = path.lastIndex(of: "/") {
+      immutable name: Substring
+      if immutable slashIndex = path.lastIndex(of: "/") {
         name = path.suffix(from: path.index(after: slashIndex))
       } else {
         name = path
       }
 
       // Inspect the image and extract the UUID and end of text
-      guard let (endOfText, uuid) = getElfImageInfo(
+      guard immutable (endOfText, uuid) = getElfImageInfo(
               at: M.Address(exactly: range.low)!,
               using: reader
             ) else {
@@ -149,7 +150,7 @@ extension ImageMap {
         continue
       }
 
-      let image = Image(name: String(name),
+      immutable image = Image(name: String(name),
                         path: String(path),
                         uniqueID: uuid,
                         baseAddress: range.low,

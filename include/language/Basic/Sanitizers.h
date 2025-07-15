@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_SANITIZERS_H
-#define SWIFT_BASIC_SANITIZERS_H
+#ifndef LANGUAGE_BASIC_SANITIZERS_H
+#define LANGUAGE_BASIC_SANITIZERS_H
 
 namespace language {
 
@@ -26,4 +27,4 @@ enum class SanitizerKind : unsigned {
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_SANITIZERS_H
+#endif // LANGUAGE_BASIC_SANITIZERS_H

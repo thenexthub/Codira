@@ -25,8 +25,8 @@ def collect_catalyst_frameworks(frameworks_path):
             # being supported
             macabi_interface_path = \
                 os.path.join(frameworks_path, frame,
-                             'Modules', name + '.swiftmodule',
-                             'x86_64-apple-ios-macabi.swiftinterface')
+                             'Modules', name + '.codemodule',
+                             'x86_64-apple-ios-macabi.codeinterface')
             if os.path.exists(macabi_interface_path):
                 if name not in denylist:
                     names.append(name)
@@ -41,7 +41,7 @@ def get_catalyst_frameworks(sdk_path):
         collect_catalyst_frameworks(ios_support_path)
 
 
-def get_frameworks(sdk_path, swift_frameworks_only):
+def get_frameworks(sdk_path, language_frameworks_only):
     frameworks_path = sdk_path + "/System/Library/Frameworks"
     names = []
     for frame in os.listdir(frameworks_path):
@@ -51,17 +51,17 @@ def get_frameworks(sdk_path, swift_frameworks_only):
             name = frame[:-len(".framework")]
             header_dir_path = frameworks_path + '/' + frame + '/Headers'
             module_dir_path = frameworks_path + '/' + frame + '/Modules'
-            swiftmodule_path = module_dir_path + '/' + name + '.swiftmodule'
+            languagemodule_path = module_dir_path + '/' + name + '.codemodule'
             old_modulemap_path = frameworks_path + '/' + frame + '/module.map'
             old_modulemap_private_path = frameworks_path + '/' + frame + \
                 '/module_private.map'
 
-            if os.path.exists(swiftmodule_path):
+            if os.path.exists(languagemodule_path):
                 if name not in denylist:
                     names.append(name)
                 continue
-            # We only care about Swift frameworks then we are done.
-            if swift_frameworks_only:
+            # We only care about Codira frameworks then we are done.
+            if language_frameworks_only:
                 continue
 
             if not os.path.exists(header_dir_path):
@@ -89,7 +89,7 @@ def get_frameworks(sdk_path, swift_frameworks_only):
 
 
 def get_overlays(sdk_path):
-    overlay_path = sdk_path + "/usr/lib/swift/"
+    overlay_path = sdk_path + "/usr/lib/language/"
     names = []
     for overlay in os.listdir(overlay_path):
         if overlay.endswith(".codemodule"):
@@ -105,7 +105,7 @@ def should_exclude_framework(frame_path):
     if not os.path.exists(module_map_path):
         return False
     contents = open(module_map_path).read()
-    if "requires !swift" in contents:
+    if "requires !language" in contents:
         return True
 
     return False
@@ -119,7 +119,7 @@ def print_clang_imports(frames, use_hash):
             print("@import " + name + ";")
 
 
-def print_swift_imports(frames):
+def print_language_imports(frames):
     for name in frames:
         print("import " + name)
 
@@ -139,8 +139,8 @@ def main():
     parser.add_option("-o", "--output", help="output mode",
                       type=str, dest="out_mode", default="list")
     parser.add_option("--hash", action="store_true", dest="use_hash")
-    parser.add_option("--swift-frameworks-only", action="store_true")
-    parser.add_option("--swift-overlay-only", action="store_true")
+    parser.add_option("--language-frameworks-only", action="store_true")
+    parser.add_option("--language-overlay-only", action="store_true")
     parser.add_option("--v", action="store_true")
     parser.add_option("--catalyst", action="store_true")
     (opts, cmd) = parser.parse_args()
@@ -150,32 +150,32 @@ def main():
 
     if not opts.out_mode:
         parser.error(
-            "output mode not specified: 'clang-import'/'swift-import'/'list'")
+            "output mode not specified: 'clang-import'/'language-import'/'list'")
 
-    if opts.swift_overlay_only:
+    if opts.code_overlay_only:
         frames = get_overlays(opts.sdk)
     else:
         if opts.catalyst:
-            if opts.swift_frameworks_only:
+            if opts.code_frameworks_only:
                 frames = get_catalyst_frameworks(opts.sdk)
             else:
                 parser.error("only support find catalyst frameworks "
-                             "with --swift-frameworks-only")
+                             "with --language-frameworks-only")
         else:
-            frames = get_frameworks(opts.sdk, opts.swift_frameworks_only)
+            frames = get_frameworks(opts.sdk, opts.code_frameworks_only)
     if opts.v:
         for name in frames:
             print('Including: ', name, file=sys.stderr)
     if opts.out_mode == "clang-import":
         print_clang_imports(frames, opts.use_hash)
-    elif opts.out_mode == "swift-import":
-        print_swift_imports(frames)
+    elif opts.out_mode == "language-import":
+        print_language_imports(frames)
     elif opts.out_mode == "list":
         for name in frames:
             print(name)
     else:
         parser.error(
-            "output mode not found: 'clang-import'/'swift-import'/'list'")
+            "output mode not found: 'clang-import'/'language-import'/'list'")
 
 
 if __name__ == '__main__':

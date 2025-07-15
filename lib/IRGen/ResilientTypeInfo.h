@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines a class used for implementing non-class-bound
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_RESILIENTTYPEINFO_H
-#define SWIFT_IRGEN_RESILIENTTYPEINFO_H
+#ifndef LANGUAGE_IRGEN_RESILIENTTYPEINFO_H
+#define LANGUAGE_IRGEN_RESILIENTTYPEINFO_H
 
 #include "NonFixedTypeInfo.h"
 #include "Outlining.h"
@@ -46,7 +47,7 @@ namespace irgen {
 template <class Impl>
 class ResilientTypeInfo : public WitnessSizedTypeInfo<Impl> {
 protected:
-  ResilientTypeInfo(llvm::Type *type,
+  ResilientTypeInfo(toolchain::Type *type,
                     IsCopyable_t copyable,
                     IsABIAccessible_t abiAccessible)
     : WitnessSizedTypeInfo<Impl>(type, Alignment(1),
@@ -61,19 +62,19 @@ public:
   }
 
   void assignArrayWithCopyNoAlias(IRGenFunction &IGF, Address dest, Address src,
-                                  llvm::Value *count,
+                                  toolchain::Value *count,
                                   SILType T) const override {
     emitAssignArrayWithCopyNoAliasCall(IGF, T, dest, src, count);
   }
 
   void assignArrayWithCopyFrontToBack(IRGenFunction &IGF, Address dest,
-                                      Address src, llvm::Value *count,
+                                      Address src, toolchain::Value *count,
                                       SILType T) const override {
     emitAssignArrayWithCopyFrontToBackCall(IGF, T, dest, src, count);
   }
 
   void assignArrayWithCopyBackToFront(IRGenFunction &IGF, Address dest,
-                                      Address src, llvm::Value *count,
+                                      Address src, toolchain::Value *count,
                                       SILType T) const override {
     emitAssignArrayWithCopyBackToFrontCall(IGF, T, dest, src, count);
   }
@@ -84,7 +85,7 @@ public:
   }
 
   void assignArrayWithTake(IRGenFunction &IGF, Address dest, Address src,
-                           llvm::Value *count, SILType T) const override {
+                           toolchain::Value *count, SILType T) const override {
     emitAssignArrayWithTakeCall(IGF, T, dest, src, count);
   }
 
@@ -101,7 +102,7 @@ public:
   }
 
   void initializeArrayWithCopy(IRGenFunction &IGF,
-                               Address dest, Address src, llvm::Value *count,
+                               Address dest, Address src, toolchain::Value *count,
                                SILType T) const override {
     emitInitializeArrayWithCopyCall(IGF, T, dest, src, count);
   }
@@ -113,21 +114,21 @@ public:
   }
 
   void initializeArrayWithTakeNoAlias(IRGenFunction &IGF, Address dest,
-                                      Address src, llvm::Value *count,
+                                      Address src, toolchain::Value *count,
                                       SILType T) const override {
     emitInitializeArrayWithTakeNoAliasCall(IGF, T, dest, src, count);
   }
 
   void initializeArrayWithTakeFrontToBack(IRGenFunction &IGF,
                                           Address dest, Address src,
-                                          llvm::Value *count,
+                                          toolchain::Value *count,
                                           SILType T) const override {
     emitInitializeArrayWithTakeFrontToBackCall(IGF, T, dest, src, count);
   }
 
   void initializeArrayWithTakeBackToFront(IRGenFunction &IGF,
                                           Address dest, Address src,
-                                          llvm::Value *count,
+                                          toolchain::Value *count,
                                           SILType T) const override {
     emitInitializeArrayWithTakeBackToFrontCall(IGF, T, dest, src, count);
   }
@@ -137,7 +138,7 @@ public:
     emitDestroyCall(IGF, T, addr);
   }
 
-  void destroyArray(IRGenFunction &IGF, Address addr, llvm::Value *count,
+  void destroyArray(IRGenFunction &IGF, Address addr, toolchain::Value *count,
                     SILType T) const override {
     emitDestroyArrayCall(IGF, T, addr, count);
   }
@@ -146,16 +147,16 @@ public:
     return true;
   }
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address enumAddr,
                                        SILType T,
                                        bool isOutlined) const override {
     return emitGetEnumTagSinglePayloadCall(IGF, T, numEmptyCases, enumAddr);
   }
 
-  void storeEnumTagSinglePayload(IRGenFunction &IGF, llvm::Value *whichCase,
-                                 llvm::Value *numEmptyCases, Address enumAddr,
+  void storeEnumTagSinglePayload(IRGenFunction &IGF, toolchain::Value *whichCase,
+                                 toolchain::Value *numEmptyCases, Address enumAddr,
                                  SILType T, bool isOutlined) const override {
     emitStoreEnumTagSinglePayloadCall(IGF, T, whichCase, numEmptyCases, enumAddr);
   }

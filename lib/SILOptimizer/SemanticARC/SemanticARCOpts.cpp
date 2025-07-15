@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-semantic-arc-opts"
@@ -26,13 +27,13 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 using namespace language::semanticarc;
 
-static llvm::cl::list<ARCTransformKind> TransformsToPerform(
-    llvm::cl::values(
+static toolchain::cl::list<ARCTransformKind> TransformsToPerform(
+    toolchain::cl::values(
         clEnumValN(ARCTransformKind::AllPeepholes,
                    "sil-semantic-arc-peepholes-all",
                    "Perform All ARC canonicalizations and peepholes"),
@@ -61,7 +62,7 @@ static llvm::cl::list<ARCTransformKind> TransformsToPerform(
                    "sil-semantic-arc-redundant-move-value-elim",
                    "Eliminate move_value which don't change owned lifetime "
                    "characteristics.  (Escaping, Lexical).")),
-    llvm::cl::desc(
+    toolchain::cl::desc(
         "For testing purposes only run the specified list of semantic arc "
         "optimization. If the list is empty, we run all transforms"));
 
@@ -80,11 +81,10 @@ struct SemanticARCOpts : SILFunctionTransform {
   SemanticARCOpts(bool mandatoryOptsOnly)
       : mandatoryOptsOnly(mandatoryOptsOnly) {}
 
-#ifndef NDEBUG
   void performCommandlineSpecifiedTransforms(SemanticARCOptVisitor &visitor) {
     for (auto transform : TransformsToPerform) {
       visitor.ctx.transformKind = transform;
-      SWIFT_DEFER {
+      LANGUAGE_DEFER {
         visitor.ctx.transformKind = ARCTransformKind::Invalid;
         visitor.reset();
       };
@@ -109,11 +109,10 @@ struct SemanticARCOpts : SILFunctionTransform {
         continue;
       case ARCTransformKind::All:
       case ARCTransformKind::Invalid:
-        llvm_unreachable("unsupported option");
+        toolchain_unreachable("unsupported option");
       }
     }
   }
-#endif
 
   bool performPeepholesWithoutFixedPoint(SemanticARCOptVisitor &visitor) {
     // Add all the results of all instructions that we want to visit to the
@@ -165,13 +164,11 @@ struct SemanticARCOpts : SILFunctionTransform {
     SemanticARCOptVisitor visitor(f, getPassManager(), *deBlocksAnalysis->get(&f),
                                   mandatoryOptsOnly);
 
-#ifndef NDEBUG
     // If we are being asked for testing purposes to run a series of transforms
     // expressed on the command line, run that and return.
     if (!TransformsToPerform.empty()) {
       return performCommandlineSpecifiedTransforms(visitor);
     }
-#endif
 
     // Otherwise, perform our standard optimizations.
     bool didEliminateARCInsts = performPeepholes(visitor);
@@ -198,10 +195,10 @@ struct SemanticARCOpts : SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createSemanticARCOpts() {
+SILTransform *language::createSemanticARCOpts() {
   return new SemanticARCOpts(false /*mandatory*/);
 }
 
-SILTransform *swift::createMandatoryARCOpts() {
+SILTransform *language::createMandatoryARCOpts() {
   return new SemanticARCOpts(true /*mandatory*/);
 }

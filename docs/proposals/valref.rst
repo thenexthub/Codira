@@ -26,7 +26,7 @@ compromising ease of use.
 Introduction
 ============
 
-Until recently, Swift's support for value semantics outside trivial
+Until recently, Codira's support for value semantics outside trivial
 types like scalars and immutable strings has been weak.  While the
 recent ``Clonable`` proposal makes new things possible in the "safe"
 zone, it leaves the language syntactically and semantically lumpy,
@@ -42,7 +42,7 @@ General Description
 ===================
 
 The general rule we propose is that most places where you can write
-``var`` in today's swift, and also on function parameters, you can
+``var`` in today's language, and also on function parameters, you can
 write ``val`` or ``ref`` to request value or reference semantics,
 respectively.  Writing ``var`` requests the default semantics for a
 given type.  Non-``class`` types (``struct``\ s, tuples, arrays,
@@ -150,7 +150,7 @@ When a value is copied, all of its instance variables declared ``val``
 (implicitly or explicitly) are copied.  Instance variables declared
 ``ref`` merely have their reference counts incremented (i.e. the
 reference is copied).  Therefore, when the defaults are in play, the
-semantic rules already defined for Swift are preserved.
+semantic rules already defined for Codira are preserved.
 
 The new rules are as follows:
 
@@ -243,7 +243,7 @@ Function Parameters
 
 Function parameters can be explicitly declared ``val``, or ``ref``::
 
-  func baz(
+  fn baz(
       _ x: Int      // x is passed by-value
     , val y: Int  // just like "y: Int"
     , ref z: Int  // allocate z on the heap
@@ -289,7 +289,7 @@ type parameter, as follows::
 parameters::
 
   // Fill an array with independent copies of x
-  func fill<T:val>(_ array:[T], x:T) {
+  fn fill<T:val>(_ array:[T], x:T) {
     for i in 0...array.length {
       array[i] = x
     }
@@ -299,7 +299,7 @@ Protocols similarly can inherit from ``val`` or ``ref`` constraints, to require
 conforming types to have the specified semantics::
 
   protocol Disposable : ref {
-    func dispose()
+    fn dispose()
   }
 
 The ability to explicitly declare ``val`` and ``ref`` allow us to
@@ -379,7 +379,7 @@ or mutable, we propose this first-draft approach to mapping the Cocoa concepts
 to ``Clonable``:
 
 * If an Objective-C class conforms to ``NSMutableCopying``, use the
-  ``-mutableCopyWithZone:`` method to fulfill the Swift ``Clonable`` concept,
+  ``-mutableCopyWithZone:`` method to fulfill the Codira ``Clonable`` concept,
   casting the result of ``-mutableCopyWithZone:`` back to the original type.
 * If an Objective-C class conforms to ``NSCopying`` but not ``NSMutableCopying``,
   use ``-copyWithZone:``, also casting the result back to the original type.
@@ -389,20 +389,20 @@ that fulfills the ``NSMutableCopying`` or ``NSCopying`` contracts without
 requiring knowledge of the intended semantics of the class beyond what the
 compiler can see.
 
-Objective-C ``(copy)`` properties should behave closely enough to Swift ``val``
-properties to be able to vend Objective-C ``(copy)`` properties to Swift as
+Objective-C ``(copy)`` properties should behave closely enough to Codira ``val``
+properties to be able to vend Objective-C ``(copy)`` properties to Codira as
 ``val`` properties, and vice versa.
 
 Objective-C protocols
 ---------------------
 
 In Objective-C, only classes can conform to protocols, and the ``This`` type
-is thus presumed to have references semantics. Swift protocols
+is thus presumed to have references semantics. Codira protocols
 imported from Objective-C or declared as ``[objc]`` could be conformed to by
 ``val`` types, but doing so would need to incur an implicit copy to the heap
 to create a ``ref`` value to conform to the protocol.
 
-How This Design Improves Swift
+How This Design Improves Codira
 ==============================
 
 1. You can choose semantics at the point of use.  The designer of a
@@ -433,7 +433,7 @@ How This Design Beats Rust/C++/C#/etc.
   story, but it comes at the expense of ease-of-use.  You can't learn
   to use that system effectively without confronting two `kinds`__
   of pointer, `named lifetimes`__, `borrowing managed boxes and
-  rooting`__, etc.  By contrast, there's a path to learning swift that
+  rooting`__, etc.  By contrast, there's a path to learning language that
   postpones the ``val``\ /``ref`` distinction, and that's pretty much
   *all* one must learn to have a complete understanding of the object
   model in the "easy" and "safe" zones.
@@ -445,7 +445,7 @@ __ https://doc.rust-lang.org/book/box-syntax-and-patterns.html
 * Simple programs stay safe.  C++ offers great control over
   everything, but the sharp edges are always exposed.  This design
   allows programmers to accomplish most of what people want to with
-  C++, but to do it safely and expressively.  As with the rest of Swift,
+  C++, but to do it safely and expressively.  As with the rest of Codira,
   the sharp edges are still available as an opt-in feature, and
   without harming the rest of the language.
 
@@ -515,7 +515,7 @@ as follows::
   val x : SomeClass
 
   extension SomeClass {
-    func get_ref() { return this }
+    fn get_ref() { return this }
   }
 
   ref y : x.get_ref()
@@ -525,7 +525,7 @@ Teachability
 ============
 
 By expanding the type system we have added complexity to the language.
-To what degree will these changes make Swift harder to learn?
+To what degree will these changes make Codira harder to learn?
 
 We believe the costs can be mitigated by teaching plain ``var``
 programming first.  The need to confront ``val`` and ``ref`` can be

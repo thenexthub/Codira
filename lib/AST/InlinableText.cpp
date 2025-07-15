@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 #include "InlinableText.h"
 #include "language/AST/ASTBridging.h"
@@ -24,16 +25,16 @@
 #include "language/Bridging/ASTGen.h"
 #include "language/Parse/Lexer.h"
 
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallString.h"
 
 using namespace language;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 extern "C" BridgedStringRef
-swift_ASTGen_extractInlinableText(BridgedASTContext ctx,
+language_ASTGen_extractInlinableText(BridgedASTContext ctx,
                                   BridgedStringRef sourceText);
 #pragma clang diagnostic pop
 #else
@@ -53,7 +54,7 @@ static void appendRange(
 
   // Strip comments from the chunk before adding it by re-lexing the range.
   LangOptions FakeLangOpts;
-  Lexer lexer(FakeLangOpts, sourceMgr, bufferID, nullptr, LexerMode::Swift,
+  Lexer lexer(FakeLangOpts, sourceMgr, bufferID, nullptr, LexerMode::Codira,
     HashbangMode::Disallowed, CommentRetentionMode::ReturnAsTokens,
     offset, endOffset);
 
@@ -137,24 +138,24 @@ static void appendRange(
     scratch.append(text.begin(), text.end());
   }
 }
-#endif // SWIFT_BUILD_SWIFT_SYNTAX
+#endif // LANGUAGE_BUILD_LANGUAGE_SYNTAX
 
-StringRef swift::extractInlinableText(ASTContext &ctx, ASTNode node,
+StringRef language::extractInlinableText(ASTContext &ctx, ASTNode node,
                                       SmallVectorImpl<char> &scratch) {
   SourceManager &sourceMgr = ctx.SourceMgr;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   CharSourceRange sourceTextRange =
       Lexer::getCharSourceRangeFromSourceRange(
         sourceMgr, node.getSourceRange());
   StringRef sourceText = sourceMgr.extractText(sourceTextRange);
-  auto resultText = swift_ASTGen_extractInlinableText(ctx, sourceText);
+  auto resultText = language_ASTGen_extractInlinableText(ctx, sourceText);
 
   scratch.clear();
   scratch.insert(scratch.begin(),
                  resultText.unbridged().begin(),
                  resultText.unbridged().end());
-  swift_ASTGen_freeBridgedString(resultText);
+  language_ASTGen_freeBridgedString(resultText);
   return { scratch.data(), scratch.size() };
 #else
   // Get the full start and end of the provided node, as character locations.

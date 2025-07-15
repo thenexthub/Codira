@@ -1,0 +1,24 @@
+// RUN: %target-language-frontend -typecheck %s
+
+@resultBuilder
+struct SillyBuilder {
+  static fn buildBlock() -> () {}
+}
+
+struct SillyStruct {
+  init(@SillyBuilder _: () -> ()) {}
+}
+
+struct UsesSillyStruct {
+  var x: Int = 0
+
+  fn foo() {
+    SillyStruct {
+      immutable fn = {
+        if true {
+          _ = x
+        }
+      }
+    }
+  }
+}

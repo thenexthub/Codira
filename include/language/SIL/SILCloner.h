@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILCloner class, used for cloning SIL instructions.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILCLONER_H
-#define SWIFT_SIL_SILCLONER_H
+#ifndef LANGUAGE_SIL_SILCLONER_H
+#define LANGUAGE_SIL_SILCLONER_H
 
 #include "language/AST/ConformanceLookup.h"
 #include "language/AST/GenericEnvironment.h"
@@ -36,9 +37,9 @@ namespace language {
 
 struct SubstitutionMapWithLocalArchetypes {
   std::optional<SubstitutionMap> SubsMap;
-  llvm::DenseMap<GenericEnvironment *, GenericEnvironment *> LocalArchetypeSubs;
+  toolchain::DenseMap<GenericEnvironment *, GenericEnvironment *> LocalArchetypeSubs;
   GenericSignature BaseGenericSig;
-  llvm::ArrayRef<GenericEnvironment *> CapturedEnvs;
+  toolchain::ArrayRef<GenericEnvironment *> CapturedEnvs;
 
   bool hasLocalArchetypes() const {
     return !LocalArchetypeSubs.empty() || !CapturedEnvs.empty();
@@ -83,23 +84,27 @@ struct SubstitutionMapWithLocalArchetypes {
     return Type(type);
   }
 
-  ProtocolConformanceRef operator()(CanType origType,
-                                    Type substType,
+  ProtocolConformanceRef operator()(InFlightSubstitution &IFS,
+                                    Type origType,
                                     ProtocolDecl *proto) {
-    if (isa<LocalArchetypeType>(origType))
-      return swift::lookupConformance(substType, proto);
+    if (origType->is<LocalArchetypeType>())
+      return language::lookupConformance(origType.subst(IFS), proto);
 
-    if (isa<PrimaryArchetypeType>(origType) ||
-        isa<PackArchetypeType>(origType))
-      origType = origType->mapTypeOutOfContext()->getCanonicalType();
+    if (SubsMap) {
+      if (origType->is<PrimaryArchetypeType>() ||
+          origType->is<PackArchetypeType>()) {
+        origType = origType->mapTypeOutOfContext();
+      }
 
-    if (SubsMap)
-      return SubsMap->lookupConformance(origType, proto);
+      return SubsMap->lookupConformance(
+        origType->getCanonicalType(), proto);
+    }
 
-    return ProtocolConformanceRef::forAbstract(substType, proto);
+    return ProtocolConformanceRef::forAbstract(
+      origType.subst(IFS), proto);
   }
 
-  void dump(llvm::raw_ostream &out) const {
+  void dump(toolchain::raw_ostream &out) const {
     if (SubsMap)
       SubsMap->dump(out);
     for (auto pair : LocalArchetypeSubs) {
@@ -133,15 +138,15 @@ protected:
   SubstitutionMapWithLocalArchetypes Functor;
 
   // The old-to-new value map.
-  llvm::DenseMap<SILValue, SILValue> ValueMap;
+  toolchain::DenseMap<SILValue, SILValue> ValueMap;
 
   /// The old-to-new block map. Some entries may be premapped with original
   /// blocks.
-  llvm::DenseMap<SILBasicBlock*, SILBasicBlock*> BBMap;
+  toolchain::DenseMap<SILBasicBlock*, SILBasicBlock*> BBMap;
 
   /// Blocks, where edge-spitting may have "converted" terminator result
   /// arguments to phi-arguments.
-  llvm::SmallVector<SILBasicBlock *> blocksWithNewPhiArgs;
+  toolchain::SmallVector<SILBasicBlock *> blocksWithNewPhiArgs;
 
 private:
   /// MARK: Private state hidden from CRTP extensions.
@@ -216,13 +221,25 @@ public:
                          ArrayRef<SILValue> entryArgs,
                          bool replaceOriginalFunctionInPlace = false);
 
+  /// Clone all blocks in this function and all instructions in those
+  /// blocks.
+  ///
+  /// This is used to clone an entire function without mutating the original
+  /// function.
+  ///
+  /// The new function is expected to be completely empty. Clone the entry
+  /// blocks arguments here. The cloned arguments become the inputs to the
+  /// general SILCloner, which expects the new entry block to be ready to emit
+  /// instructions into.
+  void cloneFunction(SILFunction *origF);
+
   /// The same as clone function body, except the caller can provide a callback
   /// that allows for an entry arg to be assigned to a custom old argument. This
   /// is useful if one re-arranges parameters when converting from inout to out.
   void
   cloneFunctionBody(SILFunction *F, SILBasicBlock *clonedEntryBB,
                     ArrayRef<SILValue> entryArgs,
-                    llvm::function_ref<SILValue(SILValue)> entryArgToOldArgMap);
+                    toolchain::function_ref<SILValue(SILValue)> entryArgToOldArgMap);
 
   /// MARK: Callback utilities used from CRTP extensions during cloning.
   /// These should only be called from within an instruction cloning visitor.
@@ -283,14 +300,14 @@ public:
 #ifndef NDEBUG
     for (auto substConf : substSubs.getConformances()) {
       if (substConf.isInvalid()) {
-        llvm::errs() << "Invalid conformance in SIL cloner:\n";
-        Functor.dump(llvm::errs());
-        llvm::errs() << "\nsubstitution map:\n";
-        Subs.dump(llvm::errs());
-        llvm::errs() << "\n";
-        llvm::errs() << "\ncomposed substitution map:\n";
-        substSubs.dump(llvm::errs());
-        llvm::errs() << "\n";
+        toolchain::errs() << "Invalid conformance in SIL cloner:\n";
+        Functor.dump(toolchain::errs());
+        toolchain::errs() << "\nsubstitution map:\n";
+        Subs.dump(toolchain::errs());
+        toolchain::errs() << "\n";
+        toolchain::errs() << "\ncomposed substitution map:\n";
+        substSubs.dump(toolchain::errs());
+        toolchain::errs() << "\n";
         abort();
       }
     }
@@ -557,11 +574,12 @@ protected:
     }
 
     if (substConf.isInvalid()) {
-      llvm::errs() << "Invalid substituted conformance in SIL cloner:\n";
-      Functor.dump(llvm::errs());
-      llvm::errs() << "\noriginal conformance:\n";
-      conformance.dump(llvm::errs());
-      abort();
+      ABORT([&](auto &out) {
+        out << "Invalid substituted conformance in SIL cloner:\n";
+        Functor.dump(out);
+        out << "\noriginal conformance:\n";
+        conformance.dump(out);
+      });
     }
 
     if (asImpl().shouldSubstOpaqueArchetypes()) {
@@ -593,7 +611,7 @@ protected:
           !context.shouldLookThroughOpaqueTypeArchetypes())
         return Subs;
 
-      return Subs.mapIntoTypeExpansionContext(context);
+      return substOpaqueTypesWithUnderlyingTypes(Subs, context);
     }
 
     return Subs;
@@ -702,32 +720,6 @@ class SILFunctionCloner : public SILClonerWithScopes<SILFunctionCloner> {
 
 public:
   SILFunctionCloner(SILFunction *newF) : SILClonerWithScopes(*newF) {}
-
-  /// Clone all blocks in this function and all instructions in those
-  /// blocks.
-  ///
-  /// This is used to clone an entire function without mutating the original
-  /// function.
-  ///
-  /// The new function is expected to be completely empty. Clone the entry
-  /// blocks arguments here. The cloned arguments become the inputs to the
-  /// general SILCloner, which expects the new entry block to be ready to emit
-  /// instructions into.
-  void cloneFunction(SILFunction *origF) {
-    SILFunction *newF = &Builder.getFunction();
-
-    auto *newEntryBB = newF->createBasicBlock();
-    newEntryBB->cloneArgumentList(origF->getEntryBlock());
-
-    // Copy the new entry block arguments into a separate vector purely to
-    // resolve the type mismatch between SILArgument* and SILValue.
-    SmallVector<SILValue, 8> entryArgs;
-    entryArgs.reserve(newF->getArguments().size());
-    llvm::transform(newF->getArguments(), std::back_inserter(entryArgs),
-                    [](SILArgument *arg) -> SILValue { return arg; });
-
-    SuperTy::cloneFunctionBody(origF, newEntryBB, entryArgs);
-  }
 };
 
 template<typename ImplClass>
@@ -743,7 +735,7 @@ SILCloner<ImplClass>::getMappedValue(SILValue Value) {
     return SILUndef::get(Builder.getFunction(), type);
   }
 
-  llvm_unreachable("Unmapped value while cloning?");
+  toolchain_unreachable("Unmapped value while cloning?");
 }
 
 template <typename ImplClass>
@@ -848,9 +840,26 @@ void SILCloner<ImplClass>::cloneFunctionBody(SILFunction *F,
 }
 
 template <typename ImplClass>
+void SILCloner<ImplClass>::cloneFunction(SILFunction *origF) {
+  SILFunction *newF = &Builder.getFunction();
+
+  auto *newEntryBB = newF->createBasicBlock();
+  newEntryBB->cloneArgumentList(origF->getEntryBlock());
+
+  // Copy the new entry block arguments into a separate vector purely to
+  // resolve the type mismatch between SILArgument* and SILValue.
+  SmallVector<SILValue, 8> entryArgs;
+  entryArgs.reserve(newF->getArguments().size());
+  toolchain::transform(newF->getArguments(), std::back_inserter(entryArgs),
+                  [](SILArgument *arg) -> SILValue { return arg; });
+
+  cloneFunctionBody(origF, newEntryBB, entryArgs);
+}
+
+template <typename ImplClass>
 void SILCloner<ImplClass>::cloneFunctionBody(
     SILFunction *F, SILBasicBlock *clonedEntryBB, ArrayRef<SILValue> entryArgs,
-    llvm::function_ref<SILValue(SILValue)> entryArgIndexToOldArgIndex) {
+    toolchain::function_ref<SILValue(SILValue)> entryArgIndexToOldArgIndex) {
   assert(F != clonedEntryBB->getParent() && "Must clone into a new function.");
   assert(BBMap.empty() && "This API does not allow clients to map blocks.");
   assert(ValueMap.empty() && "Stale ValueMap.");
@@ -2021,7 +2030,7 @@ SILCloner<ImplClass>::visitUnconditionalCheckedCastInst(
   getBuilder().setCurrentDebugScope(getOpScope(Inst->getDebugScope()));
   recordClonedInstruction(Inst,
                           getBuilder().createUnconditionalCheckedCast(
-                              OpLoc, Inst->getIsolatedConformances(), OpValue,
+                              OpLoc, Inst->getCheckedCastOptions(), OpValue,
                               OpLoweredType, OpFormalType,
                               getBuilder().hasOwnership()
                                   ? Inst->getForwardingOwnershipKind()
@@ -2040,7 +2049,7 @@ SILCloner<ImplClass>::visitUnconditionalCheckedCastAddrInst(
   getBuilder().setCurrentDebugScope(getOpScope(Inst->getDebugScope()));
   recordClonedInstruction(Inst,
                           getBuilder().createUnconditionalCheckedCastAddr(
-                              OpLoc, Inst->getIsolatedConformances(),
+                              OpLoc, Inst->getCheckedCastOptions(),
                               SrcValue, SrcType, DestValue, TargetType));
 }
 
@@ -2540,6 +2549,16 @@ SILCloner<ImplClass>::visitStructElementAddrInst(StructElementAddrInst *Inst) {
       Inst, getBuilder().createStructElementAddr(
                 getOpLocation(Inst->getLoc()), getOpValue(Inst->getOperand()),
                 Inst->getField(), getOpType(Inst->getType())));
+}
+
+template<typename ImplClass>
+void
+SILCloner<ImplClass>::visitVectorBaseAddrInst(VectorBaseAddrInst *Inst) {
+  getBuilder().setCurrentDebugScope(getOpScope(Inst->getDebugScope()));
+  recordClonedInstruction(
+      Inst, getBuilder().createVectorBaseAddr(
+                getOpLocation(Inst->getLoc()),
+                getOpValue(Inst->getVector())));
 }
 
 template<typename ImplClass>
@@ -3170,6 +3189,14 @@ void SILCloner<ImplClass>::visitEndCOWMutationInst(EndCOWMutationInst *Inst) {
                         getOpValue(Inst->getOperand()), Inst->doKeepUnique()));
 }
 template <typename ImplClass>
+void SILCloner<ImplClass>::visitEndCOWMutationAddrInst(
+    EndCOWMutationAddrInst *Inst) {
+  getBuilder().setCurrentDebugScope(getOpScope(Inst->getDebugScope()));
+  recordClonedInstruction(
+      Inst, getBuilder().createEndCOWMutationAddr(
+                getOpLocation(Inst->getLoc()), getOpValue(Inst->getOperand())));
+}
+template <typename ImplClass>
 void SILCloner<ImplClass>::visitDestroyNotEscapedClosureInst(
     DestroyNotEscapedClosureInst *Inst) {
   getBuilder().setCurrentDebugScope(getOpScope(Inst->getDebugScope()));
@@ -3433,7 +3460,7 @@ SILCloner<ImplClass>::visitCheckedCastBranchInst(CheckedCastBranchInst *Inst) {
   recordClonedInstruction(
       Inst, getBuilder().createCheckedCastBranch(
                 getOpLocation(Inst->getLoc()), Inst->isExact(),
-                Inst->getIsolatedConformances(),
+                Inst->getCheckedCastOptions(),
                 getOpValue(Inst->getOperand()),
                 getOpASTType(Inst->getSourceFormalType()),
                 getOpType(Inst->getTargetLoweredType()),
@@ -3455,7 +3482,7 @@ void SILCloner<ImplClass>::visitCheckedCastAddrBranchInst(
   auto FalseCount = Inst->getFalseBBCount();
   recordClonedInstruction(Inst, getBuilder().createCheckedCastAddrBranch(
                                     getOpLocation(Inst->getLoc()),
-                                    Inst->getIsolatedConformances(),
+                                    Inst->getCheckedCastOptions(),
                                     Inst->getConsumptionKind(), SrcValue,
                                     SrcType, DestValue, TargetType, OpSuccBB,
                                     OpFailBB, TrueCount, FalseCount));

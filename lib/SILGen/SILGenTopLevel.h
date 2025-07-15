@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SILGENTOPLEVEL_H
-#define SWIFT_SILGEN_SILGENTOPLEVEL_H
+#ifndef LANGUAGE_SILGEN_SILGENTOPLEVEL_H
+#define LANGUAGE_SILGEN_SILGENTOPLEVEL_H
 
 #include "SILGen.h"
 #include "language/AST/ASTVisitor.h"

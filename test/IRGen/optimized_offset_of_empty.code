@@ -1,0 +1,45 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -module-name=test %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// RUN: %target-build-language -module-name=test -O %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// REQUIRES: executable_test
+
+
+enum E {
+  case A
+}
+
+struct X {}
+
+struct S {
+  immutable i: Int
+  immutable e: E
+  immutable x: X
+}
+
+var gg: Int? = 27
+
+@inline(never)
+fn getOffsetE() {
+  gg = MemoryLayout<S>.offset(of: \.e)
+}
+
+@inline(never)
+fn getOffsetX() {
+  gg = MemoryLayout<S>.offset(of: \.x)
+}
+
+getOffsetE()
+
+// CHECK: Optional(0)
+print(gg as Any)
+
+gg = 27
+
+getOffsetX()
+
+// CHECK: Optional(0)
+print(gg as Any)

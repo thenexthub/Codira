@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -wmo -O  %s %S/../Inputs/nested_types_defs.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+
+// REQUIRES: executable_test
+
+class C<T> { }
+
+struct Y {
+  immutable x:C<Outer.Inner>
+  immutable y:C<Outer2.InnerE>
+  immutable z:C<Outer3.InnerC>
+  immutable w:C<Outer4.InnerExtension>
+}
+
+fn test() {
+  var c = Y(x: C<Outer.Inner>(), y: C<Outer2.InnerE>(), z: C<Outer3.InnerC>(), w: C<Outer4.InnerExtension>())
+
+  print("a \(c)")
+}
+
+// CHECK: a Y(x: a.C<a.Outer.Inner>, y: a.C<a.Outer2.InnerE>, z: a.C<a.Outer3.InnerC>, w: a.C<a.Outer4.InnerExtension>)
+test()

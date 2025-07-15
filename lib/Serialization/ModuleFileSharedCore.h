@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_MODULEFILECORE_H
-#define SWIFT_SERIALIZATION_MODULEFILECORE_H
+#ifndef LANGUAGE_SERIALIZATION_MODULEFILECORE_H
+#define LANGUAGE_SERIALIZATION_MODULEFILECORE_H
 
 #include "ModuleFormat.h"
 #include "language/AST/LinkLibrary.h"
 #include "language/AST/Module.h"
 #include "language/Serialization/Validation.h"
-#include "llvm/ADT/bit.h"
-#include "llvm/Bitstream/BitstreamReader.h"
+#include "toolchain/ADT/bit.h"
+#include "toolchain/Bitstream/BitstreamReader.h"
 
-namespace llvm {
+namespace toolchain {
   template <typename Info> class OnDiskIterableChainedHashTable;
 }
 
@@ -49,16 +50,16 @@ class ModuleFileSharedCore {
   using Status = serialization::Status;
 
   /// The module file data.
-  std::unique_ptr<llvm::MemoryBuffer> ModuleInputBuffer;
-  std::unique_ptr<llvm::MemoryBuffer> ModuleDocInputBuffer;
-  std::unique_ptr<llvm::MemoryBuffer> ModuleSourceInfoInputBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> ModuleInputBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> ModuleDocInputBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> ModuleSourceInfoInputBuffer;
 
   /// The cursor used to lazily load things from the file.
-  llvm::BitstreamCursor DeclTypeCursor;
+  toolchain::BitstreamCursor DeclTypeCursor;
 
-  llvm::BitstreamCursor SILCursor;
-  llvm::BitstreamCursor SILIndexCursor;
-  llvm::BitstreamCursor DeclMemberTablesCursor;
+  toolchain::BitstreamCursor SILCursor;
+  toolchain::BitstreamCursor SILIndexCursor;
+  toolchain::BitstreamCursor DeclMemberTablesCursor;
 
   /// The name of the module.
   StringRef Name;
@@ -84,11 +85,11 @@ class ModuleFileSharedCore {
   /// or it was itself compiled from an interface. Empty otherwise.
   StringRef CorrespondingInterfacePath;
 
-  /// The Swift compatibility version in use when this module was built.
+  /// The Codira compatibility version in use when this module was built.
   version::Version CompatibilityVersion;
 
   /// User-defined module version number.
-  llvm::VersionTuple UserModuleVersion;
+  toolchain::VersionTuple UserModuleVersion;
 
   /// The data blob containing all of the module's identifiers.
   StringRef IdentifierData;
@@ -109,10 +110,10 @@ class ModuleFileSharedCore {
   /// Name to use in public facing diagnostics and documentation.
   StringRef PublicModuleName;
 
-  /// The version of the Swift compiler used to produce swiftinterface
+  /// The version of the Codira compiler used to produce languageinterface
   /// this module is based on. This is the most precise version possible
   /// - a compiler tag or version if this is a development compiler.
-  version::Version SwiftInterfaceCompilerVersion;
+  version::Version CodiraInterfaceCompilerVersion;
 
   /// \c true if this module has incremental dependency information.
   bool HasIncrementalInfo = false;
@@ -137,7 +138,7 @@ public:
     const unsigned IsScoped : 1;
 
     static unsigned rawControlFromKind(ImportFilterKind importKind) {
-      return llvm::countr_zero(static_cast<unsigned>(importKind));
+      return toolchain::countr_zero(static_cast<unsigned>(importKind));
     }
     ImportFilterKind getImportControl() const {
       return static_cast<ImportFilterKind>(1 << RawImportControl);
@@ -150,7 +151,7 @@ public:
           RawImportControl(rawControlFromKind(importControl)),
           IsHeader(isHeader),
           IsScoped(isScoped) {
-      assert(llvm::popcount(static_cast<unsigned>(importControl)) == 1 &&
+      assert(toolchain::popcount(static_cast<unsigned>(importControl)) == 1 &&
              "must be a particular filter option, not a bitset");
       assert(getImportControl() == importControl && "not enough bits");
     }
@@ -213,7 +214,7 @@ public:
 
 private:
   /// An allocator for buffers owned by the file.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   /// Allocates a buffer using #Allocator and initializes it with the contents
   /// of the container \p rawData, then stores it in \p buffer.
@@ -274,35 +275,35 @@ private:
 
   class DeclTableInfo;
   using SerializedDeclTable =
-      llvm::OnDiskIterableChainedHashTable<DeclTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DeclTableInfo>;
 
   class ExtensionTableInfo;
   using SerializedExtensionTable =
-      llvm::OnDiskIterableChainedHashTable<ExtensionTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<ExtensionTableInfo>;
 
   class LocalDeclTableInfo;
   using SerializedLocalDeclTable =
-      llvm::OnDiskIterableChainedHashTable<LocalDeclTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<LocalDeclTableInfo>;
 
   using OpaqueReturnTypeDeclTableInfo = LocalDeclTableInfo;
   using SerializedOpaqueReturnTypeDeclTable =
-      llvm::OnDiskIterableChainedHashTable<OpaqueReturnTypeDeclTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<OpaqueReturnTypeDeclTableInfo>;
 
   class NestedTypeDeclsTableInfo;
   using SerializedNestedTypeDeclsTable =
-      llvm::OnDiskIterableChainedHashTable<NestedTypeDeclsTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<NestedTypeDeclsTableInfo>;
 
   class DeclMemberNamesTableInfo;
   using SerializedDeclMemberNamesTable =
-      llvm::OnDiskIterableChainedHashTable<DeclMemberNamesTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DeclMemberNamesTableInfo>;
 
   class DeclMembersTableInfo;
   using SerializedDeclMembersTable =
-      llvm::OnDiskIterableChainedHashTable<DeclMembersTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DeclMembersTableInfo>;
 
   class DeclFingerprintsTableInfo;
   using SerializedDeclFingerprintsTable =
-      llvm::OnDiskIterableChainedHashTable<DeclFingerprintsTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DeclFingerprintsTableInfo>;
 
   std::unique_ptr<SerializedDeclTable> TopLevelDecls;
   std::unique_ptr<SerializedDeclTable> OperatorDecls;
@@ -318,7 +319,7 @@ private:
 
   class ObjCMethodTableInfo;
   using SerializedObjCMethodTable =
-    llvm::OnDiskIterableChainedHashTable<ObjCMethodTableInfo>;
+    toolchain::OnDiskIterableChainedHashTable<ObjCMethodTableInfo>;
 
   std::unique_ptr<SerializedObjCMethodTable> ObjCMethods;
 
@@ -327,22 +328,22 @@ private:
 
   class DeclCommentTableInfo;
   using SerializedDeclCommentTable =
-      llvm::OnDiskIterableChainedHashTable<DeclCommentTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DeclCommentTableInfo>;
   struct DeserializedCommentInfo;
 
-  using GroupNameTable = const llvm::DenseMap<unsigned, StringRef>;
+  using GroupNameTable = const toolchain::DenseMap<unsigned, StringRef>;
 
   std::unique_ptr<GroupNameTable> GroupNamesMap;
   std::unique_ptr<SerializedDeclCommentTable> DeclCommentTable;
 
   class DeclUSRTableInfo;
   using SerializedDeclUSRTable =
-      llvm::OnDiskIterableChainedHashTable<DeclUSRTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DeclUSRTableInfo>;
   std::unique_ptr<SerializedDeclUSRTable> DeclUSRsTable;
 
   class DerivativeFunctionConfigTableInfo;
   using SerializedDerivativeFunctionConfigTable =
-      llvm::OnDiskIterableChainedHashTable<DerivativeFunctionConfigTableInfo>;
+      toolchain::OnDiskIterableChainedHashTable<DerivativeFunctionConfigTableInfo>;
   std::unique_ptr<SerializedDerivativeFunctionConfigTable>
       DerivativeFunctionConfigurations;
 
@@ -386,8 +387,8 @@ private:
     /// Whether this module was built with -experimental-hermetic-seal-at-link.
     unsigned HasHermeticSealAtLink : 1;
 
-    /// Whether this module was built with embedded Swift.
-    unsigned IsEmbeddedSwiftModule : 1;
+    /// Whether this module was built with embedded Codira.
+    unsigned IsEmbeddedCodiraModule : 1;
 
     /// Whether this module file is compiled with '-enable-testing'.
     unsigned IsTestable : 1;
@@ -441,9 +442,9 @@ private:
 
   /// Constructs a new module and validates it.
   ModuleFileSharedCore(
-      std::unique_ptr<llvm::MemoryBuffer> moduleInputBuffer,
-      std::unique_ptr<llvm::MemoryBuffer> moduleDocInputBuffer,
-      std::unique_ptr<llvm::MemoryBuffer> moduleSourceInfoInputBuffer,
+      std::unique_ptr<toolchain::MemoryBuffer> moduleInputBuffer,
+      std::unique_ptr<toolchain::MemoryBuffer> moduleDocInputBuffer,
+      std::unique_ptr<toolchain::MemoryBuffer> moduleSourceInfoInputBuffer,
       bool isFramework,
       bool requiresOSSAModules,
       StringRef requiredSDK,
@@ -458,12 +459,12 @@ private:
 
   /// Emits one last diagnostic, logs the error, and then aborts for the stack
   /// trace.
-  [[noreturn]] void fatal(llvm::Error error) const;
-  void fatalIfNotSuccess(llvm::Error error) const {
+  [[noreturn]] void fatal(toolchain::Error error) const;
+  void fatalIfNotSuccess(toolchain::Error error) const {
     if (error)
       fatal(std::move(error));
   }
-  template <typename T> T fatalIfUnexpected(llvm::Expected<T> expected) const {
+  template <typename T> T fatalIfUnexpected(toolchain::Expected<T> expected) const {
     if (expected)
       return std::move(expected.get());
     fatal(expected.takeError());
@@ -519,7 +520,7 @@ private:
   /// Reads the index block, which contains global tables.
   ///
   /// Returns false if there was an error.
-  bool readIndexBlock(llvm::BitstreamCursor &cursor);
+  bool readIndexBlock(toolchain::BitstreamCursor &cursor);
 
   /// Read an on-disk decl hash table stored in
   /// \c comment_block::DeclCommentListLayout format.
@@ -532,7 +533,7 @@ private:
   /// Reads the comment block, which contains USR to comment mappings.
   ///
   /// Returns false if there was an error.
-  bool readCommentBlock(llvm::BitstreamCursor &cursor);
+  bool readCommentBlock(toolchain::BitstreamCursor &cursor);
 
   /// Loads data from #ModuleDocInputBuffer.
   ///
@@ -542,7 +543,7 @@ private:
   /// Reads the source loc block, which contains USR to decl location mapping.
   ///
   /// Returns false if there was an error.
-  bool readDeclLocsBlock(llvm::BitstreamCursor &cursor);
+  bool readDeclLocsBlock(toolchain::BitstreamCursor &cursor);
 
   /// Loads data from #ModuleSourceInfoInputBuffer.
   ///
@@ -579,9 +580,9 @@ public:
   ///          if it was not.
   static serialization::ValidationInfo
   load(StringRef moduleInterfacePath, StringRef moduleInterfaceSourcePath,
-       std::unique_ptr<llvm::MemoryBuffer> moduleInputBuffer,
-       std::unique_ptr<llvm::MemoryBuffer> moduleDocInputBuffer,
-       std::unique_ptr<llvm::MemoryBuffer> moduleSourceInfoInputBuffer,
+       std::unique_ptr<toolchain::MemoryBuffer> moduleInputBuffer,
+       std::unique_ptr<toolchain::MemoryBuffer> moduleDocInputBuffer,
+       std::unique_ptr<toolchain::MemoryBuffer> moduleSourceInfoInputBuffer,
        bool isFramework, bool requiresOSSAModules,
        StringRef requiredSDK, PathObfuscator &pathRecoverer,
        std::shared_ptr<const ModuleFileSharedCore> &theModule) {
@@ -606,7 +607,7 @@ public:
   }
 
   /// Outputs information useful for diagnostics to \p out
-  void outputDiagnosticInfo(llvm::raw_ostream &os) const;
+  void outputDiagnosticInfo(toolchain::raw_ostream &os) const;
 
   // Out of line to avoid instantiation OnDiskChainedHashTable here.
   ~ModuleFileSharedCore();
@@ -650,7 +651,7 @@ public:
     return Bits.IsStaticLibrary;
   }
 
-  llvm::VersionTuple getUserModuleVersion() const {
+  toolchain::VersionTuple getUserModuleVersion() const {
     return UserModuleVersion;
   }
 
@@ -659,13 +660,17 @@ public:
     return MacroModuleNames;
   }
 
+  ArrayRef<serialization::SearchPath> getSearchPaths() const {
+    return SearchPaths;
+  }
+
   /// Get embedded bridging header.
   std::string getEmbeddedHeader() const {
     // Don't include the '\0' in the end.
     return importedHeaderInfo.contents.drop_back().str();
   }
 
-  /// If the module-defining `.swiftinterface` file is an SDK-relative path,
+  /// If the module-defining `.codeinterface` file is an SDK-relative path,
   /// resolve it to be absolute to the specified SDK.
   std::string resolveModuleDefiningFilePath(const StringRef SDKPath) const;
 
@@ -673,10 +678,10 @@ public:
   /// information.
   bool hasIncrementalInfo() const { return HasIncrementalInfo; }
 
-  /// Returns \c true if a corresponding .swiftsourceinfo has been found.
+  /// Returns \c true if a corresponding .codesourceinfo has been found.
   bool hasSourceInfoFile() const { return !!ModuleSourceInfoInputBuffer; }
 
-  /// Returns \c true if a corresponding .swiftsourceinfo has been found *and
+  /// Returns \c true if a corresponding .codesourceinfo has been found *and
   /// read*.
   bool hasSourceInfo() const;
 
@@ -713,7 +718,7 @@ void ModuleFileSharedCore::allocateBuffer(MutableArrayRef<T> &buffer,
     return;
 
   void *rawBuffer = Allocator.Allocate(sizeof(T) * rawData.size(), alignof(T));
-  buffer = llvm::MutableArrayRef(static_cast<T *>(rawBuffer), rawData.size());
+  buffer = toolchain::MutableArrayRef(static_cast<T *>(rawBuffer), rawData.size());
   std::uninitialized_copy(rawData.begin(), rawData.end(), buffer.begin());
 }
 

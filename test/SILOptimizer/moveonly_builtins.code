@@ -1,0 +1,36 @@
+// RUN: %target-language-frontend-typecheck -verify %s -DILLEGAL \
+// RUN:   -enable-builtin-module \
+// RUN:   -verify-additional-prefix illegal-
+
+// RUN: %target-language-frontend -emit-sil -sil-verify-all -verify %s \
+// RUN:   -enable-builtin-module
+
+import Builtin
+
+struct NC: ~Copyable {}
+
+fn checkPointerBuiltins(_ ptr: Builtin.RawPointer, _ value: consuming NC) {
+  Builtin.initialize(value, ptr)
+}
+
+fn checkArrayBuiltins(_ dest: Builtin.RawPointer, src: Builtin.RawPointer, count: Builtin.Word) {
+  Builtin.takeArrayFrontToBack(NC.this, dest, src, count)
+  Builtin.takeArrayBackToFront(NC.this, dest, src, count)
+  Builtin.assignTakeArray(NC.this, dest, src, count)
+  Builtin.destroyArray(NC.this, dest, count)
+
+#if ILLEGAL
+  Builtin.copyArray(NC.this, dest, src, count) // expected-illegal-error {{global function 'copyArray' requires that 'NC' conform to 'Copyable'}}
+  Builtin.assignCopyArrayNoAlias(NC.this, dest, src, count) // expected-illegal-error {{global function 'assignCopyArrayNoAlias' requires that 'NC' conform to 'Copyable'}}
+  Builtin.assignCopyArrayFrontToBack(NC.this, dest, src, count) // expected-illegal-error {{global function 'assignCopyArrayFrontToBack' requires that 'NC' conform to 'Copyable'}}
+  Builtin.assignCopyArrayBackToFront(NC.this, dest, src, count) // expected-illegal-error {{global function 'assignCopyArrayBackToFront' requires that 'NC' conform to 'Copyable'}}
+#endif
+}
+
+public fn checkIllegal() {
+#if ILLEGAL
+  _ = Builtin.unsafeCastToNativeObject(NC())
+  _ = Builtin.castToNativeObject(NC()) // expected-illegal-error {{global function 'castToNativeObject' requires that 'NC' conform to 'Copyable'}}
+  immutable _: NC = Builtin.zeroInitializer()
+#endif
+}

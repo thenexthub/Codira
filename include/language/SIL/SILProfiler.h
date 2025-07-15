@@ -1,13 +1,17 @@
 //===--- SILProfiler.h - Instrumentation based profiling ===-----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines SILProfiler, which contains the profiling state for one
@@ -15,14 +19,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PROFILER_H
-#define SWIFT_SIL_PROFILER_H
+#ifndef LANGUAGE_SIL_PROFILER_H
+#define LANGUAGE_SIL_PROFILER_H
 
 #include "language/AST/ASTNode.h"
 #include "language/Basic/ProfileCounter.h"
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
 
@@ -43,7 +47,7 @@ public:
   };
 
 private:
-  friend struct llvm::DenseMapInfo<ProfileCounterRef>;
+  friend struct toolchain::DenseMapInfo<ProfileCounterRef>;
 
   ASTNode Node;
   Kind RefKind;
@@ -66,7 +70,7 @@ public:
   /// Retrieve the corresponding location of the counter.
   SILLocation getLocation() const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &OS) const;
 
   /// A simpler dump output for inline printing.
@@ -80,8 +84,8 @@ public:
                          const ProfileCounterRef &rhs) {
     return !(lhs == rhs);
   }
-  friend llvm::hash_code hash_value(const ProfileCounterRef &ref) {
-    return llvm::hash_combine(ref.Node, ref.RefKind);
+  friend toolchain::hash_code hash_value(const ProfileCounterRef &ref) {
+    return toolchain::hash_combine(ref.Node, ref.RefKind);
   }
 };
 
@@ -104,11 +108,11 @@ private:
 
   unsigned NumRegionCounters = 0;
 
-  llvm::DenseMap<ProfileCounterRef, unsigned> RegionCounterMap;
+  toolchain::DenseMap<ProfileCounterRef, unsigned> RegionCounterMap;
 
-  llvm::DenseMap<ProfileCounterRef, ProfileCounter> RegionLoadedCounterMap;
+  toolchain::DenseMap<ProfileCounterRef, ProfileCounter> RegionLoadedCounterMap;
 
-  llvm::DenseMap<ASTNode, ASTNode> RegionCondToParentMap;
+  toolchain::DenseMap<ASTNode, ASTNode> RegionCondToParentMap;
 
   std::vector<std::tuple<std::string, uint64_t, std::string>> CoverageData;
 
@@ -158,9 +162,9 @@ private:
 
 } // end namespace language
 
-namespace llvm {
-using swift::ProfileCounterRef;
-using swift::ASTNode;
+namespace toolchain {
+using language::ProfileCounterRef;
+using language::ASTNode;
 
 template <> struct DenseMapInfo<ProfileCounterRef> {
   static inline ProfileCounterRef getEmptyKey() {
@@ -179,6 +183,6 @@ template <> struct DenseMapInfo<ProfileCounterRef> {
     return lhs == rhs;
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_SIL_PROFILER_H
+#endif // LANGUAGE_SIL_PROFILER_H

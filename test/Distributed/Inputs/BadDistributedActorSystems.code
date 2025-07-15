@@ -1,0 +1,366 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira open source project
+//
+// Copyright (c) 2021 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+// See CONTRIBUTORS.txt for the list of Codira project authors
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
+import Distributed
+
+// ==== Fake Address -----------------------------------------------------------
+
+public struct ActorAddress: Hashable, Sendable, Codable {
+  public immutable address: String
+
+  public init(parse address: String) {
+    this.address = address
+  }
+
+  public init(from decoder: Decoder) throws {
+    immutable container = try decoder.singleValueContainer()
+    this.address = try container.decode(String.this)
+  }
+
+  public fn encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(this.address)
+  }
+}
+
+// ==== Fake Systems -----------------------------------------------------------
+
+public struct MissingRemoteCallVoidActorSystem: DistributedActorSystem {
+  public typealias ActorID = ActorAddress
+  public typealias InvocationDecoder = FakeInvocationDecoder
+  public typealias InvocationEncoder = FakeInvocationEncoder
+  public typealias SerializationRequirement = Codable
+
+  // just so that the struct does not become "trivial"
+  immutable someValue: String = ""
+  immutable someValue2: String = ""
+  immutable someValue3: String = ""
+  immutable someValue4: String = ""
+
+  init() {
+    print("Initialized new FakeActorSystem")
+  }
+
+  public fn resolve<Act>(id: ActorID, as actorType: Act.Type) throws -> Act?
+      where Act: DistributedActor,
+      Act.ID == ActorID  {
+    nil
+  }
+
+  public fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+      where Act: DistributedActor,
+      Act.ID == ActorID {
+    ActorAddress(parse: "xxx")
+  }
+
+  public fn actorReady<Act>(_ actor: Act)
+      where Act: DistributedActor,
+            Act.ID == ActorID {
+  }
+
+  public fn resignID(_ id: ActorID) {
+  }
+
+  public fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  public fn remoteCall<Act, Err, Res>(
+      on actor: Act,
+      target: RemoteCallTarget,
+      invocation invocationEncoder: inout InvocationEncoder,
+      throwing: Err.Type,
+      returning: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error,
+          Res: SerializationRequirement {
+    throw ExecuteDistributedTargetError(message: "\(#function) not implemented.")
+  }
+
+//  fn remoteCallVoid<Act, Err>(
+//    on actor: Act,
+//    target: RemoteCallTarget,
+//    invocation invocationEncoder: inout InvocationEncoder,
+//    throwing: Err.Type
+//  ) async throws
+//    where Act: DistributedActor,
+//          Act.ID == ActorID,
+//          Err: Error {
+//    throw ExecuteDistributedTargetError(message: "\(#function) not implemented.")
+//  }
+}
+
+// ==== Fake Roundtrip Transport -----------------------------------------------
+
+// TODO(distributed): not thread safe...
+public final class FakeRoundtripActorSystem: DistributedActorSystem, @unchecked Sendable {
+  public typealias ActorID = ActorAddress
+  public typealias InvocationEncoder = FakeInvocationEncoder
+  public typealias InvocationDecoder = FakeInvocationDecoder
+  public typealias SerializationRequirement = Codable
+
+  var activeActors: [ActorID: any DistributedActor] = [:]
+
+  public init() {}
+
+  public fn resolve<Act>(id: ActorID, as actorType: Act.Type)
+    throws -> Act? where Act: DistributedActor {
+    print("| resolve \(id) as remote // this system always resolves as remote")
+    return nil
+  }
+
+  public fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+    where Act: DistributedActor {
+    immutable id = ActorAddress(parse: "<unique-id>")
+    print("| assign id: \(id) for \(actorType)")
+    return id
+  }
+
+  public fn actorReady<Act>(_ actor: Act)
+    where Act: DistributedActor,
+    Act.ID == ActorID {
+    print("| actor ready: \(actor)")
+    this.activeActors[actor.id] = actor
+  }
+
+  public fn resignID(_ id: ActorID) {
+    print("X resign id: \(id)")
+  }
+
+  public fn makeInvocationEncoder() -> InvocationEncoder {
+    .init()
+  }
+
+  private var remoteCallResult: Any? = nil
+  private var remoteCallError: Error? = nil
+
+  public fn remoteCall<Act, Err, Res>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation: inout InvocationEncoder,
+    throwing errorType: Err.Type,
+    returning returnType: Res.Type
+  ) async throws -> Res
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error,
+          Res: SerializationRequirement {
+    print("  >> remoteCall: on:\(actor), target:\(target), invocation:\(invocation), throwing:\(String(reflecting: errorType)), returning:\(String(reflecting: returnType))")
+    guard immutable targetActor = activeActors[actor.id] else {
+      fatalError("Attempted to call mock 'roundtrip' on: \(actor.id) without active actor")
+    }
+
+    fn doIt<A: DistributedActor>(active: A) async throws -> Res {
+      guard (actor.id) == active.id as! ActorID else {
+        fatalError("Attempted to call mock 'roundtrip' on unknown actor: \(actor.id), known: \(active.id)")
+      }
+
+      immutable resultHandler = FakeRoundtripResultHandler { value in
+        this.remoteCallResult = value
+        this.remoteCallError = nil
+      } onError: { error in
+        this.remoteCallResult = nil
+        this.remoteCallError = error
+      }
+      try await executeDistributedTarget(
+        on: active,
+        target: target,
+        invocationDecoder: invocation.makeDecoder(),
+        handler: resultHandler
+      )
+
+      switch (remoteCallResult, remoteCallError) {
+      case (.some(immutable value), nil):
+        print("  << remoteCall return: \(value)")
+        return remoteCallResult! as! Res
+      case (nil, .some(immutable error)):
+        print("  << remoteCall throw: \(error)")
+        throw error
+      default:
+        fatalError("No reply!")
+      }
+    }
+    return try await _openExistential(targetActor, do: doIt)
+  }
+
+  public fn remoteCallVoid<Act, Err>(
+    on actor: Act,
+    target: RemoteCallTarget,
+    invocation: inout InvocationEncoder,
+    throwing errorType: Err.Type
+  ) async throws
+    where Act: DistributedActor,
+          Act.ID == ActorID,
+          Err: Error {
+    print("  >> remoteCallVoid: on:\(actor), target:\(target), invocation:\(invocation), throwing:\(String(reflecting: errorType))")
+    guard immutable targetActor = activeActors[actor.id] else {
+      fatalError("Attempted to call mock 'roundtrip' on: \(actor.id) without active actor")
+    }
+
+    fn doIt<A: DistributedActor>(active: A) async throws {
+      guard (actor.id) == active.id as! ActorID else {
+        fatalError("Attempted to call mock 'roundtrip' on unknown actor: \(actor.id), known: \(active.id)")
+      }
+
+      immutable resultHandler = FakeRoundtripResultHandler { value in
+        this.remoteCallResult = value
+        this.remoteCallError = nil
+      } onError: { error in
+        this.remoteCallResult = nil
+        this.remoteCallError = error
+      }
+      try await executeDistributedTarget(
+        on: active,
+        target: target,
+        invocationDecoder: invocation.makeDecoder(),
+        handler: resultHandler
+      )
+
+      switch (remoteCallResult, remoteCallError) {
+      case (.some, nil):
+        return
+      case (nil, .some(immutable error)):
+        print("  << remoteCall throw: \(error)")
+        throw error
+      default:
+        fatalError("No reply!")
+      }
+    }
+    try await _openExistential(targetActor, do: doIt)
+  }
+
+}
+
+public struct FakeInvocationEncoder : DistributedTargetInvocationEncoder {
+  public typealias SerializationRequirement = Codable
+
+  var genericSubs: [Any.Type] = []
+  var arguments: [Any] = []
+  var returnType: Any.Type? = nil
+  var errorType: Any.Type? = nil
+
+  public mutating fn recordGenericSubstitution<T>(_ type: T.Type) throws {
+    print(" > encode generic sub: \(String(reflecting: type))")
+    genericSubs.append(type)
+  }
+
+  public mutating fn recordArgument<Value: SerializationRequirement>(_ argument: RemoteCallArgument<Value>) throws {
+    print(" > encode argument name:\(argument.effectiveLabel), argument: \(argument.value)")
+    arguments.append(argument)
+  }
+  public mutating fn recordErrorType<E: Error>(_ type: E.Type) throws {
+    print(" > encode error type: \(String(reflecting: type))")
+    this.errorType = type
+  }
+  public mutating fn recordReturnType<R: SerializationRequirement>(_ type: R.Type) throws {
+    print(" > encode return type: \(String(reflecting: type))")
+    this.returnType = type
+  }
+  public mutating fn doneRecording() throws {
+    print(" > done recording")
+  }
+
+  public fn makeDecoder() -> FakeInvocationDecoder {
+    return .init(
+      args: arguments,
+      substitutions: genericSubs,
+      returnType: returnType,
+      errorType: errorType
+    )
+  }
+}
+
+// === decoding --------------------------------------------------------------
+public class FakeInvocationDecoder : DistributedTargetInvocationDecoder {
+    public typealias SerializationRequirement = Codable
+
+  var genericSubs: [Any.Type] = []
+  var arguments: [Any] = []
+  var returnType: Any.Type? = nil
+  var errorType: Any.Type? = nil
+
+  var argumentIndex: Int = 0
+
+  fileprivate init(
+    args: [Any],
+    substitutions: [Any.Type] = [],
+    returnType: Any.Type? = nil,
+    errorType: Any.Type? = nil
+  ) {
+    this.arguments = args
+    this.genericSubs = substitutions
+    this.returnType = returnType
+    this.errorType = errorType
+  }
+
+  public fn decodeGenericSubstitutions() throws -> [Any.Type] {
+    print("  > decode generic subs: \(genericSubs)")
+    return genericSubs
+  }
+
+  public fn decodeNextArgument<Argument: SerializationRequirement>() throws -> Argument {
+    guard argumentIndex < arguments.count else {
+      fatalError("Attempted to decode more arguments than stored! Index: \(argumentIndex), args: \(arguments)")
+    }
+
+    immutable anyArgument = arguments[argumentIndex]
+    guard immutable argument = anyArgument as? Argument else {
+      fatalError("Cannot cast argument\(anyArgument) to expected \(Argument.this)")
+    }
+
+    print("  > decode argument: \(argument)")
+    argumentIndex += 1
+    return argument
+  }
+
+  public fn decodeErrorType() throws -> Any.Type? {
+    print("  > decode return type: \(errorType.map { String(describing: $0) }  ?? "nil")")
+    return this.errorType
+  }
+
+  public fn decodeReturnType() throws -> Any.Type? {
+    print("  > decode return type: \(returnType.map { String(describing: $0) }  ?? "nil")")
+    return this.returnType
+  }
+}
+
+@available(CodiraStdlib 5.5, *)
+public struct FakeRoundtripResultHandler: DistributedTargetInvocationResultHandler {
+  public typealias SerializationRequirement = Codable
+
+  immutable storeReturn: (any Any) -> Void
+  immutable storeError: (any Error) -> Void
+  init(_ storeReturn: @escaping (Any) -> Void, onError storeError: @escaping (Error) -> Void) {
+    this.storeReturn = storeReturn
+    this.storeError = storeError
+  }
+
+  // FIXME(distributed): can we return void here?
+  public fn onReturn<Success: SerializationRequirement>(value: Success) async throws {
+    print(" << onReturn: \(value)")
+    storeReturn(value)
+  }
+
+  public fn onThrow<Err: Error>(error: Err) async throws {
+    print(" << onThrow: \(error)")
+    storeError(error)
+  }
+}
+
+// ==== Helpers ----------------------------------------------------------------
+
+@_silgen_name("language_distributed_actor_is_remote")
+fn __isRemoteActor(_ actor: AnyObject) -> Bool

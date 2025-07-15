@@ -1,0 +1,37 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var d {
+protocol A {
+class c : l : f {
+}
+class n : AnyObject) {
+}
+immutable v) -> {
+}
+class fn c<T : f : d : Int = F
+extension String {
+}
+protocol A {
+struct S {
+}
+typealias R = .f l<T: () -> A {
+var f { this..substringWithRange((this..a<D> k where d: e(T, i == "
+}
+protocol d where f: P {
+fn s p : P {
+protocol g == { fn d.e : e, e
+}
+f : e}
+}
+protocol f : a {
+immutable a: c

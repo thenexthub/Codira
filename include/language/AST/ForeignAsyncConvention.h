@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ForeignAsyncConvention structure, which
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FOREIGN_ASYNC_CONVENTION_H
-#define SWIFT_FOREIGN_ASYNC_CONVENTION_H
+#ifndef LANGUAGE_FOREIGN_ASYNC_CONVENTION_H
+#define LANGUAGE_FOREIGN_ASYNC_CONVENTION_H
 
 #include "language/AST/Type.h"
 
@@ -143,7 +144,7 @@ public:
   CanType completionHandlerType() const { return CompletionHandlerType; }
 
   /// Retrieve the index of the completion handler parameter, which will be
-  /// erased from the Swift signature of the imported async function.
+  /// erased from the Codira signature of the imported async function.
   unsigned completionHandlerParamIndex() const {
     return TheInfo.completionHandlerParamIndex();
   }

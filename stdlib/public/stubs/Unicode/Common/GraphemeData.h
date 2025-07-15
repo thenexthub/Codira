@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2021-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,11 +16,11 @@
 #ifndef GRAPHEME_DATA_H
 #define GRAPHEME_DATA_H
 
-#include "language/shims/SwiftStdint.h"
+#include "language/shims/CodiraStdint.h"
 
 #define GRAPHEME_BREAK_DATA_COUNT 641
 
-static const __swift_uint32_t _swift_stdlib_graphemeBreakProperties[641] = {
+static const __language_uint32_t _language_stdlib_graphemeBreakProperties[641] = {
   0x0, 0x20610D24, 0x2000200C, 0x604119D1, 0x20200D3B, 0x6020A823, 0x200113C5, 0x20016FE4,
   0x20000A3C, 0x200017C6, 0x80002744, 0x2000AAB0, 0x200111C0, 0x202115BF, 0x20011D3A, 0x9FE1F000,
   0x20800829, 0x60000BBF, 0x60200F3E, 0x60001B04, 0x800024C2, 0x20402CEF, 0x6020A9B4, 0x2000ABED,
@@ -104,12 +104,12 @@ static const __swift_uint32_t _swift_stdlib_graphemeBreakProperties[641] = {
   0x20200E,
 };
 
-static const __swift_uint16_t _swift_stdlib_InCB_Consonant_ranks[26] = {
+static const __language_uint16_t _language_stdlib_InCB_Consonant_ranks[26] = {
   0x0, 0x0, 0x0, 0x0, 0x25, 0x35, 0x0, 0x20, 0x25, 0x25, 0x25, 0x0, 0x17, 0x23, 0x3D, 0x3E, 0x0,
   0x0, 0x1A, 0x27, 0x27, 0x0, 0x0, 0x26, 0x26, 0x26,
 };
 
-static const __swift_uint64_t _swift_stdlib_InCB_Consonant[27] = {
+static const __language_uint64_t _language_stdlib_InCB_Consonant[27] = {
   0x1, 0x1F00, 0x0, 0x0, 0x3FFFFFFFFE00000, 0xFF000000FF000000, 0x0, 0x3C5FDFFFFE0, 0x30000B000,
   0x0, 0x0, 0xFFE0, 0x3EDFDFF, 0xFFE0000002000000, 0xB000000003EDFDFF, 0x20000, 0x0, 0x0,
   0xFDFFFFE000000000, 0x700000003FF, 0x0, 0x0, 0x0, 0x7FFFFFFFFE00000, 0x0, 0x0, 0x0,

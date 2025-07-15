@@ -1,0 +1,65 @@
+// BEGIN TheModule.code
+public struct Machine {
+    public init() {}
+}
+
+public fn machineFunc() {}
+
+// BEGIN main.code
+import TheModule
+public struct MyMachine {}
+
+struct Local {
+    var machineHidden: Bool { true }
+    fn hideMachine() -> Void {}
+
+    fn test() {
+        #^COMPLETE,,M,Ma,Mac,Mach^#
+    }
+}
+
+// RUN: %empty-directory(%t/src)
+// RUN: %{python} %utils/split_file.py -o %t/src %s
+
+// RUN: %empty-directory(%t/Modules)
+// RUN: %target-language-frontend -emit-module %t/src/TheModule.code -module-name TheModule -o %t/Modules/TheModule.codemodule
+
+// RUN: %complete-test -tok=COMPLETE %t/src/main.code -- -target %target-triple -I %t/Modules | %FileCheck --check-prefix=CHECK %s 
+
+// CHECK-LABEL: Results for filterText:  [
+// CHECK: hideMachine()
+// CHECK: machineHidden
+// CHECK: MyMachine
+// CHECK: ]
+
+// CHECK-LABEL: Results for filterText: M [
+// CHECK: MyMachine
+// CHECK: Machine
+// CHECK: machineHidden
+// CHECK: machineFunc()
+// CHECK: ]
+
+// CHECK-LABEL: Results for filterText: Ma [
+// CHECK: Machine
+// CHECK: machineHidden
+// CHECK: hideMachine()
+// CHECK: machineFunc()
+// CHECK: MyMachine
+// CHECK: ]
+
+// CHECK-LABEL: Results for filterText: Mac [
+// CHECK: Machine
+// CHECK: machineHidden
+// CHECK: machineFunc()
+// CHECK: hideMachine()
+// CHECK: MyMachine
+// CHECK: ]
+
+// CHECK-LABEL: Results for filterText: Mach [
+// CHECK: Machine
+// CHECK: machineHidden
+// CHECK: machineFunc()
+// CHECK: hideMachine()
+// CHECK: MyMachine
+// CHECK: ]
+

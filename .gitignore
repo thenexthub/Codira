@@ -50,10 +50,10 @@ docs/_build
 .cache
 .clangd
 
-# SwiftPM
+# CodiraPM
 .build
 .index-build
-.swiftpm
+.codepm
 
 #==============================================================================#
 # Ignore CMake temporary files
@@ -81,9 +81,9 @@ htmlcov
 /benchmark/scripts/Benchmark_Driverc
 
 #==============================================================================#
-# Ignore copied Swift Stdlib files while migrating stdlib
+# Ignore copied Codira Stdlib files while migrating stdlib
 #==============================================================================#
-Runtimes/**/*.swift
+Runtimes/**/*.code
 Runtimes/**/*.h
 Runtimes/**/*.cpp
 Runtimes/**/*.c
@@ -97,3 +97,4 @@ Runtimes/**/*.inc
 Runtimes/**/*.json
 Runtimes/**/*.modulemap
 Runtimes/**/*.in
+!Runtimes/**/*.cmake.in

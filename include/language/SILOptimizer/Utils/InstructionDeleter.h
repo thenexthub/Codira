@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Purpose:
@@ -95,12 +96,12 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_INSTRUCTIONDELETER_H
-#define SWIFT_SILOPTIMIZER_UTILS_INSTRUCTIONDELETER_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_INSTRUCTIONDELETER_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_INSTRUCTIONDELETER_H
 
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Utils/InstModCallbacks.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 
 namespace language {
 
@@ -117,7 +118,7 @@ class InstructionDeleter {
   /// instructions in this set is important as when a dead instruction is
   /// removed, new instructions will be generated to fix the lifetime of the
   /// instruction's operands. This has to be deterministic.
-  llvm::SmallSetVector<SILInstruction *, 8> deadInstructions;
+  toolchain::SmallSetVector<SILInstruction *, 8> deadInstructions;
 
   /// Callbacks used when adding/deleting instructions.
   InstModCallbacks callbacks;
@@ -240,4 +241,4 @@ private:
 
 } // namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_INSTRUCTIONDELETER_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_INSTRUCTIONDELETER_H

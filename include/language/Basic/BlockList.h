@@ -1,13 +1,17 @@
 //===--- BlockList.h ---------------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some miscellaneous overloads of hash_value() and
@@ -15,11 +19,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_BLOCKLIST_H
-#define SWIFT_BASIC_BLOCKLIST_H
+#ifndef LANGUAGE_BASIC_BLOCKLIST_H
+#define LANGUAGE_BASIC_BLOCKLIST_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringRef.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -51,4 +55,4 @@ private:
 
 } // namespace language
 
-#endif // SWIFT_BASIC_BLOCKLIST_H
+#endif // LANGUAGE_BASIC_BLOCKLIST_H

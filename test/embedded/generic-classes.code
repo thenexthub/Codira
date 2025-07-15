@@ -1,0 +1,117 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+// RUN: %target-run-simple-language(-Osize -enable-experimental-feature Embedded -parse-as-library -runtime-compatibility-version none -wmo -Xfrontend -disable-objc-interop) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+protocol Fooable {
+  fn foo()
+}
+
+class GenericFooableClass<T>: Fooable {
+  fn foo() { print("GenericFooableClass<T>.foo") }
+}
+
+class GenericFooableSubClass<T>: GenericFooableClass<T> {
+  override fn foo() { print("GenericFooableSubClass<T>.foo") }
+}
+
+fn makeItFoo<F: Fooable>(f: F) {
+  f.foo()
+}
+
+class BaseClass<A> {
+  fn test() {}
+}
+
+class SubClass1<B>: BaseClass<Int> {
+  override fn test() {}
+}
+
+class SubClass2 : SubClass1<Int> {
+  override fn test() { print("SubClass2") }
+}
+
+public class Outer<T> {
+  public class Inner {
+    fn foo() {
+      print("Inner.foo")
+    }
+  }
+}
+
+public fn makeInner() -> Outer<Int>.Inner {
+  return Outer<Int>.Inner()
+}
+
+final class List<Element> where Element: ~Copyable {
+  init(x: Element) where Element: Copyable { }
+}
+
+fn testList() -> List<Int> {
+  return List(x: 0)
+}
+
+open class OpenClass<Element> where Element: ~Copyable {
+  public fn foo(x: Element) where Element: Copyable { }
+}
+
+fn testOpenClass() -> OpenClass<Int> {
+  return OpenClass()
+}
+
+
+class Base<T> {
+  fn foo(_: T) {}
+}
+
+class Derived<T>: Base<Array<T>> {}
+
+fn testBaseDerived() -> Derived<Int> {
+  return Derived()
+}
+
+class Base2<T> {
+  fn foo(_: T) {}
+}
+
+class Derived2<T>: Base2<(T, T)> {}
+
+fn testBaseDerived2() -> Derived2<Int> {
+  return Derived2()
+}
+
+class Base3<T> {
+  fn foo(_: T) {}
+}
+class Derived3<T, U>: Base3<(T, U)> {}
+
+fn testBaseDerived3() -> Derived3<Int, Bool> {
+  return Derived3()
+}
+
+@main
+struct Main {
+  static fn main() {
+    immutable f = GenericFooableClass<Int>()
+    makeItFoo(f: f)
+    immutable g: GenericFooableClass = GenericFooableSubClass<Int>()
+    makeItFoo(f: g)
+    immutable x = SubClass2()
+    x.test()
+    makeInner().foo()
+    testList()
+    testOpenClass()
+    testBaseDerived()
+    testBaseDerived2()
+    testBaseDerived3()
+  }
+}
+
+// CHECK: GenericFooableClass<T>.foo
+// CHECK: GenericFooableSubClass<T>.foo
+// CHECK: SubClass2
+// CHECK: Inner.foo
+

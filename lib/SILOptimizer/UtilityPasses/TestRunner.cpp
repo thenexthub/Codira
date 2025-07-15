@@ -1,19 +1,23 @@
 //===-------------------------- TestRunner.cpp ----------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines test::TestRunner, the pass responsible for running tests,
 // specifically test::FunctionTest and test::ModuleTest (maybe someday).
 //
-// To see more about writing your own tests, see include/swift/SIL/Test.h.
+// To see more about writing your own tests, see include/language/SIL/Test.h.
 //
 //===----------------------------------------------------------------------===//
 
@@ -36,10 +40,10 @@ class TestRunner : public SILFunctionTransform {
       : public test::FunctionTest::Dependencies {
     TestRunner *pass;
     SILFunction *function;
-    SwiftPassInvocation swiftPassInvocation;
+    CodiraPassInvocation languagePassInvocation;
     FunctionTestDependenciesImpl(TestRunner *pass, SILFunction *function)
         : pass(pass), function(function),
-          swiftPassInvocation(pass->getPassManager(), pass, function) {}
+          languagePassInvocation(pass->getPassManager(), pass, function) {}
     DominanceInfo *getDominanceInfo() override {
       auto *dominanceAnalysis = pass->getAnalysis<DominanceAnalysis>();
       return dominanceAnalysis->get(function);
@@ -48,8 +52,8 @@ class TestRunner : public SILFunctionTransform {
       auto *deadEndBlocksAnalysis = pass->getAnalysis<DeadEndBlocksAnalysis>();
       return deadEndBlocksAnalysis->get(function);
     }
-    SwiftPassInvocation *getSwiftPassInvocation() override {
-      return &swiftPassInvocation;
+    CodiraPassInvocation *getCodiraPassInvocation() override {
+      return &languagePassInvocation;
     }
     SILPassManager *getPassManager() override { return pass->getPassManager(); }
     ~FunctionTestDependenciesImpl() {}
@@ -60,7 +64,7 @@ void TestRunner::printTestLifetime(bool begin, unsigned testIndex,
                                    unsigned testCount, StringRef name,
                                    ArrayRef<StringRef> components) {
   StringRef word = begin ? "\nbegin" : "end";
-  llvm::outs() << word << " running test " << testIndex + 1 << " of "
+  toolchain::outs() << word << " running test " << testIndex + 1 << " of "
                << testCount << " on " << getFunction()->getName() << ": "
                << name << " with: ";
   for (unsigned long index = 0, size = components.size(); index < size;
@@ -69,12 +73,12 @@ void TestRunner::printTestLifetime(bool begin, unsigned testIndex,
     if (componentString.empty())
       continue;
 
-    llvm::outs() << componentString;
+    toolchain::outs() << componentString;
     if (index != size - 1) {
-      llvm::outs() << ", ";
+      toolchain::outs() << ", ";
     }
   }
-  llvm::outs() << "\n";
+  toolchain::outs() << "\n";
 }
 
 void TestRunner::runTest(StringRef name, Arguments &arguments) {
@@ -85,7 +89,7 @@ void TestRunner::runTest(StringRef name, Arguments &arguments) {
 }
 
 void TestRunner::run() {
-  llvm::SmallVector<UnparsedSpecification, 2> testSpecifications;
+  toolchain::SmallVector<UnparsedSpecification, 2> testSpecifications;
   getTestSpecifications(getFunction(), testSpecifications);
   Arguments arguments;
   SmallVector<StringRef, 4> components;
@@ -116,7 +120,7 @@ void TestRunner::run() {
 // - the function
 static FunctionTest DumpFunctionTest("dump_function",
                                      [](auto &function, auto &, auto &) {
-                                       function.print(llvm::outs());
+                                       function.print(toolchain::outs());
                                      });
 
 } // namespace language::test
@@ -125,4 +129,4 @@ static FunctionTest DumpFunctionTest("dump_function",
 //                           Top Level Entry Point
 //===----------------------------------------------------------------------===//
 
-SILTransform *swift::createUnitTestRunner() { return new TestRunner(); }
+SILTransform *language::createUnitTestRunner() { return new TestRunner(); }

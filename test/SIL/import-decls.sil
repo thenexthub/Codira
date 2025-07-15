@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: touch %t/empty.code
+// RUN: %target-language-frontend -emit-module -module-name TestModule %t/empty.code -o %t
+// RUN: %target-sil-opt %s -I=%t | %FileCheck %s
+
+sil_stage raw
+
+import Builtin
+import Codira
+
+import TestModule
+
+fn foo() {}
+
+// CHECK: import Builtin
+// CHECK: import Codira
+// CHECK-NOT: import Builtin
+// CHECK-NOT: import Codira{{$}}
+// CHECK: import TestModule

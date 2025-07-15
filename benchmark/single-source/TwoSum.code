@@ -1,4 +1,4 @@
-//===--- TwoSum.swift -----------------------------------------------------===//
+//===--- TwoSum.code -----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test is solves 2SUM problem:
 // Given an array and a number C, find elements A and B such that A+B = C
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "TwoSum",
     runFunction: run_TwoSum,
     tags: [.validation, .api, .Dictionary, .Array, .algorithm],
     legacyFactor: 2)
 
-let array = [
+immutable array = [
   959,  81, 670, 727, 416, 171, 401, 398, 707, 596, 200,   9, 414,  98,  43,
   352, 752, 158, 593, 418, 240, 912, 542, 445, 429, 456, 993, 618,  52, 649,
   759, 190, 126, 306, 966,  37, 787, 981, 606, 372, 597, 901, 158, 284, 809,
@@ -62,7 +63,7 @@ let array = [
 ]
 
 @inline(never)
-public func run_TwoSum(_ n: Int) {
+public fn run_TwoSum(_ n: Int) {
   var i1: Int?
   var i2: Int?
   var dict: Dictionary<Int, Int> = [:]
@@ -72,7 +73,7 @@ public func run_TwoSum(_ n: Int) {
       i1 = nil
       i2 = nil
       for n in 0..<array.count {
-        if let m = dict[sum - array[n]] {
+        if immutable m = dict[sum - array[n]] {
           i1 = m
           i2 = n
           break

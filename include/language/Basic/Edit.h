@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_EDIT_H
-#define SWIFT_BASIC_EDIT_H
+#ifndef LANGUAGE_BASIC_EDIT_H
+#define LANGUAGE_BASIC_EDIT_H
 
-#include "llvm/ADT/ArrayRef.h"
-#include "language/Basic/LLVM.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
 
 namespace language {
@@ -43,7 +44,7 @@ namespace language {
     void addEdit(SourceManager &SM, CharSourceRange Range, StringRef Text);
   };
 
-  void writeEditsInJson(const SourceEdits &Edits, llvm::raw_ostream &OS);
+  void writeEditsInJson(const SourceEdits &Edits, toolchain::raw_ostream &OS);
 }
 
-#endif // SWIFT_BASIC_EDIT_H
+#endif // LANGUAGE_BASIC_EDIT_H

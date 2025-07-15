@@ -1,0 +1,17 @@
+// RUN: %target-language-emit-silgen -verify -disable-objc-attr-requires-foundation-module %s
+// RUN: %target-language-emit-silgen -verify -language-version 6 -disable-objc-attr-requires-foundation-module %s
+
+// REQUIRES: objc_interop
+
+@objc class C {
+  @preconcurrency @objc fn foo(_ x: Sendable) {}
+}
+
+fn bar(_ fn: (Any) -> Void) {}
+fn bar(_ fn: (Sendable) -> Void) {}
+
+// Make sure we can handle both the implicit unwrap and concurrency adjustment.
+fn foo(_ x: AnyObject) {
+  bar(x.foo)
+  immutable _ = AnyObject.foo
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -18,8 +19,8 @@
 #include "RCStateTransition.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILFunction.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -36,7 +37,7 @@ static bool isAutoreleasePoolCall(SILInstruction *I) {
   if (!Fn)
     return false;
 
-  return llvm::StringSwitch<bool>(Fn->getName())
+  return toolchain::StringSwitch<bool>(Fn->getName())
       .Case("objc_autoreleasePoolPush", true)
       .Case("objc_autoreleasePoolPop", true)
       .Default(false);
@@ -46,7 +47,7 @@ static bool isAutoreleasePoolCall(SILInstruction *I) {
 //                           RCStateTransitionKind
 //===----------------------------------------------------------------------===//
 
-RCStateTransitionKind swift::getRCStateTransitionKind(SILNode *N) {
+RCStateTransitionKind language::getRCStateTransitionKind(SILNode *N) {
   switch (N->getKind()) {
   case SILNodeKind::StrongRetainInst:
   case SILNodeKind::RetainValueInst:
@@ -100,20 +101,20 @@ RCStateTransitionKind swift::getRCStateTransitionKind(SILNode *N) {
 
 /// Define test functions for all of our abstract value kinds.
 #define ABSTRACT_VALUE(Name, StartKind, EndKind)                           \
-  bool swift::isRCStateTransition ## Name(RCStateTransitionKind Kind) {    \
+  bool language::isRCStateTransition ## Name(RCStateTransitionKind Kind) {    \
     return unsigned(RCStateTransitionKind::StartKind) <= unsigned(Kind) && \
       unsigned(RCStateTransitionKind::EndKind) >= unsigned(Kind);          \
   }
 #include "RCStateTransition.def"
 
-raw_ostream &llvm::operator<<(raw_ostream &os, RCStateTransitionKind Kind) {
+raw_ostream &toolchain::operator<<(raw_ostream &os, RCStateTransitionKind Kind) {
   switch (Kind) {
 #define KIND(K)                                 \
   case RCStateTransitionKind::K:                \
     return os << #K;
 #include "RCStateTransition.def"
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
 //===----------------------------------------------------------------------===//

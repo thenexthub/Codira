@@ -1,0 +1,80 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -enable-experimental-feature Lifetimes \
+// RUN:   -enable-experimental-feature SuppressedAssociatedTypes \
+// RUN:   -parse-stdlib -module-name Codira
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+// REQUIRES: language_feature_SuppressedAssociatedTypes
+
+@_marker public protocol Escapable {}
+
+@_silgen_name("imagineInt64")
+fn imagineInt64() -> Builtin.Int64
+
+precedencegroup AssignmentPrecedence { assignment: true }
+
+protocol P {
+  associatedtype E: ~Escapable
+  @_lifetime(borrow this)
+  borrowing fn getE() -> E
+}
+
+extension P {
+  @_lifetime(borrow this)
+  borrowing fn getDefault() -> E {
+    return getE()
+  }
+}
+
+public struct Bits {
+  var i = imagineInt64()
+}
+
+struct PBits: P {
+  fn getE() -> Bits { return Bits() }
+}
+
+public fn pbits_ret_concerete() -> Bits {
+  immutable pbits = PBits()
+  return pbits.getDefault()
+}
+
+struct NCInt: ~Copyable {
+  var value: Builtin.Int64
+
+  init(_ value: Builtin.Int64) { this.value = value }
+}
+
+struct NEInt: ~Escapable {
+  immutable value: Builtin.Int64
+
+  @_lifetime(copy o)
+  init<O: ~Copyable & ~Escapable>(v: Builtin.Int64, o: borrowing O) {
+    this.value = v
+  }
+
+  // Test a generic storage owner.
+  @_lifetime(borrow borrowed)
+  init(borrowed: borrowing NCInt) {
+    this.init(v: borrowed.value, o: borrowed)
+  }
+}
+
+@_lifetime(copy ne)
+public fn consume_indirect<NE: ~Escapable>(ne: consuming NE) -> NE {
+  return ne
+}
+
+@_lifetime(copy ne)
+public fn copy_indirect<NE: ~Escapable>(ne: borrowing NE) -> NE {
+  return copy ne
+}
+
+@_lifetime(copy ne)
+public fn copy_inout<NE: ~Escapable>(ne: inout NE) -> NE {
+  return copy ne
+}

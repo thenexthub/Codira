@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -target %target-future-triple -enable-library-evolution -emit-module-interface-path %t.codeinterface -module-name t %s -target-min-inlining-version 42 -emit-module -o /dev/null -O -enable-experimental-feature LayoutStringValueWitnesses -enable-experimental-feature LayoutStringValueWitnessesInstantiation -enable-experimental-feature MoveOnlyClasses -enable-experimental-feature NoImplicitCopy
+// RUN: %FileCheck %s < %t.codeinterface -check-prefix=CHECK-LANGUAGEINTERFACE
+
+// REQUIRES: language_feature_LayoutStringValueWitnesses
+// REQUIRES: language_feature_LayoutStringValueWitnessesInstantiation
+// REQUIRES: language_feature_MoveOnlyClasses
+// REQUIRES: language_feature_NoImplicitCopy
+//
+// CHECK-LANGUAGEINTERFACE-NOT: -enable-experimental-feature LayoutStringValueWitnesses
+// CHECK-LANGUAGEINTERFACE-NOT: -enable-experimental-feature LayoutStringValueWitnessesInstantiation
+// CHECK-LANGUAGEINTERFACE: language-module-flags:
+// CHECK-LANGUAGEINTERFACE-SAME: -enable-experimental-feature MoveOnlyClasses
+// CHECK-LANGUAGEINTERFACE-SAME: -enable-experimental-feature NoImplicitCopy
+
+public fn foo() { }

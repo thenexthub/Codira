@@ -1,12 +1,12 @@
-# swift_build_support/products/benchmarks.py --------------------*- python -*-
+# language_build_support/products/benchmarks.py --------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -18,10 +18,10 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
+from . import language
+from . import languagepm
 from . import xctest
 from .. import shell
 from .. import targets
@@ -52,14 +52,14 @@ class Benchmarks(product.Product):
 
     def _get_test_environment(self, host_target):
         env = {
-            "SWIFT_DETERMINISTIC_HASHING": "1"
+            "LANGUAGE_DETERMINISTIC_HASHING": "1"
         }
         if platform.system() == 'Darwin':
-            # the resulting binaries would search first in /usr/lib/swift,
+            # the resulting binaries would search first in /usr/lib/language,
             # we need to prefer the libraries we just built
             env['DYLD_LIBRARY_PATH'] = os.path.join(
                 _get_toolchain_path(host_target, self, self.args),
-                'usr', 'lib', 'swift', 'macosx')
+                'usr', 'lib', 'language', 'macosx')
         return env
 
     def test(self, host_target):
@@ -87,14 +87,14 @@ class Benchmarks(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM]
+                languagepm.CodiraPM]
 
 
 def _get_toolchain_path(host_target, product, args):
@@ -117,8 +117,8 @@ def run_build_script_helper(host_target, product, args):
     # Our source_dir is expected to be './$SOURCE_ROOT/benchmarks'. That is due
     # the assumption that each product is in its own build directory. This
     # product is not like that and has its package/tools instead in
-    # ./$SOURCE_ROOT/swift/benchmark.
-    package_path = os.path.join(product.source_dir, '..', 'swift', 'benchmark')
+    # ./$SOURCE_ROOT/language/benchmark.
+    package_path = os.path.join(product.source_dir, '..', 'language', 'benchmark')
     package_path = os.path.abspath(package_path)
 
     # We use a separate python helper to enable quicker iteration when working

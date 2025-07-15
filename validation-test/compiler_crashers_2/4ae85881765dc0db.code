@@ -1,0 +1,4 @@
+// {"signature":"diagnoseAmbiguityWithContextualType(language::constraints::ConstraintSystem&, language::constraints::SolutionDiff&, toolchain::ArrayRef<std::__1::pair<language::constraints::Solution const*, language::constraints::ConstraintFix const*>>, toolchain::ArrayRef<language::constraints::Solution>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a fn b< c >(c = a(
+    fn a

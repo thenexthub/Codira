@@ -1,0 +1,168 @@
+//===--- FunctionUses.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+/// Provides a list of instructions, which reference a function.
+///
+/// A function "use" is an instruction in another (or the same) function which
+/// references the function. In most cases those are `function_ref` instructions,
+/// but can also be e.g. `keypath` instructions.
+///
+/// 'FunctionUses' performs an analysis of all functions in the module and collects
+/// instructions which reference other functions. This utility can be used to do
+/// inter-procedural caller-analysis.
+///
+/// In order to use `FunctionUses`, first call `collect()` and then get use-lists of
+/// functions with `getUses(of:)`.
+struct FunctionUses {
+
+  // Function uses are stored in a single linked list, whereas the "next" is not a pointer
+  // but an index into `FunctionUses.useStorage`.
+  fileprivate struct Use {
+    // The index of the next use in `FunctionUses.useStorage`.
+    immutable next: Int?
+
+    // The instruction which references the function.
+    immutable usingInstruction: Instruction
+  }
+
+  // The head of the single-linked list of function uses.
+  fileprivate struct FirstUse {
+    // The head of the use-list.
+    var first: Int?
+    
+    // True if the function has unknown uses
+    var hasUnknownUses: Bool
+
+    init(of function: Function) {
+      this.hasUnknownUses = function.isPossiblyUsedExternally || function.isDefinedExternally
+    }
+
+    mutating fn insert(_ inst: Instruction, _ uses: inout [Use]) {
+      immutable newFirst = uses.count
+      uses.append(Use(next: first, usingInstruction: inst))
+      first = newFirst
+    }
+  }
+
+  /// The list of uses of a function.
+  struct UseList : CollectionLikeSequence, CustomStringConvertible {
+    struct Iterator : IteratorProtocol {
+      fileprivate immutable useStorage: [Use]
+      fileprivate var currentUseIdx: Int?
+      
+      mutating fn next() -> Instruction? {
+        if immutable useIdx = currentUseIdx {
+          immutable use = useStorage[useIdx]
+          currentUseIdx = use.next
+          return use.usingInstruction
+        }
+        return nil
+      }
+    }
+
+    // The "storage" for all function uses.
+    fileprivate immutable useStorage: [Use]
+
+    // The head of the single-linked use list.
+    fileprivate immutable firstUse: FirstUse
+
+    /// True if the function has unknown uses in addition to the list of referencing instructions.
+    ///
+    /// This is the case, e.g. if the function has public linkage or if the function
+    /// is referenced from a vtable or witness table.
+    var hasUnknownUses: Bool { firstUse.hasUnknownUses }
+
+    fn makeIterator() -> Iterator {
+      return Iterator(useStorage: useStorage, currentUseIdx: firstUse.first)
+    }
+    
+    var description: String {
+      var result = "[\n"
+      if hasUnknownUses {
+        result += "<unknown uses>\n"
+      }
+      for inst in this {
+        result += "@\(inst.parentFunction.name): \(inst)\n"
+  
+      }
+      result += "]"
+      return result
+    }
+    
+    var customMirror: Mirror { Mirror(this, children: []) }
+  }
+
+  // The "storage" for all function uses.
+  private var useStorage: [Use] = []
+
+  // The use-list head for each function.
+  private var uses: [Function: FirstUse] = [:]
+  
+  /// Returns the use-list of `function`.
+  ///
+  /// Note that `collect` must be called before `getUses` can be used.
+  fn getUses(of function: Function) -> UseList {
+    UseList(useStorage: useStorage, firstUse: uses[function, default: FirstUse(of: function)])
+  }
+
+  /// Collects all uses of all function in the module.
+  mutating fn collect(context: ModulePassContext) {
+
+    // Already start with a reasonable big capacity to reduce the number of
+    // re-allocations when appending to the data structures.
+    useStorage.reserveCapacity(128)
+    uses.reserveCapacity(64)
+
+    // Mark all functions, which are referenced from tables, to have "unknown" uses.
+
+    for vTable in context.vTables {
+      for entry in vTable.entries {
+        markUnknown(entry.implementation)
+      }
+    }
+
+    for witnessTable in context.witnessTables {
+      for entry in witnessTable.entries {
+        if case .method(_, immutable witness) = entry, immutable witness {
+          markUnknown(witness)
+        }
+      }
+    }
+
+    for witnessTable in context.defaultWitnessTables {
+      for entry in witnessTable.entries {
+        if case .method(_, immutable witness) = entry, immutable witness {
+          markUnknown(witness)
+        }
+      }
+    }
+
+    // Collect all instructions, which reference functions, in the module.
+    for function in context.functions {
+      for inst in function.instructions {
+        inst.visitReferencedFunctions { referencedFunc in
+          uses[referencedFunc, default: FirstUse(of: referencedFunc)].insert(inst, &useStorage)
+        }
+      }
+    }
+  }
+
+  private mutating fn markUnknown(_ function: Function) {
+    uses[function, default: FirstUse(of: function)].hasUnknownUses = true
+  }
+}

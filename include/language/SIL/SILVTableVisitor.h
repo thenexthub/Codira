@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILVTableVisitor class, which is used to generate and
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILVTABLEVISITOR_H
-#define SWIFT_SIL_SILVTABLEVISITOR_H
+#ifndef LANGUAGE_SIL_SILVTABLEVISITOR_H
+#define LANGUAGE_SIL_SILVTABLEVISITOR_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/Types.h"
@@ -144,7 +145,7 @@ template <class T> class SILVTableVisitor {
 protected:
   void addVTableEntries(ClassDecl *theClass) {
     // Imported classes do not have a vtable.
-    if (!theClass->hasKnownSwiftImplementation())
+    if (!theClass->hasKnownCodiraImplementation())
       return;
 
     for (Decl *member : theClass->getABIMembers()) {

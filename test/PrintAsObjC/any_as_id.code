@@ -1,0 +1,74 @@
+// Please keep this file in alphabetical order!
+
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+
+// FIXME: BEGIN -enable-source-import hackaround
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %S/../Inputs/clang-importer-sdk/language-modules/ObjectiveC.code -disable-objc-attr-requires-foundation-module
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/CoreGraphics.code
+// RUN:  %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t  %S/../Inputs/clang-importer-sdk/language-modules/Foundation.code
+// FIXME: END -enable-source-import hackaround
+
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -emit-module -o %t %s
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/../Inputs/clang-importer-sdk -I %t) -parse-as-library %t/any_as_id.codemodule -typecheck -verify -emit-objc-header-path %t/any_as_id.h
+
+// RUN: %FileCheck %s < %t/any_as_id.h
+
+// RUN: %check-in-clang %t/any_as_id.h
+
+import Foundation
+
+
+// CHECK-LABEL: LANGUAGE_CLASS("_TtC9any_as_id11AnyAsIdTest")
+// CHECK-NEXT:  @interface AnyAsIdTest : NSObject
+class AnyAsIdTest : NSObject {
+
+// CHECK-NEXT:  - (NSArray * _Nonnull)arrayOfAny:(NSArray * _Nonnull)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn arrayOfAny(_ x: [Any]) -> [Any] { return x }
+// CHECK-NEXT:  - (NSArray * _Nullable)arrayOfAnyPerhaps:(NSArray * _Nonnull)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn arrayOfAnyPerhaps(_ x: [Any]) -> [Any]? { return x }
+
+// CHECK-NEXT:  - (NSDictionary * _Nonnull)dictionaryOfAny:(NSDictionary * _Nonnull)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn dictionaryOfAny(_ x: [AnyHashable: Any]) -> [AnyHashable: Any] { return x }
+// CHECK-NEXT:  - (void)dictionaryOfAnyKeys:(NSDictionary<id <NSCopying>, NSString *> * _Nonnull)x;
+  @objc fn dictionaryOfAnyKeys(_ x: [AnyHashable: String]) {}
+// CHECK-NEXT:  - (NSDictionary * _Nullable)dictionaryOfAnyMayhap:(NSDictionary * _Nonnull)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn dictionaryOfAnyMayhap(_ x: [AnyHashable: Any]) -> [AnyHashable: Any]? { return x }
+// CHECK-NEXT:  - (void)dictionaryOfAnyValues:(NSDictionary<NSString *, id> * _Nonnull)x;
+  @objc fn dictionaryOfAnyValues(_ x: [String: Any]) {}
+
+// CHECK-NEXT:  - (id _Nonnull)getAny LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn getAny() -> Any { return 1 as Any }
+// CHECK-NEXT: - (id _Nullable)getAnyConstructively LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn getAnyConstructively() -> Any? { return Optional<Any>(1 as Any) }
+// CHECK-NEXT: - (id _Nullable)getAnyMaybe LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn getAnyMaybe() -> Any? { return nil }
+// CHECK-NEXT: - (id _Nullable)getAnyProbably LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn getAnyProbably() -> Any? { return 1 as Any }
+
+// CHECK-NEXT:  - (id _Nonnull)passThroughAny:(id _Nonnull)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn passThroughAny(_ x: Any) -> Any { return x }
+// CHECK-NEXT: - (id _Nullable)passThroughAnyMaybe:(id _Nullable)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn passThroughAnyMaybe(_ x: Any?) -> Any? { return x }
+
+// CHECK-NEXT: - (void)setOfAny:(NSSet * _Nonnull)x;
+  @objc fn setOfAny(_ x: Set<AnyHashable>) {}
+
+// CHECK-NEXT:  - (void)takesId:(id _Nonnull)x;
+  @objc fn takesId(_ x: Any) {}
+
+// CHECK-NEXT: - (id _Nonnull)unwrapAny:(id _Nullable)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn unwrapAny(_ x : Any?) -> Any { return x! }
+
+// CHECK-NEXT: - (id _Nullable)wrapAny:(id _Nonnull)x LANGUAGE_WARN_UNUSED_RESULT;
+  @objc fn wrapAny(_ x : Any) -> Any? { return x }
+
+// CHECK-NEXT:  - (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+  /* implicit inherited init() */
+
+}
+// CHECK-NEXT:  @end
+
+extension NSArray { @objc fn forceToExist() {} }
+

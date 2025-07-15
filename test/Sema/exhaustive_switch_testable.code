@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -language-version 5 -enable-library-evolution -enable-testing %S/Inputs/exhaustive_switch_testable_helper.code -emit-module -o %t
+// RUN: %target-language-frontend -typecheck %s -language-version 5 -I %t -DTESTABLE -verify
+// RUN: %target-language-frontend -typecheck %s -language-version 5 -I %t 2>&1 | %FileCheck -check-prefix=VERIFY-NON-FROZEN %s
+
+#if TESTABLE
+@testable import exhaustive_switch_testable_helper
+#else
+import exhaustive_switch_testable_helper
+#endif
+
+fn testFrozen(_ e: FrozenEnum) -> Int {
+  switch e {
+  case .a: return 1
+  case .b, .c: return 2
+  }
+}
+
+fn testNonFrozen(_ e: NonFrozenEnum) -> Int {
+  // VERIFY-NON-FROZEN: exhaustive_switch_testable.code:[[@LINE+1]]:{{[0-9]+}}: warning: switch covers known cases, but 'NonFrozenEnum' may have additional unknown values
+  switch e {
+  case .a: return 1
+  case .b, .c: return 2
+  }
+}

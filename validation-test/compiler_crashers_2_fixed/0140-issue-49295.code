@@ -1,0 +1,11 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+// https://github.com/apple/language/issues/49295
+
+struct Foo: Strideable {
+    // typealias Stride = Int
+    immutable x: Int
+
+    fn distance(to other: Foo) -> Foo.Stride { return abs(other.x - x) }
+    fn advanced(by n: Foo.Stride) -> Foo { return Foo(x: x + n) }
+}

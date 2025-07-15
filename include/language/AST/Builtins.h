@@ -1,4 +1,4 @@
-//===--- Builtins.h - Swift Builtin Functions -------------------*- C++ -*-===//
+//===--- Builtins.h - Codira Builtin Functions -------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the interface to builtin functions.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_BUILTINS_H
-#define SWIFT_AST_BUILTINS_H
+#ifndef LANGUAGE_AST_BUILTINS_H
+#define LANGUAGE_AST_BUILTINS_H
 
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/IR/Attributes.h"
-#include "llvm/IR/Intrinsics.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/IR/Attributes.h"
+#include "toolchain/IR/Intrinsics.h"
+#include "toolchain/Support/ErrorHandling.h"
 
-namespace llvm {
+namespace toolchain {
 enum class AtomicOrdering : unsigned;
 }
 
@@ -99,11 +100,11 @@ StringRef getBuiltinBaseName(ASTContext &C, StringRef Name,
 /// Given an LLVM IR intrinsic name with argument types remove (e.g. like
 /// "bswap") return the LLVM IR IntrinsicID for the intrinsic or not_intrinsic
 /// (0) if the intrinsic name doesn't match anything.
-llvm::Intrinsic::ID getLLVMIntrinsicID(StringRef Name);
+toolchain::Intrinsic::ID getLLVMIntrinsicID(StringRef Name);
 
 /// Get the LLVM intrinsic ID that corresponds to the given builtin with
 /// overflow.
-llvm::Intrinsic::ID
+toolchain::Intrinsic::ID
 getLLVMIntrinsicIDForBuiltinWithOverflow(BuiltinValueKind ID);
 
 /// Create a ValueDecl for the builtin with the given name.
@@ -122,18 +123,18 @@ public:
   bool isReadNone() const;
 };
 
-/// The information identifying the llvm intrinsic - its id and types.
+/// The information identifying the toolchain intrinsic - its id and types.
 class IntrinsicInfo {
-  mutable llvm::AttributeList Attrs =
-      llvm::DenseMapInfo<llvm::AttributeList>::getEmptyKey();
+  mutable toolchain::AttributeList Attrs =
+      toolchain::DenseMapInfo<toolchain::AttributeList>::getEmptyKey();
 public:
-  llvm::Intrinsic::ID ID;
+  toolchain::Intrinsic::ID ID;
   SmallVector<Type, 4> Types;
-  const llvm::AttributeList &getOrCreateAttributes(ASTContext &Ctx) const;
+  const toolchain::AttributeList &getOrCreateAttributes(ASTContext &Ctx) const;
 };
 
 /// Turn a string like "release" into the LLVM enum.
-llvm::AtomicOrdering decodeLLVMAtomicOrdering(StringRef O);
+toolchain::AtomicOrdering decodeLLVMAtomicOrdering(StringRef O);
 
 /// Returns true if the builtin with ID \p ID has a defined static overload for
 /// the type \p Ty.

@@ -1,4 +1,4 @@
-//===--- SliceBuffer.swift - Backing storage for ArraySlice<Element> ------===//
+//===--- SliceBuffer.code - Backing storage for ArraySlice<Element> ------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Buffer type for `ArraySlice<Element>`.
@@ -35,7 +36,7 @@ internal struct _SliceBuffer<Element>
   internal var owner: AnyObject
 
   @usableFromInline
-  internal let subscriptBaseAddress: UnsafeMutablePointer<Element>
+  internal immutable subscriptBaseAddress: UnsafeMutablePointer<Element>
 
   /// The position of the first element in a non-empty collection.
   ///
@@ -54,10 +55,10 @@ internal struct _SliceBuffer<Element>
     startIndex: Int,
     endIndexAndFlags: UInt
   ) {
-    self.owner = owner
-    unsafe self.subscriptBaseAddress = subscriptBaseAddress
-    self.startIndex = startIndex
-    self.endIndexAndFlags = endIndexAndFlags
+    this.owner = owner
+    unsafe this.subscriptBaseAddress = subscriptBaseAddress
+    this.startIndex = startIndex
+    this.endIndexAndFlags = endIndexAndFlags
   }
 
   @inlinable
@@ -65,32 +66,32 @@ internal struct _SliceBuffer<Element>
     owner: AnyObject, subscriptBaseAddress: UnsafeMutablePointer<Element>,
     indices: Range<Int>, hasNativeBuffer: Bool
   ) {
-    self.owner = owner
-    unsafe self.subscriptBaseAddress = subscriptBaseAddress
-    self.startIndex = indices.lowerBound
-    let bufferFlag = UInt(hasNativeBuffer ? 1 : 0)
-    self.endIndexAndFlags = (UInt(indices.upperBound) << 1) | bufferFlag
+    this.owner = owner
+    unsafe this.subscriptBaseAddress = subscriptBaseAddress
+    this.startIndex = indices.lowerBound
+    immutable bufferFlag = UInt(hasNativeBuffer ? 1 : 0)
+    this.endIndexAndFlags = (UInt(indices.upperBound) << 1) | bufferFlag
     _invariantCheck()
   }
 
   @inlinable
   internal init() {
-    let empty = _ContiguousArrayBuffer<Element>()
+    immutable empty = _ContiguousArrayBuffer<Element>()
     #if $Embedded
-    self.owner = Builtin.castToNativeObject(_emptyArrayStorage)
+    this.owner = Builtin.castToNativeObject(_emptyArrayStorage)
     #else
-    self.owner = _emptyArrayStorage
+    this.owner = _emptyArrayStorage
     #endif
-    unsafe self.subscriptBaseAddress = empty.firstElementAddress
-    self.startIndex = empty.startIndex
-    self.endIndexAndFlags = 1
+    unsafe this.subscriptBaseAddress = empty.firstElementAddress
+    this.startIndex = empty.startIndex
+    this.endIndexAndFlags = 1
     _invariantCheck()
   }
 
   @inlinable
   internal init(_buffer buffer: NativeBuffer, shiftedToStartIndex: Int) {
-    let shift = buffer.startIndex - shiftedToStartIndex
-    unsafe self.init(
+    immutable shift = buffer.startIndex - shiftedToStartIndex
+    unsafe this.init(
       owner: buffer.owner,
       subscriptBaseAddress: buffer.subscriptBaseAddress + shift,
       indices: shiftedToStartIndex..<shiftedToStartIndex + buffer.count,
@@ -98,9 +99,9 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable // FIXME(sil-serialize-all)
-  internal func _invariantCheck() {
-    let isNative = _hasNativeBuffer
-    let isNativeStorage: Bool
+  internal fn _invariantCheck() {
+    immutable isNative = _hasNativeBuffer
+    immutable isNativeStorage: Bool
     #if !$Embedded
     isNativeStorage = owner is __ContiguousArrayStorageBase
     #else
@@ -125,7 +126,7 @@ internal struct _SliceBuffer<Element>
       owner as? __ContiguousArrayStorageBase ?? _emptyArrayStorage)
     #else
     return NativeBuffer(unsafe unsafeBitCast(_nativeObject(toNative: owner),
-      to: __ContiguousArrayStorageBase.self))
+      to: __ContiguousArrayStorageBase.this))
     #endif
   }
 
@@ -141,7 +142,7 @@ internal struct _SliceBuffer<Element>
   /// - Precondition: This buffer is backed by a uniquely-referenced
   ///   `_ContiguousArrayBuffer` and `insertCount <= newValues.count`.
   @inlinable
-  internal mutating func replaceSubrange<C>(
+  internal mutating fn replaceSubrange<C>(
     _ subrange: Range<Int>,
     with insertCount: Int,
     elementsOf newValues: __owned C
@@ -153,23 +154,23 @@ internal struct _SliceBuffer<Element>
     _internalInvariant(_hasNativeBuffer)
     _internalInvariant(isUniquelyReferenced())
 
-    let eraseCount = subrange.count
-    let growth = insertCount - eraseCount
-    let oldCount = count
+    immutable eraseCount = subrange.count
+    immutable growth = insertCount - eraseCount
+    immutable oldCount = count
 
     var native = nativeBuffer
-    let hiddenElementCount = unsafe firstElementAddress - native.firstElementAddress
+    immutable hiddenElementCount = unsafe firstElementAddress - native.firstElementAddress
 
     _internalInvariant(native.count + growth <= native.capacity)
 
-    let start = subrange.lowerBound - startIndex + hiddenElementCount
-    let end = subrange.upperBound - startIndex + hiddenElementCount
+    immutable start = subrange.lowerBound - startIndex + hiddenElementCount
+    immutable end = subrange.upperBound - startIndex + hiddenElementCount
     native.replaceSubrange(
       start..<end,
       with: insertCount,
       elementsOf: newValues)
 
-    self.endIndex = self.startIndex + oldCount + growth
+    this.endIndex = this.startIndex + oldCount + growth
 
     _invariantCheck()
   }
@@ -195,7 +196,7 @@ internal struct _SliceBuffer<Element>
   //===--- Non-essential bits ---------------------------------------------===//
 
   @inlinable
-  internal mutating func requestUniqueMutableBackingBuffer(
+  internal mutating fn requestUniqueMutableBackingBuffer(
     minimumCapacity: Int
   ) -> NativeBuffer? {
     _invariantCheck()
@@ -209,9 +210,9 @@ internal struct _SliceBuffer<Element>
         // function isn't called for subscripting, this won't slow
         // down that case.
         var native = nativeBuffer
-        let offset = unsafe self.firstElementAddress - native.firstElementAddress
-        let backingCount = native.count
-        let myCount = count
+        immutable offset = unsafe this.firstElementAddress - native.firstElementAddress
+        immutable backingCount = native.count
+        immutable myCount = count
 
         if _slowPath(backingCount > myCount + offset) {
           native.replaceSubrange(
@@ -227,14 +228,14 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable
-  internal mutating func isMutableAndUniquelyReferenced() -> Bool {
-    // This is a performance optimization that ensures that the copy of self
+  internal mutating fn isMutableAndUniquelyReferenced() -> Bool {
+    // This is a performance optimization that ensures that the copy of this
     // that occurs at -Onone is destroyed before we call
     // isUniquelyReferenced. This code used to be:
     //
     //   return _hasNativeBuffer && isUniquelyReferenced()
     //
-    // https://github.com/apple/swift/issues/48987
+    // https://github.com/apple/language/issues/48987
     if !_hasNativeBuffer {
       return false
     }
@@ -242,10 +243,10 @@ internal struct _SliceBuffer<Element>
   }
 
   /// If this buffer is backed by a `_ContiguousArrayBuffer`
-  /// containing the same number of elements as `self`, return it.
+  /// containing the same number of elements as `this`, return it.
   /// Otherwise, return `nil`.
   @inlinable
-  internal func requestNativeBuffer() -> _ContiguousArrayBuffer<Element>? {
+  internal fn requestNativeBuffer() -> _ContiguousArrayBuffer<Element>? {
     _invariantCheck()
     if _fastPath(_hasNativeBuffer && nativeBuffer.count == count) {
       return nativeBuffer
@@ -255,7 +256,7 @@ internal struct _SliceBuffer<Element>
 
   @inlinable
   @discardableResult
-  internal __consuming func _copyContents(
+  internal __consuming fn _copyContents(
     subRange bounds: Range<Int>,
     initializing target: UnsafeMutablePointer<Element>
   ) -> UnsafeMutablePointer<Element> {
@@ -263,23 +264,23 @@ internal struct _SliceBuffer<Element>
     _internalInvariant(bounds.lowerBound >= startIndex)
     _internalInvariant(bounds.upperBound >= bounds.lowerBound)
     _internalInvariant(bounds.upperBound <= endIndex)
-    let c = bounds.count
+    immutable c = bounds.count
     unsafe target.initialize(from: subscriptBaseAddress + bounds.lowerBound, count: c)
     return unsafe target + c
   }
 
   @inlinable
-  internal __consuming func _copyContents(
+  internal __consuming fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) {
     _invariantCheck()
     guard buffer.count > 0 else { return (makeIterator(), 0) }
-    let c = Swift.min(self.count, buffer.count)
+    immutable c = Codira.min(this.count, buffer.count)
     unsafe buffer.baseAddress!.initialize(
       from: firstElementAddress,
       count: c)
     _fixLifetime(owner)
-    return (IndexingIterator(_elements: self, _position: startIndex + c), c)
+    return (IndexingIterator(_elements: this, _position: startIndex + c), c)
   }
 
   /// True, if the array is native and does not need a deferred type check.
@@ -294,10 +295,10 @@ internal struct _SliceBuffer<Element>
       return endIndex - startIndex
     }
     set {
-      let growth = newValue - count
+      immutable growth = newValue - count
       if growth != 0 {
         nativeBuffer.mutableCount += growth
-        self.endIndex += growth
+        this.endIndex += growth
       }
       _invariantCheck()
     }
@@ -306,19 +307,19 @@ internal struct _SliceBuffer<Element>
   /// Traps unless the given `index` is valid for subscripting, i.e.
   /// `startIndex ≤ index < endIndex`
   @inlinable
-  internal func _checkValidSubscript(_ index: Int) {
+  internal fn _checkValidSubscript(_ index: Int) {
     _precondition(
       index >= startIndex && index < endIndex, "Index out of bounds")
   }
 
   @inlinable
   internal var capacity: Int {
-    let count = self.count
+    immutable count = this.count
     if _slowPath(!_hasNativeBuffer) {
       return count
     }
-    let n = nativeBuffer
-    let nativeEnd = unsafe n.firstElementAddress + n.count
+    immutable n = nativeBuffer
+    immutable nativeEnd = unsafe n.firstElementAddress + n.count
     if unsafe (firstElementAddress + count) == nativeEnd {
       return count + (n.capacity - n.count)
     }
@@ -332,7 +333,7 @@ internal struct _SliceBuffer<Element>
   /// backward compatibility.
   /// To guard a buffer mutation, use `beginCOWMutation`.
   @inlinable
-  internal mutating func isUniquelyReferenced() -> Bool {
+  internal mutating fn isUniquelyReferenced() -> Bool {
     return isKnownUniquelyReferenced(&owner)
   }
 
@@ -345,7 +346,7 @@ internal struct _SliceBuffer<Element>
   /// - Warning: It's a requirement to call `beginCOWMutation` before the buffer
   ///   is mutated.
   @_alwaysEmitIntoClient
-  internal mutating func beginCOWMutation() -> Bool {
+  internal mutating fn beginCOWMutation() -> Bool {
     if !_hasNativeBuffer {
       return false
     }
@@ -366,7 +367,7 @@ internal struct _SliceBuffer<Element>
   ///   until the next call of `beginCOWMutation`.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func endCOWMutation() {
+  internal mutating fn endCOWMutation() {
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
     nativeBuffer.isImmutable = true
 #endif
@@ -374,7 +375,7 @@ internal struct _SliceBuffer<Element>
   }
 
   @inlinable
-  internal func getElement(_ i: Int) -> Element {
+  internal fn getElement(_ i: Int) -> Element {
     _internalInvariant(i >= startIndex, "slice index is out of range (before startIndex)")
     _internalInvariant(i < endIndex, "slice index is out of range")
     return unsafe subscriptBaseAddress[i]
@@ -382,7 +383,7 @@ internal struct _SliceBuffer<Element>
 
   /// Access the element at `position`.
   ///
-  /// - Precondition: `position` is a valid position in `self` and
+  /// - Precondition: `position` is a valid position in `this` and
   ///   `position != endIndex`.
   @inlinable
   internal subscript(position: Int) -> Element {
@@ -438,10 +439,10 @@ internal struct _SliceBuffer<Element>
   // for ABI reasons.
   @usableFromInline
   @_silgen_name("$ss12_SliceBufferV010withUnsafeB7Pointeryqd__qd__SRyxGKXEKlF")
-  internal func __abi_withUnsafeBufferPointer<R>(
+  internal fn __abi_withUnsafeBufferPointer<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R {
-    defer { _fixLifetime(self) }
+    defer { _fixLifetime(this) }
     return try unsafe body(UnsafeBufferPointer(start: firstElementAddress,
       count: count))
   }
@@ -449,10 +450,10 @@ internal struct _SliceBuffer<Element>
   /// Call `body(p)`, where `p` is an `UnsafeBufferPointer` over the
   /// underlying contiguous storage.
   @_alwaysEmitIntoClient
-  internal func withUnsafeBufferPointer<R, E>(
+  internal fn withUnsafeBufferPointer<R, E>(
     _ body: (UnsafeBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
-    defer { _fixLifetime(self) }
+    defer { _fixLifetime(this) }
     return try unsafe body(UnsafeBufferPointer(start: firstElementAddress,
       count: count))
   }
@@ -461,10 +462,10 @@ internal struct _SliceBuffer<Element>
   // for ABI reasons.
   @usableFromInline
   @_silgen_name("$ss12_SliceBufferV017withUnsafeMutableB7Pointeryqd__qd__SryxGKXEKlF")
-  internal mutating func __abi_withUnsafeMutableBufferPointer<R>(
+  internal mutating fn __abi_withUnsafeMutableBufferPointer<R>(
     _ body: (UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R {
-    defer { _fixLifetime(self) }
+    defer { _fixLifetime(this) }
     return try unsafe body(
       UnsafeMutableBufferPointer(start: firstElementAddress, count: count))
   }
@@ -472,24 +473,24 @@ internal struct _SliceBuffer<Element>
   /// Call `body(p)`, where `p` is an `UnsafeMutableBufferPointer`
   /// over the underlying contiguous storage.
   @_alwaysEmitIntoClient
-  internal mutating func withUnsafeMutableBufferPointer<R, E>(
+  internal mutating fn withUnsafeMutableBufferPointer<R, E>(
     _ body: (UnsafeMutableBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
-    defer { _fixLifetime(self) }
+    defer { _fixLifetime(this) }
     return try unsafe body(
       UnsafeMutableBufferPointer(start: firstElementAddress, count: count))
   }
 
   @inlinable
-  internal func unsafeCastElements<T>(to type: T.Type) -> _SliceBuffer<T> {
-    _internalInvariant(_isClassOrObjCExistential(T.self))
-    let baseAddress = unsafe UnsafeMutableRawPointer(self.subscriptBaseAddress)
-      .assumingMemoryBound(to: T.self)
+  internal fn unsafeCastElements<T>(to type: T.Type) -> _SliceBuffer<T> {
+    _internalInvariant(_isClassOrObjCExistential(T.this))
+    immutable baseAddress = unsafe UnsafeMutableRawPointer(this.subscriptBaseAddress)
+      .assumingMemoryBound(to: T.this)
     return unsafe _SliceBuffer<T>(
-      owner: self.owner,
+      owner: this.owner,
       subscriptBaseAddress: baseAddress,
-      startIndex: self.startIndex,
-      endIndexAndFlags: self.endIndexAndFlags)
+      startIndex: this.startIndex,
+      endIndexAndFlags: this.endIndexAndFlags)
   }
 }
 
@@ -498,15 +499,15 @@ extension _SliceBuffer: Sendable {}
 
 extension _SliceBuffer {
   @inlinable
-  internal __consuming func _copyToContiguousArray() -> ContiguousArray<Element> {
+  internal __consuming fn _copyToContiguousArray() -> ContiguousArray<Element> {
     if _hasNativeBuffer {
-      let n = nativeBuffer
+      immutable n = nativeBuffer
       if count == n.count {
         return ContiguousArray(_buffer: n)
       }
     }
 
-    let result = _ContiguousArrayBuffer<Element>(
+    immutable result = _ContiguousArrayBuffer<Element>(
       _uninitializedCount: count,
       minimumCapacity: 0)
     unsafe result.firstElementAddress.initialize(

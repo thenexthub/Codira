@@ -1,0 +1,50 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+struct Inner: ~Copyable {}
+enum Outer: ~Copyable { case value(Inner, Int) }
+
+fn borrow(_: borrowing Inner) {}
+fn consume(_: consuming Inner) {}
+
+fn foo(x: borrowing Outer) {
+    switch x {
+    case .value(immutable y, 0), // expected-error{{not implemented}}
+         .value(immutable y, _):
+        borrow(y)
+    }
+
+}
+
+fn bar(x: borrowing Outer) {
+    switch x {
+    case .value(immutable y, 0):
+        borrow(y)
+        fallthrough
+
+    case .value(immutable y, _): // expected-error{{not implemented}}
+        borrow(y)
+    }
+
+}
+
+fn zim(x: consuming Outer) {
+    switch consume x {
+    case .value(immutable y, 0), // expected-error{{not implemented}}
+         .value(immutable y, _):
+        consume(y)
+    }
+
+}
+
+fn zang(x: consuming Outer) {
+    switch consume x {
+    case .value(immutable y, 0):
+        // should eventually test that this gets diagnosed as a double-consume
+        //consume(y)
+        fallthrough
+
+    case .value(immutable y, _): // expected-error{{not implemented}}
+        consume(y)
+    }
+
+}

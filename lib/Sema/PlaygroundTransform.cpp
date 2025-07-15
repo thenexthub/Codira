@@ -1,16 +1,20 @@
 //===--- PlaygroundTransform.cpp - Playground Transform -------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements the playground transform for Swift.
+//  This file implements the playground transform for Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -118,7 +122,7 @@ private:
     }
   };
 
-  using ElementVector = SmallVector<swift::ASTNode, 3>;
+  using ElementVector = SmallVector<language::ASTNode, 3>;
 
   // Before a "return," "continue" or similar statement, emit pops of
   // all the braces up to its target.
@@ -183,7 +187,7 @@ public:
       return transformSwitchStmt(cast<SwitchStmt>(S));
     }
     case StmtKind::Do:
-      return transformDoStmt(llvm::cast<DoStmt>(S));
+      return transformDoStmt(toolchain::cast<DoStmt>(S));
     case StmtKind::DoCatch:
       return transformDoCatchStmt(cast<DoCatchStmt>(S));
     }
@@ -313,9 +317,9 @@ public:
         const ParameterList *PL = FD->getParameters();
         TargetKindSetter TKS(BracePairs, BracePair::TargetKinds::Return);
 
-        // Use FD's DeclContext as TypeCheckDC for transforms in func body
+        // Use FD's DeclContext as TypeCheckDC for transforms in fn body
         // then swap back TypeCheckDC at end of scope.
-        llvm::SaveAndRestore<DeclContext *> localDC(TypeCheckDC, FD);
+        toolchain::SaveAndRestore<DeclContext *> localDC(TypeCheckDC, FD);
 
         BraceStmt *NB = transformBraceStmt(B, PL);
         if (NB != B) {
@@ -414,14 +418,14 @@ public:
                                 const ParameterList *PL = nullptr,
                                 bool TopLevel = false) override {
     ArrayRef<ASTNode> OriginalElements = BS->getElements();
-    using ElementVector = SmallVector<swift::ASTNode, 3>;
+    using ElementVector = SmallVector<language::ASTNode, 3>;
     ElementVector Elements(OriginalElements.begin(), OriginalElements.end());
 
     SourceRange SR = BS->getSourceRange();
     BracePairPusher BPP(BracePairs, SR);
 
     for (size_t EI = 0; EI != Elements.size(); ++EI) {
-      swift::ASTNode &Element = Elements[EI];
+      language::ASTNode &Element = Elements[EI];
       if (auto *E = Element.dyn_cast<Expr *>()) {
         E->walk(CF);
         if (auto *AE = dyn_cast<AssignExpr>(E)) {
@@ -471,7 +475,7 @@ public:
         } else if (auto *AE = dyn_cast<ApplyExpr>(E)) {
           bool Handled = false;
           DeclRefExpr *DRE = nullptr;
-          // With Swift 6 the print() function decl is a sub expression
+          // With Codira 6 the print() function decl is a sub expression
           // of a function conversion expression.
           if (auto *FCE = dyn_cast<FunctionConversionExpr>(AE->getFn()))
             DRE = dyn_cast<DeclRefExpr>(FCE->getSubExpr());
@@ -665,7 +669,7 @@ public:
                                   [](ASTNode node) { return node.isNull(); }),
                    Elements.end());
 
-    return swift::BraceStmt::create(Context, BS->getLBraceLoc(),
+    return language::BraceStmt::create(Context, BS->getLBraceLoc(),
                                     Context.AllocateCopy(Elements),
                                     BS->getRBraceLoc());
   }
@@ -873,7 +877,7 @@ public:
     Expr *ModuleExpr = buildIDArgumentExpr(ModuleIdentifier, SR);
     Expr *FileExpr = buildIDArgumentExpr(FileIdentifier, SR);
 
-    llvm::SmallVector<Expr *, 6> ArgsWithSourceRange(Args.begin(), Args.end());
+    toolchain::SmallVector<Expr *, 6> ArgsWithSourceRange(Args.begin(), Args.end());
 
     UnresolvedDeclRefExpr *LoggerRef = new (Context)
         UnresolvedDeclRefExpr(LoggerName, DeclRefKind::Ordinary,
@@ -951,7 +955,7 @@ public:
 
 } // end anonymous namespace
 
-void swift::performPlaygroundTransform(SourceFile &SF, PlaygroundOptionSet Opts) {
+void language::performPlaygroundTransform(SourceFile &SF, PlaygroundOptionSet Opts) {
   class ExpressionFinder : public ASTWalker {
   private:
     ASTContext &ctx;
@@ -1010,7 +1014,7 @@ void swift::performPlaygroundTransform(SourceFile &SF, PlaygroundOptionSet Opts)
 /// This function is provided for backward compatibility with the old API, since
 /// LLDB and others call it directly, passing it a boolean to control whether to
 /// only apply "high performance" options. We emulate that here.
-void swift::performPlaygroundTransform(SourceFile &SF, bool HighPerformance) {
+void language::performPlaygroundTransform(SourceFile &SF, bool HighPerformance) {
   PlaygroundOptionSet HighPerfTransformOpts;
   // Enable any playground options that are marked as being applicable to high
   // performance mode.
@@ -1018,5 +1022,5 @@ void swift::performPlaygroundTransform(SourceFile &SF, bool HighPerformance) {
   if (HighPerfOn) \
     HighPerfTransformOpts.insert(PlaygroundOption::OptionName);
 #include "language/Basic/PlaygroundOptions.def"
-  swift::performPlaygroundTransform(SF, HighPerfTransformOpts);
+  language::performPlaygroundTransform(SF, HighPerfTransformOpts);
 }

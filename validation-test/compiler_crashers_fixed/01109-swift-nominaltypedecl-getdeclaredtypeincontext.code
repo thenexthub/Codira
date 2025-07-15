@@ -1,0 +1,55 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+struct e : d {
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+}
+struct c<h : b> : b {
+}
+fn a(b: Int = 0) {
+}
+immutable c = a
+fn a<T>() {
+enum b {
+}
+}
+struct A<T> {
+}
+fn d<b: Sequence, e where Optional<e> == b.Iterator.Element>(c : b) -> e? {
+for (mx : e?) in c {
+}
+}
+struct d<f : e, g: e where g.h == f.h> {
+}
+protocol e {
+}
+protocol a : a {
+}
+class A : A {
+}
+class B : C {
+}
+protocol A {
+}
+struct B<T : A> {
+}
+protocol C {
+}
+struct D : C {
+fn g<T where T.E == F>(f: B<T>) {
+}
+}
+protocol a {
+}
+class b<h : c, i : c where h.g == i> : a

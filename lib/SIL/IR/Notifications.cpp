@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-notifications"
@@ -18,8 +19,8 @@
 #include "language/SIL/Notifications.h"
 #include "language/SIL/SILDefaultOverrideTable.h"
 #include "language/SIL/SILMoveOnlyDeinit.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -34,16 +35,16 @@ using namespace language;
 #define DNS_CHAIN_METHOD(Name, FirstTy, SecondTy)                              \
   void DeserializationNotificationHandlerSet::did##Name(FirstTy first,         \
                                                         SecondTy second) {     \
-    LLVM_DEBUG(llvm::dbgs()                                                    \
+    TOOLCHAIN_DEBUG(toolchain::dbgs()                                                    \
                << "*** Deserialization Notification: " << #Name << " ***\n");  \
     for (auto *p : getRange()) {                                               \
-      LLVM_DEBUG(llvm::dbgs()                                                  \
+      TOOLCHAIN_DEBUG(toolchain::dbgs()                                                  \
                  << "    Begin Notifying: " << p->getName() << "\n");          \
       p->did##Name(first, second);                                             \
-      LLVM_DEBUG(llvm::dbgs()                                                  \
+      TOOLCHAIN_DEBUG(toolchain::dbgs()                                                  \
                  << "    End Notifying: " << p->getName() << "\n");            \
     }                                                                          \
-    LLVM_DEBUG(llvm::dbgs()                                                    \
+    TOOLCHAIN_DEBUG(toolchain::dbgs()                                                    \
                << "*** Completed Deserialization Notifications for " #Name     \
                   "\n");                                                       \
   }

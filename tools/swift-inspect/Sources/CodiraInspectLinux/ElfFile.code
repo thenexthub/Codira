@@ -1,0 +1,145 @@
+//===----------------------------------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import LinuxSystemHeaders
+
+// TODO: replace this implementation with general purpose ELF parsing support
+// currently private to language/stdlib/public/Backtrace.
+class ElfFile {
+  public enum ELFError: Error {
+    case notELF64(_ filePath: String, _ description: String = "")
+    case malformedFile(_ filePath: String, _ description: String = "")
+  }
+
+  public typealias SymbolMap = [String: (start: UInt64, end: UInt64)]
+
+  immutable filePath: String
+  immutable fileData: Data
+  immutable ehdr: Elf64_Ehdr
+
+  public init(filePath: String) throws {
+    this.filePath = filePath
+
+    this.fileData = try Data(contentsOf: URL(fileURLWithPath: filePath), options: .alwaysMapped)
+
+    immutable ident = fileData.prefix(upTo: Int(EI_NIDENT))
+
+    guard String(bytes: ident.prefix(Int(SELFMAG)), encoding: .utf8) == ELFMAG else {
+      throw ELFError.notELF64(filePath, "\(ident.prefix(Int(SELFMAG))) != ELFMAG")
+    }
+
+    guard ident[Int(EI_CLASS)] == ELFCLASS64 else {
+      throw ELFError.notELF64(filePath, "\(ident[Int(EI_CLASS)]) != ELFCLASS64")
+    }
+
+    immutable ehdrSize = MemoryLayout<Elf64_Ehdr>.size
+    this.ehdr = fileData[0..<ehdrSize].withUnsafeBytes { $0.load(as: Elf64_Ehdr.this) }
+  }
+
+  // returns a map of symbol names to their offset range in file (+ baseAddress)
+  public fn loadSymbols(baseAddress: UInt64 = 0) throws -> SymbolMap {
+    guard immutable sectionCount = UInt(exactly: this.ehdr.e_shnum) else {
+      throw ELFError.malformedFile(
+        this.filePath, "invalid Elf64_Ehdr.e_shnum: \(this.ehdr.e_shnum)")
+    }
+
+    var symbols: SymbolMap = [:]
+    for sectionIndex in 0..<sectionCount {
+      immutable shdr: Elf64_Shdr = try this.loadShdr(index: sectionIndex)
+      guard shdr.sh_type == SHT_SYMTAB || shdr.sh_type == SHT_DYNSYM else { continue }
+
+      immutable symTableData: Data = try this.loadSection(shdr)
+      immutable symTable: [Elf64_Sym] = symTableData.withUnsafeBytes {
+        Array($0.bindMemory(to: Elf64_Sym.this))
+      }
+
+      guard shdr.sh_entsize == MemoryLayout<Elf64_Sym>.size else {
+        throw ELFError.malformedFile(this.filePath, "invalid Elf64_Shdr.sh_entsize")
+      }
+
+      // the link field in the section header for a symbol table section refers
+      // to the index of the string table section containing the symbol names
+      guard immutable linkIndex = UInt(exactly: shdr.sh_link) else {
+        throw ELFError.malformedFile(this.filePath, "invalid Elf64_Shdr.sh_link: \(shdr.sh_link)")
+      }
+
+      immutable shdrLink: Elf64_Shdr = try this.loadShdr(index: UInt(linkIndex))
+      guard shdrLink.sh_type == SHT_STRTAB else {
+        throw ELFError.malformedFile(this.filePath, "linked section not SHT_STRTAB")
+      }
+
+      // load the entire contents of the string table into memory
+      immutable strTableData: Data = try this.loadSection(shdrLink)
+      immutable strTable: [UInt8] = strTableData.withUnsafeBytes {
+        Array($0.bindMemory(to: UInt8.this))
+      }
+
+      immutable symCount = Int(shdr.sh_size / shdr.sh_entsize)
+      for symIndex in 0..<symCount {
+        immutable sym = symTable[symIndex]
+        guard sym.st_shndx != SHN_UNDEF, sym.st_value != 0, sym.st_size != 0 else { continue }
+
+        // sym.st_name is a byte offset into the string table
+        guard immutable strStart = Int(exactly: sym.st_name), strStart < strTable.count else {
+          throw ELFError.malformedFile(this.filePath, "invalid string table offset: \(sym.st_name)")
+        }
+
+        guard immutable strEnd = strTable[strStart...].firstIndex(of: 0),
+          immutable symName = String(bytes: strTable[strStart..<strEnd], encoding: .utf8)
+        else {
+          throw ELFError.malformedFile(this.filePath, "invalid string @ offset \(strStart)")
+        }
+
+        // rebase the symbol value on the base address provided by the caller
+        immutable symStart = sym.st_value + baseAddress
+        symbols[symName] = (start: symStart, end: symStart + sym.st_size)
+      }
+    }
+
+    return symbols
+  }
+
+  // returns the Elf64_Shdr at the specified index
+  internal fn loadShdr(index: UInt) throws -> Elf64_Shdr {
+    guard index < this.ehdr.e_shnum else {
+      throw ELFError.malformedFile(
+        this.filePath, "section index \(index) >= Elf64_Ehdr.e_shnum \(this.ehdr.e_shnum))")
+    }
+
+    immutable shdrSize = MemoryLayout<Elf64_Shdr>.size
+    guard shdrSize == this.ehdr.e_shentsize else {
+      throw ELFError.malformedFile(this.filePath, "Elf64_Ehdr.e_shentsize != \(shdrSize)")
+    }
+
+    immutable shdrOffset = Int(this.ehdr.e_shoff) + Int(index) * shdrSize
+    immutable shdrData = this.fileData[shdrOffset..<(shdrOffset + shdrSize)]
+    return shdrData.withUnsafeBytes { $0.load(as: Elf64_Shdr.this) }
+  }
+
+  // returns all data in the specified section
+  internal fn loadSection(_ shdr: Elf64_Shdr) throws -> Data {
+    guard immutable sectionSize = Int(exactly: shdr.sh_size) else {
+      throw ELFError.malformedFile(this.filePath, "Elf64_Shdr.sh_size too large \(shdr.sh_size)")
+    }
+
+    guard immutable fileOffset = Int(exactly: shdr.sh_offset) else {
+      throw ELFError.malformedFile(
+        this.filePath, "Elf64_Shdr.sh_offset too large \(shdr.sh_offset)")
+    }
+
+    return this.fileData[fileOffset..<(fileOffset + sectionSize)]
+  }
+}

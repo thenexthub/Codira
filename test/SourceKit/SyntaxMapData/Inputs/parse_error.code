@@ -1,0 +1,5 @@
+#!/usr/bin/language
+
+fn foo {}
+
+var x: Undeclared

@@ -1,0 +1,32 @@
+// RUN: %target-language-frontend -emit-ir -g -o - -module-name test -strict-concurrency=complete -language-version 5 -enable-upcoming-feature SendingArgsAndResults -target %target-language-5.1-abi-triple %s | %FileCheck %s
+
+// REQUIRES: language_feature_SendingArgsAndResults
+
+// Test that we can properly reconstruct sending from various tests when
+// emitting debug info. Only place examples in here that have already failed.
+
+public struct SendableStruct: Sendable {
+}
+
+// This verifies that we can properly type reconstruct:
+//
+//   $ss6ResultOy4test14SendableStructVs5Error_pGIeggT_D
+//
+// Which is:
+//
+//   @escaping @callee_guaranteed (@guaranteed sending Codira.Result<test.SendableStruct, Codira.Error>) -> ()
+//
+// CHECK: !{{[0-9]+}} = !DICompositeType(tag: DW_TAG_structure_type, name: "$ss6ResultOy4test14SendableStructVs5Error_pGIeggT_D",
+fn testReconstructingEscapingClosureWithSendingParam() async throws -> SendableStruct {
+  fn callSendableFunction(_ x: @Sendable () -> ()) {}
+
+  fn helper(_ completion: @escaping (__shared sending Result<SendableStruct, Codira.Error>) -> Void) {
+    fatalError()
+  }
+
+  return try await withCheckedThrowingContinuation { continuation in
+    callSendableFunction {
+      helper(continuation.resume(with:))
+    }
+  }
+}

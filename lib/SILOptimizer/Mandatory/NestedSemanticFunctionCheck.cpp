@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This pass raises a diagnostic error if any semantic functions in the current
@@ -19,16 +20,16 @@
 /// semantic and non-semantic call frames may not be interleaved.
 ///
 /// @_semantics(...)
-/// func funcA() {
+/// fn funcA() {
 ///   funcB()
 /// }
 /// // Error: funcB is called by a semantic function and calls
 /// // a semantic function.
-/// func funcB() {
+/// fn funcB() {
 ///   funcC()
 /// }
 /// @_semantics(...)
-/// func funcC() {}
+/// fn funcC() {}
 ///
 /// For the pass pipeline to function well, @_semantic calls need to be
 /// processed top-down, while inlining proceeds bottom-up. With proper nesting,
@@ -62,10 +63,10 @@ class NestedSemanticFunctionCheck : public SILFunctionTransform {
   // This could be a very large set. It is built gradually during bottom-up
   // function transforms, then deleted once all functions are processed before
   // executing the next pass pipeline.
-  llvm::SmallPtrSet<SILFunction *, 8> mayCallSemanticFunctions;
+  toolchain::SmallPtrSet<SILFunction *, 8> mayCallSemanticFunctions;
 
   // Mark semantic functions and wrappers around semantic calls.
-  llvm::SmallPtrSet<SILFunction *, 8> semanticFunctions;
+  toolchain::SmallPtrSet<SILFunction *, 8> semanticFunctions;
 
 public:
   void run() override;
@@ -140,6 +141,6 @@ void NestedSemanticFunctionCheck::run() {
   }
 }
 
-SILTransform *swift::createNestedSemanticFunctionCheck() {
+SILTransform *language::createNestedSemanticFunctionCheck() {
   return new NestedSemanticFunctionCheck();
 }

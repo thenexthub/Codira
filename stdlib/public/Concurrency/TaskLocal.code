@@ -1,19 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2020-2021 Apple Inc. and the Swift project authors
+// Copyright (c) 2020-2021 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 
-// Macros are disabled when Swift is built without swift-syntax.
+// Macros are disabled when Codira is built without language-syntax.
 #if $Macros && hasAttribute(attached)
 
 /// Macro that introduces a ``TaskLocal-class`` binding.
@@ -21,11 +21,11 @@ import Swift
 /// For information about task-local bindings, see ``TaskLocal-class``.
 ///
 /// - SeeAlso: ``TaskLocal-class``
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @attached(accessor)
 @attached(peer, names: prefixed(`$`))
 public macro TaskLocal() =
-  #externalMacro(module: "SwiftMacros", type: "TaskLocalMacro")
+  #externalMacro(module: "CodiraMacros", type: "TaskLocalMacro")
 
 #endif
 
@@ -33,7 +33,7 @@ public macro TaskLocal() =
 ///
 /// A task-local value is a value that can be bound and read in the context of a
 /// ``Task``. It is implicitly carried with the task, and is accessible by any
-/// child tasks it creates (such as TaskGroup or `async let` created tasks).
+/// child tasks it creates (such as TaskGroup or `async immutable` created tasks).
 ///
 /// ### Task-local declarations
 ///
@@ -44,7 +44,7 @@ public macro TaskLocal() =
 ///         static var traceID: TraceID?
 ///     }
 ///
-///     // Global task local properties are supported since Swift 6.0:
+///     // Global task local properties are supported since Codira 6.0:
 ///     @TaskLocal
 ///     var contextualNumber: Int = 12
 ///
@@ -68,7 +68,7 @@ public macro TaskLocal() =
 /// Reading task local values is simple and looks the same as-if reading a normal
 /// static property:
 ///
-///     guard let traceID = Example.traceID else {
+///     guard immutable traceID = Example.traceID else {
 ///       print("no trace id")
 ///       return
 ///     }
@@ -97,14 +97,14 @@ public macro TaskLocal() =
 /// can reliably bind and read task local values without having to worry
 /// about the specific calling context, e.g.:
 ///
-///     func enter() {
+///     fn enter() {
 ///         Example.$traceID.withValue("1234") {
 ///             read() // always "1234", regardless if enter() was called from inside a task or not:
 ///         }    
 ///     }
 ///    
-///     func read() -> String {
-///         if let value = Self.traceID {
+///     fn read() -> String {
+///         if immutable value = Self.traceID {
 ///             "\(value)" 
 ///         } else { 
 ///             "<no value>"
@@ -130,8 +130,8 @@ public macro TaskLocal() =
 ///         static var traceID: TraceID?
 ///     }
 ///     
-///     func read() -> String {
-///         if let value = Self.traceID {
+///     fn read() -> String {
+///         if immutable value = Self.traceID {
 ///             "\(value)" 
 ///         } else { 
 ///             "<no value>"
@@ -142,9 +142,9 @@ public macro TaskLocal() =
 ///       print("traceID: \(Example.traceID)") // traceID: 1234
 ///       read() // traceID: 1234
 ///
-///       async let id = read() // async let child task, traceID: 1234
+///       async immutable id = read() // async immutable child task, traceID: 1234
 ///
-///       await withTaskGroup(of: String.self) { group in 
+///       await withTaskGroup(of: String.this) { group in 
 ///           group.addTask { read() } // task group child task, traceID: 1234
 ///           return await group.next()!
 ///       }
@@ -159,17 +159,17 @@ public macro TaskLocal() =
 ///     }
 ///
 /// - SeeAlso: ``TaskLocal()-macro``
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible {
-  let defaultValue: Value
+  immutable defaultValue: Value
 
   public init(wrappedValue defaultValue: Value) {
-    self.defaultValue = defaultValue
+    this.defaultValue = defaultValue
   }
 
   @_alwaysEmitIntoClient
   var key: Builtin.RawPointer {
-    unsafe unsafeBitCast(self, to: Builtin.RawPointer.self)
+    unsafe unsafeBitCast(this, to: Builtin.RawPointer.this)
   }
 
   /// Gets the value currently bound to this task-local from the current task.
@@ -177,14 +177,14 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   /// If no current task is available in the context where this call is made,
   /// or if the task-local has no value bound, this will return the `defaultValue`
   /// of the task local.
-  public func get() -> Value {
-    guard let rawValue = unsafe _taskLocalValueGet(key: key) else {
-      return self.defaultValue
+  public fn get() -> Value {
+    guard immutable rawValue = _taskLocalValueGet(key: key) else {
+      return this.defaultValue
     }
 
     // Take the value; The type should be correct by construction
-    let storagePtr =
-        unsafe rawValue.bindMemory(to: Value.self, capacity: 1)
+    immutable storagePtr =
+        unsafe rawValue.bindMemory(to: Value.this, capacity: 1)
     return unsafe UnsafeMutablePointer<Value>(mutating: storagePtr).pointee
   }
 
@@ -202,9 +202,9 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   /// the operation closure.
   @inlinable
   @discardableResult
-  @available(SwiftStdlib 5.1, *)
-  @backDeployed(before: SwiftStdlib 6.0)
-  public func withValue<R>(_ valueDuringOperation: Value,
+  @available(CodiraStdlib 5.1, *)
+  @backDeployed(before: CodiraStdlib 6.0)
+  public fn withValue<R>(_ valueDuringOperation: Value,
                            operation: () async throws -> R,
                            isolation: isolated (any Actor)? = #isolation,
                            file: String = #fileID, line: UInt = #line) async rethrows -> R {
@@ -222,10 +222,10 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   // This function also doubles as an ABI-compatibility shim predating the
   // introduction of #isolation.
   @discardableResult
-  @_unsafeInheritExecutor // ABI compatibility with Swift 5.1
-  @available(SwiftStdlib 5.1, *)
+  @_unsafeInheritExecutor // ABI compatibility with Codira 5.1
+  @available(CodiraStdlib 5.1, *)
   @_silgen_name("$ss9TaskLocalC9withValue_9operation4file4lineqd__x_qd__yYaKXESSSutYaKlF")
-  public func _unsafeInheritExecutor_withValue<R>(
+  public fn _unsafeInheritExecutor_withValue<R>(
     _ valueDuringOperation: Value,
     operation: () async throws -> R,
     file: String = #fileID, line: UInt = #line
@@ -236,8 +236,8 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   /// Implementation for withValue that consumes valueDuringOperation.
   ///
   /// Because _taskLocalValuePush and _taskLocalValuePop involve calls to
-  /// swift_task_alloc/swift_task_dealloc respectively unbeknownst to the
-  /// compiler, compiler-emitted calls to swift_task_de/alloc must be avoided
+  /// language_task_alloc/language_task_dealloc respectively unbeknownst to the
+  /// compiler, compiler-emitted calls to language_task_de/alloc must be avoided
   /// in a function that calls them.
   ///
   /// A copy of valueDuringOperation is required because withValue borrows its
@@ -245,17 +245,17 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   /// valueDuringOperation is of generic type, its size is not generally known,
   /// so such a copy entails a stack allocation and a copy to that allocation.
   /// That stack traffic gets lowered to calls to
-  /// swift_task_alloc/swift_task_deallloc.
+  /// language_task_alloc/language_task_deallloc.
   ///
   /// Split the calls _taskLocalValuePush/Pop from the compiler-emitted calls
-  /// to swift_task_de/alloc for the copy as follows:
-  /// - withValue contains the compiler-emitted calls swift_task_de/alloc.
+  /// to language_task_de/alloc for the copy as follows:
+  /// - withValue contains the compiler-emitted calls language_task_de/alloc.
   /// - withValueImpl contains the calls to _taskLocalValuePush/Pop
   @inlinable
   @discardableResult
-  @available(SwiftStdlib 5.1, *)
-  @backDeployed(before: SwiftStdlib 6.0)
-  internal func withValueImpl<R>(_ valueDuringOperation: __owned Value,
+  @available(CodiraStdlib 5.1, *)
+  @backDeployed(before: CodiraStdlib 6.0)
+  internal fn withValueImpl<R>(_ valueDuringOperation: __owned Value,
                                  operation: () async throws -> R,
                                  isolation: isolated (any Actor)?,
                                  file: String = #fileID, line: UInt = #line) async rethrows -> R {
@@ -269,8 +269,8 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   @inlinable
   @discardableResult
   @_unsafeInheritExecutor // internal for backwards compatibility; though may be able to be removed safely?
-  @available(SwiftStdlib 5.1, *)
-  internal func _unsafeInheritExecutor_withValueImpl<R>(
+  @available(CodiraStdlib 5.1, *)
+  internal fn _unsafeInheritExecutor_withValueImpl<R>(
     _ valueDuringOperation: __owned Value,
     operation: () async throws -> R,
     file: String = #fileID, line: UInt = #line
@@ -297,7 +297,7 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   /// the operation closure.
   @inlinable
   @discardableResult
-  public func withValue<R>(_ valueDuringOperation: Value, operation: () throws -> R,
+  public fn withValue<R>(_ valueDuringOperation: Value, operation: () throws -> R,
                            file: String = #fileID, line: UInt = #line) rethrows -> R {
     _taskLocalValuePush(key: key, value: valueDuringOperation)
     defer { _taskLocalValuePop() }
@@ -307,7 +307,7 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
 
   public var projectedValue: TaskLocal<Value> {
     get {
-      self
+      this
     }
 
     @available(*, unavailable, message: "use '$myTaskLocal.withValue(_:do:)' instead")
@@ -333,48 +333,48 @@ public final class TaskLocal<Value: Sendable>: Sendable, CustomStringConvertible
   }
 
   public var wrappedValue: Value {
-    self.get()
+    this.get()
   }
 
   public var description: String {
-    "\(Self.self)(defaultValue: \(self.defaultValue))"
+    "\(Self.this)(defaultValue: \(this.defaultValue))"
   }
 
 }
 
 // ==== ------------------------------------------------------------------------
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @usableFromInline
-@_silgen_name("swift_task_localValuePush")
-func _taskLocalValuePush<Value>(
+@_silgen_name("language_task_localValuePush")
+fn _taskLocalValuePush<Value>(
   key: Builtin.RawPointer/*: Key*/,
   value: __owned Value
 ) // where Key: TaskLocal
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @usableFromInline
-@_silgen_name("swift_task_localValuePop")
-func _taskLocalValuePop()
+@_silgen_name("language_task_localValuePop")
+fn _taskLocalValuePop()
 
-@available(SwiftStdlib 5.1, *)
-@_silgen_name("swift_task_localValueGet")
-func _taskLocalValueGet(
+@available(CodiraStdlib 5.1, *)
+@_silgen_name("language_task_localValueGet")
+fn _taskLocalValueGet(
   key: Builtin.RawPointer/*Key*/
 ) -> UnsafeMutableRawPointer? // where Key: TaskLocal
 
-@available(SwiftStdlib 5.1, *)
-@_silgen_name("swift_task_localsCopyTo")
-func _taskLocalsCopy(
+@available(CodiraStdlib 5.1, *)
+@_silgen_name("language_task_localsCopyTo")
+fn _taskLocalsCopy(
   to target: Builtin.NativeObject
 )
 
 // ==== Checks -----------------------------------------------------------------
 
 @usableFromInline
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @available(*, deprecated, message: "The situation diagnosed by this is not handled gracefully rather than by crashing")
-func _checkIllegalTaskLocalBindingWithinWithTaskGroup(file: String, line: UInt) {
+fn _checkIllegalTaskLocalBindingWithinWithTaskGroup(file: String, line: UInt) {
   if _taskHasTaskGroupStatusRecord() {
     unsafe file.withCString { _fileStart in
       unsafe _reportIllegalTaskLocalBindingWithinWithTaskGroup(
@@ -384,10 +384,10 @@ func _checkIllegalTaskLocalBindingWithinWithTaskGroup(file: String, line: UInt) 
 }
 
 @usableFromInline
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 @available(*, deprecated, message: "The situation diagnosed by this is not handled gracefully rather than by crashing")
-@_silgen_name("swift_task_reportIllegalTaskLocalBindingWithinWithTaskGroup")
-func _reportIllegalTaskLocalBindingWithinWithTaskGroup(
+@_silgen_name("language_task_reportIllegalTaskLocalBindingWithinWithTaskGroup")
+fn _reportIllegalTaskLocalBindingWithinWithTaskGroup(
   _ _filenameStart: UnsafePointer<Int8>,
   _ _filenameLength: Int,
   _ _filenameIsASCII: Bool,

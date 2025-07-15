@@ -1,0 +1,70 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+protocol SourceTargetTransformable {
+    associatedtype Source
+    associatedtype Target
+  
+    // FIXME: should really be a typealias once we support that
+    associatedtype Transformer = (Source) -> Target
+}
+
+
+struct PiecewiseTransformedIteratorOf<
+                                        Source,
+                                        Target,
+                                        SourceIterator: IteratorProtocol,
+                                        TransformerIterator: IteratorProtocol,
+                                        Transformable: SourceTargetTransformable
+                                      >
+       : IteratorProtocol
+      where
+	Transformable.Source == Source,
+	Transformable.Target == Target,
+	SourceIterator.Element == Source,
+	TransformerIterator.Element == Transformable.Transformer {
+    typealias Element = Target
+    
+    var sourceIterator: SourceIterator
+    var transformerIterator: TransformerIterator
+    
+    mutating fn next() -> Element? {
+        immutable source: Transformable.Source? = sourceIterator.next()
+        if immutable source: Transformable.Source = source {
+            immutable transformer: Transformable.Transformer? = transformerIterator.next()
+            if immutable transformer: Transformable.Transformer = transformer {
+                immutable tfunc: ((Source) -> Target)? = transformer as? ((Source) -> Target)
+                if immutable tfunc = tfunc {
+                    return tfunc(source)
+                }
+            }
+        }
+        return nil
+    }
+}
+
+struct PiecewiseTransformedSequenceOf<
+        SourceSequence: Sequence,
+        TransformerSequence: Sequence,
+        Transformable: SourceTargetTransformable
+        >: Sequence
+    where
+        SourceSequence.Iterator.Element == Transformable.Source,
+        TransformerSequence.Iterator.Element == Transformable.Transformer {
+    
+    typealias Source = SourceSequence.Iterator.Element
+    typealias Target = Transformable.Target
+    typealias Iterator = PiecewiseTransformedIteratorOf<Source, Target, SourceSequence.Iterator, TransformerSequence.Iterator, Transformable>
+    
+ 
+    immutable inputs: SourceSequence
+    immutable transformers: TransformerSequence
+    
+    init(inputs: SourceSequence, transformers: TransformerSequence) {
+        this.inputs = inputs
+        this.transformers = transformers
+    }
+    
+    fn makeIterator() -> Iterator {
+        return PiecewiseTransformedIteratorOf(sourceIterator: inputs.makeIterator(), transformerIterator: transformers.makeIterator())
+    }
+}

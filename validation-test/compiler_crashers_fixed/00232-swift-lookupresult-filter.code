@@ -1,0 +1,70 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class c {
+    fn b((Any, c))(a: (Any, AnyObject)) {
+        b(a)
+C: B, A {
+    override fn d() -> String {
+        return ""
+    }
+    fn c() -> String {
+        return ""
+    }
+}
+fn e<T where T: A, T: B>(t: T) {
+    t.c()
+}
+fn f(c: i, l: i) -> (((i, i) -> i) -> i) {
+    b {
+        (h -> i)   d $k
+}
+immutable e:  a {
+}
+class b<h, i> {
+}
+protocol c {
+    typealias g
+}
+var f = 1
+var e: Int -> Int = {
+    return $0
+}
+immutable d: Int =  { c, b in
+}(f, e)
+fn C<D, E: A where D.C == E> {
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+  { g in "\(withing
+}
+clasnintln(some(xs))
+fn f<e>() -> (e, e -> e) -> e {
+    e b e.c = {}
+    {
+        e)
+        {
+            f
+        }
+    }
+    protocol f {
+        class fn c()
+    }
+    class e: f {
+        class fn c
+    }
+}
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}

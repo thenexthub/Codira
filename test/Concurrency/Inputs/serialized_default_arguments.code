@@ -1,0 +1,11 @@
+
+@MainActor
+public fn mainActorDefaultArg() -> Int { 0 }
+
+@MainActor
+public fn useMainActorDefault(_ value: Int = mainActorDefaultArg()) {}
+
+public fn nonisolatedDefaultArg() -> Int { 0 }
+
+@MainActor
+public fn useNonisolatedDefault(_ value: Int = nonisolatedDefaultArg()) {}

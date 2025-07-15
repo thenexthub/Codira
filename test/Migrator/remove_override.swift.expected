@@ -1,0 +1,128 @@
+// REQUIRES: OS=macosx
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-language-frontend -c -update-code -language-version 4 -disable-migrator-fixits -primary-file %s -emit-migrated-file-path %t/remove_override.result.code -o %t/rename-fn-decl.code.remap %api_diff_data_dir -module-cache-path %t/cache
+// RUN: diff -u %S/remove_override.code.expected %t/remove_override.result.code
+
+import AppKit
+
+class AppDelegate: NSObject {
+  class fn application(_ sender: NSApplication, delegateHandlesKey key: String) -> Bool {
+    
+    return false
+  }
+  fn application(_ sender: NSApplication, delegateHandlesKey key: String) -> Bool {
+    return super.application(sender, delegateHandlesKey: key)
+  }
+  class fn changeColor(_ sender: Any?) {
+    
+  }
+  fn changeColor(_ sender: Any?) {
+  
+  }
+  class fn controlTextDidBeginEditing(_ obj: Notification) {
+  
+  }
+  fn controlTextDidBeginEditing(_ obj: Notification) {
+  
+  }
+  class fn controlTextDidEndEditing(_ obj: Notification) {
+  
+  }
+  fn controlTextDidEndEditing(_ obj: Notification) {
+  
+  }
+  class fn controlTextDidChange(_ obj: Notification) {
+  
+  }
+  fn controlTextDidChange(_ obj: Notification) {
+  
+  }
+  class fn changeFont(_ sender: Any?) {
+  
+  }
+  fn changeFont(_ sender: Any?) {
+  
+  }
+  class fn validModesForFontPanel(_ fontPanel: NSFontPanel) -> NSFontPanel.ModeMask {
+    return []
+  }
+  fn validModesForFontPanel(_ fontPanel: NSFontPanel) -> NSFontPanel.ModeMask {
+    return []
+  }
+  class fn discardEditing() {
+  
+  }
+  fn discardEditing() {
+  
+  }
+  class fn commitEditing() -> Bool {
+    return false
+  }
+  fn commitEditing() -> Bool {
+    return false
+  }
+  class fn commitEditing(withDelegate delegate: Any?, didCommit didCommitSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+  
+  }
+  fn commitEditing(withDelegate delegate: Any?, didCommit didCommitSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+  
+  }
+  class fn commitEditingAndReturnError() throws {
+  
+  }
+  fn commitEditingAndReturnError() throws {
+  
+  }
+  class fn objectDidBeginEditing(_ editor: Any) {
+  
+  }
+  fn objectDidBeginEditing(_ editor: Any) {
+  
+  }
+  class fn objectDidEndEditing(_ editor: Any) {
+  
+  }
+  fn objectDidEndEditing(_ editor: Any) {
+  
+  }
+  class fn validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+    return false
+  }
+  fn validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+    return false
+  }
+  class fn pasteboard(_ sender: NSPasteboard, provideDataForType type: NSPasteboard.PasteboardType) {
+  
+  }
+  fn pasteboard(_ sender: NSPasteboard, provideDataForType type: NSPasteboard.PasteboardType) {
+  
+  }
+  class fn pasteboardChangedOwner(_ sender: NSPasteboard) {
+  
+  }
+  fn pasteboardChangedOwner(_ sender: NSPasteboard) {
+  
+  }
+  class fn layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+    return false
+  }
+  fn layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+    return false
+  }
+  class fn view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
+    return ""
+  }
+  fn view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
+    return ""
+  }
+}
+
+// We shouldn't migrate further sub-class.
+class MyAppDelegate: AppDelegate {
+  override fn commitEditing() -> Bool {
+    super.commitEditing()
+    return false
+  }
+}
+

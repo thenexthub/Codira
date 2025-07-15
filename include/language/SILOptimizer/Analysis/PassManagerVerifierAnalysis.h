@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_PASSMANAGERVERIFIERANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_PASSMANAGERVERIFIERANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_PASSMANAGERVERIFIERANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_PASSMANAGERVERIFIERANALYSIS_H
 
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/StringSet.h"
+#include "toolchain/ADT/StringSet.h"
 
 namespace language {
 
@@ -28,7 +29,7 @@ namespace language {
 /// All methods are no-ops when asserts are disabled.
 class PassManagerVerifierAnalysis : public SILAnalysis {
   /// The module that we are processing.
-  LLVM_ATTRIBUTE_UNUSED
+  TOOLCHAIN_ATTRIBUTE_UNUSED
   SILModule &mod;
 
   /// The set of "live" functions that we are tracking. We store the names of
@@ -36,7 +37,7 @@ class PassManagerVerifierAnalysis : public SILAnalysis {
   /// memory to get its name.
   ///
   /// All functions in mod must be in liveFunctions and vis-a-versa.
-  llvm::StringSet<> liveFunctionNames;
+  toolchain::StringSet<> liveFunctionNames;
 
 public:
   PassManagerVerifierAnalysis(SILModule *mod);

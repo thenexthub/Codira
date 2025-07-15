@@ -1,4 +1,4 @@
-//===--- Bridging.cpp - Bridging imported Clang types to Swift ------------===//
+//===--- Bridging.cpp - Bridging imported Clang types to Codira ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file defines routines relating to bridging Swift types to C types,
+// This file defines routines relating to bridging Codira types to C types,
 // working in concert with the Clang importer.
 //
 //===----------------------------------------------------------------------===//
@@ -28,8 +29,8 @@
 #include "language/AST/ProtocolConformance.h"
 #include "language/Basic/Assertions.h"
 #include "clang/AST/DeclObjC.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/ErrorHandling.h"
 using namespace language;
 using namespace language::Lowering;
 
@@ -53,7 +54,7 @@ TypeConverter::getBridgedParam(SILFunctionTypeRepresentation rep,
   if (!bridged) {
     Context.Diags.diagnose(SourceLoc(), diag::could_not_find_bridge_type,
                            param.getPlainType());
-     llvm::report_fatal_error("unable to set up the ObjC bridge!");
+     toolchain::report_fatal_error("unable to set up the ObjC bridge!");
   }
 
   return param.withType(bridged->getCanonicalType());
@@ -88,7 +89,7 @@ CanType TypeConverter::getBridgedResultType(SILFunctionTypeRepresentation rep,
     Context.Diags.diagnose(SourceLoc(), diag::could_not_find_bridge_type,
                            result);
 
-    llvm::report_fatal_error("unable to set up the ObjC bridge!");
+    toolchain::report_fatal_error("unable to set up the ObjC bridge!");
   }
 
   return loweredType->getCanonicalType();
@@ -127,7 +128,7 @@ Type TypeConverter::getLoweredBridgedType(AbstractionPattern pattern,
     return getLoweredCBridgedType(pattern, t, bridging, rep, purpose);
   }
 
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 Type TypeConverter::getLoweredCBridgedType(AbstractionPattern pattern,

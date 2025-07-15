@@ -1,0 +1,7 @@
+// RUN: %target-language-emit-silgen %s | %FileCheck %s
+
+class ConsumingClass {
+  __consuming fn consumingMethod() {}
+}
+
+// CHECK-LABEL: sil hidden [ossa] @$s21value_ownership_class14ConsumingClassC15consumingMethodyyF : $@convention(method) (@owned ConsumingClass) -> () {

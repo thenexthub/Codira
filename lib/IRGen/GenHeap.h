@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some routines that are useful for emitting
@@ -18,13 +19,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENHEAP_H
-#define SWIFT_IRGEN_GENHEAP_H
+#ifndef LANGUAGE_IRGEN_GENHEAP_H
+#define LANGUAGE_IRGEN_GENHEAP_H
 
 #include "NecessaryBindings.h"
 #include "StructLayout.h"
 
-namespace llvm {
+namespace toolchain {
   class Constant;
   template <class T> class SmallVectorImpl;
 }
@@ -41,13 +42,13 @@ class HeapLayout : public StructLayout {
   SmallVector<SILType, 8> ElementTypes;
   NecessaryBindings Bindings;
   unsigned BindingsIndex;
-  mutable llvm::Constant *privateMetadata = nullptr;
+  mutable toolchain::Constant *privateMetadata = nullptr;
   
 public:
   HeapLayout(IRGenModule &IGM, LayoutStrategy strategy,
              ArrayRef<SILType> elementTypes,
              ArrayRef<const TypeInfo *> elementTypeInfos,
-             llvm::StructType *typeToFill = 0,
+             toolchain::StructType *typeToFill = 0,
              NecessaryBindings &&bindings = {}, unsigned bindingsIndex = 0);
 
   /// True if the heap object carries type bindings.
@@ -74,22 +75,22 @@ public:
   }
   
   /// Build a size function for this layout.
-  llvm::Constant *createSizeFn(IRGenModule &IGM) const;
+  toolchain::Constant *createSizeFn(IRGenModule &IGM) const;
 
   /// As a convenience, build a metadata object with internal linkage
   /// consisting solely of the standard heap metadata.
-  llvm::Constant *getPrivateMetadata(IRGenModule &IGM,
-                                     llvm::Constant *captureDescriptor) const;
+  toolchain::Constant *getPrivateMetadata(IRGenModule &IGM,
+                                     toolchain::Constant *captureDescriptor) const;
 };
 
 class HeapNonFixedOffsets : public NonFixedOffsetsImpl {
-  SmallVector<llvm::Value *, 1> Offsets;
-  llvm::Value *TotalSize;
-  llvm::Value *TotalAlignMask;
+  SmallVector<toolchain::Value *, 1> Offsets;
+  toolchain::Value *TotalSize;
+  toolchain::Value *TotalAlignMask;
 public:
   HeapNonFixedOffsets(IRGenFunction &IGF, const HeapLayout &layout);
   
-  llvm::Value *getOffsetForIndex(IRGenFunction &IGF, unsigned index) override {
+  toolchain::Value *getOffsetForIndex(IRGenFunction &IGF, unsigned index) override {
     auto result = Offsets[index];
     assert(result != nullptr
            && "fixed-layout field doesn't need NonFixedOffsets");
@@ -97,34 +98,34 @@ public:
   }
   
   // The total size of the heap object.
-  llvm::Value *getSize() const {
+  toolchain::Value *getSize() const {
     return TotalSize;
   }
   
   // The total alignment of the heap object.
-  llvm::Value *getAlignMask() const {
+  toolchain::Value *getAlignMask() const {
     return TotalAlignMask;
   }
 };
 
 /// Emit a heap object deallocation.
 void emitDeallocateHeapObject(IRGenFunction &IGF,
-                              llvm::Value *object,
-                              llvm::Value *size,
-                              llvm::Value *alignMask);
+                              toolchain::Value *object,
+                              toolchain::Value *size,
+                              toolchain::Value *alignMask);
 
 /// Emit a class instance deallocation.
 void emitDeallocateClassInstance(IRGenFunction &IGF,
-                                 llvm::Value *object,
-                                 llvm::Value *size,
-                                 llvm::Value *alignMask);
+                                 toolchain::Value *object,
+                                 toolchain::Value *size,
+                                 toolchain::Value *alignMask);
   
 /// Emit a partial class instance deallocation from a failing constructor.
 void emitDeallocatePartialClassInstance(IRGenFunction &IGF,
-                                        llvm::Value *object,
-                                        llvm::Value *metadata,
-                                        llvm::Value *size,
-                                        llvm::Value *alignMask);
+                                        toolchain::Value *object,
+                                        toolchain::Value *metadata,
+                                        toolchain::Value *size,
+                                        toolchain::Value *alignMask);
 
 /// Allocate a boxed value.
 ///
@@ -133,14 +134,14 @@ OwnedAddress
 emitAllocateBox(IRGenFunction &IGF,
                 CanSILBoxType boxType,
                 GenericEnvironment *env,
-                const llvm::Twine &name);
+                const toolchain::Twine &name);
 
 /// Deallocate a box whose value is uninitialized.
-void emitDeallocateBox(IRGenFunction &IGF, llvm::Value *box,
+void emitDeallocateBox(IRGenFunction &IGF, toolchain::Value *box,
                        CanSILBoxType boxType);
 
 /// Project the address of the value inside a box.
-Address emitProjectBox(IRGenFunction &IGF, llvm::Value *box,
+Address emitProjectBox(IRGenFunction &IGF, toolchain::Value *box,
                        CanSILBoxType boxType);
 
 /// Allocate a boxed value based on the boxed type. Returns the address of the
@@ -148,36 +149,36 @@ Address emitProjectBox(IRGenFunction &IGF, llvm::Value *box,
 Address
 emitAllocateExistentialBoxInBuffer(IRGenFunction &IGF, SILType boxedType,
                                    Address destBuffer, GenericEnvironment *env,
-                                   const llvm::Twine &name, bool isOutlined);
+                                   const toolchain::Twine &name, bool isOutlined);
 
 /// Given a heap-object instance, with some heap-object type,
 /// produce a reference to its type metadata.
-llvm::Value *emitDynamicTypeOfHeapObject(IRGenFunction &IGF,
-                                         llvm::Value *object,
+toolchain::Value *emitDynamicTypeOfHeapObject(IRGenFunction &IGF,
+                                         toolchain::Value *object,
                                          MetatypeRepresentation rep,
                                          SILType objectType,
                                          bool allowArtificialSubclasses = false);
 
 /// Given a non-tagged object pointer, load a pointer to its class object.
-llvm::Value *emitLoadOfObjCHeapMetadataRef(IRGenFunction &IGF,
-                                           llvm::Value *object);
+toolchain::Value *emitLoadOfObjCHeapMetadataRef(IRGenFunction &IGF,
+                                           toolchain::Value *object);
 
 /// Given a heap-object instance, with some heap-object type, produce a
 /// reference to its heap metadata by dynamically asking the runtime for it.
-llvm::Value *emitHeapMetadataRefForUnknownHeapObject(IRGenFunction &IGF,
-                                                     llvm::Value *object);
+toolchain::Value *emitHeapMetadataRefForUnknownHeapObject(IRGenFunction &IGF,
+                                                     toolchain::Value *object);
 
 /// Given a heap-object instance, with some heap-object type,
 /// produce a reference to its heap metadata.
-llvm::Value *emitHeapMetadataRefForHeapObject(IRGenFunction &IGF,
-                                              llvm::Value *object,
+toolchain::Value *emitHeapMetadataRefForHeapObject(IRGenFunction &IGF,
+                                              toolchain::Value *object,
                                               CanType objectType,
                                               bool suppressCast = false);
 
 /// Given a heap-object instance, with some heap-object type,
 /// produce a reference to its heap metadata.
-llvm::Value *emitHeapMetadataRefForHeapObject(IRGenFunction &IGF,
-                                              llvm::Value *object,
+toolchain::Value *emitHeapMetadataRefForHeapObject(IRGenFunction &IGF,
+                                              toolchain::Value *object,
                                               SILType objectType,
                                               bool suppressCast = false);
 

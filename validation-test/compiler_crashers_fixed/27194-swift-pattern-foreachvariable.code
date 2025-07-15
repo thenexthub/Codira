@@ -1,0 +1,242 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+{
+{
+a {{
+{{
+( { {
+{
+{
+{{:a
+}}}immutable a{{
+{
+{ {d b{}}}}}b}}}}}}<T}}}class S<T{fn a<h{fn b<T where h.g=a
+{
+fn a{
+if true{
+}
+struct d<T where g
+fn
+{init(
+{ (( (( )
+immutable f=A{
+[:e
+}}}protocol P{
+{
+immutable g{
+{
+[{A
+{
+{
+fn a{fn {
+{{
+fn x:
+{ {
+{{{
+a{
+struct d<T where g{
+{
+{ {
+"
+{ {
+[ { ()a{immutable v:
+{ (
+{ (
+a{
+{protocol P{
+"class c
+{
+if true{
+{{
+{
+if true{
+struct B<T where I:a{
+"
+{ {g:{(){
+{
+immutable v:d<T where I:a=g
+[{fn{ {d b{}}}}}b}}}}}}<T}}}class S<T{fn a<h{fn b<T where h.g=a
+{
+}immutable a<T where T{{
+typealias b:a{{T:
+{
+fn a{struct S<b{
+struct d
+{
+fn a{
+a{g=F
+fn x:
+{
+{
+{d b{}}}}}b}}}}}}<T}}}class S<T{fn a<h{fn b<T where h.g=a
+class d<T where I:
+[:a{
+immutable(
+{
+fn a{
+{
+a{
+a{{immutable t=0
+class b:C{
+a typealias b:Int=i{
+{ {struct B{
+"
+{
+immutable h{{class c{fn x
+typealias F
+{
+{
+}protocol a
+var b:a{(
+"class b{
+protocol P{
+{
+}struct d
+{
+{{}}}}protocol P{{
+{ :a{
+{ {
+{
+fn{ a{init()a{
+{ (
+{g
+{{
+{ (
+{
+protocol A{
+{
+{
+{ {{
+typealias e:a{
+{{
+"
+{
+{{
+{ {struct d<b:
+d
+immutable v:a
+{
+{
+if true{
+{
+{typealias e{
+fn f{
+{ {
+fn a{protocol P{{T:
+var b{typealias e{
+{ a{typealias b{immutable a{
+fn a<b{{
+[{
+{protocol P{
+a typealias b:a=F
+{
+{
+{
+if true{
+immutable f{{
+(({
+{
+{}immutable g{
+protocol a<T where g{immutable h{{
+""
+{immutable h{{struct d<T where g
+struct S
+{( ){immutable t:
+var b{
+{ {
+protocol{{
+protocol P{
+{
+{
+{ {
+fn
+}}protocol A{{
+immutable v:e
+{
+{ {protocol b:
+{
+{
+struct S<T where T:a<b:
+{
+a typealias e{
+{
+{
+{
+{{typealias f{immutable v:(()
+{:C{{{
+{
+{{{{
+fn a{
+{
+{
+fn a
+{}}}enum S<b{
+{
+( : ( )
+{( : ( : ( : ( { {
+struct d
+{
+{
+{
+"
+protocol P{
+class b{((
+a {
+{
+((x
+{{
+{typealias e
+}
+{{
+{
+{
+[{
+a {{
+{ :d= .c{
+{e a{}
+}}}
+{{
+{ ({{fn b{fn a
+[{(
+(){A<T:
+{ {:a{
+{
+{
+{
+[ { {
+{
+d
+{ ({fn x
+{{:
+class A<T where I:a{A{
+{{A
+{
+{{
+fn a{{immutable t:C{
+[ {
+{
+struct Q{
+class b{fn a{
+class A
+{
+{{
+{{fn
+{
+{{immutable v:a
+struct d<T where I:e:
+struct d<h}}}protocol A<h{}enum S
+immutable t=F=g:a{immutable a{
+{(
+:
+{ {
+immutable a{

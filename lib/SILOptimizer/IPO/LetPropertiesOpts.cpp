@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 // Promote values of non-static let properties initialized by means
 // of constant values of simple types into their uses.
@@ -71,7 +72,7 @@
 // module. This following code is legal if Wrapper's home module is *not*
 // built with library evolution (or if Wrapper is declared `@frozen`).
 // 
-// func inExternalModule(buffer: UnsafeRawPointer) -> Wrapper<Int64> {
+// fn inExternalModule(buffer: UnsafeRawPointer) -> Wrapper<Int64> {
 //   return buffer.load(as: Wrapper<Int64>.self)
 // }
 // 
@@ -122,9 +123,9 @@
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/BasicBlockOptUtils.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 
 namespace {
@@ -154,25 +155,25 @@ class LetPropertiesOpt {
 
   typedef SmallVector<VarDecl *, 4> Properties;
 
-  llvm::SetVector<SILFunction *> ChangedFunctions;
+  toolchain::SetVector<SILFunction *> ChangedFunctions;
 
   // Map each let property to a set of instructions accessing it.
-  llvm::MapVector<VarDecl *, InstructionList> AccessMap;
+  toolchain::MapVector<VarDecl *, InstructionList> AccessMap;
   // Map each let property to the instruction sequence which initializes it.
-  llvm::MapVector<VarDecl *, InitSequence> InitMap;
+  toolchain::MapVector<VarDecl *, InitSequence> InitMap;
   // Properties in this set should not be processed by this pass
   // anymore.
-  llvm::SmallPtrSet<VarDecl *, 16> SkipProcessing;
+  toolchain::SmallPtrSet<VarDecl *, 16> SkipProcessing;
   // Types in this set should not be processed by this pass
   // anymore.
-  llvm::SmallPtrSet<NominalTypeDecl *, 16> SkipTypeProcessing;
+  toolchain::SmallPtrSet<NominalTypeDecl *, 16> SkipTypeProcessing;
   // Properties in this set cannot be removed.
-  llvm::SmallPtrSet<VarDecl *, 16> CannotRemove;
+  toolchain::SmallPtrSet<VarDecl *, 16> CannotRemove;
   // Set of let properties in a given nominal type.
-  llvm::MapVector<NominalTypeDecl *, Properties> NominalTypeLetProperties;
+  toolchain::MapVector<NominalTypeDecl *, Properties> NominalTypeLetProperties;
   // Set of properties which already fulfill all conditions, except
   // the available of constant, statically known initializer.
-  llvm::SmallPtrSet<VarDecl *, 16> PotentialConstantLetProperty;
+  toolchain::SmallPtrSet<VarDecl *, 16> PotentialConstantLetProperty;
 
 public:
   LetPropertiesOpt(SILModule *M): Module(M) {}
@@ -247,7 +248,7 @@ void LetPropertiesOpt::optimizeLetPropertyAccess(VarDecl *Property,
   if (!Ty || SkipTypeProcessing.count(Ty))
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "Replacing access to property '" << *Property
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Replacing access to property '" << *Property
                           << "' by its constant initializer\n");
 
   auto PropertyAccess = Property->getEffectiveAccess();
@@ -263,7 +264,7 @@ void LetPropertiesOpt::optimizeLetPropertyAccess(VarDecl *Property,
           PropertyAccess <= AccessLevel::Internal) &&
           Module->isWholeModule())) {
     CanRemove = true;
-    LLVM_DEBUG(llvm::dbgs() << "Storage for property '" << *Property
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Storage for property '" << *Property
                             << "' can be eliminated\n");
   }
 
@@ -271,7 +272,7 @@ void LetPropertiesOpt::optimizeLetPropertyAccess(VarDecl *Property,
     CanRemove = false;
 
   if (!AccessMap.count(Property)) {
-    LLVM_DEBUG(llvm::dbgs() << "Property '" << *Property <<"' is never read\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Property '" << *Property <<"' is never read\n");
     if (CanRemove) {
       // TODO: Remove the let property, because it is never accessed.
     }
@@ -316,7 +317,7 @@ void LetPropertiesOpt::optimizeLetPropertyAccess(VarDecl *Property,
   }
   deleter.cleanupDeadInstructions();
 
-  LLVM_DEBUG(llvm::dbgs() << "Access to " << *Property << " was replaced "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Access to " << *Property << " was replaced "
                           << NumReplaced << " time(s)\n");
 
   if (CanRemove) {
@@ -383,13 +384,13 @@ static bool isAssignableExternally(VarDecl *Property, SILModule *Module) {
       if (storedPropertyAccess <= AccessLevel::FilePrivate ||
           (storedPropertyAccess <= AccessLevel::Internal &&
            Module->isWholeModule())) {
-       LLVM_DEBUG(llvm::dbgs() << "Property " << *Property
+       TOOLCHAIN_DEBUG(toolchain::dbgs() << "Property " << *Property
                                << " cannot be set externally\n");
        return false;
       }
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Property " << *Property
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Property " << *Property
                             << " can be used externally\n");
     return true;
   }
@@ -401,8 +402,8 @@ static bool isAssignableExternally(VarDecl *Property, SILModule *Module) {
 // be analyzed by this pass.
 static bool mayHaveUnknownUses(VarDecl *Property, SILModule *Module) {
   if (Property->getDeclContext()->getParentModule() !=
-      Module->getSwiftModule()) {
-    LLVM_DEBUG(llvm::dbgs() << "Property " << *Property
+      Module->getCodiraModule()) {
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Property " << *Property
                             << " is defined in a different module\n");
     // We don't see the bodies of initializers from a different module
     // unless all of them are fragile.
@@ -440,13 +441,13 @@ bool LetPropertiesOpt::isConstantLetProperty(VarDecl *Property) {
   // implies that this optimization pass cannot analyze all uses,
   // don't process it.
   if (mayHaveUnknownUses(Property, Module)) {
-    LLVM_DEBUG(llvm::dbgs() << "Property '" << *Property
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Property '" << *Property
                             << "' may have unknown uses\n");
     SkipProcessing.insert(Property);
     return false;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "Property '" << *Property
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Property '" << *Property
                           << "' has no unknown uses\n");
 
   PotentialConstantLetProperty.insert(Property);
@@ -498,7 +499,7 @@ LetPropertiesOpt::analyzeInitValue(SILInstruction *I, VarDecl *Property) {
     // The found init value is different from the already seen init value.
     return false;
   } else {
-    LLVM_DEBUG(llvm::dbgs() << "The value of property '" << *Property
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "The value of property '" << *Property
                             << "' is statically known so far\n");
     // Remember the statically known value.
     cachedSequence = std::move(sequence);
@@ -537,9 +538,9 @@ void LetPropertiesOpt::collectPropertyAccess(SingleValueInstruction *I,
   if (!isConstantLetProperty(Property))
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "Collecting property access for property '"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Collecting property access for property '"
                           << *Property << "':\n";
-             llvm::dbgs() << "The instructions are:\n"; I->dumpInContext());
+             toolchain::dbgs() << "The instructions are:\n"; I->dumpInContext());
 
   // Ignore the possibility of duplicate worklist entries. They cannot effect
   // the SkipProcessing result, and we don't expect any exponential path
@@ -633,6 +634,6 @@ class LetPropertiesOptPass : public SILModuleTransform
 };
 } // end anonymous namespace
 
-SILTransform *swift::createLetPropertiesOpt() {
+SILTransform *language::createLetPropertiesOpt() {
   return new LetPropertiesOptPass();
 }

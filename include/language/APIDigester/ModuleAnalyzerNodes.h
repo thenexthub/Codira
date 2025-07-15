@@ -11,30 +11,31 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  Describing nodes from a swiftmodule file to detect ABI/API breakages.
+//  Describing nodes from a languagemodule file to detect ABI/API breakages.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef __SWIFT_ABI_DIGESTER_MODULE_NODES_H__
-#define __SWIFT_ABI_DIGESTER_MODULE_NODES_H__
+#ifndef __LANGUAGE_ABI_DIGESTER_MODULE_NODES_H__
+#define __LANGUAGE_ABI_DIGESTER_MODULE_NODES_H__
 
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/Lookup.h"
 #include "clang/Sema/Sema.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
 #include "language/AST/Attr.h"
 #include "language/AST/Decl.h"
 #include "language/AST/NameLookup.h"
@@ -45,7 +46,7 @@
 #include "language/AST/DiagnosticsModuleDiffer.h"
 #include "language/Basic/ColorUtils.h"
 #include "language/Basic/JSONSerialization.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Basic/STLExtras.h"
 #include "language/Basic/Version.h"
 #include "language/ClangImporter/ClangImporter.h"
@@ -78,7 +79,7 @@ typedef std::map<NodePtr, NodePtr> NodeMap;
 typedef std::vector<NodePtr> NodeVector;
 typedef std::vector<CommonDiffItem> DiffVector;
 typedef std::vector<TypeMemberDiffItem> TypeMemberDiffVector;
-typedef llvm::MapVector<NodePtr, NodePtr> NodePairVector;
+typedef toolchain::MapVector<NodePtr, NodePtr> NodePairVector;
 
 // The interface used to visit the SDK tree.
 class SDKNodeVisitor {
@@ -158,20 +159,20 @@ struct CheckerOptions {
   bool Verbose;
   bool AbortOnModuleLoadFailure;
   bool PrintModule;
-  bool SwiftOnly;
+  bool CodiraOnly;
   bool SkipOSCheck;
   bool SkipRemoveDeprecatedCheck;
   bool CompilerStyle;
   bool Migrator;
   StringRef LocationFilter;
   std::vector<std::string> ToolArgs;
-  llvm::StringSet<> SPIGroupNamesToIgnore;
+  toolchain::StringSet<> SPIGroupNamesToIgnore;
 };
 
 class SDKContext {
   std::vector<std::unique_ptr<CompilerInstance>> CIs;
-  llvm::StringSet<> TextData;
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::StringSet<> TextData;
+  toolchain::BumpPtrAllocator Allocator;
   SourceManager SourceMgr;
   DiagnosticEngine Diags;
   UpdatedNodesMap UpdateMap;
@@ -191,7 +192,7 @@ public:
 
   SDKContext(CheckerOptions Options);
 
-  llvm::BumpPtrAllocator &allocator() {
+  toolchain::BumpPtrAllocator &allocator() {
     return Allocator;
   }
   StringRef buffer(StringRef Text) {
@@ -282,7 +283,7 @@ protected:
   SDKNode(SDKNodeInitInfo Info, SDKNodeKind Kind);
   virtual ~SDKNode() = default;
 public:
-  static SDKNode *constructSDKNode(SDKContext &Ctx, llvm::yaml::MappingNode *Node);
+  static SDKNode *constructSDKNode(SDKContext &Ctx, toolchain::yaml::MappingNode *Node);
   static void preorderVisit(NodePtr Root, SDKNodeVisitor &Visitor);
   static void postorderVisit(NodePtr Root, SDKNodeVisitor &Visitor);
 
@@ -324,12 +325,12 @@ public:
   template <typename T> const T *getAs() const {
     if (T::classof(this))
       return static_cast<const T*>(this);
-    llvm_unreachable("incompatible types");
+    toolchain_unreachable("incompatible types");
   }
   template <typename T> T *getAs() {
     if (T::classof(this))
       return static_cast<T*>(this);
-    llvm_unreachable("incompatible types");
+    toolchain_unreachable("incompatible types");
   }
 };
 
@@ -339,7 +340,7 @@ struct PlatformIntroVersion {
   StringRef tvos;
   StringRef watchos;
   StringRef visionos;
-  StringRef swift;
+  StringRef language;
   bool hasOSAvailability() const {
     return !macos.empty() || !ios.empty() || !tvos.empty() ||
       !watchos.empty() || !visionos.empty();
@@ -384,13 +385,13 @@ public:
   ArrayRef<DeclAttrKind> getDeclAttributes() const;
   ArrayRef<StringRef> getSPIGroups() const { return SPIGroups; }
   bool hasAttributeChange(const SDKNodeDecl &Another) const;
-  swift::ReferenceOwnership getReferenceOwnership() const {
-    return swift::ReferenceOwnership(ReferenceOwnership);
+  language::ReferenceOwnership getReferenceOwnership() const {
+    return language::ReferenceOwnership(ReferenceOwnership);
   }
   bool isObjc() const { return Usr.starts_with("c:"); }
   static bool classof(const SDKNode *N);
   DeclKind getDeclKind() const { return DKind; }
-  void printFullyQualifiedName(llvm::raw_ostream &OS) const;
+  void printFullyQualifiedName(toolchain::raw_ostream &OS) const;
   StringRef getFullyQualifiedName() const;
   bool isDeprecated() const { return IsDeprecated; };
   bool isProtocolRequirement() const { return IsProtocolReq; }
@@ -420,8 +421,8 @@ public:
   void emitDiag(SourceLoc Loc,
                 Diag<StringRef, ArgTypes...> ID,
                 typename detail::PassArgument<ArgTypes>::type... Args) const {
-    // Don't emit objc decls if we care about swift exclusively
-    if (Ctx.getOpts().SwiftOnly) {
+    // Don't emit objc decls if we care about language exclusively
+    if (Ctx.getOpts().CodiraOnly) {
       if (isObjc())
         return;
     }
@@ -437,7 +438,7 @@ public:
 
 class SDKNodeRoot: public SDKNode {
   /// This keeps track of all decl descendants with USRs.
-  llvm::StringMap<llvm::SmallSetVector<SDKNodeDecl*, 2>> DescendantDeclTable;
+  toolchain::StringMap<toolchain::SmallSetVector<SDKNodeDecl*, 2>> DescendantDeclTable;
   /// The tool invocation arguments to generate this root node. We shouldn't need APIs for it.
   std::vector<StringRef> ToolArgs;
   uint8_t JsonFormatVer;
@@ -513,14 +514,14 @@ public:
 
 class SDKNodeVectorViewer {
   ArrayRef<SDKNode*> Collection;
-  llvm::function_ref<bool(NodePtr)> Selector;
+  toolchain::function_ref<bool(NodePtr)> Selector;
   typedef ArrayRef<SDKNode*>::iterator VectorIt;
   VectorIt getNext(VectorIt Start);
   class ViewerIterator;
 
 public:
   SDKNodeVectorViewer(ArrayRef<SDKNode*> Collection,
-                      llvm::function_ref<bool(NodePtr)> Selector) :
+                      toolchain::function_ref<bool(NodePtr)> Selector) :
                         Collection(Collection),
                         Selector(Selector) {}
   ViewerIterator begin();
@@ -772,10 +773,10 @@ struct TypeInitInfo {
 
 struct PayLoad;
 
-class SwiftDeclCollector: public VisibleDeclConsumer {
+class CodiraDeclCollector: public VisibleDeclConsumer {
   SDKContext &Ctx;
   SDKNode *RootNode;
-  llvm::SetVector<Decl*> KnownDecls;
+  toolchain::SetVector<Decl*> KnownDecls;
   // Collected and sorted after we get all of them.
   std::vector<ValueDecl *> ClangMacros;
   std::set<ExtensionDecl*> HandledExtensions;
@@ -783,15 +784,15 @@ public:
   void visitAllRoots(SDKNodeVisitor &Visitor) {
     SDKNode::preorderVisit(RootNode, Visitor);
   }
-  SwiftDeclCollector(SDKContext &Ctx, ArrayRef<ModuleDecl*> modules = {});
+  CodiraDeclCollector(SDKContext &Ctx, ArrayRef<ModuleDecl*> modules = {});
 
   // Construct all roots vector from a given file where a forest was
   // previously dumped.
   void deSerialize(StringRef Filename);
 
   // Serialize the content of all roots to a given file using JSON format.
-  void serialize(llvm::raw_ostream &os);
-  static void serialize(llvm::raw_ostream &os, SDKNode *Root, PayLoad otherInfo);
+  void serialize(toolchain::raw_ostream &os);
+  static void serialize(toolchain::raw_ostream &os, SDKNode *Root, PayLoad otherInfo);
 
   // After collecting decls, either from imported modules or from a previously
   // serialized JSON file, using this function to get the root of the SDK.
@@ -827,26 +828,26 @@ public:
 
 void detectRename(SDKNode *L, SDKNode *R);
 
-int dumpSwiftModules(const CompilerInvocation &InitInvoke,
-                     const llvm::StringSet<> &ModuleNames,
+int dumpCodiraModules(const CompilerInvocation &InitInvoke,
+                     const toolchain::StringSet<> &ModuleNames,
                      StringRef OutputDir,
                      const std::vector<std::string> PrintApis,
                      CheckerOptions Opts);
 
 SDKNodeRoot *getSDKNodeRoot(SDKContext &SDKCtx,
                             const CompilerInvocation &InitInvoke,
-                            const llvm::StringSet<> &ModuleNames);
+                            const toolchain::StringSet<> &ModuleNames);
 
 SDKNodeRoot *getEmptySDKNodeRoot(SDKContext &SDKCtx);
 
-void dumpSDKRoot(SDKNodeRoot *Root, PayLoad load, llvm::raw_ostream &os);
-void dumpSDKRoot(SDKNodeRoot *Root, llvm::raw_ostream &os);
+void dumpSDKRoot(SDKNodeRoot *Root, PayLoad load, toolchain::raw_ostream &os);
+void dumpSDKRoot(SDKNodeRoot *Root, toolchain::raw_ostream &os);
 
 int dumpSDKContent(const CompilerInvocation &InitInvoke,
-                   const llvm::StringSet<> &ModuleNames,
-                   llvm::raw_ostream &os, CheckerOptions Opts);
+                   const toolchain::StringSet<> &ModuleNames,
+                   toolchain::raw_ostream &os, CheckerOptions Opts);
 
-void dumpModuleContent(ModuleDecl *MD, llvm::raw_ostream &os, bool ABI,
+void dumpModuleContent(ModuleDecl *MD, toolchain::raw_ostream &os, bool ABI,
                        bool Empty);
 
 /// Mostly for testing purposes, this function de-serializes the SDK dump in
@@ -863,7 +864,7 @@ void nodeSetDifference(ArrayRef<SDKNode*> Left, ArrayRef<SDKNode*> Right,
 bool hasValidParentPtr(SDKNodeKind kind);
 } // end of abi namespace
 } // end of ide namespace
-} // end of Swift namespace
+} // end of Codira namespace
 
 namespace language {
 namespace json {

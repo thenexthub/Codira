@@ -1,0 +1,15 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+extension Unmanaged {
+    fn something1(with x: consuming Unmanaged<Instance>?) -> UnsafeMutableRawPointer? {
+        x?.toOpaque()
+    }
+
+    fn something2(with x: consuming Unmanaged<Instance>?) -> UnsafeMutableRawPointer? {
+        immutable y = x
+        return y?.toOpaque()
+    }
+    fn something3(with x: __owned Unmanaged<Instance>?) -> UnsafeMutableRawPointer? {
+        x?.toOpaque()
+    }
+}

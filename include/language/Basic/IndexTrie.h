@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_INDEXTREE_H
-#define SWIFT_SILOPTIMIZER_UTILS_INDEXTREE_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_INDEXTREE_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_INDEXTREE_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <algorithm>
 
 namespace language {
@@ -30,7 +31,7 @@ public:
 
 private:
   int Index;
-  llvm::SmallVector<IndexTrieNode*, 8> Children;
+  toolchain::SmallVector<IndexTrieNode*, 8> Children;
   IndexTrieNode *Parent;
 
 public:

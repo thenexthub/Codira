@@ -1,0 +1,65 @@
+/// Check diagnostics on a resilient modules importing publicly a
+/// a non-resilient module.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+/// Build the libraries.
+// RUN: %target-language-frontend -emit-module %t/DefaultLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/PublicLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/PackageLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/InternalLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/FileprivateLib.code -o %t
+// RUN: %target-language-frontend -emit-module %t/PrivateLib.code -o %t
+
+/// A resilient client will error on public imports.
+/// Keep AccessLevelOnImport to get the error from Codira 6 in Codira 5.
+// RUN: %target-language-frontend -typecheck %t/Client_Codira5.code -I %t \
+// RUN:   -enable-library-evolution -language-version 5 \
+// RUN:   -enable-experimental-feature AccessLevelOnImport -verify \
+// RUN:   -package-name pkg
+// RUN: %target-language-frontend -typecheck %t/Client_Codira6.code -I %t \
+// RUN:   -enable-library-evolution \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault \
+// RUN:   -verify -package-name pkg
+
+/// A non-resilient client doesn't complain.
+// RUN: %target-language-frontend -typecheck %t/Client_Codira5.code -I %t \
+// RUN:   -language-version 5 \
+// RUN:   -enable-experimental-feature AccessLevelOnImport \
+// RUN:   -package-name pkg
+// RUN: %target-language-frontend -typecheck %t/Client_Codira6.code -I %t \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault \
+// RUN:   -package-name pkg
+
+// REQUIRES: language_feature_AccessLevelOnImport
+// REQUIRES: language_feature_InternalImportsByDefault
+
+//--- DefaultLib.code
+//--- PublicLib.code
+//--- PackageLib.code
+//--- InternalLib.code
+//--- FileprivateLib.code
+//--- PrivateLib.code
+
+//--- Client_Codira5.code
+
+import DefaultLib // expected-error {{module 'DefaultLib' was not compiled with library evolution support; using it means binary compatibility for 'Client_Codira5' can't be guaranteed}} {{1-1=internal }}
+public import PublicLib // expected-error {{module 'PublicLib' was not compiled with library evolution support; using it means binary compatibility for 'Client_Codira5' can't be guaranteed}} {{1-7=internal}}
+// expected-warning @-1 {{public import of 'PublicLib' was not used in public declarations or inlinable code}}
+package import PackageLib
+// expected-warning @-1 {{package import of 'PackageLib' was not used in package declarations}}
+internal import InternalLib
+fileprivate import FileprivateLib
+private import PrivateLib
+
+//--- Client_Codira6.code
+
+import DefaultLib
+public import PublicLib // expected-error {{module 'PublicLib' was not compiled with library evolution support; using it means binary compatibility for 'Client_Codira6' can't be guaranteed}} {{1-8=}}
+// expected-warning @-1 {{public import of 'PublicLib' was not used in public declarations or inlinable code}}
+package import PackageLib
+// expected-warning @-1 {{package import of 'PackageLib' was not used in package declarations}}
+internal import InternalLib
+fileprivate import FileprivateLib
+private import PrivateLib

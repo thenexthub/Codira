@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the FlaggedPointer class.
 //
 //===----------------------------------------------------------------------===//
 //
-#ifndef SWIFT_BASIC_FLAGGEDPOINTER_H
-#define SWIFT_BASIC_FLAGGEDPOINTER_H
+#ifndef LANGUAGE_BASIC_FLAGGEDPOINTER_H
+#define LANGUAGE_BASIC_FLAGGEDPOINTER_H
 
 #include <algorithm>
 #include <cassert>
 
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/PointerLikeTypeTraits.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/PointerLikeTypeTraits.h"
 
 namespace language {
 
@@ -37,7 +38,7 @@ namespace language {
 /// Composing this with `PointerIntPair` is not allowed.
 template <typename PointerTy,
           unsigned BitPosition,
-          typename PtrTraits = llvm::PointerLikeTypeTraits<PointerTy>>
+          typename PtrTraits = toolchain::PointerLikeTypeTraits<PointerTy>>
 class FlaggedPointer {
   intptr_t Value;
   static_assert(PtrTraits::NumLowBitsAvailable > 0,
@@ -154,20 +155,20 @@ public:
 
 // Teach SmallPtrSet that FlaggedPointer is "basically a pointer".
 template <typename PointerTy, unsigned BitPosition, typename PtrTraits>
-struct llvm::PointerLikeTypeTraits<
-  swift::FlaggedPointer<PointerTy, BitPosition, PtrTraits>> {
+struct toolchain::PointerLikeTypeTraits<
+  language::FlaggedPointer<PointerTy, BitPosition, PtrTraits>> {
 public:
   static inline void *
-    getAsVoidPointer(const swift::FlaggedPointer<PointerTy, BitPosition> &P) {
+    getAsVoidPointer(const language::FlaggedPointer<PointerTy, BitPosition> &P) {
       return P.getOpaqueValue();
   }
-  static inline swift::FlaggedPointer<PointerTy, BitPosition>
+  static inline language::FlaggedPointer<PointerTy, BitPosition>
     getFromVoidPointer(void *P) {
-      return swift::FlaggedPointer<PointerTy, BitPosition>::getFromOpaqueValue(P);
+      return language::FlaggedPointer<PointerTy, BitPosition>::getFromOpaqueValue(P);
   }
-  static inline swift::FlaggedPointer<PointerTy, BitPosition>
+  static inline language::FlaggedPointer<PointerTy, BitPosition>
     getFromVoidPointer(const void *P) {
-      return swift::FlaggedPointer<PointerTy, BitPosition>::getFromOpaqueValue(P);
+      return language::FlaggedPointer<PointerTy, BitPosition>::getFromOpaqueValue(P);
   }
   enum {
     NumLowBitsAvailable = (BitPosition >= PtrTraits::NumLowBitsAvailable)
@@ -177,4 +178,4 @@ public:
   };
 };
 
-#endif // SWIFT_BASIC_FLAGGEDPOINTER_H
+#endif // LANGUAGE_BASIC_FLAGGEDPOINTER_H

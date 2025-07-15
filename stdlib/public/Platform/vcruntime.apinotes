@@ -2,6 +2,6 @@
 Name: vcruntime
 Functions:
 - Name: _setjmp
-  Availability: nonswift
-  AvailabilityMsg: 'Functions that return more than once are unavailable in swift'
+  Availability: nonlanguage
+  AvailabilityMsg: 'Functions that return more than once are unavailable in language'
 

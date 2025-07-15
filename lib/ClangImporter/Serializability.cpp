@@ -1,4 +1,4 @@
-//===--- Serializability.cpp - Swift serializability of Clang AST refs ----===//
+//===--- Serializability.cpp - Codira serializability of Clang AST refs ----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements support for working with StableSerializationPaths
@@ -18,15 +19,15 @@
 // serializable.
 //
 // The expectation here is that the same basic predicates are
-// interesting  for both binary (.swiftmodule) and textual
-// (.swiftinterface) serialization.  For textual serialization, the
+// interesting  for both binary (.codemodule) and textual
+// (.codeinterface) serialization.  For textual serialization, the
 // key question is whether a printed representation will round-trip.
 //
 //===----------------------------------------------------------------------===//
 
 #include "ImporterImpl.h"
 #include "language/Basic/Assertions.h"
-#include "language/ClangImporter/SwiftAbstractBasicWriter.h"
+#include "language/ClangImporter/CodiraAbstractBasicWriter.h"
 
 using namespace language;
 
@@ -52,10 +53,10 @@ public:
     }
 
     // If the declaration isn't from an AST file, it might be something that
-    // we built automatically when exporting a Swift type.
-    if (auto swiftDecl =
-          Impl.SwiftContext.getSwiftDeclForExportedClangDecl(decl))
-      return swiftDecl;
+    // we built automatically when exporting a Codira type.
+    if (auto languageDecl =
+          Impl.CodiraContext.getCodiraDeclForExportedClangDecl(decl))
+      return languageDecl;
 
     // Allow serialization for non-modular headers as well, with the hope that
     // we find the same header when doing unqualified lookup during
@@ -65,23 +66,23 @@ public:
 
 private:
   Identifier getIdentifier(const clang::IdentifierInfo *clangIdent) {
-    return Impl.SwiftContext.getIdentifier(clangIdent->getName());
+    return Impl.CodiraContext.getIdentifier(clangIdent->getName());
   }
 
   StableSerializationPath findImportedPath(const clang::NamedDecl *decl) {
     // We've almost certainly imported this declaration, look for it.
-    std::optional<Decl *> swiftDeclOpt =
+    std::optional<Decl *> languageDeclOpt =
         Impl.importDeclCached(decl, Impl.CurrentVersion);
-    if (swiftDeclOpt.has_value() && swiftDeclOpt.value()) {
-      auto swiftDecl = swiftDeclOpt.value();
+    if (languageDeclOpt.has_value() && languageDeclOpt.value()) {
+      auto languageDecl = languageDeclOpt.value();
       // The serialization code doesn't allow us to cross-reference
       // typealias declarations directly.  We could fix that, but it's
       // easier to just avoid doing so and fall into the external-path code.
-      if (!isa<TypeAliasDecl>(swiftDecl)) {
+      if (!isa<TypeAliasDecl>(languageDecl)) {
         // Only accept this declaration if it round-trips.
-        if (auto swiftClangDecl = swiftDecl->getClangDecl())
-          if (isSameDecl(decl, swiftClangDecl))
-            return swiftDecl;
+        if (auto languageClangDecl = languageDecl->getClangDecl())
+          if (isSameDecl(decl, languageClangDecl))
+            return languageDecl;
       }
     }
 
@@ -208,8 +209,8 @@ ClangImporter::resolveStableSerializationPath(
                                   const StableSerializationPath &path) const {
   if (!path) return nullptr;
 
-  if (path.isSwiftDecl()) {
-    return path.getSwiftDecl()->getClangDecl();
+  if (path.isCodiraDecl()) {
+    return path.getCodiraDecl()->getClangDecl();
   }
 
   auto &extpath = path.getExternalPath();
@@ -263,9 +264,9 @@ ClangImporter::resolveStableSerializationPath(
         case ExternalPath::ObjCProtocol:
           return isa<clang::ObjCProtocolDecl>(decl);
         case ExternalPath::TypedefAnonDecl:
-          llvm_unreachable("should have been filtered above");
+          toolchain_unreachable("should have been filtered above");
         }
-        llvm_unreachable("bad kind");
+        toolchain_unreachable("bad kind");
       };
 
       // Ignore unacceptable declarations.
@@ -291,7 +292,7 @@ ClangImporter::resolveStableSerializationPath(
 
 namespace {
   /// The logic here for the supported cases must match the logic in
-  /// ClangToSwiftBasicWriter in Serialization.cpp.
+  /// ClangToCodiraBasicWriter in Serialization.cpp.
   struct ClangTypeSerializationChecker :
       DataStreamBasicWriter<ClangTypeSerializationChecker> {
     ClangImporter::Implementation &Impl;
@@ -329,9 +330,9 @@ namespace {
     // referenced from an expression argument of "__counted_by(expr)" or
     // "__ended_by(expr)".
     // Leave it non-serializable for now as we currently don't import
-    // these types into Swift.
+    // these types into Codira.
     void writeTypeCoupledDeclRefInfo(clang::TypeCoupledDeclRefInfo info) {
-      llvm_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from swift");
+      toolchain_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from language");
     }
   };
 }

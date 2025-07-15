@@ -1,4 +1,4 @@
-//===--- Index.h - Swift Indexing -------------------------------*- C++ -*-===//
+//===--- Index.h - Codira Indexing -------------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_INDEX_INDEX_H
-#define SWIFT_INDEX_INDEX_H
+#ifndef LANGUAGE_INDEX_INDEX_H
+#define LANGUAGE_INDEX_INDEX_H
 
 #include "language/Index/IndexDataConsumer.h"
 
@@ -28,9 +29,9 @@ namespace index {
 void indexDeclContext(DeclContext *DC, IndexDataConsumer &consumer);
 void indexSourceFile(SourceFile *SF, IndexDataConsumer &consumer);
 void indexModule(ModuleDecl *module, IndexDataConsumer &consumer);
-bool printDisplayName(const swift::ValueDecl *D, llvm::raw_ostream &OS);
+bool printDisplayName(const language::ValueDecl *D, toolchain::raw_ostream &OS);
 
 } // end namespace index
 } // end namespace language
 
-#endif // SWIFT_INDEX_INDEX_H
+#endif // LANGUAGE_INDEX_INDEX_H

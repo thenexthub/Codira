@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+//--- input.code
+
+//--- input2.code
+fn body() {
+
+extension InvalidProto {}
+
+//--- input3.code
+fn body() {
+
+extension InvalidProto {}
+
+struct MyStruct {
+
+//--- dummy.code
+
+// RUN: %sourcekitd-test \
+// RUN: -req=open %t/input.code -req-opts=syntactic_only=1 -print-raw-response == \
+// RUN: -req=typecontextinfo -pos=4:1 %t/input.code -text-input %t/input2.code -- %t/input.code == \
+// RUN: -req=complete -pos=6:1 %t/input.code -text-input %t/input3.code -repeat-request 2 -- %t/input.code

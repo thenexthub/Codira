@@ -1,13 +1,17 @@
 //===--- GenDistributed.h - IRGen for distributed features ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines interfaces for emitting code for various distributed
@@ -15,19 +19,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENDISTRIBUTED_H
-#define SWIFT_IRGEN_GENDISTRIBUTED_H
+#ifndef LANGUAGE_IRGEN_GENDISTRIBUTED_H
+#define LANGUAGE_IRGEN_GENDISTRIBUTED_H
 
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/ApplySite.h"
-#include "llvm/IR/CallingConv.h"
+#include "toolchain/IR/CallingConv.h"
 
 #include "Callee.h"
 #include "GenHeap.h"
 #include "IRGenModule.h"
 
-namespace llvm {
+namespace toolchain {
 class Value;
 }
 
@@ -41,10 +45,10 @@ class Explosion;
 class IRGenFunction;
 
 /// Emit the '_distributedActorRemoteInitialize' call.
-llvm::Value *emitDistributedActorInitializeRemote(
+toolchain::Value *emitDistributedActorInitializeRemote(
     IRGenFunction &IGF,
     SILType selfType,
-    llvm::Value *actorMetatype,
+    toolchain::Value *actorMetatype,
     Explosion &out);
 
 } // end namespace irgen

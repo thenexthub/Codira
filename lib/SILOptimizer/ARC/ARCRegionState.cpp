@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "arc-sequence-opts"
@@ -22,14 +23,14 @@
 #include "language/SILOptimizer/Analysis/LoopRegionAnalysis.h"
 #include "language/SILOptimizer/Analysis/AliasAnalysis.h"
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
-llvm::cl::opt<bool> verifyARCLoopSummary(
-    "verify-arc-loop-summary", llvm::cl::init(false),
-    llvm::cl::desc("Verify if loop summary is correct in ARCLoopsOpts"));
+toolchain::cl::opt<bool> verifyARCLoopSummary(
+    "verify-arc-loop-summary", toolchain::cl::init(false),
+    toolchain::cl::desc("Verify if loop summary is correct in ARCLoopsOpts"));
 
 //===----------------------------------------------------------------------===//
 //                               ARCRegionState
@@ -154,7 +155,7 @@ void ARCRegionState::mergePredTopDown(ARCRegionState &PredRegionState) {
     // Attempt to merge Other into this ref count state. If we fail, blot this
     // ref counted value and continue.
     if (!RefCountState.merge(OtherRefCountState)) {
-      LLVM_DEBUG(llvm::dbgs() << "Failed to merge!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Failed to merge!\n");
       PtrToTopDownState.erase(RefCountedValue);
       continue;
     }
@@ -171,7 +172,7 @@ bool ARCRegionState::processBlockBottomUp(
     bool FreezeOwnedArgEpilogueReleases,
     BlotMapVector<SILInstruction *, BottomUpRefCountState> &IncToDecStateMap,
     ImmutablePointerSetFactory<SILInstruction *> &SetFactory) {
-  LLVM_DEBUG(llvm::dbgs() << ">>>> Bottom Up!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << ">>>> Bottom Up!\n");
 
   SILBasicBlock &BB = *R->getBlock();
   BottomUpDataflowRCStateVisitor<ARCRegionState> DataflowVisitor(
@@ -196,7 +197,7 @@ bool ARCRegionState::processBlockBottomUp(
     SILInstruction *I = *II;
     ++II;
 
-    LLVM_DEBUG(llvm::dbgs() << "VISITING:\n    " << *I);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING:\n    " << *I);
 
     auto Result = DataflowVisitor.visit(I->asSILNode());
 
@@ -245,7 +246,7 @@ bool ARCRegionState::processBlockBottomUp(
 // blocks. Returns false if otherwise
 static bool hasEarlyExits(
     const LoopRegion *R, LoopRegionFunctionInfo *LRFI,
-    llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo) {
+    toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo) {
   assert(R->isLoop() && "Expected a loop region that is representing a loop");
 
   // Go through all of our non local successors. If any of them cannot be
@@ -263,8 +264,8 @@ static bool hasEarlyExits(
 bool ARCRegionState::processLoopBottomUp(
     const LoopRegion *R, AliasAnalysis *AA, LoopRegionFunctionInfo *LRFI,
     RCIdentityFunctionInfo *RCIA,
-    llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
-    llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts) {
+    toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
+    toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts) {
   ARCRegionState *State = RegionStateInfo[R];
 
   // If we find that we have non-leaking early exits, clear state
@@ -312,9 +313,9 @@ bool ARCRegionState::processBottomUp(
     AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA,
     EpilogueARCFunctionInfo *EAFI, LoopRegionFunctionInfo *LRFI,
     bool FreezeOwnedArgEpilogueReleases,
-    llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
+    toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
     BlotMapVector<SILInstruction *, BottomUpRefCountState> &IncToDecStateMap,
-    llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
+    toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
     ImmutablePointerSetFactory<SILInstruction *> &SetFactory) {
   const LoopRegion *R = getRegion();
 
@@ -336,7 +337,7 @@ bool ARCRegionState::processBlockTopDown(
     SILBasicBlock &BB, AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA,
     BlotMapVector<SILInstruction *, TopDownRefCountState> &DecToIncStateMap,
     ImmutablePointerSetFactory<SILInstruction *> &SetFactory) {
-  LLVM_DEBUG(llvm::dbgs() << ">>>> Top Down!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << ">>>> Top Down!\n");
 
   bool NestingDetected = false;
 
@@ -361,7 +362,7 @@ bool ARCRegionState::processBlockTopDown(
   // For each instruction I in BB...
   for (auto *I : SummarizedInterestingInsts) {
 
-    LLVM_DEBUG(llvm::dbgs() << "VISITING:\n    " << *I);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "VISITING:\n    " << *I);
 
     auto Result = DataflowVisitor.visit(I->asSILNode());
 
@@ -408,7 +409,7 @@ bool ARCRegionState::processBlockTopDown(
 bool ARCRegionState::processLoopTopDown(
     const LoopRegion *R, ARCRegionState *State, AliasAnalysis *AA,
     LoopRegionFunctionInfo *LRFI, RCIdentityFunctionInfo *RCIA,
-    llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts) {
+    toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts) {
 
   assert(R->isLoop() && "We assume we are processing a loop");
 
@@ -461,9 +462,9 @@ bool ARCRegionState::processLoopTopDown(
 bool ARCRegionState::processTopDown(
     AliasAnalysis *AA, RCIdentityFunctionInfo *RCIA,
     LoopRegionFunctionInfo *LRFI,
-    llvm::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
+    toolchain::DenseSet<SILInstruction *> &UnmatchedRefCountInsts,
     BlotMapVector<SILInstruction *, TopDownRefCountState> &DecToIncStateMap,
-    llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
+    toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo,
     ImmutablePointerSetFactory<SILInstruction *> &SetFactory) {
   const LoopRegion *R = getRegion();
 
@@ -505,7 +506,7 @@ void ARCRegionState::summarizeBlock(SILBasicBlock *BB) {
 
 void ARCRegionState::summarizeLoop(
     const LoopRegion *R, LoopRegionFunctionInfo *LRFI,
-    llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo) {
+    toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo) {
   SummarizedInterestingInsts.clear();
   for (unsigned SubregionID : R->getSubregions()) {
     LoopRegion *Subregion = LRFI->getRegion(SubregionID);
@@ -518,7 +519,7 @@ void ARCRegionState::summarizeLoop(
 
 void ARCRegionState::summarize(
     LoopRegionFunctionInfo *LRFI,
-    llvm::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo) {
+    toolchain::DenseMap<const LoopRegion *, ARCRegionState *> &RegionStateInfo) {
   const LoopRegion *R = getRegion();
 
   // We do not need to summarize a function since it is the outermost loop.
@@ -574,7 +575,7 @@ void ARCRegionState::addInterestingInst(SILInstruction *TargetInst) {
     ++SI;
   }
 
-  llvm_unreachable("Could not find Inst in the block?!");
+  toolchain_unreachable("Could not find Inst in the block?!");
 }
 
 void ARCRegionState::removeInterestingInst(SILInstruction *I) {

@@ -1,0 +1,92 @@
+// RUN: %target-language-frontend -emit-silgen %s -DA1
+// RUN: %target-language-frontend -emit-silgen %s -DA2
+// RUN: %target-language-frontend -emit-silgen %s -DA3
+// RUN: %target-language-frontend -emit-silgen %s -DA4
+// RUN: %target-language-frontend -emit-silgen %s -DA5
+// RUN: %target-language-frontend -emit-silgen %s -DA6
+// RUN: %target-language-frontend -emit-silgen %s -DA7
+// RUN: %target-language-frontend -emit-silgen %s -DA8
+// RUN: %target-language-frontend -emit-silgen %s -DA9
+// RUN: %target-language-frontend -emit-silgen %s -DA10
+// RUN: %target-language-frontend -emit-silgen %s -DA11
+// RUN: %target-language-frontend -emit-silgen %s -DA12
+// RUN: %target-language-frontend -emit-silgen %s -DA13
+// RUN: %target-language-frontend -emit-silgen %s -DA14
+
+#if A1
+
+for x in S() { _ = x }
+
+#elseif A2
+
+fn f<T: Sequence>(_: T.Type) -> T.Element.Type { fatalError() }
+immutable x: String.Type = f(S.this)
+
+#elseif A3
+
+fn f<T: Sequence>(_: T.Type) -> T.Iterator.Type { fatalError() }
+immutable x: IndexingIterator<S>.Type = f(S.this)
+
+#elseif A4
+
+fn f<T: Sequence>(_: T.Type) -> T.Iterator.Element.Type { fatalError() }
+immutable x: String.Type = f(S.this)
+
+#elseif A5
+
+fn f<T: Collection>(_: T.Type) -> T.Element.Type { fatalError() }
+immutable x: String.Type = f(S.this)
+
+#elseif A6
+
+fn f<T: Collection>(_: T.Type) -> T.Index.Type { fatalError() }
+immutable x: Int.Type = f(S.this)
+
+#elseif A7
+
+fn f<T: Collection>(_: T.Type) -> T.SubSequence.Type { fatalError() }
+immutable x: Slice<S>.Type = f(S.this)
+
+#elseif A8
+
+fn f<T: Collection>(_: T.Type) -> T.SubSequence.Element.Type { fatalError() }
+immutable x: String.Type = f(S.this)
+
+#elseif A9
+
+fn f<T: Collection>(_: T.Type) -> T.SubSequence.Index.Type { fatalError() }
+immutable x: Int.Type = f(S.this)
+
+#elseif A10
+
+fn f<T: Collection>(_: T.Type) -> T.SubSequence.Iterator.Type { fatalError() }
+immutable x: IndexingIterator<Slice<S>>.Type = f(S.this)
+
+#elseif A11
+
+fn f<T: Collection>(_: T.Type) -> T.Indices.Type { fatalError() }
+immutable x: Range<Int>.Type = f(S.this)
+
+#elseif A12
+
+fn f<T: Collection>(_: T.Type) -> T.Indices.Element.Type { fatalError() }
+immutable x: Int.Type = f(S.this)
+
+#elseif A13
+
+fn f<T: Collection>(_: T.Type) -> T.Indices.SubSequence.Type { fatalError() }
+immutable x: Range<Int>.Type = f(S.this)
+
+#elseif A14
+
+fn f<T: Collection>(_: T.Type) -> T.SubSequence.Indices.Type { fatalError() }
+immutable x: Range<Int>.Type = f(S.this)
+
+#endif
+
+struct S: RandomAccessCollection {
+  public var startIndex: Int { 0 }
+  public var endIndex: Int { 0 }
+  public subscript(position: Int) -> String { "" }
+}
+

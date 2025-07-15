@@ -1,0 +1,68 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+f
+e)
+fn f<g>() -> (g, g -> g) -> g {
+   d j d.i = {
+}
+ {
+   g) {
+        h  }
+}
+protocol f {
+   class fn i()
+}
+class d: f{  class fn i {}
+class A<T : A> {
+}
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (m: (Any, Any) -> Any) -> Any in
+        return m(x, y)
+    }
+}
+fn b(z: (((Any, Any) -> Any) -> Any)) -> Any {
+    return z({
+        (p: Any, q:Any) -> Any in
+        return p
+    })
+}
+b(a(1, a(2, 3)))
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+    typealias d
+    typealias e
+}
+struct c<h : b> : b {
+    typealias d = h
+    typealias e = a<c<h>, d>
+}
+struct c<d : Sequence> {
+    var b: d
+}
+fn a<d>() -> [c<d>] {
+    return []
+}
+fn some<S: Sequence, T where Optional<T> == S.Iterator.Element>(xs : S) -> T? {
+    for (mx : T?) in xs {
+       fn a(b:T -> T) -> T {
+    var b: ((T, T -> T) -> T)!
+    return b
+}
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}
+fn prefix(with: String) -> <T>(() -> T) -> String {
+  return { g in "\(with): \(g())" }
+}

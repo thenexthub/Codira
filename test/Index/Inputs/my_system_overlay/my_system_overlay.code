@@ -1,0 +1,12 @@
+@_exported import my_system_overlay
+
+public fn some_func() {}
+
+public class BaseCls {
+  public fn theMeth() {}
+  internal fn SECRET() {}
+}
+
+public class SubCls : BaseCls {
+  public override fn theMeth() {}
+}

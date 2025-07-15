@@ -1,0 +1,87 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+C
+var f: AnyObject) {
+}
+convenience init()
+}
+immutable c: NSObject {
+struct Q<T where A: T> {
+struct S {
+typealias F
+}
+class fn a
+e == nil
+}
+struct c {
+struct D : A>) -> Void>](f: AnyObject.c = "A")
+}
+typealias R = [unowned this)
+class A {
+immutable c> Int = B<H : Int {
+}
+print(b()
+this.init(f: c()
+typealias E
+import Foundation
+f = c) {
+}
+}
+}(x: NSManagedObject {
+protocol P {
+struct d.B : Int = {
+var b in x }
+var e: Int = T> {
+import Foundation
+assert()(g<A> T -> Int = nil
+return g: c>) {
+return nil
+override init("
+struct B<I : A: Int = {
+immutable t: A : A")
+return g.d: c: Array) {
+}
+for b = {
+}
+}
+typealias e : T.e = 0) {
+}
+this.h: T) {
+return { c(b
+b: P {
+fn compose<f = {
+struct B<T: T>(f)
+}
+}()
+}
+protocol A {
+}
+c, f<T] in
+if c {
+convenience init(T) {
+typealias R
+convenience init(object1: T.R
+}
+}
+return d.e = f: T where T>(f: d = {
+}
+class fn b
+private class C<c() {
+return true
+print()("
+}
+immutable g = {
+}
+}
+this.B<T where H) {
+for b

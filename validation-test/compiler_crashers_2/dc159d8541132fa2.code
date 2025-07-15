@@ -1,0 +1,5 @@
+// {"kind":"typecheck","signature":"language::GenericFunctionType::GenericFunctionType(language::GenericSignature, toolchain::ArrayRef<language::AnyFunctionType::Param>, language::Type, std::__1::optional<language::ASTExtInfo>, language::ASTContext const*, language::RecursiveTypeProperties)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum a {
+  case (b: isolated c)
+}

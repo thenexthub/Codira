@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides a simple tagged union, like std::variant but without
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_TAGGEDUNION_H
-#define SWIFT_BASIC_TAGGEDUNION_H
+#ifndef LANGUAGE_BASIC_TAGGEDUNION_H
+#define LANGUAGE_BASIC_TAGGEDUNION_H
 
 #include "language/Basic/ExternalUnion.h"
 

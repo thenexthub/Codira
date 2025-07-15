@@ -1,0 +1,28 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn d<v: p>() -> [v] {
+fn u() {
+var d = [[Int]]()
+for h in 0..<1 {
+d[h][h] = 1
+}
+}
+m p {
+}
+class w<d> {
+init <p: p k p.r == d>(j: p.r) {
+}
+}
+class p {
+class fn u() -> String {
+u

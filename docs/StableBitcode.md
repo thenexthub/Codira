@@ -1,6 +1,6 @@
 # Making Backwards-Compatible Changes in the LLVM Bitstream Format
 
-Swift uses the [LLVM bitstream][] format for some of its serialization logic. This format was invented as a container for LLVM IR. It is a binary format supporting two basic structures: *blocks,* which define regions of the file, and *records,* which contain data fields that can be up to 64 bits. It has a few nice properties that make it a useful container format for us as well:
+Codira uses the [LLVM bitstream][] format for some of its serialization logic. This format was invented as a container for LLVM IR. It is a binary format supporting two basic structures: *blocks,* which define regions of the file, and *records,* which contain data fields that can be up to 64 bits. It has a few nice properties that make it a useful container format for us as well:
 
 - It is easy to skip over an entire block, because the block's length is recorded at its start.
 
@@ -14,9 +14,9 @@ However, it has some disadvantages as well:
 
 - Higher-level features like cross-references or lookup by key have to be built on top of the format, usually in a way that the existing tooling doesn't understand.
 
-You can view the contents of any LLVM bitstream using the `llvm-bcanalyzer` tool's `-dump` option.
+You can view the contents of any LLVM bitstream using the `toolchain-bcanalyzer` tool's `-dump` option.
 
-[LLVM bitstream]: http://llvm.org/docs/BitCodeFormat.html
+[LLVM bitstream]: http://toolchain.org/docs/BitCodeFormat.html
 
 
 ## Backwards-compatibility
@@ -37,7 +37,7 @@ In practice, there are a few ways to accomplish this with LLVM bitstreams:
 
     Note that the BCRecordLayout DSL expects the number of fields to **match exactly**. If you want to use BCRecordLayout's `readRecord` method, the deserialization logic will have to check that the deserialized data has the correct number of fields ahead of time. If it has more fields, you can make an ArrayRef that slices off the extra ones; if it has fewer, you're reading from an old format and will need to use a different BCRecordLayout, or just read them manually.
 
-    (We could also add more API to BCRecordLayout to make this easier. It's part of LLVM, but it's a part of LLVM originally contributed by Swift folks.)
+    (We could also add more API to BCRecordLayout to make this easier. It's part of LLVM, but it's a part of LLVM originally contributed by Codira folks.)
 
     Note also that it's still okay to use BCRecordLayout for *serialization.* It's only deserialization where we have to be careful about multiple formats.
 

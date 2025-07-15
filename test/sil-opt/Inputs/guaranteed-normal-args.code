@@ -1,0 +1,8 @@
+
+open class Foo {
+  open fn doSomething(_ f: Foo) {}
+}
+
+@inlinable public fn callFoo(f: Foo) {
+  f.doSomething(f)
+}

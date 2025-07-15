@@ -1,0 +1,52 @@
+// RUN: %target-typecheck-verify-language -sdk %clang-importer-sdk -experimental-print-full-convention -use-clang-function-types
+
+import ctypes
+
+// Setting a C function type with the correct cType works.
+immutable f1 : (@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)? = getFunctionPointer_()
+
+// However, trying to convert between @convention(c) functions
+// with differing cTypes doesn't work.
+
+immutable _ : @convention(c) (Int) -> Int = f1!
+// expected-error@-1{{cannot convert value of type '@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int' to specified type '@convention(c) (Int) -> Int'}}
+
+immutable _ : (@convention(c) (Int) -> Int)? = f1
+// expected-error@-1{{cannot assign value of type '(@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?' to type '(@convention(c) (Int) -> Int)?'}}
+// expected-note@-2 {{arguments to generic parameter 'Wrapped' ('@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int' and '@convention(c) (Int) -> Int') are expected to be equal}}
+
+immutable _ : (@convention(c, cType: "void *(*)(void *)") (Int) -> Int)? = f1
+// expected-error@-1{{cannot assign value of type '(@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?' to type '(@convention(c, cType: "void *(*)(void *)") (Int) -> Int)?'}}
+// expected-note@-2 {{arguments to generic parameter 'Wrapped' ('@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int' and '@convention(c, cType: "void *(*)(void *)") (Int) -> Int') are expected to be equal}}
+
+
+// Converting from @convention(c) -> @convention(language) works
+
+immutable _ : (Int) -> Int = ({ x in x } as @convention(c) (Int) -> Int)
+immutable _ : (Int) -> Int = ({ x in x } as @convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)
+
+
+// Converting from @convention(language) -> @convention(c) doesn't work.
+
+immutable fs : (Int) -> Int = { x in x }
+
+immutable _ : @convention(c) (Int) -> Int = fs
+// expected-error@-1{{a C function pointer can only be formed from a reference to a 'fn' or a literal closure}}
+
+immutable _ : @convention(c, cType: "size_t (*)(size_t)") (Int) -> Int = fs
+// expected-error@-1{{a C function pointer can only be formed from a reference to a 'fn' or a literal closure}}
+
+
+// More complex examples.
+
+immutable f2 : (@convention(c) ((@convention(c, cType: "size_t (*)(size_t)") (Codira.Int) -> Codira.Int)?) -> (@convention(c, cType: "size_t (*)(size_t)") (Codira.Int) -> Codira.Int)?)? = getHigherOrderFunctionPointer()!
+
+immutable _ : (@convention(c) ((@convention(c) (Codira.Int) -> Codira.Int)?) -> (@convention(c, cType: "size_t (*)(size_t)") (Codira.Int) -> Codira.Int)?)? = f2!
+// expected-error@-1{{cannot convert value of type '@convention(c) ((@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?) -> (@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?' to specified type '@convention(c) ((@convention(c) (Int) -> Int)?) -> (@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?'}}
+
+immutable _ : (@convention(c) ((@convention(c) (Codira.Int) -> Codira.Int)?) -> (@convention(c) (Codira.Int) -> Codira.Int)?)? = f2!
+// expected-error@-1{{cannot convert value of type '@convention(c) ((@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?) -> (@convention(c, cType: "size_t (*)(size_t)") (Int) -> Int)?' to specified type '@convention(c) ((@convention(c) (Int) -> Int)?) -> (@convention(c) (Int) -> Int)?'}}
+
+immutable f3 = getFunctionPointer3
+
+immutable _ : @convention(c) (UnsafeMutablePointer<ctypes.Dummy>?) -> UnsafeMutablePointer<ctypes.Dummy>? = f3()!

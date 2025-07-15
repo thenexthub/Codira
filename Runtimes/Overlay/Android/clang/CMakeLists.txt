@@ -8,33 +8,30 @@ version: 0
 case-sensitive: false
 use-external-names: false
 roots:
-  - name: "@CMAKE_ANDROID_NDK@/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/include"
+  - name: "@CMAKE_ANDROID_NDK@/toolchains/toolchain/prebuilt/windows-x86_64/sysroot/usr/include"
     type: directory
     contents:
       - name: module.modulemap
         type: file
         external-contents: "@CMAKE_CURRENT_SOURCE_DIR@/android.modulemap"
-      - name: SwiftAndroidNDK.h
+      - name: CodiraAndroidNDK.h
         type: file
-        external-contents: "@CMAKE_CURRENT_SOURCE_DIR@/SwiftAndroidNDK.h"
-      - name: SwiftBionic.h
+        external-contents: "@CMAKE_CURRENT_SOURCE_DIR@/CodiraAndroidNDK.h"
+      - name: CodiraBionic.h
         type: file
-        external-contents: "@CMAKE_CURRENT_SOURCE_DIR@/SwiftBionic.h"
+        external-contents: "@CMAKE_CURRENT_SOURCE_DIR@/CodiraBionic.h"
 ]]
 ESCAPE_QUOTES @ONLY NEWLINE_STYLE LF)
 
-add_library(SwiftAndroid INTERFACE)
-target_compile_options(SwiftAndroid INTERFACE
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc --sysroot=\"${CMAKE_ANDROID_NDK_TOOLCHAIN_UNIFIED}/sysroot\">"
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-vfsoverlay ${CMAKE_CURRENT_BINARY_DIR}/android-ndk-overlay.yaml>")
+add_library(CodiraAndroid INTERFACE)
+target_compile_options(CodiraAndroid INTERFACE
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-Xcc --sysroot=\"${CMAKE_ANDROID_NDK_TOOLCHAIN_UNIFIED}/sysroot\">"
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-vfsoverlay ${CMAKE_CURRENT_BINARY_DIR}/android-ndk-overlay.yaml>")
 
 install(FILES
   android.modulemap
-  SwiftAndroidNDK.h
-  SwiftBionic.h
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/${SwiftOverlay_PLATFORM_SUBDIR}/${SwiftOverlay_ARCH_SUBDIR})
-
-install(FILES
   posix_filesystem.apinotes
   spawn.apinotes
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/swift$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/apinotes)
+  CodiraAndroidNDK.h
+  CodiraBionic.h
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/language/${CodiraOverlay_PLATFORM_SUBDIR}/${CodiraOverlay_ARCH_SUBDIR})

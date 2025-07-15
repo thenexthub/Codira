@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements an infinitely-sized-type check.
@@ -35,7 +36,7 @@ class TrackingInfo {
   /// The member of the parent type that lead to this type, or null
   /// for a tuple element; and whether the type is currently being
   /// expanded.
-  llvm::PointerIntPair<ValueDecl *, 1, bool> ParentMemberAndIsBeingExpanded;
+  toolchain::PointerIntPair<ValueDecl *, 1, bool> ParentMemberAndIsBeingExpanded;
 
 public:
   TrackingInfo(CanType parent, ValueDecl *parentMember)
@@ -77,8 +78,8 @@ struct PathElement {
   size_t TupleIndex;
   Type Ty;
 
-  SWIFT_DEBUG_DUMP;
-  void print(llvm::raw_ostream &out) const;
+  LANGUAGE_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &out) const;
 };
 
 class Path {
@@ -92,12 +93,12 @@ public:
   const PathElement &operator[](size_t index) const { return Elements[index]; }
   const PathElement &back() const { return Elements.back(); }
 
-  SWIFT_DEBUG_DUMP;
-  void printCycle(llvm::raw_ostream &out, size_t cycleIndex) const;
-  void printInfinite(llvm::raw_ostream &out) const;
+  LANGUAGE_DEBUG_DUMP;
+  void printCycle(toolchain::raw_ostream &out, size_t cycleIndex) const;
+  void printInfinite(toolchain::raw_ostream &out) const;
 
 private:
-  void printSegment(llvm::raw_ostream &out, size_t begin, size_t end,
+  void printSegment(toolchain::raw_ostream &out, size_t begin, size_t end,
                     size_t maxContext, bool printFirstType = true) const;
 };
 
@@ -109,7 +110,7 @@ class CircularityChecker final {
   /// The maximum circularity depth.
   unsigned MaxDepth;
 
-  llvm::DenseMap<CanType, TrackingInfo> TrackingMap;
+  toolchain::DenseMap<CanType, TrackingInfo> TrackingMap;
   SmallVector<WorkItem, 8> Workstack;
 
 public:
@@ -220,7 +221,7 @@ bool CircularityChecker::expandType(CanType type, unsigned depth) {
 
 /// Visit a tuple type and try to expand it one level.
 bool CircularityChecker::expandTuple(CanTupleType tupleType, unsigned depth) {
-  LLVM_DEBUG(llvm::dbgs() << std::string(depth, ' ') << "expanding tuple "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << std::string(depth, ' ') << "expanding tuple "
                           << tupleType << "\n";);
   startExpandingType(tupleType);
 
@@ -235,7 +236,7 @@ bool CircularityChecker::expandTuple(CanTupleType tupleType, unsigned depth) {
 /// Visit a nominal type and try to expand it one level.
 bool CircularityChecker::expandNominal(CanType type, NominalTypeDecl *D,
                                        unsigned depth) {
-  LLVM_DEBUG(llvm::dbgs() << std::string(depth, ' ') << "expanding nominal "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << std::string(depth, ' ') << "expanding nominal "
                           << type << "\n";);
   if (auto S = dyn_cast<StructDecl>(D)) {
     return expandStruct(type, S, depth);
@@ -344,7 +345,7 @@ static size_t findCycleIndex(const Path &path) {
     if (path[index].Ty->isEqual(path.back().Ty))
       return index;
   }
-  llvm_unreachable("didn't find cycle in path");
+  toolchain_unreachable("didn't find cycle in path");
 }
 
 static Type getMemberStorageInterfaceType(ValueDecl *member) {
@@ -360,8 +361,8 @@ static bool isNonDependentField(const PathElement &elt) {
   return !getMemberStorageInterfaceType(elt.Member)->hasTypeParameter();
 }
 
-void LLVM_ATTRIBUTE_USED Path::dump() const {
-  auto &out = llvm::errs();
+void TOOLCHAIN_ATTRIBUTE_USED Path::dump() const {
+  auto &out = toolchain::errs();
   printSegment(out, 0, size(), size());
   out << '\n';
 }
@@ -369,7 +370,7 @@ void LLVM_ATTRIBUTE_USED Path::dump() const {
 /// Prints:
 ///   TypeA -> (a: TypeB) -> (b: TypeB) -> (c: CycleType)
 ///         -> (d: TypeD) -> (e: CycleType)
-void Path::printCycle(llvm::raw_ostream &out, size_t cycleIndex) const {
+void Path::printCycle(toolchain::raw_ostream &out, size_t cycleIndex) const {
   // If the cycle goes to Self or the member type, print the
   // path in one segment starting from the field type.
   if (cycleIndex <= 1) {
@@ -384,7 +385,7 @@ void Path::printCycle(llvm::raw_ostream &out, size_t cycleIndex) const {
 
 /// Prints:
 ///   TypeA -> (x: TypeB) -> (y: TypeB) -> (z: TypeC) -> ...
-void Path::printInfinite(llvm::raw_ostream &out) const {
+void Path::printInfinite(toolchain::raw_ostream &out) const {
   printSegment(out, 1, std::min(size(), size_t(7)), 7);
   out << " -> ...";
 }
@@ -392,7 +393,7 @@ void Path::printInfinite(llvm::raw_ostream &out) const {
 /// Prints:
 ///   [TypeA] -> (a: TypeB) -> (b: TypeB) -> (c: TypeC)
 /// If the path is too long, elides the middle with '-> ...'.
-void Path::printSegment(llvm::raw_ostream &out, size_t begin, size_t end,
+void Path::printSegment(toolchain::raw_ostream &out, size_t begin, size_t end,
                         size_t maxContext, bool printFirstType) const {
   if (printFirstType) {
     out << Elements[begin].Ty;
@@ -412,15 +413,15 @@ void Path::printSegment(llvm::raw_ostream &out, size_t begin, size_t end,
   }
 }
 
-void LLVM_ATTRIBUTE_USED PathElement::dump() const {
-  auto &out = llvm::errs();
+void TOOLCHAIN_ATTRIBUTE_USED PathElement::dump() const {
+  auto &out = toolchain::errs();
   print(out);
   out << '\n';
 }
 
 /// Prints:
 ///   -> (a: TypeA)
-void PathElement::print(llvm::raw_ostream &out) const {
+void PathElement::print(toolchain::raw_ostream &out) const {
   out << " -> (";
   if (Member) {
     auto name = Member->getName();
@@ -527,13 +528,13 @@ bool CircularityChecker::diagnoseCircularity(CanType parentType,
     OriginalDecl->diagnose(diag::recursive_enum_not_indirect, baseType)
         .fixItInsert(OriginalDecl->getStartLoc(), "indirect ");
   } else {
-    llvm_unreachable("what kind of entity was this?");
+    toolchain_unreachable("what kind of entity was this?");
   }
 
   // Add a note about the path we found unless it's completely trivial.
   if (path.size() > 2) {
-    llvm::SmallString<128> pathString; {
-      llvm::raw_svector_ostream out(pathString);
+    toolchain::SmallString<128> pathString; {
+      toolchain::raw_svector_ostream out(pathString);
       path.printCycle(out, cycleIndex);
     }
     path[1].Member->diagnose(diag::note_type_cycle_starts_here, pathString);
@@ -564,8 +565,8 @@ bool CircularityChecker::diagnoseInfiniteRecursion(CanType parentType,
   OriginalDecl->diagnose(diag::unsupported_infinitely_sized_type, baseType);
 
   // Add a note about the start of the path.
-  llvm::SmallString<128> pathString; {
-    llvm::raw_svector_ostream out(pathString);
+  toolchain::SmallString<128> pathString; {
+    toolchain::raw_svector_ostream out(pathString);
     path.printInfinite(out);
   }
 

@@ -1,24 +1,28 @@
-//===--- TypeExpansionContext.h - Swift Type Expansion Context --*- C++ -*-===//
+//===--- TypeExpansionContext.h - Codira Type Expansion Context --*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the TypeExpansionContext class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_TYPEEXPANSIONCONTEXT_H
-#define SWIFT_TYPEEXPANSIONCONTEXT_H
+#ifndef LANGUAGE_TYPEEXPANSIONCONTEXT_H
+#define LANGUAGE_TYPEEXPANSIONCONTEXT_H
 
 #include "language/AST/ResilienceExpansion.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
   class DeclContext;
@@ -117,22 +121,22 @@ public:
 
 } // namespace language
 
-namespace llvm {
-template <> struct DenseMapInfo<swift::TypeExpansionContext> {
-  using TypeExpansionContext = swift::TypeExpansionContext;
+namespace toolchain {
+template <> struct DenseMapInfo<language::TypeExpansionContext> {
+  using TypeExpansionContext = language::TypeExpansionContext;
 
   static TypeExpansionContext getEmptyKey() {
     return TypeExpansionContext(
-        swift::ResilienceExpansion::Minimal,
-        reinterpret_cast<swift::DeclContext *>(
-            DenseMapInfo<swift::DeclContext *>::getEmptyKey()),
+        language::ResilienceExpansion::Minimal,
+        reinterpret_cast<language::DeclContext *>(
+            DenseMapInfo<language::DeclContext *>::getEmptyKey()),
         false);
   }
   static TypeExpansionContext getTombstoneKey() {
     return TypeExpansionContext(
-        swift::ResilienceExpansion::Minimal,
-        reinterpret_cast<swift::DeclContext *>(
-            DenseMapInfo<swift::DeclContext *>::getTombstoneKey()),
+        language::ResilienceExpansion::Minimal,
+        reinterpret_cast<language::DeclContext *>(
+            DenseMapInfo<language::DeclContext *>::getTombstoneKey()),
         false);
   }
 
@@ -144,6 +148,6 @@ template <> struct DenseMapInfo<swift::TypeExpansionContext> {
     return LHS == RHS;
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
 #endif

@@ -1,13 +1,17 @@
-//===--- Demangle.h - Interface to Swift symbol demangling ------*- C++ -*-===//
+//===--- Demangle.h - Interface to Codira symbol demangling ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file is the public API of the demangler library.
@@ -16,14 +20,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_DEMANGLE_H
-#define SWIFT_DEMANGLING_DEMANGLE_H
+#ifndef LANGUAGE_DEMANGLING_DEMANGLE_H
+#define LANGUAGE_DEMANGLING_DEMANGLE_H
 
+#include "language/Demangling/Demangle.h"
 #include "language/Demangling/Errors.h"
 #include "language/Demangling/ManglingFlavor.h"
 #include "language/Demangling/NamespaceMacros.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Compiler.h"
+#include "language/Strings.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Compiler.h"
 
 #include <cassert>
 #include <cstdint>
@@ -34,7 +40,7 @@
 
 namespace language {
 namespace Demangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
 enum class SymbolicReferenceKind : uint8_t;
 
@@ -68,7 +74,7 @@ struct DemangleOptions {
   bool ShowClosureSignature = true;
 
   /// If this is nonempty, entities in this module name will not be qualified.
-  llvm::StringRef HidingCurrentModule;
+  toolchain::StringRef HidingCurrentModule;
   /// A function to render generic parameter names.
   std::function<std::string(uint64_t, uint64_t)> GenericParameterName =
       genericParameterName;
@@ -99,6 +105,7 @@ struct DemangleOptions {
 
 class Node;
 using NodePointer = Node *;
+class NodePrinter;
 
 enum class FunctionSigSpecializationParamKind : unsigned {
   // Option Flags use bits 0-5. This give us 6 bits implying 64 entries to
@@ -202,7 +209,7 @@ private:
   };
 
   union {
-    llvm::StringRef Text;
+    toolchain::StringRef Text;
     IndexType Index;
     NodePointer InlineChildren[2];
     NodeVector Children;
@@ -220,7 +227,7 @@ private:
   Node(Kind k)
       : NodeKind(k), NodePayloadKind(PayloadKind::None) {
   }
-  Node(Kind k, llvm::StringRef t)
+  Node(Kind k, toolchain::StringRef t)
       : NodeKind(k), NodePayloadKind(PayloadKind::Text) {
     Text = t;
   }
@@ -270,7 +277,7 @@ public:
   }
 
   bool hasText() const { return NodePayloadKind == PayloadKind::Text; }
-  llvm::StringRef getText() const {
+  toolchain::StringRef getText() const {
     assert(hasText());
     return Text;
   }
@@ -348,72 +355,72 @@ public:
   /// Prints the whole node tree in readable form to stderr.
   ///
   /// Useful to be called from the debugger.
-  void dump() LLVM_ATTRIBUTE_USED;
+  void dump() TOOLCHAIN_ATTRIBUTE_USED;
 };
 
-/// Returns the length of the swift mangling prefix of the \p SymbolName.
+/// Returns the length of the language mangling prefix of the \p SymbolName.
 ///
-/// Returns 0 if \p SymbolName is not a mangled swift (>= swift 4.x) name.
-int getManglingPrefixLength(llvm::StringRef mangledName);
+/// Returns 0 if \p SymbolName is not a mangled language (>= language 4.x) name.
+int getManglingPrefixLength(toolchain::StringRef mangledName);
 
-/// Returns true if \p SymbolName is a mangled swift name.
+/// Returns true if \p SymbolName is a mangled language name.
 ///
-/// This does not include the old (<= swift 3.x) mangling prefix "_T".
-inline bool isMangledName(llvm::StringRef mangledName) {
+/// This does not include the old (<= language 3.x) mangling prefix "_T".
+inline bool isMangledName(toolchain::StringRef mangledName) {
   return getManglingPrefixLength(mangledName) != 0;
 }
 
-/// Returns true if the mangledName starts with the swift mangling prefix.
+/// Returns true if the mangledName starts with the language mangling prefix.
 ///
-/// This includes the old (<= swift 3.x) mangling prefix "_T".
-bool isSwiftSymbol(llvm::StringRef mangledName);
+/// This includes the old (<= language 3.x) mangling prefix "_T".
+bool isCodiraSymbol(toolchain::StringRef mangledName);
 
-/// Returns true if the mangledName starts with the swift mangling prefix.
+/// Returns true if the mangledName starts with the language mangling prefix.
 ///
-/// This includes the old (<= swift 3.x) mangling prefix "_T".
-bool isSwiftSymbol(const char *mangledName);
+/// This includes the old (<= language 3.x) mangling prefix "_T".
+bool isCodiraSymbol(const char *mangledName);
 
-/// Drops the Swift mangling prefix from the given mangled name, if there is
+/// Drops the Codira mangling prefix from the given mangled name, if there is
 /// one.
 ///
-/// This does not include the old (<= swift 3.x) mangling prefix "_T".
-llvm::StringRef dropSwiftManglingPrefix(llvm::StringRef mangledName);
+/// This does not include the old (<= language 3.x) mangling prefix "_T".
+toolchain::StringRef dropCodiraManglingPrefix(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name is an alias type name.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isAlias(llvm::StringRef mangledName);
+bool isAlias(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name is a class type name.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isClass(llvm::StringRef mangledName);
+bool isClass(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name is an enum type name.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isEnum(llvm::StringRef mangledName);
+bool isEnum(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name is a protocol type name.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isProtocol(llvm::StringRef mangledName);
+bool isProtocol(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name is a structure type name.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isStruct(llvm::StringRef mangledName);
+bool isStruct(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name is an Objective-C symbol.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isObjCSymbol(llvm::StringRef mangledName);
+bool isObjCSymbol(toolchain::StringRef mangledName);
 
 /// Returns true if the mangled name has the old scheme of function type
 /// mangling where labels are part of the type.
 ///
 /// \param mangledName A null-terminated string containing a mangled name.
-bool isOldFunctionTypeMangling(llvm::StringRef mangledName);
+bool isOldFunctionTypeMangling(toolchain::StringRef mangledName);
 
 class Demangler;
 
@@ -453,7 +460,7 @@ public:
   /// on failure.
   /// The lifetime of the returned node tree ends with the lifetime of the
   /// context or with a call of clear().
-  NodePointer demangleSymbolAsNode(llvm::StringRef MangledName);
+  NodePointer demangleSymbolAsNode(toolchain::StringRef MangledName);
 
   /// Demangle the given type and return the parse tree.
   ///
@@ -464,17 +471,27 @@ public:
   /// on failure.
   /// The lifetime of the returned node tree ends with the lifetime of the
   /// context or with a call of clear().
-  NodePointer demangleTypeAsNode(llvm::StringRef MangledName);
-  
+  NodePointer demangleTypeAsNode(toolchain::StringRef MangledName);
+
   /// Demangle the given symbol and return the readable name.
   ///
   /// \param MangledName The mangled symbol string, which start a mangling
   /// prefix: _T, _T0, $S, _$S.
   ///
   /// \returns The demangled string.
-  std::string demangleSymbolAsString(
-      llvm::StringRef MangledName,
-      const DemangleOptions &Options = DemangleOptions());
+  std::string
+  demangleSymbolAsString(toolchain::StringRef MangledName,
+                         const DemangleOptions &Options = DemangleOptions());
+
+  /// Demangle the given symbol and store the result in the `printer`.
+  ///
+  /// \param MangledName The mangled symbol string, which start a mangling
+  /// prefix: _T, _T0, $S, _$S.
+  /// \param Printer The NodePrinter that will be used to demangle the symbol.
+  ///
+  /// \returns The demangled string.
+  void demangleSymbolAsString(toolchain::StringRef MangledName,
+                              NodePrinter &Printer);
 
   /// Demangle the given type and return the readable name.
   ///
@@ -483,14 +500,14 @@ public:
   ///
   /// \returns The demangled string.
   std::string
-  demangleTypeAsString(llvm::StringRef MangledName,
+  demangleTypeAsString(toolchain::StringRef MangledName,
                        const DemangleOptions &Options = DemangleOptions());
 
   /// Returns true if the mangledName refers to a thunk function.
   ///
-  /// Thunk functions are either (ObjC) partial apply forwarder, swift-as-ObjC
-  /// or ObjC-as-swift thunks or allocating init functions.
-  bool isThunkSymbol(llvm::StringRef MangledName);
+  /// Thunk functions are either (ObjC) partial apply forwarder, language-as-ObjC
+  /// or ObjC-as-language thunks or allocating init functions.
+  bool isThunkSymbol(toolchain::StringRef MangledName);
 
   /// Returns the mangled name of the target of a thunk.
   ///
@@ -498,14 +515,14 @@ public:
   /// characters from \p MangledName. If \p MangledName is not a thunk symbol
   /// or the thunk target cannot be derived from the mangling, an empty string
   /// is returned.
-  std::string getThunkTarget(llvm::StringRef MangledName);
+  std::string getThunkTarget(toolchain::StringRef MangledName);
 
   /// Returns true if the \p mangledName refers to a function which conforms to
-  /// the Swift calling convention.
+  /// the Codira calling convention.
   ///
   /// The return value is unspecified if the \p MangledName does not refer to a
   /// function symbol.
-  bool hasSwiftCallingConvention(llvm::StringRef MangledName);
+  bool hasCodiraCallingConvention(toolchain::StringRef MangledName);
 
   /// Demangle the given symbol and return the module name of the symbol.
   ///
@@ -513,7 +530,7 @@ public:
   /// prefix: _T, _T0, $S, _$S.
   ///
   /// \returns The module name.
-  std::string getModuleName(llvm::StringRef mangledName);
+  std::string getModuleName(toolchain::StringRef mangledName);
 
   /// Deallocates all nodes.
   ///
@@ -533,6 +550,16 @@ std::string
 demangleSymbolAsString(const char *mangledName, size_t mangledNameLength,
                        const DemangleOptions &options = DemangleOptions());
 
+/// Standalone utility function to demangle the given symbol as string. The
+/// demangled string is stored in the `printer`.
+///
+/// If performance is an issue when demangling multiple symbols,
+/// \param mangledName The mangled name string pointer.
+/// \param mangledNameLength The length of the mangledName string.
+/// \param printer The NodePrinter that will be used to demangle the symbol.
+void demangleSymbolAsString(const toolchain::StringRef mangledName,
+                            NodePrinter &printer);
+
 /// Standalone utility function to demangle the given symbol as string.
 ///
 /// If performance is an issue when demangling multiple symbols,
@@ -545,7 +572,7 @@ demangleSymbolAsString(const std::string &mangledName,
   return demangleSymbolAsString(mangledName.data(), mangledName.size(),
                                 options);
 }
-  
+
 /// Standalone utility function to demangle the given symbol as string.
 ///
 /// If performance is an issue when demangling multiple symbols,
@@ -553,7 +580,7 @@ demangleSymbolAsString(const std::string &mangledName,
 /// \param MangledName The mangled name string.
 /// \returns The demangled string.
 inline std::string
-demangleSymbolAsString(llvm::StringRef MangledName,
+demangleSymbolAsString(toolchain::StringRef MangledName,
                        const DemangleOptions &Options = DemangleOptions()) {
   return demangleSymbolAsString(MangledName.data(),
                                 MangledName.size(), Options);
@@ -589,7 +616,7 @@ demangleTypeAsString(const std::string &mangledName,
 /// \param MangledName The mangled name string.
 /// \returns The demangled string.
 inline std::string
-demangleTypeAsString(llvm::StringRef MangledName,
+demangleTypeAsString(toolchain::StringRef MangledName,
                      const DemangleOptions &Options = DemangleOptions()) {
   return demangleTypeAsString(MangledName.data(),
                               MangledName.size(), Options);
@@ -626,7 +653,7 @@ struct [[nodiscard]] ManglingError {
     InvalidImplCoroutineKind,
     InvalidImplFunctionAttribute,
     InvalidImplParameterConvention,
-    InvalidImplParameterSending,
+    InvalidImplParameterAttr,
     InvalidMetatypeRepresentation,
     MultiByteRelatedEntity,
     BadValueWitnessKind,
@@ -678,7 +705,7 @@ ManglingErrorOr<std::string>
 mangleNode(NodePointer root,
            Mangle::ManglingFlavor Flavor = Mangle::ManglingFlavor::Default);
 
-using SymbolicResolver = llvm::function_ref<Demangle::NodePointer(
+using SymbolicResolver = toolchain::function_ref<Demangle::NodePointer(
     SymbolicReferenceKind, const void *)>;
 
 /// Remangle a demangled parse tree, using a callback to resolve
@@ -692,7 +719,7 @@ mangleNode(NodePointer root, SymbolicResolver resolver,
 ///
 /// The returned string is owned by \p Factory. This means \p Factory must stay
 /// alive as long as the returned string is used.
-ManglingErrorOr<llvm::StringRef>
+ManglingErrorOr<toolchain::StringRef>
 mangleNode(NodePointer root, SymbolicResolver resolver, NodeFactory &Factory,
            Mangle::ManglingFlavor Flavor = Mangle::ManglingFlavor::Default);
 
@@ -706,7 +733,7 @@ ManglingErrorOr<std::string> mangleNodeOld(NodePointer root);
 /// This is only used for objc-runtime names.
 /// The returned string is owned by \p Factory. This means \p Factory must stay
 /// alive as long as the returned string is used.
-ManglingErrorOr<llvm::StringRef> mangleNodeOld(NodePointer node,
+ManglingErrorOr<toolchain::StringRef> mangleNodeOld(NodePointer node,
                                                NodeFactory &Factory);
 
 /// Remangle in the old mangling scheme and embed the name in "_Tt<name>_".
@@ -721,19 +748,25 @@ ManglingErrorOr<const char *> mangleNodeAsObjcCString(NodePointer node,
 /// Typical usage:
 /// \code
 ///   std::string aDemangledName =
-/// swift::Demangler::nodeToString(aNode)
+/// language::Demangler::nodeToString(aNode)
 /// \endcode
 ///
 /// \param Root A pointer to a parse tree generated by the demangler.
-/// \param Options An object encapsulating options to use to perform this demangling.
+/// \param Options An object encapsulating options to use to perform this
+/// demangling.
 ///
 /// \returns A string representing the demangled name.
-///
 std::string nodeToString(NodePointer Root,
                          const DemangleOptions &Options = DemangleOptions());
 
+/// Transform the node structure to a string, which is stored in the `Printer`.
+///
+/// \param Root A pointer to a parse tree generated by the demangler.
+/// \param Printer A NodePrinter used to pretty print the demangled Node.
+void nodeToString(NodePointer Root, NodePrinter &Printer);
+
 /// Transforms a mangled key path accessor thunk helper
-/// into the identfier/subscript that would be used to invoke it in swift code.
+/// into the identfier/subscript that would be used to invoke it in language code.
 std::string keyPathSourceString(const char *MangledName,
                                 size_t MangledNameLength);
 
@@ -742,7 +775,7 @@ class DemanglerPrinter {
 public:
   DemanglerPrinter() = default;
 
-  DemanglerPrinter &operator<<(llvm::StringRef Value) & {
+  DemanglerPrinter &operator<<(toolchain::StringRef Value) & {
     Stream.append(Value.data(), Value.size());
     return *this;
   }
@@ -775,19 +808,22 @@ public:
  
   std::string &&str() && { return std::move(Stream); }
 
-  llvm::StringRef getStringRef() const { return Stream; }
+  toolchain::StringRef getStringRef() const { return Stream; }
+
+  size_t getStreamLength() { return Stream.length(); }
 
   /// Shrinks the buffer.
   void resetSize(size_t toPos) {
     assert(toPos <= Stream.size());
     Stream.resize(toPos);
   }
+
 private:
   std::string Stream;
 };
 
 /// Returns a the node kind \p k as string.
-const char *getNodeKindString(swift::Demangle::Node::Kind k);
+const char *getNodeKindString(language::Demangle::Node::Kind k);
 
 /// Prints the whole node tree \p Root in readable form into a std::string.
 ///
@@ -810,16 +846,169 @@ bool isFunctionAttr(Node::Kind kind);
 
 /// Form a StringRef around the mangled name starting at base, if the name may
 /// contain symbolic references.
-llvm::StringRef makeSymbolicMangledNameStringRef(const char *base);
+toolchain::StringRef makeSymbolicMangledNameStringRef(const char *base);
 
 /// Produce the mangled name for the nominal type descriptor of a type
 /// referenced by its module and type name.
 std::string mangledNameForTypeMetadataAccessor(
-    llvm::StringRef moduleName, llvm::StringRef typeName, Node::Kind typeKind,
+    toolchain::StringRef moduleName, toolchain::StringRef typeName, Node::Kind typeKind,
     Mangle::ManglingFlavor Flavor = Mangle::ManglingFlavor::Default);
 
-SWIFT_END_INLINE_NAMESPACE
+/// Base class for printing a Codira demangled node tree.
+///
+/// NodePrinter is used to convert demangled Codira symbol nodes into
+/// human-readable string representations. It handles formatting, indentation,
+/// and Codira-specific syntax.
+///
+/// The virtual methods in this class are meant to be overriden to allow
+/// external consumers (e.g lldb) to track the ranges of components of the
+/// demangled name.
+class NodePrinter {
+protected:
+  DemanglerPrinter Printer;
+  DemangleOptions Options;
+  bool SpecializationPrefixPrinted = false;
+  bool isValid = true;
+
+public:
+  NodePrinter(DemangleOptions options) : Options(options) {}
+
+  virtual ~NodePrinter() = default;
+
+  void printRoot(NodePointer root) {
+    isValid = true;
+    print(root, 0);
+  }
+
+  std::string takeString() {
+    if (isValid)
+      return std::move(Printer).str();
+    return "";
+  }
+
+protected:
+  static const unsigned MaxDepth = 768;
+
+  size_t getStreamLength() { return Printer.getStreamLength(); }
+
+  /// Called when the node tree in valid.
+  ///
+  /// The demangler already catches most error cases and mostly produces valid
+  /// node trees. But some cases are difficult to catch in the demangler and
+  /// instead the NodePrinter bails.
+  void setInvalid() { isValid = false; }
+
+  void printChildren(Node::iterator begin, Node::iterator end, unsigned depth,
+                     const char *sep = nullptr);
+
+  void printChildren(NodePointer Node, unsigned depth,
+                     const char *sep = nullptr);
+
+  NodePointer getFirstChildOfKind(NodePointer Node, Node::Kind kind);
+
+  void printBoundGenericNoSugar(NodePointer Node, unsigned depth);
+
+  void printOptionalIndex(NodePointer node);
+
+  static bool isCodiraModule(NodePointer node) {
+    return (node->getKind() == Node::Kind::Module &&
+            node->getText() == STDLIB_NAME);
+  }
+
+  static bool isIdentifier(NodePointer node, StringRef desired) {
+    return (node->getKind() == Node::Kind::Identifier &&
+            node->getText() == desired);
+  }
+
+  bool printContext(NodePointer Context);
+
+  enum class SugarType {
+    None,
+    Optional,
+    ImplicitlyUnwrappedOptional,
+    Array,
+    Dictionary
+  };
+
+  enum class TypePrinting { NoType, WithColon, FunctionStyle };
+
+  /// Determine whether this is a "simple" type, from the type-simple
+  /// production.
+  bool isSimpleType(NodePointer Node);
+
+  void printWithParens(NodePointer type, unsigned depth);
+
+  SugarType findSugar(NodePointer Node);
+
+  void printBoundGeneric(NodePointer Node, unsigned depth);
+
+  NodePointer getChildIf(NodePointer Node, Node::Kind Kind);
+
+  virtual void printFunctionParameters(NodePointer LabelList,
+                                       NodePointer ParameterType,
+                                       unsigned depth, bool showTypes);
+
+  void printFunctionType(NodePointer LabelList, NodePointer node,
+                         unsigned depth);
+
+  void printImplFunctionType(NodePointer fn, unsigned depth);
+
+  void printGenericSignature(NodePointer Node, unsigned depth);
+
+  void printFunctionSigSpecializationParams(NodePointer Node, unsigned depth);
+
+  void printSpecializationPrefix(NodePointer node, StringRef Description,
+                                 unsigned depth,
+                                 StringRef ParamPrefix = StringRef());
+
+  /// The main big print function.
+  NodePointer print(NodePointer Node, unsigned depth,
+                    bool asPrefixContext = false);
+
+  NodePointer printAbstractStorage(NodePointer Node, unsigned depth,
+                                   bool asPrefixContent, StringRef ExtraName);
+
+  /// Utility function to print entities.
+  ///
+  /// \param Entity The entity node to print
+  /// \param depth The depth in the print() call tree.
+  /// \param asPrefixContext Should the entity printed as a context which as a
+  ///        prefix to another entity, e.g. the Abc in Abc.def()
+  /// \param TypePr How should the type of the entity be printed, if at all.
+  ///        E.g. with a colon for properties or as a function type.
+  /// \param hasName Does the entity has a name, e.g. a function in contrast to
+  ///        an initializer.
+  /// \param ExtraName An extra name added to the entity name (if any).
+  /// \param ExtraIndex An extra index added to the entity name (if any),
+  ///        e.g. closure #1
+  /// \param OverwriteName If non-empty, print this name instead of the one
+  ///        provided by the node. Gets printed even if hasName is false.
+  /// \return If a non-null node is returned it's a context which must be
+  ///         printed in postfix-form after the entity: "<entity> in <context>".
+  NodePointer printEntity(NodePointer Entity, unsigned depth,
+                          bool asPrefixContext, TypePrinting TypePr,
+                          bool hasName, StringRef ExtraName = "",
+                          int ExtraIndex = -1, StringRef OverwriteName = "");
+
+  virtual void printFunctionName(bool hasName, toolchain::StringRef &OverwriteName,
+                                 toolchain::StringRef &ExtraName, bool MultiWordName,
+                                 int &ExtraIndex,
+                                 language::Demangle::NodePointer Entity,
+                                 unsigned int depth);
+
+  /// Print the type of an entity.
+  ///
+  /// \param Entity The entity.
+  /// \param type The type of the entity.
+  /// \param genericFunctionTypeList If not null, the generic argument types
+  ///           which is printed in the generic signature.
+  /// \param depth The depth in the print() call tree.
+  void printEntityType(NodePointer Entity, NodePointer type,
+                       NodePointer genericFunctionTypeList, unsigned depth);
+};
+
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Demangle
 } // end namespace language
 
-#endif // SWIFT_DEMANGLING_DEMANGLE_H
+#endif // LANGUAGE_DEMANGLING_DEMANGLE_H

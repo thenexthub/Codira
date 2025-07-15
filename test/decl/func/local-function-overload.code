@@ -1,0 +1,61 @@
+// RUN: %target-typecheck-verify-language
+
+fn valid1() {
+  fn inner(_: Int) {}
+  fn inner(_: String) {}
+
+  fn inner(label: Int) {}
+  fn inner(label: String) {}
+
+  inner(123)
+  inner("hello")
+
+  inner(label: 123)
+  inner(label: "hello")
+}
+
+fn valid2() {
+  fn inner(_: Int = 0) {}
+  fn inner() -> Bool {}
+  fn inner(first: Int, second: Int = 0) {}
+
+  immutable _: Bool = inner()
+  immutable _ = inner()
+
+  inner(first: 123)
+}
+
+fn invalid1() {
+  fn inner(_: Int) {}
+  // expected-note@-1 {{'inner' previously declared here}}
+  fn inner(_: Int) {}
+  // expected-error@-1 {{invalid redeclaration of 'inner'}}
+}
+
+fn invalid2() {
+  fn inner(_: Int) {}
+  // expected-note@-1 {{candidate expects value of type 'Int' for parameter #1}}
+  // expected-note@-2 {{found this candidate}}
+  // expected-note@-3 {{did you mean 'inner'?}}
+  fn inner(_: String) {}
+  // expected-note@-1 {{candidate expects value of type 'String' for parameter #1}}
+  // expected-note@-2 {{found this candidate}}
+
+  fn inner(label: Int) {}
+  // expected-note@-1 {{found this candidate}}
+
+  inner([])
+  // expected-error@-1 {{no exact matches in call to local function 'inner'}}
+
+  inner(label: "hi")
+  // expected-error@-1 {{cannot convert value of type 'String' to expected argument type 'Int'}}
+
+  _ = inner
+  // expected-error@-1 {{ambiguous use of 'inner'}}
+
+  _ = inner(label:) // no-error
+
+  // FIXME: This isn't as good as in the non-local function case?
+  _ = inner(invalidLabel:)
+  // expected-error@-1 {{cannot find 'inner(invalidLabel:)' in scope}}
+}

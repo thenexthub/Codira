@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_UIDENT_H
-#define LLVM_SOURCEKIT_SUPPORT_UIDENT_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_UIDENT_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_UIDENT_H
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Compiler.h"
 #include <atomic>
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -35,7 +36,7 @@ class UIdent {
 
 public:
   UIdent() = default;
-  explicit UIdent(llvm::StringRef Str);
+  explicit UIdent(toolchain::StringRef Str);
 
   bool isValid() const { return Ptr != 0; }
   bool isInvalid() const { return !isValid(); }
@@ -55,11 +56,11 @@ public:
     return !(LHS == RHS);
   }
 
-  llvm::StringRef getName() const;
+  toolchain::StringRef getName() const;
   const char *c_str() const;
 
-  LLVM_ATTRIBUTE_USED void dump() const;
-  void print(llvm::raw_ostream &OS) const;
+  TOOLCHAIN_ATTRIBUTE_USED void dump() const;
+  void print(toolchain::raw_ostream &OS) const;
 };
 
 class LazyUIdent {

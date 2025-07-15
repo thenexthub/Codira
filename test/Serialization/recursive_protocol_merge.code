@@ -1,0 +1,4 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -module-name rpm -o %t/a.codemodule -primary-file %S/Inputs/recursive_protocol_merge_a.code %S/Inputs/recursive_protocol_merge_b.code
+// RUN: %target-language-frontend -emit-module -module-name rpm -o %t/b.codemodule %S/Inputs/recursive_protocol_merge_a.code -primary-file %S/Inputs/recursive_protocol_merge_b.code
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/rpm.codemodule %t/a.codemodule %t/b.codemodule

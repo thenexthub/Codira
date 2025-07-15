@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines an interface for summarizing how to access a
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_MEMBERACCESSSTRATEGY_H
-#define SWIFT_IRGEN_MEMBERACCESSSTRATEGY_H
+#ifndef LANGUAGE_IRGEN_MEMBERACCESSSTRATEGY_H
+#define LANGUAGE_IRGEN_MEMBERACCESSSTRATEGY_H
 
 #include <string>
 #include "IRGen.h"
@@ -99,7 +100,7 @@ public:
           std::string(std::move(other.Storage.GlobalSymbol));
       return;
     }
-    llvm_unreachable("bad member access strategy kind");
+    toolchain_unreachable("bad member access strategy kind");
   }
 
   MemberAccessStrategy &operator=(MemberAccessStrategy &&other) {
@@ -119,7 +120,7 @@ public:
       Storage.GlobalSymbol.~basic_string();
       return;
     }
-    llvm_unreachable("bad member access strategy kind");
+    toolchain_unreachable("bad member access strategy kind");
   }
 
   static MemberAccessStrategy

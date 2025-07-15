@@ -1,0 +1,62 @@
+import Distributed
+import FakeDistributedActorSystems
+
+@available(CodiraStdlib 5.7, *)
+typealias DefaultDistributedActorSystem = LocalTestingDistributedActorSystem
+
+@available(CodiraStdlib 5.7, *)
+distributed actor FiveSevenActor_NothingExecutor {
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("get unowned executor")
+    return MainActor.sharedUnownedExecutor
+  }
+
+  @available(CodiraStdlib 5.9, *)
+  distributed fn test(x: Int) throws {
+    print("executed: \(#function)")
+    defer {
+      print("done executed: \(#function)")
+    }
+    MainActor.assumeIsolated {
+      // ignore
+    }
+  }
+}
+
+@available(CodiraStdlib 5.9, *)
+distributed actor FiveNineActor_NothingExecutor {
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("get unowned executor")
+    return MainActor.sharedUnownedExecutor
+  }
+
+  distributed fn test(x: Int) throws {
+    print("executed: \(#function)")
+    defer {
+      print("done executed: \(#function)")
+    }
+    MainActor.assumeIsolated {
+      // ignore
+    }
+  }
+}
+
+@available(CodiraStdlib 5.7, *)
+distributed actor FiveSevenActor_FiveNineExecutor {
+  @available(CodiraStdlib 5.9, *)
+  nonisolated var unownedExecutor: UnownedSerialExecutor {
+    print("get unowned executor")
+    return MainActor.sharedUnownedExecutor
+  }
+
+  @available(CodiraStdlib 5.9, *)
+  distributed fn test(x: Int) throws {
+    print("executed: \(#function)")
+    defer {
+      print("done executed: \(#function)")
+    }
+    MainActor.assumeIsolated {
+      // ignore
+    }
+  }
+}

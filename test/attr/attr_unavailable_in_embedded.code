@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -typecheck %s -parse-stdlib -print-ast | %FileCheck %s --check-prefix=CHECK-NON-EMBEDDED
+// RUN: %target-language-frontend -typecheck %s -parse-stdlib -enable-experimental-feature Embedded -print-ast | %FileCheck %s --check-prefix=CHECK-EMBEDDED
+
+// REQUIRES: language_feature_Embedded
+
+// CHECK-NON-EMBEDDED-NOT: @available
+// CHECK-NON-EMBEDDED-NOT: @_unavailableInEmbedded
+// CHECK-NON-EMBEDDED:     public fn unavailable()
+
+// CHECK-EMBEDDED-NOT:  @available
+// CHECK-EMBEDDED:      @_unavailableInEmbedded
+// CHECK-EMBEDDED-NEXT: public fn unavailable()
+
+@_unavailableInEmbedded
+public fn unavailable() {}

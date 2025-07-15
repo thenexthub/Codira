@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for property wrappers.
@@ -99,7 +100,7 @@ static VarDecl *findValueProperty(ASTContext &ctx, NominalTypeDecl *nominal,
     return nullptr;
 
   case ActorIsolation::Erased:
-    llvm_unreachable("variable cannot have erased isolation");
+    toolchain_unreachable("variable cannot have erased isolation");
 
   case ActorIsolation::GlobalActor:
   case ActorIsolation::Nonisolated:
@@ -435,12 +436,12 @@ PropertyWrapperTypeInfoRequest::evaluate(
   return result;
 }
 
-llvm::TinyPtrVector<CustomAttr *>
+toolchain::TinyPtrVector<CustomAttr *>
 AttachedPropertyWrappersRequest::evaluate(Evaluator &evaluator,
                                           VarDecl *var) const {
   ASTContext &ctx = var->getASTContext();
   auto dc = var->getDeclContext();
-  llvm::TinyPtrVector<CustomAttr *> result;
+  toolchain::TinyPtrVector<CustomAttr *> result;
 
   for (auto attr : var->getExpandedAttrs().getAttributes<CustomAttr>()) {
     auto mutableAttr = const_cast<CustomAttr *>(attr);
@@ -561,7 +562,7 @@ Type AttachedPropertyWrapperTypeRequest::evaluate(Evaluator &evaluator,
                                                   VarDecl *var,
                                                   unsigned index) const {
   // Find the custom attributes for the attached property wrapper.
-  llvm::TinyPtrVector<CustomAttr *> customAttrVal =
+  toolchain::TinyPtrVector<CustomAttr *> customAttrVal =
       evaluateOrDefault(evaluator, AttachedPropertyWrappersRequest{var}, {});
 
   // If there isn't an attached property wrapper at this index, we're done.
@@ -662,7 +663,7 @@ PropertyWrapperBackingPropertyTypeRequest::evaluate(
   return type;
 }
 
-Type swift::computeWrappedValueType(const VarDecl *var, Type backingStorageType,
+Type language::computeWrappedValueType(const VarDecl *var, Type backingStorageType,
                                     std::optional<unsigned> limit) {
   auto wrapperAttrs = var->getAttachedPropertyWrappers();
   unsigned realLimit = var->hasImplicitPropertyWrapper() ? 1 : wrapperAttrs.size();
@@ -690,7 +691,7 @@ Type swift::computeWrappedValueType(const VarDecl *var, Type backingStorageType,
   return wrappedValueType;
 }
 
-Type swift::computeProjectedValueType(const VarDecl *var, Type backingStorageType) {
+Type language::computeProjectedValueType(const VarDecl *var, Type backingStorageType) {
   if (!var->hasAttachedPropertyWrapper())
     return Type();
 
@@ -701,10 +702,10 @@ Type swift::computeProjectedValueType(const VarDecl *var, Type backingStorageTyp
   return backingStorageType->getTypeOfMember(wrapperInfo.projectedValueVar);
 }
 
-Expr *swift::buildPropertyWrapperInitCall(
+Expr *language::buildPropertyWrapperInitCall(
     const VarDecl *var, Type backingStorageType, Expr *value,
     PropertyWrapperInitKind initKind,
-    llvm::function_ref<void(ApplyExpr *)> innermostInitCallback) {
+    toolchain::function_ref<void(ApplyExpr *)> innermostInitCallback) {
   // From the innermost wrapper type out, form init(wrapperValue:) calls.
   ASTContext &ctx = var->getASTContext();
   auto wrapperAttrs = var->getAttachedPropertyWrappers();
@@ -724,7 +725,7 @@ Expr *swift::buildPropertyWrapperInitCall(
     return init;
   }
 
-  for (unsigned i : llvm::reverse(indices(wrapperAttrs))) {
+  for (unsigned i : toolchain::reverse(indices(wrapperAttrs))) {
     Type wrapperType =
       backingStorageType ? computeWrappedValueType(var, backingStorageType, i)
                          : var->getAttachedPropertyWrapperType(i);
@@ -799,7 +800,7 @@ Expr *swift::buildPropertyWrapperInitCall(
   return initializer;
 }
 
-bool swift::isWrappedValueOfPropWrapper(VarDecl *var) {
+bool language::isWrappedValueOfPropWrapper(VarDecl *var) {
   if (!var->isStatic())
     if (auto *dc = var->getDeclContext())
       if (auto *nominal = dc->getSelfNominalTypeDecl())

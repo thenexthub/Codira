@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  A tool to dump fixed-size type layouts in YAML format.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_TYPE_LAYOUT_DUMPER_H
-#define SWIFT_IRGEN_TYPE_LAYOUT_DUMPER_H
+#ifndef LANGUAGE_IRGEN_TYPE_LAYOUT_DUMPER_H
+#define LANGUAGE_IRGEN_TYPE_LAYOUT_DUMPER_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
-}  // namespace llvm
+}  // namespace toolchain
 
 namespace language {
 
@@ -40,7 +41,7 @@ class TypeLayoutDumper {
 public:
   explicit TypeLayoutDumper(IRGenModule &IGM) : IGM(IGM) {}
 
-  void write(llvm::ArrayRef<ModuleDecl *> AllModules, llvm::raw_ostream &os) const;
+  void write(toolchain::ArrayRef<ModuleDecl *> AllModules, toolchain::raw_ostream &os) const;
 };
 
 }  // namespace irgen

@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the ThrownErrorDestination class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_THROWNERRORDESTINATION
-#define SWIFT_AST_THROWNERRORDESTINATION
+#ifndef LANGUAGE_AST_THROWNERRORDESTINATION
+#define LANGUAGE_AST_THROWNERRORDESTINATION
 
 #include "language/AST/Type.h"
 #include "language/AST/TypeAlignments.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include <optional>
 
 namespace language {
@@ -41,7 +42,7 @@ class ThrownErrorDestination {
     Expr *conversion;
   };
 
-  llvm::PointerUnion<TypeBase *, Conversion *> storage;
+  toolchain::PointerUnion<TypeBase *, Conversion *> storage;
 
   ThrownErrorDestination(Type type) : storage(type.getPointer()) { }
   ThrownErrorDestination(Conversion *conversion) : storage(conversion) { }
@@ -87,4 +88,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_AST_THROWNERRORDESTINATION
+#endif // LANGUAGE_AST_THROWNERRORDESTINATION

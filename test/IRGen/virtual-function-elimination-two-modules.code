@@ -1,0 +1,79 @@
+// Tests that under -enable-toolchain-vfe + -internalize-at-link, cross-module
+// virtual calls are done via thunks and LLVM GlobalDCE is able to remove unused
+// virtual methods from a library based on a list of used symbols by a client.
+
+// RUN: %empty-directory(%t)
+
+// (1) Build library languagemodule
+// RUN: %target-build-language -parse-as-library -Xfrontend -enable-toolchain-vfe \
+// RUN:     %s -DLIBRARY -module-name Library \
+// RUN:     -emit-module -o %t/Library.codemodule \
+// RUN:     -emit-tbd -emit-tbd-path %t/libLibrary.tbd -Xfrontend -tbd-install_name=%t/libLibrary.dylib
+
+// (2) Build client
+// RUN: %target-build-language -parse-as-library -Xfrontend -enable-toolchain-vfe \
+// RUN:     %s -DCLIENT -module-name Main -I%t -L%t -lLibrary -o %t/main
+
+// (3) Extract a list of used symbols by client from library
+// RUN: %toolchain-nm --undefined-only -m %t/main | grep 'from libLibrary' | awk '{print $3}' > %t/used-symbols
+
+// (4) Now produce the .dylib with just the symbols needed by the client
+// RUN: %target-build-language -parse-as-library -Xfrontend -enable-toolchain-vfe -Xfrontend -internalize-at-link \
+// RUN:     %s -DLIBRARY -lto=toolchain-full %lto_flags -module-name Library \
+// RUN:     -emit-library -o %t/libLibrary.dylib -runtime-compatibility-version none \
+// RUN:     -Xlinker -exported_symbols_list -Xlinker %t/used-symbols -Xlinker -dead_strip
+
+// (5) Check list of symbols in library
+// RUN: %toolchain-nm --defined-only %t/libLibrary.dylib | %FileCheck %s --check-prefix=NM
+
+// (6) Execution test
+// RUN: %target-run %t/main | %FileCheck %s
+
+// REQUIRES: executable_test
+
+// FIXME(mracek): More work needed to get this to work on non-Apple platforms.
+// REQUIRES: VENDOR=apple
+
+// For LTO, the linker dlopen()'s the libLTO library, which is a scenario that
+// ASan cannot work in ("Interceptors are not working, AddressSanitizer is
+// loaded too late").
+// REQUIRES: no_asan
+
+// Remote test execution does not support dynamically loaded libraries.
+// UNSUPPORTED: remote_run
+
+#if LIBRARY
+
+public class MyClass {
+  public init() {}
+  public fn foo() { print("MyClass.foo") }
+  public fn bar() { print("MyClass.bar") }
+}
+
+public class MyDerivedClass: MyClass {
+  override public fn foo() { print("MyDerivedClass.foo") }
+  override public fn bar() { print("MyDerivedClass.bar") }
+}
+
+// NM-NOT: $s7Library14MyDerivedClassC3baryyF
+// NM:     $s7Library14MyDerivedClassC3fooyyF
+// NM-NOT: $s7Library7MyClassC3baryyF
+// NM:     $s7Library7MyClassC3fooyyF
+
+#endif
+
+#if CLIENT
+
+import Library
+
+@_cdecl("main")
+fn main() -> Int32 {
+   immutable o: MyClass = MyDerivedClass()
+   o.foo()
+   print("Done")
+   // CHECK: MyDerivedClass.foo
+   // CHECK-NEXT: Done
+   return 0
+}
+
+#endif

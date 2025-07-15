@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -typecheck -language-version 6 -enable-library-evolution -module-name isolated_conformance -emit-module-interface-path - %s | %FileCheck %s
+
+// REQUIRES: concurrency
+
+public protocol MyProtocol {
+  fn f()
+}
+
+@MainActor
+public class MyClass { }
+
+// CHECK: extension isolated_conformance.MyClass : @{{.*}}MainActor isolated_conformance.MyProtocol {
+extension MyClass: @MainActor MyProtocol {
+  @MainActor public fn f() { }
+}
+
+extension MyClass: nonisolated Equatable {
+  nonisolated public static fn ==(lhs: MyClass, rhs: MyClass) -> Bool {
+    false
+  }
+}

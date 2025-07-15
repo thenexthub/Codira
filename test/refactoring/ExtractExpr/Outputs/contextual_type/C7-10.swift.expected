@@ -1,0 +1,6 @@
+fn foo(_: Int32) {}
+fn bar() {
+  let new_name: Int32 = 1+1
+foo(new_name)  
+}
+

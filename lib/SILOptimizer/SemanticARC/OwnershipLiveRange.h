@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_SEMANTICARC_OWNERSHIPLIVERANGE_H
-#define SWIFT_SILOPTIMIZER_SEMANTICARC_OWNERSHIPLIVERANGE_H
+#ifndef LANGUAGE_SILOPTIMIZER_SEMANTICARC_OWNERSHIPLIVERANGE_H
+#define LANGUAGE_SILOPTIMIZER_SEMANTICARC_OWNERSHIPLIVERANGE_H
 
 #include "language/SIL/OwnershipUtils.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
@@ -41,7 +42,7 @@ namespace semanticarc {
 /// NOTE: We do not look through "phi nodes" in the ownership graph (e.x.: real
 /// phi arguments, struct, tuple). Instead we represent those as nodes in a
 /// larger phi ownership web, connected via individual OwnershipLiveRange.
-class LLVM_LIBRARY_VISIBILITY OwnershipLiveRange {
+class TOOLCHAIN_LIBRARY_VISIBILITY OwnershipLiveRange {
   /// The value that we are computing the LiveRange for. Expected to be an owned
   /// introducer and not to be forwarding.
   OwnedValueIntroducer introducer;
@@ -214,4 +215,4 @@ struct OwnershipLiveRange::OperandToUser {
 } // namespace semanticarc
 } // namespace language
 
-#endif // SWIFT_SILOPTIMIZER_SEMANTICARC_OWNERSHIPLIVERANGE_H
+#endif // LANGUAGE_SILOPTIMIZER_SEMANTICARC_OWNERSHIPLIVERANGE_H

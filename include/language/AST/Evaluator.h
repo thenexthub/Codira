@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the Evaluator class that evaluates and caches
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_EVALUATOR_H
-#define SWIFT_AST_EVALUATOR_H
+#ifndef LANGUAGE_AST_EVALUATOR_H
+#define LANGUAGE_AST_EVALUATOR_H
 
 #include "language/AST/AnyRequest.h"
 #include "language/AST/EvaluatorDependencies.h"
@@ -28,20 +29,20 @@
 #include "language/Basic/Debug.h"
 #include "language/Basic/LangOptions.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 #include <type_traits>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
 namespace language {
 
-using llvm::ArrayRef;
+using toolchain::ArrayRef;
 
 class DiagnosticEngine;
 class Evaluator;
@@ -58,13 +59,13 @@ using RequestFunction =
 
 /// Pretty stack trace handler for an arbitrary request.
 template<typename Request>
-class PrettyStackTraceRequest : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceRequest : public toolchain::PrettyStackTraceEntry {
   const Request &request;
 
 public:
   PrettyStackTraceRequest(const Request &request) : request(request) { }
 
-  void print(llvm::raw_ostream &out) const override {
+  void print(toolchain::raw_ostream &out) const override {
     out << "While evaluating request ";
     simple_display(out, request);
     out << "\n";
@@ -94,7 +95,7 @@ void reportEvaluatedRequest(UnifiedStatsReporter &stats,
 ///   - Copy constructor
 ///   - Equality operator (==)
 ///   - Hashing support (hash_value)
-///   - TypeID support (see swift/Basic/TypeID.h)
+///   - TypeID support (see language/Basic/TypeID.h)
 ///   - The output type (described via a nested type OutputType), which
 ///     must itself by a value type that supports TypeID.
 ///   - Evaluation via the function call operator:
@@ -164,7 +165,7 @@ class Evaluator {
 
   /// A vector containing all of the active evaluation requests, which
   /// is treated as a stack and is used to detect cycles.
-  llvm::SetVector<ActiveRequest> activeRequests;
+  toolchain::SetVector<ActiveRequest> activeRequests;
 
   /// A cache that stores the results of requests.
   evaluator::RequestCache cache;
@@ -192,10 +193,10 @@ public:
   /// For last-ditch diagnostics, get a good approximate source location for
   /// the thing we're currently type checking by searching for a request whose
   /// source location matches the predicate.
-  SourceLoc getInnermostSourceLoc(llvm::function_ref<bool(SourceLoc)> fn);
+  SourceLoc getInnermostSourceLoc(toolchain::function_ref<bool(SourceLoc)> fn);
 
   /// Emit GraphViz output visualizing the request graph.
-  void emitRequestEvaluatorGraphViz(llvm::StringRef graphVizPath);
+  void emitRequestEvaluatorGraphViz(toolchain::StringRef graphVizPath);
 
   /// Set the unified stats reporter through which evaluated-request
   /// statistics will be recorded.
@@ -279,9 +280,7 @@ public:
            typename std::enable_if<Request::hasSplitCache>::type* = nullptr>
   void cacheNonEmptyOutput(const Request &request,
                            typename Request::OutputType &&output) {
-    bool inserted = cache.insert<Request>(request, std::move(output));
-    assert(inserted && "Request result was already cached");
-    (void) inserted;
+    (void)cache.insert<Request>(request, std::move(output));
   }
 
   /// Consults the request evaluator's cache for a split-cached request.
@@ -309,7 +308,7 @@ public:
     return activeRequests.count(ActiveRequest(request));
   }
 
-  void dump(llvm::raw_ostream &out) { cache.dump(out); }
+  void dump(toolchain::raw_ostream &out) { cache.dump(out); }
 
 private:
   /// Diagnose a cycle detected in the evaluation of the given
@@ -449,10 +448,10 @@ template<typename Request>
 typename Request::OutputType
 evaluateOrFatal(Evaluator &eval, Request req) {
   return eval(req, []() -> typename Request::OutputType {
-    llvm::report_fatal_error("Request cycle");
+    toolchain::report_fatal_error("Request cycle");
   });
 }
 
 } // end namespace language
 
-#endif // SWIFT_AST_EVALUATOR_H
+#endif // LANGUAGE_AST_EVALUATOR_H

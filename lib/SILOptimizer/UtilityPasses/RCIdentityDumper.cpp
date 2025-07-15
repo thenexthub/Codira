@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -28,7 +29,7 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/RCIdentityAnalysis.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -43,9 +44,9 @@ class RCIdentityDumper : public SILFunctionTransform {
 
     std::vector<std::pair<SILValue, SILValue>> Results;
     unsigned ValueCount = 0;
-    llvm::MapVector<SILValue, uint64_t> ValueToValueIDMap;
+    toolchain::MapVector<SILValue, uint64_t> ValueToValueIDMap;
 
-    llvm::outs() << "@" << Fn->getName() << "@\n";
+    toolchain::outs() << "@" << Fn->getName() << "@\n";
 
     for (auto &BB : *Fn) {
       for (auto *Arg : BB.getArguments()) {
@@ -60,23 +61,23 @@ class RCIdentityDumper : public SILFunctionTransform {
       }
     }
 
-    llvm::outs() << "ValueMap:\n";
+    toolchain::outs() << "ValueMap:\n";
     for (auto P : ValueToValueIDMap) {
-      llvm::outs() << "\tValueMap[" << P.second << "] = " << P.first;
+      toolchain::outs() << "\tValueMap[" << P.second << "] = " << P.first;
     }
 
     unsigned ResultCount = 0;
     for (auto P : Results) {
-      llvm::outs() << "RESULT #" << ResultCount++ << ": "
+      toolchain::outs() << "RESULT #" << ResultCount++ << ": "
                    << ValueToValueIDMap[P.first] << " = "
                    << ValueToValueIDMap[P.second] << "\n";
     }
 
-    llvm::outs() << "\n";
+    toolchain::outs() << "\n";
   }
 
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createRCIdentityDumper() { return new RCIdentityDumper(); }
+SILTransform *language::createRCIdentityDumper() { return new RCIdentityDumper(); }

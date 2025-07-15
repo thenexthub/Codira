@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A task-local allocator that obeys a stack discipline.
@@ -45,7 +46,7 @@ static TaskAllocator &allocator(AsyncTask *task) {
   // for now, since the current execution tests aren't setting up a task
   // properly.
 
-  // https://github.com/apple/swift/issues/62761
+  // https://github.com/apple/language/issues/62761
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
   static GlobalAllocator global;
@@ -53,10 +54,10 @@ static TaskAllocator &allocator(AsyncTask *task) {
   return global.allocator;
 }
 
-void *swift::_swift_task_alloc_specific(AsyncTask *task, size_t size) {
+void *language::_language_task_alloc_specific(AsyncTask *task, size_t size) {
   return allocator(task).alloc(size);
 }
 
-void swift::_swift_task_dealloc_specific(AsyncTask *task, void *ptr) {
+void language::_language_task_dealloc_specific(AsyncTask *task, void *ptr) {
   allocator(task).dealloc(ptr);
 }

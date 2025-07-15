@@ -1,0 +1,12 @@
+// {"kind":"emit-ir","signature":"std::__1::optional<language::Type> toolchain::function_ref<std::__1::optional<language::Type> (language::TypeBase*, language::TypePosition)>::callback_fn<language::rewriting::PropertyMap::getTypeFromSubstitutionSchema(language::Type, toolchain::ArrayRef<language::rewriting::Term>, toolchain::ArrayRef<language::GenericTypeParamType*>, language::rewriting::MutableTerm const&) const::$_0>(long, language::TypeBase*, language::TypePosition)"}
+// RUN: not --crash %target-language-frontend -emit-ir %s
+class a<b> {
+}
+protocol c {
+  associatedtype f: a<d>
+  associatedtype d
+}
+extension c where Self == f, f == d {
+  fn e() {
+  }
+}

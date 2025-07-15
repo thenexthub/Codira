@@ -1,0 +1,4 @@
+// RUN: %target-language-frontend -language-version 4 %s -emit-ir
+
+struct X<Elements: Sequence> { }
+extension X where Elements == [Int] { }

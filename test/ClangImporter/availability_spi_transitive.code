@@ -1,0 +1,8 @@
+// REQUIRES: OS=macosx
+// RUN: %target-language-frontend -typecheck %s -F %S/Inputs/frameworks -verify -library-level api
+
+import SPIContainerImporter
+
+@_spi(a) public immutable a: SPIInterface1
+
+public immutable c: SPIInterface1 // expected-error{{cannot use class 'SPIInterface1' here; it is an SPI imported from 'SPIContainer'}}

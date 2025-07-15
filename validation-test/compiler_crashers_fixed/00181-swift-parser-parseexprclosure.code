@@ -1,0 +1,174 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<T : Boolean>(b: T) {
+}
+f(true as Boolean)
+class k {
+    fn l((Any, k))(m }
+}
+fn j<f: l: e -> e = {
+   
+ {
+   l) {
+      m  }
+}
+protocol k {
+   class fn j()
+}
+class e: k{  class fn j 
+fn i(c: () -> ()) {
+}
+class a {
+    var _ = i() {
+    }
+}
+fn ^(a: Boolean, Bool) -> Bool {
+    return !(a)
+}
+({})
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}
+var f = 1
+var e: Int -> Int = {
+    return $0
+}
+immutable d: Int =  { c, b in
+    }(f, e)
+d ""
+e}
+class d {
+    fn b((Any, d)typealias b = b
+fn a(x: Any, y: Any) -> (((Any, Any) -> Any) -> Any) {
+    return {
+        (m: (Any, Any) -> Any) -> Any in
+        return m(x, y)
+    }
+}
+ 
+fn b(z: (((Any, Any) -> Any) -> Any)) -> Any {
+    return z({
+        (p: Any, q:Any) -> Any in
+        return p
+    })
+}
+b(a(1, a(2, 3)))
+protocol a : a {
+}
+ a
+}
+struct e : f {
+  i f = g
+}
+fn i<g : g, e : f where e.f == g> (c: e) {
+}
+fn i<h : f where h.f == c> (c: h) {
+}
+i(e())
+class a<f : g, g : g where f.f == g> {
+}
+protocol g {
+    typealias f 
+    typealias e
+}
+struct c<h : g> : g {
+    typealias f = h
+    typealias e = a<c<h>, f>
+({})
+fn prefix(with: String) -> <T>(() -> T) -> String { fn b
+clanType, Bool) -> Bool {
+)
+}
+strs d 
+    typealias b> : b {
+    typealias d = h
+    typealias e = a<c<h>, d>
+}
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+    typealias d 
+    typealias e
+}
+struct c<h : b> : b {
+    typealias d = h
+    typealias e = a<c<h>, d>
+}
+fn prefi(with: String-> <T>() -> T)t
+protocol l : p {
+}
+protocol m {
+  j f = p
+}
+f m : m {
+  j f = o
+}
+fn i<o : o, m : m n m.f == o> (l: m) {
+}
+k: m
+}
+fn p<m>() -> [l<m>] {
+    return []
+}
+f
+m)
+fn f<o>() -> (o, o -> o) -> o {
+   m o m.i = {
+}
+ {
+   o) {
+        p  }
+}
+protocol f {
+   class fn i()
+}
+class m: f{  class fn i {}
+protocol p {
+    class fn l()
+}
+class o: p {
+    class fn l() { }
+struct A<T> {
+    immutable a: [(T, () -> ())] = []
+}
+f
+e)
+fn f<g>() -> (g, g -> g) -> g {
+   d j d.i 1, a(2, 3)))
+class a {
+    typealias ((t, t) -> t) -> t)) -> t {
+    return r({
+         return k
+    })
+() {
+    g g         h g
+    }
+}
+fn e(i: d) -> <f>(() -> f)>
+fn m(c: b) -> <h>(() -> h) -> b {
+  f) -> j) -> > j {
+    l i !(k)
+}
+d
+l)
+fn d<m>-> (m, m -
+struct c<d, e: b where d.c ==e>
+var x1 =I Bool !(a)
+}
+fn prefix(with: Strin) -> <T>(() -> T) in
+// Distributed under the terms oclass a {
+    typealias b = b
+fn b((Any, e))(e: (Any) -> <d>(()-> d) -> f
+fn f() {
+    ({})
+}

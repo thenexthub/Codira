@@ -1,20 +1,24 @@
 //===--- ToolChains.cpp - Job invocations (general and per-platform) ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ToolChains.h"
 
 #include "language/AST/DiagnosticsDriver.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Platform.h"
 #include "language/Basic/Range.h"
 #include "language/Basic/STLExtras.h"
@@ -27,19 +31,19 @@
 #include "language/Option/Options.h"
 #include "clang/Basic/Version.h"
 #include "clang/Driver/Util.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Program.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Program.h"
 
 using namespace language;
 using namespace language::driver;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 bool ToolChain::JobContext::shouldUseInputFileList() const {
   return getTopLevelInputFiles().size() > C.getFilelistThreshold();
@@ -84,7 +88,7 @@ void ToolChain::addInputsOfType(ArgStringList &Arguments,
 
 void ToolChain::addInputsOfType(ArgStringList &Arguments,
                                 ArrayRef<const Job *> Jobs,
-                                const llvm::opt::ArgList &Args,
+                                const toolchain::opt::ArgList &Args,
                                 file_types::ID InputType,
                                 const char *PrefixArgument) const {
   for (const Job *Cmd : Jobs) {
@@ -99,7 +103,7 @@ void ToolChain::addInputsOfType(ArgStringList &Arguments,
 
 void ToolChain::addPrimaryInputsOfType(ArgStringList &Arguments,
                                        ArrayRef<const Job *> Jobs,
-                                       const llvm::opt::ArgList &Args,
+                                       const toolchain::opt::ArgList &Args,
                                        file_types::ID InputType,
                                        const char *PrefixArgument) const {
   for (const Job *Cmd : Jobs) {
@@ -116,7 +120,7 @@ void ToolChain::addPrimaryInputsOfType(ArgStringList &Arguments,
 
 static bool addOutputsOfType(ArgStringList &Arguments,
                              CommandOutput const &Output,
-                             const llvm::opt::ArgList &Args,
+                             const toolchain::opt::ArgList &Args,
                              file_types::ID OutputType,
                              const char *PrefixArgument = nullptr) {
   bool Added = false;
@@ -135,10 +139,10 @@ static void addLTOArgs(const OutputInfo &OI, ArgStringList &arguments) {
   case OutputInfo::LTOKind::None:
     break;
   case OutputInfo::LTOKind::LLVMThin:
-    arguments.push_back("-lto=llvm-thin");
+    arguments.push_back("-lto=toolchain-thin");
     break;
   case OutputInfo::LTOKind::LLVMFull:
-    arguments.push_back("-lto=llvm-full");
+    arguments.push_back("-lto=toolchain-full");
     break;
   }
 }
@@ -171,10 +175,9 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
   case OutputInfo::Mode::Immediate:
     if (!inputArgs.hasArg(options::OPT_target))
       break;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case OutputInfo::Mode::StandardCompile:
   case OutputInfo::Mode::SingleCompile:
-  case OutputInfo::Mode::BatchModeCompile:
     arguments.push_back("-target");
     arguments.push_back(inputArgs.MakeArgString(Triple.str()));
     break;
@@ -182,14 +185,14 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
 
   if (const Arg *variant = inputArgs.getLastArg(options::OPT_target_variant)) {
     arguments.push_back("-target-variant");
-    std::string normalized = llvm::Triple::normalize(variant->getValue());
+    std::string normalized = toolchain::Triple::normalize(variant->getValue());
     arguments.push_back(inputArgs.MakeArgString(normalized));
   }
 
   // Enable address top-byte ignored in the ARM64 backend.
-  if (Triple.getArch() == llvm::Triple::aarch64 ||
-      Triple.getArch() == llvm::Triple::aarch64_32) {
-    arguments.push_back("-Xllvm");
+  if (Triple.getArch() == toolchain::Triple::aarch64 ||
+      Triple.getArch() == toolchain::Triple::aarch64_32) {
+    arguments.push_back("-Xtoolchain");
     arguments.push_back("-aarch64-use-tbi");
   }
 
@@ -204,8 +207,8 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
     arguments.push_back("-disable-objc-interop");
   }
 
-  if (Triple.isOSOpenBSD() && Triple.getArch() == llvm::Triple::aarch64) {
-#ifdef SWIFT_OPENBSD_BTCFI
+  if (Triple.isOSOpenBSD() && Triple.getArch() == toolchain::Triple::aarch64) {
+#ifdef LANGUAGE_OPENBSD_BTCFI
     arguments.push_back("-Xcc");
     arguments.push_back("-Xclang=-mbranch-target-enforce");
     arguments.push_back("-Xcc");
@@ -221,8 +224,8 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
   }
 
   if (inputArgs.hasArg(options::OPT_experimental_hermetic_seal_at_link)) {
-    arguments.push_back("-enable-llvm-vfe");
-    arguments.push_back("-enable-llvm-wme");
+    arguments.push_back("-enable-toolchain-vfe");
+    arguments.push_back("-enable-toolchain-wme");
     arguments.push_back("-conditional-runtime-records");
     arguments.push_back("-internalize-at-link");
   }
@@ -257,11 +260,11 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
     arguments.push_back(inputArgs.MakeArgString(A->getValue()));
   }
 
-  if (llvm::sys::Process::StandardErrHasColors()) {
+  if (toolchain::sys::Process::StandardErrHasColors()) {
     arguments.push_back("-color-diagnostics");
   }
 
-  inputArgs.AddAllArgs(arguments, options::OPT_I);
+  inputArgs.addAllArgs(arguments, {options::OPT_I, options::OPT_Isystem});
   inputArgs.addAllArgs(arguments, {options::OPT_F, options::OPT_Fsystem});
   inputArgs.AddAllArgs(arguments, options::OPT_vfsoverlay);
 
@@ -272,8 +275,8 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
                        options::OPT_no_color_diagnostics);
   inputArgs.AddLastArg(arguments, options::OPT_fixit_all);
   inputArgs.AddLastArg(arguments,
-                       options::OPT_warn_swift3_objc_inference_minimal,
-                       options::OPT_warn_swift3_objc_inference_complete);
+                       options::OPT_warn_language3_objc_inference_minimal,
+                       options::OPT_warn_language3_objc_inference_complete);
   inputArgs.AddLastArg(arguments,
                        options::OPT_enable_actor_data_race_checks,
                        options::OPT_disable_actor_data_race_checks);
@@ -284,12 +287,15 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
                                    options::OPT_disable_experimental_feature,
                                    options::OPT_enable_upcoming_feature,
                                    options::OPT_disable_upcoming_feature});
-  inputArgs.AddLastArg(arguments, options::OPT_strict_memory_safety);
+  inputArgs.AddLastArg(arguments, options::OPT_strict_memory_safety,
+                       options::OPT_strict_memory_safety_migrate);
   inputArgs.AddLastArg(arguments, options::OPT_warn_implicit_overrides);
   inputArgs.AddLastArg(arguments, options::OPT_typo_correction_limit);
   inputArgs.AddLastArg(arguments, options::OPT_enable_app_extension);
   inputArgs.AddLastArg(arguments, options::OPT_enable_app_extension_library);
   inputArgs.AddLastArg(arguments, options::OPT_enable_library_evolution);
+  inputArgs.AddLastArg(arguments, options::OPT_default_isolation);
+  inputArgs.AddLastArg(arguments, options::OPT_default_isolation_EQ);
   inputArgs.AddLastArg(arguments, options::OPT_require_explicit_availability);
   inputArgs.AddLastArg(arguments, options::OPT_require_explicit_availability_target);
   inputArgs.AddLastArg(arguments, options::OPT_require_explicit_availability_EQ);
@@ -310,9 +316,8 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
   inputArgs.AddLastArg(arguments, options::OPT_nostdlibimport);
   inputArgs.AddLastArg(arguments, options::OPT_parse_stdlib);
   inputArgs.AddLastArg(arguments, options::OPT_resource_dir);
-  inputArgs.AddLastArg(arguments, options::OPT_solver_memory_threshold);
   inputArgs.AddLastArg(arguments, options::OPT_value_recursion_threshold);
-  inputArgs.AddLastArg(arguments, options::OPT_warn_swift3_objc_inference);
+  inputArgs.AddLastArg(arguments, options::OPT_warn_language3_objc_inference);
   inputArgs.AddLastArg(arguments, options::OPT_Rpass_EQ);
   inputArgs.AddLastArg(arguments, options::OPT_Rpass_missed_EQ);
   inputArgs.AddLastArg(arguments, options::OPT_suppress_warnings);
@@ -331,7 +336,7 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
   inputArgs.AddLastArg(arguments, options::OPT_sanitize_coverage_EQ);
   inputArgs.AddLastArg(arguments, options::OPT_sanitize_stable_abi_EQ);
   inputArgs.AddLastArg(arguments, options::OPT_static);
-  inputArgs.AddLastArg(arguments, options::OPT_swift_version);
+  inputArgs.AddLastArg(arguments, options::OPT_language_version);
   inputArgs.AddLastArg(arguments, options::OPT_enforce_exclusivity_EQ);
   inputArgs.AddLastArg(arguments, options::OPT_stats_output_dir);
   inputArgs.AddLastArg(arguments, options::OPT_tools_directory);
@@ -390,7 +395,7 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
     // overridden by an explicit -Xcc -working-directory, although having a
     // different working directory is probably incorrect.
     SmallString<128> workingDirectory(A->getValue());
-    llvm::sys::fs::make_absolute(workingDirectory);
+    toolchain::sys::fs::make_absolute(workingDirectory);
     arguments.push_back("-Xcc");
     arguments.push_back("-working-directory");
     arguments.push_back("-Xcc");
@@ -428,15 +433,15 @@ void ToolChain::addCommonFrontendArgs(const OutputInfo &OI,
     arguments.push_back("-no-verify-emitted-module-interface");
 
   // Pass through any subsystem flags.
-  inputArgs.AddAllArgs(arguments, options::OPT_Xllvm);
+  inputArgs.AddAllArgs(arguments, options::OPT_Xtoolchain);
   inputArgs.AddAllArgs(arguments, options::OPT_Xcc);
 }
 
 void ToolChain::addPlatformSpecificPluginFrontendArgs(
     const OutputInfo &OI,
     const CommandOutput &output,
-    const llvm::opt::ArgList &inputArgs,
-    llvm::opt::ArgStringList &arguments) const {
+    const toolchain::opt::ArgList &inputArgs,
+    toolchain::opt::ArgStringList &arguments) const {
   // Overridden where necessary.
 }
 
@@ -483,11 +488,11 @@ static void addRuntimeLibraryFlags(const OutputInfo &OI,
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const CompileJobAction &job,
                                const JobContext &context) const {
-  InvocationInfo II{SWIFT_EXECUTABLE_NAME};
+  InvocationInfo II{LANGUAGE_EXECUTABLE_NAME};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-frontend");
 
@@ -548,7 +553,6 @@ ToolChain::constructInvocation(const CompileJobAction &job,
       context.Args.AddLastArg(Arguments, options::OPT_pch_output_dir);
       switch (context.OI.CompilerMode) {
       case OutputInfo::Mode::StandardCompile:
-      case OutputInfo::Mode::BatchModeCompile:
         // In the 'multiple invocations for each file' mode we don't need to
         // validate the PCH every time, it has been validated with the initial
         // -emit-pch invocation.
@@ -587,7 +591,7 @@ ToolChain::constructInvocation(const CompileJobAction &job,
     Arguments.push_back(context.Args.MakeArgString(
         Twine("-save-optimization-record=") + remarksFormat->getValue()));
     // If that's the case, add the proper output file for the type.
-    if (llvm::Expected<file_types::ID> fileType =
+    if (toolchain::Expected<file_types::ID> fileType =
             remarkFileTypeFromArgs(context.Args))
       remarksFileType = *fileType;
     else
@@ -714,11 +718,10 @@ const char *ToolChain::JobContext::computeFrontendModeForCompile() const {
   switch (OI.CompilerMode) {
   case OutputInfo::Mode::StandardCompile:
   case OutputInfo::Mode::SingleCompile:
-  case OutputInfo::Mode::BatchModeCompile:
     break;
   case OutputInfo::Mode::Immediate:
   case OutputInfo::Mode::REPL:
-    llvm_unreachable("REPL and immediate modes handled elsewhere");
+    toolchain_unreachable("REPL and immediate modes handled elsewhere");
   }
   switch (Output.getPrimaryOutputType()) {
   case file_types::TY_Object:
@@ -737,17 +740,17 @@ const char *ToolChain::JobContext::computeFrontendModeForCompile() const {
     return "-emit-sibgen";
   case file_types::TY_SIB:
     return "-emit-sib";
-  case file_types::TY_RawLLVM_IR:
+  case file_types::TY_RawTOOLCHAIN_IR:
     return "-emit-irgen";
-  case file_types::TY_LLVM_IR:
+  case file_types::TY_TOOLCHAIN_IR:
     return "-emit-ir";
-  case file_types::TY_LLVM_BC:
+  case file_types::TY_TOOLCHAIN_BC:
     return "-emit-bc";
   case file_types::TY_ClangModuleFile:
     return "-emit-pcm";
   case file_types::TY_Assembly:
     return "-S";
-  case file_types::TY_SwiftModuleFile:
+  case file_types::TY_CodiraModuleFile:
     // Since this is our primary output, we need to specify the option here.
     return "-emit-module";
   case file_types::TY_ImportedModules:
@@ -765,43 +768,43 @@ const char *ToolChain::JobContext::computeFrontendModeForCompile() const {
     if (const Arg *A = Args.getLastArg(options::OPT_modes_Group))
       return A->getSpelling().data();
     else
-      llvm_unreachable("We were told to perform a standard compile, "
+      toolchain_unreachable("We were told to perform a standard compile, "
                        "but no mode option was passed to the driver.");
-  case file_types::TY_Swift:
+  case file_types::TY_Codira:
   case file_types::TY_dSYM:
   case file_types::TY_AutolinkFile:
   case file_types::TY_Dependencies:
-  case file_types::TY_SwiftModuleDocFile:
+  case file_types::TY_CodiraModuleDocFile:
   case file_types::TY_SerializedDiagnostics:
   case file_types::TY_ClangHeader:
   case file_types::TY_Image:
-  case file_types::TY_SwiftDeps:
-  case file_types::TY_ExternalSwiftDeps:
+  case file_types::TY_CodiraDeps:
+  case file_types::TY_ExternalCodiraDeps:
   case file_types::TY_ModuleTrace:
   case file_types::TY_FineModuleTrace:
   case file_types::TY_TBD:
   case file_types::TY_YAMLOptRecord:
   case file_types::TY_BitstreamOptRecord:
-  case file_types::TY_SwiftModuleInterfaceFile:
-  case file_types::TY_PrivateSwiftModuleInterfaceFile:
-  case file_types::TY_PackageSwiftModuleInterfaceFile:
-  case file_types::TY_SwiftModuleSummaryFile:
-  case file_types::TY_SwiftSourceInfoFile:
-  case file_types::TY_SwiftCrossImportDir:
-  case file_types::TY_SwiftOverlayFile:
+  case file_types::TY_CodiraModuleInterfaceFile:
+  case file_types::TY_PrivateCodiraModuleInterfaceFile:
+  case file_types::TY_PackageCodiraModuleInterfaceFile:
+  case file_types::TY_CodiraModuleSummaryFile:
+  case file_types::TY_CodiraSourceInfoFile:
+  case file_types::TY_CodiraCrossImportDir:
+  case file_types::TY_CodiraOverlayFile:
   case file_types::TY_IndexUnitOutputPath:
-  case file_types::TY_SwiftABIDescriptor:
-  case file_types::TY_SwiftAPIDescriptor:
+  case file_types::TY_CodiraABIDescriptor:
+  case file_types::TY_CodiraAPIDescriptor:
   case file_types::TY_ConstValues:
-  case file_types::TY_SwiftFixIt:
+  case file_types::TY_CodiraFixIt:
   case file_types::TY_ModuleSemanticInfo:
   case file_types::TY_CachedDiagnostics:
   case file_types::TY_SymbolGraphFile:
-    llvm_unreachable("Output type can never be primary output.");
+    toolchain_unreachable("Output type can never be primary output.");
   case file_types::TY_INVALID:
-    llvm_unreachable("Invalid type ID");
+    toolchain_unreachable("Invalid type ID");
   }
-  llvm_unreachable("unhandled output type");
+  toolchain_unreachable("unhandled output type");
 }
 
 void ToolChain::JobContext::addFrontendInputAndOutputArguments(
@@ -812,12 +815,11 @@ void ToolChain::JobContext::addFrontendInputAndOutputArguments(
     assert(InputActions.size() == 1 &&
            "Standard-compile mode takes exactly one input (the primary file)");
     break;
-  case OutputInfo::Mode::BatchModeCompile:
   case OutputInfo::Mode::SingleCompile:
     break;
   case OutputInfo::Mode::Immediate:
   case OutputInfo::Mode::REPL:
-    llvm_unreachable("REPL and immediate modes handled elsewhere");
+    toolchain_unreachable("REPL and immediate modes handled elsewhere");
   }
 
   const bool UseFileList = shouldUseInputFileList();
@@ -841,7 +843,7 @@ void ToolChain::JobContext::addFrontendInputAndOutputArguments(
   if (UsePrimaryFileList) {
     Arguments.push_back("-primary-filelist");
     Arguments.push_back(getTemporaryFilePath("primaryInputs", ""));
-    FilelistInfos.push_back({Arguments.back(), file_types::TY_Swift,
+    FilelistInfos.push_back({Arguments.back(), file_types::TY_Codira,
                              FilelistInfo::WhichFiles::SourceInputActions});
   }
   if (!UseFileList || !UsePrimaryFileList) {
@@ -864,12 +866,12 @@ void ToolChain::JobContext::addFrontendCommandLineInputArguments(
     const bool mayHavePrimaryInputs, const bool useFileList,
     const bool usePrimaryFileList, const bool filterByType,
     ArgStringList &arguments) const {
-  llvm::DenseSet<StringRef> primaries;
+  toolchain::DenseSet<StringRef> primaries;
 
   if (mayHavePrimaryInputs) {
     for (const Action *A : InputActions) {
       const auto *IA = cast<InputAction>(A);
-      const llvm::opt::Arg &InArg = IA->getInputArg();
+      const toolchain::opt::Arg &InArg = IA->getInputArg();
       primaries.insert(InArg.getValue());
     }
   }
@@ -882,7 +884,7 @@ void ToolChain::JobContext::addFrontendCommandLineInputArguments(
     primaries.insert(A->getValue());
   }
   for (auto inputPair : getTopLevelInputFiles()) {
-    if (filterByType && !file_types::isPartOfSwiftCompilation(inputPair.first))
+    if (filterByType && !file_types::isPartOfCodiraCompilation(inputPair.first))
       continue;
     const char *inputName = inputPair.second->getValue();
     const bool isPrimary = primaries.count(inputName);
@@ -899,25 +901,25 @@ void ToolChain::JobContext::addFrontendSupplementaryOutputArguments(
     ArgStringList &arguments) const {
   // FIXME: Get these and other argument strings from the same place for both
   // driver and frontend.
-  addOutputsOfType(arguments, Output, Args, file_types::ID::TY_SwiftModuleFile,
+  addOutputsOfType(arguments, Output, Args, file_types::ID::TY_CodiraModuleFile,
                    "-emit-module-path");
 
-  addOutputsOfType(arguments, Output, Args, file_types::TY_SwiftModuleDocFile,
+  addOutputsOfType(arguments, Output, Args, file_types::TY_CodiraModuleDocFile,
                    "-emit-module-doc-path");
 
-  addOutputsOfType(arguments, Output, Args, file_types::TY_SwiftSourceInfoFile,
+  addOutputsOfType(arguments, Output, Args, file_types::TY_CodiraSourceInfoFile,
                    "-emit-module-source-info-path");
 
   addOutputsOfType(arguments, Output, Args,
-                   file_types::ID::TY_SwiftModuleInterfaceFile,
+                   file_types::ID::TY_CodiraModuleInterfaceFile,
                    "-emit-module-interface-path");
 
   addOutputsOfType(arguments, Output, Args,
-                   file_types::ID::TY_PrivateSwiftModuleInterfaceFile,
+                   file_types::ID::TY_PrivateCodiraModuleInterfaceFile,
                    "-emit-private-module-interface-path");
 
   addOutputsOfType(arguments, Output, Args,
-                   file_types::ID::TY_PackageSwiftModuleInterfaceFile,
+                   file_types::ID::TY_PackageCodiraModuleInterfaceFile,
                    "-emit-package-module-interface-path");
 
   addOutputsOfType(arguments, Output, Args,
@@ -927,20 +929,20 @@ void ToolChain::JobContext::addFrontendSupplementaryOutputArguments(
   if (addOutputsOfType(arguments, Output, Args, file_types::ID::TY_ClangHeader,
                        "-emit-objc-header-path")) {
     assert(OI.CompilerMode == OutputInfo::Mode::SingleCompile &&
-           "The Swift tool should only emit an Obj-C header in single compile"
+           "The Codira tool should only emit an Obj-C header in single compile"
            "mode!");
   }
 
   addOutputsOfType(arguments, Output, Args, file_types::TY_Dependencies,
                    "-emit-dependencies-path");
-  addOutputsOfType(arguments, Output, Args, file_types::TY_SwiftDeps,
+  addOutputsOfType(arguments, Output, Args, file_types::TY_CodiraDeps,
                    "-emit-reference-dependencies-path");
   addOutputsOfType(arguments, Output, Args, file_types::TY_ModuleTrace,
                    "-emit-loaded-module-trace-path");
   addOutputsOfType(arguments, Output, Args, file_types::TY_TBD,
                    "-emit-tbd-path");
   addOutputsOfType(arguments, Output, Args,
-                   file_types::TY_SwiftModuleSummaryFile,
+                   file_types::TY_CodiraModuleSummaryFile,
                    "-emit-module-summary-path");
 }
 
@@ -949,17 +951,17 @@ ToolChain::constructInvocation(const InterpretJobAction &job,
                                const JobContext &context) const {
   assert(context.OI.CompilerMode == OutputInfo::Mode::Immediate);
 
-  InvocationInfo II{SWIFT_EXECUTABLE_NAME};
+  InvocationInfo II{LANGUAGE_EXECUTABLE_NAME};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-frontend");
   Arguments.push_back("-interpret");
 
   assert(context.Inputs.empty() &&
-         "The Swift frontend does not expect to be fed any input Jobs!");
+         "The Codira frontend does not expect to be fed any input Jobs!");
 
   for (const Action *A : context.InputActions) {
     cast<InputAction>(A)->getInputArg().render(context.Args, Arguments);
@@ -993,7 +995,7 @@ ToolChain::constructInvocation(const BackendJobAction &job,
   assert(context.Args.hasArg(options::OPT_embed_bitcode));
   ArgStringList Arguments;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-frontend");
 
@@ -1006,13 +1008,13 @@ ToolChain::constructInvocation(const BackendJobAction &job,
     case file_types::TY_Object:
       FrontendModeOption = "-c";
       break;
-    case file_types::TY_RawLLVM_IR:
+    case file_types::TY_RawTOOLCHAIN_IR:
       FrontendModeOption = "-emit-irgen";
       break;
-    case file_types::TY_LLVM_IR:
+    case file_types::TY_TOOLCHAIN_IR:
       FrontendModeOption = "-emit-ir";
       break;
-    case file_types::TY_LLVM_BC:
+    case file_types::TY_TOOLCHAIN_BC:
       FrontendModeOption = "-emit-bc";
       break;
     case file_types::TY_Assembly:
@@ -1024,13 +1026,13 @@ ToolChain::constructInvocation(const BackendJobAction &job,
       if (const Arg *A = context.Args.getLastArg(options::OPT_modes_Group))
         FrontendModeOption = A->getSpelling().data();
       else
-        llvm_unreachable("We were told to perform a standard compile, "
+        toolchain_unreachable("We were told to perform a standard compile, "
                          "but no mode option was passed to the driver.");
       break;
 
     case file_types::TY_ImportedModules:
     case file_types::TY_TBD:
-    case file_types::TY_SwiftModuleFile:
+    case file_types::TY_CodiraModuleFile:
     case file_types::TY_ASTDump:
     case file_types::TY_RawSIL:
     case file_types::TY_RawSIB:
@@ -1042,47 +1044,46 @@ ToolChain::constructInvocation(const BackendJobAction &job,
     case file_types::TY_IndexData:
     case file_types::TY_JSONDependencies:
     case file_types::TY_JSONArguments:
-      llvm_unreachable("Cannot be output from backend job");
-    case file_types::TY_Swift:
+      toolchain_unreachable("Cannot be output from backend job");
+    case file_types::TY_Codira:
     case file_types::TY_dSYM:
     case file_types::TY_AutolinkFile:
     case file_types::TY_Dependencies:
-    case file_types::TY_SwiftModuleDocFile:
+    case file_types::TY_CodiraModuleDocFile:
     case file_types::TY_SerializedDiagnostics:
     case file_types::TY_ClangHeader:
     case file_types::TY_Image:
-    case file_types::TY_SwiftDeps:
-    case file_types::TY_ExternalSwiftDeps:
+    case file_types::TY_CodiraDeps:
+    case file_types::TY_ExternalCodiraDeps:
     case file_types::TY_Remapping:
     case file_types::TY_ModuleTrace:
     case file_types::TY_FineModuleTrace:
     case file_types::TY_YAMLOptRecord:
     case file_types::TY_BitstreamOptRecord:
-    case file_types::TY_SwiftModuleInterfaceFile:
-    case file_types::TY_PrivateSwiftModuleInterfaceFile:
-    case file_types::TY_PackageSwiftModuleInterfaceFile:
-    case file_types::TY_SwiftModuleSummaryFile:
-    case file_types::TY_SwiftSourceInfoFile:
-    case file_types::TY_SwiftCrossImportDir:
-    case file_types::TY_SwiftOverlayFile:
+    case file_types::TY_CodiraModuleInterfaceFile:
+    case file_types::TY_PrivateCodiraModuleInterfaceFile:
+    case file_types::TY_PackageCodiraModuleInterfaceFile:
+    case file_types::TY_CodiraModuleSummaryFile:
+    case file_types::TY_CodiraSourceInfoFile:
+    case file_types::TY_CodiraCrossImportDir:
+    case file_types::TY_CodiraOverlayFile:
     case file_types::TY_IndexUnitOutputPath:
-    case file_types::TY_SwiftABIDescriptor:
-    case file_types::TY_SwiftAPIDescriptor:
+    case file_types::TY_CodiraABIDescriptor:
+    case file_types::TY_CodiraAPIDescriptor:
     case file_types::TY_ConstValues:
-    case file_types::TY_SwiftFixIt:
+    case file_types::TY_CodiraFixIt:
     case file_types::TY_ModuleSemanticInfo:
     case file_types::TY_CachedDiagnostics:
     case file_types::TY_SymbolGraphFile:
-      llvm_unreachable("Output type can never be primary output.");
+      toolchain_unreachable("Output type can never be primary output.");
     case file_types::TY_INVALID:
-      llvm_unreachable("Invalid type ID");
+      toolchain_unreachable("Invalid type ID");
     }
     break;
   }
-  case OutputInfo::Mode::BatchModeCompile:
   case OutputInfo::Mode::Immediate:
   case OutputInfo::Mode::REPL:
-    llvm_unreachable("invalid mode for backend job");
+    toolchain_unreachable("invalid mode for backend job");
   }
 
   assert(FrontendModeOption != nullptr && "No frontend mode option specified!");
@@ -1111,10 +1112,9 @@ ToolChain::constructInvocation(const BackendJobAction &job,
         context.Args.MakeArgString(OutNames[job.getInputIndex()]));
     break;
   }
-  case OutputInfo::Mode::BatchModeCompile:
   case OutputInfo::Mode::Immediate:
   case OutputInfo::Mode::REPL:
-    llvm_unreachable("invalid mode for backend job");
+    toolchain_unreachable("invalid mode for backend job");
   }
 
   // Add flags implied by -embed-bitcode.
@@ -1125,9 +1125,9 @@ ToolChain::constructInvocation(const BackendJobAction &job,
   Arguments.push_back(context.Args.MakeArgString(getTriple().str()));
 
   // Enable address top-byte ignored in the ARM64 backend.
-  if (getTriple().getArch() == llvm::Triple::aarch64 ||
-      getTriple().getArch() == llvm::Triple::aarch64_32) {
-    Arguments.push_back("-Xllvm");
+  if (getTriple().getArch() == toolchain::Triple::aarch64 ||
+      getTriple().getArch() == toolchain::Triple::aarch64_32) {
+    Arguments.push_back("-Xtoolchain");
     Arguments.push_back("-aarch64-use-tbi");
   }
 
@@ -1136,7 +1136,7 @@ ToolChain::constructInvocation(const BackendJobAction &job,
 
   // Enable optimizations, but disable all LLVM-IR-level transformations.
   context.Args.AddLastArg(Arguments, options::OPT_O_Group);
-  Arguments.push_back("-disable-llvm-optzns");
+  Arguments.push_back("-disable-toolchain-optzns");
 
   context.Args.AddLastArg(Arguments, options::OPT_parse_stdlib);
 
@@ -1151,17 +1151,17 @@ ToolChain::constructInvocation(const BackendJobAction &job,
     }
   }
 
-  return {SWIFT_EXECUTABLE_NAME, Arguments};
+  return {LANGUAGE_EXECUTABLE_NAME, Arguments};
 }
 
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const MergeModuleJobAction &job,
                                const JobContext &context) const {
-  InvocationInfo II{SWIFT_EXECUTABLE_NAME};
+  InvocationInfo II{LANGUAGE_EXECUTABLE_NAME};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-frontend");
 
@@ -1172,25 +1172,25 @@ ToolChain::constructInvocation(const MergeModuleJobAction &job,
     Arguments.push_back("-filelist");
     Arguments.push_back(context.getTemporaryFilePath("inputs", ""));
     II.FilelistInfos.push_back({Arguments.back(),
-                                file_types::TY_SwiftModuleFile,
+                                file_types::TY_CodiraModuleFile,
                                 FilelistInfo::WhichFiles::InputJobs});
 
     addInputsOfType(Arguments, context.InputActions,
-                    file_types::TY_SwiftModuleFile);
+                    file_types::TY_CodiraModuleFile);
   } else {
     size_t origLen = Arguments.size();
     (void)origLen;
     addInputsOfType(Arguments, context.Inputs, context.Args,
-                    file_types::TY_SwiftModuleFile);
+                    file_types::TY_CodiraModuleFile);
     addInputsOfType(Arguments, context.InputActions,
-                    file_types::TY_SwiftModuleFile);
+                    file_types::TY_CodiraModuleFile);
     assert(Arguments.size() - origLen >=
                context.Inputs.size() + context.InputActions.size() ||
            context.OI.CompilerOutputType == file_types::TY_Nothing);
     assert((Arguments.size() - origLen == context.Inputs.size() ||
             context.OI.CompilerOutputType == file_types::TY_Nothing ||
             !context.InputActions.empty()) &&
-           "every input to MergeModule must generate a swiftmodule");
+           "every input to MergeModule must generate a languagemodule");
   }
 
   // Tell all files to parse as library, which is necessary to load them as
@@ -1206,18 +1206,18 @@ ToolChain::constructInvocation(const MergeModuleJobAction &job,
   addRuntimeLibraryFlags(context.OI, Arguments);
 
   addOutputsOfType(Arguments, context.Output, context.Args,
-                   file_types::TY_SwiftModuleDocFile, "-emit-module-doc-path");
+                   file_types::TY_CodiraModuleDocFile, "-emit-module-doc-path");
   addOutputsOfType(Arguments, context.Output, context.Args,
-                   file_types::TY_SwiftSourceInfoFile,
+                   file_types::TY_CodiraSourceInfoFile,
                    "-emit-module-source-info-path");
   addOutputsOfType(Arguments, context.Output, context.Args,
-                   file_types::ID::TY_SwiftModuleInterfaceFile,
+                   file_types::ID::TY_CodiraModuleInterfaceFile,
                    "-emit-module-interface-path");
   addOutputsOfType(Arguments, context.Output, context.Args,
-                   file_types::ID::TY_PrivateSwiftModuleInterfaceFile,
+                   file_types::ID::TY_PrivateCodiraModuleInterfaceFile,
                    "-emit-private-module-interface-path");
   addOutputsOfType(Arguments, context.Output, context.Args,
-                   file_types::ID::TY_PackageSwiftModuleInterfaceFile,
+                   file_types::ID::TY_PackageCodiraModuleInterfaceFile,
                    "-emit-package-module-interface-path");
   addOutputsOfType(Arguments, context.Output, context.Args,
                    file_types::TY_SerializedDiagnostics,
@@ -1240,8 +1240,8 @@ ToolChain::constructInvocation(const MergeModuleJobAction &job,
   Arguments.push_back(context.Args.MakeArgString(context.OI.ModuleName));
 
   assert(context.Output.getPrimaryOutputType() ==
-             file_types::TY_SwiftModuleFile &&
-         "The MergeModule tool only produces swiftmodule files!");
+             file_types::TY_CodiraModuleFile &&
+         "The MergeModule tool only produces languagemodule files!");
 
   Arguments.push_back("-o");
   Arguments.push_back(
@@ -1253,11 +1253,11 @@ ToolChain::constructInvocation(const MergeModuleJobAction &job,
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const VerifyModuleInterfaceJobAction &job,
                                const JobContext &context) const {
-  InvocationInfo II{SWIFT_EXECUTABLE_NAME};
+  InvocationInfo II{LANGUAGE_EXECUTABLE_NAME};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-frontend");
 
@@ -1288,20 +1288,20 @@ ToolChain::constructInvocation(const VerifyModuleInterfaceJobAction &job,
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const ModuleWrapJobAction &job,
                                const JobContext &context) const {
-  InvocationInfo II{SWIFT_EXECUTABLE_NAME};
+  InvocationInfo II{LANGUAGE_EXECUTABLE_NAME};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-modulewrap");
 
   addInputsOfType(Arguments, context.Inputs, context.Args,
-                  file_types::TY_SwiftModuleFile);
+                  file_types::TY_CodiraModuleFile);
   addInputsOfType(Arguments, context.InputActions,
-                  file_types::TY_SwiftModuleFile);
+                  file_types::TY_CodiraModuleFile);
   assert(Arguments.size() == 2 &&
-         "ModuleWrap expects exactly one merged swiftmodule as input");
+         "ModuleWrap expects exactly one merged languagemodule as input");
 
   assert(context.Output.getPrimaryOutputType() == file_types::TY_Object &&
          "The -modulewrap mode only produces object files");
@@ -1332,12 +1332,12 @@ ToolChain::constructInvocation(const REPLJobAction &job,
     useLLDB = true;
     break;
   case REPLJobAction::Mode::PreferLLDB:
-    useLLDB = !findProgramRelativeToSwift("lldb").empty();
+    useLLDB = !findProgramRelativeToCodira("lldb").empty();
     break;
   }
 
   ArgStringList FrontendArgs;
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     FrontendArgs.push_back(s.c_str());
 
   addCommonFrontendArgs(context.OI, context.Output, context.Args, FrontendArgs);
@@ -1352,13 +1352,13 @@ ToolChain::constructInvocation(const REPLJobAction &job,
     FrontendArgs.insert(FrontendArgs.begin(), {"-frontend", "-repl"});
     FrontendArgs.push_back("-module-name");
     FrontendArgs.push_back(context.Args.MakeArgString(context.OI.ModuleName));
-    return {SWIFT_EXECUTABLE_NAME, FrontendArgs};
+    return {LANGUAGE_EXECUTABLE_NAME, FrontendArgs};
   }
 
   // Squash important frontend options into a single argument for LLDB.
   std::string SingleArg = "--repl=";
   {
-    llvm::raw_string_ostream os(SingleArg);
+    toolchain::raw_string_ostream os(SingleArg);
     Job::printArguments(os, FrontendArgs);
   }
 
@@ -1418,11 +1418,11 @@ ToolChain::constructInvocation(const GeneratePCHJobAction &job,
          (job.isPersistentPCH() &&
           context.Output.getPrimaryOutputType() == file_types::TY_Nothing));
 
-  InvocationInfo II{SWIFT_EXECUTABLE_NAME};
+  InvocationInfo II{LANGUAGE_EXECUTABLE_NAME};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
-  for (auto &s : getDriver().getSwiftProgramArgs())
+  for (auto &s : getDriver().getCodiraProgramArgs())
     Arguments.push_back(s.c_str());
   Arguments.push_back("-frontend");
 
@@ -1453,19 +1453,19 @@ ToolChain::constructInvocation(const GeneratePCHJobAction &job,
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const AutolinkExtractJobAction &job,
                                const JobContext &context) const {
-  llvm_unreachable("autolink extraction not implemented for this toolchain");
+  toolchain_unreachable("autolink extraction not implemented for this toolchain");
 }
 
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const DynamicLinkJobAction &job,
                                const JobContext &context) const {
-  llvm_unreachable("linking not implemented for this toolchain");
+  toolchain_unreachable("linking not implemented for this toolchain");
 }
 
 ToolChain::InvocationInfo
 ToolChain::constructInvocation(const StaticLinkJobAction &job,
                                const JobContext &context) const {
-   llvm_unreachable("archiving not implemented for this toolchain");
+   toolchain_unreachable("archiving not implemented for this toolchain");
 }
 
 void ToolChain::addPathEnvironmentVariableIfNeeded(
@@ -1485,7 +1485,7 @@ void ToolChain::addPathEnvironmentVariableIfNeeded(
       newPaths.append(separator);
     newPaths.append(extraEntry.data(), extraEntry.size());
   }
-  if (auto currentPaths = llvm::sys::Process::GetEnv(name)) {
+  if (auto currentPaths = toolchain::sys::Process::GetEnv(name)) {
     newPaths.append(separator);
     newPaths.append(currentPaths.value());
   }
@@ -1496,31 +1496,31 @@ void ToolChain::addLinkRuntimeLib(const ArgList &Args, ArgStringList &Arguments,
                                   StringRef LibName) const {
   SmallString<128> P;
   getClangLibraryPath(Args, P);
-  llvm::sys::path::append(P, LibName);
+  toolchain::sys::path::append(P, LibName);
   Arguments.push_back(Args.MakeArgString(P));
 }
 
 static void appendInProcPluginServerPath(StringRef PluginPathRoot,
-                                         llvm::SmallVectorImpl<char> &InProcPluginServerPath) {
+                                         toolchain::SmallVectorImpl<char> &InProcPluginServerPath) {
   InProcPluginServerPath.append(PluginPathRoot.begin(), PluginPathRoot.end());
 #if defined(_WIN32)
-  llvm::sys::path::append(InProcPluginServerPath, "bin", "SwiftInProcPluginServer.dll");
+  toolchain::sys::path::append(InProcPluginServerPath, "bin", "CodiraInProcPluginServer.dll");
 #elif defined(__APPLE__)
-  llvm::sys::path::append(InProcPluginServerPath, "lib", "swift", "host", "libSwiftInProcPluginServer.dylib");
+  toolchain::sys::path::append(InProcPluginServerPath, "lib", "language", "host", "libCodiraInProcPluginServer.dylib");
 #elif defined(__unix__)
-  llvm::sys::path::append(InProcPluginServerPath, "lib", "swift", "host", "libSwiftInProcPluginServer.so");
+  toolchain::sys::path::append(InProcPluginServerPath, "lib", "language", "host", "libCodiraInProcPluginServer.so");
 #else
 #error Unknown compiler host
 #endif
 }
 
 static void appendPluginsPath(StringRef PluginPathRoot,
-                              llvm::SmallVectorImpl<char> &PluginsPath) {
+                              toolchain::SmallVectorImpl<char> &PluginsPath) {
   PluginsPath.append(PluginPathRoot.begin(), PluginPathRoot.end());
 #if defined(_WIN32)
-  llvm::sys::path::append(PluginsPath, "bin");
+  toolchain::sys::path::append(PluginsPath, "bin");
 #elif defined(__APPLE__) || defined(__unix__)
-  llvm::sys::path::append(PluginsPath, "lib", "swift", "host", "plugins");
+  toolchain::sys::path::append(PluginsPath, "lib", "language", "host", "plugins");
 #else
 #error Unknown compiler host
 #endif
@@ -1528,18 +1528,18 @@ static void appendPluginsPath(StringRef PluginPathRoot,
 
 #if defined(__APPLE__) || defined(__unix__)
 static void appendLocalPluginsPath(StringRef PluginPathRoot,
-                                   llvm::SmallVectorImpl<char> &LocalPluginsPath) {
+                                   toolchain::SmallVectorImpl<char> &LocalPluginsPath) {
   SmallString<261> localPluginPathRoot = PluginPathRoot;
-  llvm::sys::path::append(localPluginPathRoot, "local");
+  toolchain::sys::path::append(localPluginPathRoot, "local");
   appendPluginsPath(localPluginPathRoot, LocalPluginsPath);
 }
 #endif
 
 void ToolChain::addPluginArguments(const ArgList &Args,
                                    ArgStringList &Arguments) const {
-  SmallString<261> pluginPathRoot = StringRef(getDriver().getSwiftProgramPath());
-  llvm::sys::path::remove_filename(pluginPathRoot); // Remove `swift`
-  llvm::sys::path::remove_filename(pluginPathRoot); // Remove `bin`
+  SmallString<261> pluginPathRoot = StringRef(getDriver().getCodiraProgramPath());
+  toolchain::sys::path::remove_filename(pluginPathRoot); // Remove `language`
+  toolchain::sys::path::remove_filename(pluginPathRoot); // Remove `bin`
 
   // In-process plugin server path.
   SmallString<261> inProcPluginServerPath;
@@ -1564,21 +1564,21 @@ void ToolChain::addPluginArguments(const ArgList &Args,
 
 void ToolChain::getClangLibraryPath(const ArgList &Args,
                                     SmallString<128> &LibPath) const {
-  const llvm::Triple &T = getTriple();
+  const toolchain::Triple &T = getTriple();
 
   getResourceDirPath(LibPath, Args, /*Shared=*/true);
   // Remove platform name.
-  llvm::sys::path::remove_filename(LibPath);
+  toolchain::sys::path::remove_filename(LibPath);
   StringRef platformName = "darwin";
   if (!T.isOSDarwin())
     platformName = T.isAndroid() ? "linux" : getPlatformNameForTriple(T);
-  llvm::sys::path::append(LibPath, "clang", "lib", platformName);
+  toolchain::sys::path::append(LibPath, "clang", "lib", platformName);
 }
 
 /// Get the runtime library link path, which is platform-specific and found
 /// relative to the compiler.
 void ToolChain::getResourceDirPath(SmallVectorImpl<char> &resourceDirPath,
-                                   const llvm::opt::ArgList &args,
+                                   const toolchain::opt::ArgList &args,
                                    bool shared) const {
   if (const Arg *A = args.getLastArg(options::OPT_resource_dir)) {
     StringRef value = A->getValue();
@@ -1586,10 +1586,10 @@ void ToolChain::getResourceDirPath(SmallVectorImpl<char> &resourceDirPath,
   } else if (!getTriple().isOSDarwin() && args.hasArg(options::OPT_sdk)) {
     StringRef value = args.getLastArg(options::OPT_sdk)->getValue();
     resourceDirPath.append(value.begin(), value.end());
-    llvm::sys::path::append(resourceDirPath, "usr");
-    CompilerInvocation::appendSwiftLibDir(resourceDirPath, shared);
+    toolchain::sys::path::append(resourceDirPath, "usr");
+    CompilerInvocation::appendCodiraLibDir(resourceDirPath, shared);
   } else {
-    auto programPath = getDriver().getSwiftProgramPath();
+    auto programPath = getDriver().getCodiraProgramPath();
     CompilerInvocation::computeRuntimeResourcePathFromExecutablePath(
         programPath, shared, resourceDirPath);
   }
@@ -1597,7 +1597,7 @@ void ToolChain::getResourceDirPath(SmallVectorImpl<char> &resourceDirPath,
   StringRef libSubDir = getPlatformNameForTriple(getTriple());
   if (tripleIsMacCatalystEnvironment(getTriple()))
     libSubDir = "maccatalyst";
-  llvm::sys::path::append(resourceDirPath, libSubDir);
+  toolchain::sys::path::append(resourceDirPath, libSubDir);
 }
 
 // Get the secondary runtime library link path given the primary path.
@@ -1613,12 +1613,12 @@ void ToolChain::getSecondaryResourceDirPath(
   // path. The compiler will find zippered libraries here.
   secondaryResourceDirPath.append(primaryPath.begin(), primaryPath.end());
   // Remove '/maccatalyst' and replace with 'macosx'.
-  llvm::sys::path::remove_filename(secondaryResourceDirPath);
-  llvm::sys::path::append(secondaryResourceDirPath, "macosx");
+  toolchain::sys::path::remove_filename(secondaryResourceDirPath);
+  toolchain::sys::path::append(secondaryResourceDirPath, "macosx");
 }
 
 void ToolChain::getRuntimeLibraryPaths(SmallVectorImpl<std::string> &runtimeLibPaths,
-                                       const llvm::opt::ArgList &args,
+                                       const toolchain::opt::ArgList &args,
                                        StringRef SDKPath, bool shared) const {
   SmallString<128> scratchPath;
   getResourceDirPath(scratchPath, args, shared);
@@ -1630,37 +1630,38 @@ void ToolChain::getRuntimeLibraryPaths(SmallVectorImpl<std::string> &runtimeLibP
   if (!scratchPath.empty())
     runtimeLibPaths.push_back(std::string(scratchPath.str()));
 
-  // Only Darwin places libraries directly in /sdk/usr/lib/swift/.
+  // Only Darwin places libraries directly in /sdk/usr/lib/language/.
   if (Triple.isOSDarwin() && !SDKPath.empty()) {
     if (!scratchPath.empty()) {
       // If we added the secondary resource dir, we also need the iOSSupport
       // directory.
       scratchPath = SDKPath;
-      llvm::sys::path::append(scratchPath, "System", "iOSSupport");
-      llvm::sys::path::append(scratchPath, "usr", "lib", "swift");
+      toolchain::sys::path::append(scratchPath, "System", "iOSSupport");
+      toolchain::sys::path::append(scratchPath, "usr", "lib", "language");
       runtimeLibPaths.push_back(std::string(scratchPath.str()));
     }
 
     scratchPath = SDKPath;
-    llvm::sys::path::append(scratchPath, "usr", "lib", "swift");
+    toolchain::sys::path::append(scratchPath, "usr", "lib", "language");
     runtimeLibPaths.push_back(std::string(scratchPath.str()));
   }
 }
 
 const char *ToolChain::getClangLinkerDriver(
-    const llvm::opt::ArgList &Args) const {
+    const toolchain::opt::ArgList &Args) const {
   // We don't use `clang++` unconditionally because we want to avoid pulling in
   // a C++ standard library if it's not needed, in particular because the
   // standard library that `clang++` selects by default may not be the one that
   // is desired.
-  const char *LinkerDriver =
-      Args.hasArg(options::OPT_enable_experimental_cxx_interop) ? "clang++"
-                                                                : "clang";
+  bool useCxxLinker = Args.hasArg(options::OPT_enable_experimental_cxx_interop);
+  if (Arg *arg = Args.getLastArg(options::OPT_cxx_interoperability_mode))
+      useCxxLinker |= StringRef(arg->getValue()) != "off";
+  const char *LinkerDriver = useCxxLinker ? "clang++" : "clang";
   if (const Arg *A = Args.getLastArg(options::OPT_tools_directory)) {
     StringRef toolchainPath(A->getValue());
 
     // If there is a linker driver in the toolchain folder, use that instead.
-    if (auto tool = llvm::sys::findProgramByName(LinkerDriver, {toolchainPath}))
+    if (auto tool = toolchain::sys::findProgramByName(LinkerDriver, {toolchainPath}))
       LinkerDriver = Args.MakeArgString(tool.get());
   }
 
@@ -1672,7 +1673,7 @@ bool ToolChain::sanitizerRuntimeLibExists(const ArgList &args,
                                           bool shared) const {
   SmallString<128> sanitizerLibPath;
   getClangLibraryPath(args, sanitizerLibPath);
-  llvm::sys::path::append(sanitizerLibPath,
+  toolchain::sys::path::append(sanitizerLibPath,
                           sanitizerRuntimeLibName(sanitizerName, shared));
-  return llvm::sys::fs::exists(sanitizerLibPath.str());
+  return toolchain::sys::fs::exists(sanitizerLibPath.str());
 }

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file contains code for emitting key path patterns, which can be used
@@ -41,9 +42,9 @@
 #include "ProtocolInfo.h"
 #include "StructLayout.h"
 #include "TypeInfo.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Function.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/IR/Function.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/TypeLowering.h"
@@ -78,8 +79,8 @@ void
 irgen::bindPolymorphicArgumentsFromComponentIndices(IRGenFunction &IGF,
                                      GenericEnvironment *genericEnv,
                                      ArrayRef<GenericRequirement> requirements,
-                                     llvm::Value *args,
-                                     llvm::Value *size,
+                                     toolchain::Value *args,
+                                     toolchain::Value *size,
                                      bool hasSubscriptIndices) {
   if (!genericEnv)
     return;
@@ -87,7 +88,7 @@ irgen::bindPolymorphicArgumentsFromComponentIndices(IRGenFunction &IGF,
   // The generic environment is marshaled into the end of the component
   // argument area inside the instance. Bind the generic information out of
   // the buffer.
-  auto genericArgsSize = llvm::ConstantInt::get(IGF.IGM.SizeTy,
+  auto genericArgsSize = toolchain::ConstantInt::get(IGF.IGM.SizeTy,
     requirements.size() * IGF.IGM.getPointerSize().getValue());
 
   auto genericArgsOffset = IGF.Builder.CreateSub(size, genericArgsSize);
@@ -100,7 +101,7 @@ irgen::bindPolymorphicArgumentsFromComponentIndices(IRGenFunction &IGF,
       MetadataState::Complete, genericEnv->getForwardingSubstitutionMap());
 }
 
-static llvm::Function *
+static toolchain::Function *
 getAccessorForComputedComponent(IRGenModule &IGM,
                                 const KeyPathPatternComponent &component,
                                 KeyPathAccessor whichAccessor) {
@@ -144,11 +145,11 @@ getAccessorForComputedComponent(IRGenModule &IGM,
   }
 
   auto accessorFn = IGM.getAddrOfSILFunction(accessor, NotForDefinition);
-  auto accessorThunk = llvm::Function::Create(accessorFn->getFunctionType(),
-                                              llvm::GlobalValue::PrivateLinkage,
+  auto accessorThunk = toolchain::Function::Create(accessorFn->getFunctionType(),
+                                              toolchain::GlobalValue::PrivateLinkage,
                                               thunkName, IGM.getModule());
   accessorThunk->setAttributes(IGM.constructInitialAttributes());
-  accessorThunk->setCallingConv(IGM.SwiftCC);
+  accessorThunk->setCallingConv(IGM.CodiraCC);
   accessorThunk->setAttributes(accessorFn->getAttributes());
   {
     IRGenFunction IGF(IGM, accessorThunk);
@@ -168,22 +169,22 @@ getAccessorForComputedComponent(IRGenModule &IGM,
   return accessorThunk;
 }
 
-static llvm::Function *
+static toolchain::Function *
 getLayoutFunctionForComputedComponent(IRGenModule &IGM,
                                     const KeyPathPatternComponent &component,
                                     GenericEnvironment *genericEnv,
                                     ArrayRef<GenericRequirement> requirements) {
   // Generate a function that returns the expected size and alignment necessary
   // to store captured generic context and subscript index arguments.
-  auto retTy = llvm::StructType::get(IGM.getLLVMContext(),
+  auto retTy = toolchain::StructType::get(IGM.getLLVMContext(),
                                      {IGM.SizeTy, IGM.SizeTy});
-  auto fnTy = llvm::FunctionType::get(
+  auto fnTy = toolchain::FunctionType::get(
     retTy, { IGM.Int8PtrTy }, /*vararg*/ false);
     
-  auto layoutFn = llvm::Function::Create(fnTy,
-    llvm::GlobalValue::PrivateLinkage, "keypath_get_arg_layout", IGM.getModule());
+  auto layoutFn = toolchain::Function::Create(fnTy,
+    toolchain::GlobalValue::PrivateLinkage, "keypath_get_arg_layout", IGM.getModule());
   layoutFn->setAttributes(IGM.constructInitialAttributes());
-  layoutFn->setCallingConv(IGM.SwiftCC);
+  layoutFn->setCallingConv(IGM.CodiraCC);
     
   {
     IRGenFunction IGF(IGM, layoutFn);
@@ -202,8 +203,8 @@ getLayoutFunctionForComputedComponent(IRGenModule &IGM,
     
     // Run through the captured index types to determine the size and alignment
     // needed. Start with pointer alignment for the generic environment.
-    llvm::Value *size = llvm::ConstantInt::get(IGM.SizeTy, 0);
-    llvm::Value *alignMask = llvm::ConstantInt::get(IGM.SizeTy, 0);
+    toolchain::Value *size = toolchain::ConstantInt::get(IGM.SizeTy, 0);
+    toolchain::Value *alignMask = toolchain::ConstantInt::get(IGM.SizeTy, 0);
 
     for (auto &index : component.getArguments()) {
       auto ty = genericEnv
@@ -225,18 +226,18 @@ getLayoutFunctionForComputedComponent(IRGenModule &IGM,
     // If there's generic environment to capture, then it's stored as a block
     // of pointer-aligned words after the captured values.
     
-    auto genericsSize = llvm::ConstantInt::get(IGM.SizeTy,
+    auto genericsSize = toolchain::ConstantInt::get(IGM.SizeTy,
       IGM.getPointerSize().getValue() * requirements.size());
-    auto genericsAlign = llvm::ConstantInt::get(IGM.SizeTy,
+    auto genericsAlign = toolchain::ConstantInt::get(IGM.SizeTy,
       IGM.getPointerAlignment().getValue() - 1);
-    auto notGenericsAlign = llvm::ConstantExpr::getNot(genericsAlign);
+    auto notGenericsAlign = toolchain::ConstantExpr::getNot(genericsAlign);
     size = IGF.Builder.CreateAdd(size, genericsAlign);
     size = IGF.Builder.CreateAnd(size, notGenericsAlign);
     size = IGF.Builder.CreateAdd(size, genericsSize);
     alignMask = IGF.Builder.CreateOr(alignMask, genericsAlign);
 
-    llvm::Value *retValue = IGF.Builder.CreateInsertValue(
-      llvm::UndefValue::get(retTy), size, 0);
+    toolchain::Value *retValue = IGF.Builder.CreateInsertValue(
+      toolchain::UndefValue::get(retTy), size, 0);
     retValue = IGF.Builder.CreateInsertValue(
       retValue, alignMask, 1);
       
@@ -246,7 +247,7 @@ getLayoutFunctionForComputedComponent(IRGenModule &IGM,
   return layoutFn;
 }
 
-static llvm::Constant *
+static toolchain::Constant *
 getWitnessTableForComputedComponent(IRGenModule &IGM,
                                     const KeyPathPatternComponent &component,
                                     GenericEnvironment *genericEnv,
@@ -268,8 +269,8 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
     isTrivial &= ti.isTriviallyDestroyable(ResilienceExpansion::Minimal);
   }
 
-  llvm::Constant *destroy = nullptr;
-  llvm::Constant *copy;
+  toolchain::Constant *destroy = nullptr;
+  toolchain::Constant *copy;
   if (isTrivial) {
     // We can use prefab witnesses for handling trivial copying and destruction.
     // A null destructor witness signals that the payload is trivial.
@@ -277,14 +278,14 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
   } else {
     // Generate a destructor for this set of indices.
     {
-      auto destroyType = llvm::FunctionType::get(IGM.VoidTy,
+      auto destroyType = toolchain::FunctionType::get(IGM.VoidTy,
                                                  {IGM.Int8PtrTy, IGM.SizeTy},
                                                  /*vararg*/ false);
-      auto destroyFn = llvm::Function::Create(destroyType,
-        llvm::GlobalValue::PrivateLinkage, "keypath_destroy", IGM.getModule());
+      auto destroyFn = toolchain::Function::Create(destroyType,
+        toolchain::GlobalValue::PrivateLinkage, "keypath_destroy", IGM.getModule());
       destroy = destroyFn;
       destroyFn->setAttributes(IGM.constructInitialAttributes());
-      destroyFn->setCallingConv(IGM.SwiftCC);
+      destroyFn->setCallingConv(IGM.CodiraCC);
       
       IRGenFunction IGF(IGM, destroyFn);
       if (IGM.DebugInfo)
@@ -297,7 +298,7 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
           IGF, genericEnv, requirements, componentArgsBuf, componentArgsBufSize,
           !component.getArguments().empty());
 
-      llvm::Value *offset = nullptr;
+      toolchain::Value *offset = nullptr;
       for (auto &component : component.getArguments()) {
         auto ty = genericEnv
           ? genericEnv->mapTypeIntoContext(IGM.getSILModule(),
@@ -310,7 +311,7 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
           offset = IGF.Builder.CreateAdd(offset, align);
           offset = IGF.Builder.CreateAnd(offset, notAlign);
         } else {
-          offset = llvm::ConstantInt::get(IGM.SizeTy, 0);
+          offset = toolchain::ConstantInt::get(IGM.SizeTy, 0);
         }
         auto elt =
             IGF.Builder.CreateInBoundsGEP(IGM.Int8Ty, componentArgsBuf, offset);
@@ -325,15 +326,15 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
     }
     // Generate a copier for this set of indices.
     {
-      auto copyType = llvm::FunctionType::get(IGM.VoidTy,
+      auto copyType = toolchain::FunctionType::get(IGM.VoidTy,
                                               {IGM.Int8PtrTy, IGM.Int8PtrTy,
                                                IGM.SizeTy},
                                               /*vararg*/ false);
-      auto copyFn = llvm::Function::Create(copyType,
-        llvm::GlobalValue::PrivateLinkage, "keypath_copy", IGM.getModule());
+      auto copyFn = toolchain::Function::Create(copyType,
+        toolchain::GlobalValue::PrivateLinkage, "keypath_copy", IGM.getModule());
       copy = copyFn;
       copyFn->setAttributes(IGM.constructInitialAttributes());
-      copyFn->setCallingConv(IGM.SwiftCC);
+      copyFn->setCallingConv(IGM.CodiraCC);
       
       IRGenFunction IGF(IGM, copyFn);
       if (IGM.DebugInfo)
@@ -348,7 +349,7 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
           !component.getArguments().empty());
 
       // Copy over the index values.
-      llvm::Value *offset = nullptr;
+      toolchain::Value *offset = nullptr;
       for (auto &component : component.getArguments()) {
         auto ty = genericEnv
           ? genericEnv->mapTypeIntoContext(IGM.getSILModule(),
@@ -361,7 +362,7 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
           offset = IGF.Builder.CreateAdd(offset, align);
           offset = IGF.Builder.CreateAnd(offset, notAlign);
         } else {
-          offset = llvm::ConstantInt::get(IGM.SizeTy, 0);
+          offset = toolchain::ConstantInt::get(IGM.SizeTy, 0);
         }
         auto sourceElt =
             IGF.Builder.CreateInBoundsGEP(IGM.Int8Ty, sourceArgsBuf, offset);
@@ -381,7 +382,7 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
 
       // Copy over the generic environment.
       if (genericEnv) {
-        auto envAlignMask = llvm::ConstantInt::get(IGM.SizeTy,
+        auto envAlignMask = toolchain::ConstantInt::get(IGM.SizeTy,
           IGM.getPointerAlignment().getMaskValue());
         auto notAlignMask = IGF.Builder.CreateNot(envAlignMask);
         offset = IGF.Builder.CreateAdd(offset, envAlignMask);
@@ -393,8 +394,8 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
             IGF.Builder.CreateInBoundsGEP(IGM.Int8Ty, destArgsBuf, offset);
 
         auto align = IGM.getPointerAlignment().getValue();
-        IGF.Builder.CreateMemCpy(destEnv, llvm::MaybeAlign(align), sourceEnv,
-                                 llvm::MaybeAlign(align),
+        IGF.Builder.CreateMemCpy(destEnv, toolchain::MaybeAlign(align), sourceEnv,
+                                 toolchain::MaybeAlign(align),
                                  IGM.getPointerSize().getValue() *
                                      requirements.size());
       }
@@ -422,7 +423,7 @@ getWitnessTableForComputedComponent(IRGenModule &IGM,
                           PointerAuthEntity::Special::KeyPathHash);
   return fields.finishAndCreateGlobal(
       "keypath_witnesses", IGM.getPointerAlignment(), /*constant*/ true,
-      llvm::GlobalVariable::PrivateLinkage);
+      toolchain::GlobalVariable::PrivateLinkage);
 }
 
 /// Information about each index operand for a key path pattern that is used
@@ -432,20 +433,20 @@ struct KeyPathIndexOperand {
   const KeyPathPatternComponent *LastUser;
 };
 
-static llvm::Function *
+static toolchain::Function *
 getInitializerForComputedComponent(IRGenModule &IGM,
            const KeyPathPatternComponent &component,
            ArrayRef<KeyPathIndexOperand> operands,
            GenericEnvironment *genericEnv,
            ArrayRef<GenericRequirement> requirements) {
-  auto fnTy = llvm::FunctionType::get(IGM.VoidTy,
+  auto fnTy = toolchain::FunctionType::get(IGM.VoidTy,
     { /*src*/ IGM.Int8PtrTy,
       /*dest*/ IGM.Int8PtrTy }, /*vararg*/ false);
       
-  auto initFn = llvm::Function::Create(fnTy,
-    llvm::GlobalValue::PrivateLinkage, "keypath_arg_init", IGM.getModule());
+  auto initFn = toolchain::Function::Create(fnTy,
+    toolchain::GlobalValue::PrivateLinkage, "keypath_arg_init", IGM.getModule());
   initFn->setAttributes(IGM.constructInitialAttributes());
-  initFn->setCallingConv(IGM.SwiftCC);
+  initFn->setCallingConv(IGM.CodiraCC);
     
   {
     IRGenFunction IGF(IGM, initFn);
@@ -453,7 +454,7 @@ getInitializerForComputedComponent(IRGenModule &IGM,
       IGM.DebugInfo->emitArtificialFunction(IGF, initFn);
 
     auto params = IGF.collectParameters();
-    // Pointer to the argument packet passed into swift_getKeyPath
+    // Pointer to the argument packet passed into language_getKeyPath
     auto src = params.claimNext();
     // Pointer to the destination component's argument buffer
     auto dest = params.claimNext();
@@ -464,11 +465,11 @@ getInitializerForComputedComponent(IRGenModule &IGM,
       lastOperandNeeded = std::max(lastOperandNeeded, (int)index.Operand);
     }
 
-    llvm::Value *offset;
+    toolchain::Value *offset;
     
     if (genericEnv) {
       // We'll copy over the generic environment after we copy in the indexes.
-      offset = llvm::ConstantInt::get(IGM.SizeTy,
+      offset = toolchain::ConstantInt::get(IGM.SizeTy,
         IGM.getPointerSize().getValue() * requirements.size());
 
       // Bind the generic environment from the argument buffer.
@@ -478,7 +479,7 @@ getInitializerForComputedComponent(IRGenModule &IGM,
           MetadataState::Complete, genericEnv->getForwardingSubstitutionMap());
 
     } else {
-      offset = llvm::ConstantInt::get(IGM.SizeTy, 0);
+      offset = toolchain::ConstantInt::get(IGM.SizeTy, 0);
     }
     
     // Figure out the offsets of the operands in the source buffer.
@@ -506,7 +507,7 @@ getInitializerForComputedComponent(IRGenModule &IGM,
       offset = IGF.Builder.CreateAdd(offset, size);
     }
     
-    offset = llvm::ConstantInt::get(IGM.SizeTy, 0);
+    offset = toolchain::ConstantInt::get(IGM.SizeTy, 0);
     
     // Transfer the operands we want into the destination buffer.
     for (unsigned i : indices(component.getArguments())) {
@@ -550,7 +551,7 @@ getInitializerForComputedComponent(IRGenModule &IGM,
     if (genericEnv) {
       auto destGenericEnv = dest;
       if (!component.getArguments().empty()) {
-        auto genericEnvAlignMask = llvm::ConstantInt::get(IGM.SizeTy,
+        auto genericEnvAlignMask = toolchain::ConstantInt::get(IGM.SizeTy,
           IGM.getPointerAlignment().getMaskValue());
         auto notGenericEnvAlignMask = IGF.Builder.CreateNot(genericEnvAlignMask);
         offset = IGF.Builder.CreateAdd(offset, genericEnvAlignMask);
@@ -561,7 +562,7 @@ getInitializerForComputedComponent(IRGenModule &IGM,
 
       auto align = IGM.getPointerAlignment().getValue();
       IGF.Builder.CreateMemCpy(
-          destGenericEnv, llvm::MaybeAlign(align), src, llvm::MaybeAlign(align),
+          destGenericEnv, toolchain::MaybeAlign(align), src, toolchain::MaybeAlign(align),
           IGM.getPointerSize().getValue() * requirements.size());
     }
     IGF.Builder.CreateRetVoid();
@@ -569,7 +570,7 @@ getInitializerForComputedComponent(IRGenModule &IGM,
   return initFn;
 }
 
-static llvm::Constant *
+static toolchain::Constant *
 emitMetadataTypeRefForKeyPath(IRGenModule &IGM, CanType type,
                               CanGenericSignature sig) {
   // Produce a mangled name for the type.
@@ -577,8 +578,8 @@ emitMetadataTypeRefForKeyPath(IRGenModule &IGM, CanType type,
   
   // Mask the bottom bit to tell the key path runtime this is a mangled name
   // rather than a direct reference.
-  auto bitConstant = llvm::ConstantInt::get(IGM.IntPtrTy, 1);
-  return llvm::ConstantExpr::getGetElementPtr(IGM.Int8Ty, constant,
+  auto bitConstant = toolchain::ConstantInt::get(IGM.IntPtrTy, 1);
+  return toolchain::ConstantExpr::getGetElementPtr(IGM.Int8Ty, constant,
                                               bitConstant);
 }
 
@@ -600,7 +601,7 @@ static unsigned getClassFieldIndex(ClassDecl *classDecl, VarDecl *property) {
     }
   }
 
-  llvm_unreachable("Did not find stored property in class");
+  toolchain_unreachable("Did not find stored property in class");
 }
 
 static void
@@ -629,8 +630,8 @@ emitKeyPathComponent(IRGenModule &IGM,
     auto property = cast<VarDecl>(component.getStoredPropertyDecl());
     
     auto addFixedOffset = [&](bool isStruct, bool isLet,
-                              llvm::Constant *offset) {
-      if (auto offsetInt = dyn_cast_or_null<llvm::ConstantInt>(offset)) {
+                              toolchain::Constant *offset) {
+      if (auto offsetInt = dyn_cast_or_null<toolchain::ConstantInt>(offset)) {
         auto offsetValue = offsetInt->getValue().getZExtValue();
         if (KeyPathComponentHeader::offsetCanBeInline(offsetValue)) {
           auto header = isStruct
@@ -646,7 +647,7 @@ emitKeyPathComponent(IRGenModule &IGM,
         ? KeyPathComponentHeader::forStructComponentWithOutOfLineOffset(isLet)
         : KeyPathComponentHeader::forClassComponentWithOutOfLineOffset(isLet);
       fields.addInt32(header.getData());
-      fields.add(llvm::ConstantExpr::getTruncOrBitCast(offset, IGM.Int32Ty));
+      fields.add(toolchain::ConstantExpr::getTruncOrBitCast(offset, IGM.Int32Ty));
     };
     
     // For a struct stored property, we may know the fixed offset of the field,
@@ -753,7 +754,7 @@ emitKeyPathComponent(IRGenModule &IGM,
       }
       break;
     }
-    llvm_unreachable("not struct or class");
+    toolchain_unreachable("not struct or class");
   }
   case KeyPathPatternComponent::Kind::GettableProperty:
   case KeyPathPatternComponent::Kind::SettableProperty:
@@ -766,8 +767,8 @@ emitKeyPathComponent(IRGenModule &IGM,
     // declarations that point within the same module. Just ignore those.
     auto externalDecl = component.getExternalDecl();
     if (externalDecl &&
-        externalDecl->getModuleContext() != IGM.getSwiftModule()) {
-      SmallVector<llvm::Constant *, 4> externalSubArgs;
+        externalDecl->getModuleContext() != IGM.getCodiraModule()) {
+      SmallVector<toolchain::Constant *, 4> externalSubArgs;
       auto componentSig = externalDecl->getInnermostDeclContext()
         ->getGenericSignatureOfContext();
 
@@ -786,7 +787,7 @@ emitKeyPathComponent(IRGenModule &IGM,
                                 if (auto *openedExistential =
                                         t->getAs<ExistentialArchetypeType>()) {
                                   auto &ctx = openedExistential->getASTContext();
-                                  return GenericTypeParamType::getType(0, 0, ctx);
+                                  return ctx.TheSelfType;
                                 }
                                 return std::nullopt;
                               })
@@ -838,7 +839,7 @@ emitKeyPathComponent(IRGenModule &IGM,
     // Lower the id reference.
     auto id = component.getComputedPropertyId();
     KeyPathComponentHeader::ComputedPropertyIDKind idKind;
-    llvm::Constant *idValue;
+    toolchain::Constant *idValue;
     KeyPathComponentHeader::ComputedPropertyIDResolution idResolution;
     switch (id.getKind()) {
     case KeyPathPatternComponent::ComputedPropertyId::Function: {
@@ -919,7 +920,7 @@ emitKeyPathComponent(IRGenModule &IGM,
         auto &protoInfo = IGM.getProtocolInfo(methodProto,
                                               ProtocolInfoKind::Full);
         auto index = protoInfo.getFunctionIndex(declRef);
-        idValue = llvm::ConstantInt::get(IGM.SizeTy, -index.getValue());
+        idValue = toolchain::ConstantInt::get(IGM.SizeTy, -index.getValue());
         idResolution = KeyPathComponentHeader::Resolved;
       }
       break;
@@ -958,12 +959,12 @@ emitKeyPathComponent(IRGenModule &IGM,
           ++i;
         }
         assert(structIdx && "not a stored property of the struct?!");
-        idValue = llvm::ConstantInt::get(IGM.SizeTy, structIdx.value());
+        idValue = toolchain::ConstantInt::get(IGM.SizeTy, structIdx.value());
       } else if (classDecl) {
-        // TODO: This field index would require runtime resolution with Swift
+        // TODO: This field index would require runtime resolution with Codira
         // native class resilience. We never directly access ObjC-imported
         // ivars so we can disregard ObjC ivar resilience for this computation
-        // and start counting at the Swift native root.
+        // and start counting at the Codira native root.
         if (loweredClassTy.getASTType()->hasTypeParameter())
           loweredClassTy = SILType::getPrimitiveObjectType(
               GenericEnvironment::mapTypeIntoContext(
@@ -974,13 +975,13 @@ emitKeyPathComponent(IRGenModule &IGM,
         case FieldAccess::ConstantIndirect:
         case FieldAccess::NonConstantDirect:
           idResolution = KeyPathComponentHeader::Resolved;
-          idValue = llvm::ConstantInt::get(IGM.SizeTy,
+          idValue = toolchain::ConstantInt::get(IGM.SizeTy,
                                        getClassFieldIndex(classDecl, property));
           break;
         }
         
       } else {
-        llvm_unreachable("neither struct nor class");
+        toolchain_unreachable("neither struct nor class");
       }
       break;
     }
@@ -1002,7 +1003,7 @@ emitKeyPathComponent(IRGenModule &IGM,
     case KeyPathComponentHeader::VTableOffset:
     case KeyPathComponentHeader::StoredPropertyIndex:
       // Store the offset as an i32.
-      fields.add(llvm::ConstantExpr::getTruncOrBitCast(idValue, IGM.Int32Ty));
+      fields.add(toolchain::ConstantExpr::getTruncOrBitCast(idValue, IGM.Int32Ty));
       break;
     }
 
@@ -1087,11 +1088,11 @@ emitKeyPathComponent(IRGenModule &IGM,
     fields.addInt32(elementOffset.getValue());
     break;
 
-    llvm_unreachable("could not get tuple element offset");
+    toolchain_unreachable("could not get tuple element offset");
   }
 }
 
-llvm::Constant *
+toolchain::Constant *
 IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
                                      SILLocation diagLoc) {
   // See if we already emitted this.
@@ -1122,12 +1123,12 @@ IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
   // If the pattern has no parameterization, add a pointer to a cache variable
   // that can be used for the one-time initialization of the key path.
   if (isInstantiableOnce) {
-    auto onceVar = new llvm::GlobalVariable(Module, OnceTy,
+    auto onceVar = new toolchain::GlobalVariable(Module, OnceTy,
                                             /*constant*/ false,
-                                            llvm::GlobalValue::PrivateLinkage,
-                                            llvm::ConstantInt::get(OnceTy, 0),
+                                            toolchain::GlobalValue::PrivateLinkage,
+                                            toolchain::ConstantInt::get(OnceTy, 0),
                                             "keypath_once");
-    onceVar->setAlignment(llvm::MaybeAlign(getPointerAlignment().getValue()));
+    onceVar->setAlignment(toolchain::MaybeAlign(getPointerAlignment().getValue()));
     fields.addRelativeAddress(onceVar);
   } else {
     fields.addInt32(0);
@@ -1212,7 +1213,7 @@ IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
                              /*reference prefix*/ false);
   // Add the header, followed by the components.
   fields.fillPlaceholder(headerPlaceholder,
-                         llvm::ConstantInt::get(Int32Ty, header.getData()));
+                         toolchain::ConstantInt::get(Int32Ty, header.getData()));
   
   // Create the global variable.
   // TODO: The pattern could be immutable if
@@ -1221,7 +1222,7 @@ IRGenModule::getAddrOfKeyPathPattern(KeyPathPattern *pattern,
   auto patternVar = fields.finishAndCreateGlobal("keypath",
                                           getPointerAlignment(),
                                           /*constant*/ false,
-                                          llvm::GlobalVariable::PrivateLinkage);
+                                          toolchain::GlobalVariable::PrivateLinkage);
   setTrueConstGlobal(patternVar);
   KeyPathPatterns.insert({pattern, patternVar});
   return patternVar;
@@ -1237,26 +1238,26 @@ void IRGenModule::emitSILProperty(SILProperty *prop) {
       ConstantInitBuilder builder(*this);
       ConstantStructBuilder fields = builder.beginStruct();
       fields.addInt32(
-        _SwiftKeyPathComponentHeader_TrivialPropertyDescriptorMarker);
-      auto var = cast<llvm::GlobalVariable>(
+        _CodiraKeyPathComponentHeader_TrivialPropertyDescriptorMarker);
+      auto var = cast<toolchain::GlobalVariable>(
         getAddrOfPropertyDescriptor(prop->getDecl(),
                                     fields.finishAndCreateFuture()));
       var->setConstant(true);
-      var->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
-      var->setAlignment(llvm::MaybeAlign(4));
+      var->setUnnamedAddr(toolchain::GlobalValue::UnnamedAddr::Global);
+      var->setAlignment(toolchain::MaybeAlign(4));
 
       TheTrivialPropertyDescriptor = var;
     } else {
       auto entity = LinkEntity::forPropertyDescriptor(prop->getDecl());
       auto linkInfo = LinkInfo::get(*this, entity, ForDefinition);
-      auto *GA = llvm::GlobalAlias::create(linkInfo.getLinkage(),
+      auto *GA = toolchain::GlobalAlias::create(linkInfo.getLinkage(),
                                            linkInfo.getName(),
                                            TheTrivialPropertyDescriptor);
       ApplyIRLinkage({linkInfo.getLinkage(),
                       linkInfo.getVisibility(),
                       IRGen.Opts.InternalizeSymbols
-                          ? llvm::GlobalValue::DefaultStorageClass
-                          : llvm::GlobalValue::DLLExportStorageClass})
+                          ? toolchain::GlobalValue::DefaultStorageClass
+                          : toolchain::GlobalValue::DLLExportStorageClass})
           .to(GA, linkInfo.isForDefinition());
     }
     return;
@@ -1301,15 +1302,15 @@ void IRGenModule::emitSILProperty(SILProperty *prop) {
                        {},
                        hasSubscriptIndices);
   
-  auto var = cast<llvm::GlobalVariable>(
+  auto var = cast<toolchain::GlobalVariable>(
     getAddrOfPropertyDescriptor(prop->getDecl(),
                                 fields.finishAndCreateFuture()));
   var->setConstant(true);
-  var->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
-  var->setAlignment(llvm::MaybeAlign(4));
+  var->setUnnamedAddr(toolchain::GlobalValue::UnnamedAddr::Global);
+  var->setAlignment(toolchain::MaybeAlign(4));
 }
 
-std::pair<llvm::Value *, llvm::Value *> irgen::emitKeyPathArgument(
+std::pair<toolchain::Value *, toolchain::Value *> irgen::emitKeyPathArgument(
     IRGenFunction &IGF, SubstitutionMap subs, const CanGenericSignature &sig,
     ArrayRef<SILType> indiceTypes, Explosion &indiceValues,
     std::optional<StackAddress> &dynamicArgsBuf) {
@@ -1319,16 +1320,16 @@ std::pair<llvm::Value *, llvm::Value *> irgen::emitKeyPathArgument(
     // No arguments necessary, so the argument ought to be ignored by any
     // callbacks in the pattern.
     assert(indiceTypes.empty() && "indices not implemented");
-    return std::make_pair(llvm::UndefValue::get(IGM.Int8PtrTy),
-                          llvm::ConstantInt::get(IGM.SizeTy, 0));
+    return std::make_pair(toolchain::UndefValue::get(IGM.Int8PtrTy),
+                          toolchain::ConstantInt::get(IGM.SizeTy, 0));
   }
 
   SmallVector<GenericRequirement, 4> requirements;
   enumerateGenericSignatureRequirements(
       sig, [&](GenericRequirement reqt) { requirements.push_back(reqt); });
 
-  llvm::Value *argsBufSize = llvm::ConstantInt::get(IGM.SizeTy, 0);
-  SmallVector<llvm::Value *, 4> operandOffsets;
+  toolchain::Value *argsBufSize = toolchain::ConstantInt::get(IGM.SizeTy, 0);
+  SmallVector<toolchain::Value *, 4> operandOffsets;
 
   for (unsigned i : indices(indiceTypes)) {
     auto &indiceTy = indiceTypes[i];
@@ -1347,7 +1348,7 @@ std::pair<llvm::Value *, llvm::Value *> irgen::emitKeyPathArgument(
   }
 
   if (!subs.empty()) {
-    argsBufSize = llvm::ConstantInt::get(
+    argsBufSize = toolchain::ConstantInt::get(
         IGM.SizeTy, IGM.getPointerSize().getValue() * requirements.size());
   }
 

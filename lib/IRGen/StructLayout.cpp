@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements algorithms for laying out structures.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/DerivedTypes.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/IR/DataLayout.h"
+#include "toolchain/IR/DerivedTypes.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/DiagnosticsIRGen.h"
 #include "language/ABI/MetadataValues.h"
@@ -42,14 +43,14 @@ static bool requiresHeapHeader(LayoutKind kind) {
   case LayoutKind::NonHeapObject: return false;
   case LayoutKind::HeapObject: return true;
   }
-  llvm_unreachable("bad layout kind!");
+  toolchain_unreachable("bad layout kind!");
 }
 
 /// Perform structure layout on the given types.
 StructLayout::StructLayout(IRGenModule &IGM, std::optional<CanType> type,
                            LayoutKind layoutKind, LayoutStrategy strategy,
                            ArrayRef<const TypeInfo *> types,
-                           llvm::StructType *typeToFill) {
+                           toolchain::StructType *typeToFill) {
   NominalTypeDecl *decl = nullptr;
 
   if (type) {
@@ -181,13 +182,13 @@ StructLayout::StructLayout(IRGenModule &IGM, std::optional<CanType> type,
     // Set the LLVM struct type for a fixed layout according to the stride and
     // alignment we determined.
     if (IsKnownAlwaysFixedSize) {
-      auto eltTy = llvm::IntegerType::get(IGM.getLLVMContext(), 8);
-      auto bodyTy = llvm::ArrayType::get(eltTy, MinimumSize.getValue());
+      auto eltTy = toolchain::IntegerType::get(IGM.getLLVMContext(), 8);
+      auto bodyTy = toolchain::ArrayType::get(eltTy, MinimumSize.getValue());
       if (typeToFill) {
         typeToFill->setBody(bodyTy, /*packed*/ true);
         Ty = typeToFill;
       } else {
-        Ty = llvm::StructType::get(IGM.getLLVMContext(), bodyTy, /*packed*/ true);
+        Ty = toolchain::StructType::get(IGM.getLLVMContext(), bodyTy, /*packed*/ true);
       }
     } else {
       Ty = (typeToFill ? typeToFill : IGM.OpaqueTy);
@@ -280,28 +281,28 @@ void irgen::applyLayoutAttributes(IRGenModule &IGM,
   }
 }
 
-llvm::Constant *StructLayout::emitSize(IRGenModule &IGM) const {
+toolchain::Constant *StructLayout::emitSize(IRGenModule &IGM) const {
   assert(isFixedLayout());
   return IGM.getSize(getSize());
 }
 
-llvm::Constant *StructLayout::emitAlignMask(IRGenModule &IGM) const {
+toolchain::Constant *StructLayout::emitAlignMask(IRGenModule &IGM) const {
   assert(isFixedLayout());
   return IGM.getSize(getAlignment().asSize() - Size(1));
 }
 
 /// Bitcast an arbitrary pointer to be a pointer to this type.
 Address StructLayout::emitCastTo(IRGenFunction &IGF,
-                                 llvm::Value *ptr,
-                                 const llvm::Twine &name) const {
-  llvm::Value *addr =
+                                 toolchain::Value *ptr,
+                                 const toolchain::Twine &name) const {
+  toolchain::Value *addr =
     IGF.Builder.CreateBitCast(ptr, getType()->getPointerTo(), name);
   return Address(addr, getType(), getAlignment());
 }
 
 Address ElementLayout::project(IRGenFunction &IGF, Address baseAddr,
                                NonFixedOffsets offsets,
-                               const llvm::Twine &suffix) const {
+                               const toolchain::Twine &suffix) const {
   switch (getKind()) {
   case Kind::Empty:
   case Kind::EmptyTailAllocatedCType:
@@ -315,7 +316,7 @@ Address ElementLayout::project(IRGenFunction &IGF, Address baseAddr,
 
   case Kind::NonFixed: {
     assert(offsets.has_value());
-    llvm::Value *offset =
+    toolchain::Value *offset =
       offsets.value()->getOffsetForIndex(IGF, getNonFixedElementIndex());
     return IGF.emitByteOffsetGEP(baseAddr.getAddress(), offset, getType(),
                                  baseAddr.getAddress()->getName() + suffix);
@@ -326,7 +327,7 @@ Address ElementLayout::project(IRGenFunction &IGF, Address baseAddr,
         baseAddr, getType().getStorageType(),
         baseAddr.getAddress()->getName() + suffix);
   }
-  llvm_unreachable("bad element layout kind");
+  toolchain_unreachable("bad element layout kind");
 }
 
 void StructLayoutBuilder::addHeapHeader() {
@@ -353,7 +354,7 @@ void StructLayoutBuilder::addDefaultActorHeader(ElementLayout &elt) {
   // These must match the DefaultActor class in Actor.h.
   auto size = NumWords_DefaultActor * IGM.getPointerSize();
   auto align = Alignment(Alignment_DefaultActor);
-  auto ty = llvm::ArrayType::get(IGM.Int8PtrTy, NumWords_DefaultActor);
+  auto ty = toolchain::ArrayType::get(IGM.Int8PtrTy, NumWords_DefaultActor);
 
   // Note that we align the *entire structure* to the new alignment,
   // not the storage we're adding.  Otherwise we would potentially
@@ -376,7 +377,7 @@ void StructLayoutBuilder::addNonDefaultDistributedActorHeader(ElementLayout &elt
   // These must match the NonDefaultDistributedActor class in Actor.h.
   auto size = NumWords_NonDefaultDistributedActor * IGM.getPointerSize();
   auto align = Alignment(Alignment_NonDefaultDistributedActor);
-  auto ty = llvm::ArrayType::get(IGM.Int8PtrTy, NumWords_NonDefaultDistributedActor);
+  auto ty = toolchain::ArrayType::get(IGM.Int8PtrTy, NumWords_NonDefaultDistributedActor);
 
   // Note that we align the *entire structure* to the new alignment,
   // not the storage we're adding.  Otherwise we would potentially
@@ -399,7 +400,7 @@ Size irgen::getNonDefaultDistributedActorStorageFieldOffset(IRGenModule &IGM) {
   return IGM.RefCountedStructSize;
 }
 
-bool StructLayoutBuilder::addFields(llvm::MutableArrayRef<ElementLayout> elts,
+bool StructLayoutBuilder::addFields(toolchain::MutableArrayRef<ElementLayout> elts,
                                     LayoutStrategy strategy) {
   // Track whether we've added any storage to our layout.
   bool addedStorage = false;
@@ -469,12 +470,12 @@ void StructLayoutBuilder::addFixedSizeElement(ElementLayout &elt) {
 
     // Add the padding to the fixed layout.
     if (isFixedLayout()) {
-      auto paddingTy = llvm::ArrayType::get(IGM.Int8Ty, paddingRequired);
+      auto paddingTy = toolchain::ArrayType::get(IGM.Int8Ty, paddingRequired);
       StructFields.push_back(paddingTy);
 
       // The padding can be used as spare bits by enum layout.
       auto numBits = Size(paddingRequired).getValueInBits();
-      auto mask = llvm::APInt::getAllOnes(numBits);
+      auto mask = toolchain::APInt::getAllOnes(numBits);
       CurSpareBits.push_back(SpareBitVector::fromAPInt(mask));
     }
   }
@@ -550,8 +551,8 @@ void StructLayoutBuilder::addNonFixedSizeElementAtOffsetZero(ElementLayout &elt)
 }
 
 /// Produce the current fields as an anonymous structure.
-llvm::StructType *StructLayoutBuilder::getAsAnonStruct() const {
-  auto ty = llvm::StructType::get(IGM.getLLVMContext(), StructFields,
+toolchain::StructType *StructLayoutBuilder::getAsAnonStruct() const {
+  auto ty = toolchain::StructType::get(IGM.getLLVMContext(), StructFields,
                                   /*isPacked*/ true);
   assert((!isFixedLayout()
           || IGM.DataLayout.getStructLayout(ty)->getSizeInBytes()
@@ -561,7 +562,7 @@ llvm::StructType *StructLayoutBuilder::getAsAnonStruct() const {
 }
 
 /// Set the current fields as the body of the given struct type.
-void StructLayoutBuilder::setAsBodyOfStruct(llvm::StructType *type) const {
+void StructLayoutBuilder::setAsBodyOfStruct(toolchain::StructType *type) const {
   assert(type->isOpaque());
   type->setBody(StructFields, /*isPacked*/ true);
   assert((!isFixedLayout()
@@ -592,8 +593,17 @@ unsigned irgen::getNumFields(const NominalTypeDecl *target) {
   return numFields;
 }
 
+bool irgen::isExportableField(Field field) {
+  if (field.getKind() == Field::Kind::Var &&
+      field.getVarDecl()->getClangDecl() &&
+      field.getVarDecl()->getFormalAccess() == AccessLevel::Private)
+    return false;
+  // All other fields are exportable
+  return true;
+}
+
 void irgen::forEachField(IRGenModule &IGM, const NominalTypeDecl *typeDecl,
-                         llvm::function_ref<void(Field field)> fn) {
+                         toolchain::function_ref<void(Field field)> fn) {
   auto classDecl = dyn_cast<ClassDecl>(typeDecl);
   if (classDecl) {
     if (classDecl->isRootDefaultActor()) {
@@ -613,13 +623,24 @@ void irgen::forEachField(IRGenModule &IGM, const NominalTypeDecl *typeDecl,
   }
 }
 
+unsigned irgen::countExportableFields(IRGenModule &IGM,
+                                      const NominalTypeDecl *type) {
+  // Don't count private C++ fields that were imported as private Codira fields
+  unsigned exportableFieldCount = 0;
+  forEachField(IGM, type, [&](Field field) {
+    if (isExportableField(field))
+      ++exportableFieldCount;
+  });
+  return exportableFieldCount;
+}
+
 SILType Field::getType(IRGenModule &IGM, SILType baseType) const {
   switch (getKind()) {
   case Field::Var:
     return baseType.getFieldType(getVarDecl(), IGM.getSILModule(),
                                  TypeExpansionContext::minimal());
   case Field::MissingMember:
-    llvm_unreachable("cannot ask for type of missing member");
+    toolchain_unreachable("cannot ask for type of missing member");
   case Field::DefaultActorStorage:
     return SILType::getPrimitiveObjectType(
                              IGM.Context.TheDefaultActorStorageType);
@@ -627,7 +648,7 @@ SILType Field::getType(IRGenModule &IGM, SILType baseType) const {
     return SILType::getPrimitiveObjectType(
                              IGM.Context.TheNonDefaultDistributedActorStorageType);
   }
-  llvm_unreachable("bad field kind");
+  toolchain_unreachable("bad field kind");
 }
 
 Type Field::getInterfaceType(IRGenModule &IGM) const {
@@ -635,13 +656,13 @@ Type Field::getInterfaceType(IRGenModule &IGM) const {
   case Field::Var:
     return getVarDecl()->getInterfaceType();
   case Field::MissingMember:
-    llvm_unreachable("cannot ask for type of missing member");
+    toolchain_unreachable("cannot ask for type of missing member");
   case Field::DefaultActorStorage:
     return IGM.Context.TheDefaultActorStorageType;
   case Field::NonDefaultDistributedActorStorage:
     return IGM.Context.TheNonDefaultDistributedActorStorageType;
   }
-  llvm_unreachable("bad field kind");
+  toolchain_unreachable("bad field kind");
 }
 
 StringRef Field::getName() const {
@@ -649,11 +670,11 @@ StringRef Field::getName() const {
   case Field::Var:
     return getVarDecl()->getName().str();
   case Field::MissingMember:
-    llvm_unreachable("cannot ask for type of missing member");
+    toolchain_unreachable("cannot ask for type of missing member");
   case Field::DefaultActorStorage:
     return DEFAULT_ACTOR_STORAGE_FIELD_NAME;
   case Field::NonDefaultDistributedActorStorage:
     return NON_DEFAULT_DISTRIBUTED_ACTOR_STORAGE_FIELD_NAME;
   }
-  llvm_unreachable("bad field kind");
+  toolchain_unreachable("bad field kind");
 }

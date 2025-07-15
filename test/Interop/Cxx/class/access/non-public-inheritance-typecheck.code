@@ -1,0 +1,181 @@
+//--- blessed.code
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/blessed.code
+import NonPublicInheritance
+
+// Extensions of each class test whether we correctly modeled *which* members
+// get inherited, but do not tell us whether they were inherited with the right
+// access permissions.
+//
+// Global functions (i.e., not in extensions) tell us whether those members were
+// inherited with the correct Codira access level (i.e., public vs private).
+
+extension Base {
+    fn ext() {
+        publ()
+        prot()
+        priv()
+    }
+}
+fn fBase(v: Base) {
+    v.publ()
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PublBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPublBase(v: PublBase) {
+    v.publ()
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PublPublBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPublPublBase(v: PublPublBase) {
+        v.publ()
+        v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+        v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension ProtPublBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fProtPublBase(v: ProtPublBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PrivPublBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPrivPublBase(v: PrivPublBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension ProtBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fProtBase(v: ProtBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+
+extension PublProtBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPublProtBase(v: PublProtBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension ProtProtBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fProtProtBase(v: ProtProtBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PrivProtBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPrivProtBase(v: PrivProtBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PrivBase {
+    fn ext() {
+        publ()
+        prot()
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPrivBase(v: PrivBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PublPrivBase {
+    fn ext() {
+        publ() // expected-error {{'publ()' is unavailable: this base member is not accessible because of private inheritance}}
+        prot() // expected-error {{'prot()' is unavailable: this base member is not accessible because of private inheritance}}
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPublPrivBase(v: PublPrivBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension ProtPrivBase {
+    fn ext() {
+        publ() // expected-error {{'publ()' is unavailable: this base member is not accessible because of private inheritance}}
+        prot() // expected-error {{'prot()' is unavailable: this base member is not accessible because of private inheritance}}
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fProtPrivBase(v: ProtPrivBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}
+
+extension PrivPrivBase {
+    fn ext() {
+        publ() // expected-error {{'publ()' is unavailable: this base member is not accessible because of private inheritance}}
+        prot() // expected-error {{'prot()' is unavailable: this base member is not accessible because of private inheritance}}
+        priv() // expected-error {{'priv()' is unavailable: this base member is not accessible because it is private}}
+    }
+}
+fn fPrivPrivBase(v: PrivPrivBase) {
+    v.publ() // expected-error {{'publ' is inaccessible due to 'private' protection level}}
+    v.prot() // expected-error {{'prot' is inaccessible due to 'private' protection level}}
+    v.priv() // expected-error {{'priv' is inaccessible due to 'private' protection level}}
+}

@@ -1,0 +1,8 @@
+fn throwingFunc() throws {
+    return
+}
+do {
+try throwingFunc()
+} catch {
+<#code#>
+}

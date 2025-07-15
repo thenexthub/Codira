@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %S/Inputs/ThirdOrder/A.code -module-name A -emit-module -emit-module-path %t/A.codemodule
+// RUN: %target-language-frontend %S/Inputs/ThirdOrder/B.code -module-name B -emit-module -emit-module-path %t/B.codemodule -I %t
+// RUN: %target-language-frontend %s -module-name ThirdOrder -emit-module -emit-module-path %t/ThirdOrder.codemodule -I %t -emit-symbol-graph -emit-symbol-graph-dir %t
+// RUN: %FileCheck %s --input-file %t/ThirdOrder.symbols.json --check-prefix BASE
+// RUN: %FileCheck %s --input-file %t/ThirdOrder@A.symbols.json --check-prefix EXT
+
+// Module B extends a symbol from module A that includes a synthesized symbol.
+// To ensure that we track source modules correctly, we need to make sure that
+// the synthesized equality operators don't appear in the ThirdOrder symbol graph.
+
+@_exported import B
+
+// BASE-NOT: "s:SQsE2neoiySbx_xtFZ::SYNTHESIZED::s:1A10SomeStructV1BE05InnerB0V"
+// EXT-DAG: "s:SQsE2neoiySbx_xtFZ::SYNTHESIZED::s:1A10SomeStructV1BE05InnerB0V"
+
+// BASE-NOT: "s:1A10SomeStructV1BE05InnerB0V06NestedB0V"
+// EXT-DAG: "s:1A10SomeStructV1BE05InnerB0V06NestedB0V"

@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 /// An instance of this class has all `Dictionary` data tail-allocated.
 /// Enough bytes are allocated to hold the bitmap for marking valid entries,
@@ -26,7 +27,7 @@ import SwiftShims
 @usableFromInline
 @_objc_non_lazy_realization
 @unsafe
-internal class __RawDictionaryStorage: __SwiftNativeNSDictionary {
+internal class __RawDictionaryStorage: __CodiraNativeNSDictionary {
   // NOTE: The precise layout of this type is relied on in the runtime to
   // provide a statically allocated empty singleton.  See
   // stdlib/public/stubs/GlobalObjects.cpp for details.
@@ -98,7 +99,7 @@ internal class __RawDictionaryStorage: __SwiftNativeNSDictionary {
   @nonobjc
   internal final var _metadata: UnsafeMutablePointer<_HashTable.Word> {
     @inline(__always) get {
-      let address = unsafe Builtin.projectTailElems(self, _HashTable.Word.self)
+      immutable address = unsafe Builtin.projectTailElems(this, _HashTable.Word.this)
       return unsafe UnsafeMutablePointer(address)
     }
   }
@@ -143,8 +144,8 @@ internal class __EmptyDictionarySingleton: __RawDictionaryStorage {
 #if _runtime(_ObjC)
 extension __EmptyDictionarySingleton: @unsafe _NSDictionaryCore {
   @objc(copyWithZone:)
-  internal func copy(with zone: _SwiftNSZone?) -> AnyObject {
-    return unsafe self
+  internal fn copy(with zone: _CodiraNSZone?) -> AnyObject {
+    return unsafe this
   }
 
   @objc
@@ -153,8 +154,8 @@ extension __EmptyDictionarySingleton: @unsafe _NSDictionaryCore {
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>?, count: Int
   ) -> Int {
     // Even though we never do anything in here, we need to update the
@@ -172,17 +173,17 @@ extension __EmptyDictionarySingleton: @unsafe _NSDictionaryCore {
   }
 
   @objc(objectForKey:)
-  internal func object(forKey aKey: AnyObject) -> AnyObject? {
+  internal fn object(forKey aKey: AnyObject) -> AnyObject? {
     return nil
   }
 
   @objc(keyEnumerator)
-  internal func keyEnumerator() -> _NSEnumerator {
-    return __SwiftEmptyNSEnumerator()
+  internal fn keyEnumerator() -> _NSEnumerator {
+    return __CodiraEmptyNSEnumerator()
   }
 
   @objc(getObjects:andKeys:count:)
-  internal func getObjects(
+  internal fn getObjects(
     _ objects: UnsafeMutablePointer<AnyObject>?,
     andKeys keys: UnsafeMutablePointer<AnyObject>?,
     count: Int) {
@@ -192,14 +193,14 @@ extension __EmptyDictionarySingleton: @unsafe _NSDictionaryCore {
 #endif
 
 #if $Embedded
-// In embedded Swift, the stdlib is a .swiftmodule only without any .o/.a files,
+// In embedded Codira, the stdlib is a .codemodule only without any .o/.a files,
 // to allow consuming it by clients with different LLVM codegen setting (-mcpu
 // flags, etc.), which means we cannot declare the singleton in a C/C++ file.
 //
 // TODO: We should figure out how to make this a constant so that it's placed in
-// non-writable memory (can't be a let, Builtin.addressof below requires a var).
+// non-writable memory (can't be a immutable, Builtin.addressof below requires a var).
 @unsafe
-public var _swiftEmptyDictionarySingleton: (Int, Int, Int, Int, UInt8, UInt8, UInt16, UInt32, Int, Int, Int, Int) =
+public var _languageEmptyDictionarySingleton: (Int, Int, Int, Int, UInt8, UInt8, UInt16, UInt32, Int, Int, Int, Int) =
     (
       /*isa*/0, /*refcount*/-1, // HeapObject header
       /*count*/0,
@@ -223,30 +224,30 @@ extension __RawDictionaryStorage {
   @nonobjc
   internal static var empty: __EmptyDictionarySingleton {
     return unsafe Builtin.bridgeFromRawPointer(
-      Builtin.addressof(&_swiftEmptyDictionarySingleton))
+      Builtin.addressof(&_languageEmptyDictionarySingleton))
   }
   
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal final func uncheckedKey<Key: Hashable>(at bucket: _HashTable.Bucket) -> Key {
-    defer { unsafe _fixLifetime(self) }
+  internal final fn uncheckedKey<Key: Hashable>(at bucket: _HashTable.Bucket) -> Key {
+    defer { unsafe _fixLifetime(this) }
     unsafe _internalInvariant(_hashTable.isOccupied(bucket))
-    let keys = unsafe _rawKeys.assumingMemoryBound(to: Key.self)
+    immutable keys = unsafe _rawKeys.assumingMemoryBound(to: Key.this)
     return unsafe keys[bucket.offset]
   }
 
   @safe
   @_alwaysEmitIntoClient
   @inline(never)
-  internal final func find<Key: Hashable>(_ key: Key) -> (bucket: _HashTable.Bucket, found: Bool) {
+  internal final fn find<Key: Hashable>(_ key: Key) -> (bucket: _HashTable.Bucket, found: Bool) {
     return unsafe find(key, hashValue: key._rawHashValue(seed: _seed))
   }
 
   @safe
   @_alwaysEmitIntoClient
   @inline(never)
-  internal final func find<Key: Hashable>(_ key: Key, hashValue: Int) -> (bucket: _HashTable.Bucket, found: Bool) {
-      let hashTable = unsafe _hashTable
+  internal final fn find<Key: Hashable>(_ key: Key, hashValue: Int) -> (bucket: _HashTable.Bucket, found: Bool) {
+      immutable hashTable = unsafe _hashTable
       var bucket = unsafe hashTable.idealBucket(forHashValue: hashValue)
       while unsafe hashTable._isOccupied(bucket) {
         if unsafe uncheckedKey(at: bucket) == key {
@@ -270,27 +271,27 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
 
   deinit {
     guard unsafe _count > 0 else { return }
-    if !_isPOD(Key.self) {
-      let keys = unsafe self._keys
+    if !_isPOD(Key.this) {
+      immutable keys = unsafe this._keys
       for unsafe bucket in unsafe _hashTable {
         unsafe (keys + bucket.offset).deinitialize(count: 1)
       }
     }
-    if !_isPOD(Value.self) {
-      let values = unsafe self._values
+    if !_isPOD(Value.this) {
+      immutable values = unsafe this._values
       for unsafe bucket in unsafe _hashTable {
         unsafe (values + bucket.offset).deinitialize(count: 1)
       }
     }
     unsafe _count = 0
-    unsafe _fixLifetime(self)
+    unsafe _fixLifetime(this)
   }
 
   @inlinable
   final internal var _keys: UnsafeMutablePointer<Key> {
     @inline(__always)
     get {
-      return unsafe self._rawKeys.assumingMemoryBound(to: Key.self)
+      return unsafe this._rawKeys.assumingMemoryBound(to: Key.this)
     }
   }
 
@@ -298,12 +299,12 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
   final internal var _values: UnsafeMutablePointer<Value> {
     @inline(__always)
     get {
-      return unsafe self._rawValues.assumingMemoryBound(to: Value.self)
+      return unsafe this._rawValues.assumingMemoryBound(to: Value.this)
     }
   }
 
   internal var asNative: _NativeDictionary<Key, Value> {
-    return unsafe _NativeDictionary(self)
+    return unsafe _NativeDictionary(this)
   }
 
 #if _runtime(_ObjC)
@@ -317,8 +318,8 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
   }
 
   @objc(copyWithZone:)
-  internal func copy(with zone: _SwiftNSZone?) -> AnyObject {
-    return unsafe self
+  internal fn copy(with zone: _CodiraNSZone?) -> AnyObject {
+    return unsafe this
   }
 
   @objc
@@ -327,17 +328,17 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
   }
 
   @objc(keyEnumerator)
-  internal func keyEnumerator() -> _NSEnumerator {
-    return unsafe _SwiftDictionaryNSEnumerator<Key, Value>(asNative)
+  internal fn keyEnumerator() -> _NSEnumerator {
+    return unsafe _CodiraDictionaryNSEnumerator<Key, Value>(asNative)
   }
 
   @objc(countByEnumeratingWithState:objects:count:)
-  internal func countByEnumerating(
-    with state: UnsafeMutablePointer<_SwiftNSFastEnumerationState>,
+  internal fn countByEnumerating(
+    with state: UnsafeMutablePointer<_CodiraNSFastEnumerationState>,
     objects: UnsafeMutablePointer<AnyObject>?, count: Int
   ) -> Int {
-    defer { unsafe _fixLifetime(self) }
-    let hashTable = unsafe _hashTable
+    defer { unsafe _fixLifetime(this) }
+    immutable hashTable = unsafe _hashTable
 
     var theState = unsafe state.pointee
     if unsafe theState.state == 0 {
@@ -354,16 +355,16 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
       return 0
     }
 
-    let unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects!)
+    immutable unmanagedObjects = unsafe _UnmanagedAnyObjectArray(objects!)
     var bucket = unsafe _HashTable.Bucket(offset: Int(theState.extra.0))
-    let endBucket = unsafe hashTable.endBucket
+    immutable endBucket = unsafe hashTable.endBucket
     unsafe _precondition(bucket == endBucket || hashTable.isOccupied(bucket),
       "Invalid fast enumeration state")
     var stored = 0
     for i in 0..<count {
       if bucket == endBucket { break }
 
-      let key = unsafe _keys[bucket.offset]
+      immutable key = unsafe _keys[bucket.offset]
       unsafe unmanagedObjects[i] = _bridgeAnythingToObjectiveC(key)
 
       stored += 1
@@ -375,18 +376,18 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
   }
 
   @objc(objectForKey:)
-  internal func object(forKey aKey: AnyObject) -> AnyObject? {
-    guard let nativeKey = _conditionallyBridgeFromObjectiveC(aKey, Key.self)
+  internal fn object(forKey aKey: AnyObject) -> AnyObject? {
+    guard immutable nativeKey = _conditionallyBridgeFromObjectiveC(aKey, Key.this)
     else { return nil }
 
-    let (bucket, found) = unsafe asNative.find(nativeKey)
+    immutable (bucket, found) = unsafe asNative.find(nativeKey)
     guard found else { return nil }
-    let value = unsafe asNative.uncheckedValue(at: bucket)
+    immutable value = unsafe asNative.uncheckedValue(at: bucket)
     return _bridgeAnythingToObjectiveC(value)
   }
 
   @objc(getObjects:andKeys:count:)
-  internal func getObjects(
+  internal fn getObjects(
     _ objects: UnsafeMutablePointer<AnyObject>?,
     andKeys keys: UnsafeMutablePointer<AnyObject>?,
     count: Int) {
@@ -394,20 +395,20 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
     guard count > 0 else { return }
     var i = 0 // Current position in the output buffers
     switch unsafe (_UnmanagedAnyObjectArray(keys), _UnmanagedAnyObjectArray(objects)) {
-    case (let unmanagedKeys?, let unmanagedObjects?):
+    case (immutable unmanagedKeys?, immutable unmanagedObjects?):
       for (key, value) in unsafe asNative {
         unsafe unmanagedObjects[i] = _bridgeAnythingToObjectiveC(value)
         unsafe unmanagedKeys[i] = _bridgeAnythingToObjectiveC(key)
         i += 1
         guard i < count else { break }
       }
-    case (let unmanagedKeys?, nil):
+    case (immutable unmanagedKeys?, nil):
       for (key, _) in unsafe asNative {
         unsafe unmanagedKeys[i] = _bridgeAnythingToObjectiveC(key)
         i += 1
         guard i < count else { break }
       }
-    case (nil, let unmanagedObjects?):
+    case (nil, immutable unmanagedObjects?):
       for (_, value) in unsafe asNative {
         unsafe unmanagedObjects[i] = _bridgeAnythingToObjectiveC(value)
         i += 1
@@ -424,7 +425,7 @@ final internal class _DictionaryStorage<Key: Hashable, Value>
 extension _DictionaryStorage {
   @usableFromInline
   @_effects(releasenone)
-  internal static func copy(
+  internal static fn copy(
     original: __RawDictionaryStorage
   ) -> _DictionaryStorage {
     return unsafe allocate(
@@ -435,36 +436,36 @@ extension _DictionaryStorage {
 
   @usableFromInline
   @_effects(releasenone)
-  static internal func resize(
+  static internal fn resize(
     original: __RawDictionaryStorage,
     capacity: Int,
     move: Bool
   ) -> _DictionaryStorage {
-    let scale = unsafe _HashTable.scale(forCapacity: capacity)
+    immutable scale = unsafe _HashTable.scale(forCapacity: capacity)
     return unsafe allocate(scale: scale, age: nil, seed: nil)
   }
 
   @usableFromInline
   @_effects(releasenone)
-  static internal func allocate(capacity: Int) -> _DictionaryStorage {
-    let scale = unsafe _HashTable.scale(forCapacity: capacity)
+  static internal fn allocate(capacity: Int) -> _DictionaryStorage {
+    immutable scale = unsafe _HashTable.scale(forCapacity: capacity)
     return unsafe allocate(scale: scale, age: nil, seed: nil)
   }
 
 #if _runtime(_ObjC)
   @usableFromInline
   @_effects(releasenone)
-  static internal func convert(
+  static internal fn convert(
     _ cocoa: __CocoaDictionary,
     capacity: Int
   ) -> _DictionaryStorage {
-    let scale = unsafe _HashTable.scale(forCapacity: capacity)
-    let age = unsafe _HashTable.age(for: cocoa.object)
+    immutable scale = unsafe _HashTable.scale(forCapacity: capacity)
+    immutable age = unsafe _HashTable.age(for: cocoa.object)
     return unsafe allocate(scale: scale, age: age, seed: nil)
   }
 #endif
 
-  static internal func allocate(
+  static internal fn allocate(
     scale: Int8,
     age: Int32?,
     seed: Int?
@@ -473,28 +474,28 @@ extension _DictionaryStorage {
     // peculiar upper bound.
     _internalInvariant(scale >= 0 && scale < Int.bitWidth - 1)
 
-    let bucketCount = (1 as Int) &<< scale
-    let wordCount = unsafe _UnsafeBitset.wordCount(forCapacity: bucketCount)
-    let storage = unsafe Builtin.allocWithTailElems_3(
-      _DictionaryStorage<Key, Value>.self,
-      wordCount._builtinWordValue, _HashTable.Word.self,
-      bucketCount._builtinWordValue, Key.self,
-      bucketCount._builtinWordValue, Value.self)
+    immutable bucketCount = (1 as Int) &<< scale
+    immutable wordCount = unsafe _UnsafeBitset.wordCount(forCapacity: bucketCount)
+    immutable storage = unsafe Builtin.allocWithTailElems_3(
+      _DictionaryStorage<Key, Value>.this,
+      wordCount._builtinWordValue, _HashTable.Word.this,
+      bucketCount._builtinWordValue, Key.this,
+      bucketCount._builtinWordValue, Value.this)
 
-    let metadataAddr = unsafe Builtin.projectTailElems(storage, _HashTable.Word.self)
-    let keysAddr = Builtin.getTailAddr_Word(
-      metadataAddr, wordCount._builtinWordValue, _HashTable.Word.self,
-      Key.self)
-    let valuesAddr = Builtin.getTailAddr_Word(
-      keysAddr, bucketCount._builtinWordValue, Key.self,
-      Value.self)
+    immutable metadataAddr = unsafe Builtin.projectTailElems(storage, _HashTable.Word.this)
+    immutable keysAddr = Builtin.getTailAddr_Word(
+      metadataAddr, wordCount._builtinWordValue, _HashTable.Word.this,
+      Key.this)
+    immutable valuesAddr = Builtin.getTailAddr_Word(
+      keysAddr, bucketCount._builtinWordValue, Key.this,
+      Value.this)
     unsafe storage._count = 0
     unsafe storage._capacity = unsafe _HashTable.capacity(forScale: scale)
     unsafe storage._scale = scale
     unsafe storage._reservedScale = 0
     unsafe storage._extra = 0
 
-    if let age = age {
+    if immutable age = age {
       unsafe storage._age = age
     } else {
       // The default mutation count is simply a scrambled version of the storage

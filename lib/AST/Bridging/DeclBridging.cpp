@@ -1,12 +1,12 @@
 //===--- Bridging/DeclBridging.cpp ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -70,19 +70,37 @@ BridgedDeclNameLoc BridgedDeclNameLoc_createParsed(
     BridgedASTContext cContext, BridgedSourceLoc cBaseNameLoc,
     BridgedSourceLoc cLParenLoc, BridgedArrayRef cLabelLocs,
     BridgedSourceLoc cRParenLoc) {
+  return BridgedDeclNameLoc_createParsed(
+       cContext, BridgedSourceLoc(), cBaseNameLoc, cLParenLoc, cLabelLocs,
+       cRParenLoc);
+}
+
+BridgedDeclNameLoc BridgedDeclNameLoc_createParsed(
+    BridgedASTContext cContext, BridgedSourceLoc cModuleSelectorLoc,
+    BridgedSourceLoc cBaseNameLoc, BridgedSourceLoc cLParenLoc,
+    BridgedArrayRef cLabelLocs, BridgedSourceLoc cRParenLoc) {
 
   ASTContext &context = cContext.unbridged();
   SmallVector<SourceLoc, 4> labelLocs;
   for (auto &cLabelLoc : cLabelLocs.unbridged<BridgedSourceLoc>())
     labelLocs.push_back(cLabelLoc.unbridged());
 
-  return DeclNameLoc(context, cBaseNameLoc.unbridged(), cLParenLoc.unbridged(),
+  return DeclNameLoc(context, cModuleSelectorLoc.unbridged(),
+                     cBaseNameLoc.unbridged(), cLParenLoc.unbridged(),
                      labelLocs, cRParenLoc.unbridged());
 }
 
 BridgedDeclNameLoc
 BridgedDeclNameLoc_createParsed(BridgedSourceLoc cBaseNameLoc) {
   return DeclNameLoc(cBaseNameLoc.unbridged());
+}
+
+BridgedDeclNameLoc
+BridgedDeclNameLoc_createParsed(
+    BridgedASTContext cContext, BridgedSourceLoc cModuleSelectorLoc,
+    BridgedSourceLoc cBaseNameLoc) {
+  return DeclNameLoc(cContext.unbridged(), cModuleSelectorLoc.unbridged(),
+                     cBaseNameLoc.unbridged());
 }
 
 //===----------------------------------------------------------------------===//
@@ -111,17 +129,13 @@ static StaticSpellingKind unbridged(BridgedStaticSpelling kind) {
   return static_cast<StaticSpellingKind>(kind);
 }
 
-AccessorKind unbridged(BridgedAccessorKind kind) {
-  return static_cast<AccessorKind>(kind);
-}
-
 void BridgedDecl_attachParsedAttrs(BridgedDecl decl,
                                    BridgedDeclAttributes attrs) {
   decl.unbridged()->attachParsedAttrs(attrs.unbridged());
 }
 
 void BridgedDecl_forEachDeclToHoist(BridgedDecl cDecl,
-                                    BridgedSwiftClosure closure) {
+                                    BridgedCodiraClosure closure) {
   cDecl.unbridged()->forEachDeclToHoist([&](Decl *D) {
     BridgedDecl bridged(D);
     closure(&bridged);
@@ -130,29 +144,29 @@ void BridgedDecl_forEachDeclToHoist(BridgedDecl cDecl,
 
 BridgedAccessorDecl BridgedAccessorDecl_createParsed(
     BridgedASTContext cContext, BridgedDeclContext cDeclContext,
-    BridgedAccessorKind cKind, BridgedAbstractStorageDecl cStorage,
+    language::AccessorKind Kind, BridgedAbstractStorageDecl cStorage,
     BridgedSourceLoc cDeclLoc, BridgedSourceLoc cAccessorKeywordLoc,
     BridgedNullableParameterList cParamList, BridgedSourceLoc cAsyncLoc,
     BridgedSourceLoc cThrowsLoc, BridgedNullableTypeRepr cThrownType) {
   return AccessorDecl::createParsed(
-      cContext.unbridged(), unbridged(cKind), cStorage.unbridged(),
-      cDeclLoc.unbridged(), cAccessorKeywordLoc.unbridged(),
-      cParamList.unbridged(), cAsyncLoc.unbridged(), cThrowsLoc.unbridged(),
-      cThrownType.unbridged(), cDeclContext.unbridged());
+      cContext.unbridged(), Kind, cStorage.unbridged(), cDeclLoc.unbridged(),
+      cAccessorKeywordLoc.unbridged(), cParamList.unbridged(),
+      cAsyncLoc.unbridged(), cThrowsLoc.unbridged(), cThrownType.unbridged(),
+      cDeclContext.unbridged());
 }
 
 static VarDecl::Introducer unbridged(BridgedVarDeclIntroducer introducer) {
   switch (introducer) {
   case BridgedVarDeclIntroducerLet:
-    return swift::VarDecl::Introducer::Let;
+    return language::VarDecl::Introducer::Let;
   case BridgedVarDeclIntroducerVar:
-    return swift::VarDecl::Introducer::Var;
+    return language::VarDecl::Introducer::Var;
   case BridgedVarDeclIntroducerInOut:
-    return swift::VarDecl::Introducer::InOut;
+    return language::VarDecl::Introducer::InOut;
   case BridgedVarDeclIntroducerBorrowing:
-    return swift::VarDecl::Introducer::Borrowing;
+    return language::VarDecl::Introducer::Borrowing;
   }
-  llvm_unreachable("unhandled enum value");
+  toolchain_unreachable("unhandled enum value");
 }
 
 BridgedPatternBindingDecl BridgedPatternBindingDecl_createParsed(
@@ -572,8 +586,8 @@ BridgedPrecedenceGroupDecl BridgedPrecedenceGroupDecl_createParsed(
     BridgedSourceLoc cPrecedencegroupKeywordLoc, BridgedIdentifier cName,
     BridgedSourceLoc cNameLoc, BridgedSourceLoc cLeftBraceLoc,
     BridgedSourceLoc cAssociativityKeywordLoc,
-    BridgedSourceLoc cAssociativityValueLoc,
-    BridgedAssociativity cAssociativity, BridgedSourceLoc cAssignmentKeywordLoc,
+    BridgedSourceLoc cAssociativityValueLoc, language::Associativity associativity,
+    BridgedSourceLoc cAssignmentKeywordLoc,
     BridgedSourceLoc cAssignmentValueLoc, bool isAssignment,
     BridgedSourceLoc cHigherThanKeywordLoc, BridgedArrayRef cHigherThanNames,
     BridgedSourceLoc cLowerThanKeywordLoc, BridgedArrayRef cLowerThanNames,
@@ -595,9 +609,9 @@ BridgedPrecedenceGroupDecl BridgedPrecedenceGroupDecl_createParsed(
       cDeclContext.unbridged(), cPrecedencegroupKeywordLoc.unbridged(),
       cNameLoc.unbridged(), cName.unbridged(), cLeftBraceLoc.unbridged(),
       cAssociativityKeywordLoc.unbridged(), cAssociativityValueLoc.unbridged(),
-      static_cast<Associativity>(cAssociativity),
-      cAssignmentKeywordLoc.unbridged(), cAssignmentValueLoc.unbridged(),
-      isAssignment, cHigherThanKeywordLoc.unbridged(), higherThanNames,
+      associativity, cAssignmentKeywordLoc.unbridged(),
+      cAssignmentValueLoc.unbridged(), isAssignment,
+      cHigherThanKeywordLoc.unbridged(), higherThanNames,
       cLowerThanKeywordLoc.unbridged(), lowerThanNames,
       cRightBraceLoc.unbridged());
 }
@@ -617,6 +631,17 @@ BridgedImportDecl BridgedImportDecl_createParsed(
       context, cDeclContext.unbridged(), cImportKeywordLoc.unbridged(),
       static_cast<ImportKind>(cImportKind), cImportKindLoc.unbridged(),
       std::move(builder).get());
+}
+
+BridgedUsingDecl BridgedUsingDecl_createParsed(BridgedASTContext cContext,
+                                               BridgedDeclContext cDeclContext,
+                                               BridgedSourceLoc usingKeywordLoc,
+                                               BridgedSourceLoc specifierLoc,
+                                               BridgedUsingSpecifier specifier) {
+  ASTContext &ctx = cContext.unbridged();
+  return UsingDecl::create(
+      ctx, usingKeywordLoc.unbridged(), specifierLoc.unbridged(),
+      static_cast<UsingSpecifier>(specifier), cDeclContext.unbridged());
 }
 
 BridgedSubscriptDecl BridgedSubscriptDecl_createParsed(
@@ -681,7 +706,7 @@ void BridgedAccessorDecl_setParsedBody(BridgedAccessorDecl decl,
 
 bool BridgedNominalTypeDecl_isStructWithUnreferenceableStorage(
     BridgedNominalTypeDecl decl) {
-  if (auto *structDecl = dyn_cast<swift::StructDecl>(decl.unbridged())) {
+  if (auto *structDecl = dyn_cast<language::StructDecl>(decl.unbridged())) {
     return structDecl->hasUnreferenceableStorage();
   }
   return false;

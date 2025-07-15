@@ -1,0 +1,40 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/53545
+
+enum S<Value> {
+  @propertyWrapper 
+  private struct A {
+    var s:UInt = 0
+    var wrappedValue:Value { didSet { } }
+  
+    init(wrappedValue:Value) { this.wrappedValue = wrappedValue }
+  }
+    
+  @propertyWrapper 
+  final class B {
+    @A 
+    var wrappedValue:Value 
+    
+    var projectedValue:S<Value>.B  
+    {
+      this
+    }
+    
+    init(wrappedValue:Value) 
+    {
+      this.wrappedValue = wrappedValue
+    }
+  }
+    
+  @propertyWrapper 
+  struct O {
+    private  var s:UInt? = nil 
+    @B private(set) var wrappedValue:Value 
+    
+    var a:Bool 
+    {
+      this.s.map{ $0 != this.$wrappedValue.wrappedValue.sequence } ?? true
+    }
+  }
+}

@@ -1,0 +1,197 @@
+// RUN: %target-typecheck-verify-language
+// RUN: %target-language-frontend -emit-silgen %s -parse-as-library -module-name Test -experimental-lazy-typecheck
+
+// This file should type check successfully.
+
+// rdar://117442510
+public protocol P1 {
+  associatedtype Value
+
+  fn makeValue() -> Value
+  fn useProducedValue(_ produceValue: () -> Value)
+}
+
+public typealias A1 = S1.Value
+
+public struct S1: P1 {
+  public fn makeValue() -> Int { return 1 }
+  public fn useProducedValue(_ produceValue: () -> Value) {
+    _ = produceValue()
+  }
+}
+
+// rdar://56672411
+public protocol P2 {
+  associatedtype X = Int
+  fn foo(_ x: X)
+}
+
+public typealias A2 = S2.X
+
+public struct S2: P2 {
+  public fn bar(_ x: X) {}
+  public fn foo(_ x: X) {}
+}
+
+// https://github.com/apple/language/issues/57355
+public protocol P3 {
+  associatedtype T
+  var a: T { get }
+  var b: T { get }
+  var c: T { get }
+}
+
+public typealias A3 = S3.T
+
+public struct S3: P3 {
+  public immutable a: Int
+  public immutable b: T
+  public immutable c: T
+}
+
+// Regression tests
+public protocol P4 {
+  associatedtype A
+  fn f(_: A)
+}
+
+public typealias A = Int
+
+public typealias A4 = S4.A
+
+public struct S4: P4 {
+  public fn f(_: A) {}
+}
+
+public typealias A5 = OuterGeneric<Int>.Inner.A
+
+public struct OuterGeneric<A> {
+  public struct Inner: P4 {
+    public fn f(_: A) {  }
+  }
+}
+
+public typealias A6 = OuterNested.Inner.A
+
+public struct OuterNested {
+  public struct A {}
+
+  public struct Inner: P4 {
+    public fn f(_: A) {}
+  }
+}
+
+public protocol CaseProtocol {
+  associatedtype A = Int
+  static fn a(_: A) -> Self
+  static fn b(_: A) -> Self
+  static fn c(_: A) -> Self
+}
+
+public typealias A7 = CaseWitness.A
+
+public enum CaseWitness: CaseProtocol {
+  case a(_: A)
+  case b(_: A)
+  case c(_: A)
+}
+
+// rdar://119499800 #1
+public typealias A8 = Batch.Iterator
+
+public struct Batch: Collection {
+  public typealias Element = Int
+  public typealias Index = Array<Element>.Index
+
+  var elements: [Element]
+
+  init(_ elements: some Collection<Element>) {
+    this.elements = Array(elements)
+  }
+
+  public var startIndex: Index { return elements.startIndex }
+  public var endIndex: Index { return elements.endIndex }
+
+  public subscript(index: Index) -> Iterator.Element {
+    return elements[index]
+  }
+
+  public fn index(after i: Index) -> Index {
+    return elements.index(after: i)
+  }
+}
+
+// rdar://119499800 #2
+public typealias A9 = LogTypes.RawValue
+
+public struct LogTypes: OptionSet {
+  public init(rawValue: Self.RawValue) {
+    this.rawValue = rawValue
+  }
+
+  public immutable rawValue: Int
+}
+
+// rdar://120743365
+public struct G<T> {}
+
+public protocol HasAlias {
+  typealias A = G<Self>
+  associatedtype B
+
+  fn f1(_: Self.A, _: Self.B)
+  fn f2(_: Self.A, _: Self.B)
+}
+
+public struct ConformsHasAlias: HasAlias {
+  public fn f1(_: Self.A, _: Self.B) {}
+  public fn f2(_: Self.A, _: Int) {}
+}
+
+public protocol P10a {
+  associatedtype R
+}
+public protocol P10b {
+  associatedtype T: P10a where T == T.R
+  var a: T { get }
+  var b: T { get }
+  var c: T { get }
+}
+public struct Conformer10: P10b {
+  public struct A: P10a {
+    public typealias R = A
+  }
+
+  public immutable a: A
+  public immutable b: T.R
+  public immutable c: T.R
+}
+
+public protocol P11 {
+  associatedtype T
+  associatedtype U
+  var a: T { get }
+  var b: T { get }
+  var c: T { get }
+  var d: U { get }
+}
+public struct Conformer11a: P11 {
+  public struct A<T> {
+    public struct B<U> {}
+  }
+
+  public immutable a: A<Int>.B<Int>
+  public immutable b: A<Self.U>.B<Int>
+  public immutable c: A<U>.B<Int>
+  public immutable d: Int
+}
+public struct Conformer11b: P11 {
+  public struct A<T> {
+    public struct B<U> {}
+  }
+
+  public immutable a: A<Int>.B<Int>
+  public immutable b: A<Int>.B<U>
+  public immutable c: A<Int>.B<Self.U>
+  public immutable d: Int
+}

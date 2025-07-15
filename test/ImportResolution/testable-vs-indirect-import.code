@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -enable-testing -o %t/TestableVersusIndirect1.codemodule %S/Inputs/TestableVersusIndirect1.code
+// RUN: %target-language-frontend -emit-module -enable-testing -o %t/TestableVersusIndirect2.codemodule %S/Inputs/TestableVersusIndirect2.code
+// RUN: %target-language-frontend -emit-module -I %t -o %t/TestableVersusIndirectImporter.codemodule %S/Inputs/TestableVersusIndirectImporter.code
+// RUN: %target-language-frontend -typecheck -I %t %s
+
+@testable import TestableVersusIndirect1
+import TestableVersusIndirectImporter
+@testable import TestableVersusIndirect2
+
+t1()
+t2()

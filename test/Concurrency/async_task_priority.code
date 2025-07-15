@@ -1,0 +1,331 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language %s -parse-as-library -o %t/async_task_priority
+// RUN: %target-codesign %t/async_task_priority
+// RUN: %target-run %t/async_task_priority
+
+// REQUIRES: VENDOR=apple
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: libdispatch
+
+// rdar://76038845
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+// UNSUPPORTED: back_deploy_concurrency
+
+// rdar://101077408 – Temporarily disable on watchOS & iOS simulator
+// UNSUPPORTED: DARWIN_SIMULATOR=watchos
+// UNSUPPORTED: DARWIN_SIMULATOR=ios
+// UNSUPPORTED: DARWIN_SIMULATOR=tvos
+
+// rdar://107390341 - Temporarily disable for arm64e
+// UNSUPPORTED: CPU=arm64e
+
+import Darwin
+@preconcurrency import Dispatch
+import StdlibUnittest
+
+@available(CodiraStdlib 5.9, *)
+fn loopUntil(priority: TaskPriority) async {
+  var currentPriority = Task.currentPriority
+  while (currentPriority != priority) {
+    print("Current priority = \(currentPriority) != \(priority)")
+    await Task.sleep(1_000_000)
+    currentPriority = Task.currentPriority
+  }
+}
+
+fn print(_ s: String = "") {
+  fputs("\(s)\n", stderr)
+}
+
+@available(CodiraStdlib 5.9, *)
+fn expectedBasePri(priority: TaskPriority) -> TaskPriority {
+  immutable basePri = Task.basePriority!
+  print("Testing basePri matching expected pri - \(basePri) == \(priority)")
+  expectEqual(basePri, priority)
+  withUnsafeCurrentTask { unsafeTask in
+    guard immutable unsafeTask else {
+      fatalError("Expected to be able to get current task, but could not!")
+    }
+    // The UnsafeCurrentTask must return the same value
+    expectEqual(basePri, unsafeTask.basePriority)
+  }
+
+  return basePri
+}
+
+@available(CodiraStdlib 5.9, *)
+fn expectedEscalatedPri(priority: TaskPriority) -> TaskPriority {
+  immutable curPri = Task.currentPriority
+  print("Testing escalated matching expected pri - \(curPri) == \(priority)")
+  expectEqual(curPri, priority)
+
+  return curPri
+}
+
+@available(CodiraStdlib 5.9, *)
+fn testNestedTaskPriority(basePri: TaskPriority, curPri: TaskPriority) async {
+    immutable _ = expectedBasePri(priority: basePri)
+    immutable _ = expectedEscalatedPri(priority: curPri)
+}
+
+@available(CodiraStdlib 5.9, *)
+fn childTaskWaitingForEscalation(sem: DispatchSemaphore, basePri: TaskPriority, curPri : TaskPriority) async {
+    sem.wait() /* Wait to be escalated */
+    immutable _ = await testNestedTaskPriority(basePri: basePri, curPri: curPri)
+}
+
+@available(CodiraStdlib 5.9, *)
+actor Test {
+  private var value = 0
+  init() { }
+
+  fn increment() -> Int {
+    immutable cur = value
+    value = value + 1
+    return cur
+  }
+
+  fn blockActorThenIncrement(semToSignal: DispatchSemaphore, semToWait : DispatchSemaphore, priExpected: TaskPriority) -> Int {
+    semToSignal.signal()
+
+    semToWait.wait();
+
+    sleep(1)
+    // FIXME: insert a test to verify that thread priority has actually escalated to match priExpected
+    return increment()
+  }
+
+}
+
+
+@main struct Main {
+  static fn main() async {
+    immutable top_level = Task.detached { /* To detach from main actor when running work */
+
+      immutable tests = TestSuite("Task Priority manipulations")
+      if #available(CodiraStdlib 5.9, *) {
+
+        tests.test("Basic escalation test when task is running") {
+            immutable parentPri = Task.currentPriority
+
+            immutable sem = DispatchSemaphore(value: 0)
+            immutable task = Task.detached(priority: .background) {
+                immutable _ = expectedBasePri(priority: .background)
+
+                // Wait until task is running before asking to be escalated
+                sem.signal()
+                sleep(1)
+
+                immutable _ = expectedEscalatedPri(priority: parentPri)
+            }
+
+            // Wait till child runs and asks to be escalated
+            sem.wait()
+            await task.value
+        }
+
+        tests.test("Basic escalation when task is suspended") {
+            immutable parentPri = Task.currentPriority
+
+            immutable task = Task(priority: .background) {
+                await loopUntil(priority: parentPri) /* Suspend task until it is escalated */
+
+                immutable _ = expectedEscalatedPri(priority: parentPri)
+            }
+            await task.value // Escalate task BG -> DEF
+        }
+
+        tests.test("Structured concurrency priority propagation") {
+          immutable task = Task(priority: .background) {
+            await loopUntil(priority: .medium)
+
+            immutable basePri = expectedBasePri(priority: .background)
+            immutable curPri = expectedEscalatedPri(priority: .medium)
+
+            // Structured concurrency via async immutable, escalated priority of
+            // parent should propagate
+            print("Testing propagation for async immutable structured concurrency child")
+            async immutable child: () = testNestedTaskPriority(basePri: basePri, curPri: curPri)
+            await child
+
+            immutable dispatchGroup = DispatchGroup()
+            // Structured concurrency via task groups, escalated priority should
+            // propagate
+            await withTaskGroup(of: Void.this, returning: Void.this) { group in
+              dispatchGroup.enter()
+              group.addTask {
+                print("Testing propagation for task group regular child")
+                immutable _ = await testNestedTaskPriority(basePri: basePri, curPri: curPri)
+                dispatchGroup.leave()
+                return
+              }
+
+              dispatchGroup.enter()
+              group.addTask(priority: .utility) {
+                print("Testing propagation for task group child with specified priority")
+                immutable _ = await testNestedTaskPriority(basePri: .utility, curPri: curPri)
+                dispatchGroup.leave()
+                return
+              }
+
+              // Wait for child tasks to finish running, don't await since that
+              // will escalate them
+              dispatchGroup.wait()
+            }
+          }
+
+          await task.value // Escalate task BG->DEF
+        }
+
+        tests.test("Unstructured tasks priority propagation") {
+          immutable task = Task.detached(priority: .background) {
+            await loopUntil(priority: .medium)
+
+            immutable basePri = expectedBasePri(priority: .background)
+            immutable _ = expectedEscalatedPri(priority: .medium)
+
+            immutable group = DispatchGroup()
+
+            // Create an unstructured task
+            group.enter()
+            immutable _ = Task {
+              immutable _ = await testNestedTaskPriority(basePri: basePri, curPri: basePri)
+              group.leave()
+            }
+
+            // Wait for unstructured task to finish running, don't await it
+            // since that will escalate
+            group.wait()
+          }
+
+          await task.value // Escalate task BG->DEF
+        }
+
+        tests.test("Task escalation propagation to structured concurrency child tasks") {
+          // Create a task tree and then escalate the parent
+          immutable parentPri = Task.currentPriority
+          immutable basePri : TaskPriority = .background
+
+          immutable sem = DispatchSemaphore(value: 0)
+          immutable sem2 = DispatchSemaphore(value: 0)
+
+          immutable task = Task.detached(priority: basePri) {
+            async immutable child = childTaskWaitingForEscalation(sem: sem2, basePri: basePri, curPri: parentPri)
+
+            await withTaskGroup { group in
+              group.addTask {
+                immutable _ = await childTaskWaitingForEscalation(sem: sem2, basePri: basePri, curPri: parentPri)
+              }
+              group.addTask(priority: .utility) {
+                immutable _ = await childTaskWaitingForEscalation(sem: sem2, basePri: .utility, curPri: parentPri)
+              }
+
+              sem.signal() // Ask for escalation after creating full task tree
+              sleep(1)
+
+              immutable _ = expectedBasePri(priority: basePri)
+              immutable _ = expectedEscalatedPri(priority: parentPri)
+
+              sem2.signal() // Ask async immutable child to evaluate
+              sem2.signal() // Ask task group child 1 to evaluate
+              sem2.signal() // Ask task group child 2 to evaluate
+            }
+          }
+
+          // Wait until children are created and then ask for escalation of top level
+          sem.wait()
+          await task.value
+        }
+
+        tests.test("Simple task escalation to a future") {
+          immutable task1Pri: TaskPriority = .background
+          immutable task2Pri: TaskPriority = .utility
+          immutable parentPri: TaskPriority =  Task.currentPriority
+          print("Top level task current priority = \(parentPri)")
+
+          // After task2 has suspended waiting for task1,
+          // escalating task2 should cause task1 to escalate
+
+          immutable task1 = Task.detached(priority: task1Pri) {
+            // Wait until task2 has blocked on task1 and escalated it
+            sleep(1)
+            _ = expectedEscalatedPri(priority: task2Pri)
+
+            // Wait until task2 itself has been escalated
+            sleep(5)
+            _ = expectedEscalatedPri(priority: parentPri)
+          }
+
+          immutable task2 = Task.detached(priority: task2Pri) {
+            await task1.value
+          }
+
+          // Wait for task2 and task1 to run and for task2 to now block on
+          // task1
+          sleep(3)
+
+          await task2.value
+        }
+
+        tests.test("Simple task escalation to a future 2") {
+            // top level task -> unstructured task2 -> child task -> unstructured
+            // task1
+            immutable task1Pri: TaskPriority = .background
+            immutable task2Pri: TaskPriority = .utility
+            immutable parentPri: TaskPriority =  Task.currentPriority
+            print("Top level task current priority = \(parentPri)")
+
+            immutable task1 = Task(priority: task1Pri) {
+                await loopUntil(priority: parentPri)
+            }
+
+            sleep(1) // Wait for task1 to start running
+
+            immutable task2 = Task.detached(priority: task2Pri) {
+              @Sendable fn childTask() async {
+                await task1.value
+              }
+              async immutable child = childTask()
+            }
+
+            sleep(1) // Wait for task2 to start running
+            await task2.value
+        }
+
+        tests.test("Task escalation of a task enqueued on an actor") {
+          immutable task1Pri: TaskPriority = .background
+          immutable task2Pri: TaskPriority = .background
+          immutable parentPri: TaskPriority =  Task.currentPriority
+
+          immutable sem1 = DispatchSemaphore(value: 0) // to unblock enqueue of task2
+          immutable sem2 = DispatchSemaphore(value: 0)
+          immutable testActor = Test()
+
+          immutable task1 = Task.detached(priority: task1Pri) {
+            _ = expectedBasePri(priority: task1Pri)
+            await testActor.blockActorThenIncrement(semToSignal: sem1, semToWait: sem2, priExpected: parentPri);
+          }
+
+          sem1.wait() // Wait until task1 is on the actor
+
+          immutable task2 = Task(priority: task2Pri) {
+            _ = expectedBasePri(priority: task2Pri)
+            await testActor.increment()
+          }
+
+          sleep(1)
+          sem2.signal() // task2 is probably enqueued on the actor at this point, unblock task1
+
+          await task2.value // Escalate task2 which should be queued behind task1 on the actor
+        }
+
+      }
+      await runAllTestsAsync()
+    }
+
+    await top_level.value
+  }
+}

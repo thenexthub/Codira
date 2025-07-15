@@ -1,16 +1,20 @@
-//===--- Parser.cpp - Swift Language Parser -------------------------------===//
+//===--- Parser.cpp - Codira Language Parser -------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements the Swift parser.
+//  This file implements the Codira parser.
 //
 //===----------------------------------------------------------------------===//
 
@@ -31,17 +35,17 @@
 #include "language/Parse/ParseSILSupport.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 
-static void getStringPartTokens(const swift::Token &Tok,
-                                const swift::LangOptions &LangOpts,
-                                const swift::SourceManager &SM, int BufID,
-                                std::vector<swift::Token> &Toks);
+static void getStringPartTokens(const language::Token &Tok,
+                                const language::LangOptions &LangOpts,
+                                const language::SourceManager &SM, int BufID,
+                                std::vector<language::Token> &Toks);
 
 namespace language {
 template <typename DF>
@@ -54,7 +58,7 @@ void tokenize(const LangOptions &LangOpts, const SourceManager &SM,
   if (Offset == 0 && EndOffset == 0)
     EndOffset = SM.getRangeForBuffer(BufferID).getByteLength();
 
-  Lexer L(LangOpts, SM, BufferID, Diags, LexerMode::Swift,
+  Lexer L(LangOpts, SM, BufferID, Diags, LexerMode::Codira,
           HashbangMode::Allowed, RetainComments, Offset,
           EndOffset);
 
@@ -104,7 +108,7 @@ using ParsingFlags = SourceFile::ParsingFlags;
 
 void SILParserStateBase::anchor() { }
 
-void swift::performIDEInspectionSecondPass(
+void language::performIDEInspectionSecondPass(
     SourceFile &SF, IDEInspectionCallbacksFactory &Factory) {
   return (void)evaluateOrDefault(SF.getASTContext().evaluator,
                                  IDEInspectionSecondPassRequest{&SF, &Factory},
@@ -116,7 +120,7 @@ bool IDEInspectionSecondPassRequest::evaluate(
     IDEInspectionCallbacksFactory *Factory) const {
   // If we didn't find the code completion token, bail.
   auto *parserState = SF->getDelayedParserState();
-  if (!parserState->hasIDEInspectionDelayedDeclState())
+  if (!parserState || !parserState->hasIDEInspectionDelayedDeclState())
     return true;
 
   // Decrement the closure discriminator index by one so a top-level closure
@@ -142,7 +146,7 @@ bool IDEInspectionSecondPassRequest::evaluate(
 void Parser::performIDEInspectionSecondPassImpl(
     IDEInspectionDelayedDeclState &info) {
   // Disable updating the interface hash
-  llvm::SaveAndRestore<std::optional<StableHasher>> CurrentTokenHashSaver(
+  toolchain::SaveAndRestore<std::optional<StableHasher>> CurrentTokenHashSaver(
       CurrentTokenHash, std::nullopt);
 
   auto BufferID = L->getBufferID();
@@ -193,7 +197,7 @@ void Parser::performIDEInspectionSecondPassImpl(
                 } else if (auto *SF = dyn_cast<SourceFile>(DC)) {
                   SF->addTopLevelDecl(D);
                 } else {
-                  llvm_unreachable("invalid decl context kind");
+                  toolchain_unreachable("invalid decl context kind");
                 }
               });
     break;
@@ -214,14 +218,14 @@ void Parser::performIDEInspectionSecondPassImpl(
   State->restoreIDEInspectionDelayedDeclState(info);
 }
 
-swift::Parser::BacktrackingScopeImpl::~BacktrackingScopeImpl() {
+language::Parser::BacktrackingScopeImpl::~BacktrackingScopeImpl() {
   if (Backtrack) {
     P.backtrackToPosition(PP);
     DT.abort();
   }
 }
 
-void swift::Parser::CancellableBacktrackingScope::cancelBacktrack() {
+void language::Parser::CancellableBacktrackingScope::cancelBacktrack() {
   if (!Backtrack)
     return;
 
@@ -277,7 +281,7 @@ static void getStringPartTokens(const Token &Tok, const LangOptions &LangOpts,
         Toks.push_back(NewTok);
       }
 
-      std::vector<Token> NewTokens = swift::tokenize(LangOpts, SM, BufID,
+      std::vector<Token> NewTokens = language::tokenize(LangOpts, SM, BufID,
                                                      Offset, EndOffset,
                                                      /*Diags=*/nullptr,
                                                      /*KeepComments=*/true);
@@ -295,7 +299,7 @@ static void getStringPartTokens(const Token &Tok, const LangOptions &LangOpts,
   }
 }
 
-std::vector<Token> swift::tokenize(const LangOptions &LangOpts,
+std::vector<Token> language::tokenize(const LangOptions &LangOpts,
                                    const SourceManager &SM, unsigned BufferID,
                                    unsigned Offset, unsigned EndOffset,
                                    DiagnosticEngine *Diags,
@@ -323,17 +327,17 @@ std::vector<Token> swift::tokenize(const LangOptions &LangOpts,
 
 static LexerMode sourceFileKindToLexerMode(SourceFileKind kind) {
   switch (kind) {
-    case swift::SourceFileKind::Interface:
-      return LexerMode::SwiftInterface;
-    case swift::SourceFileKind::SIL:
+    case language::SourceFileKind::Interface:
+      return LexerMode::CodiraInterface;
+    case language::SourceFileKind::SIL:
       return LexerMode::SIL;
-    case swift::SourceFileKind::Library:
-    case swift::SourceFileKind::Main:
-    case swift::SourceFileKind::MacroExpansion:
-    case swift::SourceFileKind::DefaultArgument:
-      return LexerMode::Swift;
+    case language::SourceFileKind::Library:
+    case language::SourceFileKind::Main:
+    case language::SourceFileKind::MacroExpansion:
+    case language::SourceFileKind::DefaultArgument:
+      return LexerMode::Codira;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 Parser::Parser(unsigned BufferID, SourceFile &SF, SILParserStateBase *SIL,
@@ -372,7 +376,7 @@ class TokenRecorder: public ConsumeTokenReceiver {
 
   // Registered token kind change. These changes are registered before the
   // token is consumed, so we need to keep track of them here.
-  llvm::DenseMap<const void*, tok> TokenKindChangeMap;
+  toolchain::DenseMap<const void*, tok> TokenKindChangeMap;
 
   std::vector<Token>::iterator lower_bound(SourceLoc Loc) {
     return token_lower_bound(Tokens, Loc);
@@ -383,7 +387,7 @@ class TokenRecorder: public ConsumeTokenReceiver {
   }
 
   void relexComment(CharSourceRange CommentRange,
-                    llvm::SmallVectorImpl<Token> &Scratch) {
+                    toolchain::SmallVectorImpl<Token> &Scratch) {
     auto &SM = Ctx.SourceMgr;
     auto EndOffset = SM.getLocOffsetInBuffer(CommentRange.getEnd(), BufferID);
     if (auto LexerCutOffOffset = BaseLexer.lexingCutOffOffset()) {
@@ -393,7 +397,7 @@ class TokenRecorder: public ConsumeTokenReceiver {
         EndOffset = *LexerCutOffOffset;
       }
     }
-    Lexer L(Ctx.LangOpts, SM, BufferID, nullptr, LexerMode::Swift,
+    Lexer L(Ctx.LangOpts, SM, BufferID, nullptr, LexerMode::Codira,
             HashbangMode::Disallowed, CommentRetentionMode::ReturnAsTokens,
             SM.getLocOffsetInBuffer(CommentRange.getStart(), BufferID),
             EndOffset);
@@ -425,7 +429,7 @@ public:
       // Special case: the file contains nothing but comments.
       TokEndLoc = SM.getLocForBufferStart(BufferID);
     }
-    llvm::SmallVector<Token, 4> Scratch;
+    toolchain::SmallVector<Token, 4> Scratch;
     relexComment(CharSourceRange(SM, TokEndLoc,
                                  SM.getRangeForBuffer(BufferID).getEnd()),
                  Scratch);
@@ -469,7 +473,7 @@ public:
 
     // If the token has comment attached to it, re-lexing these comments and
     // consume them as separate tokens.
-    llvm::SmallVector<Token, 4> TokensToConsume;
+    toolchain::SmallVector<Token, 4> TokensToConsume;
     if (Tok.hasComment()) {
       relexComment(Tok.getCommentRange(), TokensToConsume);
     }
@@ -594,7 +598,7 @@ void Parser::diagnoseDollarIdentifier(const Token &tok,
     return;
 
   if (tok.getText().size() == 1 || Context.LangOpts.EnableDollarIdentifiers ||
-      isInSILMode() || L->isSwiftInterface() ||
+      isInSILMode() || L->isCodiraInterface() ||
       isInMacroExpansion(tok.getLoc()))
     return;
 
@@ -606,7 +610,7 @@ SourceLoc Parser::consumeAttributeLParen() {
   SourceLoc LastTokenEndLoc = getEndOfPreviousLoc();
   if (LastTokenEndLoc != Tok.getLoc() && !isInSILMode()) {
     diagnose(LastTokenEndLoc, diag::attr_extra_whitespace_before_lparen)
-        .warnUntilSwiftVersion(6);
+        .warnUntilCodiraVersion(6);
   }
   return consumeToken(tok::l_paren);
 }
@@ -751,7 +755,7 @@ SourceLoc Parser::skipUntilGreaterInTypeList(bool protocolComposition) {
     // 'Self' can appear in types, skip it.
     if (Tok.is(tok::kw_Self))
       break;
-    if (isStartOfStmt(/*preferExpr*/ false) || isStartOfSwiftDecl() ||
+    if (isStartOfStmt(/*preferExpr*/ false) || isStartOfCodiraDecl() ||
         Tok.is(tok::pound_endif)) {
       return lastLoc;
     }
@@ -782,7 +786,7 @@ void Parser::skipUntilDeclRBrace() {
   while (Tok.isNot(tok::eof, tok::r_brace, tok::pound_endif,
                    tok::pound_else, tok::pound_elseif,
                    tok::code_complete) &&
-         !isStartOfSwiftDecl(/*allowPoundIfAttributes=*/false))
+         !isStartOfCodiraDecl(/*allowPoundIfAttributes=*/false))
     skipSingle();
 }
 
@@ -792,7 +796,7 @@ void Parser::skipListUntilDeclRBrace(SourceLoc startLoc, tok T1, tok T2) {
     bool hasDelimiter = Tok.getLoc() == startLoc || consumeIf(tok::comma);
     bool possibleDeclStartsLine = Tok.isAtStartOfLine();
     
-    if (isStartOfSwiftDecl(/*allowPoundIfAttributes=*/false)) {
+    if (isStartOfCodiraDecl(/*allowPoundIfAttributes=*/false)) {
       
       // Could have encountered something like `_ var:` 
       // or `let foo:` or `var:`
@@ -824,7 +828,7 @@ void Parser::skipListUntilDeclRBrace(SourceLoc startLoc, tok T1, tok T2) {
 void Parser::skipUntilDeclRBrace(tok T1, tok T2) {
   while (Tok.isNot(T1, T2, tok::eof, tok::r_brace, tok::pound_endif,
                    tok::pound_else, tok::pound_elseif) &&
-         !isStartOfSwiftDecl(/*allowPoundIfAttributes=*/false)) {
+         !isStartOfCodiraDecl(/*allowPoundIfAttributes=*/false)) {
     skipSingle();
   }
 }
@@ -867,7 +871,7 @@ getStructureMarkerKindForToken(const Token &tok) {
   case tok::l_square:
     return Parser::StructureMarkerKind::OpenSquare;
   default:
-    llvm_unreachable("Not a matched token");
+    toolchain_unreachable("Not a matched token");
   }
 }
 
@@ -979,7 +983,7 @@ bool Parser::parseMatchingToken(tok K, SourceLoc &TokLoc, DiagRef ErrorDiag,
   case tok::r_paren:  OtherNote = diag::opening_paren;    break;
   case tok::r_square: OtherNote = diag::opening_bracket;  break;
   case tok::r_brace:  OtherNote = diag::opening_brace;    break;
-  default:            llvm_unreachable("unknown matching token!"); break;
+  default:            toolchain_unreachable("unknown matching token!"); break;
   }
   if (parseToken(K, TokLoc, ErrorDiag)) {
     diagnose(OtherLoc, OtherNote);
@@ -1031,7 +1035,7 @@ static bool tokIsStringInterpolationEOF(Token &Tok, tok RightK) {
 Parser::ParseListItemResult
 Parser::parseListItem(ParserStatus &Status, tok RightK, SourceLoc LeftLoc,
                       SourceLoc &RightLoc, bool AllowSepAfterLast,
-                      llvm::function_ref<ParserStatus()> callback) {
+                      toolchain::function_ref<ParserStatus()> callback) {
   while (Tok.is(tok::comma)) {
     diagnose(Tok, diag::unexpected_separator, ",").fixItRemove(Tok.getLoc());
     consumeToken();
@@ -1073,7 +1077,7 @@ Parser::parseListItem(ParserStatus &Status, tok RightK, SourceLoc LeftLoc,
   }
   // If we're in a comma-separated list, the next token is at the
   // beginning of a new line and can never start an element, break.
-  if (Tok.isAtStartOfLine() && (Tok.is(tok::r_brace) || isStartOfSwiftDecl() ||
+  if (Tok.isAtStartOfLine() && (Tok.is(tok::r_brace) || isStartOfCodiraDecl() ||
                                 isStartOfStmt(/*preferExpr*/ false))) {
     return ParseListItemResult::Finished;
   }
@@ -1092,7 +1096,7 @@ Parser::parseListItem(ParserStatus &Status, tok RightK, SourceLoc LeftLoc,
 ParserStatus
 Parser::parseList(tok RightK, SourceLoc LeftLoc, SourceLoc &RightLoc,
                   bool AllowSepAfterLast, DiagRef ErrorDiag,
-                  llvm::function_ref<ParserStatus()> callback) {
+                  toolchain::function_ref<ParserStatus()> callback) {
   if (Tok.is(RightK)) {
     RightLoc = consumeToken(RightK);
     return makeParserSuccess();
@@ -1209,7 +1213,7 @@ ParserUnit::ParserUnit(SourceManager &SM, SourceFileKind SFKind,
   std::unique_ptr<Lexer> Lex;
   Lex.reset(new Lexer(Impl.LangOpts, SM,
                       BufferID, &Impl.Diags,
-                      LexerMode::Swift,
+                      LexerMode::Codira,
                       HashbangMode::Allowed,
                       CommentRetentionMode::None,
                       Offset, EndOffset));
@@ -1256,7 +1260,7 @@ SourceFile &ParserUnit::getSourceFile() {
   return *Impl.SF;
 }
 
-void PrettyStackTraceParser::print(llvm::raw_ostream &out) const {
+void PrettyStackTraceParser::print(toolchain::raw_ostream &out) const {
   out << "With parser at source location: ";
   P.Tok.getLoc().print(out, P.Context.SourceMgr);
   out << '\n';

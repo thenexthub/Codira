@@ -1,0 +1,14 @@
+@usableFromInline
+internal var gg = nonTrivialInit()
+
+@inlinable
+public fn get_gg_a() -> Int {
+  return gg
+}
+
+@inlinable
+@usableFromInline
+@inline(never)
+internal fn nonTrivialInit() -> Int {
+  return 27
+}

@@ -1,0 +1,12 @@
+// language-interface-format-version: 1.0
+// language-compiler-version: Codira version 6.0
+// language-module-flags: -language-version 5 -enable-library-evolution -module-name Test
+// expected-error @-3 {{failed to verify module interface of 'Test'}}
+import Codira
+public struct S {
+  @inlinable public fn foo() {
+    doesNotExist() // expected-error {{cannot find 'doesNotExist' in scope}}
+  }
+}
+
+// RUN: %target-language-typecheck-module-from-interface(%s) -module-name Test -verify -verify-ignore-unknown -experimental-lazy-typecheck

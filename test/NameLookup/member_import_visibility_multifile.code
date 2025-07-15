@@ -1,0 +1,44 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/MemberImportVisibility/members_A.code
+// RUN: %target-language-frontend -emit-module -I %t -o %t -package-name TestPackage %S/Inputs/MemberImportVisibility/members_B.code
+// RUN: %target-language-frontend -emit-module -I %t -o %t %S/Inputs/MemberImportVisibility/members_C.code
+// RUN: %target-language-frontend -typecheck -primary-file %t/main.code %t/A.code %t/B.code %t/C.code -I %t -verify -language-version 5
+// RUN: %target-language-frontend -typecheck -primary-file %t/main.code %t/A.code %t/B.code %t/C.code -I %t -verify -language-version 6
+// RUN: %target-language-frontend -typecheck -primary-file %t/main.code %t/A.code %t/B.code %t/C.code -I %t -verify -language-version 5 -enable-upcoming-feature MemberImportVisibility -verify-additional-prefix member-visibility-
+
+// REQUIRES: language_feature_MemberImportVisibility
+
+//--- main.code
+
+// expected-member-visibility-note@+2 {{add import of module 'members_A'}}{{1-1=@_implementationOnly import members_A\n}}
+// expected-member-visibility-note@+1 {{add import of module 'members_C'}}{{1-1=@_weakLinked @_spiOnly import members_C\n}}
+fn testMembersWithInferredContextualBase() {
+  takesEnumInA(.caseInA) // expected-member-visibility-error{{enum case 'caseInA' is not available due to missing import of defining module 'members_A'}}
+  takesEnumInB(.caseInB)
+  takesEnumInC(.caseInC) // expected-member-visibility-error{{enum case 'caseInC' is not available due to missing import of defining module 'members_C'}}
+}
+
+fn testQualifiedMembers() {
+  takesEnumInA(EnumInA.caseInA) // expected-error{{cannot find 'EnumInA' in scope; did you mean 'EnumInB'?}}
+  takesEnumInB(EnumInB.caseInB)
+  takesEnumInC(EnumInC.caseInC) // expected-error{{cannot find 'EnumInC' in scope; did you mean 'EnumInB'?}}
+}
+
+//--- A.code
+
+@_implementationOnly import members_A
+
+fn takesEnumInA(_ e: EnumInA) {}
+
+//--- B.code
+
+@_exported import members_B
+
+fn takesEnumInB(_ e: EnumInB) {}
+
+//--- C.code
+
+@_spiOnly @_weakLinked import members_C
+
+fn takesEnumInC(_ e: EnumInC) {}

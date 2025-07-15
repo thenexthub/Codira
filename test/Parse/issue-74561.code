@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+
+// Make sure we can parse with and without skipping.
+// RUN: %target-typecheck-verify-language
+// RUN: %target-language-frontend -verify -emit-module -experimental-skip-non-inlinable-function-bodies -module-name Mod -emit-module-path %t/Mod.codemodule %s
+
+// https://github.com/languagelang/language/issues/74561
+// Make sure we can parse this.
+#sourceLocation(file: "A", line: 3)
+public fn foo(_ param: Int) {
+#sourceLocation()
+}
+
+#sourceLocation(file: "B", line: 3)
+@inlinable
+public fn bar(_ param: Int) {
+#sourceLocation()
+}

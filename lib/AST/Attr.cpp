@@ -1,4 +1,4 @@
-//===--- Attr.cpp - Swift Language Attr ASTs ------------------------------===//
+//===--- Attr.cpp - Codira Language Attr ASTs ------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements routines relating to declaration attributes.
@@ -37,11 +38,11 @@
 #include "language/Basic/Defer.h"
 #include "language/Basic/QuotedString.h"
 #include "language/Strings.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/raw_ostream.h"
 using namespace language;
 
 static_assert(IsTriviallyDestructible<DeclAttributes>::value,
@@ -71,7 +72,7 @@ static_assert(IsTriviallyDestructible<DeclAttributes>::value,
   static_assert(TypeAttrKind::Id <= TypeAttrKind::Last_TypeAttr);
 #include "language/AST/TypeAttr.def"
 
-LLVM_ATTRIBUTE_USED StringRef swift::getDeclAttrKindID(DeclAttrKind kind) {
+TOOLCHAIN_ATTRIBUTE_USED StringRef language::getDeclAttrKindID(DeclAttrKind kind) {
     switch (kind) {
 #define DECL_ATTR(_, CLASS, ...)                               \
   case DeclAttrKind::CLASS:                                    \
@@ -80,7 +81,7 @@ LLVM_ATTRIBUTE_USED StringRef swift::getDeclAttrKindID(DeclAttrKind kind) {
   }
 }
 
-StringRef swift::getAccessLevelSpelling(AccessLevel value) {
+StringRef language::getAccessLevelSpelling(AccessLevel value) {
   switch (value) {
   case AccessLevel::Private: return "private";
   case AccessLevel::FilePrivate: return "fileprivate";
@@ -90,7 +91,7 @@ StringRef swift::getAccessLevelSpelling(AccessLevel value) {
   case AccessLevel::Open: return "open";
   }
 
-  llvm_unreachable("Unhandled AccessLevel in switch.");
+  toolchain_unreachable("Unhandled AccessLevel in switch.");
 }
 
 SourceLoc TypeAttribute::getStartLoc() const {
@@ -100,7 +101,7 @@ SourceLoc TypeAttribute::getStartLoc() const {
     return static_cast<const CLASS##TypeAttr *>(this)->getStartLocImpl();
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 SourceLoc TypeAttribute::getEndLoc() const {
@@ -110,7 +111,7 @@ SourceLoc TypeAttribute::getEndLoc() const {
     return static_cast<const CLASS##TypeAttr *>(this)->getEndLocImpl();
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 SourceRange TypeAttribute::getSourceRange() const {
@@ -122,7 +123,7 @@ SourceRange TypeAttribute::getSourceRange() const {
   }
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /// Given a name like "autoclosure", return the type attribute ID that
@@ -130,7 +131,7 @@ SourceRange TypeAttribute::getSourceRange() const {
 ///
 std::optional<TypeAttrKind>
 TypeAttribute::getAttrKindFromString(StringRef Str) {
-  return llvm::StringSwitch<std::optional<TypeAttrKind>>(Str)
+  return toolchain::StringSwitch<std::optional<TypeAttrKind>>(Str)
 #define TYPE_ATTR(X, C) .Case(#X, TypeAttrKind::C)
 #include "language/AST/TypeAttr.def"
       .Default(std::nullopt);
@@ -154,7 +155,7 @@ const char *TypeAttribute::getAttrName(TypeAttrKind kind) {
     return #X;
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("unknown type attribute kind");
+  toolchain_unreachable("unknown type attribute kind");
 }
 
 bool TypeAttribute::isUserInaccessible(TypeAttrKind DK) {
@@ -172,7 +173,7 @@ bool TypeAttribute::isUserInaccessible(TypeAttrKind DK) {
     return StringRef(#SPELLING).starts_with("_");
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("unhandled case in switch!");
+  toolchain_unreachable("unhandled case in switch!");
 }
 
 TypeAttribute *TypeAttribute::createSimple(const ASTContext &context,
@@ -186,17 +187,17 @@ TypeAttribute *TypeAttribute::createSimple(const ASTContext &context,
   // function doesn't actually need a switch.
 #define TYPE_ATTR(SPELLING, CLASS)                                             \
   case TypeAttrKind::CLASS:                                                    \
-    llvm_unreachable("not a simple attribute");
+    toolchain_unreachable("not a simple attribute");
 #define SIMPLE_TYPE_ATTR(SPELLING, CLASS)                                      \
   case TypeAttrKind::CLASS:                                                    \
     return new (context) CLASS##TypeAttr(atLoc, attrLoc);
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("bad type attribute kind");
+  toolchain_unreachable("bad type attribute kind");
 }
 
 void TypeAttribute::dump() const {
-  StreamPrinter P(llvm::errs());
+  StreamPrinter P(toolchain::errs());
   PrintOptions PO = PrintOptions::printDeclarations();
   print(P, PO);
 }
@@ -216,7 +217,7 @@ void TypeAttribute::print(ASTPrinter &printer,
 #define SIMPLE_TYPE_ATTR(_, C)
 #include "language/AST/TypeAttr.def"
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void DifferentiableTypeAttr::printImpl(ASTPrinter &printer,
@@ -236,7 +237,7 @@ void DifferentiableTypeAttr::printImpl(ASTPrinter &printer,
     printer << "(_linear)";
     break;
   case DifferentiabilityKind::NonDifferentiable:
-    llvm_unreachable("Unexpected case 'NonDifferentiable'");
+    toolchain_unreachable("Unexpected case 'NonDifferentiable'");
   }
   printer << ' ';
   printer.printStructurePost(PrintStructureKind::BuiltinAttribute);
@@ -289,7 +290,7 @@ const char *IsolatedTypeAttr::getIsolationKindName(IsolationKind kind) {
   switch (kind) {
   case IsolationKind::Dynamic: return "any";
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void IsolatedTypeAttr::printImpl(ASTPrinter &printer,
@@ -317,7 +318,7 @@ void IsolatedTypeAttr::printImpl(ASTPrinter &printer,
 ///
 std::optional<DeclAttrKind>
 DeclAttribute::getAttrKindFromString(StringRef Str) {
-  return llvm::StringSwitch<std::optional<DeclAttrKind>>(Str)
+  return toolchain::StringSwitch<std::optional<DeclAttrKind>>(Str)
 #define DECL_ATTR(X, CLASS, ...) .Case(#X, DeclAttrKind::CLASS)
 #define DECL_ATTR_ALIAS(X, CLASS) .Case(#X, DeclAttrKind::CLASS)
 #include "language/AST/DeclAttr.def"
@@ -334,13 +335,13 @@ DeclAttribute *DeclAttribute::createSimple(const ASTContext &context,
     // function doesn't actually need a switch.
 #define DECL_ATTR(SPELLING, CLASS, ...)                                        \
   case DeclAttrKind::CLASS:                                                    \
-    llvm_unreachable("not a simple attribute");
+    toolchain_unreachable("not a simple attribute");
 #define SIMPLE_DECL_ATTR(SPELLING, CLASS, ...)                                 \
   case DeclAttrKind::CLASS:                                                    \
     return new (context) CLASS##Attr(atLoc, attrLoc);
 #include "language/AST/DeclAttr.def"
   }
-  llvm_unreachable("bad decl attribute kind");
+  toolchain_unreachable("bad decl attribute kind");
 }
 
 /// Returns true if this attribute can appear on the specified decl.
@@ -356,7 +357,7 @@ bool DeclAttribute::canAttributeAppearOnDeclKind(DeclAttrKind DAK, DeclKind DK) 
 #define DECL(Id, Parent) case DeclKind::Id: return (Reqs & On##Id) != 0;
 #include "language/AST/DeclNodes.def"
   }
-  llvm_unreachable("bad DeclKind");
+  toolchain_unreachable("bad DeclKind");
 }
 
 // Ensure that every DeclAttribute subclass implements its own CloneAttr.
@@ -434,7 +435,7 @@ DeclAttributes::getBackDeployed(const ASTContext &ctx,
 }
 
 void DeclAttributes::print(const Decl *D) const {
-  StreamPrinter P(llvm::errs());
+  StreamPrinter P(toolchain::errs());
   PrintOptions PO = PrintOptions::printDeclarations();
   print(P, PO, D);
 }
@@ -443,7 +444,7 @@ void DeclAttributes::print(const Decl *D) const {
 /// attribute (e.g., as @available(iOS 8.0, *). The presentation requires an
 /// introduction version and does not support deprecation, obsoletion, or
 /// messages.
-LLVM_READONLY
+TOOLCHAIN_READONLY
 static bool isShortAvailable(const SemanticAvailableAttr &attr) {
   auto parsedAttr = attr.getParsedAttr();
   if (attr.isSPI())
@@ -526,7 +527,7 @@ static void printShortFormAvailable(const Decl *D,
     assert(introduced);
 
     // Avoid omitting available attribute when we are printing module interface.
-    if (!Options.IsForSwiftInterface &&
+    if (!Options.IsForCodiraInterface &&
         isShortFormAvailabilityImpliedByOther(attr, Attrs))
       continue;
 
@@ -592,7 +593,7 @@ static std::string getDifferentiationParametersClauseString(
   bool isInstanceMethod = function->isInstanceMember();
   bool isStaticMethod = function->isStatic();
   std::string result;
-  llvm::raw_string_ostream printer(result);
+  toolchain::raw_string_ostream printer(result);
 
   // Use the parameter indices, if specified.
   if (parameterIndices) {
@@ -665,7 +666,7 @@ static void printDifferentiableAttrArguments(
     const PrintOptions &Options, const Decl *D, bool omitWrtClause = false) {
   // Create a temporary string for the attribute argument text.
   std::string attrArgText;
-  llvm::raw_string_ostream stream(attrArgText);
+  toolchain::raw_string_ostream stream(attrArgText);
 
   // Print comma if not leading clause.
   bool isLeadingClause = false;
@@ -692,7 +693,7 @@ static void printDifferentiableAttrArguments(
     stream << "_linear";
     break;
   case DifferentiabilityKind::NonDifferentiable:
-    llvm_unreachable("Impossible case `NonDifferentiable`");
+    toolchain_unreachable("Impossible case `NonDifferentiable`");
   }
 
   // If the declaration is not available, there is not enough context to print
@@ -733,7 +734,7 @@ static void printDifferentiableAttrArguments(
   if (auto derivativeGenSig = attr->getDerivativeGenericSignature())
     derivativeRequirements = derivativeGenSig.getRequirements();
   auto requirementsToPrint =
-    llvm::make_filter_range(derivativeRequirements, [&](Requirement req) {
+    toolchain::make_filter_range(derivativeRequirements, [&](Requirement req) {
         if (const auto &originalGenSig = original->getGenericSignature())
           if (originalGenSig->isRequirementSatisfied(req))
             return false;
@@ -806,7 +807,7 @@ void DeclAttributes::print(ASTPrinter &Printer, const PrintOptions &Options,
 
   // Process attributes in passes.
   SmallVector<SemanticAvailableAttr, 8> shortAvailableAttributes;
-  std::optional<SemanticAvailableAttr> swiftVersionAvailableAttribute;
+  std::optional<SemanticAvailableAttr> languageVersionAvailableAttribute;
   std::optional<SemanticAvailableAttr> packageDescriptionVersionAvailableAttribute;
   AttributeVector backDeployedAttributes;
   AttributeVector longAttributes;
@@ -815,7 +816,7 @@ void DeclAttributes::print(ASTPrinter &Printer, const PrintOptions &Options,
   bool libraryLevelAPI =
       D && D->getASTContext().LangOpts.LibraryLevel == LibraryLevel::API;
 
-  for (auto DA : llvm::reverse(FlattenedAttrs)) {
+  for (auto DA : toolchain::reverse(FlattenedAttrs)) {
     // Don't skip implicit custom attributes. Custom attributes like global
     // actor isolation have critical semantic meaning and should never be
     // suppressed. Other custom attrs that can be suppressed, like macros,
@@ -851,7 +852,7 @@ void DeclAttributes::print(ASTPrinter &Printer, const PrintOptions &Options,
                                DA->getKind(), D->getKind()))
       continue;
 
-    // Be careful not to coalesce `@available(swift 5)` with other short
+    // Be careful not to coalesce `@available(language 5)` with other short
     // `available' attributes.
     if (auto *availableAttr = dyn_cast<AvailableAttr>(DA)) {
       auto semanticAttr = D->getSemanticAvailableAttr(availableAttr);
@@ -859,8 +860,8 @@ void DeclAttributes::print(ASTPrinter &Printer, const PrintOptions &Options,
         continue;
 
       if (isShortAvailable(*semanticAttr)) {
-        if (semanticAttr->isSwiftLanguageModeSpecific())
-          swiftVersionAvailableAttribute.emplace(*semanticAttr);
+        if (semanticAttr->isCodiraLanguageModeSpecific())
+          languageVersionAvailableAttribute.emplace(*semanticAttr);
         else if (semanticAttr->isPackageDescriptionVersionSpecific())
           packageDescriptionVersionAvailableAttribute.emplace(*semanticAttr);
         else
@@ -877,8 +878,8 @@ void DeclAttributes::print(ASTPrinter &Printer, const PrintOptions &Options,
     which.push_back(DA);
   }
 
-  if (swiftVersionAvailableAttribute)
-    printShortFormAvailable(D, *swiftVersionAvailableAttribute, Printer, Options);
+  if (languageVersionAvailableAttribute)
+    printShortFormAvailable(D, *languageVersionAvailableAttribute, Printer, Options);
   if (packageDescriptionVersionAvailableAttribute)
     printShortFormAvailable(D, *packageDescriptionVersionAvailableAttribute, Printer, Options);
   if (!shortAvailableAttributes.empty())
@@ -972,11 +973,11 @@ static void printAvailableAttr(const Decl *D, const SemanticAvailableAttr &Attr,
   auto ParsedAttr = Attr.getParsedAttr();
   auto Domain = Attr.getDomain();
 
-  // The parser rejects `@available(swift, unavailable)`, so when printing
-  // attributes that are universally unavailable in Swift, we must print them
+  // The parser rejects `@available(language, unavailable)`, so when printing
+  // attributes that are universally unavailable in Codira, we must print them
   // as universally unavailable instead.
   // FIXME: Reconsider this, it's a weird special case.
-  if (Domain.isSwiftLanguage() && Attr.isUnconditionallyUnavailable())
+  if (Domain.isCodiraLanguage() && Attr.isUnconditionallyUnavailable())
     Printer << "*";
   else
     Printer << Domain.getNameForAttributePrinting();
@@ -1002,7 +1003,7 @@ static void printAvailableAttr(const Decl *D, const SemanticAvailableAttr &Attr,
       Printer << ", renamed: \"";
       if (auto *Accessor = dyn_cast<AccessorDecl>(renamedDecl)) {
         SmallString<32> Name;
-        llvm::raw_svector_ostream OS(Name);
+        toolchain::raw_svector_ostream OS(Name);
         Accessor->printUserFacingName(OS);
         Printer << Name.str();
       } else {
@@ -1013,13 +1014,13 @@ static void printAvailableAttr(const Decl *D, const SemanticAvailableAttr &Attr,
   }
 
   // If there's no message, but this is specifically an imported
-  // "unavailable in Swift" attribute, synthesize a message to look good in
+  // "unavailable in Codira" attribute, synthesize a message to look good in
   // the generated interface.
   if (!Attr.getMessage().empty()) {
     Printer << ", message: ";
     Printer.printEscapedStringLiteral(Attr.getMessage());
-  } else if (Domain.isSwiftLanguage() && Attr.isUnconditionallyUnavailable())
-    Printer << ", message: \"Not available in Swift\"";
+  } else if (Domain.isCodiraLanguage() && Attr.isUnconditionallyUnavailable())
+    Printer << ", message: \"Not available in Codira\"";
 }
 
 bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
@@ -1040,11 +1041,11 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
   case DeclAttrKind::Infix:
     return false;
   case DeclAttrKind::Override: {
-    if (!Options.IsForSwiftInterface)
+    if (!Options.IsForCodiraInterface)
       break;
-    // When we are printing Swift interface, we have to skip the override keyword
+    // When we are printing Codira interface, we have to skip the override keyword
     // if the overridden decl is invisible from the interface. Otherwise, an error
-    // will occur while building the Swift module because the overriding decl
+    // will occur while building the Codira module because the overriding decl
     // doesn't override anything.
     // We couldn't skip every `override` keywords because they change the
     // ABI if the overridden decl is also publicly visible.
@@ -1079,9 +1080,9 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
       }
     }
 
-    if (!Options.IsForSwiftInterface)
+    if (!Options.IsForCodiraInterface)
       break;
-    // For Swift interface, we should print result builder attributes
+    // For Codira interface, we should print result builder attributes
     // on parameter decls and on protocol requirements.
     // Printing the attribute elsewhere isn't ABI relevant.
     if (auto *VD = dyn_cast<ValueDecl>(D)) {
@@ -1097,7 +1098,7 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
   case DeclAttrKind::OriginallyDefinedIn: {
     auto Attr = cast<OriginallyDefinedInAttr>(this);
     auto Name = D->getDeclContext()->getParentModule()->getName().str();
-    if (Options.IsForSwiftInterface && Attr->ManglingModuleName == Name)
+    if (Options.IsForCodiraInterface && Attr->ManglingModuleName == Name)
       return false;
     break;
   }
@@ -1127,9 +1128,9 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
       Printer << "(" << cast<EffectsAttr>(this)->getCustomString() << ")";
     } else if (DeclAttribute::isDeclModifier(getKind())) {
       Printer.printKeyword(getAttrName(), Options);
-    } else if (Options.IsForSwiftInterface &&
+    } else if (Options.IsForCodiraInterface &&
                getKind() == DeclAttrKind::ResultBuilder) {
-      // Use @_functionBuilder in Swift interfaces to maintain backward
+      // Use @_functionBuilder in Codira interfaces to maintain backward
       // compatibility.
       Printer.printSimpleAttr("_functionBuilder", /*needAt=*/true);
     } else if (getKind() == DeclAttrKind::MainType && Options.PrintForSIL) {
@@ -1162,7 +1163,7 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
   }
 
   Printer.callPrintStructurePre(PrintStructureKind::BuiltinAttribute);
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     Printer.printStructurePost(PrintStructureKind::BuiltinAttribute);
   };
 
@@ -1225,13 +1226,13 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
     }
     if (Attr->isEmbeddedSpecific()) {
       std::string atUnavailableInEmbedded =
-          (llvm::Twine("@") + UNAVAILABLE_IN_EMBEDDED_ATTRNAME).str();
+          (toolchain::Twine("@") + UNAVAILABLE_IN_EMBEDDED_ATTRNAME).str();
       Printer.printAttrName(atUnavailableInEmbedded);
       break;
     }
 
     if (Attr->isSPI()) {
-      std::string atSPI = (llvm::Twine("@") + SPI_AVAILABLE_ATTRNAME).str();
+      std::string atSPI = (toolchain::Twine("@") + SPI_AVAILABLE_ATTRNAME).str();
       Printer.printAttrName(atSPI);
     } else {
       Printer.printAttrName("@available");
@@ -1292,7 +1293,7 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
 
   case DeclAttrKind::ObjC: {
     Printer.printAttrName("@objc");
-    llvm::SmallString<32> scratch;
+    toolchain::SmallString<32> scratch;
     if (auto Name = cast<ObjCAttr>(this)->getName()) {
       if (!cast<ObjCAttr>(this)->isNameImplicit())
         Printer << "(" << Name->getString(scratch) << ")";
@@ -1306,46 +1307,52 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
     break;
   }
 
-  case DeclAttrKind::SwiftNativeObjCRuntimeBase: {
-    auto *attr = cast<SwiftNativeObjCRuntimeBaseAttr>(this);
-    Printer.printAttrName("@_swift_native_objc_runtime_base");
+  case DeclAttrKind::CodiraNativeObjCRuntimeBase: {
+    auto *attr = cast<CodiraNativeObjCRuntimeBaseAttr>(this);
+    Printer.printAttrName("@_language_native_objc_runtime_base");
     Printer << "(" << attr->BaseClassName.str() << ")";
     break;
   }
 
+  case DeclAttrKind::Specialized:
   case DeclAttrKind::Specialize: {
-    auto *attr = cast<SpecializeAttr>(this);
+    auto *attr = cast<AbstractSpecializeAttr>(this);
     // Don't print the _specialize attribute if it is marked spi and we are
     // asked to skip SPI.
     if (Options.printPublicInterface() && !attr->getSPIGroups().empty())
       return false;
 
     Printer << "@" << getAttrName() << "(";
-    auto exported = attr->isExported() ? "true" : "false";
-    auto kind = attr->isPartialSpecialization() ? "partial" : "full";
-    auto target = attr->getTargetFunctionName();
-    Printer << "exported: "<<  exported << ", ";
-    for (auto id : attr->getSPIGroups()) {
-      Printer << "spi: " << id << ", ";
-    }
-    Printer << "kind: " << kind << ", ";
-    if (target)
-      Printer << "target: " << target << ", ";
-    SmallVector<SemanticAvailableAttr, 8> semanticAvailAttrs;
-    for (auto availAttr : attr->getAvailableAttrs()) {
-      if (auto semanticAttr = D->getSemanticAvailableAttr(availAttr))
-        semanticAvailAttrs.push_back(*semanticAttr);
-    }
 
-    if (!semanticAvailAttrs.empty()) {
-      Printer << "availability: ";
-      if (semanticAvailAttrs.size() == 1) {
-        printAvailableAttr(D, semanticAvailAttrs[0], Printer, Options);
-        Printer << "; ";
-      } else {
-        printShortFormAvailable(D, semanticAvailAttrs, Printer, Options,
-                                true /*forAtSpecialize*/);
-        Printer << "; ";
+    // The non-underscored @specialize attribute currently does not support
+    // parameters so lets not print them.
+    if (!attr->isPublic()) {
+      auto exported = attr->isExported() ? "true" : "false";
+      auto kind = attr->isPartialSpecialization() ? "partial" : "full";
+      auto target = attr->getTargetFunctionName();
+      Printer << "exported: "<<  exported << ", ";
+      for (auto id : attr->getSPIGroups()) {
+        Printer << "spi: " << id << ", ";
+      }
+      Printer << "kind: " << kind << ", ";
+      if (target)
+        Printer << "target: " << target << ", ";
+      SmallVector<SemanticAvailableAttr, 8> semanticAvailAttrs;
+      for (auto availAttr : attr->getAvailableAttrs()) {
+        if (auto semanticAttr = D->getSemanticAvailableAttr(availAttr))
+          semanticAvailAttrs.push_back(*semanticAttr);
+      }
+
+      if (!semanticAvailAttrs.empty()) {
+        Printer << "availability: ";
+        if (semanticAvailAttrs.size() == 1) {
+          printAvailableAttr(D, semanticAvailAttrs[0], Printer, Options);
+          Printer << "; ";
+        } else {
+          printShortFormAvailable(D, semanticAvailAttrs, Printer, Options,
+                                  true /*forAtSpecialize*/);
+          Printer << "; ";
+        }
       }
     }
     SmallVector<Requirement, 4> requirementsScratch;
@@ -1377,9 +1384,10 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
                     if (typeErased)
                       Printer << "@_noMetadata ";
                   }
-                  auto OptionsCopy = Options;
-                  OptionsCopy.PrintInternalLayoutName = typeErased;
-                  req.print(Printer, OptionsCopy);
+
+                  PrintOptions::OverrideScope scope(Options);
+                  OVERRIDE_PRINT_OPTION(scope, PrintInternalLayoutName, typeErased);
+                  req.print(Printer, Options);
                 },
                 [&] { Printer << ", "; });
 
@@ -1534,6 +1542,18 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
     break;
   }
 
+  case DeclAttrKind::InheritActorContext: {
+    Printer.printAttrName("@_inheritActorContext");
+    switch (cast<InheritActorContextAttr>(this)->getModifier()) {
+    case InheritActorContextModifier::None:
+      break;
+    case InheritActorContextModifier::Always:
+      Printer << "(always)";
+      break;
+    }
+    break;
+  }
+
   case DeclAttrKind::MacroRole: {
     auto Attr = cast<MacroRoleAttr>(this);
 
@@ -1640,7 +1660,7 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
       Printer << ", count: ";
       array->second->print(Printer, Options);
     } else {
-      llvm_unreachable("unhandled @_rawLayout form");
+      toolchain_unreachable("unhandled @_rawLayout form");
     }
     Printer << ")";
     break;
@@ -1674,7 +1694,11 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
 
   case DeclAttrKind::Lifetime: {
     auto *attr = cast<LifetimeAttr>(this);
-    Printer << attr->getLifetimeEntry()->getString();
+    if (!attr->isUnderscored() || Options.SuppressLifetimes) {
+      Printer << "@lifetime" << attr->getLifetimeEntry()->getString();
+    } else {
+      Printer << "@_lifetime" << attr->getLifetimeEntry()->getString();
+    }
     break;
   }
 
@@ -1688,7 +1712,7 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
                     ->getVarAtSimilarStructuralPosition(
                                       const_cast<VarDecl *>(cast<VarDecl>(D)));
     if (abiDecl) {
-      auto optionsCopy = Options;
+      PrintOptions::OverrideScope scope(Options);
 
       // Don't print any attributes marked with `ForbiddenInABIAttr`.
       // (Reminder: There is manual logic in `PrintAST::printAttributes()`
@@ -1700,21 +1724,34 @@ bool DeclAttribute::printImpl(ASTPrinter &Printer, const PrintOptions &Options,
           continue;
 
         if (attrKind == DeclAttrKind::AccessControl)
-          optionsCopy.PrintAccess = false;
+          OVERRIDE_PRINT_OPTION(scope, PrintAccess, false);
         else
-          optionsCopy.ExcludeAttrList.push_back(attrKind);
+          scope.addExcludedAttr(attrKind);
       }
 
-      abiDecl->print(Printer, optionsCopy);
+      abiDecl->print(Printer, Options);
     }
     Printer << ")";
 
     break;
   }
 
+  case DeclAttrKind::Nonexhaustive: {
+    auto *attr = cast<NonexhaustiveAttr>(this);
+    Printer << "@nonexhaustive";
+    switch (attr->getMode()) {
+    case NonexhaustiveMode::Error:
+      break;
+    case NonexhaustiveMode::Warning:
+      Printer << "(warn)";
+      break;
+    }
+    break;
+  }
+
 #define SIMPLE_DECL_ATTR(X, CLASS, ...) case DeclAttrKind::CLASS:
 #include "language/AST/DeclAttr.def"
-    llvm_unreachable("handled above");
+    toolchain_unreachable("handled above");
 
   default:
     assert(DeclAttribute::isDeclModifier(getKind()) &&
@@ -1736,7 +1773,7 @@ void DeclAttribute::print(ASTPrinter &Printer, const PrintOptions &Options,
     Printer << " ";
 }
 
-void DeclAttribute::print(llvm::raw_ostream &OS, const Decl *D) const {
+void DeclAttribute::print(toolchain::raw_ostream &OS, const Decl *D) const {
   StreamPrinter P(OS);
   print(P, PrintOptions(), D);
 }
@@ -1748,7 +1785,7 @@ uint64_t DeclAttribute::getRequirements(DeclAttrKind DK) {
     return REQUIREMENTS;
 #include "language/AST/DeclAttr.def"
   }
-  llvm_unreachable("bad DeclAttrKind");
+  toolchain_unreachable("bad DeclAttrKind");
 }
 
 uint64_t DeclAttribute::getBehaviors(DeclAttrKind DK) {
@@ -1770,7 +1807,7 @@ std::optional<Feature> DeclAttribute::getRequiredFeature(DeclAttrKind DK) {
   default:
     return std::nullopt;
   }
-  llvm_unreachable("bad DeclAttrKind");
+  toolchain_unreachable("bad DeclAttrKind");
 }
 
 StringRef DeclAttribute::getAttrName() const {
@@ -1789,8 +1826,8 @@ StringRef DeclAttribute::getAttrName() const {
     if (cast<CDeclAttr>(this)->Underscored)
       return "_cdecl";
     return "cdecl";
-  case DeclAttrKind::SwiftNativeObjCRuntimeBase:
-    return "_swift_native_objc_runtime_base";
+  case DeclAttrKind::CodiraNativeObjCRuntimeBase:
+    return "_language_native_objc_runtime_base";
   case DeclAttrKind::Semantics:
     return "_semantics";
   case DeclAttrKind::Available:
@@ -1817,7 +1854,7 @@ StringRef DeclAttribute::getAttrName() const {
     case InlineKind::Always:
       return "inline(__always)";
     }
-    llvm_unreachable("Invalid inline kind");
+    toolchain_unreachable("Invalid inline kind");
   }
   case DeclAttrKind::NonSendable: {
     switch (cast<NonSendableAttr>(this)->Specificity) {
@@ -1826,7 +1863,7 @@ StringRef DeclAttribute::getAttrName() const {
     case NonSendableKind::Assumed:
       return "_nonSendable(_assumed)";
     }
-    llvm_unreachable("Invalid nonSendable kind");
+    toolchain_unreachable("Invalid nonSendable kind");
   }
   case DeclAttrKind::Optimize: {
     switch (cast<OptimizeAttr>(this)->getMode()) {
@@ -1837,7 +1874,7 @@ StringRef DeclAttribute::getAttrName() const {
     case OptimizationMode::ForSize:
       return "_optimize(size)";
     default:
-      llvm_unreachable("Invalid optimization kind");
+      toolchain_unreachable("Invalid optimization kind");
     }
   }
   case DeclAttrKind::Exclusivity: {
@@ -1847,7 +1884,7 @@ StringRef DeclAttribute::getAttrName() const {
     case ExclusivityAttr::Unchecked:
       return "exclusivity(unchecked)";
     }
-    llvm_unreachable("Invalid optimization kind");
+    toolchain_unreachable("Invalid optimization kind");
   }
   case DeclAttrKind::Effects:
     switch (cast<EffectsAttr>(this)->getKind()) {
@@ -1879,6 +1916,8 @@ StringRef DeclAttribute::getAttrName() const {
     return "<<ObjC bridged>>";
   case DeclAttrKind::SynthesizedProtocol:
     return "<<synthesized protocol>>";
+  case DeclAttrKind::Specialized:
+    return "specialized";
   case DeclAttrKind::Specialize:
     return "_specialize";
   case DeclAttrKind::StorageRestrictions:
@@ -1918,6 +1957,13 @@ StringRef DeclAttribute::getAttrName() const {
     case NonIsolatedModifier::NonSending:
       return "nonisolated(nonsending)";
     }
+  case DeclAttrKind::InheritActorContext:
+    switch (cast<InheritActorContextAttr>(this)->getModifier()) {
+    case InheritActorContextModifier::None:
+      return "_inheritActorContext";
+    case InheritActorContextModifier::Always:
+      return "_inheritActorContext(always)";
+    }
   case DeclAttrKind::MacroRole:
     switch (cast<MacroRoleAttr>(this)->getMacroSyntax()) {
     case MacroSyntax::Freestanding:
@@ -1937,9 +1983,11 @@ StringRef DeclAttribute::getAttrName() const {
       return "_allowFeatureSuppression";
     }
   case DeclAttrKind::Lifetime:
-    return "lifetime";
+    return cast<LifetimeAttr>(this)->isUnderscored() ? "_lifetime" : "lifetime";
+  case DeclAttrKind::Nonexhaustive:
+    return "nonexhaustive";
   }
-  llvm_unreachable("bad DeclAttrKind");
+  toolchain_unreachable("bad DeclAttrKind");
 }
 
 ObjCAttr::ObjCAttr(SourceLoc atLoc, SourceRange baseRange,
@@ -2208,16 +2256,16 @@ bool RawLayoutAttr::isEquivalent(const RawLayoutAttr *other,
             && eqTypes(thisArrayLikeTypes->second, otherArrayLikeTypes->second);
   }
 
-  llvm_unreachable("unknown variant of RawLayoutAttr");
+  toolchain_unreachable("unknown variant of RawLayoutAttr");
 }
 
 AvailableAttr::AvailableAttr(
     SourceLoc AtLoc, SourceRange Range,
     AvailabilityDomainOrIdentifier DomainOrIdentifier, SourceLoc DomainLoc,
     Kind Kind, StringRef Message, StringRef Rename,
-    const llvm::VersionTuple &Introduced, SourceRange IntroducedRange,
-    const llvm::VersionTuple &Deprecated, SourceRange DeprecatedRange,
-    const llvm::VersionTuple &Obsoleted, SourceRange ObsoletedRange,
+    const toolchain::VersionTuple &Introduced, SourceRange IntroducedRange,
+    const toolchain::VersionTuple &Deprecated, SourceRange DeprecatedRange,
+    const toolchain::VersionTuple &Obsoleted, SourceRange ObsoletedRange,
     bool Implicit, bool IsSPI)
     : DeclAttribute(DeclAttrKind::Available, AtLoc, Range, Implicit),
       DomainOrIdentifier(DomainOrIdentifier), DomainLoc(DomainLoc),
@@ -2256,11 +2304,11 @@ AvailableAttr *AvailableAttr::createUniversallyDeprecated(ASTContext &C,
       /*SPI=*/false);
 }
 
-AvailableAttr *AvailableAttr::createUnavailableInSwift(ASTContext &C,
+AvailableAttr *AvailableAttr::createUnavailableInCodira(ASTContext &C,
                                                        StringRef Message,
                                                        StringRef Rename) {
   return new (C) AvailableAttr(
-      SourceLoc(), SourceRange(), AvailabilityDomain::forSwiftLanguage(),
+      SourceLoc(), SourceRange(), AvailabilityDomain::forCodiraLanguage(),
       SourceLoc(), Kind::Unavailable, Message, Rename,
       /*Introduced=*/{}, SourceRange(), /*Deprecated=*/{}, SourceRange(),
       /*Obsoleted=*/{}, SourceRange(),
@@ -2268,11 +2316,11 @@ AvailableAttr *AvailableAttr::createUnavailableInSwift(ASTContext &C,
       /*SPI=*/false);
 }
 
-AvailableAttr *AvailableAttr::createSwiftLanguageModeVersioned(
+AvailableAttr *AvailableAttr::createCodiraLanguageModeVersioned(
     ASTContext &C, StringRef Message, StringRef Rename,
-    llvm::VersionTuple Introduced, llvm::VersionTuple Obsoleted) {
+    toolchain::VersionTuple Introduced, toolchain::VersionTuple Obsoleted) {
   return new (C) AvailableAttr(
-      SourceLoc(), SourceRange(), AvailabilityDomain::forSwiftLanguage(),
+      SourceLoc(), SourceRange(), AvailabilityDomain::forCodiraLanguage(),
       SourceLoc(), Kind::Default, Message, Rename, Introduced, SourceRange(),
       /*Deprecated=*/{}, SourceRange(), Obsoleted, SourceRange(),
       /*Implicit=*/false,
@@ -2281,8 +2329,8 @@ AvailableAttr *AvailableAttr::createSwiftLanguageModeVersioned(
 
 AvailableAttr *AvailableAttr::createPlatformVersioned(
     ASTContext &C, PlatformKind Platform, StringRef Message, StringRef Rename,
-    llvm::VersionTuple Introduced, llvm::VersionTuple Deprecated,
-    llvm::VersionTuple Obsoleted) {
+    toolchain::VersionTuple Introduced, toolchain::VersionTuple Deprecated,
+    toolchain::VersionTuple Obsoleted) {
   return new (C) AvailableAttr(
       SourceLoc(), SourceRange(), AvailabilityDomain::forPlatform(Platform),
       SourceLoc(), Kind::Default, Message, Rename, Introduced, SourceRange(),
@@ -2296,11 +2344,11 @@ AvailableAttr *AvailableAttr::createUnavailableInEmbedded(ASTContext &C,
                                                           SourceRange Range) {
   return new (C) AvailableAttr(
       AtLoc, Range, AvailabilityDomain::forEmbedded(), SourceLoc(),
-      AvailableAttr::Kind::Unavailable, "unavailable in embedded Swift",
+      AvailableAttr::Kind::Unavailable, "unavailable in embedded Codira",
       /*Rename=*/StringRef(),
-      /*Introduced=*/llvm::VersionTuple(), /*IntroducedRange=*/{},
-      /*Deprecated=*/llvm::VersionTuple(), /*DeprecatedRange=*/{},
-      /*Obsoleted=*/llvm::VersionTuple(), /*ObsoletedRange=*/{},
+      /*Introduced=*/toolchain::VersionTuple(), /*IntroducedRange=*/{},
+      /*Deprecated=*/toolchain::VersionTuple(), /*DeprecatedRange=*/{},
+      /*Obsoleted=*/toolchain::VersionTuple(), /*ObsoletedRange=*/{},
       /*Implicit=*/false, /*IsSPI=*/false);
 }
 
@@ -2346,16 +2394,13 @@ static StringRef getLinkerModuleName(StringRef OriginalModuleName) {
 }
 
 OriginallyDefinedInAttr::OriginallyDefinedInAttr(
-    SourceLoc AtLoc, SourceRange Range,
-    StringRef OriginalModuleName,
-    PlatformKind Platform,
-    const llvm::VersionTuple MovedVersion, bool Implicit)
-  : DeclAttribute(DeclAttrKind::OriginallyDefinedIn, AtLoc, Range,
-                  Implicit),
-    ManglingModuleName(getManglingModuleName(OriginalModuleName)),
-    LinkerModuleName(getLinkerModuleName(OriginalModuleName)),
-    Platform(Platform),
-    MovedVersion(MovedVersion) {}
+    SourceLoc AtLoc, SourceRange Range, StringRef OriginalModuleName,
+    PlatformKind Platform, const toolchain::VersionTuple MovedVersion, bool Implicit)
+    : DeclAttribute(DeclAttrKind::OriginallyDefinedIn, AtLoc, Range, Implicit),
+      ManglingModuleName(getManglingModuleName(OriginalModuleName)),
+      LinkerModuleName(getLinkerModuleName(OriginalModuleName)),
+      Platform(Platform),
+      MovedVersion(canonicalizePlatformVersion(Platform, MovedVersion)) {}
 
 std::optional<OriginallyDefinedInAttr::ActiveVersion>
 OriginallyDefinedInAttr::isActivePlatform(const ASTContext &ctx) const {
@@ -2396,7 +2441,7 @@ bool AvailableAttr::isUnconditionallyUnavailable() const {
     return true;
   }
 
-  llvm_unreachable("Unhandled AvailableAttr::Kind in switch.");
+  toolchain_unreachable("Unhandled AvailableAttr::Kind in switch.");
 }
 
 bool AvailableAttr::isUnconditionallyDeprecated() const {
@@ -2409,7 +2454,7 @@ bool AvailableAttr::isUnconditionallyDeprecated() const {
     return true;
   }
 
-  llvm_unreachable("Unhandled AvailableAttr::Kind in switch.");
+  toolchain_unreachable("Unhandled AvailableAttr::Kind in switch.");
 }
 
 bool AvailableAttr::isNoAsync() const {
@@ -2422,34 +2467,35 @@ bool AvailableAttr::isNoAsync() const {
     return true;
   }
 
-  llvm_unreachable("Unhandled AvailableAttr::Kind in switch.");
+  toolchain_unreachable("Unhandled AvailableAttr::Kind in switch.");
 }
 
-SpecializeAttr::SpecializeAttr(SourceLoc atLoc, SourceRange range,
-                               TrailingWhereClause *clause, bool exported,
+AbstractSpecializeAttr::AbstractSpecializeAttr(DeclAttrKind DK,
+                               SourceLoc atLoc, SourceRange range,
+                               TrailingWhereClause *clause,
+                               bool exported,
                                SpecializationKind kind,
                                GenericSignature specializedSignature,
                                DeclNameRef targetFunctionName,
                                ArrayRef<Identifier> spiGroups,
                                ArrayRef<AvailableAttr *> availableAttrs,
                                size_t typeErasedParamsCount)
-    : DeclAttribute(DeclAttrKind::Specialize, atLoc, range,
-                    /*Implicit=*/clause == nullptr),
+    : DeclAttribute(DK, atLoc, range, /*Implicit=*/clause == nullptr),
       trailingWhereClause(clause), specializedSignature(specializedSignature),
       targetFunctionName(targetFunctionName), numSPIGroups(spiGroups.size()),
       numAvailableAttrs(availableAttrs.size()),
       numTypeErasedParams(typeErasedParamsCount),
       typeErasedParamsInitialized(false) {
   std::uninitialized_copy(spiGroups.begin(), spiGroups.end(),
-                          getTrailingObjects<Identifier>());
+                          getSubclassTrailingObjects<Identifier>());
   std::uninitialized_copy(availableAttrs.begin(), availableAttrs.end(),
-                          getTrailingObjects<AvailableAttr *>());
+                          getSubclassTrailingObjects<AvailableAttr *>());
 
-  Bits.SpecializeAttr.exported = exported;
-  Bits.SpecializeAttr.kind = unsigned(kind);
+  Bits.AbstractSpecializeAttr.exported = exported;
+  Bits.AbstractSpecializeAttr.kind = unsigned(kind);
 }
 
-TrailingWhereClause *SpecializeAttr::getTrailingWhereClause() const {
+TrailingWhereClause *AbstractSpecializeAttr::getTrailingWhereClause() const {
   return trailingWhereClause;
 }
 
@@ -2462,15 +2508,13 @@ SpecializeAttr *SpecializeAttr::create(ASTContext &Ctx, SourceLoc atLoc,
                                        ArrayRef<AvailableAttr *> availableAttrs,
                                        GenericSignature specializedSignature) {
   size_t typeErasedParamsCount = 0;
-  if (Ctx.LangOpts.hasFeature(Feature::LayoutPrespecialization)) {
-    if (clause != nullptr) {
-      for (auto &req : clause->getRequirements()) {
-        if (req.getKind() == RequirementReprKind::LayoutConstraint) {
-          if (auto *attributedTy =
-                  dyn_cast<AttributedTypeRepr>(req.getSubjectRepr())) {
-            if (attributedTy->has(TypeAttrKind::NoMetadata)) {
-              typeErasedParamsCount += 1;
-            }
+  if (clause != nullptr) {
+    for (auto &req : clause->getRequirements()) {
+      if (req.getKind() == RequirementReprKind::LayoutConstraint) {
+        if (auto *attributedTy =
+                dyn_cast<AttributedTypeRepr>(req.getSubjectRepr())) {
+          if (attributedTy->has(TypeAttrKind::NoMetadata)) {
+            typeErasedParamsCount += 1;
           }
         }
       }
@@ -2496,8 +2540,8 @@ SpecializeAttr *SpecializeAttr::create(ASTContext &ctx, bool exported,
       spiGroups.size(), availableAttrs.size(), 0);
   void *mem = ctx.Allocate(size, alignof(SpecializeAttr));
   return new (mem) SpecializeAttr(
-      SourceLoc(), SourceRange(), nullptr, exported, kind, specializedSignature,
-      targetFunctionName, spiGroups, availableAttrs, 0);
+      SourceLoc(), SourceRange(), nullptr, exported, kind,
+      specializedSignature, targetFunctionName, spiGroups, availableAttrs, 0);
 }
 
 SpecializeAttr *SpecializeAttr::create(
@@ -2513,23 +2557,86 @@ SpecializeAttr *SpecializeAttr::create(
       SourceLoc(), SourceRange(), nullptr, exported, kind, specializedSignature,
       targetFunctionName, spiGroups, availableAttrs, typeErasedParams.size());
   attr->setTypeErasedParams(typeErasedParams);
-  attr->resolver = resolver;
-  attr->resolverContextData = data;
+  attr->setResolver(resolver, data);
   return attr;
 }
 
-ValueDecl * SpecializeAttr::getTargetFunctionDecl(const ValueDecl *onDecl) const {
+// @specialize
+//
+SpecializedAttr *SpecializedAttr::create(ASTContext &Ctx, SourceLoc atLoc,
+                                       SourceRange range,
+                                       TrailingWhereClause *clause,
+                                       bool exported, SpecializationKind kind,
+                                       DeclNameRef targetFunctionName,
+                                       ArrayRef<Identifier> spiGroups,
+                                       ArrayRef<AvailableAttr *> availableAttrs,
+                                       GenericSignature specializedSignature) {
+  size_t typeErasedParamsCount = 0;
+  if (clause != nullptr) {
+    for (auto &req : clause->getRequirements()) {
+      if (req.getKind() == RequirementReprKind::LayoutConstraint) {
+        if (auto *attributedTy =
+                dyn_cast<AttributedTypeRepr>(req.getSubjectRepr())) {
+          if (attributedTy->has(TypeAttrKind::NoMetadata)) {
+            typeErasedParamsCount += 1;
+          }
+        }
+      }
+    }
+  }
+
+  unsigned size = totalSizeToAlloc<Identifier, AvailableAttr *, Type>(
+      spiGroups.size(), availableAttrs.size(), typeErasedParamsCount);
+  void *mem = Ctx.Allocate(size, alignof(SpecializedAttr));
+
+  return new (mem)
+      SpecializedAttr(atLoc, range, clause, exported, kind, specializedSignature,
+                     targetFunctionName, spiGroups, availableAttrs, typeErasedParamsCount);
+}
+
+SpecializedAttr *SpecializedAttr::create(ASTContext &ctx, bool exported,
+                                       SpecializationKind kind,
+                                       ArrayRef<Identifier> spiGroups,
+                                       ArrayRef<AvailableAttr *> availableAttrs,
+                                       GenericSignature specializedSignature,
+                                       DeclNameRef targetFunctionName) {
+  unsigned size = totalSizeToAlloc<Identifier, AvailableAttr *, Type>(
+      spiGroups.size(), availableAttrs.size(), 0);
+  void *mem = ctx.Allocate(size, alignof(SpecializedAttr));
+  return new (mem) SpecializedAttr(
+      SourceLoc(), SourceRange(), nullptr, exported, kind,
+      specializedSignature, targetFunctionName, spiGroups, availableAttrs, 0);
+}
+
+SpecializedAttr *SpecializedAttr::create(
+    ASTContext &ctx, bool exported, SpecializationKind kind,
+    ArrayRef<Identifier> spiGroups, ArrayRef<AvailableAttr *> availableAttrs,
+    ArrayRef<Type> typeErasedParams, GenericSignature specializedSignature,
+    DeclNameRef targetFunctionName, LazyMemberLoader *resolver,
+    uint64_t data) {
+  unsigned size = totalSizeToAlloc<Identifier, AvailableAttr *, Type>(
+      spiGroups.size(), availableAttrs.size(), typeErasedParams.size());
+  void *mem = ctx.Allocate(size, alignof(SpecializedAttr));
+  auto *attr = new (mem) SpecializedAttr(
+      SourceLoc(), SourceRange(), nullptr, exported, kind, specializedSignature,
+      targetFunctionName, spiGroups, availableAttrs, typeErasedParams.size());
+  attr->setTypeErasedParams(typeErasedParams);
+  attr->setResolver(resolver, data);
+  return attr;
+}
+
+ValueDecl * AbstractSpecializeAttr::getTargetFunctionDecl(const ValueDecl *onDecl) const {
   return evaluateOrDefault(onDecl->getASTContext().evaluator,
                            SpecializeAttrTargetDeclRequest{
-                               onDecl, const_cast<SpecializeAttr *>(this)},
+                               onDecl, const_cast<AbstractSpecializeAttr *>(this)},
                            nullptr);
 }
 
-GenericSignature SpecializeAttr::getSpecializedSignature(
+GenericSignature AbstractSpecializeAttr::getSpecializedSignature(
     const AbstractFunctionDecl *onDecl) const {
   return evaluateOrDefault(onDecl->getASTContext().evaluator,
                            SerializeAttrGenericSignatureRequest{
-                               onDecl, const_cast<SpecializeAttr *>(this)},
+                               onDecl, const_cast<AbstractSpecializeAttr *>(this)},
                            nullptr);
 }
 
@@ -2541,7 +2648,7 @@ bool sameElements(ArrayRef<Element> first, ArrayRef<Element> second, Eq eq) {
   if (first.size() != second.size())
     return false;
 
-  llvm::SmallSet<unsigned, 8> claimedSecondIndices;
+  toolchain::SmallSet<unsigned, 8> claimedSecondIndices;
 
   for (auto firstElem : first) {
     bool found = false;
@@ -2568,7 +2675,7 @@ bool sameElements(ArrayRef<Element> first, ArrayRef<Element> second) {
   return sameElements(first, second, std::equal_to<Element>());
 }
 
-bool SpecializeAttr::isEquivalent(const SpecializeAttr *other,
+bool AbstractSpecializeAttr::isEquivalent(const AbstractSpecializeAttr *other,
                                   Decl *attachedTo) const {
   if (isExported() != other->isExported() ||
       getSpecializationKind() != other->getSpecializationKind() ||
@@ -2729,7 +2836,7 @@ void DeclNameRefWithLoc::print(ASTPrinter &Printer) const {
     Printer << '.' << getAccessorLabel(*AccessorKind);
 }
 
-void DifferentiableAttr::print(llvm::raw_ostream &OS, const Decl *D,
+void DifferentiableAttr::print(toolchain::raw_ostream &OS, const Decl *D,
                                bool omitWrtClause) const {
   StreamPrinter P(OS);
   P << "@" << getAttrName();
@@ -2873,7 +2980,7 @@ isEquivalent(const StorageRestrictionsAttr *other, Decl *attachedTo) const {
 
 ImplementsAttr::
 ImplementsAttr(SourceLoc atLoc, SourceRange range,
-               llvm::PointerUnion<TypeRepr *, DeclContext *> TyROrDC,
+               toolchain::PointerUnion<TypeRepr *, DeclContext *> TyROrDC,
                DeclName MemberName, DeclNameLoc MemberNameLoc)
     : DeclAttribute(DeclAttrKind::Implements, atLoc, range, /*Implicit=*/false),
       TyROrDC(TyROrDC), MemberName(MemberName), MemberNameLoc(MemberNameLoc) {}
@@ -3043,7 +3150,7 @@ MutableArrayRef<Expr *> MacroRoleAttr::getConformances() {
 }
 
 bool MacroRoleAttr::hasNameKind(MacroIntroducedDeclNameKind kind) const {
-  return llvm::find_if(getNames(), [kind](MacroIntroducedDeclName name) {
+  return toolchain::find_if(getNames(), [kind](MacroIntroducedDeclName name) {
     return name.getKind() == kind;
   }) != getNames().end();
 }
@@ -3051,7 +3158,7 @@ bool MacroRoleAttr::hasNameKind(MacroIntroducedDeclNameKind kind) const {
 StringRef ExternAttr::getCName(const FuncDecl *D) const {
   if (auto cName = this->Name)
     return cName.value();
-  // If no name was specified, fall back on the Swift base name without mangling.
+  // If no name was specified, fall back on the Codira base name without mangling.
   // Base name is always available and non-empty for FuncDecl.
   return D->getBaseIdentifier().str();
 }
@@ -3133,8 +3240,15 @@ isEquivalent(const AllowFeatureSuppressionAttr *other, Decl *attachedTo) const {
 
 LifetimeAttr *LifetimeAttr::create(ASTContext &context, SourceLoc atLoc,
                                    SourceRange baseRange, bool implicit,
-                                   LifetimeEntry *entry) {
-  return new (context) LifetimeAttr(atLoc, baseRange, implicit, entry);
+                                   LifetimeEntry *entry, bool isUnderscored) {
+  return new (context)
+      LifetimeAttr(atLoc, baseRange, implicit, entry, isUnderscored);
+}
+
+std::string LifetimeAttr::getString() const {
+  return (isUnderscored() ? std::string("@_lifetime")
+                          : std::string("@lifetime")) +
+         getLifetimeEntry()->getString();
 }
 
 bool LifetimeAttr::isEquivalent(const LifetimeAttr *other,
@@ -3144,13 +3258,13 @@ bool LifetimeAttr::isEquivalent(const LifetimeAttr *other,
       == other->getLifetimeEntry()->getString();
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const DeclAttribute *attr) {
+void language::simple_display(toolchain::raw_ostream &out, const DeclAttribute *attr) {
   if (attr)
     attr->print(out);
 }
 
 static bool hasDeclAttribute(const LangOptions &langOpts,
-                             llvm::StringRef attributeName) {
+                             toolchain::StringRef attributeName) {
   std::optional<DeclAttrKind> kind =
       DeclAttribute::getAttrKindFromString(attributeName);
   if (!kind)
@@ -3175,7 +3289,7 @@ static bool hasDeclAttribute(const LangOptions &langOpts,
 }
 
 static bool hasTypeAttribute(const LangOptions &langOpts,
-                             llvm::StringRef attributeName) {
+                             toolchain::StringRef attributeName) {
   std::optional<TypeAttrKind> kind =
       TypeAttribute::getAttrKindFromString(attributeName);
   if (!kind)
@@ -3187,8 +3301,8 @@ static bool hasTypeAttribute(const LangOptions &langOpts,
   return true;
 }
 
-bool swift::hasAttribute(const LangOptions &langOpts,
-                         llvm::StringRef attributeName) {
+bool language::hasAttribute(const LangOptions &langOpts,
+                         toolchain::StringRef attributeName) {
   if (hasDeclAttribute(langOpts, attributeName))
     return true;
 

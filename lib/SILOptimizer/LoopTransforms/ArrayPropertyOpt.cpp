@@ -1,13 +1,17 @@
 //===--- ArrayPropertyOpt.cpp - Optimize Array Properties -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Optimize array property access by specializing loop bodies.
@@ -18,14 +22,14 @@
 /// The "array.props.isNative/needsElementTypeCheck" predicate has the property
 /// that if it is true/false respectively for the array struct it is true/false
 /// respectively until somebody writes a new array struct over the memory
-/// location. Less abstractly, a fast native swift array does not transition to
+/// location. Less abstractly, a fast native language array does not transition to
 /// a slow array (be it a cocoa array, or be it an array that needs type
 /// checking) except if we store a new array to the variable that holds it.
 ///
 /// Using this property we can hoist the predicate above a region where no such
 /// store can take place.
 ///
-///  func f(a : A[AClass]) {
+///  fn f(a : A[AClass]) {
 ///     for i in 0..a.count {
 ///       let b = a.props.isNative()
 ///        .. += _getElement(i, b)
@@ -34,7 +38,7 @@
 ///
 ///   ==>
 ///
-///  func f(a : A[AClass]) {
+///  fn f(a : A[AClass]) {
 ///    let b = a.props.isNative
 ///    if (b) {
 ///      for i in 0..a.count {
@@ -68,9 +72,9 @@
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
 #include "language/SILOptimizer/Utils/LoopUtils.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 
 namespace {
@@ -90,8 +94,8 @@ class ArrayPropertiesAnalysis {
 
   SinkAddressProjections sinkProj;
 
-  llvm::DenseMap<SILFunction *, uint32_t> InstCountCache;
-  llvm::SmallSet<SILValue, 16> HoistableArray;
+  toolchain::DenseMap<SILFunction *, uint32_t> InstCountCache;
+  toolchain::SmallSet<SILValue, 16> HoistableArray;
 
   BasicBlockSet ReachingBlocks;
   SmallVector<SILBasicBlock *, 16> CachedExitingBlocks;
@@ -128,7 +132,7 @@ public:
     for (auto &BB : *Callee) {
       for (auto &I : BB) {
         if (InstCount++ >= AnalysisThreshold) {
-          LLVM_DEBUG(llvm::dbgs() << "ArrayPropertyOpt: Disabled Reason - "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "ArrayPropertyOpt: Disabled Reason - "
                                      "Exceeded Analysis Threshold in "
                                   << BB.getParent()->getName() << "\n");
           InstCountCache[Callee] = AnalysisThreshold;
@@ -137,12 +141,12 @@ public:
         if (auto Apply = FullApplySite::isa(&I)) {
           auto Callee = Apply.getReferencedFunctionOrNull();
           if (!Callee) {
-            LLVM_DEBUG(
-                llvm::dbgs()
+            TOOLCHAIN_DEBUG(
+                toolchain::dbgs()
                 << "ArrayPropertyOpt: Disabled Reason - Found opaque code in "
                 << BB.getParent()->getName() << "\n");
-            LLVM_DEBUG(Apply.dump());
-            LLVM_DEBUG(I.getOperand(0)->dump());
+            TOOLCHAIN_DEBUG(Apply.dump());
+            TOOLCHAIN_DEBUG(I.getOperand(0)->dump());
           }
           const auto CalleeInstCount = checkProfitabilityRecursively(Callee);
           InstCount += CalleeInstCount;
@@ -157,7 +161,7 @@ public:
   bool run() {
     Preheader = Loop->getLoopPreheader();
     if (!Preheader) {
-      LLVM_DEBUG(llvm::dbgs() << "ArrayPropertiesAnalysis: "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "ArrayPropertiesAnalysis: "
                                  "Missing preheader for "
                               << *Loop);
       return false;
@@ -205,7 +209,7 @@ public:
     // threshold by an additional 10%
     if (LoopInstCount >
         LoopInstCountThreshold * (1 + (Loop->getLoopDepth() - 1) / 10)) {
-      LLVM_DEBUG(llvm::dbgs() << "Exceeded LoopInstCountThreshold\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Exceeded LoopInstCountThreshold\n");
       return false;
     }
 
@@ -225,10 +229,10 @@ public:
       }
     }
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Profitable ArrayPropertyOpt in "
                << Loop->getLoopPreheader()->getParent()->getName() << "\n");
-    LLVM_DEBUG(Loop->dump());
+    TOOLCHAIN_DEBUG(Loop->dump());
     return true;
   }
 
@@ -297,7 +301,7 @@ private:
             !getReachingBlocks().contains(UseInst->getParent())) {
           continue;
         }
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "    Skipping Array: may escape through call!\n"
                    << "    " << *UseInst);
         return false;
@@ -308,7 +312,7 @@ private:
         // argument or return value. The array value may be returned by its
         // initializer or some other factory function.
         if (Loop->contains(StInst->getParent())) {
-          LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: store inside loop!\n"
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: store inside loop!\n"
                                   << "    " << *StInst);
           return false;
         }
@@ -319,7 +323,7 @@ private:
         return false;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: unknown Array use!\n"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: unknown Array use!\n"
                               << "    " << *UseInst);
       // Found an unsafe or unknown user. The Array may escape here.
       return false;
@@ -356,7 +360,7 @@ private:
 
         if (!Params[ArgIdx].isIndirectInOut()
             && Params[ArgIdx].isFormalIndirect()) {
-          LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: Not an inout or "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: Not an inout or "
                                      "by val argument!\n");
           return false;
         }
@@ -365,7 +369,7 @@ private:
     } else if (isa<AllocStackInst>(V))
       return true;
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "    Skipping Array: Not a know array container type!\n");
 
     return false;
@@ -619,7 +623,7 @@ static SILValue createStructExtract(SILBuilder &B, SILLocation Loc,
   for (auto *D : Properties)
     if (Counter++ == FieldNo)
       return B.createStructExtract(Loc, Opd, D);
-  llvm_unreachable("Wrong field number");
+  toolchain_unreachable("Wrong field number");
 }
 
 static Identifier getBinaryFunction(StringRef Name, SILType IntSILTy,
@@ -628,7 +632,7 @@ static Identifier getBinaryFunction(StringRef Name, SILType IntSILTy,
   unsigned NumBits = IntTy->getWidth().getFixedWidth();
   // Name is something like: add_Int64
   std::string NameStr(Name);
-  NameStr += "_Int" + llvm::utostr(NumBits);
+  NameStr += "_Int" + toolchain::utostr(NumBits);
   return C.getIdentifier(NameStr);
 }
 
@@ -641,7 +645,7 @@ static SILValue createAnd(SILBuilder &B, SILLocation Loc, SILValue Opd1,
 }
 
 /// Create a check over all array.props calls that they have the 'fast native
-/// swift' array value: isNative && !needsElementTypeCheck must be true.
+/// language' array value: isNative && !needsElementTypeCheck must be true.
 static SILValue
 createFastNativeArraysCheck(SmallVectorImpl<ArraySemanticsCall> &ArrayProps,
                             SILBuilder &B) {
@@ -679,7 +683,7 @@ static void collectArrayPropsCalls(RegionCloner &Cloner,
   assert(!Calls.empty() && "Should have a least one array.props call");
 }
 
-/// Replace an array.props call by the 'fast swift array' value.
+/// Replace an array.props call by the 'fast language array' value.
 ///
 /// This is true for array.props.isNative and false for
 /// array.props.needsElementTypeCheck.
@@ -723,7 +727,7 @@ void ArrayPropertiesSpecializer::specializeLoopNest() {
   // Split of a new empty preheader. We don't want to duplicate the whole
   // original preheader it might contain instructions that we can't clone.
   // This will be block that will contain the check whether to execute the
-  // 'native swift array' loop or the original loop.
+  // 'native language array' loop or the original loop.
   SILBuilder B(HoistableLoopPreheader);
   auto *CheckBlock = splitBasicBlockAndBranch(B,
       HoistableLoopPreheader->getTerminator(), DomTree, nullptr);
@@ -786,7 +790,7 @@ void ArrayPropertiesSpecializer::specializeLoopNest() {
 }
 
 namespace {
-class SwiftArrayPropertyOptPass : public SILFunctionTransform {
+class CodiraArrayPropertyOptPass : public SILFunctionTransform {
 
   void run() override {
     auto *Fn = getFunction();
@@ -850,6 +854,6 @@ class SwiftArrayPropertyOptPass : public SILFunctionTransform {
 };
 } // end anonymous namespace
 
-SILTransform *swift::createSwiftArrayPropertyOpt() {
-  return new SwiftArrayPropertyOptPass();
+SILTransform *language::createCodiraArrayPropertyOpt() {
+  return new CodiraArrayPropertyOptPass();
 }

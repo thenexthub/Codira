@@ -8,12 +8,12 @@ Declaration Type Checker
 Purpose
 -------
 
-This document describes some of the problems with our current "declaration" type checker, which validates and assigns types to the various declarations in a Swift programs. It analyzes the dependencies within the Swift type system that need to be reflected within the implementation and proposes an alternative architecture for the type checker that eliminates these problems.
+This document describes some of the problems with our current "declaration" type checker, which validates and assigns types to the various declarations in a Codira programs. It analyzes the dependencies within the Codira type system that need to be reflected within the implementation and proposes an alternative architecture for the type checker that eliminates these problems.
 
 Problems with the Current Approach
 ----------------------------------
 
-The current declaration type checker is the source of a large number of Swift bugs, including crashes on both well-formed and ill-formed code, different behavior depending on the order of declarations within a file or across multiple files, infinite recursion, and broken ASTs. The main issues are:
+The current declaration type checker is the source of a large number of Codira bugs, including crashes on both well-formed and ill-formed code, different behavior depending on the order of declarations within a file or across multiple files, infinite recursion, and broken ASTs. The main issues are:
 
 **Conceptual phases are tangled together**: We have a vague notion that there are phases within the compiler, e.g., extension binding occurs before name binding, which occurs before type checking. However, the implementations in the compiler don't respect phases: extension binding goes through type validation, which does both name binding and type checking. Name lookup attempts to do type checking so that it can establish whether one declaration shadows another.
 
@@ -26,7 +26,7 @@ The current declaration type checker is the source of a large number of Swift bu
 Phases of Type Checking
 -----------------------
 
-Type checking for Swift can be divided into a number of phases, where each phase depends on information from the previous phases. A phase may depend on information from another declaration also computed in that phase; such cases need to manage dependencies carefully to detect and diagnose circular dependencies. The granularity of phases can differ: earlier phases tend to more global in nature, while later phases tend to be at a much finer granularity (per-declaration, per-``TypeRepr``, etc.). Generally speaking, we want to minimize the amount of work the type checker performs by moving a given declaration only up to the phase that's absolutely required to make a decision.
+Type checking for Codira can be divided into a number of phases, where each phase depends on information from the previous phases. A phase may depend on information from another declaration also computed in that phase; such cases need to manage dependencies carefully to detect and diagnose circular dependencies. The granularity of phases can differ: earlier phases tend to more global in nature, while later phases tend to be at a much finer granularity (per-declaration, per-``TypeRepr``, etc.). Generally speaking, we want to minimize the amount of work the type checker performs by moving a given declaration only up to the phase that's absolutely required to make a decision.
 
 **Parsing**: Parsing produces untyped ASTs describing the structure of the code. Name lookup can find module-scope names in the current module, but any lookup for nested names or names from other modules is unavailable at this point. This is a global phase, because we need to have parsed at least the top-level declarations of each file to enable name lookup.
 
@@ -78,7 +78,7 @@ We can address this problem by restricting the language to disallow extensions v
 
   protocol SequenceType {
     typealias Element
-    mutating func makeIterator() -> Element?
+    mutating fn makeIterator() -> Element?
   }
 
   struct IntRangeGenerator : SequenceType {
@@ -86,7 +86,7 @@ We can address this problem by restricting the language to disallow extensions v
     let limit: Int
 
     // infers SequenceType's Element == Int
-    mutating func makeIterator() -> Int? {
+    mutating fn makeIterator() -> Int? {
       if current == limit { return nil }
       return current++
     }
@@ -120,7 +120,7 @@ To address the problems with the current declaration type checker, we propose a 
 
   }
 
-  func foo(_ x: X<Int>.Assoc) { }
+  fn foo(_ x: X<Int>.Assoc) { }
 
 To bring the ``TypeRepr`` for ``X<Int>.Assoc`` to the "primary name binding" phase, we need to bring ``X`` up to the "primary name binding" phase. Once all dependencies for a phase transition have been resolved, we can perform the phase transition. As noted earlier, it's important to make the dependencies minimal: for example, note that we do not introduce any dependencies on the type argument (``Int``) because it does not affect name lookup. It could, however, affect declaration type validation.
 
@@ -163,7 +163,7 @@ The proposed architecture is significantly different from the current type check
 How do we test it?
 ~~~~~~~~~~~~~~~~~~
 
-**Existing code continues to work**: As we move various parts of the type checker over to the dependency graph, existing Swift code should continue to work, since we'll have fallbacks to the existing logic and the new type checker should be strictly lazier than the existing type checker.
+**Existing code continues to work**: As we move various parts of the type checker over to the dependency graph, existing Codira code should continue to work, since we'll have fallbacks to the existing logic and the new type checker should be strictly lazier than the existing type checker.
 
 **Order-independence testing**: One of the intended improvements from this type checker architecture is that we should get more predictable order-independent behavior. To check this, we can randomly scramble the order in which we type-check declarations in the primary source file of a well-formed module and verify that we get the same results.
 

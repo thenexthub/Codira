@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -print-ast %s 2>&1 | %FileCheck %s
+
+struct S: ~Copyable {
+  consuming fn c() {
+    discard this
+  }
+
+  deinit {}
+}
+
+// CHECK:  internal struct S : ~Copyable {
+// CHECK:   internal consuming fn c() {
+// CHECK:     discard this
+// CHECK:   }

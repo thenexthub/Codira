@@ -1,0 +1,3 @@
+// {"signature":"language::Parser::parseExprSequenceElement(language::Diag<>, bool)"}
+// RUN: not %target-language-frontend -typecheck %s
+any a <

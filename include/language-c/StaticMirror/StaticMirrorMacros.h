@@ -1,4 +1,4 @@
-//===-- DependencyScanMacros.h - Swift Dependency Scanning Macros -*- C -*-===//
+//===-- DependencyScanMacros.h - Codira Dependency Scanning Macros -*- C -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #ifdef  __cplusplus
-# define SWIFTSTATICMIRROR_BEGIN_DECLS  extern "C" {
-# define SWIFTSTATICMIRROR_END_DECLS    }
+# define LANGUAGESTATICMIRROR_BEGIN_DECLS  extern "C" {
+# define LANGUAGESTATICMIRROR_END_DECLS    }
 #else
-# define SWIFTSTATICMIRROR_BEGIN_DECLS
-# define SWIFTSTATICMIRROR_END_DECLS
+# define LANGUAGESTATICMIRROR_BEGIN_DECLS
+# define LANGUAGESTATICMIRROR_END_DECLS
 #endif
 
-#ifndef SWIFTSTATICMIRROR_PUBLIC
+#ifndef LANGUAGESTATICMIRROR_PUBLIC
 # ifdef _WIN32
 #  ifdef libStaticMirror_EXPORTS
-#    define SWIFTSTATICMIRROR_PUBLIC __declspec(dllexport)
+#    define LANGUAGESTATICMIRROR_PUBLIC __declspec(dllexport)
 #  else
-#    define SWIFTSTATICMIRROR_PUBLIC __declspec(dllimport)
+#    define LANGUAGESTATICMIRROR_PUBLIC __declspec(dllimport)
 #  endif
 # else
-#  define SWIFTSTATICMIRROR_PUBLIC
+#  define LANGUAGESTATICMIRROR_PUBLIC
 # endif
 #endif

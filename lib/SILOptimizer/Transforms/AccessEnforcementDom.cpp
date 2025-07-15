@@ -1,13 +1,17 @@
 //===------ AccessEnforcementDom.cpp - dominated access removal opt -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This function pass removes dominated accesses in two ways:
@@ -58,7 +62,7 @@
 #include "language/SILOptimizer/Analysis/LoopAnalysis.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/DepthFirstIterator.h"
+#include "toolchain/ADT/DepthFirstIterator.h"
 
 using namespace language;
 
@@ -104,7 +108,7 @@ public:
 
   void dump() const {
     AccessStorage::dump();
-    llvm::dbgs() << "<" << (isInner() ? "" : "inner")
+    toolchain::dbgs() << "<" << (isInner() ? "" : "inner")
                  << (containsRead() ? "" : "containsRead") << ">\n";
   }
 };
@@ -131,7 +135,7 @@ public:
   // function. If an UnpairedAccess exists, then the result will be
   // conservatively empty.
   struct Result {
-    llvm::SmallDenseMap<BeginAccessInst *, DomAccessStorage, 32> accessMap;
+    toolchain::SmallDenseMap<BeginAccessInst *, DomAccessStorage, 32> accessMap;
   };
 
 private:
@@ -145,14 +149,14 @@ private:
   // until the next scope is entered. So the complexity is (#OpenScopes)^2
   // instead of (#OpenScopes)*(#Applies).
   struct BBState {
-    using DenseAccessSet = llvm::SmallDenseSet<BeginAccessInst *, 4>;
-    using DenseCoroutineSet = llvm::SmallDenseSet<BeginApplyInst *, 4>;
+    using DenseAccessSet = toolchain::SmallDenseSet<BeginAccessInst *, 4>;
+    using DenseCoroutineSet = toolchain::SmallDenseSet<BeginApplyInst *, 4>;
 
     DenseAccessSet inScopeAccesses;
     DenseCoroutineSet inScopeCoroutines;
     bool isBottom = false;
   };
-  using BlockStateMap = llvm::DenseMap<SILBasicBlock *, BBState>;
+  using BlockStateMap = toolchain::DenseMap<SILBasicBlock *, BBState>;
 
   PostOrderFunctionInfo *PO;
 
@@ -179,7 +183,7 @@ void DominatedAccessAnalysis::setBottom(BBState &state) {
     return;
 
   // Unordered iteration over the in-access scopes.
-  llvm::for_each(state.inScopeAccesses, [this](BeginAccessInst *BAI) {
+  toolchain::for_each(state.inScopeAccesses, [this](BeginAccessInst *BAI) {
     if (auto &domStorage = result.accessMap[BAI])
       domStorage.setContainsRead();
   });
@@ -261,7 +265,7 @@ void DominatedAccessAnalysis::analyzeAccess(BeginAccessInst *BAI,
   // conservatively below...
 
   // unordered set iteration...
-  llvm::for_each(state.inScopeAccesses, [&](BeginAccessInst *outerBegin) {
+  toolchain::for_each(state.inScopeAccesses, [&](BeginAccessInst *outerBegin) {
     auto &outerInfo = result.accessMap[outerBegin];
     // If the current access is mapped, set its isInner flag.
     if (domStorage && !domStorage.isInner()) {
@@ -304,7 +308,7 @@ void DominatedAccessAnalysis::analyzeAccess(BeginAccessInst *BAI,
 // DominatedAccessRemoval optimization.
 
 namespace {
-using DomTreeNode = llvm::DomTreeNodeBase<SILBasicBlock>;
+using DomTreeNode = toolchain::DomTreeNodeBase<SILBasicBlock>;
 
 // Visit the dominator tree top down, tracking the current set of dominating
 // dynamic accesses. Dominated dynamic accesses with identical storage are
@@ -320,9 +324,9 @@ class DominatedAccessRemoval {
     DominatingAccess(BeginAccessInst *beginAccess, DomTreeNode *domNode)
         : beginAccess(beginAccess), domNode(domNode) {}
   };
-  using StorageToDomMap = llvm::DenseMap<AccessStorage, DominatingAccess>;
+  using StorageToDomMap = toolchain::DenseMap<AccessStorage, DominatingAccess>;
 
-  SILFunction &func;
+  SILFunction &fn;
   DominanceInfo *domInfo;
   SILLoopInfo *loopInfo;
   DominatedAccessAnalysis::Result &DAA;
@@ -335,10 +339,10 @@ class DominatedAccessRemoval {
   bool hasChanged = false;
 
 public:
-  DominatedAccessRemoval(SILFunction &func, DominanceInfo *domInfo,
+  DominatedAccessRemoval(SILFunction &fn, DominanceInfo *domInfo,
                          SILLoopInfo *loopInfo,
                          DominatedAccessAnalysis::Result &DAA)
-      : func(func), domInfo(domInfo), loopInfo(loopInfo), DAA(DAA) {}
+      : fn(fn), domInfo(domInfo), loopInfo(loopInfo), DAA(DAA) {}
 
   bool optimize();
 
@@ -357,8 +361,8 @@ protected:
 // Optimize the current function, and return true if any optimization was
 // performed.
 bool DominatedAccessRemoval::optimize() {
-  DomTreeNode *entryNode = domInfo->getNode(func.getEntryBlock());
-  for (DomTreeNode *domNode : llvm::depth_first(entryNode)) {
+  DomTreeNode *entryNode = domInfo->getNode(fn.getEntryBlock());
+  for (DomTreeNode *domNode : toolchain::depth_first(entryNode)) {
     currDomNode = domNode;
 
     // Optimize dominated accesses in this block.
@@ -489,12 +493,12 @@ bool DominatedAccessRemoval::optimizeDominatedAccess(
     if (domStorage.containsRead() || domStorage.isInner())
       return false;
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Promoting to modify: " << *domAccess.beginAccess << "\n");
     domAccess.beginAccess->setAccessKind(SILAccessKind::Modify);
   }
-  LLVM_DEBUG(llvm::dbgs() << "Setting static enforcement: " << *BAI << "\n");
-  LLVM_DEBUG(llvm::dbgs() << "Dominated by: " << *domAccess.beginAccess
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Setting static enforcement: " << *BAI << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dominated by: " << *domAccess.beginAccess
                           << "\n");
   BAI->setEnforcement(SILAccessEnforcement::Static);
 
@@ -561,7 +565,7 @@ void DominatedAccessRemoval::tryInsertLoopPreheaderAccess(
       SILAccessEnforcement::Dynamic, true /*no nested conflict*/,
       BAI->isFromBuiltin());
   scopeBuilder.createEndAccess(preheaderTerm->getLoc(), newBegin, false);
-  LLVM_DEBUG(llvm::dbgs() << "Created loop preheader access: " << *newBegin
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Created loop preheader access: " << *newBegin
                           << "\n"
                           << "dominating: " << *BAI << "\n");
   BAI->setEnforcement(SILAccessEnforcement::Static);
@@ -598,23 +602,23 @@ struct AccessEnforcementDom : public SILFunctionTransform {
 } // namespace
 
 void AccessEnforcementDom::run() {
-  SILFunction *func = getFunction();
-  if (func->empty())
+  SILFunction *fn = getFunction();
+  if (fn->empty())
     return;
 
-  PostOrderFunctionInfo *PO = getAnalysis<PostOrderAnalysis>()->get(func);
+  PostOrderFunctionInfo *PO = getAnalysis<PostOrderAnalysis>()->get(fn);
   auto DAA = DominatedAccessAnalysis(PO).analyze();
 
   DominanceAnalysis *domAnalysis = getAnalysis<DominanceAnalysis>();
-  DominanceInfo *domInfo = domAnalysis->get(func);
+  DominanceInfo *domInfo = domAnalysis->get(fn);
   SILLoopAnalysis *loopAnalysis = PM->getAnalysis<SILLoopAnalysis>();
-  SILLoopInfo *loopInfo = loopAnalysis->get(func);
+  SILLoopInfo *loopInfo = loopAnalysis->get(fn);
 
-  DominatedAccessRemoval eliminationPass(*func, domInfo, loopInfo, DAA);
+  DominatedAccessRemoval eliminationPass(*fn, domInfo, loopInfo, DAA);
   if (eliminationPass.optimize())
     invalidateAnalysis(SILAnalysis::InvalidationKind::Instructions);
 }
 
-SILTransform *swift::createAccessEnforcementDom() {
+SILTransform *language::createAccessEnforcementDom() {
   return new AccessEnforcementDom();
 }

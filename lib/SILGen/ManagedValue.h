@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for holding a destructured rvalue with an optional
@@ -20,11 +21,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_MANAGEDVALUE_H
-#define SWIFT_LOWERING_MANAGEDVALUE_H
+#ifndef LANGUAGE_LOWERING_MANAGEDVALUE_H
+#define LANGUAGE_LOWERING_MANAGEDVALUE_H
 
 #include "Cleanup.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/Consumption.h"
 #include "language/SIL/SILValue.h"
@@ -61,7 +62,7 @@ class ManagedValue {
   /// The value (or address of an address-only value) being managed, and
   /// whether it represents an lvalue.  InContext is represented with the lvalue
   /// flag set but with a null SILValue.
-  llvm::PointerIntPair<SILValue, 1, bool> valueAndFlag;
+  toolchain::PointerIntPair<SILValue, 1, bool> valueAndFlag;
   
   /// A handle to the cleanup that destroys this value, or
   /// CleanupHandle::invalid() if the value has no cleanup.
@@ -332,7 +333,7 @@ public:
   }
   /// Treat getValue() as used so that we can access the value directly when
   /// debugging without needing to interpret the flag field.
-  LLVM_ATTRIBUTE_USED
+  TOOLCHAIN_ATTRIBUTE_USED
   SILValue getValue() const { return valueAndFlag.getPointer(); }
   
   SILType getType() const { return getValue()->getType(); }

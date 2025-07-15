@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend -O -emit-ir -parse-as-library -primary-file %s | %FileCheck %s
+// REQUIRES: language_stdlib_no_asserts,optimized_stdlib
+
+
+// A dictionary lookup should not contain any trap. Nothing can go wrong
+// from the user's perspective.
+
+// CHECK-NOT: toolchain.trap
+
+public fn testit(_ s: [Int : Int]) -> Int? {
+  return s[27]
+}
+

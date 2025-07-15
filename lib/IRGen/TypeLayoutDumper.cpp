@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a tool for dumping layouts of fixed-size types in a simple
@@ -34,11 +35,11 @@
 #include "language/SIL/SILModule.h"
 #include "language/Subsystems.h"
 
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #include <string>
 #include <vector>
@@ -149,8 +150,8 @@ static std::optional<YAMLModuleNode> createYAMLModuleNode(ModuleDecl *Mod,
 }
 
 void TypeLayoutDumper::write(ArrayRef<ModuleDecl *> AllModules,
-                             llvm::raw_ostream &os) const {
-  llvm::yaml::Output yout(os);
+                             toolchain::raw_ostream &os) const {
+  toolchain::yaml::Output yout(os);
 
   // Collect all nominal types, including nested types.
   for (auto *Mod : AllModules) {
@@ -160,7 +161,7 @@ void TypeLayoutDumper::write(ArrayRef<ModuleDecl *> AllModules,
   }
 }
 
-bool swift::performDumpTypeInfo(const IRGenOptions &Opts, SILModule &SILMod) {
+bool language::performDumpTypeInfo(const IRGenOptions &Opts, SILModule &SILMod) {
   auto &Ctx = SILMod.getASTContext();
   assert(!Ctx.hadError());
   (void)Ctx;
@@ -171,7 +172,7 @@ bool swift::performDumpTypeInfo(const IRGenOptions &Opts, SILModule &SILMod) {
   // We want to bypass resilience.
   LoweringModeScope scope(IGM, TypeConverter::Mode::CompletelyFragile);
 
-  auto *Mod = SILMod.getSwiftModule();
+  auto *Mod = SILMod.getCodiraModule();
   SmallVector<Decl *, 16> AllDecls;
   Mod->getTopLevelDecls(AllDecls);
 
@@ -184,7 +185,7 @@ bool swift::performDumpTypeInfo(const IRGenOptions &Opts, SILModule &SILMod) {
   }
 
   TypeLayoutDumper dumper(IGM);
-  dumper.write(AllModules, llvm::outs());
+  dumper.write(AllModules, toolchain::outs());
 
   return false;
 }

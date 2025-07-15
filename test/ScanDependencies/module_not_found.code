@@ -1,0 +1,22 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/clang-module-cache
+// RUN: mkdir -p %t/inputs
+// RUN: echo "public fn foo() {}" >> %t/foo.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/inputs/Foo.codemodule -emit-module-doc-path %t/inputs/Foo.codedoc -emit-module-source-info -emit-module-source-info-path %t/inputs/Foo.codesourceinfo -module-cache-path %t.module-cache %t/foo.code -module-name Foo
+
+// RUN: echo "[{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"Codira\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%stdlib_dir/Codira.codemodule/%module-target-triple.codemodule\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}," >> %/t/inputs/map.json
+// RUN: echo "{" >> %/t/inputs/map.json
+// RUN: echo "\"moduleName\": \"CodiraOnoneSupport\"," >> %/t/inputs/map.json
+// RUN: echo "\"modulePath\": \"%stdlib_dir/CodiraOnoneSupport.codemodule/%module-target-triple.codemodule\"," >> %/t/inputs/map.json
+// RUN: echo "\"isFramework\": false" >> %/t/inputs/map.json
+// RUN: echo "}]" >> %/t/inputs/map.json
+
+// Add the -I search path to ensure we do not accidentally implicitly load Foo.codemodule
+// RUN: not %target-language-frontend -typecheck %s -I %t/inputs -explicit-language-module-map-file %t/inputs/map.json -disable-implicit-language-modules
+import Foo
+// CHECK: error: no such module 'Foo'
+

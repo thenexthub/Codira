@@ -1,4 +1,4 @@
-//===--- ASTScopePrinting.cpp - Swift Object-Oriented AST Scope -----------===//
+//===--- ASTScopePrinting.cpp - Codira Object-Oriented AST Scope -----------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements the printing functions of the ASTScopeImpl ontology.
@@ -34,7 +35,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/PrettyStackTrace.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include <algorithm>
 
 using namespace language;
@@ -42,9 +43,9 @@ using namespace ast_scope;
 
 #pragma mark dumping
 
-void ASTScopeImpl::dump() const { print(llvm::errs(), 0, false); }
+void ASTScopeImpl::dump() const { print(toolchain::errs(), 0, false); }
 
-void ASTScopeImpl::dumpParents() const { printParents(llvm::errs()); }
+void ASTScopeImpl::dumpParents() const { printParents(toolchain::errs()); }
 
 void ASTScopeImpl::dumpOneScopeMapLocation(
     std::pair<unsigned, unsigned> lineColumn) {
@@ -54,28 +55,28 @@ void ASTScopeImpl::dumpOneScopeMapLocation(
   if (loc.isInvalid())
     return;
 
-  llvm::errs() << "***Scope at " << lineColumn.first << ":" << lineColumn.second
+  toolchain::errs() << "***Scope at " << lineColumn.first << ":" << lineColumn.second
                << "***\n";
   auto *parentModule = getSourceFile()->getParentModule();
-  auto *locScope = findInnermostEnclosingScope(parentModule, loc, &llvm::errs());
-  locScope->print(llvm::errs(), 0, false, false);
+  auto *locScope = findInnermostEnclosingScope(parentModule, loc, &toolchain::errs());
+  locScope->print(toolchain::errs(), 0, false, false);
 
   namelookup::ASTScopeDeclGatherer gatherer;
   // Print the local bindings introduced by this scope.
   locScope->lookupLocalsOrMembers(gatherer);
   if (!gatherer.getDecls().empty()) {
-    llvm::errs() << "Local bindings: ";
-    llvm::interleave(
+    toolchain::errs() << "Local bindings: ";
+    toolchain::interleave(
         gatherer.getDecls().begin(), gatherer.getDecls().end(),
-        [&](ValueDecl *value) { llvm::errs() << value->getName(); },
-        [&]() { llvm::errs() << " "; });
-    llvm::errs() << "\n";
+        [&](ValueDecl *value) { toolchain::errs() << value->getName(); },
+        [&]() { toolchain::errs() << " "; });
+    toolchain::errs() << "\n";
   }
 }
 
 void ASTScopeImpl::abortWithVerificationError(
-    llvm::function_ref<void(llvm::raw_ostream &)> messageFn) const {
-  abortWithPrettyStackTraceMessage([&](auto &out) {
+    toolchain::function_ref<void(toolchain::raw_ostream &)> messageFn) const {
+  ABORT([&](auto &out) {
     out << "ASTScopeImpl verification error in source file '"
         << getSourceFile()->getFilename() << "':\n";
     messageFn(out);
@@ -84,7 +85,7 @@ void ASTScopeImpl::abortWithVerificationError(
 
 #pragma mark printing
 
-void ASTScopeImpl::print(llvm::raw_ostream &out, unsigned level, bool lastChild,
+void ASTScopeImpl::print(toolchain::raw_ostream &out, unsigned level, bool lastChild,
                          bool printChildren) const {
   // Indent for levels 2+.
   if (level > 1)
@@ -115,7 +116,7 @@ void ASTScopeImpl::print(llvm::raw_ostream &out, unsigned level, bool lastChild,
   }
 }
 
-static void printSourceRange(llvm::raw_ostream &out, const SourceRange range,
+static void printSourceRange(toolchain::raw_ostream &out, const SourceRange range,
                              SourceManager &SM) {
   if (range.isInvalid()) {
     out << "[invalid source range]";
@@ -129,12 +130,12 @@ static void printSourceRange(llvm::raw_ostream &out, const SourceRange range,
       << endLineAndCol.first << ":" << endLineAndCol.second << "]";
 }
 
-void ASTScopeImpl::printRange(llvm::raw_ostream &out) const {
+void ASTScopeImpl::printRange(toolchain::raw_ostream &out) const {
   SourceRange range = getSourceRangeOfThisASTNode(/*omitAssertions=*/true);
   printSourceRange(out, range, getSourceManager());
 }
 
-void ASTScopeImpl::printParents(llvm::raw_ostream &out) const {
+void ASTScopeImpl::printParents(toolchain::raw_ostream &out) const {
   SmallVector<const ASTScopeImpl *, 8> nodes;
   const ASTScopeImpl *cursor = this;
   do {
@@ -153,7 +154,7 @@ void ASTScopeImpl::printParents(llvm::raw_ostream &out) const {
 
 
 void ASTSourceFileScope::printSpecifics(
-    llvm::raw_ostream &out) const {
+    toolchain::raw_ostream &out) const {
   out << "'" << SF->getFilename() << "'";
 }
 
@@ -167,7 +168,7 @@ NullablePtr<const void> ASTScopeImpl::addressForPrinting() const {
   return nullptr;
 }
 
-void GenericTypeOrExtensionScope::printSpecifics(llvm::raw_ostream &out) const {
+void GenericTypeOrExtensionScope::printSpecifics(toolchain::raw_ostream &out) const {
   if (shouldHaveABody() && !doesDeclHaveABody())
     out << "<no body>";
   else if (auto *n = getCorrespondingNominalTypeDecl().getPtrOrNull())
@@ -176,7 +177,7 @@ void GenericTypeOrExtensionScope::printSpecifics(llvm::raw_ostream &out) const {
     out << "<no extended nominal?!>";
 }
 
-void GenericParamScope::printSpecifics(llvm::raw_ostream &out) const {
+void GenericParamScope::printSpecifics(toolchain::raw_ostream &out) const {
   out << "param " << index;
   auto *genericTypeParamDecl = paramList->getParams()[index];
   out << " '";
@@ -184,31 +185,31 @@ void GenericParamScope::printSpecifics(llvm::raw_ostream &out) const {
   out << "'";
 }
 
-void AbstractFunctionDeclScope::printSpecifics(llvm::raw_ostream &out) const {
+void AbstractFunctionDeclScope::printSpecifics(toolchain::raw_ostream &out) const {
   out << "'" << decl->getName() << "'";
 }
 
-void AbstractPatternEntryScope::printSpecifics(llvm::raw_ostream &out) const {
+void AbstractPatternEntryScope::printSpecifics(toolchain::raw_ostream &out) const {
   out << "entry " << patternEntryIndex;
   getPattern()->forEachVariable([&](VarDecl *vd) {
     out << " '" << vd->getName() << "'";
   });
 }
 
-void SubscriptDeclScope::printSpecifics(llvm::raw_ostream &out) const {
+void SubscriptDeclScope::printSpecifics(toolchain::raw_ostream &out) const {
   decl->dumpRef(out);
 }
 
-void MacroDeclScope::printSpecifics(llvm::raw_ostream &out) const {
+void MacroDeclScope::printSpecifics(toolchain::raw_ostream &out) const {
   decl->dumpRef(out);
 }
 
-void MacroExpansionDeclScope::printSpecifics(llvm::raw_ostream &out) const {
+void MacroExpansionDeclScope::printSpecifics(toolchain::raw_ostream &out) const {
   out << decl->getMacroName();
 }
 
 void ConditionalClausePatternUseScope::printSpecifics(
-    llvm::raw_ostream &out) const {
+    toolchain::raw_ostream &out) const {
   sec.getPattern()->print(out);
 }
 
@@ -218,7 +219,7 @@ bool IterableTypeScope::doesDeclHaveABody() const {
   return getBraces().Start != getBraces().End;
 }
 
-void ast_scope::simple_display(llvm::raw_ostream &out,
+void ast_scope::simple_display(toolchain::raw_ostream &out,
                                const ASTScopeImpl *scope) {
   // Cannot call scope->print(out) because printing an ASTFunctionBodyScope
   // gets the source range which can cause a request to parse it.

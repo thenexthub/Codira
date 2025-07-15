@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module %t/SecretLib.code -o %t/SecretLib.codemodule
+// RUN: %target-language-frontend -emit-module %t/Client.code -I %t -emit-module-interface-path %t/Client.codeinterface -enable-library-evolution -language-version 5
+// RUN: %target-language-typecheck-module-from-interface(%t/Client.codeinterface)
+
+/// The indirect conformance of `s` to `_p` should not be printed. (rdar://78718838)
+// RUN: cat %t/Client.codeinterface | %FileCheck %s
+// CHECK-NOT: SecretLib
+
+// BEGIN SecretLib.code
+public protocol _p {}
+public struct _s : _p {}
+
+// BEGIN Client.code
+@_implementationOnly import SecretLib
+protocol p : _p {}
+public struct s : p {}
+public fn test(s1 : s) {}

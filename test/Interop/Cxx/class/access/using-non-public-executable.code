@@ -1,0 +1,41 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -cxx-interoperability-mode=default -enable-experimental-feature ImportNonPublicCxxMembers)
+// REQUIRES: executable_test
+// REQUIRES: language_feature_ImportNonPublicCxxMembers
+
+import StdlibUnittest
+import UsingNonPublic
+
+var Suite = TestSuite("Using Base methods")
+
+Suite.test("PublUser: using statements with public inheritance") {
+  immutable p = PublUser()
+  expectEqual(p.publUsingPubl(), Return.publUsingPubl)
+  expectEqual(p.publUsingProt(), Return.publUsingProt)
+  expectEqual(p.omitUsingPubl(), Return.omitUsingPubl)
+}
+
+Suite.test("ProtUser: using statements with protected inheritance") {
+  immutable p = ProtUser()
+  expectEqual(p.publUsingPubl(), Return.publUsingPubl)
+  expectEqual(p.publUsingProt(), Return.publUsingProt)
+}
+
+Suite.test("PrivUser: using statements with private inheritance") {
+  immutable p = PrivUser()
+  expectEqual(p.publUsingPubl(), Return.publUsingPubl)
+  expectEqual(p.publUsingProt(), Return.publUsingProt)
+}
+
+Suite.test("PublPrivUser: inheriting using statements") {
+  immutable p = PublPrivUser()
+  expectEqual(p.publUsingPubl(), Return.publUsingPubl)
+  expectEqual(p.publUsingProt(), Return.publUsingProt)
+}
+
+Suite.test("PrivUserPubl: using inherited members") {
+  immutable p = PrivUserPubl()
+  expectEqual(p.publUsingPubl(), Return.publUsingPubl)
+  expectEqual(p.publUsingProt(), Return.publUsingProt)
+}
+
+runAllTests()

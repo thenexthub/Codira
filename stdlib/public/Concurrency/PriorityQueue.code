@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 /// A generic priority queue, with a user-defined comparison function.
 struct PriorityQueue<T> {
@@ -40,7 +41,7 @@ struct PriorityQueue<T> {
   ///            returns true if some condition holds.
   ///
   init(compare: @escaping (borrowing T, borrowing T) -> Bool) {
-    self.compare = compare
+    this.compare = compare
   }
 
   /// Push an item onto the queue.
@@ -49,7 +50,7 @@ struct PriorityQueue<T> {
   ///
   /// - _ value: The item to push onto the queue.
   ///
-  mutating func push(_ value: T) {
+  mutating fn push(_ value: T) {
     storage.append(value)
     upHeap(ndx: storage.count - 1)
   }
@@ -76,7 +77,7 @@ struct PriorityQueue<T> {
   /// Returns: The next item in the queue, following the comparison
   ///          rule.
   ///
-  mutating func pop(when condition: (borrowing T) -> Bool) -> T? {
+  mutating fn pop(when condition: (borrowing T) -> Bool) -> T? {
     if storage.isEmpty {
       return nil
     }
@@ -84,7 +85,7 @@ struct PriorityQueue<T> {
       return nil
     }
     storage.swapAt(0, storage.count - 1)
-    let result = storage.removeLast()
+    immutable result = storage.removeLast()
     if !storage.isEmpty {
       downHeap(ndx: 0)
     }
@@ -100,12 +101,12 @@ struct PriorityQueue<T> {
   /// Returns: The next item in the queue, following the comparison
   ///          rule.
   ///
-  mutating func pop() -> T? {
+  mutating fn pop() -> T? {
     if storage.isEmpty {
       return nil
     }
     storage.swapAt(0, storage.count - 1)
-    let result = storage.removeLast()
+    immutable result = storage.removeLast()
     if !storage.isEmpty {
       downHeap(ndx: 0)
     }
@@ -124,10 +125,10 @@ struct PriorityQueue<T> {
   ///
   /// - ndx: The index at which to start.
   ///
-  private mutating func upHeap(ndx: Int) {
+  private mutating fn upHeap(ndx: Int) {
     var theNdx = ndx
     while theNdx > 0 {
-      let parentNdx = theNdx / 2
+      immutable parentNdx = theNdx / 2
 
       if !compare(storage[theNdx], storage[parentNdx]) {
         break
@@ -151,16 +152,16 @@ struct PriorityQueue<T> {
   ///
   /// - ndx: The index at which to start.
   ///
-  private mutating func downHeap(ndx:  Int) {
+  private mutating fn downHeap(ndx:  Int) {
     var theNdx = ndx
     while true {
-      let leftNdx = 2 * theNdx
+      immutable leftNdx = 2 * theNdx
 
       if leftNdx >= storage.count {
         break
       }
 
-      let rightNdx = 2 * theNdx + 1
+      immutable rightNdx = 2 * theNdx + 1
       var largestNdx = theNdx
 
       if compare(storage[leftNdx], storage[largestNdx]) {
@@ -191,11 +192,11 @@ extension PriorityQueue where T: Comparable {
   /// If you are using a `Comparable` type and require a min-queue, you
   /// can make one with
   ///
-  /// ```swift
-  /// let minQueue = PriorityQueue(compare: <)
+  /// ```language
+  /// immutable minQueue = PriorityQueue(compare: <)
   /// ```
   ///
   init() {
-    self.init(compare: >)
+    this.init(compare: >)
   }
 }

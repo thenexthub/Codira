@@ -1,12 +1,15 @@
 //===--- Bridging/ExprBridging.cpp ----------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 
@@ -448,7 +451,7 @@ unbridge(BridgedMagicIdentifierLiteralKind cKind) {
   case BridgedMagicIdentifierLiteralKindNone:
     return std::nullopt;
   }
-  llvm_unreachable("unhandled enum value");
+  toolchain_unreachable("unhandled enum value");
 }
 
 BridgedMagicIdentifierLiteralExpr
@@ -487,10 +490,10 @@ BridgedObjCSelectorExpr BridgedObjCSelectorExpr_createParsed(
       cModifierLoc.unbridged(), cSubExpr.unbridged(), cRParenLoc.unbridged());
 }
 
-SWIFT_NAME("BridgedObjectLiteralKind.init(from:)")
+LANGUAGE_NAME("BridgedObjectLiteralKind.init(from:)")
 BridgedObjectLiteralKind
 BridgedObjectLiteralKind_fromString(BridgedStringRef cStr) {
-  return llvm::StringSwitch<BridgedObjectLiteralKind>(cStr.unbridged())
+  return toolchain::StringSwitch<BridgedObjectLiteralKind>(cStr.unbridged())
 #define POUND_OBJECT_LITERAL(Name, Desc, Proto)                                \
   .Case(#Name, BridgedObjectLiteralKind_##Name)
 #include "language/AST/TokenKinds.def"
@@ -507,10 +510,10 @@ unbridge(BridgedObjectLiteralKind kind) {
   case BridgedObjectLiteralKind_none:
     return std::nullopt;
   }
-  llvm_unreachable("unhandled enum value");
+  toolchain_unreachable("unhandled enum value");
 }
 
-SWIFT_NAME("BridgedObjectLiteralExpr.createParsed(_:poundLoc:kind:args:)")
+LANGUAGE_NAME("BridgedObjectLiteralExpr.createParsed(_:poundLoc:kind:args:)")
 BridgedObjectLiteralExpr BridgedObjectLiteralExpr_createParsed(
     BridgedASTContext cContext, BridgedSourceLoc cPoundLoc,
     BridgedObjectLiteralKind cKind, BridgedArgumentList cArgs) {

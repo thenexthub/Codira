@@ -1,0 +1,4 @@
+// {"signature":"language::Pattern::getType() const"}
+// RUN: not %target-language-frontend -typecheck %s
+{
+  immutable $a:

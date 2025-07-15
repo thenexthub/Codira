@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_ARCSEQUENCEOPTS_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_ARCSEQUENCEOPTS_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARCSEQUENCEOPTS_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_ARCSEQUENCEOPTS_H
 
 #include "GlobalARCSequenceDataflow.h"
 #include "GlobalLoopARCSequenceDataflow.h"
 #include "ARCMatchingSet.h"
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Utils/LoopUtils.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 
 namespace language {
 
@@ -42,10 +43,10 @@ struct ARCPairingContext {
 
   ARCPairingContext(SILFunction &F, RCIdentityFunctionInfo *RCIA)
       : F(F), DecToIncStateMap(), IncToDecStateMap(), RCIA(RCIA) {}
-  bool performMatching(llvm::SmallVectorImpl<SILInstruction *> &DeadInsts);
+  bool performMatching(toolchain::SmallVectorImpl<SILInstruction *> &DeadInsts);
 
   void optimizeMatchingSet(ARCMatchingSet &MatchSet,
-                           llvm::SmallVectorImpl<SILInstruction *> &DeadInsts);
+                           toolchain::SmallVectorImpl<SILInstruction *> &DeadInsts);
 };
 
 /// A composition of an ARCSequenceDataflowEvaluator and an
@@ -69,7 +70,7 @@ struct BlockARCPairingContext {
     bool NestingDetected = Evaluator.run(FreezePostDomReleases);
     Evaluator.clear();
 
-    llvm::SmallVector<SILInstruction *, 8> DeadInsts;
+    toolchain::SmallVector<SILInstruction *, 8> DeadInsts;
     bool MatchedPair = Context.performMatching(DeadInsts);
     while (!DeadInsts.empty())
       DeadInsts.pop_back_val()->eraseFromParent();
@@ -116,6 +117,6 @@ struct LoopARCPairingContext : SILLoopVisitor {
                      bool RecomputePostDomReleases);
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

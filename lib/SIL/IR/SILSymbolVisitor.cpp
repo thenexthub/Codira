@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements liker symbol enumeration for SILSymbolVisitor.
@@ -69,14 +70,14 @@ static std::optional<DynamicKind> getDynamicKind(ValueDecl *VD) {
 class SILSymbolVisitorImpl : public ASTVisitor<SILSymbolVisitorImpl> {
   SILSymbolVisitor &Visitor;
   const SILSymbolVisitorContext &Ctx;
-  llvm::SmallVector<Decl *, 4> DeclStack;
+  toolchain::SmallVector<Decl *, 4> DeclStack;
 
   /// A set of original function and derivative configuration pairs for which
   /// derivative symbols have been emitted.
   ///
   /// Used to deduplicate derivative symbol emission for `@differentiable` and
   /// `@derivative` attributes.
-  llvm::DenseSet<std::pair<AbstractFunctionDecl *, AutoDiffConfig>>
+  toolchain::DenseSet<std::pair<AbstractFunctionDecl *, AutoDiffConfig>>
       AddedDerivatives;
 
   void addMainIfNecessary(FileUnit *file) {
@@ -356,7 +357,7 @@ class SILSymbolVisitorImpl : public ASTVisitor<SILSymbolVisitorImpl> {
         // still be needed for subclassing.
         Visitor.addObjCMetaclass(CD);
       else
-        Visitor.addSwiftMetaclassStub(CD);
+        Visitor.addCodiraMetaclassStub(CD);
     }
 
     // Some members of classes get extra handling, beyond members of
@@ -387,7 +388,7 @@ class SILSymbolVisitorImpl : public ASTVisitor<SILSymbolVisitorImpl> {
 
     // If we're already visiting the parent ClassDecl then this was handled by
     // its vtable visitor.
-    if (llvm::find(DeclStack, CD) != DeclStack.end())
+    if (toolchain::find(DeclStack, CD) != DeclStack.end())
       return;
 
     SILDeclRef method = SILDeclRef(FD);
@@ -420,7 +421,7 @@ public:
 
   void visit(Decl *D) {
     DeclStack.push_back(D);
-    SWIFT_DEFER { DeclStack.pop_back(); };
+    LANGUAGE_DEFER { DeclStack.pop_back(); };
 
     if (!Visitor.willVisitDecl(D))
       return;
@@ -462,7 +463,7 @@ public:
     if (Ctx.getOpts().PublicOrPackageSymbolsOnly && !shouldGenerateDefaultArgs)
       return;
 
-    // In Swift 3 (or under -enable-testing), default arguments (of public
+    // In Codira 3 (or under -enable-testing), default arguments (of public
     // functions) are public symbols, as the default values are computed at the
     // call site.
     auto index = 0;
@@ -475,7 +476,7 @@ public:
 
   void visitAbstractFunctionDecl(AbstractFunctionDecl *AFD) {
     // Add exported prespecialized symbols.
-    for (auto *attr : AFD->getAttrs().getAttributes<SpecializeAttr>()) {
+    for (auto *attr : AFD->getAttrs().getAttributes<AbstractSpecializeAttr>()) {
       if (!attr->isExported())
         continue;
 
@@ -567,12 +568,12 @@ public:
   }
 
   void visitAccessorDecl(AccessorDecl *AD) {
-    llvm_unreachable("should not see an accessor here");
+    toolchain_unreachable("should not see an accessor here");
   }
 
   void visitAbstractStorageDecl(AbstractStorageDecl *ASD) {
     // Add the property descriptor if the decl needs it.
-    if (ASD->exportsPropertyDescriptor()) {
+    if (ASD->getPropertyDescriptorGenericSignature()) {
       Visitor.addPropertyDescriptor(ASD);
     }
 
@@ -807,13 +808,14 @@ public:
     case DeclKind::PostfixOperator:
     case DeclKind::Macro:
     case DeclKind::MacroExpansion:
+    case DeclKind::Using:
       return false;
     case DeclKind::Missing:
-      llvm_unreachable("missing decl should not show up here");
+      toolchain_unreachable("missing decl should not show up here");
     case DeclKind::BuiltinTuple:
-      llvm_unreachable("BuiltinTupleDecl should not show up here");
+      toolchain_unreachable("BuiltinTupleDecl should not show up here");
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 #endif
 
@@ -843,7 +845,7 @@ public:
             Visitor.addMethodDescriptor(declRef);
           }
           auto *decl =
-              llvm::dyn_cast_or_null<AbstractFunctionDecl>(declRef.getDecl());
+              toolchain::dyn_cast_or_null<AbstractFunctionDecl>(declRef.getDecl());
           if (decl && decl->hasBody()) {
             Visitor.addFunction(declRef);
             auto *accessor = dyn_cast<AccessorDecl>(decl);
@@ -919,6 +921,7 @@ public:
   UNINTERESTING_DECL(PrecedenceGroup)
   UNINTERESTING_DECL(TopLevelCode)
   UNINTERESTING_DECL(Value)
+  UNINTERESTING_DECL(Using)
 
 #undef UNINTERESTING_DECL
 };
@@ -932,7 +935,7 @@ void SILSymbolVisitor::visitFile(FileUnit *file,
   SILSymbolVisitorImpl(*this, ctx).visit(file);
 }
 
-void SILSymbolVisitor::visitModules(llvm::SmallVector<ModuleDecl *, 4> &modules,
+void SILSymbolVisitor::visitModules(toolchain::SmallVector<ModuleDecl *, 4> &modules,
                                     const SILSymbolVisitorContext &ctx) {
   auto impl = SILSymbolVisitorImpl(*this, ctx);
   for (auto *M : modules) {

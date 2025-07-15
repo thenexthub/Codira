@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # flake8: noqa
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import os
@@ -31,7 +31,7 @@ def shell_print(cmd):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', choices=sorted([d for d in os.listdir(MY_DIR) if os.path.isdir(MY_DIR + "/" + d)]), required=True)
-    parser.add_argument('command', choices=['run', 'demo-run', 'print-c-flags', 'print-swift-flags', 'print-swift-frontend-flags'])
+    parser.add_argument('command', choices=['run', 'demo-run', 'print-c-flags', 'print-language-flags', 'print-language-frontend-flags'])
     parser.add_argument('--elf-file')
 
     args = parser.parse_args()
@@ -96,17 +96,17 @@ def main():
 
     cflags += f" {supportfile} {libcfile}"
 
-    swift_frontend_flags = ""
-    swift_frontend_flags += " -disable-stack-protector -function-sections"
-    if mmcu != "": swift_frontend_flags += f" -Xcc {mmcu}"
+    language_frontend_flags = ""
+    language_frontend_flags += " -disable-stack-protector -function-sections"
+    if mmcu != "": language_frontend_flags += f" -Xcc {mmcu}"
 
-    swift_flags = ""
-    swift_flags += " -Xfrontend -disable-stack-protector -Xfrontend -function-sections -use-ld=lld"
-    swift_flags += " -Xclang-linker -nostdlib -Xlinker --gc-sections"
-    swift_flags += f" {supportfile} {libcfile}"
-    swift_flags += f" -Xlinker -T -Xlinker {MY_DIR}/{args.device}/linkerscript.ld -Xlinker -e -Xlinker {entry_point}"
-    if mmcu != "": swift_flags += f" -Xcc {mmcu}"
-    if always_optimize_for_size: swift_flags += " -Osize"
+    language_flags = ""
+    language_flags += " -Xfrontend -disable-stack-protector -Xfrontend -function-sections -use-ld=lld"
+    language_flags += " -Xclang-linker -nostdlib -Xlinker --gc-sections"
+    language_flags += f" {supportfile} {libcfile}"
+    language_flags += f" -Xlinker -T -Xlinker {MY_DIR}/{args.device}/linkerscript.ld -Xlinker -e -Xlinker {entry_point}"
+    if mmcu != "": language_flags += f" -Xcc {mmcu}"
+    if always_optimize_for_size: language_flags += " -Osize"
 
     cflags += " -fuse-ld=lld"
     cflags += " -nostdlib"
@@ -114,11 +114,11 @@ def main():
     cflags += f" -Xlinker -T -Xlinker {MY_DIR}/{args.device}/linkerscript.ld"
     cflags += f" -Wl,-e,{entry_point}"
 
-    if args.command == "print-swift-flags":
-        print(swift_flags)
+    if args.command == "print-language-flags":
+        print(language_flags)
 
-    elif args.command == "print-swift-frontend-flags":
-        print(swift_frontend_flags)
+    elif args.command == "print-language-frontend-flags":
+        print(language_frontend_flags)
 
     elif args.command == "print-c-flags":
         print(cflags)

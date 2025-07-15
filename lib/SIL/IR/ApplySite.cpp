@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/ApplySite.h"
@@ -19,17 +20,17 @@
 
 using namespace language;
 
-void ApplySite::insertAfterInvocation(function_ref<void(SILBuilder &)> func) const {
-  SILBuilderWithScope::insertAfter(getInstruction(), func);
+void ApplySite::insertAfterInvocation(function_ref<void(SILBuilder &)> fn) const {
+  SILBuilderWithScope::insertAfter(getInstruction(), fn);
 }
 
 void ApplySite::insertAfterApplication(
-    function_ref<void(SILBuilder &)> func) const {
+    function_ref<void(SILBuilder &)> fn) const {
   switch (getKind()) {
   case ApplySiteKind::ApplyInst:
   case ApplySiteKind::TryApplyInst:
   case ApplySiteKind::PartialApplyInst:
-    return insertAfterInvocation(func);
+    return insertAfterInvocation(fn);
   case ApplySiteKind::BeginApplyInst:
     SmallVector<EndApplyInst *, 2> endApplies;
     SmallVector<AbortApplyInst *, 2> abortApplies;
@@ -37,15 +38,15 @@ void ApplySite::insertAfterApplication(
     bai->getCoroutineEndPoints(endApplies, abortApplies);
     for (auto *eai : endApplies) {
       SILBuilderWithScope builder(std::next(eai->getIterator()));
-      func(builder);
+      fn(builder);
     }
     for (auto *aai : abortApplies) {
       SILBuilderWithScope builder(std::next(aai->getIterator()));
-      func(builder);
+      fn(builder);
     }
     return;
   }
-  llvm_unreachable("covered switch isn't covered");
+  toolchain_unreachable("covered switch isn't covered");
 }
 
 bool ApplySite::isAddressable(const Operand &operand) const {

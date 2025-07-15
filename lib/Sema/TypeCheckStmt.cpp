@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for statements.
@@ -48,15 +49,15 @@
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/IDETypeChecking.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/Timer.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/Format.h"
+#include "toolchain/Support/Timer.h"
 #include <cmath>
 #include <iterator>
 
@@ -178,13 +179,13 @@ namespace {
   /// compile.
   class FunctionBodyTimer {
     AnyFunctionRef Function;
-    llvm::TimeRecord StartTime = llvm::TimeRecord::getCurrentTime();
+    toolchain::TimeRecord StartTime = toolchain::TimeRecord::getCurrentTime();
 
   public:
     FunctionBodyTimer(AnyFunctionRef Fn) : Function(Fn) {}
 
     ~FunctionBodyTimer() {
-      llvm::TimeRecord endTime = llvm::TimeRecord::getCurrentTime(false);
+      toolchain::TimeRecord endTime = toolchain::TimeRecord::getCurrentTime(false);
 
       auto elapsed = endTime.getProcessTime() - StartTime.getProcessTime();
       unsigned elapsedMS = static_cast<unsigned>(elapsed * 1000);
@@ -194,18 +195,18 @@ namespace {
 
       if (ctx.TypeCheckerOpts.DebugTimeFunctionBodies) {
         // Round up to the nearest 100th of a millisecond.
-        llvm::errs() << llvm::format("%0.2f", std::ceil(elapsed * 100000) / 100) << "ms\t";
-        Function.getLoc().print(llvm::errs(), ctx.SourceMgr);
+        toolchain::errs() << toolchain::format("%0.2f", std::ceil(elapsed * 100000) / 100) << "ms\t";
+        Function.getLoc().print(toolchain::errs(), ctx.SourceMgr);
 
         if (AFD) {
-          llvm::errs()
+          toolchain::errs()
             << "\t" << Decl::getDescriptiveKindName(AFD->getDescriptiveKind())
             << " ";
-          AFD->dumpRef(llvm::errs());
+          AFD->dumpRef(toolchain::errs());
         } else {
-          llvm::errs() << "\t(closure)";
+          toolchain::errs() << "\t(closure)";
         }
-        llvm::errs() << "\n";
+        toolchain::errs() << "\n";
       }
 
       const auto WarnLimit = ctx.TypeCheckerOpts.WarnLongFunctionBodies;
@@ -244,7 +245,7 @@ namespace {
     unsigned NextAutoclosureDiscriminator;
 
     /// Local declaration discriminators.
-    llvm::SmallDenseMap<Identifier, unsigned> DeclDiscriminators;
+    toolchain::SmallDenseMap<Identifier, unsigned> DeclDiscriminators;
 
   public:
     SetLocalDiscriminators(
@@ -420,15 +421,15 @@ unsigned LocalDiscriminatorsRequest::evaluate(
   ASTNode node;
   ParameterList *params = nullptr;
   ParamDecl *selfParam = nullptr;
-  if (auto func = dyn_cast<AbstractFunctionDecl>(dc)) {
-    if (!func->isBodySkipped())
-      node = func->getBody();
-    selfParam = func->getImplicitSelfDecl();
-    params = func->getParameters();
+  if (auto fn = dyn_cast<AbstractFunctionDecl>(dc)) {
+    if (!fn->isBodySkipped())
+      node = fn->getBody();
+    selfParam = fn->getImplicitSelfDecl();
+    params = fn->getParameters();
 
     // Accessors for lazy properties should be walked as part of the property's
     // pattern.
-    if (auto accessor = dyn_cast<AccessorDecl>(func)) {
+    if (auto accessor = dyn_cast<AccessorDecl>(fn)) {
       if (accessor->isImplicit() &&
           accessor->getStorage()->getAttrs().hasAttribute<LazyAttr>()) {
         if (auto var = dyn_cast<VarDecl>(accessor->getStorage())) {
@@ -503,7 +504,7 @@ unsigned LocalDiscriminatorsRequest::evaluate(
 /// OptionSet value. The primary motivation is to help with SDK changes.
 /// Example:
 /// \code
-///   func supported() -> MyMask {
+///   fn supported() -> MyMask {
 ///     return Int(MyMask.Bingo.rawValue)
 ///   }
 /// \endcode
@@ -548,8 +549,8 @@ static void tryDiagnoseUnnecessaryCastOverOptionSet(ASTContext &Ctx,
 
 /// Whether the given enclosing context is a "defer" body.
 static bool isDefer(DeclContext *dc) {
-  if (auto *func = dyn_cast<FuncDecl>(dc))
-    return func->isDeferBody();
+  if (auto *fn = dyn_cast<FuncDecl>(dc))
+    return fn->isDeferBody();
 
   return false;
 }
@@ -563,13 +564,13 @@ static bool isDefer(DeclContext *dc) {
 static DeclContext *climbContextForDiscardStmt(DeclContext *dc) {
   do {
     if (auto decl = dc->getAsDecl()) {
-      auto func = dyn_cast<AbstractFunctionDecl>(decl);
-      // If we found a non-func decl, we're done.
-      if (func == nullptr)
+      auto fn = dyn_cast<AbstractFunctionDecl>(decl);
+      // If we found a non-fn decl, we're done.
+      if (fn == nullptr)
         break;
 
       // If this function's parent is the type context, our search is done.
-      if (func->getDeclContext()->isTypeContext())
+      if (fn->getDeclContext()->isTypeContext())
         break;
 
       // Only continue if we're in a defer. We want to stop at the first local
@@ -592,7 +593,7 @@ static void checkLabeledStmtShadowing(
 
   auto activeLabeledStmtsVec = ASTScope::lookupLabeledStmts(
       sourceFile, ls->getStartLoc());
-  auto activeLabeledStmts = llvm::ArrayRef(activeLabeledStmtsVec);
+  auto activeLabeledStmts = toolchain::ArrayRef(activeLabeledStmtsVec);
   for (auto prevLS : activeLabeledStmts.slice(1)) {
     if (prevLS->getLabelInfo().Name == name) {
       ctx.Diags.diagnose(
@@ -659,7 +660,7 @@ static LabeledStmt *findUnlabeledBreakOrContinueStmtTarget(
   // If we're dealing with an unlabeled break inside of an 'if' or 'do'
   // statement, produce a more specific error.
   if (!isContinue &&
-      llvm::any_of(activeLabeledStmts,
+      toolchain::any_of(activeLabeledStmts,
                    [&](Stmt *S) -> bool {
                      return isa<IfStmt>(S) || isa<DoStmt>(S);
                    })) {
@@ -679,7 +680,7 @@ static LabeledStmt *findUnlabeledBreakOrContinueStmtTarget(
 ///
 /// \returns the target, if one was found, or \c nullptr if no such target
 /// exists.
-LabeledStmt *swift::findBreakOrContinueStmtTarget(
+LabeledStmt *language::findBreakOrContinueStmtTarget(
     ASTContext &ctx, SourceFile *sourceFile,
     SourceLoc loc, Identifier targetName, SourceLoc targetLoc,
     bool isContinue, DeclContext *dc) {
@@ -943,7 +944,7 @@ static bool typeCheckConditionForStatement(LabeledConditionalStmt *stmt,
       msg = diag::guard_always_succeeds;
       break;
     default:
-      llvm_unreachable("unknown LabeledConditionalStmt kind");
+      toolchain_unreachable("unknown LabeledConditionalStmt kind");
     }
     diags.diagnose(cond[0].getStartLoc(), msg);
   }
@@ -955,7 +956,7 @@ static bool typeCheckConditionForStatement(LabeledConditionalStmt *stmt,
 /// Check the correctness of a 'fallthrough' statement.
 ///
 /// \returns true if an error occurred.
-bool swift::checkFallthroughStmt(FallthroughStmt *FS) {
+bool language::checkFallthroughStmt(FallthroughStmt *FS) {
   auto &ctx = FS->getDeclContext()->getASTContext();
   auto *caseBlock = FS->getFallthroughDest();
   auto *previousBlock = FS->getFallthroughSource();
@@ -1436,8 +1437,7 @@ public:
   }
   
   Stmt *visitForEachStmt(ForEachStmt *S) {
-    if (TypeChecker::typeCheckForEachPreamble(DC, S))
-      return nullptr;
+    TypeChecker::typeCheckForEachPreamble(DC, S);
 
     // Type-check the body of the loop.
     auto sourceFile = DC->getParentSourceFile();
@@ -1660,7 +1660,7 @@ public:
 
   Stmt *visitCaseStmt(CaseStmt *S) {
     // Cases are handled in visitSwitchStmt.
-    llvm_unreachable("case stmt outside of switch?!");
+    toolchain_unreachable("case stmt outside of switch?!");
   }
 
   Stmt *visitDoCatchStmt(DoCatchStmt *S) {
@@ -1873,9 +1873,9 @@ void TypeChecker::checkIgnoredExpr(Expr *E) {
     //
     // class Bar {
     //   @discardableResult
-    //   func foo() -> Int { return 0 }
+    //   fn foo() -> Int { return 0 }
     //
-    //   func baz() {
+    //   fn baz() {
     //     self.foo
     //     foo
     //   }
@@ -2097,7 +2097,7 @@ void StmtChecker::typeCheckASTNode(ASTNode &node) {
     return;
   }
 
-  llvm_unreachable("Type checking null ASTNode");
+  toolchain_unreachable("Type checking null ASTNode");
 }
 
 Stmt *StmtChecker::visitBraceStmt(BraceStmt *BS) {
@@ -2280,7 +2280,7 @@ static void checkClassConstructorBody(ClassDecl *classDecl,
                          ctor->getDeclContext()->getDeclaredInterfaceType());
     }
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 
   case BodyInitKind::None:
     wantSuperInitCall = false;
@@ -2357,18 +2357,18 @@ static void checkClassConstructorBody(ClassDecl *classDecl,
   }
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const TypeCheckASTNodeAtLocContext &ctx) {
   if (ctx.isForUnattachedNode()) {
-    llvm::errs() << "(unattached_node: ";
+    toolchain::errs() << "(unattached_node: ";
     simple_display(out, ctx.getUnattachedNode());
-    llvm::errs() << " decl_context: ";
+    toolchain::errs() << " decl_context: ";
     simple_display(out, ctx.getDeclContext());
-    llvm::errs() << ")";
+    toolchain::errs() << ")";
   } else {
-    llvm::errs() << "(decl_context: ";
+    toolchain::errs() << "(decl_context: ";
     simple_display(out, ctx.getDeclContext());
-    llvm::errs() << ")";
+    toolchain::errs() << ")";
   }
 }
 
@@ -2465,12 +2465,29 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
       return MacroWalking::ArgumentsAndExpansion;
     }
 
+    /// Checks whether the given range, when treated as a character range,
+    /// contains the searched location.
+    bool charRangeContainsLoc(SourceRange range) {
+      if (!range)
+        return false;
+
+      if (SM.isBefore(Loc, range.Start))
+        return false;
+
+      // NOTE: We need to check the character loc here because the target
+      // loc can be inside the last token of the node. i.e. interpolated
+      // string.
+      return SM.isBefore(Loc, Lexer::getLocForEndOfToken(SM, range.End));
+    }
+
     PreWalkResult<Stmt *> walkToStmtPre(Stmt *S) override {
       if (auto *brace = dyn_cast<BraceStmt>(S)) {
-        auto braceCharRange = Lexer::getCharSourceRangeFromSourceRange(
-            SM, brace->getSourceRange());
+        auto braceRange = brace->getSourceRange();
+        auto braceCharRange = SourceRange(
+            braceRange.Start, Lexer::getLocForEndOfToken(SM, braceRange.End));
+
         // Unless this brace contains the loc, there's nothing to do.
-        if (!braceCharRange.contains(Loc))
+        if (!SM.containsLoc(braceCharRange, Loc))
           return Action::SkipNode(S);
 
         // Reset the node found in a parent context if it's not part of this
@@ -2480,22 +2497,22 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
         // syntactically part of the brace stmt's range but won't be walked as
         // a child of the brace stmt.
         if (!brace->isImplicit() && FoundNode) {
-          auto foundNodeCharRange = Lexer::getCharSourceRangeFromSourceRange(
-              SM, FoundNode->getSourceRange());
-          if (!braceCharRange.contains(foundNodeCharRange)) {
+          auto foundRange = FoundNode->getSourceRange();
+          auto foundCharRange = SourceRange(
+              foundRange.Start, Lexer::getLocForEndOfToken(SM, foundRange.End));
+          if (!SM.encloses(braceCharRange, foundCharRange))
             FoundNode = nullptr;
-          }
         }
 
         for (ASTNode &node : brace->getElements()) {
-          if (SM.isBeforeInBuffer(Loc, node.getStartLoc()))
+          auto range = node.getSourceRange();
+          if (SM.isBefore(Loc, range.Start))
             break;
 
           // NOTE: We need to check the character loc here because the target
           // loc can be inside the last token of the node. i.e. interpolated
           // string.
-          SourceLoc endLoc = Lexer::getLocForEndOfToken(SM, node.getEndLoc());
-          if (SM.isBeforeInBuffer(endLoc, Loc) || endLoc == Loc)
+          if (!SM.isBefore(Loc, Lexer::getLocForEndOfToken(SM, range.End)))
             continue;
 
           // 'node' may be the target node, except 'CaseStmt' which cannot be
@@ -2512,13 +2529,11 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
         return Action::Stop();
       } else if (auto Conditional = dyn_cast<LabeledConditionalStmt>(S)) {
         for (StmtConditionElement &Cond : Conditional->getCond()) {
-          if (SM.isBeforeInBuffer(Loc, Cond.getStartLoc())) {
+          auto range = Cond.getSourceRange();
+          if (SM.isBefore(Loc, range.Start))
             break;
-          }
-          SourceLoc endLoc = Lexer::getLocForEndOfToken(SM, Cond.getEndLoc());
-          if (SM.isBeforeInBuffer(endLoc, Loc) || endLoc == Loc) {
+          if (!SM.isBefore(Loc, Lexer::getLocForEndOfToken(SM, range.End)))
             continue;
-          }
 
           FoundNodeStorage = ASTNode(&Cond);
           FoundNode = &FoundNodeStorage;
@@ -2530,11 +2545,7 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
     }
 
     PreWalkResult<Expr *> walkToExprPre(Expr *E) override {
-      if (SM.isBeforeInBuffer(Loc, E->getStartLoc()))
-        return Action::SkipNode(E);
-
-      SourceLoc endLoc = Lexer::getLocForEndOfToken(SM, E->getEndLoc());
-      if (SM.isBeforeInBuffer(endLoc, Loc))
+      if (!charRangeContainsLoc(E->getSourceRange()))
         return Action::SkipNode(E);
 
       // Don't walk into 'TapExpr'. They should be type checked with parent
@@ -2549,9 +2560,7 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
       if (auto *SVE = dyn_cast<SingleValueStmtExpr>(E)) {
         SmallVector<Expr *> scratch;
         for (auto *result : SVE->getResultExprs(scratch)) {
-          auto resultCharRange = Lexer::getCharSourceRangeFromSourceRange(
-            SM, result->getSourceRange());
-          if (resultCharRange.contains(Loc)) {
+          if (charRangeContainsLoc(result->getSourceRange())) {
             if (!result->walk(*this))
               return Action::Stop();
 
@@ -2573,20 +2582,15 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
     }
 
     PreWalkAction walkToDeclPre(Decl *D) override {
+      if (!charRangeContainsLoc(D->getSourceRange()))
+        return Action::SkipNode();
+
       if (auto *newDC = dyn_cast<DeclContext>(D))
         DC = newDC;
 
-      if (!SM.isBeforeInBuffer(Loc, D->getStartLoc())) {
-        // NOTE: We need to check the character loc here because the target
-        // loc can be inside the last token of the node. i.e. interpolated
-        // string.
-        SourceLoc endLoc = Lexer::getLocForEndOfToken(SM, D->getEndLoc());
-        if (!(SM.isBeforeInBuffer(endLoc, Loc) || endLoc == Loc)) {
-          if (!isa<TopLevelCodeDecl>(D)) {
-            FoundNodeStorage = ASTNode(D);
-            FoundNode = &FoundNodeStorage;
-          }
-        }
+      if (!isa<TopLevelCodeDecl>(D)) {
+        FoundNodeStorage = ASTNode(D);
+        FoundNode = &FoundNodeStorage;
       }
       return Action::Continue();
     }
@@ -2614,11 +2618,11 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
   }
 
   // Function builder function doesn't support partial type checking.
-  if (auto *func = dyn_cast<FuncDecl>(DC)) {
-    if (Type builderType = func->getResultBuilderType()) {
-      if (func->getBody()) {
+  if (auto *fn = dyn_cast<FuncDecl>(DC)) {
+    if (Type builderType = fn->getResultBuilderType()) {
+      if (fn->getBody()) {
         auto optBody =
-            TypeChecker::applyResultBuilderBodyTransform(func, builderType);
+            TypeChecker::applyResultBuilderBodyTransform(fn, builderType);
         if ((ctx.CompletionCallback && ctx.CompletionCallback->gotCallback()) ||
             (ctx.SolutionCallback && ctx.SolutionCallback->gotCallback())) {
           // We already informed the completion callback of solutions found by
@@ -2630,7 +2634,7 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
         if (!ctx.CompletionCallback && !ctx.SolutionCallback && optBody &&
             *optBody) {
           // Wire up the function body now.
-          func->setBody(*optBody, AbstractFunctionDecl::BodyKind::TypeChecked);
+          fn->setBody(*optBody, AbstractFunctionDecl::BodyKind::TypeChecked);
           return false;
         }
         // We did not find a solution while applying the result builder,
@@ -2651,7 +2655,7 @@ bool TypeCheckASTNodeAtLocRequest::evaluate(
   // FIXME: We ought to see if we can do better in that case.
   if (auto *CE = DC->getInnermostClosureForCaptures()) {
     if (CE->getBodyState() == ClosureExpr::BodyState::Parsed) {
-      swift::typeCheckASTNodeAtLoc(
+      language::typeCheckASTNodeAtLoc(
           TypeCheckASTNodeAtLocContext::declContext(CE->getParent()),
           CE->getLoc());
 
@@ -2788,9 +2792,9 @@ BraceStmt *PreCheckClosureBodyRequest::evaluate(Evaluator &evaluator,
 
 /// Determine whether the given declaration should not have a definition.
 static bool requiresNoDefinition(Decl *decl) {
-  if (auto func = dyn_cast<AbstractFunctionDecl>(decl)) {
+  if (auto fn = dyn_cast<AbstractFunctionDecl>(decl)) {
     // Function with @_extern should not have a body.
-    if (func->getAttrs().hasAttribute<ExternAttr>())
+    if (fn->getAttrs().hasAttribute<ExternAttr>())
       return true;
   }
   // FIXME: Should be able to write this more nicely
@@ -2817,10 +2821,10 @@ static bool requiresDefinition(Decl *decl) {
     return false;
 
   // Functions can have _silgen_name, semantics, and NSManaged attributes.
-  if (auto func = dyn_cast<AbstractFunctionDecl>(decl)) {
-    if (func->getAttrs().hasAttribute<SILGenNameAttr>() ||
-        func->getAttrs().hasAttribute<SemanticsAttr>() ||
-        func->getAttrs().hasAttribute<NSManagedAttr>())
+  if (auto fn = dyn_cast<AbstractFunctionDecl>(decl)) {
+    if (fn->getAttrs().hasAttribute<SILGenNameAttr>() ||
+        fn->getAttrs().hasAttribute<SemanticsAttr>() ||
+        fn->getAttrs().hasAttribute<NSManagedAttr>())
       return false;
   }
 
@@ -2913,11 +2917,11 @@ TypeCheckFunctionBodyRequest::evaluate(Evaluator &eval,
   // Then apply a result builder if we have one, which if successful will
   // produce a type-checked body.
   bool alreadyTypeChecked = false;
-  if (auto *func = dyn_cast<FuncDecl>(AFD)) {
-    if (Type builderType = func->getResultBuilderType()) {
+  if (auto *fn = dyn_cast<FuncDecl>(AFD)) {
+    if (Type builderType = fn->getResultBuilderType()) {
       if (auto optBody =
               TypeChecker::applyResultBuilderBodyTransform(
-                func, builderType)) {
+                fn, builderType)) {
         if (!*optBody)
           return errorBody();
 
@@ -2935,8 +2939,8 @@ TypeCheckFunctionBodyRequest::evaluate(Evaluator &eval,
   ASTScope::expandFunctionBody(AFD);
 
   if (AFD->isDistributedThunk()) {
-    if (auto func = dyn_cast<FuncDecl>(AFD)) {
-      if (TypeChecker::checkDistributedFunc(func)) {
+    if (auto fn = dyn_cast<FuncDecl>(AFD)) {
+      if (TypeChecker::checkDistributedFunc(fn)) {
         return errorBody();
       }
     }
@@ -3170,7 +3174,7 @@ IsSingleValueStmtRequest::evaluate(Evaluator &eval, const Stmt *S,
   return IsSingleValueStmtResult::unhandledStmt();
 }
 
-void swift::checkUnknownAttrRestrictions(
+void language::checkUnknownAttrRestrictions(
     ASTContext &ctx, CaseStmt *caseBlock,
     bool &limitExhaustivityChecks) {
   CaseStmt *fallthroughDest = caseBlock->findNextCaseStmt();
@@ -3206,8 +3210,8 @@ void swift::checkUnknownAttrRestrictions(
   }
 }
 
-void swift::bindSwitchCasePatternVars(DeclContext *dc, CaseStmt *caseStmt) {
-  llvm::SmallDenseMap<Identifier, std::pair<VarDecl *, bool>, 4> latestVars;
+void language::bindSwitchCasePatternVars(DeclContext *dc, CaseStmt *caseStmt) {
+  toolchain::SmallDenseMap<Identifier, std::pair<VarDecl *, bool>, 4> latestVars;
   auto recordVar = [&](Pattern *pattern, VarDecl *var) {
     if (!var->hasName())
       return;

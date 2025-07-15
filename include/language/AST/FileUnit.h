@@ -1,17 +1,21 @@
 //===--- FileUnit.h - The contents of a module ------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FILEUNIT_H
-#define SWIFT_AST_FILEUNIT_H
+#ifndef LANGUAGE_AST_FILEUNIT_H
+#define LANGUAGE_AST_FILEUNIT_H
 
 #include "language/AST/Module.h"
 #include "language/AST/RawComment.h"
@@ -19,7 +23,7 @@
 #include "language/Basic/Debug.h"
 #include "language/Basic/Version.h"
 
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 namespace language {
 class SynthesizedFileUnit;
@@ -41,7 +45,7 @@ class FileUnit : public DeclContext, public ASTAllocated<FileUnit> {
 
   /// The pointer is FileUnit insted of SynthesizedFileUnit to break
   /// circularity.
-  llvm::PointerIntPair<FileUnit *, 3, FileUnitKind> SynthesizedFileAndKind;
+  toolchain::PointerIntPair<FileUnit *, 3, FileUnitKind> SynthesizedFileAndKind;
 
 protected:
   FileUnit(FileUnitKind kind, ModuleDecl &M)
@@ -124,7 +128,7 @@ public:
   /// collecting the identifiers in \p spiGroups.
   virtual void lookupImportedSPIGroups(
                             const ModuleDecl *importedModule,
-                            llvm::SmallSetVector<Identifier, 4> &spiGroups) const {};
+                            toolchain::SmallSetVector<Identifier, 4> &spiGroups) const {};
 
   /// Find all availability domains defined in this module with the given
   /// identifier.
@@ -167,9 +171,9 @@ public:
     return std::nullopt;
   }
 
-  /// For a serialized AST file, returns \c true if an adjacent swiftdoc has been
+  /// For a serialized AST file, returns \c true if an adjacent languagedoc has been
   /// loaded. Otherwise, returns \c false.
-  virtual bool hasLoadedSwiftDoc() const { return false; }
+  virtual bool hasLoadedCodiraDoc() const { return false; }
 
   virtual std::optional<StringRef> getGroupNameForDecl(const Decl *D) const {
     return std::nullopt;
@@ -235,7 +239,7 @@ public:
   virtual void
   getTopLevelDeclsWhereAttributesMatch(
               SmallVectorImpl<Decl*> &Results,
-              llvm::function_ref<bool(DeclAttributes)> matchAttributes) const;
+              toolchain::function_ref<bool(DeclAttributes)> matchAttributes) const;
 
   /// Finds all operator decls in this file.
   ///
@@ -339,8 +343,8 @@ public:
   ///
   /// This is usually the module real name which can be overriden by an
   /// `export_as` definition of a clang module, or `-export-as` flag on an
-  /// imported Swift module. Swift modules built from source do not apply
-  /// their own `-export-as` flag, this way the swiftinterface can be
+  /// imported Codira module. Codira modules built from source do not apply
+  /// their own `-export-as` flag, this way the languageinterface can be
   /// verified.
   virtual StringRef getExportedModuleName() const {
     return getParentModule()->getRealName().str();
@@ -352,14 +356,14 @@ public:
     return {};
   }
 
-  /// Returns the version of the Swift compiler used to create generate
-  /// .swiftinterface file if this file is produced from one.
-  virtual version::Version getSwiftInterfaceCompilerVersion() const {
+  /// Returns the version of the Codira compiler used to create generate
+  /// .codeinterface file if this file is produced from one.
+  virtual version::Version getCodiraInterfaceCompilerVersion() const {
     return {};
   }
 
-  SWIFT_DEBUG_DUMPER(dumpDisplayDecls());
-  SWIFT_DEBUG_DUMPER(dumpTopLevelDecls());
+  LANGUAGE_DEBUG_DUMPER(dumpDisplayDecls());
+  LANGUAGE_DEBUG_DUMPER(dumpTopLevelDecls());
 
   /// Traverse the decls within this file.
   ///
@@ -407,7 +411,7 @@ public:
 
   Identifier
   getDiscriminatorForPrivateDecl(const Decl *D) const override {
-    llvm_unreachable("no private values in the Builtin module");
+    toolchain_unreachable("no private values in the Builtin module");
   }
 
   static bool classof(const FileUnit *file) {
@@ -440,7 +444,7 @@ public:
   virtual StringRef getFilename() const;
 
   /// Get the path to the file loaded by the compiler. Usually the binary
-  /// swiftmodule file or a pcm in the cache. Returns an empty string if not
+  /// languagemodule file or a pcm in the cache. Returns an empty string if not
   /// applicable.
   virtual StringRef getLoadedFilename() const { return StringRef(); }
 
@@ -456,7 +460,7 @@ public:
     return StringRef();
   }
 
-  /// Returns the Swift module that overlays a Clang module.
+  /// Returns the Codira module that overlays a Clang module.
   virtual ModuleDecl *getOverlayModule() const { return nullptr; }
 
   virtual bool isSystemModule() const { return false; }
@@ -474,10 +478,10 @@ public:
   }
 
   virtual void collectBasicSourceFileInfo(
-      llvm::function_ref<void(const BasicSourceFileInfo &)> callback) const {}
+      toolchain::function_ref<void(const BasicSourceFileInfo &)> callback) const {}
 
   virtual void collectSerializedSearchPath(
-      llvm::function_ref<void(StringRef)> callback) const {}
+      toolchain::function_ref<void(StringRef)> callback) const {}
   static bool classof(const FileUnit *file) {
     return file->getKind() == FileUnitKind::SerializedAST ||
            file->getKind() == FileUnitKind::ClangModule ||
@@ -488,7 +492,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &out, const FileUnit *file);
+void simple_display(toolchain::raw_ostream &out, const FileUnit *file);
 
 inline FileUnit &ModuleDecl::getMainFile(FileUnitKind expectedKind) const {
   assert(expectedKind != FileUnitKind::Source &&

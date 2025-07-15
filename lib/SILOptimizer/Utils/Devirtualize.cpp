@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-devirtualize-utility"
@@ -33,9 +34,9 @@
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/ClassHierarchyAnalysis.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/Casting.h"
+#include "toolchain/ADT/SmallSet.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/Casting.h"
 using namespace language;
 
 STATISTIC(NumClassDevirt, "Number of class_method applies devirtualized");
@@ -45,7 +46,7 @@ STATISTIC(NumWitnessDevirt, "Number of witness_method applies devirtualized");
 //                         Class Method Optimization
 //===----------------------------------------------------------------------===//
 
-void swift::getAllSubclasses(ClassHierarchyAnalysis *cha, ClassDecl *cd,
+void language::getAllSubclasses(ClassHierarchyAnalysis *cha, ClassDecl *cd,
                              CanType classType, SILModule &module,
                              ClassHierarchyAnalysis::ClassList &subs) {
   // Collect the direct and indirect subclasses for the class.
@@ -109,7 +110,7 @@ static bool isEffectivelyFinalMethod(FullApplySite applySite, CanType classType,
     return true;
 
   // Class declaration may be nullptr, e.g. for cases like:
-  // func foo<C:Base>(c: C) {}, where C is a class, but
+  // fn foo<C:Base>(c: C) {}, where C is a class, but
   // it does not have a class decl.
   if (!cd)
     return false;
@@ -207,7 +208,7 @@ static bool isKnownFinalClass(ClassDecl *cd, SILModule &module,
 // can be derived e.g.:
 // - from a constructor or
 // - from a successful outcome of a checked_cast_br [exact] instruction.
-SILValue swift::getInstanceWithExactDynamicType(SILValue instance,
+SILValue language::getInstanceWithExactDynamicType(SILValue instance,
                                                 ClassHierarchyAnalysis *cha) {
   auto *f = instance->getFunction();
   auto &module = f->getModule();
@@ -259,7 +260,7 @@ SILValue swift::getInstanceWithExactDynamicType(SILValue instance,
 /// Try to determine the exact dynamic type of an object.
 /// returns the exact dynamic type of the object, or an empty type if the exact
 /// type could not be determined.
-SILType swift::getExactDynamicType(SILValue instance,
+SILType language::getExactDynamicType(SILValue instance,
                                    ClassHierarchyAnalysis *cha,
                                    bool forUnderlyingObject) {
   auto *f = instance->getFunction();
@@ -270,7 +271,7 @@ SILType swift::getExactDynamicType(SILValue instance,
   // The detected type of the underlying object.
   SILType resultType;
   // Set of processed values.
-  llvm::SmallSet<SILValue, 8> processed;
+  toolchain::SmallSet<SILValue, 8> processed;
   worklist.push_back(instance);
 
   while (!worklist.empty()) {
@@ -385,7 +386,7 @@ SILType swift::getExactDynamicType(SILValue instance,
 /// returns the exact dynamic type of a value, or an empty type if the exact
 /// type could not be determined.
 SILType
-swift::getExactDynamicTypeOfUnderlyingObject(SILValue instance,
+language::getExactDynamicTypeOfUnderlyingObject(SILValue instance,
                                              ClassHierarchyAnalysis *cha) {
   return getExactDynamicType(instance, cha, /* forUnderlyingObject */ true);
 }
@@ -408,8 +409,6 @@ combineSubstitutionMaps(SubstitutionMap firstSubMap,
                         unsigned firstDepth,
                         unsigned secondDepth,
                         GenericSignature genericSig) {
-  auto &ctx = genericSig->getASTContext();
-
   return SubstitutionMap::get(
     genericSig,
     [&](SubstitutableType *type) {
@@ -417,12 +416,8 @@ combineSubstitutionMaps(SubstitutionMap firstSubMap,
       if (gp->getDepth() < firstDepth)
         return QuerySubstitutionMap{firstSubMap}(gp);
 
-      auto *replacement = GenericTypeParamType::get(
-          gp->getParamKind(),
-          gp->getDepth() + secondDepth - firstDepth,
-          gp->getIndex(),
-          gp->getValueType(),
-          ctx);
+      auto *replacement = gp->withDepth(
+          gp->getDepth() + secondDepth - firstDepth);
       return QuerySubstitutionMap{secondSubMap}(replacement);
     },
     // We might not have enough information in the substitution maps alone.
@@ -430,11 +425,11 @@ combineSubstitutionMaps(SubstitutionMap firstSubMap,
     // Eg,
     //
     // class Base<T1> {
-    //   func foo<U1>(_: U1) where T1 : P {}
+    //   fn foo<U1>(_: U1) where T1 : P {}
     // }
     //
     // class Derived<T2> : Base<Foo<T2>> {
-    //   override func foo<U2>(_: U2) where T2 : Q {}
+    //   override fn foo<U2>(_: U2) where T2 : Q {}
     // }
     //
     // Suppose we're devirtualizing a call to Base.foo() on a value whose
@@ -712,16 +707,16 @@ replaceApplySite(SILBuilder &builder, SILPassManager *pm, SILLocation loc, Apply
                                    newArgs);
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 /// Delete an apply site that's been successfully devirtualized.
-void swift::deleteDevirtualizedApply(ApplySite old) {
+void language::deleteDevirtualizedApply(ApplySite old) {
   auto *oldApply = old.getInstruction();
   recursivelyDeleteTriviallyDeadInstructions(oldApply, true);
 }
 
-SILFunction *swift::getTargetClassMethod(SILModule &module, ClassDecl *cd,
+SILFunction *language::getTargetClassMethod(SILModule &module, FullApplySite as, ClassDecl *cd,
                                          CanType classType, MethodInst *mi) {
   assert((isa<ClassMethodInst>(mi) || isa<SuperMethodInst>(mi)) &&
          "Only class_method and super_method instructions are supported");
@@ -730,13 +725,18 @@ SILFunction *swift::getTargetClassMethod(SILModule &module, ClassDecl *cd,
 
   SILType silType = SILType::getPrimitiveObjectType(classType);
   if (auto *vtable = module.lookUpSpecializedVTable(silType)) {
+    // We cannot de-virtualize a generic method call to a specialized method.
+    // This would result in wrong argument/return calling conventions.
+    if (as.getSubstitutionMap().hasAnySubstitutableParams())
+      return nullptr;
+
     return vtable->getEntry(module, member)->getImplementation();
   }
 
   return module.lookUpFunctionInVTable(cd, member);
 }
 
-CanType swift::getSelfInstanceType(CanType classOrMetatypeType) {
+CanType language::getSelfInstanceType(CanType classOrMetatypeType) {
   if (auto metaType = dyn_cast<MetatypeType>(classOrMetatypeType))
     classOrMetatypeType = metaType.getInstanceType();
 
@@ -753,12 +753,12 @@ CanType swift::getSelfInstanceType(CanType classOrMetatypeType) {
 /// \p applySite is the apply to devirtualize.
 /// \p cd is the class declaration we are devirtualizing for.
 /// return true if it is possible to devirtualize, false - otherwise.
-bool swift::canDevirtualizeClassMethod(FullApplySite applySite, ClassDecl *cd,
+bool language::canDevirtualizeClassMethod(FullApplySite applySite, ClassDecl *cd,
                                        CanType classType,
                                        OptRemark::Emitter *ore,
                                        bool isEffectivelyFinalMethod) {
 
-  LLVM_DEBUG(llvm::dbgs() << "    Trying to devirtualize : "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Trying to devirtualize : "
                           << *applySite.getInstruction());
 
   SILModule &module = applySite.getModule();
@@ -766,19 +766,19 @@ bool swift::canDevirtualizeClassMethod(FullApplySite applySite, ClassDecl *cd,
   auto *mi = cast<MethodInst>(applySite.getCallee());
 
   // Find the implementation of the member which should be invoked.
-  auto *f = getTargetClassMethod(module, cd, classType, mi);
+  auto *f = getTargetClassMethod(module, applySite, cd, classType, mi);
 
   // If we do not find any such function, we have no function to devirtualize
   // to... so bail.
   if (!f) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL: Could not find matching VTable "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL: Could not find matching VTable "
                                "or vtable method for this class.\n");
     return false;
   }
 
   // We need to disable the  “effectively final” opt if a function is inlinable
   if (isEffectivelyFinalMethod && applySite.getFunction()->isSerialized()) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL: Could not optimize function "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL: Could not optimize function "
                                "because it is an effectively-final inlinable: "
                             << applySite.getFunction()->getName() << "\n");
     return false;
@@ -789,7 +789,7 @@ bool swift::canDevirtualizeClassMethod(FullApplySite applySite, ClassDecl *cd,
   // So even for Onone functions we have to do it if the SILStage is raw.
   if (f->getModule().getStage() != SILStage::Raw && !f->shouldOptimize()) {
     // Do not consider functions that should not be optimized.
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "        FAIL: Could not optimize function "
                << " because it is marked no-opt: " << f->getName() << "\n");
     return false;
@@ -807,12 +807,12 @@ bool swift::canDevirtualizeClassMethod(FullApplySite applySite, ClassDecl *cd,
   // assumes it can try_apply call the target.
   if (!f->getLoweredFunctionType()->hasErrorResult()
       && isa<TryApplyInst>(applySite.getInstruction())) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL: Trying to devirtualize a "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL: Trying to devirtualize a "
           "try_apply but vtable entry has no error result.\n");
     return false;
   }
 
-  // A narrow fix for https://github.com/swiftlang/swift/issues/79318
+  // A narrow fix for https://github.com/languagelang/language/issues/79318
   // to make sure that uses of distributed requirement witnesses are
   // not devirtualized because that results in a loss of the ad-hoc
   // requirement infomation in the re-created substitution map.
@@ -842,17 +842,17 @@ bool swift::canDevirtualizeClassMethod(FullApplySite applySite, ClassDecl *cd,
 ///
 /// Return the new apply and true if the CFG was also modified.
 std::pair<FullApplySite, bool /* changedCFG */>
-swift::devirtualizeClassMethod(SILPassManager *pm, FullApplySite applySite,
+language::devirtualizeClassMethod(SILPassManager *pm, FullApplySite applySite,
                                SILValue classOrMetatype, ClassDecl *cd,
                                CanType classType, OptRemark::Emitter *ore) {
   bool changedCFG = false;
-  LLVM_DEBUG(llvm::dbgs() << "    Trying to devirtualize : "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Trying to devirtualize : "
                           << *applySite.getInstruction());
 
   SILModule &module = applySite.getModule();
   auto *mi = cast<MethodInst>(applySite.getCallee());
 
-  auto *f = getTargetClassMethod(module, cd, classType, mi);
+  auto *f = getTargetClassMethod(module, applySite, cd, classType, mi);
 
   CanSILFunctionType genCalleeType = f->getLoweredFunctionTypeInContext(
       TypeExpansionContext(*applySite.getFunction()));
@@ -933,7 +933,7 @@ swift::devirtualizeClassMethod(SILPassManager *pm, FullApplySite applySite,
   FullApplySite newAI = FullApplySite::isa(newAS.getInstruction());
   assert(newAI);
 
-  LLVM_DEBUG(llvm::dbgs() << "        SUCCESS: " << f->getName() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        SUCCESS: " << f->getName() << "\n");
   if (ore)
     ore->emit([&]() {
       using namespace OptRemark;
@@ -946,7 +946,7 @@ swift::devirtualizeClassMethod(SILPassManager *pm, FullApplySite applySite,
   return {newAI, changedCFG};
 }
 
-std::pair<FullApplySite, bool> swift::tryDevirtualizeClassMethod(
+std::pair<FullApplySite, bool> language::tryDevirtualizeClassMethod(
     SILPassManager *pm, FullApplySite applySite, SILValue classInstance, ClassDecl *cd,
     CanType classType, OptRemark::Emitter *ore, bool isEffectivelyFinalMethod) {
   if (!canDevirtualizeClassMethod(applySite, cd, classType, ore,
@@ -1059,19 +1059,16 @@ getWitnessMethodSubstitutions(
         }
 
         if (depth < baseDepth) {
-          paramType = GenericTypeParamType::get(paramType->getParamKind(),
-              depth, paramType->getIndex(), paramType->getValueType(), ctx);
-
+          paramType = paramType->withDepth(depth);
           return Type(paramType).subst(baseSubMap);
         }
 
         depth = depth - baseDepth + 1;
 
-        paramType = GenericTypeParamType::get(paramType->getParamKind(),
-            depth, paramType->getIndex(), paramType->getValueType(), ctx);
+        paramType = paramType->withDepth(depth);
         return Type(paramType).subst(origSubMap);
       },
-      [&](CanType type, Type substType, ProtocolDecl *proto) {
+      [&](InFlightSubstitution &IFS, Type type, ProtocolDecl *proto) {
         auto *paramType = type->getRootGenericParam();
         unsigned depth = paramType->getDepth();
 
@@ -1087,36 +1084,32 @@ getWitnessMethodSubstitutions(
 
         if (depth < baseDepth) {
           type = CanType(type.transformRec([&](TypeBase *t) -> std::optional<Type> {
-            if (t == paramType) {
-              return Type(GenericTypeParamType::get(paramType->getParamKind(),
-                  depth, paramType->getIndex(), paramType->getValueType(), ctx));
-            }
+            if (t == paramType)
+              return paramType->withDepth(depth);
 
             assert(!isa<GenericTypeParamType>(t));
             return std::nullopt;
           }));
 
-          return baseSubMap.lookupConformance(type, proto);
+          return baseSubMap.lookupConformance(type->getCanonicalType(), proto);
         }
 
         depth = depth - baseDepth + 1;
 
         type = CanType(type.transformRec([&](TypeBase *t) -> std::optional<Type> {
-          if (t == paramType) {
-            return Type(GenericTypeParamType::get(paramType->getParamKind(),
-                depth, paramType->getIndex(), paramType->getValueType(), ctx));
-          }
+          if (t == paramType)
+            return paramType->withDepth(depth);
 
           assert(!isa<GenericTypeParamType>(t));
           return std::nullopt;
         }));
 
-        return origSubMap.lookupConformance(type, proto);
+        return origSubMap.lookupConformance(type->getCanonicalType(), proto);
       });
 }
 
 SubstitutionMap
-swift::getWitnessMethodSubstitutions(SILModule &module, ApplySite applySite,
+language::getWitnessMethodSubstitutions(SILModule &module, ApplySite applySite,
                                      SILFunction *f,
                                      ProtocolConformanceRef cRef) {
   auto witnessFnTy = f->getLoweredFunctionTypeInContext(
@@ -1279,7 +1272,7 @@ static bool canDevirtualizeWitnessMethod(ApplySite applySite, bool isMandatory) 
   // assumes it can try_apply call the target.
   if (!f->getLoweredFunctionType()->hasErrorResult()
       && isa<TryApplyInst>(applySite.getInstruction())) {
-    LLVM_DEBUG(llvm::dbgs() << "        FAIL: Trying to devirtualize a "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        FAIL: Trying to devirtualize a "
           "try_apply but wtable entry has no error result.\n");
     return false;
   }
@@ -1291,10 +1284,10 @@ static bool canDevirtualizeWitnessMethod(ApplySite applySite, bool isMandatory) 
   // Example:
   // ```
   //   protocol P {
-  //     func f(x: [Int])   // not generic
+  //     fn f(x: [Int])   // not generic
   //   }
   //   struct S: P {
-  //     func f(x: some RandomAccessCollection<Int>) { ... } // generic
+  //     fn f(x: some RandomAccessCollection<Int>) { ... } // generic
   //   }
   // ```
   // In the defining module, the generic conformance can be specialized (which is not
@@ -1363,7 +1356,7 @@ static bool canDevirtualizeWitnessMethod(ApplySite applySite, bool isMandatory) 
 /// we'll call to, replace an apply of a witness_method with an apply
 /// of a function_ref, returning the new apply.
 std::pair<ApplySite, bool>
-swift::tryDevirtualizeWitnessMethod(SILPassManager *pm, ApplySite applySite,
+language::tryDevirtualizeWitnessMethod(SILPassManager *pm, ApplySite applySite,
                                     OptRemark::Emitter *ore,
                                     bool isMandatory) {
   if (!canDevirtualizeWitnessMethod(applySite, isMandatory))
@@ -1388,9 +1381,9 @@ swift::tryDevirtualizeWitnessMethod(SILPassManager *pm, ApplySite applySite,
 ///
 /// Return the new apply and true if the CFG was also modified.
 std::pair<ApplySite, bool>
-swift::tryDevirtualizeApply(SILPassManager *pm, ApplySite applySite, ClassHierarchyAnalysis *cha,
+language::tryDevirtualizeApply(SILPassManager *pm, ApplySite applySite, ClassHierarchyAnalysis *cha,
                             OptRemark::Emitter *ore, bool isMandatory) {
-  LLVM_DEBUG(llvm::dbgs() << "    Trying to devirtualize: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Trying to devirtualize: "
                           << *applySite.getInstruction());
 
   // Devirtualize apply instructions that call witness_method instructions:
@@ -1461,9 +1454,9 @@ swift::tryDevirtualizeApply(SILPassManager *pm, ApplySite applySite, ClassHierar
   return {ApplySite(), false};
 }
 
-bool swift::canDevirtualizeApply(FullApplySite applySite,
+bool language::canDevirtualizeApply(FullApplySite applySite,
                                  ClassHierarchyAnalysis *cha) {
-  LLVM_DEBUG(llvm::dbgs() << "    Trying to devirtualize: "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Trying to devirtualize: "
                           << *applySite.getInstruction());
 
   // Devirtualize apply instructions that call witness_method instructions:

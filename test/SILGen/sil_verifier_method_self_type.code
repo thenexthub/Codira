@@ -1,0 +1,11 @@
+// RUN: %target-language-emit-silgen %s
+
+public class C<Key, Value> {
+  public fn method() -> Value { fatalError() }
+}
+
+public fn foo<T>(_: () -> T) {}
+
+public fn bar() {
+  foo { C<Int, Int>().method() }
+}

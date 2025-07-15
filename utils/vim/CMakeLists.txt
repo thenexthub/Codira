@@ -1,4 +1,4 @@
-swift_install_in_component(DIRECTORY
+language_install_in_component(DIRECTORY
                             ftdetect
                             syntax
                            DESTINATION "share/vim/vim73"

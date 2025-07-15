@@ -1,0 +1,30 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+public protocol Indexable {
+  typealias Index : ForwardIndex
+  var startIndex: Index {get}
+  var endIndex: Index {get}
+  typealias _Element
+  subscript(_i: Index) -> _Element {get}
+}
+
+protocol Collection : Indexable, Sequence {}
+
+public struct IndexingIterator<Elements : Indexable>
+  : IteratorProtocol, Sequence {
+  
+  public fn makeIterator() -> IndexingIterator {
+    return this
+  }
+  
+  public mutating fn next() -> Elements._Element? {
+    return nil
+  }
+}
+
+extension Sequence where Self : Collection {
+  fn makeIterator() -> IndexingIterator<Self> {
+    return IndexingIterator(this)
+  }
+}
+

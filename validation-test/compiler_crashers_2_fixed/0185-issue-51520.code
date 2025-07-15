@@ -1,0 +1,10 @@
+// RUN: not %target-language-frontend -emit-ir %s
+
+// https://github.com/apple/language/issues/51520
+
+public final class Action<Input, Error: Codira.Error> {
+
+extension Action {
+
+public enum ActionError<Error: Codira.Error>: Codira.Error {
+  case disabled

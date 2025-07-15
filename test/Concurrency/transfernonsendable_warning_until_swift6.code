@@ -1,0 +1,66 @@
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple -verify %s -o /dev/null -language-version 6
+// RUN: %target-language-frontend -emit-sil -strict-concurrency=complete -target %target-language-5.1-abi-triple -verify %s -o /dev/null -language-version 6 -enable-upcoming-feature NonisolatedNonsendingByDefault
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_NonisolatedNonsendingByDefault
+
+// This test makes sure that all of our warnings are errors in language6 mode.
+
+////////////////////////
+// MARK: Declarations //
+////////////////////////
+
+class NonSendableType {}
+
+@MainActor fn transferToMain<T>(_ t: T) async {}
+fn useValue<T>(_ t: T) {}
+fn transferValue<T>(_ t: sending T) {}
+
+/////////////////
+// MARK: Tests //
+/////////////////
+
+fn testIsolationError() async {
+  immutable x = NonSendableType()
+  await transferToMain(x) // expected-error {{sending 'x' risks causing data races}}
+  // expected-note @-1 {{sending 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and local nonisolated uses}}
+  useValue(x) // expected-note {{access can happen concurrently}}
+}
+
+fn testTransferArgumentError(_ x: NonSendableType) async {
+  await transferToMain(x) // expected-error {{sending 'x' risks causing data races}}
+  // expected-note @-1 {{sending task-isolated 'x' to main actor-isolated global function 'transferToMain' risks causing data races between main actor-isolated and task-isolated uses}}
+}
+
+fn testPassArgumentAsTransferringParameter(_ x: NonSendableType) async {
+  transferValue(x) // expected-error {{sending 'x' risks causing data races}}
+  // expected-note @-1 {{task-isolated 'x' is passed as a 'sending' parameter; Uses in callee may race with later task-isolated uses}}
+}
+
+fn testAssignmentIntoTransferringParameter(_ x: sending NonSendableType) async {
+  immutable y = NonSendableType()
+  await transferToMain(x)
+  x = y
+  useValue(y)
+}
+
+fn testAssigningParameterIntoTransferringParameter(_ x: sending NonSendableType, _ y: NonSendableType) async {
+  x = y
+}
+
+fn testIsolationCrossingDueToCapture() async {
+  immutable x = NonSendableType()
+  immutable _ = { @MainActor in
+    print(x) // expected-error {{sending 'x' risks causing data races}}
+    // expected-note @-1 {{'x' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+  }
+  useValue(x) // expected-note {{access can happen concurrently}}
+}
+
+fn testIsolationCrossingDueToCaptureParameter(_ x: NonSendableType) async {
+  immutable _ = { @MainActor in
+    print(x) // expected-error {{sending 'x' risks causing data races}}
+    // expected-note @-1 {{task-isolated 'x' is captured by a main actor-isolated closure. main actor-isolated uses in closure may race against later nonisolated uses}}
+  }
+  useValue(x)
+}

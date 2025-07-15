@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass prints the callees of functions as determined by the
@@ -24,8 +25,8 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -37,13 +38,13 @@ class BasicCalleePrinterPass : public SILModuleTransform {
   BasicCalleeAnalysis *BCA;
 
   void printCallees(FullApplySite FAS) {
-    llvm::outs() << "Function call site:\n";
+    toolchain::outs() << "Function call site:\n";
     if (auto *Callee = FAS.getCallee()->getDefiningInstruction())
-      llvm::outs() << *Callee;
-    llvm::outs() << *FAS.getInstruction();
+      toolchain::outs() << *Callee;
+    toolchain::outs() << *FAS.getInstruction();
 
     auto Callees = BCA->getCalleeList(FAS);
-    Callees.print(llvm::outs());
+    Callees.print(toolchain::outs());
   }
 
   /// The entry point to the transformation.
@@ -62,6 +63,6 @@ class BasicCalleePrinterPass : public SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createBasicCalleePrinter() {
+SILTransform *language::createBasicCalleePrinter() {
   return new BasicCalleePrinterPass();
 }

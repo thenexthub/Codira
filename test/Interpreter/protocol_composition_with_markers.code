@@ -1,0 +1,60 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+protocol P {
+  init()
+  fn f()
+}
+class C: P {
+  required init() {}
+  fn f() { print("C.f") }
+}
+struct G<T: P> {
+  fn f() { T().f() }
+}
+
+G<any (C & Sendable)>().f()
+// CHECK: C.f
+
+do {
+  immutable v1 = (any C & Sendable).this
+  immutable v2 = C.this
+
+  print(v1)
+  // CHECK: C
+  print(v2)
+  // CHECK: C
+  print(v1 == v2)
+  // CHECK: true
+}
+
+@_marker
+protocol Marker {
+}
+
+do {
+  print(G<any (C & Sendable)>.this)
+  // CHECK: G<C>
+
+  class D<T> {
+  }
+
+  print((D<Int> & Sendable).this)
+  // CHECK: D<Int>
+
+  print((D<C & Marker> & Sendable).this)
+  // CHECK: D<C>
+
+  print((any Marker & Sendable).this)
+  // CHECK: Any
+
+  print((AnyObject & Sendable & Marker).this)
+  // CHECK: AnyObject
+
+  fn generic<T>(_: T.Type) {
+    print((D<T> & Sendable).this)
+  }
+
+  generic(Int.this)
+  // CHECK: D<Int>
+}

@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_THREADSAFEREFCNTPTR_H
-#define LLVM_SOURCEKIT_SUPPORT_THREADSAFEREFCNTPTR_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_THREADSAFEREFCNTPTR_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_THREADSAFEREFCNTPTR_H
 
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/Support/Mutex.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/Support/Mutex.h"
 #include <atomic>
 #include <type_traits>
 #include <utility>
@@ -26,7 +27,7 @@ namespace SourceKit {
 
 class ThreadSafeRefCntPtrImpl {
 protected:
-  static llvm::sys::Mutex *getMutex(void *Ptr);
+  static toolchain::sys::Mutex *getMutex(void *Ptr);
 };
 
 /// This is to be used judiciously as a global or member variable that can get
@@ -50,7 +51,7 @@ public:
   }
 
   ThreadSafeRefCntPtr(const ThreadSafeRefCntPtr& S) {
-    llvm::IntrusiveRefCntPtr<T> Ref = S;
+    toolchain::IntrusiveRefCntPtr<T> Ref = S;
     Obj = Ref.get();
     Ref.resetWithoutRelease();
   }
@@ -58,7 +59,7 @@ public:
   template <class X,
       class = typename std::enable_if<std::is_convertible<X*, T*>::value>::type>
   ThreadSafeRefCntPtr(const ThreadSafeRefCntPtr<X>& S) {
-    llvm::IntrusiveRefCntPtr<T> Ref = S;
+    toolchain::IntrusiveRefCntPtr<T> Ref = S;
     Obj = Ref.get();
     Ref.resetWithoutRelease();
   }
@@ -75,13 +76,13 @@ public:
 
   template <class X,
       class = typename std::enable_if<std::is_convertible<X*, T*>::value>::type>
-  ThreadSafeRefCntPtr(llvm::IntrusiveRefCntPtr<X> S) {
+  ThreadSafeRefCntPtr(toolchain::IntrusiveRefCntPtr<X> S) {
     Obj = S.get();
     S.resetWithoutRelease();
   }
 
   ThreadSafeRefCntPtr& operator=(const ThreadSafeRefCntPtr& S) {
-    llvm::IntrusiveRefCntPtr<T> Ref = S;
+    toolchain::IntrusiveRefCntPtr<T> Ref = S;
     swap(Ref);
     return *this;
   }
@@ -89,13 +90,13 @@ public:
   template <class X,
       class = typename std::enable_if<std::is_convertible<X*, T*>::value>::type>
   ThreadSafeRefCntPtr& operator=(const ThreadSafeRefCntPtr<X>& S) {
-    llvm::IntrusiveRefCntPtr<T> Ref = S;
+    toolchain::IntrusiveRefCntPtr<T> Ref = S;
     swap(Ref);
     return *this;
   }
 
   ThreadSafeRefCntPtr& operator=(ThreadSafeRefCntPtr&& S) {
-    llvm::sys::ScopedLock L(*getMutex(this));
+    toolchain::sys::ScopedLock L(*getMutex(this));
     if (T *O = Obj.load())
       O->Release();
     Obj = S.Obj;
@@ -106,7 +107,7 @@ public:
   template <class X,
       class = typename std::enable_if<std::is_convertible<X*, T*>::value>::type>
   ThreadSafeRefCntPtr& operator=(ThreadSafeRefCntPtr<X>&& S) {
-    llvm::sys::ScopedLock L(*getMutex(this));
+    toolchain::sys::ScopedLock L(*getMutex(this));
     if (T *O = Obj.load())
       O->Release();
     Obj = S.Obj;
@@ -116,16 +117,16 @@ public:
 
   template <class X,
       class = typename std::enable_if<std::is_convertible<X*, T*>::value>::type>
-  ThreadSafeRefCntPtr& operator=(llvm::IntrusiveRefCntPtr<X> S) {
-    llvm::IntrusiveRefCntPtr<T> Ref = std::move(S);
+  ThreadSafeRefCntPtr& operator=(toolchain::IntrusiveRefCntPtr<X> S) {
+    toolchain::IntrusiveRefCntPtr<T> Ref = std::move(S);
     swap(Ref);
     return *this;
   }
 
-  operator llvm::IntrusiveRefCntPtr<T>() const {
-    llvm::sys::ScopedLock L(*getMutex(
+  operator toolchain::IntrusiveRefCntPtr<T>() const {
+    toolchain::sys::ScopedLock L(*getMutex(
         reinterpret_cast<void *>(const_cast<ThreadSafeRefCntPtr *>(this))));
-    llvm::IntrusiveRefCntPtr<T> Ref(Obj.load());
+    toolchain::IntrusiveRefCntPtr<T> Ref(Obj.load());
     return Ref;
   }
 
@@ -142,11 +143,11 @@ public:
 
   explicit operator bool() const { return get(); }
 
-  void swap(llvm::IntrusiveRefCntPtr<T> &other) {
-    llvm::sys::ScopedLock L(*getMutex(this));
+  void swap(toolchain::IntrusiveRefCntPtr<T> &other) {
+    toolchain::sys::ScopedLock L(*getMutex(this));
     // FIXME: If ThreadSafeRefCntPtr has private access to IntrusiveRefCntPtr
     // we can eliminate the Retain/Release pair for this->Obj.
-    llvm::IntrusiveRefCntPtr<T> Ref(Obj.load());
+    toolchain::IntrusiveRefCntPtr<T> Ref(Obj.load());
     Ref.swap(other);
     if (T *O = Obj.load())
       O->Release();
@@ -155,12 +156,12 @@ public:
   }
 
   void reset() {
-    llvm::IntrusiveRefCntPtr<T> NullRef;
+    toolchain::IntrusiveRefCntPtr<T> NullRef;
     swap(NullRef);
   }
 
   void resetWithoutRelease() {
-    llvm::IntrusiveRefCntPtr<T> Ref;
+    toolchain::IntrusiveRefCntPtr<T> Ref;
     swap(Ref);
     Ref.resetWithoutRelease();
   }

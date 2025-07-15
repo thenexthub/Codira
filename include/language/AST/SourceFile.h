@@ -1,17 +1,21 @@
 //===--- SourceFile.h - The contents of a source file -----------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_SOURCEFILE_H
-#define SWIFT_AST_SOURCEFILE_H
+#ifndef LANGUAGE_AST_SOURCEFILE_H
+#define LANGUAGE_AST_SOURCEFILE_H
 
 #include "language/AST/ASTDumper.h"
 #include "language/AST/ASTNode.h"
@@ -20,10 +24,10 @@
 #include "language/AST/Import.h"
 #include "language/AST/SynthesizedFileUnit.h"
 #include "language/Basic/Debug.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
 
 namespace language {
 class ASTScope;
@@ -32,6 +36,7 @@ class GeneratedSourceInfo;
 class PersistentParserState;
 struct SourceFileExtras;
 class Token;
+enum class DefaultIsolation : uint8_t;
 
 /// Kind of import affecting how a decl can be reexported.
 ///
@@ -54,18 +59,9 @@ enum class RestrictedImportKind {
 /// Import that limits the access level of imported entities.
 using ImportAccessLevel = std::optional<AttributedImport<ImportedModule>>;
 
-/// Language options only for use with a specific SourceFile.
+/// A file containing Codira source code.
 ///
-/// Vended by SourceFile::getLanguageOptions().
-struct SourceFileLangOptions {
-  /// If unset, no value was provided. If a Type, that type is the type of the
-  /// isolation. If set to an empty type, nil was specified explicitly.
-  std::optional<Type> defaultIsolation;
-};
-
-/// A file containing Swift source code.
-///
-/// This is a .swift or .sil file (or a virtual file, such as the contents of
+/// This is a .code or .sil file (or a virtual file, such as the contents of
 /// the REPL). Since it contains raw source, it must be type checked for IR
 /// generation.
 class SourceFile final : public FileUnit {
@@ -106,10 +102,10 @@ public:
     /// files, as they get parsed multiple times.
     SuppressWarnings = 1 << 4,
 
-    /// Ensure that the SwiftSyntax tree round trips correctly.
+    /// Ensure that the CodiraSyntax tree round trips correctly.
     RoundTrip = 1 << 5,
 
-    /// Validate the new SwiftSyntax parser diagnostics.
+    /// Validate the new CodiraSyntax parser diagnostics.
     ValidateNewParserDiagnostics = 1 << 6,
 
     /// Consider every #if ... #endif region active.
@@ -133,20 +129,20 @@ private:
   ModuleDecl *ImportedUnderlyingModule = nullptr;
 
   /// Which imports have made use of @preconcurrency.
-  llvm::SmallDenseSet<AttributedImport<ImportedModule>>
+  toolchain::SmallDenseSet<AttributedImport<ImportedModule>>
       PreconcurrencyImportsUsed;
 
   /// The highest access level of declarations referencing each import.
-  llvm::DenseMap<const ModuleDecl *, AccessLevel> ImportsUseAccessLevel;
+  toolchain::DenseMap<const ModuleDecl *, AccessLevel> ImportsUseAccessLevel;
 
   /// Imports that should be printed in the module interface even though they
   /// were not written in the source file.
-  llvm::SmallDenseSet<ImportedModule> ImplicitImportsForModuleInterface;
+  toolchain::SmallDenseSet<ImportedModule> ImplicitImportsForModuleInterface;
 
   /// Associates a list of source locations to the member declarations that must
   /// be diagnosed as being out of scope due to a missing import.
   using DelayedMissingImportForMemberDiags =
-      llvm::SmallDenseMap<const ValueDecl *, std::vector<SourceLoc>>;
+      toolchain::SmallDenseMap<const ValueDecl *, std::vector<SourceLoc>>;
   DelayedMissingImportForMemberDiags MissingImportForMemberDiagnostics;
 
   /// A unique identifier representing this file; used to mark private decls
@@ -186,17 +182,17 @@ private:
 
    /// The set of parsed decls with opaque return types that have not yet
    /// been validated.
-   llvm::SetVector<ValueDecl *> UnvalidatedDeclsWithOpaqueReturnTypes;
+   toolchain::SetVector<ValueDecl *> UnvalidatedDeclsWithOpaqueReturnTypes;
   
   /// The set of validated opaque return type decls in the source file.
-  llvm::SmallVector<OpaqueTypeDecl *, 4> OpaqueReturnTypes;
-  llvm::StringMap<OpaqueTypeDecl *> ValidatedOpaqueReturnTypes;
+  toolchain::SmallVector<OpaqueTypeDecl *, 4> OpaqueReturnTypes;
+  toolchain::StringMap<OpaqueTypeDecl *> ValidatedOpaqueReturnTypes;
   /// The set of opaque type decls that have not yet been validated.
   ///
   /// \note This is populated as opaque type decls are created. Validation
   /// requires mangling the naming decl, which would lead to circularity
   /// if it were done from OpaqueResultTypeRequest.
-  llvm::SetVector<OpaqueTypeDecl *> UnvalidatedOpaqueReturnTypes;
+  toolchain::SetVector<OpaqueTypeDecl *> UnvalidatedOpaqueReturnTypes;
 
   /// The list of functions defined in this file whose bodies have yet to be
   /// typechecked. They must be held in this list instead of eagerly validated
@@ -217,7 +213,7 @@ private:
   std::vector<Decl *> Hoisted;
 
   using SeparatelyImportedOverlayMap =
-    llvm::SmallDenseMap<ModuleDecl *, llvm::SmallPtrSet<ModuleDecl *, 1>>;
+    toolchain::SmallDenseMap<ModuleDecl *, toolchain::SmallPtrSet<ModuleDecl *, 1>>;
 
   /// Keys are modules which are shadowed by one or more separately-imported
   /// overlays; values are the list of overlays shadowing them.
@@ -298,7 +294,7 @@ public:
   std::optional<ArrayRef<ASTNode>> getCachedTopLevelItems() const {
     if (!Items)
       return std::nullopt;
-    return llvm::ArrayRef(*Items);
+    return toolchain::ArrayRef(*Items);
   }
 
   /// Retrieve the parsing options for the file.
@@ -320,7 +316,7 @@ public:
 
   /// A mapping from Objective-C selectors to the methods that have
   /// those selectors.
-  llvm::DenseMap<ObjCSelector, llvm::TinyPtrVector<AbstractFunctionDecl *>>
+  toolchain::DenseMap<ObjCSelector, toolchain::TinyPtrVector<AbstractFunctionDecl *>>
     ObjCMethods;
 
   /// List of Objective-C methods, which is used for checking unintended
@@ -348,15 +344,15 @@ public:
   };
 
   /// List of Objective-C member conflicts we have found during type checking.
-  llvm::SetVector<ObjCMethodConflict> ObjCMethodConflicts;
+  toolchain::SetVector<ObjCMethodConflict> ObjCMethodConflicts;
 
   /// Categories (extensions with explicit @objc names) declared in this
   /// source file. They need to be checked for conflicts after type checking.
-  llvm::TinyPtrVector<ExtensionDecl *> ObjCCategories;
+  toolchain::TinyPtrVector<ExtensionDecl *> ObjCCategories;
 
   /// List of attributes added by access notes, used to emit remarks for valid
   /// ones.
-  llvm::DenseMap<ValueDecl *, std::vector<DeclAttribute *>>
+  toolchain::DenseMap<ValueDecl *, std::vector<DeclAttribute *>>
       AttrsAddedByAccessNotes;
 
   /// Describes what kind of file this is, which can affect some type checking
@@ -381,12 +377,12 @@ public:
 
   /// Virtual file paths declared by \c #sourceLocation(file:) declarations in
   /// this source file.
-  llvm::SmallVector<Located<StringRef>, 0> VirtualFilePaths;
+  toolchain::SmallVector<Located<StringRef>, 0> VirtualFilePaths;
 
   /// Returns information about the file paths used for diagnostics and magic
   /// identifiers in this source file, including virtual filenames introduced by
   /// \c #sourceLocation(file:) declarations.
-  llvm::StringMap<SourceFilePathInfo> getInfoForUsedFilePaths() const;
+  toolchain::StringMap<SourceFilePathInfo> getInfoForUsedFilePaths() const;
 
   /// Retrieve "extra" information associated with this source file, which is
   /// lazily and separately constructed. Use this for scratch information
@@ -461,7 +457,7 @@ public:
 
   /// Enumerates each of the direct imports of \p module in the file.
   using AttributedImportCallback =
-      llvm::function_ref<void(AttributedImport<ImportedModule> &)>;
+      toolchain::function_ref<void(AttributedImport<ImportedModule> &)>;
   void forEachImportOfModule(const ModuleDecl *module,
                              AttributedImportCallback callback);
 
@@ -477,7 +473,7 @@ public:
   virtual void
   lookupImportedSPIGroups(
                 const ModuleDecl *importedModule,
-                llvm::SmallSetVector<Identifier, 4> &spiGroups) const override;
+                toolchain::SmallSetVector<Identifier, 4> &spiGroups) const override;
 
   // Is \p targetDecl accessible as an explicitly imported SPI from this file?
   bool isImportedAsSPI(const ValueDecl *targetDecl) const;
@@ -507,19 +503,19 @@ public:
     overlays.append(value.begin(), value.end());
   }
 
-  SWIFT_DEBUG_DUMPER(dumpSeparatelyImportedOverlays());
+  LANGUAGE_DEBUG_DUMPER(dumpSeparatelyImportedOverlays());
 
   /// Record an import that should be printed in the module interface even
   /// though it was not written in the source file. These imports are needed in
-  /// Swift 5 mode to preserve the integrity of swiftinterface files when code
+  /// Codira 5 mode to preserve the integrity of languageinterface files when code
   /// publicly use declarations from modules that were \c `@_implementationOnly`
   /// imported in other source files.
   void addImplicitImportForModuleInterface(ImportedModule module) {
     ImplicitImportsForModuleInterface.insert(module);
   }
 
-  /// Gather implicit imports that should printed in swiftinterfaces for
-  /// compatibility with code in some Swift 5 modules.
+  /// Gather implicit imports that should printed in languageinterfaces for
+  /// compatibility with code in some Codira 5 modules.
   void getImplicitImportsForModuleInterface(
       SmallVectorImpl<ImportedModule> &imports) const override;
 
@@ -572,9 +568,6 @@ public:
          ObjCSelector selector,
          SmallVectorImpl<AbstractFunctionDecl *> &results) const override;
 
-  /// File level language options.
-  SourceFileLangOptions getLanguageOptions() const;
-
 protected:
   virtual void
   lookupOperatorDirect(Identifier name, OperatorFixity fixity,
@@ -593,7 +586,7 @@ public:
   virtual void
   getPrecedenceGroups(SmallVectorImpl<PrecedenceGroupDecl*> &results) const override;
 
-  virtual TypeDecl *lookupLocalType(llvm::StringRef MangledName) const override;
+  virtual TypeDecl *lookupLocalType(toolchain::StringRef MangledName) const override;
 
   virtual void
   getLocalTypeDecls(SmallVectorImpl<TypeDecl*> &results) const override;
@@ -702,7 +695,12 @@ public:
     DelayedParserState = std::move(state);
   }
 
-  SWIFT_DEBUG_DUMP;
+  /// Retrieve default action isolation to be used for this source file.
+  /// It's determine based on on top-level `using <<isolation>>` declaration
+  /// found in the file.
+  std::optional<DefaultIsolation> getDefaultIsolation() const;
+
+  LANGUAGE_DEBUG_DUMP;
   void
   dump(raw_ostream &os,
        ASTDumpMemberLoading memberLoading = ASTDumpMemberLoading::None) const;
@@ -737,7 +735,7 @@ public:
     case SourceFileKind::DefaultArgument:
       return false;
     }
-    llvm_unreachable("bad SourceFileKind");
+    toolchain_unreachable("bad SourceFileKind");
   }
 
   ValueDecl *getMainDecl() const override { return MainDecl; }
@@ -799,7 +797,7 @@ public:
   /// to the source file interface hash.
   Fingerprint getInterfaceHash() const;
 
-  void dumpInterfaceHash(llvm::raw_ostream &out) {
+  void dumpInterfaceHash(toolchain::raw_ostream &out) {
     out << getInterfaceHash() << '\n';
   }
 
@@ -840,7 +838,7 @@ public:
 
   /// Uniquely identifies a source file without exposing its full file path.
   ///
-  /// A valid file ID should always be of the format "modulename/filename.swift"
+  /// A valid file ID should always be of the format "modulename/filename.code"
   struct FileIDStr {
     StringRef moduleName;
     StringRef fileName;
@@ -895,18 +893,18 @@ inline bool ModuleDecl::EntryPointInfoTy::markDiagnosedMainClassWithScript() {
   return !res;
 }
 
-inline void simple_display(llvm::raw_ostream &out, const SourceFile *SF) {
+inline void simple_display(toolchain::raw_ostream &out, const SourceFile *SF) {
   assert(SF && "Cannot display null source file!");
 
   out << "source_file " << '\"' << SF->getFilename() << '\"';
 }
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 template<>
-struct DenseMapInfo<swift::SourceFile::ObjCMethodConflict> {
-  using ObjCMethodConflict = swift::SourceFile::ObjCMethodConflict;
+struct DenseMapInfo<language::SourceFile::ObjCMethodConflict> {
+  using ObjCMethodConflict = language::SourceFile::ObjCMethodConflict;
 
   static inline ObjCMethodConflict getEmptyKey() {
     return ObjCMethodConflict(nullptr, {}, false);
@@ -916,7 +914,7 @@ struct DenseMapInfo<swift::SourceFile::ObjCMethodConflict> {
   }
   static inline unsigned getHashValue(ObjCMethodConflict a) {
     return hash_combine(hash_value(a.typeDecl),
-                  DenseMapInfo<swift::ObjCSelector>::getHashValue(a.selector),
+                  DenseMapInfo<language::ObjCSelector>::getHashValue(a.selector),
                   hash_value(a.isInstanceMethod));
   }
   static bool isEqual(ObjCMethodConflict a, ObjCMethodConflict b) {

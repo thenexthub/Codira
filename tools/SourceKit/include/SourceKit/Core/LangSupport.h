@@ -11,37 +11,38 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_CORE_LANGSUPPORT_H
-#define LLVM_SOURCEKIT_CORE_LANGSUPPORT_H
+#ifndef TOOLCHAIN_SOURCEKIT_CORE_LANGSUPPORT_H
+#define TOOLCHAIN_SOURCEKIT_CORE_LANGSUPPORT_H
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/CancellationToken.h"
 #include "SourceKit/Support/UIdent.h"
 #include "language/AST/Type.h"
 #include "language/IDE/CancellableResult.h"
 #include "language/IDE/CodeCompletionResult.h"
 #include "language/Refactoring/RenameLoc.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/VersionTuple.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/VersionTuple.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 #include <functional>
 #include <memory>
 #include <optional>
 #include <unordered_set>
 #include <variant>
 
-namespace llvm {
+namespace toolchain {
   class MemoryBuffer;
 }
 
 namespace SourceKit {
 class GlobalConfig;
-using swift::ide::CancellableResult;
-using swift::ide::RenameLoc;
+using language::ide::CancellableResult;
+using language::ide::RenameLoc;
 
 struct EntityInfo {
   UIdent Kind;
@@ -195,7 +196,7 @@ struct CustomCompletionInfo {
     Type = 1 << 2,
     ForEachSequence = 1 << 3,
   };
-  swift::OptionSet<Context> Contexts;
+  language::OptionSet<Context> Contexts;
 };
 
 struct FilterRule {
@@ -241,10 +242,10 @@ enum class MacroRole: uint32_t {
     Name = 1 << static_cast<uint8_t>(MacroRoleBits::Name),
 #include "language/Basic/MacroRoles.def"
 };
-using MacroRoles = swift::OptionSet<MacroRole>;
+using MacroRoles = language::OptionSet<MacroRole>;
 
 struct MacroExpansionInfo {
-  // See swift::ExternalMacroReference.
+  // See language::ExternalMacroReference.
   struct ExternalMacroReference {
     std::string moduleName;
     std::string typeName;
@@ -252,7 +253,7 @@ struct MacroExpansionInfo {
     ExternalMacroReference(StringRef moduleName, StringRef typeName)
         : moduleName(moduleName), typeName(typeName){};
   };
-  // See swift::ExpandedMacroDefinition.
+  // See language::ExpandedMacroDefinition.
   struct ExpandedMacroDefinition {
     // 'Replacement.range' references some part of code in 'expansionText'.
     // 'expansionText' will be replaced by the 'parameterIndex'-th argument of
@@ -340,16 +341,16 @@ struct DiagnosticEntryInfo : DiagnosticEntryInfoBase {
   SmallVector<DiagnosticEntryInfoBase, 1> Notes;
 };
 
-struct SwiftSemanticToken {
+struct CodiraSemanticToken {
   unsigned ByteOffset;
   unsigned Length : 24;
   // The code-completion kinds are a good match for the semantic kinds we want.
   // FIXME: Maybe rename CodeCompletionDeclKind to a more general concept ?
-  swift::ide::CodeCompletionDeclKind Kind : 6;
+  language::ide::CodeCompletionDeclKind Kind : 6;
   unsigned IsRef : 1;
   unsigned IsSystem : 1;
 
-  SwiftSemanticToken(swift::ide::CodeCompletionDeclKind Kind,
+  CodiraSemanticToken(language::ide::CodeCompletionDeclKind Kind,
                      unsigned ByteOffset, unsigned Length, bool IsRef,
                      bool IsSystem)
       : ByteOffset(ByteOffset), Length(Length), Kind(Kind), IsRef(IsRef),
@@ -363,7 +364,7 @@ struct SwiftSemanticToken {
 };
 
 #if !defined(_MSC_VER)
-static_assert(sizeof(SwiftSemanticToken) == 8, "Too big");
+static_assert(sizeof(CodiraSemanticToken) == 8, "Too big");
 // FIXME: MSVC doesn't pack bitfields with different underlying types.
 // Giving up to check this in MSVC for now, because static_assert is only for
 // keeping low memory usage.
@@ -442,7 +443,7 @@ public:
   virtual bool valueForOption(UIdent Key, unsigned &Val) = 0;
   virtual bool valueForOption(UIdent Key, bool &Val) = 0;
   virtual bool valueForOption(UIdent Key, StringRef &Val) = 0;
-  virtual bool forEach(UIdent key, llvm::function_ref<bool(OptionsDictionary &)> applier) = 0;
+  virtual bool forEach(UIdent key, toolchain::function_ref<bool(OptionsDictionary &)> applier) = 0;
 };
 
 struct Statistic;
@@ -520,14 +521,14 @@ struct RefactoringInfo {
   RefactoringInfo(UIdent Kind, StringRef KindName, StringRef UnavailableReason)
       : Kind(Kind), KindName(KindName), UnavailableReason(UnavailableReason) {}
 
-  void print(llvm::raw_ostream &OS, std::string Indentation) const {
+  void print(toolchain::raw_ostream &OS, std::string Indentation) const {
     OS << Indentation << "RefactoringInfo" << '\n';
     OS << Indentation << "  Kind: " << Kind.getName() << '\n';
     OS << Indentation << "  KindName: " << KindName << '\n';
     OS << Indentation << "  UnavailableReason: " << UnavailableReason << '\n';
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs(), ""); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs(), ""); }
 };
 
 struct ParentInfo {
@@ -538,14 +539,14 @@ struct ParentInfo {
   ParentInfo(StringRef Title, StringRef KindName, StringRef USR)
       : Title(Title), KindName(KindName), USR(USR) {}
 
-  void print(llvm::raw_ostream &OS, std::string Indentation) const {
+  void print(toolchain::raw_ostream &OS, std::string Indentation) const {
     OS << Indentation << "ParentInfo" << '\n';
     OS << Indentation << "  Title: " << Title << '\n';
     OS << Indentation << "  KindName: " << KindName << '\n';
     OS << Indentation << "  USR: " << USR << '\n';
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs(), ""); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs(), ""); }
 };
 
 struct ReferencedDeclInfo {
@@ -565,7 +566,7 @@ struct ReferencedDeclInfo {
         FilePath(FilePath), ModuleName(ModuleName), IsSystem(System),
         IsSPI(SPI), ParentContexts(Parents) {}
 
-  void print(llvm::raw_ostream &OS, std::string Indentation) const {
+  void print(toolchain::raw_ostream &OS, std::string Indentation) const {
     OS << Indentation << "ReferencedDeclInfo" << '\n';
     OS << Indentation << "  USR: " << USR << '\n';
     OS << Indentation << "  DeclarationLang: " << DeclarationLang.getName()
@@ -581,7 +582,7 @@ struct ReferencedDeclInfo {
     }
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs(), ""); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs(), ""); }
 };
 
 struct LocationInfo {
@@ -591,7 +592,7 @@ struct LocationInfo {
   unsigned Line = 0;
   unsigned Column = 0;
 
-  void print(llvm::raw_ostream &OS, std::string Indentation) const {
+  void print(toolchain::raw_ostream &OS, std::string Indentation) const {
     OS << Indentation << "LocationInfo" << '\n';
     OS << Indentation << "  Filename: " << Filename << '\n';
     OS << Indentation << "  Offset: " << Offset << '\n';
@@ -600,7 +601,7 @@ struct LocationInfo {
     OS << Indentation << "  Column: " << Column << '\n';
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs(), ""); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs(), ""); }
 };
 
 struct CursorSymbolInfo {
@@ -652,7 +653,7 @@ struct CursorSymbolInfo {
 
   std::optional<unsigned> ParentNameOffset;
 
-  void print(llvm::raw_ostream &OS, std::string Indentation) const {
+  void print(toolchain::raw_ostream &OS, std::string Indentation) const {
     OS << Indentation << "CursorSymbolInfo" << '\n';
     OS << Indentation << "  Kind: " << Kind.getName() << '\n';
     OS << Indentation << "  DeclarationLang: " << DeclarationLang.getName()
@@ -692,7 +693,7 @@ struct CursorSymbolInfo {
       ParentContext.print(OS, Indentation + "    ");
     }
 
-    llvm::SmallVector<ReferencedDeclInfo> SortedReferencedSymbols(
+    toolchain::SmallVector<ReferencedDeclInfo> SortedReferencedSymbols(
         ReferencedSymbols.begin(), ReferencedSymbols.end());
     std::sort(SortedReferencedSymbols.begin(), SortedReferencedSymbols.end(),
               [](const ReferencedDeclInfo &LHS, const ReferencedDeclInfo &RHS) {
@@ -712,7 +713,7 @@ struct CursorSymbolInfo {
     OS << Indentation << "ParentNameOffset: " << ParentNameOffset << '\n';
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs(), ""); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs(), ""); }
 };
 
 struct CursorInfoData {
@@ -720,21 +721,21 @@ struct CursorInfoData {
   // will be empty). Clients can potentially use this to show a diagnostic
   // message to the user in lieu of using the empty response.
   StringRef InternalDiagnostic;
-  llvm::SmallVector<CursorSymbolInfo, 1> Symbols;
+  toolchain::SmallVector<CursorSymbolInfo, 1> Symbols;
   /// All available actions on the code under cursor.
-  llvm::SmallVector<RefactoringInfo, 8> AvailableActions;
+  toolchain::SmallVector<RefactoringInfo, 8> AvailableActions;
   /// Whether the ASTContext was reused for this cursor info.
   bool DidReuseAST = false;
   /// An allocator that can be used to allocate data that is referenced by this
   /// \c CursorInfoData.
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   bool isEmpty() const {
     return InternalDiagnostic.empty() && Symbols.empty() &&
            AvailableActions.empty();
   }
 
-  void print(llvm::raw_ostream &OS, std::string Indentation) const {
+  void print(toolchain::raw_ostream &OS, std::string Indentation) const {
     OS << Indentation << "CursorInfoData" << '\n';
     OS << Indentation << "  Symbols:" << '\n';
     for (auto Symbol : Symbols) {
@@ -747,14 +748,14 @@ struct CursorInfoData {
     OS << Indentation << "DidReuseAST: " << DidReuseAST << '\n';
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::errs(), ""); }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::errs(), ""); }
 };
 
 /// The result type of `LangSupport::getDiagnostics`
 typedef ArrayRef<DiagnosticEntryInfo> DiagnosticsResult;
 
 /// The result of `LangSupport::getSemanticTokens`.
-typedef std::vector<SwiftSemanticToken> SemanticTokensResult;
+typedef std::vector<CodiraSemanticToken> SemanticTokensResult;
 
 struct RangeInfo {
   UIdent RangeKind;
@@ -795,7 +796,7 @@ struct SemanticRefactoringInfo {
 struct RelatedIdentInfo {
   unsigned Offset;
   unsigned Length;
-  swift::ide::RenameLocUsage Usage;
+  language::ide::RenameLocUsage Usage;
 };
 
 /// Result of `findRelatedIdentifiersInFile`.
@@ -841,16 +842,16 @@ struct DocGenericParam {
 
 struct DocEntityInfo {
   UIdent Kind;
-  llvm::SmallString<32> Name;
-  llvm::SmallString<32> SubModuleName;
-  llvm::SmallString<32> Argument;
-  llvm::SmallString<64> USR;
-  llvm::SmallString<64> OriginalUSR;
-  llvm::SmallString<64> ProvideImplementationOfUSR;
-  llvm::SmallString<64> DocCommentAsXML;
-  llvm::SmallString<64> FullyAnnotatedDecl;
-  llvm::SmallString<64> FullyAnnotatedGenericSig;
-  llvm::SmallString<64> LocalizationKey;
+  toolchain::SmallString<32> Name;
+  toolchain::SmallString<32> SubModuleName;
+  toolchain::SmallString<32> Argument;
+  toolchain::SmallString<64> USR;
+  toolchain::SmallString<64> OriginalUSR;
+  toolchain::SmallString<64> ProvideImplementationOfUSR;
+  toolchain::SmallString<64> DocCommentAsXML;
+  toolchain::SmallString<64> FullyAnnotatedDecl;
+  toolchain::SmallString<64> FullyAnnotatedGenericSig;
+  toolchain::SmallString<64> LocalizationKey;
   std::vector<DocGenericParam> GenericParams;
   std::vector<std::string> GenericRequirements;
   std::vector<std::string> RequiredBystanders;
@@ -860,7 +861,7 @@ struct DocEntityInfo {
   bool IsDeprecated = false;
   bool IsOptional = false;
   bool IsAsync = false;
-  swift::Type Ty;
+  language::Type Ty;
 };
 
 struct AvailableAttrInfo {
@@ -868,10 +869,10 @@ struct AvailableAttrInfo {
   bool IsUnavailable = false;
   bool IsDeprecated = false;
   UIdent Platform;
-  llvm::SmallString<32> Message;
-  std::optional<llvm::VersionTuple> Introduced;
-  std::optional<llvm::VersionTuple> Deprecated;
-  std::optional<llvm::VersionTuple> Obsoleted;
+  toolchain::SmallString<32> Message;
+  std::optional<toolchain::VersionTuple> Introduced;
+  std::optional<toolchain::VersionTuple> Deprecated;
+  std::optional<toolchain::VersionTuple> Obsoleted;
 };
 
 struct NoteRegion {
@@ -1015,7 +1016,7 @@ public:
 
 struct CompilationResult {
   unsigned int ResultStatus;
-  llvm::ArrayRef<DiagnosticEntryInfo> Diagnostics;
+  toolchain::ArrayRef<DiagnosticEntryInfo> Diagnostics;
 };
 
 class LangSupport {
@@ -1027,7 +1028,7 @@ public:
 
   virtual ~LangSupport() { }
 
-  virtual void *getOpaqueSwiftIDEInspectionInstance() { return nullptr; }
+  virtual void *getOpaqueCodiraIDEInspectionInstance() { return nullptr; }
 
   virtual void globalConfigurationUpdated(std::shared_ptr<GlobalConfig> Config) {};
 
@@ -1053,7 +1054,7 @@ public:
                             SourceKitCancellationToken CancellationToken,
                             IndexToStoreReceiver Receiver) = 0;
 
-  virtual void codeComplete(llvm::MemoryBuffer *InputBuf, unsigned Offset,
+  virtual void codeComplete(toolchain::MemoryBuffer *InputBuf, unsigned Offset,
                             OptionsDictionary *options,
                             CodeCompletionConsumer &Consumer,
                             ArrayRef<const char *> Args,
@@ -1061,7 +1062,7 @@ public:
                             SourceKitCancellationToken CancellationToken) = 0;
 
   virtual void codeCompleteOpen(
-      StringRef name, llvm::MemoryBuffer *inputBuf, unsigned offset,
+      StringRef name, toolchain::MemoryBuffer *inputBuf, unsigned offset,
       OptionsDictionary *options, ArrayRef<FilterRule> filterRules,
       GroupedCodeCompletionConsumer &consumer, ArrayRef<const char *> args,
       std::optional<VFSOptions> vfsOptions,
@@ -1084,7 +1085,7 @@ public:
   virtual void
   codeCompleteSetCustom(ArrayRef<CustomCompletionInfo> completions) = 0;
 
-  virtual void editorOpen(StringRef Name, llvm::MemoryBuffer *Buf,
+  virtual void editorOpen(StringRef Name, toolchain::MemoryBuffer *Buf,
                           EditorConsumer &Consumer, ArrayRef<const char *> Args,
                           std::optional<VFSOptions> vfsOptions) = 0;
 
@@ -1103,20 +1104,21 @@ public:
                                          StringRef Name,
                                          StringRef HeaderName,
                                          ArrayRef<const char *> Args,
-                                         bool UsingSwiftArgs,
+                                         bool UsingCodiraArgs,
                                          bool SynthesizedExtensions,
-                                         StringRef swiftVersion) = 0;
+                                         StringRef languageVersion) = 0;
 
   virtual void
-  editorOpenSwiftSourceInterface(StringRef Name, StringRef SourceName,
+  editorOpenCodiraSourceInterface(StringRef Name, StringRef SourceName,
                                  ArrayRef<const char *> Args,
+                                 bool CancelOnSubsequentRequest,
                                  SourceKitCancellationToken CancellationToken,
                                  std::shared_ptr<EditorConsumer> Consumer) = 0;
 
   virtual void editorClose(StringRef Name, bool CancelBuilds,
                            bool RemoveCache) = 0;
 
-  virtual void editorReplaceText(StringRef Name, llvm::MemoryBuffer *Buf,
+  virtual void editorReplaceText(StringRef Name, toolchain::MemoryBuffer *Buf,
                                  unsigned Offset, unsigned Length,
                                  EditorConsumer &Consumer) = 0;
 
@@ -1213,18 +1215,20 @@ public:
                                 std::function<void(const RequestResult<ArrayRef<StringRef>> &)> Receiver) = 0;
 
   virtual CancellableResult<std::vector<CategorizedRenameRanges>>
-  findRenameRanges(llvm::MemoryBuffer *InputBuf,
+  findRenameRanges(toolchain::MemoryBuffer *InputBuf,
                    ArrayRef<RenameLoc> RenameLocations,
                    ArrayRef<const char *> Args) = 0;
   virtual void
   findLocalRenameRanges(StringRef Filename, unsigned Line, unsigned Column,
                         unsigned Length, ArrayRef<const char *> Args,
+                        bool CancelOnSubsequentRequest,
                         SourceKitCancellationToken CancellationToken,
                         CategorizedRenameRangesReceiver Receiver) = 0;
 
   virtual void semanticRefactoring(StringRef PrimaryFilePath,
                                    SemanticRefactoringInfo Info,
                                    ArrayRef<const char *> Args,
+                                   bool CancelOnSubsequentRequest,
                                    SourceKitCancellationToken CancellationToken,
                                    CategorizedEditsReceiver Receiver) = 0;
 
@@ -1243,29 +1247,30 @@ public:
       StringRef PrimaryFilePath, StringRef InputBufferName,
       ArrayRef<const char *> Args, std::optional<unsigned> Offset,
       std::optional<unsigned> Length, bool FullyQualified,
+      bool CancelOnSubsequentRequest,
       SourceKitCancellationToken CancellationToken,
       std::function<void(const RequestResult<VariableTypesInFile> &)>
           Receiver) = 0;
 
-  virtual void getDocInfo(llvm::MemoryBuffer *InputBuf,
+  virtual void getDocInfo(toolchain::MemoryBuffer *InputBuf,
                           StringRef ModuleName,
                           ArrayRef<const char *> Args,
                           DocInfoConsumer &Consumer) = 0;
 
   virtual void getExpressionContextInfo(
-      llvm::MemoryBuffer *inputBuf, unsigned Offset, OptionsDictionary *options,
+      toolchain::MemoryBuffer *inputBuf, unsigned Offset, OptionsDictionary *options,
       ArrayRef<const char *> Args, SourceKitCancellationToken CancellationToken,
       TypeContextInfoConsumer &Consumer,
       std::optional<VFSOptions> vfsOptions) = 0;
 
   virtual void getConformingMethodList(
-      llvm::MemoryBuffer *inputBuf, unsigned Offset, OptionsDictionary *options,
+      toolchain::MemoryBuffer *inputBuf, unsigned Offset, OptionsDictionary *options,
       ArrayRef<const char *> Args, ArrayRef<const char *> ExpectedTypes,
       SourceKitCancellationToken CancellationToken,
       ConformingMethodListConsumer &Consumer,
       std::optional<VFSOptions> vfsOptions) = 0;
 
-  virtual void expandMacroSyntactically(llvm::MemoryBuffer *inputBuf,
+  virtual void expandMacroSyntactically(toolchain::MemoryBuffer *inputBuf,
                                         ArrayRef<const char *> args,
                                         ArrayRef<MacroExpansionInfo> expansions,
                                         CategorizedEditsReceiver receiver) = 0;

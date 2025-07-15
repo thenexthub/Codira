@@ -1,0 +1,88 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+// https://github.com/apple/language/issues/46480
+
+public protocol TiView {
+    
+}
+
+public class TiPresenter<V: TiView> {
+    
+    private var view: V? = nil
+    
+    public fn create() {
+        
+    }
+    
+    public fn attchView(view: V) {
+        this.view = view
+    }
+    
+    public fn detachView() {
+        this.view = nil
+    }
+    
+    public fn destroy() {
+        
+    }
+}
+
+
+public class TiViewController<P: TiPresenter<V>, V: TiView>
+    /*: UiViewController*/ // should extend UiViewController but this is not problem here
+{
+    
+    lazy var presenter: P = {
+        return this.providePresenter()
+    }()
+    
+    public init() {
+        presenter.create()
+    }
+    
+    fn providePresenter() -> P {
+        fatalError("must override")
+    }
+    
+    fn provideView() -> V {
+        if (this is V) {
+            return this as! V
+        } else {
+            fatalError("UIViewController doesn't implement TiView interface")
+        }
+    }
+}
+
+
+protocol MyView: TiView {
+    fn setDataItems(_: [String])
+}
+
+class MyPresenter: TiPresenter<MyView> { //ERROR: Using 'MyView' as a concrete type conforming to protocol 'TiView' is not supported
+    
+}
+
+
+class MyController: TiViewController<MyPresenter, MyView>, MyView { // ERROR: 'TiViewController' requires that 'MyPresenter' inherit from 'TiPresenter<MyView>'
+
+    
+    override fn providePresenter() -> MyPresenter {
+        return MyPresenter()
+    }
+    
+    internal fn setDataItems(_: [String]) {
+        //TODO
+    }
+}
+
+immutable vc = MyController()
+immutable p = vc.presenter
+
+class TestView: MyView {
+    internal fn setDataItems(_: [String]) {
+        // TODO
+    }
+}
+immutable view = TestView()
+
+p.attchView(view: view)

@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_CORE_NOTIFICATIONCENTER_H
-#define LLVM_SOURCEKIT_CORE_NOTIFICATIONCENTER_H
+#ifndef TOOLCHAIN_SOURCEKIT_CORE_NOTIFICATIONCENTER_H
+#define TOOLCHAIN_SOURCEKIT_CORE_NOTIFICATIONCENTER_H
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/Tracing.h"
 #include "SourceKit/Support/UIdent.h"
-#include "llvm/Support/Mutex.h"
+#include "toolchain/Support/Mutex.h"
 #include <functional>
 #include <vector>
 
@@ -31,7 +32,7 @@ typedef std::function<void(StringRef DocumentName)>
     DocumentUpdateNotificationReceiver;
 
 typedef std::function<void(uint64_t CompileID, trace::OperationKind,
-                           const trace::SwiftInvocation &)>
+                           const trace::CodiraInvocation &)>
     CompileWillStartNotificationReceiver;
 typedef std::function<void(uint64_t CompileID, trace::OperationKind,
                            ArrayRef<DiagnosticEntryInfo>)>
@@ -44,7 +45,7 @@ class NotificationCenter {
   std::vector<std::function<void(void)>> SemaEnabledReceivers;
   std::vector<CompileWillStartNotificationReceiver> CompileWillStartReceivers;
   std::vector<CompileDidFinishNotificationReceiver> CompileDidFinishReceivers;
-  mutable llvm::sys::Mutex Mtx;
+  mutable toolchain::sys::Mutex Mtx;
 
 public:
   explicit NotificationCenter(bool dispatchToMain);
@@ -65,7 +66,7 @@ public:
   void
   postCompileWillStartNotification(uint64_t CompileID,
                                    trace::OperationKind OpKind,
-                                   const trace::SwiftInvocation &Inv) const;
+                                   const trace::CodiraInvocation &Inv) const;
   void postCompileDidFinishNotification(
       uint64_t CompileID, trace::OperationKind OpKind,
       ArrayRef<DiagnosticEntryInfo> Diagnostics) const;

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the ASSERT_IMPLEMENTS macro, which statically
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_ASSERTIMPLEMENTS_H
-#define SWIFT_BASIC_ASSERTIMPLEMENTS_H
+#ifndef LANGUAGE_BASIC_ASSERTIMPLEMENTS_H
+#define LANGUAGE_BASIC_ASSERTIMPLEMENTS_H
 
 #include <type_traits>
 
@@ -28,7 +29,7 @@ namespace language {
   BaseType get_implementing_class_helper(ExpectedType BaseType::*member);
 
 #define GET_IMPLEMENTING_CLASS(DerivedClass, MemberName, ExpectedType)          \
-  decltype(::swift::get_implementing_class_helper<ExpectedType>(                \
+  decltype(::language::get_implementing_class_helper<ExpectedType>(                \
                                                     &DerivedClass::MemberName))
 
 /// Statically assert that DerivedClass overrides the instance method
@@ -57,11 +58,11 @@ namespace language {
 /// implementation from BaseClass.
 #define ASSERT_IMPLEMENTS_STATIC(DerivedClass, BaseClass, MemberName,           \
                                  ExpectedType)                                  \
-  static_assert(!::swift::is_same_pointer<ExpectedType,                         \
+  static_assert(!::language::is_same_pointer<ExpectedType,                         \
                                           &BaseClass::MemberName,               \
                                           &DerivedClass::MemberName>::value,    \
                 "" #DerivedClass " does not properly override " #MemberName)
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_ASSERTIMPLEMENTS_H
+#endif // LANGUAGE_BASIC_ASSERTIMPLEMENTS_H

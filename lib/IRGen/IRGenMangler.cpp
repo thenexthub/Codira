@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "IRGenMangler.h"
@@ -26,18 +27,18 @@
 #include "language/Demangling/Demangle.h"
 #include "language/ABI/MetadataValues.h"
 #include "language/ClangImporter/ClangModule.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 using namespace irgen;
 
-const char *getManglingForWitness(swift::Demangle::ValueWitnessKind kind) {
+const char *getManglingForWitness(language::Demangle::ValueWitnessKind kind) {
   switch (kind) {
 #define VALUE_WITNESS(MANGLING, NAME) \
-  case swift::Demangle::ValueWitnessKind::NAME: return #MANGLING;
+  case language::Demangle::ValueWitnessKind::NAME: return #MANGLING;
 #include "language/Demangling/ValueWitnessMangling.def"
   }
-  llvm_unreachable("not a function witness");
+  toolchain_unreachable("not a function witness");
 }
 
 std::string IRGenMangler::mangleValueWitness(Type type, ValueWitness witness) {
@@ -47,7 +48,7 @@ std::string IRGenMangler::mangleValueWitness(Type type, ValueWitness witness) {
   const char *Code = nullptr;
   switch (witness) {
 #define GET_MANGLING(ID) \
-    case ValueWitness::ID: Code = getManglingForWitness(swift::Demangle::ValueWitnessKind::ID); break;
+    case ValueWitness::ID: Code = getManglingForWitness(language::Demangle::ValueWitnessKind::ID); break;
     GET_MANGLING(InitializeBufferWithCopyOfBuffer) \
     GET_MANGLING(Destroy) \
     GET_MANGLING(InitializeWithCopy) \
@@ -64,7 +65,7 @@ std::string IRGenMangler::mangleValueWitness(Type type, ValueWitness witness) {
     case ValueWitness::Flags:
     case ValueWitness::ExtraInhabitantCount:
     case ValueWitness::Stride:
-      llvm_unreachable("not a function witness");
+      toolchain_unreachable("not a function witness");
   }
   appendOperator("w", Code);
   return finalize();
@@ -88,13 +89,13 @@ std::string IRGenMangler::manglePartialApplyForwarder(StringRef FuncName) {
 
 SymbolicMangling
 IRGenMangler::withSymbolicReferences(IRGenModule &IGM,
-                                  llvm::function_ref<void ()> body) {
-  Mod = IGM.getSwiftModule();
+                                  toolchain::function_ref<void ()> body) {
+  Mod = IGM.getCodiraModule();
   configureForSymbolicMangling();
 
-  llvm::SaveAndRestore<bool>
+  toolchain::SaveAndRestore<bool>
     AllowSymbolicReferencesLocally(AllowSymbolicReferences);
-  llvm::SaveAndRestore<std::function<bool (SymbolicReferent)>>
+  toolchain::SaveAndRestore<std::function<bool (SymbolicReferent)>>
     CanSymbolicReferenceLocally(CanSymbolicReference);
 
   AllowSymbolicReferences = true;
@@ -124,8 +125,8 @@ IRGenMangler::withSymbolicReferences(IRGenModule &IGM,
       // TODO: We could assign a symbolic reference discriminator to refer
       // to objc class refs.
       if (auto clazz = dyn_cast<ClassDecl>(type)) {
-        // Swift-defined classes can be symbolically referenced.
-        if (hasKnownSwiftMetadata(IGM, const_cast<ClassDecl*>(clazz)))
+        // Codira-defined classes can be symbolically referenced.
+        if (hasKnownCodiraMetadata(IGM, const_cast<ClassDecl*>(clazz)))
           return true;
 
         // Foreign class types can be symbolically referenced.
@@ -146,7 +147,7 @@ IRGenMangler::withSymbolicReferences(IRGenModule &IGM,
       // Always symbolically reference extended existential type shapes.
       return true;
     }
-    llvm_unreachable("symbolic referent not handled");
+    toolchain_unreachable("symbolic referent not handled");
   };
 
   SymbolicReferences.clear();
@@ -160,17 +161,17 @@ SymbolicMangling
 IRGenMangler::mangleTypeForReflection(IRGenModule &IGM,
                                       CanGenericSignature Sig,
                                       CanType Ty) {
-  // If our target predates Swift 5.5, we cannot apply the standard
+  // If our target predates Codira 5.5, we cannot apply the standard
   // substitutions for types defined in the Concurrency module.
   ASTContext &ctx = Ty->getASTContext();
-  llvm::SaveAndRestore<bool> savedConcurrencyStandardSubstitutions(
+  toolchain::SaveAndRestore<bool> savedConcurrencyStandardSubstitutions(
       AllowConcurrencyStandardSubstitutions);
-  llvm::SaveAndRestore<bool> savedIsolatedAny(AllowIsolatedAny);
-  llvm::SaveAndRestore<bool> savedTypedThrows(AllowTypedThrows);
-  if (auto runtimeCompatVersion = getSwiftRuntimeCompatibilityVersionForTarget(
+  toolchain::SaveAndRestore<bool> savedIsolatedAny(AllowIsolatedAny);
+  toolchain::SaveAndRestore<bool> savedTypedThrows(AllowTypedThrows);
+  if (auto runtimeCompatVersion = getCodiraRuntimeCompatibilityVersionForTarget(
           ctx.LangOpts.Target)) {
 
-    if (*runtimeCompatVersion < llvm::VersionTuple(5, 5))
+    if (*runtimeCompatVersion < toolchain::VersionTuple(5, 5))
       AllowConcurrencyStandardSubstitutions = false;
 
     // Suppress @isolated(any) and typed throws if we're mangling for pre-6.0
@@ -179,18 +180,18 @@ IRGenMangler::mangleTypeForReflection(IRGenModule &IGM,
     // mangledNameIsUnknownToDeployTarget, should only happen when
     // mangling for certain reflective uses where we have to hope that
     // the exact type identity is generally unimportant.
-    if (*runtimeCompatVersion < llvm::VersionTuple(6, 0)) {
+    if (*runtimeCompatVersion < toolchain::VersionTuple(6, 0)) {
       AllowIsolatedAny = false;
       AllowTypedThrows = false;
     }
   }
 
-  llvm::SaveAndRestore<bool> savedAllowStandardSubstitutions(
+  toolchain::SaveAndRestore<bool> savedAllowStandardSubstitutions(
       AllowStandardSubstitutions);
   if (IGM.getOptions().DisableStandardSubstitutionsInReflectionMangling)
     AllowStandardSubstitutions = false;
 
-  llvm::SaveAndRestore<bool> savedAllowMarkerProtocols(
+  toolchain::SaveAndRestore<bool> savedAllowMarkerProtocols(
       AllowMarkerProtocols, false);
   return withSymbolicReferences(IGM, [&]{
     appendType(Ty, Sig);
@@ -205,7 +206,7 @@ IRGenMangler::mangleTypeForFlatUniqueTypeRef(CanGenericSignature sig,
   // mangled name.
   configureForSymbolicMangling();
 
-  llvm::SaveAndRestore<bool> savedAllowMarkerProtocols(
+  toolchain::SaveAndRestore<bool> savedAllowMarkerProtocols(
       AllowMarkerProtocols, false);
 
   // We don't make the substitution adjustments above because they're
@@ -219,7 +220,7 @@ IRGenMangler::mangleTypeForFlatUniqueTypeRef(CanGenericSignature sig,
 
 std::string IRGenMangler::mangleProtocolConformanceDescriptor(
                                  const RootProtocolConformance *conformance) {
-  llvm::SaveAndRestore X(AllowInverses,
+  toolchain::SaveAndRestore X(AllowInverses,
                          inversesAllowedIn(conformance->getDeclContext()));
 
   beginMangling();
@@ -236,7 +237,7 @@ std::string IRGenMangler::mangleProtocolConformanceDescriptor(
 
 std::string IRGenMangler::mangleProtocolConformanceDescriptorRecord(
                                  const RootProtocolConformance *conformance) {
-  llvm::SaveAndRestore X(AllowInverses,
+  toolchain::SaveAndRestore X(AllowInverses,
                          inversesAllowedIn(conformance->getDeclContext()));
 
   beginMangling();
@@ -247,7 +248,7 @@ std::string IRGenMangler::mangleProtocolConformanceDescriptorRecord(
 
 std::string IRGenMangler::mangleProtocolConformanceInstantiationCache(
                                  const RootProtocolConformance *conformance) {
-  llvm::SaveAndRestore X(AllowInverses,
+  toolchain::SaveAndRestore X(AllowInverses,
                          inversesAllowedIn(conformance->getDeclContext()));
 
   beginMangling();
@@ -390,7 +391,7 @@ mangleSymbolNameForSymbolicMangling(const SymbolicMangling &mangling,
       continue;
     }
     }
-    llvm_unreachable("unhandled referent");
+    toolchain_unreachable("unhandled referent");
   }
   
   return finalize();
@@ -528,7 +529,7 @@ IRGenMangler::appendExtendedExistentialTypeShape(CanGenericSignature genSig,
   // Append the generalization signature.
   if (genSig) {
     // Generalization signature never mangles inverses.
-    llvm::SaveAndRestore X(AllowInverses, false);
+    toolchain::SaveAndRestore X(AllowInverses, false);
     appendGenericSignature(genSig);
   }
 
@@ -543,7 +544,7 @@ std::string
 IRGenMangler::mangleConformanceSymbol(Type type,
                                       const ProtocolConformance *Conformance,
                                       const char *Op) {
-  llvm::SaveAndRestore X(AllowInverses,
+  toolchain::SaveAndRestore X(AllowInverses,
                          inversesAllowedIn(Conformance->getDeclContext()));
 
   beginMangling();

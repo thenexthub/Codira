@@ -1,0 +1,6 @@
+import Foundation
+
+public fn AppFunc() -> Int32 {
+  return app_function(10)
+}
+

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # utils/rth - Resilience test helper
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import glob
@@ -32,11 +32,11 @@ def verbose_print_command(command):
 
 class ResilienceTest(object):
 
-    def __init__(self, target_build_swift, target_run, target_codesign,
+    def __init__(self, target_build_language, target_run, target_codesign,
                  target_nm, tmp_dir, test_dir, test_src, lib_prefix,
                  lib_suffix, additional_compile_flags, triple,
                  backward_deployment, no_symbol_diff):
-        self.target_build_swift = shlex.split(target_build_swift)
+        self.target_build_language = shlex.split(target_build_language)
         self.target_run = shlex.split(target_run)
         self.target_codesign = shlex.split(target_codesign)
         self.target_nm = shlex.split(target_nm)
@@ -89,7 +89,7 @@ class ResilienceTest(object):
             output_dylib = os.path.join(self.config_dir_map[config],
                                         lib_file)
             compiler_flags = ['-emit-library', '-emit-module',
-                              '-swift-version', '4',
+                              '-language-version', '4',
                               '-enable-library-evolution',
                               '-D', config,
                               self.lib_src,
@@ -100,7 +100,7 @@ class ResilienceTest(object):
                                    '-Xlinker',
                                    os.path.join('@rpath', lib_file)]
 
-            command = self.target_build_swift + \
+            command = self.target_build_language + \
                 self.additional_compile_flags + \
                 compiler_flags
             verbose_print_command(command)
@@ -155,7 +155,7 @@ class ResilienceTest(object):
             compiler_flags = ['-D', config, '-c', self.test_src,
                               '-I', self.config_dir_map[config],
                               '-o', output_obj]
-            command = self.target_build_swift + \
+            command = self.target_build_language + \
                 self.additional_compile_flags + \
                 compiler_flags
             verbose_print_command(command)
@@ -211,7 +211,7 @@ class ResilienceTest(object):
             if self.is_apple_platform():
                 compiler_flags += ['-Xlinker', '-bind_at_load']
 
-            command = self.target_build_swift + compiler_flags
+            command = self.target_build_language + compiler_flags
             verbose_print_command(command)
             returncode = subprocess.call(command)
             assert returncode == 0, str(command)
@@ -241,7 +241,7 @@ class ResilienceTest(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Resilience test helper')
-    parser.add_argument('--target-build-swift', required=True)
+    parser.add_argument('--target-build-language', required=True)
     parser.add_argument('--target-run', required=True)
     parser.add_argument('--target-codesign', default='echo')
     parser.add_argument('--target-nm', default='nm')
@@ -259,7 +259,7 @@ def main():
 
     args = parser.parse_args()
 
-    resilience_test = ResilienceTest(args.target_build_swift, args.target_run,
+    resilience_test = ResilienceTest(args.target_build_language, args.target_run,
                                      args.target_codesign, args.target_nm,
                                      args.t, args.S, args.s, args.lib_prefix,
                                      args.lib_suffix,

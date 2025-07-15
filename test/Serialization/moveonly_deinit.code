@@ -1,0 +1,15 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -enable-experimental-feature MoveOnlyEnumDeinits -Xtoolchain -sil-disable-pass=simplification -g -emit-module  -module-name OtherModule %S/Inputs/moveonly_deinit.code -emit-module-path %t/OtherModule.codemodule
+// RUN: %target-language-frontend -enable-experimental-feature MoveOnlyEnumDeinits -Xtoolchain -sil-disable-pass=simplification -g -I %t %s -emit-silgen
+// RUN: %target-sil-opt -enable-experimental-feature MoveOnlyEnumDeinits %t/OtherModule.codemodule | %FileCheck -check-prefix=CHECK-SERIALIZED %s
+
+// REQUIRES: language_feature_MoveOnlyEnumDeinits
+
+// Make sure we can deserialize deinits of both enums and structs.
+
+import OtherModule
+
+// CHECK-SERIALIZED: sil_moveonlydeinit [serialized] MoveOnlyStruct {
+// CHECK-SERIALIZED: sil_moveonlydeinit [serialized] MoveOnlyEnum {
+immutable s = MoveOnlyStruct(desc: 5)
+immutable e = MoveOnlyEnum.lhs(5)

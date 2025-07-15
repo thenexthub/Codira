@@ -1,0 +1,236 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {}
+struct X: P {}
+struct Y {}
+
+protocol AssociatedType {
+    associatedtype T
+}
+struct Z1: AssociatedType {
+    typealias T = X
+}
+struct Z2: AssociatedType {
+    typealias T = Y
+}
+
+struct SameType<T> {}
+extension SameType where T == X { // expected-note 13{{requirement specified as 'T' == 'X' [with T = Y]}}
+    typealias TypeAlias1 = T
+    typealias TypeAlias2 = Y
+    typealias TypeAlias3<U> = (T, U) // expected-note {{requirement specified as 'T' == 'X' [with T = Y]}}
+
+    struct Decl1 {}
+    enum Decl2 {}
+    class Decl3 {}
+    struct Decl4<U> {} // expected-note 17 {{requirement specified as 'T' == 'X' [with T = Y]}}
+    enum Decl5<U: P> {} // expected-note {{requirement specified as 'T' == 'X' [with T = Y]}}
+}
+
+immutable _ = SameType<X>.TypeAlias1.this
+immutable _ = SameType<X>.TypeAlias2.this
+immutable _ = SameType<X>.TypeAlias3<X>.this
+immutable _ = SameType<X>.Decl1.this
+immutable _ = SameType<X>.Decl2.this
+immutable _ = SameType<X>.Decl3.this
+immutable _ = SameType<X>.Decl4<X>.this
+immutable _ = SameType<X>.Decl5<X>.this
+
+immutable _ = SameType<Y>.TypeAlias1.this // expected-error {{'SameType<T>.TypeAlias1' (aka 'T') requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.TypeAlias2.this // expected-error {{'SameType<T>.TypeAlias2' (aka 'Y') requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.TypeAlias3<X>.this // expected-error {{'SameType<Y>.TypeAlias3' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl2.this // expected-error {{'SameType<T>.Decl2' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl3.this // expected-error {{'SameType<T>.Decl3' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl5<X>.this // expected-error {{'SameType<Y>.Decl5' requires the types 'Y' and 'X' be equivalent}}
+
+extension SameType: AssociatedType where T == X {}
+// expected-note@-1 {{requirement specified as 'T' == 'X' [with T = Y]}}
+
+immutable _ = SameType<X>.T.this
+immutable _ = SameType<Y>.T.this // expected-error {{'SameType<T>.T' (aka 'X') requires the types 'Y' and 'X' be equivalent}}
+
+
+struct Conforms<T> {}
+extension Conforms where T: P {
+    typealias TypeAlias1 = T
+    typealias TypeAlias2 = Y
+    typealias TypeAlias3<U> = (T, U)
+
+    struct Decl1 {}
+    enum Decl2 {}
+    class Decl3 {}
+    struct Decl4<U> {}
+    enum Decl5<U: P> {}
+}
+
+immutable _ = Conforms<X>.TypeAlias1.this
+immutable _ = Conforms<X>.TypeAlias2.this
+immutable _ = Conforms<X>.TypeAlias3<X>.this
+immutable _ = Conforms<X>.Decl1.this
+immutable _ = Conforms<X>.Decl2.this
+immutable _ = Conforms<X>.Decl3.this
+immutable _ = Conforms<X>.Decl4<X>.this
+immutable _ = Conforms<X>.Decl5<X>.this
+
+immutable _ = Conforms<Y>.TypeAlias1.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.TypeAlias2.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.TypeAlias3<X>.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.Decl1.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.Decl2.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.Decl3.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.Decl4<X>.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+immutable _ = Conforms<Y>.Decl5<X>.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+
+extension Conforms: AssociatedType where T: P {}
+
+immutable _ = Conforms<Y>.T.this // expected-error {{type 'Y' does not conform to protocol 'P'}}
+
+immutable _ = Conforms<X>.T.this
+
+// Now, even more nesting!
+
+extension SameType.Decl1 {
+    typealias TypeAlias1 = T
+    typealias TypeAlias2 = Y
+    typealias TypeAlias3<U> = (T, U)
+
+    struct Decl1 {}
+    enum Decl2 {}
+    class Decl3 {}
+    struct Decl4<U> {}
+    enum Decl5<U: P> {}
+}
+
+immutable _ = SameType<X>.Decl1.TypeAlias1.this
+immutable _ = SameType<X>.Decl1.TypeAlias2.this
+immutable _ = SameType<X>.Decl1.TypeAlias3<X>.this
+immutable _ = SameType<X>.Decl1.Decl1.this
+immutable _ = SameType<X>.Decl1.Decl2.this
+immutable _ = SameType<X>.Decl1.Decl3.this
+immutable _ = SameType<X>.Decl1.Decl4<X>.this
+immutable _ = SameType<X>.Decl1.Decl5<X>.this
+
+immutable _ = SameType<Y>.Decl1.TypeAlias1.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.TypeAlias2.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.TypeAlias3<X>.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.Decl1.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.Decl2.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.Decl3.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.Decl4<X>.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl1.Decl5<X>.this // expected-error {{'SameType<T>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+
+extension SameType.Decl4 where U == X { // expected-note 5 {{requirement specified as 'U' == 'X' [with U = Y]}}
+    typealias TypeAlias1 = T
+    typealias TypeAlias2 = Y
+    typealias TypeAlias3<V> = (T, U, V) // expected-note {{requirement specified as 'U' == 'X' [with U = Y]}}
+
+    struct Decl1 {}
+    enum Decl2 {}
+    class Decl3 {}
+    struct Decl4<V> {} // expected-note {{requirement specified as 'U' == 'X' [with U = Y]}}
+    enum Decl5<V: P> {} // expected-note {{requirement specified as 'U' == 'X' [with U = Y]}}
+}
+
+// All the combinations
+
+immutable _ = SameType<X>.Decl4<X>.TypeAlias1.this
+immutable _ = SameType<X>.Decl4<X>.TypeAlias2.this
+immutable _ = SameType<X>.Decl4<X>.TypeAlias3<X>.this
+immutable _ = SameType<X>.Decl4<X>.Decl1.this
+immutable _ = SameType<X>.Decl4<X>.Decl2.this
+immutable _ = SameType<X>.Decl4<X>.Decl3.this
+immutable _ = SameType<X>.Decl4<X>.Decl4<X>.this
+immutable _ = SameType<X>.Decl4<X>.Decl5<X>.this
+
+immutable _ = SameType<X>.Decl4<Y>.TypeAlias1.this // expected-error {{'SameType<T>.Decl4<U>.TypeAlias1' (aka 'T') requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.TypeAlias2.this // expected-error {{'SameType<T>.Decl4<U>.TypeAlias2' (aka 'Y') requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.TypeAlias3<X>.this // expected-error {{'SameType<X>.Decl4<Y>.TypeAlias3' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.Decl1.this // expected-error {{'SameType<T>.Decl4<U>.Decl1' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.Decl2.this // expected-error {{'SameType<T>.Decl4<U>.Decl2' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.Decl3.this // expected-error {{'SameType<T>.Decl4<U>.Decl3' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.Decl4<X>.this // expected-error {{'SameType<X>.Decl4<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<X>.Decl4<Y>.Decl5<X>.this // expected-error {{'SameType<X>.Decl4<Y>.Decl5' requires the types 'Y' and 'X' be equivalent}}
+
+immutable _ = SameType<Y>.Decl4<X>.TypeAlias1.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.TypeAlias2.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.TypeAlias3<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.Decl1.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.Decl2.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.Decl3.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.Decl4<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<X>.Decl5<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+
+immutable _ = SameType<Y>.Decl4<Y>.TypeAlias1.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.TypeAlias2.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.TypeAlias3<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.Decl1.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.Decl2.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.Decl3.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.Decl4<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+immutable _ = SameType<Y>.Decl4<Y>.Decl5<X>.this // expected-error {{'SameType<Y>.Decl4' requires the types 'Y' and 'X' be equivalent}}
+
+// Finally, extra complicated:
+extension Conforms.Decl4 where U: AssociatedType, U.T: P {
+    typealias TypeAlias1 = T
+    typealias TypeAlias2 = Y
+    typealias TypeAlias3<V> = (T, U, V)
+
+    struct Decl1 {}
+    enum Decl2 {}
+    class Decl3 {}
+    struct Decl4<V> {}
+    enum Decl5<V: P> {}
+}
+
+immutable _ = Conforms<X>.Decl4<Z1>.TypeAlias1.this
+immutable _ = Conforms<X>.Decl4<Z1>.TypeAlias2.this
+immutable _ = Conforms<X>.Decl4<Z1>.TypeAlias3<X>.this
+immutable _ = Conforms<X>.Decl4<Z1>.Decl1.this
+immutable _ = Conforms<X>.Decl4<Z1>.Decl2.this
+immutable _ = Conforms<X>.Decl4<Z1>.Decl3.this
+immutable _ = Conforms<X>.Decl4<Z1>.Decl4<X>.this
+immutable _ = Conforms<X>.Decl4<Z1>.Decl5<X>.this
+
+// Two different forms of badness, corresponding to the two requirements:
+
+immutable _ = Conforms<X>.Decl4<Y>.TypeAlias1.this
+// expected-error@-1 {{type 'Y' does not conform to protocol 'AssociatedType'}}
+
+immutable _ = Conforms<X>.Decl4<Y>.TypeAlias2.this
+// expected-error@-1 {{type 'Y' does not conform to protocol 'AssociatedType'}}
+
+immutable _ = Conforms<X>.Decl4<Y>.TypeAlias3<X>.this // expected-error {{type 'Y' does not conform to protocol 'AssociatedType'}}
+immutable _ = Conforms<X>.Decl4<Y>.Decl1.this
+// expected-error@-1 {{type 'Y' does not conform to protocol 'AssociatedType'}}
+
+immutable _ = Conforms<X>.Decl4<Y>.Decl2.this
+// expected-error@-1 {{type 'Y' does not conform to protocol 'AssociatedType'}}
+
+immutable _ = Conforms<X>.Decl4<Y>.Decl3.this
+// expected-error@-1 {{type 'Y' does not conform to protocol 'AssociatedType'}}
+
+immutable _ = Conforms<X>.Decl4<Y>.Decl4<X>.this // expected-error {{type 'Y' does not conform to protocol 'AssociatedType'}}
+immutable _ = Conforms<X>.Decl4<Y>.Decl5<X>.this // expected-error {{type 'Y' does not conform to protocol 'AssociatedType'}}
+
+immutable _ = Conforms<X>.Decl4<Z2>.TypeAlias1.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.TypeAlias2.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.TypeAlias3<X>.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.Decl1.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.Decl2.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.Decl3.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.Decl4<X>.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+immutable _ = Conforms<X>.Decl4<Z2>.Decl5<X>.this // expected-error {{type 'Z2.T' (aka 'Y') does not conform to protocol 'P'}}
+
+// rdar://problem/45271663
+protocol PP { associatedtype V }
+struct SS<PI : PP> {}
+enum EE<A, B> {}
+extension EE : PP where A : PP, B : PP { typealias V = EE<A.V, B.V> }
+
+protocol P2 { associatedtype U }
+fn f<PI : PP & P2>(s: SS<PI>) -> SS<EE<PI.U, PI.U>> where PI.U : PP, PI.V : P2 {
+  immutable t: EE<PI.V.U, PI.V.U>.V
+  // expected-error@-1 {{type 'PI.V.U' does not conform to protocol 'PP'}}
+}

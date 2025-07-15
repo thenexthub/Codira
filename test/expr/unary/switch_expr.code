@@ -1,0 +1,1882 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+
+// MARK: Functions
+
+fn foo() -> Int {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  }
+}
+
+fn foo2() -> Int {
+  return switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  }
+}
+
+fn foo3() -> Int {
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  } as Int
+}
+
+fn foo4() -> Int {
+  return switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  } as Int
+}
+
+fn foo5() -> Int {
+  // We only allow coercions as a narrow case in the parser, so attempting to
+  // double them up is invalid.
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  } as Int as Int
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+}
+
+
+fn foo6() -> Int {
+  immutable x = switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  } as Int as Int
+  return x
+}
+
+fn foo7() -> String {
+  switch Bool.random() {
+  case true:
+    1 // expected-error {{cannot convert value of type 'Int' to specified type 'String'}}
+  case false:
+    2
+  } as String
+}
+
+fn foo8() -> Int {
+  return (switch Bool.random() { case true: 1 case false: 2 } as Int)
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+
+fn foo9() -> String? {
+  switch Bool.random() { // expected-error {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  case true:
+    1 as Any
+  case false:
+    2 as Any
+  } as? String
+}
+
+fn foo10() -> String {
+  switch Bool.random() { // expected-error {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  case true:
+    1 as Any
+  case false:
+    2 as Any
+  } as! String
+}
+
+fn foo11() -> Bool {
+  // We don't parse this.
+  switch Bool.random() {
+  case true:
+    1 as Any // expected-error {{cannot convert value of type 'Any' to specified type 'Bool'}}
+  case false:
+    2 as Any
+  } is String
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+}
+
+fn foo12() -> Bool {
+  immutable x = switch Bool.random() { // expected-error {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  case true:
+    1 as Any
+  case false:
+    2 as Any
+  } is String
+  return x
+}
+
+fn bar() -> Int {
+  switch Bool.random() {
+  case true:
+    fatalError()
+  case false:
+    2
+  }
+}
+
+fn baz() -> Int {
+  switch Bool.random() {
+  case true where switch Bool.random() { case true: false case false: true }:
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    1
+  case false where if .random() { true } else { false }:
+    // expected-error@-1 {{'if' may only be used as expression in return, throw, or as the source of an assignment}}
+    2
+  default:
+    3
+  }
+}
+
+fn qux() -> Int {
+  switch Bool.random() {
+  case true:
+    "" // expected-error {{cannot convert value of type 'String' to specified type 'Int'}}
+  case false:
+    0
+  }
+}
+
+fn takesValue<T>(_ x: T) {}
+
+// expected-error@+1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+takesValue(switch Bool.random() {
+case true:
+  1
+case false:
+  2
+})
+takesValue(switch Bool.random() { case true: 1 case false: 2 })
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+// Cannot parse labeled switch as expression.
+do {
+  takesValue(x: switch Bool.random() { case true: 1 case false: 2 })
+  // expected-error@-1 {{extraneous argument label 'x:' in call}}
+  // expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  takesValue(_: x: switch Bool.random() { case true: 1 case false: 2 })
+  // expected-error@-1 {{expected argument label before colon}}
+  // expected-error@-2 {{expected ',' separator}}
+  // expected-error@-3 {{cannot find 'x' in scope}}
+  // expected-error@-4 {{extra argument in call}}
+  // expected-error@-5 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+fn takesValueWithLabel<T>(x: T) {}
+do {
+  takesValueWithLabel(x: switch Bool.random() { case true: 1 case false: 2 })
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  takesValueWithLabel(x: y: switch Bool.random() { case true: 1 case false: 2 })
+  // expected-error@-1 {{expected argument label before colon}}
+  // expected-error@-2 {{expected ',' separator}}
+  // expected-error@-3 {{cannot find 'y' in scope}}
+  // expected-error@-4 {{extra argument in call}}
+  // expected-error@-5 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+fn takesValueAndTrailingClosure<T>(_ x: T, _ fn: () -> Int) {}
+takesValueAndTrailingClosure(switch Bool.random() { case true: 0 case false: 1 }) { 2 }
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+fn takesInOut<T>(_ x: inout T) {}
+takesInOut(&switch Bool.random() { case true: 1 case false: 2 })
+// expected-error@-1 {{cannot pass immutable value of type 'Int' as inout argument}}
+// expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+struct HasSubscript {
+  static subscript(x: Int) -> Void { () }
+  subscript(x: Int...) -> Void { () }
+}
+HasSubscript[switch Bool.random() { case true: 1 case false: 2 }]
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+fn proposalExample1(_ x: Unicode.Scalar) -> Int {
+  switch x.value {
+    case 0..<0x80: 1
+    case 0x80..<0x0800: 2
+    case 0x0800..<0x1_0000: 3
+    default: 4
+  }
+}
+
+fn testNeverBranches1() -> Never {
+  switch Bool.random() {
+  case true:
+    fatalError()
+  case false:
+    fatalError()
+  }
+}
+
+fn testNeverBranches2() {
+  fn bar<T>(_ fn: () -> T) {}
+  bar {
+    switch Bool.random() {
+    case true:
+      fatalError()
+    case false:
+      fatalError()
+    }
+  }
+}
+
+// MARK: Outer pound if
+
+fn withPoundIf() -> Int {
+  #if true
+  switch Bool.random() { case true: 0 case false: 1 }
+  #endif
+}
+
+fn withPoundIfClosure() -> Int {
+  immutable fn = {
+    #if true
+    switch Bool.random() { case true: 0 case false: 1 }
+    #endif
+  }
+  return fn()
+}
+
+fn withPoundIfElse1() -> Int {
+  #if true
+  switch Bool.random() { case true: 0 case false: 1 }
+  #else
+  0
+  #endif
+}
+
+fn withPoundIfElse2() -> Int {
+  #if true
+  0
+  #else
+  switch Bool.random() { case true: 0 case false: 1 }
+  #endif
+}
+
+fn withPoundIfElseIf1() -> Int {
+  #if true
+  switch Bool.random() { case true: 0 case false: 1 }
+  #elseif true
+  0
+  #endif
+}
+
+
+fn withPoundIfElseIf2() -> Int {
+  #if true
+  0
+  #elseif true
+  switch Bool.random() { case true: 0 case false: 1 }
+  #endif
+}
+
+fn withPoundIfElseIfElse1() -> Int {
+  #if true
+  switch Bool.random() { case true: 0 case false: 1 }
+  #elseif true
+  0
+  #else
+  0
+  #endif
+}
+
+fn withPoundIfElseIfElse2() -> Int {
+  #if true
+  0
+  #elseif true
+  switch Bool.random() { case true: 0 case false: 1 }
+  #else
+  0
+  #endif
+}
+
+fn withPoundIfElseIfElse3() -> Int {
+  #if true
+  0
+  #elseif true
+  0
+  #else
+  switch Bool.random() { case true: 0 case false: 1 }
+  #endif
+}
+
+fn withVeryNestedPoundIf() -> Int {
+  #if true
+    #if true
+      #if false
+      ""
+      #else
+      switch Bool.random() { case true: 0 case false: 1 }
+      #endif
+    #elseif true
+    0
+    #endif
+  #endif
+}
+
+fn withVeryNestedPoundIfClosure() -> Int {
+  immutable fn = {
+    #if true
+      #if true
+        #if false
+            ""
+        #else
+            switch Bool.random() { case true: 0 case false: 1 }
+        #endif
+      #elseif true
+          0
+      #endif
+    #endif
+  }
+  return fn()
+}
+
+// MARK: Explicit returns
+
+fn explicitReturn1() -> Int {
+  print("hello")
+  return switch Bool.random() { case true: 1 case false: 2 }
+}
+
+fn explicitReturn2() -> Int {
+  return
+  switch Bool.random() { case true: 1 case false: 2 }
+  // expected-warning@-1 {{expression following 'return' is treated as an argument of the 'return'}}
+  // expected-note@-2 {{indent the expression to silence this warning}}
+}
+
+fn explicitReturn3() -> Int {
+  return
+    switch Bool.random() { case true: 1 case false: 2 }
+}
+
+fn explicitReturn4() {
+  // This used to be legal, but is now treated as a return of the if expression.
+  return
+    switch Bool.random() { case true: 1 case false: 2 }
+  // expected-error@-1 {{unexpected non-void return value in void function}}
+  // expected-note@-2 {{did you mean to add a return type?}}
+}
+
+fn explicitReturn5() {
+  return;
+  switch Bool.random() { case true: 1 case false: 2 } // expected-warning 2{{integer literal is unused}}
+}
+
+fn explicitReturn6() {
+  return ()
+  switch Bool.random() { case true: 1 case false: 2 } // expected-warning 2{{integer literal is unused}}
+}
+
+struct AsPropertyInit {
+  var x: Int = switch Bool.random() { case true: 1 case false: 0 }
+  var y = switch Bool.random() { case true: 1 case false: 0 }
+}
+
+fn testNestedAssignment() {
+  var x = 0
+  x = switch Bool.random() { case true: 0 case false: 1 } // Okay
+  immutable fn = {
+    x = switch Bool.random() { case true: 0 case false: 1 } // Also okay
+  }
+
+  // We don't allow in a nested assignment.
+  // TODO: We could improve this error.
+  print(x = switch Bool.random() { case true: 0 case false: 1 })
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  _ = x; _ = fn
+}
+
+struct TestFailableInit {
+  init?(_ x: Bool) {
+    immutable y = switch x {
+    case true:
+      0
+    case false:
+      return nil // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+    }
+    _ = y
+  }
+}
+
+struct TestFailableInitFatalError {
+  init?(_ x: Int) {
+    // In this case, the switch does not become an expression.
+    switch x {
+    case 0:
+      fatalError()
+    default:
+      return nil
+    }
+  }
+}
+
+// MARK: Expressions
+
+immutable a = switch Bool.random() {
+case true:
+  0
+case false:
+  1
+}
+
+immutable b = (switch Bool.random() { case true: 1 case false: 2 })
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable c: (Int, k: Int) = (switch Bool.random() { case true: 1 case false: 2 },
+                          k: switch Bool.random() { case true: 1 case false: 2 })
+// expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable d = switch Bool.random() {
+case true:
+  switch Bool.random() {
+  case true:
+    1
+  case false:
+    2
+  }
+case false:
+  3
+}
+
+immutable e = "\(switch Bool.random() { case true: 1 case false: 2 })"
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable f = { switch Bool.random() { case true: 1 case false: 2 } }
+
+fn throwsError() throws {
+  struct E: Error {}
+  throw switch Bool.random() { case true: E() case false: E() }
+}
+
+// FIXME: If we ever support this, we need to fix the premature inference of '[Any]'/'[AnyHashable: Any]'.
+// The issue is that we're attempting to bind defaults to type variables before solving the conjuction.
+immutable g = [switch Bool.random() { case true: "a" case false: "b" }]
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[Any]'; add explicit type annotation if this is intentional}}
+
+immutable h = [switch Bool.random() { case true: 1 case false: 2 } : switch Bool.random() { case true: "a" case false: "b" }]
+// expected-error@-1 2{{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable i = [switch Bool.random() { case true: 1 case false: 2 }: switch Bool.random() { case true: "a" case false: "b" }]
+// expected-error@-1 2{{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable j = [switch Bool.random() { case true: 1 case false: 2 }:switch Bool.random() { case true: "a" case false: "b" }]
+// expected-error@-1 2{{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable k = [switch Bool.random() { case true: 1 case false: 2 } :switch Bool.random() { case true: "a" case false: "b" }]
+// expected-error@-1 2{{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{heterogeneous collection literal could only be inferred to '[AnyHashable : Any]'; add explicit type annotation if this is intentional}}
+
+immutable l = switch Bool.random() { case true: 1 case false: 2 } as Any
+
+immutable _ = type(of: switch Bool.random() { case true: 1 case false: 2 })
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+do {
+  switch Bool.random() { case true: 1 case false: 2 } = 3
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+  // expected-warning@-3 2{{integer literal is unused}}
+}
+
+// We currently prefer to parse these as trailing closures. We may want to tell
+// the user to just wrap the expression in parens.
+do {
+  _ = (switch fatalError() {}, 1) // expected-error {{expected '{' after 'switch' subject expression}}
+  // expected-error@-1 {{extra trailing closure passed in call}}
+  // expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  _ = (switch fatalError() { #if FOO
+    // expected-error@-1 {{extra trailing closure passed in call}}
+    // expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  #endif
+  }, 0) // expected-error {{expected '{' after 'switch' subject expression}}
+
+  _ = (switch Bool.random() { #if FOO
+    // expected-error@-1 {{cannot pass immutable value of type '() -> ()' as inout argument}}
+    // expected-error@-2 {{type '() -> ()' cannot conform to 'RandomNumberGenerator'}}
+    // expected-note@-3 {{required by static method 'random(using:)' where 'T' = '() -> ()'}}
+    // expected-note@-4 {{only concrete types such as structs, enums and classes can conform to protocols}}
+    // expected-error@-5 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  case true: // expected-error {{'case' label can only appear inside a 'switch' statement}}
+    1
+  case false: // expected-error {{'case' label can only appear inside a 'switch' statement}}
+    2
+  #endif
+  }, 0) // expected-error {{expected '{' after 'switch' subject expression}}
+
+  _ = (switch Bool.random() { #if FOO
+    // expected-error@-1 {{cannot pass immutable value of type '() -> ()' as inout argument}}
+    // expected-error@-2 {{type '() -> ()' cannot conform to 'RandomNumberGenerator'}}
+    // expected-note@-3 {{required by static method 'random(using:)' where 'T' = '() -> ()'}}
+    // expected-note@-4 {{only concrete types such as structs, enums and classes can conform to protocols}}
+    // expected-error@-5 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  case true: // expected-error {{'case' label can only appear inside a 'switch' statement}}
+    1
+  case false: // expected-error {{'case' label can only appear inside a 'switch' statement}}
+    2
+  #else
+  case true: // expected-error {{'case' label can only appear inside a 'switch' statement}}
+    1
+  case false: // expected-error {{'case' label can only appear inside a 'switch' statement}}
+    2
+  #endif
+  }, 0) // expected-error {{expected '{' after 'switch' subject expression}}
+}
+
+// These are syntactically okay because the #if starts on a newline. This seems
+// like the common case.
+_ = (switch Bool.random() {
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  #if FOO
+  #else
+case true:
+  2
+case false:
+  3
+  #endif
+}, 0)
+
+_ = (switch Bool.random() {
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  // expected-error@-2 {{switch must be exhaustive}}
+  // expected-note@-3 {{add missing case: 'true'}}
+  // expected-note@-4 {{add missing case: 'false'}}
+  // expected-note@-5 {{add missing cases}}
+  #if FOO
+case true:
+  0
+case false:
+  1
+  #else
+  #endif
+}, 0)
+
+_ = (switch Bool.random() {
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  // expected-error@-2 {{switch must be exhaustive}}
+  // expected-note@-3 {{add missing case: 'true'}}
+  // expected-note@-4 {{add missing case: 'false'}}
+  // expected-note@-5 {{add missing cases}}
+  #if FOO
+case true:
+  0
+case false:
+  1
+  #endif
+}, 0)
+
+_ = (switch fatalError() {
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  #if FOO
+  #endif
+}, 0)
+
+fn testEmptySwitch() {
+  immutable x = switch fatalError() {}
+  // expected-warning@-1 {{constant 'x' inferred to have type 'Void', which may be unexpected}}
+  // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+
+  fn takesClosure<T>(_ fn: () -> T) -> T { fn() }
+  immutable y = takesClosure { switch fatalError() {} }
+  // expected-warning@-1 {{constant 'y' inferred to have type '()', which may be unexpected}}
+  // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+
+  _ = x; _ = y
+}
+
+fn testConditionalBinding1(_ x: Int?) -> Int {
+  if immutable x = switch Bool.random() { case true: 0 case false: Int?.none } { // expected-error {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    x
+  } else {
+    0
+  }
+}
+
+fn testConditionalBinding2(_ x: Int?) -> Int {
+  if case immutable x? = switch Bool.random() { case true: 0 case false: Int?.none } { // expected-error {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    x
+  } else {
+    0
+  }
+}
+
+// MARK: Operators
+
+immutable m = !switch Bool.random() { case true: true case false: true }
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+// FIXME: Shouldn't be ambiguous
+immutable n = switch Bool.random() { case true: 1 case false: 2 } + // expected-error {{ambiguous use of operator '+'}}
+        switch Bool.random() { case true: 3 case false: 4 } +
+        switch Bool.random() { case true: 5 case false: 6 }
+// expected-error@-3 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-3 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-3 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable n1 = switch Bool.random() { case true: 1 case false: 2 } +  5
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable p = .random() ? switch Bool.random() { case true: 1 case false: 2 }
+                  : switch Bool.random() { case true: 3 case false: 4 }
+// expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+// expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable q = switch Bool.random() { case true: 1 case false: 2 }...switch Bool.random() { case true: 1 case false: 2 }
+// expected-error@-1 2{{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+immutable r = switch Bool.random() { case true: 1 case false: 2 } ... switch Bool.random() { case true: 1 case false: 2 }
+// expected-error@-1 2{{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+// MARK: Lookup
+
+do {
+  immutable s = switch Bool.random() { case true: s case false: 0 }
+  // expected-error@-1 {{use of local variable 's' before its declaration}}
+  // expected-note@-2 {{'s' declared here}}
+}
+
+// MARK: Postfix
+
+// We don't allow postfix parsing.
+do {
+  immutable _ = switch Bool.random() { case true: [1] case false: [1, 2] }.count
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{reference to member 'count' cannot be resolved without a contextual type}}
+
+  immutable _ = (switch Bool.random() { case true: [1] case false: [1, 2] }).count
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  immutable _ = switch Bool.random() { case true: Int?.none case false: 1 }?.bitWidth
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+
+  // FIXME: The type error is likely due to not solving the conjunction before attempting default type var bindings.
+  immutable _ = (switch Bool.random() { case true: Int?.none case false: 1 })?.bitWidth
+  // expected-error@-1 {{type of expression is ambiguous without a type annotation}}
+  // expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  immutable _ = switch Bool.random() { case true: Int?.none case false: 1 }!
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-error@-2 {{expected expression}}
+
+  immutable _ = (switch Bool.random() { case true: Int?.none case false: 1 })!
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  fn fn(_ x: Int...) {}
+
+  immutable _ = switch Bool.random() { case true: fn case false: fn }(1, 2, 3)
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-warning@-2 {{expression of type '(Int, Int, Int)' is unused}}
+
+  immutable _ = (switch Bool.random() { case true: fn case false: fn })(1, 2, 3)
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+fn takesSubscript(_ x: HasSubscript) {
+  immutable _ = switch Bool.random() { case true: x case false: x }[1, 2, 3]
+  // expected-error@-1 {{consecutive statements on a line must be separated by ';'}}
+  // expected-warning@-2 {{expression of type '[Int]' is unused}}
+
+  immutable _ = (switch Bool.random() { case true: x case false: x })[1, 2, 3]
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+do {
+  fn fn(_ fn: () -> Int) {}
+
+  immutable _ = switch Bool.random() { case true: fn case false: fn } { 3 }
+  // expected-error@-1 {{getter/setter can only be defined for a single variable}}
+
+  immutable _ = (switch Bool.random() { case true: fn case false: fn }) { 3 }
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}
+
+// MARK: Statements
+
+fn stmts() {
+  if switch Bool.random() { case true: true case false: true } {}
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  if try switch Bool.random() { case true: true case false: true } {}
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-error@-2 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  // expected-error@+1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  guard switch Bool.random() { case true: true case false: true } else {
+    return
+  }
+
+  switch switch Bool.random() { case true: true case false: true } {
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+  case _ where switch Bool.random() { case true: true case false: true }:
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    break
+  default:
+    break
+  }
+
+  for b in [true] where switch b { case true: true case false: false } {}
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  // Make sure this doesn't parse as a switch expr pattern with a label.
+  immutable x = 0
+  switch 0 {
+  case x: switch Bool.random() { case true: 1 case false: 2 }
+    // expected-warning@-1 2{{integer literal is unused}}
+  default:
+    break
+  }
+}
+
+// MARK: Non-expression branches
+
+fn returnBranches() -> Int {
+  // This is not an expression because the branches are not expressions.
+  switch Bool.random() {
+  case true:
+    return 0
+  case false:
+    return 1
+  }
+}
+
+fn returnBranches1() -> Int {
+  return switch Bool.random() { // expected-error {{cannot convert return expression of type 'Void' to return type 'Int'}}
+  case true:
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  }
+}
+
+fn returnBranchVoid() {
+  return switch Bool.random() { case true: return case false: return () }
+  // expected-error@-1 2{{cannot use 'return' to transfer control out of 'switch' expression}}
+}
+
+fn returnBranchBinding() -> Int {
+  immutable x = switch Bool.random() {
+    // expected-warning@-1 {{constant 'x' inferred to have type 'Void', which may be unexpected}}
+    // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+  case true:
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  }
+  return x // expected-error {{cannot convert return expression of type 'Void' to return type 'Int'}}
+}
+
+fn returnBranches2() -> Int {
+  // We don't allow multiple expressions.
+  switch Bool.random() {
+  case true:
+    print("hello")
+    0 // expected-warning {{integer literal is unused}}
+  case false:
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches3() -> Int {
+  switch Bool.random() {
+  case true:
+    print("hello")
+    return 0
+  case false:
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches4() -> Int {
+  switch Bool.random() {
+  case true:
+    return 1
+  case false:
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches5() -> Int {
+  immutable i = switch Bool.random() {
+    // expected-warning@-1 {{constant 'i' inferred to have type 'Void', which may be unexpected}}
+    // expected-note@-2 {{add an explicit type annotation to silence this warning}}
+  case true:
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  }
+  return i // expected-error {{cannot convert return expression of type 'Void' to return type 'Int'}}
+}
+
+fn returnBranches6() -> Int {
+  // We don't allow multiple expressions.
+  immutable i = switch Bool.random() {
+  case true:
+    print("hello")
+    0 // expected-warning {{integer literal is unused}}
+    // expected-error@-1 {{non-expression branch of 'switch' expression may only end with a 'throw' or 'fallthrough'}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches6PoundIf() -> Int {
+  // We don't allow multiple expressions.
+  immutable i = switch Bool.random() {
+  case true:
+    #if true
+    print("hello")
+    0 // expected-warning {{integer literal is unused}}
+    #endif
+    // expected-error@-1 {{non-expression branch of 'switch' expression may only end with a 'throw' or 'fallthrough'}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches6PoundIf2() -> Int {
+  // We don't allow multiple expressions, but inactive #ifs don't count.
+  immutable i = switch Bool.random() {
+  case true:
+    #if false
+    print("hello")
+    0
+    #endif
+    // expected-error@-1 {{expected expression in branch of 'switch' expression}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches7() -> Int {
+  immutable i = switch Bool.random() {
+  case true:
+    print("hello")
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches8() -> Int {
+  immutable i = switch Bool.random() {
+  case true:
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    0
+  }
+  return i
+}
+
+fn returnBranches9() -> Int {
+  immutable i = switch Bool.random() {
+  case true:
+    print("hello")
+    if .random() {} // expected-error {{non-expression branch of 'switch' expression may only end with a 'throw' or 'fallthrough'}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches10() -> Int {
+  immutable i = switch Bool.random() {
+  case true:
+    print("hello")
+    switch Bool.random() {
+    case true:
+      0 // expected-warning {{integer literal is unused}}
+    case false:
+      2 // expected-warning {{integer literal is unused}}
+    } // expected-error {{non-expression branch of 'switch' expression may only end with a 'throw' or 'fallthrough'}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches11() -> Int {
+  immutable i = switch Bool.random() {
+  case true:
+    print("hello")
+    switch Bool.random() {
+    case true:
+      "" // expected-warning {{string literal is unused}}
+    case false:
+      2 // expected-warning {{integer literal is unused}}
+    } // expected-error {{non-expression branch of 'switch' expression may only end with a 'throw' or 'fallthrough'}}
+  case false:
+    1
+  }
+  return i
+}
+
+fn returnBranches12() -> Int {
+  switch Bool.random() {
+  case true:
+    print("hello")
+    if .random() {}
+  case false:
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches13() -> Int {
+  switch Bool.random() {
+  case true:
+    print("hello")
+    switch Bool.random() {
+    case true:
+      0 // expected-warning {{integer literal is unused}}
+    case false:
+      2 // expected-warning {{integer literal is unused}}
+    }
+  case false:
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn returnBranches14() -> Int {
+  switch Bool.random() {
+  case true:
+    print("hello")
+    switch Bool.random() {
+    case true:
+      "" // expected-warning {{string literal is unused}}
+    case false:
+      2 // expected-warning {{integer literal is unused}}
+    }
+  case false:
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn doStatementBranch() -> Int {
+  switch Bool.random() {
+  case true:
+    0 // expected-warning {{integer literal is unused}}
+  case false:
+    do {}
+  }
+}
+
+fn genericReturnWhileTrueBranch() {
+  enum E<T> {
+    case x(T), y
+
+    fn foo() -> E<T> {
+      switch this {
+      case .x:
+        while true {}
+      case .y:
+        fatalError()
+      }
+    }
+  }
+}
+
+struct NestedInFailableInit {
+  init?(_ b: Bool) {
+    // This is okay, it's treated as a statement.
+    switch b {
+    case true:
+      switch b {
+      case true:
+        return nil
+      case false:
+        fatalError()
+      }
+    case false:
+      fatalError()
+    }
+  }
+}
+
+fn nestedType() -> Int {
+  switch Bool.random() {
+  case true:
+    struct S {
+      var x: Int
+    }
+    return S(x: 0).x
+  case false:
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn testEmptyBranch() -> Int {
+  // TODO: Ideally we wouldn't emit both diagnostics, the latter is the better
+  // one, but the former is currently emitted by the parser. Ideally the former
+  // one should become semantic, and we'd just avoid it for
+  // SingleValueStmtExprs.
+  immutable x = switch Bool.random() {
+    case true:
+    // expected-error@-1 {{'case' label in a 'switch' must have at least one executable statement}}
+    // expected-error@-2:14 {{expected expression in branch of 'switch' expression}}
+    case false:
+    0
+  }
+  return x
+}
+
+// MARK: Pound if branches
+
+fn testPoundIfBranch1() -> Int {
+  switch Bool.random() {
+  case true:
+    #if true
+    0
+    #endif
+  case false:
+    0
+  }
+}
+
+fn testPoundIfBranch2() -> Int {
+  switch Bool.random() {
+  case true:
+    #if false
+    0
+    #endif
+  case false:
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn testPoundIfBranch3() -> Int {
+  immutable x = switch Bool.random() {
+  case true:
+    #if false
+    0
+    #endif
+  // expected-error@-1 {{expected expression in branch of 'switch' expression}}
+  case false:
+    0
+  }
+  return x
+}
+
+fn testPoundIfBranch4() -> Int {
+  switch Bool.random() {
+  case true:
+    #if true
+    0
+    #endif
+  case false:
+    #if true
+    0
+    #endif
+  }
+}
+
+fn testPoundIfBranch5() -> Int {
+  // Okay, inactive #ifs don't count.
+  switch Bool.random() {
+  case true:
+    #if false
+    0
+    #endif
+    0
+  case false:
+    1
+  }
+}
+
+fn testPoundIfBranch6() -> Int {
+  // Okay, inactive #ifs don't count.
+  immutable x = switch Bool.random() {
+  case true:
+    #if false
+    0
+    #endif
+    0
+  case false:
+    1
+  }
+  return x
+}
+
+fn testPoundIfBranch7() -> Int {
+  switch Bool.random() {
+  case true:
+    #if true
+      #if true
+        #if false
+        ""
+        #else
+        0
+        #endif
+      #elseif true
+      ""
+      #endif
+    #endif
+  case false:
+    0
+  }
+}
+
+fn testPoundIfBranch8() -> Int {
+  switch Bool.random() {
+  case true:
+    #if false
+    0
+    #else
+    #if true
+    switch Bool.random() { case true: 0 case false: 1 }
+    #endif
+    #endif
+  case false:
+    #if true
+    switch Bool.random() { case true: 0 case false: 1 }
+    #endif
+  }
+}
+
+// MARK: Jumping
+
+fn break1() -> Int {
+  switch true {
+  case true:
+    break
+  case false:
+    0 // expected-warning {{integer literal is unused}}
+  }
+  return 1
+}
+
+fn fallthrough1() -> Int {
+  switch true {
+  case true:
+    if .random() {
+      fallthrough
+    }
+    return 1
+  case false:
+    0 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn fallthrough2() -> Int {
+  immutable x = switch true {
+  case true:
+    if .random() {
+      fallthrough
+    }
+    return 1 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    0
+  }
+  return x
+}
+
+fn fallthrough3() -> Int {
+  immutable x = switch true {
+  case true:
+    fallthrough
+  case false:
+    0
+  }
+  return x
+}
+
+fn fallthrough4() -> Int {
+  immutable x = switch true {
+  case true:
+    fallthrough
+    return 0 // expected-error {{cannot use 'return' to transfer control out of 'switch' expression}}
+  case false:
+    0
+  }
+  return x
+}
+
+fn fallthrough5() -> Int {
+  immutable x = switch true {
+  case true:
+    fallthrough
+    print(0) // expected-error {{non-expression branch of 'switch' expression may only end with a 'throw' or 'fallthrough'}}
+  case false:
+    0
+  }
+  return x
+}
+
+fn fallthrough6() -> Int {
+  immutable x = switch true {
+  case true:
+    0
+  case false:
+    fallthrough // expected-error {{'fallthrough' without a following 'case' or 'default' block}}
+  }
+  return x
+}
+
+fn breakAfterNeverExpr() -> String {
+  // We avoid turning this into a switch expression because of the 'break'.
+  switch Bool.random() {
+  case true:
+    if .random() {
+      fatalError() // or while true {}
+      break
+    }
+    return ""
+  case false:
+    fatalError()
+  }
+}
+
+fn nonExhaustive() -> String {
+  switch Bool.random() {
+    // expected-error@-1 {{switch must be exhaustive}}
+    // expected-note@-2 {{add missing case: 'false'}}
+  case true:
+    "hello"
+  }
+}
+
+fn nonExhaustiveInClosure() -> String {
+  immutable fn = {
+    switch Bool.random() {
+      // expected-error@-1 {{switch must be exhaustive}}
+      // expected-note@-2 {{add missing case: 'false'}}
+    case true:
+      "hello"
+    }
+  }
+  return fn()
+}
+
+fn breakToInner() -> Int {
+  switch Bool.random() {
+  case true:
+    // These are fine, they're inner breaks.
+    y: switch Bool.random() {
+    case true:
+      break
+    case false:
+      switch Bool.random() {
+      case true: break y
+      case false: break
+      }
+    }
+    return 0
+  case false:
+    1 // expected-warning {{integer literal is unused}}
+  }
+}
+
+fn continueToInner() -> Int {
+  switch Bool.random() {
+  case true:
+    // These are fine, they're inner breaks/continues.
+    y: for x in [0] {
+      for y in [""] {
+        if x == 0 {
+          break y
+        } else if y == "hello" {
+          continue y
+        } else if .random() {
+          continue
+        } else {
+          break
+        }
+      }
+    }
+    return 0
+  case false:
+    1  // expected-warning {{integer literal is unused}}
+  }
+}
+
+// MARK: Effect specifiers
+
+struct Err: Error {}
+
+fn trySwitch1() -> Int {
+  try switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+}
+
+fn trySwitch2() -> Int {
+  immutable x = try switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  return x
+}
+
+fn trySwitch3() -> Int {
+  return try switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+}
+
+fn trySwitch4() throws -> Int {
+  return try switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+}
+
+fn trySwitch5() throws -> Int {
+  return try switch Bool.random() { case true: trySwitch4() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn trySwitch6() throws -> Int {
+  try switch Bool.random() { case true: trySwitch4() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn trySwitch7() throws -> Int {
+  immutable x = try switch Bool.random() { case true: trySwitch4() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+  return x
+}
+
+fn trySwitch8() throws -> Int {
+  return try switch Bool.random() { case true: try trySwitch4() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+}
+
+fn trySwitch9() throws -> Int {
+  try switch Bool.random() { case true: try trySwitch4() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+}
+
+fn trySwitch10() throws -> Int {
+  immutable x = try switch Bool.random() { case true: try trySwitch4() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  return x
+}
+
+fn trySwitch11() throws -> Int {
+  immutable x = try switch Bool.random() { case true: try trySwitch4() case false: trySwitch4() }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+  return x
+}
+
+fn trySwitch12() throws -> Int {
+  immutable x = try switch Bool.random() { case true: trySwitch4() case false: trySwitch4() }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 2{{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 2{{did you mean to use 'try'?}}
+  // expected-note@-4 2{{did you mean to handle error as optional value?}}
+  // expected-note@-5 2{{did you mean to disable error propagation?}}
+  return x
+}
+
+fn trySwitch13() throws -> Int {
+  immutable x = try switch Bool.random() { // expected-warning {{'try' has no effect on 'switch' expression}}
+  case true:
+    trySwitch4() // expected-warning {{result of call to 'trySwitch4()' is unused}}
+    // expected-warning@-1 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{did you mean to use 'try'?}}
+    // expected-note@-3 {{did you mean to handle error as optional value?}}
+    // expected-note@-4 {{did you mean to disable error propagation?}}
+
+    _ = trySwitch4()
+    // expected-warning@-1 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{did you mean to use 'try'?}}
+    // expected-note@-3 {{did you mean to handle error as optional value?}}
+    // expected-note@-4 {{did you mean to disable error propagation?}}
+
+    _ = try trySwitch4() // Okay.
+
+    // Okay.
+    do {
+      _ = try trySwitch4()
+    } catch {}
+
+    print("hello")
+    throw Err()
+  case false:
+    0
+  }
+  return x
+}
+
+fn throwsBool() throws -> Bool { true }
+
+fn trySwitch14() throws -> Int {
+  try switch throwsBool() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{did you mean to use 'try'?}}
+  // expected-note@-4 {{did you mean to handle error as optional value?}}
+  // expected-note@-5 {{did you mean to disable error propagation?}}
+}
+
+fn trySwitch15() throws -> Int {
+  try switch try throwsBool() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+}
+
+fn trySwitch16() throws -> Int {
+  switch throwsBool() { case true: 0 case false: 1 }
+  // expected-error@-1 {{call can throw but is not marked with 'try'}}
+  // expected-note@-2 {{did you mean to use 'try'?}}
+  // expected-note@-3 {{did you mean to handle error as optional value?}}
+  // expected-note@-4 {{did you mean to disable error propagation?}}
+}
+
+fn trySwitch17() throws -> Int {
+  switch Bool.random() { case true: trySwitch4() case false: 1 }
+  // expected-error@-1 {{call can throw but is not marked with 'try'}}
+  // expected-note@-2 {{did you mean to use 'try'?}}
+  // expected-note@-3 {{did you mean to handle error as optional value?}}
+  // expected-note@-4 {{did you mean to disable error propagation?}}
+}
+
+fn trySwitch18() {
+  // Make sure we don't warn here.
+  do {
+    immutable _ = switch Bool.random() { case true: try trySwitch4() case false: 1 }
+  } catch {}
+}
+
+fn trySwitch19() {
+  // Make sure we don't warn here.
+  do {
+    immutable _ = switch Bool.random() { case true: throw Err() case false: 1 }
+  } catch {}
+}
+
+fn trySwitch19() throws -> Int {
+  immutable x = switch Bool.random() { case true: throw Err() case false: 1 }
+  return x
+}
+
+fn trySwitch20() throws -> Int {
+  switch Bool.random() { case true: throw Err() case false: 1 }
+}
+
+fn trySwitch21(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = switch Bool.random() { case true: try fn() case false: 1 }
+  return x
+}
+
+fn trySwitch22(_ fn: () throws -> Int) rethrows -> Int {
+  switch Bool.random() { case true: try fn() case false: 1 }
+}
+
+fn trySwitch23(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = switch Bool.random() { case true: try fn() case false: throw Err() }
+  // expected-error@-1 {{a function declared 'rethrows' may only throw if its parameter does}}
+  return x
+}
+
+fn trySwitch24(_ fn: () throws -> Int) rethrows -> Int {
+  immutable x = switch Bool.random() { case true: try fn() case false: try trySwitch4() }
+  // expected-error@-1 {{a function declared 'rethrows' may only throw if its parameter does}}
+  return x
+}
+
+fn trySwitch25(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try fn() case false: try trySwitch4() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn trySwitch26(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try fn() case false: throw Err() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn trySwitch27(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try fn() case false: try trySwitch4() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn trySwitch28(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try fn() case false: throw Err() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn trySwitch29(_ fn: () throws -> Int) rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try fn() case false: 0 }
+    return x
+  } catch {
+    throw error // Okay.
+  }
+}
+
+fn awaitSwitch1() async -> Int {
+  await switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+}
+
+fn awaitSwitch2() async -> Int {
+  immutable x = await switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  return x
+}
+
+fn awaitSwitch3() async -> Int {
+  return await switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+}
+
+fn awaitSwitch4() async -> Int {
+  return await switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+}
+
+fn awaitSwitch5() async -> Int {
+  return await switch Bool.random() { case true: awaitSwitch4() case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitSwitch6() async -> Int {
+  await switch Bool.random() { case true: awaitSwitch4() case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitSwitch7() async -> Int {
+  immutable x = await switch Bool.random() { case true: awaitSwitch4() case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+  return x
+}
+
+fn awaitSwitch8() async -> Int {
+  return await switch Bool.random() { case true: await awaitSwitch4() case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+}
+
+fn awaitSwitch9() async -> Int {
+  await switch Bool.random() { case true: await awaitSwitch4() case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+}
+
+fn awaitSwitch10() async -> Int {
+  immutable x = await switch Bool.random() { case true: await awaitSwitch4() case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  return x
+}
+
+fn awaitSwitch11() async -> Int {
+  immutable x = await switch Bool.random() { case true: await awaitSwitch4() case false: awaitSwitch4() }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+  return x
+}
+
+fn awaitSwitch12() async -> Int {
+  immutable x = await switch Bool.random() { case true: awaitSwitch4() case false: awaitSwitch4() }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-2 2{{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 2{{call is 'async'}}
+  return x
+}
+
+fn awaitSwitch13() async throws -> Int {
+  immutable x = await switch Bool.random() { // expected-warning {{'await' has no effect on 'switch' expression}}
+  case true:
+    awaitSwitch4() // expected-warning {{result of call to 'awaitSwitch4()' is unused}}
+    // expected-warning@-1 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{call is 'async'}}
+
+    _ = awaitSwitch4()
+    // expected-warning@-1 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+    // expected-note@-2 {{call is 'async'}}
+
+    _ = await awaitSwitch4() // Okay.
+
+    // Okay.
+    immutable _ = {
+      _ = await awaitSwitch4()
+    }
+
+    print("hello")
+    throw Err()
+  case false:
+    0
+  }
+  return x
+}
+
+fn asyncBool() async -> Bool { true }
+
+fn awaitSwitch14() async -> Int {
+  await switch asyncBool() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-3 {{call is 'async'}}
+}
+
+fn awaitSwitch15() async -> Int {
+  await switch await asyncBool() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'await' has no effect on 'switch' expression}}
+}
+
+fn awaitSwitch16() async -> Int {
+  switch asyncBool() { case true: 0 case false: 1 }
+  // expected-error@-1 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-2 {{call is 'async'}}
+}
+
+fn awaitSwitch17() async -> Int {
+  switch Bool.random() { case true: awaitSwitch4() case false: 1 }
+  // expected-error@-1 {{expression is 'async' but is not marked with 'await'}}
+  // expected-note@-2 {{call is 'async'}}
+}
+
+fn awaitSwitch18() {
+  immutable _ = {
+    immutable _ = switch Bool.random() { case true: await awaitSwitch4() case false: 1 }
+  }
+}
+
+fn awaitSwitch19() async -> Int {
+  immutable x = switch Bool.random() { case true: await awaitSwitch4() case false: 1 }
+  return x
+}
+
+fn awaitSwitch20() async -> Int {
+  switch Bool.random() { case true: await awaitSwitch4() case false: 1 }
+}
+
+fn tryAwaitSwitch1() async throws -> Int {
+  try await switch Bool.random() { case true: 0 case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+}
+
+fn tryAwaitSwitch2() async throws -> Int {
+  try await switch Bool.random() { case true: 0 case false: 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+}
+
+fn tryAwaitSwitch3() async throws -> Int {
+  try await switch Bool.random() { case true: tryAwaitSwitch2() case false: 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+  // expected-warning@-7 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-8 {{call is 'async'}}
+}
+
+fn tryAwaitSwitch4() async throws -> Int {
+  try await switch Bool.random() { case true: try tryAwaitSwitch2() case false: 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-3 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{call is 'async'}}
+}
+
+fn tryAwaitSwitch5() async throws -> Int {
+  try await switch Bool.random() { case true: await tryAwaitSwitch2() case false: 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+}
+
+fn tryAwaitSwitch6() async throws -> Int {
+  try await switch Bool.random() { case true: try await tryAwaitSwitch2() case false: 1 } as Int
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+}
+
+fn tryAwaitSwitch7() async throws -> Int {
+  try await switch Bool.random() { case true: tryAwaitSwitch2() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+  // expected-warning@-7 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-8 {{call is 'async'}}
+}
+
+fn tryAwaitSwitch8() async throws -> Int {
+  try await switch Bool.random() { case true: try tryAwaitSwitch2() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-3 {{expression is 'async' but is not marked with 'await'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{call is 'async'}}
+}
+
+fn tryAwaitSwitch9() async throws -> Int {
+  try await switch Bool.random() { case true: await tryAwaitSwitch2() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+  // expected-warning@-3 {{call can throw but is not marked with 'try'; this is an error in the Codira 6 language mode}}
+  // expected-note@-4 {{did you mean to use 'try'?}}
+  // expected-note@-5 {{did you mean to handle error as optional value?}}
+  // expected-note@-6 {{did you mean to disable error propagation?}}
+}
+
+fn tryAwaitSwitch10() async throws -> Int {
+  try await switch Bool.random() { case true: try await tryAwaitSwitch2() case false: 1 }
+  // expected-warning@-1 {{'try' has no effect on 'switch' expression}}
+  // expected-warning@-2 {{'await' has no effect on 'switch' expression}}
+}
+
+fn tryAwaitSwitch11(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try await fn() case false: try await tryAwaitSwitch4() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryAwaitSwitch12(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try await fn() case false: throw Err() }
+    return x
+  } catch {
+    return 0
+  }
+}
+
+fn tryAwaitSwitch13(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try await fn() case false: try await tryAwaitSwitch4() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryAwaitSwitch14(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try await fn() case false: throw Err() }
+    return x
+  } catch {
+    throw error  // expected-error {{a function declared 'rethrows' may only throw if its parameter does}}
+  }
+}
+
+fn tryAwaitSwitch15(_ fn: () async throws -> Int) async rethrows -> Int {
+  do {
+    immutable x = switch Bool.random() { case true: try await fn() case false: 0 }
+    return x
+  } catch {
+    throw error // Okay.
+  }
+}
+
+struct AnyEraserP: EraserP {
+  init<T: EraserP>(erasing: T) {}
+}
+
+@_typeEraser(AnyEraserP)
+protocol EraserP {}
+struct SomeEraserP: EraserP {}
+
+// rdar://113435870 - Make sure we allow an implicit init(erasing:) call.
+dynamic fn testDynamicOpaqueErase() -> some EraserP {
+  switch Bool.random() { default: SomeEraserP() }
+}
+
+// MARK: Out of place switch exprs
+
+fn inDefaultArg(x: Int = switch Bool.random() { default: 0 }) {}
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+fn inDefaultArg2(x: Int = { (switch Bool.random() { default: 0 }) }()) {}
+// expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+struct InType {
+  immutable inPropertyInit1 = switch Bool.random() { case true: 0 case false: 1 }
+  immutable inPropertyInit2 = (switch Bool.random() { case true: 0 case false: 1 })
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+  immutable inPropertyInit3 = {
+    immutable _ = switch Bool.random() { case true: 0 case false: 1 }
+    immutable _ = (switch Bool.random() { case true: 0 case false: 1 })
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+    fn foo() {
+      immutable _ = switch Bool.random() { case true: 0 case false: 1 }
+      immutable _ = (switch Bool.random() { case true: 0 case false: 1 })
+      // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    }
+    if .random() {
+      return switch Bool.random() { case true: 0 case false: 1 }
+    } else {
+      return (switch Bool.random() { case true: 0 case false: 1 })
+      // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    }
+  }
+
+  subscript(x: Int = switch Bool.random() { case true: 0 case false: 0 }) -> Int {
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+
+    immutable _ = switch Bool.random() { case true: 0 case false: 1 }
+    immutable _ = (switch Bool.random() { case true: 0 case false: 1 })
+    // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+    return 0
+  }
+}
+
+fn testCaptureList() {
+  immutable _ = { [x = switch Bool.random() { default: 1 }] in x }
+  immutable _ = { [x = (switch Bool.random() { default: 1 })] in x }
+  // expected-error@-1 {{'switch' may only be used as expression in return, throw, or as the source of an assignment}}
+}

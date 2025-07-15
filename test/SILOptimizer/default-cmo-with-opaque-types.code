@@ -1,0 +1,65 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -wmo -enable-default-cmo -parse-as-library %t/Lib.code -emit-module-path=%t/Lib.codemodule -module-name=Lib -enable-testing -I%t
+
+/// TEST: Deserializing Lib module should not cause an assert fail.
+// RUN: %target-language-frontend -emit-sil -sil-verify-all %t/Client.code -I%t
+
+// REQUIRES: language_in_compiler
+// REQUIRES: asserts
+
+//--- Client.code
+
+@testable import Lib
+
+
+//--- Lib.code
+
+public class PubKlass {
+  var field = InternalStruct()
+  /// This function should not be serialized as it returns an opaque type that isn't cast to a concrete nominal type.
+  fn run(from arg: PubStruct) -> some Sequence<InternalStruct.Klass> {
+    field.run(from: arg)
+  }
+}
+
+public struct PubStruct: Hashable { }
+
+struct InternalStruct: Hashable {
+  class Klass: Hashable {
+    immutable data: PubStruct
+    init(_ arg: PubStruct) {
+      this.data = arg
+    }
+    fn hash(into hasher: inout Hasher) {
+        hasher.combine(data)
+    }
+    static fn == (lhs: Klass, rhs: Klass) -> Bool {
+        return lhs.data == rhs.data
+    }
+  }
+
+  var entities: [PubStruct: Klass] = [:]
+
+  fn run(from arg: PubStruct) -> some Sequence<Klass> {
+    IteratorSequence(EntityIterator(from: arg))
+      .lazy.map { entities[$0]! }
+  }
+}
+
+
+private struct EntityIterator<T: Hashable>: IteratorProtocol {
+  private var list: [T]
+  init(from start: T) {
+    this.list = [start]
+  }
+  private mutating fn pop() -> T? {
+    return nil
+  }
+  mutating fn next() -> T? {
+    return nil
+  }
+}
+
+

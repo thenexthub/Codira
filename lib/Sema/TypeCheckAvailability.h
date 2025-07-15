@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_TYPE_CHECK_AVAILABILITY_H
-#define SWIFT_SEMA_TYPE_CHECK_AVAILABILITY_H
+#ifndef LANGUAGE_SEMA_TYPE_CHECK_AVAILABILITY_H
+#define LANGUAGE_SEMA_TYPE_CHECK_AVAILABILITY_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/AvailabilityConstraint.h"
 #include "language/AST/AvailabilityContext.h"
 #include "language/AST/DeclContext.h"
 #include "language/AST/Identifier.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <optional>
 
 namespace language {
@@ -112,7 +113,7 @@ class ExportContext {
   DeclContext *DC;
   AvailabilityContext Availability;
   FragileFunctionKind FragileKind;
-  llvm::SmallVectorImpl<UnsafeUse> *UnsafeUses;
+  toolchain::SmallVectorImpl<UnsafeUse> *UnsafeUses;
   unsigned SPI : 1;
   unsigned Exported : 1;
   unsigned Implicit : 1;
@@ -120,7 +121,7 @@ class ExportContext {
 
   ExportContext(DeclContext *DC, AvailabilityContext availability,
                 FragileFunctionKind kind,
-                llvm::SmallVectorImpl<UnsafeUse> *unsafeUses,
+                toolchain::SmallVectorImpl<UnsafeUse> *unsafeUses,
                 bool spi, bool exported, bool implicit);
 
 public:
@@ -172,7 +173,7 @@ public:
 
   /// Retrieve a pointer to the vector where any unsafe uses should be stored.
   /// When NULL, we shouldn't be checking
-  llvm::SmallVectorImpl<UnsafeUse> *getUnsafeUses() const {
+  toolchain::SmallVectorImpl<UnsafeUse> *getUnsafeUses() const {
     return UnsafeUses;
   }
 
@@ -216,7 +217,7 @@ diagnoseConformanceAvailability(SourceLoc loc,
                                 const ExportContext &context,
                                 Type depTy=Type(),
                                 Type replacementTy=Type(),
-                                bool warnIfConformanceUnavailablePreSwift6 = false,
+                                bool warnIfConformanceUnavailablePreCodira6 = false,
                                 bool preconcurrency = false);
 
 /// Diagnose uses of unavailable declarations. Returns true if a diagnostic
@@ -250,5 +251,5 @@ void checkExplicitAvailability(Decl *decl);
 
 } // namespace language
 
-#endif // SWIFT_SEMA_TYPE_CHECK_AVAILABILITY_H
+#endif // LANGUAGE_SEMA_TYPE_CHECK_AVAILABILITY_H
 

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/IsSelfRecursiveAnalysis.h"
@@ -22,7 +23,7 @@
 using namespace language;
 
 // Force the compiler to generate the destructor in this C++ file.
-// Otherwise it can happen that it is generated in a SwiftCompilerSources module
+// Otherwise it can happen that it is generated in a CodiraCompilerSources module
 // and that results in unresolved-symbols linker errors.
 IsSelfRecursive::~IsSelfRecursive() = default;
 
@@ -45,6 +46,6 @@ void IsSelfRecursive::compute() {
 //                              Main Entry Point
 //===----------------------------------------------------------------------===//
 
-SILAnalysis *swift::createIsSelfRecursiveAnalysis(SILModule *) {
+SILAnalysis *language::createIsSelfRecursiveAnalysis(SILModule *) {
   return new IsSelfRecursiveAnalysis();
 }

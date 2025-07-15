@@ -1,0 +1,4 @@
+// {"signature":"language::rewriting::RequirementMachine::buildRequirementsFromRules(toolchain::ArrayRef<unsigned int>, toolchain::ArrayRef<unsigned int>, toolchain::ArrayRef<language::GenericTypeParamType*>, bool, std::__1::vector<language::Requirement, std::__1::allocator<language::Requirement>>&, std::__1::vector<language::ProtocolTypeAlias, std::__1::allocator<language::ProtocolTypeAlias>>&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a class b class c protocol d {
+  associatedtype e where e : a, e : c, e : b

@@ -1,0 +1,11 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+protocol P {
+  associatedtype A
+}
+
+fn foo<T: P>(_: () throws -> T) -> T.A? {
+  fatalError()
+}
+
+_ = foo() { fatalError() } & nil

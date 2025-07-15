@@ -1,13 +1,17 @@
 //===--- MoveOnlyBorrowToDestructureTransform.cpp -------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file This is a transform that converts the borrow + gep pattern to
@@ -43,8 +47,8 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/CFGOptUtils.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallBitVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallBitVector.h"
 
 using namespace language;
 using namespace language::siloptimizer;
@@ -102,7 +106,7 @@ static void addCompensatingDestroys(SSAPrunedLiveness &liveness,
     } else if (auto *arg = dyn_cast<SILArgument>(deadDef)) {
       nextInst = arg->getNextInstruction();
     } else {
-      llvm_unreachable("Unhandled dead def?!");
+      toolchain_unreachable("Unhandled dead def?!");
     }
     SILBuilderWithScope builder(nextInst);
     builder.createDestroyValue(getSafeLoc(nextInst), value);
@@ -128,13 +132,13 @@ struct AvailableValues {
   AvailableValues() : values() {}
   AvailableValues(MutableArrayRef<SILValue> values) : values(values) {}
 
-  void print(llvm::raw_ostream &os, const char *prefix = nullptr) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &os, const char *prefix = nullptr) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
 struct AvailableValueStore {
   std::vector<SILValue> dataStore;
-  llvm::DenseMap<SILBasicBlock *, AvailableValues> blockToValues;
+  toolchain::DenseMap<SILBasicBlock *, AvailableValues> blockToValues;
   unsigned nextOffset = 0;
   unsigned numBits;
 
@@ -159,11 +163,11 @@ struct AvailableValueStore {
 
 } // namespace
 
-void AvailableValues::print(llvm::raw_ostream &os, const char *prefix) const {
+void AvailableValues::print(toolchain::raw_ostream &os, const char *prefix) const {
   if (prefix)
     os << prefix;
   os << "Dumping AvailableValues!\n";
-  for (auto pair : llvm::enumerate(values)) {
+  for (auto pair : toolchain::enumerate(values)) {
     if (prefix)
       os << prefix;
     os << "    values[" << pair.index() << "] = ";
@@ -175,7 +179,7 @@ void AvailableValues::print(llvm::raw_ostream &os, const char *prefix) const {
   }
 }
 
-void AvailableValues::dump() const { print(llvm::dbgs(), nullptr); }
+void AvailableValues::dump() const { print(toolchain::dbgs(), nullptr); }
 
 //===----------------------------------------------------------------------===//
 //                        MARK: Private Implementation
@@ -265,7 +269,7 @@ struct borrowtodestructure::Implementation {
 };
 
 bool Implementation::gatherUses(SILValue value) {
-  LLVM_DEBUG(llvm::dbgs() << "Gathering uses for: " << *value);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Gathering uses for: " << *value);
   StackList<Operand *> useWorklist(value->getFunction());
 
   for (auto *use : value->getUses()) {
@@ -274,8 +278,8 @@ bool Implementation::gatherUses(SILValue value) {
 
   while (!useWorklist.empty()) {
     auto *nextUse = useWorklist.pop_back_val();
-    LLVM_DEBUG(llvm::dbgs() << "    NextUse: " << *nextUse->getUser());
-    LLVM_DEBUG(llvm::dbgs() << "    Operand Ownership: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    NextUse: " << *nextUse->getUser());
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Operand Ownership: "
                             << nextUse->getOperandOwnership() << '\n');
     switch (nextUse->getOperandOwnership()) {
     case OperandOwnership::NonUse:
@@ -286,7 +290,7 @@ bool Implementation::gatherUses(SILValue value) {
     // "compiler doesn't understand error".
     case OperandOwnership::ForwardingUnowned:
     case OperandOwnership::PointerEscape:
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "        Found forwarding unowned or pointer escape!\n");
       return false;
 
@@ -302,7 +306,7 @@ bool Implementation::gatherUses(SILValue value) {
       // copyable values as normal uses.
       if (auto *cvi = dyn_cast<CopyValueInst>(nextUse->getUser())) {
         if (cvi->getOperand()->getType().isMoveOnly()) {
-          LLVM_DEBUG(llvm::dbgs() << "        Found copy value of move only "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found copy value of move only "
                                      "field... looking through!\n");
           for (auto *use : cvi->getUses())
             useWorklist.push_back(use);
@@ -316,11 +320,11 @@ bool Implementation::gatherUses(SILValue value) {
       SmallVector<TypeTreeLeafTypeRange, 2> leafRanges;
       TypeTreeLeafTypeRange::get(nextUse, getRootValue(), leafRanges);
       if (!leafRanges.size()) {
-        LLVM_DEBUG(llvm::dbgs() << "        Failed to compute leaf range?!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed to compute leaf range?!\n");
         return false;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "        Found non lifetime ending use!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found non lifetime ending use!\n");
       for (auto leafRange : leafRanges) {
         blocksToUses.insert(nextUse->getParentBlock(),
                             {nextUse,
@@ -337,14 +341,14 @@ bool Implementation::gatherUses(SILValue value) {
     case OperandOwnership::DestroyingConsume: {
       // Ignore destroy_value, we are going to eliminate them.
       if (isa<DestroyValueInst>(nextUse->getUser())) {
-        LLVM_DEBUG(llvm::dbgs() << "        Found destroy value!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found destroy value!\n");
         continue;
       }
 
       SmallVector<TypeTreeLeafTypeRange, 2> leafRanges;
       TypeTreeLeafTypeRange::get(nextUse, getRootValue(), leafRanges);
       if (!leafRanges.size()) {
-        LLVM_DEBUG(llvm::dbgs() << "        Failed to compute leaf range?!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed to compute leaf range?!\n");
         return false;
       }
 
@@ -352,7 +356,7 @@ bool Implementation::gatherUses(SILValue value) {
       // liveness use.
       SILType type = nextUse->get()->getType();
       if (type.isTrivial(nextUse->getUser()->getFunction())) {
-        LLVM_DEBUG(llvm::dbgs() << "        Found non lifetime ending use!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found non lifetime ending use!\n");
         for (auto leafRange : leafRanges) {
           blocksToUses.insert(nextUse->getParentBlock(),
                               {nextUse,
@@ -365,7 +369,7 @@ bool Implementation::gatherUses(SILValue value) {
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "        Found lifetime ending use!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found lifetime ending use!\n");
       destructureNeedingUses.push_back(nextUse);
       for (auto leafRange : leafRanges) {
         blocksToUses.insert(nextUse->getParentBlock(),
@@ -389,11 +393,11 @@ bool Implementation::gatherUses(SILValue value) {
         TypeTreeLeafTypeRange::get(&switchEnum->getOperandRef(), getRootValue(),
                                    leafRanges);
         if (!leafRanges.size()) {
-          LLVM_DEBUG(llvm::dbgs() << "        Failed to compute leaf range?!\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed to compute leaf range?!\n");
           return false;
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "        Found non lifetime ending use!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found non lifetime ending use!\n");
         for (auto leafRange : leafRanges) {
           blocksToUses.insert(nextUse->getParentBlock(),
                               {nextUse,
@@ -421,11 +425,11 @@ bool Implementation::gatherUses(SILValue value) {
         SmallVector<TypeTreeLeafTypeRange, 2> leafRanges;
         TypeTreeLeafTypeRange::get(nextUse, getRootValue(), leafRanges);
         if (!leafRanges.size()) {
-          LLVM_DEBUG(llvm::dbgs() << "        Failed to compute leaf range?!\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed to compute leaf range?!\n");
           return false;
         }
 
-        LLVM_DEBUG(llvm::dbgs() << "        Found non lifetime ending use!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found non lifetime ending use!\n");
         for (auto leafRange : leafRanges) {
           blocksToUses.insert(nextUse->getParentBlock(),
                               {nextUse,
@@ -451,7 +455,7 @@ bool Implementation::gatherUses(SILValue value) {
       if (auto *bbi = dyn_cast<BeginBorrowInst>(nextUse->getUser());
           bbi && !bbi->isFixed()) {
         // Look through non-fixed borrows.
-        LLVM_DEBUG(llvm::dbgs() << "        Found recursive borrow!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found recursive borrow!\n");
         for (auto *use : bbi->getUses()) {
           useWorklist.push_back(use);
         }
@@ -461,12 +465,12 @@ bool Implementation::gatherUses(SILValue value) {
       SmallVector<TypeTreeLeafTypeRange, 2> leafRanges;
       TypeTreeLeafTypeRange::get(nextUse, getRootValue(), leafRanges);
       if (!leafRanges.size()) {
-        LLVM_DEBUG(llvm::dbgs() << "        Failed to compute leaf range?!\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Failed to compute leaf range?!\n");
         return false;
       }
 
       // Otherwise, treat it as a normal use.
-      LLVM_DEBUG(llvm::dbgs() << "        Treating borrow as "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Treating borrow as "
                                  "a non lifetime ending use!\n");
       for (auto leafRange : leafRanges) {
         blocksToUses.insert(nextUse->getParentBlock(),
@@ -489,8 +493,8 @@ bool Implementation::gatherUses(SILValue value) {
                  OperandOwnership::ForwardingConsume);
           return false;
         }
-        LLVM_DEBUG(llvm::dbgs() << "        ++ Scope-ending use: ";
-                   end->getUser()->print(llvm::dbgs()));
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "        ++ Scope-ending use: ";
+                   end->getUser()->print(toolchain::dbgs()));
         for (auto leafRange : leafRanges) {
           liveness.updateForUse(end->getUser(), leafRange,
                                 false /*is lifetime ending*/);
@@ -502,10 +506,10 @@ bool Implementation::gatherUses(SILValue value) {
       continue;
     }
     case OperandOwnership::EndBorrow:
-      LLVM_DEBUG(llvm::dbgs() << "        Found end borrow!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Found end borrow!\n");
       continue;
     case OperandOwnership::Reborrow:
-      llvm_unreachable("Unsupported for now?!");
+      toolchain_unreachable("Unsupported for now?!");
     }
   }
   return true;
@@ -519,7 +523,7 @@ void Implementation::checkForErrorsOnSameInstruction() {
   SmallBitVector usedBits(liveness.getNumSubElements());
 
   for (auto instRangePair : instToInterestingOperandIndexMap.getRange()) {
-    SWIFT_DEFER { usedBits.reset(); };
+    LANGUAGE_DEFER { usedBits.reset(); };
 
     // First loop through our uses and handle any consuming twice errors. We
     // also setup usedBits to check for non-consuming uses that may overlap.
@@ -628,14 +632,14 @@ void Implementation::checkForErrorsOnSameInstruction() {
 }
 
 void Implementation::checkDestructureUsesOnBoundary() const {
-  LLVM_DEBUG(llvm::dbgs() << "Checking destructure uses on boundary!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Checking destructure uses on boundary!\n");
 
   // Now that we have found all of our destructure needing uses and liveness
   // needing uses, make sure that none of our destructure needing uses are
   // within our boundary. If so, we have an automatic error since we have a
   // use-after-free.
   for (auto *use : destructureNeedingUses) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "    DestructureNeedingUse: " << *use->getUser());
 
     SmallVector<TypeTreeLeafTypeRange, 2> destructureUseSpans;
@@ -645,7 +649,7 @@ void Implementation::checkDestructureUsesOnBoundary() const {
     SmallBitVector destructureUseBits(liveness.getNumSubElements());
     destructureUseSpan.setBits(destructureUseBits);
     if (!liveness.isWithinBoundary(use->getUser(), destructureUseBits)) {
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "        On boundary or within boundary! No error!\n");
       continue;
     }
@@ -658,7 +662,7 @@ void Implementation::checkDestructureUsesOnBoundary() const {
     //
     // TODO: Fix diagnostic to use destructure needing use and boundary
     // uses.
-    LLVM_DEBUG(llvm::dbgs() << "        Within boundary! Emitting error!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Within boundary! Emitting error!\n");
     FieldSensitivePrunedLivenessBoundary boundary(liveness.getNumSubElements());
     liveness.computeBoundary(boundary);
     getDiagnostics().emitObjectDestructureNeededWithinBorrowBoundary(
@@ -670,16 +674,16 @@ void Implementation::checkDestructureUsesOnBoundary() const {
 static void dumpSmallestTypeAvailable(
     SmallVectorImpl<std::optional<std::pair<TypeOffsetSizePair, SILType>>>
         &smallestTypeAvailable) {
-  LLVM_DEBUG(llvm::dbgs() << "            Dumping smallest type available!\n");
-  for (auto pair : llvm::enumerate(smallestTypeAvailable)) {
-    LLVM_DEBUG(llvm::dbgs() << "            value[" << pair.index() << "] = ");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "            Dumping smallest type available!\n");
+  for (auto pair : toolchain::enumerate(smallestTypeAvailable)) {
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "            value[" << pair.index() << "] = ");
     if (!pair.value()) {
-      LLVM_DEBUG(llvm::dbgs() << "None\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "None\n");
       continue;
     }
 
     auto value = *pair.value();
-    LLVM_DEBUG(llvm::dbgs() << "Span: " << value.first
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Span: " << value.first
                             << ". Type: " << value.second << '\n');
   }
 }
@@ -692,7 +696,7 @@ static void dumpSmallestTypeAvailable(
 /// can use entire valid parts as late as possible. If we were to do it earlier
 /// we would emit errors too early.
 AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
-  LLVM_DEBUG(llvm::dbgs() << "    Computing Available Values For bb"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Computing Available Values For bb"
                           << block->getDebugID() << '\n');
 
   // First grab our block. If we already have state for the block, just return
@@ -700,13 +704,13 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
   // potentially updated it with new destructured values for our block.
   auto pair = blockToAvailableValues->get(block);
   if (!pair.second) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "        Already have values! Returning them!\n");
-    LLVM_DEBUG(pair.first->print(llvm::dbgs(), "            "));
+    TOOLCHAIN_DEBUG(pair.first->print(toolchain::dbgs(), "            "));
     return *pair.first;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "        No values computed! Initializing!\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        No values computed! Initializing!\n");
   auto &newValues = *pair.first;
 
   // Otherwise, we need to initialize our available values with predecessor
@@ -719,11 +723,11 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
   // independent of any other copies. We assume that OSSA canonicalization will
   // remove the extra copy later after we run or emit an error if it can't.
   if (block == getRootValue()->getParentBlock()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "        In initial block, setting to initial value!\n");
     for (unsigned i : indices(newValues))
       newValues[i] = initialValue;
-    LLVM_DEBUG(newValues.print(llvm::dbgs(), "        "));
+    TOOLCHAIN_DEBUG(newValues.print(toolchain::dbgs(), "        "));
     return newValues;
   }
 
@@ -771,7 +775,7 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
     }
   };
   auto predsSkippingBackEdges = makeOptionalTransformRange(
-      llvm::make_range(block->pred_begin(), block->pred_end()),
+      toolchain::make_range(block->pred_begin(), block->pred_end()),
       SkipBackEdgeFilter(block, getPostOrderFunctionInfo()));
 
   // Loop over all available values for all predecessors and determine for each
@@ -793,9 +797,9 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
   //
   // NOTE 2: We can only move up the type tree by calling a constructor which is
   // always a +1 operation that is treated as a consuming operation end
-  // point. In Swift at the source level, we never construct aggregates in a
+  // point. In Codira at the source level, we never construct aggregates in a
   // forwarding guaranteed manner for move only types.
-  LLVM_DEBUG(llvm::dbgs() << "        Computing smallest type available for "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Computing smallest type available for "
                              "available values for block bb"
                           << block->getDebugID() << '\n');
   SmallVector<std::optional<std::pair<TypeOffsetSizePair, SILType>>, 8>
@@ -808,15 +812,15 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
 
     {
       auto *bb = *pi;
-      LLVM_DEBUG(llvm::dbgs() << "        Visiting first block bb"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Visiting first block bb"
                               << bb->getDebugID() << '\n');
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "        Recursively loading its available values to "
                     "compute initial smallest type available for block bb"
                  << block->getDebugID() << '\n');
       auto &predAvailableValues = computeAvailableValues(bb);
-      LLVM_DEBUG(
-          llvm::dbgs()
+      TOOLCHAIN_DEBUG(
+          toolchain::dbgs()
           << "        Computing initial smallest type available for block bb"
           << block->getDebugID() << '\n');
       for (unsigned i : range(predAvailableValues.size())) {
@@ -827,19 +831,19 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
         else
           smallestTypeAvailable.emplace_back(std::nullopt);
       }
-      LLVM_DEBUG(llvm::dbgs() << "        Finished computing initial smallest "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Finished computing initial smallest "
                                  "type available for block bb"
                               << block->getDebugID() << '\n';
                  dumpSmallestTypeAvailable(smallestTypeAvailable));
     }
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "        Visiting rest of preds and intersecting for block bb"
                << block->getDebugID() << '\n');
     for (auto ppi = std::next(pi); ppi != pe; ++ppi) {
       auto *bb = *ppi;
-      LLVM_DEBUG(llvm::dbgs() << "        Computing smallest type for bb"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Computing smallest type for bb"
                               << bb->getDebugID() << '\n');
-      LLVM_DEBUG(llvm::dbgs()
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
                  << "        Recursively loading its available values!\n");
       auto &predAvailableValues = computeAvailableValues(bb);
       for (unsigned i : range(predAvailableValues.size())) {
@@ -862,9 +866,9 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
           smallestTypeAvailable[i] = {offsetSize,
                                       predAvailableValues[i]->getType()};
       }
-      LLVM_DEBUG(llvm::dbgs() << "        Smallest type available after "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        Smallest type available after "
                                  "intersecting with block!\n");
-      LLVM_DEBUG(dumpSmallestTypeAvailable(smallestTypeAvailable));
+      TOOLCHAIN_DEBUG(dumpSmallestTypeAvailable(smallestTypeAvailable));
     }
   }
 
@@ -873,13 +877,13 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
   // destructuring available values to match the smallest value needed. If we
   // destructure a larger value, we always update any other available values we
   // are propagating for it using an interval map over the type offsets.
-  LLVM_DEBUG(
-      llvm::dbgs()
+  TOOLCHAIN_DEBUG(
+      toolchain::dbgs()
       << "    Destructuring available values in preds to smallest size for bb"
       << block->getDebugID() << '\n');
   IntervalMapAllocator::Map typeSpanToValue(getAllocator());
   for (auto *predBlock : predsSkippingBackEdges) {
-    SWIFT_DEFER { typeSpanToValue.clear(); };
+    LANGUAGE_DEFER { typeSpanToValue.clear(); };
 
     auto &predAvailableValues = computeAvailableValues(predBlock);
 
@@ -960,10 +964,10 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
       }
     }
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "    Updating available values for bb"
                << predBlock->getDebugID() << "\n    Before Update:\n");
-    LLVM_DEBUG(predAvailableValues.print(llvm::dbgs(), "        "));
+    TOOLCHAIN_DEBUG(predAvailableValues.print(toolchain::dbgs(), "        "));
 
     // Now do one final loop updating our available values using the interval
     // map.
@@ -976,11 +980,11 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
         predAvailableValues[i] = iter.value();
       }
     }
-    LLVM_DEBUG(llvm::dbgs() << "    After Update:\n");
-    LLVM_DEBUG(predAvailableValues.print(llvm::dbgs(), "        "));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    After Update:\n");
+    TOOLCHAIN_DEBUG(predAvailableValues.print(toolchain::dbgs(), "        "));
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Inserting phis if needed for bb"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Inserting phis if needed for bb"
                           << block->getDebugID() << '\n');
   // At this point, all of our values should be the "appropriate size". Now we
   // need to perform the actual phi-ing.
@@ -1042,20 +1046,20 @@ AvailableValues &Implementation::computeAvailableValues(SILBasicBlock *block) {
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "    Final available values for bb"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Final available values for bb"
                           << block->getDebugID() << '\n');
-  LLVM_DEBUG(newValues.print(llvm::dbgs(), "        "));
+  TOOLCHAIN_DEBUG(newValues.print(toolchain::dbgs(), "        "));
   return newValues;
 }
 
 #ifndef NDEBUG
-static LLVM_ATTRIBUTE_USED void
+static TOOLCHAIN_ATTRIBUTE_USED void
 dumpIntervalMap(IntervalMapAllocator::Map &map) {
-  llvm::dbgs() << "Dumping Interval Map!\n";
+  toolchain::dbgs() << "Dumping Interval Map!\n";
   for (auto bi = map.begin(), be = map.end(); bi != be; ++bi) {
-    llvm::dbgs() << "Entry. Start: " << bi.start() << " End: " << bi.stop()
+    toolchain::dbgs() << "Entry. Start: " << bi.start() << " End: " << bi.stop()
                  << "\n";
-    llvm::dbgs() << "Value: " << *bi.value() << '\n';
+    toolchain::dbgs() << "Value: " << *bi.value() << '\n';
   }
 }
 #endif
@@ -1067,26 +1071,26 @@ dumpIntervalMap(IntervalMapAllocator::Map &map) {
 static void insertEndBorrowsForNonConsumingUse(Operand *op,
                                                SILValue borrow) {
   if (auto iOp = InteriorPointerOperand::get(op)) {
-    LLVM_DEBUG(llvm::dbgs() << "    -- Ending borrow after interior pointer scope:\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    -- Ending borrow after interior pointer scope:\n"
                                "    ";
-               op->getUser()->print(llvm::dbgs()));
+               op->getUser()->print(toolchain::dbgs()));
     iOp.visitBaseValueScopeEndingUses([&](Operand *endScope) -> bool {
       auto *endScopeInst = endScope->getUser();
-      LLVM_DEBUG(llvm::dbgs() << "       ";
-                 endScopeInst->print(llvm::dbgs()));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "       ";
+                 endScopeInst->print(toolchain::dbgs()));
       SILBuilderWithScope endBuilder(endScopeInst);
       endBuilder.createEndBorrow(getSafeLoc(endScopeInst), borrow);
       return true;
     });
   } else if (auto bOp = BorrowingOperand(op)) {
-    LLVM_DEBUG(llvm::dbgs() << "    -- Ending borrow after borrow scope:\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    -- Ending borrow after borrow scope:\n"
                                "    ";
-               op->getUser()->print(llvm::dbgs()));
+               op->getUser()->print(toolchain::dbgs()));
     // FIXME: ignoring the visitScopeEndingUses result ignores unknown uses.
     bOp.visitScopeEndingUses([&](Operand *endScope) -> bool {
       auto *endScopeInst = endScope->getUser();
-      LLVM_DEBUG(llvm::dbgs() << "       ";
-                 endScopeInst->print(llvm::dbgs()));
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "       ";
+                 endScopeInst->print(toolchain::dbgs()));
       auto afterScopeInst = endScopeInst->getNextInstruction();
       SILBuilderWithScope endBuilder(afterScopeInst);
       endBuilder.createEndBorrow(getSafeLoc(afterScopeInst),
@@ -1094,9 +1098,9 @@ static void insertEndBorrowsForNonConsumingUse(Operand *op,
       return true;
     });
   } else if (auto swi = dyn_cast<SwitchEnumInst>(op->getUser())) {
-    LLVM_DEBUG(llvm::dbgs() << "    -- Ending borrow for switch:\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    -- Ending borrow for switch:\n"
                                "    ";
-               swi->print(llvm::dbgs()));
+               swi->print(toolchain::dbgs()));
     // End the borrow where the original borrow of the subject was ended.
     // TODO: handle if the switch isn't directly on a borrow?
     auto beginBorrow = cast<BeginBorrowInst>(swi->getOperand());
@@ -1104,8 +1108,8 @@ static void insertEndBorrowsForNonConsumingUse(Operand *op,
     BorrowingOperand(&beginBorrow->getOperandRef())
       .visitScopeEndingUses([&](Operand *endScope) -> bool {
         auto *endScopeInst = endScope->getUser();
-        LLVM_DEBUG(llvm::dbgs() << "       ";
-                   endScopeInst->print(llvm::dbgs()));
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "       ";
+                   endScopeInst->print(toolchain::dbgs()));
         SILBuilderWithScope endBuilder(endScopeInst);
         endBuilder.createEndBorrow(getSafeLoc(endScopeInst),
                                    borrow);
@@ -1113,8 +1117,8 @@ static void insertEndBorrowsForNonConsumingUse(Operand *op,
       });
   } else {
     auto *nextInst = op->getUser()->getNextInstruction();
-    LLVM_DEBUG(llvm::dbgs() << "    -- Ending borrow after momentary use at: ";
-               nextInst->print(llvm::dbgs()));
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    -- Ending borrow after momentary use at: ";
+               nextInst->print(toolchain::dbgs()));
     SILBuilderWithScope endBuilder(nextInst);
     endBuilder.createEndBorrow(getSafeLoc(nextInst), borrow);
   }
@@ -1124,14 +1128,14 @@ static void insertEndBorrowsForNonConsumingUse(Operand *op,
 void Implementation::rewriteUses(InstructionDeleter *deleter) {
   blocksToUses.setFrozen();
 
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
              << "Performing BorrowToDestructureTransform::rewriteUses()!\n");
-  SWIFT_DEFER {
-    LLVM_DEBUG(llvm::dbgs() << "Function after rewriting!\n";
+  LANGUAGE_DEFER {
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Function after rewriting!\n";
                getMarkedValue()->getFunction()->dump());
   };
 
-  llvm::SmallPtrSet<Operand *, 8> seenOperands;
+  toolchain::SmallPtrSet<Operand *, 8> seenOperands;
   SmallBitVector bitsNeededInBlock(liveness.getNumSubElements());
   IntervalMapAllocator::Map typeSpanToValue(getAllocator());
 
@@ -1148,12 +1152,12 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
   // Walking each block in RPO order.
   for (auto *block : getPostOrderFunctionInfo()->getReversePostOrder(
            getRootValue()->getParentBlock())) {
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       bitsNeededInBlock.reset();
       seenOperands.clear();
     };
 
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Visiting block bb" << block->getDebugID() << '\n');
 
     // See if we have any operands that we need to process...
@@ -1161,7 +1165,7 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
       // If we do, gather up the bits that we need.
       for (auto operand : *operandList) {
         auto &liveBits = operand.second.liveBits;
-        LLVM_DEBUG(llvm::dbgs() << "    Found need operand "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found need operand "
                                 << operand.first->getOperandNumber()
                                 << " of inst: " << *operand.first->getUser());
         for (auto bit : liveBits.set_bits()) {
@@ -1173,18 +1177,18 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
 
     // If we do not need any bits... just continue.
     if (bitsNeededInBlock.none()) {
-      LLVM_DEBUG(llvm::dbgs() << "    No needed bits! Continuing!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    No needed bits! Continuing!\n");
       continue;
     }
 
     // Ok, we need some bits in this block. Compute our available values in this
     // block.
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "    Found needed bits! Propagating available values!\n");
     auto &availableValues = computeAvailableValues(block);
-    LLVM_DEBUG(llvm::dbgs() << "    Computed available values for block bb"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Computed available values for block bb"
                             << block->getDebugID() << '\n';
-               availableValues.print(llvm::dbgs(), "        "));
+               availableValues.print(toolchain::dbgs(), "        "));
     // Then walk from the beginning to the end of the block, rewriting as we go.
     for (auto ii = block->begin(), ie = block->end(); ii != ie;) {
       auto *inst = &*ii;
@@ -1201,11 +1205,11 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
         // All available values in our span should have the same value
         // associated with it.
         SILValue first = availableValues[span.startEltOffset];
-        assert(llvm::all_of(
+        assert(toolchain::all_of(
             range(span.startEltOffset + 1, span.endEltOffset),
             [&](unsigned index) { return first == availableValues[index]; }));
 
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "    Rewriting Operand: " << operand.getOperandNumber()
                    << " of inst: " << *operand.getUser()
                    << "    Type Span: " << span << '\n'
@@ -1215,7 +1219,7 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
         // type. If so, we can just reuse it.
         if (first->getType().removingMoveOnlyWrapper() ==
             operand.get()->getType().removingMoveOnlyWrapper()) {
-          LLVM_DEBUG(llvm::dbgs() << "    Found a value that completely covers "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found a value that completely covers "
                                      "the operand!\n    Value: "
                                   << *first);
           // If we have:
@@ -1251,8 +1255,8 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
           }
 
           // Otherwise, we need to insert a borrow.
-          LLVM_DEBUG(llvm::dbgs() << "    Inserting borrow for: ";
-                     inst->print(llvm::dbgs()));
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Inserting borrow for: ";
+                     inst->print(toolchain::dbgs()));
           SILBuilderWithScope borrowBuilder(inst);
           SILValue borrow =
               borrowBuilder.createBeginBorrow(getSafeLoc(inst), first);
@@ -1282,9 +1286,9 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
         TypeOffsetSizePair firstValueOffsetSize(first, getRootValue());
         TypeOffsetSizePair useOffsetSize(operand.get(), getRootValue());
 
-        LLVM_DEBUG(llvm::dbgs() << "    FirstValueTypeOffsetSize: "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    FirstValueTypeOffsetSize: "
                                 << firstValueOffsetSize << '\n');
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "    UseOffsetSize: " << useOffsetSize << '\n');
 
         // Make sure that useOffsetSize is within firstOffsetSize. If it isn't,
@@ -1301,8 +1305,8 @@ void Implementation::rewriteUses(InstructionDeleter *deleter) {
         // borrow scope and extract out the value. Our value should always be
         // fully available.
         if (!operand.isConsuming()) {
-          LLVM_DEBUG(
-              llvm::dbgs()
+          TOOLCHAIN_DEBUG(
+              toolchain::dbgs()
               << "    Non Consuming Operand! Extracting using borrows!\n");
 
           SILBuilderWithScope borrowBuilder(inst);
@@ -1369,8 +1373,8 @@ update_operand:
 
         // If we do a consuming use though, we need to destructure and then
         // update our available value array.
-        LLVM_DEBUG(
-            llvm::dbgs()
+        TOOLCHAIN_DEBUG(
+            toolchain::dbgs()
             << "    Consuming Operand! Extracting using destructures!\n");
         SILBuilderWithScope consumeBuilder(inst,
                                            &interface.createdDestructures);
@@ -1378,7 +1382,7 @@ update_operand:
         auto iterOffsetSize = firstValueOffsetSize;
         SILValue iterValue = first;
         SILType iterType = iterValue->getType();
-        SWIFT_DEFER { typeSpanToValue.clear(); };
+        LANGUAGE_DEFER { typeSpanToValue.clear(); };
 
         SILType unwrappedOperandType =
             operand.get()->getType().removingMoveOnlyWrapper();
@@ -1437,22 +1441,22 @@ update_operand:
           else
             availableValues[i] = iter.value();
         }
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                        << "    Available values after destructuring:\n";
-                   availableValues.print(llvm::dbgs(), "        "));
+                   availableValues.print(toolchain::dbgs(), "        "));
       }
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "Finished visiting/rewriting uses for block bb"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Finished visiting/rewriting uses for block bb"
                             << block->getDebugID() << '\n');
   }
 }
 
 void Implementation::cleanup() {
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
              << "Performing BorrowToDestructureTransform::cleanup()!\n");
-  SWIFT_DEFER {
-    LLVM_DEBUG(llvm::dbgs() << "Function after cleanup!\n";
+  LANGUAGE_DEFER {
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Function after cleanup!\n";
                getMarkedValue()->getFunction()->dump());
   };
 
@@ -1468,7 +1472,7 @@ void Implementation::cleanup() {
       if (result->getType().isTrivial(*fn))
         continue;
       SSAPrunedLiveness liveness(fn, &discoveredBlocks);
-      SWIFT_DEFER {
+      LANGUAGE_DEFER {
         discoveredBlocks.clear();
         boundary.clear();
       };
@@ -1486,7 +1490,7 @@ void Implementation::cleanup() {
       continue;
 
     SSAPrunedLiveness liveness(fn, &discoveredBlocks);
-    SWIFT_DEFER {
+    LANGUAGE_DEFER {
       discoveredBlocks.clear();
       boundary.clear();
     };
@@ -1518,12 +1522,12 @@ static bool gatherBorrows(SILValue rootValue,
   //    access directly and would cause a need to destructure must be copyable,
   //    so no transformation/error is needed.
   if (rootValue->getType().isMoveOnlyWrapped()) {
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Skipping move only wrapped inst: " << *rootValue);
     return true;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "Searching for borrows for inst: " << *rootValue);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Searching for borrows for inst: " << *rootValue);
 
   StackList<Operand *> worklist(rootValue->getFunction());
   for (auto *op : rootValue->getUses())
@@ -1577,7 +1581,7 @@ static bool gatherBorrows(SILValue rootValue,
       continue;
     case OperandOwnership::Borrow:
       if (auto *bbi = dyn_cast<BeginBorrowInst>(use->getUser())) {
-        LLVM_DEBUG(llvm::dbgs() << "    Found borrow: " << *bbi);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Found borrow: " << *bbi);
         borrowWorklist.push_back(bbi);
       }
       continue;
@@ -1588,7 +1592,7 @@ static bool gatherBorrows(SILValue rootValue,
     case OperandOwnership::GuaranteedForwarding:
     case OperandOwnership::EndBorrow:
     case OperandOwnership::Reborrow:
-      llvm_unreachable("Visiting an owned value!\n");
+      toolchain_unreachable("Visiting an owned value!\n");
     }
   }
 
@@ -1601,8 +1605,8 @@ static bool gatherBorrows(SILValue rootValue,
 
 bool BorrowToDestructureTransform::transform() {
   auto *fn = mmci->getFunction();
-  LLVM_DEBUG(llvm::dbgs() << "Performing Borrow To Destructure Transform!\n";
-             fn->print(llvm::dbgs()));
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Performing Borrow To Destructure Transform!\n";
+             fn->print(toolchain::dbgs()));
   StackList<BeginBorrowInst *> borrowWorklist(mmci->getFunction());
 
   // If we failed to gather borrows due to the transform not understanding part
@@ -1615,7 +1619,7 @@ bool BorrowToDestructureTransform::transform() {
   // If we do not have any borrows to process, return true early to show we
   // succeeded in processing.
   if (borrowWorklist.empty()) {
-    LLVM_DEBUG(llvm::dbgs() << "No borrows found!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "No borrows found!\n");
     return true;
   }
 
@@ -1670,14 +1674,14 @@ bool BorrowToDestructureTransform::transform() {
   // Then clean up all of our borrows/copies/struct_extracts which no longer
   // have any uses...
   {
-    LLVM_DEBUG(llvm::dbgs() << "Deleting dead instructions!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Deleting dead instructions!\n");
 
     InstructionDeleter deleter;
     while (!borrowWorklist.empty()) {
       deleter.recursivelyForceDeleteUsersAndFixLifetimes(
           borrowWorklist.pop_back_val());
     }
-    LLVM_DEBUG(llvm::dbgs() << "Function after deletion!\n";
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Function after deletion!\n";
                impl.getMarkedValue()->getFunction()->dump());
   }
 

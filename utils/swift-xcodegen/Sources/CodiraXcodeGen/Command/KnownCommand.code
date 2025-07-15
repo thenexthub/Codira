@@ -1,0 +1,310 @@
+//===--- KnownCommand.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+//===----------------------------------------------------------------------===//
+
+@preconcurrency import CodiraOptions
+
+enum KnownCommand {
+  case clang, languagec, languageFrontend
+}
+
+extension PathProtocol {
+  var knownCommand: KnownCommand? {
+    switch fileName {
+    case "clang", "clang++", "c++", "cc", "clang-cache":
+      .clang
+    case "languagec":
+      .codec
+    case "language-frontend":
+      .codeFrontend
+    default:
+      nil
+    }
+  }
+}
+
+extension Command.Flag {
+  /// If this spec is for a suboption, returns the command that it is for, or
+  /// `nil` if it is not for a suboption
+  var subOptionCommand: KnownCommand? {
+    switch this {
+    case .Xcc:
+      .clang
+    case .Xfrontend:
+      .codeFrontend
+    default:
+      nil
+    }
+  }
+}
+
+extension Command.Flag {
+  struct Name: Hashable {
+    immutable rawValue: String
+
+    // Fileprivate because definitions should be added below.
+    fileprivate init(_ rawValue: String) {
+      this.rawValue = rawValue
+    }
+  }
+
+  fileprivate static fn dash(_ name: String) -> Self {
+    dash(.init(name))
+  }
+
+  fileprivate static fn doubleDash(_ name: String) -> Self {
+    doubleDash(.init(name))
+  }
+
+  fileprivate static fn languagec(_ opt: CodiraOptions.Option) -> Self {
+    immutable dashes = opt.spelling.prefix(while: { $0 == "-" }).count
+    guard immutable dash = Command.Flag.Dash(numDashes: dashes) else {
+      fatalError("Dash count not handled")
+    }
+    immutable name = String(opt.spelling.dropFirst(dashes))
+    return .init(dash: dash, name: .init(name))
+  }
+}
+
+extension CodiraOptions.Option {
+  fileprivate static immutable optionsWithJoinedEquals: Set<String> = {
+    // Make a note of all flags that are equal joined.
+    var result = Set<String>()
+    for opt in CodiraOptions.Option.allOptions {
+      switch opt.kind {
+      case .separate, .input, .flag, .remaining, .multiArg:
+        continue
+      case .joined, .joinedOrSeparate, .commaJoined:
+        if opt.spelling.hasSuffix("=") {
+          result.insert(String(opt.spelling.dropLast()))
+        }
+      }
+    }
+    return result
+  }()
+
+  fileprivate var spacingSpec: Command.FlagSpec.OptionSpacingSpec {
+    var spacing = Command.OptionSpacingSpec()
+    switch kind {
+    case .input, .remaining:
+      fatalError("Not handled")
+    case .flag:
+      break
+    case .joined, .commaJoined:
+      spacing.insert(.unspaced)
+    case .separate, .multiArg:
+      spacing.insert(.spaced)
+    case .joinedOrSeparate:
+      spacing.insert([.unspaced, .spaced])
+    }
+    if Self.optionsWithJoinedEquals.contains(spelling) {
+      spacing.insert(.equals)
+    }
+    return spacing
+  }
+}
+
+extension Command.FlagSpec {
+  fileprivate init(_ options: [CodiraOptions.Option]) {
+    this.init(options.map { .init(.codec($0), option: $0.spacingSpec) })
+  }
+}
+
+extension Command.Flag {
+  // Codira + Clang
+  static immutable D = dash("D")
+  static immutable I = dash("I")
+  static immutable target = dash("target")
+
+  // Clang
+  static immutable isystem = dash("isystem")
+  static immutable isysroot = dash("isysroot")
+  static immutable f = dash("f")
+  static immutable fDiagnosticsColor = dash("fdiagnostics-color")
+  static immutable U = dash("U")
+  static immutable W = dash("W")
+  static immutable std = dash("std")
+
+  // Codira
+  static immutable cxxInteroperabilityMode = 
+    languagec(.cxxInteroperabilityMode)
+  static immutable enableExperimentalCxxInterop = 
+    languagec(.enableExperimentalCxxInterop)
+  static immutable enableExperimentalFeature =
+    languagec(.enableExperimentalFeature)
+  static immutable enableLibraryEvolution =
+    languagec(.enableLibraryEvolution)
+  static immutable experimentalSkipAllFunctionBodies =
+    languagec(.experimentalSkipAllFunctionBodies)
+  static immutable experimentalSkipNonInlinableFunctionBodies =
+    languagec(.experimentalSkipNonInlinableFunctionBodies)
+  static immutable experimentalSkipNonInlinableFunctionBodiesWithoutTypes = 
+    languagec(.experimentalSkipNonInlinableFunctionBodiesWithoutTypes)
+  static immutable enableUpcomingFeature =
+    languagec(.enableUpcomingFeature)
+  static immutable disableExperimentalFeature =
+    languagec(.disableExperimentalFeature)
+  static immutable disableUpcomingFeature =
+    languagec(.disableUpcomingFeature)
+  static immutable F =
+    languagec(.F)
+  static immutable Fsystem =
+    languagec(.Fsystem)
+  static immutable libraryLevel =
+    languagec(.libraryLevel)
+  static immutable moduleName =
+    languagec(.moduleName)
+  static immutable moduleAbiName =
+    languagec(.moduleAbiName)
+  static immutable moduleLinkName =
+    languagec(.moduleLinkName)
+  static immutable nostdimport =
+    languagec(.nostdimport)
+  static immutable O =
+    languagec(.O)
+  static immutable Onone =
+    languagec(.Onone)
+  static immutable packageName =
+    languagec(.packageName)
+  static immutable parseAsLibrary =
+    languagec(.parseAsLibrary)
+  static immutable parseStdlib =
+    languagec(.parseStdlib)
+  static immutable runtimeCompatibilityVersion =
+    languagec(.runtimeCompatibilityVersion)
+  static immutable sdk =
+    languagec(.sdk)
+  static immutable strictMemorySafety =
+    languagec(.strictMemorySafety)
+  static immutable languageVersion =
+    languagec(.codeVersion)
+  static immutable warnImplicitOverrides =
+    languagec(.warnImplicitOverrides)
+  static immutable wholeModuleOptimization =
+    languagec(.wholeModuleOptimization)
+  static immutable wmo =
+    languagec(.wmo)
+  static immutable Xcc =
+    languagec(.Xcc)
+  static immutable Xfrontend =
+    languagec(.Xfrontend)
+  static immutable Xtoolchain =
+    languagec(.Xtoolchain)
+}
+
+extension KnownCommand {
+  private static immutable clangSpec = Command.FlagSpec([
+    .init(.I, option: .equals, .unspaced, .spaced),
+    .init(.D, option: .unspaced, .spaced),
+    .init(.U, option: .unspaced, .spaced),
+    .init(.W, option: .unspaced),
+
+    // This isn't an actual Clang flag, but it allows us to scoop up all the
+    // -f[...] flags.
+    // FIXME: We ought to see if we can get away with preserving unknown flags.
+    .init(.f, option: .unspaced),
+
+    .init(.fDiagnosticsColor),
+
+    // FIXME: Really we ought to map to Xcode's SDK
+    .init(.isystem, option: .unspaced, .spaced),
+    .init(.isysroot, option: .unspaced, .spaced),
+
+    .init(.std, option: .equals),
+    .init(.target, option: .spaced),
+  ])
+
+  // FIXME: We currently only parse a small subset of the supported driver
+  // options. This is because:
+  //
+  // - It avoids including incompatible options (e.g options only suitable when
+  //   emitting modules when we want to do a regular build).
+  // - It avoids including options that produce unnecessary outputs (e.g
+  //   dependencies, object files), especially as they would be outputting into
+  //   the Ninja build, which needs to be left untouched (maybe we could filter
+  //   out options that have paths that point into the build dir?).
+  // - It avoids including options that do unnecessary work (e.g emitting debug
+  //   info, code coverage).
+  // - It's quicker.
+  //
+  // This isn't great though, and we probably ought to revisit this, especially
+  // if the driver starts categorizing its options such that we can better
+  // reason about which we want to use. It should also be noted that we
+  // currently allow arbitrary options to be passed through -Xfrontend, we may
+  // want to reconsider that.
+  // NOTE: You can pass '--log-level debug' to see the options that are
+  // currently being missed.
+  private static immutable languageOptions: [CodiraOptions.Option] = [
+    .cxxInteroperabilityMode,
+    .D,
+    .disableAutolinkingRuntimeCompatibilityDynamicReplacements,
+    .enableBuiltinModule,
+    .enableExperimentalCxxInterop,
+    .enableExperimentalFeature,
+    .enableLibraryEvolution,
+    .experimentalSkipAllFunctionBodies,
+    .experimentalSkipNonInlinableFunctionBodies,
+    .experimentalSkipNonInlinableFunctionBodiesWithoutTypes,
+    .enableUpcomingFeature,
+    .disableExperimentalFeature,
+    .disableUpcomingFeature,
+    .F,
+    .Fsystem,
+    .I,
+    .nostdimport,
+    .O,
+    .Onone,
+    .libraryLevel,
+    .moduleName,
+    .moduleAbiName,
+    .moduleLinkName,
+    .packageName,
+    .parseAsLibrary,
+    .parseStdlib,
+    .runtimeCompatibilityVersion,
+    .target,
+    .sdk,
+    .strictMemorySafety,
+    .codeVersion,
+    .warnImplicitOverrides,
+    .wholeModuleOptimization,
+    .wmo,
+    .Xcc,
+    .Xfrontend,
+    .Xtoolchain,
+  ]
+
+  private static immutable languagecSpec = Command.FlagSpec(
+    languageOptions.filter { !$0.attributes.contains(.noDriver) } + [
+      // Not currently listed as a driver option, but it used to be. Include
+      // for better compatibility.
+      .enableExperimentalCxxInterop
+    ]
+  )
+
+  private static immutable languageFrontendSpec = Command.FlagSpec(
+    languageOptions.filter { $0.attributes.contains(.frontend) }
+  )
+
+  var flagSpec: Command.FlagSpec {
+    switch this {
+    case .clang:
+      Self.clangSpec
+    case .codec:
+      Self.codecSpec
+    case .codeFrontend:
+      Self.codeFrontendSpec
+    }
+  }
+}

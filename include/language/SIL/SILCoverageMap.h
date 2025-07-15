@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILCoverageMap class, which is used to relay coverage
@@ -18,30 +19,30 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILCOVERAGEMAP_H
-#define SWIFT_SIL_SILCOVERAGEMAP_H
+#ifndef LANGUAGE_SIL_SILCOVERAGEMAP_H
+#define LANGUAGE_SIL_SILCOVERAGEMAP_H
 
 #include "language/Basic/SourceLoc.h"
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILPrintContext.h"
-#include "llvm/ADT/ilist.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/ProfileData/Coverage/CoverageMapping.h"
+#include "toolchain/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/ProfileData/Coverage/CoverageMapping.h"
 
-namespace llvm {
+namespace toolchain {
 namespace coverage {
 struct CounterExpression;
 struct Counter;
 } // namespace coverage
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
 /// A mapping from source locations to expressions made up of profiling
 /// counters. This is used to embed information in build products for use with
 /// coverage tools later.
-class SILCoverageMap : public llvm::ilist_node<SILCoverageMap>,
+class SILCoverageMap : public toolchain::ilist_node<SILCoverageMap>,
                        public SILAllocated<SILCoverageMap> {
 public:
   class MappedRegion {
@@ -61,12 +62,12 @@ public:
     unsigned StartCol;
     unsigned EndLine;
     unsigned EndCol;
-    llvm::coverage::Counter Counter;
+    toolchain::coverage::Counter Counter;
 
   private:
     MappedRegion(Kind RegionKind, unsigned StartLine, unsigned StartCol,
                  unsigned EndLine, unsigned EndCol,
-                 llvm::coverage::Counter Counter)
+                 toolchain::coverage::Counter Counter)
         : RegionKind(RegionKind), StartLine(StartLine), StartCol(StartCol),
           EndLine(EndLine), EndCol(EndCol), Counter(Counter) {}
 
@@ -74,7 +75,7 @@ public:
     /// A code region, which represents a regular region of source code.
     static MappedRegion code(unsigned StartLine, unsigned StartCol,
                              unsigned EndLine, unsigned EndCol,
-                             llvm::coverage::Counter Counter) {
+                             toolchain::coverage::Counter Counter) {
       return MappedRegion(Kind::Code, StartLine, StartCol, EndLine, EndCol,
                           Counter);
     }
@@ -85,18 +86,18 @@ public:
     static MappedRegion skipped(unsigned StartLine, unsigned StartCol,
                                 unsigned EndLine, unsigned EndCol) {
       return MappedRegion(Kind::Skipped, StartLine, StartCol, EndLine, EndCol,
-                          llvm::coverage::Counter());
+                          toolchain::coverage::Counter());
     }
 
     /// Retrieve the equivalent LLVM mapped region.
-    llvm::coverage::CounterMappingRegion getLLVMRegion(unsigned FileID) const;
+    toolchain::coverage::CounterMappingRegion getLLVMRegion(unsigned FileID) const;
   };
 
 private:
   /// The parent source file containing the coverage map.
   /// 
   /// NOTE: `ParentSourceFile->getFilename()` is not necessarily equivalent to
-  /// `Filename`. `Filename` could be a .swift file, and `ParentSourceFile`
+  /// `Filename`. `Filename` could be a .code file, and `ParentSourceFile`
   /// could be a parsed .sil file. As such, this should only be used for
   /// determining which object file to emit the coverage map into.
   /// `Filename` should be used for coverage data.
@@ -118,7 +119,7 @@ private:
   MutableArrayRef<MappedRegion> MappedRegions;
 
   // Tail-allocated expression list.
-  MutableArrayRef<llvm::coverage::CounterExpression> Expressions;
+  MutableArrayRef<toolchain::coverage::CounterExpression> Expressions;
 
   // Disallow copying into temporary objects.
   SILCoverageMap(const SILCoverageMap &other) = delete;
@@ -134,12 +135,12 @@ public:
   create(SILModule &M, SourceFile *ParentSourceFile, StringRef Filename,
          StringRef Name, StringRef PGOFuncName, uint64_t Hash,
          ArrayRef<MappedRegion> MappedRegions,
-         ArrayRef<llvm::coverage::CounterExpression> Expressions);
+         ArrayRef<toolchain::coverage::CounterExpression> Expressions);
 
   /// The parent source file containing the coverage map.
   ///
   /// NOTE: `getParentSourceFile()->getFilename()` is not necessarily equivalent
-  /// to `getFilename()`. `getFilename()` could be a .swift file, and
+  /// to `getFilename()`. `getFilename()` could be a .code file, and
   /// `getParentSourceFile()` could be a parsed .sil file. As such, this should
   /// only be used for determining which object file to emit the coverage map
   /// in. `getFilename()` should be used for coverage data.
@@ -161,23 +162,23 @@ public:
   ArrayRef<MappedRegion> getMappedRegions() const { return MappedRegions; }
 
   /// Return all of the counter expressions.
-  ArrayRef<llvm::coverage::CounterExpression> getExpressions() const {
+  ArrayRef<toolchain::coverage::CounterExpression> getExpressions() const {
     return Expressions;
   }
 
   /// Print a given profiling counter expression, given the reference to the
   /// counter, and the list of counters it may reference.
   static void
-  printCounter(llvm::raw_ostream &OS, llvm::coverage::Counter C,
-               ArrayRef<llvm::coverage::CounterExpression> Expressions);
+  printCounter(toolchain::raw_ostream &OS, toolchain::coverage::Counter C,
+               ArrayRef<toolchain::coverage::CounterExpression> Expressions);
 
   /// Print a given profiling counter expression.
-  void printCounter(llvm::raw_ostream &OS, llvm::coverage::Counter C) const {
+  void printCounter(toolchain::raw_ostream &OS, toolchain::coverage::Counter C) const {
     printCounter(OS, C, getExpressions());
   }
 
   /// Print the coverage map.
-  void print(llvm::raw_ostream &OS, bool Verbose = false,
+  void print(toolchain::raw_ostream &OS, bool Verbose = false,
              bool ShouldSort = false) const {
     SILPrintContext Ctx(OS, Verbose, ShouldSort);
     print(Ctx);
@@ -190,16 +191,16 @@ public:
 
 } // namespace language
 
-namespace llvm {
+namespace toolchain {
 
 //===----------------------------------------------------------------------===//
 // ilist_traits for SILCoverageMap
 //===----------------------------------------------------------------------===//
 
 template <>
-struct ilist_traits<::swift::SILCoverageMap>
-    : public ilist_node_traits<::swift::SILCoverageMap> {
-  using SILCoverageMap = ::swift::SILCoverageMap;
+struct ilist_traits<::language::SILCoverageMap>
+    : public ilist_node_traits<::language::SILCoverageMap> {
+  using SILCoverageMap = ::language::SILCoverageMap;
 
 public:
   static void deleteNode(SILCoverageMap *VT) { VT->~SILCoverageMap(); }
@@ -208,6 +209,6 @@ private:
   void createNode(const SILCoverageMap &);
 };
 
-} // namespace llvm
+} // namespace toolchain
 
-#endif // SWIFT_SIL_SILCOVERAGEMAP_H
+#endif // LANGUAGE_SIL_SILCOVERAGEMAP_H

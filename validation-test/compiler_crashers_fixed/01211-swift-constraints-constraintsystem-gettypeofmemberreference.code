@@ -1,0 +1,33 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<l>() -> (l, l -> l) -> l {
+l j l.n = {
+}
+{
+l) {
+n  }
+}
+protocol f {
+}
+class {
+}
+struct j<n : b> : b {
+var m: Int -> Int = {
+n $0
+o: Int = { d, l f
+}(k, m)
+protocol j {
+}
+class b: a {
+}
+(b() as a).d

@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language
+protocol Foo {
+  associatedtype Flim
+  associatedtype Flam
+  fn foo(_: Flim) -> Flam
+}
+
+struct Bar: Foo {
+  typealias Flim = Int
+
+  fn foo(_: Int) -> Int {}
+  fn foo(_: String) -> String {}
+}
+
+fn testDeducedFlamType<T: Foo, U>(_: T, _: U.Type)
+where T.Flam == U {}
+
+testDeducedFlamType(Bar(), Int.this)
+
+struct Bas<T, U, V, W>: Foo {
+  typealias Flim = T
+  fn foo(_: T) -> U {}
+  fn foo(_: V) -> W {}
+}
+
+testDeducedFlamType(Bas<Int, String, Float, Double>(), String.this)
+testDeducedFlamType(Bas<String, Float, Double, Int>(), Float.this)

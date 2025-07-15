@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the InFlightSubstitution structure, which captures
@@ -22,8 +23,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_INFLIGHTSUBSTITUTION_H
-#define SWIFT_AST_INFLIGHTSUBSTITUTION_H
+#ifndef LANGUAGE_AST_INFLIGHTSUBSTITUTION_H
+#define LANGUAGE_AST_INFLIGHTSUBSTITUTION_H
 
 #include "language/AST/SubstitutionMap.h"
 
@@ -55,8 +56,7 @@ public:
   Type substType(SubstitutableType *origType, unsigned level);
 
   /// Perform primitive conformance lookup on the given type.
-  ProtocolConformanceRef lookupConformance(CanType dependentType,
-                                           Type conformingReplacementType,
+  ProtocolConformanceRef lookupConformance(Type dependentType,
                                            ProtocolDecl *conformedProtocol,
                                            unsigned level);
 
@@ -69,13 +69,13 @@ public:
   /// pack-element type references will substitute to the corresponding
   /// element of the substitution of the pack.
   void expandPackExpansionShape(Type origShape,
-      llvm::function_ref<void(Type substComponentShape)> handleComponent);
+      toolchain::function_ref<void(Type substComponentShape)> handleComponent);
 
   /// Call the given function for each expanded component type of the
   /// given pack expansion type.  The function will be invoked with the
   /// active expansion still active.
   void expandPackExpansionType(PackExpansionType *origExpansionType,
-      llvm::function_ref<void(Type substType)> handleComponentType) {
+      toolchain::function_ref<void(Type substType)> handleComponentType) {
     expandPackExpansionShape(origExpansionType->getCountType(),
                              [&](Type substComponentShape) {
       auto origPatternType = origExpansionType->getPatternType();

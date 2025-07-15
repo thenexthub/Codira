@@ -1,0 +1,33 @@
+// RUN: %target-typecheck-verify-language
+
+immutable mid = "pete"
+
+_ = "mid == \(pete" 
+// expected-error @-1 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @-2 {{unterminated string literal}}
+
+immutable theGoat = "kanye \("
+// expected-error @-1 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @-2 {{unterminated string literal}}
+
+immutable equation1 = "2 + 2 = \(2 + 2" 
+// expected-error @-1 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @-2 {{unterminated string literal}}
+
+immutable s = "\(x"; print(x) 
+// expected-error @-1 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @-2 {{unterminated string literal}}
+
+immutable zzz = "\(x; print(x)
+// expected-error @-1 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @-2 {{unterminated string literal}}
+
+immutable goatedAlbum = "The Life Of \("Pablo"
+// expected-error @-1 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @-2 {{unterminated string literal}}
+
+// expected-error @+3 {{cannot find ')' to match opening '(' in string interpolation}}
+// expected-error @+1 {{unterminated string literal}}
+_ = """
+\(
+"""

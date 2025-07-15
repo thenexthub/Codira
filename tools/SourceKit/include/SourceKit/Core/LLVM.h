@@ -1,4 +1,4 @@
-//===--- LLVM.h - Import various common LLVM datatypes ----------*- C++ -*-===//
+//===--- Toolchain.h - Import various common LLVM datatypes ----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file
@@ -18,16 +19,16 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_CORE_LLVM_H
-#define LLVM_SOURCEKIT_CORE_LLVM_H
+#ifndef TOOLCHAIN_SOURCEKIT_CORE_TOOLCHAIN_H
+#define TOOLCHAIN_SOURCEKIT_CORE_TOOLCHAIN_H
 
 // Do not proliferate #includes here, require clients to #include their
 // dependencies.
 // Casting.h has complex templates that cannot be easily forward declared.
-#include "llvm/Support/Casting.h"
+#include "toolchain/Support/Casting.h"
 #include <memory>
 
-namespace llvm {
+namespace toolchain {
   // ADT's.
   class StringRef;
   class Twine;
@@ -75,29 +76,29 @@ namespace language {
 
 namespace SourceKit {
   // Casting operators.
-  using llvm::isa;
-  using llvm::cast;
-  using llvm::dyn_cast;
-  using llvm::dyn_cast_or_null;
-  using llvm::cast_or_null;
+  using toolchain::isa;
+  using toolchain::cast;
+  using toolchain::dyn_cast;
+  using toolchain::dyn_cast_or_null;
+  using toolchain::cast_or_null;
   
   // ADT's.
-  using llvm::ArrayRef;
-  using llvm::SaveAndRestore;
-  using llvm::SmallString;
-  using llvm::SmallVector;
-  using llvm::SmallVectorImpl;
-  using llvm::StringRef;
-  using llvm::Twine;
+  using toolchain::ArrayRef;
+  using toolchain::SaveAndRestore;
+  using toolchain::SmallString;
+  using toolchain::SmallVector;
+  using toolchain::SmallVectorImpl;
+  using toolchain::StringRef;
+  using toolchain::Twine;
 
   // Reference counting.
-  using llvm::IntrusiveRefCntPtr;
-  using llvm::IntrusiveRefCntPtrInfo;
-  using llvm::ThreadSafeRefCountedBase;
-  using swift::ThreadSafeRefCountedBaseVPTR;
+  using toolchain::IntrusiveRefCntPtr;
+  using toolchain::IntrusiveRefCntPtrInfo;
+  using toolchain::ThreadSafeRefCountedBase;
+  using language::ThreadSafeRefCountedBaseVPTR;
   template <typename T> class ThreadSafeRefCntPtr;
 
-  using llvm::raw_ostream;
+  using toolchain::raw_ostream;
 
   template <typename T>
   using RefPtr = IntrusiveRefCntPtr<T>;

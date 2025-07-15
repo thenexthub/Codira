@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -language-version 5 -enable-library-evolution -module-name unsafe -emit-module -o %t/unsafe.codemodule -emit-module-interface-path - %s | %FileCheck %s
+
+// CHECK: #if compiler(>=5.3) && $MemorySafetyAttributes
+// CHECK: @unsafe public fn testFunction()
+// CHECK: #else
+// CHECK: public fn testFunction()
+// CHECK: #endif
+@unsafe public fn testFunction() { }

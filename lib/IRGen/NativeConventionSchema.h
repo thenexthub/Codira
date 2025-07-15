@@ -1,4 +1,4 @@
-//===--- NativeConventionSchema.h - R-Value Schema for SwiftCC --*- C++ -*-===//
+//===--- NativeConventionSchema.h - R-Value Schema for CodiraCC --*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,32 +11,33 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A schema that describes the explosion of values for passing according to the
 // native calling convention.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_IRGEN_NATIVECONVENTIONSCHEMA_H
-#define SWIFT_IRGEN_NATIVECONVENTIONSCHEMA_H
+#ifndef LANGUAGE_IRGEN_NATIVECONVENTIONSCHEMA_H
+#define LANGUAGE_IRGEN_NATIVECONVENTIONSCHEMA_H
 
-#include "clang/CodeGen/SwiftCallingConv.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
+#include "clang/CodeGen/CodiraCallingConv.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
 #include "IRGen.h"
 #include "IRGenFunction.h"
 
 namespace language {
 namespace irgen {
 
-using SwiftAggLowering = clang::CodeGen::swiftcall::SwiftAggLowering;
+using CodiraAggLowering = clang::CodeGen::languagecall::CodiraAggLowering;
 
 class NativeConventionSchema {
-  SwiftAggLowering Lowering;
+  CodiraAggLowering Lowering;
   bool RequiresIndirect;
 
 public:
-  using EnumerationCallback = SwiftAggLowering::EnumerationCallback;
+  using EnumerationCallback = CodiraAggLowering::EnumerationCallback;
 
   NativeConventionSchema(IRGenModule &IGM, const TypeInfo *TI, bool isResult);
 
@@ -50,7 +51,7 @@ public:
   }
   bool empty() const { return Lowering.empty(); }
 
-  llvm::Type *getExpandedType(IRGenModule &IGM) const;
+  toolchain::Type *getExpandedType(IRGenModule &IGM) const;
 
   /// The number of components in the schema.
   unsigned size() const;
@@ -81,7 +82,7 @@ public:
   /// \p ExpandedTyIndices is a map from the non-array type elements of the
   /// returned struct types (viewed concatenated) to the index in the expanded
   /// type.
-  std::pair<llvm::StructType *, llvm::StructType *>
+  std::pair<toolchain::StructType *, toolchain::StructType *>
   getCoercionTypes(IRGenModule &IGM,
                    SmallVectorImpl<unsigned> &expandedTyIndicesMap) const;
 };

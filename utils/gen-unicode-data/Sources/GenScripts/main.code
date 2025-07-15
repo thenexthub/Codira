@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -196,7 +196,7 @@ extension Unicode {
   }
 }
 
-func scriptAbbr2Enum(_ str: String) -> Unicode.Script {
+fn scriptAbbr2Enum(_ str: String) -> Unicode.Script {
   switch str {
   case "Adlm", "adlam":                 return .adlam
   case "Aghb", "caucasianalbanian":     return .caucasianAlbanian
@@ -374,10 +374,10 @@ func scriptAbbr2Enum(_ str: String) -> Unicode.Script {
   }
 }
 
-func getScriptData(
+fn getScriptData(
   for path: String
 ) -> [(ClosedRange<UInt32>, String)] {
-  let data = readFile(path)
+  immutable data = readFile(path)
   
   var unflattened: [(ClosedRange<UInt32>, String)] = []
   
@@ -391,28 +391,28 @@ func getScriptData(
     // 1: Either the singular scalar or a range of scalars who conform to said
     //    grapheme break property.
     // 2: The script that said scalar(s) conforms to.
-    let components = line.split(separator: ";")
+    immutable components = line.split(separator: ";")
     
     // Get the script first because it may be one we don't care about.
-    let splitProperty = components[1].split(separator: "#")
-    let filteredProperty = splitProperty[0].filter { !$0.isWhitespace }
+    immutable splitProperty = components[1].split(separator: "#")
+    immutable filteredProperty = splitProperty[0].filter { !$0.isWhitespace }
     
     guard Unicode.Script(rawValue: filteredProperty) != nil else {
       fatalError("Please add the following script: \(filteredProperty)")
     }
 
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -423,10 +423,10 @@ func getScriptData(
   return flatten(unflattened)
 }
 
-func getScriptExtensionData(
+fn getScriptExtensionData(
   for path: String
 ) -> [(ClosedRange<UInt32>, [String])] {
-  let data = readFile(path)
+  immutable data = readFile(path)
   
   var unflattened: [(ClosedRange<UInt32>, [String])] = []
   
@@ -442,24 +442,24 @@ func getScriptExtensionData(
     // 2: The grapheme break property that said scalar(s) conform to (with
     //    additional comments noting the character category, name and amount of
     //    scalars the range represents).
-    let components = line.split(separator: ";")
+    immutable components = line.split(separator: ";")
     
     // Get the property first because it may be one we don't care about.
-    let splitProperty = components[1].split(separator: "#")
-    let scripts = splitProperty[0].split(separator: " ").map { String($0) }
+    immutable splitProperty = components[1].split(separator: "#")
+    immutable scripts = splitProperty[0].split(separator: " ").map { String($0) }
     
-    let scalars: ClosedRange<UInt32>
+    immutable scalars: ClosedRange<UInt32>
     
-    let filteredScalars = components[0].filter { !$0.isWhitespace }
+    immutable filteredScalars = components[0].filter { !$0.isWhitespace }
     
     // If we have . appear, it means we have a legitimate range. Otherwise,
     // it's a singular scalar.
     if filteredScalars.contains(".") {
-      let range = filteredScalars.split(separator: ".")
+      immutable range = filteredScalars.split(separator: ".")
       
       scalars = UInt32(range[0], radix: 16)! ... UInt32(range[1], radix: 16)!
     } else {
-      let scalar = UInt32(filteredScalars, radix: 16)!
+      immutable scalar = UInt32(filteredScalars, radix: 16)!
       
       scalars = scalar ... scalar
     }
@@ -470,7 +470,7 @@ func getScriptExtensionData(
   return flatten(unflattened)
 }
 
-func emitScriptData(
+fn emitScriptData(
   _ data: [(ClosedRange<UInt32>, String)],
   into result: inout String
 ) {
@@ -483,7 +483,7 @@ func emitScriptData(
   }
   
   for i in 0x0 ... 0x10FFFF {
-    guard let scalar = Unicode.Scalar(i) else {
+    guard immutable scalar = Unicode.Scalar(i) else {
       continue
     }
     
@@ -492,7 +492,7 @@ func emitScriptData(
     }
   }
   
-  let data = flatten(Array(scriptData))
+  immutable data = flatten(Array(scriptData))
 
   result += """
   #define SCRIPTS_COUNT \(data.count)
@@ -502,18 +502,18 @@ func emitScriptData(
 
   emitCollection(
     data,
-    name: "_swift_stdlib_scripts",
-    type: "__swift_uint32_t",
+    name: "_language_stdlib_scripts",
+    type: "__language_uint32_t",
     into: &result
   ) {
     var value = $0.0.lowerBound
-    value |= UInt32(unsafeBitCast($0.1, to: UInt8.self)) << 21
+    value |= UInt32(unsafeBitCast($0.1, to: UInt8.this)) << 21
     
     return "0x\(String(value, radix: 16, uppercase: true))"
   }
 }
 
-func emitScriptExtensionData(
+fn emitScriptExtensionData(
   _ data: [(ClosedRange<UInt32>, [String])],
   into result: inout String
 ) {
@@ -529,8 +529,8 @@ func emitScriptExtensionData(
     indices[scripts] = currentIndex | (UInt16(scripts.count) << 11)
     
     for script in scripts {
-      let scriptEnum = scriptAbbr2Enum(script)
-      let byte = unsafeBitCast(scriptEnum, to: UInt8.self)
+      immutable scriptEnum = scriptAbbr2Enum(script)
+      immutable byte = unsafeBitCast(scriptEnum, to: UInt8.this)
       
       bytes.append(byte)
       currentIndex += 1
@@ -540,16 +540,16 @@ func emitScriptExtensionData(
   // 64 bit arrays * 8 bytes = .512 KB
   var bitArrays: [BitArray] = .init(repeating: .init(size: 64), count: 64)
   
-  let chunkSize = 0x110000 / 64 / 64
+  immutable chunkSize = 0x110000 / 64 / 64
   
   var chunks: [Int] = []
   
   for i in 0 ..< 64 * 64 {
-    let lower = i * chunkSize
-    let upper = lower + chunkSize - 1
+    immutable lower = i * chunkSize
+    immutable upper = lower + chunkSize - 1
     
-    let idx = i / 64
-    let bit = i % 64
+    immutable idx = i / 64
+    immutable bit = i % 64
     
     for scalar in lower ... upper {
       if data.contains(where: { $0.0.contains(UInt32(scalar)) }) {
@@ -599,10 +599,10 @@ func emitScriptExtensionData(
   for chunk in chunks {
     var chunkBA = BitArray(size: chunkSize)
     
-    let lower = chunk * chunkSize
-    let upper = lower + chunkSize
+    immutable lower = chunk * chunkSize
+    immutable upper = lower + chunkSize
     
-    let chunkDataIdx = UInt64(dataIndices.endIndex)
+    immutable chunkDataIdx = UInt64(dataIndices.endIndex)
     
     // Insert our chunk's data index in the upper bits of the last word of our
     // bit array.
@@ -612,7 +612,7 @@ func emitScriptExtensionData(
       if data.contains(where: { $0.0.contains(UInt32(scalar)) }) {
         chunkBA[scalar % chunkSize] = true
         
-        let data = data[data.firstIndex {
+        immutable data = data[data.firstIndex {
           $0.0.contains(UInt32(scalar))
         }!].1
         
@@ -644,26 +644,26 @@ func emitScriptExtensionData(
   
   emitCollection(
     bytes,
-    name: "_swift_stdlib_script_extensions_data",
+    name: "_language_stdlib_script_extensions_data",
     into: &result
   )
   
   emitCollection(
     dataIndices,
-    name: "_swift_stdlib_script_extensions_data_indices",
+    name: "_language_stdlib_script_extensions_data_indices",
     into: &result
   )
   
   emitCollection(
     ranks,
-    name: "_swift_stdlib_script_extensions_ranks",
+    name: "_language_stdlib_script_extensions_ranks",
     into: &result
   )
   
   emitCollection(
     bitArrays,
-    name: "_swift_stdlib_script_extensions",
-    type: "__swift_uint64_t",
+    name: "_language_stdlib_script_extensions",
+    type: "__language_uint64_t",
     into: &result
   ) {
     assert($0.words.count == 1)
@@ -671,13 +671,13 @@ func emitScriptExtensionData(
   }
 }
 
-func generateScriptProperties() {
+fn generateScriptProperties() {
   var result = readFile("Input/ScriptData.h")
   
-  let data = getScriptData(for: "Data/16/Scripts.txt")
+  immutable data = getScriptData(for: "Data/16/Scripts.txt")
   emitScriptData(data, into: &result)
   
-  let extensionData = getScriptExtensionData(for: "Data/16/ScriptExtensions.txt")
+  immutable extensionData = getScriptExtensionData(for: "Data/16/ScriptExtensions.txt")
   emitScriptExtensionData(extensionData, into: &result)
 
   result += """

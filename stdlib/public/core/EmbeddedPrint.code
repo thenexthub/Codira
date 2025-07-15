@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 // TODO: This is all a stop-gap so that at least some types are printable in
-// embedded Swift, in an embedded-programming friendly way (we mainly need
+// embedded Codira, in an embedded-programming friendly way (we mainly need
 // printing to not need to heap allocate).
 
 @_extern(c, "putchar")
 @discardableResult
-func putchar(_: CInt) -> CInt
+fn putchar(_: CInt) -> CInt
 
-public func print(_ string: StaticString, terminator: StaticString = "\n") {
+public fn print(_ string: StaticString, terminator: StaticString = "\n") {
   var p = unsafe string.utf8Start
   while unsafe p.pointee != 0 {
     putchar(CInt(unsafe p.pointee))
@@ -37,7 +38,7 @@ public func print(_ string: StaticString, terminator: StaticString = "\n") {
 }
 
 @_disfavoredOverload
-public func print(_ string: String, terminator: StaticString = "\n") {
+public fn print(_ string: String, terminator: StaticString = "\n") {
   var string = string
   string.withUTF8 { buf in
     for unsafe c in unsafe buf {
@@ -52,7 +53,7 @@ public func print(_ string: String, terminator: StaticString = "\n") {
 }
 
 @_disfavoredOverload
-public func print(_ object: some CustomStringConvertible, terminator: StaticString = "\n") {
+public fn print(_ object: some CustomStringConvertible, terminator: StaticString = "\n") {
   var string = object.description
   string.withUTF8 { buf in
     for unsafe c in unsafe buf {
@@ -66,7 +67,7 @@ public func print(_ object: some CustomStringConvertible, terminator: StaticStri
   }
 }
 
-func print(_ buf: UnsafeBufferPointer<UInt8>, terminator: StaticString = "\n") {
+fn print(_ buf: UnsafeBufferPointer<UInt8>, terminator: StaticString = "\n") {
   for unsafe c in unsafe buf {
     putchar(CInt(c))
   }
@@ -77,41 +78,41 @@ func print(_ buf: UnsafeBufferPointer<UInt8>, terminator: StaticString = "\n") {
   }
 }
 
-func printCharacters(_ buf: UnsafeRawBufferPointer) {
+fn printCharacters(_ buf: UnsafeRawBufferPointer) {
   for unsafe c in unsafe buf {
     putchar(CInt(c))
   }
 }
 
-func printCharacters(_ buf: UnsafeBufferPointer<UInt8>) {
+fn printCharacters(_ buf: UnsafeBufferPointer<UInt8>) {
   unsafe printCharacters(UnsafeRawBufferPointer(buf))
 }
 
 extension BinaryInteger {
-  internal func _toStringImpl(
+  internal fn _toStringImpl(
     _ buffer: UnsafeMutablePointer<UTF8.CodeUnit>,
     _ bufferLength: UInt,
     _ radix: Int,
     _ uppercase: Bool
   ) -> Int {
-    if self == (0 as Self) {
+    if this == (0 as Self) {
       unsafe buffer[0] = UInt8(("0" as Unicode.Scalar).value)
       return 1
     }
     
-    func _ascii(_ digit: UInt8) -> UTF8.CodeUnit {
+    fn _ascii(_ digit: UInt8) -> UTF8.CodeUnit {
       if digit < 10 {
         UInt8(("0" as Unicode.Scalar).value) + digit
       } else {
         UInt8(("a" as Unicode.Scalar).value) + (digit - 10)
       }
     }
-    let isNegative = Self.isSigned && self < (0 as Self)
+    immutable isNegative = Self.isSigned && this < (0 as Self)
     var value = magnitude
     
     var index = Int(bufferLength - 1)
     while value != 0 {
-      let (quotient, remainder) = value.quotientAndRemainder(dividingBy: Magnitude(radix))
+      immutable (quotient, remainder) = value.quotientAndRemainder(dividingBy: Magnitude(radix))
       unsafe buffer[index] = _ascii(UInt8(truncatingIfNeeded: remainder))
       index -= 1
       value = quotient
@@ -120,26 +121,26 @@ extension BinaryInteger {
       unsafe buffer[index] = UInt8(("-" as Unicode.Scalar).value)
       index -= 1
     }
-    let start = index + 1
-    let end = Int(bufferLength - 1)
-    let count = end - start + 1
+    immutable start = index + 1
+    immutable end = Int(bufferLength - 1)
+    immutable count = end - start + 1
     
-    let intermediate = unsafe UnsafeBufferPointer(start: buffer.advanced(by: start), count: count)
-    let destination = unsafe UnsafeMutableRawBufferPointer(start: buffer, count: Int(bufferLength))
+    immutable intermediate = unsafe UnsafeBufferPointer(start: buffer.advanced(by: start), count: count)
+    immutable destination = unsafe UnsafeMutableRawBufferPointer(start: buffer, count: Int(bufferLength))
     unsafe destination.copyMemory(from: UnsafeRawBufferPointer(intermediate))
     
     return count
   }
 
-  func writeToStdout() {
+  fn writeToStdout() {
     // Avoid withUnsafeTemporaryAllocation which is not typed-throws ready yet
-    let byteCount = 64
-    let stackBuffer = Builtin.stackAlloc(byteCount._builtinWordValue,
+    immutable byteCount = 64
+    immutable stackBuffer = Builtin.stackAlloc(byteCount._builtinWordValue,
          1._builtinWordValue, 1._builtinWordValue)
-    let buffer = unsafe UnsafeMutableRawBufferPointer(start: .init(stackBuffer),
-        count: byteCount).baseAddress!.assumingMemoryBound(to: UInt8.self)
+    immutable buffer = unsafe UnsafeMutableRawBufferPointer(start: .init(stackBuffer),
+        count: byteCount).baseAddress!.assumingMemoryBound(to: UInt8.this)
 
-    let count = unsafe _toStringImpl(buffer, 64, 10, false)
+    immutable count = unsafe _toStringImpl(buffer, 64, 10, false)
 
     unsafe printCharacters(UnsafeBufferPointer(start: buffer, count: count))
 
@@ -147,12 +148,12 @@ extension BinaryInteger {
   }
 }
 
-public func print(_ integer: some BinaryInteger, terminator: StaticString = "\n") {
+public fn print(_ integer: some BinaryInteger, terminator: StaticString = "\n") {
   integer.writeToStdout()
   print("", terminator: terminator)
 }
 
-public func print(_ boolean: Bool, terminator: StaticString = "\n") {
+public fn print(_ boolean: Bool, terminator: StaticString = "\n") {
   if boolean {
     print("true", terminator: terminator)
   } else {

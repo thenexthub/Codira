@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ToolChains.h"
@@ -18,7 +19,7 @@
 #include "language/ABI/System.h"
 #include "language/AST/DiagnosticsDriver.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/Platform.h"
 #include "language/Basic/Range.h"
 #include "language/Config.h"
@@ -29,18 +30,18 @@
 #include "language/Option/SanitizerOptions.h"
 #include "clang/Basic/Version.h"
 #include "clang/Driver/Util.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/ProfileData/InstrProf.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Program.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/ProfileData/InstrProf.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Program.h"
 
 using namespace language;
 using namespace language::driver;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 std::string
 toolchains::WebAssembly::sanitizerRuntimeLibName(StringRef Sanitizer,
@@ -54,7 +55,7 @@ ToolChain::InvocationInfo toolchains::WebAssembly::constructInvocation(
     const AutolinkExtractJobAction &job, const JobContext &context) const {
   assert(context.Output.getPrimaryOutputType() == file_types::TY_AutolinkFile);
 
-  InvocationInfo II{"swift-autolink-extract"};
+  InvocationInfo II{"language-autolink-extract"};
   ArgStringList &Arguments = II.Arguments;
   II.allowsResponseFiles = true;
 
@@ -85,14 +86,14 @@ toolchains::WebAssembly::constructInvocation(const DynamicLinkJobAction &job,
 
   switch (job.getKind()) {
   case LinkKind::None:
-    llvm_unreachable("invalid link kind");
+    toolchain_unreachable("invalid link kind");
   case LinkKind::Executable:
     // Default case, nothing extra needed.
     break;
   case LinkKind::DynamicLibrary:
-    llvm_unreachable("WebAssembly doesn't support dynamic library yet");
+    toolchain_unreachable("WebAssembly doesn't support dynamic library yet");
   case LinkKind::StaticLibrary:
-    llvm_unreachable("invalid link kind");
+    toolchain_unreachable("invalid link kind");
   }
 
   // Select the linker to use.
@@ -108,7 +109,7 @@ toolchains::WebAssembly::constructInvocation(const DynamicLinkJobAction &job,
     StringRef toolchainPath(A->getValue());
 
     // If there is a clang in the toolchain folder, use that instead.
-    if (auto tool = llvm::sys::findProgramByName("clang", {toolchainPath}))
+    if (auto tool = toolchain::sys::findProgramByName("clang", {toolchainPath}))
       Clang = context.Args.MakeArgString(tool.get());
   }
 
@@ -120,17 +121,17 @@ toolchains::WebAssembly::constructInvocation(const DynamicLinkJobAction &job,
   getResourceDirPath(SharedResourceDirPath, context.Args, /*Shared=*/false);
 
   if (!context.Args.hasArg(options::OPT_nostartfiles)) {
-    SmallString<128> swiftrtPath = SharedResourceDirPath;
-    llvm::sys::path::append(swiftrtPath,
-                            swift::getMajorArchitectureName(getTriple()));
-    llvm::sys::path::append(swiftrtPath, "swiftrt.o");
-    Arguments.push_back(context.Args.MakeArgString(swiftrtPath));
+    SmallString<128> languagertPath = SharedResourceDirPath;
+    toolchain::sys::path::append(languagertPath,
+                            language::getMajorArchitectureName(getTriple()));
+    toolchain::sys::path::append(languagertPath, "languagert.o");
+    Arguments.push_back(context.Args.MakeArgString(languagertPath));
   }
 
   addPrimaryInputsOfType(Arguments, context.Inputs, context.Args,
                          file_types::TY_Object);
   addInputsOfType(Arguments, context.InputActions, file_types::TY_Object);
-  addInputsOfType(Arguments, context.InputActions, file_types::TY_LLVM_BC);
+  addInputsOfType(Arguments, context.InputActions, file_types::TY_TOOLCHAIN_BC);
 
   if (!context.OI.SDKPath.empty()) {
     Arguments.push_back("--sysroot");
@@ -155,13 +156,13 @@ toolchains::WebAssembly::constructInvocation(const DynamicLinkJobAction &job,
   // file.
   SmallString<128> linkFilePath;
   getResourceDirPath(linkFilePath, context.Args, /*Shared=*/false);
-  llvm::sys::path::append(linkFilePath, "static-executable-args.lnk");
+  toolchain::sys::path::append(linkFilePath, "static-executable-args.lnk");
 
   auto linkFile = linkFilePath.str();
-  if (llvm::sys::fs::is_regular_file(linkFile)) {
+  if (toolchain::sys::fs::is_regular_file(linkFile)) {
     Arguments.push_back(context.Args.MakeArgString(Twine("@") + linkFile));
   } else {
-    llvm::report_fatal_error(linkFile + " not found");
+    toolchain::report_fatal_error(linkFile + " not found");
   }
 
   // Delegate to Clang for sanitizers. It will figure out the correct linker
@@ -173,15 +174,15 @@ toolchains::WebAssembly::constructInvocation(const DynamicLinkJobAction &job,
 
   if (context.Args.hasArg(options::OPT_profile_generate)) {
     SmallString<128> LibProfile(SharedResourceDirPath);
-    llvm::sys::path::remove_filename(LibProfile); // remove platform name
-    llvm::sys::path::append(LibProfile, "clang", "lib");
+    toolchain::sys::path::remove_filename(LibProfile); // remove platform name
+    toolchain::sys::path::append(LibProfile, "clang", "lib");
 
-    llvm::sys::path::append(LibProfile, getTriple().getOSName(),
+    toolchain::sys::path::append(LibProfile, getTriple().getOSName(),
                             Twine("libclang_rt.profile-") +
                                 getTriple().getArchName() + ".a");
     Arguments.push_back(context.Args.MakeArgString(LibProfile));
     Arguments.push_back(context.Args.MakeArgString(
-        Twine("-u", llvm::getInstrProfRuntimeHookVarName())));
+        Twine("-u", toolchain::getInstrProfRuntimeHookVarName())));
   }
 
   // Run clang++ in verbose mode if "-v" is set
@@ -196,7 +197,7 @@ toolchains::WebAssembly::constructInvocation(const DynamicLinkJobAction &job,
   Arguments.push_back("-Xlinker");
   Arguments.push_back(context.Args.MakeArgString(
       Twine("--global-base=") +
-      std::to_string(SWIFT_ABI_WASM32_LEAST_VALID_POINTER)));
+      std::to_string(LANGUAGE_ABI_WASM32_LEAST_VALID_POINTER)));
 
   // These custom arguments should be right before the object file at the end.
   context.Args.AddAllArgs(Arguments, options::OPT_linker_option_Group);
@@ -223,7 +224,7 @@ void validateLinkerArguments(DiagnosticEngine &diags,
   }
 }
 void toolchains::WebAssembly::validateArguments(DiagnosticEngine &diags,
-                                                const llvm::opt::ArgList &args,
+                                                const toolchain::opt::ArgList &args,
                                                 StringRef defaultTarget) const {
   ArgStringList linkerArgs;
   args.AddAllArgValues(linkerArgs, options::OPT_Xlinker);
@@ -238,7 +239,7 @@ toolchains::WebAssembly::constructInvocation(const StaticLinkJobAction &job,
 
   ArgStringList Arguments;
 
-  const char *AR = "llvm-ar";
+  const char *AR = "toolchain-ar";
   Arguments.push_back("crs");
 
   Arguments.push_back(

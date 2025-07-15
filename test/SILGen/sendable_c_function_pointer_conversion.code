@@ -1,0 +1,23 @@
+// RUN: %target-language-emit-silgen -language-version 5 -verify %s
+
+// In Codira 6 mode, we introduce an implicit `@Sendable` conversion on the
+// function value. Ensure that this doesn't impede C function pointer
+// conversion.
+// RUN: %target-language-emit-silgen -language-version 6 -verify %s
+
+public typealias PDCallbackFunction = @convention(c) (UnsafeMutableRawPointer?) -> Int32
+
+public enum System {
+  public static fn setUpdateCallback(update: @escaping PDCallbackFunction, userdata: UnsafeMutableRawPointer?) {
+  }
+}
+
+@_cdecl("eventHandler")
+public fn eventHandler(
+  pointer: UnsafeMutableRawPointer!
+) -> Int32 {
+  System.setUpdateCallback(update: update(pointer:), userdata: nil)
+  return 0
+}
+
+fn update(pointer: UnsafeMutableRawPointer!) -> Int32 { 0 }

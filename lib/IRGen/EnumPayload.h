@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_ENUMPAYLOAD_H
-#define SWIFT_IRGEN_ENUMPAYLOAD_H
+#ifndef LANGUAGE_IRGEN_ENUMPAYLOAD_H
+#define LANGUAGE_IRGEN_ENUMPAYLOAD_H
 
 #include "IRGenModule.h"
 #include "Explosion.h"
 #include "TypeInfo.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/ADT/PointerEmbeddedInt.h"
-#include "llvm/ADT/PointerUnion.h"
+#include "toolchain/IR/BasicBlock.h"
+#include "toolchain/IR/DerivedTypes.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
+#include "toolchain/ADT/PointerUnion.h"
 #include <utility>
 
 namespace language {
@@ -53,7 +54,7 @@ public:
   }
 
   /// Invoke a functor for each element type in the schema.
-  template<typename TypeFn /* void(llvm::Type *schemaType) */>
+  template<typename TypeFn /* void(toolchain::Type *schemaType) */>
   void forEachType(IRGenModule &IGM, TypeFn &&fn) const {
     assert(BitSize >= 0 && "payload size must not be dynamic");
 
@@ -66,7 +67,7 @@ public:
       bitSize -= pointerSize;
     }
     if (bitSize > 0)
-      fn(llvm::IntegerType::get(IGM.getLLVMContext(), bitSize));
+      fn(toolchain::IntegerType::get(IGM.getLLVMContext(), bitSize));
   }
 };
 
@@ -77,7 +78,7 @@ enum IsUnreachable_t: bool {
 };
 
 using SwitchDefaultDest
-  = llvm::PointerIntPair<llvm::BasicBlock*, 1, IsUnreachable_t>;
+  = toolchain::PointerIntPair<toolchain::BasicBlock*, 1, IsUnreachable_t>;
 
 /// An enum payload value. The payload is represented as an explosion of
 /// integers and pointers that together represent the bit pattern of
@@ -85,10 +86,10 @@ using SwitchDefaultDest
 class EnumPayload {
 public:
   /// A value, or the type of a zero value in the payload.
-  using LazyValue = llvm::PointerUnion<llvm::Value *, llvm::Type *>;
+  using LazyValue = toolchain::PointerUnion<toolchain::Value *, toolchain::Type *>;
   
   mutable SmallVector<LazyValue, 2> PayloadValues;
-  mutable llvm::Type *StorageType = nullptr;
+  mutable toolchain::Type *StorageType = nullptr;
   
   EnumPayload() = default;
 
@@ -109,11 +110,11 @@ public:
   /// will be stored.
   void insertValue(IRGenModule &IGM,
                    IRBuilder &builder,
-                   llvm::Value *value, unsigned bitOffset);
+                   toolchain::Value *value, unsigned bitOffset);
   
   /// Extract a value from the enum payload.
-  llvm::Value *extractValue(IRGenFunction &IGF,
-                            llvm::Type *type, unsigned bitOffset) const;
+  toolchain::Value *extractValue(IRGenFunction &IGF,
+                            toolchain::Type *type, unsigned bitOffset) const;
   
   /// Take an enum payload out of an explosion.
   static EnumPayload fromExplosion(IRGenModule &IGM,
@@ -146,11 +147,11 @@ public:
   /// The value will be tested as if AND-ed against the given mask.
   void emitSwitch(IRGenFunction &IGF,
                   const APInt &mask,
-                  ArrayRef<std::pair<APInt, llvm::BasicBlock*>> cases,
+                  ArrayRef<std::pair<APInt, toolchain::BasicBlock*>> cases,
                   SwitchDefaultDest dflt) const;
   
   /// Emit an equality comparison operation that payload & mask == value.
-  llvm::Value *emitCompare(IRGenFunction &IGF,
+  toolchain::Value *emitCompare(IRGenFunction &IGF,
                            const APInt &mask,
                            const APInt &value) const;
   
@@ -170,21 +171,21 @@ public:
   void emitScatterBits(IRGenModule &IGM,
                        IRBuilder &builder,
                        const APInt &mask,
-                       llvm::Value *value);
+                       toolchain::Value *value);
 
   /// Gather bits from an enum payload based on a spare bit mask.
-  llvm::Value *emitGatherSpareBits(IRGenFunction &IGF,
+  toolchain::Value *emitGatherSpareBits(IRGenFunction &IGF,
                                    const SpareBitVector &spareBits,
                                    unsigned firstBitOffset,
                                    unsigned bitWidth) const;
 
-  void print(llvm::raw_ostream &OS);
+  void print(toolchain::raw_ostream &OS);
   void dump();
 
 private:
   /// Calculate the total number of bits this payload requires.
   /// This will always be a multiple of 8.
-  unsigned getAllocSizeInBits(const llvm::DataLayout &DL) const;
+  unsigned getAllocSizeInBits(const toolchain::DataLayout &DL) const;
 };
   
 }

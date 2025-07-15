@@ -1,0 +1,10 @@
+Name: ObjCStuff
+CodiraVersions:
+- Version: 5
+  Typedefs:
+   - Name: OJCCloudButt
+     CodiraName: OJCCloud.Butt
+- Version: 4
+  Typedefs:
+   - Name: OJCCloudButt
+     CodiraWrapper: none

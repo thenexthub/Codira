@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_PLUGIN_H
-#define LLVM_SOURCEKITD_PLUGIN_H
+#ifndef TOOLCHAIN_SOURCEKITD_PLUGIN_H
+#define TOOLCHAIN_SOURCEKITD_PLUGIN_H
 
 #include "sourcekitd/sourcekitd.h"
 
@@ -244,7 +245,7 @@ sourcekitd_plugin_initialize_register_custom_buffer(
     sourcekitd_variant_functions_t funcs);
 
 SOURCEKITD_PUBLIC SOURCEKITD_NONNULL_ALL void *
-    sourcekitd_plugin_initialize_get_swift_ide_inspection_instance(
+    sourcekitd_plugin_initialize_get_language_ide_inspection_instance(
         sourcekitd_plugin_initialize_params_t);
 
 #endif // SOURCEKITD_HAS_BLOCKS

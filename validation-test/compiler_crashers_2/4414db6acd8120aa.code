@@ -1,0 +1,3 @@
+// {"signature":"language::ast_scope::ASTScopeImpl::printRange(toolchain::raw_ostream&) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a < >>

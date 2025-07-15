@@ -1,0 +1,27 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-silgen %S/Inputs/accessibility_vtables_package_helper.code -package-name Package | %FileCheck %s --check-prefix=LIBRARY
+// RUN: %target-language-frontend -enable-library-evolution -emit-silgen %S/Inputs/accessibility_vtables_package_helper.code -package-name Package | %FileCheck %s --check-prefix=LIBRARY
+
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/accessibility_vtables_package_helper.code -package-name Package
+// RUN: %target-language-emit-silgen -primary-file %s -I %t -package-name Package | %FileCheck %s --check-prefix=CLIENT
+
+// RUN: %target-language-frontend -enable-library-evolution -emit-module -o %t %S/Inputs/accessibility_vtables_package_helper.code -package-name Package
+// RUN: %target-language-emit-silgen -primary-file %s -I %t -package-name Package | %FileCheck %s --check-prefix=CLIENT
+
+import accessibility_vtables_package_helper
+
+// LIBRARY-LABEL: sil_vtable Base {
+// LIBRARY-NEXT:    #Base.packageMethod: (Base) -> () -> () : @$s36accessibility_vtables_package_helper4BaseC0C6MethodyyF
+// LIBRARY-NEXT:    #Base.internalMethod: (Base) -> () -> () : @$s36accessibility_vtables_package_helper4BaseC14internalMethodyyF
+// LIBRARY-NEXT:    #Base.init!allocator: (Base.Type) -> () -> Base : @$s36accessibility_vtables_package_helper4BaseCACycfC
+// LIBRARY-NEXT:    #Base.deinit!deallocator: @$s36accessibility_vtables_package_helper4BaseCfD
+// LIBRARY-NEXT:  }
+
+// CLIENT-LABEL: sil hidden [ossa] @$s29accessibility_vtables_package15usePackageClassyy0a1_b1_C7_helper4BaseCF : $@convention(thin) (@guaranteed Base) -> () {
+fn usePackageClass(_ c: Base) {
+  c.packageMethod()
+}
+
+// TODO: If cross-module inheritance from package visibility superclasses ever becomes a thing,
+// test serialization of the vtable for the derived class in this file.

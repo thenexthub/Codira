@@ -1,4 +1,4 @@
-//===--- Calculator.swift -------------------------------------------------===//
+//===--- Calculator.code -------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Calculator",
     runFunction: run_Calculator,
     tags: [.validation])
 
 @inline(never)
-func my_atoi_impl(_ input : String) -> Int {
+fn my_atoi_impl(_ input : String) -> Int {
   switch input {
     case "0": return 0
     case "1": return 1
@@ -39,7 +40,7 @@ func my_atoi_impl(_ input : String) -> Int {
 }
 
 @inline(never)
-public func run_Calculator(_ n: Int) {
+public fn run_Calculator(_ n: Int) {
   var c = 0
   for _ in 1...n*800 {
       c += my_atoi_impl(identity("1"))

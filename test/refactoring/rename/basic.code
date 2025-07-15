@@ -1,0 +1,57 @@
+struct S1 {}
+fn foo1(a: S1) {}
+class C1 {}
+fn foo2(c : C1) {}
+enum E1 {}
+fn foo3(e : E1) {}
+fn foo4(a : S1, b : C1, c: E1) { foo4(a: a, b: b, c :c) }
+
+fn test() {
+  struct SLocal {
+    init(x: S1) {}
+  }
+  fn local(a: SLocal) {}
+  local(a: SLocal(x: S1()))
+}
+
+guard immutable top = Optional.some("top") else {
+  fatalError()
+}
+print(top)
+
+protocol P1 {}
+struct Test {
+  var test: P1 {
+    struct SP1: P1 {}
+    return SP1()
+  }
+}
+
+// REQUIRES: language_language_parser
+// RUN: %empty-directory(%t)
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=2:15 > %t/S1.code
+// RUN: diff -u %S/Outputs/basic_ranges/S1.code.expected %t/S1.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=4:16 > %t/C1.code
+// RUN: diff -u %S/Outputs/basic_ranges/C1.code.expected %t/C1.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=6:16 > %t/E1.code
+// RUN: diff -u %S/Outputs/basic_ranges/E1.code.expected %t/E1.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=7:38 > %t/foo4.code
+// RUN: diff -u %S/Outputs/basic_ranges/foo4.code.expected %t/foo4.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=1:9 > %t/S1.code
+// RUN: diff -u %S/Outputs/basic_ranges/S1.code.expected %t/S1.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=3:8 > %t/C1.code
+// RUN: diff -u %S/Outputs/basic_ranges/C1.code.expected %t/C1.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=5:7 > %t/E1.code
+// RUN: diff -u %S/Outputs/basic_ranges/E1.code.expected %t/E1.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=7:7 > %t/foo4.code
+// RUN: diff -u %S/Outputs/basic_ranges/foo4.code.expected %t/foo4.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=10:10 > %t/SLocal.code
+// RUN: diff -u %S/Outputs/basic_ranges/SLocal.code.expected %t/SLocal.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=11:5 > %t/SLocal_init.code
+// RUN: diff -u %S/Outputs/basic_ranges/SLocal_init.code.expected %t/SLocal_init.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=13:8 > %t/local.code
+// RUN: diff -u %S/Outputs/basic_ranges/local.code.expected %t/local.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=20:7 > %t/top_level.code
+// RUN: diff -u %S/Outputs/basic_ranges/top_level.code.expected %t/top_level.code
+// RUN: %refactor -find-local-rename-ranges -source-filename %s -pos=26:12 > %t/SP1.code
+// RUN: diff -u %S/Outputs/basic_ranges/SP1.code.expected %t/SP1.code

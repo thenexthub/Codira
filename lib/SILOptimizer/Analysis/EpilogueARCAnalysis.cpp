@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/EpilogueARCAnalysis.h"
 #include "language/SILOptimizer/Analysis/DominanceAnalysis.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
@@ -36,8 +37,8 @@ void EpilogueARCContext::initializeDataflow() {
   }
 
   // Split the SILArgument into local arguments to each specific basic block.
-  llvm::SmallVector<SILValue, 4> ToProcess;
-  llvm::DenseSet<SILValue> Processed;
+  toolchain::SmallVector<SILValue, 4> ToProcess;
+  toolchain::DenseSet<SILValue> Processed;
   ToProcess.push_back(Arg);
   while (!ToProcess.empty()) {
     SILValue CArg = ToProcess.pop_back_val();
@@ -185,6 +186,6 @@ EpilogueARCAnalysis::newFunctionAnalysis(SILFunction *F) {
   return std::make_unique<EpilogueARCFunctionInfo>(F, PO, passManager, RC);
 }
 
-SILAnalysis *swift::createEpilogueARCAnalysis(SILModule *M) {
+SILAnalysis *language::createEpilogueARCAnalysis(SILModule *M) {
   return new EpilogueARCAnalysis(M);
 }

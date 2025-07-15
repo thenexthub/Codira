@@ -1,0 +1,193 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+protocol P{fn g:{
+}
+{
+import n}
+struct c<T: NSManagedObject {
+immutable end = nil
+immutable end = nil
+protocol A{enum S<H
+for c {
+}
+protocol c<T where g<T: Array) {
+struct c{
+class A"\(}
+class a
+typealias e:
+var e:S{
+class A : {class A{
+}
+fn f A{
+protocol A{immutable:A?typealias e:a
+class A{
+<T. : {
+<d where f<T where g<T A : Array) {
+class A? {
+struct c<T where g: {
+immutable s=[]if true{
+struct D {
+class
+struct S{r
+immutable a init(}
+class a
+}
+struct Q{
+immutable
+fn a{
+}
+}
+}
+class A?typealias b<H.b:a<T f<T where k.b:A
+immutable a {
+struct Q{
+}
+protocol P{protocol a {
+}
+protocol A{
+enum S<T where g:a
+import n}
+protocol a {
+typealias e:a{
+{fn a<T:
+protocol P{
+class A{
+class fn a
+struct S{
+var A?typealias b{protocol A
+class a{
+immutable a {
+struct S<T: a {
+fn f:{immutable:b{
+}
+protocol a {{
+}
+class A"\(t
+var _=Void{
+}
+class fn f A< T where T: Array) {
+immutable s=Void{
+for c {immutable:A? {
+protocol A? = A{
+class A? {
+class fn f A{
+var A{
+immutable:a{typealias e
+immutable b : NSManagedObject {
+class
+{
+class A : <b<H. : {
+immutable a {
+enum S<T where f<T where k. : b(t
+}
+immutable:A{
+}
+for c {
+class A{
+immutable b : <T:
+protocol A{
+struct S
+var e:ExtensibleCollectionType
+protocol a {immutable:a{immutable:a
+protocol a {r
+class S<d where H.b
+struct S<T where g:
+}
+<T where g: {
+protocol P{
+protocol A< T where T: NSManagedObject {enum S{
+fn f A
+< T where k.b:a{
+var _=Void{
+var e: d where T:{
+struct c<T where f<H : <H:A:a
+<T where f: {
+class fn b<T. : a {
+fn a=[]if true{class a=Void{struct c<H : {
+fn a{
+immutable end = nil
+{
+struct S{immutable
+class A{
+{
+immutable d:a
+class C<d = A
+<T where H. : NSManagedObject {
+class a
+struct S
+class C<b(T:
+protocol A{
+struct S
+protocol A{
+{class C<H:e
+fn a<b
+fn a
+{enum :a=[]if true{protocol A? {
+struct D {
+immutable a init(t
+var b : a {
+}
+}
+fn a=[]if true{
+immutable b {
+immutable s=[
+var e
+fn a
+protocol a {
+fn a
+enum S<d = {
+protocol A{
+}
+{
+immutable d:S<T where f<d = {
+immutable
+{
+typealias b
+var e
+for c {
+struct Q{r
+}class a{
+immutable
+class A{
+fn a{immutable
+}
+protocol P{class C<T: d where f<T: <d where f: d = {
+}
+fn f A
+class
+{
+immutable
+}
+class a
+class A :
+}
+var a{
+class a{
+var _=Void{
+class :S<H
+}
+var e
+var b {
+import n}
+protocol A{
+fn a{r
+class a<T where g:A{immutable:A{
+}
+immutable a {
+protocol P{
+immutable s=[]if true{
+}
+immutable a {class A"\(}
+protocol a {
+struct

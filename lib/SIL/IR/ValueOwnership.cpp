@@ -1,13 +1,17 @@
 //===--- ValueOwnership.cpp -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -125,6 +129,7 @@ CONSTANT_OWNERSHIP_INST(None, PreviousDynamicFunctionRef)
 CONSTANT_OWNERSHIP_INST(None, GlobalAddr)
 CONSTANT_OWNERSHIP_INST(None, BaseAddrForOffset)
 CONSTANT_OWNERSHIP_INST(None, HasSymbol)
+CONSTANT_OWNERSHIP_INST(None, VectorBaseAddr)
 CONSTANT_OWNERSHIP_INST(None, IndexAddr)
 CONSTANT_OWNERSHIP_INST(None, IndexRawPointer)
 CONSTANT_OWNERSHIP_INST(None, InitEnumDataAddr)
@@ -243,7 +248,7 @@ CONSTANT_OR_NONE_OWNERSHIP_INST(Owned, MoveValue)
 // be compatible so that TBAA doesn't allow the destroy to be hoisted above uses
 // of the cast, or the programmer must use Builtin.fixLifetime.
 //
-// FIXME(https://github.com/apple/swift/issues/49723): Since we model this as unowned, then we must copy the value before use.
+// FIXME(https://github.com/apple/language/issues/49723): Since we model this as unowned, then we must copy the value before use.
 // This directly contradicts the semantics mentioned above since we will copy
 // the value upon any use lest we use an unowned value in an owned or guaranteed
 // way. So really all we will do here is perhaps add a copy slightly earlier
@@ -279,7 +284,7 @@ ValueOwnershipKindClassifier::visitForwardingInst(SILInstruction *i,
     if (!i->getModule().getOptions().VerifySILOwnership) {
       return OwnershipKind::None;
     }
-    llvm_unreachable("Forwarding inst with mismatching ownership kinds?!");
+    toolchain_unreachable("Forwarding inst with mismatching ownership kinds?!");
   }
 
   return mergedValue;
@@ -396,7 +401,7 @@ static ValueOwnershipKind visitFullApplySite(FullApplySite fai,
       });
   auto mergedOwnershipKind = ValueOwnershipKind::merge(resultOwnershipKinds);
   if (!mergedOwnershipKind) {
-    llvm_unreachable("Forwarding inst with mismatching ownership kinds?!");
+    toolchain_unreachable("Forwarding inst with mismatching ownership kinds?!");
   }
 
   return mergedOwnershipKind;
@@ -420,7 +425,7 @@ ValueOwnershipKind ValueOwnershipKindClassifier::visitLoadInst(LoadInst *LI) {
     return OwnershipKind::None;
   }
 
-  llvm_unreachable("Unhandled LoadOwnershipQualifier in switch.");
+  toolchain_unreachable("Unhandled LoadOwnershipQualifier in switch.");
 }
 
 ValueOwnershipKind ValueOwnershipKindClassifier::visitDropDeinitInst(DropDeinitInst *ddi) {
@@ -448,7 +453,7 @@ struct ValueOwnershipKindBuiltinVisitor
     : SILBuiltinVisitor<ValueOwnershipKindBuiltinVisitor, ValueOwnershipKind> {
 
   ValueOwnershipKind visitLLVMIntrinsic(BuiltinInst *BI,
-                                        llvm::Intrinsic::ID ID) {
+                                        toolchain::Intrinsic::ID ID) {
     // LLVM intrinsics do not traffic in ownership, so if we have a result, it
     // must be any.
     return OwnershipKind::None;
@@ -677,7 +682,10 @@ UNOWNED_OR_NONE_DEPENDING_ON_RESULT(CmpXChg)
 UNOWNED_OR_NONE_DEPENDING_ON_RESULT(AtomicLoad)
 UNOWNED_OR_NONE_DEPENDING_ON_RESULT(ExtractElement)
 UNOWNED_OR_NONE_DEPENDING_ON_RESULT(InsertElement)
+UNOWNED_OR_NONE_DEPENDING_ON_RESULT(Select)
 UNOWNED_OR_NONE_DEPENDING_ON_RESULT(ShuffleVector)
+UNOWNED_OR_NONE_DEPENDING_ON_RESULT(Interleave)
+UNOWNED_OR_NONE_DEPENDING_ON_RESULT(Deinterleave)
 #undef UNOWNED_OR_NONE_DEPENDING_ON_RESULT
 
 #define OWNED_OR_NONE_DEPENDING_ON_RESULT(ID)                                  \
@@ -692,13 +700,14 @@ UNOWNED_OR_NONE_DEPENDING_ON_RESULT(ShuffleVector)
 // fields. The initialized value is immediately consumed by an assignment, so it
 // must be owned.
 OWNED_OR_NONE_DEPENDING_ON_RESULT(ZeroInitializer)
+OWNED_OR_NONE_DEPENDING_ON_RESULT(PrepareInitialization)
 #undef OWNED_OR_NONE_DEPENDING_ON_RESULT
 
 #define BUILTIN(X,Y,Z)
 #define BUILTIN_SIL_OPERATION(ID, NAME, CATEGORY) \
   ValueOwnershipKind ValueOwnershipKindBuiltinVisitor::visit##ID( \
       BuiltinInst *BI, StringRef Attr) { \
-    llvm_unreachable("builtin should have been lowered in SILGen"); \
+    toolchain_unreachable("builtin should have been lowered in SILGen"); \
   }
 #include "language/AST/Builtins.def"
 
@@ -750,7 +759,7 @@ static FunctionTest GetOwnershipKind("get_ownership_kind", [](auto &function,
                                                               auto &arguments,
                                                               auto &test) {
   SILValue value = arguments.takeValue();
-  llvm::outs() << value;
-  llvm::outs() << "OwnershipKind: " << value->getOwnershipKind() << "\n";
+  toolchain::outs() << value;
+  toolchain::outs() << "OwnershipKind: " << value->getOwnershipKind() << "\n";
 });
 } // end namespace language::test

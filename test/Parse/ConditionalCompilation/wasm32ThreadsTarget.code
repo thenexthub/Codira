@@ -1,0 +1,8 @@
+// RUN: %language -typecheck %s -verify -target wasm32-unknown-wasip1-threads -parse-stdlib
+// RUN: %language-ide-test -test-input-complete -source-filename=%s -target wasm32-unknown-wasip1-threads
+
+#if _runtime(_multithreaded)
+  fn underThreads() {
+    foo() // expected-error {{cannot find 'foo' in scope}}
+  }
+#endif

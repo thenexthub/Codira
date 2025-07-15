@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Core/NotificationCenter.h"
@@ -27,28 +28,28 @@ NotificationCenter::~NotificationCenter() {}
 void NotificationCenter::addDocumentUpdateNotificationReceiver(
     DocumentUpdateNotificationReceiver Receiver) {
 
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   DocUpdReceivers.push_back(Receiver);
 }
 
 void NotificationCenter::addTestNotificationReceiver(
     std::function<void(void)> Receiver) {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   TestReceivers.push_back(std::move(Receiver));
 }
 void NotificationCenter::addSemaEnabledNotificationReceiver(
     std::function<void(void)> Receiver) {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   SemaEnabledReceivers.push_back(std::move(Receiver));
 }
 void NotificationCenter::addCompileWillStartNotificationReceiver(
     CompileWillStartNotificationReceiver Receiver) {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   CompileWillStartReceivers.push_back(std::move(Receiver));
 }
 void NotificationCenter::addCompileDidFinishNotificationReceiver(
     CompileDidFinishNotificationReceiver Receiver) {
-  llvm::sys::ScopedLock L(Mtx);
+  toolchain::sys::ScopedLock L(Mtx);
   CompileDidFinishReceivers.push_back(std::move(Receiver));
 }
 
@@ -56,7 +57,7 @@ void NotificationCenter::addCompileDidFinishNotificationReceiver(
   do {                                                                         \
     decltype(Receivers) recvs;                                                 \
     {                                                                          \
-      llvm::sys::ScopedLock L(Mtx);                                            \
+      toolchain::sys::ScopedLock L(Mtx);                                            \
       recvs = Receivers;                                                       \
     }                                                                          \
     auto sendNote = [=] {                                                      \
@@ -82,8 +83,8 @@ void NotificationCenter::postSemaEnabledNotification() const {
 }
 void NotificationCenter::postCompileWillStartNotification(
     uint64_t CompileID, trace::OperationKind OpKind,
-    const trace::SwiftInvocation &Inv) const {
-  trace::SwiftInvocation inv(Inv);
+    const trace::CodiraInvocation &Inv) const {
+  trace::CodiraInvocation inv(Inv);
   POST_NOTIFICATION(CompileWillStartReceivers, CompileID, OpKind, inv);
 }
 void NotificationCenter::postCompileDidFinishNotification(

@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/HasObservable.code
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/ReexportsObservation.code
+// RUN: %target-language-frontend -typecheck %s -I %t -verify
+// RUN: %target-language-frontend -typecheck %s -I %t -verify -DVIA_REEXPORT
+
+// REQUIRES: observation
+
+import HasObservable
+
+#if VIA_REEXPORT
+import ReexportsObservation
+#else
+import Observation
+#endif
+
+fn foo() -> Observable<Int> {
+  return .just(42)
+}

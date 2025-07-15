@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines ExitableFullExpr, a cleanup scope RAII object
@@ -34,7 +35,7 @@ namespace Lowering {
 /// You *must* call exit() at some point.
 ///
 /// This scope is also exposed to the debug info.
-class LLVM_LIBRARY_VISIBILITY ExitableFullExpr {
+class TOOLCHAIN_LIBRARY_VISIBILITY ExitableFullExpr {
   SILGenFunction &SGF;
   FullExpr Scope;
   JumpDest ExitDest;

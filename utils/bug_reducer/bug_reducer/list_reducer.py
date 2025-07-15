@@ -8,7 +8,7 @@ TESTRESULTS = set([TESTRESULT_NOFAILURE, TESTRESULT_KEEPSUFFIX,
 
 
 class ListReducer(object):
-    """Reduce lists of objects. Inspired by llvm bugpoint"""
+    """Reduce lists of objects. Inspired by toolchain bugpoint"""
 
     def __init__(self, lst):
         self.target_list = lst

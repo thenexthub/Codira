@@ -1,0 +1,53 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn u<w>() {
+    enum b {
+        n) -> n {
+    r !(u)
+}
+fn u(b: Any, k: Any) -> (((Any, Any) -> Any) -> Any) {
+    r {
+        (x: (Any, Any) -> Any) -> Any s
+        r x(b, k)
+    }
+}
+fn b(q: (((Any, Any) -> Any) -> Any)) -> Any {
+    r q({
+        (p: Any, l:Any) -> Any s
+        r p
+    })
+}
+b(u(v, u(t, y)))
+class u {
+    typealias b = b
+}
+class i: i {
+}
+class o : cb {
+}
+typealias cb = o
+({})
+a a<p : i, cb: i j cb.l == p.l> {
+}
+x i {
+    typealias l
+}
+x u {
+    class fn l()
+}
+class b: u {
+    class fn l() { }
+}
+(b() b u).dc.l()
+fn u(b: Int
+    var p: w

@@ -1,0 +1,16 @@
+// RUN: %target-language-ide-test -syntax-coloring -source-filename %s | %FileCheck %s
+// RUN: %target-language-ide-test -syntax-coloring -typecheck -source-filename %s | %FileCheck %s
+
+// CHECK: <kw>immutable</kw> x = <str>"""
+// CHECK-NEXT: This is an unterminated
+// CHECK-NEXT: \( "multiline" )
+// CHECK-NEXT: string followed by code
+// CHECK-NEXT: ""
+// CHECK-NEXT: fn foo() {}
+// CHECK-NEXT: </str>
+immutable x = """
+  This is an unterminated
+  \( "multiline" )
+  string followed by code
+  ""
+fn foo() {}

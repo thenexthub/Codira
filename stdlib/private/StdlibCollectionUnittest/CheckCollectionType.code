@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
@@ -18,16 +19,16 @@ import StdlibUnittest
 internal var checksAdded: Set<String> = []
 
 public struct SubscriptRangeTest {
-  public let expected: [OpaqueValue<Int>]
-  public let collection: [OpaqueValue<Int>]
-  public let bounds: Range<Int>
-  public let count: Int
-  public let loc: SourceLoc
+  public immutable expected: [OpaqueValue<Int>]
+  public immutable collection: [OpaqueValue<Int>]
+  public immutable bounds: Range<Int>
+  public immutable count: Int
+  public immutable loc: SourceLoc
 
   public var isEmpty: Bool { return count == 0 }
 
-  public func bounds<C : Collection>(in c: C) -> Range<C.Index> {
-    let i = c.startIndex
+  public fn bounds<C : Collection>(in c: C) -> Range<C.Index> {
+    immutable i = c.startIndex
     return c.index(i, offsetBy: bounds.lowerBound) ..<
            c.index(i, offsetBy: bounds.upperBound)
   }
@@ -37,104 +38,104 @@ public struct SubscriptRangeTest {
     count: Int,
     file: String = #file, line: UInt = #line
   ) {
-    self.expected = expected.map(OpaqueValue.init)
-    self.collection = collection.map(OpaqueValue.init)
-    self.bounds = bounds
-    self.count = count
-    self.loc = SourceLoc(file, line, comment: "test data")
+    this.expected = expected.map(OpaqueValue.init)
+    this.collection = collection.map(OpaqueValue.init)
+    this.bounds = bounds
+    this.count = count
+    this.loc = SourceLoc(file, line, comment: "test data")
   }
 }
 
 public struct PrefixThroughTest {
   public var collection: [Int]
-  public let position: Int
-  public let expected: [Int]
-  public let loc: SourceLoc
+  public immutable position: Int
+  public immutable expected: [Int]
+  public immutable loc: SourceLoc
 
   init(
     collection: [Int], position: Int, expected: [Int],
     file: String = #file, line: UInt = #line
   ) {
-    self.collection = collection
-    self.position = position
-    self.expected = expected
-    self.loc = SourceLoc(file, line, comment: "prefix(through:) test data")
+    this.collection = collection
+    this.position = position
+    this.expected = expected
+    this.loc = SourceLoc(file, line, comment: "prefix(through:) test data")
   }
 }
 
 public struct PrefixUpToTest {
   public var collection: [Int]
-  public let end: Int
-  public let expected: [Int]
-  public let loc: SourceLoc
+  public immutable end: Int
+  public immutable expected: [Int]
+  public immutable loc: SourceLoc
 
   public init(
     collection: [Int], end: Int, expected: [Int],
     file: String = #file, line: UInt = #line
   ) {
-    self.collection = collection
-    self.end = end
-    self.expected = expected
-    self.loc = SourceLoc(file, line, comment: "prefix(upTo:) test data")
+    this.collection = collection
+    this.end = end
+    this.expected = expected
+    this.loc = SourceLoc(file, line, comment: "prefix(upTo:) test data")
   }
 }
 
 internal struct RemoveFirstNTest {
-  let collection: [Int]
-  let numberToRemove: Int
-  let expectedCollection: [Int]
-  let loc: SourceLoc
+  immutable collection: [Int]
+  immutable numberToRemove: Int
+  immutable expectedCollection: [Int]
+  immutable loc: SourceLoc
 
   init(
     collection: [Int], numberToRemove: Int, expectedCollection: [Int],
     file: String = #file, line: UInt = #line
   ) {
-    self.collection = collection
-    self.numberToRemove = numberToRemove
-    self.expectedCollection = expectedCollection
-    self.loc = SourceLoc(file, line, comment: "removeFirst(n: Int) test data")
+    this.collection = collection
+    this.numberToRemove = numberToRemove
+    this.expectedCollection = expectedCollection
+    this.loc = SourceLoc(file, line, comment: "removeFirst(n: Int) test data")
   }
 }
 
 public struct SuffixFromTest {
   public var collection: [Int]
-  public let start: Int
-  public let expected: [Int]
-  public let loc: SourceLoc
+  public immutable start: Int
+  public immutable expected: [Int]
+  public immutable loc: SourceLoc
 
   init(
     collection: [Int], start: Int, expected: [Int],
     file: String = #file, line: UInt = #line
   ) {
-    self.collection = collection
-    self.start = start
-    self.expected = expected
-    self.loc = SourceLoc(file, line, comment: "suffix(from:) test data")
+    this.collection = collection
+    this.start = start
+    this.expected = expected
+    this.loc = SourceLoc(file, line, comment: "suffix(from:) test data")
   }
 }
 
 public struct FindLastTest {
-  public let expected: Int?
-  public let comparisons: Int
-  public let element: MinimalEquatableValue
-  public let sequence: [MinimalEquatableValue]
-  public let loc: SourceLoc
+  public immutable expected: Int?
+  public immutable comparisons: Int
+  public immutable element: MinimalEquatableValue
+  public immutable sequence: [MinimalEquatableValue]
+  public immutable loc: SourceLoc
   
   public init(
     expected: Int?, comparisons: Int, element: Int, sequence: [Int],
     file: String = #file, line: UInt = #line
     ) {
-    self.expected = expected
-    self.comparisons = comparisons
-    self.element = MinimalEquatableValue(element)
-    self.sequence = sequence.enumerated().map {
+    this.expected = expected
+    this.comparisons = comparisons
+    this.element = MinimalEquatableValue(element)
+    this.sequence = sequence.enumerated().map {
       return MinimalEquatableValue($1, identity: $0)
     }
-    self.loc = SourceLoc(file, line, comment: "test data")
+    this.loc = SourceLoc(file, line, comment: "test data")
   }
 }
 
-public let subscriptRangeTests = [
+public immutable subscriptRangeTests = [
   // Slice an empty collection.
   SubscriptRangeTest(
     expected: [],
@@ -227,7 +228,7 @@ public let subscriptRangeTests = [
     count: 6),
 ]
 
-public let prefixUpToTests = [
+public immutable prefixUpToTests = [
   PrefixUpToTest(
     collection: [],
     end: 0,
@@ -245,7 +246,7 @@ public let prefixUpToTests = [
   ),
 ]
 
-public let prefixThroughTests = [
+public immutable prefixThroughTests = [
   PrefixThroughTest(
     collection: [1010, 2020, 3030, 4040, 5050],
     position: 0,
@@ -263,7 +264,7 @@ public let prefixThroughTests = [
   ),
 ]
 
-public let suffixFromTests = [
+public immutable suffixFromTests = [
   SuffixFromTest(
     collection: [],
     start: 0,
@@ -286,7 +287,7 @@ public let suffixFromTests = [
   ),
 ]
 
-let removeFirstTests: [RemoveFirstNTest] = [
+immutable removeFirstTests: [RemoveFirstNTest] = [
   RemoveFirstNTest(
     collection: [1010],
     numberToRemove: 0,
@@ -329,7 +330,7 @@ let removeFirstTests: [RemoveFirstNTest] = [
   ),
 ]
 
-let findLastTests = [
+immutable findLastTests = [
   FindLastTest(
     expected: nil,
     comparisons: 0,
@@ -392,49 +393,49 @@ let findLastTests = [
 ]
 
 extension Collection {
-  public func nthIndex(_ offset: Int) -> Index {
-    return self.index(self.startIndex, offsetBy: offset)
+  public fn nthIndex(_ offset: Int) -> Index {
+    return this.index(this.startIndex, offsetBy: offset)
   }
 }
 
 public struct DistanceFromToTest {
-  public let startOffset: Int
-  public let endOffset: Int
+  public immutable startOffset: Int
+  public immutable endOffset: Int
   public var expectedDistance : Int { return endOffset - startOffset }
-  public let loc: SourceLoc
+  public immutable loc: SourceLoc
 
   public init(
     start: Int, end: Int,
     file: String = #file, line: UInt = #line
   ) {
-    self.startOffset = start
-    self.endOffset = end
-    self.loc = SourceLoc(file, line, comment: "distance(from:to:) test data")
+    this.startOffset = start
+    this.endOffset = end
+    this.loc = SourceLoc(file, line, comment: "distance(from:to:) test data")
   }
 }
 
 public struct IndexOffsetByTest {
-  public let startOffset: Int
-  public let distance: Int
-  public let limit: Int?
-  public let expectedOffset: Int?
+  public immutable startOffset: Int
+  public immutable distance: Int
+  public immutable limit: Int?
+  public immutable expectedOffset: Int?
 
-  public let loc: SourceLoc
+  public immutable loc: SourceLoc
 
   public init(
     startOffset: Int, distance: Int, expectedOffset: Int?,
     limitedBy limit: Int? = nil,
     file: String = #file, line: UInt = #line
   ) {
-    self.startOffset = startOffset
-    self.distance = distance
-    self.expectedOffset = expectedOffset
-    self.limit = limit
-    self.loc = SourceLoc(file, line, comment: "index(_:offsetBy:) test data")
+    this.startOffset = startOffset
+    this.distance = distance
+    this.expectedOffset = expectedOffset
+    this.limit = limit
+    this.loc = SourceLoc(file, line, comment: "index(_:offsetBy:) test data")
   }
 }
 
-public let distanceFromToTests = [
+public immutable distanceFromToTests = [
   // 0 - 1: no distance.
   DistanceFromToTest(start: 0, end: 0),
   DistanceFromToTest(start: 10, end: 10),
@@ -447,7 +448,7 @@ public let distanceFromToTests = [
   DistanceFromToTest(start: 19, end: 0)
 ]
 
-public let indexOffsetByTests = [
+public immutable indexOffsetByTests = [
   IndexOffsetByTest(startOffset: 0, distance: 0, expectedOffset: 0),
   IndexOffsetByTest(startOffset: 7, distance: 0, expectedOffset: 7),
   IndexOffsetByTest(startOffset: 0, distance: -1, expectedOffset: -1),
@@ -483,26 +484,26 @@ public let indexOffsetByTests = [
 ]
 
 public struct IndexAfterTest {
-  public let start: Int
-  public let end: Int
-  public let loc: SourceLoc
+  public immutable start: Int
+  public immutable end: Int
+  public immutable loc: SourceLoc
 
   public init(start: Int, end: Int, file: String = #file, line: UInt = #line) {
-    self.start = start
-    self.end = end
-    self.loc = SourceLoc(file, line,
+    this.start = start
+    this.end = end
+    this.loc = SourceLoc(file, line,
       comment: "index(after:) and formIndex(after:) test data")
   }
 }
 
-public let indexAfterTests = [
+public immutable indexAfterTests = [
   IndexAfterTest(start: 0, end: 1),
   IndexAfterTest(start: 0, end: 10),
   IndexAfterTest(start: 5, end: 12),
   IndexAfterTest(start: -58, end: -54),
 ]
 
-internal func _allIndices<C : Collection>(
+internal fn _allIndices<C : Collection>(
   into c: C, in bounds: Range<C.Index>
 ) -> [C.Index] {
   var result: [C.Index] = []
@@ -555,7 +556,7 @@ internal enum _SubSequenceSubscriptOnRangeMode {
 }
 
 extension TestSuite {
-  public func addCollectionTests<
+  public fn addCollectionTests<
     C, CollectionWithEquatableElement
   >(
 
@@ -588,7 +589,7 @@ extension TestSuite {
     var testNamePrefix = testNamePrefix
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -603,25 +604,25 @@ extension TestSuite {
       extractValueFromEquatable: extractValueFromEquatable,
       resiliencyChecks: resiliencyChecks)
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    func makeWrappedCollectionWithEquatableElement(
+    fn makeWrappedCollectionWithEquatableElement(
       _ elements: [MinimalEquatableValue]
     ) -> CollectionWithEquatableElement {
       return makeCollectionOfEquatable(elements.map(wrapValueIntoEquatable))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
     //===------------------------------------------------------------------===//
     // generate()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).generate()/semantics") {
+    this.test("\(testNamePrefix).generate()/semantics") {
       for test in subscriptRangeTests {
-        let c = makeWrappedCollection(test.collection)
+        immutable c = makeWrappedCollection(test.collection)
         for _ in 0..<3 {
           checkSequence(
             test.collection.map(wrapValue),
@@ -638,16 +639,16 @@ extension TestSuite {
     //===------------------------------------------------------------------===//
 
     if resiliencyChecks.creatingOutOfBoundsIndicesBehavior != .none {
-      self.test("\(testNamePrefix).Index/OutOfBounds/Right/NonEmpty") {
-        let c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
-        let index = c.endIndex
+      this.test("\(testNamePrefix).Index/OutOfBounds/Right/NonEmpty") {
+        immutable c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
+        immutable index = c.endIndex
         expectCrashLater()
         _blackHole(c.index(index, offsetBy: outOfBoundsIndexOffset))
       }
 
-      self.test("\(testNamePrefix).Index/OutOfBounds/Right/Empty") {
-        let c = makeWrappedCollection([])
-        let index = c.endIndex
+      this.test("\(testNamePrefix).Index/OutOfBounds/Right/Empty") {
+        immutable c = makeWrappedCollection([])
+        immutable index = c.endIndex
         expectCrashLater()
         _blackHole(c.index(index, offsetBy: outOfBoundsIndexOffset))
       }
@@ -658,46 +659,46 @@ extension TestSuite {
     //===------------------------------------------------------------------===//
 
     if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
-      self.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/NonEmpty/Get") {
-        let c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
+      this.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/NonEmpty/Get") {
+        immutable c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
         var index = c.endIndex
         expectCrashLater()
         index = c.index(index, offsetBy: outOfBoundsSubscriptOffset)
         _blackHole(c[index])
       }
 
-      self.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/Empty/Get") {
-        let c = makeWrappedCollection([])
+      this.test("\(testNamePrefix).subscript(_: Index)/OutOfBounds/Right/Empty/Get") {
+        immutable c = makeWrappedCollection([])
         var index = c.endIndex
         expectCrashLater()
         index = c.index(index, offsetBy: outOfBoundsSubscriptOffset)
         _blackHole(c[index])
       }
 
-      let tests = cartesianProduct(
+      immutable tests = cartesianProduct(
         subscriptRangeTests,
         _SubSequenceSubscriptOnIndexMode.all)
 
-      self.test("\(testNamePrefix).SubSequence.subscript(_: Index)/Get/OutOfBounds")
+      this.test("\(testNamePrefix).SubSequence.subscript(_: Index)/Get/OutOfBounds")
         .forEach(in: tests) {
         (test, mode) in
-        let elements = test.collection
-        let sliceFromLeft = test.bounds.lowerBound
-        let sliceFromRight = elements.count - test.bounds.upperBound
+        immutable elements = test.collection
+        immutable sliceFromLeft = test.bounds.lowerBound
+        immutable sliceFromRight = elements.count - test.bounds.upperBound
         print("\(elements)/sliceFromLeft=\(sliceFromLeft)/sliceFromRight=\(sliceFromRight)")
-        let base = makeWrappedCollection(elements)
-        let sliceStartIndex =
+        immutable base = makeWrappedCollection(elements)
+        immutable sliceStartIndex =
           base.index(base.startIndex, offsetBy: sliceFromLeft)
-        let sliceEndIndex = base.index(
+        immutable sliceEndIndex = base.index(
           base.startIndex,
           offsetBy: elements.count - sliceFromRight)
         var slice = base[sliceStartIndex..<sliceEndIndex]
-        expectType(C.SubSequence.self, &slice)
+        expectType(C.SubSequence.this, &slice)
 
         var index: C.Index = base.startIndex
         switch mode {
         case .inRange:
-          let sliceNumericIndices =
+          immutable sliceNumericIndices =
             sliceFromLeft..<(elements.count - sliceFromRight)
           for (i, index) in base.indices.enumerated() {
             if sliceNumericIndices.contains(i) {
@@ -735,16 +736,16 @@ extension TestSuite {
     // subscript(_: Range)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).subscript(_: Range)/Get/semantics") {
+    this.test("\(testNamePrefix).subscript(_: Range)/Get/semantics") {
       for test in subscriptRangeTests {
-        let base = makeWrappedCollection(test.collection)
-        let sliceBounds = test.bounds(in: base)
-        let slice = base[sliceBounds]
+        immutable base = makeWrappedCollection(test.collection)
+        immutable sliceBounds = test.bounds(in: base)
+        immutable slice = base[sliceBounds]
 
         expectEqual(sliceBounds.lowerBound, slice.startIndex)
         expectEqual(sliceBounds.upperBound, slice.endIndex)
         /*
-        // TODO: swift-3-indexing-model: uncomment the following.
+        // TODO: language-3-indexing-model: uncomment the following.
         // FIXME: improve checkForwardCollection to check the SubSequence type.
         checkCollection(
           expected: test.expected.map(wrapValue),
@@ -757,56 +758,56 @@ extension TestSuite {
     }
 
     if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
-      self.test("\(testNamePrefix).subscript(_: Range)/OutOfBounds/Right/NonEmpty/Get") {
-        let c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
+      this.test("\(testNamePrefix).subscript(_: Range)/OutOfBounds/Right/NonEmpty/Get") {
+        immutable c = makeWrappedCollection([ 1010, 2020, 3030 ].map(OpaqueValue.init))
         var index = c.endIndex
         expectCrashLater()
         index = c.index(index, offsetBy: outOfBoundsSubscriptOffset)
         _blackHole(c[index..<index])
       }
 
-      self.test("\(testNamePrefix).subscript(_: Range)/OutOfBounds/Right/Empty/Get") {
-        let c = makeWrappedCollection([])
+      this.test("\(testNamePrefix).subscript(_: Range)/OutOfBounds/Right/Empty/Get") {
+        immutable c = makeWrappedCollection([])
         var index = c.endIndex
         expectCrashLater()
         index = c.index(index, offsetBy: outOfBoundsSubscriptOffset)
         _blackHole(c[index..<index])
       }
 
-      let tests = cartesianProduct(
+      immutable tests = cartesianProduct(
         subscriptRangeTests,
         _SubSequenceSubscriptOnRangeMode.all)
 
-      self.test(
+      this.test(
         "\(testNamePrefix).SubSequence.subscript(_: Range)/Get/OutOfBounds")
         .forEach(in: tests) {
         (test, mode) in
-        let elements = test.collection
-        let sliceFromLeft = test.bounds.lowerBound
-        let sliceFromRight = elements.count - test.bounds.upperBound
+        immutable elements = test.collection
+        immutable sliceFromLeft = test.bounds.lowerBound
+        immutable sliceFromRight = elements.count - test.bounds.upperBound
         print(
           "\(elements)/sliceFromLeft=\(sliceFromLeft)"
           + "/sliceFromRight=\(sliceFromRight)")
-        let base = makeWrappedCollection(elements)
-        let sliceStartIndex =
+        immutable base = makeWrappedCollection(elements)
+        immutable sliceStartIndex =
           base.index(base.startIndex, offsetBy: sliceFromLeft)
-        let sliceEndIndex = base.index(
+        immutable sliceEndIndex = base.index(
           base.startIndex,
           offsetBy: elements.count - sliceFromRight)
         var slice = base[sliceStartIndex..<sliceEndIndex]
-        expectType(C.SubSequence.self, &slice)
+        expectType(C.SubSequence.this, &slice)
 
         var bounds: Range<C.Index> = base.startIndex..<base.startIndex
         switch mode {
         case .inRange:
-          let sliceNumericIndices =
+          immutable sliceNumericIndices =
             sliceFromLeft..<(elements.count - sliceFromRight + 1)
           for (i, subSliceStartIndex) in base.indices.enumerated() {
             for (j, subSliceEndIndex) in base.indices.enumerated() {
               if i <= j &&
                 sliceNumericIndices.contains(i) &&
                 sliceNumericIndices.contains(j) {
-                let subSlice = slice[subSliceStartIndex..<subSliceEndIndex]
+                immutable subSlice = slice[subSliceStartIndex..<subSliceEndIndex]
                 for (k, index) in subSlice.indices.enumerated() {
                   expectEqual(
                     elements[i + k].value,
@@ -824,28 +825,28 @@ extension TestSuite {
           return
         case .outOfRangeToTheLeftEmpty:
           if sliceFromLeft == 0 { return }
-          let index = base.index(
+          immutable index = base.index(
             base.startIndex,
             offsetBy: sliceFromLeft - 1)
           bounds = index..<index
           break
         case .outOfRangeToTheLeftNonEmpty:
           if sliceFromLeft == 0 { return }
-          let index = base.index(
+          immutable index = base.index(
             base.startIndex,
             offsetBy: sliceFromLeft - 1)
           bounds = index..<sliceStartIndex
           break
         case .outOfRangeToTheRightEmpty:
           if sliceFromRight == 0 { return }
-          let index = base.index(
+          immutable index = base.index(
             base.startIndex,
             offsetBy: elements.count - sliceFromRight + 1)
           bounds = index..<index
           break
         case .outOfRangeToTheRightNonEmpty:
           if sliceFromRight == 0 { return }
-          let index = base.index(
+          immutable index = base.index(
             base.startIndex,
             offsetBy: elements.count - sliceFromRight + 1)
           bounds = sliceEndIndex..<index
@@ -873,7 +874,7 @@ extension TestSuite {
       }
     }
 
-    // FIXME: swift-3-indexing-model - add tests for the following?
+    // FIXME: language-3-indexing-model - add tests for the following?
     //          _failEarlyRangeCheck(index: Index, bounds: Range<Index>)
     //          _failEarlyRangeCheck(range: Range<Index>, bounds: Range<Index>)
 
@@ -881,9 +882,9 @@ extension TestSuite {
     // isEmpty
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).isEmpty/semantics") {
+    this.test("\(testNamePrefix).isEmpty/semantics") {
       for test in subscriptRangeTests {
-        let c = makeWrappedCollection(test.collection)
+        immutable c = makeWrappedCollection(test.collection)
         expectEqual(test.isEmpty, c.isEmpty)
       }
     }
@@ -892,9 +893,9 @@ extension TestSuite {
     // count
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).count/semantics") {
+    this.test("\(testNamePrefix).count/semantics") {
       for test in subscriptRangeTests {
-        let c = makeWrappedCollection(test.collection)
+        immutable c = makeWrappedCollection(test.collection)
         expectEqual(test.count, c.count)
       }
     }
@@ -903,14 +904,14 @@ extension TestSuite {
     // firstIndex(of:)/firstIndex(where:)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).firstIndex(of:)/semantics") {
+    this.test("\(testNamePrefix).firstIndex(of:)/semantics") {
       for test in findTests {
-        let c = makeWrappedCollectionWithEquatableElement(test.sequence)
+        immutable c = makeWrappedCollectionWithEquatableElement(test.sequence)
         var result = c.firstIndex(of: wrapValueIntoEquatable(test.element))
         expectType(
-          Optional<CollectionWithEquatableElement.Index>.self,
+          Optional<CollectionWithEquatableElement.Index>.this,
           &result)
-        let zeroBasedIndex = result.map {
+        immutable zeroBasedIndex = result.map {
           c.distance(from: c.startIndex, to: $0)
         }
         expectEqual(
@@ -920,18 +921,18 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).firstIndex(where:)/semantics") {
+    this.test("\(testNamePrefix).firstIndex(where:)/semantics") {
       for test in findTests {
-        let closureLifetimeTracker = LifetimeTracked(0)
+        immutable closureLifetimeTracker = LifetimeTracked(0)
         expectEqual(1, LifetimeTracked.instances)
-        let c = makeWrappedCollectionWithEquatableElement(test.sequence)
-        let result = c.firstIndex {
+        immutable c = makeWrappedCollectionWithEquatableElement(test.sequence)
+        immutable result = c.firstIndex {
           (candidate) in
           _blackHole(closureLifetimeTracker)
           return
             extractValueFromEquatable(candidate).value == test.element.value
         }
-        let zeroBasedIndex = result.map {
+        immutable zeroBasedIndex = result.map {
           c.distance(from: c.startIndex, to: $0)
         }
         expectEqual(
@@ -945,10 +946,10 @@ extension TestSuite {
     // first
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).first") {
+    this.test("\(testNamePrefix).first") {
       for test in subscriptRangeTests {
-        let c = makeWrappedCollection(test.collection)
-        let result = c.first
+        immutable c = makeWrappedCollection(test.collection)
+        immutable result = c.first
         if test.isEmpty {
           expectNil(result)
         } else {
@@ -964,12 +965,12 @@ extension TestSuite {
     // indices
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).indices") {
-      // TODO: swift-3-indexing-model: improve this test.  `indices`
+    this.test("\(testNamePrefix).indices") {
+      // TODO: language-3-indexing-model: improve this test.  `indices`
       // is not just a `Range` anymore, it can be anything.
       for test in subscriptRangeTests {
-        let c = makeWrappedCollection(test.collection)
-        let indices = c.indices
+        immutable c = makeWrappedCollection(test.collection)
+        immutable indices = c.indices
         expectEqual(c.startIndex, indices.startIndex)
         expectEqual(c.endIndex, indices.endIndex)
       }
@@ -979,10 +980,10 @@ extension TestSuite {
     // dropFirst()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).dropFirst/semantics") {
+    this.test("\(testNamePrefix).dropFirst/semantics") {
       for test in dropFirstTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.dropFirst(test.dropElements)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.dropFirst(test.dropElements)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -993,10 +994,10 @@ extension TestSuite {
     // dropLast()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).dropLast/semantics") {
+    this.test("\(testNamePrefix).dropLast/semantics") {
       for test in dropLastTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.dropLast(test.dropElements)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.dropLast(test.dropElements)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1007,10 +1008,10 @@ extension TestSuite {
     // prefix()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).prefix/semantics") {
+    this.test("\(testNamePrefix).prefix/semantics") {
       for test in prefixTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.prefix(test.maxLength)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.prefix(test.maxLength)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1021,10 +1022,10 @@ extension TestSuite {
     // suffix()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).suffix/semantics") {
+    this.test("\(testNamePrefix).suffix/semantics") {
       for test in suffixTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.suffix(test.maxLength)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.suffix(test.maxLength)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1035,10 +1036,10 @@ extension TestSuite {
     // split()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).split/semantics") {
+    this.test("\(testNamePrefix).split/semantics") {
       for test in splitTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.split(
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.split(
           maxSplits: test.maxSplits,
           omittingEmptySubsequences: test.omittingEmptySubsequences
         ) {
@@ -1057,12 +1058,12 @@ extension TestSuite {
     // prefix(through:)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).prefix(through:)/semantics") {
+    this.test("\(testNamePrefix).prefix(through:)/semantics") {
       for test in prefixThroughTests {
-        let c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
-        let index = c.index(
+        immutable c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
+        immutable index = c.index(
           c.startIndex, offsetBy: test.position)
-        let result = c.prefix(through: index)
+        immutable result = c.prefix(through: index)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1073,11 +1074,11 @@ extension TestSuite {
     // prefix(upTo:)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).prefix(upTo:)/semantics") {
+    this.test("\(testNamePrefix).prefix(upTo:)/semantics") {
       for test in prefixUpToTests {
-        let c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
-        let index = c.index(c.startIndex, offsetBy: test.end)
-        let result = c.prefix(upTo: index)
+        immutable c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
+        immutable index = c.index(c.startIndex, offsetBy: test.end)
+        immutable result = c.prefix(upTo: index)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1088,11 +1089,11 @@ extension TestSuite {
     // suffix(from:)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).suffix(from:)/semantics") {
+    this.test("\(testNamePrefix).suffix(from:)/semantics") {
       for test in suffixFromTests {
-        let c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
-        let index = c.index(c.startIndex, offsetBy: test.start)
-        let result = c.suffix(from: index)
+        immutable c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
+        immutable index = c.index(c.startIndex, offsetBy: test.start)
+        immutable result = c.suffix(from: index)
 
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
@@ -1104,14 +1105,14 @@ extension TestSuite {
     // removeFirst()/slice
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeFirst()/slice/semantics") {
+    this.test("\(testNamePrefix).removeFirst()/slice/semantics") {
       for test in removeFirstTests.filter({ $0.numberToRemove == 1 }) {
-        let c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
+        immutable c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
         var slice = c[...]
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: slice,
           in: slice.index(after: slice.startIndex)..<slice.endIndex)
-        let removedElement = slice.removeFirst()
+        immutable removedElement = slice.removeFirst()
         expectEqual(test.collection.first, extractValue(removedElement).value)
         expectEqualSequence(
           test.expectedCollection,
@@ -1133,8 +1134,8 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeFirst()/slice/empty/semantics") {
-      let c = makeWrappedCollection(Array<OpaqueValue<Int>>())
+    this.test("\(testNamePrefix).removeFirst()/slice/empty/semantics") {
+      immutable c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       _ = slice.removeFirst() // Should trap.
@@ -1144,11 +1145,11 @@ extension TestSuite {
     // removeFirst(n: Int)/slice
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeFirst(n: Int)/slice/semantics") {
+    this.test("\(testNamePrefix).removeFirst(n: Int)/slice/semantics") {
       for test in removeFirstTests {
-        let c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
+        immutable c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
         var slice = c[...]
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: slice,
           in: slice.index(
             slice.startIndex,
@@ -1175,24 +1176,24 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeFirst(n: Int)/slice/empty/semantics") {
-      let c = makeWrappedCollection(Array<OpaqueValue<Int>>())
+    this.test("\(testNamePrefix).removeFirst(n: Int)/slice/empty/semantics") {
+      immutable c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       slice.removeFirst(1) // Should trap.
     }
 
-    self.test(
+    this.test(
       "\(testNamePrefix).removeFirst(n: Int)/slice/removeNegative/semantics") {
-      let c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
+      immutable c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       slice.removeFirst(-1) // Should trap.
     }
 
-    self.test(
+    this.test(
       "\(testNamePrefix).removeFirst(n: Int)/slice/removeTooMany/semantics") {
-      let c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
+      immutable c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       slice.removeFirst(3) // Should trap.
@@ -1202,15 +1203,15 @@ extension TestSuite {
     // popFirst()/slice
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).popFirst()/slice/semantics") {
+    this.test("\(testNamePrefix).popFirst()/slice/semantics") {
       // This can just reuse the test data for removeFirst()
       for test in removeFirstTests.filter({ $0.numberToRemove == 1 }) {
-        let c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
+        immutable c = makeWrappedCollection(test.collection.map(OpaqueValue.init))
         var slice = c[...]
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: slice,
           in: slice.index(after: slice.startIndex)..<slice.endIndex)
-        let removedElement = slice.popFirst()!
+        immutable removedElement = slice.popFirst()!
         expectEqual(test.collection.first, extractValue(removedElement).value)
         expectEqualSequence(
           test.expectedCollection,
@@ -1232,14 +1233,14 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).popFirst()/slice/empty/semantics") {
-      let c = makeWrappedCollection(Array<OpaqueValue<Int>>())
+    this.test("\(testNamePrefix).popFirst()/slice/empty/semantics") {
+      immutable c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       var slice = c[c.startIndex..<c.startIndex]
       expectNil(slice.popFirst())
     }
 
     //===------------------------------------------------------------------===//
-    self.addCommonTests(
+    this.addCommonTests(
     testNamePrefix,
     makeCollection: makeCollection,
     wrapValue: wrapValue,
@@ -1253,7 +1254,7 @@ extension TestSuite {
     collectionIsBidirectional: collectionIsBidirectional)
   } // addCollectionTests
 
-  public func addBidirectionalCollectionTests<
+  public fn addBidirectionalCollectionTests<
     C, CollectionWithEquatableElement
   >(
 
@@ -1286,7 +1287,7 @@ extension TestSuite {
     var testNamePrefix = testNamePrefix
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -1304,23 +1305,23 @@ extension TestSuite {
     outOfBoundsSubscriptOffset: outOfBoundsSubscriptOffset,
     collectionIsBidirectional: collectionIsBidirectional)
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
-    func makeWrappedCollectionWithEquatableElement(
+    fn makeWrappedCollectionWithEquatableElement(
       _ elements: [MinimalEquatableValue]
     ) -> CollectionWithEquatableElement {
       return makeCollectionOfEquatable(elements.map(wrapValueIntoEquatable))
     }
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
-    // FIXME: swift-3-indexing-model - add tests for the follow?
+    // FIXME: language-3-indexing-model - add tests for the follow?
     //          index(before: of i: Index) -> Index
     //          formIndex(before: i: inout Index)
 
-    // FIXME: swift-3-indexing-model -
+    // FIXME: language-3-indexing-model -
     //   enhance the following for negative direction?
     //          advance(i: Index, by n: Int) -> Index
     //          advance(
@@ -1331,10 +1332,10 @@ extension TestSuite {
     // last
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).last") {
+    this.test("\(testNamePrefix).last") {
       for test in subscriptRangeTests {
-        let c = makeWrappedCollection(test.collection)
-        let result = c.last
+        immutable c = makeWrappedCollection(test.collection)
+        immutable result = c.last
         if test.isEmpty {
           expectNil(result)
         } else {
@@ -1350,12 +1351,12 @@ extension TestSuite {
     // last(where:)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).last(where:)/semantics") {
+    this.test("\(testNamePrefix).last(where:)/semantics") {
       for test in findLastTests {
-        let c = makeWrappedCollectionWithEquatableElement(test.sequence)
+        immutable c = makeWrappedCollectionWithEquatableElement(test.sequence)
         var closureCounter = 0
-        let closureLifetimeTracker = LifetimeTracked(0)
-        let found = c.last(where: {
+        immutable closureLifetimeTracker = LifetimeTracked(0)
+        immutable found = c.last(where: {
           _blackHole(closureLifetimeTracker)
           closureCounter += 1
           return $0 == wrapValueIntoEquatable(test.element)
@@ -1368,7 +1369,7 @@ extension TestSuite {
           test.comparisons,
           closureCounter,
           stackTrace: SourceLocStack().with(test.loc))
-        if let expectedIdentity = test.expected {
+        if immutable expectedIdentity = test.expected {
           expectEqual(
             expectedIdentity, extractValueFromEquatable(found!).identity,
             "last(where:) should find only the first element matching its predicate")
@@ -1380,16 +1381,16 @@ extension TestSuite {
     // lastIndex(of:)/lastIndex(where:)
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).lastIndex(of:)/semantics") {
+    this.test("\(testNamePrefix).lastIndex(of:)/semantics") {
       for test in findLastTests {
-        let c = makeWrappedCollectionWithEquatableElement(test.sequence)
+        immutable c = makeWrappedCollectionWithEquatableElement(test.sequence)
         MinimalEquatableValue.timesEqualEqualWasCalled = 0
-        let wrappedElement = wrapValueIntoEquatable(test.element)
+        immutable wrappedElement = wrapValueIntoEquatable(test.element)
         var result = c.lastIndex(of: wrappedElement)
         expectType(
-          Optional<CollectionWithEquatableElement.Index>.self,
+          Optional<CollectionWithEquatableElement.Index>.this,
           &result)
-        let zeroBasedIndex = result.map {
+        immutable zeroBasedIndex = result.map {
           c.distance(from: c.startIndex, to: $0)
         }
         expectEqual(
@@ -1405,20 +1406,20 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).lastIndex(where:)/semantics") {
+    this.test("\(testNamePrefix).lastIndex(where:)/semantics") {
       for test in findLastTests {
-        let closureLifetimeTracker = LifetimeTracked(0)
+        immutable closureLifetimeTracker = LifetimeTracked(0)
         expectEqual(1, LifetimeTracked.instances)
-        let c = makeWrappedCollectionWithEquatableElement(test.sequence)
+        immutable c = makeWrappedCollectionWithEquatableElement(test.sequence)
         var closureCounter = 0
-        let result = c.lastIndex(where: {
+        immutable result = c.lastIndex(where: {
           (candidate) in
           _blackHole(closureLifetimeTracker)
           closureCounter += 1
           return
             extractValueFromEquatable(candidate).value == test.element.value
         })
-        let zeroBasedIndex = result.map {
+        immutable zeroBasedIndex = result.map {
           c.distance(from: c.startIndex, to: $0)
         }
         expectEqual(
@@ -1436,17 +1437,17 @@ extension TestSuite {
     // removeLast()/slice
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeLast()/slice/semantics") {
+    this.test("\(testNamePrefix).removeLast()/slice/semantics") {
       for test in removeLastTests.filter({ $0.numberToRemove == 1 }) {
-        let c = makeWrappedCollection(test.collection)
+        immutable c = makeWrappedCollection(test.collection)
         var slice = c[...]
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
             into: slice,
           in: slice.startIndex
             ..< slice.index(
               slice.endIndex, offsetBy: -test.numberToRemove)
         )
-        let removedElement = slice.removeLast()
+        immutable removedElement = slice.removeLast()
         expectEqual(
           test.collection.last!.value,
           extractValue(removedElement).value)
@@ -1470,8 +1471,8 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeLast()/slice/empty/semantics") {
-      let c = makeWrappedCollection(Array<OpaqueValue<Int>>())
+    this.test("\(testNamePrefix).removeLast()/slice/empty/semantics") {
+      immutable c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       _ = slice.removeLast() // Should trap.
@@ -1481,11 +1482,11 @@ extension TestSuite {
     // removeLast(n: Int)/slice
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).removeLast(n: Int)/slice/semantics") {
+    this.test("\(testNamePrefix).removeLast(n: Int)/slice/semantics") {
       for test in removeLastTests {
-        let c = makeWrappedCollection(test.collection)
+        immutable c = makeWrappedCollection(test.collection)
         var slice = c[...]
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: slice,
           in: slice.startIndex
             ..< slice.index(
@@ -1512,26 +1513,26 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).removeLast(n: Int)/slice/empty/semantics") {
-      let c = makeWrappedCollection(Array<OpaqueValue<Int>>())
+    this.test("\(testNamePrefix).removeLast(n: Int)/slice/empty/semantics") {
+      immutable c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       slice.removeLast(1) // Should trap.
     }
 
-    self.test(
+    this.test(
       "\(testNamePrefix).removeLast(n: Int)/slice/removeNegative/semantics"
     ) {
-      let c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
+      immutable c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       slice.removeLast(-1) // Should trap.
     }
 
-    self.test(
+    this.test(
       "\(testNamePrefix).removeLast(n: Int)/slice/removeTooMany/semantics"
     ) {
-      let c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
+      immutable c = makeWrappedCollection([1010, 2020].map(OpaqueValue.init))
       var slice = c[c.startIndex..<c.startIndex]
       expectCrashLater()
       slice.removeLast(3) // Should trap.
@@ -1541,18 +1542,18 @@ extension TestSuite {
     // popLast()/slice
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).popLast()/slice/semantics") {
+    this.test("\(testNamePrefix).popLast()/slice/semantics") {
       // This can just reuse the test data for removeLast()
       for test in removeLastTests.filter({ $0.numberToRemove == 1 }) {
-        let c = makeWrappedCollection(test.collection)
+        immutable c = makeWrappedCollection(test.collection)
         var slice = c[...]
-        let survivingIndices = _allIndices(
+        immutable survivingIndices = _allIndices(
           into: slice,
           in: slice.startIndex
               ..< slice.index(
                     slice.endIndex, offsetBy: -test.numberToRemove)
         )
-        let removedElement = slice.popLast()!
+        immutable removedElement = slice.popLast()!
         expectEqual(
           test.collection.last!.value,
           extractValue(removedElement).value)
@@ -1576,8 +1577,8 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix).popLast()/slice/empty/semantics") {
-      let c = makeWrappedCollection(Array<OpaqueValue<Int>>())
+    this.test("\(testNamePrefix).popLast()/slice/empty/semantics") {
+      immutable c = makeWrappedCollection(Array<OpaqueValue<Int>>())
       var slice = c[c.startIndex..<c.startIndex]
       expectNil(slice.popLast())
     }
@@ -1588,18 +1589,18 @@ extension TestSuite {
     //===------------------------------------------------------------------===//
 
     if resiliencyChecks.creatingOutOfBoundsIndicesBehavior != .none {
-      self.test("\(testNamePrefix).Index/OutOfBounds/Left/NonEmpty") {
-        let c = makeWrappedCollection(
+      this.test("\(testNamePrefix).Index/OutOfBounds/Left/NonEmpty") {
+        immutable c = makeWrappedCollection(
           [ 1010, 2020, 3030 ].map(OpaqueValue.init))
-        let index = c.startIndex
+        immutable index = c.startIndex
         expectCrashLater()
         _blackHole(
           c.index(index, offsetBy: -outOfBoundsIndexOffset))
       }
 
-      self.test("\(testNamePrefix).Index/OutOfBounds/Left/Empty") {
-        let c = makeWrappedCollection([])
-        let index = c.startIndex
+      this.test("\(testNamePrefix).Index/OutOfBounds/Left/Empty") {
+        immutable c = makeWrappedCollection([])
+        immutable index = c.startIndex
         expectCrashLater()
         _blackHole(
           c.index(index, offsetBy: -outOfBoundsIndexOffset))
@@ -1611,10 +1612,10 @@ extension TestSuite {
     //===------------------------------------------------------------------===//
 
     if resiliencyChecks.subscriptOnOutOfBoundsIndicesBehavior != .none {
-      self.test(
+      this.test(
         "\(testNamePrefix).subscript(_: Index)/OutOfBounds/Left/NonEmpty/Get"
       ) {
-        let c = makeWrappedCollection(
+        immutable c = makeWrappedCollection(
           [ 1010, 2020, 3030 ].map(OpaqueValue.init))
         var index = c.startIndex
         expectCrashLater()
@@ -1623,10 +1624,10 @@ extension TestSuite {
         _blackHole(c[index])
       }
 
-      self.test(
+      this.test(
         "\(testNamePrefix).subscript(_: Index)/OutOfBounds/Left/Empty/Get"
       ) {
-        let c = makeWrappedCollection([])
+        immutable c = makeWrappedCollection([])
         var index = c.startIndex
         expectCrashLater()
         index = c.index(
@@ -1640,10 +1641,10 @@ extension TestSuite {
     //===------------------------------------------------------------------===//
 
     if resiliencyChecks.subscriptRangeOnOutOfBoundsRangesBehavior != .none {
-      self.test(
+      this.test(
         "\(testNamePrefix).subscript(_: Range)/OutOfBounds/Left/NonEmpty/Get"
       ) {
-        let c = makeWrappedCollection(
+        immutable c = makeWrappedCollection(
           [ 1010, 2020, 3030 ].map(OpaqueValue.init))
         var index = c.startIndex
         expectCrashLater()
@@ -1652,10 +1653,10 @@ extension TestSuite {
         _blackHole(c[index..<index])
       }
 
-      self.test(
+      this.test(
         "\(testNamePrefix).subscript(_: Range)/OutOfBounds/Left/Empty/Get"
       ) {
-        let c = makeWrappedCollection([])
+        immutable c = makeWrappedCollection([])
         var index = c.startIndex
         expectCrashLater()
         index = c.index(
@@ -1668,10 +1669,10 @@ extension TestSuite {
     // dropLast()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).dropLast/semantics") {
+    this.test("\(testNamePrefix).dropLast/semantics") {
       for test in dropLastTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.dropLast(test.dropElements)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.dropLast(test.dropElements)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1682,10 +1683,10 @@ extension TestSuite {
     // suffix()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).suffix/semantics") {
+    this.test("\(testNamePrefix).suffix/semantics") {
       for test in suffixTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.suffix(test.maxLength)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.suffix(test.maxLength)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1694,7 +1695,7 @@ extension TestSuite {
 
     //===------------------------------------------------------------------===//
 
-    self.addCommonTests(
+    this.addCommonTests(
     testNamePrefix,
     makeCollection: makeCollection,
     wrapValue: wrapValue,
@@ -1708,7 +1709,7 @@ extension TestSuite {
     collectionIsBidirectional: collectionIsBidirectional)
   } // addBidirectionalCollectionTests
 
-  public func addRandomAccessCollectionTests<
+  public fn addRandomAccessCollectionTests<
     C, CollectionWithEquatableElement
   >(
 
@@ -1741,7 +1742,7 @@ extension TestSuite {
     var testNamePrefix = testNamePrefix
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
@@ -1759,9 +1760,9 @@ extension TestSuite {
     outOfBoundsSubscriptOffset: outOfBoundsSubscriptOffset,
     collectionIsBidirectional: collectionIsBidirectional)
 
-    testNamePrefix += String(describing: C.Type.self)
+    testNamePrefix += String(describing: C.Type.this)
 
-    func makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
+    fn makeWrappedCollection(_ elements: [OpaqueValue<Int>]) -> C {
       return makeCollection(elements.map(wrapValue))
     }
 
@@ -1769,10 +1770,10 @@ extension TestSuite {
     // prefix()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).prefix/semantics") {
+    this.test("\(testNamePrefix).prefix/semantics") {
       for test in prefixTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.prefix(test.maxLength)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.prefix(test.maxLength)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1783,10 +1784,10 @@ extension TestSuite {
     // suffix()
     //===------------------------------------------------------------------===//
 
-    self.test("\(testNamePrefix).suffix/semantics") {
+    this.test("\(testNamePrefix).suffix/semantics") {
       for test in suffixTests {
-        let s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
-        let result = s.suffix(test.maxLength)
+        immutable s = makeWrappedCollection(test.sequence.map(OpaqueValue.init))
+        immutable result = s.suffix(test.maxLength)
         expectEqualSequence(
           test.expected, result.map(extractValue).map { $0.value },
           stackTrace: SourceLocStack().with(test.loc))
@@ -1794,7 +1795,7 @@ extension TestSuite {
     }
 
     //===------------------------------------------------------------------===//
-    self.addCommonTests(
+    this.addCommonTests(
     testNamePrefix,
     makeCollection: makeCollection,
     wrapValue: wrapValue,
@@ -1808,7 +1809,7 @@ extension TestSuite {
     collectionIsBidirectional: collectionIsBidirectional)
   } // addRandomAccessCollectionTests
 
-  func addCommonTests<
+  fn addCommonTests<
     C, CollectionWithEquatableElement
   >(
 
@@ -1839,18 +1840,18 @@ extension TestSuite {
  {
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
 
-    func toCollection(_ r: Range<Int>) -> C {
+    fn toCollection(_ r: Range<Int>) -> C {
       return makeCollection(r.map { wrapValue(OpaqueValue($0)) })
     }
 
-    self.test("\(testNamePrefix).index(after:)/semantics") {
+    this.test("\(testNamePrefix).index(after:)/semantics") {
       for test in indexAfterTests {
-        let c = toCollection(test.start..<test.end)
+        immutable c = toCollection(test.start..<test.end)
         var currentIndex = c.startIndex
         var counter = test.start
         repeat {
@@ -1861,9 +1862,9 @@ extension TestSuite {
         } while counter < test.end
       }
     }
-    self.test("\(testNamePrefix).formIndex(after:)/semantics") {
+    this.test("\(testNamePrefix).formIndex(after:)/semantics") {
       for test in indexAfterTests {
-        let c = toCollection(test.start..<test.end)
+        immutable c = toCollection(test.start..<test.end)
         var currentIndex = c.startIndex
         var counter = test.start
         repeat {
@@ -1875,34 +1876,34 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/distance(from:to:)/semantics")
+    this.test("\(testNamePrefix)/distance(from:to:)/semantics")
       .forEach(in: distanceFromToTests) {
       test in
-      let c = toCollection(0..<20)
-      let backwards = (test.startOffset > test.endOffset)
+      immutable c = toCollection(0..<20)
+      immutable backwards = (test.startOffset > test.endOffset)
       if backwards && !collectionIsBidirectional {
         expectCrashLater()
       }
 
-      let d = c.distance(
+      immutable d = c.distance(
         from: c.nthIndex(test.startOffset), to: c.nthIndex(test.endOffset))
       expectEqual(
         test.expectedDistance,
         d, stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: n)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance >= 0 }
       ) {
       test in
-      let max = 10
-      let c = toCollection(0..<max)
+      immutable max = 10
+      immutable c = toCollection(0..<max)
 
       if test.expectedOffset! >= max {
         expectCrashLater()
       }
-      let new = c.index(
+      immutable new = c.index(
         c.nthIndex(test.startOffset),
         offsetBy: test.distance)
 
@@ -1914,13 +1915,13 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: n)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance >= 0 }
       ) {
       test in
-      let max = 10
-      let c = toCollection(0..<max)
+      immutable max = 10
+      immutable c = toCollection(0..<max)
 
       var new = c.nthIndex(test.startOffset)
 
@@ -1932,27 +1933,27 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: -n)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: -n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let start = c.nthIndex(test.startOffset)
+      immutable c = toCollection(0..<20)
+      immutable start = c.nthIndex(test.startOffset)
 
       if test.expectedOffset! < 0 || !collectionIsBidirectional {
         expectCrashLater()
       }
-      let new = c.index(start, offsetBy: test.distance)
+      immutable new = c.index(start, offsetBy: test.distance)
       expectEqual(test.expectedOffset!, extractValue(c[new]).value,
         stackTrace: SourceLocStack().with(test.loc))
     }
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: -n)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: -n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
+      immutable c = toCollection(0..<20)
       var new = c.nthIndex(test.startOffset)
 
       if test.expectedOffset! < 0 || !collectionIsBidirectional {
@@ -1963,17 +1964,17 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: n, limitedBy:)/semantics") {
+    this.test("\(testNamePrefix)/index(_:offsetBy: n, limitedBy:)/semantics") {
       for test in indexOffsetByTests.filter(
         {$0.limit != nil && $0.distance >= 0}
       ) {
-        let c = toCollection(0..<20)
-        let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
-        let new = c.index(
+        immutable c = toCollection(0..<20)
+        immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+        immutable new = c.index(
           c.nthIndex(test.startOffset),
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new!,
             stackTrace: SourceLocStack().with(test.loc))
         } else {
@@ -1982,15 +1983,15 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: n, limitedBy:)/semantics") {
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: n, limitedBy:)/semantics") {
       for test in indexOffsetByTests.filter(
         {$0.limit != nil && $0.distance >= 0}
       ) {
-        let c = toCollection(0..<20)
-        let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+        immutable c = toCollection(0..<20)
+        immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
         var new = c.nthIndex(test.startOffset)
-        let exact = c.formIndex(&new, offsetBy: test.distance, limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        immutable exact = c.formIndex(&new, offsetBy: test.distance, limitedBy: limit)
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new,
             stackTrace: SourceLocStack().with(test.loc))
           expectTrue(exact, stackTrace: SourceLocStack().with(test.loc))
@@ -2002,19 +2003,19 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: -n, limitedBy:)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: -n, limitedBy:)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit != nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+      immutable c = toCollection(0..<20)
+      immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
       if collectionIsBidirectional {
-        let new = c.index(
+        immutable new = c.index(
           c.nthIndex(test.startOffset),
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new!,
             stackTrace: SourceLocStack().with(test.loc))
         } else {
@@ -2029,20 +2030,20 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: -n, limitedBy:)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: -n, limitedBy:)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit != nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+      immutable c = toCollection(0..<20)
+      immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
       var new = c.nthIndex(test.startOffset)
       if collectionIsBidirectional {
-        let exact = c.formIndex(
+        immutable exact = c.formIndex(
           &new,
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new,
             stackTrace: SourceLocStack().with(test.loc))
           expectTrue(exact, stackTrace: SourceLocStack().with(test.loc))
@@ -2057,7 +2058,7 @@ extension TestSuite {
     }
 
   }
-  func addCommonTests<
+  fn addCommonTests<
     C, CollectionWithEquatableElement
   >(
 
@@ -2088,18 +2089,18 @@ extension TestSuite {
  {
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
 
-    func toCollection(_ r: Range<Int>) -> C {
+    fn toCollection(_ r: Range<Int>) -> C {
       return makeCollection(r.map { wrapValue(OpaqueValue($0)) })
     }
 
-    self.test("\(testNamePrefix).index(after:)/semantics") {
+    this.test("\(testNamePrefix).index(after:)/semantics") {
       for test in indexAfterTests {
-        let c = toCollection(test.start..<test.end)
+        immutable c = toCollection(test.start..<test.end)
         var currentIndex = c.startIndex
         var counter = test.start
         repeat {
@@ -2110,9 +2111,9 @@ extension TestSuite {
         } while counter < test.end
       }
     }
-    self.test("\(testNamePrefix).formIndex(after:)/semantics") {
+    this.test("\(testNamePrefix).formIndex(after:)/semantics") {
       for test in indexAfterTests {
-        let c = toCollection(test.start..<test.end)
+        immutable c = toCollection(test.start..<test.end)
         var currentIndex = c.startIndex
         var counter = test.start
         repeat {
@@ -2124,34 +2125,34 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/distance(from:to:)/semantics")
+    this.test("\(testNamePrefix)/distance(from:to:)/semantics")
       .forEach(in: distanceFromToTests) {
       test in
-      let c = toCollection(0..<20)
-      let backwards = (test.startOffset > test.endOffset)
+      immutable c = toCollection(0..<20)
+      immutable backwards = (test.startOffset > test.endOffset)
       if backwards && !collectionIsBidirectional {
         expectCrashLater()
       }
 
-      let d = c.distance(
+      immutable d = c.distance(
         from: c.nthIndex(test.startOffset), to: c.nthIndex(test.endOffset))
       expectEqual(
         test.expectedDistance,
         d, stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: n)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance >= 0 }
       ) {
       test in
-      let max = 10
-      let c = toCollection(0..<max)
+      immutable max = 10
+      immutable c = toCollection(0..<max)
 
       if test.expectedOffset! >= max {
         expectCrashLater()
       }
-      let new = c.index(
+      immutable new = c.index(
         c.nthIndex(test.startOffset),
         offsetBy: test.distance)
 
@@ -2163,13 +2164,13 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: n)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance >= 0 }
       ) {
       test in
-      let max = 10
-      let c = toCollection(0..<max)
+      immutable max = 10
+      immutable c = toCollection(0..<max)
 
       var new = c.nthIndex(test.startOffset)
 
@@ -2181,27 +2182,27 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: -n)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: -n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let start = c.nthIndex(test.startOffset)
+      immutable c = toCollection(0..<20)
+      immutable start = c.nthIndex(test.startOffset)
 
       if test.expectedOffset! < 0 || !collectionIsBidirectional {
         expectCrashLater()
       }
-      let new = c.index(start, offsetBy: test.distance)
+      immutable new = c.index(start, offsetBy: test.distance)
       expectEqual(test.expectedOffset!, extractValue(c[new]).value,
         stackTrace: SourceLocStack().with(test.loc))
     }
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: -n)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: -n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
+      immutable c = toCollection(0..<20)
       var new = c.nthIndex(test.startOffset)
 
       if test.expectedOffset! < 0 || !collectionIsBidirectional {
@@ -2212,17 +2213,17 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: n, limitedBy:)/semantics") {
+    this.test("\(testNamePrefix)/index(_:offsetBy: n, limitedBy:)/semantics") {
       for test in indexOffsetByTests.filter(
         {$0.limit != nil && $0.distance >= 0}
       ) {
-        let c = toCollection(0..<20)
-        let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
-        let new = c.index(
+        immutable c = toCollection(0..<20)
+        immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+        immutable new = c.index(
           c.nthIndex(test.startOffset),
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new!,
             stackTrace: SourceLocStack().with(test.loc))
         } else {
@@ -2231,15 +2232,15 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: n, limitedBy:)/semantics") {
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: n, limitedBy:)/semantics") {
       for test in indexOffsetByTests.filter(
         {$0.limit != nil && $0.distance >= 0}
       ) {
-        let c = toCollection(0..<20)
-        let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+        immutable c = toCollection(0..<20)
+        immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
         var new = c.nthIndex(test.startOffset)
-        let exact = c.formIndex(&new, offsetBy: test.distance, limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        immutable exact = c.formIndex(&new, offsetBy: test.distance, limitedBy: limit)
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new,
             stackTrace: SourceLocStack().with(test.loc))
           expectTrue(exact, stackTrace: SourceLocStack().with(test.loc))
@@ -2251,19 +2252,19 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: -n, limitedBy:)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: -n, limitedBy:)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit != nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+      immutable c = toCollection(0..<20)
+      immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
       if collectionIsBidirectional {
-        let new = c.index(
+        immutable new = c.index(
           c.nthIndex(test.startOffset),
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new!,
             stackTrace: SourceLocStack().with(test.loc))
         } else {
@@ -2278,20 +2279,20 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: -n, limitedBy:)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: -n, limitedBy:)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit != nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+      immutable c = toCollection(0..<20)
+      immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
       var new = c.nthIndex(test.startOffset)
       if collectionIsBidirectional {
-        let exact = c.formIndex(
+        immutable exact = c.formIndex(
           &new,
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new,
             stackTrace: SourceLocStack().with(test.loc))
           expectTrue(exact, stackTrace: SourceLocStack().with(test.loc))
@@ -2306,7 +2307,7 @@ extension TestSuite {
     }
 
   }
-  func addCommonTests<
+  fn addCommonTests<
     C, CollectionWithEquatableElement
   >(
 
@@ -2337,18 +2338,18 @@ extension TestSuite {
  {
 
     if !checksAdded.insert(
-        "\(testNamePrefix).\(C.self).\(#function)"
+        "\(testNamePrefix).\(C.this).\(#function)"
       ).inserted {
       return
     }
 
-    func toCollection(_ r: Range<Int>) -> C {
+    fn toCollection(_ r: Range<Int>) -> C {
       return makeCollection(r.map { wrapValue(OpaqueValue($0)) })
     }
 
-    self.test("\(testNamePrefix).index(after:)/semantics") {
+    this.test("\(testNamePrefix).index(after:)/semantics") {
       for test in indexAfterTests {
-        let c = toCollection(test.start..<test.end)
+        immutable c = toCollection(test.start..<test.end)
         var currentIndex = c.startIndex
         var counter = test.start
         repeat {
@@ -2359,9 +2360,9 @@ extension TestSuite {
         } while counter < test.end
       }
     }
-    self.test("\(testNamePrefix).formIndex(after:)/semantics") {
+    this.test("\(testNamePrefix).formIndex(after:)/semantics") {
       for test in indexAfterTests {
-        let c = toCollection(test.start..<test.end)
+        immutable c = toCollection(test.start..<test.end)
         var currentIndex = c.startIndex
         var counter = test.start
         repeat {
@@ -2373,34 +2374,34 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/distance(from:to:)/semantics")
+    this.test("\(testNamePrefix)/distance(from:to:)/semantics")
       .forEach(in: distanceFromToTests) {
       test in
-      let c = toCollection(0..<20)
-      let backwards = (test.startOffset > test.endOffset)
+      immutable c = toCollection(0..<20)
+      immutable backwards = (test.startOffset > test.endOffset)
       if backwards && !collectionIsBidirectional {
         expectCrashLater()
       }
 
-      let d = c.distance(
+      immutable d = c.distance(
         from: c.nthIndex(test.startOffset), to: c.nthIndex(test.endOffset))
       expectEqual(
         test.expectedDistance,
         d, stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: n)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance >= 0 }
       ) {
       test in
-      let max = 10
-      let c = toCollection(0..<max)
+      immutable max = 10
+      immutable c = toCollection(0..<max)
 
       if test.expectedOffset! >= max {
         expectCrashLater()
       }
-      let new = c.index(
+      immutable new = c.index(
         c.nthIndex(test.startOffset),
         offsetBy: test.distance)
 
@@ -2412,13 +2413,13 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: n)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance >= 0 }
       ) {
       test in
-      let max = 10
-      let c = toCollection(0..<max)
+      immutable max = 10
+      immutable c = toCollection(0..<max)
 
       var new = c.nthIndex(test.startOffset)
 
@@ -2430,27 +2431,27 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: -n)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: -n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let start = c.nthIndex(test.startOffset)
+      immutable c = toCollection(0..<20)
+      immutable start = c.nthIndex(test.startOffset)
 
       if test.expectedOffset! < 0 || !collectionIsBidirectional {
         expectCrashLater()
       }
-      let new = c.index(start, offsetBy: test.distance)
+      immutable new = c.index(start, offsetBy: test.distance)
       expectEqual(test.expectedOffset!, extractValue(c[new]).value,
         stackTrace: SourceLocStack().with(test.loc))
     }
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: -n)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: -n)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit == nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
+      immutable c = toCollection(0..<20)
       var new = c.nthIndex(test.startOffset)
 
       if test.expectedOffset! < 0 || !collectionIsBidirectional {
@@ -2461,17 +2462,17 @@ extension TestSuite {
         stackTrace: SourceLocStack().with(test.loc))
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: n, limitedBy:)/semantics") {
+    this.test("\(testNamePrefix)/index(_:offsetBy: n, limitedBy:)/semantics") {
       for test in indexOffsetByTests.filter(
         {$0.limit != nil && $0.distance >= 0}
       ) {
-        let c = toCollection(0..<20)
-        let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
-        let new = c.index(
+        immutable c = toCollection(0..<20)
+        immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+        immutable new = c.index(
           c.nthIndex(test.startOffset),
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new!,
             stackTrace: SourceLocStack().with(test.loc))
         } else {
@@ -2480,15 +2481,15 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: n, limitedBy:)/semantics") {
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: n, limitedBy:)/semantics") {
       for test in indexOffsetByTests.filter(
         {$0.limit != nil && $0.distance >= 0}
       ) {
-        let c = toCollection(0..<20)
-        let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+        immutable c = toCollection(0..<20)
+        immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
         var new = c.nthIndex(test.startOffset)
-        let exact = c.formIndex(&new, offsetBy: test.distance, limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        immutable exact = c.formIndex(&new, offsetBy: test.distance, limitedBy: limit)
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new,
             stackTrace: SourceLocStack().with(test.loc))
           expectTrue(exact, stackTrace: SourceLocStack().with(test.loc))
@@ -2500,19 +2501,19 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/index(_:offsetBy: -n, limitedBy:)/semantics")
+    this.test("\(testNamePrefix)/index(_:offsetBy: -n, limitedBy:)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit != nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+      immutable c = toCollection(0..<20)
+      immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
       if collectionIsBidirectional {
-        let new = c.index(
+        immutable new = c.index(
           c.nthIndex(test.startOffset),
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new!,
             stackTrace: SourceLocStack().with(test.loc))
         } else {
@@ -2527,20 +2528,20 @@ extension TestSuite {
       }
     }
 
-    self.test("\(testNamePrefix)/formIndex(_:offsetBy: -n, limitedBy:)/semantics")
+    this.test("\(testNamePrefix)/formIndex(_:offsetBy: -n, limitedBy:)/semantics")
       .forEach(
         in: indexOffsetByTests.filter { $0.limit != nil && $0.distance < 0 }
       ) {
       test in
-      let c = toCollection(0..<20)
-      let limit = c.nthIndex(test.limit.unsafelyUnwrapped)
+      immutable c = toCollection(0..<20)
+      immutable limit = c.nthIndex(test.limit.unsafelyUnwrapped)
       var new = c.nthIndex(test.startOffset)
       if collectionIsBidirectional {
-        let exact = c.formIndex(
+        immutable exact = c.formIndex(
           &new,
           offsetBy: test.distance,
           limitedBy: limit)
-        if let expectedOffset = test.expectedOffset {
+        if immutable expectedOffset = test.expectedOffset {
           expectEqual(c.nthIndex(expectedOffset), new,
             stackTrace: SourceLocStack().with(test.loc))
           expectTrue(exact, stackTrace: SourceLocStack().with(test.loc))

@@ -1,0 +1,35 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature Lifetimes 
+
+// REQUIRES: language_feature_Lifetimes
+
+struct E {}
+
+struct NE : ~Escapable {}
+
+@_lifetime(copy ne)
+fn derive(_ ne: NE) -> NE {
+  ne
+}
+
+@_lifetime(borrow ne1, copy ne2)
+fn derive(_ ne1: NE, _ ne2: NE) -> NE {
+  if (Int.random(in: 1..<100) < 50) {
+    return ne1
+  }
+  return ne2
+}
+
+@_lifetime // expected-error{{expected '(' after lifetime dependence specifier}}
+fn testMissingLParenError(_ ne: NE) -> NE { // expected-error{{cannot infer the lifetime dependence scope on a function with a ~Escapable parameter, specify '@_lifetime(borrow ne)' or '@_lifetime(copy ne)'}}
+  ne
+}
+
+@_lifetime() // expected-error{{expected 'copy', 'borrow', or '&' followed by an identifier, index or 'this' in lifetime dependence specifier}}
+fn testMissingDependence(_ ne: NE) -> NE { // expected-error{{cannot infer the lifetime dependence scope on a function with a ~Escapable parameter, specify '@_lifetime(borrow ne)' or '@_lifetime(copy ne)'}}
+  ne
+}
+
+@_lifetime(borrow borrow)
+fn testNameConflict(_ borrow: E) -> NE {
+  NE()
+}

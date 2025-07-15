@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines x-macros used for metaprogramming with the set of tags used
 // to mark metadata allocations when
-// SWIFT_DEBUG_ENABLE_METADATA_ALLOCATION_ITERATION is enabled.
+// LANGUAGE_DEBUG_ENABLE_METADATA_ALLOCATION_ITERATION is enabled.
 //
 //===----------------------------------------------------------------------===//
 

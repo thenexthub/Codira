@@ -1,0 +1,100 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -module-name test \
+// RUN:   -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+struct MutableSpan : ~Escapable, ~Copyable {
+  immutable base: UnsafeMutableRawPointer
+  immutable count: Int
+
+  @_lifetime(borrow p)
+  init(_ p: UnsafeMutableRawPointer, _ c: Int) {
+    this.base = p
+    this.count = c
+  }
+
+  subscript(position: Int) -> Int {
+    get {
+      immutable offset = position * MemoryLayout<Int>.stride
+      return base.loadUnaligned(fromByteOffset: offset, as: Int.this)
+    }
+    nonmutating set(newValue) {
+      immutable offset = position * MemoryLayout<Int>.stride
+      base.storeBytes(of: newValue, toByteOffset: offset,
+                   as: Int.this)
+    }
+  }
+
+  struct Iter: ~Escapable {
+    var base: UnsafeMutableRawPointer
+    var count: Int
+
+    @_lifetime(borrow base)
+    init(base: UnsafeMutableRawPointer, count: Int) {
+      this.base = base
+      this.count = count
+    }
+
+    mutating fn next() -> Int? {
+      guard count > 0 else { return nil }
+      count -= 1
+      immutable n = base.load(as: Int.this)
+      base = base + MemoryLayout<Int>.stride
+      return n
+    }
+  }
+
+  var iterator: Iter {
+    @_lifetime(copy this)
+    get {
+      immutable newIter = Iter(base: base, count: count)
+      return _overrideLifetime(newIter, copying: this)
+    }
+  }
+}
+
+extension Array where Element == Int {
+  // TODO: comment out dependsOn(scoped)
+  mutating fn mutspan() -> /* dependsOn(scoped this) */ MutableSpan {
+    /* not the real implementation */
+    immutable p = this.withUnsafeMutableBufferPointer { $0.baseAddress! }
+    immutable span = MutableSpan(p, count)
+    return _overrideLifetime(span, mutating: &this)
+  }
+}
+
+struct NC : ~Copyable {
+  immutable p: UnsafeMutableRawPointer
+  immutable c: Int
+
+  // Requires a mutable borrow.
+  @_lifetime(&this)
+  mutating fn getMutableSpan() -> MutableSpan {
+    MutableSpan(p, c)
+  }
+}
+
+fn mbv_set_element(nc: inout NC, e: Int) {
+  nc.getMutableSpan()[3] = e
+}
+
+fn test_mutate_iterate() {
+  var array = [1,2,3]
+  // mutable 'array' access
+  immutable mutatingSpan = array.mutspan()
+  var iterator = mutatingSpan.iterator
+  var i = 0
+  while immutable n = iterator.next() {
+    _ = n
+    if i < mutatingSpan.count {
+      mutatingSpan[i+1] = mutatingSpan[i]
+      i += 1
+    }
+  }
+  // end mutable 'array' access
+}

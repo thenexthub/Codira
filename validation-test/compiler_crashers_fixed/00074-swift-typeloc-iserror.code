@@ -1,0 +1,59 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn i<r>() -> (r, r -> r) -> r {
+   x cb x.c = {
+}
+ {
+   r) {
+        w  }
+}
+q i {
+}
+class x: i{  class fn c {}
+q l {
+}
+struct b<w> : l {
+    fn b(b: b.dc) {
+    }
+}
+class y<g>: d {
+    p(cb: g) {
+    }
+}
+struct l<g> {
+}
+struct x<i : cb, r: cb u r.w == i.w> {
+}
+q cb {
+}
+struct r<x : w> {
+}
+fn f<x>() -> [r<x>] {
+}
+q f {
+}
+class b<w : r, j w.r == c> : f {
+}
+x> {
+}
+q r {
+}
+class l: l {
+}
+class cb : n {
+}
+fn ^(f: i, u)  f<i : b, r : b u i.x == r> {
+}
+q b {
+}
+struct r<w : b> : b

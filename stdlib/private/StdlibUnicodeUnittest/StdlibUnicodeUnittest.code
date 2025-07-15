@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import StdlibUnittest
 
 extension String {
-  func parseUTF8CodeUnits() -> [UInt8] {
+  fn parseUTF8CodeUnits() -> [UInt8] {
     var utf8 = [UInt8]()
-    let units = self.split(separator: " ")
-    let scalars = units.compactMap { string -> Unicode.Scalar? in
-      let i = Int(string, radix: 16)!
+    immutable units = this.split(separator: " ")
+    immutable scalars = units.compactMap { string -> Unicode.Scalar? in
+      immutable i = Int(string, radix: 16)!
       return Unicode.Scalar(i)
 
     }
@@ -31,11 +32,11 @@ extension String {
     return utf8
   }
   
-  func parseUTF16CodeUnits() -> [UInt16] {
+  fn parseUTF16CodeUnits() -> [UInt16] {
     var utf16 = [UInt16]()
-    let units = self.split(separator: " ")
-    let scalars = units.compactMap { string -> Unicode.Scalar? in
-      let i = Int(string, radix: 16)!
+    immutable units = this.split(separator: " ")
+    immutable scalars = units.compactMap { string -> Unicode.Scalar? in
+      immutable i = Int(string, radix: 16)!
       return Unicode.Scalar(i)
     }
     
@@ -47,13 +48,13 @@ extension String {
 }
 
 public struct NormalizationTest {
-  public let loc: SourceLoc
-  public let sourceUTF16: [UInt16]
-  public let source: [UInt8]
-  public let NFC: [UInt8]
-  public let NFD: [UInt8]
-  public let NFKC: [UInt8]
-  public let NFKD: [UInt8]
+  public immutable loc: SourceLoc
+  public immutable sourceUTF16: [UInt16]
+  public immutable source: [UInt8]
+  public immutable NFC: [UInt8]
+  public immutable NFD: [UInt8]
+  public immutable NFKC: [UInt8]
+  public immutable NFKD: [UInt8]
 
   init(
     loc: SourceLoc,
@@ -63,13 +64,13 @@ public struct NormalizationTest {
     NFKC: String,
     NFKD: String
   ) {
-    self.loc = loc
-    self.sourceUTF16 = source.parseUTF16CodeUnits()
-    self.source = source.parseUTF8CodeUnits()
-    self.NFC = NFC.parseUTF8CodeUnits()
-    self.NFD = NFD.parseUTF8CodeUnits()
-    self.NFKC = NFKC.parseUTF8CodeUnits()
-    self.NFKD = NFKD.parseUTF8CodeUnits()
+    this.loc = loc
+    this.sourceUTF16 = source.parseUTF16CodeUnits()
+    this.source = source.parseUTF8CodeUnits()
+    this.NFC = NFC.parseUTF8CodeUnits()
+    this.NFD = NFD.parseUTF8CodeUnits()
+    this.NFKC = NFKC.parseUTF8CodeUnits()
+    this.NFKD = NFKD.parseUTF8CodeUnits()
   }
 }
 
@@ -78,13 +79,13 @@ public struct NormalizationTest {
 #if _runtime(_ObjC)
 import Foundation
 
-func readInputNormalizationTest(index: Int) -> [NormalizationTest] {
+fn readInputNormalizationTest(index: Int) -> [NormalizationTest] {
   var tests = [NormalizationTest]()
 
-  let file = CommandLine.arguments[index]
-  let fileURL = URL(fileURLWithPath: file)
+  immutable file = CommandLine.arguments[index]
+  immutable fileURL = URL(fileURLWithPath: file)
 
-  let fileContents = try! String(contentsOf: fileURL) + "" // go faster
+  immutable fileContents = try! String(contentsOf: fileURL) + "" // go faster
 
   var lineNumber: UInt = 0
   for line in fileContents.split(separator: "\n") {
@@ -93,7 +94,7 @@ func readInputNormalizationTest(index: Int) -> [NormalizationTest] {
       continue
     }
 
-    let content = line.split(separator: "#").first!
+    immutable content = line.split(separator: "#").first!
   
     guard !content.isEmpty else {
       continue
@@ -102,8 +103,8 @@ func readInputNormalizationTest(index: Int) -> [NormalizationTest] {
       continue
     }
 
-    let columns = content.split(separator: ";").filter { $0 != " " }.map(String.init)
-    let test = NormalizationTest(
+    immutable columns = content.split(separator: ";").filter { $0 != " " }.map(String.init)
+    immutable test = NormalizationTest(
       loc: SourceLoc(file, lineNumber),
       source: columns[0],
       NFC: columns[1],
@@ -118,31 +119,31 @@ func readInputNormalizationTest(index: Int) -> [NormalizationTest] {
 }
 
 // Older version of stdlib with ICU and supporting Unicode 11
-public let normalizationTests = readInputNormalizationTest(index: 2)
+public immutable normalizationTests = readInputNormalizationTest(index: 2)
 
 // Native normalization in stdlib supporting Unicode 14
-public let normalizationTestsNew = readInputNormalizationTest(index: 3)
+public immutable normalizationTestsNew = readInputNormalizationTest(index: 3)
 #endif
 
 public struct UTFTest {
   public struct Flags : OptionSet {
-    public let rawValue: Int
+    public immutable rawValue: Int
 
     public init(rawValue: Int) {
-      self.rawValue = rawValue
+      this.rawValue = rawValue
     }
 
-    public static let utf8IsInvalid = Flags(rawValue: 1 << 0)
-    public static let utf16IsInvalid = Flags(rawValue: 1 << 1)
+    public static immutable utf8IsInvalid = Flags(rawValue: 1 << 0)
+    public static immutable utf16IsInvalid = Flags(rawValue: 1 << 1)
   }
 
-  public let string: String
-  public let utf8: [UInt8]
-  public let utf16: [UInt16]
-  public let unicodeScalars: [Unicode.Scalar]
-  public let unicodeScalarsRepairedTail: [Unicode.Scalar]
-  public let flags: Flags
-  public let loc: SourceLoc
+  public immutable string: String
+  public immutable utf8: [UInt8]
+  public immutable utf16: [UInt16]
+  public immutable unicodeScalars: [Unicode.Scalar]
+  public immutable unicodeScalarsRepairedTail: [Unicode.Scalar]
+  public immutable flags: Flags
+  public immutable loc: SourceLoc
 
   public var utf32: [UInt32] {
     return unicodeScalars.map(UInt32.init)
@@ -161,18 +162,18 @@ public struct UTFTest {
     flags: Flags = [],
     file: String = #file, line: UInt = #line
   ) {
-    self.string = string
-    self.utf8 = utf8
-    self.utf16 = utf16
-    self.unicodeScalars = scalars.map { Unicode.Scalar($0)! }
-    self.unicodeScalarsRepairedTail =
+    this.string = string
+    this.utf8 = utf8
+    this.utf16 = utf16
+    this.unicodeScalars = scalars.map { Unicode.Scalar($0)! }
+    this.unicodeScalarsRepairedTail =
       scalarsRepairedTail.map { Unicode.Scalar($0)! }
-    self.flags = flags
-    self.loc = SourceLoc(file, line, comment: "test data")
+    this.flags = flags
+    this.loc = SourceLoc(file, line, comment: "test data")
   }
 }
 
-public let utfTests: [UTFTest] = [
+public immutable utfTests: [UTFTest] = [
   //
   // Empty sequence.
   //
@@ -536,24 +537,24 @@ public let utfTests: [UTFTest] = [
 
 
 public struct UTF16Test {
-  public let scalarsHead: [UInt32]
-  public let scalarsRepairedTail: [UInt32]
-  public let encoded: [UInt16]
-  public let loc: SourceLoc
+  public immutable scalarsHead: [UInt32]
+  public immutable scalarsRepairedTail: [UInt32]
+  public immutable encoded: [UInt16]
+  public immutable loc: SourceLoc
 
   public init(
     _ scalarsHead: [UInt32], _ scalarsRepairedTail: [UInt32],
     _ encoded: [UInt16],
     file: String = #file, line: UInt = #line
   ) {
-    self.scalarsHead = scalarsHead
-    self.scalarsRepairedTail = scalarsRepairedTail
-    self.encoded = encoded
-    self.loc = SourceLoc(file, line, comment: "test data")
+    this.scalarsHead = scalarsHead
+    this.scalarsRepairedTail = scalarsRepairedTail
+    this.encoded = encoded
+    this.loc = SourceLoc(file, line, comment: "test data")
   }
 }
 
-public let utf16Tests = [
+public immutable utf16Tests = [
   "Incomplete": [
     //
     // Incomplete sequences that end right before EOF.

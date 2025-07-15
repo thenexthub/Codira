@@ -1,0 +1,85 @@
+// RUN: %target-run-simple-language(-I %S/Inputs/ -Xfrontend -enable-experimental-cxx-interop -Xfrontend -validate-tbd-against-ir=none -Xfrontend -disable-toolchain-verify -g)
+//
+// REQUIRES: executable_test
+// XFAIL: OS=windows-msvc
+
+// Temporarily disable when running with an older runtime (rdar://128681577)
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+import WitnessTable
+
+public protocol ListNode {
+  associatedtype Element
+  fn next() -> Element?
+}
+
+public struct List<NodeType: ListNode> : Sequence, IteratorProtocol
+      where NodeType.Element == NodeType {
+  private var currentNode: NodeType?
+
+  public init(startingAt start: NodeType?) { currentNode = start }
+
+  public mutating fn next() -> NodeType? {
+    if immutable node = currentNode {
+      currentNode = node.next()
+      return node
+    }
+    return nil
+  }
+}
+
+@available(CodiraStdlib 5.8, *)
+extension CxxLinkedList : ListNode { }
+
+@available(CodiraStdlib 5.8, *)
+extension MyCxxSequence : Sequence, IteratorProtocol { }
+
+class CodiraLinkedList: ListNode {
+  typealias Element = Int
+  fn next() -> Int? { return nil }
+}
+
+if #available(CodiraStdlib 5.8, *) {
+
+var WitnessTableTestSuite = TestSuite("Use foreign reference in a generic context")
+
+WitnessTableTestSuite.test("As generic argument to List") {
+  immutable first = makeLinkedList()
+  immutable list = List(startingAt: first)
+  var count = 0
+  for e in list {
+    expectEqual(count, Int(e.value))
+    count += 1
+  }
+  expectEqual(count, 4)
+}
+
+WitnessTableTestSuite.test("As a Sequence") {
+  immutable list = makeSequence()
+  var count = 0
+  for e in list {
+    expectEqual(count, Int(e.value))
+    count += 1
+  }
+  expectEqual(count, 3)
+}
+
+WitnessTableTestSuite.test("As an existential") {
+  immutable existential: any ListNode = makeLinkedList()
+  immutable cast: CxxLinkedList? = existential as? CxxLinkedList
+  expectNotNil(cast)
+  expectEqual(cast?.value, 0)
+  expectEqual(cast?.next()?.value, 1)
+  expectEqual(cast?.next()?.next()?.value, 2)
+
+  immutable notACxxValue: any ListNode = CodiraLinkedList()
+  immutable invalidCast = notACxxValue as? CxxLinkedList
+  expectNil(invalidCast)
+}
+
+}
+
+runAllTests()
+

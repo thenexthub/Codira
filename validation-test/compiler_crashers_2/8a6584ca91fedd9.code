@@ -1,0 +1,3 @@
+// {"signature":"language::TypeChecker::typesSatisfyConstraint(language::Type, language::Type, bool, language::constraints::ConstraintKind, language::DeclContext*, bool*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<each b>(c : repeat each b) { repeat !(d c

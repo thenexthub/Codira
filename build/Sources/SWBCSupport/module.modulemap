@@ -1,4 +1,0 @@
-module SWBCSupport {
-  header "SWBCSupport.h"
-  export *
-}

@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/a.code 2> %t/a.hash
+// RUN: %target-language-frontend -dump-interface-hash -primary-file %t/b.code 2> %t/b.hash
+// RUN: cmp %t/a.hash %t/b.hash
+
+// BEGIN a.code
+fn test() -> Int {
+  return 0
+}
+
+// BEGIN b.code
+fn test() -> Int {
+  fn inner() -> Int{
+    return 0
+  }
+  return inner()
+}

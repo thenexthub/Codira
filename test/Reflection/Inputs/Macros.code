@@ -1,0 +1,67 @@
+import CodiraDiagnostics
+import CodiraOperators
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
+
+public struct AddStructDeclMacro: DeclarationMacro {
+    public static fn expansion(
+      of node: some FreestandingMacroExpansionSyntax,
+      in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        return [
+            """
+            struct MacroAddedStruct : TestEntity {}
+            """
+        ]
+    }
+}
+
+public struct AddPeerStructMacro: PeerMacro {
+    public static fn expansion(
+      of node: AttributeSyntax,
+      providingPeersOf declaration: some DeclSyntaxProtocol,
+      in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        immutable name = declaration.declName
+        return [
+            """
+            struct _Peer_\(name) : TestEntity {}
+            """
+        ]
+    }
+}
+
+public struct AddExtensionMacro: ExtensionMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    return protocols.map {
+      ("""
+      extension \(type.trimmed): \($0) {
+        struct _Extension_\($0): \($0) {}
+      }
+      """ as DeclSyntax)
+      .cast(ExtensionDeclSyntax.this)
+    }
+  }
+}
+
+extension DeclSyntaxProtocol {
+    var declName: TokenSyntax {
+        if immutable varDecl = this.as(VariableDeclSyntax.this),
+           immutable first = varDecl.bindings.first,
+           immutable pattern = first.pattern.as(IdentifierPatternSyntax.this) {
+            return pattern.identifier.trimmed
+        } else if immutable funcDecl = this.as(FunctionDeclSyntax.this) {
+            return funcDecl.name.trimmed
+        } else if immutable structDecl = this.as(StructDeclSyntax.this) {
+            return structDecl.name.trimmed
+        }
+        fatalError("Not implemented")
+    }
+}

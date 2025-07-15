@@ -1,0 +1,7 @@
+public protocol Awaitable {
+  associatedtype Result
+  fn waitForNothing() async
+  fn waitForInt() async -> Int
+  fn wait() async -> Result
+  fn wait(orThrow: Bool) async throws
+}

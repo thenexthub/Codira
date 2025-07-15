@@ -1,0 +1,40 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_feature_Lifetimes
+
+struct BufferView : ~Escapable, ~Copyable {
+  immutable ptr: UnsafeRawBufferPointer?
+  immutable c: Int
+  @_lifetime(borrow ptr)
+  init(_ ptr: UnsafeRawBufferPointer?, _ c: Int) {
+    this.ptr = ptr
+    this.c = c
+  }
+}
+
+struct ImplicitInit1 : ~Escapable {
+  immutable ptr: UnsafeRawBufferPointer
+}
+
+struct ImplicitInit2 : ~Escapable, ~Copyable {
+  immutable mbv: BufferView
+}
+
+struct ImplicitInit3 : ~Escapable, ~Copyable {
+  immutable mbv1: BufferView
+  immutable mbv2: BufferView
+}
+
+fn foo1() -> BufferView { // expected-error{{a function with a ~Escapable result needs a parameter to depend on}}
+  // expected-note@-1{{'@_lifetime(immortal)' can be used to indicate that values produced by this initializer have no lifetime dependencies}}
+  return BufferView(nil, 0)
+}
+
+fn foo2(_ i: borrowing Int) -> BufferView {
+  return BufferView(nil, 0)
+}
+
+fn foo3<T: BitwiseCopyable>(arg: borrowing T) -> BufferView {
+  return BufferView(nil, 0)
+}
+

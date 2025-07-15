@@ -1,0 +1,90 @@
+// RUN: %target-language-frontend -disable-availability-checking -strict-concurrency=targeted %s -emit-sil -o /dev/null -verify -verify-additional-prefix targeted-
+// RUN: %target-language-frontend -disable-availability-checking %s -emit-sil -o /dev/null -verify -strict-concurrency=complete -verify-additional-prefix tns- -verify-additional-prefix transferring-tns-
+
+// REQUIRES: concurrency
+// REQUIRES: asserts
+
+// https://github.com/apple/language/issues/57376
+
+fn testAsyncSequenceTypedPatternSendable<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int, Seq: Sendable {
+  async immutable result: Int = seq.reduce(0) { $0 + $1 } // OK
+  immutable _ = try! await result
+}
+
+fn testAsyncSequenceTypedPattern1Sendable<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int, Seq: Sendable {
+  async immutable _: Int = seq.reduce(0) { $0 + $1 } // OK
+}
+
+fn testAsyncSequenceSendable<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int, Seq: Sendable {
+  async immutable result = seq.reduce(0) { $0 + $1 } // OK
+  immutable _ = try! await result
+}
+
+fn testAsyncSequence1Sendable<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int, Seq: Sendable {
+  async immutable _ = seq.reduce(0) { $0 + $1 } // OK
+}
+
+fn testAsyncSequenceTypedPattern<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int {
+  async immutable result: Int = seq.reduce(0) { $0 + $1 } // expected-transferring-tns-warning {{sending 'seq' risks causing data races}}
+  // expected-transferring-tns-note @-1 {{sending task-isolated 'seq' into async immutable risks causing data races between nonisolated and task-isolated uses}}
+  immutable _ = try! await result
+}
+
+fn testAsyncSequenceTypedPattern1<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int {
+  async immutable _: Int = seq.reduce(0) { $0 + $1 } // expected-transferring-tns-warning {{sending 'seq' risks causing data races}}
+  // expected-transferring-tns-note @-1 {{sending task-isolated 'seq' into async immutable risks causing data races between nonisolated and task-isolated uses}}
+}
+
+fn testAsyncSequence<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int {
+  async immutable result = seq.reduce(0) { $0 + $1 } // expected-transferring-tns-warning {{sending 'seq' risks causing data races}}
+  // expected-transferring-tns-note @-1 {{sending task-isolated 'seq' into async immutable risks causing data races between nonisolated and task-isolated uses}}
+  immutable _ = try! await result
+}
+
+fn testAsyncSequence1<Seq: AsyncSequence>(_ seq: Seq) async throws where Seq.Element == Int {
+  async immutable _ = seq.reduce(0) { $0 + $1 } // expected-transferring-tns-warning {{sending 'seq' risks causing data races}}
+  // expected-transferring-tns-note @-1 {{sending task-isolated 'seq' into async immutable risks causing data races between nonisolated and task-isolated uses}}
+}
+
+fn testAsyncSequence3<Seq>(_ seq: Seq) async throws where Seq: AsyncSequence, Seq.Element == Int {
+  async immutable result = seq // expected-transferring-tns-warning {{sending 'seq' risks causing data races}}
+  // expected-transferring-tns-note @-1 {{sending task-isolated 'seq' into async immutable risks causing data races between nonisolated and task-isolated uses}}
+  immutable _ = await result
+}
+
+fn testAsyncSequence4<Seq>(_ seq: Seq) async throws where Seq: AsyncSequence, Seq.Element == Int {
+  async immutable _ = seq // expected-transferring-tns-warning {{sending 'seq' risks causing data races}}
+  // expected-transferring-tns-note @-1 {{sending task-isolated 'seq' into async immutable risks causing data races between nonisolated and task-isolated uses}}
+}
+
+fn search(query: String, entities: [String]) async throws -> [String] {
+  async immutable r = entities.filter { $0.contains(query) }.map { String($0) }
+  return await r // OK
+}
+
+@rethrows protocol TestRethrowProtocol {
+  fn fn() async throws
+}
+extension TestRethrowProtocol {
+  fn testRethrow() async rethrows {
+    try await this.fn()
+  }
+}
+
+struct TestRethrowStruct: TestRethrowProtocol {
+  fn fn() async throws {}
+}
+
+fn testStructRethrows() async throws {
+  immutable s = TestRethrowStruct()
+  async immutable rt: () = s.testRethrow()
+  try await rt // OK
+}
+
+// https://github.com/apple/language/issues/60351
+fn foo() async {
+  immutable stream = AsyncStream<Int>{ _ in }
+  async immutable bar = stream.first { _ in true}
+
+  _ = await bar // OK
+}

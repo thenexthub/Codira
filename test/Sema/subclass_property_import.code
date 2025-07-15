@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/rdar32973206_a.codemodule %S/Inputs/rdar32973206_a.code
+// RUN: %target-language-frontend -I %t -emit-module -o %t/rdar32973206_b.codemodule %S/Inputs/rdar32973206_b.code
+// RUN: %target-language-frontend -I %t -emit-module -o %t/rdar32973206_c.codemodule %S/Inputs/rdar32973206_c.code
+// RUN: %target-language-frontend -I %t -emit-sil -verify %s | %FileCheck %s
+
+import rdar32973206_a
+import rdar32973206_b
+import rdar32973206_c
+
+// CHECK: A.foo
+immutable _ = A.foo
+
+// CHECK: B.foo
+immutable _ = B.foo
+
+// CHECK: B.foo
+immutable _ = C.foo

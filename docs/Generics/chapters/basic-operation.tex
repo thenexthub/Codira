@@ -165,13 +165,13 @@ In the absence of error conditions, we install the protocol minimization machine
 \begin{example}
 We talked about these declarations from the start of \ChapRef{genericsig} most recently in \ExRef{same name rule example}:
 \begin{Verbatim}
-func sameElt<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn sameElt<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Element == S2.Element {...}
 
-func sameIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn sameIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Iterator == S2.Iterator {...}
 
-func sameEltAndIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
+fn sameEltAndIter<S1: Sequence, S2: Sequence>(_ s1: S1, _ s2: S2)
     where S1.Element == S2.Element,
           S1.Iterator == S2.Iterator {...}
 \end{Verbatim}
@@ -184,18 +184,18 @@ We remarked that \texttt{sameElt()} and \texttt{sameEltAndIter()} have the same 
 \end{enumerate}
 If we pass the \texttt{-debug-requirement-machine=timers} frontend flag, we can watch this happen in real time:
 \begin{Verbatim}[fontsize=\footnotesize,numbers=none]
-$ swiftc three.swift -Xfrontend -debug-requirement-machine=timers
-+ started InferredGenericSignatureRequest @ three.swift:1:6
+$ languagec three.code -Xfrontend -debug-requirement-machine=timers
++ started InferredGenericSignatureRequest @ three.code:1:6
 | + started getRequirementMachine() [ Sequence ]
 | | + started getRequirementMachine() [ IteratorProtocol ]
 | | + finished getRequirementMachine() in 21us: [ IteratorProtocol ]
 | + finished getRequirementMachine() in 61us: [ Sequence ]
 + finished InferredGenericSignatureRequest in 204us:
 <S1, S2 where S1 : Sequence, S2 : Sequence, S1.Element == S2.Element>
-+ started InferredGenericSignatureRequest @ three.swift:4:6
++ started InferredGenericSignatureRequest @ three.code:4:6
 + finished InferredGenericSignatureRequest in 88us:
 <S1, S2 where S1 : Sequence, S2 : Sequence, S1.Iterator == S2.Iterator>
-+ started InferredGenericSignatureRequest @ three.swift:7:6
++ started InferredGenericSignatureRequest @ three.code:7:6
 + finished InferredGenericSignatureRequest in 78us:
 <S1, S2 where S1 : Sequence, S2 : Sequence, S1.Iterator == S2.Iterator>
 \end{Verbatim}
@@ -222,7 +222,7 @@ The four machine kinds correspond to the four combinations of ``domain'' (\index
 Notice that a protocol machine is the protocol version of a query machine, and a protocol minimization machine is the protocol version of a minimization machine. Machines in the first column are owned by the rewrite context; those in the second have a temporary lifetime, but can transition to the corresponding kind in the first column if  installed in the rewrite context.
 
 \paragraph{History.}
-To continue the historical sketch of \SecRef{archetype builder}: the Requirement Machine shipped in \IndexSwift{5.6}Swift~5.6, where it was used for generic signature queries only. Requirement minimization was re-implemented in \IndexSwift{5.7}Swift~5.7, with the old logic available behind a flag. The \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder} was then fully removed in \IndexSwift{5.8}Swift~5.8.
+To continue the historical sketch of \SecRef{archetype builder}: the Requirement Machine shipped in \IndexCodira{5.6}Codira~5.6, where it was used for generic signature queries only. Requirement minimization was re-implemented in \IndexCodira{5.7}Codira~5.7, with the old logic available behind a flag. The \Index{GenericSignatureBuilder@\texttt{GenericSignatureBuilder}}\texttt{GenericSignatureBuilder} was then fully removed in \IndexCodira{5.8}Codira~5.8.
 
 \section{Protocol Components}\label{protocol component}
 
@@ -348,7 +348,7 @@ Let's define the \IndexDefinition{protocol component graph}\emph{protocol compon
 
 A \IndexTwoFlag{debug-requirement-machine}{protocol-dependencies}debugging flag prints out each strongly connected component as it is formed. Let's try with our example:
 \begin{Verbatim}[fontsize=\footnotesize,numbers=none]
-$ swiftc protocols.swift -Xfrontend -debug-requirement-machine=protocol-dependencies
+$ languagec protocols.code -Xfrontend -debug-requirement-machine=protocol-dependencies
 Connected component: [Bot]
 Connected component: [Fiz]
 Connected component: [Baz]

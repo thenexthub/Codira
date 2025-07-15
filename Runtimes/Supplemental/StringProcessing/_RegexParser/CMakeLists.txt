@@ -1,37 +1,47 @@
-add_library(swift_RegexParser
-  Regex/TreeProtocols.swift
-  Regex/Parse/DelimiterLexing.swift
-  Regex/Parse/Source.swift
-  Regex/Parse/CharacterPropertyClassification.swift
-  Regex/Parse/LexicalAnalysis.swift
-  Regex/Parse/SyntaxOptions.swift
-  Regex/Parse/CaptureList.swift
-  Regex/Parse/CompilerInterface.swift
-  Regex/Parse/CaptureStructure.swift
-  Regex/Parse/Parse.swift
-  Regex/Parse/SourceLocation.swift
-  Regex/Parse/Diagnostics.swift
-  Regex/Parse/Sema.swift
-  Regex/Printing/RenderRanges.swift
-  Regex/Printing/PrettyPrinter.swift
-  Regex/Printing/PrintAsCanonical.swift
-  Regex/Printing/DumpAST.swift
-  Regex/AST/ASTAction.swift
-  Regex/AST/AST.swift
-  Regex/AST/CustomCharClass.swift
-  Regex/AST/Quantification.swift
-  Regex/AST/Conditional.swift
-  Regex/AST/MatchingOptions.swift
-  Regex/AST/ASTProtocols.swift
-  Regex/AST/Group.swift
-  Regex/AST/Atom.swift
-  Utility/TypeConstruction.swift
-  Utility/Misc.swift
-  Utility/AllScalars.swift
-  Utility/Errors.swift
-  Utility/MissingUnicode.swift)
+add_library(language_RegexParser
+  Regex/TreeProtocols.code
+  Regex/Parse/DelimiterLexing.code
+  Regex/Parse/Source.code
+  Regex/Parse/CharacterPropertyClassification.code
+  Regex/Parse/LexicalAnalysis.code
+  Regex/Parse/SyntaxOptions.code
+  Regex/Parse/CaptureList.code
+  Regex/Parse/CompilerInterface.code
+  Regex/Parse/CaptureStructure.code
+  Regex/Parse/Parse.code
+  Regex/Parse/SourceLocation.code
+  Regex/Parse/Diagnostics.code
+  Regex/Parse/Sema.code
+  Regex/Printing/RenderRanges.code
+  Regex/Printing/PrettyPrinter.code
+  Regex/Printing/PrintAsCanonical.code
+  Regex/Printing/DumpAST.code
+  Regex/AST/ASTAction.code
+  Regex/AST/AST.code
+  Regex/AST/CustomCharClass.code
+  Regex/AST/Quantification.code
+  Regex/AST/Conditional.code
+  Regex/AST/MatchingOptions.code
+  Regex/AST/ASTProtocols.code
+  Regex/AST/Group.code
+  Regex/AST/Atom.code
+  Utility/TypeConstruction.code
+  Utility/Misc.code
+  Utility/AllScalars.code
+  Utility/Errors.code
+  Utility/MissingUnicode.code)
 
-target_link_libraries(swift_RegexParser PRIVATE swiftCore)
+target_link_libraries(language_RegexParser PRIVATE
+  languageCore)
 
-set_target_properties(swift_RegexParser PROPERTIES
-  Swift_MODULE_NAME _RegexParser)
+set_target_properties(language_RegexParser PROPERTIES
+  Codira_MODULE_NAME _RegexParser)
+
+install(TARGETS language_RegexParser
+  ARCHIVE DESTINATION "${CodiraStringProcessing_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CodiraStringProcessing_INSTALL_LIBDIR}"
+  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+emit_language_interface(language_RegexParser)
+install_language_interface(language_RegexParser)
+
+embed_manifest(language_RegexParser)

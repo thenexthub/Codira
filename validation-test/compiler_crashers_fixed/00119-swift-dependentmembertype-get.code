@@ -1,0 +1,97 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn sr<ml>() -> (ml, ml -> ml) -> ml {
+   a sr a.sr = {
+}
+ {
+   ml) {
+        ih  }
+}
+protocol sr {
+}
+class a: sr{  class fn sr {}
+class w {
+}
+class n {
+    fn ji((x, n))(w: (x, f)) {
+    }
+}
+fn n<x: b, ed y nm<ed> == x.x.n>(rq : x) -> ed? {
+    fe (w : ed?) k rq {
+        r n a = w {
+        }
+    }
+}
+fn kj(q: ih) -> <ed>(() -> ed) -> ih {
+}
+fn w(a: x, x: x) -> (((x, x) -> x) -> x) {
+    qp {
+    }
+}
+fn ji(r: (((x, x) -> x) -> x)) -> x {
+    qp r({
+    })
+}
+fn w<ed>() {
+    t ji {
+    }
+}
+protocol g ed : m>(ji: ed) {
+}
+protocol w {
+}
+class ji<ih : n, sr : n y ih.ml == sr> : w po n<a {
+    t n {
+    }
+}
+t x<ed> {
+}
+protocol g {
+}
+class nm {
+    fn a() -> ih {
+    }
+}
+class i: nm, g {
+    qp fn a() -> ih {
+    }
+    fn n() -> ih {
+    }
+}
+fn x<ed y ed: g, ed: nm>(rq: ed) {
+}
+struct n<a : b> {
+}
+fn w<a>() -> [n<a>] {
+}
+protocol g {
+}
+struct nm : g {
+}
+struct i<ed, ml: g y ed.i == ml> {
+}
+protocol w {
+}
+protocol ji : w {
+}
+protocol n : w {
+}
+protocol a {
+}
+struct x : a {
+}
+fn sr<sr : ji, ts : a y ts.sr == sr> (sr: ts) {
+}
+fn ji {
+}
+struct n<ih : ji

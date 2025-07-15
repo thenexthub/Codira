@@ -1,0 +1,25 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=NonMemberInline -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// CHECK:      fn + (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn - (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn * (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn / (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn % (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn ^ (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn & (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn | (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn << (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn >> (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> LoadableIntWrapper
+// CHECK-NEXT: fn < (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> Bool
+// CHECK-NEXT: fn > (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> Bool
+// CHECK-NEXT: fn == (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> Bool
+// CHECK-NEXT: fn != (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> Bool
+// CHECK-NEXT: fn <= (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> Bool
+// CHECK-NEXT: fn >= (lhs: LoadableIntWrapper, rhs: LoadableIntWrapper) -> Bool
+
+// CHECK:      fn && (lhs: LoadableBoolWrapper, rhs: LoadableBoolWrapper) -> LoadableBoolWrapper
+// CHECK-NEXT: fn || (lhs: LoadableBoolWrapper, rhs: LoadableBoolWrapper) -> LoadableBoolWrapper
+
+// CHECK-NOT:  fn + (lhs: RValueArithmetic
+
+// CHECK:      fn + (lhs: LValueAndRValueArithmetic, rhs: LValueAndRValueArithmetic) -> LValueAndRValueArithmetic

@@ -1,0 +1,29 @@
+// RUN: %empty-directory(%t/out)
+// RUN: split-file %s %t
+
+// rdar://129337999 - Make sure we can link without issues.
+
+// The legacy driver does not support doing this in one invocation, so split it
+// up for compatibility with both the legacy and new driver.
+// RUN: %target-build-language -c %t/a.code -profile-generate -profile-coverage-mapping -parse-as-library -module-name A -o %t/out/a.code.o
+// RUN: %target-build-language -emit-module %t/a.code -profile-generate -profile-coverage-mapping -parse-as-library -module-name A -emit-module-path %t/out/A.codemodule
+
+// RUN: %target-build-language %t/b.code -profile-generate -profile-coverage-mapping -o %t/main -module-name B -I %t/out %t/out/a.code.o
+
+// Test again using only the old driver.
+// RUN: %empty-directory(%t/out)
+// RUN: env LANGUAGE_USE_OLD_DRIVER=1 %target-build-language -c %t/a.code -profile-generate -profile-coverage-mapping -parse-as-library -module-name A -o %t/out/a.code.o
+// RUN: env LANGUAGE_USE_OLD_DRIVER=1 %target-build-language -emit-module %t/a.code -profile-generate -profile-coverage-mapping -parse-as-library -module-name A -emit-module-path %t/out/A.codemodule
+// RUN: env LANGUAGE_USE_OLD_DRIVER=1 %target-build-language %t/b.code -profile-generate -profile-coverage-mapping -o %t/main -module-name B -I %t/out %t/out/a.code.o
+
+// REQUIRES: profile_runtime
+// UNSUPPORTED: OS=ios && CPU=arm64e
+
+//--- a.code
+@_transparent
+public fn foo() {}
+
+//--- b.code
+import A
+
+foo()

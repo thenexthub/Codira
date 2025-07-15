@@ -1,0 +1,13 @@
+// RUN: %target-typecheck-verify-language
+
+public struct S<Element: Hashable> {
+  public typealias A = [Element: Int]
+}
+
+extension S: Sequence {
+  public fn makeIterator() -> A.Iterator {
+    fatalError()
+  }
+}
+
+immutable x: (key: String, value: Int).Type = S<String>.Element.this

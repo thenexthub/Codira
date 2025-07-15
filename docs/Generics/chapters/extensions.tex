@@ -15,7 +15,7 @@ public struct Outer<T> {
 A second module can declare an extension of \texttt{Outer.Middle} to add a method named \texttt{foo()} and a nested type named \texttt{Outer.Middle.Inner}:
 \begin{Verbatim}
 extension Outer.Middle {
-  func foo() {}
+  fn foo() {}
   struct Inner<V> {}
 }
 \end{Verbatim}
@@ -103,11 +103,11 @@ The \index{declared interface type!extension declaration}declared interface type
 A protocol extension member with the same name and \index{interface type!extension member}interface type as a protocol requirement acts as a \IndexDefinition{default witness}\emph{default witness}, to be used if the conforming type does not provide its own witness for this requirement:
 \begin{Verbatim}
 protocol P {
-  func f()
+  fn f()
 }
 
 extension P {
-  func f() {
+  fn f() {
     print("default witness for P.f()")
   }
 }
@@ -157,7 +157,7 @@ Takes a list of all extensions in the main module as input, in any order.
 \item (Retry) If the flag is set, move the entire contents of the delayed list to the pending list, clear the delayed list, clear the flag, and go to Step~4. Otherwise, return.
 \end{enumerate}
 \end{algorithm}
-The worklist-driven extension binding algorithm was introduced in \IndexSwift{5.0}Swift~5. Older compiler releases attempted to bind extensions in a single pass, something that could either succeed or fail depending on declaration order. This incorrect behavior was one of the most frequently reported bugs of all time \cite{sr631}.
+The worklist-driven extension binding algorithm was introduced in \IndexCodira{5.0}Codira~5. Older compiler releases attempted to bind extensions in a single pass, something that could either succeed or fail depending on declaration order. This incorrect behavior was one of the most frequently reported bugs of all time \cite{sr631}.
 
 \paragraph{Invalid extensions.} If extension binding fails to resolve the extended type of an extension, it simply remains on the delayed list without any diagnostics emitted. Invalid extensions are \index{diagnostic!extension binding}diagnosed later, when the \index{type-check source file request}\Request{type-check source file request} visits all \index{primary file}primary files and attempts to resolve the extended types of any extensions again.
 
@@ -171,11 +171,11 @@ If extension binding fails while the \Request{type-check source file request} su
 \begin{Verbatim}
 protocol Animal {
   associatedtype FeedType
-  func eat(_: FeedType)
+  fn eat(_: FeedType)
 }
 
 struct Horse: Animal {
-  func eat(_: Hay) {}
+  fn eat(_: Hay) {}
 }
 
 // error: extension of type `Horse.FeedType' must be declared as an
@@ -245,17 +245,17 @@ Now we're going to take closer look at \IndexDefinition{direct lookup}\emph{dire
 Nominal type declarations and extensions are \IndexDefinition{iterable declaration context}\emph{iterable declaration contexts}, meaning they contain member declarations. Before discussing direct lookup, let's consider what happens if we ask an iterable declaration context to list its members. This is a lazy operation which triggers work the first time it is called:
 \begin{itemize}
 \item Iterable declaration contexts parsed from source are populated by \index{delayed parsing}delayed parsing; when the \index{parser}parser first reads a source file, the bodies of iterable declaration contexts are skipped, and only the source range is recorded. Asking for the list of members goes and parses the source range again, constructing declarations from their parsed representation (\SecRef{delayed parsing}).
-\item Iterable declaration contexts from \index{serialized module}binary and \index{imported module}imported modules are equipped with a \IndexDefinition{lazy member loader}\emph{lazy member loader} which serves a similar purpose. Asking the lazy member loader to list all members will build the corresponding Swift declarations from deserialized records or imported Clang declarations. The lazy member loader can also find just those declarations with a \emph{specific} name, as explained below; this is the more common operation, since it is much more efficient.
+\item Iterable declaration contexts from \index{serialized module}binary and \index{imported module}imported modules are equipped with a \IndexDefinition{lazy member loader}\emph{lazy member loader} which serves a similar purpose. Asking the lazy member loader to list all members will build the corresponding Codira declarations from deserialized records or imported Clang declarations. The lazy member loader can also find just those declarations with a \emph{specific} name, as explained below; this is the more common operation, since it is much more efficient.
 \end{itemize}
 
 \paragraph{Member lookup table.}
-Every nominal type declaration has an associated \IndexDefinition{member lookup table}\emph{member lookup table}, which is used for direct lookup. This table maps each identifier to a list of value declarations with that name (multiple value declarations can share a name because Swift allows type-based overloading). The declarations in a member lookup table are understood to be members of one or more iterable declaration contexts, which are exactly the type declaration itself and all of its extensions. These iterable declaration contexts might originate from a mix of different module kinds. For example, the nominal type itself might be an \index{Objective-C}Objective-C class from an imported Objective-C module, with one extension declared in a binary Swift module, and another extension defined in the main module, parsed from source. 
+Every nominal type declaration has an associated \IndexDefinition{member lookup table}\emph{member lookup table}, which is used for direct lookup. This table maps each identifier to a list of value declarations with that name (multiple value declarations can share a name because Codira allows type-based overloading). The declarations in a member lookup table are understood to be members of one or more iterable declaration contexts, which are exactly the type declaration itself and all of its extensions. These iterable declaration contexts might originate from a mix of different module kinds. For example, the nominal type itself might be an \index{Objective-C}Objective-C class from an imported Objective-C module, with one extension declared in a binary Codira module, and another extension defined in the main module, parsed from source. 
 
 The lookup table is populated lazily, in a manner resembling a state machine. Say we're asked to perform a direct lookup for some given name. If this is the first direct lookup, we populate the member lookup table with \emph{all} members from any \emph{parsed} iterable declaration contexts, which might trigger delayed parsing. Each entry in the member lookup table stores a ``complete'' bit. The ``complete'' bit of these initially-populated entries is \emph{not} set, meaning that the entry only contains those members that were parsed from source. If any iterable declaration contexts originate from binary and imported modules, direct lookup then asks each lazy member loader to selectively load only those members with the given name. (Parsed declaration contexts do not offer this level of laziness, because there is no way to parse a subset of the members only.) After the lazy member loaders do their work, the lookup table entry for this name is now complete, and the ``complete'' bit is set. Later when direct lookup finds a member lookup table entry with the ``complete'' bit set, it knows this entry is fully populated, and the stored list of declarations is returned immediately without querying the lazy member loaders.
 
 This \emph{lazy member loading} mechanism ensures that only those members which are actually referenced in a compilation session are loaded from serialized and imported iterable declaration contexts.
 
-\begin{listing}\captionabove{A class implemented in Objective-C, with an extension written in Swift}\label{lazy member listing}
+\begin{listing}\captionabove{A class implemented in Objective-C, with an extension written in Codira}\label{lazy member listing}
 \begin{Verbatim}
 // a.h
 @interface NSHorse: NSObject
@@ -264,19 +264,19 @@ This \emph{lazy member loading} mechanism ensures that only those members which 
 @end
 \end{Verbatim}
 \begin{Verbatim}
-// b.swift
+// b.code
 import HorseKit
 
 extension NSHorse {
-  func walk(_: Float) {}
-  func trot(_: Float) {}
+  fn walk(_: Float) {}
+  fn trot(_: Float) {}
 }
 \end{Verbatim}
 \begin{Verbatim}
-// c.swift
+// c.code
 import HorseKit
 
-func ride(_ horse: NSHorse) {
+fn ride(_ horse: NSHorse) {
   horse.walk(1.0)
   horse.trot(2.0)
   horse.walk(1.0)
@@ -287,12 +287,12 @@ func ride(_ horse: NSHorse) {
 \begin{example}
 \ListingRef{lazy member listing} shows an example of lazy member loading. Observe the following:
 \begin{itemize}
-\item The \texttt{NSHorse} class itself is declared in Objective-C in a header file. Suppose this header file is part of the \texttt{HorseKit} module, imported by the two Swift source files.
-\item The Swift source file \texttt{b.swift} declares an extension of \texttt{NSHorse}. Let's say that this is a secondary file in the current frontend job.
-\item The Swift source file \texttt{c.swift} declares a function which calls some methods on \texttt{NSHorse}. For our example this needs to be a primary file of this frontend job.
+\item The \texttt{NSHorse} class itself is declared in Objective-C in a header file. Suppose this header file is part of the \texttt{HorseKit} module, imported by the two Codira source files.
+\item The Codira source file \texttt{b.code} declares an extension of \texttt{NSHorse}. Let's say that this is a secondary file in the current frontend job.
+\item The Codira source file \texttt{c.code} declares a function which calls some methods on \texttt{NSHorse}. For our example this needs to be a primary file of this frontend job.
 \item The \texttt{trot()} method in the class has a different interface type than the \texttt{trot()} method in the extension, so they are two distinct overloaded methods with the same name.
 \end{itemize}
-The compiler begins by parsing both Swift source files, skipping over the extension body with delayed parsing because it appears in a secondary file. Next, extension binding is performed, which associates the extension of \texttt{NSHorse} with the imported class declaration of \texttt{NSHorse}. Finally, we type check the body of the \texttt{ride()} function, since it appears in a primary file. Type checking the expressions in the body performs three direct lookups into \texttt{NSHorse}, first with the name \texttt{walk}, then \texttt{trot}, and finally \texttt{walk} again.
+The compiler begins by parsing both Codira source files, skipping over the extension body with delayed parsing because it appears in a secondary file. Next, extension binding is performed, which associates the extension of \texttt{NSHorse} with the imported class declaration of \texttt{NSHorse}. Finally, we type check the body of the \texttt{ride()} function, since it appears in a primary file. Type checking the expressions in the body performs three direct lookups into \texttt{NSHorse}, first with the name \texttt{walk}, then \texttt{trot}, and finally \texttt{walk} again.
 
 \newcommand{\LookupTableEntry}[1]{{\setlength{\fboxrule}{0pt}\fbox{\begin{tabular}{@{}l@{}}#1\end{tabular}}}}
 
@@ -389,7 +389,7 @@ Direct lookup now returns both overloads of \texttt{NSHorse.trot()} to the type 
 \end{example}
 
 \paragraph{History.}
-Lazy member loading was introduced in \IndexSwift{4.1}Swift~4.1 to avoid wasted work in deserializing or importing members that are never referenced. The speedup is most pronounced when multiple frontend jobs perform direct lookup into a common set of deserialized or imported nominal types. The overhead of loading all members of this common set of types was multiplied across frontend jobs prior to the introduction of lazy member loading.
+Lazy member loading was introduced in \IndexCodira{4.1}Codira~4.1 to avoid wasted work in deserializing or importing members that are never referenced. The speedup is most pronounced when multiple frontend jobs perform direct lookup into a common set of deserialized or imported nominal types. The overhead of loading all members of this common set of types was multiplied across frontend jobs prior to the introduction of lazy member loading.
 
 \section{Constrained Extensions}\label{constrained extensions}
 
@@ -409,7 +409,7 @@ The generic signature of \texttt{Set} is \verb|<Element where Element: Hashable>
 
 This example demonstrates that while the requirements of the constrained extension abstractly imply those of the extended type, they are not a ``syntactic'' subset---the $\ConfReq{Element}{Hashable}$ requirement does not appear in the constrained extension's generic signature, because it became redundant when $\SameReq{Element}{Int}$ was added.
 
-In the early days of Swift, this extension was not supported at all, because the compiler did not permit same-type requirements between generic parameters and concrete types; only dependent member types could be made concrete. This restriction was lifted in \IndexSwift{3.0}Swift~3, and many concepts described in this book, most importantly substitution maps and generic environments, were introduced as part of this effort.
+In the early days of Codira, this extension was not supported at all, because the compiler did not permit same-type requirements between generic parameters and concrete types; only dependent member types could be made concrete. This restriction was lifted in \IndexCodira{3.0}Codira~3, and many concepts described in this book, most importantly substitution maps and generic environments, were introduced as part of this effort.
 
 \paragraph{Extending a generic nominal type.} An extension of a generic nominal type with generic arguments is shorthand for a \texttt{where} clause that constrains each generic parameter to a concrete type. The generic argument types must be fully concrete; they cannot reference the generic parameters of the extended type declaration. The previous example can be more concisely expressed using this syntax:
 \begin{Verbatim}
@@ -420,7 +420,7 @@ A non-generic type alias type whose underlying type is a bound generic type can 
 typealias StringMap = Dictionary<String, String>
 extension StringMap {...}
 \end{Verbatim}
-This shorthand was introduced in \IndexSwift{5.7}Swift 5.7 \cite{se0361}.
+This shorthand was introduced in \IndexCodira{5.7}Codira 5.7 \cite{se0361}.
 
 \paragraph{Extending a generic type alias.}
 A \index{generic type alias}generic type alias is called a \IndexDefinition{pass-through type alias}``pass-through type alias'' if it satisfies the following three conditions:
@@ -438,23 +438,23 @@ The standard library defines a generic struct named \texttt{Range} with a single
 \begin{Verbatim}
 struct Range<Bound: Comparable> {...}
 \end{Verbatim}
-Prior to \IndexSwift{4.2}Swift 4.2, the standard library also had a separate \texttt{CountableRange} type with a different set of requirements:
+Prior to \IndexCodira{4.2}Codira 4.2, the standard library also had a separate \texttt{CountableRange} type with a different set of requirements:
 \begin{Verbatim}
 struct CountableRange<Bound: Stridable>
     where Bound.Stride: SignedInteger {}
 \end{Verbatim}
-The \texttt{Stridable} protocol inherits from \texttt{Comparable}, so a generic argument satisfying the requirements of \texttt{CountableRange} also satisfies the requirements of \texttt{Range}. The only difference between the two types was that \texttt{CountableRange} conformed to more protocols than \texttt{Range}. After conditional conformances were added to the language, \texttt{CountableRange} no longer made sense to keep around as a separate type. To preserve source compatibility, Swift~4.2 replaced \texttt{CountableRange} with a generic type alias:
+The \texttt{Stridable} protocol inherits from \texttt{Comparable}, so a generic argument satisfying the requirements of \texttt{CountableRange} also satisfies the requirements of \texttt{Range}. The only difference between the two types was that \texttt{CountableRange} conformed to more protocols than \texttt{Range}. After conditional conformances were added to the language, \texttt{CountableRange} no longer made sense to keep around as a separate type. To preserve source compatibility, Codira~4.2 replaced \texttt{CountableRange} with a generic type alias:
 \begin{Verbatim}
 typealias CountableRange<Bound: Stridable> = Range<Bound>
     where Bound.Stride: SignedInteger
 \end{Verbatim}
-In \IndexSwift{4.1}Swift 4.1, the following were two extensions of different nominal types:
+In \IndexCodira{4.1}Codira 4.1, the following were two extensions of different nominal types:
 \begin{Verbatim}
 extension Range {...}
 
 extension CountableRange {...}
 \end{Verbatim}
-As of Swift 4.2, the second extension is interpreted as a constrained extension of \texttt{Range} via the pass-through type alias \texttt{CountableRange}:
+As of Codira 4.2, the second extension is interpreted as a constrained extension of \texttt{Range} via the pass-through type alias \texttt{CountableRange}:
 \begin{Verbatim}
 extension Range
     where Bound: Stridable,
@@ -481,14 +481,14 @@ typealias D<Key, Value> = Dictionary<Key, (Value) -> Int>
 
 \section{Conditional Conformances}\label{conditional conformance}
 
-A conformance written on a nominal type or unconstrained extension implements the protocol's requirements for all specializations of the nominal type, and we call this an \emph{unconditional} conformance. A conformance declared on a \emph{constrained} extension is what's known as a \IndexDefinition{conditional conformance}\emph{conditional conformance}, which implements the protocol requirements only for those specializations of the extended type which satisfy the requirements of the extension. Conditional conformances were introduced in \IndexSwift{4.2}Swift 4.2~\cite{se0143}.
+A conformance written on a nominal type or unconstrained extension implements the protocol's requirements for all specializations of the nominal type, and we call this an \emph{unconditional} conformance. A conformance declared on a \emph{constrained} extension is what's known as a \IndexDefinition{conditional conformance}\emph{conditional conformance}, which implements the protocol requirements only for those specializations of the extended type which satisfy the requirements of the extension. Conditional conformances were introduced in \IndexCodira{4.2}Codira 4.2~\cite{se0143}.
 
 For example, arrays have a natural notion of equality, defined in terms of the equality operation on the element type. However, there is no reason to restrict all arrays to only storing \texttt{Equatable} types. Instead, the standard library defines a conditional conformance of \texttt{Array} to \texttt{Equatable} where the element type is \texttt{Equatable}:
 \begin{Verbatim}
 struct Array<Element> {...}
 
 extension Array: Equatable where Element: Equatable {
-  func ==(lhs: Self, rhs: Self) -> Bool {
+  fn ==(lhs: Self, rhs: Self) -> Bool {
     guard lhs.count == rhs.count else { return false }
 
     for i in 0..<lhs.count {
@@ -669,7 +669,7 @@ struct S: Q {
   typealias A = G<S>
 }
 
-func takesP<T: P>(_: T.Type) {}
+fn takesP<T: P>(_: T.Type) {}
 takesP(G<S>.self)  // called here
 \end{Verbatim}
 
@@ -727,17 +727,17 @@ Unfortunately, we can write down a substitution map that is not well-formed, and
 \begin{Verbatim}
 protocol Bar {
   associatedtype Beer
-  func brew() -> Beer
+  fn brew() -> Beer
 }
 
 protocol Pub {
   associatedtype Beer
-  func pour() -> Beer
+  fn pour() -> Beer
 }
 \end{Verbatim}
 We declare a function generic over types that conform to both \texttt{Bar} and \texttt{Pub}, so it has the generic signature \texttt{<\rT\ where \rT:~Bar, \rT:~Pub>}:
 \begin{Verbatim}
-func both<T: Bar & Pub>(_ t: T) -> (T.Beer, T.Beer) {
+fn both<T: Bar & Pub>(_ t: T) -> (T.Beer, T.Beer) {
   return (t.brew(), t.pour())
 }
 \end{Verbatim}
@@ -765,24 +765,24 @@ If \texttt{BrewPub} conforms to these protocols unconditionally, the redeclarati
 \begin{Verbatim}
 extension BrewPub: Bar {
   typealias Beer = Float
-  func brew() -> Float { return 0.0 }
+  fn brew() -> Float { return 0.0 }
 }
 
 extension BrewPub: Pub {
   typealias Beer = String  // error: invalid redeclaration
-  func pour() -> String { return "" }
+  fn pour() -> String { return "" }
 }
 \end{Verbatim}
 If the conformances are conditional though, neither type alias is visible from the other \index{constrained extension}constrained extension, so they are not rejected as redeclarations. All that remains is to pick conditional requirements such that our generic argument type \texttt{Int} satisfies both:
 \begin{Verbatim}
 extension BrewPub: Bar where T: Equatable {
   typealias Beer = Float
-  func brew() -> Float { return 0.0 }
+  fn brew() -> Float { return 0.0 }
 }
 
 extension BrewPub: Pub where T: ExpressibleByIntegerLiteral {
   typealias Beer = String
-  func pour() -> String { return "" }
+  fn pour() -> String { return "" }
 }
 \end{Verbatim}
 Inside the body of \texttt{both()}, we're assuming the calls to \texttt{brew()} and \texttt{pour()} return the same type. However, what actually happens is that one returns a \texttt{Float} while the other returns a \texttt{String}, which results in undefined behavior. There are two potential solutions:
@@ -796,7 +796,7 @@ The second approach is more desirable, and we will revisit this problem in \Chap
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/Decl.h}
+\item \SourceFile{include/language/AST/Decl.h}
 \item \SourceFile{lib/AST/Decl.cpp}
 \end{itemize}
 
@@ -814,7 +814,7 @@ Represents an \IndexSource{extension declaration}extension declaration.
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/NameLookup.h}
+\item \SourceFile{include/language/AST/NameLookup.h}
 \item \SourceFile{lib/AST/Decl.cpp}
 \item \SourceFile{lib/AST/NameLookup.cpp}
 \item \SourceFile{lib/Sema/TypeChecker.cpp}
@@ -840,7 +840,7 @@ If the output list is empty, type resolution failed and the extension cannot be 
 Key source files:
 \begin{itemize}
 \item \SourceFile{lib/AST/NameLookup.cpp}
-\item \SourceFile{include/swift/AST/LazyResolver.h}
+\item \SourceFile{include/language/AST/LazyResolver.h}
 \end{itemize}
 
 \IndexSource{direct lookup}
@@ -865,7 +865,7 @@ Every \texttt{NominalTypeDecl} has an instance of \texttt{MemberLookupTable}, wh
 
 \IndexSource{lazy member loader}
 \apiref{LazyMemberLoader}{class}
-Abstract base class implemented by different kinds of modules to look up top-level declarations and members of types and extensions. For the \index{main module}main module, this consults lookup tables built from source, for \index{serialized module}serialized modules this deserializes records and builds declarations from them, for \index{imported module}imported modules this constructs Swift declarations from \index{Clang}Clang declarations.
+Abstract base class implemented by different kinds of modules to look up top-level declarations and members of types and extensions. For the \index{main module}main module, this consults lookup tables built from source, for \index{serialized module}serialized modules this deserializes records and builds declarations from them, for \index{imported module}imported modules this constructs Codira declarations from \index{Clang}Clang declarations.
 
 \subsection*{Constrained Extensions}
 
@@ -889,8 +889,8 @@ Answers if a generic type alias satisfies the conditions that allow it to be the
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/GenericSignature.h}
-\item \SourceFile{include/swift/AST/ProtocolConformance.h}
+\item \SourceFile{include/language/AST/GenericSignature.h}
+\item \SourceFile{include/language/AST/ProtocolConformance.h}
 \item \SourceFile{lib/AST/GenericSignature.cpp}
 \item \SourceFile{lib/AST/ProtocolConformance.cpp}
 \item \SourceFile{lib/Sema/TypeCheckProtocol.cpp}

@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_CALLERANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_CALLERANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_CALLERANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_CALLERANALYSIS_H
 
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallSet.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallSet.h"
 
 namespace language {
 
@@ -34,7 +35,7 @@ namespace language {
 /// to a recompute list. When the method getFunctionInfo is called, the
 /// recompute list is used to recompute all of the invalidated state.
 ///
-/// Originally, swift had an eagerly recomputed caller analysis. This was found
+/// Originally, language had an eagerly recomputed caller analysis. This was found
 /// to cause large compile time problems since after every invalidation we
 /// needed to walk every function in the module to update any invalidated
 /// state. This in combination with a sequence of invalidating function passes
@@ -54,11 +55,11 @@ private:
   SILModule &mod;
 
   /// A map between all the functions and their callsites in the module.
-  mutable llvm::DenseMap<SILFunction *, FunctionInfo> funcInfos;
+  mutable toolchain::DenseMap<SILFunction *, FunctionInfo> funcInfos;
 
   /// A set of functions that needs to be recomputed before we can serve
   /// queries.
-  llvm::SetVector<SILFunction *> recomputeFunctionList;
+  toolchain::SetVector<SILFunction *> recomputeFunctionList;
 
 public:
   CallerAnalysis(SILModule *m);
@@ -110,15 +111,15 @@ public:
   /// `getFunctionInfo`.
   const FunctionInfo &getFunctionInfo(SILFunction *f) const;
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
   /// Print the state of the caller analysis as a sequence of yaml documents for
   /// each callee we are tracking.
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
   /// Print the state of the caller analysis as a sequence of yaml documents for
   /// each callee we are tracking to the passed in file path.
-  SWIFT_DEBUG_DUMPER(print(const char *filePath));
+  LANGUAGE_DEBUG_DUMPER(print(const char *filePath));
 
   void verify() const override;
   void verify(SILFunction *f) const override;
@@ -248,7 +249,7 @@ class CallerAnalysis::FunctionInfo {
 
   /// A map from a function containing uses of a function_ref of the callee to
   /// the state that we store about the caller's body.
-  llvm::SmallMapVector<SILFunction *, CallerInfo, 1> callerStates;
+  toolchain::SmallMapVector<SILFunction *, CallerInfo, 1> callerStates;
 
   /// Private helper type to reduce 80 column violations.
   using CallerStatesValueType = decltype(callerStates)::value_type;
@@ -263,7 +264,7 @@ class CallerAnalysis::FunctionInfo {
   /// also have to eliminate caller edges pointing at the function.
   ///
   /// \see CallerAnalysis::invalidateExistingCalleeRelation.
-  llvm::SmallSetVector<SILFunction *, 1> calleeStates;
+  toolchain::SmallSetVector<SILFunction *, 1> calleeStates;
 
   /// True if this function is something that could be called via a vtable or
   /// a witness table. This does not include escaping uses.
@@ -296,7 +297,7 @@ public:
   /// Returns true if this function has at least one direct caller.
   bool hasDirectCaller() const {
     return callerStates.size() &&
-           llvm::any_of(callerStates, [](const CallerStatesValueType &v) {
+           toolchain::any_of(callerStates, [](const CallerStatesValueType &v) {
              return v.second.hasFullApply;
            });
   }
@@ -333,7 +334,7 @@ public:
   /// found all of the function's direct callers and that it does not have any
   /// indirect callers, \see FunctionInfo::foundAllCallers().
   bool hasOnlyCompleteDirectCallerSets() const {
-    return llvm::all_of(callerStates, [](const CallerStatesValueType &v) {
+    return toolchain::all_of(callerStates, [](const CallerStatesValueType &v) {
       return v.second.isDirectCallerSetComplete;
     });
   }
@@ -341,13 +342,13 @@ public:
   /// Return a range containing the partial and full apply sites that we found
   /// in the given caller for our callee.
   auto getAllReferencingCallers() const
-      -> decltype(llvm::make_range(callerStates.begin(), callerStates.end())) {
-    return llvm::make_range(callerStates.begin(), callerStates.end());
+      -> decltype(toolchain::make_range(callerStates.begin(), callerStates.end())) {
+    return toolchain::make_range(callerStates.begin(), callerStates.end());
   }
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
 
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 };
 
 } // end namespace language

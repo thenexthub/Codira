@@ -1,0 +1,44 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -parse-as-library -module-name ProtoModule -o %t/ProtoModule.codemodule %s -DPROTO
+// RUN: %target-language-frontend -emit-module -parse-as-library -module-name ModelModule -o %t/ModelModule.codemodule %s -DMODEL -I %t
+// RUN: %target-language-frontend -emit-sil -O -sil-verify-all -o /dev/null %s -DUSE -I %t
+
+#if PROTO
+
+public protocol Proto {
+  fn method<T>(_: T?)
+}
+  
+extension Proto {
+  public fn method<T>(_: T?) {}
+}
+
+#elseif MODEL
+
+import ProtoModule
+
+public struct Model : Proto {
+  public init() {}
+}
+
+
+#elseif USE
+
+import ProtoModule
+import ModelModule
+
+struct OtherStruct {}
+
+fn test<T: Proto>(_ x: T) {
+  x.method(OtherStruct())
+}
+
+fn main() {
+  test(Model())
+}
+
+#else
+
+immutable _ = invalid_configuration()
+
+#endif

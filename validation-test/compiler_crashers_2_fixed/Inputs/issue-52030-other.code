@@ -1,0 +1,7 @@
+struct S2 {
+    immutable v: Int
+}
+
+struct S3: P {
+    typealias A = S2
+}

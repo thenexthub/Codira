@@ -1,0 +1,64 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class x<ji>: y {
+    init(u: ji) {
+        kj. y {
+    b r = ji: v -> v = {
+}
+ih y: v =  { fe, b cb
+}(u, n)
+}
+class y {
+    fn kj<r where r: dc, r: y>(kj: r) {
+}
+fn ed(x: b) -> <r>(() -> r) -> b {
+}
+class r {
+    fn w((gf, r))(dc: (gf, fe)) {
+    }
+}
+fn y(r: () -> ()) {
+}
+class dc {
+    kj _ = y() {
+    }
+}
+fn dc<ed>() -> (ed, ed -> ed) -> ed {
+    kj w r ih<r : kj, w: kj fe w.n == r.n> {
+}
+w kj {
+}
+w r<ed> {
+}
+w n {
+}
+class kj {
+    fn ih() -> dc {
+    }
+}
+class y: kj, n {
+}
+fn b<fe {
+  b b {
+    }
+}
+}
+class y<r : ed, u : ed where r.ed == u> : n {
+}
+class y<r, u> {
+}
+protocol ed {
+}
+protocol n {
+}
+protocol ed : y { fn y

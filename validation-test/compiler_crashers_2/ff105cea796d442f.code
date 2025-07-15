@@ -1,0 +1,5 @@
+// {"signature":"language::InFlightDiagnostic language::diagnoseAttrWithRemovalFixIt<language::Diag<>&>(language::Decl const*, language::DeclAttribute const*, language::Diag<>&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+class a open extension a {
+  @objc class b

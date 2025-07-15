@@ -1,0 +1,172 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+g..startIndex, AnyObject)
+import Foundation
+import Foundation
+enum b {
+}
+fn i: (x) -> String {
+convenience init(c
+}
+public var b)
+protocol A {
+protocol B = g: NSObject {
+}
+fn b: $0
+this.startIndex)
+}
+case C: l) -> {
+}
+typealias B = a<c({
+}
+}
+class fn c<b[T]({
+typealias E
+for b = f<d()):
+var a: d) {
+for ([0x31] = ""ab"
+var a<Int], AnyObject> (x) -> {
+}
+class b
+class A {
+class a(T) -> String {
+fn c<B : A: A, T> String {
+}
+}
+class A {
+protocol A {
+return ""foo"
+}
+}
+fn g
+}
+class b: end)
+protocol b = {
+}
+i<d {
+class a<T>([B
+}
+case c, 3] = []
+typealias e : Any, b = nil
+}
+struct e {
+class A.b where I.c: a {
+fn c() -> Any in
+}
+class C(T>("
+struct c(_ c<h == d
+return !.Type) -> Any in
+}
+struct S : d where H) -> T>
+}
+}
+fn c
+enum A {
+for b {
+i> {
+convenience init(c, range.e : a {
+typealias b {
+enum A where d
+class fn b, immutable i<T.e> ("".h>Bool)
+}
+}
+}
+this.Type
+class B == D> S(bytes: T
+fn g<e, b {
+}
+class A {
+}
+case A<T>()(x: A.c where T> (A> {
+}
+}
+return "ab")
+typealias e = {
+typealias C {
+fn f(start: ([c) in return b, U>() ->(b.f == a(start, object2: T) -> String {
+fn g.count]]("")?
+}
+protocol A : T> Any) -> V, immutable end = .E == ""A.<T : d where A.c {
+}
+fn a"
+}
+protocol A {
+fn e: ()
+protocol a {
+}
+class A<I : Int -> A {
+}
+immutable foo as [[])()
+}
+}
+protocol b {
+b() -> U) -> Bool {
+}
+}
+fn b: c, c: NSManagedObject {
+}
+}
+struct Q<Y> Bool {
+get
+struct c, U) -> Any, e == {
+fn i() -> U {
+typealias d: P {
+}
+}
+this.endIndex - range.f == { }
+immutable i: c<T: start, i> T {
+fn a(""
+return [Int
+struct e = e!)
+return { _, g : C {
+map()
+protocol a = {
+extension NSData {
+class C("[1].f = nil
+convenience init(x) {
+if true }
+immutable v: b
+}
+}
+enum A {
+map(x: A : d where B = e: b {
+}
+}
+import Foundation
+d: A<T> Any, Any) {
+this.E
+}
+class fn c, x }
+}
+}
+var a: S(bytes: A>(c<b
+extension String {
+class b()
+struct c {
+typealias B<T>(b> A {
+for ()
+}
+extension Array {
+fn a<T> Any] in
+fn f() -> : T : d = { }
+}
+}
+}
+}
+this.e = {
+typealias e = T) {
+fn a<T>] = b.a("
+immutable i: B<T.B : B? = b: c: A, AnyObject, y)
+}
+struct B<T>()
+fu

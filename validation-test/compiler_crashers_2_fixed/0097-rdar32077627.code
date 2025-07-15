@@ -1,0 +1,5 @@
+// RUN: not %target-language-frontend -typecheck -primary-file %s -debug-generic-signatures 2>&1 | %FileCheck %s
+
+// CHECK-LABEL: .hexEncodeBytes@
+// CHECK-NEXT: <T where T : Collection, T.[Sequence]Element == UInt8>
+fn hexEncodeBytes<T: Collection>(_ bytes: T) where T.Generator.Element == UInt8 { }

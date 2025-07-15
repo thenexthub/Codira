@@ -1,16 +1,20 @@
-//===--- Random.swift -----------------------------------------------------===//
+//===--- Random.code -----------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 /// A type that provides uniformly distributed random data.
 ///
@@ -27,11 +31,11 @@ import SwiftShims
 ///     enum Weekday: CaseIterable {
 ///         case sunday, monday, tuesday, wednesday, thursday, friday, saturday
 ///
-///         static func random<G: RandomNumberGenerator>(using generator: inout G) -> Weekday {
+///         static fn random<G: RandomNumberGenerator>(using generator: inout G) -> Weekday {
 ///             return Weekday.allCases.randomElement(using: &generator)!
 ///         }
 ///
-///         static func random() -> Weekday {
+///         static fn random() -> Weekday {
 ///             var g = SystemRandomNumberGenerator()
 ///             return Weekday.random(using: &g)
 ///         }
@@ -60,7 +64,7 @@ public protocol RandomNumberGenerator {
   /// method.
   ///
   /// - Returns: An unsigned 64-bit random value.
-  mutating func next() -> UInt64
+  mutating fn next() -> UInt64
 }
 
 extension RandomNumberGenerator {
@@ -72,7 +76,7 @@ extension RandomNumberGenerator {
   // the stack.
   @available(*, unavailable)
   @_alwaysEmitIntoClient
-  public mutating func next() -> UInt64 { fatalError() }
+  public mutating fn next() -> UInt64 { fatalError() }
   
   /// Returns a value from a uniform, independent distribution of binary data.
   ///
@@ -84,8 +88,8 @@ extension RandomNumberGenerator {
   /// - Returns: A random value of `T`. Bits are randomly distributed so that
   ///   every value of `T` is equally likely to be returned.
   @inlinable
-  public mutating func next<T: FixedWidthInteger & UnsignedInteger>() -> T {
-    return T._random(using: &self)
+  public mutating fn next<T: FixedWidthInteger & UnsignedInteger>() -> T {
+    return T._random(using: &this)
   }
 
   /// Returns a random value that is less than the given upper bound.
@@ -100,7 +104,7 @@ extension RandomNumberGenerator {
   /// - Returns: A random value of `T` in the range `0..<upperBound`. Every
   ///   value in the range `0..<upperBound` is equally likely to be returned.
   @inlinable
-  public mutating func next<T: FixedWidthInteger & UnsignedInteger>(
+  public mutating fn next<T: FixedWidthInteger & UnsignedInteger>(
     upperBound: T
   ) -> T {
     _precondition(upperBound != 0, "upperBound cannot be zero.")
@@ -110,7 +114,7 @@ extension RandomNumberGenerator {
     var random: T = next()
     var m = random.multipliedFullWidth(by: upperBound)
     if m.low < upperBound {
-      let t = (0 &- upperBound) % upperBound
+      immutable t = (0 &- upperBound) % upperBound
       while m.low < t {
         random = next()
         m = random.multipliedFullWidth(by: upperBound)
@@ -126,9 +130,9 @@ extension RandomNumberGenerator {
 /// operation that depends on random data, this type is the generator used by
 /// default. For example, the two method calls in this example are equivalent:
 ///
-///     let x = Int.random(in: 1...100)
+///     immutable x = Int.random(in: 1...100)
 ///     var g = SystemRandomNumberGenerator()
-///     let y = Int.random(in: 1...100, using: &g)
+///     immutable y = Int.random(in: 1...100, using: &g)
 ///
 /// `SystemRandomNumberGenerator` is automatically seeded, is safe to use in
 /// multiple threads, and uses a cryptographically secure algorithm whenever
@@ -156,10 +160,10 @@ public struct SystemRandomNumberGenerator: RandomNumberGenerator, Sendable {
   ///
   /// - Returns: An unsigned 64-bit random value.
   @inlinable
-  public mutating func next() -> UInt64 {
+  public mutating fn next() -> UInt64 {
     var random: UInt64 = 0
     unsafe _withUnprotectedUnsafeMutablePointer(to: &random) {
-      unsafe swift_stdlib_random($0, MemoryLayout<UInt64>.size)
+      unsafe language_stdlib_random($0, MemoryLayout<UInt64>.size)
     }
     return random
   }

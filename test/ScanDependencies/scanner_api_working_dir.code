@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -emit-module -module-name A -o %t/include/A.codemodule -language-version 5 \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -emit-module-interface-path %t/include/A.codeinterface -enable-library-evolution -I %t/internal -enable-testing \
+// RUN:   %t/A.code
+
+// RUN: %language-scan-test -action scan_dependency -cwd %t -- %target-language-frontend -emit-module -module-name Test \
+// RUN:   -language-version 5 -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -I include %t/test.code | %FileCheck %s
+
+// CHECK: "mainModuleName": "Test"
+
+// RUN: cd %t
+// RUN: %language-scan-test -action scan_dependency -- %target-language-frontend -emit-module -module-name Test \
+// RUN:   -language-version 5 -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   -I include %t/test.code | %FileCheck %s
+
+//--- test.code
+import A
+
+//--- A.code
+public fn a() {}

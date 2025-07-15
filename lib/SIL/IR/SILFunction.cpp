@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-function"
@@ -36,9 +37,9 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILProfiler.h"
 #include "clang/AST/Decl.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/GraphWriter.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/GraphWriter.h"
 #include <optional>
 
 using namespace language;
@@ -47,7 +48,7 @@ using namespace Lowering;
 GenericSignature SILSpecializeAttr::buildTypeErasedSignature(
     GenericSignature sig, ArrayRef<Type> typeErasedParams) {
   bool changedSignature = false;
-  llvm::SmallVector<Requirement, 2> requirementsErased;
+  toolchain::SmallVector<Requirement, 2> requirementsErased;
   auto &C = sig->getASTContext();
 
   for (auto req : sig.getRequirements()) {
@@ -165,7 +166,7 @@ SILFunction *SILFunction::create(
     SILFunction *insertBefore, const SILDebugScope *debugScope) {
   // Get a StringMapEntry for the function.  As a sop to error cases,
   // allow the name to have an empty string.
-  llvm::StringMapEntry<SILFunction*> *entry = nullptr;
+  toolchain::StringMapEntry<SILFunction*> *entry = nullptr;
   if (!name.empty()) {
     entry = &*M.FunctionTable.insert(std::make_pair(name, nullptr)).first;
     PrettyStackTraceSILFunction trace("creating", entry->getValue());
@@ -208,7 +209,7 @@ SILFunction *SILFunction::create(
   return fn;
 }
 
-static SwiftMetatype functionMetatype;
+static CodiraMetatype functionMetatype;
 static BridgedFunction::RegisterFn initFunction = nullptr;
 static BridgedFunction::RegisterFn destroyFunction = nullptr;
 static BridgedFunction::WriteFn writeFunction = nullptr;
@@ -217,6 +218,7 @@ static BridgedFunction::CopyEffectsFn copyEffectsFunction = nullptr;
 static BridgedFunction::GetEffectInfoFn getEffectInfoFunction = nullptr;
 static BridgedFunction::GetMemBehaviorFn getMemBehvaiorFunction = nullptr;
 static BridgedFunction::ArgumentMayReadFn argumentMayReadFunction = nullptr;
+static BridgedFunction::IsDeinitBarrierFn isDeinitBarrierFunction = nullptr;
 
 SILFunction::SILFunction(
     SILModule &Module, SILLinkage Linkage, StringRef Name,
@@ -227,7 +229,7 @@ SILFunction::SILFunction(
     const SILDebugScope *DebugScope, IsDynamicallyReplaceable_t isDynamic,
     IsExactSelfClass_t isExactSelfClass, IsDistributed_t isDistributed,
     IsRuntimeAccessible_t isRuntimeAccessible)
-    : SwiftObjectHeader(functionMetatype), Module(Module),
+    : LanguageObjectHeader(functionMetatype), Module(Module),
       index(Module.getNewFunctionIndex()),
       Availability(AvailabilityRange::alwaysAvailable()) {
   init(Linkage, Name, LoweredType, genericEnv, isBareSILFunction, isTrans,
@@ -239,7 +241,7 @@ SILFunction::SILFunction(
   // splice efficiently basic blocks in between functions.
   BlockList.Parent = this;
   if (initFunction)
-    initFunction({this}, &libswiftSpecificData, sizeof(libswiftSpecificData));
+    initFunction({this}, &liblanguageSpecificData, sizeof(liblanguageSpecificData));
 }
 
 void SILFunction::init(
@@ -324,7 +326,7 @@ SILFunction::~SILFunction() {
          "Not all OperandBitfields deleted at function destruction");
 
   if (destroyFunction)
-    destroyFunction({this}, &libswiftSpecificData, sizeof(libswiftSpecificData));
+    destroyFunction({this}, &liblanguageSpecificData, sizeof(liblanguageSpecificData));
 }
 
 void SILFunction::createSnapshot(int id) {
@@ -459,7 +461,7 @@ GenericSignature SILFunction::getGenericSignature() const {
   return GenericEnv ? GenericEnv->getGenericSignature() : GenericSignature();
 }
 
-void SILFunction::numberValues(llvm::DenseMap<const SILNode*, unsigned> &
+void SILFunction::numberValues(toolchain::DenseMap<const SILNode*, unsigned> &
                                  ValueToNumberMap) const {
   unsigned idx = 0;
   for (auto &BB : *this) {
@@ -621,7 +623,8 @@ bool SILFunction::isWeakImported(ModuleDecl *module) const {
 
   // For imported functions check the Clang declaration.
   if (ClangNodeOwner)
-    return ClangNodeOwner->getClangDecl()->isWeakImported();
+    return ClangNodeOwner->getClangDecl()->isWeakImported(
+        getASTContext().LangOpts.getMinPlatformVersion());
 
   // For native functions check a flag on the SILFunction
   // itself.
@@ -649,7 +652,7 @@ SILBasicBlock *SILFunction::createBasicBlock() {
   return newBlock;
 }
 
-SILBasicBlock *SILFunction::createBasicBlock(llvm::StringRef debugName) {
+SILBasicBlock *SILFunction::createBasicBlock(toolchain::StringRef debugName) {
   SILBasicBlock *newBlock = new (getModule()) SILBasicBlock(this);
   newBlock->setDebugName(debugName);
   BlockList.push_back(newBlock);
@@ -706,29 +709,29 @@ void SILFunction::moveBlockBefore(SILBasicBlock *BB, SILFunction::iterator IP) {
 
 #ifndef NDEBUG
 
-static llvm::cl::opt<unsigned>
-MaxColumns("view-cfg-max-columns", llvm::cl::init(80),
-           llvm::cl::desc("Maximum width of a printed node"));
+static toolchain::cl::opt<unsigned>
+MaxColumns("view-cfg-max-columns", toolchain::cl::init(80),
+           toolchain::cl::desc("Maximum width of a printed node"));
 
 namespace {
 enum class LongLineBehavior { None, Truncate, Wrap };
 } // end anonymous namespace
-static llvm::cl::opt<LongLineBehavior>
+static toolchain::cl::opt<LongLineBehavior>
 LLBehavior("view-cfg-long-line-behavior",
-           llvm::cl::init(LongLineBehavior::Truncate),
-           llvm::cl::desc("Behavior when line width is greater than the "
+           toolchain::cl::init(LongLineBehavior::Truncate),
+           toolchain::cl::desc("Behavior when line width is greater than the "
                           "value provided my -view-cfg-max-columns "
                           "option"),
-           llvm::cl::values(
+           toolchain::cl::values(
                clEnumValN(LongLineBehavior::None, "none", "Print everything"),
                clEnumValN(LongLineBehavior::Truncate, "truncate",
                           "Truncate long lines"),
                clEnumValN(LongLineBehavior::Wrap, "wrap", "Wrap long lines")));
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
 RemoveUseListComments("view-cfg-remove-use-list-comments",
-                      llvm::cl::init(false),
-                      llvm::cl::desc("Should use list comments be removed"));
+                      toolchain::cl::init(false),
+                      toolchain::cl::desc("Should use list comments be removed"));
 
 template <typename InstTy, typename CaseValueTy>
 inline CaseValueTy getCaseValueForBB(const InstTy *Inst,
@@ -739,10 +742,10 @@ inline CaseValueTy getCaseValueForBB(const InstTy *Inst,
       continue;
     return P.first;
   }
-  llvm_unreachable("Error! should never pass in BB that is not a successor");
+  toolchain_unreachable("Error! should never pass in BB that is not a successor");
 }
 
-namespace llvm {
+namespace toolchain {
 template <>
 struct DOTGraphTraits<SILFunction *> : public DefaultDOTGraphTraits {
 
@@ -868,13 +871,13 @@ struct DOTGraphTraits<SILFunction *> : public DefaultDOTGraphTraits {
     return "";
   }
 };
-} // namespace llvm
+} // namespace toolchain
 #endif
 
 #ifndef NDEBUG
-static llvm::cl::opt<std::string>
-TargetFunction("view-cfg-only-for-function", llvm::cl::init(""),
-               llvm::cl::desc("Only print out the cfg for this function"));
+static toolchain::cl::opt<std::string>
+TargetFunction("view-cfg-only-for-function", toolchain::cl::init(""),
+               toolchain::cl::desc("Only print out the cfg for this function"));
 #endif
 
 static void viewCFGHelper(const SILFunction* f, bool skipBBContents) {
@@ -965,7 +968,7 @@ bool SILFunction::canBeInlinedIntoCaller(SerializedKind_t callerSerializedKind) 
     case IsSerialized:
       return true;
   }
-  llvm_unreachable("Invalid serialized kind");
+  toolchain_unreachable("Invalid serialized kind");
 }
 
 /// Returns true if this function can be referenced from a fragile function
@@ -1031,7 +1034,7 @@ SILFunction::isPossiblyUsedExternally() const {
       hasOpaqueResultTypeWithAvailabilityConditions())
     return true;
 
-  return swift::isPossiblyUsedExternally(linkage, getModule().isWholeModule());
+  return language::isPossiblyUsedExternally(linkage, getModule().isWholeModule());
 }
 
 bool SILFunction::shouldBePreservedForDebugger() const {
@@ -1075,7 +1078,7 @@ bool SILFunction::shouldBePreservedForDebugger() const {
 
   // Keep any setters/getters, even compiler generated ones.
   if (auto *accessorDecl =
-          llvm::dyn_cast_or_null<swift::AccessorDecl>(getDeclContext()))
+          toolchain::dyn_cast_or_null<language::AccessorDecl>(getDeclContext()))
     if (accessorDecl->isGetterOrSetter())
       return true;
 
@@ -1083,7 +1086,7 @@ bool SILFunction::shouldBePreservedForDebugger() const {
 }
 
 bool SILFunction::isExternallyUsedSymbol() const {
-  return swift::isPossiblyUsedExternally(getEffectiveSymbolLinkage(),
+  return language::isPossiblyUsedExternally(getEffectiveSymbolLinkage(),
                                          getModule().isWholeModule());
 }
 
@@ -1124,7 +1127,7 @@ void SILFunction::setObjCReplacement(Identifier replacedFunc) {
   ObjCReplacementFor = replacedFunc;
 }
 
-// See swift/Basic/Statistic.h for declaration: this enables tracing
+// See language/Basic/Statistic.h for declaration: this enables tracing
 // SILFunctions, is defined here to avoid too much layering violation / circular
 // linkage dependency.
 
@@ -1164,7 +1167,7 @@ bool SILFunction::hasPrespecialization() const {
 }
 
 void SILFunction::forEachSpecializeAttrTargetFunction(
-      llvm::function_ref<void(SILFunction *)> action) {
+      toolchain::function_ref<void(SILFunction *)> action) {
   for (auto *attr : getSpecializeAttrs()) {
     if (auto *f = attr->getTargetFunction()) {
       action(f);
@@ -1172,13 +1175,14 @@ void SILFunction::forEachSpecializeAttrTargetFunction(
   }
 }
 
-void BridgedFunction::registerBridging(SwiftMetatype metatype,
+void BridgedFunction::registerBridging(CodiraMetatype metatype,
             RegisterFn initFn, RegisterFn destroyFn,
             WriteFn writeFn, ParseFn parseFn,
             CopyEffectsFn copyEffectsFn,
             GetEffectInfoFn effectInfoFn,
             GetMemBehaviorFn memBehaviorFn,
-            ArgumentMayReadFn argumentMayReadFn) {
+            ArgumentMayReadFn argumentMayReadFn,
+            IsDeinitBarrierFn isDeinitBarrierFn) {
   functionMetatype = metatype;
   initFunction = initFn;
   destroyFunction = destroyFn;
@@ -1188,12 +1192,13 @@ void BridgedFunction::registerBridging(SwiftMetatype metatype,
   getEffectInfoFunction = effectInfoFn;
   getMemBehvaiorFunction = memBehaviorFn;
   argumentMayReadFunction = argumentMayReadFn;
+  isDeinitBarrierFunction = isDeinitBarrierFn;
 }
 
 std::pair<const char *, int>  SILFunction::
 parseArgumentEffectsFromSource(StringRef effectStr, ArrayRef<StringRef> paramNames) {
   if (parseFunction) {
-    llvm::SmallVector<BridgedStringRef, 8> bridgedParamNames;
+    toolchain::SmallVector<BridgedStringRef, 8> bridgedParamNames;
     for (StringRef paramName : paramNames) {
       bridgedParamNames.push_back(paramName);
     }
@@ -1235,7 +1240,7 @@ parseMultipleEffectsFromSIL(StringRef effectStr) {
   return {nullptr, 0};
 }
 
-void SILFunction::writeEffect(llvm::raw_ostream &OS, int effectIdx) const {
+void SILFunction::writeEffect(toolchain::raw_ostream &OS, int effectIdx) const {
   if (writeFunction) {
     writeFunction({const_cast<SILFunction *>(this)}, {&OS}, effectIdx);
   }
@@ -1287,6 +1292,13 @@ bool SILFunction::argumentMayRead(Operand *argOp, SILValue addr) {
     return true;
 
   return argumentMayReadFunction({this}, {argOp}, {addr});
+}
+
+bool SILFunction::isDeinitBarrier() {
+  if (!isDeinitBarrierFunction)
+    return true;
+
+  return isDeinitBarrierFunction({this});
 }
 
 SourceFile *SILFunction::getSourceFile() const {

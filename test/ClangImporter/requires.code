@@ -1,0 +1,9 @@
+// RUN: not %target-language-frontend -typecheck %s -I %S/Inputs/custom-modules -diagnostic-style toolchain 2>&1 | %FileCheck %s
+
+import Requires.Codira // OK
+import Requires.NotCodira
+// CHECK-NOT: error
+// CHECK: error: module 'Requires.NotCodira' is incompatible with feature 'language'
+// CHECK-NOT: error
+// CHECK: error: no such module 'Requires.NotCodira'
+// CHECK-NOT: error

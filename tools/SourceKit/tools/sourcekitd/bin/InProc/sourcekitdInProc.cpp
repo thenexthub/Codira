@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "sourcekitd/Internal.h"
@@ -21,9 +22,9 @@
 #include "SourceKit/Support/Logging.h"
 #include "SourceKit/Support/UIdent.h"
 
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/Mutex.h"
+#include "toolchain/Support/Path.h"
 
 // FIXME: Portability ?
 #include <Block.h>
@@ -49,25 +50,25 @@ static bool RequestBarriersEnabled = false;
 
 static void postNotification(sourcekitd_response_t Notification);
 
-static void getToolchainPrefixPath(llvm::SmallVectorImpl<char> &Path) {
+static void getToolchainPrefixPath(toolchain::SmallVectorImpl<char> &Path) {
 #if defined(_WIN32)
   MEMORY_BASIC_INFORMATION mbi;
   char path[MAX_PATH + 1];
   if (!VirtualQuery(static_cast<void *>(sourcekitd_initialize), &mbi,
                     sizeof(mbi)))
-    llvm_unreachable("call to VirtualQuery failed");
+    toolchain_unreachable("call to VirtualQuery failed");
   if (!GetModuleFileNameA(static_cast<HINSTANCE>(mbi.AllocationBase), path,
                           MAX_PATH))
-    llvm_unreachable("call to GetModuleFileNameA failed");
-  auto parent = llvm::sys::path::parent_path(path);
+    toolchain_unreachable("call to GetModuleFileNameA failed");
+  auto parent = toolchain::sys::path::parent_path(path);
   Path.append(parent.begin(), parent.end());
 #else
   // This silly cast below avoids a C++ warning.
   Dl_info info;
   if (dladdr((void *)(uintptr_t)sourcekitd_initialize, &info) == 0)
-    llvm_unreachable("Call to dladdr() failed");
+    toolchain_unreachable("Call to dladdr() failed");
   // We now have the path to the shared lib, move to the parent prefix path.
-  auto parent = llvm::sys::path::parent_path(info.dli_fname);
+  auto parent = toolchain::sys::path::parent_path(info.dli_fname);
   Path.append(parent.begin(), parent.end());
 #endif
 
@@ -84,28 +85,21 @@ static void getToolchainPrefixPath(llvm::SmallVectorImpl<char> &Path) {
 
   // Get it to "usr"
   for (unsigned i = 0; i < NestingLevel; ++i)
-    llvm::sys::path::remove_filename(Path);
+    toolchain::sys::path::remove_filename(Path);
 }
 
 std::string sourcekitdInProc::getRuntimeLibPath() {
-  llvm::SmallString<128> libPath;
+  toolchain::SmallString<128> libPath;
   getToolchainPrefixPath(libPath);
-  llvm::sys::path::append(libPath, "lib");
+  toolchain::sys::path::append(libPath, "lib");
   return libPath.str().str();
 }
 
-std::string sourcekitdInProc::getSwiftExecutablePath() {
-  llvm::SmallString<128> path;
+std::string sourcekitdInProc::getCodiraExecutablePath() {
+  toolchain::SmallString<128> path;
   getToolchainPrefixPath(path);
-  llvm::sys::path::append(path, "bin", "swift-frontend");
+  toolchain::sys::path::append(path, "bin", "language-frontend");
   return path.str().str();
-}
-
-std::string sourcekitdInProc::getDiagnosticDocumentationPath() {
-  llvm::SmallString<128> docPath;
-  getToolchainPrefixPath(docPath);
-  llvm::sys::path::append(docPath, "share", "doc", "swift", "diagnostics");
-  return docPath.str().str();
 }
 
 static std::vector<std::string> registeredPlugins;
@@ -120,16 +114,15 @@ void sourcekitd_initialize(void) {
                                    "sourcekitdInProc.msgHandlingQueue");
   if (sourcekitd::initializeClient()) {
     LOG_INFO_FUNC(High, "initializing");
-    sourcekitd::initializeService(
-        sourcekitdInProc::getSwiftExecutablePath(),
-        sourcekitdInProc::getRuntimeLibPath(),
-        sourcekitdInProc::getDiagnosticDocumentationPath(), postNotification);
+    sourcekitd::initializeService(sourcekitdInProc::getCodiraExecutablePath(),
+                                  sourcekitdInProc::getRuntimeLibPath(),
+                                  postNotification);
     static std::once_flag flag;
     std::call_once(flag, [] {
       sourcekitd::PluginInitParams pluginParams(
           /*isClientOnly=*/false, sourcekitd::pluginRegisterRequestHandler,
           sourcekitd::pluginRegisterCancellationHandler,
-          sourcekitd::pluginGetOpaqueSwiftIDEInspectionInstance());
+          sourcekitd::pluginGetOpaqueCodiraIDEInspectionInstance());
       sourcekitd::loadPlugins(registeredPlugins, pluginParams);
     });
   }
@@ -150,7 +143,7 @@ void sourcekitd_register_plugin_path(const char *clientPlugin,
 }
 
 void sourcekitd::set_interrupted_connection_handler(
-                          llvm::function_ref<void()> handler) {
+                          toolchain::function_ref<void()> handler) {
 }
 
 //===----------------------------------------------------------------------===//

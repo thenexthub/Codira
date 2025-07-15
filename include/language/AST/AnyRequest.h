@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines type-erasing wrappers for requests used by the Evaluator
@@ -18,24 +19,24 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ANYREQUEST_H
-#define SWIFT_AST_ANYREQUEST_H
+#ifndef LANGUAGE_AST_ANYREQUEST_H
+#define LANGUAGE_AST_ANYREQUEST_H
 
 #include "language/Basic/SourceLoc.h"
 #include "language/Basic/TypeID.h"
-#include "llvm/ADT/DenseMapInfo.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/DenseMapInfo.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
 namespace language {
 
-using llvm::hash_code;
-using llvm::hash_value;
+using toolchain::hash_code;
+using toolchain::hash_value;
 
 class DiagnosticEngine;
 
@@ -52,7 +53,7 @@ struct AnyRequestVTable {
       return *static_cast<const Request *>(lhs) ==
              *static_cast<const Request *>(rhs);
     }
-    static void simpleDisplay(const void *ptr, llvm::raw_ostream &out) {
+    static void simpleDisplay(const void *ptr, toolchain::raw_ostream &out) {
       simple_display(out, *static_cast<const Request *>(ptr));
     }
     static void diagnoseCycle(const void *ptr, DiagnosticEngine &diags) {
@@ -69,7 +70,7 @@ struct AnyRequestVTable {
   const uint64_t typeID;
   const std::function<hash_code(const void *)> getHash;
   const std::function<bool(const void *, const void *)> isEqual;
-  const std::function<void(const void *, llvm::raw_ostream &)> simpleDisplay;
+  const std::function<void(const void *, toolchain::raw_ostream &)> simpleDisplay;
   const std::function<void(const void *, DiagnosticEngine &)> diagnoseCycle;
   const std::function<void(const void *, DiagnosticEngine &)> noteCycleStep;
   const std::function<SourceLoc(const void *)> getNearestLoc;
@@ -92,7 +93,7 @@ struct AnyRequestVTable {
 /// Base class for request type-erasing wrappers.
 template <typename Derived>
 class AnyRequestBase {
-  friend llvm::DenseMapInfo<Derived>;
+  friend toolchain::DenseMapInfo<Derived>;
 
 protected:
   static hash_code hashForHolder(uint64_t typeID, hash_code requestHash) {
@@ -106,7 +107,7 @@ protected:
   };
 
   /// The vtable and storage kind.
-  llvm::PointerIntPair<const AnyRequestVTable *, 2, StorageKind> vtableAndKind;
+  toolchain::PointerIntPair<const AnyRequestVTable *, 2, StorageKind> vtableAndKind;
 
   StorageKind getStorageKind() const { return vtableAndKind.getInt(); }
 
@@ -119,7 +120,7 @@ protected:
     case StorageKind::Normal:
       return true;
     }
-    llvm_unreachable("Unhandled case in switch");
+    toolchain_unreachable("Unhandled case in switch");
   }
 
   /// Retrieve the vtable to perform operations on the type-erased request.
@@ -218,7 +219,7 @@ public:
     return hashForHolder(req.getVTable()->typeID, reqHash);
   }
 
-  friend void simple_display(llvm::raw_ostream &out,
+  friend void simple_display(toolchain::raw_ostream &out,
                              const AnyRequestBase<Derived> &req) {
     req.getVTable()->simpleDisplay(req.getRawStorage(), out);
   }
@@ -231,9 +232,9 @@ public:
 ///
 ///   - Equality operator (==)
 ///   - Hashing support (hash_value)
-///   - TypeID support (see swift/Basic/TypeID.h)
+///   - TypeID support (see language/Basic/TypeID.h)
 ///   - Display support (free function):
-///       void simple_display(llvm::raw_ostream &, const T &);
+///       void simple_display(toolchain::raw_ostream &, const T &);
 ///   - Cycle diagnostics operations:
 ///       void diagnoseCycle(DiagnosticEngine &diags) const;
 ///       void noteCycleStep(DiagnosticEngine &diags) const;
@@ -244,7 +245,7 @@ class ActiveRequest final : public AnyRequestBase<ActiveRequest> {
   template <typename T>
   friend class AnyRequestBase;
 
-  friend llvm::DenseMapInfo<ActiveRequest>;
+  friend toolchain::DenseMapInfo<ActiveRequest>;
 
   /// Pointer to the request stored on the stack.
   const void *storage;
@@ -267,10 +268,10 @@ public:
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
   template<>
-  struct DenseMapInfo<swift::ActiveRequest> {
-    using ActiveRequest = swift::ActiveRequest;
+  struct DenseMapInfo<language::ActiveRequest> {
+    using ActiveRequest = language::ActiveRequest;
     static inline ActiveRequest getEmptyKey() {
       return ActiveRequest(ActiveRequest::StorageKind::Empty);
     }
@@ -285,6 +286,6 @@ namespace llvm {
     }
   };
 
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_AST_ANYREQUEST_H
+#endif // LANGUAGE_AST_ANYREQUEST_H

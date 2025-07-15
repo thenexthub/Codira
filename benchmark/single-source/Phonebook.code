@@ -1,4 +1,4 @@
-//===--- Phonebook.swift --------------------------------------------------===//
+//===--- Phonebook.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This test is based on util/benchmarks/Phonebook, with modifications
 // for performance measuring.
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "Phonebook",
     runFunction: run_Phonebook,
@@ -26,14 +27,14 @@ public let benchmarks =
     legacyFactor: 7
   )
 
-let words = [
+immutable words = [
   "James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph",
   "Charles", "Thomas", "Christopher", "Daniel", "Matthew", "Donald", "Anthony",
   "Paul", "Mark", "George", "Steven", "Kenneth", "Andrew", "Edward", "Brian",
   "Joshua", "Kevin", "Ronald", "Timothy", "Jason", "Jeffrey", "Gary", "Ryan",
   "Nicholas", "Eric", "Stephen", "Jacob", "Larry", "Frank", "Jonathan", "Scott",
 ]
-let names: [Record] = {
+immutable names: [Record] = {
   // The list of names in the phonebook.
   var names = [Record]()
   names.reserveCapacity(words.count * words.count)
@@ -55,11 +56,11 @@ struct Record : Comparable {
     last = last_
   }
 }
-func ==(lhs: Record, rhs: Record) -> Bool {
+fn ==(lhs: Record, rhs: Record) -> Bool {
   return lhs.last == rhs.last && lhs.first == rhs.first
 }
 
-func <(lhs: Record, rhs: Record) -> Bool {
+fn <(lhs: Record, rhs: Record) -> Bool {
   if lhs.last < rhs.last {
     return true
   }
@@ -75,7 +76,7 @@ func <(lhs: Record, rhs: Record) -> Bool {
 }
 
 @inline(never)
-public func run_Phonebook(_ n: Int) {
+public fn run_Phonebook(_ n: Int) {
   for _ in 1...n {
     var t = names
     t.sort()

@@ -1,4 +1,4 @@
-//===--- Overrides.h --- Compat overrides for Swift 5.0 runtime ----s------===//
+//===--- Overrides.h --- Compat overrides for Codira 5.0 runtime ----s------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file provides compatibility override hooks for Swift 5.0 runtimes.
+//  This file provides compatibility override hooks for Codira 5.0 runtimes.
 //
 //===----------------------------------------------------------------------===//
 
@@ -25,7 +26,7 @@ using ConformsToProtocol_t =
   const WitnessTable *(const Metadata *, const ProtocolDescriptor *);
 
 const WitnessTable *
-swift50override_conformsToProtocol(const Metadata * const type,
+language50override_conformsToProtocol(const Metadata * const type,
   const ProtocolDescriptor *protocol,
   ConformsToProtocol_t *original);
 

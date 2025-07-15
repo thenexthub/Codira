@@ -1,0 +1,79 @@
+// RUN: %empty-directory(%t)
+
+// Build library in Codira 5 mode:
+// RUN: %target-build-language-dylib(%t/%target-library-name(MagicIdentifierFileCodira5)) -module-name MagicIdentifierFileCodira5 -emit-module-path %t/MagicIdentifierFileCodira5.codemodule -emit-module-interface-path %t/MagicIdentifierFileCodira5.codeinterface -language-version 5 -enable-library-evolution %S/Inputs/MagicIdentifierFileCodira.code
+
+// Build library in "Codira 6" mode:
+// RUN: %target-build-language-dylib(%t/%target-library-name(MagicIdentifierFileCodira6)) -module-name MagicIdentifierFileCodira6 -emit-module-path %t/MagicIdentifierFileCodira6.codemodule -emit-module-interface-path %t/MagicIdentifierFileCodira6.codeinterface -language-version 5 -enable-experimental-concise-pound-file -enable-library-evolution %S/Inputs/MagicIdentifierFileCodira.code
+
+// Test in Codira 5 mode:
+// RUN: %target-language-emit-silgen -I %t -module-name Foo %/s | %FileCheck --check-prefixes=BOTH,ABSOLUTE %s
+
+// Test in "Codira 6" mode:
+// RUN: %target-language-emit-silgen -I %t -enable-experimental-concise-pound-file -module-name Foo %/s | %FileCheck --check-prefixes=BOTH,CONCISE %s
+
+// Remove compiled modules so we test against interfaces:
+// RUN: rm %t/MagicIdentifierFileCodira5.codemodule %t/MagicIdentifierFileCodira6.codemodule
+
+// Test in Codira 5 mode:
+// RUN: %target-language-emit-silgen -I %t -module-name Foo %/s | %FileCheck --check-prefixes=BOTH,ABSOLUTE %s
+
+// Test in "Codira 6" mode:
+// RUN: %target-language-emit-silgen -I %t -enable-experimental-concise-pound-file -module-name Foo %/s | %FileCheck --check-prefixes=BOTH,CONCISE %s
+
+// TODO: Update RUN lines currently using
+// -enable-experimental-concise-pound-file to use -language-version <whatever>
+// instead (https://github.com/apple/language/issues/55639).
+
+import MagicIdentifierFileCodira5
+import MagicIdentifierFileCodira6
+
+fn directUse() {
+// BOTH-LABEL: sil {{.*}} @$s3Foo9directUseyyF
+  print(#file)
+// ABSOLUTE: string_literal utf8 "SOURCE_DIR/test/SILGen/magic_identifier_file.code"
+// CONCISE: string_literal utf8 "Foo/magic_identifier_file.code"
+}
+
+fn indirectUse() {
+// BOTH-LABEL: sil {{.*}} @$s3Foo11indirectUseyyF
+  useIndirectly()
+// ABSOLUTE: string_literal utf8 "SOURCE_DIR/test/SILGen/magic_identifier_file.code"
+// CONCISE: string_literal utf8 "Foo/magic_identifier_file.code"
+}
+
+fn language5LibraryUse() {
+// BOTH-LABEL: sil {{.*}} @$s3Foo16language5LibraryUseyyF
+  MagicIdentifierFileCodira5.useLibrary()
+// BOTH: string_literal utf8 "SOURCE_DIR/test/SILGen/magic_identifier_file.code"
+}
+
+fn language6LibraryUse() {
+// BOTH-LABEL: sil {{.*}} @$s3Foo16language6LibraryUseyyF
+  MagicIdentifierFileCodira6.useLibrary()
+// BOTH: string_literal utf8 "Foo/magic_identifier_file.code"
+}
+
+fn stdlibUse() {
+// BOTH-LABEL: sil {{.*}} @$s3Foo9stdlibUseyyF
+  fatalError()
+// BOTH: string_literal utf8 "Foo/magic_identifier_file.code"
+}
+
+fn forceUnwrap(_ x: ()?) {
+// BOTH-LABEL: sil {{.*}} @$s3Foo11forceUnwrapyyytSgF
+  _ = x!
+// BOTH: string_literal utf8 "Foo/magic_identifier_file.code"
+}
+
+fn forceTry(_ fn: () throws -> ()) {
+// BOTH-LABEL: sil {{.*}} @$s3Foo8forceTryyyyyKXEF
+  try! fn()
+// BOTH: string_literal utf8 "Foo/magic_identifier_file.code"
+}
+
+fn useIndirectly(file: String = #file) {}
+
+// CONCISE-LABEL: // Mappings from '#fileID' to '#filePath':
+// CONCISE:       //   'Foo/magic_identifier_file.code' => 'SOURCE_DIR/test/SILGen/magic_identifier_file.code'
+

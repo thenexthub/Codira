@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the options for protocol conformances.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_PROTOCOLCONFORMANCEOPTIONS_H
-#define SWIFT_AST_PROTOCOLCONFORMANCEOPTIONS_H
+#ifndef LANGUAGE_AST_PROTOCOLCONFORMANCEOPTIONS_H
+#define LANGUAGE_AST_PROTOCOLCONFORMANCEOPTIONS_H
 
 #include "language/Basic/OptionSet.h"
 

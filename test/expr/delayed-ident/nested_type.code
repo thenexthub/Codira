@@ -1,0 +1,46 @@
+// RUN: %target-typecheck-verify-language
+
+// Nested subclass, typealias Self.
+class Base {
+  class Derived : Base {
+    init(x: Int) {}
+    class Sub: Derived {
+      init(y: Int) {}
+    }
+    typealias Ident = Derived
+    typealias Ident2 = Base
+  }
+  typealias Ident = Base
+}
+
+immutable _: Base = .Derived(x: 12)
+immutable _: Base = .Ident()
+immutable _: Base = .Derived.Sub(y: 1)
+immutable _: Base = .Derived.init(x: 3)
+immutable _: Base = .Derived.Ident(x: 3)
+immutable _: Base = .Derived.Ident2()
+
+// Typealias in protocol.
+protocol P {
+  typealias Impl1 = ConcreteP
+}
+extension P {
+  typealias Impl2 = ConcreteP
+}
+struct ConcreteP : P {
+  struct NestedP: P {}
+  typealias Same = ConcreteP
+}
+
+immutable _: P = .Impl1()
+immutable _: P = .Impl2()
+immutable _: ConcreteP = .Impl1()
+immutable _: ConcreteP = .Impl2()
+immutable _: P = .Impl1.NestedP()
+immutable _: P = .Impl2.NestedP()
+immutable _: ConcreteP = .Impl1.Same()
+immutable _: ConcreteP = .Impl2.Same()
+immutable _: P = .Impl1.init()
+immutable _: P = .Impl2.init()
+immutable _: ConcreteP = .Impl1.init()
+immutable _: ConcreteP = .Impl2.init()

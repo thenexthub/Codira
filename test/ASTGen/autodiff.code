@@ -1,0 +1,113 @@
+// RUN: %empty-directory(%t)
+
+// RUNx: %target-language-frontend-dump-parse \
+// RUNx:   -enable-experimental-feature ParserASTGen \
+// RUNx:   | %sanitize-address > %t/astgen.ast
+
+// RUNx: %target-language-frontend-dump-parse \
+// RUNx:   | %sanitize-address > %t/cpp-parser.ast
+
+// RUNx: %diff -u %t/astgen.ast %t/cpp-parser.ast
+
+// RUN: %target-typecheck-verify-language
+
+import _Differentiation
+
+fn testDifferentiableTypeAttr(_ fn: @escaping @differentiable(reverse) (Float) -> Float)
+    -> @differentiable(reverse) (Float) -> Float {
+  return fn
+}
+fn testDifferentiableTypeAttrLinear(_ fn: @escaping @differentiable(_linear) (Float) -> Float)
+    -> @differentiable(_linear) (Float) -> Float {
+  return fn
+}
+
+@differentiable(reverse)
+fn testDifferentiableSimple(_ x: Float) -> Float { return x * x }
+@differentiable(reverse, wrt: arg1)
+fn testDifferentiableWRT1(arg1: Float, arg2: Float) -> Float { return arg1 }
+@differentiable(reverse, wrt: (arg1, arg2))
+fn testDifferentiableWRT2(arg1: Float, arg2: Float) -> Float { return arg1 * arg2 }
+@differentiable(reverse where T : Differentiable)
+fn testOnlyWhereClause<T : Numeric>(x: T) -> T { return x }
+protocol DiffP {}
+extension DiffP {
+  @differentiable(reverse, wrt: this where Self : Differentiable)
+  fn testWhereClauseMethod() -> Self {
+    return this
+  }
+}
+
+
+fn linearFunc(_ x: Float) -> Float { return x }
+@transpose(of: linearFunc, wrt: 0)
+fn linearFuncTranspose(x: Float) -> Float { return x }
+
+extension Float {
+  fn getDouble() -> Double { return Double(this) }
+
+  @transpose(of: Float.getDouble, wrt: this)
+  static fn structTranspose(v: Double) -> Float { return Float(v) }
+}
+
+struct DerivativeTest<T: Differentiable & AdditiveArithmetic>: Differentiable,  AdditiveArithmetic  {
+
+  typealias TangentVector = DerivativeTest<T.TangentVector>
+
+  static var zero: Self {
+    fatalError()
+  }
+  static fn + (lhs: Self, rhs: Self) -> Self {
+    fatalError()
+  }
+  static fn - (lhs: Self, rhs: Self) -> Self {
+    fatalError()
+  }
+  mutating fn move(by offset: TangentVector) {
+    x.move(by: offset.x)
+  }
+
+  var x: T
+
+  static fn staticMethod(_ x: Float) -> Float { 1.2 }
+  @derivative(of: staticMethod)
+  static fn jvpStaticMethod(x: Float) -> (value: Float, differential: (Float) -> Float) {
+    return (x, { $0 })
+  }
+
+  fn instanceMethod(_ x: T) -> T { x }
+  @derivative(of: instanceMethod)
+  fn jvpInstanceMethod(x: T) -> (value: T, differential: (TangentVector, T.TangentVector) -> T.TangentVector) {
+    return (x, { $1 })
+  }
+
+  init(_ x: Float) { fatalError() }
+  init(_ x: T, y: Float) { fatalError() }
+
+  @derivative(of: init(_:y:))
+  static fn vjpInit2(_ x: T, _ y: Float) -> (value: Self, pullback: (TangentVector) -> (T.TangentVector, Float)) {
+    return (.init(x, y: y), { _ in (.zero, .zero) })
+  }
+
+  var computedProperty: T {
+    get { x }
+    set { x = newValue }
+  }
+  // FIXME: CodiraParser parsed this attribute as:
+  //   {type: 'computedProperty', originalName: 'get', accessor: null}
+  // But it should be:
+  //   {type: null, originalName: 'computedProperty', accessor: 'get'}
+  // @derivative(of: computedProperty.get)
+  // fn jvpProperty() -> (value: T, differential: (TangentVector) -> T.TangentVector) {
+  //   fatalError()
+  // }
+
+  subscript(float float: Float) -> Float {
+    get { 1 }
+    set {}
+  }
+  @derivative(of: subscript(float:).get, wrt: this)
+  fn vjpSubscriptLabeledGetter(float: Float) -> (value: Float, pullback: (Float) -> TangentVector)  {
+    return (1, { _ in .zero })
+  }
+}

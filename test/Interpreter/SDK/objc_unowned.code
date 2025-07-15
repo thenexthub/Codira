@@ -1,0 +1,14 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+// REQUIRES: objc_interop
+
+import Foundation
+
+_ = JSONDecoder()
+
+immutable x = NSObject()
+unowned immutable y = x
+
+print(y) // CHECK:      <NSObject: [[ID:.*]]>
+print(x) // CHECK-NEXT: <NSObject: [[ID]]>

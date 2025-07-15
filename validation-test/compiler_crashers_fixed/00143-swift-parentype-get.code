@@ -1,0 +1,48 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+)
+fn t<v>() -> (v, v -> v) -> v {
+    var d: ((v, v -> v) -> v)!
+    q d
+}
+protocol t {
+}
+protocol d : t {
+}
+protocol g : t {
+}
+s
+        q l
+    })
+}
+d(t(u, t(w, y)))
+protocol e {
+    r j
+}
+struct m<v : e> {
+    k x: v
+    k x: v.j
+}
+protocol n {
+    g == o>(n: m<v>) {
+    }
+}
+struct e<v> {
+    k t: [(v, () -> ())] = [](m)
+}
+struct d<x> : e {
+    fn d(d: d.p) {
+    }
+}
+class e<v : e> {
+}

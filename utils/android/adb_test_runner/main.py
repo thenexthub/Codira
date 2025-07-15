@@ -1,18 +1,18 @@
 # main.py - Push executables and run them on an Android device -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 #
-# lit tests assume a single program can be invoked to execute Swift code and
+# lit tests assume a single program can be invoked to execute Codira code and
 # make expectations upon the output. This program is a wrapper that has the
-# same API, but runs the Swift program on an Android device instead of on the
+# same API, but runs the Codira program on an Android device instead of on the
 # host.
 #
 # ----------------------------------------------------------------------------

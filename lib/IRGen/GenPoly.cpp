@@ -1,4 +1,4 @@
-//===--- GenPoly.cpp - Swift IR Generation for Polymorphism ---------------===//
+//===--- GenPoly.cpp - Codira IR Generation for Polymorphism ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements IR generation for polymorphic operations in Swift.
+//  This file implements IR generation for polymorphic operations in Codira.
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,7 +27,7 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILType.h"
-#include "llvm/IR/DerivedTypes.h"
+#include "toolchain/IR/DerivedTypes.h"
 
 #include "Explosion.h"
 #include "IRGenFunction.h"
@@ -75,7 +76,7 @@ void irgen::reemitAsUnsubstituted(IRGenFunction &IGF,
 #endif
 
   for (ExplosionSchema::Element &elt : expectedSchema) {
-    llvm::Value *value = in.claimNext();
+    toolchain::Value *value = in.claimNext();
     assert(elt.isScalar());
 
     // The only type differences we expect here should be due to

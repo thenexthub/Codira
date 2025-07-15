@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Declarations used to implement value witnesses for native C/C++ types.
@@ -19,14 +20,14 @@
 // value-witness properties of a value:
 //
 //   - NativeBox derives a box from a C++ type
-//   - SwiftRetainableBox is a box for Swift object pointers which uses
-//     swift_{retain,release}.
+//   - CodiraRetainableBox is a box for Codira object pointers which uses
+//     language_{retain,release}.
 //   - FunctionPointerBox is a box for function pointers.
 //   - ObjCRetainableBox is a box for Objective-C object pointers,
 //     using objc_{retain,release}.
 //   - UnknownObjectRetainableBox is a box for void* using
-//     swift_unknownObject{Retain,Release}.
-//   - AggregateBox<T...> is a box which uses swift layout rules to
+//     language_unknownObject{Retain,Release}.
+//   - AggregateBox<T...> is a box which uses language layout rules to
 //     combine a number of different boxes.
 //
 // ValueWitnesses<T> takes a box class and defines all the necessary
@@ -40,14 +41,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_METADATAIMPL_H
-#define SWIFT_RUNTIME_METADATAIMPL_H
+#ifndef LANGUAGE_RUNTIME_METADATAIMPL_H
+#define LANGUAGE_RUNTIME_METADATAIMPL_H
 
 #include "language/Basic/MathUtils.h"
 #include "language/Runtime/Config.h"
 #include "language/Runtime/Metadata.h"
 #include "language/Runtime/HeapObject.h"
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include "language/Runtime/ObjCBridge.h"
 #endif
 
@@ -142,7 +143,7 @@ template <class Impl, class T> struct RetainableBoxBase {
   static constexpr size_t stride = sizeof(T);
   static constexpr bool isPOD = false;
   static constexpr bool isBitwiseTakable = true;
-#ifdef SWIFT_THREADING_NONE
+#ifdef LANGUAGE_THREADING_NONE
   static constexpr bool isAtomic = false;
 #else
   static constexpr bool isAtomic = true;
@@ -182,59 +183,59 @@ template <class Impl, class T> struct RetainableBoxBase {
   // to worry about e.g. type substitution on an enum type
   // fundamentally changing the layout.
   static constexpr unsigned numExtraInhabitants =
-    swift_getHeapObjectExtraInhabitantCount();
+    language_getHeapObjectExtraInhabitantCount();
 
   static void storeExtraInhabitantTag(T *dest, unsigned tag) {
-    swift_storeHeapObjectExtraInhabitant((HeapObject**) dest, tag - 1);
+    language_storeHeapObjectExtraInhabitant((HeapObject**) dest, tag - 1);
   }
 
   static unsigned getExtraInhabitantTag(const T *src) {
-    return swift_getHeapObjectExtraInhabitantIndex((HeapObject* const *) src) +1;
+    return language_getHeapObjectExtraInhabitantIndex((HeapObject* const *) src) +1;
   }
 };
 
-/// A box implementation class for Swift object pointers.
-struct SwiftRetainableBox :
-    RetainableBoxBase<SwiftRetainableBox, HeapObject*> {
+/// A box implementation class for Codira object pointers.
+struct CodiraRetainableBox :
+    RetainableBoxBase<CodiraRetainableBox, HeapObject*> {
   static HeapObject *retain(HeapObject *obj) {
     if (isAtomic) {
-      swift_retain(obj);
+      language_retain(obj);
     } else {
-      swift_nonatomic_retain(obj);
+      language_nonatomic_retain(obj);
     }
     return obj;
   }
 
   static void release(HeapObject *obj) {
     if (isAtomic) {
-      swift_release(obj);
+      language_release(obj);
     } else {
-      swift_nonatomic_release(obj);
+      language_nonatomic_release(obj);
     }
   }
 };
 
-/// A box implementation class for Swift unowned object pointers.
-struct SwiftUnownedRetainableBox :
-    RetainableBoxBase<SwiftUnownedRetainableBox, HeapObject*> {
+/// A box implementation class for Codira unowned object pointers.
+struct CodiraUnownedRetainableBox :
+    RetainableBoxBase<CodiraUnownedRetainableBox, HeapObject*> {
   static HeapObject *retain(HeapObject *obj) {
     if (isAtomic) {
-      swift_unownedRetain(obj);
+      language_unownedRetain(obj);
     } else {
-      swift_nonatomic_unownedRetain(obj);
+      language_nonatomic_unownedRetain(obj);
     }
     return obj;
   }
 
   static void release(HeapObject *obj) {
     if (isAtomic) {
-      swift_unownedRelease(obj);
+      language_unownedRelease(obj);
     } else {
-      swift_nonatomic_unownedRelease(obj);
+      language_nonatomic_unownedRelease(obj);
     }
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
   // The implementation from RetainableBoxBase is valid when interop is
   // disabled.
   static constexpr unsigned numExtraInhabitants = 1;
@@ -270,39 +271,39 @@ struct WeakRetainableBoxBase {
   //   static T *assignWithTake(T *dest, T *src);
 };
 
-/// A box implementation class for Swift weak object pointers.
-struct SwiftWeakRetainableBox :
-    WeakRetainableBoxBase<SwiftWeakRetainableBox, WeakReference> {
+/// A box implementation class for Codira weak object pointers.
+struct CodiraWeakRetainableBox :
+    WeakRetainableBoxBase<CodiraWeakRetainableBox, WeakReference> {
   static void destroy(WeakReference *ref) {
-    swift_weakDestroy(ref);
+    language_weakDestroy(ref);
   }
   static WeakReference *initializeWithCopy(WeakReference *dest,
                                            WeakReference *src) {
-    swift_weakCopyInit(dest, src);
+    language_weakCopyInit(dest, src);
     return dest;
   }
   static WeakReference *initializeWithTake(WeakReference *dest,
                                            WeakReference *src) {
-    swift_weakTakeInit(dest, src);
+    language_weakTakeInit(dest, src);
     return dest;
   }
   static WeakReference *assignWithCopy(WeakReference *dest,
                                        WeakReference *src) {
-    swift_weakCopyAssign(dest, src);
+    language_weakCopyAssign(dest, src);
     return dest;
   }
   static WeakReference *assignWithTake(WeakReference *dest,
                                        WeakReference *src) {
-    swift_weakTakeAssign(dest, src);
+    language_weakTakeAssign(dest, src);
     return dest;
   }
 };
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 /// A box implementation class for Objective-C object pointers.
 struct ObjCRetainableBox : RetainableBoxBase<ObjCRetainableBox, void*> {
   static constexpr unsigned numExtraInhabitants =
-    swift_getHeapObjectExtraInhabitantCount();
+    language_getHeapObjectExtraInhabitantCount();
 
   static void *retain(void *obj) {
     return objc_retain((id)obj);
@@ -327,26 +328,26 @@ struct ObjCUnownedRetainableBox
   }
 
   static void destroy(UnownedReference *ref) {
-    swift_unknownObjectUnownedDestroy(ref);
+    language_unknownObjectUnownedDestroy(ref);
   }
   static UnownedReference *initializeWithCopy(UnownedReference *dest,
                                               UnownedReference *src) {
-    swift_unknownObjectUnownedCopyInit(dest, src);
+    language_unknownObjectUnownedCopyInit(dest, src);
     return dest;
   }
   static UnownedReference *initializeWithTake(UnownedReference *dest,
                                               UnownedReference *src) {
-    swift_unknownObjectUnownedTakeInit(dest, src);
+    language_unknownObjectUnownedTakeInit(dest, src);
     return dest;
   }
   static UnownedReference *assignWithCopy(UnownedReference *dest,
                                           UnownedReference *src) {
-    swift_unknownObjectUnownedCopyAssign(dest, src);
+    language_unknownObjectUnownedCopyAssign(dest, src);
     return dest;
   }
   static UnownedReference *assignWithTake(UnownedReference *dest,
                                           UnownedReference *src) {
-    swift_unknownObjectUnownedTakeAssign(dest, src);
+    language_unknownObjectUnownedTakeAssign(dest, src);
     return dest;
   }
 };
@@ -355,26 +356,26 @@ struct ObjCUnownedRetainableBox
 struct ObjCWeakRetainableBox :
     WeakRetainableBoxBase<ObjCWeakRetainableBox, WeakReference> {
   static void destroy(WeakReference *ref) {
-    swift_unknownObjectWeakDestroy(ref);
+    language_unknownObjectWeakDestroy(ref);
   }
   static WeakReference *initializeWithCopy(WeakReference *dest,
                                            WeakReference *src) {
-    swift_unknownObjectWeakCopyInit(dest, src);
+    language_unknownObjectWeakCopyInit(dest, src);
     return dest;
   }
   static WeakReference *initializeWithTake(WeakReference *dest,
                                            WeakReference *src) {
-    swift_unknownObjectWeakTakeInit(dest, src);
+    language_unknownObjectWeakTakeInit(dest, src);
     return dest;
   }
   static WeakReference *assignWithCopy(WeakReference *dest,
                                        WeakReference *src) {
-    swift_unknownObjectWeakCopyAssign(dest, src);
+    language_unknownObjectWeakCopyAssign(dest, src);
     return dest;
   }
   static WeakReference *assignWithTake(WeakReference *dest,
                                        WeakReference *src) {
-    swift_unknownObjectWeakTakeAssign(dest, src);
+    language_unknownObjectWeakTakeAssign(dest, src);
     return dest;
   }
 };
@@ -385,27 +386,27 @@ struct ObjCWeakRetainableBox :
 struct UnknownObjectRetainableBox
     : RetainableBoxBase<UnknownObjectRetainableBox, void *> {
   static void *retain(void *obj) {
-#if SWIFT_OBJC_INTEROP
-    swift_unknownObjectRetain(obj);
+#if LANGUAGE_OBJC_INTEROP
+    language_unknownObjectRetain(obj);
     return obj;
 #else
     if (isAtomic) {
-      swift_retain(static_cast<HeapObject *>(obj));
+      language_retain(static_cast<HeapObject *>(obj));
     } else {
-      swift_nonatomic_retain(static_cast<HeapObject *>(obj));
+      language_nonatomic_retain(static_cast<HeapObject *>(obj));
     }
     return static_cast<HeapObject *>(obj);
 #endif
   }
 
   static void release(void *obj) {
-#if SWIFT_OBJC_INTEROP
-    swift_unknownObjectRelease(obj);
+#if LANGUAGE_OBJC_INTEROP
+    language_unknownObjectRelease(obj);
 #else
     if (isAtomic) {
-      swift_release(static_cast<HeapObject *>(obj));
+      language_release(static_cast<HeapObject *>(obj));
     } else {
-      swift_nonatomic_release(static_cast<HeapObject *>(obj));
+      language_nonatomic_release(static_cast<HeapObject *>(obj));
     }
 #endif
   }
@@ -415,11 +416,11 @@ struct UnknownObjectRetainableBox
 struct BridgeObjectBox :
     RetainableBoxBase<BridgeObjectBox, void*> {
   static void *retain(void *obj) {
-    return swift_bridgeObjectRetain(obj);
+    return language_bridgeObjectRetain(obj);
   }
 
   static void release(void *obj) {
-    swift_bridgeObjectRelease(obj);
+    language_bridgeObjectRelease(obj);
   }
 };
   
@@ -429,14 +430,14 @@ struct PointerPointerBox : NativeBox<void**> {
   // TODO: we can do a lot better than this: we don't need to mask off
   // the ObjC reserved bits, and we have spare bits.
   static constexpr unsigned numExtraInhabitants =
-    swift_getHeapObjectExtraInhabitantCount();
+    language_getHeapObjectExtraInhabitantCount();
 
   static void storeExtraInhabitantTag(void ***dest, unsigned tag) {
-    swift_storeHeapObjectExtraInhabitant((HeapObject**) dest, tag - 1);
+    language_storeHeapObjectExtraInhabitant((HeapObject**) dest, tag - 1);
   }
 
   static unsigned getExtraInhabitantTag(void ** const *src) {
-    return swift_getHeapObjectExtraInhabitantIndex((HeapObject* const *) src)+1;
+    return language_getHeapObjectExtraInhabitantIndex((HeapObject* const *) src)+1;
   }
 };
 
@@ -459,17 +460,17 @@ struct RawPointerBox : NativeBox<void*> {
 
 /// A box implementation class for unmanaged function pointers.
 /// @convention(thin) functions have this layout, as do the first elements of
-/// Swift thick functions.
+/// Codira thick functions.
 struct FunctionPointerBox : NativeBox<void*> {
   static constexpr unsigned numExtraInhabitants =
-    swift_getFunctionPointerExtraInhabitantCount();
+    language_getFunctionPointerExtraInhabitantCount();
 
   static void storeExtraInhabitantTag(void **dest, unsigned tag) {
-    swift_storeFunctionPointerExtraInhabitant(dest, tag - 1);
+    language_storeFunctionPointerExtraInhabitant(dest, tag - 1);
   }
 
   static unsigned getExtraInhabitantTag(void * const *src) {
-    return swift_getFunctionPointerExtraInhabitantIndex(src) + 1;
+    return language_getFunctionPointerExtraInhabitantIndex(src) + 1;
   }
 };
 
@@ -550,7 +551,7 @@ public:
   }
 };
 
-/// A class which produces a tuple-like box (with Swift layout rules)
+/// A class which produces a tuple-like box (with Codira layout rules)
 /// for a list of element boxes.
 ///
 /// The aggregate box is monomorphic and has no extra inhabitants.
@@ -591,16 +592,16 @@ struct AggregateBox {
   }
 };
   
-/// A template for using the Swift allocation APIs with a known size
+/// A template for using the Codira allocation APIs with a known size
 /// and alignment.
 template <size_t Size, size_t Alignment>
-struct SwiftAllocator {
+struct CodiraAllocator {
   static void *alloc() {
-    return swift_slowAlloc(Size, Alignment-1);
+    return language_slowAlloc(Size, Alignment-1);
   }
 
   static void dealloc(void *addr) {
-    swift_slowDealloc(addr, Size, Alignment-1);
+    language_slowDealloc(addr, Size, Alignment-1);
   }
 };
 
@@ -658,7 +659,7 @@ struct BufferValueWitnesses<Impl, isBitwiseTakable, Size, Alignment,
     auto wtable = self->getValueWitnesses();
     auto reference = src->PrivateData[0];
     dest->PrivateData[0] = reference;
-    swift_retain(reinterpret_cast<HeapObject *>(reference));
+    language_retain(reinterpret_cast<HeapObject *>(reference));
     // Project the address of the value in the buffer.
     unsigned alignMask = wtable->getAlignmentMask();
     // Compute the byte offset of the object in the box.
@@ -685,7 +686,7 @@ struct NonFixedBufferValueWitnesses : BufferValueWitnessesBase<Impl> {
     } else {
       auto reference = src->PrivateData[0];
       dest->PrivateData[0] = reference;
-      swift_retain(reinterpret_cast<HeapObject*>(reference));
+      language_retain(reinterpret_cast<HeapObject*>(reference));
       // Project the address of the value in the buffer.
       unsigned alignMask = vwtable->getAlignmentMask();
       // Compute the byte offset of the object in the box.
@@ -813,13 +814,13 @@ struct ValueWitnesses
   // These should not get instantiated if the type doesn't have extra
   // inhabitants.
 
-  SWIFT_CC(swift)
+  LANGUAGE_CC(language)
   static void storeExtraInhabitantTag(OpaqueValue *dest, unsigned tag,
                                       unsigned xiCount, const Metadata *self) {
     Box::storeExtraInhabitantTag((typename Box::type*) dest, tag);
   }
 
-  SWIFT_CC(swift)
+  LANGUAGE_CC(language)
   static unsigned getExtraInhabitantTag(const OpaqueValue *src,
                                         unsigned xiCount,
                                         const Metadata *self) {
@@ -906,13 +907,13 @@ struct NonFixedValueWitnesses :
   // These should not get instantiated if the type doesn't have extra
   // inhabitants.
 
-  SWIFT_CC(swift)
+  LANGUAGE_CC(language)
   static void storeExtraInhabitantTag(OpaqueValue *dest, unsigned tag,
                                       unsigned xiCount, const Metadata *self) {
     Box::storeExtraInhabitantTag((typename Box::type*) dest, tag);
   }
 
-  SWIFT_CC(swift)
+  LANGUAGE_CC(language)
   static unsigned getExtraInhabitantTag(const OpaqueValue *src,
                                         unsigned xiCount,
                                         const Metadata *self) {
@@ -937,4 +938,4 @@ using ValueWitnessTableForBox = ValueWitnessTableGenerator<ValueWitnesses<Box>>;
 } // end namespace metadataimpl
 } // end namespace language
 
-#endif /* SWIFT_RUNTIME_METADATAIMPL_H */
+#endif /* LANGUAGE_RUNTIME_METADATAIMPL_H */

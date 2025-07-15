@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the AbstractConformance class, which represents
@@ -18,14 +19,14 @@
 // These are usually stashed inside a ProtocolConformanceRef.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_ABSTRACT_CONFORMANCE_H
-#define SWIFT_AST_ABSTRACT_CONFORMANCE_H
+#ifndef LANGUAGE_AST_ABSTRACT_CONFORMANCE_H
+#define LANGUAGE_AST_ABSTRACT_CONFORMANCE_H
 
 #include "language/AST/Type.h"
-#include "llvm/ADT/FoldingSet.h"
+#include "toolchain/ADT/FoldingSet.h"
 
 namespace language {
-class AbstractConformance final : public llvm::FoldingSetNode {
+class AbstractConformance final : public toolchain::FoldingSetNode {
   Type conformingType;
   ProtocolDecl *requirement;
 
@@ -36,12 +37,12 @@ public:
   Type getType() const { return conformingType; }
   ProtocolDecl *getProtocol() const { return requirement; }
 
-  void Profile(llvm::FoldingSetNodeID &id) const {
+  void Profile(toolchain::FoldingSetNodeID &id) const {
     Profile(id, getType(), getProtocol());
   }
 
   /// Profile the storage for this conformance, for use with LLVM's FoldingSet.
-  static void Profile(llvm::FoldingSetNodeID &id,
+  static void Profile(toolchain::FoldingSetNodeID &id,
                       Type conformingType,
                       ProtocolDecl *requirement) {
     id.AddPointer(conformingType.getPointer());
@@ -51,5 +52,5 @@ public:
 
 }
 
-#endif // SWIFT_AST_ABSTRACT_CONFORMANCE_H
+#endif // LANGUAGE_AST_ABSTRACT_CONFORMANCE_H
 

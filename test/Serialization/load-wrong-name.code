@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/def_func.code -module-name new_module
+// RUN: not %target-language-frontend %s -typecheck -I %t -show-diagnostics-after-fatal 2>&1 | %FileCheck %s
+
+import language // CHECK: error: {{cannot load module 'Codira' as 'language'|no such module 'language'}}
+import NEW_MODULE // CHECK: error: {{cannot load module 'new_module' as 'NEW_MODULE'|no such module 'NEW_MODULE'}}

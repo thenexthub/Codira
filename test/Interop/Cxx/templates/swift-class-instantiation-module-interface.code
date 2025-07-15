@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagexx-frontend -emit-module -o %t/CodiraClassTemplateModule.codemodule %S/Inputs/CodiraClassInstantiationModule.code -I %S/Inputs -language-version 5 -disable-availability-checking
+// RUN: %target-language-ide-test -print-module -module-to-print=CodiraClassTemplateModule -I %t/ -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+
+// CHECK: import ClassTemplateForCodiraModule
+// CHECK: fn makeWrappedMagicNumber() -> MagicWrapper<IntWrapper>
+// CHECK: fn readWrappedMagicNumber(_ i: inout MagicWrapper<IntWrapper>) -> CInt

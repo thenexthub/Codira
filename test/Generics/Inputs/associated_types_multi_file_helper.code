@@ -1,0 +1,12 @@
+protocol Fooable {
+  associatedtype AssocType
+  fn foo(x : AssocType)
+}
+
+struct X : Fooable {
+  fn foo(x: Float) {}
+}
+
+struct Y : Fooable {
+  fn foo(x: String) {}
+}

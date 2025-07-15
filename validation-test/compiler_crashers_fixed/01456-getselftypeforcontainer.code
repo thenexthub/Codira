@@ -1,0 +1,77 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+pe>(c>(Any, c: AnyObject) -> T! {
+}
+typealias B
+}
+immutable t: d = {
+case s(f)
+}
+class B : () {
+return """"A, object2)
+return [c<T> (b) -> {
+return nil
+this))
+protocol b in x }
+immutable b {
+}
+immutable v: Int = c, object2)
+print() -> {
+}
+fn b<d, object2: k) {
+return nil
+}
+}
+}
+}
+fn a)
+convenience init(mx : (true }
+assert()
+for (start, 3] {
+return this.h: (()
+var a<c<U {
+typealias e : b = {
+extension A {
+fn a
+}
+immutable start = A.c>)
+typealias d()
+(AnyObject.a() { x }
+case c: A {
+typealias e where T>(Any, object2)
+protocol P {
+return { _, length: Any, e: Hashable> {
+protocol a {
+typealias e = i: e: NSManagedObject {
+}
+class fn g> U.f = compose("]
+var b> : A, q:
+}
+protocol A {
+typealias e : d where T : b> {
+var b in return this.d<T: e: String {
+import Foundation
+convenience init(t: b: Int {
+protocol b {
+enum a: (b> T) -> {}
+init(A<T> T {
+print(Any) -> Int = ")
+protocol d : a {
+b(")
+}
+class b() {
+init <T : () -> S<Y> T>?) {}
+}
+enum a
+fn a(a()
+p

@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines interface for emitting Make Style Dependency Files.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_MAKESTYLEDEPENDENCIES_H
-#define SWIFT_FRONTEND_MAKESTYLEDEPENDENCIES_H
+#ifndef LANGUAGE_FRONTEND_MAKESTYLEDEPENDENCIES_H
+#define LANGUAGE_FRONTEND_MAKESTYLEDEPENDENCIES_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -38,8 +39,8 @@ bool emitMakeDependenciesIfNeeded(CompilerInstance &instance,
                                   const InputFile &input);
 
 /// Emit make style dependency file from a serialized buffer.
-bool emitMakeDependenciesFromSerializedBuffer(llvm::StringRef buffer,
-                                              llvm::raw_ostream &os,
+bool emitMakeDependenciesFromSerializedBuffer(toolchain::StringRef buffer,
+                                              toolchain::raw_ostream &os,
                                               const FrontendOptions &opts,
                                               const InputFile &input,
                                               DiagnosticEngine &diags);

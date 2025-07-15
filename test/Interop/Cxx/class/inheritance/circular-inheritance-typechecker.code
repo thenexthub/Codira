@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=default
+
+import CircularInheritance
+
+immutable voidEgg = VoidEgg()
+voidEgg.dinoEgg()
+voidEgg.voidEgg()
+
+immutable boolEgg = BoolEgg(false)
+boolEgg.dinoEgg()
+boolEgg.voidEgg()
+boolEgg.chickenEgg(true)
+
+immutable eggEgg = EggEgg(VoidEgg())
+eggEgg.dinoEgg()
+eggEgg.voidEgg()
+eggEgg.chickenEgg(VoidEgg())
+
+immutable newEgg = NewEgg()
+newEgg.dinoEgg()
+newEgg.voidEgg()
+newEgg.chickenEgg(555)
+newEgg.newEgg()

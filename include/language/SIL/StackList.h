@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_STACKLIST_H
-#define SWIFT_SIL_STACKLIST_H
+#ifndef LANGUAGE_SIL_STACKLIST_H
+#define LANGUAGE_SIL_STACKLIST_H
 
 #include "language/SIL/SILModule.h"
 

@@ -1,4 +1,4 @@
-//===--- main.swift -------------------------------------------------------===//
+//===--- main.code -------------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "PrimsSplit",
     runFunction: run_PrimsSplit,
@@ -24,9 +25,9 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_PrimsSplit(_ n: Int) {
+public fn run_PrimsSplit(_ n: Int) {
   for _ in 1...n {
-    let nodes : [Int] = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    immutable nodes : [Int] = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
       13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
       29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
       45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
@@ -37,7 +38,7 @@ public func run_PrimsSplit(_ n: Int) {
     // Prim's algorithm is designed for undirected graphs.
     // Due to that, in our set all the edges are paired, i.e. for any
     // edge (start, end, C) there is also an edge (end, start, C).
-    let edges : [(Int, Int, Double)] = [
+    immutable edges : [(Int, Int, Double)] = [
       (26, 47, 921),
       (20, 25, 971),
       (92, 59, 250),
@@ -552,14 +553,14 @@ public func run_PrimsSplit(_ n: Int) {
     }
 
     // Find spanning tree
-    let treeEdges = prims(graph, { (start: Int, end: Int) in
+    immutable treeEdges = prims(graph, { (start: Int, end: Int) in
         return map[Edge(start: start, end: end)]!
     })
 
     // Compute its cost in order to check results
     var cost = 0.0
     for i in 1..<treeEdges.count {
-      if let n = treeEdges[i] { cost += map[Edge(start: n, end: i)]! }
+      if immutable n = treeEdges[i] { cost += map[Edge(start: n, end: i)]! }
     }
     check(Int(cost) == 49324)
   }

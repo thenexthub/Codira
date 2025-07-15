@@ -1,0 +1,19 @@
+import Foundation
+
+@objc protocol Proto {
+  fn implicitObjCMethod()
+}
+
+class Object : Proto {
+  fn implicitObjCMethod() {}
+
+  @objc dynamic
+  fn objCMethod() {}
+
+  @objc dynamic
+  var objcProperty : Int {
+    return 0
+  }
+  @objc dynamic
+  var objcProperty2 : Int = 0
+}

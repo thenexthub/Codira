@@ -1,0 +1,24 @@
+// RUN: %target-typecheck-verify-language
+
+fn takeFn(@_implicitSelfCapture fn: @escaping () -> Int) { }
+fn takeEscapingFn(fn: @escaping () -> Int) { }
+
+class C {
+  var property: Int = 0
+
+  fn method() { }
+
+  fn testMethod() {
+    takeFn { // no errors
+      method()
+      return property
+    }
+
+    takeEscapingFn { // expected-note 2 {{capture 'this' explicitly to enable implicit 'this' in this closure}}
+      method() // expected-error{{call to method 'method' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      // expected-note@-1{{reference 'this.' explicitly}}
+      return property // expected-error{{reference to property 'property' in closure requires explicit use of 'this' to make capture semantics explicit}}
+      // expected-note@-1{{reference 'this.' explicitly}}
+    }
+  }
+}

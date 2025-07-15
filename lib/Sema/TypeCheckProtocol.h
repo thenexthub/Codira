@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_PROTOCOL_H
-#define SWIFT_SEMA_PROTOCOL_H
+#ifndef LANGUAGE_SEMA_PROTOCOL_H
+#define LANGUAGE_SEMA_PROTOCOL_H
 
 #include "TypeChecker.h"
 #include "language/AST/AccessScope.h"
@@ -25,10 +26,10 @@
 #include "language/AST/Witness.h"
 #include "language/Basic/Debug.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/ADT/ScopedHashTable.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ScopedHashTable.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
@@ -63,7 +64,7 @@ public:
   using RequirementEnvironmentCacheKey =
       std::pair<const GenericSignatureImpl *, const ClassDecl *>;
   using RequirementEnvironmentCache =
-      llvm::DenseMap<RequirementEnvironmentCacheKey, RequirementEnvironment>;
+      toolchain::DenseMap<RequirementEnvironmentCacheKey, RequirementEnvironment>;
 
 protected:
   ASTContext &Context;
@@ -182,11 +183,11 @@ public:
 /// \returns the result of performing the match.
 RequirementMatch matchWitness(
     DeclContext *dc, ValueDecl *req, ValueDecl *witness,
-    llvm::function_ref<
+    toolchain::function_ref<
         std::tuple<std::optional<RequirementMatch>, Type, Type, Type, Type>(void)>
         setup,
-    llvm::function_ref<std::optional<RequirementMatch>(Type, Type)> matchTypes,
-    llvm::function_ref<RequirementMatch(bool, ArrayRef<OptionalAdjustment>)>
+    toolchain::function_ref<std::optional<RequirementMatch>(Type, Type)> matchTypes,
+    toolchain::function_ref<RequirementMatch(bool, ArrayRef<OptionalAdjustment>)>
         finalize);
 
 RequirementMatch
@@ -216,7 +217,7 @@ Type adjustInferredAssociatedType(TypeAdjustment adjustment, Type type,
 ///
 /// \returns the set of requirements to which the given witness is a
 /// witness.
-llvm::TinyPtrVector<ValueDecl *> findWitnessedObjCRequirements(
+toolchain::TinyPtrVector<ValueDecl *> findWitnessedObjCRequirements(
                                      const ValueDecl *witness,
                                      bool anySingleRequirement = false);
 
@@ -240,14 +241,14 @@ bool witnessHasImplementsAttrForRequiredName(ValueDecl *witness,
 bool witnessHasImplementsAttrForExactRequirement(ValueDecl *witness,
                                                  ValueDecl *requirement);
 
-using VisitedConformances = llvm::SmallPtrSet<void *, 16>;
+using VisitedConformances = toolchain::SmallPtrSet<void *, 16>;
 
 /// Visit each conformance within the given type.
 ///
 /// If `body` returns true for any conformance, this function stops the
 /// traversal and returns true.
 bool forEachConformance(
-    Type type, llvm::function_ref<bool(ProtocolConformanceRef)> body,
+    Type type, toolchain::function_ref<bool(ProtocolConformanceRef)> body,
     VisitedConformances *visitedConformances = nullptr);
 
 /// Visit each conformance within the given conformance (including the given
@@ -257,7 +258,7 @@ bool forEachConformance(
 /// traversal and returns true.
 bool forEachConformance(
     ProtocolConformanceRef conformance,
-    llvm::function_ref<bool(ProtocolConformanceRef)> body,
+    toolchain::function_ref<bool(ProtocolConformanceRef)> body,
     VisitedConformances *visitedConformances = nullptr);
 
 /// Visit each conformance within the given substitution map.
@@ -266,7 +267,7 @@ bool forEachConformance(
 /// traversal and returns true.
 bool forEachConformance(
     SubstitutionMap subs,
-    llvm::function_ref<bool(ProtocolConformanceRef)> body,
+    toolchain::function_ref<bool(ProtocolConformanceRef)> body,
     VisitedConformances *visitedConformances = nullptr);
 
 /// Visit each conformance within the given declaration reference.
@@ -275,9 +276,9 @@ bool forEachConformance(
 /// traversal and returns true.
 bool forEachConformance(
     ConcreteDeclRef declRef,
-    llvm::function_ref<bool(ProtocolConformanceRef)> body,
+    toolchain::function_ref<bool(ProtocolConformanceRef)> body,
     VisitedConformances *visitedConformances = nullptr);
 
 }
 
-#endif // SWIFT_SEMA_PROTOCOL_H
+#endif // LANGUAGE_SEMA_PROTOCOL_H

@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Enum implementation details declarations of the Swift runtime.
+// Enum implementation details declarations of the Codira runtime.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_RUNTIME_ENUMIMPL_H
-#define SWIFT_RUNTIME_ENUMIMPL_H
+#ifndef LANGUAGE_RUNTIME_ENUMIMPL_H
+#define LANGUAGE_RUNTIME_ENUMIMPL_H
 
 #include "language/ABI/Enum.h"
 #include "language/Runtime/Enum.h"
@@ -194,4 +195,4 @@ inline void storeEnumTagSinglePayloadImpl(
 
 } /* end namespace language */
 
-#endif /* SWIFT_RUNTIME_ENUMIMPL_H */
+#endif /* LANGUAGE_RUNTIME_ENUMIMPL_H */

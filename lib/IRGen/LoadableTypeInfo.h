@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines LoadableTypeInfo, which supplements the TypeInfo
@@ -19,15 +20,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_LOADABLETYPEINFO_H
-#define SWIFT_IRGEN_LOADABLETYPEINFO_H
+#ifndef LANGUAGE_IRGEN_LOADABLETYPEINFO_H
+#define LANGUAGE_IRGEN_LOADABLETYPEINFO_H
 
 #include "FixedTypeInfo.h"
 
 namespace clang {
 namespace CodeGen {
 namespace languagecall {
-  class SwiftAggLowering;
+  class CodiraAggLowering;
 }
 }
 }
@@ -36,15 +37,15 @@ namespace language {
 namespace irgen {
   class EnumPayload;
   class IRBuilder;
-  using clang::CodeGen::swiftcall::SwiftAggLowering;
+  using clang::CodeGen::languagecall::CodiraAggLowering;
 
 struct LoadedRef {
-  llvm::PointerIntPair<llvm::Value*, 1> ValAndNonNull;
+  toolchain::PointerIntPair<toolchain::Value*, 1> ValAndNonNull;
   ReferenceCounting style;
 public:
-  LoadedRef(llvm::Value *V, bool nonNull, ReferenceCounting style): ValAndNonNull(V, nonNull), style(style) {}
+  LoadedRef(toolchain::Value *V, bool nonNull, ReferenceCounting style): ValAndNonNull(V, nonNull), style(style) {}
   LoadedRef(const LoadedRef &ref, bool nonNull): ValAndNonNull(ref.getValue(), nonNull), style(ref.getStyle()) {}
-  llvm::Value *getValue() const { return ValAndNonNull.getPointer(); }
+  toolchain::Value *getValue() const { return ValAndNonNull.getPointer(); }
   bool isNonNull() const { return ValAndNonNull.getInt(); }
   ReferenceCounting getStyle() const { return style; }
 };
@@ -59,7 +60,7 @@ public:
 /// memory.
 class LoadableTypeInfo : public FixedTypeInfo {
 protected:
-  LoadableTypeInfo(llvm::Type *type, Size size,
+  LoadableTypeInfo(toolchain::Type *type, Size size,
                    const SpareBitVector &spareBits,
                    Alignment align,
                    IsTriviallyDestroyable_t pod,
@@ -75,7 +76,7 @@ protected:
     assert(isLoadable());
   }
 
-  LoadableTypeInfo(llvm::Type *type, Size size,
+  LoadableTypeInfo(toolchain::Type *type, Size size,
                    SpareBitVector &&spareBits,
                    Alignment align,
                    IsTriviallyDestroyable_t pod,
@@ -139,7 +140,7 @@ public:
                        SILType T) const = 0;
 
   /// Fix the lifetime of the source explosion by creating opaque calls to
-  /// swift_fixLifetime for all reference types in the explosion.
+  /// language_fixLifetime for all reference types in the explosion.
   virtual void fixLifetime(IRGenFunction &IGF, Explosion &explosion) const = 0;
   
   /// Pack the source explosion into an enum payload.
@@ -162,12 +163,12 @@ public:
                                       Address addr) const;
 
   /// Add this type to the given aggregate lowering.
-  virtual void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+  virtual void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                                 Size offset) const = 0;
 
   static void addScalarToAggLowering(IRGenModule &IGM,
-                                     SwiftAggLowering &lowering,
-                                     llvm::Type *type, Size offset,
+                                     CodiraAggLowering &lowering,
+                                     toolchain::Type *type, Size offset,
                                      Size storageSize);
 
   static bool classof(const LoadableTypeInfo *type) { return true; }

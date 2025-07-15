@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift doesn't support exception handlers, but might call code that uses
-// exceptions, and when they leak out into Swift code, we want to trap them.
+// Codira doesn't support exception handlers, but might call code that uses
+// exceptions, and when they leak out into Codira code, we want to trap them.
 //
 // To that end, we have our own exception personality routine, which we use
 // to trap exceptions and terminate.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_EXCEPTION_H
-#define SWIFT_RUNTIME_EXCEPTION_H
+#ifndef LANGUAGE_RUNTIME_EXCEPTION_H
+#define LANGUAGE_RUNTIME_EXCEPTION_H
 
 #include "language/Runtime/Config.h"
 
@@ -31,8 +32,8 @@
 
 namespace language {
 
-SWIFT_RUNTIME_STDLIB_API _Unwind_Reason_Code
-swift_exceptionPersonality(int version,
+LANGUAGE_RUNTIME_STDLIB_API _Unwind_Reason_Code
+language_exceptionPersonality(int version,
                            _Unwind_Action actions,
                            uint64_t exceptionClass,
                            struct _Unwind_Exception *exceptionObject,
@@ -42,4 +43,4 @@ swift_exceptionPersonality(int version,
 
 #endif // defined(__ELF__) || defined(__APPLE__)
 
-#endif // SWIFT_RUNTIME_EXCEPTION_H
+#endif // LANGUAGE_RUNTIME_EXCEPTION_H

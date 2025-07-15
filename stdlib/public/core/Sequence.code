@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that supplies the values of a sequence one at a time.
@@ -21,7 +22,7 @@
 /// element at a time as it advances through the sequence.
 ///
 /// Whenever you use a `for`-`in` loop with an array, set, or any other
-/// collection or sequence, you're using that type's iterator. Swift uses a
+/// collection or sequence, you're using that type's iterator. Codira uses a
 /// sequence's or collection's iterator internally to enable the `for`-`in`
 /// loop language construct.
 ///
@@ -30,7 +31,7 @@
 /// For example, you might typically use a `for`-`in` loop to print each of
 /// the elements in an array.
 ///
-///     let animals = ["Antelope", "Butterfly", "Camel", "Dolphin"]
+///     immutable animals = ["Antelope", "Butterfly", "Camel", "Dolphin"]
 ///     for animal in animals {
 ///         print(animal)
 ///     }
@@ -39,11 +40,11 @@
 ///     // Prints "Camel"
 ///     // Prints "Dolphin"
 ///
-/// Behind the scenes, Swift uses the `animals` array's iterator to loop over
+/// Behind the scenes, Codira uses the `animals` array's iterator to loop over
 /// the contents of the array.
 ///
 ///     var animalIterator = animals.makeIterator()
-///     while let animal = animalIterator.next() {
+///     while immutable animal = animalIterator.next() {
 ///         print(animal)
 ///     }
 ///     // Prints "Antelope"
@@ -60,7 +61,7 @@
 /// ========================
 ///
 /// You rarely need to use iterators directly, because a `for`-`in` loop is the
-/// more idiomatic approach to traversing a sequence in Swift. Some
+/// more idiomatic approach to traversing a sequence in Codira. Some
 /// algorithms, however, may call for direct iterator use.
 ///
 /// One example is the `reduce1(_:)` method. Similar to the `reduce(_:_:)`
@@ -73,7 +74,7 @@
 /// over the rest of the sequence.
 ///
 ///     extension Sequence {
-///         func reduce1(
+///         fn reduce1(
 ///             _ nextPartialResult: (Element, Element) -> Element
 ///         ) -> Element?
 ///         {
@@ -82,7 +83,7 @@
 ///                 return nil
 ///             }
 ///
-///             while let element = i.next() {
+///             while immutable element = i.next() {
 ///                 accumulated = nextPartialResult(accumulated, element)
 ///             }
 ///             return accumulated
@@ -93,7 +94,7 @@
 /// simpler. Here's how to find the longest string in a sequence, using the
 /// `animals` array introduced earlier as an example:
 ///
-///     let longestAnimal = animals.reduce1 { current, element in
+///     immutable longestAnimal = animals.reduce1 { current, element in
 ///         if current.count > element.count {
 ///             return current
 ///         } else {
@@ -132,10 +133,10 @@
 /// by the `Sequence` protocol.
 ///
 ///     struct Countdown: Sequence {
-///         let start: Int
+///         immutable start: Int
 ///
-///         func makeIterator() -> CountdownIterator {
-///             return CountdownIterator(self)
+///         fn makeIterator() -> CountdownIterator {
+///             return CountdownIterator(this)
 ///         }
 ///     }
 ///
@@ -145,15 +146,15 @@
 /// returned a value.
 ///
 ///     struct CountdownIterator: IteratorProtocol {
-///         let countdown: Countdown
+///         immutable countdown: Countdown
 ///         var times = 0
 ///
 ///         init(_ countdown: Countdown) {
-///             self.countdown = countdown
+///             this.countdown = countdown
 ///         }
 ///
-///         mutating func next() -> Int? {
-///             let nextNumber = countdown.start - times
+///         mutating fn next() -> Int? {
+///             immutable nextNumber = countdown.start - times
 ///             guard nextNumber > 0
 ///                 else { return nil }
 ///
@@ -170,7 +171,7 @@
 /// Creating and iterating over a `Countdown` sequence uses a
 /// `CountdownIterator` to handle the iteration.
 ///
-///     let threeTwoOne = Countdown(start: 3)
+///     immutable threeTwoOne = Countdown(start: 3)
 ///     for count in threeTwoOne {
 ///         print("\(count)...")
 ///     }
@@ -195,10 +196,10 @@ public protocol IteratorProtocol<Element> {
   /// emulate a `for`-`in` loop. First, retrieve a sequence's iterator, and
   /// then call the iterator's `next()` method until it returns `nil`.
   ///
-  ///     let numbers = [2, 3, 5, 7]
+  ///     immutable numbers = [2, 3, 5, 7]
   ///     var numbersIterator = numbers.makeIterator()
   ///
-  ///     while let num = numbersIterator.next() {
+  ///     while immutable num = numbersIterator.next() {
   ///         print(num)
   ///     }
   ///     // Prints "2"
@@ -208,7 +209,7 @@ public protocol IteratorProtocol<Element> {
   ///
   /// - Returns: The next element in the underlying sequence, if a next element
   ///   exists; otherwise, `nil`.
-  mutating func next() -> Element?
+  mutating fn next() -> Element?
 }
 
 /// A type that provides sequential, iterated access to its elements.
@@ -217,7 +218,7 @@ public protocol IteratorProtocol<Element> {
 /// most common way to iterate over the elements of a sequence is to use a
 /// `for`-`in` loop:
 ///
-///     let oneTwoThree = 1...3
+///     immutable oneTwoThree = 1...3
 ///     for number in oneTwoThree {
 ///         print(number)
 ///     }
@@ -232,7 +233,7 @@ public protocol IteratorProtocol<Element> {
 /// sequence. This example checks to see whether a particular insect is in an
 /// array.
 ///
-///     let bugs = ["Aphid", "Bumblebee", "Cicada", "Damselfly", "Earwig"]
+///     immutable bugs = ["Aphid", "Bumblebee", "Cicada", "Damselfly", "Earwig"]
 ///     var hasMosquito = false
 ///     for bug in bugs {
 ///         if bug == "Mosquito" {
@@ -300,7 +301,7 @@ public protocol IteratorProtocol<Element> {
 ///     struct Countdown: Sequence, IteratorProtocol {
 ///         var count: Int
 ///
-///         mutating func next() -> Int? {
+///         mutating fn next() -> Int? {
 ///             if count == 0 {
 ///                 return nil
 ///             } else {
@@ -310,7 +311,7 @@ public protocol IteratorProtocol<Element> {
 ///         }
 ///     }
 ///
-///     let threeToGo = Countdown(count: 3)
+///     immutable threeToGo = Countdown(count: 3)
 ///     for i in threeToGo {
 ///         print(i)
 ///     }
@@ -335,7 +336,7 @@ public protocol Sequence<Element> {
 
   // FIXME: <rdar://problem/34142121>
   // This typealias should be removed as it predates the source compatibility
-  // guarantees of Swift 3, but it cannot due to a bug.
+  // guarantees of Codira 3, but it cannot due to a bug.
   @available(*, unavailable, renamed: "Iterator")
   typealias Generator = Iterator
 
@@ -346,7 +347,7 @@ public protocol Sequence<Element> {
   // typealias SubSequence = AnySequence<Element>
 
   /// Returns an iterator over the elements of this sequence.
-  __consuming func makeIterator() -> Iterator
+  __consuming fn makeIterator() -> Iterator
 
   /// A value less than or equal to the number of elements in the sequence,
   /// calculated nondestructively.
@@ -385,15 +386,15 @@ public protocol Sequence<Element> {
   /// - Complexity: If this function returns `nil`, it must do so in constant
   ///    (O(1)) time. If this returns non-`nil`, then it must have better than linear
   ///    (O(*n*)) complexity.
-  func _customContainsEquatableElement(
+  fn _customContainsEquatableElement(
     _ element: Element
   ) -> Bool?
 
-  /// Create a native array buffer containing the elements of `self`,
+  /// Create a native array buffer containing the elements of `this`,
   /// in the same order.
-  __consuming func _copyToContiguousArray() -> ContiguousArray<Element>
+  __consuming fn _copyToContiguousArray() -> ContiguousArray<Element>
 
-  /// Copy `self` into an unsafe buffer, initializing its memory.
+  /// Copy `this` into an unsafe buffer, initializing its memory.
   ///
   /// The default implementation simply iterates over the elements of the
   /// sequence, initializing the buffer one item at a time.
@@ -416,7 +417,7 @@ public protocol Sequence<Element> {
   ///
   ///    On return, the memory region in `buffer[0 ..< c]` is initialized to
   ///    the first `c` elements in the sequence.
-  __consuming func _copyContents(
+  __consuming fn _copyContents(
     initializing ptr: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator,UnsafeMutableBufferPointer<Element>.Index)
 
@@ -430,7 +431,7 @@ public protocol Sequence<Element> {
   ///
   /// The optimizer can often eliminate bounds- and uniqueness-checking
   /// within an algorithm. When that fails, however, invoking the same
-  /// algorithm on the `buffer` argument may let you trade safety for speed.
+  /// algorithm on the `buffer` argument may immutable you trade safety for speed.
   ///
   /// Successive calls to this method may provide a different pointer on each
   /// call. Don't store `buffer` outside of this method.
@@ -449,7 +450,7 @@ public protocol Sequence<Element> {
   ///   support contiguous storage, in which case the method ignores `body` and
   ///   returns `nil`.
   @safe
-  func withContiguousStorageIfAvailable<R>(
+  fn withContiguousStorageIfAvailable<R>(
     _ body: (_ buffer: UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R?
 }
@@ -466,8 +467,8 @@ extension Sequence where Self: IteratorProtocol {
 extension Sequence where Self.Iterator == Self {
   /// Returns an iterator over the elements of this sequence.
   @inlinable
-  public __consuming func makeIterator() -> Self {
-    return self
+  public __consuming fn makeIterator() -> Self {
+    return this
   }
 }
 
@@ -478,9 +479,9 @@ extension Sequence where Self.Iterator == Self {
 @frozen
 public struct DropFirstSequence<Base: Sequence> {
   @usableFromInline
-  internal let _base: Base
+  internal immutable _base: Base
   @usableFromInline
-  internal let _limit: Int
+  internal immutable _limit: Int
   
   @inlinable 
   public init(_ base: Base, dropping limit: Int) {
@@ -500,7 +501,7 @@ extension DropFirstSequence: Sequence {
   
   @inlinable
   @inline(__always)
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     var it = _base.makeIterator()
     var dropped = 0
     while dropped < _limit, it.next() != nil { dropped &+= 1 }
@@ -508,7 +509,7 @@ extension DropFirstSequence: Sequence {
   }
 
   @inlinable
-  public __consuming func dropFirst(_ k: Int) -> DropFirstSequence<Base> {
+  public __consuming fn dropFirst(_ k: Int) -> DropFirstSequence<Base> {
     // If this is already a _DropFirstSequence, we need to fold in
     // the current drop count and drop limit so no data is lost.
     //
@@ -527,7 +528,7 @@ public struct PrefixSequence<Base: Sequence> {
   @usableFromInline
   internal var _base: Base
   @usableFromInline
-  internal let _maxLength: Int
+  internal immutable _maxLength: Int
 
   @inlinable
   public init(_ base: Base, maxLength: Int) {
@@ -561,7 +562,7 @@ extension PrefixSequence.Iterator: IteratorProtocol {
   public typealias Element = Base.Element
   
   @inlinable
-  public mutating func next() -> Element? {
+  public mutating fn next() -> Element? {
     if _remaining != 0 {
       _remaining &-= 1
       return _base.next()
@@ -573,13 +574,13 @@ extension PrefixSequence.Iterator: IteratorProtocol {
 
 extension PrefixSequence: Sequence {
   @inlinable
-  public __consuming func makeIterator() -> Iterator {
+  public __consuming fn makeIterator() -> Iterator {
     return Iterator(_base.makeIterator(), maxLength: _maxLength)
   }
 
   @inlinable
-  public __consuming func prefix(_ maxLength: Int) -> PrefixSequence<Base> {
-    let length = Swift.min(maxLength, self._maxLength)
+  public __consuming fn prefix(_ maxLength: Int) -> PrefixSequence<Base> {
+    immutable length = Codira.min(maxLength, this._maxLength)
     return PrefixSequence(_base, maxLength: length)
   }
 }
@@ -603,14 +604,14 @@ public struct DropWhileSequence<Base: Sequence> {
     _iterator = iterator
     _nextElement = _iterator.next()
     
-    while let x = _nextElement, try predicate(x) {
+    while immutable x = _nextElement, try predicate(x) {
       _nextElement = _iterator.next()
     }
   }
   
   @inlinable
   internal init(_ base: Base, predicate: (Element) throws -> Bool) rethrows {
-    self = try DropWhileSequence(iterator: base.makeIterator(), predicate: predicate)
+    this = try DropWhileSequence(iterator: base.makeIterator(), predicate: predicate)
   }
 }
 
@@ -640,8 +641,8 @@ extension DropWhileSequence.Iterator: IteratorProtocol {
   public typealias Element = Base.Element
   
   @inlinable
-  public mutating func next() -> Element? {
-    guard let next = _nextElement else { return nil }
+  public mutating fn next() -> Element? {
+    guard immutable next = _nextElement else { return nil }
     _nextElement = _iterator.next()
     return next
   }
@@ -649,15 +650,15 @@ extension DropWhileSequence.Iterator: IteratorProtocol {
 
 extension DropWhileSequence: Sequence {
   @inlinable
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return Iterator(_iterator, nextElement: _nextElement)
   }
   
   @inlinable
-  public __consuming func drop(
+  public __consuming fn drop(
     while predicate: (Element) throws -> Bool
   ) rethrows -> DropWhileSequence<Base> {
-    guard let x = _nextElement, try predicate(x) else { return self }
+    guard immutable x = _nextElement, try predicate(x) else { return this }
     return try DropWhileSequence(iterator: _iterator, predicate: predicate)
   }
 }
@@ -673,10 +674,10 @@ extension Sequence {
   /// In this example, `map` is used first to convert the names in the array
   /// to lowercase strings and then to count their characters.
   ///
-  ///     let cast = ["Vivien", "Marlon", "Kim", "Karl"]
-  ///     let lowercaseNames = cast.map { $0.lowercased() }
+  ///     immutable cast = ["Vivien", "Marlon", "Kim", "Karl"]
+  ///     immutable lowercaseNames = cast.map { $0.lowercased() }
   ///     // 'lowercaseNames' == ["vivien", "marlon", "kim", "karl"]
-  ///     let letterCounts = cast.map { $0.count }
+  ///     immutable letterCounts = cast.map { $0.count }
   ///     // 'letterCounts' == [6, 6, 3, 4]
   ///
   /// - Parameter transform: A mapping closure. `transform` accepts an
@@ -688,21 +689,21 @@ extension Sequence {
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
   @_alwaysEmitIntoClient
-  public func map<T, E>(
+  public fn map<T, E>(
     _ transform: (Element) throws(E) -> T
   ) throws(E) -> [T] {
-    let initialCapacity = underestimatedCount
+    immutable initialCapacity = underestimatedCount
     var result = ContiguousArray<T>()
     result.reserveCapacity(initialCapacity)
 
-    var iterator = self.makeIterator()
+    var iterator = this.makeIterator()
 
     // Add elements up to the initial capacity without checking for regrowth.
     for _ in 0..<initialCapacity {
       result.append(try transform(iterator.next()!))
     }
     // Add remaining elements, if any.
-    while let element = iterator.next() {
+    while immutable element = iterator.next() {
       result.append(try transform(element))
     }
     return Array(result)
@@ -711,10 +712,10 @@ extension Sequence {
   // ABI-only entrypoint for the rethrows version of map, which has been
   // superseded by the typed-throws version. Expressed as "throws", which is
   // ABI-compatible with "rethrows".
-  @_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+  @_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
   @usableFromInline
   @_silgen_name("$sSTsE3mapySayqd__Gqd__7ElementQzKXEKlF")
-  func __rethrows_map<T>(
+  fn __rethrows_map<T>(
     _ transform: (Element) throws -> T
   ) throws -> [T] {
     try map(transform)
@@ -726,8 +727,8 @@ extension Sequence {
   /// In this example, `filter(_:)` is used to include only names shorter than
   /// five characters.
   ///
-  ///     let cast = ["Vivien", "Marlon", "Kim", "Karl"]
-  ///     let shortNames = cast.filter { $0.count < 5 }
+  ///     immutable cast = ["Vivien", "Marlon", "Kim", "Karl"]
+  ///     immutable shortNames = cast.filter { $0.count < 5 }
   ///     print(shortNames)
   ///     // Prints "["Kim", "Karl"]"
   ///
@@ -738,22 +739,22 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming func filter(
+  public __consuming fn filter(
     _ isIncluded: (Element) throws -> Bool
   ) rethrows -> [Element] {
     return try _filter(isIncluded)
   }
 
   @_transparent
-  public func _filter(
+  public fn _filter(
     _ isIncluded: (Element) throws -> Bool
   ) rethrows -> [Element] {
 
     var result = ContiguousArray<Element>()
 
-    var iterator = self.makeIterator()
+    var iterator = this.makeIterator()
 
-    while let element = iterator.next() {
+    while immutable element = iterator.next() {
       if try isIncluded(element) {
         result.append(element)
       }
@@ -777,7 +778,7 @@ extension Sequence {
 
   @inlinable
   @inline(__always)
-  public func _customContainsEquatableElement(
+  public fn _customContainsEquatableElement(
     _ element: Iterator.Element
   ) -> Bool? {
     return nil
@@ -788,7 +789,7 @@ extension Sequence {
   ///
   /// The two loops in the following example produce the same output:
   ///
-  ///     let numberWords = ["one", "two", "three"]
+  ///     immutable numberWords = ["one", "two", "three"]
   ///     for word in numberWords {
   ///         print(word)
   ///     }
@@ -814,10 +815,10 @@ extension Sequence {
   ///   parameter.
   @_semantics("sequence.forEach")
   @inlinable
-  public func forEach(
+  public fn forEach(
     _ body: (Element) throws -> Void
   ) rethrows {
-    for element in self {
+    for element in this {
       try body(element)
     }
   }
@@ -830,8 +831,8 @@ extension Sequence {
   /// The following example uses the `first(where:)` method to find the first
   /// negative number in an array of integers:
   ///
-  ///     let numbers = [3, 7, 4, -2, 9, -6, 10, 1]
-  ///     if let firstNegative = numbers.first(where: { $0 < 0 }) {
+  ///     immutable numbers = [3, 7, 4, -2, 9, -6, 10, 1]
+  ///     if immutable firstNegative = numbers.first(where: { $0 < 0 }) {
   ///         print("The first negative number is \(firstNegative).")
   ///     }
   ///     // Prints "The first negative number is -2."
@@ -844,10 +845,10 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public func first(
+  public fn first(
     where predicate: (Element) throws -> Bool
   ) rethrows -> Element? {
-    for element in self {
+    for element in this {
       if try predicate(element) {
         return element
       }
@@ -869,7 +870,7 @@ extension Sequence where Element: Equatable {
   /// space character (" "). The first use of `split` returns each word that
   /// was originally separated by one or more spaces.
   ///
-  ///     let line = "BLANCHE:   I don't want realism. I want magic!"
+  ///     immutable line = "BLANCHE:   I don't want realism. I want magic!"
   ///     print(line.split(separator: " ")
   ///               .map(String.init))
   ///     // Prints "["BLANCHE:", "I", "don\'t", "want", "realism.", "I", "want", "magic!"]"
@@ -905,7 +906,7 @@ extension Sequence where Element: Equatable {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming func split(
+  public __consuming fn split(
     separator: Element,
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true
@@ -928,7 +929,7 @@ extension Sequence {
   /// closure that matches spaces. The first use of `split` returns each word
   /// that was originally separated by one or more spaces.
   ///
-  ///     let line = "BLANCHE:   I don't want realism. I want magic!"
+  ///     immutable line = "BLANCHE:   I don't want realism. I want magic!"
   ///     print(line.split(whereSeparator: { $0 == " " })
   ///               .map(String.init))
   ///     // Prints "["BLANCHE:", "I", "don\'t", "want", "realism.", "I", "want", "magic!"]"
@@ -969,13 +970,13 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming func split(
+  public __consuming fn split(
     maxSplits: Int = Int.max,
     omittingEmptySubsequences: Bool = true,
     whereSeparator isSeparator: (Element) throws -> Bool
   ) rethrows -> [ArraySlice<Element>] {
     _precondition(maxSplits >= 0, "Must take zero or more splits")
-    let whole = Array(self)
+    immutable whole = Array(this)
     return try whole.split(
                   maxSplits: maxSplits, 
                   omittingEmptySubsequences: omittingEmptySubsequences, 
@@ -989,7 +990,7 @@ extension Sequence {
   /// elements in the sequence, the result contains all the elements in the
   /// sequence.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.suffix(2))
   ///     // Prints "[4, 5]"
   ///     print(numbers.suffix(10))
@@ -1000,7 +1001,7 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming func suffix(_ maxLength: Int) -> [Element] {
+  public __consuming fn suffix(_ maxLength: Int) -> [Element] {
     _precondition(maxLength >= 0, "Can't take a suffix of negative length from a sequence")
     guard maxLength != 0 else { return [] }
 
@@ -1009,11 +1010,11 @@ extension Sequence {
     // elements are consumed, reorder the ring buffer into a copy and return it.
     // This saves memory for sequences particularly longer than `maxLength`.
     var ringBuffer = ContiguousArray<Element>()
-    ringBuffer.reserveCapacity(Swift.min(maxLength, underestimatedCount))
+    ringBuffer.reserveCapacity(Codira.min(maxLength, underestimatedCount))
 
     var i = 0
 
-    for element in self {
+    for element in this {
       if ringBuffer.count < maxLength {
         ringBuffer.append(element)
       } else {
@@ -1042,7 +1043,7 @@ extension Sequence {
   /// If the number of elements to drop exceeds the number of elements in
   /// the sequence, the result is an empty sequence.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.dropFirst(2))
   ///     // Prints "[3, 4, 5]"
   ///     print(numbers.dropFirst(10))
@@ -1057,8 +1058,8 @@ extension Sequence {
   ///   where *k* is the number of elements to drop from the beginning of
   ///   the sequence.
   @inlinable
-  public __consuming func dropFirst(_ k: Int = 1) -> DropFirstSequence<Self> {
-    return DropFirstSequence(self, dropping: k)
+  public __consuming fn dropFirst(_ k: Int = 1) -> DropFirstSequence<Self> {
+    return DropFirstSequence(this, dropping: k)
   }
 
   /// Returns a sequence containing all but the given number of final
@@ -1068,7 +1069,7 @@ extension Sequence {
   /// the number of elements in the sequence, the result is an empty
   /// sequence.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.dropLast(2))
   ///     // Prints "[1, 2, 3]"
   ///     print(numbers.dropLast(10))
@@ -1080,9 +1081,9 @@ extension Sequence {
   ///
   /// - Complexity: O(*n*), where *n* is the length of the sequence.
   @inlinable
-  public __consuming func dropLast(_ k: Int = 1) -> [Element] {
+  public __consuming fn dropLast(_ k: Int = 1) -> [Element] {
     _precondition(k >= 0, "Can't drop a negative number of elements from a sequence")
-    guard k != 0 else { return Array(self) }
+    guard k != 0 else { return Array(this) }
 
     // FIXME: <rdar://problem/21885650> Create reusable RingBuffer<T>
     // Put incoming elements from this sequence in a holding tank, a ring buffer
@@ -1094,7 +1095,7 @@ extension Sequence {
     var ringBuffer = ContiguousArray<Element>()
     var i = ringBuffer.startIndex
 
-    for element in self {
+    for element in this {
       if ringBuffer.count < k {
         ringBuffer.append(element)
       } else {
@@ -1117,8 +1118,8 @@ extension Sequence {
   /// begins with the first element of `numbers` that does not satisfy
   /// `predicate`.
   ///
-  ///     let numbers = [3, 7, 4, -2, 9, -6, 10, 1]
-  ///     let startingWithNegative = numbers.drop(while: { $0 > 0 })
+  ///     immutable numbers = [3, 7, 4, -2, 9, -6, 10, 1]
+  ///     immutable startingWithNegative = numbers.drop(while: { $0 > 0 })
   ///     // startingWithNegative == [-2, 9, -6, 10, 1]
   ///
   /// If `predicate` matches every element in the sequence, the result is an
@@ -1133,10 +1134,10 @@ extension Sequence {
   /// - Complexity: O(*k*), where *k* is the number of elements to drop from
   ///   the beginning of the sequence.
   @inlinable
-  public __consuming func drop(
+  public __consuming fn drop(
     while predicate: (Element) throws -> Bool
   ) rethrows -> DropWhileSequence<Self> {
-    return try DropWhileSequence(self, predicate: predicate)
+    return try DropWhileSequence(this, predicate: predicate)
   }
 
   /// Returns a sequence, up to the specified maximum length, containing the
@@ -1145,7 +1146,7 @@ extension Sequence {
   /// If the maximum length exceeds the number of elements in the sequence,
   /// the result contains all the elements in the sequence.
   ///
-  ///     let numbers = [1, 2, 3, 4, 5]
+  ///     immutable numbers = [1, 2, 3, 4, 5]
   ///     print(numbers.prefix(2))
   ///     // Prints "[1, 2]"
   ///     print(numbers.prefix(10))
@@ -1158,8 +1159,8 @@ extension Sequence {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public __consuming func prefix(_ maxLength: Int) -> PrefixSequence<Self> {
-    return PrefixSequence(self, maxLength: maxLength)
+  public __consuming fn prefix(_ maxLength: Int) -> PrefixSequence<Self> {
+    return PrefixSequence(this, maxLength: maxLength)
   }
 
   /// Returns a sequence containing the initial, consecutive elements that
@@ -1170,8 +1171,8 @@ extension Sequence {
   /// of `numbers` up to, but not including, the first negative value is
   /// included in the result.
   ///
-  ///     let numbers = [3, 7, 4, -2, 9, -6, 10, 1]
-  ///     let positivePrefix = numbers.prefix(while: { $0 > 0 })
+  ///     immutable numbers = [3, 7, 4, -2, 9, -6, 10, 1]
+  ///     immutable positivePrefix = numbers.prefix(while: { $0 > 0 })
   ///     // positivePrefix == [3, 7, 4]
   ///
   /// If `predicate` matches every element in the sequence, the resulting
@@ -1185,12 +1186,12 @@ extension Sequence {
   ///
   /// - Complexity: O(*k*), where *k* is the length of the result.
   @inlinable
-  public __consuming func prefix(
+  public __consuming fn prefix(
     while predicate: (Element) throws -> Bool
   ) rethrows -> [Element] {
     var result = ContiguousArray<Element>()
 
-    for element in self {
+    for element in this {
       guard try predicate(element) else {
         break
       }
@@ -1201,7 +1202,7 @@ extension Sequence {
 }
 
 extension Sequence {
-  /// Copy `self` into an unsafe buffer, initializing its memory.
+  /// Copy `this` into an unsafe buffer, initializing its memory.
   ///
   /// The default implementation simply iterates over the elements of the
   /// sequence, initializing the buffer one item at a time.
@@ -1225,20 +1226,20 @@ extension Sequence {
   ///    On return, the memory region in `buffer[0 ..< c]` is initialized to
   ///    the first `c` elements in the sequence.
   @inlinable
-  public __consuming func _copyContents(
+  public __consuming fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) {
     return unsafe _copySequenceContents(initializing: buffer)
   }
 
   @_alwaysEmitIntoClient
-  internal __consuming func _copySequenceContents(
+  internal __consuming fn _copySequenceContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) {
-    var it = self.makeIterator()
+    var it = this.makeIterator()
     guard var ptr = buffer.baseAddress else { return (it, buffer.startIndex) }
     for idx in buffer.indices {
-      guard let x = it.next() else {
+      guard immutable x = it.next() else {
         return (it, idx)
       }
       unsafe ptr.initialize(to: x)
@@ -1249,7 +1250,7 @@ extension Sequence {
     
   @inlinable
   @safe
-  public func withContiguousStorageIfAvailable<R>(
+  public fn withContiguousStorageIfAvailable<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R? {
     return nil
@@ -1286,10 +1287,10 @@ extension IteratorSequence: IteratorProtocol, Sequence {
   ///
   /// Once `nil` has been returned, all subsequent calls return `nil`.
   ///
-  /// - Precondition: `next()` has not been applied to a copy of `self`
+  /// - Precondition: `next()` has not been applied to a copy of `this`
   ///   since the copy was made.
   @inlinable
-  public mutating func next() -> Base.Element? {
+  public mutating fn next() -> Base.Element? {
     return _base.next()
   }
 }
@@ -1298,7 +1299,7 @@ extension IteratorSequence: Sendable where Base: Sendable { }
 
 /* FIXME: ideally for compatibility we would declare
 extension Sequence {
-  @available(swift, deprecated: 5, message: "")
+  @available(language, deprecated: 5, message: "")
   public typealias SubSequence = AnySequence<Element>
 }
 */

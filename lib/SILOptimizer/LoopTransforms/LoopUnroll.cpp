@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "sil-loopunroll"
 
-#include "llvm/ADT/DepthFirstIterator.h"
+#include "toolchain/ADT/DepthFirstIterator.h"
 
 #include "language/Basic/Assertions.h"
 #include "language/SIL/PatternMatch.h"
@@ -33,8 +34,8 @@
 using namespace language;
 using namespace language::PatternMatch;
 
-using llvm::DenseMap;
-using llvm::MapVector;
+using toolchain::DenseMap;
+using toolchain::MapVector;
 
 
 namespace {
@@ -394,7 +395,7 @@ updateSSA(SILFunction *Fn, SILLoop *Loop,
 static bool tryToUnrollLoop(SILLoop *Loop, IsSelfRecursiveAnalysis *SRA) {
   assert(Loop->getSubLoops().empty() && "Expecting innermost loops");
 
-  LLVM_DEBUG(llvm::dbgs() << "Trying to unroll loop : \n" << *Loop);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Trying to unroll loop : \n" << *Loop);
   auto *Preheader = Loop->getLoopPreheader();
   if (!Preheader)
     return false;
@@ -408,12 +409,12 @@ static bool tryToUnrollLoop(SILLoop *Loop, IsSelfRecursiveAnalysis *SRA) {
   std::optional<uint64_t> MaxTripCount =
       getMaxLoopTripCount(Loop, Preheader, Header, Latch);
   if (!MaxTripCount) {
-    LLVM_DEBUG(llvm::dbgs() << "Not unrolling, did not find trip count\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Not unrolling, did not find trip count\n");
     return false;
   }
 
   if (!canAndShouldUnrollLoop(Loop, MaxTripCount.value(), SRA)) {
-    LLVM_DEBUG(llvm::dbgs() << "Not unrolling, exceeds cost threshold\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Not unrolling, exceeds cost threshold\n");
     return false;
   }
 
@@ -425,7 +426,7 @@ static bool tryToUnrollLoop(SILLoop *Loop, IsSelfRecursiveAnalysis *SRA) {
     if (!isa<CondBranchInst>(Exit->getTerminator()))
       return false;
 
-  LLVM_DEBUG(llvm::dbgs() << "Unrolling loop in "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Unrolling loop in "
                           << Header->getParent()->getName()
                           << " " << *Loop << "\n");
 
@@ -494,7 +495,7 @@ class LoopUnrolling : public SILFunctionTransform {
     SILLoopInfo *LoopInfo = PM->getAnalysis<SILLoopAnalysis>()->get(Fun);
     IsSelfRecursiveAnalysis *SRA = PM->getAnalysis<IsSelfRecursiveAnalysis>();
 
-    LLVM_DEBUG(llvm::dbgs() << "Loop Unroll running on function : "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Loop Unroll running on function : "
                             << Fun->getName() << "\n");
 
     // Collect innermost loops.
@@ -514,7 +515,7 @@ class LoopUnrolling : public SILFunctionTransform {
     }
 
     if (InnermostLoops.empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "No innermost loops\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "No innermost loops\n");
       return;
     }
 
@@ -530,6 +531,6 @@ class LoopUnrolling : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createLoopUnroll() {
+SILTransform *language::createLoopUnroll() {
   return new LoopUnrolling();
 }

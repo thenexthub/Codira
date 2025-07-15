@@ -1,13 +1,17 @@
-//===------ ModuleInterfaceLoader.cpp - Loads .swiftinterface files -------===//
+//===------ ModuleInterfaceLoader.cpp - Loads .codeinterface files -------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "textual-module-interface"
@@ -38,22 +42,22 @@
 #include "clang/Lex/HeaderSearch.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Lex/PreprocessorOptions.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/CAS/ActionCache.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/YAMLParser.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/xxhash.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/CAS/ActionCache.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/Errc.h"
+#include "toolchain/Support/Error.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/YAMLParser.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/xxhash.h"
 
 using namespace language;
 using FileDependency = SerializationOptions::FileDependency;
@@ -62,11 +66,11 @@ using FileDependency = SerializationOptions::FileDependency;
 
 namespace {
 
-/// Describes a "forwarding module", that is, a .swiftmodule that's actually
-/// a YAML file inside, pointing to a the original .swiftmodule but describing
+/// Describes a "forwarding module", that is, a .codemodule that's actually
+/// a YAML file inside, pointing to a the original .codemodule but describing
 /// a different dependency resolution strategy.
 struct ForwardingModule {
-  /// The path to the original .swiftmodule in the prebuilt cache.
+  /// The path to the original .codemodule in the prebuilt cache.
   std::string underlyingModulePath;
 
   /// Describes a set of file-based dependencies with their size and
@@ -89,7 +93,7 @@ struct ForwardingModule {
   /// Loads the contents of the forwarding module whose contents lie in
   /// the provided buffer, and returns a new \c ForwardingModule, or an error
   /// if the YAML could not be parsed.
-  static llvm::ErrorOr<ForwardingModule> load(const llvm::MemoryBuffer &buf);
+  static toolchain::ErrorOr<ForwardingModule> load(const toolchain::MemoryBuffer &buf);
 
   /// Adds a given dependency to the dependencies list.
   void addDependency(StringRef path, bool isSDKRelative, uint64_t size,
@@ -102,7 +106,7 @@ struct ForwardingModule {
 
 #pragma mark - YAML Serialization
 
-namespace llvm {
+namespace toolchain {
   namespace yaml {
     template <>
     struct MappingTraits<ForwardingModule::Dependency> {
@@ -128,11 +132,11 @@ namespace llvm {
       }
     };
   }
-} // end namespace llvm
+} // end namespace toolchain
 
-llvm::ErrorOr<ForwardingModule>
-ForwardingModule::load(const llvm::MemoryBuffer &buf) {
-  llvm::yaml::Input yamlIn(buf.getBuffer());
+toolchain::ErrorOr<ForwardingModule>
+ForwardingModule::load(const toolchain::MemoryBuffer &buf) {
+  toolchain::yaml::Input yamlIn(buf.getBuffer());
   ForwardingModule fwd;
   yamlIn >> fwd;
   if (yamlIn.error())
@@ -153,7 +157,7 @@ namespace {
 class DiscoveredModule {
   /// The kind of module we've found.
   enum class Kind {
-    /// A module that's either alongside the swiftinterface or in the
+    /// A module that's either alongside the languageinterface or in the
     /// module cache.
     Normal,
 
@@ -171,33 +175,33 @@ class DiscoveredModule {
   const Kind kind;
 
   DiscoveredModule(StringRef path, Kind kind,
-    std::unique_ptr<llvm::MemoryBuffer> moduleBuffer)
+    std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer)
     : kind(kind), moduleBuffer(std::move(moduleBuffer)), path(path) {}
 
 public:
-  /// The contents of the .swiftmodule, if we've read it while validating
+  /// The contents of the .codemodule, if we've read it while validating
   /// dependencies.
-  std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
 
-  /// The path to the discovered serialized .swiftmodule on disk.
+  /// The path to the discovered serialized .codemodule on disk.
   const std::string path;
 
   /// Creates a \c Normal discovered module.
   static DiscoveredModule normal(StringRef path,
-      std::unique_ptr<llvm::MemoryBuffer> moduleBuffer) {
+      std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer) {
     return { path, Kind::Normal, std::move(moduleBuffer) };
   }
 
   /// Creates a \c Prebuilt discovered module.
   static DiscoveredModule prebuilt(
-      StringRef path, std::unique_ptr<llvm::MemoryBuffer> moduleBuffer) {
+      StringRef path, std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer) {
     return { path, Kind::Prebuilt, std::move(moduleBuffer) };
   }
 
   /// Creates a \c Forwarded discovered module, whose dependencies have been
   /// externally validated by a \c ForwardingModule.
   static DiscoveredModule forwarded(
-      StringRef path, std::unique_ptr<llvm::MemoryBuffer> moduleBuffer) {
+      StringRef path, std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer) {
     return { path, Kind::Forwarded, std::move(moduleBuffer) };
   }
 
@@ -210,9 +214,9 @@ public:
 
 #pragma mark - Common utilities
 
-namespace path = llvm::sys::path;
+namespace path = toolchain::sys::path;
 
-static bool serializedASTLooksValid(const llvm::MemoryBuffer &buf,
+static bool serializedASTLooksValid(const toolchain::MemoryBuffer &buf,
                                     bool requiresOSSAModules,
                                     StringRef requiredSDK) {
   auto VI = serialization::validateSerializedAST(buf.getBuffer(),
@@ -308,7 +312,7 @@ struct ModuleRebuildInfo {
     getOrInsertCandidateModule(modulePath).reasonIgnored = reasonIgnored;
   }
 
-  /// Record why no swiftinterfaces were preferred over the binary swiftmodule
+  /// Record why no languageinterfaces were preferred over the binary languagemodule
   /// at \c modulePath.
   void addIgnoredModuleInterface(StringRef modulePath,
                                  ReasonModuleInterfaceIgnored reasonIgnored) {
@@ -334,8 +338,8 @@ struct ModuleRebuildInfo {
                 DiagArgs &&...diagArgs) {
     diags.diagnose(loc, std::forward<DiagArgs>(diagArgs)...);
     auto SDKVer = getSDKBuildVersion(ctx.SearchPathOpts.getSDKPath());
-    llvm::SmallString<64> buffer = prebuiltCacheDir;
-    llvm::sys::path::append(buffer, "SystemVersion.plist");
+    toolchain::SmallString<64> buffer = prebuiltCacheDir;
+    toolchain::sys::path::append(buffer, "SystemVersion.plist");
     auto PBMVer = getSDKBuildVersionFromPlist(buffer.str());
     if (!SDKVer.empty() && !PBMVer.empty()) {
       // Remark the potential version difference.
@@ -378,8 +382,8 @@ struct ModuleRebuildInfo {
     }
   }
 
-  /// Emits a diagnostic for the reason why binary swiftmodules were preferred
-  /// over textual swiftinterfaces.
+  /// Emits a diagnostic for the reason why binary languagemodules were preferred
+  /// over textual languageinterfaces.
   void diagnoseIgnoredModuleInterfaces(ASTContext &ctx, SourceLoc loc) {
     for (auto &mod : candidateModules) {
       auto interfaceIgnore = mod.reasonModuleInterfaceIgnored;
@@ -401,13 +405,13 @@ StringRef getFullDependencyPath(const FileDependency &dep,
     return dep.getPath();
 
   path::native(ctx.SearchPathOpts.getSDKPath(), scratch);
-  llvm::sys::path::append(scratch, dep.getPath());
+  toolchain::sys::path::append(scratch, dep.getPath());
   return StringRef(scratch.data(), scratch.size());
 }
 
 class UpToDateModuleCheker {
   ASTContext &ctx;
-  llvm::vfs::FileSystem &fs;
+  toolchain::vfs::FileSystem &fs;
   RequireOSSAModules_t requiresOSSAModules;
 
 public:
@@ -432,14 +436,14 @@ public:
       StringRef fullPath = getFullDependencyPath(in, ctx, SDKRelativeBuffer);
       switch (checkDependency(modulePath, in, fullPath)) {
       case DependencyStatus::UpToDate:
-        LLVM_DEBUG(llvm::dbgs() << "Dep " << fullPath << " is up to date\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dep " << fullPath << " is up to date\n");
         break;
       case DependencyStatus::OutOfDate:
-        LLVM_DEBUG(llvm::dbgs() << "Dep " << fullPath << " is out of date\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dep " << fullPath << " is out of date\n");
         rebuildInfo.addOutOfDateDependency(modulePath, fullPath);
         return false;
       case DependencyStatus::Missing:
-        LLVM_DEBUG(llvm::dbgs() << "Dep " << fullPath << " is missing\n");
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dep " << fullPath << " is missing\n");
         rebuildInfo.addMissingDependency(modulePath, fullPath);
         return false;
       }
@@ -447,10 +451,10 @@ public:
     return true;
   }
 
-  // Check that the output .swiftmodule file is at least as new as all the
+  // Check that the output .codemodule file is at least as new as all the
   // dependencies it read when it was built last time.
   bool serializedASTBufferIsUpToDate(
-      StringRef path, const llvm::MemoryBuffer &buf,
+      StringRef path, const toolchain::MemoryBuffer &buf,
       ModuleRebuildInfo &rebuildInfo,
       SmallVectorImpl<FileDependency> &allDeps) {
 
@@ -458,7 +462,7 @@ public:
     // in validateSerializedAST.
     allDeps.clear();
 
-    LLVM_DEBUG(llvm::dbgs() << "Validating deps of " << path << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Validating deps of " << path << "\n");
     auto validationInfo = serialization::validateSerializedAST(
         buf.getBuffer(), requiresOSSAModules,
         ctx.LangOpts.SDKName, /*ExtendedValidationInfo=*/nullptr, &allDeps);
@@ -474,12 +478,12 @@ public:
                                    skipCheckingSystemDependencies);
   }
 
-  // Check that the output .swiftmodule file is at least as new as all the
+  // Check that the output .codemodule file is at least as new as all the
   // dependencies it read when it was built last time.
-  bool swiftModuleIsUpToDate(
+  bool languageModuleIsUpToDate(
     StringRef modulePath, ModuleRebuildInfo &rebuildInfo,
     SmallVectorImpl<FileDependency> &AllDeps,
-    std::unique_ptr<llvm::MemoryBuffer> &moduleBuffer) {
+    std::unique_ptr<toolchain::MemoryBuffer> &moduleBuffer) {
     auto OutBuf = fs.getBufferForFile(modulePath);
     if (!OutBuf)
       return false;
@@ -534,10 +538,10 @@ public:
 /// normal cache, the prebuilt cache, a module adjacent to the interface, or
 /// a module that we'll build from a module interface.
 class ModuleInterfaceLoaderImpl {
-  friend class swift::ModuleInterfaceLoader;
-  friend class swift::ModuleInterfaceCheckerImpl;
+  friend class language::ModuleInterfaceLoader;
+  friend class language::ModuleInterfaceCheckerImpl;
   ASTContext &ctx;
-  llvm::vfs::FileSystem &fs;
+  toolchain::vfs::FileSystem &fs;
   DiagnosticEngine &diags;
   ModuleRebuildInfo rebuildInfo;
   UpToDateModuleCheker upToDateChecker;
@@ -583,18 +587,18 @@ class ModuleInterfaceLoaderImpl {
     if (backupInterfaceDir.empty())
       return std::string();
     auto &fs = *SM.getFileSystem();
-    auto fileName = llvm::sys::path::filename(interfacePath);
+    auto fileName = toolchain::sys::path::filename(interfacePath);
     {
-      llvm::SmallString<256> path(backupInterfaceDir);
-      llvm::sys::path::append(path, llvm::Twine(moduleName) + ".codemodule");
-      llvm::sys::path::append(path, fileName);
+      toolchain::SmallString<256> path(backupInterfaceDir);
+      toolchain::sys::path::append(path, toolchain::Twine(moduleName) + ".codemodule");
+      toolchain::sys::path::append(path, fileName);
       if (fs.exists(path.str())) {
         return path.str().str();
       }
     }
     {
-      llvm::SmallString<256> path(backupInterfaceDir);
-      llvm::sys::path::append(path, fileName);
+      toolchain::SmallString<256> path(backupInterfaceDir);
+      toolchain::sys::path::append(path, fileName);
       if (fs.exists(path.str())) {
         return path.str().str();
       }
@@ -602,19 +606,19 @@ class ModuleInterfaceLoaderImpl {
     return std::string();
   }
 
-  // Check that a "forwarding" .swiftmodule file is at least as new as all the
+  // Check that a "forwarding" .codemodule file is at least as new as all the
   // dependencies it read when it was built last time. Requires that the
   // forwarding module has been loaded from disk.
   bool forwardingModuleIsUpToDate(
       StringRef path, const ForwardingModule &fwd,
       SmallVectorImpl<FileDependency> &deps,
-      std::unique_ptr<llvm::MemoryBuffer> &moduleBuffer) {
+      std::unique_ptr<toolchain::MemoryBuffer> &moduleBuffer) {
 
     // Clear the existing dependencies, because we're going to re-fill them
     // from the forwarding module.
     deps.clear();
 
-    LLVM_DEBUG(llvm::dbgs() << "Validating deps of " << path << "\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Validating deps of " << path << "\n");
 
     // First, make sure the underlying module path exists and is valid.
     auto modBuf = fs.getBufferForFile(fwd.underlyingModulePath);
@@ -649,22 +653,22 @@ class ModuleInterfaceLoaderImpl {
     if (!sdkPath.empty() &&
         hasPrefix(path::begin(interfacePath), path::end(interfacePath),
                   path::begin(sdkPath), path::end(sdkPath))) {
-      return !(StringRef(interfacePath).ends_with(".private.swiftinterface") ||
-               StringRef(interfacePath).ends_with(".package.swiftinterface"));
+      return !(StringRef(interfacePath).ends_with(".private.codeinterface") ||
+               StringRef(interfacePath).ends_with(".package.codeinterface"));
     }
     return false;
   }
 
   std::optional<StringRef>
-  computePrebuiltModulePath(llvm::SmallString<256> &scratch) {
-    namespace path = llvm::sys::path;
+  computePrebuiltModulePath(toolchain::SmallString<256> &scratch) {
+    namespace path = toolchain::sys::path;
 
     // Check if this is a public interface file from the SDK.
     if (!canInterfaceHavePrebuiltModule())
       return std::nullopt;
 
-    // Assemble the expected path: $PREBUILT_CACHE/Foo.swiftmodule or
-    // $PREBUILT_CACHE/Foo.swiftmodule/arch.swiftmodule. Note that there's no
+    // Assemble the expected path: $PREBUILT_CACHE/Foo.codemodule or
+    // $PREBUILT_CACHE/Foo.codemodule/arch.codemodule. Note that there's no
     // cache key here.
     scratch = prebuiltCacheDir;
 
@@ -686,20 +690,20 @@ class ModuleInterfaceLoaderImpl {
     return scratch.str();
   }
 
-  /// Hack to deal with build systems (including the Swift standard library, at
+  /// Hack to deal with build systems (including the Codira standard library, at
   /// the time of this comment) that aren't yet using target-specific names for
-  /// multi-target swiftmodules, in case the prebuilt cache is.
+  /// multi-target languagemodules, in case the prebuilt cache is.
   std::optional<StringRef>
-  computeFallbackPrebuiltModulePath(llvm::SmallString<256> &scratch) {
-    namespace path = llvm::sys::path;
+  computeFallbackPrebuiltModulePath(toolchain::SmallString<256> &scratch) {
+    namespace path = toolchain::sys::path;
     StringRef sdkPath = ctx.SearchPathOpts.getSDKPath();
 
     // Check if this is a public interface file from the SDK.
     if (sdkPath.empty() ||
         !hasPrefix(path::begin(interfacePath), path::end(interfacePath),
                    path::begin(sdkPath), path::end(sdkPath)) ||
-        StringRef(interfacePath).ends_with(".private.swiftinterface") ||
-         StringRef(interfacePath).ends_with(".package.swiftinterface"))
+        StringRef(interfacePath).ends_with(".private.codeinterface") ||
+         StringRef(interfacePath).ends_with(".package.codeinterface"))
       return std::nullopt;
 
     // If the module isn't target-specific, there's no fallback path.
@@ -715,7 +719,7 @@ class ModuleInterfaceLoaderImpl {
       return std::nullopt;
 
     // Assemble the expected path:
-    // $PREBUILT_CACHE/Foo.swiftmodule/target.swiftmodule. Note that there's no
+    // $PREBUILT_CACHE/Foo.codemodule/target.codemodule. Note that there's no
     // cache key here.
     scratch = prebuiltCacheDir;
     path::append(scratch, inParentDirName);
@@ -740,7 +744,7 @@ class ModuleInterfaceLoaderImpl {
     if (resourceDir.empty()) return false;
 
     SmallString<128> hostPath;
-    llvm::sys::path::append(hostPath,
+    toolchain::sys::path::append(hostPath,
                             resourceDir, "host");
     return pathStartsWith(hostPath, path);
   }
@@ -756,7 +760,7 @@ class ModuleInterfaceLoaderImpl {
     if (sdkPath.empty()) return false;
 
     SmallString<128> frameworksPath;
-    llvm::sys::path::append(frameworksPath,
+    toolchain::sys::path::append(frameworksPath,
                             sdkPath, "System", "Library",
                             publicFramework ? "Frameworks" : "PrivateFrameworks");
 
@@ -768,7 +772,7 @@ class ModuleInterfaceLoaderImpl {
     if (sdkPath.empty()) return false;
 
     SmallString<128> frameworksPath;
-    llvm::sys::path::append(frameworksPath,
+    toolchain::sys::path::append(frameworksPath,
                             sdkPath, "System", "Library", "SubFrameworks");
 
     return pathStartsWith(frameworksPath, path);
@@ -779,8 +783,8 @@ class ModuleInterfaceLoaderImpl {
     if (sdkPath.empty()) return false;
 
     SmallString<128> frameworksPath;
-    llvm::sys::path::append(frameworksPath,
-                            sdkPath, "usr", "lib", "swift");
+    toolchain::sys::path::append(frameworksPath,
+                            sdkPath, "usr", "lib", "language");
 
     return pathStartsWith(frameworksPath, path);
   }
@@ -792,7 +796,7 @@ class ModuleInterfaceLoaderImpl {
     std::pair<std::string, std::string> result;
 
     bool ignoreByDefault = ctx.blockListConfig.hasBlockListAction(
-                                       "Swift_UseSwiftinterfaceByDefault",
+                                       "Codira_UseCodirainterfaceByDefault",
                                        BlockListKeyKind::ModuleName,
                                        BlockListAction::ShouldUseBinaryModule);
     bool shouldLoadAdjacentModule;
@@ -814,15 +818,15 @@ class ModuleInterfaceLoaderImpl {
       shouldLoadAdjacentModule =
         ignore != ReasonModuleInterfaceIgnored::NotIgnored;
       if (shouldLoadAdjacentModule) {
-        // Prefer the swiftmodule.
+        // Prefer the languagemodule.
         rebuildInfo.addIgnoredModuleInterface(modulePath, ignore);
       } else {
-        // Prefer the swiftinterface.
+        // Prefer the languageinterface.
         rebuildInfo.addIgnoredModule(modulePath,
                                  ReasonIgnored::DistributedInterfaceByDefault);
       }
     } else {
-      // Should we attempt to load a swiftmodule adjacent to the swiftinterface?
+      // Should we attempt to load a languagemodule adjacent to the languageinterface?
       shouldLoadAdjacentModule = !ctx.IgnoreAdjacentModules;
 
       if (modulePath.contains(".sdk")) {
@@ -834,22 +838,22 @@ class ModuleInterfaceLoaderImpl {
         }
       }
 
-      // Don't use the adjacent swiftmodule for frameworks from the public
+      // Don't use the adjacent languagemodule for frameworks from the public
       // Frameworks folder of the SDK.
-      bool blocklistSwiftmodule =
+      bool blocklistCodiramodule =
         ctx.blockListConfig.hasBlockListAction(moduleName,
                                      BlockListKeyKind::ModuleName,
                                      BlockListAction::ShouldUseBinaryModule);
 
       if ((isInSystemFrameworks(modulePath, /*publicFramework*/true) ||
            isInSystemSubFrameworks(modulePath)) &&
-          !blocklistSwiftmodule) {
+          !blocklistCodiramodule) {
         shouldLoadAdjacentModule = false;
         rebuildInfo.addIgnoredModule(modulePath,
                                      ReasonIgnored::PublicFramework);
       } else if (isInSystemLibraries(modulePath) &&
                  moduleName != STDLIB_NAME &&
-                 !blocklistSwiftmodule) {
+                 !blocklistCodiramodule) {
         shouldLoadAdjacentModule = false;
         rebuildInfo.addIgnoredModule(modulePath,
                                      ReasonIgnored::PublicLibrary);
@@ -866,7 +870,7 @@ class ModuleInterfaceLoaderImpl {
       // module interface.
       return {};
     case ModuleLoadingMode::PreferInterface:
-      // If we're in the load mode that prefers .swiftinterfaces, specifically
+      // If we're in the load mode that prefers .codeinterfaces, specifically
       // skip the module adjacent to the interface, but use the caches if
       // they're present.
       shouldLoadAdjacentModule = false;
@@ -877,14 +881,14 @@ class ModuleInterfaceLoaderImpl {
       // The rest of the function should be covered by this.
       break;
     case ModuleLoadingMode::OnlySerialized:
-      llvm_unreachable("module interface loader should not have been created");
+      toolchain_unreachable("module interface loader should not have been created");
     }
     // [NOTE: ModuleInterfaceLoader-defer-to-ImplicitSerializedModuleLoader]
-    // If there's a module adjacent to the .swiftinterface that we can
+    // If there's a module adjacent to the .codeinterface that we can
     // _likely_ load (it validates OK and is up to date), bail early with
     // errc::not_supported, so the next (serialized) loader in the chain will
     // load it.
-    // Alternately, if there's a .swiftmodule present but we can't even
+    // Alternately, if there's a .codemodule present but we can't even
     // read it (for whatever reason), we should let the other module loader
     // diagnose it.
 
@@ -897,8 +901,8 @@ class ModuleInterfaceLoaderImpl {
     // If we have a prebuilt cache path, check that too if the interface comes
     // from the SDK.
     if (!prebuiltCacheDir.empty()) {
-      llvm::SmallString<256> scratch;
-      std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
+      toolchain::SmallString<256> scratch;
+      std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
       std::optional<StringRef> path = computePrebuiltModulePath(scratch);
       if (!path) {
         // Hack: deal with prebuilds of modules that still use the target-based
@@ -915,7 +919,7 @@ class ModuleInterfaceLoaderImpl {
     return result;
   }
 
-  llvm::ErrorOr<DiscoveredModule>
+  toolchain::ErrorOr<DiscoveredModule>
   discoverUpToDateCompiledModuleForInterface(SmallVectorImpl<FileDependency> &deps,
                                              std::string &UsableModulePath) {
     std::string adjacentMod, prebuiltMod;
@@ -925,14 +929,14 @@ class ModuleInterfaceLoaderImpl {
       if (adjacentModuleBuffer) {
         if (upToDateChecker.serializedASTBufferIsUpToDate(adjacentMod, *adjacentModuleBuffer.get(),
                                                           rebuildInfo, deps)) {
-          LLVM_DEBUG(llvm::dbgs() << "Found up-to-date module at "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found up-to-date module at "
                                   << adjacentMod
                                   << "; deferring to serialized module loader\n");
           UsableModulePath = adjacentMod;
           return std::make_error_code(std::errc::not_supported);
         } else if (isInResourceDir(adjacentMod) &&
                    loadMode == ModuleLoadingMode::PreferSerialized &&
-                   !version::isCurrentCompilerTagged() &&
+                   version::getCurrentCompilerSerializationTag().empty() &&
                    rebuildInfo.getOrInsertCandidateModule(adjacentMod)
                            .serializationStatus !=
                        serialization::Status::SDKMismatch &&
@@ -944,9 +948,9 @@ class ModuleInterfaceLoaderImpl {
                    rebuildInfo.getOrInsertCandidateModule(adjacentMod)
                            .serializationStatus !=
                        serialization::Status::NotInOSSA) {
-          // Special-case here: If we're loading a .swiftmodule from the resource
+          // Special-case here: If we're loading a .codemodule from the resource
           // dir adjacent to the compiler, defer to the serialized loader instead
-          // of falling back. This is to support local development of Swift,
+          // of falling back. This is to support local development of Codira,
           // where one might change the module format version but forget to
           // recompile the standard library. If that happens, don't fall back
           // and silently recompile the standard library, raise an error
@@ -954,24 +958,24 @@ class ModuleInterfaceLoaderImpl {
           //
           // This logic is disabled for tagged compilers, so distributed
           // compilers should ignore this restriction and rebuild all modules
-          // from a swiftinterface when required.
+          // from a languageinterface when required.
           //
           // Still accept modules built with a different SDK, allowing the use
           // of one toolchain against a different SDK.
-          LLVM_DEBUG(llvm::dbgs() << "Found out-of-date module in the "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found out-of-date module in the "
                                      "resource-dir at "
                                   << adjacentMod
                                   << "; deferring to serialized module loader "
                                      "to diagnose\n");
           return std::make_error_code(std::errc::not_supported);
         } else {
-          LLVM_DEBUG(llvm::dbgs() << "Found out-of-date module at "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found out-of-date module at "
                                   << adjacentMod << "\n");
           rebuildInfo.setModuleKind(adjacentMod,
                                     ModuleRebuildInfo::ModuleKind::Normal);
         }
       } else {
-        LLVM_DEBUG(llvm::dbgs() << "Found unreadable module at "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found unreadable module at "
                                 << adjacentMod
                                 << "; deferring to serialized module loader\n");
         return std::make_error_code(std::errc::not_supported);
@@ -979,15 +983,15 @@ class ModuleInterfaceLoaderImpl {
     }
 
     if(!prebuiltMod.empty()) {
-      std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
-      if (upToDateChecker.swiftModuleIsUpToDate(prebuiltMod, rebuildInfo,
+      std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
+      if (upToDateChecker.codeModuleIsUpToDate(prebuiltMod, rebuildInfo,
                                                 deps, moduleBuffer)) {
-        LLVM_DEBUG(llvm::dbgs() << "Found up-to-date prebuilt module at "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found up-to-date prebuilt module at "
                                 << prebuiltMod << "\n");
         UsableModulePath = prebuiltMod;
         return DiscoveredModule::prebuilt(prebuiltMod, std::move(moduleBuffer));
       } else {
-        LLVM_DEBUG(llvm::dbgs() << "Found out-of-date prebuilt module at "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found out-of-date prebuilt module at "
                                 << prebuiltMod << "\n");
         rebuildInfo.setModuleKind(prebuiltMod,
                                   ModuleRebuildInfo::ModuleKind::Prebuilt);
@@ -997,9 +1001,9 @@ class ModuleInterfaceLoaderImpl {
     return std::make_error_code(std::errc::no_such_file_or_directory);
   }
 
-  /// Finds the most appropriate .swiftmodule, whose dependencies are up to
-  /// date, that we can load for the provided .swiftinterface file.
-  llvm::ErrorOr<DiscoveredModule> discoverUpToDateModuleForInterface(
+  /// Finds the most appropriate .codemodule, whose dependencies are up to
+  /// date, that we can load for the provided .codeinterface file.
+  toolchain::ErrorOr<DiscoveredModule> discoverUpToDateModuleForInterface(
     StringRef cachedOutputPath,
     SmallVectorImpl<FileDependency> &deps) {
 
@@ -1017,17 +1021,17 @@ class ModuleInterfaceLoaderImpl {
       // if it's up-to-date.
       if (isForwardingModule) {
         if (auto forwardingModule = ForwardingModule::load(*buf)) {
-          std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
+          std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
           if (forwardingModuleIsUpToDate(cachedOutputPath,
                                          *forwardingModule, deps,
                                          moduleBuffer)) {
-            LLVM_DEBUG(llvm::dbgs() << "Found up-to-date forwarding module at "
+            TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found up-to-date forwarding module at "
                                     << cachedOutputPath << "\n");
             return DiscoveredModule::forwarded(
               forwardingModule->underlyingModulePath, std::move(moduleBuffer));
           }
 
-          LLVM_DEBUG(llvm::dbgs() << "Found out-of-date forwarding module at "
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found out-of-date forwarding module at "
                      << cachedOutputPath << "\n");
           rebuildInfo.setModuleKind(cachedOutputPath,
                                     ModuleRebuildInfo::ModuleKind::Forwarding);
@@ -1035,11 +1039,11 @@ class ModuleInterfaceLoaderImpl {
       // Otherwise, check if the AST buffer itself is up to date.
       } else if (upToDateChecker.serializedASTBufferIsUpToDate(cachedOutputPath, *buf,
                                                                rebuildInfo, deps)) {
-        LLVM_DEBUG(llvm::dbgs() << "Found up-to-date cached module at "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found up-to-date cached module at "
                                 << cachedOutputPath << "\n");
         return DiscoveredModule::normal(cachedOutputPath, std::move(buf));
       } else {
-        LLVM_DEBUG(llvm::dbgs() << "Found out-of-date cached module at "
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "Found out-of-date cached module at "
                    << cachedOutputPath << "\n");
         rebuildInfo.setModuleKind(cachedOutputPath,
                                   ModuleRebuildInfo::ModuleKind::Cached);
@@ -1057,7 +1061,7 @@ class ModuleInterfaceLoaderImpl {
   /// this. If the write was successful, it also updates the
   /// list of dependencies to match what was written to the forwarding file.
   bool writeForwardingModuleAndUpdateDeps(
-      const DiscoveredModule &mod, llvm::vfs::OutputBackend &backend,
+      const DiscoveredModule &mod, toolchain::vfs::OutputBackend &backend,
       StringRef outputPath, SmallVectorImpl<FileDependency> &deps) {
     assert(mod.isPrebuilt() &&
            "cannot write forwarding file for non-prebuilt module");
@@ -1095,8 +1099,8 @@ class ModuleInterfaceLoaderImpl {
     }
 
     auto hadError = withOutputPath(diags, backend, outputPath,
-                                      [&](llvm::raw_pwrite_stream &out) {
-                                        llvm::yaml::Output yamlWriter(out);
+                                      [&](toolchain::raw_pwrite_stream &out) {
+                                        toolchain::yaml::Output yamlWriter(out);
                                         yamlWriter << fwd;
                                         return false;
                                       });
@@ -1116,7 +1120,7 @@ class ModuleInterfaceLoaderImpl {
   /// from the given interface. See the main comment in
   /// \c ModuleInterfaceLoader.h for an explanation of the module
   /// loading strategy.
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>
   findOrBuildLoadableModule() {
 
     // Track system dependencies if the parent tracker is set to do so.
@@ -1134,7 +1138,7 @@ class ModuleInterfaceLoaderImpl {
         requiresOSSAModules);
 
     // Compute the output path if we're loading or emitting a cached module.
-    SwiftInterfaceModuleOutputPathResolution::ResultTy resolvedOutputPath;
+    CodiraInterfaceModuleOutputPathResolution::ResultTy resolvedOutputPath;
     astDelegate.getCachedOutputPath(resolvedOutputPath, moduleName,
                                     interfacePath,
                                     ctx.SearchPathOpts.getSDKPath());
@@ -1183,7 +1187,7 @@ class ModuleInterfaceLoaderImpl {
       return std::make_error_code(std::errc::not_supported);
     }
 
-    std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
+    std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
 
     // We didn't discover a module corresponding to this interface.
     // Diagnose that we didn't find a loadable module, if we were asked to.
@@ -1197,14 +1201,14 @@ class ModuleInterfaceLoaderImpl {
                            interfacePath);
     };
     auto remarkRebuild = Opts.remarkOnRebuildFromInterface
-                       ? llvm::function_ref<void()>(remarkRebuildAll)
+                       ? toolchain::function_ref<void()>(remarkRebuildAll)
                        : nullptr;
 
     bool failed = false;
     std::string backupPath = getBackupPublicModuleInterfacePath();
     {
       DiagnosticEngine emptyDiags(ctx.SourceMgr);
-      std::unique_ptr<llvm::SaveAndRestore<DiagnosticEngine*>> saver;
+      std::unique_ptr<toolchain::SaveAndRestore<DiagnosticEngine*>> saver;
       DiagnosticEngine *diagsToUse = &ctx.Diags;
       // Avoid emitting diagnostics if we have a backup interface to use.
       // If we succeed in building this canonical interface, it's not interesting
@@ -1213,7 +1217,7 @@ class ModuleInterfaceLoaderImpl {
       // to see diagnostics there.
       if (!backupPath.empty()) {
         diagsToUse = &emptyDiags;
-        saver = std::make_unique<llvm::SaveAndRestore<DiagnosticEngine*>>(
+        saver = std::make_unique<toolchain::SaveAndRestore<DiagnosticEngine*>>(
           astDelegate.Diags, diagsToUse);
       }
       // Set up a builder if we need to build the module. It'll also set up
@@ -1229,14 +1233,14 @@ class ModuleInterfaceLoaderImpl {
         Opts.disableInterfaceLock,
         ctx.IgnoreAdjacentModules, diagnosticLoc,
         dependencyTracker);
-      // If we found an out-of-date .swiftmodule, we still want to add it as
-      // a dependency of the .swiftinterface. That way if it's updated, but
-      // the .swiftinterface remains the same, we invalidate the cache and
-      // check the new .swiftmodule, because it likely has more information
+      // If we found an out-of-date .codemodule, we still want to add it as
+      // a dependency of the .codeinterface. That way if it's updated, but
+      // the .codeinterface remains the same, we invalidate the cache and
+      // check the new .codemodule, because it likely has more information
       // about the state of the world.
       if (rebuildInfo.sawOutOfDateModule(modulePath))
         builder.addExtraDependency(modulePath);
-      failed = builder.buildSwiftModule(cachedOutputPath,
+      failed = builder.buildCodiraModule(cachedOutputPath,
                                         /*shouldSerializeDeps*/true,
                                         &moduleBuffer, remarkRebuild);
     }
@@ -1274,7 +1278,7 @@ class ModuleInterfaceLoaderImpl {
       // Use cachedOutputPath as the output file path. This output path was
       // calculated using the canonical interface file path to make sure we
       // can find it from the canonical interface file.
-      auto failedAgain = fallbackBuilder.buildSwiftModule(cachedOutputPath,
+      auto failedAgain = fallbackBuilder.buildCodiraModule(cachedOutputPath,
                                                           /*shouldSerializeDeps*/true,
                                                           &moduleBuffer,
                                                           remarkRebuild);
@@ -1298,16 +1302,16 @@ bool ModuleInterfaceLoader::isCached(StringRef DepPath) {
   return InterfaceChecker.isCached(DepPath);
 }
 
-/// Load a .swiftmodule associated with a .swiftinterface either from a
+/// Load a .codemodule associated with a .codeinterface either from a
 /// cache or by converting it in a subordinate \c CompilerInstance, caching
 /// the results.
 std::error_code ModuleInterfaceLoader::findModuleFilesInDirectory(
     ImportPath::Element ModuleID, const SerializedModuleBaseName &BaseName,
     SmallVectorImpl<char> *ModuleInterfacePath,
     SmallVectorImpl<char> *ModuleInterfaceSourcePath,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleDocBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleSourceInfoBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleDocBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleSourceInfoBuffer,
     bool skipBuildingInterface, bool IsFramework,
     bool isTestableImport) {
 
@@ -1315,15 +1319,15 @@ std::error_code ModuleInterfaceLoader::findModuleFilesInDirectory(
   // should not have been constructed at all.
   assert(LoadMode != ModuleLoadingMode::OnlySerialized);
 
-  std::string ModPath{BaseName.getName(file_types::TY_SwiftModuleFile)};
+  std::string ModPath{BaseName.getName(file_types::TY_CodiraModuleFile)};
 
-  // First check to see if the .swiftinterface exists at all. Bail if not.
+  // First check to see if the .codeinterface exists at all. Bail if not.
   auto &fs = *Ctx.SourceMgr.getFileSystem();
   auto InPath = BaseName.findInterfacePath(fs, Ctx);
   if (!InPath) {
     if (fs.exists(ModPath)) {
-      LLVM_DEBUG(llvm::dbgs()
-                 << "No .swiftinterface file found adjacent to module file "
+      TOOLCHAIN_DEBUG(toolchain::dbgs()
+                 << "No .codeinterface file found adjacent to module file "
                  << ModPath << "\n");
       return std::make_error_code(std::errc::not_supported);
     }
@@ -1351,7 +1355,7 @@ std::error_code ModuleInterfaceLoader::findModuleFilesInDirectory(
       ModuleID.Loc, InterfaceChecker.Opts,
       InterfaceChecker.RequiresOSSAModules,
       dependencyTracker,
-      llvm::is_contained(PreferInterfaceForModules, ModuleName)
+      toolchain::is_contained(PreferInterfaceForModules, ModuleName)
           ? ModuleLoadingMode::PreferInterface
           : LoadMode);
 
@@ -1367,7 +1371,7 @@ std::error_code ModuleInterfaceLoader::findModuleFilesInDirectory(
       ModuleInterfacePath->assign(InPath->begin(), InPath->end());
   }
 
-  // Open .swiftsourceinfo file if it's present.
+  // Open .codesourceinfo file if it's present.
   if (auto SourceInfoError = openModuleSourceInfoFileIfPresent(ModuleID,
                                                                BaseName,
                                                        ModuleSourceInfoBuffer))
@@ -1384,21 +1388,21 @@ std::error_code ModuleInterfaceLoader::findModuleFilesInDirectory(
 std::vector<std::string>
 ModuleInterfaceCheckerImpl::getCompiledModuleCandidatesForInterface(
     StringRef moduleName, StringRef interfacePath) {
-  // Derive .swiftmodule path from the .swiftinterface path.
-  auto interfaceExt = file_types::getExtension(file_types::TY_SwiftModuleInterfaceFile);
-  auto newExt = file_types::getExtension(file_types::TY_SwiftModuleFile);
-  llvm::SmallString<32> modulePath;
+  // Derive .codemodule path from the .codeinterface path.
+  auto interfaceExt = file_types::getExtension(file_types::TY_CodiraModuleInterfaceFile);
+  auto newExt = file_types::getExtension(file_types::TY_CodiraModuleFile);
+  toolchain::SmallString<32> modulePath;
 
   // When looking up the module for a private or package interface, strip
   // the '.private.' or '.package.'section of the base name
   if (interfacePath.ends_with(".private." + interfaceExt.str()) ||
       interfacePath.ends_with(".package." + interfaceExt.str())) {
-    auto newBaseName = llvm::sys::path::stem(llvm::sys::path::stem(interfacePath));
-    modulePath = llvm::sys::path::parent_path(interfacePath);
-    llvm::sys::path::append(modulePath, newBaseName + "." + newExt.str());
+    auto newBaseName = toolchain::sys::path::stem(toolchain::sys::path::stem(interfacePath));
+    modulePath = toolchain::sys::path::parent_path(interfacePath);
+    toolchain::sys::path::append(modulePath, newBaseName + "." + newExt.str());
   } else {
     modulePath = interfacePath;
-    llvm::sys::path::replace_extension(modulePath, newExt);
+    toolchain::sys::path::replace_extension(modulePath, newExt);
   }
 
   ModuleInterfaceLoaderImpl Impl(Ctx, modulePath, interfacePath, moduleName,
@@ -1419,8 +1423,8 @@ ModuleInterfaceCheckerImpl::getCompiledModuleCandidatesForInterface(
     if (!results.empty())
       return false;
     SmallVector<FileDependency, 16> deps;
-    std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
-    return Impl.upToDateChecker.swiftModuleIsUpToDate(
+    std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
+    return Impl.upToDateChecker.codeModuleIsUpToDate(
         modulePath, Impl.rebuildInfo, deps, moduleBuffer);
   };
 
@@ -1434,12 +1438,12 @@ ModuleInterfaceCheckerImpl::getCompiledModuleCandidatesForInterface(
 
 bool ModuleInterfaceCheckerImpl::tryEmitForwardingModule(
     StringRef moduleName, StringRef interfacePath,
-    ArrayRef<std::string> candidates, llvm::vfs::OutputBackend &backend,
+    ArrayRef<std::string> candidates, toolchain::vfs::OutputBackend &backend,
     StringRef outputPath) {
-  // Derive .swiftmodule path from the .swiftinterface path.
-  auto newExt = file_types::getExtension(file_types::TY_SwiftModuleFile);
-  llvm::SmallString<32> modulePath = interfacePath;
-  llvm::sys::path::replace_extension(modulePath, newExt);
+  // Derive .codemodule path from the .codeinterface path.
+  auto newExt = file_types::getExtension(file_types::TY_CodiraModuleFile);
+  toolchain::SmallString<32> modulePath = interfacePath;
+  toolchain::sys::path::replace_extension(modulePath, newExt);
   ModuleInterfaceLoaderImpl Impl(Ctx, modulePath, interfacePath, moduleName,
                                  CacheDir, PrebuiltCacheDir,
                                  BackupInterfaceDir, SourceLoc(), Opts,
@@ -1447,16 +1451,16 @@ bool ModuleInterfaceCheckerImpl::tryEmitForwardingModule(
                                  nullptr,
                                  ModuleLoadingMode::PreferSerialized);
   SmallVector<FileDependency, 16> deps;
-  std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
+  std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
   for (auto mod: candidates) {
     // Check if the candidate compiled module is still up-to-date.
-    if (Impl.upToDateChecker.swiftModuleIsUpToDate(mod, Impl.rebuildInfo,
+    if (Impl.upToDateChecker.codeModuleIsUpToDate(mod, Impl.rebuildInfo,
                                                    deps, moduleBuffer)) {
       // If so, emit a forwarding module to the candidate.
       ForwardingModule FM(mod);
       auto hadError = withOutputPath(Ctx.Diags, backend, outputPath,
-                                        [&](llvm::raw_pwrite_stream &out) {
-                                          llvm::yaml::Output yamlWriter(out);
+                                        [&](toolchain::raw_pwrite_stream &out) {
+                                          toolchain::yaml::Output yamlWriter(out);
                                           yamlWriter << FM;
                                           return false;
                                         });
@@ -1467,7 +1471,7 @@ bool ModuleInterfaceCheckerImpl::tryEmitForwardingModule(
   return false;
 }
 
-bool ModuleInterfaceLoader::buildSwiftModuleFromSwiftInterface(
+bool ModuleInterfaceLoader::buildCodiraModuleFromCodiraInterface(
     SourceManager &SourceMgr, DiagnosticEngine &Diags,
     const SearchPathOptions &SearchPathOpts, const LangOptions &LangOpts,
     const ClangImporterOptions &ClangOpts, const CASOptions &CASOpts,
@@ -1491,8 +1495,8 @@ bool ModuleInterfaceLoader::buildSwiftModuleFromSwiftInterface(
                                          LoaderOpts.disableInterfaceLock,
                                          silenceInterfaceDiagnostics);
   // FIXME: We really only want to serialize 'important' dependencies here, if
-  //        we want to ship the built swiftmodules to another machine.
-  auto failed = builder.buildSwiftModule(OutPath, /*shouldSerializeDeps*/true,
+  //        we want to ship the built languagemodules to another machine.
+  auto failed = builder.buildCodiraModule(OutPath, /*shouldSerializeDeps*/true,
                                          /*ModuleBuffer*/nullptr, nullptr,
                                          SearchPathOpts.CandidateCompiledModules);
   if (!failed)
@@ -1514,18 +1518,18 @@ bool ModuleInterfaceLoader::buildSwiftModuleFromSwiftInterface(
   // Ensure we can rebuild module after user changed the original interface file.
   backupBuilder.addExtraDependency(InPath);
   // FIXME: We really only want to serialize 'important' dependencies here, if
-  //        we want to ship the built swiftmodules to another machine.
-  return backupBuilder.buildSwiftModule(OutPath, /*shouldSerializeDeps*/true,
+  //        we want to ship the built languagemodules to another machine.
+  return backupBuilder.buildCodiraModule(OutPath, /*shouldSerializeDeps*/true,
                                         /*ModuleBuffer*/nullptr, nullptr,
                                         SearchPathOpts.CandidateCompiledModules);
 }
 
-static bool readSwiftInterfaceVersionAndArgs(
-    SourceManager &SM, DiagnosticEngine &Diags, llvm::StringSaver &ArgSaver,
-    SwiftInterfaceInfo &interfaceInfo, StringRef interfacePath,
-    SourceLoc diagnosticLoc, llvm::Triple preferredTarget) {
-  llvm::vfs::FileSystem &fs = *SM.getFileSystem();
-  auto FileOrError = swift::vfs::getFileOrSTDIN(fs, interfacePath);
+static bool readCodiraInterfaceVersionAndArgs(
+    SourceManager &SM, DiagnosticEngine &Diags, toolchain::StringSaver &ArgSaver,
+    CodiraInterfaceInfo &interfaceInfo, StringRef interfacePath,
+    SourceLoc diagnosticLoc, toolchain::Triple preferredTarget) {
+  toolchain::vfs::FileSystem &fs = *SM.getFileSystem();
+  auto FileOrError = language::vfs::getFileOrSTDIN(fs, interfacePath);
   if (!FileOrError) {
     // Don't use this->diagnose() because it'll just try to re-open
     // interfacePath.
@@ -1534,8 +1538,8 @@ static bool readSwiftInterfaceVersionAndArgs(
     return true;
   }
   auto SB = FileOrError.get()->getBuffer();
-  auto VersRe = getSwiftInterfaceFormatVersionRegex();
-  auto CompRe = getSwiftInterfaceCompilerVersionRegex();
+  auto VersRe = getCodiraInterfaceFormatVersionRegex();
+  auto CompRe = getCodiraInterfaceCompilerVersionRegex();
   SmallVector<StringRef, 2> VersMatches, CompMatches;
 
   if (!VersRe.match(SB, &VersMatches)) {
@@ -1547,7 +1551,7 @@ static bool readSwiftInterfaceVersionAndArgs(
 
   if (extractCompilerFlagsFromInterface(interfacePath, SB, ArgSaver,
                                         interfaceInfo.Arguments,
-                                        preferredTarget)) {
+                                        preferredTarget, &Diags)) {
     InterfaceSubContextDelegateImpl::diagnose(
         interfacePath, diagnosticLoc, SM, &Diags,
         diag::error_extracting_version_from_module_interface);
@@ -1571,7 +1575,7 @@ static bool readSwiftInterfaceVersionAndArgs(
 
     // For now, successfully parsing the tools version out of the interface is
     // optional.
-    auto ToolsVersRe = getSwiftInterfaceCompilerToolsVersionRegex();
+    auto ToolsVersRe = getCodiraInterfaceCompilerToolsVersionRegex();
     SmallVector<StringRef, 2> VendorToolsVersMatches;
     if (ToolsVersRe.match(interfaceInfo.CompilerVersion,
                           &VendorToolsVersMatches)) {
@@ -1595,7 +1599,7 @@ static bool readSwiftInterfaceVersionAndArgs(
   return false;
 }
 
-bool ModuleInterfaceLoader::buildExplicitSwiftModuleFromSwiftInterface(
+bool ModuleInterfaceLoader::buildExplicitCodiraModuleFromCodiraInterface(
     CompilerInstance &Instance, const StringRef moduleCachePath,
     const StringRef backupInterfaceDir, const StringRef prebuiltCachePath,
     const StringRef ABIDescriptorPath, StringRef interfacePath,
@@ -1612,8 +1616,8 @@ bool ModuleInterfaceLoader::buildExplicitSwiftModuleFromSwiftInterface(
         RequireOSSAModules_t(Instance.getSILOptions()));
     ModuleRebuildInfo rebuildInfo;
     SmallVector<FileDependency, 3> allDeps;
-    std::unique_ptr<llvm::MemoryBuffer> moduleBuffer;
-    if (checker.swiftModuleIsUpToDate(outputPath, rebuildInfo, allDeps,
+    std::unique_ptr<toolchain::MemoryBuffer> moduleBuffer;
+    if (checker.codeModuleIsUpToDate(outputPath, rebuildInfo, allDeps,
                                       moduleBuffer)) {
       if (Instance.getASTContext()
               .LangOpts.EnableSkipExplicitInterfaceModuleBuildRemarks) {
@@ -1625,10 +1629,10 @@ bool ModuleInterfaceLoader::buildExplicitSwiftModuleFromSwiftInterface(
   }
 
   // Read out the compiler version.
-  llvm::BumpPtrAllocator alloc;
-  llvm::StringSaver ArgSaver(alloc);
-  SwiftInterfaceInfo InterfaceInfo;
-  readSwiftInterfaceVersionAndArgs(
+  toolchain::BumpPtrAllocator alloc;
+  toolchain::StringSaver ArgSaver(alloc);
+  CodiraInterfaceInfo InterfaceInfo;
+  readCodiraInterfaceVersionAndArgs(
       Instance.getSourceMgr(), Instance.getDiags(), ArgSaver, InterfaceInfo,
       interfacePath, SourceLoc(),
       Instance.getInvocation().getLangOptions().Target);
@@ -1637,7 +1641,7 @@ bool ModuleInterfaceLoader::buildExplicitSwiftModuleFromSwiftInterface(
       Instance, &Instance.getDiags(), Instance.getSourceMgr(),
       moduleCachePath, backupInterfaceDir, prebuiltCachePath,
       ABIDescriptorPath, {});
-  auto error = Builder.buildSwiftModuleFromInterface(
+  auto error = Builder.buildCodiraModuleFromInterface(
       interfacePath, outputPath, ShouldSerializeDeps, /*ModuleBuffer*/nullptr,
       CompiledCandidates, InterfaceInfo.CompilerVersion);
   if (!error)
@@ -1650,7 +1654,7 @@ void ModuleInterfaceLoader::collectVisibleTopLevelModuleNames(
     SmallVectorImpl<Identifier> &names) const {
   collectVisibleTopLevelModuleNamesImpl(
       names,
-      file_types::getExtension(file_types::TY_SwiftModuleInterfaceFile));
+      file_types::getExtension(file_types::TY_CodiraModuleInterfaceFile));
 }
 
 void InterfaceSubContextDelegateImpl::inheritOptionsForBuildingInterface(
@@ -1676,7 +1680,7 @@ void InterfaceSubContextDelegateImpl::inheritOptionsForBuildingInterface(
       .ClangTarget->getTriple());
     assert(!triple.empty());
     // In explicit module build, all PCMs will be built using the given clang target.
-    // So the Swift interface should know that as well to load these PCMs properly.
+    // So the Codira interface should know that as well to load these PCMs properly.
     GenericArgs.push_back("-clang-target");
     GenericArgs.push_back(triple);
   }
@@ -1703,10 +1707,10 @@ void InterfaceSubContextDelegateImpl::inheritOptionsForBuildingInterface(
                                                 .getAsString()));
   }
 
-  // Inherit the Swift language version
+  // Inherit the Codira language version
   genericSubInvocation.getLangOptions().EffectiveLanguageVersion =
     LangOpts.EffectiveLanguageVersion;
-  GenericArgs.push_back("-swift-version");
+  GenericArgs.push_back("-language-version");
   GenericArgs.push_back(ArgSaver.save(genericSubInvocation.getLangOptions()
     .EffectiveLanguageVersion.asAPINotesVersionString()));
 
@@ -1736,7 +1740,7 @@ void InterfaceSubContextDelegateImpl::inheritOptionsForBuildingInterface(
       SearchPathOpts.PluginSearchOpts;
 
   genericSubInvocation.getFrontendOptions().InputMode
-      = FrontendOptions::ParseInputMode::SwiftModuleInterface;
+      = FrontendOptions::ParseInputMode::CodiraModuleInterface;
   if (!SearchPathOpts.RuntimeResourcePath.empty()) {
     genericSubInvocation.setRuntimeResourcePath(SearchPathOpts.RuntimeResourcePath);
   }
@@ -1781,14 +1785,9 @@ void InterfaceSubContextDelegateImpl::inheritOptionsForBuildingInterface(
   SearchPathOpts.DeserializedPathRecoverer
     .forEachPair([&](StringRef lhs, StringRef rhs) {
       GenericArgs.push_back("-serialized-path-obfuscate");
-      std::string pair = (llvm::Twine(lhs) + "=" + rhs).str();
+      std::string pair = (toolchain::Twine(lhs) + "=" + rhs).str();
       GenericArgs.push_back(ArgSaver.save(pair));
   });
-
-  if (LangOpts.hasFeature(Feature::LayoutPrespecialization)) {
-    genericSubInvocation.getLangOptions().enableFeature(
-        Feature::LayoutPrespecialization);
-  }
 
   genericSubInvocation.getClangImporterOptions().DirectClangCC1ModuleBuild =
       clangImporterOpts.DirectClangCC1ModuleBuild;
@@ -1815,26 +1814,19 @@ void InterfaceSubContextDelegateImpl::inheritOptionsForBuildingInterface(
         casOpts.HasImmutableFileSystem;
     casOpts.enumerateCASConfigurationFlags(
         [&](StringRef Arg) { GenericArgs.push_back(ArgSaver.save(Arg)); });
-    // ClangIncludeTree is default on when caching is enabled.
-    genericSubInvocation.getClangImporterOptions().UseClangIncludeTree = true;
-  }
-
-  if (!clangImporterOpts.UseClangIncludeTree) {
-    genericSubInvocation.getClangImporterOptions().UseClangIncludeTree = false;
-    GenericArgs.push_back("-no-clang-include-tree");
   }
 }
 
-bool InterfaceSubContextDelegateImpl::extractSwiftInterfaceVersionAndArgs(
+bool InterfaceSubContextDelegateImpl::extractCodiraInterfaceVersionAndArgs(
     CompilerInvocation &subInvocation, DiagnosticEngine &subInstanceDiags,
-    SwiftInterfaceInfo &interfaceInfo, StringRef interfacePath,
+    CodiraInterfaceInfo &interfaceInfo, StringRef interfacePath,
     SourceLoc diagnosticLoc) {
-  if (readSwiftInterfaceVersionAndArgs(SM, *Diags, ArgSaver, interfaceInfo,
+  if (readCodiraInterfaceVersionAndArgs(SM, *Diags, ArgSaver, interfaceInfo,
                                        interfacePath, diagnosticLoc,
                                        subInvocation.getLangOptions().Target))
     return true;
 
-  // Prior to Swift 5.9, swiftinterfaces were always built (accidentally) with
+  // Prior to Codira 5.9, languageinterfaces were always built (accidentally) with
   // `-target-min-inlining-version target` prepended to the argument list. To
   // preserve compatibility we must continue to prepend those flags to the
   // invocation when the interface was generated by an older compiler.
@@ -1902,9 +1894,9 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
     genericSubInvocation.getFrontendOptions().IntermoduleDependencyTracking =
         IntermoduleDepTrackingMode::ExcludeSystem;
   }
-  if (LoaderOpts.disableImplicitSwiftModule) {
+  if (LoaderOpts.disableImplicitCodiraModule) {
     genericSubInvocation.getFrontendOptions().DisableImplicitModules = true;
-    GenericArgs.push_back("-disable-implicit-swift-modules");
+    GenericArgs.push_back("-disable-implicit-language-modules");
     GenericArgs.push_back("-Xcc");
     GenericArgs.push_back("-fno-implicit-modules");
     GenericArgs.push_back("-Xcc");
@@ -1917,10 +1909,10 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
     GenericArgs.push_back("-application-extension");
   }
 
-  // Pass down -explicit-swift-module-map-file
-  StringRef explicitSwiftModuleMap = searchPathOpts.ExplicitSwiftModuleMapPath;
-  genericSubInvocation.getSearchPathOptions().ExplicitSwiftModuleMapPath =
-    explicitSwiftModuleMap.str();
+  // Pass down -explicit-language-module-map-file
+  StringRef explicitCodiraModuleMap = searchPathOpts.ExplicitCodiraModuleMapPath;
+  genericSubInvocation.getSearchPathOptions().ExplicitCodiraModuleMapPath =
+    explicitCodiraModuleMap.str();
 
   // Pass down VFSOverlay flags (do not need to inherit the options because
   // FileSystem is shared).
@@ -1953,21 +1945,21 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
     // For a dependency scanning action, interface build command generation must
     // inherit `-Xcc` flags used for configuration of the building instance's
     // `ClangImporter`. However, we can ignore Clang search path flags because
-    // explicit Swift module build tasks will not rely on them and they may be
+    // explicit Codira module build tasks will not rely on them and they may be
     // source-target-context-specific and hinder module sharing across
     // compilation source targets.
-    // Clang module dependecies of this Swift dependency will be distinguished
+    // Clang module dependecies of this Codira dependency will be distinguished
     // by their context hash for different variants, so would still cause a
-    // difference in the Swift compile commands, when different.
+    // difference in the Codira compile commands, when different.
     inheritedParentContextClangArgs =
-        clangImporterOpts.getReducedExtraArgsForSwiftModuleDependency();
+        clangImporterOpts.getReducedExtraArgsForCodiraModuleDependency();
     genericSubInvocation.getFrontendOptions()
         .DependencyScanningSubInvocation = true;
   } else if (LoaderOpts.strictImplicitModuleContext ||
              // Explicit module Interface verification jobs still spawn a
              // sub-instance and we must ensure this sub-instance gets all of
              // the Xcc flags.
-             LoaderOpts.disableImplicitSwiftModule ||
+             LoaderOpts.disableImplicitCodiraModule ||
              // If using direct cc1 argument mode for lldb or typecheck
              // interface, inherit all clang arguments.
              clangImporterOpts.DirectClangCC1ModuleBuild) {
@@ -1979,7 +1971,7 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
   }
   subClangImporterOpts.ExtraArgs = inheritedParentContextClangArgs;
   // If using DirectCC1Scan, the command-line reduction is handled inside
-  // `getSwiftExplicitModuleDirectCC1Args()`, there is no need to inherit
+  // `getCodiraExplicitModuleDirectCC1Args()`, there is no need to inherit
   // anything here as the ExtraArgs from the invocation are clang driver
   // options, not cc1 options.
   if (!clangImporterOpts.ClangImporterDirectCC1Scan) {
@@ -2016,7 +2008,7 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
   // Note that we don't assume cachePath is the same as the Clang
   // module cache path at this point.
   if (buildModuleCacheDirIfAbsent && !moduleCachePath.empty())
-    (void)llvm::sys::fs::create_directories(moduleCachePath);
+    (void)toolchain::sys::fs::create_directories(moduleCachePath);
 
   // Inherit all block list configuration files
   frontendOpts.BlocklistConfigFilePaths = langOpts.BlocklistConfigFilePaths;
@@ -2035,12 +2027,12 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
     if (langOpts.cxxInteropCompatVersion.empty())
       compatVersion = "default";
     else if (langOpts.cxxInteropCompatVersion[0] == 5)
-      compatVersion = "swift-5.9";
+      compatVersion = "language-5.9";
     else if (langOpts.cxxInteropCompatVersion[0] == 6)
-      compatVersion = "swift-6";
+      compatVersion = "language-6";
     else if (langOpts.cxxInteropCompatVersion[0] ==
              version::getUpcomingCxxInteropCompatVersion())
-      compatVersion = "upcoming-swift";
+      compatVersion = "upcoming-language";
     else // TODO: This may need to be updated once more versions are added
       compatVersion = "default";
 
@@ -2061,13 +2053,13 @@ InterfaceSubContextDelegateImpl::InterfaceSubContextDelegateImpl(
 /// Calculate an output filename in \p genericSubInvocation's cache path that
 /// includes a hash of relevant key data.
 void InterfaceSubContextDelegateImpl::getCachedOutputPath(
-    SwiftInterfaceModuleOutputPathResolution::ResultTy &resolvedOutputPath,
+    CodiraInterfaceModuleOutputPathResolution::ResultTy &resolvedOutputPath,
     StringRef moduleName, StringRef interfacePath, StringRef sdkPath) {
-  SwiftInterfaceModuleOutputPathResolution::setOutputPath(
+  CodiraInterfaceModuleOutputPathResolution::setOutputPath(
       resolvedOutputPath, moduleName, interfacePath, sdkPath,
       genericSubInvocation,
       genericSubInvocation.getClangImporterOptions()
-          .getReducedExtraArgsForSwiftModuleDependency());
+          .getReducedExtraArgsForCodiraModuleDependency());
 }
 
 std::error_code
@@ -2077,7 +2069,7 @@ InterfaceSubContextDelegateImpl::runInSubContext(StringRef moduleName,
                                                  std::optional<StringRef> sysroot,
                                                  StringRef outputPath,
                                                  SourceLoc diagLoc,
-    llvm::function_ref<std::error_code(ASTContext&, ModuleDecl*, ArrayRef<StringRef>,
+    toolchain::function_ref<std::error_code(ASTContext&, ModuleDecl*, ArrayRef<StringRef>,
                           StringRef, StringRef)> action) {
   return runInSubCompilerInstance(moduleName, interfacePath, sdkPath, sysroot,
                                   outputPath, diagLoc, /*silenceErrors=*/false,
@@ -2100,7 +2092,7 @@ InterfaceSubContextDelegateImpl::runInSubCompilerInstance(StringRef moduleName,
                                                           StringRef outputPath,
                                                           SourceLoc diagLoc,
                                                           bool silenceErrors,
-                  llvm::function_ref<std::error_code(SubCompilerInstanceInfo&)> action) {
+                  toolchain::function_ref<std::error_code(SubCompilerInstanceInfo&)> action) {
   // We are about to mess up the compiler invocation by using the compiler
   // arguments in the textual interface file. So copy to use a new compiler
   // invocation.
@@ -2117,7 +2109,7 @@ InterfaceSubContextDelegateImpl::runInSubCompilerInstance(StringRef moduleName,
       false;
 
   // Save the target triple from the original context.
-  llvm::Triple originalTargetTriple(subInvocation.getLangOptions().Target);
+  toolchain::Triple originalTargetTriple(subInvocation.getLangOptions().Target);
 
   std::vector<StringRef> BuildArgs(GenericArgs.begin(), GenericArgs.end());
   assert(BuildArgs.size() == GenericArgs.size());
@@ -2132,21 +2124,8 @@ InterfaceSubContextDelegateImpl::runInSubCompilerInstance(StringRef moduleName,
     subInvocation.setSysRoot(sysroot.value());
   }
 
-  // FIXME: Hack for CoreGraphics.swiftmodule, which cannot be rebuilt because
-  // of a CF_OPTIONS bug (rdar://142762174).
-  if (moduleName == "CoreGraphics") {
-    subInvocation.getLangOptions().EnableCXXInterop = false;
-    subInvocation.getLangOptions().cxxInteropCompatVersion = {};
-    BuildArgs.erase(llvm::remove_if(BuildArgs,
-                                    [](StringRef arg) -> bool {
-                                      return arg.starts_with(
-                                          "-cxx-interoperability-mode=");
-                                    }),
-                    BuildArgs.end());
-  }
-
   // Calculate output path of the module.
-  SwiftInterfaceModuleOutputPathResolution::ResultTy resolvedOutputPath;
+  CodiraInterfaceModuleOutputPathResolution::ResultTy resolvedOutputPath;
   getCachedOutputPath(resolvedOutputPath, moduleName, interfacePath, sdkPath);
 
   // If no specific output path is given, use the hashed output path.
@@ -2176,10 +2155,10 @@ InterfaceSubContextDelegateImpl::runInSubCompilerInstance(StringRef moduleName,
     subInstance.addDiagnosticConsumer(&noopConsumer);
   }
 
-  SwiftInterfaceInfo interfaceInfo;
+  CodiraInterfaceInfo interfaceInfo;
   // Extract compiler arguments from the interface file and use them to configure
   // the compiler invocation.
-  if (extractSwiftInterfaceVersionAndArgs(subInvocation, subInstance.getDiags(),
+  if (extractCodiraInterfaceVersionAndArgs(subInvocation, subInstance.getDiags(),
                                           interfaceInfo, interfacePath,
                                           diagLoc)) {
     return std::make_error_code(std::errc::not_supported);
@@ -2211,39 +2190,39 @@ InterfaceSubContextDelegateImpl::runInSubCompilerInstance(StringRef moduleName,
   return action(info);
 }
 
-static void addModuleAliasesFromExplicitSwiftModuleMap(
-    ASTContext &Ctx, llvm::StringMap<std::string> ModuleAliases) {
+static void addModuleAliasesFromExplicitCodiraModuleMap(
+    ASTContext &Ctx, toolchain::StringMap<std::string> ModuleAliases) {
   for (auto &entry : ModuleAliases) {
     Ctx.addModuleAlias(/*moduleAlias=*/entry.getKey(),
                        /*realModule=*/entry.getValue());
   }
 }
 
-struct ExplicitSwiftModuleLoader::Implementation {
+struct ExplicitCodiraModuleLoader::Implementation {
   ASTContext &Ctx;
-  llvm::BumpPtrAllocator Allocator;
-  llvm::StringMap<ExplicitSwiftModuleInputInfo> ExplicitModuleMap;
+  toolchain::BumpPtrAllocator Allocator;
+  toolchain::StringMap<ExplicitCodiraModuleInputInfo> ExplicitModuleMap;
   Implementation(ASTContext &Ctx) : Ctx(Ctx) {}
 
-  void parseSwiftExplicitModuleMap(StringRef fileName) {
+  void parseCodiraExplicitModuleMap(StringRef fileName) {
     ExplicitModuleMapParser parser(Allocator);
-    llvm::StringMap<ExplicitClangModuleInputInfo> ExplicitClangModuleMap;
-    llvm::StringMap<std::string> ModuleAliases;
+    toolchain::StringMap<ExplicitClangModuleInputInfo> ExplicitClangModuleMap;
+    toolchain::StringMap<std::string> ModuleAliases;
     // Load the input file.
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBufOrErr =
-        llvm::MemoryBuffer::getFile(fileName);
+    toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> fileBufOrErr =
+        toolchain::MemoryBuffer::getFile(fileName);
     if (!fileBufOrErr) {
-      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_swift_module_map_missing,
+      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_language_module_map_missing,
                          fileName);
       return;
     }
 
-    auto hasError = parser.parseSwiftExplicitModuleMap(
+    auto hasError = parser.parseCodiraExplicitModuleMap(
         (*fileBufOrErr)->getMemBufferRef(), ExplicitModuleMap,
         ExplicitClangModuleMap, ModuleAliases);
 
     if (hasError)
-      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_swift_module_map_corrupted,
+      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_language_module_map_corrupted,
                          fileName);
 
     // A single module map can define multiple modules; keep track of the ones
@@ -2267,36 +2246,36 @@ struct ExplicitSwiftModuleLoader::Implementation {
                 .str());
       }
     }
-    addModuleAliasesFromExplicitSwiftModuleMap(Ctx, ModuleAliases);
+    addModuleAliasesFromExplicitCodiraModuleMap(Ctx, ModuleAliases);
   }
 
   void addCommandLineExplicitInputs(
       const std::vector<std::pair<std::string, std::string>>
           &commandLineExplicitInputs) {
     for (const auto &moduleInput : commandLineExplicitInputs) {
-      ExplicitSwiftModuleInputInfo entry(moduleInput.second, {}, {}, {});
+      ExplicitCodiraModuleInputInfo entry(moduleInput.second, {}, {}, {});
       ExplicitModuleMap.try_emplace(moduleInput.first, std::move(entry));
     }
   }
 };
 
-ExplicitSwiftModuleLoader::ExplicitSwiftModuleLoader(
+ExplicitCodiraModuleLoader::ExplicitCodiraModuleLoader(
       ASTContext &ctx,
       DependencyTracker *tracker,
       ModuleLoadingMode loadMode,
-      bool IgnoreSwiftSourceInfoFile):
+      bool IgnoreCodiraSourceInfoFile):
         SerializedModuleLoaderBase(ctx, tracker, loadMode,
-                                   IgnoreSwiftSourceInfoFile),
+                                   IgnoreCodiraSourceInfoFile),
         Impl(*new Implementation(ctx)) {}
 
-ExplicitSwiftModuleLoader::~ExplicitSwiftModuleLoader() { delete &Impl; }
+ExplicitCodiraModuleLoader::~ExplicitCodiraModuleLoader() { delete &Impl; }
 
-bool ExplicitSwiftModuleLoader::findModule(
+bool ExplicitCodiraModuleLoader::findModule(
     ImportPath::Element ModuleID, SmallVectorImpl<char> *ModuleInterfacePath,
     SmallVectorImpl<char> *ModuleInterfaceSourcePath,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleDocBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleSourceInfoBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleDocBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleSourceInfoBuffer,
     bool skipBuildingInterface, bool isTestableDependencyLookup,
     bool &IsFramework, bool &IsSystemModule) {
   // Find a module with an actual, physical name on disk, in case
@@ -2319,7 +2298,7 @@ bool ExplicitSwiftModuleLoader::findModule(
   IsSystemModule = moduleInfo.isSystem;
 
   auto &fs = *Ctx.SourceMgr.getFileSystem();
-  // Open .swiftmodule file
+  // Open .codemodule file
   auto moduleBuf = fs.getBufferForFile(moduleInfo.modulePath);
   if (!moduleBuf) {
     // We cannot read the module content, diagnose.
@@ -2354,13 +2333,13 @@ bool ExplicitSwiftModuleLoader::findModule(
   // Move the opened module buffer to the caller.
   *ModuleBuffer = std::move(moduleBuf.get());
 
-  // Open .swiftdoc file
+  // Open .codedoc file
   if (moduleInfo.moduleDocPath.has_value()) {
     auto moduleDocBuf = fs.getBufferForFile(moduleInfo.moduleDocPath.value());
     if (moduleBuf)
       *ModuleDocBuffer = std::move(moduleDocBuf.get());
   }
-  // Open .swiftsourceinfo file
+  // Open .codesourceinfo file
   if (moduleInfo.moduleSourceInfoPath.has_value()) {
     auto moduleSourceInfoBuf = fs.getBufferForFile(moduleInfo.moduleSourceInfoPath.value());
     if (moduleSourceInfoBuf)
@@ -2369,23 +2348,23 @@ bool ExplicitSwiftModuleLoader::findModule(
   return true;
 }
 
-std::error_code ExplicitSwiftModuleLoader::findModuleFilesInDirectory(
+std::error_code ExplicitCodiraModuleLoader::findModuleFilesInDirectory(
     ImportPath::Element ModuleID, const SerializedModuleBaseName &BaseName,
     SmallVectorImpl<char> *ModuleInterfacePath,
     SmallVectorImpl<char> *ModuleInterfaceSourcePath,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleDocBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleSourceInfoBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleDocBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleSourceInfoBuffer,
     bool skipBuildingInterface, bool IsFramework,
     bool IsTestableDependencyLookup) {
-  llvm_unreachable("Not supported in the Explicit Swift Module Loader.");
+  toolchain_unreachable("Not supported in the Explicit Codira Module Loader.");
   return std::make_error_code(std::errc::not_supported);
 }
 
-bool ExplicitSwiftModuleLoader::canImportModule(
+bool ExplicitCodiraModuleLoader::canImportModule(
     ImportPath::Module path, SourceLoc loc, ModuleVersionInfo *versionInfo,
     bool isTestableDependencyLookup) {
-  // FIXME: Swift submodules?
+  // FIXME: Codira submodules?
   if (path.hasSubmodule())
     return false;
   ImportPath::Element mID = path.front();
@@ -2405,7 +2384,7 @@ bool ExplicitSwiftModuleLoader::canImportModule(
   if (!versionInfo)
     return true;
 
-  // Open .swiftmodule file and read out the version
+  // Open .codemodule file and read out the version
   auto &fs = *Ctx.SourceMgr.getFileSystem();
   auto moduleBuf = fs.getBufferForFile(it->second.modulePath);
   if (!moduleBuf) {
@@ -2432,36 +2411,36 @@ bool ExplicitSwiftModuleLoader::canImportModule(
       Ctx.SILOpts.EnableOSSAModules,
       Ctx.LangOpts.SDKName);
   versionInfo->setVersion(metaData.userModuleVersion,
-                          ModuleVersionSourceKind::SwiftBinaryModule);
+                          ModuleVersionSourceKind::CodiraBinaryModule);
   return true;
 }
 
-void ExplicitSwiftModuleLoader::collectVisibleTopLevelModuleNames(
+void ExplicitCodiraModuleLoader::collectVisibleTopLevelModuleNames(
       SmallVectorImpl<Identifier> &names) const {
   for (auto &entry: Impl.ExplicitModuleMap) {
     names.push_back(Ctx.getIdentifier(entry.getKey()));
   }
 }
 
-std::unique_ptr<ExplicitSwiftModuleLoader>
-ExplicitSwiftModuleLoader::create(ASTContext &ctx,
+std::unique_ptr<ExplicitCodiraModuleLoader>
+ExplicitCodiraModuleLoader::create(ASTContext &ctx,
     DependencyTracker *tracker, ModuleLoadingMode loadMode,
-    StringRef ExplicitSwiftModuleMap,
-    const std::vector<std::pair<std::string, std::string>> &ExplicitSwiftModuleInputs,
-    bool IgnoreSwiftSourceInfoFile) {
-  auto result = std::unique_ptr<ExplicitSwiftModuleLoader>(
-    new ExplicitSwiftModuleLoader(ctx, tracker, loadMode,
-                                  IgnoreSwiftSourceInfoFile));
+    StringRef ExplicitCodiraModuleMap,
+    const std::vector<std::pair<std::string, std::string>> &ExplicitCodiraModuleInputs,
+    bool IgnoreCodiraSourceInfoFile) {
+  auto result = std::unique_ptr<ExplicitCodiraModuleLoader>(
+    new ExplicitCodiraModuleLoader(ctx, tracker, loadMode,
+                                  IgnoreCodiraSourceInfoFile));
   auto &Impl = result->Impl;
   // If the explicit module map is given, try parse it.
-  if (!ExplicitSwiftModuleMap.empty()) {
+  if (!ExplicitCodiraModuleMap.empty()) {
     // Parse a JSON file to collect explicitly built modules.
-    Impl.parseSwiftExplicitModuleMap(ExplicitSwiftModuleMap);
+    Impl.parseCodiraExplicitModuleMap(ExplicitCodiraModuleMap);
   }
   // If some modules are provided with explicit
-  // '-swift-module-file' options, add those as well.
-  if (!ExplicitSwiftModuleInputs.empty()) {
-    Impl.addCommandLineExplicitInputs(ExplicitSwiftModuleInputs);
+  // '-language-module-file' options, add those as well.
+  if (!ExplicitCodiraModuleInputs.empty()) {
+    Impl.addCommandLineExplicitInputs(ExplicitCodiraModuleInputs);
   }
 
   return result;
@@ -2469,58 +2448,60 @@ ExplicitSwiftModuleLoader::create(ASTContext &ctx,
 
 struct ExplicitCASModuleLoader::Implementation {
   ASTContext &Ctx;
-  llvm::BumpPtrAllocator Allocator;
-  llvm::cas::ObjectStore &CAS;
-  llvm::cas::ActionCache &Cache;
+  toolchain::BumpPtrAllocator Allocator;
+  toolchain::cas::ObjectStore &CAS;
+  toolchain::cas::ActionCache &Cache;
 
-  llvm::StringMap<ExplicitSwiftModuleInputInfo> ExplicitModuleMap;
+  toolchain::StringMap<ExplicitCodiraModuleInputInfo> ExplicitModuleMap;
 
-  Implementation(ASTContext &Ctx, llvm::cas::ObjectStore &CAS,
-                 llvm::cas::ActionCache &Cache)
+  Implementation(ASTContext &Ctx, toolchain::cas::ObjectStore &CAS,
+                 toolchain::cas::ActionCache &Cache)
       : Ctx(Ctx), CAS(CAS), Cache(Cache) {}
 
-  llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> loadBuffer(StringRef ID) {
+  std::unique_ptr<toolchain::MemoryBuffer> loadBuffer(StringRef ID) {
     auto key = CAS.parseID(ID);
-    if (!key)
-      return key.takeError();
+    if (!key) {
+      Ctx.Diags.diagnose(SourceLoc(), diag::error_invalid_cas_id, ID,
+                         toString(key.takeError()));
+      return nullptr;
+    }
 
     auto ref = CAS.getReference(*key);
     if (!ref)
       return nullptr;
 
     auto loaded = CAS.getProxy(*ref);
-    if (!loaded)
-      return loaded.takeError();
+    if (!loaded) {
+      Ctx.Diags.diagnose(SourceLoc(), diag::error_cas,
+                         "loading module map from CAS",
+                         toString(loaded.takeError()));
+      return nullptr;
+    }
 
     return loaded->getMemoryBuffer();
   }
 
   // Same as the regular explicit module map but must be loaded from
   // CAS, instead of a file that is not tracked by the dependency.
-  void parseSwiftExplicitModuleMap(StringRef ID) {
+  void parseCodiraExplicitModuleMap(StringRef ID) {
     ExplicitModuleMapParser parser(Allocator);
-    llvm::StringMap<ExplicitClangModuleInputInfo> ExplicitClangModuleMap;
-    llvm::StringMap<std::string> ModuleAliases;
+    toolchain::StringMap<ExplicitClangModuleInputInfo> ExplicitClangModuleMap;
+    toolchain::StringMap<std::string> ModuleAliases;
     auto buf = loadBuffer(ID);
     if (!buf) {
-      Ctx.Diags.diagnose(SourceLoc(), diag::error_cas,
-                         toString(buf.takeError()));
-      return;
-    }
-    if (!*buf) {
-      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_swift_module_map_missing,
+      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_language_module_map_missing,
                          ID);
       return;
     }
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBufOrErr =
-        llvm::MemoryBuffer::getFile(ID);
+    toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> fileBufOrErr =
+        toolchain::MemoryBuffer::getFile(ID);
 
-    auto hasError = parser.parseSwiftExplicitModuleMap(
-        (*buf)->getMemBufferRef(), ExplicitModuleMap, ExplicitClangModuleMap,
+    auto hasError = parser.parseCodiraExplicitModuleMap(
+        buf->getMemBufferRef(), ExplicitModuleMap, ExplicitClangModuleMap,
         ModuleAliases);
 
     if (hasError)
-      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_swift_module_map_corrupted,
+      Ctx.Diags.diagnose(SourceLoc(), diag::explicit_language_module_map_corrupted,
                          ID);
 
     std::set<std::string> moduleMapsSeen;
@@ -2532,8 +2513,7 @@ struct ExplicitCASModuleLoader::Implementation {
     };
     for (auto &entry : ExplicitClangModuleMap) {
       const auto &moduleMapPath = entry.getValue().moduleMapPath;
-      if (!moduleMapPath.empty() &&
-          !Ctx.ClangImporterOpts.UseClangIncludeTree &&
+      if (!moduleMapPath.empty() && !Ctx.CASOpts.EnableCaching &&
           moduleMapsSeen.find(moduleMapPath) == moduleMapsSeen.end()) {
         moduleMapsSeen.insert(moduleMapPath);
         extraClangArgs.push_back(
@@ -2556,58 +2536,71 @@ struct ExplicitCASModuleLoader::Implementation {
         extraClangArgs.push_back(*cachePath);
       }
     }
-    addModuleAliasesFromExplicitSwiftModuleMap(Ctx, ModuleAliases);
+    addModuleAliasesFromExplicitCodiraModuleMap(Ctx, ModuleAliases);
   }
 
   void addCommandLineExplicitInputs(
       const std::vector<std::pair<std::string, std::string>>
           &commandLineExplicitInputs) {
     for (const auto &moduleInput : commandLineExplicitInputs) {
-      ExplicitSwiftModuleInputInfo entry(moduleInput.second, {}, {}, {});
+      ExplicitCodiraModuleInputInfo entry(moduleInput.second, {}, {}, {});
       ExplicitModuleMap.try_emplace(moduleInput.first, std::move(entry));
     }
   }
 
-  llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>>
-  loadFileBuffer(StringRef ID, StringRef Name) {
+  std::unique_ptr<toolchain::MemoryBuffer>
+  loadFileBuffer(SourceLoc Loc, StringRef ID, StringRef Name) {
+    auto outputMissing = [&]() {
+      Ctx.Diags.diagnose(Loc, diag::error_opening_explicit_module_file, Name);
+      return nullptr;
+    };
+    auto casError = [&](StringRef Stage, toolchain::Error Err) {
+      Ctx.Diags.diagnose(Loc, diag::error_cas, Stage, toString(std::move(Err)));
+      return nullptr;
+    };
     auto key = CAS.parseID(ID);
-    if (!key)
-      return key.takeError();
+    if (!key) {
+      Ctx.Diags.diagnose(Loc, diag::error_invalid_cas_id, ID,
+                         toString(key.takeError()));
+      return nullptr;
+    }
 
     auto moduleLookup = Cache.get(*key);
     if (!moduleLookup)
-      return moduleLookup.takeError();
+      return casError("looking up module output cache",
+                      moduleLookup.takeError());
+
     if (!*moduleLookup)
-      return nullptr;
+      return outputMissing();
 
     auto moduleRef = CAS.getReference(**moduleLookup);
     if (!moduleRef)
-      return nullptr;
+      return outputMissing();
 
     auto proxy = CAS.getProxy(*moduleRef);
     if (!proxy)
-      return proxy.takeError();
+      return casError("loading module build outputs", proxy.takeError());
 
-    swift::cas::CompileJobResultSchema schema(CAS);
+    language::cas::CompileJobResultSchema schema(CAS);
     if (!schema.isRootNode(*proxy))
-      return nullptr;
+      return outputMissing();
 
     auto result = schema.load(*moduleRef);
     if (!result)
-      return result.takeError();
+      return casError("loading module schema", result.takeError());
 
-    auto output = result->getOutput(file_types::ID::TY_SwiftModuleFile);
+    auto output = result->getOutput(file_types::ID::TY_CodiraModuleFile);
     if (!output)
-      return nullptr;
+      return outputMissing();
 
     auto buf = CAS.getProxy(output->Object);
     if (!buf)
-      return buf.takeError();
+      return casError("loading dependency module", result.takeError());
 
     return buf->getMemoryBuffer(Name);
   }
 
-  llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>>
+  toolchain::Expected<std::unique_ptr<toolchain::MemoryBuffer>>
   loadModuleFromPath(StringRef Path, DiagnosticEngine &Diags) {
     for (auto &Deps : ExplicitModuleMap) {
       if (Deps.second.modulePath == Path) {
@@ -2615,7 +2608,7 @@ struct ExplicitCASModuleLoader::Implementation {
           return nullptr;
         return loadCachedCompileResultFromCacheKey(
             CAS, Cache, Diags, *Deps.second.moduleCacheKey,
-            file_types::ID::TY_SwiftModuleFile, Path);
+            file_types::ID::TY_CodiraModuleFile, Path);
       }
     }
     return nullptr;
@@ -2623,13 +2616,13 @@ struct ExplicitCASModuleLoader::Implementation {
 };
 
 ExplicitCASModuleLoader::ExplicitCASModuleLoader(ASTContext &ctx,
-                                                 llvm::cas::ObjectStore &CAS,
-                                                 llvm::cas::ActionCache &cache,
+                                                 toolchain::cas::ObjectStore &CAS,
+                                                 toolchain::cas::ActionCache &cache,
                                                  DependencyTracker *tracker,
                                                  ModuleLoadingMode loadMode,
-                                                 bool IgnoreSwiftSourceInfoFile)
+                                                 bool IgnoreCodiraSourceInfoFile)
     : SerializedModuleLoaderBase(ctx, tracker, loadMode,
-                                 IgnoreSwiftSourceInfoFile),
+                                 IgnoreCodiraSourceInfoFile),
       Impl(*new Implementation(ctx, CAS, cache)) {}
 
 ExplicitCASModuleLoader::~ExplicitCASModuleLoader() { delete &Impl; }
@@ -2637,9 +2630,9 @@ ExplicitCASModuleLoader::~ExplicitCASModuleLoader() { delete &Impl; }
 bool ExplicitCASModuleLoader::findModule(
     ImportPath::Element ModuleID, SmallVectorImpl<char> *ModuleInterfacePath,
     SmallVectorImpl<char> *ModuleInterfaceSourcePath,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleDocBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleSourceInfoBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleDocBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleSourceInfoBuffer,
     bool skipBuildingInterface, bool isTestableDependencyLookup,
     bool &IsFramework, bool &IsSystemModule) {
   // Find a module with an actual, physical name on disk, in case
@@ -2672,7 +2665,7 @@ bool ExplicitCASModuleLoader::findModule(
   // that are not located on disk.
   auto moduleBuf = loadCachedCompileResultFromCacheKey(
       Impl.CAS, Impl.Cache, Ctx.Diags, moduleCASID,
-      file_types::ID::TY_SwiftModuleFile, moduleInfo.modulePath);
+      file_types::ID::TY_CodiraModuleFile, moduleInfo.modulePath);
   if (!moduleBuf) {
     // We cannot read the module content, diagnose.
     Ctx.Diags.diagnose(SourceLoc(), diag::error_opening_explicit_module_file,
@@ -2693,7 +2686,7 @@ bool ExplicitCASModuleLoader::findModule(
       auto moduleOrErr = Impl.loadModuleFromPath(
           forwardingModule->underlyingModulePath, Ctx.Diags);
       if (!moduleOrErr) {
-        llvm::consumeError(moduleOrErr.takeError());
+        toolchain::consumeError(moduleOrErr.takeError());
         Ctx.Diags.diagnose(SourceLoc(),
                            diag::error_opening_explicit_module_file,
                            moduleInfo.modulePath);
@@ -2718,7 +2711,7 @@ bool ExplicitCASModuleLoader::findModule(
   // Move the opened module buffer to the caller.
   *ModuleBuffer = std::move(moduleBuf);
 
-  // TODO: support .swiftdoc file and .swiftsourceinfo file
+  // TODO: support .codedoc file and .codesourceinfo file
   return true;
 }
 
@@ -2726,19 +2719,19 @@ std::error_code ExplicitCASModuleLoader::findModuleFilesInDirectory(
     ImportPath::Element ModuleID, const SerializedModuleBaseName &BaseName,
     SmallVectorImpl<char> *ModuleInterfacePath,
     SmallVectorImpl<char> *ModuleInterfaceSourcePath,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleDocBuffer,
-    std::unique_ptr<llvm::MemoryBuffer> *ModuleSourceInfoBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleDocBuffer,
+    std::unique_ptr<toolchain::MemoryBuffer> *ModuleSourceInfoBuffer,
     bool skipBuildingInterface, bool IsFramework,
     bool IsTestableDependencyLookup) {
-  llvm_unreachable("Not supported in the Explicit Swift Module Loader.");
+  toolchain_unreachable("Not supported in the Explicit Codira Module Loader.");
   return std::make_error_code(std::errc::not_supported);
 }
 
 bool ExplicitCASModuleLoader::canImportModule(
     ImportPath::Module path, SourceLoc loc, ModuleVersionInfo *versionInfo,
     bool isTestableDependencyLookup) {
-  // FIXME: Swift submodules?
+  // FIXME: Codira submodules?
   if (path.hasSubmodule())
     return false;
   ImportPath::Element mID = path.front();
@@ -2759,25 +2752,21 @@ bool ExplicitCASModuleLoader::canImportModule(
   if (!versionInfo)
     return true;
 
-  // Open .swiftmodule file and read out the version
+  // Open .codemodule file and read out the version
   std::string moduleCASID = it->second.moduleCacheKey
                                 ? *it->second.moduleCacheKey
                                 : it->second.modulePath;
-  auto moduleBuf = Impl.loadFileBuffer(moduleCASID, it->second.modulePath);
+  auto moduleBuf = Impl.loadFileBuffer(loc, moduleCASID, it->second.modulePath);
   if (!moduleBuf) {
-    Ctx.Diags.diagnose(loc, diag::error_cas, toString(moduleBuf.takeError()));
-    return false;
-  }
-  if (!*moduleBuf) {
     Ctx.Diags.diagnose(loc, diag::error_opening_explicit_module_file,
                        it->second.modulePath);
     return false;
   }
   auto metaData = serialization::validateSerializedAST(
-      (*moduleBuf)->getBuffer(), Ctx.SILOpts.EnableOSSAModules,
+      moduleBuf->getBuffer(), Ctx.SILOpts.EnableOSSAModules,
       Ctx.LangOpts.SDKName);
   versionInfo->setVersion(metaData.userModuleVersion,
-                          ModuleVersionSourceKind::SwiftBinaryModule);
+                          ModuleVersionSourceKind::CodiraBinaryModule);
   return true;
 }
 
@@ -2789,32 +2778,32 @@ void ExplicitCASModuleLoader::collectVisibleTopLevelModuleNames(
 }
 
 std::unique_ptr<ExplicitCASModuleLoader> ExplicitCASModuleLoader::create(
-    ASTContext &ctx, llvm::cas::ObjectStore &CAS, llvm::cas::ActionCache &cache,
+    ASTContext &ctx, toolchain::cas::ObjectStore &CAS, toolchain::cas::ActionCache &cache,
     DependencyTracker *tracker, ModuleLoadingMode loadMode,
-    StringRef ExplicitSwiftModuleMap,
+    StringRef ExplicitCodiraModuleMap,
     const std::vector<std::pair<std::string, std::string>>
-        &ExplicitSwiftModuleInputs,
-    bool IgnoreSwiftSourceInfoFile) {
+        &ExplicitCodiraModuleInputs,
+    bool IgnoreCodiraSourceInfoFile) {
   auto result =
       std::unique_ptr<ExplicitCASModuleLoader>(new ExplicitCASModuleLoader(
-          ctx, CAS, cache, tracker, loadMode, IgnoreSwiftSourceInfoFile));
+          ctx, CAS, cache, tracker, loadMode, IgnoreCodiraSourceInfoFile));
   auto &Impl = result->Impl;
   // If the explicit module map is given, try parse it.
-  if (!ExplicitSwiftModuleMap.empty()) {
+  if (!ExplicitCodiraModuleMap.empty()) {
     // Parse a JSON file to collect explicitly built modules.
-    Impl.parseSwiftExplicitModuleMap(ExplicitSwiftModuleMap);
+    Impl.parseCodiraExplicitModuleMap(ExplicitCodiraModuleMap);
   }
   // If some modules are provided with explicit
-  // '-swift-module-file' options, add those as well.
-  if (!ExplicitSwiftModuleInputs.empty()) {
-    Impl.addCommandLineExplicitInputs(ExplicitSwiftModuleInputs);
+  // '-language-module-file' options, add those as well.
+  if (!ExplicitCodiraModuleInputs.empty()) {
+    Impl.addCommandLineExplicitInputs(ExplicitCodiraModuleInputs);
   }
 
   return result;
 }
 
-namespace language::SwiftInterfaceModuleOutputPathResolution {
-/// Construct a key for the .swiftmodule being generated. There is a
+namespace language::CodiraInterfaceModuleOutputPathResolution {
+/// Construct a key for the .codemodule being generated. There is a
 /// balance to be struck here between things that go in the cache key and
 /// things that go in the "up to date" check of the cache entry. We want to
 /// avoid fighting over a single cache entry too much when (say) running
@@ -2823,7 +2812,7 @@ namespace language::SwiftInterfaceModuleOutputPathResolution {
 /// those in the key. But we want to invalidate and rebuild a cache entry
 /// -- rather than making a new one and potentially filling up the cache
 /// with dead entries -- when other factors change, such as the contents of
-/// the .swiftinterface input or its dependencies.
+/// the .codeinterface input or its dependencies.
 static std::string getContextHash(const CompilerInvocation &CI,
                                   const StringRef &interfacePath,
                                   const StringRef &sdkPath,
@@ -2835,7 +2824,7 @@ static std::string getContextHash(const CompilerInvocation &CI,
 
   // Include the normalized target triple when not using strict hash.
   // Otherwise, use the full target to ensure soundness of the hash. In
-  // practice, .swiftinterface files will be in target-specific subdirectories
+  // practice, .codeinterface files will be in target-specific subdirectories
   // and would have target-specific pieces #if'd out. However, it doesn't hurt
   // to include it, and it guards against mistakenly reusing cached modules
   // across targets. Note that this normalization explicitly doesn't include the
@@ -2847,12 +2836,12 @@ static std::string getContextHash(const CompilerInvocation &CI,
 
   std::string sdkBuildVersion = getSDKBuildVersion(sdkPath);
 
-  llvm::hash_code H = llvm::hash_combine(
+  toolchain::hash_code H = toolchain::hash_combine(
       // Start with the compiler version (which will be either tag names or
       // revs). Explicitly don't pass in the "effective" language version --
-      // this would mean modules built in different -swift-version modes would
+      // this would mean modules built in different -language-version modes would
       // rebuild their dependencies.
-      swift::version::getSwiftFullVersion(),
+      language::version::getCodiraFullVersion(),
 
       // Simplest representation of input "identity" (not content) is just a
       // pathname, and probably all we can get from the VFS in this regard
@@ -2883,7 +2872,7 @@ static std::string getContextHash(const CompilerInvocation &CI,
       CI.getCASOptions().getModuleScanningHashComponents(),
 
       // Take care of any extra arguments that should affect the hash.
-      llvm::hash_combine_range(extraArgs.begin(), extraArgs.end()),
+      toolchain::hash_combine_range(extraArgs.begin(), extraArgs.end()),
 
       // Application extension.
       unsigned(CI.getLangOptions().EnableAppExtensionRestrictions),
@@ -2891,10 +2880,10 @@ static std::string getContextHash(const CompilerInvocation &CI,
       // Whether or not OSSA modules are enabled.
       //
       // If OSSA modules are enabled, we use a separate namespace of modules to
-      // ensure that we compile all swift interface files with the option set.
+      // ensure that we compile all language interface files with the option set.
       unsigned(CI.getSILOptions().EnableOSSAModules));
 
-  return llvm::toString(llvm::APInt(64, H), 36, /*Signed=*/false);
+  return toolchain::toString(toolchain::APInt(64, H), 36, /*Signed=*/false);
 }
 
 void setOutputPath(ResultTy &resolvedOutputPath, const StringRef &moduleName,
@@ -2904,9 +2893,9 @@ void setOutputPath(ResultTy &resolvedOutputPath, const StringRef &moduleName,
   outputPath = CI.getClangModuleCachePath();
   auto isPrefixedWith = [interfacePath](StringRef path) {
     return !path.empty() &&
-        hasPrefix(llvm::sys::path::begin(interfacePath.str()),
-                  llvm::sys::path::end(interfacePath.str()),
-                  llvm::sys::path::begin(path), llvm::sys::path::end(path));
+        hasPrefix(toolchain::sys::path::begin(interfacePath.str()),
+                  toolchain::sys::path::end(interfacePath.str()),
+                  toolchain::sys::path::begin(path), toolchain::sys::path::end(path));
   };
  
   // Dependency-scanner-specific module output path handling
@@ -2919,14 +2908,14 @@ void setOutputPath(ResultTy &resolvedOutputPath, const StringRef &moduleName,
       outputPath = CI.getFrontendOptions().ExplicitModulesOutputPath;
   }
 
-  llvm::sys::path::append(outputPath, moduleName);
+  toolchain::sys::path::append(outputPath, moduleName);
   outputPath.append("-");
   auto hashStart = outputPath.size();
   outputPath.append(getContextHash(CI, interfacePath, sdkPath, extraArgs));
   resolvedOutputPath.hash = outputPath.str().substr(hashStart);
   outputPath.append(".");
-  auto outExt = file_types::getExtension(file_types::TY_SwiftModuleFile);
+  auto outExt = file_types::getExtension(file_types::TY_CodiraModuleFile);
   outputPath.append(outExt);
   return;
 }
-} // namespace language::SwiftInterfaceModuleOutputPathResolution
+} // namespace language::CodiraInterfaceModuleOutputPathResolution

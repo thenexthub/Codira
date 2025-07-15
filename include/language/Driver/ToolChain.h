@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_TOOLCHAIN_H
-#define SWIFT_DRIVER_TOOLCHAIN_H
+#ifndef LANGUAGE_DRIVER_TOOLCHAIN_H
+#define LANGUAGE_DRIVER_TOOLCHAIN_H
 
 #include "language/Basic/FileTypes.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Driver/Action.h"
 #include "language/Driver/Job.h"
 #include "language/Option/Options.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/Option/Option.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/Option/Option.h"
 
 #include <memory>
 
@@ -47,14 +48,14 @@ class OutputInfo;
 /// require platform-specific knowledge, provided in subclasses.
 class ToolChain {
   const Driver &D;
-  const llvm::Triple Triple;
-  mutable llvm::StringMap<std::string> ProgramLookupCache;
+  const toolchain::Triple Triple;
+  mutable toolchain::StringMap<std::string> ProgramLookupCache;
 
 protected:
-  ToolChain(const Driver &D, const llvm::Triple &T) : D(D), Triple(T) {}
+  ToolChain(const Driver &D, const toolchain::Triple &T) : D(D), Triple(T) {}
 
-  /// A special name used to identify the Swift executable itself.
-  constexpr static const char *const SWIFT_EXECUTABLE_NAME = "swift";
+  /// A special name used to identify the Codira executable itself.
+  constexpr static const char *const LANGUAGE_EXECUTABLE_NAME = "language";
 
   /// Packs together the supplementary information about the job being created.
   class JobContext {
@@ -71,7 +72,7 @@ protected:
     /// the same lifetime.
     ///
     /// This just caches C.getArgs().
-    const llvm::opt::ArgList &Args;
+    const toolchain::opt::ArgList &Args;
 
   public:
     JobContext(Compilation &C, ArrayRef<const Job *> Inputs,
@@ -88,7 +89,7 @@ protected:
     ///
     /// The returned string already has its lifetime extended to match other
     /// arguments.
-    const char *getTemporaryFilePath(const llvm::Twine &name,
+    const char *getTemporaryFilePath(const toolchain::Twine &name,
                                      StringRef suffix = "") const;
 
     /// For frontend, merge-module, and link invocations.
@@ -101,7 +102,7 @@ protected:
     bool shouldUseSupplementaryOutputFileMapInFrontendInvocation() const;
 
     /// Reify the existing behavior that SingleCompile compile actions do not
-    /// filter, but batch-mode and single-file compilations do. Some clients are
+    /// filter, single-file compilations do. Some clients are
     /// relying on this (i.e., they pass inputs that don't have ".code" as an
     /// extension.) It would be nice to eliminate this distinction someday.
     bool shouldFilterFrontendInputsByType() const;
@@ -109,21 +110,21 @@ protected:
     const char *computeFrontendModeForCompile() const;
 
     void addFrontendInputAndOutputArguments(
-        llvm::opt::ArgStringList &Arguments,
+        toolchain::opt::ArgStringList &Arguments,
         std::vector<FilelistInfo> &FilelistInfos) const;
 
   private:
     void addFrontendCommandLineInputArguments(
         bool mayHavePrimaryInputs, bool useFileList, bool usePrimaryFileList,
-        bool filterByType, llvm::opt::ArgStringList &arguments) const;
+        bool filterByType, toolchain::opt::ArgStringList &arguments) const;
     void addFrontendSupplementaryOutputArguments(
-        llvm::opt::ArgStringList &arguments) const;
+        toolchain::opt::ArgStringList &arguments) const;
   };
 
   /// Packs together information chosen by toolchains to create jobs.
   struct InvocationInfo {
     const char *ExecutableName;
-    llvm::opt::ArgStringList Arguments;
+    toolchain::opt::ArgStringList Arguments;
     std::vector<std::pair<const char *, const char *>> ExtraEnvironment;
     std::vector<FilelistInfo> FilelistInfos;
 
@@ -133,7 +134,7 @@ protected:
     // "true".
     bool allowsResponseFiles = false;
 
-    InvocationInfo(const char *name, llvm::opt::ArgStringList args = {},
+    InvocationInfo(const char *name, toolchain::opt::ArgStringList args = {},
                    decltype(ExtraEnvironment) extraEnv = {})
         : ExecutableName(name), Arguments(std::move(args)),
           ExtraEnvironment(std::move(extraEnv)) {}
@@ -143,14 +144,14 @@ protected:
   /// module-merging, LLDB's REPL, etc).
   virtual void addCommonFrontendArgs(const OutputInfo &OI,
                                      const CommandOutput &output,
-                                     const llvm::opt::ArgList &inputArgs,
-                                     llvm::opt::ArgStringList &arguments) const;
+                                     const toolchain::opt::ArgList &inputArgs,
+                                     toolchain::opt::ArgStringList &arguments) const;
 
   virtual void addPlatformSpecificPluginFrontendArgs(
       const OutputInfo &OI,
       const CommandOutput &output,
-      const llvm::opt::ArgList &inputArgs,
-      llvm::opt::ArgStringList &arguments) const;
+      const toolchain::opt::ArgList &inputArgs,
+      toolchain::opt::ArgStringList &arguments) const;
   virtual InvocationInfo constructInvocation(const CompileJobAction &job,
                                              const JobContext &context) const;
   virtual InvocationInfo constructInvocation(const InterpretJobAction &job,
@@ -185,39 +186,39 @@ protected:
                                              const JobContext &context) const;
 
   /// Searches for the given executable in appropriate paths relative to the
-  /// Swift binary.
+  /// Codira binary.
   ///
   /// This method caches its results.
   ///
-  /// \sa findProgramRelativeToSwiftImpl
-  std::string findProgramRelativeToSwift(StringRef name) const;
+  /// \sa findProgramRelativeToCodiraImpl
+  std::string findProgramRelativeToCodira(StringRef name) const;
 
   /// An override point for platform-specific subclasses to customize how to
   /// do relative searches for programs.
   ///
-  /// This method is invoked by findProgramRelativeToSwift().
-  virtual std::string findProgramRelativeToSwiftImpl(StringRef name) const;
+  /// This method is invoked by findProgramRelativeToCodira().
+  virtual std::string findProgramRelativeToCodiraImpl(StringRef name) const;
 
-  void addInputsOfType(llvm::opt::ArgStringList &Arguments,
+  void addInputsOfType(toolchain::opt::ArgStringList &Arguments,
                        ArrayRef<const Action *> Inputs,
                        file_types::ID InputType,
                        const char *PrefixArgument = nullptr) const;
 
-  void addInputsOfType(llvm::opt::ArgStringList &Arguments,
+  void addInputsOfType(toolchain::opt::ArgStringList &Arguments,
                        ArrayRef<const Job *> Jobs,
-                       const llvm::opt::ArgList &Args, file_types::ID InputType,
+                       const toolchain::opt::ArgList &Args, file_types::ID InputType,
                        const char *PrefixArgument = nullptr) const;
 
-  void addPrimaryInputsOfType(llvm::opt::ArgStringList &Arguments,
+  void addPrimaryInputsOfType(toolchain::opt::ArgStringList &Arguments,
                               ArrayRef<const Job *> Jobs,
-                              const llvm::opt::ArgList &Args,
+                              const toolchain::opt::ArgList &Args,
                               file_types::ID InputType,
                               const char *PrefixArgument = nullptr) const;
 
   /// Get the resource dir link path, which is platform-specific and found
   /// relative to the compiler.
   void getResourceDirPath(SmallVectorImpl<char> &runtimeLibPath,
-                          const llvm::opt::ArgList &args, bool shared) const;
+                          const toolchain::opt::ArgList &args, bool shared) const;
 
   /// Get the secondary runtime library link path given the primary path.
   void getSecondaryResourceDirPath(
@@ -227,14 +228,14 @@ protected:
   /// Get the runtime library link paths, which typically include the resource
   /// dir path and the SDK.
   void getRuntimeLibraryPaths(SmallVectorImpl<std::string> &runtimeLibPaths,
-                              const llvm::opt::ArgList &args,
+                              const toolchain::opt::ArgList &args,
                               StringRef SDKPath, bool shared) const;
 
   void addPathEnvironmentVariableIfNeeded(Job::EnvironmentVector &env,
                                           const char *name,
                                           const char *separator,
                                           options::ID optionID,
-                                          const llvm::opt::ArgList &args,
+                                          const toolchain::opt::ArgList &args,
                                           ArrayRef<std::string> extraEntries = {}) const;
 
   /// Specific toolchains should override this to provide additional conditions
@@ -256,22 +257,22 @@ protected:
                       const InvocationInfo &invocationInfo,
                       const JobContext &context) const;
 
-  void addPluginArguments(const llvm::opt::ArgList &Args,
-                          llvm::opt::ArgStringList &Arguments) const;
+  void addPluginArguments(const toolchain::opt::ArgList &Args,
+                          toolchain::opt::ArgStringList &Arguments) const;
 
 public:
   virtual ~ToolChain() = default;
 
   const Driver &getDriver() const { return D; }
-  const llvm::Triple &getTriple() const { return Triple; }
+  const toolchain::Triple &getTriple() const { return Triple; }
 
   /// Special handling for passing down '-l' arguments.
   ///
   /// Not all downstream tools (lldb, ld etc.) consistently accept
   /// a space between the '-l' flag and its argument, so we remove
   /// the extra space if it was present in \c Args.
-  static void addLinkedLibArgs(const llvm::opt::ArgList &Args,
-                               llvm::opt::ArgStringList &FrontendArgs);
+  static void addLinkedLibArgs(const toolchain::opt::ArgList &Args,
+                               toolchain::opt::ArgStringList &FrontendArgs);
 
   /// Construct a Job for the action \p JA, taking the given information into
   /// account.
@@ -284,33 +285,6 @@ public:
                                     std::unique_ptr<CommandOutput> output,
                                     const OutputInfo &OI) const;
 
-  /// Return true iff the input \c Job \p A is an acceptable candidate for
-  /// batching together into a BatchJob, via a call to \c
-  /// constructBatchJob. This is true when the \c Job is a built from a \c
-  /// CompileJobAction in a \c Compilation \p C running in \c
-  /// OutputInfo::Mode::StandardCompile output mode, with a single \c TY_Swift
-  /// \c InputAction.
-  bool jobIsBatchable(const Compilation &C, const Job *A) const;
-
-  /// Equivalence relation that holds iff the two input Jobs \p A and \p B are
-  /// acceptable candidates for combining together into a \c BatchJob, via a
-  /// call to \c constructBatchJob. This is true when each job independently
-  /// satisfies \c jobIsBatchable, and the two jobs have identical executables,
-  /// output types and environments (i.e. they are identical aside from their
-  /// inputs).
-  bool jobsAreBatchCombinable(const Compilation &C, const Job *A,
-                              const Job *B) const;
-
-  /// Construct a \c BatchJob that subsumes the work of a set of Jobs. Any pair
-  /// of elements in \p Jobs are assumed to satisfy the equivalence relation \c
-  /// jobsAreBatchCombinable, i.e. they should all be "the same" job in in all
-  /// ways other than their choices of inputs. The provided \p NextQuasiPID
-  /// should be a negative number that persists between calls; this method will
-  /// decrement it to assign quasi-PIDs to each of the \p Jobs passed.
-  std::unique_ptr<Job> constructBatchJob(ArrayRef<const Job *> Jobs,
-                                         int64_t &NextQuasiPID,
-                                         Compilation &C) const;
-
   /// Return the default language type to use for the given extension.
   /// If the extension is empty or is otherwise not recognized, return
   /// the invalid type \c TY_INVALID.
@@ -318,11 +292,11 @@ public:
 
   /// Copies the path for the directory clang libraries would be stored in on
   /// the current toolchain.
-  void getClangLibraryPath(const llvm::opt::ArgList &Args,
+  void getClangLibraryPath(const toolchain::opt::ArgList &Args,
                            SmallString<128> &LibPath) const;
 
   // Returns the Clang driver executable to use for linking.
-  const char *getClangLinkerDriver(const llvm::opt::ArgList &Args) const;
+  const char *getClangLinkerDriver(const toolchain::opt::ArgList &Args) const;
 
   /// Returns the name the clang library for a given sanitizer would have on
   /// the current toolchain.
@@ -336,15 +310,15 @@ public:
   ///
   /// \param sanitizer Sanitizer name.
   /// \param shared Whether the library is shared
-  bool sanitizerRuntimeLibExists(const llvm::opt::ArgList &args,
+  bool sanitizerRuntimeLibExists(const toolchain::opt::ArgList &args,
                                  StringRef sanitizer, bool shared = true) const;
 
   /// Adds a runtime library to the arguments list for linking.
   ///
   /// \param LibName The library name
   /// \param Arguments The arguments list to append to
-  void addLinkRuntimeLib(const llvm::opt::ArgList &Args,
-                         llvm::opt::ArgStringList &Arguments,
+  void addLinkRuntimeLib(const toolchain::opt::ArgList &Args,
+                         toolchain::opt::ArgStringList &Arguments,
                          StringRef LibName) const;
 
   /// Validates arguments passed to the toolchain.
@@ -352,7 +326,7 @@ public:
   /// An override point for platform-specific subclasses to customize the
   /// validations that should be performed.
   virtual void validateArguments(DiagnosticEngine &diags,
-                                 const llvm::opt::ArgList &args,
+                                 const toolchain::opt::ArgList &args,
                                  StringRef defaultTarget) const {}
 
   /// Validate the output information.
@@ -362,8 +336,8 @@ public:
   virtual void validateOutputInfo(DiagnosticEngine &diags,
                                   const OutputInfo &outputInfo) const { }
 
-  llvm::Expected<file_types::ID>
-  remarkFileTypeFromArgs(const llvm::opt::ArgList &Args) const;
+  toolchain::Expected<file_types::ID>
+  remarkFileTypeFromArgs(const toolchain::opt::ArgList &Args) const;
 };
 } // end namespace driver
 } // end namespace language

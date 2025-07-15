@@ -1,0 +1,4 @@
+// {"signature":"language::GenericSignature::verify(toolchain::ArrayRef<language::Requirement>) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a {
+  typealias b where Self : a protocol a

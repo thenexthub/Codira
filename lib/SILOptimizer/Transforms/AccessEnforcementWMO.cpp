@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This module pass removes dynamic access enforcement based on whole module
@@ -68,11 +69,11 @@
 
 using namespace language;
 
-using llvm::DenseMap;
-using llvm::SmallDenseSet;
+using toolchain::DenseMap;
+using toolchain::SmallDenseSet;
 
 using DisjointAccessLocationKey =
-    llvm::PointerUnion<const VarDecl *, const SILGlobalVariable *>;
+    toolchain::PointerUnion<const VarDecl *, const SILGlobalVariable *>;
 
 // Get the VarDecl that represents the DisjointAccessLocation for the given
 // storage and access base. Returns nullptr for any storage that can't be
@@ -101,9 +102,9 @@ getDisjointAccessLocation(AccessStorageWithBase storageAndBase) {
   case AccessStorage::Unidentified:
     return nullptr;
   case AccessStorage::Nested:
-    llvm_unreachable("Unexpected Nested access.");
+    toolchain_unreachable("Unexpected Nested access.");
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 static bool isVisibleExternally(DisjointAccessLocationKey key, SILModule *mod) {
@@ -266,7 +267,7 @@ void GlobalAccessRemoval::recordAccess(SILInstruction *beginAccess,
   if (key.isNull() || isVisibleExternally(key, &module))
     return;
 
-  LLVM_DEBUG(if (!hasNoNestedConflict) llvm::dbgs()
+  TOOLCHAIN_DEBUG(if (!hasNoNestedConflict) toolchain::dbgs()
              << "Nested conflict on " << getName(key) << " at" << *beginAccess
              << "\n");
 
@@ -300,13 +301,13 @@ void GlobalAccessRemoval::removeNonreentrantAccess() {
       continue;
 
     auto key = keyAndInfo.first;
-    LLVM_DEBUG(llvm::dbgs()
+    TOOLCHAIN_DEBUG(toolchain::dbgs()
                << "Eliminating all formal access on " << getName(key) << "\n");
     assert(!isVisibleExternally(key, &module));
 
     // Non-deterministic iteration, only used to set a flag.
     for (BeginAccessInst *beginAccess : info.beginAccessSet) {
-      LLVM_DEBUG(llvm::dbgs() << "  Disabling access marker " << *beginAccess);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Disabling access marker " << *beginAccess);
       beginAccess->setEnforcement(SILAccessEnforcement::Static);
       changedFunctions.insert(beginAccess->getFunction());
     }
@@ -323,6 +324,6 @@ struct AccessEnforcementWMO : public SILModuleTransform {
 };
 }
 
-SILTransform *swift::createAccessEnforcementWMO() {
+SILTransform *language::createAccessEnforcementWMO() {
   return new AccessEnforcementWMO();
 }

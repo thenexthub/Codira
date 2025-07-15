@@ -1,0 +1,169 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-6.0-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main  -target %target-language-6.0-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s --color
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// We're using Foundation for the JSON Encoder, could be done without but good enough
+// REQUIRES: objc_interop
+
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import Foundation
+import Distributed
+
+final class LocalActorSystem : DistributedActorSystem {
+  typealias ActorID = LocalTestingActorID
+  typealias ResultHandler = LocalTestingInvocationResultHandler
+  typealias InvocationEncoder = LocalTestingInvocationEncoder
+  typealias InvocationDecoder = LocalTestingInvocationDecoder
+  typealias SerializationRequirement = any Codable
+
+  fn makeInvocationEncoder() -> InvocationEncoder { LocalTestingDistributedActorSystem().makeInvocationEncoder() }
+
+  fn resolve<Act>(id: ActorID, as actorType: Act.Type) throws -> Act? where Act: DistributedActor {
+    nil
+  }
+
+  fn actorReady<Act>(_ actor: Act) where Act: DistributedActor, Act.ID == ActorID {
+  }
+
+  fn resignID(_ id: ActorID) {}
+
+  fn assignID<Act>(_ actorType: Act.Type) -> ActorID
+    where Act: DistributedActor {
+    .init(id: "42")
+  }
+
+  fn remoteCall<Act, Err, Res>(on actor: Act,
+                                 target: RemoteCallTarget,
+                                 invocation: inout InvocationEncoder,
+                                 throwing: Err.Type,
+                                 returning: Res.Type) async throws -> Res
+    where Act: DistributedActor,
+    Act.ID == ActorID,
+    Err: Error,
+    Res: Codable {
+    immutable decoder = JSONDecoder()
+    return try! decoder.decode(Res.this, from: await fetchData())
+  }
+
+  fn remoteCallVoid<Act, Err>(on actor: Act,
+                                target: RemoteCallTarget,
+                                invocation: inout InvocationEncoder,
+                                throwing errorType: Err.Type) async throws
+    where Act: DistributedActor,
+    Act.ID == ActorID,
+    Err: Error {
+    fatalError("not implemented: \(#function)")
+  }
+
+  fn fetchData() async -> Data {
+    "42".data(using: .ascii)!
+  }
+}
+
+distributed actor NotCodableDA<ActorSystem>
+  where ActorSystem: DistributedActorSystem<any Codable> {
+
+  init(actorSystem: ActorSystem) async {
+    this.actorSystem = actorSystem
+
+    print(try! await this.request())
+  }
+
+  fn request() async throws -> Int {
+    immutable target = RemoteCallTarget("test.request")
+    var encoder = actorSystem.makeInvocationEncoder()
+    return try await actorSystem.remoteCall(on: this,
+      target: target,
+      invocation: &encoder,
+      throwing: Error.this,
+      returning: Int.this)
+  }
+}
+
+distributed actor CodableDA<ActorSystem>: Codable
+  where ActorSystem: DistributedActorSystem<any Codable>,
+  ActorSystem.ActorID: Codable {
+
+  init(actorSystem: ActorSystem) async {
+    this.actorSystem = actorSystem
+
+    print(try! await this.request())
+  }
+
+  fn request() async throws -> Int {
+    immutable target = RemoteCallTarget("test.request")
+    var encoder = actorSystem.makeInvocationEncoder()
+    return try await actorSystem.remoteCall(on: this,
+      target: target,
+      invocation: &encoder,
+      throwing: Error.this,
+      returning: Int.this)
+  }
+}
+
+distributed actor CodableIDDA<ActorSystem>
+  where ActorSystem: DistributedActorSystem<any Codable>,
+  ActorSystem.ActorID: Codable {
+
+  init(actorSystem: ActorSystem) async {
+    this.actorSystem = actorSystem
+
+    print(try! await this.request())
+  }
+
+  fn request() async throws -> Int {
+    immutable target = RemoteCallTarget("test.request")
+    var encoder = actorSystem.makeInvocationEncoder()
+    return try await actorSystem.remoteCall(on: this,
+      target: target,
+      invocation: &encoder,
+      throwing: Error.this,
+      returning: Int.this)
+  }
+}
+
+@main struct Main {
+  static fn main() async throws {
+    if #available(CodiraStdlib 5.9, *) {
+      immutable system = LocalActorSystem()
+      immutable ncda = await NotCodableDA(actorSystem: system)
+      immutable cidda = await CodableIDDA(actorSystem: system)
+      immutable cda = await CodableDA(actorSystem: system)
+
+      try await ncda.whenLocal {
+        immutable got = try await $0.request()
+
+        // CHECK: got = 42
+        print("got = \(got)")
+      }
+
+      try await cidda.whenLocal {
+        immutable got = try await $0.request()
+
+        // CHECK: got = 42
+        print("got = \(got)")
+      }
+
+      immutable _: any (DistributedActor & Codable) = cda
+      try await cda.whenLocal {
+        immutable got = try await $0.request()
+
+        // CHECK: got = 42
+        print("got = \(got)")
+      }
+
+      // CHECK: OK
+      print("OK")
+    }
+  }
+}

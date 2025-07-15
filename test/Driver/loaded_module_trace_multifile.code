@@ -1,0 +1,34 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/cache)
+// RUN: %target-build-language -emit-module -module-name Module %S/Inputs/loaded_module_trace_empty.code -o %t/Module.codemodule -module-cache-path %t/cache
+// RUN: %target-build-language -emit-module -module-name Module2 %S/Inputs/loaded_module_trace_empty.code -o %t/Module2.codemodule -module-cache-path %t/cache
+// RUN: %target-build-language %s %S/Inputs/loaded_module_trace_imports_module.code -emit-loaded-module-trace-path %t/multifile.trace.json -emit-library -o %t/loaded_module_trace_multifile -I %t -module-cache-path %t/cache
+// RUN: %FileCheck %s < %t/multifile.trace.json
+
+// This file only imports Module2, but the other file imports Module: hopefully they both appear!
+// The difference between this test and the one in loaded_module_trace is that here, we test that
+// dependencies from multiple files in the same module are accounted for correctly. As a result,
+// `Module.codemodule` is marked as directly imported here.
+
+// CHECK: {
+// CHECK: "version":2
+// CHECK: "name":"loaded_module_trace_multifile"
+// CHECK: "arch":"{{[^"]*}}"
+// CHECK: "languageMode":"4"
+// CHECK: "enabledLanguageFeatures":[
+// CHECK: ]
+// CHECK: "languagemodules":[
+// CHECK-DAG: "{{[^"]*\\[/\\]}}Module2.codemodule"
+// CHECK-DAG: "{{[^"]*\\[/\\]}}Codira.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "{{[^"]*\\[/\\]}}CodiraOnoneSupport.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}"
+// CHECK-DAG: "{{[^"]*\\[/\\]}}Module.codemodule"
+// CHECK: ]
+// CHECK: "languagemodulesDetailedInfo":[
+// CHECK-DAG: {"name":"Module2","path":"{{[^"]*\\[/\\]}}Module2.codemodule","isImportedDirectly":true,"supportsLibraryEvolution":false,"strictMemorySafety":false}
+// CHECK-DAG: {"name":"Codira","path":"{{[^"]*\\[/\\]}}Codira.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}","isImportedDirectly":true,"supportsLibraryEvolution":true,"strictMemorySafety":true}
+// CHECK-DAG: {"name":"CodiraOnoneSupport","path":"{{[^"]*\\[/\\]}}CodiraOnoneSupport.codemodule{{(\\[/\\][^"]+[.]languagemodule)?}}","isImportedDirectly":true,"supportsLibraryEvolution":true,"strictMemorySafety":true}
+// CHECK-DAG: {"name":"Module","path":"{{[^"]*\\[/\\]}}Module.codemodule","isImportedDirectly":true,"supportsLibraryEvolution":false,"strictMemorySafety":false}
+// CHECK: ]
+// CHECK: }
+
+import Module2

@@ -1,0 +1,17 @@
+public dynamic fn selfRec(_ x: Int, _ acc: Int) -> Int {
+  return 0
+}
+
+public class AClass {
+  public init() {}
+  public dynamic fn selfRec(_ x: Int, _ acc: Int) -> Int {
+    return 0
+  }
+}
+
+public class AStruct {
+  public init() {}
+  public dynamic fn selfRec(_ x: Int, _ acc: Int) -> Int {
+    return 0
+  }
+}

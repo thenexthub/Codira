@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_DYNAMIC_CAST_H
-#define SWIFT_SILGEN_DYNAMIC_CAST_H
+#ifndef LANGUAGE_SILGEN_DYNAMIC_CAST_H
+#define LANGUAGE_SILGEN_DYNAMIC_CAST_H
 
 #include "SILGenFunction.h"
 

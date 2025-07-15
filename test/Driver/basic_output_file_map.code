@@ -1,0 +1,13 @@
+// RUN: echo "{\"%/s\": {\"object\": \"/build/basic_output_file_map.o\"}, \"%/S/Inputs/main.code\": {\"object\": \"/build/main.o\"}, \"%/S/Inputs/lib.code\": {\"object\": \"/build/lib.o\"}}" > %t.json
+
+// RUN: %languagec_driver -driver-print-output-file-map -target x86_64-apple-macosx10.9 -emit-executable %/s %/S/Inputs/main.code %/S/Inputs/lib.code -o /build/basic_output_file_map.out -module-name OutputFileMap -output-file-map %t.json 2>&1 | %FileCheck %/s -check-prefix=DUMPOFM
+// RUN: %languagec_driver -driver-print-bindings -target x86_64-apple-macosx10.9 -emit-executable %/s %/S/Inputs/main.code %/S/Inputs/lib.code -o /build/basic_output_file_map.out -module-name OutputFileMap -output-file-map %t.json 2>&1 | %FileCheck %/s -check-prefix=BINDINGS
+
+// DUMPOFM: {{.*}}/Inputs/lib.code -> object: "/build/lib.o"
+// DUMPOFM: {{.*}}/Inputs/main.code -> object: "/build/main.o"
+// DUMPOFM: {{.*}}/basic_output_file_map.code -> object: "/build/basic_output_file_map.o"
+
+// BINDINGS: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}/basic_output_file_map.code"], output: {object: "/build/basic_output_file_map.o"}
+// BINDINGS: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}/Inputs/main.code"], output: {object: "/build/main.o"}
+// BINDINGS: # "x86_64-apple-macosx10.9" - "language{{(c|c-legacy-driver|-frontend)?(\.exe)?}}", inputs: ["{{.*}}/Inputs/lib.code"], output: {object: "/build/lib.o"}
+// BINDINGS: # "x86_64-apple-macosx10.9" - "ld{{(\.exe)?}}", inputs: ["/build/basic_output_file_map.o", "/build/main.o", "/build/lib.o"], output: {image: "/build/basic_output_file_map.out"}

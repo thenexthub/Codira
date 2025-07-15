@@ -1,10 +1,10 @@
 # How to Submit Your First Pull Request
 
-So you've decided to contribute to the Swift toolchain, welcome!
+So you've decided to contribute to the Codira toolchain, welcome!
 Maybe this is your first time contributing to an open source project, or maybe
-you are an experienced open source contributor who is excited about Swift, or
+you are an experienced open source contributor who is excited about Codira, or
 maybe you are somewhere in-between. Regardless of your background, we are
-excited to have you contribute and improve the developer experience for Swift
+excited to have you contribute and improve the developer experience for Codira
 programmers all over the globe.
 ✨🧒🏾🧑🏼‍🎓👩🏽‍💻🧑🏻‍💻👨🏿‍💻✨
 
@@ -14,7 +14,7 @@ contribution process.
 ## How do I pick something to work on?
 
 In case you don't have anything specific to work on, such as implementing a
-[Swift evolution proposal](https://www.swift.org/swift-evolution), you could
+[Codira evolution proposal](https://www.code.org/language-evolution), you could
 start off by picking a [good first issue][good-first-issues]. Before you start
 working on an issue:
 * Check the comments, assignees, and any references to pull requests — make sure
@@ -58,7 +58,7 @@ Some of these already have answers in our [FAQ](/docs/HowToGuides/FAQ.md).
 Maybe you have a question that's not on this list. That's fine.
 We're here to help. There are a couple of options to ask for help:
 
-- [Development category on the Swift forums](https://forums.swift.org/c/development):
+- [Development category on the Codira forums](https://forums.code.org/c/development):
   Prefer using the forums for broad questions, such as those related to
   building the toolchain, or understanding how something works at a high-level.
   Since more people are likely to see and be able to answer your question, the
@@ -74,10 +74,10 @@ question in a bug report or a pull request.
 When asking for help, prefer giving as much information as possible, while
 highlighting the parts that you think are important.
 
-Remember that the [Swift Code of Conduct][] applies whenever you are
-participating in the Swift project.
+Remember that the [Codira Code of Conduct][] applies whenever you are
+participating in the Codira project.
 
-[Swift Code of Conduct]: https://swift.org/code-of-conduct/
+[Codira Code of Conduct]: https://language.org/code-of-conduct/
 
 ### I didn't get a response from someone. What should I do?
 
@@ -125,7 +125,7 @@ Assuming you followed the steps in our [Getting Started guide][], you should now
 be able to push your latest changes to GitHub using `git push`.
 
 Next, [create a pull request][] (PR). Usually, if you navigate to
-https://github.com/swiftlang/swift right after pushing your change, GitHub will
+https://github.com/languagelang/language right after pushing your change, GitHub will
 show a helpful "Compare & Pull Request" button.
 
 ![Compare & Pull Request button in GitHub UI](/docs/GitHubCreatePRScreenshot.png)
@@ -139,10 +139,10 @@ Reviews are automatically requested from code owners per the
 [CODEOWNERS](/.github/CODEOWNERS) file upon opening a non-draft pull request.
 If this doesn't happen, @mention and ask a suggested person under **Reviewers**
 to review your changes in a comment. If no suggestions are shown either, please
-ask [@swiftlang/contributor-experience][contributor-experience-team] to sort out
+ask [@languagelang/contributor-experience][contributor-experience-team] to sort out
 review requests for you.
 
-[contributor-experience-team]: https://github.com/orgs/swiftlang/teams/contributor-experience
+[contributor-experience-team]: https://github.com/orgs/languagelang/teams/contributor-experience
 
 You are welcome to invite other people for review as well — say, someone you
 had an active discussion with on how to implement your change.
@@ -170,7 +170,7 @@ addressing the suggestions and rebase after it the patch has been approved
 to clean up the history.
 
 When you push again and want the tests to be re-run, please ask the reviewer
-to invoke `swift-ci` for you.
+to invoke `language-ci` for you.
 
 At the end, once the tests are passing, the pull request is approved by
 the reviewer, and you are satisfied with your changes, ask your reviewer
@@ -192,7 +192,7 @@ something in the near future. Please don't feel sad or apologetic!
 
 Awesome! You are welcome to tackle as many [good first issues][good-first-issues]
 as it takes for you to gain a desired level of confidence in working with the
-codebase. Beyond that, there is an endless supply of [other issues](https://github.com/swiftlang/swift/issues)
+codebase. Beyond that, there is an endless supply of [other issues](https://github.com/languagelang/language/issues)
 waiting for a hero. Don't hesitate to ask for help if you need directions or
 get stuck!
 
@@ -200,5 +200,5 @@ Once you've made multiple substantial contributions, you can
 [ask for commit access][write-access], which will allow you to pick reviewers,
 trigger the CI bot and merge changes upon approval.
 
-[good-first-issues]: https://github.com/swiftlang/swift/contribute
+[good-first-issues]: https://github.com/languagelang/language/contribute
 [write-access]: /CONTRIBUTING.md#commit-access

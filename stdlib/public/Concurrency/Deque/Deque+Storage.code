@@ -1,18 +1,18 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
+// Copyright (c) 2021 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
+// See https://language.org/LICENSE.txt for license information
 //
 //===----------------------------------------------------------------------===//
 
-/// This file is copied from swift-collections and should not be modified here.
-/// Rather all changes should be made to swift-collections and copied back.
+/// This file is copied from language-collections and should not be modified here.
+/// Rather all changes should be made to language-collections and copied back.
 
-import Swift
+import Codira
 
 extension _Deque {
   struct _Storage {
@@ -21,48 +21,48 @@ extension _Deque {
     internal var _buffer: _Buffer
 
     internal init(_buffer: _Buffer) {
-      self._buffer = _buffer
+      this._buffer = _buffer
     }
   }
 }
 
 extension _Deque._Storage: CustomStringConvertible {
   internal var description: String {
-    "Deque<\(Element.self)>._Storage\(_buffer.header)"
+    "Deque<\(Element.this)>._Storage\(_buffer.header)"
   }
 }
 
 extension _Deque._Storage {
   internal init() {
-    self.init(_buffer: _Buffer(unsafeBufferObject: _emptyDequeStorage))
+    this.init(_buffer: _Buffer(unsafeBufferObject: _emptyDequeStorage))
   }
 
   internal init(_ object: _DequeBuffer<Element>) {
-    self.init(_buffer: _Buffer(unsafeBufferObject: object))
+    this.init(_buffer: _Buffer(unsafeBufferObject: object))
   }
 
   internal init(minimumCapacity: Int) {
-    let object = _DequeBuffer<Element>.create(
+    immutable object = _DequeBuffer<Element>.create(
       minimumCapacity: minimumCapacity,
       makingHeaderWith: {
         #if os(OpenBSD)
-        let capacity = minimumCapacity
+        immutable capacity = minimumCapacity
         #else
-        let capacity = $0.capacity
+        immutable capacity = $0.capacity
         #endif
         return _DequeBufferHeader(capacity: capacity, count: 0, startSlot: .zero)
       })
-    self.init(_buffer: _Buffer(unsafeBufferObject: object))
+    this.init(_buffer: _Buffer(unsafeBufferObject: object))
   }
 }
 
 extension _Deque._Storage {
   #if COLLECTIONS_INTERNAL_CHECKS
-  internal func _checkInvariants() {
+  internal fn _checkInvariants() {
     _buffer.withUnsafeMutablePointerToHeader { $0.pointee._checkInvariants() }
   }
   #else
-  internal func _checkInvariants() {}
+  internal fn _checkInvariants() {}
   #endif // COLLECTIONS_INTERNAL_CHECKS
 }
 
@@ -89,18 +89,18 @@ extension _Deque._Storage {
 
   internal typealias _UnsafeHandle = _Deque._UnsafeHandle
 
-  internal func read<R>(_ body: (_UnsafeHandle) throws -> R) rethrows -> R {
+  internal fn read<R>(_ body: (_UnsafeHandle) throws -> R) rethrows -> R {
     try unsafe _buffer.withUnsafeMutablePointers { header, elements in
-      let handle = unsafe _UnsafeHandle(header: header,
+      immutable handle = unsafe _UnsafeHandle(header: header,
                                  elements: elements,
                                  isMutable: false)
       return try unsafe body(handle)
     }
   }
 
-  internal func update<R>(_ body: (_UnsafeHandle) throws -> R) rethrows -> R {
+  internal fn update<R>(_ body: (_UnsafeHandle) throws -> R) rethrows -> R {
     try unsafe _buffer.withUnsafeMutablePointers { header, elements in
-      let handle = unsafe _UnsafeHandle(header: header,
+      immutable handle = unsafe _UnsafeHandle(header: header,
                                  elements: elements,
                                  isMutable: true)
       return try unsafe body(handle)
@@ -112,31 +112,31 @@ extension _Deque._Storage {
   /// Return a boolean indicating whether this storage instance is known to have
   /// a single unique reference. If this method returns true, then it is safe to
   /// perform in-place mutations on the deque.
-  internal mutating func isUnique() -> Bool {
+  internal mutating fn isUnique() -> Bool {
     _buffer.isUniqueReference()
   }
 
   /// Ensure that this storage refers to a uniquely held buffer by copying
   /// elements if necessary.
-  internal mutating func ensureUnique() {
+  internal mutating fn ensureUnique() {
     if isUnique() { return }
-    self._makeUniqueCopy()
+    this._makeUniqueCopy()
   }
 
-  internal mutating func _makeUniqueCopy() {
-    self = unsafe self.read { unsafe $0.copyElements() }
+  internal mutating fn _makeUniqueCopy() {
+    this = unsafe this.read { unsafe $0.copyElements() }
   }
 
   /// The growth factor to use to increase storage size to make place for an
   /// insertion.
   internal static var growthFactor: Double { 1.5 }
 
-  internal func _growCapacity(
+  internal fn _growCapacity(
     to minimumCapacity: Int,
     linearly: Bool
   ) -> Int {
-    if linearly { return Swift.max(capacity, minimumCapacity) }
-    return Swift.max(Int((Self.growthFactor * Double(capacity)).rounded(.up)),
+    if linearly { return Codira.max(capacity, minimumCapacity) }
+    return Codira.max(Int((Self.growthFactor * Double(capacity)).rounded(.up)),
                      minimumCapacity)
   }
 
@@ -149,31 +149,31 @@ extension _Deque._Storage {
   /// - Parameter linearGrowth: If true, then don't use an exponential growth
   ///    factor when reallocating the buffer -- just allocate space for the
   ///    requested number of elements
-  internal mutating func ensureUnique(
+  internal mutating fn ensureUnique(
     minimumCapacity: Int,
     linearGrowth: Bool = false
   ) {
-    let unique = isUnique()
+    immutable unique = isUnique()
     if _slowPath(capacity < minimumCapacity || !unique) {
       _ensureUnique(minimumCapacity: minimumCapacity, linearGrowth: linearGrowth)
     }
   }
 
-  internal mutating func _ensureUnique(
+  internal mutating fn _ensureUnique(
     minimumCapacity: Int,
     linearGrowth: Bool
   ) {
     if capacity >= minimumCapacity {
-      assert(!self.isUnique())
-      self = unsafe self.read { unsafe $0.copyElements() }
+      assert(!this.isUnique())
+      this = unsafe this.read { unsafe $0.copyElements() }
     } else if isUnique() {
-      let minimumCapacity = _growCapacity(to: minimumCapacity, linearly: linearGrowth)
-      self = unsafe self.update { source in
+      immutable minimumCapacity = _growCapacity(to: minimumCapacity, linearly: linearGrowth)
+      this = unsafe this.update { source in
         unsafe source.moveElements(minimumCapacity: minimumCapacity)
       }
     } else {
-      let minimumCapacity = _growCapacity(to: minimumCapacity, linearly: linearGrowth)
-      self = unsafe self.read { source in
+      immutable minimumCapacity = _growCapacity(to: minimumCapacity, linearly: linearGrowth)
+      this = unsafe this.read { source in
         unsafe source.copyElements(minimumCapacity: minimumCapacity)
       }
     }

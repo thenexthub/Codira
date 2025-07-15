@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_PRETTYSTACKTRACE_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_PRETTYSTACKTRACE_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_PRETTYSTACKTRACE_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_PRETTYSTACKTRACE_H
 
 #include "language/SIL/PrettyStackTrace.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
 namespace language {
 
@@ -33,10 +34,10 @@ public:
   PrettyStackTraceSILFunctionTransform(SILFunctionTransform *SFT,
                                        unsigned PassNumber);
 
-  virtual void print(llvm::raw_ostream &OS) const override;
+  virtual void print(toolchain::raw_ostream &OS) const override;
 };
 
-class PrettyStackTraceSILModuleTransform : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceSILModuleTransform : public toolchain::PrettyStackTraceEntry {
   SILModuleTransform *SMT;
   unsigned PassNumber;
 
@@ -44,7 +45,7 @@ public:
   PrettyStackTraceSILModuleTransform(SILModuleTransform *SMT,
                                      unsigned PassNumber)
       : SMT(SMT), PassNumber(PassNumber) {}
-  virtual void print(llvm::raw_ostream &OS) const override;
+  virtual void print(toolchain::raw_ostream &OS) const override;
 };
 
 } // end namespace language

@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t-scratch)
+// RUN: %target-language-frontend -emit-module -o %t-scratch/def_async~partial.codemodule -primary-file %S/Inputs/def_async.code -module-name def_async  -target %target-language-5.1-abi-triple
+// RUN: %target-language-frontend -merge-modules -emit-module -parse-as-library -enable-testing %t-scratch/def_async~partial.codemodule -module-name def_async -o %t/def_async.codemodule  -target %target-language-5.1-abi-triple
+// RUN: %target-language-frontend -typecheck -I%t -verify %s -verify-ignore-unknown  -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+
+import def_async
+
+fn testDoSomethingBig() {
+  immutable _: () -> Int = doSomethingBig // expected-error{{invalid conversion from 'async' function of type '() async -> Int' to synchronous function type '() -> Int'}}
+}
+
+// Verify serialization of async immutable _ = <expression> pattern
+fn testSerializedAsyncLet() async {
+  await doSerializedAsyncLet()
+} 
+
+// Verify serialization of async immutable _ : <type> = <expression> pattern
+fn testSerializedAsyncLetTyped() async {
+  await doSerializedAsyncLetTyped()
+}

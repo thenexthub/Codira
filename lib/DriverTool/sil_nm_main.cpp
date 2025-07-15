@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -18,13 +19,13 @@
 /// This utility is a command line tool that given a sil or sib file dumps out
 /// the names of the functions, globals, vtables, and witness tables in a
 /// machine readable form. The intention is that it can be used with things like
-/// sil-func-extractor to manipulate sil from the commandline.
+/// sil-fn-extractor to manipulate sil from the commandline.
 ///
 //===----------------------------------------------------------------------===//
 
 #include "language/Demangling/Demangle.h"
-#include "language/Basic/LLVM.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "language/Basic/Range.h"
 #include "language/Frontend/DiagnosticVerifier.h"
 #include "language/Frontend/Frontend.h"
@@ -37,67 +38,67 @@
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Serialization/SerializedSILLoader.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Signals.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/ManagedStatic.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Signals.h"
 #include <cstdio>
 #include <functional>
 
 using namespace language;
 
 struct SILNMOptions {
-  llvm::cl::opt<std::string>
-    InputFilename = llvm::cl::opt<std::string>(llvm::cl::desc("input file"),
-                                               llvm::cl::init("-"),
-                                               llvm::cl::Positional);
+  toolchain::cl::opt<std::string>
+    InputFilename = toolchain::cl::opt<std::string>(toolchain::cl::desc("input file"),
+                                               toolchain::cl::init("-"),
+                                               toolchain::cl::Positional);
 
-  llvm::cl::list<std::string>
-    ImportPaths = llvm::cl::list<std::string>("I",
-                  llvm::cl::desc("add a directory to the import search path"));
+  toolchain::cl::list<std::string>
+    ImportPaths = toolchain::cl::list<std::string>("I",
+                  toolchain::cl::desc("add a directory to the import search path"));
 
-  llvm::cl::opt<std::string>
-    ModuleName = llvm::cl::opt<std::string>("module-name",
-                 llvm::cl::desc("The name of the module if processing"
+  toolchain::cl::opt<std::string>
+    ModuleName = toolchain::cl::opt<std::string>("module-name",
+                 toolchain::cl::desc("The name of the module if processing"
                                 " a module. Necessary for processing "
                                 "stdin."));
 
-  llvm::cl::opt<bool>
-    DemangleNames = llvm::cl::opt<bool>("demangle",
-                    llvm::cl::desc("Demangle names of entities outputted"));
+  toolchain::cl::opt<bool>
+    DemangleNames = toolchain::cl::opt<bool>("demangle",
+                    toolchain::cl::desc("Demangle names of entities outputted"));
 
-  llvm::cl::opt<std::string>
-    ModuleCachePath = llvm::cl::opt<std::string>("module-cache-path",
-                      llvm::cl::desc("Clang module cache path"));
+  toolchain::cl::opt<std::string>
+    ModuleCachePath = toolchain::cl::opt<std::string>("module-cache-path",
+                      toolchain::cl::desc("Clang module cache path"));
 
-  llvm::cl::opt<std::string>
-    ResourceDir = llvm::cl::opt<std::string>(
+  toolchain::cl::opt<std::string>
+    ResourceDir = toolchain::cl::opt<std::string>(
       "resource-dir",
-      llvm::cl::desc("The directory that holds the compiler resource files"));
+      toolchain::cl::desc("The directory that holds the compiler resource files"));
 
-  llvm::cl::opt<std::string>
-    SDKPath = llvm::cl::opt<std::string>("sdk", llvm::cl::desc("The path to the SDK for use with the clang "
+  toolchain::cl::opt<std::string>
+    SDKPath = toolchain::cl::opt<std::string>("sdk", toolchain::cl::desc("The path to the SDK for use with the clang "
                                     "importer."),
-              llvm::cl::init(""));
+              toolchain::cl::init(""));
 
-  llvm::cl::opt<std::string>
-    Triple = llvm::cl::opt<std::string>("target", llvm::cl::desc("target triple"));
+  toolchain::cl::opt<std::string>
+    Triple = toolchain::cl::opt<std::string>("target", toolchain::cl::desc("target triple"));
 };
 
 static void printAndSortNames(std::vector<StringRef> &Names, char Code,
                               const SILNMOptions &options) {
   std::sort(Names.begin(), Names.end());
   for (StringRef N : Names) {
-    llvm::outs() << Code << " ";
+    toolchain::outs() << Code << " ";
     if (options.DemangleNames) {
-      llvm::outs() << swift::Demangle::demangleSymbolAsString(N);
+      toolchain::outs() << language::Demangle::demangleSymbolAsString(N);
     } else {
-      llvm::outs() << N;
+      toolchain::outs() << N;
     }
-    llvm::outs() << '\n';
+    toolchain::outs() << '\n';
   }
 }
 
@@ -140,11 +141,11 @@ int sil_nm_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   SILNMOptions options;
 
-  llvm::cl::ParseCommandLineOptions(argv.size(), argv.data(), "SIL NM\n");
+  toolchain::cl::ParseCommandLineOptions(argv.size(), argv.data(), "SIL NM\n");
 
   CompilerInvocation Invocation;
 
-  Invocation.setMainExecutablePath(llvm::sys::fs::getMainExecutable(argv[0], MainAddr));
+  Invocation.setMainExecutablePath(toolchain::sys::fs::getMainExecutable(argv[0], MainAddr));
 
   // Give the context the list of search paths to use for modules.
   std::vector<SearchPathOptions::SearchPath> ImportPaths;
@@ -171,7 +172,7 @@ int sil_nm_main(ArrayRef<const char *> argv, void *MainAddr) {
   Invocation.getLangOptions().EnableObjCAttrRequiresFoundation = false;
 
   serialization::ExtendedValidationInfo extendedInfo;
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileBufOrErr =
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> FileBufOrErr =
       Invocation.setUpInputForSILTool(options.InputFilename, options.ModuleName,
                                       /*alwaysSetModuleToMain*/ true,
                                       /*bePrimary*/ false, extendedInfo);
@@ -186,7 +187,7 @@ int sil_nm_main(ArrayRef<const char *> argv, void *MainAddr) {
 
   std::string InstanceSetupError;
   if (CI.setup(Invocation, InstanceSetupError)) {
-    llvm::errs() << InstanceSetupError << '\n';
+    toolchain::errs() << InstanceSetupError << '\n';
     return 1;
   }
   CI.performSema();

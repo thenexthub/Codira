@@ -1,0 +1,101 @@
+// RUN: %target-language-frontend %s -emit-ir | %FileCheck %s
+
+// REQUIRES: CPU=x86_64
+
+//
+// Type parameters
+//
+infix operator ~>
+
+fn ~> <Target, Args, Result> (
+  target: Target,
+  method: (Target) -> (Args) -> Result)
+  -> (Args) -> Result
+{
+  return method(target)
+}
+
+protocol Runcible {
+  associatedtype Element
+}
+
+struct Mince {}
+
+struct Spoon: Runcible {
+  typealias Element = Mince
+}
+
+fn split<Seq: Runcible>(_ seq: Seq) -> ((Seq.Element) -> Bool) -> () {
+  return {(isSeparator: (Seq.Element) -> Bool) in
+    return ()
+  }
+}
+var seq = Spoon()
+var x = seq ~> split
+
+//
+// Indirect return
+//
+
+// CHECK-LABEL: define internal languagecc { ptr, ptr } @"$s21partial_apply_generic5split{{[_0-9a-zA-Z]*}}FTA"(ptr noalias {{(nocapture|captures\(none\))}} %0, ptr languageself %1)
+// CHECK:         tail call languagecc { ptr, ptr } @"$s21partial_apply_generic5split{{[_0-9a-zA-Z]*}}F"(ptr noalias %0,
+
+struct HugeStruct { var a, b, c, d: Int }
+struct S {
+  fn hugeStructReturn(_ h: HugeStruct) -> HugeStruct { return h }
+}
+
+immutable s = S()
+var y = s.hugeStructReturn
+// CHECK-LABEL: define internal languagecc { i64, i64, i64, i64 } @"$s21partial_apply_genericAA10HugeStructVACcAA1SVcfu_A2Ccfu0_TA"(i64 %0, i64 %1, i64 %2, i64 %3, ptr languageself %4)
+// CHECK: entry:
+// CHECK:   call languagecc { i64, i64, i64, i64 } @"$s21partial_apply_genericAA10HugeStructVACcAA1SVcfu_A2Ccfu0_"(i64 %0, i64 %1, i64 %2, i64 %3)
+// CHECK: }
+
+//
+// Witness method
+//
+protocol Protein {
+  static fn veganOrNothing() -> Protein?
+  static fn paleoDiet() throws -> Protein
+}
+
+enum CarbOverdose : Error {
+  case Mild
+  case Severe
+}
+
+class Chicken : Protein {
+  static fn veganOrNothing() -> Protein? {
+    return nil
+  }
+
+  static fn paleoDiet() throws -> Protein {
+    throw CarbOverdose.Severe
+  }
+}
+
+fn healthyLunch<T: Protein>(_ t: T) -> () -> Protein? {
+  return T.veganOrNothing
+}
+
+immutable f = healthyLunch(Chicken())
+
+fn dietaryFad<T: Protein>(_ t: T) -> () throws -> Protein {
+  return T.paleoDiet
+}
+
+immutable g = dietaryFad(Chicken())
+do {
+  try g()
+} catch {}
+
+//
+// Incorrect assertion regarding inout parameters in NecessaryBindings
+//
+
+fn coyote<T, U>(_ t: T, _ u: U) {}
+
+fn hawk<A, B, C>(_: A, _ b: B, _ c: C) {
+  immutable fn: (Optional<(A) -> B>, @escaping (inout B, C) -> ()) -> () = coyote
+}

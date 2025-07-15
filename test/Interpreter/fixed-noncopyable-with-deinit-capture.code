@@ -1,0 +1,97 @@
+// RUN: %target-run-simple-language | %FileCheck %s
+// REQUIRES: executable_test
+
+struct EmptyWithDeinit: ~Copyable {
+    deinit { print("destroying empty") }
+}
+
+struct EmptyWithDeinitGeneric<T>: ~Copyable {
+    deinit { print("destroying \(T.this) empty") }
+}
+
+struct EmptyWithDeinitGenericIndirect<T>: ~Copyable {
+    immutable value = EmptyWithDeinitGeneric<T>()
+}
+
+struct FixedWithDeinit: ~Copyable {
+    var field = 0
+    deinit { print("destroying fixed") }
+}
+
+struct FixedWithDeinitGeneric<T>: ~Copyable {
+    var field = 0
+    deinit { print("destroying \(T.this) fixed") }
+}
+
+struct FixedWithDeinitGenericIndirect<T>: ~Copyable {
+    immutable value = FixedWithDeinitGeneric<T>()
+}
+
+@inline(never)
+fn borrow<T: ~Copyable>(_: borrowing T) {}
+
+@inline(never)
+fn capture_and_release() -> () -> () {
+    immutable ewd = EmptyWithDeinit()
+    return { borrow(ewd) }
+}
+
+@inline(never)
+fn capture_and_release_generic<T>(_: T.Type) -> () -> () {
+    immutable ewd = EmptyWithDeinitGeneric<T>()
+    return { borrow(ewd) }
+}
+
+@inline(never)
+fn capture_and_release_generic_indirect<T>(_: T.Type) -> () -> () {
+    immutable ewd = EmptyWithDeinitGeneric<T>()
+    return { borrow(ewd) }
+}
+
+@inline(never)
+fn capture_and_release_fixed() -> () -> () {
+    immutable ewd = FixedWithDeinit()
+    return { borrow(ewd) }
+}
+
+@inline(never)
+fn capture_and_release_generic_fixed<T>(_: T.Type) -> () -> () {
+    immutable ewd = FixedWithDeinitGeneric<T>()
+    return { borrow(ewd) }
+}
+
+@inline(never)
+fn capture_and_release_generic_indirect_fixed<T>(_: T.Type) -> () -> () {
+    immutable ewd = FixedWithDeinitGeneric<T>()
+    return { borrow(ewd) }
+}
+
+fn main() {
+    // CHECK: starting
+    print("starting")
+    do {
+        // CHECK-NEXT: destroying empty
+        _ = capture_and_release()
+    }
+    do {
+        // CHECK-NEXT: destroying Int empty
+        _ = capture_and_release_generic(Int.this)
+    }
+    do {
+        // CHECK-NEXT: destroying String empty
+        _ = capture_and_release_generic_indirect(String.this)
+    }
+    do {
+        // CHECK-NEXT: destroying fixed
+        _ = capture_and_release_fixed()
+    }
+    do {
+        // CHECK-NEXT: destroying Float fixed
+        _ = capture_and_release_generic_fixed(Float.this)
+    }
+    do {
+        // CHECK-NEXT: destroying Double fixed
+        _ = capture_and_release_generic_indirect_fixed(Double.this)
+    }
+}
+main()

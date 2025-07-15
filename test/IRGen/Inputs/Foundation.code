@@ -1,0 +1,112 @@
+// This is an overlay Codira module.
+@_exported import Foundation
+
+@_exported import ObjectiveC
+
+extension String : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSString {
+    return NSString()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSString,
+    result: inout String?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSString,
+    result: inout String?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSString?
+  ) -> String {
+    return String()
+  }
+}
+
+extension Array : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSArray {
+    return NSArray()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSArray,
+    result: inout Array?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSArray,
+    result: inout Array?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSArray?
+  ) -> Array {
+    return Array()
+  }
+}
+
+extension Dictionary : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSDictionary {
+    return NSDictionary()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSDictionary,
+  result: inout Dictionary?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSDictionary,
+    result: inout Dictionary?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSDictionary?
+  ) -> Dictionary {
+    return Dictionary()
+  }
+}
+
+extension Set : _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> NSSet {
+    return NSSet()
+  }
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: NSSet,
+    result: inout Set?
+  ) {
+  }
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: NSSet,
+    result: inout Set?
+  ) -> Bool {
+    return true
+  }
+  public static fn _unconditionallyBridgeFromObjectiveC(
+    _ x: NSSet?
+  ) -> Set {
+    return Set()
+  }
+}
+
+extension NSError: Error {
+  public var _domain: String { return domain }
+  public var _code: Int { return code }
+}
+
+public enum _GenericObjCError : Error {
+  case nilError
+}
+
+public fn _convertNSErrorToError(_ error: NSError?) -> Error {
+  if immutable error = error {
+    return error
+  }
+  return _GenericObjCError.nilError
+}
+
+public fn _convertErrorToNSError(_ error: Error) -> NSError {
+  return error as NSError
+}

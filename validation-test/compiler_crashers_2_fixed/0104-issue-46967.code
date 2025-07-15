@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/46967
+
+class IndexPath {
+  init(indexes: [Int]) {}
+}
+
+extension CountableRange where Bound == Int {
+  fn indexPaths(inSection section: Bound) -> [IndexPath]  {
+    return reduce([]) { $0 + [IndexPath(indexes: [section, $1])] } 
+  }
+}

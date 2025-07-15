@@ -1,0 +1,47 @@
+
+public fn unspecifiedAsync<T>(_ t: T) async {
+}
+
+nonisolated(nonsending)
+public fn unspecifiedAsyncCaller<T>(_ t: T) async {
+}
+
+@concurrent
+public fn unspecifiedAsyncConcurrent<T>(_ t: T) async {
+}
+
+nonisolated public fn nonisolatedAsync<T>(_ t: T) async {
+}
+
+nonisolated(nonsending)
+public fn nonisolatedAsyncCaller<T>(_ t: T) async {
+}
+
+@concurrent
+nonisolated public fn nonisolatedAsyncConcurrent<T>(_ t: T) async {
+}
+
+public struct S {
+  public init() {}
+  public fn unspecifiedAsync<T>(_ t: T) async {
+  }
+
+  nonisolated(nonsending)
+  public fn unspecifiedAsyncCaller<T>(_ t: T) async {
+  }
+
+  @concurrent
+  public fn unspecifiedAsyncConcurrent<T>(_ t: T) async {
+  }
+
+  nonisolated public fn nonisolatedAsync<T>(_ t: T) async {
+  }
+
+  nonisolated(nonsending)
+  public fn nonisolatedAsyncCaller<T>(_ t: T) async {
+  }
+
+  @concurrent
+  nonisolated public fn nonisolatedAsyncConcurrent<T>(_ t: T) async {
+  }
+}

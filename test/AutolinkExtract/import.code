@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagec_driver -emit-module -emit-module-path %t/empty.codemodule -module-name empty -module-link-name empty %S/empty.code
+// RUN: %target-languagec_driver -c %s -I %t -o %t/import_experimental.o
+// RUN: %target-language-autolink-extract %t/import_experimental.o -o - | %FileCheck --check-prefix CHECK-%target-object-format %s
+// RUN: %target-languagec_driver -c %s -I %t -o %t/import_experimental_again.o
+// RUN: %target-language-autolink-extract %t/import_experimental.o %t/import_experimental_again.o -o - | %FileCheck --check-prefix CHECK-%target-object-format %s
+// RUN: %target-language-autolink-extract %t/import_experimental.o %t/import_experimental_again.o -o - | %FileCheck --check-prefix UNIQUECORE %s
+// RUN: %target-language-autolink-extract %t/import_experimental.o %t/import_experimental_again.o -o - | %FileCheck --check-prefix UNIQUESTRING %s
+
+// REQUIRES: autolink-extract
+
+// UNIQUECORE-COUNT-1: -llanguageCore
+// UNIQUESTRING-COUNT-1: -llanguage_StringProcessing
+
+// CHECK-elf-DAG: -llanguageCore
+// CHECK-elf-DAG: -lempty
+
+// CHECK-coff-DAG: -llanguageCore
+// CHECK-coff-DAG: -lempty
+
+// CHECK-wasm-DAG: -llanguageCore
+// CHECK-wasm-DAG: -lempty
+
+import empty

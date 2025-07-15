@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "XMLValidator.h"
 
-#ifdef SWIFT_HAVE_LIBXML
+#ifdef LANGUAGE_HAVE_LIBXML
 
 // libxml headers use their own variant of documentation comments that Clang
 // does not understand well.
@@ -79,7 +80,7 @@ XMLValidator::Status XMLValidator::validate(const std::string &XML) {
   return Result;
 }
 
-#else // !SWIFT_HAVE_LIBXML
+#else // !LANGUAGE_HAVE_LIBXML
 
 using namespace language;
 
@@ -95,5 +96,5 @@ XMLValidator::Status XMLValidator::validate(const std::string &XML) {
   return Status{ErrorCode::NotCompiledIn, ""};
 }
 
-#endif // SWIFT_HAVE_LIBXML
+#endif // LANGUAGE_HAVE_LIBXML
 

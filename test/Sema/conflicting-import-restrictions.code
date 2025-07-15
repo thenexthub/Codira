@@ -1,0 +1,64 @@
+/// Test conflicting imports modifiers from the same line.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Generate dependencies.
+// RUN: %target-language-frontend -emit-module %t/Lib.code \
+// RUN:   -module-name Lib -emit-module-path %t/Lib.codemodule \
+// RUN:   -language-version 5 -enable-library-evolution
+
+/// Build clients.
+// RUN: %target-language-frontend -typecheck %t/SPIOnly_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/Exported_SPIOnly.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/SPIOnly_IOI.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/SPIOnly_IOI_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+
+//--- Lib.code
+// Empty source file for import.
+
+//--- SPIOnly_Exported.code
+@_spiOnly @_exported import Lib // expected-error {{module 'Lib' cannot be both exported and SPI only}}
+
+//--- Exported_SPIOnly.code
+@_exported @_spiOnly import Lib // expected-error {{module 'Lib' cannot be both exported and SPI only}}
+
+//--- SPIOnly_IOI.code
+@_spiOnly @_implementationOnly import Lib // expected-error {{module 'Lib' cannot be both implementation-only and SPI only}}
+
+//--- Exported_IOI.code
+@_exported @_implementationOnly import Lib // expected-error {{module 'Lib' cannot be both exported and implementation-only}}
+
+//--- SPIOnly_IOI_Exported.code
+@_spiOnly @_implementationOnly @_exported import Lib // expected-error {{module 'Lib' cannot be both exported and implementation-only}}
+
+/// Access levels on imports
+// RUN: %target-language-frontend -typecheck %t/Public_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/Package_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/Internal_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/Fileprivate_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+// RUN: %target-language-frontend -typecheck %t/Private_Exported.code -I %t -verify \
+// RUN:   -experimental-spi-only-imports -verify
+
+//--- Public_Exported.code
+@_exported public import Lib
+
+//--- Package_Exported.code
+@_exported package import Lib // expected-error {{'@_exported' is incompatible with 'package'; it can only be applied to public imports}}
+
+//--- Internal_Exported.code
+@_exported internal import Lib // expected-error {{'@_exported' is incompatible with 'internal'; it can only be applied to public imports}}
+
+//--- Fileprivate_Exported.code
+@_exported fileprivate import Lib // expected-error {{'@_exported' is incompatible with 'fileprivate'; it can only be applied to public imports}}
+
+//--- Private_Exported.code
+@_exported private import Lib // expected-error {{'@_exported' is incompatible with 'private'; it can only be applied to public imports}}

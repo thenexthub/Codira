@@ -1,4 +1,4 @@
-//===--- GenDecl.h - Swift IR generation for some decl ----------*- C++ -*-===//
+//===--- GenDecl.h - Codira IR generation for some decl ----------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to some decl emission code.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENDECL_H
-#define SWIFT_IRGEN_GENDECL_H
+#ifndef LANGUAGE_IRGEN_GENDECL_H
+#define LANGUAGE_IRGEN_GENDECL_H
 
 #include "DebugTypeInfo.h"
 #include "IRGen.h"
 #include "language/Basic/OptimizationMode.h"
 #include "language/SIL/SILLocation.h"
 #include "clang/AST/DeclCXX.h"
-#include "llvm/IR/CallingConv.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/IR/CallingConv.h"
+#include "toolchain/Support/CommandLine.h"
 
-namespace llvm {
+namespace toolchain {
   class AttributeList;
   class Function;
   class FunctionType;
@@ -42,25 +43,25 @@ namespace irgen {
   class Signature;
 
   void updateLinkageForDefinition(IRGenModule &IGM,
-                                  llvm::GlobalValue *global,
+                                  toolchain::GlobalValue *global,
                                   const LinkEntity &entity);
 
-  llvm::Function *createFunction(
+  toolchain::Function *createFunction(
       IRGenModule &IGM, LinkInfo &linkInfo, const Signature &signature,
-      llvm::Function *insertBefore = nullptr,
+      toolchain::Function *insertBefore = nullptr,
       OptimizationMode FuncOptMode = OptimizationMode::NotSet,
       StackProtectorMode stackProtect = StackProtectorMode::NoStackProtector);
 
-  llvm::GlobalVariable *
-  createVariable(IRGenModule &IGM, LinkInfo &linkInfo, llvm::Type *objectType,
+  toolchain::GlobalVariable *
+  createVariable(IRGenModule &IGM, LinkInfo &linkInfo, toolchain::Type *objectType,
                  Alignment alignment, DebugTypeInfo DebugType = DebugTypeInfo(),
                  std::optional<SILLocation> DebugLoc = std::nullopt,
                  StringRef DebugName = StringRef());
 
-  llvm::GlobalVariable *
+  toolchain::GlobalVariable *
   createLinkerDirectiveVariable(IRGenModule &IGM, StringRef Name);
 
-  void disableAddressSanitizer(IRGenModule &IGM, llvm::GlobalVariable *var);
+  void disableAddressSanitizer(IRGenModule &IGM, toolchain::GlobalVariable *var);
 
   /// If the calling convention for `ctor` doesn't match the calling convention
   /// that we assumed for it when we imported it as `initializer`, emit and
@@ -69,21 +70,21 @@ namespace irgen {
   /// If the assumed calling convention was correct, just return `ctor`.
   ///
   /// See also comments in CXXMethodConventions in SIL/IR/SILFunctionType.cpp.
-  llvm::Constant *
+  toolchain::Constant *
   emitCXXConstructorThunkIfNeeded(IRGenModule &IGM, Signature signature,
                                   const clang::CXXConstructorDecl *ctor,
-                                  StringRef name, llvm::Constant *ctorAddress);
+                                  StringRef name, toolchain::Constant *ctorAddress);
 
-  llvm::CallBase *emitCXXConstructorCall(IRGenFunction &IGF,
+  toolchain::CallBase *emitCXXConstructorCall(IRGenFunction &IGF,
                                          const clang::CXXConstructorDecl *ctor,
-                                         llvm::FunctionType *ctorFnType,
-                                         llvm::Constant *ctorAddress,
-                                         llvm::ArrayRef<llvm::Value *> args);
+                                         toolchain::FunctionType *ctorFnType,
+                                         toolchain::Constant *ctorAddress,
+                                         toolchain::ArrayRef<toolchain::Value *> args);
 
   bool hasValidSignatureForEmbedded(SILFunction *f);
 }
 }
 
-extern llvm::cl::opt<bool> UseBasicDynamicReplacement;
+extern toolchain::cl::opt<bool> UseBasicDynamicReplacement;
 
 #endif

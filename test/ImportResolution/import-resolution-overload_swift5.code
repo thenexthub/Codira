@@ -1,0 +1,54 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t %S/Inputs/overload_vars.code
+// RUN: %target-typecheck-verify-language -language-version 5 -I %t
+
+import overload_vars
+
+fn useString(_ str: String) {}
+
+// In Codira 5, properties from this module currently always shadow properties
+// from the other module – therefore meaning that the properties from the other
+// module never show up in the overload set.
+// FIX-ME: It seems reasonable for both to show up in the overload set.
+
+extension HasFooGeneric {
+  var foo: String { return "" }
+  var bar: String { return "" }
+
+  fn baz() {
+    immutable x1 = foo // No ambiguity error.
+    useString(x1) // Make sure we resolved to `foo: String`.
+
+    // Make sure `foo: Int` is not in the overload set.
+    immutable x2: Int = foo // expected-error {{cannot convert}}
+    _ = x2
+
+    immutable y1 = bar // No ambiguity error.
+    useString(y1) // Make sure we resolved to `bar: String`.
+
+    // Make sure `bar: Int` is not in the overload set.
+    immutable y2: Int = bar // expected-error {{cannot convert}}
+    _ = y2
+  }
+}
+
+extension HasFooNonGeneric {
+  var foo: String { return "" }
+  var bar: String { return "" }
+
+  fn baz() {
+    immutable x1 = foo // No ambiguity error.
+    useString(x1) // Make sure we resolved to `foo: String`.
+
+    // Make sure `foo: Int` is not in the overload set.
+    immutable x2: Int = foo // expected-error {{cannot convert}}
+    _ = x2
+
+    immutable y1 = bar // No ambiguity error.
+    useString(y1) // Make sure we resolved to `bar: String`.
+
+    // Make sure `bar: Int` is not in the overload set.
+    immutable y2: Int = bar // expected-error {{cannot convert}}
+    _ = y2
+  }
+}

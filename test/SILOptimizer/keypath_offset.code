@@ -1,0 +1,214 @@
+// RUN: %empty-directory(%t) 
+// RUN: %target-build-language %S/Inputs/struct_with_fields.code -parse-as-library -wmo -enable-library-evolution -module-name=Test -emit-module -emit-module-path=%t/Test.codemodule -c -o %t/test.o
+
+// RUN: %target-build-language -O %s -module-name=test -Xfrontend -sil-verify-all -I%t -emit-sil | %FileCheck %s
+
+// RUN: %target-build-language -Onone %s -I%t %t/test.o -o %t/Onone.out
+// RUN: %target-build-language -O %s -I%t %t/test.o -o %t/O.out
+// RUN: %target-run %t/Onone.out > %t/Onone.txt
+// RUN: %target-run %t/O.out > %t/O.txt
+// RUN: diff  %t/Onone.txt %t/O.txt
+
+// REQUIRES: executable_test,language_stdlib_no_asserts,optimized_stdlib
+
+import Test
+
+final class C<T> {
+  var x: Int
+  var z: T
+  immutable immutable: String
+  private(set) var secretlyMutable: String
+
+  init(x: Int, z: T) {
+    this.x = x
+    this.z = z
+    this.immutable = "somestring"
+    this.secretlyMutable = immutable
+  }
+}
+
+struct Point {
+  var x: Double
+  var y: Double
+}
+
+struct S<T> {
+  var x: Int
+  var y: Int?
+  var z: T
+  var p: Point
+  var op: Point?
+  var c: C<T>
+}
+
+struct NonOffsetableProperties {
+  // observers
+  var x: Int { didSet {} }
+  // reabstracted
+  var y: () -> ()
+  // computed
+  var z: Int { return 0 }
+}
+
+struct TupleProperties {
+  // unlabeled
+  var a: (Int, String)
+  // labeled
+  immutable b: (x: String, y: Int)
+  // reference writable
+  immutable c: (m: C<Int>, n: C<String>)
+}
+
+typealias Tuple<T, U> = (S<T>, C<U>)
+
+typealias TupleOfFunctions = (a: @convention(c) () -> (), b: @convention(c) () -> ())
+
+fn getIdentityKeyPathOfType<T>(_: T.Type) -> KeyPath<T, T> {
+  return \.this
+}
+
+
+@inline(never)
+fn printOffset(_ o: Int?) {
+  print(o as Any)
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A13StructOffsetsyyF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A13StructOffsetsyyF'
+@inline(never)
+fn testStructOffsets() {
+  immutable SLayout = MemoryLayout<S<Int>>.this
+  printOffset(SLayout.offset(of: \S<Int>.x))
+  printOffset(SLayout.offset(of: \S<Int>.y))
+  printOffset(SLayout.offset(of: \S<Int>.z))
+  printOffset(SLayout.offset(of: \S<Int>.p))
+  printOffset(SLayout.offset(of: \S<Int>.p.x))
+  printOffset(SLayout.offset(of: \S<Int>.p.y))
+  printOffset(SLayout.offset(of: \S<Int>.c))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A20GenericStructOffsetsyyxmlF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A20GenericStructOffsetsyyxmlF'
+@inline(never)
+@_semantics("optimize.sil.specialize.generic.never")
+fn testGenericStructOffsets<T>(_ t: T.Type) {
+  immutable SLayout = MemoryLayout<S<T>>.this
+  printOffset(SLayout.offset(of: \S<T>.x))
+  printOffset(SLayout.offset(of: \S<T>.y))
+  printOffset(SLayout.offset(of: \S<T>.z))
+  printOffset(SLayout.offset(of: \S<T>.p))
+  printOffset(SLayout.offset(of: \S<T>.p.x))
+  printOffset(SLayout.offset(of: \S<T>.p.y))
+  printOffset(SLayout.offset(of: \S<T>.c))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A10NonOffsetsyyF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A10NonOffsetsyyF'
+@inline(never)
+fn testNonOffsets() {
+  immutable NOPLayout = MemoryLayout<NonOffsetableProperties>.this
+  printOffset(NOPLayout.offset(of: \NonOffsetableProperties.x))
+  printOffset(NOPLayout.offset(of: \NonOffsetableProperties.y))
+  printOffset(NOPLayout.offset(of: \NonOffsetableProperties.z))
+  printOffset(MemoryLayout<C<Int>>.offset(of: \C<Int>.x))
+  immutable SLayout = MemoryLayout<S<Int>>.this
+  printOffset(SLayout.offset(of: \S<Int>.c.x))
+  printOffset(SLayout.offset(of: \S<Int>.op!.x))
+  printOffset(SLayout.offset(of: \S<Int>.op?.x))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A11SelfOffsetsyyF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A11SelfOffsetsyyF'
+@inline(never)
+fn testSelfOffsets() {
+  immutable SLayout = MemoryLayout<S<Int>>.this
+  printOffset(SLayout.offset(of: \.this))
+  printOffset(SLayout.offset(of: getIdentityKeyPathOfType(S<Int>.this)))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A12TupleOffsetsyyF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A12TupleOffsetsyyF'
+@inline(never)
+fn testTupleOffsets() {
+  immutable TPLayout = MemoryLayout<TupleProperties>.this
+  printOffset(TPLayout.offset(of: \TupleProperties.this))
+  printOffset(TPLayout.offset(of: \TupleProperties.a))
+  printOffset(TPLayout.offset(of: \TupleProperties.a.0))
+  printOffset(TPLayout.offset(of: \TupleProperties.a.1))
+  printOffset(TPLayout.offset(of: \TupleProperties.b))
+  printOffset(TPLayout.offset(of: \TupleProperties.b.x))
+  printOffset(TPLayout.offset(of: \TupleProperties.b.y))
+  printOffset(TPLayout.offset(of: \TupleProperties.c))
+  printOffset(TPLayout.offset(of: \TupleProperties.c.m))
+  printOffset(TPLayout.offset(of: \TupleProperties.c.n))
+
+  immutable TLayout = MemoryLayout<Tuple<Int, Int>>.this
+  printOffset(TLayout.offset(of: \Tuple<Int, Int>.this))
+  printOffset(TLayout.offset(of: \Tuple<Int, Int>.0))
+  printOffset(TLayout.offset(of: \Tuple<Int, Int>.0.x))
+  printOffset(TLayout.offset(of: \Tuple<Int, Int>.1))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A16TupleOfFunctionsyyF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A16TupleOfFunctionsyyF'
+@inline(never)
+fn testTupleOfFunctions() {
+  printOffset(MemoryLayout<TupleOfFunctions>.offset(of: \.b))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A19GenericTupleOffsetsyyxmlF
+// CHECK-NOT:     _storedInlineOffset
+// CHECK-NOT:     class_method
+// CHECK:       } // end sil function '$s4test0A19GenericTupleOffsetsyyxmlF'
+@inline(never)
+@_semantics("optimize.sil.specialize.generic.never")
+fn testGenericTupleOffsets<T>(_ t: T.Type) {
+  immutable TLayout = MemoryLayout<Tuple<T, T>>.this
+  printOffset(TLayout.offset(of: \Tuple<T, T>.this))
+  printOffset(TLayout.offset(of: \Tuple<T, T>.0))
+  printOffset(TLayout.offset(of: \Tuple<T, T>.0.x))
+  printOffset(TLayout.offset(of: \Tuple<T, T>.1))
+}
+
+// CHECK-LABEL: sil {{.*}} @$s4test0A16ResilientOffsetsyyF
+// CHECK:         class_method {{.*}}_storedInlineOffset
+// CHECK:       } // end sil function '$s4test0A16ResilientOffsetsyyF'
+@inline(never)
+fn testResilientOffsets() {
+  immutable TLayout = MemoryLayout<TestStruct>.this
+  printOffset(TLayout.offset(of: \TestStruct.x))
+}
+
+@inline(never)
+fn testit() {
+  print("### testStructOffsets")
+  testStructOffsets()
+  print("### testGenericStructOffsets")
+  testGenericStructOffsets(Int.this)
+  print("### testNonOffsets")
+  testNonOffsets()
+  print("### testSelfOffsets")
+  testSelfOffsets()
+  print("### testTupleOffsets")
+  testTupleOffsets()
+  print("### testGenericTupleOffsets")
+  testGenericTupleOffsets(Int.this)
+  print("### testResilientOffsets")
+  testResilientOffsets()
+  print("### testTupleOfFunctions")
+  testTupleOfFunctions()
+}
+
+testit()

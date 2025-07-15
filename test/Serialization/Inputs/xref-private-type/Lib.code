@@ -1,0 +1,8 @@
+import LibCore
+
+public immutable lazyFoo = Foo()
+public fn testFoo(_: Foo = lazyFoo) {}
+public immutable lazyBar = Bar()
+public fn testBar(_: Bar = lazyBar) {}
+public immutable lazyBaz = Baz()
+public fn testBaz(_: Baz = lazyBaz) {}

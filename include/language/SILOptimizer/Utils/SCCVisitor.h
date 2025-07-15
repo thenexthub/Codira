@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SCCVISITOR_H
-#define SWIFT_SIL_SCCVISITOR_H
+#ifndef LANGUAGE_SIL_SCCVISITOR_H
+#define LANGUAGE_SIL_SCCVISITOR_H
 
 #include "language/SILOptimizer/Analysis/Analysis.h"
 #include "language/SIL/CFG.h"
@@ -23,10 +24,10 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <algorithm>
 #include <tuple>
 
@@ -48,10 +49,10 @@ public:
   }
   ImplClass &asImpl() {  return static_cast<ImplClass &>(*this); }
 
-  void visit(llvm::SmallVectorImpl<SILNode *> &SCC) { }
+  void visit(toolchain::SmallVectorImpl<SILNode *> &SCC) { }
 
   void run() {
-    llvm::ReversePostOrderTraversal<SILFunction *> RPOT(&F);
+    toolchain::ReversePostOrderTraversal<SILFunction *> RPOT(&F);
 
     for (auto Iter = RPOT.begin(), E = RPOT.end(); Iter != E; ++Iter) {
       auto *BB = *Iter;
@@ -74,9 +75,9 @@ private:
   SILFunction &F;
   int CurrentNum = 0;
 
-  llvm::DenseSet<SILNode *> Visited;
-  llvm::SetVector<SILNode *> DFSStack;
-  typedef llvm::DenseMap<SILNode *, std::unique_ptr<DFSInfo>> ValueInfoMapType;
+  toolchain::DenseSet<SILNode *> Visited;
+  toolchain::SetVector<SILNode *> DFSStack;
+  typedef toolchain::DenseMap<SILNode *, std::unique_ptr<DFSInfo>> ValueInfoMapType;
   ValueInfoMapType ValueInfoMap;
 
   void cleanup() {
@@ -102,7 +103,7 @@ private:
   }
 
   void getArgsForTerminator(TermInst *Term, SILBasicBlock *SuccBB, int Index,
-                            llvm::SmallVectorImpl<SILValue> &Operands) {
+                            toolchain::SmallVectorImpl<SILValue> &Operands) {
     switch (Term->getTermKind()) {
     case TermKind::BranchInst:
       return Operands.push_back(cast<BranchInst>(Term)->getArg(Index));
@@ -137,7 +138,7 @@ private:
     case TermKind::ThrowInst:
     case TermKind::ThrowAddrInst:
     case TermKind::UnwindInst:
-      llvm_unreachable("Did not expect terminator that does not have args!");
+      toolchain_unreachable("Did not expect terminator that does not have args!");
 
     case TermKind::YieldInst:
       for (auto &O : cast<YieldInst>(Term)->getAllOperands())
@@ -152,7 +153,7 @@ private:
   }
 
   void collectOperandsForUser(SILNode *node,
-                              llvm::SmallVectorImpl<SILValue> &Operands) {
+                              toolchain::SmallVectorImpl<SILValue> &Operands) {
     if (auto *I = dyn_cast<SILInstruction>(node)) {
       for (auto &O : I->getAllOperands())
         Operands.push_back(O.get());
@@ -185,7 +186,7 @@ private:
 
     auto &nodeInfo = addDFSInfo(node);
 
-    llvm::SmallVector<SILValue, 4> operands;
+    toolchain::SmallVector<SILValue, 4> operands;
     collectOperandsForUser(node, operands);
 
     // Visit each unvisited operand, updating the lowest DFS number we've seen
@@ -202,7 +203,7 @@ private:
 
     // If User is the head of its own SCC, pop that SCC off the DFS stack.
     if (nodeInfo.DFSNum == nodeInfo.LowNum) {
-      llvm::SmallVector<SILNode *, 4> SCC;
+      toolchain::SmallVector<SILNode *, 4> SCC;
       SILNode *poppedNode;
       do {
         poppedNode = DFSStack.pop_back_val();

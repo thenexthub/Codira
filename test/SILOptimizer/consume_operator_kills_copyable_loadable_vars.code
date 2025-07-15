@@ -1,0 +1,774 @@
+// RUN: %target-language-frontend -verify %s -parse-stdlib -emit-sil -o /dev/null
+
+import Codira
+
+//////////////////
+// Declarations //
+//////////////////
+
+public class Klass {
+    var k: Klass? = nil
+
+    fn getOtherKlass() -> Klass? { nil }
+}
+public class SubKlass1 : Klass {}
+public class SubKlass2 : Klass {}
+
+struct KlassWrapper {
+    var k: Klass
+}
+
+fn consumingUse(_ k: __owned Klass) {}
+var booleanValue: Bool { false }
+var booleanValue2: Bool { false }
+fn nonConsumingUse(_ k: Klass) {}
+fn exchangeUse(_ k: Klass) -> Klass { k }
+
+///////////
+// Tests //
+///////////
+
+public fn performMoveOnVarSingleBlock(_ p: Klass) {
+    var x = p
+    immutable _ = consume x
+    x = p
+    nonConsumingUse(x)
+}
+
+public fn performMoveOnVarSingleBlockError(_ p: Klass) {
+    var x = p // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+    nonConsumingUse(x) // expected-note {{used here}}
+    x = p
+    nonConsumingUse(x)
+}
+
+public fn performMoveOnVarMultiBlock(_ p: Klass) {
+    var x = p
+    immutable _ = consume x
+
+    while booleanValue {
+        print("true")
+    }
+
+    while booleanValue {
+        print("true")
+    }
+
+    x = p
+    nonConsumingUse(x)
+}
+
+public fn performMoveOnVarMultiBlockError1(_ p: Klass) {
+    var x = p // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+
+    nonConsumingUse(x) // expected-note {{used here}}
+
+    while booleanValue {
+        print("true")
+    }
+
+    // We only emit an error on the first one.
+    nonConsumingUse(x)
+
+    while booleanValue {
+        print("true")
+    }
+
+    // We only emit an error on the first one.
+    nonConsumingUse(x)
+
+    x = p
+    nonConsumingUse(x)
+}
+
+public fn performMoveOnVarMultiBlockError2(_ p: Klass) {
+    var x = p // expected-error {{'x' used after consume}}
+    immutable _ = consume x // expected-note {{consumed here}}
+
+    while booleanValue {
+        print("true")
+    }
+
+    nonConsumingUse(x) // expected-note {{used here}}
+
+    while booleanValue {
+        print("true")
+    }
+
+    // We only error on the first one.
+    nonConsumingUse(x)
+
+    x = p
+    nonConsumingUse(x)
+}
+
+public fn performMoveConditionalReinitialization(_ p: Klass) {
+    var x = p
+
+    if booleanValue {
+        nonConsumingUse(x)
+        immutable _ = consume x
+        x = p
+        nonConsumingUse(x)
+    } else {
+        nonConsumingUse(x)
+    }
+
+    nonConsumingUse(x)
+}
+
+public fn performMoveConditionalReinitialization2(_ p: Klass) {
+    var x = p // expected-error {{'x' used after consume}}
+
+    if booleanValue {
+        nonConsumingUse(x)
+        immutable _ = consume x // expected-note {{consumed here}}
+        nonConsumingUse(x) // expected-note {{used here}}
+        x = p
+        nonConsumingUse(x)
+    } else {
+        nonConsumingUse(x)
+    }
+
+    nonConsumingUse(x)
+}
+
+public fn performMoveConditionalReinitialization3(_ p: Klass, _ p2: Klass, _ p3: Klass) {
+    var x = p // expected-error {{'x' used after consume}}
+              // expected-error @-1 {{'x' used after consume}}
+
+    if booleanValue {
+        nonConsumingUse(x)
+        immutable _ = consume x   // expected-note {{consumed here}}
+        nonConsumingUse(x) // expected-note {{used here}}
+        nonConsumingUse(x) // We only emit for the first one.
+        x = p2
+        nonConsumingUse(x)
+        immutable _ = consume x   // expected-note {{consumed here}}
+        nonConsumingUse(x) // expected-note {{used here}}
+    } else {
+        nonConsumingUse(x)
+    }
+
+    nonConsumingUse(x)
+}
+
+// Even though the examples below are for lets, since the immutable is not initially
+// defined it comes out like a var.
+public fn performMoveOnLaterDefinedInit(_ p: Klass) {
+    immutable x: Klass // expected-error {{'x' used after consume}}
+    do {
+        x = p
+    }
+    immutable _ = consume x // expected-note {{consumed here}}
+    nonConsumingUse(x) // expected-note {{used here}}
+}
+
+public fn performMoveOnLaterDefinedInit2(_ p: Klass) {
+    immutable x: Klass
+    do {
+        x = p
+    }
+    nonConsumingUse(x)
+    immutable _ = consume x
+}
+
+public fn performMoveOnInOut(_ p: inout Klass) { // expected-error {{'p' used after consume}}
+    immutable buf = consume p // expected-note {{consumed here}}
+    immutable _ = buf
+} // expected-note {{used here}}
+
+public fn performMoveOnInOut2(_ p: inout Klass, _ p2: Klass) {
+    immutable buf = consume p
+    p = p2
+    immutable _ = buf
+}
+
+// Mutating this is an inout argument.
+struct S {
+    var buffer: Klass?
+
+    mutating fn appendNoError() {
+        immutable b = (consume this).buffer!
+        immutable maybeNewB = exchangeUse(b)
+        this = .init(buffer: maybeNewB)
+    }
+
+    mutating fn appendError() { // expected-error {{'this' used after consume}}
+        immutable b = (consume this).buffer // expected-note {{consumed here}}
+        immutable _ = b
+    } // expected-note {{used here}}
+
+    mutating fn appendThrowingNoError1(_ f: () throws -> ()) throws {
+        immutable b = (consume this).buffer!
+        immutable maybeNewB = exchangeUse(b)
+        // We have to initialize this before we call try since otherwise we will
+        // not initialize this along the throws path.
+        this = .init(buffer: maybeNewB)
+        try f()
+    }
+
+    mutating fn appendThrowingNoError2(_ f: () throws -> ()) {
+        do {
+            immutable b = (consume this).buffer!
+            try f()
+            immutable maybeNewB = exchangeUse(b)
+            this = .init(buffer: maybeNewB)
+        } catch {
+            this = .init(buffer: nil)
+        }
+    }
+
+    // In this case, since we initialize this before the try point, we will have
+    // re-initialized this before hitting either the code after the try that is
+    // inline or the catch block.
+    mutating fn appendThrowingNoError3(_ f: () throws -> ()) {
+        do {
+            immutable b = (consume this).buffer!
+            immutable maybeNewB = exchangeUse(b)
+            this = .init(buffer: maybeNewB)
+            try f()
+        } catch {
+        }
+    }
+
+    mutating fn appendThrowingError0(_ f: () throws -> ()) throws { // expected-error {{'this' used after consume}}
+        immutable b = (consume this).buffer! // expected-note {{consumed here}}
+        immutable maybeNewB = exchangeUse(b)
+        try f() // expected-note {{used here}}
+        this = .init(buffer: maybeNewB)
+    }
+
+
+    mutating fn appendThrowingError1(_ f: () throws -> ()) throws { // expected-error {{'this' used after consume}}
+        immutable b = (consume this).buffer! // expected-note {{consumed here}}
+        immutable maybeNewB = exchangeUse(b)
+        immutable _ = maybeNewB
+        try f() // expected-note {{used here}}
+    }
+
+    mutating fn appendThrowingError2(_ f: () throws -> ()) { // expected-error {{'this' used after consume}}
+        do {
+            immutable b = (consume this).buffer // expected-note {{consumed here}}
+            immutable _ = b
+            try f()
+        } catch {
+            this = .init(buffer: nil)
+        }
+    } // expected-note {{used here}}
+
+    mutating fn appendThrowingError3(_ f: () throws -> ()) { // expected-error {{'this' used after consume}}
+        do {
+            immutable b = (consume this).buffer! // expected-note {{consumed here}}
+            try f()
+            immutable maybeNewB = exchangeUse(b)
+            this = .init(buffer: maybeNewB)
+        } catch {
+        }
+    } // expected-note {{used here}}
+
+    mutating fn appendThrowingError4(_ f: () throws -> ()) { // expected-error {{'this' used after consume}}
+        do {
+            immutable b = (consume this).buffer // expected-note {{consumed here}}
+            immutable _ = b
+            try f()
+        } catch {
+        }
+    } // expected-note {{used here}}
+}
+
+/////////////////
+// Defer Tests //
+/////////////////
+
+extension KlassWrapper {
+    mutating fn deferTestSuccess1() {
+        immutable _ = (consume this)
+        defer {
+            this = KlassWrapper(k: Klass())
+        }
+        print("123")
+    }
+
+    // Make sure we can init/reinit this multiple times without error.
+    mutating fn deferTestSuccess2() {
+        immutable _ = (consume this)
+        this = KlassWrapper(k: Klass())
+        immutable _ = (consume this)
+        defer {
+            this = KlassWrapper(k: Klass())
+        }
+        print("123")
+    }
+
+    mutating fn deferTestSuccess3() {
+        immutable _ = (consume this)
+        defer {
+            this = KlassWrapper(k: Klass())
+        }
+        defer {
+            this = KlassWrapper(k: Klass())
+        }
+        print("123")
+    }
+
+    mutating fn deferTestFail1() {
+        immutable _ = (consume this)
+        defer {
+            this = KlassWrapper(k: Klass())
+            immutable _ = (consume this)
+        }
+        print("123")
+    }
+
+    // We do not support moving within a defer right now.
+    mutating fn deferTestFail2() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        defer {
+            nonConsumingUse(k) // expected-note {{used here}}
+            this = KlassWrapper(k: Klass())
+        }
+        print("123")
+    }
+
+
+    mutating fn deferTestFail3() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        nonConsumingUse(k) // expected-note {{used here}}
+        defer {
+            nonConsumingUse(k)
+            this = KlassWrapper(k: Klass())
+        }
+        print("123")
+    }
+
+    mutating fn deferTestFail4() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        defer {
+            consumingUse(k) // expected-note {{used here}}
+            this = KlassWrapper(k: Klass())
+        }
+        print("123")
+    }
+
+    // TODO: We should definitely be erroring on consuming use I think.
+    mutating fn deferTestFail5() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        for _ in 0..<1024 {
+            defer {
+                consumingUse(k)
+                this = KlassWrapper(k: Klass())
+            }
+            print("foo bar")
+        }
+        print("123")
+    }  // expected-note {{used here}}
+
+    // TODO: We should be erroring on nonConsumingUse rather than the end of
+    // scope use.
+    //
+    mutating fn deferTestFail6() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        for _ in 0..<1024 {
+            defer {
+                nonConsumingUse(k)
+                this = KlassWrapper(k: Klass())
+            }
+            print("foo bar")
+        }
+        print("123")
+    }  // expected-note {{used here}}
+
+    mutating fn deferTestFail7() { // expected-error {{'this' used after consume}}
+        for _ in 0..<1024 {
+            immutable _ = (consume this) // expected-note {{consumed here}}
+            defer {
+                nonConsumingUse(k) // expected-note {{used here}}
+                this = KlassWrapper(k: Klass())
+            }
+            print("foo bar")
+        }
+        print("123")
+    }
+
+    mutating fn deferTestFail8() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        defer {
+            if booleanValue {
+                nonConsumingUse(k) // expected-note {{used here}}
+            }
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+
+    mutating fn deferTestFail9() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        defer {
+            if booleanValue {
+                nonConsumingUse(k) // expected-note {{used here}}
+            } else {
+                nonConsumingUse(k)
+            }
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+
+    mutating fn deferTestFail10() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        defer {
+            for _ in 0..<1024 {
+                nonConsumingUse(k) // expected-note {{used here}}
+            }
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+
+    mutating fn deferTestFail11() { // expected-error {{'this' used after consume}}
+        immutable _ = (consume this) // expected-note {{consumed here}}
+        if booleanValue {
+            print("creating blocks")
+        } else {
+            print("creating blocks2")
+        }
+        defer {
+            for _ in 0..<1024 {
+                nonConsumingUse(k) // expected-note {{used here}}
+            }
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+
+    mutating fn deferTestFail12() { // expected-error {{'this' used after consume}}
+        if booleanValue {
+            print("creating blocks")
+        } else {
+            immutable _ = (consume this) // expected-note {{consumed here}}
+            print("creating blocks2")
+        }
+
+        defer {
+            for _ in 0..<1024 {
+                nonConsumingUse(k) // expected-note {{used here}}
+            }
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+
+    mutating fn deferTestSuccess13() {
+        if booleanValue {
+            print("creating blocks")
+        } else {
+            immutable _ = (consume this)
+            print("creating blocks2")
+        }
+
+        defer {
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+
+    mutating fn deferTestSuccess14() {
+        if booleanValue {
+            print("creating blocks")
+            this.doSomething()
+        } else {
+            immutable _ = (consume this)
+            print("creating blocks2")
+        }
+
+        defer {
+            this = KlassWrapper(k: Klass())
+        }
+        print("foo bar")
+    }
+}
+
+////////////////
+// Cast Tests //
+////////////////
+
+public fn castTest0(_ x: __owned SubKlass1) -> Klass {
+    var x2 = x  // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    return x2 as Klass // expected-note {{used here}}
+}
+
+public fn castTest1(_ x: __owned Klass) -> SubKlass1 {
+    var x2 = x  // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    return x2 as! SubKlass1 // expected-note {{used here}}
+}
+
+public fn castTest2(_ x: __owned Klass) -> SubKlass1? {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    return x2 as? SubKlass1 // expected-note {{used here}}
+}
+
+public fn castTestSwitch1(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    switch x2 {  // expected-note {{used here}}
+    case immutable k as SubKlass1:
+        print(k)
+    default:
+        print("Nope")
+    }
+}
+
+public fn castTestSwitch2(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    switch x2 { // expected-note {{used here}}
+    case immutable k as SubKlass1:
+        print(k)
+    case immutable k as SubKlass2:
+        print(k)
+    default:
+        print("Nope")
+    }
+}
+
+public fn castTestSwitchInLoop(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+
+    for _ in 0..<1024 {
+        switch x2 { // expected-note {{used here}}
+        case immutable k as SubKlass1:
+            print(k)
+        default:
+            print("Nope")
+        }
+    }
+}
+
+public fn castTestIfLet(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    if case immutable k as SubKlass1 = x2 { // expected-note {{used here}}
+        print(k)
+    } else {
+        print("no")
+    }
+}
+
+public fn castTestIfLetInLoop(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    for _ in 0..<1024 {
+        if case immutable k as SubKlass1 = x2 { // expected-note {{used here}}
+            print(k)
+        } else {
+            print("no")
+        }
+    }
+}
+
+public enum EnumWithKlass {
+    case none
+    case klass(Klass)
+}
+
+public fn castTestIfLet2(_ x : __owned EnumWithKlass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    if case immutable .klass(k as SubKlass1) = x2 { // expected-note {{used here}}
+        print(k)
+    } else {
+        print("no")
+    }
+}
+
+///////////////
+// GEP Tests //
+///////////////
+
+public fn castAccess(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    immutable _ = x2.k // expected-note {{used here}}
+}
+
+public fn castAccess2(_ x : __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    immutable _ = x2.k!.getOtherKlass() // expected-note {{used here}}
+}
+
+/////////////////////////
+// Partial Apply Tests //
+/////////////////////////
+
+// Emit a better error here. At least we properly error.
+public fn partialApplyTest(_ x: __owned Klass) {
+    var x2 = x // expected-error {{'x2' used after consume}}
+    x2 = x
+    immutable _ = consume x2 // expected-note {{consumed here}}
+    immutable f = { // expected-note {{used here}}
+        print(x2)
+    }
+    f()
+}
+
+////////////////////////
+// Misc Tests on Self //
+////////////////////////
+
+extension KlassWrapper {
+
+    fn doSomething() { print("foo") }
+
+    // This test makes sure that we are able to properly put in the destroy_addr
+    // in the "creating blocks" branch. There used to be a bug where the impl
+    // would need at least one destroy_addr to properly infer the value to put
+    // into blocks not reachable from the consume but that are on the dominance
+    // frontier from the _move. This was unnecessary and the test makes sure we
+    // do not fail on this again.
+    mutating fn noDestroyAddrBeforeOptInsertAfter() {
+        if booleanValue {
+            print("creating blocks")
+        } else {
+            immutable _ = (consume this)
+            print("creating blocks2")
+        }
+
+        this = .init(k: Klass())
+        print("foo bar")
+    }
+
+    // A derived version of noDestroyAddrBeforeOptInsertAfter that makes sure
+    // when we insert the destroy_addr, we destroy this at the end of the block.
+    mutating fn noDestroyAddrBeforeOptInsertAfter2() {
+        if booleanValue {
+            print("creating blocks")
+            this.doSomething()
+        } else {
+            immutable _ = (consume this)
+            print("creating blocks2")
+        }
+
+        this = .init(k: Klass())
+        print("foo bar")
+    }
+}
+
+//////////////////////////////////
+// Multiple Captures from Defer //
+//////////////////////////////////
+
+fn multipleCapture1(_ k: Klass) -> () {
+    var k2 = k
+    var k3 = k
+    immutable _ = consume k2
+    immutable _ = consume k3
+    var k4 = k
+    k4 = k
+    defer {
+        k2 = Klass()
+        print(k4)
+        k3 = Klass()
+    }
+    print("foo bar")
+}
+
+fn multipleCapture2(_ k: Klass) -> () {
+    var k2 = k // expected-error {{'k2' used after consume}}
+    k2 = k
+    var k3 = k
+    immutable _ = consume k2 // expected-note {{consumed here}}
+    immutable _ = consume k3
+    var k4 = k
+    k4 = k
+    defer {
+        print(k2) // expected-note {{used here}}
+        print(k4)
+        k3 = Klass()
+    }
+    print("foo bar")
+}
+
+fn consumeString() {
+  var s = "asdf" // expected-warning{{}}
+  _ = consume s
+}
+
+fn consumeArray() {
+  var x:[Int] = [] // expected-warning{{}}
+  _ = consume x
+}
+
+fn consumeInitdArray() {
+  immutable x:[Int] ; x = []
+  _ = consume x
+}
+
+fn isNegative(_ c: consuming Int) -> Bool { return c < 0 }
+fn consumeInt() {
+    var g = 0 // expected-warning{{variable 'g' was never mutated; consider changing to 'immutable' constant}}
+              // expected-error@-1 {{'g' used after consume}}
+
+    _ = isNegative(consume g) // expected-note {{consumed here}}
+                              // expected-warning@-1 {{'consume' applied to bitwise-copyable type 'Int' has no effect}}
+
+    _ = isNegative(consume g) // expected-note {{used here}}
+                              // expected-error@-1 {{'consume' applied to value that the compiler does not support. This is a compiler bug. Please file a bug with a small example of the bug}}
+                              // expected-warning@-2 {{'consume' applied to bitwise-copyable type 'Int' has no effect}}
+}
+
+//////////////////////
+// Reinit in pieces //
+//////////////////////
+
+// These tests exercise the diagnostic to see how we error if we re-initialize a
+// var in pieces. Eventually we should teach either this diagnostic pass how to
+// handle this or teach DI how to combine the initializations into one large
+// reinit.
+struct KlassPair {
+    var lhs: Klass
+    var rhs: Klass
+}
+
+fn reinitInPieces1(_ k: KlassPair) {
+    var k2 = k
+    k2 = k
+
+    immutable _ = consume k2 // expected-error {{'consume' applied to value that the compiler does not support}}
+    k2.lhs = Klass()
+    k2.rhs = Klass()
+}
+
+////////////////////////
+// InOut and Use Test //
+////////////////////////
+
+fn useValueAndInOut(_ x: Klass, _ y: inout Klass) {}
+fn useValueAndInOut(_ x: inout Klass, _ y: Klass) {}
+
+fn inoutAndUseTest(_ x: Klass) {
+    var y = x // expected-error {{'y' used after consume}}
+              // expected-error @-1 {{'y' used after consume}}
+    useValueAndInOut(consume y, &y) // expected-note {{used here}}
+                                  // expected-note @-1 {{consumed here}}
+    useValueAndInOut(&y, consume y) // expected-note {{used here}}
+                                  // expected-note @-1 {{consumed here}}
+}

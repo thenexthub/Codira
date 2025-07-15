@@ -1,0 +1,5 @@
+// {"signature":"language::emitLoadedModuleTraceIfNeeded(language::ModuleDecl*, language::DependencyTracker*, language::FrontendOptions const&, language::InputFile const&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+@propertyWrapper struct a {
+  wrappedValue : b var projectedValue init(projectedValue c) {
+    fn d(@a Int) d

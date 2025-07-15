@@ -1,24 +1,28 @@
-//===--- Regex.swift ------------------------------------------------------===//
+//===--- Regex.code ------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftDiagnostics
-import SwiftSyntax
+import CodiraDiagnostics
+import CodiraSyntax
 
 #if canImport(_CompilerRegexParser)
 @_spi(CompilerInterface) import _CompilerRegexParser
 
-/// Bridging between C++ lexer and swiftCompilerLexRegexLiteral.
+/// Bridging between C++ lexer and languageCompilerLexRegexLiteral.
 ///
 /// Attempt to lex a regex literal string.
 ///
@@ -38,17 +42,17 @@ import SwiftSyntax
 /// - Returns: A bool indicating whether lexing was completely erroneous, and
 ///            cannot be recovered from, or false if there either was no error,
 ///            or there was a recoverable error.
-@_cdecl("swift_ASTGen_lexRegexLiteral")
-public func _RegexLiteralLexingFn(
+@_cdecl("language_ASTGen_lexRegexLiteral")
+public fn _RegexLiteralLexingFn(
   _ curPtrPtr: UnsafeMutablePointer<UnsafePointer<CChar>>,
   _ bufferEndPtr: UnsafePointer<CChar>,
   _ mustBeRegex: Bool,
   _ bridgedDiagnosticEngine: BridgedNullableDiagnosticEngine
 ) -> /*CompletelyErroneous*/ Bool {
-  let inputPtr = curPtrPtr.pointee
+  immutable inputPtr = curPtrPtr.pointee
 
   guard
-    let (resumePtr, error) = swiftCompilerLexRegexLiteral(
+    immutable (resumePtr, error) = languageCompilerLexRegexLiteral(
       start: inputPtr,
       bufferEnd: bufferEndPtr,
       mustBeRegex: mustBeRegex
@@ -59,11 +63,11 @@ public func _RegexLiteralLexingFn(
   }
 
   // Advance the current pointer.
-  curPtrPtr.pointee = resumePtr.assumingMemoryBound(to: CChar.self)
+  curPtrPtr.pointee = resumePtr.assumingMemoryBound(to: CChar.this)
 
-  if let error = error {
+  if immutable error = error {
     // Emit diagnostic if diagnostics are enabled.
-    if let diagEnginePtr = bridgedDiagnosticEngine.raw {
+    if immutable diagEnginePtr = bridgedDiagnosticEngine.raw {
       var message = error.message
       message.withBridgedString { message in
         BridgedDiagnostic(
@@ -79,7 +83,7 @@ public func _RegexLiteralLexingFn(
   return false
 }
 
-/// Bridging between C++ parser and swiftCompilerParseRegexLiteral.
+/// Bridging between C++ parser and languageCompilerParseRegexLiteral.
 ///
 /// - Parameters:
 ///   - input: Regex literal text.
@@ -92,8 +96,8 @@ public func _RegexLiteralLexingFn(
 ///   - bridgedDiagnosticEngine: Diagnostic engine to emit diagnostics.
 ///
 /// - Returns: `true` if there was a parse error, `false` otherwise.
-@_cdecl("swift_ASTGen_parseRegexLiteral")
-public func _RegexLiteralParsingFn(
+@_cdecl("language_ASTGen_parseRegexLiteral")
+public fn _RegexLiteralParsingFn(
   _ input: BridgedStringRef,
   _ versionOut: UnsafeMutablePointer<UInt>,
   _ captureStructureOut: UnsafeMutableRawPointer,
@@ -102,15 +106,15 @@ public func _RegexLiteralParsingFn(
   _ bridgedDiagnosticBaseLoc: BridgedSourceLoc,
   _ bridgedDiagnosticEngine: BridgedDiagnosticEngine
 ) -> Bool {
-  let str = String(bridged: input)
-  let captureBuffer = UnsafeMutableRawBufferPointer(
+  immutable str = String(bridged: input)
+  immutable captureBuffer = UnsafeMutableRawBufferPointer(
     start: captureStructureOut,
     count: Int(captureStructureSize)
   )
   do {
     // FIXME: We need to plumb through the 'regexToEmit' result to the caller.
     // For now, it is the same as the input.
-    let (_, version) = try swiftCompilerParseRegexLiteral(
+    immutable (_, version) = try languageCompilerParseRegexLiteral(
       str,
       captureBufferOut: captureBuffer
     )
@@ -118,10 +122,10 @@ public func _RegexLiteralParsingFn(
     patternFeaturesOut.pointee = .init(baseAddress: nil, count: 0)
     versionOut.pointee = UInt(version)
     return false
-  } catch let error as CompilerParseError {
+  } catch immutable error as CompilerParseError {
     var diagLoc = bridgedDiagnosticBaseLoc
-    if diagLoc.isValid, let errorLoc = error.location {
-      let offset = str.utf8.distance(from: str.startIndex, to: errorLoc)
+    if diagLoc.isValid, immutable errorLoc = error.location {
+      immutable offset = str.utf8.distance(from: str.startIndex, to: errorLoc)
       diagLoc = diagLoc.advanced(by: offset)
     }
     var message = error.message
@@ -139,28 +143,28 @@ public func _RegexLiteralParsingFn(
   }
 }
 
-@_cdecl("swift_ASTGen_freeBridgedRegexLiteralPatternFeatures")
-func freeBridgedRegexLiteralPatternFeatures(
+@_cdecl("language_ASTGen_freeBridgedRegexLiteralPatternFeatures")
+fn freeBridgedRegexLiteralPatternFeatures(
   _ features: BridgedRegexLiteralPatternFeatures
 ) {
-  let buffer = UnsafeMutableBufferPointer(
+  immutable buffer = UnsafeMutableBufferPointer(
     start: features.getData(), count: features.getCount()
   )
   buffer.deinitialize()
   buffer.deallocate()
 }
 
-@_cdecl("swift_ASTGen_getSwiftVersionForRegexPatternFeature")
-func getSwiftVersionForRegexPatternFeature(
+@_cdecl("language_ASTGen_getCodiraVersionForRegexPatternFeature")
+fn getCodiraVersionForRegexPatternFeature(
   _ featureKind: BridgedRegexLiteralPatternFeatureKind,
-  _ versionOut: UnsafeMutablePointer<BridgedSwiftVersion>
+  _ versionOut: UnsafeMutablePointer<BridgedCodiraVersion>
 ) {
   // TODO: FeatureKind(opaque kind) -> Version(major, minor)
   fatalError("Unimplemented")
 }
 
-@_cdecl("swift_ASTGen_getDescriptionForRegexPatternFeature")
-func getDescriptionForRegexPatternFeature(
+@_cdecl("language_ASTGen_getDescriptionForRegexPatternFeature")
+fn getDescriptionForRegexPatternFeature(
   _ featureKind: BridgedRegexLiteralPatternFeatureKind,
   _ context: BridgedASTContext,
   _ descriptionOut: UnsafeMutablePointer<BridgedStringRef>

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -20,7 +21,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#if defined(__MACH__) && defined(SWIFT_RUNTIME_STATIC_IMAGE_INSPECTION)
+#if defined(__MACH__) && defined(LANGUAGE_RUNTIME_STATIC_IMAGE_INSPECTION)
 
 #include "ImageInspection.h"
 #include "ImageInspectionCommon.h"
@@ -35,7 +36,7 @@ using namespace language;
   start = &__s##_seg##_sec;                                                    \
   size = (char *)&__e##_seg##_sec - (char *)&__s##_seg##_sec;
 
-void swift::initializeProtocolLookup() {
+void language::initializeProtocolLookup() {
   void *start;
   uintptr_t size;
   GET_SECTION_START_AND_SIZE(start, size, MachOTextSegment,
@@ -45,7 +46,7 @@ void swift::initializeProtocolLookup() {
   addImageProtocolsBlockCallbackUnsafe(__dso_handle, start, size);
 }
 
-void swift::initializeProtocolConformanceLookup() {
+void language::initializeProtocolConformanceLookup() {
   void *start;
   uintptr_t size;
   GET_SECTION_START_AND_SIZE(start, size, MachOTextSegment,
@@ -54,7 +55,7 @@ void swift::initializeProtocolConformanceLookup() {
     return;
   addImageProtocolConformanceBlockCallbackUnsafe(__dso_handle, start, size);
 }
-void swift::initializeTypeMetadataRecordLookup() {
+void language::initializeTypeMetadataRecordLookup() {
   void *start;
   uintptr_t size;
   GET_SECTION_START_AND_SIZE(start, size, MachOTextSegment,
@@ -64,7 +65,7 @@ void swift::initializeTypeMetadataRecordLookup() {
   addImageTypeMetadataRecordBlockCallbackUnsafe(__dso_handle, start, size);
 }
 
-void swift::initializeDynamicReplacementLookup() {
+void language::initializeDynamicReplacementLookup() {
   void *start1;
   uintptr_t size1;
   GET_SECTION_START_AND_SIZE(start1, size1, MachOTextSegment,
@@ -80,7 +81,7 @@ void swift::initializeDynamicReplacementLookup() {
   addImageDynamicReplacementBlockCallback(__dso_handle,
                                           start1, size1, start2, size2);
 }
-void swift::initializeAccessibleFunctionsLookup() {
+void language::initializeAccessibleFunctionsLookup() {
   void *start;
   uintptr_t size;
   GET_SECTION_START_AND_SIZE(start, size, MachOTextSegment,
@@ -90,4 +91,4 @@ void swift::initializeAccessibleFunctionsLookup() {
   }
 }
 
-#endif // defined(__MACH__) && defined(SWIFT_RUNTIME_STATIC_IMAGE_INSPECTION)
+#endif // defined(__MACH__) && defined(LANGUAGE_RUNTIME_STATIC_IMAGE_INSPECTION)

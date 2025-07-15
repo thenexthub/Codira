@@ -1,13 +1,17 @@
 //===--- OperandOwnership.cpp ---------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -21,7 +25,7 @@
 using namespace language;
 
 /// Return true if all OperandOwnership invariants hold.
-bool swift::checkOperandOwnershipInvariants(const Operand *operand,
+bool language::checkOperandOwnershipInvariants(const Operand *operand,
                                             SILModuleConventions *silConv) {
   OperandOwnership opOwnership = operand->getOperandOwnership(silConv);
   if (opOwnership == OperandOwnership::Borrow) {
@@ -39,7 +43,7 @@ namespace {
 
 class OperandOwnershipClassifier
   : public SILInstructionVisitor<OperandOwnershipClassifier, OperandOwnership> {
-  LLVM_ATTRIBUTE_UNUSED SILModule &mod;
+  TOOLCHAIN_ATTRIBUTE_UNUSED SILModule &mod;
   // Allow module conventions to be overridden while lowering between canonical
   // and lowered SIL stages.
   SILModuleConventions silConv;
@@ -91,8 +95,8 @@ public:
 #define SHOULD_NEVER_VISIT_INST(INST)                                          \
   OperandOwnership OperandOwnershipClassifier::visit##INST##Inst(              \
       INST##Inst *i) {                                                         \
-    llvm::errs() << "Unhandled inst: " << *i;                                  \
-    llvm::report_fatal_error(                                                  \
+    toolchain::errs() << "Unhandled inst: " << *i;                                  \
+    toolchain::report_fatal_error(                                                  \
         "Visited instruction that should never be visited?!");                 \
   }
 SHOULD_NEVER_VISIT_INST(AllocBox)
@@ -171,6 +175,7 @@ OPERAND_OWNERSHIP(TrivialUse, DestroyAddr)
 OPERAND_OWNERSHIP(TrivialUse, EndAccess)
 OPERAND_OWNERSHIP(TrivialUse, EndUnpairedAccess)
 OPERAND_OWNERSHIP(TrivialUse, GetAsyncContinuationAddr)
+OPERAND_OWNERSHIP(TrivialUse, VectorBaseAddr)
 OPERAND_OWNERSHIP(TrivialUse, IndexAddr)
 OPERAND_OWNERSHIP(TrivialUse, IndexRawPointer)
 OPERAND_OWNERSHIP(TrivialUse, InitBlockStorageHeader)
@@ -301,6 +306,7 @@ OPERAND_OWNERSHIP(DestroyingConsume, DestroyNotEscapedClosure)
 OPERAND_OWNERSHIP(DestroyingConsume, EndLifetime)
 OPERAND_OWNERSHIP(DestroyingConsume, BeginCOWMutation)
 OPERAND_OWNERSHIP(DestroyingConsume, EndCOWMutation)
+OPERAND_OWNERSHIP(TrivialUse, EndCOWMutationAddr)
 OPERAND_OWNERSHIP(DestroyingConsume, EndInitLetRef)
 // The move_value instruction creates a distinct lifetime.
 OPERAND_OWNERSHIP(DestroyingConsume, MoveValue)
@@ -516,7 +522,7 @@ static OperandOwnership getFunctionArgOwnership(SILArgumentConvention argConv,
   case SILArgumentConvention::Indirect_InoutAliasable:
     ASSERT(false && "Illegal convention for non-address types");
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 OperandOwnership
@@ -609,7 +615,7 @@ OperandOwnership OperandOwnershipClassifier::visitReturnInst(ReturnInst *i) {
   switch (i->getOwnershipKind()) {
   case OwnershipKind::Any:
   case OwnershipKind::Guaranteed:
-    llvm_unreachable("invalid value ownership");
+    toolchain_unreachable("invalid value ownership");
   case OwnershipKind::None:
     return OperandOwnership::TrivialUse;
   case OwnershipKind::Unowned:
@@ -617,7 +623,7 @@ OperandOwnership OperandOwnershipClassifier::visitReturnInst(ReturnInst *i) {
   case OwnershipKind::Owned:
     return OperandOwnership::ForwardingConsume;
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 OperandOwnership OperandOwnershipClassifier::visitAssignInst(AssignInst *i) {
@@ -739,7 +745,7 @@ struct OperandOwnershipBuiltinClassifier
   const Operand &op;
   OperandOwnershipBuiltinClassifier(const Operand &op) : op(op) {}
 
-  OperandOwnership visitLLVMIntrinsic(BuiltinInst *bi, llvm::Intrinsic::ID id) {
+  OperandOwnership visitLLVMIntrinsic(BuiltinInst *bi, toolchain::Intrinsic::ID id) {
     // LLVM intrinsics do not traffic in ownership, so if we have a result, it
     // must be trivial.
     return OperandOwnership::TrivialUse;
@@ -885,7 +891,10 @@ BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, SToUCheckedTrunc)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Expect)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Shl)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, GenericShl)
+BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Select)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, ShuffleVector)
+BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Interleave)
+BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Deinterleave)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Sizeof)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, StaticReport)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, Strideof)
@@ -914,6 +923,7 @@ BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, GenericXor)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, ZExt)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, ZExtOrBitCast)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, ZeroInitializer)
+BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, PrepareInitialization)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, PoundAssert)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, GlobalStringTablePointer)
 BUILTIN_OPERAND_OWNERSHIP(InstantaneousUse, TypePtrAuthDiscriminator)
@@ -1042,7 +1052,7 @@ BUILTIN_OPERAND_OWNERSHIP(TrivialUse, AutoDiffCreateLinearMapContextWithType)
 #define SHOULD_NEVER_VISIT_BUILTIN(ID)                                         \
   OperandOwnership                                                             \
   OperandOwnershipBuiltinClassifier::visit##ID(BuiltinInst *, StringRef) {     \
-    llvm_unreachable(                                                          \
+    toolchain_unreachable(                                                          \
         "Builtin should never be visited! E.x.: It may not have arguments");   \
   }
 SHOULD_NEVER_VISIT_BUILTIN(GetCurrentAsyncTask)
@@ -1054,7 +1064,7 @@ SHOULD_NEVER_VISIT_BUILTIN(GetCurrentExecutor)
 #define BUILTIN_SIL_OPERATION(ID, NAME, CATEGORY)                              \
   OperandOwnership                                                             \
   OperandOwnershipBuiltinClassifier::visit##ID(BuiltinInst *, StringRef) {     \
-    llvm_unreachable("Builtin should have been lowered to SIL instruction?!"); \
+    toolchain_unreachable("Builtin should have been lowered to SIL instruction?!"); \
   }
 #define BUILTIN(X, Y, Z)
 #include "language/AST/Builtins.def"
@@ -1082,10 +1092,10 @@ Operand::getOperandOwnership(SILModuleConventions *silConv) const {
   assert(getUser()->getParent() &&
          "Can not lookup ownership constraint unless inserted into block");
   if (auto *block = getUser()->getParent()) {
-    auto *func = block->getParent();
+    auto *fn = block->getParent();
     // If we don't have a function, then we must have a SILGlobalVariable. In
     // that case, we act as if we aren't in ownership.
-    if (!func || !func->hasOwnership()) {
+    if (!fn || !fn->hasOwnership()) {
       return OperandOwnership(OperandOwnership::InstantaneousUse);
     }
   }

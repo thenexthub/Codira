@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file contains an algorithm for checking the exhaustiveness of switches.
@@ -26,7 +27,7 @@
 #include "language/Basic/STLExtras.h"
 
 #include "language/Basic/APIntMap.h"
-#include <llvm/ADT/APFloat.h>
+#include <toolchain/ADT/APFloat.h>
 
 #include <forward_list>
 #include <iterator>
@@ -118,7 +119,7 @@ namespace {
     class Space final : public RelationalOperationsBase<Space> {
     private:
       SpaceKind Kind;
-      llvm::PointerIntPair<Type, 1, bool> TypeAndVal;
+      toolchain::PointerIntPair<Type, 1, bool> TypeAndVal;
 
       // In type space, we reuse HEAD to help us print meaningful name, e.g.,
       // tuple element name in fixits.
@@ -174,7 +175,7 @@ namespace {
           return acc;
         }
         }
-        llvm_unreachable("unhandled kind");
+        toolchain_unreachable("unhandled kind");
       }
 
       explicit Space(Type T, DeclName NameForPrinting)
@@ -209,7 +210,7 @@ namespace {
         return Space(UnknownCase, allowedButNotRequired);
       }
       static Space forConstructor(Type T, DeclName H, ArrayRef<Space> SP) {
-        if (llvm::any_of(SP, std::mem_fn(&Space::isEmpty))) {
+        if (toolchain::any_of(SP, std::mem_fn(&Space::isEmpty))) {
           // A constructor with an unconstructable parameter can never actually
           // be used.
           return Space();
@@ -241,7 +242,7 @@ namespace {
 
       SpaceKind getKind() const { return Kind; }
 
-      SWIFT_DEBUG_DUMP;
+      LANGUAGE_DEBUG_DUMP;
 
       size_t getSize(const DeclContext *DC) const {
         SmallPtrSet<TypeBase *, 4> cache;
@@ -435,7 +436,7 @@ namespace {
           return true;
 
         default:
-          llvm_unreachable("Uncovered pair found while computing subspaces?");
+          toolchain_unreachable("Uncovered pair found while computing subspaces?");
         }
       }
 
@@ -491,7 +492,7 @@ namespace {
           // pattern space by only decomposing the parts of the type space that
           // aren't actually covered by the disjunction.
           if (canDecompose(this->getType())) {
-            llvm::StringSet<> otherConstructors;
+            toolchain::StringSet<> otherConstructors;
             for (auto s : other.getSpaces()) {
               // Filter for constructor spaces with no payloads.
               if (s.getKind() != SpaceKind::Constructor) {
@@ -556,7 +557,7 @@ namespace {
           // overall.
           SmallVector<Space, 4> usefulSmallSpaces;
           for (const Space &space : smallSpaces) {
-            bool alreadyHandled = llvm::any_of(usefulSmallSpaces,
+            bool alreadyHandled = toolchain::any_of(usefulSmallSpaces,
                                                [&](const Space &previousSpace) {
               return space.isSubspace(previousSpace, DC);
             });
@@ -697,11 +698,11 @@ namespace {
         PAIRCASE (SpaceKind::UnknownCase, SpaceKind::BooleanConstant):
           return *this;
         default:
-          llvm_unreachable("Uncovered pair found while computing difference?");
+          toolchain_unreachable("Uncovered pair found while computing difference?");
         }
       }
 
-      void show(llvm::raw_ostream &buffer, bool forDisplay = true) const {
+      void show(toolchain::raw_ostream &buffer, bool forDisplay = true) const {
         switch (getKind()) {
         case SpaceKind::Empty:
           if (forDisplay) {
@@ -712,10 +713,10 @@ namespace {
           break;
         case SpaceKind::Disjunct: {
           if (forDisplay) {
-            llvm_unreachable("Attempted to display disjunct to user!");
+            toolchain_unreachable("Attempted to display disjunct to user!");
           } else {
             buffer << "DISJOIN(";
-            llvm::interleave(Spaces, [&](const Space &sp) {
+            toolchain::interleave(Spaces, [&](const Space &sp) {
               sp.show(buffer, forDisplay);
             }, [&buffer]() { buffer << " |\n"; });
             buffer << ")";
@@ -740,7 +741,7 @@ namespace {
 
           // FIXME: Clean up code for performance
           buffer << "(";
-          llvm::SmallVector<std::pair<Identifier, Space>, 4> labelSpaces;
+          toolchain::SmallVector<std::pair<Identifier, Space>, 4> labelSpaces;
           for (auto param : Spaces) {
             if (args != argEnd) {
               labelSpaces.push_back(
@@ -803,7 +804,7 @@ namespace {
       // overloaded and there is no further recursive structure to subtract
       // into.
       static void decomposeDisjuncts(const DeclContext *DC, Type tp,
-                                     const llvm::StringSet<> &voidList,
+                                     const toolchain::StringSet<> &voidList,
                                      SmallVectorImpl<Space> &arr) {
         assert(canDecompose(tp) && "Non-decomposable type?");
 
@@ -813,7 +814,7 @@ namespace {
         } else if (auto *E = tp->getEnumOrBoundGenericEnum()) {
           // Look into each case of the enum and decompose it in turn.
           auto children = E->getAllElements();
-          llvm::transform(
+          toolchain::transform(
               children, std::back_inserter(arr), [&](EnumElementDecl *eed) {
                 // Don't force people to match unavailable cases since they
                 // should not be instantiated at run time.
@@ -872,13 +873,13 @@ namespace {
           arr.push_back(Space::forConstructor(tp, Identifier(),
                                               constElemSpaces));
         } else {
-          llvm_unreachable("Can't decompose type?");
+          toolchain_unreachable("Can't decompose type?");
         }
       }
 
       static Space decompose(const DeclContext *DC,
                              Type type,
-                             const llvm::StringSet<> &voidList) {
+                             const toolchain::StringSet<> &voidList) {
         SmallVector<Space, 4> spaces;
         decomposeDisjuncts(DC, type, voidList, spaces);
         return Space::forDisjunct(spaces);
@@ -916,7 +917,7 @@ namespace {
           return result;
         }
         }
-        llvm_unreachable("unhandled kind");
+        toolchain_unreachable("unhandled kind");
       }
     };
 
@@ -924,8 +925,8 @@ namespace {
     const SwitchStmt *Switch;
     const DeclContext *DC;
     APIntMap<Expr *> IntLiteralCache;
-    llvm::DenseMap<APFloat, Expr *, ::DenseMapAPFloatKeyInfo> FloatLiteralCache;
-    llvm::DenseMap<StringRef, Expr *> StringLiteralCache;
+    toolchain::DenseMap<APFloat, Expr *, ::DenseMapAPFloatKeyInfo> FloatLiteralCache;
+    toolchain::DenseMap<StringRef, Expr *> StringLiteralCache;
     
     SpaceEngine(ASTContext &C, const SwitchStmt *SS, const DeclContext *DC)
         : Context(C), Switch(SS), DC(DC) {}
@@ -1014,7 +1015,7 @@ namespace {
 
           Space projection = projectPattern(caseItem.getPattern());
           bool isRedundant = !projection.isEmpty() &&
-                             llvm::any_of(spaces, [&](const Space &handled) {
+                             toolchain::any_of(spaces, [&](const Space &handled) {
             return projection.isSubspace(handled, DC);
           });
           if (isRedundant) {
@@ -1114,8 +1115,8 @@ namespace {
       else
         insertLoc = Switch->getEndLoc();
       StringRef placeholder = getCodePlaceholder();
-      llvm::SmallString<128> buffer;
-      llvm::raw_svector_ostream OS(buffer);
+      toolchain::SmallString<128> buffer;
+      toolchain::raw_svector_ostream OS(buffer);
 
       // Decide whether we want an error or a warning.
       std::optional<decltype(diag::non_exhaustive_switch)> mainDiagType =
@@ -1124,7 +1125,7 @@ namespace {
       if (unknownCase) {
         switch (defaultReason) {
         case RequiresDefault::EmptySwitchBody:
-          llvm_unreachable("there's an @unknown case; the body can't be empty");
+          toolchain_unreachable("there's an @unknown case; the body can't be empty");
         case RequiresDefault::No:
           downgrade = !uncovered.isEmpty();
           break;
@@ -1157,16 +1158,34 @@ namespace {
         assert(defaultReason == RequiresDefault::No);
         Type subjectType = Switch->getSubjectExpr()->getType();
         bool shouldIncludeFutureVersionComment = false;
-        bool shouldDowngradeToWarning = true;
-        if (auto *theEnum = subjectType->getEnumOrBoundGenericEnum()) {
+        auto *theEnum = subjectType->getEnumOrBoundGenericEnum();
+
+        if (theEnum) {
           auto *enumModule = theEnum->getParentModule();
           shouldIncludeFutureVersionComment =
               enumModule->isSystemModule() ||
-              theEnum->getAttrs().hasAttribute<ExtensibleAttr>();
+              theEnum->getAttrs().hasAttribute<NonexhaustiveAttr>();
         }
-        DE.diagnose(startLoc, diag::non_exhaustive_switch_unknown_only,
-                    subjectType, shouldIncludeFutureVersionComment)
-          .warnUntilSwiftVersionIf(shouldDowngradeToWarning, 6);
+
+        auto diag =
+            DE.diagnose(startLoc, diag::non_exhaustive_switch_unknown_only,
+                        subjectType, shouldIncludeFutureVersionComment);
+
+        auto shouldWarnUntilVersion = [&theEnum]() -> unsigned {
+          if (theEnum) {
+            // Presence of `@nonexhaustive(warn)` pushes the warning farther,
+            // into the future.
+            if (auto *nonexhaustive =
+                    theEnum->getAttrs().getAttribute<NonexhaustiveAttr>()) {
+              if (nonexhaustive->getMode() == NonexhaustiveMode::Warning)
+                return language::version::Version::getFutureMajorLanguageVersion();
+            }
+          }
+          return 6;
+        };
+
+        diag.warnUntilCodiraVersion(shouldWarnUntilVersion());
+
         mainDiagType = std::nullopt;
       }
         break;
@@ -1209,7 +1228,7 @@ namespace {
 
       // Add notes to explain what's missing.
       auto processUncoveredSpaces =
-          [&](llvm::function_ref<void(const Space &space,
+          [&](toolchain::function_ref<void(const Space &space,
                                       bool onlyOneUncoveredSpace)> process) {
 
         // Flatten away all disjunctions.
@@ -1232,7 +1251,7 @@ namespace {
         SmallPtrSet<const Space *, 4> flatsToEmit;
         for (const Space *space : flatsSortedBySize) {
           bool alreadyHandled =
-              llvm::any_of(flatsToEmit, [&](const Space *previousSpace) {
+              toolchain::any_of(flatsToEmit, [&](const Space *previousSpace) {
             return space->isSubspace(*previousSpace, DC);
           });
           if (alreadyHandled)
@@ -1287,15 +1306,15 @@ namespace {
 
       processUncoveredSpaces([&](const Space &space,
                                  bool onlyOneUncoveredSpace) {
-        llvm::SmallString<64> fixItBuffer;
-        llvm::raw_svector_ostream fixItOS(fixItBuffer);
+        toolchain::SmallString<64> fixItBuffer;
+        toolchain::raw_svector_ostream fixItOS(fixItBuffer);
         if (space.getKind() == SpaceKind::UnknownCase) {
           fixItOS << "@unknown " << tok::kw_default << ":\n<#fatalError()#>\n";
           DE.diagnose(startLoc, diag::missing_unknown_case)
               .fixItInsert(insertLoc, fixItBuffer.str());
         } else {
-          llvm::SmallString<64> spaceBuffer;
-          llvm::raw_svector_ostream spaceOS(spaceBuffer);
+          toolchain::SmallString<64> spaceBuffer;
+          toolchain::raw_svector_ostream spaceOS(spaceBuffer);
           space.show(spaceOS);
 
           fixItOS << tok::kw_case << " " << spaceBuffer << ":\n"
@@ -1456,7 +1475,7 @@ namespace {
         }
       }
       case PatternKind::Typed:
-        llvm_unreachable("cannot appear in case patterns");
+        toolchain_unreachable("cannot appear in case patterns");
       case PatternKind::Expr:
         return Space();
       case PatternKind::Binding: {
@@ -1496,7 +1515,7 @@ namespace {
         switch (SP->getKind()) {
         case PatternKind::Tuple: {
           auto *TP = dyn_cast<TuplePattern>(SP);
-          llvm::transform(TP->getElements(), std::back_inserter(conArgSpace),
+          toolchain::transform(TP->getElements(), std::back_inserter(conArgSpace),
                           [&](TuplePatternElt pate) {
                             return projectPattern(pate.getPattern());
                           });
@@ -1548,7 +1567,7 @@ namespace {
       case PatternKind::Tuple: {
         auto *TP = cast<TuplePattern>(item);
         SmallVector<Space, 4> conArgSpace;
-        llvm::transform(TP->getElements(), std::back_inserter(conArgSpace),
+        toolchain::transform(TP->getElements(), std::back_inserter(conArgSpace),
                         [&](TuplePatternElt pate) {
                           return projectPattern(pate.getPattern());
                         });
@@ -1556,7 +1575,7 @@ namespace {
                                      conArgSpace);
       }
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
   };
 } // end anonymous namespace
@@ -1568,6 +1587,6 @@ void TypeChecker::checkSwitchExhaustiveness(const SwitchStmt *stmt,
 }
 
 void SpaceEngine::Space::dump() const {
-  this->show(llvm::errs(), /*normalize*/ false);
-  llvm::errs() << '\n';
+  this->show(toolchain::errs(), /*normalize*/ false);
+  toolchain::errs() << '\n';
 }

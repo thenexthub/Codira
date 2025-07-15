@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides information about how a constraint fix should behavior.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_FIXBEHAVIOR_H
-#define SWIFT_SEMA_FIXBEHAVIOR_H
+#ifndef LANGUAGE_SEMA_FIXBEHAVIOR_H
+#define LANGUAGE_SEMA_FIXBEHAVIOR_H
 
 namespace language {
 namespace constraints {
@@ -41,4 +42,4 @@ enum class FixBehavior {
 }
 }
 
-#endif // SWIFT_SEMA_FIXBEHAVIOR_H
+#endif // LANGUAGE_SEMA_FIXBEHAVIOR_H

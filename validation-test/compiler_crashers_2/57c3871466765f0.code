@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::ConstraintGraph::computeConnectedComponents(toolchain::ArrayRef<language::TypeVariableType*>)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+immutable i = Array(... a { " ? \(i Array* )" }
+                        , b 1

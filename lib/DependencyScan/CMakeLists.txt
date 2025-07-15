@@ -1,20 +1,20 @@
-add_swift_host_library(swiftDependencyScanImpl STATIC
+add_language_host_library(languageDependencyScanImpl STATIC
   DependencyScanJSON.cpp
   StringUtils.cpp)
 
-add_swift_host_library(swiftDependencyScan STATIC
+add_language_host_library(languageDependencyScan STATIC
   DependencyScanningTool.cpp
   ModuleDependencyCacheSerialization.cpp
   ModuleDependencyScanner.cpp
   ScanDependencies.cpp)
 
-target_link_libraries(swiftDependencyScan INTERFACE
+target_link_libraries(languageDependencyScan INTERFACE
   clangBasic)
 
-target_link_libraries(swiftDependencyScan PRIVATE
-  swiftClangImporter
-  swiftAST
-  swiftSerialization)
+target_link_libraries(languageDependencyScan PRIVATE
+  languageClangImporter
+  languageAST
+  languageSerialization)
 
-target_link_libraries(swiftDependencyScan PUBLIC
-  swiftDependencyScanImpl)
+target_link_libraries(languageDependencyScan PUBLIC
+  languageDependencyScanImpl)

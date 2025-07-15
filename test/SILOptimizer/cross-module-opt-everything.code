@@ -1,0 +1,69 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -emit-module -o %t/Module.codemodule %t/Module.code -experimental-performance-annotations -enable-cmo-everything -wmo
+// RUN: %target-language-frontend -emit-ir %t/Main.code -I%t -experimental-performance-annotations -enable-cmo-everything -wmo
+
+
+// REQUIRES: language_in_compiler
+// REQUIRES: OS=macosx || OS=linux-gnu
+
+// BEGIN Module.code
+
+@_semantics("optimize.no.crossmodule")
+private fn bar<R>(count: Int, _ body: (UnsafeMutableBufferPointer<Int>) -> R) -> R {
+  immutable pointer = UnsafeMutablePointer<Int>(bitPattern: 42)!
+  immutable inoutBufferPointer = UnsafeMutableBufferPointer(start: pointer, count: count)
+  return body(inoutBufferPointer)
+}
+
+public fn foo<R>(_ body: () -> R) -> R {
+  bar(count: 10) { p in
+    body()
+  }
+}
+
+public fn module_func() {
+  foo {
+    return 0
+  }
+}
+
+public protocol P {
+  fn f()
+}
+
+public struct S1: P {
+  public init() {}
+  public fn f() {}
+}
+
+public struct S2: P {
+  public init() {}
+  public fn f() {}
+}
+
+public fn open_existential(_ p: P) {
+  p.f()
+}
+
+// BEGIN Main.code
+
+import Module
+
+@_noLocks
+public fn test() {
+  module_func()
+}
+
+@_noLocks
+public fn client_func() {
+  foo {
+    return 0
+  }
+}
+
+public fn client_func_2() {
+  open_existential(S1())
+  open_existential(S2())
+}

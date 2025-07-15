@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language                       \
+// RUN:     -disable-availability-checking
+
+struct S : _BitwiseCopyable {} // expected-warning {{'_BitwiseCopyable' is deprecated: Use BitwiseCopyable}}{{documentation-file=deprecated-declaration}}
+
+fn f<T : _BitwiseCopyable>(_ t: T) {} // expected-warning {{'_BitwiseCopyable' is deprecated: Use BitwiseCopyable}}{{documentation-file=deprecated-declaration}}

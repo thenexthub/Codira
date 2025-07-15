@@ -1,4 +1,4 @@
-//===--- OpaqueConsumingUsers.swift ---------------------------------------===//
+//===--- OpaqueConsumingUsers.code ---------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "OpaqueConsumingUsers",
     runFunction: run_OpaqueConsumingUsers,
@@ -49,11 +50,11 @@ class ConsumingUser {
 var data: Klass? = nil
 var user: ConsumingUser? = nil
 
-func setup_OpaqueConsumingUsers() {
+fn setup_OpaqueConsumingUsers() {
   switch (data, user) {
-  case (let x?, let y?):
-    let _ = x
-    let _ = y
+  case (immutable x?, immutable y?):
+    immutable _ = x
+    immutable _ = y
     return
   case (nil, nil):
     data = Klass()
@@ -64,29 +65,29 @@ func setup_OpaqueConsumingUsers() {
 }
 
 @inline(never)
-func callFrame1(_ data: Klass, _ user: ConsumingUser) {
+fn callFrame1(_ data: Klass, _ user: ConsumingUser) {
   callFrame2(data, user)
 }
 
 @inline(never)
-func callFrame2(_ data: Klass, _ user: ConsumingUser) {
+fn callFrame2(_ data: Klass, _ user: ConsumingUser) {
   callFrame3(data, user)
 }
 
 @inline(never)
-func callFrame3(_ data: Klass, _ user: ConsumingUser) {
+fn callFrame3(_ data: Klass, _ user: ConsumingUser) {
   callFrame4(data, user)
 }
 
 @inline(never)
-func callFrame4(_ data: Klass, _ user: ConsumingUser) {
+fn callFrame4(_ data: Klass, _ user: ConsumingUser) {
   user.value = data
 }
 
 @inline(never)
-public func run_OpaqueConsumingUsers(_ n: Int) {
-  let d = data.unsafelyUnwrapped
-  let u = user.unsafelyUnwrapped
+public fn run_OpaqueConsumingUsers(_ n: Int) {
+  immutable d = data.unsafelyUnwrapped
+  immutable u = user.unsafelyUnwrapped
   for _ in 0..<n*10_000 {
     callFrame4(d, u)
   }

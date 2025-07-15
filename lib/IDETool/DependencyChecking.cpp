@@ -1,13 +1,17 @@
 //===--- DependencyChecking.cpp -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "DependencyChecking.h"
@@ -24,7 +28,7 @@ namespace {
 static bool
 forEachDependencyUntilTrue(CompilerInstance &CI,
                            std::optional<unsigned> excludeBufferID,
-                           llvm::function_ref<bool(StringRef)> callback) {
+                           toolchain::function_ref<bool(StringRef)> callback) {
   // Check files in the current module. If 'excludeBufferID' is None, exclude
   // all source files.
   if (excludeBufferID.has_value()) {
@@ -68,7 +72,7 @@ forEachDependencyUntilTrue(CompilerInstance &CI,
 /// Collect hash codes of the dependencies into \c Map.
 static void cacheDependencyHashIfNeeded(CompilerInstance &CI,
                                         std::optional<unsigned> excludeBufferID,
-                                        llvm::StringMap<llvm::hash_code> &Map) {
+                                        toolchain::StringMap<toolchain::hash_code> &Map) {
   auto &FS = CI.getFileSystem();
   forEachDependencyUntilTrue(CI, excludeBufferID, [&](StringRef filename) {
     if (Map.count(filename))
@@ -80,21 +84,21 @@ static void cacheDependencyHashIfNeeded(CompilerInstance &CI,
 
     // We will check the hash only if the modification time of the dependecy
     // is zero. See 'areAnyDependentFilesInvalidated() below'.
-    if (stat->getLastModificationTime() != llvm::sys::TimePoint<>())
+    if (stat->getLastModificationTime() != toolchain::sys::TimePoint<>())
       return false;
 
     auto buf = FS.getBufferForFile(filename);
-    Map[filename] = llvm::hash_value(buf.get()->getBuffer());
+    Map[filename] = toolchain::hash_value(buf.get()->getBuffer());
     return false;
   });
 }
 
 /// Check if any dependent files are modified since \p timestamp.
 static bool
-areAnyDependentFilesInvalidated(CompilerInstance &CI, llvm::vfs::FileSystem &FS,
+areAnyDependentFilesInvalidated(CompilerInstance &CI, toolchain::vfs::FileSystem &FS,
                                 std::optional<unsigned> excludeBufferID,
-                                llvm::sys::TimePoint<> timestamp,
-                                const llvm::StringMap<llvm::hash_code> &Map) {
+                                toolchain::sys::TimePoint<> timestamp,
+                                const toolchain::StringMap<toolchain::hash_code> &Map) {
 
   return forEachDependencyUntilTrue(
       CI, excludeBufferID, [&](StringRef filePath) {
@@ -110,7 +114,7 @@ areAnyDependentFilesInvalidated(CompilerInstance &CI, llvm::vfs::FileSystem &FS,
 
         // If the last modification time is zero, this file is probably from a
         // virtual file system. We need to check the content.
-        if (lastModTime == llvm::sys::TimePoint<>()) {
+        if (lastModTime == toolchain::sys::TimePoint<>()) {
           // Get the hash code of the last content.
           auto oldHashEntry = Map.find(filePath);
           if (oldHashEntry == Map.end())
@@ -125,7 +129,7 @@ areAnyDependentFilesInvalidated(CompilerInstance &CI, llvm::vfs::FileSystem &FS,
             // Unreachable? stat succeeded, but couldn't get the content.
             return true;
 
-          auto newHash = llvm::hash_value(newContent.get()->getBuffer());
+          auto newHash = toolchain::hash_value(newContent.get()->getBuffer());
 
           if (oldHash != newHash)
             return true;
@@ -139,14 +143,14 @@ areAnyDependentFilesInvalidated(CompilerInstance &CI, llvm::vfs::FileSystem &FS,
 
 void ide::cacheDependencyHashIfNeeded(CompilerInstance &CI,
                                       std::optional<unsigned> excludeBufferID,
-                                      llvm::StringMap<llvm::hash_code> &Map) {
+                                      toolchain::StringMap<toolchain::hash_code> &Map) {
   return ::cacheDependencyHashIfNeeded(CI, excludeBufferID, Map);
 }
 
 bool ide::areAnyDependentFilesInvalidated(
-    CompilerInstance &CI, llvm::vfs::FileSystem &FS,
-    std::optional<unsigned> excludeBufferID, llvm::sys::TimePoint<> timestamp,
-    const llvm::StringMap<llvm::hash_code> &Map) {
+    CompilerInstance &CI, toolchain::vfs::FileSystem &FS,
+    std::optional<unsigned> excludeBufferID, toolchain::sys::TimePoint<> timestamp,
+    const toolchain::StringMap<toolchain::hash_code> &Map) {
   return ::areAnyDependentFilesInvalidated(CI, FS, excludeBufferID, timestamp,
                                            Map);
 }

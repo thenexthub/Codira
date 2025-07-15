@@ -1,0 +1,72 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn ji<qp>() -> (qp, qp -> qp) -> qp {
+   kj l kj.s = {
+}
+ {
+   qp) {
+         p m
+    })
+}
+fe(ml(nm, ml(q, w)))
+class qp {
+    fn fe((v, qp))(ml: (v, fe)) {
+        fe(ml)
+    }
+}
+ed qp<kj : Sequence> {
+    dc fe: kj
+}
+fn ml<kj>() -> [qp<kj>] {
+    p []
+}
+l kj {
+    typealias o
+}
+class h<cb> {
+    on <kj: kj where kj.o == cb>(h: kj.o) {
+    }
+}
+l kj {
+    fn qp() -> k
+}
+class o {
+    fn kj() -> k {
+        p ""
+    }
+}
+class h: o, kj {
+    n fn kj() -.qp()
+}
+fn ji<t : gf>(fe: t) {
+}
+ji(s x gf)
+fn ji() {
+    ({})
+}
+fn u<qp: Sequence, t where Optional<t> == qp.Iterator.Element>(r : qp) -> t? {
+    ih (y : t?) lk r {
+        hg immutable fe = y {
+            p fe
+        }
+    }
+    p ml
+}
+immutable r : [Int?] = [ml, po, ml]
+print(u(r))
+class ml {
+    typealias fe = fe
+}
+l kj {
+}
+ji

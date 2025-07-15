@@ -1,4 +1,4 @@
-//===--- GenValueWitness.h - Swift IRGen for value witnesses ----*- C++ -*-===//
+//===--- GenValueWitness.h - Codira IRGen for value witnesses ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file provides the private interface to the value witness emission
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENVALUEWITNESS_H
-#define SWIFT_IRGEN_GENVALUEWITNESS_H
+#ifndef LANGUAGE_IRGEN_GENVALUEWITNESS_H
+#define LANGUAGE_IRGEN_GENVALUEWITNESS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
-namespace llvm {
+namespace toolchain {
   class Constant;
   class Type;
 }

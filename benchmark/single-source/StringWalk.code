@@ -1,4 +1,4 @@
-//===--- StringWalk.swift -------------------------------------*- swift -*-===//
+//===--- StringWalk.code -------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 ////////////////////////////////////////////////////////////////////////////////
 // WARNING: This file is manually generated from .gyb template and should not
-// be directly modified. Instead, make changes to StringWalk.swift.gyb and run
+// be directly modified. Instead, make changes to StringWalk.code.gyb and run
 // scripts/generate_harness/generate_harness.py to regenerate this file.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -30,21 +31,21 @@ import TestsUtils
 // Helper functionality
 //
 
-@inline(never) func count_unicodeScalars(_ s: String.UnicodeScalarView) {
+@inline(never) fn count_unicodeScalars(_ s: String.UnicodeScalarView) {
   var count = 0
   for _ in s {
     count += 1
   }
   blackHole(count)
 }
-@inline(never) func count_characters(_ s: String) {
+@inline(never) fn count_characters(_ s: String) {
   var count = 0
   for _ in s {
     count += 1
   }
   blackHole(count)
 }
-@inline(never) func count_unicodeScalars_rev(
+@inline(never) fn count_unicodeScalars_rev(
   _ s: ReversedCollection<String.UnicodeScalarView>
 ) {
   var count = 0
@@ -53,7 +54,7 @@ import TestsUtils
   }
   blackHole(count)
 }
-@inline(never) func count_characters_rev(
+@inline(never) fn count_characters_rev(
   _ s: ReversedCollection<String>
 ) {
   var count = 0
@@ -66,21 +67,21 @@ import TestsUtils
 //
 // Workloads
 //
-let ascii =
+immutable ascii =
   "siebenhundertsiebenundsiebzigtausendsiebenhundertsiebenundsiebzig"
-let emoji = "👍👩‍👩‍👧‍👧👨‍👨‍👦‍👦🇺🇸🇨🇦🇲🇽👍🏻👍🏼👍🏽👍🏾👍🏿"
-let utf16 = emoji + "the quick brown fox" + String(emoji.reversed())
+immutable emoji = "👍👩‍👩‍👧‍👧👨‍👨‍👦‍👦🇺🇸🇨🇦🇲🇽👍🏻👍🏼👍🏽👍🏾👍🏿"
+immutable utf16 = emoji + "the quick brown fox" + String(emoji.reversed())
 
-let japanese = "今回のアップデートでSwiftに大幅な改良が施され、安定していてしかも直感的に使うことができるAppleプラットフォーム向けプログラミング言語になりました。"
-let chinese = "Swift 是面向 Apple 平台的编程语言，功能强大且直观易用，而本次更新对其进行了全面优化。"
-let korean = "이번 업데이트에서는 강력하면서도 직관적인 Apple 플랫폼용 프로그래밍 언어인 Swift를 완벽히 개선하였습니다."
-let russian = "в чащах юга жил-был цитрус? да, но фальшивый экземпляр"
-let punctuated = "\u{201c}Hello\u{2010}world\u{2026}\u{201d}"
-let punctuatedJapanese = "\u{300c}\u{300e}今日は\u{3001}世界\u{3002}\u{300f}\u{300d}"
+immutable japanese = "今回のアップデートでCodiraに大幅な改良が施され、安定していてしかも直感的に使うことができるAppleプラットフォーム向けプログラミング言語になりました。"
+immutable chinese = "Codira 是面向 Apple 平台的编程语言，功能强大且直观易用，而本次更新对其进行了全面优化。"
+immutable korean = "이번 업데이트에서는 강력하면서도 직관적인 Apple 플랫폼용 프로그래밍 언어인 Codira를 완벽히 개선하였습니다."
+immutable russian = "в чащах юга жил-был цитрус? да, но фальшивый экземпляр"
+immutable punctuated = "\u{201c}Hello\u{2010}world\u{2026}\u{201d}"
+immutable punctuatedJapanese = "\u{300c}\u{300e}今日は\u{3001}世界\u{3002}\u{300f}\u{300d}"
 
 // A workload that's mostly Latin characters, with occasional emoji
 // interspersed. Common for tweets.
-let tweet = "Worst thing about working on String is that it breaks *everything*. Asserts, debuggers, and *especially* printf-style debugging 😭"
+immutable tweet = "Worst thing about working on String is that it breaks *everything*. Asserts, debuggers, and *especially* printf-style debugging 😭"
 
 //
 // Benchmarks
@@ -88,19 +89,19 @@ let tweet = "Worst thing about working on String is that it breaks *everything*.
 
 // Pre-commit benchmark: simple scalar walk
 @inline(never)
-public func run_StringWalk(_ n: Int) {
+public fn run_StringWalk(_ n: Int) {
   return run_StringWalk_ascii_unicodeScalars(n)
 }
 
 // Extended String benchmarks:
-let baseMultiplier = 250
-let unicodeScalarsMultiplier = baseMultiplier
-let charactersMultiplier = baseMultiplier / 5
+immutable baseMultiplier = 250
+immutable unicodeScalarsMultiplier = baseMultiplier
+immutable charactersMultiplier = baseMultiplier / 5
 
 
 // An extended benchmark suite exercising finer-granularity behavior of our
 // Strings.
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "StringWalk",
     runFunction: run_StringWalk,
@@ -579,14 +580,14 @@ public let benchmarks = [
 
 
 @inline(never)
-public func run_StringWalk_ascii_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_ascii_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(ascii.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_ascii_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_ascii_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(ascii.unicodeScalars.reversed())
   }
@@ -594,24 +595,24 @@ public func run_StringWalk_ascii_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_ascii_characters(_ n: Int) {
+public fn run_StringWalk_ascii_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(ascii)
   }
 }
 
 @inline(never)
-public func run_StringWalk_ascii_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_ascii_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(ascii.reversed())
   }
 }
 
 
-let asciiCharacters = Array(ascii)
+immutable asciiCharacters = Array(ascii)
 
 @inline(never)
-public func run_CharIteration_ascii_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_ascii_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in asciiCharacters {
@@ -624,7 +625,7 @@ public func run_CharIteration_ascii_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_ascii_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_ascii_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in asciiCharacters {
@@ -637,11 +638,11 @@ public func run_CharIteration_ascii_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_ascii_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_ascii_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in asciiCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -651,11 +652,11 @@ public func run_CharIndexing_ascii_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_ascii_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_ascii_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in asciiCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -668,14 +669,14 @@ public func run_CharIndexing_ascii_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_utf16_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_utf16_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(utf16.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_utf16_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_utf16_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(utf16.unicodeScalars.reversed())
   }
@@ -683,24 +684,24 @@ public func run_StringWalk_utf16_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_utf16_characters(_ n: Int) {
+public fn run_StringWalk_utf16_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(utf16)
   }
 }
 
 @inline(never)
-public func run_StringWalk_utf16_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_utf16_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(utf16.reversed())
   }
 }
 
 
-let utf16Characters = Array(utf16)
+immutable utf16Characters = Array(utf16)
 
 @inline(never)
-public func run_CharIteration_utf16_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_utf16_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in utf16Characters {
@@ -713,7 +714,7 @@ public func run_CharIteration_utf16_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_utf16_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_utf16_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in utf16Characters {
@@ -726,11 +727,11 @@ public func run_CharIteration_utf16_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_utf16_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_utf16_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in utf16Characters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -740,11 +741,11 @@ public func run_CharIndexing_utf16_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_utf16_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_utf16_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in utf16Characters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -757,14 +758,14 @@ public func run_CharIndexing_utf16_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_tweet_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_tweet_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(tweet.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_tweet_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_tweet_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(tweet.unicodeScalars.reversed())
   }
@@ -772,24 +773,24 @@ public func run_StringWalk_tweet_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_tweet_characters(_ n: Int) {
+public fn run_StringWalk_tweet_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(tweet)
   }
 }
 
 @inline(never)
-public func run_StringWalk_tweet_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_tweet_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(tweet.reversed())
   }
 }
 
 
-let tweetCharacters = Array(tweet)
+immutable tweetCharacters = Array(tweet)
 
 @inline(never)
-public func run_CharIteration_tweet_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_tweet_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in tweetCharacters {
@@ -802,7 +803,7 @@ public func run_CharIteration_tweet_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_tweet_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_tweet_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in tweetCharacters {
@@ -815,11 +816,11 @@ public func run_CharIteration_tweet_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_tweet_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_tweet_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in tweetCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -829,11 +830,11 @@ public func run_CharIndexing_tweet_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_tweet_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_tweet_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in tweetCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -846,14 +847,14 @@ public func run_CharIndexing_tweet_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_japanese_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_japanese_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(japanese.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_japanese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_japanese_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(japanese.unicodeScalars.reversed())
   }
@@ -861,24 +862,24 @@ public func run_StringWalk_japanese_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_japanese_characters(_ n: Int) {
+public fn run_StringWalk_japanese_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(japanese)
   }
 }
 
 @inline(never)
-public func run_StringWalk_japanese_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_japanese_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(japanese.reversed())
   }
 }
 
 
-let japaneseCharacters = Array(japanese)
+immutable japaneseCharacters = Array(japanese)
 
 @inline(never)
-public func run_CharIteration_japanese_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_japanese_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in japaneseCharacters {
@@ -891,7 +892,7 @@ public func run_CharIteration_japanese_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_japanese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_japanese_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in japaneseCharacters {
@@ -904,11 +905,11 @@ public func run_CharIteration_japanese_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_japanese_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_japanese_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in japaneseCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -918,11 +919,11 @@ public func run_CharIndexing_japanese_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_japanese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_japanese_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in japaneseCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -935,14 +936,14 @@ public func run_CharIndexing_japanese_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_chinese_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_chinese_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(chinese.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_chinese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_chinese_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(chinese.unicodeScalars.reversed())
   }
@@ -950,24 +951,24 @@ public func run_StringWalk_chinese_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_chinese_characters(_ n: Int) {
+public fn run_StringWalk_chinese_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(chinese)
   }
 }
 
 @inline(never)
-public func run_StringWalk_chinese_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_chinese_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(chinese.reversed())
   }
 }
 
 
-let chineseCharacters = Array(chinese)
+immutable chineseCharacters = Array(chinese)
 
 @inline(never)
-public func run_CharIteration_chinese_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_chinese_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in chineseCharacters {
@@ -980,7 +981,7 @@ public func run_CharIteration_chinese_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_chinese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_chinese_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in chineseCharacters {
@@ -993,11 +994,11 @@ public func run_CharIteration_chinese_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_chinese_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_chinese_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in chineseCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -1007,11 +1008,11 @@ public func run_CharIndexing_chinese_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_chinese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_chinese_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in chineseCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -1024,14 +1025,14 @@ public func run_CharIndexing_chinese_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_korean_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_korean_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(korean.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_korean_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_korean_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(korean.unicodeScalars.reversed())
   }
@@ -1039,24 +1040,24 @@ public func run_StringWalk_korean_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_korean_characters(_ n: Int) {
+public fn run_StringWalk_korean_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(korean)
   }
 }
 
 @inline(never)
-public func run_StringWalk_korean_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_korean_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(korean.reversed())
   }
 }
 
 
-let koreanCharacters = Array(korean)
+immutable koreanCharacters = Array(korean)
 
 @inline(never)
-public func run_CharIteration_korean_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_korean_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in koreanCharacters {
@@ -1069,7 +1070,7 @@ public func run_CharIteration_korean_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_korean_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_korean_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in koreanCharacters {
@@ -1082,11 +1083,11 @@ public func run_CharIteration_korean_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_korean_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_korean_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in koreanCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -1096,11 +1097,11 @@ public func run_CharIndexing_korean_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_korean_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_korean_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in koreanCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -1113,14 +1114,14 @@ public func run_CharIndexing_korean_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_russian_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_russian_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(russian.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_russian_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_russian_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(russian.unicodeScalars.reversed())
   }
@@ -1128,24 +1129,24 @@ public func run_StringWalk_russian_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_russian_characters(_ n: Int) {
+public fn run_StringWalk_russian_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(russian)
   }
 }
 
 @inline(never)
-public func run_StringWalk_russian_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_russian_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(russian.reversed())
   }
 }
 
 
-let russianCharacters = Array(russian)
+immutable russianCharacters = Array(russian)
 
 @inline(never)
-public func run_CharIteration_russian_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_russian_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in russianCharacters {
@@ -1158,7 +1159,7 @@ public func run_CharIteration_russian_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_russian_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_russian_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in russianCharacters {
@@ -1171,11 +1172,11 @@ public func run_CharIteration_russian_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_russian_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_russian_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in russianCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -1185,11 +1186,11 @@ public func run_CharIndexing_russian_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_russian_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_russian_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in russianCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -1202,14 +1203,14 @@ public func run_CharIndexing_russian_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_punctuated_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_punctuated_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(punctuated.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_punctuated_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_punctuated_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(punctuated.unicodeScalars.reversed())
   }
@@ -1217,24 +1218,24 @@ public func run_StringWalk_punctuated_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_punctuated_characters(_ n: Int) {
+public fn run_StringWalk_punctuated_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(punctuated)
   }
 }
 
 @inline(never)
-public func run_StringWalk_punctuated_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_punctuated_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(punctuated.reversed())
   }
 }
 
 
-let punctuatedCharacters = Array(punctuated)
+immutable punctuatedCharacters = Array(punctuated)
 
 @inline(never)
-public func run_CharIteration_punctuated_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_punctuated_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedCharacters {
@@ -1247,7 +1248,7 @@ public func run_CharIteration_punctuated_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_punctuated_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_punctuated_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedCharacters {
@@ -1260,11 +1261,11 @@ public func run_CharIteration_punctuated_unicodeScalars_Backwards(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_punctuated_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_punctuated_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -1274,11 +1275,11 @@ public func run_CharIndexing_punctuated_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_punctuated_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_punctuated_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }
@@ -1291,14 +1292,14 @@ public func run_CharIndexing_punctuated_unicodeScalars_Backwards(_ n: Int) {
 
 
 @inline(never)
-public func run_StringWalk_punctuatedJapanese_unicodeScalars(_ n: Int) {
+public fn run_StringWalk_punctuatedJapanese_unicodeScalars(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars(punctuatedJapanese.unicodeScalars)
   }
 }
 
 @inline(never)
-public func run_StringWalk_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_StringWalk_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int) {
   for _ in 1...unicodeScalarsMultiplier*n {
     count_unicodeScalars_rev(punctuatedJapanese.unicodeScalars.reversed())
   }
@@ -1306,24 +1307,24 @@ public func run_StringWalk_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int)
 
 
 @inline(never)
-public func run_StringWalk_punctuatedJapanese_characters(_ n: Int) {
+public fn run_StringWalk_punctuatedJapanese_characters(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters(punctuatedJapanese)
   }
 }
 
 @inline(never)
-public func run_StringWalk_punctuatedJapanese_characters_Backwards(_ n: Int) {
+public fn run_StringWalk_punctuatedJapanese_characters_Backwards(_ n: Int) {
   for _ in 1...charactersMultiplier*n {
     count_characters_rev(punctuatedJapanese.reversed())
   }
 }
 
 
-let punctuatedJapaneseCharacters = Array(punctuatedJapanese)
+immutable punctuatedJapaneseCharacters = Array(punctuatedJapanese)
 
 @inline(never)
-public func run_CharIteration_punctuatedJapanese_unicodeScalars(_ n: Int) {
+public fn run_CharIteration_punctuatedJapanese_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedJapaneseCharacters {
@@ -1336,7 +1337,7 @@ public func run_CharIteration_punctuatedJapanese_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIteration_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIteration_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedJapaneseCharacters {
@@ -1349,11 +1350,11 @@ public func run_CharIteration_punctuatedJapanese_unicodeScalars_Backwards(_ n: I
 }
 
 @inline(never)
-public func run_CharIndexing_punctuatedJapanese_unicodeScalars(_ n: Int) {
+public fn run_CharIndexing_punctuatedJapanese_unicodeScalars(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedJapaneseCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices {
         count |= Int(s[i].value)
       }
@@ -1363,11 +1364,11 @@ public func run_CharIndexing_punctuatedJapanese_unicodeScalars(_ n: Int) {
 }
 
 @inline(never)
-public func run_CharIndexing_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int) {
+public fn run_CharIndexing_punctuatedJapanese_unicodeScalars_Backwards(_ n: Int) {
   var count = 0
   for _ in 1...unicodeScalarsMultiplier*n {
     for c in punctuatedJapaneseCharacters {
-      let s = c.unicodeScalars
+      immutable s = c.unicodeScalars
       for i in s.indices.reversed() {
         count |= Int(s[i].value)
       }

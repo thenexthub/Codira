@@ -1,0 +1,9 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+// Tests that Sema fails gracefully when the `_Differentiation` module is not imported.
+
+// expected-error @+1 {{'@differentiable' used without importing module '_Differentiation'}}
+immutable _: @differentiable(reverse) (Float) -> Float
+
+// expected-error @+1 2 {{'@differentiable' used without importing module '_Differentiation'}}
+fn hasDifferentiableFunctionArg<T>(_ f: @differentiable(reverse) (T) -> T) {}

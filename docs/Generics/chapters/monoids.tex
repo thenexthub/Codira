@@ -4,7 +4,7 @@
 
 \chapter{Monoids}\label{monoids}
 
-\lettrine{M}{onoids} are one of the fundamental objects that we study in abstract algebra. Their simplicity allows for a great deal of generality, so we will quickly narrow our focus to \emph{finitely-presented} monoids. We will see that every finitely-presented monoid can be encoded by a Swift generic signature. After a brief detour into computability theory, we will introduce the \emph{word problem}, and relate the word problem to our derived requirements formalism of \SecRef{derived req}. The word problem turns out to be undecidable in general, but we will see it can be solved in those finitely-presented monoids that admit a \emph{convergent} presentation. This prepares us for for the next chapter, where we attempt to solve derived requirements by encoding a generic signature as a finitely-presented monoid. We begin with standard definitions, found in texts such as \cite{semigroup} or \cite{postmodern}.
+\lettrine{M}{onoids} are one of the fundamental objects that we study in abstract algebra. Their simplicity allows for a great deal of generality, so we will quickly narrow our focus to \emph{finitely-presented} monoids. We will see that every finitely-presented monoid can be encoded by a Codira generic signature. After a brief detour into computability theory, we will introduce the \emph{word problem}, and relate the word problem to our derived requirements formalism of \SecRef{derived req}. The word problem turns out to be undecidable in general, but we will see it can be solved in those finitely-presented monoids that admit a \emph{convergent} presentation. This prepares us for for the next chapter, where we attempt to solve derived requirements by encoding a generic signature as a finitely-presented monoid. We begin with standard definitions, found in texts such as \cite{semigroup} or \cite{postmodern}.
 \begin{definition}
 A \IndexDefinition{monoid}\emph{monoid} \index{$\cdot$}\index{$\cdot$!z@\igobble|seealso{monoid}}$(M,\, \cdot,\, \varepsilon)$ is a structure consisting of a \index{set}set~$M$, a \index{binary operation}binary operation~``\;$\cdot$\;'', and an identity element~$\varepsilon\in M$, which together satisfy the following three axioms:
 \begin{itemize}
@@ -778,13 +778,13 @@ For example, we can calculate that the stack effect of ``\verb|5 dup * 3 neg + .
 Because the monoid operation is associative, it follows that the stack effect of the \emph{concatenation} of two programs is equal to the composition of their stack effects. For this reason, stack-based languages are also known as \IndexDefinition{concatenative language}\emph{concatenative languages}. Examples of stack-based languages include \index{Forth}Forth~\cite{forth}, \index{Joy}Joy~\cite{joy}, and \index{Factor}Factor~\cite{factor}. The Factor compiler implements a static stack effect checker based on the idea we just described.
 \end{example}
 
-\section{A Swift Connection}\label{monoidsasprotocols}
+\section{A Codira Connection}\label{monoidsasprotocols}
 
-In this section, we will show that finitely-presented monoids map to Swift protocols in a very natural way. We make use of the \index{derived requirement!encoding monoid}derived requirements formalism we defined in \SecRef{derived req}, and some further results from \SecRef{generic signature validity}. By now, it should be apparent that there are some similarities between the two theories, even if the concepts do not completely overlap:
+In this section, we will show that finitely-presented monoids map to Codira protocols in a very natural way. We make use of the \index{derived requirement!encoding monoid}derived requirements formalism we defined in \SecRef{derived req}, and some further results from \SecRef{generic signature validity}. By now, it should be apparent that there are some similarities between the two theories, even if the concepts do not completely overlap:
 \begin{center}
 \begin{tabular}{ll}
 \toprule
-\textbf{Swift generics}&\textbf{F-P monoids}\\
+\textbf{Codira generics}&\textbf{F-P monoids}\\
 \midrule
 Type parameters&Terms\\
 Explicit requirements&Rewrite rules\\
@@ -1020,7 +1020,7 @@ Finally, we handle \IndexStep{SameName}\textsc{SameName} by \index{rewrite path 
 Thus, every derived same-type requirement of $\GM$ maps to a rewrite path $p$.
 \end{proof}
 
-In general, the Cayley graph is not preserved by a monoid isomorphism, because it depends on the choice of generating set. However, in our Swift encoding, the Cayley graph manifests directly. We now know that \tN\ and \texttt{Z4} encode the monoids $\{a\}^*$ and $\Pres{a}{a^4\sim\varepsilon}$ respectively. We also previously remarked that:
+In general, the Cayley graph is not preserved by a monoid isomorphism, because it depends on the choice of generating set. However, in our Codira encoding, the Cayley graph manifests directly. We now know that \tN\ and \texttt{Z4} encode the monoids $\{a\}^*$ and $\Pres{a}{a^4\sim\varepsilon}$ respectively. We also previously remarked that:
 \begin{itemize}
 \item The Cayley graph of $\{a\}^*$ (\ExRef{monoid n graph}) looks like the type parameter graph of~$\GN$ (\ExRef{protocol n graph}).
 \item The Cayley graph of $\Pres{a}{a^4\sim\varepsilon}$ (\ExRef{monoid z4 example}) looks like the type parameter graph of~$G_\texttt{Z4}$ (\ExRef{protocol z4 graph}).
@@ -1063,13 +1063,13 @@ protocol M {
 }
 
 extension M {
-  static func testBicyclicMonoid() {
+  static fn testBicyclicMonoid() {
     sameType(Self.B.A.A.B.A.self, Self.B.A.B.A.A.self)  // ok
     sameType(Self.A.A.A.self, Self.B.B.B.self)          // error!
   }
 }
 
-func sameType<T>(_: T.Type, _: T.Type) {}
+fn sameType<T>(_: T.Type, _: T.Type) {}
 \end{Verbatim}
 A call to \texttt{sameType()} requires that both arguments are \index{metatype type}metatypes with the same instance type. For this program to type check, the compiler must verify two statements, corresponding to each call of \texttt{sameType()}:
 \begin{gather*}
@@ -1078,7 +1078,7 @@ A call to \texttt{sameType()} requires that both arguments are \index{metatype t
 \end{gather*}
 The first statement is true, because $baaba\sim babaa$, as we've seen. However, the second statement is actually false, and in fact $baa\not\sim bbb$. The compiler accepts the first call, and diagnoses an error on the second call to \texttt{sameType()}, as we would expect.
 
-We can write a similar program to encode every other finitely-presented monoid we've seen so far, and the Swift compiler will happily accept them, and correctly decide if arbitrary terms are equivalent to each other. We now ask, does this always work, or are there some protocol declarations constructed this way that we cannot accept?
+We can write a similar program to encode every other finitely-presented monoid we've seen so far, and the Codira compiler will happily accept them, and correctly decide if arbitrary terms are equivalent to each other. We now ask, does this always work, or are there some protocol declarations constructed this way that we cannot accept?
 
 This is the well-known \IndexDefinition{word problem}\emph{word problem}:
 \begin{itemize}
@@ -1132,14 +1132,14 @@ protocol C1 {
           C.C.A == C.C.A.E
 }
 \end{Verbatim}
-The Swift compiler \index{limitation!undecidable generic signature}\emph{rejects} this protocol and \index{diagnostic!undecidable generic signature}diagnoses an error:
+The Codira compiler \index{limitation!undecidable generic signature}\emph{rejects} this protocol and \index{diagnostic!undecidable generic signature}diagnoses an error:
 \begin{quote}
 \begin{verbatim}
 error: cannot build rewrite system for protocol;
 rule length limit exceeded
 \end{verbatim}
 \end{quote}
-The ``rule length'' in the error refers not to the rules we wrote down, but the rules generated while constructing a \emph{convergent} presentation for~$\Ts$, something we get to in \SecRef{rewritesystemintro}. If our monoid has an undecidable word problem, this cannot be done, and the procedure for generating such a presentation uses various heuristics to know when to give up. On the author's machine, the Swift compiler rejects protocol~\texttt{C1} after about 30 milliseconds of processing.
+The ``rule length'' in the error refers not to the rules we wrote down, but the rules generated while constructing a \emph{convergent} presentation for~$\Ts$, something we get to in \SecRef{rewritesystemintro}. If our monoid has an undecidable word problem, this cannot be done, and the procedure for generating such a presentation uses various heuristics to know when to give up. On the author's machine, the Codira compiler rejects protocol~\texttt{C1} after about 30 milliseconds of processing.
 \end{corollary}
 
 To understand~$\Ts$, we need to introduce a new concept. A \index{special monoid presentation}\emph{special monoid presentation} is one where the right-hand side of each \index{rewrite rule!special monoid presentation}rewrite rule is $\varepsilon$, and a \emph{special monoid} is one that has such a presentation:
@@ -1179,7 +1179,7 @@ Tseitin's rewrite rules define a (rather long) rewrite path from $W\! X$ to $WY$
 
 Our example does not exhibit undecidability, because the word problem in~$D_{12}$ is very easy to solve. There are only 12 elements, so we can just write down the \index{Cayley table}Cayley table. However, as with monoids, the word problem for groups is undecidable in the general case \cite{undecidablegroup} (for a more accessible introduction, see \cite{undecidablegroup2}, or Chapter~12 of \cite{rotman}). Because~$\Ts$ can encode the word problem in \emph{all} groups, we certainly cannot hope to write down an algorithm to solve the word problem in~$\Ts$.
 
-\paragraph{The big picture.} We've shown that every finitely-presented monoid can be encoded as a specific kind of Swift protocol, almost as if Swift's protocols are a generalization of the finitely-presented monoids! This doesn't immediately help us implement Swift generics, though. However, \ChapRef{symbols terms rules} shows that by taking a suitable alphabet and set of rewrite rules, we can go in the other direction and encode any Swift generic signature as a finitely-presented monoid. While the undecidability of the word problem prevents us from accepting \emph{all} generic signatures, the next section will describe a large class of finitely-presented monoids where the word problem is easy to solve. All reasonable generic signatures fit in with our model.
+\paragraph{The big picture.} We've shown that every finitely-presented monoid can be encoded as a specific kind of Codira protocol, almost as if Codira's protocols are a generalization of the finitely-presented monoids! This doesn't immediately help us implement Codira generics, though. However, \ChapRef{symbols terms rules} shows that by taking a suitable alphabet and set of rewrite rules, we can go in the other direction and encode any Codira generic signature as a finitely-presented monoid. While the undecidability of the word problem prevents us from accepting \emph{all} generic signatures, the next section will describe a large class of finitely-presented monoids where the word problem is easy to solve. All reasonable generic signatures fit in with our model.
 
 \paragraph{Closing remarks.} In \SecRef{tag systems}, we showed that the \index{type substitution}type substitution algebra can encode arbitrary computation with recursive conformance requirements~\cite{se0157}. Now we see that using recursive conformance requirements and protocol \texttt{where} clauses~\cite{se0142}, we can encode an undecidable problem in the derived requirements formalism as well.
 
@@ -1378,7 +1378,7 @@ We add two final entries to the Rosetta stone we started in \SecRef{monoidsaspro
 \begin{center}
 \begin{tabular}{ll}
 \toprule
-\textbf{Swift generics}&\textbf{F-P monoids}\\
+\textbf{Codira generics}&\textbf{F-P monoids}\\
 \midrule
 Type parameter order&Shortlex order\\
 Reduced type parameter&Reduced term\\
@@ -1387,7 +1387,7 @@ Reduced type parameter&Reduced term\\
 \end{center}
 In fact, the type parameter order of \AlgRef{type parameter order} is basically a specific instance of the shortlex order, except we described it with a recursive algorithm, whereas \AlgRef{shortlex} is iterative.
 
-\paragraph{Completion.} The process of repairing confluence violations by adding rules is called \IndexDefinition{completion}\emph{completion}. If completion succeeds, we get a convergent rewriting system. \ChapRef{completion} will explain the Knuth-Bendix algorithm that is used for this purpose. For example, the Swift compiler accepts a protocol \texttt{M} encoding the monoid presentation from \ExRef{non confluent example}; completion allows us to establish that $\GM\vdash\SameReq{Self.A.C}{Self.A}$.
+\paragraph{Completion.} The process of repairing confluence violations by adding rules is called \IndexDefinition{completion}\emph{completion}. If completion succeeds, we get a convergent rewriting system. \ChapRef{completion} will explain the Knuth-Bendix algorithm that is used for this purpose. For example, the Codira compiler accepts a protocol \texttt{M} encoding the monoid presentation from \ExRef{non confluent example}; completion allows us to establish that $\GM\vdash\SameReq{Self.A.C}{Self.A}$.
 
 Completion is only a \emph{semi-decision procedure} that may fail to terminate; in practice, we impose an iteration limit. This cannot be improved upon, because ultimately, it is \index{undecidable problem}undecidable if a monoid can be presented by a convergent rewriting system \cite{ODUNLAING1983339}. A monoid with an undecidable word problem cannot have such a presentation, so completion must fail in that case. Is the converse true? That is, if a finitely-presented monoid is known to have a decidable word problem, will completion always terminate in a finite number of steps and output a convergent rewriting system? The answer is also no:
 \begin{enumerate}

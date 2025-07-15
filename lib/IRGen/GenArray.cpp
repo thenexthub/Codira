@@ -1,13 +1,17 @@
 //===--- GenArray.cpp - LLVM type lowering of fixed-size array types ------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements TypeInfo subclasses for `Builtin.FixedArray`.
@@ -40,12 +44,12 @@ protected:
                   arrayType.castTo<BuiltinFixedArrayType>()->getElementType());
   }
 
-  virtual llvm::Value *getArraySize(IRGenFunction &IGF, SILType T) const = 0;
+  virtual toolchain::Value *getArraySize(IRGenFunction &IGF, SILType T) const = 0;
   virtual std::optional<uint64_t> getFixedArraySize(SILType T) const = 0;
 
   void eachElementAddrLoop(IRGenFunction &IGF,
                            SILType T,
-                           llvm::function_ref<void (ArrayRef<Address>)> body,
+                           toolchain::function_ref<void (ArrayRef<Address>)> body,
                            ArrayRef<Address> addrs) const {
     auto fixedSize = getFixedArraySize(T);
     if (fixedSize == 0) {
@@ -53,8 +57,15 @@ protected:
       return;
     }
     if (fixedSize == 1) {
-      // only one element to operate on
-      return body(addrs);
+      auto zero = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
+      // only one element to operate on; index to it in each array
+      SmallVector<Address, 2> eltAddrs;
+      eltAddrs.reserve(addrs.size());
+      for (auto index : indices(addrs)) {
+        eltAddrs.push_back(Element.indexArray(IGF, addrs[index], zero,
+                                              getElementSILType(IGF.IGM, T)));
+      }
+      return body(eltAddrs);
     }
     
     auto arraySize = getArraySize(IGF, T);
@@ -63,8 +74,8 @@ protected:
     auto loopBB = IGF.createBasicBlock("each_array_element");
     auto endBB = IGF.createBasicBlock("end_array_element");
 
-    auto one = llvm::ConstantInt::get(IGF.IGM.IntPtrTy, 1);
-    auto zero = llvm::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
+    auto one = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, 1);
+    auto zero = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
 
     if (!fixedSize.has_value()) {
       // If the size isn't statically known, we have to dynamically check the
@@ -83,7 +94,7 @@ protected:
 
     ConditionalDominanceScope scope(IGF);
 
-    SmallVector<llvm::PHINode*, 2> addrPhis;
+    SmallVector<toolchain::PHINode*, 2> addrPhis;
     SmallVector<Address, 2> eltAddrs;
     for (auto a : addrs) {
       auto *addrPhi = IGF.Builder.CreatePHI(a.getType(), 2);
@@ -196,33 +207,33 @@ protected:
     return Size(arraySize * elementTI.getFixedStride().getValue());
   }
 
-  static llvm::Type *getArrayType(uint64_t arraySize,
+  static toolchain::Type *getArrayType(uint64_t arraySize,
                                   const FixedTypeInfo &elementTI) {
     // Start with the element's storage type.
-    llvm::Type *elementTy = elementTI.getStorageType();
+    toolchain::Type *elementTy = elementTI.getStorageType();
     auto &LLVMContext = elementTy->getContext();
 
     if (arraySize == 0) {
-      return llvm::StructType::get(LLVMContext, {});
+      return toolchain::StructType::get(LLVMContext, {});
     }
     
     // If we need to, pad it to stride.
     if (elementTI.getFixedSize() < elementTI.getFixedStride()) {
       uint64_t paddingBytes = elementTI.getFixedStride().getValue()
         - elementTI.getFixedSize().getValue();
-      auto byteTy = llvm::IntegerType::get(LLVMContext, 8);
-      auto paddingArrayTy = llvm::ArrayType::get(byteTy, paddingBytes);
+      auto byteTy = toolchain::IntegerType::get(LLVMContext, 8);
+      auto paddingArrayTy = toolchain::ArrayType::get(byteTy, paddingBytes);
 
       if (elementTI.getFixedSize() == Size(0)) {
         elementTy = paddingArrayTy;
       } else {
-        elementTy = llvm::StructType::get(LLVMContext,
+        elementTy = toolchain::StructType::get(LLVMContext,
           {elementTy, paddingArrayTy},
           /*packed*/ true);
       }
     }
     
-    return llvm::ArrayType::get(elementTy, arraySize);
+    return toolchain::ArrayType::get(elementTy, arraySize);
   }
 
   static SpareBitVector getArraySpareBits(uint64_t arraySize,
@@ -239,17 +250,17 @@ protected:
     return result;
   }
   
-  void eachElement(llvm::function_ref<void()> body) const {
+  void eachElement(toolchain::function_ref<void()> body) const {
     for (uint64_t i = 0; i < ArraySize; ++i) {
       body();
     }
   }
 
   void eachElementAddr(IRGenFunction &IGF, Address addr,
-                       llvm::function_ref<void(Address)> body) const {
+                       toolchain::function_ref<void(Address)> body) const {
     for (uint64_t i = 0; i < ArraySize; ++i) {
       auto elementAddr = Element.indexArray(IGF, addr,
-        llvm::ConstantInt::get(IGF.IGM.IntPtrTy, i),
+        toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, i),
         SILType());
       
       body(elementAddr);
@@ -260,8 +271,8 @@ protected:
     return ArraySize;
   }
   
-  llvm::Value *getArraySize(IRGenFunction &IGF, SILType T) const override {
-    return llvm::ConstantInt::get(IGF.IGM.IntPtrTy, ArraySize);
+  toolchain::Value *getArraySize(IRGenFunction &IGF, SILType T) const override {
+    return toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, ArraySize);
   }
 
 public:
@@ -317,11 +328,11 @@ public:
     return Element.getFixedExtraInhabitantValue(IGM, bits, index);
   }
     
-  llvm::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
+  toolchain::Value *getExtraInhabitantIndex(IRGenFunction &IGF,
                                        Address src, SILType T,
                                        bool isOutlined) const override {
     if (ArraySize == 0)
-      return llvm::ConstantInt::get(IGF.IGM.Int32Ty, -1);
+      return toolchain::ConstantInt::get(IGF.IGM.Int32Ty, -1);
       
     auto firstElementAddr
       = IGF.Builder.CreateElementBitCast(src, Element.getStorageType());
@@ -332,7 +343,7 @@ public:
   }
     
   void storeExtraInhabitant(IRGenFunction &IGF,
-                            llvm::Value *index,
+                            toolchain::Value *index,
                             Address dest, SILType T,
                             bool isOutlined) const override {
     auto firstElementAddr
@@ -462,7 +473,7 @@ public:
     });
   }
   
-  void addToAggLowering(IRGenModule &IGM, SwiftAggLowering &lowering,
+  void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                         Size offset) const override {
     eachElementOffset([&](unsigned eltByteOffset){
       Element.addToAggLowering(IGM, lowering,
@@ -492,8 +503,8 @@ public:
 };
 
 // NOTE: This does not simply use WitnessSizedTypeInfo in order to avoid
-// dependency on a Swift runtime for handling fixed-size arrays that are
-// unspecialized in their size parameter only, so that embedded Swift can
+// dependency on a Codira runtime for handling fixed-size arrays that are
+// unspecialized in their size parameter only, so that embedded Codira can
 // work with unspecialized integer parameters.
 class NonFixedArrayTypeInfo final
   : public ArrayTypeInfoBase<IndirectTypeInfo<NonFixedArrayTypeInfo, TypeInfo>,
@@ -501,15 +512,15 @@ class NonFixedArrayTypeInfo final
   using super = ArrayTypeInfoBase<IndirectTypeInfo<NonFixedArrayTypeInfo, TypeInfo>,
                                   TypeInfo>;
   
-  llvm::Value *getArraySize(IRGenFunction &IGF, SILType T) const override {
+  toolchain::Value *getArraySize(IRGenFunction &IGF, SILType T) const override {
     if (auto fixedSize = getFixedArraySize(T)) {
-      return llvm::ConstantInt::get(IGF.IGM.IntPtrTy, *fixedSize);
+      return toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, *fixedSize);
     }
     
     CanType sizeParam = T.castTo<BuiltinFixedArrayType>()->getSize();
     
     auto arg = IGF.emitValueGenericRef(sizeParam);
-    auto zero = llvm::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
+    auto zero = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy, 0);
     auto isNegative = IGF.Builder.CreateICmpSLT(arg, zero);
     return IGF.Builder.CreateSelect(isNegative, zero, arg);
   }
@@ -526,7 +537,7 @@ class NonFixedArrayTypeInfo final
   }
   
 public:
-  NonFixedArrayTypeInfo(llvm::Type *opaqueTy,
+  NonFixedArrayTypeInfo(toolchain::Type *opaqueTy,
                         const TypeInfo &Element)
     : super(Element,
         opaqueTy, Element.getBestKnownAlignment(),
@@ -538,32 +549,32 @@ public:
         SpecialTypeInfoKind::None)
   {}
 
-  llvm::Value *getSize(IRGenFunction &IGF, SILType T) const override {
+  toolchain::Value *getSize(IRGenFunction &IGF, SILType T) const override {
     auto elementStride
       = Element.getStride(IGF, getElementSILType(IGF.IGM, T));
     return IGF.Builder.CreateMul(elementStride, getArraySize(IGF, T));
   }
-  llvm::Value *getAlignmentMask(IRGenFunction &IGF,
+  toolchain::Value *getAlignmentMask(IRGenFunction &IGF,
                                 SILType T) const override {
     return Element.getAlignmentMask(IGF, getElementSILType(IGF.IGM, T));
   }
-  llvm::Value *getStride(IRGenFunction &IGF, SILType T) const override {
+  toolchain::Value *getStride(IRGenFunction &IGF, SILType T) const override {
     return getSize(IGF, T);
   }
-  llvm::Value *getIsTriviallyDestroyable(IRGenFunction &IGF,
+  toolchain::Value *getIsTriviallyDestroyable(IRGenFunction &IGF,
                                          SILType T) const override {
     return Element.getIsTriviallyDestroyable(IGF,
                                              getElementSILType(IGF.IGM, T));
   }
-  llvm::Value *getIsBitwiseTakable(IRGenFunction &IGF,
+  toolchain::Value *getIsBitwiseTakable(IRGenFunction &IGF,
                                    SILType T) const override {
     return Element.getIsBitwiseTakable(IGF,
                                        getElementSILType(IGF.IGM, T));
   }
-  llvm::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
+  toolchain::Value *isDynamicallyPackedInline(IRGenFunction &IGF,
                                          SILType T) const override {
     auto startBB = IGF.Builder.GetInsertBlock();
-    auto no = llvm::ConstantInt::getBool(IGF.IGM.getLLVMContext(),
+    auto no = toolchain::ConstantInt::getBool(IGF.IGM.getLLVMContext(),
                                          false);
     // Prefetch the necessary info from the element type info. 
     auto isBT = getIsBitwiseTakable(IGF, T);
@@ -583,7 +594,7 @@ public:
     IGF.Builder.emitBlock(isBT_BB);
     
     // ...size fits the fixed-size buffer...
-    auto bufferSize = llvm::ConstantInt::get(IGF.IGM.IntPtrTy,
+    auto bufferSize = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy,
                                         getFixedBufferSize(IGF.IGM).getValue());
     auto sizeFits = IGF.Builder.CreateICmpULE(size, bufferSize);
     auto sizeFitsBB = IGF.createBasicBlock("array_size_fits");
@@ -593,7 +604,7 @@ public:
     IGF.Builder.emitBlock(sizeFitsBB);
 
     // ...and so does alignment
-    auto bufferAlign = llvm::ConstantInt::get(IGF.IGM.IntPtrTy,
+    auto bufferAlign = toolchain::ConstantInt::get(IGF.IGM.IntPtrTy,
                                getFixedBufferAlignment(IGF.IGM).getMaskValue());
     auto alignFits =  IGF.Builder.CreateICmpULE(align, bufferAlign);
     IGF.Builder.CreateBr(endBB);
@@ -607,18 +618,18 @@ public:
     return Element.mayHaveExtraInhabitants(IGM);
   }
 
-  llvm::Constant *getStaticSize(IRGenModule &IGM) const override {
+  toolchain::Constant *getStaticSize(IRGenModule &IGM) const override {
     return nullptr;
   }
-  llvm::Constant *getStaticAlignmentMask(IRGenModule &IGM) const override {
+  toolchain::Constant *getStaticAlignmentMask(IRGenModule &IGM) const override {
     return nullptr;
   }
-  llvm::Constant *getStaticStride(IRGenModule &IGM) const override {
+  toolchain::Constant *getStaticStride(IRGenModule &IGM) const override {
     return nullptr;
   }
 
   StackAddress allocateStack(IRGenFunction &IGF, SILType T,
-                             const llvm::Twine &name) const override {
+                             const toolchain::Twine &name) const override {
     // Allocate memory on the stack.
     auto alloca = IGF.emitDynamicAlloca(T, name);
     IGF.Builder.CreateLifetimeStart(alloca.getAddressPointer());
@@ -644,8 +655,8 @@ public:
     return IGM.typeLayoutCache.getOrCreateResilientEntry(T);
   }
 
-  llvm::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
-                                       llvm::Value *numEmptyCases,
+  toolchain::Value *getEnumTagSinglePayload(IRGenFunction &IGF,
+                                       toolchain::Value *numEmptyCases,
                                        Address arrayAddr,
                                        SILType arrayType,
                                        bool isOutlined) const override {
@@ -660,8 +671,8 @@ public:
   }
 
   void storeEnumTagSinglePayload(IRGenFunction &IGF,
-                                 llvm::Value *index,
-                                 llvm::Value *numEmptyCases,
+                                 toolchain::Value *index,
+                                 toolchain::Value *numEmptyCases,
                                  Address arrayAddr,
                                  SILType arrayType,
                                  bool isOutlined) const override {

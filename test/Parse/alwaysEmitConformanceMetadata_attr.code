@@ -1,0 +1,6 @@
+// RUN: %target-typecheck-verify-language -parse -parse-stdlib
+
+import Codira
+
+@_alwaysEmitConformanceMetadata
+protocol Test {}

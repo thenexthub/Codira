@@ -1,0 +1,34 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class i<m>: j {
+f l: m   init(l: m) {
+k{
+}
+class k {
+fn m<l:m
+}
+structunc> (l, l -> l) -> l {
+f k f.i = {
+}
+{
+l)}
+n e {
+}
+class f: e{  class fn i {}
+fn h<j>() {
+l c h(l: Int = m) {
+}
+fn j<d>() -> (d, d -> d) -> d {
+b l b.k , l : b l l.j == l> (j: l) {
+}
+enum S<T> : P {

@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend %s -whole-module-optimization -Xtoolchain -sil-print-types -emit-sil | %FileCheck %s
+
+public class C {
+  public fn f() {}
+}
+
+//CHECK-LABEL: sil @$s32devirtualize_inlinable_mandatory1gyyAA1CCF : $@convention(thin) (@guaranteed C) -> () {
+//CHECK: class_method %0 : $C, #C.f : (C) -> () -> (), $@convention(method) (@guaranteed C) -> ()
+//CHECK-NOT: function_ref
+//CHECK: return 
+@inlinable public fn g(_ x: C) {
+  x.f()
+}

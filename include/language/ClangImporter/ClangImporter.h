@@ -11,24 +11,26 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// This file implements support for loading Clang modules into Swift.
+// This file implements support for loading Clang modules into Codira.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CLANG_IMPORTER_H
-#define SWIFT_CLANG_IMPORTER_H
+#ifndef LANGUAGE_CLANG_IMPORTER_H
+#define LANGUAGE_CLANG_IMPORTER_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/AttrKind.h"
 #include "language/AST/ClangModuleLoader.h"
+#include "clang/AST/Attr.h"
 #include "clang/Basic/Specifiers.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 
 /// The maximum number of SIMD vector elements we currently try to import.
-#define SWIFT_MAX_IMPORTED_SIMD_ELEMENTS 4
+#define LANGUAGE_MAX_IMPORTED_SIMD_ELEMENTS 4
 
-namespace llvm {
+namespace toolchain {
   class Triple;
   class FileCollectorBase;
   template<typename Fn> class function_ref;
@@ -67,12 +69,14 @@ namespace tooling {
 namespace dependencies {
   struct ModuleDeps;
   struct TranslationUnitDeps;
+  enum class ModuleOutputKind;
   using ModuleDepsGraph = std::vector<ModuleDeps>;
 }
 }
 }
 
 namespace language {
+enum class ResultConvention : uint8_t;
 class ASTContext;
 class CompilerInvocation;
 class ClangImporterOptions;
@@ -93,12 +97,12 @@ struct ModuleDependencyID;
 class NominalTypeDecl;
 class SearchPathOptions;
 class StructDecl;
-class SwiftLookupTable;
+class CodiraLookupTable;
 class TypeDecl;
 class ValueDecl;
 class VisibleDeclConsumer;
 using ModuleDependencyIDSetVector =
-    llvm::SetVector<ModuleDependencyID, std::vector<ModuleDependencyID>,
+    toolchain::SetVector<ModuleDependencyID, std::vector<ModuleDependencyID>,
                     std::set<ModuleDependencyID>>;
 enum class SelectorSplitKind;
 
@@ -123,7 +127,7 @@ enum { NumOptionalTypeKinds = 2 };
 /// into the .pcm file. On Darwin, these types can be collected by
 /// dsymutil. This delegate allows DWARFImporter to ask LLDB to look up a Clang
 /// type by name, synthesize a Clang AST from it. DWARFImporter then hands this
-/// Clang AST to ClangImporter to import the type into Swift.
+/// Clang AST to ClangImporter to import the type into Codira.
 class DWARFImporterDelegate {
 public:
   virtual ~DWARFImporterDelegate() = default;
@@ -141,21 +145,21 @@ public:
 // Putting more than four types in this `PointerUnion` will break the build for
 // 32-bit hosts. If we need five or more types in the future, we'll need to
 // design a proper larger-than-word-sized type.
-typedef llvm::PointerUnion<const clang::Decl *, const clang::MacroInfo *,
+typedef toolchain::PointerUnion<const clang::Decl *, const clang::MacroInfo *,
                            const clang::Type *, const clang::Token *>
     ImportDiagnosticTarget;
 
-/// Class that imports Clang modules into Swift, mapping directly
-/// from Clang ASTs over to Swift ASTs.
+/// Class that imports Clang modules into Codira, mapping directly
+/// from Clang ASTs over to Codira ASTs.
 class ClangImporter final : public ClangModuleLoader {
   friend class ClangModuleUnit;
-  friend class SwiftDeclSynthesizer;
+  friend class CodiraDeclSynthesizer;
 
   // Make requests in the ClangImporter zone friends so they can access `Impl`.
-#define SWIFT_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
+#define LANGUAGE_REQUEST(Zone, Name, Sig, Caching, LocOptions)                    \
   friend class Name;
 #include "language/ClangImporter/ClangImporterTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 public:
   class Implementation;
@@ -187,7 +191,7 @@ public:
   /// \param ctx The ASTContext into which the module will be imported.
   /// The ASTContext's SearchPathOptions will be used for the Clang importer.
   ///
-  /// \param swiftPCHHash A hash of Swift's various options in a compiler
+  /// \param languagePCHHash A hash of Codira's various options in a compiler
   /// invocation, used to create a unique Bridging PCH if requested.
   ///
   /// \param tracker The object tracking files this compilation depends on.
@@ -199,7 +203,7 @@ public:
   /// an error occurred.
   static std::unique_ptr<ClangImporter>
   create(ASTContext &ctx,
-         std::string swiftPCHHash = "", DependencyTracker *tracker = nullptr,
+         std::string languagePCHHash = "", DependencyTracker *tracker = nullptr,
          DWARFImporterDelegate *dwarfImporterDelegate = nullptr,
          bool ignoreFileMapping = false);
 
@@ -208,31 +212,30 @@ public:
 
   std::optional<std::vector<std::string>>
   getClangCC1Arguments(ASTContext &ctx,
-                       llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> VFS,
+                       toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> VFS,
                        bool ignoreClangTarget = false);
 
   std::vector<std::string>
-  getClangDepScanningInvocationArguments(ASTContext &ctx,
-      std::optional<StringRef> sourceFileName = std::nullopt);
+  getClangDepScanningInvocationArguments(ASTContext &ctx);
 
   static std::unique_ptr<clang::CompilerInvocation>
   createClangInvocation(ClangImporter *importer,
                         const ClangImporterOptions &importerOpts,
-                        llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> VFS,
+                        toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> VFS,
                         const std::vector<std::string> &CC1Args);
 
-  /// Creates a Clang Driver based on the Swift compiler options.
+  /// Creates a Clang Driver based on the Codira compiler options.
   ///
   /// \return a pair of the Clang Driver and the diagnostic engine, which needs
   /// to be alive during the use of the Driver.
   static std::pair<clang::driver::Driver,
-                   llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine>>
+                   toolchain::IntrusiveRefCntPtr<clang::DiagnosticsEngine>>
   createClangDriver(
       const LangOptions &LangOpts,
       const ClangImporterOptions &ClangImporterOpts,
-      llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> vfs = nullptr);
+      toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> vfs = nullptr);
 
-  static llvm::opt::InputArgList
+  static toolchain::opt::InputArgList
   createClangArgs(const ClangImporterOptions &ClangImporterOpts,
                   const SearchPathOptions &SearchPathOpts,
                   clang::driver::Driver &clangDriver);
@@ -251,9 +254,9 @@ public:
   /// ClangImporter's specific uses.
   static std::shared_ptr<clang::DependencyCollector> createDependencyCollector(
       IntermoduleDepTrackingMode Mode,
-      std::shared_ptr<llvm::FileCollectorBase> FileCollector);
+      std::shared_ptr<toolchain::FileCollectorBase> FileCollector);
 
-  static bool isKnownCFTypeName(llvm::StringRef name);
+  static bool isKnownCFTypeName(toolchain::StringRef name);
 
   /// Append visible module names to \p names. Note that names are possibly
   /// duplicated, and not guaranteed to be ordered in any way.
@@ -282,7 +285,7 @@ public:
   /// \param path A sequence of (identifier, location) pairs that denote
   /// the dotted module name to load, e.g., AppKit.NSWindow.
   ///
-  /// \param AllowMemoryCache Affects only loading serialized Swift modules,
+  /// \param AllowMemoryCache Affects only loading serialized Codira modules,
   /// this parameter has no effect in the ClangImporter.
   ///
   /// \returns the module referenced, if it could be loaded. Otherwise,
@@ -313,7 +316,7 @@ public:
   /// module, it returns it. This is intended for use in reflection / debugging
   /// contexts where access is not a problem.
   void lookupTypeDecl(StringRef clangName, ClangTypeKind kind,
-                      llvm::function_ref<void(TypeDecl *)> receiver) override;
+                      toolchain::function_ref<void(TypeDecl *)> receiver) override;
 
   /// Look up type a declaration synthesized by the Clang importer itself, using
   /// a "related entity kind" to determine which type it should be. For example,
@@ -326,7 +329,7 @@ public:
   void
   lookupRelatedEntity(StringRef clangName, ClangTypeKind kind,
                       StringRef relatedEntityKind,
-                      llvm::function_ref<void(TypeDecl *)> receiver) override;
+                      toolchain::function_ref<void(TypeDecl *)> receiver) override;
 
   StructDecl *
   instantiateCXXClassTemplate(clang::ClassTemplateDecl *decl,
@@ -349,8 +352,8 @@ public:
   ///
   /// \c receiver is not a VisibleDeclConsumer so that it is not limited to
   /// accepting ValueDecls only.
-  void lookupBridgingHeaderDecls(llvm::function_ref<bool(ClangNode)> filter,
-                                llvm::function_ref<void(Decl*)> receiver) const;
+  void lookupBridgingHeaderDecls(toolchain::function_ref<bool(ClangNode)> filter,
+                                toolchain::function_ref<void(Decl*)> receiver) const;
 
   /// Look for declarations from a particular header. The header may be part of
   /// a clang module or included from the bridging header.
@@ -365,8 +368,8 @@ public:
   ///
   /// \returns true if there was a problem, e.g. the file does not exist.
   bool lookupDeclsFromHeader(StringRef filename,
-                             llvm::function_ref<bool(ClangNode)> filter,
-                             llvm::function_ref<void(Decl*)> receiver) const;
+                             toolchain::function_ref<bool(ClangNode)> filter,
+                             toolchain::function_ref<void(Decl*)> receiver) const;
 
   /// Load extensions to the given nominal type.
   ///
@@ -383,7 +386,7 @@ public:
                  ObjCSelector selector,
                  bool isInstanceMethod,
                  unsigned previousGeneration,
-                 llvm::TinyPtrVector<AbstractFunctionDecl *> &methods) override;
+                 toolchain::TinyPtrVector<AbstractFunctionDecl *> &methods) override;
 
   /// Adds a new search path to the Clang CompilerInstance, as if specified with
   /// -I or -F.
@@ -447,7 +450,7 @@ public:
   /// \sa importHeader
   ModuleDecl *getImportedHeaderModule() const override;
 
-  /// Retrieves the Swift wrapper for the given Clang module, creating
+  /// Retrieves the Codira wrapper for the given Clang module, creating
   /// it if necessary.
   ModuleDecl *
   getWrapperForModule(const clang::Module *mod,
@@ -475,11 +478,6 @@ public:
   /// Reads the original source file name from PCH.
   std::string getOriginalSourceFile(StringRef PCHFilename);
 
-  /// Add clang dependency file names.
-  ///
-  /// \param files The list of file to append dependencies to.
-  void addClangInvovcationDependencies(std::vector<std::string> &files);
-
   /// Makes a temporary replica of the ClangImporter's CompilerInstance, reads a
   /// module map into the replica and emits a PCM file for one of the modules it
   /// declares. Delegates to clang for everything except construction of the
@@ -489,7 +487,7 @@ public:
 
   /// Makes a temporary replica of the ClangImporter's CompilerInstance and
   /// dumps information about a PCM file (assumed to be generated by -emit-pcm
-  /// or in the Swift module cache). Delegates to clang for everything except
+  /// or in the Codira module cache). Delegates to clang for everything except
   /// construction of the replica.
   bool dumpPrecompiledModule(StringRef modulePath, StringRef outputPath);
 
@@ -499,54 +497,23 @@ public:
 
   void verifyAllModules() override;
 
-  using RemapPathCallback = llvm::function_ref<std::string(StringRef)>;
-  llvm::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>
+  using RemapPathCallback = toolchain::function_ref<std::string(StringRef)>;
+  using LookupModuleOutputCallback =
+      toolchain::function_ref<std::string(const clang::tooling::dependencies::ModuleDeps &,
+                                     clang::tooling::dependencies::ModuleOutputKind)>;
+
+  static toolchain::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>
   bridgeClangModuleDependencies(
+      const ASTContext &ctx,
       clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
       clang::tooling::dependencies::ModuleDepsGraph &clangDependencies,
-      StringRef moduleOutputPath, StringRef stableModuleOutputPath,
+      LookupModuleOutputCallback LookupModuleOutput,
       RemapPathCallback remapPath = nullptr);
 
-  llvm::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>
-  getModuleDependencies(Identifier moduleName, StringRef moduleOutputPath, StringRef sdkModuleOutputPath,
-                        const llvm::DenseSet<clang::tooling::dependencies::ModuleID> &alreadySeenClangModules,
-                        clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-                        InterfaceSubContextDelegate &delegate,
-                        llvm::PrefixMapper *mapper,
-                        bool isTestableImport = false) override;
-
-  void recordBridgingHeaderOptions(
-      ModuleDependencyInfo &MDI,
-      const clang::tooling::dependencies::TranslationUnitDeps &deps);
-
-  void getBridgingHeaderOptions(
+  static void getBridgingHeaderOptions(
+      const ASTContext &ctx,
       const clang::tooling::dependencies::TranslationUnitDeps &deps,
-      std::vector<std::string> &swiftArgs);
-
-  /// Query dependency information for header dependencies
-  /// of a binary Swift module.
-  ///
-  /// \param moduleID the name of the Swift module whose dependency
-  /// information will be augmented with information about the given
-  /// textual header inputs.
-  ///
-  /// \param headerPath the path to the header to be scanned.
-  ///
-  /// \param clangScanningTool The clang dependency scanner.
-  ///
-  /// \param cache The module dependencies cache to update, with information
-  /// about new Clang modules discovered along the way.
-  ///
-  /// \returns \c true if an error occurred, \c false otherwise
-  bool getHeaderDependencies(
-      ModuleDependencyID moduleID, std::optional<StringRef> headerPath,
-      std::optional<llvm::MemoryBufferRef> sourceBuffer,
-      clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-      ModuleDependenciesCache &cache,
-      ModuleDependencyIDSetVector &headerClangModuleDependencies,
-      std::vector<std::string> &headerFileInputs,
-      std::vector<std::string> &bridgingHeaderCommandLine,
-      std::optional<std::string> &includeTreeID);
+      std::vector<std::string> &languageArgs);
 
   clang::TargetInfo &getModuleAvailabilityTarget() const override;
   clang::ASTContext &getClangASTContext() const override;
@@ -557,10 +524,10 @@ public:
   /// ClangImporter's Clang instance may be configured with a different
   /// (higher) OS version than the compilation target itself in order to be able
   /// to load pre-compiled Clang modules that are aligned with the broader SDK,
-  /// and match the SDK deployment target against which Swift modules are also
+  /// and match the SDK deployment target against which Codira modules are also
   /// built.
   ///
-  /// In this case, we must use the Swift compiler's OS version triple when
+  /// In this case, we must use the Codira compiler's OS version triple when
   /// performing codegen, and the importer's Clang instance OS version triple
   /// during module loading.
   ///
@@ -568,7 +535,7 @@ public:
   /// and `CodeGenOpts` containers that are meant to be used by clients in
   /// IRGen. When a separate `-clang-target` is not set, they are defined to be
   /// copies of the `ClangImporter`'s built-in module-loading Clang instance.
-  /// When `-clang-target` is set, they are configured with the Swift
+  /// When `-clang-target` is set, they are configured with the Codira
   /// compilation's target triple and OS version (but otherwise identical)
   /// instead. To distinguish IRGen clients from module loading clients,
   /// `getModuleAvailabilityTarget` should be used instead by module-loading
@@ -578,11 +545,11 @@ public:
 
   std::string getClangModuleHash() const;
 
-  /// Get clang import creation cc1 args for swift explicit module build.
-  std::vector<std::string> getSwiftExplicitModuleDirectCC1Args() const;
+  /// Get clang import creation cc1 args for language explicit module build.
+  std::vector<std::string> getCodiraExplicitModuleDirectCC1Args() const;
 
   /// If we already imported a given decl successfully, return the corresponding
-  /// Swift decl as an Optional<Decl *>, but if we previously tried and failed
+  /// Codira decl as an Optional<Decl *>, but if we previously tried and failed
   /// to import said decl then return nullptr.
   /// Otherwise, if we have never encountered this decl previously then return
   /// None.
@@ -592,7 +559,7 @@ public:
   bool shouldIgnoreMacro(StringRef Name, const clang::MacroInfo *Macro);
 
   /// Returns the name of the given enum element as it would be imported into
-  /// Swift.
+  /// Codira.
   ///
   /// The return value may be an empty identifier, in which case the enum would
   /// not be imported.
@@ -606,8 +573,8 @@ public:
   // Print statistics from the Clang AST reader.
   void printStatistics() const override;
 
-  /// Dump Swift lookup tables.
-  void dumpSwiftLookupTables() const override;
+  /// Dump Codira lookup tables.
+  void dumpCodiraLookupTables() const override;
 
   /// Given the path of a Clang module, collect the names of all its submodules.
   /// Calling this function does not load the module.
@@ -627,22 +594,22 @@ public:
                            DeclContext *dc) override;
 
   Type importVarDeclType(const clang::VarDecl *clangDecl,
-                         VarDecl *swiftDecl,
+                         VarDecl *languageDecl,
                          DeclContext *dc) override;
 
   std::optional<std::string>
   getOrCreatePCH(const ClangImporterOptions &ImporterOptions,
-                 StringRef SwiftPCHHash, bool Cached);
+                 StringRef CodiraPCHHash, bool Cached);
   std::optional<std::string>
   /// \param isExplicit true if the PCH filename was passed directly
   /// with -import-objc-header option.
   getPCHFilename(const ClangImporterOptions &ImporterOptions,
-                 StringRef SwiftPCHHash, bool &isExplicit);
+                 StringRef CodiraPCHHash, bool &isExplicit);
 
   const clang::Type *parseClangFunctionType(StringRef type,
                                             SourceLoc loc) const override;
   void printClangType(const clang::Type *type,
-                      llvm::raw_ostream &os) const override;
+                      toolchain::raw_ostream &os) const override;
 
   StableSerializationPath
   findStableSerializationPath(const clang::Decl *decl) const override;
@@ -656,16 +623,18 @@ public:
 
   clang::FunctionDecl *
   instantiateCXXFunctionTemplate(ASTContext &ctx,
-                                 clang::FunctionTemplateDecl *func,
+                                 clang::FunctionTemplateDecl *fn,
                                  SubstitutionMap subst) override;
 
   bool isSynthesizedAndVisibleFromAllModules(const clang::Decl *decl);
 
   bool isCXXMethodMutating(const clang::CXXMethodDecl *method) override;
 
-  bool isUnsafeCXXMethod(const FuncDecl *func) override;
+  bool isUnsafeCXXMethod(const FuncDecl *fn) override;
 
   FuncDecl *getDefaultArgGenerator(const clang::ParmVarDecl *param) override;
+
+  FuncDecl *getAvailabilityDomainPredicate(const clang::VarDecl *var) override;
 
   bool isAnnotatedWith(const clang::CXXMethodDecl *method, StringRef attr);
 
@@ -673,9 +642,9 @@ public:
   ///
   /// \param clangModule The module, or null to indicate that we're talking
   /// about the directly-parsed headers.
-  SwiftLookupTable *findLookupTable(const clang::Module *clangModule) override;
+  CodiraLookupTable *findLookupTable(const clang::Module *clangModule) override;
 
-  /// Determine the effective Clang context for the given Swift nominal type.
+  /// Determine the effective Clang context for the given Codira nominal type.
   EffectiveClangContext
   getEffectiveClangContext(const NominalTypeDecl *nominal) override;
 
@@ -685,6 +654,8 @@ public:
   ValueDecl *importBaseMemberDecl(ValueDecl *decl, DeclContext *newContext,
                                   ClangInheritanceInfo inheritance) override;
 
+  ValueDecl *getOriginalForClonedMember(const ValueDecl *decl) override;
+
   /// Emits diagnostics for any declarations named name
   /// whose direct declaration context is a TU.
   void diagnoseTopLevelValue(const DeclName &name) override;
@@ -693,19 +664,13 @@ public:
   /// of the provided baseType.
   void diagnoseMemberValue(const DeclName &name, const Type &baseType) override;
 
-  /// Enable the symbolic import experimental feature for the given callback.
-  void withSymbolicFeatureEnabled(llvm::function_ref<void(void)> callback);
-
-  /// Returns true when the symbolic import experimental feature is enabled.
-  bool isSymbolicImportEnabled() const;
-
   const clang::TypedefType *getTypeDefForCXXCFOptionsDefinition(
       const clang::Decl *candidateDecl) override;
 
   /// Create cache key for embedded bridging header.
-  static llvm::Expected<llvm::cas::ObjectRef>
+  static toolchain::Expected<toolchain::cas::ObjectRef>
   createEmbeddedBridgingHeaderCacheKey(
-      llvm::cas::ObjectStore &CAS, llvm::cas::ObjectRef ChainedPCHIncludeTree);
+      toolchain::cas::ObjectStore &CAS, toolchain::cas::ObjectRef ChainedPCHIncludeTree);
 
   SourceLoc importSourceLocation(clang::SourceLocation loc) override;
 };
@@ -714,7 +679,7 @@ ImportDecl *createImportDecl(ASTContext &Ctx, DeclContext *DC, ClangNode ClangN,
                              ArrayRef<clang::Module *> Exported);
 
 /// Extract the specified-or-defaulted -module-cache-path that winds up in
-/// the clang importer, for reuse as the .swiftmodule cache path when
+/// the clang importer, for reuse as the .codemodule cache path when
 /// building a ModuleInterfaceLoader.
 std::string
 getModuleCachePathFromClang(const clang::CompilerInstance &Instance);
@@ -748,12 +713,9 @@ bool isCxxConstReferenceType(const clang::Type *type);
 /// Determine whether this typedef is a CF type.
 bool isCFTypeDecl(const clang::TypedefNameDecl *Decl);
 
-/// Determine whether type is a c++ foreign reference type.
-bool isForeignReferenceTypeWithoutImmortalAttrs(const clang::QualType type);
-
 /// Determine the imported CF type for the given typedef-name, or the empty
 /// string if this is not an imported CF type name.
-llvm::StringRef getCFTypeName(const clang::TypedefNameDecl *decl);
+toolchain::StringRef getCFTypeName(const clang::TypedefNameDecl *decl);
 
 /// Lookup and return the synthesized conformance operator like '==' '-' or '+='
 /// for the given type.
@@ -761,20 +723,20 @@ ValueDecl *getImportedMemberOperator(const DeclBaseName &name,
                                      NominalTypeDecl *selfType,
                                      std::optional<Type> parameterType);
 
-/// Map the access specifier of a Clang record member to a Swift access level.
+/// Map the access specifier of a Clang record member to a Codira access level.
 ///
-/// This mapping is conservative: the resulting Swift access should be at _most_
+/// This mapping is conservative: the resulting Codira access should be at _most_
 /// as permissive as the input C++ access.
 AccessLevel convertClangAccess(clang::AccessSpecifier access);
 
-/// Read file IDs from 'private_fileid' Swift attributes on a Clang decl.
+/// Read file IDs from 'private_fileid' Codira attributes on a Clang decl.
 ///
 /// May return >1 fileID when a decl is annotated more than once, which should
 /// be treated as an error and appropriately diagnosed (using the included
 /// SourceLocation).
 ///
 /// The returned fileIDs may not be of a valid format (e.g., missing a '/'),
-/// and should be parsed using swift::SourceFile::FileIDStr::parse().
+/// and should be parsed using language::SourceFile::FileIDStr::parse().
 SmallVector<std::pair<StringRef, clang::SourceLocation>, 1>
 getPrivateFileIDAttrs(const clang::CXXRecordDecl *decl);
 
@@ -789,6 +751,104 @@ bool declIsCxxOnly(const Decl *decl);
 
 /// Is this DeclContext an `enum` that represents a C++ namespace?
 bool isClangNamespace(const DeclContext *dc);
+
+/// For some \a templatedClass that inherits from \a base, whether they are
+/// derived from the same class template.
+///
+/// This kind of circular inheritance can happen when a templated class inherits
+/// from a specialization of itself, e.g.:
+///
+///     template <typename T> class C;
+///     template <> class C<void> { /* ... */ };
+///     template <typename T> class C<T> : C<void> { /* ... */ };
+///
+/// Checking for this kind of scenario is necessary for avoiding infinite
+/// recursion during symbolic imports (importSymbolicCXXDecls), where
+/// specialized class templates are instead imported as unspecialized.
+bool isSymbolicCircularBase(const clang::CXXRecordDecl *templatedClass,
+                            const clang::RecordDecl *base);
+
+/// Match a `[[language_attr("...")]]` annotation on the given Clang decl.
+///
+/// \param decl The Clang declaration to inspect.
+/// \param patterns List of (attribute name, value) pairs.
+/// \returns The value for the first matching attribute, or `std::nullopt`.
+template <typename T>
+std::optional<T>
+matchCodiraAttr(const clang::Decl *decl,
+               toolchain::ArrayRef<std::pair<toolchain::StringRef, T>> patterns) {
+  if (!decl || !decl->hasAttrs())
+    return std::nullopt;
+
+  for (const auto *attr : decl->getAttrs()) {
+    if (const auto *languageAttr = toolchain::dyn_cast<clang::CodiraAttrAttr>(attr)) {
+      for (const auto &p : patterns) {
+        if (languageAttr->getAttribute() == p.first)
+          return p.second;
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+/// Like `matchCodiraAttr`, but also searches C++ base classes.
+///
+/// \param decl The Clang declaration to inspect.
+/// \param patterns List of (attribute name, value) pairs.
+/// \returns The matched value from this decl or its bases, or `std::nullopt`.
+template <typename T>
+std::optional<T> matchCodiraAttrConsideringInheritance(
+    const clang::Decl *decl,
+    toolchain::ArrayRef<std::pair<toolchain::StringRef, T>> patterns) {
+  if (!decl)
+    return std::nullopt;
+
+  if (auto match = matchCodiraAttr<T>(decl, patterns))
+    return match;
+
+  if (const auto *recordDecl = toolchain::dyn_cast<clang::CXXRecordDecl>(decl)) {
+    std::optional<T> result;
+    recordDecl->forallBases([&](const clang::CXXRecordDecl *base) -> bool {
+      if (auto baseMatch = matchCodiraAttr<T>(base, patterns)) {
+        result = baseMatch;
+        return false;
+      }
+
+      return true;
+    });
+
+    return result;
+  }
+
+  return std::nullopt;
+}
+
+/// Matches a `language_attr("...")` on the record type pointed to by the given
+/// Clang type, searching base classes if it's a C++ class.
+///
+/// \param type A Clang pointer type.
+/// \param patterns List of attribute name-value pairs to match.
+/// \returns Matched value or std::nullopt.
+template <typename T>
+std::optional<T> matchCodiraAttrOnRecordPtr(
+    const clang::QualType &type,
+    toolchain::ArrayRef<std::pair<toolchain::StringRef, T>> patterns) {
+  if (const auto *ptrType = type->getAs<clang::PointerType>()) {
+    if (const auto *recordDecl = ptrType->getPointeeType()->getAsRecordDecl()) {
+      return matchCodiraAttrConsideringInheritance<T>(recordDecl, patterns);
+    }
+  }
+  return std::nullopt;
+}
+
+/// Determines the C++ reference ownership convention for the return value
+/// using `LANGUAGE_RETURNS_(UN)RETAINED` on the API; falls back to
+/// `LANGUAGE_RETURNED_AS_(UN)RETAINED_BY_DEFAULT` on the pointee record type.
+///
+/// \param decl The Clang function or method declaration to inspect.
+/// \returns Matched `ResultConvention`, or `std::nullopt` if none applies.
+std::optional<ResultConvention>
+getCxxRefConventionWithAttrs(const clang::Decl *decl);
 } // namespace importer
 
 struct ClangInvocationFileMapping {
@@ -804,14 +864,23 @@ struct ClangInvocationFileMapping {
 
 /// On Linux, some platform libraries (glibc, libstdc++) are not modularized.
 /// We inject modulemaps for those libraries into their include directories
-/// to allow using them from Swift.
+/// to allow using them from Codira.
 ///
 /// `suppressDiagnostic` prevents us from emitting warning messages when we
 /// are unable to find headers.
 ClangInvocationFileMapping getClangInvocationFileMapping(
-    ASTContext &ctx,
-    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> vfs = nullptr,
+    const ASTContext &ctx,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> vfs = nullptr,
     bool suppressDiagnostic = false);
+
+/// Apply the given file mapping to the specified 'fileSystem', used
+/// primarily to inject modulemaps on platforms with non-modularized
+/// platform libraries.
+ClangInvocationFileMapping applyClangInvocationMapping(
+    const ASTContext &ctx,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> baseVFS,
+    toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> &fileSystem,
+    bool suppressDiagnostics = false);
 
 /// Information used to compute the access level of inherited C++ members.
 class ClangInheritanceInfo {
@@ -855,14 +924,14 @@ public:
   /// Whether this is info represents a case of C++ inheritance.
   operator bool() const { return isInheriting(); }
 
-  /// Compute the (Swift) access level for inherited base member \param decl,
+  /// Compute the (Codira) access level for inherited base member \param decl,
   /// for when its inherited (cloned) member in the derived class.
   ///
   /// This access level is determined by whichever is more restrictive: what the
   /// \param decl was declared with (in its base class), or what it is being
   /// inherited with (ClangInheritanceInfo::access).
   ///
-  /// Always returns swift::AccessLevel::Public (i.e., corresponding to
+  /// Always returns language::AccessLevel::Public (i.e., corresponding to
   /// clang::AS_none) if this ClangInheritanceInfo::isInheriting() is \c false.
   AccessLevel accessForBaseDecl(const ValueDecl *baseDecl) const;
 
@@ -875,8 +944,8 @@ public:
   void setUnavailableIfNecessary(const ValueDecl *baseDecl,
                                  ValueDecl *clonedDecl) const;
 
-  friend llvm::hash_code hash_value(const ClangInheritanceInfo &info) {
-    return llvm::hash_combine(info.access);
+  friend toolchain::hash_code hash_value(const ClangInheritanceInfo &info) {
+    return toolchain::hash_combine(info.access);
   }
 
 private:

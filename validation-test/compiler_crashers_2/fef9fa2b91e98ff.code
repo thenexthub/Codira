@@ -1,0 +1,6 @@
+// {"signature":"language::ExistentialArchetypeType::get(language::CanType)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a where b == Self
+  protocol c : a where Self
+  : CustomStringConvertible
+    var d e c.description

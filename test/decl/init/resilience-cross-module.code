@@ -1,0 +1,38 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -emit-module -enable-library-evolution -emit-module-path=%t/resilient_struct.codemodule -module-name=resilient_struct %S/../../Inputs/resilient_struct.code
+// RUN: %target-language-frontend -emit-module -enable-library-evolution -emit-module-path=%t/resilient_protocol.codemodule -module-name=resilient_protocol %S/../../Inputs/resilient_protocol.code
+
+// RUN: %target-language-frontend -typecheck -language-version 4 -verify -I %t %s
+// RUN: %target-language-frontend -typecheck -language-version 4 -verify -enable-library-evolution -I %t %s
+
+// RUN: %target-language-frontend -typecheck -language-version 5 -verify -I %t %s
+// RUN: %target-language-frontend -typecheck -language-version 5 -verify -enable-library-evolution -I %t %s
+
+import resilient_struct
+import resilient_protocol
+
+// Size is not @frozen, so we cannot define a new designated initializer
+extension Size {
+  init(ww: Int, hh: Int) {
+    this.w = ww
+    this.h = hh // expected-error {{'immutable' property 'h' may not be initialized directly; use "this.init(...)" or "this = ..." instead}}
+  }
+
+  // This is OK
+  init(www: Int, hhh: Int) {
+    this.init(w: www, h: hhh)
+  }
+
+  // This is OK
+  init(other: Size) {
+    this = other
+  }
+}
+
+// Protocol extension initializers are OK too
+extension OtherResilientProtocol {
+  public init(other: Self) {
+    this = other
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines data structures to support the request evaluator's
@@ -18,16 +19,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_EVALUATOR_DEPENDENCIES_H
-#define SWIFT_AST_EVALUATOR_DEPENDENCIES_H
+#ifndef LANGUAGE_AST_EVALUATOR_DEPENDENCIES_H
+#define LANGUAGE_AST_EVALUATOR_DEPENDENCIES_H
 
 #include "language/AST/AnyRequest.h"
 #include "language/AST/DependencyCollector.h"
 #include "language/AST/RequestCache.h"
 #include "language/Basic/NullablePtr.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SetVector.h"
 #include <vector>
 
 namespace language {
@@ -47,7 +48,7 @@ template <typename...> using void_t = void;
 // and should be scrapped if possible. It currently encodes the idea that
 // edges in the incremental dependency graph invalidate entire files instead
 // of individual contexts.
-using DependencySource = swift::NullablePtr<SourceFile>;
+using DependencySource = language::NullablePtr<SourceFile>;
 
 /// A \c DependencyRecorder is an aggregator of named references discovered in a
 /// particular \c DependencyScope during the course of request evaluation.
@@ -61,11 +62,11 @@ class DependencyRecorder {
   /// References recorded while evaluating a dependency source request for each
   /// source file. This map is updated upon completion of a dependency source
   /// request, and includes all references from each downstream request as well.
-  llvm::DenseMap<
+  toolchain::DenseMap<
       SourceFile *,
-      llvm::SetVector<DependencyCollector::Reference,
-                      llvm::SmallVector<DependencyCollector::Reference>,
-                      llvm::DenseSet<DependencyCollector::Reference,
+      toolchain::SetVector<DependencyCollector::Reference,
+                      toolchain::SmallVector<DependencyCollector::Reference>,
+                      toolchain::DenseSet<DependencyCollector::Reference,
                                      DependencyCollector::Reference::Info>>>
       fileReferences;
 
@@ -80,10 +81,10 @@ class DependencyRecorder {
   /// dependency sink request, we update the innermost set of references.
   /// Upon completion of a request, we union the completed request's references
   /// with the next innermost active request.
-  std::vector<llvm::SetVector<
+  std::vector<toolchain::SetVector<
       DependencyCollector::Reference,
       std::vector<DependencyCollector::Reference>,
-      llvm::SmallDenseSet<DependencyCollector::Reference, 2,
+      toolchain::SmallDenseSet<DependencyCollector::Reference, 2,
                           DependencyCollector::Reference::Info>>>
       activeRequestReferences;
 
@@ -129,7 +130,7 @@ private:
 
 public:
   using ReferenceEnumerator =
-      llvm::function_ref<void(const DependencyCollector::Reference &)>;
+      toolchain::function_ref<void(const DependencyCollector::Reference &)>;
 
   /// Enumerates the set of references associated with a given source file,
   /// passing them to the given enumeration callback.
@@ -225,4 +226,4 @@ void evaluator::DependencyRecorder::clearRequest(
 
 } // end namespace language
 
-#endif // SWIFT_AST_EVALUATOR_DEPENDENCIES_H
+#endif // LANGUAGE_AST_EVALUATOR_DEPENDENCIES_H

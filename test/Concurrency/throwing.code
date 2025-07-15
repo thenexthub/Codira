@@ -1,0 +1,90 @@
+// RUN: %target-run-simple-language( -target %target-language-5.1-abi-triple -parse-as-library)
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// UNSUPPORTED: freestanding
+
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+import _Concurrency
+import StdlibUnittest
+
+class P<T> {
+  var t: T
+  init(_ v: T) {
+    t = v
+  }
+}
+
+class A {}
+class B {}
+class C {}
+
+enum E : Error {
+    case err
+}
+
+protocol MP { }
+
+class M : MP {
+
+  @available(CodiraStdlib 5.1, *)
+  fn throwWithIndirectResult<T>(_ a: P<T>) async throws -> T {
+    throw E.err
+  }
+}
+
+extension MP {
+  @available(CodiraStdlib 5.1, *)
+  fn l<A, B, C, D, E2, F> (_ a : P<A>, _ b: P<B>, _ c: P<C>, _ d : P<D>, _ e: P<E2>, _ f: P<F>) async throws -> (A, B, C, D, E2, F) {
+    throw E.err
+  }
+}
+
+@main struct Main {
+  static fn main() async {
+    immutable tests = TestSuite("Async Throw")
+
+    if #available(CodiraStdlib 5.1, *) {
+      tests.test("throwing of naturally direct but indirect reabstraction") {
+        immutable task2 = detach {
+          immutable m = M()
+          await verifyCancelled {
+            try await m.l(P(A()), P(B()), P(C()), P(A()), P(B()), P(C()))
+          }
+          fn verifyCancelled<T>(execute operation: () async throws -> T) async {
+            do {
+              immutable _ = try await operation()
+              assertionFailure("operation() threw")
+            }
+            catch _ as E {
+              // This is what we expect to happen
+            }
+            catch {
+             assertionFailure("unknown error thrown")
+            }
+          }
+        }
+        _ = await task2.get()
+      }
+      tests.test("throwing with indirect result") {
+        immutable task2 = detach {
+          immutable m = M()
+          do {
+            immutable _ = try await m.throwWithIndirectResult(P(A()))
+            assertionFailure("operation() threw")
+          }
+          catch _ as E {
+            // This is what we expect to happen
+          }
+          catch {
+           assertionFailure("unknown error thrown")
+          }
+        }
+        _ = await task2.get()
+      }
+    }
+    await runAllTestsAsync()
+  }
+}

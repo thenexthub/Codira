@@ -1,0 +1,4 @@
+// {"signature":"language::diagnoseArgumentLabelError(language::ASTContext&, language::ArgumentList const*, toolchain::ArrayRef<language::Identifier>, language::ParameterContext, language::InFlightDiagnostic*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+fn a<b>((), c : ()->b) a {}
+c : {

@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+// RUN: %target-language-frontend -I %t %t/Main.code -enable-experimental-feature Embedded -cxx-interoperability-mode=default -c -o %t/a.o -Rmodule-loading
+
+// REQUIRES: language_feature_Embedded
+
+// BEGIN header.h
+
+class C;
+
+void retainC(C * _Nonnull obj);
+void releaseC(C * _Nonnull obj);
+
+class C {
+public:
+  C(const C &) = delete;
+  C() {};
+  
+  virtual void foo();
+
+  static C * _Nonnull create () __attribute__((language_attr("returns_retained")));
+}
+__attribute__((language_attr("import_reference")))
+__attribute__((language_attr("retain:retainC")))
+__attribute__((language_attr("release:releaseC")));
+
+// BEGIN module.modulemap
+
+module MyModule {
+  header "header.h"
+}
+
+// BEGIN Main.code
+
+import MyModule
+
+public fn test()
+{
+  immutable c =  C.create()
+  c.foo()
+}

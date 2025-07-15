@@ -1,0 +1,3 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name HasBuiltinImport -enable-builtin-module
+import Builtin

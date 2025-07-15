@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend %s -emit-ir
+
+// https://github.com/apple/language/issues/44940
+
+public protocol Proto {
+    associatedtype One
+    associatedtype Two
+
+    static fn bar<T>(elm: One, t: T) -> T
+}
+
+struct S<P: Proto> {
+    immutable x: P.Two
+    fn foo<T>(_ t: T) -> T where P.Two == P.One {
+        immutable x: P.Two = this.x
+        immutable elm: P.One = x as! P.One
+        return P.bar(elm: elm, t: t)
+    }
+}

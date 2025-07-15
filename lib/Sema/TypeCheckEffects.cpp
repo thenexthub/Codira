@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis to ensure that various effects (such
@@ -253,7 +254,7 @@ bool ConformanceHasEffectRequest::evaluate(
   ProtocolConformance *conformance) const {
   auto *module = conformance->getDeclContext()->getParentModule();
 
-  llvm::SmallDenseSet<ProtocolConformance *, 2> visited;
+  toolchain::SmallDenseSet<ProtocolConformance *, 2> visited;
   SmallVector<ProtocolConformance *, 2> worklist;
 
   worklist.push_back(conformance);
@@ -338,6 +339,7 @@ private:
   PolymorphicEffectKind RethrowsKind = PolymorphicEffectKind::None;
   PolymorphicEffectKind ReasyncKind = PolymorphicEffectKind::None;
   SubstitutionMap Substitutions;
+  SelfApplyExpr *AppliedSelf = nullptr;
 
 public:
   explicit AbstractFunction(Kind kind, Expr *fn)
@@ -345,11 +347,13 @@ public:
     TheExpr = fn;
   }
 
-  explicit AbstractFunction(AbstractFunctionDecl *fn, SubstitutionMap subs)
+  explicit AbstractFunction(AbstractFunctionDecl *fn, SubstitutionMap subs,
+                            SelfApplyExpr *appliedSelf)
     : TheKind(Kind::Function),
       RethrowsKind(fn->getPolymorphicEffectKind(EffectKind::Throws)),
       ReasyncKind(fn->getPolymorphicEffectKind(EffectKind::Async)),
-      Substitutions(subs) {
+      Substitutions(subs),
+      AppliedSelf(appliedSelf) {
     TheFunction = fn;
   }
 
@@ -370,24 +374,34 @@ public:
     switch (kind) {
     case EffectKind::Throws: return RethrowsKind;
     case EffectKind::Async: return ReasyncKind;
-    case EffectKind::Unsafe: return swift::PolymorphicEffectKind::None;
+    case EffectKind::Unsafe:
+      switch (getExplicitSafety()) {
+      case ExplicitSafety::Safe:
+        return PolymorphicEffectKind::None;
+      case ExplicitSafety::Unsafe:
+        return PolymorphicEffectKind::Always;
+      case ExplicitSafety::Unspecified:
+        return PolymorphicEffectKind::ByClosure;
+      }
     }
-    llvm_unreachable("Bad effect kind");
+    toolchain_unreachable("Bad effect kind");
   }
 
   Type getType() const {
     switch (getKind()) {
-    case Kind::Opaque: return getOpaqueFunction()->getType();
+    case Kind::Opaque:
+      return getOpaqueFunction()->getType()->lookThroughAllOptionalTypes();
     case Kind::Function: {
       auto *AFD = getFunction();
-      if (AFD->hasImplicitSelfDecl())
+      if (AFD->hasImplicitSelfDecl() && AppliedSelf)
         return AFD->getMethodInterfaceType();
       return AFD->getInterfaceType();
     }
     case Kind::Closure: return getClosure()->getType();
-    case Kind::Parameter: return getParameter()->getInterfaceType();
+    case Kind::Parameter:
+      return getParameter()->getInterfaceType()->lookThroughAllOptionalTypes();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
 
   /// Retrieve the interface type for a parameter based on an index into the
@@ -401,10 +415,31 @@ public:
                  .getParameterType();
 
     case Kind::Function: {
+      if (getFunction()->hasImplicitSelfDecl() && !AppliedSelf) {
+        assert(substIndex == 0);
+        return getFunction()->getImplicitSelfDecl()->getInterfaceType();
+      }
+
       auto *params = getFunction()->getParameters();
       auto origIndex = params->getOrigParamIndex(getSubstitutions(), substIndex);
       return params->get(origIndex)->getInterfaceType();
     }
+    }
+  }
+
+  Type getOrigParamSelfType() const {
+    switch (getKind()) {
+    case Kind::Opaque:
+    case Kind::Closure:
+    case Kind::Parameter:
+      return Type();
+
+    case Kind::Function:
+      if (getFunction()->hasImplicitSelfDecl() && AppliedSelf) {
+        return getFunction()->getImplicitSelfDecl()->getInterfaceType();
+      }
+
+      return Type();
     }
   }
 
@@ -431,17 +466,37 @@ public:
     return TheExpr;
   }
 
+  SelfApplyExpr *getAppliedSelf() const {
+    return AppliedSelf;
+  }
+
   SubstitutionMap getSubstitutions() const {
     return Substitutions;
   }
 
-  static AbstractFunction getAppliedFn(ApplyExpr *apply) {
+  ExplicitSafety getExplicitSafety() const {
+    switch (getKind()) {
+    case Kind::Closure:
+    case Kind::Opaque:
+    case Kind::Parameter:
+      return ExplicitSafety::Unspecified;
+
+    case Kind::Function:
+      return getFunction()->getExplicitSafety();
+    }
+  }
+
+  static AbstractFunction getAppliedFn(ApplyExpr *apply,
+                                       Expr **calleeFn = nullptr) {
     Expr *fn = apply->getFn()->getValueProvidingExpr();
 
-    if (auto *selfCall = dyn_cast<SelfApplyExpr>(fn))
+    SelfApplyExpr *appliedSelf = nullptr;
+    if (auto *selfCall = dyn_cast<SelfApplyExpr>(fn)) {
+      appliedSelf = selfCall;
       fn = selfCall->getFn()->getValueProvidingExpr();
+    }
 
-    return decomposeFunction(fn);
+    return decomposeFunction(fn, appliedSelf, calleeFn);
   }
 
   bool isPreconcurrency() const {
@@ -460,7 +515,9 @@ public:
     }
   }
 
-  static AbstractFunction decomposeFunction(Expr *fn) {
+  static AbstractFunction decomposeFunction(Expr *fn,
+                                            SelfApplyExpr *appliedSelf,
+                                            Expr **calleeFn) {
     assert(fn->getValueProvidingExpr() == fn);
 
     while (true) {
@@ -492,18 +549,24 @@ public:
         break;
       }
     }
-    
+
+    // Tell our caller about the callee, if they asked for it.
+    if (calleeFn)
+      *calleeFn = fn;
+
     // Constructor delegation.
     if (auto otherCtorDeclRef = dyn_cast<OtherConstructorDeclRefExpr>(fn)) {
       return AbstractFunction(otherCtorDeclRef->getDecl(),
-                              otherCtorDeclRef->getDeclRef().getSubstitutions());
+                              otherCtorDeclRef->getDeclRef().getSubstitutions(),
+                              appliedSelf);
     }
 
     // Normal function references.
     if (auto DRE = dyn_cast<DeclRefExpr>(fn)) {
       ValueDecl *decl = DRE->getDecl();
       if (auto fn = dyn_cast<AbstractFunctionDecl>(decl)) {
-        return AbstractFunction(fn, DRE->getDeclRef().getSubstitutions());
+        return AbstractFunction(fn, DRE->getDeclRef().getSubstitutions(),
+                                appliedSelf);
       } else if (auto param = dyn_cast<ParamDecl>(decl)) {
         SubstitutionMap subs;
         if (auto genericEnv = param->getDeclContext()->getGenericEnvironmentOfContext())
@@ -606,10 +669,12 @@ public:
                                       /*isImplicitlyAsync=*/false,
                                       /*isImplicitlyThrows=*/false);
     } else if (auto *LE = dyn_cast<LiteralExpr>(E)) {
-      recurse = asImpl().checkDeclRef(LE, LE->getInitializer(), LE->getLoc(),
-                                      /*isEvaluated=*/false,
-                                      /*isImplicitlyAsync=*/false,
-                                      /*isImplicitlyThrows=*/false);
+      if (LE->getInitializer()) {
+        recurse = asImpl().checkDeclRef(LE, LE->getInitializer(), LE->getLoc(),
+                                        /*isEvaluated=*/false,
+                                        /*isImplicitlyAsync=*/false,
+                                        /*isImplicitlyThrows=*/false);
+      }
     } else if (auto *CE = dyn_cast<CollectionExpr>(E)) {
       recurse = asImpl().checkDeclRef(CE, CE->getInitializer(), CE->getLoc(),
                                       /*isEvaluated=*/false,
@@ -651,6 +716,8 @@ public:
       }
     } else if (auto TE = dyn_cast<MakeTemporarilyEscapableExpr>(E)) {
       recurse = asImpl().checkTemporarilyEscapable(TE);
+    } else if (auto OSE = dyn_cast<ObjCSelectorExpr>(E)) {
+      recurse = asImpl().checkObjCSelector(OSE);
     }
 
     // Error handling validation (via checkTopLevelEffects) happens after
@@ -805,14 +872,14 @@ enum class ConditionalEffectKind {
   Always,
 };
 
-static void simple_display(llvm::raw_ostream &out, ConditionalEffectKind kind) {
+static void simple_display(toolchain::raw_ostream &out, ConditionalEffectKind kind) {
   out << "ConditionalEffectKind::";
   switch(kind) {
     case ConditionalEffectKind::None:         out << "None"; return;
     case ConditionalEffectKind::Conditional:  out << "Conditional"; return;
     case ConditionalEffectKind::Always:       out << "Always"; return;
   }
-  llvm_unreachable("Bad conditional effect kind");
+  toolchain_unreachable("Bad conditional effect kind");
 }
 
 /// Remove the type erasure to an existential error, to extract the
@@ -836,15 +903,15 @@ static Expr *removeErasureToExistentialError(Expr *expr) {
 }
 }
 
-bool swift::isRethrowLikeTypedThrows(AbstractFunctionDecl *func) {
-  // This notion is only for compatibility in Swift 5 and is disabled
+bool language::isRethrowLikeTypedThrows(AbstractFunctionDecl *fn) {
+  // This notion is only for compatibility in Codira 5 and is disabled
   // when FullTypedThrows is enabled.
-  ASTContext &ctx = func->getASTContext();
+  ASTContext &ctx = fn->getASTContext();
   if (ctx.LangOpts.hasFeature(Feature::FullTypedThrows))
     return false;
 
   // It must have a thrown error type...
-  auto thrownError = func->getThrownInterfaceType();
+  auto thrownError = fn->getThrownInterfaceType();
   if (!thrownError)
     return false;
 
@@ -854,14 +921,14 @@ bool swift::isRethrowLikeTypedThrows(AbstractFunctionDecl *func) {
     return false;
 
   /// ... of the generic function.
-  auto genericParams = func->getGenericParams();
+  auto genericParams = fn->getGenericParams();
   if (!genericParams ||
       thrownErrorGP->getDepth() !=
           genericParams->getParams().front()->getDepth())
     return false;
 
   // E: Error must be the only conformance requirement on the generic parameter.
-  auto genericSig = func->getGenericSignature();
+  auto genericSig = fn->getGenericSignature();
   if (!genericSig)
     return false;
 
@@ -871,7 +938,7 @@ bool swift::isRethrowLikeTypedThrows(AbstractFunctionDecl *func) {
     return false;
 
   // Any parameters that are of throwing function type must also throw 'E'.
-  for (auto param : *func->getParameters()) {
+  for (auto param : *fn->getParameters()) {
     auto paramTy = param->getInterfaceType();
     if (auto paramFuncTy = paramTy->getAs<AnyFunctionType>()) {
       if (auto paramThrownErrorTy = paramFuncTy->getEffectiveThrownErrorType())
@@ -1076,7 +1143,7 @@ public:
           ctx.getErrorExistentialType(), ConditionalEffectKind::Conditional,
           reason);
     case EffectKind::Unsafe:
-      llvm_unreachable("Never propagate unsafe through function bodies");
+      toolchain_unreachable("Never propagate unsafe through function bodies");
     }
   }
 
@@ -1118,32 +1185,31 @@ public:
   static Classification
   forDeclRef(ConcreteDeclRef declRef, ConditionalEffectKind conditionalKind,
              PotentialEffectReason reason, SourceLoc loc,
+             bool skipTypeCheck,
              std::optional<EffectKind> onlyEffect = std::nullopt) {
-    ASTContext &ctx = declRef.getDecl()->getASTContext();
-
     Classification result;
     bool considerAsync = !onlyEffect || *onlyEffect == EffectKind::Async;
     bool considerThrows = !onlyEffect || *onlyEffect == EffectKind::Throws;
-    bool considerUnsafe = (!onlyEffect || *onlyEffect == EffectKind::Unsafe) &&
-        ctx.LangOpts.hasFeature(Feature::StrictMemorySafety);
+    bool considerUnsafe = (!onlyEffect || *onlyEffect == EffectKind::Unsafe);
 
     // If we're tracking "unsafe" effects, compute them here.
     if (considerUnsafe) {
-      enumerateUnsafeUses(declRef, loc, /*isCall=*/false, [&](UnsafeUse use) {
+      enumerateUnsafeUses(declRef, loc, /*isCall=*/false, skipTypeCheck,
+                          [&](UnsafeUse use) {
         result.recordUnsafeUse(use);
         return false;
       });
     }
 
     // Consider functions based on their specified effects.
-    if (auto func = dyn_cast<AbstractFunctionDecl>(declRef.getDecl())) {
-      if (considerAsync && func->hasAsync()) {
+    if (auto fn = dyn_cast<AbstractFunctionDecl>(declRef.getDecl())) {
+      if (considerAsync && fn->hasAsync()) {
         result.merge(Classification::forAsync(conditionalKind, reason));
       }
 
       if (considerThrows) {
         if (auto thrownInterfaceType =
-                func->getEffectiveThrownErrorType()) {
+                fn->getEffectiveThrownErrorType()) {
           Type thrownType =
               thrownInterfaceType->subst(declRef.getSubstitutions());
           result.merge(Classification::forThrows(thrownType,
@@ -1298,7 +1364,7 @@ public:
     case EffectKind::Async: return AsyncKind;
     case EffectKind::Unsafe: return UnsafeKind;
     }
-    llvm_unreachable("Bad effect kind");
+    toolchain_unreachable("Bad effect kind");
   }
   Type getThrownError() const {
     assert(ThrowKind == ConditionalEffectKind::Always ||
@@ -1320,8 +1386,8 @@ public:
     return UnsafeUses;
   }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  LLVM_DUMP_METHOD void dump() const { print(llvm::errs()); }
+#if !defined(NDEBUG) || defined(TOOLCHAIN_ENABLE_DUMP)
+  TOOLCHAIN_DUMP_METHOD void dump() const { print(toolchain::errs()); }
 #endif
 };
 
@@ -1329,15 +1395,16 @@ public:
 /// A class for collecting information about rethrowing and reasync functions.
 class ApplyClassifier {
   /// The key to this cache is a local function decl or closure.
-  llvm::DenseMap<AnyFunctionRef, Classification> ThrowsCache;
-  llvm::DenseMap<AnyFunctionRef, Classification> AsyncCache;
+  toolchain::DenseMap<AnyFunctionRef, Classification> ThrowsCache;
+  toolchain::DenseMap<AnyFunctionRef, Classification> AsyncCache;
 
   /// check the kind of property with an effect to give better diagnostics
   static PotentialEffectReason getKindOfEffectfulProp(ConcreteDeclRef cdr) {
     if (isa<SubscriptDecl>(cdr.getDecl()))
       return PotentialEffectReason::forSubscriptAccess();
 
-    assert(isa<VarDecl>(cdr.getDecl()));
+    // Note that declarations other than properties end up with
+    // "property access" effect reasons for historical... reasons.
     return PotentialEffectReason::forPropertyAccess();
   }
 
@@ -1436,7 +1503,7 @@ public:
   /// covers it.
   static void markArgumentSafe(
       Expr *arg, 
-      llvm::DenseSet<const Expr *> &assumedSafeArguments
+      toolchain::DenseSet<const Expr *> &assumedSafeArguments
   ) {
     auto argValue = arg->findOriginalValue();
 
@@ -1456,7 +1523,7 @@ public:
   /// list as safe, so we don't diagnose unsafe uses of them.
   static void markArgumentsSafe(
       ArgumentList *argumentList, 
-      llvm::DenseSet<const Expr *> &assumedSafeArguments
+      toolchain::DenseSet<const Expr *> &assumedSafeArguments
   ) {
     if (!argumentList)
       return;
@@ -1470,22 +1537,23 @@ public:
 
   Classification classifyLookup(
       LookupExpr *E, 
-      llvm::DenseSet<const Expr *> *assumedSafeArguments
+      toolchain::DenseSet<const Expr *> *assumedSafeArguments
   ) {
     auto member = E->getMember();
     if (!member)
       return Classification::forInvalidCode();
 
-    PotentialEffectReason reason =
-        PotentialEffectReason::forPropertyAccess();
-    Classification classification;
+    ConcreteDeclRef declToClassify;
     if (auto getter = getEffectfulGetOnlyAccessor(member)) {
-      reason = getKindOfEffectfulProp(member);
-      classification = Classification::forDeclRef(
-          getter, ConditionalEffectKind::Always, reason, E->getLoc());
-    } else if (isa<SubscriptExpr>(E) || isa<DynamicSubscriptExpr>(E)) {
-      reason = PotentialEffectReason::forSubscriptAccess();
+      declToClassify = getter;
+    } else {
+      declToClassify = member;
     }
+
+    PotentialEffectReason reason = getKindOfEffectfulProp(member);
+    Classification classification = Classification::forDeclRef(
+          declToClassify, ConditionalEffectKind::Always, reason, E->getLoc(),
+          assumedSafeArguments && assumedSafeArguments->contains(E));
 
     classification.setDowngradeToWarning(
         downgradeAsyncAccessToWarning(member.getDecl()));
@@ -1494,13 +1562,6 @@ public:
         member.getDecl()->getASTContext(),
         E->isImplicitlyAsync().has_value(), E->isImplicitlyThrows(),
         reason);
-
-    if (!classification.hasUnsafe()) {
-      classification.merge(
-          Classification::forDeclRef(
-            member, ConditionalEffectKind::Always, reason, E->getLoc(),
-            EffectKind::Unsafe));
-    }
 
     if (assumedSafeArguments) {
       // If the declaration we're referencing is explicitly @safe, mark arguments
@@ -1525,7 +1586,8 @@ public:
 
   Classification classifyDeclRef(ConcreteDeclRef declRef, SourceLoc loc,
                                  bool isImplicitlyAsync,
-                                 bool isImplicitlyThrows) {
+                                 bool isImplicitlyThrows,
+                                 bool ignoreUnsafeType) {
     if (!declRef)
       return Classification::forInvalidCode();
 
@@ -1535,12 +1597,14 @@ public:
     if (auto getter = getEffectfulGetOnlyAccessor(declRef)) {
       reason = getKindOfEffectfulProp(declRef);
       classification = Classification::forDeclRef(
-          getter, ConditionalEffectKind::Always, reason, loc);
+          getter, ConditionalEffectKind::Always, reason, loc,
+          ignoreUnsafeType);
     } else if (isa<VarDecl>(declRef.getDecl())) {
       // Handle async let.
       reason = PotentialEffectReason::forAsyncLet();
       classification = Classification::forDeclRef(
-          declRef, ConditionalEffectKind::Always, reason, loc);
+          declRef, ConditionalEffectKind::Always, reason, loc,
+          ignoreUnsafeType);
     }
 
     classification.setDowngradeToWarning(
@@ -1555,16 +1619,10 @@ public:
       classification.merge(
           Classification::forDeclRef(
             declRef, ConditionalEffectKind::Always, reason, loc,
-            EffectKind::Unsafe));
+            ignoreUnsafeType, EffectKind::Unsafe));
     }
 
     return classification;
-  }
-
-  Classification classifyDeclRef(DeclRefExpr *E) {
-    return classifyDeclRef(
-        E->getDeclRef(), E->getLoc(), E->isImplicitlyAsync().has_value(),
-        E->isImplicitlyThrows());
   }
 
   Classification classifyThrow(ThrowStmt *S) {
@@ -1586,10 +1644,11 @@ public:
         PotentialEffectReason::forApply());
   }
 
-  /// Check to see if the given function application throws or is async.
+  /// Check to see if the given function application throws, is async, or
+  /// involves unsafe behavior.
   Classification classifyApply(
-      ApplyExpr *E, 
-      llvm::DenseSet<const Expr *> *assumedSafeArguments
+      ApplyExpr *E,
+      toolchain::DenseSet<const Expr *> *assumedSafeArguments
   ) {
     // An apply expression is a potential throw site if the function throws.
     // But if the expression didn't type-check, suppress diagnostics.
@@ -1600,44 +1659,75 @@ public:
       assert(!E->isImplicitlyAsync());
     }
 
-    // If this is calling a @safe function, treat local variables as being
-    // safe.
-    if (assumedSafeArguments) {
-      if (auto calleeDecl = E->getCalledValue()) {
-        if (calleeDecl->getExplicitSafety() == ExplicitSafety::Safe) {
-          markArgumentsSafe(E->getArgs(), *assumedSafeArguments);
-        }
-      }
-    }
-
     auto type = E->getFn()->getType();
     if (!type) return Classification::forInvalidCode();
     auto fnType = type->getAs<AnyFunctionType>();
     if (!fnType) return Classification::forInvalidCode();
+    Expr *calleeFn = nullptr;
+    auto fnRef = AbstractFunction::getAppliedFn(E, &calleeFn);
 
-    auto fnRef = AbstractFunction::getAppliedFn(E);
+    auto *args = E->getArgs();
+    return classifyApply(
+        E, fnRef, calleeFn, fnType, args,
+        E->isImplicitlyAsync().has_value(), E->implicitlyThrows(),
+        assumedSafeArguments);
+  }
+
+  /// Check to see if the given function application throws, is async, or
+  /// involves unsafe behavior.
+  Classification classifyApply(
+      ApplyExpr *call,
+      const AbstractFunction &fnRef,
+      Expr *calleeFn,
+      const AnyFunctionType *fnType,
+      ArgumentList *args,
+      bool implicitlyAsync,
+      bool implicitlyThrows,
+      toolchain::DenseSet<const Expr *> *assumedSafeArguments
+  ) {
     auto substitutions = fnRef.getSubstitutions();
     const bool hasAnyConformances =
-        llvm::any_of(substitutions.getConformances(),
+        toolchain::any_of(substitutions.getConformances(),
                      [](const ProtocolConformanceRef conformance) {
+                       if (conformance.isInvalid())
+                         return false;
                        auto *requirement = conformance.getProtocol();
                        return !requirement->getInvertibleProtocolKind();
                      });
+    bool hasUnspecifiedSafety =
+        fnRef.getExplicitSafety() == ExplicitSafety::Unspecified;
+
+    if (assumedSafeArguments) {
+      // When calling a function that has no explicitly-written @safe or
+      // @unsafe, we diagnose the safety of the arguments---not the function
+      // itself.
+      if (fnRef.getExplicitSafety() == ExplicitSafety::Unspecified) {
+        if (calleeFn)
+          assumedSafeArguments->insert(calleeFn);
+
+        if (auto appliedSelf = fnRef.getAppliedSelf())
+          assumedSafeArguments->insert(appliedSelf);
+      }
+
+      // If this is calling a @safe function, treat local variables as being
+      // safe.
+      if (fnRef.getExplicitSafety() == ExplicitSafety::Safe) {
+        markArgumentsSafe(args, *assumedSafeArguments);
+      }
+    }
+
+    ASTContext &ctx = fnType->getASTContext();
 
     // If the function doesn't have any effects or conformances, we're done
     // here.
     if (!fnType->isThrowing() &&
-        !E->implicitlyThrows() &&
+        !implicitlyThrows &&
         !fnType->isAsync() &&
-        !E->isImplicitlyAsync() &&
-        !hasAnyConformances) {
+        !implicitlyAsync &&
+        !hasAnyConformances &&
+        fnRef.getExplicitSafety() == ExplicitSafety::Safe) {
       return Classification();
     }
-
-    ASTContext &ctx = type->getASTContext();
-
-    // Decompose the application.
-    auto *args = E->getArgs();
 
     // If any of the arguments didn't type check, fail.
     for (auto arg : *args) {
@@ -1648,7 +1738,7 @@ public:
 
     Classification result;
     result.mergeImplicitEffects(
-        ctx, E->isImplicitlyAsync().has_value(), E->implicitlyThrows(),
+        ctx, implicitlyAsync, implicitlyThrows,
         PotentialEffectReason::forApply());
 
     // Downgrade missing 'await' errors for preconcurrency references.
@@ -1657,9 +1747,10 @@ public:
         (fnRef.isPreconcurrency() || isContextPreconcurrency()));
 
     auto classifyApplyEffect = [&](EffectKind kind) {
-      if (!fnType->hasEffect(kind) &&
-          !(kind == EffectKind::Async && E->isImplicitlyAsync()) &&
-          !(kind == EffectKind::Throws && E->implicitlyThrows())) {
+      if (kind != EffectKind::Unsafe &&
+          !fnType->hasEffect(kind) &&
+          !(kind == EffectKind::Async && implicitlyAsync) &&
+          !(kind == EffectKind::Throws && implicitlyThrows)) {
         return;
       }
 
@@ -1683,13 +1774,29 @@ public:
 
         // 'ByConformance' is a superset of 'ByClosure', so check for
         // closure arguments too.
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       }
 
       case PolymorphicEffectKind::Always:
         if (polyKind == PolymorphicEffectKind::ByConformance ||
             polyKind == PolymorphicEffectKind::AsyncSequenceRethrows) {
-          LLVM_FALLTHROUGH;
+          TOOLCHAIN_FALLTHROUGH;
+        } else if (kind == EffectKind::Unsafe) {
+          // For explicitly @unsafe functions, the entire call is considered
+          // unsafe.
+          AbstractFunctionDecl *calleeDecl =
+            fnRef.getKind() == AbstractFunction::Function
+              ? fnRef.getFunction()
+              : nullptr;
+
+          result.merge(
+              Classification::forUnsafe(
+                {
+                  UnsafeUse::forReferenceToUnsafe(
+                    calleeDecl, true, fnRef.getType(), call->getLoc())
+                }
+              ));
+          return;
         } else if (RethrowsDC &&
             fnRef.getKind() == AbstractFunction::Function &&
             isRethrowLikeTypedThrows(fnRef.getFunction())) {
@@ -1697,7 +1804,7 @@ public:
           // to is a rethrow-like function using typed throws or we are
           // calling the next() or next(isolation:) of an async iterator,
           // then look at all of the closure arguments.
-          LLVM_FALLTHROUGH;
+          TOOLCHAIN_FALLTHROUGH;
         } else {
           // Mitigation for a historic incorrect type-checker behavior
           // caused by one of the performance hacks that used to favor
@@ -1709,7 +1816,7 @@ public:
           //   init(_: Int) async {}
           // }
           //
-          // func test(v: Int) async { S(v) }
+          // fn test(v: Int) async { S(v) }
           //
           // The type-checker should use `init(_: Int) async` in `test` context
           // but used to select the sync overload. The hack is now gone but we
@@ -1717,7 +1824,7 @@ public:
           // to fix their code.
           if (kind == EffectKind::Async &&
               fnRef.getKind() == AbstractFunction::Function) {
-            if (auto *ctor = dyn_cast<ConstructorRefCallExpr>(E->getFn())) {
+            if (auto *ctor = dyn_cast<ConstructorRefCallExpr>(call->getFn())) {
               if (ctor->getFn()->isImplicit() && args->isUnlabeledUnary())
                 result.setDowngradeToWarning(true);
             }
@@ -1736,10 +1843,17 @@ public:
           return;
         }
 
+        // Can end up with an optional type when dynamically dispatching to
+        // @objc.
+        if (auto optFnType = fnInterfaceType->getOptionalObjectType())
+          fnInterfaceType = optFnType;
+
         // Use the most significant result from the arguments.
         FunctionType *fnSubstType = nullptr;
         if (auto *fnGenericType = fnInterfaceType->getAs<GenericFunctionType>())
           fnSubstType = fnGenericType->substGenericArgs(fnRef.getSubstitutions());
+        else if (fnRef.getSubstitutions())
+          fnSubstType = fnInterfaceType.subst(fnRef.getSubstitutions())->getAs<FunctionType>();
         else
           fnSubstType = fnInterfaceType->getAs<FunctionType>();
 
@@ -1753,10 +1867,17 @@ public:
           return;
         }
 
+        AbstractFunctionDecl *calleeDecl =
+          fnRef.getKind() == AbstractFunction::Function
+            ? fnRef.getFunction()
+            : nullptr;
+
         for (unsigned i = 0, e = args->size(); i < e; ++i) {
           Type origParamType = fnRef.getOrigParamInterfaceType(i);
           auto argClassification = classifyArgument(
-              args->getExpr(i), origParamType, fnRef.getSubstitutions(), kind);
+              call, calleeDecl, args->getLabel(i), i,
+              args->getExpr(i), origParamType, fnRef.getSubstitutions(),
+              kind);
 
           // Rethrows is untyped, so adjust the thrown error type.
           if (kind == EffectKind::Throws &&
@@ -1765,6 +1886,17 @@ public:
           }
 
           result.merge(argClassification);
+        }
+
+        // The only effect on "self" is unsafe, so check that.
+        if (kind == EffectKind::Unsafe) {
+          if (auto appliedSelf = fnRef.getAppliedSelf()) {
+            Type origParamType = fnRef.getOrigParamSelfType();
+            auto selfClassification = classifyArgument(
+                call, calleeDecl, ctx.Id_self, 0, appliedSelf->getBase(),
+                origParamType, fnRef.getSubstitutions(), kind);
+            result.merge(selfClassification);
+          }
         }
 
         return;
@@ -1795,7 +1927,7 @@ public:
                          PotentialEffectReason::forApply()));
           break;
         case EffectKind::Unsafe:
-          llvm_unreachable("@unsafe isn't handled in applies");
+          toolchain_unreachable("@unsafe isn't handled in applies");
         }
       } else {
         result.merge(
@@ -1807,6 +1939,13 @@ public:
 
     classifyApplyEffect(EffectKind::Throws);
     classifyApplyEffect(EffectKind::Async);
+
+    // If the safety of the callee is unspecified, check the safety of the
+    // arguments specifically.
+    if (hasUnspecifiedSafety &&
+        !(assumedSafeArguments && assumedSafeArguments->contains(call))) {
+      classifyApplyEffect(EffectKind::Unsafe);
+    }
 
     return result;
   }
@@ -1831,7 +1970,7 @@ public:
       expr->walk(classifier);
       return classifier.classification;
     }
-    llvm_unreachable("Bad effect");
+    toolchain_unreachable("Bad effect");
   }
 
   // Classify a single statement without considering its enclosing context.
@@ -1850,7 +1989,7 @@ public:
     }
 
     case EffectKind::Unsafe:
-      llvm_unreachable("Unimplemented");
+      toolchain_unreachable("Unimplemented");
     }
   }
 
@@ -1896,8 +2035,8 @@ public:
     // Runtime safety checks for temporarily-escapable functions aren't
     // always available.
     switch (fnType->getRepresentation()) {
-    case FunctionTypeRepresentation::Swift:
-      // Swift performs runtime checking to ensure that the function did not
+    case FunctionTypeRepresentation::Codira:
+      // Codira performs runtime checking to ensure that the function did not
       // escape.
       return Classification();
 
@@ -1934,7 +2073,7 @@ private:
     case AbstractFunction::Closure:
       return classifyFunctionBody(fn.getClosure(), reason, kind);
     }
-    llvm_unreachable("bad abstract function kind");
+    toolchain_unreachable("bad abstract function kind");
   }
 
   Classification classifyParameterBody(ParamDecl *param,
@@ -1996,7 +2135,8 @@ private:
         conditional = ConditionalEffectKind::Conditional;
 
       return Classification::forDeclRef(
-          ConcreteDeclRef(fn, subs), conditional, reason, fn->getLoc())
+          ConcreteDeclRef(fn, subs), conditional, reason, fn->getLoc(),
+          /*ignoreUnsafeType=*/false)
             .onlyEffect(kind);
     }
 
@@ -2024,7 +2164,7 @@ private:
                                            reason);
         return Classification();
       case EffectKind::Unsafe:
-        llvm_unreachable("@unsafe isn't handled in applies");
+        toolchain_unreachable("@unsafe isn't handled in applies");
       }
     }
 
@@ -2089,7 +2229,8 @@ private:
       if (isEvaluated) {
         classification.merge(
             Self.classifyDeclRef(
-              declRef, loc, isImplicitlyAsync, isImplicitlyThrows
+              declRef, loc, isImplicitlyAsync, isImplicitlyThrows,
+              /*ignoreUnsafeType=*/true
             ).onlyThrowing());
       }
 
@@ -2137,10 +2278,14 @@ private:
       return ShouldRecurse;
     }
 
+    ShouldRecurse_t checkObjCSelector(ObjCSelectorExpr *E) {
+      return ShouldNotRecurse;
+    }
+        
     ConditionalEffectKind checkExhaustiveDoBody(DoCatchStmt *S) {
       // All errors thrown by the do body are caught, but any errors thrown
       // by the catch bodies are bounded by the throwing kind of the do body.
-      llvm::SaveAndRestore<Classification> savedClassification(
+      toolchain::SaveAndRestore<Classification> savedClassification(
           classification, Classification());
       S->getBody()->walk(*this);
       return classification.getConditionalKind(EffectKind::Throws);
@@ -2286,13 +2431,17 @@ private:
       return ShouldRecurse;
     }
 
+    ShouldRecurse_t checkObjCSelector(ObjCSelectorExpr *E) {
+      return ShouldNotRecurse;
+    }
+
     void visitExprPre(Expr *expr) { return; }
   };
 
   class FunctionUnsafeClassifier
       : public EffectsHandlingWalker<FunctionUnsafeClassifier> {
     ApplyClassifier &Self;
-    llvm::DenseSet<const Expr *> assumedSafeArguments;
+    toolchain::DenseSet<const Expr *> assumedSafeArguments;
   public:
     bool IsInvalid = false;
     Classification classification;
@@ -2312,7 +2461,7 @@ private:
       return ShouldRecurse;
     }
     ShouldRecurse_t checkUnsafe(UnsafeExpr *E) {
-      return E->isImplicit() ? ShouldRecurse : ShouldNotRecurse;
+      return ShouldNotRecurse;
     }
     ShouldRecurse_t checkTry(TryExpr *E) {
       return ShouldRecurse;
@@ -2338,10 +2487,10 @@ private:
                                  bool isEvaluated,
                                  bool isImplicitlyAsync,
                                  bool isImplicitlyThrows) {
-      if (!assumedSafeArguments.contains(expr)) {
-        classification.merge(
-            Self.classifyDeclRef(declRef, loc, false, false).onlyUnsafe());
-      }
+      classification.merge(
+          Self.classifyDeclRef(declRef, loc, false, false,
+                               assumedSafeArguments.contains(expr))
+            .onlyUnsafe());
 
       return ShouldRecurse;
     }
@@ -2372,23 +2521,18 @@ private:
     }
 
     ShouldRecurse_t checkWithSubstitutionMap(Expr *E, SubstitutionMap subs) {
-      if (!assumedSafeArguments.contains(E)) {
-        classification.merge(
-            Classification::forSubstitutionMap(subs, E->getLoc())
-              .onlyUnsafe());
-      }
-
+      classification.merge(
+          Classification::forSubstitutionMap(subs, E->getLoc())
+            .onlyUnsafe());
       return ShouldRecurse;
     }
 
     ShouldRecurse_t checkWithConformances(
         Expr *E,
         ArrayRef<ProtocolConformanceRef> conformances) {
-      if (!assumedSafeArguments.contains(E)) {
-        classification.merge(
-            Classification::forConformances(conformances, E->getLoc())
-              .onlyUnsafe());
-      }
+      classification.merge(
+          Classification::forConformances(conformances, E->getLoc())
+            .onlyUnsafe());
 
       return ShouldRecurse;
     }
@@ -2406,6 +2550,10 @@ private:
     ShouldRecurse_t checkTemporarilyEscapable(MakeTemporarilyEscapableExpr *E) {
       classification.merge(Self.classifyTemporarilyEscapable(E));
       return ShouldRecurse;
+    }
+
+    ShouldRecurse_t checkObjCSelector(ObjCSelectorExpr *E) {
+      return ShouldNotRecurse;
     }
 
     void visitExprPre(Expr *expr) { return; }
@@ -2451,13 +2599,13 @@ private:
       break;
     }
     case EffectKind::Unsafe:
-      llvm_unreachable("Never propagate unsafe through function bodies");
+      toolchain_unreachable("Never propagate unsafe through function bodies");
     }
 
     // The body result cannot be 'none' unless it's an autoclosure.
     // FIXME: This actually allows us to accept always-throwing closures
     // within rethrows functions, which is tracked by SR-680
-    // (https://bugs.swift.org/browse/SR-680). That can be fixed by adding
+    // (https://bugs.code.org/browse/SR-680). That can be fixed by adding
     // the following condition:
     // \code
     // result.getConditionalKind(kind) == ConditionalEffectKind::None
@@ -2471,19 +2619,65 @@ private:
     return result;
   }
 
+  /// Determine whether the given expression represents "nil" or
+  /// Optional<T>.none.
+  static bool isNilOrNone(Expr *arg) {
+    // If this argument is `nil` literal, it doesn't cause the call to throw.
+    if (isa<NilLiteralExpr>(arg)) {
+      return !arg->getType()->getOptionalObjectType().isNull();
+    }
+
+    // Neither does 'Optional<T>.none'.
+    if (auto *DSCE = dyn_cast<DotSyntaxCallExpr>(arg)) {
+      if (auto *DE = dyn_cast<DeclRefExpr>(DSCE->getFn())) {
+        auto &ctx = DE->getType()->getASTContext();
+        return DE->getDecl() == ctx.getOptionalNoneDecl();
+      }
+
+      return false;
+    }
+
+    return false;
+  }
+
   /// Classify an argument being passed to a rethrows/reasync function.
   Classification classifyArgument(
-      Expr *arg, Type paramType, SubstitutionMap subs, EffectKind kind) {
+      Expr *call, const Decl* calleeDecl, Identifier argName,
+      unsigned argIndex, Expr *arg, Type paramType, SubstitutionMap subs,
+      EffectKind kind) {
+    // Check for an unsafe argument.
+    if (kind == EffectKind::Unsafe) {
+      if (arg->getType()->isUnsafe()) {
+        // Dig out the underlying argument for special case checks.
+        Expr *underlyingArg = arg;
+        if (auto *defaultArg = dyn_cast<DefaultArgumentExpr>(arg)) {
+          if (defaultArg->isCallerSide()) {
+            underlyingArg = defaultArg->getCallerSideDefaultExpr();
+          }
+        }
+
+        // nil / Optional<T>.none values cannot introduce safety issues because
+        // they don't reference anything.
+        if (isNilOrNone(underlyingArg))
+          return Classification();
+
+        return Classification::forUnsafe({
+          UnsafeUse::forCallArgument(call, calleeDecl, paramType, argName,
+                                     argIndex, arg)
+        });
+      }
+
+      return Classification();
+    }
+
     arg = arg->getValueProvidingExpr();
 
     if (auto *defaultArg = dyn_cast<DefaultArgumentExpr>(arg)) {
       // Special-case a 'nil' default argument, which is known not to throw.
       if (defaultArg->isCallerSide()) {
         auto *callerSideArg = defaultArg->getCallerSideDefaultExpr();
-        if (isa<NilLiteralExpr>(callerSideArg)) {
-          if (callerSideArg->getType()->getOptionalObjectType())
-            return Classification();
-        }
+        if (isNilOrNone(callerSideArg))
+          return Classification();
       }
 
       return classifyArgumentByType(arg->getType(), subs,
@@ -2492,26 +2686,17 @@ private:
                                     kind);
     }
 
-    // If this argument is `nil` literal, it doesn't cause the call to throw.
-    if (isa<NilLiteralExpr>(arg)) {
-      if (arg->getType()->getOptionalObjectType())
-        return Classification();
-    }
-
-    // Neither does 'Optional<T>.none'.
-    if (auto *DSCE = dyn_cast<DotSyntaxCallExpr>(arg)) {
-      if (auto *DE = dyn_cast<DeclRefExpr>(DSCE->getFn())) {
-        auto &ctx = paramType->getASTContext();
-        if (DE->getDecl() == ctx.getOptionalNoneDecl())
-          return Classification();
-      }
-    }
+    // If this argument is `nil` literal or Optional<T>.none, it does not
+    // have any effects.
+    if (isNilOrNone(arg))
+      return Classification();
 
     // If the parameter was structurally a tuple, try to look through the
     // various tuple operations.
     if (auto paramTupleType = dyn_cast<TupleType>(paramType.getPointer())) {
       if (auto tuple = dyn_cast<TupleExpr>(arg)) {
-        return classifyTupleArgument(tuple, paramTupleType, subs, kind);
+        return classifyTupleArgument(call, calleeDecl, argName, argIndex,
+                                     tuple, paramTupleType, subs, kind);
       }
 
       if (paramTupleType->getNumElements() != 1) {
@@ -2544,7 +2729,8 @@ private:
 
     // Decompose the function reference, then consider the type
     // of the decomposed function.
-    AbstractFunction fn = AbstractFunction::decomposeFunction(arg);
+    AbstractFunction fn = AbstractFunction::decomposeFunction(
+        arg, /*appliedSelf=*/nullptr, /*calleeFn=*/nullptr);
 
     // If it doesn't have function type, we must have invalid code.
     Type argType = fn.getType();
@@ -2563,7 +2749,11 @@ private:
   }
 
   /// Classify an argument to a rethrows/reasync function that's a tuple literal.
-  Classification classifyTupleArgument(TupleExpr *tuple,
+  Classification classifyTupleArgument(Expr *call,
+                                       const Decl* calleeDecl,
+                                       Identifier argName,
+                                       unsigned argIndex,
+                                       TupleExpr *tuple,
                                        TupleType *paramTupleType,
                                        SubstitutionMap subs,
                                        EffectKind kind) {
@@ -2572,7 +2762,8 @@ private:
 
     Classification result;
     for (unsigned i : indices(tuple->getElements())) {
-      result.merge(classifyArgument(tuple->getElement(i),
+      result.merge(classifyArgument(call, calleeDecl, argName, argIndex,
+                                    tuple->getElement(i),
                                     paramTupleType->getElementType(i),
                                     subs, kind));
     }
@@ -2613,7 +2804,7 @@ private:
       }
 
       case EffectKind::Unsafe:
-        llvm_unreachable("@unsafe isn't handled in applies");
+        toolchain_unreachable("@unsafe isn't handled in applies");
       }
     }
 
@@ -2764,7 +2955,7 @@ public:
       return false;
     }
 
-    llvm_unreachable("Bad polymorphic effect kind");
+    toolchain_unreachable("Bad polymorphic effect kind");
   }
 
   /// Whether this is an autoclosure.
@@ -2876,6 +3067,13 @@ public:
     return copy;
   }
 
+  /// Form a subcontext that handles all async calls.
+  Context withHandlesAsync() const {
+    Context copy = *this;
+    copy.HandlesAsync = true;
+    return copy;
+  }
+
   Kind getKind() const { return TheKind; }
 
   DeclContext *getDeclContext() const { return DC; }
@@ -2894,7 +3092,7 @@ public:
     case ConditionalEffectKind::Always:
       return HandlesErrors && !hasPolymorphicEffect(EffectKind::Throws);
     }
-    llvm_unreachable("bad error kind");
+    toolchain_unreachable("bad error kind");
   }
 
   bool handlesAsync(ConditionalEffectKind errorKind) const {
@@ -2911,7 +3109,7 @@ public:
     case ConditionalEffectKind::Always:
       return HandlesAsync && !hasPolymorphicEffect(EffectKind::Async);
     }
-    llvm_unreachable("bad error kind");
+    toolchain_unreachable("bad error kind");
   }
 
   DeclContext *getPolymorphicEffectDeclContext(EffectKind kind) const {
@@ -2949,7 +3147,7 @@ public:
       Diags.diagnose(loc, diag::because_rethrows_conformance_throws);
       return;
     }
-    llvm_unreachable("bad reason kind");
+    toolchain_unreachable("bad reason kind");
   }
 
   /// get a user-friendly name for the source of the effect
@@ -3014,12 +3212,12 @@ public:
     }
 
     Diags.diagnose(loc, message).highlight(highlight)
-      .warnUntilSwiftVersionIf(classification.shouldDowngradeToWarning(), 6);
+      .warnUntilCodiraVersionIf(classification.shouldDowngradeToWarning(), 6);
     maybeAddRethrowsNote(Diags, loc, reason);
 
     // If this is a call without expected 'try[?|!]', like this:
     //
-    // func foo() throws {}
+    // fn foo() throws {}
     // [let _ = ]foo()
     //
     // Let's suggest couple of alternative fix-its
@@ -3110,7 +3308,7 @@ public:
                  static_cast<unsigned>(getKind()), getEffectSourceName(reason));
       return;
     }
-    llvm_unreachable("bad context kind");
+    toolchain_unreachable("bad context kind");
   }
 
   void diagnoseUnhandledThrowStmt(DiagnosticEngine &Diags, Stmt *S) {
@@ -3147,7 +3345,7 @@ public:
                      static_cast<unsigned>(getKind()));
       return;
     }
-    llvm_unreachable("bad context kind");
+    toolchain_unreachable("bad context kind");
   }
 
   void diagnoseUnhandledTry(DiagnosticEngine &Diags, TryExpr *E) {
@@ -3174,7 +3372,7 @@ public:
       // Diagnosed at the call sites.
       return;
     }
-    llvm_unreachable("bad context kind");
+    toolchain_unreachable("bad context kind");
   }
   /// I did not want to add 'await' as a PotentialEffectReason, since it's
   /// not actually an effect. So, we have this odd boolean hanging around.
@@ -3242,8 +3440,8 @@ public:
     if (!Function)
       return;
 
-    if (auto func = Function->getAbstractFunctionDecl())
-      addAsyncNotes(func);
+    if (auto fn = Function->getAbstractFunctionDecl())
+      addAsyncNotes(fn);
   }
 
   /// providing a \c kind helps tailor the emitted message.
@@ -3289,7 +3487,7 @@ public:
 
 /// ASTGen helper function to look for a "try" or "throw" in inactive code
 /// within the given source file.
-extern "C" bool swift_ASTGen_inactiveCodeContainsTryOrThrow(
+extern "C" bool language_ASTGen_inactiveCodeContainsTryOrThrow(
     BridgedASTContext ctx,
     BridgedStringRef sourceFileBuffer,
     BridgedStringRef searchRange
@@ -3427,24 +3625,24 @@ class CheckEffectsCoverage : public EffectsHandlingWalker<CheckEffectsCoverage> 
   };
 
   SmallVector<Expr *, 4> errorOrder;
-  llvm::DenseMap<Expr *, std::vector<DiagnosticInfo>> uncoveredAsync;
-  llvm::DenseMap<Expr *, Expr *> parentMap;
+  toolchain::DenseMap<Expr *, std::vector<DiagnosticInfo>> uncoveredAsync;
+  toolchain::DenseMap<Expr *, Expr *> parentMap;
 
   /// The next/nextElement call expressions within for-in statements we've
   /// seen.
-  llvm::SmallDenseSet<const Expr *> forEachNextCallExprs;
+  toolchain::SmallDenseSet<const Expr *> forEachNextCallExprs;
   
   /// Expressions that are assumed to be safe because they are being
   /// passed directly into an explicitly `@safe` function.
-  llvm::DenseSet<const Expr *> assumedSafeArguments;
+  toolchain::DenseSet<const Expr *> assumedSafeArguments;
 
   /// Keeps track of the expressions that were synthesized as initializers for
   /// the "if let x" shorthand syntax.
-  llvm::SmallPtrSet<const Expr *, 4> synthesizedIfLetInitializers;
+  toolchain::SmallPtrSet<const Expr *, 4> synthesizedIfLetInitializers;
 
   /// Tracks all of the uncovered uses of unsafe constructs based on their
   /// anchor expression, so we can emit diagnostics at the end.
-  llvm::MapVector<Expr *, std::vector<UnsafeUse>> uncoveredUnsafeUses;
+  toolchain::MapVector<Expr *, std::vector<UnsafeUse>> uncoveredUnsafeUses;
 
   static bool isEffectAnchor(Expr *e, bool stopAtAutoClosure) {
     if (e->getLoc().isInvalid())
@@ -3460,10 +3658,10 @@ class CheckEffectsCoverage : public EffectsHandlingWalker<CheckEffectsCoverage> 
   }
 
   /// Find the top location where we should put the await
-  static Expr *walkToAnchor(Expr *e, llvm::DenseMap<Expr *, Expr *> &parentMap,
-                            bool isInterpolatedString,
-                            bool stopAtAutoClosure) {
-    llvm::SmallPtrSet<Expr *, 4> visited;
+  Expr *walkToAnchor(Expr *e, toolchain::DenseMap<Expr *, Expr *> &parentMap,
+                     InterpolatedStringLiteralExpr *interpolatedString,
+                     bool stopAtAutoClosure, EffectKind effect) {
+    toolchain::SmallPtrSet<Expr *, 4> visited;
     Expr *parent = e;
     Expr *lastParent = e;
     while (parent && !isEffectAnchor(parent, stopAtAutoClosure)) {
@@ -3477,8 +3675,20 @@ class CheckEffectsCoverage : public EffectsHandlingWalker<CheckEffectsCoverage> 
     if (parent && !isAnchorTooEarly(parent)) {
       return parent;
     }
-    if (isInterpolatedString) {
+    if (interpolatedString) {
       assert(parent == nullptr && "Expected to be at top of expression");
+
+      // If the last parent we found is a call to appendInterpolation, adjust
+      // the anchor location to the interpolated string itself.
+      if (effect == EffectKind::Unsafe) {
+        if (auto callExpr = dyn_cast<CallExpr>(lastParent)) {
+          if (auto calleeDecl = callExpr->getCalledValue()) {
+            if (calleeDecl->getName().matchesRef(Ctx.Id_appendInterpolation))
+              return interpolatedString;
+          }
+        }
+      }
+
       if (ArgumentList *args = lastParent->getArgs()) {
         if (Expr *unaryArg = args->getUnlabeledUnaryExpr())
           return unaryArg;
@@ -3544,6 +3754,12 @@ class CheckEffectsCoverage : public EffectsHandlingWalker<CheckEffectsCoverage> 
 
     void enterAsyncLet() {
       Self.Flags.set(ContextFlags::InAsyncLet);
+    }
+
+    /// Enter a subexpression that's never exected.
+    void enterNonExecuting() {
+      Self.Flags.set(ContextFlags::IsTryCovered);
+      Self.Flags.set(ContextFlags::IsAsyncCovered);
     }
 
     void refineLocalContext(Context newContext) {
@@ -3651,6 +3867,13 @@ class CheckEffectsCoverage : public EffectsHandlingWalker<CheckEffectsCoverage> 
     void preserveCoverageFromTryOperand() {
       OldFlags.mergeFrom(ContextFlags::HasAnyThrowSite, Self.Flags);
       OldFlags.mergeFrom(ContextFlags::asyncAwaitFlags(), Self.Flags);
+      OldFlags.mergeFrom(ContextFlags::unsafeFlags(), Self.Flags);
+      OldMaxThrowingKind = std::max(OldMaxThrowingKind, Self.MaxThrowingKind);
+    }
+
+    void preserveCoverageFromNonExecutingOperand() {
+      OldFlags.mergeFrom(ContextFlags::asyncAwaitFlags(), Self.Flags);
+      OldFlags.mergeFrom(ContextFlags::throwFlags(), Self.Flags);
       OldFlags.mergeFrom(ContextFlags::unsafeFlags(), Self.Flags);
       OldMaxThrowingKind = std::max(OldMaxThrowingKind, Self.MaxThrowingKind);
     }
@@ -3822,11 +4045,6 @@ private:
     auto classification = Classification::forSubstitutionMap(
         subs, E->getLoc());
 
-    // If this expression is covered as a safe argument, drop the unsafe
-    // classification.
-    if (assumedSafeArguments.contains(E))
-      classification = classification.withoutUnsafe();
-
     checkEffectSite(E, /*requiresTry=*/false, classification);
     return ShouldRecurse;
   }
@@ -3836,11 +4054,6 @@ private:
       ArrayRef<ProtocolConformanceRef> conformances) {
     auto classification = Classification::forConformances(
         conformances, E->getLoc());
-
-    // If this expression is covered as a safe argument, drop the unsafe
-    // classification.
-    if (assumedSafeArguments.contains(E))
-      classification = classification.withoutUnsafe();
 
     checkEffectSite(E, /*requiresTry=*/false, classification);
     return ShouldRecurse;
@@ -3864,6 +4077,17 @@ private:
         classifyTemporarilyEscapable(E);
     checkEffectSite(E, /*requiresTry=*/false, classification);
     return ShouldRecurse;
+  }
+
+  ShouldRecurse_t checkObjCSelector(ObjCSelectorExpr *E) {
+    // Walk the operand.
+    ContextScope scope(*this, CurContext.withHandlesAsync());
+    scope.enterNonExecuting();
+
+    E->getSubExpr()->walk(*this);
+
+    scope.preserveCoverageFromNonExecutingOperand();
+    return ShouldNotRecurse;
   }
 
   ConditionalEffectKind checkExhaustiveDoBody(DoCatchStmt *S) {
@@ -3907,7 +4131,7 @@ private:
   /// Determine whether the inactive code within the given body range
   /// contains a "try" or a "throw".
   bool inactiveCodeContainsTryOrThrow(SourceRange bodyRange) {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
     SourceManager &sourceMgr = Ctx.SourceMgr;
     auto bufferID = sourceMgr.findBufferContainingLoc(bodyRange.Start);
     StringRef sourceFileText = sourceMgr.getEntireTextForBuffer(bufferID);
@@ -3917,7 +4141,7 @@ private:
         sourceMgr, bodyRange);
     StringRef searchText = sourceMgr.extractText(searchTextCharRange, bufferID);
 
-    return swift_ASTGen_inactiveCodeContainsTryOrThrow(
+    return language_ASTGen_inactiveCodeContainsTryOrThrow(
         Ctx, sourceFileText, searchText);
 #else
     return false;
@@ -4029,14 +4253,11 @@ private:
                                bool isImplicitlyAsync,
                                bool isImplicitlyThrows) {
     if (auto classification = getApplyClassifier().classifyDeclRef(
-          declRef, loc, isImplicitlyAsync, isImplicitlyThrows)) {
+          declRef, loc, isImplicitlyAsync, isImplicitlyThrows,
+          assumedSafeArguments.contains(expr))) {
       // If we aren't evaluating the reference, we only care about 'unsafe'.
       if (!isEvaluated)
         classification = classification.onlyUnsafe();
-
-      // If we're treating this expression as a safe argument, drop 'unsafe'.
-      if (assumedSafeArguments.contains(expr))
-        classification = classification.withoutUnsafe();
 
       auto throwDest = checkEffectSite(
           expr, classification.hasThrows(), classification);
@@ -4126,8 +4347,9 @@ private:
                  Flags.has(ContextFlags::InAsyncLet))) {
         Expr *expr = E.dyn_cast<Expr*>();
         Expr *anchor = walkToAnchor(expr, parentMap,
-                                    CurContext.isWithinInterpolatedString(),
-                                    /*stopAtAutoClosure=*/true);
+                                    CurContext.getInterpolatedString(),
+                                    /*stopAtAutoClosure=*/true,
+                                    EffectKind::Async);
         if (Flags.has(ContextFlags::StmtExprCoversAwait))
           classification.setDowngradeToWarning(true);
         if (uncoveredAsync.find(anchor) == uncoveredAsync.end())
@@ -4152,8 +4374,9 @@ private:
       if (!Flags.has(ContextFlags::IsUnsafeCovered)) {
         Expr *expr = E.dyn_cast<Expr*>();
         Expr *anchor = walkToAnchor(expr, parentMap,
-                                    CurContext.isWithinInterpolatedString(),
-                                    /*stopAtAutoClosure=*/false);
+                                    CurContext.getInterpolatedString(),
+                                    /*stopAtAutoClosure=*/false,
+                                    EffectKind::Unsafe);
 
         // We don't diagnose uncovered unsafe uses within the next/nextElement
         // call, because they're handled already by the for-in loop checking.
@@ -4396,16 +4619,17 @@ private:
     // Unsafety in the next/nextElement call is covered by an "unsafe" effect.
     if (classification.hasUnsafe()) {
       // If there is no such effect, complain.
-      if (S->getUnsafeLoc().isInvalid()) {
+      if (S->getUnsafeLoc().isInvalid() &&
+          Ctx.LangOpts.hasFeature(Feature::StrictMemorySafety,
+                                  /*allowMigration=*/true)) {
         auto insertionLoc = S->getPattern()->getStartLoc();
         Ctx.Diags.diagnose(S->getForLoc(), diag::for_unsafe_without_unsafe)
           .fixItInsert(insertionLoc, "unsafe ");
+
+        for (const auto &unsafeUse : classification.getUnsafeUses()) {
+          diagnoseUnsafeUse(unsafeUse);
+        }
       }
-    } else if (S->getUnsafeLoc().isValid() &&
-               Ctx.LangOpts.hasFeature(Feature::StrictMemorySafety)) {
-      // Extraneous "unsafe" on the sequence.
-      Ctx.Diags.diagnose(S->getUnsafeLoc(), diag::no_unsafe_in_unsafe_for)
-        .fixItRemove(S->getUnsafeLoc());
     }
 
     return ShouldRecurse;
@@ -4447,19 +4671,35 @@ private:
   }
 
   void diagnoseRedundantUnsafe(UnsafeExpr *E) const {
-    if (!Ctx.LangOpts.hasFeature(Feature::StrictMemorySafety))
+    // Ignore implicitly-generated "unsafe" expressions; they're allowed to be
+    // overly conservative.
+    if (E->isImplicit())
       return;
+
+    SourceLoc loc = E->getUnsafeLoc();
+    if (loc.isValid()) {
+      // Silence this warning in the expansion of the _CodiraifyImport macro.
+      // This is a hack because it's tricky to determine when to insert "unsafe".
+      unsigned bufferID = Ctx.SourceMgr.findBufferContainingLoc(loc);
+      if (auto sourceInfo = Ctx.SourceMgr.getGeneratedSourceInfo(bufferID)) {
+        if (sourceInfo->macroName == "_CodiraifyImport")
+          return;
+      }
+    }
 
     if (auto *SVE = SingleValueStmtExpr::tryDigOutSingleValueStmtExpr(E)) {
       // For an if/switch expression, produce a tailored warning.
-      Ctx.Diags.diagnose(E->getUnsafeLoc(),
+      Ctx.Diags.diagnose(loc,
                          diag::effect_marker_on_single_value_stmt,
                          "unsafe", SVE->getStmt()->getKind())
         .highlight(E->getUnsafeLoc());
       return;
     }
 
-    Ctx.Diags.diagnose(E->getUnsafeLoc(), diag::no_unsafe_in_unsafe)
+    Ctx.Diags.diagnose(E->getUnsafeLoc(),
+                       forEachNextCallExprs.contains(E)
+                           ? diag::no_unsafe_in_unsafe_for
+                           : diag::no_unsafe_in_unsafe)
       .fixItRemove(E->getUnsafeLoc());
   }
 
@@ -4549,13 +4789,19 @@ private:
       return;
     const auto &errors = asyncPointIter->getSecond();
     const auto &[loc, insertText] = getFixItForUncoveredSite(anchor, "await");
-    bool downgradeToWarning = llvm::all_of(errors,
+    bool downgradeToWarning = toolchain::all_of(errors,
         [&](DiagnosticInfo diag) -> bool {
           return diag.downgradeToWarning;
         });
 
+    // If there is a single problem, let's attempt to produce a tailed
+    // diagnostic about accessing isolated values outside of their actors.
+    if (errors.size() == 1 &&
+        diagnoseAccessOutsideOfIsolationContext(anchor, errors.front()))
+      return;
+
     Ctx.Diags.diagnose(anchor->getStartLoc(), diag::async_expr_without_await)
-      .warnUntilSwiftVersionIf(downgradeToWarning, 6)
+      .warnUntilCodiraVersionIf(downgradeToWarning, 6)
       .fixItInsert(loc, insertText)
       .highlight(anchor->getSourceRange());
 
@@ -4571,7 +4817,7 @@ private:
               }
             }
           }
-          LLVM_FALLTHROUGH; // fallthrough to a message about PropertyAccess
+          TOOLCHAIN_FALLTHROUGH; // fallthrough to a message about PropertyAccess
         case PotentialEffectReason::Kind::PropertyAccess:
           Ctx.Diags.diagnose(diag.expr.getStartLoc(),
                              diag::async_access_without_await, 1);
@@ -4636,12 +4882,84 @@ private:
     }
   }
 
+  /// Check whether the given error points to an attempt to access
+  /// an isolated value or call an isolated function from outside
+  /// its actor and diagnose if so.
+  /// \returns true if problem was diagnosed, false otherwise.
+  bool diagnoseAccessOutsideOfIsolationContext(
+      const Expr *anchor, const DiagnosticInfo &errorInfo) const {
+    auto diagnoseAccessOutsideOfActor = [&](SourceLoc loc,
+                                            ConcreteDeclRef declRef,
+                                            bool isCall = false) {
+      auto declIsolation = getActorIsolation(declRef.getDecl());
+
+      // If the access is to a unspecified/nonisolated value, let's diagnose
+      // it with a generic error/warning about expression being `async`.
+      if (declIsolation.isUnspecified() || declIsolation.isNonisolated())
+        return false;
+
+      const auto &[fixItLoc, insertText] =
+          getFixItForUncoveredSite(anchor, "await");
+
+      Ctx.Diags
+          .diagnose(loc, diag::actor_isolated_access_outside_of_actor_context,
+                    declIsolation, declRef.getDecl(), isCall)
+          .warnUntilCodiraVersionIf(errorInfo.downgradeToWarning, 6)
+          .fixItInsert(fixItLoc, insertText)
+          .highlight(anchor->getSourceRange());
+      return true;
+    };
+
+    switch (errorInfo.reason.getKind()) {
+    case PotentialEffectReason::Kind::AsyncLet:
+    case PotentialEffectReason::Kind::PropertyAccess:
+    case PotentialEffectReason::Kind::SubscriptAccess:
+      if (auto *declRef = dyn_cast<DeclRefExpr>(&errorInfo.expr)) {
+        return diagnoseAccessOutsideOfActor(declRef->getLoc(),
+                                            declRef->getDecl());
+      }
+
+      if (auto *memberRef = dyn_cast<MemberRefExpr>(&errorInfo.expr)) {
+        return diagnoseAccessOutsideOfActor(memberRef->getLoc(),
+                                            memberRef->getDecl());
+      }
+
+      if (auto *lookupExpr = dyn_cast<LookupExpr>(&errorInfo.expr)) {
+        return diagnoseAccessOutsideOfActor(lookupExpr->getLoc(),
+                                            lookupExpr->getMember());
+      }
+
+      break;
+
+    case PotentialEffectReason::Kind::Apply: {
+      auto *call = dyn_cast<ApplyExpr>(&errorInfo.expr);
+      if (call && call->getIsolationCrossing()) {
+        if (auto callee =
+                call->getCalledValue(/*skipFunctionConversions=*/true)) {
+          return diagnoseAccessOutsideOfActor(call->getLoc(), callee,
+                                              /*isCall=*/true);
+        }
+      }
+      break;
+    }
+
+    case PotentialEffectReason::Kind::ByClosure:
+    case PotentialEffectReason::Kind::ByDefaultClosure:
+    case PotentialEffectReason::Kind::ByConformance:
+      break;
+    }
+
+    return false;
+  }
+
   void diagnoseUncoveredUnsafeSite(
       const Expr *anchor, ArrayRef<UnsafeUse> unsafeUses) {
+    if (!Ctx.LangOpts.hasFeature(Feature::StrictMemorySafety, /*allowMigration=*/true))
+      return;
+
     const auto &[loc, insertText] = getFixItForUncoveredSite(anchor, "unsafe");
     Ctx.Diags.diagnose(anchor->getStartLoc(), diag::unsafe_without_unsafe)
-      .fixItInsert(loc, insertText)
-      .highlight(anchor->getSourceRange());
+      .fixItInsert(loc, insertText);
     for (const auto &unsafeUse : unsafeUses) {
       diagnoseUnsafeUse(unsafeUse);
     }
@@ -4655,9 +4973,9 @@ struct LocalFunctionEffectsChecker : ASTWalker {
   }
 
   PreWalkAction walkToDeclPre(Decl *D) override {
-    if (auto func = dyn_cast<AbstractFunctionDecl>(D)) {
-      if (func->getDeclContext()->isLocalContext())
-        TypeChecker::checkFunctionEffects(func);
+    if (auto fn = dyn_cast<AbstractFunctionDecl>(D)) {
+      if (fn->getDeclContext()->isLocalContext())
+        TypeChecker::checkFunctionEffects(fn);
 
       return Action::SkipNode();
     }
@@ -4815,7 +5133,7 @@ Type TypeChecker::catchErrorType(DeclContext *dc, DoCatchStmt *stmt) {
 /// \returns \c true if any of the types is the error existential type, which
 /// means the entire error union is any Error.
 static bool expandErrorUnions(Type type,
-                              llvm::function_ref<Type(Type)> simplifyType,
+                              toolchain::function_ref<Type(Type)> simplifyType,
                               SmallVectorImpl<Type> &terms) {
   // If we have a type variable in the type and a type simplification function,
   // apply it first.
@@ -4843,7 +5161,7 @@ static bool expandErrorUnions(Type type,
 }
 
 Type TypeChecker::errorUnion(Type type1, Type type2,
-                             llvm::function_ref<Type(Type)> simplifyType) {
+                             toolchain::function_ref<Type(Type)> simplifyType) {
   // If one type is NULL, return the other.
   if (!type1)
     return type2;
@@ -4862,7 +5180,7 @@ Type TypeChecker::errorUnion(Type type1, Type type2,
   // If we have more than one term, filter out duplicates and look to see if
   // we have obviously-different types.
   if (terms.size() > 1) {
-    llvm::SmallDenseMap<CanType, Type> knownTypes;
+    toolchain::SmallDenseMap<CanType, Type> knownTypes;
     unsigned distinctConcreteTypes = 0;
     auto newEnd = std::remove_if(terms.begin(), terms.end(),
                                  [&](Type type) -> bool {
@@ -4932,7 +5250,7 @@ static ThrownErrorClassification classifyThrownErrorType(Type type) {
 }
 
 ThrownErrorSubtyping
-swift::compareThrownErrorsForSubtyping(
+language::compareThrownErrorsForSubtyping(
     Type subThrownError, Type superThrownError, DeclContext *dc
 ) {
   // Deal with NULL errors. This should only occur when there is no standard
@@ -4999,7 +5317,7 @@ swift::compareThrownErrorsForSubtyping(
       return ThrownErrorSubtyping::DropsThrows;
 
     case ThrownErrorClassification::AnyError:
-      llvm_unreachable("The thrown error types should have been equal");
+      toolchain_unreachable("The thrown error types should have been equal");
     }
     break;
   }

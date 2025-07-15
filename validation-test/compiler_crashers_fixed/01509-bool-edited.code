@@ -1,0 +1,28 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+// This test was tweaked slightly from the original 1509-bool.code, because an
+// unrelated change happened to avoid the crash.
+ance(x) { this.c]
+var b {
+}
+case ..d<T>, U, (c == {
+return this.h == e? = {
+}
+for c : Sequence where f: C {
+fn b: Int
+}
+}
+}
+protocol a {
+fn b(Any] = "a<T) {
+typealias A : A {

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This pass eliminates 'unknown' access enforcement by selecting either
@@ -54,14 +55,14 @@ static void setStaticEnforcement(BeginAccessInst *access) {
   // TODO: delete if we're not using static enforcement?
   access->setEnforcement(SILAccessEnforcement::Static);
 
-  LLVM_DEBUG(llvm::dbgs() << "Static Access: " << *access);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Static Access: " << *access);
 }
 
 static void setDynamicEnforcement(BeginAccessInst *access) {
   // TODO: delete if we're not using dynamic enforcement?
   access->setEnforcement(SILAccessEnforcement::Dynamic);
 
-  LLVM_DEBUG(llvm::dbgs() << "Dynamic Access: " << *access);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dynamic Access: " << *access);
 }
 
 namespace {
@@ -90,7 +91,7 @@ struct AddressCapture {
   bool isValid() const { return bool(site); }
 };
 
-LLVM_ATTRIBUTE_UNUSED
+TOOLCHAIN_ATTRIBUTE_UNUSED
 raw_ostream &operator<<(raw_ostream &os, const AddressCapture &capture) {
   os << *capture.site.getInstruction() << " captures Arg #"
      << capture.calleeArgIdx;
@@ -114,7 +115,7 @@ raw_ostream &operator<<(raw_ostream &os, const AddressCapture &capture) {
 // care about boxes, because they are always dynamically enforced.
 class DynamicCaptures {
   // This only maps functions that have at least one inout_aliasable argument.
-  llvm::DenseMap<SILFunction *, SmallVector<unsigned, 4>> dynamicCaptureMap;
+  toolchain::DenseMap<SILFunction *, SmallVector<unsigned, 4>> dynamicCaptureMap;
 
   DynamicCaptures(DynamicCaptures &) = delete;
 
@@ -122,7 +123,7 @@ public:
   DynamicCaptures() {}
 
   void recordCapture(AddressCapture capture) {
-    LLVM_DEBUG(llvm::dbgs() << "Dynamic Capture: " << capture);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Dynamic Capture: " << capture);
 
     // *NOTE* For dynamically replaceable local functions, getCalleeFunction()
     // returns nullptr. This assert verifies the assumption that a captured
@@ -132,7 +133,7 @@ public:
     assert(callee && "cannot locate function ref for nonescaping closure");
 
     auto &dynamicArgs = dynamicCaptureMap[callee];
-    if (!llvm::is_contained(dynamicArgs, capture.calleeArgIdx))
+    if (!toolchain::is_contained(dynamicArgs, capture.calleeArgIdx))
       dynamicArgs.push_back(capture.calleeArgIdx);
   }
 
@@ -147,7 +148,7 @@ public:
       return false;
 
     auto &dynamicArgs = pos->second;
-    return llvm::is_contained(dynamicArgs, arg->getIndex());
+    return toolchain::is_contained(dynamicArgs, arg->getIndex());
   }
 };
 } // anonymous namespace
@@ -183,7 +184,7 @@ class SelectEnforcement {
       return updateSuccessors;
     }
   };
-  llvm::DenseMap<SILBasicBlock*, State> StateMap;
+  toolchain::DenseMap<SILBasicBlock*, State> StateMap;
 
   /// All the accesses of Box in the function.
   SmallVector<BeginAccessInst*, 8> Accesses;
@@ -217,7 +218,7 @@ private:
 
   bool hasPotentiallyEscapedAt(SILInstruction *inst);
 
-  typedef llvm::SmallSetVector<SILBasicBlock*, 8> BlockSetVector;
+  typedef toolchain::SmallSetVector<SILBasicBlock*, 8> BlockSetVector;
   void findBlocksAccessedAcross(EndAccessInst *endAccess,
                                 BlockSetVector &blocksAccessedAcross);
   bool hasPotentiallyEscapedAtAnyReachableBlock(
@@ -230,7 +231,7 @@ private:
 } // end anonymous namespace
 
 void SelectEnforcement::run() {
-  LLVM_DEBUG(llvm::dbgs() << "  Box: " << *Box);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Box: " << *Box);
 
   // Set up the data-flow problem.
   analyzeUsesOfBox(Box);
@@ -327,7 +328,7 @@ void SelectEnforcement::analyzeProjection(SingleValueInstruction *projection) {
 }
 
 void SelectEnforcement::noteEscapingUse(SILInstruction *inst) {
-  LLVM_DEBUG(llvm::dbgs() << "    Escape: " << *inst);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Escape: " << *inst);
 
   // Add it to the escapes set.
   Escapes.insert(inst);
@@ -472,11 +473,11 @@ bool SelectEnforcement::hasPotentiallyEscapedAtAnyReachableBlock(
 
 void SelectEnforcement::updateAccesses() {
   for (auto *access : Accesses) {
-    LLVM_DEBUG(llvm::dbgs() << "    Access: " << *access);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Access: " << *access);
     updateAccess(access);
   }
   for (AddressCapture &capture : Captures) {
-    LLVM_DEBUG(llvm::dbgs() << "    Capture: " << capture);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Capture: " << capture);
     updateCapture(capture);
   }
 }
@@ -519,7 +520,7 @@ void SelectEnforcement::updateCapture(AddressCapture capture) {
     return;
   }
   // For partial applies, check all use points of the closure.
-  llvm::SmallSetVector<SingleValueInstruction *, 8> worklist;
+  toolchain::SmallSetVector<SingleValueInstruction *, 8> worklist;
   auto visitUse = [&](Operand *oper) {
     auto *user = oper->getUser();
     if (FullApplySite::isa(user)) {
@@ -562,9 +563,9 @@ void SelectEnforcement::updateCapture(AddressCapture capture) {
       // These are all valid partial_apply users, however we don't expect them
       // to occur with non-escaping closures. Handle them conservatively just in
       // case they occur.
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     default:
-      LLVM_DEBUG(llvm::dbgs() << "    Unrecognized partial_apply user: "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Unrecognized partial_apply user: "
                               << *user);
 
       // Handle unknown uses conservatively by assuming a capture.
@@ -613,7 +614,7 @@ class AccessEnforcementSelection : public SILModuleTransform {
 #ifndef NDEBUG
   // Per-function book-keeping to verify that a box is processed before all of
   // its accesses and captures are seen.
-  llvm::DenseSet<AllocBoxInst *> handledBoxes;
+  toolchain::DenseSet<AllocBoxInst *> handledBoxes;
 #endif
 
 public:
@@ -633,7 +634,7 @@ void AccessEnforcementSelection::run() {
   closureOrder.compute();
 
   dynamicCaptures = std::make_unique<DynamicCaptures>();
-  SWIFT_DEFER { dynamicCaptures.reset(); };
+  LANGUAGE_DEFER { dynamicCaptures.reset(); };
 
   for (SILFunction *function : closureOrder.getTopDownFunctions()) {
     this->processFunction(function);
@@ -645,7 +646,7 @@ processFunction(SILFunction *F) {
   if (F->isExternalDeclaration())
     return;
 
-  LLVM_DEBUG(llvm::dbgs() << "Access Enforcement Selection in " << F->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Access Enforcement Selection in " << F->getName()
                           << "\n");
 
   // Deserialized functions, which have been mandatory inlined, no longer meet
@@ -757,7 +758,7 @@ SourceAccess AccessEnforcementSelection::getSourceAccess(SILValue address) {
       return SourceAccess::getStaticAccess();
 
     default:
-      llvm_unreachable("Expecting an inout argument.");
+      toolchain_unreachable("Expecting an inout argument.");
     }
   }
   // If we're not accessing a box or argument, we must've lowered to a stack
@@ -815,12 +816,12 @@ void AccessEnforcementSelection::handleAccess(BeginAccessInst *access) {
     setDynamicEnforcement(access);
     break;
   case SourceAccess::BoxAccess:
-    llvm_unreachable("All boxes must have already been selected.");
+    toolchain_unreachable("All boxes must have already been selected.");
   }
 }
 
 } // end anonymous namespace
 
-SILTransform *swift::createAccessEnforcementSelection() {
+SILTransform *language::createAccessEnforcementSelection() {
   return new AccessEnforcementSelection();
 }

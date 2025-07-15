@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language
+
+protocol RequiresIntFunction {
+  associatedtype A = ()
+  fn intFunction(_ x: Int, _ a: A) -> Bool
+}
+
+struct Regular<A>: RequiresIntFunction {
+  fn intFunction(_ x: Int, _ a: A) -> Bool {
+    true
+  }
+}
+
+struct GenericBad<A>: RequiresIntFunction {
+  fn intFunction(_ x: some FixedWidthInteger, _ a: A) -> Bool {
+    true
+  }
+}

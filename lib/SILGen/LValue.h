@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A storage structure for keeping track of logical lvalues during SILGen.
@@ -21,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_LVALUE_H
-#define SWIFT_LOWERING_LVALUE_H
+#ifndef LANGUAGE_LOWERING_LVALUE_H
+#define LANGUAGE_LOWERING_LVALUE_H
 
 #include "FormalEvaluation.h"
 #include "SILGenFunction.h"
@@ -534,7 +535,7 @@ public:
                                  SGFAccessKind selfAccess,
                                  SGFAccessKind otherAccess);
 
-  SWIFT_DEBUG_DUMP;
+  LANGUAGE_DEBUG_DUMP;
   void dump(raw_ostream &os, unsigned indent = 0) const;
 };
   
@@ -549,7 +550,7 @@ public:
 
 // FIXME: Misnomer. This class is used for both shared (read) and exclusive
 // (modify) formal borrows.
-struct LLVM_LIBRARY_VISIBILITY ExclusiveBorrowFormalAccess : FormalAccess {
+struct TOOLCHAIN_LIBRARY_VISIBILITY ExclusiveBorrowFormalAccess : FormalAccess {
   std::unique_ptr<LogicalPathComponent> component;
   ManagedValue base;
   MaterializedLValue materialized;
@@ -581,11 +582,11 @@ struct LLVM_LIBRARY_VISIBILITY ExclusiveBorrowFormalAccess : FormalAccess {
   }
 };
 
-struct LLVM_LIBRARY_VISIBILITY UnenforcedAccess {
+struct TOOLCHAIN_LIBRARY_VISIBILITY UnenforcedAccess {
   // Make sure someone called `endAccess` before destroying this.
   struct DeleterCheck {
     void operator()(BeginAccessInst *) {
-      llvm_unreachable("access scope must be ended");
+      toolchain_unreachable("access scope must be ended");
     }
   };
   typedef std::unique_ptr<BeginAccessInst, DeleterCheck> BeginAccessPtr;
@@ -616,7 +617,7 @@ struct LLVM_LIBRARY_VISIBILITY UnenforcedAccess {
 /// for accesses to local memory that are indistinguishable from formal access
 /// at the SIL level. Adding the access markers in these cases gives SIL address
 /// users a structural property that allows for exhaustive verification.
-struct LLVM_LIBRARY_VISIBILITY UnenforcedFormalAccess : FormalAccess {
+struct TOOLCHAIN_LIBRARY_VISIBILITY UnenforcedFormalAccess : FormalAccess {
 
   static SILValue enter(SILGenFunction &SGF, SILLocation loc, SILValue address,
                         SILAccessKind kind);
@@ -642,7 +643,7 @@ struct LLVM_LIBRARY_VISIBILITY UnenforcedFormalAccess : FormalAccess {
 // handles InoutToPointerExpr. This formal access is nested within whatever
 // formal access is needed for the LValue itself and emits a fix_lifetime
 // instruction after the apply.
-struct LLVM_LIBRARY_VISIBILITY LValueToPointerFormalAccess : FormalAccess {
+struct TOOLCHAIN_LIBRARY_VISIBILITY LValueToPointerFormalAccess : FormalAccess {
   static SILValue enter(SILGenFunction &SGF, SILLocation loc, SILValue address);
 
   SILValue address;

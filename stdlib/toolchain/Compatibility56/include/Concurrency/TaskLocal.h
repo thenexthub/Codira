@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing task locals.
+// Codira ABI describing task locals.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASKLOCAL_BACKDEPLOY56_H
-#define SWIFT_ABI_TASKLOCAL_BACKDEPLOY56_H
+#ifndef LANGUAGE_ABI_TASKLOCAL_BACKDEPLOY56_H
+#define LANGUAGE_ABI_TASKLOCAL_BACKDEPLOY56_H
 
 #include "language/ABI/HeapObject.h"
 #include "language/ABI/Metadata.h"
@@ -27,7 +28,7 @@
 namespace language {
 class AsyncTask;
 struct OpaqueValue;
-struct SwiftError;
+struct CodiraError;
 class TaskStatusRecord;
 class TaskGroup;
 
@@ -224,4 +225,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_ABI_TASKLOCAL_BACKDEPLOY56_H
+#endif // LANGUAGE_ABI_TASKLOCAL_BACKDEPLOY56_H

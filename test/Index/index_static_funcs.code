@@ -1,0 +1,94 @@
+// RUN: %empty-directory(%t)
+//
+// RUN: %target-language-ide-test -print-indexed-symbols -source-filename %s | %FileCheck %s
+
+protocol CodiraProto {
+// CHECK: [[@LINE-1]]:10 | protocol/Codira | CodiraProto | [[Proto_USR:.*]] | Def | rel: 0
+  static fn staticMethod()
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[ProtoStaticMethod_USR:.*]] | Def,Dyn,RelChild | rel: 1
+}
+
+protocol CodiraProtoSame {
+// CHECK: [[@LINE-1]]:10 | protocol/Codira | CodiraProtoSame | [[ProtoSame_USR:.*]] | Def | rel: 0
+  static fn staticMethod()
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[ProtoSameStaticMethod_USR:.*]] | Def,Dyn,RelChild | rel: 1
+}
+
+protocol CodiraProtoOther {}
+
+protocol CodiraProtoComposed: CodiraProtoSame, CodiraProto, CodiraProtoOther {}
+
+class CodiraClass: CodiraProtoComposed {
+// CHECK: [[@LINE-1]]:7 | class/Codira | CodiraClass | [[Class_USR:.*]] | Def | rel: 0
+  static fn staticMethod() {}
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[ClassStaticMethod_USR:.*]] | Def,RelChild,RelOver | rel: 3
+  class fn classMethod() {}
+  // CHECK: [[@LINE-1]]:14 | class-method/Codira | classMethod() | [[ClassClassMethod_USR:.*]] | Def,Dyn,RelChild | rel: 1
+}
+
+struct CodiraStruct: CodiraProtoComposed {
+// CHECK: [[@LINE-1]]:8 | struct/Codira | CodiraStruct | [[Struct_USR:.*]] | Def | rel: 0
+  static fn staticMethod() {}
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[StructStaticMethod_USR:.*]] | Def,RelChild,RelOver | rel: 3
+}
+
+enum CodiraEnum: CodiraProtoComposed {
+// CHECK: [[@LINE-1]]:6 | enum/Codira | CodiraEnum | [[Enum_USR:.*]] | Def | rel: 0
+  static fn staticMethod() {}
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[EnumStaticMethod_USR:.*]] | Def,RelChild,RelOver | rel: 3
+}
+
+fn directCalls() {
+  CodiraClass.staticMethod()
+  // CHECK: [[@LINE-1]]:14 | static-method/Codira | staticMethod() | [[ClassStaticMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+  CodiraClass.classMethod()
+  // CHECK: [[@LINE-1]]:14 | class-method/Codira | classMethod() | [[ClassClassMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+
+  CodiraStruct.staticMethod()
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[StructStaticMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+
+  CodiraEnum.staticMethod()
+  // CHECK: [[@LINE-1]]:13 | static-method/Codira | staticMethod() | [[EnumStaticMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+}
+
+fn typeofClass(c: CodiraClass) {
+  type(of: c).staticMethod()
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[ClassStaticMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+  type(of: c).classMethod()
+  // CHECK: [[@LINE-1]]:15 | class-method/Codira | classMethod() | [[ClassClassMethod_USR]] | Ref,Call,Dyn,RelRec,RelCall,RelCont | rel: 2
+  // CHECK: RelRec | class/Codira | CodiraClass | [[Class_USR]]
+}
+
+fn typeofStruct(s: CodiraStruct) {
+  type(of: s).staticMethod()
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[StructStaticMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+}
+
+fn typeofEnum(e: CodiraEnum) {
+  type(of: e).staticMethod()
+  // CHECK: [[@LINE-1]]:15 | static-method/Codira | staticMethod() | [[EnumStaticMethod_USR]] | Ref,Call,RelCall,RelCont | rel: 1
+}
+
+fn typeofProtocol(proto: CodiraProto) {
+  type(of: proto).staticMethod()
+  // CHECK: [[@LINE-1]]:19 | static-method/Codira | staticMethod() | [[ProtoStaticMethod_USR]] | Ref,Call,Dyn,RelRec,RelCall,RelCont | rel: 2
+  // CHECK: RelRec | protocol/Codira | CodiraProto | [[Proto_USR]]
+}
+
+// FIXME: Add the ReceivedBy relation for generics
+fn genericSingle<T>(proto: T) where T: CodiraProto {
+  type(of: proto).staticMethod()
+  // CHECK: [[@LINE-1]]:19 | static-method/Codira | staticMethod() | [[ProtoStaticMethod_USR]] | Ref,Call,Dyn,RelCall,RelCont | rel: 1
+}
+
+// FIXME: The composed cases currently picks one of the USRs, should we output
+//        multiple occurrences?
+fn genericComposedType<T>(proto: T) where T: CodiraProtoComposed {
+  type(of: proto).staticMethod()
+  // CHECK: [[@LINE-1]]:19 | static-method/Codira | staticMethod() | [[ProtoStaticMethod_USR]] | Ref,Call,Dyn,RelCall,RelCont | rel: 1
+}
+
+fn genericComposedWhere<T>(proto: T) where T: CodiraProto & CodiraProtoSame & CodiraProtoOther {
+  type(of: proto).staticMethod()
+  // CHECK: [[@LINE-1]]:19 | static-method/Codira | staticMethod() | [[ProtoSameStaticMethod_USR]] | Ref,Call,Dyn,RelCall,RelCont | rel: 1
+}

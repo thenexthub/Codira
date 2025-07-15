@@ -1,4 +1,4 @@
-//===--- ManglingUtils.h - Utilities for Swift name mangling ----*- C++ -*-===//
+//===--- ManglingUtils.h - Utilities for Codira name mangling ----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DEMANGLING_MANGLINGUTILS_H
-#define SWIFT_DEMANGLING_MANGLINGUTILS_H
+#ifndef LANGUAGE_DEMANGLING_MANGLINGUTILS_H
+#define LANGUAGE_DEMANGLING_MANGLINGUTILS_H
 
 #include "language/Demangling/NamespaceMacros.h"
 #include "language/Demangling/Punycode.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
 namespace language {
 namespace Mangle {
-SWIFT_BEGIN_INLINE_NAMESPACE
+LANGUAGE_BEGIN_INLINE_NAMESPACE
 
-using llvm::StringRef;
+using toolchain::StringRef;
 
 inline bool isLowerLetter(char ch) {
   return ch >= 'a' && ch <= 'z';
@@ -112,7 +113,7 @@ std::string translateOperator(StringRef Op);
 ///
 /// \param allowConcurrencyManglings When true, allows the standard
 /// substitutions for types in the _Concurrency module that were introduced in
-/// Swift 5.5.
+/// Codira 5.5.
 std::optional<StringRef> getStandardTypeSubst(StringRef TypeName,
                                               bool allowConcurrencyManglings);
 
@@ -338,9 +339,9 @@ public:
   }
 };
 
-SWIFT_END_INLINE_NAMESPACE
+LANGUAGE_END_INLINE_NAMESPACE
 } // end namespace Mangle
 } // end namespace language
 
-#endif // SWIFT_DEMANGLING_MANGLINGUTILS_H
+#endif // LANGUAGE_DEMANGLING_MANGLINGUTILS_H
 

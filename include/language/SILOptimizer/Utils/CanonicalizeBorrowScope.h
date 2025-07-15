@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This utility canonicalizes borrow scopes by rewriting them to restrict them
@@ -24,8 +25,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_CANONICALIZEBORROWSCOPES_H
-#define SWIFT_SILOPTIMIZER_UTILS_CANONICALIZEBORROWSCOPES_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_CANONICALIZEBORROWSCOPES_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_CANONICALIZEBORROWSCOPES_H
 
 #include "language/Basic/GraphNodeWorklist.h"
 #include "language/Basic/SmallPtrSetVector.h"
@@ -35,8 +36,8 @@
 #include "language/SILOptimizer/Analysis/DominanceAnalysis.h"
 #include "language/SILOptimizer/Analysis/NonLocalAccessBlockAnalysis.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
 
 namespace language {
 
@@ -88,7 +89,7 @@ private:
   /// have uses outside the borrow scope and will not be removed by
   /// canonicalization. These copies are effectively distinct OSSA lifetimes
   /// that should be canonicalized separately.
-  llvm::SmallDenseMap<SILBasicBlock *, CopyValueInst *, 4> persistentCopies;
+  toolchain::SmallDenseMap<SILBasicBlock *, CopyValueInst *, 4> persistentCopies;
 
 public:
   CanonicalizeBorrowScope(SILFunction *function, InstructionDeleter &deleter)
@@ -129,7 +130,7 @@ public:
   // are cleared at the next call to canonicalizeBorrowScopes().
   ArrayRef<CopyValueInst *> getUpdatedCopies() const { return updatedCopies; }
 
-  using OuterUsers = llvm::SmallPtrSet<SILInstruction *, 8>;
+  using OuterUsers = toolchain::SmallPtrSet<SILInstruction *, 8>;
 
   SILValue findDefInBorrowScope(SILValue value);
 
@@ -173,4 +174,4 @@ MoveValueInst *foldDestroysOfCopiedLexicalBorrow(BeginBorrowInst *bbi,
                                                  InstructionDeleter &deleter);
 } // namespace language
 
-#endif // SWIFT_SILOPTIMIZER_UTILS_CANONICALIZEBORROWSCOPES_H
+#endif // LANGUAGE_SILOPTIMIZER_UTILS_CANONICALIZEBORROWSCOPES_H

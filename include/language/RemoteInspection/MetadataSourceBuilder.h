@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implements utilities for constructing MetadataSources.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_REFLECTION_METADATASOURCEBUILDER_H
-#define SWIFT_REFLECTION_METADATASOURCEBUILDER_H
+#ifndef LANGUAGE_REFLECTION_METADATASOURCEBUILDER_H
+#define LANGUAGE_REFLECTION_METADATASOURCEBUILDER_H
 
 #include "language/RemoteInspection/MetadataSource.h"
 
@@ -76,4 +77,4 @@ public:
 } // end namespace reflection
 } // end namespace language
 
-#endif // SWIFT_REFLECTION_METADATASOURCEBUILDER_H
+#endif // LANGUAGE_REFLECTION_METADATASOURCEBUILDER_H

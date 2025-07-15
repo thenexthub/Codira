@@ -1,4 +1,4 @@
-//===--- Pattern.cpp - Swift Language Pattern-Matching ASTs ---------------===//
+//===--- Pattern.cpp - Codira Language Pattern-Matching ASTs ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the Pattern class and subclasses.
@@ -28,8 +29,8 @@
 #include "language/AST/TypeRepr.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Statistic.h"
-#include "llvm/ADT/APFloat.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APFloat.h"
+#include "toolchain/Support/raw_ostream.h"
 using namespace language;
 
 #define PATTERN(Id, _) \
@@ -66,7 +67,7 @@ DescriptivePatternKind Pattern::getDescriptiveKind() const {
     }
   }
 #undef TRIVIAL_PATTERN_KIND
-  llvm_unreachable("bad DescriptivePatternKind");
+  toolchain_unreachable("bad DescriptivePatternKind");
 }
 
 StringRef Pattern::getKindName(PatternKind K) {
@@ -74,7 +75,7 @@ StringRef Pattern::getKindName(PatternKind K) {
 #define PATTERN(Id, Parent) case PatternKind::Id: return #Id;
 #include "language/AST/PatternNodes.def"
   }
-  llvm_unreachable("bad PatternKind");
+  toolchain_unreachable("bad PatternKind");
 }
 
 StringRef Pattern::getDescriptivePatternKindName(DescriptivePatternKind K) {
@@ -96,7 +97,7 @@ StringRef Pattern::getDescriptivePatternKindName(DescriptivePatternKind K) {
     ENTRY(Let, "'let' binding pattern");
   }
 #undef ENTRY
-  llvm_unreachable("bad DescriptivePatternKind");
+  toolchain_unreachable("bad DescriptivePatternKind");
 }
 
 // Metaprogram to verify that every concrete class implements
@@ -131,7 +132,7 @@ return cast<ID##Pattern>(this)->getSourceRange();
 #include "language/AST/PatternNodes.def"
   }
   
-  llvm_unreachable("pattern type not handled!");
+  toolchain_unreachable("pattern type not handled!");
 }
 
 void Pattern::setDelayedInterfaceType(Type interfaceTy, DeclContext *dc) {
@@ -239,7 +240,7 @@ namespace {
 
 /// apply the specified function to all variables referenced in this
 /// pattern.
-void Pattern::forEachVariable(llvm::function_ref<void(VarDecl *)> fn) const {
+void Pattern::forEachVariable(toolchain::function_ref<void(VarDecl *)> fn) const {
   switch (getKind()) {
   case PatternKind::Any:
   case PatternKind::Bool:
@@ -284,7 +285,7 @@ void Pattern::forEachVariable(llvm::function_ref<void(VarDecl *)> fn) const {
 
 /// apply the specified function to all pattern nodes recursively in
 /// this pattern.  This is a pre-order traversal.
-void Pattern::forEachNode(llvm::function_ref<void(Pattern*)> f) {
+void Pattern::forEachNode(toolchain::function_ref<void(Pattern*)> f) {
   f(this);
 
   switch (getKind()) {
@@ -679,7 +680,7 @@ SourceRange ExprPattern::getSourceRange() const {
   return getSubExpr()->getSourceRange();
 }
 
-// See swift/Basic/Statistic.h for declaration: this enables tracing Patterns, is
+// See language/Basic/Statistic.h for declaration: this enables tracing Patterns, is
 // defined here to avoid too much layering violation / circular linkage
 // dependency.
 
@@ -736,16 +737,16 @@ bool ContextualPattern::allowsInference() const {
   return true;
 }
 
-void swift::simple_display(llvm::raw_ostream &out,
+void language::simple_display(toolchain::raw_ostream &out,
                            const ContextualPattern &pattern) {
   simple_display(out, pattern.getPattern());
 }
 
-void swift::simple_display(llvm::raw_ostream &out, const Pattern *pattern) {
+void language::simple_display(toolchain::raw_ostream &out, const Pattern *pattern) {
   out << "(pattern @ " << pattern << ")";
 }
 
-SourceLoc swift::extractNearestSourceLoc(const Pattern *pattern) {
+SourceLoc language::extractNearestSourceLoc(const Pattern *pattern) {
   return pattern->getLoc();
 }
 

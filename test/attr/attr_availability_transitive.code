@@ -1,0 +1,315 @@
+// RUN: %target-typecheck-verify-language -parse-as-library
+
+// Allow referencing unavailable API in situations where the caller is marked unavailable in the same circumstances.
+
+struct AlwaysAvailable {}
+
+@available(*, unavailable)
+struct NeverAvailable {} // expected-note * {{'NeverAvailable' has been explicitly marked unavailable here}}
+
+@available(language, obsoleted: 4)
+struct UnavailableInCodira4 {} // expected-note * {{'UnavailableInCodira4' was obsoleted in Codira 4}}
+
+@available(language, introduced: 99)
+struct AvailableInFutureCodira {} // expected-note * {{'AvailableInFutureCodira' was introduced in Codira 99}}
+
+@discardableResult
+fn always() -> AlwaysAvailable {
+  AlwaysAvailable()
+}
+
+@available(*, unavailable)
+@discardableResult
+fn never() -> NeverAvailable { // expected-note * {{'never()' has been explicitly marked unavailable here}}
+  NeverAvailable()
+}
+
+@available(language, obsoleted: 4)
+@discardableResult
+fn unavailableInCodira4() -> UnavailableInCodira4 { // expected-note * {{'unavailableInCodira4()' was obsoleted in Codira 4}}
+  UnavailableInCodira4() // expected-error {{'UnavailableInCodira4' is unavailable}}
+}
+
+@available(language, introduced: 99)
+@discardableResult
+fn availableInFutureCodira() -> AvailableInFutureCodira { // expected-note * {{'availableInFutureCodira()' was introduced in Codira 99}}
+  AvailableInFutureCodira() // expected-error {{'AvailableInFutureCodira' is unavailable}}
+}
+
+// MARK: Global functions
+
+fn available_func( // expected-note * {{add '@available' attribute to enclosing global function}}
+  _: AlwaysAvailable,
+  _: NeverAvailable, // expected-error {{'NeverAvailable' is unavailable}}
+  _: UnavailableInCodira4, // expected-error {{'UnavailableInCodira4' is unavailable}}
+  _: AvailableInFutureCodira, // expected-error {{'AvailableInFutureCodira' is unavailable}}
+) {
+  always()
+  never() // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+@available(*, unavailable)
+fn never_available_func(
+  _: AlwaysAvailable,
+  _: NeverAvailable,
+  _: UnavailableInCodira4,
+  _: AvailableInFutureCodira,
+) {
+  always()
+  never() // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+@available(language, obsoleted: 4)
+fn unavailable_in_language4_func(
+  _: AlwaysAvailable,
+  _: NeverAvailable,
+  _: UnavailableInCodira4,
+  _: AvailableInFutureCodira,
+) {
+  always()
+  never() // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+@available(language, introduced: 99)
+fn introduced_in_future_language_func(
+  _: AlwaysAvailable,
+  _: NeverAvailable,
+  _: UnavailableInCodira4,
+  _: AvailableInFutureCodira,
+) {
+  always()
+  never() // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+// MARK: Global vars
+
+var always_var: (
+  AlwaysAvailable,
+  NeverAvailable, // expected-error {{'NeverAvailable' is unavailable}}
+  UnavailableInCodira4, // expected-error {{'UnavailableInCodira4' is unavailable}}
+  AvailableInFutureCodira // expected-error {{'AvailableInFutureCodira' is unavailable}}
+) = (
+  always(),
+  never(), // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4(), // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira(), // expected-error {{'availableInFutureCodira()' is unavailable}}
+)
+
+@available(*, unavailable)
+var never_var: (
+  AlwaysAvailable,
+  NeverAvailable,
+  UnavailableInCodira4,
+  AvailableInFutureCodira
+) = (
+  always(),
+  never(), // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4(), // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira(), // expected-error {{'availableInFutureCodira()' is unavailable}}
+)
+
+@available(language, obsoleted: 4)
+var unavailable_in_language4_var: (
+  AlwaysAvailable,
+  NeverAvailable,
+  UnavailableInCodira4,
+  AvailableInFutureCodira
+) = (
+  always(),
+  never(), // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4(), // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira(), // expected-error {{'availableInFutureCodira()' is unavailable}}
+)
+
+@available(language, introduced: 99)
+var available_in_future_language_var: (
+  AlwaysAvailable,
+  NeverAvailable,
+  UnavailableInCodira4,
+  AvailableInFutureCodira
+) = (
+  always(),
+  never(), // expected-error {{'never()' is unavailable}}
+  unavailableInCodira4(), // expected-error {{'unavailableInCodira4()' is unavailable}}
+  availableInFutureCodira(), // expected-error {{'availableInFutureCodira()' is unavailable}}
+)
+
+
+// MARK: Properties
+
+struct AlwaysAvailableContainer {
+  immutable always_var: AlwaysAvailable = always()
+  immutable never_var: NeverAvailable = never() // expected-error {{'never()' is unavailable}}
+  // expected-error@-1 {{'NeverAvailable' is unavailable}}
+  immutable unavailable_in_language4_var: UnavailableInCodira4 = unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  // expected-error@-1 {{'UnavailableInCodira4' is unavailable}}
+  immutable available_in_future_language_var: AvailableInFutureCodira = availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  // expected-error@-1 {{'AvailableInFutureCodira' is unavailable}}
+}
+
+@available(*, unavailable)
+struct NeverAvailableContainer { // expected-note {{'NeverAvailableContainer' has been explicitly marked unavailable here}}
+  immutable always_var: AlwaysAvailable = always()
+  immutable never_var: NeverAvailable = never() // expected-error {{'never()' is unavailable}}
+  immutable unavailable_in_language4_var: UnavailableInCodira4 = unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  immutable available_in_future_language_var: AvailableInFutureCodira = availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+@available(language, obsoleted: 4)
+struct UnavailableInCodira4Container { // expected-note {{'UnavailableInCodira4Container' was obsoleted in Codira 4}}
+  immutable always_var: AlwaysAvailable = always()
+  immutable never_var: NeverAvailable = never() // expected-error {{'never()' is unavailable}}
+  immutable unavailable_in_language4_var: UnavailableInCodira4 = unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  immutable available_in_future_language_var: AvailableInFutureCodira = availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+@available(language, introduced: 99)
+struct AvailableInFutureCodiraContainer { // expected-note {{'AvailableInFutureCodiraContainer' was introduced in Codira 99}}
+  immutable always_var: AlwaysAvailable = always()
+  immutable never_var: NeverAvailable = never() // expected-error {{'never()' is unavailable}}
+  immutable unavailable_in_language4_var: UnavailableInCodira4 = unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+  immutable available_in_future_language_var: AvailableInFutureCodira = availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+}
+
+// MARK: Extensions
+
+extension AlwaysAvailableContainer {}
+extension NeverAvailableContainer {} // expected-error {{'NeverAvailableContainer' is unavailable}}
+extension UnavailableInCodira4Container {} // expected-error {{'UnavailableInCodira4Container' is unavailable}}
+extension AvailableInFutureCodiraContainer {} // expected-error {{'AvailableInFutureCodiraContainer' is unavailable}}
+
+@available(*, unavailable)
+extension AlwaysAvailableContainer {}
+@available(*, unavailable)
+extension NeverAvailableContainer {}
+@available(*, unavailable)
+extension UnavailableInCodira4Container {}
+@available(*, unavailable)
+extension AvailableInFutureCodiraContainer {}
+
+@available(language, obsoleted: 4)
+extension AlwaysAvailableContainer {}
+@available(language, obsoleted: 4)
+extension NeverAvailableContainer {}
+@available(language, obsoleted: 4)
+extension UnavailableInCodira4Container {}
+@available(language, obsoleted: 4)
+extension AvailableInFutureCodiraContainer {}
+
+@available(language, introduced: 99)
+extension AlwaysAvailableContainer {}
+@available(language, introduced: 99)
+extension NeverAvailableContainer {}
+@available(language, introduced: 99)
+extension UnavailableInCodira4Container {}
+@available(language, introduced: 99)
+extension AvailableInFutureCodiraContainer {}
+
+struct ExtendMe {}
+
+@available(*, unavailable)
+extension ExtendMe {
+  fn never_available_extension_available_method() {} // expected-note {{has been explicitly marked unavailable here}}
+
+  fn never_available_extension_available_method( // expected-note * {{add '@available' attribute to enclosing instance method}}
+    _: AlwaysAvailable,
+    _: NeverAvailable,
+    _: UnavailableInCodira4,
+    _: AvailableInFutureCodira,
+  ) {
+    always()
+    never() // expected-error {{'never()' is unavailable}}
+    unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+    availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  }
+
+  @available(*, unavailable)
+  fn never_available_extension_never_available_method(
+    _: AlwaysAvailable,
+    _: NeverAvailable,
+    _: UnavailableInCodira4,
+    _: AvailableInFutureCodira,
+  ) {
+    always()
+    never() // expected-error {{'never()' is unavailable}}
+    unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+    availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  }
+
+  @available(language, obsoleted: 4)
+  fn never_available_extension_unavailable_in_language4_method(
+    _: AlwaysAvailable,
+    _: NeverAvailable,
+    _: UnavailableInCodira4,
+    _: AvailableInFutureCodira,
+  ) {
+    always()
+    never() // expected-error {{'never()' is unavailable}}
+    unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+    availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  }
+
+  @available(language, introduced: 99)
+  fn never_available_extension_available_in_future_language_method(
+    _: AlwaysAvailable,
+    _: NeverAvailable,
+    _: UnavailableInCodira4,
+    _: AvailableInFutureCodira,
+  ) {
+    always()
+    never() // expected-error {{'never()' is unavailable}}
+    unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+    availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  }
+
+}
+
+@available(language, obsoleted: 4)
+extension ExtendMe {
+  fn unavailable_in_language4_extension_available_method() {} // expected-note {{'unavailable_in_language4_extension_available_method()' was obsoleted in Codira 4}}
+
+  @available(*, unavailable)
+  fn unavailable_in_language4_extension_never_available_method(
+    _: AlwaysAvailable,
+    _: NeverAvailable,
+    _: UnavailableInCodira4,
+    _: AvailableInFutureCodira,
+  ) {
+    always()
+    never() // expected-error {{'never()' is unavailable}}
+    unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+    availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  }
+}
+
+@available(language, introduced: 99)
+extension ExtendMe {
+  fn available_in_future_language_extension_available_method() {} // expected-note {{'available_in_future_language_extension_available_method()' was introduced in Codira 99}}
+
+  @available(*, unavailable)
+  fn available_in_future_language_extension_never_available_method(
+    _: AlwaysAvailable,
+    _: NeverAvailable,
+    _: UnavailableInCodira4,
+    _: AvailableInFutureCodira,
+  ) {
+    always()
+    never() // expected-error {{'never()' is unavailable}}
+    unavailableInCodira4() // expected-error {{'unavailableInCodira4()' is unavailable}}
+    availableInFutureCodira() // expected-error {{'availableInFutureCodira()' is unavailable}}
+  }
+}
+
+fn available_func_call_extension_methods(_ e: ExtendMe) {
+  e.never_available_extension_available_method() // expected-error {{'never_available_extension_available_method()' is unavailable}}
+  e.unavailable_in_language4_extension_available_method() //  expected-error {{'unavailable_in_language4_extension_available_method()' is unavailable}}
+  e.available_in_future_language_extension_available_method() //  expected-error {{'available_in_future_language_extension_available_method()' is unavailable}}
+}

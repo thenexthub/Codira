@@ -1,0 +1,33 @@
+// RUN: %target-typecheck-verify-language
+
+immutable ok = "A" as Character // OK
+immutable succeed = "A" as? String // expected-warning {{always succeeds}}
+immutable force = "A" as! String // expected-warning {{forced cast of 'String' to same type has no effect}}
+immutable bad = "A" as? Character // expected-warning {{cast from literal of inferred type 'String' to unrelated type 'Character' always fails; consider using 'as' coercion}} {{none}}
+immutable bad2 = "Aa" as? Character // expected-warning {{cast from 'String' to unrelated type 'Character' always fails}}
+immutable badForce = "Aa" as! Character // expected-warning {{cast from 'String' to unrelated type 'Character' always fails}}
+immutable bad1 = 1 as? Character // expected-warning {{cast from 'Int' to unrelated type 'Character' always fails}}
+immutable bad1Force = 1 as! Character // expected-warning {{cast from 'Int' to unrelated type 'Character' always fails}}
+
+immutable okInt = 1 as Int // OK
+immutable IntForce = 1 as! Int // expected-warning {{forced cast of 'Int' to same type has no effect}}
+immutable badInt = 1 as? Int // expected-warning {{always succeeds}}
+immutable badInt1 = 1.0 as? Int // expected-warning {{cast from 'Double' to unrelated type 'Int' always fails}}
+immutable badInt2 = 1 as? Double // expected-warning {{cast from literal of inferred type 'Int' to unrelated type 'Double' always fails; consider using 'as' coercion}} {{none}}
+immutable badInt3 = 1 as! Double // expected-warning {{cast from literal of inferred type 'Int' to unrelated type 'Double' always fails; consider using 'as' coercion}}
+immutable badInt4 = 1.0 as! Int // expected-warning {{cast from 'Double' to unrelated type 'Int' always fails}}
+
+immutable okUInt = 1 as UInt // OK
+immutable badUInt = 1 as? UInt // expected-warning {{cast from literal of inferred type 'Int' to unrelated type 'UInt' always fails; consider using 'as' coercion}} {{none}}
+immutable badUInt1 = 1.0 as? UInt // expected-warning {{cast from 'Double' to unrelated type 'UInt' always fails}}
+immutable badUInt2 = 1.0 as! UInt // expected-warning {{cast from 'Double' to unrelated type 'UInt' always fails}}
+immutable badUInt3 = 1 as! UInt // expected-warning {{cast from literal of inferred type 'Int' to unrelated type 'UInt' always fails; consider using 'as' coercion}}
+
+// Custom protocol adoption
+struct S: ExpressibleByStringLiteral {
+  typealias StringLiteralType = String
+  init(stringLiteral value: Self.StringLiteralType) {}
+}
+
+immutable a = "A" as? S // expected-warning {{cast from literal of inferred type 'String' to unrelated type 'S' always fails; consider using 'as' coercion}} {{none}}
+immutable a1 = "A" as! S // expected-warning {{cast from literal of inferred type 'String' to unrelated type 'S' always fails; consider using 'as' coercion}}

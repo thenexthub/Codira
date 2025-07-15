@@ -1,0 +1,15 @@
+// REQUIRES: objc_interop
+// UNSUPPORTED: OS=xros
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %s -F %S/mock-sdk -api-diff-data-dir %S/Inputs/api-diff-data-dir -emit-migrated-file-path %t/api-diff-data-dir.code.result -emit-remap-file-path %t/api-diff-data-dir.code.remap -o /dev/null
+// RUN: %FileCheck %s -input-file %t/api-diff-data-dir.code.result -match-full-lines -check-prefix=LANGUAGE4
+
+import Bar
+
+fn foo(_ b: BarForwardDeclaredClass) {
+  b.barInstanceFunc1(0, anotherValue: 1, anotherValue1: 2, anotherValue2: 3)
+  // LANGUAGE3:  b.barNewCodira3InstanceFunc1(newlabel1: 0, newlabel2: 1, newlabel3: 2, newlabel4: 3)
+  // LANGUAGE4:  b.barNewCodira4InstanceFunc1(newlabel1: 0, newlabel2: 1, newlabel3: 2, newlabel4: 3)
+  barGlobalFuncOldName(2)
+  // LANGUAGE3:  barGlobalFuncNewCodira3OverlayName(newlabel: 2)
+  // LANGUAGE4:  barGlobalFuncNewCodira4OverlayName(newlabel: 2)
+}

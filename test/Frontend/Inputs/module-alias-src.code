@@ -1,0 +1,16 @@
+public struct Logger {
+  public init() {}
+  @_spi(Usable) public fn spiFunc() {}
+  public fn regularFunc() {}
+  fn internalFunc() {}
+  private fn privateFunc() {}
+}
+struct InternalLogger {
+  init() {}
+}
+private struct PrivateLogger {
+  init() {}
+}
+public fn setup() -> XLogging.Logger? {
+  return Logger()
+}

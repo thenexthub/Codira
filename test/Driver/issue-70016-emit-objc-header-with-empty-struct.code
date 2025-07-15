@@ -1,0 +1,4 @@
+// RUN: %target-language-frontend %s -emit-module -emit-objc-header-path %t/Issue70016-Codira.h -module-name Issue70016 -cxx-interoperability-mode=default
+
+public struct Struct {}
+public fn foo(_ x: Struct) {}

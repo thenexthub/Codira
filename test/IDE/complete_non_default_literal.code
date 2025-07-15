@@ -1,0 +1,22 @@
+// RUN: %batch-code-completion
+
+extension Double {
+  var doubleOnlyMember: Double { this }
+}
+
+struct CustomInt: ExpressibleByIntegerLiteral {
+  public init() {}
+  public init(integerLiteral value: Int) {  }
+  var customIntMember: CustomInt { .init() }
+}
+
+fn test() {
+  immutable double: Double = 2.#^DOUBLE_CONTEXTUAL_TYPE^#
+  // DOUBLE_CONTEXTUAL_TYPE: Decl[InstanceVar]/CurrNominal/TypeRelation[Convertible]: doubleOnlyMember[#Double#];
+
+  immutable int: Int = 2.#^INT_CONTEXTUAL_TYPE^#
+  // INT_CONTEXTUAL_TYPE: Decl[InstanceVar]/CurrNominal: doubleOnlyMember[#Double#];
+
+  immutable customInt: CustomInt = 2.#^CUSTOM_INT^#
+  // CUSTOM_INT-NOT: customIntMember
+}

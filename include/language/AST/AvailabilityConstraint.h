@@ -1,4 +1,4 @@
-//===--- AvailabilityConstraint.h - Swift Availability Constraints ------*-===//
+//===--- AvailabilityConstraint.h - Codira Availability Constraints ------*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -17,14 +17,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AVAILABILITY_CONSTRAINT_H
-#define SWIFT_AST_AVAILABILITY_CONSTRAINT_H
+#ifndef LANGUAGE_AST_AVAILABILITY_CONSTRAINT_H
+#define LANGUAGE_AST_AVAILABILITY_CONSTRAINT_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/AvailabilityDomain.h"
 #include "language/AST/AvailabilityRange.h"
-#include "language/AST/PlatformKind.h"
-#include "language/Basic/LLVM.h"
+#include "language/AST/PlatformKindUtils.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
 
 namespace language {
@@ -56,8 +56,8 @@ public:
 
     /// The declaration is not available in the deployment configuration
     /// specified for this compilation. For example, the declaration might only
-    /// be introduced in the Swift 6 language mode while the module is being
-    /// compiled in the Swift 5 language mode. These availability constraints
+    /// be introduced in the Codira 6 language mode while the module is being
+    /// compiled in the Codira 5 language mode. These availability constraints
     /// cannot be satisfied by adding constraining contextual availability using
     /// `@available` attributes or `if #available` queries.
     UnavailableForDeployment,
@@ -82,7 +82,7 @@ public:
   };
 
 private:
-  llvm::PointerIntPair<SemanticAvailableAttr, 2, Reason> attrAndReason;
+  toolchain::PointerIntPair<SemanticAvailableAttr, 2, Reason> attrAndReason;
 
   AvailabilityConstraint(Reason reason, SemanticAvailableAttr attr)
       : attrAndReason(attr, reason) {};
@@ -135,10 +135,10 @@ public:
   /// Returns the domain that the constraint applies to.
   AvailabilityDomain getDomain() const { return getAttr().getDomain(); }
 
-  /// Returns the required range for `IntroducedInNewerVersion` requirements, or
-  /// `std::nullopt` otherwise.
-  std::optional<AvailabilityRange>
-  getPotentiallyUnavailableRange(const ASTContext &ctx) const;
+  /// Returns the domain and range (remapped if necessary) in which the
+  /// constraint must be satisfied. How the range should be interpreted depends
+  /// on the reason for the constraint.
+  AvailabilityDomainAndRange getDomainAndRange(const ASTContext &ctx) const;
 
   /// Some availability constraints are active for type-checking but cannot
   /// be translated directly into an `if #available(...)` runtime query.
@@ -150,7 +150,7 @@ public:
 /// for a given `AvailabilityDomain`, but there may be multiple active
 /// constraints from separate domains.
 class DeclAvailabilityConstraints {
-  using Storage = llvm::SmallVector<AvailabilityConstraint, 4>;
+  using Storage = toolchain::SmallVector<AvailabilityConstraint, 4>;
   Storage constraints;
 
 public:

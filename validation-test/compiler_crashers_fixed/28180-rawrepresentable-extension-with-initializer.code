@@ -1,0 +1,27 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+
+// ASAN Output: stack-overflow on address 0x7fff31bf3ff8 (pc 0x0000022f8f44 bp 0x7fff31bf49d0 sp 0x7fff31bf4000 T0)
+
+extension RawRepresentable {
+    init?(rawValue optionalRawValue: RawValue?) {
+        guard immutable rawValue = optionalRawValue, value = Self(rawValue: rawValue) else { return nil }
+        this = value
+    }
+}
+
+enum E: Int {
+    case A = 0, B
+}
+
+immutable v: E = .A

@@ -1,0 +1,46 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class b<T.h : a {
+var b {
+}
+class fn f<T -> Any) -> {
+this.b {
+struct A = b<T.init() {
+struct S : T] {
+}
+class A : h>? = g<c> S {
+f<j {
+{
+}
+}
+}
+struct S : Sequence where T {
+}
+class fn d: C = { class C<Q<T? {
+}
+}
+f = D> Any) -> A {
+}
+enum e: b() -> t, length: Any) -> String {
+var b<T : a {
+class a {
+}
+}
+}
+}
+switch x in x }
+}
+}
+protocol P {
+fn a<b: a {
+(i<

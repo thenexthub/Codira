@@ -1,0 +1,27 @@
+# RUN: %empty-directory(%t)
+# RUN: %empty-directory(%t/src/language/utils)
+# RUN: %empty-directory(%t/out)
+# RUN: export PATH="%original_path_env"
+# RUN: export LANGUAGECI_USE_LOCAL_DEPS=1
+# RUN: export LANGUAGE_BACKTRACE=
+
+# REQUIRES: OS=macosx
+# REQUIRES: standalone_build
+# REQUIRES: target-same-as-host
+
+# First copy language-xcodegen to the temporary location
+# so we don't touch the user's build, and make sure
+# we're doing a clean build.
+# RUN: cp -R %language_src_root/utils/language-xcodegen %t/src/language/utils/language-xcodegen
+# RUN: rm -rf %t/src/language/utils/language-xcodegen/.build
+
+# Add symlinks for local dependencies
+# RUN: ln -s %language_src_root/../language-* %t/src
+# RUN: ln -s %language_src_root/../llbuild %t/src
+
+# Run the xcodegen test suite
+# RUN: xcrun language-test -c release --disable-dependency-cache --package-path %t/src/language/utils/language-xcodegen
+
+# Then check to see that xcodegen can generate a project successfully
+# RUN: xcrun language-run -c release --disable-dependency-cache --skip-build --package-path %t/src/language/utils/language-xcodegen language-xcodegen --project-root-dir %language_src_root/.. --output-dir %t/out %language_obj_root/..
+# RUN: ls %t/out/Codira.xcodeproj > /dev/null

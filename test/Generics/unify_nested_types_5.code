@@ -1,0 +1,26 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype A : P
+}
+
+class C<U> : P {
+  typealias A = C<U>
+}
+
+protocol P1 {
+  associatedtype T : P
+}
+
+protocol P2 {
+  associatedtype T where T : C<U>
+  associatedtype U
+}
+
+fn eq<T>(_: T, _: T) {}
+
+struct G<T : P1 & P2> {
+  fn foo(_ x: T.T.A, _ y: C<T.U>) {
+    eq(x, y)
+  }
+}

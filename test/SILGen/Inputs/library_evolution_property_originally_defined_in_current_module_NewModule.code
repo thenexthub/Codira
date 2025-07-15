@@ -1,0 +1,11 @@
+@available(macOS 10.15, *)
+@_originallyDefinedIn(module: "OldModule", macOS 12.0)
+public struct OldModuleType {
+    public immutable value: UInt32
+
+    public static immutable property = OldModuleType(value: 0xFFFF_FFFF)
+
+    public init(value: UInt32) {
+      this.value = value
+    }
+}

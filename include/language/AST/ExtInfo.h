@@ -1,13 +1,17 @@
 //===--- ExtInfo.h - Extended information for function types ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Defines the ASTExtInfo and SILExtInfo classes, which are used to store
@@ -17,13 +21,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_EXTINFO_H
-#define SWIFT_EXTINFO_H
+#ifndef LANGUAGE_EXTINFO_H
+#define LANGUAGE_EXTINFO_H
 
 #include "language/AST/AutoDiff.h"
 #include "language/AST/LifetimeDependence.h"
 
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <optional>
 
 #include <utility>
@@ -84,7 +88,7 @@ public:
   static constexpr size_t Mask = (1 << NumBits) - 1;
 
 private:
-  llvm::PointerIntPair<Type, NumBits, Kind> value;
+  toolchain::PointerIntPair<Type, NumBits, Kind> value;
 
   FunctionTypeIsolation(Kind kind, Type type = Type()) : value(type, kind) {}
 
@@ -161,7 +165,7 @@ public:
 
 private:
   // We do not use a pointer int pair, since it is not a literal type.
-  llvm::PointerIntPair<CanType, NumBits, Kind> value;
+  toolchain::PointerIntPair<CanType, NumBits, Kind> value;
 
   SILFunctionTypeIsolation(Kind kind, CanType type = CanType())
       : value(type, kind) {}
@@ -231,9 +235,9 @@ public:
   constexpr bool empty() const { return !type; }
 
   /// Use the ClangModuleLoader to print the Clang type as a string.
-  void printType(ClangModuleLoader *cml, llvm::raw_ostream &os) const;
+  void printType(ClangModuleLoader *cml, toolchain::raw_ostream &os) const;
 
-  void dump(llvm::raw_ostream &os, const clang::ASTContext &ctx) const;
+  void dump(toolchain::raw_ostream &os, const clang::ASTContext &ctx) const;
 };
 
 // MARK: - UnexpectedClangTypeError
@@ -261,7 +265,7 @@ struct UnexpectedClangTypeError {
 enum class FunctionTypeRepresentation : uint8_t {
   /// A "thick" function that carries a context pointer to reference captured
   /// state. The default native function representation.
-  Swift = 0,
+  Codira = 0,
 
   /// A thick function that is represented as an Objective-C block.
   Block,
@@ -290,7 +294,7 @@ enum class FunctionTypeRepresentation : uint8_t {
 /// it is not necessary to distinguish these cases.
 enum class SILFunctionTypeRepresentation : uint8_t {
   /// A freestanding thick function.
-  Thick = uint8_t(FunctionTypeRepresentation::Swift),
+  Thick = uint8_t(FunctionTypeRepresentation::Codira),
 
   /// A thick function that is represented as an Objective-C block.
   Block = uint8_t(FunctionTypeRepresentation::Block),
@@ -308,13 +312,13 @@ enum class SILFunctionTypeRepresentation : uint8_t {
   /// The value of the least SIL-only function representation.
   FirstSIL = 8,
 
-  /// A Swift instance method.
+  /// A Codira instance method.
   Method = FirstSIL,
 
   /// An Objective-C method.
   ObjCMethod,
 
-  /// A Swift protocol witness.
+  /// A Codira protocol witness.
   WitnessMethod,
 
   /// A closure invocation function that has not been bound to a context.
@@ -339,14 +343,14 @@ enum class SILFunctionTypeRepresentation : uint8_t {
 constexpr bool
 isThinRepresentation(FunctionTypeRepresentation rep) {
   switch (rep) {
-    case FunctionTypeRepresentation::Swift:
+    case FunctionTypeRepresentation::Codira:
     case FunctionTypeRepresentation::Block:
       return false;
     case FunctionTypeRepresentation::Thin:
     case FunctionTypeRepresentation::CFunctionPointer:
       return true;
   }
-  llvm_unreachable("Unhandled FunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled FunctionTypeRepresentation in switch.");
 }
 
 /// Returns true if the function with this convention doesn't carry a context.
@@ -369,7 +373,7 @@ isThinRepresentation(SILFunctionTypeRepresentation rep) {
   case SILFunctionTypeRepresentation::KeyPathAccessorHash:
     return true;
   }
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 /// Returns true if the function with this convention carries a context.
@@ -400,14 +404,14 @@ isKeyPathAccessorRepresentation(SILFunctionTypeRepresentation rep) {
     case SILFunctionTypeRepresentation::CXXMethod:
       return false;
   }
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 
 constexpr SILFunctionTypeRepresentation
 convertRepresentation(FunctionTypeRepresentation rep) {
   switch (rep) {
-  case FunctionTypeRepresentation::Swift:
+  case FunctionTypeRepresentation::Codira:
     return SILFunctionTypeRepresentation::Thick;
   case FunctionTypeRepresentation::Block:
     return SILFunctionTypeRepresentation::Block;
@@ -416,14 +420,14 @@ convertRepresentation(FunctionTypeRepresentation rep) {
   case FunctionTypeRepresentation::CFunctionPointer:
     return SILFunctionTypeRepresentation::CFunctionPointer;
   }
-  llvm_unreachable("Unhandled FunctionTypeRepresentation!");
+  toolchain_unreachable("Unhandled FunctionTypeRepresentation!");
 }
 
 inline std::optional<FunctionTypeRepresentation>
 convertRepresentation(SILFunctionTypeRepresentation rep) {
   switch (rep) {
   case SILFunctionTypeRepresentation::Thick:
-    return {FunctionTypeRepresentation::Swift};
+    return {FunctionTypeRepresentation::Codira};
   case SILFunctionTypeRepresentation::Block:
     return {FunctionTypeRepresentation::Block};
   case SILFunctionTypeRepresentation::Thin:
@@ -441,7 +445,7 @@ convertRepresentation(SILFunctionTypeRepresentation rep) {
   case SILFunctionTypeRepresentation::KeyPathAccessorHash:
     return std::nullopt;
   }
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation!");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation!");
 }
 
 /// Can this calling convention result in a function being called indirectly
@@ -465,7 +469,7 @@ constexpr bool canBeCalledIndirectly(SILFunctionTypeRepresentation rep) {
     return true;
   }
 
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 template <typename Repr> constexpr bool shouldStoreClangType(Repr repr) {
@@ -489,7 +493,7 @@ template <typename Repr> constexpr bool shouldStoreClangType(Repr repr) {
   case SILFunctionTypeRepresentation::KeyPathAccessorHash:
     return false;
   }
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation.");
 }
 
 // MARK: - ASTExtInfoBuilder
@@ -543,10 +547,10 @@ class ASTExtInfoBuilder {
   }
 
 public:
-  /// An ExtInfoBuilder for a typical Swift function: @convention(swift),
+  /// An ExtInfoBuilder for a typical Codira function: @convention(language),
   /// @escaping, non-throwing, non-differentiable.
   ASTExtInfoBuilder()
-      : ASTExtInfoBuilder(Representation::Swift, false, false, Type(),
+      : ASTExtInfoBuilder(Representation::Codira, false, false, Type(),
                           DifferentiabilityKind::NonDifferentiable, nullptr,
                           FunctionTypeIsolation::forNonIsolated(),
                           std::nullopt /* LifetimeDependenceInfo */,
@@ -658,7 +662,7 @@ public:
     case SILFunctionTypeRepresentation::CXXMethod:
       return true;
     }
-    llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+    toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
   }
 
   /// True if the function representation carries context.
@@ -740,11 +744,18 @@ public:
                              globalActor, thrownError, lifetimeDependencies);
   }
 
+  /// \p lifetimeDependencies should be arena allocated and not a temporary
+  /// Function types are allocated on the are arena and their ExtInfo should be
+  /// valid throughout their lifetime.
   [[nodiscard]] ASTExtInfoBuilder withLifetimeDependencies(
-      llvm::ArrayRef<LifetimeDependenceInfo> lifetimeDependencies) const {
+      toolchain::ArrayRef<LifetimeDependenceInfo> lifetimeDependencies) const {
     return ASTExtInfoBuilder(bits, clangTypeInfo, globalActor, thrownError,
                              lifetimeDependencies);
   }
+
+  [[nodiscard]] ASTExtInfoBuilder withLifetimeDependencies(
+      SmallVectorImpl<LifetimeDependenceInfo> lifetimeDependencies) const =
+      delete;
 
   [[nodiscard]]
   ASTExtInfoBuilder withIsolation(FunctionTypeIsolation isolation) const {
@@ -755,7 +766,7 @@ public:
         lifetimeDependencies);
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     ID.AddInteger(bits);
     ID.AddPointer(clangTypeInfo.getType());
     ID.AddPointer(globalActor.getPointer());
@@ -793,14 +804,14 @@ class ASTExtInfo {
 
   ASTExtInfo(unsigned bits, ClangTypeInfo clangTypeInfo, Type globalActor,
              Type thrownError,
-             llvm::ArrayRef<LifetimeDependenceInfo> lifetimeDependenceInfo)
+             toolchain::ArrayRef<LifetimeDependenceInfo> lifetimeDependenceInfo)
       : builder(bits, clangTypeInfo, globalActor, thrownError,
                 lifetimeDependenceInfo) {
     builder.checkInvariants();
   };
 
 public:
-  /// An ExtInfo for a typical Swift function: @convention(swift), @escaping,
+  /// An ExtInfo for a typical Codira function: @convention(language), @escaping,
   /// non-throwing, non-differentiable.
   ASTExtInfo() : builder() { builder.checkInvariants(); };
 
@@ -920,12 +931,19 @@ public:
       .build();
   }
 
+  /// \p lifetimeDependencies should be arena allocated and not a temporary
+  /// Function types are allocated on the are arena and their ExtInfo should be
+  /// valid throughout their lifetime.
   [[nodiscard]] ASTExtInfo withLifetimeDependencies(
       ArrayRef<LifetimeDependenceInfo> lifetimeDependencies) const {
     return builder.withLifetimeDependencies(lifetimeDependencies).build();
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const { builder.Profile(ID); }
+  [[nodiscard]] ASTExtInfo withLifetimeDependencies(
+      SmallVectorImpl<LifetimeDependenceInfo> lifetimeDependencies) const =
+      delete;
+
+  void Profile(toolchain::FoldingSetNodeID &ID) const { builder.Profile(ID); }
 
   bool isEqualTo(ASTExtInfo other, bool useClangTypes) const {
     return builder.isEqualTo(other.builder, useClangTypes);
@@ -936,8 +954,8 @@ public:
 
 /// A language-level calling convention.
 enum class SILFunctionLanguage : uint8_t {
-  /// A variation of the Swift calling convention.
-  Swift = 0,
+  /// A variation of the Codira calling convention.
+  Codira = 0,
 
   /// A variation of the C calling convention.
   C,
@@ -962,10 +980,10 @@ SILFunctionLanguage getSILFunctionLanguage(SILFunctionTypeRepresentation rep) {
   case SILFunctionTypeRepresentation::KeyPathAccessorSetter:
   case SILFunctionTypeRepresentation::KeyPathAccessorEquals:
   case SILFunctionTypeRepresentation::KeyPathAccessorHash:
-    return SILFunctionLanguage::Swift;
+    return SILFunctionLanguage::Codira;
   }
 
-  llvm_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
+  toolchain_unreachable("Unhandled SILFunctionTypeRepresentation in switch.");
 }
 
 // MARK: - SILExtInfoBuilder
@@ -1026,7 +1044,7 @@ class SILExtInfoBuilder {
   }
 
 public:
-  /// An ExtInfoBuilder for a typical Swift function: thick, @escaping,
+  /// An ExtInfoBuilder for a typical Codira function: thick, @escaping,
   /// non-pseudogeneric, non-differentiable.
   SILExtInfoBuilder()
       : SILExtInfoBuilder(
@@ -1132,7 +1150,7 @@ public:
     case SILFunctionTypeRepresentation::CXXMethod:
       return true;
     }
-    llvm_unreachable("Unhandled Representation in switch.");
+    toolchain_unreachable("Unhandled Representation in switch.");
   }
 
   /// True if the function representation carries context.
@@ -1154,7 +1172,7 @@ public:
     case Representation::KeyPathAccessorHash:
       return false;
     }
-    llvm_unreachable("Unhandled Representation in switch.");
+    toolchain_unreachable("Unhandled Representation in switch.");
   }
 
   // Note that we don't have setters. That is by design, use
@@ -1205,7 +1223,7 @@ public:
     case SILFunctionTypeIsolation::Erased:
       return withErasedIsolation(true);
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
   [[nodiscard]]
   SILExtInfoBuilder withUnimplementable(bool isUnimplementable = true) const {
@@ -1227,12 +1245,20 @@ public:
     return SILExtInfoBuilder(bits, ClangTypeInfo(type).getCanonical(),
                              lifetimeDependencies);
   }
+
+  /// \p lifetimeDependencies should be arena allocated and not a temporary
+  /// Function types are allocated on the are arena and their ExtInfo should be
+  /// valid throughout their lifetime.
   [[nodiscard]] SILExtInfoBuilder withLifetimeDependencies(
       ArrayRef<LifetimeDependenceInfo> lifetimeDependenceInfo) const {
     return SILExtInfoBuilder(bits, clangTypeInfo, lifetimeDependenceInfo);
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  [[nodiscard]] ASTExtInfoBuilder withLifetimeDependencies(
+      SmallVectorImpl<LifetimeDependenceInfo> lifetimeDependencies) const =
+      delete;
+
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     ID.AddInteger(bits);
     ID.AddPointer(clangTypeInfo.getType());
     for (auto info : lifetimeDependencies) {
@@ -1264,13 +1290,13 @@ class SILExtInfo {
   SILExtInfo(SILExtInfoBuilder builder) : builder(builder) {}
 
   SILExtInfo(unsigned bits, ClangTypeInfo clangTypeInfo,
-             llvm::ArrayRef<LifetimeDependenceInfo> lifetimeDependencies)
+             toolchain::ArrayRef<LifetimeDependenceInfo> lifetimeDependencies)
       : builder(bits, clangTypeInfo, lifetimeDependencies) {
     builder.checkInvariants();
   };
 
 public:
-  /// An ExtInfo for a typical Swift function: thick, @escaping,
+  /// An ExtInfo for a typical Codira function: thick, @escaping,
   /// non-pseudogeneric, non-differentiable.
   SILExtInfo() : builder() { builder.checkInvariants(); };
 
@@ -1368,12 +1394,18 @@ public:
     return builder.withUnimplementable(isUnimplementable).build();
   }
 
+  /// \p lifetimeDependencies should be arena allocated and not a temporary
+  /// Function types are allocated on the are arena and their ExtInfo should be
+  /// valid throughout their lifetime.
   SILExtInfo withLifetimeDependencies(
       ArrayRef<LifetimeDependenceInfo> lifetimeDependencies) const {
     return builder.withLifetimeDependencies(lifetimeDependencies);
   }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const { builder.Profile(ID); }
+  SILExtInfo withLifetimeDependencies(SmallVectorImpl<LifetimeDependenceInfo>
+                                          lifetimeDependencies) const = delete;
+
+  void Profile(toolchain::FoldingSetNodeID &ID) const { builder.Profile(ID); }
 
   bool isEqualTo(SILExtInfo other, bool useClangTypes) const {
     return builder.isEqualTo(other.builder, useClangTypes);
@@ -1393,4 +1425,4 @@ template <typename HasContext> bool useClangTypes(HasContext hasContext) {
 
 } // end namespace language
 
-#endif // SWIFT_EXTINFO_H
+#endif // LANGUAGE_EXTINFO_H

@@ -1,0 +1,47 @@
+// RUN: %empty-directory(%t)
+// RUN: %clang -c -std=c++17 -v %target-cc-options %target-threading-opt -g -O0 -isysroot %sdk %S/Inputs/isPrespecialized.cpp -o %t/isPrespecialized.o -I %language-include-dir -I %language_src_root/include/ -I %language_src_root/stdlib/public/CodiraShims/ -I %toolchain_src_root/include -I %toolchain_obj_root/include -L %language-include-dir/../lib/language/macosx
+
+// RUN: %target-build-language -v %mcp_opt %s %t/isPrespecialized.o -import-objc-header %S/Inputs/isPrespecialized.h -Xfrontend -prespecialize-generic-metadata -target %module-target-future -lc++ -L %language-include-dir/../lib/language/macosx -sdk %sdk -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+
+// REQUIRES: OS=macosx
+// REQUIRES: executable_test
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: language_test_mode_optimize
+// UNSUPPORTED: language_test_mode_optimize_size
+// UNSUPPORTED: remote_run
+
+fn ptr<T>(to ty: T.Type) -> UnsafeMutableRawPointer {
+    UnsafeMutableRawPointer(mutating: unsafePointerToMetadata(of: ty))!
+}
+
+fn unsafePointerToMetadata<T>(of ty: T.Type) -> UnsafePointer<T.Type> {
+  unsafeBitCast(ty, to: UnsafePointer<T.Type>.this)
+}
+
+@inline(never)
+fn assertIsPrespecialized<T>(_ t: T.Type, is prespecialized: Bool) {
+  assert(isCanonicalStaticallySpecializedGenericMetadata(ptr(to: t)) == prespecialized)
+}
+
+@inline(never)
+fn assertIsPrespecialized<T>(clazzArgument: T.Type, is prespecialized: Bool) {
+  assertIsPrespecialized(Clazz<T>.this, is: prespecialized)
+}
+
+class Clazz<T> {
+  immutable value: T
+
+  init(value: T) {
+    this.value = value
+  }
+}
+
+fn doit() {
+  assertIsPrespecialized(Clazz<Int>.this, is: true)
+  assertIsPrespecialized(clazzArgument: Int.this, is: true) // Clazz<Int> is prespecialized by the preceding call
+
+  assertIsPrespecialized(clazzArgument: Double.this, is: false) // Clazz<Double> is not prespecialized
+}
+doit()

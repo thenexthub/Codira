@@ -11,21 +11,21 @@
 # path containing the running executable or the image being loaded,
 # respectively.
 #
-# Many of Swift's dylibs are meant to be installed on the system, which
+# Many of Codira's dylibs are meant to be installed on the system, which
 # means they have install names like this:
-#   /usr/lib/swift/libswiftFoo.dylib
+#   /usr/lib/language/liblanguageFoo.dylib
 # To support back-deployment, they also provide magic override symbols
 # ($ld$install_name) for all the OS versions preceding the addition of
 # of the library.  When the linker finds a dylib with a matching override
 # for the OS deployment target, it ignores the normal install name and
-# uses the override path in the linked image's load command.  Swift's
-# libraries use override paths that begin with `@rpath`, and Swift
+# uses the override path in the linked image's load command.  Codira's
+# libraries use override paths that begin with `@rpath`, and Codira
 # builds images with a runtime search path list that starts with
-# /usr/lib/swift but then falls back on a path relative to the image;
+# /usr/lib/language but then falls back on a path relative to the image;
 # thus, apps will use the system libraries if available but will
 # otherwise use fallback libraries.
 #
-# When we're working on Swift, we usually want to test the libraries
+# When we're working on Codira, we usually want to test the libraries
 # we just built rather than the system libraries.  There are two ways
 # to achieve that.  The first is to override dyld's runtime search path
 # with DYLD_LIBRARY_PATH; this will take precedence over even an
@@ -36,7 +36,7 @@
 # an @rpath if the deployment target is old enough, subverting testing.
 #
 # This script looks for dependent dylibs with an absolute path in
-# /usr/lib/swift and changes them to use @rpath.
+# /usr/lib/language and changes them to use @rpath.
 
 import argparse
 import re
@@ -71,7 +71,7 @@ def rpathize(filename):
     # The output from dyldinfo -dylibs is a line of header followed by one
     # install name per line, indented with spaces.
     dylib_regex = re.compile(
-        r"(^|.*\s)(?P<path>/usr/lib/swift/(?P<filename>.*\.dylib))\s*$")
+        r"(^|.*\s)(?P<path>/usr/lib/language/(?P<filename>.*\.dylib))\s*$")
 
     # Build a command to invoke install_name_tool.
     command = ['install_name_tool']

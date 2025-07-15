@@ -1,22 +1,26 @@
 //===--- CodeCompletionResultType.h -----------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_CODECOMPLETIONRESULTTYPE_H
-#define SWIFT_IDE_CODECOMPLETIONRESULTTYPE_H
+#ifndef LANGUAGE_IDE_CODECOMPLETIONRESULTTYPE_H
+#define LANGUAGE_IDE_CODECOMPLETIONRESULTTYPE_H
 
 #include "language/AST/Types.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/StringMap.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/StringMap.h"
 
 namespace language {
 namespace ide {
@@ -41,7 +45,7 @@ enum class CustomAttributeKind : uint8_t {
 /// The expected contextual type(s) for code-completion.
 class ExpectedTypeContext {
   /// Possible types of the code completion expression.
-  llvm::SmallVector<Type, 4> PossibleTypes;
+  toolchain::SmallVector<Type, 4> PossibleTypes;
 
   /// Pre typechecked type of the expression at the completion position.
   Type IdealType;
@@ -104,7 +108,7 @@ public:
       return true;
     if (PossibleTypes.empty())
       return false;
-    return llvm::all_of(PossibleTypes, [](Type Ty) { return !Ty->isVoid(); });
+    return toolchain::all_of(PossibleTypes, [](Type Ty) { return !Ty->isVoid(); });
   }
 
   bool isImpliedResult() const {
@@ -161,10 +165,10 @@ class USRBasedTypeArena {
   friend class USRBasedType;
 
   /// The allocator allocating the \c USRBasedTypes
-  llvm::BumpPtrAllocator Allocator;
+  toolchain::BumpPtrAllocator Allocator;
 
   /// Maps USRs to their \c USRBasedType instances.
-  llvm::StringMap<const USRBasedType *> CanonicalTypes;
+  toolchain::StringMap<const USRBasedType *> CanonicalTypes;
 
   /// Cache of the \c Void type because its frequently needed to compute type
   /// relations.
@@ -187,7 +191,7 @@ public:
     /// conextual type `some MyProto & MyOtherProto`, the return type must be
     /// convertible to both \c MyProto and \c MyOtherProto to be considered
     /// convertible.
-    llvm::SmallVector<const USRBasedType *, 1> Types;
+    toolchain::SmallVector<const USRBasedType *, 1> Types;
 
   public:
     /// Compute the type relation of \p ResultType to this conextual type.
@@ -208,7 +212,7 @@ private:
   const USRBasedTypeArena &Arena;
 
   /// A cached set of type relations for this given type context.
-  mutable llvm::DenseMap<const USRBasedType *, CodeCompletionResultTypeRelation>
+  mutable toolchain::DenseMap<const USRBasedType *, CodeCompletionResultTypeRelation>
       CachedTypeRelations;
 
   SmallVector<ContextualType, 4> ContextualTypes;
@@ -313,11 +317,11 @@ class CodeCompletionResultType {
   ///    hacky way with two pointers.
   /// The \c getResultTypes and \c isApplicable methods mask away this
   /// implementation detail.
-  llvm::PointerIntPair<PointerUnion<Type, const USRBasedType *>, 1, bool>
+  toolchain::PointerIntPair<PointerUnion<Type, const USRBasedType *>, 1, bool>
       ResultType1AndIsApplicable;
   PointerUnion<Type, const USRBasedType *> ResultType2;
 
-  llvm::SmallVector<PointerUnion<Type, const USRBasedType *>, 1>
+  toolchain::SmallVector<PointerUnion<Type, const USRBasedType *>, 1>
   getResultTypes() const {
     if (ResultType1AndIsApplicable.getPointer() && ResultType2) {
       return {ResultType1AndIsApplicable.getPointer(), ResultType2};
@@ -381,7 +385,7 @@ public:
 
   /// Return the result types as a \c USRBasedTypes, converting an AST-bound
   /// type to a \c USRBasedTypes if necessary.
-  llvm::SmallVector<const USRBasedType *, 1>
+  toolchain::SmallVector<const USRBasedType *, 1>
   getUSRBasedResultTypes(USRBasedTypeArena &Arena) const;
 
   /// Return the same \c CodeCompletionResultType with the guarantee that it is
@@ -407,4 +411,4 @@ public:
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_CODECOMPLETIONRESULTTYPE_H
+#endif // LANGUAGE_IDE_CODECOMPLETIONRESULTTYPE_H

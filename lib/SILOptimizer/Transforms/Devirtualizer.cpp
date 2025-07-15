@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Devirtualize indirect calls to functions, turning them into direct function
@@ -27,7 +28,7 @@
 #include "language/SILOptimizer/Analysis/ClassHierarchyAnalysis.h"
 #include "language/SILOptimizer/Utils/Devirtualize.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 using namespace language;
 
@@ -44,7 +45,7 @@ class Devirtualizer : public SILFunctionTransform {
   void run() override {
     SILFunction &F = *getFunction();
     ClassHierarchyAnalysis *CHA = PM->getAnalysis<ClassHierarchyAnalysis>();
-    LLVM_DEBUG(llvm::dbgs() << "***** Devirtualizer on function:" << F.getName()
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** Devirtualizer on function:" << F.getName()
                             << " *****\n");
 
     Changed = false;
@@ -63,7 +64,7 @@ class Devirtualizer : public SILFunctionTransform {
 // Return true if any calls changed, and true if the CFG also changed.
 void Devirtualizer::devirtualizeAppliesInFunction(SILFunction &F,
                                                   ClassHierarchyAnalysis *CHA) {
-  llvm::SmallVector<ApplySite, 8> NewApplies;
+  toolchain::SmallVector<ApplySite, 8> NewApplies;
   OptRemark::Emitter ORE(DEBUG_TYPE, F);
 
   SmallVector<ApplySite, 16> Applies;
@@ -121,4 +122,4 @@ void Devirtualizer::devirtualizeAppliesInFunction(SILFunction &F,
   }
 }
 
-SILTransform *swift::createDevirtualizer() { return new Devirtualizer(); }
+SILTransform *language::createDevirtualizer() { return new Devirtualizer(); }

@@ -1,0 +1,5 @@
+// RUN: not %target-language-frontend %s -typecheck
+
+immutable pq = {
+    return $0 ?? nil
+}

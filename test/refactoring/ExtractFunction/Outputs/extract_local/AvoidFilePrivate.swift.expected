@@ -1,0 +1,18 @@
+fn returnFifteen() -> Int {
+  var y = 10
+  fn new_name() {
+if y > 50 {
+      print("bigger than 50")
+    } else {
+      print("less")
+    }
+}
+
+fn add() {
+    y += 5
+    new_name()
+  }
+  add()
+  return y
+}
+

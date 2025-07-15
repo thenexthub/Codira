@@ -1,7 +1,7 @@
-#ifndef SWIFT_IDE_TEST_MODULE_API_DIFF_H
-#define SWIFT_IDE_TEST_MODULE_API_DIFF_H
+#ifndef LANGUAGE_IDE_TEST_MODULE_API_DIFF_H
+#define LANGUAGE_IDE_TEST_MODULE_API_DIFF_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include <string>
 
 namespace language {
@@ -12,5 +12,5 @@ int doGenerateModuleAPIDescription(StringRef DriverPath,
 
 } // end namespace language
 
-#endif // SWIFT_IDE_TEST_MODULE_API_DIFF_H
+#endif // LANGUAGE_IDE_TEST_MODULE_API_DIFF_H
 

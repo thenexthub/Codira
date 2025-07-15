@@ -11,17 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the DeclNameLoc class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_DECL_NAME_LOC_H
-#define SWIFT_AST_DECL_NAME_LOC_H
+#ifndef LANGUAGE_AST_DECL_NAME_LOC_H
+#define LANGUAGE_AST_DECL_NAME_LOC_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
+
+#include "toolchain/ADT/ArrayRef.h"
 
 class BridgedDeclNameLoc;
 
@@ -74,12 +77,23 @@ public:
   explicit DeclNameLoc(SourceLoc baseNameLoc)
       : DeclNameLoc(baseNameLoc.getOpaquePointerValue(), 0) {}
 
+  explicit DeclNameLoc(ASTContext &ctx, SourceLoc moduleSelectorLoc,
+                       SourceLoc baseNameLoc)
+    : DeclNameLoc(baseNameLoc) { }
+
   /// Create declaration name location information for a compound
   /// name.
   DeclNameLoc(ASTContext &ctx, SourceLoc baseNameLoc,
               SourceLoc lParenLoc,
               ArrayRef<SourceLoc> argumentLabelLocs,
               SourceLoc rParenLoc);
+
+  DeclNameLoc(ASTContext &ctx, SourceLoc moduleSelectorLoc,
+              SourceLoc baseNameLoc,
+              SourceLoc lParenLoc,
+              ArrayRef<SourceLoc> argumentLabelLocs,
+              SourceLoc rParenLoc)
+    : DeclNameLoc(ctx, baseNameLoc, lParenLoc, argumentLabelLocs, rParenLoc) { }
 
   /// Whether the location information is valid.
   bool isValid() const { return getBaseNameLoc().isValid(); }
@@ -114,6 +128,10 @@ public:
     return getSourceLocs()[FirstArgumentLabelIndex + index];
   }
 
+  SourceLoc getModuleSelectorLoc() const {
+    return SourceLoc();
+  }
+
   SourceLoc getStartLoc() const {
     return getBaseNameLoc();
   }
@@ -132,4 +150,4 @@ public:
 
 }
 
-#endif // SWIFT_AST_DECL_NAME_LOC_H
+#endif // LANGUAGE_AST_DECL_NAME_LOC_H

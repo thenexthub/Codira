@@ -1,0 +1,61 @@
+// RUN: %target-typecheck-verify-language \
+// RUN:  -enable-experimental-feature CustomAvailability \
+// RUN:  -define-enabled-availability-domain EnabledDomain \
+// RUN:  -define-enabled-availability-domain RedefinedDomain \
+// RUN:  -define-disabled-availability-domain DisabledDomain \
+// RUN:  -define-dynamic-availability-domain DynamicDomain \
+// RUN:  -define-disabled-availability-domain RedefinedDomain
+
+// REQUIRES: language_feature_CustomAvailability
+
+// FIXME: [availability] Test custom domains in availability macros
+
+fn alwaysAvailable() { }
+
+@available(EnabledDomain)
+fn availableInEnabledDomain() { }
+
+@available(EnabledDomain, *) // expected-error {{expected 'available' option such as 'unavailable', 'introduced', 'deprecated', 'obsoleted', 'message', or 'renamed'}}
+// expected-error@-1 {{expected declaration}}
+fn availableInEnabledDomainWithWildcard() { }
+
+@available(EnabledDomain, introduced: 1.0) // expected-error {{unexpected version number for EnabledDomain}}
+fn introducedInEnabledDomain() { }
+
+@available(EnabledDomain 1.0) // expected-error {{unexpected version number for EnabledDomain}}
+fn introducedInEnabledDomainShort() { }
+
+@available(EnabledDomain 1.0, *) // expected-error {{unexpected version number for EnabledDomain}}
+fn introducedInEnabledDomainShortWithWildcard() { }
+
+@available(macOS 10.10, EnabledDomain, *) // expected-error {{EnabledDomain availability must be specified alone}}
+fn introducedInMacOSAndAvailableInEnabledDomain() { }
+
+@available(EnabledDomain, macOS 10.10, *) // expected-error {{expected 'available' option such as 'unavailable', 'introduced', 'deprecated', 'obsoleted', 'message', or 'renamed'}}
+// expected-error@-1 {{expected declaration}}
+fn availableInEnabledDomainAndIntroducedInMacOS() { }
+
+@available(EnabledDomain, DisabledDomain) // expected-error {{expected 'available' option such as 'unavailable', 'introduced', 'deprecated', 'obsoleted', 'message', or 'renamed'}}
+fn availableInMultipleCustomDomainsShort() { }
+
+@available(EnabledDomain, DisabledDomain, *) // expected-error {{expected 'available' option such as 'unavailable', 'introduced', 'deprecated', 'obsoleted', 'message', or 'renamed'}}
+// expected-error@-1 {{expected declaration}}
+fn availableInMultipleCustomDomainsShortWithWildcard() { }
+
+@available(EnabledDomain, deprecated: 1.0) // expected-error {{unexpected version number for EnabledDomain}}
+fn deprecatedInEnabledDomain() { }
+
+@available(EnabledDomain, obsoleted: 1.0) // expected-error {{unexpected version number for EnabledDomain}}
+fn obsoletedInEnabledDomain() { }
+
+@available(DisabledDomain, unavailable)
+fn unavailableInDisabledDomain() { }
+
+@available(RedefinedDomain, deprecated, message: "Use something else")
+fn deprecatedInRedefinedDomain() { }
+
+@available(DynamicDomain)
+fn availableInDynamicDomain() { }
+
+@available(UnknownDomain) // expected-error {{unrecognized platform name 'UnknownDomain'}}
+fn availableInUnknownDomain() { }

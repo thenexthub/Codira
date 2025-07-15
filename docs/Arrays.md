@@ -3,7 +3,7 @@ author: "Dave Abrahams"
 date: "2014-04-10"
 ---
 
-# The Swift Array Design
+# The Codira Array Design
 
 ## Goals
 
@@ -20,13 +20,13 @@ date: "2014-04-10"
 To achieve goals 1 and 2 together, we use static knowledge of the
 element type: when it is statically known that the element type is not a
 class, code and checks accounting for the possibility of wrapping an
-`NSArray` are eliminated. An `Array` of Swift value types always uses
+`NSArray` are eliminated. An `Array` of Codira value types always uses
 the most efficient possible representation, identical to that of
 `ContiguousArray`.
 
 ## Components
 
-Swift provides three generic array types, all of which have amortized
+Codira provides three generic array types, all of which have amortized
 O(1) growth. In this document, statements about **ArrayType** apply to
 all three of the components.
 
@@ -40,7 +40,7 @@ all three of the components.
     for efficient conversions from Cocoa and back\--when `Element` can
     be a class type, `Array<Element>` can be backed by the (potentially
     non-contiguous) storage of an arbitrary `NSArray` rather than by a
-    Swift `ContiguousArray`. `Array<Element>` also supports up- and
+    Codira `ContiguousArray`. `Array<Element>` also supports up- and
     downcasts between arrays of related class types. When `Element` is
     known to be a non-class type, the performance of `Array<Element>` is
     identical to that of `ContiguousArray<Element>`.
@@ -49,7 +49,7 @@ all three of the components.
 
 -   `ArraySlice<Element>` is a subrange of some `Array<Element>` or
     `ContiguousArray<Element>`; it\'s the result of using slice
-    notation, e.g. `a[7...21]` on any Swift array `a`. A slice always
+    notation, e.g. `a[7...21]` on any Codira array `a`. A slice always
     has contiguous storage and \"C array\" performance. Slicing an
     *ArrayType* is O(1) unless the source is an `Array<Element>` backed
     by an `NSArray` that doesn\'t supply contiguous storage.
@@ -65,7 +65,7 @@ all three of the components.
 
 The *ArrayType*s have full value semantics via copy-on-write (COW):
 
-```swift
+```language
 var a = [1, 2, 3]
 let b = a
 a[1] = 42
@@ -75,18 +75,18 @@ print(b[1]) // prints "2"
 ## Bridging Rules and Terminology for all Types
 
 -   Every class type or `@objc` existential (such as `AnyObject`) is
-    **bridged** to Objective-C and **bridged back** to Swift via the
+    **bridged** to Objective-C and **bridged back** to Codira via the
     identity transformation, i.e. it is **bridged verbatim**.
 
 -   A type `T` that is not [bridged verbatim](#bridging-rules-and-terminology-for-all-types) 
     can conform to `BridgedToObjectiveC`, which specifies its conversions to
     and from Objective-C:
 
-    ```swift
+    ```language
     protocol _BridgedToObjectiveC {
         typealias _ObjectiveCType: AnyObject
-        func _bridgeToObjectiveC() -> _ObjectiveCType
-        class func _forceBridgeFromObjectiveC(_: _ObjectiveCType) -> Self
+        fn _bridgeToObjectiveC() -> _ObjectiveCType
+        class fn _forceBridgeFromObjectiveC(_: _ObjectiveCType) -> Self
     }
     ```
 
@@ -100,10 +100,10 @@ print(b[1]) // prints "2"
     Objective-C only if their element types bridge. These types conform
     to `_ConditionallyBridgedToObjectiveC`:
 
-    ```swift
+    ```language
     protocol _ConditionallyBridgedToObjectiveC : _BridgedToObjectiveC {
-        class func _isBridgedToObjectiveC() -> Bool
-        class func _conditionallyBridgeFromObjectiveC(_: _ObjectiveCType) -> Self?
+        class fn _isBridgedToObjectiveC() -> Bool
+        class fn _conditionallyBridgeFromObjectiveC(_: _ObjectiveCType) -> Self?
     }
     ```
 
@@ -174,9 +174,9 @@ thereof, `Derived` is a trivial subtype of `Base`, and `X` conforms to
         `X._ObjectiveCType` is `T` or a trivial subtype thereof.
 
 -   **Forced conversions** convert `[AnyObject]` or `NSArray` to `[T]`
-    implicitly, in bridging thunks between Swift and Objective-C.
+    implicitly, in bridging thunks between Codira and Objective-C.
 
-    For example, when a user writes a Swift method taking `[NSView]`, it
+    For example, when a user writes a Codira method taking `[NSView]`, it
     is exposed to Objective-C as a method taking `NSArray`, which is
     force-converted to `[NSView]` when called from Objective-C.
 
@@ -243,4 +243,4 @@ result is also marked for deferred checking.
 [^1]: This `copy()` may amount to a retain if the `NSArray` is already
     known to be immutable. We could eventually optimize out the copy if
     we can detect that the `NSArray` is uniquely referenced. Our current
-    unique-reference detection applies only to Swift objects, though.
+    unique-reference detection applies only to Codira objects, though.

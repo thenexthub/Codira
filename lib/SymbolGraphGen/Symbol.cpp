@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
@@ -61,7 +62,7 @@ Symbol::Symbol(SymbolGraph *Graph, const ValueDecl *VD, const ExtensionDecl *ED,
 }
 
 void Symbol::serializeKind(StringRef Identifier, StringRef DisplayName,
-                           llvm::json::OStream &OS) const {
+                           toolchain::json::OStream &OS) const {
   OS.object([&](){
     OS.attribute("identifier", Identifier);
     OS.attribute("displayName", DisplayName);
@@ -72,78 +73,78 @@ std::pair<StringRef, StringRef> Symbol::getKind(const Decl *D) {
   // Make sure supportsKind stays in sync with getKind.
   assert(Symbol::supportsKind(D->getKind()) && "unsupported decl kind");
   switch (D->getKind()) {
-  case swift::DeclKind::Class:
-    return {"swift.class", "Class"};
-  case swift::DeclKind::Struct:
-    return {"swift.struct", "Structure"};
-  case swift::DeclKind::Enum:
-    return {"swift.enum", "Enumeration"};
-  case swift::DeclKind::EnumElement:
-    return {"swift.enum.case", "Case"};
-  case swift::DeclKind::Protocol:
-    return {"swift.protocol", "Protocol"};
-  case swift::DeclKind::Constructor:
-    return {"swift.init", "Initializer"};
-  case swift::DeclKind::Destructor:
-    return {"swift.deinit", "Deinitializer"};
-  case swift::DeclKind::Func: {
+  case language::DeclKind::Class:
+    return {"language.class", "Class"};
+  case language::DeclKind::Struct:
+    return {"language.struct", "Structure"};
+  case language::DeclKind::Enum:
+    return {"language.enum", "Enumeration"};
+  case language::DeclKind::EnumElement:
+    return {"language.enum.case", "Case"};
+  case language::DeclKind::Protocol:
+    return {"language.protocol", "Protocol"};
+  case language::DeclKind::Constructor:
+    return {"language.init", "Initializer"};
+  case language::DeclKind::Destructor:
+    return {"language.deinit", "Deinitializer"};
+  case language::DeclKind::Func: {
     const auto *VD = cast<ValueDecl>(D);
 
     if (VD->isOperator())
-      return {"swift.func.op", "Operator"};
+      return {"language.fn.op", "Operator"};
     if (VD->isStatic())
-      return {"swift.type.method", "Type Method"};
+      return {"language.type.method", "Type Method"};
     if (VD->getDeclContext()->getSelfNominalTypeDecl())
-      return {"swift.method", "Instance Method"};
-    return {"swift.func", "Function"};
+      return {"language.method", "Instance Method"};
+    return {"language.fn", "Function"};
   }
-  case swift::DeclKind::Param: LLVM_FALLTHROUGH;
-  case swift::DeclKind::Var: {
+  case language::DeclKind::Param: TOOLCHAIN_FALLTHROUGH;
+  case language::DeclKind::Var: {
     const auto *VD = cast<ValueDecl>(D);
 
     if (VD->isStatic())
-      return {"swift.type.property", "Type Property"};
+      return {"language.type.property", "Type Property"};
     if (VD->getDeclContext()->getSelfNominalTypeDecl())
-      return {"swift.property", "Instance Property"};
-    return {"swift.var", "Global Variable"};
+      return {"language.property", "Instance Property"};
+    return {"language.var", "Global Variable"};
   }
-  case swift::DeclKind::Subscript: {
+  case language::DeclKind::Subscript: {
     const auto *VD = cast<ValueDecl>(D);
 
     if (VD->isStatic())
-      return {"swift.type.subscript", "Type Subscript"};
-    return {"swift.subscript", "Instance Subscript"};
+      return {"language.type.subscript", "Type Subscript"};
+    return {"language.subscript", "Instance Subscript"};
   }
-  case swift::DeclKind::TypeAlias:
-    return {"swift.typealias", "Type Alias"};
-  case swift::DeclKind::AssociatedType:
-    return {"swift.associatedtype", "Associated Type"};
-  case swift::DeclKind::Extension:
-    return {"swift.extension", "Extension"};
-  case swift::DeclKind::Macro:
-    return {"swift.macro", "Macro"};
+  case language::DeclKind::TypeAlias:
+    return {"language.typealias", "Type Alias"};
+  case language::DeclKind::AssociatedType:
+    return {"language.associatedtype", "Associated Type"};
+  case language::DeclKind::Extension:
+    return {"language.extension", "Extension"};
+  case language::DeclKind::Macro:
+    return {"language.macro", "Macro"};
   default:
-    llvm::errs() << "Unsupported kind: " << D->getKindName(D->getKind());
-    llvm_unreachable("Unsupported declaration kind for symbol graph");
+    toolchain::errs() << "Unsupported kind: " << D->getKindName(D->getKind());
+    toolchain_unreachable("Unsupported declaration kind for symbol graph");
   }
 }
 
-void Symbol::serializeKind(llvm::json::OStream &OS) const {
+void Symbol::serializeKind(toolchain::json::OStream &OS) const {
   AttributeRAII A("kind", OS);
   std::pair<StringRef, StringRef> IDAndName = getKind(D);
   serializeKind(IDAndName.first, IDAndName.second, OS);
 }
 
-void Symbol::serializeIdentifier(llvm::json::OStream &OS) const {
+void Symbol::serializeIdentifier(toolchain::json::OStream &OS) const {
   OS.attributeObject("identifier", [&](){
     SmallString<256> USR;
     getUSR(USR);
     OS.attribute("precise", USR.str());
-    OS.attribute("interfaceLanguage", "swift");
+    OS.attribute("interfaceLanguage", "language");
   });
 }
 
-void Symbol::serializePathComponents(llvm::json::OStream &OS) const {
+void Symbol::serializePathComponents(toolchain::json::OStream &OS) const {
   OS.attributeArray("pathComponents", [&](){
     SmallVector<PathComponent, 8> PathComponents;
     getPathComponents(PathComponents);
@@ -153,7 +154,7 @@ void Symbol::serializePathComponents(llvm::json::OStream &OS) const {
   });
 }
 
-void Symbol::serializeNames(llvm::json::OStream &OS) const {
+void Symbol::serializeNames(toolchain::json::OStream &OS) const {
   OS.attributeObject("names", [&](){
     SmallVector<PathComponent, 8> PathComponents;
     getPathComponents(PathComponents);
@@ -188,7 +189,7 @@ void Symbol::serializeNames(llvm::json::OStream &OS) const {
 
 void Symbol::serializePosition(StringRef Key, SourceLoc Loc,
                                SourceManager &SourceMgr,
-                               llvm::json::OStream &OS) const {
+                               toolchain::json::OStream &OS) const {
   // Note: Line and columns are zero-based in this serialized format.
   auto LineAndColumn = SourceMgr.getPresumedLineAndColumnForLoc(Loc);
   auto Line = LineAndColumn.first - 1;
@@ -202,7 +203,7 @@ void Symbol::serializePosition(StringRef Key, SourceLoc Loc,
 
 void Symbol::serializeRange(size_t InitialIndentation,
                             SourceRange Range, SourceManager &SourceMgr,
-                            llvm::json::OStream &OS) const {
+                            toolchain::json::OStream &OS) const {
   OS.attributeObject("range", [&](){
     // Note: Line and columns in the serialized format are zero-based.
     auto Start = Range.Start.getAdvancedLoc(InitialIndentation);
@@ -310,7 +311,7 @@ StringRef getFileNameForDecl(const clang::Decl *ClangD) {
   return StringRef(Loc.getFilename());
 }
 
-void serializeFileURI(llvm::json::OStream &OS, StringRef FileName) {
+void serializeFileURI(toolchain::json::OStream &OS, StringRef FileName) {
   // FIXME: This can emit invalid URIs if the file name has a space in it (rdar://69242070)
   SmallString<1024> FileURI("file://");
   FileURI.append(FileName);
@@ -319,7 +320,7 @@ void serializeFileURI(llvm::json::OStream &OS, StringRef FileName) {
 
 }
 
-void Symbol::serializeDocComment(llvm::json::OStream &OS) const {
+void Symbol::serializeDocComment(toolchain::json::OStream &OS) const {
   if (ClangNode ClangN = D->getClangNode()) {
     if (!Graph->Walker.Options.IncludeClangDocs)
       return;
@@ -412,8 +413,8 @@ void Symbol::serializeDocComment(llvm::json::OStream &OS) const {
   }); // end docComment:
 }
 
-void Symbol::serializeFunctionSignature(llvm::json::OStream &OS) const {
-  auto serializeParameterList = [&](const swift::ParameterList *ParamList) {
+void Symbol::serializeFunctionSignature(toolchain::json::OStream &OS) const {
+  auto serializeParameterList = [&](const language::ParameterList *ParamList) {
     if (ParamList->size()) {
       OS.attributeArray("parameters", [&]() {
         for (const auto *Param : *ParamList) {
@@ -485,26 +486,26 @@ static SubstitutionMap getSubMapForDecl(const ValueDecl *D, Type BaseType) {
   // or if we're dealing with an extension rather than a member, into its
   // extended nominal (the extension's own requirements shouldn't be considered
   // in the substitution).
-  swift::DeclContext *DC;
-  if (isa<swift::ExtensionDecl>(D))
-    DC = cast<swift::ExtensionDecl>(D)->getExtendedNominal();
+  language::DeclContext *DC;
+  if (isa<language::ExtensionDecl>(D))
+    DC = cast<language::ExtensionDecl>(D)->getExtendedNominal();
   else
     DC = D->getInnermostDeclContext()->getInnermostTypeContext();
 
-  if (isa<swift::NominalTypeDecl>(D) || isa<swift::ExtensionDecl>(D)) {
+  if (isa<language::NominalTypeDecl>(D) || isa<language::ExtensionDecl>(D)) {
     return BaseType->getContextSubstitutionMap(DC);
   }
 
-  const swift::ValueDecl *SubTarget = D;
-  if (isa<swift::ParamDecl>(D)) {
+  const language::ValueDecl *SubTarget = D;
+  if (isa<language::ParamDecl>(D)) {
     auto *DC = D->getDeclContext();
-    if (auto *FD = dyn_cast<swift::AbstractFunctionDecl>(DC))
+    if (auto *FD = dyn_cast<language::AbstractFunctionDecl>(DC))
       SubTarget = FD;
   }
   return BaseType->getMemberSubstitutionMap(SubTarget);
 }
 
-void Symbol::serializeSwiftGenericMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeCodiraGenericMixin(toolchain::json::OStream &OS) const {
   SubstitutionMap SubMap;
   const auto *VD = dyn_cast<ValueDecl>(D);
 
@@ -540,7 +541,7 @@ void Symbol::serializeSwiftGenericMixin(llvm::json::OStream &OS) const {
         return;
       }
 
-      OS.attributeObject("swiftGenerics", [&](){
+      OS.attributeObject("languageGenerics", [&](){
         if (!FilteredParams.empty()) {
           OS.attributeArray("parameters", [&](){
             for (const auto *Param : FilteredParams) {
@@ -556,12 +557,12 @@ void Symbol::serializeSwiftGenericMixin(llvm::json::OStream &OS) const {
             }
           }); // end constraints:
         }
-      }); // end swiftGenerics:
+      }); // end languageGenerics:
     }
   }
 }
 
-void Symbol::serializeSwiftExtensionMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeCodiraExtensionMixin(toolchain::json::OStream &OS) const {
   if (const auto *ED = dyn_cast<ExtensionDecl>(D)) {
     ::serialize(ED, OS);
   } else if (const auto *VD = dyn_cast<ValueDecl>(D)) {
@@ -572,11 +573,11 @@ void Symbol::serializeSwiftExtensionMixin(llvm::json::OStream &OS) const {
   }
 }
 
-void Symbol::serializeDeclarationFragmentMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeDeclarationFragmentMixin(toolchain::json::OStream &OS) const {
   Graph->serializeDeclarationFragments("declarationFragments", *this, OS);
 }
 
-void Symbol::serializeAccessLevelMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeAccessLevelMixin(toolchain::json::OStream &OS) const {
   if (const auto *ED = dyn_cast<ExtensionDecl>(D)) {
     OS.attribute("accessLevel",
                  getAccessLevelSpelling(getEffectiveAccessLevel(ED)));
@@ -585,13 +586,13 @@ void Symbol::serializeAccessLevelMixin(llvm::json::OStream &OS) const {
   }
 }
 
-void Symbol::serializeMetadataMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeMetadataMixin(toolchain::json::OStream &OS) const {
   StringRef Category = documentationMetadataForDecl(D);
   if (!Category.empty())
     OS.attribute("metadata", Category);
 }
 
-void Symbol::serializeLocationMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeLocationMixin(toolchain::json::OStream &OS) const {
   if (const auto *VD = dyn_cast<ValueDecl>(D)) {
     if (ClangNode ClangN = VD->getClangNode()) {
       if (!Graph->Walker.Options.IncludeClangDocs)
@@ -638,7 +639,7 @@ namespace {
 /// domain with different "inheriting" rules rather than filling from
 /// duplicate \c \@available attributes on the same declaration.
 void getAvailabilities(const Decl *D,
-                       llvm::StringMap<Availability> &Availabilities,
+                       toolchain::StringMap<Availability> &Availabilities,
                        bool IsParent) {
   // DeclAttributes is a linked list in reverse order from where they
   // appeared in the source. Let's re-reverse them.
@@ -679,7 +680,7 @@ void getAvailabilities(const Decl *D,
 /// Get the availabilities of a declaration, considering all of its
 /// parent context's except for the module.
 void getInheritedAvailabilities(const Decl *D,
-llvm::StringMap<Availability> &Availabilities) {
+toolchain::StringMap<Availability> &Availabilities) {
   getAvailabilities(D, Availabilities, /*IsParent*/false);
 
   auto CurrentContext = D->getDeclContext();
@@ -696,8 +697,8 @@ llvm::StringMap<Availability> &Availabilities) {
 
 } // end anonymous namespace
 
-void Symbol::serializeAvailabilityMixin(llvm::json::OStream &OS) const {
-  llvm::StringMap<Availability> Availabilities;
+void Symbol::serializeAvailabilityMixin(toolchain::json::OStream &OS) const {
+  toolchain::StringMap<Availability> Availabilities;
   getInheritedAvailabilities(D, Availabilities);
 
   // If we were asked to filter the availability platforms for the output graph,
@@ -731,12 +732,12 @@ void Symbol::serializeAvailabilityMixin(llvm::json::OStream &OS) const {
   });
 }
 
-void Symbol::serializeSPIMixin(llvm::json::OStream &OS) const {
+void Symbol::serializeSPIMixin(toolchain::json::OStream &OS) const {
   if (D->isSPI())
     OS.attribute("spi", true);
 }
 
-void Symbol::serialize(llvm::json::OStream &OS) const {
+void Symbol::serialize(toolchain::json::OStream &OS) const {
   OS.object([&](){
     serializeKind(OS);
     serializeIdentifier(OS);
@@ -746,8 +747,8 @@ void Symbol::serialize(llvm::json::OStream &OS) const {
 
     // "Mixins"
     serializeFunctionSignature(OS);
-    serializeSwiftGenericMixin(OS);
-    serializeSwiftExtensionMixin(OS);
+    serializeCodiraGenericMixin(OS);
+    serializeCodiraExtensionMixin(OS);
     serializeDeclarationFragmentMixin(OS);
     serializeAccessLevelMixin(OS);
     serializeAvailabilityMixin(OS);
@@ -757,7 +758,7 @@ void Symbol::serialize(llvm::json::OStream &OS) const {
   });
 }
 
-swift::DeclName Symbol::getName(const Decl *D) const {
+language::DeclName Symbol::getName(const Decl *D) const {
   if (const auto *ED = dyn_cast<ExtensionDecl>(D)) {
     return ED->getExtendedNominal()->getName();
   } else {
@@ -845,7 +846,7 @@ getFragmentInfo(SmallVectorImpl<FragmentInfo> &FragmentInfos) const {
     Options.PrintAsMember = true;
   }
 
-  llvm::json::OStream OS(llvm::nulls());
+  toolchain::json::OStream OS(toolchain::nulls());
   OS.object([&]{
     DeclarationFragmentPrinter Printer(Graph, OS, {"ignored"}, &Referenced);
     getSymbolDecl()->print(Printer, Options);
@@ -862,7 +863,7 @@ getFragmentInfo(SmallVectorImpl<FragmentInfo> &FragmentInfos) const {
   }
 }
 
-void Symbol::printPath(llvm::raw_ostream &OS) const {
+void Symbol::printPath(toolchain::raw_ostream &OS) const {
   SmallVector<PathComponent, 8> Components;
   getPathComponents(Components);
   for (auto it = Components.begin(); it != Components.end(); ++it) {
@@ -874,7 +875,7 @@ void Symbol::printPath(llvm::raw_ostream &OS) const {
 }
 
 void Symbol::getUSR(SmallVectorImpl<char> &USR) const {
-  llvm::raw_svector_ostream OS(USR);
+  toolchain::raw_svector_ostream OS(USR);
   ide::printDeclUSR(D, OS, /*distinguishSynthesizedDecls*/ true);
   if (SynthesizedBaseTypeDecl) {
     OS << "::SYNTHESIZED::";
@@ -884,20 +885,20 @@ void Symbol::getUSR(SmallVectorImpl<char> &USR) const {
 
 bool Symbol::supportsKind(DeclKind Kind) {
   switch (Kind) {
-  case DeclKind::Class: LLVM_FALLTHROUGH;
-  case DeclKind::Struct: LLVM_FALLTHROUGH;
-  case DeclKind::Enum: LLVM_FALLTHROUGH;
-  case DeclKind::EnumElement: LLVM_FALLTHROUGH;
-  case DeclKind::Protocol: LLVM_FALLTHROUGH;
-  case DeclKind::Constructor: LLVM_FALLTHROUGH;
-  case DeclKind::Destructor: LLVM_FALLTHROUGH;
-  case DeclKind::Func: LLVM_FALLTHROUGH;
-  case DeclKind::Var: LLVM_FALLTHROUGH;
-  case DeclKind::Param: LLVM_FALLTHROUGH;
-  case DeclKind::Subscript: LLVM_FALLTHROUGH;
-  case DeclKind::TypeAlias: LLVM_FALLTHROUGH;
-  case DeclKind::AssociatedType: LLVM_FALLTHROUGH;
-  case DeclKind::Extension: LLVM_FALLTHROUGH;
+  case DeclKind::Class: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Struct: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Enum: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::EnumElement: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Protocol: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Constructor: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Destructor: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Func: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Var: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Param: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Subscript: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::TypeAlias: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::AssociatedType: TOOLCHAIN_FALLTHROUGH;
+  case DeclKind::Extension: TOOLCHAIN_FALLTHROUGH;
   case DeclKind::Macro:
     return true;
   default:

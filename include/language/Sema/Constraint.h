@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides the \c Constraint class and its related types,
@@ -18,8 +19,8 @@
 // constraint that must be solved.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_CONSTRAINT_H
-#define SWIFT_SEMA_CONSTRAINT_H
+#ifndef LANGUAGE_SEMA_CONSTRAINT_H
+#define LANGUAGE_SEMA_CONSTRAINT_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/FunctionRefInfo.h"
@@ -30,12 +31,12 @@
 #include "language/Sema/ConstraintLocator.h"
 #include "language/Sema/ContextualTypeInfo.h"
 #include "language/Sema/OverloadChoice.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/ilist.h"
-#include "llvm/ADT/ilist_node.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/ilist.h"
+#include "toolchain/ADT/ilist_node.h"
+#include "toolchain/Support/TrailingObjects.h"
 
-namespace llvm {
+namespace toolchain {
 
 class raw_ostream;
 
@@ -52,6 +53,7 @@ namespace constraints {
 class ConstraintFix;
 class ConstraintLocator;
 class ConstraintSystem;
+class PreparedOverload;
 enum class TrailingClosureMatching;
 
 /// Describes the kind of constraint placed on one or more types.
@@ -302,7 +304,7 @@ enum class ConversionRestrictionKind {
   /// Implicit conversion from a value of CGFloat type to a value of Double type
   /// via an implicit Double initializer call passing a CGFloat value.
   CGFloatToDouble,
-  /// Implicit conversion between Swift and C pointers:
+  /// Implicit conversion between Codira and C pointers:
   ///    - Unsafe[Mutable]RawPointer -> Unsafe[Mutable]Pointer<[U]Int>
   ///    - Unsafe[Mutable]Pointer<Int{8, 16, ...}> <-> Unsafe[Mutable]Pointer<UInt{8, 16, ...}>
   PointerToCPointer,
@@ -325,7 +327,7 @@ enum class ConversionEphemeralness {
 };
 
 /// Return a string representation of a conversion restriction.
-llvm::StringRef getName(ConversionRestrictionKind kind);
+toolchain::StringRef getName(ConversionRestrictionKind kind);
 
 /// Should we record which choice was taken in this disjunction for
 /// the purposes of applying it later?
@@ -335,8 +337,8 @@ enum RememberChoice_t : bool {
 };
 
 /// A constraint between two type variables.
-class Constraint final : public llvm::ilist_node<Constraint>,
-    private llvm::TrailingObjects<Constraint,
+class Constraint final : public toolchain::ilist_node<Constraint>,
+    private toolchain::TrailingObjects<Constraint,
                                   TypeVariableType *,
                                   ConstraintFix *,
                                   DeclContext *,
@@ -440,6 +442,9 @@ class Constraint final : public llvm::ilist_node<Constraint>,
     struct {
       /// The first type.
       Type First;
+
+      /// The prepared overload, if any.
+      PreparedOverload *Prepared;
     } Overload;
 
     struct {
@@ -493,7 +498,8 @@ class Constraint final : public llvm::ilist_node<Constraint>,
              SmallPtrSetImpl<TypeVariableType *> &typeVars);
 
   /// Construct a new overload-binding constraint, which might have a fix.
-  Constraint(Type type, OverloadChoice choice, DeclContext *useDC,
+  Constraint(Type type, OverloadChoice choice,
+             DeclContext *useDC,
              ConstraintFix *fix, ConstraintLocator *locator,
              SmallPtrSetImpl<TypeVariableType *> &typeVars);
 
@@ -747,17 +753,17 @@ public:
       return ConstraintClassification::SyntacticElement;
     }
 
-    llvm_unreachable("Unhandled ConstraintKind in switch.");
+    toolchain_unreachable("Unhandled ConstraintKind in switch.");
   }
 
   /// Retrieve the first type in the constraint.
   Type getFirstType() const {
     switch (getKind()) {
     case ConstraintKind::Disjunction:
-      llvm_unreachable("disjunction constraints have no type operands");
+      toolchain_unreachable("disjunction constraints have no type operands");
 
     case ConstraintKind::Conjunction:
-      llvm_unreachable("conjunction constraints have no type operands");
+      toolchain_unreachable("conjunction constraints have no type operands");
 
     case ConstraintKind::BindOverload:
       return Overload.First;
@@ -768,7 +774,7 @@ public:
       return Member.First;
 
     case ConstraintKind::SyntacticElement:
-      llvm_unreachable("closure body element constraint has no type operands");
+      toolchain_unreachable("closure body element constraint has no type operands");
 
     case ConstraintKind::ApplicableFunction:
       return Apply.AppliedFn;
@@ -785,7 +791,7 @@ public:
     case ConstraintKind::Conjunction:
     case ConstraintKind::BindOverload:
     case ConstraintKind::SyntacticElement:
-      llvm_unreachable("constraint has no second type");
+      toolchain_unreachable("constraint has no second type");
 
     case ConstraintKind::ValueMember:
     case ConstraintKind::UnresolvedValueMember:
@@ -807,7 +813,7 @@ public:
     case ConstraintKind::KeyPathApplication:
       return Types.Third;
     default:
-      llvm_unreachable("no third type");
+      toolchain_unreachable("no third type");
     }
   }
 
@@ -844,13 +850,13 @@ public:
   }
 
   unsigned countFavoredNestedConstraints() const {
-    return llvm::count_if(Nested, [](const Constraint *constraint) {
+    return toolchain::count_if(Nested, [](const Constraint *constraint) {
       return constraint->isFavored() && !constraint->isDisabled();
     });
   }
 
   unsigned countActiveNestedConstraints() const {
-    return llvm::count_if(Nested, [](const Constraint *constraint) {
+    return toolchain::count_if(Nested, [](const Constraint *constraint) {
       return !constraint->isDisabled();
     });
   }
@@ -872,6 +878,19 @@ public:
   OverloadChoice getOverloadChoice() const {
     ASSERT(Kind == ConstraintKind::BindOverload);
     return *getTrailingObjects<OverloadChoice>();
+  }
+
+  /// Retrieve the prepared overload choice for an overload-binding
+  /// constraint.
+  PreparedOverload *getPreparedOverload() const {
+    ASSERT(Kind == ConstraintKind::BindOverload);
+    return Overload.Prepared;
+  }
+
+  void setPreparedOverload(PreparedOverload *preparedOverload) {
+    ASSERT(Kind == ConstraintKind::BindOverload);
+    ASSERT(!Overload.Prepared);
+    Overload.Prepared = preparedOverload;
   }
 
   FunctionType *getAppliedFunctionType() const {
@@ -915,12 +934,12 @@ public:
   /// Print constraint placed on type and constraint properties.
   ///
   /// \c skipLocator skips printing of locators.
-  void print(llvm::raw_ostream &Out, SourceManager *sm, unsigned indent = 0,
+  void print(toolchain::raw_ostream &Out, SourceManager *sm, unsigned indent = 0,
              bool skipLocator = false) const;
 
-  SWIFT_DEBUG_DUMPER(dump(SourceManager *SM));
+  LANGUAGE_DEBUG_DUMPER(dump(SourceManager *SM));
 
-  SWIFT_DEBUG_DUMPER(dump(ConstraintSystem *CS));
+  LANGUAGE_DEBUG_DUMPER(dump(ConstraintSystem *CS));
 
   void *operator new(size_t bytes, ConstraintSystem& cs,
                      size_t alignment = alignof(Constraint));
@@ -934,18 +953,18 @@ public:
 } // end namespace constraints
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 /// Specialization of \c ilist_traits for constraints.
 template<>
-struct ilist_traits<swift::constraints::Constraint>
-         : public ilist_node_traits<swift::constraints::Constraint> {
-  using Element = swift::constraints::Constraint;
+struct ilist_traits<language::constraints::Constraint>
+         : public ilist_node_traits<language::constraints::Constraint> {
+  using Element = language::constraints::Constraint;
 
   static Element *createNode(const Element &V) = delete;
   static void deleteNode(Element *V) { /* never deleted */ }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // LLVM_SWIFT_SEMA_CONSTRAINT_H
+#endif // TOOLCHAIN_LANGUAGE_SEMA_CONSTRAINT_H

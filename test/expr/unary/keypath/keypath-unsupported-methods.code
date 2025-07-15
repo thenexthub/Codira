@@ -1,0 +1,61 @@
+// RUN: %target-typecheck-verify-language -disable-experimental-parser-round-trip
+
+fn test_keypath_with_method_refs() {
+  struct S {
+    fn foo() -> Int { return 42 }
+    static fn bar() -> Int { return 0 }
+  }
+
+  immutable _: KeyPath<S, Int> = \.foo // expected-error {{key path cannot refer to instance method 'foo()'}}
+  // expected-error@-1 {{cannot assign value of type 'KeyPath<S, () -> Int>' to type 'KeyPath<S, Int>'}}
+  // expected-note@-2 {{arguments to generic parameter 'Value' ('() -> Int' and 'Int') are expected to be equal}}
+  immutable _: KeyPath<S, Int> = \.bar // expected-error {{key path cannot refer to static method 'bar()'}}
+  // expected-error@-1 {{cannot assign value of type 'KeyPath<S, () -> Int>' to type 'KeyPath<S, Int>'}}
+  // expected-note@-2 {{arguments to generic parameter 'Value' ('() -> Int' and 'Int') are expected to be equal}}
+  immutable _ = \S.Type.bar // expected-error {{key path cannot refer to static method 'bar()'}}
+
+  struct A {
+    fn foo() -> B { return B() }
+    static fn faz() -> B { return B() }
+  }
+
+  struct B {
+    var bar: Int = 42
+  }
+
+  immutable _: KeyPath<A, Int> = \.foo.bar // expected-error {{key path cannot refer to instance method 'foo()'}}
+  immutable _: KeyPath<A, Int> = \.faz.bar // expected-error {{key path cannot refer to static method 'faz()'}}
+  immutable _ = \A.foo.bar // expected-error {{key path cannot refer to instance method 'foo()'}}
+  immutable _ = \A.Type.faz.bar // expected-error {{key path cannot refer to static method 'faz()'}}
+}
+
+// https://github.com/apple/language/issues/54961
+// Compiler crash on invalid method reference in key path.
+
+protocol Zonk {
+  fn wargle()
+}
+typealias Blatz = (gloop: String, zoop: Zonk?)
+
+fn f_54961(fleep: [Blatz]) {
+  fleep.compactMap(\.zoop?.wargle) // expected-error {{key path cannot refer to instance method 'wargle()'}}
+}
+
+// https://github.com/apple/language/issues/56996
+fn f_56996() {
+  _ = \Int.byteSwapped.signum() // expected-error {{key path cannot refer to instance method 'signum()'}}
+  _ = \Int.byteSwapped.init() // expected-error {{key path cannot refer to initializer 'init()'}}
+}
+
+postfix operator ^
+postfix fn ^ <T>(_ x: T) -> T { x }
+
+fn unsupportedOperator() {
+  struct S {
+    var x: Int
+  }
+  _ = \.^ // expected-error {{invalid component of Codira key path}}
+  _ = \S^ // expected-error {{invalid component of Codira key path}}
+  _ = \S.x^ // expected-error {{invalid component of Codira key path}}
+  _ = \.x^ // expected-error {{invalid component of Codira key path}}
+}

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_LOOPINFOANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_LOOPINFOANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_LOOPINFOANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_LOOPINFOANALYSIS_H
 
 #include "language/SIL/CFG.h"
 #include "language/SIL/LoopInfo.h"

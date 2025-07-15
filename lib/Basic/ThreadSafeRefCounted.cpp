@@ -11,8 +11,9 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/ThreadSafeRefCounted.h"
 
-void swift::ThreadSafeRefCountedBaseVPTR::anchor() { }
+void language::ThreadSafeRefCountedBaseVPTR::anchor() { }

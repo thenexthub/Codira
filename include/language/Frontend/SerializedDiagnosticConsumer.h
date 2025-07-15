@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the SerializedDiagnosticConsumer class, which
@@ -18,12 +19,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZEDDIAGNOSTICCONSUMER_H
-#define SWIFT_SERIALIZEDDIAGNOSTICCONSUMER_H
+#ifndef LANGUAGE_SERIALIZEDDIAGNOSTICCONSUMER_H
+#define LANGUAGE_SERIALIZEDDIAGNOSTICCONSUMER_H
 
 #include <memory>
 
-namespace llvm {
+namespace toolchain {
   class StringRef;
 }
 
@@ -39,7 +40,7 @@ namespace language {
     ///
     /// \returns A new diagnostic consumer that serializes diagnostics.
     std::unique_ptr<DiagnosticConsumer>
-    createConsumer(llvm::StringRef outputPath, bool emitMacroExpansionFiles);
+    createConsumer(toolchain::StringRef outputPath, bool emitMacroExpansionFiles);
   }
 }
 

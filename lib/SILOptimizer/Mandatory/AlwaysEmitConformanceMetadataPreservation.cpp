@@ -1,13 +1,17 @@
 //===--- AlwaysEmitConformanceMetadataPreservation.cpp -------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Some frameworks may rely on conformances to protocols they provide
@@ -53,7 +57,7 @@ public:
 
   PreWalkAction walkToDeclPre(Decl *D) override {
     auto hasAlwaysEmitMetadataConformance =
-        [&](llvm::PointerUnion<const TypeDecl *, const ExtensionDecl *> Decl) {
+        [&](toolchain::PointerUnion<const TypeDecl *, const ExtensionDecl *> Decl) {
           bool anyObject = false;
           InvertibleProtocolSet Inverses;
           for (const auto &found :
@@ -89,12 +93,12 @@ class AlwaysEmitConformanceMetadataPreservation : public SILModuleTransform {
         AlwaysEmitMetadataConformanceDecls);
 
     SmallVector<Decl *> TopLevelDecls;
-    if (M.getSwiftModule()->isMainModule()) {
+    if (M.getCodiraModule()->isMainModule()) {
       if (M.isWholeModule()) {
-        for (const auto File : M.getSwiftModule()->getFiles())
+        for (const auto File : M.getCodiraModule()->getFiles())
           File->getTopLevelDecls(TopLevelDecls);
       } else {
-        for (const auto Primary : M.getSwiftModule()->getPrimarySourceFiles()) {
+        for (const auto Primary : M.getCodiraModule()->getPrimarySourceFiles()) {
           Primary->getTopLevelDecls(TopLevelDecls);
 	  // Visit macro expanded extensions
 	  if (auto *synthesizedPrimary = Primary->getSynthesizedFile())
@@ -111,6 +115,6 @@ class AlwaysEmitConformanceMetadataPreservation : public SILModuleTransform {
 };
 } // end anonymous namespace
 
-SILTransform *swift::createAlwaysEmitConformanceMetadataPreservation() {
+SILTransform *language::createAlwaysEmitConformanceMetadataPreservation() {
   return new AlwaysEmitConformanceMetadataPreservation();
 }

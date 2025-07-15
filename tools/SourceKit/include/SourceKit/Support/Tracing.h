@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_SUPPORT_TRACING_H
-#define LLVM_SOURCEKIT_SUPPORT_TRACING_H
+#ifndef TOOLCHAIN_SOURCEKIT_SUPPORT_TRACING_H
+#define TOOLCHAIN_SOURCEKIT_SUPPORT_TRACING_H
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Core/LangSupport.h"
 #include "SourceKit/Support/UIdent.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <optional>
 
 #include <vector>
@@ -30,7 +31,7 @@ namespace SourceKit {
 
 namespace trace {
 
-struct SwiftArguments {
+struct CodiraArguments {
   std::string PrimaryFile;
   std::string Arguments;
 };
@@ -46,8 +47,8 @@ enum class OperationKind : uint64_t {
 
 typedef std::vector<std::pair<std::string, std::string>> StringPairs;
 
-struct SwiftInvocation {
-  SwiftArguments Args;
+struct CodiraInvocation {
+  CodiraArguments Args;
 };
   
 class TraceConsumer {
@@ -56,7 +57,7 @@ public:
 
   // Trace start of SourceKit operation
   virtual void operationStarted(uint64_t OpId, OperationKind OpKind,
-                                const SwiftInvocation &Inv,
+                                const CodiraInvocation &Inv,
                                 const StringPairs &OpArgs) = 0;
 
   // Operation previously started with startXXX has finished
@@ -67,7 +68,7 @@ public:
   ///
   /// Note: this is only a hint. Implementations should check the operation kind
   /// if they need to.
-  virtual swift::OptionSet<OperationKind> desiredOperations() {
+  virtual language::OptionSet<OperationKind> desiredOperations() {
     return OperationKind::All;
   }
 };
@@ -80,7 +81,7 @@ bool enabled(OperationKind op);
 
 // Trace start of SourceKit operation, returns OpId
 uint64_t startOperation(OperationKind OpKind,
-                        const SwiftInvocation &Inv,
+                        const CodiraInvocation &Inv,
                         const StringPairs &OpArgs = StringPairs());
 
 // Operation previously started with startXXX has finished
@@ -117,7 +118,7 @@ public:
 
   bool enabled() const { return Enabled; }
 
-  void start(const SwiftInvocation &Inv,
+  void start(const CodiraInvocation &Inv,
              const StringPairs &OpArgs = StringPairs()) {
     assert(!OpId.has_value());
     OpId = startOperation(OpKind, Inv, OpArgs);
@@ -142,4 +143,4 @@ public:
 } // namespace sourcekitd
 } // namespace trace
 
-#endif /* defined(LLVM_SOURCEKIT_SUPPORT_TRACING_H) */
+#endif /* defined(TOOLCHAIN_SOURCEKIT_SUPPORT_TRACING_H) */

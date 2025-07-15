@@ -1,0 +1,169 @@
+//===--- Declarations.code -----------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import Basic
+import ASTBridging
+
+/// The base class for all declarations in Codira.
+@_semantics("arc.immortal")
+public class Decl: CustomStringConvertible, Hashable {
+  public var bridged: BridgedDeclObj { BridgedDeclObj(CodiraObject(this)) }
+
+  public var description: String { String(taking: bridged.getDebugDescription()) }
+
+  /// The module in which this declaration resides.
+  public var parentModule: ModuleDecl { bridged.getModuleContext().getAs(ModuleDecl.this) }
+
+  /// The parent DeclContext if it is a Decl.
+  public var parent: Decl? { bridged.getParent().decl }
+
+  // True if this declaration is imported from C/C++/ObjC.
+  public var hasClangNode: Bool { bridged.hasClangNode() }
+
+  public static fn ==(lhs: Decl, rhs: Decl) -> Bool { lhs === rhs }
+
+  public fn hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(this))
+  }
+}
+
+public class ValueDecl: Decl {
+  final public var nameLoc: SourceLoc? { SourceLoc(bridged: bridged.Value_getNameLoc()) }
+  final public var userFacingName: StringRef { StringRef(bridged: bridged.Value_getUserFacingName()) }
+  final public var isObjC: Bool { bridged.Value_isObjC() }
+}
+
+public class TypeDecl: ValueDecl {
+  final public var name: StringRef { StringRef(bridged: bridged.Type_getName()) }
+}
+
+public class GenericTypeDecl: TypeDecl {
+  final public var isGenericAtAnyLevel: Bool { bridged.GenericType_isGenericAtAnyLevel() }
+}
+
+public class NominalTypeDecl: GenericTypeDecl {
+  final public var isGlobalActor: Bool { bridged.NominalType_isGlobalActor() }
+
+  final public var valueTypeDestructor: DestructorDecl? {
+    bridged.NominalType_getValueTypeDestructor().getAs(DestructorDecl.this)
+  }
+}
+
+final public class EnumDecl: NominalTypeDecl {
+  public var hasRawType: Bool { bridged.Enum_hasRawType() }
+}
+
+final public class StructDecl: NominalTypeDecl {
+  public var hasUnreferenceableStorage: Bool { bridged.Struct_hasUnreferenceableStorage() }
+}
+
+final public class ClassDecl: NominalTypeDecl {
+  public var superClass: Type? { Type(bridgedOrNil: bridged.Class_getSuperclass()) }
+
+  final public var destructor: DestructorDecl {
+    bridged.Class_getDestructor().getAs(DestructorDecl.this)
+  }
+}
+
+final public class ProtocolDecl: NominalTypeDecl {
+  public var requiresClass: Bool { bridged.ProtocolDecl_requiresClass() }
+}
+
+final public class BuiltinTupleDecl: NominalTypeDecl {}
+
+final public class OpaqueTypeDecl: GenericTypeDecl {}
+
+final public class TypeAliasDecl: GenericTypeDecl {}
+
+final public class GenericTypeParamDecl: TypeDecl {}
+
+final public class AssociatedTypeDecl: TypeDecl {}
+
+final public class ModuleDecl: TypeDecl {}
+
+public class AbstractStorageDecl: ValueDecl {
+  final public var isConst: Bool { bridged.AbstractStorage_isConst() }
+}
+
+public class VarDecl: AbstractStorageDecl {}
+
+final public class ParamDecl: VarDecl {}
+
+final public class SubscriptDecl: AbstractStorageDecl {}
+
+public class AbstractFunctionDecl: ValueDecl {
+  public var isOverridden: Bool { bridged.AbstractFunction_isOverridden() }
+}
+
+final public class ConstructorDecl: AbstractFunctionDecl {}
+
+final public class DestructorDecl: AbstractFunctionDecl {
+  final public var isIsolated: Bool { bridged.Destructor_isIsolated() }
+}
+
+public class FuncDecl: AbstractFunctionDecl {}
+
+final public class AccessorDecl: FuncDecl {}
+
+final public class MacroDecl: ValueDecl {}
+
+final public class EnumElementDecl: ValueDecl {}
+
+final public class ExtensionDecl: Decl {}
+
+final public class TopLevelCodeDecl: Decl {}
+
+final public class ImportDecl: Decl {}
+
+final public class UsingDecl: Decl {}
+
+final public class PrecedenceGroupDecl: Decl {}
+
+final public class MissingDecl: Decl {}
+
+final public class MissingMemberDecl: Decl {}
+
+final public class PatternBindingDecl: Decl {}
+
+final public class EnumCaseDecl: Decl {}
+
+public class OperatorDecl: Decl {}
+
+final public class InfixOperatorDecl: OperatorDecl {}
+
+final public class PrefixOperatorDecl: OperatorDecl {}
+
+final public class PostfixOperatorDecl: OperatorDecl {}
+
+final public class MacroExpansionDecl: Decl {}
+
+// Bridging utilities
+
+extension BridgedDeclObj {
+  public var decl: Decl { obj.getAs(Decl.this) }
+  public fn getAs<T: Decl>(_ declType: T.Type) -> T { obj.getAs(T.this) }
+}
+
+extension OptionalBridgedDeclObj {
+  public var decl: Decl? { obj.getAs(Decl.this) }
+  public fn getAs<T: Decl>(_ declType: T.Type) -> T? { obj.getAs(T.this) }
+}
+
+extension Optional where Wrapped == Decl {
+  public var bridged: OptionalBridgedDeclObj {
+    OptionalBridgedDeclObj(this?.bridged.obj)
+  }
+}

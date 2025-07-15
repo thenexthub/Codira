@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_DRIVER_TOOLCHAINS_H
-#define SWIFT_DRIVER_TOOLCHAINS_H
+#ifndef LANGUAGE_DRIVER_TOOLCHAINS_H
+#define LANGUAGE_DRIVER_TOOLCHAINS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Driver/ToolChain.h"
 #include "clang/Basic/DarwinSDKInfo.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Support/Compiler.h"
 
 namespace language {
 class DiagnosticEngine;
@@ -28,39 +29,39 @@ class DiagnosticEngine;
 namespace driver {
 namespace toolchains {
 
-class LLVM_LIBRARY_VISIBILITY Darwin : public ToolChain {
+class TOOLCHAIN_LIBRARY_VISIBILITY Darwin : public ToolChain {
 protected:
 
   void addLinkerInputArgs(InvocationInfo &II,
                           const JobContext &context) const;
 
-  void addSanitizerArgs(llvm::opt::ArgStringList &Arguments,
+  void addSanitizerArgs(toolchain::opt::ArgStringList &Arguments,
                         const DynamicLinkJobAction &job,
                         const JobContext &context) const;
 
-  void addArgsToLinkStdlib(llvm::opt::ArgStringList &Arguments,
+  void addArgsToLinkStdlib(toolchain::opt::ArgStringList &Arguments,
                            const DynamicLinkJobAction &job,
                            const JobContext &context) const;
 
-  void addProfileGenerationArgs(llvm::opt::ArgStringList &Arguments,
+  void addProfileGenerationArgs(toolchain::opt::ArgStringList &Arguments,
                                 const JobContext &context) const;
 
-  void addDeploymentTargetArgs(llvm::opt::ArgStringList &Arguments,
+  void addDeploymentTargetArgs(toolchain::opt::ArgStringList &Arguments,
                                const JobContext &context) const;
 
-  void addLTOLibArgs(llvm::opt::ArgStringList &Arguments,
+  void addLTOLibArgs(toolchain::opt::ArgStringList &Arguments,
                      const JobContext &context) const;
 
   void addCommonFrontendArgs(
       const OutputInfo &OI, const CommandOutput &output,
-      const llvm::opt::ArgList &inputArgs,
-      llvm::opt::ArgStringList &arguments) const override;
+      const toolchain::opt::ArgList &inputArgs,
+      toolchain::opt::ArgStringList &arguments) const override;
 
   void addPlatformSpecificPluginFrontendArgs(
       const OutputInfo &OI,
       const CommandOutput &output,
-      const llvm::opt::ArgList &inputArgs,
-      llvm::opt::ArgStringList &arguments) const override;
+      const toolchain::opt::ArgList &inputArgs,
+      toolchain::opt::ArgStringList &arguments) const override;
 
   InvocationInfo constructInvocation(const InterpretJobAction &job,
                                      const JobContext &context) const override;
@@ -70,41 +71,41 @@ protected:
                                      const JobContext &context) const override;
 
   void validateArguments(DiagnosticEngine &diags,
-                         const llvm::opt::ArgList &args,
+                         const toolchain::opt::ArgList &args,
                          StringRef defaultTarget) const override;
 
   void validateOutputInfo(DiagnosticEngine &diags,
                           const OutputInfo &outputInfo) const override;
 
-  std::string findProgramRelativeToSwiftImpl(StringRef name) const override;
+  std::string findProgramRelativeToCodiraImpl(StringRef name) const override;
 
   bool shouldStoreInvocationInDebugInfo() const override;
   std::string getGlobalDebugPathRemapping() const override;
   
   /// Retrieve the target SDK version for the given target triple.
-  std::optional<llvm::VersionTuple>
-  getTargetSDKVersion(const llvm::Triple &triple) const;
+  std::optional<toolchain::VersionTuple>
+  getTargetSDKVersion(const toolchain::Triple &triple) const;
 
   /// Information about the SDK that the application is being built against.
   /// This information is only used by the linker, so it is only populated
   /// when there will be a linker job.
   mutable std::optional<clang::DarwinSDKInfo> SDKInfo;
 
-  const std::optional<llvm::Triple> TargetVariant;
+  const std::optional<toolchain::Triple> TargetVariant;
 
 public:
-  Darwin(const Driver &D, const llvm::Triple &Triple,
-         const std::optional<llvm::Triple> &TargetVariant)
+  Darwin(const Driver &D, const toolchain::Triple &Triple,
+         const std::optional<toolchain::Triple> &TargetVariant)
       : ToolChain(D, Triple), TargetVariant(TargetVariant) {}
 
   ~Darwin() = default;
   std::string sanitizerRuntimeLibName(StringRef Sanitizer,
                                       bool shared = true) const override;
 
-  std::optional<llvm::Triple> getTargetVariant() const { return TargetVariant; }
+  std::optional<toolchain::Triple> getTargetVariant() const { return TargetVariant; }
 };
 
-class LLVM_LIBRARY_VISIBILITY Windows : public ToolChain {
+class TOOLCHAIN_LIBRARY_VISIBILITY Windows : public ToolChain {
 protected:
   InvocationInfo constructInvocation(const DynamicLinkJobAction &job,
                                      const JobContext &context) const override;
@@ -112,14 +113,14 @@ protected:
                                      const JobContext &context) const override;
 
 public:
-  Windows(const Driver &D, const llvm::Triple &Triple) : ToolChain(D, Triple) {}
+  Windows(const Driver &D, const toolchain::Triple &Triple) : ToolChain(D, Triple) {}
   ~Windows() = default;
 
   std::string sanitizerRuntimeLibName(StringRef Sanitizer,
                                       bool shared = true) const override;
 };
 
-class LLVM_LIBRARY_VISIBILITY WebAssembly : public ToolChain {
+class TOOLCHAIN_LIBRARY_VISIBILITY WebAssembly : public ToolChain {
 protected:
   InvocationInfo constructInvocation(const AutolinkExtractJobAction &job,
                                      const JobContext &context) const override;
@@ -128,18 +129,18 @@ protected:
   InvocationInfo constructInvocation(const StaticLinkJobAction &job,
                                      const JobContext &context) const override;
   void validateArguments(DiagnosticEngine &diags,
-                         const llvm::opt::ArgList &args,
+                         const toolchain::opt::ArgList &args,
                          StringRef defaultTarget) const override;
 
 public:
-  WebAssembly(const Driver &D, const llvm::Triple &Triple) : ToolChain(D, Triple) {}
+  WebAssembly(const Driver &D, const toolchain::Triple &Triple) : ToolChain(D, Triple) {}
   ~WebAssembly() = default;
   std::string sanitizerRuntimeLibName(StringRef Sanitizer,
                                       bool shared = true) const override;
 };
 
 
-class LLVM_LIBRARY_VISIBILITY GenericUnix : public ToolChain {
+class TOOLCHAIN_LIBRARY_VISIBILITY GenericUnix : public ToolChain {
 protected:
   InvocationInfo constructInvocation(const InterpretJobAction &job,
                                      const JobContext &context) const override;
@@ -156,8 +157,8 @@ protected:
   /// and to not provide a specific linker otherwise.
   virtual std::string getDefaultLinker() const;
 
-  bool addRuntimeRPath(const llvm::Triple &T,
-                       const llvm::opt::ArgList &Args) const;
+  bool addRuntimeRPath(const toolchain::Triple &T,
+                       const toolchain::opt::ArgList &Args) const;
 
   InvocationInfo constructInvocation(const DynamicLinkJobAction &job,
                                      const JobContext &context) const override;
@@ -165,46 +166,46 @@ protected:
                                      const JobContext &context) const override;
 
 public:
-  GenericUnix(const Driver &D, const llvm::Triple &Triple)
+  GenericUnix(const Driver &D, const toolchain::Triple &Triple)
       : ToolChain(D, Triple) {}
   ~GenericUnix() = default;
   std::string sanitizerRuntimeLibName(StringRef Sanitizer,
                                       bool shared = true) const override;
 };
 
-class LLVM_LIBRARY_VISIBILITY Android : public GenericUnix {
+class TOOLCHAIN_LIBRARY_VISIBILITY Android : public GenericUnix {
 public:
-  Android(const Driver &D, const llvm::Triple &Triple)
+  Android(const Driver &D, const toolchain::Triple &Triple)
       : GenericUnix(D, Triple) {}
   ~Android() = default;
 };
 
-class LLVM_LIBRARY_VISIBILITY Cygwin : public GenericUnix {
+class TOOLCHAIN_LIBRARY_VISIBILITY Cygwin : public GenericUnix {
 protected:
   std::string getDefaultLinker() const override;
 
 public:
-  Cygwin(const Driver &D, const llvm::Triple &Triple)
+  Cygwin(const Driver &D, const toolchain::Triple &Triple)
       : GenericUnix(D, Triple) {}
   ~Cygwin() = default;
 };
 
-class LLVM_LIBRARY_VISIBILITY OpenBSD : public GenericUnix {
+class TOOLCHAIN_LIBRARY_VISIBILITY OpenBSD : public GenericUnix {
 protected:
   std::string getDefaultLinker() const override;
 
 public:
-  OpenBSD(const Driver &D, const llvm::Triple &Triple)
+  OpenBSD(const Driver &D, const toolchain::Triple &Triple)
       : GenericUnix(D, Triple) {}
   ~OpenBSD() = default;
 };
 
-class LLVM_LIBRARY_VISIBILITY FreeBSD : public GenericUnix {
+class TOOLCHAIN_LIBRARY_VISIBILITY FreeBSD : public GenericUnix {
 protected:
   std::string getDefaultLinker() const override;
 
 public:
-  FreeBSD(const Driver &D, const llvm::Triple &Triple)
+  FreeBSD(const Driver &D, const toolchain::Triple &Triple)
       : GenericUnix(D, Triple) {}
   ~FreeBSD() = default;
 };

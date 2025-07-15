@@ -1,20 +1,20 @@
-# swift_build_support/products/lldb.py --------------------------*- python -*-
+# language_build_support/products/lldb.py --------------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 from . import cmark
 from . import libcxx
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
+from . import language
 
 
 class LLDB(product.Product):
@@ -37,6 +37,6 @@ class LLDB(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift]
+                language.Codira]

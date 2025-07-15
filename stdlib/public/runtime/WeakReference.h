@@ -1,4 +1,4 @@
-//===--- WeakReference.h - Swift weak references ----------------*- C++ -*-===//
+//===--- WeakReference.h - Codira weak references ----------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift weak reference implementation.
+// Codira weak reference implementation.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_WEAKREFERENCE_H
-#define SWIFT_RUNTIME_WEAKREFERENCE_H
+#ifndef LANGUAGE_RUNTIME_WEAKREFERENCE_H
+#define LANGUAGE_RUNTIME_WEAKREFERENCE_H
 
 #include "language/shims/Target.h"
 #include "language/shims/Visibility.h"
@@ -26,7 +27,7 @@
 #include "language/Runtime/HeapObject.h"
 #include "language/Runtime/Metadata.h"
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
 #include "language/Runtime/ObjCBridge.h"
 #endif
 
@@ -44,7 +45,7 @@ namespace language {
 //   one bit (32-bit) all clear. The stored value otherwise need not be
 //   the pointed-to object.
 //
-// The Swift 3 implementation of unknown weak makes the following
+// The Codira 3 implementation of unknown weak makes the following
 // additional assumptions:
 // * Ordinary objects are stored *verbatim* with the LSB *three* bits (64-bit)
 //   or *two* bits (32-bit) all clear.
@@ -72,35 +73,35 @@ namespace language {
 
 class WeakReferenceBits {
   // On ObjC platforms, a weak variable may be controlled by the ObjC
-  // runtime or by the Swift runtime. NativeMarkerMask and NativeMarkerValue
+  // runtime or by the Codira runtime. NativeMarkerMask and NativeMarkerValue
   // are used to distinguish them.
-  //   if ((ptr & NativeMarkerMask) == NativeMarkerValue) it's Swift
+  //   if ((ptr & NativeMarkerMask) == NativeMarkerValue) it's Codira
   //   else it's ObjC
   // NativeMarkerMask incorporates the ObjC tagged pointer bits
-  // plus one more bit that is set in Swift-controlled weak pointer values.
+  // plus one more bit that is set in Codira-controlled weak pointer values.
   // Non-ObjC platforms don't use any markers.
   enum : uintptr_t {
-#if !SWIFT_OBJC_INTEROP
+#if !LANGUAGE_OBJC_INTEROP
     NativeMarkerMask  = 0,
     NativeMarkerValue = 0
-#elif defined(__x86_64__) && SWIFT_TARGET_OS_SIMULATOR
-    NativeMarkerMask  = SWIFT_ABI_X86_64_SIMULATOR_OBJC_WEAK_REFERENCE_MARKER_MASK,
-    NativeMarkerValue = SWIFT_ABI_X86_64_SIMULATOR_OBJC_WEAK_REFERENCE_MARKER_VALUE
+#elif defined(__x86_64__) && LANGUAGE_TARGET_OS_SIMULATOR
+    NativeMarkerMask  = LANGUAGE_ABI_X86_64_SIMULATOR_OBJC_WEAK_REFERENCE_MARKER_MASK,
+    NativeMarkerValue = LANGUAGE_ABI_X86_64_SIMULATOR_OBJC_WEAK_REFERENCE_MARKER_VALUE
 #elif defined(__x86_64__)
-    NativeMarkerMask  = SWIFT_ABI_X86_64_OBJC_WEAK_REFERENCE_MARKER_MASK,
-    NativeMarkerValue = SWIFT_ABI_X86_64_OBJC_WEAK_REFERENCE_MARKER_VALUE
+    NativeMarkerMask  = LANGUAGE_ABI_X86_64_OBJC_WEAK_REFERENCE_MARKER_MASK,
+    NativeMarkerValue = LANGUAGE_ABI_X86_64_OBJC_WEAK_REFERENCE_MARKER_VALUE
 #elif defined(__i386__)
-    NativeMarkerMask  = SWIFT_ABI_I386_OBJC_WEAK_REFERENCE_MARKER_MASK,
-    NativeMarkerValue = SWIFT_ABI_I386_OBJC_WEAK_REFERENCE_MARKER_VALUE
+    NativeMarkerMask  = LANGUAGE_ABI_I386_OBJC_WEAK_REFERENCE_MARKER_MASK,
+    NativeMarkerValue = LANGUAGE_ABI_I386_OBJC_WEAK_REFERENCE_MARKER_VALUE
 #elif defined(__arm__) || defined(_M_ARM) || (__arm64__ && __ILP32__)
-    NativeMarkerMask  = SWIFT_ABI_ARM_OBJC_WEAK_REFERENCE_MARKER_MASK,
-    NativeMarkerValue = SWIFT_ABI_ARM_OBJC_WEAK_REFERENCE_MARKER_VALUE
+    NativeMarkerMask  = LANGUAGE_ABI_ARM_OBJC_WEAK_REFERENCE_MARKER_MASK,
+    NativeMarkerValue = LANGUAGE_ABI_ARM_OBJC_WEAK_REFERENCE_MARKER_VALUE
 #elif defined(__s390x__)
-    NativeMarkerMask  = SWIFT_ABI_S390X_OBJC_WEAK_REFERENCE_MARKER_MASK,
-    NativeMarkerValue = SWIFT_ABI_S390X_OBJC_WEAK_REFERENCE_MARKER_VALUE
+    NativeMarkerMask  = LANGUAGE_ABI_S390X_OBJC_WEAK_REFERENCE_MARKER_MASK,
+    NativeMarkerValue = LANGUAGE_ABI_S390X_OBJC_WEAK_REFERENCE_MARKER_VALUE
 #elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
-    NativeMarkerMask  = SWIFT_ABI_ARM64_OBJC_WEAK_REFERENCE_MARKER_MASK,
-    NativeMarkerValue = SWIFT_ABI_ARM64_OBJC_WEAK_REFERENCE_MARKER_VALUE
+    NativeMarkerMask  = LANGUAGE_ABI_ARM64_OBJC_WEAK_REFERENCE_MARKER_MASK,
+    NativeMarkerValue = LANGUAGE_ABI_ARM64_OBJC_WEAK_REFERENCE_MARKER_VALUE
 #else
     #error unknown architecture
 #endif
@@ -108,10 +109,10 @@ class WeakReferenceBits {
 
   static_assert((NativeMarkerMask & NativeMarkerValue) == NativeMarkerValue,
                 "native marker value must fall within native marker mask");
-  static_assert((NativeMarkerMask & heap_object_abi::SwiftSpareBitsMask)
+  static_assert((NativeMarkerMask & heap_object_abi::CodiraSpareBitsMask)
                 == NativeMarkerMask,
-                "native marker mask must fall within Swift spare bits");
-#if SWIFT_OBJC_INTEROP
+                "native marker mask must fall within Codira spare bits");
+#if LANGUAGE_OBJC_INTEROP
   static_assert((NativeMarkerMask & heap_object_abi::ObjCReservedBitsMask)
                 == heap_object_abi::ObjCReservedBitsMask,
                 "native marker mask must contain all ObjC tagged pointer bits");
@@ -123,20 +124,20 @@ class WeakReferenceBits {
   uintptr_t bits;
 
  public:
-   SWIFT_ALWAYS_INLINE
+   LANGUAGE_ALWAYS_INLINE
    WeakReferenceBits() {}
 
-   SWIFT_ALWAYS_INLINE
+   LANGUAGE_ALWAYS_INLINE
    WeakReferenceBits(HeapObjectSideTableEntry *newValue) {
      setNativeOrNull(newValue);
    }
 
-   SWIFT_ALWAYS_INLINE
+   LANGUAGE_ALWAYS_INLINE
    bool isNativeOrNull() const {
      return bits == 0 || (bits & NativeMarkerMask) == NativeMarkerValue;
    }
 
-   SWIFT_ALWAYS_INLINE
+   LANGUAGE_ALWAYS_INLINE
    HeapObjectSideTableEntry *getNativeOrNull() const {
      assert(isNativeOrNull());
      if (bits == 0)
@@ -145,7 +146,7 @@ class WeakReferenceBits {
                                                          ~NativeMarkerMask);
    }
 
-   SWIFT_ALWAYS_INLINE
+   LANGUAGE_ALWAYS_INLINE
    void setNativeOrNull(HeapObjectSideTableEntry *newValue) {
      assert((uintptr_t(newValue) & NativeMarkerMask) == 0);
      if (newValue)
@@ -159,7 +160,7 @@ class WeakReferenceBits {
 class WeakReference {
   union {
     std::atomic<WeakReferenceBits> nativeValue;
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
     id nonnativeValue;
 #endif
   };
@@ -217,7 +218,7 @@ class WeakReference {
 
   void nativeAssign(HeapObject *newObject) {
     if (newObject) {
-      assert(objectUsesNativeSwiftReferenceCounting(newObject) &&
+      assert(objectUsesNativeCodiraReferenceCounting(newObject) &&
              "weak assign native with non-native new object");
     }
     
@@ -268,7 +269,7 @@ class WeakReference {
     nativeTakeInit(src);
   }
 
-#if SWIFT_OBJC_INTEROP
+#if LANGUAGE_OBJC_INTEROP
  private:
   void nonnativeInit(id object) {
     objc_initWeak(&nonnativeValue, object);
@@ -298,7 +299,7 @@ class WeakReference {
     if (isObjCTaggedPointerOrNull(object)) {
       nonnativeValue = static_cast<id>(object);
     } else {
-      bool isNative = objectUsesNativeSwiftReferenceCounting(object);
+      bool isNative = objectUsesNativeCodiraReferenceCounting(object);
       initWithNativeness(object, isNative);
     }
   }
@@ -316,7 +317,7 @@ class WeakReference {
       return;
     }
 
-    bool newIsNative = objectUsesNativeSwiftReferenceCounting(newObject);
+    bool newIsNative = objectUsesNativeCodiraReferenceCounting(newObject);
     
     auto oldBits = nativeValue.load(std::memory_order_relaxed);
     bool oldIsNative = oldBits.isNativeOrNull();
@@ -383,7 +384,7 @@ class WeakReference {
     unknownTakeInit(src);
   }
 
-// SWIFT_OBJC_INTEROP
+// LANGUAGE_OBJC_INTEROP
 #endif
 
 };

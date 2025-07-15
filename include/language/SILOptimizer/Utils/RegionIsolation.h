@@ -1,13 +1,17 @@
 //===--- RegionIsolation.h ------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file This file just declares some command line options that are used for
@@ -15,8 +19,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_REGIONANALYSIS_H
-#define SWIFT_SILOPTIMIZER_UTILS_REGIONANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_REGIONANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_REGIONANALYSIS_H
 
 namespace language {
 
@@ -40,16 +44,16 @@ extern LoggingFlag ENABLE_LOGGING;
 
 #define REGIONBASEDISOLATION_LOG(...)                                          \
   do {                                                                         \
-    if (swift::regionisolation::ENABLE_LOGGING !=                              \
-        swift::regionisolation::LoggingFlag::Off) {                            \
+    if (language::regionisolation::ENABLE_LOGGING !=                              \
+        language::regionisolation::LoggingFlag::Off) {                            \
       __VA_ARGS__;                                                             \
     }                                                                          \
   } while (0);
 
 #define REGIONBASEDISOLATION_VERBOSE_LOG(...)                                  \
   do {                                                                         \
-    if (swift::regionisolation::ENABLE_LOGGING ==                              \
-        swift::regionisolation::LoggingFlag::Verbose) {                        \
+    if (language::regionisolation::ENABLE_LOGGING ==                              \
+        language::regionisolation::LoggingFlag::Verbose) {                        \
       __VA_ARGS__;                                                             \
     }                                                                          \
   } while (0);

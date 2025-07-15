@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -verify -emit-module -experimental-allow-module-with-compiler-errors %s -o %t/foo.codemodule
+// RUN: %target-language-frontend -verify -emit-module -module-name foo %t/foo.codemodule
+
+// rdar://97267326 – Make sure we can handle an operator function without its declaration.
+struct S {
+  static fn ^^^ (lhs: S, rhs: S) {} // expected-error {{operator implementation without matching operator declaration}}
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 /// \file Declares QuotedString, a convenient type for printing a
@@ -18,27 +19,27 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_QUOTEDSTRING_H
-#define SWIFT_BASIC_QUOTEDSTRING_H
+#ifndef LANGUAGE_BASIC_QUOTEDSTRING_H
+#define LANGUAGE_BASIC_QUOTEDSTRING_H
 
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/StringRef.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
 namespace language {
   /// Print the given string as if it were a quoted string.
-  void printAsQuotedString(llvm::raw_ostream &out, llvm::StringRef text);
+  void printAsQuotedString(toolchain::raw_ostream &out, toolchain::StringRef text);
 
   /// A class designed to make it easy to write a string to a stream
   /// as a quoted string.
   class QuotedString {
-    llvm::StringRef Text;
+    toolchain::StringRef Text;
   public:
-    explicit QuotedString(llvm::StringRef text) : Text(text) {}
+    explicit QuotedString(toolchain::StringRef text) : Text(text) {}
 
-    friend llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
+    friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &out,
                                          QuotedString string) {
       printAsQuotedString(out, string.Text);
       return out;
@@ -46,4 +47,4 @@ namespace language {
   };
 } // end namespace language
 
-#endif // SWIFT_BASIC_QUOTEDSTRING_H
+#endif // LANGUAGE_BASIC_QUOTEDSTRING_H

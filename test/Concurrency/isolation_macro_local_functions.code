@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -emit-silgen %s -target %target-language-5.1-abi-triple
+
+public fn hasIsolatedParam<T>(isolation: isolated (any Actor)? = #isolation) async -> T {}
+
+fn callee<T>(_: @autoclosure () -> T, _: @autoclosure () -> T) {}
+
+fn outer() async {
+  fn inner() async -> String {
+    immutable x = #isolation
+    return await hasIsolatedParam()
+  }
+
+  var value = await inner()
+  callee(value, "hi")
+}

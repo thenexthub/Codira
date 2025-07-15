@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This pass prints a bottom-up ordering of functions in the module (in the
@@ -24,7 +25,7 @@
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -41,29 +42,29 @@ class FunctionOrderPrinterPass : public SILModuleTransform {
     auto &M = *getModule();
     BottomUpFunctionOrder Orderer(M, BCA);
 
-    llvm::outs() << "Bottom up function order:\n";
+    toolchain::outs() << "Bottom up function order:\n";
     auto SCCs = Orderer.getSCCs();
     for (auto &SCC : SCCs) {
       std::string Indent;
 
       if (SCC.size() != 1) {
-        llvm::outs() << "Non-trivial SCC:\n";
+        toolchain::outs() << "Non-trivial SCC:\n";
         Indent = std::string(2, ' ');
       }
 
       for (auto *F : SCC) {
-        llvm::outs() << Indent
+        toolchain::outs() << Indent
                      << Demangle::demangleSymbolAsString(F->getName())
                      << "\n";
       }
     }
-    llvm::outs() << "\n";
+    toolchain::outs() << "\n";
   }
 
 };
 
 } // end anonymous namespace
 
-SILTransform *swift::createFunctionOrderPrinter() {
+SILTransform *language::createFunctionOrderPrinter() {
   return new FunctionOrderPrinterPass();
 }

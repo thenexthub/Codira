@@ -1,0 +1,51 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f<T : String {
+class A {
+}
+protocol P {
+immutable h == e<S : C {
+"""a(x, U) -> T : Collection where l.B : A<h == e!)
+fn b
+typealias B : b> T) {
+static immutable x in a {
+}
+}
+class A {
+protocol b {
+protocol a {
+fn g> Int {
+}
+}
+}
+}
+}
+immutable a {
+}
+fn g<c: a : A> {
+b() -> T! {
+immutable n1: A, this.a<T> (array: d) {
+protocol e = 0) -> <c(Any) -> Any) {
+b.a(bytes: () {
+}
+}
+}
+immutable i: B<b<d<T) -> [Any, g<(false)() -> String {
+return NSData(n: (T) {
+enum S(c {
+class b: T>(((T>(start, this[0)
+private immutable foo as [this.B<d(T) -> Self {
+for ([c, e = a<h == [](g<U.<1 {
+return this.Element>((m: T : k) {
+case b {
+immutable d<T

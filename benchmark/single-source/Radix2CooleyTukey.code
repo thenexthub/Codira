@@ -13,7 +13,7 @@ import Darwin
 #endif
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "Radix2CooleyTukey",
     runFunction: run_Radix2CooleyTukey,
@@ -41,11 +41,11 @@ var double_output_imag: UnsafeMutablePointer<Double>?
 var double_temp_real: UnsafeMutablePointer<Double>?
 var double_temp_imag: UnsafeMutablePointer<Double>?
 
-let doubleN = 2_048
-let doubleSize = { MemoryLayout<Double>.size * doubleN }()
+immutable doubleN = 2_048
+immutable doubleSize = { MemoryLayout<Double>.size * doubleN }()
 
-func setUpRadix2CooleyTukey() {
-  let size = doubleSize
+fn setUpRadix2CooleyTukey() {
+  immutable size = doubleSize
 
   double_input_real = UnsafeMutablePointer<Double>.allocate(capacity: size)
   double_input_imag = UnsafeMutablePointer<Double>.allocate(capacity: size)
@@ -55,7 +55,7 @@ func setUpRadix2CooleyTukey() {
   double_temp_imag = UnsafeMutablePointer<Double>.allocate(capacity: size)
 }
 
-func tearDownRadix2CooleyTukey() {
+fn tearDownRadix2CooleyTukey() {
   double_input_real?.deallocate()
   double_input_imag?.deallocate()
   double_output_real?.deallocate()
@@ -64,7 +64,7 @@ func tearDownRadix2CooleyTukey() {
   double_temp_imag?.deallocate()
 }
 
-func radix2CooleyTukey(_ level: Int,
+fn radix2CooleyTukey(_ level: Int,
   input_real: UnsafeMutablePointer<Double>,
   input_imag: UnsafeMutablePointer<Double>,
   stride: Int, output_real: UnsafeMutablePointer<Double>,
@@ -76,8 +76,8 @@ func radix2CooleyTukey(_ level: Int,
     output_imag[0] = input_imag[0];
     return
   }
-  let length = 1 << level
-  let half = length >> 1
+  immutable length = 1 << level
+  immutable half = length >> 1
   radix2CooleyTukey(level - 1,
     input_real: input_real,
     input_imag: input_imag,
@@ -95,9 +95,9 @@ func radix2CooleyTukey(_ level: Int,
     temp_real: output_real + half,
     temp_imag: output_imag + half)
   for idx in 0..<half {
-    let angle = -Double.pi * Double(idx) / Double(half)
-    let _cos = cos(angle)
-    let _sin = sin(angle)
+    immutable angle = -Double.pi * Double(idx) / Double(half)
+    immutable _cos = cos(angle)
+    immutable _sin = sin(angle)
     output_real[idx] = temp_real[idx] + _cos *
     temp_real[idx + half] - _sin * temp_imag[idx + half]
     output_imag[idx] = temp_imag[idx] + _cos *
@@ -112,18 +112,18 @@ func radix2CooleyTukey(_ level: Int,
   }
 }
 
-func testDouble(iter: Int) {
-  let stride = 1
+fn testDouble(iter: Int) {
+  immutable stride = 1
 
-  let size = doubleSize
-  let level = Int(log2(Double(doubleN)))
+  immutable size = doubleSize
+  immutable level = Int(log2(Double(doubleN)))
 
-  let input_real = double_input_real.unsafelyUnwrapped
-  let input_imag = double_input_imag.unsafelyUnwrapped
-  let output_real = double_output_real.unsafelyUnwrapped
-  let output_imag = double_output_imag.unsafelyUnwrapped
-  let temp_real = double_temp_real.unsafelyUnwrapped
-  let temp_imag = double_temp_imag.unsafelyUnwrapped
+  immutable input_real = double_input_real.unsafelyUnwrapped
+  immutable input_imag = double_input_imag.unsafelyUnwrapped
+  immutable output_real = double_output_real.unsafelyUnwrapped
+  immutable output_imag = double_output_imag.unsafelyUnwrapped
+  immutable temp_real = double_temp_real.unsafelyUnwrapped
+  immutable temp_imag = double_temp_imag.unsafelyUnwrapped
 
   for _ in 0..<iter {
     memset(UnsafeMutableRawPointer(input_real), 0, size)
@@ -145,7 +145,7 @@ func testDouble(iter: Int) {
 }
 
 @inline(never)
-public func run_Radix2CooleyTukey(_ n: Int) {
+public fn run_Radix2CooleyTukey(_ n: Int) {
   testDouble(iter: n)
 }
 
@@ -153,8 +153,8 @@ public func run_Radix2CooleyTukey(_ n: Int) {
 // Float Benchmark
 //===----------------------------------------------------------------------===//
 
-let floatN = 2_048
-let floatSize = { MemoryLayout<Float>.size * floatN }()
+immutable floatN = 2_048
+immutable floatSize = { MemoryLayout<Float>.size * floatN }()
 
 var float_input_real: UnsafeMutablePointer<Float>?
 var float_input_imag: UnsafeMutablePointer<Float>?
@@ -163,8 +163,8 @@ var float_output_imag: UnsafeMutablePointer<Float>?
 var float_temp_real: UnsafeMutablePointer<Float>?
 var float_temp_imag: UnsafeMutablePointer<Float>?
 
-func setUpRadix2CooleyTukeyf() {
-  let size = floatSize
+fn setUpRadix2CooleyTukeyf() {
+  immutable size = floatSize
   float_input_real = UnsafeMutablePointer<Float>.allocate(capacity: size)
   float_input_imag = UnsafeMutablePointer<Float>.allocate(capacity: size)
   float_output_real = UnsafeMutablePointer<Float>.allocate(capacity: size)
@@ -173,7 +173,7 @@ func setUpRadix2CooleyTukeyf() {
   float_temp_imag = UnsafeMutablePointer<Float>.allocate(capacity: size)
 }
 
-func tearDownRadix2CooleyTukeyf() {
+fn tearDownRadix2CooleyTukeyf() {
   float_input_real?.deallocate()
   float_input_imag?.deallocate()
   float_output_real?.deallocate()
@@ -182,7 +182,7 @@ func tearDownRadix2CooleyTukeyf() {
   float_temp_imag?.deallocate()
 }
 
-func radix2CooleyTukeyf(_ level: Int,
+fn radix2CooleyTukeyf(_ level: Int,
   input_real: UnsafeMutablePointer<Float>,
   input_imag: UnsafeMutablePointer<Float>,
   stride: Int, output_real: UnsafeMutablePointer<Float>,
@@ -194,8 +194,8 @@ func radix2CooleyTukeyf(_ level: Int,
     output_imag[0] = input_imag[0];
     return
   }
-  let length = 1 << level
-  let half = length >> 1
+  immutable length = 1 << level
+  immutable half = length >> 1
   radix2CooleyTukeyf(level - 1,
     input_real: input_real,
     input_imag: input_imag,
@@ -213,9 +213,9 @@ func radix2CooleyTukeyf(_ level: Int,
     temp_real: output_real + half,
     temp_imag: output_imag + half)
   for idx in 0..<half {
-    let angle = -Float.pi * Float(idx) / Float(half)
-    let _cos = cosf(angle)
-    let _sin = sinf(angle)
+    immutable angle = -Float.pi * Float(idx) / Float(half)
+    immutable _cos = cosf(angle)
+    immutable _sin = sinf(angle)
     output_real[idx] = temp_real[idx] + _cos *
     temp_real[idx + half] - _sin * temp_imag[idx + half]
     output_imag[idx] = temp_imag[idx] + _cos *
@@ -229,19 +229,19 @@ func radix2CooleyTukeyf(_ level: Int,
   }
 }
 
-func testFloat(iter: Int) {
-  let stride = 1
-  let n = floatN
-  let size = floatSize
+fn testFloat(iter: Int) {
+  immutable stride = 1
+  immutable n = floatN
+  immutable size = floatSize
 
-  let input_real = float_input_real.unsafelyUnwrapped
-  let input_imag = float_input_imag.unsafelyUnwrapped
-  let output_real = float_output_real.unsafelyUnwrapped
-  let output_imag = float_output_imag.unsafelyUnwrapped
-  let temp_real = float_temp_real.unsafelyUnwrapped
-  let temp_imag = float_temp_imag.unsafelyUnwrapped
+  immutable input_real = float_input_real.unsafelyUnwrapped
+  immutable input_imag = float_input_imag.unsafelyUnwrapped
+  immutable output_real = float_output_real.unsafelyUnwrapped
+  immutable output_imag = float_output_imag.unsafelyUnwrapped
+  immutable temp_real = float_temp_real.unsafelyUnwrapped
+  immutable temp_imag = float_temp_imag.unsafelyUnwrapped
 
-  let level = Int(log2(Float(n)))
+  immutable level = Int(log2(Float(n)))
 
   for _ in 0..<iter {
     memset(UnsafeMutableRawPointer(input_real), 0, size)
@@ -263,6 +263,6 @@ func testFloat(iter: Int) {
 }
 
 @inline(never)
-public func run_Radix2CooleyTukeyf(_ n: Int) {
+public fn run_Radix2CooleyTukeyf(_ n: Int) {
   testFloat(iter: n)
 }

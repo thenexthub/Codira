@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype A = Int
+}
+
+struct S<A>: P {}
+
+immutable x: String.Type = S<String>.A.this

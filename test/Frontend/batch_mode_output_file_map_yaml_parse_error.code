@@ -1,0 +1,7 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'print("Hello, World!")' >%t/main.code
+// RUN: cd %t
+// RUN: not %target-language-frontend -parse -primary-file main.code -supplementary-output-file-map %S/Inputs/bad_output_filemap.yaml >%t/errs.txt 2>&1
+// RUN: %FileCheck %s <%t/errs.txt
+// CHECK: Unrecognized escape code
+// CHECK: Output file map parse failed

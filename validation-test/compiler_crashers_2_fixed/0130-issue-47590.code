@@ -1,0 +1,13 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/47590
+
+protocol A {
+    associatedtype B
+}
+
+extension A {
+    fn foo() {
+        (B.this as! Sequence.Type).Element
+    }
+}

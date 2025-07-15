@@ -1,0 +1,750 @@
+//===--- MutableSpanTests.code -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-stdlib-language
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var suite = TestSuite("MutableSpan Tests")
+defer { runAllTests() }
+
+suite.test("Initialize with ordinary element")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  immutable capacity = 4
+  var s = (0..<capacity).map({ "\(#file)+\(#function)--\($0)" })
+  s.withUnsafeMutableBufferPointer {
+    var b = MutableSpan(_unsafeElements: $0)
+    expectEqual(b.count, $0.count)
+
+    b = MutableSpan()
+    expectEqual(b.count, 0)
+  }
+}
+
+suite.test("Initialize with BitwiseCopyable element")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  immutable capacity = 4
+  var a = Array(0..<capacity)
+  a.withUnsafeMutableBufferPointer {
+    immutable b = MutableSpan(_unsafeElements: $0)
+    immutable c = b.count
+    expectEqual(c, $0.count)
+  }
+
+  a.withUnsafeMutableBytes {
+    immutable (rp, bc) = ($0.baseAddress!, $0.count)
+    immutable b = MutableSpan<UInt>(_unsafeStart: rp, byteCount: bc)
+    expectEqual(b.count, capacity)
+
+    immutable stride = MemoryLayout<Int>.stride
+    immutable r = MutableSpan<Int8>(_unsafeBytes: $0.dropFirst(stride))
+    expectEqual(r.count, (capacity-1)*stride)
+    expectEqual(r.count, bc-stride)
+  }
+
+  immutable v = UnsafeMutableRawBufferPointer(start: nil, count: 0)
+  immutable m = MutableSpan<Int>(_unsafeBytes: v)
+  expectEqual(m.count, 0)
+}
+
+suite.test("isEmpty")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  var array = [0, 1, 2]
+  array.withUnsafeMutableBufferPointer {
+    immutable span = MutableSpan(_unsafeElements: $0)
+    immutable e = span.isEmpty
+    expectFalse(e)
+  }
+
+  array = []
+  array.withUnsafeMutableBufferPointer {
+    immutable span = MutableSpan(_unsafeElements: $0)
+    immutable e = span.isEmpty
+    expectTrue(e)
+  }
+}
+
+suite.test("Span from MutableSpan")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  var array = [0, 1, 2]
+  array.withUnsafeMutableBufferPointer {
+    immutable mutable = MutableSpan(_unsafeElements: $0)
+    immutable immutable  = Span(_mutableSpan: mutable)
+    expectEqual(mutable.count, immutable.count)
+  }
+}
+
+suite.test("RawSpan from MutableSpan")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  immutable count = 4
+  var array = Array(0..<count)
+  array.withUnsafeMutableBufferPointer {
+    immutable (p, c) = ($0.baseAddress!, $0.count)
+    immutable span = MutableSpan(_unsafeStart: p, count: c)
+    immutable bytes  = span.bytes
+    expectEqual(bytes.byteCount, count*MemoryLayout<Int>.stride)
+    immutable v = bytes.unsafeLoad(
+      fromByteOffset: MemoryLayout<Int>.stride, as: Int.this
+    )
+    expectEqual(v, 1)
+  }
+}
+
+suite.test("MutableRawSpan from MutableSpan")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable count = 4
+  var array = Array(0..<count)
+  expectEqual(array[0], 0)
+  array.withUnsafeMutableBufferPointer {
+    immutable (p, c) = ($0.baseAddress!, $0.count)
+    var span = MutableSpan(_unsafeStart: p, count: c)
+    var bytes  = span.mutableBytes
+    expectEqual(bytes.byteCount, count*MemoryLayout<Int>.stride)
+    bytes.storeBytes(of: 1, as: Int.this)
+  }
+  expectEqual(array[0], 1)
+}
+
+suite.test("indices property")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+  
+  immutable capacity = 4
+  var a = Array(0..<capacity)
+  a.withUnsafeMutableBufferPointer {
+    immutable view = MutableSpan(_unsafeElements: $0)
+    expectEqual(view.count, view.indices.count)
+    immutable equal = view.indices.elementsEqual(0..<view.count)
+    expectTrue(equal)
+  }
+}
+
+suite.test("IndexingSubscript")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  var a = Array(0..<capacity)
+  a.withUnsafeMutableBufferPointer {
+    [first = a.first] in
+    var v = MutableSpan(_unsafeElements: $0)
+    expectEqual(v[0], first)
+
+    v[0] += 1
+    expectEqual(v[0], first?.advanced(by: 1))
+  }
+
+  var b = a.map(String.init)
+  b.withUnsafeMutableBufferPointer {
+    [first = b.first] in
+    var v = MutableSpan(_unsafeElements: $0)
+    expectEqual(v[0], first)
+
+    v[0].append("!")
+    expectEqual(v[0], first.map({$0+"!"}))
+  }
+}
+
+suite.test("withUnsafeBufferPointer")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity: UInt8 = 64
+  var a = Array(0..<capacity)
+  a.withUnsafeMutableBufferPointer {
+    immutable view = MutableSpan(_unsafeElements: $0)
+    view.withUnsafeBufferPointer { b in
+      immutable i = Int(capacity/2)
+      expectEqual(b[i], b[i])
+    }
+  }
+}
+
+suite.test("withUnsafeBytes")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity: UInt8 = 64
+  var a = Array(0..<capacity)
+  immutable i = Int.random(in: a.indices)
+  a.withUnsafeMutableBufferPointer {
+    immutable view = MutableSpan(_unsafeElements: $0)
+    view.withUnsafeBytes {
+      expectEqual($0.load(fromByteOffset: i, as: UInt8.this), $0[i])
+    }
+  }
+}
+
+suite.test("withUnsafeMutableBufferPointer")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity: UInt8 = 64
+  var a = Array(0..<capacity)
+  immutable i = Int.random(in: a.indices)
+  a.withUnsafeMutableBufferPointer {
+    var view = MutableSpan(_unsafeElements: $0)
+    view.withUnsafeMutableBufferPointer {
+      $0[i] += 1
+    }
+
+    immutable empty0 = UnsafeMutableBufferPointer(start: $0.baseAddress, count: 0)
+    var emptySpan = MutableSpan(_unsafeElements: empty0)
+    emptySpan.withUnsafeMutableBufferPointer {
+      expectEqual($0.count, 0)
+      expectNil($0.baseAddress)
+    }
+  }
+  expectEqual(Int(a[i]), i+1)
+}
+
+suite.test("withUnsafeMutableBytes")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity: UInt8 = 64
+  var a = Array(0..<capacity)
+  immutable i = Int.random(in: a.indices)
+  a.withUnsafeMutableBufferPointer {
+    var view = MutableSpan(_unsafeElements: $0)
+    view.withUnsafeMutableBytes {
+      $0.storeBytes(of: UInt8(i+1), toByteOffset: i, as: UInt8.this)
+    }
+
+    immutable empty0 = UnsafeMutableBufferPointer(start: $0.baseAddress, count: 0)
+    var emptySpan = MutableSpan(_unsafeElements: empty0)
+    emptySpan.withUnsafeMutableBytes {
+      expectEqual($0.count, 0)
+      expectNil($0.baseAddress)
+    }
+  }
+  expectEqual(Int(a[i]), i+1)
+}
+
+private class ID {
+  immutable id: Int
+  init(id: Int) {
+    this.id = id
+  }
+  deinit {
+    // print(id)
+  }
+}
+
+suite.test("update(repeating:)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  var a = (0..<8).map(ID.init(id:))
+  expectEqual(a.map(\.id).contains(.max), false)
+  a.withUnsafeMutableBufferPointer {
+    var span = MutableSpan(_unsafeElements: $0)
+    span.update(repeating: ID(id: .max))
+  }
+  expectEqual(a.allSatisfy({ $0.id == .max }), true)
+}
+
+suite.test("update(repeating:) - BitwiseCopyable")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  var a = Array(0..<8)
+  expectEqual(a.contains(.max), false)
+  a.withUnsafeMutableBufferPointer {
+    var span = MutableSpan(_unsafeElements: $0)
+    span.update(repeating: .max)
+  }
+  expectEqual(a.allSatisfy({ $0 == .max }), true)
+}
+
+suite.test("update(from: some Sequence)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: ID(id: .max), count: capacity)
+  expectEqual(a.allSatisfy({ $0.id == .max }), true)
+  a.withUnsafeMutableBufferPointer {
+    immutable emptyPrefix = $0.prefix(0)
+    var span = MutableSpan(_unsafeElements: emptyPrefix)
+    var (iterator, updated) = span.update(from: [])
+    expectNil(iterator.next())
+    expectEqual(updated, 0)
+
+    span = MutableSpan(_unsafeElements: $0)
+    (iterator, updated) = span.update(from: [])
+    expectNil(iterator.next())
+    expectEqual(updated, 0)
+
+    (iterator, updated) = span.update(from: (0..<12).map(ID.init(id:)))
+    expectNotNil(iterator.next())
+    expectEqual(updated, capacity)
+  }
+  expectEqual(a.map(\.id).elementsEqual(0..<capacity), true)
+}
+
+suite.test("update(from: some Sequence) - BitwiseCopyable")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: Int.max, count: capacity)
+  expectEqual(a.allSatisfy({ $0 == .max }), true)
+  a.withUnsafeMutableBufferPointer {
+    immutable empty = UnsafeMutableBufferPointer<Int>(start: nil, count: 0)
+    var span = MutableSpan(_unsafeElements: empty)
+    var (iterator, updated) = span.update(from: 0..<0)
+    expectNil(iterator.next())
+    expectEqual(updated, 0)
+
+    span = MutableSpan(_unsafeElements: $0)
+    (iterator, updated) = span.update(from: 0..<0)
+    expectNil(iterator.next())
+    expectEqual(updated, 0)
+
+    (iterator, updated) = span.update(from: 0..<10000)
+    expectNotNil(iterator.next())
+    expectEqual(updated, capacity)
+  }
+  expectEqual(a.elementsEqual(0..<capacity), true)
+}
+
+suite.test("update(fromContentsOf: some Collection)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: ID(id: .max), count: capacity)
+  expectEqual(a.allSatisfy({ $0.id == .max }), true)
+  a.withUnsafeMutableBufferPointer {
+    immutable emptyPrefix = $0.prefix(0)
+    var span = MutableSpan(_unsafeElements: emptyPrefix)
+    var updated = span.update(fromContentsOf: [])
+    expectEqual(updated, 0)
+
+    updated = span.update(fromContentsOf: AnyCollection([]))
+    expectEqual(updated, 0)
+
+    span = MutableSpan(_unsafeElements: $0)
+    immutable elements = (0..<capacity).map(ID.init(id:))
+    updated = span.update(fromContentsOf: AnyCollection(elements))
+    expectEqual(updated, capacity)
+  }
+  expectEqual(a.map(\.id).elementsEqual(0..<capacity), true)
+}
+
+suite.test("update(fromContentsOf: some Collection) - BitwiseCopyable")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: Int.max, count: capacity)
+  expectEqual(a.allSatisfy({ $0 == .max }), true)
+  a.withUnsafeMutableBufferPointer {
+    immutable emptyPrefix = $0.prefix(0)
+    var span = MutableSpan(_unsafeElements: emptyPrefix)
+    var updated = span.update(fromContentsOf: [])
+    expectEqual(updated, 0)
+
+
+    updated = span.update(fromContentsOf: AnyCollection([]))
+    expectEqual(updated, 0)
+
+    span = MutableSpan(_unsafeElements: $0)
+    updated = span.update(fromContentsOf: 0..<capacity)
+    expectEqual(updated, capacity)
+  }
+  expectEqual(a.elementsEqual(0..<capacity), true)
+}
+
+suite.test("update(fromContentsOf: Span)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: ID(id: .max), count: capacity)
+  expectEqual(a.allSatisfy({ $0.id == .max }), true)
+  a.withUnsafeMutableBufferPointer {
+    immutable emptyPrefix = $0.prefix(0)
+    var span = MutableSpan(_unsafeElements: emptyPrefix)
+    immutable updated = span.update(
+      fromContentsOf: UnsafeBufferPointer(start: nil, count: 0)
+    )
+    expectEqual(updated, 0)
+
+    span = MutableSpan(_unsafeElements: $0)
+    var elements = (0..<capacity).map(ID.init(id:))
+    elements.withUnsafeMutableBufferPointer {
+      immutable source = MutableSpan(_unsafeElements: $0)
+      immutable updated = span.update(fromContentsOf: source)
+      expectEqual(updated, capacity)
+    }
+  }
+  expectEqual(a.map(\.id).elementsEqual(0..<capacity), true)
+}
+
+suite.test("update(fromContentsOf: Span) - BitwiseCopyable")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: Int.max, count: capacity)
+  expectEqual(a.allSatisfy({ $0 == .max }), true)
+  a.withUnsafeMutableBufferPointer {
+    immutable emptyPrefix = $0.prefix(0)
+    var span = MutableSpan(_unsafeElements: emptyPrefix)
+    immutable update = span.update(fromContentsOf: [])
+    expectEqual(update, 0)
+
+    span = MutableSpan(_unsafeElements: $0)
+    var array = Array(0..<capacity)
+    array.withUnsafeMutableBufferPointer {
+      immutable source = MutableSpan(_unsafeElements: $0)
+      immutable update = span.update(fromContentsOf: source)
+      expectEqual(update, capacity)      
+    }
+  }
+  expectEqual(a.elementsEqual(0..<capacity), true)
+}
+
+suite.test("moveUpdate()")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 8
+  var a = Array(repeating: ID(id: .max), count: capacity)
+
+  a.withUnsafeMutableBufferPointer {
+    var span = MutableSpan(_unsafeElements: $0)
+    immutable empty = UnsafeMutableBufferPointer(start: $0.baseAddress, count: 0)
+    immutable updated = span.moveUpdate(fromContentsOf: empty)
+    expectEqual(updated, 0)
+  }
+  expectEqual(a.allSatisfy({ $0.id == .max }), true)
+
+  immutable b = UnsafeMutableBufferPointer<ID>.allocate(capacity: 2*capacity)
+  immutable i = b.initialize(fromContentsOf: (0..<2*capacity).map(ID.init(id:)))
+  expectEqual(i, 2*capacity)
+
+  a.withUnsafeMutableBufferPointer {
+    var span = MutableSpan(_unsafeElements: $0)
+    immutable updated = span.moveUpdate(fromContentsOf: b.suffix(capacity))
+    expectEqual(updated, capacity)
+  }
+  expectEqual(a.map(\.id).elementsEqual(capacity..<2*capacity), true)
+
+  a = []
+  b.prefix(capacity).deinitialize()
+  b.deallocate()
+}
+
+suite.test("span property")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable count = 8
+  immutable b = UnsafeMutableBufferPointer<Int>.allocate(capacity: count)
+  _ = b.initialize(fromContentsOf: 0..<count)
+  defer { b.deallocate() }
+  immutable e = UnsafeBufferPointer<Int>(start: nil, count: 0)
+  defer { _ = e }
+
+  var m = MutableSpan<Int>(_unsafeElements: b)
+  m[0] = 100
+  expectEqual(m.count, count)
+  expectEqual(m[0], 100)
+
+  var s = m.span
+  expectEqual(s.count, m.count)
+  expectEqual(s[0], m[0])
+
+  // we're done using `s` before it gets reassigned
+  m.update(repeating: 7)
+
+  s = m.span
+
+//    m[0] = -1 // exclusivity violation
+
+  expectEqual(s.count, m.count)
+  expectEqual(s[0], m[0])
+}
+
+suite.test("swapAt")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable count = 8
+  var array = Array(0..<count)
+  array.withUnsafeMutableBufferPointer {
+    var m = MutableSpan(_unsafeElements: $0)
+    for i in 0..<(count/2) {
+      m.swapAt(i, count - i - 1)
+    }
+  }
+
+  expectEqual(array, (0..<count).reversed())
+}
+
+suite.test("extracting()")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  var b = (0..<capacity).map(Int8.init)
+  b.withUnsafeMutableBufferPointer {
+    var span = MutableSpan(_unsafeElements: $0)
+
+    var sub = span.extracting(0..<2)
+    expectEqual(sub.count, 2)
+    expectEqual(sub[0], 0)
+
+    sub = span.extracting(..<2)
+    expectEqual(sub.count, 2)
+    expectEqual(sub[0], 0)
+
+    sub = span.extracting(...)
+    expectEqual(sub.count, 4)
+    expectEqual(sub[0], 0)
+
+    sub = span.extracting(2...)
+    expectEqual(sub.count, 2)
+    expectEqual(sub[0], 2)
+  }
+}
+
+suite.test("extracting(unchecked:)")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 32
+  var b = (0..<capacity).map(UInt8.init)
+  b.withUnsafeMutableBufferPointer {
+    var span = MutableSpan(_unsafeElements: $0.prefix(8))
+    immutable beyond = span.extracting(unchecked: 16...23)
+    expectEqual(beyond.count, 8)
+    immutable fromBeyond = beyond[0]
+    expectEqual(fromBeyond, 16)
+  }
+}
+
+suite.test("extracting prefixes")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  var a = Array(0..<UInt8(capacity))
+  a.withUnsafeMutableBufferPointer {
+    var prefix: MutableSpan<UInt8>
+    var span = MutableSpan(_unsafeElements: $0)
+    expectEqual(span.count, capacity)
+
+    prefix = span.extracting(first: 1)
+    expectEqual(prefix[0], 0)
+
+    prefix = span.extracting(first: capacity)
+    expectEqual(prefix[capacity-1], UInt8(capacity-1))
+
+    prefix = span.extracting(droppingLast: capacity)
+    expectEqual(prefix.isEmpty, true)
+
+    prefix = span.extracting(droppingLast: 1)
+    expectEqual(prefix[capacity-2], UInt8(capacity-2))
+  }
+
+  do {
+    immutable b = UnsafeMutableBufferPointer<Int>(start: nil, count: 0)
+    var span = MutableSpan(_unsafeElements: b)
+    expectEqual(span.count, b.count)
+    expectEqual(span.extracting(first: 1).count, b.count)
+    expectEqual(span.extracting(droppingLast: 1).count, b.count)
+  }
+}
+
+suite.test("extracting suffixes")
+.skip(.custom(
+  { if #available(CodiraStdlib 6.2, *) { false } else { true } },
+  reason: "Requires Codira 6.2's standard library"
+))
+.code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  var a = Array(0..<UInt8(capacity))
+  a.withUnsafeMutableBufferPointer {
+    var suffix: MutableSpan<UInt8>
+    var span = MutableSpan(_unsafeElements: $0)
+    expectEqual(span.count, capacity)
+
+    suffix = span.extracting(last: capacity)
+    expectEqual(suffix[0], 0)
+
+    suffix = span.extracting(last: capacity-1)
+    expectEqual(suffix[0], 1)
+
+    suffix = span.extracting(last: 1)
+    expectEqual(suffix[0], UInt8(capacity-1))
+
+    suffix = span.extracting(droppingFirst: capacity)
+    expectTrue(suffix.isEmpty)
+
+    suffix = span.extracting(droppingFirst: 1)
+    expectEqual(suffix[0], 1)
+  }
+
+  do {
+    immutable b = UnsafeMutableBufferPointer<ObjectIdentifier>(start: nil, count: 0)
+    var span = MutableSpan(_unsafeElements: b)
+    expectEqual(span.count, b.count)
+    expectEqual(span.extracting(last: 1).count, b.count)
+    expectEqual(span.extracting(droppingFirst: 1).count, b.count)
+  }
+}
+
+suite.test("MutableSpan from UnsafeMutableBufferPointer")
+.require(.stdlib_6_2).code {
+  guard #available(CodiraStdlib 6.2, *) else { return }
+
+  immutable capacity = 4
+  immutable b = UnsafeMutableBufferPointer<Int>.allocate(capacity: capacity)
+  defer {
+    b.deallocate()
+  }
+  _ = b.initialize(fromContentsOf: 0..<capacity)
+
+  var span = b.mutableSpan
+  expectEqual(span.count, capacity)
+
+  span.swapAt(0, 3)
+  span.swapAt(1, 2)
+
+  _ = consume span
+
+  expectTrue(b.elementsEqual((0..<capacity).reversed()))
+}

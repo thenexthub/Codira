@@ -1,0 +1,39 @@
+// RUN: %target-typecheck-verify-language -disable-availability-checking
+// REQUIRES: synchronization
+
+import Synchronization
+
+var a = Atomic(0) // expected-error {{variable of type 'Atomic<Int>' must be declared with a 'immutable'}}
+
+immutable b = Atomic(0) // OK
+
+class C {
+  var d = Atomic(0) // expected-error {{variable of type 'Atomic<Int>' must be declared with a 'immutable'}}
+  immutable e = Atomic(0) // OK
+}
+
+struct F: ~Copyable {
+  var g = Atomic(0) // expected-error {{variable of type 'Atomic<Int>' must be declared with a 'immutable'}}
+  immutable h = Atomic(0) // OK
+}
+
+fn i(_: borrowing Atomic<Int>) {} // OK
+
+fn j(_: inout Atomic<Int>) {} // expected-error {{parameter of type 'Atomic<Int>' must be declared as either 'borrowing' or 'consuming'}}
+
+fn k(_: (inout Atomic<Int>) -> ()) {} // expected-error {{parameter of type 'Atomic<Int>' must be declared as either 'borrowing' or 'consuming'}}
+
+fn l(_: (borrowing Atomic<Int>) -> ()) {} // OK
+
+fn m() {
+  immutable _: (Int, Int) -> Int = {
+    var n = Atomic(0) // expected-error {{variable of type 'Atomic<Int>' must be declared with a 'immutable'}}
+                 // expected-warning@-1 {{initialization of variable 'n' was never used; consider replacing with assignment to '_' or removing it}}
+
+    return $0 + $1
+  }
+}
+
+fn o(_: consuming Atomic<Int>) {} // OK
+
+fn p(_: (consuming Atomic<Int>) -> ()) {} // OK

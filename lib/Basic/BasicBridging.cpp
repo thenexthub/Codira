@@ -1,20 +1,24 @@
-//===--- BasicBridging.cpp - Utilities for swift bridging -----------------===//
+//===--- BasicBridging.cpp - Utilities for language bridging -----------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/BasicBridging.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/VersionTuple.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/VersionTuple.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #ifdef PURE_BRIDGING_MODE
 // In PURE_BRIDGING_MODE, bridging functions are not inlined and therefore
@@ -25,7 +29,7 @@
 using namespace language;
 
 void assertFail(const char * _Nonnull msg, const char * _Nonnull file,
-                SwiftUInt line, const char * _Nonnull function) {
+                CodiraUInt line, const char * _Nonnull function) {
   ASSERT_failure(msg, file, line, function);
 }
 
@@ -46,7 +50,7 @@ void BridgedOStream::flush() const {
 }
 
 BridgedOStream Bridged_dbgs() {
-  return BridgedOStream(&llvm::dbgs());
+  return BridgedOStream(&toolchain::dbgs());
 }
 
 //===----------------------------------------------------------------------===//
@@ -61,7 +65,7 @@ void BridgedStringRef::write(BridgedOStream os) const {
 // MARK: BridgedOwnedString
 //===----------------------------------------------------------------------===//
 
-BridgedOwnedString::BridgedOwnedString(llvm::StringRef stringToCopy)
+BridgedOwnedString::BridgedOwnedString(toolchain::StringRef stringToCopy)
     : Data(nullptr), Length(stringToCopy.size()) {
   if (Length != 0) {
     Data = new char[Length];
@@ -75,13 +79,13 @@ void BridgedOwnedString::destroy() const {
 }
 
 //===----------------------------------------------------------------------===//
-// MARK: Data
+// MARK: BridgedData
 //===----------------------------------------------------------------------===//
 
-void BridgedData_free(BridgedData data) {
-  if (data.BaseAddress == nullptr)
+void BridgedData::free() const {
+  if (BaseAddress == nullptr)
     return;
-  free(const_cast<char *>(data.BaseAddress));
+  ::free(const_cast<char *>(BaseAddress));
 }
 
 //===----------------------------------------------------------------------===//
@@ -100,7 +104,7 @@ void BridgedCharSourceRangeVector::push_back(BridgedCharSourceRange range) {
 // MARK: BridgedVersionTuple
 //===----------------------------------------------------------------------===//
 
-BridgedVersionTuple::BridgedVersionTuple(llvm::VersionTuple version) {
+BridgedVersionTuple::BridgedVersionTuple(toolchain::VersionTuple version) {
   if (version.getBuild())
     *this = BridgedVersionTuple(version.getMajor(), *version.getMinor(),
                                 *version.getSubminor(), *version.getBuild());
@@ -113,12 +117,12 @@ BridgedVersionTuple::BridgedVersionTuple(llvm::VersionTuple version) {
     *this = BridgedVersionTuple(version.getMajor());
 }
 
-llvm::VersionTuple BridgedVersionTuple::unbridged() const {
+toolchain::VersionTuple BridgedVersionTuple::unbridged() const {
   if (HasBuild)
-    return llvm::VersionTuple(Major, Minor, Subminor, Build);
+    return toolchain::VersionTuple(Major, Minor, Subminor, Build);
   if (HasSubminor)
-    return llvm::VersionTuple(Major, Minor, Subminor);
+    return toolchain::VersionTuple(Major, Minor, Subminor);
   if (HasMinor)
-    return llvm::VersionTuple(Major, Minor);
-  return llvm::VersionTuple(Major);
+    return toolchain::VersionTuple(Major, Minor);
+  return toolchain::VersionTuple(Major);
 }

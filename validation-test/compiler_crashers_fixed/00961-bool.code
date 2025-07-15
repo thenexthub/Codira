@@ -1,0 +1,45 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol A {
+extension String {
+}
+typealias e: e()
+}
+fn a: S) {
+return S.C() -> : C {
+typealias g<T, V, Any, x in a {
+typealias e = A) {
+}
+class A? = e: A? {
+}
+return { c() {
+}
+}
+}
+case .Iterator.substringWithRange(b(x) {
+b() -> == b(T) {
+}
+class a {
+}
+}
+fn c, a<A> () {
+d: T? {
+fn b> {
+}
+typealias b : Sequence, AnyObject> {
+}
+}
+class A {
+}
+immutable g = .E == c
+}

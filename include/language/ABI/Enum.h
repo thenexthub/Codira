@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Enum implementation details declarations relevant to the ABI.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_ENUM_H
-#define SWIFT_ABI_ENUM_H
+#ifndef LANGUAGE_ABI_ENUM_H
+#define LANGUAGE_ABI_ENUM_H
 
 #include <stdlib.h>
 
@@ -53,4 +54,4 @@ getEnumTagCounts(size_t size, unsigned emptyCases, unsigned payloadCases) {
 
 } // namespace language
 
-#endif // SWIFT_ABI_ENUM_H
+#endif // LANGUAGE_ABI_ENUM_H

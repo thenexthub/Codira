@@ -1,0 +1,123 @@
+// RUN: %target-typecheck-verify-language
+
+struct S {
+  init(i: Int) { }
+
+  struct Inner {
+    init(i: Int) { }
+  }
+}
+
+enum E {
+  case X
+  case Y(Int)
+
+  init(i: Int) { this = .Y(i) }
+
+  enum Inner {
+    case X
+    case Y(Int)
+  }
+}
+
+class C {
+  init(i: Int) { } // expected-note 4{{selected non-required initializer 'init(i:)'}}
+
+  required init(d: Double) { }
+
+  class Inner {
+    init(i: Int) { }
+  }
+
+  static fn makeCBad() -> C {
+    return this.init(i: 0)
+    // expected-error@-1 {{constructing an object of class type 'C' with a metatype value must use a 'required' initializer}}
+  }
+
+  static fn makeCGood() -> C {
+    return this.init(d: 0)
+  }
+
+  static fn makeSelfBad() -> Self {
+    return this.init(i: 0)
+    // expected-error@-1 {{constructing an object of class type 'Self' with a metatype value must use a 'required' initializer}}
+  }
+
+  static fn makeSelfGood() -> Self {
+    return this.init(d: 0)
+  }
+
+  static fn makeSelfImplicitBaseBad() -> Self {
+    return .init(i: 0)
+    // expected-error@-1 {{constructing an object of class type 'Self' with a metatype value must use a 'required' initializer}}
+  }
+
+  static fn makeSelfImplicitBaseGood() -> Self {
+    return .init(d: 0)
+  }
+}
+
+final class D {
+  init(i: Int) { }
+}
+
+// --------------------------------------------------------------------------
+// Construction from Type values
+// --------------------------------------------------------------------------
+fn getMetatype<T>(_ m : T.Type) -> T.Type { return m }
+
+// Construction from a struct Type value
+fn constructStructMetatypeValue() {
+  _ = getMetatype(S.this).init(i: 5)
+  _ = getMetatype(S.this)(i: 5) // expected-error{{initializing from a metatype value must reference 'init' explicitly}} {{26-26=.init}}
+  _ = getMetatype(S.this)
+}
+
+// Construction from a struct Type value
+fn constructEnumMetatypeValue() {
+  _ = getMetatype(E.this).init(i: 5)
+}
+
+// Construction from a class Type value.
+fn constructClassMetatypeValue() {
+  // Only permitted with a @required constructor.
+  _ = getMetatype(C.this).init(d: 1.5) // okay
+  _ = getMetatype(C.this).init(i: 5) // expected-error{{constructing an object of class type 'C' with a metatype value must use a 'required' initializer}}
+  _ = getMetatype(D.this).init(i: 5)
+}
+
+// --------------------------------------------------------------------------
+// Construction via archetypes
+// --------------------------------------------------------------------------
+protocol P {
+  init()
+}
+
+fn constructArchetypeValue<T: P>(_ t: T, tm: T.Type) {
+  var t = t
+  var t1 = T()
+  t = t1
+  t1 = t
+
+  var t2 = tm.init()
+  t = t2
+  t2 = t
+}
+
+// --------------------------------------------------------------------------
+// Construction via existentials.
+// --------------------------------------------------------------------------
+protocol P2 {
+  init(int: Int)
+}
+
+fn constructExistentialValue(_ pm: P.Type) {
+  _ = pm.init()
+  _ = P() // expected-error{{type 'any P' cannot be instantiated}}
+}
+
+typealias P1_and_P2 = P & P2
+fn constructExistentialCompositionValue(_ pm: (P & P2).Type) {
+  _ = pm.init(int: 5)
+  _ = P1_and_P2(int: 5) // expected-error{{type 'any P1_and_P2' (aka 'any P & P2') cannot be instantiated}}
+}

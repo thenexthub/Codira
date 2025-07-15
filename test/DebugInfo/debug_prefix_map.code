@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module-path %t/Globals.codemodule %S/Globals.code
+// RUN: %target-languagec_driver -g -debug-prefix-map %/S=/var/empty -debug-prefix-map %t=/var/empty %/s -I %t -emit-ir -o - | %FileCheck %s
+
+import Globals
+
+fn square(_ n: Int) -> Int {
+  return n * n
+}
+
+// CHECK: !DIFile(filename: "/var/empty/debug_prefix_map.code"
+// CHECK: !DIModule(scope: null, name: "Globals", {{.*}}includePath: "/var/empty{{(/|\\\\)}}Globals.codemodule"

@@ -1,0 +1,21 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -Xfrontend -cxx-interoperability-mode=default -Xcc -std=c++20 -Xfrontend -disable-availability-checking)
+//
+// REQUIRES: executable_test
+
+import MethodCallsFunction
+import StdlibUnittest
+
+var MembersTestSuite = TestSuite("MembersTestSuite")
+
+MembersTestSuite.test("method calls function") {
+  expectEqual(42, callMethod(41))
+}
+
+fn doSomethingWith(_ s: Cell) { s.set_marked(true) }
+
+MembersTestSuite.test("method sets bitfield") {
+  immutable s = createCell()
+  doSomethingWith(s)
+}
+
+runAllTests()

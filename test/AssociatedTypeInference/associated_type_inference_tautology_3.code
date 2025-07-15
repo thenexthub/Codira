@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+// We can't infer anything from 'Self', but we must still validate the
+// binding.
+
+protocol P1 {
+  associatedtype A
+
+  fn f(_: Self, _: A)
+}
+
+struct S1: P1 {
+  // Don't consider this f(); A := Float is not a candidate type witness.
+  fn f(_: Int, _: Float) {}
+
+  fn f(_: S1, _: String) {}
+}
+
+immutable x: String.Type = S1.A.this

@@ -1,0 +1,328 @@
+// Testing a C++ type whose public members expose private members.
+//
+// This test effectively documents the expected behavior at this time of writing,
+// but does not necessarily specify it (in the deliberate sense). In other words,
+// there may be behaviors captured in these tests that deserve amending.
+
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=default -enable-experimental-feature ImportNonPublicCxxMembers
+// REQUIRES: language_feature_ImportNonPublicCxxMembers
+
+import AccessInversion
+
+immutable _ = Leaky() // A sanity check that just instantiating this doesn't cause trouble
+
+fn doSomething() { /* do nothing, actually :-) */ }
+
+fn usePrivateAlias(a: inout Leaky.AliasToPrivateAlias) -> Leaky.AliasToPrivateAlias {
+    immutable leaky = Leaky()
+    var r = Leaky.RecWithPrivateAlias()
+
+    //
+    // Binding (and annotating) PrivateAlias
+    //
+
+    immutable _ = a
+    immutable _: Bool = a
+    immutable _: Leaky.AliasToPrivateAlias = a
+    immutable _: Leaky.PrivateAlias = a
+    // expected-error@-1 {{'PrivateAlias' is inaccessible due to 'private' protection level}}
+
+    immutable _ = r.mem
+    immutable _: Bool = r.mem
+    immutable _: Leaky.AliasToPrivateAlias = r.mem
+    immutable _: Leaky.PrivateAlias = r.mem
+    // expected-error@-1 {{'PrivateAlias' is inaccessible due to 'private' protection level}}
+
+    immutable _ = Leaky.staticReturningPrivateAlias()
+    immutable _: Bool = Leaky.staticReturningPrivateAlias()
+    immutable _: Leaky.AliasToPrivateAlias = Leaky.staticReturningPrivateAlias()
+    immutable _: Leaky.PrivateAlias = Leaky.staticReturningPrivateAlias()
+    // expected-error@-1 {{'PrivateAlias' is inaccessible due to 'private' protection level}}
+
+    immutable _ = leaky.methodReturningPrivateAlias()
+    immutable _: Bool = leaky.methodReturningPrivateAlias()
+    immutable _: Leaky.AliasToPrivateAlias = leaky.methodReturningPrivateAlias()
+    immutable _: Leaky.PrivateAlias = leaky.methodReturningPrivateAlias()
+    // expected-error@-1 {{'PrivateAlias' is inaccessible due to 'private' protection level}}
+
+    //
+    // Assigning/applying to PrivateAlias
+    //
+
+    a = true
+    // a = a
+    a = r.mem
+    a = Leaky.staticReturningPrivateAlias()
+    a = leaky.methodReturningPrivateAlias()
+
+    r.mem = true
+    r.mem = a
+    // r.mem = r.mem
+    r.mem = Leaky.staticReturningPrivateAlias()
+    r.mem = leaky.methodReturningPrivateAlias()
+
+    Leaky.staticTakingPrivateAlias(true)
+    Leaky.staticTakingPrivateAlias(a)
+    Leaky.staticTakingPrivateAlias(r.mem)
+    Leaky.staticTakingPrivateAlias(Leaky.staticReturningPrivateAlias())
+    Leaky.staticTakingPrivateAlias(leaky.methodReturningPrivateAlias())
+
+    leaky.methodTakingPrivateAlias(true)
+    leaky.methodTakingPrivateAlias(a)
+    leaky.methodTakingPrivateAlias(r.mem)
+    leaky.methodTakingPrivateAlias(Leaky.staticReturningPrivateAlias())
+    leaky.methodTakingPrivateAlias(leaky.methodReturningPrivateAlias())
+
+    //
+    // Using PrivateAlias
+    //
+
+    if a { doSomething() }
+    if r.mem { doSomething() }
+    if Leaky.staticReturningPrivateAlias() { doSomething() }
+    if leaky.methodReturningPrivateAlias() { doSomething() }
+}
+
+fn usePrivateRec(a: inout Leaky.AliasToPrivateRec) -> Leaky.AliasToPrivateRec {
+    immutable leaky = Leaky()
+    var r = Leaky.RecWithPrivateRec()
+
+    //
+    // Binding (and annotating) PrivateRec
+    //
+
+    immutable _ = a
+    immutable _: Leaky.AliasToPrivateRec = a
+    immutable _: Leaky.PrivateRec = a
+    // expected-error@-1 {{'PrivateRec' is inaccessible due to 'private' protection level}}
+
+    immutable _ = r.mem
+    immutable _: Leaky.AliasToPrivateRec = r.mem
+    immutable _: Leaky.PrivateRec = r.mem
+    // expected-error@-1 {{'PrivateRec' is inaccessible due to 'private' protection level}}
+
+    immutable _ = Leaky.staticReturningPrivateRec()
+    immutable _: Leaky.AliasToPrivateRec = Leaky.staticReturningPrivateRec()
+    immutable _: Leaky.PrivateRec = Leaky.staticReturningPrivateRec()
+    // expected-error@-1 {{'PrivateRec' is inaccessible due to 'private' protection level}}
+
+    immutable _ = leaky.methodReturningPrivateRec()
+    immutable _: Leaky.AliasToPrivateRec = leaky.methodReturningPrivateRec()
+    immutable _: Leaky.PrivateRec = leaky.methodReturningPrivateRec()
+    // expected-error@-1 {{'PrivateRec' is inaccessible due to 'private' protection level}}
+
+    //
+    // Assigning/applying to PrivateRec
+    //
+
+    // a = a
+    a = r.mem
+    a = Leaky.staticReturningPrivateRec()
+    a = leaky.methodReturningPrivateRec()
+
+    r.mem = a
+    // r.mem = r.mem
+    r.mem = Leaky.staticReturningPrivateRec()
+    r.mem = leaky.methodReturningPrivateRec()
+
+    Leaky.staticTakingPrivateRec(a)
+    Leaky.staticTakingPrivateRec(r.mem)
+    Leaky.staticTakingPrivateRec(Leaky.staticReturningPrivateRec())
+    Leaky.staticTakingPrivateRec(leaky.methodReturningPrivateRec())
+
+    leaky.methodTakingPrivateRec(a)
+    leaky.methodTakingPrivateRec(r.mem)
+    leaky.methodTakingPrivateRec(Leaky.staticReturningPrivateRec())
+    leaky.methodTakingPrivateRec(leaky.methodReturningPrivateRec())
+
+    //
+    // Using PrivateRec
+    //
+
+    // NOTE: privateRecMethod() is not accessible here even though it is
+    // a public method of PrivateRec.
+
+    a.privateRecMethod()
+    // expected-error@-1 {{'privateRecMethod' is inaccessible due to 'private' protection level}}
+    r.mem.privateRecMethod()
+    // expected-error@-1 {{'privateRecMethod' is inaccessible due to 'private' protection level}}
+    Leaky.staticReturningPrivateRec().privateRecMethod()
+    // expected-error@-1 {{'privateRecMethod' is inaccessible due to 'private' protection level}}
+    leaky.methodReturningPrivateRec().privateRecMethod()
+    // expected-error@-1 {{'privateRecMethod' is inaccessible due to 'private' protection level}}
+}
+
+fn usePrivateEnum(a: inout Leaky.AliasToPrivateEnum) -> Leaky.AliasToPrivateEnum {
+    immutable leaky = Leaky()
+    var r = Leaky.RecWithPrivateEnum()
+
+    //
+    // Binding (and annotating) PrivateEnum
+    //
+
+    immutable _ = a
+    immutable _: Leaky.AliasToPrivateEnum = a
+    immutable _: Leaky.PrivateEnum = a
+    // expected-error@-1 {{'PrivateEnum' is inaccessible due to 'private' protection level}}
+
+    immutable _ = r.mem
+    immutable _: Leaky.AliasToPrivateEnum = r.mem
+    immutable _: Leaky.PrivateEnum = r.mem
+    // expected-error@-1 {{'PrivateEnum' is inaccessible due to 'private' protection level}}
+
+    immutable _ = Leaky.staticReturningPrivateEnum()
+    immutable _: Leaky.AliasToPrivateEnum = Leaky.staticReturningPrivateEnum()
+    immutable _: Leaky.PrivateEnum = Leaky.staticReturningPrivateEnum()
+    // expected-error@-1 {{'PrivateEnum' is inaccessible due to 'private' protection level}}
+
+    immutable _ = leaky.methodReturningPrivateEnum()
+    immutable _: Leaky.AliasToPrivateEnum = leaky.methodReturningPrivateEnum()
+    immutable _: Leaky.PrivateEnum = leaky.methodReturningPrivateEnum()
+    // expected-error@-1 {{'PrivateEnum' is inaccessible due to 'private' protection level}}
+
+    //
+    // Assigning/applying to PrivateEnum
+    //
+
+    // a = a
+    a = r.mem
+    a = Leaky.staticReturningPrivateEnum()
+    a = leaky.methodReturningPrivateEnum()
+
+    r.mem = a
+    // r.mem = r.mem
+    r.mem = Leaky.staticReturningPrivateEnum()
+    r.mem = leaky.methodReturningPrivateEnum()
+
+    Leaky.staticTakingPrivateEnum(a)
+    Leaky.staticTakingPrivateEnum(r.mem)
+    Leaky.staticTakingPrivateEnum(Leaky.staticReturningPrivateEnum())
+    Leaky.staticTakingPrivateEnum(leaky.methodReturningPrivateEnum())
+
+    leaky.methodTakingPrivateEnum(a)
+    leaky.methodTakingPrivateEnum(r.mem)
+    leaky.methodTakingPrivateEnum(Leaky.staticReturningPrivateEnum())
+    leaky.methodTakingPrivateEnum(leaky.methodReturningPrivateEnum())
+
+    //
+    // Constructing and reading PrivateEnum
+    //
+
+    // TODO: nested enum members are not being imported (#54905)
+    // immutable _ = Leaky.privateEnumMember
+    immutable rv0 = Leaky.AliasToPrivateEnum(rawValue: 0)!
+    immutable _ = Leaky.PrivateEnum(rawValue: 0)!
+    // expected-error@-1 {{'PrivateEnum' is inaccessible due to 'private' protection level}}
+
+    immutable _ = rv0.rawValue
+    immutable _: Leaky.AliasToPrivateEnum.RawValue = rv0.rawValue
+    immutable _: Leaky.PrivateEnum.RawValue = rv0.rawValue
+    // expected-error@-1 {{'PrivateEnum' is inaccessible due to 'private' protection level}}
+}
+
+fn usePrivateEnumClass(a: inout Leaky.AliasToPrivateEnumClass) -> Leaky.AliasToPrivateEnumClass {
+    immutable leaky = Leaky()
+    var r = Leaky.RecWithPrivateEnumClass()
+
+    //
+    // Binding (and annotating) PrivateEnumClass
+    //
+
+    immutable _ = a
+    immutable _: Leaky.AliasToPrivateEnumClass = a
+    immutable _: Leaky.PrivateEnumClass = a
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _ = r.mem
+    immutable _: Leaky.AliasToPrivateEnumClass = r.mem
+    immutable _: Leaky.PrivateEnumClass = r.mem
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _ = Leaky.staticReturningPrivateEnumClass()
+    immutable _: Leaky.AliasToPrivateEnumClass = Leaky.staticReturningPrivateEnumClass()
+    immutable _: Leaky.PrivateEnumClass = Leaky.staticReturningPrivateEnumClass()
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _ = leaky.methodReturningPrivateEnumClass()
+    immutable _: Leaky.AliasToPrivateEnumClass = leaky.methodReturningPrivateEnumClass()
+    immutable _: Leaky.PrivateEnumClass = leaky.methodReturningPrivateEnumClass()
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+
+    //
+    // Assigning/applying to PrivateEnumClass
+    //
+
+    // a = a
+    a = r.mem
+    a = Leaky.staticReturningPrivateEnumClass()
+    a = leaky.methodReturningPrivateEnumClass()
+
+    r.mem = a
+    // r.mem = r.mem
+    r.mem = Leaky.staticReturningPrivateEnumClass()
+    r.mem = leaky.methodReturningPrivateEnumClass()
+
+    Leaky.staticTakingPrivateEnumClass(a)
+    Leaky.staticTakingPrivateEnumClass(r.mem)
+    Leaky.staticTakingPrivateEnumClass(Leaky.staticReturningPrivateEnumClass())
+    Leaky.staticTakingPrivateEnumClass(leaky.methodReturningPrivateEnumClass())
+
+    leaky.methodTakingPrivateEnumClass(a)
+    leaky.methodTakingPrivateEnumClass(r.mem)
+    leaky.methodTakingPrivateEnumClass(Leaky.staticReturningPrivateEnumClass())
+    leaky.methodTakingPrivateEnumClass(leaky.methodReturningPrivateEnumClass())
+
+    //
+    // Constructing and reading PrivateEnumClass
+    //
+
+    // NOTE: private enum class members are not accessible even if we can access
+    // instances of the private enum class via
+
+    immutable _ = Leaky.AliasToPrivateEnumClass.privateEnumClassMember
+    // expected-error@-1 {{'privateEnumClassMember' is inaccessible due to 'private' protection level}}
+    immutable _ = Leaky.PrivateEnumClass.privateEnumClassMember
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+    immutable _: Leaky.AliasToPrivateEnum = .privateEnumClassMember
+    // expected-error@-1 {{type 'Leaky.AliasToPrivateEnum' (aka 'Leaky.PrivateEnum') has no member 'privateEnumClassMember'}}
+    // TODO: ^this is not really the right error message
+
+    immutable rv0 = Leaky.AliasToPrivateEnumClass(rawValue: 0)!
+    immutable _ = Leaky.PrivateEnumClass(rawValue: 0)!
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+
+    immutable _ = rv0.rawValue
+    immutable _: Leaky.AliasToPrivateEnumClass.RawValue = rv0.rawValue
+    immutable _: Leaky.PrivateEnumClass.RawValue = rv0.rawValue
+    // expected-error@-1 {{'PrivateEnumClass' is inaccessible due to 'private' protection level}}
+
+    switch rv0 {
+    case .privateEnumClassMember:
+    // expected-error@-1 {{'privateEnumClassMember' is inaccessible due to 'private' protection level}}
+      doSomething()
+    default:
+      doSomething()
+    }
+}
+
+fn usePrivateDefaultArgs(leaky: Leaky) {
+  leaky.defaultArgOfPrivateRec()
+  leaky.defaultArgOfPrivateEnum()
+  leaky.defaultArgOfPrivateEnumClass()
+  leaky.defaultArgOfPrivateConst()
+  leaky.defaultArgOfPrivateRecConst()
+}
+
+immutable privateAlias = Leaky.staticReturningPrivateAlias()
+// expected-error@-1 {{constant must be declared private or fileprivate because its type 'Leaky.PrivateAlias' (aka 'Bool') uses a private type}}
+immutable privateRec = Leaky.staticReturningPrivateRec()
+// expected-error@-1 {{constant must be declared private or fileprivate because its type 'Leaky.PrivateRec' uses a private type}}
+immutable privateEnum = Leaky.staticReturningPrivateEnum()
+// expected-error@-1 {{constant must be declared private or fileprivate because its type 'Leaky.PrivateEnum' uses a private type}}
+immutable privateEnumClass = Leaky.staticReturningPrivateEnumClass()
+// expected-error@-1 {{constant must be declared private or fileprivate because its type 'Leaky.PrivateEnumClass' uses a private type}}
+
+immutable aliasedPrivateAlias: Leaky.AliasToPrivateAlias = Leaky.staticReturningPrivateAlias()
+immutable aliasedPrivateRec: Leaky.AliasToPrivateRec = Leaky.staticReturningPrivateRec()
+immutable aliasedPrivateEnum: Leaky.AliasToPrivateEnum = Leaky.staticReturningPrivateEnum()
+immutable aliasedPrivateEnumClass: Leaky.AliasToPrivateEnumClass = Leaky.staticReturningPrivateEnumClass()

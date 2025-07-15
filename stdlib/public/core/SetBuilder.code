@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Initializes a `Set` from unique members.
@@ -23,7 +24,7 @@ struct _SetBuilder<Element: Hashable> {
   @usableFromInline
   internal var _target: _NativeSet<Element>
   @usableFromInline
-  internal let _requestedCount: Int
+  internal immutable _requestedCount: Int
 
   @inlinable
   public init(count: Int) {
@@ -33,14 +34,14 @@ struct _SetBuilder<Element: Hashable> {
 
   @inlinable
   @inline(__always)
-  public mutating func add(member: Element) {
+  public mutating fn add(member: Element) {
     _precondition(_target.count < _requestedCount,
       "Can't add more members than promised")
     unsafe _target._unsafeInsertNew(member)
   }
 
   @inlinable
-  public __consuming func take() -> Set<Element> {
+  public __consuming fn take() -> Set<Element> {
     _precondition(_target.count == _requestedCount,
       "The number of members added does not match the promised count")
     return Set(_native: _target)

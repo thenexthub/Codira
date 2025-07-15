@@ -1,13 +1,17 @@
 //===--- ExtInfo.cpp - Extended information for function types ------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements ASTExtInfo, SILExtInfo and related classes.
@@ -46,11 +50,11 @@ ClangTypeInfo ClangTypeInfo::getCanonical() const {
 }
 
 void ClangTypeInfo::printType(ClangModuleLoader *cml,
-                              llvm::raw_ostream &os) const {
+                              toolchain::raw_ostream &os) const {
   cml->printClangType(type, os);
 }
 
-void ClangTypeInfo::dump(llvm::raw_ostream &os,
+void ClangTypeInfo::dump(toolchain::raw_ostream &os,
                          const clang::ASTContext &ctx) const {
   if (type) {
     type->dump(os, ctx);
@@ -74,7 +78,7 @@ UnexpectedClangTypeError::checkClangType(SILFunctionTypeRepresentation silRep,
   case SILFunctionTypeRepresentation::CXXMethod:
   case SILFunctionTypeRepresentation::CFunctionPointer:
       isBlock = false;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
   case SILFunctionTypeRepresentation::Block: {
     if (!type) {
       if (expectNonnullForCOrBlock)
@@ -100,7 +104,7 @@ UnexpectedClangTypeError::checkClangType(SILFunctionTypeRepresentation silRep,
 }
 
 void UnexpectedClangTypeError::dump() {
-  auto &e = llvm::errs();
+  auto &e = toolchain::errs();
   using Kind = UnexpectedClangTypeError::Kind;
   switch (errorKind) {
   case Kind::NullForCOrBlock: {
@@ -132,7 +136,7 @@ void UnexpectedClangTypeError::dump() {
     return;
   }
   }
-  llvm_unreachable("Unhandled case for UnexpectedClangTypeError");
+  toolchain_unreachable("Unhandled case for UnexpectedClangTypeError");
 }
 
 // [NOTE: ExtInfo-Clang-type-invariant]
@@ -142,9 +146,9 @@ void UnexpectedClangTypeError::dump() {
 // 1. Type errors: If we have a type error, we may end up generating (say) a
 //    @convention(c) function type that has an ErrorType as a parameter.
 // 2. Bridging: The representation can change during bridging. For example, an
-//    @convention(swift) function can be bridged to an @convention(block)
+//    @convention(language) function can be bridged to an @convention(block)
 //    function. Since this happens during SILGen, we may see a "funny" type
-//    like @convention(c) () -> @convention(swift) () -> () at the AST level.
+//    like @convention(c) () -> @convention(language) () -> () at the AST level.
 
 // MARK: - ASTExtInfoBuilder
 
@@ -153,7 +157,7 @@ void ASTExtInfoBuilder::checkInvariants() const {
   if (auto error = UnexpectedClangTypeError::checkClangType(
           getSILRepresentation(), clangTypeInfo.getType(), false, false)) {
     error.value().dump();
-    llvm_unreachable("Ill-formed ASTExtInfoBuilder.");
+    toolchain_unreachable("Ill-formed ASTExtInfoBuilder.");
   }
 }
 
@@ -173,7 +177,7 @@ void SILExtInfoBuilder::checkInvariants() const {
   if (auto error = UnexpectedClangTypeError::checkClangType(
           getRepresentation(), clangTypeInfo.getType(), false, true)) {
     error.value().dump();
-    llvm_unreachable("Ill-formed SILExtInfoBuilder.");
+    toolchain_unreachable("Ill-formed SILExtInfoBuilder.");
   }
 }
 

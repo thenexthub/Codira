@@ -1,0 +1,397 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+/// Test that resilient package or public enums are treated as exhaustive at the use site
+/// outside of the defining module, as long as they are in the same package.
+
+/// Test accessing resilient enum in module (built from source) in the same or different package.
+// RUN: %target-language-frontend -emit-module %t/Utils.code \
+// RUN:   -module-name Utils -I %t \
+// RUN:   -package-name mypkg \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -emit-module -emit-module-path %t/Utils.codemodule
+
+// RUN: %target-language-frontend -typecheck %t/Utils.code -I %t -language-version 6 -package-name mypkg -verify
+// RUN: %target-language-frontend -typecheck %t/ClientInPkg.code -I %t -language-version 6 -package-name mypkg -verify
+// RUN: %target-language-frontend -emit-sil %t/ClientInPkg.code -I %t -language-version 6 -package-name mypkg -sil-verify-all -o /dev/null
+// RUN: %target-language-frontend -emit-sil %t/ClientInPkg.code -I %t -language-version 6 -package-name mypkg -O -sil-verify-all -o /dev/null
+// RUN: %target-language-frontend -typecheck %t/ClientDiffPkg.code -I %t -language-version 6 -package-name diffpkg -verify
+
+// RUN: rm -rf %t/Utils.codemodule
+
+/// Test accessing resilient enum in module (built from source) with package optimization in the same or different package.
+// RUN: %target-language-frontend -emit-module %t/Utils.code \
+// RUN:   -module-name Utils -I %t \
+// RUN:   -package-name mypkg \
+// RUN:   -allow-non-resilient-access -package-cmo \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -emit-module -emit-module-path %t/Utils.codemodule
+// RUN: %target-language-frontend -typecheck %t/Utils.code -I %t -language-version 6 -package-name mypkg -verify
+// RUN: %target-language-frontend -typecheck %t/ClientInPkg.code -I %t -language-version 6 -package-name mypkg -verify
+// RUN: %target-language-frontend -emit-sil %t/ClientInPkg.code -I %t -language-version 6 -package-name mypkg -sil-verify-all -o /dev/null
+// RUN: %target-language-frontend -emit-sil %t/ClientInPkg.code -I %t -language-version 6 -package-name mypkg -O -wmo -sil-verify-all -o /dev/null
+// RUN: %target-language-frontend -typecheck %t/ClientDiffPkg.code -I %t -language-version 6 -package-name diffpkg -verify
+
+// RUN: rm -rf %t/Utils.codemodule
+
+/// Test accessing resilient enum in module (built from interface) in the same or different package.
+// RUN: %target-language-frontend -emit-module %t/Utils.code \
+// RUN:   -module-name Utils -I %t \
+// RUN:   -package-name mypkg \
+// RUN:   -enable-library-evolution -language-version 6 \
+// RUN:   -emit-module -emit-module-interface-path %t/Utils.codeinterface \
+// RUN:   -emit-module -emit-package-module-interface-path %t/Utils.package.codeinterface
+
+// RUN: %target-language-frontend -compile-module-from-interface %t/Utils.codeinterface -o %t/Utils.codemodule
+// RUN: %target-language-frontend -typecheck %t/ClientInPkgLoadPublicInterface.code -I %t -language-version 6 -package-name mypkg -verify -experimental-package-interface-load
+// RUN: %target-language-frontend -typecheck %t/ClientDiffPkg.code -I %t -language-version 6 -package-name diffpkg -verify
+// RUN: rm -rf %t/Utils.codemodule
+// RUN: %target-language-frontend -compile-module-from-interface %t/Utils.package.codeinterface -o %t/Utils.codemodule
+// RUN: %target-language-frontend -typecheck %t/ClientInPkgLoadPackageInterface.code -I %t -language-version 6 -package-name mypkg -verify -experimental-package-interface-load
+// RUN: %target-language-frontend -emit-sil %t/ClientInPkgLoadPackageInterface.code -I %t -language-version 6 -package-name mypkg -sil-verify-all -experimental-package-interface-load -o /dev/null
+// RUN: %target-language-frontend -emit-sil %t/ClientInPkgLoadPackageInterface.code -I %t -language-version 6 -package-name mypkg -O -sil-verify-all -experimental-package-interface-load -o /dev/null
+
+//--- Utils.code
+
+package enum PkgEnum {
+  case one
+  case two(Int)
+}
+
+@frozen
+package enum FrozenPkgEnum {
+  case one
+  case two(Int)
+}
+
+@frozen
+@usableFromInline
+package enum FrozenUfiPkgEnum {
+  case one
+  case two(Int)
+}
+
+@usableFromInline
+package enum UfiPkgEnum {
+  case one
+  case two(Int)
+}
+
+public enum PublicEnum {
+  case one
+  case two(Int)
+}
+
+@frozen
+public enum FrozenPublicEnum {
+  case one
+  case two(Int)
+}
+
+package fn uf(_ arg: PkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn um(_ arg: FrozenPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn un(_ arg: FrozenUfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn ug(_ arg: UfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn uh(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  @unknown default: // Adding this unnecessary line should not cause an error or warning.
+    return 3
+  }
+}
+
+public fn uk(_ arg: FrozenPublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+//--- ClientInPkg.code
+
+// If in the same package as Utils, accessing resilient public
+// or package enums defined in Utils no longer requires `@unknown
+// default` in switch stmts.
+import Utils
+
+package fn f(_ arg: PkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn m(_ arg: FrozenPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn n(_ arg: FrozenUfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn g(_ arg: UfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+@inlinable
+package fn gi(_ arg: UfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn h(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  @unknown default: // Adding this unnecessary line should not cause an error or warning.
+    return 3
+  }
+}
+
+@inlinable
+public fn hi(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn k(_ arg: FrozenPublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+//--- ClientInPkgLoadPackageInterface.code
+
+// Utils is built from package interface. Accessing
+// resilient enums from Utils should not require
+// @unknown default.
+import Utils
+
+package fn n(_ arg: FrozenUfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn g(_ arg: UfiPkgEnum) -> Int {
+  switch arg {
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  @unknown default:
+    return 3
+  }
+}
+
+@inlinable
+package fn gi(_ arg: UfiPkgEnum) -> Int {
+  switch arg {
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn h(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  @unknown default:
+    return 3
+  }
+}
+
+@inlinable
+public fn hi(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn k(_ arg: FrozenPublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+//--- ClientInPkgLoadPublicInterface.code
+
+// Utils is built from public interface. Accessing
+// resilient enums from Utils should not require
+// @unknown default.
+import Utils
+
+package fn n(_ arg: FrozenUfiPkgEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+package fn g(_ arg: UfiPkgEnum) -> Int {
+  switch arg {
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  @unknown default:
+    return 3
+  }
+}
+
+@inlinable
+package fn gi(_ arg: UfiPkgEnum) -> Int {
+  switch arg {
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn h(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  @unknown default:
+    return 3
+  }
+}
+
+@inlinable
+public fn hi(_ arg: PublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn k(_ arg: FrozenPublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+//--- ClientDiffPkg.code
+
+// If _not_ in the same package as Utils, accessing resilient
+// public enums defined in Utils does require `@unknown default`
+// in switch stmts.
+import Utils
+
+public fn x(_ arg: PublicEnum) -> Int {
+  switch arg { // expected-error {{switch covers known cases, but 'PublicEnum' may have additional unknown values}} expected-note {{handle unknown values using "@unknown default"}}
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+@inlinable
+public fn y(_ arg: PublicEnum) -> Int {
+  switch arg { // expected-error {{switch covers known cases, but 'PublicEnum' may have additional unknown values}} expected-note {{handle unknown values using "@unknown default"}}
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}
+
+public fn z(_ arg: FrozenPublicEnum) -> Int {
+  switch arg { // no-warning
+  case .one:
+    return 1
+  case .two(immutable val):
+    return 2 + val
+  }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A CRTP helper class for visiting all of the fields in a nominal type
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_NOMINALMETADATAVISITOR_H
-#define SWIFT_IRGEN_NOMINALMETADATAVISITOR_H
+#ifndef LANGUAGE_IRGEN_NOMINALMETADATAVISITOR_H
+#define LANGUAGE_IRGEN_NOMINALMETADATAVISITOR_H
 
 #include "GenericRequirement.h"
 #include "GenProto.h"

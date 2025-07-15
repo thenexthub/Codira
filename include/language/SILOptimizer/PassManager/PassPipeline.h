@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -25,12 +26,12 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_PASSPIPELINE_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_PASSPIPELINE_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_PASSPIPELINE_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_PASSPIPELINE_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
-#include "llvm/ADT/Hashing.h"
+#include "toolchain/ADT/Hashing.h"
 #include <vector>
 
 namespace language {
@@ -54,8 +55,8 @@ struct SILPassPipeline final {
     return !(lhs == rhs);
   }
 
-  friend llvm::hash_code hash_value(const SILPassPipeline &pipeline) {
-    return llvm::hash_combine(pipeline.ID, pipeline.Name, pipeline.KindOffset);
+  friend toolchain::hash_code hash_value(const SILPassPipeline &pipeline) {
+    return toolchain::hash_combine(pipeline.ID, pipeline.Name, pipeline.KindOffset);
   }
 };
 
@@ -109,7 +110,7 @@ public:
   ///   ]
   void dump();
 
-  void print(llvm::raw_ostream &os);
+  void print(toolchain::raw_ostream &os);
 
   void startPipeline(StringRef Name = "", bool isFunctionPassPipeline = false);
   using PipelineKindIterator = decltype(Kinds)::const_iterator;
@@ -137,8 +138,8 @@ public:
     return !(lhs == rhs);
   }
 
-  friend llvm::hash_code hash_value(const SILPassPipelinePlan &plan) {
-    using namespace llvm;
+  friend toolchain::hash_code hash_value(const SILPassPipelinePlan &plan) {
+    using namespace toolchain;
     auto &kinds = plan.Kinds;
     auto &stages = plan.PipelineStages;
     return hash_combine(&plan.Options,

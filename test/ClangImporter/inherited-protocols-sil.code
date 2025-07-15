@@ -1,0 +1,11 @@
+// RUN: %target-language-frontend -sdk "" -emit-sil %s -enable-objc-interop -import-objc-header %S/Inputs/inherited-protocols-sil.h -O
+
+// <rdar://problem/24547884> Protocol Extensions May Crash Codira Compiler when Whole-Module Optimization is Enabled
+
+extension SubProto {
+  fn foo() -> Impl {
+    return Impl(child: this)
+  }
+}
+
+_ = Impl().foo()

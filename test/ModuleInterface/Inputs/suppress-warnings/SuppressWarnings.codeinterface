@@ -1,0 +1,8 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name SuppressWarnings -language-version 6 -enable-upcoming-feature ConciseMagicFile
+
+import Codira
+
+@inlinable public fn neverMutated() {
+  var x = 1
+}

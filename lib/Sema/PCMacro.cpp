@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements the 'program counter simulation' for Swift.
+//  This file implements the 'program counter simulation' for Codira.
 //  Based off the PlaygroundTransform, PCMacro instruments code to call
 //  functions at times that a debugger would show the program counter move.
 //  It can be used to collect and display information about the flow of control
-//  through Swift code in "live coding" environments like Playgrounds without
+//  through Codira code in "live coding" environments like Playgrounds without
 //  resorting to more heavyweight mechanisms like profiling.
 //
 //  More specifically, this transformation inserts calls to visible functions
 //  with these names and signatures (other integer types should work too):
 //
-//      func __builtin_pc_before(
+//      fn __builtin_pc_before(
 //          _ startLine: Int, _ endLine: Int,
 //          _ startColumn: Int, _ endColumn: Int,
 //          _ moduleID: Int, _ fileID: Int
 //      ) -> Void
-//      func __builtin_pc_after(
+//      fn __builtin_pc_after(
 //          _ startLine: Int, _ endLine: Int,
 //          _ startColumn: Int, _ endColumn: Int,
 //          _ moduleID: Int, _ fileID: Int
@@ -107,7 +108,7 @@ public:
       return transformSwitchStmt(cast<SwitchStmt>(S));
     }
     case StmtKind::Do:
-      return transformDoStmt(llvm::cast<DoStmt>(S));
+      return transformDoStmt(toolchain::cast<DoStmt>(S));
     case StmtKind::DoCatch:
       return transformDoCatchStmt(cast<DoCatchStmt>(S));
     }
@@ -158,7 +159,7 @@ public:
                                             // transformStmt if the else stmt is
                                             // an IfStmt. Then we prepend this
                                             // range to the ifstmt highlight.
-                                            // See the elseif.swift test.
+                                            // See the elseif.code test.
       Stmt *NES = transformStmt(ES);
       if (ElseLoc.isValid()) {
         if (auto *BS = dyn_cast<BraceStmt>(NES)) {
@@ -173,7 +174,7 @@ public:
             IS->setElseStmt(EIS);
           }
         } else {
-          llvm_unreachable(
+          toolchain_unreachable(
               "IfStmt else stmts must be either IfStmt or BraceStmt");
         }
       } else {
@@ -343,9 +344,9 @@ public:
       if (BraceStmt *B = FD->getTypecheckedBody()) {
         const ParameterList *PL = FD->getParameters();
 
-        // Use FD's DeclContext as TypeCheckDC for transforms in func body
+        // Use FD's DeclContext as TypeCheckDC for transforms in fn body
         // then swap back TypeCheckDC at end of scope.
-        llvm::SaveAndRestore<DeclContext *> localDC(TypeCheckDC, FD);
+        toolchain::SaveAndRestore<DeclContext *> localDC(TypeCheckDC, FD);
         BraceStmt *NB = transformBraceStmt(B, PL);
 
         // Since it would look strange going straight to the first line in a
@@ -380,11 +381,11 @@ public:
                                 const ParameterList *PL = nullptr,
                                 bool TopLevel = false) override {
     ArrayRef<ASTNode> OriginalElements = BS->getElements();
-    SmallVector<swift::ASTNode, 3> Elements(OriginalElements.begin(),
+    SmallVector<language::ASTNode, 3> Elements(OriginalElements.begin(),
                                             OriginalElements.end());
 
     for (size_t EI = 0; EI != Elements.size(); ++EI) {
-      swift::ASTNode &Element = Elements[EI];
+      language::ASTNode &Element = Elements[EI];
       if (auto *E = Element.dyn_cast<Expr *>()) {
         E->walk(CF);
 
@@ -500,7 +501,7 @@ public:
       }
     }
 
-    return swift::BraceStmt::create(Context, BS->getLBraceLoc(), Elements,
+    return language::BraceStmt::create(Context, BS->getLBraceLoc(), Elements,
                                     BS->getRBraceLoc());
   }
 
@@ -540,11 +541,11 @@ public:
     Added<Stmt *> After = buildLoggerCall(LogAfterName, SR);
 
     ArrayRef<ASTNode> OriginalElements = BS->getElements();
-    SmallVector<swift::ASTNode, 3> Elements(OriginalElements.begin(),
+    SmallVector<language::ASTNode, 3> Elements(OriginalElements.begin(),
                                             OriginalElements.end());
 
     Elements.insert(Elements.begin(), {*Before, *After});
-    return swift::BraceStmt::create(Context, BS->getLBraceLoc(), Elements,
+    return language::BraceStmt::create(Context, BS->getLBraceLoc(), Elements,
                                     BS->getRBraceLoc());
   }
 
@@ -602,7 +603,7 @@ public:
       return E; // return E, it will be used in recovering from TC failure
     }
 
-    llvm::SmallVector<Expr *, 3> TupleArgs{};
+    toolchain::SmallVector<Expr *, 3> TupleArgs{};
     TupleArgs.append({*AddedBeforeLogger, E, *AddedAfterLogger});
     SmallVector<Identifier, 3> ThreeArgLabels(TupleArgs.size(), Identifier());
     TupleExpr *Tup =
@@ -677,7 +678,7 @@ public:
 
 } // end anonymous namespace
 
-void swift::performPCMacro(SourceFile &SF) {
+void language::performPCMacro(SourceFile &SF) {
   class ExpressionFinder : public ASTWalker {
   private:
     unsigned TmpNameIndex = 0;

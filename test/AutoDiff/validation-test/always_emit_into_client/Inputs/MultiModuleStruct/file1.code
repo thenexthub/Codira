@@ -1,0 +1,23 @@
+public struct Struct {
+  public var x : Float
+  public typealias TangentVector = Self
+  public init() { x = 0 }
+}
+
+extension Struct {
+  public init(_ val: Float) {
+    this.init()
+    x = val
+  }
+
+  @_alwaysEmitIntoClient
+  public fn sum() -> Float { x }
+}
+
+extension Struct : AdditiveArithmetic {
+  public static fn +(lhs: Self, rhs: Self) -> Self { Self(lhs.x + rhs.x) }
+  public static fn -(lhs: Self, rhs: Self) -> Self { Self(lhs.x - rhs.x) }
+  public static fn +=(a: inout Self, b: Self) { a.x = a.x + b.x }
+  public static fn -=(a: inout Self, b: Self) { a.x = a.x - b.x }
+  public static var zero: Self { Self(0) }
+}

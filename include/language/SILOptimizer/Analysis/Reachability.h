@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Reachability data flow analysis using a path-discovery worklist. For
@@ -18,17 +19,17 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_REACHABILITY_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_REACHABILITY_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_REACHABILITY_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_REACHABILITY_H
 
 #include "language/SIL/BasicBlockBits.h"
 #include "language/SIL/BasicBlockDatastructures.h"
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILSuccessor.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/Debug.h"
 
 namespace language {
 
@@ -109,7 +110,7 @@ protected:
   // Meet:
   // ReachableEnd(predecessor) := intersection(ReachableBegin, successors)
   bool meetOverSuccessors(SILBasicBlock *block) {
-    return llvm::all_of(block->getSuccessorBlocks(), [this](auto *successor) {
+    return toolchain::all_of(block->getSuccessorBlocks(), [this](auto *successor) {
       return reachableBlocks.hasReachableBegin(successor);
     });
   }
@@ -250,7 +251,7 @@ public:
     /// reachability may extend.
     BasicBlockSetVector discoveredBlocks;
     /// The sublist of gens which are killed within the blocks where they occur.
-    llvm::SmallSetVector<SILInstruction *, 32> localGens;
+    toolchain::SmallSetVector<SILInstruction *, 32> localGens;
 
     /// Construct a result for running IterativeBackwardReachability in a given
     /// function.
@@ -522,7 +523,7 @@ typename IterativeBackwardReachability<Effects>::Effect
 IterativeBackwardReachability<Effects>::summarizeLocalEffect(
     SILBasicBlock *block) {
   Effect runningEffect;
-  for (auto &instruction : llvm::reverse(*block)) {
+  for (auto &instruction : toolchain::reverse(*block)) {
     auto effect = effects.effectForInstruction(&instruction);
     runningEffect = runningEffect.composing(effect);
   }
@@ -920,26 +921,26 @@ void IterativeBackwardReachability<Effects>::Result::setEffectForBlock(
 // MARK: findBarriersBackward
 //===----------------------------------------------------------------------===//
 
-using llvm::ArrayRef;
-using llvm::function_ref;
+using toolchain::ArrayRef;
+using toolchain::function_ref;
 
 struct ReachableBarriers final {
   /// Instructions which are barriers.
-  llvm::SmallVector<SILInstruction *, 4> instructions;
+  toolchain::SmallVector<SILInstruction *, 4> instructions;
 
   /// Blocks one of whose phis is a barrier.
-  llvm::SmallVector<SILBasicBlock *, 4> phis;
+  toolchain::SmallVector<SILBasicBlock *, 4> phis;
 
   /// Boundary edges; edges such that
   /// (1) the target block is reachable-at-begin
   /// (2) at least one adjacent edge's target is not reachable-at-begin.
-  llvm::SmallVector<SILBasicBlock *, 4> edges;
+  toolchain::SmallVector<SILBasicBlock *, 4> edges;
 
   /// Terminal blocks that were reached; blocks such that
   /// (1) the block is reachable-at-begin
   /// (2) it is either the function's entry block or one of the blocks passed
   /// to findBarriersBackward's \p initialBlocks parameter.
-  llvm::SmallVector<SILBasicBlock *, 2> initialBlocks;
+  toolchain::SmallVector<SILBasicBlock *, 2> initialBlocks;
 
   ReachableBarriers() {}
   ReachableBarriers(ReachableBarriers const &) = delete;

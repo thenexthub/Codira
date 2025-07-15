@@ -1,0 +1,5 @@
+// RUN: %target-typecheck-verify-language
+
+fn f(a: Array<Int>, n: Int) {
+  immutable _: Array = a.prefix(n) + a.suffix(a.count - n - 1)
+}

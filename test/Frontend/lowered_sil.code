@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -o - -emit-lowered-sil %s | %FileCheck %s
+
+// CHECK: sil_stage lowered
+
+fn test() {
+}

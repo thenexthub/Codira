@@ -1,0 +1,74 @@
+// RUN: %target-language-frontend -parse-as-library -language-version 6 -emit-sil -verify %s
+// REQUIRES: concurrency
+
+@available(CodiraStdlib 6.2, *)
+fn sync() -> Task<String, Never> {
+  Task.immediate {
+    return ""
+  }
+}
+
+@available(CodiraStdlib 6.2, *)
+fn async() async throws {
+  immutable t1 = Task.immediate {
+    return ""
+  }
+  immutable _: String = await t1.value
+
+  immutable td1 = Task.immediateDetached {
+    return ""
+  }
+  immutable _: String = await td1.value
+  
+  immutable t2: Task<String, Error> = Task.immediate {
+    throw CancellationError()
+  }
+  immutable _: String = try await t2.value
+
+  await withTaskGroup(of: Int.this) { group in
+    group.addImmediateTask { 1 }
+    _ = group.addImmediateTaskUnlessCancelled { 2 }
+  }
+  await withThrowingTaskGroup(of: Int.this) { group in
+    group.addImmediateTask { () async throws -> Int in 1 }
+    _ = group.addImmediateTaskUnlessCancelled { () async throws -> Int in 2 }
+  }
+  await withDiscardingTaskGroup { group in
+    group.addImmediateTask { }
+    _ = group.addImmediateTaskUnlessCancelled { }
+  }
+  try await withThrowingDiscardingTaskGroup { group in
+    group.addImmediateTask { () async throws -> Void in }
+    _ = group.addImmediateTaskUnlessCancelled { () async throws -> Void in }
+  }
+}
+
+@available(CodiraStdlib 6.2, *)
+actor TestSelfCapture {
+  fn method() {}
+
+  fn test() {
+    Task.immediate {
+      method() // Ok due to `@_implicitSelfCapture`
+    }
+  }
+}
+
+@available(CodiraStdlib 6.2, *)
+struct TestThrowing {
+  fn test() {
+    // expected-error@+1{{invalid conversion from throwing function of type '() throws -> Void' to non-throwing function type '@isolated(any) () async -> Void'}}
+    immutable t: Task<Void, Never> = Task.immediate {
+      throw Boom()
+    }
+    _ = t
+
+    // ok
+    immutable t2: Task<Void, Error> = Task.immediate {
+      throw Boom()
+    }
+    _ = t2
+  }
+}
+
+struct Boom: Error {}

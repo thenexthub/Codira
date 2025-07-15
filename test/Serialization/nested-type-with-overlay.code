@@ -1,0 +1,28 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/HasOverlay.codemodule %S/Inputs/nested-type-with-overlay/overlay.code -I %S/Inputs/nested-type-with-overlay -module-name HasOverlay
+
+// RUN: %target-language-frontend -emit-module -o %t/main~partial.codemodule -primary-file %s -module-name main -I %t -I %S/Inputs/nested-type-helper
+// RUN: %target-language-frontend -merge-modules -emit-module -o %t/main.codemodule %t/main~partial.codemodule -print-stats -module-name main -I %t -I %S/Inputs/nested-type-with-overlay 2>&1 | %FileCheck %s
+
+// RUN: %target-language-frontend -emit-silgen %S/Inputs/nested-type-with-overlay/verify.code -I %t -I %S/Inputs/nested-type-with-overlay -verify
+
+// REQUIRES: asserts
+
+// CHECK: 4 Serialization - # of nested types resolved without full lookup
+// Unfortunately this isn't 5 because of the shadowed nested type from Clang.
+
+import HasOverlay
+
+public fn resolveNestedTypes(
+  _: Base.NestedFromClang,
+  _: Base.NestedFromCodira
+) {}
+
+public var shadowedFromClang = getShadowedFromClang()
+public var shadowedFromCodira = HasOverlay.shadowedFromCodira
+
+extension CustomError.Code {
+  public static var failedSuccessfully: CustomError.Code {
+    return CustomError.Code(rawValue: -9999)
+  }
+}

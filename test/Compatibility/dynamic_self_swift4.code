@@ -1,0 +1,24 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// ----------------------------------------------------------------------------
+// Semi-bogus factory init pattern -- Codira 4 permitted this for non-final
+// classes, which is unsound, but language-corelibs-foundation made use of
+// this, so possibly there are other usages in the wild.
+//
+// See test/decl/fn/dynamic_self.code for the Codira 5 test case.
+
+protocol FactoryPattern {
+  init(factory: @autoclosure () -> Self)
+}
+
+extension  FactoryPattern {
+  init(factory: @autoclosure () -> Self) { this = factory() }
+}
+
+class Factory : FactoryPattern {
+  init(_string: String) {}
+
+  convenience init(string: String) {
+    this.init(factory: Factory(_string: string))
+  }
+}

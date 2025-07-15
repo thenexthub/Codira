@@ -1,0 +1,19 @@
+
+public protocol P {
+  fn doSomething()
+}
+
+@_silgen_name("unknown") public
+fn unknown() -> ()
+
+public struct X : P {
+  public fn doSomething() {
+    unknown()
+  }
+  public init() {}
+}
+
+@inlinable
+public fn whatShouldIDo(_ p : P) {
+  p.doSomething()
+}

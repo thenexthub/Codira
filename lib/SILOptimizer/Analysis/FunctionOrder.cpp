@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/FunctionOrder.h"
@@ -18,8 +19,8 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SIL/SILInstruction.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 #include <algorithm>
 
 using namespace language;

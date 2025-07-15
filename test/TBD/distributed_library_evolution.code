@@ -1,0 +1,71 @@
+// REQUIRES: VENDOR=apple
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend %t/library.code                                \
+// RUN:     -enable-library-evolution                                          \
+// RUN:     -disable-availability-checking                                     \
+// RUN:     -emit-ir -o %t/test.ll -emit-tbd                                   \
+// RUN:     -validate-tbd-against-ir=all                                       \
+// RUN:     -emit-tbd-path %t/library.tbd -I %t -tbd-install_name protocol
+
+// RUN: %target-language-frontend %t/library.code                                \
+// RUN:     -enable-library-evolution                                          \
+// RUN:     -disable-availability-checking                                     \
+// RUN:     -emit-module                                                       \
+// RUN:     -package-name Package                                              \
+// RUN:     -module-name Library                                               \
+// RUN:     -emit-module-path %t/Library.codemodule                           \
+// RUN:     -validate-tbd-against-ir=all                                       \
+// RUN:     -emit-module-interface-path %t/Library.codeinterface
+
+// RUN: %target-language-frontend %t/actor.code -enable-library-evolution     \
+// RUN:     -enable-library-evolution                                       \
+// RUN:     -disable-availability-checking -emit-ir -o %t/test.ll -emit-tbd \
+// RUN:     -emit-tbd-path %t/actor.tbd -I %t -tbd-install_name actor
+
+// RUN: %target-language-frontend %t/actor.code                              \
+// RUN:     -I %t                                                          \
+// RUN:     -disable-availability-checking                                 \
+// RUN:     -emit-module                                                   \
+// RUN:     -package-name Package                                          \
+// RUN:     -enable-library-evolution                                      \
+// RUN:     -module-name Client                                            \
+// RUN:     -emit-module-path %t/Client.codemodule                        \
+// RUN:     -validate-tbd-against-ir=all                                   \
+// RUN:     -emit-module-interface-path %t/Client.codeinterface
+
+
+// RUN %toolchain-nm -g %t/library.tbd | %FileCheck %s --dump-input=always
+// RUN %toolchain-nm -g %t/actor.tbd | %FileCheck %s --dump-input=always
+
+//--- library.code
+import Distributed
+
+// CHECK: @"$s4test1AC13_remote_helloyyYaKFTE" = hidden global %language.async_func_pointer
+// CHECK: @"$s4test1AC13_remote_helloyyYaKFTETu" = hidden global %language.async_func_pointer
+public protocol GreeterProtocol: DistributedActor where ActorSystem == LocalTestingDistributedActorSystem {
+  distributed fn hello(name: String) -> String
+}
+
+//--- actor.code
+import Distributed
+import Library
+
+public distributed actor SomeDistributedActor: GreeterProtocol {
+  public distributed fn hello(name: String) -> String {
+    "Hello, \(name)!"
+  }
+}
+
+// function:
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tF
+// function method descriptor
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tFTq
+// thunk, method reference
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tFTE
+// thunk, method reference + async function pointer
+// IR unmangledName = $s4test20SomeDistributedActorC5hello4nameS2S_tFTETu

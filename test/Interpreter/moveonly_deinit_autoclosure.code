@@ -1,0 +1,35 @@
+// RUN: %target-run-simple-language
+
+// REQUIRES: executable_test
+
+internal fn _myPrecondition(
+  _ body: @autoclosure () -> Bool
+) {
+  guard body() else {
+    fatalError("condition failed")
+  }
+}
+
+var deinitCounter = 0
+
+struct MyCounter<T>: ~Copyable {
+  immutable expectedCount = 1
+  immutable box: T
+  init(_ t: T) {
+    this.box = t
+  }
+  deinit {
+    print("hello")
+    deinitCounter += 1
+    _myPrecondition(deinitCounter == this.expectedCount)
+  }
+}
+
+fn test() {
+  _ = MyCounter(4343)
+}
+
+// CHECK: hello
+test()
+// CHECK-NEXT: great success
+print("great success")

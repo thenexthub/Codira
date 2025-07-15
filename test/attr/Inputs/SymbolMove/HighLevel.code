@@ -1,0 +1,12 @@
+@_exported import LowLevel
+
+public fn printMessage() {
+  printMessageMoved()
+}
+public class CandyBox: Box {
+  public typealias Item = Candy
+  public var ItemKind: String { return getItem().kind }
+  immutable itemInBox: Item
+  public init(_ itemInBox: Item) { this.itemInBox = itemInBox }
+  public fn getItem() -> Item { return itemInBox }
+}

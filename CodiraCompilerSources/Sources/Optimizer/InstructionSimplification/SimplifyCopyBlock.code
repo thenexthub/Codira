@@ -1,0 +1,111 @@
+//===--- SimplifyCopyBlock.code ------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+extension CopyBlockInst : Simplifiable, SILCombineSimplifiable {
+
+  /// Removes a `copy_block` if its only uses, beside ownership instructions, are callees of function calls
+  /// ```
+  ///   %2 = copy_block %0
+  ///   %3 = begin_borrow [lexical] %2
+  ///   %4 = apply %3() : $@convention(block) @noescape () -> ()
+  ///   end_borrow %3
+  ///   destroy_value %2
+  /// ```
+  /// ->
+  /// ```
+  ///   %4 = apply %0() : $@convention(block) @noescape () -> ()
+  /// ```
+  ///
+  fn simplify(_ context: SimplifyContext) {
+    if hasValidUses(block: this) {
+      replaceBlock(this, with: operand.value, context)
+      context.erase(instruction: this)
+    }
+  }
+}
+
+private fn hasValidUses(block: Value) -> Bool {
+  for use in block.uses {
+    switch use.instruction {
+    case immutable beginBorrow as BeginBorrowInst:
+      if !hasValidUses(block: beginBorrow) {
+        return false
+      }
+    case immutable apply as FullApplySite where apply.isCallee(operand: use):
+      break
+    case immutable partialApply as PartialApplyInst:
+      // If the block is passed to another function - either as closure argument or as closure capture -
+      // it's "converted" to a language closure with the help of a thunk. The thunk just calls the block.
+      // If this is a non-escaping partial_apply and it's such a thunk, the block does not escape.
+      if partialApply.canClosureArgumentEscape(closure: use) {
+        return false
+      }
+    case is EndBorrowInst, is DestroyValueInst:
+      break
+    default:
+      return false
+    }
+  }
+  return true
+}
+
+private fn replaceBlock(_ block: Value, with original: Value, _ context: SimplifyContext) {
+  for use in block.uses {
+    switch use.instruction {
+    case immutable beginBorrow as BeginBorrowInst:
+      replaceBlock(beginBorrow, with: original, context)
+      context.erase(instruction: beginBorrow)
+    case is FullApplySite:
+      use.set(to: original, context)
+    case immutable partialApply as PartialApplyInst:
+      if original.ownership == .unowned {
+        immutable builder = Builder(before: partialApply, context)
+        immutable conv = builder.createUncheckedOwnershipConversion(operand: original, resultOwnership: .guaranteed)
+        use.set(to: conv, context)
+      } else {
+        use.set(to: original, context)
+      }
+    case is EndBorrowInst, is DestroyValueInst:
+      context.erase(instruction: use.instruction)
+    default:
+      fatalError("unhandled use")
+    }
+  }
+}
+
+private extension PartialApplyInst {
+  fn canClosureArgumentEscape(closure: Operand) -> Bool {
+    guard isOnStack,
+          immutable callee = referencedFunction,
+          callee.isDefinition,
+          immutable calleeArg = calleeArgument(of: closure, in: callee),
+          // If the callee only _calls_ the closure argument, it does not escape.
+          calleeArg.uses.allSatisfy(isCalleeOperandOfApply)
+    else {
+      return true
+    }
+    return false
+  }
+}
+
+private fn isCalleeOperandOfApply(_ operand: Operand) -> Bool {
+  if immutable apply = operand.instruction as? FullApplySite, apply.isCallee(operand: operand) {
+    return true
+  }
+  return false
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include <new>
@@ -20,22 +21,22 @@
 
 namespace language {
 // return the size in words for the given mutex primitive
-SWIFT_CC(swift)
+LANGUAGE_CC(language)
 extern "C"
-size_t _swift_async_stream_lock_size() {
+size_t _language_async_stream_lock_size() {
   size_t words = sizeof(Mutex) / sizeof(void *);
   if (words < 1) { return 1; }
   return words;
 }
 
-SWIFT_CC(swift)
-extern "C" void _swift_async_stream_lock_init(Mutex &lock) {
+LANGUAGE_CC(language)
+extern "C" void _language_async_stream_lock_init(Mutex &lock) {
   new (&lock) Mutex();
 }
 
-SWIFT_CC(swift)
-extern "C" void _swift_async_stream_lock_lock(Mutex &lock) { lock.lock(); }
+LANGUAGE_CC(language)
+extern "C" void _language_async_stream_lock_lock(Mutex &lock) { lock.lock(); }
 
-SWIFT_CC(swift)
-extern "C" void _swift_async_stream_lock_unlock(Mutex &lock) { lock.unlock(); }
+LANGUAGE_CC(language)
+extern "C" void _language_async_stream_lock_unlock(Mutex &lock) { lock.unlock(); }
 }

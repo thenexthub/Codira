@@ -1,4 +1,4 @@
-//===--- TypeCheckConcurrency.h - Concurrency -------------------*- C++ -*-===//
+//===--- TypeCheckMacros.h - Macros -----------------------------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides type checking support for macros.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SEMA_TYPECHECKMACROS_H
-#define SWIFT_SEMA_TYPECHECKMACROS_H
+#ifndef LANGUAGE_SEMA_TYPECHECKMACROS_H
+#define LANGUAGE_SEMA_TYPECHECKMACROS_H
 
 #include "language/AST/Attr.h"
 #include "language/AST/ConcreteDeclRef.h"
 #include "language/AST/Type.h"
 
 /// Prefix used for the names of macro expansion buffers, to replace the
-/// leading "$s" used for Swift manglings.
-#define MACRO_EXPANSION_BUFFER_MANGLING_PREFIX "@__swiftmacro_"
+/// leading "$s" used for Codira manglings.
+#define MACRO_EXPANSION_BUFFER_MANGLING_PREFIX "@__languagemacro_"
 
 namespace language {
 
@@ -99,5 +100,5 @@ bool isInvalidAttachedMacro(MacroRole role,
 
 } // end namespace language
 
-#endif /* SWIFT_SEMA_TYPECHECKMACROS_H */
+#endif /* LANGUAGE_SEMA_TYPECHECKMACROS_H */
 

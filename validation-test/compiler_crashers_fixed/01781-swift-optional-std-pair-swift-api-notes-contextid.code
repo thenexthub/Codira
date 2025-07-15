@@ -1,0 +1,44 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+import Foundation
+class A {
+class A {
+case C()(c) -> Bool {
+}
+fn c<S : a {
+}
+var f = { c, AnyObject, 3] as String)
+}
+struct c<T -> {
+struct X<Int) {
+enum A {
+}
+extension NSSet {
+fn a<T>() {
+protocol A : B, A {
+}
+}
+}
+protocol d {
+}
+extension NSData {
+fn g<d: Sequence> {
+immutable start = f<T>(n: T> Self {
+immutable h : NSObject {
+}
+}
+}
+}
+}
+}
+fn a(c

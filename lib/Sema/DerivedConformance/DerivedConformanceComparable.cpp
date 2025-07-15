@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements implicit derivation of the Comparable protocol.
@@ -31,9 +32,9 @@
 #include "language/AST/Stmt.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/APInt.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/APInt.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 

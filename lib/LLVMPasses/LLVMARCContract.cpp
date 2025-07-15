@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "swift-arc-contract"
+#define DEBUG_TYPE "language-arc-contract"
 #include "language/LLVMPasses/Passes.h"
 #include "ARCEntryPointBuilder.h"
 #include "LLVMARCOpts.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Transforms/Utils/SSAUpdater.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/IR/Verifier.h"
+#include "toolchain/Transforms/Utils/SSAUpdater.h"
 
-using namespace llvm;
+using namespace toolchain;
 using namespace language;
-using swift::SwiftARCContract;
+using language::CodiraARCContract;
 
 STATISTIC(NumNoopDeleted,
-          "Number of no-op swift calls eliminated");
+          "Number of no-op language calls eliminated");
 STATISTIC(NumRetainReleasesEliminatedByMergingIntoRetainReleaseN,
           "Number of retain/release eliminated by merging into "
           "retain_n/release_n");
@@ -38,7 +39,7 @@ STATISTIC(NumBridgeRetainReleasesEliminatedByMergingIntoRetainReleaseN,
           "Number of bridge retain/release eliminated by merging into "
           "bridgeRetain_n/bridgeRelease_n");
 
-/// Pimpl implementation of SwiftARCContractPass.
+/// Pimpl implementation of CodiraARCContractPass.
 namespace {
 
 struct LocalState {
@@ -62,12 +63,12 @@ struct LocalState {
 ///
 /// Coming into this function, we assume that the code is in canonical form:
 /// none of these calls have any uses of their return values.
-class SwiftARCContractImpl {
+class CodiraARCContractImpl {
   /// Was a change made while running the optimization.
   bool Changed;
 
-  /// Swift RC Identity.
-  SwiftRCIdentity RC;
+  /// Codira RC Identity.
+  CodiraRCIdentity RC;
 
   /// The function that we are processing.
   Function &F;
@@ -75,7 +76,7 @@ class SwiftARCContractImpl {
   /// The entry point builder that is used to construct ARC entry points.
   ARCEntryPointBuilder B;
 public:
-  SwiftARCContractImpl(Function &InF) : Changed(false), F(InF), B(F) {}
+  CodiraARCContractImpl(Function &InF) : Changed(false), F(InF), B(F) {}
 
   // The top level run routine of the pass.
   bool run();
@@ -93,11 +94,11 @@ private:
 // FIXME: This method is pretty long since it is actually several smaller
 // optimizations that have been copied/pasted over time. This should be split
 // into those smaller (currently inline) functions.
-void SwiftARCContractImpl::
+void CodiraARCContractImpl::
 performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
   // Go through all of our pointers and merge all of the retains with the
   // first retain we saw and all of the releases with the last release we saw.
-  llvm::Value *O = nullptr;
+  toolchain::Value *O = nullptr;
   for (auto &P : PtrToLocalStateMap) {
     auto &RetainList = P.second.RetainList;
     if (RetainList.size() > 1) {
@@ -111,7 +112,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
           break;
         }
       }
-      B.createRetainN(RC.getSwiftRCIdentityRoot(O), RetainList.size(), RI);
+      B.createRetainN(RC.getCodiraRCIdentityRoot(O), RetainList.size(), RI);
 
       // Replace all uses of the retain instructions with our new retainN and
       // then delete them.
@@ -137,7 +138,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
           break;
         }
       }
-      B.createReleaseN(RC.getSwiftRCIdentityRoot(O), ReleaseList.size(), RI);
+      B.createReleaseN(RC.getCodiraRCIdentityRoot(O), ReleaseList.size(), RI);
 
       // Remove all old release instructions.
       for (auto *Inst : ReleaseList) {
@@ -161,7 +162,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
           break;
         }
       }
-      B.createUnknownObjectRetainN(RC.getSwiftRCIdentityRoot(O),
+      B.createUnknownObjectRetainN(RC.getCodiraRCIdentityRoot(O),
                                    UnknownObjectRetainList.size(), RI);
 
       // Replace all uses of the retain instructions with our new retainN and
@@ -189,7 +190,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
           break;
         }
       }
-      B.createUnknownObjectReleaseN(RC.getSwiftRCIdentityRoot(O),
+      B.createUnknownObjectReleaseN(RC.getCodiraRCIdentityRoot(O),
                                     UnknownObjectReleaseList.size(), RI);
 
       // Remove all old release instructions.
@@ -216,7 +217,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
         }
       }
       // Bridge retain may modify the input reference before forwarding it.
-      auto *I = B.createBridgeRetainN(RC.getSwiftRCIdentityRoot(O),
+      auto *I = B.createBridgeRetainN(RC.getCodiraRCIdentityRoot(O),
                                       BridgeRetainList.size(), RI);
 
       // Remove all old retain instructions.
@@ -248,7 +249,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
           break;
         }
       }
-      B.createBridgeReleaseN(RC.getSwiftRCIdentityRoot(O),
+      B.createBridgeReleaseN(RC.getCodiraRCIdentityRoot(O),
                              BridgeReleaseList.size(), RI);
 
       // Remove all old release instructions.
@@ -264,7 +265,7 @@ performRRNOptimization(DenseMap<Value *, LocalState> &PtrToLocalStateMap) {
 }
 
 
-bool SwiftARCContractImpl::run() {
+bool CodiraARCContractImpl::run() {
   // intra-BB retain/release merging.
   DenseMap<Value *, LocalState> PtrToLocalStateMap;
   for (BasicBlock &BB : F) {
@@ -282,8 +283,8 @@ bool SwiftARCContractImpl::run() {
       case RT_ReleaseN:
       case RT_UnknownObjectReleaseN:
       case RT_BridgeReleaseN:
-        llvm_unreachable("These are only created by LLVMARCContract !");
-      // Delete all fix lifetime and end borrow instructions. After llvm-ir they
+        toolchain_unreachable("These are only created by LLVMARCContract !");
+      // Delete all fix lifetime and end borrow instructions. After toolchain-ir they
       // have no use and show up as calls in the final binary.
       case RT_FixLifetime:
       case RT_EndBorrow:
@@ -292,7 +293,7 @@ bool SwiftARCContractImpl::run() {
         continue;
       case RT_Retain: {
         auto *CI = cast<CallInst>(&Inst);
-        auto *ArgVal = RC.getSwiftRCIdentityRoot(CI->getArgOperand(0));
+        auto *ArgVal = RC.getCodiraRCIdentityRoot(CI->getArgOperand(0));
 
         LocalState &LocalEntry = PtrToLocalStateMap[ArgVal];
         LocalEntry.RetainList.push_back(CI);
@@ -300,7 +301,7 @@ bool SwiftARCContractImpl::run() {
       }
       case RT_UnknownObjectRetain: {
         auto *CI = cast<CallInst>(&Inst);
-        auto *ArgVal = RC.getSwiftRCIdentityRoot(CI->getArgOperand(0));
+        auto *ArgVal = RC.getCodiraRCIdentityRoot(CI->getArgOperand(0));
 
         LocalState &LocalEntry = PtrToLocalStateMap[ArgVal];
         LocalEntry.UnknownObjectRetainList.push_back(CI);
@@ -309,7 +310,7 @@ bool SwiftARCContractImpl::run() {
       case RT_Release: {
         // Stash any releases that we see.
         auto *CI = cast<CallInst>(&Inst);
-        auto *ArgVal = RC.getSwiftRCIdentityRoot(CI->getArgOperand(0));
+        auto *ArgVal = RC.getCodiraRCIdentityRoot(CI->getArgOperand(0));
 
         LocalState &LocalEntry = PtrToLocalStateMap[ArgVal];
         LocalEntry.ReleaseList.push_back(CI);
@@ -318,7 +319,7 @@ bool SwiftARCContractImpl::run() {
       case RT_UnknownObjectRelease: {
         // Stash any releases that we see.
         auto *CI = cast<CallInst>(&Inst);
-        auto *ArgVal = RC.getSwiftRCIdentityRoot(CI->getArgOperand(0));
+        auto *ArgVal = RC.getCodiraRCIdentityRoot(CI->getArgOperand(0));
 
         LocalState &LocalEntry = PtrToLocalStateMap[ArgVal];
         LocalEntry.UnknownObjectReleaseList.push_back(CI);
@@ -326,7 +327,7 @@ bool SwiftARCContractImpl::run() {
       }
       case RT_BridgeRetain: {
         auto *CI = cast<CallInst>(&Inst);
-        auto *ArgVal = RC.getSwiftRCIdentityRoot(CI->getArgOperand(0));
+        auto *ArgVal = RC.getCodiraRCIdentityRoot(CI->getArgOperand(0));
 
         LocalState &LocalEntry = PtrToLocalStateMap[ArgVal];
         LocalEntry.BridgeRetainList.push_back(CI);
@@ -334,7 +335,7 @@ bool SwiftARCContractImpl::run() {
       }
       case RT_BridgeRelease: {
         auto *CI = cast<CallInst>(&Inst);
-        auto *ArgVal = RC.getSwiftRCIdentityRoot(CI->getArgOperand(0));
+        auto *ArgVal = RC.getCodiraRCIdentityRoot(CI->getArgOperand(0));
 
         LocalState &LocalEntry = PtrToLocalStateMap[ArgVal];
         LocalEntry.BridgeReleaseList.push_back(CI);
@@ -383,30 +384,30 @@ bool SwiftARCContractImpl::run() {
   return Changed;
 }
 
-bool SwiftARCContract::runOnFunction(Function &F) {
-  return SwiftARCContractImpl(F).run();
+bool CodiraARCContract::runOnFunction(Function &F) {
+  return CodiraARCContractImpl(F).run();
 }
 
-char SwiftARCContract::ID = 0;
-INITIALIZE_PASS_BEGIN(SwiftARCContract, "swift-arc-contract",
-                      "Swift ARC contraction", false, false)
-INITIALIZE_PASS_END(SwiftARCContract,
-                    "swift-arc-contract", "Swift ARC contraction",
+char CodiraARCContract::ID = 0;
+INITIALIZE_PASS_BEGIN(CodiraARCContract, "language-arc-contract",
+                      "Codira ARC contraction", false, false)
+INITIALIZE_PASS_END(CodiraARCContract,
+                    "language-arc-contract", "Codira ARC contraction",
                     false, false)
 
-llvm::FunctionPass *swift::createSwiftARCContractPass() {
-  initializeSwiftARCContractPass(*llvm::PassRegistry::getPassRegistry());
-  return new SwiftARCContract();
+toolchain::FunctionPass *language::createCodiraARCContractPass() {
+  initializeCodiraARCContractPass(*toolchain::PassRegistry::getPassRegistry());
+  return new CodiraARCContract();
 }
 
-void SwiftARCContract::getAnalysisUsage(llvm::AnalysisUsage &AU) const {
+void CodiraARCContract::getAnalysisUsage(toolchain::AnalysisUsage &AU) const {
   AU.setPreservesCFG();
 }
 
-llvm::PreservedAnalyses
-SwiftARCContractPass::run(llvm::Function &F,
-                          llvm::FunctionAnalysisManager &AM) {
-  bool changed = SwiftARCContractImpl(F).run();
+toolchain::PreservedAnalyses
+CodiraARCContractPass::run(toolchain::Function &F,
+                          toolchain::FunctionAnalysisManager &AM) {
+  bool changed = CodiraARCContractImpl(F).run();
   if (!changed)
     return PreservedAnalyses::all();
 

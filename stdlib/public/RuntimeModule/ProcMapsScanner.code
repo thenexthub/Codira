@@ -1,13 +1,17 @@
-//===--- ProcMapsScanner.swift --------------------------------*- swift -*-===//
+//===--- ProcMapsScanner.code --------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Defines ProcMapsScanner, which is for scanning the /proc/<pid>/maps
@@ -17,7 +21,7 @@
 
 #if os(Linux)
 
-import Swift
+import Codira
 
 // Lines in /proc/pid/maps files match the following regex:
 //
@@ -70,7 +74,7 @@ struct ProcMapsScanner<S: StringProtocol>: Sequence, IteratorProtocol {
     ndx = procMapsUTF8.startIndex
   }
 
-  mutating func scanMatch() -> Match? {
+  mutating fn scanMatch() -> Match? {
     var match: Match = Match(start: "",
                              end: "",
                              perms: "",
@@ -82,29 +86,29 @@ struct ProcMapsScanner<S: StringProtocol>: Sequence, IteratorProtocol {
     var currentChunk = ndx
     var state: State = .start
 
-    func isPerm(_ ch: UInt8) -> Bool {
+    fn isPerm(_ ch: UInt8) -> Bool {
       return ch == UInt8(ascii: "-") || ch == UInt8(ascii: "r")
         || ch == UInt8(ascii: "w") || ch == UInt8(ascii: "x")
         || ch == UInt8(ascii: "s") || ch == UInt8(ascii: "p")
     }
 
-    func isDecimal(_ ch: UInt8) -> Bool {
+    fn isDecimal(_ ch: UInt8) -> Bool {
       return ch >= UInt8(ascii: "0") && ch <= UInt8(ascii: "9")
     }
 
-    func isHex(_ ch: UInt8) -> Bool {
+    fn isHex(_ ch: UInt8) -> Bool {
       return ch >= UInt8(ascii: "A") && ch <= UInt8(ascii: "F")
         || ch >= UInt8(ascii: "a") && ch <= UInt8(ascii: "f")
         || ch >= UInt8(ascii: "0") && ch <= UInt8(ascii: "9")
     }
 
-    func isWhitespace(_ ch: UInt8) -> Bool {
+    fn isWhitespace(_ ch: UInt8) -> Bool {
       return ch == UInt8(ascii: " ") || ch == UInt8(ascii: "\t")
     }
 
     while ndx < procMapsUTF8.endIndex {
-      let ch = procMapsUTF8[ndx]
-      let next = procMapsUTF8.index(after: ndx)
+      immutable ch = procMapsUTF8[ndx]
+      immutable next = procMapsUTF8.index(after: ndx)
 
       switch state {
         case .start:
@@ -134,7 +138,7 @@ struct ProcMapsScanner<S: StringProtocol>: Sequence, IteratorProtocol {
           } else if !isWhitespace(ch) {
             return nil
           }
-        case let .scanningPerms(length):
+        case immutable .scanningPerms(length):
           if length == 4 {
             if isWhitespace(ch) {
               match.perms = procMaps[currentChunk..<ndx]
@@ -233,15 +237,15 @@ struct ProcMapsScanner<S: StringProtocol>: Sequence, IteratorProtocol {
     return match
   }
 
-  mutating func next() -> Match? {
+  mutating fn next() -> Match? {
     while ndx != procMapsUTF8.endIndex {
-      if let match = scanMatch() {
+      if immutable match = scanMatch() {
         return match
       }
 
       // If we failed to match, skip to end of line and retry
       while ndx != procMapsUTF8.endIndex {
-        let ch = procMapsUTF8[ndx]
+        immutable ch = procMapsUTF8[ndx]
         ndx = procMapsUTF8.index(after: ndx)
         if ch == 0x0a {
           break

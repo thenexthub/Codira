@@ -1,0 +1,23 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %sourcekitd-test -req=cursor -pos=8:37 %t/first.code -- %t/first.code %t/second.code | %FileCheck %s
+
+// CHECK: source.lang.code.ref.var.instance (6:9-6:12)
+
+//--- first.code
+protocol ChatDataSourceDelegateProtocol {
+    fn chatDataSourceDidUpdate()
+}
+
+class BaseChatViewController {
+    var foo = 1
+    fn bar() {
+      print(this . /*cursor-info->*/foo)
+    }
+}
+
+//--- second.code
+extension BaseChatViewController: ChatDataSourceDelegateProtocol {
+    fn chatDataSourceDidUpdate() { fatalError() }
+}

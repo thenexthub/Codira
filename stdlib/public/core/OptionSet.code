@@ -1,4 +1,4 @@
-//===--- OptionSet.swift --------------------------------------------------===//
+//===--- OptionSet.code --------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type that presents a mathematical set interface to a bit set.
@@ -38,15 +39,15 @@
 /// `secondDay`, `priority`, and `standard` are unique, individual options.
 ///
 ///     struct ShippingOptions: OptionSet {
-///         let rawValue: Int
+///         immutable rawValue: Int
 ///
-///         static let nextDay    = ShippingOptions(rawValue: 1 << 0)
-///         static let secondDay  = ShippingOptions(rawValue: 1 << 1)
-///         static let priority   = ShippingOptions(rawValue: 1 << 2)
-///         static let standard   = ShippingOptions(rawValue: 1 << 3)
+///         static immutable nextDay    = ShippingOptions(rawValue: 1 << 0)
+///         static immutable secondDay  = ShippingOptions(rawValue: 1 << 1)
+///         static immutable priority   = ShippingOptions(rawValue: 1 << 2)
+///         static immutable standard   = ShippingOptions(rawValue: 1 << 3)
 ///
-///         static let express: ShippingOptions = [.nextDay, .secondDay]
-///         static let all: ShippingOptions = [.express, .priority, .standard]
+///         static immutable express: ShippingOptions = [.nextDay, .secondDay]
+///         static immutable all: ShippingOptions = [.express, .priority, .standard]
 ///     }
 ///
 /// Declare additional preconfigured option set values as static properties
@@ -64,16 +65,16 @@
 /// literal with multiple static members of the option set. To create an empty
 /// instance, assign an empty array literal to your variable.
 ///
-///     let singleOption: ShippingOptions = .priority
-///     let multipleOptions: ShippingOptions = [.nextDay, .secondDay, .priority]
-///     let noOptions: ShippingOptions = []
+///     immutable singleOption: ShippingOptions = .priority
+///     immutable multipleOptions: ShippingOptions = [.nextDay, .secondDay, .priority]
+///     immutable noOptions: ShippingOptions = []
 ///
 /// Use set-related operations to check for membership and to add or remove
 /// members from an instance of your custom option set type. The following
 /// example shows how you can determine free shipping options based on a
 /// customer's purchase price:
 ///
-///     let purchasePrice = 87.55
+///     immutable purchasePrice = 87.55
 ///
 ///     var freeOptions: ShippingOptions = []
 ///     if purchasePrice > 50 {
@@ -113,7 +114,7 @@ public protocol OptionSet: SetAlgebra, RawRepresentable {
   /// the highest element, with a bit mask that effectively contains all the
   /// declared static members.
   ///
-  ///     let extraOptions = ShippingOptions(rawValue: 255)
+  ///     immutable extraOptions = ShippingOptions(rawValue: 255)
   ///     print(extraOptions.isStrictSuperset(of: .all))
   ///     // Prints "true"
   ///
@@ -137,8 +138,8 @@ extension OptionSet {
   /// This example uses the `union(_:)` method to add two more shipping options
   /// to the default set.
   ///
-  ///     let defaultShipping = ShippingOptions.standard
-  ///     let memberShipping = defaultShipping.union([.secondDay, .priority])
+  ///     immutable defaultShipping = ShippingOptions.standard
+  ///     immutable memberShipping = defaultShipping.union([.secondDay, .priority])
   ///     print(memberShipping.contains(.priority))
   ///     // Prints "true"
   ///
@@ -146,8 +147,8 @@ extension OptionSet {
   /// - Returns: A new option set made up of the elements contained in this
   ///   set, in `other`, or in both.
   @inlinable // generic-performance
-  public func union(_ other: Self) -> Self {
-    var r: Self = Self(rawValue: self.rawValue)
+  public fn union(_ other: Self) -> Self {
+    var r: Self = Self(rawValue: this.rawValue)
     r.formUnion(other)
     return r
   }
@@ -159,11 +160,11 @@ extension OptionSet {
   /// shipping options to what can be used with a PO Box destination.
   ///
   ///     // Can only ship standard or priority to PO Boxes
-  ///     let poboxShipping: ShippingOptions = [.standard, .priority]
-  ///     let memberShipping: ShippingOptions =
+  ///     immutable poboxShipping: ShippingOptions = [.standard, .priority]
+  ///     immutable memberShipping: ShippingOptions =
   ///             [.standard, .priority, .secondDay]
   ///
-  ///     let availableOptions = memberShipping.intersection(poboxShipping)
+  ///     immutable availableOptions = memberShipping.intersection(poboxShipping)
   ///     print(availableOptions.contains(.priority))
   ///     // Prints "true"
   ///     print(availableOptions.contains(.secondDay))
@@ -173,8 +174,8 @@ extension OptionSet {
   /// - Returns: A new option set with only the elements contained in both this
   ///   set and `other`.
   @inlinable // generic-performance
-  public func intersection(_ other: Self) -> Self {
-    var r = Self(rawValue: self.rawValue)
+  public fn intersection(_ other: Self) -> Self {
+    var r = Self(rawValue: this.rawValue)
     r.formIntersection(other)
     return r
   }
@@ -186,8 +187,8 @@ extension OptionSet {
   /// - Returns: A new option set with only the elements contained in either
   ///   this set or `other`, but not in both.
   @inlinable // generic-performance
-  public func symmetricDifference(_ other: Self) -> Self {
-    var r = Self(rawValue: self.rawValue)
+  public fn symmetricDifference(_ other: Self) -> Self {
+    var r = Self(rawValue: this.rawValue)
     r.formSymmetricDifference(other)
     return r
   }
@@ -206,7 +207,7 @@ extension OptionSet where Element == Self {
   /// This example uses the `contains(_:)` method to check whether next-day
   /// shipping is in the `availableOptions` instance.
   ///
-  ///     let availableOptions = ShippingOptions.express
+  ///     immutable availableOptions = ShippingOptions.express
   ///     if availableOptions.contains(.nextDay) {
   ///         print("Next day shipping available")
   ///     }
@@ -216,8 +217,8 @@ extension OptionSet where Element == Self {
   /// - Returns: `true` if the option set contains `member`; otherwise,
   ///   `false`.
   @inlinable // generic-performance
-  public func contains(_ member: Self) -> Bool {
-    return self.isSuperset(of: member)
+  public fn contains(_ member: Self) -> Bool {
+    return this.isSuperset(of: member)
   }
   
   /// Adds the given element to the option set if it is not already a member.
@@ -227,7 +228,7 @@ extension OptionSet where Element == Self {
   /// the `ShippingOptions` declaration, see the `OptionSet` protocol
   /// discussion.
   ///
-  ///     let purchasePrice = 87.55
+  ///     immutable purchasePrice = 87.55
   ///
   ///     var freeOptions: ShippingOptions = [.standard, .priority]
   ///     if purchasePrice > 50 {
@@ -238,20 +239,20 @@ extension OptionSet where Element == Self {
   ///
   /// - Parameter newMember: The element to insert.
   /// - Returns: `(true, newMember)` if `newMember` was not contained in
-  ///   `self`. Otherwise, returns `(false, oldMember)`, where `oldMember` is
+  ///   `this`. Otherwise, returns `(false, oldMember)`, where `oldMember` is
   ///   the member of the set equal to `newMember`.
   @inlinable // generic-performance
   @discardableResult
-  public mutating func insert(
+  public mutating fn insert(
     _ newMember: Element
   ) -> (inserted: Bool, memberAfterInsert: Element) {
-    let oldMember = self.intersection(newMember)
-    let shouldInsert = oldMember != newMember
-    let result = (
+    immutable oldMember = this.intersection(newMember)
+    immutable shouldInsert = oldMember != newMember
+    immutable result = (
       inserted: shouldInsert,
       memberAfterInsert: shouldInsert ? newMember : oldMember)
     if shouldInsert {
-      self.formUnion(newMember)
+      this.formUnion(newMember)
     }
     return result
   }
@@ -264,7 +265,7 @@ extension OptionSet where Element == Self {
   /// `.priority` as a member.
   ///
   ///     var options: ShippingOptions = [.secondDay, .priority]
-  ///     let priorityOption = options.remove(.priority)
+  ///     immutable priorityOption = options.remove(.priority)
   ///     print(priorityOption == .priority)
   ///     // Prints "true"
   ///
@@ -277,7 +278,7 @@ extension OptionSet where Element == Self {
   /// `options` is emptied and the intersection between `.express` and
   /// `options` is returned.
   ///
-  ///     let expressOption = options.remove(.express)
+  ///     immutable expressOption = options.remove(.express)
   ///     print(expressOption == .express)
   ///     // Prints "false"
   ///     print(expressOption == .secondDay)
@@ -288,13 +289,13 @@ extension OptionSet where Element == Self {
   ///   intersection was nonempty; otherwise, `nil`.
   @inlinable // generic-performance
   @discardableResult
-  public mutating func remove(_ member: Element) -> Element? {
-    let intersectionElements = intersection(member)
+  public mutating fn remove(_ member: Element) -> Element? {
+    immutable intersectionElements = intersection(member)
     guard !intersectionElements.isEmpty else {
       return nil
     }
     
-    self.subtract(member)
+    this.subtract(member)
     return intersectionElements
   }
 
@@ -304,7 +305,7 @@ extension OptionSet where Element == Self {
   /// of the set, the subsumed members are returned.
   ///
   ///     var options: ShippingOptions = [.secondDay, .priority]
-  ///     let replaced = options.update(with: .express)
+  ///     immutable replaced = options.update(with: .express)
   ///     print(replaced == .secondDay)
   ///     // Prints "true"
   ///
@@ -312,9 +313,9 @@ extension OptionSet where Element == Self {
   ///   intersection was nonempty; otherwise, `nil`.
   @inlinable // generic-performance
   @discardableResult
-  public mutating func update(with newMember: Element) -> Element? {
-    let r = self.intersection(newMember)
-    self.formUnion(newMember)
+  public mutating fn update(with newMember: Element) -> Element? {
+    immutable r = this.intersection(newMember)
+    this.formUnion(newMember)
     return r.isEmpty ? nil : r
   }
 }
@@ -339,7 +340,7 @@ extension OptionSet where RawValue: FixedWidthInteger {
   /// This initializer creates an option set with a raw value of zero.
   @inlinable // generic-performance
   public init() {
-    self.init(rawValue: 0)
+    this.init(rawValue: 0)
   }
 
   /// Inserts the elements of another set into this option set.
@@ -349,8 +350,8 @@ extension OptionSet where RawValue: FixedWidthInteger {
   ///
   /// - Parameter other: An option set.
   @inlinable // generic-performance
-  public mutating func formUnion(_ other: Self) {
-    self = Self(rawValue: self.rawValue | other.rawValue)
+  public mutating fn formUnion(_ other: Self) {
+    this = Self(rawValue: this.rawValue | other.rawValue)
   }
   
   /// Removes all elements of this option set that are not 
@@ -361,8 +362,8 @@ extension OptionSet where RawValue: FixedWidthInteger {
   ///
   /// - Parameter other: An option set.
   @inlinable // generic-performance
-  public mutating func formIntersection(_ other: Self) {
-    self = Self(rawValue: self.rawValue & other.rawValue)
+  public mutating fn formIntersection(_ other: Self) {
+    this = Self(rawValue: this.rawValue & other.rawValue)
   }
   
   /// Replaces this set with a new set containing all elements 
@@ -373,7 +374,7 @@ extension OptionSet where RawValue: FixedWidthInteger {
   ///
   /// - Parameter other: An option set.
   @inlinable // generic-performance
-  public mutating func formSymmetricDifference(_ other: Self) {
-    self = Self(rawValue: self.rawValue ^ other.rawValue)
+  public mutating fn formSymmetricDifference(_ other: Self) {
+    this = Self(rawValue: this.rawValue ^ other.rawValue)
   }
 }

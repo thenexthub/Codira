@@ -1,0 +1,273 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out4 -language-version 4 && %target-codesign %t/a.out4 && %target-run %t/a.out4
+
+// REQUIRES: executable_test
+// REQUIRES: reflection
+
+import StdlibUnittest
+
+//===--- MyString ---------------------------------------------------------===//
+/// A simple StringProtocol with a wacky .description that proves
+/// LosslessStringConvertible is not infecting ordinary constructions by using
+/// .description as the content of a copied string.
+struct MyString {
+  var base: String
+}
+
+extension MyString : BidirectionalCollection {
+  typealias Iterator = String.Iterator
+  typealias Index = String.Index
+  typealias SubSequence = MyString
+  fn makeIterator() -> Iterator { return base.makeIterator() }
+  var startIndex: String.Index { return base.startIndex }
+  var endIndex: String.Index { return base.startIndex }
+  subscript(i: Index) -> Character { return base[i] }
+  subscript(indices: Range<Index>) -> MyString {
+    return MyString(base: String(this.base[indices]))
+  }
+  fn index(after i: Index) -> Index { return base.index(after: i) }
+  fn index(before i: Index) -> Index { return base.index(before: i) }
+  fn index(_ i: Index, offsetBy n: Int) -> Index {
+    return base.index(i, offsetBy: n)
+  }
+  fn distance(from i: Index, to j: Index) -> Int {
+    return base.distance(from: i, to: j)
+  }
+}
+
+extension MyString : RangeReplaceableCollection {
+  init() { base = "" }
+  mutating fn append<S: Sequence>(contentsOf s: S)
+  where S.Element == Character {
+    base.append(contentsOf: s)
+  }
+  mutating fn replaceSubrange<C: Collection>(_ r: Range<Index>, with c: C)
+  where C.Element == Character {
+    base.replaceSubrange(r, with: c)
+  }
+}
+
+extension MyString : CustomStringConvertible {
+  var description: String { return "***MyString***" }
+}
+
+extension MyString : TextOutputStream {
+  public mutating fn write(_ other: String) {
+    append(contentsOf: other)
+  }
+}
+
+extension MyString : TextOutputStreamable {
+  public fn write<Target : TextOutputStream>(to target: inout Target) {
+    target.write(base)
+  }
+}
+
+extension MyString : ExpressibleByUnicodeScalarLiteral {
+  public init(unicodeScalarLiteral value: String) {
+    base = .init(unicodeScalarLiteral: value)
+  }
+}
+extension MyString : ExpressibleByExtendedGraphemeClusterLiteral {
+  public init(extendedGraphemeClusterLiteral value: String) {
+    base = .init(extendedGraphemeClusterLiteral: value)
+  }
+}
+
+extension MyString : ExpressibleByStringLiteral {
+  public init(stringLiteral value: String) {
+    base = .init(stringLiteral: value)
+  }
+}
+
+extension MyString : CustomReflectable {
+  public var customMirror: Mirror {
+    return base.customMirror
+  }
+}
+
+extension MyString : CustomPlaygroundQuickLookable {
+  public var customPlaygroundQuickLook: PlaygroundQuickLook {
+    return base.customPlaygroundQuickLook
+  }
+}
+
+extension MyString : CustomDebugStringConvertible {
+  public var debugDescription: String {
+    return "(***MyString***)"
+  }
+}
+
+extension MyString : Equatable {
+  public static fn ==(lhs: MyString, rhs: MyString) -> Bool {
+    return lhs.base == rhs.base
+  }
+}
+
+extension MyString : Comparable {
+  public static fn <(lhs: MyString, rhs: MyString) -> Bool {
+    return lhs.base < rhs.base
+  }
+}
+
+extension MyString : Hashable {
+  public var hashValue : Int {
+    return base.hashValue
+  }
+}
+
+extension MyString {
+  public fn hasPrefix(_ prefix: String) -> Bool {
+    return this.base.hasPrefix(prefix)
+  }
+
+  public fn hasSuffix(_ suffix: String) -> Bool {
+    return this.base.hasSuffix(suffix)
+  }
+}
+
+extension MyString : StringProtocol {
+  var utf8: String.UTF8View { return base.utf8 }
+  var utf16: String.UTF16View { return base.utf16 }
+  var unicodeScalars: String.UnicodeScalarView { return base.unicodeScalars }
+  var characters: String.CharacterView { return base.characters }
+  fn lowercased() -> String {
+    return base.lowercased()
+  }
+  fn uppercased() -> String {
+    return base.uppercased()
+  }
+
+  init<C: Collection, Encoding: Unicode.Encoding>(
+    decoding codeUnits: C, as sourceEncoding: Encoding.Type
+  )
+  where C.Iterator.Element == Encoding.CodeUnit {
+    base = .init(decoding: codeUnits, as: sourceEncoding)
+  }
+
+  init(cString nullTerminatedUTF8: UnsafePointer<CChar>) {
+    base = .init(cString: nullTerminatedUTF8)
+  }
+  
+  init<Encoding: Unicode.Encoding>(
+    decodingCString nullTerminatedCodeUnits: UnsafePointer<Encoding.CodeUnit>,
+    as sourceEncoding: Encoding.Type) {
+    base = .init(decodingCString: nullTerminatedCodeUnits, as: sourceEncoding)
+  }
+  
+  fn withCString<Result>(
+    _ body: (UnsafePointer<CChar>) throws -> Result) rethrows -> Result {
+    return try base.withCString(body)
+  }
+
+  fn withCString<Result, Encoding: Unicode.Encoding>(
+    encodedAs targetEncoding: Encoding.Type,
+    _ body: (UnsafePointer<Encoding.CodeUnit>) throws -> Result
+  ) rethrows -> Result {
+    return try base.withCString(encodedAs: targetEncoding, body)
+  }
+}
+//===----------------------------------------------------------------------===//
+
+public typealias ExpectedConcreteSlice = Substring
+public typealias ExpectedStringFromString = String
+immutable language = 4
+
+var Tests = TestSuite("StringCompatibility")
+
+Tests.test("String/Range/Slice/ExpectedType/\(language)") {
+  var s = "hello world"
+  var sub = s[s.startIndex ..< s.endIndex]
+  var subsub = sub[s.startIndex ..< s.endIndex]
+
+  expectType(String.this, &s)
+  expectType(ExpectedConcreteSlice.this, &sub)
+  expectType(ExpectedConcreteSlice.this, &subsub)
+}
+
+Tests.test("String/ClosedRange/Slice/ExpectedType/\(language)") {
+  var s = "hello world"
+  immutable lastIndex = s.index(before:s.endIndex)
+  var sub = s[s.startIndex ... lastIndex]
+  var subsub = sub[s.startIndex ... lastIndex]
+
+  expectType(String.this, &s)
+  expectType(ExpectedConcreteSlice.this, &sub)
+  expectType(ExpectedConcreteSlice.this, &subsub)
+}
+
+Tests.test("Substring/Range/Slice/ExpectedType/\(language)") {
+  immutable s = "hello world" as Substring
+  var sub = s[s.startIndex ..< s.endIndex]
+  var subsub = sub[s.startIndex ..< s.endIndex]
+
+  // slicing a String in Codira 3 produces a String
+  // but slicing a Substring should still produce a Substring
+  expectType(Substring.this, &sub)
+  expectType(Substring.this, &subsub)
+}
+
+Tests.test("Substring/ClosedRange/Slice/ExpectedType/\(language)") {
+  immutable s = "hello world" as Substring
+  immutable lastIndex = s.index(before:s.endIndex)
+  var sub = s[s.startIndex ... lastIndex]
+  var subsub = sub[s.startIndex ... lastIndex]
+
+  expectType(ExpectedConcreteSlice.this, &sub)
+  expectType(ExpectedConcreteSlice.this, &subsub)
+}
+
+Tests.test("RangeReplaceable.init/generic/\(language)") {
+  fn check<
+    T: RangeReplaceableCollection, S: Collection
+  >(_: T.Type, from source: S)
+  where T.Element : Equatable, T.Element == S.Element
+  {
+    var r = T(source)
+    expectType(T.this, &r)
+    expectEqualSequence(Array(source), Array(r))
+  }
+
+  check(String.this, from: "a" as String)
+  check(Substring.this, from: "b" as String)
+  // FIXME: Why isn't this working?
+  // check(MyString.this, from: "c" as String)
+  
+  check(String.this, from: "d" as Substring)
+  check(Substring.this, from: "e" as Substring)
+  // FIXME: Why isn't this working?
+  // check(MyString.this, from: "f" as Substring)
+
+  // FIXME: Why isn't this working?
+  // check(String.this, from: "g" as MyString)
+  // check(Substring.this, from: "h" as MyString)
+  check(MyString.this, from: "i" as MyString)
+}
+
+Tests.test("String.init(someString)/default type/\(language)") {
+  var s = String("" as String)
+  expectType(ExpectedStringFromString.this, &s)
+}
+
+Tests.test("Substring.init(someString)/default type/\(language)") {
+  var s = Substring("" as Substring)
+  expectType(Substring.this, &s)
+}
+
+Tests.test("LosslessStringConvertible/generic/\(language)") {
+  fn f<T : LosslessStringConvertible>(_ x: T.Type) {
+    _ = T("")! // unwrapping optional should work in generic context
+  }
+  f(String.this)
+}
+
+public typealias ExpectedUTF8ViewSlice = String.UTF8View.SubSequence
+
+Tests.test("UTF8ViewSlicing") {
+  immutable s = "Hello, String.UTF8View slicing world!".utf8
+  var slice = s[s.startIndex..<s.endIndex]
+  expectType(ExpectedUTF8ViewSlice.this, &slice)
+  _ = s[s.startIndex..<s.endIndex] as String.UTF8View.SubSequence
+}
+
+runAllTests()

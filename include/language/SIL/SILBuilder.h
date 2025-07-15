@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILBUILDER_H
-#define SWIFT_SIL_SILBUILDER_H
+#ifndef LANGUAGE_SIL_SILBUILDER_H
+#define LANGUAGE_SIL_SILBUILDER_H
 
 #include "SILDebugVariable.h"
 #include "SILInstruction.h"
@@ -25,8 +26,9 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILUndef.h"
-#include "llvm/ADT/PointerUnion.h"
-#include "llvm/ADT/StringExtras.h"
+#include "language/SIL/AbstractionPattern.h"
+#include "toolchain/ADT/PointerUnion.h"
+#include "toolchain/ADT/StringExtras.h"
 #include <type_traits>
 
 namespace language {
@@ -226,7 +228,7 @@ public:
   ASTContext &getASTContext() const { return getModule().getASTContext(); }
   const Lowering::TypeLowering &getTypeLowering(SILType T) const {
 
-    auto expansion = TypeExpansionContext::maximal(getModule().getSwiftModule(),
+    auto expansion = TypeExpansionContext::maximal(getModule().getCodiraModule(),
                                                    getModule().isWholeModule());
     // If there's no current SILFunction, we're inserting into a global
     // variable initializer.
@@ -411,7 +413,7 @@ public:
 
   /// Substitute anonymous function arguments with "_$ArgNo".
   std::optional<SILDebugVariable>
-  substituteAnonymousArgs(llvm::SmallString<4> Name,
+  substituteAnonymousArgs(toolchain::SmallString<4> Name,
                           std::optional<SILDebugVariable> Var, SILLocation Loc);
 
   AllocStackInst *createAllocStack(
@@ -422,7 +424,7 @@ public:
       IsFromVarDecl_t isFromVarDecl = IsNotFromVarDecl,
       UsesMoveableValueDebugInfo_t wasMoved = DoesNotUseMoveableValueDebugInfo,
       bool skipVarDeclAssert = false) {
-    llvm::SmallString<4> Name;
+    toolchain::SmallString<4> Name;
     Loc.markAsPrologue();
 #ifndef NDEBUG
     if (dyn_cast_or_null<VarDecl>(Loc.getAsASTNode<Decl>()))
@@ -508,7 +510,7 @@ public:
 #if NDEBUG
     (void)skipVarDeclAssert;
 #endif
-    llvm::SmallString<4> Name;
+    toolchain::SmallString<4> Name;
     Loc.markAsPrologue();
 #if defined(NDEBUG)
     (void) skipVarDeclAssert;
@@ -571,7 +573,7 @@ public:
           PartialApplyInst::OnStackKind::NotOnStack,
       const GenericSpecializationInformation *SpecializationInfo = nullptr) {
     ASSERT(OnStack == PartialApplyInst::OnStackKind::OnStack ||
-           llvm::all_of(Args,
+           toolchain::all_of(Args,
                         [](SILValue value) {
                           return value->getOwnershipKind().isCompatibleWith(
                               OwnershipKind::Owned);
@@ -615,7 +617,7 @@ public:
                                            ArrayRef<SILValue> Args) {
     auto &C = getASTContext();
 
-    llvm::SmallString<16> NameStr = Name;
+    toolchain::SmallString<16> NameStr = Name;
     appendOperandTypeName(OpdTy, NameStr);
     auto Ident = C.getIdentifier(NameStr);
     return insert(BuiltinInst::create(getSILDebugLocation(Loc), Ident, ResultTy,
@@ -628,7 +630,7 @@ public:
       SILType ResultTy, ArrayRef<SILValue> Args) {
     auto &C = getASTContext();
 
-    llvm::SmallString<16> NameStr = Name;
+    toolchain::SmallString<16> NameStr = Name;
     appendOperandTypeName(OpdTy1, NameStr);
     appendOperandTypeName(OpdTy2, NameStr);
     auto Ident = C.getIdentifier(NameStr);
@@ -1274,7 +1276,7 @@ public:
   PointerToAddressInst *
   createPointerToAddress(SILLocation Loc, SILValue Op, SILType Ty,
                          bool isStrict, bool isInvariant = false,
-                         llvm::MaybeAlign alignment = llvm::MaybeAlign()) {
+                         toolchain::MaybeAlign alignment = toolchain::MaybeAlign()) {
     return insert(new (getModule()) PointerToAddressInst(
         getSILDebugLocation(Loc), Op, Ty, isStrict, isInvariant, alignment));
   }
@@ -1556,33 +1558,33 @@ public:
 
   UnconditionalCheckedCastInst *
   createUnconditionalCheckedCast(SILLocation Loc,
-                                 CastingIsolatedConformances isolatedConformances,
+                                 CheckedCastInstOptions options,
                                  SILValue op,
                                  SILType destLoweredTy,
                                  CanType destFormalTy) {
-    return createUnconditionalCheckedCast(Loc, isolatedConformances, op,
+    return createUnconditionalCheckedCast(Loc, options, op,
                                           destLoweredTy, destFormalTy,
                                           op->getOwnershipKind());
   }
 
   UnconditionalCheckedCastInst *
   createUnconditionalCheckedCast(SILLocation Loc,
-                                 CastingIsolatedConformances isolatedConformances,
+                                 CheckedCastInstOptions options,
                                  SILValue op,
                                  SILType destLoweredTy, CanType destFormalTy,
                                  ValueOwnershipKind forwardingOwnershipKind) {
     return insert(UnconditionalCheckedCastInst::create(
-        getSILDebugLocation(Loc), isolatedConformances, op, destLoweredTy,
+        getSILDebugLocation(Loc), options, op, destLoweredTy,
         destFormalTy, getFunction(), forwardingOwnershipKind));
   }
 
   UnconditionalCheckedCastAddrInst *
   createUnconditionalCheckedCastAddr(SILLocation Loc,
-                                     CastingIsolatedConformances isolatedConformances,
+                                     CheckedCastInstOptions options,
                                      SILValue src, CanType sourceFormalType,
                                      SILValue dest, CanType targetFormalType) {
     return insert(UnconditionalCheckedCastAddrInst::create(
-        getSILDebugLocation(Loc), isolatedConformances, src, sourceFormalType,
+        getSILDebugLocation(Loc), options, src, sourceFormalType,
         dest, targetFormalType, getFunction()));
   }
 
@@ -1926,6 +1928,15 @@ public:
     return createStructElementAddr(Loc, Operand, Field, ResultTy);
   }
 
+  VectorBaseAddrInst *
+  createVectorBaseAddr(SILLocation loc, SILValue vector) {
+    auto arrayTy = vector->getType().getAs<BuiltinFixedArrayType>();
+    ASSERT(arrayTy && "operand of vector_extract must be a builtin array type");
+    auto elemtTy = getFunction().getLoweredType(Lowering::AbstractionPattern::getOpaque(), arrayTy->getElementType());
+    return insert(new (getModule()) VectorBaseAddrInst(
+        getSILDebugLocation(loc), vector, elemtTy.getAddressType()));
+  }
+
   RefElementAddrInst *createRefElementAddr(SILLocation Loc, SILValue Operand,
                                            VarDecl *Field, SILType ResultTy,
                                            bool IsImmutable = false) {
@@ -1986,12 +1997,12 @@ public:
       return createDestructureTuple(loc, operand);
     if (opTy.getStructOrBoundGenericStruct())
       return createDestructureStruct(loc, operand);
-    llvm_unreachable("Can not emit a destructure for this type of operand.");
+    toolchain_unreachable("Can not emit a destructure for this type of operand.");
   }
 
   void
   emitDestructureValueOperation(SILLocation loc, SILValue operand,
-                                function_ref<void(unsigned, SILValue)> func);
+                                function_ref<void(unsigned, SILValue)> fn);
 
   void emitDestructureValueOperation(SILLocation loc, SILValue operand,
                                      SmallVectorImpl<SILValue> &result);
@@ -2386,6 +2397,11 @@ public:
     return insert(new (getModule()) EndCOWMutationInst(getSILDebugLocation(Loc),
                                                   operand, keepUnique));
   }
+  EndCOWMutationAddrInst *createEndCOWMutationAddr(SILLocation Loc,
+                                                   SILValue operand) {
+    return insert(new (getModule()) EndCOWMutationAddrInst(
+        getSILDebugLocation(Loc), operand));
+  }
   DestroyNotEscapedClosureInst *createDestroyNotEscapedClosure(SILLocation Loc,
                                                  SILValue operand,
                                                  unsigned VerificationType) {
@@ -2767,7 +2783,7 @@ public:
 
   CheckedCastBranchInst *
   createCheckedCastBranch(SILLocation Loc, bool isExact,
-                          CastingIsolatedConformances isolatedConformances,
+                          CheckedCastInstOptions options,
                           SILValue op,
                           CanType srcFormalTy, SILType destLoweredTy,
                           CanType destFormalTy, SILBasicBlock *successBB,
@@ -2777,7 +2793,7 @@ public:
 
   CheckedCastBranchInst *
   createCheckedCastBranch(SILLocation Loc, bool isExact,
-                          CastingIsolatedConformances isolatedConformances,
+                          CheckedCastInstOptions options,
                           SILValue op,
                           CanType srcFormalTy, SILType destLoweredTy,
                           CanType destFormalTy, SILBasicBlock *successBB, 
@@ -2788,7 +2804,7 @@ public:
 
   CheckedCastAddrBranchInst *
   createCheckedCastAddrBranch(SILLocation Loc,
-                              CastingIsolatedConformances isolatedConformances,
+                              CheckedCastInstOptions options,
                               CastConsumptionKind consumption,
                               SILValue src, CanType sourceFormalType,
                               SILValue dest, CanType targetFormalType,
@@ -2797,7 +2813,7 @@ public:
                               ProfileCounter Target1Count = ProfileCounter(),
                               ProfileCounter Target2Count = ProfileCounter()) {
     return insertTerminator(CheckedCastAddrBranchInst::create(
-        getSILDebugLocation(Loc), isolatedConformances, consumption, src,
+        getSILDebugLocation(Loc), options, consumption, src,
         sourceFormalType, dest, targetFormalType, successBB, failureBB,
         Target1Count, Target2Count, getFunction()));
   }
@@ -3178,14 +3194,14 @@ private:
     return getTypeLowering(Ty).isLoadable();
   }
 
-  void appendOperandTypeName(SILType OpdTy, llvm::SmallString<16> &Name) {
+  void appendOperandTypeName(SILType OpdTy, toolchain::SmallString<16> &Name) {
     if (auto BuiltinIntTy =
             dyn_cast<BuiltinIntegerType>(OpdTy.getASTType())) {
       if (BuiltinIntTy == BuiltinIntegerType::getWordType(getASTContext())) {
         Name += "_Word";
       } else {
         unsigned NumBits = BuiltinIntTy->getWidth().getFixedWidth();
-        Name += "_Int" + llvm::utostr(NumBits);
+        Name += "_Int" + toolchain::utostr(NumBits);
       }
     } else if (auto BuiltinFloatTy =
                    dyn_cast<BuiltinFloatType>(OpdTy.getASTType())) {
@@ -3301,7 +3317,7 @@ public:
   }
 
   /// If \p inst is a terminator apply site, then pass a builder to insert at
-  /// the first instruction of each successor to \p func. Otherwise, pass a
+  /// the first instruction of each successor to \p fn. Otherwise, pass a
   /// builder to insert at std::next(inst).
   ///
   /// The intention is that this abstraction will enable the compiler writer to
@@ -3312,21 +3328,21 @@ public:
   /// \p inst is a terminator, all successor blocks have only a single
   /// predecessor block: the parent of \p inst.
   static void insertAfter(SILInstruction *inst,
-                          function_ref<void(SILBuilder &)> func);
+                          function_ref<void(SILBuilder &)> fn);
 
   /// If \p is an inst, then this is equivalent to insertAfter(inst). If a
   /// SILArgument is passed in, we use the first instruction in its parent
   /// block. We assert on undef.
   static void insertAfter(SILValue value,
-                          function_ref<void(SILBuilder &)> func) {
+                          function_ref<void(SILBuilder &)> fn) {
     if (auto *i = dyn_cast<SingleValueInstruction>(value))
-      return insertAfter(i, func);
+      return insertAfter(i, fn);
     if (auto *mvir = dyn_cast<MultipleValueInstructionResult>(value))
-      return insertAfter(mvir->getParent(), func);
+      return insertAfter(mvir->getParent(), fn);
     if (auto *arg = dyn_cast<SILArgument>(value))
-      return insertAfter(&*arg->getParent()->begin(), func);
+      return insertAfter(&*arg->getParent()->begin(), fn);
     ASSERT(!isa<SILUndef>(value) && "This API can not use undef");
-    llvm_unreachable("Unhandled case?!");
+    toolchain_unreachable("Unhandled case?!");
   }
 };
 
@@ -3418,6 +3434,6 @@ public:
   DebugLocOverrideRAII &operator=(DebugLocOverrideRAII &&) = delete;
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

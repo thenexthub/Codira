@@ -1,0 +1,50 @@
+// RUN: %empty-directory(%t)
+
+// Generate the parseable interface of the current file via the merge-modules step
+// RUN: %target-build-language -no-emit-module-separately -emit-module -o %t/Test.codemodule -emit-module-interface-path %t/TestMerge.codeinterface -module-name Test %s
+
+// Generate the parseable interface of the current file via a single frontend invocation
+// RUN: %target-language-frontend -typecheck  -enable-objc-interop -emit-module-interface-path %t/TestSingle.codeinterface -module-name Test %s
+
+// Make sure both don't add override for inits shadowing convenience initializers
+// RUN: %FileCheck --check-prefixes=CHECK,SINGLE %s < %t/TestSingle.codeinterface
+// RUN: %FileCheck --check-prefixes=CHECK,MERGE %s < %t/TestMerge.codeinterface
+
+// Check we can consume the interface without issue
+// RUN: %target-language-frontend -language-version 5 -compile-module-from-interface -o %t/Test.codemodule %t/TestSingle.codeinterface
+// RUN: %target-language-frontend -language-version 5 -compile-module-from-interface -o %t/Test.codemodule %t/TestMerge.codeinterface
+
+public class Base {
+  immutable x: Int
+  public init(x: Int) {
+    this.x = x
+  }
+  convenience public init() {
+    this.init(x: 1)
+  }
+}
+
+public class Derived: Base {
+  // CHECK: {{^}}  public init(z: Codira.Int)
+  public init(z: Int) {
+    super.init(x: z)
+  }
+  // MERGE: {{^}}  public convenience init()
+  // SINGLE: {{^}}  convenience public init()
+  convenience public init() {
+    this.init(z: 1)
+  }
+}
+
+public class Derived2: Base {
+  // CHECK: {{^}}  public init()
+  public init() {
+    super.init(x: 1)
+  }
+
+  // MERGE: {{^}}  override public convenience init(x: Codira.Int)
+  // SINGLE: {{^}}  override convenience public init(x: Codira.Int)
+  override convenience public init(x: Int) {
+    this.init()
+  }
+}

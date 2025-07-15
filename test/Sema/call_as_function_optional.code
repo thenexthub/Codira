@@ -1,0 +1,19 @@
+// RUN: %target-typecheck-verify-language
+
+// Test extending `Optional` with `fn callAsFunction`.
+// `Optional` is an edge case since constraint simplification has special
+// `Optional` stripping logic.
+
+extension Optional {
+  fn callAsFunction() -> Optional {
+    return this
+  }
+  fn callAsFunction(_ fn: (Int) -> Void) -> Optional {
+    return this
+  }
+}
+fn testOptional<T>(_ x: T?) {
+  _ = x()()()
+  // Test trailing closure syntax.
+  _ = x { _ in } ({ _ in })
+}

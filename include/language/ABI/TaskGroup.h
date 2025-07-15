@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift ABI describing task groups.
+// Codira ABI describing task groups.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_ABI_TASK_GROUP_H
-#define SWIFT_ABI_TASK_GROUP_H
+#ifndef LANGUAGE_ABI_TASK_GROUP_H
+#define LANGUAGE_ABI_TASK_GROUP_H
 
 #include "language/ABI/Task.h"
 #include "language/ABI/TaskStatus.h"
@@ -35,7 +36,7 @@ class alignas(Alignment_TaskGroup) TaskGroup {
 public:
   // These constructors do not initialize the group instance, and the
   // destructor does not destroy the group instance; you must call
-  // swift_taskGroup_{initialize,destroy} yourself.
+  // language_taskGroup_{initialize,destroy} yourself.
   constexpr TaskGroup()
     : PrivateData{} {}
 
@@ -75,4 +76,4 @@ public:
 
 } // end namespace language
 
-#endif // SWIFT_ABI_TASK_GROUP_H
+#endif // LANGUAGE_ABI_TASK_GROUP_H

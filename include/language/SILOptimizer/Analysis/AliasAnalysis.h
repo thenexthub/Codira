@@ -11,35 +11,36 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_ALIASANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_ALIASANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_ALIASANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_ALIASANALYSIS_H
 
 #include "language/SIL/ApplySite.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
 
 /// This class is a simple wrapper around an alias analysis cache. This is
 /// needed since we do not have an "analysis" infrastructure.
 ///
-/// This wrapper sits above the SwiftCompilerSource implementation of
-/// AliasAnalysis. The implementation calls into AliasAnalysis.swift via
+/// This wrapper sits above the CodiraCompilerSource implementation of
+/// AliasAnalysis. The implementation calls into AliasAnalysis.code via
 /// BridgedAliasAnalysis whenever the result may depend on escape analysis.
 class AliasAnalysis {
 private:
-  void *swiftSpecificData[4];
+  void *languageSpecificData[4];
 
   SILPassManager *PM;
 
-  void initSwiftSpecificData();
+  void initCodiraSpecificData();
 
 public:
   AliasAnalysis(SILPassManager *PM) : PM(PM) {
-    initSwiftSpecificData();
+    initCodiraSpecificData();
   }
 
   ~AliasAnalysis();

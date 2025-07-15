@@ -42,11 +42,11 @@ Or more concisely,\index{$\mapsto$}\index{$\mapsto$!z@\igobble|seealso{substitut
 
 \begin{listing}\captionabove{Substitution maps in type checking}\label{substmaptypecheck}
 \begin{Verbatim}
-func genericFunction<A, B: Sequence>(_: A, _: B)
+fn genericFunction<A, B: Sequence>(_: A, _: B)
     where B.Element == Int {}
 
 struct GenericType<A, B: Sequence> where B.Element == Int {
-  func nonGenericMethod() {}
+  fn nonGenericMethod() {}
 }
 
 // substitution map for the call is {A := String, B := Array<Int>}.
@@ -495,11 +495,11 @@ We're going to explore the implementation limitations behind these restrictions,
 
 \begin{listing}\captionabove{A nominal type declaration in a generic local context}\label{nominal type in generic local context}
 \begin{Verbatim}
-func f<T>(t: T) {
+fn f<T>(t: T) {
   struct Nested {  // error
     let t: T
 
-    func printT() {
+    fn printT() {
       print(t)
     }
   }
@@ -507,7 +507,7 @@ func f<T>(t: T) {
   Nested(t: t).printT()
 }
 
-func g() {
+fn g() {
   f(t: 123)
   f(t: "hello")
 }
@@ -521,7 +521,7 @@ In the source language, there is no way to specialize \texttt{Nested}; the refer
 A better representation for the specializations of nominal types would replace the parent type and list of generic arguments with a single ``flat'' list that includes all outer generic arguments as well. This approach could represent generic arguments coming from outer local contexts without loss of information.
 
 \index{runtime type metadata}
-Luckily, this ``flat'' representation is already implemented in the Swift runtime. The runtime type metadata for a nominal type includes all the generic parameters from the nominal type declaration's generic signature, not just the generic parameters of the nominal type declaration itself. So while lifting this restriction would require some engineering effort on the compiler side, it would be a backward-deployable and \index{ABI}ABI-compatible change.
+Luckily, this ``flat'' representation is already implemented in the Codira runtime. The runtime type metadata for a nominal type includes all the generic parameters from the nominal type declaration's generic signature, not just the generic parameters of the nominal type declaration itself. So while lifting this restriction would require some engineering effort on the compiler side, it would be a backward-deployable and \index{ABI}ABI-compatible change.
 
 \paragraph{Types in protocol contexts.} Allowing struct, enum and class declarations to appear inside protocols and protocol extensions would come down to deciding if the \IndexSelf protocol \tSelf\ type should be ``captured'' by the nested type.
 
@@ -535,12 +535,12 @@ extension P {
   struct Nested {  // error
     let value: Me  // because what would this mean?
 
-    func method() {
+    fn method() {
       print(value)
     }
   }
   
-  func f() {
+  fn f() {
     Nested(value: self).method()
   }
 }
@@ -561,9 +561,9 @@ struct Outer {
 
 struct S: Outer.P {}
 
-func generic<T>(_: T) {
+fn generic<T>(_: T) {
   protocol P {  // error
-    func f(_: T)  // because what would this mean?
+    fn f(_: T)  // because what would this mean?
   }
 }
 \end{Verbatim}
@@ -574,7 +574,7 @@ func generic<T>(_: T) {
 \item Protocols inside non-generic declaration contexts.
 \item Protocols inside generic declaration contexts.
 \end{enumerate}
-The first case was originally prohibited, but is now permitted as of \IndexSwift{5.a@5.10}Swift~5.10 \cite{se0404}; the non-generic declaration context acts as a namespace to which the protocol declaration is scoped, but apart from the interaction with name lookup this has no other semantic consequences. The second case is more subtle. If we were to allow a ``generic protocol'' to be parameterized by its outer generic parameters in addition to just the protocol \IndexSelf\tSelf\ type, we would get what \index{Haskell}Haskell calls a \index{multi-parameter type class}``multi-parameter type class.'' Multi-parameter type classes introduce some complications, for example undecidable type inference~\cite{mptc}.
+The first case was originally prohibited, but is now permitted as of \IndexCodira{5.a@5.10}Codira~5.10 \cite{se0404}; the non-generic declaration context acts as a namespace to which the protocol declaration is scoped, but apart from the interaction with name lookup this has no other semantic consequences. The second case is more subtle. If we were to allow a ``generic protocol'' to be parameterized by its outer generic parameters in addition to just the protocol \IndexSelf\tSelf\ type, we would get what \index{Haskell}Haskell calls a \index{multi-parameter type class}``multi-parameter type class.'' Multi-parameter type classes introduce some complications, for example undecidable type inference~\cite{mptc}.
 
 \section{Reabstraction Thunks}
 
@@ -589,15 +589,15 @@ This is not the whole story; the representation of SIL function type is more ela
 
 Key source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/SubstitutionMap.h}
+\item \SourceFile{include/language/AST/SubstitutionMap.h}
 \item \SourceFile{lib/AST/SubstitutionMap.cpp}
 \item \SourceFile{lib/AST/TypeSubstitution.cpp}
 \end{itemize}
 Other source files:
 \begin{itemize}
-\item \SourceFile{include/swift/AST/GenericSignature.h}
-\item \SourceFile{include/swift/AST/Type.h}
-\item \SourceFile{include/swift/AST/Types.h}
+\item \SourceFile{include/language/AST/GenericSignature.h}
+\item \SourceFile{include/language/AST/Type.h}
+\item \SourceFile{include/language/AST/Types.h}
 \end{itemize}
 
 \IndexSource{type substitution}
@@ -687,7 +687,7 @@ Two overloads of the \texttt{get()} static method are defined for constructing s
 The type signature of a replacement type callback for \texttt{SubstitutionMap::get()}.
 \begin{verbatim}
 using TypeSubstitutionFn
-  = llvm::function_ref<Type(SubstitutableType *dependentType)>;
+  = toolchain::function_ref<Type(SubstitutableType *dependentType)>;
 \end{verbatim}
 The parameter type is always a \texttt{GenericTypeParamType *} when the callback is used with \texttt{SubstitutionMap::get()}.
 
@@ -717,7 +717,7 @@ QueryTypeSubstitutionMap{typeMap}
 \apiref{LookupConformanceFn}{type alias}
 The type signature of a conformance lookup callback for \texttt{SubstitutionMap::get()}.
 \begin{verbatim}
-using LookupConformanceFn = llvm::function_ref<
+using LookupConformanceFn = toolchain::function_ref<
     ProtocolConformanceRef(CanType origType,
                            Type substType,
                            ProtocolDecl *conformedProtocol)>;

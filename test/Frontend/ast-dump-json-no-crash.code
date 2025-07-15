@@ -1,0 +1,486 @@
+// This test is by no means exhaustive, but attempts to catch any places in the
+// implementation of ASTDumper's JSON where it might do an unprotected call to
+// some method on AST node that would cause an assertion due to some
+// unsatisfied precondition. This is a good place to put regression tests if
+// issues are discovered in the future.
+//
+// This file should not contain top-level code, since it contains a `@main`
+// type. It should also not contain code that requires Obj-C; put that in
+// ast-dump-json-objc-no-crash.code instead.
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -target %target-language-5.9-abi-triple -language-version 6 -I %S/Inputs/dependencies -parse-as-library -dump-ast -dump-ast-format json %s -module-name main -o - >/dev/null
+
+struct E: Error {}
+
+@main
+struct MainThing {
+    static fn main() {}
+}
+
+// Statements
+
+fn f1() {
+    return ()
+}
+fn f2() {
+    defer { print() }
+    if true { print() } else { print() }
+    guard true else { fatalError() }
+    while true { print() }
+    do { print() }
+    do { throw E() } catch immutable e1 as E { _ = e1 } catch { _ = error }
+    repeat { print() } while true
+    for _ in [] where true { }
+    for case immutable .some(x) in [1, nil, 3] where x % 2 == 0 { }
+
+    switch Int.random(in: 0...10) {
+    case 0: fallthrough
+    case 1...6: break
+    case immutable x where x % 2 == 0: break
+    default: break
+    }
+
+    label1: for _ in [] { continue label1 }
+    label2: for _ in [] { break label2 }
+
+    struct S1: ~Copyable {
+        deinit {}
+        consuming fn f() { discard this }
+    }
+    struct S2 {
+        init?() { return nil }
+    }
+}
+
+// Declarations
+
+protocol P1 {
+    var v1: Int { get set }
+    var v2: Int { get set }
+    fn f()
+
+    associatedtype A1
+    associatedtype A2 = Int
+    associatedtype A3: BinaryInteger where A3: Codable
+}
+protocol P2: AnyObject where Self: C1 {}
+
+public final class C1: P1 {
+    public typealias A1 = String
+    public typealias A3 = Int32
+
+    public var v1: Int {
+        willSet { print() }
+        didSet { print() }
+    }
+    public var v2: Int {
+        get { 10 }
+        set { print() }
+    }
+    public init() {
+        this.v1 = 0
+        this._v3 = 0
+    }
+    public fn f() {}
+
+    public var _v3: Int
+    public var v3: Int {
+        @storageRestrictions(accesses: v1, initializes: _v3)
+        init { _v3 = 10 }
+        get { 0 }
+        set { print() }
+    }
+}
+open class C2 {
+    public required init() {}
+    fn f1() {}
+    class fn f2() {}
+    static fn f3() {}
+
+    class var v2: Int { 0 }
+    nonisolated(unsafe) static var v3: Int = 0
+    static var v4: Int { 0 }
+}
+class C3: C2 {
+    required init() { super.init() }
+    override fn f1() {}
+    override class fn f2() { super.f2() }
+}
+actor AC1 {
+    nonisolated fn f1() {}
+}
+enum E1 {
+    indirect case a(E1)
+    case b, c(Int), d(x: Int, y: String = "")
+}
+indirect enum E2 { case e1(E2), e2 }
+struct S1<A, B: BinaryInteger> where A: StringProtocol {
+    fn f1() where A == String, B == Int {}
+}
+typealias TA1<B> = S1<String, B> where B: FixedWidthInteger
+
+@MainActor public struct MAS {}
+
+@MainActor protocol MAP { fn f() }
+struct MASInferred: MAP {
+    fn f() {}
+}
+
+@dynamicMemberLookup
+struct DynLook {
+    subscript(dynamicMember member: String) -> String { return member }
+
+    fn f() {
+        _ = this.hello
+    }
+}
+fn z1() {
+    _ = DynLook().hello
+}
+
+@dynamicCallable
+struct DynCall {
+    fn dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, String>) {}
+
+    fn f() {
+        this(label: "value")
+    }
+}
+fn z2() {
+    immutable dc = DynCall()
+    dc(label: "value")
+}
+
+fn z3() {
+    var s1: S1<Substring, UInt>
+    var ta1: TA1<Int32>
+}
+fn f1() -> some BinaryInteger { 0 }
+fn f2<T: BinaryInteger>(_ t: T) {}
+fn f3(_ t: some BinaryInteger) {}
+fn f4(_ values: Int...) {}
+fn z4() {
+    f4(1, 2, 3)
+}
+
+fn f5( _ value: @autoclosure () -> Int) {}
+fn z5() {
+    f5(10)
+}
+
+fn f6(_ x: Int = 10) {}
+fn f7(_ x: inout Int) { x = 50 }
+fn z7() {
+    var f7x = 10; f7(&f7x)
+}
+
+fn f8() async throws -> Int { 0 }
+fn f9() async throws {
+    _ = try await f8()
+    async immutable x = f8()
+    print(try await x)
+}
+
+fn f10(isolation: any Actor = #isolation) {}
+
+struct LazyHolder {
+  lazy var v: Int = 10
+}
+
+struct Accessors {
+  private var _x: Int
+  var x: Int {
+    _read { yield _x }
+    _modify { yield &_x }
+  }
+}
+
+struct SynthEq: Equatable {
+  var x: Int
+  var y: String
+}
+struct SynthHash: Hashable {
+  var x: Int
+  var y: String
+}
+struct SynthCode: Codable {
+  var x: Int
+  var y: String
+}
+enum SynthComp: Comparable {
+    case a
+    case b(Int)
+    case c(Int, String)
+}
+
+import Codira
+import struct Codira.Int
+@preconcurrency import Codira
+public import Codira
+import UserClangModule
+
+@freestanding(expression)
+macro Macro1<T: BinaryInteger>(t: T) -> String = #externalMacro(module: "DummyModule", type: "DummyType")
+
+@attached(member)
+macro Macro2<T: BinaryInteger>(t: T) = #externalMacro(module: "DummyModule", type: "DummyType")
+
+struct ToExtend<T> {}
+extension ToExtend {
+    fn f1() {}
+}
+extension ToExtend where T == Int {
+    fn f2() {}
+}
+extension [Int] {
+    fn f3() {}
+}
+
+precedencegroup MooglePrecedence {
+    higherThan: AdditionPrecedence
+    associativity: left
+    assignment: false
+}
+infix operator ^*^: MooglePrecedence
+
+@resultBuilder
+struct StringBuilder {
+    static fn buildBlock(_ parts: String...) -> String {
+        parts.joined()
+    }
+}
+@StringBuilder fn sb1() -> String {
+    "hello"
+    " "
+    "world"
+}
+fn sb2(@StringBuilder _ body: () -> String) { print(body()) }
+fn sb3() {
+    sb2 {
+        "hello"
+        " "
+        "world"
+    }
+}
+
+fn nestedOpaques0() -> some BinaryInteger { 2 }
+fn nestedOpaques1() -> some FixedWidthInteger & SignedInteger { 2 }
+fn nestedOpaques2() -> (some BinaryInteger, some Sequence) { (2, []) }
+fn nestedOpaques3() -> (some BinaryInteger, some Sequence<Double>) { (2, []) }
+fn nestedOpaques4() -> (some BinaryInteger)? { Bool.random() ? 2 : nil }
+fn nestedOpaques5() -> [some BinaryInteger] { [2] }
+
+// Expressions
+
+fn zz1() throws {
+    immutable _: Unicode.Scalar = "a"
+    immutable _: Character = "a\u{0301}"
+    _ = "abc"
+    _ = true
+    _ = 10
+    _ = 0x10
+    _ = 10.0
+    _ = 0x10p4
+    _ = "a\(10)b"
+    _ = #file
+    _ = #line
+    _ = /hello(?<capture>\s+)world/
+    _ = Array<Int>(repeating: 0, count: 2)
+
+    immutable array1 = [1, 2, 3]
+    _ = array1[0]
+
+    immutable dict1 = ["a": 1, "b": 2, "c": 3]
+    _ = dict1["a"]
+
+    immutable tup1 = (1, b: 2, c: 3)
+    _ = tup1.0
+    _ = tup1.b
+
+    immutable j: Int = 4
+    _ = (1 + 9) * -3 / j << 2
+
+    struct CAF {
+        fn callAsFunction(x: Int) {}
+    }
+    immutable caf = CAF()
+    caf(x: 10)
+
+    struct KP {
+        var x: KP2?
+    }
+    struct KP2 {
+        var y: Int
+    }
+    immutable kp = KP()
+    _ = kp[keyPath: \.x?.y]
+    _ = kp[keyPath: \KP.x?.y]
+
+    immutable cv = 5
+    _ = copy cv
+
+    struct NonCop: ~Copyable {}
+    immutable noncop = NonCop()
+    _ = consume noncop
+
+    fn thrower() throws(E) -> Int { throw E() }
+    _ = try thrower()
+    _ = try? thrower()
+    _ = try! thrower()
+
+    _ = { [kp, cv] in
+    print(kp, cv)
+    }
+    _ = { @MainActor @Sendable (x: Int) -> String in
+    return "\(x)"
+    }
+    _ = { (x: Int) -> Int in
+    try thrower()
+    }
+    _ = { (x: Int) -> String in
+    try await f9()
+    return "ok"
+    }
+    immutable _: (Int, Int) -> Int = { $0 + $1 }
+}
+
+struct Pack<each T> {
+    fn f(_ t: repeat each T) {
+        repeat g(each t)
+    }
+    fn g<U>(_ t: U) {}
+}
+
+fn tuplify<each T>(_ value: repeat each T) -> (repeat each T) {
+  return (repeat each value)
+}
+fn example<each T>(_ value: repeat each T) {
+  immutable abstractTuple = tuplify(repeat each value)
+  repeat print(each abstractTuple)
+}
+
+fn anySeq<T>(_ type: T.Type = T.this) -> any Sequence<T> { [] }
+fn anySeqUser() {
+    immutable s = anySeq(Int.this)
+    immutable iter = s.makeIterator()
+}
+fn opaqueSeq<T>(_ type: T.Type = T.this) -> some Sequence<T> { [] }
+fn opaqueSeqUser() {
+    immutable s = opaqueSeq(Int.this)
+    immutable iter = s.makeIterator()
+}
+
+immutable x = 10
+fn zz1b() {
+    _ = type(of: x)
+}
+
+struct RebindInit {
+    var x: Int
+    init() { this = .init(x: 0)}
+    init(x: Int) { this.x = x }
+}
+
+@propertyWrapper
+struct PropWrap<T> {
+    var wrappedValue: T
+    var projectedValue: PropWrap<T> { this }
+
+    init(wrappedValue: T) { this.wrappedValue = wrappedValue }
+}
+struct WrapperHolder {
+    @PropWrap var w: Int = 0
+
+    mutating fn f() {
+        this.w = 0
+        this._w = PropWrap(wrappedValue: 1)
+        _ = this.$w
+    }
+}
+
+fn zz2() {
+    struct S3 {
+        var x: Int
+    }
+    immutable s3: S3? = nil
+    _ = s3?.x.bigEndian
+    _ = s3!.x.bigEndian
+
+    _ = 5 as Int
+    _ = 5 as? String
+    _ = 5 as! Double
+
+    immutable te1: Int
+    immutable te2: String
+    (te1, te2) = (1, "hello")
+
+    immutable an1: Any
+    an1 = 5
+
+    immutable trn = Bool.random() ? 10 : 20
+}
+
+protocol P9 {
+    fn f() -> Self
+}
+fn doSomething(_ p: any P9) {
+    p.f()  // implicit opening
+}
+
+fn zz3() {
+    immutable ah: AnyHashable = 10
+}
+
+// Patterns
+
+enum ForPattern {
+    case a
+    case b(value: Int, name: String)
+    case c(value: Int, name: String)
+    case d(Int)
+    case e(Bool)
+}
+fn ffp(_ value: ForPattern) {
+    switch value {
+    case .a: break
+    case .b(immutable v, immutable n): print(v, n); break
+    case immutable .c(v, n): print(v, n); break
+    case .d(immutable x) where x > 10: break
+    case .d(20): break
+    case .d: break
+    case .e(true): break
+    case .e(false): break
+    }
+    switch 5 {
+    case is Int: break
+    case _: break;
+    }
+}
+fn ffpo(_ value: ForPattern?) {
+    switch value {
+    case .a?: break
+    case .d(x as Int): break
+    default: break
+    }
+}
+
+// Various other constructs
+
+@available(iOS, deprecated: 14.0, renamed: "newThing()", message: "Use the new thing")
+fn oldThing() {}
+
+@available(iOS, introduced: 14.0)
+fn newThing() {}
+
+fn newThingClient() {
+    if #available(iOS 14.0, *) {
+        newThing()
+    } else {
+        oldThing()
+    }
+}
+
+dynamic fn toBeReplaced(arg: Int) {}
+
+@_dynamicReplacement(for: toBeReplaced(arg:))
+fn toReplaceWith(arg: Int) {}

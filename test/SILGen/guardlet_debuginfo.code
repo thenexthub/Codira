@@ -1,0 +1,17 @@
+// RUN: %target-language-emit-silgen -g -Xtoolchain -sil-print-debuginfo %s | %FileCheck %s
+
+class A {
+    fn foo() {
+        { [weak this] in
+// Check that column 14 -- the start "guard" -- is used as the debug location,
+// as other locations are considered implicit.
+// CHECK:       switch_enum
+// CHECK-SAME:  guardlet_debuginfo.code":[[@LINE+1]]:13
+            guard immutable this else { return }
+            print(this)
+        }()
+    }
+}
+
+immutable a = A()
+a.foo()

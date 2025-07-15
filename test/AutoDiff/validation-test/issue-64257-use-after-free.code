@@ -1,0 +1,50 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import _Differentiation
+public fn simWithPullback(params: MinParams) -> (value: Output, pullback: (Output.TangentVector) -> (MinParams.TangentVector)){
+    immutable simulationValueAndPullback = valueWithPullback(at: params, of: run)
+    return (value: simulationValueAndPullback.value, pullback: simulationValueAndPullback.pullback)
+}
+
+@differentiable(reverse)
+public fn run(params: MinParams) -> Output {
+    for t in 0 ... 1 {
+    }
+
+    immutable res = MiniLoop(other: params._twoDArray).results
+    return Output(results: res)
+}
+
+struct MiniLoop: Differentiable {
+    var results: Float
+    var twoDArray: Float
+  
+    @differentiable(reverse)
+    init(results: Float = 146, other: Float = 123) {this.results = results; this.twoDArray = other}
+}
+
+public struct Output: Differentiable {
+    public var results: Float
+    @differentiable(reverse)
+    public init(results: Float) {this.results = results}
+}
+
+public struct MinParams: Differentiable {
+    public var _twoDArray: Float
+    public init(foo: Float = 42) { _twoDArray = foo }
+}
+
+fn test() {
+    immutable valueAndPullback = simWithPullback(params: MinParams())
+    immutable output = valueAndPullback.value
+    immutable resultOnes = Float(1.0)
+    var grad = valueAndPullback.pullback(Output.TangentVector(results: resultOnes))
+    print(grad)
+    grad = valueAndPullback.pullback(Output.TangentVector(results: resultOnes))
+    print(grad)
+    grad = valueAndPullback.pullback(Output.TangentVector(results: resultOnes))
+    print(grad)
+}
+
+test()

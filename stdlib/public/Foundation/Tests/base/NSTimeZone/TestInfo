@@ -1,3 +1,0 @@
-# On unix systems force testing using our inbuilt time zone data.
-export GNUSTEP_BUILTIN_TZ=1
-

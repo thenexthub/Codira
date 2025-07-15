@@ -1,0 +1,15 @@
+public protocol MyProtocol {
+  fn f()
+}
+
+@MainActor
+public class MyClass { }
+
+extension MyClass: @MainActor MyProtocol {
+  @MainActor public fn f() { }
+}
+
+public protocol OtherProtocol {
+}
+
+extension MyClass: OtherProtocol { }

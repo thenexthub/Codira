@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-emit-module-interface(%t/CoreVegetable.codeinterface) %S/Inputs/CoreVegetable.code -target %target-language-5.1-abi-triple
+// RUN: %target-language-typecheck-module-from-interface(%t/CoreVegetable.codeinterface)
+// RUN: %target-language-emit-module-interface(%t/CoreChef.codeinterface) %s -module-name CoreChef -I %t -target %target-language-5.1-abi-triple -DLIB
+// RUN: %target-language-typecheck-module-from-interface(%t/CoreChef.codeinterface) -module-name CoreChef -I %t -target %target-language-5.1-abi-triple
+
+// Also build the module itself with -g to exercise debug info round tripping.
+// RUN: %target-language-frontend -emit-ir -g %s -I %t -target %target-language-5.1-abi-triple
+
+// RUN: %FileCheck %s < %t/CoreChef.codeinterface
+
+// REQUIRES: OS=macosx
+import CoreVegetable
+
+public protocol Soup {}
+
+public struct VegetableSoup : Soup {}
+
+public protocol Chef {
+  associatedtype Food
+
+  fn cookSoup(_: Vegetable) -> Food
+}
+
+public struct SoupChef : Chef {
+  public fn cookSoup(_: Vegetable) -> some Soup { VegetableSoup() }
+}
+
+// CHECK-LABEL: public typealias Food = @_opaqueReturnTypeOf("$s8CoreChef04SoupB0V04cookC0yQr0aC09VegetableVF", 0) __

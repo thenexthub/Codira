@@ -1,0 +1,364 @@
+
+// RUN: %empty-directory(%t)
+// RUN: %build-clang-importer-objc-overlays
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk-nosource -I %t) -module-name objc_ir -I %S/Inputs/custom-modules -emit-ir -g -o - -primary-file %s | %FileCheck %s
+
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+import ObjectiveC
+import Foundation
+import objc_ext
+import TestProtocols
+import ObjCIRExtras
+import objc_generics
+
+// CHECK: @"\01L_selector_data(method:withFloat:)" = private global [18 x i8] c"method:withFloat:\00"
+// CHECK: @"\01L_selector_data(method:withDouble:)" = private global [19 x i8] c"method:withDouble:\00"
+// CHECK: @"\01L_selector_data(method:separateExtMethod:)" = private global [26 x i8] c"method:separateExtMethod:\00", section "__TEXT,__objc_methname,cstring_literals"
+
+// Instance method invocation
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir15instanceMethodsyySo1BCF"(ptr
+fn instanceMethods(_ b: B) {
+  // CHECK: load ptr, ptr @"\01L_selector(method:withFloat:)"
+  // CHECK: call i32 @objc_msgSend
+  var i = b.method(1, with: 2.5 as Float)
+  // CHECK: load ptr, ptr @"\01L_selector(method:withDouble:)"
+  // CHECK: call i32 @objc_msgSend
+  i = i + b.method(1, with: 2.5 as Double)
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir16extensionMethods1bySo1BC_tF"
+fn extensionMethods(b b: B) {
+  // CHECK:      load ptr, ptr @"\01L_selector(method:separateExtMethod:)", align 8
+  // CHECK:      [[T0:%.*]] = call ptr @objc_msgSend
+  // CHECK:      [[T1:%.*]] = {{.*}}call ptr @toolchain.objc.retainAutoreleasedReturnValue(ptr [[T0]])
+  // CHECK-NOT:  [[T0]]
+  // CHECK:      [[T1]]
+  b.method(1, separateExtMethod:1.5)
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir19initCallToAllocInit1iys5Int32V_tF"
+fn initCallToAllocInit(i i: CInt) {
+  // CHECK: call {{.*}} @"$sSo1BC3intABSgs5Int32V_tcfC"
+ 
+  B(int: i)
+}
+
+// CHECK-LABEL: linkonce_odr hidden {{.*}} @"$sSo1BC3intABSgs5Int32V_tcfC"
+// CHECK: call ptr @objc_allocWithZone
+
+// Indexed subscripting
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir19indexedSubscripting1b3idx1aySo1BC_SiSo1ACtF"
+fn indexedSubscripting(b b: B, idx: Int, a: A) {
+  // CHECK: load ptr, ptr @"\01L_selector(setObject:atIndexedSubscript:)", align 8
+  b[idx] = a
+
+  // CHECK: load ptr, ptr @"\01L_selector(objectAtIndexedSubscript:)"
+  var a2 = b[idx] as! A
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir17keyedSubscripting1b3idx1aySo1BC_So1ACAItF"
+fn keyedSubscripting(b b: B, idx: A, a: A) {
+  // CHECK: load ptr, ptr @"\01L_selector(setObject:forKeyedSubscript:)"
+  b[a] = a
+  // CHECK: load ptr, ptr @"\01L_selector(objectForKeyedSubscript:)"
+  var a2 = b[a] as! A
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir14propertyAccess1bySo1BC_tF"
+fn propertyAccess(b b: B) {
+   // CHECK: load ptr, ptr @"\01L_selector(counter)"
+   // CHECK: load ptr, ptr @"\01L_selector(setCounter:)"
+   b.counter = b.counter + 1
+
+   // CHECK: load ptr, ptr @"OBJC_CLASS_REF_$_B"
+   // CHECK: load ptr, ptr @"\01L_selector(sharedCounter)"
+   // CHECK: load ptr, ptr @"\01L_selector(setSharedCounter:)"
+   B.sharedCounter = B.sharedCounter + 1
+}
+
+// CHECK-LABEL: define hidden languagecc ptr @"$s7objc_ir8downcast1aSo1BCSo1AC_tF"(
+fn downcast(a a: A) -> B {
+  // CHECK: [[CLASS:%.*]] = load ptr, ptr @"OBJC_CLASS_REF_$_B"
+  // CHECK: [[T0:%.*]] = call ptr @{{.*}}(ptr [[CLASS]])
+  // CHECK: call ptr @language_dynamicCastObjCClassUnconditional(ptr [[A:%.*]], ptr [[T0]], {{.*}}) [[NOUNWIND:#[0-9]+]]
+  return a as! B
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir19almostSubscriptable3as11aySo06AlmostD0C_So1ACtF"
+fn almostSubscriptable(as1 as1: AlmostSubscriptable, a: A) {
+  as1.objectForKeyedSubscript(a)
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir13protocolTypes1a1bySo7NSMinceC_So9NSRuncing_ptF"(ptr %0, ptr %1) {{.*}} {
+fn protocolTypes(a a: NSMince, b: NSRuncing) {
+  // - (void)eatWith:(id <NSRuncing>)runcer;
+  a.eat(with: b)
+  // CHECK: [[SEL:%.*]] = load ptr, ptr @"\01L_selector(eatWith:)", align 8
+  // CHECK: call void @objc_msgSend(ptr {{%.*}}, ptr [[SEL]], ptr {{%.*}})
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir6getset1pySo8FooProto_p_tF"(ptr %0) {{.*}} {
+fn getset(p p: FooProto) {
+  // CHECK: load ptr, ptr @"\01L_selector(bar)"
+  // CHECK: load ptr, ptr @"\01L_selector(setBar:)"
+  immutable prop = p.bar
+  p.bar = prop
+}
+
+// CHECK-LABEL: define hidden languagecc ptr @"$s7objc_ir16protocolMetatype1pSo8FooProto_pXpSoAD_p_tF"(ptr %0) {{.*}} {
+fn protocolMetatype(p: FooProto) -> FooProto.Type {
+  // CHECK: = call ptr @language_getObjectType(ptr %0)
+  // CHECK-NOT: {{retain|release}}
+  // CHECK: [[RAW_RESULT:%.+]] = call ptr @processFooType(ptr {{%.+}})
+  // CHECK: [[LANGUAGE_RESULT:%.+]] = call ptr @language_getObjCClassMetadata(ptr [[RAW_RESULT]])
+  // CHECK-NOT: call void @language_unknownObjectRelease(ptr %0)
+  // CHECK: ret ptr [[LANGUAGE_RESULT]]
+  immutable type = processFooType(Codira.type(of: p))
+  return type
+} // CHECK: }
+
+class Impl: FooProto, AnotherProto {
+  @objc var bar: Int32 = 0
+}
+
+// CHECK-LABEL: define hidden languagecc ptr @"$s7objc_ir27protocolCompositionMetatype1pSo12AnotherProto_So03FooG0pXpAA4ImplC_tF"(ptr %0) {{.*}} {
+fn protocolCompositionMetatype(p: Impl) -> (FooProto & AnotherProto).Type {
+  // CHECK-NOT: {{retain|release}}
+  // CHECK: [[RAW_RESULT:%.+]] = call ptr @processComboType(ptr {{%.+}})
+  // CHECK: [[LANGUAGE_RESULT:%.+]] = call ptr @language_getObjCClassMetadata(ptr [[RAW_RESULT]])
+  // CHECK-NOT: call void @language_release(ptr %0)
+  // CHECK: ret ptr [[LANGUAGE_RESULT]]
+  immutable type = processComboType(Codira.type(of: p))
+  return type
+} // CHECK: }
+
+// CHECK-LABEL: define hidden languagecc ptr @"$s7objc_ir28protocolCompositionMetatype21pSo12AnotherProto_So03FooG0pXpAA4ImplC_tF"(ptr %0) {{.*}} {
+fn protocolCompositionMetatype2(p: Impl) -> (FooProto & AnotherProto).Type {
+  // CHECK-NOT: {{retain|release}}
+  // CHECK: [[RAW_RESULT:%.+]] = call ptr @processComboType2(ptr {{%.+}})
+  // CHECK: [[LANGUAGE_RESULT:%.+]] = call ptr @language_getObjCClassMetadata(ptr [[RAW_RESULT]])
+  // CHECK-NOT: @language_release
+  // CHECK: ret ptr [[LANGUAGE_RESULT]]
+  immutable type = processComboType2(Codira.type(of: p))
+  return type
+} // CHECK: }
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir17pointerPropertiesyySo14PointerWrapperCF"(ptr %0) {{.*}} {
+fn pointerProperties(_ obj: PointerWrapper) {
+  // CHECK: load ptr, ptr @"\01L_selector(setVoidPtr:)"
+  // CHECK: load ptr, ptr @"\01L_selector(setIntPtr:)"
+  // CHECK: load ptr, ptr @"\01L_selector(setIdPtr:)"
+  obj.voidPtr = nil as UnsafeMutableRawPointer?
+  obj.intPtr = nil as UnsafeMutablePointer?
+  obj.idPtr = nil as AutoreleasingUnsafeMutablePointer?
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir16strangeSelectorsyySo13CodiraNameTestCF"(ptr %0) {{.*}} {
+fn strangeSelectors(_ obj: CodiraNameTest) {
+  // CHECK: load ptr, ptr @"\01L_selector(:b:)"
+  obj.empty(a: 0, b: 0)
+}
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir20customFactoryMethodsyyF"() {{.*}} {
+fn customFactoryMethods() {
+  // CHECK: call languagecc ptr @"$sSo13CodiraNameTestC10dummyParamAByt_tcfCTO"
+  // CHECK: call languagecc ptr @"$sSo13CodiraNameTestC2ccABypSg_tcfCTO"
+  // CHECK: call languagecc ptr @"$sSo13CodiraNameTestC5emptyABs5Int32V_tcfCTO"
+  _ = CodiraNameTest(dummyParam: ())
+  _ = CodiraNameTest(cc: nil)
+  _ = CodiraNameTest(empty: 0)
+
+  // CHECK: load ptr, ptr @"\01L_selector(testZ)"
+  // CHECK: load ptr, ptr @"\01L_selector(testY:)"
+  // CHECK: load ptr, ptr @"\01L_selector(testX:xx:)"
+  // CHECK: load ptr, ptr @"\01L_selector(::)"
+  _ = CodiraNameTest.zz()
+  _ = CodiraNameTest.yy(aa: nil)
+  _ = CodiraNameTest.xx(nil, bb: nil)
+  _ = CodiraNameTest.empty(1, 2)
+
+  do {
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC5errorAByt_tKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC2aa5errorABypSg_yttKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC2aa5error5blockABypSg_ytyyctKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC5error5blockAByt_yyctKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC2aaABypSg_tKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC2aa5blockABypSg_yyctKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo18CodiraNameTestErrorC5blockAByyc_tKcfCTO"
+    _ = try CodiraNameTestError(error: ())
+    _ = try CodiraNameTestError(aa: nil, error: ())
+    _ = try CodiraNameTestError(aa: nil, error: (), block: {})
+    _ = try CodiraNameTestError(error: (), block: {})
+
+    _ = try CodiraNameTestError(aa: nil)
+    _ = try CodiraNameTestError(aa: nil, block: {})
+    _ = try CodiraNameTestError(block: {})
+
+    // CHECK: load ptr, ptr @"\01L_selector(testW:error:)"
+    // CHECK: load ptr, ptr @"\01L_selector(testW2:error:)"
+    // CHECK: load ptr, ptr @"\01L_selector(testV:)"
+    // CHECK: load ptr, ptr @"\01L_selector(testV2:)"
+    _ = try CodiraNameTestError.ww(nil)
+    _ = try CodiraNameTestError.w2(nil, error: ())
+    _ = try CodiraNameTestError.vv()
+    _ = try CodiraNameTestError.v2(error: ())
+  } catch _ {
+  }
+}
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo13CodiraNameTestC10dummyParamAByt_tcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(b)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo13CodiraNameTestC2ccABypSg_tcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(c:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC5errorAByt_tKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err1:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC2aa5errorABypSg_yttKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err2:error:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC2aa5error5blockABypSg_ytyyctKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err3:error:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC5error5blockAByt_yyctKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err4:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC2aaABypSg_tKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err5:error:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC2aa5blockABypSg_yyctKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err6:error:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo18CodiraNameTestErrorC5blockAByyc_tKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err7:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir29customFactoryMethodsInheritedyyF"() {{.*}} {
+fn customFactoryMethodsInherited() {
+  // CHECK: call languagecc ptr @"$sSo16CodiraNameTestSubC10dummyParamAByt_tcfCTO"
+  // CHECK: call languagecc ptr @"$sSo16CodiraNameTestSubC2ccABypSg_tcfCTO"
+  _ = CodiraNameTestSub(dummyParam: ())
+  _ = CodiraNameTestSub(cc: nil)
+
+  // CHECK: load ptr, ptr @"\01L_selector(testZ)"
+  // CHECK: load ptr, ptr @"\01L_selector(testY:)"
+  // CHECK: load ptr, ptr @"\01L_selector(testX:xx:)"
+  _ = CodiraNameTestSub.zz()
+  _ = CodiraNameTestSub.yy(aa: nil)
+  _ = CodiraNameTestSub.xx(nil, bb: nil)
+
+  do {
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC5errorAByt_tKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aa5errorABypSg_yttKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aa5error5blockABypSg_ytyyctKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC5error5blockAByt_yyctKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aaABypSg_tKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aa5blockABypSg_yyctKcfCTO"
+    // CHECK: call languagecc ptr @"$sSo21CodiraNameTestErrorSubC5blockAByyc_tKcfCTO"
+    _ = try CodiraNameTestErrorSub(error: ())
+    _ = try CodiraNameTestErrorSub(aa: nil, error: ())
+    _ = try CodiraNameTestErrorSub(aa: nil, error: (), block: {})
+    _ = try CodiraNameTestErrorSub(error: (), block: {})
+
+    _ = try CodiraNameTestErrorSub(aa: nil)
+    _ = try CodiraNameTestErrorSub(aa: nil, block: {})
+    _ = try CodiraNameTestErrorSub(block: {})
+
+    // CHECK: load ptr, ptr @"\01L_selector(testW:error:)"
+    // CHECK: load ptr, ptr @"\01L_selector(testW2:error:)"
+    // CHECK: load ptr, ptr @"\01L_selector(testV:)"
+    // CHECK: load ptr, ptr @"\01L_selector(testV2:)"
+    _ = try CodiraNameTestErrorSub.ww(nil)
+    _ = try CodiraNameTestErrorSub.w2(nil, error: ())
+    _ = try CodiraNameTestErrorSub.vv()
+    _ = try CodiraNameTestErrorSub.v2(error: ())
+  } catch _ {
+  }
+}
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo16CodiraNameTestSubC10dummyParamAByt_tcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(b)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo16CodiraNameTestSubC2ccABypSg_tcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(c:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC5errorAByt_tKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err1:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aa5errorABypSg_yttKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err2:error:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aa5error5blockABypSg_ytyyctKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err3:error:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC5error5blockAByt_yyctKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err4:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aaABypSg_tKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err5:error:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC2aa5blockABypSg_yyctKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err6:error:callback:)"
+// CHECK: }
+
+// CHECK-LABEL: define linkonce_odr hidden languagecc ptr @"$sSo21CodiraNameTestErrorSubC5blockAByyc_tKcfCTO"
+// CHECK: load ptr, ptr @"\01L_selector(err7:callback:)"
+// CHECK: }
+
+
+// CHECK-LABEL: define hidden languagecc void @"$s7objc_ir30testCompatibilityAliasMangling3objySo13CodiraNameTestC_tF"
+fn testCompatibilityAliasMangling(obj: CodiraNameAlias) {
+  // CHECK: #dbg_declare(ptr {{%.+}}, ![[LANGUAGE_NAME_ALIAS_VAR:[0-9]+]], !DIExpression()
+}
+
+fn testGenericCompatibilityAliasMangling(generic_obj: CodiraGenericNameAlias<NSNumber>) {
+  // CHECK: #dbg_declare(ptr {{%.+}}, ![[LANGUAGE_GENERIC_NAME_ALIAS_VAR:[0-9]+]], !DIExpression()
+}
+
+fn testConstrGenericCompatibilityAliasMangling(constr_generic_obj: CodiraConstrGenericNameAlias<NSNumber>) {
+  // CHECK: #dbg_declare(ptr {{%.+}}, ![[LANGUAGE_CONSTR_GENERIC_NAME_ALIAS_VAR:[0-9]+]], !DIExpression()
+}
+
+// CHECK-LABEL: s7objc_ir22testBlocksWithGenerics3hbaypSo13HasBlockArrayC_tF
+fn testBlocksWithGenerics(hba: HasBlockArray) -> Any {
+  // CHECK: s7objc_ir22testBlocksWithGenerics3hbaypSo13HasBlockArrayC_tFSayyyXBGycAEcfu_AFycfu0_TA
+  immutable _ = hba.blockPointerType()
+  return hba.blockArray
+}
+
+
+// CHECK-LABEL: linkonce_odr hidden {{.*}} @"$sSo1BC3intABSgs5Int32V_tcfcTO"
+// CHECK: load ptr, ptr @"\01L_selector(initWithInt:)"
+// CHECK: call ptr @objc_msgSend
+
+// CHECK: attributes [[NOUNWIND]] = { nounwind memory(read) }
+
+// CHECK-DAG: ![[LANGUAGE_NAME_ALIAS_VAR]] = !DILocalVariable(name: "obj", arg: 1, scope: !{{[0-9]+}}, file: !{{[0-9]+}}, line: 328, type: ![[LET_LANGUAGE_NAME_ALIAS_TYPE:[0-9]+]])
+// CHECK-DAG: ![[LET_LANGUAGE_NAME_ALIAS_TYPE]] = !DIDerivedType(tag: DW_TAG_const_type, baseType: ![[LANGUAGE_NAME_ALIAS_TYPE:[0-9]+]])
+// CHECK-DAG: ![[LANGUAGE_NAME_ALIAS_TYPE]] = !DIDerivedType(tag: DW_TAG_typedef, name: "$sSo14CodiraNameAliasaD", scope: !{{[0-9]+}}, file: !{{[0-9]+}}, baseType: !{{[0-9]+}})
+
+// CHECK-DAG: ![[LANGUAGE_GENERIC_NAME_ALIAS_VAR]] = !DILocalVariable(name: "generic_obj", arg: 1, scope: !{{[0-9]+}}, file: !{{[0-9]+}}, line: {{[0-9]+}}, type: ![[LET_LANGUAGE_GENERIC_NAME_ALIAS_TYPE:[0-9]+]])
+// CHECK-DAG: ![[LET_LANGUAGE_GENERIC_NAME_ALIAS_TYPE]] = !DIDerivedType(tag: DW_TAG_const_type, baseType: ![[LANGUAGE_GENERIC_NAME_ALIAS_TYPE:[0-9]+]])
+// CHECK-DAG: ![[LANGUAGE_GENERIC_NAME_ALIAS_TYPE]] = !DIDerivedType(tag: DW_TAG_typedef, name: "$sSo21CodiraGenericNameAliasaySo8NSNumberCGD", scope: !{{[0-9]+}}, file: !{{[0-9]+}}, baseType: !{{[0-9]+}})
+
+// CHECK-DAG: ![[LANGUAGE_CONSTR_GENERIC_NAME_ALIAS_VAR]] = !DILocalVariable(name: "constr_generic_obj", arg: 1, scope: !{{[0-9]+}}, file: !{{[0-9]+}}, line: {{[0-9]+}}, type: ![[LET_LANGUAGE_CONSTR_GENERIC_NAME_ALIAS_TYPE:[0-9]+]])
+// CHECK-DAG: ![[LET_LANGUAGE_CONSTR_GENERIC_NAME_ALIAS_TYPE]] = !DIDerivedType(tag: DW_TAG_const_type, baseType: ![[LANGUAGE_CONSTR_GENERIC_NAME_ALIAS_TYPE:[0-9]+]])
+// CHECK-DAG: ![[LANGUAGE_CONSTR_GENERIC_NAME_ALIAS_TYPE]] = !DIDerivedType(tag: DW_TAG_typedef, name: "$sSo27CodiraConstrGenericNameAliasaySo8NSNumberCGD", scope: !{{[0-9]+}}, file: !{{[0-9]+}}, baseType: !{{[0-9]+}})

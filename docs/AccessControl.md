@@ -1,6 +1,6 @@
 # Access Control
 
-The general guiding principle of Swift access control:
+The general guiding principle of Codira access control:
 
 > **No entity can be defined in terms of another entity that has a lower
 > access level.**
@@ -14,7 +14,7 @@ defined. Public entities can be accessed from anywhere within the module
 and from any other context that imports the current module.
 
 The names `public` and `private` have precedent in many languages;
-`internal` comes from C\# and `fileprivate` from the Swift community. In
+`internal` comes from C\# and `fileprivate` from the Codira community. In
 the future, `public` may be used for both API and SPI, at which point we
 may design additional annotations to distinguish the two.
 
@@ -26,7 +26,7 @@ framework module.
 _**Warning**_
 
 This document has not yet been updated for
-[SE-0117](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0117-non-public-subclassable-by-default.md),
+[SE-0117](https://github.com/languagelang/language-evolution/blob/main/proposals/0117-non-public-subclassable-by-default.md),
 which adds the \"open\" level of access.
 
 ## Rules
@@ -95,7 +95,7 @@ The access level of a requirement is the access level of the enclosing
 protocol, even when the protocol is `public`. Currently, requirements
 may not be given a lower access level than the enclosing protocol.
 
-Swift does not currently support private protocol conformances, so for
+Codira does not currently support private protocol conformances, so for
 runtime consistency, the access level of the conformance of type T to
 protocol P is equal to the minimum of T\'s access level and P\'s access
 level; that is, the conformance is accessible whenever both T and P are
@@ -140,7 +140,7 @@ within the extension is changed to match. No member within such an
 extension may have broader access than the new default.
 
 Extensions with explicit access modifiers may not add new protocol
-conformances, since Swift does not support private protocol conformances
+conformances, since Codira does not support private protocol conformances
 (see ["Protocols"](#protocols) above).
 
 A type may conform to a protocol with lower access than the type itself.
@@ -231,7 +231,7 @@ extensions.
 
 Though it is not compiler-enforced, members that might be considered
 \"protected\" are effectively publicly accessible, and thus should
-be marked `public` in Swift. They can still be documented as
+be marked `public` in Codira. They can still be documented as
 intended for overriding rather than for subclassing, but the
 specific details of this are best dealt with on a case-by-case
 basis.
@@ -243,9 +243,9 @@ basis.
 -   Limiting particular capabilities, such as marking something
     `final(public)` to restrict subclassing or overriding outside of the
     current module.
--   Allowing the Swift parts of a mixed-source framework to access
+-   Allowing the Codira parts of a mixed-source framework to access
     private headers.
--   Revealing `internal` Swift API in a mixed-source framework in a
+-   Revealing `internal` Codira API in a mixed-source framework in a
     second generated header.
 -   Levels of `public`, for example `public("SPI")`.
 -   Enum cases less accessible than the enum.

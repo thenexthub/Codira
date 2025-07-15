@@ -1,12 +1,12 @@
-# swift_build_support/products/foundationtests.py -----------------------*- python -*-
+# language_build_support/products/foundationtests.py -----------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2024 Apple Inc. and the Swift project authors
+# Copyright (c) 2024 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -17,16 +17,16 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
-from . import swiftsyntax
+from . import language
+from . import languagepm
+from . import languagesyntax
 from . import xctest
 from .. import shell
 
 
-class SwiftFoundationTests(product.Product):
+class CodiraFoundationTests(product.Product):
     @classmethod
     def is_build_script_impl_product(cls):
         return False
@@ -53,18 +53,21 @@ class SwiftFoundationTests(product.Product):
         return self.args.test_foundation
 
     def configuration(self):
-        return 'release' if self.is_release() else 'debug'
+        if self.args.foundation_tests_build_variant in ['Release', 'RelWithDebInfo']:
+            return 'release'
+        else:
+            return 'debug'
 
     def test(self, host_target):
-        swift_exec = os.path.join(
+        language_exec = os.path.join(
             self.install_toolchain_path(host_target),
             'bin',
-            'swift'
+            'language'
         )
-        package_path = os.path.join(self.source_dir, '..', 'swift-foundation')
+        package_path = os.path.join(self.source_dir, '..', 'language-foundation')
         package_path = os.path.abspath(package_path)
         cmd = [
-            swift_exec,
+            language_exec,
             'test',
             '--toolchain', self.install_toolchain_path(host_target),
             '--configuration', self.configuration(),
@@ -78,19 +81,19 @@ class SwiftFoundationTests(product.Product):
         # debug info. Workaround this issue by building without debug info.
         # rdar://137760869
         if host_target.startswith('linux'):
-            cmd += ['-Xswiftc', '-gnone']
+            cmd += ['-Xlanguagec', '-gnone']
 
-        shell.call(cmd, env={'SWIFTCI_USE_LOCAL_DEPS': '1'})
+        shell.call(cmd, env={'LANGUAGECI_USE_LOCAL_DEPS': '1'})
 
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM,
-                swiftsyntax.SwiftSyntax]
+                languagepm.CodiraPM,
+                languagesyntax.CodiraSyntax]

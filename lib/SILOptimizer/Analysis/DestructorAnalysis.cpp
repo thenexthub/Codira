@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Analysis/DestructorAnalysis.h"
@@ -20,7 +21,7 @@
 #include "language/AST/Module.h"
 #include "language/AST/LazyResolver.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/Support/Debug.h"
 
 #define DEBUG_TYPE "destructor-analysis"
 
@@ -33,11 +34,11 @@ using namespace language;
 ///    whose type parameters are safe types T1...Tn.
 bool DestructorAnalysis::mayStoreToMemoryOnDestruction(SILType T) {
   bool IsSafe = isSafeType(T.getASTType());
-  LLVM_DEBUG(llvm::dbgs() << " DestructorAnalysis::"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << " DestructorAnalysis::"
                              "mayStoreToMemoryOnDestruction is"
                           << (IsSafe ? " false: " : " true: "));
-  LLVM_DEBUG(T.getASTType()->print(llvm::errs()));
-  LLVM_DEBUG(llvm::errs() << "\n");
+  TOOLCHAIN_DEBUG(T.getASTType()->print(toolchain::errs()));
+  TOOLCHAIN_DEBUG(toolchain::errs() << "\n");
   return !IsSafe;
 }
 
@@ -133,6 +134,6 @@ ASTContext &DestructorAnalysis::getASTContext() {
   return Mod->getASTContext();
 }
 
-SILAnalysis *swift::createDestructorAnalysis(SILModule *M) {
+SILAnalysis *language::createDestructorAnalysis(SILModule *M) {
   return new DestructorAnalysis(M);
 }

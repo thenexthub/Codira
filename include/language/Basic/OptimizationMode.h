@@ -1,4 +1,4 @@
-//===-------- OptimizationMode.h - Swift optimization modes -----*- C++ -*-===//
+//===-------- OptimizationMode.h - Codira optimization modes -----*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_OPTIMIZATIONMODE_H
-#define SWIFT_BASIC_OPTIMIZATIONMODE_H
+#ifndef LANGUAGE_BASIC_OPTIMIZATIONMODE_H
+#define LANGUAGE_BASIC_OPTIMIZATIONMODE_H
 
 #include "language/Basic/InlineBitfield.h"
-#include "llvm/Support/DataTypes.h"
+#include "toolchain/Support/DataTypes.h"
 
 namespace language {
 
@@ -36,4 +37,4 @@ enum : unsigned { NumOptimizationModeBits =
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_OPTIMIZATIONMODE_H
+#endif // LANGUAGE_BASIC_OPTIMIZATIONMODE_H

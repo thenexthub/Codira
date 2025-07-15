@@ -1,0 +1,122 @@
+// RUN: %target-typecheck-verify-language
+
+#if language(>=1.0)
+  immutable w = 1
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+
+#if language(<1.2)
+#endif
+
+#if language(<4.2)
+  immutable a = 1
+#else
+  immutable a = 2
+#endif
+
+#if language(<1.0)
+   // This shouldn't emit any diagnostics.
+   asdf asdf asdf asdf
+#endif
+
+#if language(>=1.2)
+
+#if os(iOS)
+  immutable z = 1
+#else
+  immutable z = 1
+#endif
+
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#if os(iOS)
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#else
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+  // This shouldn't emit any diagnostics.
+  asdf asdf asdf asdf
+#endif
+
+#if !language(>=1.0)
+  // This shouldn't emit any diagnostics.
+  %#^*&
+#endif
+
+#if !language(<1000.0)
+  // This shouldn't emit any diagnostics.
+  %#^*&
+#endif
+
+#if language(">=7.1") // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+#if language("<7.1") // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+#if language(">=2n.2") // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+#if language("") // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+#if language(>=2.2.1)
+  _ = 2.2.1 // expected-error {{expected named member of numeric literal}}
+#endif
+
+class C {
+#if language(>=2.2.1)
+  immutable val = 2.2.1 // expected-error {{expected named member of numeric literal}}
+#endif
+}
+
+#if language(>=2.0, *) // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+#if language(>=, 2.0) // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+#if language(version: >=2.0) // expected-error@:5 {{'language' requires a single unlabeled argument for the version comparison}}
+#endif
+
+protocol P {
+#if language(>=2.2)
+  associatedtype Index
+#else
+  // There should be no warning here.
+  typealias Index
+
+  // There should be no error here.
+  adsf asdf asdf
+  %#^*&
+  fn foo(sdfsdfdsf adsf adsf asdf adsf adsf)
+#endif
+}
+
+#if language(>=2.2)
+  fn foo() {}
+#else
+  // There should be no error here.
+  fn foo(sdfsdfdsf adsf adsf asdf adsf adsf)
+#endif
+
+struct S {
+#if language(>=2.2)
+  immutable x: Int
+#else
+  // There should be no error here.
+  immutable x: @#$()%&*)@#$(%&*
+#endif
+}
+
+#if language(>=2.2)
+var zzz = "zzz"
+#else
+// There should be no error here.
+var zzz = zzz
+#endif

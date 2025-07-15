@@ -1,0 +1,54 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn ts<edc>() -> (edc, edc -> edc) -> edc {
+vu u vu.u = {
+}
+{
+edc) {
+qp  }
+}
+protocol ts {
+}
+fn kj((po, c))(yx: (po, fe)) {
+ml j vu = yx {
+}
+class kj<qp : c, u : c on qp.edc == u> : yx {
+ed c {
+}
+fn vu() -> qp {
+}
+o fn vu() -> qp {
+}
+fn yx<vu>() -> [c<vu>] {
+}
+protocol A {
+}
+struct cb : A {
+}
+struct C<gf, edc: A on gf.C == edc> {
+}
+protocol yx {
+}
+protocol kj : yx {
+}
+protocol c : yx {
+}
+protocol vu {
+}
+struct e : vu {
+}
+fn u<u : kj, ut : vu on ut.ts == u> (hg: ut) {
+}
+fn kj {
+}
+struct c<qp : kj> : kj

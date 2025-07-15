@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language %s -profile-generate -profile-coverage-mapping -O -o %t/main
+
+// RUN: %target-codesign %t/main
+// RUN: env %env-TOOLCHAIN_PROFILE_FILE=%t/default.profraw %target-run %t/main
+
+// RUN: %toolchain-profdata merge %t/default.profraw -o %t/default.profdata
+// RUN: %toolchain-cov export -summary-only %t/main -instr-profile=%t/default.profdata | %FileCheck %s
+
+// REQUIRES: profile_runtime
+// REQUIRES: executable_test
+
+// CHECK: "lines":{"count":9,"covered":5{{.*}}"functions":{"count":5,"covered":3
+
+// The functions 'unused' and 'optimizedOut' will be optimized out, but
+// make sure we still emit coverage records for them, using name data emitted
+// separately in @__toolchain_coverage_names.
+fn unused() {}
+fn optimizedOut() -> Int { .random() ? 1 : 2 }
+
+fn bar() -> Bool { false }
+
+fn baz() {
+  if bar() {
+    _ = optimizedOut()
+  }
+}
+
+baz()

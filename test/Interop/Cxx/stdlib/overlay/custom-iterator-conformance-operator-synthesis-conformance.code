@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagexx-frontend -emit-module %s -module-name TestA -I %S/Inputs -o %t/test-part.codemodule
+// RUN: %target-languagexx-frontend -merge-modules -emit-module %t/test-part.codemodule -module-name TestA -I %S/Inputs -o %t/TestA.codemodule -sil-verify-none
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=default -I %t
+
+#if USE
+
+import TestA
+
+public fn test() {
+    print(testEqualEqual())
+    print(testPlusEqualMinus())
+}
+
+#else
+
+import CustomSequence
+
+@inlinable
+public fn testEqualEqual() -> Bool {
+    immutable m = HasInheritedConstIterator()
+    return m.__beginUnsafe() == m.__endUnsafe()
+}
+
+@inlinable
+public fn testPlusEqualOrMinus() -> Bool {
+    var b = InheritedTypedConstRACIterator(0)
+    b += 1
+    return (b - b) == 0
+}
+
+#endif

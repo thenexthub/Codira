@@ -1,0 +1,27 @@
+// REQUIRES: language_feature_SafeInteropWrappers
+
+// RUN: rm -rf %t
+// RUN: split-file %s %t
+// RUN: %target-language-ide-test -plugin-path %language-plugin-dir -I %t/Inputs -enable-experimental-feature SafeInteropWrappers -print-module -module-to-print=Method -source-filename=x | %FileCheck %s
+// RUN: %target-language-frontend -plugin-path %language-plugin-dir -I %t/Inputs -enable-experimental-feature SafeInteropWrappers %t/method.code -dump-macro-expansions -typecheck -verify
+
+// CHECK: class Foo {
+// CHECK:  fn bar(_ p: UnsafeMutableBufferPointer<Float>)
+
+//--- Inputs/module.modulemap
+module Method {
+    header "method.h"
+}
+
+//--- Inputs/method.h
+
+@interface Foo
+-(void)bar:(float *)p count:(int)len __attribute__((language_attr("@_CodiraifyImport(.countedBy(pointer: .param(1), count: \"len\"))")));
+@end
+
+//--- method.code
+import Method
+  
+fn test(foo: Foo, s: UnsafeMutableBufferPointer<Float>) {
+  foo.bar(s)
+}    

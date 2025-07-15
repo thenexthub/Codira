@@ -1,0 +1,107 @@
+// This test checks that the private_fileid attribute (LANGUAGE_PRIVATE_FILEID)
+// works as intended in class templates.
+//
+// At a high level, we are testing that, given some template class F<_> with
+// instantiations F<T> and F<U>:
+//
+// -  non-public members of F<T> can be accessed in extensions of F<T>
+//    (and same for F<U>)
+//
+// -  non-public members of F<T> cannot be access in extensions of F<U>
+//    (and same for F<U>/F<T>)
+//
+// See private-fileid-typecheck.code for tests relating to other aspects of
+// this feature, such as more kinds of non-public class members, accessing
+// non-public in different contexts, and variations in module and file names.
+//
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=default -module-name main %t/blessed.code
+
+//--- blessed.code
+
+import NonPublic
+
+// These extension methods are just here to make it clear what we are doing.
+extension Int32         { fn read() { } }
+extension Float         { fn read() { } }
+extension MyClass       { fn read() { } }
+extension MyFloatyClass { fn read() { } }
+extension MyClassyClass { fn read() { } }
+
+extension MyFloatyClass {
+    fn ext(t: Float, c: MyClass, x: MyClassyClass) {
+        publMethod()
+        privMethod()
+        publMethodT(t).read()
+        privMethodT(t).read()
+
+        publVar.read()
+        privVar.read()
+        publVarT.read()
+        privVarT.read()
+
+        immutable _: publTypedef
+        immutable _: privTypedef
+        immutable _: publTypedefT = t
+        immutable _: privTypedefT = t
+
+        immutable _: MyFloatyClass.publTypedef
+        immutable _: MyFloatyClass.privTypedef
+        immutable _: MyFloatyClass.publTypedefT = t
+        immutable _: MyFloatyClass.privTypedefT = t
+
+        x.publMethod()
+        x.privMethod()          // expected-error {{'privMethod' is inaccessible due to 'private' protection level}}
+        x.publMethodT(c).read()
+        x.privMethodT(c).read() // expected-error {{'privMethodT' is inaccessible due to 'private' protection level}}
+
+        x.publVar.read()
+        x.privVar.read()  // expected-error {{'privVar' is inaccessible due to 'private' protection level}}
+        x.publVarT.read()
+        x.privVarT.read() // expected-error {{'privVarT' is inaccessible due to 'private' protection level}}
+
+        immutable _: MyClassyClass.publTypedef
+        immutable _: MyClassyClass.privTypedef  // expected-error {{'privTypedef' is inaccessible due to 'private' protection level}}
+        immutable _: MyClassyClass.publTypedefT
+        immutable _: MyClassyClass.privTypedefT // expected-error {{'privTypedefT' is inaccessible due to 'private' protection level}}
+    }
+}
+
+extension MyClassyClass {
+    fn ext(t: MyClass, c: Float, x: MyFloatyClass) {
+        publMethod()
+        privMethod()
+        publMethodT(t).read()
+        privMethodT(t).read()
+
+        publVar.read()
+        privVar.read()
+        publVarT.read()
+        privVarT.read()
+
+        immutable _: publTypedef
+        immutable _: privTypedef
+        immutable _: publTypedefT = t
+        immutable _: privTypedefT = t
+
+        immutable _: MyClassyClass.publTypedef
+        immutable _: MyClassyClass.privTypedef
+        immutable _: MyClassyClass.publTypedefT = t
+        immutable _: MyClassyClass.privTypedefT = t
+
+        x.publMethod()
+        x.privMethod()          // expected-error {{'privMethod' is inaccessible due to 'private' protection level}}
+        x.publMethodT(c).read()
+        x.privMethodT(c).read() // expected-error {{'privMethodT' is inaccessible due to 'private' protection level}}
+
+        x.publVar.read()
+        x.privVar.read()  // expected-error {{'privVar' is inaccessible due to 'private' protection level}}
+        x.publVarT.read()
+        x.privVarT.read() // expected-error {{'privVarT' is inaccessible due to 'private' protection level}}
+
+        immutable _: MyFloatyClass.publTypedef
+        immutable _: MyFloatyClass.privTypedef  // expected-error {{'privTypedef' is inaccessible due to 'private' protection level}}
+        immutable _: MyFloatyClass.publTypedefT
+        immutable _: MyFloatyClass.privTypedefT // expected-error {{'privTypedefT' is inaccessible due to 'private' protection level}}
+    }
+}

@@ -1,0 +1,38 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name IndexWhileBuilding
+
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/idx)
+// RUN: %target-language-frontend -compile-module-from-interface -explicit-interface-module-build -module-name IndexWhileBuilding -index-store-path %/t/idx -index-include-locals -o %/t/IndexWhileBuilding.codemodule %s
+// RUN: c-index-test core -print-record %t/idx | %FileCheck %s
+
+import Codira
+// CHECK:        [[@LINE-1]]:8 | module/Codira | c:@M@Codira | Ref | rel: 0
+
+public struct MyStruct {
+  // CHECK:      [[@LINE-1]]:15 | struct/Codira | s:18IndexWhileBuilding8MyStructV | Def
+  public init()
+  // CHECK:      [[@LINE-1]]:10 | constructor/Codira | s:18IndexWhileBuilding8MyStructVACycfc | Def,RelChild
+  // CHECK-NEXT:    RelChild | s:18IndexWhileBuilding8MyStructV
+}
+
+@inlinable public fn myFunc() {
+  // CHECK:      [[@LINE-1]]:24 | function/Codira | s:18IndexWhileBuilding6myFuncyyF | Def
+  immutable s = MyStruct()
+  // CHECK:      [[@LINE-1]]:7 | function/acc-get(local)/Codira | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvg | Def,Impl,RelChild,RelAcc
+  // CHECK-NEXT:    RelChild,RelAcc | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvp
+  // CHECK:      [[@LINE-3]]:7 | function/acc-set(local)/Codira | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvs | Def,Impl,RelChild,RelAcc
+  // CHECK-NEXT:    RelChild,RelAcc | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvp
+  // CHECK:      [[@LINE-5]]:7 | variable(local)/Codira | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvp | Def,RelChild
+  // CHECK-NEXT:    RelChild | s:18IndexWhileBuilding6myFuncyyF
+  // CHECK:      [[@LINE-7]]:11 | struct/Codira | s:18IndexWhileBuilding8MyStructV | Ref,RelCont
+  // CHECK-NEXT:    RelCont | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvp
+  // CHECK:      [[@LINE-9]]:11 | constructor/Codira | s:18IndexWhileBuilding8MyStructVACycfc | Ref,Call,RelCall,RelCont
+  // CHECK-NEXT:    RelCont | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvp
+  // CHECK-NEXT:    RelCall | s:18IndexWhileBuilding6myFuncyyF
+  _ = s
+  // CHECK:      [[@LINE-1]]:7 | function/acc-get(local)/Codira | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvg | Ref,Call,Impl,RelCall,RelCont | rel: 1
+  // CHECK-NEXT:    RelCall,RelCont | s:18IndexWhileBuilding6myFuncyyF
+  // CHECK:      [[@LINE-3]]:7 | variable(local)/Codira | s:18IndexWhileBuilding6myFuncyyF1sL_AA8MyStructVvp | Ref,Read,RelCont | rel: 1
+  // CHECK-NEXT:    RelCont | s:18IndexWhileBuilding6myFuncyyF
+}

@@ -1,0 +1,5 @@
+// {"signature":"language::PatternTypeRequest::evaluate(language::Evaluator&, language::ContextualPattern) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+@objcMembers class a open extension a {
+  var b

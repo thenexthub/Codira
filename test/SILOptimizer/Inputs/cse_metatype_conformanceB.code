@@ -1,0 +1,13 @@
+import moda
+
+// module B
+extension A: P {
+  public static fn foo() {
+    print("modA\n")
+  }
+} // conformance B
+
+@inlinable
+public fn getPFromB() -> P.Type {
+  return A.this
+}

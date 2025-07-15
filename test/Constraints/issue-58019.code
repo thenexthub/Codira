@@ -1,0 +1,31 @@
+// RUN: %target-language-frontend -dump-ast %s | %FileCheck %s
+
+// https://github.com/apple/language/issues/58019
+
+fn fetch() {
+  // CHECK: open_existential_expr implicit type="Void"
+  // CHECK: opaque_value_expr implicit type="any MyError"
+  // CHECK-NOT: type="SryMap<$T{{.*}}>.Failure"
+  sryMap { return "" }
+  .napError{ $0.abc() }
+}
+
+fn sryMap<String>(_ transform: () -> String) -> SryMap<String> {
+  fatalError()
+}
+
+protocol MyError {}
+extension MyError {
+  fn abc() -> Void { }
+}
+
+protocol MyProto {
+  associatedtype Failure
+}
+extension MyProto {
+  fn napError(_ transform: (Self.Failure) -> Void) {}
+}
+
+struct SryMap<Output> : MyProto {
+  typealias Failure = MyError
+}

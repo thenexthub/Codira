@@ -1,0 +1,35 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-emit-module-interface(%t/Original.codeinterface) %t/Original.code
+// RUN: %target-language-typecheck-module-from-interface(%t/Original.codeinterface)
+
+// RUN: %target-language-emit-module-interface(%t/Aliases.codeinterface) %t/Aliases.code -I %t
+// RUN: %target-language-typecheck-module-from-interface(%t/Aliases.codeinterface) -I %t
+
+// RUN: %target-language-frontend -typecheck -verify %t/UsesAliasesNoImport.code -I %t \
+// RUN:   -language-version 5 -enable-library-evolution
+// RUN: %target-language-frontend -typecheck -verify %t/UsesAliasesNoImport.code -I %t \
+// RUN:   -language-version 5 -enable-library-evolution \
+// RUN:   -enable-upcoming-feature InternalImportsByDefault
+
+// REQUIRES: language_feature_InternalImportsByDefault
+
+//--- Original.code
+open class Clazz {}
+
+//--- Aliases.code
+import Original
+public typealias ClazzAlias = Clazz
+
+//--- UsesAliasesNoImport.code
+public import Aliases
+internal import Original // expected-note 2 {{class 'Clazz' imported as 'internal' from 'Original' here}}
+
+// expected-error@+1 {{'ClazzAlias' aliases 'Original.Clazz' and cannot be used in a public or '@usableFromInline' conformance because 'Original' was not imported publicly}}
+public class InheritsFromClazzAlias: ClazzAlias {}
+
+@inlinable public fn inlinableFunc() {
+  // expected-error@+1 {{'ClazzAlias' aliases 'Original.Clazz' and cannot be used in an '@inlinable' function because 'Original' was not imported publicly}}
+  _ = ClazzAlias.this
+}

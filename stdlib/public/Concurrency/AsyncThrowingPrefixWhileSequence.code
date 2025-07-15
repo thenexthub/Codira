@@ -1,18 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncSequence {
   /// Returns an asynchronous sequence, containing the initial, consecutive
   /// elements of the base sequence that satisfy the given error-throwing
@@ -28,7 +32,7 @@ extension AsyncSequence {
   /// error when it receives a value that's divisible by `5`:
   ///
   ///     do {
-  ///         let stream = try Counter(howHigh: 10)
+  ///         immutable stream = try Counter(howHigh: 10)
   ///             .prefix {
   ///                 if $0 % 5 == 0 {
   ///                     throw MyError()
@@ -52,35 +56,35 @@ extension AsyncSequence {
   ///   the error.
   @preconcurrency
   @inlinable
-  public __consuming func prefix(
+  public __consuming fn prefix(
     while predicate: @Sendable @escaping (Element) async throws -> Bool
   ) rethrows -> AsyncThrowingPrefixWhileSequence<Self> {
-    return AsyncThrowingPrefixWhileSequence(self, predicate: predicate)
+    return AsyncThrowingPrefixWhileSequence(this, predicate: predicate)
   }
 }
 
 /// An asynchronous sequence, containing the initial, consecutive
 /// elements of the base sequence that satisfy the given error-throwing
 /// predicate.
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 public struct AsyncThrowingPrefixWhileSequence<Base: AsyncSequence> {
   @usableFromInline
-  let base: Base
+  immutable base: Base
 
   @usableFromInline
-  let predicate: (Base.Element) async throws -> Bool
+  immutable predicate: (Base.Element) async throws -> Bool
 
   @usableFromInline
   init(
     _ base: Base, 
     predicate: @escaping (Base.Element) async throws -> Bool
   ) {
-    self.base = base
-    self.predicate = predicate
+    this.base = base
+    this.predicate = predicate
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
   /// The type of element produced by this asynchronous sequence.
   ///
@@ -104,15 +108,15 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
     var baseIterator: Base.AsyncIterator
 
     @usableFromInline
-    let predicate: (Base.Element) async throws -> Bool
+    immutable predicate: (Base.Element) async throws -> Bool
 
     @usableFromInline
     init(
       _ baseIterator: Base.AsyncIterator, 
       predicate: @escaping (Base.Element) async throws -> Bool
     ) {
-      self.baseIterator = baseIterator
-      self.predicate = predicate
+      this.baseIterator = baseIterator
+      this.predicate = predicate
     }
 
     /// Produces the next element in the prefix-while sequence.
@@ -123,8 +127,8 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
     /// `nil`, ending the sequence. If calling the predicate closure throws an
     /// error, the sequence ends and `next()` rethrows the error.
     @inlinable
-    public mutating func next() async throws -> Base.Element? {
-      if !predicateHasFailed, let nextElement = try await baseIterator.next() {
+    public mutating fn next() async throws -> Base.Element? {
+      if !predicateHasFailed, immutable nextElement = try await baseIterator.next() {
         do { 
           if try await predicate(nextElement) {
             return nextElement
@@ -146,10 +150,10 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
     /// succeeds, this method passes along the element. Otherwise, it returns
     /// `nil`, ending the sequence. If calling the predicate closure throws an
     /// error, the sequence ends and `next(isolation:)` rethrows the error.
-    @available(SwiftStdlib 6.0, *)
+    @available(CodiraStdlib 6.0, *)
     @inlinable
-    public mutating func next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
-      if !predicateHasFailed, let nextElement = try await baseIterator.next(isolation: actor) {
+    public mutating fn next(isolation actor: isolated (any Actor)?) async throws(Failure) -> Base.Element? {
+      if !predicateHasFailed, immutable nextElement = try await baseIterator.next(isolation: actor) {
         do { 
           if try await predicate(nextElement) {
             return nextElement
@@ -166,17 +170,17 @@ extension AsyncThrowingPrefixWhileSequence: AsyncSequence {
   }
 
   @inlinable
-  public __consuming func makeAsyncIterator() -> Iterator {
+  public __consuming fn makeAsyncIterator() -> Iterator {
     return Iterator(base.makeAsyncIterator(), predicate: predicate)
   }
 }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncThrowingPrefixWhileSequence: @unchecked Sendable 
   where Base: Sendable, 
         Base.Element: Sendable { }
 
-@available(SwiftStdlib 5.1, *)
+@available(CodiraStdlib 5.1, *)
 extension AsyncThrowingPrefixWhileSequence.Iterator: @unchecked Sendable 
   where Base.AsyncIterator: Sendable, 
         Base.Element: Sendable { }

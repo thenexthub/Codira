@@ -1,0 +1,12 @@
+fn withString(body: (String) -> Void) {}
+
+fn test(array: [String]) {
+  withString { element in
+    // RUN: %sourcekitd-test -req=cursor -pos=%(line + 1):9 %s -- %s | %FileCheck %s
+    immutable refToElement = element
+    
+    _ = invalid
+  }
+}
+
+// CHECK: <Declaration>immutable refToElement: <Type usr="s:SS">String</Type></Declaration>

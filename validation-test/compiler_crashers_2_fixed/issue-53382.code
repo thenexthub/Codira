@@ -1,0 +1,12 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/53382
+
+protocol P {}
+struct S<T> {}
+extension S : P where T : P {}
+
+fn foo(_ fn: (S<String>) -> Void) {}
+fn bar(_ fn: (P) -> Void) {
+  foo(fn)
+}

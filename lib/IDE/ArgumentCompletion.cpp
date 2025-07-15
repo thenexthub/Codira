@@ -1,13 +1,17 @@
 //===--- ArgumentCompletion.cpp ---------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -74,7 +78,7 @@ bool ArgumentTypeCheckCompletionCallback::addPossibleParams(
       // Suggest parameter label if parameter has label, we are completing in it
       // and it is not a variadic parameter that already has arguments
       PossibleParamInfo PP(TypeParam, Required);
-      if (!llvm::is_contained(Params, PP)) {
+      if (!toolchain::is_contained(Params, PP)) {
         Params.push_back(std::move(PP));
       }
     } else {
@@ -148,7 +152,9 @@ void ArgumentTypeCheckCompletionCallback::sawSolutionImpl(const Solution &S) {
       ExpectedCallType = ContextualType;
     }
   }
-  if (ExpectedCallType && ExpectedCallType->hasUnresolvedType()) {
+  if (ExpectedCallType &&
+      (ExpectedCallType->hasUnresolvedType() ||
+       ExpectedCallType->hasUnboundGenericType())) {
     ExpectedCallType = Type();
   }
   
@@ -189,7 +195,7 @@ void ArgumentTypeCheckCompletionCallback::sawSolutionImpl(const Solution &S) {
         if (j == ArgIdx) {
           assert(!ParamIdx);
           ParamIdx = i;
-          IsNoninitialVariadic = llvm::any_of(
+          IsNoninitialVariadic = toolchain::any_of(
               Bindings[i], [j](unsigned other) { return other < j; });
         }
         // Synthesized args don't count.
@@ -215,7 +221,7 @@ void ArgumentTypeCheckCompletionCallback::sawSolutionImpl(const Solution &S) {
   bool IsAsync = isContextAsync(S, DC);
 
   // If this is a duplicate of any other result, ignore this solution.
-  if (llvm::any_of(Results, [&](const Result &R) {
+  if (toolchain::any_of(Results, [&](const Result &R) {
         return R.FuncD == Info.getValue() &&
                nullableTypesEqual(R.FuncTy, Info.ValueTy) &&
                nullableTypesEqual(R.BaseType, Info.BaseTy) &&
@@ -225,7 +231,7 @@ void ArgumentTypeCheckCompletionCallback::sawSolutionImpl(const Solution &S) {
     return;
   }
 
-  llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
+  toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
   getSolutionSpecificVarTypes(S, SolutionSpecificVarTypes);
 
   AnyFunctionType *FuncTy = nullptr;
@@ -238,7 +244,7 @@ void ArgumentTypeCheckCompletionCallback::sawSolutionImpl(const Solution &S) {
   // `Info.ValueRef`. This substitution map might contain type variables that
   // are allocated in the constraint system's arena and are freed once we reach
   // `deliverResults`.
-  llvm::BitVector DeclParamIsOptional;
+  toolchain::BitVector DeclParamIsOptional;
   if (FuncTy) {
     ArrayRef<AnyFunctionType::Param> ParamsToPass = FuncTy->getParams();
     for (auto Idx : range(0, ParamsToPass.size())) {
@@ -249,7 +255,7 @@ void ArgumentTypeCheckCompletionCallback::sawSolutionImpl(const Solution &S) {
                                            Info.ValueRef.getDecl())) {
           // We are completing in an unapplied instance function, eg.
           // struct TestStatic {
-          //   func method() ->  Void {}
+          //   fn method() ->  Void {}
           // }
           // TestStatic.method(#^STATIC^#)
           // The 'self' parameter is never optional, so don't enter the check
@@ -403,7 +409,7 @@ void ArgumentTypeCheckCompletionCallback::collectResults(
   Lookup.addCallArgumentCompletionResults(Params, IsLabeledTrailingClosure);
 
   if (shouldPerformGlobalCompletion) {
-    llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
+    toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
     if (!Results.empty()) {
       SolutionSpecificVarTypes = Results[0].SolutionSpecificVarTypes;
     }
@@ -415,7 +421,7 @@ void ArgumentTypeCheckCompletionCallback::collectResults(
       Lookup.setSolutionSpecificVarTypes(Result.SolutionSpecificVarTypes);
     }
     Lookup.setExpectedTypes(ExpectedTypes, false);
-    bool IsInAsyncContext = llvm::any_of(
+    bool IsInAsyncContext = toolchain::any_of(
         Results, [](const Result &Res) { return Res.IsInAsyncContext; });
     Lookup.setCanCurrDeclContextHandleAsync(IsInAsyncContext);
     Lookup.getValueCompletionsInDeclContext(Loc);

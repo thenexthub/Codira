@@ -11,26 +11,32 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-//
-// This file defines the GenericTypeParamKind enum.
-//
+///
+/// This file defines the `GenericTypeParamKind` enum.
+///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_GENERICTYPEPARAMKIND_H
-#define SWIFT_AST_GENERICTYPEPARAMKIND_H
+#ifndef LANGUAGE_AST_GENERICTYPEPARAMKIND_H
+#define LANGUAGE_AST_GENERICTYPEPARAMKIND_H
+
+/// This header is included in a bridging header. Be *very* careful with what
+/// you include here! See include caveats in `ASTBridging.h`.
+#include "language/Basic/LanguageBridging.h"
+#include <stdint.h>
 
 namespace language {
 /// Describes the kind of a generic type parameter that occurs within generic
 /// parameter lists.
-enum class GenericTypeParamKind: uint8_t {
+enum class ENUM_EXTENSIBILITY_ATTR(closed) GenericTypeParamKind : uint8_t {
   /// A regular generic type parameter: 'T'
-  Type,
+  Type LANGUAGE_NAME("type"),
   /// A generic parameter pack: 'each T'
-  Pack,
+  Pack LANGUAGE_NAME("pack"),
   /// A generic value parameter: 'let T'
-  Value
+  Value LANGUAGE_NAME("value")
 };
 
 } // namespace language
-#endif // #ifndef SWIFT_AST_GENERICTYPEPARAMKIND_H
+#endif // #ifndef LANGUAGE_AST_GENERICTYPEPARAMKIND_H

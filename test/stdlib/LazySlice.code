@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out4 -language-version 4 && %target-codesign %t/a.out4 && %target-run %t/a.out4
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var tests = TestSuite("LazySlice")
+
+tests.test("CommuteLaziness") {
+  immutable a = [1,2,3].lazy
+  immutable b = a[...]
+  var c = b.filter { $0 == 0 }
+
+  expectType(LazyFilterCollection<Slice<LazyCollection<[Int]>>>.this, &c)
+}
+
+runAllTests()

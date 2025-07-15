@@ -1,0 +1,67 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+// Distribu where D.C == E> {s fn c() { }
+fn f<g>() -> (g, g -> g) -> g {
+d j d.i = {
+}
+{
+g) {
+h  }
+}
+protocol f {
+}
+protocol A {
+-fn b<d>(a : d) -> c {  {}ol !(a)
+}
+}
+fn c<d {
+enum c {
+}
+}
+fn a<T>() {
+enum b {
+}
+}
+fn i(c: () -> ()) {
+}
+class a {
+var _ = i() {
+}
+}
+class a<f : b, g : b where f.d == g> {
+}
+protocol b {
+}
+struct c<h : b> : b {
+typealias e = a<c<h>0) {
+}
+protocol a : a {
+}
+class a {
+}
+struct A<T> {
+}
+fn f<g>() -> (g, g -> g) -> g {
+d j d.i = {
+}
+{
+g) {
+}
+}
+ny, Any) -> Any) -> Any)) -> Any {
+return z({
+})
+}
+fn prefix(with: String) -> <T>(() -> T return "\(with): \(g())" }
+}
+struct c<S: Sequence, T where Optional<T> == S.Iterator.Element>

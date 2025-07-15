@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # cmpcodesize/main.py - Command-line entry point for cmpcodesize -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import collections
@@ -25,7 +25,7 @@ SHORTCUTS = {
     "O": "bin/Benchmark_O",
     "Osize": "bin/Benchmark_Osize",
     "Onone": "bin/Benchmark_Onone",
-    "dylib": "lib/swift/macosx/x86_64/libswiftCore.dylib",
+    "dylib": "lib/language/macosx/x86_64/liblanguageCore.dylib",
 }
 
 
@@ -36,14 +36,14 @@ def main():
 Compares code sizes of "new" files, taking "old" files as a reference.
 
 Environment variables:
-    SWIFT_NEW_BUILDDIR   The new build-dir
-E.g. .../swiftnew/build/Ninja-ReleaseAssert+stdlib-Release/swift-macosx-x86_64
-    SWIFT_OLD_BUILDDIR   The old build-dir
-E.g. .../swiftold/build/Ninja-ReleaseAssert+stdlib-Release/swift-macosx-x86_64
+    LANGUAGE_NEW_BUILDDIR   The new build-dir
+E.g. .../languagenew/build/Ninja-ReleaseAssert+stdlib-Release/language-macosx-x86_64
+    LANGUAGE_OLD_BUILDDIR   The old build-dir
+E.g. .../languageold/build/Ninja-ReleaseAssert+stdlib-Release/language-macosx-x86_64
 
 How to specify files:
 1) No files:
-    Compares codesize of the Benchmark_* executables and the swiftCore dylib in
+    Compares codesize of the Benchmark_* executables and the languageCore dylib in
     the new and old build-dirs.
     Example:
         cmpcodesize
@@ -54,7 +54,7 @@ How to specify files:
         O          => bin/Benchmark_O
         Osize      => bin/Benchmark_Osize
         Onone      => bin/Benchmark_Onone
-        dylib      => lib/swift/macosx/x86_64/libswiftCore.dylib
+        dylib      => lib/language/macosx/x86_64/liblanguageCore.dylib
     Examples:
         cmpcodesize Onone
         cmpcodesize benchmark/PerfTestSuite/O/*.o
@@ -163,17 +163,17 @@ How to specify files:
 
         old_build_dir = parsed_arguments.old_build_dir
         if not old_build_dir:
-            old_build_dir = os.environ.get("SWIFT_OLD_BUILDDIR")
+            old_build_dir = os.environ.get("LANGUAGE_OLD_BUILDDIR")
         new_build_dir = parsed_arguments.new_build_dir
         if not new_build_dir:
-            new_build_dir = os.environ.get("SWIFT_NEW_BUILDDIR")
+            new_build_dir = os.environ.get("LANGUAGE_NEW_BUILDDIR")
 
         if not parsed_arguments.files:
             assert old_build_dir and new_build_dir, \
                 'Incorrect usage: You must specify either a list of ' + \
-                'files, or have both $SWIFT_OLD_BUILDDIR and ' + \
-                '$SWIFT_NEW_BUILDDIR environment variables set.\n' + \
-                '$SWIFT_OLD_BUILDDIR = {0}\n$SWIFT_NEW_BUILDDIR = {1}'.format(
+                'files, or have both $LANGUAGE_OLD_BUILDDIR and ' + \
+                '$LANGUAGE_NEW_BUILDDIR environment variables set.\n' + \
+                '$LANGUAGE_OLD_BUILDDIR = {0}\n$LANGUAGE_NEW_BUILDDIR = {1}'.format(
                     old_build_dir, new_build_dir)
             old_file_args = list(SHORTCUTS.keys())
 

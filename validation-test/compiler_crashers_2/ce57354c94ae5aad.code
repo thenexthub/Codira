@@ -1,0 +1,10 @@
+// {"kind":"emit-silgen","signature":"language::CanTypeVisitor<language::Lowering::TypeConverter::computeLoweredRValueType(language::TypeExpansionContext, language::Lowering::AbstractionPattern, language::CanType)::LoweredRValueTypeVisitor, language::CanType>::visit(language::CanType)"}
+// RUN: not --crash %target-language-frontend -emit-silgen %s
+protocol a {
+  fn b() -> _
+}
+do {
+  fn c(d : a) {
+    immutable e = d.b
+  }
+}

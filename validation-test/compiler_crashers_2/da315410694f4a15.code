@@ -1,0 +1,7 @@
+// {"signature":"extendDepthMap(language::Expr*, toolchain::DenseMap<language::Expr*, std::__1::pair<unsigned int, language::Expr*>, toolchain::DenseMapInfo<language::Expr*, void>, toolchain::detail::DenseMapPair<language::Expr*, std::__1::pair<unsigned int, language::Expr*>>>&)::RecordingTraversal::walkToExprPost(language::Expr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  {
+    fn a {
+      if
+      #_hasSymbol(

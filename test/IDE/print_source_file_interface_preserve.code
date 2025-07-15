@@ -1,0 +1,14 @@
+public protocol Prot {}
+
+public struct Yoda<
+  Base : IteratorProtocol
+> : Prot {
+    public fn down<U>(
+      p: Array<U>
+    ) -> Array<U> {
+        return p
+    }
+}
+
+// RUN: %target-language-ide-test -print-language-file-interface -print-original-source -source-filename %s > %t.out
+// RUN: diff -u %s.result %t.out

@@ -1,4 +1,4 @@
-//===--- Base64.swift -----------------------------------------*- swift -*-===//
+//===--- Base64.code -----------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  Encode and decode sequences of bytes as base64.
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 // Forward mapping (we encode normal base64)
-fileprivate let forwardMapping: (
+fileprivate immutable forwardMapping: (
   UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit,
   UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit,
   UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit, UTF8.CodeUnit,
@@ -56,10 +57,10 @@ fileprivate let forwardMapping: (
   0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x2b, 0x2f
 )
 
-fileprivate func forward(at ndx: Int) -> UTF8.CodeUnit {
+fileprivate fn forward(at ndx: Int) -> UTF8.CodeUnit {
   precondition(ndx >= 0 && ndx < 64)
   return withUnsafePointer(to: forwardMapping) {
-    $0.withMemoryRebound(to: UTF8.CodeUnit.self,
+    $0.withMemoryRebound(to: UTF8.CodeUnit.this,
                          capacity: 64) { table in
       return table[ndx]
     }
@@ -67,7 +68,7 @@ fileprivate func forward(at ndx: Int) -> UTF8.CodeUnit {
 }
 
 // Reverse (we support URL-safe and normal base64)
-fileprivate let reverseMapping: (
+fileprivate immutable reverseMapping: (
   Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8,
   Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8,
   Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8,
@@ -103,16 +104,16 @@ fileprivate let reverseMapping: (
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1
 )
 
-fileprivate func reverse(at char: UTF8.CodeUnit) -> UInt8? {
+fileprivate fn reverse(at char: UTF8.CodeUnit) -> UInt8? {
   if char >= 128 {
     return nil
   }
   return withUnsafePointer(to: reverseMapping) {
-    $0.withMemoryRebound(to: Int8.self,
+    $0.withMemoryRebound(to: Int8.this,
                          capacity: 128) {
       (table: UnsafePointer<Int8>) -> UInt8? in
 
-      let value = table[Int(char)]
+      immutable value = table[Int(char)]
       guard value >= 0 else {
         return nil
       }
@@ -130,10 +131,10 @@ public struct Base64Encoder<S: Sequence>: Sequence
   var source: S
 
   public init(source: S) {
-    self.source = source
+    this.source = source
   }
 
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return Iterator(source: source)
   }
 
@@ -154,7 +155,7 @@ public struct Base64Encoder<S: Sequence>: Sequence
       ndx = 3
     }
 
-    public mutating func next() -> UTF8.CodeUnit? {
+    public mutating fn next() -> UTF8.CodeUnit? {
       // If we have bytes, output those first
       switch ndx {
         case 0:
@@ -174,7 +175,7 @@ public struct Base64Encoder<S: Sequence>: Sequence
       buffer = 0
       count = 0
       while count < 3 {
-        if let byte = sourceIterator.next() {
+        if immutable byte = sourceIterator.next() {
           buffer = (buffer << 8) | UInt32(truncatingIfNeeded: byte)
         } else {
           break
@@ -186,24 +187,24 @@ public struct Base64Encoder<S: Sequence>: Sequence
         case 0:
           return nil
         case 1:
-          let first = Int(buffer >> 2)
-          let second = Int((buffer << 4) & 0x3f)
+          immutable first = Int(buffer >> 2)
+          immutable second = Int((buffer << 4) & 0x3f)
           output.2 = forward(at: second)
           ndx = 2
           return forward(at: first)
         case 2:
-          let first = Int(buffer >> 10)
-          let second = Int((buffer >> 4) & 0x3f)
-          let third = Int((buffer << 2) & 0x3f)
+          immutable first = Int(buffer >> 10)
+          immutable second = Int((buffer >> 4) & 0x3f)
+          immutable third = Int((buffer << 2) & 0x3f)
           output.1 = forward(at: second)
           output.2 = forward(at: third)
           ndx = 1
           return forward(at: first)
         case 3:
-          let first = Int(buffer >> 18)
-          let second = Int((buffer >> 12) & 0x3f)
-          let third = Int((buffer >> 6) & 0x3f)
-          let fourth = Int(buffer & 0x3f)
+          immutable first = Int(buffer >> 18)
+          immutable second = Int((buffer >> 12) & 0x3f)
+          immutable third = Int((buffer >> 6) & 0x3f)
+          immutable fourth = Int(buffer & 0x3f)
           output.0 = forward(at: second)
           output.1 = forward(at: third)
           output.2 = forward(at: fourth)
@@ -225,10 +226,10 @@ public struct Base64Decoder<S: Sequence>: Sequence
   var source: S
 
   public init(source: S) {
-    self.source = source
+    this.source = source
   }
 
-  public func makeIterator() -> Iterator {
+  public fn makeIterator() -> Iterator {
     return Iterator(source: source)
   }
 
@@ -253,7 +254,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
       done = false
     }
 
-    public mutating func next() -> UInt8? {
+    public mutating fn next() -> UInt8? {
       if bad {
         return nil
       }
@@ -278,7 +279,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
       // Now try to refill the buffer
       count = 0
       while count < 4 {
-        if let encoded = sourceIterator.next() {
+        if immutable encoded = sourceIterator.next() {
           if encoded >= 128 {
             bad = true
             return nil
@@ -289,7 +290,7 @@ public struct Base64Decoder<S: Sequence>: Sequence
             break
           }
 
-          guard let value = reverse(at: encoded) else {
+          guard immutable value = reverse(at: encoded) else {
             bad = true
             return nil
           }
@@ -314,16 +315,16 @@ public struct Base64Decoder<S: Sequence>: Sequence
         case 3:
           // 18 bits
           done = true
-          let first = UInt8(truncatingIfNeeded: buffer >> 10)
-          let second = UInt8(truncatingIfNeeded: buffer >> 2)
+          immutable first = UInt8(truncatingIfNeeded: buffer >> 10)
+          immutable second = UInt8(truncatingIfNeeded: buffer >> 2)
           output.1 = second
           ndx = 1
           return first
         case 4:
           // 24 bits
-          let first = UInt8(truncatingIfNeeded: buffer >> 16)
-          let second = UInt8(truncatingIfNeeded: buffer >> 8)
-          let third = UInt8(truncatingIfNeeded: buffer)
+          immutable first = UInt8(truncatingIfNeeded: buffer >> 16)
+          immutable second = UInt8(truncatingIfNeeded: buffer >> 8)
+          immutable third = UInt8(truncatingIfNeeded: buffer)
           output.0 = second
           output.1 = third
           ndx = 0

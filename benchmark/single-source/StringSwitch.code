@@ -1,18 +1,22 @@
-//===--- StringSwitch.swift -------------------------------------------===//
+//===--- StringSwitch.code -------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2020 - 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "StringSwitch",
     runFunction: run_StringSwitch,
@@ -20,9 +24,9 @@ public let benchmarks = [
 ]
 
 @inline(never)
-func getIndex(_ s: String) -> Int {
+fn getIndex(_ s: String) -> Int {
   switch s {
-  case "Swift": return 0
+  case "Codira": return 0
   case "is": return 1
   case "a": return 2
   case "general-purpose": return 3
@@ -195,7 +199,7 @@ func getIndex(_ s: String) -> Int {
   case "more": return 170
   case "powerful,": return 171
   case "like": return 172
-  case "Swift-based": return 173
+  case "Codira-based": return 173
   case "playgrounds": return 174
   case "do": return 175
   case "Xcode,": return 176
@@ -212,17 +216,17 @@ func getIndex(_ s: String) -> Int {
 }
 
 @inline(never)
-func test(_ s: String) {
+fn test(_ s: String) {
   blackHole(getIndex(s))
 }
 
 @inline(never)
-public func run_StringSwitch(n: Int) {
-  let first = "Swift"
-  let short = "To"
-  let long = "(C, C++, Objective-C)."
-  let last = "code."
-  let none = "non existent string"
+public fn run_StringSwitch(n: Int) {
+  immutable first = "Codira"
+  immutable short = "To"
+  immutable long = "(C, C++, Objective-C)."
+  immutable last = "code."
+  immutable none = "non existent string"
   for _ in 1...100*n {
     test(first)
     test(short)

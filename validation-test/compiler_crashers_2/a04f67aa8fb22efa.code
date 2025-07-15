@@ -1,0 +1,5 @@
+// {"signature":"checkRequirementsImpl(toolchain::ArrayRef<language::Requirement>, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < Element {
+  b {
+    class c : Collection { typealias Index = d subscript(e :

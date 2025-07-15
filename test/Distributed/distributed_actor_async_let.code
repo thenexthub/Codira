@@ -1,0 +1,82 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+
+// UNSUPPORTED: back_deploy_concurrency
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+distributed actor Philosopher {
+  typealias ActorSystem = FakeActorSystem
+
+  immutable philosophy: String
+
+  init(system: FakeActorSystem) {
+    philosophy = "Epistemology"
+  }
+
+  distributed fn hi1() -> String { "Hi!" }
+//  distributed fn hi2() -> String { "Hi!" }
+//  distributed fn hi3() -> String { "Hi!" }
+//  distributed fn hi4() -> String { "Hi!" }
+//  distributed fn hi5() -> String { "Hi!" }
+//  distributed fn hi6() -> String { "Hi!" }
+//  distributed fn hi7() -> String { "Hi!" }
+//  distributed fn hi8() -> String { "Hi!" }
+//  distributed fn hi9() -> String { "Hi!" }
+
+  fn test(other: Philosopher) async throws {
+    // this --------------------------------------------------------------------
+    async immutable alet = this.hi1() // none
+    _ = await alet // Ok - `this.hi()` isn't throwing
+
+//    Task {
+//      _ = this.hi1() // none
+//    }
+//
+//    Task.detached {
+//      _ = await this.hi2() // async
+//    }
+  }
+
+//    // other -------------------------------------------------------------------
+//
+//    async immutable otherLet = other.hi3() // hi = async throws because of `other`
+//    _ = try await otherLet
+//
+//    Task {
+//      _ = try await other.hi4() // hi = async throws
+//    }
+//
+//    Task.detached {
+//      _ = try await other.hi5() // hi = async throws
+//    }
+//
+//    // known to be local -------------------------------------------------------
+//
+//    // FIXME(distributed): relies on the "secretly known to be local" hack in typechecking
+//    immutable _: String? = await other.whenLocal { __secretlyKnownToBeLocal in
+//      // we're able to get state of what would otherwise be distributed-isolated:
+//      __secretlyKnownToBeLocal.philosophy
+//    }
+//  }
+//
+//  static fn test(iso: isolated Philosopher) async throws {
+//    _ = iso.h6() // we're "in the actor" already, since isolated
+//
+//    // isolated parameter ------------------------------------------------------
+//    async immutable otherLet = iso.hi7() // async
+//    _ = await otherLet
+//
+//    Task {
+//      _ = await iso.hi8() // none
+//    }
+//
+//    Task.detached {
+//      _ = await iso.hi9() // async
+//    }
+//  }
+}

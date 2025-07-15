@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-swift  -c -whole-module-optimization -parse-as-library -parse-stdlib -Xtoolchain -basic-dynamic-replacement -module-name Codira -emit-module -runtime-compatibility-version none -emit-module-path %t/Codira.swiftmodule -o %t/Codira.o %S/Inputs/Codira.swift
+// RUN: ls %t/Codira.swiftmodule
+// RUN: ls %t/Codira.swiftdoc
+// RUN: ls %t/Codira.o
+// RUN: %target-clang -x c -c %S/Inputs/RuntimeStubs.c -o %t/RuntimeStubs.o
+// RUN: %target-build-swift -I %t -runtime-compatibility-version none -module-name main -o %t/hello %S/Inputs/main.swift %t/Codira.o %t/RuntimeStubs.o
+// RUN: %target-codesign %t/hello
+// RUN: %target-run %t/hello | %FileCheck %s
+// REQUIRES: executable_test
+// CHECK: Hello
+

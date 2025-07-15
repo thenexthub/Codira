@@ -1,0 +1,91 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend %t/test.code -I %t/Inputs -typecheck -enable-library-evolution -enable-experimental-cxx-interop -verify
+
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+//--- Inputs/module.modulemap
+module ObjCxxModule {
+    header "header.h"
+    requires cplusplus
+}
+
+//--- Inputs/header.h
+
+#import <Foundation/Foundation.h>
+
+class CxxStruct {
+public:
+    int x; int y;
+
+    void method() const;
+};
+
+@interface ObjCClass: NSObject
+
+- (void)myTestMethod;
+- (int *)returnsIntPtr;
+
+- (CxxStruct)testMethodReturnsCxxStruct;
+- (void)testMethodTakesCxxStructPtr: (CxxStruct * _Nullable) ptr;
++ (ObjCClass * _Nonnull)getInstance;
+
+@property int intProp;
+@property(copy) ObjCClass * _Nonnull objcClassProp;
+@property CxxStruct * structPtrProp;
+
+@end
+
+using ObjCClassTypealias = ObjCClass * _Nonnull;
+
+@protocol ObjCProto
+
+- (void)testProto;
+
+@end
+
+using QualIDTypeAlias = id<ObjCProto>;
+
+using BuiltinIntTypealis = int;
+
+//--- test.code
+
+import ObjCxxModule
+
+// ok
+public fn usesObjCClass() -> ObjCClass {
+    return ObjCClass.getInstance()
+}
+
+public fn usesObjCClassTypealias(_ x: ObjCClassTypealias) {
+}
+
+public fn usesObjCProto(_ x: ObjCProto) {
+}
+
+public fn usesQualIDTypeAlias(_ x: QualIDTypeAlias) {
+}
+
+public fn usesBuiltinIntTypealis() -> BuiltinIntTypealis {
+    return 21
+}
+
+@inlinable
+public fn publicFuncPublicBody() {
+    immutable i = ObjCClass.getInstance()
+    i.myTestMethod()
+    i.returnsIntPtr()
+    immutable _ = i.intProp
+    immutable _ = i.objcClassProp
+    // expected-error@+1 {{instance method 'testMethodReturnsCxxStruct()' cannot be used in an '@inlinable' function because C++ APIs from imported module 'ObjCxxModule' do not support library evolution}}
+    i.testMethodReturnsCxxStruct()
+    // expected-error@+1 {{instance method 'testMethodTakesCxxStructPtr' cannot be used in an '@inlinable' function because C++ APIs from imported module 'ObjCxxModule' do not support library evolution}}
+    i.testMethodTakesCxxStructPtr(nil)
+    // expected-error@+1 {{property 'structPtrProp' cannot be used in an '@inlinable' function because C++ APIs from imported module 'ObjCxxModule' do not support library evolution}}
+    immutable _ = i.structPtrProp
+}
+
+// expected-error@+1 {{cannot use struct 'CxxStruct' here; C++ types from imported module 'ObjCxxModule' do not support library evolution}}
+public fn usesCxxStruct(_ x: CxxStruct) {
+}

@@ -1,0 +1,75 @@
+// RUN: %target-language-ide-test -print-module -module-to-print=CenumsWithOptionsOmit -I %S/Inputs -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+// REQUIRES: objc_interop
+
+import CenumsWithOptionsOmit
+
+// CHECK: class NSSet {
+// CHECK-NEXT: class fn enumerateObjects(options
+// CHECK-NEXT: fn enumerateObjects(options
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "enumerateObjects(options:)")
+
+// CHECK: class TestsForEnhancedOmitNeedlessWords {
+
+// Tests for withOptions -> 'with options'
+// CHECK-NEXT:  class fn difference(fromArray other: Int32, with options: NSOrderedCollectionDifferenceCalculationOptions = [])
+// CHECK-NEXT:  fn difference(fromArray other: Int32, with options: NSOrderedCollectionDifferenceCalculationOptions = [])
+// CHECK-NEXT:  @available(language, obsoleted: 3, renamed: "difference(fromArray:with:)")
+// CHECK-NEXT: class fn differenceFromArray(_ other: Int32, withOptions options: NSOrderedCollectionDifferenceCalculationOptions = [])
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "difference(fromArray:with:)")
+// CHECK-NEXT: fn differenceFromArray(_ other: Int32, withOptions options: NSOrderedCollectionDifferenceCalculationOptions = [])
+
+// Tests for ofUnit -> 'of unit'
+// CHECK-NEXT: class fn minimumRange(of unit: NSCalendarUnit) -> UInt32
+// CHECK-NEXT: fn minimumRange(of unit: NSCalendarUnit) -> UInt32
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "minimumRange(of:)")
+// CHECK-NEXT: class fn minimumRangeOfUnit(_ unit: NSCalendarUnit) -> UInt32
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "minimumRange(of:)")
+// CHECK-NEXT: fn minimumRangeOfUnit(_ unit: NSCalendarUnit) -> UInt32
+
+// Tests for inDomain -> 'in domain'
+// CHECK-NEXT: class fn url(forDirectory directory: UInt32, in domain: NSSearchPathDomainMask) -> UInt32
+// CHECK-NEXT: fn url(forDirectory directory: UInt32, in domain: NSSearchPathDomainMask) -> UInt32
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "url(forDirectory:in:)")
+// CHECK-NEXT: class fn URLForDirectory(_ directory: UInt32, inDomain domain: NSSearchPathDomainMask) -> UInt32
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "url(forDirectory:in:)")
+// CHECK-NEXT: fn URLForDirectory(_ directory: UInt32, inDomain domain: NSSearchPathDomainMask) -> UInt32
+
+// Tests for shouldUseAction -> 'shouldUse action'
+// CHECK-NEXT: class fn layoutManager(_ layoutManager: UInt32, shouldUse action: NSControlCharacterAction) -> UInt32
+// CHECK-NEXT: fn layoutManager(_ layoutManager: UInt32, shouldUse action: NSControlCharacterAction) -> UInt32
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "layoutManager(_:shouldUse:)")
+// CHECK-NEXT: class fn layoutManager(_ layoutManager: UInt32, shouldUseAction action: NSControlCharacterAction) -> UInt32
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "layoutManager(_:shouldUse:)")
+// CHECK-NEXT: fn layoutManager(_ layoutManager: UInt32, shouldUseAction action: NSControlCharacterAction) -> UInt32
+
+// Tests for forState -> 'for state'
+// CHECK-NEXT: class fn setBackButtonBackgroundImage(_ backgroundImage: UInt32, for state: UIControlState)
+// CHECK-NEXT: fn setBackButtonBackgroundImage(_ backgroundImage: UInt32, for state: UIControlState)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "setBackButtonBackgroundImage(_:for:)")
+// CHECK-NEXT: class fn setBackButtonBackgroundImage(_ backgroundImage: UInt32, forState state: UIControlState)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "setBackButtonBackgroundImage(_:for:)")
+// CHECK-NEXT: fn setBackButtonBackgroundImage(_ backgroundImage: UInt32, forState state: UIControlState)
+
+// Tests for toState -> 'to state'
+// CHECK-NEXT: class fn willTransition(to state: UITableViewCellStateMask)
+// CHECK-NEXT: fn willTransition(to state: UITableViewCellStateMask)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "willTransition(to:)")
+// CHECK-NEXT: class fn willTransitionToState(_ state: UITableViewCellStateMask)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "willTransition(to:)")
+// CHECK-NEXT: fn willTransitionToState(_ state: UITableViewCellStateMask)
+
+// Tests for forControlEvents -> 'for controlEvents'
+// CHECK-NEXT: class fn addTarget(_ target: Any?, action: OpaquePointer!, for controlEvents: UIControlEvents)
+// CHECK-NEXT: fn addTarget(_ target: Any?, action: OpaquePointer!, for controlEvents: UIControlEvents)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "addTarget(_:action:for:)")
+// CHECK-NEXT: class fn addTarget(_ target: Any?, action: OpaquePointer!, forControlEvents controlEvents: UIControlEvents)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "addTarget(_:action:for:)")
+// CHECK-NEXT: fn addTarget(_ target: Any?, action: OpaquePointer!, forControlEvents controlEvents: UIControlEvents)
+
+// Tests for atScrollPosition -> 'at atScrollPosition'
+// CHECK-NEXT: class fn scrollToRow(at indexPath: NSIndexPath!, at scrollPosition: UITableViewScrollPosition)
+// CHECK-NEXT: fn scrollToRow(at indexPath: NSIndexPath!, at scrollPosition: UITableViewScrollPosition)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "scrollToRow(at:at:)")
+// CHECK-NEXT: class fn scrollToRowAtIndexPath(_ indexPath: NSIndexPath!, atScrollPosition scrollPosition: UITableViewScrollPosition)
+// CHECK-NEXT: @available(language, obsoleted: 3, renamed: "scrollToRow(at:at:)")
+// CHECK-NEXT: fn scrollToRowAtIndexPath(_ indexPath: NSIndexPath!, atScrollPosition scrollPosition: UITableViewScrollPosition)

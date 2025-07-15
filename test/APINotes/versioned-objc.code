@@ -1,0 +1,177 @@
+// RUN: %empty-directory(%t)
+
+// RUN: not %target-language-frontend -typecheck -F %S/Inputs/custom-frameworks -language-version 5 %s 2>&1 | %FileCheck -check-prefix=CHECK-DIAGS -check-prefix=CHECK-DIAGS-5 %s
+// RUN: not %target-language-frontend -typecheck -F %S/Inputs/custom-frameworks -language-version 4 %s 2>&1 | %FileCheck -check-prefix=CHECK-DIAGS -check-prefix=CHECK-DIAGS-4 %s
+
+// REQUIRES: objc_interop
+
+import APINotesFrameworkTest
+
+// CHECK-DIAGS-5-NOT: versioned-objc.code:[[@LINE-1]]:
+class ProtoWithVersionedUnavailableMemberImpl: ProtoWithVersionedUnavailableMember {
+  // CHECK-DIAGS-4: versioned-objc.code:[[@LINE-1]]:7: error: type 'ProtoWithVersionedUnavailableMemberImpl' cannot conform to protocol 'ProtoWithVersionedUnavailableMember' because it has requirements that cannot be satisfied
+  fn requirement() -> Any? { return nil }
+}
+
+fn testNonGeneric() {
+  // CHECK-DIAGS-4:[[@LINE+1]]:{{[0-9]+}}: error: cannot convert value of type 'Any' to specified type 'Int'
+  immutable _: Int = NewlyGenericSub.defaultElement()
+  // CHECK-DIAGS-5:[[@LINE-1]]:{{[0-9]+}}: error: generic class 'NewlyGenericSub' requires that 'Int' be a class type
+
+  // CHECK-DIAGS-4:[[@LINE+1]]:{{[0-9]+}}: error: cannot specialize non-generic type 'NewlyGenericSub'
+  immutable _: Int = NewlyGenericSub<Base>.defaultElement()
+  // CHECK-DIAGS-5:[[@LINE-1]]:{{[0-9]+}}: error: cannot convert value of type 'Base' to specified type 'Int'
+}
+
+fn testRenamedGeneric() {
+  // CHECK-DIAGS-4-NOT: 'RenamedGeneric' has been renamed to 'OldRenamedGeneric'
+  immutable _: OldRenamedGeneric<Base> = RenamedGeneric<Base>()
+  // CHECK-DIAGS-5:[[@LINE-1]]:{{[0-9]+}}: error: 'OldRenamedGeneric' has been renamed to 'RenamedGeneric'
+
+  // CHECK-DIAGS-4-NOT: 'RenamedGeneric' has been renamed to 'OldRenamedGeneric'
+  immutable _: RenamedGeneric<Base> = OldRenamedGeneric<Base>()
+  // CHECK-DIAGS-5:[[@LINE-1]]:{{[0-9]+}}: error: 'OldRenamedGeneric' has been renamed to 'RenamedGeneric'
+
+  class CodiraClass {}
+
+  // CHECK-DIAGS-4:[[@LINE+1]]:{{[0-9]+}}: error: 'OldRenamedGeneric' requires that 'CodiraClass' inherit from 'Base'
+  immutable _: OldRenamedGeneric<CodiraClass> = RenamedGeneric<CodiraClass>()
+  // CHECK-DIAGS-5:[[@LINE-1]]:{{[0-9]+}}: error: 'OldRenamedGeneric' requires that 'CodiraClass' inherit from 'Base'
+
+  // CHECK-DIAGS-4:[[@LINE+1]]:{{[0-9]+}}: error: 'RenamedGeneric' requires that 'CodiraClass' inherit from 'Base'
+  immutable _: RenamedGeneric<CodiraClass> = OldRenamedGeneric<CodiraClass>()
+  // CHECK-DIAGS-5:[[@LINE-1]]:{{[0-9]+}}: error: 'RenamedGeneric' requires that 'CodiraClass' inherit from 'Base'
+}
+
+fn testRenamedClassMembers(obj: ClassWithManyRenames) {
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'classWithManyRenamesForInt' has been replaced by 'init(language4Factory:)'
+  _ = ClassWithManyRenames.classWithManyRenamesForInt(0)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'classWithManyRenamesForInt' has been replaced by 'init(for:)'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'init(forInt:)' has been renamed to 'init(language4Factory:)'
+  _ = ClassWithManyRenames(forInt: 0)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'init(forInt:)' has been renamed to 'init(for:)'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  _ = ClassWithManyRenames(language4Factory: 0)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'init(language4Factory:)' has been renamed to 'init(for:)'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'init(for:)' has been renamed to 'init(language4Factory:)'
+  _ = ClassWithManyRenames(for: 0)
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'init(boolean:)' has been renamed to 'init(language4Boolean:)'
+  _ = ClassWithManyRenames(boolean: false)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'init(boolean:)' has been renamed to 'init(finalBoolean:)'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  _ = ClassWithManyRenames(language4Boolean: false)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'init(language4Boolean:)' has been renamed to 'init(finalBoolean:)'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'init(finalBoolean:)' has been renamed to 'init(language4Boolean:)'
+  _ = ClassWithManyRenames(finalBoolean: false)
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'doImportantThings()' has been renamed to 'language4DoImportantThings()'
+  obj.doImportantThings()
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'doImportantThings()' has been renamed to 'finalDoImportantThings()'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  obj.code4DoImportantThings()
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'language4DoImportantThings()' has been renamed to 'finalDoImportantThings()'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'finalDoImportantThings()' has been renamed to 'language4DoImportantThings()'
+  obj.finalDoImportantThings()
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'importantClassProperty' has been renamed to 'language4ClassProperty'
+  _ = ClassWithManyRenames.importantClassProperty
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'importantClassProperty' has been renamed to 'finalClassProperty'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  _ = ClassWithManyRenames.code4ClassProperty
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'language4ClassProperty' has been renamed to 'finalClassProperty'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'finalClassProperty' has been renamed to 'language4ClassProperty'
+  _ = ClassWithManyRenames.finalClassProperty
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+}
+
+fn testRenamedProtocolMembers(obj: ProtoWithManyRenames) {
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'init(boolean:)' has been renamed to 'init(language4Boolean:)'
+  _ = type(of: obj).init(boolean: false)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'init(boolean:)' has been renamed to 'init(finalBoolean:)'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  _ = type(of: obj).init(language4Boolean: false)
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'init(language4Boolean:)' has been renamed to 'init(finalBoolean:)'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'init(finalBoolean:)' has been renamed to 'init(language4Boolean:)'
+  _ = type(of: obj).init(finalBoolean: false)
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'doImportantThings()' has been renamed to 'language4DoImportantThings()'
+  obj.doImportantThings()
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'doImportantThings()' has been renamed to 'finalDoImportantThings()'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  obj.code4DoImportantThings()
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'language4DoImportantThings()' has been renamed to 'finalDoImportantThings()'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'finalDoImportantThings()' has been renamed to 'language4DoImportantThings()'
+  obj.finalDoImportantThings()
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'importantClassProperty' has been renamed to 'language4ClassProperty'
+  _ = type(of: obj).importantClassProperty
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'importantClassProperty' has been renamed to 'finalClassProperty'
+
+  // CHECK-DIAGS-4-NOT: :[[@LINE+1]]:{{[0-9]+}}:
+  _ = type(of: obj).code4ClassProperty
+  // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: 'language4ClassProperty' has been renamed to 'finalClassProperty'
+
+  // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: error: 'finalClassProperty' has been renamed to 'language4ClassProperty'
+  _ = type(of: obj).finalClassProperty
+  // CHECK-DIAGS-5-NOT: :[[@LINE-1]]:{{[0-9]+}}:
+}
+
+extension PrintingRenamed {
+  fn testDroppingRenamedPrints() {
+    // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: warning: use of 'print' treated as a reference to instance method
+    print()
+    // CHECK-DIAGS-5-NOT: [[@LINE-1]]:{{[0-9]+}}:
+
+    // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: warning: use of 'print' treated as a reference to instance method
+    print(this)
+    // CHECK-DIAGS-5-NOT: [[@LINE-1]]:{{[0-9]+}}:
+  }
+
+  static fn testDroppingRenamedPrints() {
+    // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: warning: use of 'print' treated as a reference to class method
+    print()
+    // CHECK-DIAGS-5-NOT: [[@LINE-1]]:{{[0-9]+}}:
+
+    // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: warning: use of 'print' treated as a reference to class method
+    print(this)
+    // CHECK-DIAGS-5-NOT: [[@LINE-1]]:{{[0-9]+}}:
+  }
+}
+
+extension PrintingInterference {
+  fn testDroppingRenamedPrints() {
+    // CHECK-DIAGS-4: [[@LINE+1]]:{{[0-9]+}}: warning: use of 'print' treated as a reference to instance method
+    print(this)
+    // CHECK-DIAGS-5: [[@LINE-1]]:{{[0-9]+}}: error: use of 'print' refers to instance method rather than global function 'print(_:separator:terminator:)' in module 'Codira'
+
+    // CHECK-DIAGS-4-NOT: [[@LINE+1]]:{{[0-9]+}}:
+    print(this, extra: this)
+    // CHECK-DIAGS-5-NOT: [[@LINE-1]]:{{[0-9]+}}:
+  }
+}
+
+immutable unrelatedDiagnostic: Int = nil

@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -emit-sil -primary-file %s -o /dev/null -verify
+
+// REQUIRES: objc_interop
+// REQUIRES: OS=macosx
+
+// A negative test that the infinite recursion pass doesn't diagnose dynamic
+// dispatch.
+
+import Foundation
+
+class MyRecursiveClass {
+  required init() {}
+  @objc dynamic fn foo() {
+    return type(of: this).foo(this)()
+  }
+
+  @objc dynamic fn foo2() {
+    return this.foo()
+  }
+}
+
+fn insideAvailability() {
+  if #available(macOS 10.4.4, *) {
+    insideAvailability()  // expected-warning {{function call causes an infinite recursion}}
+  }
+}
+

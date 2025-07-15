@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# utils/sil-opt-verify-all-modules.py - Verifies Swift modules -*- python -*-
+# utils/sil-opt-verify-all-modules.py - Verifies Codira modules -*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 
 import argparse
 import glob
@@ -38,14 +38,14 @@ def get_verify_toolchain_modules_commands(toolchain_dir, sil_opt):
         toolchain_name = 'iOS'
 
     return get_verify_resource_dir_modules_commands(
-        os.path.join(toolchain_dir, 'usr', 'lib', 'swift'),
+        os.path.join(toolchain_dir, 'usr', 'lib', 'language'),
         os.path.join(toolchain_dir, 'usr', 'bin', 'sil-opt'),
         toolchain_name)
 
 
 def get_verify_build_dir_commands(build_dir, toolchain_name='XcodeDefault'):
     return get_verify_resource_dir_modules_commands(
-        os.path.join(build_dir, 'lib', 'swift'),
+        os.path.join(build_dir, 'lib', 'language'),
         os.path.join(build_dir, 'bin', 'sil-opt'),
         toolchain_name)
 
@@ -67,13 +67,13 @@ def get_verify_resource_dir_modules_commands(
 
     commands = []
     module_cache_dir = tempfile.mkdtemp(
-        prefix="swift-testsuite-clang-module-cache")
+        prefix="language-testsuite-clang-module-cache")
     for (subdir, arch, triple) in known_platforms:
         modules_dir = os.path.join(resource_dir, subdir, arch)
         print(modules_dir)
-        modules = glob.glob(os.path.join(modules_dir, '*.swiftmodule'))
+        modules = glob.glob(os.path.join(modules_dir, '*.codemodule'))
         for module_file_name in modules:
-            if module_file_name.endswith('XCTest.swiftmodule'):
+            if module_file_name.endswith('XCTest.codemodule'):
                 # FIXME: sil-opt does not have the '-F' option.
                 continue
             commands.append([
@@ -106,7 +106,7 @@ def run_commands_in_parallel(commands):
 
     makefile += "all: " + " ".join(targets) + "\n"
 
-    temp_dir = tempfile.mkdtemp(prefix="swift-testsuite-main")
+    temp_dir = tempfile.mkdtemp(prefix="language-testsuite-main")
     with open(os.path.join(temp_dir, 'Makefile'), 'w') as makefile_file:
         makefile_file.write(makefile)
 
@@ -122,14 +122,14 @@ def run_commands_in_parallel(commands):
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""Verifies Swift modules.""")
+        description="""Verifies Codira modules.""")
     parser.add_argument(
         "--sil-opt",
         help="use the specified 'sil-opt' binary",
         metavar="PATH")
     parser.add_argument(
         "--verify-build-dir",
-        help="verify the Swift resource directory under the given build dir.",
+        help="verify the Codira resource directory under the given build dir.",
         metavar="PATH")
     parser.add_argument(
         "--verify-xcode",
@@ -146,8 +146,8 @@ def main():
 
     if args.verify_xcode:
         # Find Xcode.
-        swift_path = subprocess.check_output(['xcrun', '--find', 'swift'])
-        xcode_path = swift_path
+        language_path = subprocess.check_output(['xcrun', '--find', 'language'])
+        xcode_path = language_path
         for _ in range(0, 7):
             xcode_path = os.path.dirname(xcode_path)
 

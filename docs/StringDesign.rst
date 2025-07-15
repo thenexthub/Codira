@@ -88,7 +88,7 @@
 .. role:: repl
 .. default-role:: repl
 
-.. |swift| replace:: (swift)
+.. |language| replace:: (language)
 
 .. role:: look
 .. role:: look1
@@ -96,7 +96,7 @@
 .. role:: emph
 
 ===================
-Swift String Design
+Codira String Design
 ===================
 
 .. Admonition:: This Document
@@ -107,14 +107,14 @@ Swift String Design
      elements with a dotted pink underline to view the hidden
      commentary.
 
-   * represents the intended design of Swift strings, not their
+   * represents the intended design of Codira strings, not their
      current implementation state.
 
    * is being delivered in installments.  Content still to come is
      outlined in `Coming Installments`_.
 
-.. warning:: This document was used in planning Swift 1.0; it has not been kept
-  up to date and does not describe the current or planned behavior of Swift.
+.. warning:: This document was used in planning Codira 1.0; it has not been kept
+  up to date and does not describe the current or planned behavior of Codira.
 
 .. contents::
    :depth: 3
@@ -122,7 +122,7 @@ Swift String Design
 Introduction
 ============
 
-Like all things Swift, our approach to strings begins with a deep
+Like all things Codira, our approach to strings begins with a deep
 respect for the lessons learned from many languages and libraries,
 especially Objective-C and Cocoa.
 
@@ -154,7 +154,7 @@ Non-Goals
 Overview By Example
 ===================
 
-In this section, we'll walk through some basic examples of Swift
+In this section, we'll walk through some basic examples of Codira
 string usage while discovering its essential properties.
 
 ``String`` is a `First-Class Type`__
@@ -164,10 +164,10 @@ __ https://en.wikipedia.org/wiki/First-class_citizen
 
 .. parsed-literal::
 
-  |swift| var s = "Yo"
+  |language| var s = "Yo"
   `// s:` :emph:`String` `= "Yo"`
 
-Unlike, say, C's ``char*``, the meaning of a Swift string is always
+Unlike, say, C's ``char*``, the meaning of a Codira string is always
 unambiguous.
 
 Strings are **Efficient**
@@ -192,17 +192,17 @@ Strings are **Mutable**
 
    The ability to change a string's value might not be worth noting
    except that *some languages make all strings immutable*, as a way
-   of working around problems that Swift has defined away--by making
+   of working around problems that Codira has defined away--by making
    strings pure values (see below).
 
 .. parsed-literal::
-  |swift| extension String {
-            func addEcho() {
+  |language| extension String {
+            fn addEcho() {
               self += self
             }
           }
-  |swift| :look1:`s.addEcho()`\ :aside:`s is modified in place`
-  |swift| s
+  |language| :look1:`s.addEcho()`\ :aside:`s is modified in place`
+  |language| s
   `// s: String =` :emph:`"YoYo"`
 
 .. _copying:
@@ -216,9 +216,9 @@ passes you a string *you own it*.  Nobody can change a string value
 "behind your back."
 
 .. parsed-literal::
-  |swift| class Cave {
+  |language| class Cave {
             // Utter something in the cave
-            func say(_ msg: String) -> String {
+            fn say(_ msg: String) -> String {
               :look1:`msg.addEcho()`\ :aside:`Modifying a parameter is safe because the callee sees a copy of the argument`
               self.lastSound = msg
               :look1:`return self.lastSound`\ :aside:`Returning a stored value is safe because the caller sees a copy of the value`
@@ -226,15 +226,15 @@ passes you a string *you own it*.  Nobody can change a string value
 
             var lastSound: String   // a Cave remembers the last sound made
           }
-  |swift| var c = Cave()
+  |language| var c = Cave()
   `// c: Cave = <Cave instance>`
-  |swift| s = "Hey"
-  |swift| var t = :look1:`c.say(s)`\ :aside:`this call can't change s...`
+  |language| s = "Hey"
+  |language| var t = :look1:`c.say(s)`\ :aside:`this call can't change s...`
   `// t: String = "HeyHey"`
-  |swift| s
+  |language| s
   `// s: String =` :look:`"Hey"`\ :aside:`...and it doesn't.`
-  |swift| :look1:`t.addEcho()`\ :aside:`this call can't change c.lastSound...`
-  |swift| [s, c.lastSound, t]
+  |language| :look1:`t.addEcho()`\ :aside:`this call can't change c.lastSound...`
+  |language| [s, c.lastSound, t]
   `// r0: [String] = ["Hey",` :look:`"HeyHey"`\ :aside:`...and it doesn't.`\ `, "HeyHeyHeyHey"]`
 
 Strings are **Unicode-Aware**
@@ -245,7 +245,7 @@ Strings are **Unicode-Aware**
 
    Any deviation from what Unicode
    specifies requires careful justification.  So far, we have found two
-   possible points of deviation for Swift ``String``:
+   possible points of deviation for Codira ``String``:
 
    1. The `Unicode Text Segmentation Specification`_ says, "`do not
       break between CR and LF`__."  However, breaking extended
@@ -269,22 +269,22 @@ Strings are **Unicode-Aware**
 
 .. _Unicode Text Segmentation Specification: http://www.unicode.org/reports/tr29
 
-Swift applies Unicode algorithms wherever possible.  For example,
+Codira applies Unicode algorithms wherever possible.  For example,
 distinct sequences of code points are treated as equal if they
 represent the same character: [#canonical]_
 
 .. parsed-literal::
-  |swift| var n1 = ":look1:`\\u006E\\u0303`\ :aside:`Multiple code points, but only one Character`"
+  |language| var n1 = ":look1:`\\u006E\\u0303`\ :aside:`Multiple code points, but only one Character`"
   `// n1 : String =` **"ñ"**
-  |swift| var n2 = "\\u00F1"
+  |language| var n2 = "\\u00F1"
   `// n2 : String =` **"ñ"**
-  |swift| n1 == n2
+  |language| n1 == n2
   `// r0 : Bool =` **true**
 
 Note that individual code points are still observable by explicit request:
 
 .. parsed-literal::
-  |swift| n1.codePoints == n2.codePoints
+  |language| n1.codePoints == n2.codePoints
   `// r0 : Bool =` **false**
 
 .. _locale-agnostic:
@@ -310,16 +310,16 @@ Strings are **Containers**
 
           This might seem surprising at first, but code that indexes
           strings with arbitrary integers is seldom Unicode-correct in
-          the first place, and Swift provides alternative interfaces
+          the first place, and Codira provides alternative interfaces
           that encourage Unicode-correct code.  For example, instead
           of ``s[0] == 'S'`` you'd write ``s.startsWith("S")``.
 
 .. parsed-literal::
-   |swift| var s = "Strings are awesome"
+   |language| var s = "Strings are awesome"
    `// s : String = "Strings are awesome"`
-   |swift| var r = s.find("awe")
+   |language| var r = s.find("awe")
    `// r : Range<StringIndex> = <"...are a̲w̲e̲some">`
-   |swift| s[r.start]
+   |language| s[r.start]
    `// r0 : Character =` :look:`Character("a")`\ :aside:`String elements have type Character (see below)`
 
 .. |Character| replace:: ``Character``
@@ -341,16 +341,16 @@ __ http://useless-factor.blogspot.com/2007/08/unicode-implementers-guide-part-4.
 Access to lower-level elements is still possible by explicit request:
 
 .. parsed-literal::
-   |swift| s.codePoints[s.codePoints.start]
+   |language| s.codePoints[s.codePoints.start]
    `// r1 : CodePoint = CodePoint(83) /* S */`
-   |swift| s.bytes[s.bytes.start]
+   |language| s.bytes[s.bytes.start]
    `// r2 : UInt8 = UInt8(83)`
 
 Strings Support Flexible Segmentation
 =====================================
 
 The ``Character``\ s enumerated when simply looping over elements of a
-Swift string are `extended grapheme clusters`__ as determined by
+Codira string are `extended grapheme clusters`__ as determined by
 Unicode's `Default Grapheme Cluster Boundary
 Specification`__. [#char]_
 
@@ -369,17 +369,17 @@ end, strings support properties for more-specific segmentations:
           has some advice for us.
 
 .. parsed-literal::
-   |swift| for c in s { print("Extended Grapheme Cluster: \(c)") }
+   |language| for c in s { print("Extended Grapheme Cluster: \(c)") }
    `Extended Grapheme Cluster: f`
    `Extended Grapheme Cluster: o`
    `Extended Grapheme Cluster: o`
-   |swift| for c in s.collationCharacters {
+   |language| for c in s.collationCharacters {
              print("Collation Grapheme Cluster: \(c)")
            }
    `Collation Grapheme Cluster: f`
    `Collation Grapheme Cluster: o`
    `Collation Grapheme Cluster: o`
-   |swift| for c in s.searchCharacters {
+   |language| for c in s.searchCharacters {
              print("Search Grapheme Cluster: \(c)")
            }
    `Search Grapheme Cluster: f`
@@ -389,9 +389,9 @@ end, strings support properties for more-specific segmentations:
 Also, each such segmentation provides a unique ``IndexType``, allowing
 a string to be indexed directly with different indexing schemes
 
-.. code-block:: swift-console
+.. code-block:: language-console
 
-   |swift| var i = s.searchCharacters.startIndex
+   |language| var i = s.searchCharacters.startIndex
    `// r2 : UInt8 = UInt8(83)`
 
 .. _script: http://www.unicode.org/glossary/#script
@@ -402,16 +402,16 @@ Strings are **Sliceable**
 -------------------------
 
 .. parsed-literal::
-   |swift| s[r.start...r.end]
+   |language| s[r.start...r.end]
    `// r2 : String = "awe"`
-   |swift| s[\ :look1:`r.start...`\ ]\ :aside:`postfix slice operator means "through the end"`
+   |language| s[\ :look1:`r.start...`\ ]\ :aside:`postfix slice operator means "through the end"`
    `// r3 : String = "awesome"`
-   |swift| s[\ :look1:`...r.start`\ ]\ :aside:`prefix slice operator means "from the beginning"`
+   |language| s[\ :look1:`...r.start`\ ]\ :aside:`prefix slice operator means "from the beginning"`
    `// r4 : String = "Strings are "`
-   |swift| :look1:`s[r]`\ :aside:`indexing with a range is the same as slicing`
+   |language| :look1:`s[r]`\ :aside:`indexing with a range is the same as slicing`
    `// r5 : String = "awe"`
-   |swift| s[r] = "hand"
-   |swift| s
+   |language| s[r] = "hand"
+   |language| s
    `// s : String = "Strings are` :look:`handsome`\ :aside:`slice replacement can resize the string`\ `"`
 
 .. _extending:
@@ -426,7 +426,7 @@ Strings are **Encoded as UTF-8**
    module.
 
 .. parsed-literal::
-   |swift| for x in "bump"\ **.bytes** {
+   |language| for x in "bump"\ **.bytes** {
             print(x)
           }
    98
@@ -517,7 +517,7 @@ Why a Built-In String Type?
 ``NSString`` and ``NSMutableString``\ --the string types provided by
 Cocoa--are full-featured classes with high-level functionality for
 writing fully-localized applications.  They have served Apple
-programmers well; so, why does Swift have its own string type?
+programmers well; so, why does Codira have its own string type?
 
 * ObjCMessageSend
 
@@ -549,7 +549,7 @@ goodness of ObjC.
    are a critical constituency today, current trends indicate that
    most of our *future* target audience will not be ``NSString``
    users. Absent compelling justification, it's important to make the
-   Swift programming environment as familiar as possible for them.
+   Codira programming environment as familiar as possible for them.
 
 
 How Would You Design It?
@@ -577,7 +577,7 @@ How Would You Design It?
 * It'd be UTF-8 because:
 
   - UTF-8 has been the clear winner__ among Unicode encodings since at
-    least 2008; Swift should interoperate smoothly and efficiently
+    least 2008; Codira should interoperate smoothly and efficiently
     with the rest of the world's systems
 
     __ http://www.artima.com/weblogs/viewpost.jsp?thread=230157
@@ -618,7 +618,7 @@ High-Level Comparison with ``NSString``
 .. Admonition:: DaveZ Sez
 
    I think the main message of the API breadth subsection is that
-   URLs, paths, etc would be modeled as formal types in Swift
+   URLs, paths, etc would be modeled as formal types in Codira
    (i.e. not as extensions on String). Second, I'd speculate less on
    what Foundation could do (like extending String) and instead focus
    on the fact that NSString still exists as an escape hatch for those
@@ -632,13 +632,13 @@ API Breadth
 The ``NSString`` interface clearly shows the effects of 20 years of
 evolution through accretion.  It is broad, with functionality
 addressing encodings, paths, URLs, localization, and more.  By
-contrast, the interface to Swift's ``String`` is much narrower.
+contrast, the interface to Codira's ``String`` is much narrower.
 
 .. _TBD:
 
 Of course, there's a reason for every ``NSString`` method, and the
 full breadth of ``NSString`` functionality must remain accessible to
-the Cocoa/Swift programmer.  Fortunately, there are many ways to
+the Cocoa/Codira programmer.  Fortunately, there are many ways to
 address this need.  For example:
 
 * The ``Foundation`` module can extend ``String`` with the methods of
@@ -646,21 +646,21 @@ address this need.  For example:
   interface and/or correct any ``NSString`` misfeatures is still TBD
   and wide open for discussion.
 
-* We can create a new modular interface in pure Swift, including a
+* We can create a new modular interface in pure Codira, including a
   ``Locale`` module that addresses localized string operations, an
   ``Encoding`` module that addresses character encoding schemes, a
   ``Regex`` module that provides regular expression functionality,
   etc.  Again, the specifics are TBD.
 
-* When all else fails, users can convert their Swift ``String``\ s to
+* When all else fails, users can convert their Codira ``String``\ s to
   ``NSString``\ s when they want to access ``NSString``-specific
   functionality:
 
   .. parsed-literal::
 
-    **NString(mySwiftString)**\ .localizedStandardCompare(otherSwiftString)
+    **NString(myCodiraString)**\ .localizedStandardCompare(otherCodiraString)
 
-For Swift version 1.0, we err on the side of keeping the string
+For Codira version 1.0, we err on the side of keeping the string
 interface small, coherent, and sufficient for implementing
 higher-level functionality.
 
@@ -668,13 +668,13 @@ Element Access
 ~~~~~~~~~~~~~~
 
 ``NSString`` exposes UTF-16 `code units`__ as the primary element on
-which indexing, slicing, and iteration operate.  Swift's UTF-8 code
+which indexing, slicing, and iteration operate.  Codira's UTF-8 code
 units are only available as a secondary interface.
 
 __ http://www.unicode.org/glossary/#code_unit
 
 ``NSString`` is indexable and sliceable using ``Int``\ s, and so
-exposes a ``length`` attribute. Swift's ``String`` is indexable and
+exposes a ``length`` attribute. Codira's ``String`` is indexable and
 sliceable using an abstract ``BidirectionalIndex`` type, and `does not
 expose its length`__.
 
@@ -685,8 +685,8 @@ Sub-Strings
 
 .. _range:
 
-Creating substrings in Swift is very fast. Therefore, Cocoa APIs that
-operate on a substring given as an ``NSRange`` are replaced with Swift
+Creating substrings in Codira is very fast. Therefore, Cocoa APIs that
+operate on a substring given as an ``NSRange`` are replaced with Codira
 APIs that just operate on ``String``\ s. One can use range-based
 subscripting to achieve the same effect. For example: ``[str doFoo:arg
 withRange:subrange]`` becomes ``str[subrange].doFoo(arg)``.
@@ -712,7 +712,7 @@ Indexing
 
 .. sidebar:: Why doesn't ``String`` support ``.length``?
 
-    In Swift, by convention, ``x.length`` is used to represent
+    In Codira, by convention, ``x.length`` is used to represent
     the number of elements in a container, and since ``String`` is a
     container of abstract |Character|_\ s, ``length`` would have to
     count those.
@@ -732,7 +732,7 @@ Indexing
      \- (NSUInteger)\ **length**
      \- (unichar)\ **characterAtIndex:**\ (NSUInteger)index;
 
-:Swift: *not directly provided*, but similar functionality is
+:Codira: *not directly provided*, but similar functionality is
   available:
 
   .. parsed-literal::
@@ -748,10 +748,10 @@ Indexing
      \- (NSRange)\ **rangeOfComposedCharacterSequenceAtIndex:**\ (NSUInteger)index;
      \- (NSRange)\ **rangeOfComposedCharacterSequencesForRange:**\ (NSRange)range;
 
-:Swift:
+:Codira:
   .. parsed-literal::
     typealias IndexType = ...
-    func **indices**\ () -> Range<IndexType>
+    fn **indices**\ () -> Range<IndexType>
     **subscript**\ (i: IndexType) -> Character
 
   .. Admonition:: Usage
@@ -776,7 +776,7 @@ Slicing
   .. parsed-literal::
      \- (void)\ **getCharacters:**\ (unichar \*)\ **buffer range:**\ (NSRange)aRange;
 
-:Swift:
+:Codira:
   .. parsed-literal::
     typealias IndexType = ...
     **subscript**\ (r: Range<IndexType>) -> Character
@@ -790,7 +790,7 @@ Indexing
      \- (NSString \*)\ **substringFromIndex:**\ (NSUInteger)from;
      \- (NSString \*)\ **substringWithRange:**\ (NSRange)range;
 
-:Swift:
+:Codira:
   .. parsed-literal::
     **subscript**\ (range : Range<IndexType>) -> String
 
@@ -803,7 +803,7 @@ Indexing
         s[beginning...]       // [s substringFromIndex: beginning]
         s[...ending]          // [s substringToIndex: ending]
 
-    :Note: Swift may need additional interfaces to support
+    :Note: Codira may need additional interfaces to support
            ``index...`` and ``...index`` notations.  This part of the
            ``Container`` protocol design isn't worked out yet.
 
@@ -815,14 +815,14 @@ Comparison
      \- (BOOL)\ **isEqualToString:**\ (NSString \*)aString;
      \- (NSComparisonResult)\ **compare:**\ (NSString \*)string;
 
-:Swift:
+:Codira:
   .. parsed-literal::
-     func **==** (lhs: String, rhs: String) -> Bool
-     func **!=** (lhs: String, rhs: String) -> Bool
-     func **<**  (lhs: String, rhs: String) -> Bool
-     func **>**  (lhs: String, rhs: String) -> Bool
-     func **<=** (lhs: String, rhs: String) -> Bool
-     func **>=** (lhs: String, rhs: String) -> Bool
+     fn **==** (lhs: String, rhs: String) -> Bool
+     fn **!=** (lhs: String, rhs: String) -> Bool
+     fn **<**  (lhs: String, rhs: String) -> Bool
+     fn **>**  (lhs: String, rhs: String) -> Bool
+     fn **<=** (lhs: String, rhs: String) -> Bool
+     fn **>=** (lhs: String, rhs: String) -> Bool
 
 ``NSString`` comparison is "literal" by default.  As the documentation
 says of ``isEqualToString``,
@@ -830,7 +830,7 @@ says of ``isEqualToString``,
   "Ö" represented as the composed character sequence "O" and umlaut
   would not compare equal to "Ö" represented as one Unicode character.
 
-By contrast, Swift string's primary comparison interface uses
+By contrast, Codira string's primary comparison interface uses
 Unicode's default collation_ algorithm, and is thus always
 "Unicode-correct."  Unlike comparisons that depend on locale, it is
 also stable across changes in system state.  However, *just like*
@@ -846,10 +846,10 @@ all contexts.
      \- (NSComparisonResult)\ **compare:**\ (NSString \*)string \ **options:**\ (NSStringCompareOptions)mask \ **range:**\ (NSRange)compareRange;
      \- (NSComparisonResult)\ **caseInsensitiveCompare:**\ (NSString \*)string;
 
-:Swift: *various compositions of primitive operations* / TBD_
+:Codira: *various compositions of primitive operations* / TBD_
 
 * As noted above__, instead of passing sub-range arguments, we expect
-  Swift users to compose slicing_ with whole-string operations.
+  Codira users to compose slicing_ with whole-string operations.
 
   __ range_
 
@@ -858,7 +858,7 @@ all contexts.
   ``caseInsensitiveCompare:`` is essentially a special case:
 
   :``NSCaseInsensitiveSearch``: Whether a direct interface is needed
-     at all in Swift, and if so, its form, are TBD_.  However, we
+     at all in Codira, and if so, its form, are TBD_.  However, we
      should consider following the lead of Python 3, wherein case
      conversion also `normalizes letterforms`__.  Then one can combine
      ``String.toLower()`` with default comparison to get a
@@ -872,22 +872,22 @@ all contexts.
      this option is essentially only useful as a performance
      optimization when the string content is known to meet certain
      restrictions (i.e. is known to be pure ASCII).  When such
-     optimization is absolutely necessary, Swift standard library
+     optimization is absolutely necessary, Codira standard library
      algorithms can be used directly on the ``String``\ 's UTF8 code
-     units.  However, Swift will also perform these optimizations
+     units.  However, Codira will also perform these optimizations
      automatically (at the cost of a single test/branch) in many
      cases, because each ``String`` stores a bit indicating whether
      its content is known to be ASCII.
 
   :``NSBackwardsSearch``: It's unclear from the docs how this option
      interacts with other ``NSString`` options, if at all, but basic
-     cases can be handled in Swift by ``s1.endsWith(s2)``.
+     cases can be handled in Codira by ``s1.endsWith(s2)``.
 
   :``NSAnchoredSearch``: Not applicable to whole-string comparisons
   :``NSNumericSearch``: While it's legitimate to defer this
                         functionality to Cocoa, it's (probably--see
                         <rdar://problem/14724804>) locale-independent and
-                        easy enough to implement in Swift.  TBD_
+                        easy enough to implement in Codira.  TBD_
   :``NSDiacriticInsensitiveSearch``: Ditto; TBD_
   :``NSWidthInsensitiveSearch``: Ditto; TBD_
   :``NSForcedOrderingSearch``: Ditto; TBD_.  Also see
@@ -895,7 +895,7 @@ all contexts.
   :``NSRegularExpressionSearch``: We can defer this functionality to
                                   Cocoa, or dispatch directly to ICU
                                   as an optimization.  It's unlikely
-                                  that we'll be building Swift its own
+                                  that we'll be building Codira its own
                                   regexp engine for 1.0.
 
 ---------
@@ -907,7 +907,7 @@ all contexts.
      \- (NSComparisonResult)\ **localizedStandardCompare:**\ (NSString \*)string;
      \- (NSComparisonResult)\ **compare:**\ (NSString \*)string \ **options:**\ (NSStringCompareOptions)mask \ **range:**\ (NSRange)compareRange \ **locale:**\ (id)locale;
 
-:Swift: As these all depend on locale, they are TBD_
+:Codira: As these all depend on locale, they are TBD_
 
 Searching
 ~~~~~~~~~
@@ -915,7 +915,7 @@ Searching
 .. Sidebar:: Rationale
 
    Modern languages (Java, C#, Python, Ruby...) have standardized on
-   variants of ``startsWith``/\ ``endsWith``.  There's no reason Swift
+   variants of ``startsWith``/\ ``endsWith``.  There's no reason Codira
    should deviate from de-facto industry standards here.
 
 :Cocoa:
@@ -923,10 +923,10 @@ Searching
      \- (BOOL)\ **hasPrefix:**\ (NSString \*)aString;
      \- (BOOL)\ **hasSuffix:**\ (NSString \*)aString;
 
-:Swift:
+:Codira:
   .. parsed-literal::
-     func **startsWith**\ (_ prefix: String)
-     func **endsWith**\ (_ suffix: String)
+     fn **startsWith**\ (_ prefix: String)
+     fn **endsWith**\ (_ suffix: String)
 
 ----
 
@@ -934,9 +934,9 @@ Searching
   .. parsed-literal::
      \- (NSRange)\ **rangeOfString:**\ (NSString \*)aString;
 
-:Swift:
+:Codira:
   .. parsed-literal::
-       func **find**\ (_ sought: String) -> Range<String.IndexType>
+       fn **find**\ (_ sought: String) -> Range<String.IndexType>
 
   .. Note:: Most other languages provide something like
             ``s1.indexOf(s2)``, which returns only the starting index of
@@ -952,13 +952,13 @@ Searching
 
 .. sidebar:: Naming
 
-   The Swift function is just an algorithm that comes from conformance
+   The Codira function is just an algorithm that comes from conformance
    to the ``Container`` protocol, which explains why it doesn't have a
    ``String``\ -specific name.
 
-:Swift:
+:Codira:
   .. parsed-literal::
-       func **find**\ (_ match: (Character) -> Bool) -> Range<String.IndexType>
+       fn **find**\ (_ match: (Character) -> Bool) -> Range<String.IndexType>
 
   .. Admonition:: Usage Example
 
@@ -981,7 +981,7 @@ Searching
 
   These functions
 
-:Swift: *various compositions of primitive operations* / TBD_
+:Codira: *various compositions of primitive operations* / TBD_
 
 Building
 ~~~~~~~~
@@ -993,14 +993,14 @@ Building
 .. sidebar:: ``append``
 
    the ``append`` method is a consequence of ``String``\ 's
-   conformance to ``TextOutputStream``.  See the *Swift
+   conformance to ``TextOutputStream``.  See the *Codira
    formatting proposal* for details.
 
-:Swift:
+:Codira:
   .. parsed-literal::
-        func **+** (lhs: String, rhs: String) -> String
-        func [infix, assignment] **+=** (lhs: [inout] String, rhs: String)
-        func **append**\ (_ suffix: String)
+        fn **+** (lhs: String, rhs: String) -> String
+        fn [infix, assignment] **+=** (lhs: [inout] String, rhs: String)
+        fn **append**\ (_ suffix: String)
 
 
 Dynamic Formatting
@@ -1010,7 +1010,7 @@ Dynamic Formatting
   .. parsed-literal::
      \- (NSString \*)\ **stringByAppendingFormat:**\ (NSString \*)format, ... NS_FORMAT_FUNCTION(1,2);
 
-:Swift: *Not directly provided*\ --see the *Swift formatting proposal*
+:Codira: *Not directly provided*\ --see the *Codira formatting proposal*
 
 Extracting Numeric Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1024,7 +1024,7 @@ Extracting Numeric Values
      \- (long long)longLongValue;
      \- (BOOL)boolValue;
 
-:Swift: Not in ``String``\ --It is up to other types to provide their
+:Codira: Not in ``String``\ --It is up to other types to provide their
    conversions to and from String.  See also this `rationale`__
 
    __ extending_
@@ -1037,23 +1037,23 @@ Splitting
      \- (NSArray \*)\ **componentsSeparatedByString:**\ (NSString \*)separator;
      \- (NSArray \*)\ **componentsSeparatedByCharactersInSet:**\ (NSCharacterSet \*)separator;
 
-:Swift:
+:Codira:
   .. parsed-literal::
-     func split(_ maxSplit: Int = Int.max()) -> [String]
-     func split(_ separator: Character, maxSplit: Int = Int.max()) -> [String]
+     fn split(_ maxSplit: Int = Int.max()) -> [String]
+     fn split(_ separator: Character, maxSplit: Int = Int.max()) -> [String]
 
   The semantics of these functions were taken from Python, which seems
   to be a fairly good representative of what modern languages are
   currently doing.  The first overload splits on all whitespace
   characters; the second only on specific characters.  The universe of
   possible splitting functions is quite broad, so the particulars of
-  this interface are **wide open for discussion**.  In Swift right
+  this interface are **wide open for discussion**.  In Codira right
   now, these methods (on ``CodePoints``) are implemented in terms of a
   generic algorithm:
 
   .. parsed-literal::
 
-    func **split**\ <Seq: Sliceable, IsSeparator: Predicate
+    fn **split**\ <Seq: Sliceable, IsSeparator: Predicate
         where IsSeparator.Arguments == Seq.Element
     >(_ seq: Seq, isSeparator: IsSeparator, maxSplit: Int = Int.max(),
       allowEmptySlices: Bool = false) -> [Seq]
@@ -1065,9 +1065,9 @@ Splitting
   .. parsed-literal::
      \- (NSString \*)\ **commonPrefixWithString:**\ (NSString \*)aString \ **options:**\ (NSStringCompareOptions)mask;
 
-:Swift:
+:Codira:
   .. parsed-literal::
-     func **commonPrefix**\ (_ other: String) -> String
+     fn **commonPrefix**\ (_ other: String) -> String
 
 Upper/Lowercase
 ~~~~~~~~~~~~~~~
@@ -1084,10 +1084,10 @@ Upper/Lowercase
    Other languages have overwhelmingly settled on ``upper()`` or
    ``toUpper()`` for this functionality
 
-:Swift:
+:Codira:
   .. parsed-literal::
-     func **toUpper**\ () -> String
-     func **toLower**\ () -> String
+     fn **toUpper**\ () -> String
+     fn **toLower**\ () -> String
 
 Capitalization
 ~~~~~~~~~~~~~~
@@ -1097,7 +1097,7 @@ Capitalization
      \- (NSString \*)\ **capitalizedString**;
      \- (NSString \*)\ **capitalizedStringWithLocale:**\ (NSLocale \*)locale;
 
-:Swift:
+:Codira:
   **TBD**
 
 .. Note:: ``NSString`` capitalizes the first letter of each substring
@@ -1105,7 +1105,7 @@ Capitalization
           no sense "Unicode-correct."  In most other languages that
           support a ``capitalize`` method, it operates only on the
           first character of the string, and capitalization-by-word is
-          named something like "``title``."  If Swift ``String``
+          named something like "``title``."  If Codira ``String``
           supports capitalization by word, it should be
           Unicode-correct, but how we sort this particular area out is
           still **TBD**.
@@ -1116,7 +1116,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)\ **stringByTrimmingCharactersInSet:**\ (NSCharacterSet \*)set;
 
-:Swift:
+:Codira:
   .. parsed-literal::
        trim **trim**\ (match: (Character) -> Bool) -> String
 
@@ -1134,7 +1134,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)\ **stringByPaddingToLength:**\ (NSUInteger)newLength \ **withString:**\ (NSString \*)padString \ **startingAtIndex:**\ (NSUInteger)padIndex;
 
-:Swift:
+:Codira:
   .. parsed-literal:: *Not provided*.  It's not clear whether this is
                       useful at all for non-ASCII strings, and
 
@@ -1144,7 +1144,7 @@ Capitalization
   .. parsed-literal::
      \- (void)\ **getLineStart:**\ (NSUInteger \*)startPtr \ **end:**\ (NSUInteger \*)lineEndPtr \ **contentsEnd:**\ (NSUInteger \*)contentsEndPtr \ **forRange:**\ (NSRange)range;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1154,7 +1154,7 @@ Capitalization
   .. parsed-literal::
      \- (NSRange)\ **lineRangeForRange:**\ (NSRange)range;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1164,7 +1164,7 @@ Capitalization
   .. parsed-literal::
      \- (void)\ **getParagraphStart:**\ (NSUInteger \*)startPtr \ **end:**\ (NSUInteger \*)parEndPtr \ **contentsEnd:**\ (NSUInteger \*)contentsEndPtr \ **forRange:**\ (NSRange)range;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1174,7 +1174,7 @@ Capitalization
   .. parsed-literal::
      \- (NSRange)\ **paragraphRangeForRange:**\ (NSRange)range;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1184,7 +1184,7 @@ Capitalization
   .. parsed-literal::
      \- (void)\ **enumerateSubstringsInRange:**\ (NSRange)range \ **options:**\ (NSStringEnumerationOptions)opts \ **usingBlock:**\ (void (^)(NSString \*substring, NSRange substringRange, NSRange enclosingRange, BOOL \*stop))block;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1194,7 +1194,7 @@ Capitalization
   .. parsed-literal::
      \- (void)\ **enumerateLinesUsingBlock:**\ (void (^)(NSString \*line, BOOL \*stop))block;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1204,7 +1204,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)description;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1214,7 +1214,7 @@ Capitalization
   .. parsed-literal::
      \- (NSUInteger)hash;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1224,7 +1224,7 @@ Capitalization
   .. parsed-literal::
      \- (NSStringEncoding)fastestEncoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1234,7 +1234,7 @@ Capitalization
   .. parsed-literal::
      \- (NSStringEncoding)smallestEncoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1244,7 +1244,7 @@ Capitalization
   .. parsed-literal::
      \- (NSData \*)\ **dataUsingEncoding:**\ (NSStringEncoding)encoding \ **allowLossyConversion:**\ (BOOL)lossy;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1254,7 +1254,7 @@ Capitalization
   .. parsed-literal::
      \- (NSData \*)\ **dataUsingEncoding:**\ (NSStringEncoding)encoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1267,7 +1267,7 @@ Capitalization
   .. parsed-literal::
      \- (__strong const char \*)\ **cStringUsingEncoding:**\ (NSStringEncoding)encoding NS_RETURNS_INNER_POINTER;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1277,7 +1277,7 @@ Capitalization
   .. parsed-literal::
      \- (BOOL)\ **getCString:**\ (char \*)buffer \ **maxLength:**\ (NSUInteger)maxBufferCount \ **encoding:**\ (NSStringEncoding)encoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1287,7 +1287,7 @@ Capitalization
   .. parsed-literal::
      \- (BOOL)\ **getBytes:**\ (void \*)buffer \ **maxLength:**\ (NSUInteger)maxBufferCount \ **usedLength:**\ (NSUInteger \*)usedBufferCount \ **encoding:**\ (NSStringEncoding)encoding \ **options:**\ (NSStringEncodingConversionOptions)options \ **range:**\ (NSRange)range \ **remainingRange:**\ (NSRangePointer)leftover;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1297,7 +1297,7 @@ Capitalization
   .. parsed-literal::
      \- (NSUInteger)\ **maximumLengthOfBytesUsingEncoding:**\ (NSStringEncoding)enc;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1307,7 +1307,7 @@ Capitalization
   .. parsed-literal::
      \- (NSUInteger)\ **lengthOfBytesUsingEncoding:**\ (NSStringEncoding)enc;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1317,7 +1317,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)decomposedStringWithCanonicalMapping;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1327,7 +1327,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)precomposedStringWithCanonicalMapping;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1337,7 +1337,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)decomposedStringWithCompatibilityMapping;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1347,7 +1347,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)precomposedStringWithCompatibilityMapping;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1357,7 +1357,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)\ **stringByFoldingWithOptions:**\ (NSStringCompareOptions)options \ **locale:**\ (NSLocale \*)locale;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1367,7 +1367,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)\ **stringByReplacingOccurrencesOfString:**\ (NSString \*)target \ **withString:**\ (NSString \*)replacement \ **options:**\ (NSStringCompareOptions)options \ **range:**\ (NSRange)searchRange;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1377,7 +1377,7 @@ Capitalization
   .. parsed-literal::
      \- (NSString \*)\ **stringByReplacingOccurrencesOfString:**\ (NSString \*)target \ **withString:**\ (NSString \*)replacement;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1394,7 +1394,7 @@ Capitalization
   .. parsed-literal::
      \- (__strong const char \*)UTF8String NS_RETURNS_INNER_POINTER;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1404,7 +1404,7 @@ Capitalization
   .. parsed-literal::
      \+ (NSStringEncoding)defaultCStringEncoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1414,7 +1414,7 @@ Capitalization
   .. parsed-literal::
      \+ (const NSStringEncoding \*)availableStringEncodings;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1457,7 +1457,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithCharactersNoCopy:**\ (unichar \*)characters \ **length:**\ (NSUInteger)length \ **freeWhenDone:**\ (BOOL)freeBuffer;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1467,7 +1467,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithCharacters:**\ (const unichar \*)characters \ **length:**\ (NSUInteger)length;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1477,7 +1477,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithUTF8String:**\ (const char \*)nullTerminatedCString;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1487,7 +1487,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithFormat:**\ (NSString \*)format, ... NS_FORMAT_FUNCTION(1,2);
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1497,7 +1497,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithFormat:**\ (NSString \*)format \ **arguments:**\ (va_list)argList NS_FORMAT_FUNCTION(1,0);
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1507,7 +1507,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithFormat:**\ (NSString \*)format \ **locale:**\ (id)locale, ... NS_FORMAT_FUNCTION(1,3);
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1517,7 +1517,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithFormat:**\ (NSString \*)format \ **locale:**\ (id)locale \ **arguments:**\ (va_list)argList NS_FORMAT_FUNCTION(1,0);
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1527,7 +1527,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithData:**\ (NSData \*)data \ **encoding:**\ (NSStringEncoding)encoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1537,7 +1537,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithBytes:**\ (const void \*)bytes \ **length:**\ (NSUInteger)len \ **encoding:**\ (NSStringEncoding)encoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1547,7 +1547,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithBytesNoCopy:**\ (void \*)bytes \ **length:**\ (NSUInteger)len \ **encoding:**\ (NSStringEncoding)encoding \ **freeWhenDone:**\ (BOOL)freeBuffer;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1557,7 +1557,7 @@ Not available (too error prone)
   .. parsed-literal::
      \+ (instancetype)\ **stringWithCharacters:**\ (const unichar \*)characters \ **length:**\ (NSUInteger)length;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1567,7 +1567,7 @@ Not available (too error prone)
   .. parsed-literal::
      \+ (instancetype)\ **stringWithUTF8String:**\ (const char \*)nullTerminatedCString;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1577,7 +1577,7 @@ Not available (too error prone)
   .. parsed-literal::
      \+ (instancetype)\ **stringWithFormat:**\ (NSString \*)format, ... NS_FORMAT_FUNCTION(1,2);
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1587,7 +1587,7 @@ Not available (too error prone)
   .. parsed-literal::
      \+ (instancetype)\ **localizedStringWithFormat:**\ (NSString \*)format, ... NS_FORMAT_FUNCTION(1,2);
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1597,7 +1597,7 @@ Not available (too error prone)
   .. parsed-literal::
      \- (instancetype)\ **initWithCString:**\ (const char \*)nullTerminatedCString \ **encoding:**\ (NSStringEncoding)encoding;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
@@ -1616,11 +1616,11 @@ Linguistic Analysis
      \- (NSArray \*)\ **linguisticTagsInRange:**\ (NSRange)range \ **scheme:**\ (NSString \*)tagScheme \ **options:**\ (NSLinguisticTaggerOptions)opts \ **orthography:**\ (NSOrthography \*)orthography \ **tokenRanges:**\ (NSArray \*\*)tokenRanges;
      \- (void)\ **enumerateLinguisticTagsInRange:**\ (NSRange)range \ **scheme:**\ (NSString \*)tagScheme \ **options:**\ (NSLinguisticTaggerOptions)opts \ **orthography:**\ (NSOrthography \*)orthography \ **usingBlock:**\ (void (^)(NSString \*tag, NSRange tokenRange, NSRange sentenceRange, BOOL \*stop))block;
 
-:Swift:
+:Codira:
   .. parsed-literal::
         **TBD**
 
-Unavailable on Swift Strings
+Unavailable on Codira Strings
 ----------------------------
 
 URL Handling
@@ -1680,7 +1680,7 @@ Property lists are a feature of Cocoa.
 
     \- (id)propertyList;
     \- (NSDictionary \*)propertyListFromStringsFileFormat;
-    Not applicable. Swift does not provide GUI support.
+    Not applicable. Codira does not provide GUI support.
 
     \- (NSSize)\ **sizeWithAttributes:**\ (NSDictionary \*)attrs;
     \- (void)\ **drawAtPoint:**\ (NSPoint)point \ **withAttributes:**\ (NSDictionary \*)attrs;
@@ -1746,9 +1746,9 @@ Why YAGNI
               discussion.
 
 .. [#re_sort] Collections that automatically re-sort based on locale
-   changes are out of scope for the core Swift language
+   changes are out of scope for the core Codira language
 
-.. [#char] The type currently called ``Char`` in Swift represents a
+.. [#char] The type currently called ``Char`` in Codira represents a
    Unicode code point.  This document refers to it as ``CodePoint``,
    in anticipation of renaming.
 
@@ -1762,7 +1762,7 @@ Why YAGNI
    specifies a particular sequence of code points.  We guarantee that
    those code points are stored without change in the resulting
    ``String``.  The user can explicitly request normalization, and
-   Swift can use a bit to remember whether a given string buffer has
+   Codira can use a bit to remember whether a given string buffer has
    been normalized, thus speeding up comparison operations.
 
 .. [#elements] Since ``String`` is locale-agnostic_, its elements are

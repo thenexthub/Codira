@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language
+
+// https://github.com/apple/language/issues/51599
+
+fn test(_ a: [Int], _ f: ((Int) -> Bool)?) {
+  _ = a.filter(f!)
+}

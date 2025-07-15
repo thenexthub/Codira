@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements new Swift de-mangler.
+//  This file implements new Codira de-mangler.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 #include "language/Demangling/Demangler.h"
 #include "DemanglerAssert.h"
 #include "language/Demangling/ManglingMacros.h"
@@ -29,7 +30,7 @@
 
 using namespace language;
 using namespace Mangle;
-using swift::Demangle::FunctionSigSpecializationParamKind;
+using language::Demangle::FunctionSigSpecializationParamKind;
 
 //////////////////////////////////
 // Private utility functions    //
@@ -101,7 +102,7 @@ static bool isRequirement(Node::Kind kind) {
 // Public utility functions    //
 //////////////////////////////////
 
-void swift::Demangle::failAssert(const char *file, unsigned line,
+void language::Demangle::failAssert(const char *file, unsigned line,
                                  NodePointer node, const char *expr) {
   std::string treeStr = getNodeTreeAsString(node);
 
@@ -111,7 +112,7 @@ void swift::Demangle::failAssert(const char *file, unsigned line,
         file, line, node, expr, file, line, node, treeStr.c_str());
 }
 
-bool swift::Demangle::isContext(Node::Kind kind) {
+bool language::Demangle::isContext(Node::Kind kind) {
   switch (kind) {
 #define NODE(ID)
 #define CONTEXT_NODE(ID)                                                \
@@ -125,7 +126,7 @@ bool swift::Demangle::isContext(Node::Kind kind) {
   }
 }
 
-bool swift::Demangle::isFunctionAttr(Node::Kind kind) {
+bool language::Demangle::isFunctionAttr(Node::Kind kind) {
   switch (kind) {
     case Node::Kind::FunctionSignatureSpecialization:
     case Node::Kind::GenericSpecialization:
@@ -166,8 +167,8 @@ bool swift::Demangle::isFunctionAttr(Node::Kind kind) {
   }
 }
 
-llvm::StringRef
-swift::Demangle::makeSymbolicMangledNameStringRef(const char *base) {
+toolchain::StringRef
+language::Demangle::makeSymbolicMangledNameStringRef(const char *base) {
   if (!base)
     return {};
 
@@ -183,15 +184,15 @@ swift::Demangle::makeSymbolicMangledNameStringRef(const char *base) {
   return StringRef(base, end - base);
 }
 
-int swift::Demangle::getManglingPrefixLength(llvm::StringRef mangledName) {
+int language::Demangle::getManglingPrefixLength(toolchain::StringRef mangledName) {
   if (mangledName.empty()) return 0;
 
-  llvm::StringRef prefixes[] = {
-    /*Swift 4*/   "_T0",
-    /*Swift 4.x*/ "$S", "_$S",
-    /*Swift 5+*/  "$s", "_$s",
-    /*Swift 5+ Embedded Swift*/  "$e", "_$e",
-    /*Swift 5+ for filenames*/ "@__swiftmacro_",
+  toolchain::StringRef prefixes[] = {
+    /*Codira 4*/   "_T0",
+    /*Codira 4.x*/ "$S", "_$S",
+    /*Codira 5+*/  "$s", "_$s",
+    /*Codira 5+ Embedded Codira*/  "$e", "_$e",
+    /*Codira 5+ for filenames*/ "@__languagemacro_",
   };
 
   // Look for any of the known prefixes
@@ -203,29 +204,29 @@ int swift::Demangle::getManglingPrefixLength(llvm::StringRef mangledName) {
   return 0;
 }
 
-bool swift::Demangle::isSwiftSymbol(llvm::StringRef mangledName) {
+bool language::Demangle::isCodiraSymbol(toolchain::StringRef mangledName) {
   if (isOldFunctionTypeMangling(mangledName))
     return true;
 
   return getManglingPrefixLength(mangledName) != 0;
 }
 
-bool swift::Demangle::isSwiftSymbol(const char *mangledName) {
+bool language::Demangle::isCodiraSymbol(const char *mangledName) {
   StringRef mangledNameRef(mangledName);
-  return isSwiftSymbol(mangledNameRef);
+  return isCodiraSymbol(mangledNameRef);
 }
 
-bool swift::Demangle::isObjCSymbol(llvm::StringRef mangledName) {
-  StringRef nameWithoutPrefix = dropSwiftManglingPrefix(mangledName);
+bool language::Demangle::isObjCSymbol(toolchain::StringRef mangledName) {
+  StringRef nameWithoutPrefix = dropCodiraManglingPrefix(mangledName);
   return nameWithoutPrefix.starts_with("So") ||
          nameWithoutPrefix.starts_with("SC");
 }
 
-bool swift::Demangle::isOldFunctionTypeMangling(llvm::StringRef mangledName) {
+bool language::Demangle::isOldFunctionTypeMangling(toolchain::StringRef mangledName) {
   return mangledName.starts_with("_T");
 }
 
-llvm::StringRef swift::Demangle::dropSwiftManglingPrefix(StringRef mangledName){
+toolchain::StringRef language::Demangle::dropCodiraManglingPrefix(StringRef mangledName){
   return mangledName.drop_front(getManglingPrefixLength(mangledName));
 }
 
@@ -243,7 +244,7 @@ static bool isAliasNode(Demangle::NodePointer Node) {
   assert(0 && "unknown node kind");
 }
 
-bool swift::Demangle::isAlias(llvm::StringRef mangledName) {
+bool language::Demangle::isAlias(toolchain::StringRef mangledName) {
   Demangle::Demangler Dem;
   return isAliasNode(Dem.demangleType(mangledName));
 }
@@ -263,7 +264,7 @@ static bool isClassNode(Demangle::NodePointer Node) {
   assert(0 && "unknown node kind");
 }
 
-bool swift::Demangle::isClass(llvm::StringRef mangledName) {
+bool language::Demangle::isClass(toolchain::StringRef mangledName) {
   Demangle::Demangler Dem;
   return isClassNode(Dem.demangleType(mangledName));
 }
@@ -283,7 +284,7 @@ static bool isEnumNode(Demangle::NodePointer Node) {
   assert(0 && "unknown node kind");
 }
 
-bool swift::Demangle::isEnum(llvm::StringRef mangledName) {
+bool language::Demangle::isEnum(toolchain::StringRef mangledName) {
   Demangle::Demangler Dem;
   return isEnumNode(Dem.demangleType(mangledName));
 }
@@ -304,9 +305,9 @@ static bool isProtocolNode(Demangle::NodePointer Node) {
   assert(0 && "unknown node kind");
 }
 
-bool swift::Demangle::isProtocol(llvm::StringRef mangledName) {
+bool language::Demangle::isProtocol(toolchain::StringRef mangledName) {
   Demangle::Demangler Dem;
-  return isProtocolNode(Dem.demangleType(dropSwiftManglingPrefix(mangledName)));
+  return isProtocolNode(Dem.demangleType(dropCodiraManglingPrefix(mangledName)));
 }
 
 static bool isStructNode(Demangle::NodePointer Node) {
@@ -324,12 +325,12 @@ static bool isStructNode(Demangle::NodePointer Node) {
   assert(0 && "unknown node kind");
 }
 
-bool swift::Demangle::isStruct(llvm::StringRef mangledName) {
+bool language::Demangle::isStruct(toolchain::StringRef mangledName) {
   Demangle::Demangler Dem;
   return isStructNode(Dem.demangleType(mangledName));
 }
 
-std::string swift::Demangle::mangledNameForTypeMetadataAccessor(
+std::string language::Demangle::mangledNameForTypeMetadataAccessor(
     StringRef moduleName, StringRef typeName, Node::Kind typeKind,
     Mangle::ManglingFlavor Flavor) {
   using namespace Demangle;
@@ -605,14 +606,14 @@ NodePointer NodeFactory::createNode(Node::Kind K, Node::IndexType Index) {
   return new (Allocate<Node>()) Node(K, Index);
 }
 NodePointer NodeFactory::createNodeWithAllocatedText(Node::Kind K,
-                                                     llvm::StringRef Text) {
+                                                     toolchain::StringRef Text) {
   return new (Allocate<Node>()) Node(K, Text);
 }
 NodePointer NodeFactory::createNode(Node::Kind K, const CharVector &Text) {
   return createNodeWithAllocatedText(K, Text.str());
 }
 NodePointer NodeFactory::createNode(Node::Kind K, const char *Text) {
-  return new (Allocate<Node>()) Node(K, llvm::StringRef(Text));
+  return new (Allocate<Node>()) Node(K, toolchain::StringRef(Text));
 }
 
 #ifdef NODE_FACTORY_DEBUGGING
@@ -743,7 +744,7 @@ NodePointer Demangler::demangleSymbol(StringRef MangledName,
         std::function<SymbolicReferenceResolver_t> Resolver) {
   DemangleInitRAII state(*this, MangledName, std::move(Resolver));
 
-#if SWIFT_SUPPORT_OLD_MANGLING
+#if LANGUAGE_SUPPORT_OLD_MANGLING
   // Demangle old-style class and protocol names, which are still used in the
   // ObjC metadata.
   if (nextIf("_Tt"))
@@ -1216,7 +1217,7 @@ NodePointer Demangler::pushMultiSubstitutions(int RepeatCount,
   return Nd;
 }
 
-NodePointer Demangler::createSwiftType(Node::Kind typeKind, const char *name) {
+NodePointer Demangler::createCodiraType(Node::Kind typeKind, const char *name) {
   return createType(createWithChildren(typeKind,
     createNode(Node::Kind::Module, STDLIB_NAME),
     createNode(Node::Kind::Identifier, name)));
@@ -1231,7 +1232,7 @@ NodePointer Demangler::demangleStandardSubstitution() {
     case 'g': {
       NodePointer OptionalTy =
         createType(createWithChildren(Node::Kind::BoundGenericEnum,
-          createSwiftType(Node::Kind::Enum, "Optional"),
+          createCodiraType(Node::Kind::Enum, "Optional"),
           createWithChild(Node::Kind::TypeList, popNode(Node::Kind::Type))));
       addSubstitution(OptionalTy);
       return OptionalTy;
@@ -1258,12 +1259,12 @@ NodePointer Demangler::createStandardSubstitution(
     char Subst, bool SecondLevel) {
 #define STANDARD_TYPE(KIND, MANGLING, TYPENAME)                   \
   if (!SecondLevel && Subst == #MANGLING[0]) {                    \
-    return createSwiftType(Node::Kind::KIND, #TYPENAME);          \
+    return createCodiraType(Node::Kind::KIND, #TYPENAME);          \
   }
 
 #define STANDARD_TYPE_CONCURRENCY(KIND, MANGLING, TYPENAME)                   \
   if (SecondLevel && Subst == #MANGLING[0]) {                    \
-    return createSwiftType(Node::Kind::KIND, #TYPENAME);          \
+    return createCodiraType(Node::Kind::KIND, #TYPENAME);          \
   }
 
 #include "language/Demangling/StandardTypesMangling.def"
@@ -1575,7 +1576,7 @@ NodePointer Demangler::demangleExtensionContext() {
 /// directly.
 static void setParentForOpaqueReturnTypeNodesImpl(
     Demangler &D, Node &visitedNode,
-    llvm::function_ref<StringRef()> getParentID) {
+    toolchain::function_ref<StringRef()> getParentID) {
   if (visitedNode.getKind() == Node::Kind::OpaqueReturnType) {
     // If this node is not already parented, parent it.
     if (visitedNode.hasChildren() && visitedNode.getLastChild()->getKind() ==
@@ -2304,6 +2305,22 @@ NodePointer Demangler::demangleImplParameterSending() {
   return createNode(Node::Kind::ImplParameterSending, attr);
 }
 
+NodePointer Demangler::demangleImplParameterIsolated() {
+  // Empty string represents default differentiability.
+  if (!nextIf('I'))
+    return nullptr;
+  const char *attr = "isolated";
+  return createNode(Node::Kind::ImplParameterIsolated, attr);
+}
+
+NodePointer Demangler::demangleImplParameterImplicitLeading() {
+  // Empty string represents default differentiability.
+  if (!nextIf('L'))
+    return nullptr;
+  const char *attr = "sil_implicit_leading_param";
+  return createNode(Node::Kind::ImplParameterImplicitLeading, attr);
+}
+
 NodePointer Demangler::demangleImplParameterResultDifferentiability() {
   // Empty string represents default differentiability.
   const char *attr = "";
@@ -2454,6 +2471,10 @@ NodePointer Demangler::demangleImplFunctionType() {
     if (NodePointer Diff = demangleImplParameterResultDifferentiability())
       Param = addChild(Param, Diff);
     if (auto Sending = demangleImplParameterSending())
+      Param = addChild(Param, Sending);
+    if (auto Sending = demangleImplParameterIsolated())
+      Param = addChild(Param, Sending);
+    if (auto Sending = demangleImplParameterImplicitLeading())
       Param = addChild(Param, Sending);
     ++NumTypesToAdd;
   }
@@ -3446,7 +3467,7 @@ NodePointer Demangler::demangleFuncSpecParam(Node::Kind Kind) {
                    createNode(
                        Node::Kind::FunctionSignatureSpecializationParamKind,
                        Node::IndexType(
-                           swift::Demangle::FunctionSigSpecializationParamKind::
+                           language::Demangle::FunctionSigSpecializationParamKind::
                                ConstantPropString)));
           return addChild(Param, createNode(
                   Node::Kind::FunctionSignatureSpecializationParamPayload,
@@ -3649,6 +3670,15 @@ NodePointer Demangler::demangleWitness() {
     }
     case 'O': {
       switch (nextChar()) {
+      case 'B': {
+        if (auto sig = popNode(Node::Kind::DependentGenericSignature))
+          return createWithChildren(
+              Node::Kind::OutlinedInitializeWithTakeNoValueWitness,
+              popNode(Node::Kind::Type), sig);
+        return createWithChild(
+            Node::Kind::OutlinedInitializeWithTakeNoValueWitness,
+            popNode(Node::Kind::Type));
+      }
       case 'C': {
         if (auto sig = popNode(Node::Kind::DependentGenericSignature))
           return createWithChildren(Node::Kind::OutlinedInitializeWithCopyNoValueWitness,

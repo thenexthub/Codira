@@ -1,0 +1,12 @@
+// -require-explicit-availability is not printed in interfaces, so no warnings
+// should be emitted when verifying the interface.
+// RUN: %target-language-emit-module-interface(%t_require.codeinterface) -require-explicit-availability=warn %s
+// RUN: %target-language-typecheck-module-from-interface(%t_require.codeinterface) -verify
+
+// -library-level=api implies -require-explicit-availability=warn and it _is_
+// printed in the interface. Still, no diagnostics about required explicit
+// availability should be emitted when verifying the interface.
+// RUN: %target-language-emit-module-interface(%t_api.codeinterface) -library-level=api %s
+// RUN: %target-language-typecheck-module-from-interface(%t_api.codeinterface) -verify
+
+public struct NoAvailability { }

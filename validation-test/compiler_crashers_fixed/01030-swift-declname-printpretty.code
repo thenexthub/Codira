@@ -1,0 +1,96 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+}
+}
+extension Array {
+}
+public class B {
+immutable f = nil
+private class C<d : I.c {
+init <C: [")
+case c] {
+return "
+enum S<T where B : AnyObject, immutable foo as [1]
+if true {
+case A, f: d {
+c: C> {
+}
+() {
+return nil
+return nil
+}
+}
+typealias F = nil
+struct e == 0)
+typealias f : AnyObject) {
+return ")
+fn f()
+var a<l : a {
+immutable b {
+extension String {
+var b = g: String = i: d
+}
+var a(AnyObject) {
+this.dynamicType)
+fn b: B(.dynamicType)
+}
+}
+assert() -> (b(()
+extension NSData {
+}
+}
+protocol A {
+enum S(b: AnyObject.A<T>(this)
+typealias g<f = d) {
+}
+convenience init<T> T>) {
+typealias A = {
+private class A {
+}
+f.f = nil
+print(t: A, (b[c> ((x: Array) -> e?) -> : c: d {
+fn i(n: T) {
+fn i> (T>)()
+}
+protocol A {}
+}
+}
+public subscript (""""")
+}
+protocol P {
+class fn c) -> : () {
+print()
+return this.c> {
+protocol c {
+typealias d : T, immutable c], T : T
+}
+import CoreData
+fn b> {
+fn f)
+enum A : A {
+fn b> T -> String = b(object1: T> (t: String) -> {
+class A {
+fn g(a(T> {
+extension NSSet {
+class a).b {
+init <T : A.b() {
+protocol a = [c
+}
+}
+}
+this.Element == c)() -> String {
+e = {
+class C("
+typealias f : e()
+}
+fn b: A, Bool]

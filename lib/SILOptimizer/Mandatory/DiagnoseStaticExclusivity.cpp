@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements a diagnostic pass that finds violations of the
@@ -45,9 +46,9 @@
 #include "language/SILOptimizer/Analysis/PostOrderAnalysis.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/ADT/PostOrderIterator.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/PostOrderIterator.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 
@@ -112,7 +113,7 @@ public:
       case RecordedAccessKind::NoescapeClosureCapture:
         return Closure.AccessKind;
     };
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
   SILLocation getAccessLoc() const {
@@ -122,7 +123,7 @@ public:
       case RecordedAccessKind::NoescapeClosureCapture:
         return Closure.AccessLoc;
     };
-    llvm_unreachable("unhandled kind");
+    toolchain_unreachable("unhandled kind");
   }
 
   const IndexTrieNode *getSubPath() const {
@@ -292,7 +293,7 @@ public:
 
 /// Indicates whether a 'begin_access' requires exclusive access
 /// or allows shared access. This needs to be kept in sync with
-/// diag::exclusivity_access_required, exclusivity_access_required_swift3,
+/// diag::exclusivity_access_required, exclusivity_access_required_language3,
 /// and diag::exclusivity_conflicting_access.
 enum class ExclusiveOrShared_t : unsigned {
   ExclusiveAccess = 0,
@@ -301,7 +302,7 @@ enum class ExclusiveOrShared_t : unsigned {
 
 
 /// Tracks the in-progress accesses on per-storage-location basis.
-using StorageMap = llvm::SmallDenseMap<AccessStorage, AccessInfo, 4>;
+using StorageMap = toolchain::SmallDenseMap<AccessStorage, AccessInfo, 4>;
 
 /// Represents two accesses that conflict and their underlying storage.
 struct ConflictingAccess {
@@ -342,7 +343,7 @@ static bool isCallToStandardLibrarySwap(CallExpr *CE, ASTContext &Ctx) {
   if (CE->getCalledValue() == Ctx.getSwap())
     return true;
 
-  // Is the call module qualified, i.e. Swift.swap(&a[i], &[j)?
+  // Is the call module qualified, i.e. Codira.swap(&a[i], &[j)?
   if (auto *DSBIE = dyn_cast<DotSyntaxBaseIgnoredExpr>(CE->getFn())) {
     if (auto *DRE = dyn_cast<DeclRefExpr>(DSBIE->getRHS())) {
       return DRE->getDecl() == Ctx.getSwap();
@@ -487,7 +488,7 @@ static void addSwapAtFixit(InFlightDiagnostic &Diag, CallExpr *&FoundCall,
   StringRef Index2Text = extractExprText(Index2, SM);
   SmallString<64> FixItText;
   {
-    llvm::raw_svector_ostream Out(FixItText);
+    toolchain::raw_svector_ostream Out(FixItText);
     Out << BaseText << ".swapAt(" << Index1Text << ", " << Index2Text << ")";
   }
 
@@ -503,7 +504,7 @@ static std::string getPathDescription(DeclName BaseName, SILType BaseType,
                                       SILModule &M,
                                       TypeExpansionContext context) {
   std::string sbuf;
-  llvm::raw_string_ostream os(sbuf);
+  toolchain::raw_string_ostream os(sbuf);
 
   os << "'" << BaseName;
   os << AccessSummaryAnalysis::getSubPathDescription(BaseType, SubPath, M,
@@ -525,7 +526,7 @@ static void diagnoseExclusivityViolation(const ConflictingAccess &Violation,
   const RecordedAccess &SecondAccess = Violation.SecondAccess;
   SILFunction *F = FirstAccess.getInstruction()->getFunction();
 
-  LLVM_DEBUG(llvm::dbgs() << "Conflict on " << *FirstAccess.getInstruction()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Conflict on " << *FirstAccess.getInstruction()
                           << "\n  vs " << *SecondAccess.getInstruction()
                           << "\n  in function " << *F);
 
@@ -625,9 +626,9 @@ static bool isCallToStandardLibrarySwap(ApplyInst *AI, ASTContext &Ctx) {
   return FD == Ctx.getSwap();
 }
 
-static llvm::cl::opt<bool> ShouldAssertOnFailure(
+static toolchain::cl::opt<bool> ShouldAssertOnFailure(
     "sil-assert-on-exclusivity-failure",
-    llvm::cl::desc("Should the compiler assert when it diagnoses conflicting "
+    toolchain::cl::desc("Should the compiler assert when it diagnoses conflicting "
                    "accesses rather than emitting a diagnostic? Intended for "
                    "use only with debugging."));
 
@@ -635,14 +636,14 @@ static llvm::cl::opt<bool> ShouldAssertOnFailure(
 /// would conflict, returns the first recorded access it would conflict
 /// with. Otherwise, returns std::nullopt.
 static std::optional<RecordedAccess>
-shouldReportAccess(const AccessInfo &Info, swift::SILAccessKind Kind,
+shouldReportAccess(const AccessInfo &Info, language::SILAccessKind Kind,
                    const IndexTrieNode *SubPath) {
   if (Info.alreadyHadConflict())
     return std::nullopt;
 
   auto result = Info.conflictsWithAccess(Kind, SubPath);
   if (ShouldAssertOnFailure && result.has_value())
-    llvm_unreachable("Standard assertion routine.");
+    toolchain_unreachable("Standard assertion routine.");
   return result;
 }
 
@@ -701,7 +702,7 @@ struct AccessState {
   // Stores the accesses that have been found to conflict. Used to defer
   // emitting diagnostics until we can determine whether they should
   // be suppressed.
-  llvm::SmallVector<ConflictingAccess, 4> ConflictingAccesses;
+  toolchain::SmallVector<ConflictingAccess, 4> ConflictingAccesses;
 
   void recordConflictingAccess(const ConflictingAccess &a) {
     ConflictingAccesses.push_back(a);
@@ -714,7 +715,7 @@ struct AccessState {
   }
 
   // Collects calls the Standard Library swap() for Fix-Its.
-  llvm::SmallVector<ApplyInst *, 8> CallsToSwap;
+  toolchain::SmallVector<ApplyInst *, 8> CallsToSwap;
 
   StorageMap *Accesses = nullptr;
 
@@ -954,7 +955,7 @@ static void checkStaticExclusivity(SILFunction &Fn, PostOrderFunctionInfo *PO,
 
   // For each basic block, track the stack of current accesses on
   // exit from that block.
-  llvm::SmallDenseMap<SILBasicBlock *, std::optional<StorageMap>, 32>
+  toolchain::SmallDenseMap<SILBasicBlock *, std::optional<StorageMap>, 32>
       BlockOutAccesses;
 
   BlockOutAccesses[Fn.getEntryBlock()] = StorageMap();
@@ -1004,11 +1005,11 @@ static void checkAccessedAddress(Operand *memOper, StorageMap &Accesses) {
   SILInstruction *memInst = memOper->getUser();
 
   auto error = [accessBegin, memInst]() {
-    llvm::dbgs() << "Memory access not protected by begin_access:\n";
-    memInst->printInContext(llvm::dbgs());
-    llvm::dbgs() << "Accessing: " << accessBegin;
-    llvm::dbgs() << "In function:\n";
-    memInst->getFunction()->print(llvm::dbgs());
+    toolchain::dbgs() << "Memory access not protected by begin_access:\n";
+    memInst->printInContext(toolchain::dbgs());
+    toolchain::dbgs() << "Accessing: " << accessBegin;
+    toolchain::dbgs() << "In function:\n";
+    memInst->getFunction()->print(toolchain::dbgs());
     abort();
   };
 
@@ -1126,6 +1127,6 @@ private:
 
 } // end anonymous namespace
 
-SILTransform *swift::createDiagnoseStaticExclusivity() {
+SILTransform *language::createDiagnoseStaticExclusivity() {
   return new DiagnoseStaticExclusivity();
 }

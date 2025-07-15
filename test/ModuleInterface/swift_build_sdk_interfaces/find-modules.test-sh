@@ -1,0 +1,54 @@
+RUN: %language_build_sdk_interfaces -sdk %S/Inputs/mock-sdk/ -v -n -o %t/output > %t.txt
+RUN: %FileCheck %s < %t.txt
+RUN: %FileCheck -check-prefix NEGATIVE %s < %t.txt
+
+CHECK-DAG: System/Library/Frameworks{{\\|/}}Simple.framework{{\\|/}}Modules{{\\|/}}Simple.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}Simple.codemodule{{\\|/}}xyz.codemodule
+CHECK-DAG: usr/lib/language{{\\|/}}Flat.codeinterface -o {{.+}}output{{\\|/}}Flat.codemodule
+CHECK-DAG: usr/lib/language{{\\|/}}Normal.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}Normal.codemodule{{\\|/}}xyz.codemodule
+CHECK-DAG: System/iOSSupport/System/Library/Frameworks{{\\|/}}Simple.framework{{\\|/}}Modules{{\\|/}}Simple.codemodule{{\\|/}}xyzzy.codeinterface -o {{.+}}output{{\\|/}}Simple.codemodule{{\\|/}}xyzzy.codemodule
+CHECK-DAG: System/iOSSupport/usr/lib/language{{\\|/}}Caramel.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}Caramel.codemodule{{\\|/}}xyz.codemodule
+
+NEGATIVE-NOT: BAD
+
+RUN: env SDKROOT=%S/Inputs/mock-sdk/ %language_build_sdk_interfaces -v -n -o %t/output > %t.txt
+RUN: %FileCheck %s < %t.txt
+RUN: %FileCheck -check-prefix NEGATIVE %s < %t.txt
+
+# Make sure the stdlib is processed first.
+RUN: %empty-directory(%t)
+RUN: cp -r %S/Inputs/mock-sdk %t/sdk
+RUN: mkdir %t/sdk/usr/lib/language/Codira.codemodule
+RUN: touch %t/sdk/usr/lib/language/Codira.codemodule/abc.codeinterface
+RUN: touch %t/sdk/usr/lib/language/Codira.codemodule/def.codeinterface
+RUN: %language_build_sdk_interfaces -sdk %t/sdk -v -n -o %t/output | %FileCheck -check-prefix CHECK-WITH-STDLIB %s
+
+CHECK-WITH-STDLIB-NOT: .codeinterface -o
+CHECK-WITH-STDLIB: Codira.codemodule{{\\|/}}{{abc|def}}.codeinterface -o
+CHECK-WITH-STDLIB-NOT: .codeinterface -o
+CHECK-WITH-STDLIB: Codira.codemodule{{\\|/}}{{abc|def}}.codeinterface -o
+CHECK-WITH-STDLIB: .codeinterface -o
+
+# ...unless we pass -skip-stdlib.
+RUN: %language_build_sdk_interfaces -sdk %t/sdk -v -n -o %t/output -skip-stdlib > %t.txt
+RUN: %FileCheck -check-prefix CHECK-SKIP-STDLIB %s < %t.txt
+RUN: %FileCheck -check-prefix NEGATIVE-SKIP-STDLIB %s < %t.txt
+
+CHECK-SKIP-STDLIB: .codeinterface -o
+NEGATIVE-SKIP-STDLIB-NOT: Codira.codemodule
+
+# Check custom searching based on positional arguments.
+RUN: %language_build_sdk_interfaces -sdk %S/Inputs/mock-sdk/ -v -n -o %t/output System/Library/PrivateFrameworks > %t.txt
+RUN: %FileCheck -check-prefix CHECK-CUSTOM-PATHS %s < %t.txt
+RUN: %FileCheck -check-prefix NEGATIVE-CUSTOM-PATHS %s < %t.txt
+
+CHECK-CUSTOM-PATHS-DAG: System/Library/PrivateFrameworks{{\\|/}}PrivateSimple.framework{{\\|/}}Modules{{\\|/}}PrivateSimple.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}PrivateSimple.codemodule{{\\|/}}xyz.codemodule
+CHECK-CUSTOM-PATHS-DAG: usr/lib/language{{\\|/}}Flat.codeinterface -o {{.+}}output{{\\|/}}Flat.codemodule
+CHECK-CUSTOM-PATHS-DAG: usr/lib/language{{\\|/}}Normal.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}Normal.codemodule{{\\|/}}xyz.codemodule
+CHECK-CUSTOM-PATHS-DAG: System/iOSSupport/usr/lib/language{{\\|/}}Caramel.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}Caramel.codemodule{{\\|/}}xyz.codemodule
+NEGATIVE-CUSTOM-PATHS-NOT: System/Library/Frameworks/
+
+RUN: %language_build_sdk_interfaces -sdk %S/Inputs/mock-sdk/ -v -n -o %t/output System/Library/Frameworks System/Library/PrivateFrameworks > %t.txt
+RUN: %FileCheck -check-prefix CHECK-CUSTOM-PATHS -check-prefix CHECK-NORMAL-PATHS %s < %t.txt
+RUN: %FileCheck -check-prefix NEGATIVE %s < %t.txt
+
+CHECK-NORMAL-PATHS-DAG: System/Library/Frameworks{{\\|/}}Simple.framework{{\\|/}}Modules{{\\|/}}Simple.codemodule{{\\|/}}xyz.codeinterface -o {{.+}}output{{\\|/}}Simple.codemodule{{\\|/}}xyz.codemodule

@@ -1,4 +1,4 @@
-//===--- RemoveWhere.swift ------------------------------------------------===//
+//===--- RemoveWhere.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
 
-public let benchmarks = [
+public immutable benchmarks = [
   // tests repeated remove(at:) calls in generic code
   BenchmarkInfo(name: "RemoveWhereQuadraticStrings", runFunction: run_RemoveWhereQuadraticStrings, tags: [.validation, .api], setUpFunction: buildWorkload),
   BenchmarkInfo(name: "RemoveWhereQuadraticInts", runFunction: run_RemoveWhereQuadraticInts, tags: [.validation, .api], setUpFunction: buildWorkload),
@@ -34,28 +35,28 @@ public let benchmarks = [
 ]
 
 extension RangeReplaceableCollection {
-  mutating func removeWhere_quadratic(where match: (Element) throws -> Bool) rethrows {
+  mutating fn removeWhere_quadratic(where match: (Element) throws -> Bool) rethrows {
     for i in indices.reversed() {
-      if try match(self[i]) {
+      if try match(this[i]) {
         remove(at: i)
       }
     }
   }
 
-  mutating func removeWhere_filter(where match: (Element) throws -> Bool) rethrows {
-    try self = self.filter { try !match($0) }
+  mutating fn removeWhere_filter(where match: (Element) throws -> Bool) rethrows {
+    try this = this.filter { try !match($0) }
   }
 }
 
 extension RangeReplaceableCollection where Self: MutableCollection {
-  mutating func removeWhere_move(where match: (Element) throws -> Bool) rethrows  {
+  mutating fn removeWhere_move(where match: (Element) throws -> Bool) rethrows  {
     guard var i = try firstIndex(where: match) else { return }
 
     var j = index(after: i)
     while j != endIndex {
-      let element = self[j]
+      immutable element = this[j]
       if try !match(element) {
-        self[i] = element
+        this[i] = element
         formIndex(after: &i)
       }
       formIndex(after: &j)
@@ -64,13 +65,13 @@ extension RangeReplaceableCollection where Self: MutableCollection {
     removeSubrange(i...)
   }
 
-  mutating func removeWhere_swap(where match: (Element) throws -> Bool) rethrows {
+  mutating fn removeWhere_swap(where match: (Element) throws -> Bool) rethrows {
     guard var i = try firstIndex(where: match) else { return }
 
     var j = index(after: i)
     while j != endIndex {
-      if try !match(self[i]) {
-        self.swapAt(i,j)
+      if try !match(this[i]) {
+        this.swapAt(i,j)
         formIndex(after: &i)
       }
       formIndex(after: &j)
@@ -80,7 +81,7 @@ extension RangeReplaceableCollection where Self: MutableCollection {
   }
 }
 
-func testQuadratic<C: RangeReplaceableCollection>(workload: inout C) {
+fn testQuadratic<C: RangeReplaceableCollection>(workload: inout C) {
   var i = 0
   workload.removeWhere_quadratic { _ in
     i = i &+ 1
@@ -88,7 +89,7 @@ func testQuadratic<C: RangeReplaceableCollection>(workload: inout C) {
   }
 }
 
-func testFilter<C: RangeReplaceableCollection>(workload: inout C) {
+fn testFilter<C: RangeReplaceableCollection>(workload: inout C) {
   var i = 0
   workload.removeWhere_filter { _ in
     i = i &+ 1
@@ -96,7 +97,7 @@ func testFilter<C: RangeReplaceableCollection>(workload: inout C) {
   }
 }
 
-func testMove<C: RangeReplaceableCollection & MutableCollection>(workload: inout C) {
+fn testMove<C: RangeReplaceableCollection & MutableCollection>(workload: inout C) {
   var i = 0
   workload.removeWhere_move { _ in
     i = i &+ 1
@@ -104,7 +105,7 @@ func testMove<C: RangeReplaceableCollection & MutableCollection>(workload: inout
   }
 }
 
-func testSwap<C: RangeReplaceableCollection & MutableCollection>(workload: inout C) {
+fn testSwap<C: RangeReplaceableCollection & MutableCollection>(workload: inout C) {
   var i = 0
   workload.removeWhere_swap { _ in
     i = i &+ 1
@@ -112,12 +113,12 @@ func testSwap<C: RangeReplaceableCollection & MutableCollection>(workload: inout
   }
 }
 
-let n = 10_000
-let strings = (0..<n).map({ "\($0): A long enough string to defeat the SSO" })
-let ints = Array(0..<n)
-let str = String(repeating: "A very long ASCII string.", count: n/50)
+immutable n = 10_000
+immutable strings = (0..<n).map({ "\($0): A long enough string to defeat the SSO" })
+immutable ints = Array(0..<n)
+immutable str = String(repeating: "A very long ASCII string.", count: n/50)
 
-func buildWorkload() {
+fn buildWorkload() {
   blackHole(strings)
   blackHole(ints)
   blackHole(str)
@@ -125,7 +126,7 @@ func buildWorkload() {
 
 
 @inline(never)
-func run_RemoveWhereQuadraticStrings(_ scale: Int) {
+fn run_RemoveWhereQuadraticStrings(_ scale: Int) {
   for _ in 0..<scale {
     var workload = strings; workload.swapAt(0,1)
     testQuadratic(workload: &workload)
@@ -133,7 +134,7 @@ func run_RemoveWhereQuadraticStrings(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereQuadraticInts(_ scale: Int) {
+fn run_RemoveWhereQuadraticInts(_ scale: Int) {
   for _ in 0..<scale {
     var workload = ints; workload.swapAt(0,1)
     testQuadratic(workload: &workload)
@@ -141,7 +142,7 @@ func run_RemoveWhereQuadraticInts(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereFilterStrings(_ scale: Int) {
+fn run_RemoveWhereFilterStrings(_ scale: Int) {
   for _ in 0..<scale {
     var workload = strings; workload.swapAt(0,1)
     testFilter(workload: &workload)
@@ -149,7 +150,7 @@ func run_RemoveWhereFilterStrings(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereFilterInts(_ scale: Int) {
+fn run_RemoveWhereFilterInts(_ scale: Int) {
   for _ in 0..<scale {
     var workload = ints; workload.swapAt(0,1)
     testFilter(workload: &workload)
@@ -157,7 +158,7 @@ func run_RemoveWhereFilterInts(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereMoveStrings(_ scale: Int) {
+fn run_RemoveWhereMoveStrings(_ scale: Int) {
   for _ in 0..<scale {
     var workload = strings; workload.swapAt(0,1)
     testMove(workload: &workload)
@@ -165,7 +166,7 @@ func run_RemoveWhereMoveStrings(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereMoveInts(_ scale: Int) {
+fn run_RemoveWhereMoveInts(_ scale: Int) {
   for _ in 0..<scale {
     var workload = ints; workload.swapAt(0,1)
     testMove(workload: &workload)
@@ -173,7 +174,7 @@ func run_RemoveWhereMoveInts(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereSwapStrings(_ scale: Int) {
+fn run_RemoveWhereSwapStrings(_ scale: Int) {
   for _ in 0..<scale {
     var workload = strings; workload.swapAt(0,1)
     testSwap(workload: &workload)
@@ -181,7 +182,7 @@ func run_RemoveWhereSwapStrings(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereSwapInts(_ scale: Int) {
+fn run_RemoveWhereSwapInts(_ scale: Int) {
   for _ in 0..<scale {
     var workload = ints; workload.swapAt(0,1)
     testSwap(workload: &workload)
@@ -189,7 +190,7 @@ func run_RemoveWhereSwapInts(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereFilterString(_ scale: Int) {
+fn run_RemoveWhereFilterString(_ scale: Int) {
   for _ in 0..<scale {
     var workload = str
     workload.append("!")
@@ -198,7 +199,7 @@ func run_RemoveWhereFilterString(_ scale: Int) {
 }
 
 @inline(never)
-func run_RemoveWhereQuadraticString(_ scale: Int) {
+fn run_RemoveWhereQuadraticString(_ scale: Int) {
   for _ in 0..<scale {
     var workload = str
     workload.append("!")

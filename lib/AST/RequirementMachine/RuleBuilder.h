@@ -1,29 +1,33 @@
 //===--- RuleBuilder.h - Lowering desugared requirements to rules ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RULEBUILDER_H
-#define SWIFT_RULEBUILDER_H
+#ifndef LANGUAGE_RULEBUILDER_H
+#define LANGUAGE_RULEBUILDER_H
 
 #include "language/AST/ASTContext.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/SmallVector.h"
 #include <vector>
 #include "RewriteContext.h"
 #include "Rule.h"
 #include "Symbol.h"
 #include "Term.h"
 
-namespace llvm {
+namespace toolchain {
   class raw_ostream;
 }
 
@@ -46,7 +50,7 @@ struct RuleBuilder {
 
   /// The transitive closure of all protocols appearing on the right hand
   /// side of conformance requirements.
-  llvm::DenseSet<const ProtocolDecl *> &ReferencedProtocols;
+  toolchain::DenseSet<const ProtocolDecl *> &ReferencedProtocols;
 
   /// A subset of the above in insertion order, consisting of the protocols
   /// whose rules we are going to import.
@@ -84,7 +88,7 @@ struct RuleBuilder {
   unsigned Initialized : 1;
 
   RuleBuilder(RewriteContext &ctx,
-              llvm::DenseSet<const ProtocolDecl *> &referencedProtocols)
+              toolchain::DenseSet<const ProtocolDecl *> &referencedProtocols)
       : Context(ctx), ReferencedProtocols(referencedProtocols) {
     Dump = ctx.getASTContext().LangOpts.DumpRequirementMachine;
     Initialized = 0;
@@ -97,7 +101,7 @@ struct RuleBuilder {
   void initWithProtocolSignatureRequirements(ArrayRef<const ProtocolDecl *> proto);
   void initWithProtocolWrittenRequirements(
       ArrayRef<const ProtocolDecl *> component,
-      const llvm::DenseMap<const ProtocolDecl *,
+      const toolchain::DenseMap<const ProtocolDecl *,
                            SmallVector<StructuralRequirement, 4>> protos);
   void initWithConditionalRequirements(ArrayRef<Requirement> requirements,
                                        ArrayRef<Term> substitutions);

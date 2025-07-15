@@ -354,9 +354,9 @@ $P$.
 final minimal canonical list of protocols from $P$.
 \end{enumerate}
 \end{definition}
-The second step is to define a mapping from type terms to Swift type parameters, for use by the \texttt{getSuperclassBound()} and \texttt{getConcreteType()} queries when mapping substitutions back to Swift types.
+The second step is to define a mapping from type terms to Codira type parameters, for use by the \texttt{getSuperclassBound()} and \texttt{getConcreteType()} queries when mapping substitutions back to Codira types.
 \begin{algorithm} The type lifting map $\Lambda^{-1}:\namesym{Term}\rightarrow\namesym{Type}$ takes as input
-a type term $T$ and maps it back to a Swift type parameter. This is the inverse of the type lowering
+a type term $T$ and maps it back to a Codira type parameter. This is the inverse of the type lowering
 map $\Lambda\colon\namesym{Type}\rightarrow\namesym{Term}$ from \AlgRef{build term protocol}.
 \begin{enumerate}
 \item Initialize $S$ to an empty type parameter.
@@ -377,7 +377,7 @@ associated type order (\AlgRef{associated type order}).
 \end{enumerate}
 \end{enumerate}
 \end{algorithm}
-The third and final step before the queries themselves can be presented is the algorithm for mapping a superclass or concrete type symbol back to a Swift type. This algorithm uses the above type lifting map on type parameters appearing in substitutions.
+The third and final step before the queries themselves can be presented is the algorithm for mapping a superclass or concrete type symbol back to a Codira type. This algorithm uses the above type lifting map on type parameters appearing in substitutions.
 \begin{algorithm}[Constructing a concrete type from a symbol]\label{symboltotype} As input, this algorithm takes a
 superclass symbol $\supersym{\namesym{T}\colon\sigma_0,\ldots,\sigma_n}$ or
 concrete type symbol $\concretesym{\namesym{T}\colon\sigma_0,\ldots,\sigma_n}$. This is the inverse of \AlgRef{concretesymbolcons}.
@@ -405,7 +405,7 @@ Otherwise, $T$ can be written as $T=UV$, where $V$ is the longest suffix of $T$ 
 
 The first step is to adjust the symbol by prepending $U$ to each substitution $\sigma_i$, to produce the superclass symbol
 \[\supersym{\namesym{C};\,\sigma_0,\ldots,U\sigma_n}.\]
-Then, \AlgRef{symboltotype} can be applied to convert the symbol to a Swift type.
+Then, \AlgRef{symboltotype} can be applied to convert the symbol to a Codira type.
 \item\texttt{getConcreteType()}: This query is almost identical to \texttt{getSuperclassBound()}; you can replace ``superclass symbol'' with ``concrete type symbol'' above.
 \end{description}
 Note how the \texttt{getLayoutConstraint()} query deals with a multiplicity of layout symbols by computing their join, whereas the \texttt{getSuperclassBound()} and \texttt{getConcreteType()} queries just arbitrarily pick one superclass or concrete type symbol. Indeed, we will see that picking one symbol is not always sufficient, and a complete implementation must perform joins on superclass and concrete type symbols as well, and furthermore, a situation analogous to the uninhabited layout constraint can arise, where a type parameter can be subject to conflicting superclass or concrete type requirements. For now though, the current formulation is sufficient.
@@ -418,14 +418,14 @@ Consider the computation of the \texttt{getRequiredProtocols()} query on the can
 Consider the computation of the \texttt{getSuperclassBound()} query on the canonical type term $\genericsym{0}{0}.\assocsym{P}{B}$.
 The superclass symbol $\supersym{\namesym{Cache}\langle\sigma_0\rangle;\,\sigma_0:=\assocsym{P}{A}}$ does not need to be adjusted by prepending a prefix to each substitution term, because the property map entry is associated with the entire term $\genericsym{0}{0}.\assocsym{P}{B}$.
 
-Applying \AlgRef{symboltotype} to the superclass symbol produces the Swift type:
+Applying \AlgRef{symboltotype} to the superclass symbol produces the Codira type:
 \[\namesym{Cache}\langle\genericsym{0}{0}.\namesym{A}\rangle\].
 \end{example}
 \begin{example}
 Consider the computation of the \texttt{getConcreteType()} query on the canonical type term $\genericsym{0}{0}.\assocsym{P}{C}$. Here, the property map entry is associated with the suffix $\assocsym{P}{C}$, which means an adjustment must be performed on the concrete type symbol 
 $\concretesym{\namesym{Array}\langle\sigma_0\rangle;\,\sigma_0:=\assocsym{P}{A}}$. The adjusted symbol is
 \[\concretesym{\namesym{Array}\langle\sigma_0\rangle;\,\sigma_0:=\genericsym{0}{0}\assocsym{P}{A}}.\]
-Applying \AlgRef{symboltotype} to the adjusted concrete type symbol produces the Swift type:
+Applying \AlgRef{symboltotype} to the adjusted concrete type symbol produces the Codira type:
 \[\namesym{Array}\langle\genericsym{0}{0}.\namesym{A}\rangle.\]
 \end{example}
 
@@ -505,7 +505,7 @@ Resolving critical pairs adds a few additional rules:
 \genericsym{0}{0}.\assocsym{Q}{A}&\Rightarrow\genericsym{0}{0}.\assocsym{P}{A}\tag{7}\\
 \genericsym{0}{0}.\namesym{A}&\Rightarrow\genericsym{0}{0}.\assocsym{P}{A}\tag{8}
 \end{align}
-Now consider the type parameter $T:=\genericsym{0}{0}.\namesym{A}$. This type parameter is reduced. Since Swift type parameters always point to an actual associated type declaration, the type term $\Lambda(T)$ is $\genericsym{0}{0}.\assocsym{Q}{A}$, and not $\genericsym{0}{0}.\assocsym{P}{A}$. However, $\genericsym{0}{0}.\assocsym{Q}{A}$ is not canonical as a term, and reduces to $\genericsym{0}{0}.\assocsym{P}{A}$ via Rule~7, therefore $T$ is a canonical anchor and yet $\Lambda(T)$ is not a canonical term.
+Now consider the type parameter $T:=\genericsym{0}{0}.\namesym{A}$. This type parameter is reduced. Since Codira type parameters always point to an actual associated type declaration, the type term $\Lambda(T)$ is $\genericsym{0}{0}.\assocsym{Q}{A}$, and not $\genericsym{0}{0}.\assocsym{P}{A}$. However, $\genericsym{0}{0}.\assocsym{Q}{A}$ is not canonical as a term, and reduces to $\genericsym{0}{0}.\assocsym{P}{A}$ via Rule~7, therefore $T$ is a canonical anchor and yet $\Lambda(T)$ is not a canonical term.
 
 Essentially, the term $\genericsym{0}{0}.\assocsym{P}{A}$ is ``more canonical'' than any type parameter that can be output by $\Lambda:\namesym{Type}\rightarrow\namesym{Term}$. Protocol $\proto{P}$ does not actually define an associated type named $\namesym{A}$, therefore $\Lambda$ can only construct terms containing the symbol $\assocsym{Q}{A}$, and yet $\assocsym{P}{A}<\assocsym{Q}{A}$.
 
@@ -545,7 +545,7 @@ The \texttt{getConcreteType()} query on $T$ finds that the longest suffix of $\L
 \[\concretesym{\namesym{Array}\langle\sigma_0\rangle;\,\sigma_0:=\assocsym{P}{B}}.\]
 Prepending $\genericsym{0}{0}$ to the substitution term $\sigma_0$ produces the adjusted concrete type symbol:
 \[\concretesym{\namesym{Array}\langle\sigma_0\rangle;\,\sigma_0:=\genericsym{0}{0}.\assocsym{P}{B}}.\]
-Converting this symbol to a Swift type yields $\namesym{Array}\langle\genericsym{0}{0}.\namesym{B}\rangle$. However, this is still not a canonical type, because the type parameter $\genericsym{0}{0}.\assocsym{P}{B}$ appearing in nested position is not canonical. A recursive application of \texttt{getCanonicalTypeInContext()} on the type parameter $\genericsym{0}{0}.\namesym{B}$ returns $\namesym{Int}$. Therefore, the original call to \texttt{getCanonicalTypeInContext()} on $T$ returns
+Converting this symbol to a Codira type yields $\namesym{Array}\langle\genericsym{0}{0}.\namesym{B}\rangle$. However, this is still not a canonical type, because the type parameter $\genericsym{0}{0}.\assocsym{P}{B}$ appearing in nested position is not canonical. A recursive application of \texttt{getCanonicalTypeInContext()} on the type parameter $\genericsym{0}{0}.\namesym{B}$ returns $\namesym{Int}$. Therefore, the original call to \texttt{getCanonicalTypeInContext()} on $T$ returns
 \[\namesym{Array}\langle\namesym{Int}\rangle.\]
 \end{example}
 

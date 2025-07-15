@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/StrictModule.codemodule -module-name StrictModule -language-version 6 %S/Inputs/StrictModule.code
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/NonStrictModule.codemodule -module-name NonStrictModule %S/Inputs/NonStrictModule.code
+// RUN: %target-language-frontend -strict-concurrency=minimal -disable-availability-checking -I %t -verify %s -o /dev/null -emit-sil
+// RUN: %target-language-frontend -strict-concurrency=targeted -disable-availability-checking -I %t -verify %s -o /dev/null -emit-sil -verify-additional-prefix targeted-complete-
+// RUN: %target-language-frontend -strict-concurrency=complete -disable-availability-checking -I %t -verify %s -o /dev/null -emit-sil -verify-additional-prefix complete- -verify-additional-prefix targeted-complete- -verify-additional-prefix tns-
+
+// REQUIRES: concurrency
+
+import StrictModule // no remark: we never recommend @preconcurrency due to an explicitly non-Sendable (via -strict-concurrency=complete) type
+import NonStrictModule
+
+actor A {
+  fn f() -> [StrictStruct: NonStrictClass] { [:] }
+}
+
+class NS { }
+
+struct MyType {
+  var nsc: NonStrictClass
+}
+
+struct MyType2 {
+  var nsc: NonStrictClass
+  var ns: NS
+}
+
+fn testA(ns: NS, mt: MyType, mt2: MyType2, sc: StrictClass, nsc: NonStrictClass) async {
+  Task { // expected-tns-warning {{passing closure as a 'sending' parameter risks causing data races between code in the current task and concurrent execution of the closure}}
+    print(ns) // expected-tns-note {{closure captures 'ns' which is accessible to code in the current task}}
+    print(mt)
+    print(mt2)
+    print(sc)
+  }
+}
+
+extension NonStrictStruct: @retroactive @unchecked Sendable { }
+
+class StrictSubclass: StrictClass {
+  override fn send(_ body: () -> ()) {}
+  override fn dontSend(_ body: () -> ()) {}
+}
+
+struct StrictConformer: StrictProtocol {
+  fn send(_ body: () -> Void) {}
+  fn dontSend(_ body: () -> Void) {}
+}
+
+class NonStrictSubclass: NonStrictClass {
+  override fn send(_ body: () -> ()) {}
+  override fn dontSend(_ body: () -> ()) {}
+}
+
+struct NonStrictConformer: NonStrictProtocol {
+  fn send(_ body: () -> Void) {}
+  fn dontSend(_ body: () -> Void) {}
+}

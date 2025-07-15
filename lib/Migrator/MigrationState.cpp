@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/SourceManager.h"
 #include "language/Migrator/MigrationState.h"
-#include "llvm/Support/Path.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/raw_ostream.h"
 
-using llvm::StringRef;
+using toolchain::StringRef;
 
 using namespace language;
 using namespace language::migrator;
@@ -37,8 +38,8 @@ std::string MigrationState::getOutputText() const {
 
 static bool quickDumpText(StringRef OutFilename, StringRef Text) {
   std::error_code Error;
-  llvm::raw_fd_ostream FileOS(OutFilename,
-                              Error, llvm::sys::fs::OF_Text);
+  toolchain::raw_fd_ostream FileOS(OutFilename,
+                              Error, toolchain::sys::fs::OF_Text);
   if (FileOS.has_error()) {
     return true;
   }
@@ -54,29 +55,29 @@ bool MigrationState::print(size_t StateNumber, StringRef OutDir) const {
   auto Failed = false;
 
   SmallString<256> InputFileStatePath;
-  llvm::sys::path::append(InputFileStatePath, OutDir);
+  toolchain::sys::path::append(InputFileStatePath, OutDir);
 
   {
     SmallString<256> InputStateFilenameScratch;
-    llvm::raw_svector_ostream InputStateFilenameOS(InputStateFilenameScratch);
+    toolchain::raw_svector_ostream InputStateFilenameOS(InputStateFilenameScratch);
     InputStateFilenameOS << StateNumber << '-' << "FixitMigrationState";
     InputStateFilenameOS << '-' << "Input";
-    llvm::sys::path::append(InputFileStatePath, InputStateFilenameOS.str());
-    llvm::sys::path::replace_extension(InputFileStatePath, ".code");
+    toolchain::sys::path::append(InputFileStatePath, InputStateFilenameOS.str());
+    toolchain::sys::path::replace_extension(InputFileStatePath, ".code");
   }
 
   Failed |= quickDumpText(InputFileStatePath, getInputText());
 
   SmallString<256> OutputFileStatePath;
-  llvm::sys::path::append(OutputFileStatePath, OutDir);
+  toolchain::sys::path::append(OutputFileStatePath, OutDir);
 
   {
     SmallString<256> OutputStateFilenameScratch;
-    llvm::raw_svector_ostream OutputStateFilenameOS(OutputStateFilenameScratch);
+    toolchain::raw_svector_ostream OutputStateFilenameOS(OutputStateFilenameScratch);
     OutputStateFilenameOS << StateNumber << '-' << "FixitMigrationState";
     OutputStateFilenameOS << '-' << "Output";
-    llvm::sys::path::append(OutputFileStatePath, OutputStateFilenameOS.str());
-    llvm::sys::path::replace_extension(OutputFileStatePath, ".code");
+    toolchain::sys::path::append(OutputFileStatePath, OutputStateFilenameOS.str());
+    toolchain::sys::path::replace_extension(OutputFileStatePath, ".code");
   }
 
   Failed |= quickDumpText(OutputFileStatePath, getOutputText());

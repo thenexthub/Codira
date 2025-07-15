@@ -1,0 +1,9 @@
+// language-interface-format-version: 1.0
+// language-module-flags:
+
+// RUN: %target-language-typecheck-module-from-interface(%s) -module-name Test -verify -verify-ignore-unknown
+// REQUIRES: OS=macosx
+
+extension Array {
+  @_hasStorage public var foo: Int { get set }
+}

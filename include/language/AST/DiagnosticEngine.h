@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file declares the DiagnosticEngine class, which manages any diagnostics
-//  emitted by Swift.
+//  emitted by Codira.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_DIAGNOSTICENGINE_H
-#define SWIFT_BASIC_DIAGNOSTICENGINE_H
+#ifndef LANGUAGE_BASIC_DIAGNOSTICENGINE_H
+#define LANGUAGE_BASIC_DIAGNOSTICENGINE_H
 
 #include "language/AST/DeclNameLoc.h"
 #include "language/AST/DiagnosticArgument.h"
@@ -30,13 +31,13 @@
 #include "language/Basic/Version.h"
 #include "language/Basic/WarningAsErrorRule.h"
 #include "language/Localization/LocalizationFormat.h"
-#include "llvm/ADT/BitVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/Support/Allocator.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/BitVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/Support/Allocator.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 namespace clang {
 class NamedDecl;
@@ -169,7 +170,7 @@ namespace language {
     std::vector<Diagnostic> ChildNotes;
     SourceLoc Loc;
     bool IsChildNote = false;
-    const swift::Decl *Decl = nullptr;
+    const language::Decl *Decl = nullptr;
     DiagnosticBehavior BehaviorLimit = DiagnosticBehavior::Unspecified;
 
     friend DiagnosticEngine;
@@ -366,7 +367,7 @@ namespace language {
     ///
     /// This helps stage in fixes for stricter diagnostics as warnings
     /// until the next major language version.
-    InFlightDiagnostic &limitBehaviorUntilSwiftVersion(
+    InFlightDiagnostic &limitBehaviorUntilCodiraVersion(
         DiagnosticBehavior limit, unsigned majorVersion);
 
     /// Limits the diagnostic behavior to \c limit accordingly if
@@ -377,10 +378,10 @@ namespace language {
     /// statement will limit concurrency diagnostic behavior based on the
     /// strict concurrency checking level. Under minimal checking,
     /// preconcurrency will suppress the diagnostics. With strict concurrency
-    /// checking, including when building with the Swift 6 language mode,
+    /// checking, including when building with the Codira 6 language mode,
     /// preconcurrency errors are downgraded to warnings. This allows libraries
     /// to stage in concurrency annotations even after their clients have
-    /// migrated to Swift 6 using `@preconcurrency` alongside the newly added
+    /// migrated to Codira 6 using `@preconcurrency` alongside the newly added
     /// `@Sendable` or `@MainActor` annotations.
     InFlightDiagnostic
     &limitBehaviorWithPreconcurrency(DiagnosticBehavior limit,
@@ -390,34 +391,40 @@ namespace language {
         return limitBehavior(limit);
       }
 
-      return limitBehaviorUntilSwiftVersion(limit, languageMode);
+      return limitBehaviorUntilCodiraVersion(limit, languageMode);
     }
 
     /// Limit the diagnostic behavior to warning until the next future
     /// language mode.
     ///
     /// This should be preferred over passing the next major version to
-    /// `warnUntilSwiftVersion` to make it easier to find and update clients
+    /// `warnUntilCodiraVersion` to make it easier to find and update clients
     /// when a new language mode is introduced.
     ///
     /// This helps stage in fixes for stricter diagnostics as warnings
     /// until the next major language version.
-    InFlightDiagnostic &warnUntilFutureSwiftVersion();
+    InFlightDiagnostic &warnUntilFutureCodiraVersion();
+
+    InFlightDiagnostic &warnUntilFutureCodiraVersionIf(bool shouldLimit) {
+      if (!shouldLimit)
+        return *this;
+      return warnUntilFutureCodiraVersion();
+    }
 
     /// Limit the diagnostic behavior to warning until the specified version.
     ///
     /// This helps stage in fixes for stricter diagnostics as warnings
     /// until the next major language version.
-    InFlightDiagnostic &warnUntilSwiftVersion(unsigned majorVersion);
+    InFlightDiagnostic &warnUntilCodiraVersion(unsigned majorVersion);
 
     /// Limit the diagnostic behavior to warning if the context is a
-    /// swiftinterface.
+    /// languageinterface.
     ///
     /// This is useful for diagnostics for restrictions that may be lifted by a
     /// future version of the compiler. In such cases, it may be helpful to
     /// avoid failing to build a module from its interface if the interface was
     /// emitted using a compiler that no longer has the restriction.
-    InFlightDiagnostic &warnInSwiftInterface(const DeclContext *context);
+    InFlightDiagnostic &warnInCodiraInterface(const DeclContext *context);
 
     /// Conditionally limit the diagnostic behavior to warning until
     /// the specified version.  If the condition is false, no limit is
@@ -425,10 +432,10 @@ namespace language {
     ///
     /// This helps stage in fixes for stricter diagnostics as warnings
     /// until the next major language version.
-    InFlightDiagnostic &warnUntilSwiftVersionIf(bool shouldLimit,
+    InFlightDiagnostic &warnUntilCodiraVersionIf(bool shouldLimit,
                                                 unsigned majorVersion) {
       if (!shouldLimit) return *this;
-      return warnUntilSwiftVersion(majorVersion);
+      return warnUntilCodiraVersion(majorVersion);
     }
 
     /// Wraps this diagnostic in another diagnostic. That is, \p wrapper will be
@@ -477,9 +484,6 @@ namespace language {
     InFlightDiagnostic &highlightChars(CharSourceRange Range);
 
     static const char *fixItStringFor(const FixItID id);
-
-    /// Get the best location where an 'import' fixit might be offered.
-    SourceLoc getBestAddImportFixItLoc(const Decl *Member) const;
 
     /// Add a token-based replacement fix-it to the currently-active
     /// diagnostic.
@@ -603,7 +607,7 @@ namespace language {
     /// A mapping from `DiagGroupID` identifiers to Boolean values indicating
     /// whether warnings belonging to the respective diagnostic groups should be
     /// escalated to errors.
-    llvm::BitVector warningsAsErrors;
+    toolchain::BitVector warningsAsErrors;
 
     /// Whether a fatal error has occurred
     bool fatalErrorOccurred = false;
@@ -615,7 +619,7 @@ namespace language {
     DiagnosticBehavior previousBehavior = DiagnosticBehavior::Unspecified;
 
     /// Track which diagnostics should be ignored.
-    llvm::BitVector ignoredDiagnostics;
+    toolchain::BitVector ignoredDiagnostics;
 
     friend class DiagnosticStateRAII;
 
@@ -624,7 +628,10 @@ namespace language {
 
     /// Figure out the Behavior for the given diagnostic, taking current
     /// state such as fatality into account.
-    DiagnosticBehavior determineBehavior(const Diagnostic &diag);
+    DiagnosticBehavior determineBehavior(const Diagnostic &diag) const;
+
+    /// Updates the diagnostic state for a diagnostic to emit.
+    void updateFor(DiagnosticBehavior behavior);
 
     bool hadAnyError() const { return anyErrorOccurred; }
     bool hasFatalErrorOccurred() const { return fatalErrorOccurred; }
@@ -652,7 +659,7 @@ namespace language {
 
     /// Returns a Boolean value indicating whether warnings belonging to the
     /// diagnostic group identified by `id` should be escalated to errors.
-    bool getWarningsAsErrorsForDiagGroupID(DiagGroupID id) {
+    bool getWarningsAsErrorsForDiagGroupID(DiagGroupID id) const {
       return warningsAsErrors[(unsigned)id];
     }
 
@@ -792,11 +799,11 @@ namespace language {
     /// been emitted due to an open transaction.
     SmallVector<Diagnostic, 4> TentativeDiagnostics;
 
-    llvm::BumpPtrAllocator TransactionAllocator;
+    toolchain::BumpPtrAllocator TransactionAllocator;
     /// A set of all strings involved in current transactional chain.
     /// This is required because diagnostics are not directly emitted
     /// but rather stored until all transactions complete.
-    llvm::StringSet<llvm::BumpPtrAllocator &> TransactionStrings;
+    toolchain::StringSet<toolchain::BumpPtrAllocator &> TransactionStrings;
 
     /// Diagnostic producer to handle the logic behind retrieving a localized
     /// diagnostic message.
@@ -806,8 +813,8 @@ namespace language {
     /// diagnostic's message and identifier as `message [id]` for the duration
     /// of compiler invocation. This will be used when the frontend flags
     /// `-debug-diagnostic-names` or `-print-diagnostic-groups` are used.
-    llvm::BumpPtrAllocator DiagnosticStringsAllocator;
-    llvm::StringSaver DiagnosticStringsSaver;
+    toolchain::BumpPtrAllocator DiagnosticStringsAllocator;
+    toolchain::StringSaver DiagnosticStringsSaver;
 
     /// The number of open diagnostic transactions. Diagnostics are only
     /// emitted once all transactions have closed.
@@ -827,12 +834,12 @@ namespace language {
     /// Path to diagnostic documentation directory.
     std::string diagnosticDocumentationPath = "";
 
-    /// The Swift language version. This is used to limit diagnostic behavior
-    /// until a specific language version, e.g. Swift 6.
+    /// The Codira language version. This is used to limit diagnostic behavior
+    /// until a specific language version, e.g. Codira 6.
     version::Version languageVersion;
 
-    /// The stats reporter used to keep track of Swift 6 errors
-    /// diagnosed via \c warnUntilSwiftVersion(6).
+    /// The stats reporter used to keep track of Codira 6 errors
+    /// diagnosed via \c warnUntilCodiraVersion(6).
     UnifiedStatsReporter *statsReporter = nullptr;
 
     /// Whether we are actively pretty-printing a declaration as part of
@@ -1106,7 +1113,7 @@ namespace language {
     /// \param builder A closure which builds and emits notes to be attached to
     /// the parent diag.
     void diagnoseWithNotes(InFlightDiagnostic parentDiag,
-                           llvm::function_ref<void(void)> builder);
+                           toolchain::function_ref<void(void)> builder);
 
     /// \returns true if diagnostic is marked with PointsToFirstBadToken
     /// option.
@@ -1129,7 +1136,7 @@ namespace language {
     /// Format the given diagnostic text and place the result in the given
     /// buffer.
     static void formatDiagnosticText(
-        llvm::raw_ostream &Out, StringRef InText,
+        toolchain::raw_ostream &Out, StringRef InText,
         ArrayRef<DiagnosticArgument> FormatArgs,
         DiagnosticFormatOptions FormatOpts = DiagnosticFormatOptions());
 
@@ -1176,17 +1183,17 @@ namespace language {
 
     /// Get a localized format string for the given `DiagID`. If no localization
     /// is available, returns the default string.
-    llvm::StringRef getFormatStringForDiagnostic(DiagID id);
+    toolchain::StringRef getFormatStringForDiagnostic(DiagID id);
 
     /// Get a localized format string for the given diagnostic. If no
     /// localization is available, returns the default string.
     ///
     /// \param includeDiagnosticName Whether to at all consider embedding the
     /// name of the diagnostic identifier or group, per the setting.
-    llvm::StringRef getFormatStringForDiagnostic(const Diagnostic &diagnostic,
+    toolchain::StringRef getFormatStringForDiagnostic(const Diagnostic &diagnostic,
                                                  bool includeDiagnosticName);
 
-    static llvm::StringRef diagnosticIDStringFor(const DiagID id);
+    static toolchain::StringRef diagnosticIDStringFor(const DiagID id);
 
     /// If there is no clear .dia file for a diagnostic, put it in the one
     /// corresponding to the SourceLoc given here.
@@ -1198,11 +1205,7 @@ namespace language {
     SourceLoc getDefaultDiagnosticLoc() const {
       return bufferIndirectlyCausingDiagnostic;
     }
-    SourceLoc getBestAddImportFixItLoc(const Decl *Member,
-                                       SourceFile *sourceFile) const;
-    SourceLoc getBestAddImportFixItLoc(const Decl *Member) const {
-      return getBestAddImportFixItLoc(Member, nullptr);
-    }
+    SourceLoc getBestAddImportFixItLoc(SourceFile *sf) const;
   };
 
   inline SourceManager &InFlightDiagnostic::getSourceManager() {
@@ -1227,7 +1230,7 @@ namespace language {
   /// ensure that their changes to diagnostic engine state don't leak out and
   /// affect the caller's diagnostics.
   class DiagnosticStateRAII {
-    llvm::SaveAndRestore<DiagnosticBehavior> previousBehavior;
+    toolchain::SaveAndRestore<DiagnosticBehavior> previousBehavior;
 
   public:
     DiagnosticStateRAII(DiagnosticEngine &diags)
@@ -1471,19 +1474,19 @@ namespace language {
 
   inline void
   DiagnosticEngine::diagnoseWithNotes(InFlightDiagnostic parentDiag,
-                                      llvm::function_ref<void(void)> builder) {
+                                      toolchain::function_ref<void(void)> builder) {
     CompoundDiagnosticTransaction transaction(*this);
     parentDiag.flush();
     builder();
   }
 
-  void printClangDeclName(const clang::NamedDecl *ND, llvm::raw_ostream &os);
-  void printClangTypeName(const clang::Type *Ty, llvm::raw_ostream &os);
+  void printClangDeclName(const clang::NamedDecl *ND, toolchain::raw_ostream &os);
+  void printClangTypeName(const clang::Type *Ty, toolchain::raw_ostream &os);
 
   /// Temporary on-stack storage and unescaping for encoded diagnostic
   /// messages.
   class EncodedDiagnosticMessage {
-    llvm::SmallString<128> Buf;
+    toolchain::SmallString<128> Buf;
 
   public:
     /// \param S A string with an encoded message

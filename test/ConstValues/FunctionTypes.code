@@ -1,0 +1,23 @@
+// Constant globals on function types / function pointers
+// REQUIRES: language_feature_CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -enable-experimental-feature CompileTimeValues -enable-experimental-feature CompileTimeValuesPreview
+
+fn foo_void_to_void() {}
+fn foo_int_to_int(x: Int) -> Int { return 42 }
+
+@const immutable constGlobalA1: ()->() = { }
+@const immutable constGlobalA2: @convention(c) ()->() = { }
+@const immutable constGlobalA3: @convention(thin) ()->() = { }
+
+@const immutable constGlobalB1: ()->() = foo_void_to_void
+@const immutable constGlobalB2: @convention(c) ()->() = foo_void_to_void
+@const immutable constGlobalB3: @convention(thin) ()->() = foo_void_to_void
+
+@const immutable constGlobalC1: (Int)->(Int) = { _ in return 42 }
+@const immutable constGlobalC2: @convention(c) (Int)->(Int) = { _ in return 42 }
+@const immutable constGlobalC3: @convention(thin) (Int)->(Int) = { _ in return 42 }
+
+@const immutable constGlobalD1: (Int)->(Int) = foo_int_to_int
+@const immutable constGlobalD2: @convention(c) (Int)->(Int) = foo_int_to_int
+@const immutable constGlobalD3: @convention(thin) (Int)->(Int) = foo_int_to_int

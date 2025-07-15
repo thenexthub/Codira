@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -48,7 +49,7 @@ public:
                              static_cast<CLASS##Decl*>(D2));
 #include "language/AST/DeclNodes.def"
     }
-    llvm_unreachable("Not reachable, all cases handled");
+    toolchain_unreachable("Not reachable, all cases handled");
   }
 
 #define DECL(CLASS, PARENT) \
@@ -108,7 +109,7 @@ public:
   };
 
 private:
-  llvm::PointerIntPair<Decl *, 3, Kind> declAndKind;
+  toolchain::PointerIntPair<Decl *, 3, Kind> declAndKind;
 
   TypeOrigin(Decl *decl, Kind kind)
     : declAndKind(decl, kind) {}
@@ -193,7 +194,7 @@ StringRef printAttr(DeclAttribute *attr,
                               ctx.TypeCheckerOpts.PrintFullConvention);
   opts.PrintLongAttrsOnSeparateLines = false;
 
-  llvm::raw_svector_ostream os{scratch};
+  toolchain::raw_svector_ostream os{scratch};
   StreamPrinter printer{os};
   attr->print(printer, opts, decl);
 
@@ -244,7 +245,7 @@ class ABIDeclChecker : public ASTComparisonVisitor<ABIDeclChecker> {
   template<typename ...ArgTypes>
   InFlightDiagnostic diagnoseAndRemoveAttr(DeclAttribute *attr,
                                            ArgTypes &&...Args) {
-    return swift::diagnoseAndRemoveAttr(diagnoseOnDecl, attr,
+    return language::diagnoseAndRemoveAttr(diagnoseOnDecl, attr,
                                         std::forward<ArgTypes>(Args)...);
   }
 
@@ -261,7 +262,7 @@ public:
     // (And if they don't, we can't really compare them properly.
     if (api->getKind() != abi->getKind()) {
       // FIXME: DescriptiveDeclKind is overly specific; we really just want to
-      //        say that e.g. a `func` can't have the ABI of a `var`.
+      //        say that e.g. a `fn` can't have the ABI of a `var`.
       diagnoseAndRemoveAttr(abiAttr, diag::attr_abi_mismatched_kind, api, abi);
       return;
     }
@@ -409,7 +410,7 @@ public:
 
     bool didDiagnose = false;
 
-    for (auto pair : llvm::zip(*api, *abi)) {
+    for (auto pair : toolchain::zip(*api, *abi)) {
       didDiagnose |= checkParameter(std::get<0>(pair), std::get<1>(pair),
                                     apiDecl, abiDecl);
     }
@@ -531,8 +532,8 @@ public:
       if (auto subscript = dyn_cast<SubscriptDecl>(decl))
         return { subscript->getStaticSpelling(), subscript->getStaticLoc() };
 
-      if (auto func = dyn_cast<FuncDecl>(decl))
-        return { func->getStaticSpelling(), func->getStaticLoc() };
+      if (auto fn = dyn_cast<FuncDecl>(decl))
+        return { fn->getStaticSpelling(), fn->getStaticLoc() };
 
       return { StaticSpellingKind::None, SourceLoc() };
     };
@@ -563,7 +564,7 @@ public:
                        : StaticnessAndFinality::ClassAndOverridable;
       }
 
-      llvm_unreachable("unknown StaticSpellingKind");
+      toolchain_unreachable("unknown StaticSpellingKind");
     };
 
     auto apiSAF = getStaticnessAndFinality(getStaticSpelling(api).Item,
@@ -686,6 +687,7 @@ public:
   UNSUPPORTED_DECL(PrefixOperator)
   UNSUPPORTED_DECL(PostfixOperator)
   UNSUPPORTED_DECL(MacroExpansion)
+  UNSUPPORTED_DECL(Using)
 
   bool visitAbstractFunctionDecl(AbstractFunctionDecl *api,
                                  AbstractFunctionDecl *abi) {
@@ -816,7 +818,7 @@ public:
     // Visit each API attr, pairing it with an ABI attr if possible.
     // Note that this will visit even invalid attributes.
     for (auto *apiDeclAttr : api) {
-      auto abiAttrIter = llvm::find_if(remainingABIDeclAttrs,
+      auto abiAttrIter = toolchain::find_if(remainingABIDeclAttrs,
                                         [&](DeclAttribute *abiDeclAttr) {
         return abiDeclAttr && canCompareAttrs(apiDeclAttr, abiDeclAttr,
                                               apiDecl, abiDecl);
@@ -859,7 +861,7 @@ public:
                  && "unreachable-in-@abi attr on reachable decl???");
 
       // If the asserts are disabled, fall through to no checking.
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
     case DeclAttribute::UnconstrainedInABIAttr:
       // No checking required.
@@ -922,7 +924,7 @@ public:
       return false;
     }
 
-    llvm_unreachable("unknown InABIAttrMask behavior");
+    toolchain_unreachable("unknown InABIAttrMask behavior");
   }
 
   // MARK: @abi checking - types
@@ -995,16 +997,16 @@ public:
     case ParamSpecifier::Default:
       return getDefaultParamSpecifier(forDecl);
       break;
-    case swift::ParamSpecifier::InOut:
+    case language::ParamSpecifier::InOut:
       return ParamSpecifier::InOut;
       break;
     case ParamSpecifier::Borrowing:
     case ParamSpecifier::LegacyShared:
       return ParamSpecifier::Borrowing;
       break;
-    case swift::ParamSpecifier::Consuming:
-    case swift::ParamSpecifier::LegacyOwned:
-    case swift::ParamSpecifier::ImplicitlyCopyableConsuming:
+    case language::ParamSpecifier::Consuming:
+    case language::ParamSpecifier::LegacyOwned:
+    case language::ParamSpecifier::ImplicitlyCopyableConsuming:
       return ParamSpecifier::Consuming;
       break;
     }
@@ -1026,37 +1028,37 @@ public:
 
   static std::optional<Type> tryNormalizeOutermostType(TypeBase *original) {
     // Function types: Eliminate anything that doesn't affect calling convention.
-    if (auto func = original->getAs<AnyFunctionType>()) {
+    if (auto fn = original->getAs<AnyFunctionType>()) {
       // Ignore `@escaping`, `@Sendable`, `sending` on result, and most
       // isolation; they have no ABI effect.
-      auto normalizedExt = func->getExtInfo().intoBuilder()
+      auto normalizedExt = fn->getExtInfo().intoBuilder()
         .withNoEscape(false)
         .withSendable(false)
         .withSendingResult(false)
-        .withIsolation(normalizeIsolation(func->getIsolation()))
+        .withIsolation(normalizeIsolation(fn->getIsolation()))
         .build();
 
       // Ignore ignorable parts of parameters.
       SmallVector<AnyFunctionType::Param, 8> normalizedParams;
-      for (auto param : func->getParams()) {
+      for (auto param : fn->getParams()) {
         auto normalizedParam = normalizeParam(param, /*forDecl=*/nullptr);
         normalizedParam = normalizedParam.withType(
                                  normalizeType(normalizedParam.getPlainType()));
         normalizedParams.push_back(normalizedParam);
       }
 
-      if (isa<FunctionType>(func))
+      if (isa<FunctionType>(fn))
         return FunctionType::get(normalizedParams,
-                                 normalizeType(func->getResult()),
+                                 normalizeType(fn->getResult()),
                                  normalizedExt);
 
-      ASSERT(isa<GenericFunctionType>(func));
+      ASSERT(isa<GenericFunctionType>(fn));
 
       // Ignore ignorable parts of the generic signature.
       auto sig = original->getAs<GenericFunctionType>()->getGenericSignature();
       return GenericFunctionType::get(normalizeGenericSignature(sig),
                                       normalizedParams,
-                                      normalizeType(func->getResult()),
+                                      normalizeType(fn->getResult()),
                                       normalizedExt);
     }
 
@@ -1105,59 +1107,28 @@ public:
 };
 
 void checkABIAttrPBD(PatternBindingDecl *APBD, VarDecl *VD) {
-  auto &diags = VD->getASTContext().Diags;
   auto PBD = VD->getParentPatternBinding();
 
-  // To make sure we only diagnose this stuff once, check that VD is the first
-  // anchoring variable in the PBD.
-  bool isFirstAnchor = false;
+  Decl *anchorVD = nullptr;
   for (auto i : range(PBD->getNumPatternEntries())) {
-    auto anchorVD = PBD->getAnchoringVarDecl(i);
-    if (anchorVD) {
-      isFirstAnchor = (anchorVD == VD);
+    anchorVD = PBD->getAnchoringVarDecl(i);
+    if (anchorVD)
       break;
-    }
   }
 
-  if (!isFirstAnchor)
+  // To make sure we only diagnose this stuff once, check that VD is the
+  // first anchoring variable in the PBD.
+  if (anchorVD != VD)
     return;
 
-  // Check that the PBDs have the same number of patterns.
-  if (PBD->getNumPatternEntries() < APBD->getNumPatternEntries()) {
-    diags.diagnose(APBD->getPattern(PBD->getNumPatternEntries())->getLoc(),
-                   diag::attr_abi_mismatched_pbd_size, /*abiHasExtra=*/false);
+  // In the final approved feature, we only permit single-variable patterns.
+  // (However, the rest of the compiler tolerates them.)
+  if (!PBD->getSingleVar() || !APBD->getSingleVar()) {
+    PBD->diagnose(diag::attr_abi_multiple_vars,
+                  anchorVD ? anchorVD->getDescriptiveKind()
+                           : PBD->getDescriptiveKind());
     return;
   }
-  if (PBD->getNumPatternEntries() > APBD->getNumPatternEntries()) {
-    diags.diagnose(PBD->getPattern(APBD->getNumPatternEntries())->getLoc(),
-                   diag::attr_abi_mismatched_pbd_size, /*abiHasExtra=*/true);
-    return;
-  }
-
-  // Check that each pattern has the same number of variables.
-  bool didDiagnose = false;
-  for (auto i : range(PBD->getNumPatternEntries())) {
-    SmallVector<VarDecl *, 8> VDs;
-    SmallVector<VarDecl *, 8> AVDs;
-
-    PBD->getPattern(i)->collectVariables(VDs);
-    APBD->getPattern(i)->collectVariables(AVDs);
-
-    if (VDs.size() < AVDs.size()) {
-      for (auto AVD : drop_begin(AVDs, VDs.size())) {
-        AVD->diagnose(diag::attr_abi_mismatched_var, AVD, /*isABI=*/true);
-        didDiagnose = true;
-      }
-    }
-    else if (VDs.size() > AVDs.size()) {
-      for (auto VD : drop_begin(VDs, AVDs.size())) {
-        VD->diagnose(diag::attr_abi_mismatched_var, VD, /*isABI=*/false);
-        didDiagnose = true;
-      }
-    }
-  }
-  if (didDiagnose)
-    return;
 
   // Check the ABI PBD--this is what checks the underlying vars.
   TypeChecker::typeCheckDecl(APBD);

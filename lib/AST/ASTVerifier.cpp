@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements a verifier of AST invariants.
@@ -44,10 +45,10 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <functional>
 #include <type_traits>
 using namespace language;
@@ -192,7 +193,7 @@ template <typename T> T *getOverriddenDeclIfAvailable(T *decl) {
 class Verifier : public ASTWalker {
   PointerUnion<ModuleDecl *, SourceFile *> M;
   ASTContext &Ctx;
-  llvm::raw_ostream &Out;
+  toolchain::raw_ostream &Out;
   const bool HadError;
   SmallVector<bool, 8> InImplicitBraceStmt;
 
@@ -200,7 +201,7 @@ class Verifier : public ASTWalker {
   SmallVector<DeclContext *, 4> Functions;
 
   /// The stack of scopes we're visiting.
-  using ScopeLike = llvm::PointerUnion<DeclContext *, BraceStmt *>;
+  using ScopeLike = toolchain::PointerUnion<DeclContext *, BraceStmt *>;
   SmallVector<ScopeLike, 4> Scopes;
 
   /// The stack of declaration contexts we're visiting. The primary
@@ -209,17 +210,17 @@ class Verifier : public ASTWalker {
 
   /// The set of all opened existential and opened pack element generic
   /// environments that are currently in scope.
-  llvm::DenseSet<GenericEnvironment *> LocalGenerics;
+  toolchain::DenseSet<GenericEnvironment *> LocalGenerics;
 
   /// We track the pack expansion expressions in ForEachStmts, because
   /// their local generics remain in scope until the end of the statement.
-  llvm::DenseSet<PackExpansionExpr *> ForEachPatternSequences;
+  toolchain::DenseSet<PackExpansionExpr *> ForEachPatternSequences;
 
   /// The stack of optional evaluations active at this point.
   SmallVector<OptionalEvaluationExpr *, 4> OptionalEvaluations;
 
   /// The set of opaque value expressions active at this point.
-  llvm::DenseMap<OpaqueValueExpr *, unsigned> OpaqueValues;
+  toolchain::DenseMap<OpaqueValueExpr *, unsigned> OpaqueValues;
 
   /// The set of inout to pointer expr that match the following pattern:
   ///
@@ -232,34 +233,34 @@ class Verifier : public ASTWalker {
   ///
   /// Any other inout to pointer expr that we see is invalid and the verifier
   /// will assert.
-  llvm::DenseSet<InOutToPointerExpr *> ValidInOutToPointerExprs;
-  llvm::DenseSet<ArrayToPointerExpr *> ValidArrayToPointerExprs;
+  toolchain::DenseSet<InOutToPointerExpr *> ValidInOutToPointerExprs;
+  toolchain::DenseSet<ArrayToPointerExpr *> ValidArrayToPointerExprs;
 
   /// A key into ClosureDiscriminators is a combination of a
   /// ("canonicalized") local DeclContext* and a flag for whether to
   /// use the explicit closure sequence (false) or the implicit
   /// closure sequence (true).
-  typedef llvm::PointerIntPair<DeclContext *, 1, bool> ClosureDiscriminatorKey;
-  llvm::DenseMap<ClosureDiscriminatorKey, SmallBitVector>
+  typedef toolchain::PointerIntPair<DeclContext *, 1, bool> ClosureDiscriminatorKey;
+  toolchain::DenseMap<ClosureDiscriminatorKey, SmallBitVector>
       ClosureDiscriminators;
   DeclContext *CanonicalTopLevelSubcontext = nullptr;
 
   typedef std::pair</*MacroDiscriminatorContext*/const void *, Identifier>
       MacroExpansionDiscriminatorKey;
-  llvm::DenseMap<MacroExpansionDiscriminatorKey, SmallBitVector>
+  toolchain::DenseMap<MacroExpansionDiscriminatorKey, SmallBitVector>
       MacroExpansionDiscriminators;
 
   Verifier(PointerUnion<ModuleDecl *, SourceFile *> M, DeclContext *DC)
       : M(M),
         Ctx(M.is<ModuleDecl *>() ? M.get<ModuleDecl *>()->getASTContext()
                                  : M.get<SourceFile *>()->getASTContext()),
-        Out(llvm::errs()), HadError(Ctx.hadError()) {
+        Out(toolchain::errs()), HadError(Ctx.hadError()) {
     pushScope(DC);
   }
 
   /// Emit an error message and abort, optionally dumping the expression.
   /// \param E if non-null, the expression to dump() followed by a new-line.
-  void error(llvm::StringRef msg, Expr *E = nullptr) {
+  void error(toolchain::StringRef msg, Expr *E = nullptr) {
     Out << msg << "\n";
     if (E) {
       E->dump(Out);
@@ -307,7 +308,7 @@ public:
 #include "language/AST/ExprNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
     PostWalkResult<Expr *> walkToExprPost(Expr *E) override {
@@ -325,7 +326,7 @@ public:
 #include "language/AST/ExprNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
     PreWalkResult<Stmt *> walkToStmtPre(Stmt *S) override {
@@ -337,7 +338,7 @@ public:
 #include "language/AST/StmtNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
   PostWalkResult<Stmt *> walkToStmtPost(Stmt *S) override {
@@ -349,7 +350,7 @@ public:
 #include "language/AST/StmtNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
     PreWalkResult<Pattern *> walkToPatternPre(Pattern *P) override {
@@ -362,7 +363,7 @@ public:
 #include "language/AST/PatternNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
   PostWalkResult<Pattern *> walkToPatternPost(Pattern *P) override {
@@ -375,7 +376,7 @@ public:
 #include "language/AST/PatternNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
     PreWalkAction walkToDeclPre(Decl *D) override {
@@ -387,7 +388,7 @@ public:
 #include "language/AST/DeclNodes.def"
 #undef DISPATCH
       }
-      llvm_unreachable("not all cases handled!");
+      toolchain_unreachable("not all cases handled!");
     }
 
     PostWalkAction walkToDeclPost(Decl *D) override {
@@ -400,7 +401,7 @@ public:
 #undef DISPATCH
       }
 
-      llvm_unreachable("Unhandled declaration kind");
+      toolchain_unreachable("Unhandled declaration kind");
     }
 
     /// Helper template for dispatching pre-visitation.
@@ -526,7 +527,7 @@ public:
 
         return false;
       }
-      llvm_unreachable("unhandled kind");
+      toolchain_unreachable("unhandled kind");
     }
 
     // Default cases for cleaning up as we exit a node.
@@ -609,13 +610,13 @@ public:
     void verifyChecked(Decl *D) {}
 
     void verifyChecked(Type type) {
-      llvm::SmallPtrSet<ArchetypeType *, 4> visitedArchetypes;
+      toolchain::SmallPtrSet<ArchetypeType *, 4> visitedArchetypes;
       verifyChecked(type, visitedArchetypes);
     }
 
     void
     verifyChecked(Type type,
-                  llvm::SmallPtrSetImpl<ArchetypeType *> &visitedArchetypes) {
+                  toolchain::SmallPtrSetImpl<ArchetypeType *> &visitedArchetypes) {
       if (!type)
         return;
 
@@ -1063,7 +1064,7 @@ public:
     }
 
     DeclContext *getInnermostDC() const {
-      for (auto scope : llvm::reverse(Scopes)) {
+      for (auto scope : toolchain::reverse(Scopes)) {
         if (auto dc = scope.dyn_cast<DeclContext *>())
           return dc;
       }
@@ -1098,14 +1099,14 @@ public:
     }
 
     void verifyChecked(ReturnStmt *S) {
-      auto func = Functions.back();
+      auto fn = Functions.back();
       Type resultType;
-      if (auto *FD = dyn_cast<FuncDecl>(func)) {
+      if (auto *FD = dyn_cast<FuncDecl>(fn)) {
         resultType = FD->getResultInterfaceType();
         resultType = FD->mapTypeIntoContext(resultType);
-      } else if (auto closure = dyn_cast<AbstractClosureExpr>(func)) {
+      } else if (auto closure = dyn_cast<AbstractClosureExpr>(fn)) {
         resultType = closure->getResultType();
-      } else if (isa<ConstructorDecl>(func)) {
+      } else if (isa<ConstructorDecl>(fn)) {
         resultType = TupleType::getEmpty(Ctx);
       } else {
         resultType = TupleType::getEmpty(Ctx);
@@ -1419,7 +1420,7 @@ public:
         abort();
       }
 
-      checkTrivialSubtype(srcTy, destTy, "MetatypeConversionExpr");
+      checkTrivialSubtype(E, srcTy, destTy, "MetatypeConversionExpr");
       verifyCheckedBase(E);
     }
     
@@ -1644,7 +1645,7 @@ public:
         abort();
       }
 
-      checkTrivialSubtype(srcTy, destTy, "DerivedToBaseExpr");
+      checkTrivialSubtype(E, srcTy, destTy, "DerivedToBaseExpr");
       verifyCheckedBase(E);
     }
 
@@ -1752,7 +1753,7 @@ public:
             auto concreteLayout = concreteTy->getCanonicalType()
                                             ->getExistentialLayout();
             canBeClass = concreteLayout.getKind() == ExistentialLayout::Kind::Class
-              && !concreteLayout.containsSwiftProtocol;
+              && !concreteLayout.containsCodiraProtocol;
           } else {
             canBeClass = false;
           }
@@ -2176,7 +2177,7 @@ public:
     void verifyChecked(OptionalTryExpr *E) {
       PrettyStackTraceExpr debugStack(Ctx, "verifying OptionalTryExpr", E);
 
-      if (Ctx.LangOpts.isSwiftVersionAtLeast(5)) {
+      if (Ctx.LangOpts.isCodiraVersionAtLeast(5)) {
         checkSameType(E->getType(), E->getSubExpr()->getType(),
                       "OptionalTryExpr and sub-expression");
       }
@@ -2671,7 +2672,7 @@ public:
       }
       //      if (auto *VD = dyn_cast<VarDecl>(ASD->getStorage())) {
       //        const bool foundIt =
-      //            llvm::any_of(vd->getAllAccessors(),
+      //            toolchain::any_of(vd->getAllAccessors(),
       //                         [&](AccessorDecl *VDA) { return VDA == ASD; });
       //        Out << "Accessor for a VarDecl must be listed in its accessors";
       //        abort();
@@ -2894,7 +2895,7 @@ public:
       }
 
       // Tracking for those Objective-C requirements that have witnesses.
-      llvm::SmallDenseSet<std::pair<ObjCSelector, char>> hasObjCWitnessMap;
+      toolchain::SmallDenseSet<std::pair<ObjCSelector, char>> hasObjCWitnessMap;
       bool populatedObjCWitnesses = false;
       auto populateObjCWitnesses = [&] {
         if (populatedObjCWitnesses)
@@ -2917,14 +2918,14 @@ public:
         if (!proto->isObjC())
           return false;
 
-        auto func = dyn_cast<AbstractFunctionDecl>(req);
-        if (!func)
+        auto fn = dyn_cast<AbstractFunctionDecl>(req);
+        if (!fn)
           return false;
 
         populateObjCWitnesses();
 
         std::pair<ObjCSelector, char> key(
-            func->getObjCSelector(), func->isInstanceMember());
+            fn->getObjCSelector(), fn->isInstanceMember());
         return hasObjCWitnessMap.count(key) > 0;
       };
 
@@ -3063,7 +3064,7 @@ public:
 
       if (paramList->size() <= GTPD->getIndex() ||
           paramList->getParams()[GTPD->getIndex()] != GTPD) {
-        if (llvm::is_contained(paramList->getParams(), GTPD))
+        if (toolchain::is_contained(paramList->getParams(), GTPD))
           Out << "GenericTypeParamDecl has incorrect index\n";
         else
           Out << "GenericTypeParamDecl not found in GenericParamList; "
@@ -3180,7 +3181,7 @@ public:
 
         if (resultIsOptional != declIsOptional) {
           Out << "Initializer has result optionality/failability mismatch\n";
-          CD->dump(llvm::errs());
+          CD->dump(toolchain::errs());
           abort();
         }
 
@@ -3193,7 +3194,7 @@ public:
               ->getOptionalObjectType();
           if (resultIsOptional != declIsOptional) {
             Out << "Initializer has result optionality/failability mismatch\n";
-            CD->dump(llvm::errs());
+            CD->dump(toolchain::errs());
             abort();
           }
         }
@@ -3204,13 +3205,13 @@ public:
         if (!resultTy->getOptionalObjectType()) {
           Out << "implicitly unwrapped optional attribute should only be set "
                  "on constructors with optional return types\n";
-          CD->dump(llvm::errs());
+          CD->dump(toolchain::errs());
           abort();
         }
       } else {
         if (CD->isImplicitlyUnwrappedOptional()) {
           Out << "Expected failable constructor if result is IUO\n";
-          CD->dump(llvm::errs());
+          CD->dump(toolchain::errs());
           abort();
         }
       }
@@ -3593,12 +3594,14 @@ public:
       abort();
     }
 
-    void checkTrivialSubtype(Type srcTy, Type destTy, const char *what) {
+    void checkTrivialSubtype(Expr *E, Type srcTy, Type destTy,
+                             const char *what) {
       if (srcTy->isEqual(destTy)) return;
 
       if (auto srcMetatype = srcTy->getAs<AnyMetatypeType>()) {
         if (auto destMetatype = destTy->getAs<AnyMetatypeType>()) {
-          return checkTrivialSubtype(srcMetatype->getInstanceType(),
+          return checkTrivialSubtype(E,
+                                     srcMetatype->getInstanceType(),
                                      destMetatype->getInstanceType(),
                                      what);
         }
@@ -3628,6 +3631,7 @@ public:
       Out << " to ";
       destTy.print(Out);
       Out << "\n";
+      E->dump(Out);
       abort();
     }
 
@@ -3771,7 +3775,7 @@ public:
     /// Verify that the given source ranges is contained within the
     /// parent's source range.
     void checkSourceRanges(SourceRange Current, ASTWalker::ParentTy Parent,
-                           llvm::function_ref<void()> printEntity) {
+                           toolchain::function_ref<void()> printEntity) {
       SourceRange Enclosing;
       if (Parent.isNull())
           return;
@@ -3831,7 +3835,7 @@ public:
       } else if (TypeRepr *TyR = Parent.getAsTypeRepr()) {
         Enclosing = TyR->getSourceRange();
       } else {
-        llvm_unreachable("impossible parent node");
+        toolchain_unreachable("impossible parent node");
       }
 
       if (AltEnclosing.isInvalid()) {
@@ -3882,10 +3886,10 @@ static bool shouldVerifyGivenContext(const ASTContext &ctx) {
     return false;
 #endif
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
-void swift::verify(SourceFile &SF) {
+void language::verify(SourceFile &SF) {
   if (!shouldVerifyGivenContext(SF.getASTContext()))
     return;
   Verifier verifier(SF, &SF);
@@ -3897,11 +3901,11 @@ void swift::verify(SourceFile &SF) {
   }
 }
 
-bool swift::shouldVerify(const Decl *D, const ASTContext &Context) {
+bool language::shouldVerify(const Decl *D, const ASTContext &Context) {
   return shouldVerifyGivenContext(Context);
 }
 
-void swift::verify(Decl *D) {
+void language::verify(Decl *D) {
   if (!shouldVerifyGivenContext(D->getASTContext()))
     return;
 

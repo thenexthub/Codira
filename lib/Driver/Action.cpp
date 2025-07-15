@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Driver/Action.h"
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/ErrorHandling.h"
 
 using namespace language::driver;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 const char *Action::getClassName(Kind AC) {
   switch (AC) {
@@ -29,7 +30,7 @@ const char *Action::getClassName(Kind AC) {
   case Kind::BackendJob:  return "backend";
   case Kind::MergeModuleJob:  return "merge-module";
   case Kind::ModuleWrapJob:  return "modulewrap";
-  case Kind::AutolinkExtractJob:  return "swift-autolink-extract";
+  case Kind::AutolinkExtractJob:  return "language-autolink-extract";
   case Kind::REPLJob:  return "repl";
   case Kind::DynamicLinkJob:  return "link";
   case Kind::StaticLinkJob:  return "static-link";
@@ -39,7 +40,7 @@ const char *Action::getClassName(Kind AC) {
   case Kind::VerifyModuleInterfaceJob: return "verify-module-interface";
   }
 
-  llvm_unreachable("invalid class");
+  toolchain_unreachable("invalid class");
 }
 
 void InputAction::anchor() {}

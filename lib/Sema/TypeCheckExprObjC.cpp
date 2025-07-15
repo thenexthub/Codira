@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements semantic analysis for Objective-C-specific
@@ -48,7 +49,7 @@ std::optional<Type> TypeChecker::checkObjCKeyPathExpr(DeclContext *dc,
 
   // The key path string we're forming.
   SmallString<32> keyPathScratch;
-  llvm::raw_svector_ostream keyPathOS(keyPathScratch);
+  toolchain::raw_svector_ostream keyPathOS(keyPathScratch);
 
   // Captures the state of semantic resolution.
   enum State {
@@ -74,7 +75,7 @@ std::optional<Type> TypeChecker::checkObjCKeyPathExpr(DeclContext *dc,
       return true;
     }
 
-    llvm_unreachable("Unhandled State in switch.");
+    toolchain_unreachable("Unhandled State in switch.");
   };
 
   // The type of AnyObject, which is used whenever we don't have
@@ -98,7 +99,7 @@ std::optional<Type> TypeChecker::checkObjCKeyPathExpr(DeclContext *dc,
     }
 
     // We're updating to a property. Determine whether we're looking
-    // into a bridged Swift collection of some sort.
+    // into a bridged Codira collection of some sort.
     if (auto boundGeneric = newType->getAs<BoundGenericType>()) {
       // Array<T>
       if (boundGeneric->isArray()) {
@@ -228,7 +229,7 @@ std::optional<Type> TypeChecker::checkObjCKeyPathExpr(DeclContext *dc,
     case KeyPathExpr::Component::Kind::Subscript:
     case KeyPathExpr::Component::Kind::Apply:
     case KeyPathExpr::Component::Kind::DictionaryKey:
-      llvm_unreachable("already resolved!");
+      toolchain_unreachable("already resolved!");
     }
     
     auto componentName = component.getUnresolvedDeclName();

@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the IfConfigClause.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_IFCONFIGCLAUSE_H
-#define SWIFT_AST_IFCONFIGCLAUSE_H
+#ifndef LANGUAGE_AST_IFCONFIGCLAUSE_H
+#define LANGUAGE_AST_IFCONFIGCLAUSE_H
 
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 
 namespace language {
   class Expr;

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the caching mechanism using darwin's libcache.
@@ -18,14 +19,14 @@
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Cache.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 #include <cache.h>
 
 using namespace language::sys;
-using llvm::StringRef;
+using toolchain::StringRef;
 
 CacheImpl::ImplTy CacheImpl::create(StringRef Name, const CallBacks &CBs) {
-  llvm::SmallString<32> NameBuf(Name);
+  toolchain::SmallString<32> NameBuf(Name);
   cache_attributes_t Attrs = {
     CACHE_ATTRIBUTES_VERSION_2,
     CBs.keyHashCB,

@@ -1,19 +1,19 @@
-# swift_build_support/products/product.py -----------------------*- python -*-
+# language_build_support/products/product.py -----------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import abc
 import os
 
-from build_swift.build_swift.wrappers import xcrun
+from build_language.build_language.wrappers import xcrun
 
 from .. import cmake
 from .. import shell
@@ -46,15 +46,15 @@ class Product(object):
         the value of product_name() by default for this reason.
         """
 
-        llvm_projects = ['clang',
+        toolchain_projects = ['clang',
                          'clang-tools-extra',
                          'compiler-rt',
                          'libcxx',
                          'lldb',
-                         'llvm']
+                         'toolchain']
 
-        if cls.product_name() in llvm_projects:
-            return "llvm-project/{}".format(cls.product_name())
+        if cls.product_name() in toolchain_projects:
+            return "toolchain-project/{}".format(cls.product_name())
         return cls.product_name()
 
     @classmethod
@@ -84,15 +84,15 @@ class Product(object):
         and instead always respect its own should_install.
         This is useful when we run -install-all but have products
         which should never be installed into the toolchain
-        (e.g. earlyswiftdriver)
+        (e.g. earlylanguagedriver)
         """
         return False
 
     @classmethod
-    def is_swiftpm_unified_build_product(cls):
-        """is_swiftpm_unified_build_product -> bool
+    def is_languagepm_unified_build_product(cls):
+        """is_languagepm_unified_build_product -> bool
 
-        Whether this product should be built in the unified build of SwiftPM
+        Whether this product should be built in the unified build of CodiraPM
         products.
         """
         return False
@@ -172,7 +172,7 @@ class Product(object):
         ----------
         args : `argparse.Namespace`
             The arguments passed by the user to the invocation of the script.
-        toolchain : `swift_build_support.toolchain.Toolchain`
+        toolchain : `language_build_support.toolchain.Toolchain`
             The toolchain being used to build the product. The toolchain will
             point to the tools that the builder should use to build (like the
             compiler or the linker).
@@ -212,14 +212,20 @@ class Product(object):
         if self.args.cross_compile_hosts:
             if self.is_darwin_host(host_target):
                 install_destdir = self.host_install_destdir(host_target)
-            else:
+            elif self.args.cross_compile_append_host_target_to_destdir:
                 install_destdir = os.path.join(install_destdir, self.args.host_target)
         return targets.toolchain_path(install_destdir,
                                       self.args.install_prefix)
 
+    def native_clang_tools_path(self, host_target):
+        if self.args.native_clang_tools_path is not None:
+            return os.path.split(self.args.native_clang_tools_path)[0]
+        else:
+            return self.install_toolchain_path(host_target)
+
     def native_toolchain_path(self, host_target):
-        if self.args.native_swift_tools_path is not None:
-            return os.path.split(self.args.native_swift_tools_path)[0]
+        if self.args.native_language_tools_path is not None:
+            return os.path.split(self.args.native_language_tools_path)[0]
         else:
             return self.install_toolchain_path(host_target)
 
@@ -328,8 +334,8 @@ class Product(object):
             toolchain_args['CMAKE_C_COMPILER_TARGET'] = target
         if self.toolchain.cxx.endswith('clang++'):
             toolchain_args['CMAKE_CXX_COMPILER_TARGET'] = target
-        # Swift always supports cross compiling.
-        toolchain_args['CMAKE_Swift_COMPILER_TARGET'] = target
+        # Codira always supports cross compiling.
+        toolchain_args['CMAKE_Codira_COMPILER_TARGET'] = target
 
         toolchain_args['CMAKE_LINKER'] = self.toolchain.ld
         toolchain_args['CMAKE_CC'] = self.toolchain.cc
@@ -389,7 +395,7 @@ class Product(object):
         sysroot_arch, vendor, abi = self.get_linux_target_components(arch)
         return '{}-{}-linux-{}'.format(sysroot_arch, vendor, abi)
 
-    def generate_linux_toolchain_file(self, platform, arch):
+    def generate_linux_toolchain_file(self, platform, arch, crosscompiling=True):
         """
         Generates a new CMake tolchain file that specifies Linux as a target
         platform.
@@ -402,8 +408,9 @@ class Product(object):
 
         toolchain_args = {}
 
-        toolchain_args['CMAKE_SYSTEM_NAME'] = 'Linux'
-        toolchain_args['CMAKE_SYSTEM_PROCESSOR'] = arch
+        if crosscompiling:
+            toolchain_args['CMAKE_SYSTEM_NAME'] = 'Linux'
+            toolchain_args['CMAKE_SYSTEM_PROCESSOR'] = arch
 
         # We only set the actual sysroot if we are actually cross
         # compiling. This is important since otherwise cmake seems to change the
@@ -418,8 +425,8 @@ class Product(object):
             toolchain_args['CMAKE_C_COMPILER_TARGET'] = target
         if self.toolchain.cxx.endswith('clang++'):
             toolchain_args['CMAKE_CXX_COMPILER_TARGET'] = target
-        # Swift always supports cross compiling.
-        toolchain_args['CMAKE_Swift_COMPILER_TARGET'] = target
+        # Codira always supports cross compiling.
+        toolchain_args['CMAKE_Codira_COMPILER_TARGET'] = target
         toolchain_args['CMAKE_FIND_ROOT_PATH_MODE_PROGRAM'] = 'NEVER'
         toolchain_args['CMAKE_FIND_ROOT_PATH_MODE_LIBRARY'] = 'ONLY'
         toolchain_args['CMAKE_FIND_ROOT_PATH_MODE_INCLUDE'] = 'ONLY'
@@ -513,11 +520,11 @@ class ProductBuilder(object):
         args : `argparse.Namespace`
             The arguments passed by the user to the invocation of the script. A
             builder should consider this argument read-only.
-        toolchain : `swift_build_support.toolchain.Toolchain`
+        toolchain : `language_build_support.toolchain.Toolchain`
             The toolchain being used to build the product. The toolchain will
             point to the tools that the builder should use to build (like the
             compiler or the linker).
-        workspace : `swift_build_support.workspace.Workspace`
+        workspace : `language_build_support.workspace.Workspace`
             The workspace where the source code and the build directories have
             to be located. A builder should use the workspace to access its own
             source/build directory, as well as other products source/build

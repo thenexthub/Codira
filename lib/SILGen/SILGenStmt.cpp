@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgumentScope.h"
@@ -32,7 +33,7 @@
 #include "language/SIL/AbstractionPatternGenerators.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILProfiler.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 using namespace Lowering;
@@ -65,7 +66,7 @@ SILBasicBlock *SILGenFunction::createBasicBlock() {
   }
 }
 
-SILBasicBlock *SILGenFunction::createBasicBlock(llvm::StringRef debugName) {
+SILBasicBlock *SILGenFunction::createBasicBlock(toolchain::StringRef debugName) {
   auto block = createBasicBlock();
   block->setDebugName(debugName);
   return block;
@@ -93,7 +94,7 @@ SILBasicBlock *SILGenFunction::createBasicBlock(FunctionSection section) {
   }
 
   }
-  llvm_unreachable("bad function section");
+  toolchain_unreachable("bad function section");
 }
 
 SILBasicBlock *
@@ -790,7 +791,7 @@ void StmtEmitter::visitDiscardStmt(DiscardStmt *S) {
   // we somehow got to SILGen when errors were emitted!
   auto *fn = S->getInnermostMethodContext();
   if (!fn)
-    llvm_unreachable("internal compiler error with discard statement");
+    toolchain_unreachable("internal compiler error with discard statement");
 
   auto *nominal = fn->getDeclContext()->getSelfNominalTypeDecl();
   assert(nominal);
@@ -888,7 +889,7 @@ namespace {
     }
     void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-      llvm::errs() << "DeferEscapeCheckerCleanup\n"
+      toolchain::errs() << "DeferEscapeCheckerCleanup\n"
                    << "State: " << getState() << "\n";
 #endif
     }
@@ -914,7 +915,7 @@ namespace {
     }
     void dump(SILGenFunction &) const override {
 #ifndef NDEBUG
-      llvm::errs() << "DeferCleanup\n"
+      toolchain::errs() << "DeferCleanup\n"
                    << "State: " << getState() << "\n";
 #endif
     }
@@ -1154,7 +1155,7 @@ void StmtEmitter::visitDoCatchStmt(DoCatchStmt *S) {
   // Emit the body.
   {
     // Push the new throw destination.
-    llvm::SaveAndRestore<JumpDest> savedThrowDest(SGF.ThrowDest, throwDest);
+    toolchain::SaveAndRestore<JumpDest> savedThrowDest(SGF.ThrowDest, throwDest);
 
     visit(S->getBody());
   }
@@ -1456,7 +1457,7 @@ void SILGenFunction::emitBreakOutOf(SILLocation loc, Stmt *target) {
       return;
     }
   }
-  llvm_unreachable("Break has available target block.");
+  toolchain_unreachable("Break has available target block.");
 }
 
 void StmtEmitter::visitContinueStmt(ContinueStmt *S) {
@@ -1470,7 +1471,7 @@ void StmtEmitter::visitContinueStmt(ContinueStmt *S) {
       return;
     }
   }
-  llvm_unreachable("Continue has available target block.");
+  toolchain_unreachable("Continue has available target block.");
 }
 
 void StmtEmitter::visitSwitchStmt(SwitchStmt *S) {
@@ -1479,7 +1480,7 @@ void StmtEmitter::visitSwitchStmt(SwitchStmt *S) {
 }
 
 void StmtEmitter::visitCaseStmt(CaseStmt *S) {
-  llvm_unreachable("cases should be lowered as part of switch stmt");
+  toolchain_unreachable("cases should be lowered as part of switch stmt");
 }
 
 void StmtEmitter::visitFallthroughStmt(FallthroughStmt *S) {
@@ -1568,11 +1569,11 @@ void SILGenFunction::emitThrow(SILLocation loc, ManagedValue exnMV,
     SILType existentialBoxType = SILType::getExceptionType(getASTContext());
     bool isExistentialBox = exnMV.getType() == existentialBoxType;
 
-    // If we are supposed to emit a call to swift_willThrow(Typed), do so now.
+    // If we are supposed to emit a call to language_willThrow(Typed), do so now.
     if (emitWillThrow) {
       ASTContext &ctx = SGM.getASTContext();
       if (isExistentialBox) {
-        // Generate a call to the 'swift_willThrow' runtime function to allow the
+        // Generate a call to the 'language_willThrow' runtime function to allow the
         // debugger to catch the throw event.
 
         // Claim the exception value.
@@ -1597,7 +1598,7 @@ void SILGenFunction::emitThrow(SILLocation loc, ManagedValue exnMV,
         // Generic errors are passed indirectly.
         if (!exnMV.getType().isAddress() && useLoweredAddresses()) {
           // Materialize the error so we can pass the address down to the
-          // swift_willThrowTyped.
+          // language_willThrowTyped.
           exnMV = exnMV.materialize(*this, loc);
           error = exnMV.getValue();
           exn = exnMV.forward(*this);

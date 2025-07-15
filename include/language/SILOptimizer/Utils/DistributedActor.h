@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_UTILS_DISTRIBUTED_ACTOR_H
-#define SWIFT_SILOPTIMIZER_UTILS_DISTRIBUTED_ACTOR_H
+#ifndef LANGUAGE_SILOPTIMIZER_UTILS_DISTRIBUTED_ACTOR_H
+#define LANGUAGE_SILOPTIMIZER_UTILS_DISTRIBUTED_ACTOR_H
 
 #include "language/AST/Decl.h"
-#include "llvm/ADT/ArrayRef.h"
+#include "toolchain/ADT/ArrayRef.h"
 #include <optional>
 #include <utility>
 
@@ -53,7 +54,7 @@ SILValue refDistributedActorSystem(SILBuilder &B,
 /// blocks that the call will branch to.
 void emitDistributedActorSystemWitnessCall(
     SILBuilder &B, SILLocation loc, DeclName methodName, SILValue base,
-    SILType actorType, llvm::ArrayRef<SILValue> args,
+    SILType actorType, toolchain::ArrayRef<SILValue> args,
     std::optional<std::pair<SILBasicBlock *, SILBasicBlock *>> tryTargets =
         std::nullopt);
 

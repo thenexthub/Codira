@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the driver type information. Users of this file
@@ -28,7 +29,7 @@
 // could be displayed to the user, or something which the user could provide.
 
 // The second value is the type id, which will result in a
-// swift::driver::file_types::TY_XX enum constant.
+// language::driver::file_types::TY_XX enum constant.
 
 // The third value is the extension to use when creating temporary files
 // of this type. It is also used when inferring a type from an extension.
@@ -39,7 +40,7 @@
 // unused, and should always be the empty string.
 
 // Input types
-TYPE("swift",               Swift,                     "swift",           "")
+TYPE("language",               Codira,                     "language",           "")
 TYPE("sil",                 SIL,                       "sil",             "")
 TYPE("sib",                 SIB,                       "sib",             "")
 
@@ -50,42 +51,42 @@ TYPE("object",              Object,                    "o",               "")
 TYPE("dSYM",                dSYM,                      "dSYM",            "")
 TYPE("dependencies",        Dependencies,              "d",               "")
 TYPE("autolink",            AutolinkFile,              "autolink",        "")
-TYPE("swiftmodule",         SwiftModuleFile,           "swiftmodule",     "")
-TYPE("swiftdoc",            SwiftModuleDocFile,        "swiftdoc",        "")
-TYPE("swiftinterface",      SwiftModuleInterfaceFile,  "swiftinterface",  "")
-TYPE("private-swiftinterface", PrivateSwiftModuleInterfaceFile,  "private.swiftinterface",  "")
-TYPE("package-swiftinterface", PackageSwiftModuleInterfaceFile,  "package.swiftinterface",  "")
-TYPE("swiftmodulesummary",  SwiftModuleSummaryFile,    "swiftmodulesummary", "")
-TYPE("swiftsourceinfo",     SwiftSourceInfoFile,       "swiftsourceinfo", "")
+TYPE("languagemodule",         CodiraModuleFile,           "languagemodule",     "")
+TYPE("languagedoc",            CodiraModuleDocFile,        "languagedoc",        "")
+TYPE("languageinterface",      CodiraModuleInterfaceFile,  "languageinterface",  "")
+TYPE("private-languageinterface", PrivateCodiraModuleInterfaceFile,  "private.codeinterface",  "")
+TYPE("package-languageinterface", PackageCodiraModuleInterfaceFile,  "package.codeinterface",  "")
+TYPE("languagemodulesummary",  CodiraModuleSummaryFile,    "languagemodulesummary", "")
+TYPE("languagesourceinfo",     CodiraSourceInfoFile,       "languagesourceinfo", "")
 TYPE("assembly",            Assembly,                  "s",               "")
 TYPE("raw-sil",             RawSIL,                    "sil",             "")
 TYPE("lowered-sil",         LoweredSIL,                "sil",             "")
 TYPE("raw-sib",             RawSIB,                    "sib",             "")
-TYPE("llvm-ir",             LLVM_IR,                   "ll",              "")
-TYPE("raw-llvm-ir",         RawLLVM_IR,                "ll",              "")
-TYPE("llvm-bc",             LLVM_BC,                   "bc",              "")
+TYPE("toolchain-ir",             TOOLCHAIN_IR,                   "ll",              "")
+TYPE("raw-toolchain-ir",         RawTOOLCHAIN_IR,                "ll",              "")
+TYPE("toolchain-bc",             TOOLCHAIN_BC,                   "bc",              "")
 TYPE("diagnostics",         SerializedDiagnostics,     "dia",             "")
 TYPE("clang-header",        ClangHeader,               "h",               "")
-TYPE("swift-dependencies",  SwiftDeps,                 "swiftdeps",       "")
-TYPE("external-swift-dependencies", ExternalSwiftDeps,  "swiftdeps.external",  "")
+TYPE("language-dependencies",  CodiraDeps,                 "languagedeps",       "")
+TYPE("external-language-dependencies", ExternalCodiraDeps,  "languagedeps.external",  "")
 TYPE("remap",               Remapping,                 "remap",           "")
 TYPE("imported-modules",    ImportedModules,           "importedmodules", "")
 TYPE("tbd",                 TBD,                       "tbd",             "")
 
 // Module traces are used by Apple's internal build infrastructure. Apple
-// engineers can see more details on the "Swift module traces" page in the
-// Swift section of the internal wiki.
+// engineers can see more details on the "Codira module traces" page in the
+// Codira section of the internal wiki.
 TYPE("module-trace",        ModuleTrace,               "trace.json",      "")
 TYPE("fine-module-trace",   FineModuleTrace,           "",                "")
 
-// Complete dependency information for the given Swift files as JSON.
+// Complete dependency information for the given Codira files as JSON.
 TYPE("json-dependencies",   JSONDependencies,          "dependencies.json",      "")
 
-// Complete supported argument information for the given Swift compiler.
+// Complete supported argument information for the given Codira compiler.
 TYPE("json-arguments",      JSONArguments,            "arguments.json",   "")
 
-// Gathered compile-time-known value information for the given Swift input file as JSON.
-TYPE("const-values",       ConstValues,              "swiftconstvalues",   "")
+// Gathered compile-time-known value information for the given Codira input file as JSON.
+TYPE("const-values",       ConstValues,              "languageconstvalues",   "")
 
 TYPE("index-data",          IndexData,                 "",                "")
 TYPE("index-unit-output-path", IndexUnitOutputPath,    "",                "")
@@ -96,8 +97,8 @@ TYPE("bitstream-opt-record",BitstreamOptRecord,        "opt.bitstream",   "")
 // that should be automatically imported when a particular module is imported.
 // Cross-import directories conditionalize overlay files so they only take
 // effect when certain other modules are also loaded.
-TYPE("swiftcrossimport",    SwiftCrossImportDir,       "swiftcrossimport","")
-TYPE("swiftoverlay",        SwiftOverlayFile,          "swiftoverlay",    "")
+TYPE("languagecrossimport",    CodiraCrossImportDir,       "languagecrossimport","")
+TYPE("languageoverlay",        CodiraOverlayFile,          "languageoverlay",    "")
 
 // Misc types
 TYPE("pcm",                 ClangModuleFile,           "pcm",             "")
@@ -105,9 +106,9 @@ TYPE("symbol-graph",        SymbolGraphFile,           "symbols.json",    "")
 TYPE("pch",                 PCH,                       "pch",             "")
 TYPE("none",                Nothing,                   "",                "")
 
-TYPE("abi-baseline-json",   SwiftABIDescriptor,        "abi.json",        "")
-TYPE("api-descriptor-json", SwiftAPIDescriptor,        "",                "")
-TYPE("fixit",               SwiftFixIt,                "",                "")
+TYPE("abi-baseline-json",   CodiraABIDescriptor,        "abi.json",        "")
+TYPE("api-descriptor-json", CodiraAPIDescriptor,        "",                "")
+TYPE("fixit",               CodiraFixIt,                "",                "")
 TYPE("module-semantic-info", ModuleSemanticInfo,       "",                "")
 TYPE("cached-diagnostics",  CachedDiagnostics,         "",                "")
 

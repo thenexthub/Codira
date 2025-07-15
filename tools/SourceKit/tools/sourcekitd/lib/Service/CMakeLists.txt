@@ -6,7 +6,7 @@ target_compile_definitions(sourcekitdService PRIVATE
   sourcekitd_EXPORTS)
 target_link_libraries(sourcekitdService PRIVATE
   sourcekitdAPI
-  swiftBasic
+  languageBasic
   SourceKitSupport
-  SourceKitSwiftLang
-  swiftCompilerModules)
+  SourceKitCodiraLang
+  languageCompilerModules)

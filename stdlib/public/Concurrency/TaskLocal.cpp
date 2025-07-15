@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "TaskLocal.h"
@@ -24,11 +25,11 @@
 #include "language/Runtime/Concurrency.h"
 #include "language/Runtime/Heap.h"
 #include "language/Threading/ThreadLocalStorage.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 #include <new>
 #include <set>
 
-#if SWIFT_STDLIB_HAS_ASL
+#if LANGUAGE_STDLIB_HAS_ASL
 #include <asl.h>
 #elif defined(__ANDROID__)
 #include <android/log.h>
@@ -41,18 +42,18 @@
 using namespace language;
 
 #if 0
-#define SWIFT_TASK_LOCAL_DEBUG_LOG_ENABLED 1
-#define SWIFT_TASK_LOCAL_DEBUG_LOG(key, fmt, ...)                       \
+#define LANGUAGE_TASK_LOCAL_DEBUG_LOG_ENABLED 1
+#define LANGUAGE_TASK_LOCAL_DEBUG_LOG(key, fmt, ...)                       \
 fprintf(stderr, "[%s:%d][task:%p key:%p] (%s) " fmt "\n",               \
       __FILE__, __LINE__,                                               \
-      swift_task_getCurrent(),                                          \
+      language_task_getCurrent(),                                          \
       key,                                                              \
       __FUNCTION__,                                                     \
       __VA_ARGS__)
 
 #else
-#define SWIFT_TASK_LOCAL_DEBUG_LOG_ENABLED 0
-#define SWIFT_TASK_LOCAL_DEBUG_LOG(key, fmt, ...) (void)0
+#define LANGUAGE_TASK_LOCAL_DEBUG_LOG_ENABLED 0
+#define LANGUAGE_TASK_LOCAL_DEBUG_LOG(key, fmt, ...) (void)0
 #endif
 
 // =============================================================================
@@ -69,7 +70,7 @@ template <class T> struct Pointer {
 
 /// THIS IS RUNTIME INTERNAL AND NOT ABI.
 class FallbackTaskLocalStorage {
-  static SWIFT_THREAD_LOCAL_TYPE(Pointer<TaskLocal::Storage>,
+  static LANGUAGE_THREAD_LOCAL_TYPE(Pointer<TaskLocal::Storage>,
                                  tls_key::concurrency_fallback) Value;
 
 public:
@@ -78,18 +79,18 @@ public:
 };
 
 /// Define the thread-locals.
-SWIFT_THREAD_LOCAL_TYPE(Pointer<TaskLocal::Storage>,
+LANGUAGE_THREAD_LOCAL_TYPE(Pointer<TaskLocal::Storage>,
                         tls_key::concurrency_fallback)
 FallbackTaskLocalStorage::Value;
 
 // ==== ABI --------------------------------------------------------------------
 
-SWIFT_CC(swift)
-static void swift_task_localValuePushImpl(const HeapObject *key,
+LANGUAGE_CC(language)
+static void language_task_localValuePushImpl(const HeapObject *key,
                                               /* +1 */ OpaqueValue *value,
                                               const Metadata *valueType) {
-  SWIFT_TASK_LOCAL_DEBUG_LOG(key, "push value: %p", value);
-  if (AsyncTask *task = swift_task_getCurrent()) {
+  LANGUAGE_TASK_LOCAL_DEBUG_LOG(key, "push value: %p", value);
+  if (AsyncTask *task = language_task_getCurrent()) {
     task->localValuePush(key, value, valueType);
     return;
   }
@@ -109,30 +110,30 @@ static void swift_task_localValuePushImpl(const HeapObject *key,
   Local->pushValue(/*task=*/nullptr, key, value, valueType);
 }
 
-SWIFT_CC(swift)
-static OpaqueValue* swift_task_localValueGetImpl(const HeapObject *key) {
-  if (AsyncTask *task = swift_task_getCurrent()) {
+LANGUAGE_CC(language)
+static OpaqueValue* language_task_localValueGetImpl(const HeapObject *key) {
+  if (AsyncTask *task = language_task_getCurrent()) {
     // we're in the context of a task and can use the task's storage
     auto value = task->localValueGet(key);
-    SWIFT_TASK_LOCAL_DEBUG_LOG(key, "got value: %p", value);
+    LANGUAGE_TASK_LOCAL_DEBUG_LOG(key, "got value: %p", value);
     return value;
   }
 
   // no AsyncTask available so we must check the fallback
   if (auto Local = FallbackTaskLocalStorage::get()) {
     auto value = Local->getValue(/*task*/nullptr, key);
-    SWIFT_TASK_LOCAL_DEBUG_LOG(key, "got value: %p", value);
+    LANGUAGE_TASK_LOCAL_DEBUG_LOG(key, "got value: %p", value);
     return value;
   }
 
   // no value found in task-local or fallback thread-local storage.
-  SWIFT_TASK_LOCAL_DEBUG_LOG(key, "got no value: %d", 0);
+  LANGUAGE_TASK_LOCAL_DEBUG_LOG(key, "got no value: %d", 0);
   return nullptr;
 }
 
-SWIFT_CC(swift)
-static void swift_task_localValuePopImpl() {
-  if (AsyncTask *task = swift_task_getCurrent()) {
+LANGUAGE_CC(language)
+static void language_task_localValuePopImpl() {
+  if (AsyncTask *task = language_task_getCurrent()) {
     task->localValuePop();
     return;
   }
@@ -140,7 +141,7 @@ static void swift_task_localValuePopImpl() {
   if (TaskLocal::Storage *Local = FallbackTaskLocalStorage::get()) {
     bool hasRemainingBindings = Local->popValue(nullptr);
     if (!hasRemainingBindings) {
-      // We clean up eagerly, it may be that this non-swift-concurrency thread
+      // We clean up eagerly, it may be that this non-language-concurrency thread
       // never again will use task-locals, and as such we better remove the storage.
       FallbackTaskLocalStorage::set(nullptr);
       free(Local);
@@ -151,9 +152,9 @@ static void swift_task_localValuePopImpl() {
   assert(false && "Attempted to pop value but no task or thread-local storage available!");
 }
 
-SWIFT_CC(swift)
-static void swift_task_localsCopyToImpl(AsyncTask *target) {
-  if (auto Current = TaskLocal::Storage::getCurrent(swift_task_getCurrent())) {
+LANGUAGE_CC(language)
+static void language_task_localsCopyToImpl(AsyncTask *target) {
+  if (auto Current = TaskLocal::Storage::getCurrent(language_task_getCurrent())) {
     Current->copyTo(target);
   }
 }
@@ -194,7 +195,7 @@ void TaskLocal::Storage::initializeLinkParent(AsyncTask* task,
   // observe it.
     std::set<const HeapObject *,
                std::less<const HeapObject *>,
-               swift::cxx_allocator<const HeapObject *>> copied = {};
+               language::cxx_allocator<const HeapObject *>> copied = {};
 
   // If we are a child task in a task group, it may happen that we are calling
   // addTask specifically in such shape:
@@ -220,7 +221,7 @@ void TaskLocal::Storage::initializeLinkParent(AsyncTask* task,
     if (copied.emplace(valueItem->key).second) {
       valueItem->copyTo(task);
     } else {
-      SWIFT_TASK_LOCAL_DEBUG_LOG(
+      LANGUAGE_TASK_LOCAL_DEBUG_LOG(
           valueItem->key,
           "skip copy, already copied most recent value, value was [%p]",
           valueItem->getStoragePtr());
@@ -253,7 +254,7 @@ void TaskLocal::Storage::initializeLinkParent(AsyncTask* task,
 TaskLocal::MarkerItem *TaskLocal::MarkerItem::create(AsyncTask *task,
                                                      Item *next, Kind kind) {
   size_t amountToAllocate = sizeof(MarkerItem);
-  void *allocation = _swift_task_alloc_specific(task, amountToAllocate);
+  void *allocation = _language_task_alloc_specific(task, amountToAllocate);
   return new (allocation) MarkerItem(next, kind);
 }
 
@@ -265,7 +266,7 @@ TaskLocal::ValueItem *TaskLocal::ValueItem::create(AsyncTask *task,
                    : FallbackTaskLocalStorage::get()->head;
 
   size_t amountToAllocate = ValueItem::itemSize(valueType);
-  void *allocation = task ? _swift_task_alloc_specific(task, amountToAllocate)
+  void *allocation = task ? _language_task_alloc_specific(task, amountToAllocate)
                           : malloc(amountToAllocate);
   return ::new (allocation) ValueItem(next, key, valueType, inTaskGroupBody);
 }
@@ -287,15 +288,15 @@ void TaskLocal::ValueItem::copyTo(AsyncTask *target) {
 // ==== checks -----------------------------------------------------------------
 
 /// UNUSED: This is effectively not used anymore by new runtimes because we will
-/// defensively copy in this situation since Swift 6, rather than crash as a
+/// defensively copy in this situation since Codira 6, rather than crash as a
 /// means of defence.
-SWIFT_CC(swift)
-static void swift_task_reportIllegalTaskLocalBindingWithinWithTaskGroupImpl(
+LANGUAGE_CC(language)
+static void language_task_reportIllegalTaskLocalBindingWithinWithTaskGroupImpl(
     const unsigned char *file, uintptr_t fileLength,
     bool fileIsASCII, uintptr_t line) {
 
   char *message;
-  swift_asprintf(
+  language_asprintf(
       &message,
       "error: task-local: detected illegal task-local value binding at %.*s:%d.\n"
       "Task-local values must only be set in a structured-context, such as: "
@@ -335,7 +336,7 @@ static void swift_task_reportIllegalTaskLocalBindingWithinWithTaskGroupImpl(
       (int)fileLength, file,
       (int)line);
 
-  if (_swift_shouldReportFatalErrorsToDebugger()) {
+  if (_language_shouldReportFatalErrorsToDebugger()) {
     RuntimeErrorDetails details = {
         .version = RuntimeErrorDetails::currentVersion,
         .errorType = "task-local-violation",
@@ -349,7 +350,7 @@ static void swift_task_reportIllegalTaskLocalBindingWithinWithTaskGroupImpl(
         .numNotes = 0,
         .notes = nullptr,
     };
-    _swift_reportToDebugger(RuntimeErrorFlagFatal, message, &details);
+    _language_reportToDebugger(RuntimeErrorFlagFatal, message, &details);
   }
 
 #if defined(_WIN32)
@@ -359,13 +360,13 @@ static void swift_task_reportIllegalTaskLocalBindingWithinWithTaskGroupImpl(
   fputs(message, stderr);
   fflush(stderr);
 #endif
-#if SWIFT_STDLIB_HAS_ASL
+#if LANGUAGE_STDLIB_HAS_ASL
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   asl_log(nullptr, nullptr, ASL_LEVEL_ERR, "%s", message);
 #pragma clang diagnostic pop
 #elif defined(__ANDROID__)
-  __android_log_print(ANDROID_LOG_FATAL, "SwiftRuntime", "%s", message);
+  __android_log_print(ANDROID_LOG_FATAL, "CodiraRuntime", "%s", message);
 #endif
 
   free(message);
@@ -386,7 +387,7 @@ bool TaskLocal::Item::destroy(AsyncTask *task) {
     // we're done here; as we must not proceed into the parent owned values.
     // we do have to destroy the item pointing at the parent/edge itself though.
     stop = true;
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case Kind::StopLookupMarker:
     cast<MarkerItem>(this)->~MarkerItem();
     break;
@@ -394,7 +395,7 @@ bool TaskLocal::Item::destroy(AsyncTask *task) {
 
   // if task is available, we must have used the task allocator to allocate this item,
   // so we must deallocate it using the same. Otherwise, we must have used malloc.
-  if (task) _swift_task_dealloc_specific(task, this);
+  if (task) _language_task_dealloc_specific(task, this);
   else free(this);
 
   return stop;
@@ -420,7 +421,7 @@ void TaskLocal::Storage::pushValue(AsyncTask *task,
                                    /* +1 */ OpaqueValue *value,
                                    const Metadata *valueType) {
   assert(value && "Task local value must not be nil");
-  assert(swift_task_getCurrent() == task &&
+  assert(language_task_getCurrent() == task &&
          "must only be pushing task locals onto current task");
 
   // Why it matters to detect if we're pushing a value in a task group body:
@@ -433,14 +434,14 @@ void TaskLocal::Storage::pushValue(AsyncTask *task,
   // because the end of the withValue scope would pop the value,
   // and thus if the child task didn't copy the value, it'd refer to a bad
   // memory location at this point.
-  bool inTaskGroupBody = swift_task_hasTaskGroupStatusRecord();
+  bool inTaskGroupBody = language_task_hasTaskGroupStatusRecord();
 
   TaskLocal::ValueItem *item =
       ValueItem::create(task, key, valueType, inTaskGroupBody);
 
   valueType->vw_initializeWithTake(item->getStoragePtr(), value);
   head = item;
-  SWIFT_TASK_LOCAL_DEBUG_LOG(item->key, "Created link item:%p, in group body:%d",
+  LANGUAGE_TASK_LOCAL_DEBUG_LOG(item->key, "Created link item:%p, in group body:%d",
                              item, inTaskGroupBody);
 }
 
@@ -448,7 +449,7 @@ bool TaskLocal::Storage::popValue(AsyncTask *task) {
   assert(head && "attempted to pop value off empty task-local stack");
   auto valueItem = cast<ValueItem>(head);
   (void)valueItem;
-  SWIFT_TASK_LOCAL_DEBUG_LOG(valueItem->key, "pop local item:%p, value:%p",
+  LANGUAGE_TASK_LOCAL_DEBUG_LOG(valueItem->key, "pop local item:%p, value:%p",
                              head, valueItem->getStoragePtr());
 
   auto old = head;
@@ -461,7 +462,7 @@ bool TaskLocal::Storage::popValue(AsyncTask *task) {
 
 void TaskLocal::Storage::pushStopLookup(AsyncTask *task) {
   head = MarkerItem::createStopLookupMarker(task, head);
-  SWIFT_TASK_LOCAL_DEBUG_LOG(nullptr, "push stop node item:%p", head);
+  LANGUAGE_TASK_LOCAL_DEBUG_LOG(nullptr, "push stop node item:%p", head);
 }
 
 void TaskLocal::Storage::popStopLookup(AsyncTask *task) {
@@ -469,7 +470,7 @@ void TaskLocal::Storage::popStopLookup(AsyncTask *task) {
   assert(head->getKind() == Item::Kind::StopLookupMarker &&
          "attempted to pop wrong node type");
   auto old = head;
-  SWIFT_TASK_LOCAL_DEBUG_LOG(nullptr, "pop stop node item:%p", old);
+  LANGUAGE_TASK_LOCAL_DEBUG_LOG(nullptr, "pop stop node item:%p", old);
   head = head->getNext();
   old->destroy(task);
 }
@@ -506,7 +507,7 @@ void TaskLocal::Storage::copyTo(AsyncTask *target) {
   // observe it.
   std::set<const HeapObject *,
            std::less<const HeapObject *>,
-           swift::cxx_allocator<const HeapObject *>> copied = {};
+           language::cxx_allocator<const HeapObject *>> copied = {};
 
   auto item = head;
   while (item) {
@@ -516,7 +517,7 @@ void TaskLocal::Storage::copyTo(AsyncTask *target) {
       if (copied.emplace(valueItem->key).second) {
         valueItem->copyTo(target);
       } else {
-        SWIFT_TASK_LOCAL_DEBUG_LOG(
+        LANGUAGE_TASK_LOCAL_DEBUG_LOG(
             valueItem->key,
             "skip copy, already copied most recent value, value was [%p]",
             valueItem->getStoragePtr());
@@ -529,7 +530,7 @@ void TaskLocal::Storage::copyTo(AsyncTask *target) {
 }
 
 TaskLocal::StopLookupScope::StopLookupScope() {
-  task = swift_task_getCurrent();
+  task = language_task_getCurrent();
   storage = Storage::getCurrent(task);
   if (storage && storage->isEmpty()) {
     storage = nullptr;

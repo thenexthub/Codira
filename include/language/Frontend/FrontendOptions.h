@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_FRONTEND_FRONTENDOPTIONS_H
-#define SWIFT_FRONTEND_FRONTENDOPTIONS_H
+#ifndef LANGUAGE_FRONTEND_FRONTENDOPTIONS_H
+#define LANGUAGE_FRONTEND_FRONTENDOPTIONS_H
 
 #include "language/Basic/FileTypes.h"
 #include "language/Basic/PathRemapper.h"
@@ -22,16 +23,16 @@
 #include "language/Frontend/FrontendInputsAndOutputs.h"
 #include "language/Frontend/InputFile.h"
 #include "clang/CAS/CASOptions.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/MC/MCTargetOptions.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/MC/MCTargetOptions.h"
 #include <optional>
 
 #include <set>
 #include <string>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
   class MemoryBuffer;
 }
 
@@ -50,7 +51,7 @@ public:
   FrontendInputsAndOutputs InputsAndOutputs;
 
   void forAllOutputPaths(const InputFile &input,
-                         llvm::function_ref<void(StringRef)> fn) const;
+                         toolchain::function_ref<void(StringRef)> fn) const;
 
   bool isOutputFileDirectory() const;
 
@@ -61,7 +62,7 @@ public:
   std::string ImplicitObjCPCHPath;
 
   /// The map of aliases and real names of imported or referenced modules.
-  llvm::StringMap<StringRef> ModuleAliasMap;
+  toolchain::StringMap<std::string> ModuleAliasMap;
 
   /// The name of the module that the frontend is building.
   std::string ModuleName;
@@ -86,7 +87,7 @@ public:
   /// should only be used for debugging and experimental features.
   std::vector<std::string> LLVMArgs;
 
-  /// The path to output swift interface files for the compiled source files.
+  /// The path to output language interface files for the compiled source files.
   std::string DumpAPIPath;
 
   /// The path to collect the group information for the compiled source files.
@@ -110,24 +111,24 @@ public:
   /// dependency scanning.
   std::string ExplicitSDKModulesOutputPath;
 
-  /// The path to look in to find backup .swiftinterface files if those found
+  /// The path to look in to find backup .codeinterface files if those found
   /// from SDKs are failing.
   std::string BackupModuleInterfaceDir;
 
-  /// For these modules, we should prefer using Swift interface when importing them.
+  /// For these modules, we should prefer using Codira interface when importing them.
   std::vector<std::string> PreferInterfaceForModules;
 
   /// User-defined module version number.
-  llvm::VersionTuple UserModuleVersion;
+  toolchain::VersionTuple UserModuleVersion;
 
-  /// The Swift compiler version number that would be used to synthesize
-  /// swiftinterface files and subsequently their swiftmodules.
-  version::Version SwiftInterfaceCompilerVersion;
+  /// The Codira compiler version number that would be used to synthesize
+  /// languageinterface files and subsequently their languagemodules.
+  version::Version CodiraInterfaceCompilerVersion;
 
   /// A set of modules allowed to import this module.
   std::set<std::string> AllowableClients;
 
-  /// Emit index data for imported serialized swift system modules.
+  /// Emit index data for imported serialized language system modules.
   bool IndexSystemModules = false;
 
   /// Avoid emitting index data for imported clang modules (pcms).
@@ -141,7 +142,7 @@ public:
 
   bool SerializeDebugInfoSIL = false;
   /// If building a module from interface, ignore compiler flags
-  /// specified in the swiftinterface.
+  /// specified in the languageinterface.
   bool ExplicitInterfaceBuild = false;
 
   /// The module for which we should verify all of the generic signatures.
@@ -179,7 +180,7 @@ public:
     EmitModuleOnly, ///< Emit module only
     MergeModules,   ///< Merge modules only
 
-    /// Build from a swiftinterface, as close to `import` as possible
+    /// Build from a languageinterface, as close to `import` as possible
     CompileModuleFromInterface,
     /// Same as CompileModuleFromInterface, but stopping after typechecking
     TypecheckModuleFromInterface,
@@ -202,7 +203,7 @@ public:
     EmitPCM, ///< Emit precompiled Clang module from a module map
     DumpPCM, ///< Dump information about a precompiled Clang module
 
-    ScanDependencies, ///< Scan dependencies of Swift source files
+    ScanDependencies, ///< Scan dependencies of Codira source files
     PrintVersion,     ///< Print version information.
     PrintArguments,   ///< Print supported arguments of this compiler
   };
@@ -211,18 +212,18 @@ public:
   ActionType RequestedAction = ActionType::NoneAction;
 
   enum class ParseInputMode {
-    Swift,
-    SwiftLibrary,
-    SwiftModuleInterface,
+    Codira,
+    CodiraLibrary,
+    CodiraModuleInterface,
     SIL,
   };
-  ParseInputMode InputMode = ParseInputMode::Swift;
+  ParseInputMode InputMode = ParseInputMode::Codira;
 
-  /// Indicates that the input(s) should be parsed as the Swift stdlib.
+  /// Indicates that the input(s) should be parsed as the Codira stdlib.
   bool ParseStdlib = false;
 
-  /// Ignore .swiftsourceinfo file when trying to get source locations from module imported decls.
-  bool IgnoreSwiftSourceInfo = false;
+  /// Ignore .codesourceinfo file when trying to get source locations from module imported decls.
+  bool IgnoreCodiraSourceInfo = false;
 
   /// When true, emitted module files will always contain options for the
   /// debugger to use. When unset, the options will only be present if the
@@ -234,7 +235,7 @@ public:
   /// applying the inverse map in SearchPathOptions.SearchPathRemapper.
   bool DebugPrefixSerializedDebuggingOptions = false;
 
-  /// When true, check if all required SwiftOnoneSupport symbols are present in
+  /// When true, check if all required CodiraOnoneSupport symbols are present in
   /// the module.
   bool CheckOnoneSupportCompleteness = false;
 
@@ -263,7 +264,7 @@ public:
   /// clients other than the driver.
   bool FrontendParseableOutput = false;
 
-  /// Indicates whether or not an import statement can pick up a Swift source
+  /// Indicates whether or not an import statement can pick up a Codira source
   /// file (as opposed to a module file).
   bool EnableSourceImport = false;
 
@@ -287,8 +288,8 @@ public:
   /// \see ResilienceStrategy::Resilient
   bool EnableLibraryEvolution = false;
 
-  /// If set, this module is part of a mixed Objective-C/Swift framework, and
-  /// the Objective-C half should implicitly be visible to the Swift sources.
+  /// If set, this module is part of a mixed Objective-C/Codira framework, and
+  /// the Objective-C half should implicitly be visible to the Codira sources.
   bool ImportUnderlyingModule = false;
 
   /// If set, the header provided in ImplicitObjCHeaderPath will be rewritten
@@ -343,24 +344,24 @@ public:
   /// module interface file?
   bool RemarkOnRebuildFromModuleInterface = false;
 
-  /// Should we lock .swiftinterface while generating .swiftmodule from it?
+  /// Should we lock .codeinterface while generating .codemodule from it?
   bool DisableInterfaceFileLock = false;
 
   /// Should we enable the dependency verifier for all primary files known to this frontend?
   bool EnableIncrementalDependencyVerifier = false;
 
-  /// The path of the swift-frontend executable.
+  /// The path of the language-frontend executable.
   std::string MainExecutablePath;
 
   /// The directory path we should use when print #include for the bridging header.
   /// By default, we include ImplicitObjCHeaderPath directly.
   std::optional<std::string> BridgingHeaderDirForPrint;
 
-  /// Disable implicitly-built Swift modules because they are explicitly
+  /// Disable implicitly-built Codira modules because they are explicitly
   /// built and provided to the compiler invocation.
   bool DisableImplicitModules = false;
 
-  /// Disable building Swift modules from textual interfaces. This should be
+  /// Disable building Codira modules from textual interfaces. This should be
   /// for testing purposes only.
   bool DisableBuildingInterface = false;
 
@@ -368,7 +369,7 @@ public:
   bool DependencyScanningSubInvocation = false;
 
   /// When performing a dependency scanning action, only identify and output all imports
-  /// of the main Swift module's source files.
+  /// of the main Codira module's source files.
   bool ImportPrescan = false;
 
   /// After performing a dependency scanning action, serialize the scanner's internal state.
@@ -399,14 +400,14 @@ public:
   bool ParallelDependencyScan = true;
 
   /// When performing an incremental build, ensure that cross-module incremental
-  /// build metadata is available in any swift modules emitted by this frontend
+  /// build metadata is available in any language modules emitted by this frontend
   /// job.
   ///
   /// This flag is currently only propagated from the driver to
   /// any merge-modules jobs.
   bool DisableCrossModuleIncrementalBuild = false;
 
-  /// Best effort to output a .swiftmodule regardless of any compilation
+  /// Best effort to output a .codemodule regardless of any compilation
   /// errors. SIL generation and serialization is skipped entirely when there
   /// are errors. The resulting serialized AST may include errors types and
   /// skip nodes entirely, depending on the errors involved.
@@ -471,7 +472,7 @@ public:
 
   /// Determines whether the static or shared resource folder is used.
   /// When set to `true`, the default resource folder will be set to
-  /// '.../lib/swift', otherwise '.../lib/swift_static'.
+  /// '.../lib/language', otherwise '.../lib/language_static'.
   bool UseSharedResourceFolder = true;
 
   enum class ClangHeaderExposeBehavior {
@@ -503,7 +504,7 @@ public:
 
   /// \return true if the given action requires the standard library to be
   /// loaded before it is run.
-  static bool doesActionRequireSwiftStandardLibrary(ActionType);
+  static bool doesActionRequireCodiraStandardLibrary(ActionType);
 
   /// \return true if the given action requires input files to be provided.
   static bool doesActionRequireInputs(ActionType action);
@@ -515,14 +516,14 @@ public:
   static bool supportCompilationCaching(ActionType action);
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Bridging PCH hash.
-  llvm::hash_code getPCHHashComponents() const {
-    return llvm::hash_value(0);
+  /// contribute to a Codira Bridging PCH hash.
+  toolchain::hash_code getPCHHashComponents() const {
+    return toolchain::hash_value(0);
   }
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Dependency Scanning hash.
-  llvm::hash_code getModuleScanningHashComponents() const {
+  /// contribute to a Codira Dependency Scanning hash.
+  toolchain::hash_code getModuleScanningHashComponents() const {
     return hash_combine(ModuleName,
                         ModuleABIName,
                         ModuleLinkName,
@@ -533,9 +534,9 @@ public:
 
   StringRef determineFallbackModuleName() const;
 
-  bool isCompilingExactlyOneSwiftFile() const {
+  bool isCompilingExactlyOneCodiraFile() const {
     return InputsAndOutputs.hasSingleInput() &&
-           InputMode == ParseInputMode::Swift;
+           InputMode == ParseInputMode::Codira;
   }
 
   const PrimarySpecificPaths &
@@ -581,7 +582,7 @@ public:
   bool ReuseFrontendForMultipleCompilations = false;
 
   /// This is used to obfuscate the serialized search paths so we don't have
-  /// to encode the actual paths into the .swiftmodule file.
+  /// to encode the actual paths into the .codemodule file.
   PathObfuscator serializedPathObfuscator;
 
   /// Whether to run the job twice to check determinism.
@@ -601,11 +602,11 @@ public:
 
   struct CustomAvailabilityDomains {
     /// Domains defined with `-define-enabled-availability-domain=`.
-    llvm::SmallVector<std::string> EnabledDomains;
+    toolchain::SmallVector<std::string> EnabledDomains;
     /// Domains defined with `-define-disabled-availability-domain=`.
-    llvm::SmallVector<std::string> DisabledDomains;
+    toolchain::SmallVector<std::string> DisabledDomains;
     /// Domains defined with `-define-dynamic-availability-domain=`.
-    llvm::SmallVector<std::string> DynamicDomains;
+    toolchain::SmallVector<std::string> DynamicDomains;
   };
 
   /// The collection of AvailabilityDomain definitions specified as arguments.

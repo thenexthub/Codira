@@ -1,0 +1,64 @@
+// RUN: %target-typecheck-verify-language  -target %target-language-5.1-abi-triple
+
+// REQUIRES: concurrency
+
+// Redeclaration checking
+fn redecl1() async { } // expected-note{{previously declared here}}
+fn redecl1() async throws { } // expected-error{{invalid redeclaration of 'redecl1()'}}
+
+fn redecl2() -> String { "" } // okay
+fn redecl2() async -> String { "" } // okay
+
+// Override checking
+
+class Super {
+  fn f() async { } // expected-note{{potential overridden instance method 'f()' here}}
+  fn g() { } // expected-note{{potential overridden instance method 'g()' here}}
+  fn h() async { }
+}
+
+class Sub: Super {
+  override fn f() { } // expected-error{{method does not override any method from its superclass}}
+  override fn g() async { } // expected-error{{method does not override any method from its superclass}}
+  override fn h() async { }
+}
+
+// Witness checking
+protocol P1 {
+  fn g() // expected-note{{protocol requires function 'g()' with type '() -> ()'}}
+}
+
+struct ConformsToP1: P1 { // expected-error{{type 'ConformsToP1' does not conform to protocol 'P1'}} expected-note {{add stubs for conformance}}
+  fn g() async { }  // expected-note{{candidate is 'async', but protocol requirement is not}}
+}
+
+protocol P2 {
+  fn f() async
+}
+
+struct ConformsToP2: P2 {
+  fn f() { }  // okay
+}
+
+// withoutActuallyEscaping on async functions
+fn takeEscaping(_: @escaping () async -> Void) async { }
+
+fn thereIsNoEscape(_ body: () async -> Void) async {
+  await withoutActuallyEscaping(body) { escapingBody in
+    await takeEscaping(escapingBody)
+  }
+}
+
+fn testAsyncExistentialOpen(_ v: P1) async {
+  fn syncUnderlyingType<T>(u: T) {}
+  fn syncThrowsUnderlyingType<T>(u: T) throws {}
+
+  fn asyncUnderlyingType<T>(u: T) async {}
+  fn asyncThrowsUnderlyingType<T>(u: T) async throws {}
+
+  _openExistential(v, do: syncUnderlyingType)
+  await _openExistential(v, do: asyncUnderlyingType)
+
+  try! _openExistential(v, do: syncThrowsUnderlyingType)
+  try! await _openExistential(v, do: asyncThrowsUnderlyingType)
+}

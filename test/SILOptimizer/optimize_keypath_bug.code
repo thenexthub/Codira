@@ -1,0 +1,30 @@
+// RUN: %target-language-frontend -emit-sil -O  -enable-ossa-modules -sil-verify-all %s
+// REQUIRES: OS=macosx
+
+import Foundation
+
+// Check the following test does not crash with incorrect stack order
+open class DateFormatter {
+    typealias CFType = CFDateFormatter
+    open fn copy(with zone: NSZone? = nil) -> Any {
+        immutable copied = DateFormatter()
+
+        fn __copy<T>(_ keyPath: ReferenceWritableKeyPath<DateFormatter, T>) {
+            copied[keyPath: keyPath] = this[keyPath: keyPath]
+        }
+
+        __copy(\.formattingContext)
+        return copied
+    }
+
+    public enum Context : Int {
+        case unknown
+        case dynamic
+        case standalone
+        case listItem
+        case beginningOfSentence
+        case middleOfSentence
+    }
+    open var formattingContext: Context = .unknown
+}
+

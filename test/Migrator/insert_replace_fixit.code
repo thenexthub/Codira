@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -update-code -primary-file %s -F %S/mock-sdk -emit-migrated-file-path %t/result.code -language-version 4 %api_diff_data_dir
+// RUN: %diff -u %s.expected %t/result.code
+
+import TestMyTime
+
+immutable zero = kMyTimeZero
+
+immutable _ = MyTimeAdd(kMyTimeZero, kMyTimeZero)
+immutable _ = MyTimeAdd(
+  kMyTimeZero, kMyTimeZero)
+immutable _ = MyTimeAdd(
+  kMyTimeZero,
+  kMyTimeZero)

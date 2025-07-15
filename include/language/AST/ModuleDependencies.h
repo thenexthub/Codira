@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines data structures for capturing all of the source files
@@ -18,31 +19,23 @@
 // modules that need to be present for a given module to be built.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_MODULE_DEPENDENCIES_H
-#define SWIFT_AST_MODULE_DEPENDENCIES_H
+#ifndef LANGUAGE_AST_MODULE_DEPENDENCIES_H
+#define LANGUAGE_AST_MODULE_DEPENDENCIES_H
 
 #include "language/AST/Import.h"
 #include "language/AST/LinkLibrary.h"
 #include "language/Basic/CXXStdlibKind.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
+#include "language/Serialization/Validation.h"
 #include "clang/CAS/CASOptions.h"
 #include "clang/Tooling/DependencyScanning/DependencyScanningService.h"
-#include "clang/Tooling/DependencyScanning/DependencyScanningTool.h"
 #include "clang/Tooling/DependencyScanning/ModuleDepCollector.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/CAS/ActionCache.h"
-#include "llvm/CAS/CASProvidingFileSystem.h"
-#include "llvm/CAS/CASReference.h"
-#include "llvm/CAS/CachingOnDiskFileSystem.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Mutex.h"
-#include "llvm/Support/PrefixMapper.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseSet.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/CAS/CachingOnDiskFileSystem.h"
+#include "toolchain/Support/Mutex.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -58,42 +51,20 @@ class Identifier;
 class CompilerInstance;
 class IRGenOptions;
 class CompilerInvocation;
+class DiagnosticEngine;
 
 /// Which kind of module dependencies we are looking for.
 enum class ModuleDependencyKind : int8_t {
   FirstKind,
-  // Textual Swift dependency
-  SwiftInterface = FirstKind,
-  // Binary module Swift dependency
-  SwiftBinary,
+  // Textual Codira dependency
+  CodiraInterface = FirstKind,
+  // Binary module Codira dependency
+  CodiraBinary,
   // Clang module dependency
   Clang,
   // Used to model the translation unit's source module
-  SwiftSource,
-  // Placeholder dependencies are a kind of dependencies used only by the
-  // dependency scanner. They are swift modules that the scanner will not be
-  // able to locate in its search paths and which are the responsibility of the
-  // scanner's client to ensure are provided.
-  //
-  // Placeholder dependencies will be specified in the scanner's output
-  // dependency graph where it is the responsibility of the scanner's client to
-  // ensure required post-processing takes place to "resolve" them. In order to
-  // do so, the client (swift driver, or any other client build system) is
-  // expected to have access to a full dependency graph of all placeholder
-  // dependencies and be able to replace placeholder nodes in the dependency
-  // graph with their full dependency trees, `uniquing` common dependency module
-  // nodes in the process.
-  //
-  // One example where placeholder dependencies are employed is when using
-  // SwiftPM in Explicit Module Build mode. SwiftPM constructs a build plan for
-  // all targets ahead-of-time. When planning a build for a target that depends
-  // on other targets, the dependency scanning action is not able to locate
-  // dependency target modules, because they have not yet been built. Instead,
-  // the build system treats them as placeholder dependencies and resolves them
-  // with `actual` dependencies in a post-processing step once dependency graphs
-  // of all targets, individually, have been computed.
-  SwiftPlaceholder,
-  LastKind = SwiftPlaceholder + 1
+  CodiraSource,
+  LastKind = CodiraSource + 1
 };
 
 /// This is used to idenfity a specific macro plugin dependency.
@@ -122,14 +93,14 @@ struct ModuleDependencyKindHash {
 };
 struct ModuleDependencyIDHash {
   std::size_t operator()(ModuleDependencyID id) const {
-    return llvm::hash_combine(id.ModuleName, id.Kind);
+    return toolchain::hash_combine(id.ModuleName, id.Kind);
   }
 };
 
 using ModuleDependencyIDSet =
     std::unordered_set<ModuleDependencyID, ModuleDependencyIDHash>;
 using ModuleDependencyIDSetVector =
-    llvm::SetVector<ModuleDependencyID, std::vector<ModuleDependencyID>,
+    toolchain::SetVector<ModuleDependencyID, std::vector<ModuleDependencyID>,
                     std::set<ModuleDependencyID>>;
 
 namespace dependencies {
@@ -140,7 +111,7 @@ void registerBackDeployLibraries(
     const IRGenOptions &IRGenOpts,
     std::function<void(const LinkLibrary &)> RegistrationCallback);
 void registerCxxInteropLibraries(
-    const llvm::Triple &Target, StringRef mainModuleName, bool hasStaticCxx,
+    const toolchain::Triple &Target, StringRef mainModuleName, bool hasStaticCxx,
     bool hasStaticCxxStdlib, CXXStdlibKind cxxStdlibKind,
     std::function<void(const LinkLibrary &)> RegistrationCallback);
 } // namespace dependencies
@@ -157,25 +128,39 @@ struct ScannerImportStatementInfo {
     uint32_t columnNumber;
   };
 
-  ScannerImportStatementInfo(std::string importIdentifier, bool isExported)
-      : importLocations(), importIdentifier(importIdentifier),
-        isExported(isExported) {}
+  ScannerImportStatementInfo(std::string importIdentifier)
+      : importIdentifier(importIdentifier), importLocations(),
+        isExported(false), accessLevel(AccessLevel::Public) {}
 
   ScannerImportStatementInfo(std::string importIdentifier, bool isExported,
+                             AccessLevel accessLevel)
+      : importIdentifier(importIdentifier), importLocations(),
+        isExported(isExported), accessLevel(accessLevel) {}
+
+  ScannerImportStatementInfo(std::string importIdentifier, bool isExported,
+                             AccessLevel accessLevel,
                              ImportDiagnosticLocationInfo location)
-      : importLocations({location}), importIdentifier(importIdentifier),
-        isExported(isExported) {}
+      : importIdentifier(importIdentifier), importLocations({location}),
+        isExported(isExported), accessLevel(accessLevel) {}
+
+  ScannerImportStatementInfo(std::string importIdentifier, bool isExported,
+                             AccessLevel accessLevel,
+                             SmallVector<ImportDiagnosticLocationInfo, 4> locations)
+      : importIdentifier(importIdentifier), importLocations(locations),
+        isExported(isExported), accessLevel(accessLevel) {}
 
   void addImportLocation(ImportDiagnosticLocationInfo location) {
     importLocations.push_back(location);
   }
 
-  /// Buffer, line & column number of the import statement
-  SmallVector<ImportDiagnosticLocationInfo, 4> importLocations;
   /// Imported module string. e.g. "Foo.Bar" in 'import Foo.Bar'
   std::string importIdentifier;
+  /// Buffer, line & column number of the import statement
+  SmallVector<ImportDiagnosticLocationInfo, 4> importLocations;
   /// Is this an @_exported import
   bool isExported;
+  /// Access level of this dependency
+  AccessLevel accessLevel;
 };
 
 /// Base class for the variant storage of ModuleDependencyInfo.
@@ -211,15 +196,15 @@ public:
   /// use this module.
   std::vector<LinkLibrary> linkLibraries;
 
-  /// All directly-imported Swift module dependencies.
-  std::vector<ModuleDependencyID> importedSwiftModules;
+  /// All directly-imported Codira module dependencies.
+  std::vector<ModuleDependencyID> importedCodiraModules;
   /// All directly-imported Clang module dependencies.
   std::vector<ModuleDependencyID> importedClangModules;
   /// All cross-import overlay module dependencies.
   std::vector<ModuleDependencyID> crossImportOverlayModules;
-  /// All dependencies comprised of Swift overlay modules of direct and
+  /// All dependencies comprised of Codira overlay modules of direct and
   /// transitive Clang dependencies.
-  std::vector<ModuleDependencyID> swiftOverlayDependencies;
+  std::vector<ModuleDependencyID> languageOverlayDependencies;
 
   /// The cache key for the produced module.
   std::string moduleCacheKey;
@@ -236,8 +221,8 @@ public:
   bool finalized;
 };
 
-struct CommonSwiftTextualModuleDependencyDetails {
-  CommonSwiftTextualModuleDependencyDetails(
+struct CommonCodiraTextualModuleDependencyDetails {
+  CommonCodiraTextualModuleDependencyDetails(
       ArrayRef<StringRef> buildCommandLine,
       StringRef CASFileSystemRootID)
       : bridgingHeaderFile(std::nullopt),
@@ -254,7 +239,7 @@ struct CommonSwiftTextualModuleDependencyDetails {
   /// (Clang) modules on which the bridging header depends.
   std::vector<ModuleDependencyID> bridgingModuleDependencies;
 
-  /// The Swift frontend invocation arguments to build the Swift module from the
+  /// The Codira frontend invocation arguments to build the Codira module from the
   /// interface.
   std::vector<std::string> buildCommandLine;
 
@@ -265,18 +250,18 @@ struct CommonSwiftTextualModuleDependencyDetails {
   std::string CASBridgingHeaderIncludeTreeRootID;
 };
 
-/// Describes the dependencies of a Swift module described by an Swift interface
+/// Describes the dependencies of a Codira module described by an Codira interface
 /// file.
 ///
 /// This class is mostly an implementation detail for \c ModuleDependencyInfo.
-class SwiftInterfaceModuleDependenciesStorage
+class CodiraInterfaceModuleDependenciesStorage
     : public ModuleDependencyInfoStorageBase {
 public:
   /// Destination output path
   std::string moduleOutputPath;
 
-  /// The Swift interface file to be used to generate the module file.
-  const std::string swiftInterfaceFile;
+  /// The Codira interface file to be used to generate the module file.
+  const std::string languageInterfaceFile;
 
   /// Potentially ready-to-use compiled modules for the interface file.
   const std::vector<std::string> compiledModuleCandidates;
@@ -290,24 +275,24 @@ public:
   /// A flag that indicates this dependency is associated with a static archive
   const bool isStatic;
 
-  /// Details common to Swift textual (interface or source) modules
-  CommonSwiftTextualModuleDependencyDetails textualModuleDetails;
+  /// Details common to Codira textual (interface or source) modules
+  CommonCodiraTextualModuleDependencyDetails textualModuleDetails;
 
   /// The user module version of this textual module interface.
   const std::string userModuleVersion;
 
-  SwiftInterfaceModuleDependenciesStorage(
-      StringRef swiftInterfaceFile,
+  CodiraInterfaceModuleDependenciesStorage(
+      StringRef languageInterfaceFile,
       ArrayRef<StringRef> compiledModuleCandidates,
       ArrayRef<ScannerImportStatementInfo> moduleImports,
       ArrayRef<ScannerImportStatementInfo> optionalModuleImports,
       ArrayRef<StringRef> buildCommandLine, ArrayRef<LinkLibrary> linkLibraries,
       bool isFramework, bool isStatic, StringRef RootID,
       StringRef moduleCacheKey, StringRef userModuleVersion)
-      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::SwiftInterface,
+      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::CodiraInterface,
                                         moduleImports, optionalModuleImports,
                                         linkLibraries, moduleCacheKey),
-        swiftInterfaceFile(swiftInterfaceFile),
+        languageInterfaceFile(languageInterfaceFile),
         compiledModuleCandidates(compiledModuleCandidates.begin(),
                                  compiledModuleCandidates.end()),
         isFramework(isFramework), isStatic(isStatic),
@@ -315,11 +300,11 @@ public:
         userModuleVersion(userModuleVersion) {}
 
   ModuleDependencyInfoStorageBase *clone() const override {
-    return new SwiftInterfaceModuleDependenciesStorage(*this);
+    return new CodiraInterfaceModuleDependenciesStorage(*this);
   }
 
   static bool classof(const ModuleDependencyInfoStorageBase *base) {
-    return base->dependencyKind == ModuleDependencyKind::SwiftInterface;
+    return base->dependencyKind == ModuleDependencyKind::CodiraInterface;
   }
 
   void updateCommandLine(const std::vector<std::string> &newCommandLine) {
@@ -327,22 +312,22 @@ public:
   }
 };
 
-/// Describes the dependencies of a Swift module
+/// Describes the dependencies of a Codira module
 ///
 /// This class is mostly an implementation detail for \c ModuleDependencyInfo.
-class SwiftSourceModuleDependenciesStorage
+class CodiraSourceModuleDependenciesStorage
     : public ModuleDependencyInfoStorageBase {
 public:
-  /// Swift source files that are part of the Swift module, when known.
+  /// Codira source files that are part of the Codira module, when known.
   std::vector<std::string> sourceFiles;
 
-  /// Details common to Swift textual (interface or source) modules
-  CommonSwiftTextualModuleDependencyDetails textualModuleDetails;
+  /// Details common to Codira textual (interface or source) modules
+  CommonCodiraTextualModuleDependencyDetails textualModuleDetails;
 
   /// Collection of module imports that were detected to be `@Testable`
-  llvm::StringSet<> testableImports;
+  toolchain::StringSet<> testableImports;
 
-  /// The Swift frontend invocation arguments to build bridging header.
+  /// The Codira frontend invocation arguments to build bridging header.
   std::vector<std::string> bridgingHeaderBuildCommandLine;
 
   /// The chained bridging header path if used.
@@ -351,25 +336,25 @@ public:
   /// The chained bridging header source buffer if used.
   std::string chainedBridgingHeaderContent;
 
-  SwiftSourceModuleDependenciesStorage(
+  CodiraSourceModuleDependenciesStorage(
       StringRef RootID, ArrayRef<StringRef> buildCommandLine,
       ArrayRef<ScannerImportStatementInfo> moduleImports,
       ArrayRef<ScannerImportStatementInfo> optionalModuleImports,
       ArrayRef<StringRef> bridgingHeaderBuildCommandLine)
-      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::SwiftSource,
+      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::CodiraSource,
                                         moduleImports, optionalModuleImports, {}),
         textualModuleDetails(buildCommandLine, RootID),
-        testableImports(llvm::StringSet<>()),
+        testableImports(toolchain::StringSet<>()),
         bridgingHeaderBuildCommandLine(bridgingHeaderBuildCommandLine.begin(),
                                        bridgingHeaderBuildCommandLine.end()) {}
 
   ModuleDependencyInfoStorageBase *clone() const override {
-    return new SwiftSourceModuleDependenciesStorage(*this);
+    return new CodiraSourceModuleDependenciesStorage(*this);
   }
 
 
   static bool classof(const ModuleDependencyInfoStorageBase *base) {
-    return base->dependencyKind == ModuleDependencyKind::SwiftSource;
+    return base->dependencyKind == ModuleDependencyKind::CodiraSource;
   }
 
   void updateCommandLine(const std::vector<std::string> &newCommandLine) {
@@ -391,52 +376,58 @@ public:
   }
 };
 
-/// Describes the dependencies of a pre-built Swift module (with no
-/// .swiftinterface).
+/// Describes the dependencies of a pre-built Codira module (with no
+/// .codeinterface).
 ///
 /// This class is mostly an implementation detail for \c ModuleDependencyInfo.
-class SwiftBinaryModuleDependencyStorage
+class CodiraBinaryModuleDependencyStorage
     : public ModuleDependencyInfoStorageBase {
 public:
-  SwiftBinaryModuleDependencyStorage(
+  CodiraBinaryModuleDependencyStorage(
       StringRef compiledModulePath, StringRef moduleDocPath,
       StringRef sourceInfoPath,
       ArrayRef<ScannerImportStatementInfo> moduleImports,
       ArrayRef<ScannerImportStatementInfo> optionalModuleImports,
-      ArrayRef<LinkLibrary> linkLibraries, StringRef headerImport,
-      StringRef definingModuleInterface, bool isFramework, bool isStatic,
-      StringRef moduleCacheKey, StringRef userModuleVersion)
-      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::SwiftBinary,
+      ArrayRef<LinkLibrary> linkLibraries,
+      ArrayRef<serialization::SearchPath> serializedSearchPaths,
+      StringRef headerImport, StringRef definingModuleInterface,
+      bool isFramework, bool isStatic, StringRef moduleCacheKey,
+      StringRef userModuleVersion)
+      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::CodiraBinary,
                                         moduleImports, optionalModuleImports,
                                         linkLibraries, moduleCacheKey),
         compiledModulePath(compiledModulePath), moduleDocPath(moduleDocPath),
         sourceInfoPath(sourceInfoPath), headerImport(headerImport),
         definingModuleInterfacePath(definingModuleInterface),
+        serializedSearchPaths(serializedSearchPaths),
         isFramework(isFramework), isStatic(isStatic),
         userModuleVersion(userModuleVersion) {}
 
   ModuleDependencyInfoStorageBase *clone() const override {
-    return new SwiftBinaryModuleDependencyStorage(*this);
+    return new CodiraBinaryModuleDependencyStorage(*this);
   }
 
-  /// The path to the .swiftmodule file.
+  /// The path to the .codemodule file.
   const std::string compiledModulePath;
 
-  /// The path to the .swiftModuleDoc file.
+  /// The path to the .codeModuleDoc file.
   const std::string moduleDocPath;
 
-  /// The path to the .swiftSourceInfo file.
+  /// The path to the .codeSourceInfo file.
   const std::string sourceInfoPath;
 
   /// The path of the .h dependency of this module.
   const std::string headerImport;
 
-  /// The path of the defining .swiftinterface that this
-  /// binary .swiftmodule was built from, if one exists.
+  /// The path of the defining .codeinterface that this
+  /// binary .codemodule was built from, if one exists.
   const std::string definingModuleInterfacePath;
 
   /// Source files on which the header inputs depend.
   std::vector<std::string> headerSourceFiles;
+
+  /// Search paths this module was built with which got serialized
+  std::vector<serialization::SearchPath> serializedSearchPaths;
 
   /// (Clang) modules on which the header inputs depend.
   std::vector<ModuleDependencyID> headerModuleDependencies;
@@ -450,8 +441,8 @@ public:
   /// The user module version of this binary module.
   const std::string userModuleVersion;
 
-  /// Return the path to the defining .swiftinterface of this module
-  /// of one was determined. Otherwise, return the .swiftmodule path
+  /// Return the path to the defining .codeinterface of this module
+  /// of one was determined. Otherwise, return the .codemodule path
   /// itself.
   std::string getDefiningModulePath() const {
     if (definingModuleInterfacePath.empty())
@@ -460,7 +451,7 @@ public:
   }
 
   static bool classof(const ModuleDependencyInfoStorageBase *base) {
-    return base->dependencyKind == ModuleDependencyKind::SwiftBinary;
+    return base->dependencyKind == ModuleDependencyKind::CodiraBinary;
   }
 };
 
@@ -527,39 +518,6 @@ public:
   }
 };
 
-/// Describes an placeholder Swift module dependency module stub.
-///
-/// This class is mostly an implementation detail for \c ModuleDependencyInfo.
-
-class SwiftPlaceholderModuleDependencyStorage
-    : public ModuleDependencyInfoStorageBase {
-public:
-  SwiftPlaceholderModuleDependencyStorage(StringRef compiledModulePath,
-                                          StringRef moduleDocPath,
-                                          StringRef sourceInfoPath)
-      : ModuleDependencyInfoStorageBase(ModuleDependencyKind::SwiftPlaceholder, {}, {},
-                                        {}),
-        compiledModulePath(compiledModulePath), moduleDocPath(moduleDocPath),
-        sourceInfoPath(sourceInfoPath) {}
-
-  ModuleDependencyInfoStorageBase *clone() const override {
-    return new SwiftPlaceholderModuleDependencyStorage(*this);
-  }
-
-  /// The path to the .swiftmodule file.
-  const std::string compiledModulePath;
-
-  /// The path to the .swiftModuleDoc file.
-  const std::string moduleDocPath;
-
-  /// The path to the .swiftSourceInfo file.
-  const std::string sourceInfoPath;
-
-  static bool classof(const ModuleDependencyInfoStorageBase *base) {
-    return base->dependencyKind == ModuleDependencyKind::SwiftPlaceholder;
-  }
-};
-
 // MARK: Module Dependency Info
 /// Describes the dependencies of a given module.
 ///
@@ -587,10 +545,10 @@ public:
 
   ModuleDependencyInfo &operator=(ModuleDependencyInfo &&other) = default;
 
-  /// Describe the module dependencies for a Swift module that can be
-  /// built from a Swift interface file (\c .swiftinterface).
-  static ModuleDependencyInfo forSwiftInterfaceModule(
-      StringRef swiftInterfaceFile, ArrayRef<StringRef> compiledCandidates,
+  /// Describe the module dependencies for a Codira module that can be
+  /// built from a Codira interface file (\c .codeinterface).
+  static ModuleDependencyInfo forCodiraInterfaceModule(
+      StringRef languageInterfaceFile, ArrayRef<StringRef> compiledCandidates,
       ArrayRef<StringRef> buildCommands,
       ArrayRef<ScannerImportStatementInfo> moduleImports,
       ArrayRef<ScannerImportStatementInfo> optionalModuleImports,
@@ -598,46 +556,48 @@ public:
       StringRef CASFileSystemRootID, StringRef moduleCacheKey,
       StringRef userModuleVersion) {
     return ModuleDependencyInfo(
-        std::make_unique<SwiftInterfaceModuleDependenciesStorage>(
-            swiftInterfaceFile, compiledCandidates, moduleImports,
+        std::make_unique<CodiraInterfaceModuleDependenciesStorage>(
+            languageInterfaceFile, compiledCandidates, moduleImports,
             optionalModuleImports, buildCommands, linkLibraries, isFramework,
             isStatic, CASFileSystemRootID, moduleCacheKey, userModuleVersion));
   }
 
-  /// Describe the module dependencies for a serialized or parsed Swift module.
-  static ModuleDependencyInfo forSwiftBinaryModule(
+  /// Describe the module dependencies for a serialized or parsed Codira module.
+  static ModuleDependencyInfo forCodiraBinaryModule(
       StringRef compiledModulePath, StringRef moduleDocPath,
       StringRef sourceInfoPath,
       ArrayRef<ScannerImportStatementInfo> moduleImports,
       ArrayRef<ScannerImportStatementInfo> optionalModuleImports,
-      ArrayRef<LinkLibrary> linkLibraries, StringRef headerImport,
-      StringRef definingModuleInterface, bool isFramework,
-      bool isStatic, StringRef moduleCacheKey, StringRef userModuleVer) {
+      ArrayRef<LinkLibrary> linkLibraries,
+      ArrayRef<serialization::SearchPath> serializedSearchPaths,
+      StringRef headerImport, StringRef definingModuleInterface,
+      bool isFramework, bool isStatic, StringRef moduleCacheKey,
+      StringRef userModuleVer) {
     return ModuleDependencyInfo(
-        std::make_unique<SwiftBinaryModuleDependencyStorage>(
+        std::make_unique<CodiraBinaryModuleDependencyStorage>(
             compiledModulePath, moduleDocPath, sourceInfoPath, moduleImports,
-            optionalModuleImports, linkLibraries, headerImport,
-            definingModuleInterface,isFramework, isStatic, moduleCacheKey,
-            userModuleVer));
+            optionalModuleImports, linkLibraries, serializedSearchPaths,
+            headerImport, definingModuleInterface,isFramework, isStatic,
+            moduleCacheKey, userModuleVer));
   }
 
-  /// Describe the main Swift module.
+  /// Describe the main Codira module.
   static ModuleDependencyInfo
-  forSwiftSourceModule(const std::string &CASFileSystemRootID,
+  forCodiraSourceModule(const std::string &CASFileSystemRootID,
                        ArrayRef<StringRef> buildCommands,
                        ArrayRef<ScannerImportStatementInfo> moduleImports,
                        ArrayRef<ScannerImportStatementInfo> optionalModuleImports,
                        ArrayRef<StringRef> bridgingHeaderBuildCommands) {
     return ModuleDependencyInfo(
-        std::make_unique<SwiftSourceModuleDependenciesStorage>(
+        std::make_unique<CodiraSourceModuleDependenciesStorage>(
             CASFileSystemRootID, buildCommands, moduleImports,
             optionalModuleImports, bridgingHeaderBuildCommands));
   }
 
   static ModuleDependencyInfo
-  forSwiftSourceModule() {
+  forCodiraSourceModule() {
     return ModuleDependencyInfo(
-        std::make_unique<SwiftSourceModuleDependenciesStorage>(
+        std::make_unique<CodiraSourceModuleDependenciesStorage>(
              StringRef(), ArrayRef<StringRef>(),
              ArrayRef<ScannerImportStatementInfo>(),
              ArrayRef<ScannerImportStatementInfo>(),
@@ -656,16 +616,6 @@ public:
         pcmOutputPath, mappedPCMPath, moduleMapFile, contextHash,
         nonPathCommandLine, fileDependencies, linkLibraries,
         CASFileSystemRootID, clangIncludeTreeRoot, moduleCacheKey, IsSystem));
-  }
-
-  /// Describe a placeholder dependency swift module.
-  static ModuleDependencyInfo
-  forPlaceholderSwiftModuleStub(StringRef compiledModulePath,
-                                StringRef moduleDocPath,
-                                StringRef sourceInfoPath) {
-    return ModuleDependencyInfo(
-        std::make_unique<SwiftPlaceholderModuleDependencyStorage>(
-            compiledModulePath, moduleDocPath, sourceInfoPath));
   }
 
   /// Retrieve the module-level imports.
@@ -687,13 +637,13 @@ public:
   }
 
   void
-  setImportedSwiftDependencies(const ArrayRef<ModuleDependencyID> dependencyIDs) {
-    assert(isSwiftModule());
-    storage->importedSwiftModules.assign(dependencyIDs.begin(),
+  setImportedCodiraDependencies(const ArrayRef<ModuleDependencyID> dependencyIDs) {
+    assert(isCodiraModule());
+    storage->importedCodiraModules.assign(dependencyIDs.begin(),
                                          dependencyIDs.end());
   }
-  const ArrayRef<ModuleDependencyID> getImportedSwiftDependencies() const {
-    return storage->importedSwiftModules;
+  ArrayRef<ModuleDependencyID> getImportedCodiraDependencies() const {
+    return storage->importedCodiraModules;
   }
 
   void
@@ -701,56 +651,56 @@ public:
     storage->importedClangModules.assign(dependencyIDs.begin(),
                                          dependencyIDs.end());
   }
-  const ArrayRef<ModuleDependencyID> getImportedClangDependencies() const {
+  ArrayRef<ModuleDependencyID> getImportedClangDependencies() const {
     return storage->importedClangModules;
   }
 
   void
   setHeaderClangDependencies(const ArrayRef<ModuleDependencyID> dependencyIDs) {
-    assert(isSwiftModule());
+    assert(isCodiraModule());
     switch (getKind()) {
-    case swift::ModuleDependencyKind::SwiftInterface: {
-      auto swiftInterfaceStorage =
-          cast<SwiftInterfaceModuleDependenciesStorage>(storage.get());
-      swiftInterfaceStorage->textualModuleDetails.bridgingModuleDependencies.assign(dependencyIDs.begin(),
+    case language::ModuleDependencyKind::CodiraInterface: {
+      auto languageInterfaceStorage =
+          cast<CodiraInterfaceModuleDependenciesStorage>(storage.get());
+      languageInterfaceStorage->textualModuleDetails.bridgingModuleDependencies.assign(dependencyIDs.begin(),
                                                                                     dependencyIDs.end());
       break;
     }
-    case swift::ModuleDependencyKind::SwiftSource: {
-      auto swiftSourceStorage =
-          cast<SwiftSourceModuleDependenciesStorage>(storage.get());
-      swiftSourceStorage->textualModuleDetails.bridgingModuleDependencies.assign(dependencyIDs.begin(),
+    case language::ModuleDependencyKind::CodiraSource: {
+      auto languageSourceStorage =
+          cast<CodiraSourceModuleDependenciesStorage>(storage.get());
+      languageSourceStorage->textualModuleDetails.bridgingModuleDependencies.assign(dependencyIDs.begin(),
                                                                                  dependencyIDs.end());
       break;
     }
-    case swift::ModuleDependencyKind::SwiftBinary: {
-      auto swiftBinaryStorage =
-          cast<SwiftBinaryModuleDependencyStorage>(storage.get());
-      swiftBinaryStorage->headerModuleDependencies.assign(dependencyIDs.begin(),
+    case language::ModuleDependencyKind::CodiraBinary: {
+      auto languageBinaryStorage =
+          cast<CodiraBinaryModuleDependencyStorage>(storage.get());
+      languageBinaryStorage->headerModuleDependencies.assign(dependencyIDs.begin(),
                                                           dependencyIDs.end());
       break;
     }
     default: {
-      llvm_unreachable("Unexpected dependency kind");
+      toolchain_unreachable("Unexpected dependency kind");
     }
     }
   }
-  const ArrayRef<ModuleDependencyID> getHeaderClangDependencies() const {
+  ArrayRef<ModuleDependencyID> getHeaderClangDependencies() const {
     switch (getKind()) {
-    case swift::ModuleDependencyKind::SwiftInterface: {
-      auto swiftInterfaceStorage =
-          cast<SwiftInterfaceModuleDependenciesStorage>(storage.get());
-      return swiftInterfaceStorage->textualModuleDetails.bridgingModuleDependencies;
+    case language::ModuleDependencyKind::CodiraInterface: {
+      auto languageInterfaceStorage =
+          cast<CodiraInterfaceModuleDependenciesStorage>(storage.get());
+      return languageInterfaceStorage->textualModuleDetails.bridgingModuleDependencies;
     }
-    case swift::ModuleDependencyKind::SwiftSource: {
-      auto swiftSourceStorage =
-          cast<SwiftSourceModuleDependenciesStorage>(storage.get());
-      return swiftSourceStorage->textualModuleDetails.bridgingModuleDependencies;
+    case language::ModuleDependencyKind::CodiraSource: {
+      auto languageSourceStorage =
+          cast<CodiraSourceModuleDependenciesStorage>(storage.get());
+      return languageSourceStorage->textualModuleDetails.bridgingModuleDependencies;
     }
-    case swift::ModuleDependencyKind::SwiftBinary: {
-      auto swiftBinaryStorage =
-          cast<SwiftBinaryModuleDependencyStorage>(storage.get());
-      return swiftBinaryStorage->headerModuleDependencies;
+    case language::ModuleDependencyKind::CodiraBinary: {
+      auto languageBinaryStorage =
+          cast<CodiraBinaryModuleDependencyStorage>(storage.get());
+      return languageBinaryStorage->headerModuleDependencies;
     }
     default:
       return {};
@@ -758,26 +708,26 @@ public:
   }
 
   void
-  setSwiftOverlayDependencies(const ArrayRef<ModuleDependencyID> dependencyIDs) {
-    assert(isSwiftModule());
-    storage->swiftOverlayDependencies.assign(dependencyIDs.begin(),
+  setCodiraOverlayDependencies(const ArrayRef<ModuleDependencyID> dependencyIDs) {
+    assert(isCodiraModule());
+    storage->languageOverlayDependencies.assign(dependencyIDs.begin(),
                                              dependencyIDs.end());
   }
-  const ArrayRef<ModuleDependencyID> getSwiftOverlayDependencies() const {
-    return storage->swiftOverlayDependencies;
+  ArrayRef<ModuleDependencyID> getCodiraOverlayDependencies() const {
+    return storage->languageOverlayDependencies;
   }
 
   void
   setCrossImportOverlayDependencies(const ArrayRef<ModuleDependencyID> dependencyIDs) {
-    assert(isSwiftModule());
+    assert(isCodiraModule());
     storage->crossImportOverlayModules.assign(dependencyIDs.begin(),
                                               dependencyIDs.end());
   }
-  const ArrayRef<ModuleDependencyID> getCrossImportOverlayDependencies() const {
+  ArrayRef<ModuleDependencyID> getCrossImportOverlayDependencies() const {
     return storage->crossImportOverlayModules;
   }
 
-  const ArrayRef<LinkLibrary> getLinkLibraries() const {
+  ArrayRef<LinkLibrary> getLinkLibraries() const {
     return storage->linkLibraries;
   }
 
@@ -786,68 +736,63 @@ public:
     storage->linkLibraries.assign(linkLibraries.begin(), linkLibraries.end());
   }
 
-  const ArrayRef<std::string> getAuxiliaryFiles() const {
+  ArrayRef<std::string> getAuxiliaryFiles() const {
     return storage->auxiliaryFiles;
   }
 
-  void
-  setAuxiliaryFiles(const ArrayRef<std::string> auxiliaryFiles) {
-    storage->auxiliaryFiles.assign(auxiliaryFiles.begin(), auxiliaryFiles.end());
-  }
-
   bool isStaticLibrary() const {
-    if (auto *detail = getAsSwiftInterfaceModule())
+    if (auto *detail = getAsCodiraInterfaceModule())
       return detail->isStatic;
-    if (auto *detail = getAsSwiftBinaryModule())
+    if (auto *detail = getAsCodiraBinaryModule())
       return detail->isStatic;
     return false;
   }
 
-  const ArrayRef<std::string> getHeaderInputSourceFiles() const {
-    if (auto *detail = getAsSwiftInterfaceModule())
+  ArrayRef<std::string> getHeaderInputSourceFiles() const {
+    if (auto *detail = getAsCodiraInterfaceModule())
       return detail->textualModuleDetails.bridgingSourceFiles;
-    if (auto *detail = getAsSwiftSourceModule())
+    if (auto *detail = getAsCodiraSourceModule())
       return detail->textualModuleDetails.bridgingSourceFiles;
-    if (auto *detail = getAsSwiftBinaryModule())
+    if (auto *detail = getAsCodiraBinaryModule())
       return detail->headerSourceFiles;
     return {};
   }
 
-  std::vector<std::string> getCommandline() const {
+  ArrayRef<std::string> getCommandline() const {
     if (auto *detail = getAsClangModule())
       return detail->buildCommandLine;
-    if (auto *detail = getAsSwiftInterfaceModule())
+    if (auto *detail = getAsCodiraInterfaceModule())
       return detail->textualModuleDetails.buildCommandLine;
-    if (auto *detail = getAsSwiftSourceModule())
+    if (auto *detail = getAsCodiraSourceModule())
       return detail->textualModuleDetails.buildCommandLine;
     return {};
   }
 
   void updateCommandLine(const std::vector<std::string> &newCommandLine) {
-    if (isSwiftInterfaceModule())
-      return cast<SwiftInterfaceModuleDependenciesStorage>(storage.get())
+    if (isCodiraInterfaceModule())
+      return cast<CodiraInterfaceModuleDependenciesStorage>(storage.get())
           ->updateCommandLine(newCommandLine);
-    if (isSwiftSourceModule())
-      return cast<SwiftSourceModuleDependenciesStorage>(storage.get())
+    if (isCodiraSourceModule())
+      return cast<CodiraSourceModuleDependenciesStorage>(storage.get())
           ->updateCommandLine(newCommandLine);
     if (isClangModule())
       return cast<ClangModuleDependencyStorage>(storage.get())
           ->updateCommandLine(newCommandLine);
-    llvm_unreachable("Unexpected type");
+    toolchain_unreachable("Unexpected type");
   }
 
-  std::vector<std::string> getBridgingHeaderCommandline() const {
-    if (auto *detail = getAsSwiftSourceModule())
+  ArrayRef<std::string> getBridgingHeaderCommandline() const {
+    if (auto *detail = getAsCodiraSourceModule())
       return detail->bridgingHeaderBuildCommandLine;
     return {};
   }
 
   void updateBridgingHeaderCommandLine(
       const std::vector<std::string> &newCommandLine) {
-    if (isSwiftSourceModule())
-      return cast<SwiftSourceModuleDependenciesStorage>(storage.get())
+    if (isCodiraSourceModule())
+      return cast<CodiraSourceModuleDependenciesStorage>(storage.get())
           ->updateBridgingHeaderCommandLine(newCommandLine);
-    llvm_unreachable("Unexpected type");
+    toolchain_unreachable("Unexpected type");
   }
 
   void addAuxiliaryFile(const std::string &file) {
@@ -865,17 +810,17 @@ public:
   }
 
   void updateCASFileSystemRootID(const std::string &rootID) {
-    if (isSwiftInterfaceModule())
-      cast<SwiftInterfaceModuleDependenciesStorage>(storage.get())
+    if (isCodiraInterfaceModule())
+      cast<CodiraInterfaceModuleDependenciesStorage>(storage.get())
           ->textualModuleDetails.CASFileSystemRootID = rootID;
-    else if (isSwiftSourceModule())
-      cast<SwiftSourceModuleDependenciesStorage>(storage.get())
+    else if (isCodiraSourceModule())
+      cast<CodiraSourceModuleDependenciesStorage>(storage.get())
           ->textualModuleDetails.CASFileSystemRootID = rootID;
     else if (isClangModule())
       cast<ClangModuleDependencyStorage>(storage.get())->CASFileSystemRootID =
           rootID;
     else
-      llvm_unreachable("Unexpected type");
+      toolchain_unreachable("Unexpected type");
   }
 
   /// Whether explicit input paths of all the module dependencies
@@ -887,71 +832,73 @@ public:
   void addTestableImport(ImportPath::Module module);
 
   /// Whether or not a queried module name is a `@Testable` import dependency
-  /// of this module. Can only return `true` for Swift source modules.
+  /// of this module. Can only return `true` for Codira source modules.
   bool isTestableImport(StringRef moduleName) const;
 
-  /// Whether the dependencies are for a Swift module: either Textual, Source,
-  /// Binary, or Placeholder.
-  bool isSwiftModule() const;
+  /// Whether the dependencies are for a Codira module: either Textual, Source,
+  /// or Binary
+  bool isCodiraModule() const;
 
-  /// Whether the dependencies are for a textual interface Swift module or a
-  /// Source Swift module.
-  bool isTextualSwiftModule() const;
+  /// Whether the dependencies are for a textual interface Codira module or a
+  /// Source Codira module.
+  bool isTextualCodiraModule() const;
 
-  /// Whether the dependencies are for a textual Swift module.
-  bool isSwiftInterfaceModule() const;
+  /// Whether the dependencies are for a textual Codira module.
+  bool isCodiraInterfaceModule() const;
 
-  /// Whether the dependencies are for a textual Swift module.
-  bool isSwiftSourceModule() const;
+  /// Whether the dependencies are for a textual Codira module.
+  bool isCodiraSourceModule() const;
 
-  /// Whether the dependencies are for a binary Swift module.
-  bool isSwiftBinaryModule() const;
-
-  /// Whether this represents a placeholder module stub
-  bool isSwiftPlaceholderModule() const;
+  /// Whether the dependencies are for a binary Codira module.
+  bool isCodiraBinaryModule() const;
 
   /// Whether the dependencies are for a Clang module.
   bool isClangModule() const;
 
   ModuleDependencyKind getKind() const { return storage->dependencyKind; }
 
-  /// Retrieve the dependencies for a Swift textual-interface module.
-  const SwiftInterfaceModuleDependenciesStorage *
-  getAsSwiftInterfaceModule() const;
+  /// Retrieve the dependencies for a Codira textual-interface module.
+  const CodiraInterfaceModuleDependenciesStorage *
+  getAsCodiraInterfaceModule() const;
 
-  /// Retrieve the dependencies for a Swift module.
-  const SwiftSourceModuleDependenciesStorage *getAsSwiftSourceModule() const;
+  /// Retrieve the dependencies for a Codira module.
+  const CodiraSourceModuleDependenciesStorage *getAsCodiraSourceModule() const;
 
-  /// Retrieve the dependencies for a binary Swift module.
-  const SwiftBinaryModuleDependencyStorage *getAsSwiftBinaryModule() const;
+  /// Retrieve the dependencies for a binary Codira module.
+  const CodiraBinaryModuleDependencyStorage *getAsCodiraBinaryModule() const;
 
   /// Retrieve the dependencies for a Clang module.
   const ClangModuleDependencyStorage *getAsClangModule() const;
 
-  /// Retrieve the dependencies for a placeholder dependency module stub.
-  const SwiftPlaceholderModuleDependencyStorage *
-  getAsPlaceholderDependencyModule() const;
+  /// Get the path to the module-defining file:
+  /// `CodiraInterface`: Textual Interface path
+  /// `CodiraBinary`: Binary module path
+  /// `Clang`: Module map path
+  std::string getModuleDefiningPath() const;
 
   /// Add a dependency on the given module, if it was not already in the set.
   void
   addOptionalModuleImport(StringRef module, bool isExported,
-                          llvm::StringSet<> *alreadyAddedModules = nullptr);
+                          AccessLevel accessLevel,
+                          toolchain::StringSet<> *alreadyAddedModules = nullptr);
 
   /// Add all of the module imports in the given source
   /// file to the set of module imports.
   void addModuleImports(const SourceFile &sourceFile,
-                        llvm::StringSet<> &alreadyAddedModules,
+                        toolchain::StringSet<> &alreadyAddedModules,
                         const SourceManager *sourceManager);
 
   /// Add a dependency on the given module, if it was not already in the set.
   void addModuleImport(ImportPath::Module module, bool isExported,
-                       llvm::StringSet<> *alreadyAddedModules = nullptr,
+                       AccessLevel accessLevel,
+                       toolchain::StringSet<> *alreadyAddedModules = nullptr,
                        const SourceManager *sourceManager = nullptr,
                        SourceLoc sourceLocation = SourceLoc());
 
   /// Add a dependency on the given module, if it was not already in the set.
   void addModuleImport(StringRef module, bool isExported,
-                       llvm::StringSet<> *alreadyAddedModules = nullptr,
+                       AccessLevel accessLevel,
+                       toolchain::StringSet<> *alreadyAddedModules = nullptr,
                        const SourceManager *sourceManager = nullptr,
                        SourceLoc sourceLocation = SourceLoc());
 
@@ -970,7 +917,7 @@ public:
   /// Get module output path.
   std::string getModuleOutputPath() const;
 
-  /// Add a bridging header to a Swift module's dependencies.
+  /// Add a bridging header to a Codira module's dependencies.
   void addBridgingHeader(StringRef bridgingHeader);
 
   /// Add source files
@@ -990,50 +937,23 @@ public:
 
   /// Collect a map from a secondary module name to a list of cross-import
   /// overlays, when this current module serves as the primary module.
-  llvm::StringMap<llvm::SmallSetVector<Identifier, 4>>
+  toolchain::StringMap<toolchain::SmallSetVector<Identifier, 4>>
   collectCrossImportOverlayNames(
       ASTContext &ctx, StringRef moduleName,
       std::set<std::pair<std::string, std::string>> &overlayFiles) const;
 };
 
 using ModuleDependencyVector =
-    llvm::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>;
-using ModuleNameToDependencyMap = llvm::StringMap<ModuleDependencyInfo>;
+    toolchain::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>;
+using ModuleNameToDependencyMap = toolchain::StringMap<ModuleDependencyInfo>;
 using ModuleDependenciesKindMap =
     std::unordered_map<ModuleDependencyKind, ModuleNameToDependencyMap,
                        ModuleDependencyKindHash>;
 
-// MARK: SwiftDependencyTracker
-/// Track swift dependency
-class SwiftDependencyTracker {
-public:
-  SwiftDependencyTracker(llvm::cas::CachingOnDiskFileSystem &FS,
-                         llvm::PrefixMapper *Mapper,
-                         const CompilerInvocation &CI);
-
-  void startTracking(bool includeCommonDeps = true);
-  void trackFile(const Twine &path);
-  llvm::Expected<llvm::cas::ObjectProxy> createTreeFromDependencies();
-
-private:
-  llvm::IntrusiveRefCntPtr<llvm::cas::CachingOnDiskFileSystem> FS;
-  llvm::PrefixMapper *Mapper;
-
-  struct FileEntry {
-    llvm::cas::ObjectRef FileRef;
-    size_t Size;
-
-    FileEntry(llvm::cas::ObjectRef FileRef, size_t Size)
-        : FileRef(FileRef), Size(Size) {}
-  };
-  llvm::StringMap<FileEntry> CommonFiles;
-  std::map<std::string, FileEntry> TrackedFiles;
-};
-
-// MARK: SwiftDependencyScanningService
+// MARK: CodiraDependencyScanningService
 /// A carrier of state shared among possibly multiple invocations of the
 /// dependency scanner.
-class SwiftDependencyScanningService {
+class CodiraDependencyScanningService {
   /// The CASOption created the Scanning Service if used.
   std::optional<clang::CASOptions> CASOpts;
 
@@ -1041,88 +961,16 @@ class SwiftDependencyScanningService {
   std::optional<clang::tooling::dependencies::DependencyScanningService>
       ClangScanningService;
 
-  /// CachingOnDiskFileSystem for dependency tracking.
-  llvm::IntrusiveRefCntPtr<llvm::cas::CachingOnDiskFileSystem> CacheFS;
-
-  /// If use clang include tree.
-  bool UseClangIncludeTree = false;
-
-  /// CAS Instance.
-  std::shared_ptr<llvm::cas::ObjectStore> CAS;
-  std::shared_ptr<llvm::cas::ActionCache> ActionCache;
-
-  /// File prefix mapper.
-  std::unique_ptr<llvm::PrefixMapper> Mapper;
-
-  /// The global file system cache.
-  std::optional<
-      clang::tooling::dependencies::DependencyScanningFilesystemSharedCache>
-      SharedFilesystemCache;
-
   /// Shared state mutual-exclusivity lock
-  mutable llvm::sys::SmartMutex<true> ScanningServiceGlobalLock;
+  mutable toolchain::sys::SmartMutex<true> ScanningServiceGlobalLock;
 
 public:
-  SwiftDependencyScanningService();
-  SwiftDependencyScanningService(const SwiftDependencyScanningService &) =
+  CodiraDependencyScanningService();
+  CodiraDependencyScanningService(const CodiraDependencyScanningService &) =
       delete;
-  SwiftDependencyScanningService &
-  operator=(const SwiftDependencyScanningService &) = delete;
-  virtual ~SwiftDependencyScanningService() {}
-
-  /// Query the service's filesystem cache
-  clang::tooling::dependencies::DependencyScanningFilesystemSharedCache &getSharedCache() {
-    assert(SharedFilesystemCache && "Expected a shared cache");
-    return *SharedFilesystemCache;
-  }
-
-  /// Query the service's filesystem cache
-  clang::tooling::dependencies::DependencyScanningFilesystemSharedCache &
-  getSharedFilesystemCache() {
-    assert(SharedFilesystemCache && "Expected a shared cache");
-    return *SharedFilesystemCache;
-  }
-
-  llvm::cas::CachingOnDiskFileSystem &getSharedCachingFS() const {
-    assert(CacheFS && "Expect CachingOnDiskFileSystem");
-    return *CacheFS;
-  }
-
-  llvm::cas::ObjectStore &getCAS() const {
-    assert(CAS && "Expect CAS available");
-    return *CAS;
-  }
-
-  std::optional<SwiftDependencyTracker>
-  createSwiftDependencyTracker(const CompilerInvocation &CI) {
-    if (!CacheFS)
-      return std::nullopt;
-
-    return SwiftDependencyTracker(*CacheFS, Mapper.get(), CI);
-  }
-
-  llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> getClangScanningFS() const {
-    if (UseClangIncludeTree)
-      return llvm::cas::createCASProvidingFileSystem(
-          CAS, llvm::vfs::createPhysicalFileSystem());
-
-    if (CacheFS)
-      return CacheFS->createProxyFS();
-
-    return llvm::vfs::createPhysicalFileSystem();
-  }
-
-  bool hasPathMapping() const {
-    return Mapper && !Mapper->getMappings().empty();
-  }
-  llvm::PrefixMapper *getPrefixMapper() const { return Mapper.get(); }
-  std::string remapPath(StringRef Path) const {
-    if (!Mapper)
-      return Path.str();
-    return Mapper->mapToString(Path);
-  }
-
-  bool hasCAS() const { return (bool)CAS; }
+  CodiraDependencyScanningService &
+  operator=(const CodiraDependencyScanningService &) = delete;
+  virtual ~CodiraDependencyScanningService() {}
 
   /// Setup caching service.
   bool setupCachingDependencyScanningService(CompilerInstance &Instance);
@@ -1137,41 +985,31 @@ private:
 
 // MARK: ModuleDependenciesCache
 /// This "local" dependencies cache persists only for the duration of a given
-/// scanning action, and wraps an instance of a `SwiftDependencyScanningService`
-/// which may carry cached scanning information from prior scanning actions.
-/// This cache maintains a store of references to all dependencies found within
-/// the current scanning action (with their values stored in the global Cache).
+/// scanning action, and maintains a store of references to all dependencies
+/// found within the current scanning action.
 class ModuleDependenciesCache {
 private:
-  SwiftDependencyScanningService &globalScanningService;
   /// Discovered dependencies
   ModuleDependenciesKindMap ModuleDependenciesMap;
   /// Set containing all of the Clang modules that have already been seen.
-  llvm::DenseSet<clang::tooling::dependencies::ModuleID> alreadySeenClangModules;
+  toolchain::DenseSet<clang::tooling::dependencies::ModuleID> alreadySeenClangModules;
   /// Name of the module under scan
   std::string mainScanModuleName;
   /// The context hash of the current scanning invocation
   std::string scannerContextHash;
-  /// The location of where the explicitly-built modules will be output to
-  std::string moduleOutputPath;
-  /// The location of where the explicitly-built SDK modules will be output to
-  std::string sdkModuleOutputPath;
   /// The timestamp of the beginning of the scanning query action
   /// using this cache
-  const llvm::sys::TimePoint<> scanInitializationTime;
+  const toolchain::sys::TimePoint<> scanInitializationTime;
 
   /// Retrieve the dependencies map that corresponds to the given dependency
   /// kind.
-  llvm::StringMap<const ModuleDependencyInfo *> &
+  toolchain::StringMap<const ModuleDependencyInfo *> &
   getDependencyReferencesMap(ModuleDependencyKind kind);
-  const llvm::StringMap<const ModuleDependencyInfo *> &
+  const toolchain::StringMap<const ModuleDependencyInfo *> &
   getDependencyReferencesMap(ModuleDependencyKind kind) const;
 
 public:
-  ModuleDependenciesCache(SwiftDependencyScanningService &globalScanningService,
-                          const std::string &mainScanModuleName,
-                          const std::string &moduleOutputPath,
-                          const std::string &sdkModuleOutputPath,
+  ModuleDependenciesCache(const std::string &mainScanModuleName,
                           const std::string &scanningContextHash);
   ModuleDependenciesCache(const ModuleDependenciesCache &) = delete;
   ModuleDependenciesCache &operator=(const ModuleDependenciesCache &) = delete;
@@ -1189,24 +1027,16 @@ public:
                      std::optional<ModuleDependencyKind> kind) const;
   /// Whether we have cached dependency information for the given module Name.
   bool hasDependency(StringRef moduleName) const;
-  /// Whether we have cached dependency information for the given Swift module.
-  bool hasSwiftDependency(StringRef moduleName) const;
+  /// Whether we have cached dependency information for the given Codira module.
+  bool hasCodiraDependency(StringRef moduleName) const;
 
-  SwiftDependencyScanningService &getScanService() {
-    return globalScanningService;
-  }
-  const SwiftDependencyScanningService &getScanService() const {
-    return globalScanningService;
-  }
-  const llvm::DenseSet<clang::tooling::dependencies::ModuleID> &
+  const toolchain::DenseSet<clang::tooling::dependencies::ModuleID> &
   getAlreadySeenClangModules() const {
     return alreadySeenClangModules;
   }
   void addSeenClangModule(clang::tooling::dependencies::ModuleID newModule) {
     alreadySeenClangModules.insert(newModule);
   }
-  StringRef getModuleOutputPath() const { return moduleOutputPath; }
-  StringRef getSDKModuleOutputPath() const { return sdkModuleOutputPath; }
 
   /// Query all dependencies
   ModuleDependencyIDSetVector
@@ -1216,20 +1046,20 @@ public:
   ModuleDependencyIDSetVector
   getClangDependencies(const ModuleDependencyID &moduleID) const;
 
-  /// Query all directly-imported Swift dependencies
-  llvm::ArrayRef<ModuleDependencyID>
-  getImportedSwiftDependencies(const ModuleDependencyID &moduleID) const;
+  /// Query all directly-imported Codira dependencies
+  toolchain::ArrayRef<ModuleDependencyID>
+  getImportedCodiraDependencies(const ModuleDependencyID &moduleID) const;
   /// Query all directly-imported Clang dependencies
-  llvm::ArrayRef<ModuleDependencyID>
+  toolchain::ArrayRef<ModuleDependencyID>
   getImportedClangDependencies(const ModuleDependencyID &moduleID) const;
   /// Query all Clang module dependencies of this module's imported (bridging) header
-  llvm::ArrayRef<ModuleDependencyID>
+  toolchain::ArrayRef<ModuleDependencyID>
   getHeaderClangDependencies(const ModuleDependencyID &moduleID) const;
-  /// Query Swift overlay dependencies
-  llvm::ArrayRef<ModuleDependencyID>
-  getSwiftOverlayDependencies(const ModuleDependencyID &moduleID) const;
+  /// Query Codira overlay dependencies
+  toolchain::ArrayRef<ModuleDependencyID>
+  getCodiraOverlayDependencies(const ModuleDependencyID &moduleID) const;
   /// Query all cross-import overlay dependencies
-  llvm::ArrayRef<ModuleDependencyID>
+  toolchain::ArrayRef<ModuleDependencyID>
   getCrossImportOverlayDependencies(const ModuleDependencyID &moduleID) const;
 
   /// Look for module dependencies for a module with the given ID
@@ -1245,11 +1075,11 @@ public:
   findDependency(StringRef moduleName,
                  std::optional<ModuleDependencyKind> kind = std::nullopt) const;
 
-  /// Look for Swift module dependencies for a module with the given name
+  /// Look for Codira module dependencies for a module with the given name
   ///
   /// \returns the cached result, or \c None if there is no cached entry.
   std::optional<const ModuleDependencyInfo *>
-  findSwiftDependency(StringRef moduleName) const;
+  findCodiraDependency(StringRef moduleName) const;
 
   /// Look for known existing dependencies.
   ///
@@ -1262,7 +1092,8 @@ public:
                         ModuleDependencyInfo dependencies);
 
   /// Record dependencies for the given module collection.
-  void recordDependencies(ModuleDependencyVector moduleDependencies);
+  void recordDependencies(ModuleDependencyVector moduleDependencies,
+                          DiagnosticEngine &diags);
 
   /// Update stored dependencies for the given module.
   void updateDependency(ModuleDependencyID moduleID,
@@ -1271,22 +1102,22 @@ public:
   /// Remove a given dependency info from the cache.
   void removeDependency(ModuleDependencyID moduleID);
 
-  /// Resolve this module's set of directly-imported Swift module
+  /// Resolve this module's set of directly-imported Codira module
   /// dependencies
   void
-  setImportedSwiftDependencies(ModuleDependencyID moduleID,
+  setImportedCodiraDependencies(ModuleDependencyID moduleID,
                                const ArrayRef<ModuleDependencyID> dependencyIDs);
   /// Resolve this module's set of directly-imported Clang module
   /// dependencies
   void
   setImportedClangDependencies(ModuleDependencyID moduleID,
                                const ArrayRef<ModuleDependencyID> dependencyIDs);
-  /// Resolve this module's set of Swift module dependencies
-  /// that are Swift overlays of Clang module dependencies.
+  /// Resolve this module's set of Codira module dependencies
+  /// that are Codira overlays of Clang module dependencies.
   void
-  setSwiftOverlayDependencies(ModuleDependencyID moduleID,
+  setCodiraOverlayDependencies(ModuleDependencyID moduleID,
                               const ArrayRef<ModuleDependencyID> dependencyIDs);
-  /// Resolve this Swift module's imported (bridging) header's
+  /// Resolve this Codira module's imported (bridging) header's
   /// Clang module dependencies
   void
   setHeaderClangDependencies(ModuleDependencyID moduleID,
@@ -1306,11 +1137,11 @@ private:
 
 namespace std {
 template <>
-struct hash<swift::ModuleDependencyID> {
-  std::size_t operator()(const swift::ModuleDependencyID &id) const {
-    return llvm::hash_combine(id.ModuleName, id.Kind);
+struct hash<language::ModuleDependencyID> {
+  std::size_t operator()(const language::ModuleDependencyID &id) const {
+    return toolchain::hash_combine(id.ModuleName, id.Kind);
   }
 };
 } // namespace std
 
-#endif /* SWIFT_AST_MODULE_DEPENDENCIES_H */
+#endif /* LANGUAGE_AST_MODULE_DEPENDENCIES_H */

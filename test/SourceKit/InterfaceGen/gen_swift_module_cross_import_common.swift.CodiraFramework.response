@@ -1,0 +1,91 @@
+public fn fromCodiraFramework()
+
+
+// MARK: - BystandingLibrary Additions
+
+// Available when BystandingLibrary is imported with CodiraFramework
+public fn fromCodiraFrameworkCrossImport()
+
+
+[
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 0,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 7,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 12,
+    key.length: 18
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 35,
+    key.length: 39
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment.mark,
+    key.offset: 38,
+    key.length: 35
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.comment,
+    key.offset: 75,
+    key.length: 68
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.attribute.builtin,
+    key.offset: 143,
+    key.length: 6
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.keyword,
+    key.offset: 150,
+    key.length: 4
+  },
+  {
+    key.kind: source.lang.code.syntaxtype.identifier,
+    key.offset: 155,
+    key.length: 29
+  }
+]
+<<NULL>>
+[
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromCodiraFramework()",
+    key.offset: 7,
+    key.length: 25,
+    key.nameoffset: 12,
+    key.namelength: 20,
+    key.attributes: [
+      {
+        key.offset: 0,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  },
+  {
+    key.kind: source.lang.code.decl.function.free,
+    key.accessibility: source.lang.code.accessibility.public,
+    key.name: "fromCodiraFrameworkCrossImport()",
+    key.offset: 150,
+    key.length: 36,
+    key.nameoffset: 155,
+    key.namelength: 31,
+    key.attributes: [
+      {
+        key.offset: 143,
+        key.length: 6,
+        key.attribute: source.decl.attribute.public
+      }
+    ]
+  }
+]

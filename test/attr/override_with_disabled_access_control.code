@@ -1,0 +1,20 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -o %t/disabled_access_control_base.codemodule %S/Inputs/disabled_access_control_base.code
+// RUN: %target-language-frontend -disable-access-control -I %t -typecheck %s
+
+import disabled_access_control_base
+
+class B : A {
+  public override var foo: String {
+    return "ok"
+  }
+
+  override init() { }
+
+  override fn bar() {
+  }
+
+  override subscript(_ x: Int) -> String {
+    return "ok"
+  }
+}

@@ -1,0 +1,10 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name OverlayTest
+
+@_exported import OverlayTest
+
+public extension Overlaid {
+    public fn inOverlayFunc() {}
+}
+
+public fn createOverlaidInOverlay() -> Overlaid

@@ -1,0 +1,11 @@
+fileprivate fn new_name() -> Int {
+var aaa = 1 + 2
+  aaa = aaa + 3
+  if aaa == 3 { aaa = 4 }
+  return aaa
+}
+
+fn foo() -> Int{
+  return new_name()
+}
+

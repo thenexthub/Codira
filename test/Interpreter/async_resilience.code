@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_async)) -enable-library-evolution %S/Inputs/resilient_async.code -emit-module -emit-module-path %t/resilient_async.codemodule -target %target-language-5.1-abi-triple -module-name resilient_async
+// RUN: %target-codesign %t/%target-library-name(resilient_async)
+
+// RUN: %target-build-language -target %target-language-5.1-abi-triple -parse-as-library %s -lresilient_async -I %t -L %t -o %t/main %target-rpath(%t)
+// RUN: %target-codesign %t/main
+
+// Introduce a defaulted protocol method.
+// RUN: %target-build-language-dylib(%t/%target-library-name(resilient_async)) -enable-library-evolution -target %target-language-5.1-abi-triple %S/Inputs/resilient_async2.code -emit-module -emit-module-path %t/resilient_async.codemodule -module-name resilient_async
+// RUN: %target-codesign %t/%target-library-name(resilient_async)
+
+// RUN: %target-run %t/main %t/%target-library-name(resilient_async)
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: concurrency_runtime
+// UNSUPPORTED: back_deployment_runtime
+
+import resilient_async
+
+class Impl : Problem {}
+
+@main struct Main {
+  static fn main() async {
+      immutable i = Impl()
+      // This used to crash.
+      immutable r = await callGenericWitness(i)
+      assert(r == 1)
+  }
+}

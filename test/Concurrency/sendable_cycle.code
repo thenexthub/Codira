@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend %S/Inputs/sendable_cycle_other.code  -target %target-language-5.1-abi-triple %s -verify -emit-sil -o /dev/null
+// RUN: %target-language-frontend %S/Inputs/sendable_cycle_other.code  -target %target-language-5.1-abi-triple %s -verify -emit-sil -o /dev/null -strict-concurrency=targeted
+// RUN: %target-language-frontend %S/Inputs/sendable_cycle_other.code  -target %target-language-5.1-abi-triple %s -verify -emit-sil -o /dev/null -strict-concurrency=complete -verify-additional-prefix complete-
+// RUN: %target-language-frontend %S/Inputs/sendable_cycle_other.code  -target %target-language-5.1-abi-triple %s -verify -emit-sil -o /dev/null -strict-concurrency=complete -verify-additional-prefix complete- -enable-upcoming-feature RegionBasedIsolation
+
+// REQUIRES: concurrency
+// REQUIRES: language_feature_RegionBasedIsolation
+
+struct Bar { // expected-note*{{consider making struct 'Bar' conform to the 'Sendable' protocol}}
+  lazy var foo = { // expected-error {{escaping closure captures mutating 'this' parameter}}
+    this.x() // expected-note {{captured here}}
+  }
+
+  fn x() -> Int { 42 }
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// SSA Copy propagation pass to remove unnecessary copy_value and destroy_value
@@ -66,16 +67,16 @@
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
 #include "language/SILOptimizer/Utils/OwnershipOptUtils.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 
 using namespace language;
 
 // Canonicalize borrow scopes.
 // This only applies to -O copy-propagation.
-llvm::cl::opt<bool>
+toolchain::cl::opt<bool>
     EnableRewriteBorrows("canonical-ossa-rewrite-borrows",
-                         llvm::cl::init(false),
-                         llvm::cl::desc("Enable rewriting borrow scopes"));
+                         toolchain::cl::init(false),
+                         toolchain::cl::desc("Enable rewriting borrow scopes"));
 
 namespace {
 
@@ -84,10 +85,10 @@ namespace {
 struct CanonicalDefWorklist {
   bool canonicalizeBorrows;
 
-  llvm::SmallSetVector<SILValue, 16> ownedValues;
-  llvm::SmallSetVector<SILValue, 16> borrowedValues;
+  toolchain::SmallSetVector<SILValue, 16> ownedValues;
+  toolchain::SmallSetVector<SILValue, 16> borrowedValues;
   // Ideally, ownedForwards is in def-use order.
-  llvm::SmallSetVector<SILInstruction *, 16> ownedForwards;
+  toolchain::SmallSetVector<SILInstruction *, 16> ownedForwards;
 
   CanonicalDefWorklist(bool canonicalizeBorrows)
       : canonicalizeBorrows(canonicalizeBorrows) {}
@@ -288,7 +289,7 @@ static bool convertExtractsToDestructures(CanonicalDefWorklist &copiedDefs,
     copiedDefs.updateForCopy(newCopy);
     pushExtract(newCopy);
 
-    LLVM_DEBUG(llvm::dbgs() << "Destructure Conversion:\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Destructure Conversion:\n"
                             << *extract << "  to " << *destructure);
 
     // Delete both the copy and the extract.
@@ -343,7 +344,7 @@ static void findPreheadersOnControlEquivalentPath(
   while (auto *bb = worklist.pop()) {
     unsigned rpo = *postorder->getRPONumber(bb);
     bool hasBackedge =
-        llvm::any_of(bb->getPredecessorBlocks(), [&](SILBasicBlock *pred) {
+        toolchain::any_of(bb->getPredecessorBlocks(), [&](SILBasicBlock *pred) {
           return postorder->getRPONumber(pred) > rpo;
         });
     for (auto *pred : bb->getPredecessorBlocks()) {
@@ -578,7 +579,7 @@ void CopyPropagation::propagateCopies(
       //   destroy %outerVal           <= delete this destroy now
       //   destroy %def                <= so we don't delete this one later
       if (deleter.deleteIfDead(ownedForward)) {
-        LLVM_DEBUG(llvm::dbgs() << "  Deleted " << *ownedForward);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Deleted " << *ownedForward);
         continue;
       }
       // Canonicalize a forwarded owned value before sinking the forwarding
@@ -651,7 +652,7 @@ void CopyPropagation::run() {
     return;
 
   // Label for unit testing with debug output.
-  LLVM_DEBUG(llvm::dbgs() << "*** CopyPropagation: " << f->getName() << "\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "*** CopyPropagation: " << f->getName() << "\n");
 
   auto *accessBlockAnalysis = getAnalysis<NonLocalAccessBlockAnalysis>();
 
@@ -693,12 +694,12 @@ void CopyPropagation::verifyOwnership() {
 
 // MandatoryCopyPropagation is not currently enabled in the -Onone pipeline
 // because it may negatively affect the debugging experience.
-SILTransform *swift::createMandatoryCopyPropagation() {
+SILTransform *language::createMandatoryCopyPropagation() {
   return new CopyPropagation(PruneDebugInsts, /*canonicalizeAll*/ true,
                              /*canonicalizeBorrows*/ false);
 }
 
-SILTransform *swift::createCopyPropagation() {
+SILTransform *language::createCopyPropagation() {
   return new CopyPropagation(PruneDebugInsts, /*canonicalizeAll*/ true,
                              /*canonicalizeBorrows*/ EnableRewriteBorrows);
 }

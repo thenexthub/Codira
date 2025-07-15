@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: echo "public fn foo() {}" > %t/Foo.code
+
+// RUN: echo "public protocol P { associatedtype A }" > %t/Foo-1.code
+// RUN: echo "public extension P { public fn f() where A == Int  {} }" >> %t/Foo-1.code
+
+// RUN: echo "public protocol P { associatedtype A }" > %t/Foo-2.code
+// RUN: echo "public extension P where A == Int { public fn f()  {} }" >> %t/Foo-2.code
+
+// RUN: %target-language-frontend -emit-module %t/Foo-1.code -module-name Foo -emit-module-interface-path %t/Foo1.codeinterface
+// RUN: %target-language-frontend -emit-module %t/Foo-2.code -module-name Foo -emit-module-interface-path %t/Foo2.codeinterface
+
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo1.codeinterface -o %t/Foo1.codemodule -module-name Foo -emit-abi-descriptor-path %t/Foo1.json
+
+// RUN: %target-language-frontend -compile-module-from-interface %t/Foo2.codeinterface -o %t/Foo2.codemodule -module-name Foo -emit-abi-descriptor-path %t/Foo2.json
+
+// RUN: %api-digester -diagnose-sdk -print-module --input-paths %t/Foo1.json -input-paths %t/Foo2.json -abi -o %t/result.txt
+
+// RUN: %FileCheck %s < %t/result.txt
+
+// CHECK: Foo: Func P.f() has mangled name changing from '(extension in Foo):Foo.P.f< where A.A == Codira.Int>() -> ()' to '(extension in Foo):Foo.P< where A.A == Codira.Int>.f() -> ()'

@@ -1,0 +1,17 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -module-name def_class -emit-module-path %t/def_class.1.codemodule %S/Inputs/def_class.code -disable-objc-attr-requires-foundation-module -enable-objc-interop
+// RUN: %target-language-frontend -module-name def_class -emit-module-path %t/def_class.2.codemodule %S/Inputs/def_class.code -disable-objc-attr-requires-foundation-module -enable-objc-interop
+// RUN: toolchain-bcanalyzer -dump %t/def_class.1.codemodule | sed -e 's/\.[0-9]\.codemodule/\.x\.codemodule/g' > %t.1
+// RUN: toolchain-bcanalyzer -dump %t/def_class.2.codemodule | sed -e 's/\.[0-9]\.codemodule/\.x\.codemodule/g' > %t.2
+// RUN: cmp %t.1 %t.2
+
+// Compiling the same set of files twice, without modifying them (and without
+// generating inlinable SIL) should produce the same languagemodule. We don't
+// promise more than that at this time...
+
+// RUN: %{python} %S/../Inputs/getmtime.py %t/def_class.1.codemodule > %t/orig-mtime.txt
+// RUN: %target-language-frontend -module-name def_class -emit-module-path %t/def_class.1.codemodule %S/Inputs/def_class.code -disable-objc-attr-requires-foundation-module -enable-objc-interop
+// RUN: %{python} %S/../Inputs/getmtime.py %t/def_class.1.codemodule > %t.3
+// RUN: cmp %t/orig-mtime.txt %t.3
+
+// We shouldn't re-emit the module if it hasn't changed.

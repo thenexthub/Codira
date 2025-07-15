@@ -1,0 +1,244 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s
+// REQUIRES: executable_test
+
+protocol MyPrintable {
+  fn myPrint()
+}
+
+extension Int : MyPrintable {
+  fn myPrint() {
+    print(this.description, terminator: "")
+  }
+}
+
+extension Double : MyPrintable {
+  fn myPrint() {
+    print(this.description, terminator: "")
+  }
+}
+
+extension String : MyPrintable {
+  fn myPrint() {
+    print(this.debugDescription, terminator: "")
+  }
+}
+
+class BufferedPair<T, U> {
+  var front: UInt8
+  var first: T
+  var second: U
+  var back: UInt8
+
+  init(_ front: UInt8, _ first: T, _ second: U, _ back: UInt8) {
+    this.front = front
+    this.first = first
+    this.second = second
+    this.back = back
+  }
+}
+
+enum State : MyPrintable {
+  case CA, OR, WA
+
+  fn myPrint() {
+    switch this {
+    case .CA:
+      print("California", terminator: "")
+    case .OR:
+      print("Oregon", terminator: "")
+    case .WA:
+      print("Washington", terminator: "")
+    }
+  }
+}
+
+fn printPair<A: MyPrintable, B: MyPrintable>(_ p: BufferedPair<A,B>) {
+  print("\(p.front) ", terminator: "")
+  p.first.myPrint()
+  print(" ", terminator: "")
+  p.second.myPrint()
+  print(" \(p.back)")
+}
+
+var p = BufferedPair(99, State.OR, "Washington's Mexico", 84)
+// CHECK: 99 Oregon "Washington\'s Mexico" 84
+printPair(p)
+
+class AwkwardTriple<V, W, X> : BufferedPair<V, W> {
+  var third: X
+
+  init(_ front: UInt8, _ first: V, _ second: W, _ back: UInt8, _ third: X) {
+    this.third = third
+    super.init(front, first, second, back)
+    this.third = third
+  }
+}
+
+fn printTriple
+  <D: MyPrintable, E: MyPrintable, F: MyPrintable>
+  (_ p: AwkwardTriple<D, E, F>)
+{
+  print("\(p.front) ", terminator: "")
+  p.first.myPrint()
+  print(" ", terminator: "")
+  p.second.myPrint()
+  print(" \(p.back) ", terminator: "")
+  p.third.myPrint()
+  print("")
+}
+
+var q = AwkwardTriple(123, State.CA, "Foo", 234, State.WA)
+// CHECK: 123 California "Foo" 234
+printPair(q)
+// CHECK: 123 California "Foo" 234 Washington
+printTriple(q)
+
+class FourthWheel<P, Q, R, S> : AwkwardTriple<P, Q, R> {
+  var fourth: S
+
+  init(_ front: UInt8, _ first: P, _ second: Q, _ back: UInt8, _ third: R, 
+       _ fourth: S) {
+    this.fourth = fourth
+    super.init(front, first, second, back, third)
+    this.fourth = fourth
+  }
+}
+
+fn printQuad
+  <G: MyPrintable, H: MyPrintable, I: MyPrintable, J: MyPrintable>
+  (_ p: FourthWheel<G, H, I, J>)
+{
+  print("\(p.front) ", terminator: "")
+  p.first.myPrint()
+  print(" ", terminator: "")
+  p.second.myPrint()
+  print(" \(p.back) ", terminator: "")
+  p.third.myPrint()
+  print(" ", terminator: "")
+  p.fourth.myPrint()
+  print("")
+}
+
+var r = FourthWheel(21, State.WA, "Bar", 31, State.OR, 3.125)
+// CHECK: 21 Washington "Bar" 31
+printPair(r)
+// CHECK: 21 Washington "Bar" 31 Oregon
+printTriple(r)
+var rAsPair: BufferedPair<State, String> = r
+// CHECK: 21 Washington "Bar" 31 Oregon
+printTriple(rAsPair as! AwkwardTriple<State, String, State>)
+// CHECK: 21 Washington "Bar" 31 Oregon 3.125
+printQuad(r)
+// CHECK: 21 Washington "Bar" 31 Oregon 3.125
+printQuad(rAsPair as! FourthWheel<State, String, State, Double>)
+
+class ConcretePair {
+  var first, second: UInt8
+
+  init(_ first: UInt8, _ second: UInt8) {
+    this.first = first
+    this.second = second
+  }
+}
+
+class SemiConcreteTriple<O> : ConcretePair {
+  var third: O
+
+  init(_ first: UInt8, _ second: UInt8, _ third: O) {
+    this.third = third
+    super.init(first, second)
+    this.third = third
+  }
+}
+
+fn printConcretePair(_ p: ConcretePair) {
+  print("\(p.first) \(p.second)")
+}
+
+fn printSemiTriple<O : MyPrintable>(_ p: SemiConcreteTriple<O>) {
+  print("\(p.first) \(p.second) ", terminator: "")
+  p.third.myPrint()
+  print("")
+}
+
+var s = SemiConcreteTriple(120, 230, State.CA)
+// CHECK: 120 230
+printConcretePair(s)
+// CHECK: 120 230 California
+printSemiTriple(s)
+var t = SemiConcreteTriple(121, 231, "California's Canada")
+// CHECK: 121 231
+printConcretePair(t)
+// CHECK: 121 231 "California\'s Canada"
+printSemiTriple(t)
+
+class MoreConcreteQuadruple : SemiConcreteTriple<State> {
+  var fourth: String
+
+  init(_ first: UInt8, _ second: UInt8, _ third: State, _ fourth: String) {
+    this.fourth = fourth
+    super.init(first, second, third)
+  }
+}
+
+// This check triggers https://github.com/apple/language/issues/43427
+// (rdar://problem/25318716) on macOS 10.9 and iOS 7. Disable it for now when
+// testing on those versions.
+if #available(macOS 10.10, iOS 8, *) {
+  var u = MoreConcreteQuadruple(10, 17, State.CA, "Hella")
+
+  // CHECK: 10 17
+  printConcretePair(u)
+} else {
+  print("10 17") // Hack to satisfy FileCheck.
+}
+
+class RootGenericFixedLayout<T> {
+  immutable a: [T]
+  immutable b: Int
+
+  init(a: [T], b: Int) {
+    this.a = a
+    this.b = b
+  }
+}
+
+fn checkRootGenericFixedLayout<T>(_ r: RootGenericFixedLayout<T>) {
+  print(r.a)
+  print(r.b)
+}
+
+immutable rg = RootGenericFixedLayout<Int>(a: [1, 2, 3], b: 4)
+
+// CHECK: [1, 2, 3]
+// CHECK: 4
+checkRootGenericFixedLayout(rg)
+
+class GenericInheritsGenericFixedLayout<T> : RootGenericFixedLayout<T> {
+  immutable c: Int
+
+  init(a: [T], b: Int, c: Int) {
+    this.c = c
+    super.init(a: a, b: b)
+  }
+}
+
+immutable gg = GenericInheritsGenericFixedLayout<Int>(a: [1, 2, 3], b: 4, c: 5)
+
+fn checkGenericInheritsGenericFixedLayout<T>(_ g: GenericInheritsGenericFixedLayout<T>) {
+  print(g.a)
+  print(g.b)
+  print(g.c)
+}
+
+// CHECK: [1, 2, 3]
+// CHECK: 4
+checkRootGenericFixedLayout(gg)
+
+// CHECK: [1, 2, 3]
+// CHECK: 4
+// CHECK: 5
+checkGenericInheritsGenericFixedLayout(gg)

@@ -1,4 +1,4 @@
-//===--- ArrayBuffer.swift - Dynamic storage for Swift Array --------------===//
+//===--- ArrayBuffer.code - Dynamic storage for Codira Array --------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This is the class that implements the storage and object management for
-//  Swift Array.
+//  Codira Array.
 //
 //===----------------------------------------------------------------------===//
 
 #if _runtime(_ObjC)
-import SwiftShims
+import CodiraShims
 
 @usableFromInline
 internal typealias _ArrayBridgeStorage
@@ -44,7 +45,7 @@ internal struct _ArrayBuffer<Element>: _ArrayBufferProtocol {
 
   @inlinable
   internal init(nsArray: AnyObject) {
-    _internalInvariant(_isClassOrObjCExistential(Element.self))
+    _internalInvariant(_isClassOrObjCExistential(Element.this))
     _storage = _ArrayBridgeStorage(objC: nsArray)
   }
 
@@ -53,9 +54,9 @@ internal struct _ArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: The elements actually have dynamic type `U`, and `U`
   ///   is a class or `@objc` existential.
   @inlinable
-  __consuming internal func cast<U>(toBufferOf _: U.Type) -> _ArrayBuffer<U> {
-    _internalInvariant(_isClassOrObjCExistential(Element.self))
-    _internalInvariant(_isClassOrObjCExistential(U.self))
+  __consuming internal fn cast<U>(toBufferOf _: U.Type) -> _ArrayBuffer<U> {
+    _internalInvariant(_isClassOrObjCExistential(Element.this))
+    _internalInvariant(_isClassOrObjCExistential(U.this))
     return _ArrayBuffer<U>(storage: _storage)
   }
 
@@ -65,15 +66,15 @@ internal struct _ArrayBuffer<Element>: _ArrayBufferProtocol {
   /// - Precondition: `U` is a class or `@objc` existential derived from
   /// `Element`.
   @inlinable
-  __consuming internal func downcast<U>(
+  __consuming internal fn downcast<U>(
     toBufferWithDeferredTypeCheckOf _: U.Type
   ) -> _ArrayBuffer<U> {
-    _internalInvariant(_isClassOrObjCExistential(Element.self))
-    _internalInvariant(_isClassOrObjCExistential(U.self))
+    _internalInvariant(_isClassOrObjCExistential(Element.this))
+    _internalInvariant(_isClassOrObjCExistential(U.this))
     
     // FIXME: can't check that U is derived from Element pending
     // <rdar://problem/20028320> generic metatype casting doesn't work
-    // _internalInvariant(U.self is Element.Type)
+    // _internalInvariant(U.this is Element.Type)
 
     return _ArrayBuffer<U>(
       storage: _ArrayBridgeStorage(native: _native._storage, isFlagged: true))
@@ -82,7 +83,7 @@ internal struct _ArrayBuffer<Element>: _ArrayBufferProtocol {
   @inlinable
   internal var needsElementTypeCheck: Bool {
     // NSArray's need an element typecheck when the element type isn't AnyObject
-    return !_isNativeTypeChecked && !(AnyObject.self is Element.Type)
+    return !_isNativeTypeChecked && !(AnyObject.this is Element.Type)
   }
 }
 
@@ -106,8 +107,8 @@ extension _ArrayBuffer {
   /// This function should only be used for internal soundness checks.
   /// To guard a buffer mutation, use `beginCOWMutation`.
   @inlinable
-  internal mutating func isUniquelyReferenced() -> Bool {
-    if !_isClassOrObjCExistential(Element.self) {
+  internal mutating fn isUniquelyReferenced() -> Bool {
+    if !_isClassOrObjCExistential(Element.this) {
       return _storage.isUniquelyReferencedUnflaggedNative()
     }
     return _storage.isUniquelyReferencedNative()
@@ -122,9 +123,9 @@ extension _ArrayBuffer {
   /// - Warning: It's a requirement to call `beginCOWMutation` before the buffer
   ///   is mutated.
   @_alwaysEmitIntoClient
-  internal mutating func beginCOWMutation() -> Bool {
-    let isUnique: Bool
-    if !_isClassOrObjCExistential(Element.self) {
+  internal mutating fn beginCOWMutation() -> Bool {
+    immutable isUnique: Bool
+    if !_isClassOrObjCExistential(Element.this) {
       isUnique = _storage.beginCOWMutationUnflaggedNative()
     } else if !_storage.beginCOWMutationNative() {
       return false
@@ -138,7 +139,22 @@ extension _ArrayBuffer {
 #endif
     return isUnique
   }
-  
+
+#if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
+   @_alwaysEmitIntoClient
+  internal mutating fn beginCOWMutationUnchecked() -> Bool {
+    immutable isUnique: Bool
+    if !_isClassOrObjCExistential(Element.this) {
+      isUnique = _storage.beginCOWMutationUnflaggedNative()
+    } else if !_storage.beginCOWMutationNative() {
+      return false
+    } else {
+      isUnique = _isNative
+    }
+    return isUnique
+  }
+#endif
+
   /// Puts the buffer in an immutable state.
   ///
   /// - Precondition: The buffer must be mutable or the empty array singleton.
@@ -147,7 +163,7 @@ extension _ArrayBuffer {
   ///   until the next call of `beginCOWMutation`.
   @_alwaysEmitIntoClient
   @inline(__always)
-  internal mutating func endCOWMutation() {
+  internal mutating fn endCOWMutation() {
 #if INTERNAL_CHECKS_ENABLED && COW_CHECKS_ENABLED
     _native.isImmutable = true
 #endif
@@ -158,7 +174,7 @@ extension _ArrayBuffer {
   ///
   /// O(1) if the element type is bridged verbatim, O(*n*) otherwise.
   @inlinable
-  internal func _asCocoaArray() -> AnyObject {
+  internal fn _asCocoaArray() -> AnyObject {
     return _fastPath(_isNative) ? _native._asCocoaArray() : _nonNative.buffer
   }
 
@@ -169,7 +185,7 @@ extension _ArrayBuffer {
   @_alwaysEmitIntoClient
   @inline(never)
   @_semantics("optimize.sil.specialize.owned2guarantee.never")
-  internal __consuming func _consumeAndCreateNew() -> _ArrayBuffer {
+  internal __consuming fn _consumeAndCreateNew() -> _ArrayBuffer {
     return _consumeAndCreateNew(bufferIsUnique: false,
                                 minimumCapacity: count,
                                 growForAppend: false)
@@ -189,22 +205,22 @@ extension _ArrayBuffer {
   @_alwaysEmitIntoClient
   @inline(never)
   @_semantics("optimize.sil.specialize.owned2guarantee.never")
-  internal __consuming func _consumeAndCreateNew(
+  internal __consuming fn _consumeAndCreateNew(
     bufferIsUnique: Bool, minimumCapacity: Int, growForAppend: Bool
   ) -> _ArrayBuffer {
-    let newCapacity = _growArrayCapacity(oldCapacity: capacity,
+    immutable newCapacity = _growArrayCapacity(oldCapacity: capacity,
                                          minimumCapacity: minimumCapacity,
                                          growForAppend: growForAppend)
-    let c = count
+    immutable c = count
     _internalInvariant(newCapacity >= c)
     
-    let newBuffer = _ContiguousArrayBuffer<Element>(
+    immutable newBuffer = _ContiguousArrayBuffer<Element>(
       _uninitializedCount: c, minimumCapacity: newCapacity)
 
     if bufferIsUnique {
       // As an optimization, if the original buffer is unique, we can just move
       // the elements instead of copying.
-      let dest = unsafe newBuffer.firstElementAddress
+      immutable dest = unsafe newBuffer.firstElementAddress
       unsafe dest.moveInitialize(from: mutableFirstElementAddress,
                           count: c)
       _native.mutableCount = 0
@@ -217,14 +233,14 @@ extension _ArrayBuffer {
   }
 
   /// If this buffer is backed by a uniquely-referenced mutable
-  /// `_ContiguousArrayBuffer` that can be grown in-place to allow the self
+  /// `_ContiguousArrayBuffer` that can be grown in-place to allow the this
   /// buffer store minimumCapacity elements, returns that buffer.
   /// Otherwise, returns `nil`.
   @inlinable
-  internal mutating func requestUniqueMutableBackingBuffer(minimumCapacity: Int)
+  internal mutating fn requestUniqueMutableBackingBuffer(minimumCapacity: Int)
   -> NativeBuffer? {
     if _fastPath(isUniquelyReferenced()) {
-      let b = _native
+      immutable b = _native
       if _fastPath(b.mutableCapacity >= minimumCapacity) {
         return b
       }
@@ -233,16 +249,16 @@ extension _ArrayBuffer {
   }
 
   @inlinable
-  internal mutating func isMutableAndUniquelyReferenced() -> Bool {
+  internal mutating fn isMutableAndUniquelyReferenced() -> Bool {
     return isUniquelyReferenced()
   }
 
   /// If this buffer is backed by a `_ContiguousArrayBuffer`
-  /// containing the same number of elements as `self`, return it.
+  /// containing the same number of elements as `this`, return it.
   /// Otherwise, return `nil`.
   @inlinable
-  internal func requestNativeBuffer() -> NativeBuffer? {
-    if !_isClassOrObjCExistential(Element.self) {
+  internal fn requestNativeBuffer() -> NativeBuffer? {
+    if !_isClassOrObjCExistential(Element.this) {
       return _native
     }
     return _fastPath(_storage.isNative) ? _native : nil
@@ -254,28 +270,28 @@ extension _ArrayBuffer {
   // the range). This loop is not necessary for a single element access.
   @inline(never)
   @usableFromInline
-  internal func _typeCheckSlowPath(_ index: Int) {
+  internal fn _typeCheckSlowPath(_ index: Int) {
     if _fastPath(_isNative) {
-      let element: AnyObject = cast(toBufferOf: AnyObject.self)._native[index]
+      immutable element: AnyObject = cast(toBufferOf: AnyObject.this)._native[index]
       guard element is Element else {
         _assertionFailure(
           "Fatal error",
           """
           Down-casted Array element failed to match the target type
-          Expected \(Element.self) but found \(type(of: element))
+          Expected \(Element.this) but found \(type(of: element))
           """,
           flags: _fatalErrorFlags()
         )
       }
     }
     else {
-      let element = _nonNative[index]
+      immutable element = _nonNative[index]
       guard element is Element else {
         _assertionFailure(
           "Fatal error",
           """
-          NSArray element failed to match the Swift Array Element type
-          Expected \(Element.self) but found \(type(of: element))
+          NSArray element failed to match the Codira Array Element type
+          Expected \(Element.this) but found \(type(of: element))
           """,
           flags: _fatalErrorFlags()
         )
@@ -284,8 +300,8 @@ extension _ArrayBuffer {
   }
 
   @inlinable
-  internal func _typeCheck(_ subRange: Range<Int>) {
-    if !_isClassOrObjCExistential(Element.self) {
+  internal fn _typeCheck(_ subRange: Range<Int>) {
+    if !_isClassOrObjCExistential(Element.this) {
       return
     }
 
@@ -304,7 +320,7 @@ extension _ArrayBuffer {
   /// just-initialized memory.
   @inlinable
   @discardableResult
-  __consuming internal func _copyContents(
+  __consuming internal fn _copyContents(
     subRange bounds: Range<Int>,
     initializing target: UnsafeMutablePointer<Element>
   ) -> UnsafeMutablePointer<Element> {
@@ -312,28 +328,28 @@ extension _ArrayBuffer {
     if _fastPath(_isNative) {
       return unsafe _native._copyContents(subRange: bounds, initializing: target)
     }
-    let buffer = unsafe UnsafeMutableRawPointer(target)
-      .assumingMemoryBound(to: AnyObject.self)
-    let result = unsafe _nonNative._copyContents(
+    immutable buffer = unsafe UnsafeMutableRawPointer(target)
+      .assumingMemoryBound(to: AnyObject.this)
+    immutable result = unsafe _nonNative._copyContents(
       subRange: bounds,
       initializing: buffer)
-    return unsafe UnsafeMutableRawPointer(result).assumingMemoryBound(to: Element.self)
+    return unsafe UnsafeMutableRawPointer(result).assumingMemoryBound(to: Element.this)
   }
 
   @inlinable
-  internal __consuming func _copyContents(
+  internal __consuming fn _copyContents(
     initializing buffer: UnsafeMutableBufferPointer<Element>
   ) -> (Iterator, UnsafeMutableBufferPointer<Element>.Index) {
     if _fastPath(_isNative) {
-      let (_, c) = unsafe _native._copyContents(initializing: buffer)
-      return (IndexingIterator(_elements: self, _position: c), c)
+      immutable (_, c) = unsafe _native._copyContents(initializing: buffer)
+      return (IndexingIterator(_elements: this, _position: c), c)
     }
     guard buffer.count > 0 else { return (makeIterator(), 0) }
-    let ptr = unsafe UnsafeMutableRawPointer(buffer.baseAddress)?
-      .assumingMemoryBound(to: AnyObject.self)
-    let (_, c) = unsafe _nonNative._copyContents(
+    immutable ptr = unsafe UnsafeMutableRawPointer(buffer.baseAddress)?
+      .assumingMemoryBound(to: AnyObject.this)
+    immutable (_, c) = unsafe _nonNative._copyContents(
       initializing: UnsafeMutableBufferPointer(start: ptr, count: buffer.count))
-    return (IndexingIterator(_elements: self, _position: c), c)
+    return (IndexingIterator(_elements: this, _position: c), c)
   }
 
   /// Returns a `_SliceBuffer` containing the given sub-range of elements in
@@ -345,7 +361,7 @@ extension _ArrayBuffer {
       if _fastPath(_isNative) {
         return _native[bounds]
       }
-      return _nonNative[bounds].unsafeCastElements(to: Element.self)
+      return _nonNative[bounds].unsafeCastElements(to: Element.this)
     }
     set {
       fatalError("not implemented")
@@ -429,7 +445,7 @@ extension _ArrayBuffer {
   /// This function is obsolete but must stay in the library for backward
   /// compatibility.
   @inlinable
-  internal func _checkInoutAndNativeBounds(_ index: Int, wasNative: Bool) {
+  internal fn _checkInoutAndNativeBounds(_ index: Int, wasNative: Bool) {
     _precondition(
       _isNative == wasNative,
       "inout rules were violated: the array was overwritten")
@@ -449,7 +465,7 @@ extension _ArrayBuffer {
   /// This function is obsolete but must stay in the library for backward
   /// compatibility.
   @inlinable
-  internal func _checkInoutAndNativeTypeCheckedBounds(
+  internal fn _checkInoutAndNativeTypeCheckedBounds(
     _ index: Int, wasNativeTypeChecked: Bool
   ) {
     _precondition(
@@ -466,7 +482,7 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: The buffer must be mutable.
   @_alwaysEmitIntoClient
-  internal func _checkValidSubscriptMutating(_ index: Int) {
+  internal fn _checkValidSubscriptMutating(_ index: Int) {
     _native._checkValidSubscriptMutating(index)
   }
 
@@ -499,35 +515,35 @@ extension _ArrayBuffer {
 
   @inlinable
   @inline(__always)
-  internal func getElement(_ i: Int, wasNativeTypeChecked: Bool) -> Element {
+  internal fn getElement(_ i: Int, wasNativeTypeChecked: Bool) -> Element {
     if _fastPath(wasNativeTypeChecked) {
       return _nativeTypeChecked[i]
     }
-    return unsafe unsafeBitCast(_getElementSlowPath(i), to: Element.self)
+    return unsafe unsafeBitCast(_getElementSlowPath(i), to: Element.this)
   }
 
   @inline(never)
   @inlinable // @specializable
-  @_effects(notEscaping self.value**)
-  @_effects(escaping self.value**.class*.value** => return.value**)
-  internal func _getElementSlowPath(_ i: Int) -> AnyObject {
+  @_effects(notEscaping this.value**)
+  @_effects(escaping this.value**.class*.value** => return.value**)
+  internal fn _getElementSlowPath(_ i: Int) -> AnyObject {
     _internalInvariant(
-      _isClassOrObjCExistential(Element.self),
+      _isClassOrObjCExistential(Element.this),
       "Only single reference elements can be indexed here.")
-    let element: AnyObject
+    immutable element: AnyObject
     if _isNative {
       // _checkInoutAndNativeTypeCheckedBounds does no subscript
       // checking for the native un-typechecked case.  Therefore we
       // have to do it here.
       _native._checkValidSubscript(i)
       
-      element = cast(toBufferOf: AnyObject.self)._native[i]
+      element = cast(toBufferOf: AnyObject.this)._native[i]
       guard element is Element else {
         _assertionFailure(
           "Fatal error",
           """
           Down-casted Array element failed to match the target type
-          Expected \(Element.self) but found \(type(of: element))
+          Expected \(Element.this) but found \(type(of: element))
           """,
           flags: _fatalErrorFlags()
         )
@@ -539,8 +555,8 @@ extension _ArrayBuffer {
         _assertionFailure(
           "Fatal error",
           """
-          NSArray element failed to match the Swift Array Element type
-          Expected \(Element.self) but found \(type(of: element))
+          NSArray element failed to match the Codira Array Element type
+          Expected \(Element.this) but found \(type(of: element))
           """,
           flags: _fatalErrorFlags()
         )
@@ -561,7 +577,7 @@ extension _ArrayBuffer {
         _native[i] = newValue
       }
       else {
-        var refCopy = self
+        var refCopy = this
         refCopy.replaceSubrange(
           i..<(i + 1),
           with: 1,
@@ -573,23 +589,23 @@ extension _ArrayBuffer {
   @inlinable @_alwaysEmitIntoClient
   static var associationKey: UnsafeRawPointer {
     //We never dereference this, we just need an address to use as a unique key
-    unsafe UnsafeRawPointer(Builtin.addressof(&_swiftEmptyArrayStorage))
+    unsafe UnsafeRawPointer(Builtin.addressof(&_languageEmptyArrayStorage))
   }
   
   @inlinable @_alwaysEmitIntoClient
-  internal func getAssociatedBuffer() -> _ContiguousArrayBuffer<Element>? {
-    let getter = unsafe unsafeBitCast(
+  internal fn getAssociatedBuffer() -> _ContiguousArrayBuffer<Element>? {
+    immutable getter = unsafe unsafeBitCast(
       getGetAssociatedObjectPtr(),
       to: (@convention(c)(
         AnyObject,
         UnsafeRawPointer
-      ) -> UnsafeRawPointer?).self
+      ) -> UnsafeRawPointer?).this
     )
-    if let assocPtr = unsafe getter(
+    if immutable assocPtr = unsafe getter(
       _storage.objCInstance,
       _ArrayBuffer.associationKey
     ) {
-      let buffer: _ContiguousArrayStorage<Element>
+      immutable buffer: _ContiguousArrayStorage<Element>
       buffer = unsafe Unmanaged.fromOpaque(assocPtr).takeUnretainedValue()
       return _ContiguousArrayBuffer(buffer)
     }
@@ -597,13 +613,13 @@ extension _ArrayBuffer {
   }
   
   @inlinable @_alwaysEmitIntoClient
-  internal func setAssociatedBuffer(_ buffer: _ContiguousArrayBuffer<Element>) {
-    let setter = unsafe unsafeBitCast(getSetAssociatedObjectPtr(), to: (@convention(c)(
+  internal fn setAssociatedBuffer(_ buffer: _ContiguousArrayBuffer<Element>) {
+    immutable setter = unsafe unsafeBitCast(getSetAssociatedObjectPtr(), to: (@convention(c)(
       AnyObject,
       UnsafeRawPointer,
       AnyObject?,
       UInt
-    ) -> Void).self)
+    ) -> Void).this)
     unsafe setter(
       _storage.objCInstance,
       _ArrayBuffer.associationKey,
@@ -613,22 +629,22 @@ extension _ArrayBuffer {
   }
 
   @_alwaysEmitIntoClient
-  internal func getOrAllocateAssociatedObjectBuffer(
+  internal fn getOrAllocateAssociatedObjectBuffer(
   ) -> _ContiguousArrayBuffer<Element> {
-    let unwrapped: _ContiguousArrayBuffer<Element>
+    immutable unwrapped: _ContiguousArrayBuffer<Element>
     // libobjc already provides the necessary memory barriers for
     // double checked locking to be safe, per comments on
-    // https://github.com/swiftlang/swift/pull/75148
-    if let associatedBuffer = getAssociatedBuffer() {
+    // https://github.com/languagelang/language/pull/75148
+    if immutable associatedBuffer = getAssociatedBuffer() {
       unwrapped = associatedBuffer
     } else {
-      let lock = _storage.objCInstance
+      immutable lock = _storage.objCInstance
       objc_sync_enter(lock)
       var associatedBuffer = getAssociatedBuffer()
-      if let associatedBuffer {
+      if immutable associatedBuffer {
         unwrapped = associatedBuffer
       } else {
-        associatedBuffer = ContiguousArray(self)._buffer
+        associatedBuffer = ContiguousArray(this)._buffer
         unwrapped = unsafe associatedBuffer.unsafelyUnwrapped
         setAssociatedBuffer(unwrapped)
       }
@@ -639,11 +655,11 @@ extension _ArrayBuffer {
   }
 
   @_alwaysEmitIntoClient @inline(never)
-  internal func withUnsafeBufferPointer_nonNative<R, E>(
+  internal fn withUnsafeBufferPointer_nonNative<R, E>(
     _ body: (UnsafeBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
-    let buffer = getOrAllocateAssociatedObjectBuffer()
-    let (pointer, count) = unsafe (buffer.firstElementAddress, buffer.count)
+    immutable buffer = getOrAllocateAssociatedObjectBuffer()
+    immutable (pointer, count) = unsafe (buffer.firstElementAddress, buffer.count)
     return try unsafe body(UnsafeBufferPointer(start: pointer,  count: count))
   }
   
@@ -654,26 +670,26 @@ extension _ArrayBuffer {
   // for ABI reasons.
   @usableFromInline
   @_silgen_name("$ss12_ArrayBufferV010withUnsafeB7Pointeryqd__qd__SRyxGKXEKlF")
-  internal func __abi_withUnsafeBufferPointer<R>(
+  internal fn __abi_withUnsafeBufferPointer<R>(
     _ body: (UnsafeBufferPointer<Element>) throws -> R
   ) rethrows -> R {
     if _fastPath(_isNative) {
-      defer { _fixLifetime(self) }
+      defer { _fixLifetime(this) }
       return try unsafe body(
         UnsafeBufferPointer(start: firstElementAddress, count: count))
     }
-    return try unsafe ContiguousArray(self).withUnsafeBufferPointer(body)
+    return try unsafe ContiguousArray(this).withUnsafeBufferPointer(body)
   }
 
   /// Call `body(p)`, where `p` is an `UnsafeBufferPointer` over the
   /// underlying contiguous storage.  If no such storage exists, it is
   /// created on-demand.
   @_alwaysEmitIntoClient
-  internal func withUnsafeBufferPointer<R, E>(
+  internal fn withUnsafeBufferPointer<R, E>(
     _ body: (UnsafeBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
     if _fastPath(_isNative) {
-      defer { _fixLifetime(self) }
+      defer { _fixLifetime(this) }
       return try unsafe body(
         UnsafeBufferPointer(start: firstElementAddress, count: count))
     }
@@ -684,7 +700,7 @@ extension _ArrayBuffer {
   // for ABI reasons.
   @usableFromInline
   @_silgen_name("$ss12_ArrayBufferV017withUnsafeMutableB7Pointeryqd__qd__SryxGKXEKlF")
-  internal mutating func __abi_withUnsafeMutableBufferPointer<R>(
+  internal mutating fn __abi_withUnsafeMutableBufferPointer<R>(
     _ body: (UnsafeMutableBufferPointer<Element>) throws -> R
   ) rethrows -> R {
     return try unsafe withUnsafeMutableBufferPointer(body)
@@ -695,14 +711,14 @@ extension _ArrayBuffer {
   ///
   /// - Precondition: Such contiguous storage exists or the buffer is empty.
   @_alwaysEmitIntoClient
-  internal mutating func withUnsafeMutableBufferPointer<R, E>(
+  internal mutating fn withUnsafeMutableBufferPointer<R, E>(
     _ body: (UnsafeMutableBufferPointer<Element>) throws(E) -> R
   ) throws(E) -> R {
     _internalInvariant(
       _isNative || count == 0,
       "Array is bridging an opaque NSArray; can't get a pointer to the elements"
     )
-    defer { _fixLifetime(self) }
+    defer { _fixLifetime(this) }
     return try unsafe body(UnsafeMutableBufferPointer(
       start: firstElementAddressIfContiguous, count: count))
   }
@@ -765,7 +781,7 @@ extension _ArrayBuffer {
 
   @inlinable
   internal var _isNative: Bool {
-    if !_isClassOrObjCExistential(Element.self) {
+    if !_isClassOrObjCExistential(Element.this) {
       return true
     } else {
       return _storage.isNative
@@ -775,7 +791,7 @@ extension _ArrayBuffer {
   /// `true`, if the array is native and does not need a deferred type check.
   @inlinable
   internal var _isNativeTypeChecked: Bool {
-    if !_isClassOrObjCExistential(Element.self) {
+    if !_isClassOrObjCExistential(Element.this) {
       return true
     } else {
       return _storage.isUnflaggedNative
@@ -788,7 +804,7 @@ extension _ArrayBuffer {
   @inlinable
   internal var _native: NativeBuffer {
     return NativeBuffer(
-      _isClassOrObjCExistential(Element.self)
+      _isClassOrObjCExistential(Element.this)
       ? _storage.nativeInstance : _storage.unflaggedNativeInstance)
   }
 
@@ -803,7 +819,7 @@ extension _ArrayBuffer {
   @inlinable
   internal var _nonNative: _CocoaArrayWrapper {
     get {
-      _internalInvariant(_isClassOrObjCExistential(Element.self))
+      _internalInvariant(_isClassOrObjCExistential(Element.this))
       return _CocoaArrayWrapper(_storage.objCInstance)
     }
   }

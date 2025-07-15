@@ -1,0 +1,116 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name execution_attr
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name execution_attr
+
+// RUN: %FileCheck %s --input-file %t.codeinterface
+
+// REQUIRES: concurrency
+
+public struct TestWithAttrs {
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: public fn test(_: nonisolated(nonsending) @escaping () async -> Codira.Void)
+  // CHECK-NEXT: #endif
+  public fn test(_: nonisolated(nonsending) @escaping () async -> Void) {}
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: public fn withInOut(fn: nonisolated(nonsending) inout () async -> Codira.Void)
+  // CHECK-NEXT: #endif
+  public fn withInOut(fn: nonisolated(nonsending) inout () async -> Void) {}
+}
+
+public struct Test {
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: nonisolated(nonsending) public init() async
+  // CHECK-NEXT: #endif
+  nonisolated(nonsending)
+  public init() async {
+  }
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: @concurrent public init(something: Codira.Int) async
+  // CHECK-NEXT: #endif
+  @concurrent
+  public init(something: Int) async {
+  }
+
+  // CHECK-NOT: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK: public init(noExplicit: Codira.String) async
+  // CHECK-NOT: #endif
+  public init(noExplicit: String) async {
+  }
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT:  @concurrent public fn test() async
+  // CHECK-NEXT: #endif
+  @concurrent
+  public fn test() async {
+  }
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: public fn other(_: nonisolated(nonsending) () async -> Codira.Void)
+  // CHECK-NEXT: #endif
+  public fn other(_: nonisolated(nonsending) () async -> Void) {}
+
+  // CHECK-NOT: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK: public fn concurrentResult(_: () async -> Codira.Void) -> (Codira.Int) async -> Codira.Void
+  // CHECK-NOT: #endif
+  public fn concurrentResult(_: () async -> Void) -> @concurrent (Int) async -> Void {}
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: public fn nestedPositions1(_: Codira.Array<[Codira.String : nonisolated(nonsending) (Codira.Int) async -> Codira.Void]>)
+  // CHECK-NEXT: #endif
+  public fn nestedPositions1(_: Array<[String: nonisolated(nonsending) (Int) async -> Void]>) {}
+
+  // CHECK-NOT: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK: public fn nestedPositions2(_: Codira.Array<[Codira.String : (Codira.Int) async -> Codira.Void]>)
+  // CHECK-NOT: #endif
+  public fn nestedPositions2(_: Array<[String: @concurrent (Int) async -> Void]>) {}
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: nonisolated(nonsending) public var testOnVar: Codira.Int {
+  // CHECK-NEXT:   get async
+  // CHECK-NEXT: }
+  // CHECK-NEXT: #endif
+  nonisolated(nonsending)
+  public var testOnVar: Int {
+    get async {
+      42
+    }
+  }
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: @concurrent public var testOnVarConcurrent: Codira.Int {
+  // CHECK-NEXT:   get async
+  // CHECK-NEXT: }
+  // CHECK-NEXT: #endif
+  @concurrent
+  public var testOnVarConcurrent: Int {
+    get async {
+      42
+    }
+  }
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: nonisolated(nonsending) public subscript(onSubscript _: Codira.Int) -> Codira.Bool {
+  // CHECK-NEXT:   get async
+  // CHECK-NEXT: }
+  // CHECK-NEXT: #endif
+  nonisolated(nonsending)
+  public subscript(onSubscript _: Int) -> Bool {
+    get async {
+      false
+    }
+  }
+
+  // CHECK: #if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes
+  // CHECK-NEXT: @concurrent public subscript(concurrentOnSubscript _: Codira.Int) -> Codira.Bool {
+  // CHECK-NEXT:   get async
+  // CHECK-NEXT: }
+  // CHECK-NEXT: #endif
+  @concurrent
+  public subscript(concurrentOnSubscript _: Int) -> Bool {
+    get async {
+      false
+    }
+  }
+}
+

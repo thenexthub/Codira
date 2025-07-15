@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend -typecheck %s 2>&1 | %FileCheck %s
+
+#sourceLocation(file: "anything.code", line: 1)
+fn 1() {}
+#sourceLocation()
+
+// CHECK: anything.code:1:6: error: function name

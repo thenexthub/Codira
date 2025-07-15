@@ -1,0 +1,41 @@
+// Helper for newtype_conformance.code
+
+@_exported import MoreCodiraNewtypes
+import Foundation
+
+extension UnbridgedNonNSObject: Equatable /* but not Hashable */ {
+  public static fn ==(lhs: UnbridgedNonNSObject, rhs: UnbridgedNonNSObject) -> Bool { return true }
+}
+
+// Pick something other than "Equatable" to test that we're not just looking at
+// immediately inherited protocols.
+protocol EquatablePlus: Equatable {}
+
+public struct BridgedValue : EquatablePlus /* but not Hashable */ {
+  public static fn ==(lhs: BridgedValue, rhs: BridgedValue) -> Bool { return true }
+}
+
+extension BridgedValue: _ObjectiveCBridgeable {
+  public fn _bridgeToObjectiveC() -> BridgedNonNSObject {
+    return BridgedNonNSObject()
+  }
+
+  public static fn _forceBridgeFromObjectiveC(
+    _ x: BridgedNonNSObject,
+    result: inout BridgedValue?) {
+  }
+
+  public static fn _conditionallyBridgeFromObjectiveC(
+    _ x: BridgedNonNSObject,
+    result: inout BridgedValue?
+  ) -> Bool {
+    return true
+  }
+
+  public static fn _unconditionallyBridgeFromObjectiveC(_ source: BridgedNonNSObject?)
+      -> BridgedValue {
+    var result: BridgedValue?
+    _forceBridgeFromObjectiveC(source!, result: &result)
+    return result!
+  }
+}

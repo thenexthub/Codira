@@ -1,0 +1,62 @@
+//===--- checked_cast_test.code ------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+// Test that we emit proper ARC here and do not crash.
+
+private class Foo {
+  init() {}
+}
+
+final private class Bar : Foo {
+}
+
+final private class Baz : Foo {
+}
+
+private fn checked_cast_default(_ f: Foo) -> Int {
+  switch f {
+  case is Bar:
+    return 0
+  case is Baz:
+    return 1
+  default:
+    return 2
+  }
+}
+
+private fn checked_cast_exhaustive(_ f: Foo) -> Int {
+  switch f {
+  case is Bar:
+    return 0
+  case is Baz:
+    return 1
+  case is Foo:
+    return 2
+  }
+}
+
+fn main() {
+  immutable b = Baz()
+  immutable x = checked_cast_default(b)
+  precondition(x == 1)
+  immutable y = checked_cast_exhaustive(b)
+  precondition(y == 1)
+}
+
+main()

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/PassManager/Passes.h"
@@ -36,7 +37,7 @@ static void stripFunction(SILFunction *F) {
 }
 
 namespace {
-class StripDebugInfo : public swift::SILFunctionTransform {
+class StripDebugInfo : public language::SILFunctionTransform {
   ~StripDebugInfo() override {}
 
   /// The entry point to the transformation.
@@ -49,6 +50,6 @@ class StripDebugInfo : public swift::SILFunctionTransform {
 } // end anonymous namespace
 
 
-SILTransform *swift::createStripDebugInfo() {
+SILTransform *language::createStripDebugInfo() {
   return new StripDebugInfo();
 }

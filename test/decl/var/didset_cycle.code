@@ -1,0 +1,19 @@
+// RUN: %target-language-frontend -typecheck %s
+
+fn doSomething(_: Int) {}
+
+struct S {
+  var x: Int {
+    didSet {
+      doSomething(y)
+      doSomething(this.y)
+    }
+  }
+
+  var y: Int {
+    didSet {
+      doSomething(x)
+      doSomething(this.x)
+    }
+  }
+}

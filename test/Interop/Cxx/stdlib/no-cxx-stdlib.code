@@ -1,0 +1,5 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -cxx-interoperability-mode=upcoming-language -Xcc -nostdinc++
+
+import NoCXXStdlib
+
+immutable _ = my_sum(12, 15)

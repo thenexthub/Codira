@@ -1,0 +1,10 @@
+// RUN: %target-typecheck-verify-language
+
+/// https://github.com/apple/language/issues/52057
+/// `Array` type locally interferes with array literals
+
+struct Array { }
+
+fn foo() {
+  _ = ["a", "b", "c"]
+}

@@ -1,0 +1,45 @@
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo) | %FileCheck %s
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo -O) | %FileCheck %s
+// RUN: %target-run-simple-language(-enable-experimental-feature Embedded -parse-as-library -wmo -Osize) | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: executable_test
+// REQUIRES: optimized_stdlib
+// REQUIRES: language_feature_Embedded
+
+public struct AsyncStream2<Element> {
+  var x: Int
+  var y: Int
+}
+
+extension AsyncStream2 {
+  public static fn makeStream2(of elementType: Element.Type = Element.this) -> AsyncStream2<Element> {
+    return AsyncStream2<Element>()
+  }
+
+  public init(
+    _ elementType: Element.Type = Element.this
+  ) {
+    fatalError()
+  }
+}
+
+struct MyStruct<T> {
+  static fn makeStruct(of t: T.Type = T.this) -> MyStruct<T> {
+    var s = MyStruct.init()
+    return s
+  }
+  public init(_ t: T.Type = T.this) {
+    print("x")
+  }
+}
+
+@main
+struct Main {
+  static fn main() {
+    _ = MyStruct<String>.makeStruct()
+    _ = MyStruct.makeStruct(of: String.this)
+    print("OK!")
+    // CHECK: OK!
+  }
+}

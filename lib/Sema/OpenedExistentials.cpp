@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines common utilities for existential opening and some related
@@ -183,12 +184,12 @@ findGenericParameterReferencesRec(CanGenericSignature genericSig,
     // Most bound generic types are invariant.
     if (auto *const bgt = type->getAs<BoundGenericType>()) {
       if (bgt->isArray()) {
-        // Swift.Array preserves variance in its 'Value' type.
+        // Codira.Array preserves variance in its 'Value' type.
         info |= findGenericParameterReferencesRec(
             genericSig, origParam, openedParam, bgt->getGenericArgs().front(),
             position, /*canBeCovariantResult=*/false);
       } else if (bgt->isDictionary()) {
-        // Swift.Dictionary preserves variance in its 'Element' type.
+        // Codira.Dictionary preserves variance in its 'Element' type.
         info |= findGenericParameterReferencesRec(
             genericSig, origParam, openedParam, bgt->getGenericArgs().front(),
             TypePosition::Invariant, /*canBeCovariantResult=*/false);
@@ -215,7 +216,7 @@ findGenericParameterReferencesRec(CanGenericSignature genericSig,
     for (const auto &req : opaqueSig.getRequirements()) {
       switch (req.getKind()) {
       case RequirementKind::SameShape:
-        llvm_unreachable("Same-shape requirement not supported here");
+        toolchain_unreachable("Same-shape requirement not supported here");
 
       case RequirementKind::Conformance:
       case RequirementKind::Layout:
@@ -226,7 +227,7 @@ findGenericParameterReferencesRec(CanGenericSignature genericSig,
             genericSig, origParam, openedParam, req.getFirstType(),
             TypePosition::Invariant, /*canBeCovariantResult=*/false);
 
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
 
       case RequirementKind::Superclass:
         info |= findGenericParameterReferencesRec(
@@ -264,7 +265,7 @@ findGenericParameterReferencesRec(CanGenericSignature genericSig,
     // ```
     // protocol P {}
     // struct S<each T> {}
-    // func foo<T: P>(_: T, _: S<T>? = nil) {}
+    // fn foo<T: P>(_: T, _: S<T>? = nil) {}
     // let p: any P
     // foo(p)
     // ```
@@ -294,9 +295,10 @@ findGenericParameterReferencesRec(CanGenericSignature genericSig,
 
   // Everything else should be a type parameter.
   if (!type->isTypeParameter()) {
-    llvm::errs() << "Unhandled type:\n";
-    type->dump(llvm::errs());
-    abort();
+    ABORT([&](auto &out) {
+      out << "Unhandled type:\n";
+      type->dump(out);
+    });
   }
 
   if (!type->getRootGenericParam()->isEqual(origParam)) {
@@ -346,7 +348,7 @@ findGenericParameterReferencesRec(CanGenericSignature genericSig,
 }
 
 GenericParameterReferenceInfo
-swift::findGenericParameterReferences(const ValueDecl *value,
+language::findGenericParameterReferences(const ValueDecl *value,
                                       CanGenericSignature sig,
                                       GenericTypeParamType *origParam,
                                       GenericTypeParamType *openedParam,
@@ -377,7 +379,7 @@ swift::findGenericParameterReferences(const ValueDecl *value,
                                              /*canBeCovariantResult=*/true);
 }
 
-GenericParameterReferenceInfo swift::findExistentialSelfReferences(
+GenericParameterReferenceInfo language::findExistentialSelfReferences(
     const ValueDecl *value) {
   auto *dc = value->getDeclContext();
   ASSERT(dc->getSelfProtocolDecl());
@@ -527,7 +529,7 @@ static bool doesMemberHaveUnfulfillableConstraintsWithExistentialBase(
 }
 
 ExistentialMemberAccessLimitation
-swift::isMemberAvailableOnExistential(Type baseTy, const ValueDecl *member) {
+language::isMemberAvailableOnExistential(Type baseTy, const ValueDecl *member) {
   auto *dc = member->getDeclContext();
   if (!dc->getSelfProtocolDecl()) {
     return ExistentialMemberAccessLimitation::None;
@@ -604,7 +606,7 @@ swift::isMemberAvailableOnExistential(Type baseTy, const ValueDecl *member) {
 }
 
 std::optional<std::pair<TypeVariableType *, Type>>
-swift::canOpenExistentialCallArgument(ValueDecl *callee, unsigned paramIdx,
+language::canOpenExistentialCallArgument(ValueDecl *callee, unsigned paramIdx,
                                       Type paramTy, Type argTy) {
   if (!callee)
     return std::nullopt;
@@ -739,9 +741,9 @@ swift::canOpenExistentialCallArgument(ValueDecl *callee, unsigned paramIdx,
 /// existential using `eraseFn`.
 static Type typeEraseExistentialSelfReferences(
     Type refTy, TypePosition outermostPosition,
-    llvm::function_ref<bool(Type)> containsFn,
-    llvm::function_ref<bool(Type)> predicateFn,
-    llvm::function_ref<Type(Type, TypePosition)> eraseFn) {
+    toolchain::function_ref<bool(Type)> containsFn,
+    toolchain::function_ref<bool(Type)> predicateFn,
+    toolchain::function_ref<Type(Type, TypePosition)> eraseFn) {
   if (!containsFn(refTy))
     return refTy;
 
@@ -817,7 +819,7 @@ static Type typeEraseExistentialSelfReferences(
       });
 }
 
-Type swift::typeEraseOpenedExistentialReference(
+Type language::typeEraseOpenedExistentialReference(
     Type type, Type existentialBaseType, TypeVariableType *openedTypeVar,
     TypePosition outermostPosition) {
   auto existentialSig =
@@ -826,10 +828,11 @@ Type swift::typeEraseOpenedExistentialReference(
 
   auto applyOuterSubstitutions = [&](Type t) -> Type {
     if (t->hasTypeParameter()) {
-      auto outerSubs = existentialSig.Generalization;
-      unsigned depth = existentialSig.OpenedSig->getMaxDepth();
-      OuterSubstitutions replacer{outerSubs, depth};
-      return t.subst(replacer, replacer);
+      if (auto outerSubs = existentialSig.Generalization) {
+        unsigned depth = existentialSig.OpenedSig->getMaxDepth();
+        OuterSubstitutions replacer{outerSubs, depth};
+        return t.subst(replacer, replacer);
+      }
     }
 
     return t;
@@ -905,7 +908,7 @@ Type swift::typeEraseOpenedExistentialReference(
       });
 }
 
-Type swift::typeEraseOpenedArchetypesFromEnvironment(
+Type language::typeEraseOpenedArchetypesFromEnvironment(
     Type type, GenericEnvironment *env) {
   assert(env->getKind() == GenericEnvironment::Kind::OpenedExistential);
 

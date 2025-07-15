@@ -1,0 +1,36 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol A {
+typealias B
+}
+class C<D> {
+init <A: A where A.B == D>(e: A.B) {
+class c {
+fn b((Aprotocol b : a {
+}
+protocol c : a {
+}
+protocol d {
+}
+struct e : d {
+}
+fn i<j : b, k : d where k.f == j> (n: k) {
+}
+fn i<l : d where l.f == c> (n: l) {
+}
+fn a(b: Int = 0) {
+}
+immutable c = a
+struct c<d : Sequence> {
+}
+fn a<d>() -> [c<d>] {

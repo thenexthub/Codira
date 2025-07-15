@@ -1,0 +1,2 @@
+// RUN: not %languagec_driver %S/../Inputs/empty.code -jsnort 2>&1 |  %FileCheck %s
+// CHECK-NOT: Stack dump

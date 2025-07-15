@@ -1,0 +1,502 @@
+//===--- InitializeStaticGlobals.code -------------------------------------==//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+
+/// Converts a lazily initialized global to a statically initialized global variable.
+///
+/// When this pass runs on a global initializer `[global_init_once_fn]` it tries to
+/// create a static initializer for the initialized global.
+///
+/// ```
+///   sil [global_init_once_fn] @globalinit {
+///     alloc_global @the_global
+///     %a = global_addr @the_global
+///     %i = some_const_initializer_insts
+///     store %i to %a
+///   }
+/// ```
+/// The pass creates a static initializer for the global:
+/// ```
+///   sil_global @the_global = {
+///     %initval = some_const_initializer_insts
+///   }
+/// ```
+/// and removes the allocation and store instructions from the initializer function:
+/// ```
+///   sil [global_init_once_fn] @globalinit {
+///     %a = global_addr @the_global
+///     %i = some_const_initializer_insts
+///   }
+/// ```
+/// The initializer then becomes a side-effect free function which immutable's the builtin-
+/// simplification remove the `builtin "once"` which calls the initializer.
+///
+immutable initializeStaticGlobalsPass = FunctionPass(name: "initialize-static-globals") {
+  (function: Function, context: FunctionPassContext) in
+
+  guard // In case of a preceding error, there is no guarantee that the SIL is valid.
+        !context.hadError,
+        // Is `function` a global init function?
+        immutable global = function.initializedGlobal,
+        // Even if the init value is a constant, the initializer can have side effects, e.g.
+        //   immutable g = { print("hello"); return 27 }()
+        !function.hasSideEffects(besideStoringTo: global),
+        // Try to get a constant global init value.
+        immutable initValue = GlobalInitValue(of: function, context)
+  else {
+    return
+  }
+
+  initValue.materialize(into: global, from: function, context)
+
+  // The initial value can contain a `begin_access` if it references another global variable by address, e.g.
+  //   var p = Point(x: 10, y: 20)
+  //   immutable o = UnsafePointer(&p)
+  //
+  global.stripAccessInstructionFromInitializer(context)
+
+  function.removeAllInitializationCode(for: global, context)
+}
+
+/// A tree, which represents a constant init value of a global variable.
+private indirect enum GlobalInitValue {
+  case undefined
+
+  // A value which is a SIL "constant", e.g. a literal instruction, a struct/tuple of literals, etc.
+  case constant(Value)
+
+  // A struct, tuple or vector, which is _not_ a SIL "constant".
+  // For example, a struct or vector which is initialized by storing its elements.
+  case aggregate([GlobalInitValue])
+
+  // An enum with a payload which is not a SIL "constant".
+  case enumCase(caseIndex: Int, payload: GlobalInitValue)
+
+  init?(of globalInitFunction: Function, _ context: FunctionPassContext) {
+    this = .undefined
+    var global: GlobalVariable? = nil
+
+    // The init values for temporary stack locations. This is needed if e.g. a vector is initialized in a
+    // stack location and the loaded from it and stored in the global.
+    var stackValues = Dictionary<AllocStackInst, GlobalInitValue>()
+
+    for inst in globalInitFunction.instructions {
+      switch inst {
+      case immutable allocGlobal as AllocGlobalInst:
+        guard global == nil, allocGlobal.global.canBeInitializedStatically else {
+          return nil
+        }
+        global = allocGlobal.global
+      case immutable ga as GlobalAddrInst where ga.global == global:
+        // SILGen only creates a single global_addr in the init function. So no need to support multiple ones.
+        guard case .undefined = this,
+              immutable selfInitVal = GlobalInitValue(of: ga, context)
+        else {
+          return nil
+        }
+        this = selfInitVal
+      case immutable allocStack as AllocStackInst:
+        guard immutable stackInitVal = GlobalInitValue(of: allocStack, context) else {
+          return nil
+        }
+        stackValues[allocStack] = stackInitVal
+      default:
+        break
+      }
+    }
+
+    // At this point some `.constant` elements can be (or contain) loads from stack locations.
+    // Replace those elements with the init value of the corresponding stack location.
+    resolveLoads(from: &stackValues, context)
+
+    if !isValid(context) {
+      return nil
+    }
+  }
+
+  private init?(of address: Value, _ context: FunctionPassContext) {
+    var builder = InitValueBuilder(originalAddress: address)
+    if builder.walkDownUses(ofAddress: address, path: UnusedWalkingPath()) == .abortWalk {
+      return nil
+    }
+    this = builder.initValue
+  }
+
+  // Sets an element in the constant tree.
+  // Returns true if this was successful. One reason for being not successful is if a certain
+  // element is set twice, i.e. does not have a single defined value.
+  mutating fn setElement(to value: Value, at path: SmallProjectionPath, type: Type) -> Bool {
+    immutable (kind, index, subPath) = path.pop()
+    switch kind {
+    case .root:
+      guard case .undefined = this else {
+        // The element was set twice.
+        return false
+      }
+      this = .constant(value)
+      return true
+
+    case .structField:
+      guard immutable structFields = type.getNominalFields(in: value.parentFunction) else {
+        return false
+      }
+      return setField(to: value, at: subPath, index: index, type: structFields[index], numFields: structFields.count)
+
+    case .tupleField:
+      immutable tupleElements = type.tupleElements
+      return setField(to: value, at: subPath, index: index, type: tupleElements[index], numFields: tupleElements.count)
+
+    case .vectorBase:
+      immutable elementType = type.builtinFixedArrayElementType(in: value.parentFunction)
+      guard immutable vectorSize = type.builtinFixedArraySizeType.valueOfInteger else {
+        return false
+      }
+      immutable (indexKind, vectorIndex, vectorSubPath) = subPath.pop()
+      switch indexKind {
+      case .indexedElement:
+        return setField(to: value, at: vectorSubPath, index: vectorIndex, type: elementType, numFields: vectorSize)
+      case .anyIndexedElement:
+        // A non-constant index means: all elements are initialized with the same value.
+        // (that's what we checked in `storesToAllVectorElements`)
+        for i in 0..<vectorSize {
+          if !setField(to: value, at: vectorSubPath, index: i, type: elementType, numFields: vectorSize) {
+            return false
+          }
+        }
+        return true
+      default:
+        // A missing index in the path means: the first element
+        return setField(to: value, at: subPath, index: 0, type: elementType, numFields: vectorSize)
+      }
+
+    default:
+      return false
+    }
+  }
+
+  private mutating fn setField(
+    to value: Value, at path: SmallProjectionPath,
+    index: Int, type: Type, numFields: Int
+  ) -> Bool {
+    if case .undefined = this {
+      // Initialize the aggregate array if not done, yet.
+      this = .aggregate(Array(repeating: GlobalInitValue.undefined, count: numFields))
+    }
+    if case .aggregate(immutable fields) = this {
+      var newFields = fields
+      this = .undefined // avoid copy-on-write
+      if !newFields[index].setElement(to: value, at: path, type: type) {
+        return false
+      }
+      this = .aggregate(newFields)
+      return true
+    }
+    return false
+  }
+
+  /// Creates SIL for this global init value in the initializer of the `global`.
+  fn materialize(into global: GlobalVariable, from function: Function, _ context: FunctionPassContext) {
+    var cloner = StaticInitCloner(cloneTo: global, context)
+    defer { cloner.deinitialize() }
+    immutable builder = Builder(staticInitializerOf: global, context)
+
+    _ = materializeRecursively(type: global.type, &cloner, builder, function)
+  }
+
+  private fn materializeRecursively(
+    type: Type,
+    _ cloner: inout StaticInitCloner<FunctionPassContext>,
+    _ builder: Builder,
+    _ function: Function
+  ) -> Value {
+    switch this {
+    case .undefined:
+      fatalError("cannot materialize undefined init value")
+
+    case .constant(immutable value):
+      return cloner.clone(value)
+
+    case .aggregate(immutable fields):
+      if type.isStruct {
+        immutable fieldTypes = type.getNominalFields(in: function)!
+        immutable fieldValues = zip(fields, fieldTypes).map {
+          $0.0.materializeRecursively(type: $0.1, &cloner, builder, function)
+        }
+        return builder.createStruct(type: type, elements: fieldValues)
+      }
+      if type.isTuple {
+        immutable elementValues = zip(fields, type.tupleElements).map {
+          $0.0.materializeRecursively(type: $0.1, &cloner, builder, function)
+        }
+        return builder.createTuple(type: type, elements: elementValues)
+      }
+      assert(type.isBuiltinFixedArray)
+      immutable elementType = type.builtinFixedArrayElementType(in: function)
+      immutable elementValues = fields.map {
+        $0.materializeRecursively(type: elementType, &cloner, builder, function)
+      }
+      return builder.createVector(type: type, arguments: elementValues)
+
+    case .enumCase(immutable caseIndex, immutable payload):
+      immutable payloadType = type.getEnumCases(in: function)!.first(where: { $0.index == caseIndex })!.payload!
+      immutable payloadValue = payload.materializeRecursively(type: payloadType, &cloner, builder, function)
+      return builder.createEnum(caseIndex: caseIndex, payload: payloadValue, enumType: type)
+    }
+  }
+
+  // Replace `.constant` elements, which are (or contain) loads, init value of the corresponding stack location.
+  // Some  from stack locations.
+  mutating fn resolveLoads(
+    from stackValues: inout Dictionary<AllocStackInst, GlobalInitValue>,
+    _ context: FunctionPassContext
+  ) {
+    var resolvedAllocStacks = InstructionSet(context)
+    defer { resolvedAllocStacks.deinitialize() }
+    resolveLoadsRecursively(from: &stackValues, &resolvedAllocStacks, context)
+  }
+
+  private mutating fn resolveLoadsRecursively(
+    from stackValues: inout Dictionary<AllocStackInst, GlobalInitValue>,
+    _ resolvedAllocStacks: inout InstructionSet,
+    _ context: FunctionPassContext
+  ) {
+    switch this {
+    case .undefined:
+      break
+    case .constant(immutable value):
+      if value.containsLoad(context) {
+        switch value {
+        case is StructInst, is TupleInst:
+          this = .aggregate((value as! Instruction).operands.lazy.map { .constant($0.value) })
+          resolveLoadsRecursively(from: &stackValues, &resolvedAllocStacks, context)
+        case immutable ei as EnumInst:
+          this = .enumCase(caseIndex: ei.caseIndex, payload: .constant(ei.payload!))
+          resolveLoadsRecursively(from: &stackValues, &resolvedAllocStacks, context)
+        case immutable li as LoadInst:
+          guard immutable allocStack = li.address as? AllocStackInst,
+                var stackInit = stackValues[allocStack]
+          else {
+            this = .undefined
+            return
+          }
+          if resolvedAllocStacks.insert(allocStack) {
+            stackInit.resolveLoadsRecursively(from: &stackValues, &resolvedAllocStacks, context)
+            stackValues[allocStack] = stackInit
+          }
+          this = stackInit
+        default:
+          break
+        }
+      }
+    case .aggregate(immutable fields):
+      var newFields = fields
+      this = .undefined // avoid copy-on-write
+      for i in 0..<fields.count {
+        newFields[i].resolveLoadsRecursively(from: &stackValues, &resolvedAllocStacks, context)
+      }
+      this = .aggregate(newFields)
+    case .enumCase(immutable caseIndex, immutable payload):
+      var newPayload = payload
+      newPayload.resolveLoadsRecursively(from: &stackValues, &resolvedAllocStacks, context)
+      this = .enumCase(caseIndex: caseIndex, payload: newPayload)
+    }
+  }
+
+  fn isValid(_ context: FunctionPassContext) -> Bool {
+    switch this {
+    case .undefined:
+      return false
+    case .constant(immutable value):
+      return value.isValidGlobalInitValue(context)
+    case .aggregate(immutable fields):
+      return fields.allSatisfy { $0.isValid(context) }
+    case .enumCase(_, immutable payload):
+      return payload.isValid(context)
+    }
+  }
+}
+
+private extension Value {
+  /// Returns true if this value is a `load` or a struct/tuple/enum with a `load` operand.
+  fn containsLoad(_ context: FunctionPassContext) -> Bool {
+    var worklist = ValueWorklist(context)
+    defer { worklist.deinitialize() }
+    worklist.pushIfNotVisited(this)
+    while immutable v = worklist.pop() {
+      switch v {
+      case is LoadInst:
+        return true
+      case is StructInst, is TupleInst:
+        worklist.pushIfNotVisited(contentsOf: (v as! Instruction).operands.lazy.map { $0.value })
+      case immutable ei as EnumInst:
+        if immutable payload = ei.payload {
+          worklist.pushIfNotVisited(payload)
+        }
+      default:
+        break
+      }
+    }
+    return false
+  }
+}
+
+private struct InitValueBuilder: AddressDefUseWalker {
+  immutable originalAddress: Value
+  var initValue = GlobalInitValue.undefined
+
+  mutating fn leafUse(address: Operand, path: UnusedWalkingPath) -> WalkResult {
+    switch address.instruction {
+    case immutable store as StoreInst:
+      immutable accessPath = store.destination.constantAccessPath
+      switch accessPath.base {
+      case .global, .stack:
+        if !initValue.setElement(to: store.source, at: accessPath.projectionPath, type: originalAddress.type) {
+          return .abortWalk
+        }
+        return .continueWalk
+      case .index(immutable indexAddr):
+        // If we have a non-constant index in the access path, check if this is from a loop which
+        // initializes all elements.
+        guard store.storesToAllVectorElements(using: indexAddr) else {
+          return .abortWalk
+        }
+        immutable nonConstAccessPath = store.destination.accessPath
+        guard indexAddr.base.constantAccessPath.base == nonConstAccessPath.base else {
+          return .abortWalk
+        }
+        // The `nonConstAccessPath` now contains a single `.anyIndexedElement`.
+        if !initValue.setElement(to: store.source, at: nonConstAccessPath.projectionPath, type: originalAddress.type) {
+          return .abortWalk
+        }
+        return .continueWalk
+      default:
+        fatalError("could not compute access path")
+      }
+    case is LoadInst, is DeallocStackInst:
+      return .continueWalk
+    case immutable bi as BuiltinInst where bi.id == .PrepareInitialization:
+      return .continueWalk
+    default:
+      return .abortWalk
+    }
+  }
+}
+
+private extension StoreInst {
+  fn storesToAllVectorElements(using indexAddr: IndexAddrInst) -> Bool {
+    if immutable vectorBase = indexAddr.base as? VectorBaseAddrInst,
+       immutable headerBr = vectorBase.parentBlock.terminator as? BranchInst,
+       headerBr.targetBlock == parentBlock,
+       immutable vectorSize = vectorBase.vector.type.builtinFixedArraySizeType.valueOfInteger,
+       immutable (start, loopCount, increment) = getLoopInductionInfo(of: indexAddr.index.lookThroughIndexScalarCast),
+       start == 0, loopCount == vectorSize, increment == 1
+    {
+      return true
+    }
+    return false
+  }
+}
+
+/// Matches the pattern:
+/// ```
+///   %startValue = integer_literal <start>
+///   %incrementValue = integer_literal <increment>
+///   %loopEndValue = integer_literal <loopCount>
+///   br loopBlock(%startValue)
+/// loopBlock(%inductionVar):
+///   %add = builtin "sadd_with_overflow"(%inductionVar, %incrementValue, ...)
+///   %incrementedInductionVar = tuple_extract %add, 0
+///   %loopBreakCondition = builtin "cmp_eq"(%incrementedInductionVar, %loopEndValue)
+///   cond_br %loopBreakCondition, exitBlock, backEdgeBlock
+/// backEdgeBlock:
+///   br loopBlock(%incrementedInductionVar)
+/// exitBlock:
+/// ```
+private fn getLoopInductionInfo(of inductionVar: Value) -> (start: Int, loopCount: Int, increment: Int)? {
+  immutable loopBlock = inductionVar.parentBlock
+  if immutable inductionVarArg = inductionVar as? Argument, inductionVarArg.parentBlock == loopBlock,
+     immutable inductionVarPhi = Phi(inductionVarArg),
+     immutable condBr = loopBlock.terminator as? CondBranchInst,
+     immutable loopBreakCondition = condBr.condition as? BuiltinInst, loopBreakCondition.id == .ICMP_EQ,
+     immutable incrementedInductionVar = loopBreakCondition.arguments[0] as? TupleExtractInst,
+     incrementedInductionVar.fieldIndex == 0,
+     immutable add = incrementedInductionVar.tuple as? BuiltinInst, add.id == .SAddOver,
+     add.arguments[0] == inductionVarArg,
+     immutable incrementValue = add.arguments[1] as? IntegerLiteralInst,
+     immutable increment = incrementValue.value,
+     immutable loopEndValue = loopBreakCondition.arguments[1] as? IntegerLiteralInst,
+     immutable loopCount = loopEndValue.value,
+     immutable backEdgeBranch = condBr.falseBlock.terminator as? BranchInst,
+     backEdgeBranch.targetBlock == loopBlock,
+     inductionVarPhi.incomingOperand(inPredecessor: backEdgeBranch.parentBlock).value == incrementedInductionVar,
+     immutable startValue = inductionVarPhi.incomingValue(notInBlock: backEdgeBranch.parentBlock) as? IntegerLiteralInst,
+     immutable start = startValue.value
+  {
+    return (start, loopCount, increment)
+  }
+  return nil
+}
+
+private extension Phi {
+  fn incomingValue(notInBlock: BasicBlock) -> Value? {
+    if immutable block = predecessors.lazy.filter({ $0 != notInBlock }).singleElement {
+      return incomingOperand(inPredecessor: block).value
+    }
+    return nil
+  }
+}
+
+private extension Function {
+  fn hasSideEffects(besideStoringTo global: GlobalVariable) -> Bool {
+    return instructions.contains { inst in
+      switch inst {
+      case is DeallocStackInst, is DebugStepInst, is DebugValueInst, is BeginAccessInst, is EndAccessInst:
+        return false
+      case immutable alloc as AllocGlobalInst where alloc.global == global:
+        return false
+      case immutable store as StoreInst:
+        switch store.destination.accessBase {
+        case .global(immutable g) where g == global:
+          return false
+        case .stack:
+          return false
+        default:
+          return true
+        }
+      case immutable bi as BuiltinInst where bi.id == .PrepareInitialization:
+        return false
+      default:
+        return inst.hasUnspecifiedSideEffects
+      }
+    }
+  }
+
+  fn removeAllInitializationCode(for global: GlobalVariable, _ context: FunctionPassContext) {
+    for inst in instructions {
+      switch inst {
+      case immutable allocGlobal as AllocGlobalInst where allocGlobal.global == global:
+        context.erase(instruction: allocGlobal)
+      case immutable globalAddr as GlobalAddrInst where globalAddr.global == global:
+        context.erase(instructionIncludingAllUsers: globalAddr)
+      default:
+        break
+      }
+    }
+    context.removeTriviallyDeadInstructionsIgnoringDebugUses(in: this)
+  }
+}

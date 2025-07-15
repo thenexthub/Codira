@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #if canImport(Darwin)
@@ -29,31 +30,31 @@ import CRT
 @_spi(Internal) import Runtime
 @_spi(MemoryReaders) import Runtime
 
-extension SwiftBacktrace {
+extension CodiraBacktrace {
 
-  static func outputJSONCrashLog() {
-    guard let target = target else {
-      print("swift-backtrace: unable to get target",
+  static fn outputJSONCrashLog() {
+    guard immutable target = target else {
+      print("language-backtrace: unable to get target",
             to: &standardError)
       return
     }
 
-    let crashingThread = target.threads[target.crashingThreadNdx]
+    immutable crashingThread = target.threads[target.crashingThreadNdx]
 
-    let description: String
+    immutable description: String
 
-    if case let .symbolicated(symbolicated) = crashingThread.backtrace,
-       let failure = symbolicated.swiftRuntimeFailure {
+    if case immutable .symbolicated(symbolicated) = crashingThread.backtrace,
+       immutable failure = symbolicated.codeRuntimeFailure {
       description = failure
     } else {
       description = target.signalDescription
     }
 
-    let architecture: String
+    immutable architecture: String
     switch crashingThread.backtrace {
-      case let .raw(backtrace):
+      case immutable .raw(backtrace):
         architecture = backtrace.architecture
-      case let .symbolicated(backtrace):
+      case immutable .symbolicated(backtrace):
         architecture = backtrace.architecture
     }
 
@@ -70,7 +71,7 @@ extension SwiftBacktrace {
     var mentionedImages = Set<Int>()
     var capturedBytes: [UInt64:Array<UInt8>] = [:]
 
-    func outputJSONRegister<T: FixedWidthInteger>(
+    fn outputJSONRegister<T: FixedWidthInteger>(
       name: String, value: T, first: Bool = false
     ) {
       if !first {
@@ -78,22 +79,22 @@ extension SwiftBacktrace {
       }
       write("\"\(name)\": \"\(hex(value))\"")
 
-      if let bytes = try? target.reader.fetch(
+      if immutable bytes = try? target.reader.fetch(
            from: RemoteMemoryReader.Address(value),
            count: 16,
-           as: UInt8.self) {
+           as: UInt8.this) {
         capturedBytes[UInt64(truncatingIfNeeded: value)] = bytes
       }
     }
 
-    func outputJSONRegister<C: Context>(
+    fn outputJSONRegister<C: Context>(
       name: String, context: C, register: C.Register, first: Bool = false
     ) {
-      let value = context.getRegister(register)!
+      immutable value = context.getRegister(register)!
       outputJSONRegister(name: name, value: value, first: first)
     }
 
-    func outputJSONGPRs<C: Context, Rs: Sequence>(_ context: C, range: Rs)
+    fn outputJSONGPRs<C: Context, Rs: Sequence>(_ context: C, range: Rs)
       where Rs.Element == C.Register
     {
       var first = true
@@ -106,7 +107,7 @@ extension SwiftBacktrace {
       }
     }
 
-    func outputJSONRegisterDump(_ context: X86_64Context) {
+    fn outputJSONRegisterDump(_ context: X86_64Context) {
       outputJSONGPRs(context, range: .rax ... .r15)
       outputJSONRegister(name: "rip", value: context.programCounter)
       outputJSONRegister(name: "rflags", context: context, register: .rflags)
@@ -115,7 +116,7 @@ extension SwiftBacktrace {
       outputJSONRegister(name: "gs", context: context, register: .gs)
     }
 
-    func outputJSONRegisterDump(_ context: I386Context) {
+    fn outputJSONRegisterDump(_ context: I386Context) {
       outputJSONGPRs(context, range: .eax ... .edi)
       outputJSONRegister(name: "eip", value: context.programCounter)
       outputJSONRegister(name: "eflags", context: context, register: .eflags)
@@ -127,7 +128,7 @@ extension SwiftBacktrace {
       outputJSONRegister(name: "gs", context: context, register: .gs)
     }
 
-    func outputJSONRegisterDump(_ context: ARM64Context) {
+    fn outputJSONRegisterDump(_ context: ARM64Context) {
       outputJSONGPRs(context, range: .x0 ..< .x29)
       outputJSONRegister(name: "fp", context: context, register: .x29)
       outputJSONRegister(name: "lr", context: context, register: .x30)
@@ -135,7 +136,7 @@ extension SwiftBacktrace {
       outputJSONRegister(name: "pc", context: context, register: .pc)
     }
 
-    func outputJSONRegisterDump(_ context: ARMContext) {
+    fn outputJSONRegisterDump(_ context: ARMContext) {
       outputJSONGPRs(context, range: .r0 ... .r10)
       outputJSONRegister(name: "fp", context: context, register: .r11)
       outputJSONRegister(name: "ip", context: context, register: .r12)
@@ -144,7 +145,7 @@ extension SwiftBacktrace {
       outputJSONRegister(name: "pc", context: context, register: .r15)
     }
 
-    func outputJSONThread(ndx: Int, thread: TargetThread) {
+    fn outputJSONThread(ndx: Int, thread: TargetThread) {
       write("{ ")
 
       if !thread.name.isEmpty {
@@ -154,7 +155,7 @@ extension SwiftBacktrace {
         write(#""crashed": true, "#)
       }
       if args.registers! == .all || thread.id == target.crashingThread {
-        if let context = thread.context {
+        if immutable context = thread.context {
           write(#""registers": {"#)
           outputJSONRegisterDump(context)
           write(" }, ")
@@ -164,7 +165,7 @@ extension SwiftBacktrace {
       write(#""frames": ["#)
       var first = true
       switch thread.backtrace {
-        case let .raw(backtrace):
+        case immutable .raw(backtrace):
           for frame in backtrace.frames {
             if first {
               first = false
@@ -174,7 +175,7 @@ extension SwiftBacktrace {
 
             write(" { \(frame.jsonBody) }")
           }
-        case let .symbolicated(backtrace):
+        case immutable .symbolicated(backtrace):
           for frame in backtrace.frames {
             if first {
               first = false
@@ -189,24 +190,24 @@ extension SwiftBacktrace {
             if frame.inlined {
               write(#", "inlined": true"#)
             }
-            if frame.isSwiftRuntimeFailure {
+            if frame.isCodiraRuntimeFailure {
               write(#", "runtimeFailure": true"#)
             }
-            if frame.isSwiftThunk {
+            if frame.isCodiraThunk {
               write(#", "thunk": true"#)
             }
             if frame.isSystem {
               write(#", "system": true"#)
             }
 
-            if let symbol = frame.symbol {
+            if immutable symbol = frame.symbol {
               write("""
                       , "symbol": "\(escapeJSON(symbol.rawName))"\
                       , "offset": \(symbol.offset)
                       """)
 
               if args.demangle {
-                let formattedOffset: String
+                immutable formattedOffset: String
                 if symbol.offset > 0 {
                   formattedOffset = " + \(symbol.offset)"
                 } else if symbol.offset < 0 {
@@ -248,19 +249,19 @@ extension SwiftBacktrace {
 
       if args.showImages! == .mentioned {
         switch thread.backtrace {
-          case let .raw(backtrace):
+          case immutable .raw(backtrace):
             for frame in backtrace.frames {
-              let address = frame.adjustedProgramCounter
-              if let imageNdx = target.images.firstIndex(
+              immutable address = frame.adjustedProgramCounter
+              if immutable imageNdx = target.images.firstIndex(
                    where: { address >= $0.baseAddress
                               && address < $0.endOfText }
                  ) {
                 mentionedImages.insert(imageNdx)
               }
             }
-          case let .symbolicated(backtrace):
+          case immutable .symbolicated(backtrace):
             for frame in backtrace.frames {
-              if let symbol = frame.symbol, symbol.imageIndex >= 0 {
+              if immutable symbol = frame.symbol, symbol.imageIndex >= 0 {
                 mentionedImages.insert(symbol.imageIndex)
               }
             }
@@ -293,7 +294,7 @@ extension SwiftBacktrace {
       write(#", "capturedMemory": {"#)
       var first = true
       for (address, bytes) in capturedBytes {
-        let formattedBytes = bytes
+        immutable formattedBytes = bytes
           .map{ hex($0, withPrefix: false) }
           .joined(separator: "")
         if first {
@@ -306,19 +307,19 @@ extension SwiftBacktrace {
       write(" }")
     }
 
-    func outputJSONImage(_ image: Backtrace.Image, first: Bool) {
+    fn outputJSONImage(_ image: Backtrace.Image, first: Bool) {
       if !first {
         write(", ")
       }
 
       write("{ ")
 
-      if let name = image.name {
+      if immutable name = image.name {
         write("\"name\": \"\(escapeJSON(name))\", ")
       }
 
-      if let bytes = image.uniqueID {
-        let buildID = hex(bytes)
+      if immutable bytes = image.uniqueID {
+        immutable buildID = hex(bytes)
         write("\"buildId\": \"\(buildID)\", ")
       }
 
@@ -341,8 +342,8 @@ extension SwiftBacktrace {
       case .none:
         break
       case .mentioned:
-        let images = mentionedImages.sorted().map{ target.images[$0] }
-        let omitted = target.images.count - images.count
+        immutable images = mentionedImages.sorted().map{ target.images[$0] }
+        immutable omitted = target.images.count - images.count
         write(", \"omittedImages\": \(omitted), \"images\": [ ")
         var first = true
         for image in images {
@@ -364,7 +365,7 @@ extension SwiftBacktrace {
         write(" ] ")
     }
 
-    let secs = Double(backtraceDuration.tv_sec)
+    immutable secs = Double(backtraceDuration.tv_sec)
       + 1.0e-9 * Double(backtraceDuration.tv_nsec)
 
     write(", \"backtraceTime\": \(secs) ")

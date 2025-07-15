@@ -1,4 +1,4 @@
-//===------------- Array.cpp - Swift Array Operations Support -------------===//
+//===------------- Array.cpp - Codira Array Operations Support -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Implementations of the array runtime functions.
@@ -116,12 +117,12 @@ static void array_copy_operation(OpaqueValue *dest, OpaqueValue *src,
   if (copyKind == ArrayCopy::NoAlias || copyKind == ArrayCopy::FrontToBack) {
     if (self->hasLayoutString() && destOp == ArrayDest::Init &&
         srcOp == ArraySource::Copy) {
-      return swift_cvw_arrayInitWithCopy(dest, src, count, stride, self);
+      return language_cvw_arrayInitWithCopy(dest, src, count, stride, self);
     }
 
     if (self->hasLayoutString() && destOp == ArrayDest::Assign &&
         srcOp == ArraySource::Copy) {
-      return swift_cvw_arrayAssignWithCopy(dest, src, count, stride, self);
+      return language_cvw_arrayAssignWithCopy(dest, src, count, stride, self);
     }
 
     auto copy = get_witness_function<destOp, srcOp>(wtable);
@@ -148,64 +149,64 @@ static void array_copy_operation(OpaqueValue *dest, OpaqueValue *src,
   } while (i != 0);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayInitWithCopy(OpaqueValue *dest, OpaqueValue *src, size_t count,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayInitWithCopy(OpaqueValue *dest, OpaqueValue *src, size_t count,
                              const Metadata *self) {
   array_copy_operation<ArrayDest::Init, ArraySource::Copy, ArrayCopy::NoAlias>(
       dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayInitWithTakeNoAlias(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayInitWithTakeNoAlias(OpaqueValue *dest, OpaqueValue *src,
                                     size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Init, ArraySource::Take, ArrayCopy::NoAlias>(
       dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayInitWithTakeFrontToBack(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayInitWithTakeFrontToBack(OpaqueValue *dest, OpaqueValue *src,
                                         size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Init, ArraySource::Take,
                        ArrayCopy::FrontToBack>(dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayInitWithTakeBackToFront(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayInitWithTakeBackToFront(OpaqueValue *dest, OpaqueValue *src,
                                         size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Init, ArraySource::Take,
                        ArrayCopy::BackToFront>(dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayAssignWithCopyNoAlias(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayAssignWithCopyNoAlias(OpaqueValue *dest, OpaqueValue *src,
                                       size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Copy,
                        ArrayCopy::NoAlias>(dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayAssignWithCopyFrontToBack(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayAssignWithCopyFrontToBack(OpaqueValue *dest, OpaqueValue *src,
                                           size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Copy,
                        ArrayCopy::FrontToBack>(dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayAssignWithCopyBackToFront(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayAssignWithCopyBackToFront(OpaqueValue *dest, OpaqueValue *src,
                                           size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Copy,
                        ArrayCopy::BackToFront>(dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayAssignWithTake(OpaqueValue *dest, OpaqueValue *src,
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayAssignWithTake(OpaqueValue *dest, OpaqueValue *src,
                                size_t count, const Metadata *self) {
   array_copy_operation<ArrayDest::Assign, ArraySource::Take,
                        ArrayCopy::NoAlias>(dest, src, count, self);
 }
 
-SWIFT_RUNTIME_EXPORT
-void swift_arrayDestroy(OpaqueValue *begin, size_t count, const Metadata *self) {
+LANGUAGE_RUNTIME_EXPORT
+void language_arrayDestroy(OpaqueValue *begin, size_t count, const Metadata *self) {
   if (count == 0)
     return;
 
@@ -217,7 +218,7 @@ void swift_arrayDestroy(OpaqueValue *begin, size_t count, const Metadata *self) 
 
   auto stride = wtable->getStride();
   if (self->hasLayoutString()) {
-    return swift_cvw_arrayDestroy(begin, count, stride, self);
+    return language_cvw_arrayDestroy(begin, count, stride, self);
   }
 
   for (size_t i = 0; i < count; ++i) {

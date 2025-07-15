@@ -1,0 +1,32 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -scan-dependencies -o %t/deps.json %s -cxx-interoperability-mode=default -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import
+// RUN: %validate-json %t/deps.json | %FileCheck %s
+
+import CxxStdlib
+
+// CHECK: "mainModuleName": "deps"
+
+/// --------Main module
+// CHECK-LABEL: "modulePath": "deps.codemodule",
+// CHECK-NEXT: "sourceFiles": [
+// CHECK-NEXT: cxx-overlay-underlying-module-lookup.code
+// CHECK-NEXT: ],
+
+// CHECK-NEXT: "directDependencies": [
+// CHECK-DAG:     "clang": "CxxShim"
+// CHECK-DAG:     "language": "CxxStdlib"
+// CHECK-DAG:     "language": "Cxx"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "language": "CodiraOnoneSupport"
+// CHECK: ],
+
+/// ----------
+// CHECK-LABEL: "modulePath": "{{.*}}{{/|\\}}CxxStdlib-{{.*}}.codemodule"
+// CHECK-NEXT: "sourceFiles": []
+// CHECK-NEXT: "directDependencies": [
+// CHECK-DAG:     "language": "Cxx"
+// CHECK-DAG:     "language": "Codira"
+// CHECK-DAG:     "clang": "std"
+// CHECK-DAG:     "clang": "CxxStdlibShim"
+// CHECK: ],

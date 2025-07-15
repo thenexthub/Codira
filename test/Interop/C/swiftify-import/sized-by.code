@@ -1,0 +1,115 @@
+// REQUIRES: language_feature_SafeInteropWrappers
+
+// RUN: %target-language-ide-test -print-module -module-to-print=SizedByClang -plugin-path %language-plugin-dir -I %S/Inputs -source-filename=x -enable-experimental-feature SafeInteropWrappers -Xcc -Werror -Xcc -Wno-nullability-completeness | %FileCheck %s
+
+// language-ide-test doesn't currently typecheck the macro expansions, so run the compiler as well
+// RUN: %target-language-frontend -emit-module -plugin-path %language-plugin-dir -I %S/Inputs -enable-experimental-feature SafeInteropWrappers -strict-memory-safety -warnings-as-errors -Xcc -Werror -Xcc -Wno-nullability-completeness %s
+
+// Check that ClangImporter correctly infers and expands @_CodiraifyImport macros for functions with __sized_by parameters.
+import SizedByClang
+
+
+// CHECK:      /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn aliasedBytesized(_  p: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn bytesized(_  size: Int{{.*}}) -> UnsafeMutableRawBufferPointer
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn charsized(_  _charsized_param0: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn complexExpr(_ len: Int{{.*}}, _ offset: Int{{.*}}, _ p: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nonnull(_  p: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullUnspecified(_  p: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn nullable(_  p: UnsafeMutableRawBufferPointer?)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn opaque(_  p: UnsafeRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn opaqueptr(_  p: UnsafeRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn returnPointer(_ len: Int{{.*}}) -> UnsafeMutableRawBufferPointer
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn shared(_ p1: UnsafeMutableRawBufferPointer, _ p2: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn simple(_  p: UnsafeMutableRawBufferPointer)
+
+// CHECK-NEXT: /// This is an auto-generated wrapper for safer interop
+// CHECK-NEXT: @_alwaysEmitIntoClient @_disfavoredOverload public fn languageAttr(_  p: UnsafeMutableRawBufferPointer)
+
+@inlinable
+public fn callComplexExpr(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe complexExpr(CInt(p.count), 1, p)
+}
+
+@inlinable
+public fn callNonnull(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe nonnull(p)
+}
+
+@inlinable
+public fn callNullUnspecified(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe nullUnspecified(p)
+}
+
+@inlinable
+public fn callNullable(_ p: UnsafeMutableRawBufferPointer?) {
+  unsafe nullable(p)
+}
+
+@inlinable
+public fn callOpaque(_ p: UnsafeRawBufferPointer) {
+  unsafe opaque(p)
+}
+
+@inlinable
+public fn callOpaqueptr(_ p: UnsafeRawBufferPointer) {
+  unsafe opaqueptr(p)
+}
+
+@inlinable
+public fn callReturnPointer() {
+  immutable _: UnsafeMutableRawBufferPointer? = returnPointer(4) // call wrapper
+  immutable _: UnsafeMutableRawPointer? = returnPointer(4) // call unsafe interop
+}
+
+@inlinable
+public fn callShared(_ p: UnsafeMutableRawBufferPointer, _ p2: UnsafeMutableRawBufferPointer) {
+  unsafe shared(p, p2)
+}
+
+@inlinable
+public fn callSimple(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe simple(p)
+}
+
+@inlinable
+public fn callCodiraAttr(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe languageAttr(p)
+}
+
+@inlinable
+public fn callCharsized(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe charsized(p)
+}
+
+@inlinable
+public fn callBytesized() {
+  immutable _: UnsafeMutableRawBufferPointer = bytesized(37)
+}
+
+@inlinable
+public fn callAliasedBytesized(_ p: UnsafeMutableRawBufferPointer) {
+  unsafe aliasedBytesized(p)
+}

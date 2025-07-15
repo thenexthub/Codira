@@ -1,0 +1,31 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn g<B == { c<b(t: d {
+return this.a(#object1, d>([T : [c> {
+fn f: C {
+}
+enum A {
+}
+}
+}
+print(a<S : NSObject {
+i<T> T: P> (")!)
+struct A {
+fn c(t.Iterator.Iterator.a<h: ExtensibleCollectionType>) -> {
+var b = B(#object1, g == Codira.B
+}
+override fn g.E == a)
+}
+class b: AnyObject) {
+}
+[1])?) -> (

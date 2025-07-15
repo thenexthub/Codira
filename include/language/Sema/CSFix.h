@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides necessary abstractions for constraint fixes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_CSFIX_H
-#define SWIFT_SEMA_CSFIX_H
+#ifndef LANGUAGE_SEMA_CSFIX_H
+#define LANGUAGE_SEMA_CSFIX_H
 
 #include "language/AST/ASTNode.h"
 #include "language/AST/Decl.h"
@@ -30,12 +31,12 @@
 #include "language/Sema/Constraint.h"
 #include "language/Sema/ConstraintLocator.h"
 #include "language/Sema/FixBehavior.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/TrailingObjects.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/TrailingObjects.h"
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -365,9 +366,9 @@ enum class FixKind : uint8_t {
   /// resolved.
   SpecifyTypeForPlaceholder,
 
-  /// Allow Swift -> C pointer conversion in an argument position
-  /// of a Swift function.
-  AllowSwiftToCPointerConversion,
+  /// Allow Codira -> C pointer conversion in an argument position
+  /// of a Codira function.
+  AllowCodiraToCPointerConversion,
 
   /// Allow `weak` declarations to be bound to a non-optional type.
   AllowNonOptionalWeak,
@@ -563,9 +564,14 @@ public:
     return false;
   }
 
-  void print(llvm::raw_ostream &Out) const;
+  template <typename E>
+  bool directlyAt() const {
+    return getLocator()->directlyAt<E>();
+  }
 
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &Out) const;
+
+  LANGUAGE_DEBUG_DUMP;
 
   /// Retrieve anchor expression associated with this fix.
   /// NOTE: such anchor comes directly from locator without
@@ -640,13 +646,13 @@ public:
 /// labels attached to the, fix it by suggesting proper labels.
 class RelabelArguments final
     : public ConstraintFix,
-      private llvm::TrailingObjects<RelabelArguments, Identifier> {
+      private toolchain::TrailingObjects<RelabelArguments, Identifier> {
   friend TrailingObjects;
 
   unsigned NumLabels;
 
   RelabelArguments(ConstraintSystem &cs,
-                   llvm::ArrayRef<Identifier> correctLabels,
+                   toolchain::ArrayRef<Identifier> correctLabels,
                    ConstraintLocator *locator)
       : ConstraintFix(cs, FixKind::RelabelArguments, locator),
         NumLabels(correctLabels.size()) {
@@ -666,7 +672,7 @@ public:
   bool diagnoseForAmbiguity(CommonFixesArray commonFixes) const override;
 
   static RelabelArguments *create(ConstraintSystem &cs,
-                                  llvm::ArrayRef<Identifier> correctLabels,
+                                  toolchain::ArrayRef<Identifier> correctLabels,
                                   ConstraintLocator *locator);
 
   static bool classof(const ConstraintFix *fix) {
@@ -815,7 +821,7 @@ public:
 /// For example: Sometimes type returned from the body of the
 /// closure doesn't match expected contextual type:
 ///
-/// func foo(_: () -> Int) {}
+/// fn foo(_: () -> Int) {}
 /// foo { "ultimate question" }
 ///
 /// Body of the closure produces `String` type when `Int` is expected
@@ -1166,20 +1172,20 @@ public:
 /// Detect situations where two type's generic arguments must
 /// match but are not convertible e.g.
 ///
-/// ```swift
+/// ```language
 /// struct F<G> {}
 /// let _:F<Int> = F<Bool>()
 /// ```
 class GenericArgumentsMismatch final
     : public ContextualMismatch,
-      private llvm::TrailingObjects<GenericArgumentsMismatch, unsigned> {
+      private toolchain::TrailingObjects<GenericArgumentsMismatch, unsigned> {
   friend TrailingObjects;
 
   unsigned NumMismatches;
 
 protected:
   GenericArgumentsMismatch(ConstraintSystem &cs, Type actual, Type required,
-                           llvm::ArrayRef<unsigned> mismatches,
+                           toolchain::ArrayRef<unsigned> mismatches,
                            ConstraintLocator *locator)
       : ContextualMismatch(cs, FixKind::GenericArgumentsMismatch, actual,
                            required, locator),
@@ -1207,7 +1213,7 @@ public:
 
   static GenericArgumentsMismatch *create(ConstraintSystem &cs, Type actual,
                                           Type required,
-                                          llvm::ArrayRef<unsigned> mismatches,
+                                          toolchain::ArrayRef<unsigned> mismatches,
                                           ConstraintLocator *locator);
 
   static bool classof(const ConstraintFix *fix) {
@@ -1448,7 +1454,7 @@ class DefineMemberBasedOnUse final : public ConstraintFix {
 
 public:
   std::string getName() const override {
-    llvm::SmallVector<char, 16> scratch;
+    toolchain::SmallVector<char, 16> scratch;
     auto memberName = Name.getString(scratch);
     return "define missing member named '" + memberName.str() +
            "' based on its use";
@@ -1481,7 +1487,7 @@ class DefineMemberBasedOnUnintendedGenericParam final : public ConstraintFix {
 
 public:
   std::string getName() const override {
-    llvm::SmallVector<char, 16> scratch;
+    toolchain::SmallVector<char, 16> scratch;
     auto memberName = Name.getString(scratch);
     return "allow access to invalid member '" + memberName.str() +
            "' on archetype presumed intended to conform to protocol";
@@ -1525,7 +1531,7 @@ class AllowMemberRefOnExistential final : public AllowInvalidMemberRef {
 
 public:
   std::string getName() const override {
-    llvm::SmallVector<char, 16> scratch;
+    toolchain::SmallVector<char, 16> scratch;
     auto memberName = getMemberName().getString(scratch);
     return "allow access to invalid member '" + memberName.str() +
            "' on value of protocol type";
@@ -1770,7 +1776,7 @@ struct SynthesizedArg {
 
 class AddMissingArguments final
     : public ConstraintFix,
-      private llvm::TrailingObjects<
+      private toolchain::TrailingObjects<
           AddMissingArguments, SynthesizedArg> {
   friend TrailingObjects;
 
@@ -1814,7 +1820,7 @@ private:
 
 class RemoveExtraneousArguments final
     : public ConstraintFix,
-      private llvm::TrailingObjects<
+      private toolchain::TrailingObjects<
           RemoveExtraneousArguments,
           std::pair<unsigned, AnyFunctionType::Param>> {
   friend TrailingObjects;
@@ -1825,7 +1831,7 @@ class RemoveExtraneousArguments final
   unsigned NumExtraneous;
 
   RemoveExtraneousArguments(ConstraintSystem &cs, FunctionType *contextualType,
-                            llvm::ArrayRef<IndexedParam> extraArgs,
+                            toolchain::ArrayRef<IndexedParam> extraArgs,
                             ConstraintLocator *locator)
       : ConstraintFix(cs, FixKind::RemoveExtraneousArguments, locator),
         ContextualType(contextualType), NumExtraneous(extraArgs.size()) {
@@ -1857,7 +1863,7 @@ public:
 
   static RemoveExtraneousArguments *
   create(ConstraintSystem &cs, FunctionType *contextualType,
-         llvm::ArrayRef<IndexedParam> extraArgs, ConstraintLocator *locator);
+         toolchain::ArrayRef<IndexedParam> extraArgs, ConstraintLocator *locator);
 
   static bool classof(const ConstraintFix *fix) {
     return fix->getKind() == FixKind::RemoveExtraneousArguments;
@@ -2006,7 +2012,7 @@ class AllowInvalidRefInKeyPath final : public ConstraintFix {
     // Allow invalid references to static members i.e. on instance of a type.
     StaticMember,
     // Allow a reference to a static member as a key path component if it is
-    // declared in a module with built with Swift 6.0 compiler version or older.
+    // declared in a module with built with Codira 6.0 compiler version or older.
     UnsupportedStaticMember,
     // Allow a reference to a declaration with mutating getter as
     // a key path component.
@@ -2055,7 +2061,7 @@ public:
       return "allow reference to async or throwing method as a key path "
              "component";
     }
-    llvm_unreachable("covered switch");
+    toolchain_unreachable("covered switch");
   }
 
   bool diagnose(const Solution &solution, bool asNote = false) const override;
@@ -2137,7 +2143,7 @@ public:
       return type;
 
     case CopyableConstraint:
-      llvm_unreachable("no type payload");
+      toolchain_unreachable("no type payload");
     };
   }
 
@@ -2241,7 +2247,7 @@ public:
 
 class CollectionElementContextualMismatch final
     : public ContextualMismatch,
-      private llvm::TrailingObjects<CollectionElementContextualMismatch,
+      private toolchain::TrailingObjects<CollectionElementContextualMismatch,
                                     Expr *> {
   friend TrailingObjects;
 
@@ -2319,7 +2325,7 @@ public:
 
 class SkipUnhandledConstructInResultBuilder final : public ConstraintFix {
 public:
-  using UnhandledNode = llvm::PointerUnion<Stmt *, Decl *>;
+  using UnhandledNode = toolchain::PointerUnion<Stmt *, Decl *>;
 
 private:
   UnhandledNode unhandled;
@@ -2819,7 +2825,7 @@ public:
 /// A warning fix to maintain compatibility with the following:
 ///
 /// \code
-/// func foo(_ arr: [Any]?) {
+/// fn foo(_ arr: [Any]?) {
 ///  _ = (arr ?? []) as [NSObject]
 /// }
 /// \endcode
@@ -2852,7 +2858,7 @@ public:
 /// applied to a base instance of another type.
 ///
 /// \code
-/// func f(_ bar: Bar , keyPath: KeyPath<Foo, Int> ) {
+/// fn f(_ bar: Bar , keyPath: KeyPath<Foo, Int> ) {
 ///   bar[keyPath: keyPath]
 /// }
 /// \endcode
@@ -2902,7 +2908,7 @@ public:
 /// Diagnose missing unwrap of optional base type on key path application.
 ///
 /// \code
-/// func f(_ bar: Bar? , keyPath: KeyPath<Bar, Int>) {
+/// fn f(_ bar: Bar? , keyPath: KeyPath<Bar, Int>) {
 ///   bar[keyPath: keyPath]
 /// }
 /// \endcode
@@ -2933,7 +2939,7 @@ public:
 /// to match trailing closure to a parameter.
 ///
 /// \code
-/// func multiple_trailing_with_defaults(
+/// fn multiple_trailing_with_defaults(
 ///   duration: Int,
 ///   animations: (() -> Void)? = nil,
 ///   completion: (() -> Void)? = nil) {}
@@ -3461,19 +3467,19 @@ public:
   }
 };
 
-class AllowSwiftToCPointerConversion final : public ConstraintFix {
-  AllowSwiftToCPointerConversion(ConstraintSystem &cs,
+class AllowCodiraToCPointerConversion final : public ConstraintFix {
+  AllowCodiraToCPointerConversion(ConstraintSystem &cs,
                                  ConstraintLocator *locator)
-      : ConstraintFix(cs, FixKind::AllowSwiftToCPointerConversion, locator) {}
+      : ConstraintFix(cs, FixKind::AllowCodiraToCPointerConversion, locator) {}
 
 public:
   std::string getName() const override {
-    return "allow implicit Swift -> C pointer conversion";
+    return "allow implicit Codira -> C pointer conversion";
   }
 
   bool diagnose(const Solution &solution, bool asNote = false) const override;
 
-  static AllowSwiftToCPointerConversion *create(ConstraintSystem &cs,
+  static AllowCodiraToCPointerConversion *create(ConstraintSystem &cs,
                                                 ConstraintLocator *locator);
 };
 
@@ -3502,7 +3508,7 @@ public:
 
 class RenameConflictingPatternVariables final
     : public ConstraintFix,
-      private llvm::TrailingObjects<RenameConflictingPatternVariables,
+      private toolchain::TrailingObjects<RenameConflictingPatternVariables,
                                     VarDecl *> {
   friend TrailingObjects;
 
@@ -3691,7 +3697,7 @@ class AllowInvalidMemberReferenceInInitAccessor final : public ConstraintFix {
 
 public:
   std::string getName() const override {
-    llvm::SmallVector<char, 16> scratch;
+    toolchain::SmallVector<char, 16> scratch;
     auto memberName = MemberName.getString(scratch);
     return "allow reference to member '" + memberName.str() +
            "' in init accessor";
@@ -3911,10 +3917,10 @@ public:
 } // end namespace constraints
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
   template <>
-  struct DenseMapInfo<swift::constraints::FixKind> {
-    using FixKind = swift::constraints::FixKind;
+  struct DenseMapInfo<language::constraints::FixKind> {
+    using FixKind = language::constraints::FixKind;
     static inline FixKind getEmptyKey() {
       return static_cast<FixKind>(0);
     }
@@ -3930,4 +3936,4 @@ namespace llvm {
   };
 }
 
-#endif // SWIFT_SEMA_CSFIX_H
+#endif // LANGUAGE_SEMA_CSFIX_H

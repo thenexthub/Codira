@@ -11,21 +11,22 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/FileSystem.h"
 
 #include "language/Basic/Assertions.h"
 #include "clang/Basic/FileManager.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/VirtualFileSystem.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Errc.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/VirtualFileSystem.h"
 #include <optional>
 
 using namespace language;
@@ -38,7 +39,7 @@ namespace {
 
     ~OpenFileRAII() {
       if (fd != INVALID_FD)
-        llvm::sys::Process::SafelyCloseFileDescriptor(fd);
+        toolchain::sys::Process::SafelyCloseFileDescriptor(fd);
     }
   };
 } // end anonymous namespace
@@ -46,13 +47,13 @@ namespace {
 /// Does some simple checking to see if a temporary file can be written next to
 /// \p outputPath and then renamed into place.
 ///
-/// Helper for swift::atomicallyWritingToFile.
+/// Helper for language::atomicallyWritingToFile.
 ///
 /// If the result is an error, the write won't succeed at all, and the calling
 /// operation should bail out early.
-static llvm::ErrorOr<bool>
-canUseTemporaryForWrite(const llvm::StringRef outputPath) {
-  namespace fs = llvm::sys::fs;
+static toolchain::ErrorOr<bool>
+canUseTemporaryForWrite(const toolchain::StringRef outputPath) {
+  namespace fs = toolchain::sys::fs;
 
   if (outputPath == "-") {
     // Special case: "-" represents stdout, and LLVM's output stream APIs are
@@ -70,7 +71,7 @@ canUseTemporaryForWrite(const llvm::StringRef outputPath) {
 
   // Fail early if we can't write to the final destination.
   if (!fs::can_write(outputPath))
-    return llvm::make_error_code(llvm::errc::operation_not_permitted);
+    return toolchain::make_error_code(toolchain::errc::operation_not_permitted);
 
   // Only use a temporary if the output is a regular file. This handles
   // things like '-o /dev/null'
@@ -80,7 +81,7 @@ canUseTemporaryForWrite(const llvm::StringRef outputPath) {
 /// Attempts to open a temporary file next to \p outputPath, with the intent
 /// that once the file has been written it will be renamed into place.
 ///
-/// Helper for swift::atomicallyWritingToFile.
+/// Helper for language::atomicallyWritingToFile.
 ///
 /// \param[out] openedStream On success, a stream opened for writing to the
 /// temporary file that was just created.
@@ -90,17 +91,17 @@ canUseTemporaryForWrite(const llvm::StringRef outputPath) {
 /// \returns The path to the temporary file that was opened, or \c None if the
 /// file couldn't be created.
 static std::optional<std::string>
-tryToOpenTemporaryFile(std::optional<llvm::raw_fd_ostream> &openedStream,
-                       const llvm::StringRef outputPath) {
-  namespace fs = llvm::sys::fs;
+tryToOpenTemporaryFile(std::optional<toolchain::raw_fd_ostream> &openedStream,
+                       const toolchain::StringRef outputPath) {
+  namespace fs = toolchain::sys::fs;
 
   // Create a temporary file path.
   // Insert a placeholder for a random suffix before the extension (if any).
   // Then because some tools glob for build artifacts (such as clang's own
   // GlobalModuleIndex.cpp), also append .tmp.
-  llvm::SmallString<128> tempPath;
-  const llvm::StringRef outputExtension =
-      llvm::sys::path::extension(outputPath);
+  toolchain::SmallString<128> tempPath;
+  const toolchain::StringRef outputExtension =
+      toolchain::sys::path::extension(outputPath);
   tempPath = outputPath.drop_back(outputExtension.size());
   tempPath += "-%%%%%%%%";
   tempPath += outputExtension;
@@ -119,27 +120,27 @@ tryToOpenTemporaryFile(std::optional<llvm::raw_fd_ostream> &openedStream,
 
   openedStream.emplace(fd, /*shouldClose=*/true);
   // Make sure the temporary file gets removed if we crash.
-  llvm::sys::RemoveFileOnSignal(tempPath);
+  toolchain::sys::RemoveFileOnSignal(tempPath);
   return tempPath.str().str();
 }
 
-std::error_code swift::atomicallyWritingToFile(
-    const llvm::StringRef outputPath,
-    const llvm::function_ref<void(llvm::raw_pwrite_stream &)> action) {
-  namespace fs = llvm::sys::fs;
+std::error_code language::atomicallyWritingToFile(
+    const toolchain::StringRef outputPath,
+    const toolchain::function_ref<void(toolchain::raw_pwrite_stream &)> action) {
+  namespace fs = toolchain::sys::fs;
 
   // FIXME: This is mostly a simplified version of
   // clang::CompilerInstance::createOutputFile. It would be great to share the
   // implementation.
   assert(!outputPath.empty());
 
-  llvm::ErrorOr<bool> canUseTemporary = canUseTemporaryForWrite(outputPath);
+  toolchain::ErrorOr<bool> canUseTemporary = canUseTemporaryForWrite(outputPath);
   if (std::error_code error = canUseTemporary.getError())
     return error;
 
   std::optional<std::string> temporaryPath;
   {
-    std::optional<llvm::raw_fd_ostream> OS;
+    std::optional<toolchain::raw_fd_ostream> OS;
     if (canUseTemporary.get()) {
       temporaryPath = tryToOpenTemporaryFile(OS, outputPath);
 
@@ -169,14 +170,14 @@ std::error_code swift::atomicallyWritingToFile(
     return std::error_code();
   }
 
-  return swift::moveFileIfDifferent(temporaryPath.value(), outputPath);
+  return language::moveFileIfDifferent(temporaryPath.value(), outputPath);
 }
 
-llvm::ErrorOr<FileDifference>
-swift::areFilesDifferent(const llvm::Twine &source,
-                         const llvm::Twine &destination,
+toolchain::ErrorOr<FileDifference>
+language::areFilesDifferent(const toolchain::Twine &source,
+                         const toolchain::Twine &destination,
                          bool allowDestinationErrors) {
-  namespace fs = llvm::sys::fs;
+  namespace fs = toolchain::sys::fs;
 
   if (fs::equivalent(source, destination)) {
     return FileDifference::IdenticalFile;
@@ -196,7 +197,7 @@ swift::areFilesDifferent(const llvm::Twine &source,
   /// Converts an error from the destination file into either an error or
   /// DifferentContents return, depending on `allowDestinationErrors`.
   auto convertDestinationError = [=](std::error_code error) ->
-      llvm::ErrorOr<FileDifference> {
+      toolchain::ErrorOr<FileDifference> {
     if (allowDestinationErrors){
       return FileDifference::DifferentContents;
     }
@@ -250,9 +251,9 @@ swift::areFilesDifferent(const llvm::Twine &source,
   return FileDifference::SameContents;
 }
 
-std::error_code swift::moveFileIfDifferent(const llvm::Twine &source,
-                                           const llvm::Twine &destination) {
-  namespace fs = llvm::sys::fs;
+std::error_code language::moveFileIfDifferent(const toolchain::Twine &source,
+                                           const toolchain::Twine &destination) {
+  namespace fs = toolchain::sys::fs;
 
   auto result = areFilesDifferent(source, destination,
                                   /*allowDestinationErrors=*/true);
@@ -273,22 +274,22 @@ std::error_code swift::moveFileIfDifferent(const llvm::Twine &source,
     // Files are different; overwrite the destination file.
     return fs::rename(source, destination);
   }
-  llvm_unreachable("Unhandled FileDifference in switch");
+  toolchain_unreachable("Unhandled FileDifference in switch");
 }
 
-llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
-swift::vfs::getFileOrSTDIN(llvm::vfs::FileSystem &FS,
-                           const llvm::Twine &Filename,
+toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>>
+language::vfs::getFileOrSTDIN(toolchain::vfs::FileSystem &FS,
+                           const toolchain::Twine &Filename,
                            int64_t FileSize,
                            bool RequiresNullTerminator,
                            bool IsVolatile,
                            unsigned BADFRetry) {
-  llvm::SmallString<256> NameBuf;
-  llvm::StringRef NameRef = Filename.toStringRef(NameBuf);
+  toolchain::SmallString<256> NameBuf;
+  toolchain::StringRef NameRef = Filename.toStringRef(NameBuf);
 
   if (NameRef == "-")
-    return llvm::MemoryBuffer::getSTDIN();
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> inputFileOrErr = nullptr;
+    return toolchain::MemoryBuffer::getSTDIN();
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> inputFileOrErr = nullptr;
   for (unsigned I = 0; I != BADFRetry + 1; ++ I) {
     inputFileOrErr = FS.getBufferForFile(Filename, FileSize,
                                          RequiresNullTerminator, IsVolatile);

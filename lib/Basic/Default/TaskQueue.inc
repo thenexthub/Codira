@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 /// This file contains a platform-agnostic implementation of TaskQueue
-/// using the functions from llvm/Support/Program.h.
+/// using the functions from toolchain/Support/Program.h.
 ///
 /// \note The default implementation of TaskQueue does not support parallel
 /// execution, nor does it support output buffering. As a result,
@@ -24,11 +25,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/TaskQueue.h"
-#include "language/Basic/LLVM.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Signals.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Signals.h"
 
 #if defined(_WIN32)
 #define NOMINMAX
@@ -38,7 +39,7 @@
 
 #include "Task.inc"
 
-using namespace llvm::sys;
+using namespace toolchain::sys;
 
 bool TaskQueue::supportsBufferingOutput() {
   // The default implementation supports buffering output.
@@ -87,12 +88,12 @@ bool TaskQueue::execute(TaskBeganCallback Began, TaskFinishedCallback Finished,
     T->PI = Wait(T->PI, 0, true, &ErrMsg);
     int ReturnCode = T->PI.ReturnCode;
 
-    auto StdoutBuffer = llvm::MemoryBuffer::getFile(T->StdoutPath);
+    auto StdoutBuffer = toolchain::MemoryBuffer::getFile(T->StdoutPath);
     StringRef StdoutContents = StdoutBuffer.get()->getBuffer();
 
     StringRef StderrContents;
     if (T->SeparateErrors) {
-      auto StderrBuffer = llvm::MemoryBuffer::getFile(T->StderrPath);
+      auto StderrBuffer = toolchain::MemoryBuffer::getFile(T->StderrPath);
       StderrContents = StderrBuffer.get()->getBuffer();
     }
 
@@ -150,9 +151,9 @@ bool TaskQueue::execute(TaskBeganCallback Began, TaskFinishedCallback Finished,
         ContinueExecution = false;
       }
     }
-    llvm::sys::fs::remove(T->StdoutPath);
+    toolchain::sys::fs::remove(T->StdoutPath);
     if (T->SeparateErrors)
-      llvm::sys::fs::remove(T->StderrPath);
+      toolchain::sys::fs::remove(T->StderrPath);
   }
 
   return !ContinueExecution;

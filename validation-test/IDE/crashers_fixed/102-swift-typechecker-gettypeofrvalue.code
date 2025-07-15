@@ -1,0 +1,6 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+protocol B
+immutable a{
+protocol A{extension{
+fn b{fn a:B
+extension{var _=a{#^A^#

@@ -1,0 +1,150 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -enable-experimental-cxx-interop -clang-header-expose-decls=has-expose-attr-or-stdlib -enable-experimental-feature GenerateBindingsForThrowingFunctionsInCXX -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY -DLANGUAGE_CXX_INTEROP_EXPERIMENTAL_LANGUAGE_ERROR -Wno-unused-function)
+
+// REQUIRES: language_feature_GenerateBindingsForThrowingFunctionsInCXX
+
+// CHECK-LABEL: namespace Functions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Functions") {
+
+// CHECK-LABEL: namespace _impl {
+
+// CHECK: LANGUAGE_EXTERN void $s9Functions18emptyThrowFunctionyyKF(LANGUAGE_CONTEXT void * _Nonnull _ctx, LANGUAGE_ERROR_RESULT void * _Nullable * _Nullable _error) LANGUAGE_CALL; // emptyThrowFunction()
+// CHECK: LANGUAGE_EXTERN void $s9Functions18testDestroyedErroryyKF(LANGUAGE_CONTEXT void * _Nonnull _ctx, LANGUAGE_ERROR_RESULT void * _Nullable * _Nullable _error) LANGUAGE_CALL; // testDestroyedError()
+// CHECK: LANGUAGE_EXTERN void $s9Functions13throwFunctionyyKF(LANGUAGE_CONTEXT void * _Nonnull _ctx, LANGUAGE_ERROR_RESULT void * _Nullable * _Nullable _error) LANGUAGE_CALL; // throwFunction()
+// CHECK: LANGUAGE_EXTERN void $s9Functions28throwFunctionWithNeverReturns0E0OyKF(LANGUAGE_CONTEXT void * _Nonnull _ctx, LANGUAGE_ERROR_RESULT void * _Nullable * _Nullable _error) LANGUAGE_CALL; // throwFunctionWithNeverReturn()
+// CHECK: LANGUAGE_EXTERN ptrdiff_t $s9Functions31throwFunctionWithPossibleReturnyS2iKF(ptrdiff_t a, LANGUAGE_CONTEXT void * _Nonnull _ctx, LANGUAGE_ERROR_RESULT void * _Nullable * _Nullable _error) LANGUAGE_CALL; // throwFunctionWithPossibleReturn(_:)
+// CHECK: LANGUAGE_EXTERN ptrdiff_t $s9Functions23throwFunctionWithReturnSiyKF(LANGUAGE_CONTEXT void * _Nonnull _ctx, LANGUAGE_ERROR_RESULT void * _Nullable * _Nullable _error) LANGUAGE_CALL; // throwFunctionWithReturn()
+
+
+// CHECK: }
+
+@_expose(Cxx)
+public enum NaiveErrors : Error {
+    case returnError
+    case throwError
+
+    public fn getMessage() {
+        print(this)
+    }
+}
+
+@_expose(Cxx)
+public fn emptyThrowFunction() throws { print("passEmptyThrowFunction") }
+
+// CHECK: LANGUAGE_INLINE_THUNK language::ThrowingResult<void> emptyThrowFunction() LANGUAGE_SYMBOL("s:9Functions18emptyThrowFunctionyyKF") {
+// CHECK: void* opaqueError = nullptr;
+// CHECK: void* _ctx = nullptr;
+// CHECK: _impl::$s9Functions18emptyThrowFunctionyyKF(_ctx, &opaqueError);
+// CHECK: if (opaqueError != nullptr)
+// CHECK: #ifdef __cpp_exceptions
+// CHECK: throw (language::Error(opaqueError));
+// CHECK: #else
+// CHECK: return language::Expected<void>(language::Error(opaqueError));
+// CHECK: #endif
+// CHECK: }
+
+class TestDestroyed {
+  deinit {
+    print("Test destroyed")
+  }
+}
+
+@_expose(Cxx)
+public struct DestroyedError : Error {
+  immutable t = TestDestroyed()
+}
+
+@_expose(Cxx)
+public fn testDestroyedError() throws { throw DestroyedError() }
+
+// CHECK: LANGUAGE_INLINE_THUNK language::ThrowingResult<void> testDestroyedError() LANGUAGE_SYMBOL("s:9Functions18testDestroyedErroryyKF") {
+// CHECK: void* opaqueError = nullptr;
+// CHECK: void* _ctx = nullptr;
+// CHECK: _impl::$s9Functions18testDestroyedErroryyKF(_ctx, &opaqueError);
+// CHECK: if (opaqueError != nullptr)
+// CHECK: #ifdef __cpp_exceptions
+// CHECK: throw (language::Error(opaqueError));
+// CHECK: #else
+// CHECK: return language::Expected<void>(language::Error(opaqueError));
+// CHECK: #endif
+// CHECK: }
+
+@_expose(Cxx)
+public fn throwFunction() throws {
+    print("passThrowFunction")
+    throw NaiveErrors.throwError
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK language::ThrowingResult<void> throwFunction() LANGUAGE_SYMBOL("s:9Functions13throwFunctionyyKF") {
+// CHECK: void* opaqueError = nullptr;
+// CHECK: void* _ctx = nullptr;
+// CHECK: _impl::$s9Functions13throwFunctionyyKF(_ctx, &opaqueError);
+// CHECK: if (opaqueError != nullptr)
+// CHECK: #ifdef __cpp_exceptions
+// CHECK: throw (language::Error(opaqueError));
+// CHECK: #else
+// CHECK: return language::Expected<void>(language::Error(opaqueError));
+// CHECK: #endif
+// CHECK: }
+
+@_expose(Cxx)
+public fn throwFunctionWithNeverReturn() throws -> Never {
+    print("passThrowFunctionWithNeverReturn")
+    throw NaiveErrors.returnError
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK language::ThrowingResult<void> throwFunctionWithNeverReturn() LANGUAGE_SYMBOL("s:9Functions28throwFunctionWithNeverReturns0E0OyKF") LANGUAGE_NORETURN_EXCEPT_ERRORS {
+// CHECK-NEXT: void* opaqueError = nullptr;
+// CHECK-NEXT: void* _ctx = nullptr;
+// CHECK-NEXT: _impl::$s9Functions28throwFunctionWithNeverReturns0E0OyKF(_ctx, &opaqueError);
+// CHECK-NEXT: if (opaqueError != nullptr)
+// CHECK-NEXT: #ifdef __cpp_exceptions
+// CHECK-NEXT: throw (language::Error(opaqueError));
+// CHECK-NEXT: #else
+// CHECK-NEXT: return language::Expected<void>(language::Error(opaqueError));
+// CHECK-NEXT: #endif
+// CHECK-NEXT: abort();
+// CHECK-NEXT: }
+
+@_expose(Cxx)
+public fn throwFunctionWithPossibleReturn(_ a: Int) throws -> Int {
+    print("passThrowFunctionWithPossibleReturn")
+    if (a == 0) {
+        throw NaiveErrors.returnError
+    }
+    return 0
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK language::ThrowingResult<language::Int> throwFunctionWithPossibleReturn(language::Int a) LANGUAGE_SYMBOL("s:9Functions31throwFunctionWithPossibleReturnyS2iKF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK: void* opaqueError = nullptr;
+// CHECK: void* _ctx = nullptr;
+// CHECK: auto returnValue = Functions::_impl::$s9Functions31throwFunctionWithPossibleReturnyS2iKF(a, _ctx, &opaqueError);
+// CHECK: if (opaqueError != nullptr)
+// CHECK: #ifdef __cpp_exceptions
+// CHECK: throw (language::Error(opaqueError));
+// CHECK: #else
+// CHECK: return language::Expected<language::Int>(language::Error(opaqueError));
+// CHECK: #endif
+// CHECK: return LANGUAGE_RETURN_THUNK(language::Int, returnValue);
+// CHECK: }
+
+@_expose(Cxx)
+public fn throwFunctionWithReturn() throws -> Int {
+    print("passThrowFunctionWithReturn")
+    throw NaiveErrors.returnError
+    return 0
+}
+
+// CHECK: LANGUAGE_INLINE_THUNK language::ThrowingResult<language::Int> throwFunctionWithReturn() LANGUAGE_SYMBOL("s:9Functions23throwFunctionWithReturnSiyKF") LANGUAGE_WARN_UNUSED_RESULT {
+// CHECK: void* opaqueError = nullptr;
+// CHECK: void* _ctx = nullptr;
+// CHECK: auto returnValue = Functions::_impl::$s9Functions23throwFunctionWithReturnSiyKF(_ctx, &opaqueError);
+// CHECK: #ifdef __cpp_exceptions
+// CHECK: throw (language::Error(opaqueError));
+// CHECK: #else
+// CHECK: return language::Expected<language::Int>(language::Error(opaqueError));
+// CHECK: #endif
+// CHECK: return LANGUAGE_RETURN_THUNK(language::Int, returnValue);
+// CHECK: }

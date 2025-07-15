@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/OwnershipUtils.h"
@@ -30,7 +31,7 @@
 
 using namespace language;
 
-bool swift::findPointerEscape(SILValue original) {
+bool language::findPointerEscape(SILValue original) {
   if (original->getOwnershipKind() != OwnershipKind::Owned &&
       original->getOwnershipKind() != OwnershipKind::Guaranteed) {
     return false;
@@ -110,13 +111,13 @@ static FunctionTest OwnershipUtilsHasPointerEscape(
     "has_pointer_escape", [](auto &function, auto &arguments, auto &test) {
       auto value = arguments.takeValue();
       auto has = findPointerEscape(value);
-      value->print(llvm::outs());
+      value->print(toolchain::outs());
       auto *boolString = has ? "true" : "false";
-      llvm::outs() << boolString << "\n";
+      toolchain::outs() << boolString << "\n";
     });
 } // end namespace language::test
 
-bool swift::canOpcodeForwardInnerGuaranteedValues(SILValue value) {
+bool language::canOpcodeForwardInnerGuaranteedValues(SILValue value) {
   if (auto *inst = value->getDefiningInstructionOrTerminator()) {
     if (auto fwdOp = ForwardingOperation(inst)) {
       return fwdOp.preservesOwnership() &&
@@ -126,14 +127,14 @@ bool swift::canOpcodeForwardInnerGuaranteedValues(SILValue value) {
   return false;
 }
 
-bool swift::canOpcodeForwardInnerGuaranteedValues(Operand *use) {
+bool language::canOpcodeForwardInnerGuaranteedValues(Operand *use) {
   if (auto fwdOp = ForwardingOperation(use->getUser()))
     return fwdOp.preservesOwnership() &&
            !fwdOp.canForwardOwnedCompatibleValuesOnly();
   return false;
 }
 
-bool swift::canOpcodeForwardOwnedValues(SILValue value) {
+bool language::canOpcodeForwardOwnedValues(SILValue value) {
   if (auto *inst = value->getDefiningInstructionOrTerminator()) {
     if (auto fwdOp = ForwardingOperation(inst)) {
       return fwdOp.preservesOwnership() &&
@@ -143,14 +144,14 @@ bool swift::canOpcodeForwardOwnedValues(SILValue value) {
   return false;
 }
 
-bool swift::canOpcodeForwardOwnedValues(Operand *use) {
+bool language::canOpcodeForwardOwnedValues(Operand *use) {
   if (auto fwdOp = ForwardingOperation(use->getUser()))
     return fwdOp.preservesOwnership() &&
            !fwdOp.canForwardGuaranteedCompatibleValuesOnly();
   return false;
 }
 
-BorrowedFromInst *swift::getBorrowedFromUser(SILValue v) {
+BorrowedFromInst *language::getBorrowedFromUser(SILValue v) {
   for (auto *use : v->getUses()) {
     if (auto *bfi = dyn_cast<BorrowedFromInst>(use->getUser())) {
       if (use->getOperandNumber() == 0) {
@@ -161,13 +162,13 @@ BorrowedFromInst *swift::getBorrowedFromUser(SILValue v) {
   return nullptr;
 }
 
-SILValue swift::lookThroughBorrowedFromUser(SILValue v) {
+SILValue language::lookThroughBorrowedFromUser(SILValue v) {
   if (BorrowedFromInst *bfi = getBorrowedFromUser(v))
     return bfi;
   return v;
 }
 
-SILValue swift::lookThroughBorrowedFromDef(SILValue v) {
+SILValue language::lookThroughBorrowedFromDef(SILValue v) {
   while (auto *bfi = dyn_cast<BorrowedFromInst>(v)) {
     v = bfi->getBorrowedValue();
   }
@@ -194,7 +195,7 @@ SILValue swift::lookThroughBorrowedFromDef(SILValue v) {
 // guaranteedValue. Audit all users to handle reborrows.
 //
 // TODO: Replace this with OwnershipUseVisitor.
-bool swift::findInnerTransitiveGuaranteedUses(
+bool language::findInnerTransitiveGuaranteedUses(
   SILValue guaranteedValue, SmallVectorImpl<Operand *> *usePoints) {
 
   bool foundPointerEscape = false;
@@ -229,7 +230,7 @@ bool swift::findInnerTransitiveGuaranteedUses(
     case OperandOwnership::TrivialUse:
     case OperandOwnership::ForwardingConsume:
     case OperandOwnership::DestroyingConsume:
-      llvm_unreachable("this operand cannot handle an inner guaranteed use");
+      toolchain_unreachable("this operand cannot handle an inner guaranteed use");
 
     case OperandOwnership::ForwardingUnowned:
     case OperandOwnership::PointerEscape:
@@ -321,7 +322,7 @@ bool swift::findInnerTransitiveGuaranteedUses(
 
 /// Find all uses in the extended lifetime (i.e. including copies) of a simple
 /// (i.e. not reborrowed) borrow scope and its transitive uses.
-bool swift::findExtendedUsesOfSimpleBorrowedValue(
+bool language::findExtendedUsesOfSimpleBorrowedValue(
     BorrowedValue borrowedValue, SmallVectorImpl<Operand *> *usePoints) {
 
   auto recordUse = [&](Operand *use) {
@@ -436,7 +437,7 @@ bool swift::findExtendedUsesOfSimpleBorrowedValue(
 }
 
 // TODO: refactor this with SSAPrunedLiveness::computeLiveness.
-bool swift::findUsesOfSimpleValue(SILValue value,
+bool language::findUsesOfSimpleValue(SILValue value,
                                   SmallVectorImpl<Operand *> *usePoints) {
   for (auto *use : value->getUses()) {
     switch (use->getOperandOwnership()) {
@@ -461,7 +462,7 @@ bool swift::findUsesOfSimpleValue(SILValue value,
   return true;
 }
 
-bool swift::visitGuaranteedForwardingPhisForSSAValue(
+bool language::visitGuaranteedForwardingPhisForSSAValue(
     SILValue value, function_ref<bool(Operand *)> visitor) {
   assert(isa<BeginBorrowInst>(value) || isa<LoadBorrowInst>(value) ||
          (isa<SILPhiArgument>(value) &&
@@ -469,7 +470,7 @@ bool swift::visitGuaranteedForwardingPhisForSSAValue(
   // guaranteedForwardingOps is a collection of all transitive
   // GuaranteedForwarding uses of \p value. It is a set, to avoid repeated
   // processing of structs and tuples which are GuaranteedForwarding.
-  llvm::SmallSetVector<Operand *, 4> guaranteedForwardingOps;
+  toolchain::SmallSetVector<Operand *, 4> guaranteedForwardingOps;
   // Collect first-level GuaranteedForwarding uses, and call the visitor on any
   // GuaranteedForwardingPhi uses.
   for (auto *use : value->getUses()) {
@@ -512,7 +513,7 @@ bool swift::visitGuaranteedForwardingPhisForSSAValue(
 // uses. There is no need to transitively process uses. However, unlike inner
 // guaranteed values, they can have reborrows. To transitively process
 // reborrows, use findExtendedTransitiveBorrowedUses.
-bool swift::findTransitiveGuaranteedUses(
+bool language::findTransitiveGuaranteedUses(
     SILValue guaranteedValue, SmallVectorImpl<Operand *> &usePoints,
     function_ref<void(Operand *)> visitReborrow) {
 
@@ -538,7 +539,7 @@ bool swift::findTransitiveGuaranteedUses(
 // Find all use points of \p guaranteedValue within its borrow scope. If the
 // guaranteed value introduces a borrow scope, then this includes the extended
 // borrow scope by following reborrows.
-bool swift::
+bool language::
 findExtendedTransitiveGuaranteedUses(SILValue guaranteedValue,
                                      SmallVectorImpl<Operand *> &usePoints) {
   // Multiple paths may reach the same reborrows, and reborrow may even be
@@ -572,10 +573,10 @@ findExtendedTransitiveGuaranteedUses(SILValue guaranteedValue,
 //                           Borrowing Operand
 //===----------------------------------------------------------------------===//
 
-void BorrowingOperandKind::print(llvm::raw_ostream &os) const {
+void BorrowingOperandKind::print(toolchain::raw_ostream &os) const {
   switch (value) {
   case Kind::Invalid:
-    llvm_unreachable("Using an unreachable?!");
+    toolchain_unreachable("Using an unreachable?!");
   case Kind::BeginBorrow:
     os << "BeginBorrow";
     return;
@@ -610,23 +611,23 @@ void BorrowingOperandKind::print(llvm::raw_ostream &os) const {
     os << "BeginAsyncLet";
     return;
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      BorrowingOperandKind kind) {
   kind.print(os);
   return os;
 }
 
-void BorrowingOperand::print(llvm::raw_ostream &os) const {
+void BorrowingOperand::print(toolchain::raw_ostream &os) const {
   os << "BorrowScopeOperand:\n"
         "Kind: " << kind << "\n"
         "Value: " << op->get()
      << "User: " << *op->getUser();
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      const BorrowingOperand &operand) {
   operand.print(os);
   return os;
@@ -635,7 +636,7 @@ llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
 bool BorrowingOperand::hasEmptyRequiredEndingUses() const {
   switch (kind) {
   case BorrowingOperandKind::Invalid:
-    llvm_unreachable("Using invalid case");
+    toolchain_unreachable("Using invalid case");
   case BorrowingOperandKind::BeginBorrow:
   case BorrowingOperandKind::BorrowedFrom:
   case BorrowingOperandKind::StoreBorrow:
@@ -656,7 +657,7 @@ bool BorrowingOperand::hasEmptyRequiredEndingUses() const {
   case BorrowingOperandKind::Yield:
     return false;
   }
-  llvm_unreachable("Covered switch isn't covered");
+  toolchain_unreachable("Covered switch isn't covered");
 }
 
 bool BorrowingOperand::visitScopeEndingUses(
@@ -664,12 +665,12 @@ bool BorrowingOperand::visitScopeEndingUses(
   function_ref<bool(Operand *)> visitUnknownUse) const {
   switch (kind) {
   case BorrowingOperandKind::Invalid:
-    llvm_unreachable("Using invalid case");
+    toolchain_unreachable("Using invalid case");
   case BorrowingOperandKind::BorrowedFrom:
     if (!cast<BorrowedFromInst>(op->getUser())->isReborrow()) {
       return visitUnknownUse(op);
     }
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case BorrowingOperandKind::BeginBorrow: {
     bool deadBorrow = true;
     for (auto *use : cast<SingleValueInstruction>(op->getUser())->getUses()) {
@@ -773,7 +774,7 @@ bool BorrowingOperand::visitScopeEndingUses(
     return true;
   }
   }
-  llvm_unreachable("Covered switch isn't covered");
+  toolchain_unreachable("Covered switch isn't covered");
 }
 
 bool BorrowingOperand::visitExtendedScopeEndingUses(
@@ -789,7 +790,7 @@ bool BorrowingOperand::visitExtendedScopeEndingUses(
   return visitScopeEndingUses(visitor, visitUnknownUse);
 }
 
-// This should be equivalent to SwiftCompilerSources, BorrowedValue.
+// This should be equivalent to CodiraCompilerSources, BorrowedValue.
 SILValue BorrowingOperand::getBorrowIntroducingUserResult() const {
   switch (kind) {
   case BorrowingOperandKind::Invalid:
@@ -820,7 +821,7 @@ SILValue BorrowingOperand::getBorrowIntroducingUserResult() const {
     return bi->getDestBB()->getArgument(op->getOperandNumber());
   }
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 SILValue BorrowingOperand::getScopeIntroducingUserResult() const {
@@ -843,7 +844,7 @@ SILValue BorrowingOperand::getScopeIntroducingUserResult() const {
   default:
     return getBorrowIntroducingUserResult();
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 SILValue BorrowingOperand::getDependentUserResult() const {
@@ -875,17 +876,17 @@ SILValue BorrowingOperand::getDependentUserResult() const {
   case BorrowingOperandKind::BeginAsyncLet:
     return SILValue();
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 //===----------------------------------------------------------------------===//
 //                             Borrow Introducers
 //===----------------------------------------------------------------------===//
 
-void BorrowedValueKind::print(llvm::raw_ostream &os) const {
+void BorrowedValueKind::print(toolchain::raw_ostream &os) const {
   switch (value) {
   case BorrowedValueKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case BorrowedValueKind::SILFunctionArgument:
     os << "SILFunctionArgument";
     return;
@@ -902,10 +903,10 @@ void BorrowedValueKind::print(llvm::raw_ostream &os) const {
     os << "BeginApply";
     return;
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
-void BorrowedValue::print(llvm::raw_ostream &os) const {
+void BorrowedValue::print(toolchain::raw_ostream &os) const {
   os << "BorrowScopeIntroducingValue:\n"
     "Kind: " << kind << "\n"
     "Value: " << value;
@@ -927,9 +928,9 @@ bool BorrowedValue::visitLocalScopeEndingUses(
   assert(isLocalScope() && "Should only call this given a local scope");
   switch (kind) {
   case BorrowedValueKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case BorrowedValueKind::SILFunctionArgument:
-    llvm_unreachable("Should only call this with a local scope");
+    toolchain_unreachable("Should only call this with a local scope");
   case BorrowedValueKind::LoadBorrow:
   case BorrowedValueKind::BeginBorrow:
   case BorrowedValueKind::Phi:
@@ -946,16 +947,16 @@ bool BorrowedValue::visitLocalScopeEndingUses(
     }
     return true;
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      BorrowedValueKind kind) {
   kind.print(os);
   return os;
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      const BorrowedValue &value) {
   value.print(os);
   return os;
@@ -994,7 +995,7 @@ bool BorrowedValue::areUsesWithinExtendedScope(
   return liveness.areUsesWithinBoundary(uses, deadEndBlocks);
 }
 
-// The visitor \p func is only called on final scope-ending uses, not reborrows.
+// The visitor \p fn is only called on final scope-ending uses, not reborrows.
 bool BorrowedValue::visitExtendedScopeEndingUses(
     function_ref<bool(Operand *)> visitor) const {
   assert(isLocalScope());
@@ -1053,7 +1054,7 @@ bool BorrowedValue::visitTransitiveLifetimeEndingUses(
 }
 
 bool BorrowedValue::visitInteriorPointerOperandHelper(
-    function_ref<void(InteriorPointerOperand)> func,
+    function_ref<void(InteriorPointerOperand)> fn,
     BorrowedValue::InteriorPointerOperandVisitorKind kind) const {
   using Kind = BorrowedValue::InteriorPointerOperandVisitorKind;
 
@@ -1062,7 +1063,7 @@ bool BorrowedValue::visitInteriorPointerOperandHelper(
     auto *op = worklist.pop_back_val();
 
     if (auto interiorPointer = InteriorPointerOperand(op)) {
-      func(interiorPointer);
+      fn(interiorPointer);
       continue;
     }
 
@@ -1089,7 +1090,7 @@ bool BorrowedValue::visitInteriorPointerOperandHelper(
       }
       for (auto *use : result->getUses()) {
         if (auto intPtrOperand = InteriorPointerOperand(use)) {
-          func(intPtrOperand);
+          fn(intPtrOperand);
           continue;
         }
         worklist.push_back(use);
@@ -1164,10 +1165,10 @@ bool AddressOwnership::areUsesWithinLifetime(
 //                          Owned Value Introducers
 //===----------------------------------------------------------------------===//
 
-void OwnedValueIntroducerKind::print(llvm::raw_ostream &os) const {
+void OwnedValueIntroducerKind::print(toolchain::raw_ostream &os) const {
   switch (value) {
   case OwnedValueIntroducerKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case OwnedValueIntroducerKind::Apply:
     os << "Apply";
     return;
@@ -1211,19 +1212,19 @@ void OwnedValueIntroducerKind::print(llvm::raw_ostream &os) const {
     os << "AllocRefInit";
     return;
   }
-  llvm_unreachable("Covered switch isn't covered");
+  toolchain_unreachable("Covered switch isn't covered");
 }
 
 //===----------------------------------------------------------------------===//
 //                       Introducer Searching Routines
 //===----------------------------------------------------------------------===//
 
-bool swift::getAllBorrowIntroducingValues(SILValue inputValue,
+bool language::getAllBorrowIntroducingValues(SILValue inputValue,
                                           SmallVectorImpl<BorrowedValue> &out) {
   if (inputValue->getOwnershipKind() != OwnershipKind::Guaranteed)
     return false;
 
-  llvm::SmallSetVector<SILValue, 32> worklist;
+  toolchain::SmallSetVector<SILValue, 32> worklist;
   worklist.insert(inputValue);
 
   // worklist grows in this loop.
@@ -1277,7 +1278,7 @@ bool swift::getAllBorrowIntroducingValues(SILValue inputValue,
 }
 
 // FIXME: replace this logic with AccessBase::findOwnershipReferenceRoot.
-BorrowedValue swift::getSingleBorrowIntroducingValue(SILValue inputValue) {
+BorrowedValue language::getSingleBorrowIntroducingValue(SILValue inputValue) {
   if (inputValue->getOwnershipKind() != OwnershipKind::Guaranteed)
     return {};
 
@@ -1314,10 +1315,10 @@ BorrowedValue swift::getSingleBorrowIntroducingValue(SILValue inputValue) {
     return {};
   }
 
-  llvm_unreachable("Should never hit this");
+  toolchain_unreachable("Should never hit this");
 }
 
-bool swift::getAllOwnedValueIntroducers(
+bool language::getAllOwnedValueIntroducers(
     SILValue inputValue, SmallVectorImpl<OwnedValueIntroducer> &out) {
   if (inputValue->getOwnershipKind() != OwnershipKind::Owned)
     return false;
@@ -1345,7 +1346,7 @@ bool swift::getAllOwnedValueIntroducers(
     // instruction
     if (isForwardingConsume(value)) {
       if (auto *i = value->getDefiningInstructionOrTerminator()) {
-        llvm::copy(i->getNonTypeDependentOperandValues(),
+        toolchain::copy(i->getNonTypeDependentOperandValues(),
                    std::back_inserter(worklist));
         continue;
       }
@@ -1359,7 +1360,7 @@ bool swift::getAllOwnedValueIntroducers(
   return true;
 }
 
-OwnedValueIntroducer swift::getSingleOwnedValueIntroducer(SILValue inputValue) {
+OwnedValueIntroducer language::getSingleOwnedValueIntroducer(SILValue inputValue) {
   if (inputValue->getOwnershipKind() != OwnershipKind::Owned)
     return {};
 
@@ -1393,7 +1394,7 @@ OwnedValueIntroducer swift::getSingleOwnedValueIntroducer(SILValue inputValue) {
     return {};
   }
 
-  llvm_unreachable("Should never hit this");
+  toolchain_unreachable("Should never hit this");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1436,7 +1437,7 @@ ValueOwnershipKind ForwardingOperand::getForwardingOwnershipKind() const {
     return ofti->getForwardingOwnershipKind();
   }
 
-  llvm_unreachable("Unhandled forwarding inst?!");
+  toolchain_unreachable("Unhandled forwarding inst?!");
 }
 
 void ForwardingOperand::setForwardingOwnershipKind(
@@ -1498,7 +1499,7 @@ void ForwardingOperand::setForwardingOwnershipKind(
       !isa<MoveOnlyWrapperToCopyableValueInst>(user) &&
       "MoveOnlyWrapperToCopyableValueInst can not have its ownership changed");
 
-  llvm_unreachable("Out of sync with OperandOwnership");
+  toolchain_unreachable("Out of sync with OperandOwnership");
 }
 
 void ForwardingOperand::replaceOwnershipKind(ValueOwnershipKind oldKind,
@@ -1557,7 +1558,7 @@ void ForwardingOperand::replaceOwnershipKind(ValueOwnershipKind oldKind,
       !isa<MoveOnlyWrapperToCopyableValueInst>(user) &&
       "MoveOnlyWrapperToCopyableValueInst can not have its ownership changed");
 
-  llvm_unreachable("Missing Case! Out of sync with OperandOwnership");
+  toolchain_unreachable("Missing Case! Out of sync with OperandOwnership");
 }
 
 SILValue ForwardingOperand::getSingleForwardedValue() const {
@@ -1577,7 +1578,7 @@ bool ForwardingOperand::visitForwardedValues(
   }
 
   if (auto *mvri = dyn_cast<MultipleValueInstruction>(user)) {
-    return llvm::all_of(mvri->getResults(), [&](SILValue value) {
+    return toolchain::all_of(mvri->getResults(), [&](SILValue value) {
       if (value->getOwnershipKind() == OwnershipKind::None)
         return true;
       return visitor(value);
@@ -1589,7 +1590,7 @@ bool ForwardingOperand::visitForwardedValues(
   // most have a single phi argument.
   auto *ti = cast<TermInst>(user);
   if (ti->mayHaveTerminatorResult()) {
-    return llvm::all_of(
+    return toolchain::all_of(
         ti->getSuccessorBlocks(), [&](SILBasicBlock *succBlock) {
           // If we do not have any arguments, then continue.
           if (succBlock->args_empty())
@@ -1611,14 +1612,14 @@ bool ForwardingOperand::visitForwardedValues(
   return visitor(succArg);
 }
 
-void swift::visitExtendedReborrowPhiBaseValuePairs(
+void language::visitExtendedReborrowPhiBaseValuePairs(
     BeginBorrowInst *borrowInst, function_ref<void(SILPhiArgument *, SILValue)>
                                      visitReborrowPhiBaseValuePair) {
   // A Reborrow can have different base values on different control flow
   // paths.
   // For that reason, worklist stores (reborrow, base value) pairs.
   // We need a SetVector to make sure we don't revisit the same pair again.
-  llvm::SmallSetVector<std::tuple<PhiOperand, SILValue>, 4> worklist;
+  toolchain::SmallSetVector<std::tuple<PhiOperand, SILValue>, 4> worklist;
 
   // Find all reborrows of value and insert the (reborrow, base value) pair into
   // the worklist.
@@ -1669,7 +1670,7 @@ void swift::visitExtendedReborrowPhiBaseValuePairs(
   }
 }
 
-void swift::visitExtendedGuaranteedForwardingPhiBaseValuePairs(
+void language::visitExtendedGuaranteedForwardingPhiBaseValuePairs(
     BorrowedValue borrow, function_ref<void(SILPhiArgument *, SILValue)>
                               visitGuaranteedForwardingPhiBaseValuePair) {
   assert(borrow.kind == BorrowedValueKind::BeginBorrow ||
@@ -1679,7 +1680,7 @@ void swift::visitExtendedGuaranteedForwardingPhiBaseValuePairs(
   // For that reason, worklist stores (GuaranteedForwardingPhi operand, base
   // value) pairs. We need a SetVector to make sure we don't revisit the same
   // pair again.
-  llvm::SmallSetVector<std::tuple<PhiOperand, SILValue>, 4> worklist;
+  toolchain::SmallSetVector<std::tuple<PhiOperand, SILValue>, 4> worklist;
 
   auto collectGuaranteedForwardingPhis = [&](SILValue value,
                                              SILValue baseValue) {
@@ -1740,7 +1741,7 @@ void swift::visitExtendedGuaranteedForwardingPhiBaseValuePairs(
 ///
 /// This intentionally does not handle phis, which require recursive traversal
 /// to determine `isGuaranteedForwardingPhi`.
-bool swift::visitForwardedGuaranteedOperands(
+bool language::visitForwardedGuaranteedOperands(
   SILValue value, function_ref<void(Operand *)> visitOperand) {
 
   assert(!SILArgument::asPhi(value) && "phis are handled separately");
@@ -1804,7 +1805,7 @@ public:
     if (auto borrowedValue = BorrowedValue(value)) {
       switch (borrowedValue.kind) {
       case BorrowedValueKind::Invalid:
-        llvm_unreachable("checked above");
+        toolchain_unreachable("checked above");
 
       case BorrowedValueKind::Phi: {
         StackList<SILValue> enclosingDefs(function);
@@ -2028,9 +2029,9 @@ protected:
 
     switch (borrowedValue.kind) {
     case BorrowedValueKind::Phi:
-      llvm_unreachable("phis are short-curcuited above");
+      toolchain_unreachable("phis are short-curcuited above");
     case BorrowedValueKind::Invalid:
-      llvm_unreachable("A reborrow immediate operand must be a BorrowedValue.");
+      toolchain_unreachable("A reborrow immediate operand must be a BorrowedValue.");
     case BorrowedValueKind::BeginBorrow: {
       LocalValueSetVector visitedValues;
       recursivelyFindBorrowIntroducers(
@@ -2122,7 +2123,7 @@ protected:
 
 } // end namespace
 
-bool swift::visitEnclosingDefs(SILValue value,
+bool language::visitEnclosingDefs(SILValue value,
                                function_ref<bool(SILValue)> visitor) {
   if (isa<SILUndef>(value))
     return true;
@@ -2138,16 +2139,16 @@ namespace language::test {
 // - the enclosing defs
 static FunctionTest FindEnclosingDefsTest(
     "find_enclosing_defs", [](auto &function, auto &arguments, auto &test) {
-      function.print(llvm::outs());
-      llvm::outs() << "Enclosing Defs:\n";
+      function.print(toolchain::outs());
+      toolchain::outs() << "Enclosing Defs:\n";
       visitEnclosingDefs(arguments.takeValue(), [](SILValue def) {
-        def->print(llvm::outs());
+        def->print(toolchain::outs());
         return true;
       });
     });
 } // end namespace language::test
 
-bool swift::visitBorrowIntroducers(SILValue value,
+bool language::visitBorrowIntroducers(SILValue value,
                                    function_ref<bool(SILValue)> visitor) {
   if (isa<SILUndef>(value))
     return true;
@@ -2163,10 +2164,10 @@ namespace language::test {
 // - the borrow introducers
 static FunctionTest FindBorrowIntroducers(
     "find_borrow_introducers", [](auto &function, auto &arguments, auto &test) {
-      function.print(llvm::outs());
-      llvm::outs() << "Introducers:\n";
+      function.print(toolchain::outs());
+      toolchain::outs() << "Introducers:\n";
       visitBorrowIntroducers(arguments.takeValue(), [](SILValue def) {
-        def->print(llvm::outs());
+        def->print(toolchain::outs());
         return true;
       });
     });
@@ -2227,7 +2228,7 @@ static FunctionTest FindBorrowIntroducers(
 /// 'innerPhi' if and only if: on any path, the operand of 'outerPhi' is the
 /// enclosing definition of the operand of 'innerPhi' on the same path.
 ///      
-bool swift::isInnerAdjacentPhi(SILArgument *innerPhiVal,
+bool language::isInnerAdjacentPhi(SILArgument *innerPhiVal,
                                SILArgument *outerPhiVal) {
   auto innerPhi = PhiValue(innerPhiVal);
   auto outerPhi = PhiValue(outerPhiVal);
@@ -2256,7 +2257,7 @@ bool swift::isInnerAdjacentPhi(SILArgument *innerPhiVal,
 ///
 /// If the visitor returns false, stops visiting and returns false.  Otherwise,
 /// returns true.
-bool swift::visitInnerAdjacentPhis(SILArgument *phi,
+bool language::visitInnerAdjacentPhis(SILArgument *phi,
                                    function_ref<bool(SILArgument *)> visitor) {
   SILBasicBlock *block = phi->getParentBlock();
   if (block->pred_empty())
@@ -2283,16 +2284,16 @@ namespace language::test {
 static FunctionTest VisitInnerAdjacentPhisTest(
     "visit_inner_adjacent_phis",
     [](auto &function, auto &arguments, auto &test) {
-      function.print(llvm::outs());
+      function.print(toolchain::outs());
       visitInnerAdjacentPhis(cast<SILPhiArgument>(arguments.takeValue()),
                              [](auto *argument) -> bool {
-                               argument->print(llvm::outs());
+                               argument->print(toolchain::outs());
                                return true;
                              });
     });
 } // end namespace language::test
 
-void swift::visitTransitiveEndBorrows(
+void language::visitTransitiveEndBorrows(
     SILValue value,
     function_ref<void(EndBorrowInst *)> visitEndBorrow) {
   GraphNodeWorklist<SILValue, 4> worklist;
@@ -2321,7 +2322,7 @@ void swift::visitTransitiveEndBorrows(
 /// - the non-guaranteed borrowee's value is lexical
 /// - the guaranteed borrowee's value's reference roots are lexical
 ///   - for example, the borrowee is itself a begin_borrow [lexical]
-bool swift::isNestedLexicalBeginBorrow(BeginBorrowInst *bbi) {
+bool language::isNestedLexicalBeginBorrow(BeginBorrowInst *bbi) {
   assert(bbi->isLexical());
   auto value = bbi->getOperand();
   if (value->getOwnershipKind() != OwnershipKind::Guaranteed) {
@@ -2330,7 +2331,7 @@ bool swift::isNestedLexicalBeginBorrow(BeginBorrowInst *bbi) {
   SmallVector<SILValue, 8> roots;
   findGuaranteedReferenceRoots(value, /*lookThroughNestedBorrows=*/false,
                                roots);
-  return llvm::all_of(roots, [](auto root) {
+  return toolchain::all_of(roots, [](auto root) {
     if (auto *outerBBI = dyn_cast<BeginBorrowInst>(root)) {
       return (bool)outerBBI->isLexical();
     }
@@ -2341,7 +2342,7 @@ bool swift::isNestedLexicalBeginBorrow(BeginBorrowInst *bbi) {
   });
 }
 
-bool swift::isRedundantMoveValue(MoveValueInst *mvi) {
+bool language::isRedundantMoveValue(MoveValueInst *mvi) {
   // Given: %moved_to_value = move_value %original_value
   //
   // Check whether the original value's lifetime and the moved-to value's
@@ -2416,7 +2417,7 @@ bool swift::isRedundantMoveValue(MoveValueInst *mvi) {
   return moveHasEscape == originalHasEscape;
 }
 
-void swift::updateReborrowFlags(SILValue forEndBorrowValue) {
+void language::updateReborrowFlags(SILValue forEndBorrowValue) {
   ValueWorklist worklist(forEndBorrowValue);
   while (SILValue v = worklist.pop()) {
     if (auto *bfi = dyn_cast<BorrowedFromInst>(v)) {

@@ -1,0 +1,29 @@
+// RUN: %target-language-frontend -emit-ir %s
+
+public fn foo<T : P & Q>(_: T, _: S<T>.A) {}
+
+public protocol P {
+  associatedtype A
+
+  fn foo() -> A
+}
+
+public protocol Q {
+  associatedtype A
+
+  fn bar() -> A
+}
+
+public struct S<T> {}
+
+extension S : P where T : P {
+  public fn foo() -> Int {
+    return 0
+  }
+}
+
+extension S : Q where T : Q {
+  public fn bar() -> Int {
+    return 0
+  }
+}

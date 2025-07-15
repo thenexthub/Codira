@@ -1,4 +1,4 @@
-//===--- Statistic.cpp - Swift unified stats reporting --------------------===//
+//===--- Statistic.cpp - Codira unified stats reporting --------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -18,17 +19,17 @@
 #include "language/Config.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Config/config.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/Config/config.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <chrono>
 #include <limits>
 
-#if LLVM_ON_UNIX
+#if TOOLCHAIN_ON_UNIX
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -36,7 +37,7 @@
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-#ifdef HAVE_SYS_RESOURCE_H
+#if HAVE_GETRUSAGE && !defined(__HAIKU__)
 #include <sys/resource.h>
 #endif
 #ifdef HAVE_PROC_PID_RUSAGE
@@ -52,11 +53,11 @@
 #endif
 
 namespace language {
-using namespace llvm;
-using namespace llvm::sys;
+using namespace toolchain;
+using namespace toolchain::sys;
 
 bool environmentVariableRequestedMaximumDeterminism() {
-  if (const char *S = ::getenv("SWIFTC_MAXIMUM_DETERMINISM"))
+  if (const char *S = ::getenv("LANGUAGEC_MAXIMUM_DETERMINISM"))
     return (S[0] != '\0');
   return false;
 }
@@ -158,7 +159,7 @@ auxName(StringRef ModuleName,
 
 class UnifiedStatsReporter::RecursionSafeTimers {
   struct RecursionSafeTimer {
-    std::optional<llvm::NamedRegionTimer> Timer;
+    std::optional<toolchain::NamedRegionTimer> Timer;
     size_t RecursionDepth;
   };
 
@@ -169,7 +170,7 @@ public:
   void beginTimer(StringRef Name) {
     RecursionSafeTimer &T = Timers[Name];
     if (T.RecursionDepth == 0) {
-      T.Timer.emplace(Name, Name, "swift", "Swift compilation");
+      T.Timer.emplace(Name, Name, "language", "Codira compilation");
     }
     ++T.RecursionDepth;
   }
@@ -253,11 +254,11 @@ public:
 
   void printToFile(StringRef Dirname, StringRef Filename) const {
     SmallString<256> Path(Dirname);
-    llvm::sys::path::append(Path, Filename);
+    toolchain::sys::path::append(Path, Filename);
     std::error_code EC;
     raw_fd_ostream Stream(Path, EC, fs::OF_Append | fs::OF_Text);
     if (EC) {
-      llvm::errs() << "Error opening profile file '"
+      toolchain::errs() << "Error opening profile file '"
                    << Path << "' for writing\n";
       return;
     }
@@ -295,7 +296,7 @@ public:
 struct UnifiedStatsReporter::StatsProfilers
 {
   // Timerecord of last update.
-  llvm::TimeRecord LastUpdated;
+  toolchain::TimeRecord LastUpdated;
 
   // One profiler for each time category.
   StatsProfiler UserTime;
@@ -309,7 +310,7 @@ struct UnifiedStatsReporter::StatsProfilers
 #undef FRONTEND_STATISTIC
 
   StatsProfilers()
-    : LastUpdated(llvm::TimeRecord::getCurrentTime())
+    : LastUpdated(toolchain::TimeRecord::getCurrentTime())
   {}
 };
 
@@ -355,7 +356,7 @@ UnifiedStatsReporter::UnifiedStatsReporter(StringRef ProgramName,
     StatsFilename(Directory),
     TraceFilename(Directory),
     ProfileDirname(Directory),
-    StartedTime(llvm::TimeRecord::getCurrentTime()),
+    StartedTime(toolchain::TimeRecord::getCurrentTime()),
     MainThreadID(std::this_thread::get_id()),
     Timer(std::make_unique<NamedRegionTimer>(AuxName,
                                         "Building Target",
@@ -386,7 +387,7 @@ void UnifiedStatsReporter::recordJobMaxRSS(long rss) {
 }
 
 int64_t UnifiedStatsReporter::getChildrenMaxResidentSetSize() {
-#if defined(HAVE_GETRUSAGE) && !defined(__HAIKU__)
+#if HAVE_GETRUSAGE && !defined(__HAIKU__)
   struct rusage RU;
   ::getrusage(RUSAGE_CHILDREN, &RU);
   int64_t M = static_cast<int64_t>(RU.ru_maxrss);
@@ -460,7 +461,7 @@ UnifiedStatsReporter::publishAlwaysOnStatsToLLVM() {
 
 void
 UnifiedStatsReporter::printAlwaysOnStatsAndTimers(raw_ostream &OS) {
-  // Adapted from llvm::PrintStatisticsJSON
+  // Adapted from toolchain::PrintStatisticsJSON
   OS << "{\n";
   const char *delim = "";
   if (FrontendCounters) {
@@ -500,7 +501,7 @@ FrontendStatsTracer::FrontendStatsTracer(
     : Reporter(Reporter), SavedTime(), EventName(EventName), Entity(Entity),
       Formatter(Formatter) {
   if (Reporter) {
-    SavedTime = llvm::TimeRecord::getCurrentTime();
+    SavedTime = toolchain::TimeRecord::getCurrentTime();
     Reporter->saveAnyFrontendStatsEvents(*this, true);
   }
 }
@@ -556,7 +557,7 @@ void updateProcessWideFrontendCounters(
   // we get called often enough. This will happen when profiling/tracing,
   // but not while doing single-query-on-shutdown collection.
   C.MaxMallocUsage = std::max(C.MaxMallocUsage,
-                              (int64_t)llvm::sys::Process::GetMallocUsage());
+                              (int64_t)toolchain::sys::Process::GetMallocUsage());
 #endif
 }
 
@@ -600,7 +601,7 @@ UnifiedStatsReporter::saveAnyFrontendStatsEvents(
   // or profilers, we're not tracing or profiling: return early.
   if (!LastTracedFrontendCounters)
     return;
-  auto Now = llvm::TimeRecord::getCurrentTime();
+  auto Now = toolchain::TimeRecord::getCurrentTime();
   auto &Curr = getFrontendCounters();
   auto &Last = *LastTracedFrontendCounters;
   updateProcessWideFrontendCounters(Curr);
@@ -693,7 +694,7 @@ UnifiedStatsReporter::~UnifiedStatsReporter()
 
   // We currently do this by manual TimeRecord keeping because LLVM has decided
   // not to allow access to the Timers inside NamedRegionTimers.
-  auto ElapsedTime = llvm::TimeRecord::getCurrentTime();
+  auto ElapsedTime = toolchain::TimeRecord::getCurrentTime();
   ElapsedTime -= StartedTime;
 
   if (DriverCounters) {
@@ -712,12 +713,12 @@ UnifiedStatsReporter::~UnifiedStatsReporter()
   std::error_code EC;
   raw_fd_ostream ostream(StatsFilename, EC, fs::OF_Append | fs::OF_Text);
   if (EC) {
-    llvm::errs() << "Error opening -stats-output-dir file '"
+    toolchain::errs() << "Error opening -stats-output-dir file '"
                  << StatsFilename << "' for writing\n";
     return;
   }
 
-  // We change behavior here depending on whether -DLLVM_ENABLE_STATS and/or
+  // We change behavior here depending on whether -DTOOLCHAIN_ENABLE_STATS and/or
   // assertions were on in this build; this is somewhat subtle, but turning on
   // all stats for all of LLVM and clang is a bit more expensive and intrusive
   // than we want to be in release builds.
@@ -730,7 +731,7 @@ UnifiedStatsReporter::~UnifiedStatsReporter()
   //    compile-time) so we sequence printing our own stats and LLVM's timers
   //    manually.
 
-#if !defined(NDEBUG) || LLVM_ENABLE_STATS
+#if !defined(NDEBUG) || TOOLCHAIN_ENABLE_STATS
   publishAlwaysOnStatsToLLVM();
   PrintStatisticsJSON(ostream);
   TimerGroup::clearAll();
@@ -744,13 +745,13 @@ void
 UnifiedStatsReporter::flushTracesAndProfiles() {
   // Note that we're currently flushing statistics and shouldn't record any
   // more until we've finished.
-  llvm::SaveAndRestore<bool> flushing(IsFlushingTracesAndProfiles, true);
+  toolchain::SaveAndRestore<bool> flushing(IsFlushingTracesAndProfiles, true);
 
   if (FrontendStatsEvents && SourceMgr) {
     std::error_code EC;
     raw_fd_ostream tstream(TraceFilename, EC, fs::OF_Append | fs::OF_Text);
     if (EC) {
-      llvm::errs() << "Error opening -trace-stats-events file '"
+      toolchain::errs() << "Error opening -trace-stats-events file '"
                    << TraceFilename << "' for writing\n";
       return;
     }
@@ -776,9 +777,9 @@ UnifiedStatsReporter::flushTracesAndProfiles() {
   }
 
   if (EventProfilers || EntityProfilers) {
-    std::error_code EC = llvm::sys::fs::create_directories(ProfileDirname);
+    std::error_code EC = toolchain::sys::fs::create_directories(ProfileDirname);
     if (EC) {
-      llvm::errs() << "Failed to create directory '" << ProfileDirname << "': "
+      toolchain::errs() << "Failed to create directory '" << ProfileDirname << "': "
                    << EC.message() << "\n";
       return;
     }

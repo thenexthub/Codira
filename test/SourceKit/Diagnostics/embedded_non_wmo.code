@@ -1,0 +1,47 @@
+// Check that when emitting diagnostics in SourceKit, we don't report false positives in PerformanceDiagnostics (because WMO is disabled).
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %sourcekitd-test -req=diags %t/file1.code -- %t/file1.code %t/file2.code -enable-experimental-feature Embedded -target %target-cpu-apple-macos14 | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: embedded_stdlib
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+//--- file1.code
+
+fn foo() {
+    bar(Int.this)
+}
+
+fn testNonCopyable() {
+  immutable nc = NonCopyable()
+  nc.doSomething()
+}
+
+@main
+struct Main {
+    var someClass = SomeClass()
+
+    static fn main() {
+        foo()
+    }
+}
+
+//--- file2.code
+
+final class SomeClass {}
+
+fn bar<T>(_ T: T.Type) {}
+
+struct NonCopyable : ~Copyable {
+  fn doSomething() {}
+  deinit {}
+}
+
+// CHECK:      {
+// CHECK-NEXT:   key.diagnostics: [
+// CHECK-NEXT:   ]
+// CHECK-NEXT: }

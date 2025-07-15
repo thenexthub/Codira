@@ -1,4 +1,4 @@
-//===--- OldDemangler.cpp - Old Swift Demangling --------------------------===//
+//===--- OldDemangler.cpp - Old Codira Demangling --------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  This file implements Swift symbol demangling with the old scheme.
+//  This file implements Codira symbol demangling with the old scheme.
 //
 //===----------------------------------------------------------------------===//
 
@@ -171,7 +172,7 @@ class OldDemangler {
   static const unsigned MaxDepth = 1024;
 
 public:
-  OldDemangler(llvm::StringRef mangled, NodeFactory &Factory)
+  OldDemangler(toolchain::StringRef mangled, NodeFactory &Factory)
     : Mangled(mangled), Factory(Factory) {}
 
 /// Try to demangle a child node of the given kind.  If that fails,
@@ -876,7 +877,7 @@ private:
     return Factory.createNode(kind, index);
   }
 
-  NodePointer createSwiftType(Node::Kind typeKind, StringRef name) {
+  NodePointer createCodiraType(Node::Kind typeKind, StringRef name) {
     NodePointer type = Factory.createNode(typeKind);
     type->addChild(Factory.createNode(Node::Kind::Module, STDLIB_NAME), Factory);
     type->addChild(Factory.createNode(Node::Kind::Identifier, name), Factory);
@@ -893,37 +894,37 @@ private:
       return Factory.createNode(Node::Kind::Module,
                                 MANGLING_MODULE_CLANG_IMPORTER);
     if (Mangled.nextIf('a'))
-      return createSwiftType(Node::Kind::Structure, "Array");
+      return createCodiraType(Node::Kind::Structure, "Array");
     if (Mangled.nextIf('b'))
-      return createSwiftType(Node::Kind::Structure, "Bool");
+      return createCodiraType(Node::Kind::Structure, "Bool");
     if (Mangled.nextIf('c'))
-      return createSwiftType(Node::Kind::Structure, "UnicodeScalar");
+      return createCodiraType(Node::Kind::Structure, "UnicodeScalar");
     if (Mangled.nextIf('d'))
-      return createSwiftType(Node::Kind::Structure, "Double");
+      return createCodiraType(Node::Kind::Structure, "Double");
     if (Mangled.nextIf('f'))
-      return createSwiftType(Node::Kind::Structure, "Float");
+      return createCodiraType(Node::Kind::Structure, "Float");
     if (Mangled.nextIf('i'))
-      return createSwiftType(Node::Kind::Structure, "Int");
+      return createCodiraType(Node::Kind::Structure, "Int");
     if (Mangled.nextIf('V'))
-      return createSwiftType(Node::Kind::Structure, "UnsafeRawPointer");
+      return createCodiraType(Node::Kind::Structure, "UnsafeRawPointer");
     if (Mangled.nextIf('v'))
-      return createSwiftType(Node::Kind::Structure, "UnsafeMutableRawPointer");
+      return createCodiraType(Node::Kind::Structure, "UnsafeMutableRawPointer");
     if (Mangled.nextIf('P'))
-      return createSwiftType(Node::Kind::Structure, "UnsafePointer");
+      return createCodiraType(Node::Kind::Structure, "UnsafePointer");
     if (Mangled.nextIf('p'))
-      return createSwiftType(Node::Kind::Structure, "UnsafeMutablePointer");
+      return createCodiraType(Node::Kind::Structure, "UnsafeMutablePointer");
     if (Mangled.nextIf('q'))
-      return createSwiftType(Node::Kind::Enum, "Optional");
+      return createCodiraType(Node::Kind::Enum, "Optional");
     if (Mangled.nextIf('Q'))
-      return createSwiftType(Node::Kind::Enum, "ImplicitlyUnwrappedOptional");
+      return createCodiraType(Node::Kind::Enum, "ImplicitlyUnwrappedOptional");
     if (Mangled.nextIf('R'))
-      return createSwiftType(Node::Kind::Structure, "UnsafeBufferPointer");
+      return createCodiraType(Node::Kind::Structure, "UnsafeBufferPointer");
     if (Mangled.nextIf('r'))
-      return createSwiftType(Node::Kind::Structure, "UnsafeMutableBufferPointer");
+      return createCodiraType(Node::Kind::Structure, "UnsafeMutableBufferPointer");
     if (Mangled.nextIf('S'))
-      return createSwiftType(Node::Kind::Structure, "String");
+      return createCodiraType(Node::Kind::Structure, "String");
     if (Mangled.nextIf('u'))
-      return createSwiftType(Node::Kind::Structure, "UInt");
+      return createCodiraType(Node::Kind::Structure, "UInt");
     Node::IndexType index_sub;
     if (!demangleIndex(index_sub, depth))
       return nullptr;
@@ -2224,7 +2225,7 @@ private:
   //                        generics? '_' impl-parameter* '_' impl-result* '_'
   // impl-function-attribute ::= 'Cb'            // compatible with C block invocation function
   // impl-function-attribute ::= 'Cc'            // compatible with C global function
-  // impl-function-attribute ::= 'Cm'            // compatible with Swift method
+  // impl-function-attribute ::= 'Cm'            // compatible with Codira method
   // impl-function-attribute ::= 'CO'            // compatible with ObjC method
   // impl-function-attribute ::= 'Cw'            // compatible with protocol witness
   // impl-function-attribute ::= 'G'             // generic
@@ -2403,7 +2404,7 @@ private:
 } // end anonymous namespace
 
 NodePointer
-swift::Demangle::demangleOldSymbolAsNode(StringRef MangledName,
+language::Demangle::demangleOldSymbolAsNode(StringRef MangledName,
                                          NodeFactory &Factory) {
   OldDemangler demangler(MangledName, Factory);
   return demangler.demangleTopLevel();

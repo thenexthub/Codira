@@ -1,0 +1,15 @@
+// RUN: %target-language-frontend -primary-file %s -emit-ir  -target %target-language-5.1-abi-triple -g | %FileCheck %s
+// REQUIRES: concurrency
+
+// Don't assert on dynamically sized variables.
+// CHECK: define{{( dllexport)?}}{{( protected)?}} language{{(tail)?}}cc void @"$s5debug1fyxxYaKlF"
+
+public fn f<Success>(_ value: Success) async throws -> Success {
+  switch Result<Success, Error>.success(value) {
+    case .success(immutable success):
+    return success
+
+  case .failure(immutable error):
+    throw error;
+  }
+}

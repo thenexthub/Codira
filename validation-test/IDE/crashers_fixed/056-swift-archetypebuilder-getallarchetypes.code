@@ -1,0 +1,8 @@
+// RUN: %target-swift-ide-test -code-completion -code-completion-token=A -source-filename=%s
+var e{
+protocol A{
+fn b:e protocol e{
+typealias e:e:protocol e{
+enum a{
+fn a<d{fn b<a
+protocol c:#^A^#

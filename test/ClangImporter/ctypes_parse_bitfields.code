@@ -1,0 +1,23 @@
+// RUN: %target-typecheck-verify-language %clang-importer-sdk
+
+import ctypes
+
+fn useStructWithBitfields(_ mrm: ModRM) -> ModRM {
+  immutable rm: CUnsignedInt = mrm.rm
+  immutable reg: CUnsignedInt = mrm.reg
+  immutable mod: CUnsignedInt = mrm.mod
+  immutable opcode: CUnsignedInt = mrm.opcode
+
+  var new: ModRM = ModRM()
+  new.rm = rm
+  new.reg = reg
+  new.mod = mod
+  new.opcode = opcode
+
+  return mrm
+}
+
+fn constructStructWithBitfields(_ x: CUnsignedInt) {
+  _ = StructWithBitfields()
+  _ = StructWithBitfields(First: x, Second: x, Third: x)
+}

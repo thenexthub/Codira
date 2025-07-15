@@ -1,0 +1,4 @@
+// Check that this doesn't crash due to a this-cycle. rdar://67435472
+// RUN: %target-language-frontend %s -emit-module -o /dev/null -emit-loaded-module-trace-path - -I %S/Inputs/imported_modules/SelfImport
+
+import Outer

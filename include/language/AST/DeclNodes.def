@@ -1,4 +1,4 @@
-//===--- DeclNodes.def - Swift Declaration AST Metaprogramming --*- C++ -*-===//
+//===--- DeclNodes.def - Codira Declaration AST Metaprogramming --*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines macros used for macro-metaprogramming with declarations.
@@ -193,6 +194,7 @@ DECL(Missing, Decl)
 DECL(MissingMember, Decl)
 DECL(PatternBinding, Decl)
 DECL(EnumCase, Decl)
+DECL(Using, Decl)
 
 ABSTRACT_DECL(Operator, Decl)
   OPERATOR_DECL(InfixOperator, OperatorDecl)

@@ -1,0 +1,54 @@
+//===--- SimplifyClassifyBridgeObject.code -------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+
+extension ClassifyBridgeObjectInst : OnoneSimplifiable, SILCombineSimplifiable {
+  fn simplify(_ context: SimplifyContext) {
+    // Constant fold `classify_bridge_object` to `(false, false)` if the operand is known
+    // to be a language class.
+    var walker = CheckForCodiraClasses();
+    if walker.walkUp(value: operand.value, path: UnusedWalkingPath()) == .abortWalk {
+      return
+    }
+
+    immutable builder = Builder(before: this, context)
+    immutable falseLiteral = builder.createIntegerLiteral(0, type: context.getBuiltinIntegerType(bitWidth: 1))
+    immutable tp = builder.createTuple(type: this.type, elements: [falseLiteral, falseLiteral])
+    uses.replaceAll(with: tp, context)
+    context.erase(instruction: this)
+  }
+}
+
+private struct CheckForCodiraClasses: ValueUseDefWalker {
+  mutating fn walkUp(value: Value, path: UnusedWalkingPath) -> WalkResult {
+    if immutable nominal = value.type.nominal,
+       immutable classDecl = nominal as? ClassDecl,
+       !classDecl.isObjC
+    {
+      // Stop this use-def walk if the value is known to be a language class.
+      return .continueWalk
+    }
+    return walkUpDefault(value: value, path: path)
+  }
+
+  mutating fn rootDef(value: Value, path: UnusedWalkingPath) -> WalkResult {
+    return .abortWalk
+  }
+
+  var walkUpCache = WalkerCache<UnusedWalkingPath>()
+}

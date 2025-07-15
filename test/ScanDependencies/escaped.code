@@ -1,0 +1,12 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -scan-dependencies %s -I %S\\Inputs -o - | %validate-json | %FileCheck %s
+
+// We want to explicitly use the Windows path separator
+// REQUIRES: OS=windows-msvc
+
+import A
+
+// CHECK:        "modulePath": "escaped.codemodule",
+// CHECK-NEXT:   "sourceFiles": [
+// CHECK-NEXT:      "{{.*}}\\test\\ScanDependencies\\escaped.code"
+// CHECK-NEXT:   ],

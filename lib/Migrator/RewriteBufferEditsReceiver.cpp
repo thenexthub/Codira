@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Migrator/RewriteBufferEditsReceiver.h"
@@ -32,6 +33,6 @@ void RewriteBufferEditsReceiver::replace(clang::CharSourceRange ClangRange,
   RewriteBuf.ReplaceText(StartOffset, Length, ReplacementText);
 }
 
-void RewriteBufferEditsReceiver::printResult(llvm::raw_ostream &OS) const {
+void RewriteBufferEditsReceiver::printResult(toolchain::raw_ostream &OS) const {
   RewriteBuf.write(OS);
 }

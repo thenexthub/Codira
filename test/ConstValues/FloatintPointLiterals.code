@@ -1,0 +1,12 @@
+// Constant globals on simple floating-point literals
+// REQUIRES: language_feature_CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -enable-experimental-feature CompileTimeValues -enable-experimental-feature CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -enable-experimental-feature CompileTimeValues
+
+@const immutable constGlobal1 = 42.0
+@const immutable constGlobal2: Double = 42.0
+@const immutable constGlobal3: Float = 42.0
+
+// TODO: Restrict to platforms where this is available
+//@const immutable constGlobal4: Float16 = 42.0

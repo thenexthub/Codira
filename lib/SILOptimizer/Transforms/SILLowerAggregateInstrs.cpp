@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -31,17 +32,17 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/Statistic.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 
 using namespace language;
 using namespace language::Lowering;
 
 STATISTIC(NumExpand, "Number of instructions expanded");
 
-static llvm::cl::opt<bool> EnableExpandAll("sil-lower-agg-instrs-expand-all",
-                                           llvm::cl::init(false));
+static toolchain::cl::opt<bool> EnableExpandAll("sil-lower-agg-instrs-expand-all",
+                                           toolchain::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 //                                  Utility
@@ -230,7 +231,7 @@ static bool expandReleaseValue(ReleaseValueInst *rvi) {
   TL.emitLoweredDestroyValueMostDerivedDescendents(builder, rvi->getLoc(),
                                                    value);
 
-  LLVM_DEBUG(llvm::dbgs() << "    Expanding: " << *rvi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Expanding: " << *rvi);
 
   ++NumExpand;
   return true;
@@ -257,7 +258,7 @@ static bool expandRetainValue(RetainValueInst *rvi) {
   typeLowering.emitLoweredCopyValueMostDerivedDescendents(builder,
                                                           rvi->getLoc(), value);
 
-  LLVM_DEBUG(llvm::dbgs() << "    Expanding: " << *rvi);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Expanding: " << *rvi);
 
   ++NumExpand;
   return true;
@@ -274,7 +275,7 @@ static bool processFunction(SILFunction &fn) {
     while (ii != ie) {
       SILInstruction *inst = &*ii;
 
-      LLVM_DEBUG(llvm::dbgs() << "Visiting: " << *inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "Visiting: " << *inst);
 
       if (auto *cai = dyn_cast<CopyAddrInst>(inst))
         if (expandCopyAddr(cai)) {
@@ -325,7 +326,7 @@ class SILLowerAggregate : public SILFunctionTransform {
   /// The entry point to the transformation.
   void run() override {
     SILFunction *f = getFunction();
-    LLVM_DEBUG(llvm::dbgs() << "***** LowerAggregate on function: "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "***** LowerAggregate on function: "
                             << f->getName() << " *****\n");
     bool changed = processFunction(*f);
     if (changed) {
@@ -336,6 +337,6 @@ class SILLowerAggregate : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createLowerAggregateInstrs() {
+SILTransform *language::createLowerAggregateInstrs() {
   return new SILLowerAggregate();
 }

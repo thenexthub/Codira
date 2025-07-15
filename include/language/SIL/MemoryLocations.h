@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file Contains the MemoryLocations utility for analyzing memory locations in
@@ -18,13 +19,13 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_MEMORY_LOCATIONS_H
-#define SWIFT_SIL_MEMORY_LOCATIONS_H
+#ifndef LANGUAGE_SIL_MEMORY_LOCATIONS_H
+#define LANGUAGE_SIL_MEMORY_LOCATIONS_H
 
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallBitVector.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SmallBitVector.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
@@ -42,7 +43,7 @@ class SingleValueInstruction;
 class MemoryLocations {
 public:
 
-  using Bits = llvm::SmallBitVector;
+  using Bits = toolchain::SmallBitVector;
 
   /// Represents a not-aliased memory location: either an indirect function
   /// parameter or an alloc_stack.
@@ -169,20 +170,20 @@ public:
 
 private:
   /// The array of locations.
-  llvm::SmallVector<Location, 64> locations;
+  toolchain::SmallVector<Location, 64> locations;
 
   /// Mapping from SIL values (function arguments and alloc_stack) to location
   /// indices.
   ///
   /// In case there are multiple struct/tuple_element_addr for a single
   /// field, this map contains multiple entries mapping to the same location.
-  llvm::DenseMap<SILValue, unsigned> addr2LocIdx;
+  toolchain::DenseMap<SILValue, unsigned> addr2LocIdx;
 
   /// Memory locations (e.g. alloc_stack) which live in a single basic block.
   ///
   /// Those locations are excluded from the locations to keep the bit sets
   /// small. They can be handled separately with handleSingleBlockLocations().
-  llvm::SmallVector<SingleValueInstruction *, 16> singleBlockLocations;
+  toolchain::SmallVector<SingleValueInstruction *, 16> singleBlockLocations;
 
   /// The bit-set of locations for which numNonTrivialFieldsNotCovered is > 0.
   Bits nonTrivialLocations;
@@ -289,7 +290,7 @@ private:
   void clear();
 
   // (locationIdx, fieldNr) -> subLocationIdx
-  using SubLocationMap = llvm::DenseMap<std::pair<unsigned, unsigned>, unsigned>;
+  using SubLocationMap = toolchain::DenseMap<std::pair<unsigned, unsigned>, unsigned>;
 
   /// Helper function called by analyzeLocation to check all uses of the
   /// location recursively.
@@ -309,6 +310,6 @@ private:
   void initFieldsCounter(Location &loc);
 };
 
-} // end swift namespace
+} // end language namespace
 
 #endif

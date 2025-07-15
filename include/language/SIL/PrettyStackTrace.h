@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines SIL-specific RAII classes that give better diagnostic
@@ -18,26 +19,26 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_PRETTYSTACKTRACE_H
-#define SWIFT_SIL_PRETTYSTACKTRACE_H
+#ifndef LANGUAGE_SIL_PRETTYSTACKTRACE_H
+#define LANGUAGE_SIL_PRETTYSTACKTRACE_H
 
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILNode.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/PrettyStackTrace.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/PrettyStackTrace.h"
 
 namespace language {
 class ASTContext;
 class SILFunction;
 
-void printSILLocationDescription(llvm::raw_ostream &out, SILLocation loc,
+void printSILLocationDescription(toolchain::raw_ostream &out, SILLocation loc,
                                  ASTContext &ctx);
 
 /// PrettyStackTraceLocation - Observe that we are doing some
 /// processing starting at a SIL location.
-class PrettyStackTraceSILLocation : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceSILLocation : public toolchain::PrettyStackTraceEntry {
   SILLocation Loc;
   const char *Action;
   ASTContext &Context;
@@ -45,13 +46,13 @@ public:
   PrettyStackTraceSILLocation(const char *action, SILLocation loc,
                               ASTContext &C)
     : Loc(loc), Action(action), Context(C) {}
-  virtual void print(llvm::raw_ostream &OS) const override;
+  virtual void print(toolchain::raw_ostream &OS) const override;
 };
 
 
 /// Observe that we are doing some processing of a SIL function.
-class PrettyStackTraceSILFunction : public llvm::PrettyStackTraceEntry {
-  const SILFunction *func;
+class PrettyStackTraceSILFunction : public toolchain::PrettyStackTraceEntry {
+  const SILFunction *fn;
 
   /// An inline buffer of characters used if we are passed a twine.
   SmallString<256> data;
@@ -62,20 +63,20 @@ class PrettyStackTraceSILFunction : public llvm::PrettyStackTraceEntry {
   StringRef action;
 
 public:
-  PrettyStackTraceSILFunction(const char *action, const SILFunction *func)
-      : func(func), data(), action(action) {}
+  PrettyStackTraceSILFunction(const char *action, const SILFunction *fn)
+      : fn(fn), data(), action(action) {}
 
-  PrettyStackTraceSILFunction(llvm::Twine &&twine, const SILFunction *func)
-      : func(func), data(), action(twine.toNullTerminatedStringRef(data)) {}
+  PrettyStackTraceSILFunction(toolchain::Twine &&twine, const SILFunction *fn)
+      : fn(fn), data(), action(twine.toNullTerminatedStringRef(data)) {}
 
-  virtual void print(llvm::raw_ostream &os) const override;
+  virtual void print(toolchain::raw_ostream &os) const override;
 
 protected:
-  void printFunctionInfo(llvm::raw_ostream &out) const;
+  void printFunctionInfo(toolchain::raw_ostream &out) const;
 };
 
 /// Observe that we are visiting SIL nodes.
-class PrettyStackTraceSILNode : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceSILNode : public toolchain::PrettyStackTraceEntry {
   const SILNode *Node;
   const char *Action;
 
@@ -83,11 +84,11 @@ public:
   PrettyStackTraceSILNode(const char *action, SILNodePointer node)
     : Node(node), Action(action) {}
 
-  virtual void print(llvm::raw_ostream &OS) const override;
+  virtual void print(toolchain::raw_ostream &OS) const override;
 };
 
 /// Observe that we are processing a reference to a SIL decl.
-class PrettyStackTraceSILDeclRef : public llvm::PrettyStackTraceEntry {
+class PrettyStackTraceSILDeclRef : public toolchain::PrettyStackTraceEntry {
   SILDeclRef declRef;
   StringRef action;
 
@@ -95,7 +96,7 @@ public:
   PrettyStackTraceSILDeclRef(const char *action, SILDeclRef declRef)
       : declRef(declRef), action(action) {}
 
-  virtual void print(llvm::raw_ostream &os) const override;
+  virtual void print(toolchain::raw_ostream &os) const override;
 };
 
 } // end namespace language

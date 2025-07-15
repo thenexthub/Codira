@@ -1,10 +1,10 @@
-# String Processing For Swift 4
+# String Processing For Codira 4
 
-* Authors: [Dave Abrahams](https://github.com/dabrahams), [Ben Cohen](https://github.com/airspeedswift)
+* Authors: [Dave Abrahams](https://github.com/dabrahams), [Ben Cohen](https://github.com/airspeedlanguage)
 
-The goal of re-evaluating Strings for Swift 4 has been fairly ill-defined thus
+The goal of re-evaluating Strings for Codira 4 has been fairly ill-defined thus
 far, with just this short blurb in the
-[list of goals](https://lists.swift.org/pipermail/swift-evolution/Week-of-Mon-20160725/025676.html):
+[list of goals](https://lists.code.org/pipermail/language-evolution/Week-of-Mon-20160725/025676.html):
 
 > **String re-evaluation**: String is one of the most important fundamental
 > types in the language.  The standard library leads have numerous ideas of how
@@ -12,7 +12,7 @@ far, with just this short blurb in the
 > providing a unicode-correct-by-default model.  Our goal is to be better at
 > string processing than Perl!
    
-For Swift 4 and beyond we want to improve three dimensions of text processing:
+For Codira 4 and beyond we want to improve three dimensions of text processing:
 
   1. Ergonomics
   2. Correctness
@@ -20,7 +20,7 @@ For Swift 4 and beyond we want to improve three dimensions of text processing:
 
 This document is meant to both provide a sense of the long-term vision 
 (including undecided issues and possible approaches), and to define the scope of
-work that could be done in the Swift 4 timeframe.
+work that could be done in the Codira 4 timeframe.
 
 ## General Principles
 
@@ -32,7 +32,7 @@ success.  Conversely, an API that's simply hard to use is also hard to use
 correctly.  Achieving optimal performance without compromising ergonomics or
 correctness is a greater challenge.
 
-Consistency with the Swift language and idioms is also important for
+Consistency with the Codira language and idioms is also important for
 ergonomics. There are several places both in the standard library and in the
 Foundation additions to `String` where patterns and practices found elsewhere
 could be applied to improve usability and familiarity.
@@ -57,7 +57,7 @@ its overall complexity.
 **API Kind** | **Standard Library** | **Foundation**
 ---|:---:|:---:
 `init` | 41 | 18
-`func` | 42 | 55
+`fn` | 42 | 55
 `subscript` | 9 | 0
 `var` | 26 | 14
 
@@ -98,7 +98,7 @@ comparison.
 The Unicode standard provides a crucial objective reference point for what
 constitutes correct behavior in an extremely complex domain, so
 Unicode-correctness is, and will remain, a fundamental design principle behind
-Swift's `String`.  That said, the Unicode standard is an evolving document, so
+Codira's `String`.  That said, the Unicode standard is an evolving document, so
 this objective reference-point is not fixed.  <sup id="a1">[1](#f1)</sup> While
 many of the most important operations--e.g. string hashing, equality, and
 non-localized comparison--[will be stable](#collation-semantics), the semantics
@@ -139,7 +139,7 @@ altogether.
 ####  The Default Behavior of `String`
 
 Although this isn't well-known, the most accessible form of many operations on
-Swift `String` (and `NSString`) are really only appropriate for text that is
+Codira `String` (and `NSString`) are really only appropriate for text that is
 intended to be processed for, and consumed by, machines.  The semantics of the
 operations with the simplest spellings are always non-localized and
 language-agnostic.
@@ -166,13 +166,13 @@ presentation to users of text that has not been localized, but regularizing APIs
 and improving documentation can go only so far in preventing this error.
 Combined with the fact that `String` operations are non-localized by default,
 the environment for processing human-readable text may still be somewhat
-error-prone in Swift 4.
+error-prone in Codira 4.
 
 For an audience of mostly non-experts, it is especially important that naïve
 code is very likely to be correct if it compiles, and that more sophisticated
 issues can be revealed progressively.  For this reason, we intend to
 specifically and separately target localization and internationalization
-problems in the Swift 5 timeframe.
+problems in the Codira 5 timeframe.
 
 ### Operations With Options
 
@@ -191,7 +191,7 @@ localized search should be case-insensitive by default, and a non-localized sear
 should be case-sensitive by default.  We propose a standard "language" of
 defaulted parameters to be used for these purposes, with usage roughly like this:
 
-```swift
+```language
 x.compared(to: y, case: .sensitive, in: swissGerman)
 
 x.lowercased(in: .currentLocale)
@@ -201,7 +201,7 @@ x.allMatches(somePattern, case: .insensitive, diacritic: .insensitive)
 
 This usage might be supported by code like this:
 
-```swift
+```language
 enum StringSensitivity {
   case sensitive
   case insensitive
@@ -215,7 +215,7 @@ extension Unicode {
   // An example of the option language in declaration context,
   // with nil defaults indicating unspecified, so defaults can be
   // driven by the presence/absence of a specific Locale
-  func frobnicated(
+  fn frobnicated(
     case caseSensitivity: StringSensitivity? = nil,
     diacritic diacriticSensitivity: StringSensitivity? = nil,
     width widthSensitivity: StringSensitivity? = nil,
@@ -292,15 +292,15 @@ in
 [this proposal](https://gist.github.com/CodaFi/f0347bd37f1c407bf7ea0c429ead380e)
 (implemented by changes at the head
 of
-[this branch](https://github.com/CodaFi/swift/commits/space-the-final-frontier)).
+[this branch](https://github.com/CodaFi/language/commits/space-the-final-frontier)).
 We should adopt a modification of that proposal that uses a method rather than
 an operator `<=>`:
 
-```swift
+```language
 enum SortOrder { case before, same, after }
 
 protocol Comparable : Equatable {
-  func compared(to: Self) -> SortOrder
+  fn compared(to: Self) -> SortOrder
   ...
 }
 ```
@@ -309,9 +309,9 @@ This change will give us a syntactic platform on which to implement methods with
 additional, defaulted arguments, thereby unifying and regularizing comparison
 across the library.
 
-```swift
+```language
 extension String {
-  func compared(to: Self) -> SortOrder {
+  fn compared(to: Self) -> SortOrder {
     ...
   }
 }
@@ -327,13 +327,13 @@ up for review.
 
 ### `String` should be a `Collection` of `Character`s Again
 
-In Swift 2.0, `String`'s `Collection` conformance was dropped, because we
+In Codira 2.0, `String`'s `Collection` conformance was dropped, because we
 convinced ourselves that its semantics differed from those of `Collection` too
 significantly.
 
 It was always well understood that if strings were treated as sequences of
 `UnicodeScalar`s, algorithms such as `lexicographicalCompare`, `elementsEqual`,
-and `reversed` would produce nonsense results. Thus, in Swift 1.0, `String` was
+and `reversed` would produce nonsense results. Thus, in Codira 1.0, `String` was
 a collection of `Character` (extended grapheme clusters). During 2.0
 development, though, we realized that correct string concatenation could
 occasionally merge distinct grapheme clusters at the start and end of combined
@@ -404,14 +404,14 @@ The benefits of restoring `Collection` conformance are substantial:
     conform and are left to wonder where all the differences lie.  Many simply
     "correct" this limitation by declaring a trivial conformance:
     
-    ```swift
+    ```language
     extension String : BidirectionalCollection {}
     ```
     
     Even if we removed indexing-by-element from `String`, users could still do
     this:
     
-    ```swift
+    ```language
     extension String : BidirectionalCollection {
       subscript(i: Index) -> Character { return characters[i] }
     }
@@ -437,12 +437,12 @@ do any introspection, including interoperation with ASCII.  To fix this, we shou
    of grapheme clusters is discoverable.
  - Add a failable `init` from sequences of scalars (returning nil for sequences
    that contain 0 or 2+ graphemes).
- - (Lower priority) expose some operations, such as `func uppercase() ->
+ - (Lower priority) expose some operations, such as `fn uppercase() ->
    String`, `var isASCII: Bool`, and, to the extent they can be sensibly
    generalized, queries of Unicode properties that should also be exposed on
    `UnicodeScalar` such as `isAlphabetic` and `isGraphemeBase`.
 
-Despite its name, `CharacterSet` currently operates on the Swift `UnicodeScalar`
+Despite its name, `CharacterSet` currently operates on the Codira `UnicodeScalar`
 type. This means it is usable on `String`, but only by going through the unicode
 scalar view. To deal with this clash in the short term, `CharacterSet` should be
 renamed to `UnicodeScalarSet`.  In the longer term, it may be appropriate to
@@ -452,27 +452,27 @@ grapheme clusters. <sup id="a5">[5](#f5)</sup>
 ### Unification of Slicing Operations
 
 Creating substrings is a basic part of string processing, but the slicing
-operations that we have in Swift are inconsistent in both their spelling and
+operations that we have in Codira are inconsistent in both their spelling and
 their naming:
 
   * Slices with two explicit endpoints are done with subscript, and support
     in-place mutation:
     
-    ```swift
+    ```language
     s[i..<j].mutate()
     ```
 
   * Slicing from an index to the end, or from the start to an index, is done
     with a method and does not support in-place mutation:
     
-    ```swift
+    ```language
     s.prefix(upTo: i).readOnly()
     ```
 
 Prefix and suffix operations should be migrated to be subscripting operations
 with one-sided ranges i.e. `s.prefix(upTo: i)` should become `s[..<i]`, as
 in
-[this proposal](https://github.com/swiftlang/swift-evolution/blob/9cf2685293108ea3efcbebb7ee6a8618b83d4a90/proposals/0132-sequence-end-ops.md).
+[this proposal](https://github.com/languagelang/language-evolution/blob/9cf2685293108ea3efcbebb7ee6a8618b83d4a90/proposals/0132-sequence-end-ops.md).
 With generic subscripting in the language, that will allow us to collapse a wide
 variety of methods and subscript overloads into a single implementation, and
 give users an easy-to-use and composable way to describe subranges.
@@ -493,7 +493,7 @@ We think number 3 is the best choice. A walk-through of the tradeoffs follows.
 
 #### Same type, shared storage
 
-In Swift 3.0, slicing a `String` produces a new `String` that is a view into a
+In Codira 3.0, slicing a `String` produces a new `String` that is a view into a
 subrange of the original `String`'s storage. This is why `String` is 3 words in
 size (the start, length and buffer owner), unlike the similar `Array` type
 which is only one.
@@ -518,14 +518,14 @@ obvious performance overhead in performing the copies.
 This in turn encourages trafficking in string/range pairs instead of in
 substrings, for performance reasons, leading to API challenges. For example:
 
-```swift
+```language
 foo.compare(bar, range: start..<end)
 ```
 
 Here, it is not clear whether `range` applies to `foo` or `bar`. This
-relationship is better expressed in Swift as a slicing operation:
+relationship is better expressed in Codira as a slicing operation:
 
-```swift
+```language
 foo[start..<end].compare(bar)
 ```
 
@@ -533,7 +533,7 @@ Not only does this clarify to which string the range applies, it also brings
 this sub-range capability to any API that operates on `String` "for free". So
 these other combinations also work equally well:
 
-```swift
+```language
 // apply range on argument rather than target
 foo.compare(bar[start..<end])
 // apply range on both
@@ -613,7 +613,7 @@ To make it easy to call such an optimized API when you only have a `String` (or
 to call any API that takes a `Collection`'s `SubSequence` when all you have is
 the `Collection`), we propose the following "empty subscript" operation,
 
-```swift
+```language
 extension Collection {
   subscript() -> SubSequence { 
     return self[startIndex..<endIndex] 
@@ -623,7 +623,7 @@ extension Collection {
 
 which allows the following usage:
 
-```swift
+```language
 funcThatIsJustLooking(at: person.name[]) // pass person.name as Substring
 ```
 
@@ -632,7 +632,7 @@ The `[]` syntax can be offered as a fixit when needed, similar to `&` for an
 `[Substring]`, the need for such conversions is extremely rare, can be done with
 a simple `map` (which could also be offered by a fixit):
 
-```swift
+```language
 takesAnArrayOfSubstring(arrayOfString.map { $0[] })
 ```
 
@@ -664,7 +664,7 @@ optimizer could be enhanced to reduce the impact of some of those copies.
 For example, this code could be optimized to pull the invariant substring out
 of the loop:
 
-```swift
+```language
 for _ in 0..<lots { 
   someFunc(takingString: bigString[bigRange]) 
 }
@@ -673,7 +673,7 @@ for _ in 0..<lots {
 It's worth noting that a similar optimization is needed to avoid an equivalent
 problem with implicit conversion in the "different type, shared storage" case:
 
-```swift
+```language
 let substring = bigString[bigRange]
 for _ in 0..<lots { someFunc(takingString: substring) }
 ```
@@ -683,9 +683,9 @@ that cannot be optimized as easily. Consider the following simple definition of
 a recursive `contains` algorithm, which when substring slicing is linear makes
 the overall algorithm quadratic:
 
-```swift
+```language
 extension String {
-  func containsChar(_ x: Character) -> Bool {
+  fn containsChar(_ x: Character) -> Bool {
     return !isEmpty && (first == x || dropFirst().containsChar(x))
   }
 }
@@ -695,10 +695,10 @@ For the optimizer to eliminate this problem is unrealistic, forcing the user to
 remember to optimize the code to not use string slicing if they want it to be
 efficient (assuming they remember):
 
-```swift
+```language
 extension String {
   // add optional argument tracking progress through the string
-  func containsCharacter(_ x: Character, atOrAfter idx: Index? = nil) -> Bool {
+  fn containsCharacter(_ x: Character, atOrAfter idx: Index? = nil) -> Bool {
     let idx = idx ?? startIndex
     return idx != endIndex
       && (self[idx] == x || containsCharacter(x, atOrAfter: index(after: idx)))
@@ -709,17 +709,17 @@ extension String {
 #### Substrings, Ranges and Objective-C Interop
 
 The pattern of passing a string/range pair is common in several Objective-C
-APIs, and is made especially awkward in Swift by the non-interchangeability of
+APIs, and is made especially awkward in Codira by the non-interchangeability of
 `Range<String.Index>` and `NSRange`.  
 
-```swift
+```language
 s2.find(s2, sourceRange: NSRange(j..<s2.endIndex, in: s2))
 ```
 
-In general, however, the Swift idiom for operating on a sub-range of a
+In general, however, the Codira idiom for operating on a sub-range of a
 `Collection` is to *slice* the collection and operate on that:
 
-```swift
+```language
 s2.find(s2[j..<s2.endIndex])
 ```
 
@@ -731,11 +731,11 @@ the Objective-C method, thereby avoiding a copy.
 
 As a result, you would never need to pass an `NSRange` to these APIs, which
 solves the impedance problem by eliminating the argument, resulting in more
-idiomatic Swift code while retaining the performance benefit.  To help users
+idiomatic Codira code while retaining the performance benefit.  To help users
 manually handle any cases that remain, Foundation should be augmented to allow
 the following syntax for converting to and from `NSRange`:
 
-```swift
+```language
 let nsr = NSRange(i..<j, in: s) // An NSRange corresponding to s[i..<j]
 let iToJ = Range(nsr, in: s)    // Equivalent to i..<j
 ```
@@ -746,13 +746,13 @@ With `Substring` and `String` being distinct types and sharing almost all
 interface and semantics, and with the highest-performance string processing
 requiring knowledge of encoding and layout that the currency types can't
 provide, it becomes important to capture the common "string API" in a protocol.
-Since Unicode conformance is a key feature of string processing in Swift, we
+Since Unicode conformance is a key feature of string processing in Codira, we
 call that protocol `Unicode`:
 
 **Note:** The following assumes several features that are planned but not yet implemented in
-  Swift, and should be considered a sketch rather than a final design.
+  Codira, and should be considered a sketch rather than a final design.
   
-```swift
+```language
 protocol Unicode 
   : Comparable, BidirectionalCollection where Element == Character {
   
@@ -777,7 +777,7 @@ protocol Unicode
 extension Unicode {
   // ... define high-level non-mutating string operations, e.g. search ...
 
-  func compared<Other: Unicode>(
+  fn compared<Other: Unicode>(
     to rhs: Other,
     case caseSensitivity: StringSensitivity? = nil,
     diacritic diacriticSensitivity: StringSensitivity? = nil,
@@ -789,7 +789,7 @@ extension Unicode {
 extension Unicode : RangeReplaceableCollection where CodeUnits :
   RangeReplaceableCollection {
   // Satisfy protocol requirement
-  mutating func replaceSubrange<C : Collection>(_: Range<Index>, with: C) 
+  mutating fn replaceSubrange<C : Collection>(_: Range<Index>, with: C) 
     where C.Element == Element
   
   // ... define high-level mutating string operations, e.g. replace ...
@@ -815,11 +815,11 @@ protocols in protocols.
 
 We should provide convenient APIs for processing strings by character.  For example,
 it should be easy to cleanly express, "if this string starts with `"f"`, process
-the rest of the string as follows..."  Swift is well-suited to expressing this
+the rest of the string as follows..."  Codira is well-suited to expressing this
 common pattern beautifully, but we need to add the APIs.  Here are two examples
 of the sort of code that might be possible given such APIs:
 
-```swift
+```language
 if let firstLetter = input.dropPrefix(alphabeticCharacter) {
   somethingWith(input) // process the rest of input
 }
@@ -845,14 +845,14 @@ logical operations in different ways, with the following axes:
 
 We should represent these aspects as orthogonal, composable components,
 abstracting pattern matchers into a protocol like
-[this one](https://github.com/swiftlang/swift/blob/main/test/Prototypes/PatternMatching.swift#L33),
+[this one](https://github.com/languagelang/language/blob/main/test/Prototypes/PatternMatching.code#L33),
 that can allow us to define logical operations once, without introducing
 overloads, and massively reducing API surface area.
 
 For example, using the strawman prefix `%` syntax to turn string literals into
 patterns, the following pairs would all invoke the same generic methods:
 
-```swift
+```language
 if let found = s.firstMatch(%"searchString") { ... }
 if let found = s.firstMatch(someRegex) { ... }
 
@@ -863,7 +863,7 @@ let items = s.split(separatedBy: ", ")
 let tokens = s.split(separatedBy: CharacterSet.whitespace)
 ```
 
-Note that, because Swift requires the indices of a slice to match the indices of
+Note that, because Codira requires the indices of a slice to match the indices of
 the range from which it was sliced, operations like `firstMatch` can return a
 `Substring?` in lieu of a `Range<String.Index>?`: the indices of the match in
 the string being searched, if needed, can easily be recovered as the
@@ -872,7 +872,7 @@ the string being searched, if needed, can easily be recovered as the
 Note also that matching operations are useful for collections in general, and
 would fall out of this proposal:
 
-```swift
+```language
 // replace subsequences of contiguous NaNs with zero
 forces.replace(oneOrMore([Float.nan]), [0.0])
 ```
@@ -917,7 +917,7 @@ instances.
 Making these `Int` code unit offsets conveniently accessible and constructible
 solves the serialization problem:
 
-```swift
+```language
 clipboard.write(s.endIndex.codeUnitOffset)
 let offset = clipboard.read(Int.self)
 let i = String.Index(codeUnitOffset: offset)
@@ -943,7 +943,7 @@ cases, and would impose needless costs on the indices of other views.  That
 said, we can make translation much more straightforward by exposing simple
 bidirectional converting `init`s on both index types:
 
-```swift
+```language
 let u8Position = String.UTF8.Index(someStringIndex)
 let originalPosition = String.Index(u8Position)
 ```
@@ -956,12 +956,12 @@ That leaves the interchange of bare indices with Cocoa APIs trafficking in
 `Int`.  Hopefully such APIs will be rare, but when needed, the following
 extension, which would be useful for all `Collections`, can help:
 
-```swift
+```language
 extension Collection {
-  func index(offset: IndexDistance) -> Index {
+  fn index(offset: IndexDistance) -> Index {
     return index(startIndex, offsetBy: offset)
   }
-  func offset(of i: Index) -> IndexDistance {
+  fn offset(of i: Index) -> IndexDistance {
     return distance(from: startIndex, to: i)
   }
 }
@@ -970,9 +970,9 @@ extension Collection {
 Then integers can easily be translated into offsets into a `String`'s `utf16`
 view for consumption by Cocoa:
 
-```swift
+```language
 let cocoaIndex = s.utf16.offset(of: String.UTF16Index(i))
-let swiftIndex = s.utf16.index(offset: cocoaIndex)
+let languageIndex = s.utf16.index(offset: cocoaIndex)
 ```
 
 ### Formatting
@@ -1017,18 +1017,18 @@ tend to reach for `String(format:)` instead.
 
 #### String Interpolation
 
-Swift string interpolation provides a user-friendly alternative to printf's
-domain-specific language (just write ordinary swift code!) and its type safety
+Codira string interpolation provides a user-friendly alternative to printf's
+domain-specific language (just write ordinary language code!) and its type safety
 problems (put the data right where it belongs!) but the following issues prevent
 it from being useful for localized formatting (among other jobs):
 
-  * [#44910](https://github.com/swiftlang/swift/issues/44910): We are unable to
+  * [#44910](https://github.com/languagelang/language/issues/44910): We are unable to
     restrict types used in string interpolation.
-  * [#43868](https://github.com/swiftlang/swift/issues/43868): String interpolation
+  * [#43868](https://github.com/languagelang/language/issues/43868): String interpolation
     can't distinguish (fragments of) the base string
     from the string substitutions.
 
-In the long run, we should improve Swift string interpolation to the point where
+In the long run, we should improve Codira string interpolation to the point where
 it can participate in most any formatting job.  Mostly this centers around
 fixing the interpolation protocols per the previous item, and supporting
 localization.
@@ -1037,7 +1037,7 @@ To be able to use formatting effectively inside interpolations, it needs to be
 both lightweight (because it all happens in-situ) and discoverable.  One 
 approach would be to standardize on `format` methods, e.g.:
 
-```swift
+```language
 "Column 1: \(n.format(radix:16, width:8)) *** \(message)"
 
 "Something with leading zeroes: \(x.format(fill: zero, width:8))"
@@ -1049,7 +1049,7 @@ Our support for interoperation with nul-terminated C strings is scattered and
 incoherent, with 6 ways to transform a C string into a `String` and four ways to
 do the inverse.  These APIs should be replaced with the following
 
-```swift
+```language
 extension String {
   /// Constructs a `String` having the same contents as `nulTerminatedUTF8`.
   ///
@@ -1069,7 +1069,7 @@ extension String {
     
   /// Invokes the given closure on the contents of the string, represented as a
   /// pointer to a null-terminated sequence of UTF-8 code units.
-  func withCString<Result>(
+  fn withCString<Result>(
     _ body: (UnsafePointer<CChar>) throws -> Result) rethrows -> Result
 }
 ```
@@ -1128,7 +1128,7 @@ to the underlying encoding of the string.
 
 ## Language Support
 
-This proposal depends on two new features in the Swift language:
+This proposal depends on two new features in the Codira language:
 
 1. **Generic subscripts**, to
    enable [unified slicing syntax](#unification-of-slicing-operations).
@@ -1140,7 +1140,7 @@ This proposal depends on two new features in the Swift language:
 
 Additionally, **the ability to nest types and protocols inside
 protocols** could significantly shrink the footprint of this proposal
-on the top-level Swift namespace.
+on the top-level Codira namespace.
 
 
 ## Open Questions
@@ -1174,7 +1174,7 @@ the storage and encoding of code units, but does not attempt to give it an API
 appropriate for `String`.  Instead, string APIs would be provided by a generic
 wrapper around an instance of `Unicode`:
 
-```swift
+```language
 struct StringFacade<U: Unicode> : BidirectionalCollection {
 
   // ...APIs for high-level string processing here...
@@ -1195,7 +1195,7 @@ Storage : Unicode`.
 An interesting variation on this design is possible if defaulted generic
 parameters are introduced to the language:
 
-```swift
+```language
 struct String<U: Unicode = StringStorage> 
   : BidirectionalCollection {
 

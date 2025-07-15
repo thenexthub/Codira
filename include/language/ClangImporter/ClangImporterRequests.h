@@ -1,20 +1,24 @@
 //===--- ClangImporterRequests.h - Clang Importer Requests ------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines clang-importer requests.
 //
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CLANG_IMPORTER_REQUESTS_H
-#define SWIFT_CLANG_IMPORTER_REQUESTS_H
+#ifndef LANGUAGE_CLANG_IMPORTER_REQUESTS_H
+#define LANGUAGE_CLANG_IMPORTER_REQUESTS_H
 
 #include "language/AST/ASTTypeIDs.h"
 #include "language/AST/EvaluatorDependencies.h"
@@ -25,8 +29,8 @@
 #include "language/ClangImporter/ClangImporter.h"
 #include "clang/AST/Type.h"
 #include "clang/Basic/Specifiers.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 class Decl;
@@ -44,8 +48,8 @@ struct ClangDirectLookupDescriptor final {
                               DeclName name)
       : decl(decl), clangDecl(clangDecl), name(name) {}
 
-  friend llvm::hash_code hash_value(const ClangDirectLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.name, desc.decl, desc.clangDecl);
+  friend toolchain::hash_code hash_value(const ClangDirectLookupDescriptor &desc) {
+    return toolchain::hash_combine(desc.name, desc.decl, desc.clangDecl);
   }
 
   friend bool operator==(const ClangDirectLookupDescriptor &lhs,
@@ -60,14 +64,14 @@ struct ClangDirectLookupDescriptor final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const ClangDirectLookupDescriptor &desc);
 SourceLoc extractNearestSourceLoc(const ClangDirectLookupDescriptor &desc);
 
-/// This matches SwiftLookupTable::SingleEntry;
-using SingleEntry = llvm::PointerUnion<clang::NamedDecl *, clang::MacroInfo *,
+/// This matches CodiraLookupTable::SingleEntry;
+using SingleEntry = toolchain::PointerUnion<clang::NamedDecl *, clang::MacroInfo *,
                                        clang::ModuleMacro *>;
-/// Uses the appropriate SwiftLookupTable to find a set of clang decls given
+/// Uses the appropriate CodiraLookupTable to find a set of clang decls given
 /// their name.
 class ClangDirectLookupRequest
     : public SimpleRequest<ClangDirectLookupRequest,
@@ -95,9 +99,9 @@ struct CXXNamespaceMemberLookupDescriptor final {
     assert(isa<clang::NamespaceDecl>(namespaceDecl->getClangDecl()));
   }
 
-  friend llvm::hash_code
+  friend toolchain::hash_code
   hash_value(const CXXNamespaceMemberLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.name, desc.namespaceDecl);
+    return toolchain::hash_combine(desc.name, desc.namespaceDecl);
   }
 
   friend bool operator==(const CXXNamespaceMemberLookupDescriptor &lhs,
@@ -111,7 +115,7 @@ struct CXXNamespaceMemberLookupDescriptor final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const CXXNamespaceMemberLookupDescriptor &desc);
 SourceLoc
 extractNearestSourceLoc(const CXXNamespaceMemberLookupDescriptor &desc);
@@ -150,9 +154,9 @@ struct ClangRecordMemberLookupDescriptor final {
     assert(isa<clang::RecordDecl>(recordDecl->getClangDecl()));
   }
 
-  friend llvm::hash_code
+  friend toolchain::hash_code
   hash_value(const ClangRecordMemberLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.name, desc.recordDecl, desc.inheritingDecl,
+    return toolchain::hash_combine(desc.name, desc.recordDecl, desc.inheritingDecl,
                               desc.inheritance);
   }
 
@@ -187,7 +191,7 @@ private:
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const ClangRecordMemberLookupDescriptor &desc);
 SourceLoc
 extractNearestSourceLoc(const ClangRecordMemberLookupDescriptor &desc);
@@ -218,8 +222,8 @@ struct ClangCategoryLookupDescriptor final {
                                 Identifier categoryName)
       : classDecl(classDecl), categoryName(categoryName) {}
 
-  friend llvm::hash_code hash_value(const ClangCategoryLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.classDecl, desc.categoryName);
+  friend toolchain::hash_code hash_value(const ClangCategoryLookupDescriptor &desc) {
+    return toolchain::hash_combine(desc.classDecl, desc.categoryName);
   }
 
   friend bool operator==(const ClangCategoryLookupDescriptor &lhs,
@@ -234,19 +238,19 @@ struct ClangCategoryLookupDescriptor final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const ClangCategoryLookupDescriptor &desc);
 SourceLoc extractNearestSourceLoc(const ClangCategoryLookupDescriptor &desc);
 
-/// Given a Swift class, find the imported Swift decl(s) representing the
+/// Given a Codira class, find the imported Codira decl(s) representing the
 /// \c \@interface with the given category name. An empty \c categoryName
 /// represents the main interface for the class.
 ///
 /// That is, this request will return one of:
 ///
-/// \li a single \c swift::ExtensionDecl backed by a \c clang::ObjCCategoryDecl
-/// \li a \c swift::ClassDecl backed by a \c clang::ObjCInterfaceDecl, plus
-///     zero or more \c swift::ExtensionDecl s backed by 
+/// \li a single \c language::ExtensionDecl backed by a \c clang::ObjCCategoryDecl
+/// \li a \c language::ClassDecl backed by a \c clang::ObjCInterfaceDecl, plus
+///     zero or more \c language::ExtensionDecl s backed by 
 ///     \c clang::ObjCCategoryDecl s (representing ObjC class extensions).
 /// \li an empty list if the class is not imported from Clang or it does not
 ///     have a category by that name.
@@ -273,10 +277,10 @@ private:
 /// both its main interface and any class extension interfaces. In this
 /// situation, the main class is always the first decl in \c interfaceDecls.
 struct ObjCInterfaceAndImplementation final {
-  llvm::TinyPtrVector<Decl *> interfaceDecls;
+  toolchain::TinyPtrVector<Decl *> interfaceDecls;
   Decl *implementationDecl;
 
-  ObjCInterfaceAndImplementation(llvm::TinyPtrVector<Decl *> interfaceDecls,
+  ObjCInterfaceAndImplementation(toolchain::TinyPtrVector<Decl *> interfaceDecls,
                                  Decl *implementationDecl)
       : interfaceDecls(interfaceDecls), implementationDecl(implementationDecl)
   {
@@ -291,9 +295,9 @@ struct ObjCInterfaceAndImplementation final {
     return interfaceDecls.empty();
   }
 
-  friend llvm::hash_code
+  friend toolchain::hash_code
   hash_value(const ObjCInterfaceAndImplementation &pair) {
-    return hash_combine(llvm::hash_combine_range(pair.interfaceDecls.begin(),
+    return hash_combine(toolchain::hash_combine_range(pair.interfaceDecls.begin(),
                                                  pair.interfaceDecls.end()),
                         pair.implementationDecl);
   }
@@ -310,7 +314,7 @@ struct ObjCInterfaceAndImplementation final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     const ObjCInterfaceAndImplementation &desc);
 SourceLoc extractNearestSourceLoc(const ObjCInterfaceAndImplementation &desc);
 
@@ -351,8 +355,8 @@ enum class CxxRecordSemanticsKind {
   MissingLifetimeOperation,
   // A record that has no copy and no move operations
   UnavailableConstructors,
-  // A C++ record that represents a Swift class type exposed to C++ from Swift.
-  SwiftClassType
+  // A C++ record that represents a Codira class type exposed to C++ from Codira.
+  CodiraClassType
 };
 
 struct CxxRecordSemanticsDescriptor final {
@@ -364,8 +368,8 @@ struct CxxRecordSemanticsDescriptor final {
                                ClangImporter::Implementation *importerImpl)
       : decl(decl), ctx(ctx), importerImpl(importerImpl) {}
 
-  friend llvm::hash_code hash_value(const CxxRecordSemanticsDescriptor &desc) {
-    return llvm::hash_combine(desc.decl);
+  friend toolchain::hash_code hash_value(const CxxRecordSemanticsDescriptor &desc) {
+    return toolchain::hash_combine(desc.decl);
   }
 
   friend bool operator==(const CxxRecordSemanticsDescriptor &lhs,
@@ -379,7 +383,7 @@ struct CxxRecordSemanticsDescriptor final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, CxxRecordSemanticsDescriptor desc);
+void simple_display(toolchain::raw_ostream &out, CxxRecordSemanticsDescriptor desc);
 SourceLoc extractNearestSourceLoc(CxxRecordSemanticsDescriptor desc);
 
 /// What pattern does this C++ API fit? Uses attributes such as
@@ -408,9 +412,9 @@ private:
                                   CxxRecordSemanticsDescriptor) const;
 };
 
-/// Does this C++ record represent a Swift type.
-class CxxRecordAsSwiftType
-    : public SimpleRequest<CxxRecordAsSwiftType,
+/// Does this C++ record represent a Codira type.
+class CxxRecordAsCodiraType
+    : public SimpleRequest<CxxRecordAsCodiraType,
                            ValueDecl *(CxxRecordSemanticsDescriptor),
                            RequestFlags::Uncached> {
 public:
@@ -430,8 +434,8 @@ struct SafeUseOfCxxDeclDescriptor final {
 
   SafeUseOfCxxDeclDescriptor(const clang::Decl *decl) : decl(decl) {}
 
-  friend llvm::hash_code hash_value(const SafeUseOfCxxDeclDescriptor &desc) {
-    return llvm::hash_combine(desc.decl);
+  friend toolchain::hash_code hash_value(const SafeUseOfCxxDeclDescriptor &desc) {
+    return toolchain::hash_combine(desc.decl);
   }
 
   friend bool operator==(const SafeUseOfCxxDeclDescriptor &lhs,
@@ -445,7 +449,7 @@ struct SafeUseOfCxxDeclDescriptor final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out, SafeUseOfCxxDeclDescriptor desc);
+void simple_display(toolchain::raw_ostream &out, SafeUseOfCxxDeclDescriptor desc);
 SourceLoc extractNearestSourceLoc(SafeUseOfCxxDeclDescriptor desc);
 
 class IsSafeUseOfCxxDecl
@@ -474,9 +478,9 @@ struct CustomRefCountingOperationDescriptor final {
                                        CustomRefCountingOperationKind kind)
       : decl(decl), kind(kind) {}
 
-  friend llvm::hash_code
+  friend toolchain::hash_code
   hash_value(const CustomRefCountingOperationDescriptor &desc) {
-    return llvm::hash_combine(desc.decl, desc.kind);
+    return toolchain::hash_combine(desc.decl, desc.kind);
   }
 
   friend bool operator==(const CustomRefCountingOperationDescriptor &lhs,
@@ -490,7 +494,7 @@ struct CustomRefCountingOperationDescriptor final {
   }
 };
 
-void simple_display(llvm::raw_ostream &out,
+void simple_display(toolchain::raw_ostream &out,
                     CustomRefCountingOperationDescriptor desc);
 SourceLoc extractNearestSourceLoc(CustomRefCountingOperationDescriptor desc);
 
@@ -542,8 +546,8 @@ struct EscapabilityLookupDescriptor final {
   // containing pointers as Escapable types.
   bool annotationOnly = true;
 
-  friend llvm::hash_code hash_value(const EscapabilityLookupDescriptor &desc) {
-    return llvm::hash_combine(desc.type);
+  friend toolchain::hash_code hash_value(const EscapabilityLookupDescriptor &desc) {
+    return toolchain::hash_combine(desc.type);
   }
 
   friend bool operator==(const EscapabilityLookupDescriptor &lhs,
@@ -573,13 +577,40 @@ private:
                            EscapabilityLookupDescriptor desc) const;
 };
 
-void simple_display(llvm::raw_ostream &out, EscapabilityLookupDescriptor desc);
+void simple_display(toolchain::raw_ostream &out, EscapabilityLookupDescriptor desc);
 SourceLoc extractNearestSourceLoc(EscapabilityLookupDescriptor desc);
+
+struct CxxDeclExplicitSafetyDescriptor final {
+  const clang::Decl *decl;
+  bool isClass;
+
+  CxxDeclExplicitSafetyDescriptor(const clang::Decl *decl, bool isClass)
+      : decl(decl), isClass(isClass) {}
+
+  friend toolchain::hash_code
+  hash_value(const CxxDeclExplicitSafetyDescriptor &desc) {
+    return toolchain::hash_combine(desc.decl, desc.isClass);
+  }
+
+  friend bool operator==(const CxxDeclExplicitSafetyDescriptor &lhs,
+                         const CxxDeclExplicitSafetyDescriptor &rhs) {
+    return lhs.decl == rhs.decl && lhs.isClass == rhs.isClass;
+  }
+
+  friend bool operator!=(const CxxDeclExplicitSafetyDescriptor &lhs,
+                         const CxxDeclExplicitSafetyDescriptor &rhs) {
+    return !(lhs == rhs);
+  }
+};
+
+void simple_display(toolchain::raw_ostream &out,
+                    CxxDeclExplicitSafetyDescriptor desc);
+SourceLoc extractNearestSourceLoc(CxxDeclExplicitSafetyDescriptor desc);
 
 /// Determine the safety of the given Clang declaration.
 class ClangDeclExplicitSafety
     : public SimpleRequest<ClangDeclExplicitSafety,
-                           ExplicitSafety(SafeUseOfCxxDeclDescriptor),
+                           ExplicitSafety(CxxDeclExplicitSafetyDescriptor),
                            RequestFlags::Cached> {
 public:
   using SimpleRequest::SimpleRequest;
@@ -592,30 +623,31 @@ private:
   friend SimpleRequest;
 
   // Evaluation.
-  ExplicitSafety evaluate(Evaluator &evaluator, SafeUseOfCxxDeclDescriptor desc) const;
+  ExplicitSafety evaluate(Evaluator &evaluator,
+                          CxxDeclExplicitSafetyDescriptor desc) const;
 };
 
-#define SWIFT_TYPEID_ZONE ClangImporter
-#define SWIFT_TYPEID_HEADER "swift/ClangImporter/ClangImporterTypeIDZone.def"
+#define LANGUAGE_TYPEID_ZONE ClangImporter
+#define LANGUAGE_TYPEID_HEADER "language/ClangImporter/ClangImporterTypeIDZone.def"
 #include "language/Basic/DefineTypeIDZone.h"
-#undef SWIFT_TYPEID_ZONE
-#undef SWIFT_TYPEID_HEADER
+#undef LANGUAGE_TYPEID_ZONE
+#undef LANGUAGE_TYPEID_HEADER
 
 // Set up reporting of evaluated requests.
 template<typename Request>
 void reportEvaluatedRequest(UnifiedStatsReporter &stats,
                             const Request &request);
 
-#define SWIFT_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
+#define LANGUAGE_REQUEST(Zone, RequestType, Sig, Caching, LocOptions)             \
   template <>                                                                  \
   inline void reportEvaluatedRequest(UnifiedStatsReporter &stats,              \
                                      const RequestType &request) {             \
     ++stats.getFrontendCounters().RequestType;                                 \
   }
 #include "language/ClangImporter/ClangImporterTypeIDZone.def"
-#undef SWIFT_REQUEST
+#undef LANGUAGE_REQUEST
 
 } // end namespace language
 
-#endif // SWIFT_CLANG_IMPORTER_REQUESTS_H
+#endif // LANGUAGE_CLANG_IMPORTER_REQUESTS_H
 

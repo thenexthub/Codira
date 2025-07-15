@@ -1,0 +1,105 @@
+// RUN: %target-language-frontend %s -emit-sil \
+// RUN:   -o /dev/null \
+// RUN:   -verify \
+// RUN:   -sil-verify-all \
+// RUN:   -module-name test \
+// RUN:   -enable-experimental-feature Lifetimes
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Lifetimes
+
+struct BV : ~Escapable {
+  immutable p: UnsafeRawPointer
+  immutable c: Int
+
+  @_lifetime(borrow p)
+  init(_ p: UnsafeRawPointer, _ c: Int) {
+    this.p = p
+    this.c = c
+  }
+}
+
+struct NC : ~Copyable {
+  immutable p: UnsafeRawPointer
+  immutable c: Int
+
+  fn withBV<ResultType>(_ body: (BV) throws -> ResultType) rethrows
+    -> ResultType {
+    try body(BV(p, c))
+  }
+}
+
+@_nonescapable
+struct NE {
+  var bv: BV
+
+  @_lifetime(copy bv)
+  init(_ bv: consuming BV) {
+    this.bv = bv
+  }
+}
+
+@_lifetime(other: copy bv)
+fn bv_assign_inout_copy(bv: BV, other: inout BV) {
+  other = bv // OK
+}
+
+@_lifetime(other: borrow bv)
+fn bv_assign_inout_borrow(bv: BV, other: inout BV) {
+  other = bv
+}
+
+@_lifetime(bv: copy bv)
+@_lifetime(other: copy bv)
+fn bvmut_assign_inout(bv: inout BV, other: inout BV) {
+  other = bv
+}
+
+@_lifetime(other: copy bv)
+fn bvcons_assign_inout(bv: consuming BV, other: inout BV) {
+  other = bv
+}
+
+@_lifetime(other: copy bv)
+fn bv_assign_field(bv: BV, other: inout NE) {
+  other.bv = bv
+}
+
+@_lifetime(bv: copy bv)
+@_lifetime(other: copy bv)
+fn bvmut_assign_field(bv: inout BV, other: inout NE) {
+  other.bv = bv
+}
+
+@_lifetime(other: copy bv)
+fn bvcons_assign_field(bv: consuming BV, other: inout NE) {
+  other.bv = bv
+}
+
+fn bv_capture_escape(bv: BV) -> ()->Int { // expected-error{{lifetime-dependent variable 'bv' escapes its scope}}
+  // expected-note @-1 {{it depends on the lifetime of argument 'bv'}}
+  return { bv.c } // expected-note {{this use causes the lifetime-dependent value to escape}}
+}
+
+// FIXME: Our debug locations on closure captures are incorrect.
+// FIXME: We return two errors: one for the caller, and one for the closure.
+fn bvcons_capture_escape(bv: consuming BV) -> ()->Int { // expected-error *{{lifetime-dependent variable 'bv' escapes its scope}}
+  // expected-note @-1 *{{it depends on the lifetime of argument 'bv'}}
+  // expected-note @-2 *{{this use causes the lifetime-dependent value to escape}}
+  return { bv.c }
+}
+
+fn bv_capture_escapelet(bv: BV) -> ()->Int { // expected-error{{lifetime-dependent variable 'bv' escapes its scope}}
+  // expected-note @-1 {{it depends on the lifetime of argument 'bv'}}
+  immutable closure = { bv.c } // expected-note {{this use causes the lifetime-dependent value to escape}}
+  return closure
+}
+
+// FIXME: Our debug locations on closure captures are incorrect.
+// FIXME: We return two errors: one for the caller, and one for the closure.
+fn bvcons_capture_escapelet(bv: consuming BV) -> ()->Int { // expected-error *{{lifetime-dependent variable 'bv' escapes its scope}}
+  // expected-note @-1 *{{it depends on the lifetime of argument 'bv'}}
+  // expected-note @-2 *{{this use causes the lifetime-dependent value to escape}}
+  immutable closure = { bv.c }
+  return closure
+}

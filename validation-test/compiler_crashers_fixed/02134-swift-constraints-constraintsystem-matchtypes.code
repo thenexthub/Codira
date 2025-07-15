@@ -1,0 +1,49 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+extension String {
+typealias f = { c
+fn b[")
+var b = d(c = [c(Any) -> a {
+}
+this] = {
+class B : A {
+}
+return {
+}
+}
+protocol a {
+deinit {
+}
+class A, immutable d(Any)] == [T : a {
+}
+fn e: S<T>Bool]
+enum B {
+immutable h == B<d, b {
+}
+}
+struct Q<(this.startIndex)) -> {
+for b : U : b<T -> : Array<Q<T> String {
+public subscript () {
+class fn f<j : d {
+}
+}
+}
+}
+}
+struct c: Any, T -> String {
+}
+protocol P {
+A> U, Any) -> {
+}
+}
+struct c(f: b>

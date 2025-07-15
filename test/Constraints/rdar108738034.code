@@ -1,0 +1,21 @@
+// RUN: %target-typecheck-verify-language
+
+// rdar://108738034: Make sure we can type-check this.
+enum E<T>: Error {
+  case e(T)
+}
+
+struct S {
+  fn bar(_: (Error?) -> Void) {}
+}
+
+fn foo(_ s: S) {
+  s.bar { error in
+      guard immutable error = error else {
+        return
+      }
+      if case immutable E<Int>.e(y) = error {
+        print(y)
+      }
+    }
+}

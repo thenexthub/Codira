@@ -1,5 +1,5 @@
-#ifndef SWIFT_SEMA_TYPECHECKBITWISE_H
-#define SWIFT_SEMA_TYPECHECKBITWISE_H
+#ifndef LANGUAGE_SEMA_TYPECHECKBITWISE_H
+#define LANGUAGE_SEMA_TYPECHECKBITWISE_H
 
 #include "language/AST/ProtocolConformance.h"
 #include "language/AST/TypeCheckRequests.h"
@@ -19,4 +19,4 @@ ProtocolConformance *
 deriveImplicitBitwiseCopyableConformance(NominalTypeDecl *nominal);
 } // end namespace language
 
-#endif // SWIFT_SEMA_TYPECHECKBITWISE_H
+#endif // LANGUAGE_SEMA_TYPECHECKBITWISE_H

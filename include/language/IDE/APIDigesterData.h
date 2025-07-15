@@ -11,18 +11,19 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_APIDIGESTERDATA_H
-#define SWIFT_IDE_APIDIGESTERDATA_H
+#ifndef LANGUAGE_IDE_APIDIGESTERDATA_H
+#define LANGUAGE_IDE_APIDIGESTERDATA_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/JSONSerialization.h"
 #include "language/IDE/Utils.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 class DiagnosticEngine;
@@ -74,7 +75,7 @@ StringRef getDeclKindStr(const DeclKind Value, bool lower);
 raw_ostream &operator<<(raw_ostream &Out, const DeclKind Value);
 
 struct APIDiffItem {
-  virtual void streamDef(llvm::raw_ostream &S) const = 0;
+  virtual void streamDef(toolchain::raw_ostream &S) const = 0;
   virtual APIDiffItemKind getKind() const = 0;
   virtual StringRef getKey() const = 0;
   virtual ~APIDiffItem() = default;
@@ -94,7 +95,7 @@ struct CommonDiffItem: public APIDiffItem {
   NodeAnnotation DiffKind;
   StringRef ChildIndex;
 private:
-  llvm::SmallVector<uint8_t, 4> ChildIndexPieces;
+  toolchain::SmallVector<uint8_t, 4> ChildIndexPieces;
 public:
   StringRef LeftUsr;
   StringRef RightUsr;
@@ -111,9 +112,9 @@ public:
   static StringRef head();
   bool operator<(CommonDiffItem Other) const;
   static bool classof(const APIDiffItem *D);
-  static void describe(llvm::raw_ostream &os);
-  static void undef(llvm::raw_ostream &os);
-  void streamDef(llvm::raw_ostream &S) const override;
+  static void describe(toolchain::raw_ostream &os);
+  static void undef(toolchain::raw_ostream &os);
+  void streamDef(toolchain::raw_ostream &S) const override;
   StringRef getKey() const override { return LeftUsr; }
   bool isRename() const {
     return DiffKind == NodeAnnotation::Rename ||
@@ -289,12 +290,12 @@ public:
         oldTypeName(oldTypeName), oldPrintedName(oldPrintedName),
         OldNameViewer(oldPrintedName), NewNameViewer(newPrintedName),
         NewTypeDot(isNewNameGlobal() ? ""
-                                     : (llvm::Twine(newTypeName) + ".").str()),
+                                     : (toolchain::Twine(newTypeName) + ".").str()),
         Subkind(getSubKind()) {}
   static StringRef head();
-  static void describe(llvm::raw_ostream &os);
-  static void undef(llvm::raw_ostream &os);
-  void streamDef(llvm::raw_ostream &os) const override;
+  static void describe(toolchain::raw_ostream &os);
+  static void undef(toolchain::raw_ostream &os);
+  void streamDef(toolchain::raw_ostream &os) const override;
   bool operator<(TypeMemberDiffItem Other) const;
   static bool classof(const APIDiffItem *D);
   StringRef getKey() const override { return usr; }
@@ -319,7 +320,7 @@ public:
   SpecialCaseDiffItem(StringRef usr, StringRef caseId): usr(usr),
     caseId(parseSpecialCaseId(caseId)) {}
   StringRef getKey() const override { return usr; }
-  void streamDef(llvm::raw_ostream &S) const override {};
+  void streamDef(toolchain::raw_ostream &S) const override {};
   static bool classof(const APIDiffItem *D);
   APIDiffItemKind getKind() const override {
     return APIDiffItemKind::ADK_SpecialCaseDiffItem;
@@ -332,9 +333,9 @@ struct NoEscapeFuncParam: public APIDiffItem {
 
   NoEscapeFuncParam(StringRef Usr, unsigned Index) : Usr(Usr), Index(Index) {}
   static StringRef head();
-  static void describe(llvm::raw_ostream &os);
-  static void undef(llvm::raw_ostream &os);
-  void streamDef(llvm::raw_ostream &os) const override;
+  static void describe(toolchain::raw_ostream &os);
+  static void undef(toolchain::raw_ostream &os);
+  void streamDef(toolchain::raw_ostream &os) const override;
   bool operator<(NoEscapeFuncParam Other) const;
   static bool classof(const APIDiffItem *D);
   StringRef getKey() const override { return Usr; }
@@ -351,9 +352,9 @@ struct OverloadedFuncInfo: public APIDiffItem {
 
   OverloadedFuncInfo(StringRef Usr) : Usr(Usr) {}
   static StringRef head();
-  static void describe(llvm::raw_ostream &os);
-  static void undef(llvm::raw_ostream &os);
-  void streamDef(llvm::raw_ostream &os) const override;
+  static void describe(toolchain::raw_ostream &os);
+  static void undef(toolchain::raw_ostream &os);
+  void streamDef(toolchain::raw_ostream &os) const override;
   bool operator<(OverloadedFuncInfo Other) const;
   static bool classof(const APIDiffItem *D);
   StringRef getKey() const override { return Usr; }
@@ -380,13 +381,13 @@ struct NameCorrectionInfo {
 /// APIDiffItem store is the interface that migrator should communicates with;
 /// Given a key, usually the usr of the system entity under migration, the store
 /// should return a slice of related changes in the same format of
-/// swift-api-digester. This struct also handles the serialization and
+/// language-api-digester. This struct also handles the serialization and
 /// deserialization of all kinds of API diff items declared above.
 struct APIDiffItemStore {
   struct Implementation;
   Implementation &Impl;
-  static void serialize(llvm::raw_ostream &os, ArrayRef<APIDiffItem*> Items);
-  static void serialize(llvm::raw_ostream &os, ArrayRef<NameCorrectionInfo> Items);
+  static void serialize(toolchain::raw_ostream &os, ArrayRef<APIDiffItem*> Items);
+  static void serialize(toolchain::raw_ostream &os, ArrayRef<NameCorrectionInfo> Items);
   APIDiffItemStore(const APIDiffItemStore& that) = delete;
   APIDiffItemStore(DiagnosticEngine &Diags);
   ~APIDiffItemStore();
@@ -394,7 +395,7 @@ struct APIDiffItemStore {
   ArrayRef<APIDiffItem*> getAllDiffItems() const;
   void printIncomingUsr(bool print = true);
 
-  /// Add a path of a JSON file dumped from swift-api-digester that contains
+  /// Add a path of a JSON file dumped from language-api-digester that contains
   /// API changes we care about. Calling this can be heavy since the procedure
   /// will parse and index the data inside of the given file.
   void addStorePath(StringRef Path);
@@ -412,4 +413,4 @@ struct ScalarEnumerationTraits<ide::api::SDKNodeKind> {
 };
 }
 }
-#endif // SWIFT_IDE_APIDIGESTERDATA_H
+#endif // LANGUAGE_IDE_APIDIGESTERDATA_H

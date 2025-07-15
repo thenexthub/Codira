@@ -1,0 +1,44 @@
+// Tests that under -enable-toolchain-vfe, virtual function calls to classes defined
+// by other modules are using thunk calls (instead of direct vtable loads).
+
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language -Xfrontend -disable-objc-interop -Xfrontend -enable-toolchain-vfe -parse-as-library %s -DLIBRARY -module-name Library -emit-module -o %t/Library.codemodule
+// RUN: %target-build-language -Xfrontend -disable-objc-interop -Xfrontend -enable-toolchain-vfe -parse-as-library %s -DCLIENT -module-name Main -I%t -emit-ir -o - | %FileCheck %s
+
+// UNSUPPORTED: OS=windows-msvc
+
+#if LIBRARY
+
+public class MyLibraryClass {
+  public fn foo() { }
+}
+
+#endif
+
+#if CLIENT
+
+import Library
+
+public class MyLocalClass {
+  public fn bar() { }
+}
+
+fn func1(o: MyLocalClass) {
+  // CHECK: define hidden languagecc void @"$s4Main5func11oyAA12MyLocalClassC_tF"(ptr %0)
+  o.bar()
+  // CHECK:  [[SLOT:%.*]] = getelementptr inbounds ptr, ptr {{.*}}, {{i64|i32}} {{.*}}
+  // CHECK:  call { ptr, i1 } @toolchain.type.checked.load(ptr [[SLOT]], i32 0, metadata !"$s4Main12MyLocalClassC3baryyFTq")
+
+  // CHECK: ret void
+}
+
+fn func2(o: MyLibraryClass) {
+  // CHECK: define hidden languagecc void @"$s4Main5func21oy7Library02MyC5ClassC_tF"(ptr %0)
+  o.foo()
+  // CHECK: call languagecc void @"$s7Library02MyA5ClassC3fooyyFTj"
+
+  // CHECK-NOT: @toolchain.type.checked.load
+  // CHECK: ret void
+}
+
+#endif

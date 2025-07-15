@@ -1,4 +1,4 @@
-//===--- swift-demangle-yamldump.cpp --------------------------------------===//
+//===--- language-demangle-yamldump.cpp --------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
 ///
 /// This tool is similar to the demangler but is intended to /not/ be installed
-/// into the OS. This means that it can link against llvm support and friends
+/// into the OS. This means that it can link against toolchain support and friends
 /// and thus provide extra functionality. Today it is only used to dump the
 /// demangler tree in YAML form for easy processing.
 ///
 //===----------------------------------------------------------------------===//
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Demangling/Demangle.h"
 #include "language/Demangling/ManglingMacros.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/PrettyStackTrace.h"
-#include "llvm/Support/Regex.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/Support/YAMLTraits.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/PrettyStackTrace.h"
+#include "toolchain/Support/Regex.h"
+#include "toolchain/Support/Signals.h"
+#include "toolchain/Support/raw_ostream.h"
 
 // For std::rand, to work around a bug if main()'s first function call passes
 // argv[0].
@@ -52,11 +53,11 @@ using namespace language::Demangle;
 
 namespace {
 
-using llvm::yaml::IO;
-using llvm::yaml::MappingTraits;
-using llvm::yaml::Output;
-using llvm::yaml::ScalarEnumerationTraits;
-using llvm::yaml::SequenceTraits;
+using toolchain::yaml::IO;
+using toolchain::yaml::MappingTraits;
+using toolchain::yaml::Output;
+using toolchain::yaml::ScalarEnumerationTraits;
+using toolchain::yaml::SequenceTraits;
 
 struct YAMLNode {
   Node::Kind kind;
@@ -68,12 +69,12 @@ struct YAMLNode {
 
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
-template <> struct ScalarEnumerationTraits<swift::Demangle::Node::Kind> {
-  static void enumeration(IO &io, swift::Demangle::Node::Kind &value) {
-#define NODE(ID) io.enumCase(value, #ID, swift::Demangle::Node::Kind::ID);
+template <> struct ScalarEnumerationTraits<language::Demangle::Node::Kind> {
+  static void enumeration(IO &io, language::Demangle::Node::Kind &value) {
+#define NODE(ID) io.enumCase(value, #ID, language::Demangle::Node::Kind::ID);
 #include "language/Demangling/DemangleNodes.def"
   }
 };
@@ -95,11 +96,11 @@ template <> struct MappingTraits<YAMLNode> {
 };
 
 } // namespace yaml
-} // namespace llvm
+} // namespace toolchain
 
-LLVM_YAML_IS_SEQUENCE_VECTOR(YAMLNode *)
+TOOLCHAIN_YAML_IS_SEQUENCE_VECTOR(YAMLNode *)
 
-static std::string getNodeTreeAsYAML(llvm::StringRef name,
+static std::string getNodeTreeAsYAML(toolchain::StringRef name,
 				     NodePointer root) {
   std::vector<std::unique_ptr<YAMLNode>> nodes;
 
@@ -121,8 +122,8 @@ static std::string getNodeTreeAsYAML(llvm::StringRef name,
   }
 
   std::string output;
-  llvm::raw_string_ostream stream(output);
-  llvm::yaml::Output yout(stream);
+  toolchain::raw_string_ostream stream(output);
+  toolchain::yaml::Output yout(stream);
   yout << *nodes.front();
   return stream.str();
 }
@@ -131,58 +132,58 @@ static std::string getNodeTreeAsYAML(llvm::StringRef name,
 //                            Top Level Entrypoint
 //===----------------------------------------------------------------------===//
 
-static llvm::cl::opt<bool>
+static toolchain::cl::opt<bool>
     DisableSugar("no-sugar",
-                 llvm::cl::desc("No sugar mode (disable common language idioms "
+                 toolchain::cl::desc("No sugar mode (disable common language idioms "
                                 "such as ? and [] from the output)"));
 
-static llvm::cl::opt<bool> Simplified(
+static toolchain::cl::opt<bool> Simplified(
     "simplified",
-    llvm::cl::desc("Don't display module names or implicit self types"));
+    toolchain::cl::desc("Don't display module names or implicit self types"));
 
-static llvm::cl::list<std::string>
-    InputNames(llvm::cl::Positional, llvm::cl::desc("[mangled name...]"),
-               llvm::cl::ZeroOrMore);
+static toolchain::cl::list<std::string>
+    InputNames(toolchain::cl::Positional, toolchain::cl::desc("[mangled name...]"),
+               toolchain::cl::ZeroOrMore);
 
-static llvm::StringRef substrBefore(llvm::StringRef whole,
-                                    llvm::StringRef part) {
+static toolchain::StringRef substrBefore(toolchain::StringRef whole,
+                                    toolchain::StringRef part) {
   return whole.slice(0, part.data() - whole.data());
 }
 
-static llvm::StringRef substrAfter(llvm::StringRef whole,
-                                   llvm::StringRef part) {
+static toolchain::StringRef substrAfter(toolchain::StringRef whole,
+                                   toolchain::StringRef part) {
   return whole.substr((part.data() - whole.data()) + part.size());
 }
 
-static void demangle(llvm::raw_ostream &os, llvm::StringRef name,
-                     swift::Demangle::Context &DCtx,
-                     const swift::Demangle::DemangleOptions &options) {
+static void demangle(toolchain::raw_ostream &os, toolchain::StringRef name,
+                     language::Demangle::Context &DCtx,
+                     const language::Demangle::DemangleOptions &options) {
   if (name.starts_with("__")) {
     name = name.substr(1);
   }
-  swift::Demangle::NodePointer pointer = DCtx.demangleSymbolAsNode(name);
+  language::Demangle::NodePointer pointer = DCtx.demangleSymbolAsNode(name);
   // We do not emit a message so that we end up dumping
-  llvm::outs() << getNodeTreeAsYAML(name, pointer);
+  toolchain::outs() << getNodeTreeAsYAML(name, pointer);
   DCtx.clear();
 }
 
-static int demangleSTDIN(const swift::Demangle::DemangleOptions &options) {
+static int demangleSTDIN(const language::Demangle::DemangleOptions &options) {
   // This doesn't handle Unicode symbols, but maybe that's okay.
   // Also accept the future mangling prefix.
-  llvm::Regex maybeSymbol("(_T|_?\\$[Ss])[_a-zA-Z0-9$.]+");
+  toolchain::Regex maybeSymbol("(_T|_?\\$[Ss])[_a-zA-Z0-9$.]+");
 
-  swift::Demangle::Context DCtx;
+  language::Demangle::Context DCtx;
   for (std::string mangled; std::getline(std::cin, mangled);) {
-    llvm::StringRef inputContents(mangled);
+    toolchain::StringRef inputContents(mangled);
 
-    llvm::SmallVector<llvm::StringRef, 1> matches;
+    toolchain::SmallVector<toolchain::StringRef, 1> matches;
     while (maybeSymbol.match(inputContents, &matches)) {
-      llvm::outs() << substrBefore(inputContents, matches.front());
-      demangle(llvm::outs(), matches.front(), DCtx, options);
+      toolchain::outs() << substrBefore(inputContents, matches.front());
+      demangle(toolchain::outs(), matches.front(), DCtx, options);
       inputContents = substrAfter(inputContents, matches.front());
     }
 
-    llvm::errs() << "Failed to match: " << inputContents << '\n';
+    toolchain::errs() << "Failed to match: " << inputContents << '\n';
   }
 
   return EXIT_SUCCESS;
@@ -194,25 +195,25 @@ int main(int argc, char **argv) {
   // if main()'s first function call is passing argv[0].
   std::rand();
 #endif
-  llvm::cl::ParseCommandLineOptions(argc, argv);
+  toolchain::cl::ParseCommandLineOptions(argc, argv);
 
-  swift::Demangle::DemangleOptions options;
+  language::Demangle::DemangleOptions options;
   options.SynthesizeSugarOnTypes = !DisableSugar;
   if (Simplified)
-    options = swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions();
+    options = language::Demangle::DemangleOptions::SimplifiedUIDemangleOptions();
 
   if (InputNames.empty()) {
     return demangleSTDIN(options);
   } else {
-    swift::Demangle::Context DCtx;
-    for (llvm::StringRef name : InputNames) {
+    language::Demangle::Context DCtx;
+    for (toolchain::StringRef name : InputNames) {
       if (name.starts_with("S")) {
         std::string correctedName = std::string("$") + name.str();
-        demangle(llvm::outs(), correctedName, DCtx, options);
+        demangle(toolchain::outs(), correctedName, DCtx, options);
       } else {
-        demangle(llvm::outs(), name, DCtx, options);
+        demangle(toolchain::outs(), name, DCtx, options);
       }
-      llvm::outs() << '\n';
+      toolchain::outs() << '\n';
     }
 
     return EXIT_SUCCESS;

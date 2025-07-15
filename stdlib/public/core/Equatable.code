@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
@@ -21,7 +22,7 @@
 ///
 /// Types that conform to the `Equatable` protocol can be compared for equality
 /// using the equal-to operator (`==`) or inequality using the not-equal-to
-/// operator (`!=`). Most basic types in the Swift standard library conform to
+/// operator (`!=`). Most basic types in the Codira standard library conform to
 /// `Equatable`.
 ///
 /// Some sequence and collection operations can be used more simply when the
@@ -32,9 +33,9 @@
 /// example shows how the `contains(_:)` method can be used with an array of
 /// strings.
 ///
-///     let students = ["Kofi", "Abena", "Efua", "Kweku", "Akosua"]
+///     immutable students = ["Kofi", "Abena", "Efua", "Kweku", "Akosua"]
 ///
-///     let nameToCheck = "Kofi"
+///     immutable nameToCheck = "Kofi"
 ///     if students.contains(nameToCheck) {
 ///         print("\(nameToCheck) is signed up!")
 ///     } else {
@@ -73,14 +74,14 @@
 /// `StreetAddress` type:
 ///
 ///     class StreetAddress {
-///         let number: String
-///         let street: String
-///         let unit: String?
+///         immutable number: String
+///         immutable street: String
+///         immutable unit: String?
 ///
 ///         init(_ number: String, _ street: String, unit: String? = nil) {
-///             self.number = number
-///             self.street = street
-///             self.unit = unit
+///             this.number = number
+///             this.street = street
+///             this.unit = unit
 ///         }
 ///     }
 ///
@@ -90,7 +91,7 @@
 /// `Equatable`.
 ///
 ///     extension StreetAddress: Equatable {
-///         static func == (lhs: StreetAddress, rhs: StreetAddress) -> Bool {
+///         static fn == (lhs: StreetAddress, rhs: StreetAddress) -> Bool {
 ///             return
 ///                 lhs.number == rhs.number &&
 ///                 lhs.street == rhs.street &&
@@ -102,10 +103,10 @@
 /// check for equality between any two instances or call the
 /// `Equatable`-constrained `contains(_:)` method.
 ///
-///     let addresses = [StreetAddress("1490", "Grove Street"),
+///     immutable addresses = [StreetAddress("1490", "Grove Street"),
 ///                      StreetAddress("2119", "Maple Avenue"),
 ///                      StreetAddress("1400", "16th Street")]
-///     let home = StreetAddress("1400", "16th Street")
+///     immutable home = StreetAddress("1400", "16th Street")
 ///
 ///     print(addresses[0] == home)
 ///     // Prints "false"
@@ -141,12 +142,12 @@
 /// conform to `Equatable`:
 ///
 ///     class IntegerRef: Equatable {
-///         let value: Int
+///         immutable value: Int
 ///         init(_ value: Int) {
-///             self.value = value
+///             this.value = value
 ///         }
 ///
-///         static func == (lhs: IntegerRef, rhs: IntegerRef) -> Bool {
+///         static fn == (lhs: IntegerRef, rhs: IntegerRef) -> Bool {
 ///             return lhs.value == rhs.value
 ///         }
 ///     }
@@ -155,8 +156,8 @@
 /// two arguments are the same instance or are two different instances with
 /// the same integer stored in their `value` properties. For example:
 ///
-///     let a = IntegerRef(100)
-///     let b = IntegerRef(100)
+///     immutable a = IntegerRef(100)
+///     immutable b = IntegerRef(100)
 ///
 ///     print(a == a, a == b, separator: ", ")
 ///     // Prints "true, true"
@@ -164,7 +165,7 @@
 /// Class instance identity, on the other hand, is compared using the
 /// triple-equals identical-to operator (`===`). For example:
 ///
-///     let c = a
+///     immutable c = a
 ///     print(c === a, c === b, separator: ", ")
 ///     // Prints "true, false"
 public protocol Equatable {
@@ -176,7 +177,7 @@ public protocol Equatable {
   /// - Parameters:
   ///   - lhs: A value to compare.
   ///   - rhs: Another value to compare.
-  static func == (lhs: Self, rhs: Self) -> Bool
+  static fn == (lhs: Self, rhs: Self) -> Bool
 }
 
 extension Equatable {
@@ -194,14 +195,14 @@ extension Equatable {
   // transparent because sometimes types that use this generate compile-time
   // warnings, e.g. that an expression always evaluates to true
   @_transparent
-  public static func != (lhs: Self, rhs: Self) -> Bool {
+  public static fn != (lhs: Self, rhs: Self) -> Bool {
     return !(lhs == rhs)
   }
 }
 
-// Called by the SwiftValue implementation.
-@_silgen_name("_swift_stdlib_Equatable_isEqual_indirect")
-internal func Equatable_isEqual_indirect<T: Equatable>(
+// Called by the CodiraValue implementation.
+@_silgen_name("_language_stdlib_Equatable_isEqual_indirect")
+internal fn Equatable_isEqual_indirect<T: Equatable>(
   _ lhs: UnsafePointer<T>,
   _ rhs: UnsafePointer<T>
 ) -> Bool {
@@ -224,13 +225,13 @@ internal func Equatable_isEqual_indirect<T: Equatable>(
 /// reference semantics.
 ///
 ///     class IntegerRef: Equatable {
-///         let value: Int
+///         immutable value: Int
 ///         init(_ value: Int) {
-///             self.value = value
+///             this.value = value
 ///         }
 ///     }
 ///
-///     func == (lhs: IntegerRef, rhs: IntegerRef) -> Bool {
+///     fn == (lhs: IntegerRef, rhs: IntegerRef) -> Bool {
 ///         return lhs.value == rhs.value
 ///     }
 ///
@@ -239,8 +240,8 @@ internal func Equatable_isEqual_indirect<T: Equatable>(
 /// to the `Equatable` protocol, instances can also be compared using the
 /// equal-to operator (`==`).
 ///
-///     let a = IntegerRef(10)
-///     let b = a
+///     immutable a = IntegerRef(10)
+///     immutable b = a
 ///     print(a == b)
 ///     // Prints "true"
 ///     print(a === b)
@@ -250,7 +251,7 @@ internal func Equatable_isEqual_indirect<T: Equatable>(
 /// references to different object instances, even if the two instances have
 /// the same value.
 ///
-///     let c = IntegerRef(10)
+///     immutable c = IntegerRef(10)
 ///     print(a == c)
 ///     // Prints "true"
 ///     print(a === c)
@@ -261,9 +262,9 @@ internal func Equatable_isEqual_indirect<T: Equatable>(
 ///   - rhs: Another reference to compare.
 #if !$Embedded
 @inlinable // trivial-implementation
-public func === (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
+public fn === (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
   switch (lhs, rhs) {
-  case let (l?, r?):
+  case immutable (l?, r?):
     return ObjectIdentifier(l) == ObjectIdentifier(r)
   case (nil, nil):
     return true
@@ -274,9 +275,9 @@ public func === (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
 #else
 @inlinable // trivial-implementation
 @safe
-public func ===<T: AnyObject, U: AnyObject>(lhs: T?, rhs: U?) -> Bool {
+public fn ===<T: AnyObject, U: AnyObject>(lhs: T?, rhs: U?) -> Bool {
   switch (lhs, rhs) {
-  case let (l?, r?):
+  case immutable (l?, r?):
     return Builtin.bridgeToRawPointer(l) == Builtin.bridgeToRawPointer(r)
   case (nil, nil):
     return true
@@ -298,12 +299,12 @@ public func ===<T: AnyObject, U: AnyObject>(lhs: T?, rhs: U?) -> Bool {
 ///   - rhs: Another reference to compare.
 #if !$Embedded
 @inlinable // trivial-implementation
-public func !== (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
+public fn !== (lhs: AnyObject?, rhs: AnyObject?) -> Bool {
   return !(lhs === rhs)
 }
 #else
 @inlinable // trivial-implementation
-public func !==<T: AnyObject, U: AnyObject>(lhs: T, rhs: U) -> Bool {
+public fn !==<T: AnyObject, U: AnyObject>(lhs: T, rhs: U) -> Bool {
   return !(lhs === rhs)
 }
 #endif

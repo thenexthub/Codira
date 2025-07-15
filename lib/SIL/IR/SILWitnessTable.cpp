@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the SILWitnessTable class, which is used to map a protocol
@@ -30,7 +31,7 @@
 #include "language/AST/ProtocolConformance.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILModule.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 using namespace language;
 
@@ -80,7 +81,7 @@ SILWitnessTable *SILWitnessTable::create(
   // Create the mangled name of our witness table...
   Identifier Name = M.getASTContext().getIdentifier(mangleConstant(Conformance));
 
-  LLVM_DEBUG(llvm::dbgs() << "SILWitnessTable Creating: " << Name.str() << '\n');
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "SILWitnessTable Creating: " << Name.str() << '\n');
 
   // Allocate the witness table and initialize it.
   void *buf = M.allocate(sizeof(SILWitnessTable), alignof(SILWitnessTable));
@@ -204,7 +205,7 @@ SerializedKind_t SILWitnessTable::conformanceSerializedKind(
 
 bool SILWitnessTable::enumerateWitnessTableConditionalConformances(
     const ProtocolConformance *conformance,
-    llvm::function_ref<bool(unsigned, CanType, ProtocolDecl *)> fn) {
+    toolchain::function_ref<bool(unsigned, CanType, ProtocolDecl *)> fn) {
   unsigned conformanceIndex = 0;
 
   // For a protocol P that conforms to another protocol, introduce a conditional

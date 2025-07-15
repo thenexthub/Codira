@@ -1,0 +1,14 @@
+Name: APINotesTest
+Globals:
+  - Name: ANTGlobalValue
+    CodiraName: NewType.newMember
+Protocols:
+  - Name: TypeWithMethod
+    CodiraName: CodiraTypeWithMethodRight
+
+CodiraVersions:
+- Version: 4
+  Typedefs:
+  - Name: AnimalAttributeName
+    CodiraName: AnimalAttributeName
+    CodiraWrapper: none

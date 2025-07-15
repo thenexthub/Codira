@@ -1,0 +1,55 @@
+// RUN: %target-language-frontend -print-ast -disable-availability-checking %s 2>&1 | %FileCheck %s
+
+fn fetch() async throws -> String {
+}
+// CHECK: internal fn fetch() async throws -> String {
+// CHECK: }
+
+immutable fn = { (x: Int) in
+}
+// CHECK: @_hasInitialValue internal immutable fn: (_ x: Int) -> () = { (x: Int) in
+// CHECK: }
+
+immutable fn1 = {}
+// CHECK: @_hasInitialValue internal immutable fn1: () -> () = { () in
+// CHECK: }
+
+immutable fn2: (Int) -> Void = { x in }
+// CHECK: @_hasInitialValue internal immutable fn2: (Int) -> Void = { (x: Int) in
+// CHECK: }
+
+immutable fn3: (Int, Int) -> Void = { x, y in }
+// CHECK: @_hasInitialValue internal immutable fn3: (Int, Int) -> Void = { (x: Int, y: Int) in
+// CHECK: }
+
+immutable fn4: (Int, Int) -> Void = { (x, y) in }
+// CHECK: @_hasInitialValue internal immutable fn4: (Int, Int) -> Void = { (x: Int, y: Int) in
+// CHECK: }
+
+immutable fn5 = { (x: String, y: Int) in }
+// CHECK: @_hasInitialValue internal immutable fn5: (_ x: String, _ y: Int) -> () = { (x: String, y: Int) in
+// CHECK: }
+
+immutable fn6: (Int) -> Int = { x -> Int in x }
+// CHECK: @_hasInitialValue internal immutable fn6: (Int) -> Int = { (x: Int) -> Int in
+// CHECK:   return x
+// CHECK: }
+
+immutable fn7: (Int, Int) -> Int = { (x, y) -> Int in x + y }
+// CHECK: @_hasInitialValue internal immutable fn7: (Int, Int) -> Int = { (x: Int, y: Int) -> Int in
+// CHECK:   return x + y
+// CHECK: }
+
+immutable fn8 = { (x: Int, y: Int) -> Int in x + y }
+// CHECK: @_hasInitialValue internal immutable fn8: (_ x: Int, _ y: Int) -> Int = { (x: Int, y: Int) -> Int in
+// CHECK:   return x + y
+// CHECK: }
+
+immutable fn9 = { () -> Int in 0 }
+// CHECK: @_hasInitialValue internal immutable fn9: () -> Int = { () -> Int in
+// CHECK:   return 0
+// CHECK: }
+
+immutable fn10 = { () in }
+// CHECK: @_hasInitialValue internal immutable fn10: () -> () = { () in
+// CHECK: }

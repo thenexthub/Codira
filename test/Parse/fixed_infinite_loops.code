@@ -1,0 +1,10 @@
+// RUN: %target-language-frontend -parse -verify %s
+
+fn test1() {
+  @s // expected-error {{expected statement}}
+  return
+}
+fn test2() {
+  @unknown // expected-error {{expected statement}}
+  return
+}

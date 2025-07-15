@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -48,14 +49,14 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_IMMUTABLEPOINTERSET_H
-#define SWIFT_BASIC_IMMUTABLEPOINTERSET_H
+#ifndef LANGUAGE_BASIC_IMMUTABLEPOINTERSET_H
+#define LANGUAGE_BASIC_IMMUTABLEPOINTERSET_H
 
 #include "language/Basic/NullablePtr.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/FoldingSet.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/FoldingSet.h"
+#include "toolchain/Support/Allocator.h"
 #include <algorithm>
 #include <type_traits>
 
@@ -67,16 +68,16 @@ class ImmutablePointerSetFactory;
 /// An immutable set of pointers. It is backed by a tail allocated sorted array
 /// ref.
 template <typename T>
-class ImmutablePointerSet : public llvm::FoldingSetNode {
+class ImmutablePointerSet : public toolchain::FoldingSetNode {
   friend class ImmutablePointerSetFactory<T>;
 
-  using PtrTraits = llvm::PointerLikeTypeTraits<T>;
+  using PtrTraits = toolchain::PointerLikeTypeTraits<T>;
 
   NullablePtr<ImmutablePointerSetFactory<T>> ParentFactory;
-  llvm::ArrayRef<T> Data;
+  toolchain::ArrayRef<T> Data;
 
   ImmutablePointerSet(ImmutablePointerSetFactory<T> *ParentFactory,
-                      llvm::ArrayRef<T> NewData)
+                      toolchain::ArrayRef<T> NewData)
       : ParentFactory(ParentFactory), Data(NewData) {}
 
 public:
@@ -119,16 +120,16 @@ public:
     return *LowerBound == Ptr;
   }
 
-  using iterator = typename llvm::ArrayRef<T>::iterator;
+  using iterator = typename toolchain::ArrayRef<T>::iterator;
   iterator begin() const { return Data.begin(); }
   iterator end() const { return Data.end(); }
-  llvm::iterator_range<iterator> range() const { return {begin(), end()}; }
-  llvm::ArrayRef<T> data() const { return Data; }
+  toolchain::iterator_range<iterator> range() const { return {begin(), end()}; }
+  toolchain::ArrayRef<T> data() const { return Data; }
 
   unsigned size() const { return Data.size(); }
   bool empty() const { return Data.empty(); }
 
-  void Profile(llvm::FoldingSetNodeID &ID) const {
+  void Profile(toolchain::FoldingSetNodeID &ID) const {
     assert(!Data.empty() && "Should not profile empty ImmutablePointerSet");
     for (T P : Data) {
       ID.AddPointer(PtrTraits::getAsVoidPointer(P));
@@ -194,12 +195,12 @@ class ImmutablePointerSetFactory {
   // treated as a complete type.
   static const unsigned AllocAlignment;
 
-  llvm::BumpPtrAllocator &Allocator;
-  llvm::FoldingSetVector<PtrSet> Set;
+  toolchain::BumpPtrAllocator &Allocator;
+  toolchain::FoldingSetVector<PtrSet> Set;
   static PtrSet EmptyPtrSet;
 
 public:
-  ImmutablePointerSetFactory(llvm::BumpPtrAllocator &A) : Allocator(A), Set() {}
+  ImmutablePointerSetFactory(toolchain::BumpPtrAllocator &A) : Allocator(A), Set() {}
   ImmutablePointerSetFactory(const ImmutablePointerSetFactory &) = delete;
   ImmutablePointerSetFactory(ImmutablePointerSetFactory &&) = delete;
   ImmutablePointerSetFactory &
@@ -214,7 +215,7 @@ public:
 
   /// Given a sorted and uniqued list \p Array, return the ImmutablePointerSet
   /// containing Array. Asserts if \p Array is not sorted and uniqued.
-  PtrSet *get(llvm::ArrayRef<T> Array) {
+  PtrSet *get(toolchain::ArrayRef<T> Array) {
     if (Array.empty())
       return ImmutablePointerSetFactory::getEmptySet();
 
@@ -223,7 +224,7 @@ public:
     // write into the input Array, which we don't want.
     assert(is_sorted_and_uniqued(Array));
 
-    llvm::FoldingSetNodeID ID;
+    toolchain::FoldingSetNodeID ID;
     for (T Ptr : Array) {
       ID.AddPointer(PtrTraits::getAsVoidPointer(Ptr));
     }
@@ -243,7 +244,7 @@ public:
     // Copy in the pointers into the tail allocated memory. We do not need to do
     // any sorting/uniquing ourselves since we assume that our users perform
     // this task for us.
-    llvm::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]),
+    toolchain::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]),
                                      NumElts);
     std::copy(Array.begin(), Array.end(), DataMem.begin());
 
@@ -268,10 +269,10 @@ public:
   /// trivial.
   template <typename... Args>
   typename std::enable_if_t<IsTrivialTypedPointerAndHasProfile<
-                                T, llvm::FoldingSetNodeID &, Args...>::value,
+                                T, toolchain::FoldingSetNodeID &, Args...>::value,
                             PtrSet> *
   emplace(Args... args) {
-    llvm::FoldingSetNodeID ID;
+    toolchain::FoldingSetNodeID ID;
     using NoPointerTy = typename std::remove_pointer<T>::type;
     NoPointerTy::Profile(ID, std::forward<Args>(args)...);
 
@@ -290,7 +291,7 @@ public:
     // Copy in the pointers into the tail allocated memory. We do not need to do
     // any sorting/uniquing ourselves since we assume that our users perform
     // this task for us.
-    llvm::MutableArrayRef<NoPointerTy *> DataMem(
+    toolchain::MutableArrayRef<NoPointerTy *> DataMem(
         reinterpret_cast<NoPointerTy **>(&Mem[1]), NumElts);
     NoPointerTy *type =
         new (Allocator) NoPointerTy(std::forward<Args>(args)...);
@@ -303,7 +304,7 @@ public:
   }
 
   PtrSet *get(T value) {
-    llvm::FoldingSetNodeID ID;
+    toolchain::FoldingSetNodeID ID;
     ID.AddPointer(PtrTraits::getAsVoidPointer(value));
 
     void *InsertPt;
@@ -321,7 +322,7 @@ public:
     // Copy in the pointers into the tail allocated memory. We do not need to do
     // any sorting/uniquing ourselves since we assume that our users perform
     // this task for us.
-    llvm::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]), NumElts);
+    toolchain::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]), NumElts);
     DataMem[0] = value;
 
     // Allocate the new node and insert it into the Set.
@@ -330,7 +331,7 @@ public:
     return NewNode;
   }
 
-  PtrSet *merge(PtrSet *S1, llvm::ArrayRef<T> S2) {
+  PtrSet *merge(PtrSet *S1, toolchain::ArrayRef<T> S2) {
     if (S1->empty())
       return get(S2);
 
@@ -346,7 +347,7 @@ public:
         std::equal(S1->begin(), S1->end(), S2.begin()))
       return S1;
 
-    llvm::FoldingSetNodeID ID;
+    toolchain::FoldingSetNodeID ID;
 
     // We know that both of our pointer sets are sorted, so we can essentially
     // perform a sorted set merging algorithm to create the ID. We also count
@@ -372,7 +373,7 @@ public:
     // Copy in the union of the two pointer sets into the tail allocated
     // memory. Since we know that our sorted arrays are uniqued, we can use
     // set_union to get the uniqued sorted array that we want.
-    llvm::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]), NumElts);
+    toolchain::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]), NumElts);
     std::set_union(S1->begin(), S1->end(), S2.begin(), S2.end(),
                    DataMem.begin());
 
@@ -395,7 +396,7 @@ public:
     if (S1 == S2)
       return S1;
 
-    llvm::FoldingSetNodeID ID;
+    toolchain::FoldingSetNodeID ID;
 
     // We know that both of our pointer sets are sorted, so we can essentially
     // perform a sorted set merging algorithm to create the ID. We also count
@@ -421,7 +422,7 @@ public:
     // Copy in the union of the two pointer sets into the tail allocated
     // memory. Since we know that our sorted arrays are uniqued, we can use
     // set_union to get the uniqued sorted array that we want.
-    llvm::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]), NumElts);
+    toolchain::MutableArrayRef<T> DataMem(reinterpret_cast<T *>(&Mem[1]), NumElts);
     std::set_union(S1->begin(), S1->end(), S2->begin(), S2->end(),
                    DataMem.begin());
 
@@ -443,6 +444,6 @@ constexpr
     const unsigned ImmutablePointerSetFactory<T>::AllocAlignment =
         (alignof(PtrSet) > alignof(T)) ? alignof(PtrSet) : alignof(T);
 
-} // end swift namespace
+} // end language namespace
 
-#endif // SWIFT_BASIC_IMMUTABLEPOINTERSET_H
+#endif // LANGUAGE_BASIC_IMMUTABLEPOINTERSET_H

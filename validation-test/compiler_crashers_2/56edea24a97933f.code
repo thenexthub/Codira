@@ -1,0 +1,5 @@
+// {"signature":"language::isRepresentableInObjC(language::VarDecl const*, language::ObjCReason)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: objc_interop
+class a class b open extension b {
+  @objc c : a

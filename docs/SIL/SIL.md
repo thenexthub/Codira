@@ -1,7 +1,7 @@
 # Introduction
 
 SIL is an SSA-form IR with high-level semantic information designed to
-implement the Swift programming language.
+implement the Codira programming language.
 
 In contrast to LLVM IR, SIL is a generally target-independent format
 representation that can be used for code distribution, but it can also
@@ -16,26 +16,26 @@ SIL has three representations:
   files. Textual SIL files have the file extension `.sil`.
 
 - Binary: SIL can be stored and read from binary files. Binary SIL files are
-  called "swift-module" files and have the extension `.swiftmodule`.
-  Note that the binary format is not stable. Swift-module files are _not_
+  called "language-module" files and have the extension `.codemodule`.
+  Note that the binary format is not stable. Codira-module files are _not_
   compatible between compiler versions.
 
 In this document SIL is explained by describing and using the syntax of the textual representation.
 
-SIL is reliant on Swift's type system and declarations, so textual SIL syntax
-is an extension of Swift's. A `.sil` file is a Swift source file with
-added SIL definitions. The Swift source is parsed only for its
-declarations; Swift `func` bodies (except for nested declarations) and
+SIL is reliant on Codira's type system and declarations, so textual SIL syntax
+is an extension of Codira's. A `.sil` file is a Codira source file with
+added SIL definitions. The Codira source is parsed only for its
+declarations; Codira `fn` bodies (except for nested declarations) and
 top-level code are ignored by the SIL parser. In a `.sil` file, there
-are no implicit imports; the `Swift` and/or `Builtin` standard modules
+are no implicit imports; the `Codira` and/or `Builtin` standard modules
 must be imported explicitly if used.
 
-## SIL in the Swift Compiler
+## SIL in the Codira Compiler
 
-At a high level, the Swift compiler follows a strict pipeline
+At a high level, the Codira compiler follows a strict pipeline
 architecture:
 
--   The _parser_ constructs an AST from Swift source code.
+-   The _parser_ constructs an AST from Codira source code.
 -   The _type checker_ (SEMA) type-checks the AST and annotates it with type
     information.
 -   _SILGen_ generates *raw SIL* from an AST. In raw SIL dataflow requirements,
@@ -101,8 +101,8 @@ processing has been applied to it.
 # SIL Types
 
 SIL types are introduced with the `$` sigil. SIL's type system is
-closely related to Swift's, and so the type after the `$` is parsed
-largely according to Swift's type grammar.
+closely related to Codira's, and so the type after the `$` is parsed
+largely according to Codira's type grammar.
 
 ```
 sil-type ::= '$' '*'? generic-parameter-list? type
@@ -110,7 +110,7 @@ sil-type ::= '$' '*'? generic-parameter-list? type
 
 ## Formal vs. Lowered Types
 
-A formal type corresponds to a Swift type as it is defined in the source code.
+A formal type corresponds to a Codira type as it is defined in the source code.
 The AST and the type checker work with formal types. Formal types can be
 canonicalized which resolves type aliases and removes sugar. Later stages of
 the compiler, like the SIL optimizer, only deal with canonical formal types.
@@ -127,7 +127,7 @@ it lowers tuple arguments to individual arguments.
 For example, the formal type of
 
 ```
-  func foo(a: (Int, String), b: any P) { }
+  fn foo(a: (Int, String), b: any P) { }
 ```
 
 is `((Int, String), any P) -> ()` whereas its lowered type is
@@ -224,7 +224,7 @@ copies and destroys. Some common reasons why a type is non-trivial are:
 SIL functions are defined with the `sil` keyword. SIL function names are
 introduced with the `@` sigil.
 A SIL function name will become the LLVM IR name for the function, and is usually
-the mangled name of the originating Swift declaration. The `sil` syntax
+the mangled name of the originating Codira declaration. The `sil` syntax
 declares the function's name and SIL type, and defines the body of the
 function inside braces. The declared type must be a function type, which
 may be generic.
@@ -247,7 +247,7 @@ For the list of function attributes see [FunctionAttributes](FunctionAttributes.
 Optionally a function can define a list of effects, which describe effects,
 like memory effects or escaping effects for arguments. For details
 see the documentation in
-[Effects.swift](`SwiftCompilerSources/Sources/SIL/Effects.swift`).
+[Effects.code](`CodiraCompilerSources/Sources/SIL/Effects.code`).
 
 ```
 effects ::= '[' argument-name ':' argument-effect (',' argument-effect)*]'
@@ -457,9 +457,10 @@ The ownership kind of a value is statically determined:
       ...
 ```
 
-- The ownership of most instruction results is statically defined. For example
-  `copy_value` always produces an owned value, whereas `begin_borrow` always
-  produces a guaranteed value.
+- The ownership of most instruction results can be statically determined from
+  the instruction's kind and the offset of the value in the result tuple. For
+  example `copy_value` has only one result and that result is always an owned
+  value, whereas `begin_borrow` always produces a guaranteed value.
 
 - Forwarding instructions: some instructions work with both, owned and
   guaranteed ownership, and "forward" the ownership from their operand(s) to
@@ -799,15 +800,15 @@ sil-loc ::= 'loc' string-literal ':' [0-9]+ ':' [0-9]+
 Debug locations consist of a filename, a line number, and a
 column number. If the debug location is omitted, it defaults to the
 location in the SIL source file. SIL scopes describe the position inside
-the lexical scope structure that the Swift expression a SIL instruction
+the lexical scope structure that the Codira expression a SIL instruction
 was generated from had originally. SIL scopes also hold inlining
 information.
 
 # Declaration References
 
-Some SIL instructions need to reference Swift declarations directly.
+Some SIL instructions need to reference Codira declarations directly.
 These references are introduced with the `#` sigil followed by the fully
-qualified name of the Swift declaration. 
+qualified name of the Codira declaration. 
 
 ```
 sil-decl-ref ::= '#' sil-identifier ('.' sil-identifier)* sil-decl-subref?
@@ -832,7 +833,7 @@ sil-decl-autodiff-kind ::= 'vjp'
 sil-decl-autodiff-indices ::= [SU]+
 ```
 
-Some Swift declarations are
+Some Codira declarations are
 decomposed into multiple entities at the SIL level. These are
 distinguished by following the qualified name with `!` and one or more
 `.`-separated component entity discriminators:
@@ -849,7 +850,7 @@ distinguished by following the qualified name with `!` and one or more
 -   `ivardestroyer`: a class's ivar destroyer
 -   `ivarinitializer`: a class's ivar initializer
 -   `defaultarg.`*n*: the default argument-generating function for the
-    *n*-th argument of a Swift `func`
+    *n*-th argument of a Codira `fn`
 -   `foreign`: a specific entry point for C/Objective-C interoperability
 
 # Linkage
@@ -890,9 +891,9 @@ visible:
 -   An object with `public` or `public_external` linkage is always
     visible.
 -   An object with `package` or `package_external` linkage is visible
-    only to objects in the same Swift package.
+    only to objects in the same Codira package.
 -   An object with `hidden`, `hidden_external`, or `shared` linkage is
-    visible only to objects in the same Swift module.
+    visible only to objects in the same Codira module.
 -   An object with `private` linkage is visible only to objects in the
     same SIL module.
 
@@ -965,9 +966,9 @@ and [objc_super_method](Instructions.md#objc_super_method) instructions.
 
 ```
 class A {
-  func foo()
-  func bar()
-  func bas()
+  fn foo()
+  fn bar()
+  fn bas()
 }
 
 sil @A_foo : $@convention(thin) (@owned A) -> ()
@@ -981,7 +982,7 @@ sil_vtable A {
 }
 
 class B : A {
-  func bar()
+  fn bar()
 }
 
 sil @B_bar : $@convention(thin) (@owned B) -> ()
@@ -993,7 +994,7 @@ sil_vtable B {
 }
 
 class C : B {
-  func bas()
+  fn bas()
 }
 
 sil @C_bas : $@convention(thin) (@owned C) -> ()
@@ -1008,7 +1009,7 @@ sil_vtable C {
 Note that the declaration reference in the vtable is to the
 least-derived method visible through that class (in the example above,
 `B`'s vtable references `A.bar` and not `B.bar`, and `C`'s vtable
-references `A.bas` and not `C.bas`). The Swift AST maintains override
+references `A.bas` and not `C.bas`). The Codira AST maintains override
 relationships between declarations that can be used to look up
 overridden methods in the SIL vtable for a derived class (such as
 `C.bas` in `C`'s vtable).
@@ -1089,7 +1090,7 @@ Witness tables consist of the following entries:
     protocol.
 -   *Associated type entries* map an associated type requirement of the
     protocol to the type that satisfies that requirement for the witness
-    type. Note that the witness type is a source-level Swift type and
+    type. Note that the witness type is a source-level Codira type and
     not a SIL type. One associated type entry must exist for every
     required associated type of the witnessed protocol.
 -   *Associated type protocol entries* map a protocol requirement on an
@@ -1521,16 +1522,16 @@ and Typed Access TBAA.
 
 Class instances and other *heap object references* are pointers at the
 implementation level, but unlike SIL addresses, they are first class
-values and can be `capture`-d and aliased. Swift, however, is
+values and can be `capture`-d and aliased. Codira, however, is
 memory-safe and statically typed, so aliasing of classes is constrained
 by the type system as follows:
 
--   A `Builtin.NativeObject` may alias any native Swift heap object,
-    including a Swift class instance, a box allocated by `alloc_box`, or
+-   A `Builtin.NativeObject` may alias any native Codira heap object,
+    including a Codira class instance, a box allocated by `alloc_box`, or
     a thick function's closure context. It may not alias natively
     Objective-C class instances.
 -   An `AnyObject` or `Builtin.BridgeObject` may alias any class
-    instance, whether Swift or Objective-C, but may not alias
+    instance, whether Codira or Objective-C, but may not alias
     non-class-instance heap objects.
 -   Two values of the same class type `$C` may alias. Two values of
     related class type `$B` and `$D`, where there is a subclass
@@ -1548,10 +1549,10 @@ by the type system as follows:
     potential substitution for `T`.
 
 A violation of the above aliasing rules only results in undefined
-behavior if the aliasing references are dereferenced within Swift code.
-For example, `__SwiftNativeNS[Array|Dictionary|String]` classes alias
+behavior if the aliasing references are dereferenced within Codira code.
+For example, `__CodiraNativeNS[Array|Dictionary|String]` classes alias
 with `NS[Array|Dictionary|String]` classes even though they are not
-statically related. Since Swift never directly accesses stored
+statically related. Since Codira never directly accesses stored
 properties on the Foundation classes, this aliasing does not pose a
 danger.
 
@@ -1679,6 +1680,6 @@ compiler builtins that lower to LLVM instructions with undefined
 behavior at the LLVM level. A SIL program with undefined behavior is
 meaningless, much like undefined behavior in C, and has no predictable
 semantics. Undefined behavior should not be triggered by valid SIL
-emitted by a correct Swift program using a correct standard library, but
+emitted by a correct Codira program using a correct standard library, but
 cannot in all cases be diagnosed or verified at the SIL level.
 

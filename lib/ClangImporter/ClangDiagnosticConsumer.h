@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_CLANG_DIAGNOSTIC_CONSUMER_H
-#define SWIFT_CLANG_DIAGNOSTIC_CONSUMER_H
+#ifndef LANGUAGE_CLANG_DIAGNOSTIC_CONSUMER_H
+#define LANGUAGE_CLANG_DIAGNOSTIC_CONSUMER_H
 
 #include "language/ClangImporter/ClangImporter.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/Basic/IdentifierTable.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 namespace language {
 
@@ -58,7 +59,7 @@ class ClangDiagnosticConsumer : public clang::TextDiagnosticPrinter {
         // We must reset Clang's diagnostic engine here since we know that only
         // the module lookup errors have been emitted. While the
         // ClangDiagnosticConsumer takes care of filtering out the diagnostics
-        // from the output and from being handled by Swift's DiagnosticEngine,
+        // from the output and from being handled by Codira's DiagnosticEngine,
         // we must ensure to also reset Clang's DiagnosticEngine because its
         // state is queried in later stages of compilation and errors emitted on
         // "module_not_found" should not be counted. Use a soft reset that only

@@ -1,0 +1,4 @@
+// {"signature":"language::ast_scope::SpecializeAttributeScope::getSourceRangeOfThisASTNode(bool) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+{
+  @in

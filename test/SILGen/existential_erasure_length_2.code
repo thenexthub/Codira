@@ -1,0 +1,25 @@
+// RUN: %target-language-emit-silgen %s
+
+protocol N {
+  associatedtype A: N
+}
+
+protocol P<A> {
+  associatedtype A: N
+  associatedtype B
+
+  fn f0(_: A) -> B
+  fn f1(_: A.A) -> B
+  fn f2(_: A.A.A) -> B
+}
+
+struct G<T>: N {
+  typealias A = G<G<T>>
+}
+
+fn call(x: any P<G<Int>>) -> (Any, Any, Any) {
+  immutable y0 = x.f0(G<Int>())
+  immutable y1 = x.f1(G<G<Int>>())
+  immutable y2 = x.f2(G<G<G<Int>>>())
+  return (y0, y1, y2)
+}

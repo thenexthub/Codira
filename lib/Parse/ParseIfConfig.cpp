@@ -1,4 +1,4 @@
-//===--- ParseIfConfig.cpp - Swift Language Parser for #if directives -----===//
+//===--- ParseIfConfig.cpp - Codira Language Parser for #if directives -----===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Conditional Compilation Block Parsing and AST Building
@@ -29,9 +30,9 @@
 #include "language/Basic/Version.h"
 #include "language/Parse/Lexer.h"
 #include "language/Parse/ParseVersion.h"
-#include "llvm/ADT/StringSwitch.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/SaveAndRestore.h"
+#include "toolchain/ADT/StringSwitch.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/SaveAndRestore.h"
 
 using namespace language;
 
@@ -40,7 +41,7 @@ namespace {
 /// Get PlatformConditionKind from platform condition name.
 static std::optional<PlatformConditionKind>
 getPlatformConditionKind(StringRef Name) {
-  return llvm::StringSwitch<std::optional<PlatformConditionKind>>(Name)
+  return toolchain::StringSwitch<std::optional<PlatformConditionKind>>(Name)
 #define PLATFORM_CONDITION(LABEL, IDENTIFIER) \
     .Case(IDENTIFIER, PlatformConditionKind::LABEL)
 #include "language/AST/PlatformConditionKinds.def"
@@ -54,7 +55,7 @@ static StringRef getPlatformConditionName(PlatformConditionKind Kind) {
   case PlatformConditionKind::LABEL: return IDENTIFIER;
 #include "language/AST/PlatformConditionKinds.def"
   }
-  llvm_unreachable("Unhandled PlatformConditionKind in switch");
+  toolchain_unreachable("Unhandled PlatformConditionKind in switch");
 }
 
 /// Extract source text of the expression.
@@ -76,14 +77,14 @@ static bool isValidVersion(const version::Version &Version,
     return Version >= ExpectedVersion;
   if (UnaryOperator == "<")
     return Version < ExpectedVersion;
-  llvm_unreachable("unsupported unary operator");
+  toolchain_unreachable("unsupported unary operator");
 }
 
-static llvm::VersionTuple getCanImportVersion(ArgumentList *args,
+static toolchain::VersionTuple getCanImportVersion(ArgumentList *args,
                                               SourceManager &SM,
                                               DiagnosticEngine *D,
                                               bool &underlyingVersion) {
-  llvm::VersionTuple result;
+  toolchain::VersionTuple result;
   if (args->size() != 2) {
     if (D) {
       D->diagnose(args->getLoc(), diag::canimport_two_parameters);
@@ -329,10 +330,10 @@ public:
       }
     }
 
-    // 'swift' '(' ('>=' | '<') float-literal ( '.' integer-literal )* ')'
+    // 'language' '(' ('>=' | '<') float-literal ( '.' integer-literal )* ')'
     // 'compiler' '(' ('>=' | '<') float-literal ( '.' integer-literal )* ')'
     // '_compiler_version' '(' ('>=' | '<') float-literal ( '.' integer-literal )* ')'
-    if (*KindName == "swift" || *KindName == "compiler" ||
+    if (*KindName == "language" || *KindName == "compiler" ||
         *KindName == "_compiler_version") {
       auto PUE = dyn_cast<PrefixUnaryExpr>(Arg);
       std::optional<StringRef> PrefixName =
@@ -433,7 +434,7 @@ public:
       case PlatformConditionKind::HasAtomicBitWidth:
         DiagName = "has atomic bit width"; break;
       case PlatformConditionKind::Runtime:
-        llvm_unreachable("handled above");
+        toolchain_unreachable("handled above");
       }
       D.diagnose(ArgLoc, diag::unknown_platform_condition_argument, DiagName,
                  *KindName);
@@ -500,7 +501,7 @@ public:
     return E;
   }
 
-  // Fold sequence expression for non-Swift3 mode.
+  // Fold sequence expression for non-Codira3 mode.
   Expr *visitSequenceExpr(SequenceExpr *E) {
     ArrayRef<Expr*> Elts = E->getElements();
     Expr *foldedExpr = Elts[0];
@@ -581,7 +582,7 @@ public:
               .value();
       auto thisVersion = version::getCurrentCompilerVersion();
       return thisVersion >= Val;
-    } else if ((KindName == "swift") || (KindName == "compiler") ||
+    } else if ((KindName == "language") || (KindName == "compiler") ||
                (KindName == "_compiler_version")) {
       auto PUE = cast<PrefixUnaryExpr>(Arg);
       auto PrefixName = getDeclRefStr(PUE->getFn());
@@ -589,20 +590,20 @@ public:
       auto Val = VersionParser::parseVersionString(Str, SourceLoc(), nullptr)
                      .value();
       version::Version thisVersion;
-      if (KindName == "swift") {
+      if (KindName == "language") {
         thisVersion = Ctx.LangOpts.EffectiveLanguageVersion;
       } else if (KindName == "compiler") {
         thisVersion = version::Version::getCurrentLanguageVersion();
       } else if (KindName == "_compiler_version") {
         thisVersion = version::getCurrentCompilerVersion();
       } else {
-        llvm_unreachable("unsupported version conditional");
+        toolchain_unreachable("unsupported version conditional");
       }
       return isValidVersion(thisVersion, Val, PrefixName);
     } else if (KindName == "canImport") {
       auto Str = extractExprSource(Ctx.SourceMgr, Arg);
       bool underlyingModule = false;
-      llvm::VersionTuple version;
+      toolchain::VersionTuple version;
       if (!E->getArgs()->isUnlabeledUnary()) {
         version = getCanImportVersion(E->getArgs(), Ctx.SourceMgr, nullptr,
                                       underlyingModule);
@@ -636,10 +637,10 @@ public:
     auto OpName = getDeclRefStr(E->getFn());
     if (OpName == "||") return visit(E->getLHS()) || visit(E->getRHS());
     if (OpName == "&&") return visit(E->getLHS()) && visit(E->getRHS());
-    llvm_unreachable("unsupported binary operator");
+    toolchain_unreachable("unsupported binary operator");
   }
 
-  bool visitExpr(Expr *E) { llvm_unreachable("Unvalidated condition?"); }
+  bool visitExpr(Expr *E) { toolchain_unreachable("Unvalidated condition?"); }
 };
 
 /// Evaluate the condition.
@@ -665,12 +666,12 @@ public:
     auto OpName = getDeclRefStr(E->getFn());
     if (OpName == "||") return visit(E->getLHS()) && visit(E->getRHS());
     if (OpName == "&&") return visit(E->getLHS()) || visit(E->getRHS());
-    llvm_unreachable("unsupported binary operator");
+    toolchain_unreachable("unsupported binary operator");
   }
 
   bool visitCallExpr(CallExpr *E) {
     auto KindName = getDeclRefStr(E->getFn());
-    return KindName == "_compiler_version" || KindName == "swift" ||
+    return KindName == "_compiler_version" || KindName == "language" ||
         KindName == "compiler";
   }
 
@@ -771,18 +772,18 @@ static Expr *findAnyLikelySimulatorEnvironmentTest(Expr *Condition) {
 
 } // end anonymous namespace
 
-/// Call into the Swift implementation of #if condition evaluation.
+/// Call into the Codira implementation of #if condition evaluation.
 ///
-/// \returns std::nullopt if the Swift implementation is not available, or
+/// \returns std::nullopt if the Codira implementation is not available, or
 /// a pair (isActive, allowSyntaxErrors) describing whether the evaluated
 /// condition indicates that the region is active and whether, if inactive,
 /// the code in that region is allowed to have syntax errors.
-static std::optional<std::pair<bool, bool>> evaluateWithSwiftIfConfig(
+static std::optional<std::pair<bool, bool>> evaluateWithCodiraIfConfig(
     Parser &parser,
     SourceRange conditionRange,
     bool shouldEvaluate
 ) {
-#if SWIFT_BUILD_SWIFT_SYNTAX
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
   return evaluateOrDefault(
       parser.Context.evaluator,
       EvaluateIfConditionRequest{&parser.SF, conditionRange, shouldEvaluate},
@@ -797,10 +798,10 @@ static std::optional<std::pair<bool, bool>> evaluateWithSwiftIfConfig(
 template <typename Result>
 Result Parser::parseIfConfigRaw(
     IfConfigContext ifConfigContext,
-    llvm::function_ref<void(SourceLoc clauseLoc, Expr *condition, bool isActive,
+    toolchain::function_ref<void(SourceLoc clauseLoc, Expr *condition, bool isActive,
                             IfConfigElementsRole role)>
         parseElements,
-    llvm::function_ref<Result(SourceLoc endLoc, bool hadMissingEnd)> finish) {
+    toolchain::function_ref<Result(SourceLoc endLoc, bool hadMissingEnd)> finish) {
   assert(Tok.is(tok::pound_if));
 
   Parser::StructureMarkerRAII ParsingDecl(
@@ -812,7 +813,7 @@ Result Parser::parseIfConfigRaw(
       SourceMgr.getIDEInspectionTargetBufferID() == L->getBufferID() &&
       SourceMgr.isBeforeInBuffer(Tok.getLoc(),
                                  SourceMgr.getIDEInspectionTargetLoc())) {
-    llvm::SaveAndRestore<std::optional<StableHasher>> H(CurrentTokenHash,
+    toolchain::SaveAndRestore<std::optional<StableHasher>> H(CurrentTokenHash,
                                                         std::nullopt);
     BacktrackingScope backtrack(*this);
     do {
@@ -863,7 +864,7 @@ Result Parser::parseIfConfigRaw(
     if (isElse) {
       isActive = !foundActive && shouldEvaluate;
     } else {
-      llvm::SaveAndRestore<bool> S(InPoundIfEnvironment, true);
+      toolchain::SaveAndRestore<bool> S(InPoundIfEnvironment, true);
       ParserResult<Expr> result = parseExprSequence(diag::expected_expr,
                                                       /*isBasic*/true,
                                                       /*isForDirective*/true);
@@ -873,7 +874,7 @@ Result Parser::parseIfConfigRaw(
         return makeParserError();
       Condition = result.get();
       if (std::optional<std::pair<bool, bool>> evalResult =
-              evaluateWithSwiftIfConfig(*this,
+              evaluateWithCodiraIfConfig(*this,
                                         Condition->getSourceRange(),
                                         shouldEvaluate)) {
         if (!foundActive) {
@@ -921,10 +922,10 @@ Result Parser::parseIfConfigRaw(
 
     // Parse elements
     auto bodyStart = Lexer::getLocForEndOfToken(SourceMgr, PreviousLoc);
-    llvm::SaveAndRestore<bool> S(InInactiveClauseEnvironment,
+    toolchain::SaveAndRestore<bool> S(InInactiveClauseEnvironment,
                                  InInactiveClauseEnvironment || !isActive);
     // Disable updating the interface hash inside inactive blocks.
-    std::optional<llvm::SaveAndRestore<std::optional<StableHasher>>> T;
+    std::optional<toolchain::SaveAndRestore<std::optional<StableHasher>>> T;
     if (!isActive)
       T.emplace(CurrentTokenHash, std::nullopt);
 
@@ -988,7 +989,7 @@ Result Parser::parseIfConfigRaw(
 /// Delegate callback function to parse elements in the blocks.
 ParserStatus Parser::parseIfConfig(
     IfConfigContext ifConfigContext,
-    llvm::function_ref<void(bool)> parseElements) {
+    toolchain::function_ref<void(bool)> parseElements) {
   ParserStatus status = makeParserSuccess();
   return parseIfConfigRaw<ParserStatus>(
       ifConfigContext,

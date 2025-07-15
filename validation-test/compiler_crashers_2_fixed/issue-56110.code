@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language -disable-objc-interop -module-name Foundation
+
+// https://github.com/apple/language/issues/56110
+
+// Make sure we diagnose this even if the current module is named 'Foundation':
+@objc protocol Horse { // expected-error {{Objective-C interoperability is disabled}}
+  fn ride()
+}
+
+fn rideHorse(_ horse: Horse) {
+  horse.ride()
+}

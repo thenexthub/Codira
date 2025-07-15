@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_FUNCTIONORDER_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_FUNCTIONORDER_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_FUNCTIONORDER_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_FUNCTIONORDER_H
 
 #include "language/SILOptimizer/Analysis/BasicCalleeAnalysis.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/TinyPtrVector.h"
 
 namespace language {
 
@@ -35,16 +36,16 @@ public:
 
 private:
   SILModule &M;
-  llvm::SmallVector<SCC, 32> TheSCCs;
-  llvm::SmallVector<SILFunction *, 32> TheFunctions;
+  toolchain::SmallVector<SCC, 32> TheSCCs;
+  toolchain::SmallVector<SILFunction *, 32> TheFunctions;
 
   // The callee analysis we use to determine the callees at each call site.
   BasicCalleeAnalysis *BCA;
 
   unsigned NextDFSNum;
-  llvm::DenseMap<SILFunction *, unsigned> DFSNum;
-  llvm::DenseMap<SILFunction *, unsigned> MinDFSNum;
-  llvm::SmallSetVector<SILFunction *, 4> DFSStack;
+  toolchain::DenseMap<SILFunction *, unsigned> DFSNum;
+  toolchain::DenseMap<SILFunction *, unsigned> MinDFSNum;
+  toolchain::SmallSetVector<SILFunction *, 4> DFSStack;
 
 public:
   BottomUpFunctionOrder(SILModule &M, BasicCalleeAnalysis *BCA)

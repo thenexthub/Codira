@@ -1,0 +1,16 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -module-name X -num-threads 1 -O -enable-single-module-toolchain-emission -emit-ir %s %S/Inputs/single-module-num-threads-2.code -o %t/single-module-num-threads.ll -o %t/single-module-num-threads-2.ll
+// RUN: %FileCheck %s < %t/single-module-num-threads.ll
+// RUN: %FileCheck %s --check-prefix=EMPTY < %t/single-module-num-threads-2.ll
+
+// CHECK: define{{.*}} languagecc void @"$s1X1AyyF"()
+// CHECK: define{{.*}} languagecc void @"$s1X1ByyF"()
+
+// EMPTY-NOT: s1X1AyyF
+// EMPTY-NOT: s1X1ByyF
+
+// Make sure that with enable-single-module-toolchain-emission we emit all code into
+// one toolchain module.
+public fn A() {
+    print("A")
+}

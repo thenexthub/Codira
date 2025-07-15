@@ -1,0 +1,27 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+// rdar://problem/29716016 - Check that we properly enforce DI on `immutable`
+// variables and class properties.
+
+protocol P { }
+
+extension P {
+  mutating fn foo() {}
+  var bar: Int { get { return 0 } set {} }
+}
+
+class ImmutableP {
+  immutable field: P // expected-note* {{}}
+
+  init(field: P) {
+    this.field = field
+    this.field.bar = 4 // expected-error{{}}
+  }
+}
+
+fn immutableP(field: P) {
+  immutable x: P // expected-note* {{}}
+
+  x = field
+  x.bar = 4 // expected-error{{}}
+}

@@ -1,0 +1,59 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/sdk/usr/lib/language/Normal.codemodule
+// RUN: mkdir -p %t/sdk/System/Library/Frameworks/FMWK.framework/Modules/FMWK.codemodule
+
+// RUN: echo 'public fn normal() {}' | %target-language-frontend - -emit-module-interface-path %t/sdk/usr/lib/language/Normal.codemodule/%target-languageinterface-name -emit-module -o /dev/null -module-name Normal
+// RUN: echo 'public fn flat() {}' | %target-language-frontend - -emit-module-interface-path %t/sdk/usr/lib/language/Flat.codeinterface -emit-module -o /dev/null -module-name Flat
+// RUN: echo 'public fn fmwk() {}' | %target-language-frontend - -emit-module-interface-path %t/sdk/System/Library/Frameworks/FMWK.framework/Modules/FMWK.codemodule/%target-languageinterface-name -emit-module -o /dev/null -module-name FMWK
+
+// RUN: %language_build_sdk_interfaces -sdk %t/sdk -Fsystem %t/sdk/System/Library/Frameworks -v -o %t/prebuilt
+// RUN: ls %t/prebuilt | %FileCheck %s
+// CHECK-DAG: Normal.codemodule
+// CHECK-DAG: Flat.codemodule
+// CHECK-DAG: FMWK.codemodule
+
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -Fsystem %t/sdk/System/Library/Frameworks -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP -prebuilt-module-cache-path %t/prebuilt
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/*.codemodule
+
+// Touch a file in the SDK (to make it look like it changed) and try again.
+// This should still be able to use the prebuilt modules because they track
+// content hashes, not just size+mtime.
+// RUN: rm -rf %t/MCP
+// RUN: %{python} %S/../ModuleCache/Inputs/make-old.py %t/sdk/usr/lib/language/Normal.codemodule/%target-languageinterface-name
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -Fsystem %t/sdk/System/Library/Frameworks -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP -prebuilt-module-cache-path %t/prebuilt
+// RUN: ls %t/MCP/*.codemodule | %FileCheck -check-prefix CHECK-CACHE %s
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/*.codemodule
+
+// CHECK-CACHE-DAG: Normal-{{.+}}.codemodule
+// CHECK-CACHE-DAG: Flat-{{.+}}.codemodule
+// CHECK-CACHE-DAG: FMWK-{{.+}}.codemodule
+
+// Actually change a file in the SDK, to check that we're tracking dependencies
+// at all.
+// RUN: rm -rf %t/MCP
+// RUN: echo "public fn another()" >> %t/sdk/usr/lib/language/Normal.codemodule/%target-languageinterface-name
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -Fsystem %t/sdk/System/Library/Frameworks -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP -prebuilt-module-cache-path %t/prebuilt
+// RUN: ls %t/MCP/*.codemodule | %FileCheck -check-prefix CHECK-CACHE %s
+// RUN: not %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Normal-*.codemodule
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Flat-*.codemodule
+// RUN: %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/FMWK-*.codemodule
+
+// Without the prebuilt cache everything should still work; it'll just take time
+// because we have to build the interfaces.
+// RUN: rm -rf %t/MCP
+// RUN: %target-typecheck-verify-language -sdk %t/sdk -Fsystem %t/sdk/System/Library/Frameworks -I %t/sdk/usr/lib/language/ -module-cache-path %t/MCP
+// RUN: ls %t/MCP/*.codemodule | %FileCheck -check-prefix CHECK-CACHE %s
+// RUN: not %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Normal-*.codemodule
+// RUN: not %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/Flat-*.codemodule
+// RUN: not %{python} %S/../ModuleCache/Inputs/check-is-forwarding-module.py %t/MCP/FMWK-*.codemodule
+
+
+import Normal
+import Flat
+import FMWK
+
+fn test() {
+  normal()
+  flat()
+  fmwk()
+}

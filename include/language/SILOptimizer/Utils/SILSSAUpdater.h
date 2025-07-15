@@ -11,17 +11,18 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILSSAUPDATER_H
-#define SWIFT_SIL_SILSSAUPDATER_H
+#ifndef LANGUAGE_SIL_SILSSAUPDATER_H
+#define LANGUAGE_SIL_SILSSAUPDATER_H
 
-#include "llvm/Support/Allocator.h"
+#include "toolchain/Support/Allocator.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
 
-namespace llvm {
+namespace toolchain {
 
 template <typename T>
 class SSAUpdaterTraits;
@@ -29,7 +30,7 @@ class SSAUpdaterTraits;
 template <typename T>
 class SmallVectorImpl;
 
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
@@ -41,10 +42,10 @@ class SILUndef;
 /// This class updates SSA for a set of SIL instructions defined in multiple
 /// blocks.
 class SILSSAUpdater {
-  friend class llvm::SSAUpdaterTraits<SILSSAUpdater>;
+  friend class toolchain::SSAUpdaterTraits<SILSSAUpdater>;
 
   // A map of basic block to available phi value.
-  using AvailableValsTy = llvm::DenseMap<SILBasicBlock *, SILValue>;
+  using AvailableValsTy = toolchain::DenseMap<SILBasicBlock *, SILValue>;
   std::unique_ptr<AvailableValsTy> blockToAvailableValueMap;
 
   SILType type;

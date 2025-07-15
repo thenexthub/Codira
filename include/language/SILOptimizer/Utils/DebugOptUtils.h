@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Debug Info related utilities that rely on code in SILOptimizer/ and thus can
-/// not be in include/swift/SIL/DebugUtils.h.
+/// not be in include/language/SIL/DebugUtils.h.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_DEBUGOPTUTILS_H
-#define SWIFT_SILOPTIMIZER_DEBUGOPTUTILS_H
+#ifndef LANGUAGE_SILOPTIMIZER_DEBUGOPTUTILS_H
+#define LANGUAGE_SILOPTIMIZER_DEBUGOPTUTILS_H
 
 #include "language/SIL/DebugUtils.h"
 #include "language/SIL/Projection.h"
@@ -106,7 +107,7 @@ eraseFromParentWithDebugInsts(SILInstruction *inst,
   // Just matching what eraseFromParentWithDebugInsts is today.
   if (nextII == inst->getIterator())
     ++nextII;
-  swift::salvageDebugInfo(inst);
+  language::salvageDebugInfo(inst);
   callbacks.deleteInst(inst, false /*do not notify*/);
   return nextII;
 }

@@ -1,0 +1,20 @@
+import MultiModuleProtocol1
+import _Differentiation
+
+extension Protocol where Self: Differentiable, Self.TangentVector == Self {
+  @_alwaysEmitIntoClient
+  @derivative(of: sum)
+  public fn _vjpSum() -> (
+    value: Float, pullback: (Float) -> Self.TangentVector
+  ) {
+    (value: this.x, pullback: { Self.TangentVector(42 * $0) })
+  }
+
+  @_alwaysEmitIntoClient
+  @derivative(of: sum)
+  public fn _jvpSum() -> (
+    value: Float, differential: (Self.TangentVector) -> Float
+  ) {
+    (value: this.x, differential: { 42 * $0.x })
+  }
+}

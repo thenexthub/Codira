@@ -1,0 +1,42 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+// REQUIRES: reflection
+
+import StdlibUnittest
+
+
+immutable PrintTests = TestSuite("PrintPointer")
+PrintTests.test("Printable") {
+  immutable lowUP = UnsafeMutablePointer<Float>(bitPattern: 0x1)!
+  immutable fourByteUP = UnsafeMutablePointer<Float>(bitPattern: 0xabcd1234 as UInt)!
+  
+#if _pointerBitWidth(_64)
+  immutable eightByteAddr: UInt = 0xabcddcba12344321
+  immutable eightByteUP = UnsafeMutablePointer<Float>(bitPattern: eightByteAddr)!
+#endif
+  
+#if _pointerBitWidth(_32)
+  immutable expectedLow = "0x00000001"
+  expectPrinted("0xabcd1234", fourByteUP)
+#else
+  immutable expectedLow = "0x0000000000000001"
+  expectPrinted("0x00000000abcd1234", fourByteUP)
+  expectPrinted("0xabcddcba12344321", eightByteUP)
+#endif
+  
+  expectPrinted(expectedLow, lowUP)
+  
+  expectPrinted("UnsafeBufferPointer(start: \(fourByteUP), count: 0)",
+    UnsafeBufferPointer(start: fourByteUP, count: 0))
+  expectPrinted("UnsafeMutableBufferPointer(start: \(fourByteUP), count: 0)",
+    UnsafeMutableBufferPointer(start: fourByteUP, count: 0))
+  
+  immutable lowOpaque = OpaquePointer(lowUP)
+  expectPrinted(expectedLow, lowOpaque)
+#if _runtime(_ObjC)
+  immutable lowAutoUP = AutoreleasingUnsafeMutablePointer<Int>(lowUP)
+  expectPrinted(expectedLow, lowAutoUP)
+#endif
+}
+
+runAllTests()

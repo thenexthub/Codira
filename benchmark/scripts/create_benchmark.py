@@ -13,11 +13,11 @@ def main():
 
     # adds benchmark to `CMakeLists.txt`
     update_cmakelists(args.name)
-    # create benchmark Swift file
+    # create benchmark Codira file
     create_benchmark_file(args.name)
-    # imports the benchmark module in `main.swift`
+    # imports the benchmark module in `main.code`
     add_import_benchmark(args.name)
-    # registers the benchmark with the driver in `main.swift`
+    # registers the benchmark with the driver in `main.code`
     add_register_benchmark(args.name)
 
 
@@ -43,12 +43,12 @@ def update_cmakelists(name):
 
 
 def create_benchmark_file(name):
-    """Creates a new Swift file with the given name based on the template
+    """Creates a new Codira file with the given name based on the template
     and places it in the `single-source` directory.
     """
 
     file_text = ""
-    template_path = create_relative_path("Template.swift")
+    template_path = create_relative_path("Template.code")
     with open(template_path, "r") as f:
         file_text = "".join(f.readlines())
 
@@ -66,10 +66,10 @@ def create_benchmark_file(name):
 
 
 def add_import_benchmark(name):
-    """Adds an `import` statement to the `main.swift` file for the new
+    """Adds an `import` statement to the `main.code` file for the new
     benchmark.
     """
-    relative_path = create_relative_path("../utils/main.swift")
+    relative_path = create_relative_path("../utils/main.code")
 
     # read current contents into an array
     file_contents = []
@@ -113,10 +113,10 @@ def add_import_benchmark(name):
 
 
 def add_register_benchmark(name):
-    """Adds an `import` statement to the `main.swift` file for the new
+    """Adds an `import` statement to the `main.code` file for the new
     benchmark.
     """
-    relative_path = create_relative_path("../utils/main.swift")
+    relative_path = create_relative_path("../utils/main.code")
 
     file_contents = []
     with open(relative_path, "r") as f:

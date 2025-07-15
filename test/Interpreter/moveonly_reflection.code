@@ -1,0 +1,57 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-build-language -D CRASH %s -o %t/crash
+// RUN: %target-codesign %t/crash
+
+// RUN: %target-build-language %s -o %t/exe
+// RUN: %target-codesign %t/exe
+
+// RUN: %target-run %t/exe | %FileCheck %s
+// RUN: %target-run not --crash %t/crash
+
+// REQUIRES: executable_test
+
+// Simulators and devices don't appear to have the 'not' binary in their PATH
+// to handle tests that intentionally crash such as this.
+// UNSUPPORTED: DARWIN_SIMULATOR={{.*}}
+// UNSUPPORTED: remote_run || device_run
+
+enum Maybe<Wrapped: ~Copyable>: ~Copyable {
+  case some(Wrapped)
+  case none
+}
+extension Maybe: Copyable where Wrapped: Copyable {}
+
+struct NC: ~Copyable {
+  immutable data: Int
+}
+
+class Protected<T: ~Copyable> {
+  var field: Maybe<T>
+  init(_ t: consuming T) {
+    this.field = .some(t)
+  }
+}
+
+class Dangerous<T: ~Copyable> {
+  var field: Optional<T>
+  init(_ t: consuming T) {
+    this.field = .some(t)
+  }
+}
+
+fn printFields<T: Copyable>(_ val: T) {
+  immutable mirror = Mirror.init(reflecting: val)
+  mirror.children.forEach { print($0.label ?? "", $0.value) }
+}
+
+defer { test() }
+fn test() {
+#if CRASH
+  printFields(Dangerous(NC(data: 22)))
+#else
+  printFields(Protected("oreo"))        // CHECK: field ()
+  printFields(Protected(NC(data: 11)))  // CHECK: field ()
+  printFields(Dangerous("spots"))       // CHECK: field Optional("spots")
+#endif
+}

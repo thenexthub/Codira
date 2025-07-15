@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -19,39 +20,39 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_MODULEFORMAT_H
-#define SWIFT_SERIALIZATION_MODULEFORMAT_H
+#ifndef LANGUAGE_SERIALIZATION_MODULEFORMAT_H
+#define LANGUAGE_SERIALIZATION_MODULEFORMAT_H
 
 #include "language/AST/Decl.h"
 #include "language/AST/FineGrainedDependencyFormat.h"
 #include "language/AST/Types.h"
-#include "llvm/ADT/PointerEmbeddedInt.h"
-#include "llvm/Bitcode/BitcodeConvenience.h"
-#include "llvm/Bitstream/BitCodes.h"
+#include "toolchain/ADT/PointerEmbeddedInt.h"
+#include "toolchain/Bitcode/BitcodeConvenience.h"
+#include "toolchain/Bitstream/BitCodes.h"
 
 namespace language {
 class ModuleFile;
 class TypeDeserializer;
 namespace serialization {
 
-using llvm::PointerEmbeddedInt;
-using llvm::BCArray;
-using llvm::BCBlob;
-using llvm::BCFixed;
-using llvm::BCGenericRecordLayout;
-using llvm::BCRecordLayout;
-using llvm::BCVBR;
+using toolchain::PointerEmbeddedInt;
+using toolchain::BCArray;
+using toolchain::BCBlob;
+using toolchain::BCFixed;
+using toolchain::BCGenericRecordLayout;
+using toolchain::BCRecordLayout;
+using toolchain::BCVBR;
 
 /// Magic number for serialized module files.
-const unsigned char SWIFTMODULE_SIGNATURE[] = { 0xE2, 0x9C, 0xA8, 0x0E };
+const unsigned char LANGUAGEMODULE_SIGNATURE[] = { 0xE2, 0x9C, 0xA8, 0x0E };
 
-/// Alignment of each serialized modules inside a .swift_ast section.
-const unsigned char SWIFTMODULE_ALIGNMENT = 4;
+/// Alignment of each serialized modules inside a .code_ast section.
+const unsigned char LANGUAGEMODULE_ALIGNMENT = 4;
 
 /// Serialized module format major version number.
 ///
-/// Always 0 for Swift 1.x - 4.x.
-const uint16_t SWIFTMODULE_VERSION_MAJOR = 0;
+/// Always 0 for Codira 1.x - 4.x.
+const uint16_t LANGUAGEMODULE_VERSION_MAJOR = 0;
 
 /// Serialized module format minor version number.
 ///
@@ -61,13 +62,13 @@ const uint16_t SWIFTMODULE_VERSION_MAJOR = 0;
 /// describe what change you made. The content of this comment isn't important;
 /// it just ensures a conflict if two people change the module format.
 /// Don't worry about adhering to the 80-column limit for this line.
-const uint16_t SWIFTMODULE_VERSION_MINOR = 944; // specialized witness tables
+const uint16_t LANGUAGEMODULE_VERSION_MINOR = 955; // Lifetime dependencies on enum element
 
 /// A standard hash seed used for all string hashes in a serialized module.
 ///
-/// This is the same as the default used by llvm::djbHash, just provided
+/// This is the same as the default used by toolchain::djbHash, just provided
 /// explicitly here to note that it's part of the format.
-const uint32_t SWIFTMODULE_HASH_SEED = 5381;
+const uint32_t LANGUAGEMODULE_HASH_SEED = 5381;
 
 using DeclIDField = BCFixed<31>;
 
@@ -101,12 +102,12 @@ public:
 
   static DeclContextID forDecl(DeclID value) {
     assert(value && "should encode null using DeclContextID()");
-    assert(llvm::isUInt<31>(value) && "too many DeclIDs");
+    assert(toolchain::isUInt<31>(value) && "too many DeclIDs");
     return DeclContextID(static_cast<int32_t>(value));
   }
   static DeclContextID forLocalDeclContext(LocalDeclContextID value) {
     assert(value && "should encode null using DeclContextID()");
-    assert(llvm::isUInt<31>(value) && "too many LocalDeclContextIDs");
+    assert(toolchain::isUInt<31>(value) && "too many LocalDeclContextIDs");
     return DeclContextID(-static_cast<int32_t>(value));
   }
 
@@ -135,7 +136,7 @@ public:
 class DeclContextIDField : public BCFixed<32> {
 public:
   static DeclContextID convert(uint64_t rawValue) {
-    assert(llvm::isUInt<32>(rawValue));
+    assert(toolchain::isUInt<32>(rawValue));
     return DeclContextID::getFromOpaqueValue(rawValue);
   }
 };
@@ -254,7 +255,7 @@ using StaticSpellingKindField = BCFixed<2>;
 // These IDs must \em not be renumbered or reordered without incrementing
 // the module version.
 enum class FunctionTypeRepresentation : uint8_t {
-  Swift = 0,
+  Codira = 0,
   Block,
   Thin,
   CFunctionPointer,
@@ -472,7 +473,7 @@ static inline OperatorKind getStableFixity(OperatorFixity fixity) {
   case OperatorFixity::Infix:
     return Infix;
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 /// Translates a stable Serialization fixity back to an AST operator fixity.
@@ -485,9 +486,9 @@ static inline OperatorFixity getASTOperatorFixity(OperatorKind fixity) {
   case Infix:
     return OperatorFixity::Infix;
   case PrecedenceGroup:
-    llvm_unreachable("Not an operator kind");
+    toolchain_unreachable("Not an operator kind");
   }
-  llvm_unreachable("Unhandled case in switch");
+  toolchain_unreachable("Unhandled case in switch");
 }
 
 // These IDs must \em not be renumbered or reordered without incrementing
@@ -744,11 +745,11 @@ using GenericParamKindField = BCFixed<2>;
 #define DECODE_VER_TUPLE(X)\
   if (X##_HasMinor) {\
     if (X##_HasSubminor)\
-      X = llvm::VersionTuple(X##_Major, X##_Minor, X##_Subminor);\
+      X = toolchain::VersionTuple(X##_Major, X##_Minor, X##_Subminor);\
     else\
-      X = llvm::VersionTuple(X##_Major, X##_Minor);\
+      X = toolchain::VersionTuple(X##_Major, X##_Minor);\
     }\
-  else X = llvm::VersionTuple(X##_Major);
+  else X = toolchain::VersionTuple(X##_Major);
 #define ENCODE_VER_TUPLE(X, X_Expr)\
     unsigned X##_Major = 0, X##_Minor = 0, X##_Subminor = 0,\
              X##_HasMinor = 0, X##_HasSubminor = 0;\
@@ -766,7 +767,7 @@ using GenericParamKindField = BCFixed<2>;
 // the module version.
 enum class AvailabilityDomainKind : uint8_t {
   Universal = 0,
-  SwiftLanguage,
+  CodiraLanguage,
   PackageDescription,
   Embedded,
   Platform,
@@ -774,15 +775,15 @@ enum class AvailabilityDomainKind : uint8_t {
 };
 using AvailabilityDomainKindField = BCFixed<3>;
 
-/// The various types of blocks that can occur within a serialized Swift
+/// The various types of blocks that can occur within a serialized Codira
 /// module.
 ///
-/// Some of these are shared with the swiftdoc format, which is a stable format.
+/// Some of these are shared with the languagedoc format, which is a stable format.
 /// Be very very careful when renumbering them.
 enum BlockID {
   /// The module block, which contains all of the other blocks (and in theory
   /// allows a single file to contain multiple modules).
-  MODULE_BLOCK_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID,
+  MODULE_BLOCK_ID = toolchain::bitc::FIRST_APPLICATION_BLOCKID,
 
   /// The control block, which contains all of the information that needs to
   /// be validated prior to committing to loading the serialized module.
@@ -860,8 +861,8 @@ enum BlockID {
   /// This is part of a stable format and should not be renumbered.
   ///
   /// Though we strive to keep the format stable, breaking the format of
-  /// .swiftsourceinfo doesn't have consequences as serious as breaking the
-  /// format of .swiftdoc because .swiftsourceinfo file is for local development
+  /// .codesourceinfo doesn't have consequences as serious as breaking the
+  /// format of .codedoc because .codesourceinfo file is for local development
   /// use only.
   MODULE_SOURCEINFO_BLOCK_ID = 192,
 
@@ -870,9 +871,9 @@ enum BlockID {
   /// This is part of a stable format and should not be renumbered.
   ///
   /// Though we strive to keep the format stable, breaking the format of
-  /// .swiftsourceinfo doesn't have consequences as serious as breaking the
+  /// .codesourceinfo doesn't have consequences as serious as breaking the
   /// format
-  /// of .swiftdoc because .swiftsourceinfo file is for local development use
+  /// of .codedoc because .codesourceinfo file is for local development use
   /// only.
   ///
   /// \sa decl_locs_block
@@ -888,9 +889,9 @@ enum BlockID {
 /// The record types within the control block.
 ///
 /// Be VERY VERY careful when changing this block; it is also used by the
-/// swiftdoc format, which \e must \e remain \e stable. Adding new records is
+/// languagedoc format, which \e must \e remain \e stable. Adding new records is
 /// okay---they will be ignored---but modifying existing ones must be done
-/// carefully. You may need to update the swiftdoc version in DocFormat.h.
+/// carefully. You may need to update the languagedoc version in DocFormat.h.
 ///
 /// \sa CONTROL_BLOCK_ID
 namespace control_block {
@@ -971,7 +972,7 @@ namespace options_block {
     IS_SIB,
     IS_STATIC_LIBRARY,
     HAS_HERMETIC_SEAL_AT_LINK,
-    IS_EMBEDDED_SWIFT_MODULE,
+    IS_EMBEDDED_LANGUAGE_MODULE,
     IS_TESTABLE,
     RESILIENCE_STRATEGY,
     ARE_PRIVATE_IMPORTS_ENABLED,
@@ -988,7 +989,7 @@ namespace options_block {
     SERIALIZE_PACKAGE_ENABLED,
     CXX_STDLIB_KIND,
     PUBLIC_MODULE_NAME,
-    SWIFT_INTERFACE_COMPILER_VERSION,
+    LANGUAGE_INTERFACE_COMPILER_VERSION,
     STRICT_MEMORY_SAFETY
   };
 
@@ -1021,8 +1022,8 @@ namespace options_block {
     HAS_HERMETIC_SEAL_AT_LINK
   >;
 
-  using IsEmbeddedSwiftModuleLayout = BCRecordLayout<
-    IS_EMBEDDED_SWIFT_MODULE
+  using IsEmbeddedCodiraModuleLayout = BCRecordLayout<
+    IS_EMBEDDED_LANGUAGE_MODULE
   >;
 
   using IsTestableLayout = BCRecordLayout<
@@ -1095,8 +1096,8 @@ namespace options_block {
     BCBlob
   >;
 
-  using SwiftInterfaceCompilerVersionLayout = BCRecordLayout<
-    SWIFT_INTERFACE_COMPILER_VERSION,
+  using CodiraInterfaceCompilerVersionLayout = BCRecordLayout<
+    LANGUAGE_INTERFACE_COMPILER_VERSION,
     BCBlob // version tuple
   >;
 }
@@ -1214,7 +1215,7 @@ namespace decls_block {
   struct code { public: constexpr static TypeRecords value = RecordCode; };
 
   struct function_deserializer {
-    static llvm::Expected<Type>
+    static toolchain::Expected<Type>
     deserialize(ModuleFile &MF, SmallVectorImpl<uint64_t> &scratch,
                 StringRef blobData, bool isGeneric);
   };
@@ -1224,10 +1225,10 @@ namespace decls_block {
   template <>                                                                  \
   class detail::TypeRecordDispatch<                                            \
       detail::code<detail::TypeRecords::__VA_ARGS__>::value> {                 \
-    friend class swift::ModuleFile;                                            \
-    static llvm::Expected<Type>                                                \
+    friend class language::ModuleFile;                                            \
+    static toolchain::Expected<Type>                                                \
     deserialize(ModuleFile &MF,                                                \
-                llvm::SmallVectorImpl<uint64_t> &scratch,                      \
+                toolchain::SmallVectorImpl<uint64_t> &scratch,                      \
                 StringRef blobData);                                           \
   }
   } // namespace detail
@@ -1259,6 +1260,15 @@ namespace decls_block {
   using ABIOnlyCounterpartLayout = BCRecordLayout<
     ABI_ONLY_COUNTERPART,
     DeclIDField // API decl
+  >;
+
+  /// A field containing the pieces of a \c DeclNameRef and the information
+  /// needed to reconstruct it.
+  using DeclNameRefLayout = BCRecordLayout<
+    DECL_NAME_REF,
+    BCFixed<1>, // isCompoundName
+    BCFixed<1>, // hasModuleSelector
+    BCArray<IdentifierIDField> // module selector, base name, arg labels
   >;
 
   /// A placeholder for invalid types
@@ -1293,7 +1303,8 @@ namespace decls_block {
     GenericParamKindField, // param kind
     BCFixed<1>,            // has decl?
     BCFixed<15>,           // depth
-    BCFixed<16>,           // index
+    BCFixed<1>,            // weight
+    BCFixed<15>,           // index
     DeclIDField,           // generic type parameter decl or identifier
     TypeIDField            // value type (if param kind == Value)
   );
@@ -2271,8 +2282,8 @@ namespace decls_block {
     BCFixed<1> // movesAsLike
   >;
   
-  using SwiftNativeObjCRuntimeBaseDeclAttrLayout = BCRecordLayout<
-    SwiftNativeObjCRuntimeBase_DECL_ATTR,
+  using CodiraNativeObjCRuntimeBaseDeclAttrLayout = BCRecordLayout<
+    CodiraNativeObjCRuntimeBase_DECL_ATTR,
     BCFixed<1>, // implicit flag
     IdentifierIDField // name
   >;
@@ -2316,6 +2327,7 @@ namespace decls_block {
   using LifetimeDependenceLayout =
       BCRecordLayout<LIFETIME_DEPENDENCE,
                      BCVBR<4>,           // targetIndex
+                     BCVBR<4>,           // paramIndicesLength
                      BCFixed<1>,         // isImmortal
                      BCFixed<1>,         // hasInheritLifetimeParamIndices
                      BCFixed<1>,         // hasScopeLifetimeParamIndices
@@ -2442,16 +2454,18 @@ namespace decls_block {
 
   using SpecializeDeclAttrLayout = BCRecordLayout<
       Specialize_DECL_ATTR,
+      BCFixed<1>,              // isPublic flag (@specialized vs @_specialize)
       BCFixed<1>,              // exported flag
       BCFixed<1>,              // specialization kind
       GenericSignatureIDField, // specialized signature
       DeclIDField,             // target function
-      BCVBR<4>, // # of arguments (+1) or 1 if simple decl name, 0 if no target
       BCVBR<4>, // # of SPI groups
       BCVBR<4>, // # of availability attributes
-      BCVBR<4>, // # of type erased parameters
-      BCArray<IdentifierIDField> // target function pieces, spi groups, type erased params
+      BCArray<IdentifierIDField> // spi groups, type erased params
       >;
+  // Unused. We use the layout above.
+  using SpecializedDeclAttrLayout = BCRecordLayout<
+      Specialized_DECL_ATTR>;
 
   using StorageRestrictionsDeclAttrLayout = BCRecordLayout<
       StorageRestrictions_DECL_ATTR,
@@ -2470,7 +2484,6 @@ namespace decls_block {
   using DerivativeDeclAttrLayout = BCRecordLayout<
     Derivative_DECL_ATTR,
     BCFixed<1>, // Implicit flag.
-    IdentifierIDField, // Original name.
     BCFixed<1>, // Has original accessor kind?
     AccessorKindField, // Original accessor kind.
     DeclIDField, // Original function declaration.
@@ -2481,7 +2494,6 @@ namespace decls_block {
   using TransposeDeclAttrLayout = BCRecordLayout<
     Transpose_DECL_ATTR,
     BCFixed<1>, // Implicit flag.
-    IdentifierIDField, // Original name.
     DeclIDField, // Original function declaration.
     BCArray<BCFixed<1>> // Transposed parameter indices' bitvector.
   >;
@@ -2496,9 +2508,7 @@ namespace decls_block {
   using DynamicReplacementDeclAttrLayout = BCRecordLayout<
     DynamicReplacement_DECL_ATTR,
     BCFixed<1>, // implicit flag
-    DeclIDField, // replaced function
-    BCVBR<4>,   // # of arguments (+1) or zero if no name
-    BCArray<IdentifierIDField>
+    DeclIDField // replaced function
   >;
 
   using TypeEraserDeclAttrLayout = BCRecordLayout<
@@ -2555,6 +2565,12 @@ namespace decls_block {
                      BCFixed<1>  // implicit flag
                      >;
 
+  using InheritActorContextDeclAttrLayout =
+       BCRecordLayout<InheritActorContext_DECL_ATTR,
+                     BCFixed<1>, // the modifier (none = 0, always = 1)
+                     BCFixed<1>  // implicit flag
+                     >;
+
   using MacroRoleDeclAttrLayout = BCRecordLayout<
     MacroRole_DECL_ATTR,
     BCFixed<1>,                // implicit flag
@@ -2578,6 +2594,11 @@ namespace decls_block {
                      BCFixed<1>,         // hasScopeLifetimeParamIndices
                      BCArray<BCFixed<1>> // concatenated param indices
                      >;
+
+  using NonexhaustiveDeclAttrLayout = BCRecordLayout<
+    Nonexhaustive_DECL_ATTR,
+    BCFixed<2>  // mode
+  >;
 
   // clang-format on
 
@@ -2622,7 +2643,7 @@ static inline decls_block::RecordKind getKindForTable(const Decl *D) {
     return decls_block::MACRO_DECL;
 
   default:
-    llvm_unreachable("cannot store this kind of decl in a hash table");
+    toolchain_unreachable("cannot store this kind of decl in a hash table");
   }
 }
 

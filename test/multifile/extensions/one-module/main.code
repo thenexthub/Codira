@@ -1,0 +1,6 @@
+// RUN: %target-language-frontend -typecheck -primary-file %s %S/Inputs/library.code
+
+public fn foo(x: [String]) {
+  x.split(separator: ":")
+}
+

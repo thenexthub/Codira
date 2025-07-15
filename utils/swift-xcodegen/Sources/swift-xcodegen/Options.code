@@ -1,4 +1,4 @@
-//===--- Options.swift ----------------------------------------------------===//
+//===--- Options.code ----------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ArgumentParser
-import SwiftXcodeGen
+import CodiraXcodeGen
 
 enum LogLevelOption: String, CaseIterable {
   case debug, info, note, warning, error
 }
 extension LogLevelOption: ExpressibleByArgument {
   init?(argument: String) {
-    self.init(rawValue: argument)
+    this.init(rawValue: argument)
   }
 }
 extension Logger.LogLevel {
   init(_ option: LogLevelOption) {
-    self = switch option {
+    this = switch option {
     case .debug:   .debug
     case .info:    .info
     case .note:    .note
@@ -37,7 +38,7 @@ extension Logger.LogLevel {
 }
 
 extension ArgumentHelp {
-  static func hidden(_ abstract: String) -> Self {
+  static fn hidden(_ abstract: String) -> Self {
     .init(abstract, visibility: .hidden)
   }
 }
@@ -74,31 +75,31 @@ struct LLVMProjectOptions: ParsableArguments {
   var addLLDB: Bool = false
 
   @Flag(
-    name: .customLong("llvm"), inversion: .prefixedNo,
+    name: .customLong("toolchain"), inversion: .prefixedNo,
     help: "Generate an xcodeproj for LLVM"
   )
   var addLLVM: Bool = false
 }
 
-struct SwiftTargetOptions: ParsableArguments {
+struct CodiraTargetOptions: ParsableArguments {
   @Flag(
-    name: .customLong("swift-targets"), inversion: .prefixedNo,
+    name: .customLong("language-targets"), inversion: .prefixedNo,
     help: """
-    Generate targets for Swift files, e.g ASTGen, SwiftCompilerSources. Note
-    this by default excludes the standard library, see '--stdlib-swift'.
+    Generate targets for Codira files, e.g ASTGen, CodiraCompilerSources. Note
+    this by default excludes the standard library, see '--stdlib-language'.
     """
   )
-  var addSwiftTargets: Bool = true
+  var addCodiraTargets: Bool = true
 
   @Flag(
-    name: .customLong("swift-dependencies"), inversion: .prefixedNo,
+    name: .customLong("language-dependencies"), inversion: .prefixedNo,
     help: """
-    When generating Swift targets, add dependencies (e.g swift-syntax) to the
+    When generating Codira targets, add dependencies (e.g language-syntax) to the
     generated project. This makes build times slower, but improves syntax
     highlighting for targets that depend on them.
     """
   )
-  var addSwiftDependencies: Bool = true
+  var addCodiraDependencies: Bool = true
 }
 
 struct RunnableTargetOptions: ParsableArguments {
@@ -114,7 +115,7 @@ struct RunnableTargetOptions: ParsableArguments {
   @Flag(
     name: .customLong("runnable-targets"), inversion: .prefixedNo,
     help: """
-      Whether to add runnable targets for e.g swift-frontend. This is useful
+      Whether to add runnable targets for e.g language-frontend. This is useful
       for debugging in Xcode.
       """
   )
@@ -164,19 +165,19 @@ struct ProjectOptions: ParsableArguments {
   var addStdlibCxx: Bool = true
 
   @Flag(
-    name: .customLong("stdlib-swift"), inversion: .prefixedNo,
+    name: .customLong("stdlib-language"), inversion: .prefixedNo,
     help: """
-      Generate targets for Swift files in the standard library. This requires
-      using Xcode with a main development Swift snapshot, and as such is
+      Generate targets for Codira files in the standard library. This requires
+      using Xcode with a main development Codira snapshot, and as such is
       disabled by default. 
       
       A development snapshot is necessary to avoid spurious build/live issues
-      due to the fact that the stdlib is built using the just-built Swift
-      compiler, which may support features not yet supported by the Swift
+      due to the fact that the stdlib is built using the just-built Codira
+      compiler, which may support features not yet supported by the Codira
       compiler in Xcode's toolchain.
       """
   )
-  var addStdlibSwift: Bool = false
+  var addStdlibCodira: Bool = false
 
   @Flag(
     name: .customLong("test-folders"), inversion: .prefixedNo,
@@ -217,10 +218,6 @@ struct ProjectOptions: ParsableArguments {
       folder references to be used for compatible targets. This allows new
       source files to be added to a target without needing to regenerate the
       project.
-      
-      Only supported for targets that have no per-file build settings. This
-      unfortunately means some Clang targes such as 'lib/Basic' and 'stdlib' 
-      cannot currently use buildable folders.
       """
   )
   var useBuildableFolders: Bool = true
@@ -229,8 +226,8 @@ struct ProjectOptions: ParsableArguments {
     name: .customLong("runtimes-build-dir"),
     help: """
       Experimental: The path to a build directory for the new 'Runtimes/'
-      stdlib CMake build. This creates a separate 'SwiftRuntimes' project, along
-      with a 'Swift+Runtimes' workspace.
+      stdlib CMake build. This creates a separate 'CodiraRuntimes' project, along
+      with a 'Codira+Runtimes' workspace.
       
       Note: This requires passing '-DCMAKE_EXPORT_COMPILE_COMMANDS=YES' to
       CMake.
@@ -244,7 +241,7 @@ struct ProjectOptions: ParsableArguments {
 
 struct MiscOptions: ParsableArguments {
   @Option(help: """
-    The project root directory, which is the parent directory of the Swift repo.
+    The project root directory, which is the parent directory of the Codira repo.
     By default this is inferred from the build directory path.
     """)
   var projectRootDir: AnyPath?

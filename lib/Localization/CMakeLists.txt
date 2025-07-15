@@ -1,6 +1,6 @@
 
-add_swift_host_library(swiftLocalization STATIC
+add_language_host_library(languageLocalization STATIC
   LocalizationFormat.cpp
 
-  LLVM_LINK_COMPONENTS
+  TOOLCHAIN_LINK_COMPONENTS
     support)

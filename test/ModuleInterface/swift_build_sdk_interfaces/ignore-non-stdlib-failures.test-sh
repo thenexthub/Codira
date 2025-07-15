@@ -1,0 +1,21 @@
+# Timing out in CI
+REQUIRES: rdar78483379
+
+RUN: env LANGUAGE_EXEC=%languagec_driver_plain not %{python} %utils/language_build_sdk_interfaces.py %mcp_opt -sdk %S/Inputs/xfails-sdk/ -v -o %t/output | %FileCheck %s
+
+CHECK-DAG: # (FAIL) {{.+}}{{\\|/}}Bad.codeinterface
+CHECK-DAG: # (PASS) {{.+}}{{\\|/}}Good.codeinterface
+
+RUN: %language_build_sdk_interfaces -sdk %S/Inputs/xfails-sdk/ -v -o %t/output -ignore-non-stdlib-failures | %FileCheck -check-prefix=CHECK-IGNORING-FAILURES %s
+
+CHECK-IGNORING-FAILURES-DAG: # (XFAIL) {{.+}}{{\\|/}}Bad.codeinterface
+CHECK-IGNORING-FAILURES-DAG: # (UPASS) {{.+}}{{\\|/}}Good.codeinterface
+
+RUN: env LANGUAGE_EXEC=%languagec_driver_plain not %{python} %utils/language_build_sdk_interfaces.py %mcp_opt -sdk %S/Inputs/broken-stdlib-sdk/ -v -o %t/output | %FileCheck -check-prefix CHECK-BROKEN-STDLIB %s
+RUN: env LANGUAGE_EXEC=%languagec_driver_plain not %{python} %utils/language_build_sdk_interfaces.py %mcp_opt -sdk %S/Inputs/broken-stdlib-sdk/ -v -o %t/output -ignore-non-stdlib-failures | %FileCheck -check-prefix CHECK-BROKEN-STDLIB %s
+
+CHECK-BROKEN-STDLIB: # (FAIL) {{.+}}{{\\|/}}Codira.codeinterface
+CHECK-BROKEN-STDLIB-NOT: {{^}}#
+
+RUN: env LANGUAGE_EXEC=%languagec_driver_plain not %{python} %utils/language_build_sdk_interfaces.py %mcp_opt -sdk %S/Inputs/broken-stdlib-sdk/ -v -o %t/output -skip-stdlib | %FileCheck %s
+RUN: %language_build_sdk_interfaces -sdk %S/Inputs/broken-stdlib-sdk/ -v -o %t/output -skip-stdlib -ignore-non-stdlib-failures | %FileCheck -check-prefix=CHECK-IGNORING-FAILURES %s

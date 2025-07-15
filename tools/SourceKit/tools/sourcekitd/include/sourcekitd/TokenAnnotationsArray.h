@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_TOKEN_ANNOTATIONS_ARRAY_H
-#define LLVM_SOURCEKITD_TOKEN_ANNOTATIONS_ARRAY_H
+#ifndef TOOLCHAIN_SOURCEKITD_TOKEN_ANNOTATIONS_ARRAY_H
+#define TOOLCHAIN_SOURCEKITD_TOKEN_ANNOTATIONS_ARRAY_H
 
 #include "sourcekitd/Internal.h"
 
@@ -34,7 +35,7 @@ public:
 
   bool empty() const;
 
-  std::unique_ptr<llvm::MemoryBuffer> createBuffer();
+  std::unique_ptr<toolchain::MemoryBuffer> createBuffer();
 
 private:
   struct Implementation;

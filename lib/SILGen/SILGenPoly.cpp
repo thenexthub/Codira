@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-// Swift function types can be equivalent or have a subtyping relationship even
+// Codira function types can be equivalent or have a subtyping relationship even
 // if the SIL-level lowering of the calling convention is different. The
 // routines in this file implement thunking between lowered function types.
 //
@@ -30,7 +31,7 @@
 //
 // Function conversion thunks
 // ==========================
-// In Swift's AST-level type system, certain types have a subtype relation
+// In Codira's AST-level type system, certain types have a subtype relation
 // involving a representation change. For example, a concrete type is always
 // a subtype of any protocol it conforms to. The upcast from the concrete
 // type to an existential type for the protocol requires packaging the
@@ -115,7 +116,7 @@
 #include "language/SIL/AbstractionPatternGenerators.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 using namespace language;
 using namespace Lowering;
@@ -130,15 +131,15 @@ getScalarConventionForPackConvention(ParameterConvention conv) {
   case ParameterConvention::Pack_Inout:
     return ParameterConvention::Indirect_Inout;
   default:
-    llvm_unreachable("not a pack convention");
+    toolchain_unreachable("not a pack convention");
   }
-  llvm_unreachable("bad convention");
+  toolchain_unreachable("bad convention");
 }
 
 namespace {
 
 class IndirectSlot {
-  llvm::PointerUnion<SILValue, SILType> value;
+  toolchain::PointerUnion<SILValue, SILType> value;
 public:
   explicit IndirectSlot(SILType type) : value(type) {}
   IndirectSlot(SILValue address) : value(address) {
@@ -163,14 +164,14 @@ public:
     if (hasAddress()) return getAddress();
     return SGF.emitTemporaryAllocation(loc, getType());
   }
-  void print(llvm::raw_ostream &os) const {
+  void print(toolchain::raw_ostream &os) const {
     if (hasAddress())
       os << "Address: " << *getAddress();
     else
       os << "Type: " << getType();
   }
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); llvm::dbgs() << '\n'; }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); toolchain::dbgs() << '\n'; }
 };
 
 } // end anonymous namespace
@@ -344,7 +345,7 @@ ManagedValue SILGenFunction::emitOptionalTangentVectorToTangentVector(
     CanType outputType, SGFContext ctxt) {
   // Optional<T>.TangentVector should be a struct with a single
   // Optional<T.TangentVector> `value` property. This is an implementation
-  // detail of OptionalDifferentiation.swift
+  // detail of OptionalDifferentiation.code
   // TODO: Maybe it would be better to have explicit getters / setters here that we can
   // call and hide this implementation detail?
   VarDecl *wrappedValueVar = getASTContext().getOptionalTanValueDecl(inputType);
@@ -512,7 +513,8 @@ ManagedValue Transform::transform(ManagedValue v,
   bool inputIsOptional = (bool) inputObjectType;
 
   CanType outputObjectType = outputSubstType.getOptionalObjectType();
-  bool outputIsOptional = (bool) outputObjectType;
+  bool outputIsOptional =
+      static_cast<bool>(loweredResultTy.getASTType().getOptionalObjectType());
 
   // If the value is less optional than the desired formal type, wrap in
   // an optional.
@@ -648,7 +650,7 @@ ManagedValue Transform::transform(ManagedValue v,
       } else if (inputSubstType->isSet()) {
         fn = SGF.SGM.getSetUpCast(Loc);
       } else {
-        llvm::report_fatal_error("unsupported collection upcast kind");
+        toolchain::report_fatal_error("unsupported collection upcast kind");
       }
 
       return SGF.emitCollectionConversion(Loc, fn, inputSubstType,
@@ -800,7 +802,7 @@ ManagedValue Transform::transform(ManagedValue v,
 
   // Should have handled the conversion in one of the cases above.
   v.dump();
-  llvm_unreachable("Unhandled transform?");
+  toolchain_unreachable("Unhandled transform?");
 }
 
 ManagedValue Transform::transformMetatype(ManagedValue meta,
@@ -989,7 +991,8 @@ ManagedValue Transform::transformTuple(ManagedValue inputTuple,
 void SILGenFunction::collectThunkParams(
     SILLocation loc, SmallVectorImpl<ManagedValue> &params,
     SmallVectorImpl<ManagedValue> *indirectResults,
-    SmallVectorImpl<ManagedValue> *indirectErrors, ThunkGenOptions options) {
+    SmallVectorImpl<ManagedValue> *indirectErrors,
+    ManagedValue *implicitIsolation) {
   // Add the indirect results.
   for (auto resultTy : F.getConventions().getIndirectSILResultTypes(
            getTypeExpansionContext())) {
@@ -1031,8 +1034,12 @@ void SILGenFunction::collectThunkParams(
     // If our thunk has an implicit param and we are being asked to forward it,
     // to the callee, skip it. We are going to handle it especially later.
     if (param.hasOption(SILParameterInfo::ImplicitLeading) &&
-        param.hasOption(SILParameterInfo::Isolated))
+        param.hasOption(SILParameterInfo::Isolated)) {
+      if (implicitIsolation)
+        *implicitIsolation = functionArgument;
       continue;
+    }
+
     params.push_back(functionArgument);
   }
 }
@@ -1112,7 +1119,7 @@ public:
   }
 
   void dump(SILGenFunction &SGF) const override {
-    llvm::errs() << "TranslateIndirect("
+    toolchain::errs() << "TranslateIndirect("
       << InputOrigType << ", " << InputSubstType << ", "
       << OutputOrigType << ", " << OutputSubstType << ", "
       << Output << ", " << Input << ")\n";
@@ -1162,17 +1169,17 @@ public:
 
   void expandInnerVanishingTuple(AbstractionPattern innerOrigType,
                                  CanType innerSubstType,
-    llvm::function_ref<void(AbstractionPattern innerOrigEltType,
+    toolchain::function_ref<void(AbstractionPattern innerOrigEltType,
                             CanType innerSubstEltType)> handleSingle,
-    llvm::function_ref<ManagedValue(AbstractionPattern innerOrigEltType,
+    toolchain::function_ref<ManagedValue(AbstractionPattern innerOrigEltType,
                                     CanType innerSubstEltType,
                                     SILType innerEltTy)> handlePackElement);
 
   void expandOuterVanishingTuple(AbstractionPattern outerOrigType,
                                  CanType outerSubstType,
-    llvm::function_ref<void(AbstractionPattern outerOrigEltType,
+    toolchain::function_ref<void(AbstractionPattern outerOrigEltType,
                             CanType outerSubstEltType)> handleSingle,
-    llvm::function_ref<void(AbstractionPattern outerOrigEltType,
+    toolchain::function_ref<void(AbstractionPattern outerOrigEltType,
                             CanType outerSubstEltType,
                             ManagedValue outerEltAddr)> handlePackElement);
 
@@ -1292,12 +1299,12 @@ public:
             SGF.silConv.useLoweredAddresses());
   }
 
-  void print(llvm::raw_ostream &os) const {
+  void print(toolchain::raw_ostream &os) const {
     os << "ParamInfo. Slot: ";
     slot.print(os);
   };
 
-  SWIFT_DEBUG_DUMP { print(llvm::dbgs()); llvm::dbgs() << '\n'; }
+  LANGUAGE_DEBUG_DUMP { print(toolchain::dbgs()); toolchain::dbgs() << '\n'; }
 };
 
 /// Given a list of inputs that are suited to the parameters of one
@@ -1312,7 +1319,7 @@ public:
 /// once here.  We will briefly review these concepts in order to
 /// explain what has to happen here.
 ///
-/// Swift functions have *formal* parameters.  These are represented here
+/// Codira functions have *formal* parameters.  These are represented here
 /// as the list of input and and output `CanParam` structures.  The
 /// type-checker requires function types to be formally related to each
 /// in specific ways in order for a conversion to be accepted; this
@@ -1326,7 +1333,7 @@ public:
 /// lowered parameters because SIL function type lowering recursively
 /// expands tuples that aren't being passed inout.
 ///
-/// The lowering of generic Swift function types must be independent
+/// The lowering of generic Codira function types must be independent
 /// of the actual types substituted for generic parameters, which means
 /// that decisions about when to expand must be made according to the
 /// orig (unsubstituted) function type, not the substituted types.
@@ -1362,7 +1369,7 @@ public:
 /// An example might help.  Suppose that we have a generic function
 /// that returns a function value:
 ///
-///   func produceFunction<T_0, each T_1>() ->
+///   fn produceFunction<T_0, each T_1>() ->
 ///     (Optional<T_0>, (B, C), repeat Array<each T_1>) -> ()
 ///
 /// And suppose we call this with generic arguments <A, Pack{D, E}>.
@@ -1390,7 +1397,7 @@ public:
 ///
 /// Now suppose we also have a function that takes a function value:
 ///
-///   func consumeFunction<T_out_0, each T_out_1>(
+///   fn consumeFunction<T_out_0, each T_out_1>(
 ///      _ function: (A, T_out_0, repeat each T_out_1, Array<E>) -> ()
 ///   )
 ///
@@ -2234,13 +2241,13 @@ private:
       return SGF.emitUndef(innerTy);
     case ParameterConvention::Indirect_Inout:
     case ParameterConvention::Pack_Inout:
-      llvm_unreachable("inout reabstraction handled elsewhere");
+      toolchain_unreachable("inout reabstraction handled elsewhere");
     case ParameterConvention::Indirect_InoutAliasable:
-      llvm_unreachable("abstraction difference in aliasable argument not "
+      toolchain_unreachable("abstraction difference in aliasable argument not "
                        "allowed");
     }
 
-    llvm_unreachable("Covered switch isn't covered?!");
+    toolchain_unreachable("Covered switch isn't covered?!");
   }
 
   ManagedValue processInOut(AbstractionPattern innerOrigType,
@@ -2353,7 +2360,7 @@ private:
     return claimNextOuterArg();
   }
   ParameterConvention getOuterPackConvention() {
-    llvm_unreachable("don't have this information");
+    toolchain_unreachable("don't have this information");
   }
 
   /// Claim the next lowered parameter in the inner.  The conventions in
@@ -2404,9 +2411,9 @@ private:
     case ParameterConvention::Indirect_In_CXX:
     case ParameterConvention::Indirect_In:
     case ParameterConvention::Indirect_In_Guaranteed:
-      llvm_unreachable("not a pack convention");
+      toolchain_unreachable("not a pack convention");
     }
-    llvm_unreachable("bad convention");
+    toolchain_unreachable("bad convention");
   }
 
   ParameterConvention getInnerPackConvention() {
@@ -2607,7 +2614,7 @@ void ExpandedTupleInputGenerator::setPackComponent(SILGenFunction &SGF,
            "putting borrowed value in owned pack");
     break;
   default:
-    llvm_unreachable("not a pack kind");
+    toolchain_unreachable("not a pack kind");
   }
 #endif
 
@@ -2845,10 +2852,10 @@ ManagedValue TranslateArguments::expandPackInnerParam(
   case ParameterConvention::Direct_Owned:
   case ParameterConvention::Direct_Unowned:
   case ParameterConvention::Direct_Guaranteed:
-    llvm_unreachable("not a pack parameter convention");
+    toolchain_unreachable("not a pack parameter convention");
 
   case ParameterConvention::Pack_Inout:
-    llvm_unreachable("pack inout reabstraction not supported");
+    toolchain_unreachable("pack inout reabstraction not supported");
 
   // For guaranteed, leave the cleanups in place and produce a
   // borrowed value.
@@ -2870,7 +2877,7 @@ ManagedValue TranslateArguments::expandPackInnerParam(
     return ManagedValue::forOwnedAddressRValue(innerPackAddr, packCleanup);
   }
   }
-  llvm_unreachable("bad convention");
+  toolchain_unreachable("bad convention");
 }
 
 /// Apply trivial conversions to a value to handle differences between the inner
@@ -2916,7 +2923,7 @@ static ManagedValue applyTrivialConversions(SILGenFunction &SGF,
     }
   }
 
-  llvm_unreachable("unhandled reabstraction type mismatch");
+  toolchain_unreachable("unhandled reabstraction type mismatch");
 }
 
 /// Forward arguments according to a function type's ownership conventions.
@@ -3017,7 +3024,7 @@ static ManagedValue manageYield(SILGenFunction &SGF, SILValue value,
     return ManagedValue::forBorrowedObjectRValue(value);
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static void manageYields(SILGenFunction &SGF, ArrayRef<SILValue> yields,
@@ -3711,9 +3718,9 @@ template <class Impl, class InnerSlotType>
 void ExpanderBase<Impl, InnerSlotType>::expandOuterVanishingTuple(
                           AbstractionPattern outerOrigType,
                           CanType outerSubstType,
-    llvm::function_ref<void(AbstractionPattern outerOrigEltType,
+    toolchain::function_ref<void(AbstractionPattern outerOrigEltType,
                             CanType outerSubstEltType)> handleSingle,
-    llvm::function_ref<void(AbstractionPattern outerOrigEltType,
+    toolchain::function_ref<void(AbstractionPattern outerOrigEltType,
                             CanType outerOrigSubstType,
                             ManagedValue outerEltAddr)> handlePackElement) {
   assert(outerOrigType.isTuple());
@@ -3746,9 +3753,9 @@ template <class Impl, class InnerSlotType>
 void ExpanderBase<Impl, InnerSlotType>::expandInnerVanishingTuple(
                           AbstractionPattern innerOrigType,
                           CanType innerSubstType,
-    llvm::function_ref<void(AbstractionPattern innerOrigEltType,
+    toolchain::function_ref<void(AbstractionPattern innerOrigEltType,
                             CanType innerSubstEltType)> handleSingle,
-    llvm::function_ref<ManagedValue(AbstractionPattern innerOrigEltType,
+    toolchain::function_ref<ManagedValue(AbstractionPattern innerOrigEltType,
                                     CanType innerOrigSubstType,
                                     SILType innerEltTy)> handlePackElement) {
   assert(innerOrigType.isTuple());
@@ -5192,7 +5199,7 @@ static size_t getIsolatedParamIndex(CanAnyFunctionType fnType) {
     if (params[i].isIsolated())
       return i;
   }
-  llvm_unreachable("function does not have parameter isolation?");
+  toolchain_unreachable("function does not have parameter isolation?");
 }
 
 /// Destructure a tuple and push its elements in reverse onto
@@ -5260,23 +5267,23 @@ void ResultPlanner::execute(SmallVectorImpl<SILValue> &innerDirectResultStack,
     case ResultConvention::Indirect:
       assert(!SGF.silConv.isSILIndirect(result)
              && "claiming indirect result as direct!");
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case ResultConvention::Owned:
     case ResultConvention::Autoreleased:
       return SGF.emitManagedRValueWithCleanup(resultValue, resultTL);
     case ResultConvention::Pack:
-      llvm_unreachable("shouldn't have direct result with pack results");
+      toolchain_unreachable("shouldn't have direct result with pack results");
     case ResultConvention::UnownedInnerPointer:
       // FIXME: We can't reasonably lifetime-extend an inner-pointer result
       // through a thunk. We don't know which parameter to the thunk was
       // originally 'self'.
       SGF.SGM.diagnose(Loc.getSourceLoc(), diag::not_implemented,
                        "reabstraction of returns_inner_pointer function");
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case ResultConvention::Unowned:
       return SGF.emitManagedCopy(Loc, resultValue, resultTL);
     }
-    llvm_unreachable("bad result convention!");
+    toolchain_unreachable("bad result convention!");
   };
 
   // A helper function to add an outer direct result.
@@ -5384,7 +5391,7 @@ void ResultPlanner::execute(SmallVectorImpl<SILValue> &innerDirectResultStack,
 
     case Operation::TupleDirect: {
       auto firstEltIndex = outerDirectResults.size() - op.NumElements;
-      auto elts = llvm::ArrayRef(outerDirectResults).slice(firstEltIndex);
+      auto elts = toolchain::ArrayRef(outerDirectResults).slice(firstEltIndex);
       auto tupleType = SGF.F.mapTypeIntoContext(
                           SGF.getSILType(op.OuterResult, CanSILFunctionType()));
       auto tuple = SGF.B.createTuple(Loc, tupleType, elts);
@@ -5414,7 +5421,7 @@ void ResultPlanner::execute(SmallVectorImpl<SILValue> &innerDirectResultStack,
       SGF.B.createInjectEnumAddr(Loc, op.OuterResultAddr, op.SomeDecl);
       continue;
     }
-    llvm_unreachable("bad operation kind");
+    toolchain_unreachable("bad operation kind");
   }
 
   assert(innerDirectResultStack.empty() && "didn't consume all inner results?");
@@ -5435,12 +5442,12 @@ static void buildThunkBody(SILGenFunction &SGF, SILLocation loc,
                            CanAnyFunctionType outputSubstType,
                            CanSILFunctionType expectedType,
                            CanType dynamicSelfType,
-                           llvm::function_ref<void(SILGenFunction &)> emitProlog
+                           toolchain::function_ref<void(SILGenFunction &)> emitProlog
                                = [](SILGenFunction &){}) {
   PrettyStackTraceSILFunction stackTrace("emitting reabstraction thunk in",
                                          &SGF.F);
   auto thunkType = SGF.F.getLoweredFunctionType();
-  SWIFT_DEFER {
+  LANGUAGE_DEFER {
     // If verify all is enabled, verify thunk bodies.
     if (SGF.getASTContext().SILOpts.VerifyAll)
       SGF.F.verify();
@@ -5465,9 +5472,18 @@ static void buildThunkBody(SILGenFunction &SGF, SILLocation loc,
       options |= ThunkGenFlag::CalleeHasImplicitIsolatedParam;
   }
 
+  // Collect the thunk parameters. We don't need to collect the indirect
+  // error parameter because it'll be stored as IndirectErrorResult, which
+  // gets used implicitly by emitApplyWithRethrow.
   SmallVector<ManagedValue, 8> params;
   SmallVector<ManagedValue, 4> indirectResultParams;
-  SGF.collectThunkParams(loc, params, &indirectResultParams, nullptr, options);
+  ManagedValue implicitIsolationParam;
+  SGF.collectThunkParams(loc, params, &indirectResultParams,
+                         /*indirect error params*/ nullptr,
+                         &implicitIsolationParam);
+
+  assert(bool(options & ThunkGenFlag::ThunkHasImplicitIsolatedParam)
+           == implicitIsolationParam.isValid());
 
   // Ignore the self parameter at the SIL level. IRGen will use it to
   // recover type metadata.
@@ -5513,9 +5529,11 @@ static void buildThunkBody(SILGenFunction &SGF, SILLocation loc,
     case FunctionTypeIsolation::Kind::NonIsolated:
       break;
 
+    // For a function for caller isolation, we'll have to figure out what the
+    // output function's formal isolation is. This is quite doable, but we don't
+    // have to do it yet.
     case FunctionTypeIsolation::Kind::NonIsolatedCaller:
-      hopToIsolatedParameter = true;
-      break;
+      toolchain_unreachable("synchronous function has caller isolation?");
 
     // For a function with parameter isolation, we'll have to dig the
     // argument out after translation but before making the call.
@@ -5597,12 +5615,15 @@ static void buildThunkBody(SILGenFunction &SGF, SILLocation loc,
                               /*mandatory*/false);
   }
 
-  // If we are thunking a nonisolated caller to nonisolated or global actor, we
-  // need to load the actor.
+  // If the input function has caller isolation, we need to fill in that
+  // argument with the formal isolation of the output function.
   if (options.contains(ThunkGenFlag::CalleeHasImplicitIsolatedParam)) {
     auto outputIsolation = outputSubstType->getIsolation();
     switch (outputIsolation.getKind()) {
     case FunctionTypeIsolation::Kind::NonIsolated:
+    case FunctionTypeIsolation::Kind::Erased:
+      // Converting a caller-isolated function to @isolated(any) makes
+      // it @concurrent. In either case, emit a nil actor reference.
       argValues.push_back(SGF.emitNonIsolatedIsolation(loc).getValue());
       break;
     case FunctionTypeIsolation::Kind::GlobalActor: {
@@ -5612,11 +5633,17 @@ static void buildThunkBody(SILGenFunction &SGF, SILLocation loc,
           SGF.emitGlobalActorIsolation(loc, globalActor).getValue());
       break;
     }
-    case FunctionTypeIsolation::Kind::Parameter:
-    case FunctionTypeIsolation::Kind::Erased:
-    case FunctionTypeIsolation::Kind::NonIsolatedCaller:
-      llvm_unreachable("Should never see this");
+    case FunctionTypeIsolation::Kind::NonIsolatedCaller: {
+      argValues.push_back(implicitIsolationParam.getValue());
       break;
+    }
+    case FunctionTypeIsolation::Kind::Parameter:
+      // This would require a conversion from a type with caller
+      // isolation to a type with parameter isolation, which is not
+      // currently allowed and probably won't ever be. Anyway, to
+      // implement it, we'd need to borrow the isolated parameter
+      // and wrap it up as an `Optional<any Actor>`.
+      toolchain_unreachable("Should never see this");
     }
   }
 
@@ -5704,23 +5731,23 @@ static ManagedValue createThunk(SILGenFunction &SGF,
   auto substSourceType = fn.getType().castTo<SILFunctionType>();
   auto substExpectedType = expectedTL.getLoweredType().castTo<SILFunctionType>();
   
-  LLVM_DEBUG(llvm::dbgs() << "=== Generating reabstraction thunk from:\n";
-             substSourceType.dump(llvm::dbgs());
-             llvm::dbgs() << "\n    to:\n";
-             substExpectedType.dump(llvm::dbgs());
-             llvm::dbgs() << "\n    for source location:\n";
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "=== Generating reabstraction thunk from:\n";
+             substSourceType.dump(toolchain::dbgs());
+             toolchain::dbgs() << "\n    to:\n";
+             substExpectedType.dump(toolchain::dbgs());
+             toolchain::dbgs() << "\n    for source location:\n";
              if (auto d = loc.getAsASTNode<Decl>()) {
-               d->dump(llvm::dbgs());
+               d->dump(toolchain::dbgs());
              } else if (auto e = loc.getAsASTNode<Expr>()) {
-               e->dump(llvm::dbgs());
+               e->dump(toolchain::dbgs());
              } else if (auto s = loc.getAsASTNode<Stmt>()) {
-               s->dump(llvm::dbgs());
+               s->dump(toolchain::dbgs());
              } else if (auto p = loc.getAsASTNode<Pattern>()) {
-               p->dump(llvm::dbgs());
+               p->dump(toolchain::dbgs());
              } else {
                loc.dump();
              }
-             llvm::dbgs() << "\n");
+             toolchain::dbgs() << "\n");
   
   // Apply substitutions in the source and destination types, since the thunk
   // doesn't change because of different function representations.
@@ -5884,7 +5911,7 @@ static ManagedValue createDifferentiableFunctionThunk(
           inputSubstType->getResult()->getAs<AnyFunctionType>()) {
     numUncurriedParams += resultFnType->getNumParams();
   }
-  llvm::SmallBitVector parameterBits(numUncurriedParams);
+  toolchain::SmallBitVector parameterBits(numUncurriedParams);
   for (auto i : range(inputSubstType->getNumParams()))
     if (!inputSubstType->getParams()[i].isNoDerivative())
       parameterBits.set(i);
@@ -5967,7 +5994,9 @@ static void buildWithoutActuallyEscapingThunkBody(SILGenFunction &SGF,
   SmallVector<ManagedValue, 8> params;
   SmallVector<ManagedValue, 8> indirectResults;
   SmallVector<ManagedValue, 1> indirectErrorResults;
-  SGF.collectThunkParams(loc, params, &indirectResults, &indirectErrorResults);
+  ManagedValue implicitIsolationParam;
+  SGF.collectThunkParams(loc, params, &indirectResults, &indirectErrorResults,
+                         &implicitIsolationParam);
 
   // Ignore the self parameter at the SIL level. IRGen will use it to
   // recover type metadata.
@@ -5987,6 +6016,11 @@ static void buildWithoutActuallyEscapingThunkBody(SILGenFunction &SGF,
   // Forward indirect error arguments.
   for (auto indirectError : indirectErrorResults)
     argValues.push_back(indirectError.getLValueAddress());
+
+  // Forward the implicit isolation parameter.
+  if (implicitIsolationParam.isValid()) {
+    argValues.push_back(implicitIsolationParam.getValue());
+  }
 
    // Add the rest of the arguments.
   forwardFunctionArguments(SGF, loc, fnType, params, argValues);
@@ -6141,7 +6175,7 @@ ManagedValue SILGenFunction::getThunkedAutoDiffLinearMap(
   else {
     name = mangler.mangleReabstractionThunkHelper(
         thunkType, fromInterfaceType, toInterfaceType, Type(), Type(),
-        getModule().getSwiftModule());
+        getModule().getCodiraModule());
   }
 
   // Create the thunk.
@@ -6177,6 +6211,7 @@ ManagedValue SILGenFunction::getThunkedAutoDiffLinearMap(
     return getThunkedResult();
   thunk->setGenericEnvironment(genericEnv);
 
+  // FIXME: handle implicit isolation parameter here
   SILGenFunction thunkSGF(SGM, *thunk, FunctionDC);
   SmallVector<ManagedValue, 4> params;
   SmallVector<ManagedValue, 4> thunkIndirectResults;
@@ -6470,7 +6505,7 @@ ManagedValue SILGenFunction::getThunkedAutoDiffLinearMap(
                                           NotForUnwind);
 
   // Deallocate local allocations.
-  for (auto *alloc : llvm::reverse(localAllocations))
+  for (auto *alloc : toolchain::reverse(localAllocations))
     thunkSGF.B.createDeallocStack(loc, alloc);
 
   // Create return.
@@ -6501,8 +6536,14 @@ SILFunction *SILGenModule::getOrCreateCustomDerivativeThunk(
   auto loc = customDerivativeFn->getLocation();
   SILGenFunctionBuilder fb(*this);
   // Derivative thunks have the same linkage as the original function, stripping
-  // external.
-  auto linkage = stripExternalFromLinkage(originalFn->getLinkage());
+  // external. For @_alwaysEmitIntoClient original functions, force PublicNonABI
+  // linkage of derivative thunks so we can serialize them (the original
+  // function itself might be HiddenExternal in this case if we only have
+  // declaration without definition).
+  auto linkage = originalFn->markedAsAlwaysEmitIntoClient()
+                     ? SILLinkage::PublicNonABI
+                     : stripExternalFromLinkage(originalFn->getLinkage());
+
   auto *thunk = fb.getOrCreateFunction(
       loc, name, linkage, thunkFnTy, IsBare, IsNotTransparent,
       customDerivativeFn->getSerializedKind(),
@@ -6519,6 +6560,7 @@ SILFunction *SILGenModule::getOrCreateCustomDerivativeThunk(
   thunk->setGenericEnvironment(thunkGenericEnv);
 
   SILGenFunction thunkSGF(*this, *thunk, customDerivativeFn->getDeclContext());
+  // FIXME: handle implicit isolation parameter here
   SmallVector<ManagedValue, 4> params;
   SmallVector<ManagedValue, 4> indirectResults;
   SmallVector<ManagedValue, 1> indirectErrorResults;
@@ -6948,10 +6990,6 @@ SILGenFunction::emitVTableThunk(SILDeclRef base,
   cleanupLoc.markAutoGenerated();
   Scope scope(Cleanups, cleanupLoc);
 
-  SmallVector<ManagedValue, 8> thunkArgs;
-  SmallVector<ManagedValue, 8> thunkIndirectResults;
-  collectThunkParams(loc, thunkArgs, &thunkIndirectResults);
-
   CanSILFunctionType derivedFTy;
   if (baseLessVisibleThanDerived) {
     derivedFTy =
@@ -6976,16 +7014,41 @@ SILGenFunction::emitVTableThunk(SILDeclRef base,
             ->substGenericArgs(subs)->getCanonicalType());
   }
 
-  // Emit the indirect return and arguments.
   auto thunkTy = F.getLoweredFunctionType();
 
-  SmallVector<ManagedValue, 8> substArgs;
+  using ThunkGenFlag = SILGenFunction::ThunkGenFlag;
+  auto options = SILGenFunction::ThunkGenOptions();
 
+  {
+    auto thunkIsolatedParam = thunkTy->maybeGetIsolatedParameter();
+    if (thunkIsolatedParam &&
+        thunkIsolatedParam->hasOption(SILParameterInfo::ImplicitLeading))
+      options |= ThunkGenFlag::ThunkHasImplicitIsolatedParam;
+    auto derivedIsolatedParam = derivedFTy->maybeGetIsolatedParameter();
+    if (derivedIsolatedParam &&
+        derivedIsolatedParam->hasOption(SILParameterInfo::ImplicitLeading))
+      options |= ThunkGenFlag::CalleeHasImplicitIsolatedParam;
+  }
+
+  SmallVector<ManagedValue, 8> thunkArgs;
+  SmallVector<ManagedValue, 8> thunkIndirectResults;
+  collectThunkParams(loc, thunkArgs, &thunkIndirectResults);
+
+  // Emit the indirect return and arguments.
+  SmallVector<ManagedValue, 8> substArgs;
   AbstractionPattern outputOrigType(outputSubstType);
+
+  auto derivedFTyParamInfo = derivedFTy->getParameters();
+
+  // If we are transforming to a callee with an implicit param, drop the
+  // implicit param so that we can insert it again later. This ensures
+  // TranslateArguments does not need to know about this.
+  if (options.contains(ThunkGenFlag::CalleeHasImplicitIsolatedParam))
+    derivedFTyParamInfo = derivedFTyParamInfo.drop_front();
 
   // Reabstract the arguments.
   TranslateArguments(*this, loc, thunkArgs, substArgs,
-                     derivedFTy, derivedFTy->getParameters())
+                     derivedFTy, derivedFTyParamInfo)
     .process(outputOrigType,
              outputSubstType.getParams(),
              inputOrigType,
@@ -7015,8 +7078,61 @@ SILGenFunction::emitVTableThunk(SILDeclRef base,
     }
   }
 
+  // Now that we have translated arguments and inserted our thunk indirect
+  // parameters... before we forward those arguments, insert the implicit
+  // leading parameter.
+  if (options.contains(ThunkGenFlag::CalleeHasImplicitIsolatedParam)) {
+    auto baseIsolation =
+        language::getActorIsolation(base.getAbstractFunctionDecl());
+    switch (baseIsolation) {
+    case ActorIsolation::Unspecified:
+    case ActorIsolation::Nonisolated:
+    case ActorIsolation::NonisolatedUnsafe:
+      args.push_back(emitNonIsolatedIsolation(loc).getValue());
+      break;
+    case ActorIsolation::Erased:
+      toolchain::report_fatal_error("Found erased actor isolation?!");
+      break;
+    case ActorIsolation::GlobalActor: {
+      auto globalActor = baseIsolation.getGlobalActor()->getCanonicalType();
+      args.push_back(emitGlobalActorIsolation(loc, globalActor).getValue());
+      break;
+    }
+    case ActorIsolation::ActorInstance:
+    case ActorIsolation::CallerIsolationInheriting: {
+      auto derivedIsolation =
+          language::getActorIsolation(derived.getAbstractFunctionDecl());
+      switch (derivedIsolation) {
+      case ActorIsolation::Unspecified:
+      case ActorIsolation::Nonisolated:
+      case ActorIsolation::NonisolatedUnsafe:
+        args.push_back(emitNonIsolatedIsolation(loc).getValue());
+        break;
+      case ActorIsolation::Erased:
+        toolchain::report_fatal_error("Found erased actor isolation?!");
+        break;
+      case ActorIsolation::GlobalActor: {
+        auto globalActor =
+            derivedIsolation.getGlobalActor()->getCanonicalType();
+        args.push_back(emitGlobalActorIsolation(loc, globalActor).getValue());
+        break;
+      }
+      case ActorIsolation::ActorInstance:
+      case ActorIsolation::CallerIsolationInheriting: {
+        auto isolatedArg = F.maybeGetIsolatedArgument();
+        assert(isolatedArg);
+        args.push_back(isolatedArg);
+        break;
+      }
+      }
+      break;
+    }
+    }
+  }
+
   // Then, the arguments.
-  forwardFunctionArguments(*this, loc, derivedFTy, substArgs, args);
+  forwardFunctionArguments(*this, loc, derivedFTy, substArgs, args,
+                           options);
 
   // Create the call.
   SILValue derivedRef;
@@ -7164,7 +7280,7 @@ getWitnessFunctionType(TypeExpansionContext context, SILGenModule &SGM,
     return SGM.Types.getConstantOverrideType(context, witness);
   }
 
-  llvm_unreachable("Unhandled WitnessDispatchKind in switch.");
+  toolchain_unreachable("Unhandled WitnessDispatchKind in switch.");
 }
 
 static std::pair<CanType, ProtocolConformanceRef>
@@ -7232,7 +7348,7 @@ getWitnessFunctionRef(SILGenFunction &SGF,
   }
   }
 
-  llvm_unreachable("Unhandled WitnessDispatchKind in switch.");
+  toolchain_unreachable("Unhandled WitnessDispatchKind in switch.");
 }
 
 static ManagedValue
@@ -7319,7 +7435,7 @@ void SILGenFunction::emitProtocolWitness(
 
   SmallVector<ManagedValue, 8> origParams;
   SmallVector<ManagedValue, 8> thunkIndirectResults;
-  collectThunkParams(loc, origParams, &thunkIndirectResults, nullptr, options);
+  collectThunkParams(loc, origParams, &thunkIndirectResults);
 
   if (witness.getDecl()->requiresUnavailableDeclABICompatibilityStubs())
     emitApplyOfUnavailableCodeReached();
@@ -7331,7 +7447,7 @@ void SILGenFunction::emitProtocolWitness(
 
     // For an instance actor, get the actor 'self'.
     if (*enterIsolation == ActorIsolation::ActorInstance) {
-      assert(enterIsolation->getActorInstanceParameter() == 0 && "Not self?");
+      assert(enterIsolation->isActorInstanceForSelfParameter() && "Not self?");
       auto actorSelfVal = origParams.back();
 
       if (actorSelfVal.getType().isAddress()) {
@@ -7447,7 +7563,7 @@ void SILGenFunction::emitProtocolWitness(
   // leading parameter.
   if (options.contains(ThunkGenFlag::CalleeHasImplicitIsolatedParam)) {
     auto reqtIsolation =
-        swift::getActorIsolation(requirement.getAbstractFunctionDecl());
+        language::getActorIsolation(requirement.getAbstractFunctionDecl());
     switch (reqtIsolation) {
     case ActorIsolation::Unspecified:
     case ActorIsolation::Nonisolated:
@@ -7455,7 +7571,7 @@ void SILGenFunction::emitProtocolWitness(
       args.push_back(emitNonIsolatedIsolation(loc).getValue());
       break;
     case ActorIsolation::Erased:
-      llvm::report_fatal_error("Found erased actor isolation?!");
+      toolchain::report_fatal_error("Found erased actor isolation?!");
       break;
     case ActorIsolation::GlobalActor: {
       auto globalActor = reqtIsolation.getGlobalActor()->getCanonicalType();
@@ -7465,7 +7581,7 @@ void SILGenFunction::emitProtocolWitness(
     case ActorIsolation::ActorInstance:
     case ActorIsolation::CallerIsolationInheriting: {
       auto witnessIsolation =
-          swift::getActorIsolation(witness.getAbstractFunctionDecl());
+          language::getActorIsolation(witness.getAbstractFunctionDecl());
       switch (witnessIsolation) {
       case ActorIsolation::Unspecified:
       case ActorIsolation::Nonisolated:
@@ -7473,7 +7589,7 @@ void SILGenFunction::emitProtocolWitness(
         args.push_back(emitNonIsolatedIsolation(loc).getValue());
         break;
       case ActorIsolation::Erased:
-        llvm::report_fatal_error("Found erased actor isolation?!");
+        toolchain::report_fatal_error("Found erased actor isolation?!");
         break;
       case ActorIsolation::GlobalActor: {
         auto globalActor =
@@ -7556,7 +7672,7 @@ void SILGenFunction::emitProtocolWitness(
 }
 
 ManagedValue SILGenFunction::emitActorIsolationErasureThunk(
-    SILLocation loc, ManagedValue func,
+    SILLocation loc, ManagedValue fn,
     CanAnyFunctionType isolatedType, CanAnyFunctionType nonIsolatedType) {
   auto globalActor = isolatedType->getGlobalActor();
 
@@ -7564,18 +7680,18 @@ ManagedValue SILGenFunction::emitActorIsolationErasureThunk(
   assert(!nonIsolatedType->getGlobalActor());
 
   CanSILFunctionType loweredIsolatedType =
-      func.getType().castTo<SILFunctionType>();
+      fn.getType().castTo<SILFunctionType>();
   CanSILFunctionType loweredNonIsolatedType =
       getLoweredType(nonIsolatedType).castTo<SILFunctionType>();
 
-  LLVM_DEBUG(
-      llvm::dbgs() << "=== Generating actor isolation erasure thunk for:";
-      loweredIsolatedType.dump(llvm::dbgs()); llvm::dbgs() << "\n");
+  TOOLCHAIN_DEBUG(
+      toolchain::dbgs() << "=== Generating actor isolation erasure thunk for:";
+      loweredIsolatedType.dump(toolchain::dbgs()); toolchain::dbgs() << "\n");
 
   if (loweredIsolatedType->getPatternSubstitutions()) {
     loweredIsolatedType = loweredIsolatedType->getUnsubstitutedType(SGM.M);
-    func = B.createConvertFunction(
-        loc, func, SILType::getPrimitiveObjectType(loweredIsolatedType));
+    fn = B.createConvertFunction(
+        loc, fn, SILType::getPrimitiveObjectType(loweredIsolatedType));
   }
 
   auto expectedType = loweredNonIsolatedType->getUnsubstitutedType(SGM.M);
@@ -7618,7 +7734,7 @@ ManagedValue SILGenFunction::emitActorIsolationErasureThunk(
   // Create it in the current function.
   ManagedValue thunkedFn = createPartialApplyOfThunk(
       *this, loc, thunk, interfaceSubs, dynamicSelfType, loweredNonIsolatedType,
-      func.ensurePlusOne(*this, loc), ManagedValue());
+      fn.ensurePlusOne(*this, loc), ManagedValue());
 
   if (expectedType != loweredNonIsolatedType) {
     auto escapingExpectedType = loweredNonIsolatedType->getWithExtInfo(

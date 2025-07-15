@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Support back-deploying compatibility fixes for newer apps running on older runtimes.
@@ -67,36 +68,36 @@ namespace language {
 // #including it can break syntax highlighting in certain editors. By using a
 // different file, we keep the broken-ness to that one file that only #include
 // COMPATIBILITY_OVERRIDE_INCLUDE_PATH.
-#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_swiftRuntime                       \
+#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_languageRuntime                       \
   "CompatibilityOverrideRuntime.def"
-#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_swift_Concurrency                  \
+#define COMPATIBILITY_OVERRIDE_INCLUDE_PATH_language_Concurrency                  \
   "CompatibilityOverrideConcurrency.def"
 
 #define COMPATIBILITY_OVERRIDE_INCLUDE_PATH                                    \
   COMPATIBILITY_CONCAT(COMPATIBILITY_OVERRIDE_INCLUDE_PATH_,                   \
-                       SWIFT_TARGET_LIBRARY_NAME)
+                       LANGUAGE_TARGET_LIBRARY_NAME)
 
 // Compatibility overrides are only supported on Darwin.
-#ifndef SWIFT_RUNTIME_NO_COMPATIBILITY_OVERRIDES
+#ifndef LANGUAGE_RUNTIME_NO_COMPATIBILITY_OVERRIDES
 #if !(defined(__APPLE__) && defined(__MACH__))
-#define SWIFT_RUNTIME_NO_COMPATIBILITY_OVERRIDES
+#define LANGUAGE_RUNTIME_NO_COMPATIBILITY_OVERRIDES
 #endif
 #endif
 
-#ifdef SWIFT_RUNTIME_NO_COMPATIBILITY_OVERRIDES
+#ifdef LANGUAGE_RUNTIME_NO_COMPATIBILITY_OVERRIDES
 
 # error Back-deployment library must always be built with compatibility overrides
 
-#else // #ifdef SWIFT_RUNTIME_NO_COMPATIBILITY_OVERRIDES
+#else // #ifdef LANGUAGE_RUNTIME_NO_COMPATIBILITY_OVERRIDES
 
 // Override section name computation. `COMPATIBILITY_OVERRIDE_SECTION_NAME` will
 // resolve to string literal containing the appropriate section name for the
 // current library.
-#define COMPATIBILITY_OVERRIDE_SECTION_NAME_swift_Concurrency "__s_async_hook"
+#define COMPATIBILITY_OVERRIDE_SECTION_NAME_language_Concurrency "__s_async_hook"
 
 #define COMPATIBILITY_OVERRIDE_SECTION_NAME                                    \
   COMPATIBILITY_CONCAT(COMPATIBILITY_OVERRIDE_SECTION_NAME_,                   \
-                       SWIFT_TARGET_LIBRARY_NAME)
+                       LANGUAGE_TARGET_LIBRARY_NAME)
 
 // Create typedefs for function pointers to call the original implementation.
 #define OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs)   \
@@ -124,21 +125,21 @@ namespace language {
 /// Used to define an override point. The override point #defines the appropriate
 /// OVERRIDE macro from CompatibilityOverride.def to this macro, then includes
 /// the file to generate the override points. The original implementation of the
-/// functionality must be available as swift_funcNameHereImpl.
+/// functionality must be available as language_funcNameHereImpl.
 #define COMPATIBILITY_OVERRIDE(name, ret, attrs, ccAttrs, namespace,           \
                                typedArgs, namedArgs)                           \
   attrs ccAttrs ret namespace language_##name COMPATIBILITY_PAREN(typedArgs) {    \
     static Override_##name Override;                                           \
-    static swift_once_t Predicate;                                             \
-    swift_once(                                                                \
+    static language_once_t Predicate;                                             \
+    language_once(                                                                \
         &Predicate, [](void *) { Override = getOverride_##name(); }, nullptr); \
     if (Override != nullptr)                                                   \
       return Override(COMPATIBILITY_UNPAREN_WITH_COMMA(namedArgs)              \
-                          swift_##name##Impl);                                 \
-    return swift_##name##Impl COMPATIBILITY_PAREN(namedArgs);                  \
+                          language_##name##Impl);                                 \
+    return language_##name##Impl COMPATIBILITY_PAREN(namedArgs);                  \
   }
 
-#endif // #else SWIFT_RUNTIME_NO_COMPATIBILITY_OVERRIDES
+#endif // #else LANGUAGE_RUNTIME_NO_COMPATIBILITY_OVERRIDES
 
 } /* end namespace language */
 

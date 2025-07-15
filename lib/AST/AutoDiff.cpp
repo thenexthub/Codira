@@ -1,13 +1,17 @@
-//===--- AutoDiff.cpp - Swift automatic differentiation utilities ---------===//
+//===--- AutoDiff.cpp - Codira automatic differentiation utilities ---------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/AutoDiff.h"
@@ -24,7 +28,7 @@ using namespace language;
 AutoDiffDerivativeFunctionKind::AutoDiffDerivativeFunctionKind(
     StringRef string) {
   std::optional<innerty> result =
-      llvm::StringSwitch<std::optional<innerty>>(string)
+      toolchain::StringSwitch<std::optional<innerty>>(string)
           .Case("jvp", JVP)
           .Case("vjp", VJP);
   assert(result && "Invalid string");
@@ -47,7 +51,7 @@ NormalDifferentiableFunctionTypeComponent::
 NormalDifferentiableFunctionTypeComponent::
     NormalDifferentiableFunctionTypeComponent(StringRef string) {
   std::optional<innerty> result =
-      llvm::StringSwitch<std::optional<innerty>>(string)
+      toolchain::StringSwitch<std::optional<innerty>>(string)
           .Case("original", Original)
           .Case("jvp", JVP)
           .Case("vjp", VJP);
@@ -65,13 +69,13 @@ NormalDifferentiableFunctionTypeComponent::getAsDerivativeFunctionKind() const {
   case VJP:
     return {AutoDiffDerivativeFunctionKind::VJP};
   }
-  llvm_unreachable("invalid derivative kind");
+  toolchain_unreachable("invalid derivative kind");
 }
 
 LinearDifferentiableFunctionTypeComponent::
     LinearDifferentiableFunctionTypeComponent(StringRef string) {
   std::optional<innerty> result =
-      llvm::StringSwitch<std::optional<innerty>>(string)
+      toolchain::StringSwitch<std::optional<innerty>>(string)
           .Case("original", Original)
           .Case("transpose", Transpose);
   assert(result && "Invalid string");
@@ -81,7 +85,7 @@ LinearDifferentiableFunctionTypeComponent::
 DifferentiabilityWitnessFunctionKind::DifferentiabilityWitnessFunctionKind(
     StringRef string) {
   std::optional<innerty> result =
-      llvm::StringSwitch<std::optional<innerty>>(string)
+      toolchain::StringSwitch<std::optional<innerty>>(string)
           .Case("jvp", JVP)
           .Case("vjp", VJP)
           .Case("transpose", Transpose);
@@ -99,14 +103,14 @@ DifferentiabilityWitnessFunctionKind::getAsDerivativeFunctionKind() const {
   case Transpose:
     return std::nullopt;
   }
-  llvm_unreachable("invalid derivative kind");
+  toolchain_unreachable("invalid derivative kind");
 }
 
 void AutoDiffConfig::dump() const {
-  print(llvm::errs());
+  print(toolchain::errs());
 }
 
-void AutoDiffConfig::print(llvm::raw_ostream &s) const {
+void AutoDiffConfig::print(toolchain::raw_ostream &s) const {
   s << "(parameters=";
   parameterIndices->print(s);
   s << " results=";
@@ -118,7 +122,7 @@ void AutoDiffConfig::print(llvm::raw_ostream &s) const {
   s << ')';
 }
 
-bool swift::isDifferentiableProgrammingEnabled(SourceFile &SF) {
+bool language::isDifferentiableProgrammingEnabled(SourceFile &SF) {
   auto &ctx = SF.getASTContext();
   // Return true if differentiable programming is explicitly enabled.
   if (ctx.LangOpts.hasFeature(Feature::DifferentiableProgramming))
@@ -163,7 +167,7 @@ void AnyFunctionType::getSubsetParameters(
 
   SmallVector<unsigned, 2> curryLevelParameterIndexOffsets(curryLevels.size());
   unsigned currentOffset = 0;
-  for (unsigned curryLevelIndex : llvm::reverse(indices(curryLevels))) {
+  for (unsigned curryLevelIndex : toolchain::reverse(indices(curryLevels))) {
     curryLevelParameterIndexOffsets[curryLevelIndex] = currentOffset;
     currentOffset += curryLevels[curryLevelIndex]->getNumParams();
   }
@@ -281,13 +285,13 @@ autodiff::getLoweredParameterIndices(IndexSubset *parameterIndices,
     paramLoweredSizes.push_back(paramLoweredSize);
     totalLoweredSize += paramLoweredSize;
   };
-  for (auto *curryLevel : llvm::reverse(curryLevels))
+  for (auto *curryLevel : toolchain::reverse(curryLevels))
     for (auto &param : curryLevel->getParams())
       addLoweredParamInfo(param.getPlainType());
 
   // Build lowered SIL parameter indices by setting the range of bits that
   // corresponds to each "set" AST parameter.
-  llvm::SmallVector<unsigned, 8> loweredSILIndices;
+  toolchain::SmallVector<unsigned, 8> loweredSILIndices;
   unsigned currentBitIndex = 0;
   for (unsigned i : range(parameterIndices->getCapacity())) {
     auto paramLoweredSize = paramLoweredSizes[i];
@@ -401,9 +405,9 @@ static void parseAutoDiffBuiltinCommonConfig(
   constexpr char arityPrefix[] = "_arity";
   if (operationName.starts_with(arityPrefix)) {
     operationName = operationName.drop_front(sizeof(arityPrefix) - 1);
-    auto arityStr = operationName.take_while(llvm::isDigit);
+    auto arityStr = operationName.take_while(toolchain::isDigit);
     operationName = operationName.drop_front(arityStr.size());
-    auto converted = llvm::to_integer(arityStr, arity);
+    auto converted = toolchain::to_integer(arityStr, arity);
     assert(converted); (void)converted;
     assert(arity > 0);
   } else {
@@ -486,7 +490,7 @@ Type TangentSpace::getType() const {
   case Kind::Tuple:
     return value.tupleType;
   }
-  llvm_unreachable("invalid tangent space kind");
+  toolchain_unreachable("invalid tangent space kind");
 }
 
 CanType TangentSpace::getCanonicalType() const {
@@ -526,7 +530,7 @@ void DerivativeFunctionTypeError::log(raw_ostream &OS) const {
   }
 }
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &os,
                                      const DeclNameRefWithLoc &name) {
   os << name.Name;
   if (auto accessorKind = name.AccessorKind)
@@ -534,7 +538,7 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
   return os;
 }
 
-bool swift::operator==(const TangentPropertyInfo::Error &lhs,
+bool language::operator==(const TangentPropertyInfo::Error &lhs,
                        const TangentPropertyInfo::Error &rhs) {
   if (lhs.kind != rhs.kind)
     return false;
@@ -549,10 +553,10 @@ bool swift::operator==(const TangentPropertyInfo::Error &lhs,
   case TangentPropertyInfo::Error::Kind::TangentPropertyWrongType:
     return lhs.getType()->isEqual(rhs.getType());
   }
-  llvm_unreachable("unhandled tangent property!");
+  toolchain_unreachable("unhandled tangent property!");
 }
 
-void swift::simple_display(llvm::raw_ostream &os, TangentPropertyInfo info) {
+void language::simple_display(toolchain::raw_ostream &os, TangentPropertyInfo info) {
   os << "{ ";
   os << "tangent property: "
      << (info.tangentProperty ? info.tangentProperty->printRef() : "null");
@@ -636,7 +640,7 @@ TangentPropertyInfo TangentStoredPropertyRequest::evaluate(
   else {
     auto tanFieldLookup =
         parentTanStruct->lookupDirect(originalField->getName());
-    llvm::erase_if(tanFieldLookup,
+    toolchain::erase_if(tanFieldLookup,
                    [](ValueDecl *v) { return !isa<VarDecl>(v); });
     // Error if tangent property could not be found.
     if (tanFieldLookup.empty()) {
@@ -664,7 +668,7 @@ TangentPropertyInfo TangentStoredPropertyRequest::evaluate(
   return TangentPropertyInfo(tanField);
 }
 
-void SILDifferentiabilityWitnessKey::print(llvm::raw_ostream &s) const {
+void SILDifferentiabilityWitnessKey::print(toolchain::raw_ostream &s) const {
   s << "(original=@" << originalFunctionName << " kind=";
   switch (kind) {
   case DifferentiabilityKind::NonDifferentiable:

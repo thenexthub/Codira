@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_ASTALLOCATED_H
-#define SWIFT_AST_ASTALLOCATED_H
+#ifndef LANGUAGE_AST_ASTALLOCATED_H
+#define LANGUAGE_AST_ASTALLOCATED_H
 
 #include <cassert>
 #include <cstddef>

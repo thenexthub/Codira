@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-language -language-version 4
+
+// https://github.com/apple/language/issues/49843
+class C_49843 {
+  fn doSomething(a: (() -> Void)? = nil, completion: @escaping ((String, Error?) -> Void)) {}
+  fn doSomething(b: @escaping ((String, Error?, Bool) -> Void)) {}
+  fn a() {
+    doSomething(a: nil, completion: { _ in })
+// expected-error@-1 {{contextual closure type '(String, (any Error)?) -> Void' expects 2 arguments, but 1 was used in closure body}}
+  }
+}

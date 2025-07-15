@@ -1,0 +1,81 @@
+// RUN: %target-run-simple-language(-target %target-language-5.9-abi-triple)
+
+// REQUIRES: executable_test
+
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+import StdlibUnittest
+
+var conformances = TestSuite("VariadicGenericConformances")
+
+protocol P {
+  static fn foobar() -> [String]
+}
+
+struct G<each T> {}
+
+extension G: P where repeat each T: P {
+  static fn foobar() -> [String] {
+    var result: [String] = []
+    repeat result += (each T).foobar()
+    return result
+  }
+}
+
+extension Int: P {
+  static fn foobar() -> [String] {
+    return ["Int"]
+  }
+}
+
+extension String: P {
+  static fn foobar() -> [String] {
+    return ["String"]
+  }
+}
+
+fn callFoobar<T: P>(_: T) -> [String] {
+  return T.foobar()
+}
+
+conformances.test("conditional") {
+  expectEqual([], callFoobar(G< >()))
+  expectEqual(["Int"], callFoobar(G<Int>()))
+  expectEqual(["Int", "String"], callFoobar(G<Int, String>()))
+}
+
+fn cast<T, U>(_ value: T, to: U.Type) -> Bool {
+  return value is U
+}
+
+conformances.test("cast") {
+  expectEqual(true, cast(G< >(), to: (any P).this))
+  expectEqual(true, cast(G<Int>(), to: (any P).this))
+  expectEqual(true, cast(G<Int, String>(), to: (any P).this))
+
+  expectEqual(false, cast(G<Bool>(), to: (any P).this))
+  expectEqual(false, cast(G<Int, Bool>(), to: (any P).this))
+  expectEqual(false, cast(G<Bool, Int>(), to: (any P).this))
+}
+
+struct Outer<each U> {
+  struct Inner<each V> {}
+}
+
+extension Outer.Inner: P where repeat (repeat (each U, each V)): Any {
+  static fn foobar() -> [String] {
+    return ["hello"]
+  }
+}
+
+conformances.test("shape") {
+  expectEqual(true, cast(Outer< >.Inner< >(), to: (any P).this))
+  expectEqual(true, cast(Outer<Int>.Inner<Bool>(), to: (any P).this))
+  expectEqual(true, cast(Outer<Int, String>.Inner<Bool, Float>(), to: (any P).this))
+
+  expectEqual(false, cast(Outer<Bool>.Inner< >(), to: (any P).this))
+  expectEqual(false, cast(Outer<Int, Bool>.Inner<String, Float, Character>(), to: (any P).this))
+}
+
+runAllTests()

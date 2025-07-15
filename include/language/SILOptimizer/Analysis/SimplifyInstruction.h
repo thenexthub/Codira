@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // An analysis that provides utilities for folding instructions. Since it is an
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_SIMPLIFYINSTRUCTION_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_SIMPLIFYINSTRUCTION_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_SIMPLIFYINSTRUCTION_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_SIMPLIFYINSTRUCTION_H
 
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
@@ -66,4 +67,4 @@ SILValue simplifyOverflowBuiltinInstruction(BuiltinInst *BI);
 
 } // end namespace language
 
-#endif // SWIFT_SILOPTIMIZER_ANALYSIS_SIMPLIFYINSTRUCTION_H
+#endif // LANGUAGE_SILOPTIMIZER_ANALYSIS_SIMPLIFYINSTRUCTION_H

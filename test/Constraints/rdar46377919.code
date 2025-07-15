@@ -1,0 +1,12 @@
+// RUN: %target-typecheck-verify-language
+
+class Foo {
+  init(lhs: @autoclosure () -> Int,
+       rhs: @autoclosure () -> Undefined) {
+     // expected-error@-1 {{cannot find type 'Undefined' in scope}}
+  }
+}
+
+fn foo() -> Foo {
+  return Foo(lhs: 2, rhs: 2)
+}

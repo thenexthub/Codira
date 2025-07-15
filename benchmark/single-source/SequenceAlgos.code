@@ -1,4 +1,4 @@
-//===--- SequenceAlgos.swift ----------------------------------------------===//
+//===--- SequenceAlgos.code ----------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 
@@ -21,9 +22,9 @@ import TestsUtils
 // To avoid too many little micro benchmarks, it measures them all together
 // for each sequence type.
 
-let t: [BenchmarkCategory] = [.validation, .api]
+immutable t: [BenchmarkCategory] = [.validation, .api]
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(name: "SequenceAlgosList", runFunction: { for _ in 0..<$0 {
       benchmarkSequenceAlgos(s: l, n: n)
       benchmarkEquatableSequenceAlgos(s: l, n: n)
@@ -54,40 +55,40 @@ public let benchmarks = [
 extension List: Sequence {
   struct Iterator: IteratorProtocol {
     var _list: List<Element>
-    mutating func next() -> Element? {
-      guard case let .node(x,xs) = _list else { return nil }
+    mutating fn next() -> Element? {
+      guard case immutable .node(x,xs) = _list else { return nil }
       _list = xs
       return x
     }
   }
-  func makeIterator() -> Iterator {
-    return Iterator(_list: self)
+  fn makeIterator() -> Iterator {
+    return Iterator(_list: this)
   }
 }
 
 extension List: Equatable where Element: Equatable {
-  static func == (lhs: List<Element>, rhs: List<Element>) -> Bool {
+  static fn == (lhs: List<Element>, rhs: List<Element>) -> Bool {
     return lhs.elementsEqual(rhs)
   }
 }
 
-func benchmarkSequenceAlgos<S: Sequence>(s: S, n: Int) where S.Element == Int {
+fn benchmarkSequenceAlgos<S: Sequence>(s: S, n: Int) where S.Element == Int {
   check(s.reduce(0, &+) == (n*(n-1))/2)
-  let mn = s.min()
-  let mx = s.max()
+  immutable mn = s.min()
+  immutable mx = s.max()
   check(mn == 0 && mx == n-1)
   check(s.starts(with: s))
 }
 
-let n = 1_000
-let r = 0..<(n*100)
-let l = List(0..<n)
-let c = ContiguousArray(0..<(n*100))
-let a = Array(0..<(n*100))
-let y = AnySequence(0..<n/10)
-let s = sequence(first: 0, next: { $0 < n&-1 ? $0&+1 : nil})
+immutable n = 1_000
+immutable r = 0..<(n*100)
+immutable l = List(0..<n)
+immutable c = ContiguousArray(0..<(n*100))
+immutable a = Array(0..<(n*100))
+immutable y = AnySequence(0..<n/10)
+immutable s = sequence(first: 0, next: { $0 < n&-1 ? $0&+1 : nil})
 
-func benchmarkEquatableSequenceAlgos<S: Sequence>(s: S, n: Int)
+fn benchmarkEquatableSequenceAlgos<S: Sequence>(s: S, n: Int)
   where S.Element == Int, S: Equatable {
   check(repeatElement(s, count: 1).contains(s))
   check(!repeatElement(s, count: 1).contains { $0 != s })
@@ -98,6 +99,6 @@ enum List<Element> {
   indirect case node(Element, List<Element>)
 
   init<S: BidirectionalCollection>(_ elements: S) where S.Element == Element {
-    self = elements.reversed().reduce(.end) { .node($1,$0) }
+    this = elements.reversed().reduce(.end) { .node($1,$0) }
   }
 }

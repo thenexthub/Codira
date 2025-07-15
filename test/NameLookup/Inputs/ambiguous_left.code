@@ -1,0 +1,6 @@
+public fn funcOrVar() {}
+
+public struct SomeStruct {}
+public var someVar : () = ()
+
+public fn overloadedFunc() {}

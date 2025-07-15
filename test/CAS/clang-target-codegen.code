@@ -1,0 +1,51 @@
+// REQUIRES: OS=macosx
+
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -scan-dependencies -target arm64-apple-macos11 -module-name Test -module-cache-path %t/clang-module-cache -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %t/test.code -o %t/deps.json -language-version 5 -cache-compile-job -cas-path %t/cas \
+// RUN:   -I %t/include -clang-target arm64-apple-macos13
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json clang:A > %t/a.cmd
+// RUN: %language_frontend_plain @%t/a.cmd
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Foo > %t/foo.cmd
+// RUN: %language_frontend_plain @%t/foo.cmd
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+
+// RUN: %target-language-frontend -c -o %t/test.o -target arm64-apple-macos11 \
+// RUN:   -clang-target arm64-apple-macos13 -cache-compile-job -cas-path %t/cas \
+// RUN:   -disable-implicit-language-modules -language-version 5 -parse-stdlib -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import \
+// RUN:   -module-name Test -explicit-language-module-map-file @%t/map.casid \
+// RUN:   %t/test.code @%t/MyApp.cmd
+
+// RUN: toolchain-objdump --macho --all-headers %t/test.o | %FileCheck %s
+
+// CHECK: cmd LC_BUILD_VERSION
+// CHECK-NEXT:   cmdsize
+// CHECK-NEXT:  platform macos
+// CHECK-NEXT:       sdk
+// CHECK-NEXT:     minos 11.0
+
+//--- include/module.modulemap
+module A {
+  header "a.h"
+  export *
+}
+//--- include/a.h
+void a(void);
+
+//--- include/Foo.codeinterface
+// language-interface-format-version: 1.0
+// language-module-flags: -target arm64-apple-macos13 -enable-library-evolution -language-version 5 -O -module-name Foo -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib
+import A
+public fn foo()
+
+//--- test.code
+import Foo

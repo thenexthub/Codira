@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import ObjectiveC
@@ -23,7 +24,7 @@ import StdlibUnittest
 /// (Currently, only the i386 iOS and watchOS simulators don't implement the
 /// return-autoreleased optimization.)
 @inline(never)
-public func autoreleasepoolIfUnoptimizedReturnAutoreleased(
+public fn autoreleasepoolIfUnoptimizedReturnAutoreleased(
   invoking body: () -> Void
 ) {
 #if targetEnvironment(simulator) && arch(i386) && (os(iOS) || os(watchOS) || os(visionOS))
@@ -35,7 +36,7 @@ public func autoreleasepoolIfUnoptimizedReturnAutoreleased(
 
 @usableFromInline
 @_silgen_name("NSArray_getObjects")
-func NSArray_getObjects(
+fn NSArray_getObjects(
   nsArray: AnyObject,
   objects: AutoreleasingUnsafeMutablePointer<AnyObject?>?,
   rangeLocation: Int,
@@ -43,11 +44,11 @@ func NSArray_getObjects(
 
 extension NSArray {
   @nonobjc // FIXME: there should be no need in this attribute.
-  public func available_getObjects(
+  public fn available_getObjects(
     _ objects: AutoreleasingUnsafeMutablePointer<AnyObject?>?, range: NSRange
   ) {
     return NSArray_getObjects(
-      nsArray: self,
+      nsArray: this,
       objects: objects,
       rangeLocation: range.location,
       rangeLength: range.length)
@@ -55,7 +56,7 @@ extension NSArray {
 }
 
 @_silgen_name("NSDictionary_getObjectsAndKeysWithCount")
-func NSDictionary_getObjectsAndKeysWithCount(
+fn NSDictionary_getObjectsAndKeysWithCount(
   nsDictionary: NSDictionary,
   objects: AutoreleasingUnsafeMutablePointer<AnyObject?>?,
   andKeys keys: AutoreleasingUnsafeMutablePointer<AnyObject?>?,
@@ -64,33 +65,33 @@ func NSDictionary_getObjectsAndKeysWithCount(
 
 extension NSDictionary {
   @nonobjc // FIXME: there should be no need in this attribute.
-  public func available_getObjects(
+  public fn available_getObjects(
     _ objects: AutoreleasingUnsafeMutablePointer<AnyObject?>?,
     andKeys keys: AutoreleasingUnsafeMutablePointer<AnyObject?>?,
     count: Int
   ) {
     return NSDictionary_getObjectsAndKeysWithCount(
-      nsDictionary: self,
+      nsDictionary: this,
       objects: objects,
       andKeys: keys,
       count: count)
   }
 }
 
-public func expectBridgeToNSValue<T>(_ value: T,
+public fn expectBridgeToNSValue<T>(_ value: T,
                                      nsValueInitializer: ((T) -> NSValue)? = nil,
                                      nsValueGetter: ((NSValue) -> T)? = nil,
                                      equal: (T, T) -> Bool) {
-  let object = value as AnyObject
-  let nsValue = object as! NSValue
-  if let nsValueInitializer = nsValueInitializer {
+  immutable object = value as AnyObject
+  immutable nsValue = object as! NSValue
+  if immutable nsValueInitializer = nsValueInitializer {
     expectEqual(nsValueInitializer(value), nsValue)
   }
-  if let nsValueGetter = nsValueGetter {
+  if immutable nsValueGetter = nsValueGetter {
     expectTrue(equal(value, nsValueGetter(nsValue)))
   }
-  if let nsValueInitializer = nsValueInitializer,
-     let nsValueGetter = nsValueGetter {
+  if immutable nsValueInitializer = nsValueInitializer,
+     immutable nsValueGetter = nsValueGetter {
     expectTrue(equal(value, nsValueGetter(nsValueInitializer(value))))
   }
   expectTrue(equal(value, object as! T))

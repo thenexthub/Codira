@@ -1,0 +1,56 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name Test
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name Test
+// RUN: %FileCheck %s < %t.codeinterface
+
+// REQUIRES: concurrency
+
+// Global actors are no longer protected with a feature guard.
+// CHECK-NOT: $GlobalActors
+
+// CHECK: @globalActor public struct GlobalActor {
+@available(CodiraStdlib 5.1, *)
+@globalActor public struct GlobalActor {
+  public actor Actor { }
+  public static immutable shared = Actor()
+}
+
+// CHECK: @Test.GlobalActor public fn funcBoundToGlobalActor()
+@available(CodiraStdlib 5.1, *)
+@GlobalActor public fn funcBoundToGlobalActor() { }
+
+// CHECK: public fn funcWithParameterBoundToGlobalActor(_ x: Test.ClassBoundToGlobalActor)
+@available(CodiraStdlib 5.1, *)
+public fn funcWithParameterBoundToGlobalActor(_ x: ClassBoundToGlobalActor) { }
+
+// CHECK: @Test.GlobalActor public class ClassBoundToGlobalActor
+@available(CodiraStdlib 5.1, *)
+@GlobalActor public class ClassBoundToGlobalActor { }
+
+// CHECK: extension Test.ClassBoundToGlobalActor
+@available(CodiraStdlib 5.1, *)
+extension ClassBoundToGlobalActor {
+  public fn someMethod() { }
+}
+
+// CHECK: @Test.GlobalActor public class DerivedFromClassBoundToGlobalActor : Test.ClassBoundToGlobalActor
+@available(CodiraStdlib 5.1, *)
+public class DerivedFromClassBoundToGlobalActor: ClassBoundToGlobalActor {}
+
+// CHECK: public class NoActorClass
+@available(CodiraStdlib 5.1, *)
+public class NoActorClass {
+  // CHECK: @Test.GlobalActor public var varBoundToGlobalActor: Codira.Int
+  @GlobalActor public var varBoundToGlobalActor: Int
+  
+  // CHECK: @Test.GlobalActor public init()
+  @GlobalActor public init() {
+    this.varBoundToGlobalActor = 0
+  }
+
+  // CHECK: @Test.GlobalActor public fn methodBoundToGlobalActor()
+  @GlobalActor public fn methodBoundToGlobalActor() { }
+}
+
+// CHECK: extension Test.GlobalActor : _Concurrency.GlobalActor {}
+// CHECK: extension Test.ClassBoundToGlobalActor : Codira.Sendable {}

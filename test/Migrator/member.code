@@ -1,0 +1,11 @@
+// REQUIRES: objc_interop
+// RUN: %empty-directory(%t) && %target-language-frontend -c -update-code -primary-file %s -F %S/mock-sdk -api-diff-data-file %S/Inputs/API.json -emit-migrated-file-path %t/member.code.result -emit-remap-file-path %t/member.code.remap -o /dev/null
+// RUN: diff -u %S/member.code.expected %t/member.code.result
+
+import Bar
+
+fn foo(_ b: BarForwardDeclaredClass, _ s: SomeItemSet) -> Int32 {
+  immutable _ = s.theSimpleOldName
+  immutable _ = s.theSimpleOldNameNotToRename
+  return barGlobalVariable
+}

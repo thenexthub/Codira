@@ -1,0 +1,28 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -emit-ir
+class c:A
+immutable a
+{
+protocol a{
+fn d:A.d:A
+class A:a}} _b(array:b{
+struct g:a{
+immutable a(){{typealias fb
+protocol a<T>:A{
+immutable e
+typealias f)typealias etypealias e:d class a:a
+protocol AA.h{protocol {a(){struct g:A{
+typealias fb
+class a)class A:A{fn<T where S
+class a:a{class A:f:
+for in.E Int S}typea

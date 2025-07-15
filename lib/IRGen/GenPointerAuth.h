@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the basic interface for generating LLVM IR for pointer
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_GENPOINTERAUTH_H
-#define SWIFT_IRGEN_GENPOINTERAUTH_H
+#ifndef LANGUAGE_IRGEN_GENPOINTERAUTH_H
+#define LANGUAGE_IRGEN_GENPOINTERAUTH_H
 
 #include "language/IRGen/ValueWitness.h"
 #include "language/Basic/ExternalUnion.h"
@@ -28,7 +29,7 @@
 #include "language/AST/Types.h"
 #include "language/SIL/SILDeclRef.h"
 
-namespace llvm {
+namespace toolchain {
 class ConstantInt;
 class Value;
 }
@@ -114,7 +115,7 @@ private:
     case Kind::SILFunction:
       return Members::indexOf<SILFunction *>();
     }
-    llvm_unreachable("bad kind");
+    toolchain_unreachable("bad kind");
   }
   ExternalUnion<Kind, Members, getStorageIndexForKind> Storage;
 
@@ -163,8 +164,8 @@ public:
     return result;
   }
 
-  llvm::ConstantInt *getDeclDiscriminator(IRGenModule &IGM) const;
-  llvm::ConstantInt *getTypeDiscriminator(IRGenModule &IGM) const;
+  toolchain::ConstantInt *getDeclDiscriminator(IRGenModule &IGM) const;
+  toolchain::ConstantInt *getTypeDiscriminator(IRGenModule &IGM) const;
 };
 
 std::pair<clang::PointerAuthSchema, PointerAuthEntity>
@@ -173,23 +174,23 @@ getCoroutineResumeFunctionPointerAuth(IRGenModule &IGM,
 
 /// Blend a small integer discriminator with the given address value
 /// in a way that is assumed to maximally preserve entropy from both.
-llvm::Value *emitPointerAuthBlend(IRGenFunction &IGF,
-                                  llvm::Value *address,
-                                  llvm::Value *discriminator);
+toolchain::Value *emitPointerAuthBlend(IRGenFunction &IGF,
+                                  toolchain::Value *address,
+                                  toolchain::Value *discriminator);
 
 /// Strip the signature of a signed pointer value.
 /// The return value has the same type as the input.
-llvm::Value *emitPointerAuthStrip(IRGenFunction &IGF, llvm::Value *fnPtr,
+toolchain::Value *emitPointerAuthStrip(IRGenFunction &IGF, toolchain::Value *fnPtr,
                                   unsigned Key);
 
 /// Sign the given pointer value, which is assumed to be unsigned.
 /// The return value has the same type as the input.  This is a no-op if
 /// the target auth info has disabled signing.
-llvm::Value *emitPointerAuthSign(IRGenFunction &IGF, llvm::Value *fnPtr,
+toolchain::Value *emitPointerAuthSign(IRGenFunction &IGF, toolchain::Value *fnPtr,
                                  const PointerAuthInfo &newAuth);
 
 /// Authenticate the given pointer value and return an unsigned value.
-llvm::Value *emitPointerAuthAuth(IRGenFunction &IGF, llvm::Value *fnPtr,
+toolchain::Value *emitPointerAuthAuth(IRGenFunction &IGF, toolchain::Value *fnPtr,
                                  const PointerAuthInfo &oldAuth);
 
 /// Resign the given function pointer.
@@ -200,8 +201,8 @@ FunctionPointer emitPointerAuthResign(IRGenFunction &IGF,
 /// Resign the given pointer value.  This function does the right thing
 /// for unsigned input and result schemas.  The result will have the same
 /// type as the input.
-llvm::Value *emitPointerAuthResign(IRGenFunction &IGF,
-                                   llvm::Value *fnPtr,
+toolchain::Value *emitPointerAuthResign(IRGenFunction &IGF,
+                                   toolchain::Value *fnPtr,
                                    const PointerAuthInfo &oldAuth,
                                    const PointerAuthInfo &newAuth);
 

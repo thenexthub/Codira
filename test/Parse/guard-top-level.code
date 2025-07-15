@@ -1,0 +1,9 @@
+// RUN: %target-typecheck-verify-language
+
+immutable a: Int? = 1
+guard immutable b = a else {
+}
+
+fn foo() {} // to interrupt the TopLevelCodeDecl
+
+immutable c = b

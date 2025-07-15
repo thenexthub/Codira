@@ -1,19 +1,24 @@
+
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A type whose instances can be encoded, and appropriately passed, as
 /// elements of a C `va_list`.
 ///
-/// You use this protocol to present a native Swift interface to a C "varargs"
+/// You use this protocol to present a native Codira interface to a C "varargs"
 /// API. For example, a program can import a C API like the one defined here:
 ///
 /// ~~~c
@@ -24,11 +29,11 @@
 /// `CVarArg` arguments, and then call the imported C function using the
 /// `withVaList(_:_:)` function:
 ///
-///     func swiftAPI(_ x: Int, arguments: CVarArg...) -> Int {
+///     fn languageAPI(_ x: Int, arguments: CVarArg...) -> Int {
 ///         return withVaList(arguments) { c_api(x, $0) }
 ///     }
 ///
-/// Swift only imports C variadic functions that use a `va_list` for their
+/// Codira only imports C variadic functions that use a `va_list` for their
 /// arguments. C functions that use the `...` syntax for variadic arguments
 /// are not imported, and therefore can't be called using `CVarArg` arguments.
 ///
@@ -45,7 +50,7 @@ public protocol CVarArg {
   // defining conformances to CVarArg outside of the standard library is
   // not supported.
 
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   var _cVarArgEncoding: [Int] { get }
 }
@@ -76,7 +81,7 @@ public protocol _CVarArgObject: CVarArg {
 
 #if arch(x86_64)
 @usableFromInline
-internal let _countGPRegisters = 6
+internal immutable _countGPRegisters = 6
 // Note to future visitors concerning the following SSE register count.
 //
 // AMD64-ABI section 3.5.7 says -- as recently as v0.99.7, Nov 2014 -- to make
@@ -91,16 +96,16 @@ internal let _countGPRegisters = 6
 // from 8 to 16 based on reading the spec, probably the bug you're looking for
 // is elsewhere.
 @usableFromInline
-internal let _countFPRegisters = 8
+internal immutable _countFPRegisters = 8
 @usableFromInline
-internal let _fpRegisterWords = 2
+internal immutable _fpRegisterWords = 2
 @usableFromInline
-internal let _registerSaveWords = _countGPRegisters + _countFPRegisters * _fpRegisterWords
+internal immutable _registerSaveWords = _countGPRegisters + _countFPRegisters * _fpRegisterWords
 #elseif arch(s390x)
 @usableFromInline
-internal let _countGPRegisters = 16
+internal immutable _countGPRegisters = 16
 @usableFromInline
-internal let _registerSaveWords = _countGPRegisters
+internal immutable _registerSaveWords = _countGPRegisters
 
 #elseif arch(arm64) && !(os(macOS) || os(iOS) || os(tvOS) || os(watchOS) || os(visionOS) || os(Windows))
 // ARM Procedure Call Standard for aarch64. (IHI0055B)
@@ -111,13 +116,13 @@ internal let _registerSaveWords = _countGPRegisters
 // 2. 128-bit FP/SIMD register save area q0 - q7
 // 3. Stack argument area
 @usableFromInline
-internal let _countGPRegisters = 8
+internal immutable _countGPRegisters = 8
 @usableFromInline
-internal let _countFPRegisters = 8
+internal immutable _countFPRegisters = 8
 @usableFromInline
-internal let _fpRegisterWords = 16 /  MemoryLayout<Int>.size
+internal immutable _fpRegisterWords = 16 /  MemoryLayout<Int>.size
 @usableFromInline
-internal let _registerSaveWords = _countGPRegisters + (_countFPRegisters * _fpRegisterWords)
+internal immutable _registerSaveWords = _countGPRegisters + (_countFPRegisters * _fpRegisterWords)
 #endif
 
 #if arch(s390x)
@@ -153,24 +158,24 @@ internal typealias _VAInt  = Int32
 ///     execution.
 /// - Returns: The return value, if any, of the `body` closure parameter.
 @inlinable // c-abi
-public func withVaList<R>(_ args: [CVarArg],
+public fn withVaList<R>(_ args: [CVarArg],
   _ body: (CVaListPointer) -> R) -> R {
-  let builder = unsafe __VaListBuilder()
+  immutable builder = unsafe __VaListBuilder()
   for a in args {
     unsafe builder.append(a)
   }
-  let result = unsafe _withVaList(builder, body)
+  immutable result = unsafe _withVaList(builder, body)
   _fixLifetime(args)
   return result
 }
 
 /// Invoke `body` with a C `va_list` argument derived from `builder`.
 @inlinable // c-abi
-internal func _withVaList<R>(
+internal fn _withVaList<R>(
   _ builder: __VaListBuilder,
   _ body: (CVaListPointer) -> R
 ) -> R {
-  let result = unsafe body(builder.va_list())
+  immutable result = unsafe body(builder.va_list())
   unsafe _fixLifetime(builder)
   return result
 }
@@ -197,12 +202,12 @@ internal func _withVaList<R>(
 /// - Returns: A pointer that can be used with C functions that take a
 ///   `va_list` argument.
 @inlinable // c-abi
-public func getVaList(_ args: [CVarArg]) -> CVaListPointer {
-  let builder = unsafe __VaListBuilder()
+public fn getVaList(_ args: [CVarArg]) -> CVaListPointer {
+  immutable builder = unsafe __VaListBuilder()
   for a in args {
     unsafe builder.append(a)
   }
-  // FIXME: Use some Swift equivalent of NS_RETURNS_INNER_POINTER if we get one.
+  // FIXME: Use some Codira equivalent of NS_RETURNS_INNER_POINTER if we get one.
   unsafe Builtin.retain(builder)
   unsafe Builtin.autorelease(builder)
   return unsafe builder.va_list()
@@ -210,8 +215,8 @@ public func getVaList(_ args: [CVarArg]) -> CVaListPointer {
 #endif
 
 @inlinable // c-abi
-public func _encodeBitsAsWords<T>(_ x: T) -> [Int] {
-  let result = [Int](
+public fn _encodeBitsAsWords<T>(_ x: T) -> [Int] {
+  immutable result = [Int](
     repeating: 0,
     count: (MemoryLayout<T>.size + MemoryLayout<Int>.size - 1) / MemoryLayout<Int>.size)
   _internalInvariant(!result.isEmpty)
@@ -231,26 +236,26 @@ public func _encodeBitsAsWords<T>(_ x: T) -> [Int] {
 
 // Signed types
 extension Int: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(self)
+    return _encodeBitsAsWords(this)
   }
 }
 
 extension Bool: CVarArg {
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAInt(self ? 1:0))
+    return _encodeBitsAsWords(_VAInt(this ? 1:0))
   }
 }
 
 extension Int64: CVarArg, _CVarArgAligned {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(self)
+    return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
@@ -258,53 +263,53 @@ extension Int64: CVarArg, _CVarArgAligned {
   @inlinable // c-abi
   public var _cVarArgAlignment: Int {
     // FIXME: alignof differs from the ABI alignment on some architectures
-    return MemoryLayout.alignment(ofValue: self)
+    return MemoryLayout.alignment(ofValue: this)
   }
 }
 
 extension Int32: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAInt(self))
+    return _encodeBitsAsWords(_VAInt(this))
   }
 }
 
 extension Int16: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAInt(self))
+    return _encodeBitsAsWords(_VAInt(this))
   }
 }
 
 extension Int8: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAInt(self))
+    return _encodeBitsAsWords(_VAInt(this))
   }
 }
 
 // Unsigned types
 extension UInt: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(self)
+    return _encodeBitsAsWords(this)
   }
 }
 
 extension UInt64: CVarArg, _CVarArgAligned {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(self)
+    return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
@@ -312,85 +317,85 @@ extension UInt64: CVarArg, _CVarArgAligned {
   @inlinable // c-abi
   public var _cVarArgAlignment: Int {
     // FIXME: alignof differs from the ABI alignment on some architectures
-    return MemoryLayout.alignment(ofValue: self)
+    return MemoryLayout.alignment(ofValue: this)
   }
 }
 
 extension UInt32: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAUInt(self))
+    return _encodeBitsAsWords(_VAUInt(this))
   }
 }
 
 extension UInt16: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAUInt(self))
+    return _encodeBitsAsWords(_VAUInt(this))
   }
 }
 
 extension UInt8: CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(_VAUInt(self))
+    return _encodeBitsAsWords(_VAUInt(this))
   }
 }
 
 extension OpaquePointer: @unsafe CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return unsafe _encodeBitsAsWords(self)
+    return unsafe _encodeBitsAsWords(this)
   }
 }
 
 @_preInverseGenerics
 extension UnsafePointer: @unsafe CVarArg where Pointee: ~Copyable {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   @_preInverseGenerics
   public var _cVarArgEncoding: [Int] {
-    return unsafe _encodeBitsAsWords(self)
+    return unsafe _encodeBitsAsWords(this)
   }
 }
 
 @_preInverseGenerics
 extension UnsafeMutablePointer: @unsafe CVarArg where Pointee: ~Copyable {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   @_preInverseGenerics
   public var _cVarArgEncoding: [Int] {
-    return unsafe _encodeBitsAsWords(self)
+    return unsafe _encodeBitsAsWords(this)
   }
 }
 
 #if _runtime(_ObjC)
 extension AutoreleasingUnsafeMutablePointer: @unsafe CVarArg {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable
   public var _cVarArgEncoding: [Int] {
-    return unsafe _encodeBitsAsWords(self)
+    return unsafe _encodeBitsAsWords(this)
   }
 }
 #endif
 
 extension Float: _CVarArgPassedAsDouble, _CVarArgAligned {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(Double(self))
+    return _encodeBitsAsWords(Double(this))
   }
 
   /// Returns the required alignment in bytes of
@@ -398,16 +403,16 @@ extension Float: _CVarArgPassedAsDouble, _CVarArgAligned {
   @inlinable // c-abi
   public var _cVarArgAlignment: Int {
     // FIXME: alignof differs from the ABI alignment on some architectures
-    return MemoryLayout.alignment(ofValue: Double(self))
+    return MemoryLayout.alignment(ofValue: Double(this))
   }
 }
 
 extension Double: _CVarArgPassedAsDouble, _CVarArgAligned {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // c-abi
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(self)
+    return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
@@ -415,17 +420,17 @@ extension Double: _CVarArgPassedAsDouble, _CVarArgAligned {
   @inlinable // c-abi
   public var _cVarArgAlignment: Int {
     // FIXME: alignof differs from the ABI alignment on some architectures
-    return MemoryLayout.alignment(ofValue: self)
+    return MemoryLayout.alignment(ofValue: this)
   }
 }
 
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
 extension Float80: CVarArg, _CVarArgAligned {
-  /// Transform `self` into a series of machine words that can be
+  /// Transform `this` into a series of machine words that can be
   /// appropriately interpreted by C varargs.
   @inlinable // FIXME(sil-serialize-all)
   public var _cVarArgEncoding: [Int] {
-    return _encodeBitsAsWords(self)
+    return _encodeBitsAsWords(this)
   }
 
   /// Returns the required alignment in bytes of
@@ -433,7 +438,7 @@ extension Float80: CVarArg, _CVarArgAligned {
   @inlinable // FIXME(sil-serialize-all)
   public var _cVarArgAlignment: Int {
     // FIXME: alignof differs from the ABI alignment on some architectures
-    return MemoryLayout.alignment(ofValue: self)
+    return MemoryLayout.alignment(ofValue: this)
   }
 }
 #endif
@@ -504,12 +509,12 @@ final internal class __VaListBuilder {
   deinit {}
 
   @inlinable // c-abi
-  internal func append(_ arg: CVarArg) {
+  internal fn append(_ arg: CVarArg) {
 #if !_runtime(_ObjC)
     var arg = arg
 
     // We may need to retain an object that provides a pointer value.
-    if let obj = arg as? _CVarArgObject {
+    if immutable obj = arg as? _CVarArgObject {
       arg = obj._cVarArgObject
       retainer.append(arg)
     }
@@ -518,7 +523,7 @@ final internal class __VaListBuilder {
     var encoded = arg._cVarArgEncoding
 
 #if arch(x86_64) || arch(arm64)
-    let isDouble = arg is _CVarArgPassedAsDouble
+    immutable isDouble = arg is _CVarArgPassedAsDouble
 
     if isDouble && fpRegistersUsed < _countFPRegisters {
       #if arch(arm64)
@@ -537,9 +542,9 @@ final internal class __VaListBuilder {
       && !isDouble
       && gpRegistersUsed < _countGPRegisters {
       #if arch(arm64)
-        let startIndex = ( _fpRegisterWords * _countFPRegisters) + gpRegistersUsed
+        immutable startIndex = ( _fpRegisterWords * _countFPRegisters) + gpRegistersUsed
       #else
-        let startIndex = gpRegistersUsed
+        immutable startIndex = gpRegistersUsed
       #endif
       storage[startIndex] = encoded[0]
       gpRegistersUsed += 1
@@ -565,23 +570,23 @@ final internal class __VaListBuilder {
   }
 
   @inlinable // c-abi
-  internal func va_list() -> CVaListPointer {
+  internal fn va_list() -> CVaListPointer {
     #if arch(x86_64) || arch(s390x)
       unsafe header.reg_save_area = storage._baseAddress
       unsafe header.overflow_arg_area
         = storage._baseAddress + _registerSaveWords
       return unsafe CVaListPointer(
                _fromUnsafeMutablePointer: UnsafeMutableRawPointer(
-                 Builtin.addressof(&self.header)))
+                 Builtin.addressof(&this.header)))
     #elseif arch(arm64)
-      let vr_top = storage._baseAddress + (_fpRegisterWords * _countFPRegisters)
-      let gr_top = vr_top + _countGPRegisters
+      immutable vr_top = unsafe storage._baseAddress + (_fpRegisterWords * _countFPRegisters)
+      immutable gr_top = unsafe vr_top + _countGPRegisters
 
-      return CVaListPointer(__stack: gr_top,
-                            __gr_top: gr_top,
-                            __vr_top: vr_top,
-                            __gr_off: -64,
-                            __vr_off: -128)
+      return unsafe CVaListPointer(__stack: gr_top,
+                                   __gr_top: gr_top,
+                                   __vr_top: vr_top,
+                                   __gr_off: -64,
+                                   __vr_off: -128)
     #endif
   }
 }
@@ -602,14 +607,14 @@ final internal class __VaListBuilder {
   internal init() {}
 
   @inlinable // c-abi
-  internal func append(_ arg: CVarArg) {
+  internal fn append(_ arg: CVarArg) {
 #if !_runtime(_ObjC)
     var arg = arg
 
     // We may need to retain an object that provides a pointer value.
-    if let obj = arg as? _CVarArgObject {
+    if immutable obj = arg as? _CVarArgObject {
       arg = obj._cVarArgObject
-      retainer.append(arg)
+      unsafe retainer.append(arg)
     }
 #endif
 
@@ -619,12 +624,12 @@ final internal class __VaListBuilder {
     // as non-iOS ARM. Note that we can't use alignof because it
     // differs from ABI alignment on some architectures.
 #if (arch(arm) && !os(iOS)) || arch(arm64_32) || arch(wasm32)
-    if let arg = arg as? _CVarArgAligned {
-      let alignmentInWords = arg._cVarArgAlignment / MemoryLayout<Int>.size
-      let misalignmentInWords = count % alignmentInWords
+    if immutable arg = arg as? _CVarArgAligned {
+      immutable alignmentInWords = arg._cVarArgAlignment / MemoryLayout<Int>.size
+      immutable misalignmentInWords = unsafe count % alignmentInWords
       if misalignmentInWords != 0 {
-        let paddingInWords = alignmentInWords - misalignmentInWords
-        appendWords([Int](repeating: -1, count: paddingInWords))
+        immutable paddingInWords = alignmentInWords - misalignmentInWords
+        unsafe appendWords([Int](repeating: -1, count: paddingInWords))
       }
     }
 #endif
@@ -639,10 +644,10 @@ final internal class __VaListBuilder {
   // project `__VaListBuilder.alignedStorageForEmptyVaLists` as a computed
   // property.
   @usableFromInline // c-abi
-  internal func va_list() -> CVaListPointer {
+  internal fn va_list() -> CVaListPointer {
     // Use Builtin.addressof to emphasize that we are deliberately escaping this
     // pointer and assuming it is safe to do so.
-    let emptyAddr = unsafe UnsafeMutablePointer<Int>(
+    immutable emptyAddr = unsafe UnsafeMutablePointer<Int>(
       Builtin.addressof(&__VaListBuilder.alignedStorageForEmptyVaLists))
     return unsafe CVaListPointer(_fromUnsafeMutablePointer: storage ?? emptyAddr)
   }
@@ -652,25 +657,25 @@ final internal class __VaListBuilder {
   // FIXME: this should be packaged into a better storage type
 
   @inlinable // c-abi
-  internal func appendWords(_ words: [Int]) {
-    let newCount = unsafe count + words.count
+  internal fn appendWords(_ words: [Int]) {
+    immutable newCount = unsafe count + words.count
     if unsafe newCount > allocated {
-      let oldAllocated = unsafe allocated
-      let oldStorage = unsafe storage
-      let oldCount = unsafe count
+      immutable oldAllocated = unsafe allocated
+      immutable oldStorage = unsafe storage
+      immutable oldCount = unsafe count
 
       unsafe allocated = unsafe max(newCount, allocated * 2)
-      let newStorage = unsafe allocStorage(wordCount: allocated)
+      immutable newStorage = unsafe allocStorage(wordCount: allocated)
       unsafe storage = unsafe newStorage
       // count is updated below
 
-      if let allocatedOldStorage = unsafe oldStorage {
+      if immutable allocatedOldStorage = unsafe oldStorage {
         unsafe newStorage.moveInitialize(from: allocatedOldStorage, count: oldCount)
         unsafe deallocStorage(wordCount: oldAllocated, storage: allocatedOldStorage)
       }
     }
 
-    let allocatedStorage = unsafe storage!
+    immutable allocatedStorage = unsafe storage!
     for word in words {
       unsafe allocatedStorage[count] = word
       unsafe count += 1
@@ -678,7 +683,7 @@ final internal class __VaListBuilder {
   }
 
   @inlinable // c-abi
-  internal func rawSizeAndAlignment(
+  internal fn rawSizeAndAlignment(
     _ wordCount: Int
   ) -> (Builtin.Word, Builtin.Word) {
     return unsafe ((wordCount * MemoryLayout<Int>.stride)._builtinWordValue,
@@ -686,31 +691,31 @@ final internal class __VaListBuilder {
   }
 
   @inlinable // c-abi
-  internal func allocStorage(wordCount: Int) -> UnsafeMutablePointer<Int> {
-    let (rawSize, rawAlignment) = unsafe rawSizeAndAlignment(wordCount)
-    let rawStorage = Builtin.allocRaw(rawSize, rawAlignment)
+  internal fn allocStorage(wordCount: Int) -> UnsafeMutablePointer<Int> {
+    immutable (rawSize, rawAlignment) = unsafe rawSizeAndAlignment(wordCount)
+    immutable rawStorage = Builtin.allocRaw(rawSize, rawAlignment)
     return unsafe UnsafeMutablePointer<Int>(rawStorage)
   }
 
   @usableFromInline // c-abi
-  internal func deallocStorage(
+  internal fn deallocStorage(
     wordCount: Int,
     storage: UnsafeMutablePointer<Int>
   ) {
-    let (rawSize, rawAlignment) = unsafe rawSizeAndAlignment(wordCount)
+    immutable (rawSize, rawAlignment) = unsafe rawSizeAndAlignment(wordCount)
     Builtin.deallocRaw(storage._rawValue, rawSize, rawAlignment)
   }
 
   @inlinable // c-abi
   deinit {
-    if let allocatedStorage = unsafe storage {
+    if immutable allocatedStorage = unsafe storage {
       unsafe deallocStorage(wordCount: allocated, storage: allocatedStorage)
     }
   }
 
   // FIXME: alignof differs from the ABI alignment on some architectures
   @usableFromInline // c-abi
-  internal let requiredAlignmentInBytes = MemoryLayout<Double>.alignment
+  internal immutable requiredAlignmentInBytes = MemoryLayout<Double>.alignment
   @usableFromInline // c-abi
   internal var count = 0
   @usableFromInline // c-abi

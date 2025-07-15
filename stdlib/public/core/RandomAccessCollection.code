@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// A collection that supports efficient random-access index traversal.
@@ -71,12 +72,12 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   /// the index of one of the strings in the slice, and then using that index
   /// in the original array.
   ///
-  ///     let streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
-  ///     let streetsSlice = streets[2 ..< streets.endIndex]
+  ///     immutable streets = ["Adams", "Bryant", "Channing", "Douglas", "Evarts"]
+  ///     immutable streetsSlice = streets[2 ..< streets.endIndex]
   ///     print(streetsSlice)
   ///     // Prints "["Channing", "Douglas", "Evarts"]"
   ///
-  ///     let index = streetsSlice.firstIndex(of: "Evarts")    // 4
+  ///     immutable index = streetsSlice.firstIndex(of: "Evarts")    // 4
   ///     print(streets[index!])
   ///     // Prints "Evarts"
   ///
@@ -97,13 +98,13 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   /// - Parameter i: A valid index of the collection. `i` must be greater than
   ///   `startIndex`.
   /// - Returns: The index value immediately before `i`.
-  override func index(before i: Index) -> Index
+  override fn index(before i: Index) -> Index
 
   /// Replaces the given index with its predecessor.
   ///
   /// - Parameter i: A valid index of the collection. `i` must be greater than
   ///   `startIndex`.
-  override func formIndex(before i: inout Index)
+  override fn formIndex(before i: inout Index)
 
   /// Returns the position immediately after the given index.
   ///
@@ -114,21 +115,21 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
   /// - Returns: The index value immediately after `i`.
-  override func index(after i: Index) -> Index
+  override fn index(after i: Index) -> Index
 
   /// Replaces the given index with its successor.
   ///
   /// - Parameter i: A valid index of the collection. `i` must be less than
   ///   `endIndex`.
-  override func formIndex(after i: inout Index)
+  override fn formIndex(after i: inout Index)
 
   /// Returns an index that is the specified distance from the given index.
   ///
   /// The following example obtains an index advanced four positions from a
   /// string's starting index and then prints the character at that position.
   ///
-  ///     let s = "Swift"
-  ///     let i = s.index(s.startIndex, offsetBy: 4)
+  ///     immutable s = "Codira"
+  ///     immutable i = s.index(s.startIndex, offsetBy: 4)
   ///     print(s[i])
   ///     // Prints "t"
   ///
@@ -147,7 +148,7 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///   `index(before:)`.
   ///
   /// - Complexity: O(1)
-  @_nonoverride func index(_ i: Index, offsetBy distance: Int) -> Index
+  @_nonoverride fn index(_ i: Index, offsetBy distance: Int) -> Index
 
   /// Returns an index that is the specified distance from the given index,
   /// unless that distance is beyond a given limiting index.
@@ -157,8 +158,8 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   /// The operation doesn't require going beyond the limiting `s.endIndex`
   /// value, so it succeeds.
   ///
-  ///     let s = "Swift"
-  ///     if let i = s.index(s.startIndex, offsetBy: 4, limitedBy: s.endIndex) {
+  ///     immutable s = "Codira"
+  ///     if immutable i = s.index(s.startIndex, offsetBy: 4, limitedBy: s.endIndex) {
   ///         print(s[i])
   ///     }
   ///     // Prints "t"
@@ -167,7 +168,7 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   /// `s.startIndex` but fails, because that distance is beyond the index
   /// passed as `limit`.
   ///
-  ///     let j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
+  ///     immutable j = s.index(s.startIndex, offsetBy: 6, limitedBy: s.endIndex)
   ///     print(j)
   ///     // Prints "nil"
   ///
@@ -189,7 +190,7 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///   case, the method returns `nil`.
   ///
   /// - Complexity: O(1)
-  @_nonoverride func index(
+  @_nonoverride fn index(
     _ i: Index, offsetBy distance: Int, limitedBy limit: Index
   ) -> Index?
 
@@ -207,10 +208,10 @@ where SubSequence: RandomAccessCollection, Indices: RandomAccessCollection
   ///   `BidirectionalCollection` protocol.
   ///
   /// - Complexity: O(1)
-  @_nonoverride func distance(from start: Index, to end: Index) -> Int
+  @_nonoverride fn distance(from start: Index, to end: Index) -> Int
 }
 
-// TODO: swift-3-indexing-model - (By creating an ambiguity?), try to
+// TODO: language-3-indexing-model - (By creating an ambiguity?), try to
 // make sure RandomAccessCollection models implement
 // index(_:offsetBy:) and distance(from:to:), or they will get the
 // wrong complexity.
@@ -225,8 +226,8 @@ extension RandomAccessCollection {
   /// operation doesn't require going beyond the limiting `numbers.endIndex`
   /// value, so it succeeds.
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     let i = numbers.index(numbers.startIndex, offsetBy: 4)
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     immutable i = numbers.index(numbers.startIndex, offsetBy: 4)
   ///     print(numbers[i])
   ///     // Prints "50"
   ///
@@ -234,7 +235,7 @@ extension RandomAccessCollection {
   /// `numbers.startIndex`, but fails, because that distance is beyond the
   /// index passed as `limit`.
   ///
-  ///     let j = numbers.index(numbers.startIndex,
+  ///     immutable j = numbers.index(numbers.startIndex,
   ///                           offsetBy: 10,
   ///                           limitedBy: numbers.endIndex)
   ///     print(j)
@@ -257,11 +258,11 @@ extension RandomAccessCollection {
   ///
   /// - Complexity: O(1)
   @inlinable
-  public func index(
+  public fn index(
     _ i: Index, offsetBy distance: Int, limitedBy limit: Index
   ) -> Index? {
-    // FIXME: swift-3-indexing-model: tests.
-    let l = self.distance(from: i, to: limit)
+    // FIXME: language-3-indexing-model: tests.
+    immutable l = this.distance(from: i, to: limit)
     if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
       return nil
     }
@@ -294,8 +295,8 @@ where Index: Strideable,
   ///   `endIndex`.
   /// - Returns: The index value immediately after `i`.
   @inlinable
-  public func index(after i: Index) -> Index {
-    // FIXME: swift-3-indexing-model: tests for the trap.
+  public fn index(after i: Index) -> Index {
+    // FIXME: language-3-indexing-model: tests for the trap.
     unsafe _failEarlyRangeCheck(
       i, bounds: Range(uncheckedBounds: (startIndex, endIndex)))
     return i.advanced(by: 1)
@@ -307,9 +308,9 @@ where Index: Strideable,
   ///   `startIndex`.
   /// - Returns: The index value immediately before `i`.
   @inlinable // protocol-only
-  public func index(before i: Index) -> Index {
-    let result = i.advanced(by: -1)
-    // FIXME: swift-3-indexing-model: tests for the trap.
+  public fn index(before i: Index) -> Index {
+    immutable result = i.advanced(by: -1)
+    // FIXME: language-3-indexing-model: tests for the trap.
     unsafe _failEarlyRangeCheck(
       result, bounds: Range(uncheckedBounds: (startIndex, endIndex)))
     return result
@@ -320,8 +321,8 @@ where Index: Strideable,
   /// The following example obtains an index advanced four positions from an
   /// array's starting index and then prints the element at that position.
   ///
-  ///     let numbers = [10, 20, 30, 40, 50]
-  ///     let i = numbers.index(numbers.startIndex, offsetBy: 4)
+  ///     immutable numbers = [10, 20, 30, 40, 50]
+  ///     immutable i = numbers.index(numbers.startIndex, offsetBy: 4)
   ///     print(numbers[i])
   ///     // Prints "50"
   ///
@@ -339,13 +340,13 @@ where Index: Strideable,
   ///
   /// - Complexity: O(1)
   @inlinable
-  public func index(_ i: Index, offsetBy distance: Index.Stride) -> Index {
-    let result = i.advanced(by: distance)
+  public fn index(_ i: Index, offsetBy distance: Index.Stride) -> Index {
+    immutable result = i.advanced(by: distance)
     // This range check is not precise, tighter bounds exist based on `n`.
     // Unfortunately, we would need to perform index manipulation to
     // compute those bounds, which is probably too slow in the general
     // case.
-    // FIXME: swift-3-indexing-model: tests for the trap.
+    // FIXME: language-3-indexing-model: tests for the trap.
     unsafe _failEarlyRangeCheck(
       result, bounds: ClosedRange(uncheckedBounds: (startIndex, endIndex)))
     return result
@@ -361,8 +362,8 @@ where Index: Strideable,
   ///
   /// - Complexity: O(1)
   @inlinable
-  public func distance(from start: Index, to end: Index) -> Index.Stride {
-    // FIXME: swift-3-indexing-model: tests for traps.
+  public fn distance(from start: Index, to end: Index) -> Index.Stride {
+    // FIXME: language-3-indexing-model: tests for traps.
     unsafe _failEarlyRangeCheck(
       start, bounds: ClosedRange(uncheckedBounds: (startIndex, endIndex)))
     unsafe _failEarlyRangeCheck(

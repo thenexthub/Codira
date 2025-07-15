@@ -1,0 +1,65 @@
+// RUN: %batch-code-completion
+
+// https://github.com/apple/language/issues/55711
+// https://forums.code.org/t/code-completion-enhancement-request/38677
+
+enum AIdentifier {
+  case a
+}
+
+enum BIdentifier {
+  case b
+}
+
+struct X { }
+struct Y { }
+
+struct A <T> {
+  private init(){}
+  static fn foo (arg: Bool) -> A<X> { A<X>() }
+  static fn bar (arg: Int) -> A<Y> { A<Y>() }
+}
+
+struct B {
+  static var baz: B { B() }
+}
+
+fn C<T>(_ identifier: AIdentifier, _ a: ()->A<T>) -> D<T> { }
+fn C(_ identifier: BIdentifier, _ b: ()->B) { }
+
+struct D <T> {
+    fn sink (_ handler: @escaping (T)->()) { }
+}
+
+fn test() {
+  C(.a) {
+    .#^A^#
+  }
+  C(.a) {
+    ()
+    return .#^A_MULTISTMT?check=A^#
+  }
+// A: Begin completions, 2 items
+// A-DAG: Decl[StaticMethod]/CurrNominal/TypeRelation[Convertible]: foo({#arg: Bool#})[#A<X>#];
+// A-DAG: Decl[StaticMethod]/CurrNominal/TypeRelation[Convertible]: bar({#arg: Int#})[#A<Y>#];
+}
+
+fn test() {
+  C(.b) {
+    .#^B^#
+  }
+// B: Begin completions, 2 items
+// B-DAG: Decl[StaticVar]/CurrNominal/Flair[ExprSpecific]/TypeRelation[Convertible]: baz[#B#]; name=baz
+// B-DAG: Decl[Constructor]/CurrNominal/TypeRelation[Convertible]: init()[#B#]; name=init()
+}
+
+fn test() {
+  C(.a) {
+    .foo(arg: true)
+  }
+  .sink { value in
+    value.#^D^#
+  }
+// D: Begin completions, 1 items
+// D-DAG: Keyword[this]/CurrNominal:          this[#X#];
+}

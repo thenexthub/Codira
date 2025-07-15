@@ -1,0 +1,13 @@
+// RUN: %target-language-emit-silgen -verify %s
+
+fn consume_a_pointer(x: inout Int) { }
+
+fn func_that_rethrows<E: Error>(initializingWith callback: () throws(E) -> Void) throws(E) {
+}
+
+public fn foo() {
+  var pk = 42
+  func_that_rethrows() {
+    consume_a_pointer(x: &pk)
+  }
+}

@@ -1,0 +1,6 @@
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+fn setAlgebraOps<S : SetAlgebra>(_ s: S) {}
+
+setAlgebraOps(Set<Int>())

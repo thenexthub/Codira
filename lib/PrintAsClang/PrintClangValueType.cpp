@@ -1,13 +1,17 @@
 //===--- PrintClangValueType.cpp - Printer for C/C++ value types *- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "PrintClangValueType.h"
@@ -15,15 +19,15 @@
 #include "DeclAndTypePrinter.h"
 #include "OutputLanguageMode.h"
 #include "PrimitiveTypeMapping.h"
-#include "languageToClangInteropContext.h"
+#include "CodiraToClangInteropContext.h"
 #include "language/AST/Decl.h"
-#include "language/AST/SwiftNameTranslation.h"
+#include "language/AST/CodiraNameTranslation.h"
 #include "language/AST/Type.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/IRABIDetailsProvider.h"
 #include "language/IRGen/Linking.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -57,7 +61,7 @@ void ClangValueTypePrinter::printMetadataAccessAsVariable(
   ClangSyntaxPrinter printer(Context, os);
   os << std::string(indent, ' ') << "auto " << varName << " = "
      << cxx_synthesis::getCxxImplNamespaceName() << "::";
-  printer.printSwiftTypeMetadataAccessFunctionCall(metadataFuncName,
+  printer.printCodiraTypeMetadataAccessFunctionCall(metadataFuncName,
                                                    genericRequirements);
   os << ";\n";
 }
@@ -117,7 +121,7 @@ static void addCppExtensionsToStdlibType(const NominalTypeDecl *typeDecl,
     // just expose the method to C once extensions are
     // supported.
     // FIXME: This C passing should not be here, remove it.
-    cPrologueOS << "struct swift_interop_stub_Swift_String {\n"
+    cPrologueOS << "struct language_interop_stub_Codira_String {\n"
                    "#if UINTPTR_MAX == 0xFFFFFFFFFFFFFFFFu\n"
                    "uint64_t _1;\n"
                    "void * _Nullable _2;\n"
@@ -128,10 +132,10 @@ static void addCppExtensionsToStdlibType(const NominalTypeDecl *typeDecl,
                    "#endif\n"
                    "};\n";
     cPrologueOS
-        << "static SWIFT_INLINE_THUNK struct swift_interop_stub_Swift_String "
-           "swift_interop_passDirect_Swift_String(const char * "
+        << "static LANGUAGE_INLINE_THUNK struct language_interop_stub_Codira_String "
+           "language_interop_passDirect_Codira_String(const char * "
            "_Nonnull value) {\n"
-           "struct swift_interop_stub_Swift_String result;\n"
+           "struct language_interop_stub_Codira_String result;\n"
            "#if UINTPTR_MAX == 0xFFFFFFFFFFFFFFFFu\n"
            "memcpy(&result._1, value, 8);\n"
            "memcpy(&result._2, value + 8, 8);\n"
@@ -142,23 +146,23 @@ static void addCppExtensionsToStdlibType(const NominalTypeDecl *typeDecl,
            "#endif\n"
            "return result;\n"
            "}\n";
-    cPrologueOS << "SWIFT_EXTERN void *_Nonnull "
-                   "$sSS10FoundationE19_bridgeToObjectiveCSo8NSStringCyF(swift_interop_stub_"
-                   "Swift_String) SWIFT_NOEXCEPT SWIFT_CALL;\n";
-    cPrologueOS << "SWIFT_EXTERN swift_interop_stub_Swift_String "
+    cPrologueOS << "LANGUAGE_EXTERN void *_Nonnull "
+                   "$sSS10FoundationE19_bridgeToObjectiveCSo8NSStringCyF(language_interop_stub_"
+                   "Codira_String) LANGUAGE_NOEXCEPT LANGUAGE_CALL;\n";
+    cPrologueOS << "LANGUAGE_EXTERN language_interop_stub_Codira_String "
                    "$sSS10FoundationE36_"
                    "unconditionallyBridgeFromObjectiveCySSSo8NSStringCSgFZ("
-                   "void * _Nullable) SWIFT_NOEXCEPT SWIFT_CALL;\n";
-    cPrologueOS << "SWIFT_EXTERN swift_interop_stub_Swift_String "
+                   "void * _Nullable) LANGUAGE_NOEXCEPT LANGUAGE_CALL;\n";
+    cPrologueOS << "LANGUAGE_EXTERN language_interop_stub_Codira_String "
                    "$sSS7cStringSSSPys4Int8VG_tcfC("
-                   "const char * _Nonnull) SWIFT_NOEXCEPT SWIFT_CALL;\n";
+                   "const char * _Nonnull) LANGUAGE_NOEXCEPT LANGUAGE_CALL;\n";
     printer.printObjCBlock([&](raw_ostream &os) {
       os << "  ";
       ClangSyntaxPrinter(typeDecl->getASTContext(), os).printInlineForThunk();
       os << "operator NSString * _Nonnull () const noexcept {\n";
       os << "    return (__bridge_transfer NSString "
-            "*)(_impl::$sSS10FoundationE19_bridgeToObjectiveCSo8NSStringCyF(_impl::swift_interop_"
-            "passDirect_Swift_String(_getOpaquePointer())));\n";
+            "*)(_impl::$sSS10FoundationE19_bridgeToObjectiveCSo8NSStringCyF(_impl::language_interop_"
+            "passDirect_Codira_String(_getOpaquePointer())));\n";
       os << "  }\n";
       os << "static ";
       ClangSyntaxPrinter(typeDecl->getASTContext(), os).printInlineForThunk();
@@ -173,17 +177,17 @@ static void addCppExtensionsToStdlibType(const NominalTypeDecl *typeDecl,
       os << "  }\n";
     });
     // Add additional methods for the `String` declaration.
-    printer.printDefine("SWIFT_CXX_INTEROP_STRING_MIXIN");
-    printer.printIncludeForShimHeader("_SwiftStdlibCxxOverlay.h");
+    printer.printDefine("LANGUAGE_CXX_INTEROP_STRING_MIXIN");
+    printer.printIncludeForShimHeader("_CodiraStdlibCxxOverlay.h");
   } else if (typeDecl == typeDecl->getASTContext().getOptionalDecl()) {
     // Add additional methods for the `Optional` declaration.
-    printer.printDefine("SWIFT_CXX_INTEROP_OPTIONAL_MIXIN");
-    printer.printIncludeForShimHeader("_SwiftStdlibCxxOverlay.h");
+    printer.printDefine("LANGUAGE_CXX_INTEROP_OPTIONAL_MIXIN");
+    printer.printIncludeForShimHeader("_CodiraStdlibCxxOverlay.h");
   }
 }
 
 void ClangValueTypePrinter::printValueTypeDecl(
-    const NominalTypeDecl *typeDecl, llvm::function_ref<void(void)> bodyPrinter,
+    const NominalTypeDecl *typeDecl, toolchain::function_ref<void(void)> bodyPrinter,
     DeclAndTypePrinter &declAndTypePrinter) {
   // FIXME: Add support for generic structs.
   std::optional<IRABIDetailsProvider::SizeAndAlignment> typeSizeAlign;
@@ -266,7 +270,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
       ClangValueTypePrinter::printValueWitnessTableAccessAsVariable(Context,
           os, typeMetadataFuncName, typeMetadataFuncGenericParams);
       os << "    const auto *" << enumVWTableName << " = reinterpret_cast<";
-      ClangSyntaxPrinter(Context, os).printSwiftImplQualifier();
+      ClangSyntaxPrinter(Context, os).printCodiraImplQualifier();
       os << "EnumValueWitnessTable";
       os << " *>(" << vwTableName << ");\n";
     };
@@ -306,7 +310,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
         os, typeMetadataFuncName, typeMetadataFuncGenericParams);
     if (isOpaqueLayout) {
       os << "    _storage = ";
-      printer.printSwiftImplQualifier();
+      printer.printCodiraImplQualifier();
       os << cxx_synthesis::getCxxOpaqueStorageClassName()
          << "(vwTable->size, vwTable->getAlignment());\n";
     }
@@ -330,33 +334,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
     os << "  }\n";
 
     // FIXME: implement the move assignment.
-    os << "  ";
-    printer.printInlineForThunk();
-    printer.printBaseName(typeDecl);
-    os << " &operator =(";
-    printer.printBaseName(typeDecl);
-    os << " &&other) = delete;\n";
-
     // FIXME: implement the move constructor.
-    os << "  [[noreturn]] ";
-    // NOTE: Do not apply attribute((used))
-    // here to ensure the linker error isn't
-    // forced, so just mark this an inline
-    // helper function instead.
-    printer.printInlineForHelperFunction();
-    printer.printBaseName(typeDecl);
-    os << "(";
-    printer.printBaseName(typeDecl);
-    StringRef moveErrorMessage =
-        "C++ does not support moving a Swift value yet";
-    os << " &&) noexcept {\n  "
-          "swift::_impl::_fatalError_Cxx_move_of_Swift_value_type_not_"
-          "supported_"
-          "yet();\n  swift::_impl::_swift_stdlib_reportFatalError(\"swift\", "
-          "5, "
-          "\""
-       << moveErrorMessage << "\", " << moveErrorMessage.size()
-       << ", 0);\n  abort();\n  }\n";
 
     bodyPrinter();
     if (typeDecl->isStdlibDecl())
@@ -370,7 +348,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
     printer.printBaseName(typeDecl);
     if (isOpaqueLayout) {
       os << "(";
-      printer.printSwiftImplQualifier();
+      printer.printCodiraImplQualifier();
       os << "ValueWitnessTable * _Nonnull vwTable) noexcept : "
             "_storage(vwTable->size, "
             "vwTable->getAlignment()) {}\n";
@@ -378,7 +356,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
       os << "() noexcept {}\n";
     }
     // Print out '_make' function which returns an unitialized instance for
-    // passing to Swift.
+    // passing to Codira.
     os << "  static ";
     printer.printInlineForThunk();
     printer.printBaseName(typeDecl);
@@ -395,7 +373,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
       printer.printBaseName(typeDecl);
       os << "(); }\n";
     }
-    // Print out the private accessors to the underlying Swift value storage.
+    // Print out the private accessors to the underlying Codira value storage.
     os << "  ";
     printer.printInlineForThunk();
     os << "const char * _Nonnull _getOpaquePointer() const noexcept { return "
@@ -439,7 +417,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
     // Print out the storage for the value type.
     os << "  ";
     if (isOpaqueLayout) {
-      printer.printSwiftImplQualifier();
+      printer.printCodiraImplQualifier();
       os << cxx_synthesis::getCxxOpaqueStorageClassName() << " _storage;\n";
     } else {
       os << "alignas(" << typeSizeAlign->alignment << ") ";
@@ -451,7 +429,7 @@ void ClangValueTypePrinter::printValueTypeDecl(
     printGenericParamRefs(os);
     os << ";\n";
 
-    printer.printSwiftMangledNameForDebugger(typeDecl);
+    printer.printCodiraMangledNameForDebugger(typeDecl);
 
     os << "};\n";
     os << '\n';
@@ -521,9 +499,9 @@ void ClangValueTypePrinter::printValueTypeDecl(
 }
 
 void ClangValueTypePrinter::printParameterCxxToCUseScaffold(
-    const ModuleDecl *moduleContext, llvm::function_ref<void()> typePrinter,
-    llvm::function_ref<void()> cxxParamPrinter, bool forceSelf) {
-  // A Swift value type is passed to its underlying Swift function
+    const ModuleDecl *moduleContext, toolchain::function_ref<void()> typePrinter,
+    toolchain::function_ref<void()> cxxParamPrinter, bool forceSelf) {
+  // A Codira value type is passed to its underlying Codira function
   if (forceSelf) {
     os << "_getOpaquePointer()";
   } else {
@@ -558,19 +536,19 @@ void ClangValueTypePrinter::printValueTypeReturnType(
 
 void ClangValueTypePrinter::printValueTypeReturnScaffold(
     const NominalTypeDecl *type, const ModuleDecl *moduleContext,
-    llvm::function_ref<void()> typePrinter,
-    llvm::function_ref<void(StringRef)> bodyPrinter) {
+    toolchain::function_ref<void()> typePrinter,
+    toolchain::function_ref<void(StringRef)> bodyPrinter) {
   assert(isa<StructDecl>(type) || isa<EnumDecl>(type));
   os << "  return ";
   typePrinter();
   os << "::returnNewValue([&](char * _Nonnull result) "
-        "SWIFT_INLINE_THUNK_ATTRIBUTES {\n    ";
+        "LANGUAGE_INLINE_THUNK_ATTRIBUTES {\n    ";
   bodyPrinter("result");
   os << ";\n";
   os << "  });\n";
 }
 
-void ClangValueTypePrinter::printClangTypeSwiftGenericTraits(
+void ClangValueTypePrinter::printClangTypeCodiraGenericTraits(
     raw_ostream &os, const TypeDecl *typeDecl, const ModuleDecl *moduleContext,
     DeclAndTypePrinter &declAndTypePrinter) {
   assert(typeDecl->hasClangNode());
@@ -592,7 +570,7 @@ void ClangValueTypePrinter::printTypePrecedingGenericTraits(
   ClangSyntaxPrinter printer(typeDecl->getASTContext(), os);
   // FIXME: avoid popping out of the module's namespace here.
   os << "} // end namespace \n\n";
-  os << "namespace language SWIFT_PRIVATE_ATTR {\n";
+  os << "namespace language LANGUAGE_PRIVATE_ATTR {\n";
 
   os << "#pragma clang diagnostic push\n";
   os << "#pragma clang diagnostic ignored \"-Wc++17-extensions\"\n";
@@ -605,7 +583,7 @@ void ClangValueTypePrinter::printTypePrecedingGenericTraits(
   os << "> = ";
   if (typeDecl->isGeneric()) {
     auto signature = typeDecl->getGenericSignature().getCanonicalSignature();
-    llvm::interleave(
+    toolchain::interleave(
         signature.getInnermostGenericParams(), os,
         [&](const GenericTypeParamType *genericParamType) {
           os << "isUsableInGenericContext<";
@@ -644,7 +622,7 @@ void ClangValueTypePrinter::printTypeGenericTraits(
 
   // FIXME: avoid popping out of the module's namespace here.
   os << "} // end namespace \n\n";
-  os << "namespace language SWIFT_PRIVATE_ATTR {\n";
+  os << "namespace language LANGUAGE_PRIVATE_ATTR {\n";
   auto classDecl = dyn_cast<ClassDecl>(typeDecl);
   bool addPointer =
       typeDecl->isObjC() || (classDecl && classDecl->isForeignReferenceType());
@@ -687,7 +665,7 @@ void ClangValueTypePrinter::printTypeGenericTraits(
   if (!printer.printNestedTypeNamespaceQualifiers(typeDecl))
     os << "::";
   os << cxx_synthesis::getCxxImplNamespaceName() << "::";
-  ClangSyntaxPrinter(typeDecl->getASTContext(), os).printSwiftTypeMetadataAccessFunctionCall(
+  ClangSyntaxPrinter(typeDecl->getASTContext(), os).printCodiraTypeMetadataAccessFunctionCall(
       typeMetadataFuncName, typeMetadataFuncRequirements);
   os << "._0;\n";
   os << "  }\n};\n";
@@ -696,7 +674,7 @@ void ClangValueTypePrinter::printTypeGenericTraits(
 
   if (typeDecl->hasClangNode() && !typeDecl->isObjC()) {
     os << "template<>\n";
-    os << "inline const constexpr bool isSwiftBridgedCxxRecord<";
+    os << "inline const constexpr bool isCodiraBridgedCxxRecord<";
     printer.printClangTypeReference(typeDecl->getClangDecl());
     os << "> = true;\n";
   }

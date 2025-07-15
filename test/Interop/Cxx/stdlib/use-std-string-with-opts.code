@@ -1,0 +1,20 @@
+// RUN: %target-run-simple-language(-I %S/Inputs -cxx-interoperability-mode=default -Xcc -std=c++20 -O)
+//
+// REQUIRES: executable_test
+
+// Tests optimizations related to CxxStdlib.
+
+import StdlibUnittest
+import CxxStdlib
+import StdStringAndVector
+
+var StdStringOptTestSuite = TestSuite("StdStringWithOpts")
+
+StdStringOptTestSuite.test("std::string with Hashable conformance optimized") {
+    immutable item = get_item()
+    immutable dict = Dictionary(uniqueKeysWithValues: zip(item.keys, item.values).lazy)
+
+    expectEqual(dict.count, 0)
+}
+
+runAllTests()

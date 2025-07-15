@@ -1,4 +1,4 @@
-//===--- LazyCollection.swift ---------------------------------*- swift -*-===//
+//===--- LazyCollection.code ---------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 public protocol LazyCollectionProtocol: Collection, LazySequenceProtocol
@@ -65,15 +66,15 @@ extension LazyCollection: Collection {
   @inlinable
   public var indices: Indices { return _base.indices }
 
-  // TODO: swift-3-indexing-model - add docs
+  // TODO: language-3-indexing-model - add docs
   @inlinable
-  public func index(after i: Index) -> Index {
+  public fn index(after i: Index) -> Index {
     return _base.index(after: i)
   }
 
   /// Accesses the element at `position`.
   ///
-  /// - Precondition: `position` is a valid position in `self` and
+  /// - Precondition: `position` is a valid position in `this` and
   ///   `position != endIndex`.
   @inlinable
   public subscript(position: Index) -> Element {
@@ -109,7 +110,7 @@ extension LazyCollection: Collection {
   ///
   /// - Complexity: Better than O(*n*)
   @inlinable
-  public func _customIndexOfEquatableElement(
+  public fn _customIndexOfEquatableElement(
     _ element: Element
   ) -> Index?? {
     return _base._customIndexOfEquatableElement(element)
@@ -121,29 +122,29 @@ extension LazyCollection: Collection {
   ///
   /// - Complexity: Better than O(*n*)
   @inlinable
-  public func _customLastIndexOfEquatableElement(
+  public fn _customLastIndexOfEquatableElement(
     _ element: Element
   ) -> Index?? {
     return _base._customLastIndexOfEquatableElement(element)
   }
 
-  // TODO: swift-3-indexing-model - add docs
+  // TODO: language-3-indexing-model - add docs
   @inlinable
-  public func index(_ i: Index, offsetBy n: Int) -> Index {
+  public fn index(_ i: Index, offsetBy n: Int) -> Index {
     return _base.index(i, offsetBy: n)
   }
 
-  // TODO: swift-3-indexing-model - add docs
+  // TODO: language-3-indexing-model - add docs
   @inlinable
-  public func index(
+  public fn index(
     _ i: Index, offsetBy n: Int, limitedBy limit: Index
   ) -> Index? {
     return _base.index(i, offsetBy: n, limitedBy: limit)
   }
 
-  // TODO: swift-3-indexing-model - add docs
+  // TODO: language-3-indexing-model - add docs
   @inlinable
-  public func distance(from start: Index, to end: Index) -> Int {
+  public fn distance(from start: Index, to end: Index) -> Int {
     return _base.distance(from:start, to: end)
   }
 }
@@ -153,7 +154,7 @@ extension LazyCollection: LazyCollectionProtocol { }
 extension LazyCollection: BidirectionalCollection
   where Base: BidirectionalCollection {
   @inlinable
-  public func index(before i: Index) -> Index {
+  public fn index(before i: Index) -> Index {
     return _base.index(before: i)
   }
 }

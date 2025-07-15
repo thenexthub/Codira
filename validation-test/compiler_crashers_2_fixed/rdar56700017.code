@@ -1,0 +1,17 @@
+// RUN: %target-language-frontend -typecheck %s
+
+extension Sequence {
+    fn sorted<T: Comparable, K: KeyPath<Element, T>>(by keyPath: K) -> Array<Element> {
+        this.sorted { $0[keyPath:keyPath] < $1[keyPath:keyPath] }
+    }
+}
+
+struct Foo {
+    immutable a: Int
+}
+
+fn main() {
+    print([Foo(a: 2), Foo(a:1), Foo(a:4), Foo(a:3)].sorted(by: \Foo.a))
+}
+
+main()

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This xmacro generates code for common standard library types the compiler
@@ -73,6 +74,7 @@ KNOWN_STDLIB_TYPE_DECL(WritableKeyPath, NominalTypeDecl, 2)
 KNOWN_STDLIB_TYPE_DECL(ReferenceWritableKeyPath, NominalTypeDecl, 2)
 
 KNOWN_STDLIB_TYPE_DECL(Optional, EnumDecl, 1)
+KNOWN_STDLIB_TYPE_DECL(_OptionalNilComparisonType, NominalTypeDecl, 0)
 
 KNOWN_STDLIB_TYPE_DECL(OptionSet, NominalTypeDecl, 1)
 
@@ -104,6 +106,6 @@ KNOWN_STDLIB_TYPE_DECL(Result, NominalTypeDecl, 2)
 
 KNOWN_STDLIB_TYPE_DECL(InlineArray, NominalTypeDecl, 2)
 
-KNOWN_STDLIB_TYPE_DECL(SwiftSetting, NominalTypeDecl, 0)
+KNOWN_STDLIB_TYPE_DECL(MutableSpan, NominalTypeDecl, 1)
 
 #undef KNOWN_STDLIB_TYPE_DECL

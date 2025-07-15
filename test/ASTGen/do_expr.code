@@ -1,0 +1,24 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend-dump-parse -disable-availability-checking -enable-experimental-feature DoExpressions -enable-experimental-feature ParserASTGen \
+// RUN:   | %sanitize-address > %t/astgen.ast
+// RUN: %target-language-frontend-dump-parse -disable-availability-checking -enable-experimental-feature DoExpressions \
+// RUN:   | %sanitize-address > %t/cpp-parser.ast
+
+// RUN: %diff -u %t/astgen.ast %t/cpp-parser.ast
+
+// RUN: %target-typecheck-verify-language -disable-availability-checking -enable-experimental-feature DoExpressions -enable-experimental-feature ParserASTGen
+
+// REQUIRES: language_language_parser
+// REQUIRES: language_feature_DoExpressions
+// REQUIRES: language_feature_ParserASTGen
+// rdar://116686158
+// UNSUPPORTED: asan
+
+fn fn() async throws -> Int { 6 }
+struct Err: Error {}
+
+fn testDoExpr() async throws {
+  immutable _: Int = do { 5 }
+  immutable _: Int = do { try await fn() } catch { throw Err() }
+}

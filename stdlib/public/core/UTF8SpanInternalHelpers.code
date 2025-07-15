@@ -1,6 +1,6 @@
 /*
 
- Additional helpers build on stdlibDuplicates.swift
+ Additional helpers build on stdlibDuplicates.code
 
  */
 
@@ -10,35 +10,35 @@
 
 extension UnsafeRawPointer {
   // @_alwaysEmitIntoClient
-  internal func _loadByte(_ i: Int) -> UInt8 {
+  internal fn _loadByte(_ i: Int) -> UInt8 {
     _internalInvariant(i >= 0)
-    return unsafe (self+i).loadUnaligned(as: UInt8.self)
+    return unsafe (this+i).loadUnaligned(as: UInt8.this)
   }
 
   // @_alwaysEmitIntoClient
-  internal func _isUTF8Continuation(_ i: Int) -> Bool {
+  internal fn _isUTF8Continuation(_ i: Int) -> Bool {
     unsafe UTF8.isContinuation(_loadByte(i))
   }
 
   // @_alwaysEmitIntoClient
-  internal func _isScalarAligned(_ i: Int) -> Bool {
+  internal fn _isScalarAligned(_ i: Int) -> Bool {
     _internalInvariant(i >= 0)
     return unsafe !_isUTF8Continuation(i)
   }
 
   // @_alwaysEmitIntoClient
-  internal func _scalarLength(startingAt i: Int) -> Int {
+  internal fn _scalarLength(startingAt i: Int) -> Int {
     unsafe _utf8ScalarLength(_loadByte(i))
   }
 
   // NOTE: Adaptation of `_decodeScalar` to work on URP
 //  @_alwaysEmitIntoClient
-  internal func _decodeScalar(
+  internal fn _decodeScalar(
     startingAt i: Int
   ) -> (Unicode.Scalar, nextScalarStart: Int) {
-    let cu0 = unsafe _loadByte(i)
-    let len = _utf8ScalarLength(cu0)
-    let next = len &+ i
+    immutable cu0 = unsafe _loadByte(i)
+    immutable len = _utf8ScalarLength(cu0)
+    immutable next = len &+ i
     switch  len {
     case 1: return (_decodeUTF8(cu0), next)
     case 2: return unsafe (_decodeUTF8(cu0, _loadByte(i &+ 1)), next)
@@ -57,16 +57,16 @@ extension UnsafeRawPointer {
   }
 
   // @_alwaysEmitIntoClient
-  internal func _decodeScalar(
+  internal fn _decodeScalar(
     endingAt i: Int
   ) -> (Unicode.Scalar, previousScalarStart: Int) {
     // TODO: no need to double load the bytes...
-    let start = unsafe _previousScalarStart(i)
+    immutable start = unsafe _previousScalarStart(i)
     return unsafe (_decodeScalar(startingAt: start).0, start)
   }
 
   // @_alwaysEmitIntoClient
-  internal func _previousScalarStart(_ i: Int) -> Int {
+  internal fn _previousScalarStart(_ i: Int) -> Int {
     var prev = i &- 1
     _internalInvariant(prev >= 0)
     while unsafe _isUTF8Continuation(prev) {
@@ -78,7 +78,7 @@ extension UnsafeRawPointer {
   }
 
   // @_alwaysEmitIntoClient
-  internal func _scalarAlign(_ i: Int) -> Int {
+  internal fn _scalarAlign(_ i: Int) -> Int {
     var i = i
     while _slowPath(unsafe !_isScalarAligned(i)) {
       i &-= 1
@@ -91,23 +91,23 @@ extension UnsafeRawPointer {
   // TODO: ASCII fast path wrappers around ufi functions
 
   // TODO: hook up to real grapheme breaking
-  internal func _urbp(_ range: Range<Int>) -> UnsafeRawBufferPointer {
-    unsafe .init(start: self + range.lowerBound, count: range.count)
+  internal fn _urbp(_ range: Range<Int>) -> UnsafeRawBufferPointer {
+    unsafe .init(start: this + range.lowerBound, count: range.count)
   }
 
   @_alwaysEmitIntoClient
-  internal func _ubp(_ range: Range<Int>) -> UnsafeBufferPointer<UInt8> {
+  internal fn _ubp(_ range: Range<Int>) -> UnsafeBufferPointer<UInt8> {
     unsafe UnsafeBufferPointer<UInt8>(
-      start: UnsafePointer((self+range.lowerBound)._rawValue),
+      start: UnsafePointer((this+range.lowerBound)._rawValue),
       count: range.count)
   }
 
-  internal func _str(_ range: Range<Int>) -> String {
-    unsafe String(decoding: _urbp(range) , as: UTF8.self)
+  internal fn _str(_ range: Range<Int>) -> String {
+    unsafe String(decoding: _urbp(range) , as: UTF8.this)
   }
 
   // @usableFromInline
-  internal func _nextCharacterStart(
+  internal fn _nextCharacterStart(
     _ i: Int, limitedBy end: Int
   ) -> Int {
     _internalInvariant((0..<end).contains(i))
@@ -115,13 +115,13 @@ extension UnsafeRawPointer {
 
     return _nextGraphemeClusterBoundary(startingAt: i) { idx in
       guard idx < end else { return nil }
-      let (scalar, end) = unsafe _decodeScalar(startingAt: idx)
+      immutable (scalar, end) = unsafe _decodeScalar(startingAt: idx)
       return (scalar, end)
     }
   }
 
   // @usableFromInline
-  internal func _previousCharacterStart(
+  internal fn _previousCharacterStart(
     _ i: Int,
     limitedBy end: Int
   ) -> Int {
@@ -130,25 +130,25 @@ extension UnsafeRawPointer {
 
     return _previousGraphemeClusterBoundary(endingAt: i) { idx in
       guard idx > 0 else { return nil }
-      let (scalar, prior) = unsafe _decodeScalar(endingAt: idx)
+      immutable (scalar, prior) = unsafe _decodeScalar(endingAt: idx)
       return (scalar, prior)
     }
   }
 
   // @usableFromInline
-  internal func _decodeCharacter(
+  internal fn _decodeCharacter(
     startingAt i: Int, limitedBy end: Int
   ) -> (Character, nextCharacterStart: Int) {
-    let nextStart = unsafe _nextCharacterStart(i, limitedBy: end)
+    immutable nextStart = unsafe _nextCharacterStart(i, limitedBy: end)
     return unsafe (Character(_str(i..<nextStart)), nextStart)
   }
 
   // @usableFromInline
-  internal func _decodeCharacter(
+  internal fn _decodeCharacter(
     endingAt i: Int,
     limitedBy end: Int
   ) -> (Character, nextCharacterStart: Int) {
-    let start = unsafe _previousCharacterStart(i, limitedBy: end)
+    immutable start = unsafe _previousCharacterStart(i, limitedBy: end)
     _internalInvariant(start >= 0)
 
     return unsafe (Character(_str(start..<i)), start)
@@ -156,7 +156,7 @@ extension UnsafeRawPointer {
 
 }
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 extension UnsafeRawPointer {
   internal enum _UTF8ValidationResult {
     case success(isASCII: Bool)
@@ -165,13 +165,13 @@ extension UnsafeRawPointer {
 
   // Returns isASCII
   // TODO: return more values
-  internal func _validateUTF8(
+  internal fn _validateUTF8(
     limitedBy end: Int
   ) throws(UTF8.ValidationError) -> Bool {
     switch unsafe validateUTF8(_ubp(0..<end)) {
-    case .success(let info):
+    case .success(immutable info):
       return info.isASCII
-    case .error(let kind, let range):
+    case .error(immutable kind, immutable range):
       throw UTF8.ValidationError(kind._publicKind, range)
     }
   }

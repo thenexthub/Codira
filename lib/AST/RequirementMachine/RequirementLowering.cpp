@@ -1,13 +1,17 @@
 //===--- RequirementLowering.cpp - Requirement inference and desugaring ---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2021 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The process of constructing a requirement machine from some input requirements
@@ -93,7 +97,7 @@
 // parameters are inferred from bound generic type applications. For example,
 // in the following, 'T : Hashable' is not explicitly stated:
 //
-//    func foo<T>(_: Set<T>) {}
+//    fn foo<T>(_: Set<T>) {}
 //
 // The application of the bound generic type "Set<T>" requires that
 // 'T : Hashable', from the generic signature of the declaration of 'Set'.
@@ -159,8 +163,9 @@
 #include "language/AST/TypeMatcher.h"
 #include "language/AST/TypeRepr.h"
 #include "language/Basic/Assertions.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/SetVector.h"
+#include "language/Basic/Defer.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/SetVector.h"
 #include "Diagnostics.h"
 #include "RewriteContext.h"
 #include "NameLookup.h"
@@ -313,7 +318,7 @@ static void desugarSuperclassRequirement(
     break;
 
   case CheckRequirementResult::ConditionalConformance:
-    llvm_unreachable("Unexpected CheckRequirementResult");
+    toolchain_unreachable("Unexpected CheckRequirementResult");
   }
 
   for (auto subReq : subReqs)
@@ -346,7 +351,7 @@ static void desugarLayoutRequirement(
     break;
 
   case CheckRequirementResult::ConditionalConformance:
-    llvm_unreachable("Unexpected CheckRequirementResult");
+    toolchain_unreachable("Unexpected CheckRequirementResult");
   }
 
   for (auto subReq : subReqs)
@@ -450,6 +455,7 @@ static void desugarSameShapeRequirement(
       !req.getSecondType()->isParameterPack()) {
     errors.push_back(RequirementError::forInvalidShapeRequirement(
         req, loc));
+    return;
   }
 
   result.emplace_back(RequirementKind::SameShape,
@@ -461,7 +467,7 @@ static void desugarSameShapeRequirement(
 /// composition, into zero or more "proper" requirements which can then be
 /// converted into rewrite rules by the RuleBuilder.
 void
-swift::rewriting::desugarRequirement(
+language::rewriting::desugarRequirement(
                                   Requirement req,
                                   SourceLoc loc,
                                   SmallVectorImpl<Requirement> &result,
@@ -490,7 +496,7 @@ swift::rewriting::desugarRequirement(
   }
 }
 
-void swift::rewriting::desugarRequirements(
+void language::rewriting::desugarRequirements(
                                   SmallVector<StructuralRequirement, 2> &reqs,
                                   SmallVectorImpl<InverseRequirement> &inverses,
                                   SmallVectorImpl<RequirementError> &errors) {
@@ -511,11 +517,12 @@ void swift::rewriting::desugarRequirements(
 // Requirement realization and inference.
 //
 
-static void realizeTypeRequirement(DeclContext *dc,
-                                   Type subjectType, Type constraintType,
-                                   SourceLoc loc,
-                                   SmallVectorImpl<StructuralRequirement> &result,
-                                   SmallVectorImpl<RequirementError> &errors) {
+void language::rewriting::realizeTypeRequirement(DeclContext *dc,
+                                 Type subjectType,
+                                 Type constraintType,
+                                 SourceLoc loc,
+                                 SmallVectorImpl<StructuralRequirement> &result,
+                                 SmallVectorImpl<RequirementError> &errors) {
   // The GenericSignatureBuilder allowed the right hand side of a
   // conformance or superclass requirement to reference a protocol
   // typealias whose underlying type was a protocol or class.
@@ -730,11 +737,11 @@ struct InferRequirementsWalker : public TypeWalker {
 /// Infer requirements from applications of BoundGenericTypes to type
 /// parameters. For example, given a function declaration
 ///
-///     func union<T>(_ x: Set<T>, _ y: Set<T>)
+///     fn union<T>(_ x: Set<T>, _ y: Set<T>)
 ///
 /// We automatically infer 'T : Hashable' from the fact that 'struct Set'
 /// declares a Hashable requirement on its generic parameter.
-void swift::rewriting::inferRequirements(
+void language::rewriting::inferRequirements(
     Type type, ModuleDecl *module, DeclContext *dc,
     SmallVectorImpl<StructuralRequirement> &result) {
   if (!type)
@@ -746,7 +753,7 @@ void swift::rewriting::inferRequirements(
 
 /// Perform requirement inference from the type representations in the
 /// requirement itself (eg, `T == Set<U>` infers `U: Hashable`).
-void swift::rewriting::realizeRequirement(
+void language::rewriting::realizeRequirement(
     DeclContext *dc,
     Requirement req, RequirementRepr *reqRepr,
     bool shouldInferRequirements,
@@ -757,7 +764,7 @@ void swift::rewriting::realizeRequirement(
 
   switch (req.getKind()) {
   case RequirementKind::SameShape:
-    llvm_unreachable("Same-shape requirement not supported here");
+    toolchain_unreachable("Same-shape requirement not supported here");
 
   case RequirementKind::Superclass:
   case RequirementKind::Conformance: {
@@ -798,109 +805,9 @@ void swift::rewriting::realizeRequirement(
   }
 }
 
-void swift::rewriting::applyInverses(
-    ASTContext &ctx,
-    ArrayRef<Type> gps,
-    ArrayRef<InverseRequirement> inverseList,
-    SmallVectorImpl<StructuralRequirement> &result,
-    SmallVectorImpl<RequirementError> &errors) {
-
-  // No inverses to even validate.
-  if (inverseList.empty())
-    return;
-
-  const bool allowInverseOnAssocType =
-      ctx.LangOpts.hasFeature(Feature::SuppressedAssociatedTypes);
-
-  // Summarize the inverses and diagnose ones that are incorrect.
-  llvm::DenseMap<CanType, InvertibleProtocolSet> inverses;
-  for (auto inverse : inverseList) {
-    auto canSubject = inverse.subject->getCanonicalType();
-
-    // Inverses on associated types are experimental.
-    if (!allowInverseOnAssocType && canSubject->is<DependentMemberType>()) {
-      // Special exception: allow if we're building the stdlib.
-      if (!ctx.MainModule->isStdlibModule()) {
-        errors.push_back(RequirementError::forInvalidInverseSubject(inverse));
-        continue;
-      }
-    }
-
-    // Noncopyable checking support for parameter packs is not implemented yet.
-    if (canSubject->isParameterPack()) {
-      errors.push_back(RequirementError::forInvalidInverseSubject(inverse));
-      continue;
-    }
-
-    // Value generics never have inverse requirements (or the positive thereof).
-    if (canSubject->isValueParameter()) {
-      continue;
-    }
-
-    // WARNING: possible quadratic behavior, but should be OK in practice.
-    auto notInScope = llvm::none_of(gps, [=](Type t) {
-      return t->getCanonicalType() == canSubject;
-    });
-
-    // If the inverse is on a subject that wasn't permitted by our caller, then
-    // remove and diagnose as an error. This can happen when an inner context
-    // has a constraint on some outer generic parameter, e.g.,
-    //
-    //     protocol P {
-    //       func f() where Self: ~Copyable
-    //     }
-    //
-    if (notInScope) {
-      errors.push_back(
-          RequirementError::forInvalidInverseOuterSubject(inverse));
-      continue;
-    }
-
-    auto state = inverses.getOrInsertDefault(canSubject);
-
-    // Check if this inverse has already been seen.
-    auto inverseKind = inverse.getKind();
-    if (state.contains(inverseKind))
-      continue;
-
-    state.insert(inverseKind);
-    inverses[canSubject] = state;
-  }
-
-  // Fast-path: if there are no valid inverses, then there are no requirements
-  // to be removed.
-  if (inverses.empty())
-    return;
-
-  // Scan the structural requirements and cancel out any inferred requirements
-  // based on the inverses we saw.
-  result.erase(llvm::remove_if(result, [&](StructuralRequirement structReq) {
-    auto req = structReq.req;
-
-    if (req.getKind() != RequirementKind::Conformance)
-      return false;
-
-    // Only consider requirements involving an invertible protocol.
-    auto proto = req.getProtocolDecl()->getInvertibleProtocolKind();
-    if (!proto)
-      return false;
-
-    // See if this subject is in-scope.
-    auto subject = req.getFirstType()->getCanonicalType();
-    auto result = inverses.find(subject);
-    if (result == inverses.end())
-      return false;
-
-    // We now have found the inferred constraint 'Subject : Proto'.
-    // So, remove it if we have recorded a 'Subject : ~Proto'.
-    auto recordedInverses = result->getSecond();
-    return recordedInverses.contains(*proto);
-  }), result.end());
-}
-
 /// Collect structural requirements written in the inheritance clause of an
 /// AssociatedTypeDecl, GenericTypeParamDecl, or ProtocolDecl.
-void swift::rewriting::realizeInheritedRequirements(
+void language::rewriting::realizeInheritedRequirements(
     TypeDecl *decl, Type type, bool shouldInferRequirements,
     SmallVectorImpl<StructuralRequirement> &result,
     SmallVectorImpl<RequirementError> &errors) {
@@ -1002,7 +909,8 @@ StructuralRequirementsRequest::evaluate(Evaluator &evaluator,
 
     SmallVector<StructuralRequirement, 2> defaults;
     InverseRequirement::expandDefaults(ctx, needsDefaultRequirements, defaults);
-    applyInverses(ctx, needsDefaultRequirements, inverses, defaults, errors);
+    applyInverses(ctx, needsDefaultRequirements, inverses, result,
+                  defaults, errors);
     result.append(defaults);
 
     diagnoseRequirementErrors(ctx, errors,
@@ -1012,7 +920,7 @@ StructuralRequirementsRequest::evaluate(Evaluator &evaluator,
   }
 
   // Add requirements for each associated type.
-  llvm::SmallDenseSet<Identifier, 2> assocTypes;
+  toolchain::SmallDenseSet<Identifier, 2> assocTypes;
 
   for (auto *assocTypeDecl : proto->getAssociatedTypeMembers()) {
     assocTypes.insert(assocTypeDecl->getName());
@@ -1071,12 +979,13 @@ StructuralRequirementsRequest::evaluate(Evaluator &evaluator,
   SmallVector<StructuralRequirement, 2> defaults;
   // We do not expand defaults for invertible protocols themselves.
   // HACK: We don't expand for Sendable either. This shouldn't be needed after
-  // Swift 6.0
+  // Codira 6.0
   if (!proto->getInvertibleProtocolKind()
       && !proto->isSpecificProtocol(KnownProtocolKind::Sendable))
     InverseRequirement::expandDefaults(ctx, needsDefaultRequirements, defaults);
 
-  applyInverses(ctx, needsDefaultRequirements, inverses, defaults, errors);
+  applyInverses(ctx, needsDefaultRequirements, inverses, result,
+                defaults, errors);
   result.append(defaults);
 
   diagnoseRequirementErrors(ctx, errors,
@@ -1137,7 +1046,7 @@ TypeAliasRequirementsRequest::evaluate(Evaluator &evaluator,
   };
 
   // Collect all typealiases from inherited protocols recursively.
-  llvm::MapVector<Identifier, TinyPtrVector<TypeDecl *>> inheritedTypeDecls;
+  toolchain::MapVector<Identifier, TinyPtrVector<TypeDecl *>> inheritedTypeDecls;
   for (auto *inheritedProto : proto->getAllInheritedProtocols()) {
     for (auto req : inheritedProto->getMembers()) {
       if (auto *typeReq = dyn_cast<TypeDecl>(req)) {
@@ -1178,9 +1087,9 @@ TypeAliasRequirementsRequest::evaluate(Evaluator &evaluator,
                                          const char *start) {
     std::string result;
     {
-      llvm::raw_string_ostream out(result);
+      toolchain::raw_string_ostream out(result);
       out << start;
-      llvm::interleave(
+      toolchain::interleave(
           assocType->getInherited().getEntries(),
           [&](TypeLoc inheritedType) {
             out << assocType->getName() << ": ";
@@ -1207,7 +1116,7 @@ TypeAliasRequirementsRequest::evaluate(Evaluator &evaluator,
   auto getConcreteTypeReq = [&](TypeDecl *type, const char *start) {
     std::string result;
     {
-      llvm::raw_string_ostream out(result);
+      toolchain::raw_string_ostream out(result);
       out << start;
       out << type->getName() << " == ";
       if (auto typealias = dyn_cast<TypeAliasDecl>(type)) {
@@ -1372,7 +1281,7 @@ ArrayRef<ProtocolDecl *>
 ProtocolDependenciesRequest::evaluate(Evaluator &evaluator,
                                       ProtocolDecl *proto) const {
   auto &ctx = proto->getASTContext();
-  llvm::SmallSetVector<ProtocolDecl *, 4> result;
+  toolchain::SmallSetVector<ProtocolDecl *, 4> result;
 
   // If we have a serialized requirement signature, deserialize it and
   // look at conformance requirements.

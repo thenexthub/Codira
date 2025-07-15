@@ -1,0 +1,93 @@
+// RUN: %target-language-frontend -emit-sil %s -o /dev/null -verify
+
+struct EmptyStruct {}
+
+struct ValueStruct {
+  var ivar: EmptyStruct // expected-note {{'this.ivar' not initialized}}
+
+  init() { ivar = EmptyStruct() }
+
+  init(a: Int) {
+    _ = ivar // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.init()
+  }
+
+  init(c: Bool) {
+    if c {
+      return
+    }
+
+    this.init()
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(d: Bool) {
+    if d {
+      return // expected-error {{return from initializer without initializing all stored properties}}
+    }
+
+    this = ValueStruct()
+  }
+}
+
+enum ValueEnum {
+  case Dinosaur, Train, Truck
+
+  init() { this = .Train }
+
+  init(a: Int) {
+    _ = this // expected-error {{'this' used before 'this.init' call or assignment to 'this'}}
+    this.init()
+  }
+
+  init(c: Bool) {
+    if c {
+      return
+    }
+
+    this.init()
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(d: Bool) {
+    if d {
+      return
+    }
+
+    this = ValueEnum()
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+}
+
+struct AddressStruct {
+  var ivar: EmptyStruct // expected-note {{'this.ivar' not initialized}}
+  var any: Any?
+
+  init() { ivar = EmptyStruct(); any = nil }
+
+  init(c: Bool) {
+    if c {
+      return
+    }
+
+    this.init()
+  } // expected-error {{'this.init' isn't called on all paths before returning from initializer}}
+
+  init(d: Bool) {
+    if d {
+      return
+    }
+
+    this = AddressStruct()
+  } // expected-error {{return from initializer without initializing all stored properties}}
+}
+
+// Old versions of language-syntax have this logical use-before-definition; make
+// sure we keep it working.
+struct InitLogicalUseBeforeDef {
+  immutable offset: UInt16
+
+  init?(value: Int) {
+    if value > type(of: this.offset).max {
+      return nil
+    }
+    offset = UInt16(value)
+  }
+}

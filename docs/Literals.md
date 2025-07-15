@@ -10,7 +10,7 @@ literals, so let's look at those.
 High-Level View
 ---------------
 
-```swift
+```language
 window.setTitle("Welcome to Xcode")
 ```
 
@@ -32,9 +32,9 @@ The ExpressibleByStringLiteral Protocol
 ---------------------------------------
 
 Here is the `ExpressibleByStringLiteral` protocol as defined in the standard
-library's CompilerProtocols.swift::
+library's CompilerProtocols.code::
 
-```swift
+```language
 /// A type that can be initialized with a string literal.
 ///
 /// The `String` and `StaticString` types conform to the
@@ -65,7 +65,7 @@ public protocol ExpressibleByStringLiteral
 
 Curiously, the protocol is not defined in terms of primitive types, but in
 terms of any StringLiteralType that the implementer chooses. In most cases,
-this will be Swift's own native String type, which means users can implement
+this will be Codira's own native String type, which means users can implement
 their own ExpressibleByStringLiteral types while still dealing with a high-level
 interface.
 
@@ -77,9 +77,9 @@ points could be constructed...which may be what's desired in some cases.)
 The _ExpressibleByBuiltinStringLiteral Protocol
 -----------------------------------------------
 
-`CompilerProtocols.swift` contains a second protocol::
+`CompilerProtocols.code` contains a second protocol::
 
-```swift
+```language
 // NOTE: the compiler has builtin knowledge of this protocol
 public protocol _ExpressibleByBuiltinStringLiteral
   : _ExpressibleByBuiltinExtendedGraphemeClusterLiteral {

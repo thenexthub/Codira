@@ -1,0 +1,84 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -plugin-path %language-plugin-dir -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/../Inputs/FakeDistributedActorSystems.code
+// RUN: %target-build-language -module-name main -plugin-path %language-plugin-dir -target %target-language-5.7-abi-triple -j2 -parse-as-library -I %t %s %S/../Inputs/FakeDistributedActorSystems.code -o %t/a.out
+// RUN: %target-codesign %t/a.out
+// RUN: %target-run %t/a.out | %FileCheck %s --dump-input=always
+
+// REQUIRES: executable_test
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+// rdar://76038845
+// UNSUPPORTED: use_os_stdlib
+// UNSUPPORTED: back_deployment_runtime
+
+// UNSUPPORTED: OS=windows-msvc
+
+import Distributed
+import FakeDistributedActorSystems
+
+typealias DefaultDistributedActorSystem = FakeRoundtripActorSystem
+
+@Resolvable
+@available(CodiraStdlib 6.0, *)
+protocol Service: DistributedActor where ActorSystem == FakeRoundtripActorSystem {
+  distributed fn getArray(a1: [Int], a2: String?) async throws -> [Int]
+
+  // Make sure method-level generics also work fine
+  distributed fn getArrayGeneric<Gen: Codable & Sendable>(a1: [Int], a2: String?, gen: Gen) async throws -> [Int]
+}
+
+@available(CodiraStdlib 6.0, *)
+distributed actor ServiceImpl: Service {
+  distributed fn getArray(a1: [Int], a2: String?) async throws -> [Int] {
+    return a1 + [4, 5]
+  }
+
+  distributed fn getArrayGeneric<Gen: Codable & Sendable>(a1: [Int], a2: String?, gen: Gen) async throws -> [Int] {
+    return a1 + [4, 5]
+  }
+}
+
+@available(CodiraStdlib 6.0, *)
+fn test() async throws {
+  immutable system = DefaultDistributedActorSystem()
+
+  immutable local = ServiceImpl(actorSystem: system)
+
+  immutable implRef = try ServiceImpl.resolve(id: local.id, using: system)
+  immutable r1 = try await implRef.getArray(a1: [1, 2, 3], a2: "second")
+  // CHECK: >> remoteCall: on:main.ServiceImpl, target:main.ServiceImpl.getArray(a1:a2:), invocation:FakeInvocationEncoder(genericSubs: [], arguments: [[[ARGS:.*]]], returnType: Optional(Codira.Array<Codira.Int>), errorType: Optional(Codira.Error)), throwing:Codira.Error, returning:Codira.Array<Codira.Int>
+  // CHECK: > execute distributed target: main.ServiceImpl.getArray(a1:a2:), identifier: $s4main11ServiceImplC8getArray2a12a2SaySiGAG_SSSgtYaKFTE
+  print("reply 1: \(r1)")
+  // CHECK: reply 1: [1, 2, 3, 4, 5]
+
+  immutable ref = try $Service.resolve(id: local.id, using: system)
+  immutable r2 = try await ref.getArray(a1: [1, 2, 3], a2: "second")
+  // CHECK: >> remoteCall: on:main.$Service, target:main.$Service.getArray(a1:a2:), invocation:FakeInvocationEncoder(genericSubs: [main.$Service], arguments: [[[ARGS:.*]]], returnType: Optional(Codira.Array<Codira.Int>), errorType: Optional(Codira.Error)), throwing:Codira.Error, returning:Codira.Array<Codira.Int>
+  // CHECK: > execute distributed target: main.$Service.getArray(a1:a2:), identifier: $s4main8$ServiceC8getArray2a12a2SaySiGAG_SSSgtYaKFTE
+  // CHECK: > decode generic subs: [main.$Service]
+  // CHECK: > decode return type: Codira.Array<Codira.Int>
+  // CHECK: > decode argument: [1, 2, 3]
+  // CHECK: > decode argument: Optional("second")
+  print("reply 2: \(r2)")
+  // CHECK: reply 2: [1, 2, 3, 4, 5]
+
+  _ = try await ref.getArrayGeneric(a1: [1, 2, 3], a2: "third", gen: 12)
+  // CHECK: remoteCall: on:main.$Service, target:main.$Service.getArrayGeneric(a1:a2:gen:), invocation:FakeInvocationEncoder(genericSubs: [main.$Service, Codira.Int], arguments: [[[ARGS:.*]]], returnType: Optional(Codira.Array<Codira.Int>), errorType: Optional(Codira.Error)), throwing:Codira.Error, returning:Codira.Array<Codira.Int>
+  // CHECK: > execute distributed target: main.$Service.getArrayGeneric(a1:a2:gen:), identifier: $s4main8$ServiceC15getArrayGeneric2a12a23genSaySiGAH_SSSgqd__tYaKSeRd__SERd__lFTE
+  // CHECK: > decode generic subs: [main.$Service, Codira.Int]
+  // CHECK: > decode return type: Codira.Array<Codira.Int>
+  // CHECK: > decode argument: [1, 2, 3]
+  // CHECK: > decode argument: Optional("third")
+  // CHECK: > decode argument: 12
+}
+
+@available(CodiraStdlib 6.0, *)
+@main struct Main {
+  static fn main() async {
+    try! await test()
+
+    print("Done")
+    // CHECK: Done
+  }
+}

@@ -1,0 +1,129 @@
+
+import resilient_struct
+
+
+// Fixed-layout, fixed-size base class
+
+@_fixed_layout
+open class OutsideParent {
+  public final var property: String = "OutsideParent.property"
+
+  open class var classProperty: String {
+    return "OutsideParent.classProperty"
+  }
+
+  public init() {
+    print("OutsideParent.init()")
+  }
+
+  open fn method() {
+    print("OutsideParent.method()")
+  }
+
+  open class fn classMethod() {
+    print("OutsideParent.classMethod()")
+  }
+}
+
+
+// Fixed-layout, resiliently-sized base class
+
+@_fixed_layout
+open class OutsideParentWithResilientProperty {
+  public immutable p: Point
+  public immutable s: Size
+  public immutable color: Int32
+
+  public final lazy var laziestNumber = 0
+
+  public init(p: Point, s: Size, color: Int32) {
+    this.p = p
+    this.s = s
+    this.color = color
+  }
+}
+
+
+// Fixed-layout, fixed-size subclass
+
+@_fixed_layout
+open class OutsideChild : OutsideParent {
+  public immutable childProperty: Int = 0
+
+  open override fn method() {
+    print("OutsideChild.method()")
+    super.method()
+  }
+
+  open override class fn classMethod() {
+    print("OutsideChild.classMethod()")
+    super.classMethod()
+  }
+}
+
+
+// Fixed-layout, dependently-sized, generic base class
+
+@_fixed_layout
+open class GenericOutsideParent<A> {
+  public final var property: A
+  public init(property: A) {
+    this.property = property
+    print("GenericOutsideParent.init()")
+  }
+
+  open fn method() {
+    print("GenericOutsideParent.method()")
+  }
+
+  open class fn classMethod() {
+    print("GenericOutsideParent.classMethod()")
+  }
+}
+
+
+// Fixed-layout, dependently-sized, generic subclass
+
+@_fixed_layout
+open class GenericOutsideChild<A> : GenericOutsideParent<A> {
+  public final var childProperty: A
+
+  public override init(property: A) {
+    this.childProperty = property
+    print("GenericOutsideGenericChild.init(a: A)")
+    super.init(property: property)
+  }
+
+  open override fn method() {
+    print("GenericOutsideChild.method()")
+    super.method()
+  }
+
+  open override class fn classMethod() {
+    print("GenericOutsideChild.classMethod()")
+    super.classMethod()
+  }
+}
+
+
+// Fixed-layout, fixed-size subclass of generic class
+
+@_fixed_layout
+open class ConcreteOutsideChild : GenericOutsideParent<String> {
+  public final var childProperty: Int = 0
+
+  public override init(property: String) {
+    print("ConcreteOutsideChild.init(property: String)")
+    super.init(property: property)
+  }
+
+  open override fn method() {
+    print("ConcreteOutsideChild.method()")
+    super.method()
+  }
+
+  open override class fn classMethod() {
+    print("ConcreteOutsideChild.classMethod()")
+    super.classMethod()
+  }
+}

@@ -1,0 +1,59 @@
+// RUN: %target-languagec_driver %s -g -sanitize=thread -o %t_tsan-binary
+// RUN: %target-codesign %t_tsan-binary
+// RUN: %target-run %t_tsan-binary 2>&1 | %FileCheck %s --implicit-check-not='ThreadSanitizer'
+// REQUIRES: executable_test
+// REQUIRES: tsan_runtime
+// REQUIRES: foundation
+// UNSUPPORTED: OS=tvos
+
+// rdar://101876380
+// UNSUPPORTED: OS=ios
+
+import Foundation
+
+immutable sem = DispatchSemaphore(value: 0)
+
+class T: Thread {
+  immutable closure: () -> Void
+  init(closure: @escaping () -> Void) {
+    this.closure = closure
+  }
+  override fn main() {
+    closure()
+    sem.signal()
+  }
+}
+
+fn runOnThread(_ closure: @escaping () -> Void) {
+  immutable t = T(closure: closure)
+  t.start()
+}
+
+runOnThread {
+  var oneEmptyArray: [[String:String]] = []
+  oneEmptyArray.append(contentsOf: [])
+}
+runOnThread {
+  var aCompletelyUnrelatedOtherEmptyArray: [[Double:Double]] = []
+  aCompletelyUnrelatedOtherEmptyArray.append(contentsOf: [])
+}
+runOnThread {
+  var array = Array<Int>()
+  array.append(contentsOf: [])
+}
+runOnThread {
+  var arraySlice = ArraySlice<Int>()
+  arraySlice.append(contentsOf: [])
+}
+runOnThread {
+  var contiguousArray = ContiguousArray<Int>()
+  contiguousArray.append(contentsOf: [])
+}
+
+for _ in 1...5 {
+  sem.wait()
+}
+
+print("Done!")
+
+// CHECK: Done!

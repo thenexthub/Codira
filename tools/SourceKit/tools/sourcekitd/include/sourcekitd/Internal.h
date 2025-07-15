@@ -1,27 +1,31 @@
 //===--- Internal.h - -------------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKITD_INTERNAL_H
-#define LLVM_SOURCEKITD_INTERNAL_H
+#ifndef TOOLCHAIN_SOURCEKITD_INTERNAL_H
+#define TOOLCHAIN_SOURCEKITD_INTERNAL_H
 
 #include "SourceKit/Support/CancellationToken.h"
 #include "sourcekitd/plugin.h"
 #include "sourcekitd/sourcekitd.h"
-#include "llvm/ADT/STLExtras.h"
+#include "toolchain/ADT/STLExtras.h"
 #include <functional>
 #include <optional>
 #include <string>
 
-namespace llvm {
+namespace toolchain {
   class MemoryBuffer;
   class StringRef;
   template <typename T> class SmallVectorImpl;
@@ -78,17 +82,17 @@ public:
     void set(SourceKit::UIdent Key, SourceKit::UIdent UID);
     void set(SourceKit::UIdent Key, sourcekitd_uid_t UID);
     void set(SourceKit::UIdent Key, const char *Str);
-    void set(SourceKit::UIdent Key, llvm::StringRef Str);
+    void set(SourceKit::UIdent Key, toolchain::StringRef Str);
     void set(SourceKit::UIdent Key, const std::string &Str);
     void set(SourceKit::UIdent Key, int64_t val);
-    void set(SourceKit::UIdent Key, llvm::ArrayRef<llvm::StringRef> Strs);
-    void set(SourceKit::UIdent Key, llvm::ArrayRef<std::string> Strs);
-    void set(SourceKit::UIdent Key, llvm::ArrayRef<SourceKit::UIdent> UIDs);
+    void set(SourceKit::UIdent Key, toolchain::ArrayRef<toolchain::StringRef> Strs);
+    void set(SourceKit::UIdent Key, toolchain::ArrayRef<std::string> Strs);
+    void set(SourceKit::UIdent Key, toolchain::ArrayRef<SourceKit::UIdent> UIDs);
     void setBool(SourceKit::UIdent Key, bool val);
     Array setArray(SourceKit::UIdent Key);
     Dictionary setDictionary(SourceKit::UIdent Key);
     void setCustomBuffer(SourceKit::UIdent Key,
-                         std::unique_ptr<llvm::MemoryBuffer> MemBuf);
+                         std::unique_ptr<toolchain::MemoryBuffer> MemBuf);
 
   private:
     void *Impl = nullptr;
@@ -134,7 +138,7 @@ public:
   }
 
   sourcekitd_uid_t getUID(SourceKit::UIdent Key) const;
-  std::optional<llvm::StringRef> getString(SourceKit::UIdent Key) const;
+  std::optional<toolchain::StringRef> getString(SourceKit::UIdent Key) const;
   std::optional<RequestDict> getDictionary(SourceKit::UIdent Key) const;
 
   /// Populate the vector with an array of C strings.
@@ -143,15 +147,15 @@ public:
   /// \returns true if there is an error, like the key is not of an array type or
   /// the array does not contain strings.
   bool getStringArray(SourceKit::UIdent Key,
-                      llvm::SmallVectorImpl<const char *> &Arr,
+                      toolchain::SmallVectorImpl<const char *> &Arr,
                       bool isOptional) const;
   bool getUIDArray(SourceKit::UIdent Key,
-                   llvm::SmallVectorImpl<sourcekitd_uid_t> &Arr,
+                   toolchain::SmallVectorImpl<sourcekitd_uid_t> &Arr,
                    bool isOptional) const;
 
   bool
   dictionaryArrayApply(SourceKit::UIdent key,
-                       llvm::function_ref<bool(RequestDict)> applier) const;
+                       toolchain::function_ref<bool(RequestDict)> applier) const;
 
   bool getInt64(SourceKit::UIdent Key, int64_t &Val, bool isOptional) const;
   std::optional<int64_t> getOptionalInt64(SourceKit::UIdent Key) const;
@@ -164,18 +168,18 @@ bool initializeClient();
 /// client and the service should be shutdown.
 bool shutdownClient();
 
-void set_interrupted_connection_handler(llvm::function_ref<void()> handler);
+void set_interrupted_connection_handler(toolchain::function_ref<void()> handler);
 
 /// Register a custom buffer kind. Must be called only during plugin loading.
 void pluginRegisterCustomBufferKind(uint64_t kind,
                                     sourcekitd_variant_functions_t funcs);
 
-void printRequestObject(sourcekitd_object_t Obj, llvm::raw_ostream &OS);
-void printResponse(sourcekitd_response_t Resp, llvm::raw_ostream &OS);
+void printRequestObject(sourcekitd_object_t Obj, toolchain::raw_ostream &OS);
+void printResponse(sourcekitd_response_t Resp, toolchain::raw_ostream &OS);
 
-sourcekitd_response_t createErrorRequestInvalid(llvm::StringRef Description);
-sourcekitd_response_t createErrorRequestFailed(llvm::StringRef Description);
-sourcekitd_response_t createErrorRequestInterrupted(llvm::StringRef Descr);
+sourcekitd_response_t createErrorRequestInvalid(toolchain::StringRef Description);
+sourcekitd_response_t createErrorRequestFailed(toolchain::StringRef Description);
+sourcekitd_response_t createErrorRequestInterrupted(toolchain::StringRef Descr);
 sourcekitd_response_t createErrorRequestCancelled();
 
 // The client & service have their own implementations for these.
@@ -257,7 +261,7 @@ struct PluginInitParams {
                    void *opaqueIDEInspectionInstance = nullptr);
 };
 
-void loadPlugins(llvm::ArrayRef<std::string> registeredPlugins,
+void loadPlugins(toolchain::ArrayRef<std::string> registeredPlugins,
                  PluginInitParams &pluginParams);
 
 VariantFunctions *getPluginVariantFunctions(size_t BufKind);

@@ -1,0 +1,34 @@
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=upcoming-language
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=language-5.9
+// RUN: %target-typecheck-verify-language -verify-ignore-unknown -I %S/Inputs -cxx-interoperability-mode=language-6
+
+import MemberInheritance
+
+@available(CodiraStdlib 5.8, *)
+fn takesImmortalBase(_ i: ImmortalBase) {
+  immutable _ = i.get42()
+  immutable _ = i.getOverridden42()
+  immutable _ = i.getIntValue()
+}
+
+@available(CodiraStdlib 5.8, *)
+fn takesImmortal(_ i: Immortal) {
+  immutable _ = i.get42()
+  immutable _ = i.getOverridden42()
+  immutable _ = i.getIntValue()
+  i.setIntValue(1)
+}
+
+@available(CodiraStdlib 5.8, *)
+fn takesDerivedFromImmortal(_ i: DerivedFromImmortal) {
+  immutable _ = i.get42()
+  immutable _ = i.getOverridden42()
+  immutable _ = i.getIntValue()
+  i.setIntValue(1)
+}
+
+@available(CodiraStdlib 5.8, *)
+fn callsRenamedVirtualMethodsInFRT(_ i: Immortal2) {
+  i.virtualRename()  // expected-error {{value of type 'Immortal2' has no member 'virtualRename'}}
+  i.codeVirtualRename()
+}

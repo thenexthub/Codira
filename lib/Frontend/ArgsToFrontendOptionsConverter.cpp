@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "ArgsToFrontendOptionsConverter.h"
@@ -27,35 +28,35 @@
 #include "language/Parse/Lexer.h"
 #include "language/Parse/ParseVersion.h"
 #include "language/Strings.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/TargetParser/Triple.h"
-#include "llvm/CAS/ObjectStore.h"
-#include "llvm/Option/Arg.h"
-#include "llvm/Option/ArgList.h"
-#include "llvm/Option/Option.h"
-#include "llvm/Support/Compression.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/LineIterator.h"
-#include "llvm/Support/Path.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/TargetParser/Triple.h"
+#include "toolchain/CAS/ObjectStore.h"
+#include "toolchain/Option/Arg.h"
+#include "toolchain/Option/ArgList.h"
+#include "toolchain/Option/Option.h"
+#include "toolchain/Support/Compression.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/LineIterator.h"
+#include "toolchain/Support/Path.h"
 
 using namespace language;
-using namespace llvm::opt;
+using namespace toolchain::opt;
 
 // This is a separate function so that it shows up in stack traces.
-LLVM_ATTRIBUTE_NOINLINE
+TOOLCHAIN_ATTRIBUTE_NOINLINE
 static void debugFailWithAssertion() {
   // This assertion should always fail, per the user's request, and should
-  // not be converted to llvm_unreachable.
+  // not be converted to toolchain_unreachable.
   assert(0 && "This is an assertion!");
 }
 
 // This is a separate function so that it shows up in stack traces.
-LLVM_ATTRIBUTE_NOINLINE
-static void debugFailWithCrash() { LLVM_BUILTIN_TRAP; }
+TOOLCHAIN_ATTRIBUTE_NOINLINE
+static void debugFailWithCrash() { TOOLCHAIN_BUILTIN_TRAP; }
 
 bool ArgsToFrontendOptionsConverter::convert(
-    SmallVectorImpl<std::unique_ptr<llvm::MemoryBuffer>> *buffers) {
+    SmallVectorImpl<std::unique_ptr<toolchain::MemoryBuffer>> *buffers) {
   using namespace options;
 
   handleDebugCrashGroupArguments();
@@ -73,7 +74,7 @@ bool ArgsToFrontendOptionsConverter::convert(
     Opts.PrebuiltModuleCachePath = A->getValue();
   }
   if (auto envPrebuiltModuleCachePath =
-      llvm::sys::Process::GetEnv("SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH")) {
+      toolchain::sys::Process::GetEnv("LANGUAGE_OVERLOAD_PREBUILT_MODULE_CACHE_PATH")) {
     Opts.PrebuiltModuleCachePath = *envPrebuiltModuleCachePath;
   }
 
@@ -155,7 +156,7 @@ bool ArgsToFrontendOptionsConverter::convert(
     Opts.AllowableClients.insert(StringRef(A).str());
   }
 
-  Opts.DisableImplicitModules |= Args.hasArg(OPT_disable_implicit_swift_modules);
+  Opts.DisableImplicitModules |= Args.hasArg(OPT_disable_implicit_language_modules);
 
   Opts.ImportPrescan |= Args.hasArg(OPT_import_prescan);
 
@@ -202,7 +203,7 @@ bool ArgsToFrontendOptionsConverter::convert(
 
   Opts.ParseStdlib |= Args.hasArg(OPT_parse_stdlib);
 
-  Opts.IgnoreSwiftSourceInfo |= Args.hasArg(OPT_ignore_module_source_info);
+  Opts.IgnoreCodiraSourceInfo |= Args.hasArg(OPT_ignore_module_source_info);
   computeHelpOptions();
 
   if (Args.hasArg(OPT_print_target_info)) {
@@ -224,7 +225,7 @@ bool ArgsToFrontendOptionsConverter::convert(
   // Ensure that the compiler was built with zlib support if it was the
   // requested AST format.
   if (const Arg *A = Args.getLastArg(OPT_dump_ast_format)) {
-    auto format = llvm::StringSwitch<std::optional<FrontendOptions::ASTFormat>>(
+    auto format = toolchain::StringSwitch<std::optional<FrontendOptions::ASTFormat>>(
                       A->getValue())
                       .Case("json", FrontendOptions::ASTFormat::JSON)
                       .Case("json-zlib", FrontendOptions::ASTFormat::JSONZlib)
@@ -242,7 +243,7 @@ bool ArgsToFrontendOptionsConverter::convert(
       return true;
     }
     if (Opts.DumpASTFormat == FrontendOptions::ASTFormat::JSONZlib &&
-        !llvm::compression::zlib::isAvailable()) {
+        !toolchain::compression::zlib::isAvailable()) {
       Diags.diagnose(SourceLoc(), diag::json_zlib_not_supported);
       return true;
     }
@@ -274,11 +275,11 @@ bool ArgsToFrontendOptionsConverter::convert(
   if (Args.hasArg(OPT_parse_sil) || Opts.InputsAndOutputs.shouldTreatAsSIL()) {
     Opts.InputMode = FrontendOptions::ParseInputMode::SIL;
   } else if (Opts.InputsAndOutputs.shouldTreatAsModuleInterface()) {
-    Opts.InputMode = FrontendOptions::ParseInputMode::SwiftModuleInterface;
+    Opts.InputMode = FrontendOptions::ParseInputMode::CodiraModuleInterface;
   } else if (Args.hasArg(OPT_parse_as_library)) {
-    Opts.InputMode = FrontendOptions::ParseInputMode::SwiftLibrary;
+    Opts.InputMode = FrontendOptions::ParseInputMode::CodiraLibrary;
   } else {
-    Opts.InputMode = FrontendOptions::ParseInputMode::Swift;
+    Opts.InputMode = FrontendOptions::ParseInputMode::Codira;
   }
 
   if (Opts.RequestedAction == FrontendOptions::ActionType::NoneAction) {
@@ -347,14 +348,14 @@ bool ArgsToFrontendOptionsConverter::convert(
   if (const Arg *A = Args.getLastArg(OPT_public_module_name))
     Opts.PublicModuleName = A->getValue();
 
-  if (auto A = Args.getLastArg(OPT_swiftinterface_compiler_version)) {
+  if (auto A = Args.getLastArg(OPT_languageinterface_compiler_version)) {
     if (auto version = VersionParser::parseVersionString(
             A->getValue(), SourceLoc(), /*Diags=*/nullptr)) {
-      Opts.SwiftInterfaceCompilerVersion = version.value();
+      Opts.CodiraInterfaceCompilerVersion = version.value();
     }
 
-    if (Opts.SwiftInterfaceCompilerVersion.empty() ||
-        Opts.SwiftInterfaceCompilerVersion.size() > 5)
+    if (Opts.CodiraInterfaceCompilerVersion.empty() ||
+        Opts.CodiraInterfaceCompilerVersion.size() > 5)
       Diags.diagnose(SourceLoc(), diag::error_invalid_arg_value,
                      A->getAsString(Args), A->getValue());
   }
@@ -383,7 +384,7 @@ bool ArgsToFrontendOptionsConverter::convert(
   Opts.DisableBuildingInterface = Args.hasArg(OPT_disable_building_interface);
   if (const Arg *A = Args.getLastArg(options::OPT_clang_header_expose_decls)) {
     Opts.ClangHeaderExposedDecls =
-        llvm::StringSwitch<
+        toolchain::StringSwitch<
             std::optional<FrontendOptions::ClangHeaderExposeBehavior>>(
             A->getValue())
             .Case("all-public",
@@ -460,7 +461,7 @@ void ArgsToFrontendOptionsConverter::handleDebugCrashGroupArguments() {
       // Set in FrontendOptions
       Opts.CrashMode = FrontendOptions::DebugCrashMode::CrashAfterParse;
     } else {
-      llvm_unreachable("Unknown debug_crash_Group option!");
+      toolchain_unreachable("Unknown debug_crash_Group option!");
     }
   }
 }
@@ -470,7 +471,7 @@ void ArgsToFrontendOptionsConverter::computePrintStatsOptions() {
   Opts.PrintStats |= Args.hasArg(OPT_print_stats);
   Opts.PrintClangStats |= Args.hasArg(OPT_print_clang_stats);
   Opts.PrintZeroStats |= Args.hasArg(OPT_print_zero_stats);
-#if defined(NDEBUG) && !LLVM_ENABLE_STATS
+#if defined(NDEBUG) && !TOOLCHAIN_ENABLE_STATS
   if (Opts.PrintStats || Opts.PrintClangStats)
     Diags.diagnose(SourceLoc(), diag::stats_disabled);
 #endif
@@ -518,7 +519,7 @@ void ArgsToFrontendOptionsConverter::computeTBDOptions() {
     // symbols, forcing the user to pass `-validate-tbd-against-ir=none`.
     // If no explicit TBD validation mode was specified, disable it if C++
     // interop is enabled.
-    // See https://github.com/apple/swift/issues/56458.
+    // See https://github.com/apple/language/issues/56458.
     // FIXME: the TBD validation diagnostics are correct and should be enabled.
     Opts.ValidateTBDAgainstIR = Mode::None;
   }
@@ -532,7 +533,7 @@ void ArgsToFrontendOptionsConverter::computeHelpOptions() {
     } else if (A->getOption().matches(OPT_help_hidden)) {
       Opts.PrintHelpHidden = true;
     } else {
-      llvm_unreachable("Unknown help option parsed");
+      toolchain_unreachable("Unknown help option parsed");
     }
   }
 }
@@ -574,7 +575,7 @@ bool ArgsToFrontendOptionsConverter::computeAvailabilityDomains() {
   using namespace options;
 
   bool hadError = false;
-  llvm::SmallSet<std::string, 4> seenDomains;
+  toolchain::SmallSet<std::string, 4> seenDomains;
 
   for (const Arg *A :
        Args.filtered_reverse(OPT_define_enabled_availability_domain,
@@ -687,7 +688,7 @@ ArgsToFrontendOptionsConverter::determineRequestedAction(const ArgList &args) {
     return FrontendOptions::ActionType::TypecheckModuleFromInterface;
   if (Opt.matches(OPT_emit_supported_arguments))
     return FrontendOptions::ActionType::PrintArguments;
-  llvm_unreachable("Unhandled mode option");
+  toolchain_unreachable("Unhandled mode option");
 }
 
 bool ArgsToFrontendOptionsConverter::setUpImmediateArgs() {
@@ -744,7 +745,7 @@ bool ArgsToFrontendOptionsConverter::computeModuleName() {
     return false;
   }
   if (!FrontendOptions::needsProperModuleName(Opts.RequestedAction) ||
-      Opts.isCompilingExactlyOneSwiftFile()) {
+      Opts.isCompilingExactlyOneCodiraFile()) {
     Opts.ModuleName = "main";
     return false;
   }
@@ -777,11 +778,11 @@ bool ArgsToFrontendOptionsConverter::computeFallbackModuleName() {
   std::string nameToStem =
       outputFilenames && outputFilenames->size() == 1 &&
               outputFilenames->front() != "-" &&
-              !llvm::sys::fs::is_directory(outputFilenames->front())
+              !toolchain::sys::fs::is_directory(outputFilenames->front())
           ? outputFilenames->front()
           : Opts.InputsAndOutputs.getFilenameOfFirstInput();
 
-  Opts.ModuleName = llvm::sys::path::stem(nameToStem).str();
+  Opts.ModuleName = toolchain::sys::path::stem(nameToStem).str();
   return false;
 }
 
@@ -901,7 +902,7 @@ bool ArgsToFrontendOptionsConverter::checkUnusedSupplementaryOutputPaths()
 }
 
 static inline bool isPCHFilenameExtension(StringRef path) {
-  return llvm::sys::path::extension(path)
+  return toolchain::sys::path::extension(path)
     .ends_with(file_types::getExtension(file_types::TY_PCH));
 }
 
@@ -935,7 +936,7 @@ computeImplicitImportModuleNames(OptSpecifier id, bool isTestable) {
 }
 void ArgsToFrontendOptionsConverter::computeLLVMArgs() {
   using namespace options;
-  for (const Arg *A : Args.filtered(OPT_Xllvm)) {
+  for (const Arg *A : Args.filtered(OPT_Xtoolchain)) {
     Opts.LLVMArgs.push_back(A->getValue());
   }
 }
@@ -987,13 +988,12 @@ bool ModuleAliasesConverter::computeModuleAliases(std::vector<std::string> args,
 
       // First, add the real name as a key to prevent it from being
       // used as an alias
-      if (!options.ModuleAliasMap.insert({rhs, StringRef()}).second) {
+      if (!options.ModuleAliasMap.insert({rhs, ""}).second) {
         diags.diagnose(SourceLoc(), diag::error_module_alias_duplicate, rhs);
         return false;
       }
       // Next, add the alias as a key and the real name as a value to the map
-      auto underlyingName = options.ModuleAliasMap.find(rhs)->first();
-      if (!options.ModuleAliasMap.insert({lhs, underlyingName}).second) {
+      if (!options.ModuleAliasMap.insert({lhs, rhs.str()}).second) {
         diags.diagnose(SourceLoc(), diag::error_module_alias_duplicate, lhs);
         return false;
       }

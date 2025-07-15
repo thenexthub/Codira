@@ -1,4 +1,4 @@
-//===--- SerializationFunctionBuilder.h -----------------------------------===//
+//===--- SILSerializationFunctionBuilder.h --------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SERIALIZATION_SERIALIZATIONFUNCTIONBUILDER_H
-#define SWIFT_SERIALIZATION_SERIALIZATIONFUNCTIONBUILDER_H
+#ifndef LANGUAGE_SERIALIZATION_SERIALIZATIONFUNCTIONBUILDER_H
+#define LANGUAGE_SERIALIZATION_SERIALIZATIONFUNCTIONBUILDER_H
 
 #include "language/SIL/SILFunctionBuilder.h"
 
 namespace language {
 
-class LLVM_LIBRARY_VISIBILITY SILSerializationFunctionBuilder {
+class TOOLCHAIN_LIBRARY_VISIBILITY SILSerializationFunctionBuilder {
   SILFunctionBuilder builder;
 
 public:

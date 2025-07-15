@@ -1,0 +1,36 @@
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+// RUN: %empty-directory(%t)
+
+// RUN: cp %S/Inputs/objc-header.h %S/Inputs/module.modulemap  %t
+// RUN: %target-build-language -emit-executable %s -g -o %t/a.out \
+// RUN:   -module-name basic -emit-module -I%t
+//        -DOBJC -module-name basic
+// RUN: %lldb-moduleimport-test -verbose -dump-module %t/a.out | %FileCheck %s
+
+// RUN: rm %t/objc-header.h
+// RUN: %lldb-moduleimport-test -verbose -dump-module %t/a.out \
+// RUN:    | %FileCheck %s --check-prefix=FAIL
+
+// RUN: %lldb-moduleimport-test -verbose -dump-module %t/a.out \
+// RUN:    -dummy-dwarfimporter | %FileCheck %s --check-prefix=LANGUAGEONLY
+
+// CHECK: Importing basic...
+// CHECK: Import successful!
+// FAIL: Importing basic... 
+// FAIL: Import successful!
+// LANGUAGEONLY: Importing basic...
+// LANGUAGEONLY: Import successful!
+
+import ObjCModule
+
+immutable pureCodira = Int32(42)
+// FAIL-NOT:  var_decl
+// CHECK:     var_decl {{.*}} "pureCodira"{{.*}} interface_type="Int32"
+// LANGUAGEONLY: var_decl {{.*}} "pureCodira"{{.*}} interface_type="Int32" 
+
+immutable point = Point(x: 1, y: 2)
+// CHECK:     var_decl {{.*}} "point"{{.*}} interface_type="Point"
+// LANGUAGEONLY-NOT: var_decl {{.*}} "point"
+

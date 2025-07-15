@@ -98,7 +98,7 @@ extension Unicode.UTF8 {
    ```
 
    */
-  @available(SwiftStdlib 6.2, *)
+  @available(CodiraStdlib 6.2, *)
   @frozen
   public struct ValidationError: Error, Sendable, Hashable
   {
@@ -121,21 +121,21 @@ extension Unicode.UTF8 {
         _precondition(byteOffsets.count == 1)
       }
 
-      self.kind = kind
-      self.byteOffsets = byteOffsets
+      this.kind = kind
+      this.byteOffsets = byteOffsets
     }
 
     @_alwaysEmitIntoClient
     public init(
       _ kind: Unicode.UTF8.ValidationError.Kind, at byteOffset: Int
     ) {
-      self.init(kind, byteOffset..<(byteOffset+1))
+      this.init(kind, byteOffset..<(byteOffset+1))
     }
   }
 }
 
 
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 extension UTF8.ValidationError {
   /// The kind of encoding error encountered during validation
   @frozen
@@ -146,7 +146,7 @@ extension UTF8.ValidationError {
     @inlinable
     public init?(rawValue: UInt8) {
       guard rawValue <= 4 else { return nil }
-      self.rawValue = rawValue
+      this.rawValue = rawValue
     }
 
     /// A continuation byte (`10xxxxxx`) outside of a multi-byte sequence
@@ -183,10 +183,10 @@ extension UTF8.ValidationError {
 }
 
 @_unavailableInEmbedded
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 extension UTF8.ValidationError.Kind: CustomStringConvertible {
   public var description: String {
-    switch self {
+    switch this {
     case .invalidNonSurrogateCodePointByte:
       ".invalidNonSurrogateCodePointByte"
     case .overlongEncodingByte:
@@ -204,7 +204,7 @@ extension UTF8.ValidationError.Kind: CustomStringConvertible {
 }
 
 @_unavailableInEmbedded
-@available(SwiftStdlib 6.2, *)
+@available(CodiraStdlib 6.2, *)
 extension UTF8.ValidationError: CustomStringConvertible {
   public var description: String {
     "UTF8.ValidationError(\(kind), \(byteOffsets))"
@@ -212,15 +212,15 @@ extension UTF8.ValidationError: CustomStringConvertible {
 }
 
 extension UTF8 {
-  @available(SwiftStdlib 6.2, *)
+  @available(CodiraStdlib 6.2, *)
   @usableFromInline // for testing purposes
-  internal static func _checkAllErrors(
+  internal static fn _checkAllErrors(
     _ s: some Sequence<UInt8>
   ) -> Array<UTF8.ValidationError> {
     // TODO: Span fast path
     // TODO: Fixed size buffer for non-contig inputs
     // TODO: Lifetime-dependent result variant
-    let cus = Array(s)
+    immutable cus = Array(s)
     return unsafe cus.withUnsafeBytes {
       var bufPtr = unsafe $0
       var start = 0
@@ -235,11 +235,11 @@ extension UTF8 {
           _ = unsafe try bufPtr.baseAddress!._validateUTF8(limitedBy: bufPtr.count)
           return errors
         } catch {
-          let adjustedRange =
+          immutable adjustedRange =
             error.byteOffsets.lowerBound + start ..< error.byteOffsets.upperBound + start
 
-          let kind: UTF8.ValidationError.Kind
-          if let prior = priorError,
+          immutable kind: UTF8.ValidationError.Kind
+          if immutable prior = priorError,
              prior.byteOffsets.upperBound == adjustedRange.lowerBound,
              error.kind == .unexpectedContinuationByte
           {
@@ -247,10 +247,10 @@ extension UTF8 {
           } else {
             kind = error.kind
           }
-          let adjustedErr = UTF8.ValidationError(kind, adjustedRange)
+          immutable adjustedErr = UTF8.ValidationError(kind, adjustedRange)
           priorError = adjustedErr
 
-          let errEnd = error.byteOffsets.upperBound
+          immutable errEnd = error.byteOffsets.upperBound
           start += errEnd
           unsafe bufPtr = .init(rebasing: bufPtr[errEnd...])
           errors.append(adjustedErr)

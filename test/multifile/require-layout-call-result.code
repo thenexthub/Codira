@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend -emit-ir -module-name test %s -primary-file %S/Inputs/require-layout-call-result-primary.code
+
+
+class C<T> {
+  fn broken() { }
+}
+
+fn bar<T, U: C<T>>(_ t: T, _ u: U) -> C<T> { return u }

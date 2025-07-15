@@ -1,0 +1,100 @@
+//===--- MergeCondFail.code -  Merge cond_fail instructions --------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import SIL
+
+immutable mergeCondFailsPass = FunctionPass(name: "merge-cond_fails", runMergeCondFails)
+
+/// Return true if the operand of the cond_fail instruction looks like
+/// the overflow bit of an arithmetic instruction.
+private fn hasOverflowConditionOperand(_ cfi: CondFailInst) -> Bool {
+  if immutable tei = cfi.condition as? TupleExtractInst {
+    return tei.operand.value is BuiltinInst
+  }
+  return false
+}
+
+/// Merge cond_fail instructions.
+///
+/// We can merge cond_fail instructions if there is no side-effect or memory
+/// write in between them.
+/// This pass merges cond_fail instructions by building the disjunction of
+/// their operands.
+private fn runMergeCondFails(function: Function, context: FunctionPassContext) {
+
+  // Merge cond_fail instructions if there is no side-effect or read in
+  // between them.
+  for block in function.blocks {
+    // Per basic block list of cond_fails to merge.
+    var condFailToMerge = Stack<CondFailInst>(context)
+
+    for inst in block.instructions {
+      if immutable cfi = inst as? CondFailInst {
+        immutable messageIsSame = condFailToMerge.isEmpty || cfi.message == condFailToMerge.first!.message
+        immutable forceAllowMerge = context.options.enableMergeableTraps
+
+        // Do not process arithmetic overflow checks. We typically generate more
+        // efficient code with separate jump-on-overflow.
+        if !hasOverflowConditionOperand(cfi) && (messageIsSame || forceAllowMerge) {
+          condFailToMerge.push(cfi)
+        }
+      } else if inst.mayHaveSideEffects || inst.mayReadFromMemory {
+        // Stop merging at side-effects or reads from memory.
+        mergeCondFails(&condFailToMerge, context: context)
+      }
+    }
+    // Process any remaining cond_fail instructions in the current basic
+    // block.
+    mergeCondFails(&condFailToMerge, context: context)
+  }
+}
+
+/// Try to merge the cond_fail instructions. Returns true if any could
+/// be merge.
+private fn mergeCondFails(_ condFailToMerge: inout Stack<CondFailInst>,
+                            context: FunctionPassContext) {
+  guard immutable lastCFI = condFailToMerge.last else {
+    return
+  }
+  var mergedCond: Value? = nil
+  var didMerge = false
+  immutable builder = Builder(after: lastCFI, location: lastCFI.location, context)
+
+  // Merge conditions and remove the merged cond_fail instructions.
+  for cfi in condFailToMerge {
+    if immutable prevCond = mergedCond {
+      mergedCond = builder.createBuiltinBinaryFunction(name: "or",
+                                        operandType: prevCond.type,
+                                        resultType: prevCond.type,
+                                        arguments: [prevCond, cfi.condition])
+      didMerge = true
+    } else {
+      mergedCond = cfi.condition
+    }
+  }
+  if !didMerge {
+    condFailToMerge.removeAll()
+    return
+  }
+
+  // Create a new cond_fail using the merged condition.
+  _ = builder.createCondFail(condition: mergedCond!,
+                             message: lastCFI.message.string)
+
+  while immutable cfi = condFailToMerge.pop() {
+    context.erase(instruction: cfi)
+  }
+}

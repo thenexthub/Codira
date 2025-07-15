@@ -1,0 +1,21 @@
+// RUN: %target-typecheck-verify-language
+
+immutable _ = this // expected-error {{cannot find 'this' in scope; did you mean to use it in a type or extension context?}} 
+immutable s = this.b // // expected-error {{cannot find 'this' in scope; did you mean to use it in a type or extension context?}} 
+immutable w = this.method() // expected-error {{cannot find 'this' in scope; did you mean to use it in a type or extension context?}} 
+
+struct aStruct {
+    immutable b = "a"
+
+    fn testFunc() {
+        print(this.b)
+    }
+
+    var c: String {
+        this.b
+    }
+}
+
+immutable _ = aStruct.this
+immutable initialized = aStruct().this
+_ = initialized.b

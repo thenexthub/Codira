@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// Optimize CoW array access by hoisting uniqueness checks.
@@ -41,10 +42,10 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
 #include "language/SILOptimizer/Utils/InstOptUtils.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
+#include "toolchain/ADT/MapVector.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/CommandLine.h"
+#include "toolchain/Support/Debug.h"
 using namespace language;
 
 // Do the two values \p A and \p B reference the same 'array' after potentially
@@ -230,13 +231,13 @@ bool COWArrayOpt::isMatchingRelease(SILInstruction *inst,
     if (!MatchedReleases.count(&inst->getOperandRef(0))) {
       if (areArraysEqual(RCIA, inst->getOperand(0),
                          getRetainedValue(retainInst), CurrentArrayAddr)) {
-        LLVM_DEBUG(llvm::dbgs() << "     matching with release " << *inst);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "     matching with release " << *inst);
         MatchedReleases.insert(&inst->getOperandRef(0));
         return true;
       }
     }
   }
-  LLVM_DEBUG(llvm::dbgs() << "      not a matching release " << *inst);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "      not a matching release " << *inst);
   return false;
 }
 
@@ -262,7 +263,7 @@ bool COWArrayOpt::checkUniqueArrayContainer(SILValue ArrayContainer) {
         continue;
 
       if (!Params[ArgIdx].isIndirectInOut()) {
-        LLVM_DEBUG(llvm::dbgs()
+        TOOLCHAIN_DEBUG(toolchain::dbgs()
                    << "    Skipping Array: Not an inout argument!\n");
         return false;
       }
@@ -283,7 +284,7 @@ bool COWArrayOpt::checkUniqueArrayContainer(SILValue ArrayContainer) {
   // TODO: we should also take advantage of access markers to identify
   // unique arrays.
 
-  LLVM_DEBUG(llvm::dbgs()
+  TOOLCHAIN_DEBUG(toolchain::dbgs()
              << "    Skipping Array: Not an argument or local variable!\n");
   return false;
 }
@@ -339,7 +340,7 @@ static bool isNonMutatingArraySemanticCall(SILInstruction *Inst) {
     return false;
   }
 
-  llvm_unreachable("Unhandled ArrayCallKind in switch.");
+  toolchain_unreachable("Unhandled ArrayCallKind in switch.");
 }
 
 /// \return true if the given retain instruction is followed by a release on the
@@ -351,7 +352,7 @@ bool COWArrayOpt::isRetainReleasedBeforeMutate(SILInstruction *RetainInst,
   if (!Loop->contains(RetainInst))
     return true;
 
-  LLVM_DEBUG(llvm::dbgs() << "     Looking at retain " << *RetainInst);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "     Looking at retain " << *RetainInst);
 
   // Walk forward looking for a release of ArrayLoad or element of
   // ArrayUserSet. Note that ArrayUserSet does not included uses of elements
@@ -401,7 +402,7 @@ bool COWArrayOpt::isRetainReleasedBeforeMutate(SILInstruction *RetainInst,
       break;
     }
   }
-  LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: retained in loop!\n"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: retained in loop!\n"
                           << "    " << *RetainInst);
   return false;
 }
@@ -430,7 +431,7 @@ bool COWArrayOpt::checkSafeArrayAddressUses(UserList &AddressUsers) {
         continue;
       }
 
-      LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: may escape "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: may escape "
                                  "through call!\n"
                               << "    " << *UseInst);
       return false;
@@ -450,7 +451,7 @@ bool COWArrayOpt::checkSafeArrayAddressUses(UserList &AddressUsers) {
       // argument or return value. The array value may be returned by its
       // initializer or some other factory function.
       if (Loop->contains(StInst->getParent())) {
-        LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: store inside loop!\n"
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: store inside loop!\n"
                                 << "    " << *StInst);
         return false;
       }
@@ -459,7 +460,7 @@ bool COWArrayOpt::checkSafeArrayAddressUses(UserList &AddressUsers) {
       if (isa<SILArgument>(InitArray) || isa<ApplyInst>(InitArray))
         continue;
 
-      LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: may escape "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: may escape "
                                  "through store!\n"
                               << "    " << *UseInst);
       return false;
@@ -482,7 +483,7 @@ bool COWArrayOpt::checkSafeArrayAddressUses(UserList &AddressUsers) {
       continue;
     }
 
-    LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: unknown Array use!\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: unknown Array use!\n"
                             << "    " << *UseInst);
     // Found an unsafe or unknown user. The Array may escape here.
     return false;
@@ -535,7 +536,7 @@ bool COWArrayOpt::checkSafeArrayValueUses(UserList &ArrayValueUsers) {
         continue;
 
       // Found an unsafe or unknown user. The Array may escape here.
-      LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: unsafe call!\n"
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: unsafe call!\n"
                               << "    " << *UseInst);
       return false;
     }
@@ -560,7 +561,7 @@ bool COWArrayOpt::checkSafeArrayValueUses(UserList &ArrayValueUsers) {
       if (isRetainReleasedBeforeMutate(UseInst))
         continue;
       // Found an unsafe or unknown user. The Array may escape here.
-      LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: found unmatched retain "
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: found unmatched retain "
                                  "value!\n"
                               << "    " << *UseInst);
       return false;
@@ -583,7 +584,7 @@ bool COWArrayOpt::checkSafeArrayValueUses(UserList &ArrayValueUsers) {
       continue;
 
     // Found an unsafe or unknown user. The Array may escape here.
-    LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: unsafe Array value use!\n"
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: unsafe Array value use!\n"
                             << "    " << *UseInst);
     return false;
   }
@@ -670,7 +671,7 @@ bool COWArrayOpt::checkSafeArrayElementUse(SILInstruction *UseInst,
   }
 
   // Found an unsafe or unknown user. The Array may escape here.
-  LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: unknown Element use!\n"
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: unknown Element use!\n"
                           << *UseInst);
   return false;
 }
@@ -717,13 +718,13 @@ bool COWArrayOpt::hasLoopOnlyDestructorSafeArrayOperations() {
     return LoopHasSafeOperations;
   };
 
-  LLVM_DEBUG(llvm::dbgs() << "    checking whether loop only has safe array "
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    checking whether loop only has safe array "
                              "operations ...\n");
   CanType SameTy;
   for (auto *BB : Loop->getBlocks()) {
     for (auto &It : *BB) {
       auto *Inst = &It;
-      LLVM_DEBUG(llvm::dbgs() << "        visiting: " << *Inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "        visiting: " << *Inst);
 
       // Semantic calls are safe.
       ArraySemanticsCall Sem(Inst);
@@ -747,7 +748,7 @@ bool COWArrayOpt::hasLoopOnlyDestructorSafeArrayOperations() {
         }
         
         if (Sem.getSelf()->getType().getASTType() != SameTy) {
-          LLVM_DEBUG(llvm::dbgs() << "    (NO) mismatching array types\n");
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "    (NO) mismatching array types\n");
           return ReturnWithCleanup(false);
         }
 
@@ -758,12 +759,12 @@ bool COWArrayOpt::hasLoopOnlyDestructorSafeArrayOperations() {
       // Stores to array elements.
       if (auto *SI = dyn_cast<StoreInst>(Inst)) {
         if (SI->getOwnershipQualifier() == StoreOwnershipQualifier::Assign) {
-          LLVM_DEBUG(llvm::dbgs() << "     (NO) store with [assign]" << *SI);
+          TOOLCHAIN_DEBUG(toolchain::dbgs() << "     (NO) store with [assign]" << *SI);
           return ReturnWithCleanup(false);
         }
         if (isAddressOfArrayElement(SI->getDest()))
           continue;
-        LLVM_DEBUG(llvm::dbgs() << "     (NO) unknown store " << *SI);
+        TOOLCHAIN_DEBUG(toolchain::dbgs() << "     (NO) unknown store " << *SI);
         return ReturnWithCleanup(false);
       }
 
@@ -793,12 +794,12 @@ bool COWArrayOpt::hasLoopOnlyDestructorSafeArrayOperations() {
       if (isa<BeginBorrowInst>(Inst) || isa<EndBorrowInst>(Inst))
         continue;
 
-      LLVM_DEBUG(llvm::dbgs() << "     (NO) unknown operation " << *Inst);
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "     (NO) unknown operation " << *Inst);
       return ReturnWithCleanup(false);
     }
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "     (YES)\n");
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "     (YES)\n");
   CachedSafeLoop.second = true;
   return ReturnWithCleanup(true);
 }
@@ -916,13 +917,13 @@ void COWArrayOpt::hoistAddressProjections(Operand &ArrayOp) {
 /// in the loop.
 bool COWArrayOpt::hoistMakeMutable(ArraySemanticsCall MakeMutable,
                                    bool dominatesExits) {
-  LLVM_DEBUG(llvm::dbgs() << "    Checking mutable array: " <<CurrentArrayAddr);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Checking mutable array: " <<CurrentArrayAddr);
 
   // We can hoist address projections (even if they are only conditionally
   // executed).
   SILValue ArrayAddrBase = getArrayAddressBase(CurrentArrayAddr);
   if (!ArrayAddrBase) {
-    LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: does not dominate loop!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: does not dominate loop!\n");
     return false;
   }
 
@@ -955,7 +956,7 @@ bool COWArrayOpt::hoistMakeMutable(ArraySemanticsCall MakeMutable,
     // identifiable and not escaping, then we are good if all the array uses
     // are safe.
     if (!arrayContainerIsUnique) {
-      LLVM_DEBUG(llvm::dbgs() << "    Skipping Array: is not unique!\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Array: is not unique!\n");
       return false;
     }
 
@@ -973,7 +974,7 @@ bool COWArrayOpt::hoistMakeMutable(ArraySemanticsCall MakeMutable,
       return false;
   }
 
-  auto ArrayUsers = llvm::map_range(MakeMutable.getSelf()->getUses(),
+  auto ArrayUsers = toolchain::map_range(MakeMutable.getSelf()->getUses(),
                                     ValueBase::UseToUser());
 
   // There should be a call to end_mutation. Find it so that we can copy it to
@@ -986,7 +987,7 @@ bool COWArrayOpt::hoistMakeMutable(ArraySemanticsCall MakeMutable,
   }
 
   // Hoist the make_mutable.
-  LLVM_DEBUG(llvm::dbgs() << "    Hoisting make_mutable: " << *MakeMutable);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Hoisting make_mutable: " << *MakeMutable);
 
   hoistAddressProjections(MakeMutable.getSelfOperand());
 
@@ -1025,20 +1026,20 @@ bool COWArrayOpt::dominatesExitingBlocks(SILBasicBlock *BB) {
 }
 
 bool COWArrayOpt::run() {
-  LLVM_DEBUG(llvm::dbgs() << "  Array Opts in Loop " << *Loop);
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Array Opts in Loop " << *Loop);
 
   Preheader = Loop->getLoopPreheader();
   if (!Preheader) {
-    LLVM_DEBUG(llvm::dbgs() << "    Skipping Loop: No Preheader!\n");
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "    Skipping Loop: No Preheader!\n");
     return false;
   }
 
   // Map an array to a hoisted make_mutable call for the current loop. An array
   // is only mapped to a call once the analysis has determined that no
   // make_mutable calls are required within the loop body for that array.
-  llvm::SmallDenseMap<SILValue, ApplyInst*> ArrayMakeMutableMap;
+  toolchain::SmallDenseMap<SILValue, ApplyInst*> ArrayMakeMutableMap;
   
-  llvm::SmallVector<ArraySemanticsCall, 8> makeMutableCalls;
+  toolchain::SmallVector<ArraySemanticsCall, 8> makeMutableCalls;
   
   for (auto *BB : Loop->getBlocks()) {
     if (ColdBlocks.isCold(BB))
@@ -1073,7 +1074,7 @@ namespace {
 
 class COWArrayOptPass : public SILFunctionTransform {
   void run() override {
-    LLVM_DEBUG(llvm::dbgs() << "COW Array Opts in Func "
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "COW Array Opts in Func "
                             << getFunction()->getName() << "\n");
 
     auto *DA = PM->getAnalysis<DominanceAnalysis>();
@@ -1083,12 +1084,12 @@ class COWArrayOptPass : public SILFunctionTransform {
       PM->getAnalysis<RCIdentityAnalysis>()->get(getFunction());
     SILLoopInfo *LI = LA->get(getFunction());
     if (LI->empty()) {
-      LLVM_DEBUG(llvm::dbgs() << "  Skipping Function: No loops.\n");
+      TOOLCHAIN_DEBUG(toolchain::dbgs() << "  Skipping Function: No loops.\n");
       return;
     }
 
     // Create a flat list of loops in loop-tree postorder (bottom-up).
-    llvm::SmallVector<SILLoop *, 16> Loops;
+    toolchain::SmallVector<SILLoop *, 16> Loops;
     std::function<void (SILLoop*)> pushChildren = [&](SILLoop *L) {
       for (auto *SubLoop : *L)
         pushChildren(SubLoop);
@@ -1108,6 +1109,6 @@ class COWArrayOptPass : public SILFunctionTransform {
 };
 } // end anonymous namespace
 
-SILTransform *swift::createCOWArrayOpts() {
+SILTransform *language::createCOWArrayOpts() {
   return new COWArrayOptPass();
 }

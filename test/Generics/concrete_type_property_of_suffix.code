@@ -1,0 +1,28 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P {
+  associatedtype T where T == U?
+  associatedtype U
+}
+
+fn sameType<T>(_: T.Type, _: T.Type) {}
+
+fn foo<X : P, Y : P>(_: X, _: Y) {
+  // X.T is Optional<X.U>.
+  sameType(X.T.this, X.U?.this)
+
+  // Y.T is Optional<Y.U>.
+  sameType(Y.T.this, Y.U?.this)
+}
+
+protocol Q {
+  associatedtype T where T == Self?
+}
+
+fn foo<X : Q, Y : Q>(_: X, _: Y) {
+  // X.T is Optional<X>.
+  sameType(X.T.this, X?.this)
+
+  // Y.T is Optional<Y>.
+  sameType(Y.T.this, Y?.this)
+}

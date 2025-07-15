@@ -1,4 +1,4 @@
-//===---- FineGrainedDependencyFormat.h - swiftdeps format ---*- C++ -*-======//
+//===---- FineGrainedDependencyFormat.h - languagedeps format ---*- C++ -*-======//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FINEGRAINEDDEPENDENCYFORMAT_H
-#define SWIFT_AST_FINEGRAINEDDEPENDENCYFORMAT_H
+#ifndef LANGUAGE_AST_FINEGRAINEDDEPENDENCYFORMAT_H
+#define LANGUAGE_AST_FINEGRAINEDDEPENDENCYFORMAT_H
 
-#include "llvm/Bitcode/BitcodeConvenience.h"
-#include "llvm/Bitstream/BitCodes.h"
+#include "toolchain/Bitcode/BitcodeConvenience.h"
+#include "toolchain/Bitstream/BitCodes.h"
 
-namespace llvm {
+namespace toolchain {
 class MemoryBuffer;
 namespace vfs {
 class OutputBackend;
@@ -34,12 +35,12 @@ namespace fine_grained_dependencies {
 
 class SourceFileDepGraph;
 
-using llvm::BCFixed;
-using llvm::BCVBR;
-using llvm::BCBlob;
-using llvm::BCRecordLayout;
+using toolchain::BCFixed;
+using toolchain::BCVBR;
+using toolchain::BCBlob;
+using toolchain::BCRecordLayout;
 
-/// Every .swiftdeps file begins with these 4 bytes, for easy identification when
+/// Every .codedeps file begins with these 4 bytes, for easy identification when
 /// debugging.
 const unsigned char FINE_GRAINED_DEPENDENCY_FORMAT_SIGNATURE[] = {'D', 'E', 'P', 'S'};
 
@@ -53,10 +54,10 @@ using IdentifierIDField = BCVBR<13>;
 using NodeKindField = BCFixed<3>;
 using DeclAspectField = BCFixed<1>;
 
-const unsigned RECORD_BLOCK_ID = llvm::bitc::FIRST_APPLICATION_BLOCKID;
+const unsigned RECORD_BLOCK_ID = toolchain::bitc::FIRST_APPLICATION_BLOCKID;
 const unsigned INCREMENTAL_INFORMATION_BLOCK_ID = 196;
 
-/// The swiftdeps file format consists of a METADATA record, followed by zero or more
+/// The languagedeps file format consists of a METADATA record, followed by zero or more
 /// IDENTIFIER_NODE records.
 ///
 /// Then, there is one SOURCE_FILE_DEP_GRAPH_NODE for each serialized
@@ -121,51 +122,51 @@ namespace record_block {
 
 /// Tries to read the dependency graph from the given buffer.
 /// Returns \c true if there was an error.
-bool readFineGrainedDependencyGraph(llvm::MemoryBuffer &buffer,
+bool readFineGrainedDependencyGraph(toolchain::MemoryBuffer &buffer,
                                     SourceFileDepGraph &g);
 
 /// Tries to read the dependency graph from the given buffer, assuming that it
-/// is in the format of a swiftmodule file.
+/// is in the format of a languagemodule file.
 /// Returns \c true if there was an error.
-bool readFineGrainedDependencyGraphFromSwiftModule(llvm::MemoryBuffer &buffer,
+bool readFineGrainedDependencyGraphFromCodiraModule(toolchain::MemoryBuffer &buffer,
                                                    SourceFileDepGraph &g);
 
 /// Tries to read the dependency graph from the given path name.
 /// Returns true if there was an error.
-bool readFineGrainedDependencyGraph(llvm::StringRef path,
+bool readFineGrainedDependencyGraph(toolchain::StringRef path,
                                     SourceFileDepGraph &g);
 
 /// Tries to write the dependency graph to the given path name.
 /// Returns true if there was an error.
 bool writeFineGrainedDependencyGraphToPath(DiagnosticEngine &diags,
-                                           llvm::vfs::OutputBackend &backend,
-                                           llvm::StringRef path,
+                                           toolchain::vfs::OutputBackend &backend,
+                                           toolchain::StringRef path,
                                            const SourceFileDepGraph &g);
 
 /// Enumerates the supported set of purposes for writing out or reading in
-/// swift dependency information into a file. These can be used to influence
+/// language dependency information into a file. These can be used to influence
 /// the structure of the resulting data that is produced by the serialization
 /// machinery defined here.
 enum class Purpose : bool {
   /// Write out fine grained dependency metadata suitable for embedding in
-  /// \c .swiftmodule file.
+  /// \c .codemodule file.
   ///
   /// The resulting metadata does not contain the usual block descriptor header
   /// nor does it contain a leading magic signature, which would otherwise
   /// disrupt clients and tools that do not expect them to be present such as
-  /// llvm-bcanalyzer.
-  ForSwiftModule = false,
+  /// toolchain-bcanalyzer.
+  ForCodiraModule = false,
   /// Write out fine grained dependency metadata suitable for a standalone
-  /// \c .swiftdeps file.
+  /// \c .codedeps file.
   ///
   /// The resulting metadata will contain a leading magic signature and block
   /// descriptor header.
-  ForSwiftDeps = true,
+  ForCodiraDeps = true,
 };
 
 /// Tries to write out the given dependency graph with the given
 /// bitstream writer.
-void writeFineGrainedDependencyGraph(llvm::BitstreamWriter &Out,
+void writeFineGrainedDependencyGraph(toolchain::BitstreamWriter &Out,
                                      const SourceFileDepGraph &g,
                                      Purpose purpose);
 

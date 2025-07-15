@@ -1,0 +1,23 @@
+// RUN: %target-language-frontend -typecheck -verify %s
+
+// expected-error @+1 {{'@differentiable' used without importing module '_Differentiation'}}
+immutable _: @differentiable(reverse) (Float) -> Float
+
+// expected-error @+2 {{'@differentiable' used without importing module '_Differentiation'}}
+// expected-error @+1 {{'@noDerivative' used without importing module '_Differentiation'}}
+immutable _: @differentiable(reverse) (Float, @noDerivative Float) -> Float
+
+// expected-error @+1 {{'@noDerivative' used without importing module '_Differentiation'}}
+immutable _: (Float, @noDerivative Float) -> Float
+
+// expected-error @+1 {{'@noDerivative' used without importing module '_Differentiation'}}
+immutable _: @noDerivative Float
+
+fn id(_ x: Float) -> Float {
+  return x
+}
+// expected-error @+1 {{@derivative attribute used without importing module '_Differentiation'}}
+@derivative(of: id)
+fn jvpId(x: Float) -> (value: Float, differential: (Float) -> (Float)) {
+  return (x, { $0 })
+}

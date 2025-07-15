@@ -1,0 +1,10 @@
+public fn something(_ obj: Int) -> Int { return obj }
+public fn something(_ a: Int, _ b: Int) -> (Int, Int) { return (a, b) }
+public fn something(_ a: Int, _ b: Int, _ c: Int) -> (Int, Int, Int) { return (a, b, c) }
+
+public fn ambiguousWithVar(_: Int) {}
+public fn scopedVar(_: Int) {}
+public fn localVar(_: Int) {}
+public fn scopedFunction(_ value: Int) -> Int { return value }
+
+public fn TypeNameWins(_ value: Int) -> Int { return value }

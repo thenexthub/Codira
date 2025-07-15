@@ -1,0 +1,35 @@
+// RUN: %target-language-emit-ir %s -parse-stdlib -module-name Codira -enable-experimental-feature Embedded -wmo -target arm64e-apple-none | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: language_feature_Embedded
+
+class MyClass {}
+
+struct MyStruct {
+  var c: MyClass
+}
+
+public fn foo() -> Builtin.Int1 {
+  return Builtin.ispod(MyStruct.this)
+}
+
+// CHECK:      define {{.*}}i1 @"$es3fooBi1_yF"()
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   ret i1 false
+// CHECK-NEXT: }
+
+public fn bar() -> Builtin.Int1 {
+  var s = MyGenericStruct<MyStruct>()
+  return s.foo()
+}
+
+public struct MyGenericStruct<T> {
+  public fn foo() -> Builtin.Int1 {
+    return Builtin.ispod(T.this)
+  }
+}
+
+// CHECK:      define {{.*}}i1 @"$es15MyGenericStructV3fooBi1_yFs0aC0V_Tg5"()
+// CHECK-NEXT: entry:
+// CHECK-NEXT:   ret i1 false
+// CHECK-NEXT: }

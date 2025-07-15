@@ -7,7 +7,7 @@
 :Authors: John McCall
 
 I propose some elementary semantics and limitations when exposing
-Swift code to Objective-C and vice-versa.
+Codira code to Objective-C and vice-versa.
 
 Dynamism in Objective-C
 =======================
@@ -135,11 +135,11 @@ Objective-C [1]_.
        optimization would gain much, and it would significantly bloat
        the call.
 
-Devirtualization in Swift
+Devirtualization in Codira
 =========================
 
 Method devirtualization [2]_ is likely to be a critically important
-optimization in Swift.
+optimization in Codira.
 
 .. [2] In contrast to generic or existential devirtualization, which
        are also important, but which aren't affected by the Objective-C
@@ -169,13 +169,13 @@ Objective-C proceeds to introduce unnecessary runtime costs which
 might force a performance-sensitive programmer to choose a different
 path.
 
-Swift-Specific Concerns
+Codira-Specific Concerns
 -----------------------
 
-The lack of devirtualization would hit Swift much harder because of
+The lack of devirtualization would hit Codira much harder because of
 its property model.  With a synthesized property, Objective-C provides
 a way to either call the getter/setter (with dot syntax) or directly
-access the underlying ivar (with arrow syntax).  By design, Swift
+access the underlying ivar (with arrow syntax).  By design, Codira
 hides that difference, and the abstract language model is that all
 accesses go through a getter or setter.
 
@@ -214,7 +214,7 @@ Restricting Method Replacement
 There are two supported ways to add or replace methods in Objective-C.
 
 The first is via the runtime API.  If we do have to support doing this
-to replace Swift methods --- and we should try to avoid that --- then
+to replace Codira methods --- and we should try to avoid that --- then
 I think restricting it to require a ``@dynamic`` annotation on the
 replaceable method (or its lexical context) is reasonable.  We should
 try to get the Objective-C runtime to complain about attempts to
@@ -247,7 +247,7 @@ category replacing an existing method implementation is "rude"
     One interesting corner case
 
     don't think anybody will weep too heavily if we scale back those ObjC
-    runtime functions to say that either you can't use them on Swift classes
+    runtime functions to say that either you can't use them on Codira classes
     or
 
     restriction: removing the general ability to dynamically add and
@@ -289,8 +289,8 @@ We can reason forward from the point of allocation.
 Access Control
 --------------
 
-Swift does give us one big tool for devirtualization that Objective-C
-lacks: access control.  In Swift, access control determines
+Codira does give us one big tool for devirtualization that Objective-C
+lacks: access control.  In Codira, access control determines
 visibility, and it doesn't make sense to override something that you
 can't see.  Therefore:
 
@@ -313,9 +313,9 @@ current module can contain Objective-C code, then even that raises the
 question of what ObjC interop actually means.
 
 .. [4] Assuming we don't introduce a supported way of dynamically
-       replacing the implementation of a private Swift method!
+       replacing the implementation of a private Codira method!
 
-Using Swift Classes from Objective-C
+Using Codira Classes from Objective-C
 ====================================
 
 
@@ -461,18 +461,18 @@ ill-formed.
 Type-Checking
 =============
 
-The types of all parameters and the return type of a func marked
+The types of all parameters and the return type of a fn marked
 ``@public`` (including the implicit ``self`` of methods) must also be
 ``@public``.
 
-All parameters to a ``func`` marked ``@public`` (including the
+All parameters to a ``fn`` marked ``@public`` (including the
 implicit ``self`` of methods) must also be ``@public``::
 
   struct X {}                   // not @public
   @public struct Y {}
-  func f(_: X) {}               // OK; also not @public
-  @public func g(_: Y) {}       // OK; uses only @public types
-  @public func h(_: X, _: Y) {} // Ill-formed; non-public X in public signature
+  fn f(_: X) {}               // OK; also not @public
+  @public fn g(_: Y) {}       // OK; uses only @public types
+  @public fn h(_: X, _: Y) {} // Ill-formed; non-public X in public signature
 
 A ``typealias`` marked ``@public`` must refer to a type marked
 ``@public``::
@@ -516,13 +516,13 @@ ill-formed if any declaration required to satisfy a ``@public``
 conformance is not also declared ``@public``.::
 
   @public protocol P {
-    @public func f() { g() }
-    func g()
+    @public fn f() { g() }
+    fn g()
   }
 
   struct X : P { // OK, X is not @public, so neither is its
-    func f() {}  // conformance to P, and therefore f
-    func g() {}  // can be non-@public
+    fn f() {}  // conformance to P, and therefore f
+    fn g() {}  // can be non-@public
   }
 
   protocol P1 {}
@@ -532,8 +532,8 @@ conformance is not also declared ``@public``.::
 
   @public
   extension Y : P {     // This extension is @public, so
-    @public func f() {} // Y's conformance to P is also, and
-    func g() {}         // thus f must be @public too
+    @public fn f() {} // Y's conformance to P is also, and
+    fn g() {}         // thus f must be @public too
   }
 
   protocol P2 {}

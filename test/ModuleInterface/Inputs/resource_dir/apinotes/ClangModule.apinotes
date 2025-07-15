@@ -1,0 +1,4 @@
+Name: ClangModule
+Globals:
+  - Name: CMThing
+    CodiraName: CodiraThing

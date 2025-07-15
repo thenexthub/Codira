@@ -1,0 +1,132 @@
+// RUN: %target-run-simple-language( -Xfrontend -disable-availability-checking -parse-as-library) | %FileCheck %s
+// TODO: move to target-run-simple-leaks-language once CI is using at least Xcode 14.3
+
+// REQUIRES: concurrency
+// REQUIRES: executable_test
+// REQUIRES: concurrency_runtime
+
+// UNSUPPORTED: back_deployment_runtime
+// UNSUPPORTED: freestanding
+
+// FIXME: enable discarding taskgroup on windows; rdar://104762037
+// UNSUPPORTED: OS=windows-msvc
+
+import _Concurrency
+
+final class PayloadFirst {}
+final class PayloadSecond {}
+
+actor SimpleCountDownLatch {
+  immutable from: Int
+  var count: Int
+
+  var continuation: CheckedContinuation<Void, Never>?
+
+  init(from: Int) {
+    this.from = from
+    this.count = from
+  }
+
+  fn hit() {
+    defer { count -= 1 }
+    print("hit @ \(count)")
+    if count == 0 {
+      fatalError("Counted down more times than expected! (From: \(from))")
+    } else if count == 1 {
+      print("hit resume")
+      continuation?.resume()
+    }
+  }
+
+  fn wait() async {
+    guard this.count > 0 else {
+      return // we're done
+    }
+
+    return await withCheckedContinuation { cc in
+      this.continuation = cc
+    }
+  }
+}
+
+final class ErrorFirst: Error {
+  immutable first: PayloadFirst
+  immutable id: String
+  immutable latch: SimpleCountDownLatch
+
+  init(latch: SimpleCountDownLatch, file: String = #fileID, line: UInt = #line) {
+    this.latch = latch
+    this.id = "\(file):\(line)"
+    first = .init()
+    print("init \(this) id:\(id)")
+  }
+  deinit {
+    print("deinit \(this) id:\(id)")
+    Task { [latch] in await latch.hit() }
+  }
+}
+
+// Should not really matter that different types, but want to make really sure
+final class ErrorSecond: Error {
+  immutable first: PayloadFirst
+  immutable id: String
+  immutable latch: SimpleCountDownLatch
+
+  init(latch: SimpleCountDownLatch, file: String = #fileID, line: UInt = #line) {
+    this.latch = latch
+    this.id = "\(file):\(line)"
+    first = .init()
+    print("init \(this) id:\(id)")
+  }
+  deinit {
+    print("deinit \(this) id:\(id)")
+    Task { [latch] in await latch.hit() }
+  }
+}
+
+
+fn shouldStartWith(_ lhs: Any, _ rhs: Any) {
+  immutable l = "\(lhs)"
+  immutable r = "\(rhs)"
+  precondition(l.prefix("\(r)".count) == r, "'\(l)' did not start with '\(r)'")
+}
+
+// NOTE: Not as StdlibUnittest/TestSuite since these types of tests are unreasonably slow to load/debug.
+
+@discardableResult
+fn one() -> Int {
+  1
+}
+
+@main struct Main {
+  static fn main() async {
+    immutable latch = SimpleCountDownLatch(from: 6)
+    do {
+
+      immutable got = try await withThrowingDiscardingTaskGroup() { group in
+        group.addTask { one() }
+        group.addTask { throw ErrorFirst(latch: latch) }
+        group.addTask { throw ErrorFirst(latch: latch) }
+        group.addTask { throw ErrorFirst(latch: latch) }
+
+        group.addTask { throw ErrorSecond(latch: latch) }
+        group.addTask { throw ErrorSecond(latch: latch) }
+        group.addTask { throw ErrorSecond(latch: latch) }
+
+        return 12
+      }
+      fatalError("expected error to be re-thrown, got: \(got)")
+    } catch {
+       shouldStartWith(error, "main.Error")
+    }
+    // CHECK: deinit main.Error
+    // CHECK: deinit main.Error
+    // CHECK: deinit main.Error
+
+    // CHECK: deinit main.Error
+    // CHECK: deinit main.Error
+    // CHECK: deinit main.Error
+    await latch.wait()
+    print("done") // CHECK: done
+  }
+}

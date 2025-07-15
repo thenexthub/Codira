@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_BASIC_SOURCE_INFO_H
-#define SWIFT_BASIC_BASIC_SOURCE_INFO_H
+#ifndef LANGUAGE_BASIC_BASIC_SOURCE_INFO_H
+#define LANGUAGE_BASIC_BASIC_SOURCE_INFO_H
 
 #include "language/Basic/Fingerprint.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "llvm/ADT/PointerIntPair.h"
-#include "llvm/Support/Chrono.h"
+#include "toolchain/ADT/PointerIntPair.h"
+#include "toolchain/Support/Chrono.h"
 
 namespace language {
 
@@ -60,7 +61,7 @@ class BasicSourceFileInfo {
   /// If this is non-null, fields other than 'FilePath' hasn't been populated.
   /// The 'getInt()' part indicates this instance is constructed with a
   /// SourceFile.
-  llvm::PointerIntPair<const SourceFile *, 1, bool> SFAndIsFromSF;
+  toolchain::PointerIntPair<const SourceFile *, 1, bool> SFAndIsFromSF;
 
   StringRef FilePath;
   Fingerprint InterfaceHashIncludingTypeMembers = Fingerprint::ZERO();
@@ -68,7 +69,7 @@ class BasicSourceFileInfo {
   /// Just the `SourceFile` hashes.
   /// Used for incremental imports.
   Fingerprint InterfaceHashExcludingTypeMembers = Fingerprint::ZERO();
-  llvm::sys::TimePoint<> LastModified = {};
+  toolchain::sys::TimePoint<> LastModified = {};
   uint64_t FileSize = 0;
 
   // Populate the from 'SF' member if exist. 'SF' will be cleared.
@@ -78,7 +79,7 @@ public:
   BasicSourceFileInfo(StringRef FilePath,
                       Fingerprint InterfaceHashIncludingTypeMembers,
                       Fingerprint InterfaceHashExcludingTypeMembers,
-                      llvm::sys::TimePoint<> LastModified, uint64_t FileSize)
+                      toolchain::sys::TimePoint<> LastModified, uint64_t FileSize)
       : FilePath(FilePath),
         InterfaceHashIncludingTypeMembers(InterfaceHashIncludingTypeMembers),
         InterfaceHashExcludingTypeMembers(InterfaceHashExcludingTypeMembers),
@@ -103,7 +104,7 @@ public:
     return InterfaceHashExcludingTypeMembers;
   }
 
-  llvm::sys::TimePoint<> getLastModified() const {
+  toolchain::sys::TimePoint<> getLastModified() const {
     const_cast<BasicSourceFileInfo *>(this)->populateWithSourceFileIfNeeded();
     return LastModified;
   }
@@ -116,5 +117,5 @@ public:
 
 } // namespace language
 
-#endif // SWIFT_BASIC_BASIC_SOURCE_INFO_H
+#endif // LANGUAGE_BASIC_BASIC_SOURCE_INFO_H
 

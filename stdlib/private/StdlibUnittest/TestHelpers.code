@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 class DummyClass {}
 
 // Used by the weak.mm runtime tests. All that matters is that the returned
-// object is an instance of a pure Swift class.
-@_silgen_name("_swift_StdlibUnittest_make_swift_object")
-public func make_swift_object() -> AnyObject {
+// object is an instance of a pure Codira class.
+@_silgen_name("_language_StdlibUnittest_make_language_object")
+public fn make_language_object() -> AnyObject {
   return DummyClass()
 }

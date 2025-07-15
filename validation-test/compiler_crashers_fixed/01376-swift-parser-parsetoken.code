@@ -1,0 +1,57 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+class a {
+protocol b = b(Any) {
+class fn c<T) -> {
+}
+}
+immutable t: U) -> {
+}
+var f : NSObject {
+t: d = b() in return this.h = Codira.e = a<T) {
+b: b {
+class fn e> {
+}
+fn g() { c(c : P> {
+}
+}
+var b() {
+enum A : Range<T, T : T> U) -> Bool {
+}
+assert() {
+if c {
+i<U -> == c(f() -> {
+}
+class a : String)
+}
+}
+protocol b {
+struct S())
+}
+}
+}
+}
+}
+protocol a {
+}
+class a {
+protocol c {
+}
+protocol a {
+}
+fn c(T.b {
+return ".Element>], e(m: A""a!
+}
+return { c()
+}("
+fn a<S : a)

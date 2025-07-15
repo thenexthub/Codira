@@ -1,0 +1,28 @@
+// RUN: %target-run-simple-language(-Xfrontend -enable-experimental-move-only -enable-builtin-module)
+
+// REQUIRES: executable_test
+
+import StdlibUnittest
+import Builtin
+
+class Klass {}
+
+var suite = TestSuite("LifetimeManagement")
+
+suite.test("_copy") {
+  immutable k = Klass()
+  expectTrue(k === _copy(k))
+}
+
+suite.test("copy") {
+  immutable k = Klass()
+  expectTrue(k === copy k)
+}
+
+suite.test("move") {
+  immutable k = Klass()
+  immutable k2 = k
+  expectTrue(k2 === consume k)
+}
+
+runAllTests()

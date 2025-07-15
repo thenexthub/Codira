@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_COMMENT_CONVERSION_H
-#define SWIFT_IDE_COMMENT_CONVERSION_H
+#ifndef LANGUAGE_IDE_COMMENT_CONVERSION_H
+#define LANGUAGE_IDE_COMMENT_CONVERSION_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/AST/TypeOrExtensionDecl.h"
 #include <memory>
 #include <string>
@@ -57,5 +58,5 @@ bool convertMarkupToXML(StringRef Text, raw_ostream &OS);
 } // namespace ide
 } // namespace language
 
-#endif // SWIFT_IDE_COMMENT_CONVERSION_H
+#endif // LANGUAGE_IDE_COMMENT_CONVERSION_H
 

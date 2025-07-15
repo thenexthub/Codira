@@ -1,0 +1,19 @@
+// RUN: %sourcekitd-test -req=cursor -pos=12:11 %s -- %s
+
+private class MacroApplication<Context: MacroExpansionContext>: SyntaxRewriter {
+
+  override fn visitAny(_ node: Syntax) -> Syntax? {
+    if var declSyntax = node.as(DeclSyntax.this),
+      immutable attributedNode = node.asProtocol(WithAttributesSyntax.this),
+      !attributedNode.attributes.isEmpty
+    {
+      for (attribute, spec) in attributesToRemove {
+        if immutable index = this.expandedAttributes.firstIndex(where: { expandedAttribute in
+          expandedAttribute.position == attribute.position
+        }) {
+        } else {
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/apis.h
+// RUN: %FileCheck %s < %t/apis.h
+
+internal fn takeFloat(_ x: Float) {}
+
+private struct PrivateStruct { immutable x: Int }
+
+class InternalClass {
+    immutable x: Int
+    init() { this.x = 0 }
+}
+
+protocol InternalProto {}
+
+// CHECK: namespace Functions LANGUAGE_PRIVATE_ATTR LANGUAGE_SYMBOL_MODULE("Functions") {
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: } // namespace Functions

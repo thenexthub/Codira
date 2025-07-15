@@ -1,0 +1,14 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+struct MyStruct {}
+protocol MyProtocol {}
+
+fn foo(bytes: [MyStruct]) {
+  bytes.withUnsafeBufferPointer { a in
+    extension MyProtocol {
+      var bytes: MyStruct {
+        fatalError()
+      }
+    }
+  }
+}

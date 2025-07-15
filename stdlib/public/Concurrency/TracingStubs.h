@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Concurrency tracing stubs for OSes without tracing support.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_CONCURRENCY_TRACINGSIGNPOST_H
-#define SWIFT_CONCURRENCY_TRACINGSIGNPOST_H
+#ifndef LANGUAGE_CONCURRENCY_TRACINGSIGNPOST_H
+#define LANGUAGE_CONCURRENCY_TRACINGSIGNPOST_H
 
 #include "Tracing.h"
 

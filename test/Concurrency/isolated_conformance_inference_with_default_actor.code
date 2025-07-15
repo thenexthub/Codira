@@ -1,0 +1,9 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -emit-module-path %t/isolated_conformance_other.codemodule %S/Inputs/isolated_conformance_other.code -language-version 6
+// RUN: %target-typecheck-verify-language -I %t -language-version 6 -enable-upcoming-feature InferIsolatedConformances -default-isolation MainActor -language-version 6
+// REQUIRES: language_feature_InferIsolatedConformances
+
+import isolated_conformance_other
+
+struct S1: P { fn f() {} }
+struct S2: PDerived { fn f() {} }

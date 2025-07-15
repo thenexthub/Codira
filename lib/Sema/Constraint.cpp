@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file implements the \c Constraint class and its related types,
@@ -23,8 +24,8 @@
 #include "language/Basic/Compiler.h"
 #include "language/Sema/Constraint.h"
 #include "language/Sema/ConstraintSystem.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Compiler.h"
+#include "toolchain/Support/raw_ostream.h"
 #include <algorithm>
 
 using namespace language;
@@ -106,30 +107,30 @@ Constraint::Constraint(ConstraintKind Kind, Type First, Type Second,
   case ConstraintKind::ValueMember:
   case ConstraintKind::UnresolvedValueMember:
   case ConstraintKind::ValueWitness:
-    llvm_unreachable("Wrong constructor for member constraint");
+    toolchain_unreachable("Wrong constructor for member constraint");
 
   case ConstraintKind::Defaultable:
   case ConstraintKind::FallbackType:
     break;
 
   case ConstraintKind::BindOverload:
-    llvm_unreachable("Wrong constructor for overload binding constraint");
+    toolchain_unreachable("Wrong constructor for overload binding constraint");
 
   case ConstraintKind::Disjunction:
-    llvm_unreachable("Disjunction constraints should use create()");
+    toolchain_unreachable("Disjunction constraints should use create()");
 
   case ConstraintKind::Conjunction:
-    llvm_unreachable("Conjunction constraints should use create()");
+    toolchain_unreachable("Conjunction constraints should use create()");
 
   case ConstraintKind::KeyPath:
   case ConstraintKind::KeyPathApplication:
-    llvm_unreachable("Key path constraint takes three types");
+    toolchain_unreachable("Key path constraint takes three types");
 
   case ConstraintKind::SyntacticElement:
-    llvm_unreachable("Syntactic element constraint should use create()");
+    toolchain_unreachable("Syntactic element constraint should use create()");
 
   case ConstraintKind::ApplicableFunction:
-    llvm_unreachable(
+    toolchain_unreachable(
         "Application constraint should use create()");
   }
 
@@ -191,7 +192,7 @@ Constraint::Constraint(ConstraintKind Kind, Type First, Type Second, Type Third,
   case ConstraintKind::SameShape:
   case ConstraintKind::MaterializePackExpansion:
   case ConstraintKind::LValueObject:
-    llvm_unreachable("Wrong constructor");
+    toolchain_unreachable("Wrong constructor");
 
   case ConstraintKind::KeyPath:
   case ConstraintKind::KeyPathApplication:
@@ -248,14 +249,15 @@ Constraint::Constraint(ConstraintKind kind, Type first, Type second,
   *getTrailingObjects<DeclContext *>() = useDC;
 }
 
-Constraint::Constraint(Type type, OverloadChoice choice, DeclContext *useDC,
+Constraint::Constraint(Type type, OverloadChoice choice,
+                       DeclContext *useDC,
                        ConstraintFix *fix, ConstraintLocator *locator,
                        SmallPtrSetImpl<TypeVariableType *> &typeVars)
     : Kind(ConstraintKind::BindOverload), NumTypeVariables(typeVars.size()),
       HasFix(fix != nullptr), HasDeclContext(true), HasRestriction(false),
       IsActive(false), IsDisabled(bool(fix)), IsDisabledForPerformance(false),
       RememberChoice(false), IsFavored(false), IsIsolated(false),
-      Overload{type}, Locator(locator) {
+      Overload{type, /*preparedOverload=*/nullptr}, Locator(locator) {
   std::copy(typeVars.begin(), typeVars.end(), getTypeVariablesBuffer().begin());
   if (fix)
     *getTrailingObjects<ConstraintFix *>() = fix;
@@ -337,7 +339,7 @@ ProtocolDecl *Constraint::getProtocol() const {
   return Types.Second->castTo<ProtocolType>()->getDecl();
 }
 
-void Constraint::print(llvm::raw_ostream &Out, SourceManager *sm,
+void Constraint::print(toolchain::raw_ostream &Out, SourceManager *sm,
                        unsigned indent, bool skipLocator) const {
   // Print all type variables as $T0 instead of _ here.
   PrintOptions PO;
@@ -363,7 +365,7 @@ void Constraint::print(llvm::raw_ostream &Out, SourceManager *sm,
     // for printing only.
     std::vector<Constraint *> sortedConstraints(getNestedConstraints().begin(),
                                                 getNestedConstraints().end());
-    llvm::sort(sortedConstraints,
+    toolchain::sort(sortedConstraints,
                [](const Constraint *lhs, const Constraint *rhs) {
                  if (lhs->isFavored() != rhs->isFavored())
                    return lhs->isFavored();
@@ -563,11 +565,11 @@ void Constraint::print(llvm::raw_ostream &Out, SourceManager *sm,
     break;
 
   case ConstraintKind::Disjunction:
-    llvm_unreachable("disjunction handled above");
+    toolchain_unreachable("disjunction handled above");
   case ConstraintKind::Conjunction:
-    llvm_unreachable("conjunction handled above");
+    toolchain_unreachable("conjunction handled above");
   case ConstraintKind::SyntacticElement:
-    llvm_unreachable("syntactic element handled above");
+    toolchain_unreachable("syntactic element handled above");
   }
 
   if (!skipSecond)
@@ -603,20 +605,20 @@ void Constraint::print(llvm::raw_ostream &Out, SourceManager *sm,
 }
 
 void Constraint::dump(SourceManager *sm) const {
-  print(llvm::errs(), sm);
-  llvm::errs() << "\n";
+  print(toolchain::errs(), sm);
+  toolchain::errs() << "\n";
 }
 
 void Constraint::dump(ConstraintSystem *CS) const {
   // Disable MSVC warning: only for use within the debugger.
-#if SWIFT_COMPILER_IS_MSVC
+#if LANGUAGE_COMPILER_IS_MSVC
 #pragma warning(suppress: 4996)
 #endif
   dump(&CS->getASTContext().SourceMgr);
 }
 
 
-StringRef swift::constraints::getName(ConversionRestrictionKind kind) {
+StringRef language::constraints::getName(ConversionRestrictionKind kind) {
   switch (kind) {
   case ConversionRestrictionKind::DeepEquality:
     return "[deep equality]";
@@ -669,7 +671,7 @@ StringRef swift::constraints::getName(ConversionRestrictionKind kind) {
   case ConversionRestrictionKind::DoubleToCGFloat:
     return "[Double-to-CGFloat]";
   }
-  llvm_unreachable("bad conversion restriction kind");
+  toolchain_unreachable("bad conversion restriction kind");
 }
 
 /// Recursively gather the set of type variables referenced by this constraint.
@@ -690,7 +692,7 @@ gatherReferencedTypeVars(Constraint *constraint,
   case ConstraintKind::KeyPath:
   case ConstraintKind::KeyPathApplication:
     constraint->getThirdType()->getTypeVariables(typeVars);
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 
   case ConstraintKind::ApplicableFunction:
   case ConstraintKind::DynamicCallableApplicableFunction:
@@ -754,7 +756,7 @@ unsigned Constraint::countResolvedArgumentTypes(ConstraintSystem &cs) const {
   if (!argumentFuncType)
     return 0;
 
-  return llvm::count_if(argumentFuncType->getParams(), [&](const AnyFunctionType::Param arg) {
+  return toolchain::count_if(argumentFuncType->getParams(), [&](const AnyFunctionType::Param arg) {
     auto argType = cs.getFixedTypeRecursive(arg.getPlainType(), /*wantRValue=*/true);
     return !argType->isTypeVariableOrMember();
   });
@@ -896,7 +898,7 @@ Constraint *Constraint::createValueWitness(
 }
 
 Constraint *Constraint::createBindOverload(ConstraintSystem &cs, Type type, 
-                                           OverloadChoice choice, 
+                                           OverloadChoice choice,
                                            DeclContext *useDC,
                                            ConstraintFix *fix,
                                            ConstraintLocator *locator) {
@@ -915,7 +917,8 @@ Constraint *Constraint::createBindOverload(ConstraintSystem &cs, Type type,
       typeVars.size(), fix ? 1 : 0, /*hasDeclContext=*/1,
       /*hasContextualTypeInfo=*/0, /*hasOverloadChoice=*/1);
   void *mem = cs.getAllocator().Allocate(size, alignof(Constraint));
-  return new (mem) Constraint(type, choice, useDC, fix, locator, typeVars);
+  return new (mem) Constraint(type, choice, useDC,
+                              fix, locator, typeVars);
 }
 
 Constraint *Constraint::createRestricted(ConstraintSystem &cs, 
@@ -1010,7 +1013,7 @@ Constraint *Constraint::createDisjunction(ConstraintSystem &cs,
   assert(!constraints.empty());
   // Verify that all disjunction choices have the same left-hand side.
   Type commonType;
-  assert(llvm::all_of(constraints, [&](const Constraint *choice) -> bool {
+  assert(toolchain::all_of(constraints, [&](const Constraint *choice) -> bool {
     // if this disjunction is formed from "fixed"
     // constraints let's not try to validate.
     if (choice->HasRestriction || choice->getFix())
@@ -1137,7 +1140,7 @@ Constraint::getTrailingClosureMatching() const {
   case 2: return TrailingClosureMatching::Backward;
   }
 
-  llvm_unreachable("Bad trailing closure matching value");
+  toolchain_unreachable("Bad trailing closure matching value");
 }
 
 void *Constraint::operator new(size_t bytes, ConstraintSystem& cs,

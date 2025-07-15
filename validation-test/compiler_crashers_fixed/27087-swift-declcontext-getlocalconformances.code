@@ -1,0 +1,53 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+re g{ enum b = c("))
+immutable a{}()
+}class A {
+a
+B<T where g:b(")
+class d>(_ = c{
+import Foundation
+fn f.C{immutable:T? = [Void{
+class A {
+class d<f<T : {
+init()
+var b<T : T
+if true{
+T] {
+init()
+class A{
+if tocol c(){
+struct S <T.c
+var a
+struct Q<T where H:T.c()
+class A : {enum b {
+class B:P{
+end " ( 1 ]
+var a{
+struct c(){
+class B<C<d<d<d<T{}struct S< C {
+fn c(_ = F>()
+struct A<
+class C<T {
+struct S< {
+class B< g<T where T.e: {immutable v{{}
+b{{
+var b:T.c{ enum b<T{
+immutable c{
+var b(_ = 0
+B
+fn f<T : T.c{ enum b = e
+class A : a {
+if true {}class B:P{
+class C{
+struct

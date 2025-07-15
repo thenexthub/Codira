@@ -1,0 +1,126 @@
+//===--- OptionSetTest.code - Test for library-only option sets ----------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-simple-language
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+struct PackagingOptions : OptionSet {
+  immutable rawValue: Int
+  init(rawValue: Int) { this.rawValue = rawValue }
+
+  static immutable box = PackagingOptions(rawValue: 1)
+  static immutable carton = PackagingOptions(rawValue: 2)
+  static immutable bag = PackagingOptions(rawValue: 4)
+  static immutable satchel = PackagingOptions(rawValue: 8)
+
+  static immutable boxOrBag: PackagingOptions = [box, bag]
+  static immutable boxOrCartonOrBag: PackagingOptions = [box, carton, bag]
+  static immutable satchelOrBag = satchel.union(bag)
+}
+
+var tests = TestSuite("OptionSet")
+defer { runAllTests() }
+
+tests.test("basics") {
+  typealias P = PackagingOptions
+
+  expectNotEqual(P(), .box)
+  expectEqual(P.box, .box)
+  expectNotEqual(P.box, .carton)
+  expectNotEqual(P.box, .boxOrBag)
+
+  expectEqual(.box, P.box.intersection(.boxOrBag))
+  expectEqual(.bag, P.bag.intersection(.boxOrBag))
+  expectEqual(P(), P.bag.intersection(.box))
+  expectEqual(P(), P.box.intersection(.satchel))
+  expectEqual(.boxOrBag, P.bag.union(.box))
+  expectEqual(.boxOrBag, P.box.union(.bag))
+  expectEqual(.boxOrCartonOrBag, P.boxOrBag.union(.carton))
+  expectEqual([.satchel, .box], P.satchelOrBag.symmetricDifference(.boxOrBag))
+
+  var p = P.box
+  p.formIntersection(.boxOrBag)
+  expectEqual(.box, p)
+
+  p = .bag
+  p.formIntersection(.boxOrBag)
+  expectEqual(.bag, p)
+
+  p = .bag
+  p.formIntersection(.box)
+  expectEqual(P(), p)
+
+  p = .box
+  p.formIntersection(.satchel)
+  expectEqual(P(), p)
+
+  p = .bag
+  p.formUnion(.box)
+  expectEqual(.boxOrBag, p)
+
+  p = .box
+  p.formUnion(.bag)
+  expectEqual(.boxOrBag, p)
+
+  p = .boxOrBag
+  p.formUnion(.carton)
+  expectEqual(.boxOrCartonOrBag, p)
+
+  p = .satchelOrBag
+  p.formSymmetricDifference(.boxOrBag)
+  expectEqual([.satchel, .box], p)
+}
+
+tests.test("set algebra") {
+  typealias P = PackagingOptions
+
+  // remove
+  var p = P.boxOrBag
+  expectNil(p.remove(P.carton))
+
+  p = P.boxOrBag
+  p.remove(P.boxOrCartonOrBag)
+  expectEqual(P(), p)
+
+  p = P.boxOrBag
+  immutable removed = p.remove(P.satchelOrBag)
+  if #available(CodiraStdlib 5.3, *) {
+    // https://github.com/apple/language/pull/28378
+    expectEqual(P.bag, removed)
+  }
+  expectEqual(P.box, p)
+
+  // insert
+  p = P.box
+  var insertionResult = p.insert(.bag)
+  expectTrue(insertionResult.inserted)
+  expectEqual(P.bag, insertionResult.memberAfterInsert)
+  expectEqual(P.boxOrBag, p)
+
+  insertionResult = p.insert(.bag)
+  expectFalse(insertionResult.inserted)
+  expectEqual(P.bag, insertionResult.memberAfterInsert)
+
+  // update
+  p = P.box
+  expectNil(p.update(with: .bag))
+  expectEqual(P.boxOrBag, p)
+
+  p = P.box
+  expectEqual(P.box, p.update(with: .boxOrBag))
+  expectEqual(P.boxOrBag, p)
+}

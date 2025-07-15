@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the Temporary and TemporarySet classes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_TEMPORARY_H
-#define SWIFT_IRGEN_TEMPORARY_H
+#ifndef LANGUAGE_IRGEN_TEMPORARY_H
+#define LANGUAGE_IRGEN_TEMPORARY_H
 
 #include "Address.h"
 #include "language/SIL/SILType.h"

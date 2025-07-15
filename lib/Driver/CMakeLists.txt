@@ -1,6 +1,6 @@
 
 
-set(swiftDriver_sources
+set(languageDriver_sources
   Action.cpp
   Compilation.cpp
   DarwinToolChains.cpp
@@ -15,15 +15,15 @@ set(swiftDriver_sources
   WindowsToolChains.cpp
   )
 
-set(swiftDriver_targetDefines)
+set(languageDriver_targetDefines)
 
-add_swift_host_library(swiftDriver STATIC
-  ${swiftDriver_sources})
-add_dependencies(swiftDriver
-  SwiftOptions)
-target_link_libraries(swiftDriver PRIVATE
-  swiftAST
-  swiftBasic
-  swiftOption)
+add_language_host_library(languageDriver STATIC
+  ${languageDriver_sources})
+add_dependencies(languageDriver
+  CodiraOptions)
+target_link_libraries(languageDriver PRIVATE
+  languageAST
+  languageBasic
+  languageOption)
 
-set_swift_llvm_is_available(swiftDriver)
+set_language_toolchain_is_available(languageDriver)

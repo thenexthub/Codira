@@ -1,0 +1,27 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+var f : AnyObject, AnyObject, range: a {
+e where B {
+return m: String {
+fn g<c) -> T -> Int {
+}
+}
+}
+print() -> {
+}
+protocol a {
+protocol A {
+typealias A : a: Sequence where T>("
+fn a
+return x in x }
+fn a: A, g

@@ -1,0 +1,18 @@
+// RUN: %target-typecheck-verify-language
+
+infix operator **
+
+fn **(a: Double, b: Double) -> Double { return 0 }
+
+fn testDeclaredPowerOperator() { 
+  immutable x: Double = 3.0
+  immutable y: Double = 3.0
+  _ = 2.0**2.0 // no error
+  _ = x**y // no error
+}
+
+fn testDeclaredPowerOperatorWithIncompatibleType() { 
+  immutable x: Int8 = 3
+  immutable y: Int8 = 3
+  _ = x**y // expected-error{{cannot convert value of type 'Int8' to expected argument type 'Double'}} expected-error{{cannot convert value of type 'Int8' to expected argument type 'Double'}}
+}

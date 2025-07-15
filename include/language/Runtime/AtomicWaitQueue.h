@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file declares the AtomicWaitQueue class template, which can be
@@ -19,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_ATOMICWAITQUEUE_H
-#define SWIFT_RUNTIME_ATOMICWAITQUEUE_H
+#ifndef LANGUAGE_RUNTIME_ATOMICWAITQUEUE_H
+#define LANGUAGE_RUNTIME_ATOMICWAITQUEUE_H
 
 #include "language/Runtime/Heap.h"
 #include "language/Runtime/HeapObject.h"
@@ -88,7 +89,7 @@ class AtomicWaitQueue {
   /// global lock and while *not* holding the wait queue lock.
   void release_locked() {
     if (referenceCount == 1) {
-      swift_cxx_deleteObject(&asImpl());
+      language_cxx_deleteObject(&asImpl());
     } else {
       referenceCount--;
     }
@@ -215,7 +216,7 @@ public:
       // If we created the queue but never published it, destroy it.
       if (CurrentQueue) {
         CurrentQueue->WaitQueueLock.unlock();
-        swift_cxx_deleteObject(CurrentQueue);
+        language_cxx_deleteObject(CurrentQueue);
       }
     }
 
@@ -429,7 +430,7 @@ public:
   private:
     template <class... Args>
     static Impl *createNewQueue(Args &&...args) {
-      auto queue = swift_cxx_newObject<Impl>(std::forward<Args>(args)...);
+      auto queue = language_cxx_newObject<Impl>(std::forward<Args>(args)...);
       queue->WaitQueueLock.lock();
       return queue;
     }

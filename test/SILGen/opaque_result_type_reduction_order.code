@@ -1,0 +1,27 @@
+// RUN: %target-language-emit-silgen %s
+
+protocol N {
+  associatedtype A: N
+}
+
+struct G<T>: N {
+  typealias A = G<G<T>>
+}
+
+protocol P<A> {
+  associatedtype A
+}
+
+struct GG<T>: P {
+  typealias A = T
+}
+
+fn f<T: N>(_: T) -> some P<T.A.A> {
+  return GG<T.A.A>()
+}
+
+fn g<T: P>(_: T) -> T.A { fatalError() }
+
+fn h(_: G<G<G<Int>>>) {}
+
+h(g(f(G<Int>())))

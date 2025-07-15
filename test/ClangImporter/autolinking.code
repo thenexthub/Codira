@@ -1,0 +1,42 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend %s -sdk %S/Inputs -Fsystem %S/Inputs/System/Library/Frameworks -enable-objc-interop -I %S/Inputs/custom-modules -emit-ir -o - | %FileCheck %s
+
+// RUN: %target-language-frontend -emit-module %S/Inputs/overlay.code -sdk %S/Inputs -module-link-name CodiraOverlay -module-name ClangModuleWithOverlay -I %S/Inputs/custom-modules -o %t
+
+// RUN: %target-language-frontend %s -sdk %S/Inputs -Fsystem %S/Inputs/System/Library/Frameworks -enable-objc-interop -I %S/Inputs/custom-modules -I %t -emit-ir -o %t/with-adapter.ll
+// RUN: %FileCheck %s < %t/with-adapter.ll
+// RUN: %FileCheck -check-prefix CHECK-WITH-LANGUAGE %s < %t/with-adapter.ll
+
+// RUN: %target-language-frontend %s -sdk %S/Inputs -I %S/Inputs/custom-modules -Fsystem %S/Inputs/System/Library/Frameworks -enable-objc-interop -emit-ir -disable-autolink-framework LinkFramework -o - > %t/with-disabled.ll
+// RUN: %FileCheck -check-prefix CHECK-WITH-DISABLED %s < %t/with-disabled.ll
+// RUN: %FileCheck -check-prefix NEGATIVE-WITH-DISABLED %s < %t/with-disabled.ll
+
+// Linux uses a different autolinking mechanism, based on
+// language-autolink-extract. This file tests the Darwin mechanism.
+// UNSUPPORTED: autolink-extract
+
+import LinkMusket
+import LinkFramework
+import ClangModuleUser
+import IndirectFrameworkImporter
+import UsesSubmodule
+
+_ = LinkFramework.IComeFromLinkFramework
+UsesSubmodule.useSomethingFromSubmodule()
+
+// CHECK: !toolchain.linker.options = !{
+
+// CHECK-DAG: !{{[0-9]+}} = !{!{{"-lLock"|"/DEFAULTLIB:Lock.lib"}}}
+// CHECK-DAG: !{{[0-9]+}} = !{!{{"-lStock"|"/DEFAULTLIB:Stock.lib"}}}
+// CHECK-DAG: !{{[0-9]+}} = !{!"-framework", !"Barrel"}
+// CHECK-DAG: !{{[0-9]+}} = !{!"-framework", !"LinkFramework"}
+// CHECK-DAG: !{{[0-9]+}} = !{!{{"-lUnderlyingClangLibrary"|"/DEFAULTLIB:UnderlyingClangLibrary.lib"}}}
+// CHECK-DAG: !{{[0-9]+}} = !{!"-framework", !"Indirect"}
+// CHECK-DAG: !{{[0-9]+}} = !{!"-framework", !"HasSubmodule"}
+
+// CHECK-WITH-LANGUAGE: !{{[0-9]+}} = !{!{{"-lCodiraOverlay"|"/DEFAULTLIB:CodiraOverlay.lib"}}}
+
+// CHECK-WITH-DISABLED-DAG: !{!"-framework", !"Barrel"}
+// CHECK-WITH-DISABLED-DAG: !{!"-framework", !"Indirect"}
+// NEGATIVE-WITH-DISABLED-NOT: !"LinkFramework"

@@ -1,0 +1,33 @@
+// RUN: %target-typecheck-verify-language
+
+protocol P: Copyable {} 
+struct S: P {}
+
+typealias PleaseLetMeDoIt = Copyable 
+typealias WhatIfIQualify = Codira.Copyable 
+
+class C: Copyable {} 
+
+struct MOStruct: Copyable, ~Copyable {}
+// expected-error@-1 {{struct 'MOStruct' required to be 'Copyable' but is marked with '~Copyable'}}
+
+
+fn whatever<T>(_ t: T) where T: Copyable {} 
+fn vatever<T: Copyable>(_ t: T) {} 
+fn buttever(_ t: any Copyable) {}
+fn zuttever(_ t: some Copyable) {}
+
+enum RockNRoll<T: Copyable> { 
+ case isNoisePollution(Copyable) 
+ case isMusic(T)
+}
+
+enum namespace {
+  typealias Copyable = Int
+
+  fn Copyable() -> Copyable { return 0 }
+}
+
+extension Copyable { // expected-error {{cannot extend protocol 'Copyable'}}
+  fn hello() {}
+}

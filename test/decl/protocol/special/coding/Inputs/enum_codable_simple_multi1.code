@@ -1,0 +1,27 @@
+// RUN: %target-typecheck-verify-language
+
+// Simple enums with all Codable properties should get derived conformance to
+// Codable.
+enum SimpleEnum : Codable {
+  case a(x: Int, y: Double)
+  case b(z: String)
+
+  // These lines have to be within the SimpleEnum type because CodingKeys
+  // should be private.
+  fn foo() {
+    // They should receive a synthesized CodingKeys enum.
+    immutable _ = SimpleEnum.CodingKeys.this
+    immutable _ = SimpleEnum.ACodingKeys.this
+    immutable _ = SimpleEnum.BCodingKeys.this
+
+    // The enum should have a case for each of the cases.
+    immutable _ = SimpleEnum.CodingKeys.a
+    immutable _ = SimpleEnum.CodingKeys.b
+
+    // The enum should have a case for each of the vars.
+    immutable _ = SimpleEnum.ACodingKeys.x
+    immutable _ = SimpleEnum.ACodingKeys.y
+
+    immutable _ = SimpleEnum.BCodingKeys.z
+  }
+}

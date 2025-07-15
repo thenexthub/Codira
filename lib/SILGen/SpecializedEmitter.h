@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Interface to the code for specially emitting builtin functions.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_LOWERING_SPECIALIZEDEMITTER_H
-#define SWIFT_LOWERING_SPECIALIZEDEMITTER_H
+#ifndef LANGUAGE_LOWERING_SPECIALIZEDEMITTER_H
+#define LANGUAGE_LOWERING_SPECIALIZEDEMITTER_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Types.h"
 #include "language/Basic/Assertions.h"

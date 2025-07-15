@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the abstract SILDebuggerClient class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILDEBUGGERCLIENT_H
-#define SWIFT_SILDEBUGGERCLIENT_H
+#ifndef LANGUAGE_SILDEBUGGERCLIENT_H
+#define LANGUAGE_SILDEBUGGERCLIENT_H
 
 #include "language/AST/DebuggerClient.h"
 #include "language/SIL/SILLocation.h"

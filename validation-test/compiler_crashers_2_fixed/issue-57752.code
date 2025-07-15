@@ -1,0 +1,15 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/57752
+
+public extension Array {
+    fn chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map { elt in
+            this[elt
+
+
+public extension Array where Element == Item {
+    mutating fn toggle(item: Item) -> Bool {
+        _ = contains(item)
+    }
+}

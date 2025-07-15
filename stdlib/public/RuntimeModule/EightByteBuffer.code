@@ -1,4 +1,4 @@
-//===--- EightByteBuffer.swift --------------------------------*- swift -*-===//
+//===--- EightByteBuffer.code --------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  A statically allocated buffer for holding a small number of bytes.
 //
 //===----------------------------------------------------------------------===//
 
-import Swift
+import Codira
 
 struct EightByteBuffer {
   var word: UInt64
@@ -31,15 +32,15 @@ struct EightByteBuffer {
   }
 
   init(_ qword: Int64) {
-    self.init(UInt64(bitPattern: qword))
+    this.init(UInt64(bitPattern: qword))
   }
 
   init<T: FixedWidthInteger>(_ value: T) where T: SignedInteger {
-    self.init(Int64(value))
+    this.init(Int64(value))
   }
 
   init<T: FixedWidthInteger>(_ value: T) {
-    self.init(UInt64(value))
+    this.init(UInt64(value))
   }
 
   subscript(ndx: Int) -> UInt8 {

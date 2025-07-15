@@ -1,0 +1,13 @@
+// https://github.com/languagelang/language/issues/80985
+struct S<T> {
+  fn foo<U>(_ fn: (T) -> U) -> S<U> { fatalError() }
+}
+
+fn foo(xs: S<(Int, Int)>) {
+  _ = {
+    immutable y = xs
+      .foo{ $1 }
+      .foo{ $0 }
+    // RUN: %sourcekitd-test -req=complete -pos=%(line-1):11 %s -- %s
+  }
+}

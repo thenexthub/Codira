@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // The ExistentialLayout struct describes the in-memory layout of an existential
@@ -21,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_EXISTENTIAL_LAYOUT_H
-#define SWIFT_EXISTENTIAL_LAYOUT_H
+#ifndef LANGUAGE_EXISTENTIAL_LAYOUT_H
+#define LANGUAGE_EXISTENTIAL_LAYOUT_H
 
 #include "language/Basic/ArrayRefView.h"
 #include "language/AST/ASTContext.h"
@@ -39,7 +40,7 @@ struct ExistentialLayout {
   ExistentialLayout() {
     hasExplicitAnyObject = false;
     containsObjCProtocol = false;
-    containsSwiftProtocol = false;
+    containsCodiraProtocol = false;
     representsAnyObject = false;
   }
 
@@ -57,7 +58,7 @@ struct ExistentialLayout {
   bool containsObjCProtocol : 1;
 
   /// Whether any protocol members require a witness table.
-  bool containsSwiftProtocol : 1;
+  bool containsCodiraProtocol : 1;
 
   /// Whether this layout is the canonical layout for plain-old 'AnyObject'.
   bool representsAnyObject : 1;
@@ -82,7 +83,7 @@ struct ExistentialLayout {
     return ((explicitSuperclass ||
              hasExplicitAnyObject ||
              containsObjCProtocol) &&
-            !containsSwiftProtocol);
+            !containsCodiraProtocol);
   }
 
   /// Whether the existential requires a class, either via an explicit
@@ -120,11 +121,26 @@ struct ExistentialLayout {
 
   LayoutConstraint getLayoutConstraint() const;
 
+  /// Whether this layout has any inverses within its signature.
+  bool hasInverses() const {
+    return !inverses.empty();
+  }
+
+  /// Whether this existential needs to have an extended existential shape. This
+  /// is relevant for the mangler to mangle as a symbolic link where possible
+  /// and for IRGen directly emitting some existentials.
+  ///
+  /// If 'allowInverses' is false, then regardless of if this existential layout
+  /// has inverse requirements those will not influence the need for having a
+  /// shape.
+  bool needsExtendedShape(bool allowInverses = true) const;
+
 private:
   SmallVector<ProtocolDecl *, 4> protocols;
   SmallVector<ParameterizedProtocolType *, 4> parameterized;
+  InvertibleProtocolSet inverses;
 };
 
 }
 
-#endif  // SWIFT_EXISTENTIAL_LAYOUT_H
+#endif  // LANGUAGE_EXISTENTIAL_LAYOUT_H

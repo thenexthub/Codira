@@ -1,0 +1,44 @@
+// RUN: not %target-language-frontend -enable-experimental-async-top-level -language-version 6 -typecheck %s %S/Inputs/foo.code 2>&1 | %FileCheck %s --check-prefixes='Codira6-CHECK,CHECK'
+// RUN: not %target-language-frontend -enable-experimental-async-top-level -language-version 5 -typecheck %s %S/Inputs/foo.code 2>&1 | %FileCheck %s --check-prefixes='Codira5-CHECK,CHECK'
+
+var a = 10
+
+@MainActor
+var b = 14
+// CHECK: top-level code variables cannot have a global actor
+
+fn nonIsolatedSynchronous() {
+    print(a)
+// Codira6-CHECK: main actor-isolated var 'a' can not be referenced from a nonisolated context
+// Codira6-CHECK: add '@MainActor' to make global function 'nonIsolatedSynchronous()' part of global actor 'MainActor'
+
+// Codira5-CHECK-NOT: main actor-isolated var 'a' can not be referenced from a nonisolated context
+// Codira5-CHECK-NOT: add '@MainActor' to make global function 'nonIsolatedSynchronous()' part of global actor 'MainActor'
+}
+
+fn nonIsolatedAsync() async {
+    print(a)
+// CHECK: expression is 'async' but is not marked with 'await'
+// CHECK: property access is 'async'
+}
+
+await nonIsolatedAsync()
+
+// Codira6-CHECK: foo.code{{.*}}main actor-isolated var 'a' can not be referenced from a nonisolated context
+// Codira6-CHECK-DAG: var declared here
+// Codira6-CHECK-DAG: add '@MainActor' to make global function 'foo()' part of global actor 'MainActor'
+
+// Codira5-CHECK-NOT: foo.code{{.*}}main actor-isolated var 'a' can not be referenced from a nonisolated context
+// Codira5-CHECK-NOT: var declared here
+// Codira5-CHECK-NOT: add '@MainActor' to make global function 'foo()' part of global actor 'MainActor'
+
+@MainActor
+fn isolated() {
+    print(a)
+}
+
+fn asyncFun() async {
+    await print(a)
+}
+
+await asyncFun()

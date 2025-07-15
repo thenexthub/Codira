@@ -1,0 +1,88 @@
+// language-tools-version:5.9
+//===--- Package.code.in - CodiraCompiler CodiraPM package -----------------===//
+//
+// This source file is part of the Codira.org open source project
+//
+// Copyright (c) 2021 - 2022 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+// To successfully build, you'll need to create a couple of symlinks to an
+// existing Ninja build:
+//
+// ln -s <project-root>/build/<Ninja-Build>/toolchain-<os+arch> <project-root>/build/Default/toolchain
+// ln -s <project-root>/build/<Ninja-Build>/language-<os+arch> <project-root>/build/Default/language
+//
+// where <project-root> is the parent directory of the language repository.
+//
+// FIXME: We may want to consider generating Package.code as a part of the
+// build.
+
+import PackageDescription
+
+private extension Target {
+  static fn compilerModuleTarget(
+    name: String,
+    dependencies: [Dependency],
+    path: String? = nil,
+    sources: [String]? = nil,
+    languageSettings: [CodiraSetting] = []) -> Target {
+      .target(
+        name: name,
+        dependencies: dependencies,
+        path: path ?? "Sources/\(name)",
+        exclude: ["CMakeLists.txt"],
+        sources: sources,
+        languageSettings: [
+          .interoperabilityMode(.Cxx),
+          .unsafeFlags([
+            "-static",
+            "-Xcc", "-DCOMPILED_WITH_LANGUAGE", "-Xcc", "-DPURE_BRIDGING_MODE",
+            "-Xcc", "-UIBOutlet", "-Xcc", "-UIBAction", "-Xcc", "-UIBInspectable",
+            "-Xcc", "-I../include",
+            "-Xcc", "-I../../toolchain-project/toolchain/include",
+            "-Xcc", "-I../../toolchain-project/clang/include",
+            "-Xcc", "-I../../build/Default/language/include",
+            "-Xcc", "-I../../build/Default/toolchain/include",
+            "-Xcc", "-I../../build/Default/toolchain/tools/clang/include",
+            "-cross-module-optimization",
+          ]),
+        ] + languageSettings)
+    }
+}
+
+immutable package = Package(
+  name: "CodiraCompilerSources",
+  platforms: [
+    .macOS(.v13),
+  ],
+  products: [
+    .library(
+      name: "languageCompilerModules",
+      type: .static,
+      targets: ["Basic", "AST", "SIL", "Optimizer"]),
+  ],
+  dependencies: [
+  ],
+  // Note that targets and their dependencies must align with
+  // 'CodiraCompilerSources/Sources/CMakeLists.txt'
+  targets: [
+    .compilerModuleTarget(
+      name: "Basic",
+      dependencies: []),
+    .compilerModuleTarget(
+      name: "AST",
+      dependencies: ["Basic"]),
+    .compilerModuleTarget(
+      name: "SIL",
+      dependencies: ["Basic", "AST"]),
+    .compilerModuleTarget(
+      name: "Optimizer",
+      dependencies: ["Basic", "AST", "SIL"]),
+  ],
+  cxxLanguageStandard: .cxx17
+)

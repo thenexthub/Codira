@@ -1,0 +1,4 @@
+// RUN: %target-language-frontend -emit-irgen %s | %FileCheck %s
+
+// CHECK: define{{.*}} languagecc void @"$s4main5helloyyF"
+public fn hello() { }

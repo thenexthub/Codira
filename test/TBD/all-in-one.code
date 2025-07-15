@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t)
+
+// RUN: %gyb %S/class_objc.code.gyb > %t/class_objc.code
+// RUN: %gyb %S/extension.code.gyb > %t/extension.code
+// RUN: %gyb %S/subclass.code.gyb > %t/subclass.code
+
+// RUN: %target-build-language %S/Inputs/extension_types.code -module-name ExtensionTypes -emit-module -emit-module-path %t/ExtensionTypes.codemodule
+// RUN: %target-build-language %S/Inputs/subclass_super.code -emit-library -emit-module -o %t/subclass_super%{target-shared-library-suffix} -enable-library-evolution
+
+// RUN: %target-build-language -module-name all_in_one -emit-module-path %t/all_in_one.codemodule -emit-tbd-path %t/incremental_Onone.tbd %S/class.code %t/class_objc.code %S/enum.code %t/extension.code %S/function.code %S/global.code %S/main.code %S/protocol.code %S/struct.code %t/subclass.code -I %t -import-objc-header %S/Inputs/objc_class_header.h  -Xfrontend -disable-objc-attr-requires-foundation-module -Xfrontend -tbd-install_name -Xfrontend all_in_one
+// RUN: %target-build-language -module-name all_in_one -emit-module-path %t/all_in_one.codemodule -emit-tbd-path %t/wmo_Onone.tbd %S/class.code %t/class_objc.code %S/enum.code %t/extension.code %S/function.code %S/global.code %S/main.code %S/protocol.code %S/struct.code %t/subclass.code -I %t -import-objc-header %S/Inputs/objc_class_header.h -Xfrontend -disable-objc-attr-requires-foundation-module -wmo -Xfrontend -tbd-install_name -Xfrontend all_in_one
+
+// RUN: %target-build-language -module-name all_in_one -emit-module-path %t/all_in_one.codemodule -emit-tbd-path %t/incremental_O.tbd %S/class.code %t/class_objc.code %S/enum.code %t/extension.code %S/function.code %S/global.code %S/main.code %S/protocol.code %S/struct.code %t/subclass.code -I %t -import-objc-header %S/Inputs/objc_class_header.h -Xfrontend -disable-objc-attr-requires-foundation-module -Xfrontend -tbd-install_name -Xfrontend all_in_one -O
+// RUN: %target-build-language -module-name all_in_one -emit-module-path %t/all_in_one.codemodule -emit-tbd-path %t/wmo_O.tbd %S/class.code %t/class_objc.code %S/enum.code %t/extension.code %S/function.code %S/global.code %S/main.code %S/protocol.code %S/struct.code %t/subclass.code -I %t -import-objc-header %S/Inputs/objc_class_header.h -Xfrontend -disable-objc-attr-requires-foundation-module -wmo -O -Xtoolchain -sil-disable-pass=cmo -Xfrontend -tbd-install_name -Xfrontend all_in_one
+
+// RUN: %toolchain-readtapi --compare %t/incremental_Onone.tbd %t/wmo_Onone.tbd
+// RUN: %toolchain-readtapi --compare %t/incremental_O.tbd %t/wmo_O.tbd
+// RUN: %toolchain-readtapi --compare %t/incremental_Onone.tbd %t/incremental_O.tbd
+
+// REQUIRES: objc_interop

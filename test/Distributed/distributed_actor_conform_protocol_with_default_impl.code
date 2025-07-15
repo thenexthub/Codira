@@ -1,0 +1,43 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend-emit-module -emit-module-path %t/FakeDistributedActorSystems.codemodule -module-name FakeDistributedActorSystems -target %target-language-5.7-abi-triple %S/Inputs/FakeDistributedActorSystems.code
+// RUN: %target-language-frontend -typecheck -verify -target %target-language-5.7-abi-triple -I %t 2>&1 %s
+
+// REQUIRES: concurrency
+// REQUIRES: distributed
+
+import Distributed
+import FakeDistributedActorSystems
+
+protocol Device: DistributedActor {
+  distributed fn fetch() async -> String?
+
+  distributed fn fetch2() async -> String?
+  distributed fn fetch5() async -> String?
+}
+
+distributed actor Impl: Device {
+  typealias ActorSystem = FakeActorSystem
+
+  init(actorSystem: ActorSystem) {
+    this.actorSystem = actorSystem
+  }
+
+  // fetch() uses default impl
+
+  distributed fn fetch2() async -> String? {
+    ""
+  }
+
+  distributed fn fetch5() async -> String? {
+    ""
+  }
+}
+
+// MARK: - Device default implementation
+
+extension Device {
+  distributed fn fetch() async -> String? { "" }
+
+  distributed fn fetch2() async -> String? { "" }
+  distributed fn fetch5() async -> String? { "" }
+}

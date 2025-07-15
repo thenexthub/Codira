@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SILOptimizer/Utils/CompileTimeInterpolationUtils.h"
@@ -19,7 +20,7 @@
 
 using namespace language;
 
-bool swift::shouldAttemptEvaluation(SILInstruction *inst) {
+bool language::shouldAttemptEvaluation(SILInstruction *inst) {
   auto *apply = dyn_cast<ApplyInst>(inst);
   if (!apply)
     return true;
@@ -30,7 +31,7 @@ bool swift::shouldAttemptEvaluation(SILInstruction *inst) {
 }
 
 std::pair<std::optional<SILBasicBlock::iterator>, std::optional<SymbolicValue>>
-swift::evaluateOrSkip(ConstExprStepEvaluator &stepEval,
+language::evaluateOrSkip(ConstExprStepEvaluator &stepEval,
                       SILBasicBlock::iterator instI) {
   SILInstruction *inst = &(*instI);
 
@@ -42,13 +43,13 @@ swift::evaluateOrSkip(ConstExprStepEvaluator &stepEval,
   return stepEval.skipByMakingEffectsNonConstant(instI);
 }
 
-void swift::getTransitiveUsers(SILInstructionResultArray values,
+void language::getTransitiveUsers(SILInstructionResultArray values,
                                SmallVectorImpl<SILInstruction *> &users) {
   // Collect the instructions that are data dependent on the value using a
   // fix point iteration.
   SmallPtrSet<SILInstruction *, 16> visited;
   SmallVector<SILValue, 16> worklist;
-  llvm::copy(values, std::back_inserter(worklist));
+  toolchain::copy(values, std::back_inserter(worklist));
   while (!worklist.empty()) {
     SILValue currVal = worklist.pop_back_val();
     for (Operand *use : currVal->getUses()) {
@@ -56,7 +57,7 @@ void swift::getTransitiveUsers(SILInstructionResultArray values,
       if (visited.count(user))
         continue;
       visited.insert(user);
-      llvm::copy(user->getResults(), std::back_inserter(worklist));
+      toolchain::copy(user->getResults(), std::back_inserter(worklist));
     }
   }
   users.append(visited.begin(), visited.end());

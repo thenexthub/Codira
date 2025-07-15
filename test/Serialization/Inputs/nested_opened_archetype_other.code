@@ -1,0 +1,11 @@
+public protocol P {
+  associatedtype A: Q
+
+  fn foo() -> A
+}
+
+public protocol Q {}
+
+@_transparent public fn f(p: any P) -> any Q {
+  return p.foo()
+}

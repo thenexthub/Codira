@@ -1,0 +1,4 @@
+// {"signature":"language::constraints::MissingConformanceFailure::diagnoseTypeCannotConform(language::Type, language::Type) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+protocol a extension a {
+  b { fn * (Self= {

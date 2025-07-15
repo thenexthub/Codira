@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This pass eliminates the instructions that demarcate memory access regions.
@@ -28,16 +29,16 @@
 #include "language/SIL/MemAccessUtils.h"
 #include "language/SIL/SILFunction.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
 // This temporary option allows markers during optimization passes. Enabling
 // this flag causes this pass to preserve all access markers. Otherwise, it only
 // preserved "dynamic" markers.
-llvm::cl::opt<bool> EnableOptimizedAccessMarkers(
-    "sil-optimized-access-markers", llvm::cl::init(false),
-    llvm::cl::desc("Enable memory access markers during optimization passes."));
+toolchain::cl::opt<bool> EnableOptimizedAccessMarkers(
+    "sil-optimized-access-markers", toolchain::cl::init(false),
+    toolchain::cl::desc("Enable memory access markers during optimization passes."));
 
 namespace {
 
@@ -51,7 +52,7 @@ struct AccessMarkerElimination {
       : Mod(&F->getModule()), F(F) {}
 
   void notifyErased(SILInstruction *inst) {
-    LLVM_DEBUG(llvm::dbgs() << "Erasing access marker: " << *inst);
+    TOOLCHAIN_DEBUG(toolchain::dbgs() << "Erasing access marker: " << *inst);
     removedAny = true;
   }
 
@@ -88,7 +89,7 @@ bool AccessMarkerElimination::shouldPreserveAccess(
   case SILAccessEnforcement::Dynamic:
     return Mod->getOptions().EnforceExclusivityDynamic;
   }
-  llvm_unreachable("unhandled enforcement");
+  toolchain_unreachable("unhandled enforcement");
 }
 
 // Check if the instruction is a marker that should be eliminated. If so, delete
@@ -150,7 +151,7 @@ AccessMarkerElimination::checkAndEliminateMarker(SILInstruction *inst) {
 bool AccessMarkerElimination::stripMarkers() {
   // Iterating in reverse eliminates more begin_access users before they
   // need to be replaced.
-  for (auto &BB : llvm::reverse(*F)) {
+  for (auto &BB : toolchain::reverse(*F)) {
     // Don't cache the begin iterator since we're reverse iterating.
     for (auto II = BB.end(); II != BB.begin();) {
       SILInstruction *inst = &*(--II);
@@ -167,7 +168,7 @@ bool AccessMarkerElimination::stripMarkers() {
 // Implement a SILModule::SILFunctionBodyCallback that strips all access
 // markers from newly deserialized function bodies.
 static void prepareSILFunctionForOptimization(ModuleDecl *, SILFunction *F) {
-  LLVM_DEBUG(llvm::dbgs() << "Stripping all markers in: " << F->getName()
+  TOOLCHAIN_DEBUG(toolchain::dbgs() << "Stripping all markers in: " << F->getName()
                           << "\n");
 
   AccessMarkerElimination(F).stripMarkers();
@@ -202,6 +203,6 @@ struct AccessMarkerEliminationPass : SILModuleTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createAccessMarkerElimination() {
+SILTransform *language::createAccessMarkerElimination() {
   return new AccessMarkerEliminationPass();
 }

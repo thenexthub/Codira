@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_MULTIMAPCACHE_H
-#define SWIFT_BASIC_MULTIMAPCACHE_H
+#ifndef LANGUAGE_BASIC_MULTIMAPCACHE_H
+#define LANGUAGE_BASIC_MULTIMAPCACHE_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/STLExtras.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/DenseMap.h"
 #include <optional>
 
 namespace language {
@@ -39,7 +40,7 @@ namespace language {
 template <
     typename KeyTy, typename ValueTy,
     typename MapTy =
-        llvm::DenseMap<KeyTy, std::optional<std::tuple<unsigned, unsigned>>>,
+        toolchain::DenseMap<KeyTy, std::optional<std::tuple<unsigned, unsigned>>>,
     typename VectorTy = std::vector<ValueTy>, typename VectorTyImpl = VectorTy>
 class MultiMapCache {
   std::function<bool(const KeyTy &, VectorTyImpl &)> function;
@@ -67,10 +68,10 @@ public:
     // If we already have a cached value, just return the cached value.
     if (!iter.second) {
 
-      return swift::transform(
+      return language::transform(
           iter.first->second,
           [&](std::tuple<unsigned, unsigned> startLengthRange) {
-            return llvm::ArrayRef(data).slice(
+            return toolchain::ArrayRef(data).slice(
                 std::get<ArrayStartOffset>(startLengthRange),
                 std::get<ArrayLengthOffset>(startLengthRange));
           });
@@ -92,7 +93,7 @@ public:
     // update the map with the start, length, and return the resulting ArrayRef.
     unsigned length = data.size() - initialOffset;
     iter.first->second = std::make_tuple(initialOffset, length);
-    auto result = llvm::ArrayRef(data).slice(initialOffset, length);
+    auto result = toolchain::ArrayRef(data).slice(initialOffset, length);
     return result;
   }
 };
@@ -100,7 +101,7 @@ public:
 template <typename KeyTy, typename ValueTy>
 using SmallMultiMapCache =
     MultiMapCache<KeyTy, ValueTy,
-                  llvm::SmallDenseMap<
+                  toolchain::SmallDenseMap<
                       KeyTy, std::optional<std::tuple<unsigned, unsigned>>, 8>,
                   SmallVector<ValueTy, 32>, SmallVectorImpl<ValueTy>>;
 

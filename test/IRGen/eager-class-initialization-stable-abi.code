@@ -1,0 +1,6 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) %S/eager-class-initialization.code -target %target-stable-abi-triple -emit-ir | %FileCheck %S/eager-class-initialization.code -DINT=i%target-ptrsize --check-prefix=CHECK
+
+// REQUIRES: objc_interop
+// REQUIRES: language_stable_abi

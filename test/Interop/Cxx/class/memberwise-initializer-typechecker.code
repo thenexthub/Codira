@@ -1,0 +1,17 @@
+// RUN: %target-typecheck-verify-language -I %S/Inputs -enable-experimental-cxx-interop
+
+import MemberwiseInitializer
+
+immutable structPrivateOnly = StructPrivateOnly(varPrivate: 42)  // expected-error {{argument passed to call that takes no arguments}}
+immutable structPublicOnly = StructPublicOnly(varPublic: 42)
+immutable structEmptyPrivateSection = StructEmptyPrivateSection(varPublic: 42)
+immutable structPublicAndPrivate1 = StructPublicAndPrivate(varPublic: 42)  // expected-error {{argument passed to call that takes no arguments}}
+immutable structPublicAndPrivate2 = StructPublicAndPrivate(varPublic: 42, varPrivate: 23)  // expected-error {{argument passed to call that takes no arguments}}
+immutable structWithUnimportedMemberFunction = StructWithUnimportedMemberFunction(varPublic: 42)
+
+immutable classPrivateOnly = ClassPrivateOnly(varPrivate: 42) // expected-error {{argument passed to call that takes no arguments}}
+immutable classPublicOnly = ClassPublicOnly(varPublic: 42)
+immutable classEmptyPublicSection = ClassEmptyPublicSection(varPrivate: 42) // expected-error {{argument passed to call that takes no arguments}}
+immutable classPublicAndPrivate1 = ClassPrivateAndPublic(varPublic: 23)  // expected-error {{argument passed to call that takes no arguments}}
+immutable classPublicAndPrivate2 = ClassPrivateAndPublic(varPrivate: 42, varPublic: 23)  // expected-error {{argument passed to call that takes no arguments}}
+immutable classWithUnimportedMemberFunction = ClassWithUnimportedMemberFunction(varPublic: 42)

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file includes code for laying out type metadata.
@@ -37,7 +38,7 @@
 #include "TupleMetadataVisitor.h"
 
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/SILModule.h"
 #include <optional>
 
@@ -127,7 +128,7 @@ MetadataLayout &IRGenModule::getMetadataLayout(NominalTypeDecl *decl) {
     } else if (auto theStruct = dyn_cast<StructDecl>(decl)) {
       entry = new StructMetadataLayout(*this, theStruct);
     } else {
-      llvm_unreachable("bad nominal type!");
+      toolchain_unreachable("bad nominal type!");
     }
   }
   return *cast<MetadataLayout>(entry);
@@ -157,7 +158,7 @@ void MetadataLayout::destroy() const {
     delete cast<ForeignClassMetadataLayout>(this);
     return;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /******************************* NOMINAL TYPES ********************************/
@@ -177,12 +178,12 @@ Offset NominalMetadataLayout::emitOffset(IRGenFunction &IGF,
   auto offsetBaseAddr = IGF.Builder.CreateStructGEP(layoutAddr, 0, Size(0));
 
   // FIXME: Should this be an invariant load?
-  llvm::Value *offsetVal = IGF.Builder.CreateLoad(offsetBaseAddr, "base");
+  toolchain::Value *offsetVal = IGF.Builder.CreateLoad(offsetBaseAddr, "base");
 
   auto relativeOffset = offset.getRelativeOffset().getValue();
   if (relativeOffset != 0) {
     offsetVal = IGF.Builder.CreateAdd(offsetVal,
-                                      llvm::ConstantInt::get(IGF.IGM.SizeTy,
+                                      toolchain::ConstantInt::get(IGF.IGM.SizeTy,
                                                              relativeOffset));
   }
 
@@ -199,11 +200,11 @@ NominalMetadataLayout::getGenericRequirementsOffset(IRGenFunction &IGF) const {
   return emitOffset(IGF, GenericRequirements);
 }
 
-static llvm::Value *emitLoadOfGenericRequirement(IRGenFunction &IGF,
-                                                 llvm::Value *metadata,
+static toolchain::Value *emitLoadOfGenericRequirement(IRGenFunction &IGF,
+                                                 toolchain::Value *metadata,
                                                  NominalTypeDecl *decl,
                                                  unsigned reqtIndex,
-                                                 llvm::Type *reqtTy) {
+                                                 toolchain::Type *reqtTy) {
   auto offset =
     IGF.IGM.getNominalMetadataLayout(decl).getGenericRequirementsOffset(IGF);
   offset = offset.offsetBy(IGF, Size(reqtIndex * IGF.IGM.getPointerSize()));
@@ -217,11 +218,11 @@ static llvm::Value *emitLoadOfGenericRequirement(IRGenFunction &IGF,
 /// Given a reference to nominal type metadata of the given type,
 /// derive a reference to the nth argument metadata.  The type must
 /// have generic arguments.
-llvm::Value *irgen::emitArgumentMetadataRef(IRGenFunction &IGF,
+toolchain::Value *irgen::emitArgumentMetadataRef(IRGenFunction &IGF,
                                             NominalTypeDecl *decl,
                                       const GenericTypeRequirements &reqts,
                                             unsigned reqtIndex,
-                                            llvm::Value *metadata) {
+                                            toolchain::Value *metadata) {
   assert(reqts.getRequirements()[reqtIndex].getKind()
            == GenericRequirement::Kind::Metadata);
   return emitLoadOfGenericRequirement(IGF, metadata, decl, reqtIndex,
@@ -231,11 +232,11 @@ llvm::Value *irgen::emitArgumentMetadataRef(IRGenFunction &IGF,
 /// Given a reference to nominal type metadata of the given type,
 /// derive a reference to the nth argument metadata pack.  The type must
 /// have generic arguments.
-llvm::Value *irgen::emitArgumentMetadataPackRef(IRGenFunction &IGF,
+toolchain::Value *irgen::emitArgumentMetadataPackRef(IRGenFunction &IGF,
                                                 NominalTypeDecl *decl,
                                       const GenericTypeRequirements &reqts,
                                                 unsigned reqtIndex,
-                                                llvm::Value *metadata) {
+                                                toolchain::Value *metadata) {
   assert(reqts.getRequirements()[reqtIndex].isMetadataPack());
   return emitLoadOfGenericRequirement(IGF, metadata, decl, reqtIndex,
                                       IGF.IGM.TypeMetadataPtrPtrTy);
@@ -244,11 +245,11 @@ llvm::Value *irgen::emitArgumentMetadataPackRef(IRGenFunction &IGF,
 /// Given a reference to nominal type metadata of the given type,
 /// derive a reference to a protocol witness table for the nth
 /// argument metadata.  The type must have generic arguments.
-llvm::Value *irgen::emitArgumentWitnessTableRef(IRGenFunction &IGF,
+toolchain::Value *irgen::emitArgumentWitnessTableRef(IRGenFunction &IGF,
                                                 NominalTypeDecl *decl,
                                           const GenericTypeRequirements &reqts,
                                                 unsigned reqtIndex,
-                                                llvm::Value *metadata) {
+                                                toolchain::Value *metadata) {
   assert(reqts.getRequirements()[reqtIndex].getKind()
            == GenericRequirement::Kind::WitnessTable);
   return emitLoadOfGenericRequirement(IGF, metadata, decl, reqtIndex,
@@ -258,11 +259,11 @@ llvm::Value *irgen::emitArgumentWitnessTableRef(IRGenFunction &IGF,
 /// Given a reference to nominal type metadata of the given type,
 /// derive a reference to a protocol witness table pack for the nth
 /// argument metadata.  The type must have generic arguments.
-llvm::Value *irgen::emitArgumentWitnessTablePackRef(IRGenFunction &IGF,
+toolchain::Value *irgen::emitArgumentWitnessTablePackRef(IRGenFunction &IGF,
                                                     NominalTypeDecl *decl,
                                           const GenericTypeRequirements &reqts,
                                                     unsigned reqtIndex,
-                                                    llvm::Value *metadata) {
+                                                    toolchain::Value *metadata) {
   assert(reqts.getRequirements()[reqtIndex].isWitnessTablePack());
   return emitLoadOfGenericRequirement(IGF, metadata, decl, reqtIndex,
                                       IGF.IGM.WitnessTablePtrPtrTy);
@@ -271,11 +272,11 @@ llvm::Value *irgen::emitArgumentWitnessTablePackRef(IRGenFunction &IGF,
 /// Given a reference to nominal type metadata of the given type,
 /// derive a reference to the pack shape for the nth argument
 /// metadata.  The type must have generic arguments.
-llvm::Value *irgen::emitArgumentPackShapeRef(IRGenFunction &IGF,
+toolchain::Value *irgen::emitArgumentPackShapeRef(IRGenFunction &IGF,
                                              NominalTypeDecl *decl,
                                        const GenericTypeRequirements &reqts,
                                              unsigned reqtIndex,
-                                             llvm::Value *metadata) {
+                                             toolchain::Value *metadata) {
   assert(reqts.getRequirements()[reqtIndex].isShape());
   return emitLoadOfGenericRequirement(IGF, metadata, decl, reqtIndex,
                                       IGF.IGM.SizeTy);
@@ -284,18 +285,18 @@ llvm::Value *irgen::emitArgumentPackShapeRef(IRGenFunction &IGF,
 /// Given a reference to nominal type metadata of the given type,
 /// derive a reference to the value for the nth argument metadata.
 /// The type must have generic arguments.
-llvm::Value *irgen::emitValueGenericRef(IRGenFunction &IGF,
+toolchain::Value *irgen::emitValueGenericRef(IRGenFunction &IGF,
                                         NominalTypeDecl *decl,
                                         const GenericTypeRequirements &reqts,
                                         unsigned reqtIndex,
-                                        llvm::Value *metadata) {
+                                        toolchain::Value *metadata) {
   assert(reqts.getRequirements()[reqtIndex].isValue());
   return emitLoadOfGenericRequirement(IGF, metadata, decl, reqtIndex,
                                       IGF.IGM.SizeTy);
 }
 
 Address irgen::emitAddressOfFieldOffsetVector(IRGenFunction &IGF,
-                                              llvm::Value *metadata,
+                                              toolchain::Value *metadata,
                                               NominalTypeDecl *decl) {
   assert(!isa<ClassDecl>(decl)
             || !cast<ClassDecl>(decl)->getObjCImplementationDecl()
@@ -498,7 +499,7 @@ ClassMetadataLayout::getMethodInfo(IRGenFunction &IGF, SILDeclRef method) const{
   case MethodInfo::Kind::DirectImpl:
     return MethodInfo(stored.TheImpl);
   }
-  llvm_unreachable("unhandled method info kind!");
+  toolchain_unreachable("unhandled method info kind!");
 }
 
 Offset ClassMetadataLayout::getFieldOffset(IRGenFunction &IGF,
@@ -554,16 +555,16 @@ Size irgen::getClassFieldOffsetOffset(IRGenModule &IGM, ClassDecl *theClass,
 /// Given a reference to class metadata of the given type,
 /// compute the field offset for a stored property.
 /// The type must have dependent generic layout.
-llvm::Value *irgen::emitClassFieldOffset(IRGenFunction &IGF,
+toolchain::Value *irgen::emitClassFieldOffset(IRGenFunction &IGF,
                                          ClassDecl *theClass,
                                          VarDecl *field,
-                                         llvm::Value *metadata) {
+                                         toolchain::Value *metadata) {
   auto slot = emitAddressOfClassFieldOffset(IGF, metadata, theClass, field);
   return IGF.emitInvariantLoad(slot);
 }
 
 Address irgen::emitAddressOfClassFieldOffset(IRGenFunction &IGF,
-                                             llvm::Value *metadata,
+                                             toolchain::Value *metadata,
                                              ClassDecl *theClass,
                                              VarDecl *field) {
   auto offset =
@@ -574,7 +575,7 @@ Address irgen::emitAddressOfClassFieldOffset(IRGenFunction &IGF,
 }
 
 Address irgen::emitAddressOfSuperclassRefInClassMetadata(IRGenFunction &IGF,
-                                                         llvm::Value *metadata) {
+                                                         toolchain::Value *metadata) {
   // The superclass field in a class type is the first field past the isa.
   unsigned index = 1;
 
@@ -595,7 +596,7 @@ Size irgen::getStaticTupleElementOffset(IRGenModule &IGM,
     using super = LayoutScanner;
 
     // 8 seems a reasonable potential max number tuple elements to start with
-    llvm::SmallVector<Size, 8> Offsets;
+    toolchain::SmallVector<Size, 8> Offsets;
 
   public:
     TupleElementOffsetScanner(IRGenModule &IGM, TupleType *const tupleType)

@@ -1,0 +1,25 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+// RUN: %target-language-frontend -typecheck -verify -primary-file %t/Usage.code %t/Conformance.code
+
+//--- Conformance.code
+protocol P {
+  associatedtype A: Equatable
+  fn f() -> A
+}
+
+extension P {
+  fn f() -> A { fatalError() }
+}
+
+struct S: P {}
+
+//--- Usage.code
+fn callee(_: some Equatable) {}
+
+// FIXME: This source location will become more accurate once TypeCheckExpr
+// is a request! For now, pointing at the function is still better than crashing.
+
+fn caller() { // expected-error {{type 'S' does not conform to protocol 'P'}}
+  callee(S().f())
+}

@@ -1,0 +1,403 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -Onone -o %t/main -import-objc-header %S/Inputs/enum-nonexhaustivity.h -Xfrontend -disable-objc-attr-requires-foundation-module
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+// RUN: %target-build-language %s -O -o %t/main2 -import-objc-header %S/Inputs/enum-nonexhaustivity.h -Xfrontend -disable-objc-attr-requires-foundation-module
+// RUN: %target-codesign %t/main2
+// RUN: %target-run %t/main2
+// RUN: %target-build-language %s -Ounchecked -o %t/main3 -import-objc-header %S/Inputs/enum-nonexhaustivity.h -Xfrontend -disable-objc-attr-requires-foundation-module
+// RUN: %target-codesign %t/main3
+// RUN: %target-run %t/main3
+// REQUIRES: executable_test
+
+import StdlibUnittest
+
+var EnumTestSuite = TestSuite("Enums")
+
+EnumTestSuite.test("PlainOldSwitch/NonExhaustive") {
+  var gotCorrectValue = false
+  switch getExpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    gotCorrectValue = true
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("TrapOnUnexpected/NonExhaustive")
+    .crashOutputMatches("'NonExhaustiveEnum(rawValue: 3)'")
+    .code {
+  expectCrashLater()
+  switch getUnexpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("TrapOnUnexpectedNested/NonExhaustive")
+    .crashOutputMatches("'(NonExhaustiveEnum, NonExhaustiveEnum)'")
+    .code {
+  expectCrashLater()
+  switch (getExpectedValue(), getUnexpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (_, .B):
+    expectUnreachable()
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("TrapOnUnexpectedNested2/NonExhaustive")
+    .crashOutputMatches("'(NonExhaustiveEnum, NonExhaustiveEnum)'")
+    .code {
+  expectCrashLater()
+  switch (getUnexpectedValue(), getExpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (.B, _):
+    expectUnreachable()
+  case (.A, _), (.C, _):
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("UnexpectedOkayNested/NonExhaustive") {
+  var gotCorrectValue = false
+  switch (getExpectedValue(), getUnexpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (.B, _):
+    gotCorrectValue = true
+  case (.A, _), (.C, _):
+    expectUnreachable()
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("UnexpectedOkayNested2/NonExhaustive") {
+  var gotCorrectValue = false
+  switch (getUnexpectedValue(), getExpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (_, .B):
+    gotCorrectValue = true
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("Equatable/NonExhaustive") {
+  expectEqual(getExpectedValue(), .B)
+  expectNotEqual(getUnexpectedValue(), .B)
+  expectNotEqual(getExpectedValue(), getUnexpectedValue())
+  expectEqual(getUnexpectedValue(), getUnexpectedValue())
+}
+
+EnumTestSuite.test("Hashable/NonExhaustive") {
+  expectEqual(getExpectedValue().hashValue, NonExhaustiveEnum.B.hashValue)
+  expectNotEqual(getUnexpectedValue().hashValue, NonExhaustiveEnum.B.hashValue)
+}
+
+
+EnumTestSuite.test("PlainOldSwitch/LyingExhaustive") {
+  var gotCorrectValue = false
+  switch getExpectedLiarValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    gotCorrectValue = true
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("TrapOnUnexpected/LyingExhaustive")
+    .crashOutputMatches("'LyingExhaustiveEnum(rawValue: 3)'")
+    .code {
+  expectCrashLater()
+  switch getUnexpectedLiarValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("TrapOnUnexpectedNested/LyingExhaustive")
+    .crashOutputMatches("'(LyingExhaustiveEnum, LyingExhaustiveEnum)'")
+    .code {
+  expectCrashLater()
+  switch (getExpectedLiarValue(), getUnexpectedLiarValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (_, .B):
+    expectUnreachable()
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("TrapOnUnexpectedNested2/LyingExhaustive")
+    .crashOutputMatches("'(LyingExhaustiveEnum, LyingExhaustiveEnum)'")
+    .code {
+  expectCrashLater()
+  switch (getUnexpectedLiarValue(), getExpectedLiarValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (.B, _):
+    expectUnreachable()
+  case (.A, _), (.C, _):
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("UnexpectedOkayNested/LyingExhaustive") {
+  var gotCorrectValue = false
+  switch (getExpectedLiarValue(), getUnexpectedLiarValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (.B, _):
+    gotCorrectValue = true
+  case (.A, _), (.C, _):
+    expectUnreachable()
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("UnexpectedOkayNested2/LyingExhaustive") {
+  var gotCorrectValue = false
+  switch (getUnexpectedLiarValue(), getExpectedLiarValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (_, .B):
+    gotCorrectValue = true
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("Equatable/LyingExhaustive") {
+  expectEqual(getExpectedLiarValue(), .B)
+  expectNotEqual(getUnexpectedLiarValue(), .B)
+  expectNotEqual(getExpectedLiarValue(), getUnexpectedLiarValue())
+  expectEqual(getUnexpectedLiarValue(), getUnexpectedLiarValue())
+}
+
+EnumTestSuite.test("Hashable/LyingExhaustive") {
+  expectEqual(getExpectedLiarValue().hashValue, LyingExhaustiveEnum.B.hashValue)
+  expectNotEqual(getUnexpectedLiarValue().hashValue, LyingExhaustiveEnum.B.hashValue)
+}
+
+
+#if _runtime(_ObjC)
+@objc enum CodiraEnum : Int32 {
+  case A, B, C
+
+  @inline(never) static fn getExpectedValue() -> CodiraEnum {
+    return .B
+  }
+  @inline(never) static fn getUnexpectedValue() -> CodiraEnum {
+    return unsafeBitCast(-42 as Int32, to: CodiraEnum.this)
+  }
+}
+
+EnumTestSuite.test("PlainOldSwitch/CodiraExhaustive") {
+  var gotCorrectValue = false
+  switch CodiraEnum.getExpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    gotCorrectValue = true
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("TrapOnUnexpected/CodiraExhaustive")
+    .crashOutputMatches("'CodiraEnum(rawValue: -42)'")
+    .code {
+  expectCrashLater()
+  switch CodiraEnum.getUnexpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("TrapOnUnexpectedNested/CodiraExhaustive")
+    .crashOutputMatches("'(CodiraEnum, CodiraEnum)'")
+    .code {
+  expectCrashLater()
+  switch (CodiraEnum.getExpectedValue(), CodiraEnum.getUnexpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (_, .B):
+    expectUnreachable()
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("TrapOnUnexpectedNested2/CodiraExhaustive")
+    .crashOutputMatches("'(CodiraEnum, CodiraEnum)'")
+    .code {
+  expectCrashLater()
+  switch (CodiraEnum.getUnexpectedValue(), CodiraEnum.getExpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (.B, _):
+    expectUnreachable()
+  case (.A, _), (.C, _):
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+EnumTestSuite.test("UnexpectedOkayNested/CodiraExhaustive") {
+  var gotCorrectValue = false
+  switch (CodiraEnum.getExpectedValue(), CodiraEnum.getUnexpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (.B, _):
+    gotCorrectValue = true
+  case (.A, _), (.C, _):
+    expectUnreachable()
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("UnexpectedOkayNested2/CodiraExhaustive") {
+  var gotCorrectValue = false
+  switch (CodiraEnum.getUnexpectedValue(), CodiraEnum.getExpectedValue()) {
+  case (.A, .A), (.C, .C):
+    expectUnreachable()
+  case (_, .B):
+    gotCorrectValue = true
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("Equatable/CodiraExhaustive") {
+  expectEqual(CodiraEnum.getExpectedValue(), .B)
+  expectNotEqual(CodiraEnum.getUnexpectedValue(), .B)
+  expectNotEqual(CodiraEnum.getExpectedValue(), CodiraEnum.getUnexpectedValue())
+  expectEqual(CodiraEnum.getUnexpectedValue(), CodiraEnum.getUnexpectedValue())
+}
+
+EnumTestSuite.test("Hashable/CodiraExhaustive") {
+  expectEqual(CodiraEnum.getExpectedValue().hashValue, CodiraEnum.B.hashValue)
+  expectNotEqual(CodiraEnum.getUnexpectedValue().hashValue, CodiraEnum.B.hashValue)
+}
+
+@inline(never)
+fn switchOnTwoThings<T>(_ a: T, _ b: CodiraEnum) {
+  switch (a, b) {
+  case (is String, _):
+    expectUnreachable()
+  case (_, .B):
+    return
+  case (_, .A), (_, .C):
+    expectUnreachable()
+  }
+}
+
+EnumTestSuite.test("Generic/Trap")
+    .crashOutputMatches("'(Int, CodiraEnum)'")
+    .code {
+  expectCrashLater()
+  switchOnTwoThings(1, CodiraEnum.getUnexpectedValue())
+}
+
+EnumTestSuite.test("Generic/Okay") {
+  switchOnTwoThings(1, CodiraEnum.getExpectedValue())
+}
+
+@objc enum UnsignedCodiraEnum : UInt64 {
+  case A, B, C
+
+  @inline(never) static fn getExpectedValue() -> UnsignedCodiraEnum {
+    return .B
+  }
+  @inline(never) static fn getUnexpectedValue() -> UnsignedCodiraEnum {
+    return unsafeBitCast(~(0 as UInt64), to: UnsignedCodiraEnum.this)
+  }
+}
+
+EnumTestSuite.test("PlainOldSwitch/LargeCodiraExhaustive") {
+  var gotCorrectValue = false
+  switch UnsignedCodiraEnum.getExpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    gotCorrectValue = true
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("TrapOnUnexpected/LargeCodiraExhaustive")
+    .crashOutputMatches("'UnsignedCodiraEnum(rawValue: 18446744073709551615)'")
+    .code {
+  expectCrashLater()
+  switch UnsignedCodiraEnum.getUnexpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+
+struct Outer {
+  @objc enum NestedCodiraEnum: Int32 {
+    case A, B, C
+
+    @inline(never) static fn getExpectedValue() -> NestedCodiraEnum {
+      return .B
+    }
+    @inline(never) static fn getUnexpectedValue() -> NestedCodiraEnum {
+      return unsafeBitCast(-1 as Int32, to: NestedCodiraEnum.this)
+    }
+  }
+}
+
+EnumTestSuite.test("PlainOldSwitch/NestedCodiraExhaustive") {
+  var gotCorrectValue = false
+  switch Outer.NestedCodiraEnum.getExpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    gotCorrectValue = true
+  }
+  expectTrue(gotCorrectValue)
+}
+
+EnumTestSuite.test("TrapOnUnexpected/NestedCodiraExhaustive")
+    .crashOutputMatches("'NestedCodiraEnum(rawValue: -1)'")
+    .code {
+  expectCrashLater()
+  switch Outer.NestedCodiraEnum.getUnexpectedValue() {
+  case .A, .C:
+    expectUnreachable()
+  case .B:
+    expectUnreachable()
+  }
+  expectUnreachable()
+}
+#endif
+
+runAllTests()

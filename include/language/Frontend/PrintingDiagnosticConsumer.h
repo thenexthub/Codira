@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the PrintingDiagnosticConsumer class, which displays
@@ -18,22 +19,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PRINTINGDIAGNOSTICCONSUMER_H
-#define SWIFT_PRINTINGDIAGNOSTICCONSUMER_H
+#ifndef LANGUAGE_PRINTINGDIAGNOSTICCONSUMER_H
+#define LANGUAGE_PRINTINGDIAGNOSTICCONSUMER_H
 
 #include "language/AST/DiagnosticBridge.h"
 #include "language/AST/DiagnosticConsumer.h"
 #include "language/Basic/DiagnosticOptions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
-#include "llvm/Support/Process.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/Process.h"
+#include "toolchain/Support/raw_ostream.h"
 
 namespace language {
 
 /// Diagnostic consumer that displays diagnostics to standard error.
 class PrintingDiagnosticConsumer : public DiagnosticConsumer {
-  llvm::raw_ostream &Stream;
+  toolchain::raw_ostream &Stream;
   bool ForceColors = false;
   bool EmitMacroExpansionFiles = false;
   bool DidErrorOccur = false;
@@ -41,13 +42,13 @@ class PrintingDiagnosticConsumer : public DiagnosticConsumer {
       DiagnosticOptions::FormattingStyle::LLVM;
   bool SuppressOutput = false;
 
-#if SWIFT_BUILD_SWIFT_SYNTAX
-  /// swift-syntax rendering
+#if LANGUAGE_BUILD_LANGUAGE_SYNTAX
+  /// language-syntax rendering
   DiagnosticBridge DiagBridge;
 #endif
  
 public:
-  PrintingDiagnosticConsumer(llvm::raw_ostream &stream = llvm::errs());
+  PrintingDiagnosticConsumer(toolchain::raw_ostream &stream = toolchain::errs());
   ~PrintingDiagnosticConsumer();
 
   virtual void handleDiagnostic(SourceManager &SM,
@@ -61,7 +62,7 @@ public:
 
   void forceColors() {
     ForceColors = true;
-    llvm::sys::Process::UseANSIEscapeCodes(true);
+    toolchain::sys::Process::UseANSIEscapeCodes(true);
   }
 
   void setFormattingStyle(DiagnosticOptions::FormattingStyle style) {

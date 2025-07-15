@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILGEN_SILGENFUNCTION_H
-#define SWIFT_SILGEN_SILGENFUNCTION_H
+#ifndef LANGUAGE_SILGEN_SILGENFUNCTION_H
+#define LANGUAGE_SILGEN_SILGENFUNCTION_H
 
 #include "FormalEvaluation.h"
 #include "Initialization.h"
@@ -30,8 +31,9 @@
 #include "language/Basic/ProfileCounter.h"
 #include "language/Basic/Statistic.h"
 #include "language/SIL/SILBuilder.h"
+#include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILType.h"
-#include "llvm/ADT/PointerIntPair.h"
+#include "toolchain/ADT/PointerIntPair.h"
 
 namespace language {
 
@@ -47,6 +49,7 @@ class ConsumableManagedValue;
 class LogicalPathComponent;
 class LValue;
 class ManagedValue;
+class PathComponent;
 class PreparedArguments;
 class RValue;
 class CalleeTypeInfo;
@@ -238,7 +241,7 @@ static inline SGFAccessKind getAddressAccessKind(SGFAccessKind kind) {
   case SGFAccessKind::ReadWrite:
     return kind;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static inline AccessKind getFormalAccessKind(SGFAccessKind kind) {
@@ -258,7 +261,7 @@ static inline AccessKind getFormalAccessKind(SGFAccessKind kind) {
   case SGFAccessKind::ReadWrite:
     return AccessKind::ReadWrite;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /// Parameter to \c SILGenFunction::emitAddressOfLValue that indicates
@@ -305,7 +308,7 @@ enum class StorageReferenceOperationKind {
 };
 
 /// SILGenFunction - an ASTVisitor for producing SIL from function bodies.
-class LLVM_LIBRARY_VISIBILITY SILGenFunction
+class TOOLCHAIN_LIBRARY_VISIBILITY SILGenFunction
   : public ASTVisitor<SILGenFunction>
 { // style violation because Xcode <rdar://problem/13065676>
 public:
@@ -402,15 +405,15 @@ public:
   using ASTScopeTy = ast_scope::ASTScopeImpl;
   const ASTScopeTy *FnASTScope = nullptr;
   using VarDeclScopeMapTy =
-      llvm::SmallDenseMap<ValueDecl *, const ASTScopeTy *, 8>;
+      toolchain::SmallDenseMap<ValueDecl *, const ASTScopeTy *, 8>;
   /// The ASTScope each variable declaration belongs to.
   VarDeclScopeMapTy VarDeclScopeMap;
   /// Caches one SILDebugScope for each ASTScope.
-  llvm::SmallDenseMap<std::pair<const ASTScopeTy *, const SILDebugScope *>,
+  toolchain::SmallDenseMap<std::pair<const ASTScopeTy *, const SILDebugScope *>,
                       const SILDebugScope *, 16>
       ScopeMap;
   /// Caches one toplevel inline SILDebugScope for each macro BufferID.
-  llvm::SmallDenseMap<unsigned, const SILDebugScope *, 16> InlinedScopeMap;
+  toolchain::SmallDenseMap<unsigned, const SILDebugScope *, 16> InlinedScopeMap;
 
   /// The cleanup depth and BB for when the operand of a
   /// BindOptionalExpr is a missing value.
@@ -499,26 +502,41 @@ public:
         {}
       };
       
-      std::unique_ptr<State> state = nullptr;
-      
+      toolchain::PointerUnion<State *, VarDecl*> stateOrAlias = (State*)nullptr;
+
       // If the variable cleanup is triggered before the addressable
       // representation is demanded, but the addressable representation
       // gets demanded later, we save the insertion points where the
       // representation would be cleaned up so we can backfill them.
-      llvm::SmallVector<SILInstruction*, 1> cleanupPoints;
+      toolchain::SmallVector<SILInstruction*, 1> cleanupPoints;
       
       AddressableBuffer() = default;
+
+      AddressableBuffer(VarDecl *original)
+        : stateOrAlias(original)
+      {
+      }
       
       AddressableBuffer(AddressableBuffer &&other)
-        : state(std::move(other.state))
+        : stateOrAlias(other.stateOrAlias)
       {
+        other.stateOrAlias = (State*)nullptr;
         cleanupPoints.swap(other.cleanupPoints);
       }
       
       AddressableBuffer &operator=(AddressableBuffer &&other) {
-        state = std::move(other.state);
+        if (auto state = stateOrAlias.dyn_cast<State*>()) {
+          delete state;
+        }
+        stateOrAlias = other.stateOrAlias;
         cleanupPoints.swap(other.cleanupPoints);
         return *this;
+      }
+
+      State *getState() {
+        ASSERT(!stateOrAlias.is<VarDecl*>()
+               && "must get state from original AddressableBuffer");
+        return stateOrAlias.dyn_cast<State*>();
       }
       
       ~AddressableBuffer();
@@ -536,38 +554,57 @@ public:
   /// VarLocs - Entries in this map are generated when a PatternBindingDecl is
   /// emitted. The map is queried to produce the lvalue for a DeclRefExpr to
   /// a local variable.
-  llvm::DenseMap<ValueDecl*, VarLoc> VarLocs;
+  toolchain::DenseMap<ValueDecl*, VarLoc> VarLocs;
+
+  VarLoc::AddressableBuffer *getAddressableBufferInfo(ValueDecl *vd);
   
   // Represents an addressable buffer that has been allocated but not yet used.
   struct PreparedAddressableBuffer {
-    SILInstruction *insertPoint = nullptr;
+    toolchain::PointerUnion<SILInstruction *, VarDecl *> insertPointOrAlias
+      = (SILInstruction*)nullptr;
     
     PreparedAddressableBuffer() = default;
     
     PreparedAddressableBuffer(SILInstruction *insertPoint)
-      : insertPoint(insertPoint)
-    {}
+      : insertPointOrAlias(insertPoint)
+    {
+      ASSERT(insertPoint && "null insertion point provided");
+    }
+
+    PreparedAddressableBuffer(VarDecl *alias)
+      : insertPointOrAlias(alias)
+    {
+      ASSERT(alias && "null alias provided");
+    }
     
     PreparedAddressableBuffer(PreparedAddressableBuffer &&other)
-      : insertPoint(other.insertPoint)
+      : insertPointOrAlias(other.insertPointOrAlias)
     {
-      other.insertPoint = nullptr;
+      other.insertPointOrAlias = (SILInstruction*)nullptr;
     }
     
     PreparedAddressableBuffer &operator=(PreparedAddressableBuffer &&other) {
-      insertPoint = other.insertPoint;
-      other.insertPoint = nullptr;
+      insertPointOrAlias = other.insertPointOrAlias;
+      other.insertPointOrAlias = nullptr;
       return *this;
     }
+
+    SILInstruction *getInsertPoint() const {
+      return insertPointOrAlias.dyn_cast<SILInstruction*>();
+    }
     
+    VarDecl *getOriginalForAlias() const {
+      return insertPointOrAlias.dyn_cast<VarDecl*>();
+    }
+
     ~PreparedAddressableBuffer() {
-      if (insertPoint) {
+      if (auto insertPoint = getInsertPoint()) {
         // Remove the insertion point if it went unused.
         insertPoint->eraseFromParent();
       }
     }
   };
-  llvm::DenseMap<VarDecl *, PreparedAddressableBuffer> AddressableBuffers;
+  toolchain::DenseMap<VarDecl *, PreparedAddressableBuffer> AddressableBuffers;
   
   /// Establish the scope for the addressable buffer that might be allocated
   /// for a local variable binding.
@@ -584,12 +621,12 @@ public:
 
   /// The local auxiliary declarations for the parameters of this function that
   /// need to be emitted inside the next brace statement.
-  llvm::SmallVector<VarDecl *, 2> LocalAuxiliaryDecls;
+  toolchain::SmallVector<VarDecl *, 2> LocalAuxiliaryDecls;
 
   /// The mappings between instance properties referenced by this init
   /// accessor (via initializes/accesses attributes) and and argument
   /// declarations synthesized to access them in the body.
-  llvm::DenseMap<VarDecl *, ParamDecl *> InitAccessorArgumentMappings;
+  toolchain::DenseMap<VarDecl *, ParamDecl *> InitAccessorArgumentMappings;
 
   // Context information for tracking an `async let` child task.
   struct AsyncLetChildTask {
@@ -601,7 +638,7 @@ public:
   /// Mapping from each async let clause to the AsyncLet repr that contains the
   /// AsyncTask that will produce the initializer value for that clause and a
   /// Boolean value indicating whether the task can throw.
-  llvm::SmallDenseMap<std::pair<PatternBindingDecl *, unsigned>,
+  toolchain::SmallDenseMap<std::pair<PatternBindingDecl *, unsigned>,
                       AsyncLetChildTask>
       AsyncLetChildTasks;
 
@@ -738,7 +775,7 @@ public:
     /// Mapping from temporary pack expressions to their values. These
     /// are evaluated once, with their elements projected in a dynamic
     /// pack loop.
-    llvm::SmallDenseMap<MaterializePackExpr *, SILValue>
+    toolchain::SmallDenseMap<MaterializePackExpr *, SILValue>
       MaterializedPacks;
 
     ActivePackExpansion(GenericEnvironment *OpenedElementEnv)
@@ -880,7 +917,7 @@ public:
   FunctionTypeInfo getFunctionTypeInfo(CanAnyFunctionType fnType);
 
   /// A helper method that calls getFunctionTypeInfo that also marks global
-  /// actor isolated async closures that are not sendable as sendable.
+  /// actor-isolated async closures that are not sendable as sendable.
   FunctionTypeInfo getClosureTypeInfo(AbstractClosureExpr *expr);
 
   bool isEmittingTopLevelCode() { return IsEmittingTopLevelCode; }
@@ -1094,7 +1131,7 @@ public:
                                 VarDecl* recursiveLink,
                                 CleanupLocation cleanupLoc);
 
-  /// Generates a thunk from a foreign function to the native Swift convention.
+  /// Generates a thunk from a foreign function to the native Codira convention.
   void emitForeignToNativeThunk(SILDeclRef thunk);
   /// Generates a thunk from a native function to foreign conventions.
   void emitNativeToForeignThunk(SILDeclRef thunk);
@@ -1108,7 +1145,7 @@ public:
   /// Generates a thunk that contains a runtime precondition that
   /// the given function is called on the expected executor.
   ManagedValue emitActorIsolationErasureThunk(SILLocation loc,
-                                              ManagedValue func,
+                                              ManagedValue fn,
                                               CanAnyFunctionType isolatedType,
                                               CanAnyFunctionType nonIsolatedType);
 
@@ -1263,7 +1300,7 @@ public:
   /// are created by different emissions; it's just a little
   /// counter-intuitive within a single emission.)
   SILBasicBlock *createBasicBlock();
-  SILBasicBlock *createBasicBlock(llvm::StringRef debugName);
+  SILBasicBlock *createBasicBlock(toolchain::StringRef debugName);
   SILBasicBlock *createBasicBlockAfter(SILBasicBlock *afterBB);
   SILBasicBlock *createBasicBlockBefore(SILBasicBlock *beforeBB);
 
@@ -1489,7 +1526,7 @@ public:
   ///        logic.
   SILLocation emitEpilog(SILLocation TopLevelLoc,bool UsesCustomEpilog = false);
 
-  /// Emits the standard rethrow epilog using a Swift error result.
+  /// Emits the standard rethrow epilog using a Codira error result.
   void emitRethrowEpilog(SILLocation topLevelLoc);
 
   /// Emits the coroutine-unwind epilog.
@@ -1557,7 +1594,7 @@ public:
   ManagedValue emitInjectOptional(SILLocation loc,
                                   const TypeLowering &expectedTL,
                                   SGFContext ctxt,
-                       llvm::function_ref<ManagedValue(SGFContext)> generator);
+                       toolchain::function_ref<ManagedValue(SGFContext)> generator);
 
   /// Initialize a memory location with an optional value.
   ///
@@ -1645,7 +1682,7 @@ public:
                                                  const TypeLowering &optTL,
                                                  SGFContext C = SGFContext());
 
-  typedef llvm::function_ref<ManagedValue(SILGenFunction &SGF,
+  typedef toolchain::function_ref<ManagedValue(SILGenFunction &SGF,
                                     SILLocation loc,
                                     ManagedValue input,
                                     SILType loweredResultTy,
@@ -1710,7 +1747,7 @@ public:
                             const TypeLowering &existentialTL,
                             ArrayRef<ProtocolConformanceRef> conformances,
                             SGFContext C,
-                            llvm::function_ref<ManagedValue (SGFContext)> F,
+                            toolchain::function_ref<ManagedValue (SGFContext)> F,
                             bool allowEmbeddedNSError = true);
 
   /// Transform a value of concrete or existential type into an
@@ -1751,26 +1788,13 @@ public:
                          JumpDest catchFallthroughDest);
 
   /// Emit code for the throw expr. If \p emitWillThrow is set then emit a
-  /// call to swift_willThrow, that will allow the debugger to place a
+  /// call to language_willThrow, that will allow the debugger to place a
   /// breakpoint on throw sites.
   void emitThrow(SILLocation loc, ManagedValue exn, bool emitWillThrow = false);
   
   //===--------------------------------------------------------------------===//
   // Patterns
   //===--------------------------------------------------------------------===//
-
-  SILValue emitOSVersionRangeCheck(SILLocation loc, const VersionRange &range,
-                                   bool forTargetVariant = false);
-  SILValue
-  emitOSVersionOrVariantVersionRangeCheck(SILLocation loc,
-                                          const VersionRange &targetRange,
-                                          const VersionRange &variantRange);
-  /// Emits either a single OS version range check or an OS version & variant
-  /// version range check automatically, depending on the active target triple
-  /// and requested versions.
-  SILValue emitZipperedOSVersionRangeCheck(SILLocation loc,
-                                           const VersionRange &targetRange,
-                                           const VersionRange &variantRange);
 
   void emitStmtCondition(StmtCondition Cond, JumpDest FalseDest, SILLocation loc,
                          ProfileCounter NumTrueTaken = ProfileCounter(),
@@ -1779,7 +1803,7 @@ public:
   void emitConditionalPBD(PatternBindingDecl *PBD, SILBasicBlock *FailBB);
 
   void usingImplicitVariablesForPattern(Pattern *pattern, CaseStmt *stmt,
-                                        const llvm::function_ref<void(void)> &f);
+                                        const toolchain::function_ref<void(void)> &f);
   void emitSwitchStmt(SwitchStmt *S);
   void emitSwitchFallthrough(FallthroughStmt *S);
 
@@ -1899,7 +1923,7 @@ public:
   /// "Emit" an RValue representing an empty tuple.
   RValue emitEmptyTupleRValue(SILLocation loc, SGFContext C);
 
-  /// Returns a reference to a constant in global context. For local func decls
+  /// Returns a reference to a constant in global context. For local fn decls
   /// this returns the function constant with unapplied closure context.
   SILValue emitGlobalFunctionRef(SILLocation loc, SILDeclRef constant) {
     return emitGlobalFunctionRef(
@@ -1979,6 +2003,10 @@ public:
   ArgumentSource prepareAccessorBaseArg(SILLocation loc, ManagedValue base,
                                         CanType baseFormalType,
                                         SILDeclRef accessor);
+  ArgumentSource prepareAccessorBaseArgForFormalAccess(SILLocation loc,
+                                                       ManagedValue base,
+                                                       CanType baseFormalType,
+                                                       SILDeclRef accessor);
 
   RValue emitGetAccessor(
       SILLocation loc, SILDeclRef getter, SubstitutionMap substitutions,
@@ -2202,7 +2230,12 @@ public:
 
   RValue emitLoadOfLValue(SILLocation loc, LValue &&src, SGFContext C,
                           bool isBaseLValueGuaranteed = false);
-
+  PathComponent &&
+  drillToLastComponent(SILLocation loc,
+                       LValue &&lv,
+                       ManagedValue &addr,
+                       TSanKind tsanKind = TSanKind::None);
+                     
   /// Emit a reference to a method from within another method of the type.
   std::tuple<ManagedValue, SILType>
   emitSiblingMethodRef(SILLocation loc,
@@ -2359,7 +2392,7 @@ public:
   /// \param emitSubExpr A function to call to emit the subexpression
   /// (which will be passed in).
   void emitOpenExistentialExprImpl(OpenExistentialExpr *e,
-                                  llvm::function_ref<void(Expr *)> emitSubExpr);
+                                  toolchain::function_ref<void(Expr *)> emitSubExpr);
 
   /// Open up the given existential expression and emit its
   /// subexpression in a caller-specified manner.
@@ -2391,11 +2424,11 @@ public:
   }
 
   /// Mapping from OpaqueValueExpr/PackElementExpr to their values.
-  llvm::SmallDenseMap<Expr *, ManagedValue> OpaqueValues;
+  toolchain::SmallDenseMap<Expr *, ManagedValue> OpaqueValues;
 
   /// A mapping from opaque value expressions to the open-existential
   /// expression that determines them, used while lowering lvalues.
-  llvm::SmallDenseMap<OpaqueValueExpr *, OpenExistentialExpr *>
+  toolchain::SmallDenseMap<OpaqueValueExpr *, OpenExistentialExpr *>
     OpaqueValueExprs;
 
   /// RAII object that introduces a temporary binding for an opaque value.
@@ -2439,8 +2472,8 @@ public:
   void emitCheckedCastBranch(
       SILLocation loc, ConsumableManagedValue src, Type sourceType,
       CanType targetType, SGFContext C,
-      llvm::function_ref<void(ManagedValue)> handleTrue,
-      llvm::function_ref<void(std::optional<ManagedValue>)> handleFalse,
+      toolchain::function_ref<void(ManagedValue)> handleTrue,
+      toolchain::function_ref<void(std::optional<ManagedValue>)> handleFalse,
       ProfileCounter TrueCount = ProfileCounter(),
       ProfileCounter FalseCount = ProfileCounter());
 
@@ -2458,8 +2491,8 @@ public:
   ///                     current BB should be terminated.
   void emitCheckedCastBranch(
       SILLocation loc, Expr *src, Type targetType, SGFContext C,
-      llvm::function_ref<void(ManagedValue)> handleTrue,
-      llvm::function_ref<void(std::optional<ManagedValue>)> handleFalse,
+      toolchain::function_ref<void(ManagedValue)> handleTrue,
+      toolchain::function_ref<void(std::optional<ManagedValue>)> handleFalse,
       ProfileCounter TrueCount = ProfileCounter(),
       ProfileCounter FalseCount = ProfileCounter());
 
@@ -2475,7 +2508,7 @@ public:
   void emitOptionalEvaluation(SILLocation loc, Type optionalType,
                               SmallVectorImpl<ManagedValue> &results,
                               SGFContext C,
-                      llvm::function_ref<void(SmallVectorImpl<ManagedValue> &,
+                      toolchain::function_ref<void(SmallVectorImpl<ManagedValue> &,
                                               SGFContext primaryC)>
                                 generateNormalResults);
 
@@ -2483,7 +2516,7 @@ public:
   // Bridging thunks
   //===--------------------------------------------------------------------===//
 
-  /// Convert a native Swift value to a value that can be passed as an argument
+  /// Convert a native Codira value to a value that can be passed as an argument
   /// to or returned as the result of a function with the given calling
   /// convention.
   ManagedValue emitNativeToBridgedValue(SILLocation loc, ManagedValue v,
@@ -2493,7 +2526,7 @@ public:
                                         SGFContext C = SGFContext());
   
   /// Convert a value received as the result or argument of a function with
-  /// the given calling convention to a native Swift value of the given type.
+  /// the given calling convention to a native Codira value of the given type.
   ManagedValue emitBridgedToNativeValue(SILLocation loc, ManagedValue v,
                                         CanType bridgedType,
                                         CanType nativeType,
@@ -2501,11 +2534,11 @@ public:
                                         SGFContext C = SGFContext(),
                                         bool isCallResult = false);
 
-  /// Convert a bridged error type to the native Swift Error
+  /// Convert a bridged error type to the native Codira Error
   /// representation.  The value may be optional.
   ManagedValue emitBridgedToNativeError(SILLocation loc, ManagedValue v);
 
-  /// Convert a value in the native Swift Error representation to
+  /// Convert a value in the native Codira Error representation to
   /// a bridged error type representation.
   ManagedValue emitNativeToBridgedError(SILLocation loc, ManagedValue v,
                                         CanType nativeType,
@@ -2628,7 +2661,7 @@ public:
       SILLocation loc, SmallVectorImpl<ManagedValue> &params,
       SmallVectorImpl<ManagedValue> *indirectResultParams = nullptr,
       SmallVectorImpl<ManagedValue> *indirectErrorParams = nullptr,
-      ThunkGenOptions options = {});
+      ManagedValue *implicitIsolationParam = nullptr);
 
   /// Build the type of a function transformation thunk.
   CanSILFunctionType buildThunkType(CanSILFunctionType &sourceType,
@@ -2683,7 +2716,13 @@ public:
                                            CanType outputType,  // `T.TangentVector`
                                            SGFContext ctxt);
 
-  
+  //===--------------------------------------------------------------------===//
+  // Availability
+  //===--------------------------------------------------------------------===//
+
+  /// Emit an `if #available` query, returning the resulting boolean test value.
+  SILValue emitIfAvailableQuery(SILLocation loc, PoundAvailableInfo *info);
+
   //===--------------------------------------------------------------------===//
   // Back Deployment thunks
   //===--------------------------------------------------------------------===//
@@ -2696,7 +2735,7 @@ public:
   // Distributed Actors
   //===---------------------------------------------------------------------===//
 
-  /// Determine if the target `func` should be replaced with a
+  /// Determine if the target `fn` should be replaced with a
   /// 'distributed thunk'.
   ///
   /// This only applies to distributed functions when calls are made cross-actor
@@ -2707,7 +2746,7 @@ public:
   /// Witness calls which may need to be replaced with a distributed thunk call
   /// happen either when the target type is generic, or if we are inside an
   /// extension on a protocol. This method checks if we are in a context
-  /// where we should be calling the distributed thunk of the `func` or not.
+  /// where we should be calling the distributed thunk of the `fn` or not.
   /// Notably, if we are inside a distributed thunk already and are trying to
   /// apply distributed method calls, all those must be to the "real" method,
   /// because the thunks' responsibility is to call the real method, so this
@@ -2718,11 +2757,11 @@ public:
   /// invoked Direct, and never ClassMethod, because distributed are effectively
   /// final.
   ///
-  /// \param func the target func that we are trying to "apply"
+  /// \param fn the target fn that we are trying to "apply"
   /// \return true when the function should be considered for replacement
   ///         with distributed thunk when applying it
   bool
-  shouldReplaceConstantForApplyWithDistributedThunk(FuncDecl *func) const;
+  shouldReplaceConstantForApplyWithDistributedThunk(FuncDecl *fn) const;
 
   /// Initializes the implicit stored properties of a distributed actor that correspond to
   /// its transport and identity.
@@ -2773,14 +2812,14 @@ public:
   void
   emitDistributedRemoteActorDeinit(SILValue selfValue, DestructorDecl *dd,
                                    bool isIsolated,
-                                   llvm::function_ref<void()> emitLocalDeinit);
+                                   toolchain::function_ref<void()> emitLocalDeinit);
 
   //===--------------------------------------------------------------------===//
   // Declarations
   //===--------------------------------------------------------------------===//
   
   void visitDecl(Decl *D) {
-    llvm_unreachable("Not yet implemented");
+    toolchain_unreachable("Not yet implemented");
   }
 
   // Emitted as part of its storage.
@@ -3124,7 +3163,7 @@ public:
       SILLocation loc, CanPackType formalPackType, unsigned componentIndex,
       SILValue startingAfterIndexWithinComponent, SILValue limitWithinComponent,
       GenericEnvironment *openedElementEnv, bool reverse,
-      llvm::function_ref<void(SILValue indexWithinComponent,
+      toolchain::function_ref<void(SILValue indexWithinComponent,
                               SILValue packExpansionIndex, SILValue packIndex)>
           emitBody,
       SILBasicBlock *loopLatch = nullptr);
@@ -3134,7 +3173,7 @@ public:
   void emitDynamicPackLoop(
       SILLocation loc, CanPackType formalPackType, unsigned componentIndex,
       GenericEnvironment *openedElementEnv,
-      llvm::function_ref<void(SILValue indexWithinComponent,
+      toolchain::function_ref<void(SILValue indexWithinComponent,
                               SILValue packExpansionIndex, SILValue packIndex)>
           emitBody,
       SILBasicBlock *loopLatch = nullptr);
@@ -3155,7 +3194,7 @@ public:
                                  unsigned outputComponentIndex,
                                  bool isSimpleProjection,
                                  bool outputIsPlusOne,
-              llvm::function_ref<ManagedValue(ManagedValue input,
+              toolchain::function_ref<ManagedValue(ManagedValue input,
                                               SILType outputTy,
                                               SGFContext context)> emitBody);
 

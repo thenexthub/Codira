@@ -20,7 +20,7 @@ Radars tracking this work:
 Goals and non-goals
 -------------------
 
-We wish to do post-mortem debugging of memory allocations in a Swift program.
+We wish to do post-mortem debugging of memory allocations in a Codira program.
 Debugging tools can already introspect the memory allocator to identify all
 live memory allocations in the program's heap.
 
@@ -58,11 +58,11 @@ the stack for pointers.
 Types of heap allocations
 -------------------------
 
-There are several types of heap allocations in Swift. We mostly concern
+There are several types of heap allocations in Codira. We mostly concern
 ourselves with class instances for now, but in the fullness of time we would
 like to have accurate metadata for all heap allocations.
 
-Swift class instances
+Codira class instances
 ~~~~~~~~~~~~~~~~~~~~~
 
 These have an isa pointer that points to a class metadata record.
@@ -113,7 +113,7 @@ where the existential is itself inside of a heap-allocated object.
 Existing metadata
 -----------------
 
-Swift already has a lot of reflective features and much of the groundwork for
+Codira already has a lot of reflective features and much of the groundwork for
 this exists in some form or another, but each one is lacking in at least one
 important respect.
 
@@ -233,7 +233,7 @@ describe compositions of types. Instead of using metadata record pointers,
 which are now insufficient, we use type references written in a mini-language.
 
 A symbolic type reference is a recursive structure describing an arbitrary
-Swift AST type in terms of nominal types, generic type parameters, and
+Codira AST type in terms of nominal types, generic type parameters, and
 compositions of them, such as tuple types.
 
 For each AST type, we can distinguish between the minimum information we need
@@ -348,7 +348,7 @@ each isa pointer.
     ...
   }
 
-  func getSymbolicTypeOfObject(_ isa: void*) -> SymbolicTypeReference
+  fn getSymbolicTypeOfObject(_ isa: void*) -> SymbolicTypeReference
 
 Next, we define an "instantiation" operation, which takes a completely
 substituted symbolic type reference, and returns a list of concrete field types
@@ -384,7 +384,7 @@ tools.
     let layout: FieldLayout
   }
 
-  func instantiateSymbolicType(_ ref: SymbolicTypeReference) -> [FieldTypeDescriptor]
+  fn instantiateSymbolicType(_ ref: SymbolicTypeReference) -> [FieldTypeDescriptor]
 
 Field type metadata can have circular references -- for example, consider two
 classes which contain optionals of each other. In order to calculate field

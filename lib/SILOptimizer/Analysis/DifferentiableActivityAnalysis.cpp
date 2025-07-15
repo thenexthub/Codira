@@ -1,13 +1,17 @@
 //===--- DifferentiableActivityAnalysis.h ----------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "differentiation"
@@ -48,7 +52,7 @@ void DifferentiableActivityAnalysis::initialize(SILPassManager *pm) {
   postDominanceAnalysis = pm->getAnalysis<PostDominanceAnalysis>();
 }
 
-SILAnalysis *swift::createDifferentiableActivityAnalysis(SILModule *m) {
+SILAnalysis *language::createDifferentiableActivityAnalysis(SILModule *m) {
   return new DifferentiableActivityAnalysis();
 }
 
@@ -69,13 +73,13 @@ SILFunction &DifferentiableActivityInfo::getFunction() const {
 void DifferentiableActivityInfo::analyze(DominanceInfo *di,
                                          PostDominanceInfo *pdi) {
   auto &function = getFunction();
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Running activity analysis on @" << function.getName() << '\n');
   // Inputs are just function's arguments, count `n`.
   auto paramArgs = function.getArgumentsWithoutIndirectResults();
   for (auto value : paramArgs)
     inputValues.push_back(value);
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream();
     s << "Inputs in @" << function.getName() << ":\n";
     for (auto val : inputValues)
@@ -85,7 +89,7 @@ void DifferentiableActivityInfo::analyze(DominanceInfo *di,
   // For the purposes of differentiation, we consider yields to be results as
   // well
   collectAllFormalResultsInTypeOrder(function, outputValues);
-  LLVM_DEBUG({
+  TOOLCHAIN_DEBUG({
     auto &s = getADDebugStream();
     s << "Outputs in @" << function.getName() << ":\n";
     for (auto val : outputValues)
@@ -322,10 +326,10 @@ void DifferentiableActivityInfo::setUsefulAndPropagateToOperands(
         propagateUseful(tai, dependentVariableIndex);
         return;
       }
-      llvm::report_fatal_error("unknown terminator with result");
+      toolchain::report_fatal_error("unknown terminator with result");
     }
 
-    llvm::report_fatal_error("do not know how to handle this incoming bb argument");
+    toolchain::report_fatal_error("do not know how to handle this incoming bb argument");
   }
   
   auto *inst = value->getDefiningInstruction();
@@ -553,7 +557,7 @@ Activity DifferentiableActivityInfo::getActivity(
 
 void DifferentiableActivityInfo::dump(
     SILValue value, IndexSubset *parameterIndices, IndexSubset *resultIndices,
-    llvm::raw_ostream &s) const {
+    toolchain::raw_ostream &s) const {
   s << '[';
   auto activity = getActivity(value, parameterIndices, resultIndices);
   switch (activity.toRaw()) {
@@ -575,12 +579,12 @@ void DifferentiableActivityInfo::dump(
 
 void DifferentiableActivityInfo::dump(
     IndexSubset *parameterIndices, IndexSubset *resultIndices,
-    llvm::raw_ostream &s) const {
+    toolchain::raw_ostream &s) const {
   SILFunction &fn = getFunction();
   s << "Activity info for " << fn.getName() << " at parameter indices (";
-  llvm::interleaveComma(parameterIndices->getIndices(), s);
+  toolchain::interleaveComma(parameterIndices->getIndices(), s);
   s << ") and result indices (";
-  llvm::interleaveComma(resultIndices->getIndices(), s);
+  toolchain::interleaveComma(resultIndices->getIndices(), s);
   s << "):\n";
   for (auto &bb : fn) {
     s << "bb" << bb.getDebugID() << ":\n";

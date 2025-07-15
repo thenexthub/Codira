@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// \file
@@ -34,9 +35,9 @@
 #include "language/Basic/SourceManager.h"
 #include "language/Markup/Markup.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -86,7 +87,7 @@ static RawComment toRawComment(ASTContext &Context, CharSourceRange Range) {
   unsigned Offset = SM.getLocOffsetInBuffer(Range.getStart(), BufferID);
   unsigned EndOffset = SM.getLocOffsetInBuffer(Range.getEnd(), BufferID);
   LangOptions FakeLangOpts;
-  Lexer L(FakeLangOpts, SM, BufferID, nullptr, LexerMode::Swift,
+  Lexer L(FakeLangOpts, SM, BufferID, nullptr, LexerMode::Codira,
           HashbangMode::Disallowed, CommentRetentionMode::ReturnAsTokens,
           Offset, EndOffset);
 
@@ -146,7 +147,7 @@ RawComment RawCommentRequest::evaluate(Evaluator &eval, const Decl *D) const {
   switch (Unit->getKind()) {
   case FileUnitKind::SerializedAST: {
     // First check to see if we have the comment location available in the
-    // swiftsourceinfo, allowing us to grab it from the original file.
+    // languagesourceinfo, allowing us to grab it from the original file.
     auto *CachedLocs = D->getSerializedLocs();
     if (!CachedLocs->DocRanges.empty()) {
       SmallVector<SingleRawComment, 4> SRCs;
@@ -162,10 +163,10 @@ RawComment RawCommentRequest::evaluate(Evaluator &eval, const Decl *D) const {
       }
 
       if (!SRCs.empty())
-        return RawComment(ctx.AllocateCopy(llvm::ArrayRef(SRCs)));
+        return RawComment(ctx.AllocateCopy(toolchain::ArrayRef(SRCs)));
     }
 
-    // Otherwise check to see if we have a comment available in the swiftdoc.
+    // Otherwise check to see if we have a comment available in the languagedoc.
     if (auto C = Unit->getCommentForDecl(D))
       return C->Raw;
 
@@ -178,7 +179,7 @@ RawComment RawCommentRequest::evaluate(Evaluator &eval, const Decl *D) const {
   case FileUnitKind::DWARFModule:
     return RawComment();
   }
-  llvm_unreachable("invalid file kind");
+  toolchain_unreachable("invalid file kind");
 }
 
 RawComment Decl::getRawComment() const {
@@ -285,26 +286,26 @@ getDocCommentSerializationTargetImpl(const Decl *D) {
     return DocCommentSerializationTarget::None;
   case AccessLevel::Package:
     // Package doc comments can be referenced outside their module, but only
-    // locally, so can't be included in swiftdoc.
+    // locally, so can't be included in languagedoc.
     return DocCommentSerializationTarget::SourceInfoOnly;
   case AccessLevel::Public:
   case AccessLevel::Open:
-    return DocCommentSerializationTarget::SwiftDocAndSourceInfo;
+    return DocCommentSerializationTarget::CodiraDocAndSourceInfo;
   }
-  llvm_unreachable("Unhandled case in switch!");
+  toolchain_unreachable("Unhandled case in switch!");
 }
 
 DocCommentSerializationTarget
-swift::getDocCommentSerializationTargetFor(const Decl *D) {
-  auto Limit = DocCommentSerializationTarget::SwiftDocAndSourceInfo;
+language::getDocCommentSerializationTargetFor(const Decl *D) {
+  auto Limit = DocCommentSerializationTarget::CodiraDocAndSourceInfo;
 
-  // We can't include SPI decls in swiftdoc.
+  // We can't include SPI decls in languagedoc.
   if (D->isSPI())
     Limit = DocCommentSerializationTarget::SourceInfoOnly;
 
-  // .swiftdoc doesn't include comments for double underscored symbols, but
-  // for .swiftsourceinfo, having the source location for these symbols isn't
-  // a concern because these symbols are in .swiftinterface anyway.
+  // .codedoc doesn't include comments for double underscored symbols, but
+  // for .codesourceinfo, having the source location for these symbols isn't
+  // a concern because these symbols are in .codeinterface anyway.
   if (hasDoubleUnderscore(D))
     Limit = DocCommentSerializationTarget::SourceInfoOnly;
 

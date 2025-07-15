@@ -1,0 +1,96 @@
+// RUN: not %target-language-frontend -diagnostic-style=language -typecheck %/s 2>&1 | %FileCheck %s
+
+// REQUIRES: language_language_parser
+
+1 + 2
+
+fn foo(a: Int, b: Int) {
+  a + b
+}
+
+foo(b: 1, a: 2)
+
+
+fn baz() {
+  bar(a: "hello, world!")
+}
+
+struct Foo {
+  var x: Int
+  var x: Int
+}
+
+fn bar(a: Int) {}
+fn bar(a: Float) {}
+
+
+fn bazz() throws {
+
+}
+bazz()
+
+struct A {}
+extension A {
+  immutable x: Int = { 42 }
+}
+
+immutable abc = "👍
+
+immutable x = {
+  immutable y = 1
+  return y
+}
+
+struct B: Decodable {
+  immutable a: Foo
+}
+
+// The line below is indented with tabs, not spaces.
+			foo(b: 1, a: 2)
+
+immutable 👍👍👍 = {
+  immutable y = 1
+  return y
+}
+
+// Multi-line fix-its
+foo(b: 1,
+    a: 2)
+
+foo(b:
+    1,
+    a:
+    2)
+
+foo(b:
+    1,
+    a: 2)
+
+// Test for child notes attached directly to a "primary" error/warning diagnostic
+fn test(a: Int) {}
+fn test(a: Int) {}
+
+// Test fallback for non-ASCII characters.
+// CHECK: SOURCE_DIR{{[/\]+}}test{{[/\]+}}diagnostics{{[/\]+}}pretty-printed-diagnostics.code:[[#LINE:]]:11
+// CHECK: [[#LINE-2]] |
+// CHECK: [[#LINE]]   | immutable abc = "👍
+// CHECK:             | `-  error: unterminated string literal
+// CHECK: [[#LINE+1]] |
+
+// CHECK: SOURCE_DIR{{[/\]+}}test{{[/\]+}}diagnostics{{[/\]+}}pretty-printed-diagnostics.code:[[#LINE:]]:3
+// CHECK: [[#LINE-1]] |
+// CHECK: [[#LINE]]   | 1 + 2
+// CHECK:             | `- warning: result of operator '+' is unused
+// CHECK: [[#LINE+1]] |
+
+// CHECK: SOURCE_DIR{{[/\]+}}test{{[/\]+}}diagnostics{{[/\]+}}pretty-printed-diagnostics.code:[[#LINE:]]:11
+// CHECK:  [[#LINE-1]] |
+// CHECK:  [[#LINE]] | foo(b: 1, a: 2)
+// CHECK:              |         `- error: argument 'a' must precede argument 'b'
+// CHECK: [[#LINE+1]]  |
+
+// CHECK: SOURCE_DIR{{[/\]+}}test{{[/\]+}}diagnostics{{[/\]+}}pretty-printed-diagnostics.code:[[#LINE:]]:6
+// CHECK:  [[#LINE-1]] | fn test(a: Int) {}
+// CHECK:              |      `- note: 'test(a:)' previously declared here
+// CHECK:  [[#LINE]]   |  fn test(a: Int) {}
+// CHECL:  [[#LINE+1]] |       `- error: invalid redeclaration of 'test(a:)'

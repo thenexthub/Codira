@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-emit-module-interface(%t/Library.codeinterface) %s -module-name Library -verify
+// RUN: %target-language-typecheck-module-from-interface(%t/Library.codeinterface) -I %t
+// RUN: %FileCheck %s < %t/Library.codeinterface
+
+// This test makes sure that discard is emitted correctly in the interfaces.
+
+// CHECK: @_alwaysEmitIntoClient public consuming fn AEIC_discard() { discard this }
+// CHECK: @inlinable public consuming fn inlinable_discard() { discard this }
+
+public struct MoveOnlyStruct: ~Copyable {
+  immutable x = 0
+
+  @_alwaysEmitIntoClient public consuming fn AEIC_discard() { discard this }
+  @inlinable public consuming fn inlinable_discard() { discard this }
+
+  deinit {}
+}

@@ -1,19 +1,19 @@
-set(swiftRemoteInspection_C_COMPILE_FLAGS)
-if(SWIFT_ENABLE_REFLECTION)
-  list(APPEND swiftRemoteInspection_C_COMPILE_FLAGS -DSWIFT_ENABLE_REFLECTION)
+set(languageRemoteInspection_C_COMPILE_FLAGS)
+if(LANGUAGE_ENABLE_REFLECTION)
+  list(APPEND languageRemoteInspection_C_COMPILE_FLAGS -DLANGUAGE_ENABLE_REFLECTION)
 endif()
 
-add_swift_target_library(swiftRemoteInspection STATIC
+add_language_target_library(languageRemoteInspection STATIC
   MetadataSource.cpp
   TypeLowering.cpp
   TypeRef.cpp
   TypeRefBuilder.cpp
   C_COMPILE_FLAGS
-    ${SWIFT_RUNTIME_CXX_FLAGS}
-    -DswiftCore_EXPORTS
-    ${swiftRemoteInspection_C_COMPILE_FLAGS}
-  LINK_FLAGS ${SWIFT_RUNTIME_LINK_FLAGS}
+    ${LANGUAGE_RUNTIME_CXX_FLAGS}
+    -DlanguageCore_EXPORTS
+    ${languageRemoteInspection_C_COMPILE_FLAGS}
+  LINK_FLAGS ${LANGUAGE_RUNTIME_LINK_FLAGS}
   INCORPORATE_OBJECT_LIBRARIES
-    swiftLLVMSupport swiftDemangling swiftDemanglingCR
-  SWIFT_COMPILE_FLAGS ${SWIFT_STANDARD_LIBRARY_SWIFT_FLAGS}
+    languageLLVMSupport languageDemangling languageDemanglingCR
+  LANGUAGE_COMPILE_FLAGS ${LANGUAGE_STANDARD_LIBRARY_LANGUAGE_FLAGS}
   INSTALL_IN_COMPONENT dev)

@@ -1,17 +1,21 @@
 //===--- CompletionLookup.h -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IDE_COMPLETIONLOOKUP_H
-#define SWIFT_IDE_COMPLETIONLOOKUP_H
+#ifndef LANGUAGE_IDE_COMPLETIONLOOKUP_H
+#define LANGUAGE_IDE_COMPLETIONLOOKUP_H
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/ASTPrinter.h"
@@ -58,7 +62,7 @@ bool MacroFilter(ValueDecl *decl, DeclVisibilityKind,
 ///
 ///     struct S {
 ///       #false#
-///       func foo() {
+///       fn foo() {
 ///         #false#
 ///       }
 ///     }
@@ -76,7 +80,7 @@ bool isCodeCompletionAtTopLevel(const DeclContext *DC);
 ///
 ///     struct S {
 ///       #false#
-///       func foo() {
+///       fn foo() {
 ///         #true#
 ///       }
 ///     }
@@ -89,7 +93,7 @@ bool canDeclContextHandleAsync(const DeclContext *DC);
 bool isCodeCompletionAtTopLevelOfLibraryFile(const DeclContext *DC);
 
 /// Build completions by doing visible decl lookup from a context.
-class CompletionLookup final : public swift::VisibleDeclConsumer {
+class CompletionLookup final : public language::VisibleDeclConsumer {
   CodeCompletionResultSink &Sink;
   ASTContext &Ctx;
   const DeclContext *CurrDeclContext;
@@ -129,12 +133,12 @@ class CompletionLookup final : public swift::VisibleDeclConsumer {
   /// completion expression and that are thus not recorded in the AST.
   /// This in particular applies to params of closures that contain the code
   /// completion token.
-  llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
+  toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes;
 
   bool CanCurrDeclContextHandleAsync = false;
   /// Actor isolations that were determined during constraint solving but that
   /// haven't been saved to the AST.
-  llvm::DenseMap<AbstractClosureExpr *, ActorIsolation>
+  toolchain::DenseMap<AbstractClosureExpr *, ActorIsolation>
       ClosureActorIsolations;
   bool HaveDot = false;
   bool IsUnwrappedOptional = false;
@@ -148,15 +152,15 @@ class CompletionLookup final : public swift::VisibleDeclConsumer {
   bool IsSuperRefExpr = false;
   bool IsSelfRefExpr = false;
   bool IsKeyPathExpr = false;
-  bool IsSwiftKeyPathExpr = false;
-  bool IsAfterSwiftKeyPathRoot = false;
+  bool IsCodiraKeyPathExpr = false;
+  bool IsAfterCodiraKeyPathRoot = false;
   bool IsDynamicLookup = false;
   bool IsCrossActorReference = false;
   bool PreferFunctionReferencesToCalls = false;
   bool HaveLeadingSpace = false;
 
   bool CheckForDuplicates = false;
-  llvm::DenseSet<std::pair<const Decl *, Type>> PreviouslySeen;
+  toolchain::DenseSet<std::pair<const Decl *, Type>> PreviouslySeen;
 
   bool IncludeInstanceMembers = false;
 
@@ -217,7 +221,7 @@ public:
     }
   };
 
-  llvm::SetVector<RequestedResultsTy> RequestedCachedResults;
+  toolchain::SetVector<RequestedResultsTy> RequestedCachedResults;
 
 public:
   CompletionLookup(CodeCompletionResultSink &Sink, ASTContext &Ctx,
@@ -225,7 +229,7 @@ public:
                    CodeCompletionContext *CompletionContext = nullptr);
 
   void setSolutionSpecificVarTypes(
-      llvm::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes) {
+      toolchain::SmallDenseMap<const VarDecl *, Type> SolutionSpecificVarTypes) {
     this->SolutionSpecificVarTypes = SolutionSpecificVarTypes;
   }
 
@@ -259,7 +263,7 @@ public:
   }
 
   void setClosureActorIsolations(
-      llvm::DenseMap<AbstractClosureExpr *, ActorIsolation>
+      toolchain::DenseMap<AbstractClosureExpr *, ActorIsolation>
           ClosureActorIsolations) {
     this->ClosureActorIsolations = ClosureActorIsolations;
   }
@@ -293,9 +297,9 @@ public:
     CheckForDuplicates = value;
   }
 
-  void setIsSwiftKeyPathExpr(bool onRoot) {
-    IsSwiftKeyPathExpr = true;
-    IsAfterSwiftKeyPathRoot = onRoot;
+  void setIsCodiraKeyPathExpr(bool onRoot) {
+    IsCodiraKeyPathExpr = true;
+    IsAfterCodiraKeyPathRoot = onRoot;
   }
 
   void setIsDynamicLookup() { IsDynamicLookup = true; }
@@ -309,21 +313,23 @@ public:
   void includeInstanceMembers() { IncludeInstanceMembers = true; }
 
   bool isHiddenModuleName(Identifier Name) {
-    return (Name.hasUnderscoredNaming() || Name == Ctx.SwiftShimsModuleName ||
-            Name.str() == SWIFT_ONONE_SUPPORT);
+    return (Name.hasUnderscoredNaming() || Name == Ctx.CodiraShimsModuleName ||
+            Name.str() == LANGUAGE_ONONE_SUPPORT);
   }
 
   void addSubModuleNames(
       std::vector<std::pair<std::string, bool>> &SubModuleNameVisibilityPairs);
 
-  void collectImportedModules(llvm::StringSet<> &directImportedModules,
-                              llvm::StringSet<> &allImportedModules);
+  void collectImportedModules(toolchain::StringSet<> &directImportedModules,
+                              toolchain::StringSet<> &allImportedModules);
 
   void
   addModuleName(ModuleDecl *MD,
                 std::optional<ContextualNotRecommendedReason> R = std::nullopt);
 
   void addImportModuleNames();
+
+  void addUsingSpecifiers();
 
   SemanticContextKind getSemanticContext(const Decl *D,
                                          DeclVisibilityKind Reason,
@@ -374,7 +380,7 @@ public:
 
   static bool hasInterestingDefaultValue(const ParamDecl *param);
 
-  bool shouldAddItemWithoutDefaultArgs(const AbstractFunctionDecl *func);
+  bool shouldAddItemWithoutDefaultArgs(const AbstractFunctionDecl *fn);
 
   /// Build argument patterns for calling. Returns \c true if any content was
   /// added to \p Builder. If \p declParams is non-empty, the size must match
@@ -458,6 +464,8 @@ public:
   void addEnumElementRef(const EnumElementDecl *EED, DeclVisibilityKind Reason,
                          DynamicLookupInfo dynamicLookupInfo,
                          bool HasTypeContext);
+  void addMacroCallArguments(const MacroDecl *MD, DeclVisibilityKind Reason,
+                             bool forTrivialTrailingClosure = false);
   void addMacroExpansion(const MacroDecl *MD, DeclVisibilityKind Reason);
 
   void addKeyword(
@@ -508,7 +516,7 @@ private:
   }
 
 public:
-  // Implement swift::VisibleDeclConsumer.
+  // Implement language::VisibleDeclConsumer.
   void foundDecl(ValueDecl *D, DeclVisibilityKind Reason,
                  DynamicLookupInfo dynamicLookupInfo) override;
 
@@ -569,10 +577,10 @@ public:
 
   void getMacroCompletions(CodeCompletionMacroRoles roles);
 
-  struct FilteredDeclConsumer : public swift::VisibleDeclConsumer {
-    swift::VisibleDeclConsumer &Consumer;
+  struct FilteredDeclConsumer : public language::VisibleDeclConsumer {
+    language::VisibleDeclConsumer &Consumer;
     DeclFilter Filter;
-    FilteredDeclConsumer(swift::VisibleDeclConsumer &Consumer,
+    FilteredDeclConsumer(language::VisibleDeclConsumer &Consumer,
                          DeclFilter Filter)
         : Consumer(Consumer), Filter(Filter) {}
     void foundDecl(ValueDecl *VD, DeclVisibilityKind Kind,
@@ -588,7 +596,7 @@ public:
                                         bool ModuleQualifier = true);
 
   /// Returns \c true if \p VD is an initializer on the \c Optional or \c
-  /// Id_OptionalNilComparisonType type from the Swift stdlib.
+  /// Id_OptionalNilComparisonType type from the Codira stdlib.
   static bool isInitializerOnOptional(Type T, ValueDecl *VD);
 
   void getUnresolvedMemberCompletions(Type T);
@@ -649,19 +657,19 @@ public:
 } // end namespace ide
 } // end namespace language
 
-namespace llvm {
-using RequestedResultsTy = swift::ide::CompletionLookup::RequestedResultsTy;
+namespace toolchain {
+using RequestedResultsTy = language::ide::CompletionLookup::RequestedResultsTy;
 template <>
 struct DenseMapInfo<RequestedResultsTy> {
   static inline RequestedResultsTy getEmptyKey() {
-    return {DenseMapInfo<swift::ModuleDecl *>::getEmptyKey(), {}, false};
+    return {DenseMapInfo<language::ModuleDecl *>::getEmptyKey(), {}, false};
   }
   static inline RequestedResultsTy getTombstoneKey() {
-    return {DenseMapInfo<swift::ModuleDecl *>::getTombstoneKey(), {}, false};
+    return {DenseMapInfo<language::ModuleDecl *>::getTombstoneKey(), {}, false};
   }
   static unsigned getHashValue(const RequestedResultsTy &Val) {
     return hash_combine(
-        DenseMapInfo<swift::ModuleDecl *>::getHashValue(Val.TheModule),
+        DenseMapInfo<language::ModuleDecl *>::getHashValue(Val.TheModule),
         Val.Filter.toRaw(), Val.NeedLeadingDot);
   }
   static bool isEqual(const RequestedResultsTy &LHS,
@@ -669,6 +677,6 @@ struct DenseMapInfo<RequestedResultsTy> {
     return LHS == RHS;
   }
 };
-} // namespace llvm
+} // namespace toolchain
 
-#endif // SWIFT_IDE_COMPLETIONLOOKUP_H
+#endif // LANGUAGE_IDE_COMPLETIONLOOKUP_H

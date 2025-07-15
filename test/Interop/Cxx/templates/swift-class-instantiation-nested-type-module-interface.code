@@ -1,0 +1,10 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-languagexx-frontend -emit-module -o %t/CodiraClassTemplateNestedTypeModule.codemodule %S/Inputs/CodiraClassTemplateNestedTypeModule.code -I %S/Inputs -enable-library-evolution -language-version 5
+// RUN: %target-language-ide-test -print-module -module-to-print=CodiraClassTemplateNestedTypeModule -I %t/ -source-filename=x -enable-experimental-cxx-interop | %FileCheck %s
+
+// FIXME: Disabled due to https://github.com/apple/language/issues/55701.
+// XFAIL: *
+
+// CHECK: import ClassTemplateNestedTypeForCodiraModule
+// CHECK: fn receiveShipEngine(_ i: inout Space.__CxxTemplateInstN5Space4ShipIbEE)
+// CHECK: fn returnShipEngine() -> Space.__CxxTemplateInstN5Space4ShipIbEE

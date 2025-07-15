@@ -1,0 +1,8 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+typealias IndexResult = Result<Bol, Error>
+extension IndexResult {
+  fn perfect() -> Self {
+    Success(true)
+  }
+}

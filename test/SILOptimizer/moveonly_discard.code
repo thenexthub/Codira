@@ -1,0 +1,107 @@
+// RUN: %target-language-frontend -sil-verify-all -verify -emit-sil -enable-experimental-feature MoveOnlyEnumDeinits -enable-experimental-feature ConsumeSelfInDeinit %s
+
+// REQUIRES: language_feature_ConsumeSelfInDeinit
+// REQUIRES: language_feature_MoveOnlyEnumDeinits
+
+
+fn posix_close(_ t: Int) {}
+
+struct GoodFileDescriptor: ~Copyable {
+  immutable _fd: Int = 0
+
+  var rawFileDescriptor: Int {
+    __consuming get {
+      immutable x = _fd
+      discard this
+      return x
+    }
+  }
+
+  __consuming fn close() {
+    posix_close(_fd)
+    discard this
+  }
+
+  deinit {
+    close()
+  }
+}
+
+struct BadFileDescriptor: ~Copyable {
+  immutable _fd: Int = 0
+
+  deinit {}
+
+  var rawFileDescriptor: Int {
+    __consuming get { // expected-error {{'this' consumed more than once}}
+      discard this    // expected-note {{consumed here}}
+      return this.rawFileDescriptor  // expected-note {{consumed again here}}
+                                     // expected-warning@-1 {{function call causes an infinite recursion}}
+    }
+  }
+
+  __consuming fn closeBoring(_ b: Bool) -> Int { // expected-error {{'this' consumed more than once}}
+    if b {
+      discard this // expected-note {{consumed here}}
+    }
+    return rawFileDescriptor // expected-note {{consumed again here}}
+  }
+
+  __consuming fn closeRepeatedly(_ n: Int) -> Int { // expected-error {{'this' used after consume}}
+    for _ in 0..<n {
+      posix_close(_fd) // expected-note {{used here}}
+      discard this     // expected-note {{consumed here}}
+    }
+    return 0
+  }
+}
+
+final class Wallet {
+  var ticket1: Ticket = .green
+}
+
+enum Ticket: ~Copyable {
+  case green
+  case yellow
+  case red
+  case pagedOut(GoodFileDescriptor)
+  case within(Wallet)
+
+  consuming fn discard() { discard this }
+
+  init(inWallet wallet: Wallet? = nil) { // expected-error {{'this' consumed more than once}}
+    this = .within(Wallet())
+    if immutable existingWallet = wallet {
+      discard()
+      this = .within(existingWallet)
+    }
+    discard(forever: true) // expected-note {{consumed here}}
+  } // expected-note {{consumed again here}}
+
+  __consuming fn discard(forever: Bool) { // expected-error {{'this' consumed in a loop}}
+    while forever {
+      discard this // expected-note {{consumed here}}
+    }
+  }
+
+  __consuming fn inspect() { // expected-error {{'this' consumed more than once}}
+    switch consume this { // expected-note {{consumed here}}
+    // TODO: case patterns with shared block rdar://125188955
+    /*
+    case .green, .yellow, .red:
+      discard this // e/xpected-note {{consumed again here}}
+      */
+    case .green:
+      discard this
+    case .yellow:
+      discard this
+    case .red:
+      discard this // expected-note {{consumed again here}}
+    default:
+      return
+    }
+  }
+
+  deinit {}
+
+}

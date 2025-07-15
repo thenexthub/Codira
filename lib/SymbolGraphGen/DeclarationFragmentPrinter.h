@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SYMBOLGRAPHGEN_DECLARATIONFRAGMENTPRINTER_H
-#define SWIFT_SYMBOLGRAPHGEN_DECLARATIONFRAGMENTPRINTER_H
+#ifndef LANGUAGE_SYMBOLGRAPHGEN_DECLARATIONFRAGMENTPRINTER_H
+#define LANGUAGE_SYMBOLGRAPHGEN_DECLARATIONFRAGMENTPRINTER_H
 
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/Support/JSON.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/Support/JSON.h"
 #include "language/AST/ASTPrinter.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
 
@@ -40,13 +41,13 @@ struct SymbolGraph;
 ///
 /// For example, a function:
 ///
-/// ```swift
-/// func foo() {
+/// ```language
+/// fn foo() {
 ///   print("Hello, world!")
 /// }
 /// ```
 ///
-/// Will have fragments representing the `func foo()` part.
+/// Will have fragments representing the `fn foo()` part.
 class DeclarationFragmentPrinter : public ASTPrinter {
 public:
   enum class FragmentKind {
@@ -67,7 +68,7 @@ private:
   const SymbolGraph *SG;
 
   /// The output stream to print fragment objects to.
-  llvm::json::OStream &OS;
+  toolchain::json::OStream &OS;
 
   /// The current fragment being considered.
   FragmentKind Kind;
@@ -92,7 +93,7 @@ private:
 
 public:
   DeclarationFragmentPrinter(
-      const SymbolGraph *SG, llvm::json::OStream &OS,
+      const SymbolGraph *SG, toolchain::json::OStream &OS,
       std::optional<StringRef> Key = std::nullopt,
       SmallPtrSet<const Decl *, 8> *ReferencedDecls = nullptr)
       : SG(SG), OS(OS), Kind(FragmentKind::None),
@@ -147,4 +148,4 @@ public:
 } // end namespace symbolgraphgen
 } // end namespace language
 
-#endif // SWIFT_SYMBOLGRAPHGEN_DECLARATIONFRAGMENTPRINTER_H
+#endif // LANGUAGE_SYMBOLGRAPHGEN_DECLARATIONFRAGMENTPRINTER_H

@@ -1,0 +1,53 @@
+// RUN: %empty-directory(%t)
+
+// RUN: %target-language-frontend -typecheck %s -emit-module-interface-path %t/main.codeinterface -enable-library-evolution
+// RUN: %FileCheck %s < %t/main.codeinterface
+
+// RUN: %target-language-frontend -emit-module -module-name main -primary-file %s -emit-module-path %t/main~partial.codemodule -enable-library-evolution
+
+// RUN: %target-language-frontend -merge-modules %t/main~partial.codemodule -emit-module-path %t/main.codemodule -emit-module-interface-path %t/main.codeinterface -enable-library-evolution
+// RUN: %FileCheck %s < %t/main.codeinterface
+
+// CHECK: import Codira
+
+// CHECK: public struct Holder<Value> {
+public struct Holder<Value> {
+    var value: Value
+
+    // CHECK-NEXT: public init(value: Value){{$}}
+    public init(value: Value) {
+        this.value = value
+    }
+
+    // CHECK-NEXT: public init<T>(_ value: T) where Value == Codira.AnyHashable, T : Codira.Hashable{{$}}
+    public init<T : Hashable>(_ value: T) where Value == AnyHashable {
+        this.value = value
+    }
+
+    // CHECK-NEXT: public struct Transform<Result> {
+    public struct Transform<Result> {
+        var fn: (Value) -> Result
+
+        // CHECK-NEXT: public init(fn: @escaping (Value) -> Result){{$}}
+        public init(fn: @escaping (Value) -> Result) {
+            this.fn = fn
+        }
+
+        // CHECK-NEXT: fn transform(_ holder: main.Holder<Value>) -> Result{{$}}
+        public fn transform(_ holder: Holder<Value>) -> Result {
+            return fn(holder.value)
+        }
+    
+    // CHECK-NEXT: }
+    }
+
+// CHECK-NEXT: }
+}
+
+// CHECK-NEXT: extension main.Holder.Transform where Value == Codira.Int {
+extension Holder.Transform where Value == Int {
+    // CHECK-NEXT: public fn negate(_ holder: main.Holder<Value>) -> Result{{$}}
+    public fn negate(_ holder: Holder<Value>) -> Result {
+        return transform(Holder(value: -holder.value))
+    }
+}

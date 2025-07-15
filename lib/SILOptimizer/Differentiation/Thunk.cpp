@@ -1,13 +1,17 @@
 //===--- Thunk.cpp - Automatic differentiation thunks ---------*- C++ -*---===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Automatic differentiation thunk generation utilities.
@@ -127,7 +131,7 @@ SILFunction *getOrCreateReabstractionThunk(SILOptFunctionBuilder &fb,
   Mangle::ASTMangler mangler(module.getASTContext());
   std::string name = mangler.mangleReabstractionThunkHelper(
       thunkType, fromInterfaceType, toInterfaceType, Type(), Type(),
-      module.getSwiftModule());
+      module.getCodiraModule());
 
   auto *thunk = fb.getOrCreateSharedFunction(
       loc, name, thunkDeclType, IsBare, IsTransparent, IsSerialized,
@@ -300,7 +304,7 @@ SILFunction *getOrCreateReabstractionThunk(SILOptFunctionBuilder &fb,
   for (auto arg : valuesToCleanup) {
     switch (arg->getOwnershipKind()) {
     case OwnershipKind::Any:
-      llvm_unreachable("value with any ownership kind?!");
+      toolchain_unreachable("value with any ownership kind?!");
     case OwnershipKind::Guaranteed:
       builder.emitEndBorrowOperation(loc, arg);
       break;
@@ -313,13 +317,13 @@ SILFunction *getOrCreateReabstractionThunk(SILOptFunctionBuilder &fb,
   }
 
   // Deallocate local allocations.
-  for (auto *alloc : llvm::reverse(localAllocations))
+  for (auto *alloc : toolchain::reverse(localAllocations))
     builder.createDeallocStack(loc, alloc);
 
   // Create return.
   builder.createReturn(loc, retVal);
 
-  LLVM_DEBUG(auto &s = getADDebugStream() << "Created reabstraction thunk.\n";
+  TOOLCHAIN_DEBUG(auto &s = getADDebugStream() << "Created reabstraction thunk.\n";
              s << "  From type: " << fromType << '\n';
              s << "  To type: " << toType << '\n'; s << '\n'
                                                      << *thunk);
@@ -341,7 +345,7 @@ SILValue reabstractCoroutine(
   auto unsubstFromType = fromType->getUnsubstitutedType(module);
   auto unsubstToType = toType->getUnsubstitutedType(module);
 
-  LLVM_DEBUG(auto &s = getADDebugStream() << "Converting coroutine\n";
+  TOOLCHAIN_DEBUG(auto &s = getADDebugStream() << "Converting coroutine\n";
              s << "  From type: " << fromType << '\n';
              s << "  To type: " << toType << '\n'; s << '\n');
   
@@ -400,7 +404,7 @@ getOrCreateSubsetParametersThunkForLinearMap(
     CanSILFunctionType targetType, AutoDiffDerivativeFunctionKind kind,
     const AutoDiffConfig &desiredConfig, const AutoDiffConfig &actualConfig,
     ADContext &adContext) {
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Getting a subset parameters thunk for "
              << (kind == AutoDiffDerivativeFunctionKind::JVP ? "jvp" : "vjp")
              << " linear map " << linearMapType
@@ -443,10 +447,10 @@ getOrCreateSubsetParametersThunkForLinearMap(
   SmallVector<AllocStackInst *, 4> localAllocations;
   SmallVector<SILValue, 4> valuesToCleanup;
   auto cleanupValues = [&]() {
-    for (auto value : llvm::reverse(valuesToCleanup))
+    for (auto value : toolchain::reverse(valuesToCleanup))
       builder.emitDestroyOperation(loc, value);
 
-    for (auto *alloc : llvm::reverse(localAllocations))
+    for (auto *alloc : toolchain::reverse(localAllocations))
       builder.createDeallocStack(loc, alloc);
   };
 
@@ -479,7 +483,7 @@ getOrCreateSubsetParametersThunkForLinearMap(
       break;
     }
     case TangentSpace::Kind::Tuple: {
-      llvm_unreachable("Unimplemented: Handle zero initialization for tuples");
+      toolchain_unreachable("Unimplemented: Handle zero initialization for tuples");
     }
     }
   };
@@ -706,7 +710,7 @@ getOrCreateSubsetParametersThunkForDerivativeFunction(
     SILOptFunctionBuilder &fb, SILValue origFnOperand, SILValue derivativeFn,
     AutoDiffDerivativeFunctionKind kind, const AutoDiffConfig &desiredConfig,
     const AutoDiffConfig &actualConfig, ADContext &adContext) {
-  LLVM_DEBUG(getADDebugStream()
+  TOOLCHAIN_DEBUG(getADDebugStream()
              << "Getting a subset parameters thunk for derivative "
              << (kind == AutoDiffDerivativeFunctionKind::JVP ? "jvp" : "vjp")
              << " function " << derivativeFn

@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 import TestsUtils
 
-public let benchmarks =
+public immutable benchmarks =
   BenchmarkInfo(
     name: "StackPromo",
     runFunction: run_StackPromo,
@@ -22,15 +23,15 @@ public let benchmarks =
     legacyFactor: 100)
 
 protocol Proto {
-  func at() -> Int
+  fn at() -> Int
 }
 
 @inline(never)
-func testStackAllocation(_ p: Proto) -> Int {
+fn testStackAllocation(_ p: Proto) -> Int {
   var a = [p, p, p]
   var b = 0
   a.withUnsafeMutableBufferPointer {
-    let array = $0
+    immutable array = $0
     for i in 0..<array.count {
       b += array[i].at()
     }
@@ -40,13 +41,13 @@ func testStackAllocation(_ p: Proto) -> Int {
 
 class Foo : Proto {
   init() {}
-  func at() -> Int{
+  fn at() -> Int{
     return 1
   }
 }
 
 @inline(never)
-func work(_ f: Foo) -> Int {
+fn work(_ f: Foo) -> Int {
   var r = 0
   for _ in 0..<1_000 {
     r += testStackAllocation(f)
@@ -54,8 +55,8 @@ func work(_ f: Foo) -> Int {
   return r
 }
 
-public func run_StackPromo(_ n: Int) {
-  let foo = Foo()
+public fn run_StackPromo(_ n: Int) {
+  immutable foo = Foo()
   var r = 0
   for i in 0..<n {
     if i % 2 == 0 {

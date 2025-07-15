@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Threading/Errors.h"
@@ -19,11 +20,11 @@
 #include "Error.h"
 
 // Handle fatal errors from the threading library
-SWIFT_ATTRIBUTE_NORETURN
-SWIFT_FORMAT(1, 2)
-void swift::threading::fatal(const char *format, ...) {
+LANGUAGE_ATTRIBUTE_NORETURN
+LANGUAGE_FORMAT(1, 2)
+void language::threading::fatal(const char *format, ...) {
   va_list val;
 
   va_start(val, format);
-  swift_Concurrency_fatalErrorv(0, format, val);
+  language_Concurrency_fatalErrorv(0, format, val);
 }

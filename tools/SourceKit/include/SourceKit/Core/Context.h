@@ -11,23 +11,24 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SOURCEKIT_CORE_CONTEXT_H
-#define LLVM_SOURCEKIT_CORE_CONTEXT_H
+#ifndef TOOLCHAIN_SOURCEKIT_CORE_CONTEXT_H
+#define TOOLCHAIN_SOURCEKIT_CORE_CONTEXT_H
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/CancellationToken.h"
 #include "SourceKit/Support/Concurrency.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Mutex.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/Mutex.h"
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 
-namespace llvm {
+namespace toolchain {
   class MemoryBuffer;
 }
 
@@ -51,7 +52,7 @@ namespace SourceKit {
 
   private:
     Settings State;
-    mutable llvm::sys::Mutex Mtx;
+    mutable toolchain::sys::Mutex Mtx;
 
   public:
     Settings
@@ -82,7 +83,7 @@ class RequestTracker {
   std::map<SourceKitCancellationToken, TrackedRequest> Requests;
 
   /// Guards the \c Requests variable.
-  llvm::sys::Mutex RequestsMtx;
+  toolchain::sys::Mutex RequestsMtx;
 
   /// Must only be called if \c RequestsMtx has been claimed.
   /// Returns \c true if the request has already been cancelled. Requests that
@@ -105,7 +106,7 @@ public:
     if (!CancellationToken) {
       return;
     }
-    llvm::sys::ScopedLock L(RequestsMtx);
+    toolchain::sys::ScopedLock L(RequestsMtx);
     if (isCancelledImpl(CancellationToken)) {
       if (CancellationHandler) {
         CancellationHandler();
@@ -121,7 +122,7 @@ public:
     if (!CancellationToken) {
       return;
     }
-    llvm::sys::ScopedLock L(RequestsMtx);
+    toolchain::sys::ScopedLock L(RequestsMtx);
     Requests[CancellationToken].IsCancelled = true;
     if (auto CancellationHandler =
             Requests[CancellationToken].CancellationHandler) {
@@ -135,7 +136,7 @@ public:
     if (!CancellationToken) {
       return;
     }
-    llvm::sys::ScopedLock L(RequestsMtx);
+    toolchain::sys::ScopedLock L(RequestsMtx);
     Requests.erase(CancellationToken);
   }
 };
@@ -165,12 +166,11 @@ public:
 };
 
 class Context {
-  /// The path of the swift-frontend executable.
+  /// The path of the language-frontend executable.
   /// Used to find clang relative to it.
-  std::string SwiftExecutablePath;
+  std::string CodiraExecutablePath;
   std::string RuntimeLibPath;
-  std::string DiagnosticDocumentationPath;
-  std::unique_ptr<LangSupport> SwiftLang;
+  std::unique_ptr<LangSupport> CodiraLang;
   std::shared_ptr<NotificationCenter> NotificationCtr;
   std::shared_ptr<GlobalConfig> Config;
   std::shared_ptr<RequestTracker> ReqTracker;
@@ -178,23 +178,19 @@ class Context {
   std::shared_ptr<SlowRequestSimulator> SlowRequestSim;
 
 public:
-  Context(StringRef SwiftExecutablePath, StringRef RuntimeLibPath,
-          StringRef DiagnosticDocumentationPath,
-          llvm::function_ref<std::unique_ptr<LangSupport>(Context &)>
+  Context(StringRef CodiraExecutablePath, StringRef RuntimeLibPath,
+          toolchain::function_ref<std::unique_ptr<LangSupport>(Context &)>
               LangSupportFactoryFn,
-          llvm::function_ref<std::shared_ptr<PluginSupport>(Context &)>
+          toolchain::function_ref<std::shared_ptr<PluginSupport>(Context &)>
               PluginSupportFactoryFn,
           bool shouldDispatchNotificationsOnMain = true);
   ~Context();
 
-  StringRef getSwiftExecutablePath() const { return SwiftExecutablePath; }
+  StringRef getCodiraExecutablePath() const { return CodiraExecutablePath; }
 
   StringRef getRuntimeLibPath() const { return RuntimeLibPath; }
-  StringRef getDiagnosticDocumentationPath() const {
-    return DiagnosticDocumentationPath;
-  }
 
-  LangSupport &getSwiftLangSupport() { return *SwiftLang; }
+  LangSupport &getCodiraLangSupport() { return *CodiraLang; }
 
   std::shared_ptr<NotificationCenter> getNotificationCenter() { return NotificationCtr; }
 

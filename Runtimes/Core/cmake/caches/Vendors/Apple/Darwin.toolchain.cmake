@@ -1,6 +1,6 @@
 # Toolchain configuration when compiling for Darwin Platforms
 set(CMAKE_SYSTEM_NAME Darwin)
-set(CMAKE_Swift_COMPILER_WORKS YES)
+set(CMAKE_Codira_COMPILER_WORKS YES)
 set(CMAKE_C_COMPILER_WORKS YES)
 set(CMAKE_CXX_COMPILER_WORKS YES)
 
@@ -40,12 +40,12 @@ if(NOT CMAKE_CXX_COMPILER)
   message(STATUS "Using CXX compiler ${CMAKE_CXX_COMPILER}")
 endif()
 
-if(NOT CMAKE_Swift_COMPILER)
-  execute_process(COMMAND "${XCRUN_EXECUTABLE}" --sdk ${CMAKE_OSX_SYSROOT} --find swiftc
-    OUTPUT_VARIABLE CMAKE_Swift_COMPILER
+if(NOT CMAKE_Codira_COMPILER)
+  execute_process(COMMAND "${XCRUN_EXECUTABLE}" --sdk ${CMAKE_OSX_SYSROOT} --find languagec
+    OUTPUT_VARIABLE CMAKE_Codira_COMPILER
     ERROR_QUIET
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-  message(STATUS "Using Swift compiler ${CMAKE_Swift_COMPILER}")
+  message(STATUS "Using Codira compiler ${CMAKE_Codira_COMPILER}")
 endif()
 
 if(NOT CMAKE_AR)

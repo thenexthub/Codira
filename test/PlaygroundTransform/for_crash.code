@@ -1,0 +1,14 @@
+// RUN: %empty-directory(%t)
+// RUN: cp %s %t/main.code
+
+// -playground
+// RUN: not %target-typecheck-verify-language -language-version 5 -playground %t/main.code
+// RUN: not %target-typecheck-verify-language -language-version 6 -playground %t/main.code
+
+// -pc-macro -playground
+// RUN: not %target-typecheck-verify-language -language-version 5 -playground -pc-macro %t/main.code
+// RUN: not %target-typecheck-verify-language -language-version 6 -playground -pc-macro %t/main.code
+
+for x in y {
+  x
+}

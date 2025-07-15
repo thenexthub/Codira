@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "fso-owned-to-guaranteed-transform"
@@ -18,13 +19,13 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/DebugUtils.h"
 #include "language/AST/SemanticAttrs.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
-static llvm::cl::opt<bool> FSODisableOwnedToGuaranteed(
+static toolchain::cl::opt<bool> FSODisableOwnedToGuaranteed(
     "sil-fso-disable-owned-to-guaranteed",
-    llvm::cl::desc("Do not perform owned to guaranteed during FSO. Intended "
+    toolchain::cl::desc("Do not perform owned to guaranteed during FSO. Intended "
                    "only for testing purposes."));
 
 //===----------------------------------------------------------------------===//
@@ -91,6 +92,15 @@ bool FunctionSignatureTransform::OwnedToGuaranteedAnalyzeParameters() {
       continue;
     }
 
+    // Make sure that an @in argument is not mutated otherwise than destroyed,
+    // because an @in_guaranteed argument must not be mutated.
+    if (A.hasConvention(SILArgumentConvention::Indirect_In) &&
+        // With opaque values, @in arguments can have non-address types.
+        A.Arg->getType().isAddress() &&
+        isIndirectArgumentMutated(A.Arg, /*ignoreDestroys=*/ true, /*defaultIsMutating=*/true)) {
+      continue;
+    }
+  
     // See if we can find a ref count equivalent strong_release or release_value
     // at the end of this function if our argument is an @owned parameter.
     // See if we can find a destroy_addr at the end of this function if our
@@ -106,8 +116,8 @@ bool FunctionSignatureTransform::OwnedToGuaranteedAnalyzeParameters() {
         if (!ArgToThrowReleaseMap.hasBlock() || !ReleasesInThrow.empty()) {
           assert(A.CalleeRelease.empty());
           assert(A.CalleeReleaseInThrowBlock.empty());
-          llvm::copy(Releases, std::back_inserter(A.CalleeRelease));
-          llvm::copy(ReleasesInThrow,
+          toolchain::copy(Releases, std::back_inserter(A.CalleeRelease));
+          toolchain::copy(ReleasesInThrow,
                      std::back_inserter(A.CalleeReleaseInThrowBlock));
           // We can convert this parameter to a @guaranteed.
           A.OwnedToGuaranteed = true;

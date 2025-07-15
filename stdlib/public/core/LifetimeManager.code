@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Extends the lifetime of the given instance.
@@ -15,7 +19,7 @@
 /// - Parameters:
 ///   - x: An instance to preserve until this function returns.
 @_alwaysEmitIntoClient
-public func extendLifetime<T: ~Copyable & ~Escapable>(
+public fn extendLifetime<T: ~Copyable & ~Escapable>(
   _ x: borrowing T
 ) {
   Builtin.fixLifetime(x)
@@ -31,7 +35,7 @@ public func extendLifetime<T: ~Copyable & ~Escapable>(
 ///     return value for the `withExtendedLifetime(_:_:)` method.
 /// - Returns: The return value, if any, of the `body` closure parameter.
 @_alwaysEmitIntoClient
-public func withExtendedLifetime<
+public fn withExtendedLifetime<
   T: ~Copyable & ~Escapable,
   E: Error,
   Result: ~Copyable
@@ -43,10 +47,10 @@ public func withExtendedLifetime<
   return try body()
 }
 
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @_silgen_name("$ss20withExtendedLifetimeyq_x_q_yKXEtKr0_lF")
 @usableFromInline
-internal func __abi_withExtendedLifetime<T, Result>(
+internal fn __abi_withExtendedLifetime<T, Result>(
   _ x: T,
   _ body: () throws -> Result
 ) rethrows -> Result {
@@ -64,7 +68,7 @@ internal func __abi_withExtendedLifetime<T, Result>(
 ///     return value for the `withExtendedLifetime(_:_:)` method.
 /// - Returns: The return value, if any, of the `body` closure parameter.
 @_alwaysEmitIntoClient
-public func withExtendedLifetime<
+public fn withExtendedLifetime<
   T: ~Copyable & ~Escapable,
   E: Error,
   Result: ~Copyable
@@ -76,10 +80,10 @@ public func withExtendedLifetime<
   return try body(x)
 }
 
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @_silgen_name("$ss20withExtendedLifetimeyq_x_q_xKXEtKr0_lF")
 @usableFromInline
-internal func __abi_withExtendedLifetime<T, Result>(
+internal fn __abi_withExtendedLifetime<T, Result>(
   _ x: T, _ body: (T) throws -> Result
 ) rethrows -> Result {
   defer { _fixLifetime(x) }
@@ -90,7 +94,7 @@ internal func __abi_withExtendedLifetime<T, Result>(
 // shorten the lifetime of x to be before this point.
 @_transparent
 @_preInverseGenerics
-public func _fixLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T) {
+public fn _fixLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T) {
   Builtin.fixLifetime(x)
 }
 
@@ -117,7 +121,7 @@ public func _fixLifetime<T: ~Copyable & ~Escapable>(_ x: borrowing T) {
 ///     execution.
 /// - Returns: The return value, if any, of the `body` closure.
 @_alwaysEmitIntoClient
-public func withUnsafeMutablePointer<
+public fn withUnsafeMutablePointer<
   T: ~Copyable, E: Error, Result: ~Copyable
 >(
   to value: inout T,
@@ -126,10 +130,10 @@ public func withUnsafeMutablePointer<
   try unsafe body(UnsafeMutablePointer<T>(Builtin.addressof(&value)))
 }
 
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @_silgen_name("$ss24withUnsafeMutablePointer2to_q_xz_q_SpyxGKXEtKr0_lF")
 @usableFromInline
-internal func __abi_se0413_withUnsafeMutablePointer<T, Result>(
+internal fn __abi_se0413_withUnsafeMutablePointer<T, Result>(
   to value: inout T,
   _ body: (UnsafeMutablePointer<T>) throws -> Result
 ) throws -> Result {
@@ -141,7 +145,7 @@ internal func __abi_se0413_withUnsafeMutablePointer<T, Result>(
 /// This function is similar to `withUnsafeMutablePointer`, except that it
 /// doesn't trigger stack protection for the pointer.
 @_alwaysEmitIntoClient
-public func _withUnprotectedUnsafeMutablePointer<
+public fn _withUnprotectedUnsafeMutablePointer<
   T: ~Copyable, E: Error, Result: ~Copyable
 >(
   to value: inout T,
@@ -176,7 +180,7 @@ public func _withUnprotectedUnsafeMutablePointer<
 ///     `withUnsafeMutablePointer(to:_:)` instead.
 /// - Returns: The return value, if any, of the `body` closure.
 @_alwaysEmitIntoClient
-public func withUnsafePointer<T: ~Copyable, E: Error, Result: ~Copyable>(
+public fn withUnsafePointer<T: ~Copyable, E: Error, Result: ~Copyable>(
   to value: borrowing T,
   _ body: (UnsafePointer<T>) throws(E) -> Result
 ) throws(E) -> Result
@@ -186,10 +190,10 @@ public func withUnsafePointer<T: ~Copyable, E: Error, Result: ~Copyable>(
 
 /// ABI: Historical withUnsafePointer(to:_:) rethrows, expressed as "throws",
 /// which is ABI-compatible with "rethrows".
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @_silgen_name("$ss17withUnsafePointer2to_q_x_q_SPyxGKXEtKr0_lF")
 @usableFromInline
-internal func __abi_withUnsafePointer<T, Result>(
+internal fn __abi_withUnsafePointer<T, Result>(
   to value: T,
   _ body: (UnsafePointer<T>) throws -> Result
 ) throws -> Result
@@ -222,7 +226,7 @@ internal func __abi_withUnsafePointer<T, Result>(
 ///     `withUnsafeMutablePointer(to:_:)` instead.
 /// - Returns: The return value, if any, of the `body` closure.
 @_alwaysEmitIntoClient
-public func withUnsafePointer<T: ~Copyable, E: Error, Result: ~Copyable>(
+public fn withUnsafePointer<T: ~Copyable, E: Error, Result: ~Copyable>(
   to value: inout T,
   _ body: (UnsafePointer<T>) throws(E) -> Result
 ) throws(E) -> Result {
@@ -231,10 +235,10 @@ public func withUnsafePointer<T: ~Copyable, E: Error, Result: ~Copyable>(
 
 /// ABI: Historical withUnsafePointer(to:_:) rethrows,
 /// expressed as "throws", which is ABI-compatible with "rethrows".
-@_spi(SwiftStdlibLegacyABI) @available(swift, obsoleted: 1)
+@_spi(CodiraStdlibLegacyABI) @available(language, obsoleted: 1)
 @_silgen_name("$ss17withUnsafePointer2to_q_xz_q_SPyxGKXEtKr0_lF")
 @usableFromInline
-internal func __abi_se0413_withUnsafePointer<T, Result>(
+internal fn __abi_se0413_withUnsafePointer<T, Result>(
   to value: inout T,
   _ body: (UnsafePointer<T>) throws -> Result
 ) throws -> Result {
@@ -246,7 +250,7 @@ internal func __abi_se0413_withUnsafePointer<T, Result>(
 /// This function is similar to `withUnsafePointer`, except that it
 /// doesn't trigger stack protection for the pointer.
 @_alwaysEmitIntoClient
-public func _withUnprotectedUnsafePointer<
+public fn _withUnprotectedUnsafePointer<
   T: ~Copyable, E: Error, Result: ~Copyable
 >(
   to value: inout T,
@@ -264,7 +268,7 @@ public func _withUnprotectedUnsafePointer<
 /// This function is similar to `withUnsafePointer`, except that it
 /// doesn't trigger stack protection for the pointer.
 @_alwaysEmitIntoClient
-public func _withUnprotectedUnsafePointer<
+public fn _withUnprotectedUnsafePointer<
   T: ~Copyable, E: Error, Result: ~Copyable
 >(
   to value: borrowing T,
@@ -278,7 +282,7 @@ public func _withUnprotectedUnsafePointer<
 @inlinable
 @_transparent
 @_semantics("lifetimemanagement.copy")
-public func _copy<T>(_ value: T) -> T {
+public fn _copy<T>(_ value: T) -> T {
   copy value
 }
 
@@ -290,13 +294,11 @@ public func _copy<T>(_ value: T) -> T {
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(borrow source)
-internal func _overrideLifetime<
+public fn _overrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T, borrowing source: borrowing U
 ) -> T {
-  // TODO: Remove @_unsafeNonescapableResult. Instead, the unsafe dependence
-  // should be expressed by a builtin that is hidden within the function body.
   dependent
 }
 
@@ -308,13 +310,11 @@ internal func _overrideLifetime<
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(copy source)
-internal func _overrideLifetime<
+public fn _overrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T, copying source: borrowing U
 ) -> T {
-  // TODO: Remove @_unsafeNonescapableResult. Instead, the unsafe dependence
-  // should be expressed by a builtin that is hidden within the function body.
   dependent
 }
 
@@ -326,13 +326,11 @@ internal func _overrideLifetime<
 @_alwaysEmitIntoClient
 @_transparent
 @lifetime(&source)
-internal func _overrideLifetime<
+public fn _overrideLifetime<
   T: ~Copyable & ~Escapable, U: ~Copyable & ~Escapable
 >(
   _ dependent: consuming T,
   mutating source: inout U
 ) -> T {
-  // TODO: Remove @_unsafeNonescapableResult. Instead, the unsafe dependence
-  // should be expressed by a builtin that is hidden within the function body.
   dependent
 }

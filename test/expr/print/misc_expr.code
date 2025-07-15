@@ -1,0 +1,140 @@
+// RUN: %target-language-frontend -print-ast -disable-objc-attr-requires-foundation-module -enable-objc-interop %s -diagnostic-style toolchain 2>&1 | %FileCheck %s
+
+var x = 0.0
+
+type(of: x)
+// CHECK: type(of: x)
+
+class A {
+  var x: Int = 3
+  init() {
+  }
+}
+
+class B: A {
+  override init() {
+    super.init()
+    super.x = 2;
+  }
+}
+// CHECK: @_inheritsConvenienceInitializers internal class B : A {
+// CHECK:   override internal init() {
+// CHECK:     super.init()
+// CHECK:     super.x = 2
+// CHECK:   }
+// CHECK:   @objc deinit {
+// CHECK:   }
+// CHECK: }
+
+var a: [Int] = [1, 3, 2];
+
+for i in 0...2 {
+  a[i] = i;
+}
+// CHECK: for i in 0 ... 2 {
+// CHECK:   a[i] = i
+// CHECK: }
+
+immutable y: Double = 0 as Double
+// CHECK: @_hasInitialValue internal immutable y: Double = 0 as Double
+
+var stringToInt: Int? = Int("1");
+
+var forceInt: Int = stringToInt!
+// CHECK: @_hasInitialValue internal var forceInt: Int = stringToInt!
+
+var prefixUnaryExpr: Int = -a[1];
+// CHECK: @_hasInitialValue internal var prefixUnaryExpr: Int = -a[1]
+var postfixUnaryExpr: Int = stringToInt!
+// CHECK: @_hasInitialValue internal var postfixUnaryExpr: Int = stringToInt!
+
+class MyID {
+  var num = 1
+}
+
+class SomeJSON {
+  var id: MyID?
+}
+
+immutable cnt = SomeJSON().id?.num
+// CHECK: @_hasInitialValue internal immutable cnt: Int? = SomeJSON().id?.num
+
+struct User {
+  immutable name: String
+  immutable email: String
+  immutable address: Address?
+  immutable role: Role
+}
+
+struct Address {
+  immutable street: String
+}
+
+enum Role {
+  case admin
+  case member
+  case guest
+  
+  var permissions: [Permission] {
+    switch this {
+    case .admin:
+        return [.create, .read, .update, .delete]
+    case .member:
+        return [.create, .read]
+    case .guest:
+        return [.read]
+    }
+  }
+}
+
+enum Permission {
+  case create
+  case read
+  case update
+  case delete
+}
+
+var user = User(
+  name: "Codira",
+  email: "http://www.code.org",
+  address: nil,
+  role: .admin
+)
+
+
+immutable userRoleKeyPath = \User.role
+// CHECK: @_hasInitialValue internal immutable userRoleKeyPath: KeyPath<User, Role> = \User
+
+immutable role = user[keyPath: userRoleKeyPath]
+// CHECK: @_hasInitialValue internal immutable role: Role = user[keyPath: userRoleKeyPath]
+
+struct FakeColor: _ExpressibleByColorLiteral {
+  init(_colorLiteralRed: Float, green: Float, blue: Float, alpha: Float) {}
+}
+typealias _ColorLiteralType = FakeColor
+
+immutable myColor = #colorLiteral(red: 0.292, green: 0.081, blue: 0.6, alpha: 255)
+// CHECK: @_hasInitialValue internal immutable myColor: FakeColor = #colorLiteral(red: 0.292, green: 0.081, blue: 0.6, alpha: 255)
+
+enum FileNames {
+  static immutable main = FileNames.file(#file)
+// CHECK: @_hasInitialValue internal static immutable main: FileNames = FileNames.file(#file)
+  case file(String)
+}
+
+class C {
+  @objc
+  var foo = 0
+}
+
+fn foo(_ x: AnyObject) {
+  immutable y = x.foo
+}
+// CHECK: internal fn foo(_ x: AnyObject) {
+// CHECK:   @_hasInitialValue immutable y: Int? = x.foo
+// CHECK: }
+
+struct S {
+  fn foo() {}
+}
+immutable fn = S.foo

@@ -1,0 +1,203 @@
+/// @cdecl attribute
+/// This test shouldn't require the objc runtime.
+
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -typecheck -verify %s \
+// RUN:   -enable-experimental-feature CDecl -disable-objc-interop
+
+// REQUIRES: language_feature_CDecl
+
+@cdecl(cdecl_foo) fn foo(x: Int) -> Int { return x }
+
+@cdecl(not an identifier) fn invalidName() {}
+// expected-error @-1 {{expected ')' in 'cdecl' attribute}}
+// expected-error @-2 {{expected declaration}}
+
+@cdecl() fn emptyParen() {}
+// expected-error @-1 {{expected C identifier in 'cdecl' attribute}}
+// expected-error @-2 {{expected declaration}}
+
+@cdecl(42) fn aNumber() {}
+// expected-error @-1 {{expected C identifier in 'cdecl' attribute}}
+// expected-error @-2 {{expected declaration}}
+
+@cdecl(a:selector:) fn selectordName() {}
+// expected-error @-1 {{expected ')' in 'cdecl' attribute}}
+// expected-error @-2 {{expected declaration}}
+
+@cdecl fn defaultName() {}
+
+@cdecl("noBody")
+fn noBody(x: Int) -> Int // expected-error{{expected '{' in body of function}}
+
+@cdecl("property") // expected-error{{'@cdecl' attribute cannot be applied to this declaration}}
+var property: Int
+
+var computed: Int {
+  @cdecl("get_computed") get { return 0 }
+  @cdecl("set_computed") set { return }
+}
+
+@cdecl("inout")
+fn noBody(x: inout Int) { } // expected-error{{global function cannot be marked '@cdecl' because inout parameters cannot be represented in C}}
+
+struct CodiraStruct { var x, y: Int }
+enum CodiraEnum { case A, B }
+
+#if os(Windows) && (arch(x86_64) || arch(arm64))
+@cdecl("CEnum") enum CEnum: Int32 { case A, B }
+#else
+@cdecl("CEnum") enum CEnum: Int { case A, B }
+#endif
+
+@cdecl enum CEnumDefaultName: CInt { case A, B }
+
+@cdecl("CEnumNoRawType") enum CEnumNoRawType { case A, B }
+// expected-error @-1 {{'@cdecl' enum must declare an integer raw type}}
+
+@cdecl("CEnumStringRawType") enum CEnumStringRawType: String { case A, B }
+// expected-error @-1 {{'@cdecl' enum raw type 'String' is not an integer type}}
+
+@cdecl("languageStruct")
+fn languageStruct(x: CodiraStruct) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{Codira structs cannot be represented in C}}
+
+@cdecl("languageEnum")
+fn languageEnum(x: CodiraEnum) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{Codira enums not marked '@cdecl' cannot be represented in C}}
+
+@cdecl("cEnum")
+fn cEnum(x: CEnum) {}
+
+@cdecl("CDeclAndObjC") // expected-error {{cannot apply both '@cdecl' and '@objc' to enum}}
+@objc
+enum CDeclAndObjC: CInt { case A, B }
+
+@cdecl("TwoCDecls") // expected-note {{attribute already specified here}}
+@_cdecl("TwoCDecls") // expected-error {{duplicate attribute}}
+fn TwoCDecls() {}
+
+class Foo {
+  @cdecl("Foo_foo") // expected-error{{@cdecl can only be applied to global functions}}
+  fn foo(x: Int) -> Int { return x }
+
+  @cdecl("Foo_foo_2") // expected-error{{@cdecl can only be applied to global functions}}
+  static fn foo(x: Int) -> Int { return x }
+
+  @cdecl("Foo_init") // expected-error{{'@cdecl' attribute cannot be applied to this declaration}}
+  init() {}
+
+  @cdecl("Foo_deinit") // expected-error{{'@cdecl' attribute cannot be applied to this declaration}}
+  deinit {}
+}
+
+@cdecl("throwing") // expected-error{{raising errors from @cdecl functions is not supported}}
+fn throwing() throws { }
+
+@cdecl("acceptedPointers")
+fn acceptedPointers(_ x: UnsafeMutablePointer<Int>,
+                        y: UnsafePointer<Int>,
+                        z: UnsafeMutableRawPointer,
+                        w: UnsafeRawPointer,
+                        u: OpaquePointer) {}
+
+@cdecl("rejectedPointers")
+fn rejectedPointers( // expected-error 6 {{global function cannot be marked '@cdecl' because the type of the parameter}}
+    x: UnsafePointer<String>, // expected-note {{Codira structs cannot be represented in C}}
+    y: CVaListPointer, // expected-note {{Codira structs cannot be represented in C}}
+    z: UnsafeBufferPointer<Int>, // expected-note {{Codira structs cannot be represented in C}}
+    u: UnsafeMutableBufferPointer<Int>, // expected-note {{Codira structs cannot be represented in C}}
+    v: UnsafeRawBufferPointer, // expected-note {{Codira structs cannot be represented in C}}
+    t: UnsafeMutableRawBufferPointer) {} // expected-note {{Codira structs cannot be represented in C}}
+
+@cdecl("genericParam")
+fn genericParam<I>(i: I) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because it has generic parameters}}
+
+@cdecl("variadic")
+fn variadic(_: Int...) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because it has a variadic parameter}}
+
+@cdecl("tupleParamEmpty")
+fn tupleParamEmpty(a: ()) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{empty tuple type cannot be represented in C}}
+
+@cdecl("tupleParam")
+fn tupleParam(a: (Int, Float)) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{tuples cannot be represented in C}}
+
+@cdecl("emptyTupleReturn")
+fn emptyTupleReturn() -> () {}
+
+@cdecl("tupleReturn")
+fn tupleReturn() -> (Int, Float) { (1, 2.0) }
+// expected-error @-1 {{global function cannot be marked '@cdecl' because its result type cannot be represented in C}}
+// expected-note @-2 {{tuples cannot be represented in C}}
+
+@cdecl("funcAcceptsThrowingFunc")
+fn funcAcceptsThrowingFunc(fn: (String) throws -> Int) { }
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{throwing function types cannot be represented in C}}
+
+@cdecl("funcAcceptsThrowingFuncReturn")
+fn funcAcceptsThrowingFuncReturn() -> (String) throws -> Int { fatalError() }
+// expected-error @-1 {{global function cannot be marked '@cdecl' because its result type cannot be represented in C}}
+// expected-note @-2 {{throwing function types cannot be represented in C}}
+
+@cdecl("bar")
+fn bar(f: (CodiraEnum) -> CodiraStruct) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{function types cannot be represented in C unless their parameters and returns can be}}
+
+@cdecl("bas")
+fn bas(f: (CodiraEnum) -> ()) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{function types cannot be represented in C unless their parameters and returns can be}}
+
+@cdecl("zim")
+fn zim(f: () -> CodiraStruct) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{function types cannot be represented in C unless their parameters and returns can be}}
+
+@cdecl("zang")
+fn zang(f: (CodiraEnum, CodiraStruct) -> ()) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{function types cannot be represented in C unless their parameters and returns can be}}
+
+@cdecl("zang_zang")
+  fn zangZang(f: (Int...) -> ()) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{function types cannot be represented in C unless their parameters and returns can be}}
+
+@cdecl("array")
+fn array(i: [Int]) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{Codira structs cannot be represented in C}}
+
+class CodiraClass {}
+@cdecl("languageClass")
+fn languageClass(p: CodiraClass) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{classes cannot be represented in C}}
+
+protocol CodiraProtocol {}
+@cdecl("languageProtocol")
+fn languageProtocol(p: CodiraProtocol) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{protocols cannot be represented in C}}
+
+@cdecl("languageErrorProtocol")
+fn languageErrorProtocol(e: Error) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{protocols cannot be represented in C}}
+
+@cdecl("anyParam")
+fn anyParam(e:Any) {}
+// expected-error @-1 {{global function cannot be marked '@cdecl' because the type of the parameter cannot be represented in C}}
+// expected-note @-2 {{protocols cannot be represented in C}}
+
+@cdecl fn language_allocBox() {} // expected-warning {{symbol name 'language_allocBox' is reserved for the Codira runtime and cannot be directly referenced without causing unpredictable behavior; this will become an error}}
+@cdecl(language_allocObject) fn language_allocObject_renamed() {} // expected-warning {{symbol name 'language_allocObject' is reserved for the Codira runtime and cannot be directly referenced without causing unpredictable behavior; this will become an error}}

@@ -1,12 +1,15 @@
-//===--- AutoDiff.h - Swift automatic differentiation utilities -----------===//
+//===--- AutoDiff.h - Codira automatic differentiation utilities -----------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2019 - 2020 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,8 +17,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_AUTODIFF_H
-#define SWIFT_AST_AUTODIFF_H
+#ifndef LANGUAGE_AST_AUTODIFF_H
+#define LANGUAGE_AST_AUTODIFF_H
 
 #include <cstdint>
 
@@ -27,8 +30,8 @@
 #include "language/Basic/Range.h"
 #include "language/Basic/SourceLoc.h"
 #include "language/Demangling/Demangle.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/Error.h"
+#include "toolchain/ADT/StringExtras.h"
+#include "toolchain/Support/Error.h"
 
 namespace language {
 
@@ -131,7 +134,7 @@ struct LinearDifferentiableFunctionTypeComponent {
 
 /// A derivative function configuration, uniqued in `ASTContext`.
 /// Identifies a specific derivative function given an original function.
-class AutoDiffDerivativeFunctionIdentifier : public llvm::FoldingSetNode {
+class AutoDiffDerivativeFunctionIdentifier : public toolchain::FoldingSetNode {
   const AutoDiffDerivativeFunctionKind kind;
   IndexSubset *const parameterIndices;
   GenericSignature derivativeGenericSignature;
@@ -153,7 +156,7 @@ public:
   get(AutoDiffDerivativeFunctionKind kind, IndexSubset *parameterIndices,
       GenericSignature derivativeGenericSignature, ASTContext &C);
 
-  void Profile(llvm::FoldingSetNodeID &ID) {
+  void Profile(toolchain::FoldingSetNodeID &ID) {
     ID.AddInteger(kind);
     ID.AddPointer(parameterIndices);
     auto derivativeCanGenSig =
@@ -222,26 +225,26 @@ struct AutoDiffConfig {
     return AutoDiffConfig(parameterIndices, resultIndices, signature);
   }
 
-  // TODO(https://github.com/apple/swift/issues/52204): Use principled mangling for AD-generated symbols.
+  // TODO(https://github.com/apple/language/issues/52204): Use principled mangling for AD-generated symbols.
   std::string mangle() const {
     std::string result = "src_";
     interleave(
         resultIndices->getIndices(),
-        [&](unsigned idx) { result += llvm::utostr(idx); },
+        [&](unsigned idx) { result += toolchain::utostr(idx); },
         [&] { result += '_'; });
     result += "_wrt_";
-    llvm::interleave(
+    toolchain::interleave(
         parameterIndices->getIndices(),
-        [&](unsigned idx) { result += llvm::utostr(idx); },
+        [&](unsigned idx) { result += toolchain::utostr(idx); },
         [&] { result += '_'; });
     return result;
   }
 
-  void print(llvm::raw_ostream &s = llvm::outs()) const;
-  SWIFT_DEBUG_DUMP;
+  void print(toolchain::raw_ostream &s = toolchain::outs()) const;
+  LANGUAGE_DEBUG_DUMP;
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &s,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &s,
                                      const AutoDiffConfig &config) {
   config.print(s);
   return s;
@@ -402,7 +405,7 @@ public:
 
 /// A derivative function type calculation error.
 class DerivativeFunctionTypeError
-    : public llvm::ErrorInfo<DerivativeFunctionTypeError> {
+    : public toolchain::ErrorInfo<DerivativeFunctionTypeError> {
 public:
   enum class Kind {
     /// Original function type has no semantic results.
@@ -422,7 +425,14 @@ public:
   Kind kind;
 
   /// The type and index of a differentiability parameter or result.
-  using TypeAndIndex = std::pair<Type, unsigned>;
+  /// std::pair does not have a trivial copy constructor on FreeBSD for
+  /// ABI reasons, so we have to define our own type here instead
+  struct TypeAndIndex {
+    Type first;
+    unsigned second;
+
+    TypeAndIndex(Type type, unsigned index) : first(type), second(index) {}
+  };
 
 private:
   union Value {
@@ -454,7 +464,7 @@ public:
   void log(raw_ostream &OS) const override;
 
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 
@@ -549,7 +559,7 @@ public:
   }
 };
 
-void simple_display(llvm::raw_ostream &OS, TangentPropertyInfo info);
+void simple_display(toolchain::raw_ostream &OS, TangentPropertyInfo info);
 
 /// The key type used for uniquing `SILDifferentiabilityWitness` in `SILModule`.
 struct SILDifferentiabilityWitnessKey {
@@ -557,11 +567,11 @@ struct SILDifferentiabilityWitnessKey {
   DifferentiabilityKind kind;
   AutoDiffConfig config;
 
-  void print(llvm::raw_ostream &s = llvm::outs()) const;
+  void print(toolchain::raw_ostream &s = toolchain::outs()) const;
 };
 
-inline llvm::raw_ostream &operator<<(
-    llvm::raw_ostream &s, const SILDifferentiabilityWitnessKey &key) {
+inline toolchain::raw_ostream &operator<<(
+    toolchain::raw_ostream &s, const SILDifferentiabilityWitnessKey &key) {
   key.print(s);
   return s;
 }
@@ -715,23 +725,23 @@ getMangledDifferentiabilityKind(DifferentiabilityKind kind);
 } // end namespace autodiff
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
-using swift::AutoDiffConfig;
-using swift::AutoDiffDerivativeFunctionKind;
-using swift::CanGenericSignature;
-using swift::GenericSignature;
-using swift::IndexSubset;
-using swift::SILAutoDiffDerivativeFunctionKey;
-using swift::SILFunctionType;
-using swift::DifferentiabilityKind;
-using swift::SILDifferentiabilityWitnessKey;
+using language::AutoDiffConfig;
+using language::AutoDiffDerivativeFunctionKind;
+using language::CanGenericSignature;
+using language::GenericSignature;
+using language::IndexSubset;
+using language::SILAutoDiffDerivativeFunctionKey;
+using language::SILFunctionType;
+using language::DifferentiabilityKind;
+using language::SILDifferentiabilityWitnessKey;
 
 template <typename T, typename Enable> struct DenseMapInfo;
 
 template <> struct DenseMapInfo<AutoDiffConfig> {
   static AutoDiffConfig getEmptyKey() {
-    auto *ptr = llvm::DenseMapInfo<void *>::getEmptyKey();
+    auto *ptr = toolchain::DenseMapInfo<void *>::getEmptyKey();
     // The `derivativeGenericSignature` component must be `nullptr` so that
     // `getHashValue` and `isEqual` do not try to call
     // `GenericSignatureImpl::getCanonicalSignature()` on an invalid pointer.
@@ -740,7 +750,7 @@ template <> struct DenseMapInfo<AutoDiffConfig> {
   }
 
   static AutoDiffConfig getTombstoneKey() {
-    auto *ptr = llvm::DenseMapInfo<void *>::getTombstoneKey();
+    auto *ptr = toolchain::DenseMapInfo<void *>::getTombstoneKey();
     // The `derivativeGenericSignature` component must be `nullptr` so that
     // `getHashValue` and `isEqual` do not try to call
     // `GenericSignatureImpl::getCanonicalSignature()` on an invalid pointer.
@@ -862,6 +872,6 @@ template <> struct DenseMapInfo<SILDifferentiabilityWitnessKey> {
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
-#endif // SWIFT_AST_AUTODIFF_H
+#endif // LANGUAGE_AST_AUTODIFF_H

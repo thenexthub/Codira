@@ -1,0 +1,5 @@
+// RUN: not %target-language-frontend %s -filelist nonexistent 2>&1 | %FileCheck -check-prefix=CHECK-BADFILEANDFILELIST %s
+// CHECK-BADFILEANDFILELIST: error: cannot have input files with file list
+
+// RUN: not %target-language-frontend nonexistent.code another-nonexistent.code nonexistent.code 2>&1 | %FileCheck -check-prefix=CHECK-APPEARSMORETHANONCE %s
+// CHECK-APPEARSMORETHANONCE: error: duplicate input file 'nonexistent.code'

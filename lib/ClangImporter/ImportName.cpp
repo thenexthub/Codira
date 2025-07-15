@@ -1,4 +1,4 @@
-//===--- ImportName.cpp - Imported Swift names for Clang decls ------------===//
+//===--- ImportName.cpp - Imported Codira names for Clang decls ------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides class definitions for naming-related concerns in the
@@ -21,9 +22,10 @@
 #include "CFTypeInfo.h"
 #include "ClangClassTemplateNamePrinter.h"
 #include "ClangDiagnosticConsumer.h"
+#include "ImportEnumInfo.h"
 #include "ImporterImpl.h"
 #include "language/AST/ASTContext.h"
-#include "language/AST/ClangSwiftTypeCorrespondence.h"
+#include "language/AST/ClangCodiraTypeCorrespondence.h"
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsClangImporter.h"
 #include "language/AST/Module.h"
@@ -47,13 +49,13 @@
 #include "clang/Parse/Parser.h"
 #include "clang/Sema/Lookup.h"
 #include "clang/Sema/Sema.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/ErrorHandling.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/ErrorHandling.h"
 #include <algorithm>
 #include <memory>
 #include <optional>
 
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/Statistic.h"
 #define DEBUG_TYPE "Import Name"
 STATISTIC(ImportNameNumCacheHits, "# of times the import name cache was hit");
 STATISTIC(ImportNameNumCacheMisses, "# of times the import name cache was missed");
@@ -146,7 +148,7 @@ static bool isErrorOutParameter(const clang::ParmVarDecl *param,
     if (iface && iface->getName() == "NSError") {
       switch (type.getObjCLifetime()) {
       case clang::Qualifiers::OCL_None:
-        llvm_unreachable("not in ARC?");
+        toolchain_unreachable("not in ARC?");
 
       case clang::Qualifiers::OCL_ExplicitNone:
       case clang::Qualifiers::OCL_Autoreleasing:
@@ -161,7 +163,7 @@ static bool isErrorOutParameter(const clang::ParmVarDecl *param,
         isErrorOwned = ForeignErrorConvention::IsOwned;
         return false;
       }
-      llvm_unreachable("bad error ownership");
+      toolchain_unreachable("bad error ownership");
     }
   }
   return false;
@@ -209,26 +211,26 @@ classifyMethodErrorHandling(const clang::ObjCMethodDecl *clangDecl,
   clang::ASTContext &clangCtx = clangDecl->getASTContext();
 
   // Check for an explicit attribute.
-  if (auto attr = clangDecl->getAttr<clang::SwiftErrorAttr>()) {
+  if (auto attr = clangDecl->getAttr<clang::CodiraErrorAttr>()) {
     switch (attr->getConvention()) {
-    case clang::SwiftErrorAttr::None:
+    case clang::CodiraErrorAttr::None:
       return std::nullopt;
 
-    case clang::SwiftErrorAttr::NonNullError:
+    case clang::CodiraErrorAttr::NonNullError:
       return ForeignErrorConvention::NonNilError;
 
     // Only honor null_result if we actually imported as a
     // non-optional type.
-    case clang::SwiftErrorAttr::NullResult:
+    case clang::CodiraErrorAttr::NullResult:
       if (resultOptionality != OTK_None &&
-          swift::canImportAsOptional(
+          language::canImportAsOptional(
             clangDecl->getReturnType().getTypePtrOrNull()))
         return ForeignErrorConvention::NilResult;
       return std::nullopt;
 
     // Preserve the original result type on a zero_result unless we
     // imported it as Bool.
-    case clang::SwiftErrorAttr::ZeroResult:
+    case clang::CodiraErrorAttr::ZeroResult:
       if (isBoolType(clangCtx, clangDecl->getReturnType())) {
         return ForeignErrorConvention::ZeroResult;
       } else if (isIntegerType(clangDecl->getReturnType())) {
@@ -238,12 +240,12 @@ classifyMethodErrorHandling(const clang::ObjCMethodDecl *clangDecl,
 
     // There's no reason to do the same for nonzero_result because the
     // only meaningful value remaining would be zero.
-    case clang::SwiftErrorAttr::NonZeroResult:
+    case clang::CodiraErrorAttr::NonZeroResult:
       if (isIntegerType(clangDecl->getReturnType()))
         return ForeignErrorConvention::NonZeroResult;
       return std::nullopt;
     }
-    llvm_unreachable("bad swift_error kind");
+    toolchain_unreachable("bad language_error kind");
   }
 
   // Otherwise, apply the default rules.
@@ -255,7 +257,7 @@ classifyMethodErrorHandling(const clang::ObjCMethodDecl *clangDecl,
 
   // For optional reference results, a nil value is normally an error.
   if (resultOptionality != OTK_None &&
-      swift::canImportAsOptional(
+      language::canImportAsOptional(
         clangDecl->getReturnType().getTypePtrOrNull())) {
     return ForeignErrorConvention::NilResult;
   }
@@ -284,8 +286,8 @@ static OptionalTypeKind getResultOptionality(
   return OTK_ImplicitlyUnwrappedOptional;
 }
 
-/// Determine whether the given name is reserved for Swift.
-static bool isSwiftReservedName(StringRef name) {
+/// Determine whether the given name is reserved for Codira.
+static bool isCodiraReservedName(StringRef name) {
   tok kind = Lexer::kindOfIdentifier(name, /*InSILMode=*/false);
   return (kind != tok::identifier);
 }
@@ -305,7 +307,7 @@ static bool shouldLowercaseValueName(StringRef name) {
 /// Will recursively print out the fully qualified context for the given name.
 /// Ends with a trailing "."
 static void printFullContextPrefix(ImportedName name, ImportNameVersion version,
-                                   llvm::raw_ostream &os,
+                                   toolchain::raw_ostream &os,
                                    ClangImporter::Implementation &Impl) {
   const clang::NamedDecl *newDeclContextNamed = nullptr;
   switch (name.getEffectiveContext().getKind()) {
@@ -337,10 +339,10 @@ static void printFullContextPrefix(ImportedName name, ImportNameVersion version,
   os << parentName.getDeclName() << ".";
 }
 
-void ClangImporter::Implementation::printSwiftName(ImportedName name,
+void ClangImporter::Implementation::printCodiraName(ImportedName name,
                                                    ImportNameVersion version,
                                                    bool fullyQualified,
-                                                   llvm::raw_ostream &os) {
+                                                   toolchain::raw_ostream &os) {
   // Property accessors.
   bool isGetter = false;
   bool isSetter = false;
@@ -424,7 +426,7 @@ namespace {
                                                       ImportedName>>
                               &overriddenNames) {
     typedef std::pair<const DeclType *, ImportedName> OverriddenName;
-    llvm::SmallPtrSet<DeclName, 4> known;
+    toolchain::SmallPtrSet<DeclName, 4> known;
     (void)known.insert(DeclName());
     overriddenNames.erase(
         std::remove_if(overriddenNames.begin(), overriddenNames.end(),
@@ -448,7 +450,7 @@ namespace {
       if (ctx.Diags.isPrettyPrintingDecl())
         continue;
 
-      ctx.Diags.diagnose(SourceLoc(), diag::inconsistent_swift_name,
+      ctx.Diags.diagnose(SourceLoc(), diag::inconsistent_language_name,
                          method == nullptr,
                          nameStr,
                          getClangDeclContextName(decl->getDeclContext()),
@@ -545,32 +547,32 @@ determineFactoryInitializerKind(const clang::ObjCMethodDecl *method) {
 }
 
 namespace {
-///  Describes the details of any swift_name or swift_async_name
+///  Describes the details of any language_name or language_async_name
 ///  attribute found via
-struct AnySwiftNameAttr {
+struct AnyCodiraNameAttr {
   /// The name itself.
   StringRef name;
 
-  /// Whether this was a swift_async_name attribute.
+  /// Whether this was a language_async_name attribute.
   bool isAsync;
 
-  friend bool operator==(AnySwiftNameAttr lhs, AnySwiftNameAttr rhs) {
+  friend bool operator==(AnyCodiraNameAttr lhs, AnyCodiraNameAttr rhs) {
     return lhs.name == rhs.name && lhs.isAsync == rhs.isAsync;
   }
 };
 
-/// Aggregate struct for the common members of clang::SwiftVersionedAdditionAttr and
-/// clang::SwiftVersionedRemovalAttr.
+/// Aggregate struct for the common members of clang::CodiraVersionedAdditionAttr and
+/// clang::CodiraVersionedRemovalAttr.
 ///
-/// For a SwiftVersionedRemovalAttr, the Attr member will be null.
-struct VersionedSwiftNameInfo {
-  std::optional<AnySwiftNameAttr> Attr;
-  llvm::VersionTuple Version;
+/// For a CodiraVersionedRemovalAttr, the Attr member will be null.
+struct VersionedCodiraNameInfo {
+  std::optional<AnyCodiraNameAttr> Attr;
+  toolchain::VersionTuple Version;
   bool IsReplacedByActive;
 };
 
-/// The action to take upon seeing a particular versioned swift_name annotation.
-enum class VersionedSwiftNameAction {
+/// The action to take upon seeing a particular versioned language_name annotation.
+enum class VersionedCodiraNameAction {
   /// This annotation is not interesting.
   Ignore,
   /// This annotation is better than whatever we have so far.
@@ -584,12 +586,12 @@ enum class VersionedSwiftNameAction {
 };
 } // end anonymous namespace
 
-static VersionedSwiftNameAction
-checkVersionedSwiftName(VersionedSwiftNameInfo info,
-                        llvm::VersionTuple bestSoFar,
+static VersionedCodiraNameAction
+checkVersionedCodiraName(VersionedCodiraNameInfo info,
+                        toolchain::VersionTuple bestSoFar,
                         ImportNameVersion requestedVersion) {
   if (!bestSoFar.empty() && bestSoFar <= info.Version)
-    return VersionedSwiftNameAction::Ignore;
+    return VersionedCodiraNameAction::Ignore;
 
   auto requestedClangVersion = requestedVersion.asClangVersionTuple();
 
@@ -602,25 +604,25 @@ checkVersionedSwiftName(VersionedSwiftNameInfo info,
     // a header annotation was replaced by an unversioned API notes annotation.)
     if (info.Version.empty() ||
         info.Version >= requestedClangVersion) {
-      return VersionedSwiftNameAction::ResetToActive;
+      return VersionedCodiraNameAction::ResetToActive;
     }
     if (bestSoFar.empty())
-      return VersionedSwiftNameAction::UseAsFallback;
-    return VersionedSwiftNameAction::Ignore;
+      return VersionedCodiraNameAction::UseAsFallback;
+    return VersionedCodiraNameAction::Ignore;
   }
 
   if (info.Version < requestedClangVersion)
-    return VersionedSwiftNameAction::Ignore;
-  return VersionedSwiftNameAction::Use;
+    return VersionedCodiraNameAction::Ignore;
+  return VersionedCodiraNameAction::Use;
 }
 
-static std::optional<AnySwiftNameAttr>
-findSwiftNameAttr(const clang::Decl *decl, ImportNameVersion version) {
+static std::optional<AnyCodiraNameAttr>
+findCodiraNameAttr(const clang::Decl *decl, ImportNameVersion version) {
 #ifndef NDEBUG
   if (std::optional<const clang::Decl *> def =
           getDefinitionForClangTypeDecl(decl)) {
     assert((*def == nullptr || *def == decl) &&
-           "swift_name should only appear on the definition");
+           "language_name should only appear on the definition");
   }
 #endif
 
@@ -628,61 +630,61 @@ findSwiftNameAttr(const clang::Decl *decl, ImportNameVersion version) {
     return std::nullopt;
 
   /// Decode the given Clang attribute to try to determine whether it is
-  /// a Swift name attribute.
+  /// a Codira name attribute.
   auto decodeAttr =
-      [&](const clang::Attr *attr) -> std::optional<AnySwiftNameAttr> {
+      [&](const clang::Attr *attr) -> std::optional<AnyCodiraNameAttr> {
     if (version.supportsConcurrency()) {
-      if (auto asyncAttr = dyn_cast<clang::SwiftAsyncNameAttr>(attr)) {
-        return AnySwiftNameAttr { asyncAttr->getName(), /*isAsync=*/true };
+      if (auto asyncAttr = dyn_cast<clang::CodiraAsyncNameAttr>(attr)) {
+        return AnyCodiraNameAttr { asyncAttr->getName(), /*isAsync=*/true };
       }
     }
 
-    if (auto nameAttr = dyn_cast<clang::SwiftNameAttr>(attr)) {
-      return AnySwiftNameAttr { nameAttr->getName(), /*isAsync=*/false };
+    if (auto nameAttr = dyn_cast<clang::CodiraNameAttr>(attr)) {
+      return AnyCodiraNameAttr { nameAttr->getName(), /*isAsync=*/false };
     }
 
     return std::nullopt;
   };
 
-  // Handle versioned API notes for Swift 3 and later. This is the common case.
-  if (version > ImportNameVersion::swift2()) {
+  // Handle versioned API notes for Codira 3 and later. This is the common case.
+  if (version > ImportNameVersion::language2()) {
     // FIXME: Until Apple gets a chance to update UIKit's API notes, always use
     // the new name for certain properties.
     if (auto *namedDecl = dyn_cast<clang::NamedDecl>(decl))
       if (importer::isSpecialUIKitStructZeroProperty(namedDecl))
-        version = ImportNameVersion::swift4_2();
+        version = ImportNameVersion::language4_2();
 
-    // Dig out the attribute that specifies the Swift name.
-    std::optional<AnySwiftNameAttr> activeAttr;
-    if (auto asyncAttr = decl->getAttr<clang::SwiftAsyncNameAttr>())
+    // Dig out the attribute that specifies the Codira name.
+    std::optional<AnyCodiraNameAttr> activeAttr;
+    if (auto asyncAttr = decl->getAttr<clang::CodiraAsyncNameAttr>())
       activeAttr = decodeAttr(asyncAttr);
     if (!activeAttr) {
-      if (auto nameAttr = decl->getAttr<clang::SwiftNameAttr>())
+      if (auto nameAttr = decl->getAttr<clang::CodiraNameAttr>())
         activeAttr = decodeAttr(nameAttr);
     }
 
     if (auto enumDecl = dyn_cast<clang::EnumDecl>(decl)) {
       // Intentionally don't get the canonical type here.
       if (auto typedefType = dyn_cast<clang::TypedefType>(getUnderlyingType(enumDecl))) {
-        // If the typedef is available in Swift, the user will get ambiguity.
+        // If the typedef is available in Codira, the user will get ambiguity.
         // It also means they may not have intended this API to be imported like this.
-        if (importer::isUnavailableInSwift(typedefType->getDecl(), nullptr, true)) {
-          if (auto asyncAttr = typedefType->getDecl()->getAttr<clang::SwiftAsyncNameAttr>())
+        if (importer::isUnavailableInCodira(typedefType->getDecl(), nullptr, true)) {
+          if (auto asyncAttr = typedefType->getDecl()->getAttr<clang::CodiraAsyncNameAttr>())
             activeAttr = decodeAttr(asyncAttr);
           if (!activeAttr) {
-            if (auto nameAttr = typedefType->getDecl()->getAttr<clang::SwiftNameAttr>())
+            if (auto nameAttr = typedefType->getDecl()->getAttr<clang::CodiraNameAttr>())
               activeAttr = decodeAttr(nameAttr);
           }
         }
       }
     }
 
-    std::optional<AnySwiftNameAttr> result = activeAttr;
-    llvm::VersionTuple bestSoFar;
+    std::optional<AnyCodiraNameAttr> result = activeAttr;
+    toolchain::VersionTuple bestSoFar;
     for (auto *attr : decl->attrs()) {
-      VersionedSwiftNameInfo info;
+      VersionedCodiraNameInfo info;
 
-      if (auto *versionedAttr = dyn_cast<clang::SwiftVersionedAdditionAttr>(attr)) {
+      if (auto *versionedAttr = dyn_cast<clang::CodiraVersionedAdditionAttr>(attr)) {
         auto added = decodeAttr(versionedAttr->getAdditionalAttr());
         if (!added)
           continue;
@@ -691,8 +693,8 @@ findSwiftNameAttr(const clang::Decl *decl, ImportNameVersion version) {
                 versionedAttr->getIsReplacedByActive()};
 
       } else if (auto *removeAttr =
-                   dyn_cast<clang::SwiftVersionedRemovalAttr>(attr)) {
-        if (removeAttr->getAttrKindToRemove() != clang::attr::SwiftName)
+                   dyn_cast<clang::CodiraVersionedRemovalAttr>(attr)) {
+        if (removeAttr->getAttrKindToRemove() != clang::attr::CodiraName)
           continue;
         info = {std::nullopt, removeAttr->getVersion(),
                 removeAttr->getIsReplacedByActive()};
@@ -701,15 +703,15 @@ findSwiftNameAttr(const clang::Decl *decl, ImportNameVersion version) {
         continue;
       }
 
-      switch (checkVersionedSwiftName(info, bestSoFar, version)) {
-      case VersionedSwiftNameAction::Ignore:
+      switch (checkVersionedCodiraName(info, bestSoFar, version)) {
+      case VersionedCodiraNameAction::Ignore:
         continue;
-      case VersionedSwiftNameAction::Use:
+      case VersionedCodiraNameAction::Use:
         result = info.Attr;
         bestSoFar = info.Version;
         break;
-      case VersionedSwiftNameAction::UseAsFallback:
-        // HACK: If there's a swift_name attribute in the headers /and/ in the
+      case VersionedCodiraNameAction::UseAsFallback:
+        // HACK: If there's a language_name attribute in the headers /and/ in the
         // unversioned API notes /and/ in the active versioned API notes, there
         // will be two "replacement" attributes, one for each of the first two
         // cases. Prefer the first one we see, because that turns out to be the
@@ -720,7 +722,7 @@ findSwiftNameAttr(const clang::Decl *decl, ImportNameVersion version) {
           result = info.Attr;
         assert(bestSoFar.empty());
         break;
-      case VersionedSwiftNameAction::ResetToActive:
+      case VersionedCodiraNameAction::ResetToActive:
         result = activeAttr;
         bestSoFar = info.Version;
         break;
@@ -730,24 +732,24 @@ findSwiftNameAttr(const clang::Decl *decl, ImportNameVersion version) {
     return result;
   }
 
-  // The remainder of this function emulates the limited form of swift_name
-  // supported in Swift 2.
-  auto attr = decl->getAttr<clang::SwiftNameAttr>();
+  // The remainder of this function emulates the limited form of language_name
+  // supported in Codira 2.
+  auto attr = decl->getAttr<clang::CodiraNameAttr>();
   if (!attr)
     return std::nullopt;
 
   // API notes produce attributes with no source location; ignore them because
-  // they weren't used for naming in Swift 2.
+  // they weren't used for naming in Codira 2.
   if (attr->getLocation().isInvalid())
     return std::nullopt;
 
-  // Hardcode certain kinds of explicitly-written Swift names that were
-  // permitted and used in Swift 2. All others are ignored, so that we are
-  // assuming a more direct translation from the Objective-C APIs into Swift.
+  // Hardcode certain kinds of explicitly-written Codira names that were
+  // permitted and used in Codira 2. All others are ignored, so that we are
+  // assuming a more direct translation from the Objective-C APIs into Codira.
 
   if (auto enumerator = dyn_cast<clang::EnumConstantDecl>(decl)) {
-    // Foundation's NSXMLDTDKind had an explicit swift_name attribute in
-    // Swift 2. Honor it.
+    // Foundation's NSXMLDTDKind had an explicit language_name attribute in
+    // Codira 2. Honor it.
     if (enumerator->getName() == "NSXMLDTDKind") return decodeAttr(attr);
     return std::nullopt;
   }
@@ -778,7 +780,7 @@ static FactoryAsInitKind
 getFactoryAsInit(const clang::ObjCInterfaceDecl *classDecl,
                  const clang::ObjCMethodDecl *method,
                  ImportNameVersion version) {
-  if (auto customNameAttr = findSwiftNameAttr(method, version)) {
+  if (auto customNameAttr = findCodiraNameAttr(method, version)) {
     if (customNameAttr->name.starts_with("init("))
       return FactoryAsInitKind::AsInitializer;
     else
@@ -924,8 +926,8 @@ static bool omitNeedlessWordsInFunctionName(
                            completionHandlerName, nameImporter.getScratch());
 }
 
-/// Prepare global name for importing onto a swift_newtype.
-static StringRef determineSwiftNewtypeBaseName(StringRef baseName,
+/// Prepare global name for importing onto a language_newtype.
+static StringRef determineCodiraNewtypeBaseName(StringRef baseName,
                                                StringRef newtypeName,
                                                bool &strippedPrefix) {
   StringRef newBaseName = stripLeadingK(baseName);
@@ -963,12 +965,12 @@ NameImporter::determineEffectiveContext(const clang::NamedDecl *decl,
     case EnumKind::NonFrozenEnum:
     case EnumKind::FrozenEnum:
     case EnumKind::Options:
-      // Enums are mapped to Swift enums, Options to Swift option sets.
+      // Enums are mapped to Codira enums, Options to Codira option sets.
       if (version != ImportNameVersion::raw()) {
         res = cast<clang::DeclContext>(enumDecl);
         break;
       }
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case EnumKind::Constants:
     case EnumKind::Unknown:
       // The enum constant goes into the redeclaration context of the
@@ -976,8 +978,8 @@ NameImporter::determineEffectiveContext(const clang::NamedDecl *decl,
       res = enumDecl->getRedeclContext();
       break;
     }
-    // Import onto a swift_newtype if present
-  } else if (auto newtypeDecl = findSwiftNewtype(decl, clangSema, version)) {
+    // Import onto a language_newtype if present
+  } else if (auto newtypeDecl = findCodiraNewtype(decl, clangSema, version)) {
     res = newtypeDecl;
     // Everything else goes into its redeclaration context.
   } else {
@@ -1076,30 +1078,30 @@ bool NameImporter::hasNamingConflict(const clang::NamedDecl *decl,
   return false;
 }
 
-static bool shouldBeSwiftPrivate(NameImporter &nameImporter,
+static bool shouldBeCodiraPrivate(NameImporter &nameImporter,
                                  const clang::NamedDecl *decl,
                                  ImportNameVersion version,
                                  bool isAsyncImport) {
-  // For an async import, check whether there is a swift_async attribute
-  // that specifies whether this should be considered swift_private or not.
+  // For an async import, check whether there is a language_async attribute
+  // that specifies whether this should be considered language_private or not.
   if (isAsyncImport) {
-    if (auto *asyncAttr = decl->getAttr<clang::SwiftAsyncAttr>()) {
+    if (auto *asyncAttr = decl->getAttr<clang::CodiraAsyncAttr>()) {
       switch (asyncAttr->getKind()) {
-      case clang::SwiftAsyncAttr::None:
-        // Fall through to let us decide based on swift_private.
+      case clang::CodiraAsyncAttr::None:
+        // Fall through to let us decide based on language_private.
         break;
 
-      case clang::SwiftAsyncAttr::SwiftPrivate:
+      case clang::CodiraAsyncAttr::CodiraPrivate:
         return true;
 
-      case clang::SwiftAsyncAttr::NotSwiftPrivate:
+      case clang::CodiraAsyncAttr::NotCodiraPrivate:
         return false;
       }
     }
   }
 
   // Decl with the attribute are obviously private
-  if (decl->hasAttr<clang::SwiftPrivateAttr>())
+  if (decl->hasAttr<clang::CodiraPrivateAttr>())
     return true;
 
   // Enum constants that are not imported as members should be considered
@@ -1112,13 +1114,13 @@ static bool shouldBeSwiftPrivate(NameImporter &nameImporter,
     case EnumKind::Options:
       if (version != ImportNameVersion::raw())
         break;
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case EnumKind::Constants:
     case EnumKind::Unknown:
-      if (ED->hasAttr<clang::SwiftPrivateAttr>())
+      if (ED->hasAttr<clang::CodiraPrivateAttr>())
         return true;
       if (auto *enumTypedef = ED->getTypedefNameForAnonDecl())
-        if (enumTypedef->hasAttr<clang::SwiftPrivateAttr>())
+        if (enumTypedef->hasAttr<clang::CodiraPrivateAttr>())
           return true;
       break;
     }
@@ -1178,7 +1180,7 @@ NameImporter::considerErrorImport(const clang::ObjCMethodDecl *clangDecl,
 
       if (!suffixToStrip.empty()) {
         StringRef newBaseName = baseName.drop_back(suffixToStrip.size());
-        if (newBaseName.empty() || isSwiftReservedName(newBaseName)) {
+        if (newBaseName.empty() || isCodiraReservedName(newBaseName)) {
           adjustName = false;
           suffixToStrip = {};
         } else {
@@ -1228,7 +1230,7 @@ NameImporter::considerErrorImport(const clang::ObjCMethodDecl *clangDecl,
   return std::nullopt;
 }
 
-bool swift::isCompletionHandlerParamName(StringRef paramName) {
+bool language::isCompletionHandlerParamName(StringRef paramName) {
   return paramName == "completionHandler" ||
       paramName == "withCompletionHandler" ||
       paramName == "completion" || paramName == "withCompletion" ||
@@ -1280,7 +1282,7 @@ std::optional<ForeignAsyncConvention::Info> NameImporter::considerAsyncImport(
   // When there is a custom async name, it will have removed the completion
   // handler parameter already.
   unsigned customAsyncNameAdjust =
-      customName == CustomAsyncName::SwiftAsyncName ? 1 : 0;
+      customName == CustomAsyncName::CodiraAsyncName ? 1 : 0;
 
   // If the # of parameter names doesn't line up with the # of parameters,
   // bail out. There are extra C parameters on the method or a custom name
@@ -1306,9 +1308,9 @@ std::optional<ForeignAsyncConvention::Info> NameImporter::considerAsyncImport(
           stripWithCompletionHandlerSuffix(baseName))
         break;
 
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
 
-    case CustomAsyncName::SwiftName:
+    case CustomAsyncName::CodiraName:
       // Check whether the argument label itself has an appropriate name.
       if (isCompletionHandlerParamName(
               paramNames[completionHandlerParamNameIndex]) ||
@@ -1326,7 +1328,7 @@ std::optional<ForeignAsyncConvention::Info> NameImporter::considerAsyncImport(
 
       return std::nullopt;
 
-    case CustomAsyncName::SwiftAsyncName:
+    case CustomAsyncName::CodiraAsyncName:
       // Having a custom async name implies that this is a completion handler.
       break;
     }
@@ -1341,8 +1343,8 @@ std::optional<ForeignAsyncConvention::Info> NameImporter::considerAsyncImport(
   auto notAsync =
       [&](const char *reason) -> std::optional<ForeignAsyncConvention::Info> {
 #ifdef ASYNC_IMPORT_DEBUG
-    llvm::errs() << "*** failed async import: " << reason << "\n";
-    clangDecl->dump(llvm::errs());
+    toolchain::errs() << "*** failed async import: " << reason << "\n";
+    clangDecl->dump(toolchain::errs());
 #endif
 
     return std::nullopt;
@@ -1420,11 +1422,11 @@ std::optional<ForeignAsyncConvention::Info> NameImporter::considerAsyncImport(
   // Drop the completion handler parameter name when needed.
   switch (customName) {
   case CustomAsyncName::None:
-  case CustomAsyncName::SwiftName:
+  case CustomAsyncName::CodiraName:
     paramNames.erase(paramNames.begin() + completionHandlerParamNameIndex);
     break;
 
-  case CustomAsyncName::SwiftAsyncName:
+  case CustomAsyncName::CodiraAsyncName:
     break;
   }
 
@@ -1469,10 +1471,10 @@ bool NameImporter::hasErrorMethodNameCollision(
     return false;
 
   // Look to see if the conflicting decl is unavailable, either because it's
-  // been marked NS_SWIFT_UNAVAILABLE, because it's actually marked unavailable,
+  // been marked NS_LANGUAGE_UNAVAILABLE, because it's actually marked unavailable,
   // or because it was deprecated before our API sunset. We can handle
   // "conflicts" where one form is unavailable.
-  return !isUnavailableInSwift(conflict, &availability,
+  return !isUnavailableInCodira(conflict, &availability,
                                enableObjCInterop());
 }
 
@@ -1514,7 +1516,7 @@ static StringRef renameUnsafeMethod(ASTContext &ctx,
 std::optional<StringRef>
 NameImporter::findCustomName(const clang::Decl *decl,
                              ImportNameVersion version) {
-  if (auto nameAttr = findSwiftNameAttr(decl, version)) {
+  if (auto nameAttr = findCodiraNameAttr(decl, version)) {
     return nameAttr->name;
   }
   return std::nullopt;
@@ -1525,13 +1527,18 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
                                           clang::DeclarationName givenName) {
   ImportedName result;
 
-  /// Whether we want a Swift 3 or later name
-  bool swift3OrLaterName = version > ImportNameVersion::swift2();
+  /// Whether we want a Codira 3 or later name
+  bool language3OrLaterName = version > ImportNameVersion::language2();
 
   // Objective-C categories and extensions don't have names, despite
   // being "named" declarations.
   if (isa<clang::ObjCCategoryDecl>(D))
     return ImportedName();
+
+  // C++ interop was not available in Codira 2
+  if (!language3OrLaterName && isa<clang::CXXMethodDecl>(D)) {
+    return ImportedName();
+  }
 
   // Dig out the definition, if there is one.
   if (auto def = getDefinitionForClangTypeDecl(D)) {
@@ -1557,35 +1564,35 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     }
   }
 
-  // Gather information from the swift_async attribute, if there is one.
+  // Gather information from the language_async attribute, if there is one.
   std::optional<unsigned> completionHandlerParamIndex;
   bool completionHandlerFlagIsZeroOnError = false;
   std::optional<unsigned> completionHandlerFlagParamIndex;
   if (version.supportsConcurrency()) {
-    if (const auto *swiftAsyncAttr = D->getAttr<clang::SwiftAsyncAttr>()) {
-      // If this is swift_async(none), don't import as async at all.
-      if (swiftAsyncAttr->getKind() == clang::SwiftAsyncAttr::None)
+    if (const auto *languageAsyncAttr = D->getAttr<clang::CodiraAsyncAttr>()) {
+      // If this is language_async(none), don't import as async at all.
+      if (languageAsyncAttr->getKind() == clang::CodiraAsyncAttr::None)
         return ImportedName();
 
       // Get the completion handler parameter index, if there is one.
       completionHandlerParamIndex =
-          swiftAsyncAttr->getCompletionHandlerIndex().getASTIndex();
+          languageAsyncAttr->getCompletionHandlerIndex().getASTIndex();
     }
 
-    if (const auto *asyncErrorAttr = D->getAttr<clang::SwiftAsyncErrorAttr>()) {
+    if (const auto *asyncErrorAttr = D->getAttr<clang::CodiraAsyncErrorAttr>()) {
       switch (auto convention = asyncErrorAttr->getConvention()) {
       // No flag parameter in these cases.
-      case clang::SwiftAsyncErrorAttr::NonNullError:
-      case clang::SwiftAsyncErrorAttr::None:
+      case clang::CodiraAsyncErrorAttr::NonNullError:
+      case clang::CodiraAsyncErrorAttr::None:
         break;
 
       // Get the flag argument index and polarity from the attribute.
-      case clang::SwiftAsyncErrorAttr::NonZeroArgument:
-      case clang::SwiftAsyncErrorAttr::ZeroArgument:
+      case clang::CodiraAsyncErrorAttr::NonZeroArgument:
+      case clang::CodiraAsyncErrorAttr::ZeroArgument:
         // NB: Attribute is 1-based rather than 0-based.
         completionHandlerFlagParamIndex = asyncErrorAttr->getHandlerParamIdx() - 1;
         completionHandlerFlagIsZeroOnError =
-          convention == clang::SwiftAsyncErrorAttr::ZeroArgument;
+          convention == clang::CodiraAsyncErrorAttr::ZeroArgument;
         break;
       }
     }
@@ -1593,7 +1600,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
 
   // FIXME: ugly to check here, instead perform unified check up front in
   // containing struct...
-  if (findSwiftNewtype(D, clangSema, version))
+  if (findCodiraNewtype(D, clangSema, version))
     result.info.importAsMember = true;
 
   // Find the original method/property declaration and retrieve the
@@ -1614,7 +1621,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     // If we found any names of overridden methods, return those names.
     if (!overriddenNames.empty()) {
       if (overriddenNames.size() > 1)
-        mergeOverriddenNames(swiftCtx, method, overriddenNames);
+        mergeOverriddenNames(languageCtx, method, overriddenNames);
       overriddenNames[0].second.effectiveContext = result.effectiveContext;
 
       // Compute the initializer kind from the derived method, though.
@@ -1652,15 +1659,15 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
       // If we found any names of overridden methods, return those names.
       if (!overriddenNames.empty()) {
         if (overriddenNames.size() > 1)
-          mergeOverriddenNames(swiftCtx, property, overriddenNames);
+          mergeOverriddenNames(languageCtx, property, overriddenNames);
         overriddenNames[0].second.effectiveContext = result.effectiveContext;
         return overriddenNames[0].second;
       }
     }
   }
 
-  // If we have a swift_name attribute, use that.
-  if (auto nameAttr = findSwiftNameAttr(D, version)) {
+  // If we have a language_name attribute, use that.
+  if (auto nameAttr = findCodiraNameAttr(D, version)) {
     bool skipCustomName = false;
 
     // Parse the name.
@@ -1685,7 +1692,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
         if (auto kind = determineCtorInitializerKind(method))
           result.info.initKind = *kind;
 
-        // If this swift_name attribute maps a factory method to an
+        // If this language_name attribute maps a factory method to an
         // initializer and we were asked not to do so, ignore the
         // custom name.
         if (suppressFactoryMethodAsInit(method, version,
@@ -1697,7 +1704,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
         }
       } else if (shouldImportAsInitializer(method, version, initPrefixLength)) {
         // This is an initializer, but its custom name is ill-formed. Ignore
-        // the swift_name attribute.
+        // the language_name attribute.
         skipCustomName = true;
         result.info.hasInvalidCustomName = true;
       }
@@ -1706,7 +1713,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     if (!skipCustomName) {
       result.info.hasCustomName = true;
       result.declName = parsedName.formDeclName(
-          swiftCtx, /*isSubscript=*/false,
+          languageCtx, /*isSubscript=*/false,
           isa<clang::ClassTemplateSpecializationDecl>(D));
 
       // Handle globals treated as members.
@@ -1729,7 +1736,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
       else if (parsedName.IsSetter)
         result.info.accessorKind = ImportedAccessorKind::PropertySetter;
 
-      // only allow effectful property imports if through `swift_async_name`
+      // only allow effectful property imports if through `language_async_name`
       const bool effectfulProperty = parsedName.IsGetter && nameAttr->isAsync;
 
       // Consider throws and async imports.
@@ -1751,8 +1758,8 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
                   method, parsedName.BaseName, parsedName.ArgumentLabels,
                   params, isInitializer,
                   completionHandlerParamIndex,
-                  nameAttr->isAsync ? CustomAsyncName::SwiftAsyncName
-                                    : CustomAsyncName::SwiftName,
+                  nameAttr->isAsync ? CustomAsyncName::CodiraAsyncName
+                                    : CustomAsyncName::CodiraName,
                   completionHandlerFlagParamIndex,
                   completionHandlerFlagIsZeroOnError,
                   result.getErrorInfo())) {
@@ -1761,7 +1768,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
 
             // Update the name to reflect the new parameter labels.
             result.declName = formDeclName(
-                swiftCtx, parsedName.BaseName, parsedName.ArgumentLabels,
+                languageCtx, parsedName.BaseName, parsedName.ArgumentLabels,
                 /*isFunction=*/true, isInitializer, /*isSubscript=*/false,
                 isa<clang::ClassTemplateSpecializationDecl>(D));
           } else if (nameAttr->isAsync) {
@@ -1781,7 +1788,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     static_assert((clang::Decl::lastField - clang::Decl::firstField) == 2,
                   "update logic for new FieldDecl subclasses");
     if (isa<clang::ObjCIvarDecl>(D) || isa<clang::ObjCAtDefsFieldDecl>(D))
-      // These are not ordinary fields and are not imported into Swift.
+      // These are not ordinary fields and are not imported into Codira.
       return result;
 
     if (field->isAnonymousStructOrUnion() || field->getDeclName().isEmpty()) {
@@ -1789,10 +1796,10 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
       // order to be able to expose the indirect fields injected from there
       // as computed properties forwarding the access to the subfield.
       std::string name;
-      llvm::raw_string_ostream nameStream(name);
+      toolchain::raw_string_ostream nameStream(name);
 
       nameStream << "__Anonymous_field" << field->getFieldIndex();
-      result.setDeclName(swiftCtx.getIdentifier(nameStream.str()));
+      result.setDeclName(languageCtx.getIdentifier(nameStream.str()));
       result.setEffectiveContext(field->getDeclContext());
       return result;
     }
@@ -1813,7 +1820,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
         if (fieldTagDecl == D) {
           // Create a name for the declaration from the field name.
           std::string name;
-          llvm::raw_string_ostream nameStream(name);
+          toolchain::raw_string_ostream nameStream(name);
 
           const char *kind;
           if (fieldTagDecl->isStruct())
@@ -1825,7 +1832,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
           else if  (fieldTagDecl->isEnum())
             kind = "enum";
           else
-            llvm_unreachable("unknown decl kind");
+            toolchain_unreachable("unknown decl kind");
 
           nameStream << "__Unnamed_" << kind << "_";
           if (field->isAnonymousStructOrUnion()) {
@@ -1835,7 +1842,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
                    "Microsoft anonymous struct extension?");
             nameStream << field->getName();
           }
-          result.setDeclName(swiftCtx.getIdentifier(nameStream.str()));
+          result.setDeclName(languageCtx.getIdentifier(nameStream.str()));
           result.setEffectiveContext(D->getDeclContext());
           return result;
         }
@@ -1847,20 +1854,20 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     if (auto enumDecl = dyn_cast<clang::EnumDecl>(D)) {
       // Intentionally don't get the canonical type here.
       if (auto typedefType = dyn_cast<clang::TypedefType>(getUnderlyingType(enumDecl))) {
-        // If the typedef is available in Swift, the user will get ambiguity.
+        // If the typedef is available in Codira, the user will get ambiguity.
         // It also means they may not have intended this API to be imported like this.
-        if (importer::isUnavailableInSwift(typedefType->getDecl(), nullptr, true)) {
+        if (importer::isUnavailableInCodira(typedefType->getDecl(), nullptr, true)) {
           StringRef baseName = typedefType->getDecl()->getName();
-          SmallString<16> swiftPrivateScratch;
-          // If this declaration has the swift_private attribute, prepend "__"
-          if (shouldBeSwiftPrivate(*this, D, version,
+          SmallString<16> languagePrivateScratch;
+          // If this declaration has the language_private attribute, prepend "__"
+          if (shouldBeCodiraPrivate(*this, D, version,
                                    result.info.hasAsyncInfo)) {
-            swiftPrivateScratch = "__";
-            swiftPrivateScratch += baseName;
-            baseName = swiftPrivateScratch;
+            languagePrivateScratch = "__";
+            languagePrivateScratch += baseName;
+            baseName = languagePrivateScratch;
           }
 
-          result.setDeclName(swiftCtx.getIdentifier(baseName));
+          result.setDeclName(languageCtx.getIdentifier(baseName));
           result.setEffectiveContext(D->getDeclContext());
           return result;
         }
@@ -1873,22 +1880,16 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
 
   // In C++ language mode, CF_OPTIONS/NS_OPTIONS macro has a different
   // expansion: instead of a forward-declared enum, it expands into a typedef
-  // that is marked as `__attribute__((availability(swift,unavailable)))`, and
+  // that is marked as `__attribute__((availability(language,unavailable)))`, and
   // an anonymous enum that inherits from the typedef. The logic above imports
   // the anonymous enum with the desired name based on the typedef's name. In
   // addition to that, we should make sure the unavailable typedef isn't
-  // imported into Swift to avoid having two types with the same name, which
+  // imported into Codira to avoid having two types with the same name, which
   // cause subtle name lookup issues.
-  if (swiftCtx.LangOpts.EnableCXXInterop &&
-      isUnavailableInSwift(D, nullptr, true)) {
-    auto loc = D->getEndLoc();
-    if (loc.isMacroID()) {
-      StringRef macroName =
-          clangSema.getPreprocessor().getImmediateMacroName(loc);
-      if (isCFOptionsMacro(macroName))
-        return ImportedName();
-    }
-  }
+  if (languageCtx.LangOpts.EnableCXXInterop &&
+      isUnavailableInCodira(D, nullptr, true) &&
+      isCFOptionsMacro(D, clangSema.getPreprocessor()))
+    return ImportedName();
 
   /// Whether the result is a function name.
   bool isFunction = false;
@@ -1980,8 +1981,8 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
 
       auto operatorName =
           isa<clang::CXXMethodDecl>(functionDecl)
-              ? getOperatorName(swiftCtx, op)
-              : swiftCtx.getIdentifier(clang::getOperatorSpelling(op));
+              ? getOperatorName(languageCtx, op)
+              : languageCtx.getIdentifier(clang::getOperatorSpelling(op));
       baseName = operatorName.str();
       isFunction = true;
       addDefaultArgNamesForClangFunction(functionDecl, argumentNames);
@@ -2043,7 +2044,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
 
     // For Objective-C BOOL properties, use the name of the getter
     // which, conventionally, has an "is" prefix.
-    if (swift3OrLaterName) {
+    if (language3OrLaterName) {
       if (auto property = dyn_cast<clang::ObjCPropertyDecl>(D)) {
         if (isBoolType(clangSema.Context, property->getType()))
           baseName = property->getGetterName().getNameForSlot(0);
@@ -2143,7 +2144,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
 
       // If we dropped "with" and ended up with a reserved name,
       // put "with" back.
-      if (droppedWith && isSwiftReservedName(argName)) {
+      if (droppedWith && isCodiraReservedName(argName)) {
         selectorSplitScratch = "with";
         selectorSplitScratch +=
             selector.getNameForSlot(0).substr(initializerPrefixLen + 4);
@@ -2254,7 +2255,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     if (objcProto->hasDefinition()) {
       if (hasNamingConflict(D, objcProto->getIdentifier(), nullptr)) {
         baseNameWithProtocolSuffix = baseName;
-        baseNameWithProtocolSuffix += SWIFT_PROTOCOL_SUFFIX;
+        baseNameWithProtocolSuffix += LANGUAGE_PROTOCOL_SUFFIX;
         baseName = baseNameWithProtocolSuffix;
       }
     }
@@ -2263,29 +2264,24 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
   // Typedef declarations might be CF types that will drop the "Ref"
   // suffix.
   clang::ASTContext &clangCtx = clangSema.Context;
-  if (swift3OrLaterName) {
+  if (language3OrLaterName) {
     if (auto typedefNameDecl = dyn_cast<clang::TypedefNameDecl>(D)) {
-      auto swiftName = getCFTypeName(typedefNameDecl);
-      if (!swiftName.empty() &&
-          !hasNamingConflict(D, &clangCtx.Idents.get(swiftName),
+      auto languageName = getCFTypeName(typedefNameDecl);
+      if (!languageName.empty() &&
+          !hasNamingConflict(D, &clangCtx.Idents.get(languageName),
                              typedefNameDecl)) {
         // Adopt the requested name.
-        baseName = swiftName;
+        baseName = languageName;
       }
     }
   }
 
   if (auto classTemplateSpecDecl =
           dyn_cast<clang::ClassTemplateSpecializationDecl>(D)) {
-    /// Symbolic specializations get imported as the symbolic class template
-    /// type.
-    if (importSymbolicCXXDecls)
-      return importNameImpl(classTemplateSpecDecl->getSpecializedTemplate(),
-                            version, givenName);
     if (!isa<clang::ClassTemplatePartialSpecializationDecl>(D)) {
       auto name = printClassTemplateSpecializationName(classTemplateSpecDecl,
-                                                       swiftCtx, this, version);
-      baseName = swiftCtx.getIdentifier(name).get();
+                                                       languageCtx, this, version);
+      baseName = languageCtx.getIdentifier(name).get();
     }
   }
 
@@ -2319,21 +2315,21 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
         baseName.starts_with("__synthesizedVirtualCall_")) {
       // If this is a thunk for a virtual method of a C++ reference type, we
       // strip away the underscored prefix. This method should be visible and
-      // callable from Swift.
+      // callable from Codira.
       newName = baseName.substr(StringRef("__synthesizedVirtualCall_").size());
       baseName = newName;
     }
   }
 
-  // swift_newtype-ed declarations may have common words with the type name
+  // language_newtype-ed declarations may have common words with the type name
   // stripped.
-  if (auto newtypeDecl = findSwiftNewtype(D, clangSema, version)) {
+  if (auto newtypeDecl = findCodiraNewtype(D, clangSema, version)) {
     result.info.importAsMember = true;
-    baseName = determineSwiftNewtypeBaseName(baseName, newtypeDecl->getName(),
+    baseName = determineCodiraNewtypeBaseName(baseName, newtypeDecl->getName(),
                                              strippedPrefix);
   }
 
-  if (!result.isSubscriptAccessor() && swift3OrLaterName) {
+  if (!result.isSubscriptAccessor() && language3OrLaterName) {
     // Objective-C properties.
     if (auto objcProperty = dyn_cast<clang::ObjCPropertyDecl>(D)) {
       auto contextType = getClangDeclContextType(
@@ -2369,11 +2365,11 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
                     result.getErrorInfo()->ErrorParameterIndex))
               : std::nullopt,
           method->hasRelatedResultType(), method->isInstanceMethod(),
-          swift::transform(result.getAsyncInfo(),
+          language::transform(result.getAsyncInfo(),
                            [](const ForeignAsyncConvention::Info &info) {
                              return info.completionHandlerParamIndex();
                            }),
-          swift::transform(
+          language::transform(
               result.getAsyncInfo(),
               [&](const ForeignAsyncConvention::Info &info) {
                 return method->getDeclName().getObjCSelector().getNameForSlot(
@@ -2389,10 +2385,10 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
     }
   }
 
-  // If this declaration has the swift_private attribute, prepend "__" to the
+  // If this declaration has the language_private attribute, prepend "__" to the
   // appropriate place.
-  SmallString<16> swiftPrivateScratch;
-  if (shouldBeSwiftPrivate(*this, D, version, result.info.hasAsyncInfo)) {
+  SmallString<16> languagePrivateScratch;
+  if (shouldBeCodiraPrivate(*this, D, version, result.info.hasAsyncInfo)) {
     // Special case: empty arg factory, "for historical reasons", is not private
     if (isInitializer && argumentNames.empty() &&
         (result.getInitKind() == CtorInitializerKind::Factory ||
@@ -2400,7 +2396,7 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
       return result;
 
     // Make the given name private.
-    swiftPrivateScratch = "__";
+    languagePrivateScratch = "__";
 
     if (isInitializer) {
       // For initializers, prepend "__" to the first argument name.
@@ -2408,19 +2404,19 @@ ImportedName NameImporter::importNameImpl(const clang::NamedDecl *D,
         // FIXME: Record that we did this.
         argumentNames.push_back("__");
       } else {
-        swiftPrivateScratch += argumentNames[0];
-        argumentNames[0] = swiftPrivateScratch;
+        languagePrivateScratch += argumentNames[0];
+        argumentNames[0] = languagePrivateScratch;
       }
     } else {
       // For all other entities, prepend "__" to the base name.
-      swiftPrivateScratch += baseName;
-      baseName = swiftPrivateScratch;
+      languagePrivateScratch += baseName;
+      baseName = languagePrivateScratch;
     }
   }
 
-  baseName = renameUnsafeMethod(swiftCtx, D, baseName);
+  baseName = renameUnsafeMethod(languageCtx, D, baseName);
 
-  result.declName = formDeclName(swiftCtx, baseName, argumentNames, isFunction,
+  result.declName = formDeclName(languageCtx, baseName, argumentNames, isFunction,
                                  isInitializer, /*isSubscript=*/false,
                                  isa<clang::ClassTemplateSpecializationDecl>(D));
   return result;
@@ -2443,7 +2439,7 @@ static bool shouldIgnoreMacro(StringRef name, const clang::MacroInfo *macro,
     return true;
 
   // Consult the list of macros to suppress.
-  auto suppressMacro = llvm::StringSwitch<bool>(name)
+  auto suppressMacro = toolchain::StringSwitch<bool>(name)
 #define SUPPRESS_MACRO(NAME) .Case(#NAME, true)
 #include "MacroTable.def"
                            .Default(false);
@@ -2477,7 +2473,7 @@ NameImporter::importMacroName(const clang::IdentifierInfo *clangIdentifier,
 
   // No transformation is applied to the name.
   StringRef name = clangIdentifier->getName();
-  return swiftCtx.getIdentifier(name);
+  return languageCtx.getIdentifier(name);
 }
 
 ImportedName NameImporter::importName(const clang::NamedDecl *decl,
@@ -2510,7 +2506,7 @@ ImportedName NameImporter::importName(const clang::NamedDecl *decl,
 
 bool NameImporter::forEachDistinctImportName(
     const clang::NamedDecl *decl, ImportNameVersion activeVersion,
-    llvm::function_ref<bool(ImportedName, ImportNameVersion)> action) {
+    toolchain::function_ref<bool(ImportedName, ImportNameVersion)> action) {
   using ImportNameKey = std::tuple<DeclName, EffectiveClangContext, bool>;
   SmallVector<ImportNameKey, 8> seenNames;
 
@@ -2532,7 +2528,7 @@ bool NameImporter::forEachDistinctImportName(
         ImportNameKey key(newName.getDeclName(), newName.getEffectiveContext(),
                           newName.getAsyncInfo().has_value());
 
-        bool seen = llvm::any_of(
+        bool seen = toolchain::any_of(
             seenNames, [&key](const ImportNameKey &existing) -> bool {
               return std::get<0>(key) == std::get<0>(existing) &&
                 std::get<2>(key) == std::get<2>(existing) &&
@@ -2563,7 +2559,7 @@ const InheritedNameSet *NameImporter::getAllPropertyNames(
   }
 
   // Create the set of properties.
-  llvm::BumpPtrAllocator &alloc = scratch.getAllocator();
+  toolchain::BumpPtrAllocator &alloc = scratch.getAllocator();
   known = allProperties.insert({
       std::pair<const clang::ObjCInterfaceDecl *, char>(classDecl, forInstance),
       std::make_unique<InheritedNameSet>(parentSet, alloc) }).first;

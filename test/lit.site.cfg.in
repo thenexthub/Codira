@@ -1,0 +1,183 @@
+# lit.site.cfg.in - Local configuration for the 'lit' test runner -*- python -*-
+#
+# This source file is part of the Codira.org open source project
+#
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
+# Licensed under Apache License v2.0 with Runtime Library Exception
+#
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+#
+# -----------------------------------------------------------------------------
+
+import os
+import platform
+import sys
+import lit.util
+
+config.cmake = "@CMAKE_COMMAND@"
+config.cmake_binary_dir = "@CMAKE_BINARY_DIR@"
+config.toolchain_src_root = "@TOOLCHAIN_MAIN_SRC_DIR@"
+config.toolchain_obj_root = "@TOOLCHAIN_BINARY_DIR@"
+config.toolchain_tools_dir = "@TOOLCHAIN_TOOLS_DIR@"
+config.toolchain_libs_dir = "@TOOLCHAIN_LIBS_DIR@"
+config.toolchain_plugin_ext = "@TOOLCHAIN_PLUGIN_EXT@"
+config.toolchain_code_generators = "@TOOLCHAIN_TARGETS_TO_BUILD@".split(";")
+config.lit_tools_dir = "@TOOLCHAIN_LIT_TOOLS_DIR@"
+config.code_src_root = lit_config.params.get("language_src_root", "@LANGUAGE_SOURCE_DIR@")
+config.code_obj_root = "@LANGUAGE_BINARY_DIR@"
+config.target_triple = "@TOOLCHAIN_TARGET_TRIPLE@"
+config.variant_triple = "@VARIANT_TRIPLE@"
+config.variant_sdk = "@VARIANT_SDK@"
+config.variant_suffix = "@VARIANT_SUFFIX@"
+config.external_embedded_platform = "@VARIANT_EXTERNAL_EMBEDDED_PLATFORM@" == "TRUE"
+config.external_embedded_device = "@VARIANT_EXTERNAL_EMBEDDED_DEVICE@"
+config.codelib_dir = "@LIT_LANGUAGELIB_DIR@"
+config.code_test_results_dir = \
+    lit_config.params.get("language_test_results_dir", "@LANGUAGE_TEST_RESULTS_DIR@")
+
+config.host_triple = "@LANGUAGE_HOST_TRIPLE@"
+config.host_sdkroot = "@LANGUAGE_HOST_SDKROOT@"
+
+config.coverage_mode = "@LANGUAGE_ANALYZE_CODE_COVERAGE@"
+config.lldb_build_root = "@LLDB_BUILD_DIR@"
+config.libdispatch_build_path = "@LANGUAGE_PATH_TO_LIBDISPATCH_BUILD@"
+config.libdispatch_static_build_path = "@LANGUAGE_PATH_TO_LIBDISPATCH_STATIC_BUILD@"
+config.code_driver_test_options = "@LANGUAGE_DRIVER_TEST_OPTIONS@"
+config.code_frontend_test_options = "@LANGUAGE_FRONTEND_TEST_OPTIONS@"
+config.code_ide_test_test_options = "@LANGUAGE_IDE_TEST_TEST_OPTIONS@"
+
+config.cmake_c_compiler = r'''@CMAKE_C_COMPILER@'''
+config.cmake_cxx_compiler = r'''@CMAKE_CXX_COMPILER@'''
+config.c_flags = r'''@CMAKE_C_FLAGS@'''
+config.exe_linker_flags = r'''@CMAKE_EXE_LINKER_FLAGS@'''
+
+# --- Darwin ---
+config.darwin_xcrun_toolchain = "@LANGUAGE_DARWIN_XCRUN_TOOLCHAIN@"
+
+# --- android ---
+config.android_ndk_path = "@LANGUAGE_ANDROID_NDK_PATH@"
+config.android_api_level = "@LANGUAGE_ANDROID_API_LEVEL@"
+
+# --- Windows ---
+msvc_runtime_flags = {
+  'MultiThreaded': 'MT',
+  'MultiThreadedDebug': 'MTd',
+  'MultiThreadedDLL': 'MD',
+  'MultiThreadedDebugDLL': 'MDd',
+}
+config.code_stdlib_msvc_runtime = \
+    msvc_runtime_flags["@LANGUAGE_STDLIB_MSVC_RUNTIME_LIBRARY@"]
+
+config.darwin_enable_maccatalyst = "@LANGUAGE_ENABLE_MACCATALYST@" == "TRUE"
+config.darwin_maccatalyst_build_flavor = "@BUILD_FLAVOR@"
+config.darwin_osx_variant_suffix = "@DEFAULT_OSX_VARIANT_SUFFIX@"
+
+# If we are not testing against the host compiler, we are testing against the
+# just built compiler. Add that as a feature so we can conditionally mark tests
+# as requiring a just_built_compiler.
+config.testing_against_host_compiler = \
+    "@LANGUAGE_RUN_TESTS_WITH_HOST_COMPILER@" == "TRUE"
+
+# Please remember to handle empty strings and/or unset variables correctly.
+
+if "@LANGUAGE_ASAN_BUILD@" == "TRUE":
+    config.available_features.add("asan")
+else:
+    config.available_features.add('no_asan')
+
+if "@LANGUAGE_RUNTIME_ENABLE_LEAK_CHECKER@" == "TRUE":
+    config.available_features.add('leak-checker')
+
+if '@LANGUAGE_TOOLS_ENABLE_LTO@'.lower() in ['full', 'thin']:
+    config.available_features.add('lto')
+else:
+    config.available_features.add('no_lto')
+
+if '@LANGUAGE_STDLIB_ENABLE_LTO@'.lower() in ['full', 'thin']:
+    config.available_features.add('stdlib_lto')
+
+if "@TOOLCHAIN_ENABLE_ASSERTIONS@" == "TRUE":
+    config.available_features.add('asserts')
+    # Tests that require -language-version 7 can only run with asserts compilers
+    config.available_features.add('language7')
+else:
+    config.available_features.add('no_asserts')
+
+if "@LANGUAGE_STDLIB_ASSERTIONS@" == "TRUE":
+    config.available_features.add('language_stdlib_asserts')
+else:
+    config.available_features.add('language_stdlib_no_asserts')
+
+if "@LANGUAGE_OPTIMIZED@" == "TRUE":
+    config.available_features.add("optimized_stdlib")
+
+if "@LANGUAGE_STDLIB_SINGLE_THREADED_CONCURRENCY@" == "TRUE":
+    config.available_features.add("single_threaded_concurrency")
+
+if "@LANGUAGE_ENABLE_REFLECTION@" == "TRUE":
+    config.available_features.add("reflection")
+
+if "@LANGUAGE_ENABLE_RUNTIME_FUNCTION_COUNTERS@" == "TRUE":
+    config.available_features.add('runtime_function_counters')
+
+config.available_features.add("CMAKE_GENERATOR=@CMAKE_GENERATOR@")
+
+if "@LANGUAGE_ENABLE_MACCATALYST@" == "TRUE":
+    config.available_features.add('maccatalyst_support')
+
+if "@LANGUAGE_ENABLE_SOURCEKIT_TESTS@" == "TRUE":
+    config.available_features.add('sourcekit')
+
+if "@LANGUAGE_HAVE_LIBXML2@" == "TRUE":
+    config.available_features.add('libxml2')
+
+if '@LANGUAGE_INCLUDE_TOOLS@' == 'TRUE':
+    config.available_features.add('language_tools_extra')
+
+if "@LANGUAGE_ENABLE_EXPERIMENTAL_DIFFERENTIABLE_PROGRAMMING@" == "TRUE":
+    config.available_features.add('differentiable_programming')
+if "@LANGUAGE_ENABLE_EXPERIMENTAL_CONCURRENCY@" == "TRUE":
+    config.available_features.add('concurrency')
+if "@LANGUAGE_ENABLE_EXPERIMENTAL_DISTRIBUTED@" == "TRUE":
+    config.available_features.add('distributed')
+if "@LANGUAGE_STDLIB_STATIC_PRINT@" == "TRUE":
+    config.available_features.add('stdlib_static_print')
+if "@LANGUAGE_STDLIB_ENABLE_UNICODE_DATA" == "TRUE":
+    config.available_features.add('stdlib_unicode_data')
+if "@LANGUAGE_ENABLE_EXPERIMENTAL_STRING_PROCESSING@" == "TRUE":
+    config.available_features.add('string_processing')
+if "@LANGUAGE_ENABLE_EXPERIMENTAL_OBSERVATION@" == "TRUE":
+    config.available_features.add('observation')
+if "@LANGUAGE_STDLIB_ENABLE_DEBUG_PRECONDITIONS_IN_RELEASE@" == "TRUE":
+    config.available_features.add('language_stdlib_debug_preconditions_in_release')
+if "@LANGUAGE_ENABLE_VOLATILE@" == "TRUE":
+    config.available_features.add('volatile')
+if "@LANGUAGE_ENABLE_SYNCHRONIZATION@" == "TRUE":
+    config.available_features.add('synchronization')
+if "@LANGUAGE_ENABLE_VOLATILE@" == "TRUE":
+    config.available_features.add('volatile')
+if "@LANGUAGE_SHOULD_BUILD_EMBEDDED_STDLIB@" == "TRUE":
+    config.available_features.add('embedded_stdlib')
+if "@LANGUAGE_SHOULD_BUILD_EMBEDDED_STDLIB_CROSS_COMPILING@" == "TRUE":
+    config.available_features.add('embedded_stdlib_cross_compiling')
+
+config.code_freestanding_is_darwin = "@LANGUAGE_FREESTANDING_IS_DARWIN@" == "TRUE"
+config.code_stdlib_use_relative_protocol_witness_tables = "@LANGUAGE_STDLIB_USE_RELATIVE_PROTOCOL_WITNESS_TABLES@" == "TRUE"
+config.code_stdlib_use_use_fragile_resilient_protocol_witness_tables = "@LANGUAGE_STDLIB_USE_FRAGILE_RESILIENT_PROTOCOL_WITNESS_TABLES@" == "TRUE"
+config.code_enable_dispatch = "@LANGUAGE_ENABLE_DISPATCH@" == "TRUE"
+config.code_stdlib_enable_objc_interop = "@LANGUAGE_STDLIB_ENABLE_OBJC_INTEROP@" == "TRUE"
+# Configured in DarwinSDKs.cmake
+config.freestanding_sdk_name = "@LANGUAGE_SDK_FREESTANDING_LIB_SUBDIR@"
+
+if '@LANGUAGE_BUILD_LANGUAGE_SYNTAX@' == 'TRUE':
+  config.available_features.add('language_language_parser')
+
+config.code_sdks = "@LANGUAGE_SDKS@".split(";")
+
+# Let the main config do the real work.
+if config.test_exec_root is None:
+    config.test_exec_root = os.path.dirname(lit.util.abs_path_preserve_drive(__file__))
+lit_config.load_config(config, os.path.join(config.test_exec_root, "lit.code-features.cfg"))
+lit_config.load_config(
+    config, os.path.join(config.code_src_root, "test", "lit.cfg"))

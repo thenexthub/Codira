@@ -1,0 +1,48 @@
+// REQUIRES: OS=macosx
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -scan-dependencies -module-name Test -O \
+// RUN:   -disable-implicit-string-processing-module-import -disable-implicit-concurrency-module-import -parse-stdlib \
+// RUN:   %t/test.code %t/foo.code -o %t/deps.json -cache-compile-job -cas-backend -cas-backend-mode=verify -cas-path %t/cas
+
+// RUN: %{python} %S/Inputs/GenerateExplicitModuleMap.py %t/deps.json > %t/map.json
+// RUN: toolchain-cas --cas %t/cas --make-blob --data %t/map.json > %t/map.casid
+
+// RUN: %{python} %S/Inputs/BuildCommandExtractor.py %t/deps.json Test > %t/MyApp.cmd
+// RUN: echo "\"-disable-implicit-string-processing-module-import\"" >> %t/MyApp.cmd
+// RUN: echo "\"-disable-implicit-concurrency-module-import\"" >> %t/MyApp.cmd
+// RUN: echo "\"-parse-stdlib\"" >> %t/MyApp.cmd
+
+/// Test compile multiple inputs with batch mode.
+// RUN: %target-language-frontend -cache-compile-job -cas-backend -cas-backend-mode=verify -Rcache-compile-job %t/test.code %t/foo.code -emit-module -o %t/Test.codemodule \
+// RUN:  -module-name Test -cas-path %t/cas @%t/MyApp.cmd 2>&1 | %FileCheck --check-prefix=CACHE-MISS %s
+// RUN: %target-language-frontend -cache-compile-job -cas-backend -cas-backend-mode=verify -Rcache-compile-job -primary-file %t/test.code %t/foo.code -c -o %t/test.o  \
+// RUN:  -module-name Test -cas-path %t/cas @%t/MyApp.cmd 2>&1 | %FileCheck --check-prefix=CACHE-MISS %s
+// RUN: %target-language-frontend -cache-compile-job -cas-backend -cas-backend-mode=verify -Rcache-compile-job %t/test.code -primary-file %t/foo.code -c -o %t/foo.o  \
+// RUN:  -module-name Test -cas-path %t/cas @%t/MyApp.cmd 2>&1 | %FileCheck --check-prefix=CACHE-MISS %s
+// RUN: test -f %t/test.o
+// RUN: test -f %t/foo.o
+// RUN: test -f %t/Test.codemodule
+
+/// Expect cache hit second time
+// RUN: %target-language-frontend -cache-compile-job -cas-backend -cas-backend-mode=verify -Rcache-compile-job %t/test.code %t/foo.code -emit-module -o %t/Test.codemodule \
+// RUN:  -module-name Test -cas-path %t/cas @%t/MyApp.cmd 2>&1 | %FileCheck --check-prefix=CACHE-HIT %s
+// RUN: %target-language-frontend -cache-compile-job -cas-backend -cas-backend-mode=verify -Rcache-compile-job -primary-file %t/test.code %t/foo.code -c -o %t/test.o  \
+// RUN:  -module-name Test -cas-path %t/cas @%t/MyApp.cmd 2>&1 | %FileCheck --check-prefix=CACHE-HIT %s
+// RUN: %target-language-frontend -cache-compile-job -cas-backend -cas-backend-mode=verify -Rcache-compile-job %t/test.code -primary-file %t/foo.code -c -o %t/foo.o  \
+// RUN:  -module-name Test -cas-path %t/cas @%t/MyApp.cmd 2>&1 | %FileCheck --check-prefix=CACHE-HIT %s
+// RUN: test -f %t/test.o
+// RUN: test -f %t/foo.o
+// RUN: test -f %t/Test.codemodule
+
+//--- test.code
+fn testFunc() {}
+
+//--- foo.code
+fn foo() {}
+
+// CACHE-MISS: remark: cache miss for input
+// CACHE-MISS-NOT: remark: replay output file
+// CACHE-HIT: remark: replay output file
+// CACHE-HIT-NOT: remark: cache miss for input

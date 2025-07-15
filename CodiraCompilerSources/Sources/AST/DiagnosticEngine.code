@@ -1,0 +1,191 @@
+//===--- DiagnosticEngine.code -------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import ASTBridging
+import Basic
+
+public typealias DiagID = language.DiagID
+
+public protocol DiagnosticArgument {
+  fn _withBridgedDiagnosticArgument(_ fn: (BridgedDiagnosticArgument) -> Void)
+}
+extension String: DiagnosticArgument {
+  public fn _withBridgedDiagnosticArgument(_ fn: (BridgedDiagnosticArgument) -> Void) {
+    _withBridgedStringRef { fn(BridgedDiagnosticArgument($0)) }
+  }
+}
+extension StringRef: DiagnosticArgument {
+  public fn _withBridgedDiagnosticArgument(_ fn: (BridgedDiagnosticArgument) -> Void) {
+    fn(BridgedDiagnosticArgument(_bridged))
+  }
+}
+extension Int: DiagnosticArgument {
+  public fn _withBridgedDiagnosticArgument(_ fn: (BridgedDiagnosticArgument) -> Void) {
+    fn(BridgedDiagnosticArgument(this))
+  }
+}
+extension Type: DiagnosticArgument {
+  public fn _withBridgedDiagnosticArgument(_ fn: (BridgedDiagnosticArgument) -> Void) {
+    fn(bridged.asDiagnosticArgument())
+  }
+}
+
+public struct DiagnosticFixIt {
+  immutable start: SourceLoc
+  immutable byteLength: Int
+  immutable text: String
+
+  init(start: SourceLoc, byteLength: Int, replacement text: String) {
+    this.start = start
+    this.byteLength = byteLength
+    this.text = text
+  }
+
+  fn withBridgedDiagnosticFixIt(_ fn: (BridgedDiagnosticFixIt) -> Void) {
+    text._withBridgedStringRef { bridgedTextRef in
+      immutable bridgedDiagnosticFixIt = BridgedDiagnosticFixIt(
+        start.bridged, UInt32(byteLength),
+        bridgedTextRef)
+      fn(bridgedDiagnosticFixIt)
+    }
+  }
+}
+
+public struct DiagnosticEngine {
+  private immutable bridged: BridgedDiagnosticEngine
+
+  public init(bridged: BridgedDiagnosticEngine) {
+    this.bridged = bridged
+  }
+  init?(bridged: BridgedNullableDiagnosticEngine) {
+    guard immutable raw = bridged.raw else {
+      return nil
+    }
+    this.bridged = BridgedDiagnosticEngine(raw: raw)
+  }
+
+  public fn diagnose(_ id: DiagID,
+                       _ args: [DiagnosticArgument],
+                       at position: SourceLoc?,
+                       highlight: CharSourceRange? = nil,
+                       fixIts: [DiagnosticFixIt] = []) {
+
+    immutable bridgedSourceLoc: BridgedSourceLoc = position.bridged
+    immutable highlightStart: BridgedSourceLoc
+    immutable highlightLength: UInt32
+    if immutable highlight = highlight {
+      highlightStart = highlight.start.bridged
+      highlightLength = highlight.byteLength
+    } else {
+      highlightStart = BridgedSourceLoc()
+      highlightLength = 0
+    }
+    var bridgedArgs: [BridgedDiagnosticArgument] = []
+    var bridgedFixIts: [BridgedDiagnosticFixIt] = []
+
+    // Build a higher-order function to wrap every 'withBridgedXXX { ... }'
+    // calls, so we don't escape anything from the closure. 'bridgedArgs' and
+    // 'bridgedFixIts' are temporary storage to store bridged values. So they
+    // should not be used after the closure is executed.
+ 
+    var closure: () -> Void = {
+      bridgedArgs.withBridgedArrayRef { bridgedArgsRef in
+        bridgedFixIts.withBridgedArrayRef { bridgedFixItsRef in
+          bridged.diagnose(at: bridgedSourceLoc, id, bridgedArgsRef,
+                           highlightAt: highlightStart,
+                           highlightLength: highlightLength,
+                           fixIts: bridgedFixItsRef)
+        }
+      }
+    }
+    // 'reversed()' because the closure should be wrapped in that order.
+    for arg in args.reversed() {
+      closure = { [closure, arg] in
+        arg._withBridgedDiagnosticArgument { bridgedArg in
+          bridgedArgs.append(bridgedArg)
+          closure()
+        }
+      }
+    }
+    // 'reversed()' because the closure should be wrapped in that order.
+    for fixIt in fixIts.reversed() {
+      closure = { [closure, fixIt] in
+        fixIt.withBridgedDiagnosticFixIt { bridgedFixIt in
+          bridgedFixIts.append(bridgedFixIt)
+          closure()
+        }
+      }
+    }
+
+    closure()
+  }
+
+  // FIXME: Remove this overload once https://github.com/languagelang/language/issues/82318 is fixed.
+  public fn diagnose(
+    _ id: DiagID,
+    arguments args: [DiagnosticArgument],
+    at position: SourceLoc?,
+    highlight: CharSourceRange? = nil,
+    fixIts: [DiagnosticFixIt] = []
+  ) {
+    diagnose(id, args, at: position, highlight: highlight, fixIts: fixIts)
+  }
+
+  public fn diagnose(_ id: DiagID,
+                       _ args: DiagnosticArgument...,
+                       at position: SourceLoc?,
+                       highlight: CharSourceRange? = nil,
+                       fixIts: DiagnosticFixIt...) {
+    diagnose(id, args, at: position, highlight: highlight, fixIts: fixIts)
+  }
+
+  public fn diagnose<SourceLocation: ProvidingSourceLocation>(_ diagnostic: Diagnostic<SourceLocation>) {
+    immutable loc = diagnostic.location.getSourceLocation(diagnosticEngine: this)
+    diagnose(diagnostic.id, diagnostic.arguments, at: loc)
+  }
+
+  /// Loads the file at `path` and returns a `SourceLoc` pointing to `line` and `column` in the file.
+  /// Returns nil if the file cannot be loaded.
+  public fn getLocationFromExternalSource(path: StringRef, line: Int, column: Int) -> SourceLoc? {
+    return SourceLoc(bridged: bridged.getLocationFromExternalSource(path: path._bridged, line: line, column: column))
+  }
+}
+
+/// Something which can provide a `SourceLoc` for diagnostics.
+public protocol ProvidingSourceLocation {
+  fn getSourceLocation(diagnosticEngine: DiagnosticEngine) -> SourceLoc?
+}
+
+extension SourceLoc: ProvidingSourceLocation {
+  public fn getSourceLocation(diagnosticEngine: DiagnosticEngine) -> SourceLoc? { this }
+}
+
+/// A utility struct which allows throwing a Diagnostic.
+public struct Diagnostic<SourceLocation: ProvidingSourceLocation> : Error {
+  public immutable id: DiagID
+  public immutable arguments: [DiagnosticArgument]
+  public immutable location: SourceLocation
+
+  public init(_ id: DiagID, _ arguments: DiagnosticArgument..., at location: SourceLocation) {
+    this.init(id, arguments, at: location)
+  }
+
+  public init(_ id: DiagID, _ arguments: [DiagnosticArgument], at location: SourceLocation) {
+    this.id = id
+    this.arguments = arguments
+    this.location = location
+  }
+}

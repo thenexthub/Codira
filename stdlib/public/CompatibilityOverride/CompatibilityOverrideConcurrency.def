@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines x-macros used for metaprogramming with the set of
@@ -21,7 +22,7 @@
 
 /// #define OVERRIDE(name, ret, attrs, ccAttrs, namespace, typedArgs, namedArgs)
 ///   Provides information about an overridable function.
-///   - name is the name of the function, without any leading swift_ or
+///   - name is the name of the function, without any leading language_ or
 ///     namespace.
 ///   - ret is the return type of the function.
 ///   - attrs is the attributes, if any, applied to the function definition.
@@ -48,7 +49,7 @@
 // override libraries that target this release.
 //
 // Because compatibility override libraries target a specific release of
-// Swift, there is no inherent reason the entries in this file cannot be
+// Codira, there is no inherent reason the entries in this file cannot be
 // arbitrarily rearranged between release cycles, as long as a matching
 // file is used to build any future compatibility override library
 // targeting this release.  However, the targeting of compatibility
@@ -110,53 +111,53 @@
 #endif
 
 OVERRIDE_ACTOR(task_enqueue, void,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, (Job *job, SerialExecutorRef executor),
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, (Job *job, SerialExecutorRef executor),
                (job, executor))
 
 OVERRIDE_ACTOR(job_run, void,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, (Job *job, SerialExecutorRef executor),
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, (Job *job, SerialExecutorRef executor),
                (job, executor))
 
 OVERRIDE_ACTOR(job_run_on_task_executor, void,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, (Job *job, TaskExecutorRef executor),
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, (Job *job, TaskExecutorRef executor),
                (job, executor))
 
 OVERRIDE_ACTOR(job_run_on_serial_and_task_executor, void,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, (Job *job,
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, (Job *job,
                          SerialExecutorRef serialExecutor,
                          TaskExecutorRef taskExecutor),
                (job, serialExecutor, taskExecutor))
 
 OVERRIDE_ACTOR(task_getCurrentExecutor, SerialExecutorRef,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, ,)
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, ,)
 
 OVERRIDE_ACTOR(task_isCurrentExecutor, bool,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, (SerialExecutorRef executor), (executor))
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, (SerialExecutorRef executor), (executor))
 
 OVERRIDE_ACTOR(task_isCurrentExecutorWithFlags, bool,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
-               (SerialExecutorRef executor, swift_task_is_current_executor_flag flags),
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
+               (SerialExecutorRef executor, language_task_is_current_executor_flag flags),
                (executor, flags))
 
 OVERRIDE_ACTOR(task_switch, void,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-               swift::, (SWIFT_ASYNC_CONTEXT AsyncContext *resumeToContext,
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+               language::, (LANGUAGE_ASYNC_CONTEXT AsyncContext *resumeToContext,
                TaskContinuationFunction *resumeFunction, SerialExecutorRef newExecutor),
                (resumeToContext, resumeFunction, newExecutor))
 
 OVERRIDE_ACTOR(task_deinitOnExecutor, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (void *object, DeinitWorkFunction *work, SerialExecutorRef newExecutor, size_t flags),
               (object, work, newExecutor, flags))
 
 OVERRIDE_TASK(task_create_common, AsyncTaskAndContext,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (size_t taskCreateFlags,
                TaskOptionRecord *options,
                const Metadata *futureResultType,
@@ -166,182 +167,182 @@ OVERRIDE_TASK(task_create_common, AsyncTaskAndContext,
               (taskCreateFlags, options, futureResultType, function,
                closureContext, initialContextSize))
 
-OVERRIDE_TASK(task_future_wait, void, SWIFT_EXPORT_FROM(swift_Concurrency),
-              SWIFT_CC(swiftasync), swift::,
+OVERRIDE_TASK(task_future_wait, void, LANGUAGE_EXPORT_FROM(language_Concurrency),
+              LANGUAGE_CC(languageasync), language::,
               (OpaqueValue *result,
-               SWIFT_ASYNC_CONTEXT AsyncContext *callerContext, AsyncTask *task,
+               LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext, AsyncTask *task,
                TaskContinuationFunction *resumeFunction,
                AsyncContext *callContext),
               (result, callerContext, task, resumeFunction, callContext))
 
 OVERRIDE_TASK(task_future_wait_throwing, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-              swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+              language::,
               (OpaqueValue *result,
-               SWIFT_ASYNC_CONTEXT AsyncContext *callerContext, AsyncTask *task,
+               LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext, AsyncTask *task,
                ThrowingTaskFutureWaitContinuationFunction *resumeFunction,
                AsyncContext *callContext),
               (result, callerContext, task, resumeFunction, callContext))
 
-OVERRIDE_TASK(continuation_resume, void, SWIFT_EXPORT_FROM(swift_Concurrency),
-              SWIFT_CC(swift), swift::,
+OVERRIDE_TASK(continuation_resume, void, LANGUAGE_EXPORT_FROM(language_Concurrency),
+              LANGUAGE_CC(language), language::,
               (AsyncTask *continuation),
               (continuation))
 
 OVERRIDE_TASK(continuation_throwingResume, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (AsyncTask *continuation),
               (continuation))
 
 OVERRIDE_TASK(continuation_throwingResumeWithError, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
-              (AsyncTask *continuation, SwiftError *error),
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
+              (AsyncTask *continuation, CodiraError *error),
               (continuation, error))
 
 OVERRIDE_TASK(task_addCancellationHandler,
               CancellationNotificationStatusRecord *,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (CancellationNotificationStatusRecord::FunctionType handler,
                void *context),
               (handler, context))
 
 OVERRIDE_TASK(task_removeCancellationHandler, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (CancellationNotificationStatusRecord *record), (record))
 
 OVERRIDE_TASK(task_addPriorityEscalationHandler,
               EscalationNotificationStatusRecord *,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (EscalationNotificationStatusRecord::FunctionType handler,
                void *context),
               (handler, context))
 
 OVERRIDE_TASK(task_removePriorityEscalationHandler, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (EscalationNotificationStatusRecord *record), (record))
 
 OVERRIDE_TASK(task_createNullaryContinuationJob, NullaryContinuationJob *,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (size_t priority,
                AsyncTask *continuation), (priority, continuation))
 
 HOOKED_OVERRIDE_TASK_NORETURN(task_asyncMainDrainQueue,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-              swift::, ,)
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+              language::, ,)
 
 
 OVERRIDE_TASK(task_suspend, AsyncTask *,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-              swift::, ,)
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+              language::, ,)
 
 OVERRIDE_TASK(task_enqueueTaskOnExecutor, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
               (AsyncTask *task, SerialExecutorRef newExecutor), (task, newExecutor))
 
 OVERRIDE_TASK(continuation_init, AsyncTask *,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-              swift::, (ContinuationAsyncContext *context,
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+              language::, (ContinuationAsyncContext *context,
                         AsyncContinuationFlags flags),
               (context, flags))
 
 OVERRIDE_TASK(continuation_await, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-              swift::, (ContinuationAsyncContext *context),
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+              language::, (ContinuationAsyncContext *context),
               (context))
 
-OVERRIDE_ASYNC_LET(asyncLet_wait, void, SWIFT_EXPORT_FROM(swift_Concurrency),
-                   SWIFT_CC(swiftasync), swift::,
+OVERRIDE_ASYNC_LET(asyncLet_wait, void, LANGUAGE_EXPORT_FROM(language_Concurrency),
+                   LANGUAGE_CC(languageasync), language::,
                    (OpaqueValue *result,
-                       SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                       LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                        AsyncLet *alet, TaskContinuationFunction *resumeFn,
                        AsyncContext *callContext),
                    (result, callerContext, alet, resumeFn, callContext))
 
 OVERRIDE_ASYNC_LET(asyncLet_wait_throwing, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                   swift::,
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                   language::,
                    (OpaqueValue *result,
-                       SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                       LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                        AsyncLet *alet,
                        ThrowingTaskFutureWaitContinuationFunction *resume,
                        AsyncContext *callContext),
                    (result, callerContext, alet, resume, callContext))
 
 OVERRIDE_ASYNC_LET(asyncLet_end, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                   swift::, (AsyncLet *alet), (alet))
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                   language::, (AsyncLet *alet), (alet))
 
 OVERRIDE_ASYNC_LET(asyncLet_get, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                   swift::,
-                   (SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                   language::,
+                   (LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet, void *resultBuffer,
                     TaskContinuationFunction *resumeFn,
                     AsyncContext *callContext),
                    (callerContext, alet, resultBuffer, resumeFn, callContext))
 
 OVERRIDE_ASYNC_LET(asyncLet_get_throwing, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                   swift::,
-                   (SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                   language::,
+                   (LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet, void *resultBuffer,
                     ThrowingTaskFutureWaitContinuationFunction *resumeFn,
                     AsyncContext *callContext),
                    (callerContext, alet, resultBuffer, resumeFn, callContext))
 
 OVERRIDE_ASYNC_LET(asyncLet_consume, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                   swift::,
-                   (SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                   language::,
+                   (LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet, void *resultBuffer,
                     TaskContinuationFunction *resumeFn,
                     AsyncContext *callContext),
                    (callerContext, alet, resultBuffer, resumeFn, callContext))
 
 OVERRIDE_ASYNC_LET(asyncLet_consume_throwing, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                   swift::,
-                   (SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                   language::,
+                   (LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet, void *resultBuffer,
                     ThrowingTaskFutureWaitContinuationFunction *resumeFn,
                     AsyncContext *callContext),
                    (callerContext, alet, resultBuffer, resumeFn, callContext))
 
 OVERRIDE_ASYNC_LET(asyncLet_finish, void,
-                   SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                   swift::,
-                   (SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                   LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                   language::,
+                   (LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                     AsyncLet *alet, void *resultBuffer,
                     TaskContinuationFunction *resumeFn,
                     AsyncContext *callContext),
                    (callerContext, alet, resultBuffer, resumeFn, callContext))
 
 OVERRIDE_TASK_GROUP(taskGroup_initialize, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group, const Metadata *T), (group, T))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group, const Metadata *T), (group, T))
 
 OVERRIDE_TASK_GROUP(taskGroup_initializeWithFlags, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (size_t flags, TaskGroup *group, const Metadata *T), (flags, group, T))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (size_t flags, TaskGroup *group, const Metadata *T), (flags, group, T))
 
 OVERRIDE_TASK_GROUP(taskGroup_initializeWithOptions, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (size_t flags, TaskGroup *group, const Metadata *T, TaskOptionRecord *options), (flags, group, T, options))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (size_t flags, TaskGroup *group, const Metadata *T, TaskOptionRecord *options), (flags, group, T, options))
 
 OVERRIDE_TASK_STATUS(taskGroup_attachChild, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group, AsyncTask *child),
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group, AsyncTask *child),
                     (group, child))
 
 OVERRIDE_TASK_GROUP(taskGroup_destroy, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group), (group))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group), (group))
 
 OVERRIDE_TASK_GROUP(taskGroup_wait_next_throwing, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                    swift::,
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                    language::,
                     (OpaqueValue *resultPointer,
-                     SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                     LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                      TaskGroup *_group,
                      ThrowingTaskFutureWaitContinuationFunction *resumeFn,
                      AsyncContext *callContext),
@@ -349,102 +350,102 @@ OVERRIDE_TASK_GROUP(taskGroup_wait_next_throwing, void,
                     callContext))
 
 OVERRIDE_TASK_GROUP(taskGroup_isEmpty, bool,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group), (group))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group), (group))
 
 OVERRIDE_TASK_GROUP(taskGroup_isCancelled, bool,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group), (group))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group), (group))
 
 OVERRIDE_TASK_GROUP(taskGroup_cancelAll, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group), (group))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group), (group))
 
 OVERRIDE_TASK_GROUP(taskGroup_addPending, bool,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group, bool unconditionally),
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group, bool unconditionally),
                     (group, unconditionally))
 
 OVERRIDE_TASK_GROUP(taskGroup_waitAll, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swiftasync),
-                    swift::,
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(languageasync),
+                    language::,
                     (OpaqueValue *resultPointer,
-                        SWIFT_ASYNC_CONTEXT AsyncContext *callerContext,
+                        LANGUAGE_ASYNC_CONTEXT AsyncContext *callerContext,
                         TaskGroup *_group,
-                        SwiftError *bodyError,
+                        CodiraError *bodyError,
                         ThrowingTaskFutureWaitContinuationFunction *resumeFn,
                         AsyncContext *callContext),
                     (resultPointer, callerContext, _group, bodyError,
                         resumeFn, callContext))
 
 OVERRIDE_TASK_LOCAL(task_reportIllegalTaskLocalBindingWithinWithTaskGroup, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift), swift::,
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language), language::,
                     (const unsigned char *file, uintptr_t fileLength,
                         bool fileIsASCII, uintptr_t line),
                     (file, fileLength, fileIsASCII, line))
 
 OVERRIDE_TASK_LOCAL(task_localValuePush, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::,
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::,
                     (const HeapObject *key, OpaqueValue *value,
                      const Metadata *valueType),
                     (key, value, valueType))
 
 OVERRIDE_TASK_LOCAL(task_localValueGet, OpaqueValue *,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::,
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::,
                     (const HeapObject *key),
                     (key))
 
 OVERRIDE_TASK_LOCAL(task_localValuePop, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, ,)
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, ,)
 
 OVERRIDE_TASK_LOCAL(task_localsCopyTo, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::,
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::,
                     (AsyncTask *target),
                     (target))
 
 OVERRIDE_TASK_STATUS(task_hasTaskGroupStatusRecord, bool,
-                     SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                     swift::, , )
+                     LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                     language::, , )
 
-OVERRIDE_TASK_STATUS(task_cancel, void, SWIFT_EXPORT_FROM(swift_Concurrency),
-                     SWIFT_CC(swift), swift::, (AsyncTask *task), (task))
+OVERRIDE_TASK_STATUS(task_cancel, void, LANGUAGE_EXPORT_FROM(language_Concurrency),
+                     LANGUAGE_CC(language), language::, (AsyncTask *task), (task))
 
 OVERRIDE_TASK_GROUP(task_cancel_group_child_tasks, void,
-                    SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                    swift::, (TaskGroup *group), (group))
+                    LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                    language::, (TaskGroup *group), (group))
 
 OVERRIDE_TASK_STATUS(task_escalate, JobPriority,
-                     SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                     swift::, (AsyncTask *task, JobPriority newPriority),
+                     LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                     language::, (AsyncTask *task, JobPriority newPriority),
                      (task, newPriority))
 
 OVERRIDE_TASK_STATUS(task_getPreferredTaskExecutor, TaskExecutorRef,
-                     SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                     swift::, , )
+                     LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                     language::, , )
 
 OVERRIDE_TASK_STATUS(task_pushTaskExecutorPreference,
                      TaskExecutorPreferenceStatusRecord*,
-                     SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                     swift::, (TaskExecutorRef executor),
+                     LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                     language::, (TaskExecutorRef executor),
                      (executor))
 
 OVERRIDE_TASK_STATUS(task_popTaskExecutorPreference, void,
-                     SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-                     swift::, (TaskExecutorPreferenceStatusRecord *record),
+                     LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+                     language::, (TaskExecutorPreferenceStatusRecord *record),
                      (record))
 
 OVERRIDE_TASK(task_startOnMainActor, void,
-              SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-              swift::, (AsyncTask *task), (task))
+              LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+              language::, (AsyncTask *task), (task))
 
 // In ACTOR since we need ExecutorTracking info
-OVERRIDE_ACTOR(task_startSynchronously, void,
-               SWIFT_EXPORT_FROM(swift_Concurrency), SWIFT_CC(swift),
-               swift::, (AsyncTask *task, SerialExecutorRef targetExecutor),
+OVERRIDE_ACTOR(task_immediate, void,
+               LANGUAGE_EXPORT_FROM(language_Concurrency), LANGUAGE_CC(language),
+               language::, (AsyncTask *task, SerialExecutorRef targetExecutor),
                (task, targetExecutor))
 
 #undef OVERRIDE

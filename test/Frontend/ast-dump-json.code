@@ -1,0 +1,30 @@
+// RUN: %empty-directory(%t)
+// RUN: echo 'public fn a() { }' >%t/a.code
+// RUN: echo 'public fn b() { }' >%t/b.code
+// RUN: echo 'public fn main() {a(); b()}' >%t/main.code
+
+// RUN: %target-language-frontend -dump-ast -dump-ast-format json -primary-file %t/a.code %t/b.code %t/main.code -module-name main -o - 2>%t/a.code.stderr | %FileCheck -check-prefix A-AST %s
+// RUN: %target-language-frontend -dump-ast -dump-ast-format json %t/a.code -primary-file %t/b.code %t/main.code -module-name main -o - 2>%t/b.code.stderr | %FileCheck -check-prefix B-AST %s
+// RUN: %target-language-frontend -dump-ast -dump-ast-format json %t/a.code %t/b.code -primary-file %t/main.code -module-name main -o - 2>%t/main.code.stderr | %FileCheck -check-prefix MAIN-AST %s
+
+// Check a.code's AST
+// A-AST: "filename":"{{[^"]+}}/a.code"
+// A-AST-SAME: "_kind":"func_decl"
+// A-AST-SAME: "usr":"s:4main1ayyF"
+
+
+// Check b.code's AST
+// B-AST: "filename":"{{[^"]+}}/b.code"
+// B-AST-SAME: "_kind":"func_decl"
+// B-AST-SAME: "usr":"s:4main1byyF"
+
+
+// Check main.code's AST
+// MAIN-AST: "filename":"{{[^"]+}}/main.code"
+// MAIN-AST-SAME: "_kind":"func_decl"
+// MAIN-AST-SAME: "usr":"s:4mainAAyyF"
+
+// MAIN-AST-SAME: "_kind":"call_expr"
+// MAIN-AST-SAME: "decl_usr":"s:4main1ayyF"
+// MAIN-AST-SAME: "_kind":"call_expr"
+// MAIN-AST-SAME: "decl_usr":"s:4main1byyF"

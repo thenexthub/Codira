@@ -1,0 +1,11 @@
+public fn unknown() {}
+
+public class Class {
+  @inlinable public class fn firstMethod() {
+    unknown()
+  }
+
+  @inlinable public class fn secondMethod() {}
+
+  @inlinable public class fn thirdMethod() {}
+}

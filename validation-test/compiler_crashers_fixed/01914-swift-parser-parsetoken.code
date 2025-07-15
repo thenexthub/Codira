@@ -1,0 +1,67 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn i() {
+struct A<l : Array<T.b in return this.A? {
+}
+var d.b: String {
+class A = {
+for c {
+}
+var b.f = compose(start, A {
+}
+class B : b<T] {
+struct A {
+}
+}
+}
+}
+fn i: a {
+}
+class A {
+this.a<T>()) {
+}
+}
+class a {
+fn c<h, object2: c = {
+}
+}
+print(T> T where B {
+}
+immutable b {
+d.<T -> T : c) {
+}
+}
+typealias e<Q<T.c() {
+fn i(Any) {
+return b(n: k) {
+[c, T {
+a<Int) {
+protocol A : T) {
+}
+}
+}
+immutable t: H) -> {
+class A> {
+}
+}
+protocol P {
+}
+}
+convenience init(n: H) {
+}
+var _ = 0.f == [T.b {
+class a {
+protocol A {
+}
+}
+})

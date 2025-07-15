@@ -1,0 +1,13 @@
+// RUN: %target-language-frontend(mock-sdk: %clang-importer-sdk) -emit-ir -primary-file %s -enable-objc-interop -import-objc-header %S/Inputs/objc_dependent_type_closure_argument.h
+// REQUIRES: objc_codegen
+
+// Regression test for https://github.com/apple/language/pull/40295
+public protocol CodiraProtocol {
+  associatedtype T: AnyObject
+}
+
+public class CodiraClass<S: CodiraProtocol> {
+  static fn foo(objcClass: ObjCClass<S.T>) {
+    objcClass.bar(block: { _ in })
+  }
+}

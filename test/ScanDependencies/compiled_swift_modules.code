@@ -1,0 +1,53 @@
+// RUN: %empty-directory(%t)
+// RUN: %empty-directory(%t/Foo.codemodule)
+// RUN: %empty-directory(%t/ResourceDir/%target-sdk-name/prebuilt-modules/Foo.codemodule)
+// RUN: echo "public fn foo() {}" > %t/Foo.code
+
+import Foo
+
+// HAS_COMPILED: "compiledModuleCandidates": [
+// HAS_COMPILED-NEXT: "{{.*}}Foo.codemodule{{.*}}.codemodule"
+
+// HAS_BINARY: "languagePrebuiltExternal": "Foo"
+
+// HAS_NO_COMPILED-NOT: "compiledModulePath":{{.*}}"{{.*}}Foo.codemodule{{.*}}.codemodule"
+
+// Step 1: build language interface and language module side by side
+// RUN: %target-language-frontend -emit-module %t/Foo.code -emit-module-path %t/Foo.codemodule/%target-languagemodule-name -module-name Foo -emit-module-interface-path %t/Foo.codemodule/%target-languageinterface-name
+
+// Step 2: scan dependency should give us the binary module adjacent to the interface file.
+// RUN: %target-language-frontend -scan-dependencies -no-scanner-module-validation %s -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_COMPILED
+
+/// Check scanner picked binary dependency if not requesting raw scan output.
+// RUN: %target-language-frontend -scan-dependencies %s -scanner-module-validation -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_BINARY
+
+// Step 3: remove the adjacent module.
+// RUN: rm %t/Foo.codemodule/%target-languagemodule-name
+
+// Step 4: scan dependency should give us the interface file.
+// RUN: %target-language-frontend -scan-dependencies -no-scanner-module-validation %s -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_NO_COMPILED
+
+// Step 4: build prebuilt module cache using the interface.
+// RUN: %target-language-frontend -compile-module-from-interface -o %t/ResourceDir/%target-sdk-name/prebuilt-modules/Foo.codemodule/%target-languagemodule-name -module-name Foo -disable-interface-lock %t/Foo.codemodule/%target-languageinterface-name
+
+// Step 5: scan dependency now should give us the prebuilt module cache
+// RUN: %target-language-frontend -scan-dependencies -no-scanner-module-validation %s -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d -sdk %t -prebuilt-module-cache-path %t/ResourceDir/%target-sdk-name/prebuilt-modules
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_COMPILED
+
+/// Check scanner picked binary dependency if not requesting raw scan output.
+// RUN: %target-language-frontend -scan-dependencies %s -scanner-module-validation -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d -sdk %t -prebuilt-module-cache-path %t/ResourceDir/%target-sdk-name/prebuilt-modules
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_BINARY
+
+// Step 6: update the interface file from where the prebuilt module cache was built.
+// RUN: touch %t/Foo.codemodule/%target-languageinterface-name
+
+// Step 7: scan dependency should give us the prebuilt module file even though it's out-of-date.
+// RUN: %target-language-frontend -scan-dependencies -no-scanner-module-validation %s -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d -sdk %t -prebuilt-module-cache-path %t/ResourceDir/%target-sdk-name/prebuilt-modules
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_COMPILED
+
+// Step 8: The new scanner behavior should not give use prebuilt module file because it is out-of-date.
+// RUN: %target-language-frontend -scan-dependencies %s -o %t/deps.json -I %t -emit-dependencies -emit-dependencies-path %t/deps.d -sdk %t -prebuilt-module-cache-path %t/ResourceDir/%target-sdk-name/prebuilt-modules
+// RUN: %validate-json %t/deps.json | %FileCheck %s -check-prefix=HAS_NO_COMPILED

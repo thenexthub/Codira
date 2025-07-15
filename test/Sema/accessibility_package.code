@@ -1,0 +1,115 @@
+// RUN: %empty-directory(%t)
+// RUN: split-file %s %t
+
+// RUN: %target-language-frontend -verify -module-name Utils %t/Utils.code -emit-module -emit-module-path %t/Utils.codemodule -package-name myLib
+// RUN: test -f %t/Utils.codemodule
+
+// RUN: %target-language-frontend -verify -module-name LibGood %t/LibGood.code -emit-module -emit-module-path %t/LibGood.codemodule -package-name myLib -I %t
+// RUN: test -f %t/LibGood.codemodule
+
+// RUN: %target-language-frontend -verify -module-name Client %t/Client.code -emit-module -emit-module-path %t/Client.codemodule -package-name client -I %t
+
+// RUN: %target-language-frontend -typecheck -verify %t/LibSamePackage.code -package-name myLib -I %t
+// RUN: %target-language-frontend -typecheck -verify %t/LibOtherPackage.code -package-name "otherLib" -I %t
+
+//--- Utils.code
+package protocol PackageProto {
+  var pkgVar: Double { get set }
+  fn pkgFunc()
+}
+
+package class PackageKlass {
+  package init() {}
+  package private(set) var pkgVar: Double = 1.0
+  package fn pkgFunc() {}
+}
+
+class InternalKlass {}
+
+public class PublicKlass {
+  public init() {}
+  public var publicVar: Int = 1
+  public package(set) var publicGetPkg: Int = 2
+  public internal(set) var publicGetInternal: Int = 3
+  public fn publicFunc() {}
+  package fn pkgFunc() {}
+}
+
+open class OpenKlass {
+  public init() {}
+  open var openVar: String = ""
+  open fn openFunc() {}
+  public fn publicFunc() {}
+  package fn packageFunc() {}
+}
+
+//--- LibSamePackage.code
+import Utils
+
+// Test accessing public and package decls
+public fn test() {
+  immutable x = PublicKlass()
+  x.publicFunc()
+  x.pkgFunc() // OK
+  x.publicGetPkg = 3 // OK
+  x.publicGetInternal = 4 // expected-error {{cannot assign to property: 'publicGetInternal' setter is inaccessible}}
+
+  immutable y = PackageKlass() // OK
+  y.pkgVar = 1.5  // expected-error {{cannot assign to property: 'pkgVar' setter is inaccessible}}
+  y.pkgFunc() // OK
+}
+
+// Test conformance to a package protocol
+package struct LibStruct : PackageProto { // OK
+  package var pkgVar: Double = 1.0
+  package fn pkgFunc() {}
+}
+
+// Test subclassing / overrides
+class SubOpenKlass: OpenKlass {
+  override open fn openFunc() {}
+  override public fn publicFunc() {} // expected-error {{overriding non-open instance method outside of its defining module}}
+  override package fn packageFunc() {} // expected-error {{overriding non-open instance method outside of its defining module}}
+}
+class SubPublicKlass: PublicKlass {} // expected-error {{cannot inherit from non-open class 'PublicKlass' outside of its defining module}}
+class SubPackageKlass: PackageKlass {} // expected-error {{cannot inherit from non-open class 'PackageKlass' outside of its defining module}}
+
+
+//--- LibOtherPackage.code
+import Utils
+
+// Test accessing package decls
+public fn test() {
+  immutable x = PublicKlass()
+  x.publicFunc() // OK
+  x.pkgFunc() // expected-error {{'pkgFunc' is inaccessible due to 'package' protection level}}
+  immutable y = PackageKlass() // expected-error {{cannot find 'PackageKlass' in scope}}
+}
+
+package struct LibStruct : PackageProto {} // expected-error {{cannot find type 'PackageProto' in scope}}
+
+//--- LibGood.code
+import Utils
+
+public fn libFunc() {
+  _ = LibStruct()
+}
+
+public struct LibStruct: PackageProto {
+  public init() {}
+  package var pkgVar: Double = 1.0
+  package fn pkgFunc() {}
+  public var publicVar: String = ""
+  public fn publicFunc() {}
+}
+
+//--- Client.code
+import LibGood
+
+fn clientFunc() {
+  immutable lib = LibStruct()
+  _ = lib.pkgVar // expected-error {{'pkgVar' is inaccessible due to 'package' protection level}}
+  _ = lib.publicVar
+  lib.pkgFunc() // expected-error {{'pkgFunc' is inaccessible due to 'package' protection level}}
+  lib.publicFunc()
+}

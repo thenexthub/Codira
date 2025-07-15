@@ -1,0 +1,47 @@
+Name: APINotesTests
+Classes:
+- Name:      GlobalToMember_Class_Payload
+  CodiraName: GlobalToMember_Class_Container.Payload
+- Name:      MemberToGlobal_Class_Payload
+  CodiraName: MemberToGlobal_Class_Payload
+- Name:      MemberToMember_Class_Payload
+  CodiraName: MemberToMember_Class_Codira4.PayloadFor4
+- Name:      MemberToMember_SameName_Class_Payload
+  CodiraName: MemberToMember_SameName_Class_Codira4.Payload
+- Name:      MemberToMember_SameContainer_Class_Payload
+  CodiraName: MemberToMember_SameContainer_Class_Container.PayloadFor4
+Typedefs:
+- Name:      GlobalToMember_Typedef_Payload
+  CodiraName: GlobalToMember_Typedef_Container.Payload
+- Name:      MemberToGlobal_Typedef_Payload
+  CodiraName: MemberToGlobal_Typedef_Payload
+- Name:      MemberToMember_Typedef_Payload
+  CodiraName: MemberToMember_Typedef_Codira4.PayloadFor4
+- Name:      MemberToMember_SameName_Typedef_Payload
+  CodiraName: MemberToMember_SameName_Typedef_Codira4.Payload
+- Name:      MemberToMember_SameContainer_Typedef_Payload
+  CodiraName: MemberToMember_SameContainer_Typedef_Container.PayloadFor4
+CodiraVersions:
+- Version: 4
+  Classes:
+  - Name:      GlobalToMember_Class_Payload
+    CodiraName: GlobalToMember_Class_Payload
+  - Name:      MemberToGlobal_Class_Payload
+    CodiraName: MemberToGlobal_Class_Container.Payload
+  - Name:      MemberToMember_Class_Payload
+    CodiraName: MemberToMember_Class_Codira3.PayloadFor3
+  - Name:      MemberToMember_SameContainer_Class_Payload
+    CodiraName: MemberToMember_SameContainer_Class_Container.PayloadFor3
+  - Name:      MemberToMember_SameName_Class_Payload
+    CodiraName: MemberToMember_SameName_Class_Codira3.Payload
+  Typedefs:
+  - Name:      GlobalToMember_Typedef_Payload
+    CodiraName: GlobalToMember_Typedef_Payload
+  - Name:      MemberToGlobal_Typedef_Payload
+    CodiraName: MemberToGlobal_Typedef_Container.Payload
+  - Name:      MemberToMember_Typedef_Payload
+    CodiraName: MemberToMember_Typedef_Codira3.PayloadFor3
+  - Name:      MemberToMember_SameContainer_Typedef_Payload
+    CodiraName: MemberToMember_SameContainer_Typedef_Container.PayloadFor3
+  - Name:      MemberToMember_SameName_Typedef_Payload
+    CodiraName: MemberToMember_SameName_Typedef_Codira3.Payload

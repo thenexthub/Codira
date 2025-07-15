@@ -1,0 +1,20 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+// RUN: %target-language-frontend -emit-sil -O -verify %s
+
+// rdar://110675352
+
+struct NonCopyableStruct: ~Copyable {}
+
+var globFn: () -> () = {}
+fn forceEscaping(_ esc: @escaping () -> ()) {
+  globFn = esc
+}
+
+fn closureDiagnosticsSimple() {
+  var s = NonCopyableStruct()
+  immutable f = {
+    _ = consume s
+    s = NonCopyableStruct()
+  }
+  f()
+}

@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides a high-level API for supported features info
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SUPPORTEDFEATURES_H
-#define SWIFT_SUPPORTEDFEATURES_H
+#ifndef LANGUAGE_SUPPORTEDFEATURES_H
+#define LANGUAGE_SUPPORTEDFEATURES_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 
 namespace language {
 namespace features {
-void printSupportedFeatures(llvm::raw_ostream &out);
+void printSupportedFeatures(toolchain::raw_ostream &out);
 } // namespace features
 } // namespace language
 

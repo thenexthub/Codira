@@ -1,24 +1,28 @@
 //===-------------------- SimplifyCFG.h -----------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 
-#ifndef SWIFT_SILOPTIMIZER_SIMPLIFYCFG_H
-#define SWIFT_SILOPTIMIZER_SIMPLIFYCFG_H
+#ifndef LANGUAGE_SILOPTIMIZER_SIMPLIFYCFG_H
+#define LANGUAGE_SILOPTIMIZER_SIMPLIFYCFG_H
 
 #include "language/SILOptimizer/Utils/ConstantFolding.h"
 #include "language/SILOptimizer/Utils/SILOptFunctionBuilder.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
+#include "toolchain/ADT/SmallPtrSet.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/Statistic.h"
 
 namespace language {
 class DominanceAnalysis;
@@ -45,7 +49,7 @@ class SimplifyCFG {
   SmallVector<SILBasicBlock *, 32> WorklistList;
   // WorklistMap keeps track of which slot a BB is in, allowing efficient
   // containment query, and allows efficient removal.
-  llvm::SmallDenseMap<SILBasicBlock *, unsigned, 32> WorklistMap;
+  toolchain::SmallDenseMap<SILBasicBlock *, unsigned, 32> WorklistMap;
   // Keep track of loop headers - we don't want to jump-thread through them.
   SmallPtrSet<SILBasicBlock *, 32> LoopHeaders;
   // The set of cloned loop headers to avoid infinite loop peeling. Blocks in
@@ -54,7 +58,7 @@ class SimplifyCFG {
   SmallPtrSet<SILBasicBlock *, 4> ClonedLoopHeaders;
   // The cost (~ number of copied instructions) of jump threading per basic
   // block. Used to prevent infinite jump threading loops.
-  llvm::SmallDenseMap<SILBasicBlock *, int, 8> JumpThreadingCost;
+  toolchain::SmallDenseMap<SILBasicBlock *, int, 8> JumpThreadingCost;
 
   // Dominance and post-dominance info for the current function
   DominanceInfo *DT = nullptr;

@@ -1,0 +1,53 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-build-language %s -import-objc-header %S/Inputs/errors.h -o %t/main
+// RUN: %target-codesign %t/main
+// RUN: %target-run %t/main
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+//
+// Tests for error handling.
+//
+
+import StdlibUnittest
+
+struct Problem : Error {}
+
+class ErrorImpl : NSObject, ErrorTest {
+  fn succeed() throws -> Any { return this }
+  fn fail() throws -> Any { throw Problem() }
+}
+
+
+var ErrorHandlingTests = TestSuite("ErrorHandling")
+
+fn sameObject(_ x: Any?, _ y: Any?) -> Bool {
+  return x.map { $0 as AnyObject } === y.map { $0 as AnyObject }
+}
+
+ErrorHandlingTests.test("succeed") {
+  immutable obj = ErrorImpl()
+  immutable result = testSucceed(obj)
+  expectTrue(sameObject(obj, result))
+}
+
+ErrorHandlingTests.test("succeedIgnoringError") {
+  immutable obj = ErrorImpl()
+  immutable result = testSucceedIgnoringError(obj)
+  expectTrue(sameObject(obj, result))
+}
+
+ErrorHandlingTests.test("fail") {
+  immutable obj = ErrorImpl()
+  immutable result = testFail(obj)
+  expectNil(result)
+}
+
+ErrorHandlingTests.test("failIgnoringError") {
+  immutable obj = ErrorImpl()
+  immutable result = testFailIgnoringError(obj)
+  expectNil(result)
+}
+
+runAllTests()

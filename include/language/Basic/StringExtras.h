@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides utilities for working with English words and
@@ -18,17 +19,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_STRINGEXTRAS_H
-#define SWIFT_BASIC_STRINGEXTRAS_H
+#ifndef LANGUAGE_BASIC_STRINGEXTRAS_H
+#define LANGUAGE_BASIC_STRINGEXTRAS_H
 
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/OptionSet.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/SmallString.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSet.h"
+#include "toolchain/ADT/Twine.h"
+#include "toolchain/Support/Allocator.h"
 #include <iterator>
 #include <optional>
 #include <string>
@@ -42,7 +43,7 @@ namespace language {
   /// Determine whether the given string can be the name of a member.
   bool canBeMemberName(StringRef identifier);
 
-  /// Returns true if the given word is one of Swift's known prepositions.
+  /// Returns true if the given word is one of Codira's known prepositions.
   ///
   /// This can be faster than getPartOfSpeech(StringRef).
   bool isPreposition(StringRef word);
@@ -60,16 +61,16 @@ namespace language {
 
   /// Copy \p string to \p Allocator and return it as a null terminated C
   /// string.
-  const char *copyCString(StringRef string, llvm::BumpPtrAllocator &Allocator);
+  const char *copyCString(StringRef string, toolchain::BumpPtrAllocator &Allocator);
 
   /// Scratch space used for returning a set of StringRefs.
   class StringScratchSpace {
-    llvm::BumpPtrAllocator Allocator;
+    toolchain::BumpPtrAllocator Allocator;
 
   public:
     StringRef copyString(StringRef string) { return string.copy(Allocator); }
 
-    llvm::BumpPtrAllocator &getAllocator() { return Allocator; }
+    toolchain::BumpPtrAllocator &getAllocator() { return Allocator; }
   };
 
   namespace camel_case {
@@ -416,12 +417,12 @@ StringRef matchLeadingTypeName(StringRef name, OmissionTypeName typeName);
 /// Describes a set of names with an inheritance relationship.
 class InheritedNameSet {
   const InheritedNameSet *Parent;
-  llvm::StringSet<llvm::BumpPtrAllocator &> Names;
+  toolchain::StringSet<toolchain::BumpPtrAllocator &> Names;
 
 public:
   /// Construct a new inherited name set with the given parent.
   InheritedNameSet(const InheritedNameSet *parent,
-                   llvm::BumpPtrAllocator &allocator)
+                   toolchain::BumpPtrAllocator &allocator)
       : Parent(parent), Names(allocator) { }
 
   // Add a new name to the set.
@@ -450,7 +451,7 @@ public:
 /// function, or empty if the declaration is not a function.
 ///
 /// \param returnsSelf Whether the result of the declaration is 'Self'
-/// (in Swift) or 'instancetype' (in Objective-C).
+/// (in Codira) or 'instancetype' (in Objective-C).
 ///
 /// \param isProperty Whether this is the name of a property.
 ///
@@ -497,14 +498,14 @@ public:
 
   /// Create a null-terminated string, copying \p Str into \p A .
   template <typename Allocator>
-  NullTerminatedStringRef(llvm::Twine Str, Allocator &A) : Ref("") {
+  NullTerminatedStringRef(toolchain::Twine Str, Allocator &A) : Ref("") {
     if (Str.isTriviallyEmpty())
       return;
     if (Str.isSingleStringLiteral()) {
       Ref = Str.getSingleStringRef();
       return;
     }
-    llvm::SmallString<0> stash;
+    toolchain::SmallString<0> stash;
     auto _ref = Str.toStringRef(stash);
 
     size_t size = _ref.size();
@@ -532,11 +533,11 @@ public:
 
 /// A variant of write_escaped that does not escape Unicode characters - useful for generating JSON,
 /// where escaped Unicode characters lead to malformed/invalid JSON.
-void writeEscaped(llvm::StringRef Str, llvm::raw_ostream &OS);
+void writeEscaped(toolchain::StringRef Str, toolchain::raw_ostream &OS);
 
 /// Whether the path components of `path` begin with those from `prefix`.
 bool pathStartsWith(StringRef prefix, StringRef path);
 
 } // end namespace language
 
-#endif // SWIFT_BASIC_STRINGEXTRAS_H
+#endif // LANGUAGE_BASIC_STRINGEXTRAS_H

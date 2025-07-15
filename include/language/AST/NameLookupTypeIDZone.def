@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This definition file describes the types in the name-lookup
@@ -18,108 +19,108 @@
 //
 //===----------------------------------------------------------------------===//
 
-SWIFT_REQUEST(NameLookup, AnyObjectLookupRequest,
+LANGUAGE_REQUEST(NameLookup, AnyObjectLookupRequest,
               QualifiedLookupResult(const DeclContext *, DeclName, NLOptions),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, CustomAttrNominalRequest,
+LANGUAGE_REQUEST(NameLookup, CustomAttrNominalRequest,
               NominalTypeDecl *(CustomAttr *, DeclContext *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, DirectLookupRequest,
+LANGUAGE_REQUEST(NameLookup, DirectLookupRequest,
               TinyPtrVector<ValueDecl *>(DirectLookupDescriptor), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, DirectOperatorLookupRequest,
+LANGUAGE_REQUEST(NameLookup, DirectOperatorLookupRequest,
               TinyPtrVector<OperatorDecl *>(OperatorLookupDescriptor,
                                             OperatorFixity),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, DirectPrecedenceGroupLookupRequest,
+LANGUAGE_REQUEST(NameLookup, DirectPrecedenceGroupLookupRequest,
               TinyPtrVector<PrecedenceGroupDecl *>(OperatorLookupDescriptor),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, ExtendedNominalRequest,
+LANGUAGE_REQUEST(NameLookup, ExtendedNominalRequest,
               NominalTypeDecl *(ExtensionDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, GenericParamListRequest,
+LANGUAGE_REQUEST(NameLookup, GenericParamListRequest,
               GenericParamList *(GenericContext *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, GetDestructorRequest, DestructorDecl *(ClassDecl *),
+LANGUAGE_REQUEST(NameLookup, GetDestructorRequest, DestructorDecl *(ClassDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, InheritedDeclsReferencedRequest,
+LANGUAGE_REQUEST(NameLookup, InheritedDeclsReferencedRequest,
               DirectlyReferencedTypeDecls(
-                  llvm::PointerUnion<const TypeDecl *,
+                  toolchain::PointerUnion<const TypeDecl *,
                                      const ExtensionDecl *>, unsigned),
               Uncached, HasNearestLocation)
-SWIFT_REQUEST(NameLookup, InheritedProtocolsRequest,
+LANGUAGE_REQUEST(NameLookup, InheritedProtocolsRequest,
               ArrayRef<ProtocolDecl *>(ProtocolDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, AllInheritedProtocolsRequest,
+LANGUAGE_REQUEST(NameLookup, AllInheritedProtocolsRequest,
               ArrayRef<ProtocolDecl *>(ProtocolDecl *), Cached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, ProtocolRequirementsRequest,
+LANGUAGE_REQUEST(NameLookup, ProtocolRequirementsRequest,
               ArrayRef<ValueDecl *>(ProtocolDecl *), SeparatelyCached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, LookupConformanceInModuleRequest,
+LANGUAGE_REQUEST(NameLookup, LookupConformanceInModuleRequest,
               ProtocolConformanceRef(LookupConformanceDescriptor),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, LookupInModuleRequest,
+LANGUAGE_REQUEST(NameLookup, LookupInModuleRequest,
               QualifiedLookupResult(const DeclContext *, DeclName, NLKind,
                                     namelookup::ResolutionKind,
                                     const DeclContext *),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, ModuleQualifiedLookupRequest,
+LANGUAGE_REQUEST(NameLookup, ModuleQualifiedLookupRequest,
               QualifiedLookupResult(
                   const DeclContext *, ModuleDecl *, DeclNameRef, NLOptions),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, QualifiedLookupRequest,
+LANGUAGE_REQUEST(NameLookup, QualifiedLookupRequest,
               QualifiedLookupResult(
                   const DeclContext *, SmallVector<NominalTypeDecl *, 4>,
                   DeclNameRef, NLOptions),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, SelfBoundsFromWhereClauseRequest,
-              SelfBounds(llvm::PointerUnion<const TypeDecl *,
+LANGUAGE_REQUEST(NameLookup, SelfBoundsFromWhereClauseRequest,
+              SelfBounds(toolchain::PointerUnion<const TypeDecl *,
                                             const ExtensionDecl *>),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, SelfBoundsFromGenericSignatureRequest,
+LANGUAGE_REQUEST(NameLookup, SelfBoundsFromGenericSignatureRequest,
               SelfBounds(const ExtensionDecl * extDecl),
               Uncached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, SuperclassDeclRequest, ClassDecl *(NominalTypeDecl *),
+LANGUAGE_REQUEST(NameLookup, SuperclassDeclRequest, ClassDecl *(NominalTypeDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, HasMissingDesignatedInitializersRequest,
+LANGUAGE_REQUEST(NameLookup, HasMissingDesignatedInitializersRequest,
               bool(ClassDecl *),
               SeparatelyCached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, TypeDeclsFromWhereClauseRequest,
+LANGUAGE_REQUEST(NameLookup, TypeDeclsFromWhereClauseRequest,
               DirectlyReferencedTypeDecls(ExtensionDecl *), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, UnderlyingTypeDeclsReferencedRequest,
+LANGUAGE_REQUEST(NameLookup, UnderlyingTypeDeclsReferencedRequest,
               DirectlyReferencedTypeDecls(TypeAliasDecl *), Uncached,
               NoLocationInfo)
-SWIFT_REQUEST(NameLookup, UnqualifiedLookupRequest,
+LANGUAGE_REQUEST(NameLookup, UnqualifiedLookupRequest,
               LookupResult(UnqualifiedLookupDescriptor), Uncached,
               NoLocationInfo)
 
-SWIFT_REQUEST(NameLookup, LookupPrefixOperatorRequest,
+LANGUAGE_REQUEST(NameLookup, LookupPrefixOperatorRequest,
               PrefixOperatorDecl *(OperatorLookupDescriptor),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, LookupInfixOperatorRequest,
+LANGUAGE_REQUEST(NameLookup, LookupInfixOperatorRequest,
               TinyPtrVector<InfixOperatorDecl *>(OperatorLookupDescriptor),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, LookupPostfixOperatorRequest,
+LANGUAGE_REQUEST(NameLookup, LookupPostfixOperatorRequest,
               PostfixOperatorDecl *(OperatorLookupDescriptor),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, LookupPrecedenceGroupRequest,
+LANGUAGE_REQUEST(NameLookup, LookupPrecedenceGroupRequest,
               TinyPtrVector<PrecedenceGroupDecl *>(OperatorLookupDescriptor),
               Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, IsCallAsFunctionNominalRequest,
+LANGUAGE_REQUEST(NameLookup, IsCallAsFunctionNominalRequest,
               bool(NominalTypeDecl *, DeclContext *), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, HasDynamicMemberLookupAttributeRequest,
+LANGUAGE_REQUEST(NameLookup, HasDynamicMemberLookupAttributeRequest,
               bool(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, HasDynamicCallableAttributeRequest,
+LANGUAGE_REQUEST(NameLookup, HasDynamicCallableAttributeRequest,
               bool(NominalTypeDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, PotentialMacroExpansionsInContextRequest,
+LANGUAGE_REQUEST(NameLookup, PotentialMacroExpansionsInContextRequest,
               PotentialMacroExpansions(TypeOrExtension), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, ImplementsAttrProtocolRequest,
+LANGUAGE_REQUEST(NameLookup, ImplementsAttrProtocolRequest,
               ProtocolDecl *(const ImplementsAttr *, DeclContext *), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, LookupIntrinsicRequest,
+LANGUAGE_REQUEST(NameLookup, LookupIntrinsicRequest,
               FuncDecl *(ModuleDecl *, Identifier), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, ObjCCategoryNameMapRequest,
+LANGUAGE_REQUEST(NameLookup, ObjCCategoryNameMapRequest,
               ObjCCategoryNameMap(ClassDecl *, ExtensionDecl *), Cached, NoLocationInfo)
-SWIFT_REQUEST(NameLookup, DeclABIRoleInfoRequest,
+LANGUAGE_REQUEST(NameLookup, DeclABIRoleInfoRequest,
               DeclABIRoleInfoResult(Decl *), Cached, NoLocationInfo)

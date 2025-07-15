@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some types and operations for accessing type metadata.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_METADATAREQUEST_H
-#define SWIFT_IRGEN_METADATAREQUEST_H
+#ifndef LANGUAGE_IRGEN_METADATAREQUEST_H
+#define LANGUAGE_IRGEN_METADATAREQUEST_H
 
 #include "language/ABI/MetadataValues.h"
 #include "language/AST/Types.h"
 
-namespace llvm {
+namespace toolchain {
 class Constant;
 class Function;
 class GlobalVariable;
@@ -84,7 +85,7 @@ getPresumedMetadataStateForTypeArgument(MetadataState typeState) {
 ///   memoization when the metadata is not yet complete.
 class DynamicMetadataRequest {
   MetadataRequest StaticRequest;
-  llvm::Value *DynamicRequest = nullptr;
+  toolchain::Value *DynamicRequest = nullptr;
   MetadataDependencyCollector *Dependencies = nullptr;
 public:
   /// Create a blocking request for the given metadata state.
@@ -100,7 +101,7 @@ public:
     : StaticRequest(request), DynamicRequest(nullptr) {}
 
   /// Create a request for the given dynamic request.
-  explicit DynamicMetadataRequest(llvm::Value *request)
+  explicit DynamicMetadataRequest(toolchain::Value *request)
     : StaticRequest(), DynamicRequest(request) {}
 
   /// If a collector is provided, create a non-blocking request that
@@ -126,7 +127,7 @@ public:
     return StaticRequest;
   }
 
-  llvm::Value *getDynamicRequest() const {
+  toolchain::Value *getDynamicRequest() const {
     assert(!isStatic());
     return DynamicRequest;
   }
@@ -195,11 +196,11 @@ public:
   }
 
   /// Return this request value as an IR value.
-  llvm::Value *get(IRGenFunction &IGF) const;
+  toolchain::Value *get(IRGenFunction &IGF) const;
 
   /// Project the required state (the basic kind) of this request as
   /// an IR value.
-  llvm::Value *getRequiredState(IRGenFunction &IGF) const;
+  toolchain::Value *getRequiredState(IRGenFunction &IGF) const;
 };
 
 /// A response to a metadata request (but see below for other ways in which
@@ -279,7 +280,7 @@ public:
 /// a generic type argument in the generic type's metadata; unlike the
 /// arguments above, such an approach would be highly non-ephemeral and
 /// create substantial staleness problems.  For these situations, the
-/// runtime provides a function, swift_checkMetadataState, to request (or
+/// runtime provides a function, language_checkMetadataState, to request (or
 /// block on) the current state of a type metadata.
 ///
 /// --
@@ -302,15 +303,15 @@ public:
 /// reported when the metadata was first acquired.  Propagating the metadata
 /// as a MetadataResponse makes this straightforward.
 class MetadataResponse {
-  llvm::Value *Metadata;
-  llvm::Value *DynamicState;
+  toolchain::Value *Metadata;
+  toolchain::Value *DynamicState;
   MetadataState StaticState;
 
 public:
   MetadataResponse() : Metadata(nullptr) {}
 
   /// A metadata response that might not be dynamically complete.
-  explicit MetadataResponse(llvm::Value *metadata, llvm::Value *state,
+  explicit MetadataResponse(toolchain::Value *metadata, toolchain::Value *state,
                             MetadataState staticLowerBoundState)
       : Metadata(metadata), DynamicState(state),
         StaticState(staticLowerBoundState) {
@@ -319,13 +320,13 @@ public:
 
   /// A metadata response whose actual dynamic state is unknown but for
   /// which we do have a static lower-bound.
-  static MetadataResponse forBounded(llvm::Value *metadata,
+  static MetadataResponse forBounded(toolchain::Value *metadata,
                                      MetadataState staticLowerBoundState) {
     return MetadataResponse(metadata, nullptr, staticLowerBoundState);
   }
 
   /// A metadata response that's known to be complete.
-  static MetadataResponse forComplete(llvm::Value *metadata) {
+  static MetadataResponse forComplete(toolchain::Value *metadata) {
     return MetadataResponse::forBounded(metadata, MetadataState::Complete);
   }
 
@@ -340,7 +341,7 @@ public:
     return getStaticLowerBoundOnState() == MetadataState::Complete;
   }
 
-  llvm::Value *getMetadata() const {
+  toolchain::Value *getMetadata() const {
     assert(isValid());
     return Metadata;
   }
@@ -355,7 +356,7 @@ public:
   /// if necessary.
   void ensureDynamicState(IRGenFunction &IGF) &;
 
-  llvm::Value *getDynamicState() const {
+  toolchain::Value *getDynamicState() const {
     assert(isValid());
     assert(hasDynamicState() && "must ensure dynamic state before fetching it");
     return DynamicState;
@@ -369,15 +370,15 @@ public:
 
   static MetadataResponse handle(IRGenFunction &IGF,
                                  DynamicMetadataRequest request,
-                                 llvm::Value *responsePair);
-  llvm::Value *combine(IRGenFunction &IGF) const;
+                                 toolchain::Value *responsePair);
+  toolchain::Value *combine(IRGenFunction &IGF) const;
 
   /// Return a constant value representing the fully-completed state
   /// (MetadataState::Complete).
-  static llvm::Constant *getCompletedState(IRGenModule &IGM);
+  static toolchain::Constant *getCompletedState(IRGenModule &IGM);
 };
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+inline toolchain::raw_ostream &operator<<(toolchain::raw_ostream &OS,
                                      const MetadataResponse &MR) {
   if (!MR.isValid())
     return OS;
@@ -396,16 +397,16 @@ DynamicMetadataRequest::isSatisfiedBy(MetadataResponse response) const {
 
 /// A dependency that is blocking a metadata initialization from completing.
 class MetadataDependency {
-  llvm::Value *RequiredMetadata;
-  llvm::Value *RequiredState;
+  toolchain::Value *RequiredMetadata;
+  toolchain::Value *RequiredState;
 public:
   /// Construct the null dependency, i.e. the initialization is not blocked.
   constexpr MetadataDependency()
       : RequiredMetadata(nullptr), RequiredState(nullptr) {}
 
   /// Construct a non-trivial dependency.
-  MetadataDependency(llvm::Value *requiredMetadata,
-                     llvm::Value *requiredState)
+  MetadataDependency(toolchain::Value *requiredMetadata,
+                     toolchain::Value *requiredState)
       : RequiredMetadata(requiredMetadata), RequiredState(requiredState) {
     assert(requiredMetadata != nullptr);
     assert(requiredState != nullptr);
@@ -416,27 +417,27 @@ public:
   explicit operator bool() const { return isNonTrivial(); }
 
   /// Return the metadata that the initialization depends on.
-  llvm::Value *getRequiredMetadata() const {
+  toolchain::Value *getRequiredMetadata() const {
     assert(isNonTrivial());
     return RequiredMetadata;
   }
 
   /// Return the state that the metadata needs to reach before the
   /// initialization is unblocked.
-  llvm::Value *getRequiredState() const {
+  toolchain::Value *getRequiredState() const {
     assert(isNonTrivial());
     return RequiredState;
   }
 
-  static llvm::Constant *getTrivialCombinedDependency(IRGenModule &IGM);
+  static toolchain::Constant *getTrivialCombinedDependency(IRGenModule &IGM);
 
-  llvm::Value *combine(IRGenFunction &IGF) const;
+  toolchain::Value *combine(IRGenFunction &IGF) const;
 };
 
 /// A class for dynamically collecting metadata dependencies.
 class MetadataDependencyCollector {
-  llvm::PHINode *RequiredMetadata = nullptr;
-  llvm::PHINode *RequiredState = nullptr;
+  toolchain::PHINode *RequiredMetadata = nullptr;
+  toolchain::PHINode *RequiredState = nullptr;
 
 public:
   MetadataDependencyCollector() = default;
@@ -455,19 +456,19 @@ public:
   /// anything from MetadataResponse that might assume that we've already
   /// done dependency collection.
   void checkDependency(IRGenFunction &IGF, DynamicMetadataRequest request,
-                       llvm::Value *metadata, llvm::Value *state);
+                       toolchain::Value *metadata, toolchain::Value *state);
 
   /// Given an optional MetadataDependency value (e.g. the result of calling
   /// a dependency-returning function, in which a dependency is signalled
   /// by a non-null metadata value), check whether it indicates a dependency
   /// and branch if so.
-  void collect(IRGenFunction &IGF, llvm::Value *dependencyPair);
+  void collect(IRGenFunction &IGF, toolchain::Value *dependencyPair);
 
   MetadataDependency finish(IRGenFunction &IGF);
 
 private:
-  void emitCheckBranch(IRGenFunction &IGF, llvm::Value *satisfied,
-                       llvm::Value *metadata, llvm::Value *requiredState);
+  void emitCheckBranch(IRGenFunction &IGF, toolchain::Value *satisfied,
+                       toolchain::Value *metadata, toolchain::Value *requiredState);
 };
 
 enum class MetadataAccessStrategy {
@@ -505,7 +506,7 @@ static inline bool isAccessorLazilyGenerated(MetadataAccessStrategy strategy) {
   case MetadataAccessStrategy::NonUniqueAccessor:
     return true;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 /// Is non-canonical complete metadata for the given type available at a fixed
@@ -563,24 +564,24 @@ MetadataAccessStrategy getTypeMetadataAccessStrategy(CanType type);
 
 /// Return the address of a function that will return type metadata 
 /// for the given non-dependent type.
-llvm::Function *getOrCreateTypeMetadataAccessFunction(IRGenModule &IGM,
+toolchain::Function *getOrCreateTypeMetadataAccessFunction(IRGenModule &IGM,
                                                       CanType type);
 
 /// Return the type metadata access function for the given type, given that
 /// some other code will be defining it.
-llvm::Function *
+toolchain::Function *
 getOtherwiseDefinedTypeMetadataAccessFunction(IRGenModule &IGM, CanType type);
 
 /// Emit a type metadata access function that just directly accesses
 /// the metadata.
-llvm::Function *
+toolchain::Function *
 createDirectTypeMetadataAccessFunction(IRGenModule &IGM, CanType type,
                                        bool allowExistingDefinition);
 
 using MetadataAccessGenerator =
-  llvm::function_ref<MetadataResponse(IRGenFunction &IGF,
+  toolchain::function_ref<MetadataResponse(IRGenFunction &IGF,
                                       DynamicMetadataRequest request,
-                                      llvm::Constant *cache)>;
+                                      toolchain::Constant *cache)>;
 
 enum class CacheStrategy {
   /// No cache.
@@ -594,7 +595,7 @@ enum class CacheStrategy {
 };
 
 /// Emit a type metadata access function using the given generator function.
-llvm::Function *
+toolchain::Function *
 createTypeMetadataAccessFunction(IRGenModule &IGM,
                                  CanType type,
                                  CacheStrategy cacheStrategy,
@@ -623,17 +624,17 @@ createTypeMetadataAccessFunction(IRGenModule &IGM,
 /// The definitions of generic type metadata access functions currently
 /// always follow the same pattern, so we don't need to take a closure to
 /// define the body.
-llvm::Function *
+toolchain::Function *
 getGenericTypeMetadataAccessFunction(IRGenModule &IGM,
                                      NominalTypeDecl *nominal,
                                      ForDefinition_t shouldDefine);
 
 using CacheEmitter =
-  llvm::function_ref<MetadataResponse(IRGenFunction &IGF, Explosion &params)>;
+  toolchain::function_ref<MetadataResponse(IRGenFunction &IGF, Explosion &params)>;
 
 /// Emit the body of a lazy cache access function.
-void emitCacheAccessFunction(IRGenModule &IGM, llvm::Function *accessor,
-                             llvm::Constant *cache, llvm::Type *cacheTy,
+void emitCacheAccessFunction(IRGenModule &IGM, toolchain::Function *accessor,
+                             toolchain::Constant *cache, toolchain::Type *cacheTy,
                              CacheStrategy cacheStrategy, CacheEmitter getValue,
                              bool isReadNone = true);
 MetadataResponse
@@ -658,7 +659,7 @@ ConstantReference tryEmitConstantTypeMetadataRef(IRGenModule &IGM,
 /// Emit a reference to a compile-time constant piece of heap metadata, or
 /// return a null pointer if the type's heap metadata cannot be represented
 /// by a constant.
-llvm::Constant *tryEmitConstantHeapMetadataRef(IRGenModule &IGM,
+toolchain::Constant *tryEmitConstantHeapMetadataRef(IRGenModule &IGM,
                                                CanType type,
                                                bool allowUninitialized);
 
@@ -670,7 +671,7 @@ enum class MetadataValueType { ObjCClass, TypeMetadata };
 ///
 /// \returns a value of type ObjCClassPtrTy or TypeMetadataPtrTy,
 ///    depending on desiredType
-llvm::Value *emitClassHeapMetadataRef(IRGenFunction &IGF, CanType type,
+toolchain::Value *emitClassHeapMetadataRef(IRGenFunction &IGF, CanType type,
                                       MetadataValueType desiredType,
                                       DynamicMetadataRequest request,
                                       bool allowUninitialized = false);
@@ -678,33 +679,33 @@ llvm::Value *emitClassHeapMetadataRef(IRGenFunction &IGF, CanType type,
 /// Emit a reference to the (initialized) ObjC heap metadata for a class.
 ///
 /// \returns a value of type ObjCClassPtrTy
-llvm::Value *emitObjCHeapMetadataRef(IRGenFunction &IGF, ClassDecl *theClass,
+toolchain::Value *emitObjCHeapMetadataRef(IRGenFunction &IGF, ClassDecl *theClass,
                                      bool allowUninitialized = false);
 
 /// Emit a reference to type metadata corresponding to the given
 /// heap metadata.  This may be ObjCWrapper metadata if the heap metadata
 /// is not a class.
-llvm::Value *emitObjCMetadataRefForMetadata(IRGenFunction &IGF,
-                                            llvm::Value *classPtr);
+toolchain::Value *emitObjCMetadataRefForMetadata(IRGenFunction &IGF,
+                                            toolchain::Value *classPtr);
 
 /// Given a class metadata reference, produce the appropriate heap
 /// metadata reference for it.
-llvm::Value *emitClassHeapMetadataRefForMetatype(IRGenFunction &IGF,
-                                                 llvm::Value *metatype,
+toolchain::Value *emitClassHeapMetadataRefForMetatype(IRGenFunction &IGF,
+                                                 toolchain::Value *metatype,
                                                  CanType type);
 
 /// Emit a reference to a type layout record for the given type. The referenced
 /// data is enough to lay out an aggregate containing a value of the type, but
 /// can't uniquely represent the type or perform value witness operations on
 /// it.
-llvm::Value *emitTypeLayoutRef(IRGenFunction &IGF, SILType type,
+toolchain::Value *emitTypeLayoutRef(IRGenFunction &IGF, SILType type,
                                MetadataDependencyCollector *collector);
 
 /// Given type metadata that we don't know the dynamic state of,
 /// fetch its dynamic state under the rules of the given request.
 MetadataResponse emitGetTypeMetadataDynamicState(IRGenFunction &IGF,
                                                  DynamicMetadataRequest request,
-                                                 llvm::Value *metadata);
+                                                 toolchain::Value *metadata);
 
 /// Given a metadata response, ensure that it satisfies the requirements
 /// of the given request.

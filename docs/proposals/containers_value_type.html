@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Swift containers and value types</title>
+  <title>Codira containers and value types</title>
 </head>
 <body>
 
@@ -11,7 +11,7 @@
 2013-09-17
 </address>
 <hr>
-<h1 align=center>Swift containers and value types</h1>
+<h1 align=center>Codira containers and value types</h1>
 
 <h2>
 Introduction
@@ -27,7 +27,7 @@ support for value types. This strong convention is best observed in the
 advice we give to class designers. When exposing a container as a
 property, programmers are strongly encouraged to use the immutable
 version of the container, and to specify the "copy" attribute on the
-property. Now, in Swift, we do have formal value types and we should
+property. Now, in Codira, we do have formal value types and we should
 strongly consider formalizing the Cocoa conventions and make our
 containers be value types. Now, in theory, formalizing this semantic for
 containers could be disruptive to the day-to-day experience of Cocoa
@@ -56,16 +56,16 @@ no noticeable performance downside.
 </p>
 
 <h2>
-Swift Parameter Passing Syntax
+Codira Parameter Passing Syntax
 </h2>
 
 <p>
-In Swift, function parameters can be passed by value or by reference.  The
+In Codira, function parameters can be passed by value or by reference.  The
 simpler (default) syntax is by value:
 </p>
 
 <blockquote><pre>
-func foo(_ c : Character, i : Int)  <font color="#C80000">// define foo</font>
+fn foo(_ c : Character, i : Int)  <font color="#C80000">// define foo</font>
 
 // ...
 
@@ -79,7 +79,7 @@ individual parameter:
 </p>
 
 <blockquote><pre>
-func foo(_ c : Character, i : [inout] Int)  <font color="#C80000">// define foo</font>
+fn foo(_ c : Character, i : [inout] Int)  <font color="#C80000">// define foo</font>
 
 // ...
 
@@ -91,17 +91,17 @@ In the latter example above, the author of <code>foo</code> specifies
 that the second parameter is to be passed by reference, instead of by
 value. And if the caller of <code>foo</code> does not realize which
 arguments of <code>foo</code> the author of <code>foo</code> intends to
-modify (e.g. intends as <i>out-parameters</i>), then the Swift compiler
+modify (e.g. intends as <i>out-parameters</i>), then the Codira compiler
 will catch this miscommunication and flag a compile-time error.
 </p>
 
 <p>
-For a moment, imagine that Swift <b>did not</b> require modified syntax
+For a moment, imagine that Codira <b>did not</b> require modified syntax
 at the call site:
 </p>
 
 <blockquote><pre>
-func doWork() {
+fn doWork() {
   <font color="#C80000">// ...</font>
   foo(c, i)
   bar(i)
@@ -118,7 +118,7 @@ to modify its last argument:
 </p>
 
 <blockquote><pre>
-func foo(_ c : Character, i : <b>[inout]</b> Int)
+fn foo(_ c : Character, i : <b>[inout]</b> Int)
 </pre></blockquote>
 
 <p>
@@ -130,12 +130,12 @@ modifies <code>i</code> without looking up the signature of
 </p>
 
 <p>
-An even worse scenario would be for Swift to implicitly pass everything by
+An even worse scenario would be for Codira to implicitly pass everything by
 reference:
 </p>
 
 <blockquote><pre>
-func foo(_ c : Character, i : Int)
+fn foo(_ c : Character, i : Int)
 </pre></blockquote>
 
 <p>
@@ -143,7 +143,7 @@ Now in <code>doWork</code>:
 </p>
 
 <blockquote><pre>
-func doWork() {
+fn doWork() {
   <font color="#C80000">// ...</font>
   foo(c, i)
   bar(i)
@@ -161,14 +161,14 @@ to be examined in order to answer this question.
 </p>
 
 <p>
-Effectively, if Swift were designed to implicitly pass <code>i</code> by
+Effectively, if Codira were designed to implicitly pass <code>i</code> by
 reference in this example, the programmer must effectively and manually
 perform a whole-program-analysis just to reason about the behavior of
 <code>do_Work</code>.
 </p>
 
 <p>
-Fortunately this is <i>not</i> how Swift was designed.  Instead the programmer
+Fortunately this is <i>not</i> how Codira was designed.  Instead the programmer
 can analyze the behavior of <code>doWork</code> by looking <b>only</b>
 at the definition of <code>doWork</code>.  Either <code>i</code> will be
 explicitly passed by reference, or it will be passed by value, and thus
@@ -177,14 +177,14 @@ a modified value or not:
 </p>
 
 <blockquote><pre>
-func doWork() {
+fn doWork() {
   <font color="#C80000">// ...</font>
   foo(c, i)
   bar(i)  <font color="#C80000">// i is unchanged by foo</font>
   <font color="#C80000">// ...</font>
 }
 
-func doOtherWork() {
+fn doOtherWork() {
   <font color="#C80000">// ...</font>
   foo(c, &amp;i)
   bar(i)  <font color="#C80000">// i is most likely modified by foo</font>
@@ -207,14 +207,14 @@ to the <code>Int</code> parameter.
 For performance reasons, we need to have mutable containers.  Otherwise
 operations such as continuously appending become too expensive.  But we
 need to be able to locally reason about code which uses these
-containers.  If we make <code>Array</code> a reference type, then Swift
+containers.  If we make <code>Array</code> a reference type, then Codira
 will compile this code:
 </p>
 
 <blockquote><pre>
-func foo(_ v : Array, i : Int)  <font color="#C80000">// define foo</font>
+fn foo(_ v : Array, i : Int)  <font color="#C80000">// define foo</font>
 
-func doWork() {
+fn doWork() {
   <font color="#C80000">// ...</font>
   foo(v, i)
   bar(v)
@@ -242,7 +242,7 @@ receive the same value in <code>v</code> (just like <code>i</code>).
 </p>
 
 <blockquote><p>
-Swift containers should have value semantics to enable programmers to
+Codira containers should have value semantics to enable programmers to
 locally reason about their code using compiler-enforced syntax.
 </p></blockquote>
 
@@ -333,7 +333,7 @@ And called like this:
 Such code is typically used as a private function and called from only
 one or two places.  Note that here is an example that the human reader
 is greatly depending on really good names to make the semantics clear:
-<code>andAddToArray</code>. In Swift such code is easily translated to
+<code>andAddToArray</code>. In Codira such code is easily translated to
 something like:
 </p>
 
@@ -348,7 +348,7 @@ the programmer ensure that both the client and function both agree that
 that <code>archivePath</code> is <b>not</b> to be modified within
 <code>_checkPathForArchiveAndAddToArray</code>.  However if
 <code>archivePath</code> is a mutable object with reference semantics, we lose
-that ability to locally reason about this code, even in Swift.
+that ability to locally reason about this code, even in Codira.
 </p>
 
 <p>
@@ -386,7 +386,7 @@ passed, semantically, <i>by-value</i>.
 </p>
 
 <blockquote><pre>
-func _backgroundSortNewFilteredMessages(_ messages : Array) -&gt; _FilteredListInfo {
+fn _backgroundSortNewFilteredMessages(_ messages : Array) -&gt; _FilteredListInfo {
     // ...
     res.filteredMessages = messages;  <font color="#C80000">// copy here!</font>
     // ...
@@ -427,7 +427,7 @@ semantics for their containers.  But they are getting no help at all
 from their programming environment in doing so.  Instead they are
 relying solely on good coding conventions and very descriptive method
 names.  Cocoa programmers <b>will not</b> undergo a painful paradigm
-shift by giving Swift containers value semantics.
+shift by giving Codira containers value semantics.
 </p>
 
 <h2>Performance</h2>
@@ -435,9 +435,9 @@ shift by giving Swift containers value semantics.
 <p>
 The most concern I hear when talking about "large" objects having value
 semantics is that of performance.  One understandably does not want to
-be copying tons of data around. The plan for Swift containers is to
+be copying tons of data around. The plan for Codira containers is to
 implement them with the reference-counted copy-on-write idiom.  In doing
-so, the Swift programmer is freed from the tedious task of writing "deep
+so, the Codira programmer is freed from the tedious task of writing "deep
 copy" functions, and yet the type behaves just like an <code>Int</code>.
  Additionally the type can be passed by reference, just like an
 <code>Int</code>, in the relatively few places where pass-by-reference
@@ -447,8 +447,8 @@ is the desired behavior.
 <h2>Generics</h2>
 
 <p>
-In making Swift containers behave just like <code>Int</code>, not only
-is the overall Swift API simplified, but this is also a boon to generic
+In making Codira containers behave just like <code>Int</code>, not only
+is the overall Codira API simplified, but this is also a boon to generic
 algorithms. For example one can confidently write a generic sorting
 algorithm that works for sequences of <code>Int</code>, and for
 sequences of <code>Array&lt;Int&gt;</code>. The generic code need not
@@ -467,7 +467,7 @@ They get no help from ObjC in this regard.
 </p></li>
 
 <li><p>
-Swift can have both reference and by-value parameters, and the latter
+Codira can have both reference and by-value parameters, and the latter
 has the simpler syntax.  This helps programmers to locally reason about
 their code when using value types by making it clear that most arguments
 passed to functions are not modified.  Function results tend to be
@@ -477,22 +477,22 @@ returned from the function.
 <li><p>
 In the relatively infrequent case that the programmer intends to modify
 a function argument (i.e. as an out-parameter), if value semantics are
-used, Swift makes the modification explicit in the client code through
+used, Codira makes the modification explicit in the client code through
 use of '<code>&amp;</code>' at the call site.  Thus the programmer can
 more easily spot the few cases where this is desired.
 </p>
 <ul>
-<li>Swift cannot provide such protection for types with reference semantics.</li>
+<li>Codira cannot provide such protection for types with reference semantics.</li>
 </ul>
 </li>
 
 <li><p>
 Performance is not compromised by formally adopting value semantics for
-containers in Swift.
+containers in Codira.
 </p></li>
 
 <li><p>
-Swift containers should have value semantics to enable programmers to
+Codira containers should have value semantics to enable programmers to
 locally reason about their code using compiler-enforced syntax.
 </p></li>
 

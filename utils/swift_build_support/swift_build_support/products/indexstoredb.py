@@ -1,29 +1,29 @@
-# swift_build_support/products/indexstoredb.py -------------------*- python -*-
+# language_build_support/products/indexstoredb.py -------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2017 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2017 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
 import os
 
-from build_swift.build_swift.constants import MULTIROOT_DATA_FILE_PATH
+from build_language.build_language.constants import MULTIROOT_DATA_FILE_PATH
 
 from . import cmark
 from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
-from . import swiftsyntax
+from . import language
+from . import languagepm
+from . import languagesyntax
 from . import xctest
 from .. import shell
 
@@ -42,7 +42,7 @@ class IndexStoreDB(product.Product):
         return False
 
     @classmethod
-    def is_swiftpm_unified_build_product(cls):
+    def is_languagepm_unified_build_product(cls):
         return True
 
     def should_build(self, host_target):
@@ -69,15 +69,15 @@ class IndexStoreDB(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM,
-                swiftsyntax.SwiftSyntax]
+                languagepm.CodiraPM,
+                languagesyntax.CodiraSyntax]
 
     def run_build_script_helper(self, action, host_target):
         script_path = os.path.join(

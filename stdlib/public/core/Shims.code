@@ -11,19 +11,20 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
-/// Additions to 'SwiftShims' that can be written in Swift.
+/// Additions to 'CodiraShims' that can be written in Codira.
 ///
 //===----------------------------------------------------------------------===//
 
-import SwiftShims
+import CodiraShims
 
 #if _runtime(_ObjC)
 @inlinable
-internal func _makeSwiftNSFastEnumerationState()
-   -> _SwiftNSFastEnumerationState {
-  return unsafe _SwiftNSFastEnumerationState(
+internal fn _makeCodiraNSFastEnumerationState()
+   -> _CodiraNSFastEnumerationState {
+  return unsafe _CodiraNSFastEnumerationState(
     state: 0, itemsPtr: nil, mutationsPtr: nil,
     extra: (0, 0, 0, 0, 0))
 }
@@ -36,11 +37,11 @@ internal var _fastEnumerationStorageMutationsTarget: CUnsignedLong = 0
 /// A dummy pointer to be used as `mutationsPtr` in fast enumeration
 /// implementations.
 @usableFromInline
-internal let _fastEnumerationStorageMutationsPtr =
+internal immutable _fastEnumerationStorageMutationsPtr =
   unsafe UnsafeMutablePointer<CUnsignedLong>(Builtin.addressof(&_fastEnumerationStorageMutationsTarget))
 #endif
 
 @usableFromInline @_alwaysEmitIntoClient
-internal func _mallocSize(ofAllocation ptr: UnsafeRawPointer) -> Int? {
-  return unsafe _swift_stdlib_has_malloc_size() ? _swift_stdlib_malloc_size(ptr) : nil
+internal fn _mallocSize(ofAllocation ptr: UnsafeRawPointer) -> Int? {
+  return unsafe _language_stdlib_has_malloc_size() ? _language_stdlib_malloc_size(ptr) : nil
 }

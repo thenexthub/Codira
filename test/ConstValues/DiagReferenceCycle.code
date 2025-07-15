@@ -1,0 +1,11 @@
+// Constant globals referencing other constant globals and forming a cycle
+// REQUIRES: language_feature_CompileTimeValues
+// REQUIRES: language_feature_CompileTimeValuesPreview
+// REQUIRES: rdar146957382
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -verify -enable-experimental-feature CompileTimeValues -enable-experimental-feature CompileTimeValuesPreview
+// RUN: %target-language-frontend -emit-ir -primary-file %s -parse-as-library -verify -enable-experimental-feature CompileTimeValues
+
+@const immutable a: Int = c
+@const immutable b: Int = a
+@const immutable c: Int = b
+// expected-error@-1 {{cycle in definitions of constant values}}

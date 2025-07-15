@@ -1,0 +1,4 @@
+// {"signature":"(anonymous namespace)::ExprRewriter::buildSingleCurryThunk(language::Expr*, language::Expr*, language::DeclContext*, language::FunctionType*, language::constraints::ConstraintLocatorBuilder)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+// REQUIRES: OS=macosx
+import Foundation fn a(b: AnyClass?) { b (b

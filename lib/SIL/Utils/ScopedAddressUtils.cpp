@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Basic/Assertions.h"
@@ -26,10 +27,10 @@
 
 using namespace language;
 
-void ScopedAddressValueKind::print(llvm::raw_ostream &os) const {
+void ScopedAddressValueKind::print(toolchain::raw_ostream &os) const {
   switch (value) {
   case ScopedAddressValueKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case ScopedAddressValueKind::StoreBorrow:
     os << "StoreBorrow";
     return;
@@ -37,10 +38,10 @@ void ScopedAddressValueKind::print(llvm::raw_ostream &os) const {
     os << "BeginAccess";
     return;
   }
-  llvm_unreachable("Covered switch isn't covered?!");
+  toolchain_unreachable("Covered switch isn't covered?!");
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      ScopedAddressValueKind kind) {
   kind.print(os);
   return os;
@@ -49,7 +50,7 @@ llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
 bool ScopedAddressValue::isScopeEndingUse(Operand *op) const {
   switch (kind) {
   case ScopedAddressValueKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case ScopedAddressValueKind::StoreBorrow: {
     if (auto *endBorrow = dyn_cast<EndBorrowInst>(op->getUser())) {
       return endBorrow->getOperand() == value;
@@ -69,7 +70,7 @@ bool ScopedAddressValue::visitScopeEndingUses(
     function_ref<bool(Operand *)> visitor) const {
   switch (kind) {
   case ScopedAddressValueKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   case ScopedAddressValueKind::StoreBorrow: {
     for (auto *use : value->getUses()) {
       if (isa<EndBorrowInst>(use->getUser())) {
@@ -119,7 +120,7 @@ static FunctionTest ScopedAddressLivenessTest(
     "scoped_address_liveness", [](auto &function, auto &arguments, auto &test) {
       auto value = arguments.takeValue();
       assert(!arguments.hasUntaken());
-      llvm::outs() << "Scoped address analysis: " << value;
+      toolchain::outs() << "Scoped address analysis: " << value;
 
       ScopedAddressValue scopedAddress(value);
       assert(scopedAddress);
@@ -127,11 +128,11 @@ static FunctionTest ScopedAddressLivenessTest(
       SmallVector<SILBasicBlock *, 8> discoveredBlocks;
       SSAPrunedLiveness liveness(value->getFunction(), &discoveredBlocks);
       scopedAddress.computeTransitiveLiveness(liveness);
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       PrunedLivenessBoundary boundary;
       liveness.computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
     });
 } // end namespace language::test
 
@@ -165,7 +166,7 @@ ScopedAddressValue::createScopeEnd(SILBasicBlock::iterator insertPt,
     return SILBuilderWithScope(insertPt).createEndAccess(loc, value, false);
   }
   case ScopedAddressValueKind::Invalid:
-    llvm_unreachable("Using invalid case?!");
+    toolchain_unreachable("Using invalid case?!");
   }
 }
 
@@ -188,7 +189,7 @@ void ScopedAddressValue::endScopeAtLivenessBoundary(
       });
 }
 
-bool swift::hasOtherStoreBorrowsInLifetime(StoreBorrowInst *storeBorrow,
+bool language::hasOtherStoreBorrowsInLifetime(StoreBorrowInst *storeBorrow,
                                            SSAPrunedLiveness *liveness,
                                            DeadEndBlocks *deadEndBlocks) {
   SmallVector<StoreBorrowInst *, 4> otherStoreBorrows;
@@ -212,7 +213,7 @@ bool swift::hasOtherStoreBorrowsInLifetime(StoreBorrowInst *storeBorrow,
   return false;
 }
 
-void ScopedAddressValue::print(llvm::raw_ostream &os) const {
+void ScopedAddressValue::print(toolchain::raw_ostream &os) const {
   os << "ScopedAddressIntroducingValue:\n"
         "Kind: "
      << kind
@@ -221,7 +222,7 @@ void ScopedAddressValue::print(llvm::raw_ostream &os) const {
      << value;
 }
 
-llvm::raw_ostream &swift::operator<<(llvm::raw_ostream &os,
+toolchain::raw_ostream &language::operator<<(toolchain::raw_ostream &os,
                                      const ScopedAddressValue &value) {
   value.print(os);
   return os;

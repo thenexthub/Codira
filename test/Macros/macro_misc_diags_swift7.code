@@ -1,0 +1,61 @@
+// REQUIRES: language_language_parser
+// REQUIRES: language7
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// RUN: %host-build-language -language-version 5 -emit-library -o %t/%target-library-name(MacroPlugin) -module-name=MacroPlugin %t/MacroPlugin.code -g -no-toolchain-stdlib-rpath
+
+// RUN: not %target-language-frontend -typecheck -language-version 7 -load-plugin-library %t/%target-library-name(MacroPlugin) %t/Client.code -module-name Client -diagnostic-style=toolchain 2> %t/diags
+// RUN: %FileCheck --check-prefix=CHECK-DIAG --implicit-check-not="{{error|warning}}: " -input-file=%t/diags %s
+
+//--- MacroPlugin.code
+import CodiraSyntax
+import CodiraSyntaxMacros
+
+public struct TrailingClosureMacro: ExpressionMacro {
+  public static fn expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) -> ExprSyntax {
+    guard immutable argument = macro.trailingClosure else {
+      fatalError()
+    }
+    return "\(argument)"
+  }
+}
+
+public struct MakeFunc : DeclarationMacro {
+  static public fn expansion(
+    of node: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    ["fn expansionFn() -> Int { 0 }"]
+  }
+}
+
+//--- Client.code
+@freestanding(expression)
+macro trailingClosure<T>(_ x: T) -> T = #externalMacro(module: "MacroPlugin", type: "TrailingClosureMacro")
+
+@freestanding(declaration, names: named(expansionFn))
+macro makeFunc<T>(_ x: T) = #externalMacro(module: "MacroPlugin", type: "MakeFunc")
+
+class rdar138997009_Class {
+  fn foo() {}
+  fn bar() {
+    // rdar://141963700 - In Codira 7 these are errors.
+    _ = {
+      _ = #trailingClosure {
+        foo()
+        // CHECK-DIAG: @__languagemacro_6Client0017Clientlanguage_yEEFcfMX[[@LINE-3]]{{.*}}trailingClosurefMf_.code:2:9: error: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit
+        // CHECK-DIAG: Client.code:[[@LINE-2]]:9: error: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit
+      }
+      // Use an attribute to force a MacroExpansionDecl (otherwise we parse a
+      // MacroExpansionExpr)
+      @discardableResult
+      #makeFunc(foo())
+      // CHECK-DIAG: Client.code:[[@LINE-1]]:17: error: call to method 'foo' in closure requires explicit use of 'this' to make capture semantics explicit
+    }
+  }
+}

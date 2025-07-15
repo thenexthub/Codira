@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "SourceKit/Core/LLVM.h"
+#include "SourceKit/Core/Toolchain.h"
 #include "SourceKit/Support/UIdent.h"
 #include "sourcekitd/CodeCompletionResultsArray.h"
 #include "sourcekitd/DeclarationsArray.h"
@@ -28,12 +29,12 @@
 #include "sourcekitd/VariableTypeArray.h"
 #include "language/Basic/StringExtras.h"
 #include "language/Basic/ThreadSafeRefCounted.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringRef.h"
 
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/MemoryBuffer.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/MemoryBuffer.h"
 
 #include <map>
 
@@ -108,7 +109,7 @@ public:
   }
 
   bool apply(
-      llvm::function_ref<bool(sourcekitd_uid_t, SKDObjectRef)> Applier) const {
+      toolchain::function_ref<bool(sourcekitd_uid_t, SKDObjectRef)> Applier) const {
     for (const auto& kv : Storage) {
       if (!Applier(kv.first, kv.second))
         return false;
@@ -149,7 +150,7 @@ public:
     return Storage.size();
   }
 
-  bool apply(llvm::function_ref<bool(size_t, SKDObjectRef)> Applier) const {
+  bool apply(toolchain::function_ref<bool(size_t, SKDObjectRef)> Applier) const {
     for (size_t i = 0; i < Storage.size(); ++i) {
       if (!Applier(i, Storage[i]))
         return false;
@@ -269,7 +270,7 @@ namespace {
 
 class SKDCustomData: public SKDObject {
 public:
-  SKDCustomData(std::unique_ptr<llvm::MemoryBuffer> MemBuf)
+  SKDCustomData(std::unique_ptr<toolchain::MemoryBuffer> MemBuf)
   : SKDObject(ObjectKind::CustomData), BufferPtr(std::move(MemBuf))
     {}
 
@@ -313,7 +314,7 @@ public:
     return O->getKind() == ObjectKind::CustomData;
   }
 private:
-  std::unique_ptr<llvm::MemoryBuffer> BufferPtr;
+  std::unique_ptr<toolchain::MemoryBuffer> BufferPtr;
 
   const void *_getStartPtr() const { return BufferPtr->getBuffer().data(); }
 };
@@ -327,7 +328,7 @@ public:
   SKDError &operator=(SKDError const&) = delete;
 
   sourcekitd_variant_type_t getVariantType() const override {
-    llvm::report_fatal_error("sourcekitd error object is not a variant type");
+    toolchain::report_fatal_error("sourcekitd error object is not a variant type");
   }
 
   sourcekitd_error_t getErrorKind() const {
@@ -388,7 +389,7 @@ public:
     if (OptInt.has_value()) {
       return static_cast<ImplClass*>(this)->visitInt64(OptInt.value());
     }
-    llvm_unreachable("unknown sourcekitd_object_t");
+    toolchain_unreachable("unknown sourcekitd_object_t");
   }
 };
 
@@ -439,7 +440,7 @@ public:
     OS << '\"';
     // Avoid raw_ostream's write_escaped, we don't want to escape unicode
     // characters because it will be invalid JSON.
-    swift::writeEscaped(Str, OS);
+    language::writeEscaped(Str, OS);
     OS << '\"';
   }
   
@@ -669,14 +670,14 @@ sourcekitd_error_t
 sourcekitd_response_error_get_kind(sourcekitd_response_t obj) {
   if (auto *Error = dyn_cast<SKDError>(static_cast<SKDObject *>(obj)))
     return Error->getErrorKind();
-  llvm::report_fatal_error("invalid sourcekitd error object");
+  toolchain::report_fatal_error("invalid sourcekitd error object");
 }
 
 const char *
 sourcekitd_response_error_get_description(sourcekitd_response_t obj) {
   if (auto *Error = dyn_cast<SKDError>(static_cast<SKDObject *>(obj)))
     return Error->getDescription().c_str();
-  llvm::report_fatal_error("invalid sourcekitd error object");
+  toolchain::report_fatal_error("invalid sourcekitd error object");
 }
 
 sourcekitd_variant_t
@@ -795,7 +796,7 @@ ResponseBuilder::Dictionary::setDictionary(UIdent Key) {
 }
 
 void ResponseBuilder::Dictionary::setCustomBuffer(
-      SourceKit::UIdent Key, std::unique_ptr<llvm::MemoryBuffer> MemBuf) {
+      SourceKit::UIdent Key, std::unique_ptr<toolchain::MemoryBuffer> MemBuf) {
   static_cast<SKDObject *>(Impl)->set(SKDUIDFromUIdent(Key), 
                                       new SKDCustomData(std::move(MemBuf)));
 }
@@ -840,7 +841,7 @@ RequestDict::getDictionary(SourceKit::UIdent Key) const {
 }
 
 bool RequestDict::getStringArray(SourceKit::UIdent Key,
-                                 llvm::SmallVectorImpl<const char *> &Arr,
+                                 toolchain::SmallVectorImpl<const char *> &Arr,
                                  bool isOptional) const {
   auto Object = static_cast<SKDObject *>(Dict)->get(SKDUIDFromUIdent(Key));
   if (!Object)
@@ -860,7 +861,7 @@ bool RequestDict::getStringArray(SourceKit::UIdent Key,
 }
 
 bool RequestDict::getUIDArray(SourceKit::UIdent Key,
-                              llvm::SmallVectorImpl<sourcekitd_uid_t> &Arr,
+                              toolchain::SmallVectorImpl<sourcekitd_uid_t> &Arr,
                               bool isOptional) const {
   auto Object = static_cast<SKDObject *>(Dict)->get(SKDUIDFromUIdent(Key));
   if (!Object)
@@ -881,7 +882,7 @@ bool RequestDict::getUIDArray(SourceKit::UIdent Key,
 
 bool RequestDict::dictionaryArrayApply(
     SourceKit::UIdent Key,
-    llvm::function_ref<bool(RequestDict)> Applier) const {
+    toolchain::function_ref<bool(RequestDict)> Applier) const {
   auto Object = static_cast<SKDObject *>(Dict)->get(SKDUIDFromUIdent(Key));
   if (!Object)
     return true;
@@ -948,7 +949,7 @@ static sourcekitd_variant_type_t SKDVar_get_type(sourcekitd_variant_t var) {
   if (auto Object = SKD_OBJ(var)) {
     return Object->getVariantType();
   }
-  llvm::report_fatal_error("sourcekitd object did not resolve to a known type");
+  toolchain::report_fatal_error("sourcekitd object did not resolve to a known type");
 }
 
 static bool SKDVar_array_apply(
@@ -1195,7 +1196,7 @@ void sourcekitd_response_dictionary_set_stringbuf(sourcekitd_response_t dict,
                                                   sourcekitd_uid_t key,
                                                   const char *buf,
                                                   size_t length) {
-  llvm::SmallString<512> SS;
+  toolchain::SmallString<512> SS;
   SS += StringRef(buf, length);
   sourcekitd_response_dictionary_set_string(dict, key, SS.c_str());
 }
@@ -1245,7 +1246,7 @@ void sourcekitd_response_array_set_string(sourcekitd_response_t array,
 void sourcekitd_response_array_set_stringbuf(sourcekitd_response_t array,
                                              size_t index, const char *buf,
                                              size_t length) {
-  llvm::SmallString<512> SS;
+  toolchain::SmallString<512> SS;
   SS += StringRef(buf, length);
   sourcekitd_response_array_set_string(array, index, SS.c_str());
 }
@@ -1291,7 +1292,7 @@ sourcekitd_variant_type_t sourcekitd_request_get_type(sourcekitd_object_t obj) {
   case SKDObject::ObjectKind::CustomData:
     return static_cast<SKDObject *>(obj)->getVariantType();
   case SKDObject::ObjectKind::Error:
-    llvm_unreachable("Should not be part of a request");
+    toolchain_unreachable("Should not be part of a request");
   }
 }
 
@@ -1303,8 +1304,8 @@ void sourcekitd_response_dictionary_set_custom_buffer(
   auto bufKind = *(const uint64_t *)ptr;
   assert(bufKind >= (uint64_t)CustomBufferKind::CustomBufferKind_End);
 #endif
-  std::unique_ptr<llvm::WritableMemoryBuffer> Buf;
-  Buf = llvm::WritableMemoryBuffer::getNewUninitMemBuffer(size);
+  std::unique_ptr<toolchain::WritableMemoryBuffer> Buf;
+  Buf = toolchain::WritableMemoryBuffer::getNewUninitMemBuffer(size);
   memcpy(Buf->getBufferStart(), ptr, size);
   static_cast<SKDObject *>(dict)->set(key,
                                       new SKDCustomData(std::move(Buf)));

@@ -11,11 +11,12 @@
 //
 // Author(-s): Tunjay Akbarli
 //
-//===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_TYPE_RESOLUTION_STAGE_H
-#define SWIFT_AST_TYPE_RESOLUTION_STAGE_H
 
-namespace llvm {
+//===----------------------------------------------------------------------===//
+#ifndef LANGUAGE_AST_TYPE_RESOLUTION_STAGE_H
+#define LANGUAGE_AST_TYPE_RESOLUTION_STAGE_H
+
+namespace toolchain {
 class raw_ostream;
 }
 
@@ -37,8 +38,8 @@ enum class TypeResolutionStage : uint8_t {
 };
 
 /// Display a type resolution stage.
-void simple_display(llvm::raw_ostream &out, const TypeResolutionStage &value);
+void simple_display(toolchain::raw_ostream &out, const TypeResolutionStage &value);
 
 } // end namespace language
 
-#endif // SWIFT_AST_TYPE_RESOLUTION_STAGE_H
+#endif // LANGUAGE_AST_TYPE_RESOLUTION_STAGE_H

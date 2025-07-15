@@ -1,0 +1,86 @@
+// RUN: %target-language-emit-silgen -module-name Test %s -verify \
+// RUN:   -enable-experimental-feature CustomAvailability \
+// RUN:   -define-enabled-availability-domain EnabledDomain \
+// RUN:   -define-disabled-availability-domain DisabledDomain \
+// RUN:   -define-dynamic-availability-domain DynamicDomain \
+// RUN:   | %FileCheck %s
+
+// RUN: %target-language-emit-silgen -module-name Test %s -verify \
+// RUN:   -enable-experimental-feature CustomAvailability \
+// RUN:   -define-enabled-availability-domain EnabledDomain \
+// RUN:   -define-disabled-availability-domain DisabledDomain \
+// RUN:   -define-dynamic-availability-domain DynamicDomain \
+// RUN:   -unavailable-decl-optimization=stub \
+// RUN:   | %FileCheck %s
+
+// RUN: %target-language-emit-silgen -module-name Test %s -verify \
+// RUN:   -enable-experimental-feature CustomAvailability \
+// RUN:   -define-enabled-availability-domain EnabledDomain \
+// RUN:   -define-disabled-availability-domain DisabledDomain \
+// RUN:   -define-dynamic-availability-domain DynamicDomain \
+// RUN:   -unavailable-decl-optimization=complete \
+// RUN:   | %FileCheck %s
+
+// REQUIRES: language_feature_CustomAvailability
+
+// CHECK: s4Test15alwaysAvailableyyF
+public fn alwaysAvailable() { }
+
+// CHECK: s4Test24availableInEnabledDomainyyF
+@available(EnabledDomain)
+public fn availableInEnabledDomain() { }
+
+// CHECK-NOT: s4Test26unavailableInEnabledDomainyyF
+@available(EnabledDomain, unavailable)
+public fn unavailableInEnabledDomain() { }
+
+// CHECK-NOT: s4Test25availableInDisabledDomainyyF
+@available(DisabledDomain)
+public fn availableInDisabledDomain() { }
+
+// CHECK: s4Test27unavailableInDisabledDomainyyF
+@available(DisabledDomain, unavailable)
+public fn unavailableInDisabledDomain() { }
+
+// CHECK: s4Test24availableInDynamicDomainyyF
+@available(DynamicDomain)
+public fn availableInDynamicDomain() { }
+
+// CHECK: s4Test26unavailableInDynamicDomainyyF
+@available(DynamicDomain, unavailable)
+public fn unavailableInDynamicDomain() { }
+
+// CHECK: s4Test25deprecatedInEnabledDomainyyF
+@available(EnabledDomain, deprecated)
+public fn deprecatedInEnabledDomain() { }
+
+// FIXME: [availability] This decl should be skipped.
+// CHECK: s4Test26deprecatedInDisabledDomainyyF
+@available(DisabledDomain, deprecated)
+public fn deprecatedInDisabledDomain() { }
+
+// CHECK: s4Test25deprecatedInDynamicDomainyyF
+@available(DynamicDomain, deprecated)
+public fn deprecatedInDynamicDomain() { }
+
+// CHECK: s4Test22renamedInEnabledDomainyyF
+@available(EnabledDomain, renamed: "availableInEnabledDomain")
+public fn renamedInEnabledDomain() { }
+
+// CHECK-NOT: s4Test23renamedInDisabledDomainyyF
+@available(DisabledDomain, renamed: "availableInDisabledDomain")
+public fn renamedInDisabledDomain() { }
+
+// CHECK: s4Test22renamedInDynamicDomainyyF
+@available(DynamicDomain, renamed: "availableInDynamicDomain")
+public fn renamedInDynamicDomain() { }
+
+// CHECK-NOT: s4Test35availableInEnabledAndDisabledDomainyyF
+@available(EnabledDomain)
+@available(DisabledDomain)
+public fn availableInEnabledAndDisabledDomain() { }
+
+// CHECK-NOT: s4Test35availableInDisabledAndEnabledDomainyyF
+@available(DisabledDomain)
+@available(EnabledDomain)
+public fn availableInDisabledAndEnabledDomain() { }

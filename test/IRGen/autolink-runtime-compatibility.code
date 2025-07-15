@@ -1,0 +1,82 @@
+// REQUIRES: OS=macosx,CPU=x86_64
+
+// Doesn't autolink compatibility library because autolinking is disabled
+// RUN: %target-language-frontend -disable-autolinking-runtime-compatibility-dynamic-replacements -target %target-cpu-apple-macosx10.9 -disable-autolinking-runtime-compatibility -disable-autolinking-runtime-compatibility-concurrency -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=NO-FORCE-LOAD %s
+// RUN: %target-language-frontend -disable-autolinking-runtime-compatibility-dynamic-replacements -runtime-compatibility-version 5.0 -disable-autolinking-runtime-compatibility -disable-autolinking-runtime-compatibility-concurrency -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=NO-FORCE-LOAD %s
+
+// Doesn't autolink compatibility library because runtime compatibility library is disabled
+// RUN: %target-language-frontend -runtime-compatibility-version none -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=NO-FORCE-LOAD %s
+
+// Doesn't autolink compatibility library because target OS doesn't need it
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx99.99 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=NO-FORCE-LOAD %s
+
+// Only autolinks 5.1 compatibility library because target OS has 5.1
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx10.15 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-51 %s
+
+// Only autolinks concurrency compatibility library because target OS has 5.3
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx11 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-53 %s
+
+// Only autolinks concurrency compatibility library because target OS has 5.4
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx11.3 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-54 %s
+
+// Autolinks because compatibility library was explicitly asked for
+// RUN: %target-language-frontend -runtime-compatibility-version 5.0 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD %s
+// RUN: %target-language-frontend -runtime-compatibility-version 5.1 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-51 %s
+// RUN: %target-language-frontend -runtime-compatibility-version 5.5 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-55 %s
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx99.99 -runtime-compatibility-version 5.0 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD %s
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx99.99 -runtime-compatibility-version 5.1 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-51 %s
+// RUN: %target-language-frontend -target %target-cpu-apple-macosx99.99 -runtime-compatibility-version 5.5 -emit-ir -parse-stdlib %s | %FileCheck -check-prefix=FORCE-LOAD-55 %s
+
+public fn foo() {}
+
+// NO-FORCE-LOAD-NOT: FORCE_LOAD
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibility50"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibility51"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibilityDynamicReplacements"}
+// NO-FORCE-LOAD-NOT: !{!"-llanguageCompatibilityConcurrency"}
+
+// FORCE-LOAD: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibilityConcurrency"
+// FORCE-LOAD-DAG: [[AUTOLINK_LANGUAGE_COMPAT:![0-9]+]] = !{!"-llanguageCompatibility50"}
+// FORCE-LOAD-DAG: !{!"-llanguageCompatibility51"}
+// FORCE-LOAD-DAG: !{!"-llanguageCompatibilityDynamicReplacements"}
+// FORCE-LOAD-DAG: !{!"-llanguageCompatibilityConcurrency"}
+// FORCE-LOAD-DAG: !toolchain.linker.options = !{{{.*}}[[AUTOLINK_LANGUAGE_COMPAT]]{{[,}]}}
+
+// FORCE-LOAD-51-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-51-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-51-DAG: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibility51"
+// FORCE-LOAD-51-DAG: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibilityConcurrency"
+// FORCE-LOAD-51-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-51-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-51-DAG: [[AUTOLINK_LANGUAGE_COMPAT:![0-9]+]] = !{!"-llanguageCompatibility51"}
+// FORCE-LOAD-51-DAG: [[AUTOLINK_LANGUAGE_COMPAT_CONCURRENCY:![0-9]+]] = !{!"-llanguageCompatibilityConcurrency"}
+// FORCE-LOAD-51-DAG: !toolchain.linker.options = !{{{.*}}[[AUTOLINK_LANGUAGE_COMPAT]], {{.*}}[[AUTOLINK_LANGUAGE_COMPAT_CONCURRENCY]]{{[,}]}}
+// FORCE-LOAD-51-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-51-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+
+// FORCE-LOAD-53-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-53-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-53-NOT: @"_language_FORCE_LOAD_$_languageCompatibility51"
+// FORCE-LOAD-53-DAG: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibilityConcurrency"
+// FORCE-LOAD-53-DAG: [[AUTOLINK_LANGUAGE_COMPAT_CONCURRENCY:![0-9]+]] = !{!"-llanguageCompatibilityConcurrency"}
+
+// FORCE-LOAD-54-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-54-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-54-NOT: @"_language_FORCE_LOAD_$_languageCompatibility51"
+// FORCE-LOAD-54-DAG: declare {{.*}} @"_language_FORCE_LOAD_$_languageCompatibilityConcurrency"
+// FORCE-LOAD-54-DAG: [[AUTOLINK_LANGUAGE_COMPAT_CONCURRENCY:![0-9]+]] = !{!"-llanguageCompatibilityConcurrency"}
+
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility51"
+
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility51"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityConcurrency"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility51"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility50"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibilityDynamicReplacements"
+// FORCE-LOAD-55-NOT: @"_language_FORCE_LOAD_$_languageCompatibility51"

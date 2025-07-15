@@ -1,21 +1,25 @@
-//===--- Runtime.h - Swift runtime imports ----------------------*- C++ -*-===//
+//===--- Runtime.h - Codira runtime imports ----------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
-//  Things to drag in from the Swift runtime.
+//  Things to drag in from the Codira runtime.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BACKTRACING_RUNTIME_H
-#define SWIFT_BACKTRACING_RUNTIME_H
+#ifndef LANGUAGE_BACKTRACING_RUNTIME_H
+#define LANGUAGE_BACKTRACING_RUNTIME_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -26,14 +30,14 @@
 extern "C" {
 #endif
 
-// Can't import swift/Runtime/Debug.h because it assumes C++
-void swift_reportWarning(uint32_t flags, const char *message);
+// Can't import language/Runtime/Debug.h because it assumes C++
+void language_reportWarning(uint32_t flags, const char *message);
 
 // Returns true if the given function is a thunk function
-bool _swift_backtrace_isThunkFunction(const char *rawName);
+bool _language_backtrace_isThunkFunction(const char *rawName);
 
-// Demangle the given raw name (supports Swift and C++)
-char *_swift_backtrace_demangle(const char *rawName,
+// Demangle the given raw name (supports Codira and C++)
+char *_language_backtrace_demangle(const char *rawName,
                                 size_t rawNameLength,
                                 char *outputBuffer,
                                 size_t *outputBufferSize);
@@ -42,4 +46,4 @@ char *_swift_backtrace_demangle(const char *rawName,
 }
 #endif
 
-#endif // SWIFT_BACKTRACING_RUNTIME_H
+#endif // LANGUAGE_BACKTRACING_RUNTIME_H

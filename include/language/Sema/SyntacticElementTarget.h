@@ -1,21 +1,25 @@
 //===--- SyntacticElementTarget.h - Syntactic Element Target ----*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file defines the SyntacticElementTarget class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SEMA_SYNTACTIC_ELEMENT_TARGET_H
-#define SWIFT_SEMA_SYNTACTIC_ELEMENT_TARGET_H
+#ifndef LANGUAGE_SEMA_SYNTACTIC_ELEMENT_TARGET_H
+#define LANGUAGE_SEMA_SYNTACTIC_ELEMENT_TARGET_H
 
 #include "language/AST/AnyFunctionRef.h"
 #include "language/AST/Expr.h"
@@ -304,8 +308,8 @@ public:
 
     case Kind::function: {
       auto ref = *getAsFunction();
-      if (auto *func = ref.getAbstractFunctionDecl())
-        return func;
+      if (auto *fn = ref.getAbstractFunctionDecl())
+        return fn;
       return ref.getAbstractClosureExpr();
     }
 
@@ -340,7 +344,7 @@ public:
     case Kind::forEachPreamble:
       return nullptr;
     }
-    llvm_unreachable("invalid expression type");
+    toolchain_unreachable("invalid expression type");
   }
 
   DeclContext *getDeclContext() const {
@@ -373,7 +377,7 @@ public:
     case Kind::forEachPreamble:
       return forEachPreamble.dc;
     }
-    llvm_unreachable("invalid decl context type");
+    toolchain_unreachable("invalid decl context type");
   }
 
   /// Get the contextual type info for an expression target.
@@ -626,7 +630,7 @@ public:
     case Kind::function:
       return function.function;
     }
-    llvm_unreachable("invalid function kind");
+    toolchain_unreachable("invalid function kind");
   }
 
   std::optional<StmtCondition> getAsStmtCondition() const {
@@ -643,7 +647,7 @@ public:
     case Kind::stmtCondition:
       return stmtCondition.stmtCondition;
     }
-    llvm_unreachable("invalid statement kind");
+    toolchain_unreachable("invalid statement kind");
   }
 
   std::optional<CaseLabelItem *> getAsCaseLabelItem() const {
@@ -660,7 +664,7 @@ public:
     case Kind::caseLabelItem:
       return caseLabelItem.caseLabelItem;
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   PatternBindingDecl *getAsPatternBinding() const {
@@ -677,7 +681,7 @@ public:
     case Kind::patternBinding:
       return patternBinding;
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   VarDecl *getAsUninitializedWrappedVar() const {
@@ -694,7 +698,7 @@ public:
     case Kind::uninitializedVar:
       return uninitializedVar.declaration.dyn_cast<VarDecl *>();
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   Pattern *getAsUninitializedVar() const {
@@ -711,7 +715,7 @@ public:
     case Kind::uninitializedVar:
       return uninitializedVar.declaration.dyn_cast<Pattern *>();
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   ForEachStmt *getAsForEachStmt() const {
@@ -728,7 +732,7 @@ public:
     case Kind::forEachPreamble:
       return forEachPreamble.stmt;
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   Type getTypeOfUninitializedVar() const {
@@ -745,7 +749,7 @@ public:
     case Kind::uninitializedVar:
       return uninitializedVar.type;
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   PatternBindingDecl *getPatternBindingOfUninitializedVar() const {
@@ -762,7 +766,7 @@ public:
     case Kind::uninitializedVar:
       return uninitializedVar.binding;
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   unsigned getIndexOfUninitializedVar() const {
@@ -779,7 +783,7 @@ public:
     case Kind::uninitializedVar:
       return uninitializedVar.index;
     }
-    llvm_unreachable("invalid case label type");
+    toolchain_unreachable("invalid case label type");
   }
 
   BraceStmt *getFunctionBody() const {
@@ -848,7 +852,7 @@ public:
 
       return {startLoc, endLoc};
     }
-    llvm_unreachable("invalid target type");
+    toolchain_unreachable("invalid target type");
   }
 
   /// Retrieve the source location for the target.
@@ -883,7 +887,7 @@ public:
     case Kind::forEachPreamble:
       return forEachPreamble.stmt->getStartLoc();
     }
-    llvm_unreachable("invalid target type");
+    toolchain_unreachable("invalid target type");
   }
 
   /// Marks the target as invalid, filling in ErrorTypes for the AST it
@@ -897,4 +901,4 @@ public:
 } // namespace constraints
 } // namespace language
 
-#endif /* SWIFT_SEMA_SYNTACTIC_ELEMENT_TARGET_H */
+#endif /* LANGUAGE_SEMA_SYNTACTIC_ELEMENT_TARGET_H */

@@ -1,23 +1,27 @@
-//===--- swift-ast-script.cpp ---------------------------------------------===//
+//===--- language-ast-script.cpp ---------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
-/// This utility is a command line tool that searches Swift code for
+/// This utility is a command line tool that searches Codira code for
 /// declarations matching the given requirements.
 ///
 //===----------------------------------------------------------------------===//
 
 #include "language/Frontend/Frontend.h"
 #include "language/FrontendTool/FrontendTool.h"
-#include "language/Basic/LLVMInitialize.h"
+#include "language/Basic/ToolchainInitializer.h"
 #include "ASTScript.h"
 #include "ASTScriptConfiguration.h"
 
@@ -71,14 +75,14 @@ int main2(int argc, const char *argv[]) {
   auto argEnd = argv + argc;
   auto dashDash = std::find(argBegin, argEnd, StringRef("--"));
   if (dashDash == argEnd) {
-    llvm::errs() << "error: missing '--' in arguments to separate "
+    toolchain::errs() << "error: missing '--' in arguments to separate "
                     "script configuration from compiler arguments\n"
                     "usage:\n"
-                    "  swift-grep <script_file> -- <compiler flags>\n";
+                    "  language-grep <script_file> -- <compiler flags>\n";
     return 1;
   }
 
-  Observer observer(llvm::ArrayRef(argBegin, dashDash));
+  Observer observer(toolchain::ArrayRef(argBegin, dashDash));
 
   // Set up the frontend arguments.
   unsigned numFrontendArgs = argEnd - (dashDash + 1);

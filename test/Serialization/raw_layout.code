@@ -1,0 +1,31 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -emit-module -enable-experimental-feature RawLayout -module-name raw_layout_fred -o %t %S/Inputs/raw_layout.code
+// RUN: %target-language-frontend -I %t -I %S/Inputs -cxx-interoperability-mode=upcoming-language -emit-ir %s -verify | %FileCheck %s
+
+// REQUIRES: language_feature_RawLayout
+
+import raw_layout_fred
+import RawLayoutCXX
+
+// CHECK: %T15raw_layout_fred4FredVySbG = type <{ [1 x i8] }>
+
+// CHECK-LABEL: @"$s{{[A-Za-z0-9_]*}}16WeirdCXXTypeCellVWV" = {{.*}} %language.vwtable
+// initializeWithTake
+// CHECK-SAME:  , ptr @"$s10raw_layout16WeirdCXXTypeCellVwtk
+// assignWithTake
+// CHECK-SAME:  , ptr @"$s10raw_layout16WeirdCXXTypeCellVwta
+// size
+// CHECK-SAME:  , {{i64|i32}} 1
+// stride
+// CHECK-SAME:  , {{i64|i32}} 1
+// flags: addressable for dependencies, not copyable, not bitwise takable, not pod, not inline
+// CHECK-SAME:  , i32 43188224
+struct WeirdCXXTypeCell: ~Copyable {
+  immutable cell: CellThatMovesLike<NonBitwiseTakableCXXType>
+}
+
+do {
+  // CHECK: {{%.*}} = alloca %T15raw_layout_fred4FredVySbG
+  // CHECK: call languagecc void @"$s15raw_layout_fred4FredVACyxGycfC"
+  immutable _ = Fred<Bool>()
+}

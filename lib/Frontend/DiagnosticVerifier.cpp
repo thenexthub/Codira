@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the DiagnosticVerifier class.
@@ -22,12 +23,12 @@
 #include "language/Basic/ColorUtils.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/FormatVariadic.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/Path.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 
@@ -243,14 +244,14 @@ static std::string getDiagKindString(DiagnosticKind Kind) {
     return "remark";
   }
 
-  llvm_unreachable("Unhandled DiagKind in switch.");
+  toolchain_unreachable("Unhandled DiagKind in switch.");
 }
 
 /// Render the verifier syntax for a given documentation file.
 static std::string
 renderDocumentationFile(const std::string &documentationFile) {
   std::string Result;
-  llvm::raw_string_ostream OS(Result);
+  toolchain::raw_string_ostream OS(Result);
   OS << "{{" << categoryDocFileSpecifier << documentationFile << "}}";
   return OS.str();
 }
@@ -297,10 +298,10 @@ findDiagnostic(std::vector<CapturedDiagnosticInfo> &CapturedDiagnostics,
 /// and actual diagnostics produced), apply fixits to the original source
 /// file and drop it back in place.
 static void autoApplyFixes(SourceManager &SM, unsigned BufferID,
-                           ArrayRef<llvm::SMDiagnostic> diags) {
+                           ArrayRef<toolchain::SMDiagnostic> diags) {
   // Walk the list of diagnostics, pulling out any fixits into an array of just
   // them.
-  SmallVector<llvm::SMFixIt, 4> FixIts;
+  SmallVector<toolchain::SMFixIt, 4> FixIts;
   for (auto &diag : diags)
     FixIts.append(diag.getFixIts().begin(), diag.getFixIts().end());
 
@@ -310,15 +311,15 @@ static void autoApplyFixes(SourceManager &SM, unsigned BufferID,
 
   // Sort the fixits by their start location.
   std::sort(FixIts.begin(), FixIts.end(),
-            [&](const llvm::SMFixIt &lhs, const llvm::SMFixIt &rhs) -> bool {
+            [&](const toolchain::SMFixIt &lhs, const toolchain::SMFixIt &rhs) -> bool {
               return lhs.getRange().Start.getPointer() <
                      rhs.getRange().Start.getPointer();
             });
   // Coalesce identical fix-its. This happens most often with "expected-error 2"
   // syntax.
   FixIts.erase(std::unique(FixIts.begin(), FixIts.end(),
-                           [](const llvm::SMFixIt &lhs,
-                              const llvm::SMFixIt &rhs) -> bool {
+                           [](const toolchain::SMFixIt &lhs,
+                              const toolchain::SMFixIt &rhs) -> bool {
                              return lhs.getRange().Start ==
                                         rhs.getRange().Start &&
                                     lhs.getRange().End == rhs.getRange().End &&
@@ -328,9 +329,9 @@ static void autoApplyFixes(SourceManager &SM, unsigned BufferID,
   // Filter out overlapping fix-its. This allows the compiler to apply changes
   // to the easy parts of the file, and leave in the tricky cases for the
   // developer to handle manually.
-  FixIts.erase(swift::removeAdjacentIf(
+  FixIts.erase(language::removeAdjacentIf(
                    FixIts.begin(), FixIts.end(),
-                   [](const llvm::SMFixIt &lhs, const llvm::SMFixIt &rhs) {
+                   [](const toolchain::SMFixIt &lhs, const toolchain::SMFixIt &rhs) {
                      return lhs.getRange().End.getPointer() >
                             rhs.getRange().Start.getPointer();
                    }),
@@ -363,8 +364,8 @@ static void autoApplyFixes(SourceManager &SM, unsigned BufferID,
   Result.append(LastPos, bufferRange.end());
 
   std::error_code error;
-  llvm::raw_fd_ostream outs(memBuffer->getBufferIdentifier(), error,
-                            llvm::sys::fs::OpenFlags::OF_None);
+  toolchain::raw_fd_ostream outs(memBuffer->getBufferIdentifier(), error,
+                            toolchain::sys::fs::OpenFlags::OF_None);
   if (!error)
     outs << Result;
 }
@@ -385,7 +386,7 @@ bool DiagnosticVerifier::verifyUnknown(
          " produced: " + CapturedDiagnostics[i].Message)
             .str();
 
-    auto diag = SM.GetMessage({}, llvm::SourceMgr::DK_Error, Message, {}, {});
+    auto diag = SM.GetMessage({}, toolchain::SourceMgr::DK_Error, Message, {}, {});
     printDiagnostic(diag);
   }
   return HadError;
@@ -416,8 +417,8 @@ bool DiagnosticVerifier::checkForFixIt(
   return false;
 }
 
-void DiagnosticVerifier::printDiagnostic(const llvm::SMDiagnostic &Diag) const {
-  raw_ostream &stream = llvm::errs();
+void DiagnosticVerifier::printDiagnostic(const toolchain::SMDiagnostic &Diag) const {
+  raw_ostream &stream = toolchain::errs();
   ColoredStream coloredStream{stream};
   raw_ostream &out = UseColor ? coloredStream : stream;
   SM.getLLVMSourceMgr().PrintMessage(out, Diag);
@@ -428,7 +429,7 @@ DiagnosticVerifier::renderFixits(ArrayRef<CapturedFixItInfo> ActualFixIts,
                                  unsigned BufferID,
                                  unsigned DiagnosticLineNo) const {
   std::string Result;
-  llvm::raw_string_ostream OS(Result);
+  toolchain::raw_string_ostream OS(Result);
   interleave(
       ActualFixIts,
       [&](const CapturedFixItInfo &ActualFixIt) {
@@ -469,7 +470,7 @@ DiagnosticVerifier::renderFixits(ArrayRef<CapturedFixItInfo> ActualFixIts,
 /// diagnostic; used to turn line offsets into line numbers.
 static std::optional<LineColumnRange> parseExpectedFixItRange(
     StringRef &Str, unsigned DiagnosticLineNo,
-    llvm::function_ref<void(const char *, const Twine &)> diagnoseError) {
+    toolchain::function_ref<void(const char *, const Twine &)> diagnoseError) {
   assert(!Str.empty());
 
   struct ParsedLineAndColumn {
@@ -585,12 +586,12 @@ static void validatePrefixList(ArrayRef<std::string> prefixes) {
 
     for (auto &p : prefixes) {
       if (StringRef(p).starts_with(target)) {
-        llvm::errs() << "Error! Found a verifier diagnostic additional prefix "
+        toolchain::errs() << "Error! Found a verifier diagnostic additional prefix "
                         "that is a prefix of a later prefix. The later prefix "
                         "will never be pattern matched!\n"
                      << "First Prefix: " << target << '\n'
                      << "Second Prefix: " << p << '\n';
-        llvm::report_fatal_error("Standard compiler error!\n");
+        toolchain::report_fatal_error("Standard compiler error!\n");
       }
     }
   }
@@ -600,23 +601,23 @@ static void validatePrefixList(ArrayRef<std::string> prefixes) {
 /// the expected diagnostics and check to see if there were any unexpected
 /// ones.
 DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
-  using llvm::SMLoc;
+  using toolchain::SMLoc;
   
   const SourceLoc BufferStartLoc = SM.getLocForBufferStart(BufferID);
   StringRef InputFile = SM.getEntireTextForBuffer(BufferID);
 
   // Queue up all of the diagnostics, allowing us to sort them and emit them in
   // file order.
-  std::vector<llvm::SMDiagnostic> Errors;
+  std::vector<toolchain::SMDiagnostic> Errors;
 
   unsigned PrevExpectedContinuationLine = 0;
 
   std::vector<ExpectedDiagnosticInfo> ExpectedDiagnostics;
 
   auto addError = [&](const char *Loc, const Twine &message,
-                      ArrayRef<llvm::SMFixIt> FixIts = {}) {
+                      ArrayRef<toolchain::SMFixIt> FixIts = {}) {
     auto loc = SourceLoc(SMLoc::getFromPointer(Loc));
-    auto diag = SM.GetMessage(loc, llvm::SourceMgr::DK_Error, message,
+    auto diag = SM.GetMessage(loc, toolchain::SourceMgr::DK_Error, message,
                               {}, FixIts);
     Errors.push_back(diag);
   };
@@ -739,7 +740,7 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
       continue;
     }
 
-    llvm::SmallString<256> Buf;
+    toolchain::SmallString<256> Buf;
     Expected.MessageRange = MatchStart.slice(2, End);
     Expected.MessageStr =
         Lexer::getEncodedStringSegment(Expected.MessageRange, Buf).str();
@@ -931,7 +932,7 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
     auto emitFixItsError = [&](const char *location, const Twine &message,
                                const char *replStartLoc, const char *replEndLoc,
                                const std::string &replStr) {
-      llvm::SMFixIt fix(llvm::SMRange(SMLoc::getFromPointer(replStartLoc),
+      toolchain::SMFixIt fix(toolchain::SMRange(SMLoc::getFromPointer(replStartLoc),
                                       SMLoc::getFromPointer(replEndLoc)),
                         replStr);
       addError(location, message, fix);
@@ -946,7 +947,7 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
       auto expectedKind = getDiagKindString(expected.Classification);
       auto actualKind = getDiagKindString(FoundDiagnostic.Classification);
       emitFixItsError(expected.ClassificationStart,
-          llvm::Twine("expected ") + expectedKind + ", not " + actualKind,
+          toolchain::Twine("expected ") + expectedKind + ", not " + actualKind,
           expected.ClassificationStart, expected.ClassificationEnd,
           actualKind);
     }
@@ -1076,7 +1077,7 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
           auto replStartLoc = SMLoc::getFromPointer(expectedDocFile->StartLoc);
           auto replEndLoc = SMLoc::getFromPointer(expectedDocFile->EndLoc);
 
-          llvm::SMFixIt fix(llvm::SMRange(replStartLoc, replEndLoc), actual);
+          toolchain::SMFixIt fix(toolchain::SMRange(replStartLoc, replEndLoc), actual);
           addError(expectedDocFile->StartLoc,
                    "expected documentation file not seen; actual documentation "
                    "file: " + actual, fix);
@@ -1124,17 +1125,17 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
           SMLoc::getFromPointer(expectedDiagIter->MessageRange.begin());
       auto EndLoc = SMLoc::getFromPointer(expectedDiagIter->MessageRange.end());
 
-      llvm::SMFixIt fixIt(llvm::SMRange{StartLoc, EndLoc}, I->Message);
+      toolchain::SMFixIt fixIt(toolchain::SMRange{StartLoc, EndLoc}, I->Message);
       addError(expectedDiagIter->MessageRange.begin(),
                "incorrect message found", fixIt);
     } else if (I->Column != *expectedDiagIter->ColumnNo) {
       // The difference must be only in the column
       addError(expectedDiagIter->MessageRange.begin(),
-               llvm::formatv("message found at column {0} but was expected to "
+               toolchain::formatv("message found at column {0} but was expected to "
                              "appear at column {1}",
                              I->Column, *expectedDiagIter->ColumnNo));
     } else {
-      llvm_unreachable("unhandled difference from expected diagnostic");
+      toolchain_unreachable("unhandled difference from expected diagnostic");
     }
     CapturedDiagnostics.erase(I);
     expectedDiagIter = ExpectedDiagnostics.erase(expectedDiagIter);
@@ -1184,7 +1185,7 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
     }
 
     // Remove the expected-foo{{}} as a fixit.
-    llvm::SMFixIt fixIt(llvm::SMRange{
+    toolchain::SMFixIt fixIt(toolchain::SMRange{
       SMLoc::getFromPointer(StartLoc),
       SMLoc::getFromPointer(EndLoc)
     }, "");
@@ -1213,8 +1214,8 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
   // key.  This ensures that an "unexpected diagnostic" and
   // "expected diagnostic" in the same place are emitted next to each other.
   std::sort(Errors.begin(), Errors.end(),
-            [&](const llvm::SMDiagnostic &lhs,
-                const llvm::SMDiagnostic &rhs) -> bool {
+            [&](const toolchain::SMDiagnostic &lhs,
+                const toolchain::SMDiagnostic &rhs) -> bool {
               return lhs.getLoc().getPointer() < rhs.getLoc().getPointer();
             });
 
@@ -1232,21 +1233,21 @@ DiagnosticVerifier::Result DiagnosticVerifier::verifyFile(unsigned BufferID) {
 void DiagnosticVerifier::printRemainingDiagnostics() const {
   for (const auto &diag : CapturedDiagnostics) {
     // Determine what kind of diagnostic we're emitting.
-    llvm::SourceMgr::DiagKind SMKind;
+    toolchain::SourceMgr::DiagKind SMKind;
     switch (diag.Classification) {
     case DiagnosticKind::Error:
-      SMKind = llvm::SourceMgr::DK_Error;
+      SMKind = toolchain::SourceMgr::DK_Error;
       break;
     case DiagnosticKind::Warning:
-      SMKind = llvm::SourceMgr::DK_Warning;
+      SMKind = toolchain::SourceMgr::DK_Warning;
       break;
 
     case DiagnosticKind::Note:
-      SMKind = llvm::SourceMgr::DK_Note;
+      SMKind = toolchain::SourceMgr::DK_Note;
       break;
 
     case DiagnosticKind::Remark:
-      SMKind = llvm::SourceMgr::DK_Remark;
+      SMKind = toolchain::SourceMgr::DK_Remark;
       break;
     }
 
@@ -1272,9 +1273,9 @@ void DiagnosticVerifier::handleDiagnostic(SourceManager &SM,
     fixIts.emplace_back(SM, fixIt);
   }
 
-  llvm::SmallString<128> message;
+  toolchain::SmallString<128> message;
   {
-    llvm::raw_svector_ostream Out(message);
+    toolchain::raw_svector_ostream Out(message);
     DiagnosticEngine::formatDiagnosticText(Out, Info.FormatString,
                                            Info.FormatArgs);
   }
@@ -1282,7 +1283,7 @@ void DiagnosticVerifier::handleDiagnostic(SourceManager &SM,
   DiagLoc loc(SM, this->SM, Info.Loc);
   CapturedDiagnostics.emplace_back(message, loc.bufferID, Info.Kind,
                                    loc.sourceLoc, loc.line, loc.column, fixIts,
-                                   llvm::sys::path::stem(
+                                   toolchain::sys::path::stem(
                                       Info.CategoryDocumentationURL).str());
 }
 
@@ -1298,8 +1299,8 @@ bool DiagnosticVerifier::finishProcessing() {
       auto result = SM.getFileSystem()->getBufferForFile(path);
       if (!result) {
         auto message = SM.GetMessage(
-           SourceLoc(), llvm::SourceMgr::DiagKind::DK_Error,
-           llvm::Twine("unable to open file in '-verify-additional-file ") +
+           SourceLoc(), toolchain::SourceMgr::DiagKind::DK_Error,
+           toolchain::Twine("unable to open file in '-verify-additional-file ") +
            path + "': " + result.getError().message(), {}, {});
         printDiagnostic(message);
         Result.HadError |= true;

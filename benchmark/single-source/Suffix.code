@@ -1,4 +1,4 @@
-//===--- Suffix.swift -----------------------------------------*- swift -*-===//
+//===--- Suffix.code -----------------------------------------*- Codira -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,22 +11,23 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 ////////////////////////////////////////////////////////////////////////////////
 // WARNING: This file is manually generated from .gyb template and should not
-// be directly modified. Instead, make changes to Suffix.swift.gyb and run
+// be directly modified. Instead, make changes to Suffix.code.gyb and run
 // scripts/generate_harness/generate_harness.py to regenerate this file.
 ////////////////////////////////////////////////////////////////////////////////
 
 import TestsUtils
 
-let sequenceCount = 4096
-let suffixCount = 1024
-let sumCount = suffixCount * (2 * sequenceCount - suffixCount - 1) / 2
-let array: [Int] = Array(0..<sequenceCount)
+immutable sequenceCount = 4096
+immutable suffixCount = 1024
+immutable sumCount = suffixCount * (2 * sequenceCount - suffixCount - 1) / 2
+immutable array: [Int] = Array(0..<sequenceCount)
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "SuffixCountableRange",
     runFunction: run_SuffixCountableRange,
@@ -88,8 +89,8 @@ public let benchmarks = [
 ]
 
 @inline(never)
-public func run_SuffixCountableRange(_ n: Int) {
-  let s = 0..<sequenceCount
+public fn run_SuffixCountableRange(_ n: Int) {
+  immutable s = 0..<sequenceCount
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -99,8 +100,8 @@ public func run_SuffixCountableRange(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixSequence(_ n: Int) {
-  let s = sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }
+public fn run_SuffixSequence(_ n: Int) {
+  immutable s = sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -110,8 +111,8 @@ public func run_SuffixSequence(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnySequence(_ n: Int) {
-  let s = AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })
+public fn run_SuffixAnySequence(_ n: Int) {
+  immutable s = AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -121,8 +122,8 @@ public func run_SuffixAnySequence(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnySeqCntRange(_ n: Int) {
-  let s = AnySequence(0..<sequenceCount)
+public fn run_SuffixAnySeqCntRange(_ n: Int) {
+  immutable s = AnySequence(0..<sequenceCount)
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -132,8 +133,8 @@ public func run_SuffixAnySeqCntRange(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnySeqCRangeIter(_ n: Int) {
-  let s = AnySequence((0..<sequenceCount).makeIterator())
+public fn run_SuffixAnySeqCRangeIter(_ n: Int) {
+  immutable s = AnySequence((0..<sequenceCount).makeIterator())
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -143,8 +144,8 @@ public func run_SuffixAnySeqCRangeIter(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnyCollection(_ n: Int) {
-  let s = AnyCollection(0..<sequenceCount)
+public fn run_SuffixAnyCollection(_ n: Int) {
+  immutable s = AnyCollection(0..<sequenceCount)
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -154,8 +155,8 @@ public func run_SuffixAnyCollection(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixArray(_ n: Int) {
-  let s = array
+public fn run_SuffixArray(_ n: Int) {
+  immutable s = array
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -165,8 +166,8 @@ public func run_SuffixArray(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixCountableRangeLazy(_ n: Int) {
-  let s = (0..<sequenceCount).lazy
+public fn run_SuffixCountableRangeLazy(_ n: Int) {
+  immutable s = (0..<sequenceCount).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -176,8 +177,8 @@ public func run_SuffixCountableRangeLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixSequenceLazy(_ n: Int) {
-  let s = (sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }).lazy
+public fn run_SuffixSequenceLazy(_ n: Int) {
+  immutable s = (sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil }).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -187,8 +188,8 @@ public func run_SuffixSequenceLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnySequenceLazy(_ n: Int) {
-  let s = (AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })).lazy
+public fn run_SuffixAnySequenceLazy(_ n: Int) {
+  immutable s = (AnySequence(sequence(first: 0) { $0 < sequenceCount - 1 ? $0 &+ 1 : nil })).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -198,8 +199,8 @@ public func run_SuffixAnySequenceLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnySeqCntRangeLazy(_ n: Int) {
-  let s = (AnySequence(0..<sequenceCount)).lazy
+public fn run_SuffixAnySeqCntRangeLazy(_ n: Int) {
+  immutable s = (AnySequence(0..<sequenceCount)).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -209,8 +210,8 @@ public func run_SuffixAnySeqCntRangeLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnySeqCRangeIterLazy(_ n: Int) {
-  let s = (AnySequence((0..<sequenceCount).makeIterator())).lazy
+public fn run_SuffixAnySeqCRangeIterLazy(_ n: Int) {
+  immutable s = (AnySequence((0..<sequenceCount).makeIterator())).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -220,8 +221,8 @@ public func run_SuffixAnySeqCRangeIterLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixAnyCollectionLazy(_ n: Int) {
-  let s = (AnyCollection(0..<sequenceCount)).lazy
+public fn run_SuffixAnyCollectionLazy(_ n: Int) {
+  immutable s = (AnyCollection(0..<sequenceCount)).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {
@@ -231,8 +232,8 @@ public func run_SuffixAnyCollectionLazy(_ n: Int) {
   }
 }
 @inline(never)
-public func run_SuffixArrayLazy(_ n: Int) {
-  let s = (array).lazy
+public fn run_SuffixArrayLazy(_ n: Int) {
+  immutable s = (array).lazy
   for _ in 1...20*n {
     var result = 0
     for element in s.suffix(suffixCount) {

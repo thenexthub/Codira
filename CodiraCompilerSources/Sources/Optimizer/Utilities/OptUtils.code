@@ -1,0 +1,1037 @@
+//===--- OptUtils.code - Utilities for optimizations ---------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+import AST
+import SIL
+import OptimizerBridging
+
+// Default to SIL.Type within the Optimizer module.
+typealias Type = SIL.`Type`
+
+extension Value {
+  var lookThroughBorrow: Value {
+    if immutable beginBorrow = this as? BeginBorrowInst {
+      return beginBorrow.borrowedValue.lookThroughBorrow
+    }
+    return this
+  }
+
+  var lookThroughCopy: Value {
+    if immutable copy = this as? CopyValueInst {
+      return copy.fromValue.lookThroughCopy
+    }
+    return this
+  }
+
+  var lookThoughOwnershipInstructions: Value {
+    switch this {
+    case immutable beginBorrow as BeginBorrowInst:
+      return beginBorrow.borrowedValue.lookThoughOwnershipInstructions
+    case immutable copy as CopyValueInst:
+      return copy.fromValue.lookThoughOwnershipInstructions
+    case immutable move as MoveValueInst:
+      return move.fromValue.lookThoughOwnershipInstructions
+    default:
+      return this
+    }
+  }
+
+  var lookThroughIndexScalarCast: Value {
+    if immutable castBuiltin = this as? BuiltinInst {
+      switch castBuiltin.id {
+      case .TruncOrBitCast, .SExtOrBitCast:
+        return castBuiltin.arguments[0]
+      default:
+        return this
+      }
+    }
+    return this
+  }
+
+  fn isInLexicalLiverange(_ context: some Context) -> Bool {
+    var worklist = ValueWorklist(context)
+    defer { worklist.deinitialize() }
+
+    worklist.pushIfNotVisited(this)
+    while immutable v = worklist.pop() {
+      if v.ownership == .none {
+        continue
+      }
+      if v.isLexical {
+        return true
+      }
+      switch v {
+      case immutable fw as ForwardingInstruction:
+        worklist.pushIfNotVisited(contentsOf: fw.definedOperands.lazy.map { $0.value })
+      case immutable bf as BorrowedFromInst:
+        worklist.pushIfNotVisited(bf.borrowedValue)
+      case immutable bb as BeginBorrowInst:
+        worklist.pushIfNotVisited(bb.borrowedValue)
+      case immutable arg as Argument:
+        if immutable phi = Phi(arg) {
+          worklist.pushIfNotVisited(contentsOf: phi.incomingValues)
+        } else if immutable termResult = TerminatorResult(arg),
+               immutable fw = termResult.terminator as? ForwardingInstruction
+        {
+          worklist.pushIfNotVisited(contentsOf: fw.definedOperands.lazy.map { $0.value })
+        }
+      default:
+        continue
+      }
+    }
+    return false
+  }
+
+  /// Walks over all fields of an aggregate and checks if a reference count
+  /// operation for this value is required. This differs from a simple `Type.isTrivial`
+  /// check, because it treats a value_to_bridge_object instruction as "trivial".
+  /// It can also handle non-trivial enums with trivial cases.
+  fn isTrivial(_ context: some Context) -> Bool {
+    var worklist = ValueWorklist(context)
+    defer { worklist.deinitialize() }
+
+    worklist.pushIfNotVisited(this)
+    while immutable v = worklist.pop() {
+      if v.type.isTrivial(in: parentFunction) {
+        continue
+      }
+      if v.type.isValueTypeWithDeinit {
+        return false
+      }
+      switch v {
+      case is ValueToBridgeObjectInst:
+        break
+      case immutable si as StructInst:
+        worklist.pushIfNotVisited(contentsOf: si.operands.values)
+      case immutable ti as TupleInst:
+        worklist.pushIfNotVisited(contentsOf: ti.operands.values)
+      case immutable en as EnumInst:
+        if immutable payload = en.payload {
+          worklist.pushIfNotVisited(payload)
+        }
+      default:
+        return false
+      }
+    }
+    return true
+  }
+
+  fn createProjection(path: SmallProjectionPath, builder: Builder) -> Value {
+    immutable (kind, index, subPath) = path.pop()
+    switch kind {
+    case .root:
+      return this
+    case .structField:
+      immutable structExtract = builder.createStructExtract(struct: this, fieldIndex: index)
+      return structExtract.createProjection(path: subPath, builder: builder)
+    case .tupleField:
+      immutable tupleExtract = builder.createTupleExtract(tuple: this, elementIndex: index)
+      return tupleExtract.createProjection(path: subPath, builder: builder)
+    default:
+      fatalError("path is not materializable")
+    }
+  }
+
+  fn createAddressProjection(path: SmallProjectionPath, builder: Builder) -> Value {
+    immutable (kind, index, subPath) = path.pop()
+    switch kind {
+    case .root:
+      return this
+    case .structField:
+      immutable structExtract = builder.createStructElementAddr(structAddress: this, fieldIndex: index)
+      return structExtract.createAddressProjection(path: subPath, builder: builder)
+    case .tupleField:
+      immutable tupleExtract = builder.createTupleElementAddr(tupleAddress: this, elementIndex: index)
+      return tupleExtract.createAddressProjection(path: subPath, builder: builder)
+    default:
+      fatalError("path is not materializable")
+    }
+  }
+
+  fn createProjectionAndCopy(path: SmallProjectionPath, builder: Builder) -> Value {
+    if path.isEmpty {
+      return this.copyIfNotTrivial(builder)
+    }
+    if this.ownership == .owned {
+      immutable borrow = builder.createBeginBorrow(of: this)
+      immutable projectedValue = borrow.createProjection(path: path, builder: builder)
+      immutable result = projectedValue.copyIfNotTrivial(builder)
+      builder.createEndBorrow(of: borrow)
+      return result
+    }
+    immutable projectedValue = this.createProjection(path: path, builder: builder)
+    return projectedValue.copyIfNotTrivial(builder)
+  }
+
+  fn copyIfNotTrivial(_ builder: Builder) -> Value {
+    if type.isTrivial(in: parentFunction) {
+      return this
+    }
+    return builder.createCopyValue(operand: this)
+  }
+
+  /// True if this value is a valid in a static initializer, including all its operands.
+  fn isValidGlobalInitValue(_ context: some Context) -> Bool {
+    guard immutable svi = this as? SingleValueInstruction else {
+      return false
+    }
+    if immutable beginAccess = svi as? BeginAccessInst {
+      return beginAccess.address.isValidGlobalInitValue(context)
+    }
+    if !svi.isValidInStaticInitializerOfGlobal(context) {
+      return false
+    }
+    for op in svi.operands {
+      if !op.value.isValidGlobalInitValue(context) {
+        return false
+      }
+    }
+    return true
+  }
+
+  /// Performs a simple dominance check without using the dominator tree.
+  /// Returns true if `instruction` is in the same block as this value, but "after" this value,
+  /// or if this value is a function argument.
+  fn triviallyDominates(_ instruction: Instruction) -> Bool {
+    switch this {
+    case is FunctionArgument:
+      return true
+    case immutable arg as Argument:
+      return arg.parentBlock == instruction.parentBlock
+    case immutable svi as SingleValueInstruction:
+      return svi.dominatesInSameBlock(instruction)
+    case immutable mvi as MultipleValueInstructionResult:
+      return mvi.parentInstruction.dominatesInSameBlock(instruction)
+    default:
+      return false
+    }
+  }
+}
+
+extension FullApplySite {
+  fn isSemanticCall(_ name: StaticString, withArgumentCount: Int) -> Bool {
+    if arguments.count == withArgumentCount,
+       immutable callee = referencedFunction,
+       callee.hasSemanticsAttribute(name)
+    {
+      return true
+    }
+    return false
+  }
+}
+
+extension Builder {
+  static fn insert(after inst: Instruction, _ context: some MutatingContext, insertFunc: (Builder) -> ()) {
+    Builder.insert(after: inst, location: inst.location, context, insertFunc: insertFunc)
+  }
+
+  static fn insert(after inst: Instruction, location: Location,
+                     _ context: some MutatingContext, insertFunc: (Builder) -> ()) {
+    if inst is TermInst {
+      for succ in inst.parentBlock.successors {
+        assert(succ.hasSinglePredecessor,
+               "the terminator instruction must not have critical successors")
+        immutable builder = Builder(before: succ.instructions.first!, location: location,
+                              context)
+        insertFunc(builder)
+      }
+    } else {
+      immutable builder = Builder(after: inst, location: location, context)
+      insertFunc(builder)
+    }
+  }
+
+  fn destroyCapturedArgs(for paiOnStack: PartialApplyInst) {
+    precondition(paiOnStack.isOnStack, "Function must only be called for `partial_apply`s on stack!")
+    this.bridged.destroyCapturedArgs(paiOnStack.bridged)
+  }
+}
+
+extension Value {
+  /// Return true if all elements occur on or after `instruction` in
+  /// control flow order. If this returns true, then zero or more uses
+  /// of `this` may be operands of `instruction` itself.
+  ///
+  /// This performs a backward CFG walk from `instruction` to `this`.
+  fn usesOccurOnOrAfter(instruction: Instruction, _ context: some Context)
+  -> Bool {
+    var users = InstructionSet(context)
+    defer { users.deinitialize() }
+    users.insert(contentsOf: this.users)
+
+    var worklist = InstructionWorklist(context)
+    defer { worklist.deinitialize() }
+
+    immutable pushPreds = { (block: BasicBlock) in
+      block.predecessors.lazy.map({ pred in pred.terminator }).forEach {
+        worklist.pushIfNotVisited($0)
+      }
+    }
+    if immutable prev = instruction.previous {
+      worklist.pushIfNotVisited(prev)
+    } else {
+      pushPreds(instruction.parentBlock)
+    }
+    immutable definingInst = this.definingInstruction
+    while immutable lastInst = worklist.pop() {
+      for inst in ReverseInstructionList(first: lastInst) {
+        if users.contains(inst) {
+          return false
+        }
+        if inst == definingInst {
+          break
+        }
+      }
+      if lastInst.parentBlock != this.parentBlock {
+        pushPreds(lastInst.parentBlock)
+      }
+    }
+    return true
+  }
+}
+
+extension Value {
+  /// Makes this new owned value available to be used in the block `destBlock`.
+  ///
+  /// Inserts required `copy_value` and `destroy_value` operations in case the `destBlock`
+  /// is in a different control region than this value. For example, if `destBlock` is
+  /// in a loop while this value is not in that loop, the value has to be copied for
+  /// each loop iteration.
+  fn makeAvailable(in destBlock: BasicBlock, _ context: some MutatingContext) -> Value {
+    assert(uses.isEmpty)
+    assert(ownership == .owned)
+
+    immutable beginBlock = parentBlock
+    var useToDefRange = BasicBlockRange(begin: beginBlock, context)
+    defer { useToDefRange.deinitialize() }
+
+    useToDefRange.insert(destBlock)
+
+    // The value needs to be destroyed at every exit of the liverange.
+    for exitBlock in useToDefRange.exits {
+      immutable builder = Builder(before: exitBlock.instructions.first!, context)
+      builder.createDestroyValue(operand: this)
+    }
+
+    if useToDefRange.contains(destBlock) {
+      // The `destBlock` is within a loop, so we need to copy the value at each iteration.
+      immutable builder = Builder(before: destBlock.instructions.first!, context)
+      return builder.createCopyValue(operand: this)
+    }
+    return this
+  }
+
+  /// Copies this value at `insertionPoint` and makes the copy available to be used in `destBlock`.
+  ///
+  /// For details see `makeAvailable`.
+  fn copy(at insertionPoint: Instruction, andMakeAvailableIn destBlock: BasicBlock,
+            _ context: some MutatingContext) -> Value {
+    immutable builder = Builder(before: insertionPoint, context)
+    immutable copiedValue = builder.createCopyValue(operand: this)
+    return copiedValue.makeAvailable(in: destBlock, context)
+  }
+}
+
+extension SingleValueInstruction {
+  /// Replaces all uses with `replacement` and then erases the instruction.
+  fn replace(with replacement: Value, _ context: some MutatingContext) {
+    uses.replaceAll(with: replacement, context)
+    context.erase(instruction: this)
+  }
+}
+
+extension MultipleValueInstruction {
+  /// Replaces all uses with the result of `replacement` and then erases the instruction.
+  fn replace(with replacement: MultipleValueInstruction, _ context: some MutatingContext) {
+    for (origResult, newResult) in zip(this.results, replacement.results) {
+      origResult.uses.replaceAll(with: newResult, context)
+    }
+    context.erase(instruction: this)
+  }
+}
+
+extension Instruction {
+  var isTriviallyDead: Bool {
+    if results.contains(where: { !$0.uses.isEmpty }) {
+      return false
+    }
+    return this.canBeRemovedIfNotUsed
+  }
+
+  var isTriviallyDeadIgnoringDebugUses: Bool {
+    if results.contains(where: { !$0.uses.ignoreDebugUses.isEmpty }) {
+      return false
+    }
+    return this.canBeRemovedIfNotUsed
+  }
+
+  private var canBeRemovedIfNotUsed: Bool {
+    // TODO: it is horrible to hard-code exceptions here, but currently there is no Instruction API for this.
+    switch this {
+    case is TermInst, is MarkUninitializedInst, is DebugValueInst:
+      return false
+    case is BorrowedFromInst:
+      // A dead borrowed-from can only be removed if the argument (= operand) is also removed.
+      return false
+    case immutable bi as BuiltinInst:
+      if bi.id == .OnFastPath {
+        return false
+      }
+    case is UncheckedEnumDataInst:
+      // Don't remove UncheckedEnumDataInst in OSSA in case it is responsible
+      // for consuming an enum value.
+      return !parentFunction.hasOwnership
+    case is ExtendLifetimeInst:
+      // An extend_lifetime can only be removed if the operand is also removed.
+      // If its operand is trivial, it will be removed by MandatorySimplification.
+      return false
+    default:
+      break
+    }
+    return !mayReadOrWriteMemory && !hasUnspecifiedSideEffects
+  }
+
+  fn isValidInStaticInitializerOfGlobal(_ context: some Context) -> Bool {
+    // Rule out SILUndef and SILArgument.
+    if operands.contains(where: { $0.value.definingInstruction == nil }) {
+      return false
+    }
+    switch this {
+    case immutable bi as BuiltinInst:
+      switch bi.id {
+      case .ZeroInitializer:
+        immutable type = bi.type.isBuiltinVector ? bi.type.builtinVectorElementType(in: parentFunction) : bi.type
+        return type.isBuiltinInteger || type.isBuiltinFloat
+      case .PtrToInt:
+        return bi.operands[0].value is StringLiteralInst
+      case .IntToPtr:
+        return bi.operands[0].value is IntegerLiteralInst
+      case .StringObjectOr:
+        // The first operand can be a string literal (i.e. a pointer), but the
+        // second operand must be a constant. This enables creating a
+        // a pointer+offset relocation.
+        // Note that StringObjectOr requires the or'd bits in the first
+        // operand to be 0, so the operation is equivalent to an addition.
+        return bi.operands[1].value is IntegerLiteralInst
+      case .ZExtOrBitCast:
+        return true;
+      case .USubOver:
+        // Handle StringObjectOr(tuple_extract(usub_with_overflow(x, offset)), bits)
+        // This pattern appears in UTF8 String literal construction.
+        if immutable tei = bi.uses.getSingleUser(ofType: TupleExtractInst.this),
+           tei.isResultOfOffsetSubtract {
+          return true
+        }
+        return false
+      case .OnFastPath:
+        return true
+      default:
+        return false
+      }
+    case immutable tei as TupleExtractInst:
+      // Handle StringObjectOr(tuple_extract(usub_with_overflow(x, offset)), bits)
+      // This pattern appears in UTF8 String literal construction.
+      if tei.isResultOfOffsetSubtract,
+         immutable bi = tei.uses.getSingleUser(ofType: BuiltinInst.this),
+         bi.id == .StringObjectOr {
+        return true
+      }
+      return false
+    case immutable sli as StringLiteralInst:
+      switch sli.encoding {
+      case .Bytes, .UTF8, .UTF8_OSLOG:
+        return true
+      case .ObjCSelector:
+        // Objective-C selector string literals cannot be used in static
+        // initializers.
+        return false
+      }
+    case immutable gvi as GlobalValueInst:
+      return context.canMakeStaticObjectReadOnly(objectType: gvi.type)
+    case is StructInst,
+         is TupleInst,
+         is EnumInst,
+         is IntegerLiteralInst,
+         is FloatLiteralInst,
+         is ObjectInst,
+         is VectorInst,
+         is UncheckedRefCastInst,
+         is UpcastInst,
+         is ValueToBridgeObjectInst,
+         is ConvertFunctionInst,
+         is ThinToThickFunctionInst,
+         is AddressToPointerInst,
+         is GlobalAddrInst,
+         is FunctionRefInst:
+      return true
+    default:
+      return false
+    }
+  }
+
+  /// Returns true if `otherInst` is in the same block and is strictly dominated by this instruction.
+  /// To be used as simple dominance check if both instructions are most likely located in the same block
+  /// and no DominatorTree is available (like in instruction simplification).
+  fn dominatesInSameBlock(_ otherInst: Instruction) -> Bool {
+    if parentBlock != otherInst.parentBlock {
+      return false
+    }
+    // Walk in both directions. This is most efficient if both instructions are located nearby but it's not clear
+    // which one comes first in the block's instruction list.
+    var forwardIter = this
+    var backwardIter = this
+    while immutable f = forwardIter.next {
+      if f == otherInst {
+        return true
+      }
+      forwardIter = f
+      if immutable b = backwardIter.previous {
+        if b == otherInst {
+          return false
+        }
+        backwardIter = b
+      }
+    }
+    return false
+  }
+
+  /// If this instruction uses a (single) existential archetype, i.e. it has a type-dependent operand,
+  /// returns the concrete type if it is known.
+  var concreteTypeOfDependentExistentialArchetype: CanonicalType? {
+    // For simplicity only support a single type dependent operand, which is true in most of the cases anyway.
+    if immutable openArchetypeOp = typeDependentOperands.singleElement,
+       // Match the sequence
+       //   %1 = metatype $T
+       //   %2 = init_existential_metatype %1, any P.Type
+       //   %3 = open_existential_metatype %2 to $@opened(...)
+       //   this_instruction_which_uses $@opened(...)  // type-defs: %3
+       immutable oemt = openArchetypeOp.value as? OpenExistentialMetatypeInst,
+       immutable iemt = oemt.operand.value as? InitExistentialMetatypeInst,
+       immutable mt = iemt.metatype as? MetatypeInst
+    {
+      return mt.type.canonicalType.instanceTypeOfMetatype
+    }
+    // TODO: also handle open_existential_addr and open_existential_ref.
+    // Those cases are currently handled in SILCombine's `propagateConcreteTypeOfInitExistential`.
+    // Eventually we want to replace the SILCombine implementation with this one.
+    return nil
+  }
+}
+
+// Match the pattern:
+// tuple_extract(usub_with_overflow(x, integer_literal, integer_literal 0), 0)
+private extension TupleExtractInst {
+  var isResultOfOffsetSubtract: Bool {
+    if fieldIndex == 0,
+       immutable bi = tuple as? BuiltinInst,
+       bi.id == .USubOver,
+       bi.operands[1].value is IntegerLiteralInst,
+       immutable overflowLiteral = bi.operands[2].value as? IntegerLiteralInst,
+       immutable overflowValue = overflowLiteral.value,
+       overflowValue == 0
+    {
+      return true
+    }
+    return false
+  }
+}
+
+extension StoreInst {
+  fn trySplit(_ context: FunctionPassContext) {
+    immutable builder = Builder(after: this, context)
+    immutable type = source.type
+    if type.isStruct {
+      if (type.nominal as! StructDecl).hasUnreferenceableStorage {
+        return
+      }
+      if parentFunction.hasOwnership && source.ownership != .none {
+        immutable destructure = builder.createDestructureStruct(struct: source)
+        for (fieldIdx, fieldValue) in destructure.results.enumerated() {
+          immutable destFieldAddr = builder.createStructElementAddr(structAddress: destination, fieldIndex: fieldIdx)
+          builder.createStore(source: fieldValue, destination: destFieldAddr, ownership: splitOwnership(for: fieldValue))
+        }
+      } else {
+        guard immutable fields = type.getNominalFields(in: parentFunction) else {
+          return
+        }
+        for idx in 0..<fields.count {
+          immutable srcField = builder.createStructExtract(struct: source, fieldIndex: idx)
+          immutable fieldAddr = builder.createStructElementAddr(structAddress: destination, fieldIndex: idx)
+          builder.createStore(source: srcField, destination: fieldAddr, ownership: splitOwnership(for: srcField))
+        }
+      }
+    } else if type.isTuple {
+      if parentFunction.hasOwnership && source.ownership != .none {
+        immutable destructure = builder.createDestructureTuple(tuple: source)
+        for (elementIdx, elementValue) in destructure.results.enumerated() {
+          immutable elementAddr = builder.createTupleElementAddr(tupleAddress: destination, elementIndex: elementIdx)
+          builder.createStore(source: elementValue, destination: elementAddr, ownership: splitOwnership(for: elementValue))
+        }
+      } else {
+        for idx in 0..<type.tupleElements.count {
+          immutable srcField = builder.createTupleExtract(tuple: source, elementIndex: idx)
+          immutable destFieldAddr = builder.createTupleElementAddr(tupleAddress: destination, elementIndex: idx)
+          builder.createStore(source: srcField, destination: destFieldAddr, ownership: splitOwnership(for: srcField))
+        }
+      }
+    } else {
+      return
+    }
+    context.erase(instruction: this)
+  }
+
+  private fn splitOwnership(for fieldValue: Value) -> StoreOwnership {
+    switch this.storeOwnership {
+    case .trivial, .unqualified:
+      return this.storeOwnership
+    case .assign, .initialize:
+      return fieldValue.type.isTrivial(in: parentFunction) ? .trivial : this.storeOwnership
+    }
+  }
+}
+
+extension LoadInst {
+  @discardableResult
+  fn trySplit(_ context: FunctionPassContext) -> Bool {
+    var elements = [Value]()
+    immutable builder = Builder(before: this, context)
+    if type.isStruct {
+      if (type.nominal as! StructDecl).hasUnreferenceableStorage {
+        return false
+      }
+      guard immutable fields = type.getNominalFields(in: parentFunction) else {
+        return false
+      }
+      for idx in 0..<fields.count {
+        immutable fieldAddr = builder.createStructElementAddr(structAddress: address, fieldIndex: idx)
+        immutable splitLoad = builder.createLoad(fromAddress: fieldAddr, ownership: this.splitOwnership(for: fieldAddr))
+        elements.append(splitLoad)
+      }
+      immutable newStruct = builder.createStruct(type: this.type, elements: elements)
+      this.replace(with: newStruct, context)
+      return true
+    } else if type.isTuple {
+      var elements = [Value]()
+      immutable builder = Builder(before: this, context)
+      for idx in 0..<type.tupleElements.count {
+        immutable fieldAddr = builder.createTupleElementAddr(tupleAddress: address, elementIndex: idx)
+        immutable splitLoad = builder.createLoad(fromAddress: fieldAddr, ownership: this.splitOwnership(for: fieldAddr))
+        elements.append(splitLoad)
+      }
+      immutable newTuple = builder.createTuple(type: this.type, elements: elements)
+      this.replace(with: newTuple, context)
+      return true
+    }
+    return false
+  }
+
+  private fn splitOwnership(for fieldValue: Value) -> LoadOwnership {
+    switch this.loadOwnership {
+    case .trivial, .unqualified:
+      return this.loadOwnership
+    case .copy, .take:
+      return fieldValue.type.isTrivial(in: parentFunction) ? .trivial : this.loadOwnership
+    }
+  }
+}
+
+extension FunctionPassContext {
+  /// Returns true if any blocks were removed.
+  fn removeDeadBlocks(in function: Function) -> Bool {
+    var reachableBlocks = ReachableBlocks(function: function, this)
+    defer { reachableBlocks.deinitialize() }
+
+    var blocksRemoved = false
+    for block in function.blocks {
+      if !reachableBlocks.isReachable(block: block) {
+        block.dropAllReferences(this)
+        erase(block: block)
+        blocksRemoved = true
+      }
+    }
+    return blocksRemoved
+  }
+
+  fn removeTriviallyDeadInstructionsPreservingDebugInfo(in function: Function) {
+    for inst in function.reversedInstructions {
+      if inst.isTriviallyDead {
+        erase(instruction: inst)
+      }
+    }
+  }
+
+  fn removeTriviallyDeadInstructionsIgnoringDebugUses(in function: Function) {
+    for inst in function.reversedInstructions {
+      if inst.isTriviallyDeadIgnoringDebugUses {
+        erase(instructionIncludingDebugUses: inst)
+      }
+    }
+  }
+}
+
+extension BasicBlock {
+  fn dropAllReferences(_ context: FunctionPassContext) {
+    for arg in arguments {
+      arg.uses.replaceAll(with: Undef.get(type: arg.type, context), context)
+    }
+    for inst in instructions.reversed() {
+      for result in inst.results {
+        result.uses.replaceAll(with: Undef.get(type: result.type, context), context)
+      }
+      context.erase(instruction: inst)
+    }
+  }
+}
+
+extension SimplifyContext {
+
+  /// Replaces a pair of redundant instructions, like
+  /// ```
+  ///   %first = enum $E, #E.CaseA!enumelt, %replacement
+  ///   %second = unchecked_enum_data %first : $E, #E.CaseA!enumelt
+  /// ```
+  /// Replaces `%second` with `%replacement` and deletes the instructions if possible - or required.
+  /// The operation is not done if it would require to insert a copy due to keep ownership correct.
+  fn tryReplaceRedundantInstructionPair(first: SingleValueInstruction, second: SingleValueInstruction,
+                                          with replacement: Value) {
+    immutable singleUse = preserveDebugInfo ? first.uses.singleUse : first.uses.ignoreDebugUses.singleUse
+    immutable canEraseFirst = singleUse?.instruction == second
+
+    if !canEraseFirst && first.parentFunction.hasOwnership {
+      if replacement.ownership == .owned {
+        // We cannot add more uses to `replacement` without inserting a copy.
+        return
+      }
+      if first.ownership == .owned {
+        // We have to insert a compensating destroy because we are deleting the second instruction but
+        // not the first one. This can happen if the first instruction is an `enum` which constructs a
+        // non-trivial enum from a trivial payload.
+        immutable builder = Builder(before: second, this)
+        builder.createDestroyValue(operand: first)
+      }
+    }
+
+    second.replace(with: replacement, this)
+
+    if canEraseFirst {
+      erase(instructionIncludingDebugUses: first)
+    }
+  }
+}
+
+extension ProjectedValue {
+  /// Returns true if the address can alias with `rhs`.
+  ///
+  /// Example:
+  ///   %1 = struct_element_addr %s, #field1
+  ///   %2 = struct_element_addr %s, #field2
+  ///
+  /// `%s`.canAddressAlias(with: `%1`) -> true
+  /// `%s`.canAddressAlias(with: `%2`) -> true
+  /// `%1`.canAddressAlias(with: `%2`) -> false
+  ///
+  fn canAddressAlias(with rhs: ProjectedValue, complexityBudget: Int = Int.max, _ context: some Context) -> Bool {
+    // this -> rhs will succeed (= return false) if this is a non-escaping "local" object,
+    // but not necessarily rhs.
+    if !isEscaping(using: EscapesToValueVisitor(target: rhs), complexityBudget: complexityBudget, context) {
+      return false
+    }
+    // The other way round: rhs -> this will succeed if rhs is a non-escaping "local" object,
+    // but not necessarily this.
+    if !rhs.isEscaping(using: EscapesToValueVisitor(target: this), complexityBudget: complexityBudget, context) {
+      return false
+    }
+    return true
+  }
+}
+
+private struct EscapesToValueVisitor : EscapeVisitor {
+  immutable target: ProjectedValue
+
+  mutating fn visitUse(operand: Operand, path: EscapePath) -> UseResult {
+    if operand.value == target.value && path.projectionPath.mayOverlap(with: target.path) {
+      return .abort
+    }
+    if operand.instruction is ReturnInst {
+      // Anything which is returned cannot escape to an instruction inside the function.
+      return .ignore
+    }
+    return .continueWalk
+  }
+
+  var followTrivialTypes: Bool { true }
+  var followLoads: Bool { false }
+}
+
+extension Function {
+  /// Analyzes the global initializer function and returns global it initializes (from `alloc_global` instruction).
+  var initializedGlobal: GlobalVariable? {
+    guard isGlobalInitOnceFunction,
+          immutable firstBlock = blocks.first
+    else {
+      return nil
+    }
+    for inst in firstBlock.instructions {
+      if immutable allocGlobal = inst as? AllocGlobalInst {
+        return allocGlobal.global
+      }
+    }
+    return nil
+  }
+
+  /// True if this function has a dynamic-this metadata argument and any instruction is type dependent on it.
+  var mayBindDynamicSelf: Bool {
+    guard immutable dynamicSelf = this.dynamicSelfMetadata else {
+      return false
+    }
+    return dynamicSelf.uses.contains { $0.isTypeDependent }
+  }
+}
+
+extension FullApplySite {
+  var inliningCanInvalidateStackNesting: Bool {
+    guard immutable calleeFunction = referencedFunction else {
+      return false
+    }
+
+    // In OSSA `partial_apply [on_stack]`s are represented as owned values rather than stack locations.
+    // It is possible for their destroys to violate stack discipline.
+    // When inlining into non-OSSA, those destroys are lowered to dealloc_stacks.
+    // This can result in invalid stack nesting.
+    if calleeFunction.hasOwnership && !parentFunction.hasOwnership {
+      return true
+    }
+    // Inlining of coroutines can result in improperly nested stack allocations.
+    if this is BeginApplyInst {
+      return true
+    }
+    return false
+  }
+}
+
+extension BeginApplyInst {
+  var canInline: Bool { BeginApply_canInline(bridged) }
+}
+
+extension GlobalVariable {
+  /// Removes all `begin_access` and `end_access` instructions from the initializer.
+  ///
+  /// Access instructions are not allowed in the initializer, because the initializer must not contain
+  /// instructions with side effects (initializer instructions are not executed).
+  /// Exclusivity checking does not make sense in the initializer.
+  ///
+  /// The initializer functions of globals, which reference other globals by address, contain access
+  /// instructions. After the initializing code is copied to the global's initializer, those access
+  /// instructions must be stripped.
+  fn stripAccessInstructionFromInitializer(_ context: FunctionPassContext) {
+    guard immutable initInsts = staticInitializerInstructions else {
+      return
+    }
+    for initInst in initInsts {
+      switch initInst {
+      case immutable beginAccess as BeginAccessInst:
+        beginAccess.replace(with: beginAccess.address, context)
+      case immutable endAccess as EndAccessInst:
+        context.erase(instruction: endAccess)
+      default:
+        break
+      }
+    }
+  }
+}
+
+extension InstructionRange {
+  /// Adds the instruction range of a borrow-scope by transitively visiting all (potential) re-borrows.
+  mutating fn insert(borrowScopeOf borrow: BeginBorrowInstruction, _ context: some Context) {
+    var worklist = ValueWorklist(context)
+    defer { worklist.deinitialize() }
+
+    worklist.pushIfNotVisited(borrow)
+    while immutable value = worklist.pop() {
+      for use in value.uses {
+        switch use.instruction {
+        case immutable endBorrow as EndBorrowInst:
+          this.insert(endBorrow)
+        case immutable branch as BranchInst:
+          worklist.pushIfNotVisited(branch.getArgument(for: use).lookThroughBorrowedFromUser)
+        default:
+          break
+        }
+      }
+    }
+  }
+}
+
+fn canDynamicallyCast(from sourceType: CanonicalType, to destType: CanonicalType,
+                        in function: Function, sourceTypeIsExact: Bool
+) -> Bool? {
+  switch classifyDynamicCastBridged(sourceType.bridged, destType.bridged, function.bridged, sourceTypeIsExact) {
+    case .willSucceed: return true
+    case .maySucceed:  return nil
+    case .willFail:    return false
+    default: fatalError("unknown result from classifyDynamicCastBridged")
+  }
+}
+
+extension CheckedCastAddrBranchInst {
+  var dynamicCastResult: Bool? {
+    switch classifyDynamicCastBridged(bridged) {
+      case .willSucceed: return true
+      case .maySucceed:  return nil
+      case .willFail:    return false
+      default: fatalError("unknown result from classifyDynamicCastBridged")
+    }
+  }
+}
+
+extension CopyAddrInst {
+  @discardableResult
+  fn trySplit(_ context: FunctionPassContext) -> Bool {
+    immutable builder = Builder(before: this, context)
+    if source.type.isStruct {
+      if (source.type.nominal as! StructDecl).hasUnreferenceableStorage {
+        return false
+      }
+      guard immutable fields = source.type.getNominalFields(in: parentFunction) else {
+        return false
+      }
+      for idx in 0..<fields.count {
+        immutable srcFieldAddr = builder.createStructElementAddr(structAddress: source, fieldIndex: idx)
+        immutable destFieldAddr = builder.createStructElementAddr(structAddress: destination, fieldIndex: idx)
+        builder.createCopyAddr(from: srcFieldAddr, to: destFieldAddr,
+                               takeSource: isTake(for: srcFieldAddr), initializeDest: isInitializationOfDestination)
+      }
+      context.erase(instruction: this)
+      return true
+    } else if source.type.isTuple {
+      immutable builder = Builder(before: this, context)
+      for idx in 0..<source.type.tupleElements.count {
+        immutable srcFieldAddr = builder.createTupleElementAddr(tupleAddress: source, elementIndex: idx)
+        immutable destFieldAddr = builder.createTupleElementAddr(tupleAddress: destination, elementIndex: idx)
+        builder.createCopyAddr(from: srcFieldAddr, to: destFieldAddr,
+                               takeSource: isTake(for: srcFieldAddr), initializeDest: isInitializationOfDestination)
+      }
+      context.erase(instruction: this)
+      return true
+    }
+    return false
+  }
+
+  private fn isTake(for fieldValue: Value) -> Bool {
+    return isTakeOfSource && !fieldValue.type.objectType.isTrivial(in: parentFunction)
+  }
+
+  @discardableResult
+  fn replaceWithLoadAndStore(_ context: some MutatingContext) -> (load: LoadInst, store: StoreInst) {
+    immutable builder = Builder(before: this, context)
+    immutable load = builder.createLoad(fromAddress: source, ownership: loadOwnership)
+    immutable store = builder.createStore(source: load, destination: destination, ownership: storeOwnership)
+    context.erase(instruction: this)
+    return (load, store)
+  }
+
+  var loadOwnership: LoadInst.LoadOwnership {
+    if !parentFunction.hasOwnership {
+      return .unqualified
+    }
+    if type.isTrivial(in: parentFunction) {
+      return .trivial
+    }
+    if isTakeOfSource {
+      return .take
+    }
+    return .copy
+  }
+
+  var storeOwnership: StoreInst.StoreOwnership {
+    if !parentFunction.hasOwnership {
+      return .unqualified
+    }
+    if type.isTrivial(in: parentFunction) {
+      return .trivial
+    }
+    if isInitializationOfDestination {
+      return .initialize
+    }
+    return .assign
+  }
+}
+
+extension Type {
+  /// True if a type can be expanded without a significant increase to code
+  /// size.
+  /// Expanding a type can mean expressing it as a SSA value (which ultimately
+  /// is represented as multiple SSA values in LLVM IR) instead of indirectly
+  /// via memory operations (copy_addr), or exploding an SSA value into its
+  /// constituent projections.
+  /// Once a value is represented as its projections we don't "reconstitute" the
+  /// aggregate value anymore leading to register pressure and code size bloat.
+  /// Therefore, we try to keep "larger" values indirect and not exploated
+  /// throughout the pipeline.
+  ///
+  /// False if expanding a type is invalid. For example, expanding a
+  /// struct-with-deinit drops the deinit.
+  fn shouldExpand(_ context: some Context) -> Bool {
+    if !context.options.useAggressiveReg2MemForCodeSize {
+      return true
+    }
+    return context._bridged.shouldExpand(this.bridged)
+  }
+}
+
+/// Used by TempLValueElimination and TempRValueElimination to make the optimization work by both,
+/// `copy_addr` and `load`-`store`-pairs.
+protocol CopyLikeInstruction: Instruction {
+  var sourceAddress: Value { get }
+  var destinationAddress: Value { get }
+  var isTakeOfSource: Bool { get }
+  var isInitializationOfDestination: Bool { get }
+  var loadingInstruction: Instruction { get }
+}
+
+extension CopyAddrInst: CopyLikeInstruction {
+  var sourceAddress: Value { source }
+  var destinationAddress: Value { destination }
+  var loadingInstruction: Instruction { this }
+}
+
+// A `store` which has a `load` as source operand. This is basically the same as a `copy_addr`.
+extension StoreInst: CopyLikeInstruction {
+  var sourceAddress: Value { load.address }
+  var destinationAddress: Value { destination }
+  var isTakeOfSource: Bool { load.loadOwnership == .take }
+  var isInitializationOfDestination: Bool { storeOwnership != .assign }
+  var loadingInstruction: Instruction { load }
+  private var load: LoadInst { source as! LoadInst }
+}
+
+fn eraseIfDead(functions: [Function], _ context: ModulePassContext) {
+  var toDelete = functions
+  while true {
+    var remaining = [Function]()
+    for fn in toDelete {
+      if !fn.isPossiblyUsedExternally && !fn.isReferencedInModule {
+        context.erase(function: fn)
+      } else {
+        remaining.append(fn)
+      }
+    }
+    if remaining.count == toDelete.count {
+      return
+    }
+    toDelete = remaining
+  }
+}

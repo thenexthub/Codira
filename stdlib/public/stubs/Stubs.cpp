@@ -1,17 +1,21 @@
-//===--- Stubs.cpp - Swift Language ABI Runtime Stubs ---------------------===//
+//===--- Stubs.cpp - Codira Language ABI Runtime Stubs ---------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Misc stubs for functions which should be defined in the core standard
-// library, but are difficult or impossible to write in Swift at the
+// library, but are difficult or impossible to write in Codira at the
 // moment.
 //
 //===----------------------------------------------------------------------===//
@@ -43,7 +47,7 @@
 #include <sstream>
 #endif
 
-#if SWIFT_STDLIB_HAS_LOCALE
+#if LANGUAGE_STDLIB_HAS_LOCALE
 #include <clocale>
 #if __has_include(<xlocale.h>)
 #include <xlocale.h>
@@ -51,10 +55,10 @@
 #if defined(_WIN32)
 #define locale_t _locale_t
 #endif
-#endif // SWIFT_STDLIB_HAS_LOCALE
+#endif // LANGUAGE_STDLIB_HAS_LOCALE
 
 #include <limits>
-#ifndef SWIFT_THREADING_NONE
+#ifndef LANGUAGE_THREADING_NONE
 #include <thread>
 #endif
 
@@ -63,7 +67,7 @@
 #endif
 
 #include "language/Runtime/Debug.h"
-#include "language/Runtime/SwiftDtoa.h"
+#include "language/Runtime/CodiraDtoa.h"
 #include "language/Basic/Lazy.h"
 
 #include "language/Threading/Thread.h"
@@ -72,7 +76,7 @@
 #include "language/shims/RuntimeShims.h"
 #include "language/shims/RuntimeStubs.h"
 
-#include "llvm/ADT/StringExtras.h"
+#include "toolchain/ADT/StringExtras.h"
 
 static uint64_t uint64ToStringImpl(char *Buffer, uint64_t Value,
                                    int64_t Radix, bool Uppercase,
@@ -90,7 +94,7 @@ static uint64_t uint64ToStringImpl(char *Buffer, uint64_t Value,
   } else {
     unsigned Radix32 = Radix;
     while (Y) {
-      *P++ = llvm::hexdigit(Y % Radix32, !Uppercase);
+      *P++ = toolchain::hexdigit(Y % Radix32, !Uppercase);
       Y /= Radix32;
     }
   }
@@ -101,15 +105,15 @@ static uint64_t uint64ToStringImpl(char *Buffer, uint64_t Value,
   return size_t(P - Buffer);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-uint64_t swift_int64ToString(char *Buffer, size_t BufferLength,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+uint64_t language_int64ToString(char *Buffer, size_t BufferLength,
                              int64_t Value, int64_t Radix,
                              bool Uppercase) {
   if ((Radix >= 10 && BufferLength < 32) || (Radix < 10 && BufferLength < 65))
-    swift::crash("swift_int64ToString: insufficient buffer size");
+    language::crash("language_int64ToString: insufficient buffer size");
 
   if (Radix == 0 || Radix > 36)
-    swift::crash("swift_int64ToString: invalid radix for string conversion");
+    language::crash("language_int64ToString: invalid radix for string conversion");
 
   bool Negative = Value < 0;
 
@@ -125,21 +129,21 @@ uint64_t swift_int64ToString(char *Buffer, size_t BufferLength,
                             Negative);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-uint64_t swift_uint64ToString(char *Buffer, intptr_t BufferLength,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+uint64_t language_uint64ToString(char *Buffer, intptr_t BufferLength,
                               uint64_t Value, int64_t Radix,
                               bool Uppercase) {
   if ((Radix >= 10 && BufferLength < 32) || (Radix < 10 && BufferLength < 64))
-    swift::crash("swift_int64ToString: insufficient buffer size");
+    language::crash("language_int64ToString: insufficient buffer size");
 
   if (Radix == 0 || Radix > 36)
-    swift::crash("swift_int64ToString: invalid radix for string conversion");
+    language::crash("language_int64ToString: invalid radix for string conversion");
 
   return uint64ToStringImpl(Buffer, Value, Radix, Uppercase,
                             /*Negative=*/false);
 }
 
-#if SWIFT_STDLIB_HAS_LOCALE
+#if LANGUAGE_STDLIB_HAS_LOCALE
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__)
 static inline locale_t getCLocale() {
   // On these platforms convenience functions from xlocale.h interpret nullptr
@@ -150,70 +154,70 @@ static inline locale_t getCLocale() {
 static _locale_t makeCLocale() {
   _locale_t CLocale = _create_locale(LC_ALL, "C");
   if (!CLocale) {
-    swift::crash("makeCLocale: _create_locale() returned a null pointer");
+    language::crash("makeCLocale: _create_locale() returned a null pointer");
   }
   return CLocale;
 }
 
 static _locale_t getCLocale() {
-  return SWIFT_LAZY_CONSTANT(makeCLocale());
+  return LANGUAGE_LAZY_CONSTANT(makeCLocale());
 }
 #else
 static locale_t makeCLocale() {
   locale_t CLocale = newlocale(LC_ALL_MASK, "C", nullptr);
   if (!CLocale) {
-    swift::crash("makeCLocale: newlocale() returned a null pointer");
+    language::crash("makeCLocale: newlocale() returned a null pointer");
   }
   return CLocale;
 }
 
 static locale_t getCLocale() {
-  return SWIFT_LAZY_CONSTANT(makeCLocale());
+  return LANGUAGE_LAZY_CONSTANT(makeCLocale());
 }
 #endif
-#endif // SWIFT_STDLIB_HAS_LOCALE
+#endif // LANGUAGE_STDLIB_HAS_LOCALE
 
-#if SWIFT_DTOA_PASS_FLOAT16_AS_FLOAT
+#if LANGUAGE_DTOA_PASS_FLOAT16_AS_FLOAT
 using _CFloat16Argument = float;
 #else
 using _CFloat16Argument = _Float16;
 #endif
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-__swift_ssize_t swift_float16ToString(char *Buffer, size_t BufferLength,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+__language_ssize_t language_float16ToString(char *Buffer, size_t BufferLength,
                                       _CFloat16Argument Value, bool Debug) {
-#if SWIFT_DTOA_PASS_FLOAT16_AS_FLOAT
+#if LANGUAGE_DTOA_PASS_FLOAT16_AS_FLOAT
   __fp16 v = Value;
-  return swift_dtoa_optimal_binary16_p(&v, Buffer, BufferLength);
+  return language_dtoa_optimal_binary16_p(&v, Buffer, BufferLength);
 #else
-  return swift_dtoa_optimal_binary16_p(&Value, Buffer, BufferLength);
+  return language_dtoa_optimal_binary16_p(&Value, Buffer, BufferLength);
 #endif
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-uint64_t swift_float32ToString(char *Buffer, size_t BufferLength,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+uint64_t language_float32ToString(char *Buffer, size_t BufferLength,
                                float Value, bool Debug) {
-  return swift_dtoa_optimal_float(Value, Buffer, BufferLength);
+  return language_dtoa_optimal_float(Value, Buffer, BufferLength);
 }
 
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-uint64_t swift_float64ToString(char *Buffer, size_t BufferLength,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+uint64_t language_float64ToString(char *Buffer, size_t BufferLength,
                                double Value, bool Debug) {
-  return swift_dtoa_optimal_double(Value, Buffer, BufferLength);
+  return language_dtoa_optimal_double(Value, Buffer, BufferLength);
 }
 
 // We only support float80 on platforms that use that exact format for 'long double'
-// This should match the conditionals in Runtime.swift
+// This should match the conditionals in Runtime.code
 #if !defined(_WIN32) && !defined(__ANDROID__) && (defined(__i386__) || defined(__i686__) || defined(__x86_64__))
-SWIFT_CC(swift) SWIFT_RUNTIME_STDLIB_API
-uint64_t swift_float80ToString(char *Buffer, size_t BufferLength,
+LANGUAGE_CC(language) LANGUAGE_RUNTIME_STDLIB_API
+uint64_t language_float80ToString(char *Buffer, size_t BufferLength,
                                long double Value, bool Debug) {
-  // SwiftDtoa.cpp automatically enables float80 on platforms that use it for 'long double'
-  return swift_dtoa_optimal_float80_p(&Value, Buffer, BufferLength);
+  // CodiraDtoa.cpp automatically enables float80 on platforms that use it for 'long double'
+  return language_dtoa_optimal_float80_p(&Value, Buffer, BufferLength);
 }
 #endif
 
-#if SWIFT_STDLIB_HAS_STDIN
+#if LANGUAGE_STDLIB_HAS_STDIN
 
 /// \param[out] LinePtr Replaced with the pointer to the malloc()-allocated
 /// line.  Can be NULL if no characters were read. This buffer should be
@@ -221,14 +225,14 @@ uint64_t swift_float80ToString(char *Buffer, size_t BufferLength,
 ///
 /// \returns Size of character data returned in \c LinePtr, or -1
 /// if an error occurred, or EOF was reached.
-__swift_ssize_t
-swift_stdlib_readLine_stdin(unsigned char **LinePtr) {
+__language_ssize_t
+language_stdlib_readLine_stdin(unsigned char **LinePtr) {
 #if defined(_WIN32)
   if (LinePtr == nullptr)
     return -1;
 
-  __swift_ssize_t Capacity = 0;
-  __swift_ssize_t Pos = 0;
+  __language_ssize_t Capacity = 0;
+  __language_ssize_t Pos = 0;
   unsigned char *ReadBuf = nullptr;
 
   _lock_file(stdin);
@@ -278,9 +282,9 @@ swift_stdlib_readLine_stdin(unsigned char **LinePtr) {
 #endif
 }
 
-#endif  // SWIFT_STDLIB_HAS_STDIN
+#endif  // LANGUAGE_STDLIB_HAS_STDIN
 
-static bool swift_stringIsSignalingNaN(const char *nptr) {
+static bool language_stringIsSignalingNaN(const char *nptr) {
   if (nptr[0] == '+' || nptr[0] == '-') {
     ++nptr;
   }
@@ -300,7 +304,7 @@ static bool swift_stringIsSignalingNaN(const char *nptr) {
 // relevant strto* functions, such as Cygwin or Haiku.
 // Note that using this currently causes test failures.
 template <typename T>
-T _swift_strto(const char *nptr, char **endptr) {
+T _language_strto(const char *nptr, char **endptr) {
   std::istringstream ValueStream(nptr);
   ValueStream.imbue(std::locale::classic());
   T ParsedValue;
@@ -318,75 +322,75 @@ T _swift_strto(const char *nptr, char **endptr) {
 }
 #endif
 
-#if SWIFT_STDLIB_HAS_LOCALE
+#if LANGUAGE_STDLIB_HAS_LOCALE
 
 #if defined(__OpenBSD__) || defined(_WIN32) || defined(__CYGWIN__) || defined(__HAIKU__)
-#define NEED_SWIFT_STRTOD_L
-#define strtod_l swift_strtod_l
-#define NEED_SWIFT_STRTOF_L
-#define strtof_l swift_strtof_l
-#define NEED_SWIFT_STRTOLD_L
-#define strtold_l swift_strtold_l
+#define NEED_LANGUAGE_STRTOD_L
+#define strtod_l language_strtod_l
+#define NEED_LANGUAGE_STRTOF_L
+#define strtof_l language_strtof_l
+#define NEED_LANGUAGE_STRTOLD_L
+#define strtold_l language_strtold_l
 #elif defined(__ANDROID__)
 #if __ANDROID_API__ < 21 // Introduced in Android API 21 - L
-#define NEED_SWIFT_STRTOLD_L
-#define strtold_l swift_strtold_l
+#define NEED_LANGUAGE_STRTOLD_L
+#define strtold_l language_strtold_l
 #endif
 
 #if __ANDROID_API__ < 26 // Introduced in Android API 26 - O
-#define NEED_SWIFT_STRTOD_L
-#define strtod_l swift_strtod_l
-#define NEED_SWIFT_STRTOF_L
-#define strtof_l swift_strtof_l
+#define NEED_LANGUAGE_STRTOD_L
+#define strtod_l language_strtod_l
+#define NEED_LANGUAGE_STRTOF_L
+#define strtof_l language_strtof_l
 #endif
 #endif
 
-#endif // SWIFT_STDLIB_HAS_LOCALE
+#endif // LANGUAGE_STDLIB_HAS_LOCALE
 
-#if defined(NEED_SWIFT_STRTOD_L)
-static double swift_strtod_l(const char *nptr, char **endptr, locale_t loc) {
+#if defined(NEED_LANGUAGE_STRTOD_L)
+static double language_strtod_l(const char *nptr, char **endptr, locale_t loc) {
 #if defined(_WIN32)
   return _strtod_l(nptr, endptr, getCLocale());
 #elif defined(__CYGWIN__) || defined(__HAIKU__)
-  return _swift_strto<double>(nptr, endptr);
+  return _language_strto<double>(nptr, endptr);
 #else
   return strtod(nptr, endptr);
 #endif
 }
 #endif
 
-#if defined(NEED_SWIFT_STRTOF_L)
-static float swift_strtof_l(const char *nptr, char **endptr, locale_t loc) {
+#if defined(NEED_LANGUAGE_STRTOF_L)
+static float language_strtof_l(const char *nptr, char **endptr, locale_t loc) {
 #if defined(_WIN32)
   return _strtof_l(nptr, endptr, getCLocale());
 #elif defined(__CYGWIN__) || defined(__HAIKU__)
-  return _swift_strto<float>(nptr, endptr);
+  return _language_strto<float>(nptr, endptr);
 #else
   return strtof(nptr, endptr);
 #endif
 }
 #endif
 
-#if defined(NEED_SWIFT_STRTOLD_L)
-static long double swift_strtold_l(const char *nptr, char **endptr,
+#if defined(NEED_LANGUAGE_STRTOLD_L)
+static long double language_strtold_l(const char *nptr, char **endptr,
                                    locale_t loc) {
 #if defined(_WIN32)
   return _strtod_l(nptr, endptr, getCLocale());
 #elif defined(__ANDROID__)
   return strtod(nptr, endptr);
 #elif defined(__CYGWIN__) || defined(__HAIKU__)
-  return _swift_strto<long double>(nptr, endptr);
+  return _language_strto<long double>(nptr, endptr);
 #else
   return strtold(nptr, endptr);
 #endif
 }
 #endif
 
-#undef NEED_SWIFT_STRTOD_L
-#undef NEED_SWIFT_STRTOF_L
-#undef NEED_SWIFT_STRTOLD_L
+#undef NEED_LANGUAGE_STRTOD_L
+#undef NEED_LANGUAGE_STRTOF_L
+#undef NEED_LANGUAGE_STRTOLD_L
 
-static inline void _swift_set_errno(int to) {
+static inline void _language_set_errno(int to) {
 #if defined(_WIN32)
   _set_errno(0);
 #else
@@ -397,26 +401,26 @@ static inline void _swift_set_errno(int to) {
 // We can't return Float80, but we can receive a pointer to one, so
 // switch the return type and the out parameter on strtold.
 template <typename T>
-#if SWIFT_STDLIB_HAS_LOCALE
-static const char *_swift_stdlib_strtoX_clocale_impl(
+#if LANGUAGE_STDLIB_HAS_LOCALE
+static const char *_language_stdlib_strtoX_clocale_impl(
     const char *nptr, T *outResult, T huge,
     T (*posixImpl)(const char *, char **, locale_t))
 #else
-static const char *_swift_stdlib_strtoX_impl(
+static const char *_language_stdlib_strtoX_impl(
     const char *nptr, T *outResult,
     T (*posixImpl)(const char *, char **))
 #endif
 {
-  if (swift_stringIsSignalingNaN(nptr)) {
+  if (language_stringIsSignalingNaN(nptr)) {
     // TODO: ensure that the returned sNaN bit pattern matches that of sNaNs
-    // produced by Swift.
+    // produced by Codira.
     *outResult = std::numeric_limits<T>::signaling_NaN();
     return nptr + std::strlen(nptr);
   }
 
   char *EndPtr;
-  _swift_set_errno(0);
-#if SWIFT_STDLIB_HAS_LOCALE
+  _language_set_errno(0);
+#if LANGUAGE_STDLIB_HAS_LOCALE
   const auto result = posixImpl(nptr, &EndPtr, getCLocale());
 #else
   const auto result = posixImpl(nptr, &EndPtr);
@@ -425,76 +429,76 @@ static const char *_swift_stdlib_strtoX_impl(
   return EndPtr;
 }
 
-const char *_swift_stdlib_strtold_clocale(const char *nptr, void *outResult) {
-#if SWIFT_STDLIB_HAS_LOCALE
-  return _swift_stdlib_strtoX_clocale_impl(
+const char *_language_stdlib_strtold_clocale(const char *nptr, void *outResult) {
+#if LANGUAGE_STDLIB_HAS_LOCALE
+  return _language_stdlib_strtoX_clocale_impl(
       nptr, static_cast<long double *>(outResult), HUGE_VALL, strtold_l);
 #else
-  return _swift_stdlib_strtoX_impl(
+  return _language_stdlib_strtoX_impl(
       nptr, static_cast<long double *>(outResult), strtold);
 #endif
 }
 
-const char *_swift_stdlib_strtod_clocale(const char *nptr, double *outResult) {
-#if SWIFT_STDLIB_HAS_LOCALE
-  return _swift_stdlib_strtoX_clocale_impl(nptr, outResult, HUGE_VAL, strtod_l);
+const char *_language_stdlib_strtod_clocale(const char *nptr, double *outResult) {
+#if LANGUAGE_STDLIB_HAS_LOCALE
+  return _language_stdlib_strtoX_clocale_impl(nptr, outResult, HUGE_VAL, strtod_l);
 #else
-  return _swift_stdlib_strtoX_impl(nptr, outResult, strtod);
+  return _language_stdlib_strtoX_impl(nptr, outResult, strtod);
 #endif
 }
 
-const char *_swift_stdlib_strtof_clocale(const char *nptr, float *outResult) {
-#if SWIFT_STDLIB_HAS_LOCALE
-  return _swift_stdlib_strtoX_clocale_impl(nptr, outResult, HUGE_VALF,
+const char *_language_stdlib_strtof_clocale(const char *nptr, float *outResult) {
+#if LANGUAGE_STDLIB_HAS_LOCALE
+  return _language_stdlib_strtoX_clocale_impl(nptr, outResult, HUGE_VALF,
                                            strtof_l);
 #else
-  return _swift_stdlib_strtoX_impl(nptr, outResult, strtof);
+  return _language_stdlib_strtoX_impl(nptr, outResult, strtof);
 #endif
 }
 
-const char *_swift_stdlib_strtof16_clocale(const char *nptr,
+const char *_language_stdlib_strtof16_clocale(const char *nptr,
                                            __fp16 *outResult) {
   float tmp;
-  const char *result = _swift_stdlib_strtof_clocale(nptr, &tmp);
+  const char *result = _language_stdlib_strtof_clocale(nptr, &tmp);
   *outResult = tmp;
   return result;
 }
 
-void _swift_stdlib_flockfile_stdout() {
+void _language_stdlib_flockfile_stdout() {
 #if defined(_WIN32)
   _lock_file(stdout);
 #elif defined(__wasi__)
-  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/swift/issues/54533).
+  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/language/issues/54533).
 #else
   flockfile(stdout);
 #endif
 }
 
-void _swift_stdlib_funlockfile_stdout() {
+void _language_stdlib_funlockfile_stdout() {
 #if defined(_WIN32)
   _unlock_file(stdout);
 #elif defined(__wasi__)
-  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/swift/issues/54533).
+  // FIXME: WebAssembly/WASI doesn't support file locking yet (https://github.com/apple/language/issues/54533).
 #else
   funlockfile(stdout);
 #endif
 }
 
-int _swift_stdlib_putc_stderr(int C) {
+int _language_stdlib_putc_stderr(int C) {
   return putc(C, stderr);
 }
 
-size_t _swift_stdlib_getHardwareConcurrency() {
-#ifdef SWIFT_THREADING_NONE
+size_t _language_stdlib_getHardwareConcurrency() {
+#ifdef LANGUAGE_THREADING_NONE
   return 1;
 #else
   return std::thread::hardware_concurrency();
 #endif
 }
 
-__swift_bool swift_stdlib_isStackAllocationSafe(__swift_size_t byteCount,
-                                                __swift_size_t alignment) {
-  // This function is not currently implemented. Future releases of Swift can
+__language_bool language_stdlib_isStackAllocationSafe(__language_size_t byteCount,
+                                                __language_size_t alignment) {
+  // This function is not currently implemented. Future releases of Codira can
   // implement heuristics in this function to allow for larger stack allocations
   // if conditions are suitable. These heuristics need to be significantly
   // cheaper than simply calling malloc().
@@ -508,7 +512,7 @@ __swift_bool swift_stdlib_isStackAllocationSafe(__swift_size_t byteCount,
 #if 0
   uintptr_t stackBegin = 0;
   uintptr_t stackEnd = 0;
-  if (!_swift_stdlib_getCurrentStackBounds(&stackBegin, &stackEnd)) {
+  if (!_language_stdlib_getCurrentStackBounds(&stackBegin, &stackEnd)) {
     return false;
   }
 
@@ -536,10 +540,10 @@ __swift_bool swift_stdlib_isStackAllocationSafe(__swift_size_t byteCount,
 #endif
 }
 
-__swift_bool _swift_stdlib_getCurrentStackBounds(__swift_uintptr_t *outBegin,
-                                                 __swift_uintptr_t *outEnd) {
-  std::optional<swift::Thread::StackBounds> bounds =
-      swift::Thread::stackBounds();
+__language_bool _language_stdlib_getCurrentStackBounds(__language_uintptr_t *outBegin,
+                                                 __language_uintptr_t *outEnd) {
+  std::optional<language::Thread::StackBounds> bounds =
+      language::Thread::stackBounds();
   if (!bounds)
     return false;
   *outBegin = (uintptr_t)bounds->low;

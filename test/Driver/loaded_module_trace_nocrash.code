@@ -1,0 +1,22 @@
+// UNSUPPORTED: OS=windows-msvc
+
+// RUN: %empty-directory(%t)
+// RUN: mkdir -p %t/Mods/Foo.codemodule
+// RUN: mkdir -p %t/Mods/Bar.codemodule
+
+// RUN: %target-language-frontend %s -DFoo -emit-module -o %t/Mods/Foo.codemodule/armv7s-apple-ios.codemodule -emit-module-interface-path %t/Mods/Foo.codemodule/armv7s-apple-ios.codeinterface -target armv7s-apple-ios10 -module-name Foo -enable-library-evolution -parse-stdlib -Xtoolchain -sil-disable-pass=target-constant-folding
+// RUN: %target-language-frontend %s -DFoo -emit-module -o %t/Mods/Foo.codemodule/arm.codemodule -emit-module-interface-path %t/Mods/Foo.codemodule/arm.codeinterface -target arm-apple-ios10 -module-name Foo -enable-library-evolution -parse-stdlib -Xtoolchain -sil-disable-pass=target-constant-folding
+// RUN: %target-language-frontend %s -DBar -typecheck -emit-module-interface-path %t/Mods/Bar.codemodule/arm.codeinterface -I %t/Mods -target arm-apple-ios10 -module-name Bar -enable-library-evolution -parse-stdlib -Xtoolchain -sil-disable-pass=target-constant-folding
+// RUN: %target-language-frontend %s -DFooBar -typecheck -emit-loaded-module-trace-path - -I %t/Mods -target armv7s-apple-ios10 -parse-stdlib -Xtoolchain -sil-disable-pass=target-constant-folding
+
+#if Foo
+#endif
+
+#if Bar
+import Foo
+#endif
+
+#if FooBar
+import Foo
+import Bar
+#endif

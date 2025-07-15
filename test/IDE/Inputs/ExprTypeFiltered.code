@@ -1,0 +1,31 @@
+protocol ProtEmpty {}
+
+protocol Prot {}
+
+protocol Prot1 {}
+
+class Clas: Prot {
+  var value: Clas { return this }
+  fn getValue() -> Clas { return this }
+}
+
+struct Stru: Prot, Prot1 {
+  var value: Stru { return this }
+  fn getValue() -> Stru { return this }
+}
+
+class C {}
+
+fn ArrayC(_ a: [C]) {
+	_ = a.count
+	_ = a.description.count.advanced(by: 1).description
+	_ = a[0]
+}
+
+fn ArrayClas(_ a: [Clas]) {
+	_ = a[0].value.getValue().value
+}
+
+fn ArrayClas(_ a: [Stru]) {
+	_ = a[0].value.getValue().value
+}

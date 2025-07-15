@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CommentConversion.h"
@@ -24,8 +25,8 @@
 #include "language/Markup/XMLUtils.h"
 #include "language/Parse/Token.h"
 #include "language/Subsystems.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/MemoryBuffer.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Comment.h"
 #include "clang/AST/Decl.h"
@@ -73,7 +74,7 @@ struct CommentToXMLConverter {
 #include "language/Markup/SimpleFields.def"
 
   void printDocument(const Document *D) {
-    llvm_unreachable("Can't print a swift::markup::Document as XML directly");
+    toolchain_unreachable("Can't print a language::markup::Document as XML directly");
   }
 
   void printInlineAttributes(const InlineAttributes *A) {
@@ -138,15 +139,15 @@ struct CommentToXMLConverter {
   }
 
   void printHeader(const Header *H) {
-    llvm::SmallString<4> Tag;
-    llvm::raw_svector_ostream TagStream(Tag);
+    toolchain::SmallString<4> Tag;
+    toolchain::raw_svector_ostream TagStream(Tag);
     TagStream << "<h" << H->getLevel() << ">";
     printRawHTML(TagStream.str());
     for (auto Child : H->getChildren())
       printASTNode(Child);
 
-    llvm::SmallString<5> EndTag;
-    llvm::raw_svector_ostream EndTagStream(EndTag);
+    toolchain::SmallString<5> EndTag;
+    toolchain::raw_svector_ostream EndTagStream(EndTag);
     EndTagStream << "</h" << H->getLevel() << ">";
     printRawHTML(EndTagStream.str());
   }
@@ -185,7 +186,7 @@ struct CommentToXMLConverter {
 
   void printLink(const Link *L) {
     SmallString<32> Tag;
-    llvm::raw_svector_ostream S(Tag);
+    toolchain::raw_svector_ostream S(Tag);
     S << "<Link href=\"";
     appendWithXMLEscaping(S, L->getDestination());
     S << "\">";
@@ -207,12 +208,12 @@ struct CommentToXMLConverter {
   }
 
   void printPrivateExtension(const PrivateExtension *PE) {
-    llvm_unreachable("Can't directly print a Swift Markup PrivateExtension");
+    toolchain_unreachable("Can't directly print a Codira Markup PrivateExtension");
   }
 
   void printImage(const Image *I) {
     SmallString<64> Tag;
-    llvm::raw_svector_ostream S(Tag);
+    toolchain::raw_svector_ostream S(Tag);
     S << "<img src=\"" << I->getDestination() << "\"";
     if (I->hasTitle())
       S << " title=\"" << I->getTitle() << "\"";
@@ -275,11 +276,11 @@ struct CommentToXMLConverter {
   }
 
   void visitDocComment(const DocComment *DC, TypeOrExtensionDecl SynthesizedTarget);
-  void visitCommentParts(const swift::markup::CommentParts &Parts);
+  void visitCommentParts(const language::markup::CommentParts &Parts);
 };
 } // unnamed namespace
 
-void CommentToXMLConverter::visitCommentParts(const swift::markup::CommentParts &Parts) {
+void CommentToXMLConverter::visitCommentParts(const language::markup::CommentParts &Parts) {
   if (Parts.Brief.has_value()) {
     OS << "<Abstract>";
     printASTNode(Parts.Brief.value());
@@ -301,7 +302,7 @@ void CommentToXMLConverter::visitCommentParts(const swift::markup::CommentParts 
     printThrowsDiscussion(Parts.ThrowsField.value());
 
   if (!Parts.Tags.empty()) {
-    printTagFields(llvm::ArrayRef(Parts.Tags.begin(), Parts.Tags.end()));
+    printTagFields(toolchain::ArrayRef(Parts.Tags.begin(), Parts.Tags.end()));
   }
 
   if (!Parts.BodyNodes.empty()) {
@@ -351,18 +352,18 @@ visitDocComment(const DocComment *DC, TypeOrExtensionDecl SynthesizedTarget) {
 
   OS << "<Name>";
   if (VD && VD->hasName()) {
-    llvm::SmallString<64> SS;
-    llvm::raw_svector_ostream NameOS(SS);
+    toolchain::SmallString<64> SS;
+    toolchain::raw_svector_ostream NameOS(SS);
     NameOS << VD->getName();
     appendWithXMLEscaping(OS, NameOS.str());
   }
   OS << "</Name>";
 
   if (VD) {
-    llvm::SmallString<64> SS;
+    toolchain::SmallString<64> SS;
     bool Failed;
     {
-      llvm::raw_svector_ostream OS(SS);
+      toolchain::raw_svector_ostream OS(SS);
       Failed = ide::printValueDeclUSR(VD, OS);
       if (!Failed && SynthesizedTarget) {
         OS << "::SYNTHESIZED::";
@@ -389,9 +390,9 @@ visitDocComment(const DocComment *DC, TypeOrExtensionDecl SynthesizedTarget) {
       PO.initForSynthesizedExtension(SynthesizedTarget);
 
     OS << "<Declaration>";
-    llvm::SmallString<32> DeclSS;
+    toolchain::SmallString<32> DeclSS;
     {
-      llvm::raw_svector_ostream DeclOS(DeclSS);
+      toolchain::raw_svector_ostream DeclOS(DeclSS);
       D->print(DeclOS, PO);
     }
     appendWithXMLEscaping(OS, DeclSS);
@@ -417,14 +418,14 @@ static bool getClangDocumentationCommentAsXML(const clang::Decl *D,
   // between requests to this AST.
   clang::index::CommentToXMLConverter Converter;
 
-  llvm::SmallString<1024> XML;
+  toolchain::SmallString<1024> XML;
   Converter.convertCommentToXML(FC, XML, ClangContext);
   OS << XML;
   return true;
 }
 
 static void
-replaceObjcDeclarationsWithSwiftOnes(const Decl *D, StringRef Doc,
+replaceObjcDeclarationsWithCodiraOnes(const Decl *D, StringRef Doc,
                                      raw_ostream &OS,
                                      TypeOrExtensionDecl SynthesizedTarget) {
   StringRef Open = "<Declaration>";
@@ -433,7 +434,7 @@ replaceObjcDeclarationsWithSwiftOnes(const Decl *D, StringRef Doc,
   if (SynthesizedTarget)
       Options.initForSynthesizedExtension(SynthesizedTarget);
   std::string S;
-  llvm::raw_string_ostream SS(S);
+  toolchain::raw_string_ostream SS(S);
   D->print(SS, Options);
   auto OI = Doc.find(Open);
   auto CI = Doc.find(Close);
@@ -447,10 +448,10 @@ replaceObjcDeclarationsWithSwiftOnes(const Decl *D, StringRef Doc,
 }
 
 static LineList getLineListFromComment(SourceManager &SourceMgr,
-                                       swift::markup::MarkupContext &MC,
+                                       language::markup::MarkupContext &MC,
                                        const StringRef Text) {
   LangOptions LangOpts;
-  auto Tokens = swift::tokenize(LangOpts, SourceMgr,
+  auto Tokens = language::tokenize(LangOpts, SourceMgr,
                                 SourceMgr.addMemBufferCopy(Text));
   std::vector<SingleRawComment> Comments;
   Comments.reserve(Tokens.size());
@@ -468,11 +469,11 @@ static LineList getLineListFromComment(SourceManager &SourceMgr,
 
 std::string ide::extractPlainTextFromComment(const StringRef Text) {
   SourceManager SourceMgr;
-  swift::markup::MarkupContext MC;
+  language::markup::MarkupContext MC;
   return getLineListFromComment(SourceMgr, MC, Text).str();
 }
 
-static DocComment *getCascadingDocComment(swift::markup::MarkupContext &MC,
+static DocComment *getCascadingDocComment(language::markup::MarkupContext &MC,
                                           const Decl *D) {
   auto *docD = D->getDocCommentProvidingDecl();
   if (!docD)
@@ -504,9 +505,9 @@ bool ide::getDocumentationCommentAsXML(const Decl *D, raw_ostream &OS,
   if (MaybeClangNode) {
     if (auto *CD = MaybeClangNode.getAsDecl()) {
       std::string S;
-      llvm::raw_string_ostream SS(S);
+      toolchain::raw_string_ostream SS(S);
       if (getClangDocumentationCommentAsXML(CD, SS)) {
-        replaceObjcDeclarationsWithSwiftOnes(D, SS.str(), OS,
+        replaceObjcDeclarationsWithCodiraOnes(D, SS.str(), OS,
                                              SynthesizedTarget);
         return true;
       }
@@ -514,7 +515,7 @@ bool ide::getDocumentationCommentAsXML(const Decl *D, raw_ostream &OS,
     return false;
   }
 
-  swift::markup::MarkupContext MC;
+  language::markup::MarkupContext MC;
   auto DC = getCascadingDocComment(MC, D);
   if (!DC)
     return false;
@@ -553,13 +554,13 @@ bool ide::getRawDocumentationComment(const Decl *D, raw_ostream &OS) {
     return false;
   }
   RawComment rawComment = docD->getRawComment();
-  OS << swift::markup::MarkupContext().getLineList(rawComment).str();
+  OS << language::markup::MarkupContext().getLineList(rawComment).str();
   OS.flush();
   return true;
 }
 
 bool ide::getLocalizationKey(const Decl *D, raw_ostream &OS) {
-  swift::markup::MarkupContext MC;
+  language::markup::MarkupContext MC;
   auto DC = getCascadingDocComment(MC, D);
   if (!DC)
     return false;
@@ -575,13 +576,13 @@ bool ide::getLocalizationKey(const Decl *D, raw_ostream &OS) {
 bool ide::convertMarkupToXML(StringRef Text, raw_ostream &OS) {
   std::string Comment;
   {
-    llvm::raw_string_ostream OS(Comment);
+    toolchain::raw_string_ostream OS(Comment);
     OS << "/**\n" << Text << "\n" << "*/";
   }
   SourceManager SourceMgr;
   MarkupContext MC;
   LineList LL = getLineListFromComment(SourceMgr, MC, Comment);
-  if (auto *Doc = swift::markup::parseDocument(MC, LL)) {
+  if (auto *Doc = language::markup::parseDocument(MC, LL)) {
     CommentToXMLConverter Converter(OS);
     Converter.visitCommentParts(extractCommentParts(MC, Doc));
     OS.flush();
@@ -595,7 +596,7 @@ bool ide::convertMarkupToXML(StringRef Text, raw_ostream &OS) {
 //===----------------------------------------------------------------------===//
 
 class DoxygenConverter : public MarkupASTVisitor<DoxygenConverter> {
-  llvm::raw_ostream &OS;
+  toolchain::raw_ostream &OS;
   unsigned Indent;
   unsigned IsFreshLine : 1;
   unsigned IsEmptyComment : 1;
@@ -690,7 +691,7 @@ class DoxygenConverter : public MarkupASTVisitor<DoxygenConverter> {
   }
 
 public:
-  DoxygenConverter(llvm::raw_ostream &OS)
+  DoxygenConverter(toolchain::raw_ostream &OS)
     : OS(OS), Indent(1), IsFreshLine(true), IsEmptyComment(true) {
     printOpeningComment();
   }
@@ -783,7 +784,7 @@ public:
 
   void visitLink(const Link *L) {
     SmallString<32> Tag;
-    llvm::raw_svector_ostream S(Tag);
+    toolchain::raw_svector_ostream S(Tag);
     S << "<a href=\"" << L->getDestination() << "\">";
     print(S.str());
     for (const auto *Child : L->getChildren())
@@ -793,7 +794,7 @@ public:
 
   void visitImage(const Image *I) {
     SmallString<64> Tag;
-    llvm::raw_svector_ostream S(Tag);
+    toolchain::raw_svector_ostream S(Tag);
     S << "<img src=\"" << I->getDestination() << "\"";
     if (I->hasTitle())
       S << " title=\"" << I->getTitle() << "\"";
@@ -833,14 +834,14 @@ public:
   }
 
   void visitHeader(const Header *H) {
-    llvm::SmallString<4> Tag;
-    llvm::raw_svector_ostream TagStream(Tag);
+    toolchain::SmallString<4> Tag;
+    toolchain::raw_svector_ostream TagStream(Tag);
     TagStream << "<h" << H->getLevel() << ">";
     print(TagStream.str());
     for (const auto *Child : H->getChildren())
       visit(Child);
-    llvm::SmallString<5> EndTag;
-    llvm::raw_svector_ostream EndTagStream(EndTag);
+    toolchain::SmallString<5> EndTag;
+    toolchain::raw_svector_ostream EndTagStream(EndTag);
     EndTagStream << "</h" << H->getLevel() << ">";
     print(EndTagStream.str());
     printNewline();
@@ -851,7 +852,7 @@ public:
   }
 
   void visitPrivateExtension(const PrivateExtension *PE) {
-    llvm_unreachable("Can't directly print Doxygen for a Swift Markup PrivateExtension");
+    toolchain_unreachable("Can't directly print Doxygen for a Codira Markup PrivateExtension");
   }
 
   void visitParamField(const ParamField *PF) {

@@ -1,0 +1,4 @@
+// {"signature":"language::GenericSignatureImpl::getReducedTypeParameter(language::CanType) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+enum b : c protocol
+a{typealias c : d.e struct d : a fn c typealias e} typealias c : a

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SpecializedEmitter.h"
@@ -109,7 +110,7 @@ static ManagedValue emitBuiltinLoadOrTake(SILGenFunction &SGF,
                                           IsTake_t isTake,
                                           bool isStrict,
                                           bool isInvariant,
-                                          llvm::MaybeAlign align) {
+                                          toolchain::MaybeAlign align) {
   assert(substitutions.getReplacementTypes().size() == 1 &&
          "load should have single substitution");
   assert(args.size() == 1 && "load should have a single argument");
@@ -140,7 +141,7 @@ static ManagedValue emitBuiltinLoad(SILGenFunction &SGF,
   return emitBuiltinLoadOrTake(SGF, loc, substitutions, args,
                                C, IsNotTake,
                                /*isStrict*/ true, /*isInvariant*/ false,
-                               llvm::MaybeAlign());
+                               toolchain::MaybeAlign());
 }
 
 static ManagedValue emitBuiltinLoadRaw(SILGenFunction &SGF,
@@ -152,7 +153,7 @@ static ManagedValue emitBuiltinLoadRaw(SILGenFunction &SGF,
   return emitBuiltinLoadOrTake(SGF, loc, substitutions, args,
                                C, IsNotTake,
                                /*isStrict*/ false, /*isInvariant*/ false,
-                               llvm::MaybeAlign(1));
+                               toolchain::MaybeAlign(1));
 }
 
 static ManagedValue emitBuiltinLoadInvariant(SILGenFunction &SGF,
@@ -164,7 +165,7 @@ static ManagedValue emitBuiltinLoadInvariant(SILGenFunction &SGF,
   return emitBuiltinLoadOrTake(SGF, loc, substitutions, args,
                                C, IsNotTake,
                                /*isStrict*/ false, /*isInvariant*/ true,
-                               llvm::MaybeAlign());
+                               toolchain::MaybeAlign());
 }
 
 static ManagedValue emitBuiltinTake(SILGenFunction &SGF,
@@ -176,7 +177,7 @@ static ManagedValue emitBuiltinTake(SILGenFunction &SGF,
   return emitBuiltinLoadOrTake(SGF, loc, substitutions, args,
                                C, IsTake,
                                /*isStrict*/ true, /*isInvariant*/ false,
-                               llvm::MaybeAlign());
+                               toolchain::MaybeAlign());
 }
 
 /// Specialized emitter for Builtin.destroy.
@@ -216,7 +217,7 @@ static ManagedValue emitBuiltinStore(SILGenFunction &SGF, SILLocation loc,
                                      SubstitutionMap substitutions,
                                      ArrayRef<ManagedValue> args, SGFContext C,
                                      bool isStrict, bool isInvariant,
-                                     llvm::MaybeAlign alignment) {
+                                     toolchain::MaybeAlign alignment) {
   assert(args.size() >= 2 && "should have two arguments");
   assert(substitutions.getReplacementTypes().size() == 1 &&
          "should have a single substitution");
@@ -243,7 +244,7 @@ static ManagedValue emitBuiltinAssign(SILGenFunction &SGF, SILLocation loc,
                                       ArrayRef<ManagedValue> args,
                                       SGFContext C) {
   return emitBuiltinStore(SGF, loc, substitutions, args, C, /*isStrict=*/true,
-                          /*isInvariant=*/false, llvm::MaybeAlign());
+                          /*isInvariant=*/false, toolchain::MaybeAlign());
 }
 
 static ManagedValue emitBuiltinStoreRaw(SILGenFunction &SGF, SILLocation loc,
@@ -251,7 +252,7 @@ static ManagedValue emitBuiltinStoreRaw(SILGenFunction &SGF, SILLocation loc,
                                         ArrayRef<ManagedValue> args,
                                         SGFContext C) {
   return emitBuiltinStore(SGF, loc, substitutions, args, C, /*isStrict=*/false,
-                          /*isInvariant=*/false, llvm::MaybeAlign(1));
+                          /*isInvariant=*/false, toolchain::MaybeAlign(1));
 }
 
 /// Emit Builtin.initialize by evaluating the operand directly into
@@ -1196,7 +1197,7 @@ static ManagedValue emitBuiltinAutoDiffApplyDerivativeFunction(
     AutoDiffDerivativeFunctionKind kind, unsigned arity,
     bool throws, SILGenFunction &SGF, SILLocation loc,
     SubstitutionMap substitutions, ArrayRef<ManagedValue> args, SGFContext C) {
-  // FIXME(https://github.com/apple/swift/issues/54259): Support throwing functions.
+  // FIXME(https://github.com/apple/language/issues/54259): Support throwing functions.
   assert(!throws && "Throwing functions are not yet supported");
 
   auto origFnVal = args[0];
@@ -1267,7 +1268,7 @@ static ManagedValue emitBuiltinAutoDiffApplyDerivativeFunction(
 static ManagedValue emitBuiltinAutoDiffApplyTransposeFunction(
     unsigned arity, bool throws, SILGenFunction &SGF, SILLocation loc,
     SubstitutionMap substitutions, ArrayRef<ManagedValue> args, SGFContext C) {
-  // FIXME(https://github.com/apple/swift/issues/54259): Support throwing functions.
+  // FIXME(https://github.com/apple/language/issues/54259): Support throwing functions.
   assert(!throws && "Throwing functions are not yet supported");
 
   auto origFnVal = args.front().getValue();
@@ -1400,7 +1401,7 @@ static ManagedValue emitBuiltinConvertStrongToUnownedUnsafe(
       SGF.emitLValue(inout->getSubExpr(), SGFAccessKind::BorrowedAddressRead);
   lv.unsafelyDropLastComponent(PathComponent::OwnershipKind);
   if (!lv.isPhysical() || !lv.isLoadingPure()) {
-    llvm::report_fatal_error("Builtin.convertStrongToUnownedUnsafe passed "
+    toolchain::report_fatal_error("Builtin.convertStrongToUnownedUnsafe passed "
                              "non-physical, non-pure lvalue as 2nd arg");
   }
 
@@ -1411,12 +1412,12 @@ static ManagedValue emitBuiltinConvertStrongToUnownedUnsafe(
   // Make sure our types match up as we expect.
   if (objectSrcValue->getType() !=
       destType.getReferenceStorageReferentType().getObjectType()) {
-    llvm::errs()
+    toolchain::errs()
         << "Invalid usage of Builtin.convertStrongToUnownedUnsafe. lhsType "
            "must be T and rhsType must be inout unsafe(unowned) T"
         << "lhsType: " << objectSrcValue->getType() << "\n"
         << "rhsType: " << inoutDest->getType() << "\n";
-    llvm::report_fatal_error("standard fatal error msg");
+    toolchain::report_fatal_error("standard fatal error msg");
   }
 
   SILType unmanagedOptType = objectSrcValue->getType().getReferenceStorageType(
@@ -1454,7 +1455,7 @@ static ManagedValue emitBuiltinConvertUnownedUnsafeToGuaranteed(
                               SGFAccessKind::BorrowedAddressRead);
   srcLV.unsafelyDropLastComponent(PathComponent::OwnershipKind);
   if (!srcLV.isPhysical() || !srcLV.isLoadingPure()) {
-    llvm::report_fatal_error("Builtin.convertUnownedUnsafeToGuaranteed passed "
+    toolchain::report_fatal_error("Builtin.convertUnownedUnsafeToGuaranteed passed "
                              "non-physical, non-pure lvalue as 2nd arg");
   }
 
@@ -1666,12 +1667,11 @@ static ManagedValue emitCreateAsyncTask(SILGenFunction &SGF, SILLocation loc,
             .withAsync()
             .withThrows()
             .withSendable(!hasSending)
-            .withRepresentation(GenericFunctionType::Representation::Swift)
+            .withRepresentation(GenericFunctionType::Representation::Codira)
             .build();
 
     auto genericSig = subs.getGenericSignature().getCanonicalSignature();
-    auto genericResult = GenericTypeParamType::getType(/*depth*/ 0, /*index*/ 0,
-                                                       SGF.getASTContext());
+    auto genericResult = SGF.getASTContext().TheSelfType;
 
     // <T> () async throws -> T
     CanType functionTy =
@@ -2150,11 +2150,13 @@ static ManagedValue emitBuiltinEmplace(SILGenFunction &SGF,
   
   auto buffer = dest->getAddressForInPlaceInitialization(SGF, loc);
   
-  // Zero-initialize the buffer.
-  // Aside from providing a modicum of predictability if the memory isn't
-  // actually initialized, this also serves to communicate to DI that the memory
+  // Mark the buffer as initializedto communicate to DI that the memory
   // is considered initialized from this point.
-  SGF.B.createZeroInitAddr(loc, buffer);
+  auto markInit = getBuiltinValueDecl(Ctx, Ctx.getIdentifier("prepareInitialization"));
+  SGF.B.createBuiltin(loc, markInit->getBaseIdentifier(),
+                       SILType::getEmptyTupleType(Ctx),
+                       SubstitutionMap(),
+                       buffer);
 
   SILValue bufferPtr = SGF.B.createAddressToPointer(loc, buffer,
         SILType::getPrimitiveObjectType(SGF.getASTContext().TheRawPointerType),
@@ -2172,6 +2174,13 @@ static ManagedValue emitBuiltinEmplace(SILGenFunction &SGF,
     // Error branch
     {
       SGF.B.emitBlock(errorBB);
+
+      // When the closure throws an error, it needs to clean up the buffer. This
+      // means that the buffer is uninitialized at this point.
+      // We need an `end_lifetime` so that the move-only checker doesn't insert
+      // a wrong `destroy_addr` because it thinks that the buffer is initialized
+      // here.
+      SGF.B.createEndLifetime(loc, buffer);
 
       SGF.Cleanups.emitCleanupsForReturn(CleanupLocation(loc), IsForUnwind);
 
@@ -2256,11 +2265,11 @@ SpecializedEmitter::forDecl(SILGenModule &SGM, SILDeclRef function) {
     // be inserted as instrumentation by SILGen.
 #define BUILTIN_SANITIZER_OPERATION(Id, Name, Attrs)                        \
   case BuiltinValueKind::Id:                                                \
-    llvm_unreachable("Sanitizer builtin called directly?");
+    toolchain_unreachable("Sanitizer builtin called directly?");
 
 #define BUILTIN_TYPE_CHECKER_OPERATION(Id, Name)                               \
   case BuiltinValueKind::Id:                                                   \
-    llvm_unreachable(                                                          \
+    toolchain_unreachable(                                                          \
         "Compile-time type checker operation should not make it to SIL!");
 
     // Lower away type trait builtins when they're trivially solvable.
@@ -2271,5 +2280,5 @@ SpecializedEmitter::forDecl(SILGenModule &SGM, SILDeclRef function) {
 
 #include "language/AST/Builtins.def"
   }
-  llvm_unreachable("bad builtin kind");
+  toolchain_unreachable("bad builtin kind");
 }

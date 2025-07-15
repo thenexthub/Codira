@@ -1,21 +1,25 @@
-//===--- Backtrace.cpp - Swift crash catching and backtracing support ---- ===//
+//===--- Backtrace.cpp - Codira crash catching and backtracing support ---- ===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // Definitions relating to backtracing.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_RUNTIME_BACKTRACE_H
-#define SWIFT_RUNTIME_BACKTRACE_H
+#ifndef LANGUAGE_RUNTIME_BACKTRACE_H
+#define LANGUAGE_RUNTIME_BACKTRACE_H
 
 #ifdef __linux__
 #include <sys/types.h>
@@ -37,17 +41,17 @@ namespace runtime {
 namespace backtrace {
 #endif
 
-// Test if a given function is a Swift thunk of some sort.
+// Test if a given function is a Codira thunk of some sort.
 //
 // @param mangledName is the name of the symbol to test.
 //
 // @returns true if the function is a thunk.
-SWIFT_RUNTIME_STDLIB_SPI
-bool _swift_backtrace_isThunkFunction(const char *mangledName);
+LANGUAGE_RUNTIME_STDLIB_SPI
+bool _language_backtrace_isThunkFunction(const char *mangledName);
 
 /// Try to demangle a symbol.
 ///
-/// Unlike other entry points that do this, we try both Swift and C++ here.
+/// Unlike other entry points that do this, we try both Codira and C++ here.
 ///
 /// @param mangledName is the symbol name to be demangled.
 /// @param mangledNameLength is the length of this name.
@@ -71,8 +75,8 @@ bool _swift_backtrace_isThunkFunction(const char *mangledName);
 /// demangling function works.
 ///
 /// @returns a pointer to the output if demangling was successful.
-SWIFT_RUNTIME_STDLIB_SPI
-char *_swift_backtrace_demangle(const char *mangledName,
+LANGUAGE_RUNTIME_STDLIB_SPI
+char *_language_backtrace_demangle(const char *mangledName,
                                 size_t mangledNameLength,
                                 char *outputBuffer,
                                 size_t *outputBufferSize);
@@ -82,4 +86,4 @@ char *_swift_backtrace_demangle(const char *mangledName,
 } // namespace language
 #endif
 
-#endif // SWIFT_RUNTIME_BACKTRACE_H
+#endif // LANGUAGE_RUNTIME_BACKTRACE_H

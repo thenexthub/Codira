@@ -1,0 +1,18 @@
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend %s -module-name Functions -clang-header-expose-decls=all-public -typecheck -verify -emit-clang-header-path %t/functions.h
+// RUN: %FileCheck %s < %t/functions.h
+
+// RUN: %check-interop-cxx-header-in-clang(%t/functions.h -DLANGUAGE_CXX_INTEROP_HIDE_STL_OVERLAY)
+
+public fn overloadedFunc(_ x: Int) { }
+public fn overloadedFunc(_ y: Float) { }
+
+public fn overloadedFuncArgLabel(x _: Int) { }
+public fn overloadedFuncArgLabel(y _: Float) { }
+
+// CHECK: void overloadedFunc(language::Int x) noexcept
+// CHECK: void overloadedFuncArgLabel(language::Int  _1) noexcept
+
+// CHECK: // Unavailable in C++: Codira global function 'overloadedFunc(_:)'.
+
+// CHECK: // Unavailable in C++: Codira global function 'overloadedFuncArgLabel(y:)'.

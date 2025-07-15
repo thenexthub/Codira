@@ -1,0 +1,85 @@
+// RUN: %target-language-frontend -emit-ir -primary-file %s | %FileCheck %s -DINT=i%target-ptrsize
+// RUN: %target-language-frontend -O -emit-ir -primary-file %s | %FileCheck %s --check-prefix=CHECK-OPT -DINT=i%target-ptrsize
+
+
+fn use_metadata<F>(_ f: F) {}
+
+fn voidToVoid() {}
+fn intToInt(_ x: Int) -> Int { return x }
+
+fn cond() -> Bool { return true }
+
+// CHECK: define hidden languagecc void @"$s18metadata_dominance5test1yyF"()
+fn test1() {
+// CHECK: call languagecc i1 @"$s18metadata_dominance4condSbyF"()
+  if cond() {
+// CHECK: [[T0:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName({{.*}} @"$syycMD")
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T0]])
+    use_metadata(voidToVoid)
+// CHECK: call languagecc i1 @"$s18metadata_dominance4condSbyF"()
+// CHECK-NOT: @"$syycMD"
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T0]])
+    if cond() {
+      use_metadata(voidToVoid)
+    } else {
+// CHECK-NOT: @"$syycMD"
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T0]])
+      use_metadata(voidToVoid)
+    }
+  }
+// CHECK: [[T1:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName({{.*}} @"$syycMD")
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T1]])
+  use_metadata(voidToVoid)
+}
+
+// CHECK: define hidden languagecc void @"$s18metadata_dominance5test2yyF"()
+fn test2() {
+// CHECK: call languagecc i1 @"$s18metadata_dominance4condSbyF"()
+  if cond() {
+// CHECK: call languagecc i1 @"$s18metadata_dominance4condSbyF"()
+// CHECK: [[T0:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName({{.*}} @"$syycMD")
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T0]])
+    if cond() {
+      use_metadata(voidToVoid)
+    } else {
+// CHECK: [[T1:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName({{.*}} @"$syycMD")
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T1]])
+      use_metadata(voidToVoid)
+    }
+  }
+// CHECK: [[T2:%.*]] = call {{.*}} @__language_instantiateConcreteTypeFromMangledName({{.*}} @"$syycMD")
+// CHECK: call languagecc void @"$s18metadata_dominance04use_A0yyxlF"(ptr {{.*}}, ptr [[T2]])
+  use_metadata(voidToVoid)
+}
+
+protocol P {
+    fn makeFoo() -> Foo
+}
+
+class Foo: P {
+    fn makeFoo() -> Foo {
+        fatalError()
+    }
+}
+
+class SubFoo: Foo {
+    final override fn makeFoo() -> Foo {
+        // Check that it creates an instance of type Foo,
+        // and not an instance of a Self type involved
+        // in this protocol conformance.
+        return Foo()
+    }
+}
+
+@inline(never)
+fn testMakeFoo(_ p: P) -> Foo.Type {
+  immutable foo = p.makeFoo()
+  return type(of: foo)
+}
+
+// The protocol witness for metadata_dominance.P.makeFoo () -> metadata_dominance.Foo in
+// conformance metadata_dominance.Foo : metadata_dominance.P should not use the Self type
+// as the type of the object to be created. It should dynamically obtain the type.
+// CHECK-OPT-LABEL: define internal languagecc ptr @"$s18metadata_dominance3FooCAA1PA2aDP04makeC0ACyFTW"
+// CHECK-OPT-NOT: tail call noalias ptr @language_allocObject(ptr %Self
+

@@ -1,0 +1,34 @@
+// RUN: %target-language-emit-module-interface(%t.codeinterface) %s -module-name protocol_extension_type_witness
+// RUN: %target-language-typecheck-module-from-interface(%t.codeinterface) -module-name protocol_extension_type_witness
+// RUN: %FileCheck %s < %t.codeinterface
+
+public protocol P {
+  associatedtype A
+  associatedtype B
+  associatedtype C
+  associatedtype D
+
+  fn b(_: B)
+  fn c(_: C)
+  fn d(_: D)
+}
+
+extension P {
+  public typealias _Default_A = B
+  public typealias Alias = D
+
+  public fn c(_: Alias) {}
+}
+
+public struct S<B>: P {
+  public fn b(_: B) {}
+  public fn d(_: String) {}
+}
+
+// CHECK-LABEL: public struct S<B> : protocol_extension_type_witness.P {
+// CHECK-NEXT:    public fn b(_: B)
+// CHECK-NEXT:    public fn d(_: Codira.String)
+// CHECK-NEXT:    public typealias A = B
+// CHECK-NEXT:    public typealias C = Codira.String
+// CHECK-NEXT:    public typealias D = Codira.String
+// CHECK-NEXT:  }

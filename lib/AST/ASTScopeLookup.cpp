@@ -1,4 +1,4 @@
-//===--- ASTScopeLookup.cpp - Swift Object-Oriented AST Scope -------------===//
+//===--- ASTScopeLookup.cpp - Codira Object-Oriented AST Scope -------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements the lookup functionality of the ASTScopeImpl ontology.
@@ -35,7 +36,7 @@
 #include "language/Basic/STLExtras.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/Support/Compiler.h"
+#include "toolchain/Support/Compiler.h"
 
 using namespace language;
 using namespace namelookup;
@@ -121,7 +122,7 @@ ASTScopeImpl::findChildContaining(ModuleDecl *parentModule,
     return nullptr;
 
   // Use binary search to find the child that contains this location.
-  auto *const *child = llvm::lower_bound(
+  auto *const *child = toolchain::lower_bound(
       getChildren(), loc,
       [&](const ASTScopeImpl *scope, SourceLoc loc) {
         auto rangeOfScope = scope->getCharSourceRangeOfScope(sourceMgr);
@@ -335,7 +336,7 @@ PatternEntryInitializerScope::getLookupParent() const {
   // scope that introduces bindings bound by the pattern, since we
   // want this to work:
   //
-  // func f(x: Int) {
+  // fn f(x: Int) {
   //   let x = x
   //   print(x)
   // }
@@ -352,7 +353,7 @@ ConditionalClauseInitializerScope::getLookupParent() const {
   // scope that introduces bindings bound by the pattern, since we
   // want this to work:
   //
-  // func f(x: Int?) {
+  // fn f(x: Int?) {
   //   guard let x = x else { return }
   //   print(x)
   // }
@@ -595,7 +596,7 @@ bool PatternEntryInitializerScope::isLabeledStmtLookupTerminator() const {
   return false;
 }
 
-llvm::SmallVector<LabeledStmt *, 4>
+toolchain::SmallVector<LabeledStmt *, 4>
 ASTScopeImpl::lookupLabeledStmts(SourceFile *sourceFile, SourceLoc loc) {
   // Find the innermost scope from which to start our search.
   auto *const fileScope = sourceFile->getScope().impl;
@@ -604,7 +605,7 @@ ASTScopeImpl::lookupLabeledStmts(SourceFile *sourceFile, SourceLoc loc) {
   ASTScopeAssert(innermost->getWasExpanded(),
                  "If looking in a scope, it must have been expanded.");
 
-  llvm::SmallVector<LabeledStmt *, 4> labeledStmts;
+  toolchain::SmallVector<LabeledStmt *, 4> labeledStmts;
   for (auto scope = innermost; scope && !scope->isLabeledStmtLookupTerminator();
        scope = scope->getParent().getPtrOrNull()) {
     // If we have a labeled statement, record it.
@@ -655,7 +656,7 @@ std::pair<CaseStmt *, CaseStmt *> ASTScopeImpl::lookupFallthroughSourceAndDest(
 
 void ASTScopeImpl::lookupEnclosingMacroScope(
     SourceFile *sourceFile, SourceLoc loc,
-    llvm::function_ref<bool(ASTScope::PotentialMacro)> consume) {
+    toolchain::function_ref<bool(ASTScope::PotentialMacro)> consume) {
   if (!sourceFile || sourceFile->Kind == SourceFileKind::Interface)
     return;
 

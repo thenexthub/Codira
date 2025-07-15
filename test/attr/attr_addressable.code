@@ -1,0 +1,14 @@
+// RUN: %target-language-frontend -enable-experimental-feature AddressableParameters -typecheck %s -verify
+// REQUIRES: language_feature_AddressableParameters
+
+fn foo(_: @_addressable String) {}
+
+fn bar(_: (@_addressable String) -> Void) {}
+
+fn bas(_: @convention(c) (@_addressable String) -> Void) {} // expected-error{{_addressable is not allowed in C function conventions}} expected-error{{not representable in Objective-C}}
+
+@_addressableSelf fn doesNotHaveSelf() {} // expected-error{{cannot be applied to non-member declarations}}
+
+struct Foo {
+    @_addressableSelf fn doesHaveSelf() {}
+}

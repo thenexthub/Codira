@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file provides interfaces for computing and working with
@@ -18,32 +19,32 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_DOMINANCE_H
-#define SWIFT_SIL_DOMINANCE_H
+#ifndef LANGUAGE_SIL_DOMINANCE_H
+#define LANGUAGE_SIL_DOMINANCE_H
 
-#include "llvm/Support/GenericDomTree.h"
+#include "toolchain/Support/GenericDomTree.h"
 #include "language/Basic/ScopedTracking.h"
 #include "language/SIL/CFG.h"
 
-extern template class llvm::DominatorTreeBase<swift::SILBasicBlock, false>;
-extern template class llvm::DominatorTreeBase<swift::SILBasicBlock, true>;
-extern template class llvm::DomTreeNodeBase<swift::SILBasicBlock>;
+extern template class toolchain::DominatorTreeBase<language::SILBasicBlock, false>;
+extern template class toolchain::DominatorTreeBase<language::SILBasicBlock, true>;
+extern template class toolchain::DomTreeNodeBase<language::SILBasicBlock>;
 
-namespace llvm {
+namespace toolchain {
 namespace DomTreeBuilder {
-using SILDomTree = llvm::DomTreeBase<swift::SILBasicBlock>;
-using SILPostDomTree = llvm::PostDomTreeBase<swift::SILBasicBlock>;
+using SILDomTree = toolchain::DomTreeBase<language::SILBasicBlock>;
+using SILPostDomTree = toolchain::PostDomTreeBase<language::SILBasicBlock>;
 
 extern template void Calculate<SILDomTree>(SILDomTree &DT);
 extern template void Calculate<SILPostDomTree>(SILPostDomTree &DT);
 } // namespace DomTreeBuilder
-} // namespace llvm
+} // namespace toolchain
 
 namespace language {
 
-using DominatorTreeBase = llvm::DominatorTreeBase<swift::SILBasicBlock, false>;
-using PostDominatorTreeBase = llvm::DominatorTreeBase<swift::SILBasicBlock, true>;
-using DominanceInfoNode = llvm::DomTreeNodeBase<SILBasicBlock>;
+using DominatorTreeBase = toolchain::DominatorTreeBase<language::SILBasicBlock, false>;
+using PostDominatorTreeBase = toolchain::DominatorTreeBase<language::SILBasicBlock, true>;
+using DominanceInfoNode = toolchain::DomTreeNodeBase<SILBasicBlock>;
 
 /// A class for computing basic dominance information.
 class DominanceInfo : public DominatorTreeBase {
@@ -96,7 +97,7 @@ public:
   }
 
 #ifndef NDEBUG
-  void dump() LLVM_ATTRIBUTE_USED { print(llvm::errs()); }
+  void dump() TOOLCHAIN_ATTRIBUTE_USED { print(toolchain::errs()); }
 #endif
 };
 
@@ -224,11 +225,11 @@ template <class... Trackers, class Fn>
 void runInDominanceOrderWithScopes(DominanceInfo *dominance, Fn &&fn,
                                    Trackers &...trackers) {
   using TrackingStackNode = TrackingScopes<Trackers...>;
-  llvm::SmallVector<std::unique_ptr<TrackingStackNode>, 8> trackingStack;
+  toolchain::SmallVector<std::unique_ptr<TrackingStackNode>, 8> trackingStack;
 
   // The stack of work to do.  A null item means to pop the top
   // entry off the tracking stack.
-  llvm::SmallVector<DominanceInfoNode *, 16> workStack;
+  toolchain::SmallVector<DominanceInfoNode *, 16> workStack;
   workStack.push_back(dominance->getRootNode());
 
   while (!workStack.empty()) {
@@ -267,27 +268,27 @@ void runInDominanceOrderWithScopes(DominanceInfo *dominance, Fn &&fn,
 
 } // end namespace language
 
-namespace llvm {
+namespace toolchain {
 
 /// DominatorTree GraphTraits specialization so the DominatorTree can be
 /// iterable by generic graph iterators.
-template <> struct GraphTraits<swift::DominanceInfoNode *> {
-  using ChildIteratorType = swift::DominanceInfoNode::const_iterator;
-  using NodeRef = swift::DominanceInfoNode *;
+template <> struct GraphTraits<language::DominanceInfoNode *> {
+  using ChildIteratorType = language::DominanceInfoNode::const_iterator;
+  using NodeRef = language::DominanceInfoNode *;
 
   static NodeRef getEntryNode(NodeRef N) { return N; }
   static inline ChildIteratorType child_begin(NodeRef N) { return N->begin(); }
   static inline ChildIteratorType child_end(NodeRef N) { return N->end(); }
 };
 
-template <> struct GraphTraits<const swift::DominanceInfoNode *> {
-  using ChildIteratorType = swift::DominanceInfoNode::const_iterator;
-  using NodeRef = const swift::DominanceInfoNode *;
+template <> struct GraphTraits<const language::DominanceInfoNode *> {
+  using ChildIteratorType = language::DominanceInfoNode::const_iterator;
+  using NodeRef = const language::DominanceInfoNode *;
 
   static NodeRef getEntryNode(NodeRef N) { return N; }
   static inline ChildIteratorType child_begin(NodeRef N) { return N->begin(); }
   static inline ChildIteratorType child_end(NodeRef N) { return N->end(); }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 #endif

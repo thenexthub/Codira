@@ -1,18 +1,18 @@
 # Generic Signatures
 
 A generic signature describes a set of generic type parameters along with
-a set of constraints on those parameters. Generic entities in Swift
+a set of constraints on those parameters. Generic entities in Codira
 have a corresponding generic signature. For example, the following generic function:
 
-```swift
-func foo<C1: Collection, C2: Collection>(c1: C1, c2: C2)
+```language
+fn foo<C1: Collection, C2: Collection>(c1: C1, c2: C2)
   where C1.Element: Equatable, C1.Element == C2.Element
 { }
 ```
 
 has the generic signature:
 
-```swift
+```language
 <C1, C2 where C1: Collection, C2: Collection, C1.Element: Equatable,
 C1.Element == C2.Element>
 ```
@@ -33,21 +33,21 @@ A generic constraint is considered *redundant* if it can be proven true based on
 
 Consider the following generic signature:
 
-```swift
+```language
 <C1, C2 where C1: Collection, C2: Collection, C1.Element: Equatable,
  C1.Element == C2.Element, C2.Element: Equatable>
 ```
 
 The constraint `C1.Element: Equatable` is redundant (because it can be proven based on `C1.Element == C2.Element` and `C2.Element: Equatable`). Similarly, `C2.Element: Equatable` is redundant (based on `C1.Element == C2.Element` and `C1.Element: Equatable`). Either one of these constraints can be removed without changing the semantics of the generic signature, and the resulting generic signature will be minimal (there are no redundant constraints that remain). As such, there are two minimal generic signatures that describe this set of constraints:
 
-```swift
+```language
 <C1, C2 where C1: Collection, C2: Collection, C1.Element: Equatable,
  C1.Element == C2.Element>
 ```
 
 and
 
-```swift
+```language
 <C1, C2 where C1: Collection, C2: Collection, C1.Element == C2.Element,
  C2.Element: Equatable>
 ```
@@ -91,7 +91,7 @@ A *root* associated type is an associated type that first declares that
 associated type name within a protocol hierarchy. An inheriting protocol may declare an associated type with the same name, but that associated type
 is not a root. For example:
 
-```swift
+```language
 protocol P {
   associatedtype A  // root associated type
 }
@@ -121,26 +121,26 @@ A layout or conformance constraint is canonical when its left-hand side is the a
 
 The canonical form of superclass, layout, and conformance constraints are directly canonicalizable once the equivalence classes are known. Same-type constraints, on the other hand, are responsible for forming those equivalence classes. Let's expand our running example to include a third `Collection`:
 
-```swift
+```language
 <C1, C2, C3 where C1: Collection, C2: Collection, C3: Collection,
  C1.Element: Equatable, C1.Element == C2.Element, C1.Element == C3.Element>
 ```
 
 All of `C1.Element`, `C2.Element`, and `C3.Element` are in the same equivalence class, which can be formed by different sets of same-type constraints, e.g.,
 
-```swift
+```language
 C1.Element == C2.Element, C1.Element == C3.Element
 ```
 
 or
 
-```swift
+```language
 C1.Element == C2.Element, C2.Element == C3.Element
 ```
 
 or
 
-```swift
+```language
 C1.Element == C3.Element, C2.Element == C3.Element
 ```
 
@@ -159,8 +159,8 @@ constraints to form an equivalence class with `n` separate components.
 
 For the first case, consider a function that operates on `String` collections:
 
-```swift
-func manyStrings<C1: Collection, C2: Collection, C3: Collection>(
+```language
+fn manyStrings<C1: Collection, C2: Collection, C3: Collection>(
        c1: C1, c2: C2, c3: C3)
   where C1.Element == String, C1.Element == C2.Element,
         C1.Element == C3.SubSequence.Element
@@ -169,7 +169,7 @@ func manyStrings<C1: Collection, C2: Collection, C3: Collection>(
 
 The minimal canonical generic signature for this function is:
 
-```swift
+```language
 <C1, C2, C3 where C1: Collection, C2: Collection, C3: Collection,
  C1.Element == String, C2.Element == String, C3.Element == String>
 ```
@@ -180,7 +180,7 @@ in the same equivalence class, but are in different components. The first two ar
 ## Requirement signatures
 A protocol can introduce a number of constraints, including inherited protocols and constraints on associated types. The *requirement signature* of a protocol is a form of a generic signature that describes those constraints. For example, consider a `Collection` protocol similar to the one in the standard library:
 
-```swift
+```language
 protocol Collection: Sequence where SubSequence: Collection {
   associatedtype Index
   associatedtype Indices: Collection where Indices.Element == Index

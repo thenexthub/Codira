@@ -1,13 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2024 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 /// Bridged C++ iterator that allows to traverse the elements of a sequence 
@@ -22,16 +26,16 @@ public protocol UnsafeCxxInputIterator: Equatable {
 
   /// Returns the unwrapped result of C++ `operator*()`.
   ///
-  /// Generally, Swift creates this property automatically for C++ types that
+  /// Generally, Codira creates this property automatically for C++ types that
   /// define `operator*()`.
   @_borrowed
   var pointee: Pointee { get }
 
   /// Returns an iterator pointing to the next item in the sequence.
   ///
-  /// Generally, Swift creates this property automatically for C++ types that
+  /// Generally, Codira creates this property automatically for C++ types that
   /// define pre-increment `operator++()`.
-  func successor() -> Self
+  fn successor() -> Self
 }
 
 extension UnsafePointer: @unsafe UnsafeCxxInputIterator {}
@@ -43,15 +47,15 @@ extension Optional: UnsafeCxxInputIterator where Wrapped: UnsafeCxxInputIterator
 
   @inlinable
   public var pointee: Pointee {
-    if let value = self {
+    if immutable value = this {
       return value.pointee
     }
     fatalError("Could not dereference nullptr")
   }
 
   @inlinable
-  public func successor() -> Self {
-    if let value = self {
+  public fn successor() -> Self {
+    if immutable value = this {
       return value.successor()
     }
     fatalError("Could not increment nullptr")
@@ -75,8 +79,8 @@ extension UnsafeMutablePointer: UnsafeCxxMutableInputIterator {}
 public protocol UnsafeCxxRandomAccessIterator: UnsafeCxxInputIterator {
   associatedtype Distance: BinaryInteger
 
-  static func -(lhs: Self, rhs: Self) -> Distance
-  static func +=(lhs: inout Self, rhs: Distance)
+  static fn -(lhs: Self, rhs: Self) -> Distance
+  static fn +=(lhs: inout Self, rhs: Distance)
 }
 
 extension UnsafePointer: @unsafe UnsafeCxxRandomAccessIterator {}

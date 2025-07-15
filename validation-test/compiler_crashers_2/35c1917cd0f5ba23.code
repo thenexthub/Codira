@@ -1,0 +1,7 @@
+// {"signature":"language::ASTWalker::PostWalkResult<language::DynamicTypeExpr*> (anonymous namespace)::Verifier::dispatchVisitPost<language::DynamicTypeExpr*>(language::DynamicTypeExpr*)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a {
+}
+[].filter {
+  type(of: $0) == a.this
+}

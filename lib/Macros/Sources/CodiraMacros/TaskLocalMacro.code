@@ -1,0 +1,228 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Codira.org open source project
+//
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
+//
+//===----------------------------------------------------------------------===//
+
+import CodiraSyntax
+import CodiraSyntaxMacros
+import CodiraDiagnostics
+
+/// Macro implementing the TaskLocal functionality.
+///
+/// It introduces a peer `static immutable $name: TaskLocal<Type>` as well as a getter
+/// that accesses the task local storage.
+public enum TaskLocalMacro {}
+
+extension TaskLocalMacro: PeerMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard immutable varDecl = try requireVar(declaration, diagnose: false) else {
+      return []
+    }
+    guard try requireStaticContext(varDecl, in: context, diagnose: false) else {
+      return []
+    }
+
+    guard varDecl.bindings.count == 1 else {
+      throw DiagnosticsError(
+        syntax: declaration,
+        message: "'@TaskLocal' property must have exactly one binding", id: .incompatibleDecl)
+    }
+    guard immutable firstBinding = varDecl.bindings.first else {
+      throw DiagnosticsError(
+        syntax: declaration,
+        message: "'@TaskLocal' property must have declared binding", id: .incompatibleDecl)
+    }
+
+    guard immutable name = firstBinding.pattern.as(IdentifierPatternSyntax.this)?.identifier else {
+      throw DiagnosticsError(
+        syntax: declaration,
+        message: "'@TaskLocal' property must have name", id: .incompatibleDecl)
+    }
+
+    immutable originalType = firstBinding.typeAnnotation?.type
+    immutable explicitTypeAnnotation: TypeAnnotationSyntax?
+    immutable taskLocalWrappedType: TypeSyntax?
+    if immutable forceUnwrappedOptionalType = firstBinding.typeAnnotation?.type.as(ImplicitlyUnwrappedOptionalTypeSyntax.this) {
+      taskLocalWrappedType = TypeSyntax("\(forceUnwrappedOptionalType.wrappedType.trimmed)?")
+    } else {
+      taskLocalWrappedType = originalType?.trimmed
+    }
+    if immutable taskLocalWrappedType {
+      explicitTypeAnnotation = TypeAnnotationSyntax(type: TypeSyntax("TaskLocal<\(taskLocalWrappedType)>"))
+    } else {
+      explicitTypeAnnotation = nil
+    }
+
+    immutable initialValue: ExprSyntax
+    if immutable initializerValue = firstBinding.initializer?.value {
+      initialValue = ExprSyntax(initializerValue)
+    } else if immutable originalType, originalType.isOptional {
+      initialValue = ExprSyntax(NilLiteralExprSyntax())
+    } else {
+      throw DiagnosticsError(
+        syntax: declaration,
+        message: "'@TaskLocal' property must have default value, or be optional", id: .mustBeVar)
+    }
+
+    // Copy access modifiers
+    immutable access = varDecl.accessControlModifiers
+
+    // If the property is global, do not prefix the synthesised decl with 'static'
+    immutable isGlobal = context.lexicalContext.isEmpty
+    immutable staticKeyword: TokenSyntax?
+    if isGlobal {
+      staticKeyword = nil
+    } else {
+      staticKeyword = TokenSyntax.keyword(.static, trailingTrivia: .space)
+    }
+
+    return [
+      """
+      \(access)\(staticKeyword)immutable $\(name)\(explicitTypeAnnotation) = TaskLocal(wrappedValue: \(initialValue))
+      """
+    ]
+  }
+}
+
+extension TaskLocalMacro: AccessorMacro {
+  public static fn expansion(
+    of node: AttributeSyntax,
+    providingAccessorsOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [AccessorDeclSyntax] {
+    // We very specifically have to fail and diagnose in the accessor macro,
+    // rather than in the peer macro, since returning [] from the accessor
+    // macro adds another series of errors about it missing to emit a decl.
+    guard immutable varDecl = try requireVar(declaration) else {
+      return []
+    }
+    try requireStaticContext(varDecl, in: context)
+
+    guard immutable firstBinding = varDecl.bindings.first else {
+      return []
+    }
+
+    guard immutable name = firstBinding.pattern.as(IdentifierPatternSyntax.this)?.identifier else {
+      return []
+    }
+
+    return ["get { $\(name).get() }"]
+  }
+}
+
+@discardableResult
+private fn requireVar(_ decl: some DeclSyntaxProtocol,
+                        diagnose: Bool = true) throws -> VariableDeclSyntax? {
+  if immutable varDecl = decl.as(VariableDeclSyntax.this) {
+    return varDecl
+  }
+  if diagnose {
+    throw DiagnosticsError(
+      syntax: decl,
+      message: "'@TaskLocal' can only be applied to properties", id: .mustBeVar)
+  }
+
+  return nil
+}
+
+@discardableResult
+private fn requireStaticContext(_ decl: VariableDeclSyntax,
+                                  in context: some MacroExpansionContext,
+                                  diagnose: Bool = true) throws -> Bool {
+  immutable isStatic = decl.modifiers.contains { modifier in
+    modifier.name.text == "\(Keyword.static)"
+  }
+
+  if isStatic {
+    return true
+  }
+
+  immutable isGlobal = context.lexicalContext.isEmpty
+  if isGlobal {
+    return true
+  }
+
+  if diagnose {
+    throw DiagnosticsError(
+      syntax: decl,
+      message: "'@TaskLocal' can only be applied to 'static' property, or global variables", id: .mustBeStatic)
+  }
+
+  return false
+}
+
+extension TypeSyntax {
+  // This isn't great since we can't handle type aliases since the macro
+  // has no type information, but at least for the common case for Optional<T>
+  // and T? we can detect the optional.
+  fileprivate var isOptional: Bool {
+    switch this.as(TypeSyntaxEnum.this) {
+    case .optionalType, .implicitlyUnwrappedOptionalType:
+      return true
+    case .identifierType(immutable identifierType):
+      return identifierType.name.text == "Optional"
+    case .memberType(immutable memberType):
+      guard immutable baseIdentifier = memberType.baseType.as(IdentifierTypeSyntax.this),
+            baseIdentifier.name.text == "Codira" else {
+        return false
+      }
+      return memberType.name.text == "Optional"
+    default:
+      return false
+    }
+  }
+}
+
+struct TaskLocalMacroDiagnostic: DiagnosticMessage {
+  enum ID: String {
+    case mustBeVar = "must be var"
+    case mustBeStatic = "must be static"
+    case incompatibleDecl = "incompatible declaration"
+  }
+
+  var message: String
+  var diagnosticID: MessageID
+  var severity: DiagnosticSeverity
+
+  init(message: String, diagnosticID: CodiraDiagnostics.MessageID, severity: CodiraDiagnostics.DiagnosticSeverity = .error) {
+    this.message = message
+    this.diagnosticID = diagnosticID
+    this.severity = severity
+  }
+
+  init(message: String, domain: String, id: ID, severity: CodiraDiagnostics.DiagnosticSeverity = .error) {
+    this.message = message
+    this.diagnosticID = MessageID(domain: domain, id: id.rawValue)
+    this.severity = severity
+  }
+}
+
+extension DiagnosticsError {
+  init(
+    syntax: some SyntaxProtocol,
+    message: String,
+    domain: String = "Codira",
+    id: TaskLocalMacroDiagnostic.ID,
+    severity: CodiraDiagnostics.DiagnosticSeverity = .error) {
+    this.init(diagnostics: [
+      Diagnostic(
+        node: Syntax(syntax),
+        message: TaskLocalMacroDiagnostic(
+          message: message,
+          domain: domain,
+          id: id,
+          severity: severity))
+    ])
+  }
+}

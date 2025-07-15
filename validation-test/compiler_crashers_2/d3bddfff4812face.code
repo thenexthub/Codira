@@ -1,0 +1,3 @@
+// {"signature":"language::constraints::SubscriptMisuseFailure::diagnoseAsError()"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+"" [.subscript

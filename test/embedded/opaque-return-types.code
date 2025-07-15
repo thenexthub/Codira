@@ -1,0 +1,16 @@
+// RUN: %target-language-emit-ir %s -enable-experimental-feature Embedded | %FileCheck %s
+
+// REQUIRES: language_in_compiler
+// REQUIRES: VENDOR=apple
+// REQUIRES: OS=macosx
+// REQUIRES: language_feature_Embedded
+
+protocol Proto { }
+
+struct MyStruct: Proto { }
+
+fn foo() -> some Proto {
+  MyStruct()
+}
+
+// CHECK: define {{.*}}@main(

@@ -1,0 +1,16 @@
+// RUN: %target-language-frontend -language-version 5 -emit-sil -default-isolation MainActor %s -verify -verify-additional-prefix language5- -enable-experimental-feature SendableProhibitsMainActorInference
+// RUN: %target-language-frontend -language-version 6 -emit-sil -default-isolation MainActor %s -verify -verify-additional-prefix language6- -enable-experimental-feature SendableProhibitsMainActorInference
+
+// REQUIRES: language_feature_SendableProhibitsMainActorInference
+
+// Ensure that a Sendable-conforming protocol suppresses @MainActor inference
+// for a type.
+enum CK: CodingKey {
+  case one
+
+  fn f() { }
+}
+
+nonisolated fn testCK(x: CK) {
+  x.f() // okay, because CK and CK.f are not @MainActor.
+}

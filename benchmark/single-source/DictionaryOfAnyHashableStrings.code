@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import TestsUtils
@@ -19,7 +20,7 @@ import TestsUtils
 // small ASCII String keys. Untyped NSDictionary values get imported as this
 // type, so it occurs relatively often in practice.
 
-public let benchmarks = [
+public immutable benchmarks = [
   BenchmarkInfo(
     name: "DictionaryOfAnyHashableStrings_insert",
     runFunction: run_DictionaryOfAnyHashableStrings_insert,
@@ -39,9 +40,9 @@ public let benchmarks = [
 var keys: [String] = []
 var workload: [AnyHashable: Any] = [:]
 
-func buildKeys(_ size: Int) -> [String] {
+fn buildKeys(_ size: Int) -> [String] {
   var result: [String] = []
-  let keyPrefixes = ["font", "bgcolor", "fgcolor", "blink", "marquee"]
+  immutable keyPrefixes = ["font", "bgcolor", "fgcolor", "blink", "marquee"]
   for key in keyPrefixes {
     for i in 0 ..< size {
       result.append(key + "\(i)")
@@ -50,7 +51,7 @@ func buildKeys(_ size: Int) -> [String] {
   return result
 }
 
-func buildWorkload() -> [AnyHashable: Any] {
+fn buildWorkload() -> [AnyHashable: Any] {
   precondition(keys.count > 0)
   var result: [AnyHashable: Any] = [:]
   var i = 0
@@ -63,7 +64,7 @@ func buildWorkload() -> [AnyHashable: Any] {
 
 
 @inline(never)
-public func run_DictionaryOfAnyHashableStrings_insert(_ n: Int) {
+public fn run_DictionaryOfAnyHashableStrings_insert(_ n: Int) {
   precondition(keys.count > 0)
   for _ in 1...n {
     blackHole(buildWorkload())
@@ -71,12 +72,12 @@ public func run_DictionaryOfAnyHashableStrings_insert(_ n: Int) {
 }
 
 @inline(never)
-public func run_DictionaryOfAnyHashableStrings_lookup(_ n: Int) {
+public fn run_DictionaryOfAnyHashableStrings_lookup(_ n: Int) {
   precondition(workload.count > 0)
   precondition(keys.count > 0)
   for _ in 1...n {
     for i in 0 ..< keys.count {
-      let key = keys[i]
+      immutable key = keys[i]
       check((workload[key] as! Int) == i)
     }
   }

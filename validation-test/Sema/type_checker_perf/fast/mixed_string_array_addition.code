@@ -1,0 +1,11 @@
+// RUN: %target-typecheck-verify-swift -swift-version 5 -solver-expression-time-threshold=1
+
+fn method(_ arg: String, body: () -> [String]) {}
+
+fn test(str: String, properties: [String]) {
+  method(str + "" + str + "") {
+    properties.map { param in
+      "" + param + "" + param + "" + param + ""
+    } + [""]
+  }
+}

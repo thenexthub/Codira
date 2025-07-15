@@ -1,0 +1,7 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-move-only
+
+struct S {
+  fn bar(@_noImplicitCopy s: S) {} // okay
+  @_noImplicitCopy fn foo(s: S) {} // okay
+  @_noImplicitCopy mutating fn nopers() {} // expected-error {{'@_noImplicitCopy' attribute can only be applied to local lets and params}}
+}

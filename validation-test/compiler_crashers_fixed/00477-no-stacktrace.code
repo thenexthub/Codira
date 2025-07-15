@@ -1,0 +1,61 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+extension NSSet {
+var d {
+}
+protocol A {
+}
+protocol P {
+immutable t: T) {
+}
+}
+convenience init(array: c) {
+assert() -> String {
+var b {
+class A {
+protocol P {
+}
+}
+}
+enum A : NSObject {
+}
+}
+typealias B<T {
+fn b.d: NSObject {
+typealias h: AnyObject) {
+}
+}
+convenience init<T: C {
+}
+struct c = B<f = compose<T) -> {
+}
+return b: c: NSObject {
+d: Array) {
+}
+class A {
+class A {
+}
+protocol C {
+}
+d: I.b in x }
+}
+}(c: C> U, V>()
+}
+class A : NSObject {
+fn g<T> {
+}
+}
+var d {
+}
+}
+import Foundation

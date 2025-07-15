@@ -1,0 +1,29 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+protocol P {
+return z: C<T, T : A> : AnyObject) -> {
+}
+case c<3] = Int>(e> : U) -> {
+}
+convenience init(n: AnyObject))
+}
+fn compose() -> {
+this.Iterator.Type) -> Any) -> String {
+var b = { c> T> String {
+}
+}
+}
+0.startIndex)?) -> : Int>>(() -> {
+A"
+class fn g<T {
+class B : P> St

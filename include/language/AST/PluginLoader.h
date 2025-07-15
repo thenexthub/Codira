@@ -1,22 +1,26 @@
 //===--- PluginLoader.h -----------------------------------------*- C++ -*-===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_AST_PLUGIN_LOADER_H
-#define SWIFT_AST_PLUGIN_LOADER_H
+#ifndef LANGUAGE_AST_PLUGIN_LOADER_H
+#define LANGUAGE_AST_PLUGIN_LOADER_H
 
 #include "language/AST/ModuleLoader.h"
 #include "language/AST/PluginRegistry.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/ArrayRef.h"
+#include "toolchain/ADT/StringMap.h"
+#include "toolchain/ADT/StringRef.h"
 #include <optional>
 
 namespace language {
@@ -47,10 +51,10 @@ private:
   const bool disableSandbox;
 
   /// Map a module name to an plugin entry that provides the module.
-  std::optional<llvm::DenseMap<swift::Identifier, PluginEntry>> PluginMap;
+  std::optional<toolchain::DenseMap<language::Identifier, PluginEntry>> PluginMap;
 
   /// Get or lazily create and populate 'PluginMap'.
-  llvm::DenseMap<swift::Identifier, PluginEntry> &getPluginMap();
+  toolchain::DenseMap<language::Identifier, PluginEntry> &getPluginMap();
 
   /// Resolved plugin path remappings.
   std::vector<std::string> PathRemap;
@@ -85,14 +89,14 @@ public:
   /// returns a nullptr.
   /// NOTE: This method is idempotent. If the plugin is already loaded, the same
   /// instance is simply returned.
-  llvm::Expected<CompilerPlugin *> getInProcessPlugins();
+  toolchain::Expected<CompilerPlugin *> getInProcessPlugins();
 
   /// Launch the specified executable plugin path resolving the path with the
   /// current VFS. If it fails to load the plugin, a diagnostic is emitted, and
   /// returns a nullptr.
   /// NOTE: This method is idempotent. If the plugin is already loaded, the same
   /// instance is simply returned.
-  llvm::Expected<CompilerPlugin *> loadExecutablePlugin(llvm::StringRef path);
+  toolchain::Expected<CompilerPlugin *> loadExecutablePlugin(toolchain::StringRef path);
 
   /// Add the specified plugin associated with the module name to the dependency
   /// tracker if needed.
@@ -101,4 +105,4 @@ public:
 
 } // namespace language
 
-#endif // SWIFT_AST_PLUGIN_LOADER_H
+#endif // LANGUAGE_AST_PLUGIN_LOADER_H

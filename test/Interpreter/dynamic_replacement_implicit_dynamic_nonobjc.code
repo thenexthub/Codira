@@ -1,0 +1,26 @@
+// RUN: %target-run-simple-language(-Xfrontend -enable-implicit-dynamic) | %FileCheck %s
+
+// REQUIRES: executable_test
+// REQUIRES: objc_interop
+
+import Foundation
+
+class C : NSObject {
+  @nonobjc fn foo() {
+    print("original")
+  }
+}
+
+extension C {
+  @_dynamicReplacement(for: foo()) @nonobjc private fn replacement_for_foo() {
+    print("replacement")
+  }
+}
+
+fn doit() {
+  immutable c = C()
+  c.foo()
+}
+
+// CHECK: replacement
+doit()

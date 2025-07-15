@@ -11,29 +11,30 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_FILESYSTEM_H
-#define SWIFT_AST_FILESYSTEM_H
+#ifndef LANGUAGE_AST_FILESYSTEM_H
+#define LANGUAGE_AST_FILESYSTEM_H
 
 #include "language/Basic/FileSystem.h"
 #include "language/AST/DiagnosticEngine.h"
 #include "language/AST/DiagnosticsCommon.h"
-#include "llvm/Support/VirtualOutputBackend.h"
-#include "llvm/Support/VirtualOutputConfig.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
+#include "toolchain/Support/VirtualOutputConfig.h"
 
 namespace language {
-/// A wrapper around llvm::vfs::OutputBackend to handle diagnosing any file
+/// A wrapper around toolchain::vfs::OutputBackend to handle diagnosing any file
 /// system errors during output creation.
 ///
 /// \returns true if there were any errors, either from the filesystem
 /// operations or from \p action returning true.
 inline bool
-withOutputPath(DiagnosticEngine &diags, llvm::vfs::OutputBackend &Backend,
+withOutputPath(DiagnosticEngine &diags, toolchain::vfs::OutputBackend &Backend,
                StringRef outputPath,
-               llvm::function_ref<bool(llvm::raw_pwrite_stream &)> action) {
+               toolchain::function_ref<bool(toolchain::raw_pwrite_stream &)> action) {
   assert(!outputPath.empty());
-  llvm::vfs::OutputConfig config;
+  toolchain::vfs::OutputConfig config;
   config.setAtomicWrite().setOnlyIfDifferent();
 
   auto outputFile = Backend.createFile(outputPath, config);
@@ -58,4 +59,4 @@ withOutputPath(DiagnosticEngine &diags, llvm::vfs::OutputBackend &Backend,
 }
 } // end namespace language
 
-#endif // SWIFT_AST_FILESYSTEM_H
+#endif // LANGUAGE_AST_FILESYSTEM_H

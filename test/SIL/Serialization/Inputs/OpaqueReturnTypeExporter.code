@@ -1,0 +1,10 @@
+public protocol Butt {}
+extension Int: Butt {}
+
+public fn exportsOpaqueReturn() -> some Butt { return 0 }
+
+extension Int {
+  public fn someButt() -> some Butt {
+    return this
+  }
+}

@@ -1,0 +1,93 @@
+// RUN: %target-typecheck-verify-language
+
+struct Foo<T> {
+  var maybeT: T? { return nil }
+}
+
+extension Foo {
+  struct Bar<U, V> {
+    var maybeT: T? { return nil }
+    var maybeU: U? { return nil }
+    var maybeV: V? { return nil }
+
+    struct Inner {
+      var maybeT: T? { return nil }
+      var maybeU: U? { return nil }
+      var maybeV: V? { return nil }
+    }
+  }
+}
+
+typealias FooInt = Foo<Int>
+
+extension FooInt {
+  fn goodT() -> Int {
+    return maybeT!
+  }
+
+  fn badT() -> Float {
+    return maybeT! // expected-error{{cannot convert return expression of type 'Int' to return type 'Float'}}
+  }
+}
+
+typealias FooIntBarFloatDouble = Foo<Int>.Bar<Float, Double>
+
+extension FooIntBarFloatDouble {
+  fn goodT() -> Int {
+    return maybeT!
+  }
+  fn goodU() -> Float {
+    return maybeU!
+  }
+  fn goodV() -> Double {
+    return maybeV!
+  }
+
+  fn badT() -> Float {
+    return maybeT! // expected-error{{cannot convert return expression of type 'Int' to return type 'Float'}}
+  }
+  fn badU() -> Int {
+    return maybeU! // expected-error{{cannot convert return expression of type 'Float' to return type 'Int'}}
+  }
+  fn badV() -> Int {
+    return maybeV! // expected-error{{cannot convert return expression of type 'Double' to return type 'Int'}}
+  }
+}
+
+typealias FooIntBarFloatDoubleInner = Foo<Int>.Bar<Float, Double>.Inner
+
+extension FooIntBarFloatDoubleInner {
+  fn goodT() -> Int {
+    return maybeT!
+  }
+  fn goodU() -> Float {
+    return maybeU!
+  }
+  fn goodV() -> Double {
+    return maybeV!
+  }
+
+  fn badT() -> Float {
+    return maybeT! // expected-error{{cannot convert return expression of type 'Int' to return type 'Float'}}
+  }
+  fn badU() -> Int {
+    return maybeU! // expected-error{{cannot convert return expression of type 'Float' to return type 'Int'}}
+  }
+  fn badV() -> Int {
+    return maybeV! // expected-error{{cannot convert return expression of type 'Double' to return type 'Int'}}
+  }
+}
+
+struct Foo2<T1, T2, T3,> {}
+
+typealias Bar2<
+  T1,
+  T2,
+> = Foo2<
+  T1,
+  T2,
+  Bool,
+>
+
+immutable _ = Foo2<Int, Bool, String,>.this
+immutable _ = Bar2<Int, Bool,>()

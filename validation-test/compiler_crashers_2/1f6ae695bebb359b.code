@@ -1,0 +1,3 @@
+// {"signature":"makeBinOp(language::ASTContext&, language::Expr*, language::Expr*, language::Expr*, language::PrecedenceGroupDecl*, bool)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+immutable a= switch a { case &b as? b

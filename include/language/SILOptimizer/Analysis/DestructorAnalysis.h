@@ -11,20 +11,21 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_DESTRUCTORANALYSIS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_DESTRUCTORANALYSIS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_DESTRUCTORANALYSIS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_DESTRUCTORANALYSIS_H
 
 #include "language/SIL/SILValue.h"
 #include "language/SILOptimizer/Analysis/Analysis.h"
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 
 namespace language {
 
 /// This analysis determines memory effects during destruction.
 class DestructorAnalysis : public SILAnalysis {
   SILModule *Mod;
-  llvm::DenseMap<CanType, bool> Cached;
+  toolchain::DenseMap<CanType, bool> Cached;
 public:
   DestructorAnalysis(SILModule *M)
       : SILAnalysis(SILAnalysisKind::Destructor), Mod(M) {}

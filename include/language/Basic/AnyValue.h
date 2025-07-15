@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some miscellaneous overloads of hash_value() and
@@ -18,18 +19,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_ANYVALUE_H
-#define SWIFT_BASIC_ANYVALUE_H
+#ifndef LANGUAGE_BASIC_ANYVALUE_H
+#define LANGUAGE_BASIC_ANYVALUE_H
 
 #include "language/Basic/SimpleDisplay.h"
 #include "language/Basic/TypeID.h"
-#include "llvm/ADT/PointerUnion.h"  // to define hash_value
-#include "llvm/ADT/TinyPtrVector.h"
+#include "toolchain/ADT/PointerUnion.h"  // to define hash_value
+#include "toolchain/ADT/TinyPtrVector.h"
 
-namespace llvm {
+namespace toolchain {
   // FIXME: Belongs in LLVM itself
   template<typename PT1, typename PT2>
-  hash_code hash_value(const llvm::PointerUnion<PT1, PT2> &ptr) {
+  hash_code hash_value(const toolchain::PointerUnion<PT1, PT2> &ptr) {
     return hash_value(ptr.getOpaqueValue());
   }
 
@@ -59,7 +60,7 @@ namespace llvm {
       out << "None";
     }
   }
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif //
 

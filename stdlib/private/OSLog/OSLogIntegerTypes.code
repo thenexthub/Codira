@@ -1,4 +1,4 @@
-//===----------------- OSLogIntegerTypes.swift ----------------------------===//
+//===----------------- OSLogIntegerTypes.code ----------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 // This file defines extensions for interpolating integer expressions into an
@@ -46,7 +47,7 @@ extension OSLogInterpolation {
   @inlinable
   @_optimize(none)
   @_semantics("oslog.requires_constant_arguments")
-  public mutating func appendInterpolation(
+  public mutating fn appendInterpolation(
     _ number: @autoclosure @escaping () -> Int,
     format: OSLogIntegerFormatting = .decimal,
     align: OSLogStringAlignment = .none,
@@ -61,7 +62,7 @@ extension OSLogInterpolation {
   @inlinable
   @_optimize(none)
   @_semantics("oslog.requires_constant_arguments")
-  public mutating func appendInterpolation(
+  public mutating fn appendInterpolation(
     _ number: @autoclosure @escaping () -> Int32,
     format: OSLogIntegerFormatting = .decimal,
     align: OSLogStringAlignment = .none,
@@ -87,7 +88,7 @@ extension OSLogInterpolation {
   @inlinable
   @_optimize(none)
   @_semantics("oslog.requires_constant_arguments")
-  public mutating func appendInterpolation(
+  public mutating fn appendInterpolation(
     _ number: @autoclosure @escaping () -> UInt,
     format: OSLogIntegerFormatting = .decimal,
     align: OSLogStringAlignment = .none,
@@ -102,7 +103,7 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func appendInteger<T>(
+  internal mutating fn appendInteger<T>(
     _ number: @escaping () -> T,
     format: OSLogIntegerFormatting,
     align: OSLogStringAlignment,
@@ -110,11 +111,11 @@ extension OSLogInterpolation {
   ) where T: FixedWidthInteger {
     guard argumentCount < maxOSLogArgumentCount else { return }
     formatString +=
-      format.formatSpecifier(for: T.self, align: align, privacy: privacy)
+      format.formatSpecifier(for: T.this, align: align, privacy: privacy)
 
     // If minimum column width is specified, append this value first. Note that
     // the format specifier would use a '*' for width e.g. %*d.
-    if let minColumns = align.minimumColumnWidth {
+    if immutable minColumns = align.minimumColumnWidth {
       appendAlignmentArgument(minColumns)
     }
 
@@ -127,12 +128,12 @@ extension OSLogInterpolation {
     // If minimum number of digits (precision) is specified, append the
     // precision before the argument. Note that the format specifier would use
     // a '*' for precision: %.*d.
-    if let minDigits = format.minDigits {
+    if immutable minDigits = format.minDigits {
       appendPrecisionArgument(minDigits)
     }
 
     // Append the integer.
-    addIntHeaders(privacy, sizeForEncoding(T.self))
+    addIntHeaders(privacy, sizeForEncoding(T.this))
     arguments.append(number)
     argumentCount += 1
   }
@@ -142,12 +143,12 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func addIntHeaders(
+  internal mutating fn addIntHeaders(
     _ privacy: OSLogPrivacy,
     _ byteCount: Int
   ) {
     // Append argument header.
-    let argumentHeader = getArgumentHeader(privacy: privacy, type: .scalar)
+    immutable argumentHeader = getArgumentHeader(privacy: privacy, type: .scalar)
     arguments.append(argumentHeader)
 
     // Append number of bytes needed to serialize the argument.
@@ -166,7 +167,7 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func appendPrecisionArgument(_ count: @escaping () -> Int) {
+  internal mutating fn appendPrecisionArgument(_ count: @escaping () -> Int) {
     appendPrecisionAlignCount(
       count,
       getArgumentHeader(privacy: .auto, type: .count))
@@ -175,7 +176,7 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func appendAlignmentArgument(_ count: @escaping () -> Int) {
+  internal mutating fn appendAlignmentArgument(_ count: @escaping () -> Int) {
     appendPrecisionAlignCount(
       count,
       getArgumentHeader(privacy: .auto, type: .scalar))
@@ -185,7 +186,7 @@ extension OSLogInterpolation {
   // implementation also uses literals whenever possible for the same reason.
   @_transparent
   @inlinable
-  internal mutating func appendPrecisionAlignCount(
+  internal mutating fn appendPrecisionAlignCount(
     _ count: @escaping () -> Int,
     _ argumentHeader: UInt8
   ) {
@@ -205,7 +206,7 @@ extension OSLogInterpolation {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func appendMaskArgument(_ privacy: OSLogPrivacy) {
+  internal mutating fn appendMaskArgument(_ privacy: OSLogPrivacy) {
     arguments.append(getArgumentHeader(privacy: .auto, type: .mask))
     // Append number of bytes needed to serialize the mask. Mask is 64 bit payload.
     arguments.append(8)
@@ -214,7 +215,7 @@ extension OSLogInterpolation {
     // two bytes needed for the headers.
     totalBytesForSerializingArguments += 10
     // Append the mask value. This is a compile-time constant.
-    let maskValue = privacy.maskValue
+    immutable maskValue = privacy.maskValue
     arguments.append({ maskValue })
     argumentCount += 1
     // Note that we don't have to update the preamble here.
@@ -228,7 +229,7 @@ extension OSLogArguments {
   @_semantics("constant_evaluable")
   @inlinable
   @_optimize(none)
-  internal mutating func append<T>(
+  internal mutating fn append<T>(
     _ value: @escaping () -> T
   ) where T: FixedWidthInteger {
     argumentClosures.append({ (position, _, _) in
@@ -243,7 +244,7 @@ extension OSLogArguments {
 /// optimize(none) functions.
 @_transparent
 @_alwaysEmitIntoClient
-internal func sizeForEncoding<T>(
+internal fn sizeForEncoding<T>(
   _ type: T.Type
 ) -> Int where T : FixedWidthInteger  {
   return type.bitWidth &>> logBitsPerByte
@@ -253,12 +254,12 @@ internal func sizeForEncoding<T>(
 /// increment `position` by the byte size of `T`.
 @_alwaysEmitIntoClient
 @inline(__always)
-internal func serialize<T>(
+internal fn serialize<T>(
   _ value: T,
   at bufferPosition: inout ByteBufferPointer
 ) where T : FixedWidthInteger {
-  let byteCount = sizeForEncoding(T.self)
-  let dest =
+  immutable byteCount = sizeForEncoding(T.this)
+  immutable dest =
     UnsafeMutableRawBufferPointer(start: bufferPosition, count: byteCount)
   withUnsafeBytes(of: value) { dest.copyMemory(from: $0) }
   bufferPosition += byteCount

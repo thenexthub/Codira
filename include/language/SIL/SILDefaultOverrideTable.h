@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // TLDR: class : protocol :: SILDefaultOverrideTable : SILDefaultWitnessTable
@@ -37,7 +38,7 @@
 //   }
 // }
 //
-// func useCOrDerived(_ c: C) {
+// fn useCOrDerived(_ c: C) {
 //   // calls C.x._read
 //   let x = C.x
 // }
@@ -50,12 +51,12 @@
 //     }
 //     // compiler generated thunk
 //     _read {
-//       yield x.read() // this isn't actually expressible in Swift
+//       yield x.read() // this isn't actually expressible in Codira
 //     }
 //   }
 // }
 //
-// func useCOrDerived(_ c: C) {
+// fn useCOrDerived(_ c: C) {
 //   // calls C.x.read (!!!)
 //   let x = C.x
 //   pass(x)
@@ -89,7 +90,7 @@
 // In detail, here's what happens at runtime: {{ // Runtime situation with v1
 //
 // // Pseudocode describing dispatch in ResilientFramework.useCOrDerived.
-// func useCOrDerived(_ c: C) {
+// fn useCOrDerived(_ c: C) {
 //   let vtable = typeof(c).VTable
 //   let reader = vtable[#slot(x._read)]
 //   let x = reader(c)
@@ -110,7 +111,7 @@
 //
 // When an instance d of D is passed, execution will proceed thus:
 //
-// func useCOrDerived(_ c: C = d: D) {
+// fn useCOrDerived(_ c: C = d: D) {
 //   let vtable = typeof(c).VTable = typeof(d).VTable = D.VTable
 //   let reader = vtable[#slot(x._read)] = D.VTable[#slot(x._read)] = D.x._read
 //   let x = reader(c) = D.x._read(d)
@@ -131,7 +132,7 @@
 // Here's the v2 runtime situation WITHOUT additional machinery: {{ // BAD runtime situation with v2
 //
 // // Pseudocode describing dispatch in ResilientFramework.useCOrDerived.
-// func useCOrDerived(_ c: C) {
+// fn useCOrDerived(_ c: C) {
 //   let vtable = typeof(c).VTable
 //   let reader = vtable[#slot(x.read)] // NOTE! This is now x.read NOT x._read!
 //   let x = reader(c)
@@ -154,7 +155,7 @@
 //
 // When an instance d of D is passed, execution will proceed thus:
 //
-// func useCOrDerived(_ c: C = d: D) {
+// fn useCOrDerived(_ c: C = d: D) {
 //   let vtable = typeof(c).VTable = typeof(d).VTable = D.VTable
 //   // The wrong implementation is looked up!
 //   let reader = vtable[#slot(x.read)] = D.VTable[#slot(x.read)] = C.x.read
@@ -185,10 +186,10 @@
 // Accepted solution:
 //
 // Provide an implementation of x.read for use by D.  The implementation is as
-// follows, in pseudo-code that can't be written in Swift:
+// follows, in pseudo-code that can't be written in Codira:
 //
 // ResilientFrameworkv2:
-// func C_x_read_default_override(self: C) yields_once -> X {
+// fn C_x_read_default_override(self: C) yields_once -> X {
 //   yield self.x._read // vtable dispatch
 // }
 //
@@ -207,12 +208,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_SILDEFAULTOVERRIDETABLE_H
-#define SWIFT_SIL_SILDEFAULTOVERRIDETABLE_H
+#ifndef LANGUAGE_SIL_SILDEFAULTOVERRIDETABLE_H
+#define LANGUAGE_SIL_SILDEFAULTOVERRIDETABLE_H
 
 #include "language/SIL/SILAllocated.h"
 #include "language/SIL/SILDeclRef.h"
-#include "llvm/ADT/ilist.h"
+#include "toolchain/ADT/ilist.h"
 
 namespace language {
 
@@ -226,7 +227,7 @@ struct PrintOptions;
 ///
 ///     (C.x.read, C.x._read) -> C_x_read_default_override.
 class SILDefaultOverrideTable
-    : public llvm::ilist_node<SILDefaultOverrideTable>,
+    : public toolchain::ilist_node<SILDefaultOverrideTable>,
       public SILAllocated<SILDefaultOverrideTable> {
 public:
   struct Entry {
@@ -241,7 +242,7 @@ public:
     SILFunction *impl;
 
     /// Print the entry.
-    void print(llvm::raw_ostream &os, bool verbose = false) const;
+    void print(toolchain::raw_ostream &os, bool verbose = false) const;
 
     /// Dump the entry to stderr.
     void dump() const;
@@ -315,7 +316,7 @@ public:
   void verify(const SILModule &M) const;
 
   /// Print the default override table.
-  void print(llvm::raw_ostream &os, bool verbose = false) const;
+  void print(toolchain::raw_ostream &os, bool verbose = false) const;
 
   /// Dump the default override table to stderr.
   void dump() const;
@@ -327,12 +328,12 @@ public:
 // ilist_traits for SILDefaultOverrideTable
 //===----------------------------------------------------------------------===//
 
-namespace llvm {
+namespace toolchain {
 
 template <>
-struct ilist_traits<::swift::SILDefaultOverrideTable>
-    : public ilist_node_traits<::swift::SILDefaultOverrideTable> {
-  using SILDefaultOverrideTable = ::swift::SILDefaultOverrideTable;
+struct ilist_traits<::language::SILDefaultOverrideTable>
+    : public ilist_node_traits<::language::SILDefaultOverrideTable> {
+  using SILDefaultOverrideTable = ::language::SILDefaultOverrideTable;
 
 public:
   static void deleteNode(SILDefaultOverrideTable *WT) {
@@ -343,6 +344,6 @@ private:
   void createNode(const SILDefaultOverrideTable &);
 };
 
-} // namespace llvm
+} // namespace toolchain
 
 #endif

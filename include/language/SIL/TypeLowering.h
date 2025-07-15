@@ -1,4 +1,4 @@
-//===--- TypeLowering.h - Convert Swift Types to SILTypes -------*- C++ -*-===//
+//===--- TypeLowering.h - Convert Codira Types to SILTypes -------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SIL_TYPELOWERING_H
-#define SWIFT_SIL_TYPELOWERING_H
+#ifndef LANGUAGE_SIL_TYPELOWERING_H
+#define LANGUAGE_SIL_TYPELOWERING_H
 
 #include "language/ABI/ProtocolDispatchStrategy.h"
 #include "language/AST/CaptureInfo.h"
@@ -24,11 +25,11 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SIL/SILValue.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/Allocator.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/Hashing.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/Support/Allocator.h"
 
 namespace clang {
   class Type;
@@ -269,7 +270,7 @@ public:
     static constexpr RecursiveProperties forResilient() {
       return {IsTrivial, IsFixedABI, IsNotAddressOnly, IsResilient,
               IsNotTypeExpansionSensitive, HasRawPointer, IsNotLexical,
-              HasNoPack, IsAddressableForDependencies};
+              HasNoPack, IsNotAddressableForDependencies};
     }
 
     void addSubobject(RecursiveProperties other) {
@@ -335,7 +336,7 @@ private:
   virtual void setLoweredAddresses() const {}
 
 protected:
-  /// The SIL type of values with this Swift type.
+  /// The SIL type of values with this Codira type.
   mutable SILType LoweredType;
 
 private:
@@ -365,10 +366,10 @@ public:
   virtual ~TypeLowering() {}
 
   /// Print out the internal state of this type lowering into \p os.
-  void print(llvm::raw_ostream &os) const;
+  void print(toolchain::raw_ostream &os) const;
 
-  /// Dump out the internal state of this type lowering to llvm::dbgs().
-  SWIFT_DEBUG_DUMP;
+  /// Dump out the internal state of this type lowering to toolchain::dbgs().
+  LANGUAGE_DEBUG_DUMP;
 
   RecursiveProperties getRecursiveProperties() const {
     return Properties;
@@ -411,7 +412,7 @@ public:
     return ReferenceCounted;
   }
 
-  /// getLoweredType - Get the type used to represent values of the Swift type
+  /// getLoweredType - Get the type used to represent values of the Codira type
   /// in SIL.
   SILType getLoweredType() const {
     return LoweredType;
@@ -563,7 +564,7 @@ public:
                                     TypeExpansionKind loweringStyle) const {
     switch (loweringStyle) {
     case TypeExpansionKind::None:
-      llvm_unreachable("This does not apply to children of aggregate types");
+      toolchain_unreachable("This does not apply to children of aggregate types");
     case TypeExpansionKind::DirectChildren:
       return emitDestroyValue(B, loc, value);
     case TypeExpansionKind::MostDerivedDescendents:
@@ -646,13 +647,13 @@ public:
                                      TypeExpansionKind style) const {
     switch (style) {
     case TypeExpansionKind::None:
-      llvm_unreachable("This does not apply to children of aggregate");
+      toolchain_unreachable("This does not apply to children of aggregate");
     case TypeExpansionKind::DirectChildren:
       return emitCopyValue(B, loc, value);
     case TypeExpansionKind::MostDerivedDescendents:
       return emitLoweredCopyValueMostDerivedDescendents(B, loc, value);
     }
-    llvm_unreachable("unhandled style");
+    toolchain_unreachable("unhandled style");
   }
 
   /// Allocate a new TypeLowering using the TypeConverter's allocator.
@@ -765,7 +766,7 @@ struct GenericSignatureWithCapturedEnvironments {
 class TypeConverter {
   friend class TypeLowering;
 
-  llvm::BumpPtrAllocator TypeLoweringBPA;
+  toolchain::BumpPtrAllocator TypeLoweringBPA;
 
   struct CachingTypeKey {
     CanGenericSignature Sig;
@@ -832,7 +833,7 @@ class TypeConverter {
     }
   };
 
-  friend struct llvm::DenseMapInfo<CachingTypeKey>;
+  friend struct toolchain::DenseMapInfo<CachingTypeKey>;
 
   TypeKey getTypeKey(AbstractionPattern origTy, CanType substTy,
                      TypeExpansionContext context) {
@@ -856,7 +857,7 @@ class TypeConverter {
     }
   };
   
-  friend struct llvm::DenseMapInfo<OverrideKey>;
+  friend struct toolchain::DenseMapInfo<OverrideKey>;
 
   /// Find a cached TypeLowering by TypeKey, or return null if one doesn't
   /// exist.
@@ -874,25 +875,25 @@ class TypeConverter {
   CanGenericSignature CurGenericSignature;
 
   /// Stack of types currently being lowered as part of an aggregate.
-  llvm::SetVector<CanType> AggregateFieldsBeingLowered;
+  toolchain::SetVector<CanType> AggregateFieldsBeingLowered;
   
   /// Mapping for types independent on contextual generic parameters.
-  llvm::DenseMap<CachingTypeKey, const TypeLowering *> LoweredTypes;
+  toolchain::DenseMap<CachingTypeKey, const TypeLowering *> LoweredTypes;
 
-  llvm::DenseMap<std::pair<TypeExpansionContext, SILDeclRef>, SILConstantInfo *>
+  toolchain::DenseMap<std::pair<TypeExpansionContext, SILDeclRef>, SILConstantInfo *>
       ConstantTypes;
 
-  llvm::DenseMap<OverrideKey, SILConstantInfo *> ConstantOverrideTypes;
+  toolchain::DenseMap<OverrideKey, SILConstantInfo *> ConstantOverrideTypes;
 
-  llvm::DenseMap<SILDeclRef, CaptureInfo> LoweredCaptures;
+  toolchain::DenseMap<SILDeclRef, CaptureInfo> LoweredCaptures;
 
   /// Cache of loadable SILType to number of (estimated) fields
   ///
   /// Second element is a ResilienceExpansion.
-  llvm::DenseMap<std::pair<SILType, unsigned>, unsigned> TypeFields;
+  toolchain::DenseMap<std::pair<SILType, unsigned>, unsigned> TypeFields;
 
-  llvm::DenseMap<AbstractClosureExpr *, FunctionTypeInfo> ClosureInfos;
-  llvm::DenseMap<SILDeclRef, TypeExpansionContext>
+  toolchain::DenseMap<AbstractClosureExpr *, FunctionTypeInfo> ClosureInfos;
+  toolchain::DenseMap<SILDeclRef, TypeExpansionContext>
     CaptureTypeExpansionContexts;
 
   CanAnyFunctionType makeConstantInterfaceType(SILDeclRef constant);
@@ -1001,7 +1002,7 @@ public:
     if (P->isMarkerProtocol())
       return false;
 
-    return swift::protocolRequiresWitnessTable(getProtocolDispatchStrategy(P));
+    return language::protocolRequiresWitnessTable(getProtocolDispatchStrategy(P));
   }
   
   /// True if a type is passed indirectly at +0 when used as the "self"
@@ -1019,7 +1020,7 @@ public:
     return isIndirectPlusZeroSelfParameter(T.getASTType());
   }
   
-  /// Lowers a context-independent Swift type to a SILType, and returns the SIL TypeLowering
+  /// Lowers a context-independent Codira type to a SILType, and returns the SIL TypeLowering
   /// for that type.
   ///
   /// If `t` contains generic parameters, then the overload that also takes an
@@ -1030,7 +1031,7 @@ public:
     return getTypeLowering(pattern, t, forExpansion);
   }
 
-  /// Lowers a Swift type to a SILType according to the abstraction
+  /// Lowers a Codira type to a SILType according to the abstraction
   /// patterns of the given original type.
   const TypeLowering &getTypeLowering(AbstractionPattern origType,
                                       Type substType,
@@ -1052,12 +1053,12 @@ public:
   const TypeLowering &
   getTypeLowering(SILType t, SILFunction &F);
 
-  // Returns the lowered SIL type for a Swift type.
+  // Returns the lowered SIL type for a Codira type.
   SILType getLoweredType(Type t, TypeExpansionContext forExpansion) {
     return getTypeLowering(t, forExpansion).getLoweredType();
   }
 
-  // Returns the lowered SIL type for a Swift type.
+  // Returns the lowered SIL type for a Codira type.
   SILType getLoweredType(AbstractionPattern origType, Type substType,
                          TypeExpansionContext forExpansion) {
     return getTypeLowering(origType, substType, forExpansion)
@@ -1326,7 +1327,7 @@ public:
 
   void withClosureTypeInfo(AbstractClosureExpr *closure,
                            const FunctionTypeInfo &closureInfo,
-                           llvm::function_ref<void()> operation);
+                           toolchain::function_ref<void()> operation);
 
   void setLoweredAddresses();
 
@@ -1392,6 +1393,14 @@ CanSILFunctionType getNativeSILFunctionType(
     std::optional<SubstitutionMap> reqtSubs = std::nullopt,
     ProtocolConformanceRef witnessMethodConformance = ProtocolConformanceRef());
 
+/// origConstant is the parent decl ref in the case of class methods and the
+/// witness method decl ref if we are working with a protocol witness. Pass in
+/// None otherwise.
+std::optional<ActorIsolation>
+getSILFunctionTypeActorIsolation(CanAnyFunctionType substFnInterfaceType,
+                                 std::optional<SILDeclRef> origConstant,
+                                 std::optional<SILDeclRef> constant);
+
 /// The thunk kinds used in the differentiation transform.
 enum class DifferentiationThunkKind {
   /// A reabstraction thunk.
@@ -1424,33 +1433,33 @@ CanSILFunctionType buildSILFunctionThunkType(
 
 } // namespace language
 
-namespace llvm {
-  template<> struct DenseMapInfo<swift::Lowering::TypeConverter::CachingTypeKey> {
-    using CachingTypeKey = swift::Lowering::TypeConverter::CachingTypeKey;
+namespace toolchain {
+  template<> struct DenseMapInfo<language::Lowering::TypeConverter::CachingTypeKey> {
+    using CachingTypeKey = language::Lowering::TypeConverter::CachingTypeKey;
 
-    using APCachingKey = swift::Lowering::AbstractionPattern::CachingKey;
+    using APCachingKey = language::Lowering::AbstractionPattern::CachingKey;
     using CachingKeyInfo = DenseMapInfo<APCachingKey>;
 
-    using CanTypeInfo = DenseMapInfo<swift::CanType>;
+    using CanTypeInfo = DenseMapInfo<language::CanType>;
 
     // Use the second field because the first field can validly be null.
     static CachingTypeKey getEmptyKey() {
       return {nullptr, APCachingKey(), CanTypeInfo::getEmptyKey(),
-              swift::TypeExpansionContext::minimal()};
+              language::TypeExpansionContext::minimal()};
     }
     static CachingTypeKey getTombstoneKey() {
       return {nullptr, APCachingKey(), CanTypeInfo::getTombstoneKey(),
-              swift::TypeExpansionContext::minimal()};
+              language::TypeExpansionContext::minimal()};
     }
     static unsigned getHashValue(CachingTypeKey val) {
       auto hashSig =
-        DenseMapInfo<swift::GenericSignature>::getHashValue(val.Sig);
+        DenseMapInfo<language::GenericSignature>::getHashValue(val.Sig);
       auto hashOrig =
         CachingKeyInfo::getHashValue(val.OrigType);
       auto hashSubst =
-        DenseMapInfo<swift::CanType>::getHashValue(val.SubstType);
+        DenseMapInfo<language::CanType>::getHashValue(val.SubstType);
       auto hashContext =
-          DenseMapInfo<swift::TypeExpansionContext>::getHashValue(
+          DenseMapInfo<language::TypeExpansionContext>::getHashValue(
               val.expansionContext);
       return hash_combine(hashSig, hashOrig, hashSubst, hashContext);
     }
@@ -1459,10 +1468,10 @@ namespace llvm {
     }
   };
 
-  template<> struct DenseMapInfo<swift::Lowering::TypeConverter::OverrideKey> {
-    using OverrideKey = swift::Lowering::TypeConverter::OverrideKey;
+  template<> struct DenseMapInfo<language::Lowering::TypeConverter::OverrideKey> {
+    using OverrideKey = language::Lowering::TypeConverter::OverrideKey;
 
-    using SILDeclRefInfo = DenseMapInfo<swift::SILDeclRef>;
+    using SILDeclRefInfo = DenseMapInfo<language::SILDeclRef>;
 
     static OverrideKey getEmptyKey() {
       return {SILDeclRefInfo::getEmptyKey(), SILDeclRefInfo::getEmptyKey()};

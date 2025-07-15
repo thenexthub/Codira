@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-include "llvm/Option/OptParser.td"
+include "toolchain/Option/OptParser.td"
 
 def req : Separate<["-"], "req">,
   HelpText<"Request kind">;
@@ -42,8 +43,8 @@ def line : Separate<["-"], "line">,
   HelpText<"line">;
 def line_EQ : Joined<["-"], "line=">, Alias<line>;
 
-def using_swift_args : Flag<["-"], "using-swift-args">,
-  HelpText<"Interpret the compiler arguments as Swift compiler arguments">;
+def using_language_args : Flag<["-"], "using-language-args">,
+  HelpText<"Interpret the compiler arguments as Codira compiler arguments">;
 
 def replace : Separate<["-"], "replace">,
   HelpText<"replace text ('text')">;
@@ -122,14 +123,14 @@ def disable_implicit_string_processing_module_import : Flag<["-"],
 def end_pos : Separate<["-"], "end-pos">, HelpText<"line:col">;
 def end_pos_EQ : Joined<["-"], "end-pos=">, Alias<end_pos>;
 
-def swift_version : Separate<["-"], "swift-version">, HelpText<"the swift version to use">;
-def swift_version_EQ : Joined<["-"], "swift-version=">, Alias<swift_version>;
+def language_version : Separate<["-"], "language-version">, HelpText<"the language version to use">;
+def language_version_EQ : Joined<["-"], "language-version=">, Alias<language_version>;
 
 def pass_version_as_string : Flag<["-"], "pass-version-as-string">,
-  HelpText<"Pass swift-version as string">;
+  HelpText<"Pass language-version as string">;
 
-def swift_name : Separate<["-"], "swift-name">,
-  HelpText<"Swift name to translate from">;
+def language_name : Separate<["-"], "language-name">,
+  HelpText<"Codira name to translate from">;
 
 def objc_name : Separate<["-"], "objc-name">,
   HelpText<"Objective-C name to translate from">;

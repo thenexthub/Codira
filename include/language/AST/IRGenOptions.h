@@ -1,4 +1,4 @@
-//===--- IRGenOptions.h - Swift Language IR Generation Options --*- C++ -*-===//
+//===--- IRGenOptions.h - Codira Language IR Generation Options --*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,15 +11,16 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the options which control the generation of IR for
-// swift files.
+// language files.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_IRGENOPTIONS_H
-#define SWIFT_AST_IRGENOPTIONS_H
+#ifndef LANGUAGE_AST_IRGENOPTIONS_H
+#define LANGUAGE_AST_IRGENOPTIONS_H
 
 #include "language/AST/LinkLibrary.h"
 #include "language/Basic/Assertions.h"
@@ -29,12 +30,12 @@
 #include "language/Basic/OptimizationMode.h"
 #include "language/Config.h"
 #include "clang/Basic/PointerAuthOptions.h"
-#include "llvm/IR/CallingConv.h"
-// FIXME: This include is just for llvm::SanitizerCoverageOptions. We should
+#include "toolchain/IR/CallingConv.h"
+// FIXME: This include is just for toolchain::SanitizerCoverageOptions. We should
 // split the header upstream so we don't include so much.
-#include "llvm/Transforms/Instrumentation.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/VersionTuple.h"
+#include "toolchain/Transforms/Instrumentation.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/Support/VersionTuple.h"
 #include <optional>
 #include <string>
 #include <tuple>
@@ -88,10 +89,10 @@ enum class IRGenEmbedMode : unsigned {
   EmbedBitcode
 };
 
-enum class SwiftAsyncFramePointerKind : unsigned {
-   Auto, // Choose Swift async extended frame info based on deployment target.
-   Always, // Unconditionally emit Swift async extended frame info.
-   Never,  // Don't emit Swift async extended frame info.
+enum class CodiraAsyncFramePointerKind : unsigned {
+   Auto, // Choose Codira async extended frame info based on deployment target.
+   Always, // Unconditionally emit Codira async extended frame info.
+   Never,  // Don't emit Codira async extended frame info.
 };
 
 enum class ReflectionMetadataMode : unsigned {
@@ -106,41 +107,41 @@ using clang::PointerAuthSchema;
 struct PointerAuthOptions : clang::PointerAuthOptions {
   /// Native opaque function types, both thin and thick.
   /// Never address-sensitive.
-  PointerAuthSchema SwiftFunctionPointers;
+  PointerAuthSchema CodiraFunctionPointers;
 
-  /// Swift key path helpers.
+  /// Codira key path helpers.
   PointerAuthSchema KeyPaths;
 
-  /// Swift value witness functions.
+  /// Codira value witness functions.
   PointerAuthSchema ValueWitnesses;
 
-  /// Pointers to Swift value witness tables stored in type metadata.
+  /// Pointers to Codira value witness tables stored in type metadata.
   PointerAuthSchema ValueWitnessTable;
 
-  /// Swift protocol witness functions.
+  /// Codira protocol witness functions.
   PointerAuthSchema ProtocolWitnesses;
 
-  /// Swift protocol witness table associated type metadata access functions.
+  /// Codira protocol witness table associated type metadata access functions.
   PointerAuthSchema ProtocolAssociatedTypeAccessFunctions;
 
-  /// Swift protocol witness table associated conformance witness table
+  /// Codira protocol witness table associated conformance witness table
   /// access functions.
-  /// In Embedded Swift used for associated conformance witness table
+  /// In Embedded Codira used for associated conformance witness table
   /// pointers.
   PointerAuthSchema ProtocolAssociatedTypeWitnessTableAccessFunctions;
 
-  /// Swift class v-table functions.
-  PointerAuthSchema SwiftClassMethods;
+  /// Codira class v-table functions.
+  PointerAuthSchema CodiraClassMethods;
 
-  /// Swift dynamic replacement implementations.
-  PointerAuthSchema SwiftDynamicReplacements;
-  PointerAuthSchema SwiftDynamicReplacementKeys;
+  /// Codira dynamic replacement implementations.
+  PointerAuthSchema CodiraDynamicReplacements;
+  PointerAuthSchema CodiraDynamicReplacementKeys;
 
-  /// Swift class v-table functions not signed with an address. This is the
-  /// return type of swift_lookUpClassMethod().
-  PointerAuthSchema SwiftClassMethodPointers;
+  /// Codira class v-table functions not signed with an address. This is the
+  /// return type of language_lookUpClassMethod().
+  PointerAuthSchema CodiraClassMethodPointers;
 
-  /// Swift heap metadata destructors.
+  /// Codira heap metadata destructors.
   PointerAuthSchema HeapDestructors;
 
   /// Non-constant function pointers captured in a partial-apply context.
@@ -179,22 +180,22 @@ struct PointerAuthOptions : clang::PointerAuthOptions {
   /// Resilient class stub initializer callbacks.
   PointerAuthSchema ResilientClassStubInitCallbacks;
 
-  /// Like SwiftFunctionPointers but for use with AsyncFunctionPointer values.
-  PointerAuthSchema AsyncSwiftFunctionPointers;
+  /// Like CodiraFunctionPointers but for use with AsyncFunctionPointer values.
+  PointerAuthSchema AsyncCodiraFunctionPointers;
 
-  /// Like SwiftClassMethods but for use with AsyncFunctionPointer values.
-  PointerAuthSchema AsyncSwiftClassMethods;
+  /// Like CodiraClassMethods but for use with AsyncFunctionPointer values.
+  PointerAuthSchema AsyncCodiraClassMethods;
 
   /// Like ProtocolWitnesses but for use with AsyncFunctionPointer values.
   PointerAuthSchema AsyncProtocolWitnesses;
 
-  /// Like SwiftClassMethodPointers but for use with AsyncFunctionPointer
+  /// Like CodiraClassMethodPointers but for use with AsyncFunctionPointer
   /// values.
-  PointerAuthSchema AsyncSwiftClassMethodPointers;
+  PointerAuthSchema AsyncCodiraClassMethodPointers;
 
-  /// Like SwiftDynamicReplacements but for use with AsyncFunctionPointer
+  /// Like CodiraDynamicReplacements but for use with AsyncFunctionPointer
   /// values.
-  PointerAuthSchema AsyncSwiftDynamicReplacements;
+  PointerAuthSchema AsyncCodiraDynamicReplacements;
 
   /// Like PartialApplyCapture but for use with AsyncFunctionPointer values.
   PointerAuthSchema AsyncPartialApplyCapture;
@@ -211,7 +212,7 @@ struct PointerAuthOptions : clang::PointerAuthOptions {
   /// The async context stored in AsyncTask.
   PointerAuthSchema TaskResumeContext;
 
-  /// The swift async context entry in the extended frame info.
+  /// The language async context entry in the extended frame info.
   PointerAuthSchema AsyncContextExtendedFrameEntry;
 
   /// Extended existential type shapes in flight.
@@ -235,22 +236,22 @@ struct PointerAuthOptions : clang::PointerAuthOptions {
   /// Type layout string descriminator.
   PointerAuthSchema TypeLayoutString;
 
-  /// Like SwiftFunctionPointers but for use with CoroFunctionPointer values.
-  PointerAuthSchema CoroSwiftFunctionPointers;
+  /// Like CodiraFunctionPointers but for use with CoroFunctionPointer values.
+  PointerAuthSchema CoroCodiraFunctionPointers;
 
-  /// Like SwiftClassMethods but for use with CoroFunctionPointer values.
-  PointerAuthSchema CoroSwiftClassMethods;
+  /// Like CodiraClassMethods but for use with CoroFunctionPointer values.
+  PointerAuthSchema CoroCodiraClassMethods;
 
   /// Like ProtocolWitnesses but for use with CoroFunctionPointer values.
   PointerAuthSchema CoroProtocolWitnesses;
 
-  /// Like SwiftClassMethodPointers but for use with CoroFunctionPointer
+  /// Like CodiraClassMethodPointers but for use with CoroFunctionPointer
   /// values.
-  PointerAuthSchema CoroSwiftClassMethodPointers;
+  PointerAuthSchema CoroCodiraClassMethodPointers;
 
-  /// Like SwiftDynamicReplacements but for use with CoroFunctionPointer
+  /// Like CodiraDynamicReplacements but for use with CoroFunctionPointer
   /// values.
-  PointerAuthSchema CoroSwiftDynamicReplacements;
+  PointerAuthSchema CoroCodiraDynamicReplacements;
 
   /// Like PartialApplyCapture but for use with CoroFunctionPointer values.
   PointerAuthSchema CoroPartialApplyCapture;
@@ -342,8 +343,8 @@ public:
   /// Whether we should run LLVM optimizations after IRGen.
   unsigned DisableLLVMOptzns : 1;
 
-  /// Whether we should run swift specific LLVM optimizations after IRGen.
-  unsigned DisableSwiftSpecificLLVMOptzns : 1;
+  /// Whether we should run language specific LLVM optimizations after IRGen.
+  unsigned DisableCodiraSpecificLLVMOptzns : 1;
 
   /// Special codegen for playgrounds.
   unsigned Playground : 1;
@@ -377,7 +378,7 @@ public:
   /// Whether we should disable inserting autolink directives altogether.
   unsigned DisableAllAutolinking : 1;
 
-  /// Whether we should disable inserting __swift_FORCE_LOAD_ symbols.
+  /// Whether we should disable inserting __language_FORCE_LOAD_ symbols.
   unsigned DisableForceLoadSymbols : 1;
 
   /// Print the LLVM inline tree at the end of the LLVM pass pipeline.
@@ -391,7 +392,7 @@ public:
 
   IRGenLLVMLTOKind LLVMLTOKind : 2;
 
-  SwiftAsyncFramePointerKind SwiftAsyncFramePointer : 2;
+  CodiraAsyncFramePointerKind CodiraAsyncFramePointer : 2;
 
   /// Add names to LLVM values.
   unsigned HasValueNamesSetting : 1;
@@ -537,10 +538,10 @@ public:
 
   unsigned UseProfilingMarkerThunks : 1;
 
-  // Whether swiftcorocc should be used for yield_once_2 routines on x86_64.
+  // Whether languagecorocc should be used for yield_once_2 routines on x86_64.
   unsigned UseCoroCCX8664 : 1;
 
-  // Whether swiftcorocc should be used for yield_once_2 routines on arm64
+  // Whether languagecorocc should be used for yield_once_2 routines on arm64
   // variants.
   unsigned UseCoroCCArm64 : 1;
 
@@ -564,10 +565,13 @@ public:
   std::vector<uint8_t> CmdArgs;
 
   /// Which sanitizer coverage is turned on.
-  llvm::SanitizerCoverageOptions SanitizeCoverage;
+  toolchain::SanitizerCoverageOptions SanitizeCoverage;
 
   /// Pointer authentication.
   PointerAuthOptions PointerAuth;
+
+  // If not 0, this overrides the value defined by the target.
+  uint64_t CustomLeastValidPointerValue = 0;
 
   /// The different modes for dumping IRGen type info.
   enum class TypeInfoDumpFilter {
@@ -579,10 +583,10 @@ public:
   TypeInfoDumpFilter TypeInfoFilter;
 
   /// Pull in runtime compatibility shim libraries by autolinking.
-  std::optional<llvm::VersionTuple> AutolinkRuntimeCompatibilityLibraryVersion;
-  std::optional<llvm::VersionTuple>
+  std::optional<toolchain::VersionTuple> AutolinkRuntimeCompatibilityLibraryVersion;
+  std::optional<toolchain::VersionTuple>
       AutolinkRuntimeCompatibilityDynamicReplacementLibraryVersion;
-  std::optional<llvm::VersionTuple>
+  std::optional<toolchain::VersionTuple>
       AutolinkRuntimeCompatibilityConcurrencyLibraryVersion;
   bool AutolinkRuntimeCompatibilityBytecodeLayoutsLibrary;
 
@@ -592,14 +596,14 @@ public:
   /// function instead of to trap instructions.
   std::string TrapFuncName = "";
 
-  /// The calling convention used to perform non-swift calls.
-  llvm::CallingConv::ID PlatformCCallingConvention;
+  /// The calling convention used to perform non-language calls.
+  toolchain::CallingConv::ID PlatformCCallingConvention;
 
   /// Use CAS based object format as the output.
   bool UseCASBackend = false;
 
   /// The output mode for the CAS Backend.
-  llvm::CASBackendMode CASObjMode;
+  toolchain::CASBackendMode CASObjMode;
 
   /// Emit a .casid file next to the object file if CAS Backend is used.
   bool EmitCASIDFile = false;
@@ -616,12 +620,12 @@ public:
         DebugInfoLevel(IRGenDebugInfoLevel::None),
         DebugInfoFormat(IRGenDebugInfoFormat::None),
         DisableClangModuleSkeletonCUs(false), UseJIT(false),
-        DisableLLVMOptzns(false), DisableSwiftSpecificLLVMOptzns(false),
+        DisableLLVMOptzns(false), DisableCodiraSpecificLLVMOptzns(false),
         Playground(false), EmitStackPromotionChecks(false),
         UseSingleModuleLLVMEmission(false), FunctionSections(false),
         PrintInlineTree(false), AlwaysCompile(false),
         EmbedMode(IRGenEmbedMode::None), LLVMLTOKind(IRGenLLVMLTOKind::None),
-        SwiftAsyncFramePointer(SwiftAsyncFramePointerKind::Auto),
+        CodiraAsyncFramePointer(CodiraAsyncFramePointerKind::Auto),
         HasValueNamesSetting(false), ValueNames(false),
         ReflectionMetadata(ReflectionMetadataMode::Runtime),
         EnableReflectionNames(true), DisableLLVMMergeFunctions(false),
@@ -655,23 +659,23 @@ public:
         UseCoroCCX8664(false), UseCoroCCArm64(false),
         MergeableTraps(false),
         DebugInfoForProfiling(false), CmdArgs(),
-        SanitizeCoverage(llvm::SanitizerCoverageOptions()),
+        SanitizeCoverage(toolchain::SanitizerCoverageOptions()),
         TypeInfoFilter(TypeInfoDumpFilter::All),
-        PlatformCCallingConvention(llvm::CallingConv::C), UseCASBackend(false),
-        CASObjMode(llvm::CASBackendMode::Native) {
+        PlatformCCallingConvention(toolchain::CallingConv::C), UseCASBackend(false),
+        CASObjMode(toolchain::CASBackendMode::Native) {
     DisableRoundTripDebugTypes = !CONDITIONAL_ASSERT_enabled();
   }
 
   /// Appends to \p os an arbitrary string representing all options which
-  /// influence the llvm compilation but are not reflected in the llvm module
+  /// influence the toolchain compilation but are not reflected in the toolchain module
   /// itself.
-  void writeLLVMCodeGenOptionsTo(llvm::raw_ostream &os) const {
+  void writeLLVMCodeGenOptionsTo(toolchain::raw_ostream &os) const {
     // We put a letter between each value simply to keep them from running into
     // one another. There might be a vague correspondence between meaning and
     // letter, but don't sweat it.
     os << 'O' << (unsigned)OptMode
        << 'd' << DisableLLVMOptzns
-       << 'D' << DisableSwiftSpecificLLVMOptzns
+       << 'D' << DisableCodiraSpecificLLVMOptzns
        << 'p' << GenerateProfile
        << 's' << Sanitizers.toRaw();
   }
@@ -699,7 +703,7 @@ public:
 
   std::string getDebugFlags(StringRef PrivateDiscriminator,
                             bool EnableCXXInterop,
-                            bool EnableEmbeddedSwift) const {
+                            bool EnableEmbeddedCodira) const {
     std::string Flags = DebugFlags;
     if (!PrivateDiscriminator.empty()) {
       if (!Flags.empty())
@@ -711,25 +715,25 @@ public:
         Flags += " ";
       Flags += "-enable-experimental-cxx-interop";
     }
-    if (EnableEmbeddedSwift) {
+    if (EnableEmbeddedCodira) {
       if (!Flags.empty())
         Flags += " ";
-      Flags += "-enable-embedded-swift";
+      Flags += "-enable-embedded-language";
     }
 
     return Flags;
   }
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Bridging PCH hash.
-  llvm::hash_code getPCHHashComponents() const {
-    return llvm::hash_value(0);
+  /// contribute to a Codira Bridging PCH hash.
+  toolchain::hash_code getPCHHashComponents() const {
+    return toolchain::hash_value(0);
   }
 
   /// Return a hash code of any components from these options that should
-  /// contribute to a Swift Dependency Scanning hash.
-  llvm::hash_code getModuleScanningHashComponents() const {
-    return llvm::hash_value(0);
+  /// contribute to a Codira Dependency Scanning hash.
+  toolchain::hash_code getModuleScanningHashComponents() const {
+    return toolchain::hash_value(0);
   }
 
   bool hasMultipleIRGenThreads() const { return !UseSingleModuleLLVMEmission && NumThreads > 1; }

@@ -1,0 +1,21 @@
+// RUN: %target-language-frontend -O %s -emit-sil -o /dev/null
+
+public struct S {
+  immutable args: [Substring]
+  immutable arg: Substring
+
+  enum Error: Codira.Error {
+    case Case
+  }
+
+  public init(arg: String) throws {
+    args = arg.split(separator: "\n")
+    guard args.count > 0 else { throw Error.Case }
+
+    immutable parts = args[0].split(separator: " ")
+    guard parts.count > 2 else { throw Error.Case }
+
+    this.arg = parts[1]
+  }
+}
+

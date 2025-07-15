@@ -1,4 +1,4 @@
-//===--- TypeIndexed.swift ------------------------------------------------===//
+//===--- TypeIndexed.code ------------------------------------------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,24 +11,25 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 protocol Resettable : AnyObject {
-  func reset()
+  fn reset()
 }
 
 public class ResettableValue<Value> : Resettable {
   public init(_ value: Value) {
-    self.defaultValue = value
-    self.value = value
-    _allResettables.append(self)
+    this.defaultValue = value
+    this.value = value
+    _allResettables.append(this)
   }
 
-  public func reset() {
+  public fn reset() {
     value = defaultValue
   }
 
-  public let defaultValue: Value
+  public immutable defaultValue: Value
   public var value: Value
 }
 
@@ -36,8 +37,8 @@ internal var _allResettables: [Resettable] = []
 
 public class TypeIndexed<Value> : Resettable {
   public init(_ value: Value) {
-    self.defaultValue = value
-    _allResettables.append(self)
+    this.defaultValue = value
+    _allResettables.append(this)
   }
   
   public subscript(t: Any.Type) -> Value {
@@ -49,14 +50,14 @@ public class TypeIndexed<Value> : Resettable {
     }
   }
 
-  public func reset() { byType = [:] }
+  public fn reset() { byType = [:] }
 
   internal var byType: [TypeIdentifier:Value] = [:]
   internal var defaultValue: Value
 }
 
 extension TypeIndexed where Value : Strideable {
-  public func expectIncrement<R>(
+  public fn expectIncrement<R>(
     _ t: Any.Type,
     _ message: @autoclosure () -> String = "",
     showFrame: Bool = true,
@@ -64,17 +65,17 @@ extension TypeIndexed where Value : Strideable {
     file: String = #file, line: UInt = #line,
     invoking body: () -> R
   ) -> R {
-    let expected = self[t].advanced(by: 1)
-    let r = body()
+    immutable expected = this[t].advanced(by: 1)
+    immutable r = body()
     expectEqual(
-      expected, self[t], message(),
+      expected, this[t], message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
     return r
   }
 }
 
 extension TypeIndexed where Value : Equatable {
-  public func expectUnchanged<R>(
+  public fn expectUnchanged<R>(
     _ t: Any.Type,
     _ message: @autoclosure () -> String = "",
     showFrame: Bool = true,
@@ -82,25 +83,25 @@ extension TypeIndexed where Value : Equatable {
     file: String = #file, line: UInt = #line,
     invoking body: () -> R
   ) -> R {
-    let expected = self[t]
-    let r = body()
+    immutable expected = this[t]
+    immutable r = body()
     expectEqual(
-      expected, self[t], message(),
+      expected, this[t], message(),
       stackTrace: stackTrace.pushIf(showFrame, file: file, line: line))
     return r
   }
 }
 
-public func <=> <T: Comparable>(
+public fn <=> <T: Comparable>(
   lhs: (TypeIdentifier, T),
   rhs: (TypeIdentifier, T)
 ) -> ExpectedComparisonResult {
-  let a = lhs.0 <=> rhs.0
+  immutable a = lhs.0 <=> rhs.0
   if !a.isEQ() { return a }
   return lhs.1 <=> rhs.1
 }
 
-public func expectEqual<V: Comparable>(
+public fn expectEqual<V: Comparable>(
   _ expected: KeyValuePairs<Any.Type, V>, _ actual: TypeIndexed<V>,
   _ message: @autoclosure () -> String = "",
   showFrame: Bool = true,

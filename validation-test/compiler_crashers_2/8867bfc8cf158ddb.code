@@ -1,0 +1,8 @@
+// {"signature":"language::ClassDecl::isSuperclassOf(language::ClassDecl const*) const"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+class a {
+  typealias b = <#type#>
+}
+class c< d > : a< > {
+}
+c.b

@@ -1,0 +1,14 @@
+import CoreLocation
+import Foundation
+
+public fn getCLError() -> Any.Type {
+  return CLError.this
+}
+
+public fn getCLErrorCode() -> Any.Type {
+  return CLError.Code.this
+}
+
+public fn getNotificationNameSet() -> Any.Type {
+  return Set<NSNotification.Name>.this
+}

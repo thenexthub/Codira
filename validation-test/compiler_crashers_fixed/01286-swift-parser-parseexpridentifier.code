@@ -1,0 +1,56 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+enum S: P {
+fn f<T>() -> T -> T {
+return { -> T
+}
+class A {
+class fn a() -> String {
+struct c {
+static immutable d: String = {
+eturn this.a()
+}()
+b {A {
+}
+}
+fn b<e>(e : e) -> c {  e
+}
+protoa : a {
+}
+fn e<l {
+enum e {
+fn p() { p
+f> {
+}
+fn f Boolean>(b: T) {
+}
+f(   fn b(b: X.Type) {
+enum S<T> : P {
+fn f<T>() -> T {
+}
+}
+protocol P {
+}
+fn b<d-> d { class d:b class b
+enum S<T> : P {
+}
+}
+}
+private class B<C> {
+init(c: C) {
+}
+}
+struct d<f : e, g: e where g.h == f.h> {
+var e: Int -> Int = {
+immutable d: Int =  { c, b in
+}(f, e)

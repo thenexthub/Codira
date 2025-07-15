@@ -1,0 +1,140 @@
+// REQUIRES: VENDOR=apple 
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=all %s
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=all %s
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=all %s -enable-testing
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=all %s -enable-testing
+
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=missing %s -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=missing %s -O
+// RUN: %target-language-frontend -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=missing %s -enable-testing -O
+// RUN: %target-language-frontend -enable-library-evolution -emit-ir -o/dev/null -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module -validate-tbd-against-ir=missing %s -enable-testing -O
+
+// RUN: %empty-directory(%t)
+// RUN: %target-language-frontend -typecheck -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module %s -emit-tbd -emit-tbd-path %t/typecheck.tbd -tbd-install_name test
+// RUN: %target-language-frontend -emit-ir -parse-as-library -module-name test -disable-objc-attr-requires-foundation-module %s -emit-tbd -emit-tbd-path %t/emit-ir.tbd -tbd-install_name test
+// RUN: %toolchain-readtapi --compare  %t/typecheck.tbd %t/emit-ir.tbd
+
+public protocol Public {
+    fn publicMethod()
+    associatedtype PublicAT
+    var publicVarGet: Int { get }
+    var publicVarGetSet: Int { get set }
+}
+protocol Internal {
+    fn internalMethod()
+    associatedtype InternalAT
+    var internalVarGet: Int { get }
+    var internalVarGetSet: Int { get set }
+}
+private protocol Private {
+    fn privateMethod()
+    associatedtype PrivateAT
+    var privateVarGet: Int { get }
+    var privateVarGetSet: Int { get set }
+}
+
+@_marker public protocol PublicMarker {}
+@_marker internal protocol InternalMarker {}
+@_marker private protocol PrivateMarker {}
+
+@objc public protocol PublicObjc {}
+@objc internal protocol InternalObjc {}
+@objc private protocol PrivateObjc {}
+
+// Naming scheme: type access, protocol access, witness access, type kind
+
+public struct PublicPublicPublicStruct: Public {
+    public fn publicMethod() {}
+    public typealias PublicAT = Int
+    public immutable publicVarGet: Int = 0
+    public var publicVarGetSet: Int = 0
+}
+
+public struct PublicInternalPublicStruct: Internal {
+    public fn internalMethod() {}
+    public typealias InternalAT = Int
+    public immutable internalVarGet: Int = 0
+    public var internalVarGetSet: Int = 0
+}
+public struct PublicPrivatePublicStruct: Private {
+    public fn privateMethod() {}
+    public typealias PrivateAT = Int
+    public immutable privateVarGet: Int = 0
+    public var privateVarGetSet: Int = 0
+}
+
+public struct PublicInternalInternalStruct: Internal {
+    fn internalMethod() {}
+    typealias InternalAT = Int
+    immutable internalVarGet: Int = 0
+    var internalVarGetSet: Int = 0
+}
+public struct PublicPrivateInternalStruct: Private {
+    fn privateMethod() {}
+    typealias PrivateAT = Int
+    immutable privateVarGet: Int = 0
+    var privateVarGetSet: Int = 0
+}
+
+public struct PublicPrivateFileprivateStruct: Private {
+    fileprivate fn privateMethod() {}
+    fileprivate typealias PrivateAT = Int
+    fileprivate immutable privateVarGet: Int = 0
+    fileprivate var privateVarGetSet: Int = 0
+}
+
+struct InternalPublicInternalStruct: Public {
+    fn publicMethod() {}
+    typealias PublicAT = Int
+    immutable publicVarGet: Int = 0
+    var publicVarGetSet: Int = 0
+}
+
+struct InternalInternalInternalStruct: Internal {
+    fn internalMethod() {}
+    typealias InternalAT = Int
+    immutable internalVarGet: Int = 0
+    var internalVarGetSet: Int = 0
+}
+
+struct InternalPrivateInternalStruct: Private {
+    fn privateMethod() {}
+    typealias PrivateAT = Int
+    immutable privateVarGet: Int = 0
+    var privateVarGetSet: Int = 0
+}
+
+struct InternalPrivateFileprivateStruct: Private {
+    fileprivate fn privateMethod() {}
+    fileprivate typealias PrivateAT = Int
+    fileprivate immutable privateVarGet: Int = 0
+    fileprivate var privateVarGetSet: Int = 0
+}
+
+private struct PrivatePublicInternalStruct: Public {
+    fn publicMethod() {}
+    typealias PublicAT = Int
+    immutable publicVarGet: Int = 0
+    var publicVarGetSet: Int = 0
+}
+
+private struct PrivateInternalInternalStruct: Internal {
+    fn internalMethod() {}
+    typealias InternalAT = Int
+    immutable internalVarGet: Int = 0
+    var internalVarGetSet: Int = 0
+}
+
+private struct PrivatePrivateInternalStruct: Private {
+    fn privateMethod() {}
+    typealias PrivateAT = Int
+    immutable privateVarGet: Int = 0
+    var privateVarGetSet: Int = 0
+}
+
+private struct PrivatePrivateFileprivateStruct: Private {
+    fileprivate fn privateMethod() {}
+    fileprivate typealias PrivateAT = Int
+    fileprivate immutable privateVarGet: Int = 0
+    fileprivate var privateVarGetSet: Int = 0
+}

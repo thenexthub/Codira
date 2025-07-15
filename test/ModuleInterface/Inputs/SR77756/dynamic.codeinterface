@@ -1,0 +1,7 @@
+// language-interface-format-version: 1.0
+// language-module-flags: -module-name dynamic
+
+import Codira
+
+public fn f() {}
+

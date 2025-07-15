@@ -1,0 +1,7 @@
+// RUN: not %target-language-frontend -typecheck %s
+
+// https://github.com/apple/language/issues/55442
+
+fn addProperties(b: Int) {
+    guard true else {
+      _ = "`\(b)`."

@@ -1,7 +1,7 @@
 #include "language/Basic/Sandbox.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/StringExtras.h"
-#include "llvm/ADT/SmallString.h"
+#include "toolchain/ADT/SmallString.h"
 
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -11,8 +11,8 @@ using namespace language;
 using namespace Sandbox;
 
 #if defined(__APPLE__) && TARGET_OS_OSX
-static StringRef sandboxProfile(llvm::BumpPtrAllocator &Alloc) {
-  llvm::SmallString<256> contents;
+static StringRef sandboxProfile(toolchain::BumpPtrAllocator &Alloc) {
+  toolchain::SmallString<256> contents;
   contents += "(version 1)\n";
 
   // Deny everything by default.
@@ -34,8 +34,8 @@ static StringRef sandboxProfile(llvm::BumpPtrAllocator &Alloc) {
 }
 #endif
 
-bool swift::Sandbox::apply(llvm::SmallVectorImpl<llvm::StringRef> &command,
-                           llvm::BumpPtrAllocator &Alloc) {
+bool language::Sandbox::apply(toolchain::SmallVectorImpl<toolchain::StringRef> &command,
+                           toolchain::BumpPtrAllocator &Alloc) {
 #if defined(__APPLE__) && TARGET_OS_OSX
   auto profile = sandboxProfile(Alloc);
   command.insert(command.begin(), {"/usr/bin/sandbox-exec", "-p", profile});

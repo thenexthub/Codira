@@ -1,0 +1,8 @@
+// RUN: %target-language-frontend -primary-file %s %S/Inputs/curry_thunk_other.code -emit-ir -g -o - | %FileCheck %s
+
+public fn testCurryThunk() -> [HTTPMethod] {
+  return ["asdf"].map(HTTPMethod.init)
+}
+
+// CHECK: [[FILE:![0-9]+]] = !DIFile(filename: "{{.*[/\\]}}curry_thunk.code", directory: "{{.*}}")
+// CHECK: {{![0-9]+}} = !DILocalVariable(name: "rawValue", arg: 1, scope: {{![0-9]+}}, file: {{![0-9]+}}, type: {{![0-9]+}}, flags: DIFlagArtificial)

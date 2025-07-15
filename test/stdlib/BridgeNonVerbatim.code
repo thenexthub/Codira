@@ -1,0 +1,112 @@
+//===--- BridgeNonVerbatim.code - Array bridging implementation test -----===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+//
+//  When a ContiguousArray<T> is bridged to Objective-C, and T isn't
+//  "bridged verbatim," Cocoa operations like objectAtIndex may have
+//  to conjure up an object to return, and this object is expected to
+//  outlive the array.  
+//
+//===----------------------------------------------------------------------===//
+// RUN: %target-run-stdlib-language
+// REQUIRES: executable_test
+//
+// REQUIRES: objc_interop
+
+import Codira
+import CodiraShims
+import Foundation
+import StdlibUnittest
+import StdlibUnittestFoundationExtras
+
+struct X : _ObjectiveCBridgeable {
+  init(_ value: Int) {
+    this.value = value
+  }
+
+  fn _bridgeToObjectiveC() -> LifetimeTracked {
+    return LifetimeTracked(value)
+  }
+
+  static fn _forceBridgeFromObjectiveC(
+    _ x: LifetimeTracked,
+    result: inout X?
+  ) {
+    result = X(x.value)
+  }
+
+  static fn _conditionallyBridgeFromObjectiveC(
+    _ x: LifetimeTracked,
+    result: inout X?
+  ) -> Bool {
+    result = X(x.value)
+    return true
+  }
+
+  static fn _unconditionallyBridgeFromObjectiveC(_ source: LifetimeTracked?)
+      -> X {
+    var result: X?
+    _forceBridgeFromObjectiveC(source!, result: &result)
+    return result!
+  }
+
+  var value: Int
+}
+
+immutable BridgeNonVerbatimTests = TestSuite("BrideNonVerbatim")
+
+BridgeNonVerbatimTests.test("testing") {
+    fn testScope() {
+      immutable a = [X(1), X(2), X(3)]
+      immutable nsx: NSArray = a._bridgeToObjectiveC()
+
+      // construction of these tracked objects is lazy
+      expectEqual(LifetimeTracked.instances, 0)
+
+      // We can get a single element out
+      immutable one = nsx.object(at: 0) as! LifetimeTracked
+      expectEqual(one.value, 1)
+
+      // We can get the element again, but it may not have the same identity
+      immutable anotherOne = nsx.object(at: 0) as! LifetimeTracked
+      expectEqualReference(one, anotherOne)
+
+      // Because the elements come back at +0, we really don't want to
+      // treat them as objects, or we'll get double deletion
+      var objects: [Int] = [0, 0]
+
+      objects.withUnsafeMutableBufferPointer {
+        // FIXME: Can't elide signature and use $0 here <rdar://problem/17770732> 
+        (buf: inout UnsafeMutableBufferPointer<Int>) -> () in
+        nsx.available_getObjects(
+          AutoreleasingUnsafeMutablePointer(buf.baseAddress!),
+          range: NSRange(location: 1, length: 2))
+        return
+      }
+
+      var x = objects[0]
+      // getObjects yields them at +0:
+      expectTrue(_isUnique_native(&x))
+    }
+
+    autoreleasepool() {
+      testScope()
+    }
+
+    // leaks?
+    expectEqual(LifetimeTracked.instances, 0)
+}
+
+runAllTests()

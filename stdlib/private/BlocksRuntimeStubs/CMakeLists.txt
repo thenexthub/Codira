@@ -1,20 +1,20 @@
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../test/cmake/modules")
 
-include(SwiftTestUtils)
+include(CodiraTestUtils)
 
-foreach(SDK ${SWIFT_SDKS})
-  foreach(ARCH ${SWIFT_SDK_${SDK}_ARCHITECTURES})
-    get_swift_test_build_flavors(build_flavors "${SDK}")
+foreach(SDK ${LANGUAGE_SDKS})
+  foreach(ARCH ${LANGUAGE_SDK_${SDK}_ARCHITECTURES})
+    get_language_test_build_flavors(build_flavors "${SDK}")
 
     foreach(BUILD_FLAVOR ${build_flavors})
-      get_swift_test_variant_suffix(VARIANT_SUFFIX "${SDK}" "${ARCH}" "${BUILD_FLAVOR}")
+      get_language_test_variant_suffix(VARIANT_SUFFIX "${SDK}" "${ARCH}" "${BUILD_FLAVOR}")
 
-      set(test_bin_dir "${SWIFT_BINARY_DIR}/test${VARIANT_SUFFIX}")
+      set(test_bin_dir "${LANGUAGE_BINARY_DIR}/test${VARIANT_SUFFIX}")
 
-      add_swift_target_library_single(
+      add_language_target_library_single(
         BlocksRuntimeStub${VARIANT_SUFFIX}
         BlocksRuntimeStub
-        SHARED NOSWIFTRT
+        SHARED NOLANGUAGERT
         ARCHITECTURE ${ARCH}
         SDK ${SDK}
         INSTALL_IN_COMPONENT never_install
@@ -30,7 +30,7 @@ foreach(SDK ${SWIFT_SDKS})
       # compiler to serialize this behind the compiler.  Otherwise, we would
       # attempt to build this before the compiler is ready, which breaks the
       # build.
-      if(NOT SWIFT_BUILD_RUNTIME_WITH_HOST_COMPILER AND NOT BUILD_STANDALONE AND
+      if(NOT LANGUAGE_BUILD_RUNTIME_WITH_HOST_COMPILER AND NOT BUILD_STANDALONE AND
           TARGET clang)
         add_dependencies(BlocksRuntimeStub${VARIANT_SUFFIX} clang)
       endif()

@@ -1,0 +1,6 @@
+// Make sure that we can deserialize the stdlib.
+// RUN: %target-sil-opt %platform-module-dir/Codira.codemodule/%target-languagemodule-name -module-name Codira > /dev/null || %target-sil-opt %platform-module-dir/Codira.codemodule -module-name Codira > /dev/null
+// RUN: toolchain-bcanalyzer %platform-module-dir/Codira.codemodule/%target-languagemodule-name > %t || toolchain-bcanalyzer %platform-module-dir/Codira.codemodule > %t
+// RUN: %FileCheck %s < %t
+
+// CHECK-NOT: Unknown

@@ -1,4 +1,4 @@
-//===--- UnqualifiedLookup.cpp - Swift Name Lookup Routines ---------------===//
+//===--- UnqualifiedLookup.cpp - Codira Name Lookup Routines ---------------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 ///
 /// This file implements unqualified lookup, which searches for an identifier
@@ -35,10 +36,10 @@
 #include "language/Basic/Statistic.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Lexer.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/TinyPtrVector.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/DenseMap.h"
+#include "toolchain/ADT/TinyPtrVector.h"
+#include "toolchain/Support/Debug.h"
+#include "toolchain/Support/raw_ostream.h"
 
 #define DEBUG_TYPE "namelookup"
 
@@ -144,9 +145,9 @@ namespace {
         NLOptions baseNLOptions);
 
   public:
-    SWIFT_DEBUG_DUMP;
-    SWIFT_DEBUG_DUMPER(dumpResults());
-    SWIFT_DEBUG_DUMPER(dumpScopes());
+    LANGUAGE_DEBUG_DUMP;
+    LANGUAGE_DEBUG_DUMPER(dumpResults());
+    LANGUAGE_DEBUG_DUMPER(dumpScopes());
 
     void printScopes(raw_ostream &OS) const;
     void print(raw_ostream &OS) const;
@@ -204,7 +205,7 @@ public:
 
   void finishingLookup(std::string msg) const override {
     if (isTargetLookup())
-      llvm::errs() << "Finishing lookup: " << msg << "\n";
+      toolchain::errs() << "Finishing lookup: " << msg << "\n";
   }
 #endif
   };
@@ -289,7 +290,7 @@ void UnqualifiedLookupFactory::lookUpTopLevelNamesInModuleScopeContext(
   addNamesKnownToDebugClient(DC);
   if (Results.empty()) {
     // If we still haven't found anything, but we do have some
-    // declarations that are "unavailable in the current Swift", drop
+    // declarations that are "unavailable in the current Codira", drop
     // those in.
     addUnavailableInnerResults();
     if (Results.empty())
@@ -380,8 +381,8 @@ ValueDecl *UnqualifiedLookupFactory::lookupBaseDecl(const DeclContext *baseDC) c
   }
 
   // Previously we didn't perform the lookup of 'self' for anything outside
-  // of a '[weak self]' closure, maintain that behavior until Swift 6 mode.
-  if (!Ctx.LangOpts.isSwiftVersionAtLeast(6) && !capturesSelfWeakly)
+  // of a '[weak self]' closure, maintain that behavior until Codira 6 mode.
+  if (!Ctx.LangOpts.isCodiraVersionAtLeast(6) && !capturesSelfWeakly)
     return nullptr;
 
   auto selfDecl = ASTScope::lookupSingleLocalDecl(DC->getParentSourceFile(),
@@ -390,7 +391,7 @@ ValueDecl *UnqualifiedLookupFactory::lookupBaseDecl(const DeclContext *baseDC) c
     return nullptr;
   }
 
-  // In Swift 5 mode, implicit self is allowed within non-escaping
+  // In Codira 5 mode, implicit self is allowed within non-escaping
   // `weak self` closures even before self is unwrapped.
   // For example, this is allowed:
   //
@@ -399,7 +400,7 @@ ValueDecl *UnqualifiedLookupFactory::lookupBaseDecl(const DeclContext *baseDC) c
   //   }
   //
   // To support this, we have to preserve the lookup behavior from
-  // Swift 5.7 and earlier where implicit self defaults to the closure's
+  // Codira 5.7 and earlier where implicit self defaults to the closure's
   // `ParamDecl`. This causes the closure to capture self strongly,
   // which is not acceptable for escaping closures.
   //
@@ -411,10 +412,10 @@ ValueDecl *UnqualifiedLookupFactory::lookupBaseDecl(const DeclContext *baseDC) c
   //     method()
   //   }
   //
-  // In these cases, using the Swift 6 lookup behavior doesn't affect
-  // how the body is type-checked, so it can be used in Swift 5 mode
+  // In these cases, using the Codira 6 lookup behavior doesn't affect
+  // how the body is type-checked, so it can be used in Codira 5 mode
   // without breaking source compatibility for non-escaping closures.
-  if (!Ctx.LangOpts.isSwiftVersionAtLeast(6) &&
+  if (!Ctx.LangOpts.isCodiraVersionAtLeast(6) &&
       !implicitSelfReferenceIsUnwrapped(selfDecl)) {
     return nullptr;
   }
@@ -456,7 +457,7 @@ void UnqualifiedLookupFactory::setAsideUnavailableResults(
   // Predicate that determines whether a lookup result should
   // be unavailable except as a last-ditch effort.
   auto unavailableLookupResult = [&](const LookupResultEntry &result) {
-    return result.getValueDecl()->isUnavailableInCurrentSwiftVersion();
+    return result.getValueDecl()->isUnavailableInCurrentCodiraVersion();
   };
 
   // If all of the results we found are unavailable, keep looking.
@@ -490,7 +491,7 @@ void UnqualifiedLookupFactory::addImportedResults(const DeclContext *const dc) {
                  NLKind::UnqualifiedLookup, resolutionKind, dc,
                  Loc, nlOptions);
 
-  if (dc->isInSwiftinterface() &&
+  if (dc->isInCodirainterface() &&
       !dc->getASTContext().LangOpts.FormalCxxInteropMode) {
     // It's possible that the textual interface was originally compiled without
     // C++ interop enabled, but is now being imported in another compilation
@@ -669,8 +670,8 @@ void ASTScopeDeclConsumerForUnqualifiedLookup::maybeUpdateSelfDC(VarDecl *var) {
     // instance members of the innermost nominal type. Eg,
     //
     // class C {
-    //   func bar() {}
-    //   func foo() {
+    //   fn bar() {}
+    //   fn foo() {
     //     _ { [self=12] { [self] bar() } }
     //   }
     // }
@@ -812,10 +813,10 @@ UnqualifiedLookupRequest::evaluate(Evaluator &evaluator,
 
 #pragma mark debugging
 
-void UnqualifiedLookupFactory::dump() const { print(llvm::errs()); }
-void UnqualifiedLookupFactory::dumpScopes() const { printScopes(llvm::errs()); }
+void UnqualifiedLookupFactory::dump() const { print(toolchain::errs()); }
+void UnqualifiedLookupFactory::dumpScopes() const { printScopes(toolchain::errs()); }
 void UnqualifiedLookupFactory::dumpResults() const {
-  printResults(llvm::errs());
+  printResults(toolchain::errs());
 }
 
 void UnqualifiedLookupFactory::printScopes(raw_ostream &out) const {
@@ -856,9 +857,9 @@ void UnqualifiedLookupFactory::stopForDebuggingIfStartingTargetLookup(
   if (!isTargetLookup())
     return;
   if (isASTScopeLookup)
-    llvm::errs() << "starting target ASTScopeImpl lookup\n";
+    toolchain::errs() << "starting target ASTScopeImpl lookup\n";
   else
-    llvm::errs() << "starting target context-based lookup\n";
+    toolchain::errs() << "starting target context-based lookup\n";
 }
 
 void UnqualifiedLookupFactory::stopForDebuggingIfDuringTargetLookup(
@@ -866,16 +867,16 @@ void UnqualifiedLookupFactory::stopForDebuggingIfDuringTargetLookup(
   if (!isTargetLookup())
     return;
   if (isASTScopeLookup)
-    llvm::errs() << "during target ASTScopeImpl lookup\n";
+    toolchain::errs() << "during target ASTScopeImpl lookup\n";
   else
-    llvm::errs() << "during target context-based lookup\n";
+    toolchain::errs() << "during target context-based lookup\n";
 }
 
 void UnqualifiedLookupFactory::stopForDebuggingIfAddingTargetLookupResult(
     const LookupResultEntry &e) const {
   if (!isTargetLookup())
     return;
-  auto &out = llvm::errs();
+  auto &out = toolchain::errs();
   out << "\nresult for Target lookup:\n";
   e.print(out);
   out << "\n";
@@ -974,7 +975,7 @@ ValueDecl *ASTScope::lookupSingleLocalDecl(SourceFile *sf, DeclName name,
   return result[0];
 }
 
-DeclContext *swift::getModuleScopeLookupContext(DeclContext *dc) {
+DeclContext *language::getModuleScopeLookupContext(DeclContext *dc) {
   auto moduleScopeContext = dc->getModuleScopeContext();
 
   // When the module scope context is in a Clang module but we actually

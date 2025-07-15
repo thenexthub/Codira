@@ -1,4 +1,4 @@
-//===--- RequirementKind.h - Swift RequirementKind AST ---------*- C++ -*-===//
+//===--- RequirementKind.h - Codira RequirementKind AST ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the RequirementKind enum.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_AST_REQUIREMENTKIND_H
-#define SWIFT_AST_REQUIREMENTKIND_H
+#ifndef LANGUAGE_AST_REQUIREMENTKIND_H
+#define LANGUAGE_AST_REQUIREMENTKIND_H
 
 namespace language {
 /// Describes the kind of a requirement that occurs within a requirements

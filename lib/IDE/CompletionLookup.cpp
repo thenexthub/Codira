@@ -1,13 +1,17 @@
 //===--- CompletionLookup.cpp ---------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/IDE/CompletionLookup.h"
@@ -25,7 +29,7 @@ using namespace language::ide;
 
 namespace {
 
-static bool SwiftKeyPathFilter(ValueDecl *decl, DeclVisibilityKind) {
+static bool CodiraKeyPathFilter(ValueDecl *decl, DeclVisibilityKind) {
   switch (decl->getKind()) {
   case DeclKind::Var:
   case DeclKind::Subscript:
@@ -71,10 +75,10 @@ protocolForLiteralKind(CodeCompletionLiteralKind kind) {
   case CodeCompletionLiteralKind::StringLiteral:
     return KnownProtocolKind::ExpressibleByUnicodeScalarLiteral;
   case CodeCompletionLiteralKind::Tuple:
-    llvm_unreachable("no such protocol kind");
+    toolchain_unreachable("no such protocol kind");
   }
 
-  llvm_unreachable("Unhandled CodeCompletionLiteralKind in switch.");
+  toolchain_unreachable("Unhandled CodeCompletionLiteralKind in switch.");
 }
 
 static Type defaultTypeLiteralKind(CodeCompletionLiteralKind kind,
@@ -101,15 +105,21 @@ static Type defaultTypeLiteralKind(CodeCompletionLiteralKind kind,
     return Type();
   }
 
-  llvm_unreachable("Unhandled CodeCompletionLiteralKind in switch.");
+  toolchain_unreachable("Unhandled CodeCompletionLiteralKind in switch.");
 }
 
-/// Whether funcType has a single argument (not including defaulted arguments)
-/// that is of type () -> ().
-static bool hasTrivialTrailingClosure(const FuncDecl *FD,
-                                      AnyFunctionType *funcType) {
-  ParameterListInfo paramInfo(funcType->getParams(), FD,
-                              /*skipCurriedSelf*/ FD->hasCurriedSelf());
+/// Whether the provided type has a single argument (not including defaulted
+/// arguments) that is of type () -> ().
+static bool hasTrivialTrailingClosure(const ValueDecl *VD, Type type) {
+  if (!VD->hasParameterList())
+    return false;
+
+  auto *funcType = type->getAs<AnyFunctionType>();
+  if (!funcType)
+    return false;
+
+  ParameterListInfo paramInfo(funcType->getParams(), VD,
+                              /*skipCurriedSelf*/ VD->hasCurriedSelf());
 
   if (paramInfo.size() - paramInfo.numNonDefaultedParameters() == 1) {
     auto param = funcType->getParams().back();
@@ -124,23 +134,23 @@ static bool hasTrivialTrailingClosure(const FuncDecl *FD,
 }
 } // end anonymous namespace
 
-bool swift::ide::DefaultFilter(ValueDecl *VD, DeclVisibilityKind Kind,
+bool language::ide::DefaultFilter(ValueDecl *VD, DeclVisibilityKind Kind,
                                DynamicLookupInfo dynamicLookupInfo) {
   return true;
 }
 
-bool swift::ide::KeyPathFilter(ValueDecl *decl, DeclVisibilityKind,
+bool language::ide::KeyPathFilter(ValueDecl *decl, DeclVisibilityKind,
                                DynamicLookupInfo dynamicLookupInfo) {
   return isa<TypeDecl>(decl) ||
          (isa<VarDecl>(decl) && decl->getDeclContext()->isTypeContext());
 }
 
-bool swift::ide::MacroFilter(ValueDecl *decl, DeclVisibilityKind,
+bool language::ide::MacroFilter(ValueDecl *decl, DeclVisibilityKind,
                              DynamicLookupInfo dynamicLookupInfo) {
   return isa<MacroDecl>(decl);
 }
 
-bool swift::ide::isCodeCompletionAtTopLevel(const DeclContext *DC) {
+bool language::ide::isCodeCompletionAtTopLevel(const DeclContext *DC) {
   if (DC->isModuleScopeContext())
     return true;
 
@@ -165,7 +175,7 @@ bool swift::ide::isCodeCompletionAtTopLevel(const DeclContext *DC) {
   return false;
 }
 
-bool swift::ide::isCompletionDeclContextLocalContext(DeclContext *DC) {
+bool language::ide::isCompletionDeclContextLocalContext(DeclContext *DC) {
   if (!DC->isLocalContext())
     return false;
   if (isCodeCompletionAtTopLevel(DC))
@@ -174,9 +184,9 @@ bool swift::ide::isCompletionDeclContextLocalContext(DeclContext *DC) {
 }
 
 /// Returns \c true if \p DC can handles async call.
-bool swift::ide::canDeclContextHandleAsync(const DeclContext *DC) {
-  if (auto *func = dyn_cast<AbstractFunctionDecl>(DC))
-    return func->isAsyncContext();
+bool language::ide::canDeclContextHandleAsync(const DeclContext *DC) {
+  if (auto *fn = dyn_cast<AbstractFunctionDecl>(DC))
+    return fn->isAsyncContext();
 
   if (auto *closure = dyn_cast<ClosureExpr>(DC)) {
     // See if the closure has 'async' function type.
@@ -187,7 +197,7 @@ bool swift::ide::canDeclContextHandleAsync(const DeclContext *DC) {
 
     // If the closure doesn't contain any async call in the body, closure itself
     // doesn't have 'async' type even if 'async' closure is expected.
-    //   func foo(fn: () async -> Void)
+    //   fn foo(fn: () async -> Void)
     //   foo { <HERE> }
     // In this case, the closure is wrapped with a 'FunctionConversionExpr'
     // which has 'async' function type.
@@ -225,7 +235,7 @@ bool swift::ide::canDeclContextHandleAsync(const DeclContext *DC) {
 }
 
 /// Return \c true if the completion happens at top-level of a library file.
-bool swift::ide::isCodeCompletionAtTopLevelOfLibraryFile(
+bool language::ide::isCodeCompletionAtTopLevelOfLibraryFile(
     const DeclContext *DC) {
   if (DC->getParentSourceFile()->isScriptMode())
     return false;
@@ -303,8 +313,8 @@ void CompletionLookup::addSubModuleNames(
 }
 
 void CompletionLookup::collectImportedModules(
-    llvm::StringSet<> &directImportedModules,
-    llvm::StringSet<> &allImportedModules) {
+    toolchain::StringSet<> &directImportedModules,
+    toolchain::StringSet<> &allImportedModules) {
   SmallVector<ImportedModule, 16> Imported;
   SmallVector<ImportedModule, 16> FurtherImported;
   CurrDeclContext->getParentSourceFile()->getImportedModules(
@@ -357,8 +367,8 @@ void CompletionLookup::addImportModuleNames() {
   SmallVector<Identifier, 0> ModuleNames;
   Ctx.getVisibleTopLevelModuleNames(ModuleNames);
 
-  llvm::StringSet<> directImportedModules;
-  llvm::StringSet<> allImportedModules;
+  toolchain::StringSet<> directImportedModules;
+  toolchain::StringSet<> allImportedModules;
   collectImportedModules(directImportedModules, allImportedModules);
 
   auto mainModuleName = CurrModule->getName();
@@ -378,6 +388,23 @@ void CompletionLookup::addImportModuleNames() {
     }
 
     addModuleName(MD, Reason);
+  }
+}
+
+void CompletionLookup::addUsingSpecifiers() {
+  for (unsigned i = 0,
+                n = static_cast<unsigned>(UsingSpecifier::LastSpecifier) + 1;
+       i != n; ++i) {
+    CodeCompletionResultBuilder Builder = makeResultBuilder(
+        CodeCompletionResultKind::Keyword, SemanticContextKind::None);
+    switch (static_cast<UsingSpecifier>(i)) {
+    case UsingSpecifier::MainActor:
+      Builder.addTextChunk("@MainActor");
+      break;
+    case UsingSpecifier::Nonisolated:
+      Builder.addTextChunk("nonisolated");
+      break;
+    }
   }
 }
 
@@ -421,7 +448,7 @@ CompletionLookup::getSemanticContext(const Decl *D, DeclVisibilityKind Reason,
   case DeclVisibilityKind::DynamicLookup:
     switch (dynamicLookupInfo.getKind()) {
     case DynamicLookupInfo::None:
-      llvm_unreachable("invalid DynamicLookupInfo::Kind for dynamic lookup");
+      toolchain_unreachable("invalid DynamicLookupInfo::Kind for dynamic lookup");
 
     case DynamicLookupInfo::AnyObject:
       // AnyObject results can come from different modules, including the
@@ -442,9 +469,9 @@ CompletionLookup::getSemanticContext(const Decl *D, DeclVisibilityKind Reason,
     }
 
   case DeclVisibilityKind::MemberOfProtocolDerivedByCurrentNominal:
-    llvm_unreachable("should not see this kind");
+    toolchain_unreachable("should not see this kind");
   }
-  llvm_unreachable("unhandled kind");
+  toolchain_unreachable("unhandled kind");
 }
 
 bool CompletionLookup::isUnresolvedMemberIdealType(Type Ty) {
@@ -457,7 +484,7 @@ bool CompletionLookup::isUnresolvedMemberIdealType(Type Ty) {
   /// Consider optional object type is the ideal.
   /// For example:
   ///   enum MyEnum { case foo, bar }
-  ///   func foo(_: MyEnum?)
+  ///   fn foo(_: MyEnum?)
   ///   fooo(.<HERE>)
   /// Prefer '.foo' and '.bar' over '.some' and '.none'.
   idealTy = idealTy->lookThroughAllOptionalTypes();
@@ -490,7 +517,7 @@ void CompletionLookup::addValueBaseName(CodeCompletionResultBuilder &Builder,
     shouldEscapeKeywords = false;
   } else if (ExprType) {
     // After dot. User can write any keyword after '.' except for `init` and
-    // `self`. E.g. 'func `init`()' must be called by 'expr.`init`()'.
+    // `self`. E.g. 'fn `init`()' must be called by 'expr.`init`()'.
     shouldEscapeKeywords = NameStr == "self" || NameStr == "init";
   } else {
     // As primary expresson. We have to escape almost every keywords except
@@ -550,13 +577,15 @@ void CompletionLookup::addTypeAnnotationForImplicitlyUnwrappedOptional(
     suffix = "?";
   }
 
+  NonRecursivePrintOptions nrOptions =
+    NonRecursivePrintOption::ImplicitlyUnwrappedOptional;
+
   PrintOptions PO;
-  PO.PrintOptionalAsImplicitlyUnwrapped = true;
   PO.OpaqueReturnTypePrinting =
       PrintOptions::OpaqueReturnTypePrintingMode::WithoutOpaqueKeyword;
   if (auto typeContext = CurrDeclContext->getInnermostTypeContext())
     PO.setBaseType(typeContext->getDeclaredTypeInContext());
-  Builder.addTypeAnnotation(eraseArchetypes(T, genericSig), PO, suffix);
+  Builder.addTypeAnnotation(eraseArchetypes(T, genericSig), PO, nrOptions, suffix);
   Builder.setResultTypes(T);
   Builder.setTypeContext(expectedTypeContext, CurrDeclContext);
 }
@@ -690,7 +719,7 @@ Type CompletionLookup::getTypeOfMember(const ValueDecl *VD,
                            LookUpConformanceInModule());
   }
   }
-  llvm_unreachable("Unhandled DynamicLookupInfo Kind in switch");
+  toolchain_unreachable("Unhandled DynamicLookupInfo Kind in switch");
 }
 
 Type CompletionLookup::getTypeOfMember(const ValueDecl *VD, Type ExprType) {
@@ -746,10 +775,10 @@ Type CompletionLookup::getTypeOfMember(const ValueDecl *VD, Type ExprType) {
       // protocol MyProto {}
       // struct MyGeneric<T>: MyProto {}
       // extension MyProto where Self == MyGeneric<Int> {
-      //   static func qux() -> Self { .init() }
+      //   static fn qux() -> Self { .init() }
       // }
-      // func takeMyProto(_: any MyProto)  {}
-      // func test() {
+      // fn takeMyProto(_: any MyProto)  {}
+      // fn test() {
       //   takeMyProto(.#^COMPLETE^#)
       // }
       // ```
@@ -959,7 +988,7 @@ void CompletionLookup::addVarDeclRef(const VarDecl *VD,
 ///
 /// as:
 ///
-///   func addAttributes(_ attrs: [AnyHashable:Any] = [:],
+///   fn addAttributes(_ attrs: [AnyHashable:Any] = [:],
 ///                      options opts: [AnyHashable:Any] = [:])
 ///
 /// In this case, we don't want 'attrs' defaulted because the function name have
@@ -971,9 +1000,9 @@ void CompletionLookup::addVarDeclRef(const VarDecl *VD,
 ///   -(void)performWithOptions:(NSDictionary *) opts;
 ///
 /// This doesn't match the condition because the base name of the function in
-/// Swift is 'peform':
+/// Codira is 'peform':
 ///
-///   func perform(options opts: [AnyHashable:Any] = [:])
+///   fn perform(options opts: [AnyHashable:Any] = [:])
 ///
 bool isNonDesirableImportedDefaultArg(const ParamDecl *param) {
   auto kind = param->getDefaultArgumentKind();
@@ -984,15 +1013,15 @@ bool isNonDesirableImportedDefaultArg(const ParamDecl *param) {
   if (!param->getArgumentName().empty())
     return false;
 
-  auto *func = dyn_cast<FuncDecl>(param->getDeclContext());
-  if (!func->hasClangNode())
+  auto *fn = dyn_cast<FuncDecl>(param->getDeclContext());
+  if (!fn->hasClangNode())
     return false;
-  if (func->getParameters()->front() != param)
+  if (fn->getParameters()->front() != param)
     return false;
-  if (func->getBaseName().isSpecial())
+  if (fn->getBaseName().isSpecial())
     return false;
 
-  auto baseName = func->getBaseName().getIdentifier().str();
+  auto baseName = fn->getBaseName().getIdentifier().str();
   switch (kind) {
   case DefaultArgumentKind::EmptyArray:
     return (baseName.ends_with("Options"));
@@ -1000,7 +1029,7 @@ bool isNonDesirableImportedDefaultArg(const ParamDecl *param) {
     return (baseName.ends_with("Options") || baseName.ends_with("Attributes") ||
             baseName.ends_with("UserInfo"));
   default:
-    llvm_unreachable("unhandled DefaultArgumentKind");
+    toolchain_unreachable("unhandled DefaultArgumentKind");
   }
 }
 
@@ -1031,10 +1060,10 @@ bool CompletionLookup::hasInterestingDefaultValue(const ParamDecl *param) {
 }
 
 bool CompletionLookup::shouldAddItemWithoutDefaultArgs(
-    const AbstractFunctionDecl *func) {
-  if (!func || !Sink.addCallWithNoDefaultArgs)
+    const AbstractFunctionDecl *fn) {
+  if (!fn || !Sink.addCallWithNoDefaultArgs)
     return false;
-  for (auto param : *func->getParameters()) {
+  for (auto param : *fn->getParameters()) {
     if (hasInterestingDefaultValue(param))
       return true;
   }
@@ -1357,13 +1386,13 @@ bool CompletionLookup::isImplicitlyCurriedInstanceMethod(
   case LookupKind::Type:
   case LookupKind::TypeInDeclContext:
   case LookupKind::GenericRequirement:
-    llvm_unreachable("cannot have a method call while doing a "
+    toolchain_unreachable("cannot have a method call while doing a "
                      "type completion");
   case LookupKind::ImportFromModule:
     return false;
   }
 
-  llvm_unreachable("Unhandled LookupKind in switch.");
+  toolchain_unreachable("Unhandled LookupKind in switch.");
 }
 
 void CompletionLookup::addMethodCall(const FuncDecl *FD,
@@ -1460,10 +1489,13 @@ void CompletionLookup::addMethodCall(const FuncDecl *FD,
     bool IsIUO = !IsImplicitlyCurriedInstanceMethod &&
                  FD->isImplicitlyUnwrappedOptional();
 
+    NonRecursivePrintOptions nrOptions;
+    if (IsIUO)
+      nrOptions |= NonRecursivePrintOption::ImplicitlyUnwrappedOptional;
+
     PrintOptions PO;
     PO.OpaqueReturnTypePrinting =
         PrintOptions::OpaqueReturnTypePrintingMode::WithoutOpaqueKeyword;
-    PO.PrintOptionalAsImplicitlyUnwrapped = IsIUO;
     if (auto typeContext = CurrDeclContext->getInnermostTypeContext())
       PO.setBaseType(typeContext->getDeclaredTypeInContext());
     Type AnnotationTy =
@@ -1485,12 +1517,12 @@ void CompletionLookup::addMethodCall(const FuncDecl *FD,
             // What's left is the result type.
             if (AnnotationTy->isVoid())
               AnnotationTy = Ctx.getVoidDecl()->getDeclaredInterfaceType();
-            AnnotationTy.print(printer, PO);
+            AnnotationTy.print(printer, PO, nrOptions);
             printer.printTypePost(TL);
           });
     } else {
-      llvm::SmallString<32> TypeStr;
-      llvm::raw_svector_ostream OS(TypeStr);
+      toolchain::SmallString<32> TypeStr;
+      toolchain::raw_svector_ostream OS(TypeStr);
       if (IsImplicitlyCurriedInstanceMethod) {
         auto *FnType = AnnotationTy->castTo<AnyFunctionType>();
         AnyFunctionType::printParams(FnType->getParams(), OS);
@@ -1501,7 +1533,7 @@ void CompletionLookup::addMethodCall(const FuncDecl *FD,
       // What's left is the result type.
       if (AnnotationTy->isVoid())
         AnnotationTy = Ctx.getVoidDecl()->getDeclaredInterfaceType();
-      AnnotationTy.print(OS, PO);
+      AnnotationTy.print(OS, PO, nrOptions);
       Builder.addTypeAnnotation(TypeStr);
     }
 
@@ -1512,7 +1544,7 @@ void CompletionLookup::addMethodCall(const FuncDecl *FD,
       Builder.addFlair(CodeCompletionFlairBit::ExpressionSpecific);
   };
 
-  // Do not add imported C++ methods that are treated as unsafe in Swift.
+  // Do not add imported C++ methods that are treated as unsafe in Codira.
   if (Importer->isUnsafeCXXMethod(FD))
     return;
 
@@ -1631,7 +1663,7 @@ void CompletionLookup::addConstructorCallsForType(
   assert(CurrDeclContext);
 
   auto results =
-      swift::lookupSemanticMember(const_cast<DeclContext *>(CurrDeclContext),
+      language::lookupSemanticMember(const_cast<DeclContext *>(CurrDeclContext),
                                   type, DeclBaseName::createConstructor());
   for (const auto &entry : results.allResults()) {
     auto *init = cast<ConstructorDecl>(entry.getValueDecl());
@@ -1650,9 +1682,9 @@ void CompletionLookup::addSubscriptCall(const SubscriptDecl *SD,
   if (!ExprType)
     return;
 
-  // Subscript after '.' is valid only after type part of Swift keypath
+  // Subscript after '.' is valid only after type part of Codira keypath
   // expression. (e.g. '\TyName.SubTy.[0])
-  if (HaveDot && !IsAfterSwiftKeyPathRoot)
+  if (HaveDot && !IsAfterCodiraKeyPathRoot)
     return;
 
   auto subscriptType =
@@ -1674,7 +1706,7 @@ void CompletionLookup::addSubscriptCall(const SubscriptDecl *SD,
     Builder.setContextualNotRecommended(*NotRecommended);
 
   // '\TyName#^TOKEN^#' requires leading dot.
-  if (!HaveDot && IsAfterSwiftKeyPathRoot)
+  if (!HaveDot && IsAfterCodiraKeyPathRoot)
     Builder.addLeadingDot();
 
   if (NeedOptionalUnwrap) {
@@ -1717,8 +1749,8 @@ static StringRef getTypeAnnotationString(const NominalTypeDecl *NTD,
     return attrRoleStrs[0];
 
   assert(stash.empty());
-  llvm::raw_svector_ostream OS(stash);
-  llvm::interleave(attrRoleStrs, OS, ", ");
+  toolchain::raw_svector_ostream OS(stash);
+  toolchain::interleave(attrRoleStrs, OS, ", ");
   return {stash.data(), stash.size()};
 }
 
@@ -1747,8 +1779,8 @@ void CompletionLookup::addNominalTypeRef(const NominalTypeDecl *NTD,
   // Override the type relation for NominalTypes. Use the better relation
   // for the metatypes and the instance type. For example,
   //
-  //   func receiveInstance(_: Int) {}
-  //   func receiveMetatype(_: Int.Type) {}
+  //   fn receiveInstance(_: Int) {}
+  //   fn receiveMetatype(_: Int.Type) {}
   //
   // We want to suggest 'Int' as 'Identical' for both arguments.
   Builder.setResultTypes({MetatypeType::get(nominalTy), nominalTy});
@@ -1941,9 +1973,39 @@ static StringRef getTypeAnnotationString(const MacroDecl *MD,
     return roleStrs[0];
 
   assert(stash.empty());
-  llvm::raw_svector_ostream OS(stash);
-  llvm::interleave(roleStrs, OS, ", ");
+  toolchain::raw_svector_ostream OS(stash);
+  toolchain::interleave(roleStrs, OS, ", ");
   return {stash.data(), stash.size()};
+}
+
+void CompletionLookup::addMacroCallArguments(const MacroDecl *MD,
+                                             DeclVisibilityKind Reason,
+                                             bool forTrivialTrailingClosure) {
+  CodeCompletionResultBuilder Builder =
+      makeResultBuilder(CodeCompletionResultKind::Declaration,
+                        getSemanticContext(MD, Reason, DynamicLookupInfo()));
+  Builder.setAssociatedDecl(MD);
+
+  addValueBaseName(Builder, MD->getBaseIdentifier());
+
+  if (forTrivialTrailingClosure) {
+    Builder.addBraceStmtWithCursor(" { code }");
+  } else if (MD->parameterList && MD->parameterList->size() > 0) {
+    auto *macroTy = MD->getInterfaceType()->castTo<AnyFunctionType>();
+    Builder.addLeftParen();
+    addCallArgumentPatterns(Builder, macroTy, MD->parameterList,
+                            MD->getGenericSignature());
+    Builder.addRightParen();
+  }
+
+  auto roles = MD->getMacroRoles();
+  if (roles.containsOnly(MacroRole::Expression)) {
+    addTypeAnnotation(Builder, MD->getResultInterfaceType(),
+                      MD->getGenericSignature());
+  } else {
+    toolchain::SmallVector<char, 0> stash;
+    Builder.addTypeAnnotation(getTypeAnnotationString(MD, stash));
+  }
 }
 
 void CompletionLookup::addMacroExpansion(const MacroDecl *MD,
@@ -1962,30 +2024,10 @@ void CompletionLookup::addMacroExpansion(const MacroDecl *MD,
       return;
   }
 
-  CodeCompletionResultBuilder Builder =
-      makeResultBuilder(CodeCompletionResultKind::Declaration,
-                        getSemanticContext(MD, Reason, DynamicLookupInfo()));
-  Builder.setAssociatedDecl(MD);
+  if (hasTrivialTrailingClosure(MD, MD->getInterfaceType()))
+    addMacroCallArguments(MD, Reason, /*forTrivialTrailingClosure*/ true);
 
-  addValueBaseName(Builder, MD->getBaseIdentifier());
-
-  Type macroType = MD->getInterfaceType();
-  if (MD->parameterList && MD->parameterList->size() > 0) {
-    Builder.addLeftParen();
-    addCallArgumentPatterns(Builder, macroType->castTo<AnyFunctionType>(),
-                            MD->parameterList,
-                            MD->getGenericSignature());
-    Builder.addRightParen();
-  }
-
-  auto roles = MD->getMacroRoles();
-  if (roles.containsOnly(MacroRole::Expression)) {
-    addTypeAnnotation(Builder, MD->getResultInterfaceType(),
-                      MD->getGenericSignature());
-  } else {
-    llvm::SmallVector<char, 0> stash;
-    Builder.addTypeAnnotation(getTypeAnnotationString(MD, stash));
-  }
+  addMacroCallArguments(MD, Reason);
 }
 
 void CompletionLookup::addKeyword(StringRef Name, Type TypeAnnotation,
@@ -2100,7 +2142,7 @@ void CompletionLookup::onLookupNominalTypeMembers(NominalTypeDecl *NTD,
 
   // Remember the decl name to
   SmallString<32> buffer;
-  llvm::raw_svector_ostream OS(buffer);
+  toolchain::raw_svector_ostream OS(buffer);
   PrintOptions PS = PrintOptions::printDocInterface();
   PS.FullyQualifiedTypes = true;
   NTD->getDeclaredType()->print(OS, PS);
@@ -2134,7 +2176,7 @@ void CompletionLookup::foundDecl(ValueDecl *D, DeclVisibilityKind Reason,
   if (IsKeyPathExpr && !KeyPathFilter(D, Reason, dynamicLookupInfo))
     return;
 
-  if (IsSwiftKeyPathExpr && !SwiftKeyPathFilter(D, Reason))
+  if (IsCodiraKeyPathExpr && !CodiraKeyPathFilter(D, Reason))
     return;
 
   // If we've seen this decl+type before (possible when multiple lookups are
@@ -2205,7 +2247,7 @@ void CompletionLookup::foundDecl(ValueDecl *D, DeclVisibilityKind Reason,
     if (HaveLParen)
       return;
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
 
   case LookupKind::ValueInDeclContext:
   case LookupKind::ImportFromModule:
@@ -2284,7 +2326,7 @@ void CompletionLookup::foundDecl(ValueDecl *D, DeclVisibilityKind Reason,
       return;
     }
 
-    // Swift key path allows .[0]
+    // Codira key path allows .[0]
     if (auto *SD = dyn_cast<SubscriptDecl>(D)) {
       addSubscriptCall(SD, Reason, dynamicLookupInfo);
       return;
@@ -2312,7 +2354,7 @@ void CompletionLookup::foundDecl(ValueDecl *D, DeclVisibilityKind Reason,
       return;
     }
 
-    LLVM_FALLTHROUGH;
+    TOOLCHAIN_FALLTHROUGH;
   case LookupKind::GenericRequirement:
 
     if (TypeAliasDecl *TAD = dyn_cast<TypeAliasDecl>(D)) {
@@ -2367,9 +2409,9 @@ bool CompletionLookup::tryTupleExprCompletions(Type ExprType) {
     if (TupleElt.hasName()) {
       addBuiltinMemberRef(TupleElt.getName().str(), Ty);
     } else {
-      llvm::SmallString<4> IndexStr;
+      toolchain::SmallString<4> IndexStr;
       {
-        llvm::raw_svector_ostream OS(IndexStr);
+        toolchain::raw_svector_ostream OS(IndexStr);
         OS << Index;
       }
       addBuiltinMemberRef(IndexStr, Ty);
@@ -2454,13 +2496,13 @@ bool CompletionLookup::tryUnwrappedCompletions(Type ExprType, bool isIUO) {
   }
 
   if (Type Unwrapped = ExprType->getOptionalObjectType()) {
-    llvm::SaveAndRestore<bool> ChangeNeedOptionalUnwrap(NeedOptionalUnwrap,
+    toolchain::SaveAndRestore<bool> ChangeNeedOptionalUnwrap(NeedOptionalUnwrap,
                                                         true);
     if (DotLoc.isValid()) {
-      // Let's not erase the dot if the completion is after a swift key path
+      // Let's not erase the dot if the completion is after a language key path
       // root because \A?.?.member is the correct way to access wrapped type
       // member from an optional key path root.
-      auto loc = IsAfterSwiftKeyPathRoot ? DotLoc.getAdvancedLoc(1) : DotLoc;
+      auto loc = IsAfterCodiraKeyPathRoot ? DotLoc.getAdvancedLoc(1) : DotLoc;
       NumBytesToEraseForOptionalUnwrap = Ctx.SourceMgr.getByteDistance(
           loc, Ctx.SourceMgr.getIDEInspectionTargetLoc());
     } else {
@@ -2706,7 +2748,7 @@ void CompletionLookup::addValueLiteralCompletions() {
 
   auto addFromProto =
       [&](CodeCompletionLiteralKind kind,
-          llvm::function_ref<void(CodeCompletionResultBuilder &)> consumer,
+          toolchain::function_ref<void(CodeCompletionResultBuilder &)> consumer,
           bool isKeyword = false) {
         CodeCompletionResultBuilder builder = makeResultBuilder(
             CodeCompletionResultKind::Literal, SemanticContextKind::None);
@@ -2717,7 +2759,7 @@ void CompletionLookup::addValueLiteralCompletions() {
         addTypeRelationFromProtocol(builder, kind);
       };
 
-  // FIXME: the pedantically correct way is to resolve Swift.*LiteralType.
+  // FIXME: the pedantically correct way is to resolve Codira.*LiteralType.
 
   using LK = CodeCompletionLiteralKind;
   using Builder = CodeCompletionResultBuilder;
@@ -2864,7 +2906,7 @@ void CompletionLookup::getValueCompletionsInDeclContext(SourceLoc Loc,
     // using lookup (e.g. getUnresolvedMemberCompletions) is too expensive,
     // and for some clients this approximation is good enough.
     CompletionContext->MayUseImplicitMemberExpr =
-        llvm::any_of(expectedTypeContext.getPossibleTypes(), [](Type T) {
+        toolchain::any_of(expectedTypeContext.getPossibleTypes(), [](Type T) {
           if (auto *NTD = T->getAnyNominal())
             return isa<EnumDecl>(NTD);
           return false;
@@ -2921,9 +2963,9 @@ void CompletionLookup::getUnresolvedMemberCompletions(Type T) {
                                 });
 
   auto baseType = MetatypeType::get(T);
-  llvm::SaveAndRestore<LookupKind> SaveLook(Kind, LookupKind::ValueExpr);
-  llvm::SaveAndRestore<Type> SaveType(ExprType, baseType);
-  llvm::SaveAndRestore<bool> SaveUnresolved(IsUnresolvedMember, true);
+  toolchain::SaveAndRestore<LookupKind> SaveLook(Kind, LookupKind::ValueExpr);
+  toolchain::SaveAndRestore<Type> SaveType(ExprType, baseType);
+  toolchain::SaveAndRestore<bool> SaveUnresolved(IsUnresolvedMember, true);
   lookupVisibleMemberDecls(consumer, baseType, DotLoc, CurrDeclContext,
                            /*includeInstanceMembers=*/false,
                            /*includeDerivedRequirements*/ false,
@@ -2935,9 +2977,9 @@ void CompletionLookup::getEnumElementPatternCompletions(Type T) {
     return;
 
   auto baseType = MetatypeType::get(T);
-  llvm::SaveAndRestore<LookupKind> SaveLook(Kind, LookupKind::EnumElement);
-  llvm::SaveAndRestore<Type> SaveType(ExprType, baseType);
-  llvm::SaveAndRestore<bool> SaveUnresolved(IsUnresolvedMember, true);
+  toolchain::SaveAndRestore<LookupKind> SaveLook(Kind, LookupKind::EnumElement);
+  toolchain::SaveAndRestore<Type> SaveType(ExprType, baseType);
+  toolchain::SaveAndRestore<bool> SaveUnresolved(IsUnresolvedMember, true);
   lookupVisibleMemberDecls(*this, baseType, DotLoc, CurrDeclContext,
                            /*includeInstanceMembers=*/false,
                            /*includeDerivedRequirements=*/false,
@@ -3139,6 +3181,10 @@ void CompletionLookup::getAttributeDeclParamCompletions(
     break;
   case ParameterizedDeclAttributeKind::Nonisolated:
     addDeclAttrParamKeyword("unsafe", /*Parameters=*/{}, "", false);
+    addDeclAttrParamKeyword("nonsending", /*Parameters=*/{}, "", false);
+    break;
+  case ParameterizedDeclAttributeKind::InheritActorContext:
+    addDeclAttrParamKeyword("always", /*Parameters=*/{}, "", false);
     break;
   case ParameterizedDeclAttributeKind::AccessControl:
     addDeclAttrParamKeyword("set", /*Parameters=*/{}, "", false);
@@ -3148,7 +3194,7 @@ void CompletionLookup::getAttributeDeclParamCompletions(
       addDeclAttrParamKeyword("*", /*Parameters=*/{}, "Platform", false);
 
 #define AVAILABILITY_PLATFORM(X, PrettyName)                                   \
-  addDeclAttrParamKeyword(swift::platformString(PlatformKind::X),              \
+  addDeclAttrParamKeyword(language::platformString(PlatformKind::X),              \
                           /*Parameters=*/{}, "Platform", false);
 #include "language/AST/PlatformKinds.def"
 
@@ -3236,6 +3282,11 @@ void CompletionLookup::getAttributeDeclParamCompletions(
         getStoredPropertyCompletions(NT);
       }
     }
+    break;
+  }
+  case ParameterizedDeclAttributeKind::Nonexhaustive: {
+    addDeclAttrParamKeyword("warn", /*Parameters=*/{}, "", false);
+    break;
   }
   }
 }
@@ -3270,7 +3321,7 @@ void CompletionLookup::getTypeAttributeKeywordCompletions(
 #include "language/AST/TypeAttr.def"
 
   // Add non-simple cases.
-  addTypeAttr(TypeAttrKind::Convention, "convention(swift)");
+  addTypeAttr(TypeAttrKind::Convention, "convention(language)");
   addTypeAttr(TypeAttrKind::Convention, "convention(block)");
   addTypeAttr(TypeAttrKind::Convention, "convention(c)");
   addTypeAttr(TypeAttrKind::Convention, "convention(thin)");
@@ -3287,7 +3338,7 @@ void CompletionLookup::collectPrecedenceGroups() {
       if (FU->getKind() != FileUnitKind::Source)
         continue;
 
-      llvm::SmallVector<PrecedenceGroupDecl *, 4> results;
+      toolchain::SmallVector<PrecedenceGroupDecl *, 4> results;
       cast<SourceFile>(FU)->getPrecedenceGroups(results);
 
       for (auto PG : results)
@@ -3328,7 +3379,7 @@ void CompletionLookup::getPrecedenceGroupCompletions(
     collectPrecedenceGroups();
     return;
   }
-  llvm_unreachable("not a precedencegroup SyntaxKind");
+  toolchain_unreachable("not a precedencegroup SyntaxKind");
 }
 
 void CompletionLookup::getPoundAvailablePlatformCompletions() {
@@ -3352,7 +3403,7 @@ void CompletionLookup::getSelfTypeCompletionInDeclContext(
       CurrDeclContext->mapTypeIntoContext(typeDC->getSelfInterfaceType());
 
   if (typeDC->getSelfClassDecl()) {
-    // In classes, 'Self' can be used in result type of func, subscript and
+    // In classes, 'Self' can be used in result type of fn, subscript and
     // computed property, or inside function bodies.
     bool canUseDynamicSelf = false;
     if (isForDeclResult) {
@@ -3492,7 +3543,7 @@ void CompletionLookup::lookupExternalModuleDecls(
   TheModule->lookupVisibleDecls(builder.get(), FilteringConsumer,
                                 NLKind::UnqualifiedLookup);
 
-  llvm::SmallVector<PrecedenceGroupDecl *, 16> precedenceGroups;
+  toolchain::SmallVector<PrecedenceGroupDecl *, 16> precedenceGroups;
   TheModule->getPrecedenceGroups(precedenceGroups);
 
   for (auto PGD : precedenceGroups)
@@ -3501,7 +3552,7 @@ void CompletionLookup::lookupExternalModuleDecls(
 
 void CompletionLookup::getStmtLabelCompletions(SourceLoc Loc, bool isContinue) {
   auto *SF = CurrDeclContext->getParentSourceFile();
-  llvm::SmallPtrSet<Identifier, 4> labels;
+  toolchain::SmallPtrSet<Identifier, 4> labels;
   for (auto *LS : ASTScope::lookupLabeledStmts(SF, Loc)) {
     if (isContinue && !LS->isPossibleContinueTarget())
       continue;

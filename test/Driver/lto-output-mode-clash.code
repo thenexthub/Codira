@@ -1,0 +1,11 @@
+// RUN: %languagec_driver -driver-print-jobs %S/../Inputs/empty.code -lto=toolchain-full -static -emit-library -target x86_64-apple-macosx10.9 | %FileCheck %s
+// RUN: %languagec_driver -driver-print-jobs %S/../Inputs/empty.code -lto=toolchain-full -emit-library -target x86_64-apple-macosx10.9 | %FileCheck %s
+// RUN: %languagec_driver -driver-print-jobs %S/../Inputs/empty.code -lto=toolchain-full -c -target x86_64-apple-macosx10.9 | %FileCheck %s
+// RUN: %languagec_driver -driver-print-jobs %S/../Inputs/empty.code -c -lto=toolchain-full -target x86_64-apple-macosx10.9 | %FileCheck %s
+// RUN: %languagec_driver -driver-print-jobs %S/../Inputs/empty.code -c -lto=toolchain-full -emit-bc -target x86_64-apple-macosx10.9 | %FileCheck %s
+// RUN: %languagec_driver -driver-print-jobs %S/../Inputs/empty.code -emit-bc -c -lto=toolchain-full -target x86_64-apple-macosx10.9 | %FileCheck %s
+
+// CHECK: language
+// CHECK-DAG: -emit-bc
+// CHECK-DAG: -lto=toolchain-full
+// CHECK-DAG: -o [[BITCODEFILE:.*\.bc]]

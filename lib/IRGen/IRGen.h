@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines some types that are generically useful in IR
@@ -18,17 +19,17 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_IRGEN_IRGEN_H
-#define SWIFT_IRGEN_IRGEN_H
+#ifndef LANGUAGE_IRGEN_IRGEN_H
+#define LANGUAGE_IRGEN_IRGEN_H
 
-#include "llvm/Support/DataTypes.h"
+#include "toolchain/Support/DataTypes.h"
 #include "clang/AST/CharUnits.h"
 #include "clang/CodeGen/ConstantInitFuture.h"
 #include "language/AST/ResilienceExpansion.h"
 #include "language/SIL/AbstractionPattern.h"
 #include <cassert>
 
-namespace llvm {
+namespace toolchain {
   class Value;
 }
 
@@ -43,7 +44,7 @@ namespace irgen {
   using clang::CodeGen::ConstantInitFuture;
   class IRGenFunction;
 
-/// In IRGen, we use Swift's ClusteredBitVector data structure to
+/// In IRGen, we use Codira's ClusteredBitVector data structure to
 /// store vectors of spare bits.
 using SpareBitVector = ClusteredBitVector;
 
@@ -196,17 +197,17 @@ enum class SymbolReferenceKind : uint8_t {
 
 /// A lazy constant initializer.
 struct LazyConstantInitializer {
-  llvm::Type *DefaultType;
-  llvm::function_ref<ConstantInitFuture(ConstantInitBuilder &)> Build;
-  llvm::function_ref<void(llvm::GlobalVariable *)> Create;
+  toolchain::Type *DefaultType;
+  toolchain::function_ref<ConstantInitFuture(ConstantInitBuilder &)> Build;
+  toolchain::function_ref<void(toolchain::GlobalVariable *)> Create;
 };
 
-/// An initial value for a definition of an llvm::GlobalVariable.
+/// An initial value for a definition of an toolchain::GlobalVariable.
 class ConstantInit {
   union {
     ConstantInitFuture Future;
     const LazyConstantInitializer *Lazy;
-    llvm::Type *Delayed;
+    toolchain::Type *Delayed;
   };
   enum class Kind {
     None, Future, Lazy, Delayed
@@ -219,7 +220,7 @@ public:
   ConstantInit() : TheKind(Kind::None) {}
 
   /// Use a concrete value as a concrete initializer.
-  ConstantInit(llvm::Constant *initializer)
+  ConstantInit(toolchain::Constant *initializer)
     : Future(ConstantInitFuture(initializer)), TheKind(Kind::Future) {}
 
   /// Use a ConstantInitBuilder future as a concrete initializer.
@@ -238,7 +239,7 @@ public:
 
   /// There will be a definition (with the given type), but we don't
   /// have it yet.
-  static ConstantInit getDelayed(llvm::Type *type) {
+  static ConstantInit getDelayed(toolchain::Type *type) {
     auto result = ConstantInit();
     result.TheKind = Kind::Delayed;
     result.Delayed = type;
@@ -247,7 +248,7 @@ public:
 
   explicit operator bool() const { return TheKind != Kind::None; }
 
-  inline llvm::Type *getType() const {
+  inline toolchain::Type *getType() const {
     assert(TheKind != Kind::None && "not a definition");
     if (TheKind == Kind::Delayed) {
       return Delayed;
@@ -303,8 +304,8 @@ public:
   using int_type = uint64_t;
 
   constexpr Alignment() : Shift(0) {}
-  explicit Alignment(int_type Value) : Shift(llvm::Log2_64(Value)) {
-    assert(llvm::isPowerOf2_64(Value));
+  explicit Alignment(int_type Value) : Shift(toolchain::Log2_64(Value)) {
+    assert(toolchain::isPowerOf2_64(Value));
   }
   explicit Alignment(clang::CharUnits value) : Alignment(value.getQuantity()) {}
 
@@ -323,7 +324,7 @@ public:
     return clang::CharUnits::fromQuantity(getValue());
   }
 
-  explicit operator llvm::MaybeAlign() const { return llvm::MaybeAlign(getValue()); }
+  explicit operator toolchain::MaybeAlign() const { return toolchain::MaybeAlign(getValue()); }
 
   friend bool operator< (Alignment L, Alignment R){ return L.Shift <  R.Shift; }
   friend bool operator<=(Alignment L, Alignment R){ return L.Shift <= R.Shift; }
@@ -335,7 +336,7 @@ public:
   template<unsigned Value>
   static constexpr Alignment create() {
     Alignment result;
-    result.Shift = llvm::CTLog2<Value>();
+    result.Shift = toolchain::CTLog2<Value>();
     return result;
   }
 
@@ -415,7 +416,7 @@ public:
   }
 
   unsigned log2() const {
-    return llvm::Log2_64(Value);
+    return toolchain::Log2_64(Value);
   }
 
   operator clang::CharUnits() const {
@@ -477,7 +478,7 @@ class Offset {
   uint64_t Data;
 
 public:
-  explicit Offset(llvm::Value *offset)
+  explicit Offset(toolchain::Value *offset)
     : Data(reinterpret_cast<uintptr_t>(offset) | Dynamic) {}
   explicit Offset(Size offset)
     : Data((static_cast<uint64_t>(offset.getValue()) << KindBits) | Static) {
@@ -490,12 +491,12 @@ public:
     assert(isStatic());
     return Size(static_cast<int64_t>(Data) >> KindBits);
   }
-  llvm::Value *getDynamic() const {
+  toolchain::Value *getDynamic() const {
     assert(isDynamic());
-    return reinterpret_cast<llvm::Value*>(Data & PayloadMask);
+    return reinterpret_cast<toolchain::Value*>(Data & PayloadMask);
   }
 
-  llvm::Value *getAsValue(IRGenFunction &IGF) const;
+  toolchain::Value *getAsValue(IRGenFunction &IGF) const;
   Offset offsetBy(IRGenFunction &IGF, Size other) const;
 };
 

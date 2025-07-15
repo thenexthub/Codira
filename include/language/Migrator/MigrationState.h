@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This class is an explicit container for a state during migration, its input
@@ -18,11 +19,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_MIGRATOR_MIGRATIONSTATE_H
-#define SWIFT_MIGRATOR_MIGRATIONSTATE_H
+#ifndef LANGUAGE_MIGRATOR_MIGRATIONSTATE_H
+#define LANGUAGE_MIGRATOR_MIGRATIONSTATE_H
 
-#include "llvm/ADT/IntrusiveRefCntPtr.h"
-#include "llvm/ADT/StringRef.h"
+#include "toolchain/ADT/IntrusiveRefCntPtr.h"
+#include "toolchain/ADT/StringRef.h"
 
 namespace language {
 
@@ -44,7 +45,7 @@ enum class MigrationKind {
   CompilerFixits,
 };
 
-struct MigrationState : public llvm::ThreadSafeRefCountedBase<MigrationState> {
+struct MigrationState : public toolchain::ThreadSafeRefCountedBase<MigrationState> {
   MigrationKind Kind;
   SourceManager &SrcMgr;
   unsigned InputBufferID;
@@ -80,19 +81,19 @@ struct MigrationState : public llvm::ThreadSafeRefCountedBase<MigrationState> {
     return InputBufferID == OutputBufferID;
   }
 
-  static llvm::IntrusiveRefCntPtr<MigrationState>
+  static toolchain::IntrusiveRefCntPtr<MigrationState>
   start(SourceManager &SrcMgr, const unsigned InputBufferID) {
-    return llvm::IntrusiveRefCntPtr<MigrationState> {
+    return toolchain::IntrusiveRefCntPtr<MigrationState> {
       new MigrationState {
         MigrationKind::Start, SrcMgr, InputBufferID, InputBufferID
       }
     };
   }
 
-  static llvm::IntrusiveRefCntPtr<MigrationState>
+  static toolchain::IntrusiveRefCntPtr<MigrationState>
   make(MigrationKind Kind, SourceManager &SrcMgr, const unsigned InputBufferID,
        const unsigned OutputBufferID) {
-    return llvm::IntrusiveRefCntPtr<MigrationState> {
+    return toolchain::IntrusiveRefCntPtr<MigrationState> {
       new MigrationState {
         Kind,
         SrcMgr,
@@ -106,4 +107,4 @@ struct MigrationState : public llvm::ThreadSafeRefCountedBase<MigrationState> {
 
 }
 }
-#endif // SWIFT_MIGRATOR_MIGRATIONSTATE_H
+#endif // LANGUAGE_MIGRATOR_MIGRATIONSTATE_H

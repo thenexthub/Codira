@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTVisitor.h"
@@ -72,7 +73,7 @@ namespace {
       
       if (!optTryExpr->getSubExpr()->getType()->getOptionalObjectType()) {
         // This 'try?' doesn't wrap an optional, so its behavior does not
-        // change from Swift 4 to Swift 5
+        // change from Codira 4 to Codira 5
         return;
       }
       

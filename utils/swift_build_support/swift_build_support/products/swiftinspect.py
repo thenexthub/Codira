@@ -1,12 +1,12 @@
-# swift_build_support/products/swiftinspect.py --------------------*- python -*-
+# language_build_support/products/languageinspect.py --------------------*- python -*-
 #
-# This source file is part of the Swift.org open source project
+# This source file is part of the Codira.org open source project
 #
-# Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+# Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 # Licensed under Apache License v2.0 with Runtime Library Exception
 #
-# See https://swift.org/LICENSE.txt for license information
-# See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+# See https://language.org/LICENSE.txt for license information
+# See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 #
 # ----------------------------------------------------------------------------
 
@@ -18,20 +18,20 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
-from . import swift
-from . import swiftpm
+from . import language
+from . import languagepm
 from . import xctest
 from .. import shell
 from .. import targets
 
 
 # Build against the current installed toolchain.
-class SwiftInspect(product.Product):
+class CodiraInspect(product.Product):
     @classmethod
     def product_source_name(cls):
-        return "swift-inspect"
+        return "language-inspect"
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -48,7 +48,7 @@ class SwiftInspect(product.Product):
         run_build_script_helper(host_target, self, self.args)
 
     def should_test(self, host_target):
-        return self.args.test_swift_inspect
+        return self.args.test_language_inspect
 
     def test(self, host_target):
         """Just run a single instance of the command for both .debug and
@@ -65,14 +65,14 @@ class SwiftInspect(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
-                swift.Swift,
+                language.Codira,
                 libdispatch.LibDispatch,
                 foundation.Foundation,
                 xctest.XCTest,
                 llbuild.LLBuild,
-                swiftpm.SwiftPM]
+                languagepm.CodiraPM]
 
 
 def run_build_script_helper(host_target, product, args):
@@ -85,9 +85,9 @@ def run_build_script_helper(host_target, product, args):
     # Our source_dir is expected to be './$SOURCE_ROOT/benchmarks'. That is due
     # the assumption that each product is in its own build directory. This
     # product is not like that and has its package/tools instead in
-    # ./$SOURCE_ROOT/swift/benchmark.
+    # ./$SOURCE_ROOT/language/benchmark.
     package_path = os.path.join(product.source_dir,
-                                '..', 'swift', 'tools', 'swift-inspect')
+                                '..', 'language', 'tools', 'language-inspect')
     package_path = os.path.abspath(package_path)
 
     # We use a separate python helper to enable quicker iteration when working

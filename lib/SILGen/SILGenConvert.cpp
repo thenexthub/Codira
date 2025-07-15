@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "SILGen.h"
@@ -32,9 +33,9 @@
 #include "language/Basic/type_traits.h"
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/TypeLowering.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/ADT/STLExtras.h"
+#include "toolchain/Support/SaveAndRestore.h"
+#include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
 using namespace Lowering;
@@ -45,7 +46,7 @@ ManagedValue
 SILGenFunction::emitInjectOptional(SILLocation loc,
                                    const TypeLowering &optTL,
                                    SGFContext ctxt,
-                      llvm::function_ref<ManagedValue(SGFContext)> generator) {
+                      toolchain::function_ref<ManagedValue(SGFContext)> generator) {
   SILType optTy = optTL.getLoweredType();
   SILType objectTy = optTy.getOptionalObjectType();
   assert(objectTy && "expected type was not optional");
@@ -618,7 +619,7 @@ public:
     case ExistentialRepresentation::Class:
     case ExistentialRepresentation::Metatype:
     case ExistentialRepresentation::None:
-      llvm_unreachable("not supported");
+      toolchain_unreachable("not supported");
     }
     
     // Activate the cleanup to deallocate the buffer we just allocated, should
@@ -650,7 +651,7 @@ ManagedValue SILGenFunction::emitExistentialErasure(
                             const TypeLowering &existentialTL,
                             ArrayRef<ProtocolConformanceRef> conformances,
                             SGFContext C,
-                            llvm::function_ref<ManagedValue (SGFContext)> F,
+                            toolchain::function_ref<ManagedValue (SGFContext)> F,
                             bool allowEmbeddedNSError) {
   // Mark the needed conformances as used.
   for (auto conformance : conformances)
@@ -719,7 +720,7 @@ ManagedValue SILGenFunction::emitExistentialErasure(
       auto isNotPresentBB = createBasicBlock();
       auto isPresentBB = createBasicBlock();
 
-      // Call swift_stdlib_getErrorEmbeddedNSError to attempt to extract an
+      // Call language_stdlib_getErrorEmbeddedNSError to attempt to extract an
       // NSError from the value.
       auto getEmbeddedNSErrorFn = SGM.getGetErrorEmbeddedNSError(loc);
       if (!getEmbeddedNSErrorFn)
@@ -801,7 +802,7 @@ ManagedValue SILGenFunction::emitExistentialErasure(
   switch (existentialTL.getLoweredType().getObjectType()
             .getPreferredExistentialRepresentation(concreteFormalType)) {
   case ExistentialRepresentation::None:
-    llvm_unreachable("not an existential type");
+    toolchain_unreachable("not an existential type");
   case ExistentialRepresentation::Metatype: {
     assert(existentialTL.isLoadable());
 
@@ -906,7 +907,7 @@ ManagedValue SILGenFunction::emitExistentialErasure(
   }
   }
 
-  llvm_unreachable("Unhandled ExistentialRepresentation in switch.");
+  toolchain_unreachable("Unhandled ExistentialRepresentation in switch.");
 }
 
 ManagedValue SILGenFunction::emitClassMetatypeToObject(SILLocation loc,
@@ -1024,9 +1025,9 @@ SILGenFunction::emitOpenExistential(
         loc, existentialValue, loweredOpenedType);
     }
   case ExistentialRepresentation::None:
-    llvm_unreachable("not existential");
+    toolchain_unreachable("not existential");
   }
-  llvm_unreachable("covered switch");
+  toolchain_unreachable("covered switch");
 }
 
 ManagedValue SILGenFunction::manageOpaqueValue(ManagedValue value,
@@ -1124,11 +1125,11 @@ ConvertingInitialization::finishEmission(SILGenFunction &SGF,
     return TheConversion.emit(SGF, loc, formalResult, FinalContext);
 
   case Initialized:
-    llvm_unreachable("initialization never finished");
+    toolchain_unreachable("initialization never finished");
 
   case PackExpanding:
   case FinishedPackExpanding:
-    llvm_unreachable("cannot mix this with pack emission");
+    toolchain_unreachable("cannot mix this with pack emission");
 
   case Finished:
     assert(formalResult.isInContext());
@@ -1137,16 +1138,16 @@ ConvertingInitialization::finishEmission(SILGenFunction &SGF,
     return Value;
 
   case Extracted:
-    llvm_unreachable("value already extracted");
+    toolchain_unreachable("value already extracted");
   }
-  llvm_unreachable("bad state");
+  toolchain_unreachable("bad state");
 }
 
 void ConvertingInitialization::
        performPackExpansionInitialization(SILGenFunction &SGF,
                                           SILLocation loc,
                                           SILValue indexWithinComponent,
-                      llvm::function_ref<void(Initialization *into)> fn) {
+                      toolchain::function_ref<void(Initialization *into)> fn) {
   // Bookkeeping.
   assert(getState() == Uninitialized);
   State = PackExpanding;
@@ -1315,7 +1316,7 @@ ManagedValue Conversion::emit(SILGenFunction &SGF, SILLocation loc,
                                     getReabstractionOutputSubstType(),
                                     getReabstractionOutputLoweredType(), C);
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 OptionalInjectionConversion
@@ -1356,7 +1357,7 @@ Conversion::adjustForInitialOptionalInjection() const {
                   isBridgingExplicit())
     );
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 std::optional<Conversion>
@@ -1380,7 +1381,7 @@ Conversion::adjustForInitialOptionalConversions(CanType newSourceType) const {
                                    getResultType(), getLoweredResultType(),
                                    isBridgingExplicit());
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 std::optional<Conversion> Conversion::adjustForInitialForceValue() const {
@@ -1403,16 +1404,16 @@ std::optional<Conversion> Conversion::adjustForInitialForceValue() const {
                                    isBridgingExplicit());
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void Conversion::dump() const {
-  print(llvm::errs());
-  llvm::errs() << '\n';
+  print(toolchain::errs());
+  toolchain::errs() << '\n';
 }
 
 static void printReabstraction(const Conversion &conversion,
-                               llvm::raw_ostream &out, StringRef name) {
+                               toolchain::raw_ostream &out, StringRef name) {
   out << name << "(inputOrig: ";
   conversion.getReabstractionInputOrigType().print(out);
   out << ", inputSubst: ";
@@ -1428,7 +1429,7 @@ static void printReabstraction(const Conversion &conversion,
   out << ')';
 }
 
-static void printBridging(const Conversion &conversion, llvm::raw_ostream &out,
+static void printBridging(const Conversion &conversion, toolchain::raw_ostream &out,
                           StringRef name) {
   out << name << "(from: ";
   conversion.getSourceType().print(out);
@@ -1437,7 +1438,7 @@ static void printBridging(const Conversion &conversion, llvm::raw_ostream &out,
   out << ", explicit: " << conversion.isBridgingExplicit() << ')';
 }
 
-void Conversion::print(llvm::raw_ostream &out) const {
+void Conversion::print(toolchain::raw_ostream &out) const {
   switch (getKind()) {
   case Reabstract:
     return printReabstraction(*this, out, "Reabstract");
@@ -1458,7 +1459,7 @@ void Conversion::print(llvm::raw_ostream &out) const {
   case BridgeResultFromObjC:
     return printBridging(*this, out, "BridgeResultFromObjC");
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 static bool areRelatedTypesForBridgingPeephole(CanType sourceType,
@@ -1559,7 +1560,7 @@ Conversion::withSourceType(AbstractionPattern origType,
   case Subtype:
     return getSubtype(substType, getResultType(), getLoweredResultType());
   default:
-    llvm_unreachable("operation not supported on specialized bridging "
+    toolchain_unreachable("operation not supported on specialized bridging "
                      "conversions");
   }
 }
@@ -1576,7 +1577,7 @@ Conversion::withResultType(AbstractionPattern origType,
   case Subtype:
     return getSubtype(getSourceType(), substType, loweredType);
   default:
-    llvm_unreachable("operation not supported on specialized bridging "
+    toolchain_unreachable("operation not supported on specialized bridging "
                      "conversions");
   }
 }
@@ -1955,7 +1956,7 @@ combineConversions(SILGenFunction &SGF, const Conversion &outer,
   case Conversion::BridgingSubtype:
   case Conversion::BridgeFromObjC:
   case Conversion::BridgeResultFromObjC:
-    // TODO: maybe peephole bridging through a Swift type?
+    // TODO: maybe peephole bridging through a Codira type?
     // This isn't actually something that happens in normal code generation.
     return std::nullopt;
 
@@ -1974,7 +1975,7 @@ combineConversions(SILGenFunction &SGF, const Conversion &outer,
       return std::nullopt;
     }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 bool Lowering::canPeepholeConversions(SILGenFunction &SGF,

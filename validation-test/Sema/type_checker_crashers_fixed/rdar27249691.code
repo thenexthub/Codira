@@ -1,0 +1,15 @@
+// RUN: not %target-swift-frontend %s -typecheck
+
+infix operator ~> : BitwiseShiftPrecedence
+
+struct F {}
+
+protocol P {
+  associatedtype R
+  fn X() -> R
+  static fn ~> (: Self, _: F) -> R
+}
+
+fn ~> <T:P> (: T, _: F) -> T.R {
+  return X()
+}

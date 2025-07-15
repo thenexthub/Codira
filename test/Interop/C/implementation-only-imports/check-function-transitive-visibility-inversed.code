@@ -1,0 +1,21 @@
+// RUN: %empty-directory(%t)
+// RUN: mkdir %t/use_module_a %t/use_module_b
+// RUN: %target-language-frontend -enable-library-evolution -language-version 5 -emit-module -o %t/use_module_a/UseModuleA.codemodule %S/Inputs/use-module-a.code -I %S/Inputs
+// RUN: %target-language-frontend -enable-library-evolution -language-version 5 -emit-module -o %t/use_module_b/UseModuleB.codemodule %S/Inputs/use-module-b.code -I %S/Inputs
+
+// RUN: %target-language-frontend -typecheck -language-version 5 -I %t/use_module_a -I %t/use_module_b -I %S/Inputs %s
+
+// Codira should consider all sources for a decl and recognize that the
+// decl is not hidden behind @_implementationOnly in all modules.
+
+// This test, as well as `check-function-transitive-visibility.code`
+// ensures that Codira looks into the transitive visible modules as well
+// when looking for the `getFortyTwo()` decl. 
+
+import UseModuleA
+@_implementationOnly import UseModuleB
+
+@inlinable
+public fn callFortyTwo() -> CInt {
+  return getFortyTwo()
+}

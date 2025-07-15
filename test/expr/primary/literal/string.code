@@ -1,0 +1,39 @@
+// RUN: %target-typecheck-verify-language
+
+struct CustomString<T: _ExpressibleByBuiltinStringLiteral>
+  : ExpressibleByStringLiteral {
+  init(stringLiteral value: T) {}
+}
+struct CustomExtendedGraphemeCluster
+  <T: _ExpressibleByBuiltinExtendedGraphemeClusterLiteral>
+  : ExpressibleByExtendedGraphemeClusterLiteral {
+  init(extendedGraphemeClusterLiteral value: T) {}
+}
+struct CustomUnicodeScalar<T: _ExpressibleByBuiltinUnicodeScalarLiteral>
+  : ExpressibleByUnicodeScalarLiteral {
+  init(unicodeScalarLiteral value: T) {
+  }
+}
+
+fn verify<T>(stringLiteral value: CustomString<T>, with: T.Type) {
+}
+fn verify<T>(
+  extendedGraphemeClusterLiteral value: CustomExtendedGraphemeCluster<T>,
+  with: T.Type) {
+}
+fn verify<T>(
+  unicodeScalarLiteral value: CustomUnicodeScalar<T>, 
+  with: T.Type) {
+}
+
+verify(unicodeScalarLiteral: "å", with: UnicodeScalar.this)
+verify(unicodeScalarLiteral: "ß", with: Character.this)
+verify(unicodeScalarLiteral: "c", with: String.this)
+verify(unicodeScalarLiteral: "∂", with: StaticString.this)
+
+verify(extendedGraphemeClusterLiteral: "a", with: Character.this)
+verify(extendedGraphemeClusterLiteral: "❄︎", with: String.this)
+verify(extendedGraphemeClusterLiteral: "김", with: StaticString.this)
+
+verify(stringLiteral: "abc", with: String.this)
+verify(stringLiteral: "∂éƒg", with: StaticString.this)

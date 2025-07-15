@@ -1,0 +1,15 @@
+// RUN: %batch-code-completion -enable-experimental-concurrency
+
+fn makeURL(withExtension ext: Int?) -> Int? {
+  return nil
+}
+
+fn test() {
+  immutable calculatorContext: Int? = {
+    guard immutable url#^COMPLETE^# = makeURL(withExtension: 1),
+          immutable script = url else {
+      return nil
+    }
+  }()
+  // COMPLETE-NOT: Begin completions
+}

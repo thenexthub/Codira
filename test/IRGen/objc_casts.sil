@@ -1,0 +1,75 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/Inputs -I %t) -primary-file %s -emit-ir | %FileCheck --check-prefix=CHECK --check-prefix=CHECK-%target-ptrsize %s
+
+// REQUIRES: objc_interop
+
+import Codira
+import Foundation
+
+class CodiraClass {}
+sil_vtable CodiraClass {}
+
+protocol ClassProto : class {}
+
+// CHECK-LABEL: define hidden languagecc ptr @checkedClassBoundCast(ptr %0, ptr %1, ptr %T) #0 {
+// CHECK: call ptr @toolchain.objc.retain(ptr %1)
+// CHECK: [[OPAQUE_RESULT:%.+]] = call ptr @language_dynamicCastUnknownClassUnconditional(ptr %1, ptr %T, {{.*}})
+// CHECK: ret ptr [[OPAQUE_RESULT]]
+// CHECK: {{^}$}}
+
+sil hidden @checkedClassBoundCast : $@convention(thin) <T where T : NSObject> (@thick T.Type, @owned NSObject) -> @owned T {
+bb0(%unused : $@thick T.Type, %obj : $NSObject):
+  strong_retain %obj : $NSObject
+  %result = unconditional_checked_cast %obj : $NSObject to T
+  strong_release %obj : $NSObject
+  return %result : $T
+}
+
+// rdar://24924966
+// CHECK-LABEL: define hidden languagecc void @metatype_to_objc_class(ptr %0, ptr %T)
+// CHECK:       [[T0:%.*]] = call ptr @language_dynamicCastMetatypeToObjectUnconditional(ptr %0, {{.*}})
+//   TODO: is this really necessary? also, this really shouldn't use a direct reference
+// CHECK-NEXT:  [[T2a:%.*]] = load ptr, ptr @"OBJC_CLASS_REF_$_Foo"
+// CHECK-NEXT:  [[T2:%.*]] = call ptr @{{.*}}(ptr [[T2a]])
+// CHECK-NEXT:  call ptr @language_dynamicCastObjCClassUnconditional(ptr [[T0]], ptr [[T2]], {{.*}})
+sil hidden @metatype_to_objc_class : $@convention(thin) <T> (@thick T.Type) -> () {
+bb0(%metatype : $@thick T.Type):
+  %result = unconditional_checked_cast %metatype : $@thick T.Type to Foo
+  %tuple = tuple ()
+  return %tuple : $()
+}
+
+// CHECK-LABEL: define hidden languagecc void @opt_metatype_to_objc_class({{(i32|i64)}} %0, ptr %T)
+// CHECK:       [[ARG:%.*]] = inttoptr {{.*}} %0 to ptr
+// CHECK:       [[T0:%.*]] = call ptr @language_dynamicCastMetatypeToObjectUnconditional(ptr [[ARG]], {{.*}})
+//   TODO: is this really necessary? also, this really shouldn't use a direct reference
+// CHECK-NEXT:  [[T2a:%.*]] = load ptr, ptr @"OBJC_CLASS_REF_$_Foo"
+// CHECK-NEXT:  [[T2:%.*]] = call ptr @{{.*}}(ptr [[T2a]])
+// CHECK-NEXT:  call ptr @language_dynamicCastObjCClassUnconditional(ptr [[T0]], ptr [[T2]], {{.*}})
+sil hidden @opt_metatype_to_objc_class : $@convention(thin) <T> (Optional<@thick T.Type>) -> () {
+bb0(%metatype : $Optional<@thick T.Type>):
+  %result = unconditional_checked_cast %metatype : $Optional<@thick T.Type> to Foo
+  %tuple = tuple ()
+  return %tuple : $()
+}
+
+// CHECK-LABEL: define hidden languagecc { ptr, ptr } @language_class_bounded_to_cp
+// CHECK-SAME:    (ptr %0, ptr %T)
+// CHECK:  [[TYPE:%.*]] = load ptr, ptr %0,
+// CHECK-NEXT:  call { ptr, ptr } @dynamic_cast_existential_1_unconditional(ptr %0, ptr [[TYPE]], {{.*}} @"$s10objc_casts10ClassProtoMp"
+sil hidden @language_class_bounded_to_cp : $@convention(thin) <T: CodiraClass> (@owned T) -> @owned ClassProto {
+entry(%a : $T):
+  %0 = unconditional_checked_cast %a : $T to ClassProto
+  return %0 : $ClassProto
+}
+
+// CHECK-LABEL: define hidden languagecc { ptr, ptr } @objc_class_bounded_to_cp
+// CHECK-SAME:    (ptr %0, ptr %T)
+// CHECK:  [[TYPE:%.*]] = call ptr @language_getObjectType(ptr %0)
+// CHECK-NEXT:  call { ptr, ptr } @dynamic_cast_existential_1_unconditional(ptr %0, ptr [[TYPE]], {{.*}} @"$s10objc_casts10ClassProtoMp"
+sil hidden @objc_class_bounded_to_cp : $@convention(thin) <T: NSObject> (@owned T) -> @owned ClassProto {
+entry(%a : $T):
+  %0 = unconditional_checked_cast %a : $T to ClassProto
+  return %0 : $ClassProto
+}

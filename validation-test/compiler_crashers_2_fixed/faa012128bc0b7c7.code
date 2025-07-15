@@ -1,0 +1,3 @@
+// {"signature":"language::TypeBase::getContextSubstitutions(language::DeclContext const*, language::GenericEnvironment*)"}
+// RUN: not %target-language-frontend -typecheck %s
+{                      $0?={

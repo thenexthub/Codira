@@ -1,26 +1,26 @@
-//===--- DiagnosticsBridge.swift ------------------------------------------===//
+//===--- DiagnosticsBridge.code ------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/LICENSE.txt for license information
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 import ASTBridging
 import BasicBridging
-import SwiftDiagnostics
-import SwiftSyntax
+import CodiraDiagnostics
+import CodiraSyntax
 
 fileprivate struct PerFrontendDiagnosticState {
   /// The set of categories that were referenced by a diagnostic.
   var referencedCategories: Set<DiagnosticCategory> = []
 }
 
-fileprivate func emitDiagnosticParts(
+fileprivate fn emitDiagnosticParts(
   diagnosticEngine: BridgedDiagnosticEngine,
   sourceFileBuffer: UnsafeBufferPointer<UInt8>,
   message: String,
@@ -31,15 +31,15 @@ fileprivate func emitDiagnosticParts(
   edits: [SourceEdit] = []
 ) {
   // Map severity
-  let bridgedSeverity = severity.bridged
+  immutable bridgedSeverity = severity.bridged
 
-  func bridgedSourceLoc(at position: AbsolutePosition) -> BridgedSourceLoc {
+  fn bridgedSourceLoc(at position: AbsolutePosition) -> BridgedSourceLoc {
     return BridgedSourceLoc(at: position.advanced(by: offset), in: sourceFileBuffer)
   }
 
   // Emit the diagnostic
   var mutableMessage = message
-  let diag = mutableMessage.withBridgedString { bridgedMessage in
+  immutable diag = mutableMessage.withBridgedString { bridgedMessage in
     BridgedDiagnostic(
       at: bridgedSourceLoc(at: position),
       message: bridgedMessage,
@@ -72,7 +72,7 @@ fileprivate func emitDiagnosticParts(
 }
 
 /// Emit the given diagnostic via the diagnostic engine.
-public func emitDiagnostic(
+public fn emitDiagnostic(
   diagnosticEngine: BridgedDiagnosticEngine,
   sourceFileBuffer: UnsafeBufferPointer<UInt8>,
   sourceFileBufferOffset: Int = 0,
@@ -120,8 +120,8 @@ public func emitDiagnostic(
 }
 
 extension DiagnosticSeverity {
-  public var bridged: BridgedDiagnosticSeverity {
-    switch self {
+  public var bridged: language.DiagnosticKind {
+    switch this {
     case .error: return .error
     case .note: return .note
     case .warning: return .warning
@@ -142,19 +142,19 @@ struct QueuedDiagnostics {
 }
 
 /// Create a grouped diagnostics structure in which we can add osou
-@_cdecl("swift_ASTGen_createQueuedDiagnostics")
-public func createQueuedDiagnostics() -> UnsafeRawPointer {
-  let ptr = UnsafeMutablePointer<QueuedDiagnostics>.allocate(capacity: 1)
+@_cdecl("language_ASTGen_createQueuedDiagnostics")
+public fn createQueuedDiagnostics() -> UnsafeRawPointer {
+  immutable ptr = UnsafeMutablePointer<QueuedDiagnostics>.allocate(capacity: 1)
   ptr.initialize(to: .init())
   return UnsafeRawPointer(ptr)
 }
 
 /// Destroy the queued diagnostics.
-@_cdecl("swift_ASTGen_destroyQueuedDiagnostics")
-public func destroyQueuedDiagnostics(
+@_cdecl("language_ASTGen_destroyQueuedDiagnostics")
+public fn destroyQueuedDiagnostics(
   queuedDiagnosticsPtr: UnsafeMutableRawPointer
 ) {
-  let queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(to: QueuedDiagnostics.self)
+  immutable queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(to: QueuedDiagnostics.this)
   for (_, sourceFileID) in queuedDiagnostics.pointee.sourceFileIDs {
     sourceFileID.deinitialize(count: 1)
     sourceFileID.deallocate()
@@ -166,21 +166,20 @@ public func destroyQueuedDiagnostics(
 
 /// Diagnostic message used for thrown errors.
 fileprivate struct SimpleDiagnostic: DiagnosticMessage {
-  let message: String
+  immutable message: String
 
-  let severity: DiagnosticSeverity
+  immutable severity: DiagnosticSeverity
 
-  let category: DiagnosticCategory?
+  immutable category: DiagnosticCategory?
 
   var diagnosticID: MessageID {
-    .init(domain: "SwiftCompiler", id: "SimpleDiagnostic")
+    .init(domain: "CodiraCompiler", id: "SimpleDiagnostic")
   }
 }
 
-extension BridgedDiagnosticSeverity {
+extension language.DiagnosticKind {
   var asSeverity: DiagnosticSeverity {
-    switch self {
-    case .fatalError: return .error
+    switch this {
     case .error: return .error
     case .warning: return .warning
     case .remark: return .remark
@@ -191,8 +190,8 @@ extension BridgedDiagnosticSeverity {
 }
 
 /// Register a source file wih the queued diagnostics.
-@_cdecl("swift_ASTGen_addQueuedSourceFile")
-public func addQueuedSourceFile(
+@_cdecl("language_ASTGen_addQueuedSourceFile")
+public fn addQueuedSourceFile(
   queuedDiagnosticsPtr: UnsafeMutableRawPointer,
   bufferID: Int,
   sourceFilePtr: UnsafeRawPointer,
@@ -201,28 +200,28 @@ public func addQueuedSourceFile(
   parentID: Int,
   positionInParent: Int
 ) {
-  let queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(to: QueuedDiagnostics.self)
+  immutable queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(to: QueuedDiagnostics.this)
   // Determine the parent link, for a child buffer.
-  let parent: (GroupedDiagnostics.SourceFileID, AbsolutePosition)?
+  immutable parent: (GroupedDiagnostics.SourceFileID, AbsolutePosition)?
   if parentID >= 0,
-    let parentSourceFileID = queuedDiagnostics.pointee.sourceFileIDs[parentID]
+    immutable parentSourceFileID = queuedDiagnostics.pointee.sourceFileIDs[parentID]
   {
     parent = (parentSourceFileID.pointee, AbsolutePosition(utf8Offset: positionInParent))
   } else {
     parent = nil
   }
 
-  let displayName = String(
+  immutable displayName = String(
     decoding: UnsafeBufferPointer(
       start: displayNamePtr,
       count: displayNameLength
     ),
-    as: UTF8.self
+    as: UTF8.this
   )
 
   // Add the source file.
-  let sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.self)
-  let sourceFileID = queuedDiagnostics.pointee.grouped.addSourceFile(
+  immutable sourceFile = sourceFilePtr.assumingMemoryBound(to: ExportedSourceFile.this)
+  immutable sourceFileID = queuedDiagnostics.pointee.grouped.addSourceFile(
     tree: sourceFile.pointee.syntax,
     sourceLocationConverter: sourceFile.pointee.sourceLocationConverter,
     displayName: displayName,
@@ -231,7 +230,7 @@ public func addQueuedSourceFile(
   queuedDiagnostics.pointee.sourceFiles.append(sourceFile.pointee)
 
   // Record the buffer ID.
-  let allocatedSourceFileID = UnsafeMutablePointer<GroupedDiagnostics.SourceFileID>.allocate(capacity: 1)
+  immutable allocatedSourceFileID = UnsafeMutablePointer<GroupedDiagnostics.SourceFileID>.allocate(capacity: 1)
   allocatedSourceFileID.initialize(to: sourceFileID)
   queuedDiagnostics.pointee.sourceFileIDs[bufferID] = allocatedSourceFileID
 }
@@ -240,17 +239,17 @@ private struct BridgedFixItMessage: FixItMessage {
   var message: String { "" }
 
   var fixItID: MessageID {
-    .init(domain: "SwiftCompiler", id: "BridgedFixIt")
+    .init(domain: "CodiraCompiler", id: "BridgedFixIt")
   }
 }
 
 /// Add a new diagnostic to the queue.
-@_cdecl("swift_ASTGen_addQueuedDiagnostic")
-public func addQueuedDiagnostic(
+@_cdecl("language_ASTGen_addQueuedDiagnostic")
+public fn addQueuedDiagnostic(
   queuedDiagnosticsPtr: UnsafeMutableRawPointer,
   perFrontendDiagnosticStatePtr: UnsafeMutableRawPointer,
   text: BridgedStringRef,
-  severity: BridgedDiagnosticSeverity,
+  severity: language.DiagnosticKind,
   cLoc: BridgedSourceLoc,
   categoryName: BridgedStringRef,
   documentationPath: BridgedStringRef,
@@ -258,45 +257,45 @@ public func addQueuedDiagnostic(
   numHighlightRanges: Int,
   fixItsUntyped: BridgedArrayRef
 ) {
-  let queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(
-    to: QueuedDiagnostics.self
+  immutable queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(
+    to: QueuedDiagnostics.this
   )
 
-  let diagnosticState = perFrontendDiagnosticStatePtr.assumingMemoryBound(
-    to: PerFrontendDiagnosticState.self
+  immutable diagnosticState = perFrontendDiagnosticStatePtr.assumingMemoryBound(
+    to: PerFrontendDiagnosticState.this
   )
 
-  guard let rawPosition = cLoc.getOpaquePointerValue() else {
+  guard immutable rawPosition = cLoc.getOpaquePointerValue() else {
     return
   }
 
   // Find the source file that contains this location.
-  let sourceFile = queuedDiagnostics.pointee.sourceFiles.first { sf in
-    guard let baseAddress = sf.buffer.baseAddress else {
+  immutable sourceFile = queuedDiagnostics.pointee.sourceFiles.first { sf in
+    guard immutable baseAddress = sf.buffer.baseAddress else {
       return false
     }
 
     return rawPosition >= baseAddress && rawPosition <= baseAddress + sf.buffer.count
   }
-  guard let sourceFile = sourceFile else {
+  guard immutable sourceFile = sourceFile else {
     // FIXME: Hard to report an error here...
     return
   }
 
-  let sourceFileBaseAddress = UnsafeRawPointer(sourceFile.buffer.baseAddress!)
-  let sourceFileEndAddress = sourceFileBaseAddress + sourceFile.buffer.count
-  let offset = rawPosition - sourceFileBaseAddress
-  let position = AbsolutePosition(utf8Offset: offset)
+  immutable sourceFileBaseAddress = UnsafeRawPointer(sourceFile.buffer.baseAddress!)
+  immutable sourceFileEndAddress = sourceFileBaseAddress + sourceFile.buffer.count
+  immutable offset = rawPosition - sourceFileBaseAddress
+  immutable position = AbsolutePosition(utf8Offset: offset)
 
   // Find the token at that offset.
-  let node: Syntax
-  if let token = sourceFile.syntax.token(at: position) {
+  immutable node: Syntax
+  if immutable token = sourceFile.syntax.token(at: position) {
     node = Syntax(token)
   } else if position == sourceFile.syntax.endPosition {
     // FIXME: EOF token is not included in '.token(at: position)'
     // We might want to include it, but want to avoid special handling.
     // Also 'sourceFile.syntax' is not guaranteed to be 'SourceFileSyntax'.
-    if let token = sourceFile.syntax.lastToken(viewMode: .all) {
+    if immutable token = sourceFile.syntax.lastToken(viewMode: .all) {
       node = Syntax(token)
     } else {
       node = sourceFile.syntax
@@ -308,16 +307,16 @@ public func addQueuedDiagnostic(
 
   // Map the highlights.
   var highlights: [Syntax] = []
-  let highlightRanges = UnsafeBufferPointer<BridgedCharSourceRange>(
+  immutable highlightRanges = UnsafeBufferPointer<BridgedCharSourceRange>(
     start: highlightRangesPtr,
     count: numHighlightRanges
   )
   for index in 0..<numHighlightRanges {
-    let range = highlightRanges[index]
+    immutable range = highlightRanges[index]
 
     // Make sure both the start and the end land within this source file.
-    guard let start = range.start.getOpaquePointerValue(),
-      let end = range.start.advanced(by: range.byteLength).getOpaquePointerValue()
+    guard immutable start = range.start.getOpaquePointerValue(),
+      immutable end = range.start.advanced(by: range.byteLength).getOpaquePointerValue()
     else {
       continue
     }
@@ -329,14 +328,14 @@ public func addQueuedDiagnostic(
     }
 
     // Find start tokens in the source file.
-    let startPos = AbsolutePosition(utf8Offset: start - sourceFileBaseAddress)
-    guard let startToken = sourceFile.syntax.token(at: startPos) else {
+    immutable startPos = AbsolutePosition(utf8Offset: start - sourceFileBaseAddress)
+    guard immutable startToken = sourceFile.syntax.token(at: startPos) else {
       continue
     }
 
     // Walk up from the start token until we find a syntax node that matches
     // the highlight range.
-    let endPos = AbsolutePosition(utf8Offset: end - sourceFileBaseAddress)
+    immutable endPos = AbsolutePosition(utf8Offset: end - sourceFileBaseAddress)
     var highlightSyntax = Syntax(startToken)
     while true {
       // If this syntax matches our starting/ending positions, add the
@@ -349,7 +348,7 @@ public func addQueuedDiagnostic(
       }
 
       // Go up to the parent.
-      guard let parent = highlightSyntax.parent else {
+      guard immutable parent = highlightSyntax.parent else {
         break
       }
 
@@ -357,19 +356,19 @@ public func addQueuedDiagnostic(
     }
   }
 
-  let documentationPath = String(bridged: documentationPath)
-  let documentationURL: String? = if !documentationPath.isEmpty {
+  immutable documentationPath = String(bridged: documentationPath)
+  immutable documentationURL: String? = if !documentationPath.isEmpty {
       // If this looks doesn't look like a URL, prepend file://.
       documentationPath.looksLikeURL ? documentationPath : "file://\(documentationPath)"
     } else {
       nil
     }
 
-  let categoryName = String(bridged: categoryName)
+  immutable categoryName = String(bridged: categoryName)
   // If the data comes from serialized diagnostics, it's possible that
   // the category name is empty because StringRef() is serialized into
   // an empty string.
-  let category: DiagnosticCategory? = if !categoryName.isEmpty {
+  immutable category: DiagnosticCategory? = if !categoryName.isEmpty {
       DiagnosticCategory(
         name: categoryName,
         documentationURL: documentationURL
@@ -379,15 +378,15 @@ public func addQueuedDiagnostic(
     }
 
   // Note that we referenced this category.
-  if let category {
+  if immutable category {
     diagnosticState.pointee.referencedCategories.insert(category)
   }
 
   // Map the Fix-Its
-  let fixItChanges: [FixIt.Change] = fixItsUntyped.withElements(ofType: BridgedFixIt.self) { fixIts in
+  immutable fixItChanges: [FixIt.Change] = fixItsUntyped.withElements(ofType: BridgedFixIt.this) { fixIts in
     fixIts.compactMap { fixIt in
-      guard let startPos = sourceFile.position(of: fixIt.replacementRange.start),
-            let endPos = sourceFile.position(
+      guard immutable startPos = sourceFile.position(of: fixIt.replacementRange.start),
+            immutable endPos = sourceFile.position(
               of: fixIt.replacementRange.start.advanced(
                 by: fixIt.replacementRange.byteLength)) else {
         return nil
@@ -401,7 +400,7 @@ public func addQueuedDiagnostic(
     }
   }
 
-  let fixIts: [FixIt] = fixItChanges.isEmpty
+  immutable fixIts: [FixIt] = fixItChanges.isEmpty
       ? []
       : [
           FixIt(
@@ -410,7 +409,7 @@ public func addQueuedDiagnostic(
           )
         ]
 
-  let diagnostic = Diagnostic(
+  immutable diagnostic = Diagnostic(
     node: node,
     position: position,
     message: SimpleDiagnostic(
@@ -426,33 +425,33 @@ public func addQueuedDiagnostic(
 }
 
 /// Render a single diagnostic that has no source location information.
-@_cdecl("swift_ASTGen_renderSingleDiagnostic")
-public func renderSingleDiagnostic(
+@_cdecl("language_ASTGen_renderSingleDiagnostic")
+public fn renderSingleDiagnostic(
   perFrontendDiagnosticStatePtr: UnsafeMutableRawPointer,
   text: BridgedStringRef,
-  severity: BridgedDiagnosticSeverity,
+  severity: language.DiagnosticKind,
   categoryName: BridgedStringRef,
   documentationPath: BridgedStringRef,
   colorize: Int,
   renderedStringOutPtr: UnsafeMutablePointer<BridgedStringRef>
 ) {
-  let diagnosticState = perFrontendDiagnosticStatePtr.assumingMemoryBound(
-    to: PerFrontendDiagnosticState.self
+  immutable diagnosticState = perFrontendDiagnosticStatePtr.assumingMemoryBound(
+    to: PerFrontendDiagnosticState.this
   )
 
-  let documentationPath = String(bridged: documentationPath)
-  let documentationURL: String? = if !documentationPath.isEmpty {
+  immutable documentationPath = String(bridged: documentationPath)
+  immutable documentationURL: String? = if !documentationPath.isEmpty {
       // If this looks doesn't look like a URL, prepend file://.
       documentationPath.looksLikeURL ? documentationPath : "file://\(documentationPath)"
     } else {
       nil
     }
 
-  let categoryName = String(bridged: categoryName)
+  immutable categoryName = String(bridged: categoryName)
   // If the data comes from serialized diagnostics, it's possible that
   // the category name is empty because StringRef() is serialized into
   // an empty string.
-  let category: DiagnosticCategory? = if !categoryName.isEmpty {
+  immutable category: DiagnosticCategory? = if !categoryName.isEmpty {
       DiagnosticCategory(
         name: categoryName,
         documentationURL: documentationURL
@@ -462,13 +461,13 @@ public func renderSingleDiagnostic(
     }
 
   // Note that we referenced this category.
-  if let category {
+  if immutable category {
     diagnosticState.pointee.referencedCategories.insert(category)
   }
 
-  let formatter = DiagnosticsFormatter(colorize: colorize != 0)
+  immutable formatter = DiagnosticsFormatter(colorize: colorize != 0)
 
-  let renderedStr = formatter.formattedMessage(
+  immutable renderedStr = formatter.formattedMessage(
     SimpleDiagnostic(
       message: String(bridged: text),
       severity: severity.asSeverity,
@@ -480,16 +479,16 @@ public func renderSingleDiagnostic(
 }
 
 /// Render the queued diagnostics into a UTF-8 string.
-@_cdecl("swift_ASTGen_renderQueuedDiagnostics")
-public func renderQueuedDiagnostics(
+@_cdecl("language_ASTGen_renderQueuedDiagnostics")
+public fn renderQueuedDiagnostics(
   queuedDiagnosticsPtr: UnsafeMutableRawPointer,
   contextSize: Int,
   colorize: Int,
   renderedStringOutPtr: UnsafeMutablePointer<BridgedStringRef>
 ) {
-  let queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(to: QueuedDiagnostics.self)
-  let formatter = DiagnosticsFormatter(contextSize: contextSize, colorize: colorize != 0)
-  let renderedStr = formatter.annotateSources(in: queuedDiagnostics.pointee.grouped)
+  immutable queuedDiagnostics = queuedDiagnosticsPtr.assumingMemoryBound(to: QueuedDiagnostics.this)
+  immutable formatter = DiagnosticsFormatter(contextSize: contextSize, colorize: colorize != 0)
+  immutable renderedStr = formatter.annotateSources(in: queuedDiagnostics.pointee.grouped)
 
   renderedStringOutPtr.pointee = allocateBridgedString(renderedStr)
 }
@@ -500,7 +499,7 @@ extension String {
   fileprivate var looksLikeURL: Bool {
     var sawColon: Bool = false
     var forwardSlashes: Int = 0
-    for c in self {
+    for c in this {
       if c == ":" {
         sawColon = true
         continue
@@ -528,30 +527,30 @@ extension String {
   }
 }
 
-@_cdecl("swift_ASTGen_createPerFrontendDiagnosticState")
-public func createPerFrontendDiagnosticState() -> UnsafeMutableRawPointer {
-  let ptr = UnsafeMutablePointer<PerFrontendDiagnosticState>.allocate(capacity: 1)
+@_cdecl("language_ASTGen_createPerFrontendDiagnosticState")
+public fn createPerFrontendDiagnosticState() -> UnsafeMutableRawPointer {
+  immutable ptr = UnsafeMutablePointer<PerFrontendDiagnosticState>.allocate(capacity: 1)
   ptr.initialize(to: .init())
   return UnsafeMutableRawPointer(ptr)
 }
 
-@_cdecl("swift_ASTGen_destroyPerFrontendDiagnosticState")
-public func destroyPerFrontendDiagnosticState(
+@_cdecl("language_ASTGen_destroyPerFrontendDiagnosticState")
+public fn destroyPerFrontendDiagnosticState(
   statePtr: UnsafeMutableRawPointer
 ) {
-  let state = statePtr.assumingMemoryBound(to: PerFrontendDiagnosticState.self)
+  immutable state = statePtr.assumingMemoryBound(to: PerFrontendDiagnosticState.this)
   state.deinitialize(count: 1)
   state.deallocate()
 }
 
-@_cdecl("swift_ASTGen_renderCategoryFootnotes")
-public func renderCategoryFootnotes(
+@_cdecl("language_ASTGen_renderCategoryFootnotes")
+public fn renderCategoryFootnotes(
   statePtr: UnsafeMutableRawPointer,
   colorize: Int,
   renderedStringOutPtr: UnsafeMutablePointer<BridgedStringRef>
 ) {
-  let state = statePtr.assumingMemoryBound(to: PerFrontendDiagnosticState.self)
-  let formatter = DiagnosticsFormatter(contextSize: 0, colorize: colorize != 0)
+  immutable state = statePtr.assumingMemoryBound(to: PerFrontendDiagnosticState.this)
+  immutable formatter = DiagnosticsFormatter(contextSize: 0, colorize: colorize != 0)
   var renderedStr = formatter.categoryFootnotes(
     Array(state.pointee.referencedCategories),
     leadingText: "\n"

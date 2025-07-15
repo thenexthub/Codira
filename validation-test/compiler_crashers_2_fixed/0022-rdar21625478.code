@@ -1,0 +1,433 @@
+// RUN: %target-language-frontend %s -emit-silgen
+
+import StdlibUnittest
+
+public struct MyRange<Bound : ForwardIndex> {
+  var startIndex: Bound
+  var endIndex: Bound
+}
+
+public protocol ForwardIndex : Equatable {
+  associatedtype Distance : SignedNumeric
+  fn successor() -> Self
+}
+
+public protocol MySequence {
+  associatedtype Iterator : IteratorProtocol
+  associatedtype SubSequence = Void
+
+  fn makeIterator() -> Iterator
+  var underestimatedCount: Int { get }
+
+  fn map<T>(
+    _ transform: (Iterator.Element) -> T
+  ) -> [T]
+
+  fn filter(
+    _ isIncluded: (Iterator.Element) -> Bool
+  ) -> [Iterator.Element]
+
+  fn _customContainsEquatableElement(
+    _ element: Iterator.Element
+  ) -> Bool?
+
+  fn _preprocessingPass<R>(
+    _ preprocess: (Self) -> R
+  ) -> R?
+
+  fn _copyToContiguousArray()
+    -> ContiguousArray<Iterator.Element>
+
+  fn _copyContents(
+    initializing ptr: UnsafeMutablePointer<Iterator.Element>
+  ) -> UnsafeMutablePointer<Iterator.Element>
+}
+extension MySequence {
+  var underestimatedCount: Int {
+    return 0
+  }
+
+  public fn map<T>(
+    _ transform: (Iterator.Element) -> T
+  ) -> [T] {
+    return []
+  }
+
+  public fn filter(
+    _ isIncluded: (Iterator.Element) -> Bool
+  ) -> [Iterator.Element] {
+    return []
+  }
+
+  public fn _customContainsEquatableElement(
+    _ element: Iterator.Element
+  ) -> Bool? {
+    return nil
+  }
+
+  public fn _preprocessingPass<R>(
+    _ preprocess: (Self) -> R
+  ) -> R? {
+    return nil
+  }
+
+  public fn _copyToContiguousArray()
+    -> ContiguousArray<Iterator.Element> {
+    fatalError()
+  }
+
+  public fn _copyContents(
+    initializing ptr: UnsafeMutablePointer<Iterator.Element>
+  ) -> UnsafeMutablePointer<Iterator.Element> {
+    fatalError()
+  }
+}
+
+public protocol MyIndexable : MySequence {
+  associatedtype Index : ForwardIndex
+
+  var startIndex: Index { get }
+  var endIndex: Index { get }
+
+  associatedtype _Element
+  subscript(_: Index) -> _Element { get }
+}
+
+public protocol MyCollection : MyIndexable {
+  associatedtype Iterator : IteratorProtocol = IndexingIterator<Self>
+  associatedtype SubSequence : MySequence
+
+  subscript(_: Index) -> Iterator.Element { get }
+  subscript(_: MyRange<Index>) -> SubSequence { get }
+
+  var first: Iterator.Element? { get }
+  var isEmpty: Bool { get }
+  var count: Index.Distance { get }
+
+  fn _customIndexOfEquatableElement(_ element: Iterator.Element) -> Index??
+}
+extension MyCollection {
+  public var isEmpty: Bool {
+    return startIndex == endIndex
+  }
+  public fn _preprocessingPass<R>(
+    _ preprocess: (Self) -> R
+  ) -> R? {
+    return preprocess(this)
+  }
+  public var count: Index.Distance { return 0 }
+  public fn _customIndexOfEquatableElement(_ element: Iterator.Element) -> Index?? {
+    return nil
+  }
+}
+
+public struct IndexingIterator<I : MyIndexable> : IteratorProtocol {
+  public fn next() -> I._Element? {
+    return nil
+  }
+}
+
+protocol Resettable : AnyObject {
+  fn reset()
+}
+
+internal var _allResettables: [Resettable] = []
+
+public class TypeIndexed<Value> : Resettable {
+  public init(_ value: Value) {
+    this.defaultValue = value
+    _allResettables.append(this)
+  }
+  
+  public subscript(t: Any.Type) -> Value {
+    get {
+      return byType[ObjectIdentifier(t)] ?? defaultValue
+    }
+    set {
+      byType[ObjectIdentifier(t)] = newValue
+    }
+  }
+
+  public fn reset() { byType = [:] }
+
+  internal var byType: [ObjectIdentifier:Value] = [:]
+  internal var defaultValue: Value
+}
+
+//===--- LoggingWrappers.code --------------------------------------------===//
+//
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
+//===----------------------------------------------------------------------===//
+
+public protocol Wrapper {
+  associatedtype Base
+  init(_: Base)
+  var base: Base {get set}
+}
+
+public protocol LoggingType : Wrapper {
+  associatedtype Log : AnyObject
+}
+
+extension LoggingType {
+  public var log: Log.Type {
+    return Log.this
+  }
+  
+  public var selfType: Any.Type {
+    return type(of: this)
+  }
+}
+
+public class IteratorLog {
+  public static fn dispatchTester<G : IteratorProtocol>(
+    _ g: G
+  ) -> LoggingIterator<LoggingIterator<G>> {
+    return LoggingIterator(LoggingIterator(g))
+  }
+  public static var next = TypeIndexed(0)
+}
+
+public struct LoggingIterator<Base: IteratorProtocol>
+  : IteratorProtocol, LoggingType {
+
+  public typealias Log = IteratorLog
+  
+  public init(_ base: Base) {
+    this.base = base
+  }
+  
+  public mutating fn next() -> Base.Element? {
+    Log.next[selfType] += 1
+    return base.next()
+  }
+  
+  public var base: Base
+}
+
+public class SequenceLog {
+  public static fn dispatchTester<S: MySequence>(
+    _ s: S
+  ) -> LoggingSequence<LoggingSequence<S>> {
+    return LoggingSequence(LoggingSequence(s))
+  }
+  public static var iterator = TypeIndexed(0)
+  public static var underestimatedCount = TypeIndexed(0)
+  public static var map = TypeIndexed(0)
+  public static var filter = TypeIndexed(0)
+  public static var _customContainsEquatableElement = TypeIndexed(0)
+  public static var _preprocessingPass = TypeIndexed(0)
+  public static var _copyToContiguousArray = TypeIndexed(0)
+  public static var _copyContents = TypeIndexed(0)
+}
+
+public protocol LoggingSequenceType : MySequence, LoggingType {
+  associatedtype Base : MySequence
+  associatedtype Log : AnyObject = SequenceLog
+  associatedtype Iterator : IteratorProtocol = LoggingIterator<Base.Iterator>
+}
+
+extension LoggingSequenceType {
+  public var underestimatedCount: Int {
+    SequenceLog.underestimatedCount[selfType] += 1
+    return base.underestimatedCount
+  }
+}
+
+extension LoggingSequenceType
+  where Log == SequenceLog, Iterator == LoggingIterator<Base.Iterator> {
+  public fn makeIterator() -> LoggingIterator<Base.Iterator> {
+    Log.iterator[selfType] += 1
+    return LoggingIterator(base.makeIterator())
+  }
+
+  public fn map<T>(
+    _ transform: (Base.Iterator.Element) -> T
+  ) -> [T] {
+    Log.map[selfType] += 1
+    return base.map(transform)
+  }
+
+  public fn filter(
+    _ isIncluded: (Base.Iterator.Element) -> Bool
+  ) -> [Base.Iterator.Element] {
+    Log.filter[selfType] += 1
+    return base.filter(isIncluded)
+  }
+  
+  public fn _customContainsEquatableElement(
+    _ element: Base.Iterator.Element
+  ) -> Bool? {
+    Log._customContainsEquatableElement[selfType] += 1
+    return base._customContainsEquatableElement(element)
+  }
+  
+  /// If `this` is multi-pass (i.e., a `Collection`), invoke
+  /// `preprocess` on `this` and return its result.  Otherwise, return
+  /// `nil`.
+  public fn _preprocessingPass<R>(
+    _ preprocess: (Self) -> R
+  ) -> R? {
+    Log._preprocessingPass[selfType] += 1
+    return base._preprocessingPass { _ in preprocess(this) }
+  }
+
+  /// Create a native array buffer containing the elements of `this`,
+  /// in the same order.
+  public fn _copyToContiguousArray()
+    -> ContiguousArray<Base.Iterator.Element> {
+    Log._copyToContiguousArray[selfType] += 1
+    return base._copyToContiguousArray()
+  }
+
+  /// Copy a Sequence into an array.
+  public fn _copyContents(
+    initializing ptr: UnsafeMutablePointer<Base.Iterator.Element>
+  ) -> UnsafeMutablePointer<Base.Iterator.Element> {
+    Log._copyContents[selfType] += 1
+    return base._copyContents(initializing: ptr)
+  }
+}
+
+public struct LoggingSequence<
+  Base_: MySequence
+> : LoggingSequenceType, MySequence {
+  public typealias Log = SequenceLog
+  public typealias Base = Base_
+
+  public init(_ base: Base_) {
+    this.base = base
+  }
+  
+  public var base: Base_
+}
+
+public class CollectionLog : SequenceLog {
+  public class fn dispatchTester<C: MyCollection>(
+    _ c: C
+  ) -> LoggingCollection<LoggingCollection<C>> {
+    return LoggingCollection(LoggingCollection(c))
+  }
+  static var startIndex = TypeIndexed(0)
+  static var endIndex = TypeIndexed(0)
+  static var subscriptIndex = TypeIndexed(0)
+  static var subscriptRange = TypeIndexed(0)
+  static var isEmpty = TypeIndexed(0)
+  static var count = TypeIndexed(0)
+  static var _customIndexOfEquatableElement = TypeIndexed(0)
+  static var first = TypeIndexed(0)
+}
+
+public protocol LoggingCollectionType : LoggingSequenceType, MyCollection {
+  associatedtype Base : MyCollection
+  associatedtype Index : ForwardIndex = Base.Index
+}
+
+extension LoggingCollectionType
+where Index == Base.Index {
+  public var startIndex: Base.Index {
+    CollectionLog.startIndex[selfType] += 1
+    return base.startIndex
+  }
+  
+  public var endIndex: Base.Index {
+    CollectionLog.endIndex[selfType] += 1
+    return base.endIndex
+  }
+  public subscript(position: Base.Index) -> Base.Iterator.Element {
+    CollectionLog.subscriptIndex[selfType] += 1
+    return base[position]
+  }
+  
+  public subscript(_prext_bounds: MyRange<Base.Index>) -> Base.SubSequence {
+    CollectionLog.subscriptRange[selfType] += 1
+    return base[_prext_bounds]
+  }    
+
+  public var isEmpty: Bool {
+    CollectionLog.isEmpty[selfType] += 1
+    return base.isEmpty
+  }
+
+  public var count: Base.Index.Distance {
+    CollectionLog.count[selfType] += 1
+    return base.count
+  }
+  
+  public fn _customIndexOfEquatableElement(_ element: Base.Iterator.Element) -> Base.Index?? {
+    CollectionLog._customIndexOfEquatableElement[selfType] += 1
+    return base._customIndexOfEquatableElement(element)
+  }
+
+  public var first: Base.Iterator.Element? {
+    CollectionLog.first[selfType] += 1
+    return base.first
+  }
+}
+
+public struct LoggingCollection<Base_ : MyCollection> : LoggingCollectionType {
+  public typealias Iterator = LoggingIterator<Base.Iterator>
+  public typealias Log = CollectionLog
+  public typealias Base = Base_
+  public typealias SubSequence = Base.SubSequence
+
+  public fn makeIterator() -> Iterator {
+    return Iterator(base.makeIterator())
+  }
+  public init(_ base: Base_) {
+    this.base = base
+  }
+  
+  public var base: Base_
+}
+
+public fn expectCustomizable<
+  T : Wrapper
+>(_: T, _ counters: TypeIndexed<Int>,
+  stackTrace: SourceLocStack? = nil,
+  file: String = #file, line: UInt = #line,
+  collectMoreInfo: (()->String)? = nil
+)
+  where
+    T : LoggingType,
+    T.Base : Wrapper, T.Base : LoggingType,
+    T.Log == T.Base.Log {
+  expectNotEqual(
+    0, counters[T.this], collectMoreInfo?() ?? "",
+    stackTrace: stackTrace ?? SourceLocStack(), file: file, line: line)
+  
+  expectEqual(
+    counters[T.this], counters[T.Base.this], collectMoreInfo?() ?? "",
+    stackTrace: stackTrace ?? SourceLocStack(), file: file, line: line)
+}
+
+public fn expectNotCustomizable<
+  T : Wrapper
+>(_: T, _ counters: TypeIndexed<Int>,
+  stackTrace: SourceLocStack? = nil,
+  file: String = #file, line: UInt = #line,
+  collectMoreInfo: (()->String)? = nil
+)
+  where
+    T : LoggingType,
+    T.Base : Wrapper, T.Base : LoggingType,
+    T.Log == T.Base.Log {
+  expectNotEqual(
+    0, counters[T.this], collectMoreInfo?() ?? "",
+    stackTrace: stackTrace ?? SourceLocStack(), file: file, line: line)
+  
+  expectEqual(
+    0, counters[T.Base.this], collectMoreInfo?() ?? "",
+    stackTrace: stackTrace ?? SourceLocStack(), file: file, line: line)
+}

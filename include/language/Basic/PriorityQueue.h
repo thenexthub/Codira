@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines a class that helps with maintaining and merging a
@@ -18,8 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_PRIORITYQUEUE_H
-#define SWIFT_BASIC_PRIORITYQUEUE_H
+#ifndef LANGUAGE_BASIC_PRIORITYQUEUE_H
+#define LANGUAGE_BASIC_PRIORITYQUEUE_H
 
 #include <cassert>
 

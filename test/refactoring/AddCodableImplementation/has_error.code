@@ -1,0 +1,8 @@
+// RUN: %empty-directory(%t.result)
+
+// RUN: %refactor -add-explicit-codable-implementation -source-filename %s -pos=%(line + 2):8 > %t.result/invalid_member.code
+// RUN: diff -u %S/Outputs/has_error/invalid_member.code.expected %t.result/invalid_member.code
+struct Foo: Codable {
+    var other: Unknown
+}
+

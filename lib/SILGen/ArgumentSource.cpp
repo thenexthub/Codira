@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // A structure for holding a r-value or l-value
@@ -34,22 +35,22 @@ RValue &ArgumentSource::peekRValue() & {
 RValue ArgumentSource::getAsRValue(SILGenFunction &SGF, SGFContext C) && {
   switch (StoredKind) {
   case Kind::Invalid:
-    llvm_unreachable("argument source is invalid");
+    toolchain_unreachable("argument source is invalid");
   case Kind::LValue:
-    llvm_unreachable("cannot get l-value as r-value");
+    toolchain_unreachable("cannot get l-value as r-value");
   case Kind::RValue:
     return std::move(*this).asKnownRValue(SGF);
   case Kind::Expr:
     return SGF.emitRValue(std::move(*this).asKnownExpr(), C);
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 ManagedValue ArgumentSource::getAsSingleValue(SILGenFunction &SGF,
                                               SGFContext C) && {
   switch (StoredKind) {
   case Kind::Invalid:
-    llvm_unreachable("argument source is invalid");
+    toolchain_unreachable("argument source is invalid");
   case Kind::LValue: {
     auto loc = getKnownLValueLocation();
     LValue &&lv = std::move(*this).asKnownLValue();
@@ -76,7 +77,7 @@ ManagedValue ArgumentSource::getAsSingleValue(SILGenFunction &SGF,
     }
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 
@@ -97,9 +98,9 @@ ManagedValue ArgumentSource::getConverted(SILGenFunction &SGF,
                                           SGFContext C) && {
   switch (StoredKind) {
   case Kind::Invalid:
-    llvm_unreachable("argument source is invalid");
+    toolchain_unreachable("argument source is invalid");
   case Kind::LValue:
-    llvm_unreachable("cannot get converted l-value");
+    toolchain_unreachable("cannot get converted l-value");
   case Kind::RValue:
   case Kind::Expr:
     return SGF.emitConvertedRValue(getLocation(), conversion, C,
@@ -107,15 +108,15 @@ ManagedValue ArgumentSource::getConverted(SILGenFunction &SGF,
       return std::move(*this).getAsSingleValue(SGF, C);
     });
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 void ArgumentSource::forwardInto(SILGenFunction &SGF, Initialization *dest) && {
   switch (StoredKind) {
   case Kind::Invalid:
-    llvm_unreachable("argument source is invalid");
+    toolchain_unreachable("argument source is invalid");
   case Kind::LValue:
-    llvm_unreachable("cannot forward an l-value");
+    toolchain_unreachable("cannot forward an l-value");
   case Kind::RValue: {
     auto loc = getKnownRValueLocation();
     std::move(*this).asKnownRValue(SGF).ensurePlusOne(SGF, loc).forwardInto(SGF, loc, dest);
@@ -127,7 +128,7 @@ void ArgumentSource::forwardInto(SILGenFunction &SGF, Initialization *dest) && {
     return;
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 // FIXME: Once uncurrying is removed, get rid of this constructor.
@@ -139,18 +140,18 @@ ArgumentSource::ArgumentSource(SILLocation loc, RValue &&rv, Kind kind)
 ArgumentSource ArgumentSource::borrow(SILGenFunction &SGF) const & {
   switch (StoredKind) {
   case Kind::Invalid:
-    llvm_unreachable("argument source is invalid");
+    toolchain_unreachable("argument source is invalid");
   case Kind::LValue:
-    llvm_unreachable("cannot borrow an l-value");
+    toolchain_unreachable("cannot borrow an l-value");
   case Kind::RValue: {
     auto loc = getKnownRValueLocation();
     return ArgumentSource(loc, asKnownRValue().borrow(SGF, loc));
   }
   case Kind::Expr: {
-    llvm_unreachable("cannot borrow an expression");
+    toolchain_unreachable("cannot borrow an expression");
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 ManagedValue ArgumentSource::materialize(SILGenFunction &SGF) && {
@@ -231,7 +232,7 @@ void ArgumentSource::forwardInto(SILGenFunction &SGF,
 }
 
 void ArgumentSource::dump() const {
-  dump(llvm::errs());
+  dump(toolchain::errs());
 }
 
 void ArgumentSource::dump(raw_ostream &out, unsigned indent) const {
@@ -254,7 +255,7 @@ void ArgumentSource::dump(raw_ostream &out, unsigned indent) const {
     out << "\n";
     return;
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 PreparedArguments::PreparedArguments(ArrayRef<AnyFunctionType::Param> params,
@@ -301,7 +302,7 @@ bool ArgumentSource::isObviouslyEqual(const ArgumentSource &other) const {
 
   switch (StoredKind) {
   case Kind::Invalid:
-    llvm_unreachable("argument source is invalid");
+    toolchain_unreachable("argument source is invalid");
   case Kind::RValue:
     return asKnownRValue().isObviouslyEqual(other.asKnownRValue());
   case Kind::LValue:
@@ -309,7 +310,7 @@ bool ArgumentSource::isObviouslyEqual(const ArgumentSource &other) const {
   case Kind::Expr:
     return false; // TODO?
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 PreparedArguments PreparedArguments::copyForDiagnostics() const {
@@ -336,7 +337,7 @@ ArgumentSource ArgumentSource::copyForDiagnostics() const {
   case Kind::Expr:
     return asKnownExpr();
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }
 
 ArgumentSourceExpansion::ArgumentSourceExpansion(SILGenFunction &SGF,
@@ -391,7 +392,7 @@ ArgumentSourceExpansion::ArgumentSourceExpansion(SILGenFunction &SGF,
 }
 
 void ArgumentSourceExpansion::withElement(unsigned i,
-                 llvm::function_ref<void (ArgumentSource &&)> function) {
+                 toolchain::function_ref<void (ArgumentSource &&)> function) {
 #ifndef NDEBUG
   assert(NumRemainingElements > 0);
   NumRemainingElements--;
@@ -421,5 +422,5 @@ void ArgumentSourceExpansion::withElement(unsigned i,
     return;
   }
   }
-  llvm_unreachable("bad kind");
+  toolchain_unreachable("bad kind");
 }

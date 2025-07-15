@@ -11,10 +11,11 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_OPENED_EXISTENTIALS_H
-#define SWIFT_OPENED_EXISTENTIALS_H
+#ifndef LANGUAGE_OPENED_EXISTENTIALS_H
+#define LANGUAGE_OPENED_EXISTENTIALS_H
 
 #include "language/AST/Type.h"
 #include "language/Basic/OptionalEnum.h"
@@ -38,7 +39,7 @@ class GenericParameterReferenceInfo final {
   /// Whether there is a reference to the generic parameter at hand in covariant
   /// result type position. This position is the uncurried interface type of a
   /// declaration, stipped of any optionality. For example, this is true for
-  /// 'Self' in 'func foo(Int) -> () -> Self?'.
+  /// 'Self' in 'fn foo(Int) -> () -> Self?'.
   bool HasCovariantGenericParamResult;
 
   GenericParameterReferenceInfo(uint8_t DirectRefs, uint8_t DepMemberTyRefs,

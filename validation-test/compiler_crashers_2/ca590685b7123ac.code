@@ -1,0 +1,3 @@
+// {"signature":"language::SubstitutionMap::get(language::GenericSignature, language::InFlightSubstitution&)"}
+// RUN: not --crash %target-language-frontend -typecheck %s
+struct a < each b { class c protocol d init(e: c & d

@@ -1,0 +1,20 @@
+// RUN: not %target-swift-frontend %s -typecheck
+
+protocol RawTokenKindSubset {}
+
+struct Parser {
+  fn canRecoverTo<Subset: RawTokenKindSubset>(anyIn subset: Subset.Type) {
+    if immutable (kind, handle) = this.at(anyIn: subset) {
+    }
+  }
+
+  fn at(_ keyword: Int) -> Bool {}
+
+  fn at(
+<<<<<<< HEAD (Note: diff markers are required for reproduction of the crash)
+  ) -> Bool {
+=======
+  ) -> Bool {
+>>>>>>> My commit message (don't remove)
+  }
+}

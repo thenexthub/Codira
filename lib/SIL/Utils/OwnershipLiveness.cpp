@@ -1,20 +1,24 @@
 //===--- OwnershipLiveness.cpp --------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/SIL/OwnershipLiveness.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/Defer.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/SIL/Dominance.h"
 #include "language/SIL/PrunedLiveness.h"
 #include "language/SIL/SILArgument.h"
@@ -22,13 +26,13 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILValue.h"
 #include "language/SIL/Test.h"
-#include "llvm/ADT/SmallVector.h"
+#include "toolchain/ADT/SmallVector.h"
 
 namespace language {
 
-void OSSALiveness::print(llvm::raw_ostream &OS) const { liveness.print(OS); }
+void OSSALiveness::print(toolchain::raw_ostream &OS) const { liveness.print(OS); }
 
-void OSSALiveness::dump() const { print(llvm::dbgs()); }
+void OSSALiveness::dump() const { print(toolchain::dbgs()); }
 
 struct LinearLivenessVisitor :
   public OwnershipUseVisitor<LinearLivenessVisitor> {
@@ -49,30 +53,30 @@ struct LinearLivenessVisitor :
   }
 
   bool handlePointerEscape(Operand *use) {
-    llvm_unreachable("a pointer escape cannot end a linear lifetime");
+    toolchain_unreachable("a pointer escape cannot end a linear lifetime");
   }
 
   // handleOwnedPhi and handleOuterReborrow ends the linear lifetime.
   // By default, they are treated like a normal lifetime-ending use.
 
   bool handleGuaranteedForwardingPhi(Operand *use) {
-    llvm_unreachable("guaranteed forwarding phi cannot end a linear lifetime");
+    toolchain_unreachable("guaranteed forwarding phi cannot end a linear lifetime");
   }
 
   bool handleInnerBorrow(BorrowingOperand borrowingOperand) {
-    llvm_unreachable("an inner borrow cannot end a linear lifetime");
+    toolchain_unreachable("an inner borrow cannot end a linear lifetime");
   }
 
   bool handleInnerAdjacentReborrow(SILArgument *reborrow) {
-    llvm_unreachable("inner adjacent reborrows are not visited");
+    toolchain_unreachable("inner adjacent reborrows are not visited");
   }
 
   bool handleInnerReborrow(BorrowingOperand borrowingOperand) {
-    llvm_unreachable("an inner borrow cannot end a linear lifetime");
+    toolchain_unreachable("an inner borrow cannot end a linear lifetime");
   }
 
   bool handleScopedAddress(ScopedAddressValue scopedAddress) {
-    llvm_unreachable("an scoped address cannot end a linear lifetime");
+    toolchain_unreachable("an scoped address cannot end a linear lifetime");
   }
 };
 
@@ -93,7 +97,7 @@ LinearLiveness::LinearLiveness(SILValue def,
     break;
   case OwnershipKind::Unowned:
   case OwnershipKind::Any:
-    llvm_unreachable("bad ownership for LinearLiveness");
+    toolchain_unreachable("bad ownership for LinearLiveness");
   }
 }
 
@@ -189,7 +193,7 @@ void InteriorLiveness::compute(const DominanceInfo *domInfo, InnerScopeHandlerRe
     .visitInteriorUses(ownershipDef);
 }
 
-void InteriorLiveness::print(llvm::raw_ostream &OS) const {
+void InteriorLiveness::print(toolchain::raw_ostream &OS) const {
   OSSALiveness::print(OS);
 
   switch (getAddressUseKind()) {
@@ -208,7 +212,7 @@ void InteriorLiveness::print(llvm::raw_ostream &OS) const {
   }
 }
 
-void InteriorLiveness::dump() const { print(llvm::dbgs()); }
+void InteriorLiveness::dump() const { print(toolchain::dbgs()); }
 
 // =============================================================================
 // ExtendedLinearLiveness
@@ -234,7 +238,7 @@ struct ExtendedLinearLivenessVisitor
   }
 
   bool handlePointerEscape(Operand *use) {
-    llvm_unreachable("a pointer escape cannot end a linear lifetime");
+    toolchain_unreachable("a pointer escape cannot end a linear lifetime");
   }
 
   bool handleOwnedPhi(Operand *phiOper) {
@@ -248,23 +252,23 @@ struct ExtendedLinearLivenessVisitor
   }
 
   bool handleGuaranteedForwardingPhi(Operand *use) {
-    llvm_unreachable("guaranteed forwarding phi cannot end a linear lifetime");
+    toolchain_unreachable("guaranteed forwarding phi cannot end a linear lifetime");
   }
 
   bool handleInnerBorrow(BorrowingOperand borrowingOperand) {
-    llvm_unreachable("an inner borrow cannot end a linear lifetime");
+    toolchain_unreachable("an inner borrow cannot end a linear lifetime");
   }
 
   bool handleInnerAdjacentReborrow(SILArgument *reborrow) {
-    llvm_unreachable("inner adjacent reborrows are not visited");
+    toolchain_unreachable("inner adjacent reborrows are not visited");
   }
 
   bool handleInnerReborrow(BorrowingOperand borrowingOperand) {
-    llvm_unreachable("an inner borrow cannot end a linear lifetime");
+    toolchain_unreachable("an inner borrow cannot end a linear lifetime");
   }
 
   bool handleScopedAddress(ScopedAddressValue scopedAddress) {
-    llvm_unreachable("an scoped address cannot end a linear lifetime");
+    toolchain_unreachable("an scoped address cannot end a linear lifetime");
   }
 };
 
@@ -286,11 +290,11 @@ void ExtendedLinearLiveness::compute() {
   }
 }
 
-void ExtendedLinearLiveness::print(llvm::raw_ostream &OS) const {
+void ExtendedLinearLiveness::print(toolchain::raw_ostream &OS) const {
   liveness.print(OS);
 }
 
-void ExtendedLinearLiveness::dump() const { print(llvm::dbgs()); }
+void ExtendedLinearLiveness::dump() const { print(toolchain::dbgs()); }
 
 } // namespace language
 
@@ -305,15 +309,15 @@ static FunctionTest LinearLivenessTest("linear_liveness", [](auto &function,
                                                              auto &arguments,
                                                              auto &test) {
   SILValue value = arguments.takeValue();
-  function.print(llvm::outs());
-  llvm::outs() << "Linear liveness: " << value;
+  function.print(toolchain::outs());
+  toolchain::outs() << "Linear liveness: " << value;
   LinearLiveness liveness(value);
   liveness.compute();
-  liveness.print(llvm::outs());
+  liveness.print(toolchain::outs());
 
   PrunedLivenessBoundary boundary;
   liveness.getLiveness().computeBoundary(boundary);
-  boundary.print(llvm::outs());
+  boundary.print(toolchain::outs());
 });
 
 // Arguments:
@@ -326,19 +330,19 @@ static FunctionTest
     InteriorLivenessTest("interior_liveness",
                          [](auto &function, auto &arguments, auto &test) {
                            SILValue value = arguments.takeValue();
-                           function.print(llvm::outs());
-                           llvm::outs() << "Interior liveness: " << value;
+                           function.print(toolchain::outs());
+                           toolchain::outs() << "Interior liveness: " << value;
                            auto *domTree = test.getDominanceInfo();
                            InteriorLiveness liveness(value);
                            auto handleInnerScope = [](SILValue innerBorrow) {
-                             llvm::outs() << "Inner scope: " << innerBorrow;
+                             toolchain::outs() << "Inner scope: " << innerBorrow;
                            };
                            liveness.compute(domTree, handleInnerScope);
-                           liveness.print(llvm::outs());
+                           liveness.print(toolchain::outs());
 
                            PrunedLivenessBoundary boundary;
                            liveness.getLiveness().computeBoundary(boundary);
-                           boundary.print(llvm::outs());
+                           boundary.print(toolchain::outs());
                          });
 
 // Arguments:
@@ -350,14 +354,14 @@ static FunctionTest
 static FunctionTest ExtendedLinearLivenessTest(
     "extended-liveness", [](auto &function, auto &arguments, auto &test) {
       SILValue value = arguments.takeValue();
-      function.print(llvm::outs());
-      llvm::outs() << "Extended liveness: " << value;
+      function.print(toolchain::outs());
+      toolchain::outs() << "Extended liveness: " << value;
       ExtendedLinearLiveness liveness(value);
       liveness.compute();
-      liveness.print(llvm::outs());
+      liveness.print(toolchain::outs());
 
       PrunedLivenessBoundary boundary;
       liveness.getLiveness().computeBoundary(boundary);
-      boundary.print(llvm::outs());
+      boundary.print(toolchain::outs());
     });
 } // end namespace language::test

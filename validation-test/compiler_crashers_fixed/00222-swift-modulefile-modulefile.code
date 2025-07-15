@@ -1,0 +1,60 @@
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+
+// RUN: not %target-language-frontend %s -typecheck
+fn f() {
+    ({})
+}
+ a
+}
+s: X.Type) {
+    }
+}
+class c {
+    fn b((Any, c))(a:  { u o "\(v): \(u())" }
+}
+struct e<r> {
+    j p: , () -> ())] = []
+}
+prtocolAny) -> Any in
+        return p
+    })
+}
+b(a(1, a(2, 3)))
+fn f Boolean>(b: T) {
+}
+f(   fn b( d
+{
+  o t = p
+}
+struct h : n {
+  t : n q m.t == m> (h: m) {
+}
+fn q<t : n q t.t == g> (h: t) {
+}
+q(h())
+fn r(g: m) -> <s>(() -> s) -> n
+protocol A {
+    typealias E
+}
+struct B<T : A> {
+    immutable h: T
+    immutable i: T.E
+}
+protocol C {
+    typealias F
+    fu {
+        o  }
+}
+s m {
+   class fn s()
+}
+class p: m{  cl

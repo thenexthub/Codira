@@ -1,0 +1,48 @@
+/// Test -emit-imported-modules with module aliasing.
+///
+
+// RUN: %empty-directory(%t)
+// RUN: %{python} %utils/split_file.py -o %t %s
+
+/// Create AppleLogging.codemodule by aliasing XLogging
+// RUN: %target-language-frontend -module-name AppleLogging -module-alias XLogging=AppleLogging %t/FileLogging.code -emit-module -emit-module-path %t/AppleLogging.codemodule
+// RUN: test -f %t/AppleLogging.codemodule
+
+/// Verify emitted imported modules contains AppleLogging as a module name
+// RUN: %target-language-frontend -emit-imported-modules %t/FileLib1.code -module-alias XLogging=AppleLogging -I %t > %t/result1.output
+
+// RUN: %FileCheck %s -input-file %t/result1.output -check-prefix CHECK-AST1
+// CHECK-AST1-NOT: XLogging
+// CHECK-AST1: AppleLogging
+
+// RUN: %target-language-frontend -emit-imported-modules %t/FileLib2.code -module-alias XLogging=AppleLogging -I %t > %t/result2.output
+
+// RUN: %FileCheck %s -input-file %t/result2.output -check-prefix CHECK-AST2
+// CHECK-AST2-NOT: XLogging
+// CHECK-AST2: AppleLogging
+
+
+// BEGIN FileLogging.code
+public struct Logger {
+  public init() {}
+}
+public fn setup() -> XLogging.Logger? {
+  return Logger()
+}
+
+// BEGIN FileLib1.code
+import XLogging
+
+public fn start() -> XLogging.Logger? {
+  return XLogging.setup()
+}
+
+public fn end(_ arg: XLogging.Logger) {
+}
+
+// BEGIN FileLib2.code
+import struct XLogging.Logger
+
+public fn start() -> XLogging.Logger? {
+  return XLogging.Logger()
+}

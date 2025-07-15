@@ -11,16 +11,17 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_PARSESIL_SILPARSERFUNCTIONBUILDER_H
-#define SWIFT_PARSESIL_SILPARSERFUNCTIONBUILDER_H
+#ifndef LANGUAGE_PARSESIL_SILPARSERFUNCTIONBUILDER_H
+#define LANGUAGE_PARSESIL_SILPARSERFUNCTIONBUILDER_H
 
 #include "language/SIL/SILFunctionBuilder.h"
 
 namespace language {
 
-class LLVM_LIBRARY_VISIBILITY SILParserFunctionBuilder {
+class TOOLCHAIN_LIBRARY_VISIBILITY SILParserFunctionBuilder {
   SILFunctionBuilder builder;
 
 public:
@@ -40,7 +41,7 @@ public:
     //
     // DISCUSSION: This ensures that we can perform protocol conformance checks.
     if (!result->getDeclContext()) {
-      result->setParentModule(result->getModule().getSwiftModule());
+      result->setParentModule(result->getModule().getCodiraModule());
     }
 
     return result;

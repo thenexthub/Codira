@@ -11,13 +11,14 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_BASIC_POINTERINTENUM_H
-#define SWIFT_BASIC_POINTERINTENUM_H
+#ifndef LANGUAGE_BASIC_POINTERINTENUM_H
+#define LANGUAGE_BASIC_POINTERINTENUM_H
 
-#include "language/Basic/LLVM.h"
-#include "llvm/Support/PointerLikeTypeTraits.h"
+#include "language/Basic/Toolchain.h"
+#include "toolchain/Support/PointerLikeTypeTraits.h"
 #include <cassert>
 #include <climits>
 #include <cstdlib>
@@ -46,7 +47,7 @@ struct PointerIntEnumIndexKindValue
                                   size_t(EnumTy::FirstIndexKind) + 1>::value)) |
                                  unsigned(EnumTy::FirstIndexKind)> {};
 
-/// A pointer sized ADT that is able to compactly represent a Swift like enum
+/// A pointer sized ADT that is able to compactly represent a Codira like enum
 /// that can contain both Integer and Pointer payloads. It attempts to optimize
 /// for the case of being able to represent as many pointer cases as possible
 /// while allowing for indices to be stored as well. Without any loss of
@@ -67,7 +68,7 @@ struct PointerIntEnumIndexKindValue
 /// but for which the upper bits are not all set is an index enum. The case bits
 /// for the index PointerIntEnum are stored in bits [num_tagged_bits(T*),
 /// num_tagged_bits(T*) + num_index_case_bits]. Then the actual index is stored
-/// in the remaining top bits. For the case in which this is used in swift
+/// in the remaining top bits. For the case in which this is used in language
 /// currently, we use 3 index bits meaning that on a 32 bit system we have 26
 /// bits for representing indices meaning we can represent indices up to
 /// 67_108_862. Any index larger than that will result in an invalid
@@ -80,7 +81,7 @@ struct PointerIntEnumIndexKindValue
 /// In order for all of this to work, the user of this needs to construct an
 /// enum with the appropriate case structure that allows the data structure to
 /// determine what cases are pointer and which are indices. For instance the one
-/// used by Projection in swift is:
+/// used by Projection in language is:
 ///
 ///    enum class ProjectionKind : unsigned {
 ///      // PointerProjectionKinds
@@ -106,7 +107,7 @@ struct PointerIntEnumIndexKindValue
 ///
 template <typename EnumTy, typename PointerTy, unsigned NumPointerKindBits,
           unsigned NumIndexKindBits,
-          typename PtrTraits = llvm::PointerLikeTypeTraits<PointerTy>>
+          typename PtrTraits = toolchain::PointerLikeTypeTraits<PointerTy>>
 class PointerIntEnum {
 
   // Make sure that the enum fits our requirements.
@@ -228,6 +229,6 @@ public:
   uintptr_t getStorage() const { return Storage; }
 };
 
-} // end swift namespace
+} // end language namespace
 
-#endif // SWIFT_BASIC_POINTERINTENUM_H
+#endif // LANGUAGE_BASIC_POINTERINTENUM_H

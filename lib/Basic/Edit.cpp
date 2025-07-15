@@ -11,9 +11,10 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/raw_ostream.h"
+#include "toolchain/Support/raw_ostream.h"
 #include "language/Basic/Edit.h"
 #include "language/Basic/SourceManager.h"
 #include <algorithm>
@@ -30,14 +31,14 @@ void SourceEdits::addEdit(SourceManager &SM, CharSourceRange Range,
 
   // NOTE: We cannot store SourceManager here since this logic is used by a
   // DiagnosticConsumer where the SourceManager may not remain valid. This is
-  // the case when e.g build swift interfaces, we create a fresh
+  // the case when e.g build language interfaces, we create a fresh
   // CompilerInstance for a limited scope, but diagnostics are passed outside of
   // it.
   Edits.push_back({Path.str(), Text.str(), Offset, Length});
 }
 
-void swift::
-writeEditsInJson(const SourceEdits &AllEdits, llvm::raw_ostream &OS) {
+void language::
+writeEditsInJson(const SourceEdits &AllEdits, toolchain::raw_ostream &OS) {
   // Sort the edits so they occur from the last to the first within a given
   // source file. That's the order in which applying non-overlapping edits
   // will succeed.

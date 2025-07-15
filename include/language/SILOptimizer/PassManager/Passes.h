@@ -1,4 +1,4 @@
-//===--- Passes.h - Swift Compiler SIL Pass Entrypoints ---------*- C++ -*-===//
+//===--- Passes.h - Codira Compiler SIL Pass Entrypoints ---------*- C++ -*-===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,14 +11,15 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file declares the main entrypoints to SIL passes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_PASSMANAGER_PASSES_H
-#define SWIFT_SILOPTIMIZER_PASSMANAGER_PASSES_H
+#ifndef LANGUAGE_SILOPTIMIZER_PASSMANAGER_PASSES_H
+#define LANGUAGE_SILOPTIMIZER_PASSMANAGER_PASSES_H
 
 #include "language/SIL/SILModule.h"
 

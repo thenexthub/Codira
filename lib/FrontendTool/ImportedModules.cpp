@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "Dependencies.h"
@@ -20,15 +21,15 @@
 #include "language/AST/DiagnosticsFrontend.h"
 #include "language/AST/Module.h"
 #include "language/Basic/Assertions.h"
-#include "language/Basic/LLVM.h"
+#include "language/Basic/Toolchain.h"
 #include "language/Basic/STLExtras.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/Frontend/FrontendOptions.h"
 #include "clang/Basic/Module.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/VirtualOutputBackend.h"
+#include "toolchain/ADT/SetVector.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/Support/FileSystem.h"
+#include "toolchain/Support/VirtualOutputBackend.h"
 
 using namespace language;
 
@@ -37,7 +38,7 @@ static StringRef getTopLevelName(const clang::Module *module) {
 }
 
 static void findAllClangImports(const clang::Module *module,
-                                llvm::SetVector<StringRef> &modules) {
+                                toolchain::SetVector<StringRef> &modules) {
   for (auto imported : module->Imports) {
     modules.insert(getTopLevelName(imported));
   }
@@ -47,9 +48,9 @@ static void findAllClangImports(const clang::Module *module,
   }
 }
 
-bool swift::emitImportedModules(ModuleDecl *mainModule,
+bool language::emitImportedModules(ModuleDecl *mainModule,
                                 const FrontendOptions &opts,
-                                llvm::vfs::OutputBackend &backend) {
+                                toolchain::vfs::OutputBackend &backend) {
   auto &Context = mainModule->getASTContext();
   std::string path = opts.InputsAndOutputs.getSingleOutputFilename();
   auto &diags = Context.Diags;
@@ -60,12 +61,12 @@ bool swift::emitImportedModules(ModuleDecl *mainModule,
     return true;
   }
 
-  llvm::SetVector<StringRef> Modules;
+  toolchain::SetVector<StringRef> Modules;
 
-  // Find the imports in the main Swift code.
+  // Find the imports in the main Codira code.
   // We don't need `getTopLevelDeclsForDisplay()` here because we only care
   // about `ImportDecl`s.
-  llvm::SmallVector<Decl *, 32> Decls;
+  toolchain::SmallVector<Decl *, 32> Decls;
   mainModule->getDisplayDecls(Decls);
   for (auto D : Decls) {
     auto ID = dyn_cast<ImportDecl>(D);
@@ -94,7 +95,7 @@ bool swift::emitImportedModules(ModuleDecl *mainModule,
           Modules.insert(getTopLevelName(clangModule));
         else
           assert(IM.importedModule->isStdlibModule() &&
-                 "unexpected non-stdlib swift module");
+                 "unexpected non-stdlib language module");
       }
     }
   }

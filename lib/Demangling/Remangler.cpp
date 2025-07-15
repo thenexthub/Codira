@@ -1,4 +1,4 @@
-//===--- Remangler.cpp - Swift re-mangling from a demangling tree ---------===//
+//===--- Remangler.cpp - Codira re-mangling from a demangling tree ---------===//
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 //  This file implements the remangler, which turns a demangling parse
@@ -27,8 +28,8 @@
 #include "language/Demangling/ManglingUtils.h"
 #include "language/Demangling/Punycode.h"
 #include "language/Strings.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
+#include "toolchain/ADT/StringRef.h"
+#include "toolchain/ADT/StringSwitch.h"
 #include <cstdio>
 #include <cstdlib>
 
@@ -599,8 +600,8 @@ ManglingError Remangler::mangleGenericArgs(Node *node, char &Separator,
   switch (node->getKind()) {
     case Node::Kind::Protocol:
       // A protocol cannot be the parent of a nominal type, so this case should
-      // never be hit by valid swift code. But the indexer might generate a URL
-      // from invalid swift code, which has a bound generic inside a protocol.
+      // never be hit by valid language code. But the indexer might generate a URL
+      // from invalid language code, which has a bound generic inside a protocol.
       // The ASTMangler treats a protocol like any other nominal type in this
       // case, so we also support it in the remangler.
     case Node::Kind::Structure:
@@ -1922,7 +1923,7 @@ ManglingError Remangler::mangleImplSendingResult(Node *node, unsigned depth) {
 }
 
 ManglingError Remangler::mangleImplConvention(Node *node, unsigned depth) {
-  char ConvCh = llvm::StringSwitch<char>(node->getText())
+  char ConvCh = toolchain::StringSwitch<char>(node->getText())
                   .Case("@callee_unowned", 'y')
                   .Case("@callee_guaranteed", 'g')
                   .Case("@callee_owned", 'x')
@@ -1940,7 +1941,7 @@ Remangler::mangleImplParameterResultDifferentiability(Node *node,
   // Empty string represents default differentiability.
   if (node->getText().empty())
     return ManglingError::Success;
-  char diffChar = llvm::StringSwitch<char>(node->getText())
+  char diffChar = toolchain::StringSwitch<char>(node->getText())
                       .Case("@noDerivative", 'w')
                       .Default(0);
   if (!diffChar)
@@ -1954,9 +1955,33 @@ ManglingError Remangler::mangleImplParameterSending(Node *node,
                                                     unsigned depth) {
   DEMANGLER_ASSERT(node->hasText(), node);
   char diffChar =
-      llvm::StringSwitch<char>(node->getText()).Case("sending", 'T').Default(0);
+      toolchain::StringSwitch<char>(node->getText()).Case("sending", 'T').Default(0);
   if (!diffChar)
-    return MANGLING_ERROR(ManglingError::InvalidImplParameterSending, node);
+    return MANGLING_ERROR(ManglingError::InvalidImplParameterAttr, node);
+  Buffer << diffChar;
+
+  return ManglingError::Success;
+}
+
+ManglingError Remangler::mangleImplParameterIsolated(Node *node,
+                                                     unsigned depth) {
+  DEMANGLER_ASSERT(node->hasText(), node);
+  char diffChar =
+      toolchain::StringSwitch<char>(node->getText()).Case("isolated", 'I').Default(0);
+  if (!diffChar)
+    return MANGLING_ERROR(ManglingError::InvalidImplParameterAttr, node);
+  Buffer << diffChar;
+
+  return ManglingError::Success;
+}
+
+ManglingError Remangler::mangleImplParameterImplicitLeading(Node *node,
+                                                            unsigned depth) {
+  DEMANGLER_ASSERT(node->hasText(), node);
+  char diffChar =
+      toolchain::StringSwitch<char>(node->getText()).Case("sil_implicit_leading_param", 'L').Default(0);
+  if (!diffChar)
+    return MANGLING_ERROR(ManglingError::InvalidImplParameterAttr, node);
   Buffer << diffChar;
 
   return ManglingError::Success;
@@ -1974,7 +1999,7 @@ ManglingError Remangler::mangleImplFunctionConvention(Node *node,
       (node->getNumChildren() > 0 && node->getFirstChild()->hasText())
           ? node->getFirstChild()->getText()
           : "";
-  char FuncAttr = llvm::StringSwitch<char>(text)
+  char FuncAttr = toolchain::StringSwitch<char>(text)
                       .Case("block", 'B')
                       .Case("c", 'C')
                       .Case("method", 'M')
@@ -2033,15 +2058,12 @@ ManglingError Remangler::mangleImplFunctionType(Node *node, unsigned depth) {
     case Node::Kind::ImplYield:
     case Node::Kind::ImplErrorResult:
       // Mangle type. Type should be the last child.
-      DEMANGLER_ASSERT(Child->getNumChildren() == 2 ||
-                           Child->getNumChildren() == 3 ||
-                           Child->getNumChildren() == 4,
-                       node);
+      DEMANGLER_ASSERT(Child->getNumChildren() >= 2, Child);
       RETURN_IF_ERROR(mangle(Child->getLastChild(), depth + 1));
       break;
     case Node::Kind::DependentPseudogenericSignature:
       PseudoGeneric = "P";
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case Node::Kind::DependentGenericSignature:
       GenSig = Child;
       break;
@@ -2103,7 +2125,7 @@ ManglingError Remangler::mangleImplFunctionType(Node *node, unsigned depth) {
         Buffer << 'T';
         break;
       case Node::Kind::ImplConvention: {
-        char ConvCh = llvm::StringSwitch<char>(Child->getText())
+        char ConvCh = toolchain::StringSwitch<char>(Child->getText())
                         .Case("@callee_unowned", 'y')
                         .Case("@callee_guaranteed", 'g')
                         .Case("@callee_owned", 'x')
@@ -2120,7 +2142,7 @@ ManglingError Remangler::mangleImplFunctionType(Node *node, unsigned depth) {
         break;
       }
       case Node::Kind::ImplCoroutineKind: {
-        char CoroAttr = llvm::StringSwitch<char>(Child->getText())
+        char CoroAttr = toolchain::StringSwitch<char>(Child->getText())
                         .Case("yield_once", 'A')
                         .Case("yield_once_2", 'I')
                         .Case("yield_many", 'G')
@@ -2134,7 +2156,7 @@ ManglingError Remangler::mangleImplFunctionType(Node *node, unsigned depth) {
         break;
       }
       case Node::Kind::ImplFunctionAttribute: {
-        char FuncAttr = llvm::StringSwitch<char>(Child->getText())
+        char FuncAttr = toolchain::StringSwitch<char>(Child->getText())
                             .Case("@Sendable", 'h')
                             .Case("@async", 'H')
                             .Default(0);
@@ -2147,11 +2169,11 @@ ManglingError Remangler::mangleImplFunctionType(Node *node, unsigned depth) {
       }
       case Node::Kind::ImplYield:
         Buffer << 'Y';
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case Node::Kind::ImplParameter: {
         // Mangle parameter convention.
         char ConvCh =
-            llvm::StringSwitch<char>(Child->getFirstChild()->getText())
+            toolchain::StringSwitch<char>(Child->getFirstChild()->getText())
                 .Case("@in", 'i')
                 .Case("@inout", 'l')
                 .Case("@inout_aliasable", 'b')
@@ -2171,23 +2193,40 @@ ManglingError Remangler::mangleImplFunctionType(Node *node, unsigned depth) {
                                Child->getFirstChild());
         }
         Buffer << ConvCh;
-        // Mangle parameter differentiability, if it exists.
-        if (Child->getNumChildren() == 3) {
-          RETURN_IF_ERROR(mangleImplParameterResultDifferentiability(
-              Child->getChild(1), depth + 1));
-        } else if (Child->getNumChildren() == 4) {
-          RETURN_IF_ERROR(mangleImplParameterResultDifferentiability(
-              Child->getChild(1), depth + 1));
-          RETURN_IF_ERROR(
-              mangleImplParameterSending(Child->getChild(2), depth + 1));
+
+        for (unsigned i = 1; i < Child->getNumChildren() - 1; ++i) {
+          auto *Grandchild = Child->getChild(i);
+          switch (Grandchild->getKind()) {
+          case Node::Kind::ImplParameterResultDifferentiability:
+            RETURN_IF_ERROR(mangleImplParameterResultDifferentiability(
+              Grandchild, depth + 1));
+            break;
+          case Node::Kind::ImplParameterSending:
+            RETURN_IF_ERROR(mangleImplParameterSending(
+              Grandchild, depth + 1));
+            break;
+          case Node::Kind::ImplParameterIsolated:
+            RETURN_IF_ERROR(mangleImplParameterIsolated(
+              Grandchild, depth + 1));
+            break;
+          case Node::Kind::ImplParameterImplicitLeading:
+            RETURN_IF_ERROR(mangleImplParameterImplicitLeading(
+              Grandchild, depth + 1));
+            break;
+          default:
+            Child->dump();
+            abort();
+            return MANGLING_ERROR(ManglingError::InvalidImplParameterAttr,
+                                  Grandchild);
+          }
         }
         break;
       }
       case Node::Kind::ImplErrorResult:
         Buffer << 'z';
-        LLVM_FALLTHROUGH;
+        TOOLCHAIN_FALLTHROUGH;
       case Node::Kind::ImplResult: {
-        char ConvCh = llvm::StringSwitch<char>(Child->getFirstChild()->getText())
+        char ConvCh = toolchain::StringSwitch<char>(Child->getFirstChild()->getText())
                         .Case("@out", 'r')
                         .Case("@owned", 'o')
                         .Case("@unowned", 'd')
@@ -2784,8 +2823,8 @@ ManglingError Remangler::mangleDependentProtocolConformanceOpaque(Node *node,
                                                                   unsigned depth) {
   DEMANGLER_ASSERT(node->getKind() == Node::Kind::DependentProtocolConformanceOpaque,
                    node);
-  mangleAnyProtocolConformance(node->getChild(0), depth + 1);
-  mangleType(node->getChild(1), depth + 1);
+  RETURN_IF_ERROR(mangleAnyProtocolConformance(node->getChild(0), depth + 1));
+  RETURN_IF_ERROR(mangleType(node->getChild(1), depth + 1));
   Buffer << "HO";
   return ManglingError::Success;
 }
@@ -3579,6 +3618,14 @@ ManglingError Remangler::mangleOutlinedInitializeWithTake(Node *node,
   return ManglingError::Success;
 }
 
+ManglingError
+Remangler::mangleOutlinedInitializeWithTakeNoValueWitness(Node *node,
+                                                          unsigned depth) {
+  RETURN_IF_ERROR(mangleChildNodes(node, depth + 1));
+  Buffer << "WOB";
+  return ManglingError::Success;
+}
+
 ManglingError Remangler::mangleOutlinedInitializeWithCopy(Node *node,
                                                           unsigned depth) {
   RETURN_IF_ERROR(mangleChildNodes(node, depth + 1));
@@ -4104,7 +4151,7 @@ ManglingErrorOr<std::string> Demangle::mangleNode(NodePointer node,
   return remangler.str();
 }
 
-ManglingErrorOr<llvm::StringRef> Demangle::mangleNode(NodePointer node,
+ManglingErrorOr<toolchain::StringRef> Demangle::mangleNode(NodePointer node,
                                                       SymbolicResolver resolver,
                                                       NodeFactory &Factory,
                                                       ManglingFlavor Flavor) {
@@ -4203,7 +4250,7 @@ ManglingErrorOr<NodePointer> Demangle::getUnspecialized(Node *node,
     case Node::Kind::DefaultArgumentInitializer:
     case Node::Kind::Static:
       NumToCopy = node->getNumChildren();
-      LLVM_FALLTHROUGH;
+      TOOLCHAIN_FALLTHROUGH;
     case Node::Kind::Structure:
     case Node::Kind::Enum:
     case Node::Kind::Class:

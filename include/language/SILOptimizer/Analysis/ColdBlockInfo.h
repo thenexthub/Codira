@@ -11,12 +11,13 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
-#ifndef SWIFT_SILOPTIMIZER_ANALYSIS_COLDBLOCKS_H
-#define SWIFT_SILOPTIMIZER_ANALYSIS_COLDBLOCKS_H
+#ifndef LANGUAGE_SILOPTIMIZER_ANALYSIS_COLDBLOCKS_H
+#define LANGUAGE_SILOPTIMIZER_ANALYSIS_COLDBLOCKS_H
 
-#include "llvm/ADT/DenseMap.h"
+#include "toolchain/ADT/DenseMap.h"
 #include "language/SIL/SILValue.h"
 #include "language/Basic/FixedBitSet.h"
 
@@ -58,12 +59,12 @@ private:
 
   /// Each block in this map has been determined to be cold and/or warm.
   /// Make sure to always use the set/resetToCold methods to update this!
-  llvm::DenseMap<const SILBasicBlock*, Energy> EnergyMap;
+  toolchain::DenseMap<const SILBasicBlock*, Energy> EnergyMap;
 
   // This is a cache and shouldn't be copied around.
   ColdBlockInfo(const ColdBlockInfo &) = delete;
   ColdBlockInfo &operator=(const ColdBlockInfo &) = delete;
-  LLVM_DUMP_METHOD void dump() const;
+  TOOLCHAIN_DUMP_METHOD void dump() const;
 
   /// Tracks whether any information was changed in the energy map.
   bool changedMap = false;

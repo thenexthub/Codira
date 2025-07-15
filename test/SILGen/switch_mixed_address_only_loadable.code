@@ -1,0 +1,13 @@
+// RUN: %target-language-emit-silgen %s
+
+// rdar://problem/53956564
+
+fn foo<T>(x: Int, y: T, z: Int) {
+  switch (x, y, z) {
+  case (immutable xx, immutable yy, immutable zz), (immutable xx, immutable yy, immutable zz):
+    _ = xx
+    _ = yy
+    _ = zz
+    break
+  }
+}

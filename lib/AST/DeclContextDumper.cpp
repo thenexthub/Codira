@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/AST/ASTContext.h"
@@ -24,7 +25,7 @@
 #include "language/AST/Stmt.h"
 #include "language/AST/TypeRepr.h"
 #include "language/Subsystems.h"
-#include "llvm/ADT/SetVector.h"
+#include "toolchain/ADT/SetVector.h"
 
 using namespace language;
 
@@ -32,11 +33,11 @@ namespace {
 
 /// Collect 'DeclContext' hierarchy from AST.
 class DeclContextHierarchyCollector : public ASTWalker {
-  llvm::DenseMap<DeclContext *, llvm::SetVector<DeclContext *>> &Map;
+  toolchain::DenseMap<DeclContext *, toolchain::SetVector<DeclContext *>> &Map;
 
 public:
   DeclContextHierarchyCollector(
-      llvm::DenseMap<DeclContext *, llvm::SetVector<DeclContext *>> &Map)
+      toolchain::DenseMap<DeclContext *, toolchain::SetVector<DeclContext *>> &Map)
       : Map(Map) {}
 
   // Insert DC and its ascendants into the map.
@@ -136,9 +137,9 @@ public:
 };
 } // namespace
 
-void swift::dumpDeclContextHierarchy(llvm::raw_ostream &OS,
+void language::dumpDeclContextHierarchy(toolchain::raw_ostream &OS,
                                      SourceFile &SF) {
-  llvm::DenseMap<DeclContext *, llvm::SetVector<DeclContext *>> map;
+  toolchain::DenseMap<DeclContext *, toolchain::SetVector<DeclContext *>> map;
 
   DeclContextHierarchyCollector collector(map);
   SF.walk(collector);

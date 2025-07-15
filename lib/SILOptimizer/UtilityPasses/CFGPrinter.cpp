@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines external functions that can be called to explicitly
@@ -24,7 +25,7 @@
 #include "language/SIL/SILBasicBlock.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILFunction.h"
-#include "llvm/Support/CommandLine.h"
+#include "toolchain/Support/CommandLine.h"
 
 using namespace language;
 
@@ -32,13 +33,13 @@ using namespace language;
 //                                  Options
 //===----------------------------------------------------------------------===//
 
-llvm::cl::opt<std::string> SILViewCFGOnlyFun(
-    "sil-view-cfg-only-function", llvm::cl::init(""),
-    llvm::cl::desc("Only produce a graphviz file for this function"));
+toolchain::cl::opt<std::string> SILViewCFGOnlyFun(
+    "sil-view-cfg-only-function", toolchain::cl::init(""),
+    toolchain::cl::desc("Only produce a graphviz file for this function"));
 
-llvm::cl::opt<std::string> SILViewCFGOnlyFuns(
-    "sil-view-cfg-only-functions", llvm::cl::init(""),
-    llvm::cl::desc("Only produce a graphviz file for the sil for the functions "
+toolchain::cl::opt<std::string> SILViewCFGOnlyFuns(
+    "sil-view-cfg-only-functions", toolchain::cl::init(""),
+    toolchain::cl::desc("Only produce a graphviz file for the sil for the functions "
                    "whose name contains this substring"));
 
 //===----------------------------------------------------------------------===//
@@ -65,6 +66,6 @@ class SILCFGPrinter : public SILFunctionTransform {
 
 } // end anonymous namespace
 
-SILTransform *swift::createCFGPrinter() {
+SILTransform *language::createCFGPrinter() {
   return new SILCFGPrinter();
 }

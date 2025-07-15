@@ -1,0 +1,41 @@
+// RUN: %target-language-frontend -emit-sil -verify %s
+
+fn foo<T>(a: Bool, t: T) {
+  immutable x: T
+  defer { print(x) }
+
+  x = t
+  return
+}
+
+fn bar<T>(a: Bool, t: T) {
+  immutable x: T // expected-note {{defined here}}
+  defer { print(x) } //expected-error{{constant 'x' used before being initialized}}
+
+  if a {
+    x = t
+    return
+  }
+}
+
+fn bas<T>(a: Bool, t: T) {
+  immutable x: T 
+  defer { print(x) }
+
+  if a {
+    x = t
+    return
+  }
+
+  x = t
+}
+
+fn quz<T>(a: Bool, t: T) {
+  immutable closure: (inout T) -> Void = { _ in }
+  var x: T // expected-note {{defined here}}
+  defer { closure(&x) } // expected-error{{variable 'x' passed by reference before being initialized}}
+  if a {
+    x = t
+    return
+  }
+}

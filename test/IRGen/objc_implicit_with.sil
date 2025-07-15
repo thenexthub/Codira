@@ -1,0 +1,48 @@
+// RUN: %empty-directory(%t)
+// RUN: %build-irgen-test-overlays
+// RUN: %target-language-frontend(mock-sdk: -sdk %S/Inputs -I %t) %s -emit-ir | %FileCheck %s
+
+// REQUIRES: CPU=x86_64
+// REQUIRES: objc_interop
+
+// CHECK: @"\01L_selector_data(initWithRed:green:blue:)"
+// CHECK: @"\01L_selector_data(colorWithRed:green:blue:)"
+// CHECK: @"\01L_selector_data(otherColorForRed:green:blue:)"
+
+sil_stage raw
+
+import Builtin
+import Codira
+import gizmo
+
+class CodiraGizmo : Gizmo {
+  @objc init(red: Float, green: Float, blue: Float) { }
+  @objc fn color(red: Float, green: Float, blue: Float)
+  @objc fn otherColorFor(red: Float, green: Float, blue: Float)
+}
+sil_vtable CodiraGizmo {}
+
+sil @$s18objc_implicit_with10CodiraGizmoC3red5green4blueACSf_S2ftcfcTo : $@convention(objc_method) (Float, Float, Float, @owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $Float, %1 : $Float, %2 : $Float, %3 : $CodiraGizmo):
+  return %3 : $CodiraGizmo
+}
+
+sil @$s18objc_implicit_with10CodiraGizmoC7bellsOnACSgSi_tcfcTo : $@convention(objc_method) (Int, @owned CodiraGizmo) -> @owned CodiraGizmo? {
+bb0(%0 : $Int, %1 : $CodiraGizmo):
+  unreachable
+}
+
+sil @$s18objc_implicit_with10CodiraGizmoCACycfcTo : $@convention(objc_method) (@owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $CodiraGizmo):
+  return %0 : $CodiraGizmo
+}
+
+sil @$s18objc_implicit_with10CodiraGizmoC5color3red5green4blueySf_S2ftFTo : $@convention(objc_method) (Float, Float, Float, @owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $Float, %1 : $Float, %2 : $Float, %3 : $CodiraGizmo):
+  return %3 : $CodiraGizmo
+}
+
+sil @$s18objc_implicit_with10CodiraGizmoC13otherColorFor3red5green4blueySf_S2ftFTo : $@convention(objc_method) (Float, Float, Float, @owned CodiraGizmo) -> @owned CodiraGizmo {
+bb0(%0 : $Float, %1 : $Float, %2 : $Float, %3 : $CodiraGizmo):
+  return %3 : $CodiraGizmo
+}

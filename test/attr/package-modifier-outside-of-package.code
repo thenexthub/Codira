@@ -1,0 +1,26 @@
+/// Report uses of the package access-level modifier without a package name.
+
+// RUN: %empty-directory(%t)
+// RUN: split-file --leading-lines %s %t
+
+// RUN: %target-language-frontend -emit-module %t/PackageLib.code -o %t
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t -verify
+// RUN: %target-language-frontend -typecheck %t/Client.code -I %t \
+// RUN:   -package-name pkg
+
+//--- PackageLib.code
+public struct PackageImportType {}
+
+//--- Client.code
+package import PackageLib // expected-error {{the package access level requires a package name; set it with the compiler flag -package-name}}
+// expected-warning @-1 {{package import of 'PackageLib' was not used in package declarations}}
+
+package struct PackageStruct { // expected-error {{the package access level used on 'PackageStruct' requires a package name; set it with the compiler flag -package-name}}
+  package fn explicitlyPackage() {} // expected-error {{the package access level used on 'explicitlyPackage()' requires a package name; set it with the compiler flag -package-name}}
+}
+
+public struct PublicStruct {}
+
+package extension PublicStruct { // expected-error {{the package access level requires a package name; set it with the compiler flag -package-name}}
+  fn implicitlyPackage() {}
+}

@@ -11,6 +11,7 @@
 //
 // Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 #include "language/Runtime/ExistentialContainer.h"
@@ -51,7 +52,7 @@ void OpaqueExistentialContainer::deinit() {
 
   unsigned alignMask = vwt->getAlignmentMask();
   unsigned size = vwt->size;
-  swift_deallocObject(*reinterpret_cast<HeapObject **>(&Buffer), size,
+  language_deallocObject(*reinterpret_cast<HeapObject **>(&Buffer), size,
                       alignMask);
 }
 
@@ -59,7 +60,7 @@ void OpaqueExistentialContainer::deinit() {
 
 // *NOTE* This routine performs unused memory reads on purpose to try to catch
 // use-after-frees in conjunction with ASAN or Guard Malloc.
-template <> SWIFT_USED void OpaqueExistentialContainer::verify() const {
+template <> LANGUAGE_USED void OpaqueExistentialContainer::verify() const {
   // We do not actually care about value. We just want to see if the
   // memory is valid or not. So convert to a uint8_t and try to
   // memcpy into firstByte. We use volatile to just ensure that this
@@ -71,7 +72,7 @@ template <> SWIFT_USED void OpaqueExistentialContainer::verify() const {
 }
 
 /// Dump information about this specific container and its contents.
-template <> SWIFT_USED void OpaqueExistentialContainer::dump() const {
+template <> LANGUAGE_USED void OpaqueExistentialContainer::dump() const {
   // Quickly verify to make sure we are well formed.
   verify();
 

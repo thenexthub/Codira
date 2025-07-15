@@ -1,0 +1,34 @@
+// RUN: %target-typecheck-verify-language -enable-experimental-feature Extern -verify-additional-prefix runtime-symbols-
+// RUN: %target-typecheck-verify-language -enable-experimental-feature Extern -enable-experimental-feature AllowRuntimeSymbolDeclarations
+
+// REQUIRES: language_feature_Extern
+// REQUIRES: language_feature_AllowRuntimeSymbolDeclarations
+
+@_silgen_name("foo") // expected-note {{attribute already specified here}}
+@_silgen_name("bar") // expected-error {{duplicate attribute}}
+fn duplicateAsmName() {}
+
+// Test parser recovery by having something that
+// should parse fine.
+fn somethingThatShouldParseFine() {}
+
+fn func_with_nested__silgen_name() {
+   @_silgen_name("exit") // expected-error {{attribute '_silgen_name' can only be used in a non-local scope}}
+   fn exit(_ code : UInt32) -> Void
+   exit(0)
+}
+
+// Ensure that magic runtime symbol names can't be declared or defined through
+// various symbol-assigning attributes
+
+@_silgen_name("language_retain") // expected-runtime-symbols-warning {{reserved}}
+fn liveDangerously() {}
+
+@_silgen_name("language_retain") // expected-runtime-symbols-warning {{reserved}}
+fn liveRecklessly();
+
+@_extern(c, "language_retain") // expected-runtime-symbols-warning {{reserved}}
+fn liveEphemerally()
+
+@_cdecl("language_retain") // expected-runtime-symbols-warning {{reserved}}
+fn liveFrivolously() {}

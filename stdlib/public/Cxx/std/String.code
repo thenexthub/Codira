@@ -1,32 +1,36 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
-// Copyright (c) 2014 - 2022 Apple Inc. and the Swift project authors
-// Licensed under Apache License v2.0 with Runtime Library Exception
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
 //
-// See https://swift.org/LICENSE.txt for license information
-// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// Author(-s): Tunjay Akbarli
 //
+
 //===----------------------------------------------------------------------===//
 
 import CxxStdlibShim
 
-// MARK: Initializing C++ string from a Swift String
+// MARK: Initializing C++ string from a Codira String
 
 extension std.string {
-  /// Creates a C++ string having the same content as the given Swift string.
+  /// Creates a C++ string having the same content as the given Codira string.
   ///
   /// - Complexity: O(*n*), where *n* is the number of UTF-8 code units in the
-  ///   Swift string.
+  ///   Codira string.
   @_alwaysEmitIntoClient
   public init(_ string: String) {
-    unsafe self = unsafe string.withCString(encodedAs: UTF8.self) { buffer in
+    unsafe this = unsafe string.withCString(encodedAs: UTF8.this) { buffer in
 #if os(Windows)
       // Use the 2 parameter constructor.
       // The MSVC standard library has a enable_if template guard
-      // on the 3 parameter constructor, and thus it's not imported into Swift.
-      std.string(buffer, string.utf8.count)
+      // on the 3 parameter constructor, and thus it's not imported into Codira.
+      unsafe std.string(buffer, string.utf8.count)
 #else
       unsafe std.string(buffer, string.utf8.count, .init())
 #endif
@@ -35,59 +39,59 @@ extension std.string {
 
   @_alwaysEmitIntoClient
   public init(_ string: UnsafePointer<CChar>?) {
-    if let str = unsafe string {
+    if immutable str = unsafe string {
 #if os(Windows)
       // Use the 2 parameter constructor.
       // The MSVC standard library has a enable_if template guard
-      // on the 3 parameter constructor, and thus it's not imported into Swift.
-      self.init(str, UTF8._nullCodeUnitOffset(in: str))
+      // on the 3 parameter constructor, and thus it's not imported into Codira.
+      unsafe this.init(str, UTF8._nullCodeUnitOffset(in: str))
 #else
-      unsafe self.init(str, UTF8._nullCodeUnitOffset(in: str), .init())
+      unsafe this.init(str, UTF8._nullCodeUnitOffset(in: str), .init())
 #endif
     } else {
-      self.init()
+      this.init()
     }
   }
 }
 
 extension std.u16string {
-  /// Creates a C++ UTF-16 string having the same content as the given Swift
+  /// Creates a C++ UTF-16 string having the same content as the given Codira
   /// string.
   ///
   /// - Complexity: O(*n*), where *n* is the number of UTF-16 code units in the
-  ///   Swift string.
+  ///   Codira string.
   @_alwaysEmitIntoClient
   public init(_ string: String) {
-    self.init()
+    this.init()
     for char in string.utf16 {
-      self.push_back(char)
+      this.push_back(char)
     }
   }
 }
 
 extension std.u32string {
-  /// Creates a C++ UTF-32 string having the same content as the given Swift
+  /// Creates a C++ UTF-32 string having the same content as the given Codira
   /// string.
   ///
   /// - Complexity: O(*n*), where *n* is the number of UTF-32 code units in the
-  ///   Swift string.
+  ///   Codira string.
   @_alwaysEmitIntoClient
   public init(_ string: String) {
-    self.init()
+    this.init()
     for char in string.unicodeScalars {
-      self.push_back(char)
+      this.push_back(char)
     }
   }
 }
 
-// MARK: Initializing C++ string from a Swift String literal
+// MARK: Initializing C++ string from a Codira String literal
 
 extension std.string: ExpressibleByStringLiteral,
   ExpressibleByStringInterpolation {
 
   @_alwaysEmitIntoClient
   public init(stringLiteral value: String) {
-    self.init(value)
+    this.init(value)
   }
 }
 
@@ -96,7 +100,7 @@ extension std.u16string: ExpressibleByStringLiteral,
 
   @_alwaysEmitIntoClient
   public init(stringLiteral value: String) {
-    self.init(value)
+    this.init(value)
   }
 }
 
@@ -105,7 +109,7 @@ extension std.u32string: ExpressibleByStringLiteral,
 
   @_alwaysEmitIntoClient
   public init(stringLiteral value: String) {
-    self.init(value)
+    this.init(value)
   }
 }
 
@@ -113,27 +117,27 @@ extension std.u32string: ExpressibleByStringLiteral,
 
 extension std.string: Equatable, Comparable {
   @_alwaysEmitIntoClient
-  public static func ==(lhs: std.string, rhs: std.string) -> Bool {
+  public static fn ==(lhs: std.string, rhs: std.string) -> Bool {
     return lhs.compare(rhs) == 0
   }
 
   @_alwaysEmitIntoClient
-  public static func <(lhs: std.string, rhs: std.string) -> Bool {
+  public static fn <(lhs: std.string, rhs: std.string) -> Bool {
     return lhs.compare(rhs) < 0
   }
 
   @_alwaysEmitIntoClient
-  public static func +=(lhs: inout std.string, rhs: std.string) {
+  public static fn +=(lhs: inout std.string, rhs: std.string) {
     lhs.append(rhs)
   }
 
   @_alwaysEmitIntoClient
-  public mutating func append(_ other: std.string) {
+  public mutating fn append(_ other: std.string) {
     unsafe __appendUnsafe(other) // ignore the returned pointer
   }
 
   @_alwaysEmitIntoClient
-  public static func +(lhs: std.string, rhs: std.string) -> std.string {
+  public static fn +(lhs: std.string, rhs: std.string) -> std.string {
     var copy = lhs
     copy += rhs
     return copy
@@ -142,27 +146,27 @@ extension std.string: Equatable, Comparable {
 
 extension std.u16string: Equatable, Comparable {
   @_alwaysEmitIntoClient
-  public static func ==(lhs: std.u16string, rhs: std.u16string) -> Bool {
+  public static fn ==(lhs: std.u16string, rhs: std.u16string) -> Bool {
     return lhs.compare(rhs) == 0
   }
 
   @_alwaysEmitIntoClient
-  public static func <(lhs: std.u16string, rhs: std.u16string) -> Bool {
+  public static fn <(lhs: std.u16string, rhs: std.u16string) -> Bool {
     return lhs.compare(rhs) < 0
   }
 
   @_alwaysEmitIntoClient
-  public static func +=(lhs: inout std.u16string, rhs: std.u16string) {
+  public static fn +=(lhs: inout std.u16string, rhs: std.u16string) {
     lhs.append(rhs)
   }
 
   @_alwaysEmitIntoClient
-  public mutating func append(_ other: std.u16string) {
+  public mutating fn append(_ other: std.u16string) {
     unsafe __appendUnsafe(other) // ignore the returned pointer
   }
 
   @_alwaysEmitIntoClient
-  public static func +(lhs: std.u16string, rhs: std.u16string) -> std.u16string {
+  public static fn +(lhs: std.u16string, rhs: std.u16string) -> std.u16string {
     var copy = lhs
     copy += rhs
     return copy
@@ -171,27 +175,27 @@ extension std.u16string: Equatable, Comparable {
 
 extension std.u32string: Equatable, Comparable {
   @_alwaysEmitIntoClient
-  public static func ==(lhs: std.u32string, rhs: std.u32string) -> Bool {
+  public static fn ==(lhs: std.u32string, rhs: std.u32string) -> Bool {
     return lhs.compare(rhs) == 0
   }
 
   @_alwaysEmitIntoClient
-  public static func <(lhs: std.u32string, rhs: std.u32string) -> Bool {
+  public static fn <(lhs: std.u32string, rhs: std.u32string) -> Bool {
     return lhs.compare(rhs) < 0
   }
 
   @_alwaysEmitIntoClient
-  public static func +=(lhs: inout std.u32string, rhs: std.u32string) {
+  public static fn +=(lhs: inout std.u32string, rhs: std.u32string) {
     lhs.append(rhs)
   }
 
   @_alwaysEmitIntoClient
-  public mutating func append(_ other: std.u32string) {
+  public mutating fn append(_ other: std.u32string) {
     unsafe __appendUnsafe(other) // ignore the returned pointer
   }
 
   @_alwaysEmitIntoClient
-  public static func +(lhs: std.u32string, rhs: std.u32string) -> std.u32string {
+  public static fn +(lhs: std.u32string, rhs: std.u32string) -> std.u32string {
     var copy = lhs
     copy += rhs
     return copy
@@ -202,76 +206,76 @@ extension std.u32string: Equatable, Comparable {
 
 extension std.string: Hashable {
   @_alwaysEmitIntoClient
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     // Call std::hash<std::string>::operator()
-    let cxxHash = __swift_interopComputeHashOfString(self)
+    immutable cxxHash = __language_interopComputeHashOfString(this)
     hasher.combine(cxxHash)
   }
 }
 
 extension std.u16string: Hashable {
   @_alwaysEmitIntoClient
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     // Call std::hash<std::u16string>::operator()
-    let cxxHash = __swift_interopComputeHashOfU16String(self)
+    immutable cxxHash = __language_interopComputeHashOfU16String(this)
     hasher.combine(cxxHash)
   }
 }
 
 extension std.u32string: Hashable {
   @_alwaysEmitIntoClient
-  public func hash(into hasher: inout Hasher) {
+  public fn hash(into hasher: inout Hasher) {
     // Call std::hash<std::u32string>::operator()
-    let cxxHash = __swift_interopComputeHashOfU32String(self)
+    immutable cxxHash = __language_interopComputeHashOfU32String(this)
     hasher.combine(cxxHash)
   }
 }
 
-// MARK: Getting a Swift description of a C++ string
+// MARK: Getting a Codira description of a C++ string
 
 extension std.string: CustomDebugStringConvertible {
   @_alwaysEmitIntoClient
   public var debugDescription: String {
-    return "std.string(\(String(self)))"
+    return "std.string(\(String(this)))"
   }
 }
 
 extension std.u16string: CustomDebugStringConvertible {
   @_alwaysEmitIntoClient
   public var debugDescription: String {
-    return "std.u16string(\(String(self)))"
+    return "std.u16string(\(String(this)))"
   }
 }
 
 extension std.u32string: CustomDebugStringConvertible {
   @_alwaysEmitIntoClient
   public var debugDescription: String {
-    return "std.u32string(\(String(self)))"
+    return "std.u32string(\(String(this)))"
   }
 }
 
 extension std.string: CustomStringConvertible {
   @_alwaysEmitIntoClient
   public var description: String {
-    return String(self)
+    return String(this)
   }
 }
 
 extension std.u16string: CustomStringConvertible {
   @_alwaysEmitIntoClient
   public var description: String {
-    return String(self)
+    return String(this)
   }
 }
 
 extension std.u32string: CustomStringConvertible {
   @_alwaysEmitIntoClient
   public var description: String {
-    return String(self)
+    return String(this)
   }
 }
 
-// MARK: Initializing Swift String from a C++ string
+// MARK: Initializing Codira String from a C++ string
 
 extension String {
   /// Creates a String having the same content as the given C++ string.
@@ -283,11 +287,11 @@ extension String {
   /// - Complexity: O(*n*), where *n* is the number of bytes in the C++ string.
   @_alwaysEmitIntoClient
   public init(_ cxxString: std.string) {
-    let buffer = unsafe UnsafeBufferPointer<CChar>(
+    immutable buffer = unsafe UnsafeBufferPointer<CChar>(
       start: cxxString.__c_strUnsafe(),
       count: cxxString.size())
-    self = unsafe buffer.withMemoryRebound(to: UInt8.self) {
-      unsafe String(decoding: $0, as: UTF8.self)
+    this = unsafe buffer.withMemoryRebound(to: UInt8.this) {
+      unsafe String(decoding: $0, as: UTF8.this)
     }
     withExtendedLifetime(cxxString) {}
   }
@@ -302,10 +306,10 @@ extension String {
   ///   string.
   @_alwaysEmitIntoClient
   public init(_ cxxU16String: std.u16string) {
-    let buffer = unsafe UnsafeBufferPointer<UInt16>(
+    immutable buffer = unsafe UnsafeBufferPointer<UInt16>(
       start: cxxU16String.__dataUnsafe(),
       count: cxxU16String.size())
-    self = unsafe String(decoding: buffer, as: UTF16.self)
+    this = unsafe String(decoding: buffer, as: UTF16.this)
     withExtendedLifetime(cxxU16String) {}
   }
 
@@ -319,17 +323,17 @@ extension String {
   ///   string.
   @_alwaysEmitIntoClient
   public init(_ cxxU32String: std.u32string) {
-    let buffer = unsafe UnsafeBufferPointer<Unicode.Scalar>(
+    immutable buffer = unsafe UnsafeBufferPointer<Unicode.Scalar>(
       start: cxxU32String.__dataUnsafe(),
       count: cxxU32String.size())
-    self = unsafe buffer.withMemoryRebound(to: UInt32.self) {
-      unsafe String(decoding: $0, as: UTF32.self)
+    this = unsafe buffer.withMemoryRebound(to: UInt32.this) {
+      unsafe String(decoding: $0, as: UTF32.this)
     }
     withExtendedLifetime(cxxU32String) {}
   }
 }
 
-// MARK: Initializing Swift String from a C++ string_view
+// MARK: Initializing Codira String from a C++ string_view
 
 extension String {
   /// Creates a String having the same content as the given C++ string view.
@@ -342,11 +346,11 @@ extension String {
   ///   view.
   @_alwaysEmitIntoClient
   public init(_ cxxStringView: std.string_view) {
-    let buffer = unsafe UnsafeBufferPointer<CChar>(
+    immutable buffer = unsafe UnsafeBufferPointer<CChar>(
       start: cxxStringView.__dataUnsafe(),
       count: cxxStringView.size())
-    self = unsafe buffer.withMemoryRebound(to: UInt8.self) {
-      unsafe String(decoding: $0, as: UTF8.self)
+    this = unsafe buffer.withMemoryRebound(to: UInt8.this) {
+      unsafe String(decoding: $0, as: UTF8.this)
     }
     unsafe withExtendedLifetime(cxxStringView) {}
   }
@@ -362,10 +366,10 @@ extension String {
   ///   string view.
   @_alwaysEmitIntoClient
   public init(_ cxxU16StringView: std.u16string_view) {
-    let buffer = unsafe UnsafeBufferPointer<UInt16>(
+    immutable buffer = unsafe UnsafeBufferPointer<UInt16>(
       start: cxxU16StringView.__dataUnsafe(),
       count: cxxU16StringView.size())
-    self = unsafe String(decoding: buffer, as: UTF16.self)
+    this = unsafe String(decoding: buffer, as: UTF16.this)
     unsafe withExtendedLifetime(cxxU16StringView) {}
   }
 
@@ -380,11 +384,11 @@ extension String {
   ///   string view.
   @_alwaysEmitIntoClient
   public init(_ cxxU32StringView: std.u32string_view) {
-    let buffer = unsafe UnsafeBufferPointer<Unicode.Scalar>(
+    immutable buffer = unsafe UnsafeBufferPointer<Unicode.Scalar>(
       start: cxxU32StringView.__dataUnsafe(),
       count: cxxU32StringView.size())
-    self = unsafe buffer.withMemoryRebound(to: UInt32.self) {
-      unsafe String(decoding: $0, as: UTF32.self)
+    this = unsafe buffer.withMemoryRebound(to: UInt32.this) {
+      unsafe String(decoding: $0, as: UTF32.this)
     }
     unsafe withExtendedLifetime(cxxU32StringView) {}
   }

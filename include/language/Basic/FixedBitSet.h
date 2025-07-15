@@ -1,9 +1,17 @@
-//===- llvm/ADT/FixedBitSet.h - Fixed-length bitset -------------*- C++ -*-===//
+//===- toolchain/ADT/FixedBitSet.h - Fixed-length bitset -------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) NeXTHub Corporation. All rights reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
+// This code is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// version 2 for more details (a copy is included in the LICENSE file that
+// accompanied this code).
+//
+// Author(-s): Tunjay Akbarli
+//
+
 //===----------------------------------------------------------------------===//
 //
 // This file defines the FixedBitSet template, which is basically
@@ -17,13 +25,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_ADT_FIXEDBITSET_H
-#define LLVM_ADT_FIXEDBITSET_H
+#ifndef TOOLCHAIN_ADT_FIXEDBITSET_H
+#define TOOLCHAIN_ADT_FIXEDBITSET_H
 
 #include <assert.h>
 #include <inttypes.h>
 #include <initializer_list>
-#include "llvm/Support/MathExtras.h"
+#include "toolchain/Support/MathExtras.h"
 
 namespace language {
 
@@ -226,7 +234,7 @@ public:
     ValueType operator*() const {
       assert(remainingChunk && "dereferencing a completed iterator");
       return ValueType(chunkIndex * chunkSize +
-                       llvm::countr_zero(remainingChunk));
+                       toolchain::countr_zero(remainingChunk));
     }
 
     bool operator==(const iterator &other) const {

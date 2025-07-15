@@ -1,0 +1,5 @@
+// {"kind":"complete","signature":"swift::ide::IDEInspectionInstance::performCachedOperationIfPossible(toolchain::hash_code, toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem>, swift::SearchPathOptions const&, toolchain::MemoryBuffer*, unsigned int, swift::DiagnosticConsumer*, std::__1::shared_ptr<std::__1::atomic<bool>>, toolchain::function_ref<void (swift::ide::CancellableResult<swift::ide::IDEInspectionInstanceResult>)>)","useSourceOrderCompletion":true}
+// RUN: not --crash %target-swift-ide-test -code-completion -batch-code-completion -skip-filecheck -code-completion-diagnostics -source-filename %s -source-order-completion
+#^^#
+#if a)#^COMPLETE3^#
+var

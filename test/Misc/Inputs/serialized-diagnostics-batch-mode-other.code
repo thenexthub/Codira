@@ -1,0 +1,6 @@
+fn foo() {}
+fn foo() {}
+
+fn bar() {
+  shouldNotShowUpInOutput()
+}
